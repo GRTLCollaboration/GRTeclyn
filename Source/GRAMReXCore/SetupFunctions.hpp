@@ -10,8 +10,6 @@
 
 // Other includes
 #include <iostream>
-using std::cerr;
-using std::endl;
 #include "AMReXParameters.hpp"
 #include "DerivativeSetup.hpp"
 #include "FilesystemTools.hpp"
@@ -40,58 +38,30 @@ void mainFinalize();
 
 void mainSetup(int argc, char *argv[])
 {
-#ifdef CH_MPI
-    // Start MPI
-    MPI_Init(&argc, &argv);
-#ifdef CH_AIX
-    H5dont_atexit();
-#endif
-// setChomboMPIErrorHandler();
-#endif
-
-    int rank, number_procs;
-#ifdef CH_MPI
-    MPI_Comm_rank(Chombo_MPI::comm, &rank);
-    MPI_Comm_size(Chombo_MPI::comm, &number_procs);
-#else
-    rank = 0;
-    number_procs = 1;
-#endif
+    amrex::Initialize(argc, argv);
 
 #ifdef EQUATION_DEBUG_MODE
     EquationDebugging::check_no_omp();
-    amrex::Warning("GRChombo is running in equation debug mode. This mode is "
-                    "intended only for debugging and leads to significantly "
-                    "worse performance.");
+    amrex::Warning("GRAMReX is running in equation debug mode. This mode is "
+                   "intended only for debugging and leads to significantly "
+                   "worse performance.");
 #endif
 
-    if (rank == 0)
-    {
-        std::cout << " number_procs = " << number_procs << endl;
-#ifdef _OPENMP
-        std::cout << " threads = " << omp_get_max_threads() << endl;
-#endif
-        std::cout << " simd width (doubles) = " << simd_traits<double>::simd_len
-                  << endl;
-    }
+    amrex::Print() << " simd width (doubles) = " << simd_traits<double>::simd_len
+                   << std::endl;
 
     const int required_argc = 2;
     if (argc < required_argc)
     {
-        cerr << " usage " << argv[0] << " <input_file_name> " << endl;
+        amrex::Finalize();
+        std::cerr << " usage " << argv[0] << " <input_file_name> " << std::endl;
         exit(0);
     }
 }
 
 void mainFinalize()
 {
-#ifdef CH_MPI
-    // Exit MPI
-#ifdef CH_USE_MEMORY_TRACKING
-    dumpmemoryatexit();
-#endif
-    MPI_Finalize();
-#endif
+    amrex::Finalize();
 }
 
 #if 0
