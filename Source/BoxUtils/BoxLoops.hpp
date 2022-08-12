@@ -42,13 +42,13 @@ innermost_loop(const ComputePack<compute_ts...> &compute_pack,
 /// 'out'.
 template <typename... compute_ts, typename... simd_info>
 void loop(const ComputePack<compute_ts...> &compute_pack, const amrex::FArrayBox &in,
-          amrex::FArrayBox &out, const Box &loop_box, simd_info... info);
+          amrex::FArrayBox &out, const amrex::Box &loop_box, simd_info... info);
 
 /// Same as above but for only one compute class (rather than a pack of them)
 template <typename compute_t, typename... simd_info>
 std::enable_if_t<!is_compute_pack<compute_t>::value, void>
 loop(compute_t compute_class, const amrex::FArrayBox &in, amrex::FArrayBox &out,
-     const Box &loop_box, simd_info... info);
+     const amrex::Box &loop_box, simd_info... info);
 
 /// Performs loop insde the whole box of 'out' and calls compute(...) for all
 /// compute classes in the compute_pack  with input amrex::FArrayBox 'in' and output

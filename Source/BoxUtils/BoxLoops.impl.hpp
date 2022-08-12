@@ -34,14 +34,14 @@ void BoxLoops::innermost_loop(const ComputePack<compute_ts...> &compute_pack,
     for (int ix = loop_lo_x; ix <= x_simd_max; ix += simd_width)
     {
         compute_pack.call_compute(
-            Cell<simd<double>>(IntVect(ix, iy, iz), box_pointers));
+            Cell<simd<double>>(amrex::IntVect(ix, iy, iz), box_pointers));
     }
 
     // REMAINDER LOOP
     for (int ix = x_simd_max + simd<double>::simd_len; ix <= loop_hi_x; ++ix)
     {
         compute_pack.call_compute(
-            Cell<double>(IntVect(ix, iy, iz), box_pointers));
+            Cell<double>(amrex::IntVect(ix, iy, iz), box_pointers));
     }
 }
 
@@ -54,13 +54,13 @@ void BoxLoops::innermost_loop(const ComputePack<compute_ts...> &compute_pack,
     for (int ix = loop_lo_x; ix <= loop_hi_x; ++ix)
     {
         compute_pack.call_compute(
-            Cell<double>(IntVect(ix, iy, iz), box_pointers));
+            Cell<double>(amrex::IntVect(ix, iy, iz), box_pointers));
     }
 }
 
 template <typename... compute_ts, typename... simd_info>
 void BoxLoops::loop(const ComputePack<compute_ts...> &compute_pack,
-                    const FArrayBox &in, FArrayBox &out, const Box &loop_box,
+                    const amrex::FArrayBox &in, amrex::FArrayBox &out, const amrex::Box &loop_box,
                     simd_info... info)
 {
     // Makes sure we are not requesting data outside the box of 'out'
@@ -89,8 +89,8 @@ void BoxLoops::loop(const ComputePack<compute_ts...> &compute_pack,
 
 template <typename compute_t, typename... simd_info>
 std::enable_if_t<!is_compute_pack<compute_t>::value, void>
-BoxLoops::loop(compute_t compute_class, const FArrayBox &in, FArrayBox &out,
-               const Box &loop_box, simd_info... info)
+BoxLoops::loop(compute_t compute_class, const amrex::FArrayBox &in, amrex::FArrayBox &out,
+               const amrex::Box &loop_box, simd_info... info)
 {
     loop(make_compute_pack(compute_class), in, out, loop_box,
          std::forward<simd_info>(info)...);
@@ -98,14 +98,14 @@ BoxLoops::loop(compute_t compute_class, const FArrayBox &in, FArrayBox &out,
 
 template <typename... compute_ts, typename... simd_info>
 void BoxLoops::loop(const ComputePack<compute_ts...> &compute_pack,
-                    const FArrayBox &in, FArrayBox &out, simd_info... info)
+                    const amrex::FArrayBox &in, amrex::FArrayBox &out, simd_info... info)
 {
     loop(compute_pack, in, out, out.box(), std::forward<simd_info>(info)...);
 }
 
 template <typename compute_t, typename... simd_info>
 std::enable_if_t<!is_compute_pack<compute_t>::value, void>
-BoxLoops::loop(compute_t compute_class, const FArrayBox &in, FArrayBox &out,
+BoxLoops::loop(compute_t compute_class, const amrex::FArrayBox &in, amrex::FArrayBox &out,
                simd_info... info)
 {
     loop(make_compute_pack(compute_class), in, out,
@@ -117,15 +117,17 @@ void BoxLoops::loop(const ComputePack<compute_ts...> &compute_pack,
                     const amrex::MultiFab &in, amrex::MultiFab &out,
                     bool fill_ghosts, simd_info... info)
 {
+#if 0
+//xxxxx
     DataIterator dit0 = in.dataIterator();
     int nbox = dit0.size();
     for (int ibox = 0; ibox < nbox; ++ibox)
     {
         DataIndex di = dit0[ibox];
-        const FArrayBox &in_fab = in[di];
-        FArrayBox &out_fab = out[di];
+        const amrex::FArrayBox &in_fab = in[di];
+        amrex::FArrayBox &out_fab = out[di];
 
-        Box out_box;
+        amrex::Box out_box;
         if (fill_ghosts)
             out_box = out_fab.box();
         else
@@ -134,6 +136,7 @@ void BoxLoops::loop(const ComputePack<compute_ts...> &compute_pack,
         loop(compute_pack, in_fab, out_fab, out_box,
              std::forward<simd_info>(info)...);
     }
+#endif
 }
 
 template <typename compute_t, typename... simd_info>

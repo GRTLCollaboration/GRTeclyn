@@ -11,6 +11,7 @@
 #include "BSSNVars.hpp"
 #include "Cell.hpp"
 #include "FourthOrderDerivatives.hpp"
+#include "Interval.hpp"
 #include "Tensor.hpp"
 #include "simd.hpp"
 
