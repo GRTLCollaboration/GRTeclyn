@@ -573,7 +573,7 @@ class AMReXParameters
                 warning_message_ss << "Parameter: " << a_name << " = "
                                    << a_value
                                    << " warning: " << a_warning_explanation;
-                MayDay::Warning(warning_message_ss.str().c_str());
+                amrex::Warning(warning_message_ss.str().c_str());
             }
         }
     }

@@ -563,7 +563,7 @@ void GRAMRLevel::readCheckpointHeader(HDF5Handle &a_handle)
         {
             if (m_p.ignore_checkpoint_name_mismatch)
             {
-                MayDay::Warning("GRAMRLevel::readCheckpointHeader: state_name "
+                amrex::Warning("GRAMRLevel::readCheckpointHeader: state_name "
                                 "mismatch error silenced by user.");
             }
             else
@@ -879,7 +879,7 @@ void GRAMRLevel::writePlotHeader(HDF5Handle &a_handle) const
     }
     else
     {
-        MayDay::Warning("GRAMRLevel::writePlotLevel: A plot interval is "
+        amrex::Warning("GRAMRLevel::writePlotLevel: A plot interval is "
                         "provided but no components are selected for plotting. "
                         "Plot files will be empty.");
     }

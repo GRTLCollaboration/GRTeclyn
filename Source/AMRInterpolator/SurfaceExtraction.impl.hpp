@@ -199,7 +199,7 @@ void SurfaceExtraction<SurfaceGeometry>::add_integrand(
         IntegrationMethod method_v = IntegrationMethod::trapezium;
         if (!valid_u)
         {
-            MayDay::Warning(
+            amrex::Warning(
                 "SurfaceExtraction<SurfaceGeometry>::integrate: Provided "
                 "IntegrationMethod for u is not valid with\nthis num_points_u; "
                 "reverting to trapezium rule.");
@@ -210,7 +210,7 @@ void SurfaceExtraction<SurfaceGeometry>::add_integrand(
         }
         if (!valid_v)
         {
-            MayDay::Warning(
+            amrex::Warning(
                 "SurfaceExtraction<SurfaceGeometry>::integrate: Provided "
                 "IntegrationMethod for v is not valid with\nthis num_points_v; "
                 "reverting to trapezium rule.");
