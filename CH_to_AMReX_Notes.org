@@ -1,0 +1,35 @@
+* Terminology for Chombo and AMReX
+| Chombo                       | AMReX                         |
+|------------------------------+-------------------------------|
+| CH_SPACEDIM                  | AMREX_SPACEDIM                |
+| CH_assert                    | AMREX_ASSERT                  |
+| CH_TIME                      | BL_PROFILE                    |
+| CH_USE_HDF5                  |                               |
+| MayDay::Error                | amrex::Abort                  |
+| MayDay::Warning              | amrex::Warning                |
+| pout                         | amrex::Print                  |
+| ProblemDomain                | Geometry (not exactly)        |
+| Interval                     | two ints                      |
+| LevelData<FArrayBox>         | MultiFab                      |
+| BoxLayout, DisjointBoxLayout | BoxArray, DistributionMapping |
+| procID()                     | ParallelDescriptor::MyProc()  |
+
+* Assert
+Besides AMREX_ASSERT, AMReX also has
+  AMREX_ASSERT_WITH_MESSAGE(test,"message")
+  AMREX_ALWAYS_ASSERT(test)
+  AMREX_ALWAYS_ASSERT_WITH_MESSAGE
+
+* Profiling
+To enable amrex tiny profiler, compile with TINY_PROFILE=TRUE
+
+* Print
+Besides amrex::Print, there are AllPrint, PrintToFile, AllPrintToFile.
+
+* Interval
+AMReX uses two ints.  The first is for the starting component index, and the
+second for the number of components.  Add Interval.hpp to Source/utils
+
+* Vector
+amrex::Vector is derived from std::vector.  So no need to call `stdVector()`
+to get std::vector.
