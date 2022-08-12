@@ -6,9 +6,8 @@
 #ifndef MULTILEVELTASK_HPP_
 #define MULTILEVELTASK_HPP_
 
-#include "AMR.H"
+#include <AMReX_Amr.H>
 #include "GRAMRLevel.hpp"
-#include "Scheduler.H"
 
 #include <limits> // std::numeric_limits
 
@@ -17,15 +16,17 @@
 //! Satisfies syntax of Chombo's Scheduler such that it can be passed to GRAMR
 //! and be scheduled
 template <class level_t = GRAMRLevel>
-class MultiLevelTask : public Scheduler::PeriodicFunction
+class MultiLevelTask //xxxxx: public Scheduler::PeriodicFunction
 {
+#if 0
+//xxxxx
     std::function<void(level_t *)> m_func;
     bool m_reverse_levels;
 
     // Use default condstructor of PeriodicFunction
     using PeriodicFunction::PeriodicFunction;
 
-    AMR *m_amr_ptr; //! pointer to AMR object
+    amrex::Amr *m_amr_ptr; //! pointer to amrex::Amr object
 
   public:
     MultiLevelTask(std::function<void(level_t *)> a_func,
@@ -35,7 +36,7 @@ class MultiLevelTask : public Scheduler::PeriodicFunction
     }
 
     // required from Scheduler::PeriodicFunction
-    virtual void setUp(AMR &a_AMR, int a_interval = -1) override
+    virtual void setUp(amrex::Amr &a_AMR, int a_interval = -1) override
     {
         m_amr_ptr = &a_AMR;
     }
@@ -55,7 +56,11 @@ class MultiLevelTask : public Scheduler::PeriodicFunction
         for (AMRLevel *amr_level_ptr : amr_level_ptrs)
             m_func(level_t::gr_cast(amr_level_ptr));
     }
+#endif
 };
+
+#if 0
+//xxxxx
 
 //! This is just an interface for the AMR scheduler to call some level_t
 //! function on every AMRLevel
@@ -89,5 +94,7 @@ class MultiLevelTaskPtr : public RefCountedPtr<Scheduler>
         (*m_ptr_to_func)();
     }
 };
+
+#endif
 
 #endif /* MULTILEVELTASK_HPP_ */

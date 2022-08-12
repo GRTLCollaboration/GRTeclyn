@@ -7,6 +7,7 @@
 #define GRLEVELDATA_HPP_
 
 #include <AMReX_MultiFab.H>
+#include "Interval.hpp"
 
 class GRLevelData : public amrex::MultiFab
 {
@@ -17,7 +18,7 @@ class GRLevelData : public amrex::MultiFab
 
     void setVal(const double a_val, const int a_comp);
 
-//xxxxx    void setVal(const double a_val, const Interval a_comps);
+    void setVal(const double a_val, const Interval a_comps);
 
     // loop only goes over a_disjoint_box_layout
 //xxxxx    void plus(const GRLevelData &a_src, const double a_scale,

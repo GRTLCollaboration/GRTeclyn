@@ -30,6 +30,8 @@ void PunctureTracker::initial_setup(
 
 void PunctureTracker::restart_punctures()
 {
+#if 0
+//xxxxx
     int current_step = m_interpolator->getAMR().s_step;
 
     if (current_step == 0)
@@ -43,9 +45,10 @@ void PunctureTracker::restart_punctures()
     {
         // look for the current puncture location in the
         // puncture output file (it needs to exist!)
-        read_in_punctures(current_step,
-                          m_interpolator->getAMR().getCurrentTime());
+//xxxxx        read_in_punctures(current_step,
+//                          m_interpolator->getAMR().getCurrentTime());
     }
+#endif
 }
 
 //! set and write initial puncture locations
@@ -125,11 +128,11 @@ void PunctureTracker::read_in_punctures(int a_int_step, double a_current_time)
         amrex::Print() << "Puncture " << ipuncture
                << " restarted at : " << m_puncture_coords[ipuncture][0] << " "
                << m_puncture_coords[ipuncture][1] << " "
-               << m_puncture_coords[ipuncture][2] << endl;
+               << m_puncture_coords[ipuncture][2] << std::endl;
         amrex::Print() << " with shift vector : " << m_puncture_shift[ipuncture][0]
                << " " << m_puncture_shift[ipuncture][1] << " "
-               << m_puncture_shift[ipuncture][2] << endl;
-        amrex::Print() << "at time = " << a_current_time << endl;
+               << m_puncture_shift[ipuncture][2] << std::endl;
+        amrex::Print() << "at time = " << a_current_time << std::endl;
     }
 }
 
@@ -178,6 +181,8 @@ void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
 //! given coords
 void PunctureTracker::interp_shift()
 {
+#if 0
+//xxxxx
     BL_PROFILE("PunctureTracker::interp_shift");
     // resize the vector to the number of punctures
     m_puncture_shift.resize(m_num_punctures);
@@ -223,6 +228,7 @@ void PunctureTracker::interp_shift()
                                        interp_shift2[ipuncture],
                                        interp_shift3[ipuncture]};
     }
+#endif
 }
 
 //! get a vector of the puncture coords - used for write out

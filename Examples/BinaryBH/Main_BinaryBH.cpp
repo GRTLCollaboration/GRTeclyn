@@ -3,10 +3,6 @@
  * Please refer to LICENSE in GRChombo's root directory.
  */
 
-// Chombo includes
-#include "CH_Timer.H"
-#include "parstream.H" //Gives us amrex::Print()
-
 // System includes
 #include <chrono>
 #include <iostream>
@@ -23,11 +19,10 @@
 // Problem specific includes:
 #include "BinaryBHLevel.hpp"
 
-// Chombo namespace
-#include "UsingNamespace.H"
-
 int runGRChombo(int argc, char *argv[])
 {
+#if 0
+// xxxxx
     // Load the parameter file and construct the SimulationParameter class
     // To add more parameters edit the SimulationParameters file.
     char *in_file = argv[1];
@@ -105,6 +100,7 @@ int runGRChombo(int argc, char *argv[])
 
     BL_PROFILER_REPORT(); // Report results when running with Chombo timers.
 
+#endif
     return 0;
 }
 

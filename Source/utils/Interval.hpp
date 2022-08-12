@@ -15,13 +15,6 @@ struct Interval
     m_end(a_lastComp)
   {}
 
-  Interval& operator=(const Interval& p)
-  {
-    m_begin = p.m_begin;
-    m_end = p.m_end;
-    return *this;
-  }
-
   void define(int a_firstComp,
               int a_lastComp)
   {

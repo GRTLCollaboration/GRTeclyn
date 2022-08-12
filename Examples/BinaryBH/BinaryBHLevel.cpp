@@ -26,6 +26,8 @@
 // Things to do during the advance step after RK4 steps
 void BinaryBHLevel::specificAdvance()
 {
+#if 0
+//xxxxx
     // Enforce the trace free A_ij condition and positive chi and alpha
     BoxLoops::loop(make_compute_pack(TraceARemoval(), PositiveChiAndAlpha()),
                    m_state_new, m_state_new, INCLUDE_GHOST_CELLS);
@@ -34,12 +36,15 @@ void BinaryBHLevel::specificAdvance()
     if (m_p.nan_check)
         BoxLoops::loop(NanCheck("NaNCheck in specific Advance: "), m_state_new,
                        m_state_new, EXCLUDE_GHOST_CELLS, disable_simd());
+#endif
 }
 
 // This initial data uses an approximation for the metric which
 // is valid for small boosts
 void BinaryBHLevel::initialData()
 {
+#if 0
+//xxxxx
     BL_PROFILE("BinaryBHLevel::initialData");
     if (m_verbosity)
         amrex::Print() << "BinaryBHLevel::initialData " << m_level << endl;
@@ -58,12 +63,15 @@ void BinaryBHLevel::initialData()
     BoxLoops::loop(make_compute_pack(SetValue(0.), binary), m_state_new,
                    m_state_new, INCLUDE_GHOST_CELLS);
 #endif
+#endif
 }
 
 // Calculate RHS during RK4 substeps
 void BinaryBHLevel::specificEvalRHS(GRLevelData &a_soln, GRLevelData &a_rhs,
                                     const double a_time)
 {
+#if 0
+//xxxxx
     // Enforce positive chi and alpha and trace free A
     BoxLoops::loop(make_compute_pack(TraceARemoval(), PositiveChiAndAlpha()),
                    a_soln, a_soln, INCLUDE_GHOST_CELLS);
@@ -81,11 +89,12 @@ void BinaryBHLevel::specificEvalRHS(GRLevelData &a_soln, GRLevelData &a_rhs,
                            m_p.ccz4_params, m_dx, m_p.sigma, m_p.formulation),
                        a_soln, a_rhs, EXCLUDE_GHOST_CELLS);
     }
+#endif
 }
 
 // enforce trace removal during RK4 substeps
 void BinaryBHLevel::specificUpdateODE(GRLevelData &a_soln,
-                                      const GRLevelData &a_rhs, Real a_dt)
+                                      const GRLevelData &a_rhs, amrex::Real a_dt)
 {
     // Enforce the trace free A_ij condition
     BoxLoops::loop(TraceARemoval(), a_soln, a_soln, INCLUDE_GHOST_CELLS);
@@ -94,13 +103,15 @@ void BinaryBHLevel::specificUpdateODE(GRLevelData &a_soln,
 void BinaryBHLevel::preTagCells()
 {
     // We only use chi in the tagging criterion so only fill the ghosts for chi
-    fillAllGhosts(VariableType::evolution, Interval(c_chi, c_chi));
+//xxxxx    fillAllGhosts(VariableType::evolution, Interval(c_chi, c_chi));
 }
 
 // specify the cells to tag
-void BinaryBHLevel::computeTaggingCriterion(FArrayBox &tagging_criterion,
-                                            const FArrayBox &current_state)
+void BinaryBHLevel::computeTaggingCriterion(amrex::FArrayBox &tagging_criterion,
+                                            const amrex::FArrayBox &current_state)
 {
+#if 0
+//xxxxx
     if (m_p.track_punctures)
     {
         std::vector<double> puncture_masses;
@@ -126,10 +137,13 @@ void BinaryBHLevel::computeTaggingCriterion(FArrayBox &tagging_criterion,
                                                      m_p.activate_extraction),
                        current_state, tagging_criterion);
     }
+#endif
 }
 
 void BinaryBHLevel::specificPostTimeStep()
 {
+#if 0
+//xxxxx
     BL_PROFILE("BinaryBHLevel::specificPostTimeStep");
 
     bool first_step =
@@ -200,6 +214,7 @@ void BinaryBHLevel::specificPostTimeStep()
         m_bh_amr.m_puncture_tracker.execute_tracking(m_time, m_restart_time,
                                                      m_dt, write_punctures);
     }
+#endif
 }
 
 #ifdef CH_USE_HDF5

@@ -5,6 +5,9 @@
 
 #include "GRAMRLevel.hpp"
 
+#if 0
+//xxxxx
+
 GRAMRLevel::GRAMRLevel(GRAMR &gr_amr, const SimulationParameters &a_p,
                        int a_verbosity)
     : m_gr_amr(gr_amr), m_p(a_p), m_verbosity(a_verbosity),
@@ -1117,3 +1120,5 @@ void GRAMRLevel::printProgress(const std::string &from) const
            << speed << " M/hr)"
            << ". Boxes on this rank: " << nbox << " / " << total_nbox << endl;
 }
+
+#endif

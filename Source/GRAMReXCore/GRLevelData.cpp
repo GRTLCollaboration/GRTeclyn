@@ -3,39 +3,41 @@
  * Please refer to LICENSE in GRChombo's root directory.
  */
 
-// Chombo includes
-#include "FArrayBox.H"
-
 // Our includes
 #include "GRLevelData.hpp"
-
-// Chombo namespace
-#include "UsingNamespace.H"
 
 GRLevelData::GRLevelData() : amrex::MultiFab() {}
 
 void GRLevelData::setVal(const double a_val)
 {
+#if 0
+//xxxxx
     DataIterator dit = m_disjointBoxLayout.dataIterator();
     for (dit.begin(); dit.ok(); ++dit)
     {
         FArrayBox &fab = (*this)[dit];
         fab.setVal(a_val);
     }
+#endif
 }
 
 void GRLevelData::setVal(const double a_val, const int a_comp)
 {
+#if 0
+//xxxxx
     DataIterator dit = m_disjointBoxLayout.dataIterator();
     for (dit.begin(); dit.ok(); ++dit)
     {
         FArrayBox &fab = (*this)[dit];
         fab.setVal(a_val, a_comp);
     }
+#endif
 }
 
 void GRLevelData::setVal(const double a_val, const Interval a_comps)
 {
+#if 0
+//xxxxx
     DataIterator dit = m_disjointBoxLayout.dataIterator();
     // Want component loop inside so unfortunately we have to duplicate the
     // outer loop
@@ -47,8 +49,11 @@ void GRLevelData::setVal(const double a_val, const Interval a_comps)
             fab.setVal(a_val, i);
         }
     }
+#endif
 }
 
+#if 0
+//xxxxx
 void GRLevelData::plus(const GRLevelData &a_src, const double a_scale,
                        const DisjointBoxLayout &a_disjoint_box_layout)
 {
@@ -111,6 +116,7 @@ void GRLevelData::plus(const GRLevelData &a_src, const double a_scale,
                 }
     }
 }
+#endif
 
 // old plus function
 // void GRLevelData::plus(const GRLevelData &a_src, const double a_scale,

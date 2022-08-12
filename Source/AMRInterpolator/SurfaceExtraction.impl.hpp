@@ -301,7 +301,7 @@ void SurfaceExtraction<SurfaceGeometry>::integrate()
         {
             amrex::Vector<double> broadcast_Vector;
             if (amrex::ParallelDescriptor::MyProc() == 0)
-                broadcast_Vector = m_integrals[iintegral].get();
+            //xxxxx    broadcast_Vector = m_integrals[iintegral].get();
            //xxxxx broadcast(broadcast_Vector, 0);
             if (amrex::ParallelDescriptor::MyProc() != 0)
             {

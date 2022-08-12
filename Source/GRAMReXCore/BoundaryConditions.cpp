@@ -3,11 +3,6 @@
  * Please refer to LICENSE in GRChombo's root directory.
  */
 
-// Chombo includes
-#include "FArrayBox.H"
-#include "ProblemDomain.H"
-#include "RealVect.H"
-
 // Other includes
 #include "BoundaryConditions.hpp"
 #include <algorithm>
@@ -15,9 +10,6 @@
 #include <map>
 #include <numeric>
 #include <string>
-
-// Chombo namespace
-#include "UsingNamespace.H"
 
 BoundaryConditions::params_t::params_t()
 {
@@ -120,6 +112,8 @@ void BoundaryConditions::params_t::set_lo_boundary(
 
 void BoundaryConditions::params_t::read_params(GRParmParse &pp)
 {
+#if 0
+//xxxxx
     using namespace UserVariables; // for loading the arrays
 
     // still load even if not contained, to ensure printout saying parameters
@@ -205,14 +199,17 @@ void BoundaryConditions::params_t::read_params(GRParmParse &pp)
         // debug
         write_boundary_conditions(*this);
     }
+#endif
 }
 
 /// define function sets members and is_defined set to true
 void BoundaryConditions::define(double a_dx,
                                 std::array<double, AMREX_SPACEDIM> a_center,
                                 const params_t &a_params,
-                                ProblemDomain a_domain, int a_num_ghosts)
+                                amrex::Geometry a_domain, int a_num_ghosts)
 {
+#if 0
+//xxxxx
     m_dx = a_dx;
     m_params = a_params;
     m_domain = a_domain;
@@ -220,6 +217,7 @@ void BoundaryConditions::define(double a_dx,
     m_num_ghosts = a_num_ghosts;
     FOR(i) { m_center[i] = a_center[i]; }
     is_defined = true;
+#endif
 }
 
 /// change the asymptotic values of the variables for the Sommerfeld BCs
@@ -234,7 +232,7 @@ void BoundaryConditions::write_reflective_conditions(int idir,
                                                      const params_t &a_params)
 {
     amrex::Print() << "The variables that are parity odd in this direction are : "
-           << endl;
+           << std::endl;
     for (int icomp = 0; icomp < NUM_VARS; icomp++)
     {
         int parity = get_var_parity(icomp, idir, a_params);
@@ -259,7 +257,7 @@ void BoundaryConditions::write_sommerfeld_conditions(int idir,
 {
     amrex::Print() << "The non zero asymptotic values of the variables "
               "in this direction are : "
-           << endl;
+           << std::endl;
     for (int icomp = 0; icomp < NUM_VARS; icomp++)
     {
         if (a_params.vars_asymptotic_values[icomp] != 0)
@@ -281,7 +279,7 @@ void BoundaryConditions::write_mixed_conditions(int idir,
     // now do the write out
     amrex::Print()
         << "The variables that use extrapolating bcs in this direction are : "
-        << endl;
+        << std::endl;
     for (int icomp = 0; icomp < NUM_VARS; icomp++)
     {
         if (a_params.mixed_bc_vars_map.at(icomp) == EXTRAPOLATING_BC)
@@ -289,18 +287,18 @@ void BoundaryConditions::write_mixed_conditions(int idir,
             amrex::Print() << UserVariables::variable_names[icomp] << "    ";
         }
     }
-    amrex::Print() << endl;
+    amrex::Print() << std::endl;
     amrex::Print() << "The other variables all use Sommerfeld boundary conditions."
-           << endl;
+           << std::endl;
     write_sommerfeld_conditions(idir, a_params);
 }
 
 /// write out boundary params (used during setup for debugging)
 void BoundaryConditions::write_boundary_conditions(const params_t &a_params)
 {
-    amrex::Print() << "You are using non periodic boundary conditions." << endl;
-    amrex::Print() << "The boundary params chosen are:  " << endl;
-    amrex::Print() << "---------------------------------" << endl;
+    amrex::Print() << "You are using non periodic boundary conditions." << std::endl;
+    amrex::Print() << "The boundary params chosen are:  " << std::endl;
+    amrex::Print() << "---------------------------------" << std::endl;
 
     std::map<int, std::string> bc_names = {{STATIC_BC, "Static"},
                                            {SOMMERFELD_BC, "Sommerfeld"},
@@ -312,7 +310,7 @@ void BoundaryConditions::write_boundary_conditions(const params_t &a_params)
         if (!a_params.is_periodic[idir])
         {
             amrex::Print() << "- " << bc_names[a_params.hi_boundary[idir]]
-                   << " boundaries in direction high " << idir << endl;
+                   << " boundaries in direction high " << idir << std::endl;
             // high directions
             if (a_params.hi_boundary[idir] == REFLECTIVE_BC)
             {
@@ -326,11 +324,11 @@ void BoundaryConditions::write_boundary_conditions(const params_t &a_params)
             {
                 write_mixed_conditions(idir, a_params);
             }
-            amrex::Print() << "\n" << endl;
+            amrex::Print() << "\n" << std::endl;
 
             // low directions
             amrex::Print() << "- " << bc_names[a_params.lo_boundary[idir]]
-                   << " boundaries in direction low " << idir << endl;
+                   << " boundaries in direction low " << idir << std::endl;
             if (a_params.lo_boundary[idir] == REFLECTIVE_BC)
             {
                 write_reflective_conditions(idir, a_params);
@@ -343,10 +341,10 @@ void BoundaryConditions::write_boundary_conditions(const params_t &a_params)
             {
                 write_mixed_conditions(idir, a_params);
             }
-            amrex::Print() << "\n" << endl;
+            amrex::Print() << "\n" << std::endl;
         }
     }
-    amrex::Print() << "---------------------------------" << endl;
+    amrex::Print() << "---------------------------------" << std::endl;
 }
 
 /// The function which returns the parity of each of the vars in
@@ -389,6 +387,8 @@ int BoundaryConditions::get_var_parity(int a_comp, int a_dir,
     return vars_parity;
 }
 
+#if 0
+//xxxxx
 /// Fill the rhs boundary values appropriately based on the params set
 void BoundaryConditions::fill_rhs_boundaries(const Side::LoHiSide a_side,
                                              const GRLevelData &a_soln,
@@ -412,7 +412,10 @@ void BoundaryConditions::fill_rhs_boundaries(const Side::LoHiSide a_side,
         }
     }
 }
+#endif
 
+#if 0
+// xxxxx
 /// fill solution boundary conditions, e.g. after interpolation
 void BoundaryConditions::fill_solution_boundaries(const Side::LoHiSide a_side,
                                                   GRLevelData &a_state,
@@ -444,7 +447,10 @@ void BoundaryConditions::fill_solution_boundaries(const Side::LoHiSide a_side,
         }
     }
 }
+#endif
 
+#if 0
+//xxxxx
 /// fill diagnostic boundaries
 void BoundaryConditions::fill_diagnostic_boundaries(const Side::LoHiSide a_side,
                                                     GRLevelData &a_state,
@@ -474,7 +480,10 @@ void BoundaryConditions::fill_diagnostic_boundaries(const Side::LoHiSide a_side,
         }
     }
 }
+#endif
 
+#if 0
+//xxxxxx
 /// Fill the boundary values appropriately based on the params set
 /// in the direction dir
 void BoundaryConditions::fill_boundary_cells_dir(
@@ -507,24 +516,24 @@ void BoundaryConditions::fill_boundary_cells_dir(
     for (int ibox = 0; ibox < nbox; ++ibox)
     {
         DataIndex dind = dit[ibox];
-        FArrayBox &out_box = a_out[dind];
-        const FArrayBox &soln_box = a_soln[dind];
-        Box this_box = out_box.box();
-        IntVect offset_lo = -this_box.smallEnd() + m_domain_box.smallEnd();
-        IntVect offset_hi = +this_box.bigEnd() - m_domain_box.bigEnd();
+        amrex::FArrayBox &out_box = a_out[dind];
+        const amrex::FArrayBox &soln_box = a_soln[dind];
+        amrex::Box this_box = out_box.box();
+        amrex::IntVect offset_lo = -this_box.smallEnd() + m_domain_box.smallEnd();
+        amrex::IntVect offset_hi = +this_box.bigEnd() - m_domain_box.bigEnd();
 
         // reduce box to the intersection of the box and the
         // problem domain ie remove all outer ghost cells
         this_box &= m_domain_box;
         // get the boundary box (may be Empty)
-        Box boundary_box =
+        amrex::Box boundary_box =
             get_boundary_box(a_side, dir, offset_lo, offset_hi, this_box);
 
         // now we have the appropriate box, fill it!
         BoxIterator bit(boundary_box);
         for (bit.begin(); bit.ok(); ++bit)
         {
-            IntVect iv = bit();
+            amrex::IntVect iv = bit();
             switch (boundary_condition)
             {
             // simplest case - boundary values are set to zero
@@ -575,22 +584,25 @@ void BoundaryConditions::fill_boundary_cells_dir(
         }     // end iterate over box
     }         // end iterate over boxes
 }
+#endif
 
 void BoundaryConditions::fill_sommerfeld_cell(
-    FArrayBox &rhs_box, const FArrayBox &soln_box, const IntVect iv,
+    amrex::FArrayBox &rhs_box, const amrex::FArrayBox &soln_box, const amrex::IntVect iv,
     const std::vector<int> &sommerfeld_comps) const
 {
+#if 0
+//xxxxx
     // assumes an asymptotic value + radial waves and permits them
     // to exit grid with minimal reflections
     // get real position on the grid
-    RealVect loc(iv + 0.5 * RealVect::Unit);
+    amrex::RealVect loc(iv + 0.5 * RealVect::Unit);
     loc *= m_dx;
     loc -= m_center;
     double radius_squared = 0.0;
     FOR(i) { radius_squared += loc[i] * loc[i]; }
     double radius = sqrt(radius_squared);
-    IntVect lo_local_offset = iv - soln_box.smallEnd();
-    IntVect hi_local_offset = soln_box.bigEnd() - iv;
+    amrex::IntVect lo_local_offset = iv - soln_box.smallEnd();
+    amrex::IntVect hi_local_offset = soln_box.bigEnd() - iv;
 
     // Apply Sommerfeld BCs to each variable in sommerfeld_comps
     for (int icomp : sommerfeld_comps)
@@ -598,8 +610,8 @@ void BoundaryConditions::fill_sommerfeld_cell(
         rhs_box(iv, icomp) = 0.0;
         FOR(idir2)
         {
-            IntVect iv_offset1 = iv;
-            IntVect iv_offset2 = iv;
+            amrex::IntVect iv_offset1 = iv;
+            amrex::IntVect iv_offset2 = iv;
             double d1;
             // bit of work to get the right stencils for near
             // the edges of the domain, only using second order
@@ -644,10 +656,13 @@ void BoundaryConditions::fill_sommerfeld_cell(
             (m_params.vars_asymptotic_values[icomp] - soln_box(iv, icomp)) /
             radius;
     }
+#endif
 }
 
+#if 0
+//xxxxxx
 void BoundaryConditions::fill_reflective_cell(
-    FArrayBox &out_box, const IntVect iv, const Side::LoHiSide a_side,
+    amrex::FArrayBox &out_box, const amrex::IntVect iv, const Side::LoHiSide a_side,
     const int dir, const std::vector<int> &reflective_comps,
     const VariableType var_type) const
 {
@@ -655,7 +670,7 @@ void BoundaryConditions::fill_reflective_cell(
     // care must be taken with variable parity to maintain correct
     // values on reflection, e.g. x components of vectors are odd
     // parity in the x direction
-    IntVect iv_copy = iv;
+    amrex::IntVect iv_copy = iv;
     /// where to copy the data from - mirror image in domain
     if (a_side == Side::Lo)
     {
@@ -673,9 +688,12 @@ void BoundaryConditions::fill_reflective_cell(
         out_box(iv, icomp) = parity * out_box(iv_copy, icomp);
     }
 }
+#endif
 
+#if 0
+//xxxxx
 void BoundaryConditions::fill_extrapolating_cell(
-    FArrayBox &out_box, const IntVect iv, const Side::LoHiSide a_side,
+    amrex::FArrayBox &out_box, const amrex::IntVect iv, const Side::LoHiSide a_side,
     const int dir, const std::vector<int> &extrapolating_comps,
     const int order) const
 {
@@ -697,7 +715,7 @@ void BoundaryConditions::fill_extrapolating_cell(
             // vector of 2 nearest values and radii within the grid
             for (int i = 0; i < 2; i++)
             {
-                IntVect iv_tmp = iv;
+                amrex::IntVect iv_tmp = iv;
                 iv_tmp[dir] += -units_from_edge - i;
                 FOR(idir)
                 {
@@ -722,7 +740,7 @@ void BoundaryConditions::fill_extrapolating_cell(
             // vector of 2 nearest values within the grid
             for (int i = 0; i < 2; i++)
             {
-                IntVect iv_tmp = iv;
+                amrex::IntVect iv_tmp = iv;
                 iv_tmp[dir] += units_from_edge + i;
                 FOR(idir)
                 {
@@ -767,7 +785,10 @@ void BoundaryConditions::fill_extrapolating_cell(
         out_box(iv, icomp) = value_at_point[0] + analytic_change;
     }
 }
+#endif
 
+#if 0
+//xxxxx
 /// Copy the boundary values from src to dest
 /// NB only acts if same box layout of input and output data
 void BoundaryConditions::copy_boundary_cells(const Side::LoHiSide a_side,
@@ -793,11 +814,11 @@ void BoundaryConditions::copy_boundary_cells(const Side::LoHiSide a_side,
                 for (int ibox = 0; ibox < nbox; ++ibox)
                 {
                     DataIndex dind = dit[ibox];
-                    FArrayBox &m_dest_box = a_dest[dind];
-                    Box this_box = m_dest_box.box();
-                    IntVect offset_lo =
+                    amrex::FArrayBox &m_dest_box = a_dest[dind];
+                    amrex::Box this_box = m_dest_box.box();
+                    amrex::IntVect offset_lo =
                         -this_box.smallEnd() + m_domain_box.smallEnd();
-                    IntVect offset_hi =
+                    amrex::IntVect offset_hi =
                         +this_box.bigEnd() - m_domain_box.bigEnd();
 
                     // reduce box to the intersection of the box and the
@@ -805,13 +826,13 @@ void BoundaryConditions::copy_boundary_cells(const Side::LoHiSide a_side,
                     this_box &= m_domain_box;
 
                     // get the boundary box (may be Empty)
-                    Box boundary_box = get_boundary_box(a_side, idir, offset_lo,
+                    amrex::Box boundary_box = get_boundary_box(a_side, idir, offset_lo,
                                                         offset_hi, this_box);
 
                     BoxIterator bit(boundary_box);
                     for (bit.begin(); bit.ok(); ++bit)
                     {
-                        IntVect iv = bit();
+                        amrex::IntVect iv = bit();
                         for (int icomp = 0; icomp < NUM_VARS; ++icomp)
                         {
                             m_dest_box(iv, icomp) = a_src[dind](iv, icomp);
@@ -822,7 +843,10 @@ void BoundaryConditions::copy_boundary_cells(const Side::LoHiSide a_side,
         }             // end iterate over spacedims
     }                 // end test for same box layout
 }
+#endif
 
+#if 0
+//xxxxx
 /// Fill the fine boundary values in a_state
 /// Required for interpolating onto finer levels at boundaries
 void BoundaryConditions::interp_boundaries(GRLevelData &a_fine_state,
@@ -851,11 +875,11 @@ void BoundaryConditions::interp_boundaries(GRLevelData &a_fine_state,
             GRLevelData coarsened_fine;
             coarsened_fine.define(coarsened_layout, NUM_VARS,
                                   m_num_ghosts * IntVect::Unit);
-            Box coarse_domain_box = coarsen(m_domain_box, ref_ratio);
+            amrex::Box coarse_domain_box = coarsen(m_domain_box, ref_ratio);
 
             // trick the copyTo into thinking the boundary cells are within
             // the domain by growing the domain
-            Box grown_domain_box = coarse_domain_box;
+            amrex::Box grown_domain_box = coarse_domain_box;
             grown_domain_box.grow(m_num_ghosts * IntVect::Unit);
             Copier boundary_copier;
             boundary_copier.ghostDefine(
@@ -872,13 +896,13 @@ void BoundaryConditions::interp_boundaries(GRLevelData &a_fine_state,
             for (int ibox = 0; ibox < nbox; ++ibox)
             {
                 DataIndex dind = dit[ibox];
-                FArrayBox &m_fine_box = a_fine_state[dind];
-                FArrayBox &m_coarse_box = coarsened_fine[dind];
-                Box this_box = m_coarse_box.box();
-                Box fine_box = m_fine_box.box();
-                IntVect offset_lo =
+                amrex::FArrayBox &m_fine_box = a_fine_state[dind];
+                amrex::FArrayBox &m_coarse_box = coarsened_fine[dind];
+                amrex::Box this_box = m_coarse_box.box();
+                amrex::Box fine_box = m_fine_box.box();
+                amrex::IntVect offset_lo =
                     -this_box.smallEnd() + coarse_domain_box.smallEnd();
-                IntVect offset_hi =
+                amrex::IntVect offset_hi =
                     +this_box.bigEnd() - coarse_domain_box.bigEnd();
 
                 // reduce box to the intersection of the box and the
@@ -888,12 +912,12 @@ void BoundaryConditions::interp_boundaries(GRLevelData &a_fine_state,
                 // get the boundary box - remove one cell as we only want 2
                 // coarse cells filled in each direction, to fill the 3 fine
                 // cells on the level above
-                Box boundary_box = get_boundary_box(a_side, idir, offset_lo,
+                amrex::Box boundary_box = get_boundary_box(a_side, idir, offset_lo,
                                                     offset_hi, this_box, 1);
 
                 // define standard stencil for interp where not near
                 // boundaries in other dirs
-                IntVect default_offset =
+                amrex::IntVect default_offset =
                     IntVect::Zero + sign(a_side) * 2 * BASISV(idir);
                 FourthOrderInterpStencil default_stencil(default_offset,
                                                          ref_ratio);
@@ -902,14 +926,14 @@ void BoundaryConditions::interp_boundaries(GRLevelData &a_fine_state,
                 BoxIterator bit(boundary_box);
                 for (bit.begin(); bit.ok(); ++bit)
                 {
-                    IntVect iv = bit();
-                    IntVect lo_local_offset = iv - m_coarse_box.smallEnd();
-                    IntVect hi_local_offset = m_coarse_box.bigEnd() - iv;
+                    amrex::IntVect iv = bit();
+                    amrex::IntVect lo_local_offset = iv - m_coarse_box.smallEnd();
+                    amrex::IntVect hi_local_offset = m_coarse_box.bigEnd() - iv;
 
                     // bit of work to get the right stencils for near the
                     // edges of the box
                     bool near_boundary = false;
-                    IntVect local_boundary_offset = IntVect::Zero;
+                    amrex::IntVect local_boundary_offset = IntVect::Zero;
                     FOR(idir2)
                     {
                         if (idir2 == idir)
@@ -959,7 +983,10 @@ void BoundaryConditions::interp_boundaries(GRLevelData &a_fine_state,
         }         // end if is_periodic
     }             // end loop idir
 }
+#endif
 
+#if 0
+//xxxxx
 /// Get the boundary condition for a_dir and a_side
 int BoundaryConditions::get_boundary_condition(const Side::LoHiSide a_side,
                                                const int a_dir)
@@ -975,14 +1002,17 @@ int BoundaryConditions::get_boundary_condition(const Side::LoHiSide a_side,
     }
     return boundary_condition;
 }
+#endif
 
+#if 0
+//xxxxx
 /// get the boundary box to fill if we are at a boundary
 Box BoundaryConditions::get_boundary_box(
-    const Side::LoHiSide a_side, const int a_dir, const IntVect &offset_lo,
-    const IntVect &offset_hi, Box &this_ghostless_box, int shrink_for_coarse)
+    const Side::LoHiSide a_side, const int a_dir, const amrex::IntVect &offset_lo,
+    const amrex::IntVect &offset_hi, amrex::Box &this_ghostless_box, int shrink_for_coarse)
 {
     // default constructor gives empty box
-    Box boundary_box;
+    amrex::Box boundary_box;
 
     // check if we are over the edges of the domain - are we a boundary box?
     // if so create the box of the cells we want to fill
@@ -1046,14 +1076,17 @@ Box BoundaryConditions::get_boundary_box(
     }
     return boundary_box;
 }
+#endif
 
 /// Operator called by transform to grow the boxes where required
-Box ExpandGridsToBoundaries::operator()(const Box &a_in_box)
+amrex::Box ExpandGridsToBoundaries::operator()(const amrex::Box &a_in_box)
 {
-    Box out_box = a_in_box;
-    IntVect offset_lo =
+#if 0
+//xxxxx
+    amrex::Box out_box = a_in_box;
+    amrex::IntVect offset_lo =
         -out_box.smallEnd() + m_boundaries.m_domain_box.smallEnd();
-    IntVect offset_hi = +out_box.bigEnd() - m_boundaries.m_domain_box.bigEnd();
+    amrex::IntVect offset_hi = +out_box.bigEnd() - m_boundaries.m_domain_box.bigEnd();
 
     FOR(idir)
     {
@@ -1078,8 +1111,13 @@ Box ExpandGridsToBoundaries::operator()(const Box &a_in_box)
         }
     }
     return out_box;
+#else
+    return amrex::Box();
+#endif
 }
 
+#if 0
+//xxxxx
 /// This function takes a default constructed open DisjointBoxLayout and
 /// grows the boxes lying along the boundary to include the boundaries if
 /// necessary (i.e. in the Sommerfeld BC case). It is used to define the correct
@@ -1118,3 +1156,5 @@ void BoundaryConditions::expand_grids_to_boundaries(
     a_out_grids.transform(expand_grids_to_boundaries);
     a_out_grids.close();
 }
+#endif
+

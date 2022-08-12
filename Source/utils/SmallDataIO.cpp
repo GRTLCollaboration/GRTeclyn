@@ -3,11 +3,11 @@
  * Please refer to LICENSE in GRChombo's root directory.
  */
 
-// Chombo includes
-#include "SPMD.H" // for Chombo_MPI
-
 // Other includes
 #include "SmallDataIO.hpp"
+
+#include <AMReX_Vector.H>
+
 #include <cmath>
 #include <random>
 // (MR): if it were up to me, I'd be using the C++17 filesystems library
@@ -17,9 +17,6 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
-
-// Chombo namespace
-#include "UsingNamespace.H"
 
 // ------------ Constructors -----------------
 
@@ -293,10 +290,10 @@ void SmallDataIO::get_specific_data_line(std::vector<double> &a_out_data,
     }
     // now broadcast the vector to all ranks using Chombo broadcast function
     // need to convert std::vector to Vector first
-    Vector<double> data_Vect(a_out_data);
-    int broadcast_rank = 0;
-    broadcast(data_Vect, broadcast_rank);
-    a_out_data = data_Vect;
+//xxxxx    amrex::Vector<double> data_Vect(a_out_data);
+//xxxxx    int broadcast_rank = 0;
+    //xxxxx broadcast(data_Vect, broadcast_rank);
+//xxxxx    a_out_data = data_Vect;
 }
 
 void SmallDataIO::get_specific_data_line(std::vector<double> &a_out_data,

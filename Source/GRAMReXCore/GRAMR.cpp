@@ -6,6 +6,9 @@
 #include "GRAMR.hpp"
 #include "GRAMRLevel.hpp"
 
+#if 0
+//xxxxx 
+
 GRAMR::GRAMR() : m_interpolator(nullptr) {}
 
 // Called after AMR object set up
@@ -53,3 +56,5 @@ void GRAMR::fill_multilevel_ghosts(const VariableType a_var_type,
         level.fillAllGhosts(a_var_type, a_comps);
     }
 }
+
+#endif

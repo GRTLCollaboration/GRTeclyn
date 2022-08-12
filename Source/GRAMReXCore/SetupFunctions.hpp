@@ -8,10 +8,6 @@
 // This file incldues several functions that need to be called to
 // set up the runs but aren't very interesting for the normal user.
 
-// Chombo includes
-#include "AMRLevelFactory.H"
-#include "parstream.H" //Gives us amrex::Print()
-
 // Other includes
 #include <iostream>
 using std::cerr;
@@ -33,9 +29,6 @@ using std::endl;
 #include <omp.h>
 #endif
 
-// Chombo namespace
-#include "UsingNamespace.H"
-
 /// This function calls MPI_Init, makes sure a parameter file is supplied etc...
 void mainSetup(int argc, char *argv[]);
 
@@ -43,7 +36,7 @@ void mainSetup(int argc, char *argv[]);
 void mainFinalize();
 
 /// Sets up the grid parameters, problem domain and AMR object
-void setupAMRObject(AMR &gr_amr, AMRLevelFactory &a_factory);
+//xxxxxvoid setupAMRObject(AMR &gr_amr, AMRLevelFactory &a_factory);
 
 void mainSetup(int argc, char *argv[])
 {
@@ -101,6 +94,8 @@ void mainFinalize()
 #endif
 }
 
+#if 0
+//xxxxx
 void setupAMRObject(GRAMR &gr_amr, AMRLevelFactory &a_factory)
 {
     // Reread the params - just the base ones
@@ -182,5 +177,6 @@ void setupAMRObject(GRAMR &gr_amr, AMRLevelFactory &a_factory)
 #endif
     }
 }
+#endif
 
 #endif /* SETUP_FUNCTIONS_HPP_ */

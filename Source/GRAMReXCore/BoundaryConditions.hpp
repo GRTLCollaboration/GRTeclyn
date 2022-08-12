@@ -13,15 +13,6 @@
 #include "UserVariables.hpp"
 #include "VariableType.hpp"
 
-// xxxxx
-//#include "BoxIterator.H"
-//#include "Coordinates.hpp"
-//#include "Copier.H"
-//#include "FourthOrderInterpStencil.H"
-//#include "Interval.H"
-//#include <AMReX_RealBox.H>
-//#include <AMReX_RealVect.H>
-
 /// Class which deals with the boundaries at the edge of the physical domain in
 /// cases where they are not periodic. Currently only options are static BCs,
 /// sommerfeld (outgoing radiation) and reflective. The conditions can differ in
@@ -92,7 +83,7 @@ class BoundaryConditions
     int m_num_ghosts;       // the number of ghosts (usually 3)
     params_t m_params;      // the boundary params
     amrex::RealVect m_center;      // the position of the center of the grid
-    amrex::RealBox m_domain; // the problem domain (excludes boundary cells)
+    amrex::Geometry m_domain; // the problem domain (excludes boundary cells)
     amrex::Box m_domain_box;       // The box representing the domain
     bool is_defined; // whether the BoundaryConditions class members are defined
 
@@ -102,7 +93,7 @@ class BoundaryConditions
 
     /// define function sets members and is_defined set to true
     void define(double a_dx, std::array<double, AMREX_SPACEDIM> a_center,
-                const params_t &a_params, amrex::RealBox a_domain,
+                const params_t &a_params, amrex::Geometry a_domain,
                 int a_num_ghosts);
 
     /// change the asymptotic values of the variables for the Sommerfeld BCs
@@ -175,8 +166,8 @@ class BoundaryConditions
     /// necessary (i.e. in the Sommerfeld BC case). It is used to define the
     /// correct DisjointBoxLayout for the exchange copier so that shared
     /// boundary ghosts are exchanged correctly.
-    void expand_grids_to_boundaries(DisjointBoxLayout &a_out_grids,
-                                    const DisjointBoxLayout &a_in_grids);
+//xxxxx    void expand_grids_to_boundaries(DisjointBoxLayout &a_out_grids,
+//                                    const DisjointBoxLayout &a_in_grids);
 #endif
 
     friend class ExpandGridsToBoundaries;

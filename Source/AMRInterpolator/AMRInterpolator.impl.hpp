@@ -509,7 +509,7 @@ found_all_points:
 
     return interp_layout;
 #else
-    return InterpolationLayout{};
+    return InterpolationLayout{query.m_num_points};
 #endif
 }
 
@@ -519,7 +519,7 @@ void AMRInterpolator<InterpAlgo>::prepareMPI(InterpolationQuery &query,
 {
     BL_PROFILE("AMRInterpolator::prepareMPI");
 
-    std::ostream &_pout = amrex::Print();
+    amrex::Print _pout;
 
     if (m_verbosity)
     {
@@ -599,7 +599,7 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIQuery()
 {
     BL_PROFILE("AMRInterpolator::exchangeMPIQuery");
 
-    std::ostream &_pout = amrex::Print();
+    amrex::Print _pout;
 
     if (m_verbosity)
     {
