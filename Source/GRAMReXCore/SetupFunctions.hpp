@@ -10,7 +10,7 @@
 
 // Chombo includes
 #include "AMRLevelFactory.H"
-#include "parstream.H" //Gives us pout()
+#include "parstream.H" //Gives us amrex::Print()
 
 // Other includes
 #include <iostream>

@@ -37,7 +37,7 @@ int main()
                 if (in_fab(iv, c_chi) != value)
                 {
                     failed = -1;
-                    pout() << iv << std::endl;
+                    amrex::Print() << iv << std::endl;
                 }
             }
         }

@@ -36,7 +36,7 @@ void KerrBHLevel::initialData()
 {
     BL_PROFILE("KerrBHLevel::initialData");
     if (m_verbosity)
-        pout() << "KerrBHLevel::initialData " << m_level << endl;
+        amrex::Print() << "KerrBHLevel::initialData " << m_level << endl;
 
     // First set everything to zero then calculate initial data  Get the Kerr
     // solution in the variables, then calculate the \tilde\Gamma^i numerically

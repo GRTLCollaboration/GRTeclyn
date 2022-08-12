@@ -6,9 +6,6 @@
 #ifndef LAGRANGE_IMPL_HPP_
 #define LAGRANGE_IMPL_HPP_
 
-#include <iostream> // xxxxx
-inline std::ostream& pout() { return std::cout; } // xxxxx
-
 template <int Order>
 const std::string Lagrange<Order>::TAG = "\x1b[36;1m[Lagrange]\x1b[0m ";
 
@@ -93,15 +90,15 @@ Lagrange<Order>::Stencil::Stencil(int width, int deriv, double dx,
 
     if (false)
     {
-        pout() << TAG << "Created a stencil for deriv " << m_deriv
+        amrex::Print() << TAG << "Created a stencil for deriv " << m_deriv
                << " of width " << m_width << " for point " << m_point_offset
                << std::endl;
-        pout() << "    Weights = { ";
+        amrex::Print() << "    Weights = { ";
         for (int i = 0; i < m_width; ++i)
         {
-            pout() << m_weights[i] << " ";
+            amrex::Print() << m_weights[i] << " ";
         }
-        pout() << "}" << std::endl;
+        amrex::Print() << "}" << std::endl;
     }
 }
 
@@ -172,17 +169,17 @@ void Lagrange<Order>::setup(const std::array<int, AMREX_SPACEDIM> &deriv,
     m_interp_weights = result.second;
 
     /*
-    pout() << TAG << "Stencil: coord = { ";
+    amrex::Print() << TAG << "Stencil: coord = { ";
     for (int i = 0; i < AMREX_SPACEDIM; ++i)
     {
-        pout() << evalCoord[i] << " ";
+        amrex::Print() << evalCoord[i] << " ";
     }
-    pout() << "}, weights = { ";
+    amrex::Print() << "}, weights = { ";
     for (int i = 0; i < m_interp_weights.size(); ++i)
     {
-        pout() << m_interp_weights[i] << " ";
+        amrex::Print() << m_interp_weights[i] << " ";
     }
-    pout() << "}" << endl;
+    amrex::Print() << "}" << endl;
     */
 }
 
@@ -308,18 +305,18 @@ Lagrange<Order>::generateStencil(
 
     if (m_verbosity)
     {
-        pout() << TAG << "Stencil: dim = " << dim
+        amrex::Print() << TAG << "Stencil: dim = " << dim
                << ", coord = " << evalCoord[dim] << ", points = { ";
         for (int i = points_min; i < points_max; ++i)
         {
-            pout() << my_points[i] << " ";
+            amrex::Print() << my_points[i] << " ";
         }
-        pout() << "}, weights = { ";
+        amrex::Print() << "}, weights = { ";
         for (int i = 0; i < stencil_width; ++i)
         {
-            pout() << my_weights[i] << " ";
+            amrex::Print() << my_weights[i] << " ";
         }
-        pout() << "}" << std::endl;
+        amrex::Print() << "}" << std::endl;
     }
 
     // There is going to be potentially a LOT of temporary std::vectors getting

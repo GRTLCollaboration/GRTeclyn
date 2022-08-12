@@ -11,7 +11,7 @@ GRAMRLevel::GRAMRLevel(GRAMR &gr_amr, const SimulationParameters &a_p,
       m_num_ghosts(a_p.num_ghosts)
 {
     if (m_verbosity)
-        pout() << "GRAMRLevel constructor" << endl;
+        amrex::Print() << "GRAMRLevel constructor" << endl;
 }
 
 GRAMRLevel::~GRAMRLevel() {}
@@ -33,7 +33,7 @@ void GRAMRLevel::define(AMRLevel *a_coarser_level_ptr,
                         int a_ref_ratio)
 {
     if (m_verbosity)
-        pout() << "GRAMRLevel::define " << a_level << endl;
+        amrex::Print() << "GRAMRLevel::define " << a_level << endl;
 
     AMRLevel::define(a_coarser_level_ptr, a_problem_domain, a_level,
                      a_ref_ratio);
@@ -165,7 +165,7 @@ Real GRAMRLevel::advance()
 void GRAMRLevel::postTimeStep()
 {
     if (m_verbosity)
-        pout() << "GRAMRLevel::postTimeStep " << m_level << endl;
+        amrex::Print() << "GRAMRLevel::postTimeStep " << m_level << endl;
 
     if (m_finer_level_ptr != nullptr)
     {
@@ -183,7 +183,7 @@ void GRAMRLevel::postTimeStep()
     fillBdyGhosts(m_state_new);
 
     if (m_verbosity)
-        pout() << "GRAMRLevel::postTimeStep " << m_level << " finished" << endl;
+        amrex::Print() << "GRAMRLevel::postTimeStep " << m_level << " finished" << endl;
 }
 
 // things to do before tagging cells
@@ -199,7 +199,7 @@ void GRAMRLevel::tagCells(IntVectSet &a_tags)
 {
     BL_PROFILE("GRAMRLevel::tagCells");
     if (m_verbosity)
-        pout() << "GRAMRLevel::tagCells " << m_level << endl;
+        amrex::Print() << "GRAMRLevel::tagCells " << m_level << endl;
 
     preTagCells();
 
@@ -271,7 +271,7 @@ void GRAMRLevel::regrid(const Vector<Box> &a_new_grids)
     BL_PROFILE("GRAMRLevel::regrid");
 
     if (m_verbosity)
-        pout() << "GRAMRLevel::regrid " << m_level << endl;
+        amrex::Print() << "GRAMRLevel::regrid " << m_level << endl;
 
     m_level_grids = a_new_grids;
 
@@ -364,7 +364,7 @@ void GRAMRLevel::initialGrid(const Vector<Box> &a_new_grids)
     BL_PROFILE("GRAMRLevel::initialGrid");
 
     if (m_verbosity)
-        pout() << "GRAMRLevel::initialGrid " << m_level << endl;
+        amrex::Print() << "GRAMRLevel::initialGrid " << m_level << endl;
 
     m_level_grids = a_new_grids;
 
@@ -406,7 +406,7 @@ void GRAMRLevel::postInitialize() { m_restart_time = 0.; }
 Real GRAMRLevel::computeDt()
 {
     if (m_verbosity)
-        pout() << "GRAMRLevel::computeDt " << m_level << endl;
+        amrex::Print() << "GRAMRLevel::computeDt " << m_level << endl;
     return m_dt;
 }
 
@@ -414,7 +414,7 @@ Real GRAMRLevel::computeDt()
 Real GRAMRLevel::computeInitialDt()
 {
     if (m_verbosity)
-        pout() << "GRAMRLevel::computeInitialDt " << m_level << endl;
+        amrex::Print() << "GRAMRLevel::computeInitialDt " << m_level << endl;
 
     m_dt = m_initial_dt_multiplier * m_dx;
     return m_dt;
@@ -432,16 +432,16 @@ DisjointBoxLayout GRAMRLevel::loadBalance(const Vector<Box> &a_grids)
 
     if (m_verbosity == 1)
     {
-        pout() << "GRAMRLevel::::loadBalance" << endl;
+        amrex::Print() << "GRAMRLevel::::loadBalance" << endl;
     }
     else if (m_verbosity > 1)
     {
-        pout() << "GRAMRLevel::::loadBalance: procesor map: " << endl;
+        amrex::Print() << "GRAMRLevel::::loadBalance: procesor map: " << endl;
         for (int igrid = 0; igrid < a_grids.size(); ++igrid)
         {
-            pout() << igrid << ": " << procMap[igrid] << "  " << endl;
+            amrex::Print() << igrid << ": " << procMap[igrid] << "  " << endl;
         }
-        pout() << endl;
+        amrex::Print() << endl;
     }
 
     DisjointBoxLayout dbl(a_grids, procMap, m_problem_domain);
@@ -455,7 +455,7 @@ DisjointBoxLayout GRAMRLevel::loadBalance(const Vector<Box> &a_grids)
 void GRAMRLevel::writeCheckpointHeader(HDF5Handle &a_handle) const
 {
     if (m_verbosity)
-        pout() << "GRAMRLevel::writeCheckpointHeader" << endl;
+        amrex::Print() << "GRAMRLevel::writeCheckpointHeader" << endl;
 
     HDF5HeaderData header;
     header.m_int["num_components"] = NUM_VARS;
@@ -468,7 +468,7 @@ void GRAMRLevel::writeCheckpointHeader(HDF5Handle &a_handle) const
     header.writeToFile(a_handle);
 
     if (m_verbosity)
-        pout() << header << endl;
+        amrex::Print() << header << endl;
 }
 
 void GRAMRLevel::writeCheckpointLevel(HDF5Handle &a_handle) const
@@ -476,7 +476,7 @@ void GRAMRLevel::writeCheckpointLevel(HDF5Handle &a_handle) const
     BL_PROFILE("GRAMRLevel::writeCheckpointLevel");
 
     if (m_verbosity)
-        pout() << "GRAMRLevel::writeCheckpointLevel" << endl;
+        amrex::Print() << "GRAMRLevel::writeCheckpointLevel" << endl;
 
     char level_str[20];
     sprintf(level_str, "%d", m_level);
@@ -506,7 +506,7 @@ void GRAMRLevel::writeCheckpointLevel(HDF5Handle &a_handle) const
     header.writeToFile(a_handle);
 
     if (m_verbosity)
-        pout() << header << endl;
+        amrex::Print() << header << endl;
 
     write(a_handle, m_state_new.boxLayout());
 
@@ -524,15 +524,15 @@ void GRAMRLevel::readCheckpointHeader(HDF5Handle &a_handle)
     BL_PROFILE("GRAMRLevel::readCheckpointHeader");
 
     if (m_verbosity)
-        pout() << "GRAMRLevel::readCheckpointHeader" << endl;
+        amrex::Print() << "GRAMRLevel::readCheckpointHeader" << endl;
 
     HDF5HeaderData header;
     header.readFromFile(a_handle);
 
     if (m_verbosity)
-        pout() << "hdf5 header data:" << endl;
+        amrex::Print() << "hdf5 header data:" << endl;
     if (m_verbosity)
-        pout() << header << endl;
+        amrex::Print() << header << endl;
 
     // read number of components
     if (header.m_int.find("num_components") == header.m_int.end())
@@ -577,7 +577,7 @@ void GRAMRLevel::readCheckpointLevel(HDF5Handle &a_handle)
 {
     BL_PROFILE("GRAMRLevel::readCheckpointLevel");
     if (m_verbosity)
-        pout() << "GRAMRLevel::readCheckpointLevel" << endl;
+        amrex::Print() << "GRAMRLevel::readCheckpointLevel" << endl;
 
     char level_str[20];
     sprintf(level_str, "%d", m_level);
@@ -589,9 +589,9 @@ void GRAMRLevel::readCheckpointLevel(HDF5Handle &a_handle)
     header.readFromFile(a_handle);
 
     if (m_verbosity)
-        pout() << "hdf5 header data:" << endl;
+        amrex::Print() << "hdf5 header data:" << endl;
     if (m_verbosity)
-        pout() << header << endl;
+        amrex::Print() << header << endl;
 
     // read refinement ratio
     if (header.m_int.find("ref_ratio") == header.m_int.end())
@@ -602,7 +602,7 @@ void GRAMRLevel::readCheckpointLevel(HDF5Handle &a_handle)
     m_ref_ratio = header.m_int["ref_ratio"];
 
     if (m_verbosity)
-        pout() << "read ref_ratio = " << m_ref_ratio << endl;
+        amrex::Print() << "read ref_ratio = " << m_ref_ratio << endl;
 
     // read dx
     if (header.m_real.find("dx") == header.m_real.end())
@@ -613,13 +613,13 @@ void GRAMRLevel::readCheckpointLevel(HDF5Handle &a_handle)
     m_dx = header.m_real["dx"];
 
     if (m_verbosity)
-        pout() << "read dx = " << m_dx << endl;
+        amrex::Print() << "read dx = " << m_dx << endl;
 
     // Since we have fixed time steping it is better to take dt from the
     // parameter file
     computeInitialDt();
     if (m_verbosity)
-        pout() << "dt = " << m_dt << endl;
+        amrex::Print() << "dt = " << m_dt << endl;
 
     // read time
     if (header.m_real.find("time") == header.m_real.end())
@@ -630,7 +630,7 @@ void GRAMRLevel::readCheckpointLevel(HDF5Handle &a_handle)
     m_time = header.m_real["time"];
     m_restart_time = m_time;
     if (m_verbosity)
-        pout() << "read time = " << m_time << endl;
+        amrex::Print() << "read time = " << m_time << endl;
 
     // read problem domain
     if (header.m_box.find("prob_domain") == header.m_box.end())
@@ -669,17 +669,17 @@ void GRAMRLevel::readCheckpointLevel(HDF5Handle &a_handle)
     const DisjointBoxLayout level_domain = m_grids = loadBalance(grids);
 
     if (m_verbosity)
-        pout() << "read level domain: " << endl;
+        amrex::Print() << "read level domain: " << endl;
     LayoutIterator lit = level_domain.layoutIterator();
     for (lit.begin(); lit.ok(); ++lit)
     {
         const Box &b = level_domain[lit()];
         if (m_verbosity)
-            pout() << lit().intCode() << ": " << b << endl;
+            amrex::Print() << lit().intCode() << ": " << b << endl;
         m_level_grids.push_back(b);
     }
     if (m_verbosity)
-        pout() << endl;
+        amrex::Print() << endl;
 
     // maintain interlevel stuff
     IntVect iv_ghosts = m_num_ghosts * IntVect::Unit;
@@ -725,7 +725,7 @@ void GRAMRLevel::readCheckpointLevel(HDF5Handle &a_handle)
 void GRAMRLevel::writePlotLevel(HDF5Handle &a_handle) const
 {
     if (m_verbosity)
-        pout() << "GRAMRLevel::writePlotLevel" << endl;
+        amrex::Print() << "GRAMRLevel::writePlotLevel" << endl;
 
     // number and index of states to print
     const std::vector<std::pair<int, VariableType>> &plot_states =
@@ -765,7 +765,7 @@ void GRAMRLevel::writePlotLevel(HDF5Handle &a_handle) const
         header.writeToFile(a_handle);
 
         if (m_verbosity)
-            pout() << header << endl;
+            amrex::Print() << header << endl;
 
         const DisjointBoxLayout &levelGrids = m_state_new.getBoxes();
         IntVect iv_ghosts = m_num_ghosts * IntVect::Unit;
@@ -840,7 +840,7 @@ void GRAMRLevel::writePlotLevel(HDF5Handle &a_handle) const
 void GRAMRLevel::writePlotHeader(HDF5Handle &a_handle) const
 {
     if (m_verbosity)
-        pout() << "GRAMRLevel::writePlotHeader" << endl;
+        amrex::Print() << "GRAMRLevel::writePlotHeader" << endl;
 
     // number and index of states to print.
     const std::vector<std::pair<int, VariableType>> &plot_states =
@@ -875,7 +875,7 @@ void GRAMRLevel::writePlotHeader(HDF5Handle &a_handle) const
         header.writeToFile(a_handle);
 
         if (m_verbosity)
-            pout() << header << endl;
+            amrex::Print() << header << endl;
     }
     else
     {
@@ -894,7 +894,7 @@ void GRAMRLevel::evalRHS(GRLevelData &rhs, GRLevelData &soln,
 {
     BL_PROFILE("GRAMRLevel::evalRHS");
     if (m_verbosity)
-        pout() << "GRAMRLevel::evalRHS" << endl;
+        amrex::Print() << "GRAMRLevel::evalRHS" << endl;
 
     soln.exchange(m_exchange_copier);
 
@@ -918,7 +918,7 @@ void GRAMRLevel::evalRHS(GRLevelData &rhs, GRLevelData &soln,
             alpha = 1.0;
         else
         {
-            pout() << "alpha: " << alpha << endl;
+            amrex::Print() << "alpha: " << alpha << endl;
             amrex::Abort(
                 "Time interpolation coefficient is incompatible with RK4.");
         }
@@ -1020,7 +1020,7 @@ void GRAMRLevel::fillAllEvolutionGhosts(const Interval &a_comps)
 {
     BL_PROFILE("GRAMRLevel::fillAllEvolutionGhosts()");
     if (m_verbosity)
-        pout() << "GRAMRLevel::fillAllEvolutionGhosts" << endl;
+        amrex::Print() << "GRAMRLevel::fillAllEvolutionGhosts" << endl;
 
     // If there is a coarser level then interpolate undefined ghost cells
     if (m_coarser_level_ptr != nullptr)
@@ -1036,7 +1036,7 @@ void GRAMRLevel::fillAllDiagnosticsGhosts(const Interval &a_comps)
 {
     BL_PROFILE("GRAMRLevel::fillAllDiagnosticsGhosts");
     if (m_verbosity)
-        pout() << "GRAMRLevel::fillAllDiagnosticsGhosts" << endl;
+        amrex::Print() << "GRAMRLevel::fillAllDiagnosticsGhosts" << endl;
 
     // If there is a coarser level then interpolate undefined ghost cells
     if (m_coarser_level_ptr != nullptr)
@@ -1113,7 +1113,7 @@ void GRAMRLevel::printProgress(const std::string &from) const
     int nbox = level_domain.dataIterator().size();
     int total_nbox = level_domain.size();
 
-    pout() << from << " level " << m_level << " at time " << m_time << " ("
+    amrex::Print() << from << " level " << m_level << " at time " << m_time << " ("
            << speed << " M/hr)"
            << ". Boxes on this rank: " << nbox << " / " << total_nbox << endl;
 }

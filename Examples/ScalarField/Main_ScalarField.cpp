@@ -4,7 +4,7 @@
  */
 
 // Chombo includes
-#include "parstream.H" //Gives us pout()
+#include "parstream.H" //Gives us amrex::Print()
 
 // System includes
 #include <iostream>
@@ -55,9 +55,9 @@ int main(int argc, char *argv[])
     int status = runGRChombo(argc, argv);
 
     if (status == 0)
-        pout() << "GRChombo finished." << std::endl;
+        amrex::Print() << "GRChombo finished." << std::endl;
     else
-        pout() << "GRChombo failed with return code " << status << std::endl;
+        amrex::Print() << "GRChombo failed with return code " << status << std::endl;
 
     mainFinalize();
     return status;

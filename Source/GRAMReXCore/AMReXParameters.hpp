@@ -28,7 +28,7 @@ class AMReXParameters
 
     void read_params(GRParmParse &pp)
     {
-        // must be before any pout() in the code to setPoutBaseName
+        // must be before any amrex::Print() in the code to setPoutBaseName
         read_filesystem_params(pp);
 
         pp.load("verbosity", verbosity, 0);
@@ -69,7 +69,7 @@ class AMReXParameters
 
         if (pp.contains("regrid_thresholds"))
         {
-            pout() << "Using multiple regrid thresholds." << std::endl;
+            amrex::Print() << "Using multiple regrid thresholds." << std::endl;
             // As for regrid_interval, the last element is irrelevant
             pp.getarr("regrid_thresholds", regrid_thresholds, 0, max_level);
             regrid_thresholds.resize(max_level + 1);
@@ -77,7 +77,7 @@ class AMReXParameters
         }
         else
         {
-            pout() << "Using single regrid threshold." << std::endl;
+            amrex::Print() << "Using single regrid threshold." << std::endl;
             double regrid_threshold;
             pp.load("regrid_threshold", regrid_threshold, 0.5);
             regrid_thresholds = Vector<double>(max_level + 1, regrid_threshold);

@@ -8,10 +8,6 @@
 
 #include <sstream>
 
-//xxxxx
-#include <iostream>
-inline std::ostream& pout() { return std::cout; } // xxxxx
-
 // A bit of Android-ism here, but it's really useful!
 // Identifies the printout as originating from this class.
 template <typename InterpAlgo>
@@ -115,27 +111,27 @@ void AMRInterpolator<InterpAlgo>::interp(InterpolationQuery &query)
 
     if (m_verbosity)
     {
-        pout() << TAG << "\x1b[32;1mInterpolating data\x1b[0m" << endl;
+        amrex::Print() << TAG << "\x1b[32;1mInterpolating data\x1b[0m" << endl;
 
         for (typename InterpolationQuery::iterator it = query.compsBegin();
              it != query.compsEnd(); ++it)
         {
             const Derivative deriv = it->first;
 
-            pout() << "    This rank is querying for interpolated D(";
+            amrex::Print() << "    This rank is querying for interpolated D(";
             for (int i = 0; i < AMREX_SPACEDIM; ++i)
             {
-                pout() << deriv[i];
+                amrex::Print() << deriv[i];
                 if (i < AMREX_SPACEDIM - 1)
                 {
-                    pout() << ",";
+                    amrex::Print() << ",";
                 }
             }
-            pout() << ") data for " << it->second.size() << " components"
+            amrex::Print() << ") data for " << it->second.size() << " components"
                    << endl;
         }
 
-        pout() << "    Summary: " << query.numComps() << " datasets at "
+        amrex::Print() << "    Summary: " << query.numComps() << " datasets at "
                << query.m_num_points << " points" << endl;
     }
 
@@ -184,7 +180,7 @@ void AMRInterpolator<InterpAlgo>::computeLevelLayouts()
 {
     BL_PROFILE("AMRInterpolator::computeLevelLayouts");
 
-    ostream &_pout = pout();
+    ostream &_pout = amrex::Print();
 
     if (m_verbosity)
     {
@@ -266,7 +262,7 @@ AMRInterpolator<InterpAlgo>::findBoxes(InterpolationQuery &query)
 {
     BL_PROFILE("AMRInterpolator::findBoxes");
 
-    ostream &_pout = pout();
+    ostream &_pout = amrex::Print();
 
     if (m_verbosity)
     {
@@ -503,7 +499,7 @@ void AMRInterpolator<InterpAlgo>::prepareMPI(InterpolationQuery &query,
 {
     BL_PROFILE("AMRInterpolator::prepareMPI");
 
-    ostream &_pout = pout();
+    ostream &_pout = amrex::Print();
 
     if (m_verbosity)
     {
@@ -583,7 +579,7 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIQuery()
 {
     BL_PROFILE("AMRInterpolator::exchangeMPIQuery");
 
-    ostream &_pout = pout();
+    ostream &_pout = amrex::Print();
 
     if (m_verbosity)
     {
@@ -621,7 +617,7 @@ void AMRInterpolator<InterpAlgo>::calculateAnswers(InterpolationQuery &query)
 {
     BL_PROFILE("AMRInterpolator::calculateAnswers");
 
-    ostream &_pout = pout();
+    ostream &_pout = amrex::Print();
 
     if (m_verbosity)
     {
@@ -773,7 +769,7 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIAnswer()
 
     if (m_verbosity)
     {
-        pout() << TAG << "Entering exchangeMPIAnswer" << endl;
+        amrex::Print() << TAG << "Entering exchangeMPIAnswer" << endl;
     }
 
 #ifdef CH_MPI // TODO: it would be nicer if this ifdef were moved into
@@ -797,7 +793,7 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIAnswer()
 
     if (m_verbosity)
     {
-        pout() << TAG << "Leaving exchangeMPIAnswer" << endl;
+        amrex::Print() << TAG << "Leaving exchangeMPIAnswer" << endl;
     }
 }
 

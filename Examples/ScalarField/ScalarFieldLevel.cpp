@@ -49,7 +49,7 @@ void ScalarFieldLevel::initialData()
 {
     BL_PROFILE("ScalarFieldLevel::initialData");
     if (m_verbosity)
-        pout() << "ScalarFieldLevel::initialData " << m_level << endl;
+        amrex::Print() << "ScalarFieldLevel::initialData " << m_level << endl;
 
     // First set everything to zero then initial conditions for scalar field -
     // here a Kerr BH and a scalar field profile

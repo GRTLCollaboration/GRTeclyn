@@ -122,14 +122,14 @@ void PunctureTracker::read_in_punctures(int a_int_step, double a_current_time)
     // print out values into pout files
     for (int ipuncture = 0; ipuncture < m_num_punctures; ipuncture++)
     {
-        pout() << "Puncture " << ipuncture
+        amrex::Print() << "Puncture " << ipuncture
                << " restarted at : " << m_puncture_coords[ipuncture][0] << " "
                << m_puncture_coords[ipuncture][1] << " "
                << m_puncture_coords[ipuncture][2] << endl;
-        pout() << " with shift vector : " << m_puncture_shift[ipuncture][0]
+        amrex::Print() << " with shift vector : " << m_puncture_shift[ipuncture][0]
                << " " << m_puncture_shift[ipuncture][1] << " "
                << m_puncture_shift[ipuncture][2] << endl;
-        pout() << "at time = " << a_current_time << endl;
+        amrex::Print() << "at time = " << a_current_time << endl;
     }
 }
 

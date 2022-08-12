@@ -14,7 +14,7 @@
 #endif
 
 // Chombo includes
-#include "parstream.H" //Gives us pout()
+#include "parstream.H" //Gives us amrex::Print()
 
 // General includes:
 #include <algorithm>
@@ -50,7 +50,7 @@ int runSphericalExtractionTest(int argc, char *argv[])
     // Load the parameter file and construct the SimulationParameter class
     // To add more parameters edit the SimulationParameters file.
     std::string in_string = argv[argc - 1];
-    pout() << in_string << std::endl;
+    amrex::Print() << in_string << std::endl;
     char const *in_file = argv[argc - 1];
     GRParmParse pp(0, argv + argc, NULL, in_file);
     SimulationParameters sim_params(pp);
@@ -137,7 +137,7 @@ int runSphericalExtractionTest(int argc, char *argv[])
     spherical_extraction_hi.integrate();
 
     int status = 0;
-    pout() << std::setprecision(10);
+    amrex::Print() << std::setprecision(10);
 
     for (int iradius = 0;
          iradius < sim_params.extraction_params_lo.num_extraction_radii;
@@ -177,12 +177,12 @@ int runSphericalExtractionTest(int argc, char *argv[])
         // Boole's rule should have sixth order convergence
         status |= (convergence_order_boole < 5.5);
 
-        pout() << "At r = " << r << ":\n";
-        pout() << "convergence_order_trapezium = "
+        amrex::Print() << "At r = " << r << ":\n";
+        amrex::Print() << "convergence_order_trapezium = "
                << convergence_order_trapezium << "\n";
-        pout() << "convergence_order_simpson = " << convergence_order_simpson
+        amrex::Print() << "convergence_order_simpson = " << convergence_order_simpson
                << "\n";
-        pout() << "convergence_order_boole = " << convergence_order_boole
+        amrex::Print() << "convergence_order_boole = " << convergence_order_boole
                << "\n"
                << endl;
     }
@@ -197,9 +197,9 @@ int main(int argc, char *argv[])
     int status = runSphericalExtractionTest(argc, argv);
 
     if (status == 0)
-        pout() << "SphericalExtractionTest test passed." << endl;
+        amrex::Print() << "SphericalExtractionTest test passed." << endl;
     else
-        pout() << "SphericalExtractionTest test failed with return code "
+        amrex::Print() << "SphericalExtractionTest test failed with return code "
                << status << endl;
 
     mainFinalize();

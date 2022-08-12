@@ -137,7 +137,7 @@ class GRParmParse : public amrex::ParmParse
                   bool> = true> // this won't work for std::arrays and vectors
     void default_message(const char *name, const data_t &default_value) const
     {
-        pout() << "Parameter: " << name << " not found in parameter file. "
+        amrex::Print() << "Parameter: " << name << " not found in parameter file. "
                << "It has been set to its default value = " << default_value
                << "." << std::endl;
     }
@@ -148,14 +148,14 @@ class GRParmParse : public amrex::ParmParse
                   bool> = true> // use this code for std::arrays and vectors
     void default_message(const char *name, const data_t &default_value) const
     {
-        pout() << "Parameter: " << name << " not found in parameter file. "
+        amrex::Print() << "Parameter: " << name << " not found in parameter file. "
                << "It has been set to its default "
                   "value =";
         for (auto elem : default_value)
         {
-            pout() << " " << elem;
+            amrex::Print() << " " << elem;
         }
-        pout() << "." << std::endl;
+        amrex::Print() << "." << std::endl;
     }
 };
 

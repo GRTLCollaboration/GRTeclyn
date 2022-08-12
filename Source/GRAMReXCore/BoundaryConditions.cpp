@@ -233,14 +233,14 @@ void BoundaryConditions::set_vars_asymptotic_values(
 void BoundaryConditions::write_reflective_conditions(int idir,
                                                      const params_t &a_params)
 {
-    pout() << "The variables that are parity odd in this direction are : "
+    amrex::Print() << "The variables that are parity odd in this direction are : "
            << endl;
     for (int icomp = 0; icomp < NUM_VARS; icomp++)
     {
         int parity = get_var_parity(icomp, idir, a_params);
         if (parity == -1)
         {
-            pout() << UserVariables::variable_names[icomp] << "    ";
+            amrex::Print() << UserVariables::variable_names[icomp] << "    ";
         }
     }
     for (int icomp = 0; icomp < NUM_DIAGNOSTIC_VARS; icomp++)
@@ -249,7 +249,7 @@ void BoundaryConditions::write_reflective_conditions(int idir,
             get_var_parity(icomp, idir, a_params, VariableType::diagnostic);
         if (parity == -1)
         {
-            pout() << DiagnosticVariables::variable_names[icomp] << "    ";
+            amrex::Print() << DiagnosticVariables::variable_names[icomp] << "    ";
         }
     }
 }
@@ -257,14 +257,14 @@ void BoundaryConditions::write_reflective_conditions(int idir,
 void BoundaryConditions::write_sommerfeld_conditions(int idir,
                                                      const params_t &a_params)
 {
-    pout() << "The non zero asymptotic values of the variables "
+    amrex::Print() << "The non zero asymptotic values of the variables "
               "in this direction are : "
            << endl;
     for (int icomp = 0; icomp < NUM_VARS; icomp++)
     {
         if (a_params.vars_asymptotic_values[icomp] != 0)
         {
-            pout() << UserVariables::variable_names[icomp] << " = "
+            amrex::Print() << UserVariables::variable_names[icomp] << " = "
                    << a_params.vars_asymptotic_values[icomp] << "    ";
         }
     }
@@ -279,18 +279,18 @@ void BoundaryConditions::write_mixed_conditions(int idir,
     AMREX_ASSERT(a_params.mixed_bc_vars_map.size() == NUM_VARS);
 
     // now do the write out
-    pout()
+    amrex::Print()
         << "The variables that use extrapolating bcs in this direction are : "
         << endl;
     for (int icomp = 0; icomp < NUM_VARS; icomp++)
     {
         if (a_params.mixed_bc_vars_map.at(icomp) == EXTRAPOLATING_BC)
         {
-            pout() << UserVariables::variable_names[icomp] << "    ";
+            amrex::Print() << UserVariables::variable_names[icomp] << "    ";
         }
     }
-    pout() << endl;
-    pout() << "The other variables all use Sommerfeld boundary conditions."
+    amrex::Print() << endl;
+    amrex::Print() << "The other variables all use Sommerfeld boundary conditions."
            << endl;
     write_sommerfeld_conditions(idir, a_params);
 }
@@ -298,9 +298,9 @@ void BoundaryConditions::write_mixed_conditions(int idir,
 /// write out boundary params (used during setup for debugging)
 void BoundaryConditions::write_boundary_conditions(const params_t &a_params)
 {
-    pout() << "You are using non periodic boundary conditions." << endl;
-    pout() << "The boundary params chosen are:  " << endl;
-    pout() << "---------------------------------" << endl;
+    amrex::Print() << "You are using non periodic boundary conditions." << endl;
+    amrex::Print() << "The boundary params chosen are:  " << endl;
+    amrex::Print() << "---------------------------------" << endl;
 
     std::map<int, std::string> bc_names = {{STATIC_BC, "Static"},
                                            {SOMMERFELD_BC, "Sommerfeld"},
@@ -311,7 +311,7 @@ void BoundaryConditions::write_boundary_conditions(const params_t &a_params)
     {
         if (!a_params.is_periodic[idir])
         {
-            pout() << "- " << bc_names[a_params.hi_boundary[idir]]
+            amrex::Print() << "- " << bc_names[a_params.hi_boundary[idir]]
                    << " boundaries in direction high " << idir << endl;
             // high directions
             if (a_params.hi_boundary[idir] == REFLECTIVE_BC)
@@ -326,10 +326,10 @@ void BoundaryConditions::write_boundary_conditions(const params_t &a_params)
             {
                 write_mixed_conditions(idir, a_params);
             }
-            pout() << "\n" << endl;
+            amrex::Print() << "\n" << endl;
 
             // low directions
-            pout() << "- " << bc_names[a_params.lo_boundary[idir]]
+            amrex::Print() << "- " << bc_names[a_params.lo_boundary[idir]]
                    << " boundaries in direction low " << idir << endl;
             if (a_params.lo_boundary[idir] == REFLECTIVE_BC)
             {
@@ -343,10 +343,10 @@ void BoundaryConditions::write_boundary_conditions(const params_t &a_params)
             {
                 write_mixed_conditions(idir, a_params);
             }
-            pout() << "\n" << endl;
+            amrex::Print() << "\n" << endl;
         }
     }
-    pout() << "---------------------------------" << endl;
+    amrex::Print() << "---------------------------------" << endl;
 }
 
 /// The function which returns the parity of each of the vars in

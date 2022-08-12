@@ -123,7 +123,7 @@ load_vars_to_vector(GRParmParse &pp, const char *a_vars_vector_string,
                 if (var < 0)
                 {
                     // it's neither :(
-                    pout() << "Variable with name " << var_name << " not found."
+                    amrex::Print() << "Variable with name " << var_name << " not found."
                            << endl;
                 }
                 else

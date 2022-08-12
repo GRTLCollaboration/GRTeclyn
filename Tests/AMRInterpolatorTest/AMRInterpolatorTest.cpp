@@ -14,7 +14,7 @@
 #endif
 
 // Chombo includes
-#include "parstream.H" //Gives us pout()
+#include "parstream.H" //Gives us amrex::Print()
 
 // General includes:
 #include <algorithm>
@@ -50,7 +50,7 @@ int runInterpolatorTest(int argc, char *argv[])
     // Load the parameter file and construct the SimulationParameter class
     // To add more parameters edit the SimulationParameters file.
     std::string in_string = argv[argc - 1];
-    pout() << in_string << std::endl;
+    amrex::Print() << in_string << std::endl;
     char const *in_file = argv[argc - 1];
     GRParmParse pp(0, argv + argc, NULL, in_file);
     SimulationParameters sim_params(pp);
@@ -123,9 +123,9 @@ int main(int argc, char *argv[])
     int status = runInterpolatorTest(argc, argv);
 
     if (status == 0)
-        pout() << "BasicAMRInterpolator test passed." << endl;
+        amrex::Print() << "BasicAMRInterpolator test passed." << endl;
     else
-        pout() << "BasicAMRInterpolator test failed with return code " << status
+        amrex::Print() << "BasicAMRInterpolator test failed with return code " << status
                << endl;
 
     mainFinalize();

@@ -42,7 +42,7 @@ void BinaryBHLevel::initialData()
 {
     BL_PROFILE("BinaryBHLevel::initialData");
     if (m_verbosity)
-        pout() << "BinaryBHLevel::initialData " << m_level << endl;
+        amrex::Print() << "BinaryBHLevel::initialData " << m_level << endl;
 #ifdef USE_TWOPUNCTURES
     TwoPuncturesInitialData two_punctures_initial_data(
         m_dx, m_p.center, m_tp_amr.m_two_punctures);

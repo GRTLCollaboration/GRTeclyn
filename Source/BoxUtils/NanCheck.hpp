@@ -43,14 +43,14 @@ class NanCheck
         {
 #pragma omp single
             {
-                pout() << m_error_info
+                amrex::Print() << m_error_info
                        << "::Values have become nan. The current state is: \n";
                 for (int ivar = 0; ivar < num_vars; ++ivar)
                 {
-                    pout() << UserVariables::variable_names[ivar] << ": "
+                    amrex::Print() << UserVariables::variable_names[ivar] << ": "
                            << current_cell.load_vars(ivar) << std::endl;
                 }
-                pout() << "Integer coordinates: " << current_cell.get_int_vect()
+                amrex::Print() << "Integer coordinates: " << current_cell.get_int_vect()
                        << std::endl;
             }
             amrex::Abort("Values have become nan.");

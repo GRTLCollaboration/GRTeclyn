@@ -57,7 +57,7 @@ class SimulationParameters : public SimulationParametersBase
             pp.load("TP_target_mass_plus", tp_params.target_M_plus);
             pp.load("TP_target_mass_minus", tp_params.target_M_minus);
             pp.load("TP_adm_tol", tp_params.adm_tol, 1e-10);
-            pout() << "The black holes have target ADM masses of "
+            amrex::Print() << "The black holes have target ADM masses of "
                    << tp_params.target_M_plus << " and "
                    << tp_params.target_M_minus << "\n";
             bh1_params.mass = tp_params.target_M_minus;
@@ -69,11 +69,11 @@ class SimulationParameters : public SimulationParametersBase
             pp.load("TP_mass_minus", tp_params.par_m_minus);
             bh1_params.mass = tp_params.par_m_plus;
             bh2_params.mass = tp_params.par_m_minus;
-            pout() << "The black holes have bare masses of "
+            amrex::Print() << "The black holes have bare masses of "
                    << std::setprecision(16) << tp_params.par_m_plus << " and "
                    << tp_params.par_m_minus << "\n";
             // reset precision
-            pout() << std::setprecision(6);
+            amrex::Print() << std::setprecision(6);
         }
 
         // BH spin and momenta
@@ -90,18 +90,18 @@ class SimulationParameters : public SimulationParametersBase
             tp_params.par_S_plus[i] = spin_plus[i];
         }
 
-        pout() << "The corresponding momenta are:";
-        pout() << "\nP_plus = ";
-        FOR(i) { pout() << tp_params.par_P_plus[i] << " "; }
-        pout() << "\nP_minus = ";
-        FOR(i) { pout() << tp_params.par_P_minus[i] << " "; }
+        amrex::Print() << "The corresponding momenta are:";
+        amrex::Print() << "\nP_plus = ";
+        FOR(i) { amrex::Print() << tp_params.par_P_plus[i] << " "; }
+        amrex::Print() << "\nP_minus = ";
+        FOR(i) { amrex::Print() << tp_params.par_P_minus[i] << " "; }
 
-        pout() << "\nThe corresponding spins are:";
-        pout() << "\nS_plus = ";
-        FOR(i) { pout() << tp_params.par_S_plus[i] << " "; }
-        pout() << "\nS_minus = ";
-        FOR(i) { pout() << tp_params.par_S_minus[i] << " "; }
-        pout() << "\n";
+        amrex::Print() << "\nThe corresponding spins are:";
+        amrex::Print() << "\nS_plus = ";
+        FOR(i) { amrex::Print() << tp_params.par_S_plus[i] << " "; }
+        amrex::Print() << "\nS_minus = ";
+        FOR(i) { amrex::Print() << tp_params.par_S_minus[i] << " "; }
+        amrex::Print() << "\n";
 
         // interpolation type
         bool use_spectral_interpolation;

@@ -5,7 +5,7 @@
 
 // Chombo includes
 #include "CH_Timer.H"
-#include "parstream.H" //Gives us pout()
+#include "parstream.H" //Gives us amrex::Print()
 
 // System includes
 #include <chrono>
@@ -99,7 +99,7 @@ int runGRChombo(int argc, char *argv[])
 
     auto now = Clock::now();
     auto duration = std::chrono::duration_cast<Minutes>(now - start_time);
-    pout() << "Total simulation time (mins): " << duration.count() << ".\n";
+    amrex::Print() << "Total simulation time (mins): " << duration.count() << ".\n";
 
     bh_amr.conclude();
 
@@ -115,9 +115,9 @@ int main(int argc, char *argv[])
     int status = runGRChombo(argc, argv);
 
     if (status == 0)
-        pout() << "GRChombo finished." << std::endl;
+        amrex::Print() << "GRChombo finished." << std::endl;
     else
-        pout() << "GRChombo failed with return code " << status << std::endl;
+        amrex::Print() << "GRChombo failed with return code " << status << std::endl;
 
     mainFinalize();
     return status;

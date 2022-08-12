@@ -103,7 +103,7 @@ class SimulationParametersBase : public AMReXParameters
             if (extraction_params.num_points_theta % 2 == 0)
             {
                 extraction_params.num_points_theta += 1;
-                pout() << "Parameter: num_points_theta incompatible with "
+                amrex::Print() << "Parameter: num_points_theta incompatible with "
                           "Simpson's "
                        << "rule so increased by 1.\n";
             }

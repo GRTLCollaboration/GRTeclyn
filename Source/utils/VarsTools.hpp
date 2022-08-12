@@ -12,7 +12,7 @@
 #include "UserVariables.hpp"
 
 // Chombo includes
-//#include "parstream.H" //Gives us pout()
+//#include "parstream.H" //Gives us amrex::Print()
 
 namespace VarsTools
 {
@@ -95,7 +95,7 @@ template <template <typename> class vars_t, typename data_t>
 void print(const vars_t<data_t> &vars)
 {
     vars.enum_mapping([](const int &ivar, data_t &var) {
-        pout() << UserVariables::variable_names[ivar] << ": " << var << "\n";
+        amrex::Print() << UserVariables::variable_names[ivar] << ": " << var << "\n";
     });
 }
 } // namespace VarsTools

@@ -22,10 +22,10 @@
 #define __FILENAME__                                                           \
     (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 
-#define DEBUG_SHOW(VAR) pout() << #VAR << ": " << VAR << " "
-#define DEBUG_FILE pout() << __FILENAME__ << ": "
-#define DEBUG_END pout() << std::endl
-#define DEBUG_DOUBLE_PRECISION pout() << std::setprecision(16)
+#define DEBUG_SHOW(VAR) amrex::Print() << #VAR << ": " << VAR << " "
+#define DEBUG_FILE amrex::Print() << __FILENAME__ << ": "
+#define DEBUG_END amrex::Print() << std::endl
+#define DEBUG_DOUBLE_PRECISION amrex::Print() << std::setprecision(16)
 
 /// The macros DEBUG_OUT make debugging quicker and allow easy printing of a
 /// variable.
@@ -55,7 +55,7 @@
 //
 #ifdef EQUATION_DEBUG_MODE
 #define DEBUG_HEADER                                                           \
-    pout() << "Debug output in " << __FILENAME__                               \
+    amrex::Print() << "Debug output in " << __FILENAME__                               \
            << " at: " << s_current_integer_coords << "." << std::endl
 static amrex::IntVect s_current_integer_coords;
 namespace EquationDebugging
