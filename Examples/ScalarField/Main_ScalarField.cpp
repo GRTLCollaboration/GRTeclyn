@@ -22,7 +22,7 @@
 // Chombo namespace
 #include "UsingNamespace.H"
 
-int runGRChombo(int argc, char *argv[])
+int runGRAMReX(int argc, char *argv[])
 {
     // Load the parameter file and construct the SimulationParameter class
     // To add more parameters edit the SimulationParameters file.
@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
 {
     mainSetup(argc, argv);
 
-    int status = runGRChombo(argc, argv);
+    int status = runGRAMReX(argc, argv);
 
     if (status == 0)
         amrex::Print() << "GRChombo finished." << std::endl;
