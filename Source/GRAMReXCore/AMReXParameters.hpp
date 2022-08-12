@@ -28,8 +28,6 @@ class AMReXParameters
 
     void read_params(GRParmParse &pp)
     {
-#if 0
-        // xxxxx
         // must be before any amrex::Print() in the code to setPoutBaseName
         read_filesystem_params(pp);
 
@@ -50,7 +48,7 @@ class AMReXParameters
         // L's, N's and center
         read_grid_params(pp);
 
-#ifdef CH_USE_HDF5
+#ifdef AMREX_USE_HDF5
         pp.load("ignore_checkpoint_name_mismatch",
                 ignore_checkpoint_name_mismatch, false);
 #endif
@@ -90,7 +88,7 @@ class AMReXParameters
         pp.load("plot_interval", plot_interval, 0);
         pp.load("stop_time", stop_time, 1.0);
         pp.load("max_steps", max_steps, 1000000);
-#ifdef CH_USE_HDF5
+#ifdef AMREX_USE_HDF5
         pp.load("write_plot_ghosts", write_plot_ghosts, false);
 
         // load vars to write to plot files
@@ -121,7 +119,6 @@ class AMReXParameters
 
         pp.load("print_progress_only_to_rank_0", print_progress_only_to_rank_0,
                 false);
-#endif
     }
 
     void read_filesystem_params(GRParmParse &pp)
@@ -131,7 +128,7 @@ class AMReXParameters
         // In this function, cannot use default value - it may print a 'default
         // message' to pout and a 'setPoutBaseName' must happen before
         restart_from_checkpoint = pp.contains("restart_file");
-#ifdef CH_USE_HDF5
+#ifdef AMREX_USE_HDF5
         if (restart_from_checkpoint)
         {
             pp.load("restart_file", restart_file);
@@ -162,7 +159,7 @@ class AMReXParameters
             pout_path = default_path;
 #endif
 
-#ifdef CH_USE_HDF5
+#ifdef AMREX_USE_HDF5
         // user sets the 'subpath', we prepend 'output_path'
         if (pp.contains("hdf5_subpath"))
             pp.load("hdf5_subpath", hdf5_path);
@@ -177,7 +174,7 @@ class AMReXParameters
         if (!pout_path.empty() && pout_path.back() != '/')
             pout_path += "/";
 #endif
-#ifdef CH_USE_HDF5
+#ifdef AMREX_USE_HDF5
         if (!hdf5_path.empty() && hdf5_path.back() != '/')
             hdf5_path += "/";
 #endif
@@ -187,7 +184,7 @@ class AMReXParameters
 #ifdef CH_MPI
             pout_path = output_path + pout_path;
 #endif
-#ifdef CH_USE_HDF5
+#ifdef AMREX_USE_HDF5
             hdf5_path = output_path + hdf5_path;
             // assume restart_file is an absolute path if it starts with '/'
             // otherwise assume it is relative to hdf5_path
@@ -387,7 +384,7 @@ class AMReXParameters
 
         // check the restart_file exists and can be read if restarting from a
         // checkpoint
-#ifdef CH_USE_HDF5
+#ifdef AMREX_USE_HDF5
         if (restart_from_checkpoint)
         {
             bool restart_file_exists =
@@ -430,7 +427,7 @@ class AMReXParameters
         // (MR); while this would technically work (any plot files would just
         // overwrite a checkpoint file), I think a user would only ever do
         // this unintentinally
-#ifdef CH_USE_HDF5
+#ifdef AMREX_USE_HDF5
         check_parameter("plot_prefix", plot_prefix,
                         plot_interval <= 0 || plot_prefix != checkpoint_prefix,
                         "should be different to checkpoint_prefix");
@@ -487,7 +484,7 @@ class AMReXParameters
     amrex::Vector<int> regrid_interval; // steps between regrid at each level
     int max_steps;
     bool restart_from_checkpoint; // whether or not to restart or start afresh
-#ifdef CH_USE_HDF5
+#ifdef AMREX_USE_HDF5
     std::string restart_file;             // The path to the restart_file
     bool ignore_checkpoint_name_mismatch; // ignore mismatch of variable names
                                           // between restart file and program
@@ -496,7 +493,7 @@ class AMReXParameters
     int checkpoint_interval, plot_interval; // Steps between outputs
     int max_grid_size, block_factor;        // max and min box sizes
     double fill_ratio; // determines how fussy the regridding is about tags
-#ifdef CH_USE_HDF5
+#ifdef AMREX_USE_HDF5
     std::string checkpoint_prefix, plot_prefix; // naming of files
 #endif
     std::string output_path; // base path to use for all files
@@ -504,7 +501,7 @@ class AMReXParameters
     std::string pout_prefix; // pout file prefix
     std::string pout_path;   // base path for pout files
 #endif
-#ifdef CH_USE_HDF5
+#ifdef AMREX_USE_HDF5
     std::string hdf5_path; // base path for pout files
     bool write_plot_ghosts;
     int num_plot_vars;

@@ -91,7 +91,7 @@ class GRAMRLevel //xxxxx: public AMRLevel, public InterpSource
 
     DisjointBoxLayout loadBalance(const Vector<Box> &a_grids);
 
-#ifdef CH_USE_HDF5
+#ifdef AMREX_USE_HDF5
     virtual void writeCheckpointHeader(HDF5Handle &a_handle) const;
 
     virtual void writeCheckpointLevel(HDF5Handle &a_handle) const;
@@ -146,7 +146,7 @@ class GRAMRLevel //xxxxx: public AMRLevel, public InterpSource
     virtual void computeTaggingCriterion(FArrayBox &tagging_criterion,
                                          const FArrayBox &current_state) = 0;
 
-#ifdef CH_USE_HDF5
+#ifdef AMREX_USE_HDF5
     /// Things to do immediately before checkpointing
     virtual void preCheckpointLevel() {}
 

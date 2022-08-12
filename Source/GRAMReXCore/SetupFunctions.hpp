@@ -95,7 +95,7 @@ void setupAMRObject(GRAMR &gr_amr, AMRLevelFactory &a_factory)
     gr_amr.gridBufferSize(amrex_params.grid_buffer_size);
 
     // set checkpoint and plot intervals and prefixes
-#ifdef CH_USE_HDF5
+#ifdef AMREX_USE_HDF5
     gr_amr.checkpointInterval(amrex_params.checkpoint_interval);
     gr_amr.checkpointPrefix(amrex_params.hdf5_path +
                             amrex_params.checkpoint_prefix);
@@ -128,7 +128,7 @@ void setupAMRObject(GRAMR &gr_amr, AMRLevelFactory &a_factory)
     // Set up input files
     if (!amrex_params.restart_from_checkpoint)
     {
-#ifdef CH_USE_HDF5
+#ifdef AMREX_USE_HDF5
         if (!FilesystemTools::directory_exists(amrex_params.hdf5_path))
             FilesystemTools::mkdir_recursive(amrex_params.hdf5_path);
 #endif
@@ -137,7 +137,7 @@ void setupAMRObject(GRAMR &gr_amr, AMRLevelFactory &a_factory)
     }
     else
     {
-#ifdef CH_USE_HDF5
+#ifdef AMREX_USE_HDF5
         HDF5Handle handle(amrex_params.restart_file, HDF5Handle::OPEN_RDONLY);
         // read from checkpoint file
         gr_amr.setupForRestart(handle);

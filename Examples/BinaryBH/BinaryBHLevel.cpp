@@ -217,7 +217,7 @@ void BinaryBHLevel::specificPostTimeStep()
 #endif
 }
 
-#ifdef CH_USE_HDF5
+#ifdef AMREX_USE_HDF5
 // Things to do before a plot level - need to calculate the Weyl scalars
 void BinaryBHLevel::prePlotLevel()
 {
@@ -231,4 +231,4 @@ void BinaryBHLevel::prePlotLevel()
             m_state_new, m_state_diagnostics, EXCLUDE_GHOST_CELLS);
     }
 }
-#endif /* CH_USE_HDF5 */
+#endif /* AMREX_USE_HDF5 */

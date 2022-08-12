@@ -63,7 +63,7 @@ void ScalarFieldLevel::initialData()
                    EXCLUDE_GHOST_CELLS);
 }
 
-#ifdef CH_USE_HDF5
+#ifdef AMREX_USE_HDF5
 // Things to do before outputting a checkpoint file
 void ScalarFieldLevel::prePlotLevel()
 {

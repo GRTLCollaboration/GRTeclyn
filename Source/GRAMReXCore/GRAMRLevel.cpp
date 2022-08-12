@@ -454,7 +454,7 @@ DisjointBoxLayout GRAMRLevel::loadBalance(const Vector<Box> &a_grids)
 }
 
 // write checkpoint header
-#ifdef CH_USE_HDF5
+#ifdef AMREX_USE_HDF5
 void GRAMRLevel::writeCheckpointHeader(HDF5Handle &a_handle) const
 {
     if (m_verbosity)
@@ -887,7 +887,7 @@ void GRAMRLevel::writePlotHeader(HDF5Handle &a_handle) const
                         "Plot files will be empty.");
     }
 }
-#endif /*ifdef CH_USE_HDF5*/
+#endif /*ifdef AMREX_USE_HDF5*/
 
 void GRAMRLevel::evalRHS(GRLevelData &rhs, GRLevelData &soln,
                          LevelFluxRegister &fineFR, LevelFluxRegister &crseFR,

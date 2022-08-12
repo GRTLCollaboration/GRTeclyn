@@ -19,20 +19,20 @@
 // Problem specific includes:
 #include "BinaryBHLevel.hpp"
 
-int runGRAMReX(int argc, char *argv[])
+int runGRAMReX(int /*argc*/, char */*argv*/[])
 {
     BL_PROFILE("runGRAMReX()");
 
-#if 0
-// xxxxx
     // Load the parameter file and construct the SimulationParameter class
     // To add more parameters edit the SimulationParameters file.
-    char *in_file = argv[1];
-    GRParmParse pp(argc - 2, argv + 2, NULL, in_file);
+    GRParmParse pp;
     SimulationParameters sim_params(pp);
 
     if (sim_params.just_check_params)
         return 0;
+
+#if 0
+// xxxxx
 
 #ifdef USE_TWOPUNCTURES
     TPAMR bh_amr;

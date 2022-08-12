@@ -4,7 +4,7 @@
 | CH_SPACEDIM                  | AMREX_SPACEDIM                |
 | CH_assert                    | AMREX_ASSERT                  |
 | CH_TIME                      | BL_PROFILE                    |
-| CH_USE_HDF5                  |                               |
+| CH_USE_HDF5                  | AMREX_USE_HDF5                |
 | MayDay::Error                | amrex::Abort                  |
 | MayDay::Warning              | amrex::Warning                |
 | pout                         | amrex::Print                  |
