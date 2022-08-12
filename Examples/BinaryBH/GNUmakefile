@@ -1,44 +1,38 @@
-# -*- Mode: Makefile -*-
+DEBUG = FALSE
 
-### This makefile produces an executable for each name in the `ebase'
-###  variable using the libraries named in the `LibNames' variable.
+USE_MPI = TRUE
+USE_OMP = FALSE
 
-# Included makefiles need an absolute path to the Chombo installation
-# CHOMBO_HOME := Please set the CHOMBO_HOME locally (e.g. export CHOMBO_HOME=... in bash)
+COMP = gnu
 
-# Figure out whether to build with Two Punctures
-ifdef TWOPUNCTURES_SOURCE
-ifneq (,$(wildcard $(TWOPUNCTURES_SOURCE)/TwoPunctures.hpp))
-  $(info ================== Using TwoPunctures ==================)
-  USE_TWOPUNCTURES := TRUE
-  # Note this code requires linking with the GNU Scientific Library
-  # In addition to the line below, the include paths to the relevant header
-  # files might also need to be passed to the preprocessor/compiler
-  XTRALIBFLAGS = -lgsl
-  cxxcppflags = -DUSE_TWOPUNCTURES
-else
-  $(error TWOPUNCTURES_SOURCE not set correctly)
-endif
-endif
+DIM = 3
 
-GRCHOMBO_SOURCE = ../../Source
+BL_NO_FORT = TRUE
 
-ebase := Main_BinaryBH
+AMREX_HOME ?= ../../../amrex
 
-LibNames := AMRTimeDependent AMRTools BoxTools
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
-src_dirs := $(GRCHOMBO_SOURCE)/utils \
-            $(GRCHOMBO_SOURCE)/simd  \
-            $(GRCHOMBO_SOURCE)/CCZ4  \
-            $(GRCHOMBO_SOURCE)/BoxUtils  \
-            $(GRCHOMBO_SOURCE)/GRChomboCore  \
-            $(GRCHOMBO_SOURCE)/AMRInterpolator  \
-            $(GRCHOMBO_SOURCE)/TaggingCriteria  \
-            $(GRCHOMBO_SOURCE)/InitialConditions/BlackHoles \
-            $(GRCHOMBO_SOURCE)/BlackHoles
+include ./Make.package
+include $(AMREX_HOME)/Src/Base/Make.package
+include $(AMREX_HOME)/Src/Boundary/Make.package
+include $(AMREX_HOME)/Src/AmrCore/Make.package
 
-ifeq ($(USE_TWOPUNCTURES),TRUE)
-  src_dirs += $(TWOPUNCTURES_SOURCE)
-endif
+GRAMREX_SOURCE = ../../Source
 
-include $(CHOMBO_HOME)/mk/Make.test
+src_dirs := $(GRAMREX_SOURCE)/utils \
+            $(GRAMREX_SOURCE)/simd  \
+            $(GRAMREX_SOURCE)/CCZ4  \
+            $(GRAMREX_SOURCE)/BoxUtils  \
+            $(GRAMREX_SOURCE)/GRChomboCore  \
+            $(GRAMREX_SOURCE)/AMRInterpolator  \
+            $(GRAMREX_SOURCE)/TaggingCriteria  \
+            $(GRAMREX_SOURCE)/InitialConditions/BlackHoles \
+            $(GRAMREX_SOURCE)/BlackHoles
+
+src_pack := $(foreach dir, $(src_dirs), $(dir)/Make.package)
+include $(src_pack)
+VPATH_LOCATIONS += $(src_dirs)
+INCLUDE_LOCATIONS += $(src_dirs)
+
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules
