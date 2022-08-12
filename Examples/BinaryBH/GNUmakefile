@@ -24,7 +24,7 @@ src_dirs := $(GRAMREX_SOURCE)/utils \
             $(GRAMREX_SOURCE)/simd  \
             $(GRAMREX_SOURCE)/CCZ4  \
             $(GRAMREX_SOURCE)/BoxUtils  \
-            $(GRAMREX_SOURCE)/GRChomboCore  \
+            $(GRAMREX_SOURCE)/GRAMReXCore  \
             $(GRAMREX_SOURCE)/AMRInterpolator  \
             $(GRAMREX_SOURCE)/TaggingCriteria  \
             $(GRAMREX_SOURCE)/InitialConditions/BlackHoles \
