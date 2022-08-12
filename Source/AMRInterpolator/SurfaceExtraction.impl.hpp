@@ -18,7 +18,7 @@ SurfaceExtraction<SurfaceGeometry>::SurfaceExtraction(
     double a_time, bool a_first_step, double a_restart_time)
     : m_geom(a_geom), m_params(a_params), m_dt(a_dt), m_time(a_time),
       m_first_step(a_first_step), m_restart_time(a_restart_time),
-      m_num_interp_points((procID() == 0)
+      m_num_interp_points((amrex::ParallelDescriptor::MyProc() == 0)
                               ? m_params.num_surfaces * m_params.num_points_u *
                                     m_params.num_points_v
                               : 0),
@@ -38,7 +38,7 @@ SurfaceExtraction<SurfaceGeometry>::SurfaceExtraction(
     }
 
     // only interp points on rank 0
-    if (procID() == 0)
+    if (amrex::ParallelDescriptor::MyProc() == 0)
     {
         FOR(idir) { m_interp_coords[idir].resize(m_num_interp_points); }
 
@@ -172,7 +172,7 @@ void SurfaceExtraction<SurfaceGeometry>::add_integrand(
 {
     // if broadcasting integral to all ranks, all ranks need to know about it
     m_broadcast_integrals.push_back(a_broadcast_integral);
-    if (a_broadcast_integral || procID() == 0)
+    if (a_broadcast_integral || amrex::ParallelDescriptor::MyProc() == 0)
     {
         // resize the out_integrals and store a reference to it
         out_integrals.resize(m_params.num_surfaces);
@@ -182,7 +182,7 @@ void SurfaceExtraction<SurfaceGeometry>::add_integrand(
 
     // only rank 0 actually does the integration and needs to know about the
     // integrand and integration method
-    if (procID() == 0)
+    if (amrex::ParallelDescriptor::MyProc() == 0)
     {
         // store the integrand
         m_integrands.push_back(a_integrand);
@@ -244,7 +244,7 @@ template <class SurfaceGeometry>
 void SurfaceExtraction<SurfaceGeometry>::integrate()
 {
     AMREX_ASSERT(m_done_extraction);
-    if (procID() == 0)
+    if (amrex::ParallelDescriptor::MyProc() == 0)
     {
         // note this condition won't be true on other ranks
         AMREX_ASSERT(m_integrands.size() == m_integration_methods.size() &&
@@ -300,10 +300,10 @@ void SurfaceExtraction<SurfaceGeometry>::integrate()
         if (m_broadcast_integrals[iintegral])
         {
             Vector<double> broadcast_Vector;
-            if (procID() == 0)
+            if (amrex::ParallelDescriptor::MyProc() == 0)
                 broadcast_Vector = m_integrals[iintegral].get();
             broadcast(broadcast_Vector, 0);
-            if (procID() != 0)
+            if (amrex::ParallelDescriptor::MyProc() != 0)
             {
                 m_integrals[iintegral].get() = broadcast_Vector.stdVector();
             }
@@ -340,7 +340,7 @@ void SurfaceExtraction<SurfaceGeometry>::write_extraction(
     std::string a_file_prefix) const
 {
     AMREX_ASSERT(m_done_extraction);
-    if (procID() == 0)
+    if (amrex::ParallelDescriptor::MyProc() == 0)
     {
         SmallDataIO extraction_file(m_params.extraction_path + a_file_prefix,
                                     m_dt, m_time, m_restart_time,
@@ -412,7 +412,7 @@ void SurfaceExtraction<SurfaceGeometry>::write_integrals(
     const std::vector<std::vector<double>> &a_integrals,
     const std::vector<std::string> &a_labels) const
 {
-    if (procID() == 0)
+    if (amrex::ParallelDescriptor::MyProc() == 0)
     {
         const int num_integrals_per_surface = a_integrals.size();
         // if labels are provided there must be the same number of labels as

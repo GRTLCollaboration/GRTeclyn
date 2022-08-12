@@ -102,7 +102,7 @@ Real GRAMRLevel::advance()
 
     // if 'print_progress_only_to_rank_0', still print if it's level 0 or
     // t=restart_time
-    if (!m_p.print_progress_only_to_rank_0 || (procID() == 0) ||
+    if (!m_p.print_progress_only_to_rank_0 || (amrex::ParallelDescriptor::MyProc() == 0) ||
         m_time == m_restart_time)
         printProgress("GRAMRLevel::advance");
 
@@ -343,7 +343,7 @@ void GRAMRLevel::regrid(const Vector<Box> &a_new_grids)
     // if 'print_progress_only_to_rank_0', print progress only on regrids
     // (except for rank 0, which kept doing prints)
     // print here instead of 'postRegrid' to avoid prints in reverse level order
-    if (m_p.print_progress_only_to_rank_0 && (procID() != 0))
+    if (m_p.print_progress_only_to_rank_0 && (amrex::ParallelDescriptor::MyProc() != 0))
         printProgress("GRAMRLevel::regrid");
 }
 

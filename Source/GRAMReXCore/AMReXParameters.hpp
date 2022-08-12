@@ -28,6 +28,8 @@ class AMReXParameters
 
     void read_params(GRParmParse &pp)
     {
+#if 0
+        // xxxxx
         // must be before any amrex::Print() in the code to setPoutBaseName
         read_filesystem_params(pp);
 
@@ -80,7 +82,7 @@ class AMReXParameters
             amrex::Print() << "Using single regrid threshold." << std::endl;
             double regrid_threshold;
             pp.load("regrid_threshold", regrid_threshold, 0.5);
-            regrid_thresholds = Vector<double>(max_level + 1, regrid_threshold);
+            regrid_thresholds = amrex::Vector<double>(max_level + 1, regrid_threshold);
         }
 
         // time stepping outputs and regrid data
@@ -119,10 +121,13 @@ class AMReXParameters
 
         pp.load("print_progress_only_to_rank_0", print_progress_only_to_rank_0,
                 false);
+#endif
     }
 
     void read_filesystem_params(GRParmParse &pp)
     {
+#if 0
+        // xxxxxx
         // In this function, cannot use default value - it may print a 'default
         // message' to pout and a 'setPoutBaseName' must happen before
         restart_from_checkpoint = pp.contains("restart_file");
@@ -199,14 +204,17 @@ class AMReXParameters
 #endif
 
         // only create hdf5 directory in setupAMRObject (when it becomes needed)
+#endif
     }
 
     void read_grid_params(GRParmParse &pp)
     {
+#if 0
+        // xxxxx
         // Grid N
         std::array<int, AMREX_SPACEDIM> Ni_full;
         std::array<int, AMREX_SPACEDIM> Ni;
-        ivN = IntVect::Unit;
+        ivN = amrex::IntVect::TheUnitVector();
 
         // cannot contain both
         if ((pp.contains("N_full") && pp.contains("N")))
@@ -349,6 +357,7 @@ class AMReXParameters
         }
 
         pp.load("center", center, default_center); // default to center
+#endif
     }
 
     void check_params()
@@ -394,8 +403,8 @@ class AMReXParameters
                         max_grid_size >= 0, "must be >= 0");
         check_parameter("block_factor/min_box_size", block_factor,
                         block_factor >= 1, "must be >= 1");
-        check_parameter("block_factor/min_box_size", block_factor,
-                        Misc::isPower2(block_factor), "must be a power of 2");
+//        check_parameter("block_factor/min_box_size", block_factor,
+//xxxxx                        Misc::isPower2(block_factor), "must be a power of 2");
         // note that this also enforces block_factor <= max_grid_size
         // if max_grid_size > 0
         check_parameter("block_factor/min_box_size", block_factor,
@@ -463,7 +472,7 @@ class AMReXParameters
     int verbosity;
     double L;                               // Physical sidelength of the grid
     std::array<double, AMREX_SPACEDIM> center; // grid center
-    IntVect ivN; // The number of grid cells in each dimension
+    amrex::IntVect ivN; // The number of grid cells in each dimension
     double coarsest_dx,
         coarsest_dt; // The coarsest resolution in space and time
     int max_level;   // the max number of regriddings to do
@@ -473,9 +482,9 @@ class AMReXParameters
     int num_ghosts;         // min dependent on max_spatial_derivative_order
     int tag_buffer_size;    // Amount the tagged region is grown by
     int grid_buffer_size;   // Number of cells between level
-    Vector<int> ref_ratios; // ref ratios between levels
+    amrex::Vector<int> ref_ratios; // ref ratios between levels
     // boundaries.
-    Vector<int> regrid_interval; // steps between regrid at each level
+    amrex::Vector<int> regrid_interval; // steps between regrid at each level
     int max_steps;
     bool restart_from_checkpoint; // whether or not to restart or start afresh
 #ifdef CH_USE_HDF5
@@ -510,7 +519,7 @@ class AMReXParameters
     BoundaryConditions::params_t boundary_params; // set boundaries in each dir
 
     // For tagging
-    Vector<double> regrid_thresholds;
+    amrex::Vector<double> regrid_thresholds;
 
     // For checking parameters and then exiting rather before instantiating
     // GRAMR (or child) object
@@ -526,7 +535,7 @@ class AMReXParameters
     // print from rank 0
     void error(const std::string &a_error_message)
     {
-        if (procID() == 0)
+        if (amrex::ParallelDescriptor::MyProc() == 0)
         {
             amrex::Abort(a_error_message.c_str());
         }
@@ -558,7 +567,7 @@ class AMReXParameters
         else
         {
             // only print the warning from rank 0
-            if (procID() == 0)
+            if (amrex::ParallelDescriptor::MyProc() == 0)
             {
                 std::ostringstream warning_message_ss;
                 warning_message_ss << "Parameter: " << a_name << " = "
