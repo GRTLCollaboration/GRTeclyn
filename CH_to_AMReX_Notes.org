@@ -5,6 +5,7 @@
 | CH_assert                    | AMREX_ASSERT                  |
 | CH_TIME                      | BL_PROFILE                    |
 | CH_USE_HDF5                  | AMREX_USE_HDF5                |
+| CH_MPI                       | AMREX_USE_MPI                 |
 | MayDay::Error                | amrex::Abort                  |
 | MayDay::Warning              | amrex::Warning                |
 | pout                         | amrex::Print                  |

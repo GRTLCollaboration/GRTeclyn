@@ -7,6 +7,7 @@
 #define MPICONTEXT_HPP_
 
 #include "MPILayout.hpp"
+#include <AMReX_ParallelDescriptor.H>
 #include <vector>
 
 class MPIContext
@@ -60,20 +61,12 @@ class MPIContext
 
 inline int MPIContext::comm_size()
 {
-    int out = 1;
-#ifdef AMREX_USE_MPI
-    MPI_Comm_size(Chombo_MPI::comm, &out);
-#endif
-    return out;
+    return amrex::ParallelDescriptor::NProcs();
 }
 
 inline int MPIContext::comm_rank()
 {
-    int out = 0;
-#ifdef AMREX_USE_MPI
-    MPI_Comm_rank(Chombo_MPI::comm, &out);
-#endif
-    return out;
+    return amrex::ParallelDescriptor::MyProc();
 }
 
 #include "MPIContext.impl.hpp"
