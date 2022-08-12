@@ -33,6 +33,8 @@ class GRAMRLevel;
 
 class GRAMR //xxxxx: public AMR
 {
+#if 0
+//xxxxx
   private:
     using Clock = std::chrono::steady_clock;
     using Hours = std::chrono::duration<double, std::ratio<3600, 1>>;
@@ -68,6 +70,8 @@ class GRAMR //xxxxx: public AMR
 //        const Interval &a_comps = Interval(0, std::numeric_limits<int>::max()),
 //        const int a_min_level = 0,
 //        const int a_max_level = std::numeric_limits<int>::max()) const;
+
+#endif
 };
 
 #endif /* GRAMR_HPP_ */

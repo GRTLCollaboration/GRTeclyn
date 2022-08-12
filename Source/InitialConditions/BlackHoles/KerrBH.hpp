@@ -43,7 +43,7 @@ class KerrBH
         // check this spin param is sensible
         if (std::abs(m_params.spin) > m_params.mass)
         {
-            MayDay::Error("The spin parameter must satisfy |a| <= M");
+            amrex::Abort("The spin parameter must satisfy |a| <= M");
         }
     }
 

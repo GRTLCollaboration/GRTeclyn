@@ -121,7 +121,7 @@ class SimulationParameters : public SimulationParametersBase
             std::string message = "Parameter: TP_initial_lapse: ";
             message += tp_params.initial_lapse;
             message += " invalid";
-            MayDay::Error(message.c_str());
+            amrex::Abort(message.c_str());
         }
         if (tp_params.initial_lapse == "psi^n")
         {
@@ -135,7 +135,7 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("TP_npoints_phi", tp_params.npoints_phi, 16);
         if (tp_params.npoints_phi % 4 != 0)
         {
-            MayDay::Error("TP_npoints_phi must be a multiple of 4");
+            amrex::Abort("TP_npoints_phi must be a multiple of 4");
         }
 
         // Solver parameters and tolerances

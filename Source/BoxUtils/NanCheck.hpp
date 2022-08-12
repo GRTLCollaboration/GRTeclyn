@@ -53,7 +53,7 @@ class NanCheck
                 pout() << "Integer coordinates: " << current_cell.get_int_vect()
                        << std::endl;
             }
-            MayDay::Error("Values have become nan.");
+            amrex::Abort("Values have become nan.");
         }
     }
 };

@@ -569,7 +569,7 @@ void BoundaryConditions::fill_boundary_cells_dir(
                 break;
             }
             default:
-                MayDay::Error(
+                amrex::Abort(
                     "BoundaryCondition::Supplied boundary not supported.");
             } // end switch
         }     // end iterate over box
@@ -760,7 +760,7 @@ void BoundaryConditions::fill_extrapolating_cell(
         // other orders not supported yet
         else
         {
-            MayDay::Error("Order not supported for boundary extrapolation.");
+            amrex::Abort("Order not supported for boundary extrapolation.");
         }
 
         // set the value here to the extrapolated value
@@ -937,7 +937,7 @@ void BoundaryConditions::interp_boundaries(GRLevelData &a_fine_state,
                         }
                         else
                         {
-                            MayDay::Error(
+                            amrex::Abort(
                                 "BoundaryConditions::define bad boxes");
                         }
                     }
@@ -1090,7 +1090,7 @@ void BoundaryConditions::expand_grids_to_boundaries(
 {
     if (!a_in_grids.isClosed())
     {
-        MayDay::Error("input to expand_grids_to_boundaries must be closed");
+        amrex::Abort("input to expand_grids_to_boundaries must be closed");
     }
 
     // Grow the problem domain to include the boundary ghosts

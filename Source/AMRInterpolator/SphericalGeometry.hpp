@@ -66,7 +66,7 @@ class SphericalGeometry
         case (2):
             return m_center[2] + a_radius * cos(a_theta);
         default:
-            MayDay::Error("SphericalGeometry: Direction not supported");
+            amrex::Abort("SphericalGeometry: Direction not supported");
         }
     }
 

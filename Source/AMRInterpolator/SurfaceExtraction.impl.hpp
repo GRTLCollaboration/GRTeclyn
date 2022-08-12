@@ -143,7 +143,7 @@ void SurfaceExtraction<SurfaceGeometry>::extract(
 {
     if (a_interpolator == nullptr)
     {
-        MayDay::Error("SurfaceExtraction: invalid AMRInterpolator pointer");
+        amrex::Abort("SurfaceExtraction: invalid AMRInterpolator pointer");
     }
     // m_num_interp_points is 0 on ranks > 0
     InterpolationQuery query(m_num_interp_points);

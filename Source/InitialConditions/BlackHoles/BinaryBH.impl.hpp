@@ -41,7 +41,7 @@ template <class data_t> void BinaryBH::compute(Cell<data_t> current_cell) const
         vars.lapse = vars.chi;
         break;
     default:
-        MayDay::Error("BinaryBH::Supplied initial lapse not supported.");
+        amrex::Abort("BinaryBH::Supplied initial lapse not supported.");
     }
 
     current_cell.store_vars(vars);

@@ -40,20 +40,20 @@ template <int Order> class Lagrange
 
     // Helper function to generate tensor product weights
     // Argument 'dim' is used for recursion over dimensions.
-    pair<std::vector<IntVect>, std::vector<double>>
+    std::pair<std::vector<amrex::IntVect>, std::vector<double>>
     generateStencil(const std::array<int, AMREX_SPACEDIM> &deriv,
                     const std::array<double, AMREX_SPACEDIM> &dx,
                     const std::array<double, AMREX_SPACEDIM> &evalCoord,
-                    const IntVect &nearest, int dim = AMREX_SPACEDIM - 1);
+                    const amrex::IntVect &nearest, int dim = AMREX_SPACEDIM - 1);
 
-    std::vector<IntVect> m_interp_points;
+    std::vector<amrex::IntVect> m_interp_points;
     std::vector<double> m_interp_weights;
 
     // We are adding 216+ numbers at roughly the same magnitudes but alternating
     // signs. Let's keep track of positive and negative terms separately to make
     // sure we don't run into trouble.
-    multiset<double> m_interp_neg;
-    multiset<double> m_interp_pos;
+    std::multiset<double> m_interp_neg;
+    std::multiset<double> m_interp_pos;
 
   public:
     Lagrange(const InterpSource &source, bool verbosity = false);
@@ -61,10 +61,10 @@ template <int Order> class Lagrange
     void setup(const std::array<int, AMREX_SPACEDIM> &deriv,
                const std::array<double, AMREX_SPACEDIM> &dx,
                const std::array<double, AMREX_SPACEDIM> &evalCoord,
-               const IntVect &nearest);
-    double interpData(const FArrayBox &fab, int comp);
+               const amrex::IntVect &nearest);
+    double interpData(const amrex::FArrayBox &fab, int comp);
 
-    const static string TAG;
+    const static std::string TAG;
 };
 
 #include "Lagrange.impl.hpp"

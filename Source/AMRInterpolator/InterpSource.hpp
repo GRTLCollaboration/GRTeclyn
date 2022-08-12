@@ -8,15 +8,16 @@
 
 // Other inclues
 #include "VariableType.hpp"
-#include <array>
 
 #include <AMReX_MultiFab.H>
+
+#include <array>
 
 // Abstrace base class to get the FABs out of an AMRLevel
 class InterpSource
 {
   public:
-    virtual const MultiFab &getLevelData(
+    virtual const amrex::MultiFab &getLevelData(
         const VariableType var_type = VariableType::evolution) const = 0;
     virtual bool
     contains(const std::array<double, AMREX_SPACEDIM> &point) const = 0;

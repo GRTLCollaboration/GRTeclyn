@@ -17,7 +17,7 @@ class GRLevelData : public amrex::MultiFab
 
     void setVal(const double a_val, const int a_comp);
 
-    void setVal(const double a_val, const Interval a_comps);
+//xxxxx    void setVal(const double a_val, const Interval a_comps);
 
     // loop only goes over a_disjoint_box_layout
 //xxxxx    void plus(const GRLevelData &a_src, const double a_scale,

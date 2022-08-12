@@ -93,7 +93,7 @@ void QuinticConvolution::setup(const std::array<int, AMREX_SPACEDIM> &deriv,
         }
         else
         {
-            MayDay::Error("Quintic convolution algorithm only supports up to "
+            amrex::Abort("Quintic convolution algorithm only supports up to "
                           "second derivative");
         }
     }

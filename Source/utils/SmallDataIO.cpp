@@ -83,12 +83,12 @@ SmallDataIO::SmallDataIO(std::string a_filename_prefix, double a_dt,
         }
         else
         {
-            MayDay::Error("SmallDataIO: mode not supported");
+            amrex::Abort("SmallDataIO: mode not supported");
         }
         m_file.open(m_filename, file_openmode);
         if (!m_file)
         {
-            MayDay::Error("SmallDataIO::error opening file for writing");
+            amrex::Abort("SmallDataIO::error opening file for writing");
         }
     }
 }
@@ -287,7 +287,7 @@ void SmallDataIO::get_specific_data_line(std::vector<double> &a_out_data,
         }
         if (!line_found)
         {
-            MayDay::Error(
+            amrex::Abort(
                 "SmallDataIO : Data to be read in at coord not found in file");
         }
     }
@@ -321,7 +321,7 @@ std::string SmallDataIO::get_new_filename(const std::string &a_file_prefix,
     std::string step_string = std::to_string(step);
     if (a_filename_steps_width < step_string.length())
     {
-        MayDay::Error("SmallDataIO: a_filename_steps_width too small "
+        amrex::Abort("SmallDataIO: a_filename_steps_width too small "
                       "for step number");
     }
     std::string step_string_padded =

@@ -28,12 +28,12 @@ inline CCZ4RHS<gauge_t, deriv_t>::CCZ4RHS(
         if ((m_params.kappa1 != 0.) || (m_params.kappa2 != 0.) ||
             (m_params.kappa3 != 0.))
         {
-            MayDay::Error("BSSN formulation is selected - CCZ4 kappa values "
+            amrex::Abort("BSSN formulation is selected - CCZ4 kappa values "
                           "should be set to zero in params");
         }
     }
     if (m_formulation > USE_BSSN)
-        MayDay::Error("The requested formulation is not supported");
+        amrex::Abort("The requested formulation is not supported");
 }
 
 template <class gauge_t, class deriv_t>

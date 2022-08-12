@@ -178,7 +178,7 @@ void setupAMRObject(GRAMR &gr_amr, AMRLevelFactory &a_factory)
         gr_amr.setupForRestart(handle);
         handle.close();
 #else
-        MayDay::Error("GRChombo restart only defined with hdf5");
+        amrex::Abort("GRChombo restart only defined with hdf5");
 #endif
     }
 }

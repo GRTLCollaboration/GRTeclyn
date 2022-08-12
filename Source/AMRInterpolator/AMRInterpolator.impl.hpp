@@ -8,6 +8,10 @@
 
 #include <sstream>
 
+//xxxxx
+#include <iostream>
+inline std::ostream& pout() { return std::cout; } // xxxxx
+
 // A bit of Android-ism here, but it's really useful!
 // Identifies the printout as originating from this class.
 template <typename InterpAlgo>
@@ -830,7 +834,7 @@ int AMRInterpolator<InterpAlgo>::get_var_parity(int comp,
         m_bc_params.vars_parity_diagnostic[comp] ==
             BoundaryConditions::UNDEFINED &&
         m_bc_params.reflective_boundaries_exist)
-        MayDay::Error("Please provide parameter 'vars_parity_diagnostic' if "
+        amrex::Abort("Please provide parameter 'vars_parity_diagnostic' if "
                       "extracting diagnostic variables with reflective BC");
 
     int parity = 1;

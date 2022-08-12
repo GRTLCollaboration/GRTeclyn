@@ -210,7 +210,7 @@ class ChomboParameters
 
         // cannot contain both
         if ((pp.contains("N_full") && pp.contains("N")))
-            MayDay::Error("Please only provide 'N' or 'N_full', not both");
+            amrex::Abort("Please only provide 'N' or 'N_full', not both");
 
         int N_full = -1;
         int N = -1;
@@ -528,7 +528,7 @@ class ChomboParameters
     {
         if (procID() == 0)
         {
-            MayDay::Error(a_error_message.c_str());
+            amrex::Abort(a_error_message.c_str());
         }
     }
 

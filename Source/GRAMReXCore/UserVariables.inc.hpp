@@ -74,6 +74,8 @@ void load_values_to_array(
     const std::vector<std::pair<int, VariableType>> &a_vars_vector,
     std::array<T, NUM_VARS> &a_values_array, const T a_default_value)
 {
+#if 0
+    // xxxxx
     // how many values do I need to get?
     int num_values = a_vars_vector.size();
     // make a container for them, and load
@@ -88,6 +90,7 @@ void load_values_to_array(
         AMREX_ASSERT(a_vars_vector[i].second == VariableType::evolution);
         a_values_array[icomp] = vars_values[i];
     }
+#endif
 }
 
 // function to create a vector of enums of vars by reading in their
@@ -98,6 +101,8 @@ load_vars_to_vector(GRParmParse &pp, const char *a_vars_vector_string,
                     std::vector<std::pair<int, VariableType>> &a_vars_vector,
                     int &a_vars_vector_size)
 {
+#if 0
+//xxxxx
     int num_values;
     pp.load(a_vector_size_string, num_values, -1);
     // only set a_vars_vector and a_var_vector_size if a_vector_size_string
@@ -134,6 +139,7 @@ load_vars_to_vector(GRParmParse &pp, const char *a_vars_vector_string,
         // overwrites read in value if entries have been ignored
         a_vars_vector_size = a_vars_vector.size();
     }
+#endif
 }
 
 } // namespace UserVariables

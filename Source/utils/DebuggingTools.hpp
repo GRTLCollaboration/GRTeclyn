@@ -64,7 +64,7 @@ inline void check_no_omp()
 {
 #ifdef _OPENMP
     if (omp_get_max_threads() > 1)
-        MayDay::Error("Equation debug mode can  only be used with one thread.");
+        amrex::Abort("Equation debug mode can  only be used with one thread.");
 #endif
 }
 

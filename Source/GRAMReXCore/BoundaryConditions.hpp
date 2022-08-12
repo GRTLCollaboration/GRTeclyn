@@ -19,7 +19,8 @@
 //#include "Copier.H"
 //#include "FourthOrderInterpStencil.H"
 //#include "Interval.H"
-//#include "RealVect.H"
+//#include <AMReX_RealBox.H>
+//#include <AMReX_RealVect.H>
 
 /// Class which deals with the boundaries at the edge of the physical domain in
 /// cases where they are not periodic. Currently only options are static BCs,
@@ -90,9 +91,9 @@ class BoundaryConditions
     double m_dx;            // The grid spacing
     int m_num_ghosts;       // the number of ghosts (usually 3)
     params_t m_params;      // the boundary params
-    RealVect m_center;      // the position of the center of the grid
-    ProblemDomain m_domain; // the problem domain (excludes boundary cells)
-    Box m_domain_box;       // The box representing the domain
+    amrex::RealVect m_center;      // the position of the center of the grid
+    amrex::RealBox m_domain; // the problem domain (excludes boundary cells)
+    amrex::Box m_domain_box;       // The box representing the domain
     bool is_defined; // whether the BoundaryConditions class members are defined
 
   public:
@@ -101,7 +102,7 @@ class BoundaryConditions
 
     /// define function sets members and is_defined set to true
     void define(double a_dx, std::array<double, AMREX_SPACEDIM> a_center,
-                const params_t &a_params, ProblemDomain a_domain,
+                const params_t &a_params, amrex::RealBox a_domain,
                 int a_num_ghosts);
 
     /// change the asymptotic values of the variables for the Sommerfeld BCs
@@ -125,6 +126,8 @@ class BoundaryConditions
     get_var_parity(int a_comp, int a_dir, const params_t &a_params,
                    const VariableType var_type = VariableType::evolution);
 
+#if 0
+//xxxxx
     /// Fill the rhs boundary values appropriately based on the params set
     void fill_rhs_boundaries(const Side::LoHiSide a_side,
                              const GRLevelData &a_soln, GRLevelData &a_rhs);
@@ -163,9 +166,9 @@ class BoundaryConditions
     int get_boundary_condition(const Side::LoHiSide a_side, const int a_dir);
 
     /// get the boundary box to fill if we are at a boundary
-    Box get_boundary_box(const Side::LoHiSide a_side, const int a_dir,
-                         const IntVect &offset_lo, const IntVect &offset_hi,
-                         Box &this_ghostless_box, int shrink_for_coarse = 0);
+    amrex::Box get_boundary_box(const Side::LoHiSide a_side, const int a_dir,
+                         const amrex::IntVect &offset_lo, const amrex::IntVect &offset_hi,
+                         amrex::Box &this_ghostless_box, int shrink_for_coarse = 0);
 
     /// This function takes a default constructed open DisjointBoxLayout and
     /// grows the boxes lying along the boundary to include the boundaries if
@@ -174,6 +177,7 @@ class BoundaryConditions
     /// boundary ghosts are exchanged correctly.
     void expand_grids_to_boundaries(DisjointBoxLayout &a_out_grids,
                                     const DisjointBoxLayout &a_in_grids);
+#endif
 
     friend class ExpandGridsToBoundaries;
 
@@ -187,24 +191,26 @@ class BoundaryConditions
     /// write out mixed conditions
     static void write_mixed_conditions(int idir, const params_t &a_params);
 
-    void fill_sommerfeld_cell(FArrayBox &rhs_box, const FArrayBox &soln_box,
-                              const IntVect iv,
+    void fill_sommerfeld_cell(amrex::FArrayBox &rhs_box, const amrex::FArrayBox &soln_box,
+                              const amrex::IntVect iv,
                               const std::vector<int> &sommerfeld_comps) const;
 
-    void fill_extrapolating_cell(FArrayBox &out_box, const IntVect iv,
+#if 0
+//xxxxx    void fill_extrapolating_cell(amrex::FArrayBox &out_box, const amrex::IntVect iv,
                                  const Side::LoHiSide a_side, const int dir,
                                  const std::vector<int> &extrapolating_comps,
                                  const int order = 1) const;
 
     void fill_reflective_cell(
-        FArrayBox &out_box, const IntVect iv, const Side::LoHiSide a_side,
+        amrex::FArrayBox &out_box, const amrex::IntVect iv, const Side::LoHiSide a_side,
         const int dir, const std::vector<int> &reflective_comps,
         const VariableType var_type = VariableType::evolution) const;
+#endif
 };
 
 /// This derived class is used by expand_grids_to_boundaries to grow the
 /// boxes along the Sommerfeld BC boundaries
-class ExpandGridsToBoundaries : public BaseTransform
+class ExpandGridsToBoundaries //xxxxx: public BaseTransform
 {
   public:
     ExpandGridsToBoundaries(BoundaryConditions &a_boundaries)
@@ -213,7 +219,7 @@ class ExpandGridsToBoundaries : public BaseTransform
     }
 
     /// Operator called by transform to grow the boxes where required
-    Box operator()(const Box &a_in_box) override;
+    amrex::Box operator()(const amrex::Box &a_in_box); //xxxxx override;
 
   protected:
     BoundaryConditions &m_boundaries;

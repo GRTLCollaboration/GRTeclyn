@@ -72,7 +72,7 @@ class CylindricalGeometry
         case (2):
             return m_center[2] + a_z;
         default:
-            MayDay::Error("CylindricalGeometry: Direction not supported");
+            amrex::Abort("CylindricalGeometry: Direction not supported");
         }
     }
 

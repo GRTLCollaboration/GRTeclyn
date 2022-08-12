@@ -14,8 +14,13 @@
 
 #include <AMReX_ParmParse.H>
 
-#if 0
+#if 1
 // xxxxx
+class GRParmParse
+{
+};
+
+#else
 
 /// Helper structs to translate a dataype into a Chombo ParmParse data type
 template <class T> struct ParmParseTranslator;
@@ -36,10 +41,10 @@ template <> struct ParmParseTranslator<bool>
 };
 // End: Helper structs to translate a dataype into a Chombo ParmParse data type
 
-class GRParmParse : public ParmParse
+class GRParmParse : public amrex::ParmParse
 {
   public:
-    using ParmParse::ParmParse; // Just use ParmParse's constructor
+    using amrex::ParmParse::ParmParse; // Just use ParmParse's constructor
 
     // (MK): I called the functions below "load" rather than "get" to avoid
     // clashes with the many  different overloads of "get" in ParmParse. Also, I

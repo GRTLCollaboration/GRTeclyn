@@ -60,7 +60,7 @@ const GRAMRLevel *GRAMRLevel::gr_cast(const AMRLevel *const amr_level_ptr)
         dynamic_cast<const GRAMRLevel *>(amr_level_ptr);
     if (gr_amr_level_ptr == nullptr)
     {
-        MayDay::Error("in GRAMRLevel::gr_cast: amr_level_ptr is not castable "
+        amrex::Abort("in GRAMRLevel::gr_cast: amr_level_ptr is not castable "
                       "to GRAMRLevel*");
     }
     return gr_amr_level_ptr;
@@ -537,13 +537,13 @@ void GRAMRLevel::readCheckpointHeader(HDF5Handle &a_handle)
     // read number of components
     if (header.m_int.find("num_components") == header.m_int.end())
     {
-        MayDay::Error("GRAMRLevel::readCheckpointHeader: checkpoint file does "
+        amrex::Abort("GRAMRLevel::readCheckpointHeader: checkpoint file does "
                       "not have num_components");
     }
     int num_comps = header.m_int["num_components"];
     if (num_comps != NUM_VARS)
     {
-        MayDay::Error("GRAMRLevel::readCheckpointHeader: num_components in "
+        amrex::Abort("GRAMRLevel::readCheckpointHeader: num_components in "
                       "checkpoint file does not match solver");
     }
 
@@ -555,7 +555,7 @@ void GRAMRLevel::readCheckpointHeader(HDF5Handle &a_handle)
         sprintf(comp_str, "component_%d", comp);
         if (header.m_string.find(comp_str) == header.m_string.end())
         {
-            MayDay::Error("GRAMRLevel::readCheckpointHeader: checkpoint file "
+            amrex::Abort("GRAMRLevel::readCheckpointHeader: checkpoint file "
                           "does not have enough component names");
         }
         state_name = header.m_string[comp_str];
@@ -567,7 +567,7 @@ void GRAMRLevel::readCheckpointHeader(HDF5Handle &a_handle)
                                 "mismatch error silenced by user.");
             }
             else
-                MayDay::Error("GRAMRLevel::readCheckpointHeader: state_name in "
+                amrex::Abort("GRAMRLevel::readCheckpointHeader: state_name in "
                               "checkpoint does not match solver");
         }
     }
@@ -596,7 +596,7 @@ void GRAMRLevel::readCheckpointLevel(HDF5Handle &a_handle)
     // read refinement ratio
     if (header.m_int.find("ref_ratio") == header.m_int.end())
     {
-        MayDay::Error(
+        amrex::Abort(
             "GRAMRLevel::readCheckpointLevel: file does not contain ref_ratio");
     }
     m_ref_ratio = header.m_int["ref_ratio"];
@@ -607,7 +607,7 @@ void GRAMRLevel::readCheckpointLevel(HDF5Handle &a_handle)
     // read dx
     if (header.m_real.find("dx") == header.m_real.end())
     {
-        MayDay::Error(
+        amrex::Abort(
             "GRAMRLevel::readCheckpointLevel: file does not contain dx");
     }
     m_dx = header.m_real["dx"];
@@ -624,7 +624,7 @@ void GRAMRLevel::readCheckpointLevel(HDF5Handle &a_handle)
     // read time
     if (header.m_real.find("time") == header.m_real.end())
     {
-        MayDay::Error(
+        amrex::Abort(
             "GRAMRLevel::readCheckpointLevel: file does not contain time");
     }
     m_time = header.m_real["time"];
@@ -635,7 +635,7 @@ void GRAMRLevel::readCheckpointLevel(HDF5Handle &a_handle)
     // read problem domain
     if (header.m_box.find("prob_domain") == header.m_box.end())
     {
-        MayDay::Error("GRAMRLevel::readCheckpointLevel: file does not contain "
+        amrex::Abort("GRAMRLevel::readCheckpointLevel: file does not contain "
                       "prob_domain");
     }
     Box domainBox = header.m_box["prob_domain"];
@@ -661,7 +661,7 @@ void GRAMRLevel::readCheckpointLevel(HDF5Handle &a_handle)
     const int grid_status = read(a_handle, grids);
     if (grid_status != 0)
     {
-        MayDay::Error("GRAMRLevel::readCheckpointLevel: file does not contain "
+        amrex::Abort("GRAMRLevel::readCheckpointLevel: file does not contain "
                       "a Vector<Box>");
     }
 
@@ -711,7 +711,7 @@ void GRAMRLevel::readCheckpointLevel(HDF5Handle &a_handle)
                                             level_domain, comps, redefine_data);
     if (data_status != 0)
     {
-        MayDay::Error("GRAMRLevel::readCheckpointLevel: file does not contain "
+        amrex::Abort("GRAMRLevel::readCheckpointLevel: file does not contain "
                       "state data");
     }
     m_state_old.define(level_domain, NUM_VARS, iv_ghosts);
@@ -919,7 +919,7 @@ void GRAMRLevel::evalRHS(GRLevelData &rhs, GRLevelData &soln,
         else
         {
             pout() << "alpha: " << alpha << endl;
-            MayDay::Error(
+            amrex::Abort(
                 "Time interpolation coefficient is incompatible with RK4.");
         }
 
