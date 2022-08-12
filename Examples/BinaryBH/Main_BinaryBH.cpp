@@ -21,6 +21,8 @@
 
 int runGRAMReX(int argc, char *argv[])
 {
+    BL_PROFILE("runGRAMReX()");
+
 #if 0
 // xxxxx
     // Load the parameter file and construct the SimulationParameter class

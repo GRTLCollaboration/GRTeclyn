@@ -14,33 +14,6 @@
 
 #include <AMReX_ParmParse.H>
 
-#if 1
-// xxxxx
-class GRParmParse
-{
-};
-
-#else
-
-/// Helper structs to translate a dataype into a Chombo ParmParse data type
-template <class T> struct ParmParseTranslator;
-
-template <> struct ParmParseTranslator<double>
-{
-    static constexpr ParmParse::PPType pp_type = ParmParse::ppDouble;
-};
-
-template <> struct ParmParseTranslator<int>
-{
-    static constexpr ParmParse::PPType pp_type = ParmParse::ppInt;
-};
-
-template <> struct ParmParseTranslator<bool>
-{
-    static constexpr ParmParse::PPType pp_type = ParmParse::ppBool;
-};
-// End: Helper structs to translate a dataype into a Chombo ParmParse data type
-
 class GRParmParse : public amrex::ParmParse
 {
   public:
@@ -54,8 +27,7 @@ class GRParmParse : public amrex::ParmParse
     template <class data_t, long unsigned int n_comp>
     void load(const char *name, std::array<data_t, n_comp> &array) const
     {
-        getarr(name, ParmParseTranslator<data_t>::pp_type, array.data(), 0,
-               n_comp, -1);
+        get<data_t,n_comp>(name, array);
     }
 
     /// Loads a vector with num_comp components from the parameter file
@@ -158,7 +130,5 @@ class GRParmParse : public amrex::ParmParse
         amrex::Print() << "." << std::endl;
     }
 };
-
-#endif
 
 #endif /* GRPARMPARSE_HPP_ */
