@@ -98,7 +98,7 @@ bool GRAMRLevel::contains(const std::array<double, AMREX_SPACEDIM> &point) const
 // advance by one timestep
 Real GRAMRLevel::advance()
 {
-    CH_TIME("GRAMRLevel::advance");
+    BL_PROFILE("GRAMRLevel::advance");
 
     // if 'print_progress_only_to_rank_0', still print if it's level 0 or
     // t=restart_time
@@ -189,7 +189,7 @@ void GRAMRLevel::postTimeStep()
 // things to do before tagging cells
 void GRAMRLevel::preTagCells()
 {
-    CH_TIME("GRAMRLevel::preTagCells");
+    BL_PROFILE("GRAMRLevel::preTagCells");
     fillAllEvolutionGhosts(); // We need filled ghost cells to calculate
                               // gradients etc
 }
@@ -197,7 +197,7 @@ void GRAMRLevel::preTagCells()
 // create tags
 void GRAMRLevel::tagCells(IntVectSet &a_tags)
 {
-    CH_TIME("GRAMRLevel::tagCells");
+    BL_PROFILE("GRAMRLevel::tagCells");
     if (m_verbosity)
         pout() << "GRAMRLevel::tagCells " << m_level << endl;
 
@@ -268,7 +268,7 @@ void GRAMRLevel::tagCellsInit(IntVectSet &a_tags)
 // regrid
 void GRAMRLevel::regrid(const Vector<Box> &a_new_grids)
 {
-    CH_TIME("GRAMRLevel::regrid");
+    BL_PROFILE("GRAMRLevel::regrid");
 
     if (m_verbosity)
         pout() << "GRAMRLevel::regrid " << m_level << endl;
@@ -361,7 +361,7 @@ void GRAMRLevel::postRegrid(int a_base_level)
 // initialize grid
 void GRAMRLevel::initialGrid(const Vector<Box> &a_new_grids)
 {
-    CH_TIME("GRAMRLevel::initialGrid");
+    BL_PROFILE("GRAMRLevel::initialGrid");
 
     if (m_verbosity)
         pout() << "GRAMRLevel::initialGrid " << m_level << endl;
@@ -422,7 +422,7 @@ Real GRAMRLevel::computeInitialDt()
 
 DisjointBoxLayout GRAMRLevel::loadBalance(const Vector<Box> &a_grids)
 {
-    CH_TIME("GRAMRLevel::loadBalance");
+    BL_PROFILE("GRAMRLevel::loadBalance");
 
     // load balance and create boxlayout
     Vector<int> procMap;
@@ -473,7 +473,7 @@ void GRAMRLevel::writeCheckpointHeader(HDF5Handle &a_handle) const
 
 void GRAMRLevel::writeCheckpointLevel(HDF5Handle &a_handle) const
 {
-    CH_TIME("GRAMRLevel::writeCheckpointLevel");
+    BL_PROFILE("GRAMRLevel::writeCheckpointLevel");
 
     if (m_verbosity)
         pout() << "GRAMRLevel::writeCheckpointLevel" << endl;
@@ -521,7 +521,7 @@ void GRAMRLevel::writeCheckpointLevel(HDF5Handle &a_handle) const
 
 void GRAMRLevel::readCheckpointHeader(HDF5Handle &a_handle)
 {
-    CH_TIME("GRAMRLevel::readCheckpointHeader");
+    BL_PROFILE("GRAMRLevel::readCheckpointHeader");
 
     if (m_verbosity)
         pout() << "GRAMRLevel::readCheckpointHeader" << endl;
@@ -575,7 +575,7 @@ void GRAMRLevel::readCheckpointHeader(HDF5Handle &a_handle)
 
 void GRAMRLevel::readCheckpointLevel(HDF5Handle &a_handle)
 {
-    CH_TIME("GRAMRLevel::readCheckpointLevel");
+    BL_PROFILE("GRAMRLevel::readCheckpointLevel");
     if (m_verbosity)
         pout() << "GRAMRLevel::readCheckpointLevel" << endl;
 
@@ -892,7 +892,7 @@ void GRAMRLevel::evalRHS(GRLevelData &rhs, GRLevelData &soln,
                          const GRLevelData &newCrseSoln, Real newCrseTime,
                          Real time, Real fluxWeight)
 {
-    CH_TIME("GRAMRLevel::evalRHS");
+    BL_PROFILE("GRAMRLevel::evalRHS");
     if (m_verbosity)
         pout() << "GRAMRLevel::evalRHS" << endl;
 
@@ -942,7 +942,7 @@ void GRAMRLevel::evalRHS(GRLevelData &rhs, GRLevelData &soln,
 // implements soln += dt*rhs
 void GRAMRLevel::updateODE(GRLevelData &soln, const GRLevelData &rhs, Real dt)
 {
-    CH_TIME("GRAMRLevel::updateODE");
+    BL_PROFILE("GRAMRLevel::updateODE");
     // m_grown_grids will include outer boundary ghosts in the case of
     // nonperiodic BCs but will just be the problem domain otherwise.
     soln.plus(rhs, dt, m_grown_grids);
@@ -1018,7 +1018,7 @@ void GRAMRLevel::fillAllGhosts(const VariableType var_type,
 
 void GRAMRLevel::fillAllEvolutionGhosts(const Interval &a_comps)
 {
-    CH_TIME("GRAMRLevel::fillAllEvolutionGhosts()");
+    BL_PROFILE("GRAMRLevel::fillAllEvolutionGhosts()");
     if (m_verbosity)
         pout() << "GRAMRLevel::fillAllEvolutionGhosts" << endl;
 
@@ -1034,7 +1034,7 @@ void GRAMRLevel::fillAllEvolutionGhosts(const Interval &a_comps)
 
 void GRAMRLevel::fillAllDiagnosticsGhosts(const Interval &a_comps)
 {
-    CH_TIME("GRAMRLevel::fillAllDiagnosticsGhosts");
+    BL_PROFILE("GRAMRLevel::fillAllDiagnosticsGhosts");
     if (m_verbosity)
         pout() << "GRAMRLevel::fillAllDiagnosticsGhosts" << endl;
 

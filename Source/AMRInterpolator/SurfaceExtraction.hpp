@@ -6,10 +6,6 @@
 #ifndef SURFACEEXTRACTION_HPP_
 #define SURFACEEXTRACTION_HPP_
 
-// Chombo includes
-#include "AMREX_ASSERT.H"
-#include "SPMD.H"
-
 // Other inclues
 #include "AMRInterpolator.hpp"
 #include "DimensionDefinitions.hpp"
@@ -19,15 +15,13 @@
 #include "Lagrange.hpp"
 #include "SmallDataIO.hpp" // for writing data
 #include "UserVariables.hpp"
+
 #include <algorithm>
 #include <array>
 #include <functional>
 #include <tuple>
 #include <utility>
 #include <vector>
-
-// Chombo namespace
-#include "UsingNamespace.H"
 
 //! This class extracts grid variables on 2 dimensional surfaces each
 //! parameterised by u and v with different surfaces given by level sets of

@@ -6,9 +6,6 @@
 #ifndef INTERPOLATIONQUERY_HPP_
 #define INTERPOLATIONQUERY_HPP_
 
-// Chombo includes
-#include "AMREX_ASSERT.H"
-
 // Other includes
 #include "Derivative.hpp"
 #include "VariableType.hpp"
@@ -16,9 +13,6 @@
 #include <tuple>
 #include <utility>
 #include <vector>
-
-// Chombo namespace
-#include "UsingNamespace.H"
 
 class InterpolationQuery
 {

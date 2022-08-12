@@ -6,17 +6,12 @@
 #ifndef DEBUGGINGTOOLS_HPP_
 #define DEBUGGINGTOOLS_HPP_
 
-// Chombo includes
-#include "parstream.H" //Gives us pout()
 #ifdef EQUATION_DEBUG_MODE
-#include "IntVect.H"
+#include <AMReX_IntVect.H>
 #endif
 
 // Other includes
 #include <string.h>
-
-// Chombo namespace
-#include "UsingNamespace.H"
 
 /// This file contains a collection of helpful #defines and other definitions
 /// that are hepful for debugging.
@@ -62,7 +57,7 @@
 #define DEBUG_HEADER                                                           \
     pout() << "Debug output in " << __FILENAME__                               \
            << " at: " << s_current_integer_coords << "." << std::endl
-static IntVect s_current_integer_coords;
+static amrex::IntVect s_current_integer_coords;
 namespace EquationDebugging
 {
 inline void check_no_omp()
@@ -73,7 +68,7 @@ inline void check_no_omp()
 #endif
 }
 
-inline void set_global_cell_coordinates(const IntVect current_integer_coords)
+inline void set_global_cell_coordinates(const amrex::IntVect current_integer_coords)
 {
     check_no_omp();
     s_current_integer_coords = current_integer_coords;

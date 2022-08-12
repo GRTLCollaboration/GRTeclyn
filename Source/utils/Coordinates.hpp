@@ -6,16 +6,13 @@
 #ifndef COORDINATES_HPP_
 #define COORDINATES_HPP_
 
-// Chombo includes
-#include "IntVect.H"
-
 // Other includes
 #include "DimensionDefinitions.hpp"
 #include "simd.hpp"
-#include <array>
 
-// Chombo namespace
-#include "UsingNamespace.H"
+#include <AMReX_IntVect.H>
+
+#include <array>
 
 template <class data_t> class Coordinates
 {
@@ -25,7 +22,7 @@ template <class data_t> class Coordinates
     double z;
     std::array<double, AMREX_SPACEDIM> m_center;
 
-    Coordinates(IntVect integer_coords, double dx,
+    Coordinates(amrex::IntVect integer_coords, double dx,
                 std::array<double, AMREX_SPACEDIM> center = {0})
         : m_center(center)
     {
@@ -77,7 +74,7 @@ template <class data_t> class Coordinates
 
     /// This static function returns the radius subject to a floor
     /// for when no coordinates object exists.
-    static data_t get_radius(IntVect integer_coords, double dx,
+    static data_t get_radius(amrex::IntVect integer_coords, double dx,
                              std::array<double, AMREX_SPACEDIM> center = {0})
     {
         data_t xx;

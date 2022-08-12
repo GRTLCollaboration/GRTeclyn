@@ -34,7 +34,7 @@ void KerrBHLevel::specificAdvance()
 
 void KerrBHLevel::initialData()
 {
-    CH_TIME("KerrBHLevel::initialData");
+    BL_PROFILE("KerrBHLevel::initialData");
     if (m_verbosity)
         pout() << "KerrBHLevel::initialData " << m_level << endl;
 

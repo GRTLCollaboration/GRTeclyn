@@ -6,13 +6,6 @@
 #ifndef AMRINTERPOLATOR_HPP_
 #define AMRINTERPOLATOR_HPP_
 
-// system includes
-
-#include <limits>
-
-// Chombo includes
-#include "AMRLevel.H"
-
 // Our includes
 #include "BoundaryConditions.hpp"
 #include "GRAMR.hpp"
@@ -24,8 +17,8 @@
 #include "MPIContext.hpp"
 #include "UserVariables.hpp"
 
-// Chombo namespace
-#include "UsingNamespace.H"
+// system includes
+#include <limits>
 
 // End include
 

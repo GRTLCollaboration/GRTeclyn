@@ -40,7 +40,7 @@ void BinaryBHLevel::specificAdvance()
 // is valid for small boosts
 void BinaryBHLevel::initialData()
 {
-    CH_TIME("BinaryBHLevel::initialData");
+    BL_PROFILE("BinaryBHLevel::initialData");
     if (m_verbosity)
         pout() << "BinaryBHLevel::initialData " << m_level << endl;
 #ifdef USE_TWOPUNCTURES
@@ -130,7 +130,7 @@ void BinaryBHLevel::computeTaggingCriterion(FArrayBox &tagging_criterion,
 
 void BinaryBHLevel::specificPostTimeStep()
 {
-    CH_TIME("BinaryBHLevel::specificPostTimeStep");
+    BL_PROFILE("BinaryBHLevel::specificPostTimeStep");
 
     bool first_step =
         (m_time == 0.); // this form is used when 'specificPostTimeStep' was
@@ -152,7 +152,7 @@ void BinaryBHLevel::specificPostTimeStep()
             // Do the extraction on the min extraction level
             if (m_level == min_level)
             {
-                CH_TIME("WeylExtraction");
+                BL_PROFILE("WeylExtraction");
                 // Now refresh the interpolator and do the interpolation
                 // fill ghosts manually to minimise communication
                 bool fill_ghosts = false;
@@ -193,7 +193,7 @@ void BinaryBHLevel::specificPostTimeStep()
     // do puncture tracking on requested level
     if (m_p.track_punctures && m_level == m_p.puncture_tracking_level)
     {
-        CH_TIME("PunctureTracking");
+        BL_PROFILE("PunctureTracking");
         // only do the write out for every coarsest level timestep
         int coarsest_level = 0;
         bool write_punctures = at_level_timestep_multiple(coarsest_level);

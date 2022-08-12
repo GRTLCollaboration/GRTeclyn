@@ -52,7 +52,7 @@ void GRLevelData::setVal(const double a_val, const Interval a_comps)
 void GRLevelData::plus(const GRLevelData &a_src, const double a_scale,
                        const DisjointBoxLayout &a_disjoint_box_layout)
 {
-    CH_TIME("GRLevelData::plus");
+    BL_PROFILE("GRLevelData::plus");
     DataIterator dit = a_disjoint_box_layout.dataIterator();
     for (dit.begin(); dit.ok(); ++dit)
     {
@@ -116,7 +116,7 @@ void GRLevelData::plus(const GRLevelData &a_src, const double a_scale,
 // void GRLevelData::plus(const GRLevelData &a_src, const double a_scale,
 //                        const DisjointBoxLayout &a_disjoint_box_layout)
 // {
-//    CH_TIME("GRLevelData::plus");
+//    BL_PROFILE("GRLevelData::plus");
 //    DataIterator dit = a_disjoint_box_layout.dataIterator();
 //     for (dit.begin(); dit.ok(); ++dit)
 //     {

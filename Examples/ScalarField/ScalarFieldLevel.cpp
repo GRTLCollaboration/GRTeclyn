@@ -47,7 +47,7 @@ void ScalarFieldLevel::specificAdvance()
 // Initial data for field and metric variables
 void ScalarFieldLevel::initialData()
 {
-    CH_TIME("ScalarFieldLevel::initialData");
+    BL_PROFILE("ScalarFieldLevel::initialData");
     if (m_verbosity)
         pout() << "ScalarFieldLevel::initialData " << m_level << endl;
 

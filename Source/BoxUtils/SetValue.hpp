@@ -6,15 +6,9 @@
 #ifndef SETVALUE_HPP
 #define SETVALUE_HPP
 
-// Chombo includes
-#include "Interval.H"
-
 // Other includes
 #include "Cell.hpp"
 #include <limits>
-
-// Chombo namespace
-#include "UsingNamespace.H"
 
 /// This compute class can be used to set the value of a cell
 /** This compute class together with BoxLoops::loop(...) can be used to set the

@@ -39,7 +39,7 @@ AMRInterpolator<InterpAlgo>::AMRInterpolator(
 template <typename InterpAlgo>
 void AMRInterpolator<InterpAlgo>::refresh(const bool a_fill_ghosts)
 {
-    CH_TIME("AMRInterpolator::refresh");
+    BL_PROFILE("AMRInterpolator::refresh");
 
     const Vector<AMRLevel *> &levels =
         const_cast<GRAMR &>(m_gr_amr).getAMRLevels();
@@ -87,7 +87,7 @@ AMRInterpolator<InterpAlgo>::get_coarsest_origin()
 template <typename InterpAlgo>
 void AMRInterpolator<InterpAlgo>::limit_num_levels(unsigned int num_levels)
 {
-    CH_TIME("AMRInterpolator::limit_num_levels");
+    BL_PROFILE("AMRInterpolator::limit_num_levels");
 
     int max_num_levels = const_cast<GRAMR &>(m_gr_amr).getAMRLevels().size();
     if (num_levels > max_num_levels || num_levels == 0)
@@ -107,7 +107,7 @@ void AMRInterpolator<InterpAlgo>::limit_num_levels(unsigned int num_levels)
 template <typename InterpAlgo>
 void AMRInterpolator<InterpAlgo>::interp(InterpolationQuery &query)
 {
-    CH_TIME("AMRInterpolator::interp");
+    BL_PROFILE("AMRInterpolator::interp");
 
     if (m_verbosity)
     {
@@ -178,7 +178,7 @@ void AMRInterpolator<InterpAlgo>::interp(InterpolationQuery &query)
 template <typename InterpAlgo>
 void AMRInterpolator<InterpAlgo>::computeLevelLayouts()
 {
-    CH_TIME("AMRInterpolator::computeLevelLayouts");
+    BL_PROFILE("AMRInterpolator::computeLevelLayouts");
 
     ostream &_pout = pout();
 
@@ -260,7 +260,7 @@ template <typename InterpAlgo>
 InterpolationLayout
 AMRInterpolator<InterpAlgo>::findBoxes(InterpolationQuery &query)
 {
-    CH_TIME("AMRInterpolator::findBoxes");
+    BL_PROFILE("AMRInterpolator::findBoxes");
 
     ostream &_pout = pout();
 
@@ -497,7 +497,7 @@ template <typename InterpAlgo>
 void AMRInterpolator<InterpAlgo>::prepareMPI(InterpolationQuery &query,
                                              const InterpolationLayout layout)
 {
-    CH_TIME("AMRInterpolator::prepareMPI");
+    BL_PROFILE("AMRInterpolator::prepareMPI");
 
     ostream &_pout = pout();
 
@@ -577,7 +577,7 @@ void AMRInterpolator<InterpAlgo>::prepareMPI(InterpolationQuery &query,
 template <typename InterpAlgo>
 void AMRInterpolator<InterpAlgo>::exchangeMPIQuery()
 {
-    CH_TIME("AMRInterpolator::exchangeMPIQuery");
+    BL_PROFILE("AMRInterpolator::exchangeMPIQuery");
 
     ostream &_pout = pout();
 
@@ -615,7 +615,7 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIQuery()
 template <typename InterpAlgo>
 void AMRInterpolator<InterpAlgo>::calculateAnswers(InterpolationQuery &query)
 {
-    CH_TIME("AMRInterpolator::calculateAnswers");
+    BL_PROFILE("AMRInterpolator::calculateAnswers");
 
     ostream &_pout = pout();
 
@@ -765,7 +765,7 @@ void AMRInterpolator<InterpAlgo>::calculateAnswers(InterpolationQuery &query)
 template <typename InterpAlgo>
 void AMRInterpolator<InterpAlgo>::exchangeMPIAnswer()
 {
-    CH_TIME("AMRInterpolator::exchangeMPIAnswer");
+    BL_PROFILE("AMRInterpolator::exchangeMPIAnswer");
 
     if (m_verbosity)
     {

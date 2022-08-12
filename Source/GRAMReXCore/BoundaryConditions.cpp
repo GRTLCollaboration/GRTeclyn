@@ -395,7 +395,7 @@ void BoundaryConditions::fill_rhs_boundaries(const Side::LoHiSide a_side,
                                              GRLevelData &a_rhs)
 {
     AMREX_ASSERT(is_defined);
-    CH_TIME("BoundaryConditions::fill_rhs_boundaries");
+    BL_PROFILE("BoundaryConditions::fill_rhs_boundaries");
 
     // cycle through the directions, filling the rhs
     FOR(idir)
@@ -419,7 +419,7 @@ void BoundaryConditions::fill_solution_boundaries(const Side::LoHiSide a_side,
                                                   const Interval &a_comps)
 {
     AMREX_ASSERT(is_defined);
-    CH_TIME("BoundaryConditions::fill_solution_boundaries");
+    BL_PROFILE("BoundaryConditions::fill_solution_boundaries");
 
     // cycle through the directions
     FOR(idir)
@@ -451,7 +451,7 @@ void BoundaryConditions::fill_diagnostic_boundaries(const Side::LoHiSide a_side,
                                                     const Interval &a_comps)
 {
     AMREX_ASSERT(is_defined);
-    CH_TIME("BoundaryConditions::fill_diagnostic_boundaries");
+    BL_PROFILE("BoundaryConditions::fill_diagnostic_boundaries");
 
     // cycle through the directions
     FOR(idir)
@@ -774,7 +774,7 @@ void BoundaryConditions::copy_boundary_cells(const Side::LoHiSide a_side,
                                              const GRLevelData &a_src,
                                              GRLevelData &a_dest)
 {
-    CH_TIME("BoundaryConditions::copy_boundary_cells");
+    BL_PROFILE("BoundaryConditions::copy_boundary_cells");
 
     AMREX_ASSERT(is_defined);
     AMREX_ASSERT(a_src.nComp() == NUM_VARS);
@@ -832,7 +832,7 @@ void BoundaryConditions::interp_boundaries(GRLevelData &a_fine_state,
     AMREX_ASSERT(is_defined);
     AMREX_ASSERT(a_fine_state.nComp() == NUM_VARS);
     AMREX_ASSERT(a_coarse_state.nComp() == NUM_VARS);
-    CH_TIME("BoundaryConditions::interp_boundaries");
+    BL_PROFILE("BoundaryConditions::interp_boundaries");
 
     // cycle through the directions
     FOR(idir)

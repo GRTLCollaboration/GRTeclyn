@@ -6,14 +6,6 @@
 #ifndef GRAMRLEVEL_HPP_
 #define GRAMRLEVEL_HPP_
 
-// Chombo includes
-#include "AMRLevel.H"
-#include "CoarseAverage.H"
-#include "FourthOrderFillPatch.H"
-#include "LevelFluxRegister.H" //We don't actually use flux conservation but Chombo assumes we do
-#include "LevelRK4.H"
-#include "LoadBalance.H"
-
 // Other includes
 #include "BoundaryConditions.hpp"
 #include "GRAMR.hpp"
@@ -21,15 +13,23 @@
 #include "InterpSource.hpp"
 #include "SimulationParameters.hpp"
 #include "UserVariables.hpp" // need NUM_VARS
+
+// Chombo includes
+//xxxxx#include "AMRLevel.H"
+//#include "CoarseAverage.H"
+//#include "FourthOrderFillPatch.H"
+//#include "LevelFluxRegister.H" //We don't actually use flux conservation but Chombo assumes we do
+//#include "LevelRK4.H"
+//#include "LoadBalance.H"
+
 #include <fstream>
 #include <limits>
 #include <sys/time.h>
 
-// Chombo namespace
-#include "UsingNamespace.H"
-
-class GRAMRLevel : public AMRLevel, public InterpSource
+class GRAMRLevel //xxxxx: public AMRLevel, public InterpSource
 {
+#if 0
+//xxxxx
   public:
     GRAMRLevel(GRAMR &gr_amr, const SimulationParameters &a_p, int a_verbosity);
 
@@ -240,6 +240,7 @@ class GRAMRLevel : public AMRLevel, public InterpSource
 
   public:
     const int m_num_ghosts; //!< Number of ghost cells
+#endif
 };
 
 #endif /* GRAMRLEVEL_HPP_ */

@@ -137,7 +137,7 @@ void PunctureTracker::read_in_punctures(int a_int_step, double a_current_time)
 void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
                                        double a_dt, const bool write_punctures)
 {
-    CH_TIME("PunctureTracker::execute_tracking");
+    BL_PROFILE("PunctureTracker::execute_tracking");
     // leave if this is called at t=0, we don't want to move the puncture yet
     if (m_num_punctures == 0 || a_time == 0.)
         return;
@@ -178,7 +178,7 @@ void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
 //! given coords
 void PunctureTracker::interp_shift()
 {
-    CH_TIME("PunctureTracker::interp_shift");
+    BL_PROFILE("PunctureTracker::interp_shift");
     // resize the vector to the number of punctures
     m_puncture_shift.resize(m_num_punctures);
 

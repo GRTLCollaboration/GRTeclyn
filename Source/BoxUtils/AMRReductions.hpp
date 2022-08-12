@@ -6,18 +6,14 @@
 #ifndef AMRREDUCTIONS_HPP
 #define AMRREDUCTIONS_HPP
 
-// Chombo includes
-#include "computeNorm.H"
-#include "computeSum.H"
-
 // Our includes
 #include "GRAMR.hpp"
 #include "GRAMRLevel.hpp"
 #include "UserVariables.hpp"
 #include "VariableType.hpp"
 
-// Chombo namespace
-#include "UsingNamespace.H"
+//xxxxx #include "computeNorm.H"
+//#include "computeSum.H"
 
 //! A class that provides a user-friendly interface to Chombo's
 //! computeSum and computeNorm functions

@@ -70,7 +70,7 @@ template <VariableType var_t>
 Real AMRReductions<var_t>::min(const Interval &a_vars) const
 {
     AMREX_ASSERT(a_vars.begin() >= 0 && a_vars.end() < m_num_vars);
-    CH_TIME("AMRReductions::min");
+    BL_PROFILE("AMRReductions::min");
     return computeMin(m_level_data_ptrs, m_ref_ratios, a_vars, m_base_level);
 }
 
@@ -84,7 +84,7 @@ template <VariableType var_t>
 Real AMRReductions<var_t>::max(const Interval &a_vars) const
 {
     AMREX_ASSERT(a_vars.begin() >= 0 && a_vars.end() < m_num_vars);
-    CH_TIME("AMRReductions::max");
+    BL_PROFILE("AMRReductions::max");
     return computeMax(m_level_data_ptrs, m_ref_ratios, a_vars, m_base_level);
 }
 
@@ -100,7 +100,7 @@ Real AMRReductions<var_t>::norm(const Interval &a_vars,
                                 const bool a_normalize_by_volume) const
 {
     AMREX_ASSERT(a_vars.begin() >= 0 && a_vars.end() < m_num_vars);
-    CH_TIME("AMRReductions::norm");
+    BL_PROFILE("AMRReductions::norm");
     Real norm = computeNorm(m_level_data_ptrs, m_ref_ratios, m_coarsest_dx,
                             a_vars, a_norm_exponent, m_base_level);
     if (a_normalize_by_volume)
@@ -123,7 +123,7 @@ template <VariableType var_t>
 Real AMRReductions<var_t>::sum(const Interval &a_vars) const
 {
     AMREX_ASSERT(a_vars.begin() >= 0 && a_vars.end() < m_num_vars);
-    CH_TIME("AMRReductions::sum");
+    BL_PROFILE("AMRReductions::sum");
     return computeSum(m_level_data_ptrs, m_ref_ratios, m_coarsest_dx, a_vars,
                       m_base_level);
 }

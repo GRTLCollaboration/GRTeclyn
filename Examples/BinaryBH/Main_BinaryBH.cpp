@@ -103,7 +103,7 @@ int runGRChombo(int argc, char *argv[])
 
     bh_amr.conclude();
 
-    CH_TIMER_REPORT(); // Report results when running with Chombo timers.
+    BL_PROFILER_REPORT(); // Report results when running with Chombo timers.
 
     return 0;
 }

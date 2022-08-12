@@ -6,14 +6,10 @@
 #ifndef INTERPOLATIONALGORITHM_HPP_
 #define INTERPOLATIONALGORITHM_HPP_
 
-// Chombo includes
-#include "FArrayBox.H"
+#include <AMReX_FArrayBox.H>
 
 // Other includes
 #include <array>
-
-// Chombo namespace
-#include "UsingNamespace.H"
 
 class InterpolationAlgorithm
 {
@@ -26,7 +22,7 @@ class NearestNeighbour : public InterpolationAlgorithm
   public:
     static inline double
     interpPoint(const std::array<double, AMREX_SPACEDIM> &gridCoord,
-                const FArrayBox &fab, int comps, const IntVect &nearest)
+                const amrex::FArrayBox &fab, int comps, const amrex::IntVect &nearest)
     {
         return fab.get(nearest, comps);
     }
