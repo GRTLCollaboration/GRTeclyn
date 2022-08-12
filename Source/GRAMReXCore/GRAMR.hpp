@@ -6,10 +6,6 @@
 #ifndef GRAMR_HPP_
 #define GRAMR_HPP_
 
-// Chombo includes
-#include "AMR.H"
-#include "Interval.H"
-
 // Other includes
 #include "Lagrange.hpp"
 #include "VariableType.hpp"
@@ -18,8 +14,9 @@
 #include <ratio>
 #include <vector>
 
-// Chombo namespace
-#include "UsingNamespace.H"
+// Chombo includes
+//xxxxx #include "AMR.H"
+//xxxxx #include "Interval.H"
 
 /// A child of Chombo's AMR class to interface with tools which require
 /// access to the whole AMR hierarchy (such as the AMRInterpolator)
@@ -32,9 +29,9 @@
 class GRAMRLevel;
 
 // Forward declaration for AMRInterpolator
-template <typename InterpAlgo> class AMRInterpolator;
+//xxxxx template <typename InterpAlgo> class AMRInterpolator;
 
-class GRAMR : public AMR
+class GRAMR //xxxxx: public AMR
 {
   private:
     using Clock = std::chrono::steady_clock;
@@ -56,21 +53,21 @@ class GRAMR : public AMR
     }
 
     // Called after AMR object set up
-    virtual void set_interpolator(AMRInterpolator<Lagrange<4>> *a_interpolator);
+//xxxxx    virtual void set_interpolator(AMRInterpolator<Lagrange<4>> *a_interpolator);
 
     // returs a std::vector of GRAMRLevel pointers
     // similar to AMR::getAMRLevels()
     std::vector<GRAMRLevel *> get_gramrlevels();
 
     // const version of above
-    std::vector<const GRAMRLevel *> get_gramrlevels() const;
+//xxxxx    std::vector<const GRAMRLevel *> get_gramrlevels() const;
 
     // Fill ghosts on multiple levels
-    void fill_multilevel_ghosts(
-        const VariableType a_var_type,
-        const Interval &a_comps = Interval(0, std::numeric_limits<int>::max()),
-        const int a_min_level = 0,
-        const int a_max_level = std::numeric_limits<int>::max()) const;
+//xxxxx    void fill_multilevel_ghosts(
+//        const VariableType a_var_type,
+//        const Interval &a_comps = Interval(0, std::numeric_limits<int>::max()),
+//        const int a_min_level = 0,
+//        const int a_max_level = std::numeric_limits<int>::max()) const;
 };
 
 #endif /* GRAMR_HPP_ */

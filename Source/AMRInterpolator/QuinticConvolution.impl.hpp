@@ -12,20 +12,20 @@ QuinticConvolution::QuinticConvolution(const InterpSource &source,
                                        bool verbosity)
     : m_source(source), m_verbosity(verbosity)
 {
-    CH_assert(CH_SPACEDIM <= 3);
+    CH_assert(AMREX_SPACEDIM <= 3);
 }
 
-void QuinticConvolution::setup(const std::array<int, CH_SPACEDIM> &deriv,
-                               const std::array<double, CH_SPACEDIM> &dx,
-                               const std::array<double, CH_SPACEDIM> &evalCoord,
+void QuinticConvolution::setup(const std::array<int, AMREX_SPACEDIM> &deriv,
+                               const std::array<double, AMREX_SPACEDIM> &dx,
+                               const std::array<double, AMREX_SPACEDIM> &evalCoord,
                                const IntVect &nearest)
 {
     m_interp_points.clear();
     m_interp_weights.clear();
 
-    double weights_1d[CH_SPACEDIM][6];
+    double weights_1d[AMREX_SPACEDIM][6];
 
-    for (int dim = 0; dim < CH_SPACEDIM; ++dim)
+    for (int dim = 0; dim < AMREX_SPACEDIM; ++dim)
     {
         double s = evalCoord[dim] - floor(evalCoord[dim]);
 
@@ -98,9 +98,9 @@ void QuinticConvolution::setup(const std::array<int, CH_SPACEDIM> &deriv,
         }
     }
 
-    std::array<double, CH_SPACEDIM> interp_coord;
+    std::array<double, AMREX_SPACEDIM> interp_coord;
 
-#if CH_SPACEDIM >= 3
+#if AMREX_SPACEDIM >= 3
     for (int z = 0; z < 6; ++z)
     {
         interp_coord[2] = floor(evalCoord[2]) + z - 2;
@@ -122,7 +122,7 @@ void QuinticConvolution::setup(const std::array<int, CH_SPACEDIM> &deriv,
                                                    *weights_1d[2][z], , , ));
             }
         }
-#if CH_SPACEDIM >= 3
+#if AMREX_SPACEDIM >= 3
     }
 #endif
 }

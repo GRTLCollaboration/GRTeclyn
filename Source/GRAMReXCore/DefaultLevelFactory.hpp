@@ -6,17 +6,13 @@
 #ifndef DEFAULTLEVELFACTORY_HPP_
 #define DEFAULTLEVELFACTORY_HPP_
 
-// Chombo includes:
-#include "AMRLevelFactory.H"
-
 // Our includes
 #include "GRAMR.hpp"
 #include "SimulationParameters.hpp"
 
-// Chombo namespace
-#include "UsingNamespace.H"
+//xxxxx #include "AMRLevelFactory.H"
 
-template <class level_t> class DefaultLevelFactory : public AMRLevelFactory
+template <class level_t> class DefaultLevelFactory // xxxxx: public AMRLevelFactory
 {
   public:
     DefaultLevelFactory(GRAMR &gr_amr, SimulationParameters &a_sim_params)
@@ -24,6 +20,8 @@ template <class level_t> class DefaultLevelFactory : public AMRLevelFactory
     {
     }
 
+#if 0
+    // xxxxx
     virtual AMRLevel *new_amrlevel() const
     {
         level_t *level_ptr = new level_t(m_gr_amr, m_p, m_p.verbosity);
@@ -32,6 +30,7 @@ template <class level_t> class DefaultLevelFactory : public AMRLevelFactory
     }
 
     virtual ~DefaultLevelFactory() {}
+#endif
 
   protected:
     GRAMR &m_gr_amr;

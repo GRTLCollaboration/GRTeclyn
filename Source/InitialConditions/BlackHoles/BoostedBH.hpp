@@ -22,8 +22,8 @@ class BoostedBH
     struct params_t
     {
         double mass;
-        std::array<double, CH_SPACEDIM> center;
-        std::array<double, CH_SPACEDIM> momentum;
+        std::array<double, AMREX_SPACEDIM> center;
+        std::array<double, AMREX_SPACEDIM> momentum;
     };
 
     const params_t m_params;

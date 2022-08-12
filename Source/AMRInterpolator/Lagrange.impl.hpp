@@ -158,9 +158,9 @@ Lagrange<Order>::Lagrange(const InterpSource &source, bool verbosity)
 }
 
 template <int Order>
-void Lagrange<Order>::setup(const std::array<int, CH_SPACEDIM> &deriv,
-                            const std::array<double, CH_SPACEDIM> &dx,
-                            const std::array<double, CH_SPACEDIM> &evalCoord,
+void Lagrange<Order>::setup(const std::array<int, AMREX_SPACEDIM> &deriv,
+                            const std::array<double, AMREX_SPACEDIM> &dx,
+                            const std::array<double, AMREX_SPACEDIM> &evalCoord,
                             const IntVect &nearest)
 {
     pair<std::vector<IntVect>, std::vector<double>> result =
@@ -170,7 +170,7 @@ void Lagrange<Order>::setup(const std::array<int, CH_SPACEDIM> &deriv,
 
     /*
     pout() << TAG << "Stencil: coord = { ";
-    for (int i = 0; i < CH_SPACEDIM; ++i)
+    for (int i = 0; i < AMREX_SPACEDIM; ++i)
     {
         pout() << evalCoord[i] << " ";
     }
@@ -239,9 +239,9 @@ double Lagrange<Order>::interpData(const FArrayBox &fab, int comp)
 template <int Order>
 pair<std::vector<IntVect>, std::vector<double>>
 Lagrange<Order>::generateStencil(
-    const std::array<int, CH_SPACEDIM> &deriv,
-    const std::array<double, CH_SPACEDIM> &dx,
-    const std::array<double, CH_SPACEDIM> &evalCoord, const IntVect &nearest,
+    const std::array<int, AMREX_SPACEDIM> &deriv,
+    const std::array<double, AMREX_SPACEDIM> &dx,
+    const std::array<double, AMREX_SPACEDIM> &evalCoord, const IntVect &nearest,
     int dim)
 {
     std::vector<IntVect> out_points;
@@ -266,7 +266,7 @@ Lagrange<Order>::generateStencil(
     int points_min = Order + deriv[dim];
     int points_max = Order + deriv[dim];
 
-    std::array<double, CH_SPACEDIM> interp_coord = evalCoord;
+    std::array<double, AMREX_SPACEDIM> interp_coord = evalCoord;
     int candidate = nearest[dim];
     int grown_direction = (nearest[dim] - evalCoord[dim] < 0) ? DOWN : UP;
 

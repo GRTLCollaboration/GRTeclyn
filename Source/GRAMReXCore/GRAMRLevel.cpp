@@ -81,10 +81,10 @@ const GRLevelData &GRAMRLevel::getLevelData(VariableType var_type) const
         return m_state_diagnostics;
 }
 
-bool GRAMRLevel::contains(const std::array<double, CH_SPACEDIM> &point) const
+bool GRAMRLevel::contains(const std::array<double, AMREX_SPACEDIM> &point) const
 {
     const Box &domainBox = problemDomain().domainBox();
-    for (int i = 0; i < CH_SPACEDIM; ++i)
+    for (int i = 0; i < AMREX_SPACEDIM; ++i)
     {
         if (point[i] < domainBox.smallEnd(i) - m_num_ghosts ||
             point[i] > domainBox.bigEnd(i) + m_num_ghosts)

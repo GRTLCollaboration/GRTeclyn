@@ -63,7 +63,7 @@ template <VariableType var_t> void AMRReductions<var_t>::set_domain_volume()
 
     // multiply by dx_coarsest to get real volume
     m_domain_volume =
-        pow(m_coarsest_dx, CH_SPACEDIM) * static_cast<double>(cell_volume);
+        pow(m_coarsest_dx, AMREX_SPACEDIM) * static_cast<double>(cell_volume);
 }
 
 template <VariableType var_t>

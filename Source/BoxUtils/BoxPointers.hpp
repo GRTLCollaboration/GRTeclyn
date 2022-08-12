@@ -30,14 +30,14 @@ class BoxPointers
 
   public:
     std::vector<const double *> m_in_ptr;
-    std::array<int, CH_SPACEDIM> m_in_stride; //!< Distance in memory between
+    std::array<int, AMREX_SPACEDIM> m_in_stride; //!< Distance in memory between
                                               //! two values corresponding to
                                               //! adjacent coordinates in all
                                               //! directions.
     const int m_in_num_comps;
 
     std::vector<double *> m_out_ptr;
-    std::array<int, CH_SPACEDIM> m_out_stride; //!< Distance in memory between
+    std::array<int, AMREX_SPACEDIM> m_out_stride; //!< Distance in memory between
                                                //! two values corresponding to
                                                //! adjacent coordinates in all
                                                //! directions.
@@ -61,13 +61,13 @@ class BoxPointers
 
         m_in_stride[0] = 1;
         m_in_stride[1] = m_in_hi[0] - m_in_lo[0] + 1;
-#if CH_SPACEDIM >= 3
+#if AMREX_SPACEDIM >= 3
         m_in_stride[2] = (m_in_hi[1] - m_in_lo[1] + 1) * m_in_stride[1];
 #endif
 
         m_out_stride[0] = 1;
         m_out_stride[1] = m_out_hi[0] - m_out_lo[0] + 1;
-#if CH_SPACEDIM >= 3
+#if AMREX_SPACEDIM >= 3
         m_out_stride[2] = (m_out_hi[1] - m_out_lo[1] + 1) * m_out_stride[1];
 #endif
     }

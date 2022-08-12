@@ -22,11 +22,11 @@
 class CylindricalGeometry
 {
   private:
-    const std::array<double, CH_SPACEDIM> m_center;
+    const std::array<double, AMREX_SPACEDIM> m_center;
     const double m_z_length;
 
   public:
-    CylindricalGeometry(const std::array<double, CH_SPACEDIM> &a_center,
+    CylindricalGeometry(const std::array<double, AMREX_SPACEDIM> &a_center,
                         double a_z_length)
         : m_center(a_center), m_z_length(a_z_length)
     {

@@ -211,8 +211,8 @@ class ChomboParameters
     void read_grid_params(GRParmParse &pp)
     {
         // Grid N
-        std::array<int, CH_SPACEDIM> Ni_full;
-        std::array<int, CH_SPACEDIM> Ni;
+        std::array<int, AMREX_SPACEDIM> Ni_full;
+        std::array<int, AMREX_SPACEDIM> Ni;
         ivN = IntVect::Unit;
 
         // cannot contain both
@@ -333,11 +333,11 @@ class ChomboParameters
 
         // First work out the default center ignoring reflective BCs
         // but taking into account different grid lengths in each direction
-        std::array<double, CH_SPACEDIM> default_center;
-#if CH_SPACEDIM == 3
+        std::array<double, AMREX_SPACEDIM> default_center;
+#if AMREX_SPACEDIM == 3
         default_center = {0.5 * Ni[0] * coarsest_dx, 0.5 * Ni[1] * coarsest_dx,
                           0.5 * Ni[2] * coarsest_dx};
-#elif CH_SPACEDIM == 2
+#elif AMREX_SPACEDIM == 2
         default_center = {0.5 * Ni[0] * coarsest_dx, 0.5 * Ni[1] * coarsest_dx};
 #endif
         // Now take into account reflective BCs
@@ -469,7 +469,7 @@ class ChomboParameters
     // General parameters
     int verbosity;
     double L;                               // Physical sidelength of the grid
-    std::array<double, CH_SPACEDIM> center; // grid center
+    std::array<double, AMREX_SPACEDIM> center; // grid center
     IntVect ivN; // The number of grid cells in each dimension
     double coarsest_dx,
         coarsest_dt; // The coarsest resolution in space and time
@@ -510,7 +510,7 @@ class ChomboParameters
         plot_vars; // vars to write to plot file
 #endif
 
-    std::array<double, CH_SPACEDIM> origin,
+    std::array<double, AMREX_SPACEDIM> origin,
         dx; // location of coarsest origin and dx
 
     // Boundary conditions
@@ -527,7 +527,7 @@ class ChomboParameters
   protected:
     // the low and high corners of the domain taking into account reflective BCs
     // only used in parameter checks hence protected
-    std::array<double, CH_SPACEDIM> reflective_domain_lo, reflective_domain_hi;
+    std::array<double, AMREX_SPACEDIM> reflective_domain_lo, reflective_domain_hi;
 
     // use this error function instead of MayDay::error as this will only
     // print from rank 0

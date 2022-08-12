@@ -55,7 +55,7 @@ Constraints::Vars<data_t> Constraints::constraint_equations(
               (GR_SPACEDIM - 1.) * vars.K * vars.K / GR_SPACEDIM - tr_A2;
     out.Ham -= 2 * m_cosmological_constant;
 
-    Tensor<2, data_t> covd_A[CH_SPACEDIM];
+    Tensor<2, data_t> covd_A[AMREX_SPACEDIM];
     FOR(i, j, k)
     {
         covd_A[i][j][k] = d1.A[j][k][i];

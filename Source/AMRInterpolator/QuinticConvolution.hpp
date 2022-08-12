@@ -20,9 +20,9 @@ class QuinticConvolution
   public:
     QuinticConvolution(const InterpSource &source, bool verbosity = false);
 
-    void setup(const std::array<int, CH_SPACEDIM> &deriv,
-               const std::array<double, CH_SPACEDIM> &dx,
-               const std::array<double, CH_SPACEDIM> &evalCoord,
+    void setup(const std::array<int, AMREX_SPACEDIM> &deriv,
+               const std::array<double, AMREX_SPACEDIM> &dx,
+               const std::array<double, AMREX_SPACEDIM> &evalCoord,
                const IntVect &nearest);
     double interpData(const FArrayBox &fab, int comp);
 

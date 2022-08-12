@@ -16,8 +16,8 @@ const string AMRInterpolator<InterpAlgo>::TAG =
 
 template <typename InterpAlgo>
 AMRInterpolator<InterpAlgo>::AMRInterpolator(
-    const GRAMR &gr_amr, const std::array<double, CH_SPACEDIM> &coarsest_origin,
-    const std::array<double, CH_SPACEDIM> &coarsest_dx, int verbosity)
+    const GRAMR &gr_amr, const std::array<double, AMREX_SPACEDIM> &coarsest_origin,
+    const std::array<double, AMREX_SPACEDIM> &coarsest_dx, int verbosity)
     : AMRInterpolator(gr_amr, coarsest_origin, coarsest_dx,
                       BoundaryConditions::params_t(), verbosity)
 {
@@ -25,8 +25,8 @@ AMRInterpolator<InterpAlgo>::AMRInterpolator(
 
 template <typename InterpAlgo>
 AMRInterpolator<InterpAlgo>::AMRInterpolator(
-    const GRAMR &gr_amr, const std::array<double, CH_SPACEDIM> &coarsest_origin,
-    const std::array<double, CH_SPACEDIM> &coarsest_dx,
+    const GRAMR &gr_amr, const std::array<double, AMREX_SPACEDIM> &coarsest_origin,
+    const std::array<double, AMREX_SPACEDIM> &coarsest_dx,
     const BoundaryConditions::params_t &a_bc_params, int verbosity)
     : m_gr_amr(gr_amr), m_coarsest_origin(coarsest_origin),
       m_coarsest_dx(coarsest_dx),
@@ -72,13 +72,13 @@ const AMR &AMRInterpolator<InterpAlgo>::getAMR() const
 }
 
 template <typename InterpAlgo>
-const std::array<double, CH_SPACEDIM> &
+const std::array<double, AMREX_SPACEDIM> &
 AMRInterpolator<InterpAlgo>::get_coarsest_dx()
 {
     return m_coarsest_dx;
 }
 template <typename InterpAlgo>
-const std::array<double, CH_SPACEDIM> &
+const std::array<double, AMREX_SPACEDIM> &
 AMRInterpolator<InterpAlgo>::get_coarsest_origin()
 {
     return m_coarsest_origin;
@@ -119,10 +119,10 @@ void AMRInterpolator<InterpAlgo>::interp(InterpolationQuery &query)
             const Derivative deriv = it->first;
 
             pout() << "    This rank is querying for interpolated D(";
-            for (int i = 0; i < CH_SPACEDIM; ++i)
+            for (int i = 0; i < AMREX_SPACEDIM; ++i)
             {
                 pout() << deriv[i];
-                if (i < CH_SPACEDIM - 1)
+                if (i < AMREX_SPACEDIM - 1)
                 {
                     pout() << ",";
                 }
@@ -213,7 +213,7 @@ void AMRInterpolator<InterpAlgo>::computeLevelLayouts()
         {
             const int ref_ratio = level.refRatio();
 
-            for (int i = 0; i < CH_SPACEDIM; ++i)
+            for (int i = 0; i < AMREX_SPACEDIM; ++i)
             {
                 // Sanity check
                 CH_assert(ref_ratio ==
@@ -273,7 +273,7 @@ AMRInterpolator<InterpAlgo>::findBoxes(InterpolationQuery &query)
         const_cast<GRAMR &>(m_gr_amr).getAMRLevels();
     const int num_levels = m_num_levels; // levels.size();
 
-    std::array<double, CH_SPACEDIM> grid_coord;
+    std::array<double, AMREX_SPACEDIM> grid_coord;
     IntVect nearest;
 
     InterpolationLayout interp_layout(query.m_num_points);
@@ -318,7 +318,7 @@ AMRInterpolator<InterpAlgo>::findBoxes(InterpolationQuery &query)
     //        else
     //        {
     //            // Calculate "grid coordinates" for current point
-    //            for (int i = 0; i < CH_SPACEDIM; ++i)
+    //            for (int i = 0; i < AMREX_SPACEDIM; ++i)
     //            {
     //                grid_coord[i] = (query.m_coords[i][point_idx] -
     //                m_origin[level_idx][i]) / m_dx[level_idx][i];
@@ -346,10 +346,10 @@ AMRInterpolator<InterpAlgo>::findBoxes(InterpolationQuery &query)
     //                if (m_verbosity >= 2)
     //                {
     //                    _pout << "    Found (";
-    //                    for (int i = 0; i < CH_SPACEDIM; ++i)
+    //                    for (int i = 0; i < AMREX_SPACEDIM; ++i)
     //                    {
     //                        _pout << query.m_coords[i][point_idx];
-    //                        if (i < CH_SPACEDIM - 1) _pout << ",";
+    //                        if (i < AMREX_SPACEDIM - 1) _pout << ",";
     //                    }
     //                    _pout << ") in level " << level_idx << " box " <<
     //                    box_idx << " (rank " << rank << ")" << endl;
@@ -412,7 +412,7 @@ AMRInterpolator<InterpAlgo>::findBoxes(InterpolationQuery &query)
                 else
                 {
                     // Calculate "grid coordinates" for current point
-                    for (int i = 0; i < CH_SPACEDIM; ++i)
+                    for (int i = 0; i < AMREX_SPACEDIM; ++i)
                     {
                         double coord =
                             apply_reflective_BC_on_coord(query, i, point_idx);
@@ -447,10 +447,10 @@ AMRInterpolator<InterpAlgo>::findBoxes(InterpolationQuery &query)
                         if (m_verbosity >= 2)
                         {
                             _pout << "    Found (";
-                            for (int i = 0; i < CH_SPACEDIM; ++i)
+                            for (int i = 0; i < AMREX_SPACEDIM; ++i)
                             {
                                 _pout << query.m_coords[i][point_idx];
-                                if (i < CH_SPACEDIM - 1)
+                                if (i < AMREX_SPACEDIM - 1)
                                     _pout << ",";
                             }
                             _pout << ") in level " << level_idx << " box "
@@ -518,7 +518,7 @@ void AMRInterpolator<InterpAlgo>::prepareMPI(InterpolationQuery &query,
     // Resize MPI 'query' buffers
     m_query_level.resize(query.m_num_points);
     m_query_box.resize(query.m_num_points);
-    for (int i = 0; i < CH_SPACEDIM; ++i)
+    for (int i = 0; i < AMREX_SPACEDIM; ++i)
         m_query_coords[i].resize(query.m_num_points);
 
     m_query_data.resize(query.numComps());
@@ -536,7 +536,7 @@ void AMRInterpolator<InterpAlgo>::prepareMPI(InterpolationQuery &query,
         m_query_level[idx] = layout.level_idx[point_idx];
         m_query_box[idx] = layout.box_idx[point_idx];
 
-        for (int i = 0; i < CH_SPACEDIM; ++i)
+        for (int i = 0; i < AMREX_SPACEDIM; ++i)
         {
             // m_query_coords[i][idx] = query.m_coords[i][point_idx];
             m_query_coords[i][idx] =
@@ -555,7 +555,7 @@ void AMRInterpolator<InterpAlgo>::prepareMPI(InterpolationQuery &query,
 
     m_answer_level.resize(num_answers);
     m_answer_box.resize(num_answers);
-    for (int i = 0; i < CH_SPACEDIM; ++i)
+    for (int i = 0; i < AMREX_SPACEDIM; ++i)
         m_answer_coords[i].resize(num_answers);
 
     m_answer_data.resize(query.numComps());
@@ -592,7 +592,7 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIQuery()
 
     m_mpi.asyncExchangeQuery(&m_query_level[0], &m_answer_level[0], MPI_INT);
     m_mpi.asyncExchangeQuery(&m_query_box[0], &m_answer_box[0], MPI_INT);
-    for (int i = 0; i < CH_SPACEDIM; ++i)
+    for (int i = 0; i < AMREX_SPACEDIM; ++i)
     {
         m_mpi.asyncExchangeQuery(&m_query_coords[i][0], &m_answer_coords[i][0],
                                  MPI_DOUBLE);
@@ -602,7 +602,7 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIQuery()
 #else
     m_answer_level = m_query_level;
     m_answer_box = m_query_box;
-    for (int i = 0; i < CH_SPACEDIM; ++i)
+    for (int i = 0; i < AMREX_SPACEDIM; ++i)
         m_answer_coords[i] = m_query_coords[i];
 #endif
 
@@ -630,7 +630,7 @@ void AMRInterpolator<InterpAlgo>::calculateAnswers(InterpolationQuery &query)
     // const int num_comps = query.numComps();
     const int num_answers = m_mpi.totalAnswerCount();
 
-    std::array<double, CH_SPACEDIM> grid_coord;
+    std::array<double, AMREX_SPACEDIM> grid_coord;
     IntVect nearest;
 
     for (int answer_idx = 0; answer_idx < num_answers; ++answer_idx)
@@ -681,7 +681,7 @@ void AMRInterpolator<InterpAlgo>::calculateAnswers(InterpolationQuery &query)
                 &((*diagnostics_level_data_ptr)[diagnostics_data_idx]);
         }
 
-        for (int i = 0; i < CH_SPACEDIM; ++i)
+        for (int i = 0; i < AMREX_SPACEDIM; ++i)
         {
             grid_coord[i] =
                 (m_answer_coords[i][answer_idx] - m_origin[level_idx][i]) /
@@ -717,10 +717,10 @@ void AMRInterpolator<InterpAlgo>::calculateAnswers(InterpolationQuery &query)
         if (m_verbosity >= 2)
         {
             _pout << "    Interpolating (";
-            for (int i = 0; i < CH_SPACEDIM; ++i)
+            for (int i = 0; i < AMREX_SPACEDIM; ++i)
             {
                 _pout << m_answer_coords[i][answer_idx];
-                if (i < CH_SPACEDIM - 1)
+                if (i < AMREX_SPACEDIM - 1)
                     _pout << ",";
             }
             _pout << ") in level " << level_idx << " box " << box_idx << endl;

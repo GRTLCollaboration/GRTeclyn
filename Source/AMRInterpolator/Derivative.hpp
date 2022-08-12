@@ -9,12 +9,12 @@
 #include <array>
 #include <string>
 
-class Derivative : public std::array<int, CH_SPACEDIM>
+class Derivative : public std::array<int, AMREX_SPACEDIM>
 {
   private:
     Derivative(int d)
     {
-        for (int i = 0; i < CH_SPACEDIM; ++i)
+        for (int i = 0; i < AMREX_SPACEDIM; ++i)
         {
             (*this)[i] = 0;
         }
@@ -24,7 +24,7 @@ class Derivative : public std::array<int, CH_SPACEDIM>
 
     Derivative(int d1, int d2)
     {
-        for (int i = 0; i < CH_SPACEDIM; ++i)
+        for (int i = 0; i < AMREX_SPACEDIM; ++i)
         {
             (*this)[i] = 0;
         }
@@ -36,9 +36,9 @@ class Derivative : public std::array<int, CH_SPACEDIM>
   public:
     Derivative()
     {
-        for (int i = 0; i < CH_SPACEDIM; ++i)
+        for (int i = 0; i < AMREX_SPACEDIM; ++i)
         {
-            std::array<int, CH_SPACEDIM>::operator[](i) = 0;
+            std::array<int, AMREX_SPACEDIM>::operator[](i) = 0;
         }
     }
 
@@ -46,7 +46,7 @@ class Derivative : public std::array<int, CH_SPACEDIM>
 
     bool operator==(const Derivative &rhs) const
     {
-        for (int i = 0; i < CH_SPACEDIM; ++i)
+        for (int i = 0; i < AMREX_SPACEDIM; ++i)
         {
             if ((*this)[i] != rhs[i])
             {
@@ -70,7 +70,7 @@ class Derivative : public std::array<int, CH_SPACEDIM>
         int derivs = 0;
         int rhs_derivs = 0;
 
-        for (int i = 0; i < CH_SPACEDIM; ++i)
+        for (int i = 0; i < AMREX_SPACEDIM; ++i)
         {
             derivs += (*this)[i];
             rhs_derivs += rhs[i];
@@ -86,7 +86,7 @@ class Derivative : public std::array<int, CH_SPACEDIM>
         }
         else
         {
-            for (int i = 0; i < CH_SPACEDIM; ++i)
+            for (int i = 0; i < AMREX_SPACEDIM; ++i)
             {
                 // This is counterintuitive but is actually the ordering the we
                 // want in order to generalise to arbitrary #dims

@@ -80,7 +80,7 @@ template <class SurfaceGeometry> class SurfaceExtraction
     const double m_dv; //!< the grid spacing in v (used in integrate)
 
     std::vector<std::vector<double>> m_interp_data;
-    std::array<std::vector<double>, CH_SPACEDIM> m_interp_coords;
+    std::array<std::vector<double>, AMREX_SPACEDIM> m_interp_coords;
     // this is the really long type used for integrands
     // the vector<double> is a vector of all the extracted variables at that
     // point in the order they were added

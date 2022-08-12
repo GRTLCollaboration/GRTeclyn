@@ -11,7 +11,7 @@
 #endif
 
 #ifndef DEFAULT_TENSOR_DIM
-#define DEFAULT_TENSOR_DIM CH_SPACEDIM
+#define DEFAULT_TENSOR_DIM AMREX_SPACEDIM
 #endif
 
 // Fancy 'for' loop macros to iterate through spatial tensors

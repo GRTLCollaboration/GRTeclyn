@@ -74,10 +74,10 @@ void GRLevelData::plus(const GRLevelData &a_src, const double a_scale,
 
         CH_assert(num_comps == src_fab.nComp());
 #ifdef _OPENMP
-#pragma omp parallel for default(shared) collapse(CH_SPACEDIM)
+#pragma omp parallel for default(shared) collapse(AMREX_SPACEDIM)
 #endif
         for (int icomp = 0; icomp < num_comps; ++icomp)
-#if CH_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             for (int iz = loop_lo[2]; iz <= loop_hi[2]; ++iz)
 #endif
                 for (int iy = loop_lo[1]; iy <= loop_hi[1]; ++iy)
@@ -87,21 +87,21 @@ void GRLevelData::plus(const GRLevelData &a_src, const double a_scale,
                     {
                         const int this_index =
                             ix - this_lo[0] + (iy - this_lo[1]) * this_size[0] +
-#if CH_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                             (iz - this_lo[2]) * this_size[0] * this_size[1] +
 #endif
                             icomp * this_size[0] * this_size[1]
-#if CH_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                                 * this_size[2]
 #endif
                             ;
                         const int src_index =
                             ix - src_lo[0] + (iy - src_lo[1]) * src_size[0] +
-#if CH_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                             (iz - src_lo[2]) * src_size[0] * src_size[1] +
 #endif
                             icomp * src_size[0] * src_size[1]
-#if CH_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                                 * src_size[2]
 #endif
                             ;

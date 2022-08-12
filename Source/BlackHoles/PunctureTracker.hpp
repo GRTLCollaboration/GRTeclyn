@@ -17,8 +17,8 @@ class PunctureTracker
   private:
     //! Params for puncture tracking
     int m_num_punctures;
-    std::vector<std::array<double, CH_SPACEDIM>> m_puncture_coords;
-    std::vector<std::array<double, CH_SPACEDIM>> m_puncture_shift;
+    std::vector<std::array<double, AMREX_SPACEDIM>> m_puncture_coords;
+    std::vector<std::array<double, AMREX_SPACEDIM>> m_puncture_shift;
     int m_min_level; //!< the min level on which punctures will be
                      //!< (to fill ghosts)
 
@@ -34,7 +34,7 @@ class PunctureTracker
     //! set puncture locations on start (or restart)
     //! this needs to be done before 'setupAMRObject'
     //! if the puncture locations are required for Tagging Criteria
-    void initial_setup(const std::vector<std::array<double, CH_SPACEDIM>>
+    void initial_setup(const std::vector<std::array<double, AMREX_SPACEDIM>>
                            &initial_puncture_coords,
                        const std::string &a_filename = "punctures",
                        const std::string &a_output_path = "",
@@ -54,7 +54,7 @@ class PunctureTracker
     }
 
     // function to get punctures
-    ALWAYS_INLINE const std::vector<std::array<double, CH_SPACEDIM>> &
+    ALWAYS_INLINE const std::vector<std::array<double, AMREX_SPACEDIM>> &
     get_puncture_coords() const
     {
         return m_puncture_coords;

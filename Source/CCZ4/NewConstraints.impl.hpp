@@ -69,7 +69,7 @@ Constraints::Vars<data_t> Constraints::constraint_equations(
 
     if (m_c_Moms.size() > 0 || m_c_Moms_abs_terms.size() > 0)
     {
-        Tensor<2, data_t> covd_A[CH_SPACEDIM];
+        Tensor<2, data_t> covd_A[AMREX_SPACEDIM];
         FOR(i, j, k)
         {
             covd_A[i][j][k] = d1.A[j][k][i];

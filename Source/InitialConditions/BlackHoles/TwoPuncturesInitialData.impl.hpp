@@ -52,7 +52,7 @@ void TwoPuncturesInitialData::interpolate_tp_vars(
     Tensor<1, double> &out_shift, double &out_Theta,
     Tensor<1, double> &out_Z3) const
 {
-    double coords_array[CH_SPACEDIM];
+    double coords_array[AMREX_SPACEDIM];
     coords_array[0] = coords.x;
     coords_array[1] = coords.y;
     coords_array[2] = coords.z;

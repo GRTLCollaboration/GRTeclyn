@@ -12,7 +12,7 @@
 
 //! Set punctures post restart
 void PunctureTracker::initial_setup(
-    const std::vector<std::array<double, CH_SPACEDIM>> &initial_puncture_coords,
+    const std::vector<std::array<double, AMREX_SPACEDIM>> &initial_puncture_coords,
     const std::string &a_filename, const std::string &a_output_path,
     const int a_min_level)
 {
@@ -68,13 +68,13 @@ void PunctureTracker::set_initial_punctures()
     double restart_time = 0.;
     SmallDataIO punctures_file(m_punctures_filename, dt, time, restart_time,
                                SmallDataIO::APPEND, first_step);
-    std::vector<std::string> header1_strings(CH_SPACEDIM * m_num_punctures);
+    std::vector<std::string> header1_strings(AMREX_SPACEDIM * m_num_punctures);
     for (int ipuncture = 0; ipuncture < m_num_punctures; ipuncture++)
     {
         std::string idx = std::to_string(ipuncture + 1);
-        header1_strings[CH_SPACEDIM * ipuncture + 0] = "x_" + idx;
-        header1_strings[CH_SPACEDIM * ipuncture + 1] = "y_" + idx;
-        header1_strings[CH_SPACEDIM * ipuncture + 2] = "z_" + idx;
+        header1_strings[AMREX_SPACEDIM * ipuncture + 0] = "x_" + idx;
+        header1_strings[AMREX_SPACEDIM * ipuncture + 1] = "y_" + idx;
+        header1_strings[AMREX_SPACEDIM * ipuncture + 2] = "z_" + idx;
     }
     punctures_file.write_header_line(header1_strings);
 
@@ -98,9 +98,9 @@ void PunctureTracker::read_in_punctures(int a_int_step, double a_current_time)
     punctures_file.get_specific_data_line(puncture_vector, a_current_time);
 
     // check the data returned is the right size
-    CH_assert(puncture_vector.size() % CH_SPACEDIM == 0);
+    CH_assert(puncture_vector.size() % AMREX_SPACEDIM == 0);
 
-    m_num_punctures = puncture_vector.size() / CH_SPACEDIM;
+    m_num_punctures = puncture_vector.size() / AMREX_SPACEDIM;
     m_puncture_coords.resize(m_num_punctures);
 
     // remove any duplicate data from the file
@@ -111,9 +111,9 @@ void PunctureTracker::read_in_punctures(int a_int_step, double a_current_time)
     for (int ipuncture = 0; ipuncture < m_num_punctures; ipuncture++)
     {
         m_puncture_coords[ipuncture] = {
-            puncture_vector[ipuncture * CH_SPACEDIM + 0],
-            puncture_vector[ipuncture * CH_SPACEDIM + 1],
-            puncture_vector[ipuncture * CH_SPACEDIM + 2]};
+            puncture_vector[ipuncture * AMREX_SPACEDIM + 0],
+            puncture_vector[ipuncture * AMREX_SPACEDIM + 1],
+            puncture_vector[ipuncture * AMREX_SPACEDIM + 2]};
     }
 
     // set the coordinates and get the current shift
@@ -144,7 +144,7 @@ void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
     CH_assert(m_interpolator != nullptr); // sanity check
 
     // get puncture coordinates and old shift value
-    std::vector<std::array<double, CH_SPACEDIM>> old_shift = m_puncture_shift;
+    std::vector<std::array<double, AMREX_SPACEDIM>> old_shift = m_puncture_shift;
     CH_assert(m_puncture_coords.size() == m_num_punctures); // sanity check
 
     // new shift value
@@ -229,14 +229,14 @@ void PunctureTracker::interp_shift()
 std::vector<double> PunctureTracker::get_puncture_vector() const
 {
     std::vector<double> puncture_vector;
-    puncture_vector.resize(m_num_punctures * CH_SPACEDIM);
+    puncture_vector.resize(m_num_punctures * AMREX_SPACEDIM);
     for (int ipuncture = 0; ipuncture < m_num_punctures; ipuncture++)
     {
-        puncture_vector[ipuncture * CH_SPACEDIM + 0] =
+        puncture_vector[ipuncture * AMREX_SPACEDIM + 0] =
             m_puncture_coords[ipuncture][0];
-        puncture_vector[ipuncture * CH_SPACEDIM + 1] =
+        puncture_vector[ipuncture * AMREX_SPACEDIM + 1] =
             m_puncture_coords[ipuncture][1];
-        puncture_vector[ipuncture * CH_SPACEDIM + 2] =
+        puncture_vector[ipuncture * AMREX_SPACEDIM + 2] =
             m_puncture_coords[ipuncture][2];
     }
     return puncture_vector;

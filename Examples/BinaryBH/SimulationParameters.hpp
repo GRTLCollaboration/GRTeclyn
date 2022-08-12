@@ -77,7 +77,7 @@ class SimulationParameters : public SimulationParametersBase
         }
 
         // BH spin and momenta
-        std::array<double, CH_SPACEDIM> spin_minus, spin_plus;
+        std::array<double, AMREX_SPACEDIM> spin_minus, spin_plus;
         pp.load("TP_momentum_minus", bh1_params.momentum);
         pp.load("TP_momentum_plus", bh2_params.momentum);
         pp.load("TP_spin_plus", spin_plus);
@@ -193,8 +193,8 @@ class SimulationParameters : public SimulationParametersBase
         // Get the centers of the BHs either explicitly or as
         // an offset (not both, or they will be offset from center
         // provided)
-        std::array<double, CH_SPACEDIM> centerA, centerB;
-        std::array<double, CH_SPACEDIM> offsetA, offsetB;
+        std::array<double, AMREX_SPACEDIM> centerA, centerB;
+        std::array<double, AMREX_SPACEDIM> offsetA, offsetB;
         pp.load("centerA", centerA, center);
         pp.load("centerB", centerB, center);
         pp.load("offsetA", offsetA, {0.0, 0.0, 0.0});

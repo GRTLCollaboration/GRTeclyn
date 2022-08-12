@@ -37,7 +37,7 @@ BoundaryConditions::params_t::params_t()
 }
 
 void BoundaryConditions::params_t::set_is_periodic(
-    const std::array<bool, CH_SPACEDIM> &a_is_periodic)
+    const std::array<bool, AMREX_SPACEDIM> &a_is_periodic)
 {
     is_periodic = a_is_periodic;
     FOR(idir)
@@ -47,7 +47,7 @@ void BoundaryConditions::params_t::set_is_periodic(
     }
 }
 void BoundaryConditions::params_t::set_hi_boundary(
-    const std::array<int, CH_SPACEDIM> &a_hi_boundary)
+    const std::array<int, AMREX_SPACEDIM> &a_hi_boundary)
 {
     FOR(idir)
     {
@@ -83,7 +83,7 @@ void BoundaryConditions::params_t::set_hi_boundary(
     }
 }
 void BoundaryConditions::params_t::set_lo_boundary(
-    const std::array<int, CH_SPACEDIM> &a_lo_boundary)
+    const std::array<int, AMREX_SPACEDIM> &a_lo_boundary)
 {
     FOR(idir)
     {
@@ -124,17 +124,17 @@ void BoundaryConditions::params_t::read_params(GRParmParse &pp)
 
     // still load even if not contained, to ensure printout saying parameters
     // were set to their default values
-    std::array<bool, CH_SPACEDIM> isPeriodic;
+    std::array<bool, AMREX_SPACEDIM> isPeriodic;
     pp.load("isPeriodic", isPeriodic, is_periodic);
     if (pp.contains("isPeriodic"))
         set_is_periodic(isPeriodic);
 
-    std::array<int, CH_SPACEDIM> hiBoundary;
+    std::array<int, AMREX_SPACEDIM> hiBoundary;
     pp.load("hi_boundary", hiBoundary, hi_boundary);
     if (pp.contains("hi_boundary"))
         set_hi_boundary(hiBoundary);
 
-    std::array<int, CH_SPACEDIM> loBoundary;
+    std::array<int, AMREX_SPACEDIM> loBoundary;
     pp.load("lo_boundary", loBoundary, lo_boundary);
     if (pp.contains("lo_boundary"))
         set_lo_boundary(loBoundary);
@@ -209,7 +209,7 @@ void BoundaryConditions::params_t::read_params(GRParmParse &pp)
 
 /// define function sets members and is_defined set to true
 void BoundaryConditions::define(double a_dx,
-                                std::array<double, CH_SPACEDIM> a_center,
+                                std::array<double, AMREX_SPACEDIM> a_center,
                                 const params_t &a_params,
                                 ProblemDomain a_domain, int a_num_ghosts)
 {

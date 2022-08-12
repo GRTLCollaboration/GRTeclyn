@@ -35,12 +35,12 @@ template <typename InterpAlgo> class AMRInterpolator
     // constructor for backward compatibility
     // (adds an artificial BC with only periodic BC)
     AMRInterpolator(const GRAMR &amr,
-                    const std::array<double, CH_SPACEDIM> &coarsest_origin,
-                    const std::array<double, CH_SPACEDIM> &coarsest_dx,
+                    const std::array<double, AMREX_SPACEDIM> &coarsest_origin,
+                    const std::array<double, AMREX_SPACEDIM> &coarsest_dx,
                     int verbosity = 0);
     AMRInterpolator(const GRAMR &amr,
-                    const std::array<double, CH_SPACEDIM> &coarsest_origin,
-                    const std::array<double, CH_SPACEDIM> &coarsest_dx,
+                    const std::array<double, AMREX_SPACEDIM> &coarsest_origin,
+                    const std::array<double, AMREX_SPACEDIM> &coarsest_dx,
                     const BoundaryConditions::params_t &a_bc_params,
                     int verbosity = 0);
 
@@ -56,8 +56,8 @@ template <typename InterpAlgo> class AMRInterpolator
     void limit_num_levels(unsigned int num_levels);
     void interp(InterpolationQuery &query);
     const AMR &getAMR() const;
-    const std::array<double, CH_SPACEDIM> &get_coarsest_dx();
-    const std::array<double, CH_SPACEDIM> &get_coarsest_origin();
+    const std::array<double, AMREX_SPACEDIM> &get_coarsest_dx();
+    const std::array<double, AMREX_SPACEDIM> &get_coarsest_origin();
 
   private:
     void computeLevelLayouts();
@@ -82,16 +82,16 @@ template <typename InterpAlgo> class AMRInterpolator
     const GRAMR &m_gr_amr;
 
     // Coordinates of the point represented by IntVect::Zero in coarsest grid
-    const std::array<double, CH_SPACEDIM> m_coarsest_origin;
+    const std::array<double, AMREX_SPACEDIM> m_coarsest_origin;
 
     // Grid spacing in each direction
-    const std::array<double, CH_SPACEDIM> m_coarsest_dx;
+    const std::array<double, AMREX_SPACEDIM> m_coarsest_dx;
 
     int m_num_levels;
     const int m_verbosity;
 
-    std::vector<std::array<double, CH_SPACEDIM>> m_origin;
-    std::vector<std::array<double, CH_SPACEDIM>> m_dx;
+    std::vector<std::array<double, AMREX_SPACEDIM>> m_origin;
+    std::vector<std::array<double, AMREX_SPACEDIM>> m_dx;
 
     MPIContext m_mpi;
     std::vector<int> m_mpi_mapping;
@@ -102,12 +102,12 @@ template <typename InterpAlgo> class AMRInterpolator
 
     std::vector<int> m_query_level;
     std::vector<int> m_query_box;
-    std::vector<double> m_query_coords[CH_SPACEDIM];
+    std::vector<double> m_query_coords[AMREX_SPACEDIM];
     std::vector<std::vector<double>> m_query_data;
 
     std::vector<int> m_answer_level;
     std::vector<int> m_answer_box;
-    std::vector<double> m_answer_coords[CH_SPACEDIM];
+    std::vector<double> m_answer_coords[AMREX_SPACEDIM];
     std::vector<std::vector<double>> m_answer_data;
 
     // A bit of Android-ism here, but it's really useful!
@@ -121,9 +121,9 @@ template <typename InterpAlgo> class AMRInterpolator
     BoundaryConditions::params_t m_bc_params;
     /// simplified bools saying whether or not boundary has
     /// a reflective condition in a given direction
-    std::array<bool, CH_SPACEDIM> m_lo_boundary_reflective,
+    std::array<bool, AMREX_SPACEDIM> m_lo_boundary_reflective,
         m_hi_boundary_reflective;
-    std::array<double, CH_SPACEDIM> m_upper_corner;
+    std::array<double, AMREX_SPACEDIM> m_upper_corner;
 };
 
 #include "AMRInterpolator.impl.hpp"

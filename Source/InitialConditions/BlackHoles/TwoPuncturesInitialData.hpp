@@ -25,14 +25,14 @@ class TwoPuncturesInitialData
 {
   protected:
     double m_dx;
-    std::array<double, CH_SPACEDIM> m_center;
+    std::array<double, AMREX_SPACEDIM> m_center;
     const TP::TwoPunctures &m_two_punctures;
 
   public:
     template <class data_t> using Vars = CCZ4Vars::VarsWithGauge<data_t>;
 
     TwoPuncturesInitialData(const double a_dx,
-                            const std::array<double, CH_SPACEDIM> a_center,
+                            const std::array<double, AMREX_SPACEDIM> a_center,
                             const TP::TwoPunctures &a_two_punctures)
         : m_dx(a_dx), m_center(a_center), m_two_punctures(a_two_punctures)
     {

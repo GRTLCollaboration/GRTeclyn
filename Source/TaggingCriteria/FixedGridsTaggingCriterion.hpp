@@ -17,12 +17,12 @@ class FixedGridsTaggingCriterion
     const double m_dx;
     const double m_L;
     const int m_level;
-    const std::array<double, CH_SPACEDIM> m_center;
+    const std::array<double, AMREX_SPACEDIM> m_center;
 
   public:
     FixedGridsTaggingCriterion(const double dx, const int a_level,
                                const double a_L,
-                               const std::array<double, CH_SPACEDIM> a_center)
+                               const std::array<double, AMREX_SPACEDIM> a_center)
         : m_dx(dx), m_L(a_L), m_level(a_level), m_center(a_center){};
 
     template <class data_t> void compute(Cell<data_t> current_cell) const

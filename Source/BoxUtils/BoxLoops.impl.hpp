@@ -71,8 +71,8 @@ void BoxLoops::loop(const ComputePack<compute_ts...> &compute_pack,
     const int *loop_lo = loop_box.loVect();
     const int *loop_hi = loop_box.hiVect();
 
-#pragma omp parallel for default(shared) collapse(CH_SPACEDIM - 1)
-#if CH_SPACEDIM >= 3
+#pragma omp parallel for default(shared) collapse(AMREX_SPACEDIM - 1)
+#if AMREX_SPACEDIM >= 3
     for (int iz = loop_lo[2]; iz <= loop_hi[2]; ++iz)
 #endif
         for (int iy = loop_lo[1]; iy <= loop_hi[1]; ++iy)

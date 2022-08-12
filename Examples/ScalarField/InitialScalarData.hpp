@@ -24,7 +24,7 @@ class InitialScalarData
     struct params_t
     {
         double amplitude; //!< Amplitude of bump in initial SF bubble
-        std::array<double, CH_SPACEDIM>
+        std::array<double, AMREX_SPACEDIM>
             center;   //!< Centre of perturbation in initial SF bubble
         double width; //!< Width of bump in initial SF bubble
     };

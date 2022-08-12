@@ -43,7 +43,7 @@ class GRAMRLevel : public AMRLevel, public InterpSource
     const GRLevelData &
     getLevelData(const VariableType var_type = VariableType::evolution) const;
 
-    bool contains(const std::array<double, CH_SPACEDIM> &point) const;
+    bool contains(const std::array<double, AMREX_SPACEDIM> &point) const;
 
   private:
     // define

@@ -23,10 +23,10 @@
 class SphericalGeometry
 {
   private:
-    std::array<double, CH_SPACEDIM> m_center;
+    std::array<double, AMREX_SPACEDIM> m_center;
 
   public:
-    SphericalGeometry(const std::array<double, CH_SPACEDIM> &a_center)
+    SphericalGeometry(const std::array<double, AMREX_SPACEDIM> &a_center)
         : m_center(a_center)
     {
     }

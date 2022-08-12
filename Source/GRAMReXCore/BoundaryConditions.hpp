@@ -63,9 +63,9 @@ class BoundaryConditions
     /// Structure containing the boundary condition params
     struct params_t
     {
-        std::array<int, CH_SPACEDIM> hi_boundary;
-        std::array<int, CH_SPACEDIM> lo_boundary;
-        std::array<bool, CH_SPACEDIM> is_periodic;
+        std::array<int, AMREX_SPACEDIM> hi_boundary;
+        std::array<int, AMREX_SPACEDIM> lo_boundary;
+        std::array<bool, AMREX_SPACEDIM> is_periodic;
         bool nonperiodic_boundaries_exist;
         bool boundary_solution_enforced;
         bool boundary_rhs_enforced;
@@ -82,9 +82,9 @@ class BoundaryConditions
         int extrapolation_order;
         params_t(); // sets the defaults
         void
-        set_is_periodic(const std::array<bool, CH_SPACEDIM> &a_is_periodic);
-        void set_hi_boundary(const std::array<int, CH_SPACEDIM> &a_hi_boundary);
-        void set_lo_boundary(const std::array<int, CH_SPACEDIM> &a_lo_boundary);
+        set_is_periodic(const std::array<bool, AMREX_SPACEDIM> &a_is_periodic);
+        void set_hi_boundary(const std::array<int, AMREX_SPACEDIM> &a_hi_boundary);
+        void set_lo_boundary(const std::array<int, AMREX_SPACEDIM> &a_lo_boundary);
         void read_params(GRParmParse &pp);
     };
 
@@ -103,7 +103,7 @@ class BoundaryConditions
     BoundaryConditions() { is_defined = false; }
 
     /// define function sets members and is_defined set to true
-    void define(double a_dx, std::array<double, CH_SPACEDIM> a_center,
+    void define(double a_dx, std::array<double, AMREX_SPACEDIM> a_center,
                 const params_t &a_params, ProblemDomain a_domain,
                 int a_num_ghosts);
 

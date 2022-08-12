@@ -23,23 +23,23 @@ template <class data_t> class Coordinates
     data_t x; // We vectorise over x so we must allow x to be a vector
     double y;
     double z;
-    std::array<double, CH_SPACEDIM> m_center;
+    std::array<double, AMREX_SPACEDIM> m_center;
 
     Coordinates(IntVect integer_coords, double dx,
-                std::array<double, CH_SPACEDIM> center = {0})
+                std::array<double, AMREX_SPACEDIM> center = {0})
         : m_center(center)
     {
         compute_coord(x, integer_coords[0], dx, center[0]);
 
 // The below code allows for 2D Cartoon reduction:
-#if DEFAULT_TENSOR_DIM == CH_SPACEDIM && CH_SPACEDIM == 3
+#if DEFAULT_TENSOR_DIM == AMREX_SPACEDIM && AMREX_SPACEDIM == 3
         compute_coord(y, integer_coords[1], dx, center[1]);
         compute_coord(z, integer_coords[2], dx, center[2]);
-#elif DEFAULT_TENSOR_DIM == CH_SPACEDIM + 1 && CH_SPACEDIM == 2
+#elif DEFAULT_TENSOR_DIM == AMREX_SPACEDIM + 1 && AMREX_SPACEDIM == 2
         y = 0;
         compute_coord(z, integer_coords[1], dx, center[1]);
 #else
-#ifdef CH_SPACEDIM
+#ifdef AMREX_SPACEDIM
 #error compute_coord has not got your dimension combination implemented.
 #endif
 #endif
@@ -78,7 +78,7 @@ template <class data_t> class Coordinates
     /// This static function returns the radius subject to a floor
     /// for when no coordinates object exists.
     static data_t get_radius(IntVect integer_coords, double dx,
-                             std::array<double, CH_SPACEDIM> center = {0})
+                             std::array<double, AMREX_SPACEDIM> center = {0})
     {
         data_t xx;
         double yy;

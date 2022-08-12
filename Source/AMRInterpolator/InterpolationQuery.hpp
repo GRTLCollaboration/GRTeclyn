@@ -38,13 +38,13 @@ class InterpolationQuery
 
   public:
     InterpolationQuery(int num_points)
-        : m_num_points(num_points), m_coords(CH_SPACEDIM, NULL)
+        : m_num_points(num_points), m_coords(AMREX_SPACEDIM, NULL)
     {
     }
 
     InterpolationQuery &setCoords(int dim, const double *coords)
     {
-        CH_assert(dim < CH_SPACEDIM);
+        CH_assert(dim < AMREX_SPACEDIM);
         this->m_coords[dim] = coords;
         return *this;
     }
