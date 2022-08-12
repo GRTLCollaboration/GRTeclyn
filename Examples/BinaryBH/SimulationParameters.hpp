@@ -34,11 +34,14 @@ class SimulationParameters : public SimulationParametersBase
     /// Read shared parameters
     void read_shared_params(GRParmParse &pp)
     {
+#if 0
+//xxxxx
         // Do we want puncture tracking and constraint norm calculation?
         pp.load("track_punctures", track_punctures, false);
         pp.load("puncture_tracking_level", puncture_tracking_level, max_level);
         pp.load("calculate_constraint_norms", calculate_constraint_norms,
                 false);
+#endif
     }
 
 #ifdef USE_TWOPUNCTURES
@@ -184,6 +187,8 @@ class SimulationParameters : public SimulationParametersBase
     /// Read BH parameters if not using two punctures
     void read_bh_params(GRParmParse &pp)
     {
+#if 0
+//xxxxx
         // Initial data
         pp.load("massA", bh1_params.mass);
         pp.load("momentumA", bh1_params.momentum);
@@ -204,6 +209,7 @@ class SimulationParameters : public SimulationParametersBase
             bh1_params.center[idir] = centerA[idir] + offsetA[idir];
             bh2_params.center[idir] = centerB[idir] + offsetB[idir];
         }
+#endif
     }
 #endif /* USE_TWOPUNCTURES */
 

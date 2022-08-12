@@ -309,7 +309,7 @@ AMRInterpolator<InterpAlgo>::findBoxes(InterpolationQuery &query)
     //    const int level_idx = m_mem_level[i];
     //    const AMRLevel& level = *levels[level_idx];
 
-    //    const LevelData<FArrayBox>& level_data = dynamic_cast<const
+    //    const amrex::MultiFab& level_data = dynamic_cast<const
     //    InterpSource&>(level).getLevelData(); const DisjointBoxLayout&
     //    box_layout = level_data.disjointBoxLayout(); const Box& domain_box =
     //    level.problemDomain().domainBox();
@@ -397,7 +397,7 @@ AMRInterpolator<InterpAlgo>::findBoxes(InterpolationQuery &query)
     {
         const AMRLevel &level = *levels[level_idx];
 
-        const LevelData<FArrayBox> &level_data =
+        const amrex::MultiFab &level_data =
             dynamic_cast<const InterpSource &>(level).getLevelData(
                 VariableType::evolution);
         const DisjointBoxLayout &box_layout = level_data.disjointBoxLayout();
@@ -662,9 +662,9 @@ void AMRInterpolator<InterpAlgo>::calculateAnswers(InterpolationQuery &query)
 
         const AMRLevel &level = *levels[level_idx];
         const InterpSource &source = dynamic_cast<const InterpSource &>(level);
-        const LevelData<FArrayBox> *const evolution_level_data_ptr =
+        const amrex::MultiFab *const evolution_level_data_ptr =
             &source.getLevelData(VariableType::evolution);
-        const LevelData<FArrayBox> *diagnostics_level_data_ptr;
+        const amrex::MultiFab *diagnostics_level_data_ptr;
         if (NUM_DIAGNOSTIC_VARS > 0)
         {
             diagnostics_level_data_ptr =

@@ -17,37 +17,40 @@ class BinaryBHLevel : public GRAMRLevel
     // Inherit the contructors from GRAMRLevel
     using GRAMRLevel::GRAMRLevel;
 
+#if 0
+    // xxxxx
     BHAMR &m_bh_amr = dynamic_cast<BHAMR &>(m_gr_amr);
 #ifdef USE_TWOPUNCTURES
     TPAMR &m_tp_amr = dynamic_cast<TPAMR &>(m_gr_amr);
 #endif /* USE_TWOPUNCTURES */
+#endif
 
     /// Things to do at every full timestep
     ///(might include several substeps, e.g. in RK4)
-    virtual void specificAdvance() override;
+    virtual void specificAdvance();//xxxxx override;
 
     /// Initial data calculation
-    virtual void initialData() override;
+    virtual void initialData();//xxxxx override;
 
     /// Calculation of the right hand side for the time stepping
     virtual void specificEvalRHS(GRLevelData &a_soln, GRLevelData &a_rhs,
-                                 const double a_time) override;
+                                 const double a_time);//xxxxx override;
 
     /// Things to do after dt*rhs has been added to the solution
     virtual void specificUpdateODE(GRLevelData &a_soln,
                                    const GRLevelData &a_rhs,
-                                   Real a_dt) override;
+                                   amrex::Real a_dt);//xxxxx override;
 
     /// Things to do before tagging cells (i.e. filling ghosts)
-    virtual void preTagCells() override;
+    virtual void preTagCells();//xxxxx override;
 
     /// Identify and tag the cells that need higher resolution
     virtual void
-    computeTaggingCriterion(FArrayBox &tagging_criterion,
-                            const FArrayBox &current_state) override;
+    computeTaggingCriterion(amrex::FArrayBox &tagging_criterion,
+                            const amrex::FArrayBox &current_state);//xxxxx override;
 
     // to do post each time step on every level
-    virtual void specificPostTimeStep() override;
+    virtual void specificPostTimeStep();//xxxxx override;
 
 #ifdef CH_USE_HDF5
     /// Any actions that should happen just before plot files output

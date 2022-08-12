@@ -21,9 +21,9 @@ class BHAMR : public GRAMR
 
     BHAMR() {}
 
-    void set_interpolator(AMRInterpolator<Lagrange<4>> *a_interpolator) override
+    void set_interpolator(AMRInterpolator<Lagrange<4>> *a_interpolator)//xxxxx override
     {
-        GRAMR::set_interpolator(a_interpolator);
+     //xxxxx   GRAMR::set_interpolator(a_interpolator);
         m_puncture_tracker.set_interpolator(a_interpolator);
     }
 };

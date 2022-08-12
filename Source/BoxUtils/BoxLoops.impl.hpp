@@ -114,7 +114,7 @@ BoxLoops::loop(compute_t compute_class, const FArrayBox &in, FArrayBox &out,
 
 template <typename... compute_ts, typename... simd_info>
 void BoxLoops::loop(const ComputePack<compute_ts...> &compute_pack,
-                    const LevelData<FArrayBox> &in, LevelData<FArrayBox> &out,
+                    const amrex::MultiFab &in, amrex::MultiFab &out,
                     bool fill_ghosts, simd_info... info)
 {
     DataIterator dit0 = in.dataIterator();
@@ -138,8 +138,8 @@ void BoxLoops::loop(const ComputePack<compute_ts...> &compute_pack,
 
 template <typename compute_t, typename... simd_info>
 std::enable_if_t<!is_compute_pack<compute_t>::value, void>
-BoxLoops::loop(compute_t compute_class, const LevelData<FArrayBox> &in,
-               LevelData<FArrayBox> &out, bool fill_ghosts, simd_info... info)
+BoxLoops::loop(compute_t compute_class, const amrex::MultiFab &in,
+               amrex::MultiFab &out, bool fill_ghosts, simd_info... info)
 {
     // TODO think about perfect forwarding of compute_class
     loop(make_compute_pack(compute_class), in, out, fill_ghosts,

@@ -29,6 +29,8 @@ class SimulationParametersBase : public AMReXParameters
   private:
     void read_params(GRParmParse &pp)
     {
+#if 0
+//xxxxx
         // Lapse evolution
         pp.load("lapse_advec_coeff", ccz4_params.lapse_advec_coeff, 1.0);
         pp.load("lapse_coeff", ccz4_params.lapse_coeff, 2.0);
@@ -158,6 +160,7 @@ class SimulationParametersBase : public AMReXParameters
                     extraction_params.integral_file_prefix,
                     std::string("Weyl4_mode_"));
         }
+#endif
     }
 
     void check_params()
@@ -214,25 +217,25 @@ class SimulationParametersBase : public AMReXParameters
         // only warn for gauge parameters as there are legitimate cases you may
         // want to deviate from the norm
         warn_parameter("lapse_advec_coeff", ccz4_params.lapse_advec_coeff,
-                       min(abs(ccz4_params.lapse_advec_coeff),
-                           abs(ccz4_params.lapse_advec_coeff - 1.0)) <
+                       std::min(std::abs(ccz4_params.lapse_advec_coeff),
+                                std::abs(ccz4_params.lapse_advec_coeff - 1.0)) <
                            std::numeric_limits<double>::epsilon(),
                        "usually set to 0.0 or 1.0");
         warn_parameter("lapse_power", ccz4_params.lapse_power,
-                       abs(ccz4_params.lapse_power - 1.0) <
+                       std::abs(ccz4_params.lapse_power - 1.0) <
                            std::numeric_limits<double>::epsilon(),
                        "set to 1.0 for 1+log slicing");
         warn_parameter("lapse_coeff", ccz4_params.lapse_coeff,
-                       abs(ccz4_params.lapse_coeff - 2.0) <
+                       std::abs(ccz4_params.lapse_coeff - 2.0) <
                            std::numeric_limits<double>::epsilon(),
                        "set to 2.0 for 1+log slicing");
         warn_parameter("shift_Gamma_coeff", ccz4_params.shift_Gamma_coeff,
-                       abs(ccz4_params.shift_Gamma_coeff - 0.75) <
+                       std::abs(ccz4_params.shift_Gamma_coeff - 0.75) <
                            std::numeric_limits<double>::epsilon(),
                        "usually set to 0.75");
         warn_parameter("shift_advec_coeff", ccz4_params.shift_advec_coeff,
-                       min(abs(ccz4_params.shift_advec_coeff),
-                           abs(ccz4_params.shift_advec_coeff - 1.0)) <
+                       std::min(std::abs(ccz4_params.shift_advec_coeff),
+                           std::abs(ccz4_params.shift_advec_coeff - 1.0)) <
                            std::numeric_limits<double>::epsilon(),
                        "usually set to 0.0 or 1.0");
         warn_parameter("eta", ccz4_params.eta,
@@ -288,7 +291,7 @@ class SimulationParametersBase : public AMReXParameters
                                         ", " + std::to_string(mode.second) +
                                         ")";
                 check_parameter(
-                    mode_name, value_str, (l >= 2) && (abs(m) <= l),
+                    mode_name, value_str, (l >= 2) && (std::abs(m) <= l),
                     "l must be >= 2 and m must satisfy -l <= m <= l");
             }
         }

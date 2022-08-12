@@ -12,7 +12,7 @@
 // Chombo namespace
 #include "UsingNamespace.H"
 
-GRLevelData::GRLevelData() : LevelData<FArrayBox>() {}
+GRLevelData::GRLevelData() : amrex::MultiFab() {}
 
 void GRLevelData::setVal(const double a_val)
 {

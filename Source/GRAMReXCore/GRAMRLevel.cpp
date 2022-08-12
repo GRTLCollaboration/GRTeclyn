@@ -769,7 +769,7 @@ void GRAMRLevel::writePlotLevel(HDF5Handle &a_handle) const
 
         const DisjointBoxLayout &levelGrids = m_state_new.getBoxes();
         IntVect iv_ghosts = m_num_ghosts * IntVect::Unit;
-        LevelData<FArrayBox> plot_data(levelGrids, num_states, iv_ghosts);
+        amrex::MultiFab plot_data(levelGrids, num_states, iv_ghosts);
 
         // only need to write ghosts when non periodic BCs exist
         IntVect ghost_vector = IntVect::Zero;

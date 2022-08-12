@@ -27,10 +27,10 @@ template <VariableType var_t> class AMRReductions
     const int m_base_level;
     const double m_coarsest_dx;
     double m_domain_volume;
-    Vector<LevelData<FArrayBox> *> m_level_data_ptrs;
-    Vector<int> m_ref_ratios;
+    amrex::Vector<amrex::MultiFab *> m_level_data_ptrs;
+    amrex::Vector<int> m_ref_ratios;
 
-    //! constructs a Vector of LevelData<FArrayBox> pointers and stores them
+    //! constructs a Vector of amrex::MultiFab pointers and stores them
     void set_level_data_vect(const GRAMR &a_gramr);
 
     //! gets the vector of refinement ratios and stores them
