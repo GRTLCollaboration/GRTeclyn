@@ -72,7 +72,7 @@ void GRLevelData::plus(const GRLevelData &a_src, const double a_scale,
         const IntVect &src_size = src_box.size();
         const int num_comps = fab.nComp();
 
-        CH_assert(num_comps == src_fab.nComp());
+        AMREX_ASSERT(num_comps == src_fab.nComp());
 #ifdef _OPENMP
 #pragma omp parallel for default(shared) collapse(AMREX_SPACEDIM)
 #endif

@@ -53,7 +53,7 @@ void AMRReductions<var_t>::set_ref_ratios_vect(const GRAMR &a_gramr)
 template <VariableType var_t> void AMRReductions<var_t>::set_domain_volume()
 {
     // first check if m_level_data_ptrs has been set
-    CH_assert((m_level_data_ptrs.size() > 0) &&
+    AMREX_ASSERT((m_level_data_ptrs.size() > 0) &&
               (m_level_data_ptrs[0] != nullptr));
 
     // first calculate the volume assuming each cell on the coarsest level has
@@ -69,7 +69,7 @@ template <VariableType var_t> void AMRReductions<var_t>::set_domain_volume()
 template <VariableType var_t>
 Real AMRReductions<var_t>::min(const Interval &a_vars) const
 {
-    CH_assert(a_vars.begin() >= 0 && a_vars.end() < m_num_vars);
+    AMREX_ASSERT(a_vars.begin() >= 0 && a_vars.end() < m_num_vars);
     CH_TIME("AMRReductions::min");
     return computeMin(m_level_data_ptrs, m_ref_ratios, a_vars, m_base_level);
 }
@@ -83,7 +83,7 @@ Real AMRReductions<var_t>::min(const int a_var) const
 template <VariableType var_t>
 Real AMRReductions<var_t>::max(const Interval &a_vars) const
 {
-    CH_assert(a_vars.begin() >= 0 && a_vars.end() < m_num_vars);
+    AMREX_ASSERT(a_vars.begin() >= 0 && a_vars.end() < m_num_vars);
     CH_TIME("AMRReductions::max");
     return computeMax(m_level_data_ptrs, m_ref_ratios, a_vars, m_base_level);
 }
@@ -99,7 +99,7 @@ Real AMRReductions<var_t>::norm(const Interval &a_vars,
                                 const int a_norm_exponent,
                                 const bool a_normalize_by_volume) const
 {
-    CH_assert(a_vars.begin() >= 0 && a_vars.end() < m_num_vars);
+    AMREX_ASSERT(a_vars.begin() >= 0 && a_vars.end() < m_num_vars);
     CH_TIME("AMRReductions::norm");
     Real norm = computeNorm(m_level_data_ptrs, m_ref_ratios, m_coarsest_dx,
                             a_vars, a_norm_exponent, m_base_level);
@@ -122,7 +122,7 @@ Real AMRReductions<var_t>::norm(const int a_var, const int a_norm_exponent,
 template <VariableType var_t>
 Real AMRReductions<var_t>::sum(const Interval &a_vars) const
 {
-    CH_assert(a_vars.begin() >= 0 && a_vars.end() < m_num_vars);
+    AMREX_ASSERT(a_vars.begin() >= 0 && a_vars.end() < m_num_vars);
     CH_TIME("AMRReductions::sum");
     return computeSum(m_level_data_ptrs, m_ref_ratios, m_coarsest_dx, a_vars,
                       m_base_level);

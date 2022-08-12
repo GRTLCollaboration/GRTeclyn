@@ -26,25 +26,25 @@ inline int MPIContext::answerDispl(int rank) { return m_answer.displ(rank); }
 
 inline void MPIContext::setQueryCount(int rank, int count)
 {
-    CH_assert(!m_async_active);
+    AMREX_ASSERT(!m_async_active);
     m_query.setCount(rank, count);
 }
 
 inline void MPIContext::incrementQueryCount(int rank)
 {
-    CH_assert(!m_async_active);
+    AMREX_ASSERT(!m_async_active);
     m_query.incrementCount(rank);
 }
 
 inline void MPIContext::clearQueryCounts()
 {
-    CH_assert(!m_async_active);
+    AMREX_ASSERT(!m_async_active);
     m_query.clearCounts();
 }
 
 inline void MPIContext::exchangeLayout()
 {
-    CH_assert(!m_async_active);
+    AMREX_ASSERT(!m_async_active);
 #ifdef CH_MPI
     MPI_Alltoall(m_query.countsPtr(), 1, MPI_INT, m_answer.countsPtr(), 1,
                  MPI_INT, Chombo_MPI::comm);
@@ -57,14 +57,14 @@ inline void MPIContext::exchangeLayout()
 #ifdef CH_MPI
 inline void MPIContext::asyncBegin()
 {
-    CH_assert(!m_async_active);
+    AMREX_ASSERT(!m_async_active);
     m_async_active = true;
 }
 
 inline void MPIContext::asyncExchangeQuery(void *sendbuf, void *recvbuf,
                                            MPI_Datatype type)
 {
-    CH_assert(m_async_active);
+    AMREX_ASSERT(m_async_active);
     MPI_Request req;
     m_mpi_requests.push_back(req);
 
@@ -82,7 +82,7 @@ inline void MPIContext::asyncExchangeQuery(void *sendbuf, void *recvbuf,
 inline void MPIContext::asyncExchangeAnswer(void *sendbuf, void *recvbuf,
                                             MPI_Datatype type)
 {
-    CH_assert(m_async_active);
+    AMREX_ASSERT(m_async_active);
     MPI_Request req;
     m_mpi_requests.push_back(req);
 
@@ -99,7 +99,7 @@ inline void MPIContext::asyncExchangeAnswer(void *sendbuf, void *recvbuf,
 
 inline void MPIContext::asyncEnd()
 {
-    CH_assert(m_async_active);
+    AMREX_ASSERT(m_async_active);
     m_async_active = false;
 
 #if MPI_VERSION >= 3 && !defined(OPEN_MPI)

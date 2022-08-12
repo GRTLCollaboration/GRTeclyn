@@ -7,7 +7,7 @@
 #define INTERPOLATIONQUERY_HPP_
 
 // Chombo includes
-#include "CH_assert.H"
+#include "AMREX_ASSERT.H"
 
 // Other includes
 #include "Derivative.hpp"
@@ -44,7 +44,7 @@ class InterpolationQuery
 
     InterpolationQuery &setCoords(int dim, const double *coords)
     {
-        CH_assert(dim < AMREX_SPACEDIM);
+        AMREX_ASSERT(dim < AMREX_SPACEDIM);
         this->m_coords[dim] = coords;
         return *this;
     }
@@ -54,7 +54,7 @@ class InterpolationQuery
             const Derivative &deriv = Derivative::LOCAL,
             VariableType variable_type = VariableType::evolution)
     {
-        CH_assert(out_ptr != NULL || m_num_points == 0);
+        AMREX_ASSERT(out_ptr != NULL || m_num_points == 0);
 
         iterator result = m_comps.find(deriv);
         if (result == m_comps.end())

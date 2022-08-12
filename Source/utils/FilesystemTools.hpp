@@ -6,15 +6,9 @@
 #ifndef FILESYSTEMTOOLS_HPP_
 #define FILESYSTEMTOOLS_HPP_
 
-// Chombo includes
-#include "SPMD.H" // gives procID()
-
 // Other includes
 #include <sys/stat.h> // gives 'stat' and 'S_ISDIR'
 #include <unistd.h>   // gives 'mkdir'
-
-// Chombo namespace
-#include "UsingNamespace.H"
 
 // Some filesystem useful functions
 

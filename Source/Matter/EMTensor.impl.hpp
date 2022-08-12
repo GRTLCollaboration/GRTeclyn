@@ -27,13 +27,13 @@ EMTensor<matter_t>::EMTensor(const matter_t &a_matter, const double dx,
     if (m_c_Si.size() != 0)
     {
         // Si is a vector
-        CH_assert(m_c_Si.size() == DEFAULT_TENSOR_DIM);
+        AMREX_ASSERT(m_c_Si.size() == DEFAULT_TENSOR_DIM);
     }
 
     if (m_c_Sij.size() != 0)
     {
         // Sij is a symmetric tensor
-        CH_assert(m_c_Sij.size() ==
+        AMREX_ASSERT(m_c_Sij.size() ==
                   DEFAULT_TENSOR_DIM * (DEFAULT_TENSOR_DIM + 1) / 2);
     }
 }

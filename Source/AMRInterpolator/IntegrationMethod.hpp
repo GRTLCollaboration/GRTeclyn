@@ -7,7 +7,7 @@
 #define INTEGRATIONMETHOD_HPP_
 
 // Chombo includes
-#include "CH_assert.H"
+#include "AMREX_ASSERT.H"
 
 // Other includes
 #include <utility>
@@ -34,7 +34,7 @@ class IntegrationMethod
         : m_weights(a_weights), m_num_weights(a_weights.size()),
           m_is_closed(a_is_closed)
     {
-        CH_assert(a_weights.size() > 0);
+        AMREX_ASSERT(a_weights.size() > 0);
     }
 
     //! Checks that this integration method is suitable given the number of

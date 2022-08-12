@@ -216,7 +216,7 @@ void AMRInterpolator<InterpAlgo>::computeLevelLayouts()
             for (int i = 0; i < AMREX_SPACEDIM; ++i)
             {
                 // Sanity check
-                CH_assert(ref_ratio ==
+                AMREX_ASSERT(ref_ratio ==
                           (big_end[i] - small_end[i] + 1) /
                               (prev_big_end[i] - prev_small_end[i] + 1));
 
@@ -297,7 +297,7 @@ AMRInterpolator<InterpAlgo>::findBoxes(InterpolationQuery &query)
     //    box_layout = level_data.disjointBoxLayout(); const Box& domain_box =
     //    level.problemDomain().domainBox();
 
-    //    CH_assert(box_layout.isClosed() && box_layout.isSorted());
+    //    AMREX_ASSERT(box_layout.isClosed() && box_layout.isSorted());
 
     //    const IntVect& small_end = domain_box.smallEnd();
     //    const IntVect& big_end = domain_box.bigEnd();
@@ -386,7 +386,7 @@ AMRInterpolator<InterpAlgo>::findBoxes(InterpolationQuery &query)
         const DisjointBoxLayout &box_layout = level_data.disjointBoxLayout();
         const Box &domain_box = level.problemDomain().domainBox();
 
-        CH_assert(box_layout.isClosed() && box_layout.isSorted());
+        AMREX_ASSERT(box_layout.isClosed() && box_layout.isSorted());
 
         const IntVect &small_end = domain_box.smallEnd();
         const IntVect &big_end = domain_box.bigEnd();
@@ -483,7 +483,7 @@ AMRInterpolator<InterpAlgo>::findBoxes(InterpolationQuery &query)
     }
 
 found_all_points:
-    CH_assert(points_found == query.m_num_points);
+    AMREX_ASSERT(points_found == query.m_num_points);
     if (m_verbosity)
     {
         _pout << "    All points have been found" << endl;
@@ -511,7 +511,7 @@ void AMRInterpolator<InterpAlgo>::prepareMPI(InterpolationQuery &query,
     for (int point_idx = 0; point_idx < query.m_num_points; ++point_idx)
     {
         int rank = layout.rank[point_idx];
-        CH_assert(rank > -1);
+        AMREX_ASSERT(rank > -1);
         m_mpi.incrementQueryCount(rank);
     }
 

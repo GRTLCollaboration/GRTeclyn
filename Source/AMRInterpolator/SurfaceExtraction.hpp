@@ -7,7 +7,7 @@
 #define SURFACEEXTRACTION_HPP_
 
 // Chombo includes
-#include "CH_assert.H"
+#include "AMREX_ASSERT.H"
 #include "SPMD.H"
 
 // Other inclues

@@ -6,9 +6,6 @@
 #ifndef CELL_HPP_
 #define CELL_HPP_
 
-// Chombo includes
-#include "IntVect.H"
-
 // Our includes
 #include "AlwaysInline.hpp"
 #include "BoxPointers.hpp"
@@ -16,8 +13,8 @@
 #include "GRInterval.hpp"
 #include "Tensor.hpp"
 
-// Chombo namespace
-#include "UsingNamespace.H"
+// Chombo includes
+#include <AMReX_IntVect.H>
 
 /// Encapsulates information about the position of a cell
 /** It contains the position of the cell on the Chombo grid and the index of the
@@ -28,7 +25,7 @@
 template <class data_t> class Cell
 {
   protected:
-    const IntVect
+    const amrex::IntVect
         m_integer_coords; //!< Integer coordinates of the cell in the grid
 
     /// Index in the flattened Chombo array where the input data for this cell
@@ -43,7 +40,7 @@ template <class data_t> class Cell
     const BoxPointers &m_box_pointers;
 
   public:
-    Cell(const IntVect integer_coords, const BoxPointers &box_pointers)
+    Cell(const amrex::IntVect integer_coords, const BoxPointers &box_pointers)
         : m_integer_coords(integer_coords),
           m_in_index(box_pointers.get_in_index(integer_coords)),
           m_out_index(box_pointers.get_out_index(integer_coords)),
@@ -53,7 +50,7 @@ template <class data_t> class Cell
 
     // Don't accept rvalues in constructor since we only store reference to
     // box_pointers
-    Cell(const IntVect integer_coords, BoxPointers &&box_pointers) = delete;
+    Cell(const amrex::IntVect integer_coords, BoxPointers &&box_pointers) = delete;
 
     /// Allows implicit conversion from Cell to CellIndexIn.
     //! As a result of this definition one may pass a Cell to a function
@@ -67,16 +64,16 @@ template <class data_t> class Cell
     ALWAYS_INLINE
     operator CellIndexOut() const { return m_out_index; }
 
-    /// Allows implicit conversion from Cell to IntVect
+    /// Allows implicit conversion from Cell to amrex::IntVect
     ALWAYS_INLINE
-    operator IntVect() const { return m_integer_coords; }
+    operator amrex::IntVect() const { return m_integer_coords; }
 
     ALWAYS_INLINE
-    bool operator==(const IntVect iv) { return (m_integer_coords == iv); }
+    bool operator==(const amrex::IntVect iv) { return (m_integer_coords == iv); }
 
-    /// Returns the integer coordinates of this Cell in the form of an IntVect
+    /// Returns the integer coordinates of this Cell in the form of an amrex::IntVect
     ALWAYS_INLINE
-    IntVect get_int_vect() const { return m_integer_coords; }
+    amrex::IntVect get_int_vect() const { return m_integer_coords; }
 
     /// Returns Index in the flattened Chombo array where the input data for
     /// this cell resides

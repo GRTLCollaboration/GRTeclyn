@@ -12,7 +12,7 @@ QuinticConvolution::QuinticConvolution(const InterpSource &source,
                                        bool verbosity)
     : m_source(source), m_verbosity(verbosity)
 {
-    CH_assert(AMREX_SPACEDIM <= 3);
+    AMREX_ASSERT(AMREX_SPACEDIM <= 3);
 }
 
 void QuinticConvolution::setup(const std::array<int, AMREX_SPACEDIM> &deriv,
@@ -112,7 +112,7 @@ void QuinticConvolution::setup(const std::array<int, AMREX_SPACEDIM> &deriv,
             for (int x = 0; x < 6; ++x)
             {
                 interp_coord[0] = floor(evalCoord[0]) + x - 2;
-                CH_assert(m_source.contains(interp_coord));
+                AMREX_ASSERT(m_source.contains(interp_coord));
 
                 m_interp_points.push_back(IntVect(D_DECL6(
                     interp_coord[0], interp_coord[1], interp_coord[2],

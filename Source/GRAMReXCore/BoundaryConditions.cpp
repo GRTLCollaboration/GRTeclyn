@@ -186,7 +186,7 @@ void BoundaryConditions::params_t::read_params(GRParmParse &pp)
                 if (icomp == extrapolating_vars[icomp2].first)
                 {
                     // should be an evolution variable
-                    CH_assert(extrapolating_vars[icomp2].second ==
+                    AMREX_ASSERT(extrapolating_vars[icomp2].second ==
                               VariableType::evolution);
                     mixed_bc_vars_map.insert(
                         std::make_pair(icomp, EXTRAPOLATING_BC));
@@ -276,7 +276,7 @@ void BoundaryConditions::write_mixed_conditions(int idir,
 {
     // check all the vars have been assigned a BC - this should always be the
     // case because of how the params are assigned
-    CH_assert(a_params.mixed_bc_vars_map.size() == NUM_VARS);
+    AMREX_ASSERT(a_params.mixed_bc_vars_map.size() == NUM_VARS);
 
     // now do the write out
     pout()
@@ -394,7 +394,7 @@ void BoundaryConditions::fill_rhs_boundaries(const Side::LoHiSide a_side,
                                              const GRLevelData &a_soln,
                                              GRLevelData &a_rhs)
 {
-    CH_assert(is_defined);
+    AMREX_ASSERT(is_defined);
     CH_TIME("BoundaryConditions::fill_rhs_boundaries");
 
     // cycle through the directions, filling the rhs
@@ -418,7 +418,7 @@ void BoundaryConditions::fill_solution_boundaries(const Side::LoHiSide a_side,
                                                   GRLevelData &a_state,
                                                   const Interval &a_comps)
 {
-    CH_assert(is_defined);
+    AMREX_ASSERT(is_defined);
     CH_TIME("BoundaryConditions::fill_solution_boundaries");
 
     // cycle through the directions
@@ -450,7 +450,7 @@ void BoundaryConditions::fill_diagnostic_boundaries(const Side::LoHiSide a_side,
                                                     GRLevelData &a_state,
                                                     const Interval &a_comps)
 {
-    CH_assert(is_defined);
+    AMREX_ASSERT(is_defined);
     CH_TIME("BoundaryConditions::fill_diagnostic_boundaries");
 
     // cycle through the directions
@@ -776,8 +776,8 @@ void BoundaryConditions::copy_boundary_cells(const Side::LoHiSide a_side,
 {
     CH_TIME("BoundaryConditions::copy_boundary_cells");
 
-    CH_assert(is_defined);
-    CH_assert(a_src.nComp() == NUM_VARS);
+    AMREX_ASSERT(is_defined);
+    AMREX_ASSERT(a_src.nComp() == NUM_VARS);
     if (a_src.boxLayout() == a_dest.boxLayout())
     {
         // cycle through the directions
@@ -829,9 +829,9 @@ void BoundaryConditions::interp_boundaries(GRLevelData &a_fine_state,
                                            GRLevelData &a_coarse_state,
                                            const Side::LoHiSide a_side)
 {
-    CH_assert(is_defined);
-    CH_assert(a_fine_state.nComp() == NUM_VARS);
-    CH_assert(a_coarse_state.nComp() == NUM_VARS);
+    AMREX_ASSERT(is_defined);
+    AMREX_ASSERT(a_fine_state.nComp() == NUM_VARS);
+    AMREX_ASSERT(a_coarse_state.nComp() == NUM_VARS);
     CH_TIME("BoundaryConditions::interp_boundaries");
 
     // cycle through the directions

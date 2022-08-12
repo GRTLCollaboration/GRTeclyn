@@ -10,9 +10,6 @@
 #ifndef USERVARIABLES_INC_HPP
 #define USERVARIABLES_INC_HPP
 
-// Chombo includes
-#include "parstream.H"
-
 // Other includes
 #include "GRParmParse.hpp"
 #include "VariableType.hpp"
@@ -20,8 +17,7 @@
 #include <array>
 #include <string>
 
-// Chombo namespace
-#include "UsingNamespace.H"
+//xxxxx#include "parstream.H"
 
 // This file must be included at the end of UserVariables.hpp
 
@@ -89,7 +85,7 @@ void load_values_to_array(
     for (int i = 0; i < num_values; i++)
     {
         int icomp = a_vars_vector[i].first;
-        CH_assert(a_vars_vector[i].second == VariableType::evolution);
+        AMREX_ASSERT(a_vars_vector[i].second == VariableType::evolution);
         a_values_array[icomp] = vars_values[i];
     }
 }

@@ -70,7 +70,7 @@ void SurfaceExtraction<SurfaceGeometry>::add_var(int a_var,
                                                  const VariableType a_var_type,
                                                  const Derivative &a_deriv)
 {
-    CH_assert(!m_done_extraction);
+    AMREX_ASSERT(!m_done_extraction);
     m_vars.push_back(std::make_tuple(a_var, a_var_type, a_deriv));
     // m_num_interp_points is 0 on ranks > 0
     m_interp_data.emplace_back(m_num_interp_points);
@@ -232,7 +232,7 @@ void SurfaceExtraction<SurfaceGeometry>::add_var_integrand(
     const IntegrationMethod &a_method_u, const IntegrationMethod &a_method_v,
     const bool a_broadcast_integral)
 {
-    CH_assert(a_var >= 0 && a_var < m_vars.size());
+    AMREX_ASSERT(a_var >= 0 && a_var < m_vars.size());
     integrand_t var_integrand = [var = a_var](std::vector<double> &data, double,
                                               double,
                                               double) { return data[var]; };
@@ -243,11 +243,11 @@ void SurfaceExtraction<SurfaceGeometry>::add_var_integrand(
 template <class SurfaceGeometry>
 void SurfaceExtraction<SurfaceGeometry>::integrate()
 {
-    CH_assert(m_done_extraction);
+    AMREX_ASSERT(m_done_extraction);
     if (procID() == 0)
     {
         // note this condition won't be true on other ranks
-        CH_assert(m_integrands.size() == m_integration_methods.size() &&
+        AMREX_ASSERT(m_integrands.size() == m_integration_methods.size() &&
                   m_integrals.size() > 0);
         int num_integrals = m_integrals.size();
 
@@ -339,7 +339,7 @@ template <class SurfaceGeometry>
 void SurfaceExtraction<SurfaceGeometry>::write_extraction(
     std::string a_file_prefix) const
 {
-    CH_assert(m_done_extraction);
+    AMREX_ASSERT(m_done_extraction);
     if (procID() == 0)
     {
         SmallDataIO extraction_file(m_params.extraction_path + a_file_prefix,
@@ -419,13 +419,13 @@ void SurfaceExtraction<SurfaceGeometry>::write_integrals(
         // there are integrals
         if (!a_labels.empty())
         {
-            CH_assert(num_integrals_per_surface == a_labels.size());
+            AMREX_ASSERT(num_integrals_per_surface == a_labels.size());
         }
         // each inner vector element of a_integrals must have the same number of
         // elements as there are surfaces (i.e. one integral per surface)
         for (auto vect : a_integrals)
         {
-            CH_assert(vect.size() == m_params.num_surfaces);
+            AMREX_ASSERT(vect.size() == m_params.num_surfaces);
         }
         // open file for writing
         SmallDataIO integral_file(m_params.data_path + a_filename, m_dt, m_time,

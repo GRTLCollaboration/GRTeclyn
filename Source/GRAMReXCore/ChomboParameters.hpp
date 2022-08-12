@@ -6,10 +6,6 @@
 #ifndef CHOMBOPARAMETERS_HPP_
 #define CHOMBOPARAMETERS_HPP_
 
-// Chombo includes
-#include "MayDay.H"
-#include "Misc.H"
-
 // General includes
 #include "ArrayTools.hpp"
 #include "BoundaryConditions.hpp"
@@ -20,9 +16,6 @@
 #include "unistd.h" // gives 'access'
 #include <algorithm>
 #include <string>
-
-// Chombo namespace
-#include "UsingNamespace.H"
 
 class ChomboParameters
 {

@@ -64,7 +64,7 @@ void BoxLoops::loop(const ComputePack<compute_ts...> &compute_pack,
                     simd_info... info)
 {
     // Makes sure we are not requesting data outside the box of 'out'
-    CH_assert(out.box().contains(loop_box));
+    AMREX_ASSERT(out.box().contains(loop_box));
 
     BoxPointers box_pointers(in, out);
 

@@ -51,7 +51,7 @@ void PunctureTracker::restart_punctures()
 //! set and write initial puncture locations
 void PunctureTracker::set_initial_punctures()
 {
-    CH_assert(m_puncture_coords.size() > 0); // sanity check
+    AMREX_ASSERT(m_puncture_coords.size() > 0); // sanity check
 
     m_num_punctures = m_puncture_coords.size();
     m_puncture_shift.resize(m_num_punctures);
@@ -98,7 +98,7 @@ void PunctureTracker::read_in_punctures(int a_int_step, double a_current_time)
     punctures_file.get_specific_data_line(puncture_vector, a_current_time);
 
     // check the data returned is the right size
-    CH_assert(puncture_vector.size() % AMREX_SPACEDIM == 0);
+    AMREX_ASSERT(puncture_vector.size() % AMREX_SPACEDIM == 0);
 
     m_num_punctures = puncture_vector.size() / AMREX_SPACEDIM;
     m_puncture_coords.resize(m_num_punctures);
@@ -141,11 +141,11 @@ void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
     // leave if this is called at t=0, we don't want to move the puncture yet
     if (m_num_punctures == 0 || a_time == 0.)
         return;
-    CH_assert(m_interpolator != nullptr); // sanity check
+    AMREX_ASSERT(m_interpolator != nullptr); // sanity check
 
     // get puncture coordinates and old shift value
     std::vector<std::array<double, AMREX_SPACEDIM>> old_shift = m_puncture_shift;
-    CH_assert(m_puncture_coords.size() == m_num_punctures); // sanity check
+    AMREX_ASSERT(m_puncture_coords.size() == m_num_punctures); // sanity check
 
     // new shift value
     interp_shift();

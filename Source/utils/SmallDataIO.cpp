@@ -313,7 +313,7 @@ std::string SmallDataIO::get_new_filename(const std::string &a_file_prefix,
                                           const std::string &a_file_extension,
                                           int a_filename_steps_width)
 {
-    CH_assert(a_dt > 0);
+    AMREX_ASSERT(a_dt > 0);
     const int step = std::round(a_time / a_dt);
 
     // append step number to filename (pad to make it

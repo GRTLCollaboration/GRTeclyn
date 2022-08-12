@@ -145,7 +145,7 @@ Lagrange<Order>::getStencil(int width, int deriv, double dx,
 template <int Order>
 const double &Lagrange<Order>::Stencil::operator[](unsigned int i) const
 {
-    CH_assert(i < m_width);
+    AMREX_ASSERT(i < m_width);
     return m_weights[i];
 }
 
@@ -297,7 +297,7 @@ Lagrange<Order>::generateStencil(
     }
 
     int stencil_width = points_max - points_min;
-    CH_assert(stencil_width > 0);
+    AMREX_ASSERT(stencil_width > 0);
 
     const Stencil my_weights =
         getStencil(stencil_width, deriv[dim], dx[dim],

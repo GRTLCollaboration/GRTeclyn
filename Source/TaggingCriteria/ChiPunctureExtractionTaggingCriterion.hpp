@@ -59,7 +59,7 @@ class ChiPunctureExtractionTaggingCriterion
           m_puncture_coords(a_puncture_coords)
     {
         // check that the number of punctures is consistent
-        CH_assert(m_puncture_masses.size() == m_puncture_coords.size());
+        AMREX_ASSERT(m_puncture_masses.size() == m_puncture_coords.size());
     };
 
     template <class data_t> void compute(Cell<data_t> current_cell) const

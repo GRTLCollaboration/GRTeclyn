@@ -30,14 +30,14 @@ inline int MPILayout::displ(int rank) const
 
 inline void MPILayout::setCount(int rank, int count)
 {
-    CH_assert(rank < m_num_process && count >= 0);
+    AMREX_ASSERT(rank < m_num_process && count >= 0);
     m_counts[rank] = count;
     m_dirty = true;
 }
 
 inline void MPILayout::incrementCount(int rank)
 {
-    CH_assert(rank < m_num_process);
+    AMREX_ASSERT(rank < m_num_process);
     ++m_counts[rank];
     m_dirty = true;
 }

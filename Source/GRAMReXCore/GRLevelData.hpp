@@ -6,14 +6,9 @@
 #ifndef GRLEVELDATA_HPP_
 #define GRLEVELDATA_HPP_
 
-// Chombo includes
-#include "FArrayBox.H"
-#include "LevelData.H"
+#include <AMReX_MultiFab.H>
 
-// Chombo namespace
-#include "UsingNamespace.H"
-
-class GRLevelData : public LevelData<FArrayBox>
+class GRLevelData : public amrex::MultiFab
 {
   public:
     GRLevelData();
@@ -25,8 +20,8 @@ class GRLevelData : public LevelData<FArrayBox>
     void setVal(const double a_val, const Interval a_comps);
 
     // loop only goes over a_disjoint_box_layout
-    void plus(const GRLevelData &a_src, const double a_scale,
-              const DisjointBoxLayout &a_disjoint_box_layout);
+//xxxxx    void plus(const GRLevelData &a_src, const double a_scale,
+//              const DisjointBoxLayout &a_disjoint_box_layout);
 };
 
 #endif /* GRLEVELDATA_HPP_ */

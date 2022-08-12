@@ -6,11 +6,7 @@
 #ifndef COMBINATORICS_HPP_
 #define COMBINATORICS_HPP_
 
-// Chombo includes
-#include "CH_assert.H"
-
-// Chombo namespace
-#include "UsingNamespace.H"
+#include <AMReX_BLassert.H>
 
 namespace Combinatorics
 {
@@ -28,7 +24,7 @@ inline double factorial(int n)
 // Calculate combinatorics
 inline double n_choose_r(int n, int r)
 {
-    CH_assert((r >= 0) && (n >= r)); // sense check values
+    AMREX_ASSERT((r >= 0) && (n >= r)); // sense check values
 
     double out = factorial(n) / (factorial(r) * factorial(n - r));
     return out;

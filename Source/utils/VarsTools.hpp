@@ -6,16 +6,13 @@
 #ifndef VARSTOOLS_HPP_
 #define VARSTOOLS_HPP_
 
-// Chombo includes
-#include "parstream.H" //Gives us pout()
-
 // Our includes
 #include "GRInterval.hpp"
 #include "Tensor.hpp"
 #include "UserVariables.hpp"
 
-// Chombo namespace
-#include "UsingNamespace.H"
+// Chombo includes
+//#include "parstream.H" //Gives us pout()
 
 namespace VarsTools
 {

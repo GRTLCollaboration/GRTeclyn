@@ -6,14 +6,6 @@
 #ifndef BOUNDARYCONDITIONS_HPP_
 #define BOUNDARYCONDITIONS_HPP_
 
-// Chombo includes
-#include "BoxIterator.H"
-#include "Coordinates.hpp"
-#include "Copier.H"
-#include "FourthOrderInterpStencil.H"
-#include "Interval.H"
-#include "RealVect.H"
-
 // Our includes
 #include "DimensionDefinitions.hpp"
 #include "GRLevelData.hpp"
@@ -21,8 +13,13 @@
 #include "UserVariables.hpp"
 #include "VariableType.hpp"
 
-// Chombo namespace
-#include "UsingNamespace.H"
+// xxxxx
+//#include "BoxIterator.H"
+//#include "Coordinates.hpp"
+//#include "Copier.H"
+//#include "FourthOrderInterpStencil.H"
+//#include "Interval.H"
+//#include "RealVect.H"
 
 /// Class which deals with the boundaries at the edge of the physical domain in
 /// cases where they are not periodic. Currently only options are static BCs,
