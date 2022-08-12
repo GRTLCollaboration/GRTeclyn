@@ -29,8 +29,6 @@ class SimulationParametersBase : public AMReXParameters
   private:
     void read_params(GRParmParse &pp)
     {
-#if 0
-//xxxxx
         // Lapse evolution
         pp.load("lapse_advec_coeff", ccz4_params.lapse_advec_coeff, 1.0);
         pp.load("lapse_coeff", ccz4_params.lapse_coeff, 2.0);
@@ -160,7 +158,6 @@ class SimulationParametersBase : public AMReXParameters
                     extraction_params.integral_file_prefix,
                     std::string("Weyl4_mode_"));
         }
-#endif
     }
 
     void check_params()
