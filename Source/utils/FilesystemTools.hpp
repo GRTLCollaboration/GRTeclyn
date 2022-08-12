@@ -29,14 +29,14 @@ static bool directory_exists(const std::string &path)
 
 static bool mkdir_recursive(const std::string &path)
 {
-#ifdef CH_MPI
+#ifdef AMREX_USE_MPI
     // all processes should get here at the same time
     // e.g. if doing:
     //     if (!directory_exists(path))
     //         mkdir_recursive(path);
     // We want to make sure the directory is not created until all
     // ranks have passed the 'directory_exists'
-    MPI_Barrier(Chombo_MPI::comm);
+    ParallelDescriptor::Barrier();
 #endif
 
     bool success = true;
@@ -73,10 +73,10 @@ static bool mkdir_recursive(const std::string &path)
                 (mkdir(path.c_str(), permissions) == 0 || errno == EEXIST);
     }
 
-#ifdef CH_MPI
+#ifdef AMREX_USE_MPI
     // all processes should wait to make sure directory structure is well set
     // for everyone
-    MPI_Barrier(Chombo_MPI::comm);
+    ParallelDescriptor::Barrier();
 #endif
 
     return success;

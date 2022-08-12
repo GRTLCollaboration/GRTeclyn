@@ -45,7 +45,7 @@ inline void MPIContext::clearQueryCounts()
 inline void MPIContext::exchangeLayout()
 {
     AMREX_ASSERT(!m_async_active);
-#ifdef CH_MPI
+#ifdef AMREX_USE_MPI
     MPI_Alltoall(m_query.countsPtr(), 1, MPI_INT, m_answer.countsPtr(), 1,
                  MPI_INT, Chombo_MPI::comm);
 #else
@@ -54,7 +54,7 @@ inline void MPIContext::exchangeLayout()
     m_answer.updateDirty();
 }
 
-#ifdef CH_MPI
+#ifdef AMREX_USE_MPI
 inline void MPIContext::asyncBegin()
 {
     AMREX_ASSERT(!m_async_active);
@@ -108,6 +108,6 @@ inline void MPIContext::asyncEnd()
 
     m_mpi_requests.clear();
 }
-#endif /* ifdef CH_MPI */
+#endif /* ifdef AMREX_USE_MPI */
 
 #endif /* MPICONTEXT_IMPL_HPP_ */

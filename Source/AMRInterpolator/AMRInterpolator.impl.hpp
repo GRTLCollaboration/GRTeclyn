@@ -606,7 +606,7 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIQuery()
         _pout << TAG << "Entering exchangeMPIQuery" << std::endl;
     }
 
-#ifdef CH_MPI // TODO: it would be nicer if this ifdef were moved into
+#ifdef AMREX_USE_MPI // TODO: it would be nicer if this ifdef were moved into
               // MPIContext ... the only issue is the MPI datatype
     m_mpi.asyncBegin();
 
@@ -795,7 +795,7 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIAnswer()
         amrex::Print() << TAG << "Entering exchangeMPIAnswer" << std::endl;
     }
 
-#ifdef CH_MPI // TODO: it would be nicer if this ifdef were moved into
+#ifdef AMREX_USE_MPI // TODO: it would be nicer if this ifdef were moved into
               // MPIContext ... the only issue is the MPI datatype
     m_mpi.asyncBegin();
 

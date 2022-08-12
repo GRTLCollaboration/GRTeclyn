@@ -58,8 +58,7 @@ class AMReXParameters
         // in principle it can be set to other values, but this is
         // not recommended since we do not test GRChombo with other
         // refinement ratios - use other values at your own risk
-        ref_ratios.resize(max_level + 1);
-        ref_ratios.assign(2);
+        ref_ratios.resize(max_level + 1, 2);
         pp.getarr("regrid_interval", regrid_interval, 0, max_level);
         // Regridding on max_level does nothing but Chombo's AMR class
         // expects this Vector to be of length max_level + 1
@@ -123,8 +122,6 @@ class AMReXParameters
 
     void read_filesystem_params(GRParmParse &pp)
     {
-#if 0
-        // xxxxxx
         // In this function, cannot use default value - it may print a 'default
         // message' to pout and a 'setPoutBaseName' must happen before
         restart_from_checkpoint = pp.contains("restart_file");
@@ -137,7 +134,7 @@ class AMReXParameters
         pp.load("plot_prefix", plot_prefix);
 #endif
 
-#ifdef CH_MPI
+#ifdef AMREX_USE_MPI
         // Again, cannot use default value
         if (pp.contains("pout_prefix"))
             pp.load("pout_prefix", pout_prefix);
@@ -151,7 +148,7 @@ class AMReXParameters
         else
             output_path = default_path;
 
-#ifdef CH_MPI
+#ifdef AMREX_USE_MPI
         // user sets the 'subpath', we prepend 'output_path'
         if (pp.contains("pout_subpath"))
             pp.load("pout_subpath", pout_path);
@@ -170,7 +167,7 @@ class AMReXParameters
         // add backslash to paths
         if (!output_path.empty() && output_path.back() != '/')
             output_path += "/";
-#ifdef CH_MPI
+#ifdef AMREX_USE_MPI
         if (!pout_path.empty() && pout_path.back() != '/')
             pout_path += "/";
 #endif
@@ -181,7 +178,7 @@ class AMReXParameters
 
         if (output_path != "./" && !output_path.empty())
         {
-#ifdef CH_MPI
+#ifdef AMREX_USE_MPI
             pout_path = output_path + pout_path;
 #endif
 #ifdef AMREX_USE_HDF5
@@ -193,15 +190,14 @@ class AMReXParameters
 #endif
         }
 
-#ifdef CH_MPI
+#ifdef AMREX_USE_MPI
         // change pout base name!
         if (!FilesystemTools::directory_exists(pout_path))
             FilesystemTools::mkdir_recursive(pout_path);
-        setPoutBaseName(pout_path + pout_prefix);
+        //xxxxx setPoutBaseName(pout_path + pout_prefix);
 #endif
 
         // only create hdf5 directory in setupAMRObject (when it becomes needed)
-#endif
     }
 
     void read_grid_params(GRParmParse &pp)
@@ -497,7 +493,7 @@ class AMReXParameters
     std::string checkpoint_prefix, plot_prefix; // naming of files
 #endif
     std::string output_path; // base path to use for all files
-#ifdef CH_MPI
+#ifdef AMREX_USE_MPI
     std::string pout_prefix; // pout file prefix
     std::string pout_path;   // base path for pout files
 #endif

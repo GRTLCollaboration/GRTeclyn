@@ -39,7 +39,7 @@ SmallDataIO::SmallDataIO(std::string a_filename_prefix, double a_dt,
       m_coords_width(m_coords_precision + 5),
       m_coords_epsilon(std::pow(10.0, -a_coords_precision))
 {
-#ifdef CH_MPI
+#ifdef AMREX_USE_MPI
     MPI_Comm_rank(Chombo_MPI::comm, &m_rank);
 #else
     m_rank = 0;

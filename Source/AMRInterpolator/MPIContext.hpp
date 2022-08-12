@@ -32,7 +32,7 @@ class MPIContext
 
     void exchangeLayout();
 
-#ifdef CH_MPI
+#ifdef AMREX_USE_MPI
     // MPI asynchronous comms
     inline void asyncBegin();
     inline void asyncExchangeQuery(void *sendbuf, void *recvbuf,
@@ -53,7 +53,7 @@ class MPIContext
     bool m_query_dirty;
 
     bool m_async_active;
-#ifdef CH_MPI
+#ifdef AMREX_USE_MPI
     std::vector<MPI_Request> m_mpi_requests;
 #endif
 };
@@ -61,7 +61,7 @@ class MPIContext
 inline int MPIContext::comm_size()
 {
     int out = 1;
-#ifdef CH_MPI
+#ifdef AMREX_USE_MPI
     MPI_Comm_size(Chombo_MPI::comm, &out);
 #endif
     return out;
@@ -70,7 +70,7 @@ inline int MPIContext::comm_size()
 inline int MPIContext::comm_rank()
 {
     int out = 0;
-#ifdef CH_MPI
+#ifdef AMREX_USE_MPI
     MPI_Comm_rank(Chombo_MPI::comm, &out);
 #endif
     return out;
