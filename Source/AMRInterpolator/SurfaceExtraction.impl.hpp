@@ -299,13 +299,13 @@ void SurfaceExtraction<SurfaceGeometry>::integrate()
     {
         if (m_broadcast_integrals[iintegral])
         {
-            Vector<double> broadcast_Vector;
+            amrex::Vector<double> broadcast_Vector;
             if (amrex::ParallelDescriptor::MyProc() == 0)
                 broadcast_Vector = m_integrals[iintegral].get();
-            broadcast(broadcast_Vector, 0);
+           //xxxxx broadcast(broadcast_Vector, 0);
             if (amrex::ParallelDescriptor::MyProc() != 0)
             {
-                m_integrals[iintegral].get() = broadcast_Vector.stdVector();
+                //xxxxx m_integrals[iintegral].get() = broadcast_Vector;
             }
         }
     }

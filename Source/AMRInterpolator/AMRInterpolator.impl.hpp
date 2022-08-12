@@ -11,7 +11,7 @@
 // A bit of Android-ism here, but it's really useful!
 // Identifies the printout as originating from this class.
 template <typename InterpAlgo>
-const string AMRInterpolator<InterpAlgo>::TAG =
+const std::string AMRInterpolator<InterpAlgo>::TAG =
     "\x1b[32;1m[AMRInterpolator]\x1b[0m ";
 
 template <typename InterpAlgo>
@@ -30,7 +30,7 @@ AMRInterpolator<InterpAlgo>::AMRInterpolator(
     const BoundaryConditions::params_t &a_bc_params, int verbosity)
     : m_gr_amr(gr_amr), m_coarsest_origin(coarsest_origin),
       m_coarsest_dx(coarsest_dx),
-      m_num_levels(const_cast<GRAMR &>(m_gr_amr).getAMRLevels().size()),
+//xxxxx      m_num_levels(const_cast<GRAMR &>(m_gr_amr).getAMRLevels().size()),
       m_verbosity(verbosity), m_bc_params(a_bc_params)
 {
     set_reflective_BC();
@@ -39,9 +39,11 @@ AMRInterpolator<InterpAlgo>::AMRInterpolator(
 template <typename InterpAlgo>
 void AMRInterpolator<InterpAlgo>::refresh(const bool a_fill_ghosts)
 {
+#if 0
+//xxxxx
     BL_PROFILE("AMRInterpolator::refresh");
 
-    const Vector<AMRLevel *> &levels =
+    const amrex::Vector<AMRLevel *> &levels =
         const_cast<GRAMR &>(m_gr_amr).getAMRLevels();
     m_num_levels = levels.size();
 
@@ -54,8 +56,11 @@ void AMRInterpolator<InterpAlgo>::refresh(const bool a_fill_ghosts)
         if (NUM_DIAGNOSTIC_VARS > 0)
             fill_multilevel_ghosts(VariableType::diagnostic);
     }
+#endif
 }
 
+#if 0
+//xxxxx
 template <typename InterpAlgo>
 void AMRInterpolator<InterpAlgo>::fill_multilevel_ghosts(
     const VariableType a_var_type, const Interval &a_comps,
@@ -64,12 +69,16 @@ void AMRInterpolator<InterpAlgo>::fill_multilevel_ghosts(
     m_gr_amr.fill_multilevel_ghosts(a_var_type, a_comps, a_min_level,
                                     a_max_level);
 }
+#endif
 
+#if 0
+//xxxxx
 template <typename InterpAlgo>
 const AMR &AMRInterpolator<InterpAlgo>::getAMR() const
 {
     return m_gr_amr;
 }
+#endif
 
 template <typename InterpAlgo>
 const std::array<double, AMREX_SPACEDIM> &
@@ -87,7 +96,9 @@ AMRInterpolator<InterpAlgo>::get_coarsest_origin()
 template <typename InterpAlgo>
 void AMRInterpolator<InterpAlgo>::limit_num_levels(unsigned int num_levels)
 {
-    BL_PROFILE("AMRInterpolator::limit_num_levels");
+#if 0
+//xxxxx
+    // No need to time this small function. BL_PROFILE("AMRInterpolator::limit_num_levels");
 
     int max_num_levels = const_cast<GRAMR &>(m_gr_amr).getAMRLevels().size();
     if (num_levels > max_num_levels || num_levels == 0)
@@ -98,6 +109,7 @@ void AMRInterpolator<InterpAlgo>::limit_num_levels(unsigned int num_levels)
     {
         m_num_levels = num_levels;
     }
+#endif
 }
 
 // The coordinates of the requested points are most likely stored as
@@ -111,7 +123,7 @@ void AMRInterpolator<InterpAlgo>::interp(InterpolationQuery &query)
 
     if (m_verbosity)
     {
-        amrex::Print() << TAG << "\x1b[32;1mInterpolating data\x1b[0m" << endl;
+        amrex::Print() << TAG << "\x1b[32;1mInterpolating data\x1b[0m" << std::endl;
 
         for (typename InterpolationQuery::iterator it = query.compsBegin();
              it != query.compsEnd(); ++it)
@@ -128,11 +140,11 @@ void AMRInterpolator<InterpAlgo>::interp(InterpolationQuery &query)
                 }
             }
             amrex::Print() << ") data for " << it->second.size() << " components"
-                   << endl;
+                   << std::endl;
         }
 
         amrex::Print() << "    Summary: " << query.numComps() << " datasets at "
-               << query.m_num_points << " points" << endl;
+               << query.m_num_points << " points" << std::endl;
     }
 
     // Compute the bounds and spacings for each level
@@ -178,31 +190,33 @@ void AMRInterpolator<InterpAlgo>::interp(InterpolationQuery &query)
 template <typename InterpAlgo>
 void AMRInterpolator<InterpAlgo>::computeLevelLayouts()
 {
+#if 0
+//xxxxx
     BL_PROFILE("AMRInterpolator::computeLevelLayouts");
 
-    ostream &_pout = amrex::Print();
+    std::ostream &_pout = amrex::Print();
 
     if (m_verbosity)
     {
-        _pout << TAG << "Entering computeLevelLayouts" << endl;
+        _pout << TAG << "Entering computeLevelLayouts" << std::endl;
     }
 
-    const Vector<AMRLevel *> &levels =
+    const amrex::Vector<AMRLevel *> &levels =
         const_cast<GRAMR &>(m_gr_amr).getAMRLevels();
     const int num_levels = m_num_levels; // levels.size();
 
     m_origin.resize(num_levels);
     m_dx.resize(num_levels);
 
-    IntVect prev_small_end = IntVect::Zero;
-    IntVect prev_big_end = IntVect::Zero;
+    amrex::IntVect prev_small_end = amrex::IntVect::TheZeroVector();
+    amrex::IntVect prev_big_end = amrex::IntVect::TheZeroVector();
 
     for (int level_idx = 0; level_idx < num_levels; ++level_idx)
     {
         AMRLevel &level = *levels[level_idx];
         const Box &domain_box = level.problemDomain().domainBox();
-        const IntVect &small_end = domain_box.smallEnd();
-        const IntVect &big_end = domain_box.bigEnd();
+        const amrex::IntVect &small_end = domain_box.smallEnd();
+        const amrex::IntVect &big_end = domain_box.bigEnd();
 
         if (level_idx == 0)
         {
@@ -243,7 +257,7 @@ void AMRInterpolator<InterpAlgo>::computeLevelLayouts()
                   << "," << m_dx[level_idx][2] << ")\t"
                   << "grid_origin=(" << m_origin[level_idx][0] << ","
                   << m_origin[level_idx][1] << "," << m_origin[level_idx][2]
-                  << ")" << endl;
+                  << ")" << std::endl;
         }
 
         prev_small_end = small_end;
@@ -252,29 +266,32 @@ void AMRInterpolator<InterpAlgo>::computeLevelLayouts()
 
     if (m_verbosity)
     {
-        _pout << TAG << "Leaving computeLevelLayouts" << endl;
+        _pout << TAG << "Leaving computeLevelLayouts" << std::endl;
     }
+#endif
 }
 
 template <typename InterpAlgo>
 InterpolationLayout
 AMRInterpolator<InterpAlgo>::findBoxes(InterpolationQuery &query)
 {
+#if 0
+//xxxxx
     BL_PROFILE("AMRInterpolator::findBoxes");
 
-    ostream &_pout = amrex::Print();
+    std::ostream &_pout = amrex::Print();
 
     if (m_verbosity)
     {
-        _pout << TAG << "Entering findBoxes" << endl;
+        _pout << TAG << "Entering findBoxes" << std::endl;
     }
 
-    const Vector<AMRLevel *> &levels =
+    const amrex::Vector<AMRLevel *> &levels =
         const_cast<GRAMR &>(m_gr_amr).getAMRLevels();
     const int num_levels = m_num_levels; // levels.size();
 
     std::array<double, AMREX_SPACEDIM> grid_coord;
-    IntVect nearest;
+    amrex::IntVect nearest;
 
     InterpolationLayout interp_layout(query.m_num_points);
 
@@ -299,8 +316,8 @@ AMRInterpolator<InterpAlgo>::findBoxes(InterpolationQuery &query)
 
     //    AMREX_ASSERT(box_layout.isClosed() && box_layout.isSorted());
 
-    //    const IntVect& small_end = domain_box.smallEnd();
-    //    const IntVect& big_end = domain_box.bigEnd();
+    //    const amrex::IntVect& small_end = domain_box.smallEnd();
+    //    const amrex::IntVect& big_end = domain_box.bigEnd();
 
     //    const int box_idx = m_mem_box[i];
     //    const LayoutIterator& layout_it  = box_layout.layoutIterator();
@@ -352,7 +369,7 @@ AMRInterpolator<InterpAlgo>::findBoxes(InterpolationQuery &query)
     //                        if (i < AMREX_SPACEDIM - 1) _pout << ",";
     //                    }
     //                    _pout << ") in level " << level_idx << " box " <<
-    //                    box_idx << " (rank " << rank << ")" << endl;
+    //                    box_idx << " (rank " << rank << ")" << std::endl;
     //                }
 
     //                points_found += 1;
@@ -362,7 +379,7 @@ AMRInterpolator<InterpAlgo>::findBoxes(InterpolationQuery &query)
     //                    if (m_verbosity)
     //                    {
     //                        _pout << "    Completed findBoxes using only
-    //                        memoised data" << endl;
+    //                        memoised data" << std::endl;
     //                    }
 
     //                    // The last remaining socially acceptable use of goto.
@@ -388,8 +405,8 @@ AMRInterpolator<InterpAlgo>::findBoxes(InterpolationQuery &query)
 
         AMREX_ASSERT(box_layout.isClosed() && box_layout.isSorted());
 
-        const IntVect &small_end = domain_box.smallEnd();
-        const IntVect &big_end = domain_box.bigEnd();
+        const amrex::IntVect &small_end = domain_box.smallEnd();
+        const amrex::IntVect &big_end = domain_box.bigEnd();
 
         const LayoutIterator &layout_it = box_layout.layoutIterator();
 
@@ -455,7 +472,7 @@ AMRInterpolator<InterpAlgo>::findBoxes(InterpolationQuery &query)
                             }
                             _pout << ") in level " << level_idx << " box "
                                   << box_idx << " (rank " << rank << ")"
-                                  << endl;
+                                  << std::endl;
                         }
 
                         points_found += 1;
@@ -486,11 +503,14 @@ found_all_points:
     AMREX_ASSERT(points_found == query.m_num_points);
     if (m_verbosity)
     {
-        _pout << "    All points have been found" << endl;
-        _pout << TAG << "Leaving findBoxes" << endl;
+        _pout << "    All points have been found" << std::endl;
+        _pout << TAG << "Leaving findBoxes" << std::endl;
     }
 
     return interp_layout;
+#else
+    return InterpolationLayout{};
+#endif
 }
 
 template <typename InterpAlgo>
@@ -499,11 +519,11 @@ void AMRInterpolator<InterpAlgo>::prepareMPI(InterpolationQuery &query,
 {
     BL_PROFILE("AMRInterpolator::prepareMPI");
 
-    ostream &_pout = amrex::Print();
+    std::ostream &_pout = amrex::Print();
 
     if (m_verbosity)
     {
-        _pout << TAG << "Entering prepareMPI" << endl;
+        _pout << TAG << "Entering prepareMPI" << std::endl;
     }
 
     // Count the number of points queried to each rank
@@ -564,13 +584,13 @@ void AMRInterpolator<InterpAlgo>::prepareMPI(InterpolationQuery &query,
 
     if (m_verbosity >= 2)
     {
-        _pout << "    Number of points that needs to be answered back:" << endl;
+        _pout << "    Number of points that needs to be answered back:" << std::endl;
         for (int rank = 0; rank < m_mpi.m_num_process; ++rank)
         {
             _pout << "    Rank " << rank << "\t= " << m_mpi.queryCount(rank)
-                  << endl;
+                  << std::endl;
         }
-        _pout << TAG << "Leaving prepareMPI" << endl;
+        _pout << TAG << "Leaving prepareMPI" << std::endl;
     }
 }
 
@@ -579,11 +599,11 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIQuery()
 {
     BL_PROFILE("AMRInterpolator::exchangeMPIQuery");
 
-    ostream &_pout = amrex::Print();
+    std::ostream &_pout = amrex::Print();
 
     if (m_verbosity)
     {
-        _pout << TAG << "Entering exchangeMPIQuery" << endl;
+        _pout << TAG << "Entering exchangeMPIQuery" << std::endl;
     }
 
 #ifdef CH_MPI // TODO: it would be nicer if this ifdef were moved into
@@ -608,30 +628,32 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIQuery()
 
     if (m_verbosity)
     {
-        _pout << TAG << "Entering exchangeMPIQuery" << endl;
+        _pout << TAG << "Entering exchangeMPIQuery" << std::endl;
     }
 }
 
 template <typename InterpAlgo>
 void AMRInterpolator<InterpAlgo>::calculateAnswers(InterpolationQuery &query)
 {
+#if 0
+//xxxxx
     BL_PROFILE("AMRInterpolator::calculateAnswers");
 
-    ostream &_pout = amrex::Print();
+    std::ostream &_pout = amrex::Print();
 
     if (m_verbosity)
     {
-        _pout << TAG << "Entering calculateAnswer" << endl;
+        _pout << TAG << "Entering calculateAnswer" << std::endl;
     }
 
-    const Vector<AMRLevel *> &levels =
+    const amrex::Vector<AMRLevel *> &levels =
         const_cast<GRAMR &>(m_gr_amr).getAMRLevels();
     // const int num_levels = levels.size();
     // const int num_comps = query.numComps();
     const int num_answers = m_mpi.totalAnswerCount();
 
     std::array<double, AMREX_SPACEDIM> grid_coord;
-    IntVect nearest;
+    amrex::IntVect nearest;
 
     for (int answer_idx = 0; answer_idx < num_answers; ++answer_idx)
     {
@@ -658,8 +680,8 @@ void AMRInterpolator<InterpAlgo>::calculateAnswers(InterpolationQuery &query)
         }
 
         const Box &domain_box = level.problemDomain().domainBox();
-        const IntVect &small_end = domain_box.smallEnd();
-        const IntVect &big_end = domain_box.bigEnd();
+        const amrex::IntVect &small_end = domain_box.smallEnd();
+        const amrex::IntVect &big_end = domain_box.bigEnd();
 
         // Convert the LayoutIndex to DataIndex
         const DataIndex evolution_data_idx(
@@ -723,7 +745,7 @@ void AMRInterpolator<InterpAlgo>::calculateAnswers(InterpolationQuery &query)
                 if (i < AMREX_SPACEDIM - 1)
                     _pout << ",";
             }
-            _pout << ") in level " << level_idx << " box " << box_idx << endl;
+            _pout << ") in level " << level_idx << " box " << box_idx << std::endl;
         }
 
         InterpAlgo algo(source);
@@ -760,6 +782,7 @@ void AMRInterpolator<InterpAlgo>::calculateAnswers(InterpolationQuery &query)
             }
         }
     }
+#endif
 }
 
 template <typename InterpAlgo>
@@ -769,7 +792,7 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIAnswer()
 
     if (m_verbosity)
     {
-        amrex::Print() << TAG << "Entering exchangeMPIAnswer" << endl;
+        amrex::Print() << TAG << "Entering exchangeMPIAnswer" << std::endl;
     }
 
 #ifdef CH_MPI // TODO: it would be nicer if this ifdef were moved into
@@ -793,14 +816,16 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIAnswer()
 
     if (m_verbosity)
     {
-        amrex::Print() << TAG << "Leaving exchangeMPIAnswer" << endl;
+        amrex::Print() << TAG << "Leaving exchangeMPIAnswer" << std::endl;
     }
 }
 
 template <typename InterpAlgo>
 void AMRInterpolator<InterpAlgo>::set_reflective_BC()
 {
-    const IntVect &big_end = const_cast<GRAMR &>(m_gr_amr)
+#if 0
+//xxxxx
+    const amrex::IntVect &big_end = const_cast<GRAMR &>(m_gr_amr)
                                  .getAMRLevels()[0]
                                  ->problemDomain()
                                  .domainBox()
@@ -815,6 +840,7 @@ void AMRInterpolator<InterpAlgo>::set_reflective_BC()
         m_hi_boundary_reflective[i] =
             (m_bc_params.hi_boundary[i] == BoundaryConditions::REFLECTIVE_BC);
     }
+#endif
 }
 
 template <typename InterpAlgo>

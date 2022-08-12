@@ -19,8 +19,8 @@ void GRAMR::set_interpolator(AMRInterpolator<Lagrange<4>> *a_interpolator)
 std::vector<GRAMRLevel *> GRAMR::get_gramrlevels()
 {
     std::vector<GRAMRLevel *> out(m_amrlevels.size());
-    std::transform(m_amrlevels.stdVector().cbegin(),
-                   m_amrlevels.stdVector().cend(), out.begin(),
+    std::transform(m_amrlevels.cbegin(),
+                   m_amrlevels.cend(), out.begin(),
                    [](AMRLevel *amrlevel_ptr) {
                        return GRAMRLevel::gr_cast(amrlevel_ptr);
                    });

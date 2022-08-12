@@ -296,7 +296,7 @@ void SmallDataIO::get_specific_data_line(std::vector<double> &a_out_data,
     Vector<double> data_Vect(a_out_data);
     int broadcast_rank = 0;
     broadcast(data_Vect, broadcast_rank);
-    a_out_data = data_Vect.stdVector();
+    a_out_data = data_Vect;
 }
 
 void SmallDataIO::get_specific_data_line(std::vector<double> &a_out_data,

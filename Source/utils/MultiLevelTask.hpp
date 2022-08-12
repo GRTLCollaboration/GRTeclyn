@@ -43,7 +43,7 @@ class MultiLevelTask : public Scheduler::PeriodicFunction
     // required from Scheduler::PeriodicFunction
     virtual void operator()(int a_step = 0, Real a_time = 0.) override
     {
-        auto amr_level_ptrs = m_amr_ptr->getAMRLevels().stdVector();
+        auto amr_level_ptrs = m_amr_ptr->getAMRLevels();
 
         // need to reverse this vector so that m_func is called in order of
         // finest level to coarsest. This is important for example for

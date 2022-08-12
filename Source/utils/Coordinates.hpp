@@ -94,7 +94,7 @@ template <class data_t> class Coordinates
 };
 
 template <typename data_t>
-ALWAYS_INLINE ostream &operator<<(ostream &os,
+ALWAYS_INLINE std::ostream &operator<<(std::ostream &os,
                                   const Coordinates<data_t> &in_coords)
 {
     os << "(x,y,z) = (" << in_coords.x << "," << in_coords.y << ","
