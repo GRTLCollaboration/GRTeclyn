@@ -4,7 +4,7 @@
  */
 
 #include "PunctureTracker.hpp"
-#include "ChomboParameters.hpp" // for writing data
+#include "AMReXParameters.hpp" // for writing data
 #include "DimensionDefinitions.hpp"
 #include "InterpolationQuery.hpp"
 #include "SmallDataIO.hpp"   // for writing data

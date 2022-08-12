@@ -7,16 +7,16 @@
 #define SIMULATIONPARAMETERS_HPP_
 
 // General includes
-#include "ChomboParameters.hpp"
+#include "AMReXParameters.hpp"
 #include "GRParmParse.hpp"
 
 // Problem specific includes
 #include "SphericalExtraction.hpp"
 
-class SimulationParameters : public ChomboParameters
+class SimulationParameters : public AMReXParameters
 {
   public:
-    SimulationParameters(GRParmParse &pp) : ChomboParameters(pp)
+    SimulationParameters(GRParmParse &pp) : AMReXParameters(pp)
     {
         read_params(pp);
     }

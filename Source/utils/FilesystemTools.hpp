@@ -6,6 +6,8 @@
 #ifndef FILESYSTEMTOOLS_HPP_
 #define FILESYSTEMTOOLS_HPP_
 
+#include <AMReX_ParallelDescriptor.H>
+
 // Other includes
 #include <sys/stat.h> // gives 'stat' and 'S_ISDIR'
 #include <unistd.h>   // gives 'mkdir'
@@ -38,7 +40,7 @@ static bool mkdir_recursive(const std::string &path)
 #endif
 
     bool success = true;
-    if (procID() == 0)
+    if (amrex::ParallelDescriptor::MyProc() == 0)
     {
         // For Windows backslash, use delimeters = "/\\"
         static const std::string delimeter = "/";

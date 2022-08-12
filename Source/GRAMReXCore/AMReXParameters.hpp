@@ -3,8 +3,8 @@
  * Please refer to LICENSE in GRChombo's root directory.
  */
 
-#ifndef CHOMBOPARAMETERS_HPP_
-#define CHOMBOPARAMETERS_HPP_
+#ifndef AMREXPARAMETERS_HPP_
+#define AMREXPARAMETERS_HPP_
 
 // General includes
 #include "ArrayTools.hpp"
@@ -17,10 +17,10 @@
 #include <algorithm>
 #include <string>
 
-class ChomboParameters
+class AMReXParameters
 {
   public:
-    ChomboParameters(GRParmParse &pp)
+    AMReXParameters(GRParmParse &pp)
     {
         read_params(pp);
         check_params();

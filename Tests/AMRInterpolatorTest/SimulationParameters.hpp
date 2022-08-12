@@ -7,13 +7,13 @@
 #define SIMULATIONPARAMETERS_HPP_
 
 // General includes
-#include "ChomboParameters.hpp"
+#include "AMReXParameters.hpp"
 #include "GRParmParse.hpp"
 
-class SimulationParameters : public ChomboParameters
+class SimulationParameters : public AMReXParameters
 {
   public:
-    SimulationParameters(GRParmParse &pp) : ChomboParameters(pp)
+    SimulationParameters(GRParmParse &pp) : AMReXParameters(pp)
     {
         pp.load("num_points", num_points, 2);
     }

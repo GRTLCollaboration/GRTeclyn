@@ -9,7 +9,7 @@
 // General includes
 #include "BoundaryConditions.hpp"
 #include "CCZ4RHS.hpp"
-#include "ChomboParameters.hpp"
+#include "AMReXParameters.hpp"
 #include "GRParmParse.hpp"
 #include "SphericalExtraction.hpp"
 #include <limits>
@@ -17,10 +17,10 @@
 // add this type alias here for backwards compatibility
 using extraction_params_t = SphericalExtraction::params_t;
 
-class SimulationParametersBase : public ChomboParameters
+class SimulationParametersBase : public AMReXParameters
 {
   public:
-    SimulationParametersBase(GRParmParse &pp) : ChomboParameters(pp)
+    SimulationParametersBase(GRParmParse &pp) : AMReXParameters(pp)
     {
         read_params(pp);
         check_params();
