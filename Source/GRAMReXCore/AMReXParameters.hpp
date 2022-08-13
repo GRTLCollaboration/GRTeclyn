@@ -24,6 +24,7 @@ class AMReXParameters
     {
         read_params(pp);
         check_params();
+        set_amrex_params();
     }
 
     void read_params(GRParmParse &pp)
@@ -455,6 +456,37 @@ class AMReXParameters
                                     var_parity <= BoundaryConditions::UNDEFINED,
                                 "parity type undefined");
             }
+        }
+    }
+
+    void set_amrex_params()
+    {
+        // Set up parameters for AMReX
+        {
+            amrex::ParmParse pp("geometry");
+
+            amrex::Vector<double> prob_extent(AMREX_SPACEDIM);
+            int nmax = ivN.max() + 1;
+            for (int i = 0; i < AMREX_SPACEDIM; ++i) {
+                prob_extent[i] = L * (static_cast<double>(ivN[i]+1)
+                                      / static_cast<double>(nmax));
+            }
+            pp.addarr("prob_extent", prob_extent);
+
+            amrex::Vector<int> is_periodic(AMREX_SPACEDIM);
+            for (int i = 0; i < AMREX_SPACEDIM; ++i) {
+                is_periodic[i] = boundary_params.is_periodic[i];
+            }
+            pp.addarr("is_periodic", is_periodic);
+        }
+        {
+            amrex::ParmParse pp("amr");
+            pp.add("max_level", max_level);
+            pp.add("n_error_buf", tag_buffer_size);
+            pp.add("ref_ratio", 2);
+            pp.add("max_grid_size", max_grid_size);
+            pp.add("blocking_factor", block_factor);
+            pp.addarr("n_cell", std::vector<int>{ivN[0]+1,ivN[1]+1,ivN[2]+1});
         }
     }
 
