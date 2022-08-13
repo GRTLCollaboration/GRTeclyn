@@ -33,6 +33,8 @@ void mainSetup(int argc, char *argv[]);
 /// This function calls all finalisations
 void mainFinalize();
 
+const int simd_traits<double>::simd_len; // Still needs to be defined
+
 /// Sets up the grid parameters, problem domain and AMR object
 //xxxxxvoid setupAMRObject(AMR &gr_amr, AMRLevelFactory &a_factory);
 

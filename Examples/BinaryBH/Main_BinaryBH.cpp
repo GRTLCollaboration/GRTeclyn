@@ -32,7 +32,7 @@ int runGRAMReX(int /*argc*/, char */*argv*/[])
         return 0;
 
 #if 0
-// xxxxx
+    //xxxxx
 
 #ifdef USE_TWOPUNCTURES
     TPAMR bh_amr;
@@ -42,6 +42,9 @@ int runGRAMReX(int /*argc*/, char */*argv*/[])
 #else
     BHAMR bh_amr;
 #endif
+
+    amrex::Print() << "xxxxx sim_params.track_punctures = "
+                   << sim_params.track_punctures << "\n";
 
     // must be before 'setupAMRObject' to define punctures for tagging criteria
     if (sim_params.track_punctures)
@@ -100,9 +103,8 @@ int runGRAMReX(int /*argc*/, char */*argv*/[])
 
     bh_amr.conclude();
 
-    BL_PROFILER_REPORT(); // Report results when running with Chombo timers.
-
 #endif
+
     return 0;
 }
 
