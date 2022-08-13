@@ -6,7 +6,7 @@
 #include "GRAMR.hpp"
 #include "GRAMRLevel.hpp"
 
-GRAMR::GRAMR() : m_interpolator(nullptr) {}
+GRAMR::GRAMR(amrex::LevelBld* a_levelbld) : amrex::Amr(a_levelbld) {}
 
 GRAMR::~GRAMR() {}
 

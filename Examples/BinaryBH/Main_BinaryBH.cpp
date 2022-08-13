@@ -19,6 +19,8 @@
 // Problem specific includes:
 #include "BinaryBHLevel.hpp"
 
+DefaultLevelFactory<BinaryBHLevel> bh_level_bld;
+
 int runGRAMReX(int /*argc*/, char */*argv*/[])
 {
     BL_PROFILE("runGRAMReX()");
@@ -37,7 +39,7 @@ int runGRAMReX(int /*argc*/, char */*argv*/[])
     // Run TwoPunctures solver
     bh_amr.m_two_punctures.Run();
 #else
-    BHAMR bh_amr;
+    BHAMR bh_amr(&bh_level_bld);
 #endif
 
     amrex::Print() << "xxxxx sim_params.track_punctures = "

@@ -19,7 +19,7 @@ class BHAMR : public GRAMR
   public:
     PunctureTracker m_puncture_tracker;
 
-    BHAMR() {}
+    BHAMR(amrex::LevelBld* a_levelbld) : GRAMR(a_levelbld) {}
 
     void set_interpolator(AMRInterpolator<Lagrange<4>> *a_interpolator)//xxxxx override
     {

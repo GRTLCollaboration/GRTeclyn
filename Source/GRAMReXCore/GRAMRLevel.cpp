@@ -5,6 +5,92 @@
 
 #include "GRAMRLevel.hpp"
 
+void GRAMRLevel::variableSetUp()
+{
+    amrex::Abort("xxxxxx GRAMRLevel::variableSetUp todo");
+}
+
+void GRAMRLevel::variableCleanUp()
+{
+    amrex::Abort("xxxxxx GRAMRLevel::variableCleanUp todo");
+}
+
+GRAMRLevel::GRAMRLevel() {}
+
+GRAMRLevel::GRAMRLevel(amrex::Amr& papa, int lev,
+                       const amrex::Geometry& geom,
+                       const amrex::BoxArray& ba,
+                       const amrex::DistributionMapping& dm,
+                       amrex::Real time)
+    : amrex::AmrLevel(papa,lev,geom,ba,dm,time)
+{
+    amrex::Abort("xxxxx GRAMRLevel ctor todo");
+}
+
+GRAMRLevel::~GRAMRLevel() {}
+
+void GRAMRLevel::computeInitialDt (int finest_level, int sub_cycle,
+                                   amrex::Vector<int>& n_cycle,
+                                   const amrex::Vector<amrex::IntVect>& ref_ratio,
+                                   amrex::Vector<amrex::Real>& dt_level,
+                                   amrex::Real stop_time)
+{
+    amrex::Abort("xxxxx GRAMRLevel::computeInitialDt todo");
+}
+
+void GRAMRLevel::computeNewDt (int finest_level, int sub_cycle,
+                               amrex::Vector<int>& n_cycle,
+                               const amrex::Vector<amrex::IntVect>& ref_ratio,
+                               amrex::Vector<amrex::Real>& dt_min,
+                               amrex::Vector<amrex::Real>& dt_level,
+                               amrex::Real stop_time, int post_regrid_flag)
+{
+    amrex::Abort("xxxxx GRAMRLevel::computeNewDt todo");
+}
+
+amrex::Real GRAMRLevel::advance (amrex::Real time, amrex::Real dt,
+                                 int iteration, int ncycle)
+{
+    amrex::Abort("xxxxx GRAMRLevel::advance todo");
+    return 0.;
+}
+
+void GRAMRLevel::post_timestep (int iteration)
+{
+    amrex::Abort("xxxxx GRAMRLevel::post_timestep todo");
+}
+
+void GRAMRLevel::post_regrid (int lbase, int new_finest)
+{
+    amrex::Abort("xxxxx GRAMRLevel::post_regrid todo");
+}
+
+void GRAMRLevel::post_init (amrex::Real stop_time)
+{
+    amrex::Abort("xxxxx GRAMRLevel::post_init todo");
+}
+
+void GRAMRLevel::initData ()
+{
+    amrex::Abort("xxxxx GRAMRLevel::initData todo");
+}
+
+void GRAMRLevel::init (amrex::AmrLevel &old)
+{
+    amrex::Abort("xxxxx GRAMRLevel::init(old) todo");
+}
+
+void GRAMRLevel::init ()
+{
+    amrex::Abort("xxxxx GRAMRLevel::init() todo");
+}
+
+void GRAMRLevel::errorEst (amrex::TagBoxArray& tb, int clearval, int tagval,
+                           amrex::Real time, int n_error_buf, int ngrow)
+{
+    amrex::Abort("xxxxx GRAMRLevel::errorEst todo");
+}
+
 #if 0
 //xxxxx
 
@@ -16,8 +102,6 @@ GRAMRLevel::GRAMRLevel(GRAMR &gr_amr, const SimulationParameters &a_p,
     if (m_verbosity)
         amrex::Print() << "GRAMRLevel constructor" << endl;
 }
-
-GRAMRLevel::~GRAMRLevel() {}
 
 void GRAMRLevel::define(AMRLevel *a_coarser_level_ptr,
                         const Box &a_problem_domain, int a_level,

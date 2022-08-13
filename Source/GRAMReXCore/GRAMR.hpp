@@ -36,9 +36,9 @@ class GRAMR : public amrex::Amr
     std::chrono::time_point<Clock> start_time = Clock::now();
 
   public:
-    AMRInterpolator<Lagrange<4>> *m_interpolator; //!< The interpolator pointer
+    AMRInterpolator<Lagrange<4>> *m_interpolator = nullptr; //!< The interpolator pointer
 
-    GRAMR();
+    GRAMR(amrex::LevelBld* a_levelbld);
     virtual ~GRAMR();
 
 #if 0

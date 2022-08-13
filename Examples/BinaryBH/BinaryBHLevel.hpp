@@ -13,11 +13,11 @@
 
 class BinaryBHLevel : public GRAMRLevel
 {
-    friend class DefaultLevelFactory<BinaryBHLevel>;
     // Inherit the contructors from GRAMRLevel
     using GRAMRLevel::GRAMRLevel;
 
 #if 0
+    friend class DefaultLevelFactory<BinaryBHLevel>;
     // xxxxx
     BHAMR &m_bh_amr = dynamic_cast<BHAMR &>(m_gr_amr);
 #ifdef USE_TWOPUNCTURES
