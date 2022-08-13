@@ -202,8 +202,6 @@ class AMReXParameters
 
     void read_grid_params(GRParmParse &pp)
     {
-#if 0
-        // xxxxx
         // Grid N
         std::array<int, AMREX_SPACEDIM> Ni_full;
         std::array<int, AMREX_SPACEDIM> Ni;
@@ -350,7 +348,6 @@ class AMReXParameters
         }
 
         pp.load("center", center, default_center); // default to center
-#endif
     }
 
     void check_params()
