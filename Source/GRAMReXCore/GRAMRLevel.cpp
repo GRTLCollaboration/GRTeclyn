@@ -5,14 +5,61 @@
 
 #include "GRAMRLevel.hpp"
 
+struct GRAMRBCFill
+{
+    AMREX_GPU_DEVICE
+    void operator() (const amrex::IntVect& /*iv*/,
+                     amrex::Array4<amrex::Real> const& /*dest*/,
+                     const int /*dcomp*/, const int /*numcomp*/,
+                     amrex::GeometryData const& /*geom*/,
+                     const amrex::Real /*time*/,
+                     const amrex::BCRec* /*bcr*/, const int /*bcomp*/,
+                     const int /*orig_comp*/) const
+    {
+        // xxxxx BCFill todo
+    }
+};
+
+void gramr_bc_fill(amrex::Box const& bx, amrex::FArrayBox& data,
+                   const int dcomp, const int numcomp,
+                   amrex::Geometry const& geom, const amrex::Real time,
+                   const amrex::Vector<amrex::BCRec>& bcr, const int bcomp,
+                   const int scomp)
+{
+    amrex::GpuBndryFuncFab<GRAMRBCFill> bndry_func(GRAMRBCFill{});
+    bndry_func(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
+}
+
 void GRAMRLevel::variableSetUp()
 {
-    amrex::Abort("xxxxxx GRAMRLevel::variableSetUp todo");
+    desc_lst.addDescriptor(State_Type,amrex::IndexType::TheCellType(),
+                           amrex::StateDescriptor::Point,
+                           0, // xxxxx 0 ghost cells in StateData
+                           NUM_VARS,
+                           &amrex::cell_cons_interp); // xxxxx change to 4th order
+
+    int lo_bc[BL_SPACEDIM];
+    int hi_bc[BL_SPACEDIM];
+    for (int i = 0; i < BL_SPACEDIM; ++i) {
+        lo_bc[i] = hi_bc[i] = amrex::BCType::int_dir;   // xxxxx needs update
+    }
+
+    amrex::Vector<amrex::BCRec> bcs(NUM_VARS);
+    amrex::Vector<std::string> name(NUM_VARS);
+    for (int i = 0; i < NUM_VARS; ++i) {
+        bcs[i] = amrex::BCRec(lo_bc, hi_bc);
+        name[i] = "State_"+std::to_string(i); // xxxxx better names
+    }
+
+    amrex::StateDescriptor::BndryFunc bndryfunc(gramr_bc_fill);
+    bndryfunc.setRunOnGPU(true);  // Run the bc function on gpu.
+
+    desc_lst.setComponent(State_Type, 0, name, bcs, bndryfunc);
 }
 
 void GRAMRLevel::variableCleanUp()
 {
-    amrex::Abort("xxxxxx GRAMRLevel::variableCleanUp todo");
+    desc_lst.clear();
 }
 
 GRAMRLevel::GRAMRLevel() {}
