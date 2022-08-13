@@ -9,14 +9,11 @@
 // Other includes
 #include "Lagrange.hpp"
 #include "VariableType.hpp"
+#include <AMReX_Amr.H>
 #include <algorithm>
 #include <chrono>
 #include <ratio>
 #include <vector>
-
-// Chombo includes
-//xxxxx #include "AMR.H"
-//xxxxx #include "Interval.H"
 
 /// A child of Chombo's AMR class to interface with tools which require
 /// access to the whole AMR hierarchy (such as the AMRInterpolator)
@@ -29,12 +26,10 @@
 class GRAMRLevel;
 
 // Forward declaration for AMRInterpolator
-//xxxxx template <typename InterpAlgo> class AMRInterpolator;
+template <typename InterpAlgo> class AMRInterpolator;
 
-class GRAMR //xxxxx: public AMR
+class GRAMR : public amrex::Amr
 {
-#if 0
-//xxxxx
   private:
     using Clock = std::chrono::steady_clock;
     using Hours = std::chrono::duration<double, std::ratio<3600, 1>>;
@@ -44,6 +39,10 @@ class GRAMR //xxxxx: public AMR
     AMRInterpolator<Lagrange<4>> *m_interpolator; //!< The interpolator pointer
 
     GRAMR();
+    virtual ~GRAMR();
+
+#if 0
+//xxxxx
 
     // defined here due to auto return type
     auto get_walltime()

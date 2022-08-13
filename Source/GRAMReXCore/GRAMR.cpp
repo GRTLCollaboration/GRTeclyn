@@ -6,10 +6,12 @@
 #include "GRAMR.hpp"
 #include "GRAMRLevel.hpp"
 
+GRAMR::GRAMR() : m_interpolator(nullptr) {}
+
+GRAMR::~GRAMR() {}
+
 #if 0
 //xxxxx 
-
-GRAMR::GRAMR() : m_interpolator(nullptr) {}
 
 // Called after AMR object set up
 void GRAMR::set_interpolator(AMRInterpolator<Lagrange<4>> *a_interpolator)

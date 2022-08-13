@@ -31,9 +31,6 @@ int runGRAMReX(int /*argc*/, char */*argv*/[])
     if (sim_params.just_check_params)
         return 0;
 
-#if 0
-    //xxxxx
-
 #ifdef USE_TWOPUNCTURES
     TPAMR bh_amr;
     bh_amr.set_two_punctures_parameters(sim_params.tp_params);
@@ -45,6 +42,9 @@ int runGRAMReX(int /*argc*/, char */*argv*/[])
 
     amrex::Print() << "xxxxx sim_params.track_punctures = "
                    << sim_params.track_punctures << "\n";
+
+#if 0
+    //xxxxx
 
     // must be before 'setupAMRObject' to define punctures for tagging criteria
     if (sim_params.track_punctures)
