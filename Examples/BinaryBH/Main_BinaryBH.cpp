@@ -42,8 +42,9 @@ int runGRAMReX(int /*argc*/, char */*argv*/[])
     BHAMR bh_amr(&bh_level_bld);
 #endif
 
-    amrex::Print() << "xxxxx sim_params.track_punctures = "
-                   << sim_params.track_punctures << "\n";
+    bh_amr.set_simulation_parameters(sim_params);
+
+    bh_amr.init(0., sim_params.stop_time);
 
 #if 0
     //xxxxx

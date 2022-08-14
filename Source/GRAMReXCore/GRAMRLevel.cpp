@@ -41,7 +41,11 @@ void GRAMRLevel::variableSetUp()
     int lo_bc[BL_SPACEDIM];
     int hi_bc[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; ++i) {
-        lo_bc[i] = hi_bc[i] = amrex::BCType::int_dir;   // xxxxx needs update
+        if (amrex::DefaultGeometry().isPeriodic(i)) {
+            lo_bc[i] = hi_bc[i] = amrex::BCType::int_dir;
+        } else {
+            lo_bc[i] = hi_bc[i] = amrex::BCType::ext_dir;
+        }
     }
 
     amrex::Vector<amrex::BCRec> bcs(NUM_VARS);
@@ -71,7 +75,7 @@ GRAMRLevel::GRAMRLevel(amrex::Amr& papa, int lev,
                        amrex::Real time)
     : amrex::AmrLevel(papa,lev,geom,ba,dm,time)
 {
-    amrex::Abort("xxxxx GRAMRLevel ctor todo");
+    // xxxxx build flux registers if reflux is needed
 }
 
 GRAMRLevel::~GRAMRLevel() {}

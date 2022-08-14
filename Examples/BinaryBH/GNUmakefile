@@ -20,6 +20,7 @@ COMP = gnu
 DIM = 3
 
 BL_NO_FORT = TRUE
+AMREX_NO_PROBINIT = TRUE
 
 AMREX_HOME ?= ../../../amrex
 

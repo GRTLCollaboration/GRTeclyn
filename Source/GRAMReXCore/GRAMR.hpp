@@ -27,6 +27,7 @@ class GRAMRLevel;
 
 // Forward declaration for AMRInterpolator
 template <typename InterpAlgo> class AMRInterpolator;
+class SimulationParameters;
 
 class GRAMR : public amrex::Amr
 {
@@ -40,6 +41,11 @@ class GRAMR : public amrex::Amr
 
     GRAMR(amrex::LevelBld* a_levelbld);
     virtual ~GRAMR();
+
+    void set_simulation_parameters(const SimulationParameters& a_sim_params);
+
+  private:
+    std::unique_ptr<SimulationParameters> m_sim_params;
 
 #if 0
 //xxxxx
