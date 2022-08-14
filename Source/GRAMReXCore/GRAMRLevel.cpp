@@ -85,23 +85,36 @@ SimulationParameters const& GRAMRLevel::simParams () const
     return static_cast<GRAMR const*>(parent)->get_simulation_parameters();
 }
 
-void GRAMRLevel::computeInitialDt (int finest_level, int sub_cycle,
+void GRAMRLevel::computeInitialDt (int finest_level, int /*sub_cycle*/,
                                    amrex::Vector<int>& n_cycle,
-                                   const amrex::Vector<amrex::IntVect>& ref_ratio,
+                                   const amrex::Vector<amrex::IntVect>&/*ref_ratio*/,
                                    amrex::Vector<amrex::Real>& dt_level,
-                                   amrex::Real stop_time)
+                                   amrex::Real /*stop_time*/)
 {
-    amrex::Abort("xxxxx GRAMRLevel::computeInitialDt todo");
+    // Level 0 will do it for all levels
+    if (Level() == 0) {
+        double dt_multiplier = simParams().dt_multiplier;
+        for (int i = 0; i <= finest_level; ++i) {
+            dt_level[i] = dt_multiplier * parent->Geom(i).CellSize(0);
+        }
+    }
 }
 
-void GRAMRLevel::computeNewDt (int finest_level, int sub_cycle,
-                               amrex::Vector<int>& n_cycle,
-                               const amrex::Vector<amrex::IntVect>& ref_ratio,
+void GRAMRLevel::computeNewDt (int finest_level, int /*sub_cycle*/,
+                               amrex::Vector<int>& /*n_cycle*/,
+                               const amrex::Vector<amrex::IntVect>& /*ref_ratio*/,
                                amrex::Vector<amrex::Real>& dt_min,
                                amrex::Vector<amrex::Real>& dt_level,
-                               amrex::Real stop_time, int post_regrid_flag)
+                               amrex::Real /*stop_time*/, int /*post_regrid_flag*/)
 {
-    amrex::Abort("xxxxx GRAMRLevel::computeNewDt todo");
+    // This is called at the end of a coarse time step
+    // Level 0 will do it for all levels
+    if (Level() == 0) {
+        double dt_multiplier = simParams().dt_multiplier;
+        for (int i = 0; i <= finest_level; ++i) {
+            dt_min[i] = dt_level[i] = dt_multiplier * parent->Geom(i).CellSize(0);
+        }
+    }
 }
 
 amrex::Real GRAMRLevel::advance (amrex::Real time, amrex::Real dt,
