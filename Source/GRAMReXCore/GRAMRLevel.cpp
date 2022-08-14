@@ -80,6 +80,11 @@ GRAMRLevel::GRAMRLevel(amrex::Amr& papa, int lev,
 
 GRAMRLevel::~GRAMRLevel() {}
 
+SimulationParameters const& GRAMRLevel::simParams () const
+{
+    return static_cast<GRAMR const*>(parent)->get_simulation_parameters();
+}
+
 void GRAMRLevel::computeInitialDt (int finest_level, int sub_cycle,
                                    amrex::Vector<int>& n_cycle,
                                    const amrex::Vector<amrex::IntVect>& ref_ratio,
@@ -119,11 +124,6 @@ void GRAMRLevel::post_regrid (int lbase, int new_finest)
 void GRAMRLevel::post_init (amrex::Real stop_time)
 {
     amrex::Abort("xxxxx GRAMRLevel::post_init todo");
-}
-
-void GRAMRLevel::initData ()
-{
-    amrex::Abort("xxxxx GRAMRLevel::initData todo");
 }
 
 void GRAMRLevel::init (amrex::AmrLevel &old)

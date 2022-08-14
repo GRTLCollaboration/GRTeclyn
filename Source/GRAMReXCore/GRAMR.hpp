@@ -43,6 +43,7 @@ class GRAMR : public amrex::Amr
     virtual ~GRAMR();
 
     void set_simulation_parameters(const SimulationParameters& a_sim_params);
+    SimulationParameters const& get_simulation_parameters() const;
 
   private:
     std::unique_ptr<SimulationParameters> m_sim_params;

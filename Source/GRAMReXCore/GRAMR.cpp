@@ -16,6 +16,11 @@ void GRAMR::set_simulation_parameters(const SimulationParameters& a_sim_params)
     m_sim_params = std::make_unique<SimulationParameters>(a_sim_params);
 }
 
+SimulationParameters const& GRAMR::get_simulation_parameters() const
+{
+    return *m_sim_params;
+}
+
 #if 0
 //xxxxx 
 

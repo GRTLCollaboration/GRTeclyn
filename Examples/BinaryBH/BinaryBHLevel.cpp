@@ -41,14 +41,13 @@ void BinaryBHLevel::specificAdvance()
 
 // This initial data uses an approximation for the metric which
 // is valid for small boosts
-void BinaryBHLevel::initialData()
+void BinaryBHLevel::initData()
 {
-#if 0
-//xxxxx
     BL_PROFILE("BinaryBHLevel::initialData");
     if (m_verbosity)
-        amrex::Print() << "BinaryBHLevel::initialData " << m_level << endl;
+        amrex::Print() << "BinaryBHLevel::initialData " << Level() << std::endl;
 #ifdef USE_TWOPUNCTURES
+    // xxxx USE_TWOPUNCTURES todo
     TwoPuncturesInitialData two_punctures_initial_data(
         m_dx, m_p.center, m_tp_amr.m_two_punctures);
     // Can't use simd with this initial data
@@ -56,13 +55,28 @@ void BinaryBHLevel::initialData()
                    INCLUDE_GHOST_CELLS, disable_simd());
 #else
     // Set up the compute class for the BinaryBH initial data
-    BinaryBH binary(m_p.bh1_params, m_p.bh2_params, m_dx);
+    BinaryBH binary(simParams().bh1_params, simParams().bh2_params,
+                    Geom().CellSize(0));
 
     // First set everything to zero (to avoid undefinded values in constraints)
     // then calculate initial data
-    BoxLoops::loop(make_compute_pack(SetValue(0.), binary), m_state_new,
-                   m_state_new, INCLUDE_GHOST_CELLS);
+    amrex::MultiFab& state = get_new_data(State_Type);
+    const int ncomp = state.nComp();
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (amrex::Gpu::notInLaunchRegion())
 #endif
+    for (amrex::MFIter mfi(state,amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+        BoxPointers box_pointers(state[mfi], state[mfi]);
+        auto const& a = state.array(mfi);
+        amrex::ParallelFor(mfi.growntilebox(),
+        [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        {
+            for (int n = 0; n < ncomp; ++n) {
+                a(i,j,k,n) = 0.;
+            }
+            binary.compute(Cell<double>(amrex::IntVect(i,j,k), box_pointers));
+        });
+    }
 #endif
 }
 
