@@ -131,11 +131,18 @@ void GRAMRLevel::post_timestep (int iteration)
 
 void GRAMRLevel::post_regrid (int lbase, int new_finest)
 {
-    amrex::Abort("xxxxx GRAMRLevel::post_regrid todo");
+    amrex::ignore_unused(lbase, new_finest);
 }
 
 void GRAMRLevel::post_init (amrex::Real stop_time)
 {
+#if 0
+    if (Level() == 0) {
+        int finest_level = parent->finestLevel();
+        for (int k = finest_level-1; k>= 0; k--)
+            getLevel(k).avgDown();
+    }
+#endif
     amrex::Abort("xxxxx GRAMRLevel::post_init todo");
 }
 
