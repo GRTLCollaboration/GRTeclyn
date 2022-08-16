@@ -136,14 +136,14 @@ void GRAMRLevel::post_regrid (int lbase, int new_finest)
 
 void GRAMRLevel::post_init (amrex::Real stop_time)
 {
-#if 0
     if (Level() == 0) {
         int finest_level = parent->finestLevel();
-        for (int k = finest_level-1; k>= 0; k--)
-            getLevel(k).avgDown();
+        for (int k = finest_level-1; k>= 0; k--) {
+            amrex::MultiFab const& fine = parent->getLevel(k+1).get_new_data(State_Type);
+            amrex::MultiFab      & crse = parent->getLevel(k  ).get_new_data(State_Type);
+            amrex::average_down(fine, crse, 0, crse.nComp(), parent->refRatio(k));
+        }
     }
-#endif
-    amrex::Abort("xxxxx GRAMRLevel::post_init todo");
 }
 
 void GRAMRLevel::init (amrex::AmrLevel &old)
