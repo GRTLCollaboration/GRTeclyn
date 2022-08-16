@@ -49,8 +49,7 @@ int runGRAMReX(int argc, char *argv[])
 
     auto now = Clock::now();
     auto duration = std::chrono::duration_cast<Minutes>(now - start_time);
-    amrex::Print() << "Total simulation time (mins): " << duration.count()
-                   << ".\n";
+    amrex::Print() << "Total simulation time (mins): " << duration.count() << ".\n";
 
     gr_amr.conclude();
 
@@ -68,8 +67,7 @@ int main(int argc, char *argv[])
     if (status == 0)
         amrex::Print() << "GRChombo finished." << std::endl;
     else
-        amrex::Print() << "GRChombo failed with return code " << status
-                       << std::endl;
+        amrex::Print() << "GRChombo failed with return code " << status << std::endl;
 
     mainFinalize();
     return status;

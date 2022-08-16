@@ -60,8 +60,8 @@ void BoxLoops::innermost_loop(const ComputePack<compute_ts...> &compute_pack,
 
 template <typename... compute_ts, typename... simd_info>
 void BoxLoops::loop(const ComputePack<compute_ts...> &compute_pack,
-                    const amrex::FArrayBox &in, amrex::FArrayBox &out,
-                    const amrex::Box &loop_box, simd_info... info)
+                    const amrex::FArrayBox &in, amrex::FArrayBox &out, const amrex::Box &loop_box,
+                    simd_info... info)
 {
     // Makes sure we are not requesting data outside the box of 'out'
     AMREX_ASSERT(out.box().contains(loop_box));
@@ -89,9 +89,8 @@ void BoxLoops::loop(const ComputePack<compute_ts...> &compute_pack,
 
 template <typename compute_t, typename... simd_info>
 std::enable_if_t<!is_compute_pack<compute_t>::value, void>
-BoxLoops::loop(compute_t compute_class, const amrex::FArrayBox &in,
-               amrex::FArrayBox &out, const amrex::Box &loop_box,
-               simd_info... info)
+BoxLoops::loop(compute_t compute_class, const amrex::FArrayBox &in, amrex::FArrayBox &out,
+               const amrex::Box &loop_box, simd_info... info)
 {
     loop(make_compute_pack(compute_class), in, out, loop_box,
          std::forward<simd_info>(info)...);
@@ -99,16 +98,15 @@ BoxLoops::loop(compute_t compute_class, const amrex::FArrayBox &in,
 
 template <typename... compute_ts, typename... simd_info>
 void BoxLoops::loop(const ComputePack<compute_ts...> &compute_pack,
-                    const amrex::FArrayBox &in, amrex::FArrayBox &out,
-                    simd_info... info)
+                    const amrex::FArrayBox &in, amrex::FArrayBox &out, simd_info... info)
 {
     loop(compute_pack, in, out, out.box(), std::forward<simd_info>(info)...);
 }
 
 template <typename compute_t, typename... simd_info>
 std::enable_if_t<!is_compute_pack<compute_t>::value, void>
-BoxLoops::loop(compute_t compute_class, const amrex::FArrayBox &in,
-               amrex::FArrayBox &out, simd_info... info)
+BoxLoops::loop(compute_t compute_class, const amrex::FArrayBox &in, amrex::FArrayBox &out,
+               simd_info... info)
 {
     loop(make_compute_pack(compute_class), in, out,
          std::forward<simd_info>(info)...);

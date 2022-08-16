@@ -91,8 +91,8 @@ Lagrange<Order>::Stencil::Stencil(int width, int deriv, double dx,
     if (false)
     {
         amrex::Print() << TAG << "Created a stencil for deriv " << m_deriv
-                       << " of width " << m_width << " for point "
-                       << m_point_offset << std::endl;
+               << " of width " << m_width << " for point " << m_point_offset
+               << std::endl;
         amrex::Print() << "    Weights = { ";
         for (int i = 0; i < m_width; ++i)
         {
@@ -229,8 +229,7 @@ double Lagrange<Order>::interpData(const amrex::FArrayBox &fab, int comp)
 
     for (int i = 0; i < m_interp_points.size(); ++i)
     {
-        double data =
-            m_interp_weights[i]; // xxxxx * fab.get(m_interp_points[i], comp);
+        double data = m_interp_weights[i];//xxxxx * fab.get(m_interp_points[i], comp);
         accum += data;
     }
 
@@ -242,8 +241,8 @@ std::pair<std::vector<amrex::IntVect>, std::vector<double>>
 Lagrange<Order>::generateStencil(
     const std::array<int, AMREX_SPACEDIM> &deriv,
     const std::array<double, AMREX_SPACEDIM> &dx,
-    const std::array<double, AMREX_SPACEDIM> &evalCoord,
-    const amrex::IntVect &nearest, int dim)
+    const std::array<double, AMREX_SPACEDIM> &evalCoord, const amrex::IntVect &nearest,
+    int dim)
 {
     std::vector<amrex::IntVect> out_points;
     std::vector<double> out_weights;
@@ -307,7 +306,7 @@ Lagrange<Order>::generateStencil(
     if (m_verbosity)
     {
         amrex::Print() << TAG << "Stencil: dim = " << dim
-                       << ", coord = " << evalCoord[dim] << ", points = { ";
+               << ", coord = " << evalCoord[dim] << ", points = { ";
         for (int i = points_min; i < points_max; ++i)
         {
             amrex::Print() << my_points[i] << " ";
@@ -330,9 +329,8 @@ Lagrange<Order>::generateStencil(
         if (dim > 0)
         {
             // Descend to the next dimension
-            std::pair<std::vector<amrex::IntVect>, std::vector<double>>
-                sub_result =
-                    generateStencil(deriv, dx, interp_coord, nearest, dim - 1);
+            std::pair<std::vector<amrex::IntVect>, std::vector<double>> sub_result =
+                generateStencil(deriv, dx, interp_coord, nearest, dim - 1);
             std::vector<amrex::IntVect> &sub_points = sub_result.first;
             std::vector<double> &sub_weights = sub_result.second;
 
@@ -351,8 +349,7 @@ Lagrange<Order>::generateStencil(
             // "Terminal" dimension, just push back our own stuff
             if (my_weights[i] != 0)
             {
-                out_points.push_back(amrex::IntVect(
-                    interp_coord[0], interp_coord[1], interp_coord[2]));
+                out_points.push_back(amrex::IntVect(interp_coord[0], interp_coord[1], interp_coord[2]));
                 out_weights.push_back(my_weights[i]);
             }
         }

@@ -20,7 +20,7 @@ class CylindricalExtraction : public SurfaceExtraction<CylindricalGeometry>
         int &num_points_z = num_points_u;
         int &num_points_phi = num_points_v;
         std::array<double, AMREX_SPACEDIM> center; //!< the center of the
-                                                   //!< cylindrical shells
+                                                //!< cylindrical shells
         double z_length;
     };
     const std::array<double, AMREX_SPACEDIM> m_center;

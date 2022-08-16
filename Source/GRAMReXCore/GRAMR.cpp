@@ -7,16 +7,16 @@
 #include "GRAMRLevel.hpp"
 #include "SimulationParameters.hpp"
 
-GRAMR::GRAMR(amrex::LevelBld *a_levelbld) : amrex::Amr(a_levelbld) {}
+GRAMR::GRAMR(amrex::LevelBld* a_levelbld) : amrex::Amr(a_levelbld) {}
 
 GRAMR::~GRAMR() {}
 
-void GRAMR::set_simulation_parameters(const SimulationParameters &a_sim_params)
+void GRAMR::set_simulation_parameters(const SimulationParameters& a_sim_params)
 {
     m_sim_params = std::make_unique<SimulationParameters>(a_sim_params);
 }
 
-SimulationParameters const &GRAMR::get_simulation_parameters() const
+SimulationParameters const& GRAMR::get_simulation_parameters() const
 {
     return *m_sim_params;
 }

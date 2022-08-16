@@ -27,30 +27,30 @@ class BinaryBHLevel : public GRAMRLevel
 
     /// Things to do at every full timestep
     ///(might include several substeps, e.g. in RK4)
-    virtual void specificAdvance(); // xxxxx override;
+    virtual void specificAdvance();//xxxxx override;
 
     /// Initial data calculation
     virtual void initData() override;
 
     /// Calculation of the right hand side for the time stepping
     virtual void specificEvalRHS(GRLevelData &a_soln, GRLevelData &a_rhs,
-                                 const double a_time); // xxxxx override;
+                                 const double a_time);//xxxxx override;
 
     /// Things to do after dt*rhs has been added to the solution
     virtual void specificUpdateODE(GRLevelData &a_soln,
                                    const GRLevelData &a_rhs,
-                                   amrex::Real a_dt); // xxxxx override;
+                                   amrex::Real a_dt);//xxxxx override;
 
     /// Things to do before tagging cells (i.e. filling ghosts)
-    virtual void preTagCells(); // xxxxx override;
+    virtual void preTagCells();//xxxxx override;
 
     /// Identify and tag the cells that need higher resolution
-    virtual void computeTaggingCriterion(
-        amrex::FArrayBox &tagging_criterion,
-        const amrex::FArrayBox &current_state); // xxxxx override;
+    virtual void
+    computeTaggingCriterion(amrex::FArrayBox &tagging_criterion,
+                            const amrex::FArrayBox &current_state);//xxxxx override;
 
     // to do post each time step on every level
-    virtual void specificPostTimeStep(); // xxxxx override;
+    virtual void specificPostTimeStep();//xxxxx override;
 
 #ifdef AMREX_USE_HDF5
     /// Any actions that should happen just before plot files output

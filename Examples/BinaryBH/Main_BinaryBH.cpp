@@ -21,7 +21,7 @@
 
 DefaultLevelFactory<BinaryBHLevel> bh_level_bld;
 
-int runGRAMReX(int /*argc*/, char * /*argv*/[])
+int runGRAMReX(int /*argc*/, char */*argv*/[])
 {
     BL_PROFILE("runGRAMReX()");
 
@@ -140,8 +140,7 @@ int main(int argc, char *argv[])
     if (status == 0)
         amrex::Print() << "GRChombo finished." << std::endl;
     else
-        amrex::Print() << "GRChombo failed with return code " << status
-                       << std::endl;
+        amrex::Print() << "GRChombo failed with return code " << status << std::endl;
 
     mainFinalize();
     return status;

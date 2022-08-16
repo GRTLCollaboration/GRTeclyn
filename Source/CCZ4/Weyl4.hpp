@@ -72,7 +72,7 @@ class Weyl4
 
   protected:
     const std::array<double, AMREX_SPACEDIM> m_center; //!< The grid center
-    const double m_dx;                                 //!< the grid spacing
+    const double m_dx;                              //!< the grid spacing
     const FourthOrderDerivatives m_deriv; //!< for calculating derivs of vars
     const int m_formulation;              //!< CCZ4 or BSSN?
 

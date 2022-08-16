@@ -287,10 +287,10 @@ void SmallDataIO::get_specific_data_line(std::vector<double> &a_out_data,
     }
     // now broadcast the vector to all ranks using Chombo broadcast function
     // need to convert std::vector to Vector first
-    // xxxxx    amrex::Vector<double> data_Vect(a_out_data);
-    // xxxxx    int broadcast_rank = 0;
-    // xxxxx broadcast(data_Vect, broadcast_rank);
-    // xxxxx    a_out_data = data_Vect;
+//xxxxx    amrex::Vector<double> data_Vect(a_out_data);
+//xxxxx    int broadcast_rank = 0;
+    //xxxxx broadcast(data_Vect, broadcast_rank);
+//xxxxx    a_out_data = data_Vect;
 }
 
 void SmallDataIO::get_specific_data_line(std::vector<double> &a_out_data,
@@ -316,7 +316,7 @@ std::string SmallDataIO::get_new_filename(const std::string &a_file_prefix,
     if (a_filename_steps_width < step_string.length())
     {
         amrex::Abort("SmallDataIO: a_filename_steps_width too small "
-                     "for step number");
+                      "for step number");
     }
     std::string step_string_padded =
         std::string(a_filename_steps_width - step_string.length(), '0') +

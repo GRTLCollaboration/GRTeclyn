@@ -179,12 +179,12 @@ int runSphericalExtractionTest(int argc, char *argv[])
 
         amrex::Print() << "At r = " << r << ":\n";
         amrex::Print() << "convergence_order_trapezium = "
-                       << convergence_order_trapezium << "\n";
-        amrex::Print() << "convergence_order_simpson = "
-                       << convergence_order_simpson << "\n";
-        amrex::Print() << "convergence_order_boole = "
-                       << convergence_order_boole << "\n"
-                       << endl;
+               << convergence_order_trapezium << "\n";
+        amrex::Print() << "convergence_order_simpson = " << convergence_order_simpson
+               << "\n";
+        amrex::Print() << "convergence_order_boole = " << convergence_order_boole
+               << "\n"
+               << endl;
     }
 
     return status;
@@ -199,9 +199,8 @@ int main(int argc, char *argv[])
     if (status == 0)
         amrex::Print() << "SphericalExtractionTest test passed." << endl;
     else
-        amrex::Print()
-            << "SphericalExtractionTest test failed with return code " << status
-            << endl;
+        amrex::Print() << "SphericalExtractionTest test failed with return code "
+               << status << endl;
 
     mainFinalize();
     return status;

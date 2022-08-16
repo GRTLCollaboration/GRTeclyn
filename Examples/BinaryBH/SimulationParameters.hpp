@@ -58,8 +58,8 @@ class SimulationParameters : public SimulationParametersBase
             pp.load("TP_target_mass_minus", tp_params.target_M_minus);
             pp.load("TP_adm_tol", tp_params.adm_tol, 1e-10);
             amrex::Print() << "The black holes have target ADM masses of "
-                           << tp_params.target_M_plus << " and "
-                           << tp_params.target_M_minus << "\n";
+                   << tp_params.target_M_plus << " and "
+                   << tp_params.target_M_minus << "\n";
             bh1_params.mass = tp_params.target_M_minus;
             bh2_params.mass = tp_params.target_M_plus;
         }
@@ -70,8 +70,8 @@ class SimulationParameters : public SimulationParametersBase
             bh1_params.mass = tp_params.par_m_plus;
             bh2_params.mass = tp_params.par_m_minus;
             amrex::Print() << "The black holes have bare masses of "
-                           << std::setprecision(16) << tp_params.par_m_plus
-                           << " and " << tp_params.par_m_minus << "\n";
+                   << std::setprecision(16) << tp_params.par_m_plus << " and "
+                   << tp_params.par_m_minus << "\n";
             // reset precision
             amrex::Print() << std::setprecision(6);
         }

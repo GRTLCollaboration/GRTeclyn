@@ -60,23 +60,21 @@ void BinaryBHLevel::initData()
 
     // First set everything to zero (to avoid undefinded values in constraints)
     // then calculate initial data
-    amrex::MultiFab &state = get_new_data(State_Type);
+    amrex::MultiFab& state = get_new_data(State_Type);
     const int ncomp = state.nComp();
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (amrex::Gpu::notInLaunchRegion())
 #endif
-    for (amrex::MFIter mfi(state, amrex::TilingIfNotGPU()); mfi.isValid();
-         ++mfi)
-    {
+    for (amrex::MFIter mfi(state,amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         BoxPointers box_pointers(state[mfi], state[mfi]);
-        auto const &a = state.array(mfi);
-        amrex::ParallelFor(mfi.growntilebox(), [=] AMREX_GPU_DEVICE(
-                                                   int i, int j, int k) {
-            for (int n = 0; n < ncomp; ++n)
-            {
-                a(i, j, k, n) = 0.;
+        auto const& a = state.array(mfi);
+        amrex::ParallelFor(mfi.growntilebox(),
+        [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        {
+            for (int n = 0; n < ncomp; ++n) {
+                a(i,j,k,n) = 0.;
             }
-            binary.compute(Cell<double>(amrex::IntVect(i, j, k), box_pointers));
+            binary.compute(Cell<double>(amrex::IntVect(i,j,k), box_pointers));
         });
     }
 #endif
@@ -110,8 +108,7 @@ void BinaryBHLevel::specificEvalRHS(GRLevelData &a_soln, GRLevelData &a_rhs,
 
 // enforce trace removal during RK4 substeps
 void BinaryBHLevel::specificUpdateODE(GRLevelData &a_soln,
-                                      const GRLevelData &a_rhs,
-                                      amrex::Real a_dt)
+                                      const GRLevelData &a_rhs, amrex::Real a_dt)
 {
     // Enforce the trace free A_ij condition
     BoxLoops::loop(TraceARemoval(), a_soln, a_soln, INCLUDE_GHOST_CELLS);
@@ -120,12 +117,12 @@ void BinaryBHLevel::specificUpdateODE(GRLevelData &a_soln,
 void BinaryBHLevel::preTagCells()
 {
     // We only use chi in the tagging criterion so only fill the ghosts for chi
-    // xxxxx    fillAllGhosts(VariableType::evolution, Interval(c_chi, c_chi));
+//xxxxx    fillAllGhosts(VariableType::evolution, Interval(c_chi, c_chi));
 }
 
 // specify the cells to tag
-void BinaryBHLevel::computeTaggingCriterion(
-    amrex::FArrayBox &tagging_criterion, const amrex::FArrayBox &current_state)
+void BinaryBHLevel::computeTaggingCriterion(amrex::FArrayBox &tagging_criterion,
+                                            const amrex::FArrayBox &current_state)
 {
 #if 0
 //xxxxx

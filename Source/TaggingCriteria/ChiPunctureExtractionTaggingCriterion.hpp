@@ -48,8 +48,7 @@ class ChiPunctureExtractionTaggingCriterion
     ChiPunctureExtractionTaggingCriterion(
         const double dx, const int a_level, const int a_max_level,
         const SphericalExtraction::params_t a_params,
-        const std::vector<std::array<double, AMREX_SPACEDIM>>
-            &a_puncture_coords,
+        const std::vector<std::array<double, AMREX_SPACEDIM>> &a_puncture_coords,
         const bool activate_extraction = false,
         const bool track_punctures = false,
         const std::vector<double> a_puncture_masses = {1.0, 1.0})

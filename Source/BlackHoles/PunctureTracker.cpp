@@ -12,8 +12,7 @@
 
 //! Set punctures post restart
 void PunctureTracker::initial_setup(
-    const std::vector<std::array<double, AMREX_SPACEDIM>>
-        &initial_puncture_coords,
+    const std::vector<std::array<double, AMREX_SPACEDIM>> &initial_puncture_coords,
     const std::string &a_filename, const std::string &a_output_path,
     const int a_min_level)
 {
@@ -127,13 +126,12 @@ void PunctureTracker::read_in_punctures(int a_int_step, double a_current_time)
     for (int ipuncture = 0; ipuncture < m_num_punctures; ipuncture++)
     {
         amrex::Print() << "Puncture " << ipuncture
-                       << " restarted at : " << m_puncture_coords[ipuncture][0]
-                       << " " << m_puncture_coords[ipuncture][1] << " "
-                       << m_puncture_coords[ipuncture][2] << std::endl;
-        amrex::Print() << " with shift vector : "
-                       << m_puncture_shift[ipuncture][0] << " "
-                       << m_puncture_shift[ipuncture][1] << " "
-                       << m_puncture_shift[ipuncture][2] << std::endl;
+               << " restarted at : " << m_puncture_coords[ipuncture][0] << " "
+               << m_puncture_coords[ipuncture][1] << " "
+               << m_puncture_coords[ipuncture][2] << std::endl;
+        amrex::Print() << " with shift vector : " << m_puncture_shift[ipuncture][0]
+               << " " << m_puncture_shift[ipuncture][1] << " "
+               << m_puncture_shift[ipuncture][2] << std::endl;
         amrex::Print() << "at time = " << a_current_time << std::endl;
     }
 }
@@ -149,8 +147,7 @@ void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
     AMREX_ASSERT(m_interpolator != nullptr); // sanity check
 
     // get puncture coordinates and old shift value
-    std::vector<std::array<double, AMREX_SPACEDIM>> old_shift =
-        m_puncture_shift;
+    std::vector<std::array<double, AMREX_SPACEDIM>> old_shift = m_puncture_shift;
     AMREX_ASSERT(m_puncture_coords.size() == m_num_punctures); // sanity check
 
     // new shift value
