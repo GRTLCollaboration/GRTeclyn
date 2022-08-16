@@ -26,17 +26,28 @@
 // Things to do during the advance step after RK4 steps
 void BinaryBHLevel::specificAdvance()
 {
-#if 0
-//xxxxx
+    amrex::MultiFab& S_new = get_new_data(State_Type);
+    auto const& arrs = S_new.arrays();
+
     // Enforce the trace free A_ij condition and positive chi and alpha
-    BoxLoops::loop(make_compute_pack(TraceARemoval(), PositiveChiAndAlpha()),
-                   m_state_new, m_state_new, INCLUDE_GHOST_CELLS);
+    amrex::ParallelFor(S_new,
+    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
+    {
+        amrex::Array4<amrex::Real> const& sa = arrs[box_no];
+        // xxxxx hack
+	amrex::FArrayBox fab(amrex::Box(sa), sa.nComp(), sa.dataPtr());
+        BoxPointers box_pointers(fab,fab);
+        Cell<double> cell(amrex::IntVect(i,j,k), box_pointers);
+        TraceARemoval().compute(cell);
+        PositiveChiAndAlpha().compute(cell);
+    });
 
     // Check for nan's
-    if (m_p.nan_check)
-        BoxLoops::loop(NanCheck("NaNCheck in specific Advance: "), m_state_new,
-                       m_state_new, EXCLUDE_GHOST_CELLS, disable_simd());
-#endif
+    if (simParams().nan_check) {
+        if (S_new.contains_nan(0, S_new.nComp(), amrex::IntVect(0), true)) {
+            amrex::Abort("NaN in specificAdvance");
+        }
+    }
 }
 
 // This initial data uses an approximation for the metric which
@@ -79,37 +90,80 @@ void BinaryBHLevel::initData()
 }
 
 // Calculate RHS during RK4 substeps
-void BinaryBHLevel::specificEvalRHS(amrex::MultiFab const & a_soln,
+void BinaryBHLevel::specificEvalRHS(amrex::MultiFab & a_soln,
                                     amrex::MultiFab &a_rhs,
                                     const double a_time)
 {
-    // Enforce positive chi and alpha and trace free A
-    
+    auto const& soln_arrs = a_soln.arrays();
+    auto const& soln_c_arrs = a_soln.const_arrays();
+    auto const& rhs_arrs = a_rhs.arrays();
 
-//    BoxLoops::loop(make_compute_pack(TraceARemoval(), PositiveChiAndAlpha()),
-//                   a_soln, a_soln, INCLUDE_GHOST_CELLS);
+    // Enforce positive chi and alpha and trace free A
+    amrex::ParallelFor(a_soln, a_soln.nGrowVect(),
+    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
+    {
+        amrex::Array4<amrex::Real> const& sa = soln_arrs[box_no];
+        // xxxxx hack
+	amrex::FArrayBox fab(amrex::Box(sa), sa.nComp(), sa.dataPtr());
+        BoxPointers box_pointers(fab,fab);
+        Cell<double> cell(amrex::IntVect(i,j,k), box_pointers);
+        TraceARemoval().compute(cell);
+        PositiveChiAndAlpha().compute(cell);
+    });
 
     // Calculate CCZ4 right hand side
     if (simParams().max_spatial_derivative_order == 4)
     {
-//        BoxLoops::loop(CCZ4RHS<MovingPunctureGauge, FourthOrderDerivatives>(
-//                           m_p.ccz4_params, m_dx, m_p.sigma, m_p.formulation),
-//                       a_soln, a_rhs, EXCLUDE_GHOST_CELLS);
+        CCZ4RHS<MovingPunctureGauge, FourthOrderDerivatives>
+            ccz4rhs(simParams().ccz4_params, Geom().CellSize(0), simParams().sigma,
+                    simParams().formulation);
+        amrex::ParallelFor(a_rhs,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
+        {
+            amrex::Array4<amrex::Real const> const& sa = soln_c_arrs[box_no];
+            amrex::Array4<amrex::Real> const& ra = rhs_arrs[box_no];
+            // xxxxx hack
+            amrex::FArrayBox sfab(amrex::Box(sa), sa.nComp(), sa.dataPtr());
+            amrex::FArrayBox rfab(amrex::Box(ra), ra.nComp(), ra.dataPtr());
+            BoxPointers box_pointers(sfab,rfab);
+            ccz4rhs.compute(Cell<double>(amrex::IntVect(i,j,k), box_pointers));
+        });
     }
     else if (simParams().max_spatial_derivative_order == 6)
     {
-//        BoxLoops::loop(CCZ4RHS<MovingPunctureGauge, SixthOrderDerivatives>(
-//                           m_p.ccz4_params, m_dx, m_p.sigma, m_p.formulation),
-//                       a_soln, a_rhs, EXCLUDE_GHOST_CELLS);
+        CCZ4RHS<MovingPunctureGauge, SixthOrderDerivatives>
+            ccz4rhs(simParams().ccz4_params, Geom().CellSize(0), simParams().sigma,
+                    simParams().formulation);
+        amrex::ParallelFor(a_rhs,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
+        {
+            amrex::Array4<amrex::Real const> const& sa = soln_c_arrs[box_no];
+            amrex::Array4<amrex::Real> const& ra = rhs_arrs[box_no];
+            // xxxxx hack
+            amrex::FArrayBox sfab(amrex::Box(sa), sa.nComp(), sa.dataPtr());
+            amrex::FArrayBox rfab(amrex::Box(ra), ra.nComp(), ra.dataPtr());
+            BoxPointers box_pointers(sfab,rfab);
+            ccz4rhs.compute(Cell<double>(amrex::IntVect(i,j,k), box_pointers));
+        });
     }
 }
 
 // enforce trace removal during RK4 substeps
-void BinaryBHLevel::specificUpdateODE(GRLevelData &a_soln,
-                                      const GRLevelData &a_rhs, amrex::Real a_dt)
+void BinaryBHLevel::specificUpdateODE(amrex::MultiFab& a_soln,
+                                      amrex::MultiFab const& a_rhs, amrex::Real a_dt)
 {
     // Enforce the trace free A_ij condition
-    BoxLoops::loop(TraceARemoval(), a_soln, a_soln, INCLUDE_GHOST_CELLS);
+    auto const& soln_arrs = a_soln.arrays();
+    amrex::ParallelFor(a_soln, a_soln.nGrowVect(),
+    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
+    {
+        amrex::Array4<amrex::Real> const& sa = soln_arrs[box_no];
+        // xxxxx hack
+	amrex::FArrayBox fab(amrex::Box(sa), sa.nComp(), sa.dataPtr());
+        BoxPointers box_pointers(fab,fab);
+        Cell<double> cell(amrex::IntVect(i,j,k), box_pointers);
+        TraceARemoval().compute(cell);
+    });
 }
 
 void BinaryBHLevel::preTagCells()

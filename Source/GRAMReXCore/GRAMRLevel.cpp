@@ -120,17 +120,13 @@ void GRAMRLevel::computeNewDt (int finest_level, int /*sub_cycle*/,
 amrex::Real GRAMRLevel::advance (amrex::Real time, amrex::Real dt,
                                  int iteration, int ncycle)
 {
-#if 0
-    a_op.evalRHS(); -> specificEvalRHS
-    a_op.updateODE(); soln += ....; specificUpdateODE;
-#endif
-
     for (int k = 0; k < NUM_STATE_TYPE; k++) {
         state[k].allocOldData();
         state[k].swapTimeLevels(dt);
     }
 
     amrex::MultiFab& S_new = get_new_data(State_Type);
+    amrex::MultiFab& S_old = get_old_data(State_Type);
 
     // State with ghost cells
     amrex::MultiFab Sborder(grids, dmap, S_new.nComp(), m_num_ghosts);
@@ -141,6 +137,12 @@ amrex::Real GRAMRLevel::advance (amrex::Real time, amrex::Real dt,
 
     amrex::MultiFab rhs(grids, dmap, S_new.nComp(), 0);
     specificEvalRHS(Sborder, rhs, time);
+
+    // S_new = S_old + dt*rhs;
+    amrex::MultiFab::LinComb(S_new, 1., S_old, 0, dt, rhs, 0, 0, S_new.nComp(),
+                             amrex::IntVect(0)); //xxxxx m_grown_grids???
+
+    specificUpdateODE(S_new, rhs, dt);
 
     specificAdvance();
 
@@ -155,6 +157,8 @@ void GRAMRLevel::post_timestep (int iteration)
         amrex::MultiFab      & crse = parent->getLevel(lev  ).get_new_data(State_Type);
         amrex::average_down(fine, crse, 0, crse.nComp(), parent->refRatio(lev));
     }
+
+    specificPostTimeStep();
 }
 
 void GRAMRLevel::post_regrid (int lbase, int new_finest)

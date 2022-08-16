@@ -48,4 +48,7 @@ Do you need to fillpatch all of them?
 * TODO Remove GRLevelData
 Use amrex::MultiFab
 
-* TODO BinaryBHLevel::specificAdvance()
+* Why?
+// m_grown_grids will include outer boundary ghosts in the case of
+// nonperiodic BCs but will just be the problem domain otherwise.
+soln.plus(rhs, dt, m_grown_grids);

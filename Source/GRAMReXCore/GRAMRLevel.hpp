@@ -215,9 +215,9 @@ public:
 //xxxxx
     /// Virtual function for the problem specific parts of Advance
     virtual void specificAdvance() {}
-//xxxxx
-//xxxxx    /// Virtual function for the problem specific parts of postTimeStep
-//xxxxx    virtual void specificPostTimeStep() {}
+
+    /// Virtual function for the problem specific parts of postTimeStep
+    virtual void specificPostTimeStep() {}
 //xxxxx
 //xxxxx    /// (Pure) virtual function for the initial data calculation
 //xxxxx    virtual void initialData() = 0;
@@ -237,14 +237,13 @@ public:
 //xxxxx    virtual void postRestart() {}
 //xxxxx#endif
 //xxxxx
-    virtual void specificEvalRHS(amrex::MultiFab const& a_soln,
+    virtual void specificEvalRHS(amrex::MultiFab& a_soln,
                                  amrex::MultiFab& a_rhs,
                                  const double a_time) = 0;
-//xxxxx
-//xxxxx    virtual void specificUpdateODE(GRLevelData &a_soln,
-//xxxxx                                   const GRLevelData &a_rhs, Real a_dt)
-//xxxxx    {
-//xxxxx    }
+
+    virtual void specificUpdateODE(amrex::MultiFab &a_soln,
+                                   const amrex::MultiFab &a_rhs, amrex::Real a_dt)
+        { }
 //xxxxx
 //xxxxx    double get_dx() const;
 //xxxxx
