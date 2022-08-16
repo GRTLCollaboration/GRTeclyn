@@ -481,6 +481,7 @@ class AMReXParameters
         }
         {
             amrex::ParmParse pp("amr");
+            pp.add("v", verbosity);
             pp.add("max_level", max_level);
             pp.add("n_error_buf", tag_buffer_size);
             pp.add("ref_ratio", 2);

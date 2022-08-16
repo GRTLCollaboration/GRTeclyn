@@ -149,7 +149,12 @@ amrex::Real GRAMRLevel::advance (amrex::Real time, amrex::Real dt,
 
 void GRAMRLevel::post_timestep (int iteration)
 {
-    amrex::Abort("xxxxx GRAMRLevel::post_timestep todo");
+    const int lev = Level();
+    if (lev < parent->finestLevel()) {
+        amrex::MultiFab const& fine = parent->getLevel(lev+1).get_new_data(State_Type);
+        amrex::MultiFab      & crse = parent->getLevel(lev  ).get_new_data(State_Type);
+        amrex::average_down(fine, crse, 0, crse.nComp(), parent->refRatio(lev));
+    }
 }
 
 void GRAMRLevel::post_regrid (int lbase, int new_finest)
