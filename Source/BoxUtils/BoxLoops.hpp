@@ -38,11 +38,12 @@ innermost_loop(const ComputePack<compute_ts...> &compute_pack,
                const int loop_lo_x, const int loop_hi_x, disable_simd);
 
 /// Performs loop insde the box loop_box and calls compute(...) for all compute
-/// classes in the compute_pack  with input amrex::FArrayBox 'in' and output amrex::FArrayBox
-/// 'out'.
+/// classes in the compute_pack  with input amrex::FArrayBox 'in' and output
+/// amrex::FArrayBox 'out'.
 template <typename... compute_ts, typename... simd_info>
-void loop(const ComputePack<compute_ts...> &compute_pack, const amrex::FArrayBox &in,
-          amrex::FArrayBox &out, const amrex::Box &loop_box, simd_info... info);
+void loop(const ComputePack<compute_ts...> &compute_pack,
+          const amrex::FArrayBox &in, amrex::FArrayBox &out,
+          const amrex::Box &loop_box, simd_info... info);
 
 /// Same as above but for only one compute class (rather than a pack of them)
 template <typename compute_t, typename... simd_info>
@@ -51,11 +52,12 @@ loop(compute_t compute_class, const amrex::FArrayBox &in, amrex::FArrayBox &out,
      const amrex::Box &loop_box, simd_info... info);
 
 /// Performs loop insde the whole box of 'out' and calls compute(...) for all
-/// compute classes in the compute_pack  with input amrex::FArrayBox 'in' and output
-/// amrex::FArrayBox 'out'.
+/// compute classes in the compute_pack  with input amrex::FArrayBox 'in' and
+/// output amrex::FArrayBox 'out'.
 template <typename... compute_ts, typename... simd_info>
-void loop(const ComputePack<compute_ts...> &compute_pack, const amrex::FArrayBox &in,
-          amrex::FArrayBox &out, simd_info... info); // Uses out.box() as loop_box
+void loop(const ComputePack<compute_ts...> &compute_pack,
+          const amrex::FArrayBox &in, amrex::FArrayBox &out,
+          simd_info... info); // Uses out.box() as loop_box
 
 /// Same as above but for only one compute class (rather than a pack of them)
 template <typename compute_t, typename... simd_info>
@@ -63,22 +65,22 @@ std::enable_if_t<!is_compute_pack<compute_t>::value, void>
 loop(compute_t compute_class, const amrex::FArrayBox &in, amrex::FArrayBox &out,
      simd_info... info); // Uses out.box() as loop_box
 
-/// Performs loop over all boxes and inside all boxes of the amrex::MultiFab 'out' and
-/// calls compute(...) for all compute
+/// Performs loop over all boxes and inside all boxes of the amrex::MultiFab
+/// 'out' and calls compute(...) for all compute
 // classes in the compute_pack with input data taken from 'in' and output
 // written to 'out'  MK: Could give the ghost treatment a default argument but I
 // think it's better to force the user to make a concious decision  Wrong
 // fill_ghosts can give errors that are very hard to debug
 template <typename... compute_ts, typename... simd_info>
 void loop(const ComputePack<compute_ts...> &compute_pack,
-          const amrex::MultiFab &in, amrex::MultiFab &out,
-          bool fill_ghosts, simd_info... info);
+          const amrex::MultiFab &in, amrex::MultiFab &out, bool fill_ghosts,
+          simd_info... info);
 
 /// Same as above but for only one compute class (rather than a pack of them)
 template <typename compute_t, typename... simd_info>
 std::enable_if_t<!is_compute_pack<compute_t>::value, void>
-loop(compute_t compute_class, const amrex::MultiFab &in,
-     amrex::MultiFab &out, bool fill_ghosts, simd_info... info);
+loop(compute_t compute_class, const amrex::MultiFab &in, amrex::MultiFab &out,
+     bool fill_ghosts, simd_info... info);
 } // namespace BoxLoops
 
 #include "BoxLoops.impl.hpp"

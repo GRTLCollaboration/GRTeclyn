@@ -29,7 +29,7 @@ inline CCZ4RHS<gauge_t, deriv_t>::CCZ4RHS(
             (m_params.kappa3 != 0.))
         {
             amrex::Abort("BSSN formulation is selected - CCZ4 kappa values "
-                          "should be set to zero in params");
+                         "should be set to zero in params");
         }
     }
     if (m_formulation > USE_BSSN)

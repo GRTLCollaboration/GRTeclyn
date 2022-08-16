@@ -8,156 +8,161 @@
 struct GRAMRBCFill
 {
     AMREX_GPU_DEVICE
-    void operator() (const amrex::IntVect& /*iv*/,
-                     amrex::Array4<amrex::Real> const& /*dest*/,
-                     const int /*dcomp*/, const int /*numcomp*/,
-                     amrex::GeometryData const& /*geom*/,
-                     const amrex::Real /*time*/,
-                     const amrex::BCRec* /*bcr*/, const int /*bcomp*/,
-                     const int /*orig_comp*/) const
+    void operator()(const amrex::IntVect & /*iv*/,
+                    amrex::Array4<amrex::Real> const & /*dest*/,
+                    const int /*dcomp*/, const int /*numcomp*/,
+                    amrex::GeometryData const & /*geom*/,
+                    const amrex::Real /*time*/, const amrex::BCRec * /*bcr*/,
+                    const int /*bcomp*/, const int /*orig_comp*/) const
     {
         // xxxxx BCFill todo
     }
 };
 
-void gramr_bc_fill(amrex::Box const& bx, amrex::FArrayBox& data,
+void gramr_bc_fill(amrex::Box const &bx, amrex::FArrayBox &data,
                    const int dcomp, const int numcomp,
-                   amrex::Geometry const& geom, const amrex::Real time,
-                   const amrex::Vector<amrex::BCRec>& bcr, const int bcomp,
+                   amrex::Geometry const &geom, const amrex::Real time,
+                   const amrex::Vector<amrex::BCRec> &bcr, const int bcomp,
                    const int scomp)
 {
     amrex::GpuBndryFuncFab<GRAMRBCFill> bndry_func(GRAMRBCFill{});
-    bndry_func(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
+    bndry_func(bx, data, dcomp, numcomp, geom, time, bcr, bcomp, scomp);
 }
 
 void GRAMRLevel::variableSetUp()
 {
-    desc_lst.addDescriptor(State_Type,amrex::IndexType::TheCellType(),
-                           amrex::StateDescriptor::Point,
-                           0, // xxxxx 0 ghost cells in StateData
-                           NUM_VARS,
-                           &amrex::cell_cons_interp); // xxxxx change to 4th order
+    desc_lst.addDescriptor(
+        State_Type, amrex::IndexType::TheCellType(),
+        amrex::StateDescriptor::Point,
+        0, // xxxxx 0 ghost cells in StateData
+        NUM_VARS,
+        &amrex::cell_cons_interp); // xxxxx change to 4th order
 
     int lo_bc[BL_SPACEDIM];
     int hi_bc[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
-        if (amrex::DefaultGeometry().isPeriodic(i)) {
+    for (int i = 0; i < BL_SPACEDIM; ++i)
+    {
+        if (amrex::DefaultGeometry().isPeriodic(i))
+        {
             lo_bc[i] = hi_bc[i] = amrex::BCType::int_dir;
-        } else {
+        }
+        else
+        {
             lo_bc[i] = hi_bc[i] = amrex::BCType::ext_dir;
         }
     }
 
     amrex::Vector<amrex::BCRec> bcs(NUM_VARS);
     amrex::Vector<std::string> name(NUM_VARS);
-    for (int i = 0; i < NUM_VARS; ++i) {
+    for (int i = 0; i < NUM_VARS; ++i)
+    {
         bcs[i] = amrex::BCRec(lo_bc, hi_bc);
-        name[i] = "State_"+std::to_string(i); // xxxxx better names
+        name[i] = "State_" + std::to_string(i); // xxxxx better names
     }
 
     amrex::StateDescriptor::BndryFunc bndryfunc(gramr_bc_fill);
-    bndryfunc.setRunOnGPU(true);  // Run the bc function on gpu.
+    bndryfunc.setRunOnGPU(true); // Run the bc function on gpu.
 
     desc_lst.setComponent(State_Type, 0, name, bcs, bndryfunc);
 }
 
-void GRAMRLevel::variableCleanUp()
-{
-    desc_lst.clear();
-}
+void GRAMRLevel::variableCleanUp() { desc_lst.clear(); }
 
 GRAMRLevel::GRAMRLevel() {}
 
-GRAMRLevel::GRAMRLevel(amrex::Amr& papa, int lev,
-                       const amrex::Geometry& geom,
-                       const amrex::BoxArray& ba,
-                       const amrex::DistributionMapping& dm,
-                       amrex::Real time)
-    : amrex::AmrLevel(papa,lev,geom,ba,dm,time)
+GRAMRLevel::GRAMRLevel(amrex::Amr &papa, int lev, const amrex::Geometry &geom,
+                       const amrex::BoxArray &ba,
+                       const amrex::DistributionMapping &dm, amrex::Real time)
+    : amrex::AmrLevel(papa, lev, geom, ba, dm, time)
 {
     // xxxxx build flux registers if reflux is needed
 }
 
 GRAMRLevel::~GRAMRLevel() {}
 
-SimulationParameters const& GRAMRLevel::simParams () const
+SimulationParameters const &GRAMRLevel::simParams() const
 {
-    return static_cast<GRAMR const*>(parent)->get_simulation_parameters();
+    return static_cast<GRAMR const *>(parent)->get_simulation_parameters();
 }
 
-void GRAMRLevel::computeInitialDt (int finest_level, int /*sub_cycle*/,
-                                   amrex::Vector<int>& n_cycle,
-                                   const amrex::Vector<amrex::IntVect>&/*ref_ratio*/,
-                                   amrex::Vector<amrex::Real>& dt_level,
-                                   amrex::Real /*stop_time*/)
+void GRAMRLevel::computeInitialDt(
+    int finest_level, int /*sub_cycle*/, amrex::Vector<int> &n_cycle,
+    const amrex::Vector<amrex::IntVect> & /*ref_ratio*/,
+    amrex::Vector<amrex::Real> &dt_level, amrex::Real /*stop_time*/)
 {
     // Level 0 will do it for all levels
-    if (Level() == 0) {
+    if (Level() == 0)
+    {
         double dt_multiplier = simParams().dt_multiplier;
-        for (int i = 0; i <= finest_level; ++i) {
+        for (int i = 0; i <= finest_level; ++i)
+        {
             dt_level[i] = dt_multiplier * parent->Geom(i).CellSize(0);
         }
     }
 }
 
-void GRAMRLevel::computeNewDt (int finest_level, int /*sub_cycle*/,
-                               amrex::Vector<int>& /*n_cycle*/,
-                               const amrex::Vector<amrex::IntVect>& /*ref_ratio*/,
-                               amrex::Vector<amrex::Real>& dt_min,
-                               amrex::Vector<amrex::Real>& dt_level,
-                               amrex::Real /*stop_time*/, int /*post_regrid_flag*/)
+void GRAMRLevel::computeNewDt(
+    int finest_level, int /*sub_cycle*/, amrex::Vector<int> & /*n_cycle*/,
+    const amrex::Vector<amrex::IntVect> & /*ref_ratio*/,
+    amrex::Vector<amrex::Real> &dt_min, amrex::Vector<amrex::Real> &dt_level,
+    amrex::Real /*stop_time*/, int /*post_regrid_flag*/)
 {
     // This is called at the end of a coarse time step
     // Level 0 will do it for all levels
-    if (Level() == 0) {
+    if (Level() == 0)
+    {
         double dt_multiplier = simParams().dt_multiplier;
-        for (int i = 0; i <= finest_level; ++i) {
-            dt_min[i] = dt_level[i] = dt_multiplier * parent->Geom(i).CellSize(0);
+        for (int i = 0; i <= finest_level; ++i)
+        {
+            dt_min[i] = dt_level[i] =
+                dt_multiplier * parent->Geom(i).CellSize(0);
         }
     }
 }
 
-amrex::Real GRAMRLevel::advance (amrex::Real time, amrex::Real dt,
-                                 int iteration, int ncycle)
+amrex::Real GRAMRLevel::advance(amrex::Real time, amrex::Real dt, int iteration,
+                                int ncycle)
 {
     amrex::Abort("xxxxx GRAMRLevel::advance todo");
     return 0.;
 }
 
-void GRAMRLevel::post_timestep (int iteration)
+void GRAMRLevel::post_timestep(int iteration)
 {
     amrex::Abort("xxxxx GRAMRLevel::post_timestep todo");
 }
 
-void GRAMRLevel::post_regrid (int lbase, int new_finest)
+void GRAMRLevel::post_regrid(int lbase, int new_finest)
 {
     amrex::ignore_unused(lbase, new_finest);
 }
 
-void GRAMRLevel::post_init (amrex::Real stop_time)
+void GRAMRLevel::post_init(amrex::Real stop_time)
 {
-    if (Level() == 0) {
+    if (Level() == 0)
+    {
         int finest_level = parent->finestLevel();
-        for (int k = finest_level-1; k>= 0; k--) {
-            amrex::MultiFab const& fine = parent->getLevel(k+1).get_new_data(State_Type);
-            amrex::MultiFab      & crse = parent->getLevel(k  ).get_new_data(State_Type);
-            amrex::average_down(fine, crse, 0, crse.nComp(), parent->refRatio(k));
+        for (int k = finest_level - 1; k >= 0; k--)
+        {
+            amrex::MultiFab const &fine =
+                parent->getLevel(k + 1).get_new_data(State_Type);
+            amrex::MultiFab &crse =
+                parent->getLevel(k).get_new_data(State_Type);
+            amrex::average_down(fine, crse, 0, crse.nComp(),
+                                parent->refRatio(k));
         }
     }
 }
 
-void GRAMRLevel::init (amrex::AmrLevel &old)
+void GRAMRLevel::init(amrex::AmrLevel &old)
 {
     amrex::Abort("xxxxx GRAMRLevel::init(old) todo");
 }
 
-void GRAMRLevel::init ()
-{
-    amrex::Abort("xxxxx GRAMRLevel::init() todo");
-}
+void GRAMRLevel::init() { amrex::Abort("xxxxx GRAMRLevel::init() todo"); }
 
-void GRAMRLevel::errorEst (amrex::TagBoxArray& tb, int clearval, int tagval,
-                           amrex::Real time, int n_error_buf, int ngrow)
+void GRAMRLevel::errorEst(amrex::TagBoxArray &tb, int clearval, int tagval,
+                          amrex::Real time, int n_error_buf, int ngrow)
 {
     amrex::Abort("xxxxx GRAMRLevel::errorEst todo");
 }

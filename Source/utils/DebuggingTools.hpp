@@ -55,8 +55,8 @@
 //
 #ifdef EQUATION_DEBUG_MODE
 #define DEBUG_HEADER                                                           \
-    amrex::Print() << "Debug output in " << __FILENAME__                               \
-           << " at: " << s_current_integer_coords << "." << std::endl
+    amrex::Print() << "Debug output in " << __FILENAME__                       \
+                   << " at: " << s_current_integer_coords << "." << std::endl
 static amrex::IntVect s_current_integer_coords;
 namespace EquationDebugging
 {
@@ -68,7 +68,8 @@ inline void check_no_omp()
 #endif
 }
 
-inline void set_global_cell_coordinates(const amrex::IntVect current_integer_coords)
+inline void
+set_global_cell_coordinates(const amrex::IntVect current_integer_coords)
 {
     check_no_omp();
     s_current_integer_coords = current_integer_coords;

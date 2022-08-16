@@ -248,7 +248,7 @@ void SurfaceExtraction<SurfaceGeometry>::integrate()
     {
         // note this condition won't be true on other ranks
         AMREX_ASSERT(m_integrands.size() == m_integration_methods.size() &&
-                  m_integrals.size() > 0);
+                     m_integrals.size() > 0);
         int num_integrals = m_integrals.size();
 
         for (int isurface = 0; isurface < m_params.num_surfaces; ++isurface)
@@ -301,12 +301,12 @@ void SurfaceExtraction<SurfaceGeometry>::integrate()
         {
             amrex::Vector<double> broadcast_Vector;
             if (amrex::ParallelDescriptor::MyProc() == 0)
-            //xxxxx    broadcast_Vector = m_integrals[iintegral].get();
-           //xxxxx broadcast(broadcast_Vector, 0);
-            if (amrex::ParallelDescriptor::MyProc() != 0)
-            {
-                //xxxxx m_integrals[iintegral].get() = broadcast_Vector;
-            }
+                // xxxxx    broadcast_Vector = m_integrals[iintegral].get();
+                // xxxxx broadcast(broadcast_Vector, 0);
+                if (amrex::ParallelDescriptor::MyProc() != 0)
+                {
+                    // xxxxx m_integrals[iintegral].get() = broadcast_Vector;
+                }
         }
     }
 }

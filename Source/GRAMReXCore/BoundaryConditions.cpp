@@ -231,8 +231,9 @@ void BoundaryConditions::set_vars_asymptotic_values(
 void BoundaryConditions::write_reflective_conditions(int idir,
                                                      const params_t &a_params)
 {
-    amrex::Print() << "The variables that are parity odd in this direction are : "
-           << std::endl;
+    amrex::Print()
+        << "The variables that are parity odd in this direction are : "
+        << std::endl;
     for (int icomp = 0; icomp < NUM_VARS; icomp++)
     {
         int parity = get_var_parity(icomp, idir, a_params);
@@ -247,7 +248,8 @@ void BoundaryConditions::write_reflective_conditions(int idir,
             get_var_parity(icomp, idir, a_params, VariableType::diagnostic);
         if (parity == -1)
         {
-            amrex::Print() << DiagnosticVariables::variable_names[icomp] << "    ";
+            amrex::Print() << DiagnosticVariables::variable_names[icomp]
+                           << "    ";
         }
     }
 }
@@ -256,14 +258,14 @@ void BoundaryConditions::write_sommerfeld_conditions(int idir,
                                                      const params_t &a_params)
 {
     amrex::Print() << "The non zero asymptotic values of the variables "
-              "in this direction are : "
-           << std::endl;
+                      "in this direction are : "
+                   << std::endl;
     for (int icomp = 0; icomp < NUM_VARS; icomp++)
     {
         if (a_params.vars_asymptotic_values[icomp] != 0)
         {
             amrex::Print() << UserVariables::variable_names[icomp] << " = "
-                   << a_params.vars_asymptotic_values[icomp] << "    ";
+                           << a_params.vars_asymptotic_values[icomp] << "    ";
         }
     }
     // not done for diagnostics
@@ -288,15 +290,17 @@ void BoundaryConditions::write_mixed_conditions(int idir,
         }
     }
     amrex::Print() << std::endl;
-    amrex::Print() << "The other variables all use Sommerfeld boundary conditions."
-           << std::endl;
+    amrex::Print()
+        << "The other variables all use Sommerfeld boundary conditions."
+        << std::endl;
     write_sommerfeld_conditions(idir, a_params);
 }
 
 /// write out boundary params (used during setup for debugging)
 void BoundaryConditions::write_boundary_conditions(const params_t &a_params)
 {
-    amrex::Print() << "You are using non periodic boundary conditions." << std::endl;
+    amrex::Print() << "You are using non periodic boundary conditions."
+                   << std::endl;
     amrex::Print() << "The boundary params chosen are:  " << std::endl;
     amrex::Print() << "---------------------------------" << std::endl;
 
@@ -310,7 +314,8 @@ void BoundaryConditions::write_boundary_conditions(const params_t &a_params)
         if (!a_params.is_periodic[idir])
         {
             amrex::Print() << "- " << bc_names[a_params.hi_boundary[idir]]
-                   << " boundaries in direction high " << idir << std::endl;
+                           << " boundaries in direction high " << idir
+                           << std::endl;
             // high directions
             if (a_params.hi_boundary[idir] == REFLECTIVE_BC)
             {
@@ -328,7 +333,8 @@ void BoundaryConditions::write_boundary_conditions(const params_t &a_params)
 
             // low directions
             amrex::Print() << "- " << bc_names[a_params.lo_boundary[idir]]
-                   << " boundaries in direction low " << idir << std::endl;
+                           << " boundaries in direction low " << idir
+                           << std::endl;
             if (a_params.lo_boundary[idir] == REFLECTIVE_BC)
             {
                 write_reflective_conditions(idir, a_params);
@@ -587,8 +593,8 @@ void BoundaryConditions::fill_boundary_cells_dir(
 #endif
 
 void BoundaryConditions::fill_sommerfeld_cell(
-    amrex::FArrayBox &rhs_box, const amrex::FArrayBox &soln_box, const amrex::IntVect iv,
-    const std::vector<int> &sommerfeld_comps) const
+    amrex::FArrayBox &rhs_box, const amrex::FArrayBox &soln_box,
+    const amrex::IntVect iv, const std::vector<int> &sommerfeld_comps) const
 {
 #if 0
 //xxxxx
@@ -1157,4 +1163,3 @@ void BoundaryConditions::expand_grids_to_boundaries(
     a_out_grids.close();
 }
 #endif
-

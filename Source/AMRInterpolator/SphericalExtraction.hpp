@@ -20,8 +20,8 @@ class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
         std::vector<double> &extraction_radii = surface_param_values;
         int &num_points_theta = num_points_u;
         int &num_points_phi = num_points_v;
-        std::array<double, AMREX_SPACEDIM> center; //!< the center of the spherical
-                                                //!< shells
+        std::array<double, AMREX_SPACEDIM> center; //!< the center of the
+                                                   //!< spherical shells
         std::array<double, AMREX_SPACEDIM> &extraction_center = center;
         int num_modes; //!< the number of modes to extract
         std::vector<std::pair<int, int>> modes; //!< the modes to extract

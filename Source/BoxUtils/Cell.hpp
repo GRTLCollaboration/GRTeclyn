@@ -50,7 +50,8 @@ template <class data_t> class Cell
 
     // Don't accept rvalues in constructor since we only store reference to
     // box_pointers
-    Cell(const amrex::IntVect integer_coords, BoxPointers &&box_pointers) = delete;
+    Cell(const amrex::IntVect integer_coords,
+         BoxPointers &&box_pointers) = delete;
 
     /// Allows implicit conversion from Cell to CellIndexIn.
     //! As a result of this definition one may pass a Cell to a function
@@ -69,9 +70,13 @@ template <class data_t> class Cell
     operator amrex::IntVect() const { return m_integer_coords; }
 
     ALWAYS_INLINE
-    bool operator==(const amrex::IntVect iv) { return (m_integer_coords == iv); }
+    bool operator==(const amrex::IntVect iv)
+    {
+        return (m_integer_coords == iv);
+    }
 
-    /// Returns the integer coordinates of this Cell in the form of an amrex::IntVect
+    /// Returns the integer coordinates of this Cell in the form of an
+    /// amrex::IntVect
     ALWAYS_INLINE
     amrex::IntVect get_int_vect() const { return m_integer_coords; }
 

@@ -22,9 +22,10 @@ class NearestNeighbour : public InterpolationAlgorithm
   public:
     static inline double
     interpPoint(const std::array<double, AMREX_SPACEDIM> &gridCoord,
-                const amrex::FArrayBox &fab, int comps, const amrex::IntVect &nearest)
+                const amrex::FArrayBox &fab, int comps,
+                const amrex::IntVect &nearest)
     {
-        return 0.;//xxxxx fab.get(nearest, comps);
+        return 0.; // xxxxx fab.get(nearest, comps);
     }
 };
 

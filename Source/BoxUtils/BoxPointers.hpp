@@ -28,16 +28,17 @@ class BoxPointers
   public:
     std::vector<const double *> m_in_ptr;
     std::array<int, AMREX_SPACEDIM> m_in_stride; //!< Distance in memory between
-                                              //! two values corresponding to
-                                              //! adjacent coordinates in all
-                                              //! directions.
+                                                 //! two values corresponding to
+                                                 //! adjacent coordinates in all
+                                                 //! directions.
     const int m_in_num_comps;
 
     std::vector<double *> m_out_ptr;
-    std::array<int, AMREX_SPACEDIM> m_out_stride; //!< Distance in memory between
-                                               //! two values corresponding to
-                                               //! adjacent coordinates in all
-                                               //! directions.
+    std::array<int, AMREX_SPACEDIM>
+        m_out_stride; //!< Distance in memory between
+                      //! two values corresponding to
+                      //! adjacent coordinates in all
+                      //! directions.
     const int m_out_num_comps;
 
     BoxPointers(const amrex::FArrayBox &in, amrex::FArrayBox &out)
@@ -51,8 +52,8 @@ class BoxPointers
         // which we don't want to do in a loop
         for (int i = 0; i < m_in_num_comps; ++i)
             m_in_ptr[i] = in.dataPtr(i);
-        // If the output amrex::FArrayBox doesn't have all components, just don't set
-        // the pointers
+        // If the output amrex::FArrayBox doesn't have all components, just
+        // don't set the pointers
         for (int i = 0; i < m_out_num_comps; ++i)
             m_out_ptr[i] = out.dataPtr(i);
 

@@ -12,7 +12,7 @@
 #include "UserVariables.hpp"
 #include "VariableType.hpp"
 
-//xxxxx #include "computeNorm.H"
+// xxxxx #include "computeNorm.H"
 //#include "computeSum.H"
 
 //! A class that provides a user-friendly interface to Chombo's
@@ -45,29 +45,30 @@ template <VariableType var_t> class AMRReductions
     AMRReductions(const GRAMR &a_gramr, const int a_base_level = 0);
 
     //! returns the minimum of an interval of variables
-//xxxxx    amrex::Real min(const Interval &a_vars) const;
+    // xxxxx    amrex::Real min(const Interval &a_vars) const;
 
     //! returns the minimum of a single variable
     amrex::Real min(const int a_var) const;
 
     //! returns the maximum of an interval of variables
-//xxxxx    amrex::Real max(const Interval &a_vars) const;
+    // xxxxx    amrex::Real max(const Interval &a_vars) const;
 
     //! returns the minimum of a single variables
     amrex::Real max(const int a_var) const;
 
     //! returns the volume-weighted p-norm of an interval of variables
     //! p = a_norm_exponent
-//xxxxx    amrex::Real norm(const Interval &a_vars, const int a_norm_exponent = 2,
-//              const bool a_normalize_by_volume = false) const;
+    // xxxxx    amrex::Real norm(const Interval &a_vars, const int
+    // a_norm_exponent = 2,
+    //              const bool a_normalize_by_volume = false) const;
 
     //! returns the volume weighted p-norm of a single variable
     //! p = a_norm_exponent
     amrex::Real norm(const int a_var, const int a_norm_exponent = 2,
-              const bool a_normalize_by_volume = false) const;
+                     const bool a_normalize_by_volume = false) const;
 
     //! returns the volume-weighted sum (integral) of an interval of variables
-//xxxxx    amrex::Real sum(const Interval &a_vars) const;
+    // xxxxx    amrex::Real sum(const Interval &a_vars) const;
 
     //! returns the volume-weighted sum (integral of a single variable);
     amrex::Real sum(const int a_var) const;

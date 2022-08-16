@@ -7,9 +7,9 @@
 #define SIMULATIONPARAMETERSBASE_HPP_
 
 // General includes
+#include "AMReXParameters.hpp"
 #include "BoundaryConditions.hpp"
 #include "CCZ4RHS.hpp"
-#include "AMReXParameters.hpp"
 #include "GRParmParse.hpp"
 #include "SphericalExtraction.hpp"
 #include <limits>
@@ -103,9 +103,10 @@ class SimulationParametersBase : public AMReXParameters
             if (extraction_params.num_points_theta % 2 == 0)
             {
                 extraction_params.num_points_theta += 1;
-                amrex::Print() << "Parameter: num_points_theta incompatible with "
-                          "Simpson's "
-                       << "rule so increased by 1.\n";
+                amrex::Print()
+                    << "Parameter: num_points_theta incompatible with "
+                       "Simpson's "
+                    << "rule so increased by 1.\n";
             }
             pp.load("extraction_center", extraction_params.center, center);
 
@@ -232,7 +233,7 @@ class SimulationParametersBase : public AMReXParameters
                        "usually set to 0.75");
         warn_parameter("shift_advec_coeff", ccz4_params.shift_advec_coeff,
                        std::min(std::abs(ccz4_params.shift_advec_coeff),
-                           std::abs(ccz4_params.shift_advec_coeff - 1.0)) <
+                                std::abs(ccz4_params.shift_advec_coeff - 1.0)) <
                            std::numeric_limits<double>::epsilon(),
                        "usually set to 0.0 or 1.0");
         warn_parameter("eta", ccz4_params.eta,

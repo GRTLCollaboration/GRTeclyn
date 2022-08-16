@@ -125,8 +125,8 @@ int main(int argc, char *argv[])
     if (status == 0)
         amrex::Print() << "BasicAMRInterpolator test passed." << endl;
     else
-        amrex::Print() << "BasicAMRInterpolator test failed with return code " << status
-               << endl;
+        amrex::Print() << "BasicAMRInterpolator test failed with return code "
+                       << status << endl;
 
     mainFinalize();
     return status;

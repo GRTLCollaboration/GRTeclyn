@@ -72,19 +72,21 @@ class BoundaryConditions
         params_t(); // sets the defaults
         void
         set_is_periodic(const std::array<bool, AMREX_SPACEDIM> &a_is_periodic);
-        void set_hi_boundary(const std::array<int, AMREX_SPACEDIM> &a_hi_boundary);
-        void set_lo_boundary(const std::array<int, AMREX_SPACEDIM> &a_lo_boundary);
+        void
+        set_hi_boundary(const std::array<int, AMREX_SPACEDIM> &a_hi_boundary);
+        void
+        set_lo_boundary(const std::array<int, AMREX_SPACEDIM> &a_lo_boundary);
         void read_params(GRParmParse &pp);
     };
 
   protected:
     // Member values
-    double m_dx;            // The grid spacing
-    int m_num_ghosts;       // the number of ghosts (usually 3)
-    params_t m_params;      // the boundary params
-    amrex::RealVect m_center;      // the position of the center of the grid
+    double m_dx;              // The grid spacing
+    int m_num_ghosts;         // the number of ghosts (usually 3)
+    params_t m_params;        // the boundary params
+    amrex::RealVect m_center; // the position of the center of the grid
     amrex::Geometry m_domain; // the problem domain (excludes boundary cells)
-    amrex::Box m_domain_box;       // The box representing the domain
+    amrex::Box m_domain_box;  // The box representing the domain
     bool is_defined; // whether the BoundaryConditions class members are defined
 
   public:
@@ -182,7 +184,8 @@ class BoundaryConditions
     /// write out mixed conditions
     static void write_mixed_conditions(int idir, const params_t &a_params);
 
-    void fill_sommerfeld_cell(amrex::FArrayBox &rhs_box, const amrex::FArrayBox &soln_box,
+    void fill_sommerfeld_cell(amrex::FArrayBox &rhs_box,
+                              const amrex::FArrayBox &soln_box,
                               const amrex::IntVect iv,
                               const std::vector<int> &sommerfeld_comps) const;
 
@@ -201,7 +204,7 @@ class BoundaryConditions
 
 /// This derived class is used by expand_grids_to_boundaries to grow the
 /// boxes along the Sommerfeld BC boundaries
-class ExpandGridsToBoundaries //xxxxx: public BaseTransform
+class ExpandGridsToBoundaries // xxxxx: public BaseTransform
 {
   public:
     ExpandGridsToBoundaries(BoundaryConditions &a_boundaries)
@@ -210,7 +213,7 @@ class ExpandGridsToBoundaries //xxxxx: public BaseTransform
     }
 
     /// Operator called by transform to grow the boxes where required
-    amrex::Box operator()(const amrex::Box &a_in_box); //xxxxx override;
+    amrex::Box operator()(const amrex::Box &a_in_box); // xxxxx override;
 
   protected:
     BoundaryConditions &m_boundaries;

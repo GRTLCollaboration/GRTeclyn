@@ -37,13 +37,14 @@ class GRAMR : public amrex::Amr
     std::chrono::time_point<Clock> start_time = Clock::now();
 
   public:
-    AMRInterpolator<Lagrange<4>> *m_interpolator = nullptr; //!< The interpolator pointer
+    AMRInterpolator<Lagrange<4>> *m_interpolator =
+        nullptr; //!< The interpolator pointer
 
-    GRAMR(amrex::LevelBld* a_levelbld);
+    GRAMR(amrex::LevelBld *a_levelbld);
     virtual ~GRAMR();
 
-    void set_simulation_parameters(const SimulationParameters& a_sim_params);
-    SimulationParameters const& get_simulation_parameters() const;
+    void set_simulation_parameters(const SimulationParameters &a_sim_params);
+    SimulationParameters const &get_simulation_parameters() const;
 
   private:
     std::unique_ptr<SimulationParameters> m_sim_params;

@@ -34,7 +34,7 @@ EMTensor<matter_t>::EMTensor(const matter_t &a_matter, const double dx,
     {
         // Sij is a symmetric tensor
         AMREX_ASSERT(m_c_Sij.size() ==
-                  DEFAULT_TENSOR_DIM * (DEFAULT_TENSOR_DIM + 1) / 2);
+                     DEFAULT_TENSOR_DIM * (DEFAULT_TENSOR_DIM + 1) / 2);
     }
 }
 

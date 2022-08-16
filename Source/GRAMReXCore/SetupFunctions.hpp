@@ -9,13 +9,13 @@
 // set up the runs but aren't very interesting for the normal user.
 
 // Other includes
-#include <iostream>
 #include "AMReXParameters.hpp"
 #include "DerivativeSetup.hpp"
 #include "FilesystemTools.hpp"
 #include "GRAMR.hpp"
 #include "GRParmParse.hpp"
 #include "IntegrationMethodSetup.hpp"
+#include <iostream>
 
 #include "simd.hpp"
 
@@ -36,7 +36,7 @@ void mainFinalize();
 const int simd_traits<double>::simd_len; // Still needs to be defined
 
 /// Sets up the grid parameters, problem domain and AMR object
-//xxxxxvoid setupAMRObject(AMR &gr_amr, AMRLevelFactory &a_factory);
+// xxxxxvoid setupAMRObject(AMR &gr_amr, AMRLevelFactory &a_factory);
 
 void mainSetup(int argc, char *argv[])
 {
@@ -49,8 +49,8 @@ void mainSetup(int argc, char *argv[])
                    "worse performance.");
 #endif
 
-    amrex::Print() << " simd width (doubles) = " << simd_traits<double>::simd_len
-                   << std::endl;
+    amrex::Print() << " simd width (doubles) = "
+                   << simd_traits<double>::simd_len << std::endl;
 
     const int required_argc = 2;
     if (argc < required_argc)
@@ -61,10 +61,7 @@ void mainSetup(int argc, char *argv[])
     }
 }
 
-void mainFinalize()
-{
-    amrex::Finalize();
-}
+void mainFinalize() { amrex::Finalize(); }
 
 #if 0
 //xxxxx

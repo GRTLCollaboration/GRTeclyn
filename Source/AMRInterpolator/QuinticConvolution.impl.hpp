@@ -15,10 +15,10 @@ QuinticConvolution::QuinticConvolution(const InterpSource &source,
     AMREX_ASSERT(AMREX_SPACEDIM <= 3);
 }
 
-void QuinticConvolution::setup(const std::array<int, AMREX_SPACEDIM> &deriv,
-                               const std::array<double, AMREX_SPACEDIM> &dx,
-                               const std::array<double, AMREX_SPACEDIM> &evalCoord,
-                               const IntVect &nearest)
+void QuinticConvolution::setup(
+    const std::array<int, AMREX_SPACEDIM> &deriv,
+    const std::array<double, AMREX_SPACEDIM> &dx,
+    const std::array<double, AMREX_SPACEDIM> &evalCoord, const IntVect &nearest)
 {
     m_interp_points.clear();
     m_interp_weights.clear();
@@ -94,7 +94,7 @@ void QuinticConvolution::setup(const std::array<int, AMREX_SPACEDIM> &deriv,
         else
         {
             amrex::Abort("Quintic convolution algorithm only supports up to "
-                          "second derivative");
+                         "second derivative");
         }
     }
 

@@ -44,7 +44,8 @@ template <int Order> class Lagrange
     generateStencil(const std::array<int, AMREX_SPACEDIM> &deriv,
                     const std::array<double, AMREX_SPACEDIM> &dx,
                     const std::array<double, AMREX_SPACEDIM> &evalCoord,
-                    const amrex::IntVect &nearest, int dim = AMREX_SPACEDIM - 1);
+                    const amrex::IntVect &nearest,
+                    int dim = AMREX_SPACEDIM - 1);
 
     std::vector<amrex::IntVect> m_interp_points;
     std::vector<double> m_interp_weights;
