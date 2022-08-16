@@ -36,6 +36,7 @@ amrex::Vector is derived from std::vector.  So no need to call `stdVector()`
 to get std::vector.
 
 * TODO Remove FilesystemTools
+We can use what's in AMReX_Utility.H
 
 * TODO Plotfiles
 
@@ -43,3 +44,8 @@ to get std::vector.
 
 * TODO There are a lot of components
 Do you need to fillpatch all of them?
+
+* TODO Remove GRLevelData
+Use amrex::MultiFab
+
+* TODO BinaryBHLevel::specificAdvance()

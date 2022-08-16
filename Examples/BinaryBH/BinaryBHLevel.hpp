@@ -27,14 +27,15 @@ class BinaryBHLevel : public GRAMRLevel
 
     /// Things to do at every full timestep
     ///(might include several substeps, e.g. in RK4)
-    virtual void specificAdvance();//xxxxx override;
+    virtual void specificAdvance() override;
 
     /// Initial data calculation
     virtual void initData() override;
 
     /// Calculation of the right hand side for the time stepping
-    virtual void specificEvalRHS(GRLevelData &a_soln, GRLevelData &a_rhs,
-                                 const double a_time);//xxxxx override;
+    virtual void specificEvalRHS(amrex::MultiFab const& a_soln,
+                                 amrex::MultiFab& a_rhs,
+                                 const double a_time) override;
 
     /// Things to do after dt*rhs has been added to the solution
     virtual void specificUpdateODE(GRLevelData &a_soln,

@@ -75,7 +75,7 @@ GRAMRLevel::GRAMRLevel(amrex::Amr& papa, int lev,
                        amrex::Real time)
     : amrex::AmrLevel(papa,lev,geom,ba,dm,time)
 {
-    // xxxxx build flux registers if reflux is needed
+    m_num_ghosts = simParams().num_ghosts;
 }
 
 GRAMRLevel::~GRAMRLevel() {}
@@ -130,129 +130,21 @@ amrex::Real GRAMRLevel::advance (amrex::Real time, amrex::Real dt,
         state[k].swapTimeLevels(dt);
     }
 
-    MultiFab& S_new = get_new_data(State_Type);
+    amrex::MultiFab& S_new = get_new_data(State_Type);
 
     // State with ghost cells
-    MultiFab Sborder(grids, dmap, NUM_STATE, NUM_GROW);
+    amrex::MultiFab Sborder(grids, dmap, S_new.nComp(), m_num_ghosts);
 
-#if 0
-    FillPatch(*this, Sborder, NUM_GROW, time, State_Type, 0, NUM_STATE);
+    Sborder.setVal(0.); // xxxxx remove this after FillPatch is one
+    amrex::AmrLevel::FillPatch(*this, Sborder, m_num_ghosts, time, State_Type,
+                               0, S_new.nComp()); // xxxxx todo
 
-    // MF to hold the mac velocity
-    MultiFab Umac[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++) {
-      BoxArray ba = S_new.boxArray();
-      ba.surroundingNodes(i);
-      Umac[i].define(ba, dmap, 1, iteration);
-    }
+    amrex::MultiFab rhs(grids, dmap, S_new.nComp(), 0);
+    specificEvalRHS(Sborder, rhs, time);
 
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    {
-        FArrayBox fluxfab[AMREX_SPACEDIM], velfab[AMREX_SPACEDIM];
-        FArrayBox* flux[AMREX_SPACEDIM];
-        FArrayBox* uface[AMREX_SPACEDIM];
+    specificAdvance();
 
-        for (MFIter mfi(S_new, TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            // Set up tileboxes and nodal tileboxes
-            const Box& bx = mfi.tilebox();
-            GpuArray<Box,BL_SPACEDIM> nbx;
-            AMREX_D_TERM(nbx[0] = mfi.nodaltilebox(0);,
-                         nbx[1] = mfi.nodaltilebox(1);,
-                         nbx[2] = mfi.nodaltilebox(2));
-
-            // Grab fab pointers from state multifabs
-            const FArrayBox& statein = Sborder[mfi];
-            FArrayBox& stateout      =   S_new[mfi];
-
-            for (int i = 0; i < BL_SPACEDIM ; i++) {
-#ifdef AMREX_USE_GPU
-                // No tiling on GPU.
-                // Point flux and face velocity fab pointers to untiled fabs.
-                flux[i] = &(fluxes[i][mfi]);
-                uface[i] = &(Umac[i][mfi]);
-#else
-                // Resize temporary fabs for fluxes and face velocities
-                const Box& bxtmp = amrex::surroundingNodes(bx,i);
-                fluxfab[i].resize(bxtmp,NUM_STATE);
-                velfab[i].resize(amrex::grow(bxtmp, iteration), 1);
-
-                // Point flux and face velocity fab pointers to temporary fabs
-                flux[i] = &(fluxfab[i]);
-                uface[i] = &(velfab[i]);
-#endif
-            }
-
-            // Compute Godunov velocities for each face.
-            get_face_velocity(ctr_time,
-                              AMREX_D_DECL(*uface[0], *uface[1], *uface[2]),
-                              dx, prob_lo);
-
-#ifndef AMREX_USE_GPU
-            for (int i = 0; i < BL_SPACEDIM ; i++) {
-                const Box& bxtmp = mfi.grownnodaltilebox(i, iteration);
-                Umac[i][mfi].copy(*uface[i], bxtmp);
-            }
-#endif
-
-            // CFL check.
-            AMREX_D_TERM(Real umax = uface[0]->norm<RunOn::Device>(0);,
-                         Real vmax = uface[1]->norm<RunOn::Device>(0);,
-                         Real wmax = uface[2]->norm<RunOn::Device>(0));
-
-            if (AMREX_D_TERM(umax*dt > dx[0], ||
-                             vmax*dt > dx[1], ||
-                             wmax*dt > dx[2]))
-            {
-#if (AMREX_SPACEDIM > 2)
-                amrex::AllPrint() << "umax = " << umax << ", vmax = " << vmax << ", wmax = " << wmax
-                                  << ", dt = " << dt << " dx = " << dx[0] << " " << dx[1] << " " << dx[2] << std::endl;
-#else
-                amrex::AllPrint() << "umax = " << umax << ", vmax = " << vmax
-                                  << ", dt = " << dt << " dx = " << dx[0] << " " << dx[1] << std::endl;
-#endif
-                amrex::Abort("CFL violation. Use smaller adv.cfl.");
-            }
-
-            // Advect. See Adv.cpp for implementation.
-            advect(time, bx, nbx, statein, stateout,
-                   AMREX_D_DECL(*uface[0], *uface[1], *uface[2]),
-                   AMREX_D_DECL(*flux[0],  *flux[1],  *flux[2]),
-                   dx, dt);
-
-#ifndef AMREX_USE_GPU
-            if (do_reflux) {
-                for (int i = 0; i < BL_SPACEDIM ; i++)
-                    fluxes[i][mfi].copy(*flux[i],mfi.nodaltilebox(i));
-            }
-#endif
-        }
-    }
-
-
-    if (do_reflux) {
-        if (current) {
-            for (int i = 0; i < BL_SPACEDIM ; i++)
-                current->FineAdd(fluxes[i],i,0,0,NUM_STATE,1.);
-        }
-        if (fine) {
-            for (int i = 0; i < BL_SPACEDIM ; i++)
-                fine->CrseInit(fluxes[i],i,0,0,NUM_STATE,-1.);
-        }
-    }
-
-#ifdef AMREX_PARTICLES
-    if (TracerPC) {
-      TracerPC->AdvectWithUmac(Umac, level, dt);
-    }
-#endif
-
-#endif
     return dt;
-
-    //xxxxx specificAdvance()
 }
 
 void GRAMRLevel::post_timestep (int iteration)

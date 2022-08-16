@@ -213,8 +213,8 @@ public:
 //xxxxx    /// copy data from src into dest
 //xxxxx    void copySolnData(GRLevelData &dest, const GRLevelData &src);
 //xxxxx
-//xxxxx    /// Virtual function for the problem specific parts of Advance
-//xxxxx    virtual void specificAdvance() {}
+    /// Virtual function for the problem specific parts of Advance
+    virtual void specificAdvance() {}
 //xxxxx
 //xxxxx    /// Virtual function for the problem specific parts of postTimeStep
 //xxxxx    virtual void specificPostTimeStep() {}
@@ -237,8 +237,9 @@ public:
 //xxxxx    virtual void postRestart() {}
 //xxxxx#endif
 //xxxxx
-//xxxxx    virtual void specificEvalRHS(GRLevelData &a_soln, GRLevelData &a_rhs,
-//xxxxx                                 const double a_time) = 0;
+    virtual void specificEvalRHS(amrex::MultiFab const& a_soln,
+                                 amrex::MultiFab& a_rhs,
+                                 const double a_time) = 0;
 //xxxxx
 //xxxxx    virtual void specificUpdateODE(GRLevelData &a_soln,
 //xxxxx                                   const GRLevelData &a_rhs, Real a_dt)
@@ -319,7 +320,7 @@ public:
 //xxxxx                                     //!< Sommerfeld BCs)
 //xxxxx
 //xxxxx  public:
-//xxxxx    const int m_num_ghosts; //!< Number of ghost cells
+    int m_num_ghosts; //!< Number of ghost cells
 };
 
 #endif /* GRAMRLEVEL_HPP_ */

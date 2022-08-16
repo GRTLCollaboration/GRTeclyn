@@ -61,49 +61,47 @@ void BinaryBHLevel::initData()
     // First set everything to zero (to avoid undefinded values in constraints)
     // then calculate initial data
     amrex::MultiFab& state = get_new_data(State_Type);
-    const int ncomp = state.nComp();
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (amrex::Gpu::notInLaunchRegion())
-#endif
-    for (amrex::MFIter mfi(state,amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi) {
-        BoxPointers box_pointers(state[mfi], state[mfi]);
-        auto const& a = state.array(mfi);
-        amrex::ParallelFor(mfi.growntilebox(),
-        [=] AMREX_GPU_DEVICE (int i, int j, int k)
-        {
-            for (int n = 0; n < ncomp; ++n) {
-                a(i,j,k,n) = 0.;
-            }
-            binary.compute(Cell<double>(amrex::IntVect(i,j,k), box_pointers));
-        });
-    }
+    auto const& arrs = state.arrays();
+    amrex::ParallelFor(state, state.nGrowVect(),
+    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
+    {
+        amrex::Array4<amrex::Real> const& a = arrs[box_no];
+        for (int n = 0; n < a.nComp(); ++n) {
+            a(i,j,k,n) = 0.;
+        }
+        // xxxxx this is hack that's going to very slow.
+        // We need to modify Bnindary BH to take Array4.
+	amrex::FArrayBox fab(amrex::Box(a), a.nComp(), a.dataPtr());
+        BoxPointers box_pointers(fab,fab);
+        binary.compute(Cell<double>(amrex::IntVect(i,j,k), box_pointers));
+    });
 #endif
 }
 
 // Calculate RHS during RK4 substeps
-void BinaryBHLevel::specificEvalRHS(GRLevelData &a_soln, GRLevelData &a_rhs,
+void BinaryBHLevel::specificEvalRHS(amrex::MultiFab const & a_soln,
+                                    amrex::MultiFab &a_rhs,
                                     const double a_time)
 {
-#if 0
-//xxxxx
     // Enforce positive chi and alpha and trace free A
-    BoxLoops::loop(make_compute_pack(TraceARemoval(), PositiveChiAndAlpha()),
-                   a_soln, a_soln, INCLUDE_GHOST_CELLS);
+    
+
+//    BoxLoops::loop(make_compute_pack(TraceARemoval(), PositiveChiAndAlpha()),
+//                   a_soln, a_soln, INCLUDE_GHOST_CELLS);
 
     // Calculate CCZ4 right hand side
-    if (m_p.max_spatial_derivative_order == 4)
+    if (simParams().max_spatial_derivative_order == 4)
     {
-        BoxLoops::loop(CCZ4RHS<MovingPunctureGauge, FourthOrderDerivatives>(
-                           m_p.ccz4_params, m_dx, m_p.sigma, m_p.formulation),
-                       a_soln, a_rhs, EXCLUDE_GHOST_CELLS);
+//        BoxLoops::loop(CCZ4RHS<MovingPunctureGauge, FourthOrderDerivatives>(
+//                           m_p.ccz4_params, m_dx, m_p.sigma, m_p.formulation),
+//                       a_soln, a_rhs, EXCLUDE_GHOST_CELLS);
     }
-    else if (m_p.max_spatial_derivative_order == 6)
+    else if (simParams().max_spatial_derivative_order == 6)
     {
-        BoxLoops::loop(CCZ4RHS<MovingPunctureGauge, SixthOrderDerivatives>(
-                           m_p.ccz4_params, m_dx, m_p.sigma, m_p.formulation),
-                       a_soln, a_rhs, EXCLUDE_GHOST_CELLS);
+//        BoxLoops::loop(CCZ4RHS<MovingPunctureGauge, SixthOrderDerivatives>(
+//                           m_p.ccz4_params, m_dx, m_p.sigma, m_p.formulation),
+//                       a_soln, a_rhs, EXCLUDE_GHOST_CELLS);
     }
-#endif
 }
 
 // enforce trace removal during RK4 substeps
