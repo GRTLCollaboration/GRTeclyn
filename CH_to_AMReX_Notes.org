@@ -36,3 +36,10 @@ amrex::Vector is derived from std::vector.  So no need to call `stdVector()`
 to get std::vector.
 
 * TODO Remove FilesystemTools
+
+* TODO Plotfiles
+
+* TODO track punctures
+
+* TODO There are a lot of components
+Do you need to fillpatch all of them?

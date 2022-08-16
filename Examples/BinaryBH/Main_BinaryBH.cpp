@@ -46,6 +46,26 @@ int runGRAMReX(int /*argc*/, char * /*argv*/[])
 
     bh_amr.init(0., sim_params.stop_time);
 
+    while (
+        bh_amr.okToContinue() &&
+        (bh_amr.levelSteps(0) < sim_params.max_steps ||
+         sim_params.max_steps < 0) &&
+        (bh_amr.cumTime() < sim_params.stop_time || sim_params.stop_time < 0.0))
+    {
+        bh_amr.coarseTimeStep(sim_params.stop_time);
+    }
+
+    // Write final checkpoint and plotfile
+    if (bh_amr.stepOfLastCheckPoint() < bh_amr.levelSteps(0))
+    {
+        bh_amr.checkPoint();
+    }
+
+    if (bh_amr.stepOfLastPlotFile() < bh_amr.levelSteps(0))
+    {
+        bh_amr.writePlotFile();
+    }
+
 #if 0
     //xxxxx
 
