@@ -13,7 +13,7 @@
 #include "GRInterval.hpp"
 #include "Tensor.hpp"
 
-// Chombo includes
+#include <AMReX_Array4.H>
 #include <AMReX_IntVect.H>
 
 /// Encapsulates information about the position of a cell
@@ -140,5 +140,35 @@ template <class data_t> class Cell
 };
 
 #include "Cell.impl.hpp"
+
+template <class data_t, template <typename> class vars_t>
+AMREX_GPU_HOST_DEVICE
+void store_vars (int i, int j, int k, amrex::Array4<data_t> const& a,
+                 vars_t<data_t>& vars)
+{
+    vars.enum_mapping([&](const int& ivar, data_t const& var) {
+       a(i,j,k,ivar) = var;
+    });
+}
+
+template <class data_t, template <typename> class vars_t>
+AMREX_GPU_HOST_DEVICE
+void load_vars (int i, int j, int k, amrex::Array4<data_t> const& a,
+                vars_t<std::remove_const_t<data_t> >& vars)
+{
+    vars.enum_mapping([&](const int& ivar, data_t& var) {
+       var = a(i,j,k,ivar);
+    });
+}
+
+template <class data_t, template <typename> class vars_t>
+AMREX_GPU_HOST_DEVICE
+auto load_vars (int i, int j, int k, amrex::Array4<data_t> const& a)
+{
+    vars_t<std::remove_const_t<data_t> > vars;
+    load_vars(i,j,k,a,vars);
+    return vars;
+}
+
 
 #endif /* CELL_HPP_ */

@@ -101,9 +101,7 @@ void BinaryBH::init_data (int i, int j, int k, amrex::Array4<data_t> const& a) c
         amrex::Abort("BinaryBH::Supplied initial lapse not supported.");
     }
 
-    vars.enum_mapping([&](const int& ivar, data_t const& var) {
-       a(i,j,k,ivar) = var;
-    });
+    store_vars(i,j,k, a, vars);
 }
 
 #endif /* BINARYBH_IMPL_HPP_ */

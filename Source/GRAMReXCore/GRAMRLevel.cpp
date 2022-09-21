@@ -131,9 +131,9 @@ amrex::Real GRAMRLevel::advance (amrex::Real time, amrex::Real dt,
     // State with ghost cells
     amrex::MultiFab Sborder(grids, dmap, S_new.nComp(), m_num_ghosts);
 
-    Sborder.setVal(0.); // xxxxx remove this after FillPatch is one
+    Sborder.setVal(0.); // xxxxx remove this after FillPatch is done
     amrex::AmrLevel::FillPatch(*this, Sborder, m_num_ghosts, time, State_Type,
-                               0, S_new.nComp()); // xxxxx todo
+                               0, S_new.nComp()); // xxxxx todo: Physical BC not setup
 
     amrex::MultiFab rhs(grids, dmap, S_new.nComp(), 0);
     specificEvalRHS(Sborder, rhs, time);

@@ -101,12 +101,8 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab & a_soln,
     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
     {
         amrex::Array4<amrex::Real> const& sa = soln_arrs[box_no];
-        // xxxxx hack
-	amrex::FArrayBox fab(amrex::Box(sa), sa.nComp(), sa.dataPtr());
-        BoxPointers box_pointers(fab,fab);
-        Cell<double> cell(amrex::IntVect(i,j,k), box_pointers);
-        TraceARemoval().compute(cell);
-        PositiveChiAndAlpha().compute(cell);
+        TraceARemoval()(i,j,k,sa);
+        PositiveChiAndAlpha()(i,j,k,sa);
     });
 
     // Calculate CCZ4 right hand side

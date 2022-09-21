@@ -73,6 +73,7 @@ soln.plus(rhs, dt, m_grown_grids);
 
 * What we have done
 ** Make
+** runGRAMREX()
 ** ParmParse parameters
 try to keep the names of ParmParse parameters
 pp.addarr("regrid_int", regrid_interval);
@@ -91,3 +92,7 @@ latter could confuse the compilers.
 *** BinaryBHLevel.cpp(79): error: The enclosing parent function ("initData") for
 an extended __device__ lambda cannot have private or protected access within
 its class
+*** Free functions: store_vars and load_vars
+instead of class Cell?
+** GRAMRLevel::advance()
+** BinaryBHLevel::specificEvalRHS()

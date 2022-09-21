@@ -36,6 +36,20 @@ class PositiveChiAndAlpha
         current_cell.store_vars(chi, c_chi);
         current_cell.store_vars(lapse, c_lapse);
     }
+
+    template <class data_t>
+    AMREX_GPU_HOST_DEVICE
+    void operator() (int i, int j, int k, amrex::Array4<data_t> const& a) const
+    {
+        auto chi = a(i,j,k,c_chi);
+        auto lapse = a(i,j,k,c_lapse);
+
+        chi = simd_max(chi, m_min_chi);
+        lapse = simd_max(lapse, m_min_lapse);
+
+        a(i,j,k,c_chi) = chi;
+        a(i,j,k,c_lapse) = lapse;
+    }
 };
 
 #endif /* POSITIVECHIANDALPHA_HPP_ */
