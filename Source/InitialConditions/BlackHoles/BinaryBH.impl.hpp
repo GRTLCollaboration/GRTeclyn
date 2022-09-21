@@ -70,4 +70,40 @@ Tensor<2, data_t> BinaryBH::compute_A(data_t chi,
     return out;
 }
 
+template <class data_t>
+AMREX_GPU_DEVICE
+void BinaryBH::init_data (int i, int j, int k, amrex::Array4<data_t> const& a) const
+{
+    BSSNVars::VarsWithGauge<data_t> vars;
+    VarsTools::assign(vars,
+                      0.); // Set only the non-zero components explicitly below
+    Coordinates<data_t> coords(amrex::IntVect(i,j,k), m_dx);
+
+    vars.chi = compute_chi(coords);
+
+    // Conformal metric is flat
+    FOR(i) vars.h[i][i] = 1.;
+
+    vars.A = compute_A(vars.chi, coords);
+
+    switch (m_initial_lapse)
+    {
+    case Lapse::ONE:
+        vars.lapse = 1.;
+        break;
+    case Lapse::PRE_COLLAPSED:
+        vars.lapse = sqrt(vars.chi);
+        break;
+    case Lapse::CHI:
+        vars.lapse = vars.chi;
+        break;
+    default:
+        amrex::Abort("BinaryBH::Supplied initial lapse not supported.");
+    }
+
+    vars.enum_mapping([&](const int& ivar, data_t const& var) {
+       a(i,j,k,ivar) = var;
+    });
+}
+
 #endif /* BINARYBH_IMPL_HPP_ */

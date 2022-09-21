@@ -1,3 +1,18 @@
+* Questions
+** Are the data considered cell averages or point values?  The amrex
+fourth-order interpolator is for cell averages, if I remember it correctly.
+** Physical boundary? Why do we need to fill phys bc for rhs?
+Is BoundaryConditions::fill_boundary_cells_dir main function for this?
+No reason to fill direction by direction. right?
+** For Fillpatch, do we always need to fill all the components?
+Do we need to fill corners?
+** Box looping: BoxPointers -> Array4
+Avoid functors if we can.  If we do, make it trivially copyable.
+** Tagging criteria
+** Plot variables:
+Do we need to write any derived variables in plotfiles?
+Any of them need ghost cell filling?
+
 * Terminology for Chombo and AMReX
 | Chombo                       | AMReX                         |
 |------------------------------+-------------------------------|
@@ -52,3 +67,27 @@ Use amrex::MultiFab
 // m_grown_grids will include outer boundary ghosts in the case of
 // nonperiodic BCs but will just be the problem domain otherwise.
 soln.plus(rhs, dt, m_grown_grids);
+
+* Skip StateData's FillPatch and write our own.
+
+
+* What we have done
+** Make
+** ParmParse parameters
+try to keep the names of ParmParse parameters
+pp.addarr("regrid_int", regrid_interval);
+** Level build factory
+GMAMRLevel : amrex::AmrLevel
+BHAMR : amrex::Amr
+various virtual functions
+** GRAMRLevel::variableSetup
+sets up amrex::StateData
+Need to give variables better names.  Right now, in plotfile: State_0,
+State_1, ..., State_24.  Any derived variables?
+** BindaryBHLevel::initData()
+*** std::is_trivially_copyable<BinaryData>, that's good!
+*** We like to use i,j,k instead of IntVect because in our past experience the
+latter could confuse the compilers.
+*** BinaryBHLevel.cpp(79): error: The enclosing parent function ("initData") for
+an extended __device__ lambda cannot have private or protected access within
+its class

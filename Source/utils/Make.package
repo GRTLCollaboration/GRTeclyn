@@ -1,2 +1,6 @@
 CEXE_sources += SmallDataIO.cpp
-
+CEXE_headers += AlwaysInline.hpp DebuggingTools.hpp Interval.hpp Tensor.hpp \
+                ArrayTools.hpp DimensionDefinitions.hpp MultiLevelTask.hpp VarsTools.hpp \
+                Combinatorics.hpp FilesystemTools.hpp SmallDataIO.hpp WeylExtraction.hpp \
+                Coordinates.hpp GRInterval.hpp SphericalHarmonics.hpp CoordinateTransformations.hpp \
+                GRParmParse.hpp TensorAlgebra.hpp

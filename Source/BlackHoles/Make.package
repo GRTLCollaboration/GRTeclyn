@@ -1,1 +1,2 @@
 CEXE_sources += PunctureTracker.cpp
+CEXE_headers += BHAMR.hpp PunctureTracker.hpp

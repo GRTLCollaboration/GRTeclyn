@@ -69,6 +69,8 @@ void BinaryBHLevel::initData()
     BinaryBH binary(simParams().bh1_params, simParams().bh2_params,
                     Geom().CellSize(0));
 
+    static_assert(std::is_trivially_copyable<BinaryBH>::value, "BinaryBH needs to be device copyable");
+
     // First set everything to zero (to avoid undefinded values in constraints)
     // then calculate initial data
     amrex::MultiFab& state = get_new_data(State_Type);
@@ -80,11 +82,7 @@ void BinaryBHLevel::initData()
         for (int n = 0; n < a.nComp(); ++n) {
             a(i,j,k,n) = 0.;
         }
-        // xxxxx this is hack that's going to very slow.
-        // We need to modify Bnindary BH to take Array4.
-	amrex::FArrayBox fab(amrex::Box(a), a.nComp(), a.dataPtr());
-        BoxPointers box_pointers(fab,fab);
-        binary.compute(Cell<double>(amrex::IntVect(i,j,k), box_pointers));
+        binary.init_data(i,j,k,a);
     });
 #endif
 }

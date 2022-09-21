@@ -1,0 +1,7 @@
+CEXE_headers += AMRInterpolator.hpp IntegrationMethod.hpp Lagrange.hpp QuinticConvolution.hpp \
+                AMRInterpolator.impl.hpp IntegrationMethodSetup.hpp Lagrange.impl.hpp \
+                QuinticConvolution.impl.hpp CylindricalExtraction.hpp InterpolationAlgorithm.hpp \
+                MPIContext.hpp SphericalExtraction.hpp CylindricalGeometry.hpp \
+                InterpolationLayout.hpp MPIContext.impl.hpp SphericalGeometry.hpp Derivative.hpp \
+                InterpolationQuery.hpp MPILayout.hpp SurfaceExtraction.hpp DerivativeSetup.hpp \
+                InterpSource.hpp MPILayout.impl.hpp SurfaceExtraction.impl.hpp

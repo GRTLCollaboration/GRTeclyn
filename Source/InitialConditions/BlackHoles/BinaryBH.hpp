@@ -39,6 +39,10 @@ class BinaryBH
 
     template <class data_t> void compute(Cell<data_t> current_cell) const;
 
+    template <class data_t>
+    AMREX_GPU_DEVICE
+    void init_data (int i, int j, int k, amrex::Array4<data_t> const& a) const;
+
   protected:
     template <class data_t>
     data_t compute_chi(Coordinates<data_t> coords) const;

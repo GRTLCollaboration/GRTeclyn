@@ -1,0 +1,4 @@
+CEXE_headers += AMRReductions.hpp BoxPointers.hpp ComputeModGrad.hpp SetValue.hpp \
+                AMRReductions.impl.hpp Cell.hpp ComputePack.hpp SixthOrderDerivatives.hpp \
+                BoxLoops.hpp Cell.impl.hpp FourthOrderDerivatives.hpp BoxLoops.impl.hpp \
+                CellIndex.hpp NanCheck.hpp

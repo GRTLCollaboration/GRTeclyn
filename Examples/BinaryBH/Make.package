@@ -1,2 +1,5 @@
 CEXE_sources += BinaryBHLevel.cpp Main_BinaryBH.cpp
 
+CEXE_headers += BinaryBHLevel.hpp  DiagnosticVariables.hpp  SimulationParameters.hpp  TPAMR.hpp  UserVariables.hpp
+
+
