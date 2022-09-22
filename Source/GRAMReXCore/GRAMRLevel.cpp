@@ -36,7 +36,7 @@ void GRAMRLevel::variableSetUp()
                            amrex::StateDescriptor::Point,
                            0, // xxxxx 0 ghost cells in StateData
                            NUM_VARS,
-                           &amrex::cell_cons_interp); // xxxxx change to 4th order
+                           &amrex::cell_quartic_interp);
 
     int lo_bc[BL_SPACEDIM];
     int hi_bc[BL_SPACEDIM];
