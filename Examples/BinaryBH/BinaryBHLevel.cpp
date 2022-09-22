@@ -78,19 +78,21 @@ void BinaryBHLevel::initData()
     amrex::ParallelFor(state, state.nGrowVect(),
     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
     {
-#if 0
-        amrex::Array4<amrex::Real> const& a = arrs[box_no];
-        for (int n = 0; n < a.nComp(); ++n) {
-            a(i,j,k,n) = 0.;
-        }
-#else
+//        amrex::Array4<amrex::Real> const& a = arrs[box_no];
+//        for (int n = 0; n < a.nComp(); ++n) {
+//            a(i,j,k,n) = 0.;
+//        }
         amrex::CellData<amrex::Real> cell = arrs[box_no].cellData(i,j,k);
         for (int n = 0; n < cell.nComp(); ++n) {
             cell[n] = 0.;
         }
-#endif
         binary.init_data(i,j,k,cell);
     });
+
+// Original code
+//    BoxLoops::loop(make_compute_pack(SetValue(0.), binary), m_state_new,
+//                   m_state_new, INCLUDE_GHOST_CELLS);
+
 #endif
 }
 
@@ -111,6 +113,11 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab & a_soln,
         TraceARemoval()(cell);
         PositiveChiAndAlpha()(cell);
     });
+
+// Original code
+//    BoxLoops::loop(make_compute_pack(TraceARemoval(), PositiveChiAndAlpha()),
+//                   a_soln, a_soln, INCLUDE_GHOST_CELLS);
+
 
     // Calculate CCZ4 right hand side
     if (simParams().max_spatial_derivative_order == 4)

@@ -71,7 +71,7 @@ Tensor<2, data_t> BinaryBH::compute_A(data_t chi,
 }
 
 template <class data_t>
-AMREX_GPU_DEVICE
+AMREX_GPU_DEVICE  // or AMREX_GPU_HOST_DEVICE depending on what's needed
 void BinaryBH::init_data (int i, int j, int k,
                           amrex::CellData<data_t> const& cell) const
 {
