@@ -143,30 +143,29 @@ template <class data_t> class Cell
 
 template <class data_t, template <typename> class vars_t>
 AMREX_GPU_HOST_DEVICE
-void store_vars (int i, int j, int k, amrex::Array4<data_t> const& a,
-                 vars_t<data_t>& vars)
+void store_vars (amrex::CellData<data_t> const& cell, vars_t<data_t>& vars)
 {
     vars.enum_mapping([&](const int& ivar, data_t const& var) {
-       a(i,j,k,ivar) = var;
+        cell[ivar] = var;
     });
 }
 
 template <class data_t, template <typename> class vars_t>
 AMREX_GPU_HOST_DEVICE
-void load_vars (int i, int j, int k, amrex::Array4<data_t> const& a,
+void load_vars (amrex::CellData<data_t> const& cell,
                 vars_t<std::remove_const_t<data_t> >& vars)
 {
     vars.enum_mapping([&](const int& ivar, data_t& var) {
-       var = a(i,j,k,ivar);
+        var = cell[ivar];
     });
 }
 
 template <class data_t, template <typename> class vars_t>
 AMREX_GPU_HOST_DEVICE
-auto load_vars (int i, int j, int k, amrex::Array4<data_t> const& a)
+auto load_vars (amrex::CellData<data_t> const& cell)
 {
     vars_t<std::remove_const_t<data_t> > vars;
-    load_vars(i,j,k,a,vars);
+    load_vars(cell,vars);
     return vars;
 }
 

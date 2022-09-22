@@ -41,7 +41,8 @@ class BinaryBH
 
     template <class data_t>
     AMREX_GPU_DEVICE
-    void init_data (int i, int j, int k, amrex::Array4<data_t> const& a) const;
+    void init_data (int i, int j, int k,
+                    amrex::CellData<data_t> const& cell) const;
 
   protected:
     template <class data_t>

@@ -78,11 +78,18 @@ void BinaryBHLevel::initData()
     amrex::ParallelFor(state, state.nGrowVect(),
     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
     {
+#if 0
         amrex::Array4<amrex::Real> const& a = arrs[box_no];
         for (int n = 0; n < a.nComp(); ++n) {
             a(i,j,k,n) = 0.;
         }
-        binary.init_data(i,j,k,a);
+#else
+        amrex::CellData<amrex::Real> cell = arrs[box_no].cellData(i,j,k);
+        for (int n = 0; n < cell.nComp(); ++n) {
+            cell[n] = 0.;
+        }
+#endif
+        binary.init_data(i,j,k,cell);
     });
 #endif
 }
@@ -100,9 +107,9 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab & a_soln,
     amrex::ParallelFor(a_soln, a_soln.nGrowVect(),
     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
     {
-        amrex::Array4<amrex::Real> const& sa = soln_arrs[box_no];
-        TraceARemoval()(i,j,k,sa);
-        PositiveChiAndAlpha()(i,j,k,sa);
+        amrex::CellData<amrex::Real> cell = soln_arrs[box_no].cellData(i,j,k);
+        TraceARemoval()(cell);
+        PositiveChiAndAlpha()(cell);
     });
 
     // Calculate CCZ4 right hand side

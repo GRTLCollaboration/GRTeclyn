@@ -38,14 +38,14 @@ class TraceARemoval
 
     template <class data_t>
     AMREX_GPU_DEVICE // or AMREX_GPU_HOST_DEVICE if this is needed on the host
-    void operator() (int i, int j, int k, amrex::Array4<data_t> const& a) const
+    void operator() (amrex::CellData<data_t> const& cell) const
     {
-        auto vars = load_vars<data_t,Vars>(i,j,k,a);
+        auto vars = load_vars<data_t,Vars>(cell);
 
         const auto h_UU = TensorAlgebra::compute_inverse_sym(vars.h);
         TensorAlgebra::make_trace_free(vars.A, vars.h, h_UU);
 
-        store_vars(i,j,k,a,vars);
+        store_vars(cell,vars);
     }
 };
 

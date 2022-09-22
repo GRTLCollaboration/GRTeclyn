@@ -72,7 +72,8 @@ Tensor<2, data_t> BinaryBH::compute_A(data_t chi,
 
 template <class data_t>
 AMREX_GPU_DEVICE
-void BinaryBH::init_data (int i, int j, int k, amrex::Array4<data_t> const& a) const
+void BinaryBH::init_data (int i, int j, int k,
+                          amrex::CellData<data_t> const& cell) const
 {
     BSSNVars::VarsWithGauge<data_t> vars;
     VarsTools::assign(vars,
@@ -92,7 +93,7 @@ void BinaryBH::init_data (int i, int j, int k, amrex::Array4<data_t> const& a) c
         vars.lapse = 1.;
         break;
     case Lapse::PRE_COLLAPSED:
-        vars.lapse = sqrt(vars.chi);
+        vars.lapse = std::sqrt(vars.chi);
         break;
     case Lapse::CHI:
         vars.lapse = vars.chi;
@@ -101,7 +102,7 @@ void BinaryBH::init_data (int i, int j, int k, amrex::Array4<data_t> const& a) c
         amrex::Abort("BinaryBH::Supplied initial lapse not supported.");
     }
 
-    store_vars(i,j,k, a, vars);
+    store_vars(cell, vars);
 }
 
 #endif /* BINARYBH_IMPL_HPP_ */

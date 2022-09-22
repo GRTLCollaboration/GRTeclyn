@@ -39,16 +39,16 @@ class PositiveChiAndAlpha
 
     template <class data_t>
     AMREX_GPU_HOST_DEVICE
-    void operator() (int i, int j, int k, amrex::Array4<data_t> const& a) const
+    void operator() (amrex::CellData<data_t> const& cell) const
     {
-        auto chi = a(i,j,k,c_chi);
-        auto lapse = a(i,j,k,c_lapse);
+        auto chi = cell[c_chi];
+        auto lapse = cell[c_lapse];
 
         chi = simd_max(chi, m_min_chi);
         lapse = simd_max(lapse, m_min_lapse);
 
-        a(i,j,k,c_chi) = chi;
-        a(i,j,k,c_lapse) = lapse;
+        cell[c_chi] = chi;
+        cell[c_lapse] = lapse;
     }
 };
 
