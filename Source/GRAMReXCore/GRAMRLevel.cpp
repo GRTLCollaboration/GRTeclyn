@@ -142,9 +142,19 @@ void GRAMRLevel::post_timestep (int iteration)
 {
     const int lev = Level();
     if (lev < parent->finestLevel()) {
-        amrex::MultiFab const& fine = parent->getLevel(lev+1).get_new_data(State_Type);
-        amrex::MultiFab      & crse = parent->getLevel(lev  ).get_new_data(State_Type);
-        amrex::average_down(fine, crse, 0, crse.nComp(), parent->refRatio(lev));
+        auto& fine_level = parent->getLevel(Level()+1);
+        amrex::MultiFab & S_fine = fine_level.get_new_data(State_Type);
+        amrex::MultiFab & S_crse =      this->get_new_data(State_Type);
+        amrex::Real t = get_state_data(State_Type).curTime();
+
+        amrex::IntVect ratio = parent->refRatio(lev);
+        AMREX_ASSERT(ratio == 2 || ratio == 4);
+        if (ratio == 2) {
+            // Need to fill one ghost cell for the high-order interpolation below
+            FillPatch(fine_level, S_fine, 1, t, State_Type, 0, S_fine.nComp());
+        }
+
+        FourthOrderInterpFromFineToCoarse(S_crse, 0, 2, S_fine, ratio);
     }
 
     specificPostTimeStep();
@@ -155,16 +165,9 @@ void GRAMRLevel::post_regrid (int lbase, int new_finest)
     amrex::ignore_unused(lbase, new_finest);
 }
 
-void GRAMRLevel::post_init (amrex::Real stop_time)
+void GRAMRLevel::post_init (amrex::Real /*stop_time*/)
 {
-    if (Level() == 0) {
-        int finest_level = parent->finestLevel();
-        for (int k = finest_level-1; k>= 0; k--) {
-            amrex::MultiFab const& fine = parent->getLevel(k+1).get_new_data(State_Type);
-            amrex::MultiFab      & crse = parent->getLevel(k  ).get_new_data(State_Type);
-            amrex::average_down(fine, crse, 0, crse.nComp(), parent->refRatio(k));
-        }
-    }
+    // Don't we need to do anything here
 }
 
 void GRAMRLevel::init (amrex::AmrLevel &old)
