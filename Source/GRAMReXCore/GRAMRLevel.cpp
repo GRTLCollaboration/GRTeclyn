@@ -52,7 +52,7 @@ void GRAMRLevel::variableSetUp()
     amrex::Vector<std::string> name(NUM_VARS);
     for (int i = 0; i < NUM_VARS; ++i) {
         bcs[i] = amrex::BCRec(lo_bc, hi_bc);
-        name[i] = "State_"+std::to_string(i); // xxxxx better names
+        name[i] = UserVariables::variable_names[i];
     }
 
     amrex::StateDescriptor::BndryFunc bndryfunc(gramr_bc_fill);
