@@ -33,6 +33,8 @@ int runGRAMReX(int /*argc*/, char */*argv*/[])
     if (sim_params.just_check_params)
         return 0;
 
+    GRAMR::set_simulation_parameters(sim_params);
+
 #ifdef USE_TWOPUNCTURES
     TPAMR bh_amr;
     bh_amr.set_two_punctures_parameters(sim_params.tp_params);
@@ -41,8 +43,6 @@ int runGRAMReX(int /*argc*/, char */*argv*/[])
 #else
     BHAMR bh_amr(&bh_level_bld);
 #endif
-
-    bh_amr.set_simulation_parameters(sim_params);
 
     bh_amr.init(0., sim_params.stop_time);
 

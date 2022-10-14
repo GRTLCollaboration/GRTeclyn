@@ -42,11 +42,11 @@ class GRAMR : public amrex::Amr
     GRAMR(amrex::LevelBld* a_levelbld);
     virtual ~GRAMR();
 
-    void set_simulation_parameters(const SimulationParameters& a_sim_params);
-    SimulationParameters const& get_simulation_parameters() const;
+    static void set_simulation_parameters(const SimulationParameters& a_sim_params);
+    static SimulationParameters const& get_simulation_parameters();
 
   private:
-    std::unique_ptr<SimulationParameters> m_sim_params;
+    static SimulationParameters const* m_sim_params;
 
 #if 0
 //xxxxx

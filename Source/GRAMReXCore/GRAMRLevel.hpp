@@ -45,7 +45,7 @@ public:
 
     virtual ~GRAMRLevel();
 
-    SimulationParameters const& simParams () const;
+    static SimulationParameters const& simParams ();
 
     /**
     * \brief Compute the initial time step.

@@ -34,7 +34,7 @@ void GRAMRLevel::variableSetUp()
 {
     desc_lst.addDescriptor(State_Type,amrex::IndexType::TheCellType(),
                            amrex::StateDescriptor::Point,
-                           0, // xxxxx 0 ghost cells in StateData
+                           simParams().num_ghosts,
                            NUM_VARS,
                            &amrex::cell_quartic_interp);
 
@@ -80,9 +80,9 @@ GRAMRLevel::GRAMRLevel(amrex::Amr& papa, int lev,
 
 GRAMRLevel::~GRAMRLevel() {}
 
-SimulationParameters const& GRAMRLevel::simParams () const
+SimulationParameters const& GRAMRLevel::simParams ()
 {
-    return static_cast<GRAMR const*>(parent)->get_simulation_parameters();
+    return GRAMR::get_simulation_parameters();
 }
 
 void GRAMRLevel::computeInitialDt (int finest_level, int /*sub_cycle*/,
