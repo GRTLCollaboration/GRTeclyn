@@ -125,24 +125,13 @@ amrex::Real GRAMRLevel::advance (amrex::Real time, amrex::Real dt,
         state[k].swapTimeLevels(dt);
     }
 
-    amrex::MultiFab& S_new = get_new_data(State_Type);
-    amrex::MultiFab& S_old = get_old_data(State_Type);
-
-    // State with ghost cells
-    amrex::MultiFab Sborder(grids, dmap, S_new.nComp(), m_num_ghosts);
-
-    Sborder.setVal(0.); // xxxxx remove this after FillPatch is done
-    amrex::AmrLevel::FillPatch(*this, Sborder, m_num_ghosts, time, State_Type,
-                               0, S_new.nComp()); // xxxxx todo: Physical BC not setup
-
-    amrex::MultiFab rhs(grids, dmap, S_new.nComp(), 0);
-    specificEvalRHS(Sborder, rhs, time);
-
-    // S_new = S_old + dt*rhs;
-    amrex::MultiFab::LinComb(S_new, 1., S_old, 0, dt, rhs, 0, 0, S_new.nComp(),
-                             amrex::IntVect(0)); //xxxxx m_grown_grids???
-
-    specificUpdateODE(S_new, rhs, dt);
+    amrex::AmrLevel::RK(4, State_Type, time, dt, iteration, ncycle,
+                        [&] (int /*stage*/, amrex::MultiFab& dSdt,
+                             amrex::MultiFab const& S,
+                             amrex::Real t, amrex::Real /*dtsub*/)
+    {
+        specificEvalRHS(const_cast<amrex::MultiFab&>(S), dSdt, t);
+    });
 
     specificAdvance();
 
