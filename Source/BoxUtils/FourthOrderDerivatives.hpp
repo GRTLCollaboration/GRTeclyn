@@ -80,6 +80,21 @@ class FourthOrderDerivatives
         return d1;
     }
 
+    /// Calculates all first derivatives and returns as variable type specified
+    /// by the template parameter
+    template <template <typename> class vars_t, class data_t>
+    auto diff1(int i, int j, int k, const amrex::Array4<data_t const> &state) const
+    {
+        vars_t<Tensor<1, data_t>> d1;
+        auto p = state.ptr(i,j,k);
+        d1.enum_mapping([&](const int &ivar, Tensor<1, data_t> &var) {
+            AMREX_D_TERM(var[0] = diff1<data_t>(p+ivar*state.nstride, 0, 1);,
+                         var[1] = diff1<data_t>(p+ivar*state.nstride, 0, state.jstride);,
+                         var[2] = diff1<data_t>(p+ivar*state.nstride, 0, state.kstride));
+        });
+        return d1;
+    }
+
     template <class data_t>
     void diff1(Tensor<1, data_t> &diff_value, const Cell<data_t> &current_cell,
                int direction, int ivar) const
@@ -254,6 +269,30 @@ class FourthOrderDerivatives
         return d2;
     }
 
+    /// Calculates all second derivatives and returns as variable type specified
+    /// by the template parameter
+    template <template <typename> class vars_t, class data_t>
+    auto diff2(int i, int j, int k, amrex::Array4<data_t const> const& state) const
+    {
+        vars_t<Tensor<2, data_t>> d2;
+        auto p = state.ptr(i,j,k);
+        amrex::GpuArray<int,AMREX_SPACEDIM> strides{1,state.jstride,state.kstride};
+        d2.enum_mapping([&](const int &ivar, Tensor<2, data_t> &var) {
+            auto pvar = p+ivar*state.nstride;
+            FOR(dir1) // First calculate the repeated derivatives
+            {
+                var[dir1][dir1] = diff2<data_t>(pvar, 0, strides[dir1]);
+                for (int dir2 = 0; dir2 < dir1; ++dir2)
+                {
+                    auto tmp = mixed_diff2<data_t>(pvar, 0, strides[dir1], strides[dir2]);
+                    var[dir1][dir2] = tmp;
+                    var[dir2][dir1] = tmp;
+                }
+            }
+        });
+        return d2;
+    }
+
   protected: // Let's keep this protected ... we may want to change the
              // advection calculation
     template <class data_t, class mask_t>
@@ -343,6 +382,29 @@ class FourthOrderDerivatives
         return advec;
     }
 
+    /// Calculates all second derivatives and returns as variable type specified
+    /// by the template parameter
+    template <template <typename> class vars_t, class data_t>
+    auto advection(int i, int j, int k,
+                   amrex::Array4<data_t const> const& state,
+                   const Tensor<1, data_t> &vector) const
+    {
+        vars_t<data_t> advec;
+        auto p = state.ptr(i,j,k);
+        amrex::GpuArray<int,AMREX_SPACEDIM> strides{1,state.jstride,state.kstride};
+        advec.enum_mapping([&](const int &ivar, data_t &var) {
+            var = 0.;
+            auto pvar = p+ivar*state.nstride;
+            FOR(dir)
+            {
+                const auto shift_positive = simd_compare_gt(vector[dir], 0.0);
+                var += advection_term(pvar, 0, vector[dir], strides[dir],
+                                      shift_positive);
+            }
+        });
+        return advec;
+    }
+
     template <class data_t>
     ALWAYS_INLINE data_t dissipation_term(const double *in_ptr, const int idx,
                                           const int stride) const
@@ -390,6 +452,24 @@ class FourthOrderDerivatives
                     factor * dissipation_term<data_t>(
                                  current_cell.get_box_pointers().m_in_ptr[ivar],
                                  in_index, stride);
+            }
+        });
+    }
+
+    template <class data_t, template <typename> class vars_t>
+    void add_dissipation(int i, int j, int k,
+                         vars_t<data_t> &vars,
+                         amrex::Array4<data_t const> const& state,
+                         const double factor) const
+    {
+        auto p = state.ptr(i,j,k);
+        amrex::GpuArray<int,AMREX_SPACEDIM> strides{1,state.jstride,state.kstride};
+        vars.enum_mapping([&](const int &ivar, data_t &var) {
+            FOR(dir)
+            {
+                const auto stride = strides[dir];
+                var +=
+                    factor * dissipation_term<data_t>(p+ivar*state.nstride, 0, stride);
             }
         });
     }

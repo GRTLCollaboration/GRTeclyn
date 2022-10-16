@@ -92,7 +92,9 @@ class CCZ4RHS
      * grid cell. This function is called by the BoxLoops::loop for each grid
      * cell; there should rarely be a need to call it directly.
      */
-    template <class data_t> void compute(Cell<data_t> current_cell) const;
+    template <class data_t> void compute(int i, int j, int k,
+                                         amrex::Array4<data_t> const& rhs,
+                                         amrex::Array4<data_t const> const& state) const;
 
   protected:
     /// Calculates the rhs for CCZ4

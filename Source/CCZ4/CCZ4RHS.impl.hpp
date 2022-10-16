@@ -38,20 +38,22 @@ inline CCZ4RHS<gauge_t, deriv_t>::CCZ4RHS(
 
 template <class gauge_t, class deriv_t>
 template <class data_t>
-void CCZ4RHS<gauge_t, deriv_t>::compute(Cell<data_t> current_cell) const
+void CCZ4RHS<gauge_t, deriv_t>::compute(int i, int j, int k,
+                                        amrex::Array4<data_t> const& rhs,
+                                        amrex::Array4<data_t const> const& state) const
 {
-    const auto vars = current_cell.template load_vars<Vars>();
-    const auto d1 = m_deriv.template diff1<Vars>(current_cell);
-    const auto d2 = m_deriv.template diff2<Diff2Vars>(current_cell);
+    const auto vars = load_vars<Vars>(state.cellData(i,j,k));
+    const auto d1 = m_deriv.template diff1<Vars>(i,j,k,state);
+    const auto d2 = m_deriv.template diff2<Diff2Vars>(i,j,k,state);
     const auto advec =
-        m_deriv.template advection<Vars>(current_cell, vars.shift);
+        m_deriv.template advection<Vars>(i,j,k,state,vars.shift);
 
-    Vars<data_t> rhs;
-    rhs_equation(rhs, vars, d1, d2, advec);
+    Vars<data_t> rhs_vars;
+    rhs_equation(rhs_vars, vars, d1, d2, advec);
 
-    m_deriv.add_dissipation(rhs, current_cell, m_sigma);
+    m_deriv.add_dissipation(i, j, k, rhs_vars, state, m_sigma);
 
-    current_cell.store_vars(rhs); // Write the rhs into the output FArrayBox
+    store_vars(rhs.cellData(i,j,k), rhs_vars);
 }
 
 template <class gauge_t, class deriv_t>

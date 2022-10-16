@@ -78,27 +78,18 @@ void BinaryBHLevel::initData()
     amrex::ParallelFor(state, state.nGrowVect(),
     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
     {
-//        amrex::Array4<amrex::Real> const& a = arrs[box_no];
-//        for (int n = 0; n < a.nComp(); ++n) {
-//            a(i,j,k,n) = 0.;
-//        }
         amrex::CellData<amrex::Real> cell = arrs[box_no].cellData(i,j,k);
         for (int n = 0; n < cell.nComp(); ++n) {
             cell[n] = 0.;
         }
         binary.init_data(i,j,k,cell);
     });
-
-// Original code
-//    BoxLoops::loop(make_compute_pack(SetValue(0.), binary), m_state_new,
-//                   m_state_new, INCLUDE_GHOST_CELLS);
-
 #endif
 }
 
 // Calculate RHS during RK4 substeps
-void BinaryBHLevel::specificEvalRHS(amrex::MultiFab & a_soln,
-                                    amrex::MultiFab &a_rhs,
+void BinaryBHLevel::specificEvalRHS(amrex::MultiFab& a_soln,
+                                    amrex::MultiFab& a_rhs,
                                     const double a_time)
 {
     auto const& soln_arrs = a_soln.arrays();
@@ -114,11 +105,6 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab & a_soln,
         PositiveChiAndAlpha()(cell);
     });
 
-// Original code
-//    BoxLoops::loop(make_compute_pack(TraceARemoval(), PositiveChiAndAlpha()),
-//                   a_soln, a_soln, INCLUDE_GHOST_CELLS);
-
-
     // Calculate CCZ4 right hand side
     if (simParams().max_spatial_derivative_order == 4)
     {
@@ -128,31 +114,24 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab & a_soln,
         amrex::ParallelFor(a_rhs,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
         {
-            amrex::Array4<amrex::Real const> const& sa = soln_c_arrs[box_no];
-            amrex::Array4<amrex::Real> const& ra = rhs_arrs[box_no];
-            // xxxxx hack
-            amrex::FArrayBox sfab(amrex::Box(sa), sa.nComp(), sa.dataPtr());
-            amrex::FArrayBox rfab(amrex::Box(ra), ra.nComp(), ra.dataPtr());
-            BoxPointers box_pointers(sfab,rfab);
-            ccz4rhs.compute(Cell<double>(amrex::IntVect(i,j,k), box_pointers));
+            ccz4rhs.compute(i,j,k,rhs_arrs[box_no],soln_c_arrs[box_no]);
         });
     }
     else if (simParams().max_spatial_derivative_order == 6)
     {
+        amrex::Abort("xxxxx max_spatial_derivative_order == 6 todo");
+#if 0
         CCZ4RHS<MovingPunctureGauge, SixthOrderDerivatives>
             ccz4rhs(simParams().ccz4_params, Geom().CellSize(0), simParams().sigma,
                     simParams().formulation);
         amrex::ParallelFor(a_rhs,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
         {
-            amrex::Array4<amrex::Real const> const& sa = soln_c_arrs[box_no];
-            amrex::Array4<amrex::Real> const& ra = rhs_arrs[box_no];
-            // xxxxx hack
-            amrex::FArrayBox sfab(amrex::Box(sa), sa.nComp(), sa.dataPtr());
-            amrex::FArrayBox rfab(amrex::Box(ra), ra.nComp(), ra.dataPtr());
-            BoxPointers box_pointers(sfab,rfab);
-            ccz4rhs.compute(Cell<double>(amrex::IntVect(i,j,k), box_pointers));
+            amrex::CellData<amrex::Real const> state = soln_c_arrs[box_no].cellData(i,j,k);
+            amrex::CellData<amrex::Real> rhs = rhs_arrs[box_no].cellData(i,j,k);
+            ccz4rhs.compute(rhs, state);
         });
+#endif
     }
 }
 
