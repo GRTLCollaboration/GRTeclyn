@@ -132,22 +132,15 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab& a_soln,
 }
 
 // enforce trace removal during RK4 substeps
-void BinaryBHLevel::specificUpdateODE(amrex::MultiFab& a_soln,
-                                      amrex::MultiFab const& a_rhs, amrex::Real a_dt)
+void BinaryBHLevel::specificUpdateODE(amrex::MultiFab& a_soln)
 {
-    amrex::Abort("xxxxx BinaryBHLevel::specificUpdateODE todo");
-
     // Enforce the trace free A_ij condition
     auto const& soln_arrs = a_soln.arrays();
-    amrex::ParallelFor(a_soln, a_soln.nGrowVect(),
+    amrex::ParallelFor(a_soln, amrex::IntVect(0), // zero ghost cells
     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
     {
-        amrex::Array4<amrex::Real> const& sa = soln_arrs[box_no];
-        // xxxxx hack
-	amrex::FArrayBox fab(amrex::Box(sa), sa.nComp(), sa.dataPtr());
-        BoxPointers box_pointers(fab,fab);
-        Cell<double> cell(amrex::IntVect(i,j,k), box_pointers);
-        TraceARemoval().compute(cell);
+        amrex::CellData<amrex::Real> cell = soln_arrs[box_no].cellData(i,j,k);
+        TraceARemoval()(cell);
     });
 }
 

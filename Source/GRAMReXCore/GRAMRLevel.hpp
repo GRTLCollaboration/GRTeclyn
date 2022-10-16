@@ -241,9 +241,8 @@ public:
                                  amrex::MultiFab& a_rhs,
                                  const double a_time) = 0;
 
-    virtual void specificUpdateODE(amrex::MultiFab &a_soln,
-                                   const amrex::MultiFab &a_rhs, amrex::Real a_dt)
-        { }
+    virtual void specificUpdateODE(amrex::MultiFab& /*a_soln*/) {}
+
 //xxxxx
 //xxxxx    double get_dx() const;
 //xxxxx

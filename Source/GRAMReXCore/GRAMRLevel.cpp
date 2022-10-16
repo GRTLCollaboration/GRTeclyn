@@ -126,12 +126,15 @@ amrex::Real GRAMRLevel::advance (amrex::Real time, amrex::Real dt,
     }
 
     amrex::AmrLevel::RK(4, State_Type, time, dt, iteration, ncycle,
-                        [&] (int /*stage*/, amrex::MultiFab& dSdt,
-                             amrex::MultiFab const& S,
-                             amrex::Real t, amrex::Real /*dtsub*/)
-    {
-        specificEvalRHS(const_cast<amrex::MultiFab&>(S), dSdt, t);
-    });
+        [&] (int /*stage*/, amrex::MultiFab& dSdt,
+             amrex::MultiFab const& S,
+             amrex::Real t, amrex::Real /*dtsub*/)
+        {
+            specificEvalRHS(const_cast<amrex::MultiFab&>(S), dSdt, t);
+        },
+        [&] (int /*stage*/, amrex::MultiFab& S) {
+            specificUpdateODE(S);
+        });
 
     specificAdvance();
 

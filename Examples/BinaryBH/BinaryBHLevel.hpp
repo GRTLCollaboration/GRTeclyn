@@ -38,9 +38,7 @@ class BinaryBHLevel : public GRAMRLevel
                                  const double a_time) override;
 
     /// Things to do after dt*rhs has been added to the solution
-    virtual void specificUpdateODE(amrex::MultiFab& a_soln,
-                                   amrex::MultiFab const & a_rhs,
-                                   amrex::Real a_dt) override;
+    virtual void specificUpdateODE(amrex::MultiFab& a_soln) override;
 
     /// Things to do before tagging cells (i.e. filling ghosts)
     virtual void preTagCells();//xxxxx override;
