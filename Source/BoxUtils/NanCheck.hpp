@@ -36,7 +36,7 @@ class NanCheck
         {
             double val;
             current_cell.load_vars(val, ivar);
-            if (std::isnan(val) || abs(val) > m_max_abs)
+            if (std::isnan(val) || std::abs(val) > m_max_abs)
                 stop = true;
         }
         if (stop)

@@ -21,7 +21,7 @@ constexpr int ulp = 15; /* units in the last place */
 bool almost_equal(double value, double correct_value,
                   int a_ulp /* units in the last place */)
 {
-    double diff = fabs(value - correct_value);
+    double diff = std::abs(value - correct_value);
     double epsilon = std::numeric_limits<double>::epsilon();
     return (diff <
             std::max(epsilon * std::abs(correct_value + value), epsilon) *

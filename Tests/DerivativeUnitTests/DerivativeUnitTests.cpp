@@ -22,7 +22,7 @@
 
 bool is_wrong(double value, double correct_value, std::string deriv_type)
 {
-    if (abs(value - correct_value) > 1e-10)
+    if (std::abs(value - correct_value) > 1e-10)
     {
         std::cout.precision(17);
         std::cout << "Test of " << deriv_type << " failed "

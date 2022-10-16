@@ -1091,15 +1091,15 @@ void GRAMRLevel::evalRHS(GRLevelData &rhs, GRLevelData &soln,
         // Assuming RK4, we know that there can only be 5 different alpha so fix
         // them with tolerance to prevent floating point problems
         Real eps = 0.01;
-        if (abs(alpha) < eps)
+        if (std::abs(alpha) < eps)
             alpha = 0.0;
-        else if (abs(alpha - 0.25) < eps)
+        else if (std::abs(alpha - 0.25) < eps)
             alpha = 0.25;
-        else if (abs(alpha - 0.5) < eps)
+        else if (std::abs(alpha - 0.5) < eps)
             alpha = 0.5;
-        else if (abs(alpha - 0.75) < eps)
+        else if (std::abs(alpha - 0.75) < eps)
             alpha = 0.75;
-        else if (abs(alpha - 1.) < eps)
+        else if (std::abs(alpha - 1.) < eps)
             alpha = 1.0;
         else
         {
@@ -1181,7 +1181,7 @@ bool GRAMRLevel::at_level_timestep_multiple(int a_level) const
     }
     // get difference to nearest multiple of target_dt
     const double time_remainder = remainder(m_time, target_dt);
-    return (abs(time_remainder) < m_gr_amr.timeEps() * m_p.coarsest_dt);
+    return (std::abs(time_remainder) < m_gr_amr.timeEps() * m_p.coarsest_dt);
 }
 
 void GRAMRLevel::fillAllGhosts(const VariableType var_type,

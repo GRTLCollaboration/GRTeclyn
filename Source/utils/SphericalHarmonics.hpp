@@ -27,7 +27,7 @@ Y_lm_t<data_t> spin_Y_lm(const data_t x, const double y, const double z,
                          const int es, const int el, const int em)
 {
 
-    AMREX_ASSERT((el >= 0) && (el >= abs(em)));
+    AMREX_ASSERT((el >= 0) && (el >= std::abs(em)));
 
     Y_lm_t<data_t> Y_lm;
 

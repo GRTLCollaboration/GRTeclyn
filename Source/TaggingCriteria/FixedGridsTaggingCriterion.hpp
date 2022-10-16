@@ -33,8 +33,8 @@ class FixedGridsTaggingCriterion
         // of it, which means inner \pm L/4
         double ratio = pow(2.0, -(m_level + 2.0));
         const Coordinates<data_t> coords(current_cell, m_dx, m_center);
-        const data_t max_abs_xy = simd_max(abs(coords.x), abs(coords.y));
-        const data_t max_abs_xyz = simd_max(max_abs_xy, abs(coords.z));
+        const data_t max_abs_xy = simd_max(std::abs(coords.x), std::abs(coords.y));
+        const data_t max_abs_xyz = simd_max(max_abs_xy, std::abs(coords.z));
         auto regrid = simd_compare_lt(max_abs_xyz, m_L * ratio);
         criterion = simd_conditional(regrid, 100.0, criterion);
 

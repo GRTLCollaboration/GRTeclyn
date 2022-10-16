@@ -16,6 +16,8 @@
 #include <AMReX_Array4.H>
 #include <AMReX_IntVect.H>
 
+using namespace amrex::disabled;
+
 /// Encapsulates information about the position of a cell
 /** It contains the position of the cell on the Chombo grid and the index of the
  * flattened Chombo array where the data is stored (both for the input and the

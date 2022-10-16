@@ -105,12 +105,12 @@ int runInterpolatorTest(int argc, char *argv[])
         double z = interp_z[ipoint] - sim_params.center[2];
 
         double value_A = 42. + x * x + y * y * z * z;
-        double value_B = pow(x, 3);
-        double value_B_dx = 3. * pow(x, 2);
+        double value_B = std::pow(x, 3);
+        double value_B_dx = 3. * std::pow(x, 2);
 
-        status |= (abs(A[ipoint] - value_A) > 1e-10);
-        status |= (abs(B[ipoint] - value_B) > 1e-10);
-        status |= (abs(B_dx[ipoint] - value_B_dx) > 1e-10);
+        status |= (std::abs(A[ipoint] - value_A) > 1e-10);
+        status |= (std::abs(B[ipoint] - value_B) > 1e-10);
+        status |= (std::abs(B_dx[ipoint] - value_B_dx) > 1e-10);
     }
 
     return status;

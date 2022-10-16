@@ -100,7 +100,7 @@ int main()
                     g_UU[2][0] = g_UU[0][2];
                     g_UU[2][1] = g_UU[1][2];
 
-                    chi = pow(fabs(detg), -1.0 / GR_SPACEDIM);
+                    chi = std::pow(std::abs(detg), -1.0 / GR_SPACEDIM);
                     in_fab(iv, c_chi) = chi;
                     in_fab(iv, c_h11) = chi * g[0][0];
                     in_fab(iv, c_h12) = chi * g[0][1];
@@ -256,7 +256,7 @@ int main()
         IntVect location = IntVect::Zero;
         for (bit.begin(); bit.ok(); ++bit)
         {
-            max_err = max(max_err, abs(in_fab_cpp_result(bit(), i)));
+            max_err = std::max(max_err, std::abs(in_fab_cpp_result(bit(), i)));
             if (max_err == in_fab_cpp_result(bit(), i))
                 location = bit();
         }

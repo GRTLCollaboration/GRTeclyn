@@ -86,7 +86,7 @@ template <class data_t> class Coordinates
         compute_coord(yy, integer_coords[1], dx, center[1]);
         compute_coord(zz, integer_coords[2], dx, center[2]);
 
-        data_t r = sqrt(xx * xx + yy * yy + zz * zz);
+        data_t r = std::sqrt(xx * xx + yy * yy + zz * zz);
 
         const double minimum_r = 1e-6;
         return simd_max(r, minimum_r);

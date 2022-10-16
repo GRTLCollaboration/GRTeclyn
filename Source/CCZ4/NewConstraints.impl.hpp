@@ -62,9 +62,9 @@ Constraints::Vars<data_t> Constraints::constraint_equations(
         out.Ham -= 2 * m_cosmological_constant;
 
         out.Ham_abs_terms =
-            abs(ricci.scalar) + abs(tr_A2) +
-            abs((GR_SPACEDIM - 1.) * vars.K * vars.K / GR_SPACEDIM);
-        out.Ham_abs_terms += 2.0 * abs(m_cosmological_constant);
+            std::abs(ricci.scalar) + std::abs(tr_A2) +
+            std::abs((GR_SPACEDIM - 1.) * vars.K * vars.K / GR_SPACEDIM);
+        out.Ham_abs_terms += 2.0 * std::abs(m_cosmological_constant);
     }
 
     if (m_c_Moms.size() > 0 || m_c_Moms_abs_terms.size() > 0)
@@ -82,7 +82,7 @@ Constraints::Vars<data_t> Constraints::constraint_equations(
         FOR(i)
         {
             out.Mom[i] = -(GR_SPACEDIM - 1.) * d1.K[i] / GR_SPACEDIM;
-            out.Mom_abs_terms[i] = abs(out.Mom[i]);
+            out.Mom_abs_terms[i] = std::abs(out.Mom[i]);
         }
         Tensor<1, data_t> covd_A_term = 0.0;
         Tensor<1, data_t> d1_chi_term = 0.0;
@@ -96,7 +96,7 @@ Constraints::Vars<data_t> Constraints::constraint_equations(
         FOR(i)
         {
             out.Mom[i] += covd_A_term[i] + d1_chi_term[i];
-            out.Mom_abs_terms[i] += abs(covd_A_term[i]) + abs(d1_chi_term[i]);
+            out.Mom_abs_terms[i] += std::abs(covd_A_term[i]) + std::abs(d1_chi_term[i]);
         }
     }
     return out;
