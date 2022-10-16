@@ -6,13 +6,14 @@
 #ifndef GRPARMPARSE_HPP_
 #define GRPARMPARSE_HPP_
 
-// Other includes
 #include "ArrayTools.hpp"
+
+#include <AMReX_ParmParse.H>
+#include <AMReX_Print.H>
+
 #include <algorithm>
 #include <memory>
 #include <type_traits>
-
-#include <AMReX_ParmParse.H>
 
 class GRParmParse : public amrex::ParmParse
 {

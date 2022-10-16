@@ -74,6 +74,7 @@ void load_values_to_array(
     const std::vector<std::pair<int, VariableType>> &a_vars_vector,
     std::array<T, NUM_VARS> &a_values_array, const T a_default_value)
 {
+    amrex::Abort("xxxxx load_values_to_array todo");
 #if 0
     // xxxxx
     // how many values do I need to get?
@@ -101,6 +102,7 @@ load_vars_to_vector(GRParmParse &pp, const char *a_vars_vector_string,
                     std::vector<std::pair<int, VariableType>> &a_vars_vector,
                     int &a_vars_vector_size)
 {
+    amrex::Abort("xxxxx load_vars_to_vector todo");
 #if 0
 //xxxxx
     int num_values;

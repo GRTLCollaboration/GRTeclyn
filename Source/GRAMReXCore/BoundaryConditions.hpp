@@ -8,10 +8,11 @@
 
 // Our includes
 #include "DimensionDefinitions.hpp"
-#include "GRLevelData.hpp"
 #include "GRParmParse.hpp"
 #include "UserVariables.hpp"
 #include "VariableType.hpp"
+
+#include <AMReX_MultiFab.H>
 
 /// Class which deals with the boundaries at the edge of the physical domain in
 /// cases where they are not periodic. Currently only options are static BCs,

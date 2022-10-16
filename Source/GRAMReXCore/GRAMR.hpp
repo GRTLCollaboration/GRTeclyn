@@ -6,8 +6,7 @@
 #ifndef GRAMR_HPP_
 #define GRAMR_HPP_
 
-// Other includes
-#include "Lagrange.hpp"
+//xxxxx#include "Lagrange.hpp"
 #include "VariableType.hpp"
 #include <AMReX_Amr.H>
 #include <algorithm>
@@ -15,8 +14,8 @@
 #include <ratio>
 #include <vector>
 
-/// A child of Chombo's AMR class to interface with tools which require
-/// access to the whole AMR hierarchy (such as the AMRInterpolator)
+/// A child of AMReX's AMR class to interface with tools which require
+/// access to the whole AMR hierarchy
 /**
  *It is necessary for many experimental features and allows us to
  *add said features later without breaking any user code.
@@ -25,8 +24,6 @@
 // Forward declaration for get_gramrlevels function declarations
 class GRAMRLevel;
 
-// Forward declaration for AMRInterpolator
-template <typename InterpAlgo> class AMRInterpolator;
 class SimulationParameters;
 
 class GRAMR : public amrex::Amr
@@ -37,7 +34,6 @@ class GRAMR : public amrex::Amr
     std::chrono::time_point<Clock> start_time = Clock::now();
 
   public:
-    AMRInterpolator<Lagrange<4>> *m_interpolator = nullptr; //!< The interpolator pointer
 
     GRAMR(amrex::LevelBld* a_levelbld);
     virtual ~GRAMR();
@@ -48,9 +44,6 @@ class GRAMR : public amrex::Amr
   private:
     static SimulationParameters const* m_sim_params;
 
-#if 0
-//xxxxx
-
     // defined here due to auto return type
     auto get_walltime()
     {
@@ -59,25 +52,6 @@ class GRAMR : public amrex::Amr
 
         return duration.count();
     }
-
-    // Called after AMR object set up
-//xxxxx    virtual void set_interpolator(AMRInterpolator<Lagrange<4>> *a_interpolator);
-
-    // returs a std::vector of GRAMRLevel pointers
-    // similar to AMR::getAMRLevels()
-    std::vector<GRAMRLevel *> get_gramrlevels();
-
-    // const version of above
-//xxxxx    std::vector<const GRAMRLevel *> get_gramrlevels() const;
-
-    // Fill ghosts on multiple levels
-//xxxxx    void fill_multilevel_ghosts(
-//        const VariableType a_var_type,
-//        const Interval &a_comps = Interval(0, std::numeric_limits<int>::max()),
-//        const int a_min_level = 0,
-//        const int a_max_level = std::numeric_limits<int>::max()) const;
-
-#endif
 };
 
 #endif /* GRAMR_HPP_ */
