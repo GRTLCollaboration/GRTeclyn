@@ -33,13 +33,9 @@ void BinaryBHLevel::specificAdvance()
     amrex::ParallelFor(S_new,
     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
     {
-        amrex::Array4<amrex::Real> const& sa = arrs[box_no];
-        // xxxxx hack
-	amrex::FArrayBox fab(amrex::Box(sa), sa.nComp(), sa.dataPtr());
-        BoxPointers box_pointers(fab,fab);
-        Cell<double> cell(amrex::IntVect(i,j,k), box_pointers);
-        TraceARemoval().compute(cell);
-        PositiveChiAndAlpha().compute(cell);
+        amrex::CellData<amrex::Real> cell = arrs[box_no].cellData(i,j,k);
+        TraceARemoval()(cell);
+        PositiveChiAndAlpha()(cell);
     });
 
     // Check for nan's
@@ -139,6 +135,8 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab& a_soln,
 void BinaryBHLevel::specificUpdateODE(amrex::MultiFab& a_soln,
                                       amrex::MultiFab const& a_rhs, amrex::Real a_dt)
 {
+    amrex::Abort("xxxxx BinaryBHLevel::specificUpdateODE todo");
+
     // Enforce the trace free A_ij condition
     auto const& soln_arrs = a_soln.arrays();
     amrex::ParallelFor(a_soln, a_soln.nGrowVect(),
