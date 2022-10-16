@@ -27,16 +27,6 @@ class TraceARemoval
         void enum_mapping(mapping_function_t mapping_function);
     };
 
-    template <class data_t> void compute(Cell<data_t> current_cell) const
-    {
-        auto vars = current_cell.template load_vars<Vars>();
-
-        const auto h_UU = TensorAlgebra::compute_inverse_sym(vars.h);
-        TensorAlgebra::make_trace_free(vars.A, vars.h, h_UU);
-
-        current_cell.store_vars(vars);
-    }
-
     template <class data_t>
     AMREX_GPU_HOST_DEVICE
     void operator() (amrex::CellData<data_t> const& cell) const

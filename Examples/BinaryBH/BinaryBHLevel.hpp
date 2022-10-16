@@ -18,15 +18,6 @@ public:
     // Inherit the contructors from GRAMRLevel
     using GRAMRLevel::GRAMRLevel;
 
-#if 0
-    friend class DefaultLevelFactory<BinaryBHLevel>;
-    // xxxxx
-    BHAMR &m_bh_amr = dynamic_cast<BHAMR &>(m_gr_amr);
-#ifdef USE_TWOPUNCTURES
-    TPAMR &m_tp_amr = dynamic_cast<TPAMR &>(m_gr_amr);
-#endif /* USE_TWOPUNCTURES */
-#endif
-
     /// Things to do at every full timestep
     ///(might include several substeps, e.g. in RK4)
     virtual void specificAdvance() override;

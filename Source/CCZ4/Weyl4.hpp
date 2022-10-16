@@ -66,12 +66,6 @@ class Weyl4
     {
     }
 
-    //! The compute member which calculates the wave quantities at each point on
-    //! the grid
-    template <class data_t>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    void compute(Cell<data_t> current_cell) const;
-
   protected:
     const std::array<double, AMREX_SPACEDIM> m_center; //!< The grid center
     const double m_dx;                              //!< the grid spacing

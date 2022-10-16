@@ -26,18 +26,6 @@ class PositiveChiAndAlpha
     {
     }
 
-    template <class data_t> void compute(Cell<data_t> current_cell) const
-    {
-        auto chi = current_cell.load_vars(c_chi);
-        auto lapse = current_cell.load_vars(c_lapse);
-
-        chi = simd_max(chi, m_min_chi);
-        lapse = simd_max(lapse, m_min_lapse);
-
-        current_cell.store_vars(chi, c_chi);
-        current_cell.store_vars(lapse, c_lapse);
-    }
-
     template <class data_t>
     AMREX_GPU_HOST_DEVICE
     void operator() (amrex::CellData<data_t> const& cell) const

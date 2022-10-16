@@ -4,20 +4,11 @@
  */
 
 #include "BinaryBHLevel.hpp"
-#include "AMRReductions.hpp"
 #include "BinaryBH.hpp"
-#include "BoxLoops.hpp"
 #include "CCZ4RHS.hpp"
-#include "ChiExtractionTaggingCriterion.hpp"
-#include "ChiPunctureExtractionTaggingCriterion.hpp"
-#include "ComputePack.hpp"
-#include "NanCheck.hpp"
-#include "NewConstraints.hpp"
 #include "PositiveChiAndAlpha.hpp"
 #include "PunctureTracker.hpp"
-#include "SetValue.hpp"
-#include "SixthOrderDerivatives.hpp"
-#include "SmallDataIO.hpp"
+//xxxxx #include "SixthOrderDerivatives.hpp"
 #include "TraceARemoval.hpp"
 #include "TwoPuncturesInitialData.hpp"
 #include "Weyl4.hpp"
@@ -28,6 +19,8 @@ void BinaryBHLevel::specificAdvance()
 {
     amrex::MultiFab& S_new = get_new_data(State_Type);
     auto const& arrs = S_new.arrays();
+
+    // xxxxx: ghost cells are not included here, whereas they are in GRChombo
 
     // Enforce the trace free A_ij condition and positive chi and alpha
     amrex::ParallelFor(S_new,
@@ -54,7 +47,7 @@ void BinaryBHLevel::initData()
     if (m_verbosity)
         amrex::Print() << "BinaryBHLevel::initialData " << Level() << std::endl;
 #ifdef USE_TWOPUNCTURES
-    // xxxx USE_TWOPUNCTURES todo
+    // xxxxx USE_TWOPUNCTURES todo
     TwoPuncturesInitialData two_punctures_initial_data(
         m_dx, m_p.center, m_tp_amr.m_two_punctures);
     // Can't use simd with this initial data
@@ -134,6 +127,7 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab& a_soln,
 // enforce trace removal during RK4 substeps
 void BinaryBHLevel::specificUpdateODE(amrex::MultiFab& a_soln)
 {
+    // xxxxx No ghghost cells are included, whereas they are in GRChombo
     // Enforce the trace free A_ij condition
     auto const& soln_arrs = a_soln.arrays();
     amrex::ParallelFor(a_soln, amrex::IntVect(0), // zero ghost cells
@@ -154,6 +148,7 @@ void BinaryBHLevel::preTagCells()
 void BinaryBHLevel::computeTaggingCriterion(amrex::FArrayBox &tagging_criterion,
                                             const amrex::FArrayBox &current_state)
 {
+    amrex::ignore_unused(tagging_criterion, current_state);
 #if 0
 //xxxxx
     if (m_p.track_punctures)
@@ -187,7 +182,7 @@ void BinaryBHLevel::computeTaggingCriterion(amrex::FArrayBox &tagging_criterion,
 void BinaryBHLevel::specificPostTimeStep()
 {
 #if 0
-//xxxxx
+//xxxxx specificPostTimeStep
     BL_PROFILE("BinaryBHLevel::specificPostTimeStep");
 
     bool first_step =

@@ -12,40 +12,6 @@
 
 template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void Weyl4::compute(Cell<data_t> current_cell) const
-{
-
-    // copy data from chombo gridpoint into local variables
-    const auto vars = current_cell.template load_vars<Vars>();
-    const auto d1 = m_deriv.template diff1<Vars>(current_cell);
-    const auto d2 = m_deriv.template diff2<Diff2Vars>(current_cell);
-
-    // Get the coordinates
-    const Coordinates<data_t> coords(current_cell, m_dx, m_center);
-
-    // Compute the inverse metric and Christoffel symbols
-    using namespace TensorAlgebra;
-    const auto h_UU = compute_inverse_sym(vars.h);
-    const auto chris = compute_christoffel(d1.h, h_UU);
-
-    // Compute the spatial volume element
-    const auto epsilon3_LUU = compute_epsilon3_LUU(vars, h_UU);
-
-    // Compute the E and B fields
-    EBFields_t<data_t> ebfields =
-        compute_EB_fields(vars, d1, d2, epsilon3_LUU, h_UU, chris);
-
-    // work out the Newman Penrose scalar
-    NPScalar_t<data_t> out =
-        compute_Weyl4(ebfields, vars, d1, d2, h_UU, coords);
-
-    // Write the rhs into the output FArrayBox
-    current_cell.store_vars(out.Real, c_Weyl4_Re);
-    current_cell.store_vars(out.Im, c_Weyl4_Im);
-}
-
-template <class data_t>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 Tensor<3, data_t>
 Weyl4::compute_epsilon3_LUU(const Vars<data_t> &vars,
                             const Tensor<2, data_t> &h_UU) const

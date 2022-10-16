@@ -3,10 +3,6 @@
  * Please refer to LICENSE in GRChombo's root directory.
  */
 
-// System includes
-#include <chrono>
-#include <iostream>
-
 // Our includes
 #include "DefaultLevelFactory.hpp"
 #include "GRParmParse.hpp"
@@ -18,6 +14,10 @@
 
 // Problem specific includes:
 #include "BinaryBHLevel.hpp"
+
+// System includes
+#include <chrono>
+#include <iostream>
 
 DefaultLevelFactory<BinaryBHLevel> bh_level_bld;
 
@@ -65,68 +65,6 @@ int runGRAMReX(int /*argc*/, char */*argv*/[])
     {
         bh_amr.writePlotFile();
     }
-
-#if 0
-    //xxxxx
-
-    // must be before 'setupAMRObject' to define punctures for tagging criteria
-    if (sim_params.track_punctures)
-    {
-        // the tagging criterion used in this example means that the punctures
-        // should be on the max level but let's fill ghosts on the level below
-        // too just in case
-        int puncture_tracker_min_level = sim_params.max_level - 1;
-        bh_amr.m_puncture_tracker.initial_setup(
-            {sim_params.bh1_params.center, sim_params.bh2_params.center},
-            "punctures", sim_params.data_path, puncture_tracker_min_level);
-    }
-
-    // The line below selects the problem that is simulated
-    // (To simulate a different problem, define a new child of AMRLevel
-    // and an associated LevelFactory)
-    DefaultLevelFactory<BinaryBHLevel> binary_bh_level_fact(bh_amr, sim_params);
-    setupAMRObject(bh_amr, binary_bh_level_fact);
-
-    // call this after amr object setup so grids known
-    // and need it to stay in scope throughout run
-    AMRInterpolator<Lagrange<4>> interpolator(
-        bh_amr, sim_params.origin, sim_params.dx, sim_params.boundary_params,
-        sim_params.verbosity);
-    bh_amr.set_interpolator(
-        &interpolator); // also sets puncture_tracker interpolator
-
-    // must be after interpolator is set
-    if (sim_params.track_punctures)
-        bh_amr.m_puncture_tracker.restart_punctures();
-
-    using Clock = std::chrono::steady_clock;
-    using Minutes = std::chrono::duration<double, std::ratio<60, 1>>;
-
-    std::chrono::time_point<Clock> start_time = Clock::now();
-
-    // Add a scheduler to call specificPostTimeStep on every AMRLevel at t=0
-    auto task = [](GRAMRLevel *level) {
-        if (level->time() == 0.)
-            level->specificPostTimeStep();
-    };
-    // call 'now' really now
-    MultiLevelTaskPtr<> call_task(task);
-    call_task.execute(bh_amr);
-    // or call at post-plotLevel, at every 'some_interval'
-    // int some_interval = 10;
-    // bool reverse_levels = true;
-    // MultiLevelTaskPtr<> call_task(task, reverse_levels, some_interval);
-    // bh_amr.schedule(call_task);
-
-    bh_amr.run(sim_params.stop_time, sim_params.max_steps);
-
-    auto now = Clock::now();
-    auto duration = std::chrono::duration_cast<Minutes>(now - start_time);
-    amrex::Print() << "Total simulation time (mins): " << duration.count() << ".\n";
-
-    bh_amr.conclude();
-
-#endif
 
     return 0;
 }
