@@ -189,8 +189,8 @@ template <typename t, typename ptr_t> struct _simdify<simd<t>, ptr_t>
 // just ptr_t* - If t=simd<base_t> (up to const and volatile) where base_t =
 // ptr_t: return type simd_array_wrapper<ptr_t> - Else: substitution failure
 template <typename t, typename ptr_t>
-ALWAYS_INLINE typename _simdify<t, ptr_t>::type // See comments at _simdify for
-                                                // explanation of return types
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+typename _simdify<t, ptr_t>::type // See comments at _simdify for explanation of return types
 SIMDIFY(ptr_t *ptr)
 {
     return ptr;

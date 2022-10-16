@@ -19,6 +19,7 @@ class PositiveChiAndAlpha
 
   public:
     //! Constructor for class
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     PositiveChiAndAlpha(const double a_min_chi = 1e-4,
                         const double a_min_lapse = 1e-4)
         : m_min_chi(a_min_chi), m_min_lapse(a_min_lapse)

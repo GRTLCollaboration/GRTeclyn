@@ -38,6 +38,7 @@ class IntegratedMovingPunctureGauge
         /// Defines the mapping between members of Vars and Chombo grid
         /// variables (enum in User_Variables)
         template <typename mapping_function_t>
+        AMREX_GPU_HOST_DEVICE
         void enum_mapping(mapping_function_t mapping_function)
         {
             VarsTools::define_enum_mapping(
@@ -74,10 +75,11 @@ class IntegratedMovingPunctureGauge
 
     template <class data_t, template <typename> class vars_t,
               template <typename> class diff2_vars_t>
-    inline void rhs_gauge(vars_t<data_t> &rhs, const vars_t<data_t> &vars,
-                          const vars_t<Tensor<1, data_t>> &d1,
-                          const diff2_vars_t<Tensor<2, data_t>> &d2,
-                          const vars_t<data_t> &advec) const
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    void rhs_gauge(vars_t<data_t> &rhs, const vars_t<data_t> &vars,
+                   const vars_t<Tensor<1, data_t>> &d1,
+                   const diff2_vars_t<Tensor<2, data_t>> &d2,
+                   const vars_t<data_t> &advec) const
     {
         rhs.lapse = m_params.lapse_advec_coeff * advec.lapse -
                     m_params.lapse_coeff *

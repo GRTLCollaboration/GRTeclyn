@@ -30,7 +30,8 @@ class CCZ4Geometry
 {
   protected:
     template <class data_t>
-    ALWAYS_INLINE static data_t
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    static data_t
     compute_z_terms(const int i, const int j,
                     const Tensor<1, data_t> &Z_over_chi,
                     const Tensor<2, data_t> &h, const Tensor<1, data_t> &d1_chi)
@@ -47,6 +48,7 @@ class CCZ4Geometry
   public:
     template <class data_t, template <typename> class vars_t,
               template <typename> class diff2_vars_t>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     static ricci_t<data_t>
     compute_ricci_Z(const vars_t<data_t> &vars,
                     const vars_t<Tensor<1, data_t>> &d1,

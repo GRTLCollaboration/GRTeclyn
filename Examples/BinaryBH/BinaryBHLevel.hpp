@@ -13,6 +13,8 @@
 
 class BinaryBHLevel : public GRAMRLevel
 {
+public:
+
     // Inherit the contructors from GRAMRLevel
     using GRAMRLevel::GRAMRLevel;
 

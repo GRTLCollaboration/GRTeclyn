@@ -23,6 +23,7 @@ class TraceARemoval
         Tensor<2, data_t> A;
 
         template <typename mapping_function_t>
+        AMREX_GPU_HOST_DEVICE
         void enum_mapping(mapping_function_t mapping_function);
     };
 
@@ -37,7 +38,7 @@ class TraceARemoval
     }
 
     template <class data_t>
-    AMREX_GPU_DEVICE // or AMREX_GPU_HOST_DEVICE if this is needed on the host
+    AMREX_GPU_HOST_DEVICE
     void operator() (amrex::CellData<data_t> const& cell) const
     {
         auto vars = load_vars<Vars>(cell);
@@ -51,6 +52,7 @@ class TraceARemoval
 
 template <class data_t>
 template <typename mapping_function_t>
+AMREX_GPU_HOST_DEVICE
 void TraceARemoval::Vars<data_t>::enum_mapping(
     mapping_function_t mapping_function)
 {

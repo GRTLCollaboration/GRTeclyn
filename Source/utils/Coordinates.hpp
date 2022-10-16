@@ -22,6 +22,7 @@ template <class data_t> class Coordinates
     double z;
     std::array<double, AMREX_SPACEDIM> m_center;
 
+    AMREX_GPU_HOST_DEVICE
     Coordinates(amrex::IntVect integer_coords, double dx,
                 std::array<double, AMREX_SPACEDIM> center = {0})
         : m_center(center)
@@ -42,13 +43,15 @@ template <class data_t> class Coordinates
 #endif
     }
 
-    ALWAYS_INLINE static void compute_coord(double &out, int position,
-                                            double dx,
-                                            double center_distance = 0)
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static void compute_coord(double &out, int position,
+                              double dx, double center_distance = 0)
     {
         out = (position + 0.5) * dx - center_distance;
     }
 
+#if !defined(AMREX_USE_GPU)
+    AMREX_FORCE_INLINE
     static typename std::enable_if_t<(simd_traits<double>::simd_len > 1), void>
     compute_coord(simd<double> &out, int position, double dx,
                   double center_distance = 0)
@@ -60,9 +63,11 @@ template <class data_t> class Coordinates
         }
         out = simd<double>::load(out_arr);
     }
+#endif
 
     /// This function returns the radius subject to a floor for a given
     /// Coordinates object.
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     data_t get_radius() const
     {
         // Note that this is not currently dimension independent
@@ -74,6 +79,7 @@ template <class data_t> class Coordinates
 
     /// This static function returns the radius subject to a floor
     /// for when no coordinates object exists.
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static data_t get_radius(amrex::IntVect integer_coords, double dx,
                              std::array<double, AMREX_SPACEDIM> center = {0})
     {

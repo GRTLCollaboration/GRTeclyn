@@ -15,6 +15,7 @@
 #include "DebuggingTools.hpp"
 #include "simd.hpp"
 
+#if !defined(AMREX_USE_GPU)
 template <typename... compute_ts>
 void BoxLoops::innermost_loop(const ComputePack<compute_ts...> &compute_pack,
                               const BoxPointers &box_pointers, const int iy,
@@ -44,6 +45,7 @@ void BoxLoops::innermost_loop(const ComputePack<compute_ts...> &compute_pack,
             Cell<double>(amrex::IntVect(ix, iy, iz), box_pointers));
     }
 }
+#endif
 
 template <typename... compute_ts>
 void BoxLoops::innermost_loop(const ComputePack<compute_ts...> &compute_pack,

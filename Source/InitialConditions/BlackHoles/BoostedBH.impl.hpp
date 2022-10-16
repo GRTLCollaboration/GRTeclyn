@@ -17,6 +17,7 @@
 inline BoostedBH::BoostedBH(params_t a_params) : m_params(a_params) {}
 
 template <class data_t>
+AMREX_GPU_DEVICE
 data_t BoostedBH::psi_minus_one(Coordinates<data_t> coords) const
 {
     const data_t r = center_dist(coords);
@@ -29,6 +30,7 @@ data_t BoostedBH::psi_minus_one(Coordinates<data_t> coords) const
 }
 
 template <class data_t>
+AMREX_GPU_DEVICE
 Tensor<2, data_t> BoostedBH::Aij(Coordinates<data_t> coords) const
 {
     const data_t r = center_dist(coords);

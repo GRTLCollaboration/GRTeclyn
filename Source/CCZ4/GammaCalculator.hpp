@@ -24,6 +24,7 @@ class GammaCalculator
         Tensor<2, data_t> h;
 
         template <typename mapping_function_t>
+        AMREX_GPU_DEVICE
         void enum_mapping(mapping_function_t mapping_function)
         {
             VarsTools::define_symmetric_enum_mapping(

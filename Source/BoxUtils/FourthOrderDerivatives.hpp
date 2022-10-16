@@ -28,8 +28,8 @@ class FourthOrderDerivatives
     }
 
     template <class data_t>
-    ALWAYS_INLINE data_t diff1(const double *in_ptr, const int idx,
-                               const int stride) const
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    data_t diff1(const double *in_ptr, const int idx, const int stride) const
     {
         auto in = SIMDIFY<data_t>(in_ptr);
 
@@ -83,14 +83,15 @@ class FourthOrderDerivatives
     /// Calculates all first derivatives and returns as variable type specified
     /// by the template parameter
     template <template <typename> class vars_t, class data_t>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     auto diff1(int i, int j, int k, const amrex::Array4<data_t const> &state) const
     {
         vars_t<Tensor<1, data_t>> d1;
         auto p = state.ptr(i,j,k);
         d1.enum_mapping([&](const int &ivar, Tensor<1, data_t> &var) {
             AMREX_D_TERM(var[0] = diff1<data_t>(p+ivar*state.nstride, 0, 1);,
-                         var[1] = diff1<data_t>(p+ivar*state.nstride, 0, state.jstride);,
-                         var[2] = diff1<data_t>(p+ivar*state.nstride, 0, state.kstride));
+                         var[1] = diff1<data_t>(p+ivar*state.nstride, 0, static_cast<int>(state.jstride));,
+                         var[2] = diff1<data_t>(p+ivar*state.nstride, 0, static_cast<int>(state.kstride)));
         });
         return d1;
     }
@@ -122,8 +123,8 @@ class FourthOrderDerivatives
     }
 
     template <class data_t>
-    ALWAYS_INLINE data_t diff2(const double *in_ptr, const int idx,
-                               const int stride) const
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    data_t diff2(const double *in_ptr, const int idx, const int stride) const
     {
         auto in = SIMDIFY<data_t>(in_ptr);
 
@@ -155,6 +156,7 @@ class FourthOrderDerivatives
     }
 
     template <class data_t, int num_vars>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void diff2(Tensor<2, data_t> (&diffArray)[num_vars],
                const Cell<data_t> &current_cell, int direction) const
     {
@@ -170,8 +172,9 @@ class FourthOrderDerivatives
     }
 
     template <class data_t>
-    ALWAYS_INLINE data_t mixed_diff2(const double *in_ptr, const int idx,
-                                     const int stride1, const int stride2) const
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    data_t mixed_diff2(const double *in_ptr, const int idx,
+                       const int stride1, const int stride2) const
     {
         auto in = SIMDIFY<data_t>(in_ptr);
 
@@ -272,11 +275,12 @@ class FourthOrderDerivatives
     /// Calculates all second derivatives and returns as variable type specified
     /// by the template parameter
     template <template <typename> class vars_t, class data_t>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     auto diff2(int i, int j, int k, amrex::Array4<data_t const> const& state) const
     {
         vars_t<Tensor<2, data_t>> d2;
         auto p = state.ptr(i,j,k);
-        amrex::GpuArray<int,AMREX_SPACEDIM> strides{1,state.jstride,state.kstride};
+        amrex::GpuArray<int,AMREX_SPACEDIM> strides{1,static_cast<int>(state.jstride),static_cast<int>(state.kstride)};
         d2.enum_mapping([&](const int &ivar, Tensor<2, data_t> &var) {
             auto pvar = p+ivar*state.nstride;
             FOR(dir1) // First calculate the repeated derivatives
@@ -296,10 +300,11 @@ class FourthOrderDerivatives
   protected: // Let's keep this protected ... we may want to change the
              // advection calculation
     template <class data_t, class mask_t>
-    ALWAYS_INLINE data_t advection_term(const double *in_ptr, const int idx,
-                                        const data_t &vec_comp,
-                                        const int stride,
-                                        const mask_t shift_positive) const
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    data_t advection_term(const double *in_ptr, const int idx,
+                          const data_t &vec_comp,
+                          const int stride,
+                          const mask_t shift_positive) const
     {
         const auto in = SIMDIFY<data_t>(in_ptr);
         const data_t in_left = in[idx - stride];
@@ -385,13 +390,14 @@ class FourthOrderDerivatives
     /// Calculates all second derivatives and returns as variable type specified
     /// by the template parameter
     template <template <typename> class vars_t, class data_t>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     auto advection(int i, int j, int k,
                    amrex::Array4<data_t const> const& state,
                    const Tensor<1, data_t> &vector) const
     {
         vars_t<data_t> advec;
         auto p = state.ptr(i,j,k);
-        amrex::GpuArray<int,AMREX_SPACEDIM> strides{1,state.jstride,state.kstride};
+        amrex::GpuArray<int,AMREX_SPACEDIM> strides{1,static_cast<int>(state.jstride),static_cast<int>(state.kstride)};
         advec.enum_mapping([&](const int &ivar, data_t &var) {
             var = 0.;
             auto pvar = p+ivar*state.nstride;
@@ -406,8 +412,9 @@ class FourthOrderDerivatives
     }
 
     template <class data_t>
-    ALWAYS_INLINE data_t dissipation_term(const double *in_ptr, const int idx,
-                                          const int stride) const
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    data_t dissipation_term(const double *in_ptr, const int idx,
+                            const int stride) const
     {
         const auto in = SIMDIFY<data_t>(in_ptr);
         data_t weight_vfar = 1.56250e-2;
@@ -457,13 +464,14 @@ class FourthOrderDerivatives
     }
 
     template <class data_t, template <typename> class vars_t>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void add_dissipation(int i, int j, int k,
                          vars_t<data_t> &vars,
                          amrex::Array4<data_t const> const& state,
                          const double factor) const
     {
         auto p = state.ptr(i,j,k);
-        amrex::GpuArray<int,AMREX_SPACEDIM> strides{1,state.jstride,state.kstride};
+        amrex::GpuArray<int,AMREX_SPACEDIM> strides{1,static_cast<int>(state.jstride),static_cast<int>(state.kstride)};
         vars.enum_mapping([&](const int &ivar, data_t &var) {
             FOR(dir)
             {

@@ -33,7 +33,9 @@ void mainSetup(int argc, char *argv[]);
 /// This function calls all finalisations
 void mainFinalize();
 
+#if !defined(AMREX_USE_GPU)
 const int simd_traits<double>::simd_len; // Still needs to be defined
+#endif
 
 /// Sets up the grid parameters, problem domain and AMR object
 //xxxxxvoid setupAMRObject(AMR &gr_amr, AMRLevelFactory &a_factory);
@@ -49,8 +51,10 @@ void mainSetup(int argc, char *argv[])
                    "worse performance.");
 #endif
 
+#if !defined(AMREX_USE_GPU)
     amrex::Print() << " simd width (doubles) = " << simd_traits<double>::simd_len
                    << std::endl;
+#endif
 
     const int required_argc = 2;
     if (argc < required_argc)

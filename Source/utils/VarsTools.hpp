@@ -17,6 +17,7 @@
 namespace VarsTools
 {
 template <typename mapping_function_t, typename data_t>
+AMREX_GPU_DEVICE
 void define_enum_mapping(mapping_function_t mapping_function, const int &ivar,
                          data_t &scalar)
 {
@@ -25,6 +26,7 @@ void define_enum_mapping(mapping_function_t mapping_function, const int &ivar,
 
 template <typename mapping_function_t, typename data_t, int start_var,
           int end_var>
+AMREX_GPU_DEVICE
 void define_enum_mapping(mapping_function_t mapping_function,
                          const GRInterval<start_var, end_var> interval,
                          Tensor<1, data_t, end_var - start_var + 1> &tensor)
@@ -35,6 +37,7 @@ void define_enum_mapping(mapping_function_t mapping_function,
 
 template <typename mapping_function_t, typename data_t, int start_var,
           int end_var>
+AMREX_GPU_DEVICE
 void define_symmetric_enum_mapping(
     mapping_function_t mapping_function,
     const GRInterval<start_var, end_var> interval, Tensor<2, data_t> &tensor)
@@ -78,6 +81,7 @@ struct strip_nested_template<outermost_layer<inner_part>>
  *specifying an arbitrary number of icomps
  */
 template <class vars_t, typename value_t>
+AMREX_GPU_DEVICE
 ALWAYS_INLINE void assign(vars_t &vars, const value_t &value)
 {
     // The template magic below is needed to make sure that we can write

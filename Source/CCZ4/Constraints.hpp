@@ -36,6 +36,7 @@ class [
         Tensor<1, data_t> Mom;
 
         template <typename mapping_function_t>
+        AMREX_GPU_DEVICE
         void enum_mapping(mapping_function_t mapping_function)
         {
             using namespace VarsTools;

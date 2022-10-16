@@ -10,7 +10,9 @@
 #ifndef WEYL4_IMPL_HPP_
 #define WEYL4_IMPL_HPP_
 
-template <class data_t> void Weyl4::compute(Cell<data_t> current_cell) const
+template <class data_t>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void Weyl4::compute(Cell<data_t> current_cell) const
 {
 
     // copy data from chombo gridpoint into local variables
@@ -43,6 +45,7 @@ template <class data_t> void Weyl4::compute(Cell<data_t> current_cell) const
 }
 
 template <class data_t>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 Tensor<3, data_t>
 Weyl4::compute_epsilon3_LUU(const Vars<data_t> &vars,
                             const Tensor<2, data_t> &h_UU) const
@@ -92,6 +95,7 @@ Weyl4::compute_epsilon3_LUU(const Vars<data_t> &vars,
 // CCZ4 expressions calculated by MR and checked with TF see:
 // https://www.overleaf.com/read/tvqjbyhvqqtp
 template <class data_t>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 EBFields_t<data_t> Weyl4::compute_EB_fields(
     const Vars<data_t> &vars, const Vars<Tensor<1, data_t>> &d1,
     const Diff2Vars<Tensor<2, data_t>> &d2,
@@ -191,6 +195,7 @@ EBFields_t<data_t> Weyl4::compute_EB_fields(
 
 // Calculation of the Weyl4 scalar
 template <class data_t>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 NPScalar_t<data_t> Weyl4::compute_Weyl4(const EBFields_t<data_t> &ebfields,
                                         const Vars<data_t> &vars,
                                         const Vars<Tensor<1, data_t>> &d1,
@@ -224,6 +229,7 @@ NPScalar_t<data_t> Weyl4::compute_Weyl4(const EBFields_t<data_t> &ebfields,
 // "The Lazarus project: A pragmatic approach to binary black hole evolutions",
 // Baker et al.
 template <class data_t>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 Tetrad_t<data_t>
 Weyl4::compute_null_tetrad(const Vars<data_t> &vars,
                            const Tensor<2, data_t> &h_UU,

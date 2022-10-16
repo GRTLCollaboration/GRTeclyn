@@ -38,6 +38,7 @@ inline CCZ4RHS<gauge_t, deriv_t>::CCZ4RHS(
 
 template <class gauge_t, class deriv_t>
 template <class data_t>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void CCZ4RHS<gauge_t, deriv_t>::compute(int i, int j, int k,
                                         amrex::Array4<data_t> const& rhs,
                                         amrex::Array4<data_t const> const& state) const
@@ -59,6 +60,7 @@ void CCZ4RHS<gauge_t, deriv_t>::compute(int i, int j, int k,
 template <class gauge_t, class deriv_t>
 template <class data_t, template <typename> class vars_t,
           template <typename> class diff2_vars_t>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
     vars_t<data_t> &rhs, const vars_t<data_t> &vars,
     const vars_t<Tensor<1, data_t>> &d1,

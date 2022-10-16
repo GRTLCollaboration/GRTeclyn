@@ -48,6 +48,7 @@ template <class data_t> void BinaryBH::compute(Cell<data_t> current_cell) const
 }
 
 template <class data_t>
+AMREX_GPU_DEVICE
 data_t BinaryBH::compute_chi(Coordinates<data_t> coords) const
 {
     const data_t psi =
@@ -56,6 +57,7 @@ data_t BinaryBH::compute_chi(Coordinates<data_t> coords) const
 }
 
 template <class data_t>
+AMREX_GPU_DEVICE
 Tensor<2, data_t> BinaryBH::compute_A(data_t chi,
                                       Coordinates<data_t> coords) const
 {

@@ -68,7 +68,9 @@ class Weyl4
 
     //! The compute member which calculates the wave quantities at each point on
     //! the grid
-    template <class data_t> void compute(Cell<data_t> current_cell) const;
+    template <class data_t>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    void compute(Cell<data_t> current_cell) const;
 
   protected:
     const std::array<double, AMREX_SPACEDIM> m_center; //!< The grid center
@@ -78,11 +80,13 @@ class Weyl4
 
     //! Compute spatial volume element
     template <class data_t>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     Tensor<3, data_t> compute_epsilon3_LUU(const Vars<data_t> &vars,
                                            const Tensor<2, data_t> &h_UU) const;
 
     //! Calculation of Weyl_4 scalar
     template <class data_t>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     NPScalar_t<data_t> compute_Weyl4(const EBFields_t<data_t> &ebfields,
                                      const Vars<data_t> &vars,
                                      const Vars<Tensor<1, data_t>> &d1,
@@ -92,6 +96,7 @@ class Weyl4
 
     //! Calculation of the tetrads
     template <class data_t>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     Tetrad_t<data_t>
     compute_null_tetrad(const Vars<data_t> &vars, const Tensor<2, data_t> &h_UU,
                         const Coordinates<data_t> &coords) const;
@@ -99,6 +104,7 @@ class Weyl4
     //! Calulation of the decomposition of the Weyl tensor in Electric and
     //! Magnetic fields
     template <class data_t>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     EBFields_t<data_t> compute_EB_fields(const Vars<data_t> &vars,
                                          const Vars<Tensor<1, data_t>> &d1,
                                          const Diff2Vars<Tensor<2, data_t>> &d2,

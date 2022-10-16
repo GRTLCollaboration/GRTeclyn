@@ -144,7 +144,7 @@ template <class data_t> class Cell
 #include "Cell.impl.hpp"
 
 template <template <typename> class vars_t, class data_t>
-AMREX_GPU_HOST_DEVICE
+AMREX_GPU_DEVICE
 void store_vars (amrex::CellData<data_t> const& cell, vars_t<data_t>& vars)
 {
     vars.enum_mapping([&](const int& ivar, data_t const& var) {
@@ -153,7 +153,7 @@ void store_vars (amrex::CellData<data_t> const& cell, vars_t<data_t>& vars)
 }
 
 template <template <typename> class vars_t, class data_t>
-AMREX_GPU_HOST_DEVICE
+AMREX_GPU_DEVICE
 void load_vars (amrex::CellData<data_t> const& cell,
                 vars_t<std::remove_const_t<data_t> >& vars)
 {
@@ -163,7 +163,7 @@ void load_vars (amrex::CellData<data_t> const& cell,
 }
 
 template <template <typename> class vars_t, class data_t>
-AMREX_GPU_HOST_DEVICE
+AMREX_GPU_DEVICE
 auto load_vars (amrex::CellData<data_t> const& cell)
 {
     vars_t<std::remove_const_t<data_t> > vars;

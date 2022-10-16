@@ -27,6 +27,7 @@ struct VarsNoGauge : public ADMConformalVars::VarsNoGauge<data_t>
     /// Defines the mapping between members of Vars and Chombo grid
     /// variables (enum in User_Variables)
     template <typename mapping_function_t>
+    AMREX_GPU_DEVICE
     void enum_mapping(mapping_function_t mapping_function)
     {
         using namespace VarsTools; // define_enum_mapping is part of VarsTools
@@ -47,6 +48,7 @@ template <class data_t> struct VarsWithGauge : public VarsNoGauge<data_t>
     /// Defines the mapping between members of Vars and Chombo grid
     /// variables (enum in User_Variables)
     template <typename mapping_function_t>
+    AMREX_GPU_DEVICE
     void enum_mapping(mapping_function_t mapping_function)
     {
         using namespace VarsTools; // define_enum_mapping is part of VarsTools

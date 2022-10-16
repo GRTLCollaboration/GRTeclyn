@@ -46,9 +46,11 @@ class BinaryBH
 
   protected:
     template <class data_t>
+    AMREX_GPU_DEVICE
     data_t compute_chi(Coordinates<data_t> coords) const;
 
     template <class data_t>
+    AMREX_GPU_DEVICE
     Tensor<2, data_t> compute_A(data_t chi, Coordinates<data_t> coords) const;
 };
 
