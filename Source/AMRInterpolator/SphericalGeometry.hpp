@@ -67,6 +67,7 @@ class SphericalGeometry
             return m_center[2] + a_radius * cos(a_theta);
         default:
             amrex::Abort("SphericalGeometry: Direction not supported");
+            return 0.;
         }
     }
 
