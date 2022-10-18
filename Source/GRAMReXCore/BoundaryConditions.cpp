@@ -379,6 +379,122 @@ int BoundaryConditions::get_var_parity(int a_comp, int a_dir,
     return vars_parity;
 }
 
+/// Get the boundary condition for given face
+int BoundaryConditions::get_boundary_condition (amrex::Orientation face) const
+{
+    return face.isLow() ? m_params.lo_boundary[face.coordDir()]
+                        : m_params.hi_boundary[face.coordDir()];
+}
+
+
+void BoundaryConditions::apply_sommerfeld_boundaries
+    (amrex::MultiFab& a_rhs, amrex::MultiFab const& a_soln) const
+{
+    if (!m_params.sommerfeld_boundaries_exist) { return; }
+
+    amrex::Vector<amrex::Box> sommboxes;
+    {
+        amrex::Box domain = m_geom.Domain();
+        for (int idim = AMREX_SPACEDIM-1; idim >= 0; --idim) {
+            if (!m_params.is_periodic[idim]) {
+                int bclo = get_boundary_condition
+                    (amrex::Orientation(idim,amrex::Orientation::low));
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(bclo != MIXED_BC,
+                                                 "xxxx mixed bc todo");
+                if (bclo == SOMMERFELD_BC) {
+                    const int len = domain.length(idim);
+                    amrex::Box b = domain;
+                    b.growHi(idim, -(len-m_num_ghosts));
+                    domain.growLo(idim, -m_num_ghosts);
+                    sommboxes.push_back(b);
+                }
+                int bchi = get_boundary_condition
+                    (amrex::Orientation(idim,amrex::Orientation::high));
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(bchi != MIXED_BC,
+                                                 "xxxx mixed bc todo");
+                if (bchi == SOMMERFELD_BC) {
+                    const int len = domain.length(idim);
+                    amrex::Box b = domain;
+                    b.growLo(idim, -(len-m_num_ghosts));
+                    domain.growHi(idim, -m_num_ghosts);
+                    sommboxes.push_back(b);
+                }
+            }
+        }
+    }
+
+    AMREX_ASSERT(amrex::almostEqual(m_geom.CellSize(0), m_geom.CellSize(1)) &&
+                 amrex::almostEqual(m_geom.CellSize(0), m_geom.CellSize(2)));
+    const auto dx = m_geom.CellSize(0);
+    const auto domlo = m_geom.Domain().smallEnd();
+    const auto domhi = m_geom.Domain().bigEnd();
+    const auto center = m_center;
+
+    if (m_asymptotic_values.empty()) {
+        m_asymptotic_values.resize(NUM_VARS);
+        amrex::Gpu::copy(amrex::Gpu::hostToDevice,
+                         m_params.vars_asymptotic_values.begin(),
+                         m_params.vars_asymptotic_values.end(),
+                         m_asymptotic_values.begin());
+    }
+    auto asymptotic_values = m_asymptotic_values.data();
+
+#if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
+#pragma omp parallel
+#endif
+    for (amrex::MFIter mfi(a_rhs); mfi.isValid(); ++mfi) {
+        amrex::Box const& vbx = mfi.validbox();
+        amrex::Array4<amrex::Real const> const& sol = a_soln.const_array(mfi);
+        amrex::Array4<amrex::Real> const& rhs = a_rhs.array(mfi);
+        for (auto const& bb : sommboxes) {
+            amrex::Box b = bb & vbx;
+            if (b.ok()) {
+                amrex::ParallelFor(b, a_rhs.nComp(),
+                [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    amrex::RealVect loc((i+0.5)*dx-center[0],
+                                        (j+0.5)*dx-center[1],
+                                        (k+0.5)*dx-center[2]);
+                    amrex::Real tmp = 0.;
+                    amrex::IntVect iv(i,j,k);
+                    for (int idir2 = 0; idir2 < AMREX_SPACEDIM; ++idir2) {
+                        amrex::IntVect iv_offset1 = iv;
+                        amrex::IntVect iv_offset2 = iv;
+                        amrex::Real d1;
+                        if (iv[idir2] == domlo[idir2]) {
+                            iv_offset1[idir2] += +1;
+                            iv_offset2[idir2] += +2;
+                            d1 = (1.0/dx) * (-1.5 * sol(iv, n)
+                                             +2.0 * sol(iv_offset1, n)
+                                             -0.5 * sol(iv_offset2, n));
+                        } else if (iv[idir2] == domhi[idir2]) {
+                            iv_offset1[idir2] += -1;
+                            iv_offset2[idir2] += -2;
+                            d1 = (1.0/dx) * (+1.5 * sol(iv, n)
+                                             -2.0 * sol(iv_offset1, n)
+                                             +0.5 * sol(iv_offset2, n));
+                        } else {
+                            iv_offset1[idir2] += +1;
+                            iv_offset2[idir2] += -1;
+                            d1 = (0.5/dx) * (sol(iv_offset1, n) -
+                                             sol(iv_offset2, n));
+                        }
+                        // for each direction add dphidx * x^i
+                        tmp += -d1 * loc[idir2];
+                    }
+                    // asymptotic values - these need to have been set in
+                    // the params file
+                    double radius = std::sqrt(loc[0]*loc[0] +
+                                              loc[1]*loc[1] +
+                                              loc[2]*loc[2]);
+                    rhs(i,j,k,n) = (asymptotic_values[n] - sol(i,j,k,n) + tmp)
+                        * (1./radius);
+                });
+            }
+        }
+    }
+}
+
 #if 0
 //xxxxx
 /// Fill the rhs boundary values appropriately based on the params set
@@ -976,25 +1092,6 @@ void BoundaryConditions::interp_boundaries(GRLevelData &a_fine_state,
             }     // end loop boxes
         }         // end if is_periodic
     }             // end loop idir
-}
-#endif
-
-#if 0
-//xxxxx
-/// Get the boundary condition for a_dir and a_side
-int BoundaryConditions::get_boundary_condition(const Side::LoHiSide a_side,
-                                               const int a_dir)
-{
-    int boundary_condition = 0;
-    if (a_side == Side::Lo)
-    {
-        boundary_condition = m_params.lo_boundary[a_dir];
-    }
-    else
-    {
-        boundary_condition = m_params.hi_boundary[a_dir];
-    }
-    return boundary_condition;
 }
 #endif
 

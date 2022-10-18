@@ -16,7 +16,7 @@ struct GRAMRBCFill
                      const amrex::BCRec* /*bcr*/, const int /*bcomp*/,
                      const int /*orig_comp*/) const
     {
-        // xxxxx BCFill todo
+        // We don't have any external Dirichlet BC
     }
 };
 
@@ -38,20 +38,44 @@ void GRAMRLevel::variableSetUp()
                            NUM_VARS,
                            &amrex::cell_quartic_interp);
 
-    int lo_bc[BL_SPACEDIM];
-    int hi_bc[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
-        if (amrex::DefaultGeometry().isPeriodic(i)) {
-            lo_bc[i] = hi_bc[i] = amrex::BCType::int_dir;
-        } else {
-            lo_bc[i] = hi_bc[i] = amrex::BCType::ext_dir;
+    BoundaryConditions::params_t bparms = simParams().boundary_params;
+    BoundaryConditions boundary_conditions;
+    boundary_conditions.define(simParams().center, bparms, amrex::DefaultGeometry(),
+                               simParams().num_ghosts);
+
+    amrex::Vector<amrex::BCRec> bcs(NUM_VARS);
+    for (int icomp = 0; icomp < NUM_VARS; ++icomp) {
+        auto& bc = bcs[icomp];
+        for (amrex::OrientationIter oit; oit.isValid(); ++oit) {
+            amrex::Orientation face = oit();
+            const int idim = face.coordDir();
+            const int bctype = boundary_conditions.get_boundary_condition(face);
+            if (amrex::DefaultGeometry().isPeriodic(idim)) {
+                bc.set(face, amrex::BCType::int_dir);
+            } else if (bctype == BoundaryConditions::STATIC_BC) {
+                bc.set(face, amrex::BCType::foextrap);
+            } else if (bctype == BoundaryConditions::SOMMERFELD_BC) {
+                bc.set(face, amrex::BCType::foextrap);
+            } else if (bctype == BoundaryConditions::REFLECTIVE_BC) {
+                int parity = boundary_conditions.get_var_parity
+                    (icomp, idim, VariableType::evolution);
+                if (parity == 1) {
+                    bc.set(face, amrex::BCType::reflect_even);
+                } else {
+                    bc.set(face, amrex::BCType::reflect_odd);
+                }
+            } else if (bctype == BoundaryConditions::EXTRAPOLATING_BC) {
+                amrex::Abort("xxxxx EXTRAPOLATING_BC todo");
+            } else if (bctype == BoundaryConditions::MIXED_BC) {
+                bc.set(face, amrex::BCType::foextrap); // xxxxx todo mixed BC
+            } else {
+                amrex::Abort("Unknow BC type " + std::to_string(bctype));
+            }
         }
     }
 
-    amrex::Vector<amrex::BCRec> bcs(NUM_VARS);
     amrex::Vector<std::string> name(NUM_VARS);
     for (int i = 0; i < NUM_VARS; ++i) {
-        bcs[i] = amrex::BCRec(lo_bc, hi_bc);
         name[i] = UserVariables::variable_names[i];
     }
 
@@ -133,6 +157,7 @@ amrex::Real GRAMRLevel::advance (amrex::Real time, amrex::Real dt,
              amrex::Real t, amrex::Real /*dtsub*/)
         {
             specificEvalRHS(const_cast<amrex::MultiFab&>(S), dSdt, t);
+            m_boundaries.apply_sommerfeld_boundaries(dSdt, S);
         },
         [&] (int /*stage*/, amrex::MultiFab& S) {
             specificUpdateODE(S);

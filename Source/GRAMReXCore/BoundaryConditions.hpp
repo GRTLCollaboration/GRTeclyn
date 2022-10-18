@@ -85,10 +85,16 @@ class BoundaryConditions
     amrex::RealVect m_center; // the position of the center of the grid
     amrex::Geometry m_geom  ; // the problem domain (excludes boundary cells)
     bool is_defined; // whether the BoundaryConditions class members are defined
+    mutable amrex::Gpu::DeviceVector<double> m_asymptotic_values;
 
   public:
     /// Default constructor - need to call define afterwards
     BoundaryConditions() { is_defined = false; }
+
+    BoundaryConditions(BoundaryConditions const&) = delete;
+    BoundaryConditions(BoundaryConditions&&) = delete;
+    BoundaryConditions& operator=(BoundaryConditions const&) = delete;
+    BoundaryConditions& operator=(BoundaryConditions&&) = delete;
 
     /// define function sets members and is_defined set to true
     void define(std::array<double, AMREX_SPACEDIM> a_center,
@@ -115,6 +121,13 @@ class BoundaryConditions
     static int
     get_var_parity(int a_comp, int a_dir, const params_t &a_params,
                    const VariableType var_type = VariableType::evolution);
+
+    /// Get the boundary condition for given face
+    int get_boundary_condition(amrex::Orientation ori) const;
+
+    /// Apply Sommerfeld BC to RHS
+    void apply_sommerfeld_boundaries(amrex::MultiFab& a_rhs,
+                                     amrex::MultiFab const& a_soln) const;
 
 #if 0
 //xxxxx
