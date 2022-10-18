@@ -53,7 +53,7 @@ void BinaryBH::init_data (int i, int j, int k,
     vars.chi = compute_chi(coords);
 
     // Conformal metric is flat
-    FOR(i) vars.h[i][i] = 1.;
+    FOR(ii) vars.h[ii][ii] = 1.;
 
     vars.A = compute_A(vars.chi, coords);
 

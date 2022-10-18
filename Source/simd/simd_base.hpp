@@ -10,6 +10,8 @@
 #error "This file should only be included through simd.hpp"
 #endif
 
+#include <AMReX_Config.H>
+
 #include <cmath>
 #include <functional>
 #include <iostream>
@@ -94,7 +96,9 @@ template <typename t> struct simd_base
         t out_arr[simd_traits<t>::simd_len];
         simd<t>::store(in_arr, m_value);
 
+#ifdef AMREX_USE_OMP
 #pragma omp simd
+#endif
         for (int i = 0; i < simd_traits<t>::simd_len; ++i)
         {
             out_arr[i] = op(in_arr[i]);
@@ -112,7 +116,9 @@ template <typename t> struct simd_base
         simd<t>::store(in_arr, m_value);
         simd<t>::store(arg_arr, arg);
 
+#ifdef AMREX_USE_OMP
 #pragma omp simd
+#endif
         for (int i = 0; i < simd_traits<t>::simd_len; ++i)
         {
             out_arr[i] = op(in_arr[i], arg_arr[i]);

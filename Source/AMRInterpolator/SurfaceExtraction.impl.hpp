@@ -148,7 +148,7 @@ void SurfaceExtraction<SurfaceGeometry>::extract(
     // m_num_interp_points is 0 on ranks > 0
     InterpolationQuery query(m_num_interp_points);
     FOR(idir) { query.setCoords(idir, m_interp_coords[idir].data()); }
-    for (int ivar = 0; ivar < m_vars.size(); ++ivar)
+    for (std::size_t ivar = 0; ivar < m_vars.size(); ++ivar)
     {
         // note the difference in order between the m_vars tuple in this class
         // and the InterpolationQuery::out_t type
@@ -263,7 +263,7 @@ void SurfaceExtraction<SurfaceGeometry>::integrate()
                 {
                     double v = m_geom.v(iv, m_params.num_points_v);
                     std::vector<double> data_here(m_vars.size());
-                    for (int ivar = 0; ivar < m_vars.size(); ++ivar)
+                    for (std::size_t ivar = 0; ivar < m_vars.size(); ++ivar)
                     {
                         data_here[ivar] =
                             m_interp_data[ivar][index(isurface, iu, iv)];
@@ -295,7 +295,7 @@ void SurfaceExtraction<SurfaceGeometry>::integrate()
     }
 
     // now broadcast result to non-zero ranks if requested
-    for (int iintegral = 0; iintegral < m_integrals.size(); ++iintegral)
+    for (std::size_t iintegral = 0; iintegral < m_integrals.size(); ++iintegral)
     {
         if (m_broadcast_integrals[iintegral])
         {
@@ -355,7 +355,7 @@ void SurfaceExtraction<SurfaceGeometry>::write_extraction(
                     std::to_string(m_params.surface_param_values[isurface])};
             extraction_file.write_header_line(header1_strings, "");
             std::vector<std::string> components(m_vars.size());
-            for (int ivar = 0; ivar < m_vars.size(); ++ivar)
+            for (std::size_t ivar = 0; ivar < m_vars.size(); ++ivar)
             {
                 if (std::get<2>(m_vars[ivar]) != Derivative::LOCAL)
                 {
@@ -392,7 +392,7 @@ void SurfaceExtraction<SurfaceGeometry>::write_extraction(
                     double v = m_geom.v(iv, m_params.num_points_v);
                     int idx = index(isurface, iu, iv);
                     std::vector<double> data(m_vars.size());
-                    for (int ivar = 0; ivar < m_vars.size(); ++ivar)
+                    for (std::size_t ivar = 0; ivar < m_vars.size(); ++ivar)
                     {
                         data[ivar] = m_interp_data[ivar][idx];
                     }
@@ -414,18 +414,18 @@ void SurfaceExtraction<SurfaceGeometry>::write_integrals(
 {
     if (amrex::ParallelDescriptor::MyProc() == 0)
     {
-        const int num_integrals_per_surface = a_integrals.size();
+        int const num_integrals_per_surface = a_integrals.size();
         // if labels are provided there must be the same number of labels as
         // there are integrals
         if (!a_labels.empty())
         {
-            AMREX_ASSERT(num_integrals_per_surface == a_labels.size());
+            AMREX_ASSERT(num_integrals_per_surface == static_cast<int>(a_labels.size()));
         }
         // each inner vector element of a_integrals must have the same number of
         // elements as there are surfaces (i.e. one integral per surface)
         for (auto vect : a_integrals)
         {
-            AMREX_ASSERT(vect.size() == m_params.num_surfaces);
+            AMREX_ASSERT(static_cast<int>(vect.size()) == m_params.num_surfaces);
         }
         // open file for writing
         SmallDataIO integral_file(m_params.data_path + a_filename, m_dt, m_time,

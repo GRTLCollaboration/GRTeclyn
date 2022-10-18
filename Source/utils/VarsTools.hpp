@@ -88,7 +88,7 @@ ALWAYS_INLINE void assign(vars_t &vars, const value_t &value)
     // assign(vars, 0.)  and 0. gets correctly cast from double to simd<double>
     // if necessary.
     using data_t = typename strip_nested_template<vars_t>::type;
-    vars.enum_mapping([&value](const int &ivar, data_t &var) {
+    vars.enum_mapping([&value](const int &/*ivar*/, data_t &var) {
         var = static_cast<data_t>(value);
     });
 }

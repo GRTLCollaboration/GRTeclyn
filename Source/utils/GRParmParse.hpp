@@ -31,12 +31,29 @@ class GRParmParse : public amrex::ParmParse
         get<data_t,n_comp>(name, array);
     }
 
+    template <long unsigned int n_comp>
+    void load(const char *name, std::array<bool, n_comp> &array) const
+    {
+        std::array<int,n_comp> tmp;
+        get<int,n_comp>(name, tmp);
+        for (long unsigned int i = 0; i < n_comp; ++i) array[i] = tmp[i];
+    }
+
     /// Loads a vector with num_comp components from the parameter file
     template <class data_t>
     void load(const char *name, std::vector<data_t> &vector,
               const int num_comp) const
     {
         getarr(name, vector, 0, num_comp);
+    }
+
+    template <class data_t>
+    void load(const char *name, std::vector<bool> &vector,
+              const int num_comp) const
+    {
+        std::vector<int> tmp(num_comp);
+        getarr(name, tmp, 0, num_comp);
+        for (long unsigned int i = 0; i < num_comp; ++i) vector[i] = tmp[i];
     }
 
     /// Loads a value from the parameter file

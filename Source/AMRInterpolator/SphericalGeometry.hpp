@@ -73,7 +73,7 @@ class SphericalGeometry
     //! returns the area element on a sphere with radius a_radius at the point
     //! (a_theta, a_phi)
     inline double area_element(double a_radius, double a_theta,
-                               double a_phi) const
+                               double /*a_phi*/) const
     {
         return a_radius * a_radius * sin(a_theta);
     }

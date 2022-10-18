@@ -69,13 +69,15 @@ void GRAMRLevel::variableCleanUp()
 GRAMRLevel::GRAMRLevel() {}
 
 GRAMRLevel::GRAMRLevel(amrex::Amr& papa, int lev,
-                       const amrex::Geometry& geom,
+                       const amrex::Geometry& a_geom,
                        const amrex::BoxArray& ba,
                        const amrex::DistributionMapping& dm,
                        amrex::Real time)
-    : amrex::AmrLevel(papa,lev,geom,ba,dm,time)
+    : amrex::AmrLevel(papa,lev,a_geom,ba,dm,time)
 {
     m_num_ghosts = simParams().num_ghosts;
+    m_boundaries.define(simParams().center, simParams().boundary_params,
+                        a_geom, m_num_ghosts);
 }
 
 GRAMRLevel::~GRAMRLevel() {}
@@ -86,7 +88,7 @@ SimulationParameters const& GRAMRLevel::simParams ()
 }
 
 void GRAMRLevel::computeInitialDt (int finest_level, int /*sub_cycle*/,
-                                   amrex::Vector<int>& n_cycle,
+                                   amrex::Vector<int>& /*n_cycle*/,
                                    const amrex::Vector<amrex::IntVect>&/*ref_ratio*/,
                                    amrex::Vector<amrex::Real>& dt_level,
                                    amrex::Real /*stop_time*/)
@@ -141,7 +143,7 @@ amrex::Real GRAMRLevel::advance (amrex::Real time, amrex::Real dt,
     return dt;
 }
 
-void GRAMRLevel::post_timestep (int iteration)
+void GRAMRLevel::post_timestep (int /*iteration*/)
 {
     const int lev = Level();
     if (lev < parent->finestLevel()) {
@@ -175,6 +177,7 @@ void GRAMRLevel::post_init (amrex::Real /*stop_time*/)
 
 void GRAMRLevel::init (amrex::AmrLevel &old)
 {
+    amrex::ignore_unused(old);
     amrex::Abort("xxxxx GRAMRLevel::init(old) todo");
 }
 
@@ -186,5 +189,6 @@ void GRAMRLevel::init ()
 void GRAMRLevel::errorEst (amrex::TagBoxArray& tb, int clearval, int tagval,
                            amrex::Real time, int n_error_buf, int ngrow)
 {
+    amrex::ignore_unused(tb,clearval,tagval,time,n_error_buf,ngrow);
     amrex::Abort("xxxxx GRAMRLevel::errorEst todo");
 }

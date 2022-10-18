@@ -136,7 +136,7 @@ void SmallDataIO::write_header_line(
     {
         // all header lines start with a '#'.
         m_file << "#";
-        for (int istr = 0; istr < a_pre_header_strings.size(); ++istr)
+        for (std::size_t istr = 0; istr < a_pre_header_strings.size(); ++istr)
         {
             // first column header is shorter due to preceeding #
             if (istr == 0)
@@ -267,7 +267,7 @@ void SmallDataIO::get_specific_data_line(std::vector<double> &a_out_data,
         {
             if (!(line.find(coords_string) == std::string::npos))
             {
-                for (int ichar = a_coords.size() * m_coords_width;
+                for (std::size_t ichar = a_coords.size() * m_coords_width;
                      ichar < line.size(); ichar += m_data_width)
                 {
                     double data_value =
@@ -308,12 +308,12 @@ std::string SmallDataIO::get_new_filename(const std::string &a_file_prefix,
                                           int a_filename_steps_width)
 {
     AMREX_ASSERT(a_dt > 0);
-    const int step = std::round(a_time / a_dt);
+    const int step = static_cast<int>(std::round(a_time / a_dt));
 
     // append step number to filename (pad to make it
     // a_filename_steps_width digits).
     std::string step_string = std::to_string(step);
-    if (a_filename_steps_width < step_string.length())
+    if (a_filename_steps_width < static_cast<int>(step_string.length()))
     {
         amrex::Abort("SmallDataIO: a_filename_steps_width too small "
                       "for step number");

@@ -20,8 +20,6 @@ void BinaryBHLevel::specificAdvance()
     amrex::MultiFab& S_new = get_new_data(State_Type);
     auto const& arrs = S_new.arrays();
 
-    // xxxxx: ghost cells are not included here, whereas they are in GRChombo
-
     // Enforce the trace free A_ij condition and positive chi and alpha
     amrex::ParallelFor(S_new,
     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
@@ -62,9 +60,9 @@ void BinaryBHLevel::initData()
 
     // First set everything to zero (to avoid undefinded values in constraints)
     // then calculate initial data
-    amrex::MultiFab& state = get_new_data(State_Type);
-    auto const& arrs = state.arrays();
-    amrex::ParallelFor(state, state.nGrowVect(),
+    amrex::MultiFab& S = get_new_data(State_Type);
+    auto const& arrs = S.arrays();
+    amrex::ParallelFor(S, S.nGrowVect(),
     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
     {
         amrex::CellData<amrex::Real> cell = arrs[box_no].cellData(i,j,k);
@@ -79,7 +77,7 @@ void BinaryBHLevel::initData()
 // Calculate RHS during RK4 substeps
 void BinaryBHLevel::specificEvalRHS(amrex::MultiFab& a_soln,
                                     amrex::MultiFab& a_rhs,
-                                    const double a_time)
+                                    const double /*a_time*/)
 {
     auto const& soln_arrs = a_soln.arrays();
     auto const& soln_c_arrs = a_soln.const_arrays();
@@ -127,7 +125,6 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab& a_soln,
 // enforce trace removal during RK4 substeps
 void BinaryBHLevel::specificUpdateODE(amrex::MultiFab& a_soln)
 {
-    // xxxxx No ghghost cells are included, whereas they are in GRChombo
     // Enforce the trace free A_ij condition
     auto const& soln_arrs = a_soln.arrays();
     amrex::ParallelFor(a_soln, amrex::IntVect(0), // zero ghost cells

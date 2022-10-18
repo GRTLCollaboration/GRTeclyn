@@ -39,6 +39,8 @@ AMRInterpolator<InterpAlgo>::AMRInterpolator(
 template <typename InterpAlgo>
 void AMRInterpolator<InterpAlgo>::refresh(const bool a_fill_ghosts)
 {
+    amrex::Abort("AMRInterpolator<InterpAlgo>::refresh");
+    amrex::ignore_unused(a_fill_ghosts);
 #if 0
 //xxxxx
     BL_PROFILE("AMRInterpolator::refresh");
@@ -96,6 +98,8 @@ AMRInterpolator<InterpAlgo>::get_coarsest_origin()
 template <typename InterpAlgo>
 void AMRInterpolator<InterpAlgo>::limit_num_levels(unsigned int num_levels)
 {
+    amrex::Abort("xxxxx AMRInterpolator<InterpAlgo>::limit_num_levels");
+    amrex::ignore_unused(num_levels);
 #if 0
 //xxxxx
     // No need to time this small function. BL_PROFILE("AMRInterpolator::limit_num_levels");
@@ -190,6 +194,7 @@ void AMRInterpolator<InterpAlgo>::interp(InterpolationQuery &query)
 template <typename InterpAlgo>
 void AMRInterpolator<InterpAlgo>::computeLevelLayouts()
 {
+    amrex::Abort("xxxxxx AMRInterpolator<InterpAlgo>::computeLevelLayouts");
 #if 0
 //xxxxx
     BL_PROFILE("AMRInterpolator::computeLevelLayouts");
@@ -275,6 +280,8 @@ template <typename InterpAlgo>
 InterpolationLayout
 AMRInterpolator<InterpAlgo>::findBoxes(InterpolationQuery &query)
 {
+    amrex::Abort("AMRInterpolator<InterpAlgo>::findBoxes");
+    amrex::ignore_unused(query);
 #if 0
 //xxxxx
     BL_PROFILE("AMRInterpolator::findBoxes");
@@ -635,6 +642,8 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIQuery()
 template <typename InterpAlgo>
 void AMRInterpolator<InterpAlgo>::calculateAnswers(InterpolationQuery &query)
 {
+    amrex::Abort("xxxxx calculateAnswers");
+    amrex::ignore_unused(query);
 #if 0
 //xxxxx
     BL_PROFILE("AMRInterpolator::calculateAnswers");
@@ -801,7 +810,7 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIAnswer()
 
     m_mpi.asyncExchangeAnswer(&m_answer_level[0], &m_query_level[0], MPI_INT);
     m_mpi.asyncExchangeAnswer(&m_answer_box[0], &m_query_box[0], MPI_INT);
-    for (int comp = 0; comp < m_answer_data.size(); ++comp)
+    for (std::size_t comp = 0; comp < m_answer_data.size(); ++comp)
     {
         m_mpi.asyncExchangeAnswer(&m_answer_data[comp][0],
                                   &m_query_data[comp][0], MPI_DOUBLE);
@@ -823,6 +832,7 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIAnswer()
 template <typename InterpAlgo>
 void AMRInterpolator<InterpAlgo>::set_reflective_BC()
 {
+    amrex::Abort("xxxxx AMRInterpolator<InterpAlgo>::set_reflective_BC");
 #if 0
 //xxxxx
     const amrex::IntVect &big_end = const_cast<GRAMR &>(m_gr_amr)
@@ -878,7 +888,7 @@ int AMRInterpolator<InterpAlgo>::get_var_parity(int comp,
 
 template <typename InterpAlgo>
 double AMRInterpolator<InterpAlgo>::apply_reflective_BC_on_coord(
-    const InterpolationQuery &query, double dir, int point_idx) const
+    const InterpolationQuery &query, int dir, int point_idx) const
 {
     double coord = query.m_coords[dir][point_idx];
     if (m_lo_boundary_reflective[dir] && coord < 0.)

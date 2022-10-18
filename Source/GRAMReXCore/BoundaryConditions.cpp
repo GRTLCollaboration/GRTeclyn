@@ -112,8 +112,6 @@ void BoundaryConditions::params_t::set_lo_boundary(
 
 void BoundaryConditions::params_t::read_params(GRParmParse &pp)
 {
-#if 0
-//xxxxx
     using namespace UserVariables; // for loading the arrays
 
     // still load even if not contained, to ensure printout saying parameters
@@ -175,7 +173,7 @@ void BoundaryConditions::params_t::read_params(GRParmParse &pp)
             bool is_extrapolating = false;
             // if the variable is not in extrapolating vars, it
             // is assumed to be sommerfeld by default
-            for (int icomp2 = 0; icomp2 < extrapolating_vars.size(); icomp2++)
+            for (std::size_t icomp2 = 0; icomp2 < extrapolating_vars.size(); icomp2++)
             {
                 if (icomp == extrapolating_vars[icomp2].first)
                 {
@@ -199,25 +197,26 @@ void BoundaryConditions::params_t::read_params(GRParmParse &pp)
         // debug
         write_boundary_conditions(*this);
     }
-#endif
 }
 
 /// define function sets members and is_defined set to true
-void BoundaryConditions::define(double a_dx,
-                                std::array<double, AMREX_SPACEDIM> a_center,
+void BoundaryConditions::define(std::array<double, AMREX_SPACEDIM> a_center,
                                 const params_t &a_params,
-                                amrex::Geometry a_domain, int a_num_ghosts)
+                                amrex::Geometry const& a_geom,
+                                int a_num_ghosts)
 {
-#if 0
-//xxxxx
-    m_dx = a_dx;
-    m_params = a_params;
-    m_domain = a_domain;
-    m_domain_box = a_domain.domainBox();
     m_num_ghosts = a_num_ghosts;
+    m_params = a_params;
     FOR(i) { m_center[i] = a_center[i]; }
+    m_geom = a_geom;
     is_defined = true;
-#endif
+
+    
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        amrex::Print() << "xxxx " << m_geom.isPeriodic(idim) << " "
+                       << m_params.is_periodic[idim] << std::endl;
+    }
+    amrex::Abort("xxxxx");
 }
 
 /// change the asymptotic values of the variables for the Sommerfeld BCs
@@ -252,7 +251,7 @@ void BoundaryConditions::write_reflective_conditions(int idir,
     }
 }
 
-void BoundaryConditions::write_sommerfeld_conditions(int idir,
+void BoundaryConditions::write_sommerfeld_conditions(int /*idir*/,
                                                      const params_t &a_params)
 {
     amrex::Print() << "The non zero asymptotic values of the variables "
@@ -590,6 +589,8 @@ void BoundaryConditions::fill_sommerfeld_cell(
     amrex::FArrayBox &rhs_box, const amrex::FArrayBox &soln_box, const amrex::IntVect iv,
     const std::vector<int> &sommerfeld_comps) const
 {
+    amrex::Abort("xxxxx todo BoundaryConditions::fill_sommerfeld_cell");
+    amrex::ignore_unused(rhs_box, soln_box, iv, sommerfeld_comps);
 #if 0
 //xxxxx
     // assumes an asymptotic value + radial waves and permits them
@@ -1081,6 +1082,8 @@ Box BoundaryConditions::get_boundary_box(
 /// Operator called by transform to grow the boxes where required
 amrex::Box ExpandGridsToBoundaries::operator()(const amrex::Box &a_in_box)
 {
+    amrex::Abort("xxxxx ExpandGridsToBoundaries::operator()");
+    amrex::ignore_unused(a_in_box);
 #if 0
 //xxxxx
     amrex::Box out_box = a_in_box;

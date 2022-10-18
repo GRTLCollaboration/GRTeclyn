@@ -84,8 +84,7 @@ min_box_size = 8
 # Boundary Conditions parameters
 
 # Periodic directions - 0 = false, 1 = true
-#isPeriodic = 0 0 0
-isPeriodic = 1 1 1 # Let's make it periodic for now
+isPeriodic = 0 0 0
 # if not periodic, then specify the boundary type
 # 0 = static, 1 = sommerfeld, 2 = reflective
 # (see BoundaryConditions.hpp for details)

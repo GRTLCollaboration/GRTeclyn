@@ -70,7 +70,7 @@ template <typename InterpAlgo> class AMRInterpolator
                        const Derivative &deriv) const;
     /// reflect coordinates if BC set to reflective in that direction
     double apply_reflective_BC_on_coord(const InterpolationQuery &query,
-                                        double dir, int point_idx) const;
+                                        int dir, int point_idx) const;
 
     const GRAMR &m_gr_amr;
 

@@ -80,12 +80,10 @@ class BoundaryConditions
 
   protected:
     // Member values
-    double m_dx;            // The grid spacing
-    int m_num_ghosts;       // the number of ghosts (usually 3)
-    params_t m_params;      // the boundary params
-    amrex::RealVect m_center;      // the position of the center of the grid
-    amrex::Geometry m_domain; // the problem domain (excludes boundary cells)
-    amrex::Box m_domain_box;       // The box representing the domain
+    int m_num_ghosts;         // the number of ghosts (usually 3)
+    params_t m_params;        // the boundary params
+    amrex::RealVect m_center; // the position of the center of the grid
+    amrex::Geometry m_geom  ; // the problem domain (excludes boundary cells)
     bool is_defined; // whether the BoundaryConditions class members are defined
 
   public:
@@ -93,8 +91,8 @@ class BoundaryConditions
     BoundaryConditions() { is_defined = false; }
 
     /// define function sets members and is_defined set to true
-    void define(double a_dx, std::array<double, AMREX_SPACEDIM> a_center,
-                const params_t &a_params, amrex::Geometry a_domain,
+    void define(std::array<double, AMREX_SPACEDIM> a_center,
+                const params_t &a_params, amrex::Geometry const& a_domain,
                 int a_num_ghosts);
 
     /// change the asymptotic values of the variables for the Sommerfeld BCs

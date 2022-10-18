@@ -27,7 +27,7 @@ template <typename data_t> struct simd_proxy
     data_t *const m_ptr;
 
     ALWAYS_INLINE
-    simd_proxy(data_t *m_ptr) : m_ptr(m_ptr) {}
+    simd_proxy(data_t *a_ptr) : m_ptr(a_ptr) {}
 
     ALWAYS_INLINE
     data_t *operator&() const { return m_ptr; }
@@ -136,7 +136,7 @@ template <typename data_t> struct simd_array_wrapper
     data_t *m_ptr;
 
     ALWAYS_INLINE
-    simd_array_wrapper(data_t *m_ptr) : m_ptr(m_ptr) {}
+    simd_array_wrapper(data_t *a_ptr) : m_ptr(a_ptr) {}
 
     ALWAYS_INLINE
     simd_proxy<data_t> operator[](int i) const { return &m_ptr[i]; }

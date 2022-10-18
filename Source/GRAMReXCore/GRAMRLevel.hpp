@@ -114,6 +114,8 @@ public:
 
     virtual void specificUpdateODE(amrex::MultiFab& /*a_soln*/) {}
 
+    BoundaryConditions m_boundaries; // the class for implementing BCs
+
     int m_verbosity = 0;  //!< Level of verbosity of the output
     int m_num_ghosts;     //!< Number of ghost cells
 };

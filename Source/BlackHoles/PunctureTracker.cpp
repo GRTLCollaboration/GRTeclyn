@@ -148,7 +148,7 @@ void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
 
     // get puncture coordinates and old shift value
     std::vector<std::array<double, AMREX_SPACEDIM>> old_shift = m_puncture_shift;
-    AMREX_ASSERT(m_puncture_coords.size() == m_num_punctures); // sanity check
+    AMREX_ASSERT(static_cast<int>(m_puncture_coords.size()) == m_num_punctures); // sanity check
 
     // new shift value
     interp_shift();
