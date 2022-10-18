@@ -210,13 +210,6 @@ void BoundaryConditions::define(std::array<double, AMREX_SPACEDIM> a_center,
     FOR(i) { m_center[i] = a_center[i]; }
     m_geom = a_geom;
     is_defined = true;
-
-    
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        amrex::Print() << "xxxx " << m_geom.isPeriodic(idim) << " "
-                       << m_params.is_periodic[idim] << std::endl;
-    }
-    amrex::Abort("xxxxx");
 }
 
 /// change the asymptotic values of the variables for the Sommerfeld BCs

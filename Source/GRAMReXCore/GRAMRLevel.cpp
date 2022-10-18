@@ -165,25 +165,40 @@ void GRAMRLevel::post_timestep (int /*iteration*/)
     specificPostTimeStep();
 }
 
-void GRAMRLevel::post_regrid (int lbase, int new_finest)
+void GRAMRLevel::post_regrid (int /*lbase*/, int /*new_finest*/)
 {
-    amrex::ignore_unused(lbase, new_finest);
+    // xxxxx Do we need to do anything after regrid?
 }
 
 void GRAMRLevel::post_init (amrex::Real /*stop_time*/)
 {
-    // Don't we need to do anything here
+    // xxxxx Do we need to do anything after the initializaion?
 }
 
 void GRAMRLevel::init (amrex::AmrLevel &old)
 {
-    amrex::ignore_unused(old);
-    amrex::Abort("xxxxx GRAMRLevel::init(old) todo");
+    amrex::Real dt_new    = parent->dtLevel(level);
+    amrex::Real cur_time  = old.get_state_data(State_Type).curTime();
+    amrex::Real prev_time = old.get_state_data(State_Type).prevTime();
+    amrex::Real dt_old    = cur_time - prev_time;
+    setTimeLevel(cur_time,dt_old,dt_new);
+
+    amrex::MultiFab& S_new = get_new_data(State_Type);
+    FillPatch(old, S_new, 0, cur_time, State_Type, 0, S_new.nComp());
 }
 
 void GRAMRLevel::init ()
 {
-    amrex::Abort("xxxxx GRAMRLevel::init() todo");
+    amrex::Real dt = parent->dtLevel(level);
+    auto const& coarse_state = parent->getLevel(level-1).get_state_data(State_Type);
+    amrex::Real cur_time  = coarse_state.curTime();
+    amrex::Real prev_time = coarse_state.prevTime();
+    amrex::Real dt_old = (cur_time - prev_time)
+        / static_cast<amrex::Real>(parent->MaxRefRatio(level-1));
+    setTimeLevel(cur_time,dt_old,dt);
+
+    amrex::MultiFab& S_new = get_new_data(State_Type);
+    FillCoarsePatch(S_new, 0, cur_time, State_Type, 0, S_new.nComp());
 }
 
 void GRAMRLevel::errorEst (amrex::TagBoxArray& tb, int clearval, int tagval,
