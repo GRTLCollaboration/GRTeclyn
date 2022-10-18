@@ -40,7 +40,13 @@ const int simd_traits<double>::simd_len; // Still needs to be defined
 
 void mainSetup(int argc, char *argv[])
 {
-    amrex::Initialize(argc, argv);
+    bool use_parm_parse = true;
+    amrex::Initialize(argc, argv, use_parm_parse, MPI_COMM_WORLD,
+                      [] () {
+                          amrex::ParmParse pp("amrex");
+                          // don't use managed memory
+                          pp.add("the_arena_is_managed", false);
+                      });
 
 #ifdef EQUATION_DEBUG_MODE
     EquationDebugging::check_no_omp();
