@@ -178,10 +178,9 @@ modes = 2 0 # l m for spherical harmonics
 #################################################
 
 output_path = foo
-max_level = 0
 track_punctures = 0
 puncture_tracking_level=0
-max_steps = 2
 verbosity = 1
+max_level = 0
 N_full = 128
 max_box_size = 64
