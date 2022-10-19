@@ -44,8 +44,9 @@ void mainSetup(int argc, char *argv[])
     amrex::Initialize(argc, argv, use_parm_parse, MPI_COMM_WORLD,
                       [] () {
                           amrex::ParmParse pp("amrex");
-                          // don't use managed memory
-                          pp.add("the_arena_is_managed", false);
+                          int the_arena_is_managed = false;
+                          // don't use managed memory by default
+                          pp.queryAdd("the_arena_is_managed", the_arena_is_managed);
                       });
 
 #ifdef EQUATION_DEBUG_MODE
