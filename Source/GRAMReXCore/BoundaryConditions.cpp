@@ -426,8 +426,17 @@ void BoundaryConditions::apply_sommerfeld_boundaries
     AMREX_ASSERT(amrex::almostEqual(m_geom.CellSize(0), m_geom.CellSize(1)) &&
                  amrex::almostEqual(m_geom.CellSize(0), m_geom.CellSize(2)));
     const auto dx = m_geom.CellSize(0);
-    const auto domlo = m_geom.Domain().smallEnd();
-    const auto domhi = m_geom.Domain().bigEnd();
+    Box domain = m_geom.Domain();
+    for (amrex::OrientationIter orit; orit.isValid(); ++orit) {
+        amrex::Orientation face = orit();
+        int bc = get_boundary_condition(face);
+        if (m_geom.isPeriodic(face.coordDir()) ||
+            bc == REFLECTIVE_BC) { // xxxxx todo: what about other BCs?
+            domain.grow(face); // to use the central derivative stencil
+        }
+    }
+    const auto domlo = domain.smallEnd();
+    const auto domhi = domain.bigEnd();
     const auto center = m_center;
 
     if (m_asymptotic_values.empty()) {
