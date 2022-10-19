@@ -426,7 +426,7 @@ void BoundaryConditions::apply_sommerfeld_boundaries
     AMREX_ASSERT(amrex::almostEqual(m_geom.CellSize(0), m_geom.CellSize(1)) &&
                  amrex::almostEqual(m_geom.CellSize(0), m_geom.CellSize(2)));
     const auto dx = m_geom.CellSize(0);
-    Box domain = m_geom.Domain();
+    amrex::Box domain = m_geom.Domain();
     for (amrex::OrientationIter orit; orit.isValid(); ++orit) {
         amrex::Orientation face = orit();
         int bc = get_boundary_condition(face);
