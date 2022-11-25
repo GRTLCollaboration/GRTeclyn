@@ -24,4 +24,10 @@ time.table.*
 *.log
 ipo_out.optrpt
 
+# AMReX ignores
+plt*
+chk*
+tmp_build_dir
+Backtrace*
+
 Doxygen/html
