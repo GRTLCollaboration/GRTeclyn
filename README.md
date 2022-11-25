@@ -1,48 +1,191 @@
-# GRChombo
+# GRAMReX BinaryBH example walkthrough
 
-[![status](https://joss.theoj.org/papers/af52e7f1b7637bfa68818fde7c1a34de/status.svg)](https://joss.theoj.org/papers/af52e7f1b7637bfa68818fde7c1a34de)
-[![DOI](https://zenodo.org/badge/118786602.svg)](https://zenodo.org/badge/latestdoi/118786602)
+## Introduction
 
-GRChombo is an open-source code for numerical relativity simulations.
-It is developed and maintained by a collaboration of numerical relativists with a
-wide range of research interests, from early universe cosmology to astrophysics
-and mathematical general relativity, and has been used in many papers since its
-first release in 2015.
+This is a short walkthrough on building and running the GRAMReX BinaryBH
+example. It is still in the very early stages so lots of things have yet to be
+ported/implemented. See below for the current status.
 
-GRChombo is written entirely in C++14, using hybrid MPI/OpenMP parallelism and
-vector intrinsics to achieve good performance on the latest architectures.
-Furthermore, it makes use of the Chombo library for adaptive mesh refinement
-to allow automatic increasing and decreasing of the grid resolution in regions
-of arbitrary shape and topology.
+### Status
+| Feature | Ported/Implemented | Notes |
+| --- | --- | --- |
+| CCZ4 Evolution | :heavy_check_mark:  | Only fourth order spatial derivatives |
+| Boundary Conditions | :heavy_check_mark: :grey_question: | All except mixed BCs have been implemented |
+| Plot/checkpoint files + restart | :heavy_check_mark: | AMReX-specific, not HDF5 |
+| AMR/tagging criterion | :x: | No tagging criterion yet so only 1 level/uniform grid |
+| Diagnostic variables | :x: | e.g. Constraints, $\Psi_4$ |
+| AMR Interpolator | :x: | |
+| GW extraction | :x: | Requires AMR Interpolator |
+| Puncture tracking | :x: | Requires AMR Interpolator |
+| TwoPunctures initial data | :x: | |
 
-Please visit www.grchombo.org for the full list of developers and their
-institutions, a list of publications using GRChombo, and some videos.
+## Obtaining and building the code
 
-## Getting started
-Detailed installation instructions and usage examples are available in
-our [wiki](https://github.com/GRChombo/GRChombo/wiki), with the home page giving guidance on where to start.
+### Prerequisites
 
-## Contributing
-We welcome feedback, bug reports, and contributions. Please consult the [wiki](https://github.com/GRChombo/GRChombo/wiki)
-for our coding style and testing policy before filing a pull request.
+You will need the following software
+* Git
+* GNU Make >= 3.81
+* Python >= 2.7
+* A Unix-like environment with `perl` and `sed` commands
+* C compiler with C99 support
+* C++ compiler with C++17 support (e.g. GCC >= 8, Clang >= 6, Intel Classic >= 19.14)
+* MPI implementation (optional)
 
-## License
-GRChombo is licensed under the BSD 3-Clause License. Please see LICENSE for details.
+Note that the C++17 requirement means that older compilers you have used to
+build [GR]Chombo may not work with GRAMReX but so long as you have a more recent
+compiler available, if you can build GRChombo, you can probably build GRAMReX
+too. 
 
-## Citation
-Please cite our JOSS publication using the following bibtex reference:
+Feel free to try this example locally on your own system (the example parameter
+file is relatively small so should run fine on a laptop) if you have the above
+software or SSH to your favourite cluster (I have tested on the CSD3 icelakes).
 
+### Obtaining the code
+
+First `cd` into a directory you are happy to clone the code into. For
+simplicity, I will assume that is your home directory (so adjust any commands 
+below accordingly if not).
+
+The AMReX source code is hosted on
+[GitHub](https://github.com/AMReX-Codes/amrex). Clone this with a command such
+as
+
+```bash
+git clone https://github.com/AMReX-Codes/amrex.git
 ```
-@article{Andrade2021,
-  doi = {10.21105/joss.03703},
-  url = {https://doi.org/10.21105/joss.03703},
-  year = {2021},
-  publisher = {The Open Journal},
-  volume = {6},
-  number = {68},
-  pages = {3703},
-  author = {Tomas Andrade and Llibert Areste Salo and Josu C. Aurrekoetxea and Jamie Bamber and Katy Clough and Robin Croft and Eloy de Jong and Amelia Drew and Alejandro Duran and Pedro G. Ferreira and Pau Figueras and Hal Finkel and Tiago Fran\c{c}a and Bo-Xuan Ge and Chenxia Gu and Thomas Helfer and Juha Jäykkä and Cristian Joana and Markus Kunesch and Kacper Kornet and Eugene A. Lim and Francesco Muia and Zainab Nazari and Miren Radia and Justin Ripley and Paul Shellard and Ulrich Sperhake and Dina Traykova and Saran Tunyasuvunakool and Zipeng Wang and James Y. Widdicombe and Kaze Wong},
-  title = {GRChombo: An adaptable numerical relativity code for fundamental physics},
-  journal = {Journal of Open Source Software}
-}
+It will be cloned to the `amrex` directory.
+
+The GRAMReX repository is currently private so first check you have access by
+navigating to https://github.com/GRChombo/GRAMReX. If you're reading this on
+your own device, then you have the necessary permissions. If you don't have
+access, please let me know so I can give them to you. Clone the repository with
+a command such as
+
+```bash
+git clone -b training/202212_grchombo_meeting https://github.com/GRChombo/GRAMReX.git
 ```
+Note that the above command automatically checks out the
+`training/202212_grchombo_meeting` branch but if you missed out this flag make
+sure to check it out using e.g.
+```bash
+git checkout training/202212_grchombo_meeting
+```
+
+> :information_source: Note that I have assumed that you have cloned both of
+> these repositories to the same directory so that the `amrex` and `GRAMReX`
+> directories share the same parent directory. If you want to clone AMReX
+> elsewhere, make sure to set the `AMREX_HOME` environment variable
+> appropriately e.g. 
+> ```bash
+> export AMREX_HOME=/path/to/amrex
+> ```
+
+### Building the BinaryBH example
+
+> :warning: If you are on macOS and want to use GCC built with Homebrew (which
+> has the major version number appended to the executable e.g. `g++-9`), you
+> will need to create a `Make.local` (like Chombo's `Make.defs.local` file) in 
+> ```
+> amrex/Tools/GNUMake/Make.local
+> ```
+> with something like the following lines
+> ```makefile
+> CXX = g++-9
+> CC  = gcc-9
+> FC  = gfortran-9
+> F90 = gfortran-9
+> 
+> INCLUDE_LOCATIONS += /usr/local/include
+> ```
+> 
+> See [this
+> page](https://amrex-codes.github.io/amrex/docs_html/BuildingAMReX.html#gcc-on-macos)
+> for more details.  
+
+If you are on a cluster make sure you have loaded modules which provide you with
+the software listed under [prerequisites](#prerequisites) (e.g. you might need a
+compiler newer than the default).
+
+Now, navigate to the BinaryBH example directory
+```bash
+cd ~/GRAMReX/Examples/BinaryBH
+```
+
+In this directory, the build options are in the `GNUMakefile`. They are very
+similar to Chombo's, and, like Chombo, can be overriden on the command line. You
+might want to change the following: 
+
+* Set `USE_OMP = TRUE` to use OpenMP.
+* If you don't want to use the GNU compiler `g++` , change `COMP = gnu` to 
+  `COMP = intel` (for the Intel classic compiler `icpc`) or `COMP = llvm` (for 
+  LLVM `clang++`). 
+* If you don't have an MPI implementation available, set `USE_MPI = FALSE`.
+
+Now start building AMReX and the BinaryBH example with the command
+```bash
+make -j 4
+```
+A new `tmp_build_dir` directory will be created to store the compiled object
+and auxiliary files. Assuming all is well, you should have an executable in the
+current directory of the form `main<config>.ex` e.g. `main3d.gnu.MPI.OMP.ex`.
+
+## Running and visualizing the example
+
+### Running the example
+
+There is a single cheap parameter file: `params_cheap.txt`. If you open the
+file, you'll find that many of the parameters have been inherited from GRChombo
+and thus their names and functions are the same. Note that not all parameters
+have been implemented (e.g. `output_path`). Consult the table in the 
+[AMReX renamed parameters](#amrex-renamed-parameters) section below.
+
+Running the example is the same as for GRChombo examples e.g. (with MPI):
+```bash
+export OMP_NUM_THREADS=2
+mpiexec -n 4 ./main3d.gnu.MPI.OMP.ex ./params_cheap.txt
+```
+
+
+> :information_source: Even though this example is quite small, as always, if
+> you are running on a cluster, it is good practice to *not* run the code on the
+> login node but instead request an interactive job. Consult your cluster's
+> documentation on how to do this. On CSD3, I use the following command 
+> ```bash
+> srun --pty --qos=INTR -p <partition> -t <time limit in minutes> -n <number of tasks> -A <account> bash
+> ```
+> or alternatively launch the code directly on a compute node which I do on CSD3
+> using a command like
+> ```bash
+> srun --qos=INTR -p <partition> -t 5 -n 4 -c 2 -A <account> --export=ALL,OMP_NUM_THREADS=2 ./main3d.gnu.MPI.OMP.ex ./params_cheap.txt
+> ```
+
+With the provided parameters, it should evolve 128 timesteps and write 5 plot
+files (actually directories/folders rather than single files, each about 26 MB):
+```
+plt00000  plt00032  plt00064  plt00096  plt00128
+```
+This should not take longer than a few minutes on a laptop.
+
+### AMReX new/renamed parameters
+Below are some parameters you will find in the BinaryBH `params_cheap.txt` that
+are either new or differ in name to the GRChombo equivalent. Most of their names
+are self-explanatory.
+| GRChombo parameter name | GRAMReX parameter name | Notes |
+| --- | --- | --- |
+| `chk_prefix` | `amr.check_file` | Still a prefix in GRAMReX |
+| `plot_prefix` | `amr.plot_file` | Still a prefix in GRAMReX |
+| `restart_file` | `amr.restart` | |
+| - | `amr.file_name_digits` | Number of timestep digits in the filenames. |
+| `checkpoint_interval` | `amr.check_int` | |
+| `plot_interval` | `amr.plot_int` | |
+
+### Visualizing the plot files
+
+The `pltxxxxx` directories can be opened using ParaView (>=5.7), VisIt or yt.
+
+If you are using ParaView, open the group of `plt...` directories and then
+select "AMReX/BoxLib Grid Reader". 
+
+If you are using VisIt, open the `Header` file in one of the `pltxxxxx`
+directories. 
