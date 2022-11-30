@@ -72,7 +72,8 @@ sure to check it out using e.g.
 git checkout training/202212_grchombo_meeting
 ```
 
-> :information_source: Note that I have assumed that you have cloned both of
+> **Note**
+> I have assumed that you have cloned both of
 > these repositories to the same directory so that the `amrex` and `GRAMReX`
 > directories share the same parent directory. If you want to clone AMReX
 > elsewhere, make sure to set the `AMREX_HOME` environment variable
@@ -83,7 +84,8 @@ git checkout training/202212_grchombo_meeting
 
 ### Building the BinaryBH example
 
-> :warning: If you are on macOS and want to use GCC built with Homebrew (which
+> **Warning** 
+> If you are on macOS and want to use GCC built with Homebrew (which
 > has the major version number appended to the executable e.g. `g++-9`), you
 > will need to create a `Make.local` (like Chombo's `Make.defs.local` file) in 
 > ```
@@ -147,7 +149,8 @@ mpiexec -n 4 ./main3d.gnu.MPI.OMP.ex ./params_cheap.txt
 ```
 
 
-> :information_source: Even though this example is quite small, as always, if
+> **Note**
+> Even though this example is quite small, as always, if
 > you are running on a cluster, it is good practice to *not* run the code on the
 > login node but instead request an interactive job. Consult your cluster's
 > documentation on how to do this. On CSD3, I use the following command 
@@ -183,9 +186,59 @@ are self-explanatory.
 ### Visualizing the plot files
 
 The `pltxxxxx` directories can be opened using ParaView (>=5.7), VisIt or yt.
+Note that, unlike GRChombo, checkpoints cannot be visualized.
 
 If you are using ParaView, open the group of `plt...` directories and then
 select "AMReX/BoxLib Grid Reader". 
 
 If you are using VisIt, open the `Header` file in one of the `pltxxxxx`
-directories. 
+directories.
+
+## Code structure
+
+### Class structure
+
+The structure of the code is very similar to GRChombo. Here is a diagram showing
+the inheritance/aggregation relationship between the main classes for this
+example in GRAMReX:
+
+```mermaid
+graph BT
+    B[AmrCore] --> C[AmrMesh]
+    A[Amr] --> B[AmrCore]
+    L1[AmrLevel] -.-> A[Amr]
+    L2[AmrLevel] -.-> A
+    L3[AmrLevel] -.-> A
+    LG1[GRAMRLevel] --> L1
+    LG2[GRAMRLevel] --> L2
+    LG3[GRAMRLevel] --> L3
+    LS1[BinaryBHLevel] --> LG1
+    LS2[BinaryBHLevel] --> LG2
+    LS3[BinaryBHLevel] --> LG3
+    SD1[StateData] -.-> LS1
+    SD2[StateData] -.-> LS2
+    SD3[StateData] -.-> LS3
+    MF1["MultiFab (new data)"] -.-> SD1
+    MF2["MultiFab (old data)"] -.-> SD1
+```
+
+### [GR]Chombo to [GR]AMReX class dictionary
+
+Here are a list of some of the main classes in [GR]Chombo and their equivalents
+in [GR]AMReX:
+
+| [GR]Chombo class | [GR]AMReX class  | Description |
+| ---           | ---           | ---         |
+| `AMR`         | `Amr`         | Class which manages the whole AMR hierarchy and knows about all of the levels |
+| `AMRLevel`    | `AmrLevel`    | Class which manages things on a single level |
+| `GRLevelData` | `MultiFab`    | Class which stores the actual array data on a single level |
+| `FArrayBox`   | `FArrayBox`   | Class which stores the actual array data in a single box |
+| - | `StateData` | Class which stores the new and old `MultiFab`, boundary conditions, etc. In Chombo, the `GRLevelData` objects are just stored directly in `GRAMRLevel` |
+
+
+### Further information
+
+More information about AMReX can be found in its
+[documentation](https://amrex-codes.github.io/amrex/docs_html/).
+
+
