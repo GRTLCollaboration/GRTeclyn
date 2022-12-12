@@ -33,16 +33,12 @@ public:
     /// Things to do after dt*rhs has been added to the solution
     virtual void specificUpdateODE(amrex::MultiFab& a_soln) override;
 
-    /// Things to do before tagging cells (i.e. filling ghosts)
-    virtual void preTagCells();//xxxxx override;
-
-    /// Identify and tag the cells that need higher resolution
-    virtual void
-    computeTaggingCriterion(amrex::FArrayBox &tagging_criterion,
-                            const amrex::FArrayBox &current_state);//xxxxx override;
-
     // to do post each time step on every level
     virtual void specificPostTimeStep() override;
+
+    virtual void errorEst (amrex::TagBoxArray& tb, int clearval, int tagval,
+                           amrex::Real time, int n_error_buf = 0,
+                           int ngrow = 0) override final;
 
 #ifdef AMREX_USE_HDF5
     /// Any actions that should happen just before plot files output

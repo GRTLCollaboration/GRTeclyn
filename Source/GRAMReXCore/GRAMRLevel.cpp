@@ -225,10 +225,3 @@ void GRAMRLevel::init ()
     amrex::MultiFab& S_new = get_new_data(State_Type);
     FillCoarsePatch(S_new, 0, cur_time, State_Type, 0, S_new.nComp());
 }
-
-void GRAMRLevel::errorEst (amrex::TagBoxArray& tb, int clearval, int tagval,
-                           amrex::Real time, int n_error_buf, int ngrow)
-{
-    amrex::ignore_unused(tb,clearval,tagval,time,n_error_buf,ngrow);
-    amrex::Abort("xxxxx GRAMRLevel::errorEst todo");
-}

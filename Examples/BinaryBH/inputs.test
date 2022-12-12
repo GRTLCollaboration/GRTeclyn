@@ -67,7 +67,7 @@ max_level = 2 # There are (max_level+1) grids, so min is zero
 
 # need max_level entries for regrid interval
 # Level Regridding: 0   1   2   3   4   5
-regrid_interval =   1   1   1   1   0   0
+regrid_interval =   2   2   2   2   0   0
 regrid_threshold = 0.3
 
 # Max and min box sizes
@@ -178,10 +178,8 @@ modes = 2 0 # l m for spherical harmonics
 #################################################
 
 output_path = foo
-max_level = 0
 track_punctures = 0
 puncture_tracking_level=0
-max_steps = 2
 verbosity = 1
 amrex.fpe_trap_invalid=1
 amrex.fpe_trap_zero=1

@@ -97,10 +97,10 @@ public:
     /**
     * \brief Error estimation for regridding. This is a pure virtual
     * function and hence MUST be implemented by derived classes.
+    * virtual void errorEst (amrex::TagBoxArray& tb, int clearval, int tagval,
+    *                        amrex::Real time, int n_error_buf = 0,
+    *                        int ngrow = 0);
     */
-    virtual void errorEst (amrex::TagBoxArray& tb, int clearval, int tagval,
-                           amrex::Real time, int n_error_buf = 0,
-                           int ngrow = 0) override;
 
     /// Virtual function for the problem specific parts of Advance
     virtual void specificAdvance() {}

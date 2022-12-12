@@ -6,6 +6,7 @@
 #include "BinaryBHLevel.hpp"
 #include "BinaryBH.hpp"
 #include "CCZ4RHS.hpp"
+#include "ChiExtractionTaggingCriterion.hpp"
 #include "PositiveChiAndAlpha.hpp"
 #include "PunctureTracker.hpp"
 //xxxxx #include "SixthOrderDerivatives.hpp"
@@ -135,45 +136,40 @@ void BinaryBHLevel::specificUpdateODE(amrex::MultiFab& a_soln)
     });
 }
 
-void BinaryBHLevel::preTagCells()
+void BinaryBHLevel::errorEst (amrex::TagBoxArray& tb, int /*clearval*/,
+                              int /*tagval*/, amrex::Real /*time*/,
+                              int /*n_error_buf*/, int /*ngrow*/)
 {
-    // We only use chi in the tagging criterion so only fill the ghosts for chi
-//xxxxx    fillAllGhosts(VariableType::evolution, Interval(c_chi, c_chi));
-}
+    amrex::MultiFab& S_new = get_new_data(State_Type);
+    const auto cur_time = get_state_data(State_Type).curTime();
 
-// specify the cells to tag
-void BinaryBHLevel::computeTaggingCriterion(amrex::FArrayBox &tagging_criterion,
-                                            const amrex::FArrayBox &current_state)
-{
-    amrex::ignore_unused(tagging_criterion, current_state);
-#if 0
-//xxxxx
-    if (m_p.track_punctures)
-    {
-        std::vector<double> puncture_masses;
-#ifdef USE_TWOPUNCTURES
-        // use calculated bare masses from TwoPunctures
-        puncture_masses = {m_tp_amr.m_two_punctures.mm,
-                           m_tp_amr.m_two_punctures.mp};
-#else
-        puncture_masses = {m_p.bh1_params.mass, m_p.bh2_params.mass};
-#endif /* USE_TWOPUNCTURES */
-        auto puncture_coords =
-            m_bh_amr.m_puncture_tracker.get_puncture_coords();
-        BoxLoops::loop(ChiPunctureExtractionTaggingCriterion(
-                           m_dx, m_level, m_p.max_level, m_p.extraction_params,
-                           puncture_coords, m_p.activate_extraction,
-                           m_p.track_punctures, puncture_masses),
-                       current_state, tagging_criterion);
+    const int nghost = 1; // Need one ghost cell to compute gradient
+    const int ncomp = 1;
+    // We only use chi in the tagging criterion so only fill the ghosts for chi
+    FillPatch(*this, S_new, nghost, cur_time, State_Type, c_chi, ncomp);
+
+    auto const& simpar = simParams();
+
+    if (simpar.track_punctures) {
+        amrex::Abort("BinaryBHLevel::errorEst:track_punctures TODO");
     }
-    else
+
+    auto const& tags = tb.arrays();
+    auto const& S = S_new.const_arrays();
+    auto const tagval = amrex::TagBox::SET;
+    ChiExtractionTaggingCriterion tagger(Geom().CellSize(0),
+                                         Level(), simpar.extraction_params,
+                                         simpar.activate_extraction);
+    amrex::Real threshold = simpar.regrid_thresholds[Level()];
+    amrex::ParallelFor(S_new, amrex::IntVect(0),
+    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
     {
-        BoxLoops::loop(ChiExtractionTaggingCriterion(m_dx, m_level,
-                                                     m_p.extraction_params,
-                                                     m_p.activate_extraction),
-                       current_state, tagging_criterion);
-    }
-#endif
+        amrex::Real r = tagger(i,j,k,S[box_no]);
+        if (r >= threshold) {
+            tags[box_no](i,j,k) = tagval;
+        }
+    });
+    amrex::Gpu::streamSynchronize();
 }
 
 void BinaryBHLevel::specificPostTimeStep()
