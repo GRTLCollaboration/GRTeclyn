@@ -143,7 +143,7 @@ void BinaryBHLevel::errorEst (amrex::TagBoxArray& tb, int /*clearval*/,
     amrex::MultiFab& S_new = get_new_data(State_Type);
     const auto cur_time = get_state_data(State_Type).curTime();
 
-    const int nghost = 1; // Need one ghost cell to compute gradient
+    const int nghost = S_new.nGrow(); // Need ghost cells to compute gradient
     const int ncomp = 1;
     // We only use chi in the tagging criterion so only fill the ghosts for chi
     FillPatch(*this, S_new, nghost, cur_time, State_Type, c_chi, ncomp);
