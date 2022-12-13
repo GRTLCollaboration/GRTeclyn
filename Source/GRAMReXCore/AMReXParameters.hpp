@@ -489,6 +489,8 @@ class AMReXParameters
             pp.add("blocking_factor", block_factor);
             pp.addarr("n_cell", std::vector<int>{ivN[0]+1,ivN[1]+1,ivN[2]+1});
             pp.addarr("regrid_int", regrid_interval);
+            pp.add("check_int", checkpoint_interval);
+            pp.add("plot_int", plot_interval);
         }
     }
 

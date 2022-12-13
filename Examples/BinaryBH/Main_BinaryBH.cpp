@@ -56,12 +56,12 @@ int runGRAMReX(int /*argc*/, char */*argv*/[])
     }
 
     // Write final checkpoint and plotfile
-    if (bh_amr.stepOfLastCheckPoint() < bh_amr.levelSteps(0))
+    if (bh_amr.stepOfLastCheckPoint() < bh_amr.levelSteps(0) && sim_params.checkpoint_interval >= 0)
     {
         bh_amr.checkPoint();
     }
 
-    if (bh_amr.stepOfLastPlotFile() < bh_amr.levelSteps(0))
+    if (bh_amr.stepOfLastPlotFile() < bh_amr.levelSteps(0) && sim_params.plot_interval >= 0)
     {
         bh_amr.writePlotFile();
     }
