@@ -184,3 +184,6 @@ verbosity = 1
 amrex.fpe_trap_invalid=1
 amrex.fpe_trap_zero=1
 amrex.fpe_trap_overflow=1
+
+amr.plot_vars = chi # The default is to plot all state variables
+amr.derive_plot_vars = Ham Mom # The default is none for derived variables.

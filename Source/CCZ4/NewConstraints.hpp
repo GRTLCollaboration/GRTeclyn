@@ -50,7 +50,10 @@ class Constraints
                 const Interval &a_c_Moms_abs_terms = Interval(),
                 double cosmological_constant = 0.0);
 
-    template <class data_t> void compute(Cell<data_t> current_cell) const;
+    template <class data_t>
+    AMREX_GPU_DEVICE
+    void compute (int i, int j, int k, amrex::Array4<data_t> const& cst,
+                  amrex::Array4<data_t const> const& state) const;
 
   protected:
     const FourthOrderDerivatives m_deriv;
@@ -62,6 +65,7 @@ class Constraints
 
     template <class data_t, template <typename> class vars_t,
               template <typename> class diff2_vars_t>
+    AMREX_GPU_DEVICE
     Vars<data_t> constraint_equations(const vars_t<data_t> &vars,
                                       const vars_t<Tensor<1, data_t>> &d1,
                                       const diff2_vars_t<Tensor<2, data_t>> &d2,
@@ -69,7 +73,8 @@ class Constraints
                                       const chris_t<data_t> &chris) const;
 
     template <class data_t>
-    void store_vars(Vars<data_t> &out, Cell<data_t> &current_cell) const;
+    AMREX_GPU_DEVICE
+    void store_vars(Vars<data_t> const &out, amrex::CellData<data_t> const &current_cell) const;
 };
 
 #include "NewConstraints.impl.hpp"

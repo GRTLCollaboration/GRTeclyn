@@ -27,18 +27,22 @@ inline Constraints::Constraints(
 }
 
 template <class data_t>
-void Constraints::compute(Cell<data_t> current_cell) const
+AMREX_GPU_DEVICE
+void Constraints::compute (int i, int j, int k, amrex::Array4<data_t> const& cst,
+                           amrex::Array4<data_t const> const& state) const
 {
-    const auto vars = current_cell.template load_vars<MetricVars>();
-    const auto d1 = m_deriv.template diff1<MetricVars>(current_cell);
-    const auto d2 = m_deriv.template diff2<Diff2Vars>(current_cell);
+    const auto d1 = m_deriv.template diff1<MetricVars>(i,j,k,state);
+    const auto d2 = m_deriv.template diff2<Diff2Vars>(i,j,k,state);
 
+    const auto state_cell = state.cellData(i,j,k);
+    const auto vars = load_vars<MetricVars>(state_cell);
     const auto h_UU = TensorAlgebra::compute_inverse_sym(vars.h);
     const auto chris = TensorAlgebra::compute_christoffel(d1.h, h_UU);
 
     Vars<data_t> out = constraint_equations(vars, d1, d2, h_UU, chris);
 
-    store_vars(out, current_cell);
+    const auto cst_cell = cst.cellData(i,j,k);
+    store_vars(out, cst_cell);
 }
 
 template <class data_t, template <typename> class vars_t,
@@ -103,19 +107,21 @@ Constraints::Vars<data_t> Constraints::constraint_equations(
 }
 
 template <class data_t>
-void Constraints::store_vars(Vars<data_t> &out,
-                             Cell<data_t> &current_cell) const
+void Constraints::store_vars(Vars<data_t> const&out,
+                             amrex::CellData<data_t> const&current_cell) const
 {
-    if (m_c_Ham >= 0)
-        current_cell.store_vars(out.Ham, m_c_Ham);
-    if (m_c_Ham_abs_terms >= 0)
-        current_cell.store_vars(out.Ham_abs_terms, m_c_Ham_abs_terms);
+    if (m_c_Ham >= 0) {
+        current_cell[m_c_Ham] = out.Ham;
+    }
+    if (m_c_Ham_abs_terms >= 0) {
+        current_cell[m_c_Ham_abs_terms] = out.Ham_abs_terms;
+    }
     if (m_c_Moms.size() == GR_SPACEDIM)
     {
         FOR(i)
         {
             int ivar = m_c_Moms.begin() + i;
-            current_cell.store_vars(out.Mom[i], ivar);
+            current_cell[ivar] = out.Mom[i];
         }
     }
     else if (m_c_Moms.size() == 1)
@@ -123,14 +129,14 @@ void Constraints::store_vars(Vars<data_t> &out,
         data_t Mom_sq = 0.0;
         FOR(i) { Mom_sq += out.Mom[i] * out.Mom[i]; }
         data_t Mom = sqrt(Mom_sq);
-        current_cell.store_vars(Mom, m_c_Moms.begin());
+        current_cell[m_c_Moms.begin()] = Mom;
     }
     if (m_c_Moms_abs_terms.size() == GR_SPACEDIM)
     {
         FOR(i)
         {
             int ivar = m_c_Moms_abs_terms.begin() + i;
-            current_cell.store_vars(out.Mom_abs_terms[i], ivar);
+            current_cell[ivar] = out.Mom_abs_terms[i];
         }
     }
     else if (m_c_Moms_abs_terms.size() == 1)
@@ -141,7 +147,7 @@ void Constraints::store_vars(Vars<data_t> &out,
             Mom_abs_terms_sq += out.Mom_abs_terms[i] * out.Mom_abs_terms[i];
         }
         data_t Mom_abs_terms = sqrt(Mom_abs_terms_sq);
-        current_cell.store_vars(Mom_abs_terms, m_c_Moms_abs_terms.begin());
+        current_cell[m_c_Moms_abs_terms.begin()] = Mom_abs_terms;
     }
 }
 

@@ -5,6 +5,8 @@
 
 #include "GRAMRLevel.hpp"
 
+amrex::Vector<std::string> GRAMRLevel::plot_constraints;
+
 struct GRAMRBCFill
 {
     AMREX_GPU_DEVICE
@@ -32,16 +34,14 @@ void gramr_bc_fill(amrex::Box const& bx, amrex::FArrayBox& data,
 
 void GRAMRLevel::variableSetUp()
 {
+    const int nghost = simParams().num_ghosts;
     desc_lst.addDescriptor(State_Type,amrex::IndexType::TheCellType(),
                            amrex::StateDescriptor::Point,
-                           simParams().num_ghosts,
-                           NUM_VARS,
-                           &amrex::cell_quartic_interp);
+                           nghost, NUM_VARS, &amrex::cell_quartic_interp);
 
     BoundaryConditions::params_t bparms = simParams().boundary_params;
     BoundaryConditions boundary_conditions;
-    boundary_conditions.define(simParams().center, bparms, amrex::DefaultGeometry(),
-                               simParams().num_ghosts);
+    boundary_conditions.define(simParams().center, bparms, amrex::DefaultGeometry(), nghost);
 
     amrex::Vector<amrex::BCRec> bcs(NUM_VARS);
     for (int icomp = 0; icomp < NUM_VARS; ++icomp) {
@@ -83,11 +83,51 @@ void GRAMRLevel::variableSetUp()
     bndryfunc.setRunOnGPU(true);  // Run the bc function on gpu.
 
     desc_lst.setComponent(State_Type, 0, name, bcs, bndryfunc);
+
+    amrex::ParmParse pp("amr");
+    if (pp.contains("derive_plot_vars")) {
+        std::vector<std::string> names;
+        pp.getarr("derive_plot_vars", names);
+
+        // Constraints
+        auto r = std::find_if(names.begin(), names.end(),
+                              [] (std::string const& s) {
+                                  return std::string("ham") == amrex::toLower(s);
+                              });
+        if (r != names.end()) {
+            names.erase(r);
+            plot_constraints.push_back("Ham");
+        }
+        //
+        r = std::find_if(names.begin(), names.end(),
+                         [] (std::string const& s) {
+                             return std::string("mom") == amrex::toLower(s);
+                         });
+        if (r != names.end()) {
+            names.erase(r);
+            plot_constraints.push_back("Mom1");
+            plot_constraints.push_back("Mom2");
+            plot_constraints.push_back("Mom3");
+        }
+        //
+        if ( ! plot_constraints.empty() ) {
+            names.push_back("constraints");
+            pp.addarr("derive_plot_vars", names);
+
+            derive_lst.add("constraints", amrex::IndexType::TheCellType(),
+                           plot_constraints.size(), plot_constraints,
+                           amrex::DeriveFuncFab(), // null function because we won't use it.
+                           [=] (amrex::Box const& b) { return amrex::grow(b,nghost); },
+                           &amrex::cell_quartic_interp);
+            derive_lst.addComponent("constraints", desc_lst, State_Type, 0, NUM_VARS);
+        }
+    }
 }
 
 void GRAMRLevel::variableCleanUp()
 {
     desc_lst.clear();
+    derive_lst.clear();
 }
 
 GRAMRLevel::GRAMRLevel() {}
@@ -224,4 +264,19 @@ void GRAMRLevel::init ()
 
     amrex::MultiFab& S_new = get_new_data(State_Type);
     FillCoarsePatch(S_new, 0, cur_time, State_Type, 0, S_new.nComp());
+}
+
+void GRAMRLevel::writePlotFilePre (const std::string& /*dir*/, std::ostream& /*os*/)
+{
+    m_is_writing_plotfile = true;
+    if ( ! plot_constraints.empty() ) {
+        auto& S = get_new_data(State_Type);
+        FillPatch(*this, S, S.nGrow(), get_state_data(State_Type).curTime(),
+                  State_Type, 0, S.nComp()); // xxxxx Do we need all components?
+    }
+}
+
+void GRAMRLevel::writePlotFilePost (const std::string& /*dir*/, std::ostream& /*os*/)
+{
+    m_is_writing_plotfile = false;
 }

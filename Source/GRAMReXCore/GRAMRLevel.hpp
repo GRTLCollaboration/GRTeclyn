@@ -102,6 +102,21 @@ public:
     *                        int ngrow = 0);
     */
 
+    //! Do pre-plotfile work
+    virtual void writePlotFilePre (const std::string& dir, std::ostream& os) override;
+
+    //! Do post-plotfile work
+    virtual void writePlotFilePost (const std::string& dir, std::ostream& os) override;
+
+    //! Return a MultiFab containing the derived data for this level.
+    virtual std::unique_ptr<amrex::MultiFab> derive (const std::string& name,
+                                                     amrex::Real time,
+                                                     int ngrow) override;
+
+    //! Fill mf starting with the dcomp'th component with the derived quantity.
+    virtual void derive (const std::string& name, amrex::Real time,
+                         amrex::MultiFab& mf, int dcomp) override;
+
     /// Virtual function for the problem specific parts of Advance
     virtual void specificAdvance() {}
 
@@ -118,6 +133,9 @@ public:
 
     int m_verbosity = 0;  //!< Level of verbosity of the output
     int m_num_ghosts;     //!< Number of ghost cells
+    bool m_is_writing_plotfile = false;
+
+    static amrex::Vector<std::string> plot_constraints;
 };
 
 #endif /* GRAMRLEVEL_HPP_ */
