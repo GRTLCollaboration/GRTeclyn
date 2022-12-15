@@ -38,10 +38,16 @@ void GRAMRLevel::derive (const std::string& name, amrex::Real /*time*/,
                     iham = inext++;
                 }
                 r = std::find(plot_constraints.begin(), plot_constraints.end(),
-                              "Mom");
+                              "Mom1");
                 if (r != std::end(plot_constraints)) {
                     imom = Interval(inext, inext+AMREX_SPACEDIM-1);
                     inext += AMREX_SPACEDIM;
+                    auto r2 = std::find(plot_constraints.begin(),
+                                        plot_constraints.end(), "Mom2");
+                    auto r3 = std::find(plot_constraints.begin(),
+                                        plot_constraints.end(), "Mom3");
+                    AMREX_ALWAYS_ASSERT(r2 != std::end(plot_constraints) &&
+                                        r3 != std::end(plot_constraints));
                 }
             } else {
                 iham = dcomp;
