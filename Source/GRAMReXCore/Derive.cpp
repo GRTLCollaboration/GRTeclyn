@@ -28,19 +28,24 @@ void GRAMRLevel::derive (const std::string& name, amrex::Real /*time*/,
         auto const& src = state_mf.const_arrays();
         if (name == "constraints") {
             auto const& dst = mf.arrays();
-            int iham = dcomp;
-            Interval imom(dcomp+1, dcomp+AMREX_SPACEDIM);
+            int iham = -1;
+            Interval imom;
             if ( ! plot_constraints.empty() ) {
+                int inext = dcomp;
                 auto r = std::find(plot_constraints.begin(), plot_constraints.end(),
                                    "Ham");
-                if (r == std::end(plot_constraints)) {
-                    iham = -1;
+                if (r != std::end(plot_constraints)) {
+                    iham = inext++;
                 }
                 r = std::find(plot_constraints.begin(), plot_constraints.end(),
                               "Mom");
-                if (r == std::end(plot_constraints)) {
-                    imom = Interval();
+                if (r != std::end(plot_constraints)) {
+                    imom = Interval(inext, inext+AMREX_SPACEDIM-1);
+                    inext += AMREX_SPACEDIM;
                 }
+            } else {
+                iham = dcomp;
+                imom = Interval(dcomp+1, dcomp+AMREX_SPACEDIM);
             }
             Constraints cst(Geom().CellSize(0), iham, imom);
             amrex::ParallelFor(mf, amrex::IntVect(0),
