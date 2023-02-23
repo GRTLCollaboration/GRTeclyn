@@ -1,0 +1,40 @@
+name: Regression Tests
+
+on: [push]
+
+jobs:
+  binarybh:
+    name: BinaryBH
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout AMReX
+      uses: actions/checkout@v3
+      with:
+        repository: AMReX-Codes/amrex
+        path: amrex
+
+    - name: Checkout GRAMReX
+      uses: actions/checkout@v3
+      with:
+        path: GRAMReX
+
+    - name: Install MPICH
+      run: |
+        # First update package repository mirrors
+        sudo gem install apt-spy2
+        sudo apt-spy2 check
+        sudo apt-spy2 fix --commit
+        sudo apt-get update
+        sudo apt-get -y --no-install-recommends install libmpich-dev
+
+    - name: Set Compilers
+      run: |
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 120
+        sudo update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-12 120
+        sudo update-alternatives --install /usr/bin/cpp cpp /usr/bin/cpp-12 120
+
+    - name: Build BinaryBH example
+      run: |
+        make -j 4
+      working-directory: ${{ github.workspace }}/GRAMReX/Examples/BinaryBH
