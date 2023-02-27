@@ -6,6 +6,9 @@ jobs:
   binarybh:
     name: BinaryBH
     runs-on: ubuntu-22.04
+    env:
+      AMREX_HOME: ${{ github.workspace }}/amrex
+      BINARYBH_EXAMPLE_DIR: ${{ github.workspace }}/GRAMReX/Examples/BinaryBH
 
     steps:
     - name: Checkout AMReX
@@ -35,6 +38,21 @@ jobs:
         sudo update-alternatives --install /usr/bin/cpp cpp /usr/bin/cpp-12 120
 
     - name: Build BinaryBH example
+      run: make -j 4
+      working-directory: ${{ env.BINARYBH_EXAMPLE_DIR }}
+
+    - name: Build fcompare tool
+      run: make -j 4 
+      working-directory: ${{ env.AMREX_HOME }}/Tools/Plotfile
+
+    - name: Run BinaryBH example using test parameters
+      run: mpiexec -n 2 ./main3d.gnu.MPI.ex ./params_test.txt
+      working-directory: ${{ env.BINARYBH_EXAMPLE_DIR }}
+
+    - name: Compare plotfile from final step with saved plotfile
       run: |
-        make -j 4
-      working-directory: ${{ github.workspace }}/GRAMReX/Examples/BinaryBH
+        ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex \
+        --abs_tol 1e-10 \
+        --rel_tol 1e-10 \
+        ${GITHUB_WORKSPACE}/GRAMReX/.github/workflows/data/plt00008_compare \
+        ${BINARYBH_EXAMPLE_DIR}/plt00008
