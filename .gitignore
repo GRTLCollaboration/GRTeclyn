@@ -1,27 +1,40 @@
-jobscript*
-pout.*
-.bashrc
-*.pbs
-*.s
-d
-o
-p
-f
-*_F.H
-.DS_Store
-log*
+# Build files
+tmp_build_dir/
+d/
+f/
+o/
+t/
 *.ex
-.*.sw[n-p]
-*.out
-*.dat
-*.hdf5
 *.dSYM
-LB.txt
-Weyl_integral*
-*ExtractionOut_*
-time.table.*
-*.patch
-*.log
+*.[oa]
+TAGS
 ipo_out.optrpt
 
+# editors
+.vscode
+.*.sw[n-p]
+
+# Example output
+chk*/
+plt*/
+Backtrace.*
+pout.*
+*.out
+*.dat
+Weyl_integral*
+*ExtractionOut_*
+
+# Job schedulers
+jobscript*
+*.pbs
+
+# Documentation
 Doxygen/html
+
+# other
+.bashrc
+*.s
+.DS_Store
+log*
+*.patch
+*.log
