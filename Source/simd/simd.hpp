@@ -23,8 +23,8 @@ struct disable_simd
 // in the architecture-specific files and simd_base.hpp
 template <typename t> struct simd_traits
 {
-    using data_t = t;
-    using mask_t = bool;
+    using data_t              = t;
+    using mask_t              = bool;
     static const int simd_len = 1;
 };
 
@@ -38,51 +38,43 @@ template <typename t> struct simd
 {
     t m_value;
 
-    constexpr
-    simd() : m_value() {}
+    constexpr simd() : m_value() {}
 
-    constexpr
-    simd(const t &x) : m_value(x) {}
+    constexpr simd(const t &x) : m_value(x) {}
 
-    constexpr
-    operator t &() { return m_value; }
+    constexpr operator t &() { return m_value; }
 
-    constexpr
-    operator const t &() const { return m_value; }
+    constexpr operator const t &() const { return m_value; }
 
-    constexpr
-    static simd load(const double *ptr) { return *ptr; }
+    constexpr static simd load(const double *ptr) { return *ptr; }
 
-    constexpr
-    static void store(double *ptr, const simd &a) { *ptr = a.m_value; }
+    constexpr static void store(double *ptr, const simd &a)
+    {
+        *ptr = a.m_value;
+    }
 
-    constexpr
-    simd &operator+=(const simd &a)
+    constexpr simd &operator+=(const simd &a)
     {
         m_value += a.m_value;
         return *this;
     }
-    constexpr
-    simd &operator-=(const simd &a)
+    constexpr simd &operator-=(const simd &a)
     {
         m_value -= a.m_value;
         return *this;
     }
-    constexpr
-    simd &operator*=(const simd &a)
+    constexpr simd &operator*=(const simd &a)
     {
         m_value *= a.m_value;
         return *this;
     }
-    constexpr
-    simd &operator/=(const simd &a)
+    constexpr simd &operator/=(const simd &a)
     {
         m_value /= a.m_value;
         return *this;
     }
 
-    constexpr
-    t operator[](int index) const { return m_value; }
+    constexpr t operator[](int index) const { return m_value; }
 
     template <typename op_t> constexpr simd foreach (op_t op) const
     {
@@ -107,8 +99,8 @@ template <typename t> struct simd
 // function calls also work when simd is switched off. (e.g.
 // simd_compare_lt(double, double) must work but needs to be implemented
 template <typename t>
-constexpr
-t simd_conditional(const bool cond, const t &true_value, const t &false_value)
+constexpr t simd_conditional(const bool cond, const t &true_value,
+                             const t &false_value)
 {
     return cond ? true_value : false_value;
 }

@@ -38,18 +38,16 @@ class BinaryBH
     }
 
     template <class data_t>
-    AMREX_GPU_DEVICE
-    void init_data (int i, int j, int k,
-                    amrex::CellData<data_t> const& cell) const;
+    AMREX_GPU_DEVICE void init_data(int i, int j, int k,
+                                    amrex::CellData<data_t> const &cell) const;
 
   protected:
     template <class data_t>
-    AMREX_GPU_DEVICE
-    data_t compute_chi(Coordinates<data_t> coords) const;
+    AMREX_GPU_DEVICE data_t compute_chi(Coordinates<data_t> coords) const;
 
     template <class data_t>
-    AMREX_GPU_DEVICE
-    Tensor<2, data_t> compute_A(data_t chi, Coordinates<data_t> coords) const;
+    AMREX_GPU_DEVICE Tensor<2, data_t>
+    compute_A(data_t chi, Coordinates<data_t> coords) const;
 };
 
 #include "BinaryBH.impl.hpp"

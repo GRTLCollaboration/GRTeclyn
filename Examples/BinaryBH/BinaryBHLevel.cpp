@@ -9,7 +9,7 @@
 #include "ChiExtractionTaggingCriterion.hpp"
 #include "PositiveChiAndAlpha.hpp"
 #include "PunctureTracker.hpp"
-//xxxxx #include "SixthOrderDerivatives.hpp"
+// xxxxx #include "SixthOrderDerivatives.hpp"
 #include "TraceARemoval.hpp"
 #include "TwoPuncturesInitialData.hpp"
 #include "Weyl4.hpp"
@@ -18,21 +18,24 @@
 // Things to do during the advance step after RK4 steps
 void BinaryBHLevel::specificAdvance()
 {
-    amrex::MultiFab& S_new = get_new_data(State_Type);
-    auto const& arrs = S_new.arrays();
+    amrex::MultiFab &S_new = get_new_data(State_Type);
+    auto const &arrs       = S_new.arrays();
 
     // Enforce the trace free A_ij condition and positive chi and alpha
     amrex::ParallelFor(S_new,
-    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
-    {
-        amrex::CellData<amrex::Real> cell = arrs[box_no].cellData(i,j,k);
-        TraceARemoval()(cell);
-        PositiveChiAndAlpha()(cell);
-    });
+                       [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+                       {
+                           amrex::CellData<amrex::Real> cell =
+                               arrs[box_no].cellData(i, j, k);
+                           TraceARemoval()(cell);
+                           PositiveChiAndAlpha()(cell);
+                       });
 
     // Check for nan's
-    if (simParams().nan_check) {
-        if (S_new.contains_nan(0, S_new.nComp(), amrex::IntVect(0), true)) {
+    if (simParams().nan_check)
+    {
+        if (S_new.contains_nan(0, S_new.nComp(), amrex::IntVect(0), true))
+        {
             amrex::Abort("NaN in specificAdvance");
         }
     }
@@ -57,53 +60,57 @@ void BinaryBHLevel::initData()
     BinaryBH binary(simParams().bh1_params, simParams().bh2_params,
                     Geom().CellSize(0));
 
-    static_assert(std::is_trivially_copyable<BinaryBH>::value, "BinaryBH needs to be device copyable");
+    static_assert(std::is_trivially_copyable<BinaryBH>::value,
+                  "BinaryBH needs to be device copyable");
 
     // First set everything to zero (to avoid undefinded values in constraints)
     // then calculate initial data
-    amrex::MultiFab& S = get_new_data(State_Type);
-    auto const& arrs = S.arrays();
+    amrex::MultiFab &S = get_new_data(State_Type);
+    auto const &arrs   = S.arrays();
     amrex::ParallelFor(S, S.nGrowVect(),
-    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
-    {
-        amrex::CellData<amrex::Real> cell = arrs[box_no].cellData(i,j,k);
-        for (int n = 0; n < cell.nComp(); ++n) {
-            cell[n] = 0.;
-        }
-        binary.init_data(i,j,k,cell);
-    });
+                       [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+                       {
+                           amrex::CellData<amrex::Real> cell =
+                               arrs[box_no].cellData(i, j, k);
+                           for (int n = 0; n < cell.nComp(); ++n)
+                           {
+                               cell[n] = 0.;
+                           }
+                           binary.init_data(i, j, k, cell);
+                       });
 #endif
 }
 
 // Calculate RHS during RK4 substeps
-void BinaryBHLevel::specificEvalRHS(amrex::MultiFab& a_soln,
-                                    amrex::MultiFab& a_rhs,
+void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
+                                    amrex::MultiFab &a_rhs,
                                     const double /*a_time*/)
 {
-    auto const& soln_arrs = a_soln.arrays();
-    auto const& soln_c_arrs = a_soln.const_arrays();
-    auto const& rhs_arrs = a_rhs.arrays();
+    auto const &soln_arrs   = a_soln.arrays();
+    auto const &soln_c_arrs = a_soln.const_arrays();
+    auto const &rhs_arrs    = a_rhs.arrays();
 
     // Enforce positive chi and alpha and trace free A
     amrex::ParallelFor(a_soln, a_soln.nGrowVect(),
-    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
-    {
-        amrex::CellData<amrex::Real> cell = soln_arrs[box_no].cellData(i,j,k);
-        TraceARemoval()(cell);
-        PositiveChiAndAlpha()(cell);
-    });
+                       [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+                       {
+                           amrex::CellData<amrex::Real> cell =
+                               soln_arrs[box_no].cellData(i, j, k);
+                           TraceARemoval()(cell);
+                           PositiveChiAndAlpha()(cell);
+                       });
 
     // Calculate CCZ4 right hand side
     if (simParams().max_spatial_derivative_order == 4)
     {
-        CCZ4RHS<MovingPunctureGauge, FourthOrderDerivatives>
-            ccz4rhs(simParams().ccz4_params, Geom().CellSize(0), simParams().sigma,
-                    simParams().formulation);
-        amrex::ParallelFor(a_rhs,
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
-        {
-            ccz4rhs.compute(i,j,k,rhs_arrs[box_no],soln_c_arrs[box_no]);
-        });
+        CCZ4RHS<MovingPunctureGauge, FourthOrderDerivatives> ccz4rhs(
+            simParams().ccz4_params, Geom().CellSize(0), simParams().sigma,
+            simParams().formulation);
+        amrex::ParallelFor(
+            a_rhs,
+            [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) {
+                ccz4rhs.compute(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]);
+            });
     }
     else if (simParams().max_spatial_derivative_order == 6)
     {
@@ -124,51 +131,54 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab& a_soln,
 }
 
 // enforce trace removal during RK4 substeps
-void BinaryBHLevel::specificUpdateODE(amrex::MultiFab& a_soln)
+void BinaryBHLevel::specificUpdateODE(amrex::MultiFab &a_soln)
 {
     // Enforce the trace free A_ij condition
-    auto const& soln_arrs = a_soln.arrays();
+    auto const &soln_arrs = a_soln.arrays();
     amrex::ParallelFor(a_soln, amrex::IntVect(0), // zero ghost cells
-    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
-    {
-        amrex::CellData<amrex::Real> cell = soln_arrs[box_no].cellData(i,j,k);
-        TraceARemoval()(cell);
-    });
+                       [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+                       {
+                           amrex::CellData<amrex::Real> cell =
+                               soln_arrs[box_no].cellData(i, j, k);
+                           TraceARemoval()(cell);
+                       });
 }
 
-void BinaryBHLevel::errorEst (amrex::TagBoxArray& tb, int /*clearval*/,
-                              int /*tagval*/, amrex::Real /*time*/,
-                              int /*n_error_buf*/, int /*ngrow*/)
+void BinaryBHLevel::errorEst(amrex::TagBoxArray &tb, int /*clearval*/,
+                             int /*tagval*/, amrex::Real /*time*/,
+                             int /*n_error_buf*/, int /*ngrow*/)
 {
-    amrex::MultiFab& S_new = get_new_data(State_Type);
-    const auto cur_time = get_state_data(State_Type).curTime();
+    amrex::MultiFab &S_new = get_new_data(State_Type);
+    const auto cur_time    = get_state_data(State_Type).curTime();
 
     const int nghost = S_new.nGrow(); // Need ghost cells to compute gradient
-    const int ncomp = 1;
+    const int ncomp  = 1;
     // We only use chi in the tagging criterion so only fill the ghosts for chi
     FillPatch(*this, S_new, nghost, cur_time, State_Type, c_chi, ncomp);
 
-    auto const& simpar = simParams();
+    auto const &simpar = simParams();
 
-    if (simpar.track_punctures) {
+    if (simpar.track_punctures)
+    {
         amrex::Abort("BinaryBHLevel::errorEst:track_punctures TODO");
     }
 
-    auto const& tags = tb.arrays();
-    auto const& S = S_new.const_arrays();
+    auto const &tags  = tb.arrays();
+    auto const &S     = S_new.const_arrays();
     auto const tagval = amrex::TagBox::SET;
-    ChiExtractionTaggingCriterion tagger(Geom().CellSize(0),
-                                         Level(), simpar.extraction_params,
+    ChiExtractionTaggingCriterion tagger(Geom().CellSize(0), Level(),
+                                         simpar.extraction_params,
                                          simpar.activate_extraction);
     amrex::Real threshold = simpar.regrid_thresholds[Level()];
     amrex::ParallelFor(S_new, amrex::IntVect(0),
-    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
-    {
-        amrex::Real r = tagger(i,j,k,S[box_no]);
-        if (r >= threshold) {
-            tags[box_no](i,j,k) = tagval;
-        }
-    });
+                       [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+                       {
+                           amrex::Real r = tagger(i, j, k, S[box_no]);
+                           if (r >= threshold)
+                           {
+                               tags[box_no](i, j, k) = tagval;
+                           }
+                       });
     amrex::Gpu::streamSynchronize();
 }
 

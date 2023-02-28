@@ -18,8 +18,8 @@
 
 #include <array>
 
-class [
-    [deprecated("Use new Constraints class in NewConstraints.hpp")]] Constraints
+class [[deprecated(
+    "Use new Constraints class in NewConstraints.hpp")]] Constraints
 {
   public:
     /// CCZ4 variables
@@ -36,8 +36,7 @@ class [
         Tensor<1, data_t> Mom;
 
         template <typename mapping_function_t>
-        AMREX_GPU_DEVICE
-        void enum_mapping(mapping_function_t mapping_function)
+        AMREX_GPU_DEVICE void enum_mapping(mapping_function_t mapping_function)
         {
             using namespace VarsTools;
             define_enum_mapping(mapping_function, c_Ham, Ham);

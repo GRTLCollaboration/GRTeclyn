@@ -99,14 +99,14 @@ int main()
                     g_UU[2][1] = g_UU[1][2];
 
                     chi = std::pow(std::abs(detg), -1.0 / GR_SPACEDIM);
-                    in_fab(iv, c_chi) = chi;
+                    in_fab(iv, c_chi)  = chi;
                     in_fab(iv, c_chi2) = sqrt(chi);
-                    in_fab(iv, c_h11) = chi * g[0][0];
-                    in_fab(iv, c_h12) = chi * g[0][1];
-                    in_fab(iv, c_h13) = chi * g[0][2];
-                    in_fab(iv, c_h22) = chi * g[1][1];
-                    in_fab(iv, c_h23) = chi * g[1][2];
-                    in_fab(iv, c_h33) = chi * g[2][2];
+                    in_fab(iv, c_h11)  = chi * g[0][0];
+                    in_fab(iv, c_h12)  = chi * g[0][1];
+                    in_fab(iv, c_h13)  = chi * g[0][2];
+                    in_fab(iv, c_h22)  = chi * g[1][1];
+                    in_fab(iv, c_h23)  = chi * g[1][2];
+                    in_fab(iv, c_h33)  = chi * g[2][2];
 
                     in_fab(iv, c_Weyl4_Re) = 0.0;
                     in_fab(iv, c_Weyl4_Im) = 0.0;
@@ -137,7 +137,10 @@ int main()
                     K[2][1] = K[1][2];
 
                     double trK = 0;
-                    FOR(a, b) { trK += g_UU[a][b] * K[a][b]; }
+                    FOR (a, b)
+                    {
+                        trK += g_UU[a][b] * K[a][b];
+                    }
 
                     in_fab(iv, c_K) = trK;
                     in_fab(iv, c_A11) =
@@ -234,7 +237,7 @@ int main()
 
 #ifdef COMPARE_WITH_CHF
 
-    int SIX = 6;
+    int SIX   = 6;
     int THREE = 3;
 
     gettimeofday(&begin, NULL);
@@ -268,7 +271,7 @@ int main()
     std::cout << "C++ speedup = " << setprecision(2)
               << (double)fort_time / cxx_time << "x" << std::endl;
 
-    out_fab -= out_fab_chf;
+    out_fab    -= out_fab_chf;
     int failed = 0;
     for (int i = 0; i < NUM_VARS; ++i)
     {

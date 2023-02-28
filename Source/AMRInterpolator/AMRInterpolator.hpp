@@ -40,15 +40,15 @@ template <typename InterpAlgo> class AMRInterpolator
     void refresh(const bool a_fill_ghosts = true);
 
     // if not filling ghosts in refresh, call this explicitly for required vars
-//xxxxx    void fill_multilevel_ghosts(
-//        const VariableType a_var_type,
-//        const Interval &a_comps = Interval(0, std::numeric_limits<int>::max()),
-//        const int a_min_level = 0,
-//        const int a_max_level = std::numeric_limits<int>::max());
+    // xxxxx    void fill_multilevel_ghosts(
+    //         const VariableType a_var_type,
+    //         const Interval &a_comps = Interval(0,
+    //         std::numeric_limits<int>::max()), const int a_min_level = 0,
+    //         const int a_max_level = std::numeric_limits<int>::max());
 
     void limit_num_levels(unsigned int num_levels);
     void interp(InterpolationQuery &query);
-//xxxxx    const AMR &getAMR() const;
+    // xxxxx    const AMR &getAMR() const;
     const std::array<double, AMREX_SPACEDIM> &get_coarsest_dx();
     const std::array<double, AMREX_SPACEDIM> &get_coarsest_origin();
 

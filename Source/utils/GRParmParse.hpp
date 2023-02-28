@@ -28,15 +28,16 @@ class GRParmParse : public amrex::ParmParse
     template <class data_t, long unsigned int n_comp>
     void load(const char *name, std::array<data_t, n_comp> &array) const
     {
-        get<data_t,n_comp>(name, array);
+        get<data_t, n_comp>(name, array);
     }
 
     template <long unsigned int n_comp>
     void load(const char *name, std::array<bool, n_comp> &array) const
     {
-        std::array<int,n_comp> tmp;
-        get<int,n_comp>(name, tmp);
-        for (long unsigned int i = 0; i < n_comp; ++i) array[i] = tmp[i];
+        std::array<int, n_comp> tmp;
+        get<int, n_comp>(name, tmp);
+        for (long unsigned int i = 0; i < n_comp; ++i)
+            array[i] = tmp[i];
     }
 
     /// Loads a vector with num_comp components from the parameter file
@@ -53,7 +54,8 @@ class GRParmParse : public amrex::ParmParse
     {
         std::vector<int> tmp(num_comp);
         getarr(name, tmp, 0, num_comp);
-        for (long unsigned int i = 0; i < num_comp; ++i) vector[i] = tmp[i];
+        for (long unsigned int i = 0; i < num_comp; ++i)
+            vector[i] = tmp[i];
     }
 
     /// Loads a value from the parameter file
@@ -127,9 +129,10 @@ class GRParmParse : public amrex::ParmParse
                   bool> = true> // this won't work for std::arrays and vectors
     void default_message(const char *name, const data_t &default_value) const
     {
-        amrex::Print() << "Parameter: " << name << " not found in parameter file. "
-               << "It has been set to its default value = " << default_value
-               << "." << std::endl;
+        amrex::Print() << "Parameter: " << name
+                       << " not found in parameter file. "
+                       << "It has been set to its default value = "
+                       << default_value << "." << std::endl;
     }
 
     template <typename data_t,
@@ -138,9 +141,10 @@ class GRParmParse : public amrex::ParmParse
                   bool> = true> // use this code for std::arrays and vectors
     void default_message(const char *name, const data_t &default_value) const
     {
-        amrex::Print() << "Parameter: " << name << " not found in parameter file. "
-               << "It has been set to its default "
-                  "value =";
+        amrex::Print() << "Parameter: " << name
+                       << " not found in parameter file. "
+                       << "It has been set to its default "
+                          "value =";
         for (auto elem : default_value)
         {
             amrex::Print() << " " << elem;

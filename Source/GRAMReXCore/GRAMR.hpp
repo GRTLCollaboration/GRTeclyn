@@ -6,7 +6,7 @@
 #ifndef GRAMR_HPP_
 #define GRAMR_HPP_
 
-//xxxxx#include "Lagrange.hpp"
+// xxxxx#include "Lagrange.hpp"
 #include "VariableType.hpp"
 #include <AMReX_Amr.H>
 #include <algorithm>
@@ -35,19 +35,20 @@ class GRAMR : public amrex::Amr
 
   public:
 
-    GRAMR(amrex::LevelBld* a_levelbld);
+    GRAMR(amrex::LevelBld *a_levelbld);
     virtual ~GRAMR();
 
-    static void set_simulation_parameters(const SimulationParameters& a_sim_params);
-    static SimulationParameters const& get_simulation_parameters();
+    static void
+    set_simulation_parameters(const SimulationParameters &a_sim_params);
+    static SimulationParameters const &get_simulation_parameters();
 
   private:
-    static SimulationParameters const* m_sim_params;
+    static SimulationParameters const *m_sim_params;
 
     // defined here due to auto return type
     auto get_walltime()
     {
-        auto now = Clock::now();
+        auto now      = Clock::now();
         auto duration = std::chrono::duration_cast<Hours>(now - start_time);
 
         return duration.count();

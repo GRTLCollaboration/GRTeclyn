@@ -46,13 +46,13 @@ class ChiAndPhiTaggingCriterion
 
     template <class data_t> void compute(Cell<data_t> current_cell) const
     {
-        const auto d2 = m_deriv.template diff2<MatterVars>(current_cell);
+        const auto d2    = m_deriv.template diff2<MatterVars>(current_cell);
         const auto d2chi = m_deriv.template diff2<Vars>(current_cell);
 
         data_t mod_d2_chi = 0;
         data_t mod_d2_phi = 0;
 
-        FOR(idir, jdir)
+        FOR (idir, jdir)
         {
             mod_d2_chi += d2chi.chi[idir][jdir] * d2chi.chi[idir][jdir];
 

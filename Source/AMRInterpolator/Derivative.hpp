@@ -67,12 +67,12 @@ class Derivative : public std::array<int, AMREX_SPACEDIM>
 
     bool operator<(const Derivative &rhs) const
     {
-        int derivs = 0;
+        int derivs     = 0;
         int rhs_derivs = 0;
 
         for (int i = 0; i < AMREX_SPACEDIM; ++i)
         {
-            derivs += (*this)[i];
+            derivs     += (*this)[i];
             rhs_derivs += rhs[i];
         }
 

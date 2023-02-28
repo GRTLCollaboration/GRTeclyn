@@ -93,9 +93,8 @@ int runSphericalExtractionTest(int argc, char *argv[])
 
     // real part is the zeroth componenent and imaginary part is first component
     SphericalExtraction::complex_function_t extracted_harmonic =
-        [](std::vector<double> &data, double, double, double) {
-            return std::make_pair(data[0], data[1]);
-        };
+        [](std::vector<double> &data, double, double, double)
+    { return std::make_pair(data[0], data[1]); };
 
     // add the spherical harmonic mode integrands for each resolution and for
     // the trapezium rule, Simpson's rule and Boole's rule
@@ -150,9 +149,9 @@ int runSphericalExtractionTest(int argc, char *argv[])
             (integral_hi_trapezium.first)[iradius];
         double integral_re_lo_simpson = (integral_lo_simpson.first)[iradius];
         double integral_re_hi_simpson = (integral_hi_simpson.first)[iradius];
-        double integral_re_lo_boole = (integral_lo_boole.first)[iradius];
-        double integral_re_hi_boole = (integral_hi_boole.first)[iradius];
-        double analytic_integral = 1.0;
+        double integral_re_lo_boole   = (integral_lo_boole.first)[iradius];
+        double integral_re_hi_boole   = (integral_hi_boole.first)[iradius];
+        double analytic_integral      = 1.0;
 
         double convergence_factor_trapezium =
             std::abs((integral_re_lo_trapezium - analytic_integral) /
@@ -179,12 +178,12 @@ int runSphericalExtractionTest(int argc, char *argv[])
 
         amrex::Print() << "At r = " << r << ":\n";
         amrex::Print() << "convergence_order_trapezium = "
-               << convergence_order_trapezium << "\n";
-        amrex::Print() << "convergence_order_simpson = " << convergence_order_simpson
-               << "\n";
-        amrex::Print() << "convergence_order_boole = " << convergence_order_boole
-               << "\n"
-               << endl;
+                       << convergence_order_trapezium << "\n";
+        amrex::Print() << "convergence_order_simpson = "
+                       << convergence_order_simpson << "\n";
+        amrex::Print() << "convergence_order_boole = "
+                       << convergence_order_boole << "\n"
+                       << endl;
     }
 
     return status;
@@ -199,8 +198,9 @@ int main(int argc, char *argv[])
     if (status == 0)
         amrex::Print() << "SphericalExtractionTest test passed." << endl;
     else
-        amrex::Print() << "SphericalExtractionTest test failed with return code "
-               << status << endl;
+        amrex::Print()
+            << "SphericalExtractionTest test failed with return code " << status
+            << endl;
 
     mainFinalize();
     return status;

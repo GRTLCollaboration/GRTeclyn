@@ -21,7 +21,7 @@ constexpr int ulp = 15; /* units in the last place */
 bool almost_equal(double value, double correct_value,
                   int a_ulp /* units in the last place */)
 {
-    double diff = std::abs(value - correct_value);
+    double diff    = std::abs(value - correct_value);
     double epsilon = std::numeric_limits<double>::epsilon();
     return (diff <
             std::max(epsilon * std::abs(correct_value + value), epsilon) *
@@ -33,7 +33,7 @@ bool check_tensor(const Tensor<2, double> &tensor,
                   const std::string &test_name)
 {
     bool failed = false;
-    FOR(i, j)
+    FOR (i, j)
     {
         if (!almost_equal(tensor[i][j], correct_tensor[i][j], ulp))
         {
@@ -52,7 +52,7 @@ bool check_vector(const Tensor<1, double> &vector,
                   const std::string &test_name)
 {
     bool failed = false;
-    FOR(i)
+    FOR (i)
     {
         if (!almost_equal(vector[i], correct_vector[i], ulp))
         {
@@ -68,7 +68,7 @@ bool check_vector(const Tensor<1, double> &vector,
 
 int main()
 {
-    bool failed = false;
+    bool failed     = false;
     const double dx = 0.1;
     IntVect iv;
     iv[0] = 0;
@@ -76,11 +76,11 @@ int main()
     iv[2] = 0;
 
     Coordinates<double> coords(iv, dx);
-    const double x = coords.x;
-    const double y = coords.y;
-    const double z = coords.z;
-    const double r = coords.get_radius();
-    double rho2 = simd_max(x * x + y * y, 1e-12);
+    const double x     = coords.x;
+    const double y     = coords.y;
+    const double z     = coords.z;
+    const double r     = coords.get_radius();
+    double rho2        = simd_max(x * x + y * y, 1e-12);
     double r2sin2theta = rho2;
 
     /* for debugging
@@ -94,20 +94,26 @@ int main()
     using namespace CoordinateTransformations;
 
     // Test if inv_jac is really the inverse of the jacobian
-    Tensor<2, double> jac = spherical_jacobian(x, y, z);
-    Tensor<2, double> inv_jac = inverse_spherical_jacobian(x, y, z);
+    Tensor<2, double> jac           = spherical_jacobian(x, y, z);
+    Tensor<2, double> inv_jac       = inverse_spherical_jacobian(x, y, z);
     Tensor<2, double> inv_jac_check = compute_inverse(jac);
     failed |= check_tensor(inv_jac, inv_jac_check, "inverse_jacobian");
 
     // Test tensor transformations
     Tensor<2, double> Mij_cart;
-    FOR(i, j) { Mij_cart[i][j] = 0.; }
+    FOR (i, j)
+    {
+        Mij_cart[i][j] = 0.;
+    }
     Mij_cart[0][0] = 1.;
     Mij_cart[1][1] = 1.;
     Mij_cart[2][2] = 1.;
 
     Tensor<2, double> Mij_spher;
-    FOR(i, j) { Mij_spher[i][j] = 0.; }
+    FOR (i, j)
+    {
+        Mij_spher[i][j] = 0.;
+    }
     Mij_spher[0][0] = 1.;
     Mij_spher[1][1] = r * r;
     Mij_spher[2][2] = r2sin2theta;
@@ -130,8 +136,8 @@ int main()
     Mij_spher_UU_check =
         cartesian_to_spherical_UU(compute_inverse_sym(Mij_cart), x, y, z);
     Mij_spher_UU = compute_inverse_sym(Mij_spher);
-    failed |= check_tensor(Mij_spher_UU_check, Mij_spher_UU,
-                           "cartesian_to_spherical_UU");
+    failed       |= check_tensor(Mij_spher_UU_check, Mij_spher_UU,
+                                 "cartesian_to_spherical_UU");
 
     // Test spherical_to_cartesian_UU
     Tensor<2, double> Mij_cart_UU;
@@ -139,8 +145,8 @@ int main()
     Mij_cart_UU_check =
         spherical_to_cartesian_UU(compute_inverse_sym(Mij_spher), x, y, z);
     Mij_cart_UU = compute_inverse_sym(Mij_cart);
-    failed |= check_tensor(Mij_cart_UU_check, Mij_cart_UU,
-                           "spherical_to_cartesian_UU");
+    failed      |= check_tensor(Mij_cart_UU_check, Mij_cart_UU,
+                                "spherical_to_cartesian_UU");
 
     // Test vector transformations
     Tensor<1, double> si_cart;
@@ -178,7 +184,7 @@ int main()
         check_vector(si_cart_L_check, si_cart, "spherical_to_cartesian_L");
 
     // Test area_element_sphere
-    double area_element = r * sqrt(rho2);
+    double area_element       = r * sqrt(rho2);
     double area_element_check = area_element_sphere(Mij_spher);
     if (!almost_equal(area_element, area_element_check, ulp))
     {

@@ -20,9 +20,9 @@ class FixedGridsTaggingCriterion
     const std::array<double, AMREX_SPACEDIM> m_center;
 
   public:
-    FixedGridsTaggingCriterion(const double dx, const int a_level,
-                               const double a_L,
-                               const std::array<double, AMREX_SPACEDIM> a_center)
+    FixedGridsTaggingCriterion(
+        const double dx, const int a_level, const double a_L,
+        const std::array<double, AMREX_SPACEDIM> a_center)
         : m_dx(dx), m_L(a_L), m_level(a_level), m_center(a_center){};
 
     template <class data_t> void compute(Cell<data_t> current_cell) const
@@ -33,10 +33,11 @@ class FixedGridsTaggingCriterion
         // of it, which means inner \pm L/4
         double ratio = pow(2.0, -(m_level + 2.0));
         const Coordinates<data_t> coords(current_cell, m_dx, m_center);
-        const data_t max_abs_xy = simd_max(std::abs(coords.x), std::abs(coords.y));
+        const data_t max_abs_xy =
+            simd_max(std::abs(coords.x), std::abs(coords.y));
         const data_t max_abs_xyz = simd_max(max_abs_xy, std::abs(coords.z));
-        auto regrid = simd_compare_lt(max_abs_xyz, m_L * ratio);
-        criterion = simd_conditional(regrid, 100.0, criterion);
+        auto regrid              = simd_compare_lt(max_abs_xyz, m_L * ratio);
+        criterion                = simd_conditional(regrid, 100.0, criterion);
 
         // Write back into the flattened Chombo box
         current_cell.store_vars(criterion, 0);

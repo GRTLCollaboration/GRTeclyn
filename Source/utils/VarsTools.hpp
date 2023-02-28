@@ -12,24 +12,23 @@
 #include "UserVariables.hpp"
 
 // Chombo includes
-//#include "parstream.H" //Gives us amrex::Print()
+// #include "parstream.H" //Gives us amrex::Print()
 
 namespace VarsTools
 {
 template <typename mapping_function_t, typename data_t>
-AMREX_GPU_DEVICE
-void define_enum_mapping(mapping_function_t mapping_function, const int &ivar,
-                         data_t &scalar)
+AMREX_GPU_DEVICE void define_enum_mapping(mapping_function_t mapping_function,
+                                          const int &ivar, data_t &scalar)
 {
     mapping_function(ivar, scalar);
 }
 
 template <typename mapping_function_t, typename data_t, int start_var,
           int end_var>
-AMREX_GPU_DEVICE
-void define_enum_mapping(mapping_function_t mapping_function,
-                         const GRInterval<start_var, end_var> interval,
-                         Tensor<1, data_t, end_var - start_var + 1> &tensor)
+AMREX_GPU_DEVICE void
+define_enum_mapping(mapping_function_t mapping_function,
+                    const GRInterval<start_var, end_var> interval,
+                    Tensor<1, data_t, end_var - start_var + 1> &tensor)
 {
     for (int ivar = 0; ivar < interval.size(); ++ivar)
         mapping_function(start_var + ivar, tensor[ivar]);
@@ -37,10 +36,10 @@ void define_enum_mapping(mapping_function_t mapping_function,
 
 template <typename mapping_function_t, typename data_t, int start_var,
           int end_var>
-AMREX_GPU_DEVICE
-void define_symmetric_enum_mapping(
-    mapping_function_t mapping_function,
-    const GRInterval<start_var, end_var> interval, Tensor<2, data_t> &tensor)
+AMREX_GPU_DEVICE void
+define_symmetric_enum_mapping(mapping_function_t mapping_function,
+                              const GRInterval<start_var, end_var> interval,
+                              Tensor<2, data_t> &tensor)
 {
     static_assert(interval.size() ==
                       DEFAULT_TENSOR_DIM * (DEFAULT_TENSOR_DIM + 1) / 2,
@@ -81,16 +80,14 @@ struct strip_nested_template<outermost_layer<inner_part>>
  *specifying an arbitrary number of icomps
  */
 template <class vars_t, typename value_t>
-AMREX_GPU_DEVICE
-ALWAYS_INLINE void assign(vars_t &vars, const value_t &value)
+AMREX_GPU_DEVICE ALWAYS_INLINE void assign(vars_t &vars, const value_t &value)
 {
     // The template magic below is needed to make sure that we can write
     // assign(vars, 0.)  and 0. gets correctly cast from double to simd<double>
     // if necessary.
     using data_t = typename strip_nested_template<vars_t>::type;
-    vars.enum_mapping([&value](const int &/*ivar*/, data_t &var) {
-        var = static_cast<data_t>(value);
-    });
+    vars.enum_mapping([&value](const int & /*ivar*/, data_t &var)
+                      { var = static_cast<data_t>(value); });
 }
 
 /// Prints all elements of the vars element with component names
@@ -98,9 +95,12 @@ ALWAYS_INLINE void assign(vars_t &vars, const value_t &value)
 template <template <typename> class vars_t, typename data_t>
 void print(const vars_t<data_t> &vars)
 {
-    vars.enum_mapping([](const int &ivar, data_t &var) {
-        amrex::Print() << UserVariables::variable_names[ivar] << ": " << var << "\n";
-    });
+    vars.enum_mapping(
+        [](const int &ivar, data_t &var)
+        {
+            amrex::Print() << UserVariables::variable_names[ivar] << ": " << var
+                           << "\n";
+        });
 }
 } // namespace VarsTools
 

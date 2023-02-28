@@ -73,8 +73,10 @@ class BoundaryConditions
         params_t(); // sets the defaults
         void
         set_is_periodic(const std::array<bool, AMREX_SPACEDIM> &a_is_periodic);
-        void set_hi_boundary(const std::array<int, AMREX_SPACEDIM> &a_hi_boundary);
-        void set_lo_boundary(const std::array<int, AMREX_SPACEDIM> &a_lo_boundary);
+        void
+        set_hi_boundary(const std::array<int, AMREX_SPACEDIM> &a_hi_boundary);
+        void
+        set_lo_boundary(const std::array<int, AMREX_SPACEDIM> &a_lo_boundary);
         void read_params(GRParmParse &pp);
     };
 
@@ -83,7 +85,7 @@ class BoundaryConditions
     int m_num_ghosts;         // the number of ghosts (usually 3)
     params_t m_params;        // the boundary params
     amrex::RealVect m_center; // the position of the center of the grid
-    amrex::Geometry m_geom  ; // the problem domain (excludes boundary cells)
+    amrex::Geometry m_geom;   // the problem domain (excludes boundary cells)
     bool is_defined; // whether the BoundaryConditions class members are defined
     mutable amrex::Gpu::DeviceVector<double> m_asymptotic_values;
 
@@ -91,14 +93,14 @@ class BoundaryConditions
     /// Default constructor - need to call define afterwards
     BoundaryConditions() { is_defined = false; }
 
-    BoundaryConditions(BoundaryConditions const&) = delete;
-    BoundaryConditions(BoundaryConditions&&) = delete;
-    BoundaryConditions& operator=(BoundaryConditions const&) = delete;
-    BoundaryConditions& operator=(BoundaryConditions&&) = delete;
+    BoundaryConditions(BoundaryConditions const &)            = delete;
+    BoundaryConditions(BoundaryConditions &&)                 = delete;
+    BoundaryConditions &operator=(BoundaryConditions const &) = delete;
+    BoundaryConditions &operator=(BoundaryConditions &&)      = delete;
 
     /// define function sets members and is_defined set to true
     void define(std::array<double, AMREX_SPACEDIM> a_center,
-                const params_t &a_params, amrex::Geometry const& a_domain,
+                const params_t &a_params, amrex::Geometry const &a_domain,
                 int a_num_ghosts);
 
     /// change the asymptotic values of the variables for the Sommerfeld BCs
@@ -126,8 +128,8 @@ class BoundaryConditions
     int get_boundary_condition(amrex::Orientation ori) const;
 
     /// Apply Sommerfeld BC to RHS
-    void apply_sommerfeld_boundaries(amrex::MultiFab& a_rhs,
-                                     amrex::MultiFab const& a_soln) const;
+    void apply_sommerfeld_boundaries(amrex::MultiFab &a_rhs,
+                                     amrex::MultiFab const &a_soln) const;
 
 #if 0
 //xxxxx
@@ -194,7 +196,8 @@ class BoundaryConditions
     /// write out mixed conditions
     static void write_mixed_conditions(int idir, const params_t &a_params);
 
-    void fill_sommerfeld_cell(amrex::FArrayBox &rhs_box, const amrex::FArrayBox &soln_box,
+    void fill_sommerfeld_cell(amrex::FArrayBox &rhs_box,
+                              const amrex::FArrayBox &soln_box,
                               const amrex::IntVect iv,
                               const std::vector<int> &sommerfeld_comps) const;
 
@@ -213,7 +216,7 @@ class BoundaryConditions
 
 /// This derived class is used by expand_grids_to_boundaries to grow the
 /// boxes along the Sommerfeld BC boundaries
-class ExpandGridsToBoundaries //xxxxx: public BaseTransform
+class ExpandGridsToBoundaries // xxxxx: public BaseTransform
 {
   public:
     ExpandGridsToBoundaries(BoundaryConditions &a_boundaries)
@@ -222,7 +225,7 @@ class ExpandGridsToBoundaries //xxxxx: public BaseTransform
     }
 
     /// Operator called by transform to grow the boxes where required
-    amrex::Box operator()(const amrex::Box &a_in_box); //xxxxx override;
+    amrex::Box operator()(const amrex::Box &a_in_box); // xxxxx override;
 
   protected:
     BoundaryConditions &m_boundaries;

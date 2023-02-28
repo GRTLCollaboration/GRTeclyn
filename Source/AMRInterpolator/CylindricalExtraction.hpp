@@ -15,12 +15,12 @@ class CylindricalExtraction : public SurfaceExtraction<CylindricalGeometry>
   public:
     struct params_t : SurfaceExtraction::params_t
     {
-        int &num_extraction_radii = num_surfaces;
+        int &num_extraction_radii             = num_surfaces;
         std::vector<double> &extraction_radii = surface_param_values;
-        int &num_points_z = num_points_u;
-        int &num_points_phi = num_points_v;
+        int &num_points_z                     = num_points_u;
+        int &num_points_phi                   = num_points_v;
         std::array<double, AMREX_SPACEDIM> center; //!< the center of the
-                                                //!< cylindrical shells
+                                                   //!< cylindrical shells
         double z_length;
     };
     const std::array<double, AMREX_SPACEDIM> m_center;

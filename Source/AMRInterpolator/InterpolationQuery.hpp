@@ -45,7 +45,7 @@ class InterpolationQuery
 
     InterpolationQuery &
     addComp(int comp, double *out_ptr,
-            const Derivative &deriv = Derivative::LOCAL,
+            const Derivative &deriv    = Derivative::LOCAL,
             VariableType variable_type = VariableType::evolution)
     {
         AMREX_ASSERT(out_ptr != NULL || m_num_points == 0);

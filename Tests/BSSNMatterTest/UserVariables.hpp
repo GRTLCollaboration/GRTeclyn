@@ -12,11 +12,11 @@
 /// This enum gives the index of every variable stored in the grid
 enum
 {
-    c_h = c_h11,
-    c_A = c_A11,
+    c_h     = c_h11,
+    c_A     = c_A11,
     c_Gamma = c_Gamma1,
     c_shift = c_shift1,
-    c_B = c_B1,
+    c_B     = c_B1,
     // Note that it is important that the first enum value is set to 1 more than
     // the last CCZ4 var enum
     c_phi = NUM_CCZ4_VARS,

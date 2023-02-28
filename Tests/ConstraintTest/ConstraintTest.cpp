@@ -6,7 +6,7 @@
 #define COMPARE_WITH_CHF
 #define COVARIANTZ4
 
-//#include <omp.h>
+// #include <omp.h>
 
 // Chombo includes
 #include "BoxIterator.H"
@@ -135,7 +135,10 @@ int main()
                     K[2][1] = K[1][2];
 
                     double trK = 0;
-                    FOR(a, b) { trK += g_UU[a][b] * K[a][b]; }
+                    FOR (a, b)
+                    {
+                        trK += g_UU[a][b] * K[a][b];
+                    }
 
                     in_fab(iv, c_K) = trK;
                     in_fab(iv, c_A11) =
@@ -217,7 +220,7 @@ int main()
 
 #ifdef COMPARE_WITH_CHF
 
-    int SIX = 6;
+    int SIX   = 6;
     int THREE = 3;
 
     FORT_GETBSSNCONSTRF(
@@ -252,7 +255,7 @@ int main()
     for (int i = c_Ham; i < NUM_VARS; ++i)
     {
         BoxIterator bit(box);
-        double max_err = 0;
+        double max_err   = 0;
         IntVect location = IntVect::Zero;
         for (bit.begin(); bit.ok(); ++bit)
         {

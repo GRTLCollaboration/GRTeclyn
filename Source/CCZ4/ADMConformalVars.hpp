@@ -31,8 +31,7 @@ template <class data_t> struct VarsNoGauge
     /// Defines the mapping between members of Vars and Chombo grid
     /// variables (enum in User_Variables)
     template <typename mapping_function_t>
-    AMREX_GPU_DEVICE
-    void enum_mapping(mapping_function_t mapping_function)
+    AMREX_GPU_DEVICE void enum_mapping(mapping_function_t mapping_function)
     {
         using namespace VarsTools; // define_enum_mapping is part of VarsTools
         // Scalars
@@ -56,8 +55,7 @@ template <class data_t> struct VarsWithGauge : public VarsNoGauge<data_t>
     /// Defines the mapping between members of Vars and Chombo grid
     /// variables (enum in User_Variables)
     template <typename mapping_function_t>
-    AMREX_GPU_DEVICE
-    void enum_mapping(mapping_function_t mapping_function)
+    AMREX_GPU_DEVICE void enum_mapping(mapping_function_t mapping_function)
     {
         using namespace VarsTools; // define_enum_mapping is part of VarsTools
         VarsNoGauge<data_t>::enum_mapping(mapping_function);
@@ -74,8 +72,7 @@ template <class data_t> struct Diff2VarsNoGauge
     Tensor<2, data_t> h; //!< Conformal metric
 
     template <typename mapping_function_t>
-    AMREX_GPU_DEVICE
-    void enum_mapping(mapping_function_t mapping_function)
+    AMREX_GPU_DEVICE void enum_mapping(mapping_function_t mapping_function)
     {
         using namespace VarsTools; // define_enum_mapping is part of VarsTools
         define_enum_mapping(mapping_function, c_chi, chi);
@@ -94,8 +91,7 @@ struct Diff2VarsWithGauge : public Diff2VarsNoGauge<data_t>
     /// Defines the mapping between members of Vars and Chombo grid
     /// variables (enum in User_Variables)
     template <typename mapping_function_t>
-    AMREX_GPU_DEVICE
-    void enum_mapping(mapping_function_t mapping_function)
+    AMREX_GPU_DEVICE void enum_mapping(mapping_function_t mapping_function)
     {
         using namespace VarsTools; // define_enum_mapping is part of VarsTools
         Diff2VarsNoGauge<data_t>::enum_mapping(mapping_function);

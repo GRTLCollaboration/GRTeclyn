@@ -5,7 +5,7 @@
 
 #define COVARIANTZ4
 
-//#include <omp.h>
+// #include <omp.h>
 
 // Chombo includes
 #include "FArrayBox.H"
@@ -136,7 +136,10 @@ int main()
                     K[2][1] = K[1][2];
 
                     double trK = 0;
-                    FOR(a, b) { trK += g_UU[a][b] * K[a][b]; }
+                    FOR (a, b)
+                    {
+                        trK += g_UU[a][b] * K[a][b];
+                    }
 
                     in_fab(iv, c_K) = trK;
                     in_fab(iv, c_A11) =
@@ -200,16 +203,16 @@ int main()
     }
 
     CCZ4_params_t<MovingPunctureGauge::params_t> params;
-    params.kappa1 = 0.1;
-    params.kappa2 = 0;
-    params.kappa3 = 1;
-    params.covariantZ4 = true;
+    params.kappa1            = 0.1;
+    params.kappa2            = 0;
+    params.kappa3            = 1;
+    params.covariantZ4       = true;
     params.lapse_advec_coeff = 0.0;
-    params.lapse_power = 1.0;
-    params.lapse_coeff = 2.0;
+    params.lapse_power       = 1.0;
+    params.lapse_coeff       = 2.0;
     params.shift_Gamma_coeff = 0.75;
     params.shift_advec_coeff = 0;
-    params.eta = 1.82;
+    params.eta               = 1.82;
 
     double sigma = 0.3;
 
@@ -226,8 +229,8 @@ int main()
                    begin.tv_sec * 1000 - begin.tv_usec / 1000;
     std::cout << "C++ version took " << cxx_time << "ms" << std::endl;
 
-    int ONE = 1;
-    int SIX = 6;
+    int ONE   = 1;
+    int SIX   = 6;
     int THREE = 3;
 
     gettimeofday(&begin, NULL);

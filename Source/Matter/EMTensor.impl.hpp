@@ -34,7 +34,7 @@ EMTensor<matter_t>::EMTensor(const matter_t &a_matter, const double dx,
     {
         // Sij is a symmetric tensor
         AMREX_ASSERT(m_c_Sij.size() ==
-                  DEFAULT_TENSOR_DIM * (DEFAULT_TENSOR_DIM + 1) / 2);
+                     DEFAULT_TENSOR_DIM * (DEFAULT_TENSOR_DIM + 1) / 2);
     }
 }
 
@@ -43,11 +43,11 @@ template <class data_t>
 void EMTensor<matter_t>::compute(Cell<data_t> current_cell) const
 {
     const auto vars = current_cell.template load_vars<Vars>();
-    const auto d1 = m_deriv.template diff1<Vars>(current_cell);
+    const auto d1   = m_deriv.template diff1<Vars>(current_cell);
 
     using namespace TensorAlgebra;
 
-    const auto h_UU = compute_inverse_sym(vars.h);
+    const auto h_UU  = compute_inverse_sym(vars.h);
     const auto chris = compute_christoffel(d1.h, h_UU);
 
     const auto emtensor = m_matter.compute_emtensor(vars, d1, h_UU, chris.ULL);
@@ -60,7 +60,10 @@ void EMTensor<matter_t>::compute(Cell<data_t> current_cell) const
     if (m_c_Si.size() > 0)
     {
 #if DEFAULT_TENSOR_DIM == 3
-        FOR(i) { current_cell.store_vars(emtensor.Si[i], m_c_Si.begin() + i); }
+        FOR (i)
+        {
+            current_cell.store_vars(emtensor.Si[i], m_c_Si.begin() + i);
+        }
 #endif
     }
 

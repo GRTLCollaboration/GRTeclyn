@@ -93,9 +93,9 @@ class CCZ4RHS
      * cell; there should rarely be a need to call it directly.
      */
     template <class data_t>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    void compute(int i, int j, int k, amrex::Array4<data_t> const& rhs,
-                 amrex::Array4<data_t const> const& state) const;
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    compute(int i, int j, int k, amrex::Array4<data_t> const &rhs,
+            amrex::Array4<data_t const> const &state) const;
 
   protected:
     /// Calculates the rhs for CCZ4
@@ -106,8 +106,7 @@ class CCZ4RHS
      **/
     template <class data_t, template <typename> class vars_t,
               template <typename> class diff2_vars_t>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    void rhs_equation(
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void rhs_equation(
         vars_t<data_t> &rhs, //!< Reference to the variables into which the
                              //! output right hand side is written
         const vars_t<data_t> &vars, //!< The values of the current variables

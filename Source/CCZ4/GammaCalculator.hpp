@@ -24,8 +24,7 @@ class GammaCalculator
         Tensor<2, data_t> h;
 
         template <typename mapping_function_t>
-        AMREX_GPU_DEVICE
-        void enum_mapping(mapping_function_t mapping_function)
+        AMREX_GPU_DEVICE void enum_mapping(mapping_function_t mapping_function)
         {
             VarsTools::define_symmetric_enum_mapping(
                 mapping_function, GRInterval<c_h11, c_h33>(), h);
@@ -44,10 +43,10 @@ class GammaCalculator
         // copy data from chombo gridpoint into local variables, and calc 1st
         // derivs
         const auto vars = current_cell.template load_vars<Vars>();
-        const auto d1 = m_deriv.template diff1<Vars>(current_cell);
+        const auto d1   = m_deriv.template diff1<Vars>(current_cell);
 
         using namespace TensorAlgebra;
-        const auto h_UU = compute_inverse_sym(vars.h);
+        const auto h_UU  = compute_inverse_sym(vars.h);
         const auto chris = compute_christoffel(d1.h, h_UU);
 
         // assign values of Gamma^k = h_UU^ij * \tilde{Gamma}^k_ij in the output

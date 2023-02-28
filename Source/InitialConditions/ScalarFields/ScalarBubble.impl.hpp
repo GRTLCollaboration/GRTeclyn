@@ -25,14 +25,15 @@ void ScalarBubble::compute(Cell<data_t> current_cell) const
 
     // set the field vars
     vars.phi = compute_phi(coords);
-    vars.Pi = 0;
+    vars.Pi  = 0;
 
     // start with unit lapse and flat metric (must be relaxed for chi)
     vars.lapse = 1;
-    vars.chi = 1;
+    vars.chi   = 1;
 
     // conformal metric is flat
-    FOR(i) vars.h[i][i] = 1.;
+    FOR (i)
+        vars.h[i][i] = 1.;
 
     // Store the initial values of the variables
     current_cell.store_vars(vars);
@@ -42,8 +43,8 @@ void ScalarBubble::compute(Cell<data_t> current_cell) const
 template <class data_t>
 data_t ScalarBubble::compute_phi(Coordinates<data_t> coords) const
 {
-    data_t rr = coords.get_radius();
-    data_t rr2 = rr * rr;
+    data_t rr      = coords.get_radius();
+    data_t rr2     = rr * rr;
     data_t out_phi = m_params.amplitudeSF * rr2 *
                      exp(-pow((rr - m_params.r_zero) / m_params.widthSF, 2.0));
 

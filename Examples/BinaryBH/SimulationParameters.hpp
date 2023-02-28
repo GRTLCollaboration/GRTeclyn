@@ -58,8 +58,8 @@ class SimulationParameters : public SimulationParametersBase
             pp.load("TP_target_mass_minus", tp_params.target_M_minus);
             pp.load("TP_adm_tol", tp_params.adm_tol, 1e-10);
             amrex::Print() << "The black holes have target ADM masses of "
-                   << tp_params.target_M_plus << " and "
-                   << tp_params.target_M_minus << "\n";
+                           << tp_params.target_M_plus << " and "
+                           << tp_params.target_M_minus << "\n";
             bh1_params.mass = tp_params.target_M_minus;
             bh2_params.mass = tp_params.target_M_plus;
         }
@@ -70,8 +70,8 @@ class SimulationParameters : public SimulationParametersBase
             bh1_params.mass = tp_params.par_m_plus;
             bh2_params.mass = tp_params.par_m_minus;
             amrex::Print() << "The black holes have bare masses of "
-                   << std::setprecision(16) << tp_params.par_m_plus << " and "
-                   << tp_params.par_m_minus << "\n";
+                           << std::setprecision(16) << tp_params.par_m_plus
+                           << " and " << tp_params.par_m_minus << "\n";
             // reset precision
             amrex::Print() << std::setprecision(6);
         }
@@ -82,25 +82,37 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("TP_momentum_plus", bh2_params.momentum);
         pp.load("TP_spin_plus", spin_plus);
         pp.load("TP_spin_minus", spin_minus);
-        FOR(i)
+        FOR (i)
         {
             tp_params.par_P_minus[i] = bh1_params.momentum[i];
-            tp_params.par_P_plus[i] = bh2_params.momentum[i];
+            tp_params.par_P_plus[i]  = bh2_params.momentum[i];
             tp_params.par_S_minus[i] = spin_minus[i];
-            tp_params.par_S_plus[i] = spin_plus[i];
+            tp_params.par_S_plus[i]  = spin_plus[i];
         }
 
         amrex::Print() << "The corresponding momenta are:";
         amrex::Print() << "\nP_plus = ";
-        FOR(i) { amrex::Print() << tp_params.par_P_plus[i] << " "; }
+        FOR (i)
+        {
+            amrex::Print() << tp_params.par_P_plus[i] << " ";
+        }
         amrex::Print() << "\nP_minus = ";
-        FOR(i) { amrex::Print() << tp_params.par_P_minus[i] << " "; }
+        FOR (i)
+        {
+            amrex::Print() << tp_params.par_P_minus[i] << " ";
+        }
 
         amrex::Print() << "\nThe corresponding spins are:";
         amrex::Print() << "\nS_plus = ";
-        FOR(i) { amrex::Print() << tp_params.par_S_plus[i] << " "; }
+        FOR (i)
+        {
+            amrex::Print() << tp_params.par_S_plus[i] << " ";
+        }
         amrex::Print() << "\nS_minus = ";
-        FOR(i) { amrex::Print() << tp_params.par_S_minus[i] << " "; }
+        FOR (i)
+        {
+            amrex::Print() << tp_params.par_S_minus[i] << " ";
+        }
         amrex::Print() << "\n";
 
         // interpolation type
@@ -119,8 +131,8 @@ class SimulationParameters : public SimulationParametersBase
             tp_params.initial_lapse != "brownsville")
         {
             std::string message = "Parameter: TP_initial_lapse: ";
-            message += tp_params.initial_lapse;
-            message += " invalid";
+            message             += tp_params.initial_lapse;
+            message             += " invalid";
             amrex::Abort(message.c_str());
         }
         if (tp_params.initial_lapse == "psi^n")
@@ -148,11 +160,11 @@ class SimulationParameters : public SimulationParametersBase
         // BH positions
         pp.load("TP_offset_minus", tp_offset_minus);
         pp.load("TP_offset_plus", tp_offset_plus);
-        bh1_params.center = center;
-        bh2_params.center = center;
-        bh1_params.center[0] += tp_offset_minus;
-        bh2_params.center[0] += tp_offset_plus;
-        double center_offset_x = 0.5 * (tp_offset_plus + tp_offset_minus);
+        bh1_params.center          = center;
+        bh2_params.center          = center;
+        bh1_params.center[0]       += tp_offset_minus;
+        bh2_params.center[0]       += tp_offset_plus;
+        double center_offset_x     = 0.5 * (tp_offset_plus + tp_offset_minus);
         tp_params.center_offset[0] = center_offset_x;
         // par_b is half the distance between BH_minus and BH_plus
         tp_params.par_b = 0.5 * (tp_offset_plus - tp_offset_minus);
@@ -165,20 +177,20 @@ class SimulationParameters : public SimulationParametersBase
                 false);
 
         // Irrelevant parameters set to default value
-        tp_params.keep_u_around = false;
-        tp_params.use_sources = false;
-        tp_params.rescale_sources = true;
-        tp_params.use_external_initial_guess = false;
-        tp_params.multiply_old_lapse = false;
+        tp_params.keep_u_around                   = false;
+        tp_params.use_sources                     = false;
+        tp_params.rescale_sources                 = true;
+        tp_params.use_external_initial_guess      = false;
+        tp_params.multiply_old_lapse              = false;
         tp_params.schedule_in_ADMBase_InitialData = true;
-        tp_params.solve_momentum_constraint = false;
-        tp_params.metric_type = "something else";
-        tp_params.conformal_storage = "not conformal at all";
-        tp_params.conformal_state = 0;
-        tp_params.mp = 0;
-        tp_params.mm = 0;
-        tp_params.mp_adm = 0;
-        tp_params.mm_adm = 0;
+        tp_params.solve_momentum_constraint       = false;
+        tp_params.metric_type                     = "something else";
+        tp_params.conformal_storage               = "not conformal at all";
+        tp_params.conformal_state                 = 0;
+        tp_params.mp                              = 0;
+        tp_params.mm                              = 0;
+        tp_params.mp_adm                          = 0;
+        tp_params.mm_adm                          = 0;
     }
 #else
     /// Read BH parameters if not using two punctures
@@ -199,7 +211,7 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("centerB", centerB, center);
         pp.load("offsetA", offsetA, {0.0, 0.0, 0.0});
         pp.load("offsetB", offsetB, {0.0, 0.0, 0.0});
-        FOR(idir)
+        FOR (idir)
         {
             bh1_params.center[idir] = centerA[idir] + offsetA[idir];
             bh2_params.center[idir] = centerB[idir] + offsetB[idir];
@@ -217,12 +229,12 @@ class SimulationParameters : public SimulationParametersBase
         if (tp_params.give_bare_mass)
         {
             mass_minus_name = "TP_mass_minus";
-            mass_plus_name = "TP_mass_plus";
+            mass_plus_name  = "TP_mass_plus";
         }
         else
         {
             mass_minus_name = "TP_target_mass_minus";
-            mass_plus_name = "TP_target_mass_plus";
+            mass_plus_name  = "TP_target_mass_plus";
             check_parameter("TP_adm_tol", tp_params.adm_tol,
                             tp_params.adm_tol > 0., "must be > 0.0");
         }
@@ -273,7 +285,7 @@ class SimulationParameters : public SimulationParametersBase
             std::sqrt(ArrayTools::norm2(bh2_params.momentum)) <
                 0.3 * bh1_params.mass,
             "approximation used for boosted BH only valid for small boosts");
-        FOR(idir)
+        FOR (idir)
         {
             std::string nameA = "centerA[" + std::to_string(idir) + "]";
             std::string nameB = "centerB[" + std::to_string(idir) + "]";

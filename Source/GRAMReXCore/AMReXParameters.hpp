@@ -80,7 +80,8 @@ class AMReXParameters
             amrex::Print() << "Using single regrid threshold." << std::endl;
             double regrid_threshold;
             pp.load("regrid_threshold", regrid_threshold, 0.5);
-            regrid_thresholds = amrex::Vector<double>(max_level + 1, regrid_threshold);
+            regrid_thresholds =
+                amrex::Vector<double>(max_level + 1, regrid_threshold);
         }
 
         // time stepping outputs and regrid data
@@ -195,7 +196,7 @@ class AMReXParameters
         // change pout base name!
         if (!FilesystemTools::directory_exists(pout_path))
             FilesystemTools::mkdir_recursive(pout_path);
-        //xxxxx setPoutBaseName(pout_path + pout_prefix);
+            // xxxxx setPoutBaseName(pout_path + pout_prefix);
 #endif
 
         // only create hdf5 directory in setupAMRObject (when it becomes needed)
@@ -213,7 +214,7 @@ class AMReXParameters
             amrex::Abort("Please only provide 'N' or 'N_full', not both");
 
         int N_full = -1;
-        int N = -1;
+        int N      = -1;
         if (pp.contains("N_full"))
             pp.load("N_full", N_full);
         else if (pp.contains("N"))
@@ -221,12 +222,12 @@ class AMReXParameters
 
         // read all options (N, N_full, Ni_full and Ni) and then choose
         // accordingly
-        FOR(dir)
+        FOR (dir)
         {
-            std::string name = ("N" + std::to_string(dir + 1));
+            std::string name      = ("N" + std::to_string(dir + 1));
             std::string name_full = ("N" + std::to_string(dir + 1) + "_full");
-            Ni_full[dir] = -1;
-            Ni[dir] = -1;
+            Ni_full[dir]          = -1;
+            Ni[dir]               = -1;
 
             // only one of them exists - this passes if none of the 4 exist, but
             // that is asserted below
@@ -284,7 +285,7 @@ class AMReXParameters
             ivN[dir] = Ni[dir] - 1;
         }
         int max_N_full = *std::max_element(Ni_full.begin(), Ni_full.end());
-        int max_N = ivN.max() + 1;
+        int max_N      = ivN.max() + 1;
 
         // Grid L
         // cannot contain both
@@ -310,7 +311,7 @@ class AMReXParameters
         origin.fill(coarsest_dx / 2.0);
 
         // These aren't parameters but used in parameter checks
-        FOR(idir)
+        FOR (idir)
         {
             reflective_domain_lo[idir] = ((boundary_params.lo_boundary[idir] ==
                                            BoundaryConditions::REFLECTIVE_BC)
@@ -334,7 +335,7 @@ class AMReXParameters
         default_center = {0.5 * Ni[0] * coarsest_dx, 0.5 * Ni[1] * coarsest_dx};
 #endif
         // Now take into account reflective BCs
-        FOR(idir)
+        FOR (idir)
         {
             if ((boundary_params.lo_boundary[idir] ==
                  BoundaryConditions::REFLECTIVE_BC) &&
@@ -394,17 +395,18 @@ class AMReXParameters
                         max_grid_size >= 0, "must be >= 0");
         check_parameter("block_factor/min_box_size", block_factor,
                         block_factor >= 1, "must be >= 1");
-//        check_parameter("block_factor/min_box_size", block_factor,
-//xxxxx                        Misc::isPower2(block_factor), "must be a power of 2");
+        //        check_parameter("block_factor/min_box_size", block_factor,
+        // xxxxx                        Misc::isPower2(block_factor), "must be a
+        // power of 2");
         // note that this also enforces block_factor <= max_grid_size
         // if max_grid_size > 0
         check_parameter("block_factor/min_box_size", block_factor,
                         max_grid_size % block_factor == 0,
                         "must divide max_grid_size/max_box_size = " +
                             std::to_string(max_grid_size));
-        FOR(idir)
+        FOR (idir)
         {
-            std::string Ni_string = "N" + std::to_string(idir + 1);
+            std::string Ni_string       = "N" + std::to_string(idir + 1);
             std::string invalid_message = "must divide " + Ni_string;
             if (boundary_params.reflective_boundaries_exist)
             {
@@ -467,14 +469,16 @@ class AMReXParameters
 
             amrex::Vector<double> prob_extent(AMREX_SPACEDIM);
             int nmax = ivN.max() + 1;
-            for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-                prob_extent[i] = L * (static_cast<double>(ivN[i]+1)
-                                      / static_cast<double>(nmax));
+            for (int i = 0; i < AMREX_SPACEDIM; ++i)
+            {
+                prob_extent[i] = L * (static_cast<double>(ivN[i] + 1) /
+                                      static_cast<double>(nmax));
             }
             pp.addarr("prob_extent", prob_extent);
 
             amrex::Vector<int> is_periodic(AMREX_SPACEDIM);
-            for (int i = 0; i < AMREX_SPACEDIM; ++i) {
+            for (int i = 0; i < AMREX_SPACEDIM; ++i)
+            {
                 is_periodic[i] = boundary_params.is_periodic[i];
             }
             pp.addarr("is_periodic", is_periodic);
@@ -487,7 +491,8 @@ class AMReXParameters
             pp.add("ref_ratio", 2);
             pp.add("max_grid_size", max_grid_size);
             pp.add("blocking_factor", block_factor);
-            pp.addarr("n_cell", std::vector<int>{ivN[0]+1,ivN[1]+1,ivN[2]+1});
+            pp.addarr("n_cell",
+                      std::vector<int>{ivN[0] + 1, ivN[1] + 1, ivN[2] + 1});
             pp.addarr("regrid_int", regrid_interval);
             pp.add("check_int", checkpoint_interval);
             pp.add("plot_int", plot_interval);
@@ -496,7 +501,7 @@ class AMReXParameters
 
     // General parameters
     int verbosity;
-    double L;                               // Physical sidelength of the grid
+    double L; // Physical sidelength of the grid
     std::array<double, AMREX_SPACEDIM> center; // grid center
     amrex::IntVect ivN; // The number of grid cells in each dimension
     double coarsest_dx,
@@ -505,9 +510,9 @@ class AMReXParameters
     int max_spatial_derivative_order; // The maximum order of the spatial
                                       // derivatives - does nothing
                                       // in Chombo but can be used in examples
-    int num_ghosts;         // min dependent on max_spatial_derivative_order
-    int tag_buffer_size;    // Amount the tagged region is grown by
-    int grid_buffer_size;   // Number of cells between level
+    int num_ghosts;       // min dependent on max_spatial_derivative_order
+    int tag_buffer_size;  // Amount the tagged region is grown by
+    int grid_buffer_size; // Number of cells between level
     amrex::Vector<int> ref_ratios; // ref ratios between levels
     // boundaries.
     amrex::Vector<int> regrid_interval; // steps between regrid at each level
@@ -555,7 +560,8 @@ class AMReXParameters
   protected:
     // the low and high corners of the domain taking into account reflective BCs
     // only used in parameter checks hence protected
-    std::array<double, AMREX_SPACEDIM> reflective_domain_lo, reflective_domain_hi;
+    std::array<double, AMREX_SPACEDIM> reflective_domain_lo,
+        reflective_domain_hi;
 
     // use this error function instead of MayDay::error as this will only
     // print from rank 0

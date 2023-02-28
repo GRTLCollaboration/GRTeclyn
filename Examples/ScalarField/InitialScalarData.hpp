@@ -40,7 +40,7 @@ class InitialScalarData
     {
         // where am i?
         Coordinates<data_t> coords(current_cell, m_dx, m_params.center);
-        data_t rr = coords.get_radius();
+        data_t rr  = coords.get_radius();
         data_t rr2 = rr * rr;
 
         // calculate the field value

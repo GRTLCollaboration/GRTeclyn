@@ -16,7 +16,8 @@ const std::string AMRInterpolator<InterpAlgo>::TAG =
 
 template <typename InterpAlgo>
 AMRInterpolator<InterpAlgo>::AMRInterpolator(
-    const GRAMR &gr_amr, const std::array<double, AMREX_SPACEDIM> &coarsest_origin,
+    const GRAMR &gr_amr,
+    const std::array<double, AMREX_SPACEDIM> &coarsest_origin,
     const std::array<double, AMREX_SPACEDIM> &coarsest_dx, int verbosity)
     : AMRInterpolator(gr_amr, coarsest_origin, coarsest_dx,
                       BoundaryConditions::params_t(), verbosity)
@@ -25,12 +26,14 @@ AMRInterpolator<InterpAlgo>::AMRInterpolator(
 
 template <typename InterpAlgo>
 AMRInterpolator<InterpAlgo>::AMRInterpolator(
-    const GRAMR &gr_amr, const std::array<double, AMREX_SPACEDIM> &coarsest_origin,
+    const GRAMR &gr_amr,
+    const std::array<double, AMREX_SPACEDIM> &coarsest_origin,
     const std::array<double, AMREX_SPACEDIM> &coarsest_dx,
     const BoundaryConditions::params_t &a_bc_params, int verbosity)
     : m_gr_amr(gr_amr), m_coarsest_origin(coarsest_origin),
       m_coarsest_dx(coarsest_dx),
-//xxxxx      m_num_levels(const_cast<GRAMR &>(m_gr_amr).getAMRLevels().size()),
+      // xxxxx      m_num_levels(const_cast<GRAMR
+      // &>(m_gr_amr).getAMRLevels().size()),
       m_verbosity(verbosity), m_bc_params(a_bc_params)
 {
     set_reflective_BC();
@@ -127,7 +130,8 @@ void AMRInterpolator<InterpAlgo>::interp(InterpolationQuery &query)
 
     if (m_verbosity)
     {
-        amrex::Print() << TAG << "\x1b[32;1mInterpolating data\x1b[0m" << std::endl;
+        amrex::Print() << TAG << "\x1b[32;1mInterpolating data\x1b[0m"
+                       << std::endl;
 
         for (typename InterpolationQuery::iterator it = query.compsBegin();
              it != query.compsEnd(); ++it)
@@ -143,12 +147,12 @@ void AMRInterpolator<InterpAlgo>::interp(InterpolationQuery &query)
                     amrex::Print() << ",";
                 }
             }
-            amrex::Print() << ") data for " << it->second.size() << " components"
-                   << std::endl;
+            amrex::Print() << ") data for " << it->second.size()
+                           << " components" << std::endl;
         }
 
         amrex::Print() << "    Summary: " << query.numComps() << " datasets at "
-               << query.m_num_points << " points" << std::endl;
+                       << query.m_num_points << " points" << std::endl;
     }
 
     // Compute the bounds and spacings for each level
@@ -175,8 +179,8 @@ void AMRInterpolator<InterpAlgo>::interp(InterpolationQuery &query)
         for (typename comps_t::iterator it = comps.begin(); it != comps.end();
              ++it)
         {
-            int comp = std::get<0>(*it);
-            double *out = std::get<1>(*it);
+            int comp          = std::get<0>(*it);
+            double *out       = std::get<1>(*it);
             VariableType type = std::get<2>(*it);
             for (int point_idx = 0; point_idx < query.m_num_points; ++point_idx)
             {
@@ -558,10 +562,10 @@ void AMRInterpolator<InterpAlgo>::prepareMPI(InterpolationQuery &query,
     for (int point_idx = 0; point_idx < query.m_num_points; ++point_idx)
     {
         int rank = layout.rank[point_idx];
-        int idx = m_mpi.queryDispl(rank) + rank_counter[rank];
+        int idx  = m_mpi.queryDispl(rank) + rank_counter[rank];
 
         m_query_level[idx] = layout.level_idx[point_idx];
-        m_query_box[idx] = layout.box_idx[point_idx];
+        m_query_box[idx]   = layout.box_idx[point_idx];
 
         for (int i = 0; i < AMREX_SPACEDIM; ++i)
         {
@@ -591,7 +595,8 @@ void AMRInterpolator<InterpAlgo>::prepareMPI(InterpolationQuery &query,
 
     if (m_verbosity >= 2)
     {
-        _pout << "    Number of points that needs to be answered back:" << std::endl;
+        _pout << "    Number of points that needs to be answered back:"
+              << std::endl;
         for (int rank = 0; rank < m_mpi.m_num_process; ++rank)
         {
             _pout << "    Rank " << rank << "\t= " << m_mpi.queryCount(rank)
@@ -614,7 +619,7 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIQuery()
     }
 
 #ifdef AMREX_USE_MPI // TODO: it would be nicer if this ifdef were moved into
-              // MPIContext ... the only issue is the MPI datatype
+                     // MPIContext ... the only issue is the MPI datatype
     m_mpi.asyncBegin();
 
     m_mpi.asyncExchangeQuery(&m_query_level[0], &m_answer_level[0], MPI_INT);
@@ -628,7 +633,7 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIQuery()
     m_mpi.asyncEnd();
 #else
     m_answer_level = m_query_level;
-    m_answer_box = m_query_box;
+    m_answer_box   = m_query_box;
     for (int i = 0; i < AMREX_SPACEDIM; ++i)
         m_answer_coords[i] = m_query_coords[i];
 #endif
@@ -805,7 +810,7 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIAnswer()
     }
 
 #ifdef AMREX_USE_MPI // TODO: it would be nicer if this ifdef were moved into
-              // MPIContext ... the only issue is the MPI datatype
+                     // MPIContext ... the only issue is the MPI datatype
     m_mpi.asyncBegin();
 
     m_mpi.asyncExchangeAnswer(&m_answer_level[0], &m_query_level[0], MPI_INT);
@@ -819,8 +824,8 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIAnswer()
     m_mpi.asyncEnd();
 #else
     m_query_level = m_answer_level;
-    m_query_box = m_answer_box;
-    m_query_data = m_answer_data;
+    m_query_box   = m_answer_box;
+    m_query_data  = m_answer_data;
 #endif
 
     if (m_verbosity)
@@ -867,10 +872,10 @@ int AMRInterpolator<InterpAlgo>::get_var_parity(int comp,
             BoundaryConditions::UNDEFINED &&
         m_bc_params.reflective_boundaries_exist)
         amrex::Abort("Please provide parameter 'vars_parity_diagnostic' if "
-                      "extracting diagnostic variables with reflective BC");
+                     "extracting diagnostic variables with reflective BC");
 
     int parity = 1;
-    FOR(dir)
+    FOR (dir)
     {
         double coord = query.m_coords[dir][point_idx];
         if ((m_lo_boundary_reflective[dir] && coord < 0.) ||

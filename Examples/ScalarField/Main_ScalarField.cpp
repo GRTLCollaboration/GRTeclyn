@@ -57,7 +57,8 @@ int main(int argc, char *argv[])
     if (status == 0)
         amrex::Print() << "GRChombo finished." << std::endl;
     else
-        amrex::Print() << "GRChombo failed with return code " << status << std::endl;
+        amrex::Print() << "GRChombo failed with return code " << status
+                       << std::endl;
 
     mainFinalize();
     return status;

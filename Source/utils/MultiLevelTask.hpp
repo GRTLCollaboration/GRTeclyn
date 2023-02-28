@@ -6,8 +6,8 @@
 #ifndef MULTILEVELTASK_HPP_
 #define MULTILEVELTASK_HPP_
 
-#include <AMReX_Amr.H>
 #include "GRAMRLevel.hpp"
+#include <AMReX_Amr.H>
 
 #include <limits> // std::numeric_limits
 
@@ -16,7 +16,7 @@
 //! Satisfies syntax of Chombo's Scheduler such that it can be passed to GRAMR
 //! and be scheduled
 template <class level_t = GRAMRLevel>
-class MultiLevelTask //xxxxx: public Scheduler::PeriodicFunction
+class MultiLevelTask // xxxxx: public Scheduler::PeriodicFunction
 {
 #if 0
 //xxxxx

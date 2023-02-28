@@ -16,12 +16,12 @@ class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
   public:
     struct params_t : SurfaceExtraction::params_t
     {
-        int &num_extraction_radii = num_surfaces;
+        int &num_extraction_radii             = num_surfaces;
         std::vector<double> &extraction_radii = surface_param_values;
-        int &num_points_theta = num_points_u;
-        int &num_points_phi = num_points_v;
-        std::array<double, AMREX_SPACEDIM> center; //!< the center of the spherical
-                                                //!< shells
+        int &num_points_theta                 = num_points_u;
+        int &num_points_phi                   = num_points_v;
+        std::array<double, AMREX_SPACEDIM> center; //!< the center of the
+                                                   //!< spherical shells
         std::array<double, AMREX_SPACEDIM> &extraction_center = center;
         int num_modes; //!< the number of modes to extract
         std::vector<std::pair<int, int>> modes; //!< the modes to extract
@@ -82,12 +82,13 @@ class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
         int es, int el, int em, const complex_function_t &a_function,
         std::pair<std::vector<double>, std::vector<double>> &out_integrals,
         const IntegrationMethod &a_method_theta = IntegrationMethod::simpson,
-        const IntegrationMethod &a_method_phi = IntegrationMethod::trapezium,
-        const bool a_broadcast_integral = false)
+        const IntegrationMethod &a_method_phi   = IntegrationMethod::trapezium,
+        const bool a_broadcast_integral         = false)
     {
         auto integrand_re = [center = m_center, &geom = m_geom, es, el, em,
                              &a_function](std::vector<double> &a_data_here,
-                                          double r, double theta, double phi) {
+                                          double r, double theta, double phi)
+        {
             // note that spin_Y_lm requires the coordinates with the center
             // at the origin
             double x = geom.get_grid_coord(0, r, theta, phi) - center[0];
@@ -105,7 +106,8 @@ class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
 
         auto integrand_im = [center = m_center, &geom = m_geom, es, el, em,
                              &a_function](std::vector<double> &a_data_here,
-                                          double r, double theta, double phi) {
+                                          double r, double theta, double phi)
+        {
             // note that spin_Y_lm requires the coordinates with the center
             // at the origin
             double x = geom.get_grid_coord(0, r, theta, phi) - center[0];
@@ -127,7 +129,7 @@ class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
     std::pair<std::vector<double>, std::vector<double>> integrate_mode(
         int es, int el, int em, complex_function_t a_function,
         const IntegrationMethod &a_method_theta = IntegrationMethod::simpson,
-        const IntegrationMethod &a_method_phi = IntegrationMethod::trapezium)
+        const IntegrationMethod &a_method_phi   = IntegrationMethod::trapezium)
     {
         m_integrands.clear();
         m_integration_methods.clear();

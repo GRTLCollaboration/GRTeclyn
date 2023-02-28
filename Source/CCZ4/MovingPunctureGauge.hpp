@@ -46,17 +46,17 @@ class MovingPunctureGauge
 
     template <class data_t, template <typename> class vars_t,
               template <typename> class diff2_vars_t>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    void rhs_gauge(vars_t<data_t> &rhs, const vars_t<data_t> &vars,
-                   const vars_t<Tensor<1, data_t>> &/*d1*/,
-                   const diff2_vars_t<Tensor<2, data_t>> &/*d2*/,
-                   const vars_t<data_t> &advec) const
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    rhs_gauge(vars_t<data_t> &rhs, const vars_t<data_t> &vars,
+              const vars_t<Tensor<1, data_t>> & /*d1*/,
+              const diff2_vars_t<Tensor<2, data_t>> & /*d2*/,
+              const vars_t<data_t> &advec) const
     {
         rhs.lapse = m_params.lapse_advec_coeff * advec.lapse -
                     m_params.lapse_coeff *
                         pow(vars.lapse, m_params.lapse_power) *
                         (vars.K - 2 * vars.Theta);
-        FOR(i)
+        FOR (i)
         {
             rhs.shift[i] = m_params.shift_advec_coeff * advec.shift[i] +
                            m_params.shift_Gamma_coeff * vars.B[i];

@@ -55,30 +55,30 @@ class SmallDataIO
     SmallDataIO(std::string a_filename_prefix, double a_dt, double a_time,
                 double a_restart_time, Mode a_mode, bool a_first_step,
                 std::string a_file_extension = s_default_file_extension,
-                int a_data_precision = s_default_data_precision,
-                int a_coords_precision = s_default_coords_precision,
-                int a_filename_steps_width = s_default_filename_steps_width);
+                int a_data_precision         = s_default_data_precision,
+                int a_coords_precision       = s_default_coords_precision,
+                int a_filename_steps_width   = s_default_filename_steps_width);
 
     //! Old constructor which assumes SmallDataIO is called in
     //! specificPostTimeStep
     SmallDataIO(std::string a_filename_prefix, double a_dt, double a_time,
                 double a_restart_time, Mode a_mode,
                 std::string a_file_extension = s_default_file_extension,
-                int a_data_precision = s_default_data_precision,
-                int a_coords_precision = s_default_coords_precision,
-                int a_filename_steps_width = s_default_filename_steps_width);
+                int a_data_precision         = s_default_data_precision,
+                int a_coords_precision       = s_default_coords_precision,
+                int a_filename_steps_width   = s_default_filename_steps_width);
 
     //! Constructor for reading when m_time, m_dt, m_restart_time are irrelevant
     SmallDataIO(std::string a_filename_prefix,
                 std::string a_file_extension = s_default_file_extension,
-                int a_data_precision = s_default_data_precision,
-                int a_coords_precision = s_default_coords_precision);
+                int a_data_precision         = s_default_data_precision,
+                int a_coords_precision       = s_default_coords_precision);
 
     //! Destructor (closes file)
     ~SmallDataIO();
 
     // disable default copy constructor and assignment operator
-    SmallDataIO(const SmallDataIO &) = delete;
+    SmallDataIO(const SmallDataIO &)            = delete;
     SmallDataIO &operator=(const SmallDataIO &) = delete;
 
     // ------------ Writing Functions ------------
@@ -139,7 +139,7 @@ class SmallDataIO
     static std::string get_new_filename(
         const std::string &a_filename_prefix, double a_dt, double a_time,
         const std::string &a_file_extension = s_default_file_extension,
-        int a_filename_steps_width = s_default_filename_steps_width);
+        int a_filename_steps_width          = s_default_filename_steps_width);
 
     //! returns m_data_epsilon
     double get_data_epsilon() const;

@@ -29,14 +29,17 @@ void TwoPuncturesInitialData::compute(Cell<double> current_cell) const
 
     // metric variables
     vars.chi = pow(compute_determinant_sym(h_phys), -1. / 3.);
-    FOR(i)
+    FOR (i)
     {
         // Bowen-York data is conformally flat
         vars.h[i][i] = 1.0;
     }
 
     // extrinsic curvature
-    FOR(i, j) { vars.A[i][j] = vars.chi * K_tensor[i][j]; }
+    FOR (i, j)
+    {
+        vars.A[i][j] = vars.chi * K_tensor[i][j];
+    }
     // conformal flatness means h_UU = h
     make_trace_free(vars.A, vars.h, vars.h);
 
@@ -65,17 +68,17 @@ void TwoPuncturesInitialData::interpolate_tp_vars(
     out_h_phys[0][0] = TP_state[g11];
     out_h_phys[0][1] = out_h_phys[1][0] = TP_state[g12];
     out_h_phys[0][2] = out_h_phys[2][0] = TP_state[g13];
-    out_h_phys[1][1] = TP_state[g22];
+    out_h_phys[1][1]                    = TP_state[g22];
     out_h_phys[1][2] = out_h_phys[2][1] = TP_state[g23];
-    out_h_phys[2][2] = TP_state[g33];
+    out_h_phys[2][2]                    = TP_state[g33];
 
     // extrinsic curvature
     out_K_tensor[0][0] = TP_state[K11];
     out_K_tensor[0][1] = out_K_tensor[1][0] = TP_state[K12];
     out_K_tensor[0][2] = out_K_tensor[2][0] = TP_state[K13];
-    out_K_tensor[1][1] = TP_state[K22];
+    out_K_tensor[1][1]                      = TP_state[K22];
     out_K_tensor[1][2] = out_K_tensor[2][1] = TP_state[K23];
-    out_K_tensor[2][2] = TP_state[K33];
+    out_K_tensor[2][2]                      = TP_state[K33];
 
     // Z4 vector
     out_Z3[0] = TP_state[Z1];
@@ -84,7 +87,7 @@ void TwoPuncturesInitialData::interpolate_tp_vars(
     out_Theta = TP_state[Theta];
 
     // gauge
-    out_lapse = TP_state[lapse];
+    out_lapse    = TP_state[lapse];
     out_shift[0] = TP_state[shift1];
     out_shift[1] = TP_state[shift2];
     out_shift[2] = TP_state[shift3];

@@ -16,8 +16,7 @@
 #include "simd.hpp"
 
 template <class data_t>
-AMREX_GPU_DEVICE
-data_t BinaryBH::compute_chi(Coordinates<data_t> coords) const
+AMREX_GPU_DEVICE data_t BinaryBH::compute_chi(Coordinates<data_t> coords) const
 {
     const data_t psi =
         1. + bh1.psi_minus_one(coords) + bh2.psi_minus_one(coords);
@@ -25,9 +24,8 @@ data_t BinaryBH::compute_chi(Coordinates<data_t> coords) const
 }
 
 template <class data_t>
-AMREX_GPU_DEVICE
-Tensor<2, data_t> BinaryBH::compute_A(data_t chi,
-                                      Coordinates<data_t> coords) const
+AMREX_GPU_DEVICE Tensor<2, data_t>
+BinaryBH::compute_A(data_t chi, Coordinates<data_t> coords) const
 {
 
     Tensor<2, data_t> Aij1 = bh1.Aij(coords);
@@ -35,25 +33,28 @@ Tensor<2, data_t> BinaryBH::compute_A(data_t chi,
     Tensor<2, data_t> out;
 
     // Aij(CCZ4) = psi^(-6) * Aij(Baumgarte&Shapiro book)
-    FOR(i, j) out[i][j] = pow(chi, 3 / 2.) * (Aij1[i][j] + Aij2[i][j]);
+    FOR (i, j)
+        out[i][j] = pow(chi, 3 / 2.) * (Aij1[i][j] + Aij2[i][j]);
 
     return out;
 }
 
 template <class data_t>
-AMREX_GPU_DEVICE  // or AMREX_GPU_HOST_DEVICE depending on what's needed
-void BinaryBH::init_data (int i, int j, int k,
-                          amrex::CellData<data_t> const& cell) const
+AMREX_GPU_DEVICE // or AMREX_GPU_HOST_DEVICE depending on what's needed
+    void
+    BinaryBH::init_data(int i, int j, int k,
+                        amrex::CellData<data_t> const &cell) const
 {
     BSSNVars::VarsWithGauge<data_t> vars;
     VarsTools::assign(vars,
                       0.); // Set only the non-zero components explicitly below
-    Coordinates<data_t> coords(amrex::IntVect(i,j,k), m_dx);
+    Coordinates<data_t> coords(amrex::IntVect(i, j, k), m_dx);
 
     vars.chi = compute_chi(coords);
 
     // Conformal metric is flat
-    FOR(ii) vars.h[ii][ii] = 1.;
+    FOR (ii)
+        vars.h[ii][ii] = 1.;
 
     vars.A = compute_A(vars.chi, coords);
 

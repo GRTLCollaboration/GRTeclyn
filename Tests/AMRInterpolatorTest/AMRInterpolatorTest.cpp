@@ -74,7 +74,7 @@ int runInterpolatorTest(int argc, char *argv[])
 
     for (int ipoint = 0; ipoint < num_points; ++ipoint)
     {
-        double phi = ipoint * 2. * M_PI / num_points;
+        double phi   = ipoint * 2. * M_PI / num_points;
         double theta = ipoint * M_PI / num_points;
         interp_x[ipoint] =
             sim_params.center[0] + extract_radius * cos(phi) * sin(theta);
@@ -104,8 +104,8 @@ int runInterpolatorTest(int argc, char *argv[])
         double y = interp_y[ipoint] - sim_params.center[1];
         double z = interp_z[ipoint] - sim_params.center[2];
 
-        double value_A = 42. + x * x + y * y * z * z;
-        double value_B = std::pow(x, 3);
+        double value_A    = 42. + x * x + y * y * z * z;
+        double value_B    = std::pow(x, 3);
         double value_B_dx = 3. * std::pow(x, 2);
 
         status |= (std::abs(A[ipoint] - value_A) > 1e-10);
@@ -125,8 +125,8 @@ int main(int argc, char *argv[])
     if (status == 0)
         amrex::Print() << "BasicAMRInterpolator test passed." << endl;
     else
-        amrex::Print() << "BasicAMRInterpolator test failed with return code " << status
-               << endl;
+        amrex::Print() << "BasicAMRInterpolator test failed with return code "
+                       << status << endl;
 
     mainFinalize();
     return status;

@@ -37,7 +37,7 @@ int main()
     BoxLoops::loop(make_compute_pack(SetValue(0.0)), out_fab, out_fab);
     double length = 64.0;
 
-    const double dx = length / (N_GRID);
+    const double dx     = length / (N_GRID);
     const double center = length / 2.0;
 
     for (int iz = 0; iz < N_GRID; ++iz)
@@ -49,8 +49,8 @@ int main()
             for (int ix = 0; ix < N_GRID; ++ix)
             {
                 const double x = (ix + 0.5) * dx - center;
-                double r = sqrt(x * x + y * y + z * z);
-                double rho = sqrt(x * x + y * y);
+                double r       = sqrt(x * x + y * y + z * z);
+                double rho     = sqrt(x * x + y * y);
                 const IntVect iv(ix, iy, iz);
                 if (r < 1e-6)
                 {

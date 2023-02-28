@@ -43,9 +43,9 @@ template <class data_t> class Coordinates
 #endif
     }
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    static void compute_coord(double &out, int position,
-                              double dx, double center_distance = 0)
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static void
+    compute_coord(double &out, int position, double dx,
+                  double center_distance = 0)
     {
         out = (position + 0.5) * dx - center_distance;
     }
@@ -67,8 +67,7 @@ template <class data_t> class Coordinates
 
     /// This function returns the radius subject to a floor for a given
     /// Coordinates object.
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    data_t get_radius() const
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE data_t get_radius() const
     {
         // Note that this is not currently dimension independent
         data_t r = sqrt(x * x + y * y + z * z);
@@ -79,9 +78,9 @@ template <class data_t> class Coordinates
 
     /// This static function returns the radius subject to a floor
     /// for when no coordinates object exists.
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    static data_t get_radius(amrex::IntVect integer_coords, double dx,
-                             std::array<double, AMREX_SPACEDIM> center = {0})
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static data_t
+    get_radius(amrex::IntVect integer_coords, double dx,
+               std::array<double, AMREX_SPACEDIM> center = {0})
     {
         data_t xx;
         double yy;
@@ -101,7 +100,7 @@ template <class data_t> class Coordinates
 
 template <typename data_t>
 ALWAYS_INLINE std::ostream &operator<<(std::ostream &os,
-                                  const Coordinates<data_t> &in_coords)
+                                       const Coordinates<data_t> &in_coords)
 {
     os << "(x,y,z) = (" << in_coords.x << "," << in_coords.y << ","
        << in_coords.z << ")"

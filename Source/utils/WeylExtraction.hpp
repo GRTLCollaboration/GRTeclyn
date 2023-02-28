@@ -52,8 +52,9 @@ class WeylExtraction : public SphericalExtraction
             mode_integrals(m_num_modes);
 
         // note that this is normalised by multiplying by radius
-        auto normalised_Weyl4_complex = [](std::vector<double> Weyl4_reim_parts,
-                                           double r, double, double) {
+        auto normalised_Weyl4_complex =
+            [](std::vector<double> Weyl4_reim_parts, double r, double, double)
+        {
             // here the std::vector<double> passed will just have
             // the real and imaginary parts of the Weyl4 scalar as its
             // only components
@@ -76,7 +77,7 @@ class WeylExtraction : public SphericalExtraction
         // write the integrals
         for (int imode = 0; imode < m_num_modes; ++imode)
         {
-            const auto &mode = m_modes[imode];
+            const auto &mode               = m_modes[imode];
             std::string integrals_filename = m_params.integral_file_prefix +
                                              std::to_string(mode.first) +
                                              std::to_string(mode.second);

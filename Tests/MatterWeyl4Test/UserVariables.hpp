@@ -9,11 +9,11 @@
 //
 enum
 {
-    c_h = c_h11,
-    c_A = c_A11,
+    c_h     = c_h11,
+    c_A     = c_A11,
     c_Gamma = c_Gamma1,
     c_shift = c_shift1,
-    c_B = c_B1,
+    c_B     = c_B1,
 
     c_phi = NUM_CCZ4_VARS,
     c_Pi,

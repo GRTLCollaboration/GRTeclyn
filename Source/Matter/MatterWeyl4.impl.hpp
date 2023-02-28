@@ -17,15 +17,15 @@ void MatterWeyl4<matter_t>::compute(Cell<data_t> current_cell) const
 
     // copy data from chombo gridpoint into local variables
     const auto vars = current_cell.template load_vars<Vars>();
-    const auto d1 = m_deriv.template diff1<Vars>(current_cell);
-    const auto d2 = m_deriv.template diff2<Diff2Vars>(current_cell);
+    const auto d1   = m_deriv.template diff1<Vars>(current_cell);
+    const auto d2   = m_deriv.template diff2<Diff2Vars>(current_cell);
 
     // Get the coordinates
     const Coordinates<data_t> coords(current_cell, m_dx, m_center);
 
     // Compute the inverse metric
     using namespace TensorAlgebra;
-    const auto h_UU = compute_inverse_sym(vars.h);
+    const auto h_UU  = compute_inverse_sym(vars.h);
     const auto chris = compute_christoffel(d1.h, h_UU);
 
     // Compute the spatial volume element
@@ -64,7 +64,10 @@ void MatterWeyl4<matter_t>::add_matter_EB(EBFields_t<data_t> &ebfields,
 
     // as we made the vacuum expression of Bij explictly symmetric and Eij
     // explictly trace-free, only Eij has matter terms
-    FOR(i, j) { ebfields.E[i][j] += -4.0 * M_PI * m_G_Newton * Sij_TF[i][j]; }
+    FOR (i, j)
+    {
+        ebfields.E[i][j] += -4.0 * M_PI * m_G_Newton * Sij_TF[i][j];
+    }
 }
 
 #endif /* MATTERWEYL4_IMPL_HPP_ */

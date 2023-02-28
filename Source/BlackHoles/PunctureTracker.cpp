@@ -12,7 +12,8 @@
 
 //! Set punctures post restart
 void PunctureTracker::initial_setup(
-    const std::vector<std::array<double, AMREX_SPACEDIM>> &initial_puncture_coords,
+    const std::vector<std::array<double, AMREX_SPACEDIM>>
+        &initial_puncture_coords,
     const std::string &a_filename, const std::string &a_output_path,
     const int a_min_level)
 {
@@ -61,13 +62,16 @@ void PunctureTracker::set_initial_punctures()
     for (int ipuncture = 0; ipuncture < m_num_punctures; ipuncture++)
     {
         // assume initial shift is always zero
-        FOR(i) { m_puncture_shift[ipuncture][i] = 0.0; }
+        FOR (i)
+        {
+            m_puncture_shift[ipuncture][i] = 0.0;
+        }
     }
 
     // now the write out to a new file
-    bool first_step = true;
-    double dt = 1.; // doesn't matter
-    double time = 0.;
+    bool first_step     = true;
+    double dt           = 1.; // doesn't matter
+    double time         = 0.;
     double restart_time = 0.;
     SmallDataIO punctures_file(m_punctures_filename, dt, time, restart_time,
                                SmallDataIO::APPEND, first_step);
@@ -92,7 +96,7 @@ void PunctureTracker::read_in_punctures(int a_int_step, double a_current_time)
     // NB opening in APPEND mode allows reading where m_restart_time
     // is greater than zero and m_time < m_restart_time + m_dt
     bool first_step = false;
-    double dt = (a_current_time / a_int_step);
+    double dt       = (a_current_time / a_int_step);
     SmallDataIO punctures_file(m_punctures_filename, dt, a_current_time,
                                a_current_time, SmallDataIO::APPEND, first_step);
 
@@ -126,12 +130,13 @@ void PunctureTracker::read_in_punctures(int a_int_step, double a_current_time)
     for (int ipuncture = 0; ipuncture < m_num_punctures; ipuncture++)
     {
         amrex::Print() << "Puncture " << ipuncture
-               << " restarted at : " << m_puncture_coords[ipuncture][0] << " "
-               << m_puncture_coords[ipuncture][1] << " "
-               << m_puncture_coords[ipuncture][2] << std::endl;
-        amrex::Print() << " with shift vector : " << m_puncture_shift[ipuncture][0]
-               << " " << m_puncture_shift[ipuncture][1] << " "
-               << m_puncture_shift[ipuncture][2] << std::endl;
+                       << " restarted at : " << m_puncture_coords[ipuncture][0]
+                       << " " << m_puncture_coords[ipuncture][1] << " "
+                       << m_puncture_coords[ipuncture][2] << std::endl;
+        amrex::Print() << " with shift vector : "
+                       << m_puncture_shift[ipuncture][0] << " "
+                       << m_puncture_shift[ipuncture][1] << " "
+                       << m_puncture_shift[ipuncture][2] << std::endl;
         amrex::Print() << "at time = " << a_current_time << std::endl;
     }
 }
@@ -147,8 +152,10 @@ void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
     AMREX_ASSERT(m_interpolator != nullptr); // sanity check
 
     // get puncture coordinates and old shift value
-    std::vector<std::array<double, AMREX_SPACEDIM>> old_shift = m_puncture_shift;
-    AMREX_ASSERT(static_cast<int>(m_puncture_coords.size()) == m_num_punctures); // sanity check
+    std::vector<std::array<double, AMREX_SPACEDIM>> old_shift =
+        m_puncture_shift;
+    AMREX_ASSERT(static_cast<int>(m_puncture_coords.size()) ==
+                 m_num_punctures); // sanity check
 
     // new shift value
     interp_shift();
@@ -156,7 +163,7 @@ void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
     // update puncture locations using second order update
     for (int ipuncture = 0; ipuncture < m_num_punctures; ipuncture++)
     {
-        FOR(i)
+        FOR (i)
         {
             m_puncture_coords[ipuncture][i] +=
                 -0.5 * a_dt *

@@ -32,29 +32,24 @@ class BoostedBH
 
     // conformal factor
     template <class data_t>
-    AMREX_GPU_DEVICE
-    data_t psi_minus_one(Coordinates<data_t> coords) const;
+    AMREX_GPU_DEVICE data_t psi_minus_one(Coordinates<data_t> coords) const;
 
     // extrinsic curvature
     template <class data_t>
-    AMREX_GPU_DEVICE
-    Tensor<2, data_t> Aij(Coordinates<data_t> coords) const;
+    AMREX_GPU_DEVICE Tensor<2, data_t> Aij(Coordinates<data_t> coords) const;
 
   private:
     template <class data_t>
-    AMREX_GPU_DEVICE
-    data_t center_dist(Coordinates<data_t> coords) const;
+    AMREX_GPU_DEVICE data_t center_dist(Coordinates<data_t> coords) const;
 
     template <class data_t> AMREX_GPU_DEVICE data_t psi0(data_t r) const;
 
-    template <class data_t> AMREX_GPU_DEVICE
-    data_t psi2(data_t r, data_t cos_theta) const;
+    template <class data_t>
+    AMREX_GPU_DEVICE data_t psi2(data_t r, data_t cos_theta) const;
 
-    template <class data_t> AMREX_GPU_DEVICE
-    data_t psi2_0(data_t r) const;
+    template <class data_t> AMREX_GPU_DEVICE data_t psi2_0(data_t r) const;
 
-    template <class data_t> AMREX_GPU_DEVICE
-    data_t psi2_2(data_t r) const;
+    template <class data_t> AMREX_GPU_DEVICE data_t psi2_2(data_t r) const;
 };
 
 #include "BoostedBH.impl.hpp"

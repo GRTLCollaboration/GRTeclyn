@@ -32,7 +32,7 @@ int main()
     int failed = 0;
 
     Vars<double> vars;
-    vars.var = 42.;
+    vars.var             = 42.;
     vars.symmetric_var_1 = 84.;
     vars.symmetric_var_2 = 84.;
 

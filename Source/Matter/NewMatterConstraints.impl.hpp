@@ -28,11 +28,11 @@ void MatterConstraints<matter_t>::compute(Cell<data_t> current_cell) const
 {
     // Load local vars and calculate derivs
     const auto vars = current_cell.template load_vars<BSSNMatterVars>();
-    const auto d1 = m_deriv.template diff1<BSSNMatterVars>(current_cell);
-    const auto d2 = m_deriv.template diff2<BSSNMatterVars>(current_cell);
+    const auto d1   = m_deriv.template diff1<BSSNMatterVars>(current_cell);
+    const auto d2   = m_deriv.template diff2<BSSNMatterVars>(current_cell);
 
     // Inverse metric and Christoffel symbol
-    const auto h_UU = TensorAlgebra::compute_inverse_sym(vars.h);
+    const auto h_UU  = TensorAlgebra::compute_inverse_sym(vars.h);
     const auto chris = TensorAlgebra::compute_christoffel(d1.h, h_UU);
 
     // Get the non matter terms for the constraints
@@ -44,14 +44,14 @@ void MatterConstraints<matter_t>::compute(Cell<data_t> current_cell) const
     // Hamiltonian constraint
     if (m_c_Ham >= 0 || m_c_Ham_abs_terms >= 0)
     {
-        out.Ham += -16.0 * M_PI * m_G_Newton * emtensor.rho;
+        out.Ham           += -16.0 * M_PI * m_G_Newton * emtensor.rho;
         out.Ham_abs_terms += 16.0 * M_PI * m_G_Newton * std::abs(emtensor.rho);
     }
 
     // Momentum constraints
     if (m_c_Moms.size() > 0 || m_c_Moms_abs_terms.size() > 0)
     {
-        FOR(i)
+        FOR (i)
         {
             out.Mom[i] += -8.0 * M_PI * m_G_Newton * emtensor.Si[i];
             out.Mom_abs_terms[i] +=

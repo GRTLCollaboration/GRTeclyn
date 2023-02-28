@@ -21,7 +21,7 @@
 
 DefaultLevelFactory<BinaryBHLevel> bh_level_bld;
 
-int runGRAMReX(int /*argc*/, char */*argv*/[])
+int runGRAMReX(int /*argc*/, char * /*argv*/[])
 {
     BL_PROFILE("runGRAMReX()");
 
@@ -56,12 +56,14 @@ int runGRAMReX(int /*argc*/, char */*argv*/[])
     }
 
     // Write final checkpoint and plotfile
-    if (bh_amr.stepOfLastCheckPoint() < bh_amr.levelSteps(0) && sim_params.checkpoint_interval >= 0)
+    if (bh_amr.stepOfLastCheckPoint() < bh_amr.levelSteps(0) &&
+        sim_params.checkpoint_interval >= 0)
     {
         bh_amr.checkPoint();
     }
 
-    if (bh_amr.stepOfLastPlotFile() < bh_amr.levelSteps(0) && sim_params.plot_interval >= 0)
+    if (bh_amr.stepOfLastPlotFile() < bh_amr.levelSteps(0) &&
+        sim_params.plot_interval >= 0)
     {
         bh_amr.writePlotFile();
     }
@@ -78,7 +80,8 @@ int main(int argc, char *argv[])
     if (status == 0)
         amrex::Print() << "GRChombo finished." << std::endl;
     else
-        amrex::Print() << "GRChombo failed with return code " << status << std::endl;
+        amrex::Print() << "GRChombo failed with return code " << status
+                       << std::endl;
 
     mainFinalize();
     return status;

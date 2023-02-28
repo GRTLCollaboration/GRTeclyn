@@ -40,7 +40,10 @@ SurfaceExtraction<SurfaceGeometry>::SurfaceExtraction(
     // only interp points on rank 0
     if (amrex::ParallelDescriptor::MyProc() == 0)
     {
-        FOR(idir) { m_interp_coords[idir].resize(m_num_interp_points); }
+        FOR (idir)
+        {
+            m_interp_coords[idir].resize(m_num_interp_points);
+        }
 
         for (int isurface = 0; isurface < m_params.num_surfaces; ++isurface)
         {
@@ -52,9 +55,9 @@ SurfaceExtraction<SurfaceGeometry>::SurfaceExtraction(
                 for (int iv = 0; iv < m_params.num_points_v; ++iv)
                 {
                     double v = m_geom.v(iv, m_params.num_points_v);
-                    FOR(idir)
+                    FOR (idir)
                     {
-                        int idx = index(isurface, iu, iv);
+                        int idx                    = index(isurface, iu, iv);
                         m_interp_coords[idir][idx] = m_geom.get_grid_coord(
                             idir, surface_param_value, u, v);
                     }
@@ -147,7 +150,10 @@ void SurfaceExtraction<SurfaceGeometry>::extract(
     }
     // m_num_interp_points is 0 on ranks > 0
     InterpolationQuery query(m_num_interp_points);
-    FOR(idir) { query.setCoords(idir, m_interp_coords[idir].data()); }
+    FOR (idir)
+    {
+        query.setCoords(idir, m_interp_coords[idir].data());
+    }
     for (std::size_t ivar = 0; ivar < m_vars.size(); ++ivar)
     {
         // note the difference in order between the m_vars tuple in this class
@@ -233,9 +239,9 @@ void SurfaceExtraction<SurfaceGeometry>::add_var_integrand(
     const bool a_broadcast_integral)
 {
     AMREX_ASSERT(a_var >= 0 && a_var < m_vars.size());
-    integrand_t var_integrand = [var = a_var](std::vector<double> &data, double,
-                                              double,
-                                              double) { return data[var]; };
+    integrand_t var_integrand =
+        [var = a_var](std::vector<double> &data, double, double, double)
+    { return data[var]; };
     add_integrand(var_integrand, out_integrals, a_method_u, a_method_v,
                   a_broadcast_integral);
 }
@@ -248,7 +254,7 @@ void SurfaceExtraction<SurfaceGeometry>::integrate()
     {
         // note this condition won't be true on other ranks
         AMREX_ASSERT(m_integrands.size() == m_integration_methods.size() &&
-                  m_integrals.size() > 0);
+                     m_integrals.size() > 0);
         int num_integrals = m_integrals.size();
 
         for (int isurface = 0; isurface < m_params.num_surfaces; ++isurface)
@@ -301,12 +307,12 @@ void SurfaceExtraction<SurfaceGeometry>::integrate()
         {
             amrex::Vector<double> broadcast_Vector;
             if (amrex::ParallelDescriptor::MyProc() == 0)
-            //xxxxx    broadcast_Vector = m_integrals[iintegral].get();
-           //xxxxx broadcast(broadcast_Vector, 0);
-            if (amrex::ParallelDescriptor::MyProc() != 0)
-            {
-                //xxxxx m_integrals[iintegral].get() = broadcast_Vector;
-            }
+                // xxxxx    broadcast_Vector = m_integrals[iintegral].get();
+                // xxxxx broadcast(broadcast_Vector, 0);
+                if (amrex::ParallelDescriptor::MyProc() != 0)
+                {
+                    // xxxxx m_integrals[iintegral].get() = broadcast_Vector;
+                }
         }
     }
 }
@@ -390,7 +396,7 @@ void SurfaceExtraction<SurfaceGeometry>::write_extraction(
                 for (int iv = 0; iv < m_params.num_points_v; ++iv)
                 {
                     double v = m_geom.v(iv, m_params.num_points_v);
-                    int idx = index(isurface, iu, iv);
+                    int idx  = index(isurface, iu, iv);
                     std::vector<double> data(m_vars.size());
                     for (std::size_t ivar = 0; ivar < m_vars.size(); ++ivar)
                     {
@@ -419,13 +425,15 @@ void SurfaceExtraction<SurfaceGeometry>::write_integrals(
         // there are integrals
         if (!a_labels.empty())
         {
-            AMREX_ASSERT(num_integrals_per_surface == static_cast<int>(a_labels.size()));
+            AMREX_ASSERT(num_integrals_per_surface ==
+                         static_cast<int>(a_labels.size()));
         }
         // each inner vector element of a_integrals must have the same number of
         // elements as there are surfaces (i.e. one integral per surface)
         for (auto vect : a_integrals)
         {
-            AMREX_ASSERT(static_cast<int>(vect.size()) == m_params.num_surfaces);
+            AMREX_ASSERT(static_cast<int>(vect.size()) ==
+                         m_params.num_surfaces);
         }
         // open file for writing
         SmallDataIO integral_file(m_params.data_path + a_filename, m_dt, m_time,

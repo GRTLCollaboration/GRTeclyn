@@ -7,9 +7,9 @@
 #define SIMULATIONPARAMETERSBASE_HPP_
 
 // General includes
+#include "AMReXParameters.hpp"
 #include "BoundaryConditions.hpp"
 #include "CCZ4RHS.hpp"
-#include "AMReXParameters.hpp"
 #include "GRParmParse.hpp"
 #include "SphericalExtraction.hpp"
 #include <limits>
@@ -45,9 +45,9 @@ class SimulationParametersBase : public AMReXParameters
         pp.load("kappa2", ccz4_base_params.kappa2, 0.0);
         pp.load("kappa3", ccz4_base_params.kappa3, 1.0);
         pp.load("covariantZ4", ccz4_base_params.covariantZ4, true);
-        ccz4_params.kappa1 = ccz4_base_params.kappa1;
-        ccz4_params.kappa2 = ccz4_base_params.kappa2;
-        ccz4_params.kappa3 = ccz4_base_params.kappa3;
+        ccz4_params.kappa1      = ccz4_base_params.kappa1;
+        ccz4_params.kappa2      = ccz4_base_params.kappa2;
+        ccz4_params.kappa3      = ccz4_base_params.kappa3;
         ccz4_params.covariantZ4 = ccz4_base_params.covariantZ4;
 
         // Dissipation
@@ -103,9 +103,10 @@ class SimulationParametersBase : public AMReXParameters
             if (extraction_params.num_points_theta % 2 == 0)
             {
                 extraction_params.num_points_theta += 1;
-                amrex::Print() << "Parameter: num_points_theta incompatible with "
-                          "Simpson's "
-                       << "rule so increased by 1.\n";
+                amrex::Print()
+                    << "Parameter: num_points_theta incompatible with "
+                       "Simpson's "
+                    << "rule so increased by 1.\n";
             }
             pp.load("extraction_center", extraction_params.center, center);
 
@@ -132,7 +133,7 @@ class SimulationParametersBase : public AMReXParameters
                 extraction_params.modes.resize(3);
                 for (int i = 0; i < 3; ++i)
                 {
-                    extraction_params.modes[i].first = 2;
+                    extraction_params.modes[i].first  = 2;
                     extraction_params.modes[i].second = i;
                 }
             }
@@ -147,7 +148,7 @@ class SimulationParametersBase : public AMReXParameters
             if (output_path != "./" && !output_path.empty())
                 extraction_path = output_path + extraction_path;
 
-            extraction_params.data_path = data_path;
+            extraction_params.data_path       = data_path;
             extraction_params.extraction_path = extraction_path;
 
             // default names to Weyl extraction
@@ -232,7 +233,7 @@ class SimulationParametersBase : public AMReXParameters
                        "usually set to 0.75");
         warn_parameter("shift_advec_coeff", ccz4_params.shift_advec_coeff,
                        std::min(std::abs(ccz4_params.shift_advec_coeff),
-                           std::abs(ccz4_params.shift_advec_coeff - 1.0)) <
+                                std::abs(ccz4_params.shift_advec_coeff - 1.0)) <
                            std::numeric_limits<double>::epsilon(),
                        "usually set to 0.0 or 1.0");
         warn_parameter("eta", ccz4_params.eta,
@@ -247,7 +248,7 @@ class SimulationParametersBase : public AMReXParameters
                 extraction_params.num_extraction_radii > 0,
                 "must be bigger than 0 when activate_extraction = 1");
 
-            FOR(idir)
+            FOR (idir)
             {
                 std::string center_name =
                     "extraction_center[" + std::to_string(idir) + "]";
@@ -280,9 +281,9 @@ class SimulationParametersBase : public AMReXParameters
             }
             for (int imode = 0; imode < extraction_params.num_modes; ++imode)
             {
-                auto &mode = extraction_params.modes[imode];
-                int l = mode.first;
-                int m = mode.second;
+                auto &mode            = extraction_params.modes[imode];
+                int l                 = mode.first;
+                int m                 = mode.second;
                 std::string mode_name = "modes[" + std::to_string(imode) + "]";
                 std::string value_str = "(" + std::to_string(mode.first) +
                                         ", " + std::to_string(mode.second) +

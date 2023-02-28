@@ -106,7 +106,7 @@ template <class SurfaceGeometry> class SurfaceExtraction
     //! add a single variable or derivative of variable
     void add_var(int a_var,
                  const VariableType var_type = VariableType::evolution,
-                 const Derivative &a_deriv = Derivative::LOCAL);
+                 const Derivative &a_deriv   = Derivative::LOCAL);
 
     //! add a vector of variables/derivatives of variables
     void add_vars(const std::vector<vars_t> &a_vars);
@@ -146,7 +146,7 @@ template <class SurfaceGeometry> class SurfaceExtraction
         const integrand_t &a_integrand, std::vector<double> &out_integrals,
         const IntegrationMethod &a_method_u = IntegrationMethod::trapezium,
         const IntegrationMethod &a_method_v = IntegrationMethod::trapezium,
-        const bool a_broadcast_integral = false);
+        const bool a_broadcast_integral     = false);
 
     //! Add an integrand which is just a single var. The a_var argument should
     //! correspond to the order in which the desired var was added to this
@@ -157,7 +157,7 @@ template <class SurfaceGeometry> class SurfaceExtraction
         int a_var, std::vector<double> &out_integrals,
         const IntegrationMethod &a_method_u = IntegrationMethod::trapezium,
         const IntegrationMethod &a_method_v = IntegrationMethod::trapezium,
-        const bool a_broadcast_integral = false);
+        const bool a_broadcast_integral     = false);
 
     //! Integrate the integrands added using add_integrand
     void integrate();
@@ -170,7 +170,7 @@ template <class SurfaceGeometry> class SurfaceExtraction
         integrand_t a_integrand,
         const IntegrationMethod &a_method_u = IntegrationMethod::trapezium,
         const IntegrationMethod &a_method_v = IntegrationMethod::trapezium,
-        const bool a_broadcast_integral = false);
+        const bool a_broadcast_integral     = false);
 
     //! Write the interpolated data to a file with a block for each surface
     void write_extraction(std::string a_file_prefix) const;

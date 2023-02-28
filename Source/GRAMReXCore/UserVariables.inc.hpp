@@ -17,7 +17,7 @@
 #include <array>
 #include <string>
 
-//xxxxx#include "parstream.H"
+// xxxxx#include "parstream.H"
 
 // This file must be included at the end of UserVariables.hpp
 
@@ -118,7 +118,8 @@ load_vars_to_vector(GRParmParse &pp, const char *a_vars_vector_string,
                 if (var < 0)
                 {
                     // it's neither :(
-                    amrex::Print() << "Variable with name " << var_name << " not found.\n";
+                    amrex::Print()
+                        << "Variable with name " << var_name << " not found.\n";
                 }
                 else
                 {

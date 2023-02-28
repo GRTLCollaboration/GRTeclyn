@@ -44,7 +44,7 @@ template <typename T, size_t N,
 std::string to_string(const std::array<T, N> a_array)
 {
     std::string out;
-    for (auto x: a_array)
+    for (auto x : a_array)
     {
         out += std::to_string(x) + " ";
     }

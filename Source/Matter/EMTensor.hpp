@@ -23,7 +23,7 @@ template <class matter_t> class EMTensor
 
     //! Constructor
     EMTensor(const matter_t &a_matter, const double dx, const int a_c_rho = -1,
-             const Interval a_c_Si = Interval(),
+             const Interval a_c_Si  = Interval(),
              const Interval a_c_Sij = Interval());
 
     template <class data_t> void compute(Cell<data_t> current_cell) const;

@@ -36,9 +36,9 @@ class PunctureTracker
     //! if the puncture locations are required for Tagging Criteria
     void initial_setup(const std::vector<std::array<double, AMREX_SPACEDIM>>
                            &initial_puncture_coords,
-                       const std::string &a_filename = "punctures",
+                       const std::string &a_filename    = "punctures",
                        const std::string &a_output_path = "",
-                       const int a_min_level = 0);
+                       const int a_min_level            = 0);
 
     //! set puncture locations on start (or restart)
     void restart_punctures();

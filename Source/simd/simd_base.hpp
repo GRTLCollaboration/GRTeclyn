@@ -29,7 +29,7 @@
 template <typename t> struct simd_base
 {
     static const int simd_len = simd_traits<t>::simd_len;
-    using simd_data_t = typename simd_traits<t>::data_t;
+    using simd_data_t         = typename simd_traits<t>::data_t;
     simd_data_t m_value;
 
     ALWAYS_INLINE

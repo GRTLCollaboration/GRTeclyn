@@ -71,7 +71,8 @@ inline void MPIContext::asyncExchangeQuery(void *sendbuf, void *recvbuf,
 #if MPI_VERSION >= 3 && !defined(OPEN_MPI)
     MPI_Ialltoallv(sendbuf, m_query.countsPtr(), m_query.displsPtr(), type,
                    recvbuf, m_answer.countsPtr(), m_answer.displsPtr(), type,
-                   amrex::ParallelDescriptor::Communicator(), &m_mpi_requests.back());
+                   amrex::ParallelDescriptor::Communicator(),
+                   &m_mpi_requests.back());
 #else
     MPI_Alltoallv(sendbuf, m_query.countsPtr(), m_query.displsPtr(), type,
                   recvbuf, m_answer.countsPtr(), m_answer.displsPtr(), type,
@@ -89,7 +90,8 @@ inline void MPIContext::asyncExchangeAnswer(void *sendbuf, void *recvbuf,
 #if MPI_VERSION >= 3 && !defined(OPEN_MPI)
     MPI_Ialltoallv(sendbuf, m_answer.countsPtr(), m_answer.displsPtr(), type,
                    recvbuf, m_query.countsPtr(), m_query.displsPtr(), type,
-                   amrex::ParallelDescriptor::Communicator(), &m_mpi_requests.back());
+                   amrex::ParallelDescriptor::Communicator(),
+                   &m_mpi_requests.back());
 #else
     MPI_Alltoallv(sendbuf, m_answer.countsPtr(), m_answer.displsPtr(), type,
                   recvbuf, m_query.countsPtr(), m_query.displsPtr(), type,

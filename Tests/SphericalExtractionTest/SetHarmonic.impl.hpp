@@ -22,7 +22,7 @@ void SetHarmonic::compute(Cell<data_t> current_cell) const
     Coordinates<data_t> coords(current_cell, m_dx, m_center);
 
     using namespace SphericalHarmonics;
-    auto Y_lm = spin_Y_lm(coords.x, coords.y, coords.z, m_es, m_el, m_em);
+    auto Y_lm     = spin_Y_lm(coords.x, coords.y, coords.z, m_es, m_el, m_em);
     data_t out_Re = Y_lm.Real;
     data_t out_Im = Y_lm.Im;
 

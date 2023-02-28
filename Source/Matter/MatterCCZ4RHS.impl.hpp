@@ -28,7 +28,7 @@ void MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::compute(
 {
     // copy data from chombo gridpoint into local variables
     const auto matter_vars = current_cell.template load_vars<Vars>();
-    const auto d1 = this->m_deriv.template diff1<Vars>(current_cell);
+    const auto d1          = this->m_deriv.template diff1<Vars>(current_cell);
     const auto d2 = this->m_deriv.template diff2<Diff2Vars>(current_cell);
     const auto advec =
         this->m_deriv.template advection<Vars>(current_cell, matter_vars.shift);
@@ -59,7 +59,7 @@ void MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
 {
     using namespace TensorAlgebra;
 
-    const auto h_UU = compute_inverse_sym(matter_vars.h);
+    const auto h_UU  = compute_inverse_sym(matter_vars.h);
     const auto chris = compute_christoffel(d1.h, h_UU);
 
     // Calculate elements of the decomposed stress energy tensor
@@ -85,23 +85,23 @@ void MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
     Tensor<2, data_t> Sij_TF = emtensor.Sij;
     make_trace_free(Sij_TF, matter_vars.h, h_UU);
 
-    FOR(i, j)
+    FOR (i, j)
     {
         matter_rhs.A[i][j] += -8.0 * M_PI * m_G_Newton * matter_vars.chi *
                               matter_vars.lapse * Sij_TF[i][j];
     }
 
-    FOR(i)
+    FOR (i)
     {
         data_t matter_term_Gamma = 0.0;
-        FOR(j)
+        FOR (j)
         {
             matter_term_Gamma += -16.0 * M_PI * m_G_Newton * matter_vars.lapse *
                                  h_UU[i][j] * emtensor.Si[j];
         }
 
         matter_rhs.Gamma[i] += matter_term_Gamma;
-        matter_rhs.B[i] += matter_term_Gamma;
+        matter_rhs.B[i]     += matter_term_Gamma;
     }
 }
 

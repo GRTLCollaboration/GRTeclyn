@@ -18,10 +18,10 @@ BoundaryConditions::params_t::params_t()
     lo_boundary.fill(STATIC_BC);
     is_periodic.fill(true);
     nonperiodic_boundaries_exist = false;
-    boundary_solution_enforced = false;
-    boundary_rhs_enforced = false;
-    reflective_boundaries_exist = false;
-    sommerfeld_boundaries_exist = false;
+    boundary_solution_enforced   = false;
+    boundary_rhs_enforced        = false;
+    reflective_boundaries_exist  = false;
+    sommerfeld_boundaries_exist  = false;
     vars_parity.fill(BoundaryConditions::UNDEFINED);
     vars_parity_diagnostic.fill(BoundaryConditions::EXTRAPOLATING_BC);
     vars_asymptotic_values.fill(0.0);
@@ -32,7 +32,7 @@ void BoundaryConditions::params_t::set_is_periodic(
     const std::array<bool, AMREX_SPACEDIM> &a_is_periodic)
 {
     is_periodic = a_is_periodic;
-    FOR(idir)
+    FOR (idir)
     {
         if (!is_periodic[idir])
             nonperiodic_boundaries_exist = true;
@@ -41,35 +41,35 @@ void BoundaryConditions::params_t::set_is_periodic(
 void BoundaryConditions::params_t::set_hi_boundary(
     const std::array<int, AMREX_SPACEDIM> &a_hi_boundary)
 {
-    FOR(idir)
+    FOR (idir)
     {
         if (!is_periodic[idir])
         {
             hi_boundary[idir] = a_hi_boundary[idir];
             if (hi_boundary[idir] == REFLECTIVE_BC)
             {
-                boundary_rhs_enforced = true;
-                boundary_solution_enforced = true;
+                boundary_rhs_enforced       = true;
+                boundary_solution_enforced  = true;
                 reflective_boundaries_exist = true;
             }
             else if (hi_boundary[idir] == SOMMERFELD_BC)
             {
-                boundary_rhs_enforced = true;
+                boundary_rhs_enforced       = true;
                 sommerfeld_boundaries_exist = true;
             }
             else if (hi_boundary[idir] == EXTRAPOLATING_BC)
             {
-                boundary_rhs_enforced = true;
-                boundary_solution_enforced = true;
+                boundary_rhs_enforced          = true;
+                boundary_solution_enforced     = true;
                 extrapolating_boundaries_exist = true;
             }
             else if (hi_boundary[idir] == MIXED_BC)
             {
-                boundary_rhs_enforced = true;
-                boundary_solution_enforced = true;
-                sommerfeld_boundaries_exist = true;
+                boundary_rhs_enforced          = true;
+                boundary_solution_enforced     = true;
+                sommerfeld_boundaries_exist    = true;
                 extrapolating_boundaries_exist = true;
-                mixed_boundaries_exist = true;
+                mixed_boundaries_exist         = true;
             }
         }
     }
@@ -77,34 +77,34 @@ void BoundaryConditions::params_t::set_hi_boundary(
 void BoundaryConditions::params_t::set_lo_boundary(
     const std::array<int, AMREX_SPACEDIM> &a_lo_boundary)
 {
-    FOR(idir)
+    FOR (idir)
     {
         if (!is_periodic[idir])
         {
             lo_boundary[idir] = a_lo_boundary[idir];
             if (lo_boundary[idir] == REFLECTIVE_BC)
             {
-                boundary_solution_enforced = true;
+                boundary_solution_enforced  = true;
                 reflective_boundaries_exist = true;
             }
             else if (lo_boundary[idir] == SOMMERFELD_BC)
             {
-                boundary_rhs_enforced = true;
+                boundary_rhs_enforced       = true;
                 sommerfeld_boundaries_exist = true;
             }
             else if (lo_boundary[idir] == EXTRAPOLATING_BC)
             {
-                boundary_rhs_enforced = true;
-                boundary_solution_enforced = true;
+                boundary_rhs_enforced          = true;
+                boundary_solution_enforced     = true;
                 extrapolating_boundaries_exist = true;
             }
             else if (lo_boundary[idir] == MIXED_BC)
             {
-                boundary_rhs_enforced = true;
-                boundary_solution_enforced = true;
-                sommerfeld_boundaries_exist = true;
+                boundary_rhs_enforced          = true;
+                boundary_solution_enforced     = true;
+                sommerfeld_boundaries_exist    = true;
                 extrapolating_boundaries_exist = true;
-                mixed_boundaries_exist = true;
+                mixed_boundaries_exist         = true;
             }
         }
     }
@@ -173,13 +173,14 @@ void BoundaryConditions::params_t::read_params(GRParmParse &pp)
             bool is_extrapolating = false;
             // if the variable is not in extrapolating vars, it
             // is assumed to be sommerfeld by default
-            for (std::size_t icomp2 = 0; icomp2 < extrapolating_vars.size(); icomp2++)
+            for (std::size_t icomp2 = 0; icomp2 < extrapolating_vars.size();
+                 icomp2++)
             {
                 if (icomp == extrapolating_vars[icomp2].first)
                 {
                     // should be an evolution variable
                     AMREX_ASSERT(extrapolating_vars[icomp2].second ==
-                              VariableType::evolution);
+                                 VariableType::evolution);
                     mixed_bc_vars_map.insert(
                         std::make_pair(icomp, EXTRAPOLATING_BC));
                     is_extrapolating = true;
@@ -202,13 +203,15 @@ void BoundaryConditions::params_t::read_params(GRParmParse &pp)
 /// define function sets members and is_defined set to true
 void BoundaryConditions::define(std::array<double, AMREX_SPACEDIM> a_center,
                                 const params_t &a_params,
-                                amrex::Geometry const& a_geom,
-                                int a_num_ghosts)
+                                amrex::Geometry const &a_geom, int a_num_ghosts)
 {
     m_num_ghosts = a_num_ghosts;
-    m_params = a_params;
-    FOR(i) { m_center[i] = a_center[i]; }
-    m_geom = a_geom;
+    m_params     = a_params;
+    FOR (i)
+    {
+        m_center[i] = a_center[i];
+    }
+    m_geom     = a_geom;
     is_defined = true;
 }
 
@@ -223,8 +226,9 @@ void BoundaryConditions::set_vars_asymptotic_values(
 void BoundaryConditions::write_reflective_conditions(int idir,
                                                      const params_t &a_params)
 {
-    amrex::Print() << "The variables that are parity odd in this direction are : "
-           << std::endl;
+    amrex::Print()
+        << "The variables that are parity odd in this direction are : "
+        << std::endl;
     for (int icomp = 0; icomp < NUM_VARS; icomp++)
     {
         int parity = get_var_parity(icomp, idir, a_params);
@@ -239,7 +243,8 @@ void BoundaryConditions::write_reflective_conditions(int idir,
             get_var_parity(icomp, idir, a_params, VariableType::diagnostic);
         if (parity == -1)
         {
-            amrex::Print() << DiagnosticVariables::variable_names[icomp] << "    ";
+            amrex::Print() << DiagnosticVariables::variable_names[icomp]
+                           << "    ";
         }
     }
 }
@@ -248,14 +253,14 @@ void BoundaryConditions::write_sommerfeld_conditions(int /*idir*/,
                                                      const params_t &a_params)
 {
     amrex::Print() << "The non zero asymptotic values of the variables "
-              "in this direction are : "
-           << std::endl;
+                      "in this direction are : "
+                   << std::endl;
     for (int icomp = 0; icomp < NUM_VARS; icomp++)
     {
         if (a_params.vars_asymptotic_values[icomp] != 0)
         {
             amrex::Print() << UserVariables::variable_names[icomp] << " = "
-                   << a_params.vars_asymptotic_values[icomp] << "    ";
+                           << a_params.vars_asymptotic_values[icomp] << "    ";
         }
     }
     // not done for diagnostics
@@ -280,29 +285,34 @@ void BoundaryConditions::write_mixed_conditions(int idir,
         }
     }
     amrex::Print() << std::endl;
-    amrex::Print() << "The other variables all use Sommerfeld boundary conditions."
-           << std::endl;
+    amrex::Print()
+        << "The other variables all use Sommerfeld boundary conditions."
+        << std::endl;
     write_sommerfeld_conditions(idir, a_params);
 }
 
 /// write out boundary params (used during setup for debugging)
 void BoundaryConditions::write_boundary_conditions(const params_t &a_params)
 {
-    amrex::Print() << "You are using non periodic boundary conditions." << std::endl;
+    amrex::Print() << "You are using non periodic boundary conditions."
+                   << std::endl;
     amrex::Print() << "The boundary params chosen are:  " << std::endl;
     amrex::Print() << "---------------------------------" << std::endl;
 
-    std::map<int, std::string> bc_names = {{STATIC_BC, "Static"},
-                                           {SOMMERFELD_BC, "Sommerfeld"},
-                                           {REFLECTIVE_BC, "Reflective"},
-                                           {EXTRAPOLATING_BC, "Extrapolating"},
-                                           {MIXED_BC, "Mixed"}};
-    FOR(idir)
+    std::map<int, std::string> bc_names = {
+        {STATIC_BC,        "Static"       },
+        {SOMMERFELD_BC,    "Sommerfeld"   },
+        {REFLECTIVE_BC,    "Reflective"   },
+        {EXTRAPOLATING_BC, "Extrapolating"},
+        {MIXED_BC,         "Mixed"        }
+    };
+    FOR (idir)
     {
         if (!a_params.is_periodic[idir])
         {
             amrex::Print() << "- " << bc_names[a_params.hi_boundary[idir]]
-                   << " boundaries in direction high " << idir << std::endl;
+                           << " boundaries in direction high " << idir
+                           << std::endl;
             // high directions
             if (a_params.hi_boundary[idir] == REFLECTIVE_BC)
             {
@@ -320,7 +330,8 @@ void BoundaryConditions::write_boundary_conditions(const params_t &a_params)
 
             // low directions
             amrex::Print() << "- " << bc_names[a_params.lo_boundary[idir]]
-                   << " boundaries in direction low " << idir << std::endl;
+                           << " boundaries in direction low " << idir
+                           << std::endl;
             if (a_params.lo_boundary[idir] == REFLECTIVE_BC)
             {
                 write_reflective_conditions(idir, a_params);
@@ -380,42 +391,48 @@ int BoundaryConditions::get_var_parity(int a_comp, int a_dir,
 }
 
 /// Get the boundary condition for given face
-int BoundaryConditions::get_boundary_condition (amrex::Orientation face) const
+int BoundaryConditions::get_boundary_condition(amrex::Orientation face) const
 {
     return face.isLow() ? m_params.lo_boundary[face.coordDir()]
                         : m_params.hi_boundary[face.coordDir()];
 }
 
-
-void BoundaryConditions::apply_sommerfeld_boundaries
-    (amrex::MultiFab& a_rhs, amrex::MultiFab const& a_soln) const
+void BoundaryConditions::apply_sommerfeld_boundaries(
+    amrex::MultiFab &a_rhs, amrex::MultiFab const &a_soln) const
 {
-    if (!m_params.sommerfeld_boundaries_exist) { return; }
+    if (!m_params.sommerfeld_boundaries_exist)
+    {
+        return;
+    }
 
     amrex::Vector<amrex::Box> sommboxes;
     {
         amrex::Box domain = m_geom.Domain();
-        for (int idim = AMREX_SPACEDIM-1; idim >= 0; --idim) {
-            if (!m_params.is_periodic[idim]) {
-                int bclo = get_boundary_condition
-                    (amrex::Orientation(idim,amrex::Orientation::low));
+        for (int idim = AMREX_SPACEDIM - 1; idim >= 0; --idim)
+        {
+            if (!m_params.is_periodic[idim])
+            {
+                int bclo = get_boundary_condition(
+                    amrex::Orientation(idim, amrex::Orientation::low));
                 AMREX_ALWAYS_ASSERT_WITH_MESSAGE(bclo != MIXED_BC,
                                                  "xxxx mixed bc todo");
-                if (bclo == SOMMERFELD_BC) {
+                if (bclo == SOMMERFELD_BC)
+                {
                     const int len = domain.length(idim);
-                    amrex::Box b = domain;
-                    b.growHi(idim, -(len-m_num_ghosts));
+                    amrex::Box b  = domain;
+                    b.growHi(idim, -(len - m_num_ghosts));
                     domain.growLo(idim, -m_num_ghosts);
                     sommboxes.push_back(b);
                 }
-                int bchi = get_boundary_condition
-                    (amrex::Orientation(idim,amrex::Orientation::high));
+                int bchi = get_boundary_condition(
+                    amrex::Orientation(idim, amrex::Orientation::high));
                 AMREX_ALWAYS_ASSERT_WITH_MESSAGE(bchi != MIXED_BC,
                                                  "xxxx mixed bc todo");
-                if (bchi == SOMMERFELD_BC) {
+                if (bchi == SOMMERFELD_BC)
+                {
                     const int len = domain.length(idim);
-                    amrex::Box b = domain;
-                    b.growLo(idim, -(len-m_num_ghosts));
+                    amrex::Box b  = domain;
+                    b.growLo(idim, -(len - m_num_ghosts));
                     domain.growHi(idim, -m_num_ghosts);
                     sommboxes.push_back(b);
                 }
@@ -425,80 +442,92 @@ void BoundaryConditions::apply_sommerfeld_boundaries
 
     AMREX_ASSERT(amrex::almostEqual(m_geom.CellSize(0), m_geom.CellSize(1)) &&
                  amrex::almostEqual(m_geom.CellSize(0), m_geom.CellSize(2)));
-    const auto dx = m_geom.CellSize(0);
+    const auto dx     = m_geom.CellSize(0);
     amrex::Box domain = m_geom.Domain();
-    for (amrex::OrientationIter orit; orit.isValid(); ++orit) {
+    for (amrex::OrientationIter orit; orit.isValid(); ++orit)
+    {
         amrex::Orientation face = orit();
-        int bc = get_boundary_condition(face);
-        if (m_geom.isPeriodic(face.coordDir()) ||
-            bc == REFLECTIVE_BC) { // xxxxx todo: what about other BCs?
+        int bc                  = get_boundary_condition(face);
+        if (m_geom.isPeriodic(face.coordDir()) || bc == REFLECTIVE_BC)
+        {                      // xxxxx todo: what about other BCs?
             domain.grow(face); // to use the central derivative stencil
         }
     }
-    const auto domlo = domain.smallEnd();
-    const auto domhi = domain.bigEnd();
+    const auto domlo  = domain.smallEnd();
+    const auto domhi  = domain.bigEnd();
     const auto center = m_center;
 
-    if (m_asymptotic_values.empty()) {
+    if (m_asymptotic_values.empty())
+    {
         m_asymptotic_values.resize(NUM_VARS);
-        amrex::Gpu::copy(amrex::Gpu::hostToDevice,
-                         m_params.vars_asymptotic_values.begin(),
-                         m_params.vars_asymptotic_values.end(),
-                         m_asymptotic_values.begin());
+        amrex::Gpu::copy(
+            amrex::Gpu::hostToDevice, m_params.vars_asymptotic_values.begin(),
+            m_params.vars_asymptotic_values.end(), m_asymptotic_values.begin());
     }
     auto asymptotic_values = m_asymptotic_values.data();
 
 #if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
 #pragma omp parallel
 #endif
-    for (amrex::MFIter mfi(a_rhs); mfi.isValid(); ++mfi) {
-        amrex::Box const& vbx = mfi.validbox();
-        amrex::Array4<amrex::Real const> const& sol = a_soln.const_array(mfi);
-        amrex::Array4<amrex::Real> const& rhs = a_rhs.array(mfi);
-        for (auto const& bb : sommboxes) {
+    for (amrex::MFIter mfi(a_rhs); mfi.isValid(); ++mfi)
+    {
+        amrex::Box const &vbx                       = mfi.validbox();
+        amrex::Array4<amrex::Real const> const &sol = a_soln.const_array(mfi);
+        amrex::Array4<amrex::Real> const &rhs       = a_rhs.array(mfi);
+        for (auto const &bb : sommboxes)
+        {
             amrex::Box b = bb & vbx;
-            if (b.ok()) {
-                amrex::ParallelFor(b, a_rhs.nComp(),
-                [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-                {
-                    amrex::RealVect loc((i+0.5)*dx-center[0],
-                                        (j+0.5)*dx-center[1],
-                                        (k+0.5)*dx-center[2]);
-                    amrex::Real tmp = 0.;
-                    amrex::IntVect iv(i,j,k);
-                    for (int idir2 = 0; idir2 < AMREX_SPACEDIM; ++idir2) {
-                        amrex::IntVect iv_offset1 = iv;
-                        amrex::IntVect iv_offset2 = iv;
-                        amrex::Real d1;
-                        if (iv[idir2] == domlo[idir2]) {
-                            iv_offset1[idir2] += +1;
-                            iv_offset2[idir2] += +2;
-                            d1 = (1.0/dx) * (-1.5 * sol(iv, n)
-                                             +2.0 * sol(iv_offset1, n)
-                                             -0.5 * sol(iv_offset2, n));
-                        } else if (iv[idir2] == domhi[idir2]) {
-                            iv_offset1[idir2] += -1;
-                            iv_offset2[idir2] += -2;
-                            d1 = (1.0/dx) * (+1.5 * sol(iv, n)
-                                             -2.0 * sol(iv_offset1, n)
-                                             +0.5 * sol(iv_offset2, n));
-                        } else {
-                            iv_offset1[idir2] += +1;
-                            iv_offset2[idir2] += -1;
-                            d1 = (0.5/dx) * (sol(iv_offset1, n) -
-                                             sol(iv_offset2, n));
+            if (b.ok())
+            {
+                amrex::ParallelFor(
+                    b, a_rhs.nComp(),
+                    [=] AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
+                    {
+                        amrex::RealVect loc((i + 0.5) * dx - center[0],
+                                            (j + 0.5) * dx - center[1],
+                                            (k + 0.5) * dx - center[2]);
+                        amrex::Real tmp = 0.;
+                        amrex::IntVect iv(i, j, k);
+                        for (int idir2 = 0; idir2 < AMREX_SPACEDIM; ++idir2)
+                        {
+                            amrex::IntVect iv_offset1 = iv;
+                            amrex::IntVect iv_offset2 = iv;
+                            amrex::Real d1;
+                            if (iv[idir2] == domlo[idir2])
+                            {
+                                iv_offset1[idir2] += +1;
+                                iv_offset2[idir2] += +2;
+                                d1 = (1.0 / dx) * (-1.5 * sol(iv, n) +
+                                                   2.0 * sol(iv_offset1, n) -
+                                                   0.5 * sol(iv_offset2, n));
+                            }
+                            else if (iv[idir2] == domhi[idir2])
+                            {
+                                iv_offset1[idir2] += -1;
+                                iv_offset2[idir2] += -2;
+                                d1 = (1.0 / dx) * (+1.5 * sol(iv, n) -
+                                                   2.0 * sol(iv_offset1, n) +
+                                                   0.5 * sol(iv_offset2, n));
+                            }
+                            else
+                            {
+                                iv_offset1[idir2] += +1;
+                                iv_offset2[idir2] += -1;
+                                d1                = (0.5 / dx) *
+                                     (sol(iv_offset1, n) - sol(iv_offset2, n));
+                            }
+                            // for each direction add dphidx * x^i
+                            tmp += -d1 * loc[idir2];
                         }
-                        // for each direction add dphidx * x^i
-                        tmp += -d1 * loc[idir2];
-                    }
-                    // asymptotic values - these need to have been set in
-                    // the params file
-                    double radius = std::sqrt(loc[0]*loc[0] +
-                                              loc[1]*loc[1] +
-                                              loc[2]*loc[2]);
-                    rhs(i,j,k,n) = (asymptotic_values[n] - sol(i,j,k,n) + tmp)
-                        * (1./radius);
-                });
+                        // asymptotic values - these need to have been set in
+                        // the params file
+                        double radius =
+                            std::sqrt(loc[0] * loc[0] + loc[1] * loc[1] +
+                                      loc[2] * loc[2]);
+                        rhs(i, j, k, n) =
+                            (asymptotic_values[n] - sol(i, j, k, n) + tmp) *
+                            (1. / radius);
+                    });
             }
         }
     }
@@ -704,8 +733,8 @@ void BoundaryConditions::fill_boundary_cells_dir(
 #endif
 
 void BoundaryConditions::fill_sommerfeld_cell(
-    amrex::FArrayBox &rhs_box, const amrex::FArrayBox &soln_box, const amrex::IntVect iv,
-    const std::vector<int> &sommerfeld_comps) const
+    amrex::FArrayBox &rhs_box, const amrex::FArrayBox &soln_box,
+    const amrex::IntVect iv, const std::vector<int> &sommerfeld_comps) const
 {
     amrex::Abort("xxxxx todo BoundaryConditions::fill_sommerfeld_cell");
     amrex::ignore_unused(rhs_box, soln_box, iv, sommerfeld_comps);
@@ -1259,4 +1288,3 @@ void BoundaryConditions::expand_grids_to_boundaries(
     a_out_grids.close();
 }
 #endif
-

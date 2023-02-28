@@ -32,29 +32,29 @@ Y_lm_t<data_t> spin_Y_lm(const data_t x, const double y, const double z,
     Y_lm_t<data_t> Y_lm;
 
     // calculate useful position quantities
-    data_t r = simd_max(sqrt(x * x + y * y + z * z), 1e-6);
+    data_t r     = simd_max(sqrt(x * x + y * y + z * z), 1e-6);
     data_t theta = acos(z / r);
-    data_t phi = atan2(y, x);
+    data_t phi   = atan2(y, x);
 
     using namespace Combinatorics;
     double coefficient = pow(-1.0, es) * sqrt((2.0 * el + 1.0) / (4.0 * M_PI));
-    coefficient *= sqrt(factorial(el + em) * factorial(el - em) /
-                        factorial(el + es) / factorial(el - es));
+    coefficient        *= sqrt(factorial(el + em) * factorial(el - em) /
+                               factorial(el + es) / factorial(el - es));
 
-    data_t sum = 0.0;
+    data_t sum      = 0.0;
     int lower_limit = em + es > 0 ? em + es : 0;
     int upper_limit = el + em < el + es ? el + em : el + es;
 
     for (int i = lower_limit; i <= upper_limit; i++)
     {
         double temp = n_choose_r(el + es, i) * n_choose_r(el - es, i - es - em);
-        sum += temp * pow(-1.0, i) *
+        sum         += temp * pow(-1.0, i) *
                pow(cos(theta / 2.0), 2 * (el - i) + es + em) *
                pow(sin(theta / 2.0), 2 * i - em - es);
     }
 
-    Y_lm.Real = coefficient * sum * cos(em * phi);
-    Y_lm.Im = coefficient * sum * sin(em * phi);
+    Y_lm.Real      = coefficient * sum * cos(em * phi);
+    Y_lm.Im        = coefficient * sum * sin(em * phi);
     Y_lm.magnitude = sqrt(Y_lm.Real * Y_lm.Real + Y_lm.Im * Y_lm.Im);
 
     return Y_lm;

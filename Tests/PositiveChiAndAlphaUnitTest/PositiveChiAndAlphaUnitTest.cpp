@@ -36,7 +36,7 @@ int main()
                 else
                     value = 1e-10;
 
-                in_fab(iv, c_chi) = value;
+                in_fab(iv, c_chi)   = value;
                 in_fab(iv, c_lapse) = value;
             }
         }

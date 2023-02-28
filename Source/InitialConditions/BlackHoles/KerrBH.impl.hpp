@@ -38,15 +38,15 @@ template <class data_t> void KerrBH::compute(Cell<data_t> current_cell) const
     using namespace CoordinateTransformations;
     // Convert spherical components to cartesian components using coordinate
     // transforms
-    vars.h = spherical_to_cartesian_LL(spherical_g, x, y, z);
-    vars.A = spherical_to_cartesian_LL(spherical_K, x, y, z);
+    vars.h     = spherical_to_cartesian_LL(spherical_g, x, y, z);
+    vars.A     = spherical_to_cartesian_LL(spherical_K, x, y, z);
     vars.shift = spherical_to_cartesian_U(spherical_shift, x, y, z);
 
     using namespace TensorAlgebra;
     // Convert to BSSN vars
     data_t deth = compute_determinant(vars.h);
-    auto h_UU = compute_inverse_sym(vars.h);
-    vars.chi = pow(deth, -1. / 3.);
+    auto h_UU   = compute_inverse_sym(vars.h);
+    vars.chi    = pow(deth, -1. / 3.);
 
     // transform extrinsic curvature into A and TrK - note h is still non
     // conformal version which is what we need here
@@ -54,7 +54,7 @@ template <class data_t> void KerrBH::compute(Cell<data_t> current_cell) const
     make_trace_free(vars.A, vars.h, h_UU);
 
     // Make conformal
-    FOR(i, j)
+    FOR (i, j)
     {
         vars.h[i][j] *= vars.chi;
         vars.A[i][j] *= vars.chi;
@@ -88,21 +88,21 @@ void KerrBH::compute_kerr(Tensor<2, data_t> &spherical_g,
     double z = coords.z;
 
     // the radius, subject to a floor
-    data_t r = coords.get_radius();
+    data_t r  = coords.get_radius();
     data_t r2 = r * r;
 
     // the radius in xy plane, subject to a floor
     data_t rho2 = simd_max(x * x + y * y, 1e-12);
-    data_t rho = sqrt(rho2);
+    data_t rho  = sqrt(rho2);
 
     // calculate useful position quantities
-    data_t cos_theta = z / r;
-    data_t sin_theta = rho / r;
+    data_t cos_theta  = z / r;
+    data_t sin_theta  = rho / r;
     data_t cos_theta2 = cos_theta * cos_theta;
     data_t sin_theta2 = sin_theta * sin_theta;
 
     // calculate useful metric quantities
-    double r_plus = M + sqrt(M * M - a * a);
+    double r_plus  = M + sqrt(M * M - a * a);
     double r_minus = M - sqrt(M * M - a * a);
 
     // The Boyer-Lindquist coordinate
@@ -119,13 +119,19 @@ void KerrBH::compute_kerr(Tensor<2, data_t> &spherical_g,
 
     // Metric in semi isotropic Kerr-Schild coordinates, r, theta (t or th), phi
     // (p)
-    FOR(i, j) { spherical_g[i][j] = 0.0; }
+    FOR (i, j)
+    {
+        spherical_g[i][j] = 0.0;
+    }
     spherical_g[0][0] = gamma_rr;                // gamma_rr
     spherical_g[1][1] = Sigma;                   // gamma_tt
     spherical_g[2][2] = AA / Sigma * sin_theta2; // gamma_pp
 
     // Extrinsic curvature
-    FOR(i, j) { spherical_K[i][j] = 0.0; }
+    FOR (i, j)
+    {
+        spherical_K[i][j] = 0.0;
+    }
 
     // set non zero elements of Krtp - K_rp, K_tp
     spherical_K[0][2] =

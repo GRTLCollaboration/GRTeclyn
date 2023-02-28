@@ -26,7 +26,9 @@ template <int rank, class data_t, int size = DEFAULT_TENSOR_DIM> class Tensor
     //    {}
 
     template <typename... T>
-    AMREX_GPU_HOST_DEVICE Tensor(T... data) : arr{data...} {}
+    AMREX_GPU_HOST_DEVICE Tensor(T... data) : arr{data...}
+    {
+    }
 
     constexpr operator arr_t &() { return arr; }
 

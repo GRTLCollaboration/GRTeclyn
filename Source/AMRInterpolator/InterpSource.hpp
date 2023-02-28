@@ -21,7 +21,7 @@ class InterpSource
         const VariableType var_type = VariableType::evolution) const = 0;
     virtual bool
     contains(const std::array<double, AMREX_SPACEDIM> &point) const = 0;
-    virtual ~InterpSource () {}
+    virtual ~InterpSource() {}
 };
 
 #endif /* INTERPSOURCE_H_ */

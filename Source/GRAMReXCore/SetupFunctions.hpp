@@ -8,7 +8,7 @@
 // This file incldues several functions that need to be called to
 // set up the runs but aren't very interesting for the normal user.
 
-//xxxxx various setups
+// xxxxx various setups
 #include "AMReXParameters.hpp"
 #include "DerivativeSetup.hpp"
 #include "FilesystemTools.hpp"
@@ -42,11 +42,13 @@ void mainSetup(int argc, char *argv[])
 {
     bool use_parm_parse = true;
     amrex::Initialize(argc, argv, use_parm_parse, MPI_COMM_WORLD,
-                      [] () {
+                      []()
+                      {
                           amrex::ParmParse pp("amrex");
                           int the_arena_is_managed = false;
                           // don't use managed memory by default
-                          pp.queryAdd("the_arena_is_managed", the_arena_is_managed);
+                          pp.queryAdd("the_arena_is_managed",
+                                      the_arena_is_managed);
                       });
 
 #ifdef EQUATION_DEBUG_MODE
@@ -57,8 +59,8 @@ void mainSetup(int argc, char *argv[])
 #endif
 
 #if !defined(AMREX_USE_GPU)
-    amrex::Print() << " simd width (doubles) = " << simd_traits<double>::simd_len
-                   << std::endl;
+    amrex::Print() << " simd width (doubles) = "
+                   << simd_traits<double>::simd_len << std::endl;
 #endif
 
     const int required_argc = 2;
@@ -70,9 +72,6 @@ void mainSetup(int argc, char *argv[])
     }
 }
 
-void mainFinalize()
-{
-    amrex::Finalize();
-}
+void mainFinalize() { amrex::Finalize(); }
 
 #endif /* SETUP_FUNCTIONS_HPP_ */

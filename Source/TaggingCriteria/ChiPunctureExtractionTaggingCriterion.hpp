@@ -48,9 +48,10 @@ class ChiPunctureExtractionTaggingCriterion
     ChiPunctureExtractionTaggingCriterion(
         const double dx, const int a_level, const int a_max_level,
         const SphericalExtraction::params_t a_params,
-        const std::vector<std::array<double, AMREX_SPACEDIM>> &a_puncture_coords,
-        const bool activate_extraction = false,
-        const bool track_punctures = false,
+        const std::vector<std::array<double, AMREX_SPACEDIM>>
+            &a_puncture_coords,
+        const bool activate_extraction              = false,
+        const bool track_punctures                  = false,
         const std::vector<double> a_puncture_masses = {1.0, 1.0})
         : m_dx(dx), m_level(a_level), m_max_level(a_max_level),
           m_track_punctures(track_punctures),
@@ -65,9 +66,9 @@ class ChiPunctureExtractionTaggingCriterion
     template <class data_t> void compute(Cell<data_t> current_cell) const
     {
         // first test the gradients for regions of high curvature
-        const auto d2 = m_deriv.template diff2<Vars>(current_cell);
+        const auto d2     = m_deriv.template diff2<Vars>(current_cell);
         data_t mod_d2_chi = 0;
-        FOR(idir, jdir)
+        FOR (idir, jdir)
         {
             mod_d2_chi += d2.chi[idir][jdir] * d2.chi[idir][jdir];
         }

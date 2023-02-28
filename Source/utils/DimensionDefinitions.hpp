@@ -17,11 +17,18 @@
 // Fancy 'for' loop macros to iterate through spatial tensors
 // use as "FOR(i, j) { ... }"
 #define FOR1(IDX) for (int IDX = 0; IDX < DEFAULT_TENSOR_DIM; ++IDX)
-#define FOR2(IDX1, IDX2) FOR1(IDX1) FOR1(IDX2)
-#define FOR3(IDX1, IDX2, IDX3) FOR2(IDX1, IDX2) FOR1(IDX3)
-#define FOR4(IDX1, IDX2, IDX3, IDX4) FOR2(IDX1, IDX2) FOR2(IDX3, IDX4)
+#define FOR2(IDX1, IDX2)                                                       \
+    FOR1 (IDX1)                                                                \
+        FOR1 (IDX2)
+#define FOR3(IDX1, IDX2, IDX3)                                                 \
+    FOR2 (IDX1, IDX2)                                                          \
+        FOR1 (IDX3)
+#define FOR4(IDX1, IDX2, IDX3, IDX4)                                           \
+    FOR2 (IDX1, IDX2)                                                          \
+        FOR2 (IDX3, IDX4)
 #define FOR5(IDX1, IDX2, IDX3, IDX4, IDX5)                                     \
-    FOR4(IDX1, IDX2, IDX3, IDX4) FOR1(IDX5)
+    FOR4 (IDX1, IDX2, IDX3, IDX4)                                              \
+        FOR1 (IDX5)
 #define DUMMYFOR() // prevents warning that appeared in debug mode:
                    // 'ISO C++11 requires at least one argument for the "..." in
                    // a variadic macro'

@@ -46,14 +46,14 @@ class Constraints
     // the constraint violations
     // Any zero-length Interval or negative var is not calculated
     Constraints(double dx, int a_c_Ham, const Interval &a_c_Moms,
-                int a_c_Ham_abs_terms = -1,
+                int a_c_Ham_abs_terms              = -1,
                 const Interval &a_c_Moms_abs_terms = Interval(),
-                double cosmological_constant = 0.0);
+                double cosmological_constant       = 0.0);
 
     template <class data_t>
-    AMREX_GPU_DEVICE
-    void compute (int i, int j, int k, amrex::Array4<data_t> const& cst,
-                  amrex::Array4<data_t const> const& state) const;
+    AMREX_GPU_DEVICE void
+    compute(int i, int j, int k, amrex::Array4<data_t> const &cst,
+            amrex::Array4<data_t const> const &state) const;
 
   protected:
     const FourthOrderDerivatives m_deriv;
@@ -65,16 +65,15 @@ class Constraints
 
     template <class data_t, template <typename> class vars_t,
               template <typename> class diff2_vars_t>
-    AMREX_GPU_DEVICE
-    Vars<data_t> constraint_equations(const vars_t<data_t> &vars,
-                                      const vars_t<Tensor<1, data_t>> &d1,
-                                      const diff2_vars_t<Tensor<2, data_t>> &d2,
-                                      const Tensor<2, data_t> &h_UU,
-                                      const chris_t<data_t> &chris) const;
+    AMREX_GPU_DEVICE Vars<data_t> constraint_equations(
+        const vars_t<data_t> &vars, const vars_t<Tensor<1, data_t>> &d1,
+        const diff2_vars_t<Tensor<2, data_t>> &d2,
+        const Tensor<2, data_t> &h_UU, const chris_t<data_t> &chris) const;
 
     template <class data_t>
-    AMREX_GPU_DEVICE
-    void store_vars(Vars<data_t> const &out, amrex::CellData<data_t> const &current_cell) const;
+    AMREX_GPU_DEVICE void
+    store_vars(Vars<data_t> const &out,
+               amrex::CellData<data_t> const &current_cell) const;
 };
 
 #include "NewConstraints.impl.hpp"

@@ -26,7 +26,7 @@ template <class matter_t> class MatterWeyl4 : public Weyl4
                 const std::array<double, AMREX_SPACEDIM> a_center,
                 const double a_dx,
                 const int a_formulation = CCZ4RHS<>::USE_CCZ4,
-                double a_G_Newton = 1.0)
+                double a_G_Newton       = 1.0)
         : Weyl4(a_center, a_dx, a_formulation), m_matter(a_matter),
           m_G_Newton(a_G_Newton)
     {

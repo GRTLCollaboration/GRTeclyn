@@ -16,11 +16,11 @@
 // Chombo namespace
 #include "UsingNamespace.H"
 
-//#define DEBUG 1
+// #define DEBUG 1
 
 template <class t> bool similar(t a, t b, t *error, t *tolerance)
 {
-    *error = std::abs(a - b);
+    *error     = std::abs(a - b);
     *tolerance = 2 * std::numeric_limits<t>::epsilon() *
                  std::max(std::abs(a), std::abs(a));
     return *error <= *tolerance;
@@ -34,7 +34,7 @@ bool sv_test(const char *name, sop_t sop, vop_t vop)
 
     for (int i = 0; i < simd_length; i++)
         vals[i] = i + 1;
-    auto simd_in = simd<t>::load(vals);
+    auto simd_in  = simd<t>::load(vals);
     auto simd_out = vop(simd_in);
 
 #ifdef __INTEL_COMPILER
@@ -76,7 +76,7 @@ bool rv_test(const char *name, op_t op, rev_op_t rev_op)
 #endif /* __INTEL_COMPILER */
     for (int i = 0; i < simd_length; i++)
         vals[i] = op(i + 1);
-    auto simd_in = simd<t>::load(vals);
+    auto simd_in  = simd<t>::load(vals);
     auto simd_out = rev_op(simd_in);
 
     for (int i = 0; i < simd_length; i++)

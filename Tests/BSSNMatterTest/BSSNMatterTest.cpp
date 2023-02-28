@@ -112,14 +112,14 @@ int main()
                     g_UU[2][1] = g_UU[1][2];
 
                     chi = std::pow(std::abs(detg), -1.0 / GR_SPACEDIM);
-                    in_fab(iv, c_chi) = chi;
+                    in_fab(iv, c_chi)  = chi;
                     in_fab(iv, c_chi2) = sqrt(chi);
-                    in_fab(iv, c_h11) = chi * g[0][0];
-                    in_fab(iv, c_h12) = chi * g[0][1];
-                    in_fab(iv, c_h13) = chi * g[0][2];
-                    in_fab(iv, c_h22) = chi * g[1][1];
-                    in_fab(iv, c_h23) = chi * g[1][2];
-                    in_fab(iv, c_h33) = chi * g[2][2];
+                    in_fab(iv, c_h11)  = chi * g[0][0];
+                    in_fab(iv, c_h12)  = chi * g[0][1];
+                    in_fab(iv, c_h13)  = chi * g[0][2];
+                    in_fab(iv, c_h22)  = chi * g[1][1];
+                    in_fab(iv, c_h23)  = chi * g[1][2];
+                    in_fab(iv, c_h33)  = chi * g[2][2];
                 }
 
                 {
@@ -147,7 +147,10 @@ int main()
                     K[2][1] = K[1][2];
 
                     double trK = 0;
-                    FOR(a, b) { trK += g_UU[a][b] * K[a][b]; }
+                    FOR (a, b)
+                    {
+                        trK += g_UU[a][b] * K[a][b];
+                    }
 
                     in_fab(iv, c_K) = trK;
                     in_fab(iv, c_A11) =
@@ -217,22 +220,22 @@ int main()
     }
 
     CCZ4_params_t<MovingPunctureGauge::params_t> params;
-    params.kappa1 = 0.0;
-    params.kappa2 = 0.0;
-    params.kappa3 = 0.0;
+    params.kappa1            = 0.0;
+    params.kappa2            = 0.0;
+    params.kappa3            = 0.0;
     params.shift_Gamma_coeff = 0.75;
     params.lapse_advec_coeff = 1.0;
-    params.lapse_power = 1.0;
-    params.lapse_coeff = 2.0;
+    params.lapse_power       = 1.0;
+    params.lapse_coeff       = 2.0;
     params.shift_advec_coeff = 0.0;
-    params.eta = 1.0;
+    params.eta               = 1.0;
 
     Potential::params_t potential_params;
     potential_params.scalar_mass = 1.1;
 
     int formulation = 1; // BSSN
     double G_Newton = 1.0;
-    double sigma = 0.1;
+    double sigma    = 0.1;
 
     struct timeval begin, end;
     gettimeofday(&begin, NULL);
@@ -260,7 +263,7 @@ int main()
                    begin.tv_sec * 1000 - begin.tv_usec / 1000;
     std::cout << "C++ version took " << cxx_time << "ms" << std::endl;
 
-    int SIX = 6;
+    int SIX   = 6;
     int THREE = 3;
 
     gettimeofday(&begin, NULL);

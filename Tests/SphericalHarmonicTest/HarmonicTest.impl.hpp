@@ -37,10 +37,10 @@ data_t HarmonicTest::compute_harmonic(Coordinates<data_t> coords) const
 
     // Add in el, em spherical harmonics here, spin weight es
     using namespace SphericalHarmonics;
-    int es = -1;
-    int el = 2;
-    int em = -1;
-    auto Y_lm = spin_Y_lm(coords.x, coords.y, coords.z, es, el, em);
+    int es     = -1;
+    int el     = 2;
+    int em     = -1;
+    auto Y_lm  = spin_Y_lm(coords.x, coords.y, coords.z, es, el, em);
     data_t out = Y_lm.Real;
 
     return out;

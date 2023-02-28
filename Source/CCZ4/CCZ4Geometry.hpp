@@ -30,14 +30,13 @@ class CCZ4Geometry
 {
   protected:
     template <class data_t>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    static data_t
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE static data_t
     compute_z_terms(const int i, const int j,
                     const Tensor<1, data_t> &Z_over_chi,
                     const Tensor<2, data_t> &h, const Tensor<1, data_t> &d1_chi)
     {
         data_t out = 0.;
-        FOR(k)
+        FOR (k)
         {
             out += Z_over_chi[k] * (h[i][k] * d1_chi[j] + h[j][k] * d1_chi[i] -
                                     h[i][j] * d1_chi[k]);
@@ -48,8 +47,7 @@ class CCZ4Geometry
   public:
     template <class data_t, template <typename> class vars_t,
               template <typename> class diff2_vars_t>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    static ricci_t<data_t>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE static ricci_t<data_t>
     compute_ricci_Z(const vars_t<data_t> &vars,
                     const vars_t<Tensor<1, data_t>> &d1,
                     const diff2_vars_t<Tensor<2, data_t>> &d2,
@@ -59,26 +57,32 @@ class CCZ4Geometry
         ricci_t<data_t> out;
 
         Tensor<2, data_t> covdtilde2chi;
-        FOR(k, l)
+        FOR (k, l)
         {
             covdtilde2chi[k][l] = d2.chi[k][l];
-            FOR(m) { covdtilde2chi[k][l] -= chris.ULL[m][k][l] * d1.chi[m]; }
+            FOR (m)
+            {
+                covdtilde2chi[k][l] -= chris.ULL[m][k][l] * d1.chi[m];
+            }
         }
 
         Tensor<3, data_t> chris_LLU = {0.};
-        data_t boxtildechi = 0.;
-        data_t dchi_dot_dchi = 0.;
-        FOR(i, j)
+        data_t boxtildechi          = 0.;
+        data_t dchi_dot_dchi        = 0.;
+        FOR (i, j)
         {
-            boxtildechi += covdtilde2chi[i][j] * h_UU[i][j];
+            boxtildechi   += covdtilde2chi[i][j] * h_UU[i][j];
             dchi_dot_dchi += d1.chi[i] * d1.chi[j] * h_UU[i][j];
-            FOR(k, l) { chris_LLU[i][j][k] += h_UU[k][l] * chris.LLL[i][j][l]; }
+            FOR (k, l)
+            {
+                chris_LLU[i][j][k] += h_UU[k][l] * chris.LLL[i][j][l];
+            }
         }
 
-        FOR(i, j)
+        FOR (i, j)
         {
             data_t ricci_hat = 0;
-            FOR(k)
+            FOR (k)
             {
                 // We call this ricci_hat rather than ricci_tilde as we have
                 // replaced what should be \tilde{Gamma} with \hat{Gamma} in
@@ -86,7 +90,7 @@ class CCZ4Geometry
                 ricci_hat += 0.5 * (vars.h[k][i] * d1.Gamma[k][j] +
                                     vars.h[k][j] * d1.Gamma[k][i]);
                 ricci_hat += 0.5 * vars.Gamma[k] * d1.h[i][j][k];
-                FOR(l)
+                FOR (l)
                 {
                     ricci_hat += -0.5 * h_UU[k][l] * d2.h[i][j][k][l] +
                                  (chris.ULL[k][l][i] * chris_LLU[j][k][l] +
@@ -120,12 +124,12 @@ class CCZ4Geometry
                                 const Tensor<2, Tensor<2, data_t>> &d2_h)
     {
         Tensor<2, data_t> d1_chris_contracted = 0.0;
-        FOR(i, j)
+        FOR (i, j)
         {
-            FOR(m, n, p)
+            FOR (m, n, p)
             {
                 data_t d1_terms = 0.0;
-                FOR(q, r)
+                FOR (q, r)
                 {
                     d1_terms += -h_UU[q][r] * (d1_h[n][q][j] * d1_h[m][p][r] +
                                                d1_h[m][n][j] * d1_h[p][q][r]);
@@ -150,17 +154,20 @@ class CCZ4Geometry
     {
         // get contributions from conformal metric and factor with zero Z vector
         Tensor<1, data_t> Z0 = 0.;
-        auto ricci = compute_ricci_Z(vars, d1, d2, h_UU, chris, Z0);
+        auto ricci           = compute_ricci_Z(vars, d1, d2, h_UU, chris, Z0);
 
         // need to add term to correct for d1.Gamma (includes Z contribution)
         // and Gamma in ricci_hat
         auto d1_chris_contracted =
             compute_d1_chris_contracted(h_UU, d1.h, d2.h);
         Tensor<1, data_t> Z_over_chi;
-        FOR(i) { Z_over_chi[i] = 0.5 * (vars.Gamma[i] - chris.contracted[i]); }
-        FOR(i, j)
+        FOR (i)
         {
-            FOR(m)
+            Z_over_chi[i] = 0.5 * (vars.Gamma[i] - chris.contracted[i]);
+        }
+        FOR (i, j)
+        {
+            FOR (m)
             {
                 // This corrects for the \hat{Gamma}s in ricci_hat
                 ricci.LL[i][j] +=
