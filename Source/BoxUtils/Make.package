@@ -1,1 +1,1 @@
-CEXE_headers += Cell.hpp SixthOrderDerivatives.hpp FourthOrderDerivatives.hpp
+GRAMREX_CEXE_headers += Cell.hpp SixthOrderDerivatives.hpp FourthOrderDerivatives.hpp

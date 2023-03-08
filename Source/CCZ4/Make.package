@@ -1,4 +1,4 @@
-CEXE_headers += ADMConformalVars.hpp  CCZ4RHS.impl.hpp GammaCalculator.hpp PositiveChiAndAlpha.hpp \
+GRAMREX_CEXE_headers += ADMConformalVars.hpp  CCZ4RHS.impl.hpp GammaCalculator.hpp PositiveChiAndAlpha.hpp \
                 BSSNVars.hpp CCZ4UserVariables.hpp IntegratedMovingPunctureGauge.hpp \
                 TraceARemoval.hpp CCZ4Geometry.hpp CCZ4Vars.hpp MovingPunctureGauge.hpp Weyl4.hpp \
                 Constraints.hpp NewConstraints.hpp Weyl4.impl.hpp CCZ4RHS.hpp Constraints.impl.hpp \

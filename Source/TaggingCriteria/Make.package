@@ -1,3 +1,3 @@
-CEXE_headers += ChiAndPhiTaggingCriterion.hpp ChiTaggingCriterion.hpp PhiAndKTaggingCriterion.hpp \
+GRAMREX_CEXE_headers += ChiAndPhiTaggingCriterion.hpp ChiTaggingCriterion.hpp PhiAndKTaggingCriterion.hpp \
                 ChiExtractionTaggingCriterion.hpp FixedGridsTaggingCriterion.hpp \
                 ChiPunctureExtractionTaggingCriterion.hpp

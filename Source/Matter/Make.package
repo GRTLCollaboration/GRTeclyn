@@ -1,4 +1,4 @@
-CEXE_headers += ChiRelaxation.hpp MatterCCZ4RHS.hpp NewMatterConstraints.hpp ChiRelaxation.impl.hpp \
+GRAMREX_CEXE_headers += ChiRelaxation.hpp MatterCCZ4RHS.hpp NewMatterConstraints.hpp ChiRelaxation.impl.hpp \
                 MatterCCZ4RHS.impl.hpp NewMatterConstraints.impl.hpp DefaultPotential.hpp \
                 MatterConstraints.hpp ScalarField.hpp EMTensor.hpp MatterConstraints.impl.hpp \
                 ScalarField.impl.hpp EMTensor.impl.hpp MatterWeyl4.hpp MatterWeyl4.impl.hpp

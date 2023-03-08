@@ -1,2 +1,2 @@
-CEXE_headers += BinaryBH.hpp BoostedBH.hpp KerrBH.hpp TwoPuncturesInitialData.hpp \
+GRAMREX_CEXE_headers += BinaryBH.hpp BoostedBH.hpp KerrBH.hpp TwoPuncturesInitialData.hpp \
                 BinaryBH.impl.hpp BoostedBH.impl.hpp KerrBH.impl.hpp TwoPuncturesInitialData.impl.hpp

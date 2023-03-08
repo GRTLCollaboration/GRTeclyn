@@ -24,7 +24,7 @@ AMREX_NO_PROBINIT = TRUE
 
 CXXSTD = c++17
 
-AMREX_HOME ?= ../../../amrex
+AMREX_HOME ?= $(realpath ../../../amrex)
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
@@ -34,7 +34,8 @@ include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
 include $(AMREX_HOME)/Src/Amr/Make.package
 
-GRAMREX_SOURCE = ../../Source
+GRAMREX_HOME = $(realpath ../..)
+GRAMREX_SOURCE = $(GRAMREX_HOME)/Source
 
 src_dirs := $(GRAMREX_SOURCE)/utils \
             $(GRAMREX_SOURCE)/simd  \
@@ -48,7 +49,9 @@ src_dirs := $(GRAMREX_SOURCE)/utils \
 
 src_pack := $(foreach dir, $(src_dirs), $(dir)/Make.package)
 include $(src_pack)
+CEXE_sources += $(GRAMREX_CEXE_sources)
+CEXE_headers += $(GRAMREX_CEXE_headers)
 VPATH_LOCATIONS += $(src_dirs)
 INCLUDE_LOCATIONS += $(src_dirs)
 
-include $(AMREX_HOME)/Tools/GNUMake/Make.rules
+include $(GRAMREX_HOME)/Tools/GNUMake/Make.rules
