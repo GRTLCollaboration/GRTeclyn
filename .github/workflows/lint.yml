@@ -1,0 +1,58 @@
+name: Lint
+
+on: [push]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  clang-tidy:
+    name: clang-tidy
+    runs-on: ubuntu-22.04
+    env:
+      AMREX_HOME: ${{ github.workspace }}/amrex
+      BINARYBH_EXAMPLE_DIR: ${{ github.workspace }}/GRAMReX/Examples/BinaryBH
+
+    steps:
+    - name: Checkout AMReX
+      uses: actions/checkout@v3
+      with:
+        repository: AMReX-Codes/amrex
+        path: amrex
+
+    - name: Checkout GRAMReX
+      uses: actions/checkout@v3
+      with:
+        path: GRAMReX
+
+    - name: Install MPICH
+      run: |
+        # First update package repository mirrors
+        sudo gem install apt-spy2
+        sudo apt-spy2 check
+        sudo apt-spy2 fix --commit
+        sudo apt-get update
+        sudo apt-get -y --no-install-recommends install libmpich-dev
+
+    - name: Determine compiler flags
+      id: flags
+      run: |
+        echo "cxxflags=$(make print-CXXFLAGS COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
+        echo "cppflags=$(make print-CPPFLAGS COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
+        echo "includes=$(make print-includes COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
+      working-directory: ${{ env.BINARYBH_EXAMPLE_DIR }}
+
+    - name: Run clang-tidy on diff
+      uses: cpp-linter/cpp-linter@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        style: ''
+        repo-root: ${{ github.workspace }}/GRAMReX
+        tidy-checks: ''
+        version: 15
+        files-changed-only: true
+        extra-args: ${{ join(steps.flags.outputs.*,' ') }}
+
+
