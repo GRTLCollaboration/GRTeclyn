@@ -15,15 +15,16 @@ jobs:
       BINARYBH_EXAMPLE_DIR: ${{ github.workspace }}/Examples/BinaryBH
 
     steps:
+    - name: Checkout GRAMReX
+      uses: actions/checkout@v3
+      with:
+        clean: false
+
     - name: Checkout AMReX
       uses: actions/checkout@v3
       with:
         repository: AMReX-Codes/amrex
         path: amrex
-
-    - name: Checkout GRAMReX
-      uses: actions/checkout@v3
-      with:
         clean: false
 
     - name: Install MPICH
