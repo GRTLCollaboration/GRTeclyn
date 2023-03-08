@@ -23,6 +23,8 @@ jobs:
 
     - name: Checkout GRAMReX
       uses: actions/checkout@v3
+      with:
+        clean: false
 
     - name: Install MPICH
       run: |
