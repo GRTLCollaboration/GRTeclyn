@@ -52,6 +52,6 @@ include $(src_pack)
 CEXE_sources += $(GRAMREX_CEXE_sources)
 CEXE_headers += $(GRAMREX_CEXE_headers)
 VPATH_LOCATIONS += $(src_dirs)
-INCLUDE_LOCATIONS += $(src_dirs)
+INCLUDE_LOCATIONS += $(realpath .) $(src_dirs)
 
 include $(GRAMREX_HOME)/Tools/GNUMake/Make.rules
