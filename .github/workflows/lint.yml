@@ -53,4 +53,5 @@ jobs:
         version: 15
         files-changed-only: true
         extra-args: ${{ join(steps.flags.outputs.*,' ') }}
+      working-directory: ${{ github.workspace }}/GRAMReX
 
