@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-22.04
     env:
       AMREX_HOME: ${{ github.workspace }}/amrex
-      BINARYBH_EXAMPLE_DIR: ${{ github.workspace }}/GRAMReX/Examples/BinaryBH
+      BINARYBH_EXAMPLE_DIR: ${{ github.workspace }}/Examples/BinaryBH
 
     steps:
     - name: Checkout AMReX
@@ -23,8 +23,6 @@ jobs:
 
     - name: Checkout GRAMReX
       uses: actions/checkout@v3
-      with:
-        path: GRAMReX
 
     - name: Install MPICH
       run: |
@@ -49,9 +47,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         style: ''
-        repo-root: GRAMReX
-        version: 15
+        version: 12
         files-changed-only: true
         extra-args: ${{ join(steps.flags.outputs.*,' ') }}
-      working-directory: ${{ github.workspace }}/GRAMReX
 
