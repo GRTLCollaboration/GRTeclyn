@@ -20,7 +20,7 @@ class BinaryBHLevel : public GRAMRLevel
 
     /// Things to do at every full timestep
     ///(might include several substeps, e.g. in RK4)
-    virtual void specificAdvance() override;
+    void specificAdvance() override;
 
     /// Initial data calculation
     virtual void initData() override;

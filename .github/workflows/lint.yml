@@ -49,10 +49,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         style: ''
-        repo-root: ${{ github.workspace }}/GRAMReX
-        tidy-checks: ''
+        repo-root: GRAMReX
         version: 15
         files-changed-only: true
         extra-args: ${{ join(steps.flags.outputs.*,' ') }}
-
 
