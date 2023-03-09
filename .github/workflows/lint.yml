@@ -35,7 +35,7 @@ jobs:
         # sudo apt-spy2 check
         # sudo apt-spy2 fix --commit
         sudo apt-get update
-        sudo apt-get -y --no-install-recommends install libmpich-dev libc++-12-dev
+        sudo apt-get -y --no-install-recommends install libmpich-dev clang-12
 
     - name: Generate config and Determine compiler flags
       id: flags
