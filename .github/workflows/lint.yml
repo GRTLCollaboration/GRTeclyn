@@ -13,7 +13,7 @@ jobs:
     env:
       AMREX_HOME: ${{ github.workspace }}/amrex
       BINARYBH_EXAMPLE_DIR: ${{ github.workspace }}/Examples/BinaryBH
-      TMP_BUILD_DIR: $${{ github.workspace }}/tmp_build_dir
+      TMP_BUILD_DIR: ${{ github.workspace }}/tmp_build_dir
 
     steps:
     - name: Checkout GRAMReX
