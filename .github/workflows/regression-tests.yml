@@ -26,14 +26,21 @@ jobs:
       with:
         path: GRAMReX
 
-    - name: Install MPICH
+    - name: Update package manager database
+      id: update-database
+      continue-on-error: true
+      run: sudo apt-get update
+
+      # This is quite slow so only do this if the previous command fails
+    - name: Update package repository mirrors if necessary
+      if: steps.update-database.outcome == 'failure'
       run: |
-        # First update package repository mirrors
         sudo gem install apt-spy2
-        sudo apt-spy2 check
-        sudo apt-spy2 fix --commit
+        sudo apt-spy2 fix --commit --launchpad --country=US
         sudo apt-get update
-        sudo apt-get -y --no-install-recommends install libmpich-dev
+
+    - name: Install MPICH
+      run: sudo apt-get -y --no-install-recommends install libmpich-dev
 
     - name: Set Compilers
       run: |
