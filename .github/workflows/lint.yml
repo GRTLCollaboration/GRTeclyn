@@ -1,0 +1,61 @@
+name: Lint
+
+on: [push]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  clang-tidy:
+    name: clang-tidy
+    runs-on: ubuntu-22.04
+    env:
+      AMREX_HOME: ${{ github.workspace }}/amrex
+      BINARYBH_EXAMPLE_DIR: ${{ github.workspace }}/Examples/BinaryBH
+      TMP_BUILD_DIR: ${{ github.workspace }}/tmp_build_dir
+
+    steps:
+    - name: Checkout GRAMReX
+      uses: actions/checkout@v3
+      with:
+        clean: false
+
+    - name: Checkout AMReX
+      uses: actions/checkout@v3
+      with:
+        repository: AMReX-Codes/amrex
+        path: amrex
+        clean: false
+
+    - name: Install MPICH
+      run: |
+        # First update package repository mirrors
+        # sudo gem install apt-spy2
+        # sudo apt-spy2 check
+        # sudo apt-spy2 fix --commit
+        sudo apt-get update
+        sudo apt-get -y --no-install-recommends install libmpich-dev
+
+    - name: Generate config and Determine compiler flags
+      id: flags
+      run: |
+        make COMP=llvm AMReX_Config.H
+        echo "mpiflags=$(MPICH_CXX=clang++ mpicxx -compile_info | sed 's/^[^\s]*\ //')" >> $GITHUB_OUTPUT
+        echo "cxxflags=$(make print-CXXFLAGS COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
+        echo "cppflags=$(make print-CPPFLAGS COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
+        echo "includes=$(make print-includes COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
+      working-directory: ${{ env.BINARYBH_EXAMPLE_DIR }}
+
+    - name: Run clang-tidy on diff
+      uses: cpp-linter/cpp-linter-action@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        style: ''
+        tidy-checks: ''
+        version: 14 # 15 seems to be broken: See https://github.com/cpp-linter/cpp-linter-action/issues/139
+        files-changed-only: true
+        lines-changed-only: 'diff'
+        extra-args: ${{ join(steps.flags.outputs.*,' ') }}
+
