@@ -53,7 +53,7 @@ jobs:
       with:
         style: ''
         tidy-checks: ''
-        version: 12
+        version: 15
         files-changed-only: true
 
         extra-args: ${{ join(steps.flags.outputs.*,' ') }}
