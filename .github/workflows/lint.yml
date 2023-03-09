@@ -41,6 +41,7 @@ jobs:
       id: flags
       run: |
         make COMP=llvm AMReX_Config.H
+        echo "mpiflags=$(MPICH_CXX=clang++ mpicxx -compile_info | sed 's/^[^\s]*\ //')" >> $GITHUB_OUTPUT
         echo "cxxflags=$(make print-CXXFLAGS COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
         echo "cppflags=$(make print-CPPFLAGS COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
         echo "includes=$(make print-includes COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
