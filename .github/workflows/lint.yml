@@ -13,6 +13,7 @@ jobs:
     env:
       AMREX_HOME: ${{ github.workspace }}/amrex
       BINARYBH_EXAMPLE_DIR: ${{ github.workspace }}/Examples/BinaryBH
+      TMP_BUILD_DIR: $${{ github.workspace }}/tmp_build_dir
 
     steps:
     - name: Checkout GRAMReX
@@ -36,9 +37,10 @@ jobs:
         sudo apt-get update
         sudo apt-get -y --no-install-recommends install libmpich-dev
 
-    - name: Determine compiler flags
+    - name: Generate config and Determine compiler flags
       id: flags
       run: |
+        make COMP=llvm AMReX_Config.H
         echo "cxxflags=$(make print-CXXFLAGS COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
         echo "cppflags=$(make print-CPPFLAGS COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
         echo "includes=$(make print-includes COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
