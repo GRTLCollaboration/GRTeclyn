@@ -50,7 +50,9 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         style: ''
+        tidy-checks: ''
         version: 12
         files-changed-only: true
+
         extra-args: ${{ join(steps.flags.outputs.*,' ') }}
 
