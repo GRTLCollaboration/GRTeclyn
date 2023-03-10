@@ -31,7 +31,9 @@ define_enum_mapping(mapping_function_t mapping_function,
                     Tensor<1, data_t, end_var - start_var + 1> &tensor)
 {
     for (int ivar = 0; ivar < interval.size(); ++ivar)
+    {
         mapping_function(start_var + ivar, tensor[ivar]);
+    }
 }
 
 template <typename mapping_function_t, typename data_t, int start_var,

@@ -53,21 +53,21 @@ class BoundaryConditions
     /// Structure containing the boundary condition params
     struct params_t
     {
-        std::array<int, AMREX_SPACEDIM> hi_boundary;
-        std::array<int, AMREX_SPACEDIM> lo_boundary;
-        std::array<bool, AMREX_SPACEDIM> is_periodic;
+        std::array<int, AMREX_SPACEDIM> hi_boundary{};
+        std::array<int, AMREX_SPACEDIM> lo_boundary{};
+        std::array<bool, AMREX_SPACEDIM> is_periodic{};
         bool nonperiodic_boundaries_exist;
         bool boundary_solution_enforced;
         bool boundary_rhs_enforced;
         bool reflective_boundaries_exist;
         bool sommerfeld_boundaries_exist;
-        bool extrapolating_boundaries_exist;
-        bool mixed_boundaries_exist;
+        bool extrapolating_boundaries_exist{};
+        bool mixed_boundaries_exist{};
 
-        std::array<int, NUM_VARS> vars_parity;
+        std::array<int, NUM_VARS> vars_parity{};
         std::array<int, NUM_DIAGNOSTIC_VARS>
-            vars_parity_diagnostic; /* needed only in AMRInterpolator */
-        std::array<double, NUM_VARS> vars_asymptotic_values;
+            vars_parity_diagnostic{}; /* needed only in AMRInterpolator */
+        std::array<double, NUM_VARS> vars_asymptotic_values{};
         std::map<int, int> mixed_bc_vars_map;
         int extrapolation_order;
         params_t(); // sets the defaults
@@ -82,7 +82,7 @@ class BoundaryConditions
 
   protected:
     // Member values
-    int m_num_ghosts;         // the number of ghosts (usually 3)
+    int m_num_ghosts{};       // the number of ghosts (usually 3)
     params_t m_params;        // the boundary params
     amrex::RealVect m_center; // the position of the center of the grid
     amrex::Geometry m_geom;   // the problem domain (excludes boundary cells)
@@ -100,7 +100,7 @@ class BoundaryConditions
 
     /// define function sets members and is_defined set to true
     void define(std::array<double, AMREX_SPACEDIM> a_center,
-                const params_t &a_params, amrex::Geometry const &a_domain,
+                const params_t &a_params, amrex::Geometry const &a_geom,
                 int a_num_ghosts);
 
     /// change the asymptotic values of the variables for the Sommerfeld BCs
@@ -125,7 +125,7 @@ class BoundaryConditions
                    const VariableType var_type = VariableType::evolution);
 
     /// Get the boundary condition for given face
-    int get_boundary_condition(amrex::Orientation ori) const;
+    int get_boundary_condition(amrex::Orientation face) const;
 
     /// Apply Sommerfeld BC to RHS
     void apply_sommerfeld_boundaries(amrex::MultiFab &a_rhs,
@@ -196,10 +196,10 @@ class BoundaryConditions
     /// write out mixed conditions
     static void write_mixed_conditions(int idir, const params_t &a_params);
 
-    void fill_sommerfeld_cell(amrex::FArrayBox &rhs_box,
-                              const amrex::FArrayBox &soln_box,
-                              const amrex::IntVect iv,
-                              const std::vector<int> &sommerfeld_comps) const;
+    static void fill_sommerfeld_cell(amrex::FArrayBox &rhs_box,
+                                     const amrex::FArrayBox &soln_box,
+                                     const amrex::IntVect iv,
+                                     const std::vector<int> &sommerfeld_comps);
 
 #if 0
 //xxxxx    void fill_extrapolating_cell(amrex::FArrayBox &out_box, const amrex::IntVect iv,

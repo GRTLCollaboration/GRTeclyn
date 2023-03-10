@@ -20,25 +20,23 @@ class BinaryBHLevel : public GRAMRLevel
 
     /// Things to do at every full timestep
     ///(might include several substeps, e.g. in RK4)
-    virtual void specificAdvance() override;
+    void specificAdvance() override;
 
     /// Initial data calculation
-    virtual void initData() override;
+    void initData() override;
 
     /// Calculation of the right hand side for the time stepping
-    virtual void specificEvalRHS(amrex::MultiFab &a_soln,
-                                 amrex::MultiFab &a_rhs,
-                                 const double a_time) override;
+    void specificEvalRHS(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
+                         const double a_time) override;
 
     /// Things to do after dt*rhs has been added to the solution
-    virtual void specificUpdateODE(amrex::MultiFab &a_soln) override;
+    void specificUpdateODE(amrex::MultiFab &a_soln) override;
 
     // to do post each time step on every level
-    virtual void specificPostTimeStep() override;
+    void specificPostTimeStep() override;
 
-    virtual void errorEst(amrex::TagBoxArray &tb, int clearval, int tagval,
-                          amrex::Real time, int n_error_buf = 0,
-                          int ngrow = 0) override final;
+    void errorEst(amrex::TagBoxArray &tb, int clearval, int tagval,
+                  amrex::Real time, int n_error_buf = 0, int ngrow = 0) final;
 
 #ifdef AMREX_USE_HDF5
     /// Any actions that should happen just before plot files output

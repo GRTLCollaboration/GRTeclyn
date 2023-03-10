@@ -6,6 +6,8 @@
 #ifndef LAGRANGE_IMPL_HPP_
 #define LAGRANGE_IMPL_HPP_
 
+#include <cmath>
+
 template <int Order>
 const std::string Lagrange<Order>::TAG = "\x1b[36;1m[Lagrange]\x1b[0m ";
 
@@ -25,11 +27,11 @@ Lagrange<Order>::Stencil::Stencil(int width, int deriv, double dx,
                                   double point_offset)
     : m_width(width), m_deriv(deriv), m_dx(dx), m_point_offset(point_offset)
 {
-    int c1 = 1;
-    int c2;
-    int c3;
+    int c1    = 1;
+    int c2    = 0;
+    int c3    = 0;
     double c4 = 0 - m_point_offset; /* replace for general grid */
-    double c5;
+    double c5 = NAN;
 
     std::vector<double> tmp_weights(width * (deriv + 1), 0);
 
@@ -294,8 +296,8 @@ Lagrange<Order>::generateStencil(
             grown_direction = 1 - grown_direction;
         }
 
-        candidate = (grown_direction) ? (my_points[points_max - 1] + 1)
-                                      : (my_points[points_min] - 1);
+        candidate = (grown_direction != DOWN) ? (my_points[points_max - 1] + 1)
+                                              : (my_points[points_min] - 1);
     }
 
     int stencil_width = points_max - points_min;
@@ -352,8 +354,8 @@ Lagrange<Order>::generateStencil(
             // "Terminal" dimension, just push back our own stuff
             if (my_weights[i] != 0)
             {
-                out_points.push_back(amrex::IntVect(
-                    interp_coord[0], interp_coord[1], interp_coord[2]));
+                out_points.emplace_back(interp_coord[0], interp_coord[1],
+                                        interp_coord[2]);
                 out_weights.push_back(my_weights[i]);
             }
         }

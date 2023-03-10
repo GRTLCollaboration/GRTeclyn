@@ -31,7 +31,9 @@ int runGRAMReX(int /*argc*/, char * /*argv*/[])
     SimulationParameters sim_params(pp);
 
     if (sim_params.just_check_params)
+    {
         return 0;
+    }
 
     GRAMR::set_simulation_parameters(sim_params);
 
@@ -47,7 +49,7 @@ int runGRAMReX(int /*argc*/, char * /*argv*/[])
     bh_amr.init(0., sim_params.stop_time);
 
     while (
-        bh_amr.okToContinue() &&
+        (bh_amr.okToContinue() != 0) &&
         (bh_amr.levelSteps(0) < sim_params.max_steps ||
          sim_params.max_steps < 0) &&
         (bh_amr.cumTime() < sim_params.stop_time || sim_params.stop_time < 0.0))
@@ -78,10 +80,14 @@ int main(int argc, char *argv[])
     int status = runGRAMReX(argc, argv);
 
     if (status == 0)
+    {
         amrex::Print() << "GRChombo finished." << std::endl;
+    }
     else
+    {
         amrex::Print() << "GRChombo failed with return code " << status
                        << std::endl;
+    }
 
     mainFinalize();
     return status;

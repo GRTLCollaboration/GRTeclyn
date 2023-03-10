@@ -17,14 +17,18 @@ inline int MPILayout::count(int rank) const { return m_counts[rank]; }
 inline int MPILayout::totalCount() const
 {
     if (m_dirty)
+    {
         updateDirty();
+    }
     return m_total_count;
 }
 
 inline int MPILayout::displ(int rank) const
 {
     if (m_dirty)
+    {
         updateDirty();
+    }
     return m_displs[rank];
 }
 
@@ -64,7 +68,9 @@ inline int *MPILayout::countsPtr() { return &m_counts[0]; }
 inline int *MPILayout::displsPtr()
 {
     if (m_dirty)
+    {
         updateDirty();
+    }
     return &m_displs[0];
 }
 

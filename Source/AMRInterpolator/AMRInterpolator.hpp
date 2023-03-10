@@ -34,7 +34,7 @@ template <typename InterpAlgo> class AMRInterpolator
     AMRInterpolator(const GRAMR &amr,
                     const std::array<double, AMREX_SPACEDIM> &coarsest_origin,
                     const std::array<double, AMREX_SPACEDIM> &coarsest_dx,
-                    const BoundaryConditions::params_t &a_bc_params,
+                    BoundaryConditions::params_t a_bc_params,
                     int verbosity = 0);
 
     void refresh(const bool a_fill_ghosts = true);
@@ -57,7 +57,7 @@ template <typename InterpAlgo> class AMRInterpolator
     InterpolationLayout findBoxes(InterpolationQuery &query);
 
     void prepareMPI(InterpolationQuery &query,
-                    const InterpolationLayout layout);
+                    const InterpolationLayout &layout);
     void exchangeMPIQuery();
     void calculateAnswers(InterpolationQuery &query);
     void exchangeMPIAnswer();
@@ -75,13 +75,13 @@ template <typename InterpAlgo> class AMRInterpolator
     const GRAMR &m_gr_amr;
 
     // Coordinates of the point represented by IntVect::Zero in coarsest grid
-    const std::array<double, AMREX_SPACEDIM> m_coarsest_origin;
+    const std::array<double, AMREX_SPACEDIM> m_coarsest_origin{};
 
     // Grid spacing in each direction
-    const std::array<double, AMREX_SPACEDIM> m_coarsest_dx;
+    const std::array<double, AMREX_SPACEDIM> m_coarsest_dx{};
 
-    int m_num_levels;
-    const int m_verbosity;
+    int m_num_levels{};
+    const int m_verbosity{};
 
     std::vector<std::array<double, AMREX_SPACEDIM>> m_origin;
     std::vector<std::array<double, AMREX_SPACEDIM>> m_dx;
@@ -114,9 +114,9 @@ template <typename InterpAlgo> class AMRInterpolator
     BoundaryConditions::params_t m_bc_params;
     /// simplified bools saying whether or not boundary has
     /// a reflective condition in a given direction
-    std::array<bool, AMREX_SPACEDIM> m_lo_boundary_reflective,
-        m_hi_boundary_reflective;
-    std::array<double, AMREX_SPACEDIM> m_upper_corner;
+    std::array<bool, AMREX_SPACEDIM> m_lo_boundary_reflective{},
+        m_hi_boundary_reflective{};
+    std::array<double, AMREX_SPACEDIM> m_upper_corner{};
 };
 
 #include "AMRInterpolator.impl.hpp"

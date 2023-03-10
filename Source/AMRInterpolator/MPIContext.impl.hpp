@@ -8,7 +8,7 @@
 
 inline MPIContext::MPIContext()
     : m_num_process(comm_size()), m_rank(comm_rank()), m_query(m_num_process),
-      m_answer(m_num_process), m_async_active(false)
+      m_answer(m_num_process)
 {
 }
 
@@ -65,7 +65,7 @@ inline void MPIContext::asyncExchangeQuery(void *sendbuf, void *recvbuf,
                                            MPI_Datatype type)
 {
     AMREX_ASSERT(m_async_active);
-    MPI_Request req;
+    MPI_Request req = 0;
     m_mpi_requests.push_back(req);
 
 #if MPI_VERSION >= 3 && !defined(OPEN_MPI)
@@ -84,7 +84,7 @@ inline void MPIContext::asyncExchangeAnswer(void *sendbuf, void *recvbuf,
                                             MPI_Datatype type)
 {
     AMREX_ASSERT(m_async_active);
-    MPI_Request req;
+    MPI_Request req = 0;
     m_mpi_requests.push_back(req);
 
 #if MPI_VERSION >= 3 && !defined(OPEN_MPI)

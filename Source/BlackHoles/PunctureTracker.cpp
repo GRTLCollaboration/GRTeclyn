@@ -18,7 +18,9 @@ void PunctureTracker::initial_setup(
     const int a_min_level)
 {
     if (!FilesystemTools::directory_exists(a_output_path))
+    {
         FilesystemTools::mkdir_recursive(a_output_path);
+    }
 
     m_punctures_filename = a_output_path + a_filename;
 
@@ -148,7 +150,9 @@ void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
     BL_PROFILE("PunctureTracker::execute_tracking");
     // leave if this is called at t=0, we don't want to move the puncture yet
     if (m_num_punctures == 0 || a_time == 0.)
+    {
         return;
+    }
     AMREX_ASSERT(m_interpolator != nullptr); // sanity check
 
     // get puncture coordinates and old shift value

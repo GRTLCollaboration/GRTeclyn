@@ -18,15 +18,16 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <utility>
 
 // ------------ Constructors -----------------
 
 // This has to be initialised outside the class declaration in C++14
 const std::string SmallDataIO::s_default_file_extension = ".dat";
 
-SmallDataIO::SmallDataIO(std::string a_filename_prefix, double a_dt,
+SmallDataIO::SmallDataIO(const std::string &a_filename_prefix, double a_dt,
                          double a_time, double a_restart_time, Mode a_mode,
-                         bool a_first_step, std::string a_file_extension,
+                         bool a_first_step, const std::string &a_file_extension,
                          int a_data_precision, int a_coords_precision,
                          int a_filename_steps_width)
     : m_filename(a_filename_prefix + a_file_extension), m_dt(a_dt),
@@ -43,7 +44,7 @@ SmallDataIO::SmallDataIO(std::string a_filename_prefix, double a_dt,
     m_rank = amrex::ParallelDescriptor::MyProc();
     if (m_rank == 0)
     {
-        std::ios::openmode file_openmode;
+        std::ios::openmode file_openmode = std::ios::out;
         if (m_mode == APPEND)
         {
             if (m_first_step)
@@ -91,17 +92,18 @@ SmallDataIO::SmallDataIO(std::string a_filename_prefix, double a_dt,
                          double a_time, double a_restart_time, Mode a_mode,
                          std::string a_file_extension, int a_data_precision,
                          int a_coords_precision, int a_filename_steps_width)
-    : SmallDataIO(a_filename_prefix, a_dt, a_time, a_restart_time, a_mode,
-                  (a_time == a_dt), a_file_extension, a_data_precision,
-                  a_coords_precision, a_filename_steps_width)
+    : SmallDataIO(std::move(a_filename_prefix), a_dt, a_time, a_restart_time,
+                  a_mode, (a_time == a_dt), std::move(a_file_extension),
+                  a_data_precision, a_coords_precision, a_filename_steps_width)
 {
 }
 
 SmallDataIO::SmallDataIO(std::string a_filename_prefix,
                          std::string a_file_extension, int a_data_precision,
                          int a_coords_precision)
-    : SmallDataIO(a_filename_prefix, 0.0, 0.0, 0.0, READ, false,
-                  a_file_extension, a_data_precision, a_coords_precision, 0)
+    : SmallDataIO(std::move(a_filename_prefix), 0.0, 0.0, 0.0, READ, false,
+                  std::move(a_file_extension), a_data_precision,
+                  a_coords_precision, 0)
 {
 }
 
@@ -121,7 +123,7 @@ void SmallDataIO::write_header_line(
     const std::string &a_pre_header_string)
 {
     std::vector<std::string> pre_header_strings;
-    if (a_pre_header_string != "")
+    if (!a_pre_header_string.empty())
     {
         pre_header_strings.push_back(a_pre_header_string);
     }
@@ -150,7 +152,7 @@ void SmallDataIO::write_header_line(
                        << a_pre_header_strings[istr];
             }
         }
-        for (std::string header_item : a_header_strings)
+        for (const std::string &header_item : a_header_strings)
         {
             m_file << std::setw(m_data_width) << header_item;
         }
@@ -217,7 +219,7 @@ void SmallDataIO::remove_duplicate_time_data(const bool keep_m_time_data)
         }
         while (std::getline(m_file, line))
         {
-            if (!(line.find("#") == std::string::npos))
+            if (!(line.find('#') == std::string::npos))
             {
                 temp_file << line << "\n";
             }
@@ -243,7 +245,7 @@ void SmallDataIO::remove_duplicate_time_data(const bool keep_m_time_data)
 // ------------ Reading Functions ------------
 
 void SmallDataIO::get_specific_data_line(std::vector<double> &a_out_data,
-                                         const std::vector<double> a_coords)
+                                         const std::vector<double> &a_coords)
 {
     if (m_rank == 0)
     {

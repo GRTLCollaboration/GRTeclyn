@@ -20,10 +20,10 @@ class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
         std::vector<double> &extraction_radii = surface_param_values;
         int &num_points_theta                 = num_points_u;
         int &num_points_phi                   = num_points_v;
-        std::array<double, AMREX_SPACEDIM> center; //!< the center of the
-                                                   //!< spherical shells
+        std::array<double, AMREX_SPACEDIM> center{}; //!< the center of the
+                                                     //!< spherical shells
         std::array<double, AMREX_SPACEDIM> &extraction_center = center;
-        int num_modes; //!< the number of modes to extract
+        int num_modes{}; //!< the number of modes to extract
         std::vector<std::pair<int, int>> modes; //!< the modes to extract
                                                 //!< l = first, m = second
         // constructor
@@ -127,7 +127,7 @@ class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
     //! If you only want to extract one mode, you can use this function which
     //! calls add_mode_integrand, then integrate and returns the integrals
     std::pair<std::vector<double>, std::vector<double>> integrate_mode(
-        int es, int el, int em, complex_function_t a_function,
+        int es, int el, int em, const complex_function_t &a_function,
         const IntegrationMethod &a_method_theta = IntegrationMethod::simpson,
         const IntegrationMethod &a_method_phi   = IntegrationMethod::trapezium)
     {

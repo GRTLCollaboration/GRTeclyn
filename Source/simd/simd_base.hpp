@@ -183,7 +183,9 @@ ALWAYS_INLINE std::ostream &operator<<(std::ostream &os, const simd<t> &in_simd)
     }
     os << ")";
     if (os.fail())
+    {
         amrex::Abort("operator<<(std::ostream&,simd<t>&) failed");
+    }
     return os;
 }
 

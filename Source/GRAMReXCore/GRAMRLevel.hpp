@@ -37,65 +37,65 @@ class GRAMRLevel : public amrex::AmrLevel
                const amrex::BoxArray &ba, const amrex::DistributionMapping &dm,
                amrex::Real time);
 
-    virtual ~GRAMRLevel();
+    ~GRAMRLevel() override;
 
     static SimulationParameters const &simParams();
 
     /**
      * \brief Compute the initial time step.
      */
-    virtual void computeInitialDt(
-        int finest_level, int sub_cycle, amrex::Vector<int> &n_cycle,
-        const amrex::Vector<amrex::IntVect> &ref_ratio,
-        amrex::Vector<amrex::Real> &dt_level, amrex::Real stop_time) override;
+    void computeInitialDt(int finest_level, int sub_cycle,
+                          amrex::Vector<int> &n_cycle,
+                          const amrex::Vector<amrex::IntVect> &ref_ratio,
+                          amrex::Vector<amrex::Real> &dt_level,
+                          amrex::Real stop_time) override;
     /**
      * \brief Compute the next time step.
      */
-    virtual void computeNewDt(int finest_level, int sub_cycle,
-                              amrex::Vector<int> &n_cycle,
-                              const amrex::Vector<amrex::IntVect> &ref_ratio,
-                              amrex::Vector<amrex::Real> &dt_min,
-                              amrex::Vector<amrex::Real> &dt_level,
-                              amrex::Real stop_time,
-                              int post_regrid_flag) override;
+    void computeNewDt(int finest_level, int sub_cycle,
+                      amrex::Vector<int> &n_cycle,
+                      const amrex::Vector<amrex::IntVect> &ref_ratio,
+                      amrex::Vector<amrex::Real> &dt_min,
+                      amrex::Vector<amrex::Real> &dt_level,
+                      amrex::Real stop_time, int post_regrid_flag) override;
     /**
      * \brief Do an integration step on this level.  Returns maximum safe
      * time step.  This is a pure virtual function and hence MUST
      * be implemented by derived classes.
      */
-    virtual amrex::Real advance(amrex::Real time, amrex::Real dt, int iteration,
-                                int ncycle) override;
+    amrex::Real advance(amrex::Real time, amrex::Real dt, int iteration,
+                        int ncycle) override;
 
     /**
      * \brief Contains operations to be done after a timestep.  This is a
      * pure virtual function and hence MUST be implemented by derived
      * classes.
      */
-    virtual void post_timestep(int iteration) override;
+    void post_timestep(int iteration) override;
     /**
      * \brief Operations to be done after regridding
      * This is a pure virtual function and hence MUST be
      * implemented by derived classes.
      */
-    virtual void post_regrid(int lbase, int new_finest) override;
+    void post_regrid(int lbase, int new_finest) override;
     /**
      * \brief Operations to be done after initialization.
      * This is a pure virtual function and hence MUST be
      * implemented by derived classes.
      */
-    virtual void post_init(amrex::Real stop_time) override;
+    void post_init(amrex::Real stop_time) override;
     /**
      * \brief Init data on this level from another AmrLevel (during regrid).
      * This is a pure virtual function and hence MUST be
      * implemented by derived classes.
      */
-    virtual void init(amrex::AmrLevel &old) override;
+    void init(amrex::AmrLevel &old) override;
     /**
      * Init data on this level after regridding if old AmrLevel
      * did not previously exist. This is a pure virtual function
      * and hence MUST be implemented by derived classes.
      */
-    virtual void init() override;
+    void init() override;
     /**
      * \brief Error estimation for regridding. This is a pure virtual
      * function and hence MUST be implemented by derived classes.
@@ -105,20 +105,18 @@ class GRAMRLevel : public amrex::AmrLevel
      */
 
     //! Do pre-plotfile work
-    virtual void writePlotFilePre(const std::string &dir,
-                                  std::ostream &os) override;
+    void writePlotFilePre(const std::string &dir, std::ostream &os) override;
 
     //! Do post-plotfile work
-    virtual void writePlotFilePost(const std::string &dir,
-                                   std::ostream &os) override;
+    void writePlotFilePost(const std::string &dir, std::ostream &os) override;
 
     //! Return a MultiFab containing the derived data for this level.
-    virtual std::unique_ptr<amrex::MultiFab>
+    std::unique_ptr<amrex::MultiFab>
     derive(const std::string &name, amrex::Real time, int ngrow) override;
 
     //! Fill mf starting with the dcomp'th component with the derived quantity.
-    virtual void derive(const std::string &name, amrex::Real time,
-                        amrex::MultiFab &mf, int dcomp) override;
+    void derive(const std::string &name, amrex::Real time, amrex::MultiFab &mf,
+                int dcomp) override;
 
     /// Virtual function for the problem specific parts of Advance
     virtual void specificAdvance() {}
@@ -135,7 +133,7 @@ class GRAMRLevel : public amrex::AmrLevel
     BoundaryConditions m_boundaries; // the class for implementing BCs
 
     int m_verbosity = 0; //!< Level of verbosity of the output
-    int m_num_ghosts;    //!< Number of ghost cells
+    int m_num_ghosts{};  //!< Number of ghost cells
     bool m_is_writing_plotfile = false;
 
     static amrex::Vector<std::string> plot_constraints;

@@ -205,8 +205,10 @@ class SimulationParameters : public SimulationParametersBase
         // Get the centers of the BHs either explicitly or as
         // an offset (not both, or they will be offset from center
         // provided)
-        std::array<double, AMREX_SPACEDIM> centerA, centerB;
-        std::array<double, AMREX_SPACEDIM> offsetA, offsetB;
+        std::array<double, AMREX_SPACEDIM> centerA;
+        std::array<double, AMREX_SPACEDIM> centerB;
+        std::array<double, AMREX_SPACEDIM> offsetA;
+        std::array<double, AMREX_SPACEDIM> offsetB;
         pp.load("centerA", centerA, center);
         pp.load("centerB", centerB, center);
         pp.load("offsetA", offsetA, {0.0, 0.0, 0.0});
@@ -307,14 +309,15 @@ class SimulationParameters : public SimulationParametersBase
                         "must be between 0 and max_level (inclusive)");
     }
 
-    bool track_punctures, calculate_constraint_norms;
-    int puncture_tracking_level;
+    bool track_punctures{};
+    bool calculate_constraint_norms{};
+    int puncture_tracking_level{};
 
     // Collection of parameters necessary for initial conditions
     // Set these even in the case of TwoPunctures as they are used elsewhere
     // e.g. for puncture tracking/tagging
-    BoostedBH::params_t bh2_params;
-    BoostedBH::params_t bh1_params;
+    BoostedBH::params_t bh2_params{};
+    BoostedBH::params_t bh1_params{};
 
 #ifdef USE_TWOPUNCTURES
     double tp_offset_plus, tp_offset_minus;

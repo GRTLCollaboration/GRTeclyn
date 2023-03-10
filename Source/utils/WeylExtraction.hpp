@@ -45,15 +45,18 @@ class WeylExtraction : public SphericalExtraction
         extract(a_interpolator);
 
         if (m_params.write_extraction)
+        {
             write_extraction(m_params.extraction_file_prefix);
+        }
 
         // now calculate and write the requested spherical harmonic modes
         std::vector<std::pair<std::vector<double>, std::vector<double>>>
             mode_integrals(m_num_modes);
 
         // note that this is normalised by multiplying by radius
-        auto normalised_Weyl4_complex =
-            [](std::vector<double> Weyl4_reim_parts, double r, double, double)
+        auto normalised_Weyl4_complex = [](std::vector<double> Weyl4_reim_parts,
+                                           double r, double /*unused*/,
+                                           double /*unused*/)
         {
             // here the std::vector<double> passed will just have
             // the real and imaginary parts of the Weyl4 scalar as its

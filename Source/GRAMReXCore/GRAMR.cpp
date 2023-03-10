@@ -11,7 +11,7 @@ SimulationParameters const *GRAMR::m_sim_params = nullptr;
 
 GRAMR::GRAMR(amrex::LevelBld *a_levelbld) : amrex::Amr(a_levelbld) {}
 
-GRAMR::~GRAMR() {}
+GRAMR::~GRAMR() = default;
 
 void GRAMR::set_simulation_parameters(const SimulationParameters &a_sim_params)
 {

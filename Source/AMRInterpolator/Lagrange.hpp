@@ -25,18 +25,18 @@ template <int Order> class Lagrange
 
         std::vector<double> m_weights;
 
-        Stencil(int width, int deriv, double point_offset, double dx);
+        Stencil(int width, int deriv, double dx, double point_offset);
         inline bool operator==(const Stencil &rhs) const;
-        inline bool isSameAs(int width, int deriv, double point_offset,
-                             double dx) const;
+        [[nodiscard]] inline bool isSameAs(int width, int deriv, double dx,
+                                           double point_offset) const;
 
         inline const double &operator[](unsigned int i) const;
     };
 
-    typedef std::vector<Stencil> stencil_collection_t;
+    using stencil_collection_t = std::vector<Stencil>;
     stencil_collection_t m_memoized_stencils;
 
-    Stencil getStencil(int width, int deriv, double point_offset, double dx);
+    Stencil getStencil(int width, int deriv, double dx, double point_offset);
 
     // Helper function to generate tensor product weights
     // Argument 'dim' is used for recursion over dimensions.

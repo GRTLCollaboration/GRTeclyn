@@ -62,9 +62,13 @@ class SimulationParametersBase : public AMReXParameters
         // norms)
         pp.load("data_subpath", data_path, std::string(""));
         if (!data_path.empty() && data_path.back() != '/')
+        {
             data_path += "/";
+        }
         if (output_path != "./" && !output_path.empty())
+        {
             data_path = output_path + data_path;
+        }
 
         // Extraction params
         pp.load("activate_extraction", activate_extraction, false);
@@ -144,9 +148,13 @@ class SimulationParametersBase : public AMReXParameters
             std::string extraction_path;
             pp.load("extraction_subpath", extraction_path, data_path);
             if (!extraction_path.empty() && extraction_path.back() != '/')
+            {
                 extraction_path += "/";
+            }
             if (output_path != "./" && !output_path.empty())
+            {
                 extraction_path = output_path + extraction_path;
+            }
 
             extraction_params.data_path       = data_path;
             extraction_params.extraction_path = extraction_path;
@@ -267,8 +275,10 @@ class SimulationParametersBase : public AMReXParameters
                         "extraction_radii[" + std::to_string(iradius) + "]";
                     double radius = extraction_params.extraction_radii[iradius];
                     if (idir == 0)
+                    {
                         check_parameter(radius_name, radius, radius >= 0.0,
                                         "must be >= 0.0");
+                    }
                     check_parameter(
                         radius_name, radius,
                         (center_in_dir - radius >=
@@ -298,16 +308,16 @@ class SimulationParametersBase : public AMReXParameters
   protected:
     // This is just the CCZ4 damping parameters in case you want to use
     // a different gauge (with different parameters)
-    CCZ4_base_params_t ccz4_base_params;
+    CCZ4_base_params_t ccz4_base_params{};
 
   public:
-    double sigma; // Kreiss-Oliger dissipation parameter
+    double sigma{}; // Kreiss-Oliger dissipation parameter
 
-    bool nan_check;
+    bool nan_check{};
 
-    double min_chi, min_lapse;
+    double min_chi{}, min_lapse{};
 
-    int formulation; // Whether to use BSSN or CCZ4
+    int formulation{}; // Whether to use BSSN or CCZ4
 
     // Collection of parameters necessary for the CCZ4 RHS
     // Note the gauge parameters are specific to MovingPunctureGauge
@@ -315,7 +325,7 @@ class SimulationParametersBase : public AMReXParameters
     // in your own SimulationParameters class.
     CCZ4_params_t<> ccz4_params;
 
-    bool activate_extraction;
+    bool activate_extraction{};
     SphericalExtraction::params_t extraction_params;
 
     std::string data_path;

@@ -6,7 +6,7 @@ std::unique_ptr<amrex::MultiFab> GRAMRLevel::derive(const std::string &name,
 {
     std::unique_ptr<amrex::MultiFab> mf;
     const amrex::DeriveRec *rec = derive_lst.get(name);
-    if (rec)
+    if (rec != nullptr)
     {
         mf = std::make_unique<amrex::MultiFab>(
             this->boxArray(), this->DistributionMap(), rec->numState(), ngrow);
@@ -23,7 +23,7 @@ void GRAMRLevel::derive(const std::string &name, amrex::Real /*time*/,
                         amrex::MultiFab &mf, int dcomp)
 {
     const amrex::DeriveRec *rec = derive_lst.get(name);
-    if (rec)
+    if (rec != nullptr)
     {
         AMREX_ALWAYS_ASSERT(
             m_is_writing_plotfile); // We can relax this if needed.

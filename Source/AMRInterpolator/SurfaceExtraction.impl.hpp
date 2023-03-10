@@ -10,13 +10,15 @@
 #ifndef SURFACEEXTRACTION_IMPL_HPP_
 #define SURFACEEXTRACTION_IMPL_HPP_
 
+#include <utility>
+
 //! Normal constructor which requires vars to be added after construction
 //! using add_var or add_vars
 template <class SurfaceGeometry>
 SurfaceExtraction<SurfaceGeometry>::SurfaceExtraction(
-    const SurfaceGeometry &a_geom, const params_t &a_params, double a_dt,
+    const SurfaceGeometry &a_geom, params_t a_params, double a_dt,
     double a_time, bool a_first_step, double a_restart_time)
-    : m_geom(a_geom), m_params(a_params), m_dt(a_dt), m_time(a_time),
+    : m_geom(a_geom), m_params(std::move(a_params)), m_dt(a_dt), m_time(a_time),
       m_first_step(a_first_step), m_restart_time(a_restart_time),
       m_num_interp_points((amrex::ParallelDescriptor::MyProc() == 0)
                               ? m_params.num_surfaces * m_params.num_points_u *
@@ -30,11 +32,15 @@ SurfaceExtraction<SurfaceGeometry>::SurfaceExtraction(
     if (m_time < m_restart_time + 1.5 * m_dt || m_first_step)
     {
         if (!FilesystemTools::directory_exists(m_params.data_path))
+        {
             FilesystemTools::mkdir_recursive(m_params.data_path);
+        }
 
         if (m_params.write_extraction &&
             !FilesystemTools::directory_exists(m_params.extraction_path))
+        {
             FilesystemTools::mkdir_recursive(m_params.extraction_path);
+        }
     }
 
     // only interp points on rank 0
@@ -74,7 +80,7 @@ void SurfaceExtraction<SurfaceGeometry>::add_var(int a_var,
                                                  const Derivative &a_deriv)
 {
     AMREX_ASSERT(!m_done_extraction);
-    m_vars.push_back(std::make_tuple(a_var, a_var_type, a_deriv));
+    m_vars.emplace_back(a_var, a_var_type, a_deriv);
     // m_num_interp_points is 0 on ranks > 0
     m_interp_data.emplace_back(m_num_interp_points);
 }
@@ -240,7 +246,8 @@ void SurfaceExtraction<SurfaceGeometry>::add_var_integrand(
 {
     AMREX_ASSERT(a_var >= 0 && a_var < m_vars.size());
     integrand_t var_integrand =
-        [var = a_var](std::vector<double> &data, double, double, double)
+        [var = a_var](std::vector<double> &data, double /*unused*/,
+                      double /*unused*/, double /*unused*/)
     { return data[var]; };
     add_integrand(var_integrand, out_integrals, a_method_u, a_method_v,
                   a_broadcast_integral);
@@ -307,12 +314,14 @@ void SurfaceExtraction<SurfaceGeometry>::integrate()
         {
             amrex::Vector<double> broadcast_Vector;
             if (amrex::ParallelDescriptor::MyProc() == 0)
+            {
                 // xxxxx    broadcast_Vector = m_integrals[iintegral].get();
                 // xxxxx broadcast(broadcast_Vector, 0);
                 if (amrex::ParallelDescriptor::MyProc() != 0)
                 {
                     // xxxxx m_integrals[iintegral].get() = broadcast_Vector;
                 }
+            }
         }
     }
 }
@@ -457,9 +466,13 @@ void SurfaceExtraction<SurfaceGeometry>::write_integrals(
                 {
                     int idx = isurface * num_integrals_per_surface + iintegral;
                     if (a_labels.empty())
+                    {
                         header1_strings[idx] = "";
+                    }
                     else
+                    {
                         header1_strings[idx] = a_labels[iintegral];
+                    }
                     header2_strings[idx] =
                         std::to_string(m_params.surface_param_values[isurface]);
                 }
@@ -494,8 +507,8 @@ void SurfaceExtraction<SurfaceGeometry>::write_integrals(
 //! surface
 template <class SurfaceGeometry>
 void SurfaceExtraction<SurfaceGeometry>::write_integral(
-    const std::string &a_filename, const std::vector<double> a_integrals,
-    const std::string a_label) const
+    const std::string &a_filename, const std::vector<double> &a_integrals,
+    const std::string &a_label) const
 {
     std::vector<std::vector<double>> integrals(1, a_integrals);
     if (!a_label.empty())
@@ -504,7 +517,9 @@ void SurfaceExtraction<SurfaceGeometry>::write_integral(
         write_integrals(a_filename, integrals, labels);
     }
     else
+    {
         write_integrals(a_filename, integrals);
+    }
 }
 
 #endif /* SURFACEEXTRACTION_IMPL_HPP_ */

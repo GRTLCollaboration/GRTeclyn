@@ -17,11 +17,12 @@
 class InterpSource
 {
   public:
-    virtual const amrex::MultiFab &getLevelData(
+    [[nodiscard]] virtual const amrex::MultiFab &getLevelData(
         const VariableType var_type = VariableType::evolution) const = 0;
-    virtual bool
+    [[nodiscard]] virtual bool
     contains(const std::array<double, AMREX_SPACEDIM> &point) const = 0;
-    virtual ~InterpSource() {}
+
+    virtual ~InterpSource() = default;
 };
 
 #endif /* INTERPSOURCE_H_ */

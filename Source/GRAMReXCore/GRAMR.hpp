@@ -36,7 +36,7 @@ class GRAMR : public amrex::Amr
   public:
 
     GRAMR(amrex::LevelBld *a_levelbld);
-    virtual ~GRAMR();
+    ~GRAMR() override;
 
     static void
     set_simulation_parameters(const SimulationParameters &a_sim_params);

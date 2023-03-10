@@ -13,13 +13,14 @@
 #include <AMReX_IntVect.H>
 
 #include <array>
+#include <cmath>
 
 template <class data_t> class Coordinates
 {
   public:
     data_t x; // We vectorise over x so we must allow x to be a vector
-    double y;
-    double z;
+    double y{};
+    double z{};
     std::array<double, AMREX_SPACEDIM> m_center;
 
     AMREX_GPU_HOST_DEVICE
@@ -67,7 +68,8 @@ template <class data_t> class Coordinates
 
     /// This function returns the radius subject to a floor for a given
     /// Coordinates object.
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE data_t get_radius() const
+    AMREX_GPU_HOST_DEVICE [[nodiscard]] AMREX_FORCE_INLINE data_t
+    get_radius() const
     {
         // Note that this is not currently dimension independent
         data_t r = sqrt(x * x + y * y + z * z);
@@ -83,8 +85,8 @@ template <class data_t> class Coordinates
                std::array<double, AMREX_SPACEDIM> center = {0})
     {
         data_t xx;
-        double yy;
-        double zz;
+        double yy = NAN;
+        double zz = NAN;
 
         // Note that this is not currently dimension independent
         compute_coord(xx, integer_coords[0], dx, center[0]);

@@ -29,7 +29,7 @@ Y_lm_t<data_t> spin_Y_lm(const data_t x, const double y, const double z,
 
     AMREX_ASSERT((el >= 0) && (el >= std::abs(em)));
 
-    Y_lm_t<data_t> Y_lm;
+    Y_lm_t<data_t> Y_lm{};
 
     // calculate useful position quantities
     data_t r     = simd_max(sqrt(x * x + y * y + z * z), 1e-6);

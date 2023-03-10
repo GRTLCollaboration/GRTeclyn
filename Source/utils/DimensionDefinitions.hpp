@@ -16,7 +16,7 @@
 
 // Fancy 'for' loop macros to iterate through spatial tensors
 // use as "FOR(i, j) { ... }"
-#define FOR1(IDX) for (int IDX = 0; IDX < DEFAULT_TENSOR_DIM; ++IDX)
+#define FOR1(IDX) for (int(IDX) = 0; (IDX) < DEFAULT_TENSOR_DIM; ++(IDX))
 #define FOR2(IDX1, IDX2)                                                       \
     FOR1 (IDX1)                                                                \
         FOR1 (IDX2)

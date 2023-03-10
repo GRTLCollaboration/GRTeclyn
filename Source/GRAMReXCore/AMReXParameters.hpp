@@ -13,9 +13,11 @@
 #include "GRParmParse.hpp"
 #include "UserVariables.hpp"
 #include "VariableType.hpp"
-#include "unistd.h" // gives 'access'
+
 #include <algorithm>
+#include <cmath>
 #include <string>
+#include <unistd.h> // gives 'access'
 
 class AMReXParameters
 {
@@ -78,7 +80,7 @@ class AMReXParameters
         else
         {
             amrex::Print() << "Using single regrid threshold." << std::endl;
-            double regrid_threshold;
+            double regrid_threshold = NAN;
             pp.load("regrid_threshold", regrid_threshold, 0.5);
             regrid_thresholds =
                 amrex::Vector<double>(max_level + 1, regrid_threshold);
@@ -116,7 +118,9 @@ class AMReXParameters
         }
 
         if (pp.contains("check_params"))
+        {
             just_check_params = true;
+        }
 
         pp.load("print_progress_only_to_rank_0", print_progress_only_to_rank_0,
                 false);
@@ -139,23 +143,35 @@ class AMReXParameters
 #ifdef AMREX_USE_MPI
         // Again, cannot use default value
         if (pp.contains("pout_prefix"))
+        {
             pp.load("pout_prefix", pout_prefix);
+        }
         else
+        {
             pout_prefix = "pout";
+        }
 #endif
 
-        std::string default_path = "";
+        std::string default_path;
         if (pp.contains("output_path"))
+        {
             pp.load("output_path", output_path);
+        }
         else
+        {
             output_path = default_path;
+        }
 
 #ifdef AMREX_USE_MPI
         // user sets the 'subpath', we prepend 'output_path'
         if (pp.contains("pout_subpath"))
+        {
             pp.load("pout_subpath", pout_path);
+        }
         else
+        {
             pout_path = default_path;
+        }
 #endif
 
 #ifdef AMREX_USE_HDF5
@@ -168,10 +184,14 @@ class AMReXParameters
 
         // add backslash to paths
         if (!output_path.empty() && output_path.back() != '/')
+        {
             output_path += "/";
+        }
 #ifdef AMREX_USE_MPI
         if (!pout_path.empty() && pout_path.back() != '/')
+        {
             pout_path += "/";
+        }
 #endif
 #ifdef AMREX_USE_HDF5
         if (!hdf5_path.empty() && hdf5_path.back() != '/')
@@ -195,8 +215,10 @@ class AMReXParameters
 #ifdef AMREX_USE_MPI
         // change pout base name!
         if (!FilesystemTools::directory_exists(pout_path))
+        {
             FilesystemTools::mkdir_recursive(pout_path);
-            // xxxxx setPoutBaseName(pout_path + pout_prefix);
+        }
+        // xxxxx setPoutBaseName(pout_path + pout_prefix);
 #endif
 
         // only create hdf5 directory in setupAMRObject (when it becomes needed)
@@ -205,20 +227,26 @@ class AMReXParameters
     void read_grid_params(GRParmParse &pp)
     {
         // Grid N
-        std::array<int, AMREX_SPACEDIM> Ni_full;
-        std::array<int, AMREX_SPACEDIM> Ni;
+        std::array<int, AMREX_SPACEDIM> Ni_full{};
+        std::array<int, AMREX_SPACEDIM> Ni{};
         ivN = amrex::IntVect::TheUnitVector();
 
         // cannot contain both
         if ((pp.contains("N_full") && pp.contains("N")))
+        {
             amrex::Abort("Please only provide 'N' or 'N_full', not both");
+        }
 
         int N_full = -1;
         int N      = -1;
         if (pp.contains("N_full"))
+        {
             pp.load("N_full", N_full);
+        }
         else if (pp.contains("N"))
+        {
             pp.load("N", N);
+        }
 
         // read all options (N, N_full, Ni_full and Ni) and then choose
         // accordingly
@@ -235,25 +263,36 @@ class AMReXParameters
                   !pp.contains(name_full.c_str())) &&
                 !((N_full < 0 && N < 0) && !(pp.contains(name.c_str()) &&
                                              pp.contains(name_full.c_str()))))
+            {
                 error("Please provide 'N' or 'N_full' or a set of "
                       "'N1/N1_full', 'N2/N2_full', 'N3/N3_full'");
+            }
 
             if (N_full < 0 && N < 0)
             {
                 if (pp.contains(name_full.c_str()))
+                {
                     pp.load(name_full.c_str(), Ni_full[dir]);
+                }
                 else
+                {
                     pp.load(name.c_str(), Ni[dir]);
+                }
             }
-            if (N < 0 && N_full < 0 && Ni[dir] < 0 &&
-                Ni_full[dir] < 0) // sanity check
+            if (N < 0 && N_full < 0 && Ni[dir] < 0 && Ni_full[dir] < 0)
+            { // sanity check
                 error("Please provide 'N' or 'N_full' or a set of "
                       "'N1/N1_full', 'N2/N2_full', 'N3/N3_full'");
+            }
 
             if (N_full > 0)
+            {
                 Ni_full[dir] = N_full;
+            }
             else if (N > 0)
+            {
                 Ni[dir] = N;
+            }
 
             if (Ni[dir] > 0)
             {
@@ -261,10 +300,14 @@ class AMReXParameters
                         BoundaryConditions::REFLECTIVE_BC ||
                     boundary_params.hi_boundary[dir] ==
                         BoundaryConditions::REFLECTIVE_BC)
+                {
 
                     Ni_full[dir] = Ni[dir] * 2;
+                }
                 else
+                {
                     Ni_full[dir] = Ni[dir];
+                }
             }
             else
             {
@@ -280,7 +323,9 @@ class AMReXParameters
                     Ni[dir] = Ni_full[dir] / 2;
                 }
                 else
+                {
                     Ni[dir] = Ni_full[dir];
+                }
             }
             ivN[dir] = Ni[dir] - 1;
         }
@@ -290,18 +335,26 @@ class AMReXParameters
         // Grid L
         // cannot contain both
         if ((pp.contains("L_full") && pp.contains("L")))
+        {
             error("Please only provide 'L' or 'L_full', not both");
+        }
 
         double L_full = -1.;
         if (pp.contains("L_full"))
+        {
             pp.load("L_full", L_full);
+        }
         else
+        {
             pp.load("L", L, 1.0);
+        }
 
         if (L_full > 0.)
+        {
             // necessary for some reflective BC cases, as 'L' is the
             // length of the longest side of the box
             L = (L_full * max_N) / max_N_full;
+        }
 
         coarsest_dx = L / max_N;
         coarsest_dt = coarsest_dx * dt_multiplier;
@@ -327,7 +380,7 @@ class AMReXParameters
 
         // First work out the default center ignoring reflective BCs
         // but taking into account different grid lengths in each direction
-        std::array<double, AMREX_SPACEDIM> default_center;
+        std::array<double, AMREX_SPACEDIM> default_center{};
 #if AMREX_SPACEDIM == 3
         default_center = {0.5 * Ni[0] * coarsest_dx, 0.5 * Ni[1] * coarsest_dx,
                           0.5 * Ni[2] * coarsest_dx};
@@ -341,12 +394,16 @@ class AMReXParameters
                  BoundaryConditions::REFLECTIVE_BC) &&
                 (boundary_params.hi_boundary[idir] !=
                  BoundaryConditions::REFLECTIVE_BC))
+            {
                 default_center[idir] = 0.;
+            }
             else if ((boundary_params.hi_boundary[idir] ==
                       BoundaryConditions::REFLECTIVE_BC) &&
                      (boundary_params.lo_boundary[idir] !=
                       BoundaryConditions::REFLECTIVE_BC))
+            {
                 default_center[idir] = coarsest_dx * Ni[idir];
+            }
         }
 
         pp.load("center", center, default_center); // default to center
@@ -479,7 +536,8 @@ class AMReXParameters
             amrex::Vector<int> is_periodic(AMREX_SPACEDIM);
             for (int i = 0; i < AMREX_SPACEDIM; ++i)
             {
-                is_periodic[i] = boundary_params.is_periodic[i];
+                is_periodic[i] =
+                    static_cast<int>(boundary_params.is_periodic[i]);
             }
             pp.addarr("is_periodic", is_periodic);
         }
@@ -500,33 +558,33 @@ class AMReXParameters
     }
 
     // General parameters
-    int verbosity;
-    double L; // Physical sidelength of the grid
-    std::array<double, AMREX_SPACEDIM> center; // grid center
+    int verbosity{};
+    double L{}; // Physical sidelength of the grid
+    std::array<double, AMREX_SPACEDIM> center{}; // grid center
     amrex::IntVect ivN; // The number of grid cells in each dimension
-    double coarsest_dx,
-        coarsest_dt; // The coarsest resolution in space and time
-    int max_level;   // the max number of regriddings to do
-    int max_spatial_derivative_order; // The maximum order of the spatial
-                                      // derivatives - does nothing
-                                      // in Chombo but can be used in examples
-    int num_ghosts;       // min dependent on max_spatial_derivative_order
-    int tag_buffer_size;  // Amount the tagged region is grown by
-    int grid_buffer_size; // Number of cells between level
+    double coarsest_dx{},
+        coarsest_dt{}; // The coarsest resolution in space and time
+    int max_level{};   // the max number of regriddings to do
+    int max_spatial_derivative_order{}; // The maximum order of the spatial
+                                        // derivatives - does nothing
+                                        // in Chombo but can be used in examples
+    int num_ghosts{};       // min dependent on max_spatial_derivative_order
+    int tag_buffer_size{};  // Amount the tagged region is grown by
+    int grid_buffer_size{}; // Number of cells between level
     amrex::Vector<int> ref_ratios; // ref ratios between levels
     // boundaries.
     amrex::Vector<int> regrid_interval; // steps between regrid at each level
-    int max_steps;
-    bool restart_from_checkpoint; // whether or not to restart or start afresh
+    int max_steps{};
+    bool restart_from_checkpoint{}; // whether or not to restart or start afresh
 #ifdef AMREX_USE_HDF5
     std::string restart_file;             // The path to the restart_file
     bool ignore_checkpoint_name_mismatch; // ignore mismatch of variable names
                                           // between restart file and program
 #endif
-    double dt_multiplier, stop_time;        // The Courant factor and stop time
-    int checkpoint_interval, plot_interval; // Steps between outputs
-    int max_grid_size, block_factor;        // max and min box sizes
-    double fill_ratio; // determines how fussy the regridding is about tags
+    double dt_multiplier{}, stop_time{}; // The Courant factor and stop time
+    int checkpoint_interval{}, plot_interval{}; // Steps between outputs
+    int max_grid_size{}, block_factor{};        // max and min box sizes
+    double fill_ratio{}; // determines how fussy the regridding is about tags
 #ifdef AMREX_USE_HDF5
     std::string checkpoint_prefix, plot_prefix; // naming of files
 #endif
@@ -543,8 +601,8 @@ class AMReXParameters
         plot_vars; // vars to write to plot file
 #endif
 
-    std::array<double, AMREX_SPACEDIM> origin,
-        dx; // location of coarsest origin and dx
+    std::array<double, AMREX_SPACEDIM> origin{},
+        dx{}; // location of coarsest origin and dx
 
     // Boundary conditions
     BoundaryConditions::params_t boundary_params; // set boundaries in each dir
@@ -555,17 +613,17 @@ class AMReXParameters
     // For checking parameters and then exiting rather before instantiating
     // GRAMR (or child) object
     bool just_check_params = false;
-    bool print_progress_only_to_rank_0;
+    bool print_progress_only_to_rank_0{};
 
   protected:
     // the low and high corners of the domain taking into account reflective BCs
     // only used in parameter checks hence protected
-    std::array<double, AMREX_SPACEDIM> reflective_domain_lo,
-        reflective_domain_hi;
+    std::array<double, AMREX_SPACEDIM> reflective_domain_lo{},
+        reflective_domain_hi{};
 
     // use this error function instead of MayDay::error as this will only
     // print from rank 0
-    void error(const std::string &a_error_message)
+    static void error(const std::string &a_error_message)
     {
         if (amrex::ParallelDescriptor::MyProc() == 0)
         {
@@ -579,14 +637,13 @@ class AMReXParameters
                          const std::string &a_invalid_explanation)
     {
         if (a_valid)
-            return;
-        else
         {
-            std::ostringstream error_message_ss;
-            error_message_ss << "Parameter: " << a_name << " = " << a_value
-                             << " is invalid: " << a_invalid_explanation;
-            error(error_message_ss.str());
+            return;
         }
+        std::ostringstream error_message_ss;
+        error_message_ss << "Parameter: " << a_name << " = " << a_value
+                         << " is invalid: " << a_invalid_explanation;
+        error(error_message_ss.str());
     }
 
     template <typename T>
@@ -595,18 +652,16 @@ class AMReXParameters
                         const std::string &a_warning_explanation)
     {
         if (a_nowarn)
-            return;
-        else
         {
-            // only print the warning from rank 0
-            if (amrex::ParallelDescriptor::MyProc() == 0)
-            {
-                std::ostringstream warning_message_ss;
-                warning_message_ss << "Parameter: " << a_name << " = "
-                                   << a_value
-                                   << " warning: " << a_warning_explanation;
-                amrex::Warning(warning_message_ss.str().c_str());
-            }
+            return;
+        }
+        // only print the warning from rank 0
+        if (amrex::ParallelDescriptor::MyProc() == 0)
+        {
+            std::ostringstream warning_message_ss;
+            warning_message_ss << "Parameter: " << a_name << " = " << a_value
+                               << " warning: " << a_warning_explanation;
+            amrex::Warning(warning_message_ss.str().c_str());
         }
     }
 

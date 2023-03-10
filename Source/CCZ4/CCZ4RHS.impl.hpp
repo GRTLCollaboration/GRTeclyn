@@ -33,7 +33,9 @@ inline CCZ4RHS<gauge_t, deriv_t>::CCZ4RHS(
         }
     }
     if (m_formulation > USE_BSSN)
+    {
         amrex::Abort("The requested formulation is not supported");
+    }
 }
 
 template <class gauge_t, class deriv_t>
@@ -164,9 +166,13 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
 
     data_t kappa1_times_lapse;
     if (m_params.covariantZ4)
+    {
         kappa1_times_lapse = m_params.kappa1;
+    }
     else
+    {
         kappa1_times_lapse = m_params.kappa1 * vars.lapse;
+    }
 
     if (m_formulation == USE_BSSN)
     {

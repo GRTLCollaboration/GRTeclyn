@@ -11,14 +11,14 @@
 template <class level_t> class DefaultLevelFactory : public amrex::LevelBld
 {
   public:
-    virtual void variableSetUp() override;
-    virtual void variableCleanUp() override;
-    virtual amrex::AmrLevel *operator()() override;
-    virtual amrex::AmrLevel *operator()(amrex::Amr &papa, int lev,
-                                        const amrex::Geometry &level_geom,
-                                        const amrex::BoxArray &ba,
-                                        const amrex::DistributionMapping &dm,
-                                        amrex::Real time) override;
+    void variableSetUp() override;
+    void variableCleanUp() override;
+    amrex::AmrLevel *operator()() override;
+    amrex::AmrLevel *operator()(amrex::Amr &papa, int lev,
+                                const amrex::Geometry &level_geom,
+                                const amrex::BoxArray &ba,
+                                const amrex::DistributionMapping &dm,
+                                amrex::Real time) override;
 };
 
 template <class level_t> void DefaultLevelFactory<level_t>::variableSetUp()

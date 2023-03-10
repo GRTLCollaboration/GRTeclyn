@@ -21,22 +21,22 @@
 
 template <> struct simd_traits<double>
 {
-    typedef __m128d data_t;
-    typedef __m128d mask_t;
+    using data_t              = __m128d;
+    using mask_t              = __m128d;
     static const int simd_len = 2;
 };
 
 template <> struct simd_traits<float>
 {
-    typedef __m128 data_t;
-    typedef __m128 mask_t;
+    using data_t              = __m128;
+    using mask_t              = __m128;
     static const int simd_len = 4;
 };
 
 template <> struct simd<double> : public simd_base<double>
 {
-    typedef typename simd_traits<double>::data_t data_t;
-    typedef typename simd_traits<double>::mask_t mask_t;
+    using data_t = typename simd_traits<double>::data_t;
+    using mask_t = typename simd_traits<double>::mask_t;
 
     ALWAYS_INLINE
     simd() : simd_base<double>(_mm_setzero_pd()) {}
@@ -91,12 +91,17 @@ template <> struct simd<double> : public simd_base<double>
 #if defined(__SSE4_1__)
         return _mm_blendv_pd(false_value, true_value, cond);
 #else
-        double _cond[2], _true[2], _false[2], _blend[2];
+        double _cond[2];
+        double _true[2];
+        double _false[2];
+        double _blend[2];
         _mm_storeu_pd(&_cond[0], cond);
         _mm_storeu_pd(&_true[0], true_value);
         _mm_storeu_pd(&_false[0], false_value);
         for (int i = 0; i < 2; ++i)
-            _blend[i] = _cond[i] ? _true[i] : _false[i];
+        {
+            _blend[i] = _cond[i] != 0.0 ? _true[i] : _false[i];
+        }
         return _mm_loadu_pd(&_blend[0]);
 #endif
     }
@@ -129,8 +134,8 @@ template <> struct simd<double> : public simd_base<double>
 
 template <> struct simd<float> : public simd_base<float>
 {
-    typedef typename simd_traits<float>::data_t data_t;
-    typedef typename simd_traits<float>::mask_t mask_t;
+    using data_t = typename simd_traits<float>::data_t;
+    using mask_t = typename simd_traits<float>::mask_t;
 
     ALWAYS_INLINE
     simd() : simd_base<float>(_mm_setzero_ps()) {}
@@ -185,12 +190,17 @@ template <> struct simd<float> : public simd_base<float>
 #if defined(__SSE4_1__)
         return _mm_blendv_ps(false_value, true_value, cond);
 #else
-        float _cond[4], _true[4], _false[4], _blend[4];
+        float _cond[4];
+        float _true[4];
+        float _false[4];
+        float _blend[4];
         _mm_storeu_ps(&_cond[0], cond);
         _mm_storeu_ps(&_true[0], true_value);
         _mm_storeu_ps(&_false[0], false_value);
         for (int i = 0; i < 4; ++i)
-            _blend[i] = _cond[i] ? _true[i] : _false[i];
+        {
+            _blend[i] = _cond[i] != 0.0f ? _true[i] : _false[i];
+        }
         return _mm_loadu_ps(&_blend[0]);
 #endif
     }

@@ -7,6 +7,7 @@
 #define AMRINTERPOLATOR_IMPL_HPP_
 
 #include <sstream>
+#include <utility>
 
 // A bit of Android-ism here, but it's really useful!
 // Identifies the printout as originating from this class.
@@ -29,12 +30,12 @@ AMRInterpolator<InterpAlgo>::AMRInterpolator(
     const GRAMR &gr_amr,
     const std::array<double, AMREX_SPACEDIM> &coarsest_origin,
     const std::array<double, AMREX_SPACEDIM> &coarsest_dx,
-    const BoundaryConditions::params_t &a_bc_params, int verbosity)
+    BoundaryConditions::params_t a_bc_params, int verbosity)
     : m_gr_amr(gr_amr), m_coarsest_origin(coarsest_origin),
       m_coarsest_dx(coarsest_dx),
       // xxxxx      m_num_levels(const_cast<GRAMR
       // &>(m_gr_amr).getAMRLevels().size()),
-      m_verbosity(verbosity), m_bc_params(a_bc_params)
+      m_verbosity(verbosity), m_bc_params(std::move(a_bc_params))
 {
     set_reflective_BC();
 }
@@ -128,13 +129,12 @@ void AMRInterpolator<InterpAlgo>::interp(InterpolationQuery &query)
 {
     BL_PROFILE("AMRInterpolator::interp");
 
-    if (m_verbosity)
+    if (m_verbosity != 0)
     {
         amrex::Print() << TAG << "\x1b[32;1mInterpolating data\x1b[0m"
                        << std::endl;
 
-        for (typename InterpolationQuery::iterator it = query.compsBegin();
-             it != query.compsEnd(); ++it)
+        for (auto it = query.compsBegin(); it != query.compsEnd(); ++it)
         {
             const Derivative deriv = it->first;
 
@@ -170,18 +170,17 @@ void AMRInterpolator<InterpAlgo>::interp(InterpolationQuery &query)
 
     int comp_idx = 0;
 
-    for (typename InterpolationQuery::iterator deriv_it = query.compsBegin();
-         deriv_it != query.compsEnd(); ++deriv_it)
+    for (auto deriv_it = query.compsBegin(); deriv_it != query.compsEnd();
+         ++deriv_it)
     {
-        typedef std::vector<typename InterpolationQuery::out_t> comps_t;
+        using comps_t  = std::vector<typename InterpolationQuery::out_t>;
         comps_t &comps = deriv_it->second;
 
-        for (typename comps_t::iterator it = comps.begin(); it != comps.end();
-             ++it)
+        for (auto &it : comps)
         {
-            int comp          = std::get<0>(*it);
-            double *out       = std::get<1>(*it);
-            VariableType type = std::get<2>(*it);
+            int comp          = std::get<0>(it);
+            double *out       = std::get<1>(it);
+            VariableType type = std::get<2>(it);
             for (int point_idx = 0; point_idx < query.m_num_points; ++point_idx)
             {
                 int parity = get_var_parity(comp, type, point_idx, query,
@@ -526,13 +525,13 @@ found_all_points:
 
 template <typename InterpAlgo>
 void AMRInterpolator<InterpAlgo>::prepareMPI(InterpolationQuery &query,
-                                             const InterpolationLayout layout)
+                                             const InterpolationLayout &layout)
 {
     BL_PROFILE("AMRInterpolator::prepareMPI");
 
     amrex::Print _pout;
 
-    if (m_verbosity)
+    if (m_verbosity != 0)
     {
         _pout << TAG << "Entering prepareMPI" << std::endl;
     }
@@ -549,12 +548,16 @@ void AMRInterpolator<InterpAlgo>::prepareMPI(InterpolationQuery &query,
     // Resize MPI 'query' buffers
     m_query_level.resize(query.m_num_points);
     m_query_box.resize(query.m_num_points);
-    for (int i = 0; i < AMREX_SPACEDIM; ++i)
-        m_query_coords[i].resize(query.m_num_points);
+    for (auto &m_query_coord : m_query_coords)
+    {
+        m_query_coord.resize(query.m_num_points);
+    }
 
     m_query_data.resize(query.numComps());
     for (int comp = 0; comp < query.numComps(); ++comp)
+    {
         m_query_data[comp].resize(query.m_num_points);
+    }
 
     // Reorder query data for MPI_Ialltoallv
     m_mpi_mapping.resize(query.m_num_points);
@@ -586,12 +589,16 @@ void AMRInterpolator<InterpAlgo>::prepareMPI(InterpolationQuery &query,
 
     m_answer_level.resize(num_answers);
     m_answer_box.resize(num_answers);
-    for (int i = 0; i < AMREX_SPACEDIM; ++i)
-        m_answer_coords[i].resize(num_answers);
+    for (auto &m_answer_coord : m_answer_coords)
+    {
+        m_answer_coord.resize(num_answers);
+    }
 
     m_answer_data.resize(query.numComps());
     for (int comp = 0; comp < query.numComps(); ++comp)
+    {
         m_answer_data[comp].resize(num_answers);
+    }
 
     if (m_verbosity >= 2)
     {
@@ -613,7 +620,7 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIQuery()
 
     amrex::Print _pout;
 
-    if (m_verbosity)
+    if (m_verbosity > 0)
     {
         _pout << TAG << "Entering exchangeMPIQuery" << std::endl;
     }
@@ -638,7 +645,7 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIQuery()
         m_answer_coords[i] = m_query_coords[i];
 #endif
 
-    if (m_verbosity)
+    if (m_verbosity > 0)
     {
         _pout << TAG << "Entering exchangeMPIQuery" << std::endl;
     }
@@ -804,7 +811,7 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIAnswer()
 {
     BL_PROFILE("AMRInterpolator::exchangeMPIAnswer");
 
-    if (m_verbosity)
+    if (m_verbosity > 0)
     {
         amrex::Print() << TAG << "Entering exchangeMPIAnswer" << std::endl;
     }
@@ -828,7 +835,7 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIAnswer()
     m_query_data  = m_answer_data;
 #endif
 
-    if (m_verbosity)
+    if (m_verbosity > 0)
     {
         amrex::Print() << TAG << "Leaving exchangeMPIAnswer" << std::endl;
     }
@@ -871,8 +878,10 @@ int AMRInterpolator<InterpAlgo>::get_var_parity(int comp,
         m_bc_params.vars_parity_diagnostic[comp] ==
             BoundaryConditions::UNDEFINED &&
         m_bc_params.reflective_boundaries_exist)
+    {
         amrex::Abort("Please provide parameter 'vars_parity_diagnostic' if "
                      "extracting diagnostic variables with reflective BC");
+    }
 
     int parity = 1;
     FOR (dir)
@@ -884,8 +893,10 @@ int AMRInterpolator<InterpAlgo>::get_var_parity(int comp,
 
             parity *= BoundaryConditions::get_var_parity(comp, dir, m_bc_params,
                                                          type);
-            if (deriv[dir] == 1) // invert parity to first derivatives
+            if (deriv[dir] == 1)
+            { // invert parity to first derivatives
                 parity *= -1;
+            }
         }
     }
     return parity;
@@ -897,9 +908,13 @@ double AMRInterpolator<InterpAlgo>::apply_reflective_BC_on_coord(
 {
     double coord = query.m_coords[dir][point_idx];
     if (m_lo_boundary_reflective[dir] && coord < 0.)
+    {
         coord = -coord;
+    }
     else if (m_hi_boundary_reflective[dir] && coord > m_upper_corner[dir])
+    {
         coord = 2. * m_upper_corner[dir] - coord;
+    }
     return coord;
 }
 

@@ -35,24 +35,23 @@ class IntegrationMethod
 
     //! Checks that this integration method is suitable given the number of
     //! points and periodicity
-    inline bool is_valid(int a_num_points, bool a_is_periodic) const
+    [[nodiscard]] inline bool is_valid(int a_num_points,
+                                       bool a_is_periodic) const
     {
         if (m_is_closed && !a_is_periodic)
         {
             return (a_num_points % m_num_weights == 1 || m_num_weights == 1);
         }
-        else
-        {
-            return (a_num_points % m_num_weights == 0);
-        }
+
+        return (a_num_points % m_num_weights == 0);
     }
 
     //! Returns whether this IntegrationMethod is closed or not
-    inline bool is_closed() const { return m_is_closed; }
+    [[nodiscard]] inline bool is_closed() const { return m_is_closed; }
 
     //! Returns the weight for a point with given index
-    inline double weight(int a_index, int a_num_points,
-                         bool a_is_periodic) const
+    [[nodiscard]] inline double weight(int a_index, int a_num_points,
+                                       bool a_is_periodic) const
     {
         const int weight_index = a_index % m_num_weights;
         const bool endpoint =
@@ -61,9 +60,10 @@ class IntegrationMethod
         // of the formula, need to double the weight as this is how Newton-Cotes
         // formulae are combined.
         if (m_is_closed && !endpoint && weight_index == 0)
+        {
             return 2.0 * m_weights[weight_index];
-        else // otherwise we just use the weight from the formula
-            return m_weights[weight_index];
+        } // otherwise we just use the weight from the formula
+        return m_weights[weight_index];
     }
 
     static const IntegrationMethod trapezium;

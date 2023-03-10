@@ -40,7 +40,7 @@ struct VarsNoGauge : public BSSNVars::VarsNoGauge<data_t>
 template <class data_t>
 struct VarsWithGauge : public BSSNVars::VarsWithGauge<data_t>
 {
-    data_t Theta; //!< CCZ4 quantity associated to hamiltonian constraint
+    data_t Theta{}; //!< CCZ4 quantity associated to hamiltonian constraint
 
     /// Defines the mapping between members of Vars and Chombo grid
     /// variables (enum in User_Variables)

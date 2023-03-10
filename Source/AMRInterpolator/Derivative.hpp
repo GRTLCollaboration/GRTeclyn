@@ -9,38 +9,21 @@
 #include <array>
 #include <string>
 
+#include "AMReX_SPACE.H"
+
 class Derivative : public std::array<int, AMREX_SPACEDIM>
 {
   private:
-    Derivative(int d)
+    Derivative(int d) : array{AMREX_D_DECL(0, 0, 0)} { (*this)[d] = 1; }
+
+    Derivative(int d1, int d2) : array{AMREX_D_DECL(0, 0, 0)}
     {
-        for (int i = 0; i < AMREX_SPACEDIM; ++i)
-        {
-            (*this)[i] = 0;
-        }
-
-        (*this)[d] = 1;
-    }
-
-    Derivative(int d1, int d2)
-    {
-        for (int i = 0; i < AMREX_SPACEDIM; ++i)
-        {
-            (*this)[i] = 0;
-        }
-
         (*this)[d1] += 1;
         (*this)[d2] += 1;
     }
 
   public:
-    Derivative()
-    {
-        for (int i = 0; i < AMREX_SPACEDIM; ++i)
-        {
-            std::array<int, AMREX_SPACEDIM>::operator[](i) = 0;
-        }
-    }
+    Derivative() : array{AMREX_D_DECL(0, 0, 0)} {}
 
     // Ordering for std::map
 
@@ -57,13 +40,7 @@ class Derivative : public std::array<int, AMREX_SPACEDIM>
         return true;
     }
 
-    bool operator!=(const Derivative &deriv) const
-    {
-        if ((*this) == deriv)
-            return false;
-        else
-            return true;
-    }
+    bool operator!=(const Derivative &deriv) const { return (*this) != deriv; }
 
     bool operator<(const Derivative &rhs) const
     {
@@ -80,7 +57,7 @@ class Derivative : public std::array<int, AMREX_SPACEDIM>
         {
             return true;
         }
-        else if (derivs > rhs_derivs)
+        if (derivs > rhs_derivs)
         {
             return false;
         }
@@ -121,25 +98,42 @@ class Derivative : public std::array<int, AMREX_SPACEDIM>
     static std::string name(const Derivative &deriv)
     {
         if (deriv == dx)
+        {
             return "dx";
-        else if (deriv == dy)
+        }
+        if (deriv == dy)
+        {
             return "dy";
-        else if (deriv == dz)
+        }
+        if (deriv == dz)
+        {
             return "dz";
-        else if (deriv == dxdx)
+        }
+        if (deriv == dxdx)
+        {
             return "dxdx";
-        else if (deriv == dydy)
+        }
+        if (deriv == dydy)
+        {
             return "dydy";
-        else if (deriv == dzdz)
+        }
+        if (deriv == dzdz)
+        {
             return "dzdz";
-        else if (deriv == dxdy)
+        }
+        if (deriv == dxdy)
+        {
             return "dxdy";
-        else if (deriv == dxdz)
+        }
+        if (deriv == dxdz)
+        {
             return "dxdz";
-        else if (deriv == dydz)
+        }
+        if (deriv == dydz)
+        {
             return "dydz";
-        else
-            return "";
+        }
+        return "";
     }
 };
 

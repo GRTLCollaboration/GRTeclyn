@@ -46,8 +46,10 @@ void BinaryBHLevel::specificAdvance()
 void BinaryBHLevel::initData()
 {
     BL_PROFILE("BinaryBHLevel::initialData");
-    if (m_verbosity)
+    if (m_verbosity > 0)
+    {
         amrex::Print() << "BinaryBHLevel::initialData " << Level() << std::endl;
+    }
 #ifdef USE_TWOPUNCTURES
     // xxxxx USE_TWOPUNCTURES todo
     TwoPuncturesInitialData two_punctures_initial_data(

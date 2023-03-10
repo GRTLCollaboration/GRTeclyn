@@ -45,7 +45,7 @@ void mainSetup(int argc, char *argv[])
                       []()
                       {
                           amrex::ParmParse pp("amrex");
-                          int the_arena_is_managed = false;
+                          bool the_arena_is_managed = false;
                           // don't use managed memory by default
                           pp.queryAdd("the_arena_is_managed",
                                       the_arena_is_managed);

@@ -21,9 +21,9 @@ namespace ADMConformalVars
 /// Vars object for ADM vars, including gauge vars
 template <class data_t> struct VarsNoGauge
 {
-    data_t chi;          //!< Conformal factor
+    data_t chi{};        //!< Conformal factor
     Tensor<2, data_t> h; //!< Conformal metric
-    data_t K;            //!< Trace of the extrinsic curvature
+    data_t K{};          //!< Trace of the extrinsic curvature
     Tensor<2, data_t> A; //!< trace-free part of the rescale extrinsic
                          //! curvature, i.e. \f$\chi
                          //!(K_{ij})^{\mathrm{TF}}\f$

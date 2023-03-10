@@ -133,7 +133,7 @@ void GRAMRLevel::variableSetUp()
         //
         if (!plot_constraints.empty())
         {
-            names.push_back("constraints");
+            names.emplace_back("constraints");
             pp.addarr("derive_plot_vars", names);
 
             derive_lst.add(
@@ -155,7 +155,7 @@ void GRAMRLevel::variableCleanUp()
     derive_lst.clear();
 }
 
-GRAMRLevel::GRAMRLevel() {}
+GRAMRLevel::GRAMRLevel() = default;
 
 GRAMRLevel::GRAMRLevel(amrex::Amr &papa, int lev, const amrex::Geometry &a_geom,
                        const amrex::BoxArray &ba,
@@ -167,7 +167,7 @@ GRAMRLevel::GRAMRLevel(amrex::Amr &papa, int lev, const amrex::Geometry &a_geom,
                         m_num_ghosts);
 }
 
-GRAMRLevel::~GRAMRLevel() {}
+GRAMRLevel::~GRAMRLevel() = default;
 
 SimulationParameters const &GRAMRLevel::simParams()
 {

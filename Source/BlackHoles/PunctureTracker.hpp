@@ -16,20 +16,20 @@ class PunctureTracker
 {
   private:
     //! Params for puncture tracking
-    int m_num_punctures;
+    int m_num_punctures{0};
     std::vector<std::array<double, AMREX_SPACEDIM>> m_puncture_coords;
     std::vector<std::array<double, AMREX_SPACEDIM>> m_puncture_shift;
-    int m_min_level; //!< the min level on which punctures will be
-                     //!< (to fill ghosts)
+    int m_min_level{}; //!< the min level on which punctures will be
+                       //!< (to fill ghosts)
 
     std::string m_punctures_filename;
 
     // saved pointer to external interpolator
-    AMRInterpolator<Lagrange<4>> *m_interpolator;
+    AMRInterpolator<Lagrange<4>> *m_interpolator{nullptr};
 
   public:
     //! The constructor
-    PunctureTracker() : m_num_punctures(0), m_interpolator(nullptr) {}
+    PunctureTracker() {}
 
     //! set puncture locations on start (or restart)
     //! this needs to be done before 'setupAMRObject'
@@ -54,8 +54,9 @@ class PunctureTracker
     }
 
     // function to get punctures
-    ALWAYS_INLINE const std::vector<std::array<double, AMREX_SPACEDIM>> &
-    get_puncture_coords() const
+    [[nodiscard]] ALWAYS_INLINE const
+        std::vector<std::array<double, AMREX_SPACEDIM>> &
+        get_puncture_coords() const
     {
         return m_puncture_coords;
     }
@@ -65,14 +66,14 @@ class PunctureTracker
     void set_initial_punctures();
 
     //! Set punctures post restart if m_time > 0
-    void read_in_punctures(int a_int_step, double a_restart_time);
+    void read_in_punctures(int a_int_step, double a_current_time);
 
     //! Use the interpolator to get the value of the shift at
     //! given coords
     void interp_shift();
 
     //! Get a vector of the puncture coords - used for write out
-    std::vector<double> get_puncture_vector() const;
+    [[nodiscard]] std::vector<double> get_puncture_vector() const;
 };
 
 #endif /* PUNCTURETRACKER_HPP_ */

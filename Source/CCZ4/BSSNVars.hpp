@@ -39,7 +39,7 @@ struct VarsNoGauge : public ADMConformalVars::VarsNoGauge<data_t>
 /// Vars object for BSSN vars, including gauge vars
 template <class data_t> struct VarsWithGauge : public VarsNoGauge<data_t>
 {
-    data_t lapse;
+    data_t lapse{};
     Tensor<1, data_t> shift;
     Tensor<1, data_t> B; //!< \f$B^i = \partial_t \beta^i\f$, this is used
                          //! for second order shift conditions

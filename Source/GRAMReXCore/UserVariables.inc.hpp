@@ -28,16 +28,15 @@ namespace UserVariables
 /// otherwise
 static int variable_name_to_enum(const std::string &a_var_name)
 {
-    const auto var_name_it =
+    const auto *const var_name_it =
         std::find(variable_names.begin(), variable_names.end(), a_var_name);
 
     int var = std::distance(variable_names.begin(), var_name_it);
     if (var != NUM_VARS)
-        return var;
-    else
     {
-        return -1;
+        return var;
     }
+    return -1;
 }
 
 } // namespace UserVariables
@@ -49,16 +48,15 @@ namespace DiagnosticVariables
 /// otherwise
 static int variable_name_to_enum(const std::string &a_var_name)
 {
-    const auto var_name_it =
+    const auto *const var_name_it =
         std::find(variable_names.begin(), variable_names.end(), a_var_name);
 
     int var = std::distance(variable_names.begin(), var_name_it);
     if (var != NUM_DIAGNOSTIC_VARS)
-        return var;
-    else
     {
-        return -1;
+        return var;
     }
+    return -1;
 }
 
 } // namespace DiagnosticVariables
@@ -98,7 +96,7 @@ load_vars_to_vector(GRParmParse &pp, const char *a_vars_vector_string,
                     std::vector<std::pair<int, VariableType>> &a_vars_vector,
                     int &a_vars_vector_size)
 {
-    int num_values;
+    int num_values = 0;
     pp.load(a_vector_size_string, num_values, -1);
     // only set a_vars_vector and a_var_vector_size if a_vector_size_string
     // found
@@ -106,7 +104,7 @@ load_vars_to_vector(GRParmParse &pp, const char *a_vars_vector_string,
     {
         std::vector<std::string> var_names(num_values, "");
         pp.load(a_vars_vector_string, var_names, num_values, var_names);
-        for (std::string var_name : var_names)
+        for (const std::string &var_name : var_names)
         {
             // first assume the variable is a normal evolution var
             int var = UserVariables::variable_name_to_enum(var_name);

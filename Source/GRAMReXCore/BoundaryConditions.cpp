@@ -5,8 +5,10 @@
 
 // Other includes
 #include "BoundaryConditions.hpp"
+
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <map>
 #include <numeric>
 #include <string>
@@ -35,7 +37,9 @@ void BoundaryConditions::params_t::set_is_periodic(
     FOR (idir)
     {
         if (!is_periodic[idir])
+        {
             nonperiodic_boundaries_exist = true;
+        }
     }
 }
 void BoundaryConditions::params_t::set_hi_boundary(
@@ -116,26 +120,34 @@ void BoundaryConditions::params_t::read_params(GRParmParse &pp)
 
     // still load even if not contained, to ensure printout saying parameters
     // were set to their default values
-    std::array<bool, AMREX_SPACEDIM> isPeriodic;
+    std::array<bool, AMREX_SPACEDIM> isPeriodic{};
     pp.load("isPeriodic", isPeriodic, is_periodic);
     if (pp.contains("isPeriodic"))
+    {
         set_is_periodic(isPeriodic);
+    }
 
-    std::array<int, AMREX_SPACEDIM> hiBoundary;
+    std::array<int, AMREX_SPACEDIM> hiBoundary{};
     pp.load("hi_boundary", hiBoundary, hi_boundary);
     if (pp.contains("hi_boundary"))
+    {
         set_hi_boundary(hiBoundary);
+    }
 
-    std::array<int, AMREX_SPACEDIM> loBoundary;
+    std::array<int, AMREX_SPACEDIM> loBoundary{};
     pp.load("lo_boundary", loBoundary, lo_boundary);
     if (pp.contains("lo_boundary"))
+    {
         set_lo_boundary(loBoundary);
+    }
 
     if (reflective_boundaries_exist)
     {
         pp.load("vars_parity", vars_parity);
         if (pp.contains("vars_parity_diagnostic"))
+        {
             pp.load("vars_parity_diagnostic", vars_parity_diagnostic);
+        }
     }
     if (sommerfeld_boundaries_exist)
     {
@@ -173,13 +185,12 @@ void BoundaryConditions::params_t::read_params(GRParmParse &pp)
             bool is_extrapolating = false;
             // if the variable is not in extrapolating vars, it
             // is assumed to be sommerfeld by default
-            for (std::size_t icomp2 = 0; icomp2 < extrapolating_vars.size();
-                 icomp2++)
+            for (auto &extrapolating_var : extrapolating_vars)
             {
-                if (icomp == extrapolating_vars[icomp2].first)
+                if (icomp == extrapolating_var.first)
                 {
                     // should be an evolution variable
-                    AMREX_ASSERT(extrapolating_vars[icomp2].second ==
+                    AMREX_ASSERT(extrapolating_var.second ==
                                  VariableType::evolution);
                     mixed_bc_vars_map.insert(
                         std::make_pair(icomp, EXTRAPOLATING_BC));
@@ -464,7 +475,7 @@ void BoundaryConditions::apply_sommerfeld_boundaries(
             amrex::Gpu::hostToDevice, m_params.vars_asymptotic_values.begin(),
             m_params.vars_asymptotic_values.end(), m_asymptotic_values.begin());
     }
-    auto asymptotic_values = m_asymptotic_values.data();
+    auto *asymptotic_values = m_asymptotic_values.data();
 
 #if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
 #pragma omp parallel
@@ -492,7 +503,7 @@ void BoundaryConditions::apply_sommerfeld_boundaries(
                         {
                             amrex::IntVect iv_offset1 = iv;
                             amrex::IntVect iv_offset2 = iv;
-                            amrex::Real d1;
+                            amrex::Real d1            = NAN;
                             if (iv[idir2] == domlo[idir2])
                             {
                                 iv_offset1[idir2] += +1;
@@ -734,7 +745,7 @@ void BoundaryConditions::fill_boundary_cells_dir(
 
 void BoundaryConditions::fill_sommerfeld_cell(
     amrex::FArrayBox &rhs_box, const amrex::FArrayBox &soln_box,
-    const amrex::IntVect iv, const std::vector<int> &sommerfeld_comps) const
+    const amrex::IntVect iv, const std::vector<int> &sommerfeld_comps)
 {
     amrex::Abort("xxxxx todo BoundaryConditions::fill_sommerfeld_cell");
     amrex::ignore_unused(rhs_box, soln_box, iv, sommerfeld_comps);

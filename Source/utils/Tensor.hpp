@@ -18,7 +18,7 @@ template <int rank, class data_t, int size = DEFAULT_TENSOR_DIM> class Tensor
     arr_t arr;
 
   public:
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr Tensor() {}
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr Tensor() = default;
 
     //    ALWAYS_INLINE
     //    Tensor(std::initializer_list<data_t> list) :
@@ -38,11 +38,11 @@ template <int rank, class data_t, int size = DEFAULT_TENSOR_DIM> class Tensor
 template <class data_t, int size> class Tensor<0, data_t, size>
 {
     template <int, class, int> friend class Tensor;
-    typedef data_t arr_t;
+    using arr_t = data_t;
     arr_t arr;
 
   public:
-    constexpr Tensor() {}
+    constexpr Tensor() = default;
 
     constexpr Tensor(data_t val) : arr(val) {}
 

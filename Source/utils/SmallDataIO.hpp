@@ -32,7 +32,7 @@ class SmallDataIO
     const double m_dt;
     const double m_time;
     const double m_restart_time;
-    int m_step;
+    int m_step{};
     const Mode m_mode;
     const bool m_first_step; // this should be set to true if this is the first
                              // timestep
@@ -52,12 +52,13 @@ class SmallDataIO
 
   public:
     //! Constructor (opens file)
-    SmallDataIO(std::string a_filename_prefix, double a_dt, double a_time,
-                double a_restart_time, Mode a_mode, bool a_first_step,
-                std::string a_file_extension = s_default_file_extension,
-                int a_data_precision         = s_default_data_precision,
-                int a_coords_precision       = s_default_coords_precision,
-                int a_filename_steps_width   = s_default_filename_steps_width);
+    SmallDataIO(const std::string &a_filename_prefix, double a_dt,
+                double a_time, double a_restart_time, Mode a_mode,
+                bool a_first_step,
+                const std::string &a_file_extension = s_default_file_extension,
+                int a_data_precision                = s_default_data_precision,
+                int a_coords_precision     = s_default_coords_precision,
+                int a_filename_steps_width = s_default_filename_steps_width);
 
     //! Old constructor which assumes SmallDataIO is called in
     //! specificPostTimeStep
@@ -125,7 +126,7 @@ class SmallDataIO
     //! Get the data associated to specific coordinates from the file
     //! Note only the first line with the given coordinates is obtained
     void get_specific_data_line(std::vector<double> &a_out_data,
-                                const std::vector<double> a_coords);
+                                const std::vector<double> &a_coords);
 
     //! Get the data associated to a specific coordinate (e.g. time) from the
     //! file
@@ -137,7 +138,7 @@ class SmallDataIO
     //! returns the full filename of a file created in NEW mode at time=a_time
     //! with dt=a_dt
     static std::string get_new_filename(
-        const std::string &a_filename_prefix, double a_dt, double a_time,
+        const std::string &a_file_prefix, double a_dt, double a_time,
         const std::string &a_file_extension = s_default_file_extension,
         int a_filename_steps_width          = s_default_filename_steps_width);
 

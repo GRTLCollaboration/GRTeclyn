@@ -247,7 +247,7 @@ lower_all(const Tensor<2, data_t> &tensor_UU, const Tensor<2, data_t> &metric)
 }
 
 /// Computes the (i,j) component of the Kronecker delta
-constexpr int delta(int i, int j) { return (i == j); }
+constexpr int delta(int i, int j) { return static_cast<int>(i == j); }
 
 /// Computes the levi-civita symbol (3D, NB, symbol, not the Tensor)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<3, double> epsilon()

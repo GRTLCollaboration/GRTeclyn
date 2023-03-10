@@ -17,10 +17,10 @@
 class InterpolationQuery
 {
   public:
-    typedef std::tuple<int, double *, VariableType> out_t;
-    typedef std::map<Derivative, std::vector<out_t>> comp_map_t;
-    typedef
-        typename std::map<Derivative, std::vector<out_t>>::iterator iterator;
+    using out_t      = std::tuple<int, double *, VariableType>;
+    using comp_map_t = std::map<Derivative, std::vector<out_t>>;
+    using iterator =
+        typename std::map<Derivative, std::vector<out_t>>::iterator;
 
     const int m_num_points;
 
@@ -32,7 +32,7 @@ class InterpolationQuery
 
   public:
     InterpolationQuery(int num_points)
-        : m_num_points(num_points), m_coords(AMREX_SPACEDIM, NULL)
+        : m_num_points(num_points), m_coords(AMREX_SPACEDIM, nullptr)
     {
     }
 
@@ -50,7 +50,7 @@ class InterpolationQuery
     {
         AMREX_ASSERT(out_ptr != NULL || m_num_points == 0);
 
-        iterator result = m_comps.find(deriv);
+        auto result = m_comps.find(deriv);
         if (result == m_comps.end())
         {
             result = m_comps
@@ -59,7 +59,7 @@ class InterpolationQuery
                          .first;
         }
 
-        result->second.push_back(out_t(comp, out_ptr, variable_type));
+        result->second.emplace_back(comp, out_ptr, variable_type);
         return *this;
     }
 
@@ -73,9 +73,9 @@ class InterpolationQuery
     {
         int accum = 0;
 
-        for (iterator it = m_comps.begin(); it != m_comps.end(); ++it)
+        for (auto &m_comp : m_comps)
         {
-            accum += it->second.size();
+            accum += m_comp.second.size();
         }
 
         return accum;

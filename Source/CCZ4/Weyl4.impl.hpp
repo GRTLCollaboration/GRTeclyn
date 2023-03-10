@@ -119,7 +119,9 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t<data_t> Weyl4::compute_EB_fields(
     // confuse with the typical 'K-2*Theta' that appears in the CCZ4 equations
     data_t K_minus_theta = vars.K;
     if (m_formulation == CCZ4RHS<>::USE_CCZ4)
+    {
         K_minus_theta -= vars.Theta;
+    }
 
     // Calculate electric and magnetic fields
     FOR (i, j)

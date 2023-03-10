@@ -31,7 +31,7 @@ class MPILayout
     std::vector<int> m_counts;
     mutable std::vector<int> m_displs;
 
-    mutable int m_total_count;
+    mutable int m_total_count{};
     mutable bool m_dirty;
 
     inline void updateDirty() const;

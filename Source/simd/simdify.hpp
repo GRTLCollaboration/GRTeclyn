@@ -23,7 +23,7 @@
  */
 template <typename data_t> struct simd_proxy
 {
-    typedef simd<std::remove_cv_t<data_t>> simd_t;
+    using simd_t = simd<std::remove_cv_t<data_t>>;
     data_t *const m_ptr;
 
     ALWAYS_INLINE
@@ -160,17 +160,16 @@ template <typename q, typename t> struct _simd_enable_if_same<q, q, t>
 };
 
 // This struct is used to create the right return types for the SIMDIFY function
-template <typename t, typename ptr_t> struct _simdify
+template <typename t, typename ptr_t> struct simdify
 {
-    typedef
-        typename _simd_enable_if_same<t, std::remove_cv_t<ptr_t>, ptr_t *>::type
-            type;
+    using type = typename _simd_enable_if_same<t, std::remove_cv_t<ptr_t>,
+                                               ptr_t *>::type;
 };
 
-template <typename t, typename ptr_t> struct _simdify<simd<t>, ptr_t>
+template <typename t, typename ptr_t> struct simdify<simd<t>, ptr_t>
 {
-    typedef typename _simd_enable_if_same<t, std::remove_cv_t<ptr_t>,
-                                          simd_array_wrapper<ptr_t>>::type type;
+    using type = typename _simd_enable_if_same<t, std::remove_cv_t<ptr_t>,
+                                               simd_array_wrapper<ptr_t>>::type;
 };
 //<--End: structs that help create the return type of SIMDIFY and make sure it
 // is only called on valid input types.
@@ -190,8 +189,8 @@ template <typename t, typename ptr_t> struct _simdify<simd<t>, ptr_t>
 // ptr_t: return type simd_array_wrapper<ptr_t> - Else: substitution failure
 template <typename t, typename ptr_t>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    typename _simdify<t, ptr_t>::type // See comments at _simdify for
-                                      // explanation of return types
+    typename simdify<t, ptr_t>::type // See comments at _simdify for
+                                     // explanation of return types
     SIMDIFY(ptr_t *ptr)
 {
     return ptr;

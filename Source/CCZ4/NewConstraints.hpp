@@ -32,8 +32,8 @@ class Constraints
     /// Vars object for Constraints
     template <class data_t> struct Vars
     {
-        data_t Ham;
-        data_t Ham_abs_terms;
+        data_t Ham{};
+        data_t Ham_abs_terms{};
         Tensor<1, data_t> Mom;
         Tensor<1, data_t> Mom_abs_terms;
     };

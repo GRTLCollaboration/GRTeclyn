@@ -31,19 +31,19 @@ template <class SurfaceGeometry> class SurfaceExtraction
   public:
     struct params_t
     {
-        int num_surfaces; //!< number of surfaces over which to extraction
+        int num_surfaces{}; //!< number of surfaces over which to extraction
         std::vector<double>
             surface_param_values; //!< the values of the
                                   //!< parameter that gives the required
                                   //!< surfaces with SurfaceGeom geometry (e.g.
                                   //!< radii for spherical shells)
-        int num_points_u; //!< the number of points for the first parameter
-                          //!< that parameterises each surface
-        int num_points_v; //!< the number of points for the second parameter
-                          //!< that parameterises each surfaces
+        int num_points_u{}; //!< the number of points for the first parameter
+                            //!< that parameterises each surface
+        int num_points_v{}; //!< the number of points for the second parameter
+                            //!< that parameterises each surfaces
         std::vector<int> extraction_levels; //!< the level on which to do the
                                             //!< extraction for each surface
-        bool write_extraction; //!< whether or not to write the extracted data
+        bool write_extraction{}; //!< whether or not to write the extracted data
 
         std::string data_path, integral_file_prefix;
         std::string extraction_path, extraction_file_prefix;
@@ -64,14 +64,14 @@ template <class SurfaceGeometry> class SurfaceExtraction
     std::vector<std::tuple<int, VariableType, Derivative>>
         m_vars; //!< the vector of pairs of
     //!< variables and derivatives to extract
-    const double m_dt;
-    const double m_time;
-    const bool m_first_step;
-    const double m_restart_time;
-    const int m_num_interp_points; //!< the total number of points this rank
-                                   //!< will extract (0 on ranks > 0)
-    const double m_du; //!< the grid spacing in u (used in integrate)
-    const double m_dv; //!< the grid spacing in v (used in integrate)
+    const double m_dt{};
+    const double m_time{};
+    const bool m_first_step{};
+    const double m_restart_time{};
+    const int m_num_interp_points{}; //!< the total number of points this
+                                     //!< rank will extract (0 on ranks > 0)
+    const double m_du{}; //!< the grid spacing in u (used in integrate)
+    const double m_dv{}; //!< the grid spacing in v (used in integrate)
 
     std::vector<std::vector<double>> m_interp_data;
     std::array<std::vector<double>, AMREX_SPACEDIM> m_interp_coords;
@@ -85,12 +85,12 @@ template <class SurfaceGeometry> class SurfaceExtraction
     std::vector<std::reference_wrapper<std::vector<double>>> m_integrals;
     std::vector<bool> m_broadcast_integrals;
 
-    bool m_done_extraction; //!< whether or not the extract function has been
-                            //!< called for this object
+    bool m_done_extraction{}; //!< whether or not the extract function has
+                              //!< been called for this object
 
     //! returns the flattened index for m_interp_data and m_interp_coords
     //! associated to given surface, u and v indices
-    int index(int a_isurface, int a_iu, int a_iv) const
+    [[nodiscard]] int index(int a_isurface, int a_iu, int a_iv) const
     {
         return a_isurface * m_params.num_points_u * m_params.num_points_v +
                a_iu * m_params.num_points_v + a_iv;
@@ -99,7 +99,7 @@ template <class SurfaceGeometry> class SurfaceExtraction
   public:
     //! Normal constructor which requires vars to be added after construction
     //! using add_var or add_vars
-    SurfaceExtraction(const SurfaceGeometry &a_geom, const params_t &a_params,
+    SurfaceExtraction(const SurfaceGeometry &a_geom, params_t a_params,
                       double a_dt, double a_time, bool a_first_step,
                       double a_restart_time = 0.0);
 
@@ -183,8 +183,8 @@ template <class SurfaceGeometry> class SurfaceExtraction
     //! convenience caller for write_integrals in the case of just integral per
     //! surface
     void write_integral(const std::string &a_filename,
-                        const std::vector<double> a_integrals,
-                        const std::string a_label = "") const;
+                        const std::vector<double> &a_integrals,
+                        const std::string &a_label = "") const;
 };
 
 #include "SurfaceExtraction.impl.hpp"

@@ -51,9 +51,7 @@ class MPIContext
     MPILayout m_query;
     MPILayout m_answer;
 
-    bool m_query_dirty;
-
-    bool m_async_active;
+    bool m_async_active{false};
 #ifdef AMREX_USE_MPI
     std::vector<MPI_Request> m_mpi_requests;
 #endif
