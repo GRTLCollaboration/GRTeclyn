@@ -1,6 +1,6 @@
 ---
 Checks: >
-    'clang-diagnostic-*,
+     clang-diagnostic-*,
      clang-analyzer-*,
      bugprone-*,
      cppcoreguidelines-*,
@@ -15,7 +15,7 @@ Checks: >
      performance-*,
      readability-*,
       -readability-magic-numbers,
-      -readability-avoid-const-params-in-decls'
+      -readability-avoid-const-params-in-decls
 WarningsAsErrors: ''
 HeaderFilterRegex: '.*\.hpp'
 FormatStyle:     none
