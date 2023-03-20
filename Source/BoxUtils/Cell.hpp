@@ -29,7 +29,7 @@ AMREX_GPU_DEVICE void load_vars(amrex::CellData<data_t> const &cell,
 template <template <typename> class vars_t, class data_t>
 AMREX_GPU_DEVICE auto load_vars(amrex::CellData<data_t> const &cell)
 {
-    vars_t<std::remove_const_t<data_t>> vars;
+    vars_t<std::remove_const_t<data_t>> vars{};
     load_vars(cell, vars);
     return vars;
 }

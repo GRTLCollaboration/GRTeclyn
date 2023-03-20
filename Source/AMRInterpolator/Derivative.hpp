@@ -61,24 +61,22 @@ class Derivative : public std::array<int, AMREX_SPACEDIM>
         {
             return false;
         }
-        else
-        {
-            for (int i = 0; i < AMREX_SPACEDIM; ++i)
-            {
-                // This is counterintuitive but is actually the ordering the we
-                // want in order to generalise to arbitrary #dims
-                if ((*this)[i] > rhs[i])
-                {
-                    return true;
-                }
-                else if ((*this)[i] < rhs[i])
-                {
-                    return false;
-                }
-            }
 
-            return false;
+        for (int i = 0; i < AMREX_SPACEDIM; ++i)
+        {
+            // This is counterintuitive but is actually the ordering the we
+            // want in order to generalise to arbitrary #dims
+            if ((*this)[i] > rhs[i])
+            {
+                return true;
+            }
+            else if ((*this)[i] < rhs[i])
+            {
+                return false;
+            }
         }
+
+        return false;
     }
 
     static const Derivative LOCAL;

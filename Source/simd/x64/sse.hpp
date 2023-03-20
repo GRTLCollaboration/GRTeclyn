@@ -199,7 +199,7 @@ template <> struct simd<float> : public simd_base<float>
         _mm_storeu_ps(&_false[0], false_value);
         for (int i = 0; i < 4; ++i)
         {
-            _blend[i] = _cond[i] != 0.0f ? _true[i] : _false[i];
+            _blend[i] = _cond[i] != 0.0F ? _true[i] : _false[i];
         }
         return _mm_loadu_ps(&_blend[0]);
 #endif

@@ -88,22 +88,22 @@ SmallDataIO::SmallDataIO(const std::string &a_filename_prefix, double a_dt,
     }
 }
 
-SmallDataIO::SmallDataIO(std::string a_filename_prefix, double a_dt,
+SmallDataIO::SmallDataIO(const std::string &a_filename_prefix, double a_dt,
                          double a_time, double a_restart_time, Mode a_mode,
-                         std::string a_file_extension, int a_data_precision,
-                         int a_coords_precision, int a_filename_steps_width)
-    : SmallDataIO(std::move(a_filename_prefix), a_dt, a_time, a_restart_time,
-                  a_mode, (a_time == a_dt), std::move(a_file_extension),
-                  a_data_precision, a_coords_precision, a_filename_steps_width)
+                         const std::string &a_file_extension,
+                         int a_data_precision, int a_coords_precision,
+                         int a_filename_steps_width)
+    : SmallDataIO(a_filename_prefix, a_dt, a_time, a_restart_time, a_mode,
+                  (a_time == a_dt), a_file_extension, a_data_precision,
+                  a_coords_precision, a_filename_steps_width)
 {
 }
 
-SmallDataIO::SmallDataIO(std::string a_filename_prefix,
-                         std::string a_file_extension, int a_data_precision,
-                         int a_coords_precision)
-    : SmallDataIO(std::move(a_filename_prefix), 0.0, 0.0, 0.0, READ, false,
-                  std::move(a_file_extension), a_data_precision,
-                  a_coords_precision, 0)
+SmallDataIO::SmallDataIO(const std::string &a_filename_prefix,
+                         const std::string &a_file_extension,
+                         int a_data_precision, int a_coords_precision)
+    : SmallDataIO(a_filename_prefix, 0.0, 0.0, 0.0, READ, false,
+                  a_file_extension, a_data_precision, a_coords_precision, 0)
 {
 }
 

@@ -25,7 +25,7 @@ SurfaceExtraction<SurfaceGeometry>::SurfaceExtraction(
                                     m_params.num_points_v
                               : 0),
       m_du(m_geom.du(m_params.num_points_u)),
-      m_dv(m_geom.dv(m_params.num_points_v)), m_done_extraction(false)
+      m_dv(m_geom.dv(m_params.num_points_v))
 {
     // check folders only in first two timesteps
     // (or at m_first_step if this is not the first two timesteps)

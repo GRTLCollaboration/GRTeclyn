@@ -151,10 +151,10 @@ template <typename data_t> struct simd_array_wrapper
 // If the first and second template parameter are the same then this struct will
 // have a member of type  given by the third template parameter and called
 // "type"
-template <typename q1, typename q2, typename t> struct _simd_enable_if_same
+template <typename q1, typename q2, typename t> struct simd_enable_if_same
 {
 };
-template <typename q, typename t> struct _simd_enable_if_same<q, q, t>
+template <typename q, typename t> struct simd_enable_if_same<q, q, t>
 {
     using type = t;
 };
@@ -162,14 +162,14 @@ template <typename q, typename t> struct _simd_enable_if_same<q, q, t>
 // This struct is used to create the right return types for the SIMDIFY function
 template <typename t, typename ptr_t> struct simdify
 {
-    using type = typename _simd_enable_if_same<t, std::remove_cv_t<ptr_t>,
-                                               ptr_t *>::type;
+    using type =
+        typename simd_enable_if_same<t, std::remove_cv_t<ptr_t>, ptr_t *>::type;
 };
 
 template <typename t, typename ptr_t> struct simdify<simd<t>, ptr_t>
 {
-    using type = typename _simd_enable_if_same<t, std::remove_cv_t<ptr_t>,
-                                               simd_array_wrapper<ptr_t>>::type;
+    using type = typename simd_enable_if_same<t, std::remove_cv_t<ptr_t>,
+                                              simd_array_wrapper<ptr_t>>::type;
 };
 //<--End: structs that help create the return type of SIMDIFY and make sure it
 // is only called on valid input types.

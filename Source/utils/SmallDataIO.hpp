@@ -62,18 +62,18 @@ class SmallDataIO
 
     //! Old constructor which assumes SmallDataIO is called in
     //! specificPostTimeStep
-    SmallDataIO(std::string a_filename_prefix, double a_dt, double a_time,
-                double a_restart_time, Mode a_mode,
-                std::string a_file_extension = s_default_file_extension,
-                int a_data_precision         = s_default_data_precision,
-                int a_coords_precision       = s_default_coords_precision,
-                int a_filename_steps_width   = s_default_filename_steps_width);
+    SmallDataIO(const std::string &a_filename_prefix, double a_dt,
+                double a_time, double a_restart_time, Mode a_mode,
+                const std::string &a_file_extension = s_default_file_extension,
+                int a_data_precision                = s_default_data_precision,
+                int a_coords_precision     = s_default_coords_precision,
+                int a_filename_steps_width = s_default_filename_steps_width);
 
     //! Constructor for reading when m_time, m_dt, m_restart_time are irrelevant
-    SmallDataIO(std::string a_filename_prefix,
-                std::string a_file_extension = s_default_file_extension,
-                int a_data_precision         = s_default_data_precision,
-                int a_coords_precision       = s_default_coords_precision);
+    SmallDataIO(const std::string &a_filename_prefix,
+                const std::string &a_file_extension = s_default_file_extension,
+                int a_data_precision                = s_default_data_precision,
+                int a_coords_precision = s_default_coords_precision);
 
     //! Destructor (closes file)
     ~SmallDataIO();

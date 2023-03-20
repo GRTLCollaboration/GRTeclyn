@@ -304,7 +304,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE chris_t<data_t>
 compute_christoffel(const Tensor<2, Tensor<1, data_t>> &d1_metric,
                     const Tensor<2, data_t> &h_UU)
 {
-    chris_t<data_t> out;
+    chris_t<data_t> out{};
 
     FOR (i, j, k)
     {

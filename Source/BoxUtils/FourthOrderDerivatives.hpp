@@ -126,7 +126,7 @@ class FourthOrderDerivatives
     AMREX_GPU_DEVICE [[nodiscard]] AMREX_FORCE_INLINE auto
     diff2(int i, int j, int k, amrex::Array4<data_t const> const &state) const
     {
-        vars_t<Tensor<2, data_t>> d2;
+        vars_t<Tensor<2, data_t>> d2{};
         const auto *p = state.ptr(i, j, k);
         amrex::GpuArray<int, AMREX_SPACEDIM> strides{
             1, static_cast<int>(state.jstride),

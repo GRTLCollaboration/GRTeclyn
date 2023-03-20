@@ -205,10 +205,10 @@ class SimulationParameters : public SimulationParametersBase
         // Get the centers of the BHs either explicitly or as
         // an offset (not both, or they will be offset from center
         // provided)
-        std::array<double, AMREX_SPACEDIM> centerA;
-        std::array<double, AMREX_SPACEDIM> centerB;
-        std::array<double, AMREX_SPACEDIM> offsetA;
-        std::array<double, AMREX_SPACEDIM> offsetB;
+        std::array<double, AMREX_SPACEDIM> centerA{};
+        std::array<double, AMREX_SPACEDIM> centerB{};
+        std::array<double, AMREX_SPACEDIM> offsetA{};
+        std::array<double, AMREX_SPACEDIM> offsetB{};
         pp.load("centerA", centerA, center);
         pp.load("centerB", centerB, center);
         pp.load("offsetA", offsetA, {0.0, 0.0, 0.0});

@@ -3,7 +3,7 @@
 
 struct Interval
 {
-    Interval() {}
+    Interval() = default;
 
     Interval(int a_firstComp, int a_lastComp)
         : m_begin(a_firstComp), m_end(a_lastComp)

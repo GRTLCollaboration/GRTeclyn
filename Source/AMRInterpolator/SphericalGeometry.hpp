@@ -38,13 +38,13 @@ class SphericalGeometry
     }
 
     //! returns the theta coordinate associated to the theta/u index
-    [[nodiscard]] inline double u(int a_itheta, int a_num_points_theta) const
+    [[nodiscard]] static inline double u(int a_itheta, int a_num_points_theta)
     {
         return a_itheta * du(a_num_points_theta);
     }
 
     //! returns the phi coordinate associated to the phi/v index
-    [[nodiscard]] inline double v(int a_iphi, int a_num_points_phi) const
+    [[nodiscard]] static inline double v(int a_iphi, int a_num_points_phi)
     {
         return a_iphi * dv(a_num_points_phi);
     }

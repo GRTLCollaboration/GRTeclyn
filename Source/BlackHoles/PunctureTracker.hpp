@@ -29,7 +29,7 @@ class PunctureTracker
 
   public:
     //! The constructor
-    PunctureTracker() {}
+    PunctureTracker() = default;
 
     //! set puncture locations on start (or restart)
     //! this needs to be done before 'setupAMRObject'
