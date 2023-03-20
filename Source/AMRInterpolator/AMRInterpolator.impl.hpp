@@ -629,12 +629,13 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIQuery()
                      // MPIContext ... the only issue is the MPI datatype
     m_mpi.asyncBegin();
 
-    m_mpi.asyncExchangeQuery(&m_query_level[0], &m_answer_level[0], MPI_INT);
-    m_mpi.asyncExchangeQuery(&m_query_box[0], &m_answer_box[0], MPI_INT);
+    m_mpi.asyncExchangeQuery(m_query_level.data(), m_answer_level.data(),
+                             MPI_INT);
+    m_mpi.asyncExchangeQuery(m_query_box.data(), m_answer_box.data(), MPI_INT);
     for (int i = 0; i < AMREX_SPACEDIM; ++i)
     {
-        m_mpi.asyncExchangeQuery(&m_query_coords[i][0], &m_answer_coords[i][0],
-                                 MPI_DOUBLE);
+        m_mpi.asyncExchangeQuery(m_query_coords[i].data(),
+                                 m_answer_coords[i].data(), MPI_DOUBLE);
     }
 
     m_mpi.asyncEnd();
@@ -820,12 +821,13 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIAnswer()
                      // MPIContext ... the only issue is the MPI datatype
     m_mpi.asyncBegin();
 
-    m_mpi.asyncExchangeAnswer(&m_answer_level[0], &m_query_level[0], MPI_INT);
-    m_mpi.asyncExchangeAnswer(&m_answer_box[0], &m_query_box[0], MPI_INT);
+    m_mpi.asyncExchangeAnswer(m_answer_level.data(), m_query_level.data(),
+                              MPI_INT);
+    m_mpi.asyncExchangeAnswer(m_answer_box.data(), m_query_box.data(), MPI_INT);
     for (std::size_t comp = 0; comp < m_answer_data.size(); ++comp)
     {
-        m_mpi.asyncExchangeAnswer(&m_answer_data[comp][0],
-                                  &m_query_data[comp][0], MPI_DOUBLE);
+        m_mpi.asyncExchangeAnswer(m_answer_data[comp].data(),
+                                  m_query_data[comp].data(), MPI_DOUBLE);
     }
 
     m_mpi.asyncEnd();

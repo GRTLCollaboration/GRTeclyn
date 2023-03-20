@@ -70,7 +70,7 @@ class Derivative : public std::array<int, AMREX_SPACEDIM>
             {
                 return true;
             }
-            else if ((*this)[i] < rhs[i])
+            if ((*this)[i] < rhs[i])
             {
                 return false;
             }

@@ -32,7 +32,7 @@ class MPILayout
     mutable std::vector<int> m_displs;
 
     mutable int m_total_count{};
-    mutable bool m_dirty;
+    mutable bool m_dirty{false};
 
     inline void updateDirty() const;
     inline int *countsPtr();

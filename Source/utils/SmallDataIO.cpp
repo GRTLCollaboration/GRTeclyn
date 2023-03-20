@@ -39,9 +39,10 @@ SmallDataIO::SmallDataIO(const std::string &a_filename_prefix, double a_dt,
       m_data_epsilon(std::pow(10.0, -a_data_precision)),
       m_coords_precision(a_coords_precision),
       m_coords_width(m_coords_precision + 5),
-      m_coords_epsilon(std::pow(10.0, -a_coords_precision))
+      m_coords_epsilon(std::pow(10.0, -a_coords_precision)),
+      m_rank(amrex::ParallelDescriptor::MyProc())
 {
-    m_rank = amrex::ParallelDescriptor::MyProc();
+
     if (m_rank == 0)
     {
         std::ios::openmode file_openmode = std::ios::out;

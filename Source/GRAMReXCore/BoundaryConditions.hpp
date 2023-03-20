@@ -56,11 +56,11 @@ class BoundaryConditions
         std::array<int, AMREX_SPACEDIM> hi_boundary{};
         std::array<int, AMREX_SPACEDIM> lo_boundary{};
         std::array<bool, AMREX_SPACEDIM> is_periodic{};
-        bool nonperiodic_boundaries_exist;
-        bool boundary_solution_enforced;
-        bool boundary_rhs_enforced;
-        bool reflective_boundaries_exist;
-        bool sommerfeld_boundaries_exist;
+        bool nonperiodic_boundaries_exist{false};
+        bool boundary_solution_enforced{false};
+        bool boundary_rhs_enforced{false};
+        bool reflective_boundaries_exist{false};
+        bool sommerfeld_boundaries_exist{false};
         bool extrapolating_boundaries_exist{};
         bool mixed_boundaries_exist{};
 
@@ -69,7 +69,7 @@ class BoundaryConditions
             vars_parity_diagnostic{}; /* needed only in AMRInterpolator */
         std::array<double, NUM_VARS> vars_asymptotic_values{};
         std::map<int, int> mixed_bc_vars_map;
-        int extrapolation_order;
+        int extrapolation_order{1};
         params_t(); // sets the defaults
         void
         set_is_periodic(const std::array<bool, AMREX_SPACEDIM> &a_is_periodic);
@@ -86,12 +86,13 @@ class BoundaryConditions
     params_t m_params;        // the boundary params
     amrex::RealVect m_center; // the position of the center of the grid
     amrex::Geometry m_geom;   // the problem domain (excludes boundary cells)
-    bool is_defined; // whether the BoundaryConditions class members are defined
+    bool is_defined{
+        false}; // whether the BoundaryConditions class members are defined
     mutable amrex::Gpu::DeviceVector<double> m_asymptotic_values;
 
   public:
     /// Default constructor - need to call define afterwards
-    BoundaryConditions() { is_defined = false; }
+    BoundaryConditions() {}
 
     BoundaryConditions(BoundaryConditions const &)            = delete;
     BoundaryConditions(BoundaryConditions &&)                 = delete;

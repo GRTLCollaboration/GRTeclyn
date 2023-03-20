@@ -8,7 +8,7 @@
 
 inline MPILayout::MPILayout(int num_process)
     : m_num_process(num_process), m_counts(m_num_process, 0),
-      m_displs(m_num_process, 0), m_dirty(false)
+      m_displs(m_num_process, 0)
 {
 }
 
@@ -63,7 +63,7 @@ inline void MPILayout::updateDirty() const
     m_dirty = false;
 }
 
-inline int *MPILayout::countsPtr() { return &m_counts[0]; }
+inline int *MPILayout::countsPtr() { return m_counts.data(); }
 
 inline int *MPILayout::displsPtr()
 {
@@ -71,7 +71,7 @@ inline int *MPILayout::displsPtr()
     {
         updateDirty();
     }
-    return &m_displs[0];
+    return m_displs.data();
 }
 
 #endif /* MPILAYOUT_IMPL_HPP_ */

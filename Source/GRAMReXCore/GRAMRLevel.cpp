@@ -160,9 +160,10 @@ GRAMRLevel::GRAMRLevel() = default;
 GRAMRLevel::GRAMRLevel(amrex::Amr &papa, int lev, const amrex::Geometry &a_geom,
                        const amrex::BoxArray &ba,
                        const amrex::DistributionMapping &dm, amrex::Real time)
-    : amrex::AmrLevel(papa, lev, a_geom, ba, dm, time)
+    : amrex::AmrLevel(papa, lev, a_geom, ba, dm, time),
+      m_num_ghosts(simParams().num_ghosts)
 {
-    m_num_ghosts = simParams().num_ghosts;
+
     m_boundaries.define(simParams().center, simParams().boundary_params, a_geom,
                         m_num_ghosts);
 }

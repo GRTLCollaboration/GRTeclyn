@@ -19,15 +19,10 @@ BoundaryConditions::params_t::params_t()
     hi_boundary.fill(STATIC_BC);
     lo_boundary.fill(STATIC_BC);
     is_periodic.fill(true);
-    nonperiodic_boundaries_exist = false;
-    boundary_solution_enforced   = false;
-    boundary_rhs_enforced        = false;
-    reflective_boundaries_exist  = false;
-    sommerfeld_boundaries_exist  = false;
+
     vars_parity.fill(BoundaryConditions::UNDEFINED);
     vars_parity_diagnostic.fill(BoundaryConditions::EXTRAPOLATING_BC);
     vars_asymptotic_values.fill(0.0);
-    extrapolation_order = 1;
 }
 
 void BoundaryConditions::params_t::set_is_periodic(
@@ -1254,7 +1249,7 @@ amrex::Box ExpandGridsToBoundaries::operator()(const amrex::Box &a_in_box)
     }
     return out_box;
 #else
-    return amrex::Box();
+    return {};
 #endif
 }
 

@@ -105,7 +105,8 @@ inline void MPIContext::asyncEnd()
     m_async_active = false;
 
 #if MPI_VERSION >= 3 && !defined(OPEN_MPI)
-    MPI_Waitall(m_mpi_requests.size(), &m_mpi_requests[0], MPI_STATUSES_IGNORE);
+    MPI_Waitall(m_mpi_requests.size(), m_mpi_requests.data(),
+                MPI_STATUSES_IGNORE);
 #endif
 
     m_mpi_requests.clear();
