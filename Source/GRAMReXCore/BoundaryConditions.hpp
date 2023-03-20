@@ -92,7 +92,7 @@ class BoundaryConditions
 
   public:
     /// Default constructor - need to call define afterwards
-    BoundaryConditions() {}
+    BoundaryConditions() = default;
 
     BoundaryConditions(BoundaryConditions const &)            = delete;
     BoundaryConditions(BoundaryConditions &&)                 = delete;

@@ -90,6 +90,7 @@ Lagrange<Order>::Stencil::Stencil(int width, int deriv, double dx,
         m_weights = std::move(tmp_weights);
     }
 
+    // NOLINTBEGIN(readability-simplify-boolean-expr)
     if (false)
     {
         amrex::Print() << TAG << "Created a stencil for deriv " << m_deriv
@@ -102,6 +103,7 @@ Lagrange<Order>::Stencil::Stencil(int width, int deriv, double dx,
         }
         amrex::Print() << "}" << std::endl;
     }
+    // NOLINTEND(readability-simplify-boolean-expr)
 }
 
 template <int Order>

@@ -259,10 +259,12 @@ class AMReXParameters
 
             // only one of them exists - this passes if none of the 4 exist, but
             // that is asserted below
+            // NOLINTBEGIN(readability-simplify-boolean-expr)
             if (!((N_full > 0 || N > 0) && !pp.contains(name.c_str()) &&
                   !pp.contains(name_full.c_str())) &&
                 !((N_full < 0 && N < 0) && !(pp.contains(name.c_str()) &&
                                              pp.contains(name_full.c_str()))))
+            // NOLINTEND(readability-simplify-boolean-expr)
             {
                 error("Please provide 'N' or 'N_full' or a set of "
                       "'N1/N1_full', 'N2/N2_full', 'N3/N3_full'");
