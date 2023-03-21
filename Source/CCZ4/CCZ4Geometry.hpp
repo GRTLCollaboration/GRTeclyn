@@ -119,7 +119,7 @@ class CCZ4Geometry
 
     template <class data_t>
     static Tensor<2, data_t>
-    compute_d1_chris_contracted(const Tensor<2, data_t> &h_UU,
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE compute_d1_chris_contracted(const Tensor<2, data_t> &h_UU,
                                 const Tensor<2, Tensor<1, data_t>> &d1_h,
                                 const Tensor<2, Tensor<2, data_t>> &d2_h)
     {
@@ -146,7 +146,7 @@ class CCZ4Geometry
     template <class data_t, template <typename> class vars_t,
               template <typename> class diff2_vars_t>
     static ricci_t<data_t>
-    compute_ricci_Z_general(const vars_t<data_t> &vars,
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE compute_ricci_Z_general(const vars_t<data_t> &vars,
                             const vars_t<Tensor<1, data_t>> &d1,
                             const diff2_vars_t<Tensor<2, data_t>> &d2,
                             const Tensor<2, data_t> &h_UU,
@@ -189,7 +189,7 @@ class CCZ4Geometry
     // Z vector - used e.g. in the constraint calculations.
     template <class data_t, template <typename> class vars_t,
               template <typename> class diff2_vars_t>
-    static ricci_t<data_t>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE static ricci_t<data_t>
     compute_ricci(const vars_t<data_t> &vars,
                   const vars_t<Tensor<1, data_t>> &d1,
                   const diff2_vars_t<Tensor<2, data_t>> &d2,

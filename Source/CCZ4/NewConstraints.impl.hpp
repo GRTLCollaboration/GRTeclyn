@@ -47,7 +47,7 @@ Constraints::compute(int i, int j, int k, amrex::Array4<data_t> const &cst,
 
 template <class data_t, template <typename> class vars_t,
           template <typename> class diff2_vars_t>
-Constraints::Vars<data_t> Constraints::constraint_equations(
+AMREX_GPU_DEVICE Constraints::Vars<data_t> Constraints::constraint_equations(
     const vars_t<data_t> &vars, const vars_t<Tensor<1, data_t>> &d1,
     const diff2_vars_t<Tensor<2, data_t>> &d2, const Tensor<2, data_t> &h_UU,
     const chris_t<data_t> &chris) const
@@ -108,7 +108,7 @@ Constraints::Vars<data_t> Constraints::constraint_equations(
 }
 
 template <class data_t>
-void Constraints::store_vars(Vars<data_t> const &out,
+AMREX_GPU_DEVICE void Constraints::store_vars(Vars<data_t> const &out,
                              amrex::CellData<data_t> const &current_cell) const
 {
     if (m_c_Ham >= 0)

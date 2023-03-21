@@ -16,12 +16,12 @@ struct Interval
         m_end   = a_lastComp;
     }
 
-    [[nodiscard]] int begin() const { return m_begin; }
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE int begin() const { return m_begin; }
 
     //! return last component number
-    [[nodiscard]] int end() const { return m_end; }
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE int end() const { return m_end; }
 
-    [[nodiscard]] int size() const { return m_end - m_begin + 1; }
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE int size() const { return m_end - m_begin + 1; }
 
     [[nodiscard]] bool contains(int a_val) const
     {
