@@ -350,5 +350,9 @@ CheckOptions:
     value:           '0'
   - key:             readability-simplify-subscript-expr.Types
     value:           '::std::basic_string;::std::basic_string_view;::std::vector;::std::array'
+  - key:             readability-identifier-length.IgnoredParameterNames
+    value:           '^[ijkn]$'
+  - key:             readability-identifier-length.IgnoredLoopCounterNames
+    value:           '^[ijklmn]$'
 ...
 
