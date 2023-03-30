@@ -51,7 +51,7 @@ class FourthOrderDerivatives
     /// Calculates all first derivatives and returns as variable type specified
     /// by the template parameter
     template <template <typename> class vars_t, class data_t>
-    AMREX_GPU_DEVICE [[nodiscard]] AMREX_FORCE_INLINE auto
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE auto
     diff1(int i, int j, int k, const amrex::Array4<data_t const> &state) const
     {
         vars_t<Tensor<1, data_t>> d1;
@@ -123,7 +123,7 @@ class FourthOrderDerivatives
     /// Calculates all second derivatives and returns as variable type specified
     /// by the template parameter
     template <template <typename> class vars_t, class data_t>
-    AMREX_GPU_DEVICE [[nodiscard]] AMREX_FORCE_INLINE auto
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE auto
     diff2(int i, int j, int k, amrex::Array4<data_t const> const &state) const
     {
         vars_t<Tensor<2, data_t>> d2{};
@@ -190,7 +190,7 @@ class FourthOrderDerivatives
     /// Calculates all second derivatives and returns as variable type specified
     /// by the template parameter
     template <template <typename> class vars_t, class data_t>
-    AMREX_GPU_DEVICE [[nodiscard]] AMREX_FORCE_INLINE auto
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE auto
     advection(int i, int j, int k, amrex::Array4<data_t const> const &state,
               const Tensor<1, data_t> &vector) const
     {

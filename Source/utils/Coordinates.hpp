@@ -68,7 +68,7 @@ template <class data_t> class Coordinates
 
     /// This function returns the radius subject to a floor for a given
     /// Coordinates object.
-    AMREX_GPU_HOST_DEVICE [[nodiscard]] AMREX_FORCE_INLINE data_t
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE data_t
     get_radius() const
     {
         // Note that this is not currently dimension independent
