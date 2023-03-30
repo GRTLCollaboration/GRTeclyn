@@ -6,11 +6,7 @@
 #ifndef MPICONTEXT_IMPL_HPP_
 #define MPICONTEXT_IMPL_HPP_
 
-inline MPIContext::MPIContext()
-    : m_num_process(comm_size()), m_rank(comm_rank()), m_query(m_num_process),
-      m_answer(m_num_process)
-{
-}
+inline MPIContext::MPIContext() : m_query(comm_size()), m_answer(comm_size()) {}
 
 inline int MPIContext::queryCount(int rank) { return m_query.count(rank); }
 
@@ -105,8 +101,9 @@ inline void MPIContext::asyncEnd()
     m_async_active = false;
 
 #if MPI_VERSION >= 3 && !defined(OPEN_MPI)
-    MPI_Waitall(m_mpi_requests.size(), m_mpi_requests.data(),
-                MPI_STATUSES_IGNORE);
+    MPI_Waitall(
+        static_cast<int>(m_mpi_requests.size()), m_mpi_requests.data(),
+        MPI_STATUSES_IGNORE); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
 #endif
 
     m_mpi_requests.clear();

@@ -58,20 +58,20 @@ template <class SurfaceGeometry> class SurfaceExtraction
     using vars_t = std::tuple<int, VariableType, Derivative>;
 
   protected:
-    const SurfaceGeometry m_geom; //!< the geometry class which knows about
-                                  //!< the particular surface
-    const params_t m_params;
+    SurfaceGeometry m_geom; //!< the geometry class which knows about
+                            //!< the particular surface
+    params_t m_params;
     std::vector<std::tuple<int, VariableType, Derivative>>
         m_vars; //!< the vector of pairs of
     //!< variables and derivatives to extract
-    const double m_dt{};
-    const double m_time{};
-    const bool m_first_step{};
-    const double m_restart_time{};
-    const int m_num_interp_points{}; //!< the total number of points this
-                                     //!< rank will extract (0 on ranks > 0)
-    const double m_du{}; //!< the grid spacing in u (used in integrate)
-    const double m_dv{}; //!< the grid spacing in v (used in integrate)
+    double m_dt{};
+    double m_time{};
+    bool m_first_step{};
+    double m_restart_time{};
+    int m_num_interp_points{}; //!< the total number of points this
+                               //!< rank will extract (0 on ranks > 0)
+    double m_du{};             //!< the grid spacing in u (used in integrate)
+    double m_dv{};             //!< the grid spacing in v (used in integrate)
 
     std::vector<std::vector<double>> m_interp_data;
     std::array<std::vector<double>, AMREX_SPACEDIM> m_interp_coords;
@@ -117,6 +117,7 @@ template <class SurfaceGeometry> class SurfaceExtraction
     //! add a vector of diagnostic variables (no derivatives)
     void add_diagnostic_vars(const std::vector<int> &a_vars);
 
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     //! Alternative constructor with a predefined vector of variables and
     //! derivatives
     SurfaceExtraction(
@@ -131,6 +132,7 @@ template <class SurfaceGeometry> class SurfaceExtraction
                       const std::vector<int> &a_vars, double a_dt,
                       double a_time, bool a_first_step,
                       double a_restart_time = 0.0);
+    // NOLINTEND(bugprone-easily-swappable-parameters)
 
     //! Do the extraction
     template <typename InterpAlgo>

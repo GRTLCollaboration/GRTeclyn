@@ -78,11 +78,11 @@ int runSphericalExtractionTest(int argc, char *argv[])
     SphericalExtraction::params_t extraction_params_hi =
         sim_params.extraction_params_lo;
     // we are only checking the converence in theta integration
-    // extraction_params_hi.num_points_phi *= 2;
-    extraction_params_hi.num_points_theta *= 2;
+    // extraction_params_hi.num_points_phi() *= 2;
+    extraction_params_hi.num_points_theta() *= 2;
     // need to subtract a point as it's the number of subintervals we want to
     // double for theta
-    extraction_params_hi.num_points_theta -= 1;
+    extraction_params_hi.num_points_theta() -= 1;
     SphericalExtraction spherical_extraction_hi(
         extraction_params_hi, sim_params.coarsest_dx * sim_params.dt_multiplier,
         0.0, true, 0.0);
@@ -139,10 +139,10 @@ int runSphericalExtractionTest(int argc, char *argv[])
     amrex::Print() << std::setprecision(10);
 
     for (int iradius = 0;
-         iradius < sim_params.extraction_params_lo.num_extraction_radii;
+         iradius < sim_params.extraction_params_lo.num_extraction_radii();
          ++iradius)
     {
-        double r = sim_params.extraction_params_lo.extraction_radii[iradius];
+        double r = sim_params.extraction_params_lo.extraction_radii()[iradius];
         double integral_re_lo_trapezium =
             (integral_lo_trapezium.first)[iradius];
         double integral_re_hi_trapezium =

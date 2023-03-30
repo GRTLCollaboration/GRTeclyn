@@ -22,11 +22,10 @@ class InterpolationQuery
     using iterator =
         typename std::map<Derivative, std::vector<out_t>>::iterator;
 
-    const int m_num_points;
-
   private:
     template <typename InterpAlgo> friend class AMRInterpolator;
 
+    size_t m_num_points;
     std::vector<const double *> m_coords;
     comp_map_t m_comps;
 
@@ -75,11 +74,13 @@ class InterpolationQuery
 
         for (auto &m_comp : m_comps)
         {
-            accum += m_comp.second.size();
+            accum += static_cast<int>(m_comp.second.size());
         }
 
         return accum;
     }
+
+    [[nodiscard]] inline size_t numPoints() const { return m_num_points; }
 
     inline iterator compsBegin() { return m_comps.begin(); }
 

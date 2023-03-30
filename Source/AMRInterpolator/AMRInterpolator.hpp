@@ -72,16 +72,16 @@ template <typename InterpAlgo> class AMRInterpolator
     double apply_reflective_BC_on_coord(const InterpolationQuery &query,
                                         int dir, int point_idx) const;
 
-    const GRAMR &m_gr_amr;
+    const GRAMR *m_gr_amr_ptr = nullptr;
 
     // Coordinates of the point represented by IntVect::Zero in coarsest grid
-    const std::array<double, AMREX_SPACEDIM> m_coarsest_origin{};
+    std::array<double, AMREX_SPACEDIM> m_coarsest_origin{};
 
     // Grid spacing in each direction
-    const std::array<double, AMREX_SPACEDIM> m_coarsest_dx{};
+    std::array<double, AMREX_SPACEDIM> m_coarsest_dx{};
 
     int m_num_levels{};
-    const int m_verbosity{};
+    int m_verbosity{};
 
     std::vector<std::array<double, AMREX_SPACEDIM>> m_origin;
     std::vector<std::array<double, AMREX_SPACEDIM>> m_dx;
@@ -95,12 +95,12 @@ template <typename InterpAlgo> class AMRInterpolator
 
     std::vector<int> m_query_level;
     std::vector<int> m_query_box;
-    std::vector<double> m_query_coords[AMREX_SPACEDIM];
+    std::array<std::vector<double>, AMREX_SPACEDIM> m_query_coords;
     std::vector<std::vector<double>> m_query_data;
 
     std::vector<int> m_answer_level;
     std::vector<int> m_answer_box;
-    std::vector<double> m_answer_coords[AMREX_SPACEDIM];
+    std::array<std::vector<double>, AMREX_SPACEDIM> m_answer_coords;
     std::vector<std::vector<double>> m_answer_data;
 
     // A bit of Android-ism here, but it's really useful!

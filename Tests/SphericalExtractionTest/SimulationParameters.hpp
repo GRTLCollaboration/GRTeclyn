@@ -26,20 +26,20 @@ class SimulationParameters : public AMReXParameters
     {
         // Extraction params
         pp.load("num_extraction_radii",
-                extraction_params_lo.num_extraction_radii, 1);
+                extraction_params_lo.num_extraction_radii(), 1);
 
         if (pp.contains("extraction_radii"))
         {
-            pp.load("extraction_radii", extraction_params_lo.extraction_radii,
-                    extraction_params_lo.num_extraction_radii);
+            pp.load("extraction_radii", extraction_params_lo.extraction_radii(),
+                    extraction_params_lo.num_extraction_radii());
         }
         else
         {
-            pp.load("extraction_radius", extraction_params_lo.extraction_radii,
-                    1, L / 4);
+            pp.load("extraction_radius",
+                    extraction_params_lo.extraction_radii(), 1, L / 4);
         }
-        pp.load("num_points_phi_lo", extraction_params_lo.num_points_phi, 8);
-        pp.load("num_points_theta_lo", extraction_params_lo.num_points_theta,
+        pp.load("num_points_phi_lo", extraction_params_lo.num_points_phi(), 8);
+        pp.load("num_points_theta_lo", extraction_params_lo.num_points_theta(),
                 17);
         pp.load("extraction_center", extraction_params_lo.center, center);
         pp.load("write_extraction", extraction_params_lo.write_extraction,

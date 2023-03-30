@@ -13,7 +13,7 @@
 
 #include <array>
 
-// Abstrace base class to get the FABs out of an AMRLevel
+// Abstract base class to get the FABs out of an AMRLevel
 class InterpSource
 {
   public:

@@ -48,14 +48,14 @@ class ChiExtractionTaggingCriterion
                                   const SphericalExtraction::params_t a_params,
                                   const bool activate_extraction = false)
         : m_dx(dx), m_deriv(dx),
-          m_num_extraction_radii(a_params.num_extraction_radii),
+          m_num_extraction_radii(a_params.num_extraction_radii()),
           m_center(a_params.center), m_level(a_level),
           m_activate_extraction(activate_extraction)
     {
         AMREX_ALWAYS_ASSERT(m_num_extraction_radii <= NMAX);
         for (int i = 0; i < m_num_extraction_radii; ++i)
         {
-            m_extraction_radii[i]  = a_params.extraction_radii[i];
+            m_extraction_radii[i]  = a_params.extraction_radii()[i];
             m_extraction_levels[i] = a_params.extraction_levels[i];
         }
     }

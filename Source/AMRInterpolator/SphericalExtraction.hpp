@@ -16,31 +16,48 @@ class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
   public:
     struct params_t : SurfaceExtraction::params_t
     {
-        int &num_extraction_radii             = num_surfaces;
-        std::vector<double> &extraction_radii = surface_param_values;
-        int &num_points_theta                 = num_points_u;
-        int &num_points_phi                   = num_points_v;
+        int &num_extraction_radii() { return num_surfaces; }
+
+        [[nodiscard]] const int &num_extraction_radii() const
+        {
+            return num_surfaces;
+        }
+
+        std::vector<double> &extraction_radii() { return surface_param_values; }
+
+        [[nodiscard]] const std::vector<double> &extraction_radii() const
+        {
+            return surface_param_values;
+        }
+
+        int &num_points_theta() { return num_points_u; }
+
+        [[nodiscard]] const int &num_points_theta() const
+        {
+            return num_points_u;
+        }
+
+        int &num_points_phi() { return num_points_v; }
+
+        [[nodiscard]] const int &num_points_phi() const { return num_points_v; }
+
         std::array<double, AMREX_SPACEDIM> center{}; //!< the center of the
                                                      //!< spherical shells
-        std::array<double, AMREX_SPACEDIM> &extraction_center = center;
+        std::array<double, AMREX_SPACEDIM> &extraction_center()
+        {
+            return center;
+        }
         int num_modes{}; //!< the number of modes to extract
         std::vector<std::pair<int, int>> modes; //!< the modes to extract
                                                 //!< l = first, m = second
-        // constructor
-        params_t() = default;
-
-        // copy constructor defined due to references pointing to the wrong
-        // things with the default copy constructor
-        params_t(const params_t &params)
-            : SurfaceExtraction::params_t(params), center(params.center),
-              num_modes(params.num_modes), modes(params.modes)
-        {
-        }
     };
-    const std::array<double, AMREX_SPACEDIM> m_center;
-    const int m_num_modes;
-    const std::vector<std::pair<int, int>> m_modes;
 
+  protected:
+    std::array<double, AMREX_SPACEDIM> m_center;
+    int m_num_modes;
+    std::vector<std::pair<int, int>> m_modes;
+
+  public:
     SphericalExtraction(const params_t &a_params, double a_dt, double a_time,
                         bool a_first_step, double a_restart_time = 0.0)
         : SurfaceExtraction(a_params.center, a_params, a_dt, a_time,
@@ -78,6 +95,7 @@ class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
     //! Add the integrand corresponding to the spin-weighted spherical harmonic
     //! decomposition of a complex-valued function, a_function
     //! (normalised by 1/r^2), over each spherical shell
+    // NOLINTBEGIN(readability-identifier-length)
     void add_mode_integrand(
         int es, int el, int em, const complex_function_t &a_function,
         std::pair<std::vector<double>, std::vector<double>> &out_integrals,
@@ -141,6 +159,7 @@ class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
         integrate();
         return integrals;
     }
+    // NOLINTEND(readability-identifier-length)
 };
 
 #endif /* SPHERICALEXTRACTION_HPP_ */

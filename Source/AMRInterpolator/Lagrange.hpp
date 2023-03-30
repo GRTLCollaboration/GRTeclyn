@@ -11,7 +11,7 @@
 
 template <int Order> class Lagrange
 {
-    const InterpSource &m_source;
+    const InterpSource *m_source_ptr;
     bool m_verbosity;
 
     struct Stencil;

@@ -20,7 +20,7 @@ class IntegrationMethod
 {
   private:
     std::vector<double> m_weights;
-    int m_num_weights;
+    size_t m_num_weights;
     bool m_is_closed;
 
   public:
@@ -53,7 +53,7 @@ class IntegrationMethod
     [[nodiscard]] inline double weight(int a_index, int a_num_points,
                                        bool a_is_periodic) const
     {
-        const int weight_index = a_index % m_num_weights;
+        const size_t weight_index = a_index % m_num_weights;
         const bool endpoint =
             (a_index == 0 || a_index == a_num_points - 1) && !a_is_periodic;
         // if this is a closed formula, not a geometry endpoint but at the edge

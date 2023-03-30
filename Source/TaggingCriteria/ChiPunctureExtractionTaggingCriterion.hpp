@@ -91,7 +91,7 @@ class ChiPunctureExtractionTaggingCriterion
                     // add a 20% buffer to extraction zone so not too near to
                     // boundary
                     auto regrid = simd_compare_lt(
-                        r, 1.2 * m_params.extraction_radii[iradius]);
+                        r, 1.2 * m_params.extraction_radii()[iradius]);
                     criterion = simd_conditional(regrid, 100.0, criterion);
                 }
             }

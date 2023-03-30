@@ -13,8 +13,6 @@
 
 class InterpolationAlgorithm
 {
-  public:
-    virtual ~InterpolationAlgorithm() = 0;
 };
 
 class NearestNeighbour : public InterpolationAlgorithm

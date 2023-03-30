@@ -277,7 +277,7 @@ CheckOptions:
   - key:             google-readability-namespace-comments.SpacesBeforeComments
     value:           '2'
   - key:             readability-function-cognitive-complexity.Threshold
-    value:           '25'
+    value:           '40'
   - key:             cppcoreguidelines-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
     value:           'true'
   - key:             bugprone-argument-comment.IgnoreSingleArgument
@@ -327,7 +327,7 @@ CheckOptions:
   - key:             modernize-use-equals-default.IgnoreMacros
     value:           'true'
   - key:             cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor
-    value:           'false'
+    value:           'true'
   - key:             modernize-raw-string-literal.ReplaceShorterLiterals
     value:           'false'
   - key:             modernize-use-emplace.SmartPointers
@@ -351,8 +351,10 @@ CheckOptions:
   - key:             readability-simplify-subscript-expr.Types
     value:           '::std::basic_string;::std::basic_string_view;::std::vector;::std::array'
   - key:             readability-identifier-length.IgnoredParameterNames
-    value:           '^[ijkn]$'
+    value:           '^([ijkn]|d?[uvwxyz])$'
   - key:             readability-identifier-length.IgnoredLoopCounterNames
     value:           '^[ijklmn]$'
+  - key:             readability-identifier-length.IgnoredVariableNames
+    value:           '^d?[uvwxyz]$'
 ...
 

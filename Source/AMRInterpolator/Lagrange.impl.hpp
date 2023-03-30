@@ -22,24 +22,29 @@ const std::string Lagrange<Order>::TAG = "\x1b[36;1m[Lagrange]\x1b[0m ";
  * routine: - change type of c1,c2,c3 to 'double' - replace '0', 'i', 'j' in the
  * annotated lines with 'grid[0]', 'grid[i]', 'grid[j]'.
  */
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 template <int Order>
 Lagrange<Order>::Stencil::Stencil(int width, int deriv, double dx,
                                   double point_offset)
     : m_width(width), m_deriv(deriv), m_dx(dx), m_point_offset(point_offset)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
+    // NOLINTBEGIN(readability-identifier-length)
     int c1    = 1;
     int c2    = 0;
     int c3    = 0;
     double c4 = 0 - m_point_offset; /* replace for general grid */
     double c5 = NAN;
+    // NOLINTEND(readability-identifier-length)
 
-    std::vector<double> tmp_weights(width * (deriv + 1), 0);
+    std::vector<double> tmp_weights(
+        static_cast<size_t>(width * (deriv + 1), 0));
 
     tmp_weights[0] = 1.0;
 
     for (int i = 1; i < m_width; ++i)
     {
-        int mn = (i < m_deriv) ? i : m_deriv;
+        int min_i_deriv = (i < m_deriv) ? i : m_deriv;
 
         c2 = 1;
         c5 = c4;
@@ -52,7 +57,7 @@ Lagrange<Order>::Stencil::Stencil(int width, int deriv, double dx,
 
             if (j == i - 1)
             {
-                for (int k = mn; k > 0; --k)
+                for (int k = min_i_deriv; k > 0; --k)
                 {
                     tmp_weights[k * m_width + i] =
                         c1 *
@@ -63,7 +68,7 @@ Lagrange<Order>::Stencil::Stencil(int width, int deriv, double dx,
                 tmp_weights[i] = -c1 * c5 * tmp_weights[i - 1] / c2;
             }
 
-            for (int k = mn; k > 0; --k)
+            for (int k = min_i_deriv; k > 0; --k)
             {
                 tmp_weights[k * m_width + j] =
                     (c4 * tmp_weights[k * m_width + j] -
@@ -157,7 +162,7 @@ const double &Lagrange<Order>::Stencil::operator[](unsigned int i) const
 
 template <int Order>
 Lagrange<Order>::Lagrange(const InterpSource &source, bool verbosity)
-    : m_source(source), m_verbosity(verbosity)
+    : m_source_ptr(&source), m_verbosity(verbosity)
 {
 }
 
@@ -230,7 +235,7 @@ double Lagrange<Order>::interpData(const amrex::FArrayBox &fab, int comp)
     return pos + neg;
     */
 
-    long double accum = 0.0;
+    double accum = 0.0;
 
     for (int i = 0; i < m_interp_points.size(); ++i)
     {
@@ -242,6 +247,7 @@ double Lagrange<Order>::interpData(const amrex::FArrayBox &fab, int comp)
     return accum;
 }
 
+// NOLINTBEGIN(readability-function-cognitive-complexity)
 template <int Order>
 std::pair<std::vector<amrex::IntVect>, std::vector<double>>
 Lagrange<Order>::generateStencil(
@@ -260,7 +266,7 @@ Lagrange<Order>::generateStencil(
 
     // Allocate a std::vector twice as big as we can possibly need
     // This way we insert to either direction without shifting/growing
-    std::vector<int> my_points(2 * (Order + deriv[dim]));
+    std::vector<int> my_points(static_cast<size_t>(2 * (Order + deriv[dim])));
 
     enum
     {
@@ -268,9 +274,9 @@ Lagrange<Order>::generateStencil(
         UP
     };
 
-    bool can_grow[2] = {true, true};
-    int points_min   = Order + deriv[dim];
-    int points_max   = Order + deriv[dim];
+    std::array<bool, 2> can_grow{true, true};
+    int points_min = Order + deriv[dim];
+    int points_max = Order + deriv[dim];
 
     std::array<double, AMREX_SPACEDIM> interp_coord = evalCoord;
     int candidate                                   = nearest[dim];
@@ -281,7 +287,7 @@ Lagrange<Order>::generateStencil(
     {
         interp_coord[dim] = candidate;
 
-        if (m_source.contains(interp_coord))
+        if (m_source_ptr->contains(interp_coord))
         {
             int idx =
                 (grown_direction == DOWN) ? (--points_min) : (points_max++);
@@ -363,8 +369,8 @@ Lagrange<Order>::generateStencil(
         }
     }
 
-    return std::pair<std::vector<amrex::IntVect>, std::vector<double>>(
-        std::move(out_points), std::move(out_weights));
+    return {std::move(out_points), std::move(out_weights)};
 }
+// NOLINTEND(readability-function-cognitive-complexity)
 
 #endif /* LAGRANGE_IMPL_HPP_ */

@@ -152,11 +152,11 @@ void BinaryBHLevel::errorEst(amrex::TagBoxArray &tag_box_array,
                              int /*ngrow*/)
 {
     amrex::MultiFab &state_new = get_new_data(State_Type);
-    const auto cur_time    = get_state_data(State_Type).curTime();
+    const auto cur_time        = get_state_data(State_Type).curTime();
 
     const int nghost =
         state_new.nGrow(); // Need ghost cells to compute gradient
-    const int ncomp  = 1;
+    const int ncomp = 1;
     // We only use chi in the tagging criterion so only fill the ghosts for chi
     FillPatch(*this, state_new, nghost, cur_time, State_Type, c_chi, ncomp);
 
@@ -169,7 +169,7 @@ void BinaryBHLevel::errorEst(amrex::TagBoxArray &tag_box_array,
 
     auto const &tags           = tag_box_array.arrays();
     auto const &state_new_arrs = state_new.const_arrays();
-    auto const tagval = amrex::TagBox::SET;
+    auto const tagval          = amrex::TagBox::SET;
     ChiExtractionTaggingCriterion tagger(Geom().CellSize(0), Level(),
                                          simpar.extraction_params,
                                          simpar.activate_extraction);

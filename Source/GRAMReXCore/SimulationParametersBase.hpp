@@ -76,7 +76,7 @@ class SimulationParametersBase : public AMReXParameters
         if (activate_extraction)
         {
             pp.load("num_extraction_radii",
-                    extraction_params.num_extraction_radii, 1);
+                    extraction_params.num_extraction_radii(), 1);
 
             // Check for multiple extraction radii, otherwise load single
             // radius/level (for backwards compatibility).
@@ -84,7 +84,7 @@ class SimulationParametersBase : public AMReXParameters
             {
                 pp.load("extraction_levels",
                         extraction_params.extraction_levels,
-                        extraction_params.num_extraction_radii);
+                        extraction_params.num_extraction_radii());
             }
             else
             {
@@ -93,20 +93,22 @@ class SimulationParametersBase : public AMReXParameters
             }
             if (pp.contains("extraction_radii"))
             {
-                pp.load("extraction_radii", extraction_params.extraction_radii,
-                        extraction_params.num_extraction_radii);
+                pp.load("extraction_radii",
+                        extraction_params.extraction_radii(),
+                        extraction_params.num_extraction_radii());
             }
             else
             {
-                pp.load("extraction_radius", extraction_params.extraction_radii,
-                        1, 0.1);
+                pp.load("extraction_radius",
+                        extraction_params.extraction_radii(), 1, 0.1);
             }
 
-            pp.load("num_points_phi", extraction_params.num_points_phi, 2);
-            pp.load("num_points_theta", extraction_params.num_points_theta, 5);
-            if (extraction_params.num_points_theta % 2 == 0)
+            pp.load("num_points_phi", extraction_params.num_points_phi(), 2);
+            pp.load("num_points_theta", extraction_params.num_points_theta(),
+                    5);
+            if (extraction_params.num_points_theta() % 2 == 0)
             {
-                extraction_params.num_points_theta += 1;
+                extraction_params.num_points_theta() += 1;
                 amrex::Print()
                     << "Parameter: num_points_theta incompatible with "
                        "Simpson's "
@@ -252,8 +254,9 @@ class SimulationParametersBase : public AMReXParameters
         if (activate_extraction)
         {
             check_parameter(
-                "num_extraction_radii", extraction_params.num_extraction_radii,
-                extraction_params.num_extraction_radii > 0,
+                "num_extraction_radii",
+                extraction_params.num_extraction_radii(),
+                extraction_params.num_extraction_radii() > 0,
                 "must be bigger than 0 when activate_extraction = 1");
 
             FOR (idir)
@@ -268,12 +271,13 @@ class SimulationParametersBase : public AMReXParameters
                     "must be in the computational domain after "
                     "applying reflective symmetry");
                 for (int iradius = 0;
-                     iradius < extraction_params.num_extraction_radii;
+                     iradius < extraction_params.num_extraction_radii();
                      ++iradius)
                 {
                     std::string radius_name =
                         "extraction_radii[" + std::to_string(iradius) + "]";
-                    double radius = extraction_params.extraction_radii[iradius];
+                    double radius =
+                        extraction_params.extraction_radii()[iradius];
                     if (idir == 0)
                     {
                         check_parameter(radius_name, radius, radius >= 0.0,

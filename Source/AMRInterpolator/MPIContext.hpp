@@ -13,9 +13,6 @@
 class MPIContext
 {
   public:
-    const int m_num_process;
-    const int m_rank;
-
     MPIContext();
 
     // Getters

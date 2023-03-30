@@ -14,12 +14,12 @@
 class Derivative : public std::array<int, AMREX_SPACEDIM>
 {
   private:
-    Derivative(int d) : array{AMREX_D_DECL(0, 0, 0)} { (*this)[d] = 1; }
+    Derivative(int dir) : array{AMREX_D_DECL(0, 0, 0)} { (*this)[dir] = 1; }
 
-    Derivative(int d1, int d2) : array{AMREX_D_DECL(0, 0, 0)}
+    Derivative(int dir1, int dir2) : array{AMREX_D_DECL(0, 0, 0)}
     {
-        (*this)[d1] += 1;
-        (*this)[d2] += 1;
+        (*this)[dir1] += 1;
+        (*this)[dir2] += 1;
     }
 
   public:

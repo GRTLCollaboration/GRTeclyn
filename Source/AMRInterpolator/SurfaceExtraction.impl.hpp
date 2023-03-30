@@ -12,6 +12,7 @@
 
 #include <utility>
 
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 //! Normal constructor which requires vars to be added after construction
 //! using add_var or add_vars
 template <class SurfaceGeometry>
@@ -26,6 +27,7 @@ SurfaceExtraction<SurfaceGeometry>::SurfaceExtraction(
                               : 0),
       m_du(m_geom.du(m_params.num_points_u)),
       m_dv(m_geom.dv(m_params.num_points_v))
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     // check folders only in first two timesteps
     // (or at m_first_step if this is not the first two timesteps)
@@ -253,6 +255,7 @@ void SurfaceExtraction<SurfaceGeometry>::add_var_integrand(
                   a_broadcast_integral);
 }
 
+// NOLINTBEGIN(readability-function-cognitive-complexity)
 template <class SurfaceGeometry>
 void SurfaceExtraction<SurfaceGeometry>::integrate()
 {
@@ -325,6 +328,7 @@ void SurfaceExtraction<SurfaceGeometry>::integrate()
         }
     }
 }
+// NOLINTEND(readability-function-cognitive-complexity)
 
 //! Integrate some integrand dependent on the interpolated data over the
 //! surface. The integrand function should be of the signature
@@ -429,7 +433,7 @@ void SurfaceExtraction<SurfaceGeometry>::write_integrals(
 {
     if (amrex::ParallelDescriptor::MyProc() == 0)
     {
-        int const num_integrals_per_surface = a_integrals.size();
+        const size_t num_integrals_per_surface = a_integrals.size();
         // if labels are provided there must be the same number of labels as
         // there are integrals
         if (!a_labels.empty())
@@ -459,12 +463,14 @@ void SurfaceExtraction<SurfaceGeometry>::write_integrals(
                                                      m_params.num_surfaces);
             std::vector<std::string> header2_strings(num_integrals_per_surface *
                                                      m_params.num_surfaces);
-            for (int isurface = 0; isurface < m_params.num_surfaces; ++isurface)
+            for (size_t isurface = 0; isurface < m_params.num_surfaces;
+                 ++isurface)
             {
-                for (int iintegral = 0; iintegral < num_integrals_per_surface;
-                     ++iintegral)
+                for (size_t iintegral = 0;
+                     iintegral < num_integrals_per_surface; ++iintegral)
                 {
-                    int idx = isurface * num_integrals_per_surface + iintegral;
+                    size_t idx =
+                        isurface * num_integrals_per_surface + iintegral;
                     if (a_labels.empty())
                     {
                         header1_strings[idx] = "";
@@ -488,12 +494,12 @@ void SurfaceExtraction<SurfaceGeometry>::write_integrals(
         // make vector of data for writing
         std::vector<double> data_for_writing(num_integrals_per_surface *
                                              m_params.num_surfaces);
-        for (int isurface = 0; isurface < m_params.num_surfaces; ++isurface)
+        for (size_t isurface = 0; isurface < m_params.num_surfaces; ++isurface)
         {
-            for (int iintegral = 0; iintegral < num_integrals_per_surface;
+            for (size_t iintegral = 0; iintegral < num_integrals_per_surface;
                  ++iintegral)
             {
-                int idx = isurface * num_integrals_per_surface + iintegral;
+                size_t idx = isurface * num_integrals_per_surface + iintegral;
                 data_for_writing[idx] = a_integrals[iintegral][isurface];
             }
         }

@@ -54,9 +54,11 @@ class SphericalGeometry
 
     //! returns the Cartesian coordinate in direction a_dir with specified
     //! radius, theta and phi.
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     [[nodiscard]] inline double get_grid_coord(int a_dir, double a_radius,
                                                double a_theta,
                                                double a_phi) const
+    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         switch (a_dir)
         {

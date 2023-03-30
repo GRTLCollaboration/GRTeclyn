@@ -19,13 +19,14 @@
 #include <chrono>
 #include <iostream>
 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
 int runGRAMReX(int /*argc*/, char * /*argv*/[])
 {
     BL_PROFILE("runGRAMReX()");
 
     // Load the parameter file and construct the SimulationParameter class
     // To add more parameters edit the SimulationParameters file.
-    GRParmParse pp;
+    GRParmParse pp; // NOLINT(readability-identifier-length)
     SimulationParameters sim_params(pp);
 
     if (sim_params.just_check_params)
