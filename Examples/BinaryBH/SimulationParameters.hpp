@@ -20,6 +20,7 @@
 class SimulationParameters : public SimulationParametersBase
 {
   public:
+    // NOLINTNEXTLINE(readability-identifier-length)
     SimulationParameters(GRParmParse &pp) : SimulationParametersBase(pp)
     {
         read_shared_params(pp);
@@ -32,6 +33,7 @@ class SimulationParameters : public SimulationParametersBase
     }
 
     /// Read shared parameters
+    // NOLINTNEXTLINE(readability-identifier-length)
     void read_shared_params(GRParmParse &pp)
     {
         // Do we want puncture tracking and constraint norm calculation?
@@ -194,6 +196,7 @@ class SimulationParameters : public SimulationParametersBase
     }
 #else
     /// Read BH parameters if not using two punctures
+    // NOLINTNEXTLINE(readability-identifier-length)
     void read_bh_params(GRParmParse &pp)
     {
         // Initial data

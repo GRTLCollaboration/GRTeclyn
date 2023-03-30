@@ -35,7 +35,7 @@ class BinaryBHLevel : public GRAMRLevel
     // to do post each time step on every level
     void specificPostTimeStep() override;
 
-    void errorEst(amrex::TagBoxArray &tb, int clearval, int tagval,
+    void errorEst(amrex::TagBoxArray &tag_box_array, int clearval, int tagval,
                   amrex::Real time, int n_error_buf = 0, int ngrow = 0) final;
 
 #ifdef AMREX_USE_HDF5

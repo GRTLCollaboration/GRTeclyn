@@ -67,9 +67,9 @@ void BinaryBHLevel::initData()
 
     // First set everything to zero (to avoid undefinded values in constraints)
     // then calculate initial data
-    amrex::MultiFab &S = get_new_data(State_Type);
-    auto const &arrs   = S.arrays();
-    amrex::ParallelFor(S, S.nGrowVect(),
+    amrex::MultiFab &state = get_new_data(State_Type);
+    auto const &arrs       = state.arrays();
+    amrex::ParallelFor(state, state.nGrowVect(),
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
                        {
                            amrex::CellData<amrex::Real> cell =
@@ -146,17 +146,19 @@ void BinaryBHLevel::specificUpdateODE(amrex::MultiFab &a_soln)
                        });
 }
 
-void BinaryBHLevel::errorEst(amrex::TagBoxArray &tb, int /*clearval*/,
-                             int /*tagval*/, amrex::Real /*time*/,
-                             int /*n_error_buf*/, int /*ngrow*/)
+void BinaryBHLevel::errorEst(amrex::TagBoxArray &tag_box_array,
+                             int /*clearval*/, int /*tagval*/,
+                             amrex::Real /*time*/, int /*n_error_buf*/,
+                             int /*ngrow*/)
 {
-    amrex::MultiFab &S_new = get_new_data(State_Type);
+    amrex::MultiFab &state_new = get_new_data(State_Type);
     const auto cur_time    = get_state_data(State_Type).curTime();
 
-    const int nghost = S_new.nGrow(); // Need ghost cells to compute gradient
+    const int nghost =
+        state_new.nGrow(); // Need ghost cells to compute gradient
     const int ncomp  = 1;
     // We only use chi in the tagging criterion so only fill the ghosts for chi
-    FillPatch(*this, S_new, nghost, cur_time, State_Type, c_chi, ncomp);
+    FillPatch(*this, state_new, nghost, cur_time, State_Type, c_chi, ncomp);
 
     auto const &simpar = simParams();
 
@@ -165,18 +167,19 @@ void BinaryBHLevel::errorEst(amrex::TagBoxArray &tb, int /*clearval*/,
         amrex::Abort("BinaryBHLevel::errorEst:track_punctures TODO");
     }
 
-    auto const &tags  = tb.arrays();
-    auto const &S     = S_new.const_arrays();
+    auto const &tags           = tag_box_array.arrays();
+    auto const &state_new_arrs = state_new.const_arrays();
     auto const tagval = amrex::TagBox::SET;
     ChiExtractionTaggingCriterion tagger(Geom().CellSize(0), Level(),
                                          simpar.extraction_params,
                                          simpar.activate_extraction);
     amrex::Real threshold = simpar.regrid_thresholds[Level()];
-    amrex::ParallelFor(S_new, amrex::IntVect(0),
+    amrex::ParallelFor(state_new, amrex::IntVect(0),
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
                        {
-                           amrex::Real r = tagger(i, j, k, S[box_no]);
-                           if (r >= threshold)
+                           amrex::Real criterion =
+                               tagger(i, j, k, state_new_arrs[box_no]);
+                           if (criterion >= threshold)
                            {
                                tags[box_no](i, j, k) = tagval;
                            }

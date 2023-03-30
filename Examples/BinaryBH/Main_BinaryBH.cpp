@@ -19,8 +19,6 @@
 #include <chrono>
 #include <iostream>
 
-DefaultLevelFactory<BinaryBHLevel> bh_level_bld;
-
 int runGRAMReX(int /*argc*/, char * /*argv*/[])
 {
     BL_PROFILE("runGRAMReX()");
@@ -36,6 +34,8 @@ int runGRAMReX(int /*argc*/, char * /*argv*/[])
     }
 
     GRAMR::set_simulation_parameters(sim_params);
+
+    DefaultLevelFactory<BinaryBHLevel> bh_level_bld;
 
 #ifdef USE_TWOPUNCTURES
     TPAMR bh_amr;
