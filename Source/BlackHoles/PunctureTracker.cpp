@@ -59,7 +59,7 @@ void PunctureTracker::set_initial_punctures()
 {
     AMREX_ASSERT(m_puncture_coords.size() > 0); // sanity check
 
-    m_num_punctures = m_puncture_coords.size();
+    m_num_punctures = static_cast<int>(m_puncture_coords.size());
     m_puncture_shift.resize(m_num_punctures);
     for (int ipuncture = 0; ipuncture < m_num_punctures; ipuncture++)
     {
@@ -77,7 +77,8 @@ void PunctureTracker::set_initial_punctures()
     double restart_time = 0.;
     SmallDataIO punctures_file(m_punctures_filename, dt, time, restart_time,
                                SmallDataIO::APPEND, first_step);
-    std::vector<std::string> header1_strings(AMREX_SPACEDIM * m_num_punctures);
+    std::vector<std::string> header1_strings(
+        static_cast<size_t>(AMREX_SPACEDIM * m_num_punctures));
     for (int ipuncture = 0; ipuncture < m_num_punctures; ipuncture++)
     {
         std::string idx = std::to_string(ipuncture + 1);
@@ -109,7 +110,7 @@ void PunctureTracker::read_in_punctures(int a_int_step, double a_current_time)
     // check the data returned is the right size
     AMREX_ASSERT(puncture_vector.size() % AMREX_SPACEDIM == 0);
 
-    m_num_punctures = puncture_vector.size() / AMREX_SPACEDIM;
+    m_num_punctures = static_cast<int>(puncture_vector.size()) / AMREX_SPACEDIM;
     m_puncture_coords.resize(m_num_punctures);
 
     // remove any duplicate data from the file
@@ -246,7 +247,7 @@ void PunctureTracker::interp_shift()
 std::vector<double> PunctureTracker::get_puncture_vector() const
 {
     std::vector<double> puncture_vector;
-    puncture_vector.resize(m_num_punctures * AMREX_SPACEDIM);
+    puncture_vector.resize(m_num_punctures * AMREX_SPACEDIM); // NOLINT
     for (int ipuncture = 0; ipuncture < m_num_punctures; ipuncture++)
     {
         puncture_vector[ipuncture * AMREX_SPACEDIM + 0] =

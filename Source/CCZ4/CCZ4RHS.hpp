@@ -70,12 +70,12 @@ class CCZ4RHS
     using Diff2Vars = CCZ4Vars::Diff2VarsWithGauge<data_t>;
 
   protected:
-    const params_t m_params; //!< CCZ4 parameters
-    const gauge_t m_gauge;   //!< Class to compute gauge in rhs_equation
-    const double m_sigma;    //!< Coefficient for Kreiss-Oliger dissipation
+    params_t m_params; //!< CCZ4 parameters
+    gauge_t m_gauge;   //!< Class to compute gauge in rhs_equation
+    double m_sigma;    //!< Coefficient for Kreiss-Oliger dissipation
     int m_formulation;
     double m_cosmological_constant;
-    const deriv_t m_deriv;
+    deriv_t m_deriv;
 
   public:
     /// Constructor

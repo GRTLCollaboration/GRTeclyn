@@ -351,10 +351,10 @@ CheckOptions:
   - key:             readability-simplify-subscript-expr.Types
     value:           '::std::basic_string;::std::basic_string_view;::std::vector;::std::array'
   - key:             readability-identifier-length.IgnoredParameterNames
-    value:           '^([ijkn]|d?[uvwxyz])$'
+    value:           '^([ijkn]|d?[12uvwxyz]|h)$'
   - key:             readability-identifier-length.IgnoredLoopCounterNames
-    value:           '^[ijklmn]$'
+    value:           '^[ijklmnpqr]$'
   - key:             readability-identifier-length.IgnoredVariableNames
-    value:           '^d?[uvwxyz]$'
+    value:           '^(d?[12tuvwxyz]|in)$'
 ...
 

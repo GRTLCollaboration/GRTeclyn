@@ -37,8 +37,8 @@ Lagrange<Order>::Stencil::Stencil(int width, int deriv, double dx,
     double c5 = NAN;
     // NOLINTEND(readability-identifier-length)
 
-    std::vector<double> tmp_weights(
-        static_cast<size_t>(width * (deriv + 1), 0));
+    std::vector<double> tmp_weights(static_cast<size_t>(width * (deriv + 1)),
+                                    0.);
 
     tmp_weights[0] = 1.0;
 

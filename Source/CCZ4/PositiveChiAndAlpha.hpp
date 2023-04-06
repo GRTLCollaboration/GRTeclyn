@@ -14,8 +14,8 @@
 class PositiveChiAndAlpha
 {
   private:
-    const double m_min_chi;
-    const double m_min_lapse;
+    double m_min_chi;
+    double m_min_lapse;
 
   public:
     //! Constructor for class

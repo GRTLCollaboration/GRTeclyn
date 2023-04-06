@@ -14,6 +14,7 @@
 #include "GRInterval.hpp"
 #include "VarsTools.hpp"
 
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 template <class gauge_t, class deriv_t>
 inline CCZ4RHS<gauge_t, deriv_t>::CCZ4RHS(
     CCZ4_params_t<typename gauge_t::params_t> a_params, double a_dx,
@@ -21,6 +22,7 @@ inline CCZ4RHS<gauge_t, deriv_t>::CCZ4RHS(
     : m_params(a_params), m_gauge(a_params), m_sigma(a_sigma),
       m_formulation(a_formulation),
       m_cosmological_constant(a_cosmological_constant), m_deriv(a_dx)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     // A user who wants to use BSSN should also have damping paramters = 0
     if (m_formulation == USE_BSSN)
@@ -58,6 +60,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<gauge_t, deriv_t>::compute(
     store_vars(rhs.cellData(i, j, k), rhs_vars);
 }
 
+// NOLINTBEGIN(readability-function-cognitive-complexity)
 template <class gauge_t, class deriv_t>
 template <class data_t, template <typename> class vars_t,
           template <typename> class diff2_vars_t>
@@ -74,7 +77,7 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
     auto chris = compute_christoffel(d1.h, h_UU);
 
     Tensor<1, data_t> Z_over_chi;
-    Tensor<1, data_t> Z;
+    Tensor<1, data_t> Z; // NOLINT(readability-identifier-length)
 
     if (m_formulation == USE_BSSN)
     {
@@ -243,5 +246,6 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
 
     m_gauge.rhs_gauge(rhs, vars, d1, d2, advec);
 }
+// NOLINTEND(readability-function-cognitive-complexity)
 
 #endif /* CCZ4RHS_IMPL_HPP_ */

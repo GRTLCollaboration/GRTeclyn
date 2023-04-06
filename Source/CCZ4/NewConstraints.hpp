@@ -56,11 +56,11 @@ class Constraints
             amrex::Array4<data_t const> const &state) const;
 
   protected:
-    const FourthOrderDerivatives m_deriv;
-    const int m_c_Ham;
-    const Interval m_c_Moms;
-    const int m_c_Ham_abs_terms = -1;
-    const Interval m_c_Moms_abs_terms;
+    FourthOrderDerivatives m_deriv;
+    int m_c_Ham;
+    Interval m_c_Moms;
+    int m_c_Ham_abs_terms = -1;
+    Interval m_c_Moms_abs_terms;
     double m_cosmological_constant;
 
     template <class data_t, template <typename> class vars_t,

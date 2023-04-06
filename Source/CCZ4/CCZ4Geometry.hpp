@@ -153,8 +153,8 @@ class CCZ4Geometry
                             const chris_t<data_t> &chris, const double dZ_coeff)
     {
         // get contributions from conformal metric and factor with zero Z vector
-        Tensor<1, data_t> Z0 = 0.;
-        auto ricci           = compute_ricci_Z(vars, d1, d2, h_UU, chris, Z0);
+        Tensor<1, data_t> zero_Z = 0.;
+        auto ricci = compute_ricci_Z(vars, d1, d2, h_UU, chris, zero_Z);
 
         // need to add term to correct for d1.Gamma (includes Z contribution)
         // and Gamma in ricci_hat

@@ -15,12 +15,10 @@
 
 class FourthOrderDerivatives
 {
-  public:
-    const double m_dx;
-
   private:
-    const double m_one_over_dx;
-    const double m_one_over_dx2;
+    double m_dx;
+    double m_one_over_dx;
+    double m_one_over_dx2;
 
   public:
     FourthOrderDerivatives(double dx)
@@ -55,16 +53,19 @@ class FourthOrderDerivatives
     diff1(int i, int j, int k, const amrex::Array4<data_t const> &state) const
     {
         vars_t<Tensor<1, data_t>> d1;
-        const auto *p = state.ptr(i, j, k);
+        const auto *state_ptr_ijk = state.ptr(i, j, k);
         d1.enum_mapping(
             [&](const int &ivar, Tensor<1, data_t> &var)
             {
                 AMREX_D_TERM(
-                    var[0] = diff1<data_t>(p + ivar * state.nstride, 0, 1);
-                    , var[1] = diff1<data_t>(p + ivar * state.nstride, 0,
-                                             static_cast<int>(state.jstride));
-                    , var[2] = diff1<data_t>(p + ivar * state.nstride, 0,
-                                             static_cast<int>(state.kstride)));
+                    var[0] = diff1<data_t>(state_ptr_ijk + ivar * state.nstride,
+                                           0, 1);
+                    ,
+                    var[1] = diff1<data_t>(state_ptr_ijk + ivar * state.nstride,
+                                           0, static_cast<int>(state.jstride));
+                    ,
+                    var[2] = diff1<data_t>(state_ptr_ijk + ivar * state.nstride,
+                                           0, static_cast<int>(state.kstride)));
             });
         return d1;
     }
@@ -127,14 +128,14 @@ class FourthOrderDerivatives
     diff2(int i, int j, int k, amrex::Array4<data_t const> const &state) const
     {
         vars_t<Tensor<2, data_t>> d2{};
-        const auto *p = state.ptr(i, j, k);
+        const auto *state_ptr_ijk = state.ptr(i, j, k);
         amrex::GpuArray<int, AMREX_SPACEDIM> strides{
             1, static_cast<int>(state.jstride),
             static_cast<int>(state.kstride)};
         d2.enum_mapping(
             [&](const int &ivar, Tensor<2, data_t> &var)
             {
-                const auto *pvar = p + ivar * state.nstride;
+                const auto *pvar = state_ptr_ijk + ivar * state.nstride;
                 FOR (dir1) // First calculate the repeated derivatives
                 {
                     var[dir1][dir1] = diff2<data_t>(pvar, 0, strides[dir1]);
@@ -195,7 +196,7 @@ class FourthOrderDerivatives
               const Tensor<1, data_t> &vector) const
     {
         vars_t<data_t> advec;
-        const auto *p = state.ptr(i, j, k);
+        const auto *state_ptr_ijk = state.ptr(i, j, k);
         amrex::GpuArray<int, AMREX_SPACEDIM> strides{
             1, static_cast<int>(state.jstride),
             static_cast<int>(state.kstride)};
@@ -203,7 +204,7 @@ class FourthOrderDerivatives
             [&](const int &ivar, data_t &var)
             {
                 var              = 0.;
-                const auto *pvar = p + ivar * state.nstride;
+                const auto *pvar = state_ptr_ijk + ivar * state.nstride;
                 FOR (dir)
                 {
                     const auto shift_positive =
@@ -240,7 +241,7 @@ class FourthOrderDerivatives
                     amrex::Array4<data_t const> const &state,
                     const double factor) const
     {
-        const auto *p = state.ptr(i, j, k);
+        const auto *state_ptr_ijk = state.ptr(i, j, k);
         amrex::GpuArray<int, AMREX_SPACEDIM> strides{
             1, static_cast<int>(state.jstride),
             static_cast<int>(state.kstride)};
@@ -250,8 +251,9 @@ class FourthOrderDerivatives
                 FOR (dir)
                 {
                     const auto stride = strides[dir];
-                    var               += factor * dissipation_term<data_t>(
-                                        p + ivar * state.nstride, 0, stride);
+                    var               += factor *
+                           dissipation_term<data_t>(
+                               state_ptr_ijk + ivar * state.nstride, 0, stride);
                 }
             });
     }

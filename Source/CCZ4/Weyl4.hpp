@@ -6,7 +6,7 @@
 #ifndef WEYL4_HPP_
 #define WEYL4_HPP_
 
-#include "CCZ4.hpp"
+#include "CCZ4RHS.hpp"
 #include "Cell.hpp"
 #include "Coordinates.hpp"
 #include "FourthOrderDerivatives.hpp"
