@@ -48,7 +48,7 @@ jobs:
       id: flags
       run: |
         make COMP=llvm AMReX_Config.H
-        echo "mpiflags=$(MPICH_CXX=clang++ mpicxx -compile_info | sed 's/^[^\s]*\ //')" >> $GITHUB_OUTPUT
+        echo "mpiflags=$(make print-mpicxx_include_dirs COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
         echo "cxxflags=$(make print-CXXFLAGS COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
         echo "cppflags=$(make print-CPPFLAGS COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
         echo "includes=$(make print-includes COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
@@ -61,7 +61,7 @@ jobs:
       with:
         style: ''
         tidy-checks: ''
-        version: 14 # 15 seems to be broken: See https://github.com/cpp-linter/cpp-linter-action/issues/139
+        version: 15 
         files-changed-only: true
         lines-changed-only: 'diff'
         extra-args: ${{ join(steps.flags.outputs.*,' ') }}
