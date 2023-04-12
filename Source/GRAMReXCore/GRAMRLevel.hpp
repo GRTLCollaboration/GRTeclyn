@@ -41,7 +41,7 @@ class GRAMRLevel : public amrex::AmrLevel
 
     ~GRAMRLevel() override;
 
-    static SimulationParameters const &simParams();
+    static const SimulationParameters &simParams();
 
     /**
      * \brief Compute the initial time step.

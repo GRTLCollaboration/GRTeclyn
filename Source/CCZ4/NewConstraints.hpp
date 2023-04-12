@@ -52,8 +52,8 @@ class Constraints
 
     template <class data_t>
     AMREX_GPU_DEVICE void
-    compute(int i, int j, int k, amrex::Array4<data_t> const &cst,
-            amrex::Array4<data_t const> const &state) const;
+    compute(int i, int j, int k, const amrex::Array4<data_t> &cst,
+            const amrex::Array4<data_t const> &state) const;
 
   protected:
     FourthOrderDerivatives m_deriv;
@@ -72,8 +72,8 @@ class Constraints
 
     template <class data_t>
     AMREX_GPU_DEVICE void
-    store_vars(Vars<data_t> const &out,
-               amrex::CellData<data_t> const &current_cell) const;
+    store_vars(const Vars<data_t> &out,
+               const amrex::CellData<data_t> &current_cell) const;
 };
 
 #include "NewConstraints.impl.hpp"

@@ -8,7 +8,7 @@
 #include "SimulationParameters.hpp"
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-SimulationParameters const *GRAMR::m_sim_params = nullptr;
+const SimulationParameters *GRAMR::m_sim_params = nullptr;
 
 GRAMR::GRAMR(amrex::LevelBld *a_levelbld) : amrex::Amr(a_levelbld) {}
 
@@ -19,7 +19,7 @@ void GRAMR::set_simulation_parameters(const SimulationParameters &a_sim_params)
     m_sim_params = &a_sim_params;
 }
 
-SimulationParameters const &GRAMR::get_simulation_parameters()
+const SimulationParameters &GRAMR::get_simulation_parameters()
 {
     return *m_sim_params;
 }

@@ -51,7 +51,7 @@ int runSphericalExtractionTest(int argc, char *argv[])
     // To add more parameters edit the SimulationParameters file.
     std::string in_string = argv[argc - 1];
     amrex::Print() << in_string << std::endl;
-    char const *in_file = argv[argc - 1];
+    const char *in_file = argv[argc - 1];
     GRParmParse pp(0, argv + argc, NULL, in_file);
     SimulationParameters sim_params(pp);
 

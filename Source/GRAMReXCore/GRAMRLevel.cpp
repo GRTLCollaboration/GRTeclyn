@@ -12,9 +12,9 @@ struct GRAMRBCFill
 {
     AMREX_GPU_DEVICE
     void operator()(const amrex::IntVect & /*iv*/,
-                    amrex::Array4<amrex::Real> const & /*dest*/,
+                    const amrex::Array4<amrex::Real> & /*dest*/,
                     const int /*dcomp*/, const int /*numcomp*/,
-                    amrex::GeometryData const & /*geom*/,
+                    const amrex::GeometryData & /*geom*/,
                     const amrex::Real /*time*/, const amrex::BCRec * /*bcr*/,
                     const int /*bcomp*/, const int /*orig_comp*/) const
     {
@@ -22,9 +22,9 @@ struct GRAMRBCFill
     }
 };
 
-void gramr_bc_fill(amrex::Box const &box, amrex::FArrayBox &data,
+void gramr_bc_fill(const amrex::Box &box, amrex::FArrayBox &data,
                    const int dcomp, const int numcomp,
-                   amrex::Geometry const &geom, const amrex::Real time,
+                   const amrex::Geometry &geom, const amrex::Real time,
                    const amrex::Vector<amrex::BCRec> &bcr, const int bcomp,
                    const int scomp)
 {
@@ -107,7 +107,7 @@ void GRAMRLevel::variableSetUp()
         // Constraints
         auto names_it =
             std::find_if(names.begin(), names.end(),
-                         [](std::string const &name) {
+                         [](const std::string &name) {
                              return std::string("ham") == amrex::toLower(name);
                          });
         if (names_it != names.end())
@@ -118,7 +118,7 @@ void GRAMRLevel::variableSetUp()
         //
         names_it =
             std::find_if(names.begin(), names.end(),
-                         [](std::string const &name) {
+                         [](const std::string &name) {
                              return std::string("mom") == amrex::toLower(name);
                          });
         if (names_it != names.end())
@@ -139,7 +139,7 @@ void GRAMRLevel::variableSetUp()
                 static_cast<int>(plot_constraints.size()), plot_constraints,
                 amrex::DeriveFuncFab(), // null function because we won't use
                                         // it.
-                [=](amrex::Box const &box) { return amrex::grow(box, nghost); },
+                [=](const amrex::Box &box) { return amrex::grow(box, nghost); },
                 &amrex::cell_quartic_interp);
             derive_lst.addComponent("constraints", desc_lst, State_Type, 0,
                                     NUM_VARS);
@@ -169,7 +169,7 @@ GRAMRLevel::GRAMRLevel(amrex::Amr &papa, int lev, const amrex::Geometry &geom,
 
 GRAMRLevel::~GRAMRLevel() = default;
 
-SimulationParameters const &GRAMRLevel::simParams()
+const SimulationParameters &GRAMRLevel::simParams()
 {
     return GRAMR::get_simulation_parameters();
 }
@@ -220,7 +220,7 @@ amrex::Real GRAMRLevel::advance(amrex::Real time, amrex::Real dt, int iteration,
 
     amrex::AmrLevel::RK(
         4, State_Type, time, dt, iteration, ncycle,
-        [&](int /*stage*/, amrex::MultiFab &rhs, amrex::MultiFab const &soln,
+        [&](int /*stage*/, amrex::MultiFab &rhs, const amrex::MultiFab &soln,
             amrex::Real t, amrex::Real /*dtsub*/)
         {
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
@@ -284,7 +284,7 @@ void GRAMRLevel::init(amrex::AmrLevel &old)
 void GRAMRLevel::init()
 {
     amrex::Real dt = parent->dtLevel(level);
-    auto const &coarse_state =
+    const auto &coarse_state =
         parent->getLevel(level - 1).get_state_data(State_Type);
     amrex::Real cur_time  = coarse_state.curTime();
     amrex::Real prev_time = coarse_state.prevTime();

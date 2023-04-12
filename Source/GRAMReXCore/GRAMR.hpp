@@ -41,11 +41,11 @@ class GRAMR : public amrex::Amr
 
     static void
     set_simulation_parameters(const SimulationParameters &a_sim_params);
-    static SimulationParameters const &get_simulation_parameters();
+    static const SimulationParameters &get_simulation_parameters();
 
   private:
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-    static SimulationParameters const *m_sim_params;
+    static const SimulationParameters *m_sim_params;
 
     // defined here due to auto return type
     auto get_walltime()

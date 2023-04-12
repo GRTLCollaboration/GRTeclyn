@@ -30,8 +30,8 @@ inline Constraints::Constraints(
 
 template <class data_t>
 AMREX_GPU_DEVICE void
-Constraints::compute(int i, int j, int k, amrex::Array4<data_t> const &cst,
-                     amrex::Array4<data_t const> const &state) const
+Constraints::compute(int i, int j, int k, const amrex::Array4<data_t> &cst,
+                     const amrex::Array4<data_t const> &state) const
 {
     const auto d1 = m_deriv.template diff1<MetricVars>(i, j, k, state);
     const auto d2 = m_deriv.template diff2<Diff2Vars>(i, j, k, state);
@@ -110,8 +110,8 @@ Constraints::Vars<data_t> Constraints::constraint_equations(
 }
 
 template <class data_t>
-void Constraints::store_vars(Vars<data_t> const &out,
-                             amrex::CellData<data_t> const &current_cell) const
+void Constraints::store_vars(const Vars<data_t> &out,
+                             const amrex::CellData<data_t> &current_cell) const
 {
     if (m_c_Ham >= 0)
     {

@@ -50,7 +50,7 @@ class FourthOrderDerivatives
     /// by the template parameter
     template <template <typename> class vars_t, class data_t>
     AMREX_GPU_DEVICE [[nodiscard]] AMREX_FORCE_INLINE auto
-    diff1(int i, int j, int k, const amrex::Array4<data_t const> &state) const
+    diff1(int i, int j, int k, const amrex::Array4<const data_t> &state) const
     {
         vars_t<Tensor<1, data_t>> d1;
         const auto *state_ptr_ijk = state.ptr(i, j, k);
@@ -125,7 +125,7 @@ class FourthOrderDerivatives
     /// by the template parameter
     template <template <typename> class vars_t, class data_t>
     AMREX_GPU_DEVICE [[nodiscard]] AMREX_FORCE_INLINE auto
-    diff2(int i, int j, int k, amrex::Array4<data_t const> const &state) const
+    diff2(int i, int j, int k, const amrex::Array4<data_t const> &state) const
     {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
         vars_t<Tensor<2, data_t>> d2;
@@ -193,7 +193,7 @@ class FourthOrderDerivatives
     /// by the template parameter
     template <template <typename> class vars_t, class data_t>
     AMREX_GPU_DEVICE [[nodiscard]] AMREX_FORCE_INLINE auto
-    advection(int i, int j, int k, amrex::Array4<data_t const> const &state,
+    advection(int i, int j, int k, const amrex::Array4<data_t const> &state,
               const Tensor<1, data_t> &vector) const
     {
         vars_t<data_t> advec;
@@ -239,7 +239,7 @@ class FourthOrderDerivatives
     template <class data_t, template <typename> class vars_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     add_dissipation(int i, int j, int k, vars_t<data_t> &vars,
-                    amrex::Array4<data_t const> const &state,
+                    const amrex::Array4<data_t const> &state,
                     const double factor) const
     {
         const auto *state_ptr_ijk = state.ptr(i, j, k);

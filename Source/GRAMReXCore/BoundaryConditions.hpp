@@ -95,14 +95,14 @@ class BoundaryConditions
     BoundaryConditions()  = default;
     ~BoundaryConditions() = default;
 
-    BoundaryConditions(BoundaryConditions const &)            = delete;
+    BoundaryConditions(const BoundaryConditions &)            = delete;
     BoundaryConditions(BoundaryConditions &&)                 = delete;
-    BoundaryConditions &operator=(BoundaryConditions const &) = delete;
+    BoundaryConditions &operator=(const BoundaryConditions &) = delete;
     BoundaryConditions &operator=(BoundaryConditions &&)      = delete;
 
     /// define function sets members and is_defined set to true
     void define(std::array<double, AMREX_SPACEDIM> a_center,
-                const params_t &a_params, amrex::Geometry const &a_geom,
+                const params_t &a_params, const amrex::Geometry &a_geom,
                 int a_num_ghosts);
 
     /// change the asymptotic values of the variables for the Sommerfeld BCs
@@ -131,7 +131,7 @@ class BoundaryConditions
 
     /// Apply Sommerfeld BC to RHS
     void apply_sommerfeld_boundaries(amrex::MultiFab &a_rhs,
-                                     amrex::MultiFab const &a_soln) const;
+                                     const amrex::MultiFab &a_soln) const;
 
 #if 0
 //xxxxx

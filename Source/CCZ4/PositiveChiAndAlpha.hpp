@@ -29,7 +29,7 @@ class PositiveChiAndAlpha
 
     template <class data_t>
     AMREX_GPU_HOST_DEVICE void
-    operator()(amrex::CellData<data_t> const &cell) const
+    operator()(const amrex::CellData<data_t> &cell) const
     {
         auto chi   = cell[c_chi];
         auto lapse = cell[c_lapse];

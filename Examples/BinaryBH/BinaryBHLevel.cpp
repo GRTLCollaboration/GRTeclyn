@@ -19,7 +19,7 @@
 void BinaryBHLevel::specificAdvance()
 {
     amrex::MultiFab &S_new = get_new_data(State_Type);
-    auto const &arrs       = S_new.arrays();
+    const auto &arrs       = S_new.arrays();
 
     // Enforce the trace free A_ij condition and positive chi and alpha
     amrex::ParallelFor(S_new,
@@ -68,7 +68,7 @@ void BinaryBHLevel::initData()
     // First set everything to zero (to avoid undefinded values in constraints)
     // then calculate initial data
     amrex::MultiFab &state = get_new_data(State_Type);
-    auto const &arrs       = state.arrays();
+    const auto &arrs       = state.arrays();
     amrex::ParallelFor(state, state.nGrowVect(),
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
                        {
@@ -88,9 +88,9 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                     amrex::MultiFab &a_rhs,
                                     const double /*a_time*/)
 {
-    auto const &soln_arrs   = a_soln.arrays();
-    auto const &soln_c_arrs = a_soln.const_arrays();
-    auto const &rhs_arrs    = a_rhs.arrays();
+    const auto &soln_arrs   = a_soln.arrays();
+    const auto &soln_c_arrs = a_soln.const_arrays();
+    const auto &rhs_arrs    = a_rhs.arrays();
 
     // Enforce positive chi and alpha and trace free A
     amrex::ParallelFor(a_soln, a_soln.nGrowVect(),
@@ -136,7 +136,7 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
 void BinaryBHLevel::specificUpdateODE(amrex::MultiFab &a_soln)
 {
     // Enforce the trace free A_ij condition
-    auto const &soln_arrs = a_soln.arrays();
+    const auto &soln_arrs = a_soln.arrays();
     amrex::ParallelFor(a_soln, amrex::IntVect(0), // zero ghost cells
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
                        {
@@ -160,16 +160,16 @@ void BinaryBHLevel::errorEst(amrex::TagBoxArray &tag_box_array,
     // We only use chi in the tagging criterion so only fill the ghosts for chi
     FillPatch(*this, state_new, nghost, cur_time, State_Type, c_chi, ncomp);
 
-    auto const &simpar = simParams();
+    const auto &simpar = simParams();
 
     if (simpar.track_punctures)
     {
         amrex::Abort("BinaryBHLevel::errorEst:track_punctures TODO");
     }
 
-    auto const &tags           = tag_box_array.arrays();
-    auto const &state_new_arrs = state_new.const_arrays();
-    auto const tagval          = amrex::TagBox::SET;
+    const auto &tags           = tag_box_array.arrays();
+    const auto &state_new_arrs = state_new.const_arrays();
+    const auto tagval          = amrex::TagBox::SET;
     ChiExtractionTaggingCriterion tagger(Geom().CellSize(0), Level(),
                                          simpar.extraction_params,
                                          simpar.activate_extraction);

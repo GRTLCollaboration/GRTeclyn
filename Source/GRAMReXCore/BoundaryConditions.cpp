@@ -209,7 +209,7 @@ void BoundaryConditions::params_t::read_params(GRParmParse &pp)
 /// define function sets members and is_defined set to true
 void BoundaryConditions::define(std::array<double, AMREX_SPACEDIM> a_center,
                                 const params_t &a_params,
-                                amrex::Geometry const &a_geom, int a_num_ghosts)
+                                const amrex::Geometry &a_geom, int a_num_ghosts)
 {
     m_num_ghosts = a_num_ghosts;
     m_params     = a_params;
@@ -398,7 +398,7 @@ int BoundaryConditions::get_boundary_condition(amrex::Orientation face) const
 }
 
 void BoundaryConditions::apply_sommerfeld_boundaries(
-    amrex::MultiFab &a_rhs, amrex::MultiFab const &a_soln) const
+    amrex::MultiFab &a_rhs, const amrex::MultiFab &a_soln) const
 {
     if (!m_params.sommerfeld_boundaries_exist)
     {
@@ -471,10 +471,10 @@ void BoundaryConditions::apply_sommerfeld_boundaries(
 #endif
     for (amrex::MFIter mfi(a_rhs); mfi.isValid(); ++mfi)
     {
-        amrex::Box const &valid_box                 = mfi.validbox();
-        amrex::Array4<amrex::Real const> const &sol = a_soln.const_array(mfi);
-        amrex::Array4<amrex::Real> const &rhs       = a_rhs.array(mfi);
-        for (auto const &sommbox : sommboxes)
+        const amrex::Box &valid_box                 = mfi.validbox();
+        const amrex::Array4<amrex::Real const> &sol = a_soln.const_array(mfi);
+        const amrex::Array4<amrex::Real> &rhs       = a_rhs.array(mfi);
+        for (const auto &sommbox : sommboxes)
         {
             amrex::Box valid_sommbox = sommbox & valid_box;
             if (valid_sommbox.ok())

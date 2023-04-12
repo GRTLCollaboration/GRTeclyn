@@ -43,7 +43,7 @@ template <class data_t>
 AMREX_GPU_DEVICE // or AMREX_GPU_HOST_DEVICE depending on what's needed
     void
     BinaryBH::init_data(int i, int j, int k,
-                        amrex::CellData<data_t> const &cell) const
+                        const amrex::CellData<data_t> &cell) const
 {
     BSSNVars::VarsWithGauge<data_t> vars;
     VarsTools::assign(vars,

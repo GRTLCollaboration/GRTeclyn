@@ -31,11 +31,11 @@ void GRAMRLevel::derive(const std::string &name, amrex::Real /*time*/,
             m_is_writing_plotfile); // We can relax this if needed.
         // If we are in the middle of writing a plotfile, ghost cells have been
         // filled.
-        auto const &state_mf = get_new_data(State_Type);
-        auto const &src      = state_mf.const_arrays();
+        const auto &state_mf = get_new_data(State_Type);
+        const auto &src      = state_mf.const_arrays();
         if (name == "constraints")
         {
-            auto const &dst = multifab.arrays();
+            const auto &dst = multifab.arrays();
             int iham        = -1;
             Interval imom;
             if (!plot_constraints.empty())

@@ -62,7 +62,7 @@ class ChiExtractionTaggingCriterion
 
     template <class data_t>
     AMREX_GPU_DEVICE data_t operator()(
-        int i, int j, int k, amrex::Array4<data_t const> const &state) const
+        int i, int j, int k, const amrex::Array4<data_t const> &state) const
     {
         // first test the gradients for regions of high curvature
         const auto d2     = m_deriv.template diff2<Vars>(i, j, k, state);
