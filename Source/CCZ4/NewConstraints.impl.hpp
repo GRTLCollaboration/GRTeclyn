@@ -14,6 +14,7 @@
 #include "GRInterval.hpp"
 #include "VarsTools.hpp"
 
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 inline Constraints::Constraints(
     double dx, int a_c_Ham, const Interval &a_c_Moms,
     int a_c_Ham_abs_terms /*defaulted*/,
@@ -25,6 +26,7 @@ inline Constraints::Constraints(
       m_cosmological_constant(cosmological_constant)
 {
 }
+// NOLINTEND(bugprone-easily-swappable-parameters)
 
 template <class data_t>
 AMREX_GPU_DEVICE void

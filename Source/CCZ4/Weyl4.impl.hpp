@@ -16,7 +16,7 @@ Weyl4::compute_epsilon3_LUU(const Vars<data_t> &vars,
                             const Tensor<2, data_t> &h_UU) const
 {
     // raised normal vector, NB index 3 is time
-    data_t n_U[4];
+    Tensor<1, data_t, 4> n_U;
     n_U[3] = 1. / vars.lapse;
     FOR (i)
     {

@@ -120,11 +120,11 @@ class SimulationParametersBase : public AMReXParameters
             {
                 pp.load("num_modes", extraction_params.num_modes);
                 std::vector<int> extraction_modes_vect(
-                    2 * extraction_params.num_modes);
+                    static_cast<size_t>(2 * extraction_params.num_modes));
                 pp.load("modes", extraction_modes_vect,
                         2 * extraction_params.num_modes);
                 extraction_params.modes.resize(extraction_params.num_modes);
-                for (int i = 0; i < extraction_params.num_modes; ++i)
+                for (size_t i = 0; i < extraction_params.num_modes; ++i)
                 {
                     extraction_params.modes[i].first =
                         extraction_modes_vect[2 * i];
@@ -137,10 +137,10 @@ class SimulationParametersBase : public AMReXParameters
                 // by default extraction (l,m) = (2,0), (2,1) and (2,2)
                 extraction_params.num_modes = 3;
                 extraction_params.modes.resize(3);
-                for (int i = 0; i < 3; ++i)
+                for (size_t i = 0; i < 3; ++i)
                 {
                     extraction_params.modes[i].first  = 2;
-                    extraction_params.modes[i].second = i;
+                    extraction_params.modes[i].second = static_cast<int>(i);
                 }
             }
 

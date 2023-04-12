@@ -92,7 +92,8 @@ class BoundaryConditions
 
   public:
     /// Default constructor - need to call define afterwards
-    BoundaryConditions() = default;
+    BoundaryConditions()  = default;
+    ~BoundaryConditions() = default;
 
     BoundaryConditions(BoundaryConditions const &)            = delete;
     BoundaryConditions(BoundaryConditions &&)                 = delete;
@@ -199,7 +200,7 @@ class BoundaryConditions
 
     static void fill_sommerfeld_cell(amrex::FArrayBox &rhs_box,
                                      const amrex::FArrayBox &soln_box,
-                                     const amrex::IntVect iv,
+                                     const amrex::IntVect a_iv,
                                      const std::vector<int> &sommerfeld_comps);
 
 #if 0
@@ -213,23 +214,6 @@ class BoundaryConditions
         const int dir, const std::vector<int> &reflective_comps,
         const VariableType var_type = VariableType::evolution) const;
 #endif
-};
-
-/// This derived class is used by expand_grids_to_boundaries to grow the
-/// boxes along the Sommerfeld BC boundaries
-class ExpandGridsToBoundaries // xxxxx: public BaseTransform
-{
-  public:
-    ExpandGridsToBoundaries(BoundaryConditions &a_boundaries)
-        : m_boundaries(a_boundaries)
-    {
-    }
-
-    /// Operator called by transform to grow the boxes where required
-    amrex::Box operator()(const amrex::Box &a_in_box); // xxxxx override;
-
-  protected:
-    BoundaryConditions &m_boundaries;
 };
 
 #endif /* BOUNDARYCONDITIONS_HPP_ */

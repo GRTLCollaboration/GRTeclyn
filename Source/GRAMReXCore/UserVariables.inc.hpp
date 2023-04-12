@@ -31,10 +31,10 @@ static int variable_name_to_enum(const std::string &a_var_name)
     const auto *const var_name_it =
         std::find(variable_names.begin(), variable_names.end(), a_var_name);
 
-    int var = std::distance(variable_names.begin(), var_name_it);
+    auto var = std::distance(variable_names.begin(), var_name_it);
     if (var != NUM_VARS)
     {
-        return var;
+        return static_cast<int>(var);
     }
     return -1;
 }
@@ -51,10 +51,10 @@ static int variable_name_to_enum(const std::string &a_var_name)
     const auto *const var_name_it =
         std::find(variable_names.begin(), variable_names.end(), a_var_name);
 
-    int var = std::distance(variable_names.begin(), var_name_it);
+    auto var = std::distance(variable_names.begin(), var_name_it);
     if (var != NUM_DIAGNOSTIC_VARS)
     {
-        return var;
+        return static_cast<int>(var);
     }
     return -1;
 }
@@ -73,7 +73,7 @@ void load_values_to_array(
     std::array<T, NUM_VARS> &a_values_array, const T a_default_value)
 {
     // how many values do I need to get?
-    int num_values = a_vars_vector.size();
+    auto num_values = a_vars_vector.size();
     // make a container for them, and load
     std::vector<T> vars_values(num_values, a_default_value);
     pp.load(a_values_vector_string, vars_values, num_values, vars_values);
@@ -90,11 +90,13 @@ void load_values_to_array(
 
 // function to create a vector of enums of vars by reading in their
 // names as strings from the params file and converting it to the enums
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 inline void
 load_vars_to_vector(GRParmParse &pp, const char *a_vars_vector_string,
                     const char *a_vector_size_string,
                     std::vector<std::pair<int, VariableType>> &a_vars_vector,
-                    int &a_vars_vector_size)
+                    size_t &a_vars_vector_size)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     int num_values = 0;
     pp.load(a_vector_size_string, num_values, -1);

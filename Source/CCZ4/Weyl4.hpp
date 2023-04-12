@@ -54,23 +54,25 @@ class Weyl4
     template <class data_t>
     using Diff2Vars = ADMConformalVars::Diff2VarsNoGauge<data_t>;
 
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     //! Constructor of class Weyl4
     /*!
         Takes in the centre for the calculation of the tetrads, grid spacing and
         the formulation.
     */
-    Weyl4(const std::array<double, AMREX_SPACEDIM> a_center, const double a_dx,
-          const int a_formulation = CCZ4RHS<>::USE_CCZ4)
+    Weyl4(const std::array<double, AMREX_SPACEDIM> &a_center, double a_dx,
+          int a_formulation = CCZ4RHS<>::USE_CCZ4)
         : m_center(a_center), m_dx(a_dx), m_deriv(a_dx),
           m_formulation(a_formulation)
     {
     }
+    // NOLINTEND(bugprone-easily-swappable-parameters)
 
   protected:
-    const std::array<double, AMREX_SPACEDIM> m_center; //!< The grid center
-    const double m_dx;                                 //!< the grid spacing
-    const FourthOrderDerivatives m_deriv; //!< for calculating derivs of vars
-    const int m_formulation;              //!< CCZ4 or BSSN?
+    std::array<double, AMREX_SPACEDIM> m_center; //!< The grid center
+    double m_dx;                                 //!< the grid spacing
+    FourthOrderDerivatives m_deriv; //!< for calculating derivs of vars
+    int m_formulation;              //!< CCZ4 or BSSN?
 
     //! Compute spatial volume element
     template <class data_t>

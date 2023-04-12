@@ -148,7 +148,7 @@ void BoundaryConditions::params_t::read_params(GRParmParse &pp)
     {
         if (pp.contains("num_nonzero_asymptotic_vars"))
         {
-            int num_values = 0;
+            size_t num_values = 0;
             std::vector<std::pair<int, VariableType>> nonzero_asymptotic_vars;
             load_vars_to_vector(pp, "nonzero_asymptotic_vars",
                                 "num_nonzero_asymptotic_vars",
@@ -171,7 +171,7 @@ void BoundaryConditions::params_t::read_params(GRParmParse &pp)
     }
     if (mixed_boundaries_exist)
     {
-        int num_extrapolating_vars = 0;
+        size_t num_extrapolating_vars = 0;
         std::vector<std::pair<int, VariableType>> extrapolating_vars;
         load_vars_to_vector(pp, "extrapolating_vars", "num_extrapolating_vars",
                             extrapolating_vars, num_extrapolating_vars);
@@ -369,6 +369,7 @@ int BoundaryConditions::get_var_parity(int a_comp, int a_dir,
 }
 
 /// static version used for initial output of boundary values
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 int BoundaryConditions::get_var_parity(int a_comp, int a_dir,
                                        const params_t &a_params,
                                        const VariableType var_type)
@@ -377,23 +378,16 @@ int BoundaryConditions::get_var_parity(int a_comp, int a_dir,
                            ? a_params.vars_parity[a_comp]
                            : a_params.vars_parity_diagnostic[a_comp]);
 
-    int vars_parity = 1;
-    if ((a_dir == 0) && (comp_parity == ODD_X || comp_parity == ODD_XY ||
-                         comp_parity == ODD_XZ || comp_parity == ODD_XYZ))
+    if (((a_dir == 0) && (comp_parity == ODD_X || comp_parity == ODD_XY ||
+                          comp_parity == ODD_XZ || comp_parity == ODD_XYZ)) ||
+        ((a_dir == 1) && (comp_parity == ODD_Y || comp_parity == ODD_XY ||
+                          comp_parity == ODD_YZ || comp_parity == ODD_XYZ)) ||
+        ((a_dir == 2) && (comp_parity == ODD_Z || comp_parity == ODD_XZ ||
+                          comp_parity == ODD_YZ || comp_parity == ODD_XYZ)))
     {
-        vars_parity = -1;
+        return -1;
     }
-    else if ((a_dir == 1) && (comp_parity == ODD_Y || comp_parity == ODD_XY ||
-                              comp_parity == ODD_YZ || comp_parity == ODD_XYZ))
-    {
-        vars_parity = -1;
-    }
-    else if ((a_dir == 2) && (comp_parity == ODD_Z || comp_parity == ODD_XZ ||
-                              comp_parity == ODD_YZ || comp_parity == ODD_XYZ))
-    {
-        vars_parity = -1;
-    }
-    return vars_parity;
+    return 1;
 }
 
 /// Get the boundary condition for given face
@@ -424,11 +418,11 @@ void BoundaryConditions::apply_sommerfeld_boundaries(
                                                  "xxxx mixed bc todo");
                 if (bclo == SOMMERFELD_BC)
                 {
-                    const int len = domain.length(idim);
-                    amrex::Box b  = domain;
-                    b.growHi(idim, -(len - m_num_ghosts));
+                    const int len  = domain.length(idim);
+                    amrex::Box box = domain;
+                    box.growHi(idim, -(len - m_num_ghosts));
                     domain.growLo(idim, -m_num_ghosts);
-                    sommboxes.push_back(b);
+                    sommboxes.push_back(box);
                 }
                 int bchi = get_boundary_condition(
                     amrex::Orientation(idim, amrex::Orientation::high));
@@ -436,11 +430,11 @@ void BoundaryConditions::apply_sommerfeld_boundaries(
                                                  "xxxx mixed bc todo");
                 if (bchi == SOMMERFELD_BC)
                 {
-                    const int len = domain.length(idim);
-                    amrex::Box b  = domain;
-                    b.growLo(idim, -(len - m_num_ghosts));
+                    const int len  = domain.length(idim);
+                    amrex::Box box = domain;
+                    box.growLo(idim, -(len - m_num_ghosts));
                     domain.growHi(idim, -m_num_ghosts);
-                    sommboxes.push_back(b);
+                    sommboxes.push_back(box);
                 }
             }
         }
@@ -453,8 +447,8 @@ void BoundaryConditions::apply_sommerfeld_boundaries(
     for (amrex::OrientationIter orit; orit.isValid(); ++orit)
     {
         amrex::Orientation face = orit();
-        int bc                  = get_boundary_condition(face);
-        if (m_geom.isPeriodic(face.coordDir()) || bc == REFLECTIVE_BC)
+        int bc_on_face          = get_boundary_condition(face);
+        if (m_geom.isPeriodic(face.coordDir()) || bc_on_face == REFLECTIVE_BC)
         {                      // xxxxx todo: what about other BCs?
             domain.grow(face); // to use the central derivative stencil
         }
@@ -477,16 +471,16 @@ void BoundaryConditions::apply_sommerfeld_boundaries(
 #endif
     for (amrex::MFIter mfi(a_rhs); mfi.isValid(); ++mfi)
     {
-        amrex::Box const &vbx                       = mfi.validbox();
+        amrex::Box const &valid_box                 = mfi.validbox();
         amrex::Array4<amrex::Real const> const &sol = a_soln.const_array(mfi);
         amrex::Array4<amrex::Real> const &rhs       = a_rhs.array(mfi);
-        for (auto const &bb : sommboxes)
+        for (auto const &sommbox : sommboxes)
         {
-            amrex::Box b = bb & vbx;
-            if (b.ok())
+            amrex::Box valid_sommbox = sommbox & valid_box;
+            if (valid_sommbox.ok())
             {
                 amrex::ParallelFor(
-                    b, a_rhs.nComp(),
+                    valid_sommbox, a_rhs.nComp(),
                     [=] AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
                     {
                         amrex::RealVect loc((i + 0.5) * dx - center[0],
@@ -740,32 +734,32 @@ void BoundaryConditions::fill_boundary_cells_dir(
 
 void BoundaryConditions::fill_sommerfeld_cell(
     amrex::FArrayBox &rhs_box, const amrex::FArrayBox &soln_box,
-    const amrex::IntVect iv, const std::vector<int> &sommerfeld_comps)
+    const amrex::IntVect a_iv, const std::vector<int> &sommerfeld_comps)
 {
     amrex::Abort("xxxxx todo BoundaryConditions::fill_sommerfeld_cell");
-    amrex::ignore_unused(rhs_box, soln_box, iv, sommerfeld_comps);
+    amrex::ignore_unused(rhs_box, soln_box, a_iv, sommerfeld_comps);
 #if 0
 //xxxxx
     // assumes an asymptotic value + radial waves and permits them
     // to exit grid with minimal reflections
     // get real position on the grid
-    amrex::RealVect loc(iv + 0.5 * RealVect::Unit);
+    amrex::RealVect loc(a_iv + 0.5 * RealVect::Unit);
     loc *= m_dx;
     loc -= m_center;
     double radius_squared = 0.0;
     FOR(i) { radius_squared += loc[i] * loc[i]; }
     double radius = sqrt(radius_squared);
-    amrex::IntVect lo_local_offset = iv - soln_box.smallEnd();
-    amrex::IntVect hi_local_offset = soln_box.bigEnd() - iv;
+    amrex::IntVect lo_local_offset = a_iv - soln_box.smallEnd();
+    amrex::IntVect hi_local_offset = soln_box.bigEnd() - a_iv;
 
     // Apply Sommerfeld BCs to each variable in sommerfeld_comps
     for (int icomp : sommerfeld_comps)
     {
-        rhs_box(iv, icomp) = 0.0;
+        rhs_box(a_iv, icomp) = 0.0;
         FOR(idir2)
         {
-            amrex::IntVect iv_offset1 = iv;
-            amrex::IntVect iv_offset2 = iv;
+            amrex::IntVect iv_offset1 = a_iv;
+            amrex::IntVect iv_offset2 = a_iv;
             double d1;
             // bit of work to get the right stencils for near
             // the edges of the domain, only using second order
@@ -776,7 +770,7 @@ void BoundaryConditions::fill_sommerfeld_cell(
                 iv_offset1[idir2] += +1;
                 iv_offset2[idir2] += +2;
                 d1 = 1.0 / m_dx *
-                     (-1.5 * soln_box(iv, icomp) +
+                     (-1.5 * soln_box(a_iv, icomp) +
                       2.0 * soln_box(iv_offset1, icomp) -
                       0.5 * soln_box(iv_offset2, icomp));
             }
@@ -786,7 +780,7 @@ void BoundaryConditions::fill_sommerfeld_cell(
                 iv_offset1[idir2] += -1;
                 iv_offset2[idir2] += -2;
                 d1 = 1.0 / m_dx *
-                     (+1.5 * soln_box(iv, icomp) -
+                     (+1.5 * soln_box(a_iv, icomp) -
                       2.0 * soln_box(iv_offset1, icomp) +
                       0.5 * soln_box(iv_offset2, icomp));
             }
@@ -801,13 +795,13 @@ void BoundaryConditions::fill_sommerfeld_cell(
             }
 
             // for each direction add dphidx * x^i / r
-            rhs_box(iv, icomp) += -d1 * loc[idir2] / radius;
+            rhs_box(a_iv, icomp) += -d1 * loc[idir2] / radius;
         }
 
         // asymptotic values - these need to have been set in
         // the params file
-        rhs_box(iv, icomp) +=
-            (m_params.vars_asymptotic_values[icomp] - soln_box(iv, icomp)) /
+        rhs_box(a_iv, icomp) +=
+            (m_params.vars_asymptotic_values[icomp] - soln_box(a_iv, icomp)) /
             radius;
     }
 #endif
@@ -1210,87 +1204,5 @@ Box BoundaryConditions::get_boundary_box(
         }
     }
     return boundary_box;
-}
-#endif
-
-/// Operator called by transform to grow the boxes where required
-amrex::Box ExpandGridsToBoundaries::operator()(const amrex::Box &a_in_box)
-{
-    amrex::Abort("xxxxx ExpandGridsToBoundaries::operator()");
-    amrex::ignore_unused(a_in_box);
-#if 0
-//xxxxx
-    amrex::Box out_box = a_in_box;
-    amrex::IntVect offset_lo =
-        -out_box.smallEnd() + m_boundaries.m_domain_box.smallEnd();
-    amrex::IntVect offset_hi = +out_box.bigEnd() - m_boundaries.m_domain_box.bigEnd();
-
-    FOR(idir)
-    {
-        if (!m_boundaries.m_params.is_periodic[idir])
-        {
-            if ((m_boundaries.get_boundary_condition(Side::Lo, idir) ==
-                     BoundaryConditions::SOMMERFELD_BC ||
-                 m_boundaries.get_boundary_condition(Side::Lo, idir) ==
-                     BoundaryConditions::MIXED_BC) &&
-                offset_lo[idir] == 0)
-            {
-                out_box.growLo(idir, m_boundaries.m_num_ghosts);
-            }
-            if ((m_boundaries.get_boundary_condition(Side::Hi, idir) ==
-                     BoundaryConditions::SOMMERFELD_BC ||
-                 m_boundaries.get_boundary_condition(Side::Hi, idir) ==
-                     BoundaryConditions::MIXED_BC) &&
-                offset_hi[idir] == 0)
-            {
-                out_box.growHi(idir, m_boundaries.m_num_ghosts);
-            }
-        }
-    }
-    return out_box;
-#else
-    return {};
-#endif
-}
-
-#if 0
-//xxxxx
-/// This function takes a default constructed open DisjointBoxLayout and
-/// grows the boxes lying along the boundary to include the boundaries if
-/// necessary (i.e. in the Sommerfeld BC case). It is used to define the correct
-/// DisjointBoxLayout for the exchange copier so that shared boundary ghosts are
-/// exchanged correctly.
-void BoundaryConditions::expand_grids_to_boundaries(
-    DisjointBoxLayout &a_out_grids, const DisjointBoxLayout &a_in_grids)
-{
-    if (!a_in_grids.isClosed())
-    {
-        amrex::Abort("input to expand_grids_to_boundaries must be closed");
-    }
-
-    // Grow the problem domain to include the boundary ghosts
-    ProblemDomain domain_with_boundaries = a_in_grids.physDomain();
-    FOR(idir)
-    {
-        if (!m_params.is_periodic[idir])
-        {
-            if ((get_boundary_condition(Side::Lo, idir) == SOMMERFELD_BC) ||
-                (get_boundary_condition(Side::Lo, idir) == MIXED_BC))
-            {
-                domain_with_boundaries.growLo(idir, m_num_ghosts);
-            }
-            if ((get_boundary_condition(Side::Hi, idir) == SOMMERFELD_BC) ||
-                (get_boundary_condition(Side::Hi, idir) == MIXED_BC))
-            {
-                domain_with_boundaries.growHi(idir, m_num_ghosts);
-            }
-        }
-    }
-
-    // Copy grids and apply transformation
-    a_out_grids.deepCopy(a_in_grids, domain_with_boundaries);
-    ExpandGridsToBoundaries expand_grids_to_boundaries(*this);
-    a_out_grids.transform(expand_grids_to_boundaries);
-    a_out_grids.close();
 }
 #endif

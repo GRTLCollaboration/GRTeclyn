@@ -26,6 +26,7 @@ class GRAMRLevel;
 
 class SimulationParameters;
 
+// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 class GRAMR : public amrex::Amr
 {
   private:
@@ -43,6 +44,7 @@ class GRAMR : public amrex::Amr
     static SimulationParameters const &get_simulation_parameters();
 
   private:
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     static SimulationParameters const *m_sim_params;
 
     // defined here due to auto return type

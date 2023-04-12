@@ -7,6 +7,7 @@
 #include "GRAMRLevel.hpp"
 #include "SimulationParameters.hpp"
 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 SimulationParameters const *GRAMR::m_sim_params = nullptr;
 
 GRAMR::GRAMR(amrex::LevelBld *a_levelbld) : amrex::Amr(a_levelbld) {}

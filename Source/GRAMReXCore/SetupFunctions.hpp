@@ -28,6 +28,7 @@
 
 #include <iostream>
 
+// NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
 /// This function calls MPI_Init, makes sure a parameter file is supplied etc...
 void mainSetup(int argc, char *argv[]);
 
@@ -40,6 +41,7 @@ const int simd_traits<double>::simd_len; // Still needs to be defined
 
 void mainSetup(int argc, char *argv[])
 {
+    // NOLINTEND(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
     bool use_parm_parse = true;
     amrex::Initialize(argc, argv, use_parm_parse, MPI_COMM_WORLD,
                       []()

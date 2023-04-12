@@ -14,11 +14,11 @@ template <class level_t> class DefaultLevelFactory : public amrex::LevelBld
     void variableSetUp() override;
     void variableCleanUp() override;
     amrex::AmrLevel *operator()() override;
-    amrex::AmrLevel *operator()(amrex::Amr &papa, int lev,
-                                const amrex::Geometry &level_geom,
-                                const amrex::BoxArray &ba,
-                                const amrex::DistributionMapping &dm,
-                                amrex::Real time) override;
+    amrex::AmrLevel *
+    operator()(amrex::Amr &papa, int lev, const amrex::Geometry &level_geom,
+               const amrex::BoxArray &box_array,
+               const amrex::DistributionMapping &distribution_mapping,
+               amrex::Real time) override;
 };
 
 template <class level_t> void DefaultLevelFactory<level_t>::variableSetUp()
@@ -34,16 +34,19 @@ template <class level_t> void DefaultLevelFactory<level_t>::variableCleanUp()
 template <class level_t>
 amrex::AmrLevel *DefaultLevelFactory<level_t>::operator()()
 {
+    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
     return new level_t;
 }
 
 template <class level_t>
 amrex::AmrLevel *DefaultLevelFactory<level_t>::operator()(
     amrex::Amr &papa, int lev, const amrex::Geometry &level_geom,
-    const amrex::BoxArray &ba, const amrex::DistributionMapping &dm,
-    amrex::Real time)
+    const amrex::BoxArray &box_array,
+    const amrex::DistributionMapping &distribution_mapping, amrex::Real time)
 {
-    return new level_t(papa, lev, level_geom, ba, dm, time);
+    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+    return new level_t(papa, lev, level_geom, box_array, distribution_mapping,
+                       time);
 }
 
 #endif /* DEFAULTLEVELFACTORY_HPP_ */

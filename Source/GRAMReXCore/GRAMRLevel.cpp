@@ -5,6 +5,7 @@
 
 #include "GRAMRLevel.hpp"
 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 amrex::Vector<std::string> GRAMRLevel::plot_constraints;
 
 struct GRAMRBCFill
@@ -21,14 +22,14 @@ struct GRAMRBCFill
     }
 };
 
-void gramr_bc_fill(amrex::Box const &bx, amrex::FArrayBox &data,
+void gramr_bc_fill(amrex::Box const &box, amrex::FArrayBox &data,
                    const int dcomp, const int numcomp,
                    amrex::Geometry const &geom, const amrex::Real time,
                    const amrex::Vector<amrex::BCRec> &bcr, const int bcomp,
                    const int scomp)
 {
     amrex::GpuBndryFuncFab<GRAMRBCFill> bndry_func(GRAMRBCFill{});
-    bndry_func(bx, data, dcomp, numcomp, geom, time, bcr, bcomp, scomp);
+    bndry_func(box, data, dcomp, numcomp, geom, time, bcr, bcomp, scomp);
 }
 
 void GRAMRLevel::variableSetUp()
@@ -56,11 +57,9 @@ void GRAMRLevel::variableSetUp()
             {
                 bc.set(face, amrex::BCType::int_dir);
             }
-            else if (bctype == BoundaryConditions::STATIC_BC)
-            {
-                bc.set(face, amrex::BCType::foextrap);
-            }
-            else if (bctype == BoundaryConditions::SOMMERFELD_BC)
+            else if (bctype == BoundaryConditions::STATIC_BC ||
+                     bctype == BoundaryConditions::SOMMERFELD_BC ||
+                     bctype == BoundaryConditions::MIXED_BC)
             {
                 bc.set(face, amrex::BCType::foextrap);
             }
@@ -80,10 +79,6 @@ void GRAMRLevel::variableSetUp()
             else if (bctype == BoundaryConditions::EXTRAPOLATING_BC)
             {
                 amrex::Abort("xxxxx EXTRAPOLATING_BC todo");
-            }
-            else if (bctype == BoundaryConditions::MIXED_BC)
-            {
-                bc.set(face, amrex::BCType::foextrap); // xxxxx todo mixed BC
             }
             else
             {
@@ -110,22 +105,25 @@ void GRAMRLevel::variableSetUp()
         pp.getarr("derive_plot_vars", names);
 
         // Constraints
-        auto r =
+        auto names_it =
             std::find_if(names.begin(), names.end(),
-                         [](std::string const &s)
-                         { return std::string("ham") == amrex::toLower(s); });
-        if (r != names.end())
+                         [](std::string const &name) {
+                             return std::string("ham") == amrex::toLower(name);
+                         });
+        if (names_it != names.end())
         {
-            names.erase(r);
+            names.erase(names_it);
             plot_constraints.push_back("Ham");
         }
         //
-        r = std::find_if(names.begin(), names.end(),
-                         [](std::string const &s)
-                         { return std::string("mom") == amrex::toLower(s); });
-        if (r != names.end())
+        names_it =
+            std::find_if(names.begin(), names.end(),
+                         [](std::string const &name) {
+                             return std::string("mom") == amrex::toLower(name);
+                         });
+        if (names_it != names.end())
         {
-            names.erase(r);
+            names.erase(names_it);
             plot_constraints.push_back("Mom1");
             plot_constraints.push_back("Mom2");
             plot_constraints.push_back("Mom3");
@@ -138,10 +136,10 @@ void GRAMRLevel::variableSetUp()
 
             derive_lst.add(
                 "constraints", amrex::IndexType::TheCellType(),
-                plot_constraints.size(), plot_constraints,
+                static_cast<int>(plot_constraints.size()), plot_constraints,
                 amrex::DeriveFuncFab(), // null function because we won't use
                                         // it.
-                [=](amrex::Box const &b) { return amrex::grow(b, nghost); },
+                [=](amrex::Box const &box) { return amrex::grow(box, nghost); },
                 &amrex::cell_quartic_interp);
             derive_lst.addComponent("constraints", desc_lst, State_Type, 0,
                                     NUM_VARS);
@@ -157,14 +155,15 @@ void GRAMRLevel::variableCleanUp()
 
 GRAMRLevel::GRAMRLevel() = default;
 
-GRAMRLevel::GRAMRLevel(amrex::Amr &papa, int lev, const amrex::Geometry &a_geom,
-                       const amrex::BoxArray &ba,
-                       const amrex::DistributionMapping &dm, amrex::Real time)
-    : amrex::AmrLevel(papa, lev, a_geom, ba, dm, time),
+GRAMRLevel::GRAMRLevel(amrex::Amr &papa, int lev, const amrex::Geometry &geom,
+                       const amrex::BoxArray &box_array,
+                       const amrex::DistributionMapping &distribution_mapping,
+                       amrex::Real time)
+    : amrex::AmrLevel(papa, lev, geom, box_array, distribution_mapping, time),
       m_num_ghosts(simParams().num_ghosts)
 {
 
-    m_boundaries.define(simParams().center, simParams().boundary_params, a_geom,
+    m_boundaries.define(simParams().center, simParams().boundary_params, geom,
                         m_num_ghosts);
 }
 
@@ -221,13 +220,14 @@ amrex::Real GRAMRLevel::advance(amrex::Real time, amrex::Real dt, int iteration,
 
     amrex::AmrLevel::RK(
         4, State_Type, time, dt, iteration, ncycle,
-        [&](int /*stage*/, amrex::MultiFab &dSdt, amrex::MultiFab const &S,
+        [&](int /*stage*/, amrex::MultiFab &rhs, amrex::MultiFab const &soln,
             amrex::Real t, amrex::Real /*dtsub*/)
         {
-            specificEvalRHS(const_cast<amrex::MultiFab &>(S), dSdt, t);
-            m_boundaries.apply_sommerfeld_boundaries(dSdt, S);
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+            specificEvalRHS(const_cast<amrex::MultiFab &>(soln), rhs, t);
+            m_boundaries.apply_sommerfeld_boundaries(rhs, soln);
         },
-        [&](int /*stage*/, amrex::MultiFab &S) { specificUpdateODE(S); });
+        [&](int /*stage*/, amrex::MultiFab &soln) { specificUpdateODE(soln); });
 
     specificAdvance();
 
@@ -303,9 +303,10 @@ void GRAMRLevel::writePlotFilePre(const std::string & /*dir*/,
     m_is_writing_plotfile = true;
     if (!plot_constraints.empty())
     {
-        auto &S = get_new_data(State_Type);
-        FillPatch(*this, S, S.nGrow(), get_state_data(State_Type).curTime(),
-                  State_Type, 0, S.nComp()); // xxxxx Do we need all components?
+        auto &state_new = get_new_data(State_Type);
+        FillPatch(*this, state_new, state_new.nGrow(),
+                  get_state_data(State_Type).curTime(), State_Type, 0,
+                  state_new.nComp()); // xxxxx Do we need all components?
     }
 }
 

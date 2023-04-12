@@ -25,6 +25,7 @@ enum StateType
     NUM_STATE_TYPE
 };
 
+// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 class GRAMRLevel : public amrex::AmrLevel
 {
   public:
@@ -34,7 +35,8 @@ class GRAMRLevel : public amrex::AmrLevel
     GRAMRLevel();
 
     GRAMRLevel(amrex::Amr &papa, int lev, const amrex::Geometry &geom,
-               const amrex::BoxArray &ba, const amrex::DistributionMapping &dm,
+               const amrex::BoxArray &box_array,
+               const amrex::DistributionMapping &distribution_mapping,
                amrex::Real time);
 
     ~GRAMRLevel() override;
@@ -105,18 +107,20 @@ class GRAMRLevel : public amrex::AmrLevel
      */
 
     //! Do pre-plotfile work
-    void writePlotFilePre(const std::string &dir, std::ostream &os) override;
+    void writePlotFilePre(const std::string &dir,
+                          std::ostream & /*os*/) override;
 
     //! Do post-plotfile work
-    void writePlotFilePost(const std::string &dir, std::ostream &os) override;
+    void writePlotFilePost(const std::string &dir,
+                           std::ostream & /*os*/) override;
 
     //! Return a MultiFab containing the derived data for this level.
     std::unique_ptr<amrex::MultiFab>
     derive(const std::string &name, amrex::Real time, int ngrow) override;
 
     //! Fill mf starting with the dcomp'th component with the derived quantity.
-    void derive(const std::string &name, amrex::Real time, amrex::MultiFab &mf,
-                int dcomp) override;
+    void derive(const std::string &name, amrex::Real time,
+                amrex::MultiFab &multifab, int dcomp) override;
 
     /// Virtual function for the problem specific parts of Advance
     virtual void specificAdvance() {}
@@ -136,6 +140,7 @@ class GRAMRLevel : public amrex::AmrLevel
     int m_num_ghosts{};  //!< Number of ghost cells
     bool m_is_writing_plotfile = false;
 
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     static amrex::Vector<std::string> plot_constraints;
 };
 

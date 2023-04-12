@@ -224,6 +224,7 @@ class AMReXParameters
         // only create hdf5 directory in setupAMRObject (when it becomes needed)
     }
 
+    // NOLINTBEGIN(readability-function-cognitive-complexity)
     void read_grid_params(GRParmParse &pp)
     {
         // Grid N
@@ -410,6 +411,7 @@ class AMReXParameters
 
         pp.load("center", center, default_center); // default to center
     }
+    // NOLINTEND(readability-function-cognitive-complexity)
 
     void check_params()
     {
