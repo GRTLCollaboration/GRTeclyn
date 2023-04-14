@@ -33,7 +33,8 @@ AMREX_GPU_DEVICE void load_vars(const amrex::CellData<data_t> &cell,
 template <template <typename> class vars_t, class data_t>
 AMREX_GPU_DEVICE auto load_vars(const amrex::CellData<data_t> &cell)
 {
-    vars_t<std::remove_const_t<data_t>> vars{};
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+    vars_t<std::remove_const_t<data_t>> vars;
     load_vars(cell, vars);
     return vars;
 }
