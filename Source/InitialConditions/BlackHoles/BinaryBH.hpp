@@ -30,10 +30,12 @@ class BinaryBH
     int m_initial_lapse;
 
   public:
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     BinaryBH(BoostedBH::params_t a_bh1_params, BoostedBH::params_t a_bh2_params,
              double a_dx, int a_initial_lapse = Lapse::PRE_COLLAPSED)
         : m_dx(a_dx), bh1(a_bh1_params), bh2(a_bh2_params),
           m_initial_lapse(a_initial_lapse)
+    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
     }
 

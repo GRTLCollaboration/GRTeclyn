@@ -44,13 +44,15 @@ class ChiExtractionTaggingCriterion
     };
 
     // The constructor
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     ChiExtractionTaggingCriterion(const double dx, const int a_level,
-                                  const SphericalExtraction::params_t a_params,
+                                  const SphericalExtraction::params_t &a_params,
                                   const bool activate_extraction = false)
         : m_dx(dx), m_deriv(dx),
           m_num_extraction_radii(a_params.num_extraction_radii()),
           m_center(a_params.center), m_level(a_level),
           m_activate_extraction(activate_extraction)
+    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         AMREX_ALWAYS_ASSERT(m_num_extraction_radii <= NMAX);
         for (int i = 0; i < m_num_extraction_radii; ++i)
