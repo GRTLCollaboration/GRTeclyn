@@ -12,5 +12,8 @@ CLANG_TIDY_CONFIG_FLAG=--config-file=$(GRAMREX_HOME)/.clang-tidy
 clang-tidy: $(GRAMREX_CEXE_sources) $(srcTempDir)/AMReX_Config.H
 	clang-tidy $(CLANG_TIDY_CONFIG_FLAG) $(filter-out %.H, $^) -- $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) $(mpicxx_include_dirs)
 
+clang-tidy-%.cpp: $(srcTempDir)/AMReX_Config.H
+	clang-tidy $(CLANG_TIDY_CONFIG_FLAG)  $*.cpp -- $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) $(mpicxx_include_dirs)
+
 clang-tidy-fix: $(GRAMREX_CEXE_sources) $(srcTempDir)/AMReX_Config.H
 	clang-tidy --fix $(CLANG_TIDY_CONFIG_FLAG) $(filter-out %.H, $^) -- $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) $(mpicxx_include_dirs)
