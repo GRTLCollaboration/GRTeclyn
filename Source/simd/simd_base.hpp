@@ -10,6 +10,8 @@
 #error "This file should only be included through simd.hpp"
 #endif
 
+// NOLINTBEGIN
+
 #include <AMReX_Config.H>
 
 #include <cmath>
@@ -188,5 +190,7 @@ ALWAYS_INLINE std::ostream &operator<<(std::ostream &os, const simd<t> &in_simd)
     }
     return os;
 }
+
+// NOLINTEND
 
 #endif /* SIMD_BASE_HPP_ */

@@ -6,6 +6,8 @@
 #ifndef SIMD_HPP_
 #define SIMD_HPP_
 
+// NOLINTBEGIN
+
 // Other includes
 #include "AlwaysInline.hpp"
 #include <cmath>
@@ -127,5 +129,7 @@ template <typename t> constexpr t simd_max(const t &a, const t &b)
 //<-- End: Defining the simd specific calls for non-simd datatypes.
 
 #include "simdify.hpp"
+
+// NOLINTEND
 
 #endif /* SIMD_HPP_ */

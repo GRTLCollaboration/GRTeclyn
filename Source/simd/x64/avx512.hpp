@@ -12,6 +12,8 @@
 
 #if defined(__AVX512F__)
 
+// NOLINTBEGIN
+
 #include <immintrin.h>
 
 template <> struct simd_traits<double>
@@ -217,6 +219,8 @@ template <> struct simd<float> : public simd_base<float>
 
     friend ALWAYS_INLINE simd sqrt(const simd &a) { return _mm512_sqrt_ps(a); }
 };
+
+// NOLINTEND
 
 #endif /* __AVX512F__ */
 

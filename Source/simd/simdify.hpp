@@ -10,6 +10,8 @@
 #error "This file should only be included through simd.hpp"
 #endif
 
+// NOLINTBEGIN
+
 #include <type_traits>
 
 /// This class is used to load simd<t> objects from a number (given by the simd
@@ -195,5 +197,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 {
     return ptr;
 }
+
+// NOLINTEND
 
 #endif /* SIMDIFY_HPP_ */

@@ -19,6 +19,8 @@
 #include <emmintrin.h>
 #endif
 
+// NOLINTBEGIN
+
 template <> struct simd_traits<double>
 {
     using data_t              = __m128d;
@@ -230,6 +232,8 @@ template <> struct simd<float> : public simd_base<float>
         return _mm_sqrt_ps(a);
     }
 };
+
+// NOLINTEND
 
 #endif /* __SSE2__ */
 

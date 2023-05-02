@@ -12,6 +12,8 @@
 
 #if defined(__AVX__)
 
+// NOLINTBEGIN
+
 #include <immintrin.h>
 
 template <> struct simd_traits<double>
@@ -198,6 +200,8 @@ template <> struct simd<float> : public simd_base<float>
         return _mm256_sqrt_ps(a);
     }
 };
+
+// NOLINTEND
 
 #endif /* __AVX__ */
 
