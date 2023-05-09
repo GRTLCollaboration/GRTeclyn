@@ -61,7 +61,7 @@ jobs:
       with:
         style: ''
         tidy-checks: ''
-        version: 15 
+        version: 16 
         files-changed-only: true
         lines-changed-only: 'diff'
         extra-args: ${{ join(steps.flags.outputs.*,' ') }}
