@@ -50,6 +50,12 @@ class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
         int num_modes{}; //!< the number of modes to extract
         std::vector<std::pair<int, int>> modes; //!< the modes to extract
                                                 //!< l = first, m = second
+
+        [[nodiscard]] const SurfaceExtraction::params_t &
+        get_surface_extraction_params() const
+        {
+            return *this;
+        }
     };
 
   protected:
@@ -61,8 +67,8 @@ class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
     SphericalExtraction(const params_t &a_params, double a_dt, double a_time,
                         bool a_first_step, double a_restart_time = 0.0)
         : SurfaceExtraction(a_params.center,
-                            static_cast<SurfaceExtraction::params_t>(a_params),
-                            a_dt, a_time, a_first_step, a_restart_time),
+                            a_params.get_surface_extraction_params(), a_dt,
+                            a_time, a_first_step, a_restart_time),
           m_center(a_params.center), m_num_modes(a_params.num_modes),
           m_modes(a_params.modes)
     {

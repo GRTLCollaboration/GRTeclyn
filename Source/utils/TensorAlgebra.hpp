@@ -173,8 +173,10 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE data_t compute_dot_product(
 /// a metric.
 template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 make_trace_free(Tensor<2, data_t> &tensor_LL, const Tensor<2, data_t> &metric,
                 const Tensor<2, data_t> &inverse_metric)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     auto trace                  = compute_trace(tensor_LL, inverse_metric);
     double one_over_gr_spacedim = 1. / ((double)GR_SPACEDIM);

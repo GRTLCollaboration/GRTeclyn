@@ -29,22 +29,22 @@ class SmallDataIO
 
   protected:
     std::string m_filename;
-    const double m_dt;
-    const double m_time;
-    const double m_restart_time;
+    double m_dt;
+    double m_time;
+    double m_restart_time;
     int m_step{};
-    const Mode m_mode;
-    const bool m_first_step; // this should be set to true if this is the first
-                             // timestep
+    Mode m_mode;
+    bool m_first_step; // this should be set to true if this is the first
+                       // timestep
     static const std::string s_default_file_extension;
     static constexpr int s_default_data_precision = 10;
-    const int m_data_precision;
-    const int m_data_width;
-    const double m_data_epsilon; //!< the maximum data precision error
+    int m_data_precision;
+    int m_data_width;
+    double m_data_epsilon; //!< the maximum data precision error
     static constexpr int s_default_coords_precision = 7;
-    const int m_coords_precision;
-    const int m_coords_width;
-    const double m_coords_epsilon; //!< the maximum coords precision error
+    int m_coords_precision;
+    int m_coords_width;
+    double m_coords_epsilon; //!< the maximum coords precision error
     static constexpr int s_default_filename_steps_width = 6;
 
     std::fstream m_file;
@@ -78,9 +78,11 @@ class SmallDataIO
     //! Destructor (closes file)
     ~SmallDataIO();
 
-    // disable default copy constructor and assignment operator
+    // disable default copy/move constructors and assignment operators
     SmallDataIO(const SmallDataIO &)            = delete;
     SmallDataIO &operator=(const SmallDataIO &) = delete;
+    SmallDataIO(SmallDataIO &&)                 = delete;
+    SmallDataIO &operator=(SmallDataIO &&)      = delete;
 
     // ------------ Writing Functions ------------
 

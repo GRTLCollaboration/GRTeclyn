@@ -5,11 +5,13 @@ struct Interval
 {
     Interval() = default;
 
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     Interval(int a_firstComp, int a_lastComp)
         : m_begin(a_firstComp), m_end(a_lastComp)
     {
     }
 
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     void define(int a_firstComp, int a_lastComp)
     {
         m_begin = a_firstComp;
@@ -28,9 +30,9 @@ struct Interval
         return a_val >= m_begin && a_val <= m_end;
     }
 
-    bool operator==(const Interval &p) const
+    bool operator==(const Interval &a_interval) const
     {
-        return ((m_begin == p.m_begin) && (m_end == p.m_end));
+        return ((m_begin == a_interval.m_begin) && (m_end == a_interval.m_end));
     }
 
   private:

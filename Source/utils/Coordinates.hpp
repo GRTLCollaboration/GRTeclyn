@@ -57,12 +57,13 @@ template <class data_t> class Coordinates
     compute_coord(simd<double> &out, int position, double dx,
                   double center_distance = 0)
     {
+        // NOLINTNEXTLINE
         double out_arr[simd_traits<double>::simd_len];
         for (int i = 0; i < simd_traits<double>::simd_len; ++i)
         {
             out_arr[i] = (position + i + 0.5) * dx - center_distance;
         }
-        out = simd<double>::load(out_arr);
+        out = simd<double>::load(&out_arr[0]);
     }
 #endif
 
@@ -84,16 +85,16 @@ template <class data_t> class Coordinates
     get_radius(amrex::IntVect integer_coords, double dx,
                std::array<double, AMREX_SPACEDIM> center = {0})
     {
-        data_t xx;
-        double yy = NAN;
-        double zz = NAN;
+        data_t x;
+        double y = NAN;
+        double z = NAN;
 
         // Note that this is not currently dimension independent
-        compute_coord(xx, integer_coords[0], dx, center[0]);
-        compute_coord(yy, integer_coords[1], dx, center[1]);
-        compute_coord(zz, integer_coords[2], dx, center[2]);
+        compute_coord(x, integer_coords[0], dx, center[0]);
+        compute_coord(y, integer_coords[1], dx, center[1]);
+        compute_coord(z, integer_coords[2], dx, center[2]);
 
-        data_t r = std::sqrt(xx * xx + yy * yy + zz * zz);
+        data_t r = std::sqrt(x * x + y * y + z * z);
 
         const double minimum_r = 1e-6;
         return simd_max(r, minimum_r);
@@ -101,12 +102,12 @@ template <class data_t> class Coordinates
 };
 
 template <typename data_t>
-ALWAYS_INLINE std::ostream &operator<<(std::ostream &os,
+ALWAYS_INLINE std::ostream &operator<<(std::ostream &a_os,
                                        const Coordinates<data_t> &in_coords)
 {
-    os << "(x,y,z) = (" << in_coords.x << "," << in_coords.y << ","
-       << in_coords.z << ")"
-       << " r = " << in_coords.get_radius();
-    return os;
+    a_os << "(x,y,z) = (" << in_coords.x << "," << in_coords.y << ","
+         << in_coords.z << ")"
+         << " r = " << in_coords.get_radius();
+    return a_os;
 }
 #endif /* COORDINATES_HPP_ */

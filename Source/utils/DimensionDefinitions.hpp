@@ -6,14 +6,16 @@
 #ifndef GRUTILS_HPP_
 #define GRUTILS_HPP_
 
-#ifndef GR_SPACEDIM
-#define GR_SPACEDIM 3
-#endif
+// #ifndef GR_SPACEDIM
+// #define GR_SPACEDIM 3
+// #endif
+constexpr int GR_SPACEDIM = 3;
 
 #ifndef DEFAULT_TENSOR_DIM
 #define DEFAULT_TENSOR_DIM AMREX_SPACEDIM
 #endif
 
+// NOLINTBEGIN(cppcoreguidelines-macro-usage)
 // Fancy 'for' loop macros to iterate through spatial tensors
 // use as "FOR(i, j) { ... }"
 #define FOR1(IDX) for (int(IDX) = 0; (IDX) < DEFAULT_TENSOR_DIM; ++(IDX))
@@ -36,5 +38,6 @@
 #define GET_MACRO6(_1, _2, _3, _4, _5, NAME, ...) NAME
 #define FOR(...)                                                               \
     GET_MACRO6(__VA_ARGS__, FOR5, FOR4, FOR3, FOR2, FOR1, DUMMYFOR)(__VA_ARGS__)
+// NOLINTEND(cppcoreguidelines-macro-usage)
 
 #endif /* GRUTILS_HPP_*/

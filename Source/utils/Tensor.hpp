@@ -14,10 +14,13 @@
 template <int rank, class data_t, int size = DEFAULT_TENSOR_DIM> class Tensor
 {
     template <int, class, int> friend class Tensor;
-    typedef typename Tensor<rank - 1, data_t, size>::arr_t arr_t[size];
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
+    using arr_t = typename Tensor<rank - 1, data_t, size>::arr_t[size];
     arr_t arr;
 
   public:
+    // We don't want to initialize Tensor objects for performance
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr Tensor() = default;
 
     //    ALWAYS_INLINE

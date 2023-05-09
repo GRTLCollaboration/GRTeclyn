@@ -22,6 +22,7 @@
 
 // ------------ Constructors -----------------
 
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 // This has to be initialised outside the class declaration in C++14
 const std::string SmallDataIO::s_default_file_extension = ".dat";
 
@@ -209,7 +210,7 @@ void SmallDataIO::remove_duplicate_time_data(const bool keep_m_time_data)
         m_file.seekg(0);
         std::string line;
         // adding a random integer might make this a little more robust...
-        const int random_int = std::default_random_engine()();
+        const unsigned long random_int = std::default_random_engine()();
         std::string temp_filename =
             m_filename + ".temp" + std::to_string(random_int);
         std::ofstream temp_file(temp_filename);
@@ -220,12 +221,9 @@ void SmallDataIO::remove_duplicate_time_data(const bool keep_m_time_data)
         }
         while (std::getline(m_file, line))
         {
-            if (!(line.find('#') == std::string::npos))
-            {
-                temp_file << line << "\n";
-            }
-            else if (std::stod(line.substr(0, m_coords_width)) <
-                     m_time + sign * m_coords_epsilon)
+            if (!(line.find('#') == std::string::npos) ||
+                std::stod(line.substr(0, m_coords_width)) <
+                    m_time + sign * m_coords_epsilon)
             {
                 temp_file << line << "\n";
             }
@@ -345,3 +343,5 @@ double SmallDataIO::get_default_coords_epsilon()
 {
     return pow(10.0, -s_default_coords_precision);
 }
+
+// NOLINTEND(bugprone-easily-swappable-parameters)

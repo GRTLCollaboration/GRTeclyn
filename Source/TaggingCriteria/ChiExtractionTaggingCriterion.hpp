@@ -19,15 +19,15 @@ template <int NMAX = 2> // xxxxx TODO: max number of extractions
 class ChiExtractionTaggingCriterion
 {
   protected:
-    const double m_dx;
-    const FourthOrderDerivatives m_deriv;
+    double m_dx;
+    FourthOrderDerivatives m_deriv;
     // const SphericalExtraction::params_t m_params;  not GPU friendly
-    const int m_num_extraction_radii;
+    int m_num_extraction_radii;
     std::array<double, NMAX> m_extraction_radii;
     std::array<int, NMAX> m_extraction_levels;
-    const std::array<double, AMREX_SPACEDIM> m_center;
-    const int m_level;
-    const bool m_activate_extraction;
+    std::array<double, AMREX_SPACEDIM> m_center;
+    int m_level;
+    bool m_activate_extraction;
 
   public:
     template <class data_t> struct Vars

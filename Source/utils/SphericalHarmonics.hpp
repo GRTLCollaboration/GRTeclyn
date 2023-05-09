@@ -21,9 +21,11 @@ template <class data_t> struct Y_lm_t
     data_t magnitude;
 };
 
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 // Calculates the spin weight es, el, em spherical harmonic
 template <class data_t>
 Y_lm_t<data_t> spin_Y_lm(const data_t x, const double y, const double z,
+                         // NOLINTNEXTLINE(readability-identifier-length)
                          const int es, const int el, const int em)
 {
 
@@ -59,6 +61,8 @@ Y_lm_t<data_t> spin_Y_lm(const data_t x, const double y, const double z,
 
     return Y_lm;
 }
+// NOLINTEND(bugprone-easily-swappable-parameters)
+
 } // namespace SphericalHarmonics
 
 #endif /* SPHERICALHARMONICS_HPP_ */

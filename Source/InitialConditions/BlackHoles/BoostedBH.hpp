@@ -26,8 +26,6 @@ class BoostedBH
         std::array<double, AMREX_SPACEDIM> momentum;
     };
 
-    const params_t m_params;
-
     BoostedBH(params_t a_params);
 
     // conformal factor
@@ -39,6 +37,8 @@ class BoostedBH
     AMREX_GPU_DEVICE Tensor<2, data_t> Aij(Coordinates<data_t> a_coords) const;
 
   private:
+    params_t m_params;
+
     template <class data_t>
     AMREX_GPU_DEVICE data_t center_dist(Coordinates<data_t> a_coords) const;
 
