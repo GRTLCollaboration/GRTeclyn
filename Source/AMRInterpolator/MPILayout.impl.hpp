@@ -58,7 +58,7 @@ inline void MPILayout::updateDirty() const
     for (int i = 1; i < m_num_process; ++i)
     {
         m_total_count += m_counts[i];
-        m_displs[i]   = m_displs[i - 1] + m_counts[i - 1];
+        m_displs[i]    = m_displs[i - 1] + m_counts[i - 1];
     }
     m_dirty = false;
 }

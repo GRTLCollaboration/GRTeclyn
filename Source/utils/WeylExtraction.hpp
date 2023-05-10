@@ -68,7 +68,7 @@ class WeylExtraction : public SphericalExtraction
         // add the modes that will be integrated
         for (int imode = 0; imode < m_num_modes; ++imode)
         {
-            const auto &mode = m_modes[imode];
+            const auto &mode                  = m_modes[imode];
             constexpr int spin_quantum_number = -2;
             add_mode_integrand(spin_quantum_number, mode.first, mode.second,
                                normalised_Weyl4_complex, mode_integrals[imode]);

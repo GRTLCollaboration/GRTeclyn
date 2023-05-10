@@ -39,7 +39,7 @@ Y_lm_t<data_t> spin_Y_lm(const data_t x, const double y, const double z,
     data_t phi   = atan2(y, x);
 
     using namespace Combinatorics;
-    double coefficient = pow(-1.0, es) * sqrt((2.0 * el + 1.0) / (4.0 * M_PI));
+    double coefficient  = pow(-1.0, es) * sqrt((2.0 * el + 1.0) / (4.0 * M_PI));
     coefficient        *= sqrt(factorial(el + em) * factorial(el - em) /
                                factorial(el + es) / factorial(el - es));
 
@@ -50,7 +50,7 @@ Y_lm_t<data_t> spin_Y_lm(const data_t x, const double y, const double z,
     for (int i = lower_limit; i <= upper_limit; i++)
     {
         double temp = n_choose_r(el + es, i) * n_choose_r(el - es, i - es - em);
-        sum         += temp * pow(-1.0, i) *
+        sum += temp * pow(-1.0, i) *
                pow(cos(theta / 2.0), 2 * (el - i) + es + em) *
                pow(sin(theta / 2.0), 2 * i - em - es);
     }

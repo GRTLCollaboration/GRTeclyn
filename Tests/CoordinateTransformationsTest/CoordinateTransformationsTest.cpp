@@ -135,7 +135,7 @@ int main()
     Tensor<2, double> Mij_spher_UU_check;
     Mij_spher_UU_check =
         cartesian_to_spherical_UU(compute_inverse_sym(Mij_cart), x, y, z);
-    Mij_spher_UU = compute_inverse_sym(Mij_spher);
+    Mij_spher_UU  = compute_inverse_sym(Mij_spher);
     failed       |= check_tensor(Mij_spher_UU_check, Mij_spher_UU,
                                  "cartesian_to_spherical_UU");
 
@@ -144,7 +144,7 @@ int main()
     Tensor<2, double> Mij_cart_UU_check;
     Mij_cart_UU_check =
         spherical_to_cartesian_UU(compute_inverse_sym(Mij_spher), x, y, z);
-    Mij_cart_UU = compute_inverse_sym(Mij_cart);
+    Mij_cart_UU  = compute_inverse_sym(Mij_cart);
     failed      |= check_tensor(Mij_cart_UU_check, Mij_cart_UU,
                                 "spherical_to_cartesian_UU");
 

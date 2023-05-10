@@ -135,7 +135,7 @@ double QuinticConvolution::interpData(const FArrayBox &fab, int comp)
 
     for (int i = 0; i < m_interp_points.size(); ++i)
     {
-        double data = m_interp_weights[i] * fab.get(m_interp_points[i], comp);
+        double data  = m_interp_weights[i] * fab.get(m_interp_points[i], comp);
         accum       += data;
     }
 

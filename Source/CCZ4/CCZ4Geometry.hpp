@@ -178,7 +178,7 @@ class CCZ4Geometry
                          (d1_chris_contracted[m][i] - d1.Gamma[m][i]) +
                      (chris.contracted[m] - vars.Gamma[m]) * d1.h[i][j][m]);
             }
-            data_t z_terms = compute_z_terms(i, j, Z_over_chi, vars.h, d1.chi);
+            data_t z_terms  = compute_z_terms(i, j, Z_over_chi, vars.h, d1.chi);
             ricci.LL[i][j] += 0.5 * dZ_coeff * z_terms / vars.chi;
         }
         ricci.scalar = vars.chi * TensorAlgebra::compute_trace(ricci.LL, h_UU);

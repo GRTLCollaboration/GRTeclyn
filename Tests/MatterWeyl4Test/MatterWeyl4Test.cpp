@@ -272,7 +272,7 @@ int main()
               << (double)fort_time / cxx_time << "x" << std::endl;
 
     out_fab    -= out_fab_chf;
-    int failed = 0;
+    int failed  = 0;
     for (int i = 0; i < NUM_VARS; ++i)
     {
         double max_err = out_fab.norm(0, i, 1);

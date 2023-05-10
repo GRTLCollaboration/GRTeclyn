@@ -251,7 +251,7 @@ class FourthOrderDerivatives
             {
                 FOR (dir)
                 {
-                    const auto stride = strides[dir];
+                    const auto stride  = strides[dir];
                     var               += factor *
                            dissipation_term<data_t>(
                                state_ptr_ijk + ivar * state.nstride, 0, stride);

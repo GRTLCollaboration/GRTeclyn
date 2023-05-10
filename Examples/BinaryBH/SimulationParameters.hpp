@@ -132,7 +132,7 @@ class SimulationParameters : public SimulationParametersBase
             tp_params.initial_lapse != "psi^n" &&
             tp_params.initial_lapse != "brownsville")
         {
-            std::string message = "Parameter: TP_initial_lapse: ";
+            std::string message  = "Parameter: TP_initial_lapse: ";
             message             += tp_params.initial_lapse;
             message             += " invalid";
             amrex::Abort(message.c_str());
@@ -162,12 +162,12 @@ class SimulationParameters : public SimulationParametersBase
         // BH positions
         pp.load("TP_offset_minus", tp_offset_minus);
         pp.load("TP_offset_plus", tp_offset_plus);
-        bh1_params.center          = center;
-        bh2_params.center          = center;
+        bh1_params.center           = center;
+        bh2_params.center           = center;
         bh1_params.center[0]       += tp_offset_minus;
         bh2_params.center[0]       += tp_offset_plus;
-        double center_offset_x     = 0.5 * (tp_offset_plus + tp_offset_minus);
-        tp_params.center_offset[0] = center_offset_x;
+        double center_offset_x      = 0.5 * (tp_offset_plus + tp_offset_minus);
+        tp_params.center_offset[0]  = center_offset_x;
         // par_b is half the distance between BH_minus and BH_plus
         tp_params.par_b = 0.5 * (tp_offset_plus - tp_offset_minus);
         pp.load("TP_swap_xz", tp_params.swap_xz, false);
@@ -292,8 +292,8 @@ class SimulationParameters : public SimulationParametersBase
             "approximation used for boosted BH only valid for small boosts");
         FOR (idir)
         {
-            std::string nameA = "centerA[" + std::to_string(idir) + "]";
-            std::string nameB = "centerB[" + std::to_string(idir) + "]";
+            std::string nameA   = "centerA[" + std::to_string(idir) + "]";
+            std::string nameB   = "centerB[" + std::to_string(idir) + "]";
             double center_A_dir = bh1_params.center[idir];
             double center_B_dir = bh2_params.center[idir];
             warn_parameter(nameA, center_A_dir,

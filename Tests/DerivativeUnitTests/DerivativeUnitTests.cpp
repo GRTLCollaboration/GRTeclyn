@@ -74,7 +74,7 @@ int main()
         const double x = (0.5 + bit()[0]) * dx;
         const double z = (0.5 + bit()[2]) * dx;
 
-        bool error = false;
+        bool error  = false;
         error      |= is_wrong(out_fab(bit(), c_d1), 2 * x * (z - 0.5),
                                "diff1 (fourth order)");
         error |= is_wrong(out_fab(bit(), c_d2), 2 * x, "diff2 (fourth order)");
@@ -109,7 +109,7 @@ int main()
         const double x = (0.5 + bit()[0]) * dx;
         const double z = (0.5 + bit()[2]) * dx;
 
-        bool error = false;
+        bool error  = false;
         error      |= is_wrong(out_fab(bit(), c_d1), 2 * x * (z - 0.5),
                                "diff1 (sixth order)");
         error |= is_wrong(out_fab(bit(), c_d2), 2 * x, "diff2 (sixth order)");
