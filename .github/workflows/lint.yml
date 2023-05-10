@@ -68,7 +68,7 @@ jobs:
         echo "includes=$(make print-includes COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
       working-directory: ${{ env.BINARYBH_EXAMPLE_DIR }}
 
-    - name: Run clang-tidy on diff
+    - name: Run clang-tidy on modified files
       uses: cpp-linter/cpp-linter-action@main
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -77,6 +77,6 @@ jobs:
         tidy-checks: ''
         version: ${{ env.LLVM_VERSION }}
         files-changed-only: true
-        lines-changed-only: 'diff'
+        lines-changed-only: 'false'
         extra-args: ${{ join(steps.flags.outputs.*,' ') }}
 
