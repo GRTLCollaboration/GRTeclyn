@@ -11,6 +11,7 @@ jobs:
     name: clang-tidy
     runs-on: ubuntu-22.04
     env:
+      LLVM_VERSION: '16'
       AMREX_HOME: ${{ github.workspace }}/amrex
       BINARYBH_EXAMPLE_DIR: ${{ github.workspace }}/Examples/BinaryBH
       TMP_BUILD_DIR: ${{ github.workspace }}/tmp_build_dir
@@ -28,6 +29,13 @@ jobs:
         path: amrex
         clean: false
 
+      # The default Ubuntu package repos don't always have the latest LLVM
+      # releases so use the LLVM PPA described at https://apt.llvm.org
+    - name: Add LLVM PPA to package manager
+      run: |
+        wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+        sudo add-apt-repository --no-update "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main"
+
     - name: Update package manager database
       id: update-database
       continue-on-error: true
@@ -41,8 +49,14 @@ jobs:
         sudo apt-spy2 fix --commit --launchpad --country=US
         sudo apt-get update
 
-    - name: Install MPICH
-      run: sudo apt-get -y --no-install-recommends install libmpich-dev
+    - name: Install MPICH and LLVM v16 packages
+      run: |
+        sudo apt-get -y --no-install-recommends install \
+        libmpich-dev \
+        clang-${LLVM_VERSION} \
+        clang-tools-${LLVM_VERSION} \
+        clang-tidy-${LLVM_VERSION} \
+        clang-format-${LLVM_VERSION}
 
     - name: Generate config and Determine compiler flags
       id: flags
@@ -61,7 +75,7 @@ jobs:
       with:
         style: ''
         tidy-checks: ''
-        version: 16 
+        version: ${{ env.LLVM_VERSION }}
         files-changed-only: true
         lines-changed-only: 'diff'
         extra-args: ${{ join(steps.flags.outputs.*,' ') }}
