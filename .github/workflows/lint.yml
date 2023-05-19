@@ -29,13 +29,6 @@ jobs:
         path: amrex
         clean: false
 
-      # The default Ubuntu package repos don't always have the latest LLVM
-      # releases so use the LLVM PPA described at https://apt.llvm.org
-    - name: Add LLVM PPA to package manager
-      run: |
-        wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
-        sudo add-apt-repository --no-update "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main"
-
     - name: Update package manager database
       id: update-database
       continue-on-error: true
@@ -49,14 +42,9 @@ jobs:
         sudo apt-spy2 fix --commit --launchpad --country=US
         sudo apt-get update
 
-    - name: Install MPICH and LLVM v16 packages
+    - name: Install MPICH
       run: |
-        sudo apt-get -y --no-install-recommends install \
-        libmpich-dev \
-        clang-${LLVM_VERSION} \
-        clang-tools-${LLVM_VERSION} \
-        clang-tidy-${LLVM_VERSION} \
-        clang-format-${LLVM_VERSION}
+        sudo apt-get -y --no-install-recommends install libmpich-dev
 
     - name: Generate config and Determine compiler flags
       id: flags
@@ -69,7 +57,7 @@ jobs:
       working-directory: ${{ env.BINARYBH_EXAMPLE_DIR }}
 
     - name: Run clang-tidy on modified files
-      uses: cpp-linter/cpp-linter-action@main
+      uses: cpp-linter/cpp-linter-action@latest
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
