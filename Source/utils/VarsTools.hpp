@@ -11,8 +11,8 @@
 #include "Tensor.hpp"
 #include "UserVariables.hpp"
 
-// Chombo includes
-// #include "parstream.H" //Gives us amrex::Print()
+// AMReX includes
+#include "AMReX_Print.H" //Gives us amrex::Print()
 
 namespace VarsTools
 {

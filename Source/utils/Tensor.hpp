@@ -9,6 +9,9 @@
 #include "AlwaysInline.hpp"
 #include "DimensionDefinitions.hpp"
 
+// AMReX includes
+#include "AMReX_GpuQualifiers.H"
+
 /// This class implements a Tensor with given rank, element data type, and
 /// dimension.  By default the dimension is equal to DEFAULT_TENSOR_DIM.
 template <int rank, class data_t, int size = DEFAULT_TENSOR_DIM> class Tensor
