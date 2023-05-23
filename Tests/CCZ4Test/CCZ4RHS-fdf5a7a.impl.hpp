@@ -3,17 +3,20 @@
  * Please refer to LICENSE in GRChombo's root directory.
  */
 
-#if !defined(CCZ4RHS_HPP_)
-#error "This file should only be included through CCZ4RHS.hpp"
+#if !defined(CCZ4RHS_FDF5A7A_HPP_)
+#error "This file should only be included through CCZ4RHS-fdf5a7a.hpp"
 #endif
 
-#ifndef CCZ4RHS_IMPL_HPP_
-#define CCZ4RHS_IMPL_HPP_
+#ifndef CCZ4RHS_FDF5A7A_IMPL_HPP_
+#define CCZ4RHS_FDF5A7A_IMPL_HPP_
 
 #include "DimensionDefinitions.hpp"
-#include "GRInterval.hpp"
-#include "VarsTools.hpp"
+#include "GRInterval-fdf5a7a.hpp"
+#include "VarsTools-fdf5a7a.hpp"
 
+// Namespace to avoid conflicts with current code
+namespace Old
+{
 template <class gauge_t, class deriv_t>
 inline CCZ4RHS<gauge_t, deriv_t>::CCZ4RHS(
     CCZ4_params_t<typename gauge_t::params_t> a_params, double a_dx,
@@ -229,5 +232,6 @@ void CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
 
     m_gauge.rhs_gauge(rhs, vars, d1, d2, advec);
 }
+} // namespace Old
 
-#endif /* CCZ4RHS_IMPL_HPP_ */
+#endif /* CCZ4RHS_FDF5A7A_IMPL_HPP_ */

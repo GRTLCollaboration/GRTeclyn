@@ -4,12 +4,15 @@
  */
 
 // This file calculates CCZ4 geometric quantities (or a similar 3+1 split).
-#ifndef CCZ4GEOMETRY_HPP_
-#define CCZ4GEOMETRY_HPP_
+#ifndef CCZ4GEOMETRY_FDF5A7A_HPP_
+#define CCZ4GEOMETRY_FDF5A7A_HPP_
 
 #include "DimensionDefinitions.hpp"
-#include "TensorAlgebra.hpp"
+#include "TensorAlgebra-fdf5a7a.hpp"
 
+// Namespace to avoid conflicts with current code
+namespace Old
+{
 //! A structure for the decomposed elements of the Energy Momentum Tensor in
 //! 3+1D
 template <class data_t> struct emtensor_t
@@ -191,5 +194,6 @@ class CCZ4Geometry
         return compute_ricci_Z_general(vars, d1, d2, h_UU, chris, 0.0);
     }
 };
+} // namespace Old
 
-#endif /* CCZ4GEOMETRY_HPP_ */
+#endif /* CCZ4GEOMETRY_FDF5A7A_HPP_ */

@@ -3,17 +3,20 @@
  * Please refer to LICENSE in GRChombo's root directory.
  */
 
-#ifndef VARSTOOLS_HPP_
-#define VARSTOOLS_HPP_
+#ifndef VARSTOOLS_FDF5A7A_HPP_
+#define VARSTOOLS_FDF5A7A_HPP_
 
 // Our includes
-#include "GRInterval.hpp"
-#include "Tensor.hpp"
+#include "GRInterval-fdf5a7a.hpp"
+#include "Tensor-fdf5a7a.hpp"
 #include "UserVariables.hpp"
 
 // Chombo includes
 //#include "parstream.H" //Gives us amrex::Print()
 
+// Namespace to avoid conflicts with current code
+namespace Old
+{
 namespace VarsTools
 {
 template <typename mapping_function_t, typename data_t>
@@ -103,5 +106,6 @@ void print(const vars_t<data_t> &vars)
     });
 }
 } // namespace VarsTools
+} // namespace Old
 
-#endif /* VARSTOOLS_HPP_ */
+#endif /* VARSTOOLS_FDF5A7A_HPP_ */

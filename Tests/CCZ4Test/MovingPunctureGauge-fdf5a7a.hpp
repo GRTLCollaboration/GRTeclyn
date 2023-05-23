@@ -3,12 +3,15 @@
  * Please refer to LICENSE in GRChombo's root directory.
  */
 
-#ifndef MOVINGPUNCTUREGAUGE_HPP_
-#define MOVINGPUNCTUREGAUGE_HPP_
+#ifndef MOVINGPUNCTUREGAUGE_FDF5A7A_HPP_
+#define MOVINGPUNCTUREGAUGE_FDF5A7A_HPP_
 
 #include "DimensionDefinitions.hpp"
-#include "Tensor.hpp"
+#include "Tensor-fdf5a7a.hpp"
 
+// Namespace to avoid conflicts with current code
+namespace Old
+{
 /// This is an example of a gauge class that can be used in the CCZ4RHS compute
 /// class
 /**
@@ -66,5 +69,6 @@ class MovingPunctureGauge
         }
     }
 };
+} // namespace Old
 
-#endif /* MOVINGPUNCTUREGAUGE_HPP_ */
+#endif /* MOVINGPUNCTUREGAUGE_FDF5A7A_HPP_ */

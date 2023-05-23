@@ -3,14 +3,17 @@
  * Please refer to LICENSE in GRChombo's root directory.
  */
 
-#ifndef CCZ4VARS_HPP_
-#define CCZ4VARS_HPP_
+#ifndef CCZ4VARS_FDF5A7A_HPP_
+#define CCZ4VARS_FDF5A7A_HPP_
 
-#include "ADMConformalVars.hpp"
-#include "BSSNVars.hpp"
-#include "Tensor.hpp"
-#include "VarsTools.hpp"
+#include "ADMConformalVars-fdf5a7a.hpp"
+#include "BSSNVars-fdf5a7a.hpp"
+#include "Tensor-fdf5a7a.hpp"
+#include "VarsTools-fdf5a7a.hpp"
 
+// Namespace to avoid conflicts with current code
+namespace Old
+{
 /// Namespace for CCZ4 vars
 /** The structs in this namespace collect all the CCZ4 variables. It's main use
  *  is to make a local, nicely laid-out, copy of the CCZ4 variables for the
@@ -67,5 +70,6 @@ struct Diff2VarsWithGauge : public ADMConformalVars::Diff2VarsWithGauge<data_t>
 {
 };
 } // namespace CCZ4Vars
+} // namespace Old
 
-#endif /* CCZ4VARS_HPP_ */
+#endif /* CCZ4VARS_FDF5A7A_HPP_ */

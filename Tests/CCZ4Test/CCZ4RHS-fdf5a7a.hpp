@@ -3,22 +3,25 @@
  * Please refer to LICENSE in GRChombo's root directory.
  */
 
-#ifndef CCZ4RHS_HPP_
-#define CCZ4RHS_HPP_
+#ifndef CCZ4RHS_FDF5A7A_HPP_
+#define CCZ4RHS_FDF5A7A_HPP_
 
-#include "CCZ4Geometry.hpp"
-#include "CCZ4Vars.hpp"
-#include "Cell.hpp"
-#include "FourthOrderDerivatives.hpp"
-#include "MovingPunctureGauge.hpp"
-#include "Tensor.hpp"
-#include "TensorAlgebra.hpp"
+#include "CCZ4Geometry-fdf5a7a.hpp"
+#include "CCZ4Vars-fdf5a7a.hpp"
+#include "Cell-fdf5a7a.hpp"
+#include "FourthOrderDerivatives-fdf5a7a.hpp"
+#include "MovingPunctureGauge-fdf5a7a.hpp"
+#include "Tensor-fdf5a7a.hpp"
+#include "TensorAlgebra-fdf5a7a.hpp"
 #include "simd.hpp"
 
 #include "UserVariables.hpp" //This files needs NUM_VARS - total number of components
 
 #include <array>
 
+// Namespace to avoid conflicts with current code
+namespace Old
+{
 /// Base parameter struct for CCZ4
 /** This struct collects the gauge independent CCZ4 parameters i.e. the damping
  * ones
@@ -119,16 +122,8 @@ class CCZ4RHS
             &advec //!< The advection derivatives of the variables
     ) const;
 };
+} // namespace Old
 
-#include "CCZ4RHS.impl.hpp"
+#include "CCZ4RHS-fdf5a7a.impl.hpp"
 
-// This is here for backwards compatibility though the CCZ4RHS class should be
-// used in future hence mark as deprecated
-#ifdef __INTEL_COMPILER
-// Intel compiler bug means a spurious warning is printed (tinyurl.com/y9vfgj9j)
-// Supress the warning with this pragma
-#pragma warning(disable : 2651)
-#endif
-using CCZ4 [[deprecated("Use CCZ4RHS instead")]] = CCZ4RHS<>;
-
-#endif /* CCZ4RHS_HPP_ */
+#endif /* CCZ4RHS_FDF5A7A_HPP_ */
