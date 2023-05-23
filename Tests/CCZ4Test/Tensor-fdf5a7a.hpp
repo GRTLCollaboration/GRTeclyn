@@ -3,12 +3,15 @@
  * Please refer to LICENSE in GRChombo's root directory.
  */
 
-#ifndef TENSOR_HPP_
-#define TENSOR_HPP_
+#ifndef TENSOR_FDF5A7A_HPP_
+#define TENSOR_FDF5A7A_HPP_
 
 #include "AlwaysInline.hpp"
 #include "DimensionDefinitions.hpp"
 
+// Namespace to avoid conflicts with current code
+namespace Old
+{
 /// This class implements a Tensor with given rank, element data type, and
 /// dimension.  By default the dimension is equal to DEFAULT_TENSOR_DIM.
 template <int rank, class data_t, int size = DEFAULT_TENSOR_DIM> class Tensor
@@ -26,7 +29,9 @@ template <int rank, class data_t, int size = DEFAULT_TENSOR_DIM> class Tensor
     //    {}
 
     template <typename... T>
-    AMREX_GPU_HOST_DEVICE Tensor(T... data) : arr{data...} {}
+    AMREX_GPU_HOST_DEVICE Tensor(T... data) : arr{data...}
+    {
+    }
 
     constexpr operator arr_t &() { return arr; }
 
@@ -48,5 +53,6 @@ template <class data_t, int size> class Tensor<0, data_t, size>
 
     constexpr operator const arr_t &() const { return arr; }
 };
+} // namespace Old
 
-#endif /* TENSOR_HPP_ */
+#endif /* TENSOR_FDF5A7A_HPP_ */

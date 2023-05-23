@@ -3,13 +3,16 @@
  * Please refer to LICENSE in GRChombo's root directory.
  */
 
-#ifndef ADMCONFORMALVARS_HPP_
-#define ADMCONFORMALVARS_HPP_
+#ifndef ADMCONFORMALVARS_FDF5A7A_HPP_
+#define ADMCONFORMALVARS_FDF5A7A_HPP_
 
-#include "Tensor.hpp"
+#include "Tensor-fdf5a7a.hpp"
 #include "UserVariables.hpp"
-#include "VarsTools.hpp"
+#include "VarsTools-fdf5a7a.hpp"
 
+// Namespace to avoid conflicts with current code
+namespace Old
+{
 /// Namespace for ADM vars in conformally decomposed form
 /** The structs in this namespace collect all the ADM variables. It's main use
  *is to make a local, nicely laid-out, copy of the ADM variables for the
@@ -105,5 +108,6 @@ struct Diff2VarsWithGauge : public Diff2VarsNoGauge<data_t>
     }
 };
 } // namespace ADMConformalVars
+} // namespace Old
 
-#endif /* ADMCONFORMALVARS_HPP_ */
+#endif /* ADMCONFORMALVARS_FDF5A7A_HPP_ */

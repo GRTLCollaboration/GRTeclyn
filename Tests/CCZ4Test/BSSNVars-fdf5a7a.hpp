@@ -3,13 +3,16 @@
  * Please refer to LICENSE in GRChombo's root directory.
  */
 
-#ifndef BSSNVARS_HPP_
-#define BSSNVARS_HPP_
+#ifndef BSSNVARS_FDF5A7A_HPP_
+#define BSSNVARS_FDF5A7A_HPP_
 
-#include "ADMConformalVars.hpp"
-#include "Tensor.hpp"
-#include "VarsTools.hpp"
+#include "ADMConformalVars-fdf5a7a.hpp"
+#include "Tensor-fdf5a7a.hpp"
+#include "VarsTools-fdf5a7a.hpp"
 
+// Namespace to avoid conflicts with current code
+namespace Old
+{
 /// Namespace for BSSN vars
 /** The structs in this namespace collect all the BSSN variables. It's main use
  *  is to make a local, nicely laid-out, copy of the BSSN variables for the
@@ -72,5 +75,6 @@ struct Diff2VarsWithGauge : public ADMConformalVars::Diff2VarsWithGauge<data_t>
 {
 };
 } // namespace BSSNVars
+} // namespace Old
 
-#endif /* BSSNVARS_HPP_ */
+#endif /* BSSNVARS_FDF5A7A_HPP_ */
