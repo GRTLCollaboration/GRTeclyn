@@ -10,6 +10,8 @@
 #ifndef CCZ4RHS_FDF5A7A_IMPL_HPP_
 #define CCZ4RHS_FDF5A7A_IMPL_HPP_
 
+// clang-format off
+
 #include "DimensionDefinitions.hpp"
 #include "GRInterval-fdf5a7a.hpp"
 #include "VarsTools-fdf5a7a.hpp"

@@ -6,6 +6,8 @@
 #ifndef CCZ4RHS_FDF5A7A_HPP_
 #define CCZ4RHS_FDF5A7A_HPP_
 
+// clang-format off
+
 #include "CCZ4Geometry-fdf5a7a.hpp"
 #include "CCZ4Vars-fdf5a7a.hpp"
 #include "Cell-fdf5a7a.hpp"

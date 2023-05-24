@@ -6,6 +6,8 @@
 #ifndef VARSTOOLS_FDF5A7A_HPP_
 #define VARSTOOLS_FDF5A7A_HPP_
 
+// clang-format off
+
 // Our includes
 #include "GRInterval-fdf5a7a.hpp"
 #include "Tensor-fdf5a7a.hpp"

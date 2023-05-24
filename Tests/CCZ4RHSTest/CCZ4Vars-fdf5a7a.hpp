@@ -6,6 +6,8 @@
 #ifndef CCZ4VARS_FDF5A7A_HPP_
 #define CCZ4VARS_FDF5A7A_HPP_
 
+// clang-format off
+
 #include "ADMConformalVars-fdf5a7a.hpp"
 #include "BSSNVars-fdf5a7a.hpp"
 #include "Tensor-fdf5a7a.hpp"

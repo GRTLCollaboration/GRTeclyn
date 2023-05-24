@@ -6,6 +6,8 @@
 #ifndef CELL_FDF5A7A_HPP_
 #define CELL_FDF5A7A_HPP_
 
+// clang-format off
+
 #include <AMReX_Array4.H>
 
 using namespace amrex::disabled;
