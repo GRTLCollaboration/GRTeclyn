@@ -7,6 +7,7 @@
 #define CELL_FDF5A7A_HPP_
 
 // clang-format off
+// NOLINTBEGIN
 
 #include <AMReX_Array4.H>
 
@@ -39,5 +40,7 @@ AMREX_GPU_DEVICE auto load_vars(amrex::CellData<data_t> const &cell)
     return vars;
 }
 } // namespace Old
+
+// NOLINTEND
 
 #endif /* CELL_FDF5A7A_HPP_ */

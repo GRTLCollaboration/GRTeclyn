@@ -7,6 +7,7 @@
 #define CCZ4RHS_FDF5A7A_HPP_
 
 // clang-format off
+// NOLINTBEGIN
 
 #include "CCZ4Geometry-fdf5a7a.hpp"
 #include "CCZ4Vars-fdf5a7a.hpp"
@@ -125,6 +126,8 @@ class CCZ4RHS
     ) const;
 };
 } // namespace Old
+
+// NOLINTEND
 
 #include "CCZ4RHS-fdf5a7a.impl.hpp"
 

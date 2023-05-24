@@ -7,6 +7,7 @@
 #define GRINTERVAL_FDF5A7A_HPP_
 
 // clang-format off
+// NOLINTBEGIN
 
 // Namespace to avoid conflicts with current code
 namespace Old
@@ -33,5 +34,7 @@ template <int ibegin, int iend> struct GRInterval
     }
 };
 } // namespace Old
+
+// NOLINTEND
 
 #endif /* GRINTERVAL_HPP_ */

@@ -7,6 +7,7 @@
 #define BSSNVARS_FDF5A7A_HPP_
 
 // clang-format off
+// NOLINTBEGIN
 
 #include "ADMConformalVars-fdf5a7a.hpp"
 #include "Tensor-fdf5a7a.hpp"
@@ -78,5 +79,7 @@ struct Diff2VarsWithGauge : public ADMConformalVars::Diff2VarsWithGauge<data_t>
 };
 } // namespace BSSNVars
 } // namespace Old
+
+// NOLINTEND
 
 #endif /* BSSNVARS_FDF5A7A_HPP_ */
