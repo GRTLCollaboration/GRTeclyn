@@ -7,6 +7,7 @@
 #define TENSORALGEBRA_FDF5A7A_HPP_
 
 // clang-format off
+// NOLINTBEGIN
 
 #include "AlwaysInline.hpp"
 #include "DimensionDefinitions.hpp"
@@ -360,5 +361,7 @@ compute_phys_chris(const Tensor<1, data_t> &d1_chi, const data_t &vars_chi,
 }
 } // namespace TensorAlgebra
 } // namespace Old
+
+// NOLINTEND
 
 #endif /* TENSORALGEBRA_FDF5A7A_HPP_ */

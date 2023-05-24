@@ -7,6 +7,7 @@
 #define TENSOR_FDF5A7A_HPP_
 
 // clang-format off
+// NOLINTBEGIN
 
 #include "AlwaysInline.hpp"
 #include "DimensionDefinitions.hpp"
@@ -56,5 +57,7 @@ template <class data_t, int size> class Tensor<0, data_t, size>
     constexpr operator const arr_t &() const { return arr; }
 };
 } // namespace Old
+
+// NOLINTEND
 
 #endif /* TENSOR_FDF5A7A_HPP_ */

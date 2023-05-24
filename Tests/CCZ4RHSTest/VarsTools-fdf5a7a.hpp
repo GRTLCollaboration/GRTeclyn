@@ -7,6 +7,7 @@
 #define VARSTOOLS_FDF5A7A_HPP_
 
 // clang-format off
+// NOLINTBEGIN
 
 // Our includes
 #include "GRInterval-fdf5a7a.hpp"
@@ -109,5 +110,7 @@ void print(const vars_t<data_t> &vars)
 }
 } // namespace VarsTools
 } // namespace Old
+
+// NOLINTEND
 
 #endif /* VARSTOOLS_FDF5A7A_HPP_ */

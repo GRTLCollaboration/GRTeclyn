@@ -7,6 +7,7 @@
 #define ADMCONFORMALVARS_FDF5A7A_HPP_
 
 // clang-format off
+// NOLINTBEGIN
 
 #include "Tensor-fdf5a7a.hpp"
 #include "UserVariables.hpp"
@@ -111,5 +112,7 @@ struct Diff2VarsWithGauge : public Diff2VarsNoGauge<data_t>
 };
 } // namespace ADMConformalVars
 } // namespace Old
+
+// NOLINTEND
 
 #endif /* ADMCONFORMALVARS_FDF5A7A_HPP_ */

@@ -7,6 +7,7 @@
 #define FOURTHORDERDERIVATIVES_FDF5A7A_HPP_
 
 // clang-format off
+// NOLINTBEGIN
 
 #include "Cell-fdf5a7a.hpp"
 #include "DimensionDefinitions.hpp"
@@ -262,5 +263,7 @@ class FourthOrderDerivatives
     }
 };
 } // namespace Old
+
+// NOLINTEND
 
 #endif /* FOURTHORDERDERIVATIVES_HPP_ */

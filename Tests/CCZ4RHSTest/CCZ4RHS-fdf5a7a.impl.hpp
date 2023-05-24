@@ -11,6 +11,7 @@
 #define CCZ4RHS_FDF5A7A_IMPL_HPP_
 
 // clang-format off
+// NOLINTBEGIN
 
 #include "DimensionDefinitions.hpp"
 #include "GRInterval-fdf5a7a.hpp"
@@ -235,5 +236,7 @@ void CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
     m_gauge.rhs_gauge(rhs, vars, d1, d2, advec);
 }
 } // namespace Old
+
+// NOLINTEND
 
 #endif /* CCZ4RHS_FDF5A7A_IMPL_HPP_ */

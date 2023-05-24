@@ -7,6 +7,7 @@
 #define CCZ4VARS_FDF5A7A_HPP_
 
 // clang-format off
+// NOLINTBEGIN
 
 #include "ADMConformalVars-fdf5a7a.hpp"
 #include "BSSNVars-fdf5a7a.hpp"
@@ -73,5 +74,7 @@ struct Diff2VarsWithGauge : public ADMConformalVars::Diff2VarsWithGauge<data_t>
 };
 } // namespace CCZ4Vars
 } // namespace Old
+
+// NOLINTEND
 
 #endif /* CCZ4VARS_FDF5A7A_HPP_ */
