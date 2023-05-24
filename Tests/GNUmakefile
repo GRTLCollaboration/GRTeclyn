@@ -61,6 +61,7 @@ catch2_headers := catch_amalgamated.hpp
 CEXE_sources += $(GRAMREX_CEXE_sources) $(catch2_sources)
 CEXE_headers += $(GRAMREX_CEXE_headers) $(catch2_headers)
 VPATH_LOCATIONS += $(src_dirs) $(test_dirs) $(catch2_dir)
-INCLUDE_LOCATIONS += $(realpath .) $(src_dirs) $(test_dirs) $(catch2_dir)
+INCLUDE_LOCATIONS += $(realpath .) $(src_dirs) $(test_dirs)
+SYSTEM_INCLUDE_LOCATIONS += $(catch2_dir)
 
 include $(GRAMREX_HOME)/Tools/GNUMake/Make.rules
