@@ -6,6 +6,8 @@
 #ifndef TENSOR_FDF5A7A_HPP_
 #define TENSOR_FDF5A7A_HPP_
 
+// clang-format off
+
 #include "AlwaysInline.hpp"
 #include "DimensionDefinitions.hpp"
 

@@ -7,6 +7,8 @@
 #ifndef CCZ4GEOMETRY_FDF5A7A_HPP_
 #define CCZ4GEOMETRY_FDF5A7A_HPP_
 
+// clang-format off
+
 #include "DimensionDefinitions.hpp"
 #include "TensorAlgebra-fdf5a7a.hpp"
 

@@ -6,6 +6,8 @@
 #ifndef TENSORALGEBRA_FDF5A7A_HPP_
 #define TENSORALGEBRA_FDF5A7A_HPP_
 
+// clang-format off
+
 #include "AlwaysInline.hpp"
 #include "DimensionDefinitions.hpp"
 #include "Tensor-fdf5a7a.hpp"

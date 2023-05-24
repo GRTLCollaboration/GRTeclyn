@@ -6,6 +6,8 @@
 #ifndef ADMCONFORMALVARS_FDF5A7A_HPP_
 #define ADMCONFORMALVARS_FDF5A7A_HPP_
 
+// clang-format off
+
 #include "Tensor-fdf5a7a.hpp"
 #include "UserVariables.hpp"
 #include "VarsTools-fdf5a7a.hpp"

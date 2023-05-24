@@ -6,6 +6,8 @@
 #ifndef MOVINGPUNCTUREGAUGE_FDF5A7A_HPP_
 #define MOVINGPUNCTUREGAUGE_FDF5A7A_HPP_
 
+// clang-format off
+
 #include "DimensionDefinitions.hpp"
 #include "Tensor-fdf5a7a.hpp"
 
