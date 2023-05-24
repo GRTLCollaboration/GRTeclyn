@@ -81,7 +81,7 @@ TEST_CASE("CCZ4 RHS")
                                  amrex::The_Managed_Arena()};
     amrex::FArrayBox diff_fab{box, NUM_CCZ4_VARS, amrex::The_Managed_Arena()};
 
-    const auto &in_c_array = in_fab.const_array();
+    const auto &in_c_array        = in_fab.const_array();
     const auto &current_out_array = current_out_fab.array();
     const auto &old_out_array     = old_out_fab.array();
     const auto &diff_array        = diff_fab.array();
