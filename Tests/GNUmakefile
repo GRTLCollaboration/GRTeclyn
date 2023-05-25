@@ -64,4 +64,7 @@ VPATH_LOCATIONS += $(src_dirs) $(test_dirs) $(catch2_dir)
 INCLUDE_LOCATIONS += $(realpath .) $(src_dirs) $(test_dirs)
 SYSTEM_INCLUDE_LOCATIONS += $(catch2_dir)
 
+# We want to define our own main rather than using Catch2's main
+DEFINES += -DCATCH_AMALGAMATED_CUSTOM_MAIN
+
 include $(GRAMREX_HOME)/Tools/GNUMake/Make.rules
