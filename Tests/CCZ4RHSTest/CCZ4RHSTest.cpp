@@ -108,12 +108,16 @@ TEST_CASE("CCZ4 RHS")
     amrex::Real max_diff = 0.0;
     amrex::IntVect max_diff_index{};
 
+    const int cout_precision = Catch::StringMaker<amrex::Real>::precision;
     for (int ivar = 0; ivar < NUM_CCZ4_VARS; ++ivar)
     {
         diff_fab.maxIndex(box, max_diff, max_diff_index, ivar);
+
         INFO("Max diff for var " << UserVariables::variable_names[ivar] << ": "
+                                 << std::setprecision(cout_precision)
                                  << max_diff << " at " << max_diff_index);
-        INFO("Old value: " << old_out_array(max_diff_index, ivar)
+        INFO("Old value: " << std::setprecision(cout_precision)
+                           << old_out_array(max_diff_index, ivar)
                            << ", Current value: "
                            << current_out_array(max_diff_index, ivar));
         CHECK_THAT(max_diff, Catch::Matchers::WithinAbs(0.0, 1e-14));
