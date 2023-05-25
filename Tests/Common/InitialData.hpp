@@ -17,9 +17,11 @@ random_ccz4_initial_data(const amrex::IntVect &a_iv,
     amrex::Real y = a_coords[1];
     amrex::Real z = a_coords[2];
 
+    // NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
+    // NOLINTNEXTLINE(readability-identifier-length)
     amrex::Real g[3][3];
     amrex::Real g_UU[3][3];
-    amrex::Real chi;
+    amrex::Real chi; // NOLINT(cppcoreguidelines-init-variables)
     {
         g[0][0] = 1.36778 + 2.39731 * x + 4.53541 * x * x +
                   19.9771 * x * y * y * y + 6.13801 * y * z + 5.65185 * z * z +
@@ -69,6 +71,7 @@ random_ccz4_initial_data(const amrex::IntVect &a_iv,
     }
 
     {
+        // NOLINTNEXTLINE(readability-identifier-length)
         amrex::Real K[3][3];
         K[0][0] = -0.16238 - 0.74295 * x + 0.51595 * x * x -
                   6.60239 * x * y * y * y - 0.76401 * y * z - 1.81131 * z * z -
@@ -93,9 +96,9 @@ random_ccz4_initial_data(const amrex::IntVect &a_iv,
         K[2][1] = K[1][2];
 
         amrex::Real trK = 0;
-        FOR (a, b)
+        FOR (i, j)
         {
-            trK += g_UU[a][b] * K[a][b];
+            trK += g_UU[i][j] * K[i][j];
         }
 
         a_array(a_iv, c_K)   = trK;
@@ -141,4 +144,5 @@ random_ccz4_initial_data(const amrex::IntVect &a_iv,
     a_array(a_iv, c_B3) = 0.40313 + 0.00569 * x - 1.12452 * x * x -
                           5.49255 * x * y * y * y - 2.21932 * y * z +
                           0.49523 * z * z + 1.29460 * z * z * z * z;
+    // NOLINTEND(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
 }
