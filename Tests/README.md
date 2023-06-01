@@ -56,7 +56,7 @@ condition is false). Unless, there is a good reason, one should default to using
 A common scenario is that one wishes to compare a floating point value produced
 by the code to a known correct value. In this case instead of using the
 `CHECK()` or `REQUIRE()` macros, one can instead use [Catch2's floating point
-matchers](https://github.com/catchorg/Catch2/blob/devel/docs/comparing-floating-point-numbers.md)
+matchers](../External/Catch2/docs/comparing-floating-point-numbers.md)
 in a `CHECK_THAT()` or `REQUIRE_THAT()` clause, such as
 
 ```cpp
@@ -67,8 +67,7 @@ CHECK_THAT(computed_value, Catch::Matchers::WithinAbs(correct_value, tol));
 ### Catch2 documentation
 
 The Catch2 documentation can be found in the Catch2 repository
-[here](../External/Catch2/docs/Readme.md) (make sure
-you look at the same version as the git submodule).
+[here](../External/Catch2/docs/Readme.md).
 
 ## Building and running the tests
 
