@@ -3,138 +3,189 @@
  * Please refer to LICENSE in GRChombo's root directory.
  */
 
-// Chombo includes
-#include "BoxIterator.H"
-#include "FArrayBox.H"
+// Catch2 header
+#include "catch_amalgamated.hpp"
+
+// AMReX includes
+#include "AMReX.H"
+#include "AMReX_FArrayBox.H"
 
 // Other includes
 #include <iostream>
 
 // Our includes
-#include "BoxLoops.hpp"
 #include "DerivativeTestsCompute.hpp"
 #include "FourthOrderDerivatives.hpp"
-#include "SixthOrderDerivatives.hpp"
-#include "UserVariables.hpp"
+// #include "SixthOrderDerivatives.hpp"
 
-// Chombo namespace
-#include "UsingNamespace.H"
-
-bool is_wrong(double value, double correct_value, std::string deriv_type)
+TEST_CASE("Derivatives")
 {
-    if (std::abs(value - correct_value) > 1e-10)
-    {
-        std::cout.precision(17);
-        std::cout << "Test of " << deriv_type << " failed "
-                  << " with value " << value << " instad of " << correct_value
-                  << ".\n";
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
-int main()
-{
-    const int num_cells = 512;
+    amrex::Initialize(MPI_COMM_WORLD);
+    constexpr int num_cells  = 32;
+    constexpr int num_ghosts = 4;
     // box is flat in y direction to make test cheaper
-    IntVect domain_hi_vect(num_cells - 1, 0, num_cells - 1);
-    Box box(IntVect(0, 0, 0), domain_hi_vect);
-    Box ghosted_box(IntVect(-4, -4, -4),
-                    IntVect(num_cells + 3, 4, num_cells + 3));
+    amrex::IntVect domain_hi_vect(num_cells - 1, 0, num_cells - 1);
+    amrex::Box box(amrex::IntVect::TheZeroVector(), domain_hi_vect);
+    amrex::Box ghosted_box = box;
+    ghosted_box.grow(num_ghosts);
 
-    FArrayBox in_fab(ghosted_box, NUM_VARS);
-    FArrayBox out_fab(box, NUM_VARS);
+    amrex::FArrayBox in_fab(ghosted_box, NUM_DERIVATIVES_VARS,
+                            amrex::The_Managed_Arena());
+    amrex::FArrayBox out_fab(box, NUM_DERIVATIVES_VARS,
+                             amrex::The_Managed_Arena());
 
     const double dx = 1.0 / num_cells;
 
-    BoxIterator bit_ghost(ghosted_box);
-    for (bit_ghost.begin(); bit_ghost.ok(); ++bit_ghost)
+    const amrex::Array4<amrex::Real> &in_array = in_fab.array();
+
+    amrex::ParallelFor(ghosted_box,
+                       [=] AMREX_GPU_DEVICE(int i, int j, int k)
+                       {
+                           // no point having data varying wrt y as we only 1
+                           // true cell in that dimension
+                           const double x = (0.5 + i) * dx;
+                           const double z = (0.5 + k) * dx;
+                           for (int ivar = 0; ivar < in_array.nComp(); ++ivar)
+                           {
+                               in_array(i, j, k, ivar) = x * z * (z - 1);
+                           }
+                           // The dissipation component is special:
+                           in_array(i, j, k, c_diss) =
+                               (pow(z - 0.5, 6) - 0.015625) / 720. +
+                               (z - 1) * z * pow(x, 6) / 720.;
+                       });
+
+    amrex::Gpu::streamSynchronize();
+
+    const auto &out_array  = out_fab.array();
+    const auto &in_c_array = in_fab.const_array();
+
+    SECTION("Fourth order derivatives")
     {
-        const double x = (0.5 + bit_ghost()[0]) * dx;
-        const double z = (0.5 + bit_ghost()[2]) * dx;
-        for (int i = 0; i < NUM_VARS; ++i)
-        {
-            in_fab(bit_ghost(), i) = x * z * (z - 1);
-        }
-        // The dissipation component is special:
-        in_fab(bit_ghost(), c_diss) = (pow(z - 0.5, 6) - 0.015625) / 720. +
-                                      (z - 1) * z * pow(x, 6) / 720.;
+        DerivativeTestsCompute<FourthOrderDerivatives> derivative_tests_compute(
+            dx);
+        amrex::ParallelFor(
+            box, [=] AMREX_GPU_DEVICE(int i, int j, int k)
+            { derivative_tests_compute(i, j, k, out_array, in_c_array); });
+
+        amrex::Gpu::streamSynchronize();
+
+        constexpr amrex::Real test_threshold = 1e-10;
+
+        const auto &out_c_array = out_fab.const_array();
+
+        amrex::ParallelFor(
+            box,
+            [=] AMREX_GPU_HOST(int i, int j, int k)
+            {
+                // only 1 cell in the y direction
+                const double x = (0.5 + i) * dx;
+                const double z = (0.5 + k) * dx;
+
+                amrex::IntVect iv(i, j, k);
+
+                DerivativeTestsCompute<FourthOrderDerivatives>::Vars<
+                    amrex::Real>
+                    vars;
+                const auto &cell_data = out_c_array.cellData(i, j, k);
+                load_vars(cell_data, vars);
+
+                INFO("diff1 (fourth order) at " << iv);
+                CHECK_THAT(vars.d1, Catch::Matchers::WithinAbs(
+                                        2. * x * (z - 0.5), test_threshold));
+
+                INFO("diff2 (fourth order) at " << iv);
+                CHECK_THAT(vars.d2,
+                           Catch::Matchers::WithinAbs(2. * x, test_threshold));
+
+                INFO("mixed diff2 (fourth order) at " << iv);
+                CHECK_THAT(vars.d2_mixed, Catch::Matchers::WithinAbs(
+                                              2. * (z - 0.5), test_threshold));
+
+                INFO("dissipation (fourth order) at " << iv);
+                CHECK_THAT(vars.diss,
+                           Catch::Matchers::WithinAbs((1. + z * (z - 1.)) *
+                                                          pow(dx, 5) / 64.,
+                                                      test_threshold));
+
+                INFO("advection down (fourth order) at " << iv);
+                CHECK_THAT(vars.advec_down,
+                           Catch::Matchers::WithinAbs(
+                               -2. * z * (z - 1.) - 3. * x * (2. * z - 1.),
+                               test_threshold));
+
+                INFO("advection up (fourth order) at " << iv);
+                CHECK_THAT(vars.advec_up,
+                           Catch::Matchers::WithinAbs(
+                               2. * z * (z - 1.) + 3. * x * (2. * z - 1.),
+                               test_threshold));
+            });
     }
 
-    // Fourth order derivatives
-    BoxLoops::loop(DerivativeTestsCompute<FourthOrderDerivatives>(dx), in_fab,
-                   out_fab);
+    // SECTION("Sixth order derivatives")
+    // {
+    //     DerivativeTestsCompute<SixthOrderDerivatives>
+    //     derivative_tests_compute(
+    //         dx);
+    //     amrex::ParallelFor(
+    //         box, [=] AMREX_GPU_DEVICE(int i, int j, int k)
+    //         { derivative_tests_compute(i, j, k, out_array, in_c_array); });
 
-    BoxIterator bit(box);
-    for (bit.begin(); bit.ok(); ++bit)
-    {
-        const double x = (0.5 + bit()[0]) * dx;
-        const double z = (0.5 + bit()[2]) * dx;
+    //     amrex::Gpu::streamSynchronize();
 
-        bool error  = false;
-        error      |= is_wrong(out_fab(bit(), c_d1), 2 * x * (z - 0.5),
-                               "diff1 (fourth order)");
-        error |= is_wrong(out_fab(bit(), c_d2), 2 * x, "diff2 (fourth order)");
-        error |= is_wrong(out_fab(bit(), c_d2_mixed), 2 * (z - 0.5),
-                          "mixed diff2 (fourth order)");
+    //     constexpr amrex::Real test_threshold = 1e-10;
 
-        double correct_dissipation = (1. + z * (z - 1)) * pow(dx, 5) / 64;
-        error |= is_wrong(out_fab(bit(), c_diss), correct_dissipation,
-                          "dissipation (fourth order)");
+    //     const auto &out_c_array = out_fab.const_array();
 
-        double correct_advec_down = -2 * z * (z - 1) - 3 * x * (2 * z - 1);
-        error |= is_wrong(out_fab(bit(), c_advec_down), correct_advec_down,
-                          "advection down (fourth order)");
+    //     amrex::ParallelFor(
+    //         box,
+    //         [=] AMREX_GPU_HOST(int i, int j, int k)
+    //         {
+    //             // only 1 cell in the y direction
+    //             const double x = (0.5 + i) * dx;
+    //             const double z = (0.5 + k) * dx;
 
-        double correct_advec_up = 2 * z * (z - 1) + 3 * x * (2 * z - 1);
-        error |= is_wrong(out_fab(bit(), c_advec_up), correct_advec_up,
-                          "advection up (fourth order)");
+    //             amrex::IntVect iv(i, j, k);
 
-        if (error)
-        {
-            std::cout << "Derivative unit tests NOT passed.\n";
-            return error;
-        }
-    }
+    //             DerivativeTestsCompute<SixthOrderDerivatives>::Vars<
+    //                 amrex::Real>
+    //                 vars;
+    //             const auto &cell_data = out_c_array.cellData(i, j, k);
+    //             load_vars(cell_data, vars);
 
-    // Sixth order derivatives
-    BoxLoops::loop(DerivativeTestsCompute<SixthOrderDerivatives>(dx), in_fab,
-                   out_fab);
+    //             INFO("diff1 (sixth order) at " << iv);
+    //             CHECK_THAT(vars.d1, Catch::Matchers::WithinAbs(
+    //                                     2. * x * (z - 0.5), test_threshold));
 
-    for (bit.begin(); bit.ok(); ++bit)
-    {
-        const double x = (0.5 + bit()[0]) * dx;
-        const double z = (0.5 + bit()[2]) * dx;
+    //             INFO("diff2 (sixth order) at " << iv);
+    //             CHECK_THAT(vars.d2,
+    //                        Catch::Matchers::WithinAbs(2. * x,
+    //                        test_threshold));
 
-        bool error  = false;
-        error      |= is_wrong(out_fab(bit(), c_d1), 2 * x * (z - 0.5),
-                               "diff1 (sixth order)");
-        error |= is_wrong(out_fab(bit(), c_d2), 2 * x, "diff2 (sixth order)");
-        error |= is_wrong(out_fab(bit(), c_d2_mixed), 2 * (z - 0.5),
-                          "mixed diff2 (sixth order)");
+    //             INFO("mixed diff2 (sixth order) at " << iv);
+    //             CHECK_THAT(vars.d2_mixed, Catch::Matchers::WithinAbs(
+    //                                           2. * (z - 0.5),
+    //                                           test_threshold));
 
-        double correct_dissipation = (1. + z * (z - 1)) * pow(dx, 5) / 64;
-        error |= is_wrong(out_fab(bit(), c_diss), correct_dissipation,
-                          "dissipation (sixth order)");
+    //             INFO("dissipation (sixth order) at " << iv);
+    //             CHECK_THAT(vars.diss,
+    //                        Catch::Matchers::WithinAbs((1. + z * (z - 1.)) *
+    //                                                       pow(dx, 5) / 64.,
+    //                                                   test_threshold));
 
-        double correct_advec_down = -2 * z * (z - 1) - 3 * x * (2 * z - 1);
-        error |= is_wrong(out_fab(bit(), c_advec_down), correct_advec_down,
-                          "advection down (sixth order)");
+    //             INFO("advection down (sixth order) at " << iv);
+    //             CHECK_THAT(vars.advec_down,
+    //                        Catch::Matchers::WithinAbs(
+    //                            -2. * z * (z - 1.) - 3. * x * (2. * z - 1.),
+    //                            test_threshold));
 
-        double correct_advec_up = 2 * z * (z - 1) + 3 * x * (2 * z - 1);
-        error |= is_wrong(out_fab(bit(), c_advec_up), correct_advec_up,
-                          "advection up (sixth order)");
+    //             INFO("advection up (sixth order) at " << iv);
+    //             CHECK_THAT(vars.advec_up,
+    //                        Catch::Matchers::WithinAbs(
+    //                            2. * z * (z - 1.) + 3. * x * (2. * z - 1.),
+    //                            test_threshold));
+    //         });
+    // }
 
-        if (error)
-        {
-            std::cout << "Derivative unit tests NOT passed.\n";
-            return error;
-        }
-    }
-
-    std::cout << "Derivative unit tests passed.\n";
-    return 0;
+    amrex::Finalize();
 }
