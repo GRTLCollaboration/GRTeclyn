@@ -47,7 +47,8 @@ src_dirs := $(GRAMREX_SOURCE)/utils \
 GRAMREX_TESTS_HOME = $(GRAMREX_HOME)/Tests
 
 test_dirs = $(GRAMREX_TESTS_HOME)/Common \
-            $(GRAMREX_TESTS_HOME)/CCZ4RHSTest
+            $(GRAMREX_TESTS_HOME)/CCZ4RHSTest \
+            $(GRAMREX_TESTS_HOME)/DerivativeUnitTests
 
 src_pack := $(foreach dir, $(src_dirs), $(dir)/Make.package)
 test_pack := $(foreach dir, $(test_dirs), $(dir)/Make.package)

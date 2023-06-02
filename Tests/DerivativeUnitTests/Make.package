@@ -1,0 +1,3 @@
+GRAMREX_CEXE_headers += DerivativeTestsCompute.hpp
+
+GRAMREX_CEXE_sources += DerivativeUnitTests.cpp
