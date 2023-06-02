@@ -3,73 +3,76 @@
  * Please refer to LICENSE in GRChombo's root directory.
  */
 
-// Chombo includes
-#include "FArrayBox.H"
+// Catch2 header
+#include "catch_amalgamated.hpp"
+
+// AMReX includes
+#include "AMReX.H"
+#include "AMReX_FArrayBox.H"
 
 // Other includes
-#include "BoxLoops.hpp"
 #include "PositiveChiAndAlpha.hpp"
 #include "Tensor.hpp"
-#include <iostream>
 
-// Chombo namespace
-#include "UsingNamespace.H"
-
-int main()
+TEST_CASE("Positive Chi and Alpha")
 {
-    int failed = 0;
+    amrex::Initialize(MPI_COMM_WORLD);
 
-    const int N_GRID = 8;
-    Box box(IntVect(0, 0, 0), IntVect(N_GRID - 1, N_GRID - 1, N_GRID - 1));
-    FArrayBox in_fab(box, NUM_VARS);
+    constexpr int N_GRID = 8;
+    amrex::Box box(amrex::IntVect(0, 0, 0),
+                   amrex::IntVect(N_GRID - 1, N_GRID - 1, N_GRID - 1));
+    amrex::FArrayBox in_fab(box, NUM_VARS, amrex::The_Managed_Arena());
 
-    for (int iz = 0; iz < N_GRID; ++iz)
-    {
-        for (int iy = 0; iy < N_GRID; ++iy)
+    const amrex::Array4<amrex::Real> &in_array = in_fab.array();
+
+    amrex::ParallelFor(box,
+                       [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
+                       {
+                           const amrex::IntVect iv{ix, iy, iz};
+                           double value;
+                           if (ix < N_GRID / 2)
+                               value = 1;
+                           else
+                               value = 1e-10;
+
+                           in_array(iv, c_chi)   = value;
+                           in_array(iv, c_lapse) = value;
+                       });
+
+    amrex::Gpu::streamSynchronize();
+
+    amrex::ParallelFor(box,
+                       [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
+                       {
+                           auto cell = in_array.cellData(ix, iy, iz);
+                           PositiveChiAndAlpha()(cell);
+                       });
+
+    amrex::Gpu::streamSynchronize();
+
+    constexpr int test_threshold = 1e-15;
+
+    amrex::ParallelFor(
+        box,
+        [=] AMREX_GPU_HOST(int ix, int iy, int iz)
         {
-            for (int ix = 0; ix < N_GRID; ++ix)
+            const amrex::IntVect iv(ix, iy, iz);
+            double value;
+            if (ix < N_GRID / 2)
             {
-                const IntVect iv(ix, iy, iz);
-                double value;
-                if (ix < N_GRID / 2)
-                    value = 1;
-                else
-                    value = 1e-10;
-
-                in_fab(iv, c_chi)   = value;
-                in_fab(iv, c_lapse) = value;
+                value = 1; // PositiveChiAndAlpha should leave this
+                           // untouched
             }
-        }
-    }
-
-    BoxLoops::loop(PositiveChiAndAlpha(), in_fab, in_fab);
-
-    for (int iz = 0; iz < N_GRID; ++iz)
-    {
-        for (int iy = 0; iy < N_GRID; ++iy)
-        {
-            for (int ix = 0; ix < N_GRID; ++ix)
+            else
             {
-                const IntVect iv(ix, iy, iz);
-                double value;
-                if (ix < N_GRID / 2)
-                    value = 1; // PositiveChiAndAlpha should leave this
-                               // untouched
-                else
-                    value =
-                        1e-4; // PositiveChiAndAlpha should change 1e-10 to 1e-4
-
-                if ((in_fab(iv, c_chi) != value) ||
-                    (in_fab(iv, c_lapse) != value))
-                    failed = -1;
+                value = 1e-4; // PositiveChiAndAlpha should change 1e-10 to 1e-4
             }
-        }
-    }
+            INFO("At " << iv);
+            CHECK_THAT(in_array(iv, c_chi),
+                       Catch::Matchers::WithinAbs(value, test_threshold));
+            CHECK_THAT(in_array(iv, c_lapse),
+                       Catch::Matchers::WithinAbs(value, test_threshold));
+        });
 
-    if (failed == 0)
-        std::cout << "PositiveChiAndAlpha test passed" << std::endl;
-    else
-        std::cout << "PositiveChiAndAlpha test NOT passed" << std::endl;
-
-    return failed;
+    amrex::Finalize();
 }
