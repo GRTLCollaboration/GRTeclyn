@@ -1,0 +1,3 @@
+GRAMREX_CEXE_headers += CCZ4GeometryMathematicaValues.hpp
+
+GRAMREX_CEXE_sources += CCZ4GeometryUnitTest.cpp
