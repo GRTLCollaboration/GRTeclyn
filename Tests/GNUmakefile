@@ -49,7 +49,8 @@ GRAMREX_TESTS_HOME = $(GRAMREX_HOME)/Tests
 test_dirs = $(GRAMREX_TESTS_HOME)/Common \
             $(GRAMREX_TESTS_HOME)/CCZ4RHSTest \
             $(GRAMREX_TESTS_HOME)/DerivativeUnitTests \
-            $(GRAMREX_TESTS_HOME)/PositiveChiAndAlphaUnitTest
+            $(GRAMREX_TESTS_HOME)/PositiveChiAndAlphaUnitTest \
+            $(GRAMREX_TESTS_HOME)/CCZ4GeometryUnitTests
 
 src_pack := $(foreach dir, $(src_dirs), $(dir)/Make.package)
 test_pack := $(foreach dir, $(test_dirs), $(dir)/Make.package)
