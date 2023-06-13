@@ -3,103 +3,91 @@
  * Please refer to LICENSE in GRChombo's root directory.
  */
 
-// Chombo includes
-#include "FArrayBox.H"
+// Catch2 header
+#include "catch_amalgamated.hpp"
+
+// AMReX includes
+#include "AMReX.H"
+#include "AMReX_FArrayBox.H"
 
 // Other includes
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
-#include "BoxLoops.hpp"
 #include "Cell.hpp"
-#include "ComputePack.hpp"
-#include "DebuggingTools.hpp"
 #include "HarmonicTest.hpp"
-#include "SetValue.hpp"
-#include "UserVariables.hpp"
-#include <sys/time.h>
 
-// Chombo namespace
-#include "UsingNamespace.H"
-
-int main()
+enum
 {
-#ifdef _OPENMP
-    std::cout << "#threads = " << omp_get_max_threads() << std::endl;
-#endif
+    c_phi,
+    NUM_SPHERICAL_HARMONICS_VARS
+};
+
+TEST_CASE("Spherical Harmonic")
+{
+    amrex::Initialize(MPI_COMM_WORLD);
 
     const int N_GRID = 64;
-    Box box(IntVect(0, 0, 0), IntVect(N_GRID - 1, N_GRID - 1, N_GRID - 1));
-    FArrayBox in_fab(box, NUM_VARS);
-    BoxLoops::loop(make_compute_pack(SetValue(0.0)), in_fab, in_fab);
-    FArrayBox out_fab(box, NUM_VARS);
-    BoxLoops::loop(make_compute_pack(SetValue(0.0)), out_fab, out_fab);
+    amrex::Box box(amrex::IntVect::TheZeroVector(),
+                   amrex::IntVect(N_GRID - 1, N_GRID - 1, N_GRID - 1));
+    amrex::FArrayBox in_fab(box, NUM_SPHERICAL_HARMONICS_VARS,
+                            amrex::The_Managed_Arena());
+    amrex::FArrayBox out_fab(box, NUM_SPHERICAL_HARMONICS_VARS,
+                             amrex::The_Managed_Arena());
+    amrex::FArrayBox diff_fab(box, NUM_SPHERICAL_HARMONICS_VARS,
+                              amrex::The_Managed_Arena());
     double length = 64.0;
 
     const double dx     = length / (N_GRID);
-    const double center = length / 2.0;
+    const double center = 0.5 * length;
+    auto in_array       = in_fab.array();
+    auto out_array      = out_fab.array();
+    auto diff_array     = diff_fab.array();
 
-    for (int iz = 0; iz < N_GRID; ++iz)
-    {
-        const double z = (iz + 0.5) * dx - center;
-        for (int iy = 0; iy < N_GRID; ++iy)
+    std::array<double, AMREX_SPACEDIM> center_vector = {center, center, center};
+    HarmonicTest harmonic_test(center_vector, dx);
+
+    amrex::ParallelFor(
+        box,
+        [=] AMREX_GPU_DEVICE(int i, int j, int k)
         {
-            const double y = (iy + 0.5) * dx - center;
-            for (int ix = 0; ix < N_GRID; ++ix)
-            {
-                const double x = (ix + 0.5) * dx - center;
-                double r       = sqrt(x * x + y * y + z * z);
-                double rho     = sqrt(x * x + y * y);
-                const IntVect iv(ix, iy, iz);
-                if (r < 1e-6)
-                {
-                    r = 1e-6;
-                }
-                if (rho < 1e-6)
-                {
-                    rho = 1e-6;
-                }
+            const double x  = (i + 0.5) * dx - center;
+            const double y  = (j + 0.5) * dx - center;
+            const double z  = (k + 0.5) * dx - center;
+            const double r  = std::max(1e-6, std::sqrt(x * x + y * y + z * z));
+            const double rr = r * r;
+            const double rr_inv = 1.0 / rr;
+            const double rho    = std::max(1e-6, std::sqrt(x * x + y * y));
 
-                // here testing the es = -1, el = 2, em = -1 case
-                // and also the calculation of r in coords
-                double harmonic;
-                harmonic = sqrt(5.0 / 16.0 / M_PI) * x *
-                           (2 * z * z - z * r - r * r) / rho / r / r;
-                in_fab(iv, c_phi) = harmonic / r / r;
-            }
-        }
-    }
+            const amrex::IntVect iv{i, j, k};
+            // here testing the es = -1, el = 2, em = -1 case
+            // and also the calculation of r in coords
+            double harmonic = sqrt(5.0 / 16.0 / M_PI) * x *
+                              (2 * z * z - z * r - rr) * rr_inv / rho;
+            in_array(iv, c_phi) = harmonic * rr_inv;
 
-    std::array<double, CH_SPACEDIM> center_vector = {center, center, center};
+            amrex::CellData<amrex::Real> cell = out_array.cellData(i, j, k);
+            harmonic_test.compute(i, j, k, cell);
 
-    // Test the spherical harmonics across grid
-    BoxLoops::loop(HarmonicTest(center_vector, dx), in_fab,
-                   out_fab); // disable_simd());
-    out_fab -= in_fab;
+            diff_array(iv, c_phi) =
+                std::fabs(in_array(iv, c_phi) - out_array(iv, c_phi));
+        });
 
-    int failed = 0;
+    amrex::Gpu::streamSynchronize();
 
-    for (int i = 0; i < NUM_VARS; ++i)
-    {
-        double max_err = out_fab.norm(0, i, 1);
-        double max_act = in_fab.norm(0, i, 1);
-        if (max_err / max_act > 1e-10)
-        {
-            std::cout << "COMPONENT " << UserVariables::variable_names[i]
-                      << " DOES NOT AGREE: MAX ERROR = "
-                      << out_fab.norm(0, i, 1) << std::endl;
-            std::cout << "COMPONENT " << UserVariables::variable_names[i]
-                      << " DOES NOT AGREE: MAX Actual Value = " << max_act
-                      << std::endl;
-            failed = -1;
-        }
-    }
+    const int cout_precision    = Catch::StringMaker<amrex::Real>::precision;
+    const double test_tolerance = 1e-14;
 
-    if (failed == 0)
-        std::cout << "Spherical Harmonic test passed..." << std::endl;
-    else
-        std::cout << "Spherical Harmonic test failed..." << std::endl;
+    amrex::Real max_diff = 0.0;
+    amrex::IntVect max_diff_index{};
 
-    return failed;
+    diff_fab.maxIndex(box, max_diff, max_diff_index, c_phi);
+
+    INFO("Max diff = " << std::setprecision(cout_precision) << max_diff
+                       << " at " << max_diff_index);
+    INFO("SphericalHarmonics computed value = "
+         << std::setprecision(cout_precision)
+         << out_array(max_diff_index, c_phi));
+    INFO("Correct value = " << std::setprecision(cout_precision)
+                            << in_array(max_diff_index, c_phi));
+    CHECK_THAT(max_diff, Catch::Matchers::WithinAbs(0.0, test_tolerance));
+
+    amrex::Finalize();
 }

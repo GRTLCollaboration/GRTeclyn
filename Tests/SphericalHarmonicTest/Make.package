@@ -1,0 +1,4 @@
+GRAMREX_CEXE_headers += HarmonicTest.hpp \
+						HarmonicTest.impl.hpp 
+
+GRAMREX_CEXE_sources += SphericalHarmonicTest.cpp
