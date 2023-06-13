@@ -51,7 +51,8 @@ test_dirs = $(GRAMREX_TESTS_HOME)/Common \
             $(GRAMREX_TESTS_HOME)/DerivativeUnitTests \
             $(GRAMREX_TESTS_HOME)/PositiveChiAndAlphaUnitTest \
             $(GRAMREX_TESTS_HOME)/CCZ4GeometryUnitTests \
-            $(GRAMREX_TESTS_HOME)/CoordinateTransformationsTest
+            $(GRAMREX_TESTS_HOME)/CoordinateTransformationsTest \
+            $(GRAMREX_TESTS_HOME)/SphericalHarmonicTest
 
 src_pack := $(foreach dir, $(src_dirs), $(dir)/Make.package)
 test_pack := $(foreach dir, $(test_dirs), $(dir)/Make.package)

@@ -6,26 +6,31 @@
 #ifndef HARMONICTEST_HPP_
 #define HARMONICTEST_HPP_
 
-#include "BoxLoops.hpp"
+// AMReX includes
+#include "AMReX_Array.H"
+
+// #include "BoxLoops.hpp"
 #include "Cell.hpp"
 #include "Coordinates.hpp"
 #include "Tensor.hpp"
-#include "UserVariables.hpp" //This files needs NUM_VARS - total number of components
-#include "simd.hpp"
+// #include "UserVariables.hpp" //This files needs NUM_VARS - total number of
+// components #include "simd.hpp"
 
 class HarmonicTest
 {
   public:
-    HarmonicTest(std::array<double, CH_SPACEDIM> a_center_vector, double a_dx)
-        : m_dx(a_dx), m_center_vector(a_center_vector)
+    HarmonicTest(std::array<double, AMREX_SPACEDIM> a_center, double a_dx)
+        : m_dx(a_dx), m_center(a_center)
     {
     }
 
-    template <class data_t> void compute(Cell<data_t> current_cell) const;
+    template <class data_t>
+    void compute(int i, int j, int k,
+                 const amrex::CellData<data_t> &current_cell) const;
 
-  protected:
+  private:
     double m_dx;
-    std::array<double, CH_SPACEDIM> m_center_vector;
+    std::array<double, AMREX_SPACEDIM> m_center;
 
     template <class data_t>
     data_t compute_harmonic(Coordinates<data_t> coords) const;

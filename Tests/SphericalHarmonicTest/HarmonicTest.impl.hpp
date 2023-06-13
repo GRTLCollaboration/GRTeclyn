@@ -10,25 +10,29 @@
 #ifndef HARMONICTEST_IMPL_HPP_
 #define HARMONICTEST_IMPL_HPP_
 
-#include "DebuggingTools.hpp"
-#include "HarmonicTest.hpp"
+// #include "DebuggingTools.hpp"
 #include "SphericalHarmonics.hpp"
-#include "simd.hpp"
+// #include "simd.hpp"
 
 template <class data_t>
-void HarmonicTest::compute(Cell<data_t> current_cell) const
+void HarmonicTest::compute(int i, int j, int k,
+                           const amrex::CellData<data_t> &current_cell) const
 {
 
-    Coordinates<data_t> coords(current_cell, m_dx, m_center_vector);
+    Coordinates<data_t> coords{
+        amrex::IntVect{i, j, k},
+        m_dx, m_center
+    };
 
     data_t phi = compute_harmonic(coords);
 
+    // test both get_radius functions in the Coordinates class here
     data_t radius1 = coords.get_radius();
-    data_t radius2 =
-        Coordinates<data_t>::get_radius(current_cell, m_dx, m_center_vector);
-    phi = phi / radius1 / radius2;
+    data_t radius2 = Coordinates<data_t>::get_radius(amrex::IntVect{i, j, k},
+                                                     m_dx, m_center);
+    phi            = phi / radius1 / radius2;
 
-    current_cell.store_vars(phi, c_phi);
+    current_cell[0] = phi;
 }
 
 template <class data_t>
