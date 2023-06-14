@@ -1,28 +1,6 @@
-DEBUG = FALSE
+GRAMREX_HOME = $(realpath ../..)
 
-USE_MPI = TRUE
-USE_OMP = FALSE
-
-USE_HDF5 = FALSE
-
-TINY_PROFILE = FALSE
-
-TEST = FALSE
-USE_ASSERTION = FALSE
-BOUND_CHECK = FALSE
-
-USE_CUDA  = FALSE
-USE_HIP   = FALSE
-USE_SYCL = FALSE
-
-COMP = gnu
-
-DIM = 3
-
-BL_NO_FORT = TRUE
-AMREX_NO_PROBINIT = TRUE
-
-CXXSTD = c++17
+include $(GRAMREX_HOME)/Tools/GNUMake/Make.defaults
 
 AMREX_HOME ?= $(realpath ../../../amrex)
 
