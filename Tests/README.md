@@ -146,7 +146,9 @@ Some particularly useful ones include
 See the [CCZ4 RHS test](./CCZ4RHSTest/) as an example. Here is an outline of the
 basic steps to adding a new test to the [Tests application](./Tests.cpp).
 
-1. Create a new test directory with an appropriate name (e.g. `NewGRAMReXTest`)
+1. Create a new test directory with an appropriate name (e.g. `NewGRAMReXTest`).
+   Make sure that the directory name ends with `Test` or `Tests` (so that Make
+   can find it).
 2. In that directory, create a cpp file with the appropriate name (e.g.
    `NewGRAMReXTest.cpp`). In that file make sure you include the Catch2
    and base AMReX headers (if you are using any AMReX classes).
@@ -177,7 +179,6 @@ basic steps to adding a new test to the [Tests application](./Tests.cpp).
         amrex::Finalize();
     }
     ```
-
 4. Create a `Make.package` file in the same directory with the following
    content: 
    ```makefile
@@ -186,13 +187,9 @@ basic steps to adding a new test to the [Tests application](./Tests.cpp).
 
    GRAMREX_CEXE_sources += NewGRAMReXTest.cpp <any other cpp files>
    ```
-
-5. Add the newly created directory to the `test_dirs` makefile variable in the
-   [GNUmakefile](./GNUmakefile). One may need to also uncomment some lines of
-   the form
+5. In the GNUmakefile, one may need to uncomment some lines of the form
    ```makefile
    # include $(AMREX_HOME)/Src/<component>/Make.package
    ```
    depending on which AMReX components are required.
-
 6. Build and run the test as described [above](#building-and-running-the-tests).
