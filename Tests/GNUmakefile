@@ -1,28 +1,9 @@
-DEBUG = FALSE
+GRAMREX_HOME = $(realpath ..)
 
+include $(GRAMREX_HOME)/Tools/GNUMake/Make.defaults
+
+# We don't want to use MPI by default for the tests
 USE_MPI = FALSE
-USE_OMP = FALSE
-
-USE_HDF5 = FALSE
-
-TINY_PROFILE = FALSE
-
-TEST = FALSE
-USE_ASSERTION = FALSE
-BOUND_CHECK = FALSE
-
-USE_CUDA  = FALSE
-USE_HIP   = FALSE
-USE_SYCL = FALSE
-
-COMP = gnu
-
-DIM = 3
-
-BL_NO_FORT = TRUE
-AMREX_NO_PROBINIT = TRUE
-
-CXXSTD = c++17
 
 EBASE = Tests
 
@@ -36,7 +17,6 @@ include $(AMREX_HOME)/Src/Base/Make.package
 # include $(AMREX_HOME)/Src/AmrCore/Make.package
 # include $(AMREX_HOME)/Src/Amr/Make.package
 
-GRAMREX_HOME = $(realpath ..)
 GRAMREX_SOURCE = $(GRAMREX_HOME)/Source
 
 src_dirs := $(GRAMREX_SOURCE)/utils \
