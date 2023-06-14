@@ -61,5 +61,10 @@ SYSTEM_INCLUDE_LOCATIONS += $(catch2_dir)
 
 # We want to define our own main rather than using Catch2's main
 DEFINES += -DCATCH_AMALGAMATED_CUSTOM_MAIN
+# We need to redefine Catch::cout on MPI ranks >0 if using MPI so that we can
+# minimize duplicated Catch output
+ifeq ($(USE_MPI), TRUE)
+DEFINES += -DCATCH_CONFIG_NOSTDOUT
+endif
 
 include $(GRAMREX_HOME)/Tools/GNUMake/Make.rules

@@ -1,1 +1,4 @@
-GRAMREX_CEXE_headers += UserVariables.hpp
+GRAMREX_CEXE_headers += UserVariables.hpp \
+						InitialData.hpp 
+
+GRAMREX_CEXE_sources += CatchOutput.cpp
