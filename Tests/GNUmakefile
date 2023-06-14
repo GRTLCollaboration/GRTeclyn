@@ -46,13 +46,23 @@ src_dirs := $(GRAMREX_SOURCE)/utils \
 
 GRAMREX_TESTS_HOME = $(GRAMREX_HOME)/Tests
 
-test_dirs = $(GRAMREX_TESTS_HOME)/Common \
-            $(GRAMREX_TESTS_HOME)/CCZ4RHSTest \
-            $(GRAMREX_TESTS_HOME)/DerivativeUnitTests \
-            $(GRAMREX_TESTS_HOME)/PositiveChiAndAlphaUnitTest \
-            $(GRAMREX_TESTS_HOME)/CCZ4GeometryUnitTests \
-            $(GRAMREX_TESTS_HOME)/CoordinateTransformationsTest \
-            $(GRAMREX_TESTS_HOME)/SphericalHarmonicTest
+# test_dirs = $(GRAMREX_TESTS_HOME)/Common \
+#             $(GRAMREX_TESTS_HOME)/CCZ4RHSTest \
+#             $(GRAMREX_TESTS_HOME)/DerivativeUnitTests \
+#             $(GRAMREX_TESTS_HOME)/PositiveChiAndAlphaUnitTest \
+#             $(GRAMREX_TESTS_HOME)/CCZ4GeometryUnitTests \
+#             $(GRAMREX_TESTS_HOME)/CoordinateTransformationsTest \
+#             $(GRAMREX_TESTS_HOME)/SphericalHarmonicTest
+
+# Find all directories that end in "Test" or "Tests"
+# Note that hidden directories (i.e. those starting with a '.') are not included
+test_dirs_match := $(wildcard $(GRAMREX_TESTS_HOME)/*Test/ $(GRAMREX_TESTS_HOME)/*Tests/)
+
+# Strip the trailing path separator (probably not necessary)
+test_dirs := $(patsubst %/, %, $(test_dirs_match))
+
+# Finally add in the Common directory
+test_dirs += $(GRAMREX_TESTS_HOME)/Common
 
 src_pack := $(foreach dir, $(src_dirs), $(dir)/Make.package)
 test_pack := $(foreach dir, $(test_dirs), $(dir)/Make.package)
