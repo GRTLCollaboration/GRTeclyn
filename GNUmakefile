@@ -2,54 +2,47 @@ define SEARCH_FOR_MAKE
 $(wildcard $1/*/GNUmakefile) $(wildcard $1/*/makefile) $(wildcard $1/*/Makefile)
 endef
 
-TestDirsWithGNUmakefile := $(call SEARCH_FOR_MAKE, Tests)
-TestDirs := $(dir $(TestDirsWithGNUmakefile))
-RunTestDirs := $(TestDirs:%=run-%)
-ExampleDirsWithGNUmakefile := $(call SEARCH_FOR_MAKE, Examples)
+GRAMREX_HOME = $(realpath .)
+
+TestsDir := $(GRAMREX_HOME)/Tests
+# RunTestDirs := $(TestDirs:%=run-%)
+ExampleDirsWithGNUmakefile := $(call SEARCH_FOR_MAKE, $(GRAMREX_HOME)/Examples)
 ExampleDirs := $(dir $(ExampleDirsWithGNUmakefile))
-CleanTestDirs := $(TestDirs:%=clean-%)
+# CleanTestDirs := $(TestsDirs:%=clean-%)
 CleanExampleDirs := $(ExampleDirs:%=clean-%)
-RealCleanTestDirs := $(TestDirs:%=realclean-%)
-RealCleanExampleDirs := $(ExampleDirs:%=realclean-%)
+CleanConfigTestsDir := $(TestsDir:%=cleanconfig-%)
+CleanConfigExampleDirs := $(ExampleDirs:%=cleanconfig-%)
 
-.PHONY: all run examples clean realclean $(TestDirs) $(ExampleDirs)
-
-export GRCHOMBO_SOURCE = $(shell pwd)/Source
+.PHONY: all examples tests clean cleanconfig $(ExampleDirs)
 
 ECHO?=@ # set this to null on the command line to increase verbosity
 
-test: $(TestDirs)
+tests:
+	$(info ################# Making Tests #################)
+	$(ECHO)$(MAKE) -C $(TestsDir) --no-print-directory
 
-run: test $(RunTestDirs)
+# run: test $(RunTestDirs)
 
 examples: $(ExampleDirs)
 
-all: run examples
+all: tests examples
 
-clean: $(CleanTestDirs) $(CleanExampleDirs)
+clean: clean-testsdir $(CleanExampleDirs)
 
-realclean: $(RealCleanTestDirs) $(RealCleanExampleDirs)
-
-$(TestDirs):
-	$(info ################# Making test $@ #################)
-	$(ECHO)$(MAKE) -C $@ --no-print-directory all
-
-$(RunTestDirs):
-	$(info ################# Running test $@ #################)
-	$(ECHO)$(MAKE) -C $(@:run-%=%) --no-print-directory run
+cleanconfig: $(CleanConfigTestsDir) $(CleanConfigExampleDirs)
 
 $(ExampleDirs):
 	$(info ################# Making example $@ #################)
-	$(ECHO)$(MAKE) -C $@ --no-print-directory all
+	$(ECHO)$(MAKE) -C $@ --no-print-directory
 
-$(CleanTestDirs):
-	$(ECHO)$(MAKE) -C $(@:clean-%=%) --no-print-directory clean NODEPENDS=TRUE
+clean-testsdir:
+	$(ECHO)$(MAKE) -C $(TestsDir) --no-print-directory clean
 
 $(CleanExampleDirs):
-	$(ECHO)$(MAKE) -C $(@:clean-%=%) --no-print-directory clean NODEPENDS=TRUE
+	$(ECHO)$(MAKE) -C $(@:clean-%=%) --no-print-directory clean 
 
-$(RealCleanTestDirs):
-	$(ECHO)$(MAKE) -C $(@:realclean-%=%) --no-print-directory realclean NODEPENDS=TRUE
+$(CleanConfigTestsDir):
+	$(ECHO)$(MAKE) -C $(@:cleanconfig-%=%) --no-print-directory cleanconfig 
 
-$(RealCleanExampleDirs):
-	$(ECHO)$(MAKE) -C $(@:realclean-%=%) --no-print-directory realclean NODEPENDS=TRUE
+$(CleanConfigExampleDirs):
+	$(ECHO)$(MAKE) -C $(@:cleanconfig-%=%) --no-print-directory cleanconfig 
