@@ -62,9 +62,18 @@ jobs:
         sudo apt-spy2 fix --commit --launchpad --country=US
         sudo apt-get update
 
-    - name: Install MPICH
-      if: matrix.mpi == 'TRUE'
-      run: sudo apt-get -y --no-install-recommends install libmpich-dev
+    - name: Install dependencies
+      run: |
+        if [[ "${{ matrix.mpi }}" == "TRUE" ]]; then 
+          PACKAGES="libmpich-dev"
+        fi
+        if [[ "${{ matrix.comp }}" == "llvm" && "${{ matrix.omp }}" == "TRUE" ]]; then
+          PACKAGES="${PACKAGES} libomp-${{ matrix.comp-version }}-dev"
+        fi
+        if [[ "$PACKAGES" != "" ]]; then
+          sudo apt-get -y --no-install-recommends install $PACKAGES
+        fi
+
 
     - name: Set Compilers
       id: set-compilers
@@ -89,7 +98,7 @@ jobs:
       run: |
         EXECUTABLE=$(make print-executable ${{ env.BUILD_ARGS }} | tail -n 3 | head -n 1 | cut -d' ' -f3 )
         if [[ "${{ matrix.mpi }}" == "TRUE" ]]; then
-            LAUNCH="mpiexec -n2 ./"
+            LAUNCH="mpiexec -n 2 ./"
         else
             LAUNCH="./"
         fi
