@@ -110,8 +110,9 @@ AMREX_GPU_DEVICE Constraints::Vars<data_t> Constraints::constraint_equations(
 }
 
 template <class data_t>
-AMREX_GPU_DEVICE void Constraints::store_vars(const Vars<data_t> &out,
-                             const amrex::CellData<data_t> &current_cell) const
+AMREX_GPU_DEVICE void
+Constraints::store_vars(const Vars<data_t> &out,
+                        const amrex::CellData<data_t> &current_cell) const
 {
     if (m_c_Ham >= 0)
     {
