@@ -11,7 +11,7 @@
 namespace Combinatorics
 {
 // Calculate factorials
-inline double factorial(int n)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE double factorial(int n)
 {
     double out = 1.0;
     for (int i = 1; i <= n; i++)
@@ -22,7 +22,7 @@ inline double factorial(int n)
 }
 
 // Calculate combinatorics
-inline double n_choose_r(int n, int r)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE double n_choose_r(int n, int r)
 {
     AMREX_ASSERT((r >= 0) && (n >= r)); // sense check values
 
