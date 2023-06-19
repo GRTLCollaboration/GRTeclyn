@@ -5,15 +5,13 @@ endef
 GRAMREX_HOME = $(realpath .)
 
 TestsDir := $(GRAMREX_HOME)/Tests
-# RunTestDirs := $(TestDirs:%=run-%)
 ExampleDirsWithGNUmakefile := $(call SEARCH_FOR_MAKE, $(GRAMREX_HOME)/Examples)
 ExampleDirs := $(dir $(ExampleDirsWithGNUmakefile))
-# CleanTestDirs := $(TestsDirs:%=clean-%)
 CleanExampleDirs := $(ExampleDirs:%=clean-%)
 CleanConfigTestsDir := $(TestsDir:%=cleanconfig-%)
 CleanConfigExampleDirs := $(ExampleDirs:%=cleanconfig-%)
 
-.PHONY: all examples tests clean cleanconfig $(ExampleDirs)
+.PHONY: all examples tests run clean cleanconfig $(ExampleDirs)
 
 ECHO?=@ # set this to null on the command line to increase verbosity
 
@@ -21,7 +19,9 @@ tests:
 	$(info ################# Making Tests #################)
 	$(ECHO)$(MAKE) -C $(TestsDir) --no-print-directory
 
-# run: test $(RunTestDirs)
+run: tests
+	$(info ################# Running Tests #################)
+	$(ECHO)$(MAKE) -C $(TestsDir) --no-print-directory run
 
 examples: $(ExampleDirs)
 

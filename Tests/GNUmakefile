@@ -68,3 +68,13 @@ DEFINES += -DCATCH_CONFIG_NOSTDOUT
 endif
 
 include $(GRAMREX_HOME)/Tools/GNUMake/Make.rules
+
+ifeq ($(USE_MPI), TRUE)
+LAUNCH = mpiexec -n 2 ./
+else
+LAUNCH = ./
+endif
+
+run: $(executable)
+	$(info Running tests for configuration: $(optionsSuffix))
+	$(SILENT) $(LAUNCH)$(executable)
