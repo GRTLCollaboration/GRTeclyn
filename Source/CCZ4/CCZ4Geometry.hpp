@@ -30,7 +30,7 @@ class CCZ4Geometry
 {
   protected:
     template <class data_t>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE static data_t
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static data_t
     compute_z_terms(const int i, const int j,
                     const Tensor<1, data_t> &Z_over_chi,
                     const Tensor<2, data_t> &h, const Tensor<1, data_t> &d1_chi)
@@ -47,7 +47,7 @@ class CCZ4Geometry
   public:
     template <class data_t, template <typename> class vars_t,
               template <typename> class diff2_vars_t>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE static ricci_t<data_t>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static ricci_t<data_t>
     compute_ricci_Z(const vars_t<data_t> &vars,
                     const vars_t<Tensor<1, data_t>> &d1,
                     const diff2_vars_t<Tensor<2, data_t>> &d2,
@@ -118,7 +118,7 @@ class CCZ4Geometry
     }
 
     template <class data_t>
-    static Tensor<2, data_t> AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static Tensor<2, data_t>
     compute_d1_chris_contracted(const Tensor<2, data_t> &h_UU,
                                 const Tensor<2, Tensor<1, data_t>> &d1_h,
                                 const Tensor<2, Tensor<2, data_t>> &d2_h)
@@ -145,7 +145,7 @@ class CCZ4Geometry
     // to the Ricci scalar rather than the default of 2 in compute_ricci_Z
     template <class data_t, template <typename> class vars_t,
               template <typename> class diff2_vars_t>
-    static ricci_t<data_t> AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    static ricci_t<data_t>
     compute_ricci_Z_general(const vars_t<data_t> &vars,
                             const vars_t<Tensor<1, data_t>> &d1,
                             const diff2_vars_t<Tensor<2, data_t>> &d2,

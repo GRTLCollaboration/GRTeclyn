@@ -24,9 +24,10 @@ template <class data_t> struct Y_lm_t
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 // Calculates the spin weight es, el, em spherical harmonic
 template <class data_t>
-Y_lm_t<data_t> spin_Y_lm(const data_t x, const double y, const double z,
-                         // NOLINTNEXTLINE(readability-identifier-length)
-                         const int es, const int el, const int em)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Y_lm_t<data_t>
+spin_Y_lm(const data_t x, const double y, const double z,
+          // NOLINTNEXTLINE(readability-identifier-length)
+          const int es, const int el, const int em)
 {
 
     AMREX_ASSERT((el >= 0) && (el >= std::abs(em)));
