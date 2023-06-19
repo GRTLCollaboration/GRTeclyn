@@ -95,14 +95,4 @@ jobs:
 
     - name: Run tests
       working-directory: ${{ env.TESTS_DIR }}
-      run: |
-        EXECUTABLE=$(make print-executable ${{ env.BUILD_ARGS }} | tail -n 3 | head -n 1 | cut -d' ' -f3 )
-        if [[ "${{ matrix.mpi }}" == "TRUE" ]]; then
-            LAUNCH="mpiexec -n 2 ./"
-        else
-            LAUNCH="./"
-        fi
-        ${LAUNCH}${EXECUTABLE}
-
-    
-      
+      run: make run ${{ env.BUILD_ARGS }}
