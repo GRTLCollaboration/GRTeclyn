@@ -15,8 +15,9 @@
 // #include "simd.hpp"
 
 template <class data_t>
-void HarmonicTest::compute(int i, int j, int k,
-                           const amrex::CellData<data_t> &current_cell) const
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+HarmonicTest::compute(int i, int j, int k,
+                      const amrex::CellData<data_t> &current_cell) const
 {
 
     Coordinates<data_t> coords{
@@ -36,7 +37,8 @@ void HarmonicTest::compute(int i, int j, int k,
 }
 
 template <class data_t>
-data_t HarmonicTest::compute_harmonic(Coordinates<data_t> coords) const
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE data_t
+HarmonicTest::compute_harmonic(Coordinates<data_t> coords) const
 {
 
     // Add in el, em spherical harmonics here, spin weight es

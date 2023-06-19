@@ -25,15 +25,17 @@ class HarmonicTest
     }
 
     template <class data_t>
-    void compute(int i, int j, int k,
-                 const amrex::CellData<data_t> &current_cell) const;
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+    compute(int i, int j, int k,
+            const amrex::CellData<data_t> &current_cell) const;
 
   private:
     double m_dx;
     std::array<double, AMREX_SPACEDIM> m_center;
 
     template <class data_t>
-    data_t compute_harmonic(Coordinates<data_t> coords) const;
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE data_t
+    compute_harmonic(Coordinates<data_t> coords) const;
 };
 
 #include "HarmonicTest.impl.hpp"
