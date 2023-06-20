@@ -42,7 +42,8 @@ template <class deriv_t> class DerivativeTestsCompute
         data_t advec_down;
 
         template <typename mapping_function_t>
-        AMREX_GPU_DEVICE void enum_mapping(mapping_function_t mapping_function)
+        AMREX_GPU_HOST_DEVICE void
+        enum_mapping(mapping_function_t mapping_function)
         {
             using namespace VarsTools; // define_enum_mapping is part of
                                        // VarsTools

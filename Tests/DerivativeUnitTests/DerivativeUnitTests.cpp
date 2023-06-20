@@ -58,6 +58,7 @@ TEST_CASE("Derivatives")
                            });
 
         amrex::Gpu::streamSynchronize();
+        AMREX_GPU_ERROR_CHECK();
 
         const auto &out_array  = out_fab.array();
         const auto &in_c_array = in_fab.const_array();
@@ -71,6 +72,7 @@ TEST_CASE("Derivatives")
                 { derivative_tests_compute(i, j, k, out_array, in_c_array); });
 
             amrex::Gpu::streamSynchronize();
+            AMREX_GPU_ERROR_CHECK();
 
             constexpr amrex::Real test_threshold = 1e-10;
 
