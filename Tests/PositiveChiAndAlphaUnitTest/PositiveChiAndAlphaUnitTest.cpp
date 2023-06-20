@@ -50,7 +50,7 @@ TEST_CASE("Positive Chi and Alpha")
 
         amrex::Gpu::streamSynchronize();
 
-        constexpr int test_threshold = 1e-15;
+        constexpr double test_threshold = 1e-15;
 
         // We have to do this on the host as are using Catch2 functions
         amrex::LoopOnCpu(
