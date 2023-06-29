@@ -34,15 +34,15 @@ It will be cloned to the `amrex` directory with the
 The GRAMReX repository is currently private so first check you have access by
 navigating to https://github.com/GRChombo/GRAMReX. If you're reading this on
 your own device, then you have the necessary permissions. If you don't have
-access, please let me (@mirenradia) know so I can give them to you. Clone the
-repository with a command such as
+access, please let me ([@mirenradia](https://github.com/mirenradia)) know so I
+can give them to you. Clone the repository with a command such as
 
 ```bash
 git clone -b test/sycl_aot_pvc_notes https://github.com/GRChombo/GRAMReX.git
 ```
 It will cloned to the `GRAMReX` directory with the `test/sycl_aot_pvc_notes`
 branch checked out. 
-> :information_source: **Note**
+> **Note**
 > I have assumed that you have cloned both of
 > these repositories to the same directory so that the `amrex` and `GRAMReX`
 > directories share the same parent directory. If you want to clone AMReX
