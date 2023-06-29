@@ -1,48 +1,115 @@
-# GRChombo
+# Building and running the GRAMReX BinaryBH example with SYCL
 
-[![status](https://joss.theoj.org/papers/af52e7f1b7637bfa68818fde7c1a34de/status.svg)](https://joss.theoj.org/papers/af52e7f1b7637bfa68818fde7c1a34de)
-[![DOI](https://zenodo.org/badge/118786602.svg)](https://zenodo.org/badge/latestdoi/118786602)
+## Obtaining and building the code
 
-GRChombo is an open-source code for numerical relativity simulations.
-It is developed and maintained by a collaboration of numerical relativists with a
-wide range of research interests, from early universe cosmology to astrophysics
-and mathematical general relativity, and has been used in many papers since its
-first release in 2015.
+### Prerequisites
 
-GRChombo is written entirely in C++14, using hybrid MPI/OpenMP parallelism and
-vector intrinsics to achieve good performance on the latest architectures.
-Furthermore, it makes use of the Chombo library for adaptive mesh refinement
-to allow automatic increasing and decreasing of the grid resolution in regions
-of arbitrary shape and topology.
+You will need the following software
+* Git
+* GNU Make >= 3.81
+* Python >= 2.7
+* A Unix-like environment with `perl` and `sed` commands
+* Intel oneAPI DPC++ compiler
+* Intel OpenCL Offline Compiler (OCLOC)
+* Intel oneMKL
+* MPI implementation (optional)
 
-Please visit www.grchombo.org for the full list of developers and their
-institutions, a list of publications using GRChombo, and some videos.
+### Obtaining the code
 
-## Getting started
-Detailed installation instructions and usage examples are available in
-our [wiki](https://github.com/GRChombo/GRChombo/wiki), with the home page giving guidance on where to start.
+First `cd` into a directory you are happy to clone the code into. For
+simplicity, I will assume that is your home directory (so adjust any commands 
+below accordingly if not).
 
-## Contributing
-We welcome feedback, bug reports, and contributions. Please consult the [wiki](https://github.com/GRChombo/GRChombo/wiki)
-for our coding style and testing policy before filing a pull request.
+The upstream AMReX source code is hosted on
+[GitHub](https://github.com/AMReX-Codes/amrex). However, we will be using a
+branch on [my fork](https://github.com/mirenradia/amrex). Clone this with a command such
+as
 
-## License
-GRChombo is licensed under the BSD 3-Clause License. Please see LICENSE for details.
-
-## Citation
-Please cite our JOSS publication using the following bibtex reference:
-
+```bash
+git clone -b enhancement/sycl_aot_build_speedup https://github.com/AMReX-Codes/amrex.git
 ```
-@article{Andrade2021,
-  doi = {10.21105/joss.03703},
-  url = {https://doi.org/10.21105/joss.03703},
-  year = {2021},
-  publisher = {The Open Journal},
-  volume = {6},
-  number = {68},
-  pages = {3703},
-  author = {Tomas Andrade and Llibert Areste Salo and Josu C. Aurrekoetxea and Jamie Bamber and Katy Clough and Robin Croft and Eloy de Jong and Amelia Drew and Alejandro Duran and Pedro G. Ferreira and Pau Figueras and Hal Finkel and Tiago Fran\c{c}a and Bo-Xuan Ge and Chenxia Gu and Thomas Helfer and Juha Jäykkä and Cristian Joana and Markus Kunesch and Kacper Kornet and Eugene A. Lim and Francesco Muia and Zainab Nazari and Miren Radia and Justin Ripley and Paul Shellard and Ulrich Sperhake and Dina Traykova and Saran Tunyasuvunakool and Zipeng Wang and James Y. Widdicombe and Kaze Wong},
-  title = {GRChombo: An adaptable numerical relativity code for fundamental physics},
-  journal = {Journal of Open Source Software}
-}
+It will be cloned to the `amrex` directory with the
+`enhancement/sycl_aot_build_speedup` branch checked out.
+
+The GRAMReX repository is currently private so first check you have access by
+navigating to https://github.com/GRChombo/GRAMReX. If you're reading this on
+your own device, then you have the necessary permissions. If you don't have
+access, please let me (@mirenradia) know so I can give them to you. Clone the
+repository with a command such as
+
+```bash
+git clone -b test/sycl_aot_pvc_notes https://github.com/GRChombo/GRAMReX.git
+```
+It will cloned to the `GRAMReX` directory with the `test/sycl_aot_pvc_notes`
+branch checked out. 
+> :information_source: **Note**
+> I have assumed that you have cloned both of
+> these repositories to the same directory so that the `amrex` and `GRAMReX`
+> directories share the same parent directory. If you want to clone AMReX
+> elsewhere, make sure to set the `AMREX_HOME` environment variable
+> appropriately e.g. 
+> ```bash
+> export AMREX_HOME=/path/to/amrex
+> ```
+
+### Building the code
+
+First make sure you have set up your environment to ensure you have access to
+the software listed under [prerequisites](#prerequisites). You may need to load
+appropriate modules or `source` the oneapi `setvars.sh` script. The latter is
+usually done using the command
+```bash
+source /opt/intel/oneapi/setvars.sh
+```
+
+The default build options can be found in
+[Make.defaults](./Tools/GNUMake/Make.defaults). They can be modified either on
+the command line or by creating a file with the overridden variables at
+```
+$HOME/amrex/Tools/GNUMake/Make.local-pre
+```
+
+Create this file with the following contents
+```
+DEBUG = TRUE
+USE_SYCL = TRUE
+SYCL_AOT = TRUE
+AMREX_INTEL_ARCH = pvc
+SYCL_MAX_PARALLEL_LINK_JOBS = 16
+```
+Set the last variable to an appropriate number (e.g. the number of CPU cores you
+have access to). You can set `AMREX_INTEL_ARCH` to any value accepted by the
+`-device` argument to `ocloc`. To check what these are, use the command
+```
+ocloc compile --help
+```
+If you don't want to use MPI, add
+```
+USE_MPI = FALSE
+```
+
+If you want to add additional compiler/linker flags, you can create a file at
+```
+$HOME/amrex/Tools/GNUMake/Make.local
+```
+with the following contents
+```
+CXXFLAGS += <extra compiler flags>
+
+LDFLAGS += <extra linker flags>
+```
+
+A new `tmp_build_dir` directory will be created under `$HOME/GRAMReX` to store
+the compiled object and auxiliary files. Assuming all is well, you should have
+an executable in the current directory of the form `main<config>.ex` e.g.
+`main3d.sycl.DEBUG.MPI.ex`
+
+## Running the code
+
+To run the code, simply execute it (using `mpiexec` if built with MPI) with the
+parameter file e.g. [inputs.test](./Examples/BinaryBH/inputs.test) as the only
+argument e.g. (with MPI)
+
+```bash
+mpiexec -n 2 ./main3d.sycl.DEBUG.MPI.ex ./inputs.test
 ```
