@@ -99,6 +99,10 @@ CXXFLAGS += <extra compiler flags>
 LDFLAGS += <extra linker flags>
 ```
 
+Now start building AMReX and the BinaryBH example with the command
+```bash
+make -j <num parallel make jobs>
+```
 A new `tmp_build_dir` directory will be created under `$HOME/GRAMReX` to store
 the compiled object and auxiliary files. Assuming all is well, you should have
 an executable in the current directory of the form `main<config>.ex` e.g.
