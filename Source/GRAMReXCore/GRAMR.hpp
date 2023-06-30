@@ -29,32 +29,32 @@ class SimulationParameters;
 // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 class GRAMR : public amrex::Amr
 {
-  private:
-    using Clock = std::chrono::steady_clock;
-    using Hours = std::chrono::duration<double, std::ratio<3600, 1>>;
-    std::chrono::time_point<Clock> start_time = Clock::now();
+    friend class GRAMRLevel;
 
   public:
 
     GRAMR(amrex::LevelBld *a_levelbld);
     ~GRAMR() override;
 
+    virtual void init(amrex::Real a_strt_time,
+                      amrex::Real a_stop_time) override;
+
     static void
     set_simulation_parameters(const SimulationParameters &a_sim_params);
     static const SimulationParameters &get_simulation_parameters();
+
+    double get_walltime_since_start() const;
+
+    double get_restart_time() const;
 
   private:
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     static const SimulationParameters *m_sim_params;
 
-    // defined here due to auto return type
-    auto get_walltime()
-    {
-        auto now      = Clock::now();
-        auto duration = std::chrono::duration_cast<Hours>(now - start_time);
+    void set_restart_time(double a_restart_time);
 
-        return duration.count();
-    }
+    double m_start_walltime;
+    double m_restart_time{0.0};
 };
 
 #endif /* GRAMR_HPP_ */

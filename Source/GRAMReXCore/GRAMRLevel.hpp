@@ -87,6 +87,10 @@ class GRAMRLevel : public amrex::AmrLevel
      */
     void post_init(amrex::Real stop_time) override;
     /**
+     * \brief Operations to be done after restart.
+     */
+    virtual void post_restart() override;
+    /**
      * \brief Init data on this level from another AmrLevel (during regrid).
      * This is a pure virtual function and hence MUST be
      * implemented by derived classes.

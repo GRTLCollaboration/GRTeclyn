@@ -212,6 +212,15 @@ void GRAMRLevel::computeNewDt(
 amrex::Real GRAMRLevel::advance(amrex::Real time, amrex::Real dt, int iteration,
                                 int ncycle)
 {
+    double seconds_per_hour = 3600;
+    double evolution_speed  = (time - m_gr_amr_ptr->get_restart_time()) *
+                             seconds_per_hour /
+                             m_gr_amr_ptr->get_walltime_since_start();
+    amrex::Print() << "[Level " << Level() << " step "
+                   << parent->levelSteps(Level()) + 1
+                   << "] average evolution speed = " << evolution_speed
+                   << " code units/h\n";
+
     for (int k = 0; k < NUM_STATE_TYPE; k++)
     {
         state[k].allocOldData();
@@ -266,7 +275,18 @@ void GRAMRLevel::post_regrid(int /*lbase*/, int /*new_finest*/)
 
 void GRAMRLevel::post_init(amrex::Real /*stop_time*/)
 {
-    // xxxxx Do we need to do anything after the initializaion?
+    if (Level() == 0)
+    {
+        m_gr_amr_ptr->set_restart_time(m_gr_amr_ptr->cumTime());
+    }
+}
+
+void GRAMRLevel::post_restart()
+{
+    if (Level() == 0)
+    {
+        m_gr_amr_ptr->set_restart_time(m_gr_amr_ptr->cumTime());
+    }
 }
 
 void GRAMRLevel::init(amrex::AmrLevel &old)
