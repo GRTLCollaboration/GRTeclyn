@@ -142,6 +142,10 @@ class GRAMRLevel : public amrex::AmrLevel
 
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     static amrex::Vector<std::string> plot_constraints;
+
+  protected:
+
+    GRAMR *m_gr_amr_ptr = dynamic_cast<GRAMR *>(parent);
 };
 
 #endif /* GRAMRLEVEL_HPP_ */
