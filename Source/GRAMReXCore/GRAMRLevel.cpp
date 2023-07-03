@@ -34,6 +34,7 @@ void gramr_bc_fill(const amrex::Box &box, amrex::FArrayBox &data,
 
 void GRAMRLevel::variableSetUp()
 {
+    BL_PROFILE("GRAMRLevel::variableSetUp()");
     const int nghost = simParams().num_ghosts;
     desc_lst.addDescriptor(State_Type, amrex::IndexType::TheCellType(),
                            amrex::StateDescriptor::Point, nghost, NUM_VARS,
@@ -212,6 +213,7 @@ void GRAMRLevel::computeNewDt(
 amrex::Real GRAMRLevel::advance(amrex::Real time, amrex::Real dt, int iteration,
                                 int ncycle)
 {
+    BL_PROFILE("GRAMRLevel::advance()");
     double seconds_per_hour = 3600;
     double evolution_speed  = (time - m_gr_amr_ptr->get_restart_time()) *
                              seconds_per_hour /
@@ -245,6 +247,7 @@ amrex::Real GRAMRLevel::advance(amrex::Real time, amrex::Real dt, int iteration,
 
 void GRAMRLevel::post_timestep(int /*iteration*/)
 {
+    BL_PROFILE("GRAMRLevel::post_timestep()");
     const int lev = Level();
     if (lev < parent->finestLevel())
     {
@@ -291,6 +294,7 @@ void GRAMRLevel::post_restart()
 
 void GRAMRLevel::init(amrex::AmrLevel &old)
 {
+    BL_PROFILE("GRAMRLevel::init()");
     amrex::Real dt_new    = parent->dtLevel(level);
     amrex::Real cur_time  = old.get_state_data(State_Type).curTime();
     amrex::Real prev_time = old.get_state_data(State_Type).prevTime();
@@ -303,6 +307,7 @@ void GRAMRLevel::init(amrex::AmrLevel &old)
 
 void GRAMRLevel::init()
 {
+    BL_PROFILE("GRAMRLevel::init()");
     amrex::Real dt = parent->dtLevel(level);
     const auto &coarse_state =
         parent->getLevel(level - 1).get_state_data(State_Type);
