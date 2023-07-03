@@ -88,6 +88,7 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                     amrex::MultiFab &a_rhs,
                                     const double /*a_time*/)
 {
+    BL_PROFILE("BinaryBHLevel::specificEvalRHS()");
     const auto &soln_arrs   = a_soln.arrays();
     const auto &soln_c_arrs = a_soln.const_arrays();
     const auto &rhs_arrs    = a_rhs.arrays();
@@ -151,6 +152,7 @@ void BinaryBHLevel::errorEst(amrex::TagBoxArray &tag_box_array,
                              amrex::Real /*time*/, int /*n_error_buf*/,
                              int /*ngrow*/)
 {
+    BL_PROFILE("BinaryBHLevel::errorEst()");
     amrex::MultiFab &state_new = get_new_data(State_Type);
     const auto cur_time        = get_state_data(State_Type).curTime();
 
