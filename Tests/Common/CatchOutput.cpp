@@ -1,6 +1,3 @@
-// Catch2 header
-#include "catch_amalgamated.hpp"
-
 // AMReX includes
 #include "AMReX_ccse-mpi.H"
 
