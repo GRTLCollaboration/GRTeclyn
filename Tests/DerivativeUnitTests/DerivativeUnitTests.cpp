@@ -18,6 +18,7 @@
 #include "FourthOrderDerivatives.hpp"
 // #include "SixthOrderDerivatives.hpp"
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST_CASE("Derivatives")
 {
     amrex::Initialize(MPI_COMM_WORLD);
@@ -88,6 +89,7 @@ TEST_CASE("Derivatives")
 
                     amrex::IntVect iv(i, j, k);
 
+                    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
                     DerivativeTestsCompute<FourthOrderDerivatives>::Vars<
                         amrex::Real>
                         vars;

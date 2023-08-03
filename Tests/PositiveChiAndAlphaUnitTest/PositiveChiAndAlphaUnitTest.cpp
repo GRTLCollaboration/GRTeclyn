@@ -29,11 +29,7 @@ TEST_CASE("Positive Chi and Alpha")
                            [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
                            {
                                const amrex::IntVect iv{ix, iy, iz};
-                               double value;
-                               if (ix < N_GRID / 2)
-                                   value = 1;
-                               else
-                                   value = 1e-10;
+                               double value = (ix < N_GRID / 2) ? 1 : 1e-10;
 
                                in_array(iv, c_chi)   = value;
                                in_array(iv, c_lapse) = value;
@@ -58,22 +54,15 @@ TEST_CASE("Positive Chi and Alpha")
             [=](int ix, int iy, int iz)
             {
                 const amrex::IntVect iv(ix, iy, iz);
-                double value;
-                if (ix < N_GRID / 2)
-                {
-                    value = 1; // PositiveChiAndAlpha should leave this
-                               // untouched
-                }
-                else
-                {
-                    value =
-                        1e-4; // PositiveChiAndAlpha should change 1e-10 to 1e-4
-                }
+
+                double correct_value = (ix < N_GRID / 2) ? 1 : 1e-4;
                 INFO("At " << iv);
-                CHECK_THAT(in_array(iv, c_chi),
-                           Catch::Matchers::WithinAbs(value, test_threshold));
-                CHECK_THAT(in_array(iv, c_lapse),
-                           Catch::Matchers::WithinAbs(value, test_threshold));
+                CHECK_THAT(
+                    in_array(iv, c_chi),
+                    Catch::Matchers::WithinAbs(correct_value, test_threshold));
+                CHECK_THAT(
+                    in_array(iv, c_lapse),
+                    Catch::Matchers::WithinAbs(correct_value, test_threshold));
             });
     }
     amrex::Finalize();

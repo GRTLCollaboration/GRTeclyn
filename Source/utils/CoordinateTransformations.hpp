@@ -22,8 +22,9 @@ static Tensor<2, data_t> spherical_jacobian(const data_t x, const double y,
     // calculate useful position quantities
     data_t rho2 = simd_max(x * x + y * y, 1e-12);
     data_t rho  = sqrt(rho2);
-    data_t r2   = simd_max(x * x + y * y + z * z, 1e-12);
-    data_t r    = sqrt(r2);
+    // NOLINTNEXTLINE(readability-identifier-length)
+    data_t r2 = simd_max(x * x + y * y + z * z, 1e-12);
+    data_t r  = sqrt(r2);
 
     // And the sines and cosines of phi and theta
     data_t cos_phi = x / rho;
@@ -51,8 +52,9 @@ inverse_spherical_jacobian(const data_t x, const double y, const double z)
     // calculate useful position quantities
     data_t rho2 = simd_max(x * x + y * y, 1e-12);
     data_t rho  = sqrt(rho2);
-    data_t r2   = simd_max(x * x + y * y + z * z, 1e-12);
-    data_t r    = sqrt(r2);
+    // NOLINTNEXTLINE(readability-identifier-length)
+    data_t r2 = simd_max(x * x + y * y + z * z, 1e-12);
+    data_t r  = sqrt(r2);
 
     // And the sines and cosines of phi and theta
     // data_t sin_theta = rho / r;

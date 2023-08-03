@@ -54,6 +54,7 @@ TEST_CASE("Spherical Harmonic")
                 const double z = (k + 0.5) * dx - center;
                 const double r =
                     std::max(1e-6, std::sqrt(x * x + y * y + z * z));
+                // NOLINTNEXTLINE(readability-identifier-length)
                 const double rr     = r * r;
                 const double rr_inv = 1.0 / rr;
                 const double rho    = std::max(1e-6, std::sqrt(x * x + y * y));

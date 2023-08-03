@@ -21,12 +21,12 @@ template <class data_t> struct vars_t
     Tensor<1, data_t> Gamma;
 };
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST_CASE("CCZ4 Geometry")
 {
-
-    vars_t<double> vars;
-    vars_t<Tensor<1, double>> d1;
-    vars_t<Tensor<2, double>> d2;
+    vars_t<double> vars{};
+    vars_t<Tensor<1, double>> d1{};
+    vars_t<Tensor<2, double>> d2{};
     Tensor<1, double> Z_over_chi;
 
 #include "CCZ4GeometryMathematicaValues.hpp" //Including the auto generated file with values

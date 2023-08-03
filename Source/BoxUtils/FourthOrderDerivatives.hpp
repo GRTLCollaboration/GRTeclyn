@@ -52,6 +52,7 @@ class FourthOrderDerivatives
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE auto
     diff1(int i, int j, int k, const amrex::Array4<const data_t> &state) const
     {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
         vars_t<Tensor<1, data_t>> d1;
         const auto *state_ptr_ijk = state.ptr(i, j, k);
         d1.enum_mapping(
@@ -196,6 +197,7 @@ class FourthOrderDerivatives
     advection(int i, int j, int k, const amrex::Array4<data_t const> &state,
               const Tensor<1, data_t> &vector) const
     {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
         vars_t<data_t> advec;
         const auto *state_ptr_ijk = state.ptr(i, j, k);
         amrex::GpuArray<int, AMREX_SPACEDIM> strides{

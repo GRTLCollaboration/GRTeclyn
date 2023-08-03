@@ -64,6 +64,7 @@ template <class deriv_t> class DerivativeTestsCompute
         const auto out_d1 = m_deriv.template diff1<Vars>(i, j, k, in);
         const auto out_d2 = m_deriv.template diff2<Vars>(i, j, k, in);
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
         Vars<data_t> out_diss;
         VarsTools::assign(out_diss, 0.);
         m_deriv.add_dissipation(i, j, k, out_diss, in, 1.0);
