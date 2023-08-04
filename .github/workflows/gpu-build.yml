@@ -17,8 +17,11 @@ jobs:
         include:
           - debug: 'TRUE'
             gpu-backend: 'CUDA'
+          # HIP and SYCL takes ages to build with DEBUG=TRUE
           - debug: 'FALSE'
-            gpu-backend: ['HIP', 'SYCL'] # HIP and SYCL take ages with DEBUG=TRUE
+            gpu-backend: 'HIP'
+          - debug: 'FALSE'
+            gpu-backend: 'SYCL'
 
                 
     name: ${{ matrix.gpu-backend }}, DEBUG = ${{ matrix.debug }}
