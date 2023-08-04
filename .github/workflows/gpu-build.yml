@@ -14,12 +14,17 @@ jobs:
     strategy:
       matrix:
         gpu-backend: ['CUDA', 'HIP', 'SYCL']
+        include:
+          - debug: 'TRUE'
+            gpu-backend: 'CUDA'
+          - debug: 'FALSE'
+            gpu-backend: ['HIP', 'SYCL'] # HIP and SYCL take ages with DEBUG=TRUE
+
                 
-    name: ${{ matrix.gpu-backend }} 
+    name: ${{ matrix.gpu-backend }}, DEBUG = ${{ matrix.debug }}
     env:
       AMREX_HOME: ${{ github.workspace }}/amrex
-      TESTS_DIR: ${{ github.workspace }}/GRAMReX/Tests
-      BUILD_ARGS: USE_${{ matrix.gpu-backend }}=TRUE DEBUG=TRUE USE_MPI=TRUE
+      BUILD_ARGS: USE_${{ matrix.gpu-backend }}=TRUE DEBUG=${{ matrix.debug }} USE_MPI=TRUE
       CUDA_MAJOR_VERSION: 12
       CUDA_MINOR_VERSION: 0
 
