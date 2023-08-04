@@ -145,7 +145,7 @@ class CCZ4Geometry
     // to the Ricci scalar rather than the default of 2 in compute_ricci_Z
     template <class data_t, template <typename> class vars_t,
               template <typename> class diff2_vars_t>
-    static ricci_t<data_t>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static ricci_t<data_t>
     compute_ricci_Z_general(const vars_t<data_t> &vars,
                             const vars_t<Tensor<1, data_t>> &d1,
                             const diff2_vars_t<Tensor<2, data_t>> &d2,
