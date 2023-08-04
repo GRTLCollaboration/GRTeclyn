@@ -104,7 +104,7 @@ jobs:
           which nvcc || echo "nvcc not in PATH!"
           export MPICH_CXX=g++
         elif [[ "${{ matrix.gpu-backend }}" == "HIP" ]]; then
-          source /etc/profile.d/rocm.sh
+          export PATH=/opt/rocm/llvm/bin:/opt/rocm/bin:/opt/rocm/profiler/bin:/opt/rocm/opencl/bin:$PATH
           hipcc --version
           which clang
           which clang++
