@@ -121,4 +121,5 @@ jobs:
           which icpx
           export I_MPI_CXX=icpx
         fi
-        make all -j 4 ${{ env.BUILD_ARGS }}
+        make tests -j 4 ${{ env.BUILD_ARGS }}
+        make examples -j 4 ${{ env.BUILD_ARGS }} 
