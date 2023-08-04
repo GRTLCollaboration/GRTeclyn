@@ -83,7 +83,7 @@ jobs:
           cuda-nvtx-12-2
           libcurand-dev-12-2"
         elif [[ "${{ matrix.gpu-backend }}" == "HIP" ]]; then
-          PACKAGES="libmpichdev
+          PACKAGES="libmpich-dev
           rocm-dev
           roctracer-dev
           rocprofiler-dev
