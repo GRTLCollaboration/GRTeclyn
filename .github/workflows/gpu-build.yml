@@ -43,9 +43,9 @@ jobs:
           sudo mkdir --parents --mode=0755 /etc/apt/keyrings
           wget https://repo.radeon.com/rocm/rocm.gpg.key -O - | gpg --dearmor |\
           sudo tee /etc/apt/keyrings/rocm.gpg > /dev/null
-          sudo tee /etc/apt/sources.list.d/rocm.list <<'EOF'
-          deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/debian jammy main
-          EOF
+          echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] \
+          https://repo.radeon.com/rocm/apt/debian jammy main" | sudo tee \
+          /etc/apt/sources.list.d/rocm.list
           # Prefer AMD packages over system ones
           echo -e 'Package: *\nPin: release o=repo.radeon.com\nPin-Priority: 600' \
           | sudo tee /etc/apt/preferences.d/rocm-pin-600
