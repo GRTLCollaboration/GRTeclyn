@@ -71,7 +71,7 @@ jobs:
         sudo apt-get update
 
     - name: Install dependencies
-      # These have been copied/adapted from 
+      # These have been copied/adapted from AMReX's CI dependencies
       run: |
         if [[ "${{ matrix.gpu-backend }}" == "CUDA" ]]; then
           PACKAGES="libmpich-dev
@@ -97,31 +97,22 @@ jobs:
         fi
         sudo apt-get -y --no-install-recommends install $PACKAGES
 
-    - name: Set Compilers
-      id: set-compilers
+    - name: Build tests and examples
       run: |
         if [[ "${{ matrix.gpu-backend }}" == "CUDA" ]]; then
           export PATH=/usr/local/cuda-12.2/bin${PATH:+:${PATH}}
           which nvcc || echo "nvcc not in PATH!"
-          echo "mpich_cxx=g++" >> $GITHUB_OUTPUT
+          export MPICH_CXX=g++
         elif [[ "${{ matrix.gpu-backend }}" == "HIP" ]]; then
           source /etc/profile.d/rocm.sh
           hipcc --version
           which clang
           which clang++
           which flang
-          echo "mpich_cxx=hipcc" >> $GITHUB_OUTPUT
+          export MPICH_CXX=hipcc
         elif [[ "${{ matrix.gpu-backend }}" == "SYCL" ]]; then
           source /opt/intel/oneapi/setvars.sh
           which icpx
-        fi
-
-    - name: Build Tests and BinaryBH example
-      working-directory: GRTeclyn
-      run: |
-        if [[ "${{ matrix.gpu-backend }}" == "SYCL" ]]; then
           export I_MPI_CXX=icpx
-        else
-          export MPICH_CXX=${{ steps.set-compilers.outputs.mpich_cxx }}
         fi
         make all -j 4 ${{ env.BUILD_ARGS }}
