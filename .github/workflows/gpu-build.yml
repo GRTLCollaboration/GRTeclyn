@@ -19,7 +19,9 @@ jobs:
     env:
       AMREX_HOME: ${{ github.workspace }}/amrex
       TESTS_DIR: ${{ github.workspace }}/GRAMReX/Tests
-      BUILD_ARGS: USE_${{ matrix.gpu-backend }}=TRUE DEBUG=TRUE USE_MPI=TRUE 
+      BUILD_ARGS: USE_${{ matrix.gpu-backend }}=TRUE DEBUG=TRUE USE_MPI=TRUE
+      CUDA_MAJOR_VERSION: 12
+      CUDA_MINOR_VERSION: 0
 
     steps:
     - name: Checkout AMReX
@@ -37,9 +39,11 @@ jobs:
     - name: Set up additional repositories
       run: |
         if [[ "${{ matrix.gpu-backend }}" == "CUDA" ]]; then
+          # See https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#ubuntu
           curl -O https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
           sudo dpkg -i cuda-keyring_1.1-1_all.deb
         elif [[ "${{ matrix.gpu-backend }}" == "HIP" ]]; then
+          # See https://rocmdocs.amd.com/en/latest/deploy/linux/quick_start.html
           sudo mkdir --parents --mode=0755 /etc/apt/keyrings
           wget https://repo.radeon.com/rocm/rocm.gpg.key -O - | gpg --dearmor |\
           sudo tee /etc/apt/keyrings/rocm.gpg > /dev/null
@@ -50,6 +54,7 @@ jobs:
           echo -e 'Package: *\nPin: release o=repo.radeon.com\nPin-Priority: 600' \
           | sudo tee /etc/apt/preferences.d/rocm-pin-600
         elif [[ "${{matrix.gpu-backend }}" == "SYCL" ]]; then
+          # See https://www.intel.com/content/www/us/en/docs/oneapi/installation-guide-linux/2023-2/apt.html
           wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB \
           | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
           echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] \
@@ -75,13 +80,13 @@ jobs:
       run: |
         if [[ "${{ matrix.gpu-backend }}" == "CUDA" ]]; then
           PACKAGES="libmpich-dev
-          cuda-command-line-tools-12-2
-          cuda-compiler-12-2
-          cuda-cupti-dev-12-2
-          cuda-minimal-build-12-2
-          cuda-nvml-dev-12-2
-          cuda-nvtx-12-2
-          libcurand-dev-12-2"
+          cuda-command-line-tools-${{ env.CUDA_MAJOR_VERSION }}-${{ env.CUDA_MINOR_VERSION }}
+          cuda-compiler-${{ env.CUDA_MAJOR_VERSION }}-${{ env.CUDA_MINOR_VERSION }}
+          cuda-cupti-dev-${{ env.CUDA_MAJOR_VERSION }}-${{ env.CUDA_MINOR_VERSION }}
+          cuda-minimal-build-${{ env.CUDA_MAJOR_VERSION }}-${{ env.CUDA_MINOR_VERSION }}
+          cuda-nvml-dev-${{ env.CUDA_MAJOR_VERSION }}-${{ env.CUDA_MINOR_VERSION }}
+          cuda-nvtx-${{ env.CUDA_MAJOR_VERSION }}-${{ env.CUDA_MINOR_VERSION }}
+          libcurand-dev-${{ env.CUDA_MAJOR_VERSION }}-${{ env.CUDA_MINOR_VERSION }}"
         elif [[ "${{ matrix.gpu-backend }}" == "HIP" ]]; then
           PACKAGES="libmpich-dev
           rocm-dev
@@ -101,7 +106,7 @@ jobs:
       working-directory: GRTeclyn
       run: |
         if [[ "${{ matrix.gpu-backend }}" == "CUDA" ]]; then
-          export PATH=/usr/local/cuda-12.2/bin${PATH:+:${PATH}}
+          export PATH=/usr/local/cuda-${{ env.CUDA_MAJOR_VERSION }}.${{ env.CUDA_MINOR_VERSION }}/bin${PATH:+:${PATH}}
           which nvcc || echo "nvcc not in PATH!"
           export MPICH_CXX=g++
         elif [[ "${{ matrix.gpu-backend }}" == "HIP" ]]; then
