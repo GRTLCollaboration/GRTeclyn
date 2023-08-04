@@ -1,4 +1,0 @@
-GRAMREX_CEXE_sources += BoundaryConditions.cpp GRAMR.cpp GRAMRLevel.cpp Derive.cpp
-GRAMREX_CEXE_headers += AMReXParameters.hpp GRAMR.hpp SimulationParametersBase.hpp BoundaryConditions.hpp \
-                GRAMRLevel.hpp UserVariables.inc.hpp DefaultLevelFactory.hpp \
-                VariableType.hpp EmptyDiagnosticVariables.hpp SetupFunctions.hpp

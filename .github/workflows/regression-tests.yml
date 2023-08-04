@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-22.04
     env:
       AMREX_HOME: ${{ github.workspace }}/amrex
-      BINARYBH_EXAMPLE_DIR: ${{ github.workspace }}/GRAMReX/Examples/BinaryBH
+      BINARYBH_EXAMPLE_DIR: ${{ github.workspace }}/GRTeclyn/Examples/BinaryBH
 
     steps:
     - name: Checkout AMReX
@@ -21,10 +21,10 @@ jobs:
         repository: AMReX-Codes/amrex
         path: amrex
 
-    - name: Checkout GRAMReX
+    - name: Checkout GRTeclyn
       uses: actions/checkout@v3
       with:
-        path: GRAMReX
+        path: GRTeclyn
 
     - name: Update package manager database
       id: update-database
@@ -65,5 +65,5 @@ jobs:
         ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex \
         --abs_tol 1e-10 \
         --rel_tol 1e-10 \
-        ${GITHUB_WORKSPACE}/GRAMReX/.github/workflows/data/plt00008_compare \
+        ${GITHUB_WORKSPACE}/GRTeclyn/.github/workflows/data/plt00008_compare \
         ${BINARYBH_EXAMPLE_DIR}/plt00008

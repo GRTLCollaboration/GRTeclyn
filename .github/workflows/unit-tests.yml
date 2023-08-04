@@ -33,7 +33,7 @@ jobs:
     env:
       AMREX_HOME: ${{ github.workspace }}/amrex
       OMP_NUM_THREADS: 1
-      TESTS_DIR: ${{ github.workspace }}/GRAMReX/Tests
+      TESTS_DIR: ${{ github.workspace }}/GRTeclyn/Tests
       BUILD_ARGS: COMP=${{ matrix.comp }} DEBUG=${{ matrix.debug}} USE_MPI=${{ matrix.mpi }} USE_OMP=${{ matrix.omp }}
 
     steps:
@@ -46,7 +46,7 @@ jobs:
     - name: Checkout ${{ github.repository }}
       uses: actions/checkout@v3
       with:
-        path: GRAMReX
+        path: GRTeclyn
         submodules: true
 
     - name: Update package manager database

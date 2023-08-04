@@ -17,7 +17,7 @@ jobs:
       TMP_BUILD_DIR: ${{ github.workspace }}/tmp_build_dir
 
     steps:
-    - name: Checkout GRAMReX
+    - name: Checkout GRTeclyn
       uses: actions/checkout@v3
       with:
         clean: false

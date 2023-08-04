@@ -1,1 +1,1 @@
-GRAMREX_CEXE_headers += ScalarBubble.hpp ScalarBubble.impl.hpp
+GRTECLYN_CEXE_headers += ScalarBubble.hpp ScalarBubble.impl.hpp

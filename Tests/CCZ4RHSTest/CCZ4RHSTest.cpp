@@ -4,11 +4,11 @@
 // Common test headers
 #include "InitialData.hpp"
 
-// GRAMReX headers
+// GRTeclyn headers
 #include "CCZ4RHS.hpp"
 #include "FourthOrderDerivatives.hpp"
 
-// Old GRAMReX headers for comparison
+// Old GRTeclyn headers for comparison
 #include "CCZ4RHS-fdf5a7a.hpp"
 #include "FourthOrderDerivatives-fdf5a7a.hpp"
 

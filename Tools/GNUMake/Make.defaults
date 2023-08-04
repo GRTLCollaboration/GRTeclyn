@@ -25,7 +25,7 @@ AMREX_NO_PROBINIT = TRUE
 
 CXXSTD = c++17
 
-GRAMREX_HOME ?= $(realpath ../..)
+GRTECLYN_HOME ?= $(realpath ../..)
 
-# Use a common temporary build directory for all GRAMReX applications
-TMP_BUILD_DIR ?= $(GRAMREX_HOME)/tmp_build_dir
+# Use a common temporary build directory for all GRTeclyn applications
+TMP_BUILD_DIR ?= $(GRTECLYN_HOME)/tmp_build_dir

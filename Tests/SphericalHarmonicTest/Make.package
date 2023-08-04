@@ -1,4 +1,4 @@
-GRAMREX_CEXE_headers += HarmonicTest.hpp \
+GRTECLYN_CEXE_headers += HarmonicTest.hpp \
 						HarmonicTest.impl.hpp 
 
-GRAMREX_CEXE_sources += SphericalHarmonicTest.cpp
+GRTECLYN_CEXE_sources += SphericalHarmonicTest.cpp

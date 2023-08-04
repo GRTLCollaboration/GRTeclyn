@@ -1,4 +1,4 @@
-GRAMREX_CEXE_headers += InitialData.hpp \
+GRTECLYN_CEXE_headers += InitialData.hpp \
 						ADMConformalVars-fdf5a7a.hpp \
 						BSSNVars-fdf5a7a.hpp \
 						CCZ4Geometry-fdf5a7a.hpp \
@@ -13,4 +13,4 @@ GRAMREX_CEXE_headers += InitialData.hpp \
 						TensorAlgebra-fdf5a7a.hpp \
 						VarsTools-fdf5a7a.hpp
 
-GRAMREX_CEXE_sources += CCZ4RHSTest.cpp
+GRTECLYN_CEXE_sources += CCZ4RHSTest.cpp

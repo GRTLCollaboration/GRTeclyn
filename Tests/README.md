@@ -1,4 +1,4 @@
-# GRAMReX Tests
+# GRTeclyn Tests
 
 The tests in this repository are implemented using the [Catch2
 framework](https://github.com/catchorg/Catch2). If you want to just build and
@@ -146,11 +146,11 @@ Some particularly useful ones include
 See the [CCZ4 RHS test](./CCZ4RHSTest/) as an example. Here is an outline of the
 basic steps to adding a new test to the [Tests application](./Tests.cpp).
 
-1. Create a new test directory with an appropriate name (e.g. `NewGRAMReXTest`).
+1. Create a new test directory with an appropriate name (e.g. `NewGRTeclynTest`).
    Make sure that the directory name ends with `Test` or `Tests` (so that Make
    can find it).
 2. In that directory, create a cpp file with the appropriate name (e.g.
-   `NewGRAMReXTest.cpp`). In that file make sure you include the Catch2
+   `NewGRTeclynTest.cpp`). In that file make sure you include the Catch2
    and base AMReX headers (if you are using any AMReX classes).
    ```cpp
    // Catch2 header
@@ -163,7 +163,7 @@ basic steps to adding a new test to the [Tests application](./Tests.cpp).
    [above](#basic-catch2-syntax). Make sure to initialize and finalize AMReX if
    using any AMReX data structures (otherwise no memory will be allocated):
    ```cpp
-    TEST_CASE("New GRAMReX")
+    TEST_CASE("New GRTeclyn")
     {
         // MPI_COMM_WORLD defined in AMReX_ccse-mpi.H even when compiling 
         // without MPI
@@ -183,9 +183,9 @@ basic steps to adding a new test to the [Tests application](./Tests.cpp).
    content: 
    ```makefile
    # Can omit the following line if you don't have any extra headers 
-   GRAMREX_CEXE_headers += <any headers you need for your test>
+   GRTECLYN_CEXE_headers += <any headers you need for your test>
 
-   GRAMREX_CEXE_sources += NewGRAMReXTest.cpp <any other cpp files>
+   GRTECLYN_CEXE_sources += NewGRTeclynTest.cpp <any other cpp files>
    ```
 5. In the GNUmakefile, one may need to uncomment some lines of the form
    ```makefile

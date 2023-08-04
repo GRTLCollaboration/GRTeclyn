@@ -2,10 +2,10 @@ define SEARCH_FOR_MAKE
 $(wildcard $1/*/GNUmakefile) $(wildcard $1/*/makefile) $(wildcard $1/*/Makefile)
 endef
 
-GRAMREX_HOME = $(realpath .)
+GRTECLYN_HOME = $(realpath .)
 
-TestsDir := $(GRAMREX_HOME)/Tests
-ExampleDirsWithGNUmakefile := $(call SEARCH_FOR_MAKE, $(GRAMREX_HOME)/Examples)
+TestsDir := $(GRTECLYN_HOME)/Tests
+ExampleDirsWithGNUmakefile := $(call SEARCH_FOR_MAKE, $(GRTECLYN_HOME)/Examples)
 ExampleDirs := $(dir $(ExampleDirsWithGNUmakefile))
 CleanExampleDirs := $(ExampleDirs:%=clean-%)
 CleanConfigTestsDir := $(TestsDir:%=cleanconfig-%)

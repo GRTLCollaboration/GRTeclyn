@@ -1,4 +1,4 @@
 
-# GRAMREX_CEXE_headers += DerivativeTestsCompute.hpp
+# GRTECLYN_CEXE_headers += DerivativeTestsCompute.hpp
 
-GRAMREX_CEXE_sources += PositiveChiAndAlphaUnitTest.cpp
+GRTECLYN_CEXE_sources += PositiveChiAndAlphaUnitTest.cpp

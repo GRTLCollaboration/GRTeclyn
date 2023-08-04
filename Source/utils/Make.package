@@ -1,5 +1,5 @@
-GRAMREX_CEXE_sources += SmallDataIO.cpp
-GRAMREX_CEXE_headers += AlwaysInline.hpp DebuggingTools.hpp Interval.hpp Tensor.hpp \
+GRTECLYN_CEXE_sources += SmallDataIO.cpp
+GRTECLYN_CEXE_headers += AlwaysInline.hpp DebuggingTools.hpp Interval.hpp Tensor.hpp \
                 ArrayTools.hpp DimensionDefinitions.hpp MultiLevelTask.hpp VarsTools.hpp \
                 Combinatorics.hpp FilesystemTools.hpp SmallDataIO.hpp WeylExtraction.hpp \
                 Coordinates.hpp GRInterval.hpp SphericalHarmonics.hpp CoordinateTransformations.hpp \

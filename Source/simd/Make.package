@@ -1,1 +1,1 @@
-GRAMREX_CEXE_headers += simd_base.hpp simd.hpp simdify.hpp
+GRTECLYN_CEXE_headers += simd_base.hpp simd.hpp simdify.hpp

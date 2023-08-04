@@ -1,2 +1,2 @@
-GRAMREX_CEXE_sources += PunctureTracker.cpp
-GRAMREX_CEXE_headers += BHAMR.hpp PunctureTracker.hpp
+GRTECLYN_CEXE_sources += PunctureTracker.cpp
+GRTECLYN_CEXE_headers += BHAMR.hpp PunctureTracker.hpp

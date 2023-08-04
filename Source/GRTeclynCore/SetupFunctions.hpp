@@ -55,7 +55,7 @@ void mainSetup(int argc, char *argv[])
 
 #ifdef EQUATION_DEBUG_MODE
     EquationDebugging::check_no_omp();
-    amrex::Warning("GRAMReX is running in equation debug mode. This mode is "
+    amrex::Warning("GRTeclyn is running in equation debug mode. This mode is "
                    "intended only for debugging and leads to significantly "
                    "worse performance.");
 #endif

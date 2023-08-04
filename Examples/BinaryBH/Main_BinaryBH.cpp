@@ -20,9 +20,9 @@
 #include <iostream>
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
-int runGRAMReX(int /*argc*/, char * /*argv*/[])
+int runGRTeclyn(int /*argc*/, char * /*argv*/[])
 {
-    BL_PROFILE("runGRAMReX()");
+    BL_PROFILE("runGRTeclyn()");
 
     // Load the parameter file and construct the SimulationParameter class
     // To add more parameters edit the SimulationParameters file.
@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
 {
     mainSetup(argc, argv);
 
-    int status = runGRAMReX(argc, argv);
+    int status = runGRTeclyn(argc, argv);
 
     if (status == 0)
     {
