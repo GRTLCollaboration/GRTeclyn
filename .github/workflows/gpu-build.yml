@@ -74,7 +74,7 @@ jobs:
       # These have been copied/adapted from 
       run: |
         if [[ "${{ matrix.gpu-backend }}" == "CUDA" ]]; then
-          PACKAGES = "libmpich-dev \
+          PACKAGES="libmpich-dev \
           cuda-command-line-tools-12-2 \
           cuda-compiler-12-2 \     
           cuda-cupti-dev-12-2 \         
@@ -83,14 +83,14 @@ jobs:
           cuda-nvtx-12-2 \
           libcurand-dev-12-2"
         elif [[ "${{ matrix.gpu-backend }}" == "HIP" ]]; then
-          PACKAGES = "libmpichdev \
+          PACKAGES="libmpichdev \
           rocm-dev \
           roctracer-dev \
           rocprofiler-dev \
           rocrand-dev \
           rocprim-dev"
         elif [[ "${{ matrix.gpu-backend }}" == "SYCL" ]]; then
-          PACKAGES = "intel-oneapi-compiler-dpcpp-cpp \
+          PACKAGES="intel-oneapi-compiler-dpcpp-cpp \
           intel-oneapi-compiler-fortran \
           intel-oneapi-mkl-devel \
           intel-oneapi-mpi-devel"
