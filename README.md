@@ -6,7 +6,11 @@ code](https://github.com/GRChombo/GRChombo) (based on the Chombo libraries) to
 the [AMReX](https://amrex-codes.github.io/) library in order to leverage AMReX's
 GPU offload capabilities and ongoing active development.
 
-The AMReX documentation can be found [here](https://amrex-codes.github.io/amrex/docs_html).
+The AMReX documentation can be found
+[here](https://amrex-codes.github.io/amrex/docs_html).
+
+The name follows a similar pattern to GRChombo, namely "GR" + "\<Tool in a
+foreign language\>". In this case, "Teclyn" is a Welsh word for "Tool".
 
 ### Feature status
 
