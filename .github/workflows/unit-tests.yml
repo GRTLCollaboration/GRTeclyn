@@ -38,13 +38,13 @@ jobs:
 
     steps:
     - name: Checkout AMReX
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: AMReX-Codes/amrex
         path: amrex
 
     - name: Checkout ${{ github.repository }}
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: GRTeclyn
         submodules: true
