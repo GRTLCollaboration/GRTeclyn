@@ -16,13 +16,13 @@ jobs:
 
     steps:
     - name: Checkout AMReX
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: AMReX-Codes/amrex
         path: amrex
 
     - name: Checkout GRTeclyn
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: GRTeclyn
 
