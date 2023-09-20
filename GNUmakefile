@@ -11,13 +11,19 @@ CleanExampleDirs := $(ExampleDirs:%=clean-%)
 CleanConfigTestsDir := $(TestsDir:%=cleanconfig-%)
 CleanConfigExampleDirs := $(ExampleDirs:%=cleanconfig-%)
 
-.PHONY: all examples tests run clean cleanconfig $(ExampleDirs)
+.PHONY: all examples tests tests-config run clean cleanconfig $(ExampleDirs)
 
 ECHO?=@ # set this to null on the command line to increase verbosity
 
-tests:
+tests: tests-config
 	$(info ################# Making Tests #################)
 	$(ECHO)$(MAKE) -C $(TestsDir) --no-print-directory
+
+# Separate this out from the tests target just to avoid the race condition
+# when doing make all (see below).
+tests-config:
+	$(ECHO)$(MAKE) -C $(TestsDir) --no-print-directory AMReX_Config.H
+	$(ECHO)$(MAKE) -C $(TestsDir) --no-print-directory AMReX_Version.H
 
 run: tests
 	$(info ################# Running Tests #################)
@@ -31,7 +37,10 @@ clean: clean-testsdir $(CleanExampleDirs)
 
 cleanconfig: $(CleanConfigTestsDir) $(CleanConfigExampleDirs)
 
-$(ExampleDirs):
+# We add the tests-config dependency just for the case where the build
+# configuration is the same for tests and examples to avoid the race condition
+# in generating AMReX_Config.H and AMReX_Version.H when doing make all.
+$(ExampleDirs): tests-config
 	$(info ################# Making example $@ #################)
 	$(ECHO)$(MAKE) -C $@ --no-print-directory
 
