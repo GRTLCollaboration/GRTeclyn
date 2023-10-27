@@ -6,10 +6,8 @@
 #ifndef INTERPOLATORTESTLEVEL_HPP_
 #define INTERPOLATORTESTLEVEL_HPP_
 
-#include "BoxLoops.hpp"
 #include "GRAMRLevel.hpp"
-#include "Polynomial.hpp"
-#include "SetValue.hpp"
+// #include "Polynomial.hpp"
 
 class InterpolatorTestLevel : public GRAMRLevel
 {
@@ -18,19 +16,22 @@ class InterpolatorTestLevel : public GRAMRLevel
     using GRAMRLevel::GRAMRLevel;
 
     // initialize data
-    virtual void initialData()
+    void initData() override
     {
-        BoxLoops::loop(Polynomial(m_p.center, m_dx), m_state_new, m_state_new,
-                       FILL_GHOST_CELLS);
+        // BoxLoops::loop(Polynomial(m_p.center, m_dx), m_state_new,
+        // m_state_new,
+        //                FILL_GHOST_CELLS);
     }
 
-    virtual void specificEvalRHS(GRLevelData &a_soln, GRLevelData &a_rhs,
-                                 const double a_time)
+    void specificEvalRHS(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
+                         const double a_time) override
     {
     }
 
-    virtual void computeTaggingCriterion(FArrayBox &tagging_criterion,
-                                         const FArrayBox &current_state){};
+    void errorEst(amrex::TagBoxArray &tag_box_array, int clearval, int tagval,
+                  amrex::Real time, int n_error_buf = 0, int ngrow = 0)
+    {
+    }
 };
 
 #endif /* INTERPOLATORTESTLEVEL_HPP_ */

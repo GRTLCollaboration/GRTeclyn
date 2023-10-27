@@ -2,8 +2,7 @@ verbosity = 0
 N_full = 32
 L_full = 16
 
-chk_prefix = TestChk_
-plot_prefix = TestPlt_
+output_path = .
 
 num_points = 30
 
@@ -25,4 +24,4 @@ lo_boundary = 2 0 2
 # 0 = even
 # 1,2,3 = odd x, y, z
 # 4,5,6 = odd xy, yz, xz
-vars_parity = 0 1 			# A and B
+vars_parity = 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0

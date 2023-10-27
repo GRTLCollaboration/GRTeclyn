@@ -2,11 +2,15 @@
 // Catch2 header
 #include "catch_amalgamated.hpp"
 
+// Common test headers
+#include "TestsArgs.hpp"
+
 #include "AMReX_REAL.H"
 #include "AMReX_ccse-mpi.H"
 
 int main(int argc, char *argv[])
 {
+    Tests::g_args.set(argc, argv);
 #ifdef BL_USE_MPI
     // We can only initialize and finalize MPI once so do it here
     MPI_Init(&argc, &argv);

@@ -1,0 +1,5 @@
+GRTECLYN_CEXE_headers += InterpolatorTestLevel.hpp \
+						 Polynomial.hpp \
+						 SimulationParameters.hpp
+
+GRTECLYN_CEXE_sources += AMRInterpolatorTest.cpp
