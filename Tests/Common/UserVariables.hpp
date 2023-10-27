@@ -8,6 +8,7 @@
 
 #include "ArrayTools.hpp"
 #include "CCZ4UserVariables.hpp"
+#include "DiagnosticVariables.hpp"
 
 #include <array>
 #include <string>
@@ -28,5 +29,7 @@ static const std::array<std::string, NUM_VARS - NUM_CCZ4_VARS>
 static const std::array<std::string, NUM_VARS> variable_names =
     ArrayTools::concatenate(ccz4_variable_names, user_variable_names);
 } // namespace UserVariables
+
+#include "UserVariables.inc.hpp"
 
 #endif /* USERVARIABLES_HPP */

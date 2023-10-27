@@ -1,4 +1,7 @@
 GRTECLYN_CEXE_headers += UserVariables.hpp \
-						InitialData.hpp 
+                         DiagnosticVariables.hpp \
+                         InitialData.hpp \
+                         TestsArgs.hpp
 
-GRTECLYN_CEXE_sources += CatchOutput.cpp
+GRTECLYN_CEXE_sources += CatchOutput.cpp \
+                         TestsArgs.cpp
