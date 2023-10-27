@@ -6,10 +6,3 @@ updates:
     schedule:
       # Check for updates to GitHub Actions every week
       interval: "weekly"
-
-  # Enable version updates for git submodules
-  - package-ecosystem: "gitsubmodule"
-    directory: "/"
-    schedule:
-      # Check for updates to gii submodules every week
-      interval: "weekly"
