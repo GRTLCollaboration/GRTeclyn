@@ -257,15 +257,17 @@ void GRAMRLevel::post_timestep(int /*iteration*/)
         amrex::Real t           = get_state_data(State_Type).curTime();
 
         amrex::IntVect ratio = parent->refRatio(lev);
-        AMREX_ASSERT(ratio == 2 || ratio == 4);
-        if (ratio == 2)
-        {
-            // Need to fill one ghost cell for the high-order interpolation
-            // below
-            FillPatch(fine_level, S_fine, 1, t, State_Type, 0, S_fine.nComp());
-        }
+        // AMREX_ASSERT(ratio == 2 || ratio == 4);
+        // if (ratio == 2)
+        // {
+        //     // Need to fill one ghost cell for the high-order interpolation
+        //     // below
+        //     FillPatch(fine_level, S_fine, 1, t, State_Type, 0,
+        //     S_fine.nComp());
+        // }
 
-        FourthOrderInterpFromFineToCoarse(S_crse, 0, 2, S_fine, ratio);
+        // FourthOrderInterpFromFineToCoarse(S_crse, 0, 2, S_fine, ratio);
+        amrex::average_down(S_fine, S_crse, 0, S_crse.nComp(), ratio);
     }
 
     specificPostTimeStep();
