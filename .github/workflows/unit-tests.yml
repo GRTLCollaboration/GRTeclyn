@@ -83,11 +83,15 @@ jobs:
         if [[ "${{ matrix.comp }}" == "gnu" ]]; then
           sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${{ matrix.comp-version }} 100
           sudo update-alternatives --install /usr/bin/cpp cpp /usr/bin/cpp-${{ matrix.comp-version }} 100
+          g++ --version
+          cpp --version
           echo "mpich_cxx=g++" >> $GITHUB_OUTPUT
         elif [[ "${{ matrix.comp }}" == "llvm" ]]; then
           sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${{ matrix.comp-version }} 100
+          clang++ --version
           echo "mpich_cxx=clang++" >> $GITHUB_OUTPUT
         fi
+
 
     - name: Build Tests
       working-directory: ${{ env.TESTS_DIR }}
