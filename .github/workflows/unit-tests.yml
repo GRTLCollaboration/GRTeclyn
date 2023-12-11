@@ -15,21 +15,21 @@ jobs:
         mpi: ['FALSE', 'TRUE']
         debug: ['FALSE', 'TRUE']
         omp: ['FALSE', 'TRUE']
-        comp-version: [13]
-        include:
+        comp-version: [9, 10, 11, 12, 13, 14, 15]
+        exclude:
             # see available compiler versions here: https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2204-Readme.md
           - comp-version: 9
-            comp: 'gnu'
+            comp: 'llvm'
           - comp-version: 10
-            comp: 'gnu'
+            comp: 'llvm'
           - comp-version: 11
-            comp: 'gnu'
+            comp: 'llvm'
           - comp-version: 12
-            comp: 'gnu'
+            comp: 'llvm'
           - comp-version: 14
-            comp: 'llvm'
+            comp: 'gnu'
           - comp-version: 15
-            comp: 'llvm'
+            comp: 'gnu'
                 
     name: ${{ matrix.comp }} ${{ matrix.comp-version }}, DEBUG = ${{ matrix.debug }}, USE_MPI = ${{ matrix.mpi }}, USE_OMP = ${{ matrix.omp }}
     env:
