@@ -15,19 +15,21 @@ jobs:
         mpi: ['FALSE', 'TRUE']
         debug: ['FALSE', 'TRUE']
         omp: ['FALSE', 'TRUE']
-        include:
-            # see available compiler versions here: https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#preinstalled-software
+        comp-version: [9, 10, 11, 12, 13, 14, 15]
+        exclude:
+            # see available compiler versions here: https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2204-Readme.md
           - comp-version: 9
-            comp: 'gnu'
+            comp: 'llvm'
           - comp-version: 10
-            comp: 'gnu'
+            comp: 'llvm'
           - comp-version: 11
-            comp: 'gnu'
+            comp: 'llvm'
           - comp-version: 12
-          - comp-version: 13
             comp: 'llvm'
           - comp-version: 14
-            comp: 'llvm'
+            comp: 'gnu'
+          - comp-version: 15
+            comp: 'gnu'
                 
     name: ${{ matrix.comp }} ${{ matrix.comp-version }}, DEBUG = ${{ matrix.debug }}, USE_MPI = ${{ matrix.mpi }}, USE_OMP = ${{ matrix.omp }}
     env:
@@ -79,13 +81,17 @@ jobs:
       id: set-compilers
       run: |
         if [[ "${{ matrix.comp }}" == "gnu" ]]; then
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${{ matrix.comp-version }} 100
-          sudo update-alternatives --install /usr/bin/cpp cpp /usr/bin/cpp-${{ matrix.comp-version }} 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${{ matrix.comp-version }} 1000
+          sudo update-alternatives --install /usr/bin/cpp cpp /usr/bin/cpp-${{ matrix.comp-version }} 1000
+          g++ --version
+          cpp --version
           echo "mpich_cxx=g++" >> $GITHUB_OUTPUT
         elif [[ "${{ matrix.comp }}" == "llvm" ]]; then
-          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${{ matrix.comp-version }} 100
+          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${{ matrix.comp-version }} 1000
+          clang++ --version
           echo "mpich_cxx=clang++" >> $GITHUB_OUTPUT
         fi
+
 
     - name: Build Tests
       working-directory: ${{ env.TESTS_DIR }}
