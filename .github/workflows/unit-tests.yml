@@ -24,9 +24,11 @@ jobs:
           - comp-version: 11
             comp: 'gnu'
           - comp-version: 12
+            comp: 'gnu'
           - comp-version: 13
-            comp: 'llvm'
           - comp-version: 14
+            comp: 'llvm'
+          - comp-version: 15
             comp: 'llvm'
                 
     name: ${{ matrix.comp }} ${{ matrix.comp-version }}, DEBUG = ${{ matrix.debug }}, USE_MPI = ${{ matrix.mpi }}, USE_OMP = ${{ matrix.omp }}
