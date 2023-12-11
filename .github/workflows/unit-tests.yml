@@ -15,8 +15,9 @@ jobs:
         mpi: ['FALSE', 'TRUE']
         debug: ['FALSE', 'TRUE']
         omp: ['FALSE', 'TRUE']
+        comp-version: [13]
         include:
-            # see available compiler versions here: https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#preinstalled-software
+            # see available compiler versions here: https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2204-Readme.md
           - comp-version: 9
             comp: 'gnu'
           - comp-version: 10
@@ -25,7 +26,6 @@ jobs:
             comp: 'gnu'
           - comp-version: 12
             comp: 'gnu'
-          - comp-version: 13
           - comp-version: 14
             comp: 'llvm'
           - comp-version: 15
