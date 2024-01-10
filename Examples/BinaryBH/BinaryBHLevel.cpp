@@ -7,13 +7,134 @@
 #include "BinaryBH.hpp"
 #include "CCZ4RHS.hpp"
 #include "ChiExtractionTaggingCriterion.hpp"
+#include "NullBCFill.hpp"
 #include "PositiveChiAndAlpha.hpp"
 #include "PunctureTracker.hpp"
 // xxxxx #include "SixthOrderDerivatives.hpp"
+#include "NewConstraints.hpp"
 #include "TraceARemoval.hpp"
 #include "TwoPuncturesInitialData.hpp"
 #include "Weyl4.hpp"
 #include "WeylExtraction.hpp"
+
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+amrex::Vector<std::string> BinaryBHLevel::plot_constraints;
+
+void BinaryBHLevel::variableSetUp()
+{
+    BL_PROFILE("BinaryBHLevel::variableSetUp()");
+    const int nghost = simParams().num_ghosts;
+    desc_lst.addDescriptor(State_Type, amrex::IndexType::TheCellType(),
+                           amrex::StateDescriptor::Point, nghost, NUM_VARS,
+                           &amrex::cell_quartic_interp);
+
+    BoundaryConditions::params_t bparms = simParams().boundary_params;
+    BoundaryConditions boundary_conditions;
+    boundary_conditions.define(simParams().center, bparms,
+                               amrex::DefaultGeometry(), nghost);
+
+    amrex::Vector<amrex::BCRec> bcs(NUM_VARS);
+    for (int icomp = 0; icomp < NUM_VARS; ++icomp)
+    {
+        auto &bc = bcs[icomp];
+        for (amrex::OrientationIter oit; oit.isValid(); ++oit)
+        {
+            amrex::Orientation face = oit();
+            const int idim          = face.coordDir();
+            const int bctype = boundary_conditions.get_boundary_condition(face);
+            if (amrex::DefaultGeometry().isPeriodic(idim))
+            {
+                bc.set(face, amrex::BCType::int_dir);
+            }
+            else if (bctype == BoundaryConditions::STATIC_BC ||
+                     bctype == BoundaryConditions::SOMMERFELD_BC ||
+                     bctype == BoundaryConditions::MIXED_BC)
+            {
+                bc.set(face, amrex::BCType::foextrap);
+            }
+            else if (bctype == BoundaryConditions::REFLECTIVE_BC)
+            {
+                int parity = boundary_conditions.get_var_parity(
+                    icomp, idim, VariableType::evolution);
+                if (parity == 1)
+                {
+                    bc.set(face, amrex::BCType::reflect_even);
+                }
+                else
+                {
+                    bc.set(face, amrex::BCType::reflect_odd);
+                }
+            }
+            else if (bctype == BoundaryConditions::EXTRAPOLATING_BC)
+            {
+                amrex::Abort("xxxxx EXTRAPOLATING_BC todo");
+            }
+            else
+            {
+                amrex::Abort("Unknow BC type " + std::to_string(bctype));
+            }
+        }
+    }
+
+    amrex::Vector<std::string> name(NUM_VARS);
+    for (int i = 0; i < NUM_VARS; ++i)
+    {
+        name[i] = UserVariables::variable_names[i];
+    }
+
+    amrex::StateDescriptor::BndryFunc bndryfunc(null_bc_fill);
+    bndryfunc.setRunOnGPU(true); // Run the bc function on gpu.
+
+    desc_lst.setComponent(State_Type, 0, name, bcs, bndryfunc);
+
+    amrex::ParmParse pp("amr");
+    if (pp.contains("derive_plot_vars"))
+    {
+        std::vector<std::string> names;
+        pp.getarr("derive_plot_vars", names);
+
+        // Constraints
+        auto names_it =
+            std::find_if(names.begin(), names.end(),
+                         [](const std::string &name) {
+                             return std::string("ham") == amrex::toLower(name);
+                         });
+        if (names_it != names.end())
+        {
+            names.erase(names_it);
+            plot_constraints.push_back("Ham");
+        }
+        //
+        names_it =
+            std::find_if(names.begin(), names.end(),
+                         [](const std::string &name) {
+                             return std::string("mom") == amrex::toLower(name);
+                         });
+        if (names_it != names.end())
+        {
+            names.erase(names_it);
+            plot_constraints.push_back("Mom1");
+            plot_constraints.push_back("Mom2");
+            plot_constraints.push_back("Mom3");
+        }
+        //
+        if (!plot_constraints.empty())
+        {
+            names.emplace_back("constraints");
+            pp.addarr("derive_plot_vars", names);
+
+            derive_lst.add(
+                "constraints", amrex::IndexType::TheCellType(),
+                static_cast<int>(plot_constraints.size()), plot_constraints,
+                amrex::DeriveFuncFab(), // null function because we won't use
+                                        // it.
+                [=](const amrex::Box &box) { return amrex::grow(box, nghost); },
+                &amrex::cell_quartic_interp);
+            derive_lst.addComponent("constraints", desc_lst, State_Type, 0,
+                                    NUM_VARS);
+        }
+    }
+}
 
 // Things to do during the advance step after RK4 steps
 void BinaryBHLevel::specificAdvance()
@@ -186,6 +307,70 @@ void BinaryBHLevel::errorEst(amrex::TagBoxArray &tag_box_array,
                                tags[box_no](i, j, k) = tagval;
                            }
                        });
+    amrex::Gpu::streamSynchronize();
+}
+
+void BinaryBHLevel::derive(const std::string &name, amrex::Real time,
+                           amrex::MultiFab &multifab, int dcomp)
+{
+    const amrex::DeriveRec *rec = derive_lst.get(name);
+    if (rec != nullptr)
+    {
+        auto &state_new = get_new_data(State_Type);
+        FillPatch(*this, state_new, state_new.nGrow(),
+                  get_state_data(State_Type).curTime(), State_Type, 0,
+                  state_new.nComp()); // xxxxx Do we need all components?
+        const auto &src = state_new.const_arrays();
+        if (name == "constraints")
+        {
+            const auto &dst = multifab.arrays();
+            int iham        = -1;
+            Interval imom;
+            if (!plot_constraints.empty())
+            {
+                int inext                = dcomp;
+                auto plot_constraints_it = std::find(
+                    plot_constraints.begin(), plot_constraints.end(), "Ham");
+                if (plot_constraints_it != std::end(plot_constraints))
+                {
+                    iham = inext++;
+                }
+                plot_constraints_it = std::find(plot_constraints.begin(),
+                                                plot_constraints.end(), "Mom1");
+                if (plot_constraints_it != std::end(plot_constraints))
+                {
+                    imom = Interval(inext, inext + AMREX_SPACEDIM - 1);
+                    auto plot_constraints_it2 =
+                        std::find(plot_constraints.begin(),
+                                  plot_constraints.end(), "Mom2");
+                    auto plot_constraints_it3 =
+                        std::find(plot_constraints.begin(),
+                                  plot_constraints.end(), "Mom3");
+                    AMREX_ALWAYS_ASSERT(
+                        plot_constraints_it2 != std::end(plot_constraints) &&
+                        plot_constraints_it3 != std::end(plot_constraints));
+                }
+            }
+            else
+            {
+                iham = dcomp;
+                imom = Interval(dcomp + 1, dcomp + AMREX_SPACEDIM);
+            }
+            Constraints cst(Geom().CellSize(0), iham, imom);
+            amrex::ParallelFor(
+                multifab, amrex::IntVect(0),
+                [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
+                { cst.compute(i, j, k, dst[box_no], src[box_no]); });
+        }
+        else
+        {
+            amrex::Abort("Unknown derived variable");
+        }
+    }
+    else
+    {
+        amrex::Abort("Unknown derived variable");
+    }
     amrex::Gpu::streamSynchronize();
 }
 
