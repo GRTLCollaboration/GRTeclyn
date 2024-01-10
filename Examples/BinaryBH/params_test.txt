@@ -15,7 +15,7 @@ amr.check_int = 0
 checkpoint_interval = 0
 amr.plot_int = 8
 plot_interval = 8
-amr.derive_plot_vars = Ham Mom
+amr.derive_plot_vars = ALL
 
 #################################################
 # BH Initial Data parameters
