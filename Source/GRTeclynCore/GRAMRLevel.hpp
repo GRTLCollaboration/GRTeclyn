@@ -29,7 +29,6 @@ enum StateType
 class GRAMRLevel : public amrex::AmrLevel
 {
   public:
-    static void variableSetUp();
     static void variableCleanUp();
 
     GRAMRLevel();
@@ -125,8 +124,10 @@ class GRAMRLevel : public amrex::AmrLevel
     derive(const std::string &name, amrex::Real time, int ngrow) override;
 
     //! Fill mf starting with the dcomp'th component with the derived quantity.
-    void derive(const std::string &name, amrex::Real time,
-                amrex::MultiFab &multifab, int dcomp) override;
+    //! This function should be defined in the child class if derived quantities
+    //! are needed (not pure virtual in case they are not)
+    virtual void derive(const std::string &name, amrex::Real time,
+                        amrex::MultiFab &multifab, int dcomp) override;
 
     /// Virtual function for the problem specific parts of Advance
     virtual void specificAdvance() {}
@@ -145,9 +146,6 @@ class GRAMRLevel : public amrex::AmrLevel
     int m_verbosity = 0; //!< Level of verbosity of the output
     int m_num_ghosts{};  //!< Number of ghost cells
     bool m_is_writing_plotfile = false;
-
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-    static amrex::Vector<std::string> plot_constraints;
 
   private:
 
