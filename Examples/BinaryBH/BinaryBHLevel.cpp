@@ -17,9 +17,6 @@
 #include "Weyl4.hpp"
 #include "WeylExtraction.hpp"
 
-// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-amrex::Vector<std::string> BinaryBHLevel::plot_constraints;
-
 void BinaryBHLevel::variableSetUp()
 {
     BL_PROFILE("BinaryBHLevel::variableSetUp()");
@@ -87,53 +84,20 @@ void BinaryBHLevel::variableSetUp()
 
     desc_lst.setComponent(State_Type, 0, name, bcs, bndryfunc);
 
-    amrex::ParmParse pp("amr");
-    if (pp.contains("derive_plot_vars"))
-    {
-        std::vector<std::string> names;
-        pp.getarr("derive_plot_vars", names);
+    // TODO: Move this definition to the Constraints class
+    amrex::Vector<std::string> constraint_vars_names = {"Ham", "Mom1", "Mom2",
+                                                        "Mom3"};
 
-        // Constraints
-        auto names_it =
-            std::find_if(names.begin(), names.end(),
-                         [](const std::string &name) {
-                             return std::string("ham") == amrex::toLower(name);
-                         });
-        if (names_it != names.end())
-        {
-            names.erase(names_it);
-            plot_constraints.push_back("Ham");
-        }
-        //
-        names_it =
-            std::find_if(names.begin(), names.end(),
-                         [](const std::string &name) {
-                             return std::string("mom") == amrex::toLower(name);
-                         });
-        if (names_it != names.end())
-        {
-            names.erase(names_it);
-            plot_constraints.push_back("Mom1");
-            plot_constraints.push_back("Mom2");
-            plot_constraints.push_back("Mom3");
-        }
-        //
-        if (!plot_constraints.empty())
-        {
-            names.emplace_back("constraints");
-            pp.addarr("derive_plot_vars", names);
+    derive_lst.add(
+        "constraints", amrex::IndexType::TheCellType(),
+        static_cast<int>(constraint_vars_names.size()), constraint_vars_names,
+        amrex::DeriveFuncFab(), // null function because we won't use
+                                // it.
+        [=](const amrex::Box &box) { return amrex::grow(box, nghost); },
+        &amrex::cell_quartic_interp);
 
-            derive_lst.add(
-                "constraints", amrex::IndexType::TheCellType(),
-                static_cast<int>(plot_constraints.size()), plot_constraints,
-                amrex::DeriveFuncFab(), // null function because we won't use
-                                        // it.
-                [=](const amrex::Box &box) { return amrex::grow(box, nghost); },
-                &amrex::cell_quartic_interp);
-            derive_lst.addComponent("constraints", desc_lst, State_Type, 0,
-                                    NUM_VARS);
-        }
-    }
+    // We only need the non-gauge CCZ4 variables to calculate the constraints
+    derive_lst.addComponent("constraints", desc_lst, State_Type, 0, c_lapse);
 }
 
 // Things to do during the advance step after RK4 steps
@@ -324,38 +288,8 @@ void BinaryBHLevel::derive(const std::string &name, amrex::Real time,
         if (name == "constraints")
         {
             const auto &dst = multifab.arrays();
-            int iham        = -1;
-            Interval imom;
-            if (!plot_constraints.empty())
-            {
-                int inext                = dcomp;
-                auto plot_constraints_it = std::find(
-                    plot_constraints.begin(), plot_constraints.end(), "Ham");
-                if (plot_constraints_it != std::end(plot_constraints))
-                {
-                    iham = inext++;
-                }
-                plot_constraints_it = std::find(plot_constraints.begin(),
-                                                plot_constraints.end(), "Mom1");
-                if (plot_constraints_it != std::end(plot_constraints))
-                {
-                    imom = Interval(inext, inext + AMREX_SPACEDIM - 1);
-                    auto plot_constraints_it2 =
-                        std::find(plot_constraints.begin(),
-                                  plot_constraints.end(), "Mom2");
-                    auto plot_constraints_it3 =
-                        std::find(plot_constraints.begin(),
-                                  plot_constraints.end(), "Mom3");
-                    AMREX_ALWAYS_ASSERT(
-                        plot_constraints_it2 != std::end(plot_constraints) &&
-                        plot_constraints_it3 != std::end(plot_constraints));
-                }
-            }
-            else
-            {
-                iham = dcomp;
-                imom = Interval(dcomp + 1, dcomp + AMREX_SPACEDIM);
-            }
+            int iham        = dcomp;
+            Interval imom   = Interval(dcomp + 1, dcomp + AMREX_SPACEDIM);
             Constraints cst(Geom().CellSize(0), iham, imom);
             amrex::ParallelFor(
                 multifab, amrex::IntVect(0),

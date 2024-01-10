@@ -44,9 +44,6 @@ class BinaryBHLevel : public GRAMRLevel
     void derive(const std::string &name, amrex::Real time,
                 amrex::MultiFab &multifab, int dcomp) final;
 
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-    static amrex::Vector<std::string> plot_constraints;
-
 #ifdef AMREX_USE_HDF5
     /// Any actions that should happen just before plot files output
     virtual void prePlotLevel() override;
