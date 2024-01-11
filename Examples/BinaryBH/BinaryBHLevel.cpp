@@ -7,7 +7,6 @@
 #include "BinaryBH.hpp"
 #include "CCZ4RHS.hpp"
 #include "ChiExtractionTaggingCriterion.hpp"
-#include "NullBCFill.hpp"
 #include "PositiveChiAndAlpha.hpp"
 #include "PunctureTracker.hpp"
 // xxxxx #include "SixthOrderDerivatives.hpp"
@@ -20,69 +19,11 @@
 void BinaryBHLevel::variableSetUp()
 {
     BL_PROFILE("BinaryBHLevel::variableSetUp()");
+
+    // Set up the state variables
+    stateVariableSetUp();
+
     const int nghost = simParams().num_ghosts;
-    desc_lst.addDescriptor(State_Type, amrex::IndexType::TheCellType(),
-                           amrex::StateDescriptor::Point, nghost, NUM_VARS,
-                           &amrex::cell_quartic_interp);
-
-    BoundaryConditions::params_t bparms = simParams().boundary_params;
-    BoundaryConditions boundary_conditions;
-    boundary_conditions.define(simParams().center, bparms,
-                               amrex::DefaultGeometry(), nghost);
-
-    amrex::Vector<amrex::BCRec> bcs(NUM_VARS);
-    for (int icomp = 0; icomp < NUM_VARS; ++icomp)
-    {
-        auto &bc = bcs[icomp];
-        for (amrex::OrientationIter oit; oit.isValid(); ++oit)
-        {
-            amrex::Orientation face = oit();
-            const int idim          = face.coordDir();
-            const int bctype = boundary_conditions.get_boundary_condition(face);
-            if (amrex::DefaultGeometry().isPeriodic(idim))
-            {
-                bc.set(face, amrex::BCType::int_dir);
-            }
-            else if (bctype == BoundaryConditions::STATIC_BC ||
-                     bctype == BoundaryConditions::SOMMERFELD_BC ||
-                     bctype == BoundaryConditions::MIXED_BC)
-            {
-                bc.set(face, amrex::BCType::foextrap);
-            }
-            else if (bctype == BoundaryConditions::REFLECTIVE_BC)
-            {
-                int parity = boundary_conditions.get_var_parity(
-                    icomp, idim, VariableType::evolution);
-                if (parity == 1)
-                {
-                    bc.set(face, amrex::BCType::reflect_even);
-                }
-                else
-                {
-                    bc.set(face, amrex::BCType::reflect_odd);
-                }
-            }
-            else if (bctype == BoundaryConditions::EXTRAPOLATING_BC)
-            {
-                amrex::Abort("xxxxx EXTRAPOLATING_BC todo");
-            }
-            else
-            {
-                amrex::Abort("Unknow BC type " + std::to_string(bctype));
-            }
-        }
-    }
-
-    amrex::Vector<std::string> name(NUM_VARS);
-    for (int i = 0; i < NUM_VARS; ++i)
-    {
-        name[i] = UserVariables::variable_names[i];
-    }
-
-    amrex::StateDescriptor::BndryFunc bndryfunc(null_bc_fill);
-    bndryfunc.setRunOnGPU(true); // Run the bc function on gpu.
-
-    desc_lst.setComponent(State_Type, 0, name, bcs, bndryfunc);
 
     // TODO: Move this definition to the Constraints class
     amrex::Vector<std::string> constraint_vars_names = {"Ham", "Mom1", "Mom2",
