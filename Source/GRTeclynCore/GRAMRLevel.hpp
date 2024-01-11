@@ -29,6 +29,12 @@ enum StateType
 class GRAMRLevel : public amrex::AmrLevel
 {
   public:
+    /**
+     * \brief Set up the state variables from UserVariables.hpp.
+     * This should be called by the child's variableSetUp().
+     */
+    static void stateVariableSetUp();
+
     static void variableCleanUp();
 
     GRAMRLevel();
