@@ -61,18 +61,26 @@ class Weyl4
         the formulation.
     */
     Weyl4(const std::array<double, AMREX_SPACEDIM> &a_center, double a_dx,
-          int a_formulation = CCZ4RHS<>::USE_CCZ4)
-        : m_center(a_center), m_dx(a_dx), m_deriv(a_dx),
+          int a_dcomp, int a_formulation = CCZ4RHS<>::USE_CCZ4)
+        : m_center(a_center), m_dx(a_dx), m_deriv(a_dx), m_dcomp(a_dcomp),
           m_formulation(a_formulation)
     {
     }
     // NOLINTEND(bugprone-easily-swappable-parameters)
 
+    //! Computes Weyl4 in a cell
+    template <class data_t>
+    AMREX_GPU_DEVICE void
+    compute(int i, int j, int k, const amrex::Array4<data_t> &a_derive_array,
+            const amrex::Array4<data_t const> &a_state_array) const;
+
   protected:
     std::array<double, AMREX_SPACEDIM> m_center; //!< The grid center
     double m_dx;                                 //!< the grid spacing
     FourthOrderDerivatives m_deriv; //!< for calculating derivs of vars
-    int m_formulation;              //!< CCZ4 or BSSN?
+    int m_dcomp;       //!< Which commponent to store Weyl4_Re (Weyl4_Im will be
+                       //!< m_dcomp+1)
+    int m_formulation; //!< CCZ4 or BSSN?
 
     //! Compute spatial volume element
     template <class data_t>

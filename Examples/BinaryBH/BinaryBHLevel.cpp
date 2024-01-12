@@ -28,7 +28,7 @@ void BinaryBHLevel::variableSetUp()
     // TODO: Move this definition to the Constraints class
     amrex::Vector<std::string> constraint_vars_names = {"Ham", "Mom1", "Mom2",
                                                         "Mom3"};
-
+    // Add the constraints to the derive list
     derive_lst.add(
         "constraints", amrex::IndexType::TheCellType(),
         static_cast<int>(constraint_vars_names.size()), constraint_vars_names,
@@ -39,6 +39,20 @@ void BinaryBHLevel::variableSetUp()
 
     // We only need the non-gauge CCZ4 variables to calculate the constraints
     derive_lst.addComponent("constraints", desc_lst, State_Type, 0, c_lapse);
+
+    // TODO: Move this definition to the Weyl4 class
+    amrex::Vector<std::string> Weyl4_vars_names = {"Weyl4_Re", "Weyl4_Im"};
+
+    // Add Weyl4 to the derive list
+    derive_lst.add(
+        "Weyl4", amrex::IndexType::TheCellType(),
+        static_cast<int>(Weyl4_vars_names.size()), Weyl4_vars_names,
+        amrex::DeriveFuncFab(), // null function because we won't use it
+        [=](const amrex::Box &box) { return amrex::grow(box, nghost); },
+        &amrex::cell_quartic_interp);
+
+    // We need all of the CCZ4 variables to calculate Weyl4 (except B)
+    derive_lst.addComponent("Weyl4", desc_lst, State_Type, 0, c_B1);
 }
 
 // Things to do during the advance step after RK4 steps
@@ -221,21 +235,40 @@ void BinaryBHLevel::derive(const std::string &name, amrex::Real time,
     const amrex::DeriveRec *rec = derive_lst.get(name);
     if (rec != nullptr)
     {
-        auto &state_new = get_new_data(State_Type);
+        int state_idx, derive_scomp, derive_ncomp;
+
+        // we only have one state so state_idx will be State_Type = 0
+        rec->getRange(0, state_idx, derive_scomp, derive_ncomp);
+
+        auto &state_new = get_new_data(state_idx);
         FillPatch(*this, state_new, state_new.nGrow(),
-                  get_state_data(State_Type).curTime(), State_Type, 0,
-                  state_new.nComp()); // xxxxx Do we need all components?
-        const auto &src = state_new.const_arrays();
+                  get_state_data(state_idx).curTime(), state_idx, derive_scomp,
+                  derive_ncomp);
+        const auto &state_arrays = state_new.const_arrays();
         if (name == "constraints")
         {
-            const auto &dst = multifab.arrays();
-            int iham        = dcomp;
-            Interval imom   = Interval(dcomp + 1, dcomp + AMREX_SPACEDIM);
-            Constraints cst(Geom().CellSize(0), iham, imom);
+            const auto &out_arrays = multifab.arrays();
+            int iham               = dcomp;
+            Interval imom = Interval(dcomp + 1, dcomp + AMREX_SPACEDIM);
+            Constraints constraints(Geom().CellSize(0), iham, imom);
             amrex::ParallelFor(
                 multifab, amrex::IntVect(0),
-                [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
-                { cst.compute(i, j, k, dst[box_no], src[box_no]); });
+                [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept {
+                    constraints.compute(i, j, k, out_arrays[box_no],
+                                        state_arrays[box_no]);
+                });
+        }
+        else if (name == "Weyl4")
+        {
+            const auto &out_arrays = multifab.arrays();
+            Weyl4 weyl4(simParams().extraction_params.center,
+                        Geom().CellSize(0), dcomp, simParams().formulation);
+            amrex::ParallelFor(
+                multifab, amrex::IntVect::TheZeroVector(),
+                [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept {
+                    weyl4.compute(i, j, k, out_arrays[box_no],
+                                  state_arrays[box_no]);
+                });
         }
         else
         {
