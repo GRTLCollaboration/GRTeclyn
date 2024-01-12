@@ -11,7 +11,7 @@ void GRAMRLevel::stateVariableSetUp()
     const int nghost = simParams().num_ghosts;
     desc_lst.addDescriptor(State_Type, amrex::IndexType::TheCellType(),
                            amrex::StateDescriptor::Point, nghost, NUM_VARS,
-                           &amrex::cell_quartic_interp);
+                           &amrex::quartic_interp);
 
     BoundaryConditions::params_t bparms = simParams().boundary_params;
     BoundaryConditions boundary_conditions;
@@ -264,6 +264,10 @@ void GRAMRLevel::writePlotFilePre(const std::string & /*dir*/,
                                   std::ostream & /*os*/)
 {
     m_is_writing_plotfile = true;
+    // auto &state_new       = get_new_data(State_Type);
+    // FillPatch(*this, state_new, state_new.nGrow(),
+    //           get_state_data(State_Type).curTime(), State_Type, 0,
+    //           state_new.nComp());
 }
 
 void GRAMRLevel::writePlotFilePost(const std::string & /*dir*/,

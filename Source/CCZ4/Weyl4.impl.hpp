@@ -11,6 +11,41 @@
 #define WEYL4_IMPL_HPP_
 
 template <class data_t>
+void Weyl4::compute(int i, int j, int k,
+                    const amrex::Array4<data_t> &a_derive_array,
+                    const amrex::Array4<data_t const> &a_state_array) const
+{
+    // copy data from the state array into local variables
+    const auto state_cell = a_state_array.cellData(i, j, k);
+    const auto vars       = load_vars<Vars>(state_cell);
+    const auto d1 = m_deriv.template diff1<Vars>(i, j, k, a_state_array);
+    const auto d2 = m_deriv.template diff2<Diff2Vars>(i, j, k, a_state_array);
+
+    // Get the coordinates
+    const Coordinates<data_t> coords(amrex::IntVect(i, j, k), m_dx, m_center);
+
+    // Compute the inverse metric and Christoffel symbols
+    using namespace TensorAlgebra;
+    const auto h_UU  = compute_inverse_sym(vars.h);
+    const auto chris = compute_christoffel(d1.h, h_UU);
+
+    // Compute the spatial volume element
+    const auto epsilon3_LUU = compute_epsilon3_LUU(vars, h_UU);
+
+    // Compute the E and B fields
+    EBFields_t<data_t> ebfields =
+        compute_EB_fields(vars, d1, d2, epsilon3_LUU, h_UU, chris);
+
+    // work out the Newman Penrose scalar
+    NPScalar_t<data_t> out =
+        compute_Weyl4(ebfields, vars, d1, d2, h_UU, coords);
+
+    // store the result
+    a_derive_array(i, j, k, m_dcomp)     = out.Real;
+    a_derive_array(i, j, k, m_dcomp + 1) = out.Im;
+}
+
+template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<3, data_t>
 Weyl4::compute_epsilon3_LUU(const Vars<data_t> &vars,
                             const Tensor<2, data_t> &h_UU) const
