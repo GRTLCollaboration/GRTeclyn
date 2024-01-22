@@ -70,7 +70,7 @@ class Weyl4
 
     //! Computes Weyl4 in a cell
     template <class data_t>
-    AMREX_GPU_DEVICE void
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     compute(int i, int j, int k, const amrex::Array4<data_t> &a_derive_array,
             const amrex::Array4<data_t const> &a_state_array) const;
 
