@@ -11,9 +11,9 @@
 #define WEYL4_IMPL_HPP_
 
 template <class data_t>
-void Weyl4::compute(int i, int j, int k,
-                    const amrex::Array4<data_t> &a_derive_array,
-                    const amrex::Array4<data_t const> &a_state_array) const
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+Weyl4::compute(int i, int j, int k, const amrex::Array4<data_t> &a_derive_array,
+               const amrex::Array4<data_t const> &a_state_array) const
 {
     // copy data from the state array into local variables
     const auto state_cell = a_state_array.cellData(i, j, k);
