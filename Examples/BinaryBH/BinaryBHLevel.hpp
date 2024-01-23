@@ -43,11 +43,6 @@ class BinaryBHLevel : public GRAMRLevel
     //! dcomp
     void derive(const std::string &name, amrex::Real time,
                 amrex::MultiFab &multifab, int dcomp) final;
-
-#ifdef AMREX_USE_HDF5
-    /// Any actions that should happen just before plot files output
-    virtual void prePlotLevel() override;
-#endif /* AMREX_USE_HDF5 */
 };
 
 #endif /* BINARYBHLEVEL_HPP_ */
