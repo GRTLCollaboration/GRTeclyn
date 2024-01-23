@@ -36,7 +36,12 @@ jobs:
       AMREX_HOME: ${{ github.workspace }}/amrex
       OMP_NUM_THREADS: 1
       TESTS_DIR: ${{ github.workspace }}/GRTeclyn/Tests
-      BUILD_CONFIG: COMP=${{ matrix.comp }} DEBUG=${{ matrix.debug}} USE_MPI=${{ matrix.mpi }} USE_OMP=${{ matrix.omp }}
+      BUILD_CONFIG: >
+        COMP=${{ matrix.comp }}
+        DEBUG=${{ matrix.debug}}
+        USE_MPI=${{ matrix.mpi }}
+        USE_OMP=${{ matrix.omp }}
+        USE_HDF5=TRUE
 
     steps:
     - name: Checkout AMReX
@@ -66,8 +71,11 @@ jobs:
 
     - name: Install dependencies
       run: |
+        PACKAGES="hdf5-tools"
         if [[ "${{ matrix.mpi }}" == "TRUE" ]]; then
-          PACKAGES="libopenmpi-dev"
+          PACKAGES="${PACKAGES} libopenmpi-dev libhdf5-openmpi-dev"
+        else
+          PACKAGES="${PACKAGES} libhdf5-dev"
         fi
         if [[ "${{ matrix.comp }}" == "llvm" && "${{ matrix.omp }}" == "TRUE" ]]; then
           PACKAGES="${PACKAGES} libomp-${{ matrix.comp-version }}-dev"
@@ -105,6 +113,11 @@ jobs:
     - name: Build Tests
       working-directory: ${{ env.TESTS_DIR }}
       run: |
+        if [[ "${{ matrix.mpi }}" == "TRUE" ]]; then
+          export HDF5_HOME=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
+        else
+          export HDF5_HOME=/usr/lib/x86_64-linux-gnu/hdf5/serial
+        fi
         export OMPI_CXX=${{ steps.set-compilers.outputs.ompi_cxx }}
         make -j 4 ${{ steps.set-compilers.outputs.build_args }}
 
