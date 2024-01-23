@@ -50,15 +50,6 @@ void KerrBHLevel::initialData()
                    EXCLUDE_GHOST_CELLS);
 }
 
-#ifdef AMREX_USE_HDF5
-void KerrBHLevel::prePlotLevel()
-{
-    fillAllGhosts();
-    BoxLoops::loop(Constraints(m_dx, c_Ham, Interval(c_Mom1, c_Mom3)),
-                   m_state_new, m_state_diagnostics, EXCLUDE_GHOST_CELLS);
-}
-#endif /* AMREX_USE_HDF5 */
-
 void KerrBHLevel::specificEvalRHS(GRLevelData &a_soln, GRLevelData &a_rhs,
                                   const double a_time)
 {
