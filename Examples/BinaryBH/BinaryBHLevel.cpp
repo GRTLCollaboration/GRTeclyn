@@ -241,9 +241,8 @@ void BinaryBHLevel::derive(const std::string &name, amrex::Real time,
         rec->getRange(0, state_idx, derive_scomp, derive_ncomp);
 
         auto &state_new = get_new_data(state_idx);
-        FillPatch(*this, state_new, state_new.nGrow(),
-                  get_state_data(state_idx).curTime(), state_idx, derive_scomp,
-                  derive_ncomp);
+        FillPatch(*this, state_new, state_new.nGrow(), time, state_idx,
+                  derive_scomp, derive_ncomp);
         const auto &state_arrays = state_new.const_arrays();
         if (name == "constraints")
         {
@@ -252,7 +251,7 @@ void BinaryBHLevel::derive(const std::string &name, amrex::Real time,
             Interval imom = Interval(dcomp + 1, dcomp + AMREX_SPACEDIM);
             Constraints constraints(Geom().CellSize(0), iham, imom);
             amrex::ParallelFor(
-                multifab, amrex::IntVect(0),
+                multifab,
                 [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept {
                     constraints.compute(i, j, k, out_arrays[box_no],
                                         state_arrays[box_no]);
@@ -264,7 +263,7 @@ void BinaryBHLevel::derive(const std::string &name, amrex::Real time,
             Weyl4 weyl4(simParams().extraction_params.center,
                         Geom().CellSize(0), dcomp, simParams().formulation);
             amrex::ParallelFor(
-                multifab, amrex::IntVect::TheZeroVector(),
+                multifab,
                 [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept {
                     weyl4.compute(i, j, k, out_arrays[box_no],
                                   state_arrays[box_no]);
