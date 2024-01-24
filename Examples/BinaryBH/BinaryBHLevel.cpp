@@ -232,6 +232,10 @@ void BinaryBHLevel::errorEst(amrex::TagBoxArray &tag_box_array,
 void BinaryBHLevel::derive(const std::string &name, amrex::Real time,
                            amrex::MultiFab &multifab, int dcomp)
 {
+    BL_ASSERT(dcomp < multifab.nComp());
+
+    const int num_ghosts = multifab.nGrow();
+
     const amrex::DeriveRec *rec = derive_lst.get(name);
     if (rec != nullptr)
     {
@@ -240,10 +244,28 @@ void BinaryBHLevel::derive(const std::string &name, amrex::Real time,
         // we only have one state so state_idx will be State_Type = 0
         rec->getRange(0, state_idx, derive_scomp, derive_ncomp);
 
-        auto &state_new = get_new_data(state_idx);
-        FillPatch(*this, state_new, state_new.nGrow(), time, state_idx,
+        // work out how many extra ghost cells we need
+        const amrex::BoxArray &src_ba = state[state_idx].boxArray();
+
+        int num_extra_ghosts = num_ghosts;
+        {
+            amrex::Box box0   = src_ba[0];
+            amrex::Box box1   = rec->boxMap()(box0);
+            num_extra_ghosts += box0.smallEnd(0) - box1.smallEnd(0);
+        }
+
+        // Make a Multifab with enough extra ghosts to calculated derived
+        // quantity. For now use NUM_VARS in case the enum mapping loads more
+        // vars than is actually needed
+        amrex::MultiFab src_mf(src_ba, dmap, NUM_VARS, num_extra_ghosts,
+                               amrex::MFInfo(), *m_factory);
+
+        // Fill the multifab with the needed state data including the ghost
+        // cells
+        FillPatch(*this, src_mf, num_extra_ghosts, time, state_idx,
                   derive_scomp, derive_ncomp);
-        const auto &state_arrays = state_new.const_arrays();
+
+        const auto &src_arrays = src_mf.const_arrays();
         if (name == "constraints")
         {
             const auto &out_arrays = multifab.arrays();
@@ -251,10 +273,10 @@ void BinaryBHLevel::derive(const std::string &name, amrex::Real time,
             Interval imom = Interval(dcomp + 1, dcomp + AMREX_SPACEDIM);
             Constraints constraints(Geom().CellSize(0), iham, imom);
             amrex::ParallelFor(
-                multifab,
+                multifab, multifab.nGrowVect(),
                 [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept {
                     constraints.compute(i, j, k, out_arrays[box_no],
-                                        state_arrays[box_no]);
+                                        src_arrays[box_no]);
                 });
         }
         else if (name == "Weyl4")
@@ -263,10 +285,10 @@ void BinaryBHLevel::derive(const std::string &name, amrex::Real time,
             Weyl4 weyl4(simParams().extraction_params.center,
                         Geom().CellSize(0), dcomp, simParams().formulation);
             amrex::ParallelFor(
-                multifab,
+                multifab, multifab.nGrowVect(),
                 [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept {
                     weyl4.compute(i, j, k, out_arrays[box_no],
-                                  state_arrays[box_no]);
+                                  src_arrays[box_no]);
                 });
         }
         else
