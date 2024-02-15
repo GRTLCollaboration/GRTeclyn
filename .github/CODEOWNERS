@@ -1,0 +1,2 @@
+# Since the GitLab CI runs on CSD3, MR should monitor any changes to it
+/.gitlab-ci.yml @mirenradia
