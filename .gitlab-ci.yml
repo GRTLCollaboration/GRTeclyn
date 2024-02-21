@@ -1,0 +1,52 @@
+stages:
+  - test
+
+variables:
+  MODULEPATHS_A100: >
+    /usr/local/software/spack/spack-modules/a100-20210927/linux-centos8-zen2
+    /usr/local/software/spack/spack-modules/a100-20210927/linux-centos8-zen3
+  MODULES_A100: >
+    rhel8/slurm
+    rhel8/global
+    openmpi/4.1.1/gcc-9.4.0-epagguv
+    gcc/9.4.0/gcc-11.2.0-72sgv5z
+  BUILD_CONFIG: >
+    USE_CUDA=TRUE
+    CUDA_ARCH=80
+    COMP=gnu
+    DEBUG=TRUE
+    TEST=TRUE
+    USE_ASSERTION=TRUE
+  SRUN_FLAGS: > 
+    --qos=INTR 
+    --nodes=1 
+    --ntasks=1 
+    --gres=gpu:1 
+    --time=00:10:00 
+    --account=SHELLARD-SL3-GPU 
+    --partition=ampere
+
+csd3-a100:
+  stage: test
+  tags: 
+    - csd3
+  script:
+    # We need to modify the relative URL to an absolute one as we're not
+    # cloning from GitHub
+    - git submodule set-url Catch2 https://github.com/catchorg/Catch2
+    - git submodule sync
+    - git submodule update --init
+    - if [[ -d ../amrex ]]; then
+    -   cd ../amrex
+    -   git fetch --depth 1
+    -   git reset --hard origin/development
+    - else
+    -   git clone --depth 1 https://github.com/AMReX-Codes/amrex.git ../amrex 
+    - fi
+    - cd ${HOME}/${CI_PROJECT_DIR}/Tests
+    - module purge
+    - module use ${MODULEPATHS_A100}
+    - module load ${MODULES_A100}
+    - make -j 8 ${BUILD_CONFIG}
+    - srun ${SRUN_FLAGS} make run ${BUILD_CONFIG}
+

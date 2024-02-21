@@ -75,6 +75,8 @@ else
 LAUNCH = ./
 endif
 
+CATCH2_OPTIONS := -d yes
+
 run: $(executable)
 	$(info Running tests for configuration: $(optionsSuffix))
-	$(SILENT) $(LAUNCH)$(executable)
+	$(SILENT) $(LAUNCH)$(executable) $(CATCH2_OPTIONS)
