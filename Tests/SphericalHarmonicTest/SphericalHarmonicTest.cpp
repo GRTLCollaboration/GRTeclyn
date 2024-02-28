@@ -6,6 +6,9 @@
 // Doctest header
 #include "doctest.h"
 
+// Test header
+#include "SphericalHarmonicTest.hpp"
+
 // AMReX includes
 #include "AMReX.H"
 #include "AMReX_FArrayBox.H"
@@ -20,7 +23,7 @@ enum
     NUM_SPHERICAL_HARMONICS_VARS
 };
 
-TEST_CASE("Spherical Harmonic")
+void run_spherical_harmonic_test()
 {
     amrex::Initialize(MPI_COMM_WORLD);
     {

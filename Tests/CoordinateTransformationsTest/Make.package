@@ -1,1 +1,3 @@
+GRTECLYN_CEXE_headers += CoordinateTransformationsTest.hpp
+
 GRTECLYN_CEXE_sources += CoordinateTransformationsTest.cpp

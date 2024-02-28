@@ -6,6 +6,9 @@
 // Doctest header
 #include "doctest.h"
 
+// Test header
+#include "CCZ4GeometryUnitTest.hpp"
+
 // System includes
 // #include <iostream>
 
@@ -22,7 +25,7 @@ template <class data_t> struct vars_t
 };
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-TEST_CASE("CCZ4 Geometry")
+void run_ccz4_geometry_unit_tests()
 {
     vars_t<double> vars{};
     vars_t<Tensor<1, double>> d1{};

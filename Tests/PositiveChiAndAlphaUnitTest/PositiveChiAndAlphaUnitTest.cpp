@@ -6,6 +6,9 @@
 // Doctest header
 #include "doctest.h"
 
+// Test header
+#include "PositiveChiAndAlphaUnitTest.hpp"
+
 // AMReX includes
 #include "AMReX.H"
 #include "AMReX_FArrayBox.H"
@@ -14,7 +17,7 @@
 #include "PositiveChiAndAlpha.hpp"
 #include "Tensor.hpp"
 
-TEST_CASE("Positive Chi and Alpha")
+void run_positive_chi_and_alpha_unit_test()
 {
     amrex::Initialize(MPI_COMM_WORLD);
     {

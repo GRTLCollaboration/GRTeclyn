@@ -1,6 +1,9 @@
 // Doctest header
 #include "doctest.h"
 
+// Test header
+#include "CCZ4RHSTest.hpp"
+
 // Common test headers
 #include "InitialData.hpp"
 
@@ -16,7 +19,7 @@
 #include "AMReX.H"
 #include "AMReX_FArrayBox.H"
 
-TEST_CASE("CCZ4 RHS")
+void run_ccz4_rhs_test()
 {
     amrex::Initialize(MPI_COMM_WORLD);
     {

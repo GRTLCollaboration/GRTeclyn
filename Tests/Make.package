@@ -1,1 +1,3 @@
+GRTECLYN_CEXE_headers += TestCases.hpp
+
 GRTECLYN_CEXE_sources += Tests.cpp

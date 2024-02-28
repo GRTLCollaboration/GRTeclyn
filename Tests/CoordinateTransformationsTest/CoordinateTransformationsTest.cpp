@@ -6,6 +6,9 @@
 // Doctest header
 #include "doctest.h"
 
+// Test include
+#include "CoordinateTransformationsTest.hpp"
+
 // AMReX includes
 #include "AMReX.H"
 #include "AMReX_IntVect.H"
@@ -48,7 +51,7 @@ void check_vector(const Tensor<1, double> &vector,
 }
 } // namespace
 
-TEST_CASE("Coordinate Transformations")
+void run_coordinate_transformations_test()
 {
     amrex::Initialize(MPI_COMM_WORLD);
     {

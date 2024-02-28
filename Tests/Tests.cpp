@@ -7,6 +7,9 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
 
+// Test cases are defined here
+#include "TestCases.hpp"
+
 #include "AMReX.H"
 #include "AMReX_REAL.H"
 #include "AMReX_ccse-mpi.H"

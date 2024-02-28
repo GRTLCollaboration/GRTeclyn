@@ -1,0 +1,6 @@
+#ifndef COORDINATETRANSFORMATIONSTEST_HPP_
+#define COORDINATETRANSFORMATIONSTEST_HPP_
+
+void run_coordinate_transformations_test();
+
+#endif /* COORDINATETRANSFORMATIONSTEST_HPP_ */

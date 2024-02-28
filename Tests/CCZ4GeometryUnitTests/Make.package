@@ -1,3 +1,4 @@
-GRTECLYN_CEXE_headers += CCZ4GeometryMathematicaValues.hpp
+GRTECLYN_CEXE_headers += CCZ4GeometryMathematicaValues.hpp \
+                         CCZ4GeometryUnitTest.hpp
 
 GRTECLYN_CEXE_sources += CCZ4GeometryUnitTest.cpp

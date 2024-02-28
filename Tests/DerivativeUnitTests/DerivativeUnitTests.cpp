@@ -6,6 +6,9 @@
 // Doctest header
 #include "doctest.h"
 
+// Test header
+#include "DerivativeUnitTests.hpp"
+
 // AMReX includes
 #include "AMReX.H"
 #include "AMReX_FArrayBox.H"
@@ -19,7 +22,7 @@
 // #include "SixthOrderDerivatives.hpp"
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-TEST_CASE("Derivatives")
+void run_derivative_unit_tests()
 {
     amrex::Initialize(MPI_COMM_WORLD);
     {

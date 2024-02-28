@@ -11,6 +11,7 @@ GRTECLYN_CEXE_headers += InitialData.hpp \
 						MovingPunctureGauge-fdf5a7a.hpp \
 						Tensor-fdf5a7a.hpp \
 						TensorAlgebra-fdf5a7a.hpp \
-						VarsTools-fdf5a7a.hpp
+						VarsTools-fdf5a7a.hpp \
+						CCZ4RHSTest.hpp
 
 GRTECLYN_CEXE_sources += CCZ4RHSTest.cpp
