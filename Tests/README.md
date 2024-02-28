@@ -61,7 +61,7 @@ in a `CHECK_THAT()` or `REQUIRE_THAT()` clause, such as
 
 ```cpp
 double tol = 1e-10;
-CHECK_THAT(computed_value, Catch::Matchers::WithinAbs(correct_value, tol));
+CHECK_THAT(computed_value, doctest::Approx(correct_value, tol));
 ```
 
 ### Catch2 documentation
@@ -153,8 +153,8 @@ basic steps to adding a new test to the [Tests application](./Tests.cpp).
    `NewGRTeclynTest.cpp`). In that file make sure you include the Catch2
    and base AMReX headers (if you are using any AMReX classes).
    ```cpp
-   // Catch2 header
-   #include "catch_amalgamated.hpp"
+   // Doctest header
+   #include "doctest.h"
    
    // AMReX includes
    #include "AMReX.H"

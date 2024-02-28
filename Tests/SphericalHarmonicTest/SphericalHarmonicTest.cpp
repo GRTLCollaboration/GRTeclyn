@@ -3,8 +3,8 @@
  * Please refer to LICENSE in GRChombo's root directory.
  */
 
-// Catch2 header
-#include "catch_amalgamated.hpp"
+// Doctest header
+#include "doctest.h"
 
 // AMReX includes
 #include "AMReX.H"
@@ -75,7 +75,7 @@ TEST_CASE("Spherical Harmonic")
 
         amrex::Gpu::streamSynchronize();
 
-        const int cout_precision = Catch::StringMaker<amrex::Real>::precision;
+        const int cout_precision    = 17;
         const double test_tolerance = 1e-14;
 
         amrex::Real max_diff = 0.0;
@@ -91,7 +91,7 @@ TEST_CASE("Spherical Harmonic")
              << out_array(max_diff_index, c_phi));
         INFO("Correct value = " << std::setprecision(cout_precision)
                                 << in_array(max_diff_index, c_phi));
-        CHECK_THAT(max_diff, Catch::Matchers::WithinAbs(0.0, test_tolerance));
+        CHECK(max_diff == doctest::Approx(0.0).epsilon(test_tolerance));
     }
     amrex::Finalize();
 }

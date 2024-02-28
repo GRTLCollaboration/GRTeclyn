@@ -3,8 +3,8 @@
  * Please refer to LICENSE in GRChombo's root directory.
  */
 
-// Catch2 header
-#include "catch_amalgamated.hpp"
+// Doctest header
+#include "doctest.h"
 
 // AMReX includes
 #include "AMReX.H"
@@ -30,11 +30,8 @@ void check_tensor(const Tensor<2, double> &tensor,
     FOR (i, j)
     {
         INFO(test_name << ": component [" << i << "][" << j << "]");
-        CHECK_THAT(tensor[i][j],
-                   Catch::Matchers::WithinAbs(correct_tensor[i][j],
-                                              ulp * double_epsilon) ||
-                       Catch::Matchers::WithinRel(correct_tensor[i][j],
-                                                  ulp * double_epsilon));
+        CHECK(tensor[i][j] == doctest::Approx(correct_tensor[i][j])
+                                  .epsilon(ulp * double_epsilon));
     }
 }
 
@@ -45,10 +42,8 @@ void check_vector(const Tensor<1, double> &vector,
     FOR (i)
     {
         INFO(test_name << ": component [" << i << "]");
-        CHECK_THAT(vector[i], Catch::Matchers::WithinAbs(
-                                  correct_vector[i], ulp * double_epsilon) ||
-                                  Catch::Matchers::WithinRel(
-                                      correct_vector[i], ulp * double_epsilon));
+        CHECK(vector[i] ==
+              doctest::Approx(correct_vector[i]).epsilon(ulp * double_epsilon));
     }
 }
 } // namespace
@@ -165,11 +160,9 @@ TEST_CASE("Coordinate Transformations")
         // Test area_element_sphere
         double area_element       = r * sqrt(rho2);
         double area_element_check = area_element_sphere(Mij_spher);
-        CHECK_THAT(area_element,
-                   Catch::Matchers::WithinAbs(area_element_check,
-                                              ulp * double_epsilon) ||
-                       Catch::Matchers::WithinRel(area_element_check,
-                                                  ulp * double_epsilon));
+        CHECK(
+            area_element ==
+            doctest::Approx(area_element_check).epsilon(ulp * double_epsilon));
     }
     amrex::Finalize();
 }

@@ -1,5 +1,5 @@
-// Catch2 header
-#include "catch_amalgamated.hpp"
+// Doctest header
+#include "doctest.h"
 
 // Common test headers
 #include "InitialData.hpp"
@@ -115,7 +115,7 @@ TEST_CASE("CCZ4 RHS")
         amrex::Real max_diff = 0.0;
         amrex::IntVect max_diff_index{};
 
-        const int cout_precision = Catch::StringMaker<amrex::Real>::precision;
+        const int cout_precision = 17;
         for (int ivar = 0; ivar < NUM_CCZ4_VARS; ++ivar)
         {
             diff_fab.maxIndex<amrex::RunOn::Device>(box, max_diff,
@@ -129,7 +129,7 @@ TEST_CASE("CCZ4 RHS")
                                << old_out_array(max_diff_index, ivar)
                                << ", Current value: "
                                << current_out_array(max_diff_index, ivar));
-            CHECK_THAT(max_diff, Catch::Matchers::WithinAbs(0.0, 1e-14));
+            CHECK(max_diff == doctest::Approx(0.0).epsilon(1e-14));
         }
 
         // GPU barrier

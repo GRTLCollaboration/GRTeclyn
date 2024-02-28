@@ -1,4 +1,4 @@
 GRTECLYN_CEXE_headers += UserVariables.hpp \
 						InitialData.hpp 
 
-GRTECLYN_CEXE_sources += CatchOutput.cpp
+GRTECLYN_CEXE_sources +=# CatchOutput.cpp

@@ -3,8 +3,8 @@
  * Please refer to LICENSE in GRChombo's root directory.
  */
 
-// Catch2 header
-#include "catch_amalgamated.hpp"
+// Doctest header
+#include "doctest.h"
 
 // AMReX includes
 #include "AMReX.H"
@@ -57,12 +57,10 @@ TEST_CASE("Positive Chi and Alpha")
 
                 double correct_value = (ix < N_GRID / 2) ? 1 : 1e-4;
                 INFO("At " << iv);
-                CHECK_THAT(
-                    in_array(iv, c_chi),
-                    Catch::Matchers::WithinAbs(correct_value, test_threshold));
-                CHECK_THAT(
-                    in_array(iv, c_lapse),
-                    Catch::Matchers::WithinAbs(correct_value, test_threshold));
+                CHECK(in_array(iv, c_chi) ==
+                      doctest::Approx(correct_value).epsilon(test_threshold));
+                CHECK(in_array(iv, c_lapse) ==
+                      doctest::Approx(correct_value).epsilon(test_threshold));
             });
     }
     amrex::Finalize();

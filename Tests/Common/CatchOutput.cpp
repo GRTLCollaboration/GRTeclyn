@@ -1,5 +1,5 @@
-// Catch2 header
-#include "catch_amalgamated.hpp"
+// Doctest header
+#include "doctest.h"
 
 // AMReX includes
 #include "AMReX_ccse-mpi.H"
