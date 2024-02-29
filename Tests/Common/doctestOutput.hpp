@@ -1,3 +1,6 @@
+#ifndef DOCTESTOUTPUT_HPP_
+#define DOCTESTOUTPUT_HPP_
+
 // Doctest header
 #include "doctest.h"
 
@@ -9,11 +12,9 @@
 #include <iostream>
 
 #ifdef BL_USE_MPI
-namespace Catch
+namespace doctest
 {
-// Catch2 doesn't really know anything about MPI so override the Catch::cout()
-// function here so that only rank 0 prints to stdout and the output is not
-// garbled.
+// Hide output from non-zero ranks when building with MPI
 std::ostream &hide_output_from_non_zero_ranks(std::ostream &a_rank_zero_ostream)
 {
     int mpi_initialized = false;
@@ -35,12 +36,7 @@ std::ostream &hide_output_from_non_zero_ranks(std::ostream &a_rank_zero_ostream)
     }
     return null_stream;
 }
-
-std::ostream &cout() { return hide_output_from_non_zero_ranks(std::cout); }
-
-std::ostream &cerr() { return std::cerr; }
-
-std::ostream &clog() { return std::clog; }
-
-} // namespace Catch
+} // namespace doctest
 #endif
+
+#endif /* DOCTESTOUTPUT_HPP_ */
