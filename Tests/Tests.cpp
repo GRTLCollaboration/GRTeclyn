@@ -34,8 +34,14 @@ int main(int argc, char *argv[])
     // memory usage messages
     amrex::system::verbose = 0;
 
-    constexpr int cout_precision = 17;
-    std::cout << std::setprecision(cout_precision);
+    // increase output precision
+    constexpr int output_precision = 17;
+    std::cout << std::setprecision(output_precision);
+
+    // also increase precision of doctest's stringmaker
+    std::ostream *ss = doctest::detail::tlssPush();
+    ss->precision(output_precision);
+    doctest::detail::tlssPop();
 
     int result = doctest_context.run();
 
