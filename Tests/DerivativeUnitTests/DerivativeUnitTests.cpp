@@ -9,6 +9,9 @@
 // Test header
 #include "DerivativeUnitTests.hpp"
 
+// Common includes
+#include "doctestCLIArgs.hpp"
+
 // AMReX includes
 #include "AMReX.H"
 #include "AMReX_FArrayBox.H"
@@ -24,7 +27,9 @@
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void run_derivative_unit_tests()
 {
-    amrex::Initialize(MPI_COMM_WORLD);
+    int amrex_argc    = doctest::cli_args.argc();
+    char **amrex_argv = doctest::cli_args.argv();
+    amrex::Initialize(amrex_argc, amrex_argv, true, MPI_COMM_WORLD);
     {
         constexpr int num_cells  = 32;
         constexpr int num_ghosts = 4;

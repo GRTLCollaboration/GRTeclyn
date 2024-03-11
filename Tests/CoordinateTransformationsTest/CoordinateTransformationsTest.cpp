@@ -9,6 +9,9 @@
 // Test include
 #include "CoordinateTransformationsTest.hpp"
 
+// Common includes
+#include "doctestCLIArgs.hpp"
+
 // AMReX includes
 #include "AMReX.H"
 #include "AMReX_IntVect.H"
@@ -53,7 +56,9 @@ void check_vector(const Tensor<1, double> &vector,
 
 void run_coordinate_transformations_test()
 {
-    amrex::Initialize(MPI_COMM_WORLD);
+    int amrex_argc    = doctest::cli_args.argc();
+    char **amrex_argv = doctest::cli_args.argv();
+    amrex::Initialize(amrex_argc, amrex_argv, true, MPI_COMM_WORLD);
     {
         const double dx = 0.1;
         amrex::IntVect iv{1, 2, 3};

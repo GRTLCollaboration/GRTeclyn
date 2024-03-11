@@ -9,6 +9,9 @@
 // Test header
 #include "SphericalHarmonicTest.hpp"
 
+// Common includes
+#include "doctestCLIArgs.hpp"
+
 // AMReX includes
 #include "AMReX.H"
 #include "AMReX_FArrayBox.H"
@@ -25,7 +28,9 @@ enum
 
 void run_spherical_harmonic_test()
 {
-    amrex::Initialize(MPI_COMM_WORLD);
+    int amrex_argc    = doctest::cli_args.argc();
+    char **amrex_argv = doctest::cli_args.argv();
+    amrex::Initialize(amrex_argc, amrex_argv, true, MPI_COMM_WORLD);
     {
         const int N_GRID = 64;
         amrex::Box box(amrex::IntVect::TheZeroVector(),

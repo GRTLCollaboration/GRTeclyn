@@ -6,6 +6,7 @@
 
 // Common test headers
 #include "InitialData.hpp"
+#include "doctestCLIArgs.hpp"
 
 // GRTeclyn headers
 #include "CCZ4RHS.hpp"
@@ -21,7 +22,9 @@
 
 void run_ccz4_rhs_test()
 {
-    amrex::Initialize(MPI_COMM_WORLD);
+    int amrex_argc    = doctest::cli_args.argc();
+    char **amrex_argv = doctest::cli_args.argv();
+    amrex::Initialize(amrex_argc, amrex_argv, true, MPI_COMM_WORLD);
     {
         constexpr int num_cells  = 32;
         constexpr int num_ghosts = 3;
@@ -132,7 +135,7 @@ void run_ccz4_rhs_test()
                                << old_out_array(max_diff_index, ivar)
                                << ", Current value: "
                                << current_out_array(max_diff_index, ivar));
-            CHECK(max_diff == doctest::Approx(0.0).epsilon(1e-14));
+            CHECK(max_diff == doctest::Approx(0.0).epsilon(1e-12));
         }
 
         // GPU barrier

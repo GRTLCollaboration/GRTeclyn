@@ -9,6 +9,9 @@
 // Test header
 #include "PositiveChiAndAlphaUnitTest.hpp"
 
+// Common includes
+#include "doctestCLIArgs.hpp"
+
 // AMReX includes
 #include "AMReX.H"
 #include "AMReX_FArrayBox.H"
@@ -19,7 +22,9 @@
 
 void run_positive_chi_and_alpha_unit_test()
 {
-    amrex::Initialize(MPI_COMM_WORLD);
+    int amrex_argc    = doctest::cli_args.argc();
+    char **amrex_argv = doctest::cli_args.argv();
+    amrex::Initialize(amrex_argc, amrex_argv, true, MPI_COMM_WORLD);
     {
         constexpr int N_GRID = 8;
         amrex::Box box(amrex::IntVect(0, 0, 0),

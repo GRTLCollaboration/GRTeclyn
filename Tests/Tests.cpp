@@ -4,9 +4,11 @@
 #define DOCTEST_CONFIG_NO_POSIX_SIGNALS
 #endif
 #define DOCTEST_CONFIG_IMPLEMENT
+#define DOCTEST_CONFIG_NO_UNPREFIXED_OPTIONS
 #include "doctest.h"
 
 #include "TestCases.hpp" // Test cases are defined here
+#include "doctestCLIArgs.hpp"
 #include "doctestOutput.hpp"
 
 // system headers
@@ -17,12 +19,18 @@
 #include "AMReX_REAL.H"
 #include "AMReX_ccse-mpi.H"
 
+namespace doctest
+{
+CLIArgs cli_args;
+}
+
 int main(int argc, char *argv[])
 {
 #ifdef BL_USE_MPI
     // We can only initialize and finalize MPI once so do it here
     MPI_Init(&argc, &argv);
 #endif
+    doctest::cli_args.set(argv);
 
     doctest::Context doctest_context(argc, argv);
 #ifdef BL_USE_MPI
