@@ -1,3 +1,7 @@
+/* GRChombo
+ * Copyright 2012 The GRChombo collaboration.
+ * Please refer to LICENSE in GRChombo's root directory.
+ */
 #ifndef TESTCASES_HPP_
 #define TESTCASES_HPP_
 

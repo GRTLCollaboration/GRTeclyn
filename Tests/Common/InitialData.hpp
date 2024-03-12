@@ -1,3 +1,7 @@
+/* GRChombo
+ * Copyright 2012 The GRChombo collaboration.
+ * Please refer to LICENSE in GRChombo's root directory.
+ */
 // Our headers
 #include "DimensionDefinitions.hpp"
 #include "UserVariables.hpp"

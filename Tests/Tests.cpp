@@ -1,3 +1,7 @@
+/* GRChombo
+ * Copyright 2012 The GRChombo collaboration.
+ * Please refer to LICENSE in GRChombo's root directory.
+ */
 // Doctest header
 #ifdef AMREX_USE_SYCL
 // Intel's GPU runtime uses SIGSEGV to trigger migration of managed memory

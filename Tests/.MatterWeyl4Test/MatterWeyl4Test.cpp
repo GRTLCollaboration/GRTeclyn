@@ -1,3 +1,7 @@
+/* GRChombo
+ * Copyright 2012 The GRChombo collaboration.
+ * Please refer to LICENSE in GRChombo's root directory.
+ */
 #define COMPARE_WITH_CHF
 #define COVARIANTZ4
 
