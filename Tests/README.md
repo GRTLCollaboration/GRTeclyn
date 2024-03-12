@@ -1,43 +1,22 @@
 # GRTeclyn Tests
 
-The tests in this repository are implemented using the [Catch2
-framework](https://github.com/catchorg/Catch2). If you want to just build and
-run the tests make sure you have set up the git submodule correctly as described 
-[below](#git-submodule) and then skip to the section on [Building and running
-the tests](#building-and-running-the-tests).
+The tests in this repository are implemented using the [doctest
+framework](https://github.com/doctest/doctest). If you want to just build and
+run the tests skip to the section on [Building and running the
+tests](#building-and-running-the-tests).
 
-## Catch2
+## doctest
 
-### git submodule
+### Source
 
-The Catch2 code is contained within a [git
-submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules) in the
-[root/External/Catch2](../External/Catch2/) directory. If this repository was
-cloned without using the `--recurse-submodule` flag, then you will need to first
-initialize git submodule using the command
+The doctest code is contained within a single header: [doctest.h](../External/doctest/doctest.h).
 
-```bash
-git submodule init
-```
+### Basic doctest syntax
 
-from somewhere within the repository. Then, in order to obtain the Catch2 code
-at the relevant commit, run the command
-
-```bash
-git submodule update
-```
-
-The above command can also be used to update the checked out version of Catch2
-to the version required by the current commit of this code. This is necessary
-when the version of Catch2 is updated in the upstream repository (i.e. on
-GitHub), and you fetch/pull this into your local clone.
-
-### Basic Catch2 syntax
-
-A simple Catch2 test case is created by adding code such as
+A simple doctest test case is created by adding code such as
 
 ```cpp
-TEST_CAST("<test case name>")
+TEST_CASE("<test case name>")
 {
     <test code>
 
@@ -45,29 +24,52 @@ TEST_CAST("<test case name>")
 }
 ```
 
-and then making sure that this code is included in/linked with the main
-[Tests.cpp](Tests.cpp) file.  Instead of a `CHECK()` clause which will report
-failure in the output and return value but not abort the application (thereby
-allowing later tests to run), one can instead use a `REQUIRE()` clause which
-will immediately abort the application if the relevant test fails (i.e. if the
-condition is false). Unless, there is a good reason, one should default to using
-`CHECK()` clauses.
-
-A common scenario is that one wishes to compare a floating point value produced
-by the code to a known correct value. In this case instead of using the
-`CHECK()` or `REQUIRE()` macros, one can instead use [Catch2's floating point
-matchers](https://github.com/catchorg/Catch2/blob/v3.3.2/docs/comparing-floating-point-numbers.md)
-in a `CHECK_THAT()` or `REQUIRE_THAT()` clause, such as
+In practice, due to device kernel linking issues with
+[HIP](https://github.com/GRTLCollaboration/GRTeclyn/issues/48) and
+[SYCL](https://github.com/GRTLCollaboration/GRTeclyn/issues/46) we have instead
+created each test case as function declared in a header and defined in a cpp
+file:
 
 ```cpp
-double tol = 1e-10;
-CHECK_THAT(computed_value, doctest::Approx(correct_value, tol));
+void run_my_test_case()
+{
+    <test code>
+
+    CHECK(<condition that is true if test passes and false if test fail>);    
+}
 ```
 
-### Catch2 documentation
+The header is included in [TestCases.hpp](./TestCases.hpp) and this function is
+called inside a `TEST_CASE` there:
 
-The Catch2 documentation can be found in the Catch2 repository
-[here](https://github.com/catchorg/Catch2/blob/v3.3.2/docs/Readme.md).
+```cpp
+TEST_CASE("<test case name>")
+{
+   run_my_test_case();
+}
+```
+
+
+Instead of a `CHECK()` clause which will report failure in the output and return
+value but not abort the application (thereby allowing later tests to run), one
+can instead use a `REQUIRE()` clause which will immediately abort the
+application if the relevant test fails (i.e. if the condition is false).
+Unless, there is a good reason, one should default to using `CHECK()` clauses.
+
+A common scenario is that one wishes to compare a floating point value produced
+by the code to a known correct value. In this case, one can test equality with
+the a `doctest::Approx` (see [this docs
+page](https://github.com/doctest/doctest/blob/ae7a13539fb71f270b87eb2e874fbac80bc8dda2/doc/markdown/assertions.md#floating-point-comparisons))
+object, for example
+```cpp
+double tol = 1e-10;
+CHECK(computed_value == doctest::Approx(correct_value).epsilon(tol));
+```
+
+### doctest documentation
+
+The doctest documentation can be found in the doctest repository
+[here](https://bit.ly/doctest-docs).
 
 ## Building and running the tests
 
@@ -92,9 +94,6 @@ variable appropriately:
 export AMREX_HOME=/path/to/amrex
 ```
 
-Finally, you will need to make sure the Catch2 git submodule is set up correctly
-as described [above](#git-submodule).
-
 ### Building
 
 The tests are all contained in one AMReX application with its `main()` defined
@@ -118,28 +117,33 @@ applications, one can set configuration options in
 
 One can run all the tests by simply executing the created executable (e.g.
 `Tests3d.gnu.ex`) without any arguments. To run a specific test, pass its name
-as an argument e.g.
+as an argument to the `-dt-tc` flag:
 ```
-./Tests3d.gnu.ex "CCZ4 RHS"
+./Tests3d.gnu.ex -dt-tc="CCZ4 RHS"
 ```
 and multiple tests can be run by passing their names in a comma separated list
 e.g.
 ```
-./Tests3d.gnu.ex "CCZ4 RHS,Derivatives"
+./Tests3d.gnu.ex -dt-tc="CCZ4 RHS,Derivative*"
 ```
 
-Catch2 provides a plethora of command line flags to customize the output which
-can be found by passing the `-h` flag e.g.
+doctest provides a plethora of command line flags to customize the output which
+can be found by passing the `-dt-h` flag e.g.
 ```
-./Tests3d.gnu.ex -h
+./Tests3d.gnu.ex -dt-h
 ```
 Some particularly useful ones include
 ```
--s, --success        include successful tests in output
--a, --abort          abort at first failure
---list-tests         list all/matching test cases                                          
+-dt-s,   --dt-success              include successful tests in output
+-dt-aa,  --dt-abort-after=<int>    abort after <int> failed assertions
+-dt-ltc, --dt-list-test-cases      list all/matching test cases
 ```
-
+All doctest flags are prefixed with `-dt-` or `--dt-`. Any unprefixed arguments
+may be passed as command line arguments to test cases so that one can pass
+arguments to AMReX e.g.
+```bash
+./Tests3d.gnu.ex amrex.verbose=1 -dt-tc="CCZ4 RHS"
+```
 
 ## Adding a new test
 
@@ -150,7 +154,7 @@ basic steps to adding a new test to the [Tests application](./Tests.cpp).
    Make sure that the directory name ends with `Test` or `Tests` (so that Make
    can find it).
 2. In that directory, create a cpp file with the appropriate name (e.g.
-   `NewGRTeclynTest.cpp`). In that file make sure you include the Catch2
+   `NewGRTeclynTest.cpp`). In that file make sure you include the doctest
    and base AMReX headers (if you are using any AMReX classes).
    ```cpp
    // Doctest header
@@ -159,37 +163,58 @@ basic steps to adding a new test to the [Tests application](./Tests.cpp).
    // AMReX includes
    #include "AMReX.H"
    ```
-3. In the cpp file, create a new `TEST_CASE()` as described
-   [above](#basic-catch2-syntax). Make sure to initialize and finalize AMReX if
+3. In the cpp file, create a new `run_my_new_grteclyn_test()` as described
+   [above](#basic-doctest-syntax). Make sure to initialize and finalize AMReX if
    using any AMReX data structures (otherwise no memory will be allocated):
    ```cpp
-    TEST_CASE("New GRTeclyn")
+    void run_my_new_grteclyn_test()
     {
+        // doctest::cli_args stores the non -dt- command line args
+        int amrex_argc    = doctest::cli_args.argc();
+        char **amrex_argv = doctest::cli_args.argv();
         // MPI_COMM_WORLD defined in AMReX_ccse-mpi.H even when compiling 
         // without MPI
-        amrex::Initialize(MPI_COMM_WORLD)
+        amrex::Initialize(amrex_argc, amrex_argv, true, MPI_COMM_WORLD);
+        {
 
-        bool test_passes = true;
+            bool test_passes = true;
 
-        // This code should set test_passes = false if some failure happens
-        <test code>
+            // This code should set test_passes = false if some failure happens
+            <test code>
 
-        CHECK(test_passes);
-        
+            CHECK(test_passes);
+        }
         amrex::Finalize();
     }
     ```
-4. Create a `Make.package` file in the same directory with the following
+4. Create a hpp header file with the same filename stem (e.g.
+   `NewGRTeclynTest.hpp`).  In that file, declare the test function:
+   ```cpp
+   void run_my_new_grteclyn_test();
+   ```
+   Don't forget to include a header guard!
+5. Create a `Make.package` file in the same directory with the following
    content: 
    ```makefile
-   # Can omit the following line if you don't have any extra headers 
-   GRTECLYN_CEXE_headers += <any headers you need for your test>
+   GRTECLYN_CEXE_headers += NewGRTeclynTest.hpp <any other headers>
 
    GRTECLYN_CEXE_sources += NewGRTeclynTest.cpp <any other cpp files>
    ```
-5. In the GNUmakefile, one may need to uncomment some lines of the form
+6. Include the header file in [TestCases.hpp](./TestCases.hpp), create the test
+   case and call the test function:
+   ```cpp
+   #include "NewGRTeclynTest.hpp"
+
+   ...
+
+   TEST_CASE("New GRTeclyn")
+   {
+      run_my_new_grteclyn_test();
+   }
+   ```
+7. In the GNUmakefile, one may need to uncomment some lines of the form
    ```makefile
    # include $(AMREX_HOME)/Src/<component>/Make.package
    ```
-   depending on which AMReX components are required.
-6. Build and run the test as described [above](#building-and-running-the-tests).
+   depending on which AMReX subcomponents are required.
+8. Build and run the test as described [above](#building-and-running-the-tests).
