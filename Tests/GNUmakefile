@@ -58,14 +58,6 @@ VPATH_LOCATIONS += $(src_dirs) $(test_dirs)
 INCLUDE_LOCATIONS += $(realpath .) $(src_dirs) $(test_dirs)
 SYSTEM_INCLUDE_LOCATIONS += $(doctest_dir)
 
-# We want to define our own main rather than using Catch2's main
-# DEFINES += -DCATCH_AMALGAMATED_CUSTOM_MAIN
-# We need to redefine Catch::cout on MPI ranks >0 if using MPI so that we can
-# minimize duplicated Catch output
-ifeq ($(USE_MPI), TRUE)
-# DEFINES += -DCATCH_CONFIG_NOSTDOUT
-endif
-
 include $(GRTECLYN_HOME)/Tools/GNUMake/Make.rules
 
 ifeq ($(USE_MPI), TRUE)
@@ -74,7 +66,7 @@ else
 LAUNCH = ./
 endif
 
-DOCTEST_OPTIONS := -d yes
+DOCTEST_OPTIONS := -dt-d=yes
 
 run: $(executable)
 	$(info Running tests for configuration: $(optionsSuffix))

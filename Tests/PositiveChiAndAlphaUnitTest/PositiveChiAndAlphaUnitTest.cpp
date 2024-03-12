@@ -56,7 +56,7 @@ void run_positive_chi_and_alpha_unit_test()
 
         constexpr double test_threshold = 1e-15;
 
-        // We have to do this on the host as are using Catch2 functions
+        // We have to do this on the host as are using doctest functions
         amrex::LoopOnCpu(
             box,
             [=](int ix, int iy, int iz)
