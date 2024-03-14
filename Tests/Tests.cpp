@@ -1,10 +1,32 @@
+/* GRChombo
+ * Copyright 2012 The GRChombo collaboration.
+ * Please refer to LICENSE in GRChombo's root directory.
+ */
+// Doctest header
+#ifdef AMREX_USE_SYCL
+// Intel's GPU runtime uses SIGSEGV to trigger migration of managed memory
+#define DOCTEST_CONFIG_NO_POSIX_SIGNALS
+#endif
+#define DOCTEST_CONFIG_IMPLEMENT
+#define DOCTEST_CONFIG_NO_UNPREFIXED_OPTIONS
+#include "doctest.h"
+
+#include "TestCases.hpp" // Test cases are defined here
+#include "doctestCLIArgs.hpp"
+#include "doctestOutput.hpp"
+
+// system headers
+#include <iomanip>
 #include <iostream>
-// Catch2 header
-#include "catch_amalgamated.hpp"
 
 #include "AMReX.H"
 #include "AMReX_REAL.H"
 #include "AMReX_ccse-mpi.H"
+
+namespace doctest
+{
+CLIArgs cli_args;
+}
 
 int main(int argc, char *argv[])
 {
@@ -12,25 +34,28 @@ int main(int argc, char *argv[])
     // We can only initialize and finalize MPI once so do it here
     MPI_Init(&argc, &argv);
 #endif
+    doctest::cli_args.set(argv);
 
-    Catch::Session catch_session;
+    doctest::Context doctest_context(argc, argv);
+#ifdef BL_USE_MPI
+    doctest_context.setCout(
+        &doctest::hide_output_from_non_zero_ranks(std::cout));
+#endif
 
     // Default AMReX verbosity to 0 to avoid the "Initialized", "Finalized" and
     // memory usage messages
     amrex::system::verbose = 0;
 
-    auto cli = catch_session.cli() |
-               Catch::Clara::Opt(amrex::system::verbose,
-                                 "amrex-verbosity")["--amrex-verbosity"](
-                   "AMReX Verbosity (default: 0)");
+    // increase output precision
+    constexpr int output_precision = 17;
+    std::cout << std::setprecision(output_precision);
 
-    catch_session.cli(cli);
+    // also increase precision of doctest's stringmaker
+    std::ostream *ss = doctest::detail::tlssPush();
+    ss->precision(output_precision);
+    doctest::detail::tlssPop();
 
-    constexpr int cout_precision          = 17;
-    Catch::StringMaker<double>::precision = cout_precision;
-    Catch::StringMaker<float>::precision  = cout_precision;
-
-    int result = catch_session.run(argc, argv);
+    int result = doctest_context.run();
 
 #ifdef BL_USE_MPI
     MPI_Finalize();

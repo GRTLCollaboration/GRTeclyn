@@ -3,8 +3,14 @@
  * Please refer to LICENSE in GRChombo's root directory.
  */
 
-// Catch2 header
-#include "catch_amalgamated.hpp"
+// Doctest header
+#include "doctest.h"
+
+// Test header
+#include "PositiveChiAndAlphaUnitTest.hpp"
+
+// Common includes
+#include "doctestCLIArgs.hpp"
 
 // AMReX includes
 #include "AMReX.H"
@@ -14,9 +20,11 @@
 #include "PositiveChiAndAlpha.hpp"
 #include "Tensor.hpp"
 
-TEST_CASE("Positive Chi and Alpha")
+void run_positive_chi_and_alpha_unit_test()
 {
-    amrex::Initialize(MPI_COMM_WORLD);
+    int amrex_argc    = doctest::cli_args.argc();
+    char **amrex_argv = doctest::cli_args.argv();
+    amrex::Initialize(amrex_argc, amrex_argv, true, MPI_COMM_WORLD);
     {
         constexpr int N_GRID = 8;
         amrex::Box box(amrex::IntVect(0, 0, 0),
@@ -48,7 +56,7 @@ TEST_CASE("Positive Chi and Alpha")
 
         constexpr double test_threshold = 1e-15;
 
-        // We have to do this on the host as are using Catch2 functions
+        // We have to do this on the host as are using doctest functions
         amrex::LoopOnCpu(
             box,
             [=](int ix, int iy, int iz)
@@ -57,12 +65,10 @@ TEST_CASE("Positive Chi and Alpha")
 
                 double correct_value = (ix < N_GRID / 2) ? 1 : 1e-4;
                 INFO("At " << iv);
-                CHECK_THAT(
-                    in_array(iv, c_chi),
-                    Catch::Matchers::WithinAbs(correct_value, test_threshold));
-                CHECK_THAT(
-                    in_array(iv, c_lapse),
-                    Catch::Matchers::WithinAbs(correct_value, test_threshold));
+                CHECK(in_array(iv, c_chi) ==
+                      doctest::Approx(correct_value).epsilon(test_threshold));
+                CHECK(in_array(iv, c_lapse) ==
+                      doctest::Approx(correct_value).epsilon(test_threshold));
             });
     }
     amrex::Finalize();

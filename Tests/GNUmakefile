@@ -49,23 +49,14 @@ test_pack := $(foreach dir, $(test_dirs), $(dir)/Make.package)
 include $(src_pack)
 include $(test_pack)
 
-catch2_dir := $(GRTECLYN_HOME)/External/Catch2/extras
-catch2_sources := catch_amalgamated.cpp
-catch2_headers := catch_amalgamated.hpp
+doctest_dir := $(GRTECLYN_HOME)/External/doctest
+doctest_headers := doctest.h
 
-CEXE_sources += $(GRTECLYN_CEXE_sources) $(catch2_sources)
-CEXE_headers += $(GRTECLYN_CEXE_headers) $(catch2_headers)
-VPATH_LOCATIONS += $(src_dirs) $(test_dirs) $(catch2_dir)
+CEXE_sources += $(GRTECLYN_CEXE_sources)
+CEXE_headers += $(GRTECLYN_CEXE_headers) $(doctest_headers)
+VPATH_LOCATIONS += $(src_dirs) $(test_dirs)
 INCLUDE_LOCATIONS += $(realpath .) $(src_dirs) $(test_dirs)
-SYSTEM_INCLUDE_LOCATIONS += $(catch2_dir)
-
-# We want to define our own main rather than using Catch2's main
-DEFINES += -DCATCH_AMALGAMATED_CUSTOM_MAIN
-# We need to redefine Catch::cout on MPI ranks >0 if using MPI so that we can
-# minimize duplicated Catch output
-ifeq ($(USE_MPI), TRUE)
-DEFINES += -DCATCH_CONFIG_NOSTDOUT
-endif
+SYSTEM_INCLUDE_LOCATIONS += $(doctest_dir)
 
 include $(GRTECLYN_HOME)/Tools/GNUMake/Make.rules
 
@@ -75,8 +66,9 @@ else
 LAUNCH = ./
 endif
 
-CATCH2_OPTIONS := -d yes
+DOCTEST_OPTIONS := -dt-d=yes
 
 run: $(executable)
 	$(info Running tests for configuration: $(optionsSuffix))
-	$(SILENT) $(LAUNCH)$(executable) $(CATCH2_OPTIONS)
+	$(SILENT) $(LAUNCH)$(executable) $(DOCTEST_OPTIONS)
+
