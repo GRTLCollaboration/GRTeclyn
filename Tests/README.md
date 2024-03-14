@@ -159,6 +159,9 @@ basic steps to adding a new test to the [Tests application](./Tests.cpp).
    ```cpp
    // Doctest header
    #include "doctest.h"
+
+   // Provides doctest::cli_args
+   #include "doctestCLIArgs.hpp"
    
    // AMReX includes
    #include "AMReX.H"
