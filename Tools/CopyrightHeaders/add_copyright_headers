@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# This script checks that all source files in the repo have the header in the
-# file given in the first argument.
+# This script adds the copyright header passed in the first argument to any
+# source files that don't have it already.
 
 if [[ $# != 1 ]]; then
     echo "Usage: $0 <copyright header file>"
@@ -18,10 +18,7 @@ num_lines=$(echo "$copyright_header" | wc -l)
 
 for f in $(find $REPO_ROOT -type f -name "*.[h,c]pp" -not -path "$REPO_ROOT/External/*"); do
     if [[ $(head -n $num_lines $f) != $copyright_header ]]; then
-        echo "$f does not have the correct copyright header. First $num_lines lines:"
-        head -n $num_lines $f
-        echo "-------------------------------------------"
-        status=1
+        echo -e "${copyright_header}\n$(cat $f)" > $f
     fi
 done
 
