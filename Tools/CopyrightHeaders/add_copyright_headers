@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# This script adds the copyright header passed in the first argument to any
+# source files that don't have it already.
+
+if [[ $# != 1 ]]; then
+    echo "Usage: $0 <copyright header file>"
+    exit 2
+fi
+
+status=0
+
+# Use git to determine the root of the repo
+REPO_ROOT=$(git rev-parse --show-toplevel)
+
+copyright_header=$(cat $1)
+num_lines=$(echo "$copyright_header" | wc -l)
+
+for f in $(find $REPO_ROOT -type f -name "*.[h,c]pp" -not -path "$REPO_ROOT/External/*"); do
+    if [[ $(head -n $num_lines $f) != $copyright_header ]]; then
+        echo -e "${copyright_header}\n$(cat $f)" > $f
+    fi
+done
+
+exit $status
