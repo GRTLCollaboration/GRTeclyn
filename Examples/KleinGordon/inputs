@@ -1,0 +1,36 @@
+max_step = 10
+stop_time = 2
+
+geometry.is_periodic =  1  1  1                    
+geometry.coord_sys   =  0       # 0 => cart
+geometry.prob_lo     =  0.0  0.0  0.0
+geometry.prob_hi     =  100.0  100.0  100.0         
+
+amr.n_cell           =  64 64 64
+
+amr.v = 1
+amr.max_level       = 2       # maximum level number allowed
+amr.ref_ratio       = 2 2 2 2 # refinement ratio
+amr.regrid_int      = 2       # how often to regrid
+amr.blocking_factor_x = 16    # block factor in x-direction
+amr.blocking_factor_y = 16     # block factor in y-direction
+amr.blocking_factor_z = 16     # block factor in z-direction
+amr.max_grid_size   = 64
+
+amr.checkpoint_files_output = 0  # write checkpoint files or not
+amr.check_int = 100
+amr.plot_files_output = 1  # write plot files or not
+amr.plot_int = 1         # write plotfile every ? steps
+amr.plot_vars = ALL
+amr.derive_plot_vars = ALL   #also write out derived parameters
+amr.plot_file = /home/dc-kwan1/rds/rds-dirac-dp002/dc-kwan1/GRTeclyn/KleinGordon/test/plt_amrex_wave_eqn_
+
+
+wave.rk_order = 4
+wave.cfl = 0.2
+wave.nfields = 1
+wave.initial_amplitude = 10.0 10.0
+wave.initial_width = 0.01 0.01
+wave.scalar_mass = 1 1
+wave.wave_vector = 100.0
+wave.alpha = 0.7 

@@ -1,0 +1,2 @@
+CEXE_sources += KleinGordon.cpp KleinGordonLevel.cpp KleinGordonLevelBld.cpp main.cpp Wave_init.cpp Wave_advance.cpp Derive.cpp InitialConditions.cpp Potential.cpp
+CEXE_headers += KleinGordon.hpp KleinGordonLevel.hpp Derive.H InitialConditions.H Potential.H
