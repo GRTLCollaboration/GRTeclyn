@@ -151,7 +151,7 @@ class GRAMRLevel : public amrex::AmrLevel
 
   private:
 
-    GRAMR *m_gramr_ptr;
+    GRAMR *m_gramr_ptr = nullptr;
 };
 
 #endif /* GRAMRLEVEL_HPP_ */
