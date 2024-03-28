@@ -1,3 +1,4 @@
-GRTECLYN_CEXE_headers += DerivativeTestsCompute.hpp
+GRTECLYN_CEXE_headers += DerivativeTestsCompute.hpp \
+                         DerivativeUnitTests.hpp
 
 GRTECLYN_CEXE_sources += DerivativeUnitTests.cpp

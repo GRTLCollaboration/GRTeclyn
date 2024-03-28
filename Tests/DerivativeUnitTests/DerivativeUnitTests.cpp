@@ -1,10 +1,16 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-// Catch2 header
-#include "catch_amalgamated.hpp"
+// Doctest header
+#include "doctest.h"
+
+// Test header
+#include "DerivativeUnitTests.hpp"
+
+// Common includes
+#include "doctestCLIArgs.hpp"
 
 // AMReX includes
 #include "AMReX.H"
@@ -19,9 +25,11 @@
 // #include "SixthOrderDerivatives.hpp"
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-TEST_CASE("Derivatives")
+void run_derivative_unit_tests()
 {
-    amrex::Initialize(MPI_COMM_WORLD);
+    int amrex_argc    = doctest::cli_args.argc();
+    char **amrex_argv = doctest::cli_args.argv();
+    amrex::Initialize(amrex_argc, amrex_argv, true, MPI_COMM_WORLD);
     {
         constexpr int num_cells  = 32;
         constexpr int num_ghosts = 4;
@@ -64,7 +72,7 @@ TEST_CASE("Derivatives")
         const auto &out_array  = out_fab.array();
         const auto &in_c_array = in_fab.const_array();
 
-        SECTION("Fourth order derivatives")
+        SUBCASE("Fourth order derivatives")
         {
             DerivativeTestsCompute<FourthOrderDerivatives>
                 derivative_tests_compute(dx);
@@ -97,40 +105,37 @@ TEST_CASE("Derivatives")
                     load_vars(cell_data, vars);
 
                     INFO("diff1 (fourth order) at " << iv);
-                    CHECK_THAT(vars.d1,
-                               Catch::Matchers::WithinAbs(2. * x * (z - 0.5),
-                                                          test_threshold));
+                    CHECK(vars.d1 == doctest::Approx(2. * x * (z - 0.5))
+                                         .epsilon(test_threshold));
 
                     INFO("diff2 (fourth order) at " << iv);
-                    CHECK_THAT(vars.d2, Catch::Matchers::WithinAbs(
-                                            2. * x, test_threshold));
+                    CHECK(vars.d2 ==
+                          doctest::Approx(2. * x).epsilon(test_threshold));
 
                     INFO("mixed diff2 (fourth order) at " << iv);
-                    CHECK_THAT(vars.d2_mixed,
-                               Catch::Matchers::WithinAbs(2. * (z - 0.5),
-                                                          test_threshold));
+                    CHECK(vars.d2_mixed == doctest::Approx(2. * (z - 0.5))
+                                               .epsilon(test_threshold));
 
                     INFO("dissipation (fourth order) at " << iv);
-                    CHECK_THAT(vars.diss,
-                               Catch::Matchers::WithinAbs((1. + z * (z - 1.)) *
-                                                              pow(dx, 5) / 64.,
-                                                          test_threshold));
+                    CHECK(vars.diss == doctest::Approx((1. + z * (z - 1.)) *
+                                                       pow(dx, 5) / 64.)
+                                           .epsilon(test_threshold));
 
                     INFO("advection down (fourth order) at " << iv);
-                    CHECK_THAT(vars.advec_down,
-                               Catch::Matchers::WithinAbs(
-                                   -2. * z * (z - 1.) - 3. * x * (2. * z - 1.),
-                                   test_threshold));
+                    CHECK(vars.advec_down ==
+                          doctest::Approx(-2. * z * (z - 1.) -
+                                          3. * x * (2. * z - 1.))
+                              .epsilon(test_threshold));
 
                     INFO("advection up (fourth order) at " << iv);
-                    CHECK_THAT(vars.advec_up,
-                               Catch::Matchers::WithinAbs(
-                                   2. * z * (z - 1.) + 3. * x * (2. * z - 1.),
-                                   test_threshold));
+                    CHECK(vars.advec_up ==
+                          doctest::Approx(2. * z * (z - 1.) +
+                                          3. * x * (2. * z - 1.))
+                              .epsilon(test_threshold));
                 });
         }
 
-        // SECTION("Sixth order derivatives")
+        // SUBCASE("Sixth order derivatives")
         // {
         //     DerivativeTestsCompute<SixthOrderDerivatives>
         //     derivative_tests_compute(
@@ -163,39 +168,36 @@ TEST_CASE("Derivatives")
         //             load_vars(cell_data, vars);
 
         //             INFO("diff1 (sixth order) at " << iv);
-        //             CHECK_THAT(vars.d1, Catch::Matchers::WithinAbs(
-        //                                     2. * x * (z - 0.5),
+        //             CHECK(vars.d1 == doctest::Approx(
+        //                                     2. * x * (z - 0.5)).epsilon(
         //                                     test_threshold));
 
         //             INFO("diff2 (sixth order) at " << iv);
-        //             CHECK_THAT(vars.d2,
-        //                        Catch::Matchers::WithinAbs(2. * x,
+        //             CHECK(vars.d2 ==
+        //                        doctest::Approx(2. * x).epsilon(
         //                        test_threshold));
 
         //             INFO("mixed diff2 (sixth order) at " << iv);
-        //             CHECK_THAT(vars.d2_mixed, Catch::Matchers::WithinAbs(
-        //                                           2. * (z - 0.5),
+        //             CHECK(vars.d2_mixed == doctest::Approx(
+        //                                           2. * (z - 0.5)).epsilon(
         //                                           test_threshold));
 
         //             INFO("dissipation (sixth order) at " << iv);
-        //             CHECK_THAT(vars.diss,
-        //                        Catch::Matchers::WithinAbs((1. + z * (z - 1.))
-        //                        *
-        //                                                       pow(dx, 5)
-        //                                                       / 64.,
-        //                                                   test_threshold));
+        //             CHECK(vars.diss ==
+        //                        doctest::Approx((1. + z * (z - 1.))
+        //                        * pow(dx, 5) / 64.).epsilon(test_threshold));
 
         //             INFO("advection down (sixth order) at " << iv);
-        //             CHECK_THAT(vars.advec_down,
-        //                        Catch::Matchers::WithinAbs(
+        //             CHECK(vars.advec_down ==
+        //                        doctest::Approx(
         //                            -2. * z * (z - 1.) - 3. * x * (2. * z
-        //                            - 1.), test_threshold));
+        //                            - 1.)).epsilon(test_threshold));
 
         //             INFO("advection up (sixth order) at " << iv);
-        //             CHECK_THAT(vars.advec_up,
-        //                        Catch::Matchers::WithinAbs(
+        //             CHECK_(vars.advec_up ==
+        //                        doctest::Approx(
         //                            2. * z * (z - 1.) + 3. * x * (2. * z
-        //                            - 1.), test_threshold));
+        //                            - 1.)).epsilon(test_threshold));
         //         });
         // }
     }

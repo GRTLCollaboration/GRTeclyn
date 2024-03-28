@@ -1,10 +1,16 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-// Catch2 header
-#include "catch_amalgamated.hpp"
+// Doctest header
+#include "doctest.h"
+
+// Test header
+#include "SphericalHarmonicTest.hpp"
+
+// Common includes
+#include "doctestCLIArgs.hpp"
 
 // AMReX includes
 #include "AMReX.H"
@@ -20,9 +26,11 @@ enum
     NUM_SPHERICAL_HARMONICS_VARS
 };
 
-TEST_CASE("Spherical Harmonic")
+void run_spherical_harmonic_test()
 {
-    amrex::Initialize(MPI_COMM_WORLD);
+    int amrex_argc    = doctest::cli_args.argc();
+    char **amrex_argv = doctest::cli_args.argv();
+    amrex::Initialize(amrex_argc, amrex_argv, true, MPI_COMM_WORLD);
     {
         const int N_GRID = 64;
         amrex::Box box(amrex::IntVect::TheZeroVector(),
@@ -75,7 +83,7 @@ TEST_CASE("Spherical Harmonic")
 
         amrex::Gpu::streamSynchronize();
 
-        const int cout_precision = Catch::StringMaker<amrex::Real>::precision;
+        const int cout_precision    = 17;
         const double test_tolerance = 1e-14;
 
         amrex::Real max_diff = 0.0;
@@ -91,7 +99,7 @@ TEST_CASE("Spherical Harmonic")
              << out_array(max_diff_index, c_phi));
         INFO("Correct value = " << std::setprecision(cout_precision)
                                 << in_array(max_diff_index, c_phi));
-        CHECK_THAT(max_diff, Catch::Matchers::WithinAbs(0.0, test_tolerance));
+        CHECK(max_diff == doctest::Approx(0.0).epsilon(test_tolerance));
     }
     amrex::Finalize();
 }

@@ -101,7 +101,8 @@ jobs:
           roctracer-dev
           rocprofiler-dev
           rocrand-dev
-          rocprim-dev"
+          rocprim-dev
+          hiprand-dev"
         elif [[ "${{ matrix.gpu-backend }}" == "SYCL" ]]; then
           PACKAGES="intel-oneapi-compiler-dpcpp-cpp
           intel-oneapi-compiler-fortran

@@ -1,8 +1,16 @@
-// Catch2 header
-#include "catch_amalgamated.hpp"
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
+ */
+// Doctest header
+#include "doctest.h"
+
+// Test header
+#include "CCZ4RHSTest.hpp"
 
 // Common test headers
 #include "InitialData.hpp"
+#include "doctestCLIArgs.hpp"
 
 // GRTeclyn headers
 #include "CCZ4RHS.hpp"
@@ -16,9 +24,11 @@
 #include "AMReX.H"
 #include "AMReX_FArrayBox.H"
 
-TEST_CASE("CCZ4 RHS")
+void run_ccz4_rhs_test()
 {
-    amrex::Initialize(MPI_COMM_WORLD);
+    int amrex_argc    = doctest::cli_args.argc();
+    char **amrex_argv = doctest::cli_args.argv();
+    amrex::Initialize(amrex_argc, amrex_argv, true, MPI_COMM_WORLD);
     {
         constexpr int num_cells  = 32;
         constexpr int num_ghosts = 3;
@@ -115,7 +125,7 @@ TEST_CASE("CCZ4 RHS")
         amrex::Real max_diff = 0.0;
         amrex::IntVect max_diff_index{};
 
-        const int cout_precision = Catch::StringMaker<amrex::Real>::precision;
+        const int cout_precision = 17;
         for (int ivar = 0; ivar < NUM_CCZ4_VARS; ++ivar)
         {
             diff_fab.maxIndex<amrex::RunOn::Device>(box, max_diff,
@@ -129,7 +139,7 @@ TEST_CASE("CCZ4 RHS")
                                << old_out_array(max_diff_index, ivar)
                                << ", Current value: "
                                << current_out_array(max_diff_index, ivar));
-            CHECK_THAT(max_diff, Catch::Matchers::WithinAbs(0.0, 1e-14));
+            CHECK(max_diff == doctest::Approx(0.0).epsilon(1e-12));
         }
 
         // GPU barrier

@@ -1,10 +1,16 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-// Catch2 header
-#include "catch_amalgamated.hpp"
+// Doctest header
+#include "doctest.h"
+
+// Test include
+#include "CoordinateTransformationsTest.hpp"
+
+// Common includes
+#include "doctestCLIArgs.hpp"
 
 // AMReX includes
 #include "AMReX.H"
@@ -30,11 +36,8 @@ void check_tensor(const Tensor<2, double> &tensor,
     FOR (i, j)
     {
         INFO(test_name << ": component [" << i << "][" << j << "]");
-        CHECK_THAT(tensor[i][j],
-                   Catch::Matchers::WithinAbs(correct_tensor[i][j],
-                                              ulp * double_epsilon) ||
-                       Catch::Matchers::WithinRel(correct_tensor[i][j],
-                                                  ulp * double_epsilon));
+        CHECK(tensor[i][j] == doctest::Approx(correct_tensor[i][j])
+                                  .epsilon(ulp * double_epsilon));
     }
 }
 
@@ -45,17 +48,17 @@ void check_vector(const Tensor<1, double> &vector,
     FOR (i)
     {
         INFO(test_name << ": component [" << i << "]");
-        CHECK_THAT(vector[i], Catch::Matchers::WithinAbs(
-                                  correct_vector[i], ulp * double_epsilon) ||
-                                  Catch::Matchers::WithinRel(
-                                      correct_vector[i], ulp * double_epsilon));
+        CHECK(vector[i] ==
+              doctest::Approx(correct_vector[i]).epsilon(ulp * double_epsilon));
     }
 }
 } // namespace
 
-TEST_CASE("Coordinate Transformations")
+void run_coordinate_transformations_test()
 {
-    amrex::Initialize(MPI_COMM_WORLD);
+    int amrex_argc    = doctest::cli_args.argc();
+    char **amrex_argv = doctest::cli_args.argv();
+    amrex::Initialize(amrex_argc, amrex_argv, true, MPI_COMM_WORLD);
     {
         const double dx = 0.1;
         amrex::IntVect iv{1, 2, 3};
@@ -165,11 +168,9 @@ TEST_CASE("Coordinate Transformations")
         // Test area_element_sphere
         double area_element       = r * sqrt(rho2);
         double area_element_check = area_element_sphere(Mij_spher);
-        CHECK_THAT(area_element,
-                   Catch::Matchers::WithinAbs(area_element_check,
-                                              ulp * double_epsilon) ||
-                       Catch::Matchers::WithinRel(area_element_check,
-                                                  ulp * double_epsilon));
+        CHECK(
+            area_element ==
+            doctest::Approx(area_element_check).epsilon(ulp * double_epsilon));
     }
     amrex::Finalize();
 }

@@ -1,3 +1,7 @@
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
+ */
 #define COMPARE_WITH_CHF
 #define COVARIANTZ4
 
