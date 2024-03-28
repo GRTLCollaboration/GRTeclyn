@@ -290,6 +290,7 @@ void GRAMRLevel::post_init(amrex::Real /*stop_time*/)
 
 void GRAMRLevel::post_restart()
 {
+    m_gr_amr_ptr = dynamic_cast<GRAMR *>(parent);
     if (Level() == 0)
     {
         m_gr_amr_ptr->set_restart_time(m_gr_amr_ptr->cumTime());
