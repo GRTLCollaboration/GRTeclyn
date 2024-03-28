@@ -43,6 +43,8 @@ class GRAMRLevel : public amrex::AmrLevel
 
     static const SimulationParameters &simParams();
 
+    GRAMR *get_gramr_ptr();
+
     /**
      * \brief Compute the initial time step.
      */
@@ -147,9 +149,9 @@ class GRAMRLevel : public amrex::AmrLevel
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     static amrex::Vector<std::string> plot_constraints;
 
-  protected:
+  private:
 
-    GRAMR *m_gr_amr_ptr = dynamic_cast<GRAMR *>(parent);
+    GRAMR *m_gramr_ptr = nullptr;
 };
 
 #endif /* GRAMRLEVEL_HPP_ */
