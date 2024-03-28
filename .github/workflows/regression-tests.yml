@@ -67,3 +67,9 @@ jobs:
         --rel_tol 1e-10 \
         ${GITHUB_WORKSPACE}/GRTeclyn/.github/workflows/data/plt00008_compare \
         ${BINARYBH_EXAMPLE_DIR}/plt00008
+
+    - name: Restart from last checkpoint and evolve for a few more steps
+      run: >
+        mpiexec -n 2 ./main3d.gnu.MPI.ex ./params_test.txt
+        amr.restart=chk00008 max_steps=12
+      working-directory: ${{ env.BINARYBH_EXAMPLE_DIR }}
