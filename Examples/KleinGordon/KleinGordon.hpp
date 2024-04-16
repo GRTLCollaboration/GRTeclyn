@@ -1,16 +1,16 @@
 #ifndef KLEINGORDON_HPP_
 #define KLEINGORDON_HPP_
 
-#include <AMReX_Amr.H>
+#include "GRAMR.hpp"
 
 class KleinGordon
-    : public amrex::Amr
+    : public GRAMR
 {
 public:
 
-    using amrex::Amr::Amr;
+  KleinGordon(amrex::LevelBld *a_levelbld): GRAMR(a_levelbld){}
 
-    virtual ~KleinGordon ();
+  //    virtual ~KleinGordon ();
 
     // If we need to override any virtual functions in amrex::Amr, we can do
     // it here.
@@ -18,4 +18,4 @@ public:
 
 };
 
-#endif
+#endif   /* KLEINGORDON_HPP */
