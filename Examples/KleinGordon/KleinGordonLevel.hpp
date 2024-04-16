@@ -1,118 +1,77 @@
 #ifndef KLEINGORDONLEVEL_HPP_
 #define KLEINGORDONLEVEL_HPP_
 
-
-#include <AMReX_AmrLevel.H>
+#include "DefaultLevelFactory.hpp"
+#include "GRAMRLevel.hpp"
 #include "Potential.H"
+#include "InitialConditions.H"
+#include "KleinGordonDerive.hpp"
 
-enum StateType { State_Type = 0, NUM_STATE_TYPE };
+
 
 class KleinGordonLevel
-    : public amrex::AmrLevel
+    : public GRAMRLevel
 {
 public:
-
-    KleinGordonLevel () = default;
-
-    KleinGordonLevel (amrex::Amr& parent, int lev, const amrex::Geometry& gm,
-                  const amrex::BoxArray& ba, const amrex::DistributionMapping& dm,
-                  amrex::Real time);
-
-    virtual ~KleinGordonLevel ();
-
+  using GRAMRLevel::GRAMRLevel;
+  
     //! Define data descriptors.
-    static void variableSetUp ();
-
-    //! Cleanup data descriptors at end of run.
-    static void variableCleanUp ();
+  //    static void variableSetUp ();
+  //    static void variableCleanUp ();
 
     //! Initialize data at problem start-up.
-    virtual void initData () override;
+    void initData () override;
+  
+    //!Advance this level for one step
+  //could also use GRAMRLevel::advance
+  //but would have to also define specificEvalRHS and specificAdvance and specificUpdateODE
+    // amrex::Real advance(amrex::Real time, amrex::Real dt, int iteration,
+    //                     int ncycle) override;
 
-    //! Initialize data on this level from the previous AmrLevelWave at the
-    //! same level during regridding.
-    virtual void init (amrex::AmrLevel& old) override;
+    void specificEvalRHS(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
+                         const double a_time) override;
 
-    //! Initialize data on this level during regridding when this level did
-    //! not exist before the regrid.
-    virtual void init () override;
+    void specificAdvance() override;
+  
+    /// Things to do after dt*rhs has been added to the solution
+    void specificUpdateODE(amrex::MultiFab &a_soln) override {};
 
-    /**
-     * \brief Advance this level for one step
-     *
-     * \param time      time at the beginning of the step
-     * \param dt        time step
-     * \param iteration iteration number.  For an AMR simulation with
-     *                  subcycling and a refinement ratio of 2, the number
-     *                  is either 1 or 2.  If this is level 0, it's always
-     *                  1.  If it's a fine level, this represents the substep
-     *                  number during a coarser level time step.
-     * \parame ncycle   number of subcyling steps. It's 1 without subcycling,
-     *                  or on level 0.  It's usually 2 or 4 on fine levels when
-     *                  subcycling is on.
-     */
-    virtual amrex::Real advance (amrex::Real time, amrex::Real dt,
-                                 int iteration, int ncycle) override;
-
-    //! Compute initial dt.  Sometimes, we might want to start a simulation
-    //! with a smaller time step.  The output is dt_level.
-    virtual void computeInitialDt (int finest_level, int sub_cycle,
-                                   amrex::Vector<int>& n_cycle,
-                                   const amrex::Vector<amrex::IntVect>& ref_ratio,
-                                   amrex::Vector<amrex::Real>& dt_level,
-                                   amrex::Real stop_time) override;
-
-    //! Compute new dt.  The outputs are dt_min and dt_level.
-    virtual void computeNewDt (int finest_level, int sub_cycle,
-                               amrex::Vector<int>& n_cycle,
-                               const amrex::Vector<amrex::IntVect>& ref_ratio,
-                               amrex::Vector<amrex::Real>& dt_min,
-                               amrex::Vector<amrex::Real>& dt_level,
-                               amrex::Real stop_time, int post_regrid_flag) override;
-
-    //! Do work after each time step
-    virtual void post_timestep (int iteration) override;
-
-    //! Do work after regrid().
-    virtual void post_regrid (int /*lbase*/, int /*new_finest*/) override {}
-
-    //! Do work after init().
-    virtual void post_init (amrex::Real /*stop_time*/) override {}
+    // to do post each time step on every level
+    void specificPostTimeStep() override {};
 
     //! Error estimation for regridding.
-    virtual void errorEst (amrex::TagBoxArray& tb, int clearval, int tagval,
+    void errorEst (amrex::TagBoxArray& tb, int clearval, int tagval,
                            amrex::Real time, int n_error_buf = 0,
                            int ngrow = 0) override;
 
-    // Need to be public for CUDA
-    void computeRHS (amrex::MultiFab& dSdt, amrex::MultiFab const& S);
+    void derive(const std::string &name, amrex::Real /*time*/,
+		amrex::MultiFab &multifab, int dcomp) override;
+  
+  //    Need to be public for CUDA
+  //     void computeRHS (amrex::MultiFab& dSdt, amrex::MultiFab const& S);
 
-
-
+    
 private:
 
 
-    static constexpr int nghost = 2; // Two ghost cells needed
+  //   static constexpr int nghost = 2; // Two ghost cells needed
 
-    static int verbose;
-    static int rk_order;
-    static amrex::Real cfl;
-  //    static double ampl;  
-  //    static double width;
-    static amrex::Vector<float> ampl;
-    static amrex::Vector<float> width;
-    static int nfields;
-    static amrex::Real scalar_mass; 
-    static amrex::Real k_r;
-    static amrex::Real alpha; 
+  //   static int verbose;
+  //   static int rk_order;
+  //   static amrex::Real cfl;
+  // //    static double ampl;  
+  // //    static double width;
+  //   static amrex::Vector<float> ampl;
+  //   static amrex::Vector<float> width;
+  //   static int nfields;
+  //   static amrex::Real scalar_mass; 
+  //   static amrex::Real k_r;
+  //   static amrex::Real alpha; 
 
 
-    //! Function to read parameters from input file.
-    static void read_params ();
-
-    static int ncomp;
-    static amrex::Vector<std::string> diagnostics;//this is for error checking
-  //  static constexpr int ncomp;//  = nfields*2; // Two variables: u & v  
+  //   static int ncomp;
+    static amrex::Vector<std::string> plot_constraints;//this is for error checking
+  // //  static constexpr int ncomp;//  = nfields*2; // Two variables: u & v  
 
     //! Get AmrLevelWave
     KleinGordonLevel& getLevel (int lev) {
