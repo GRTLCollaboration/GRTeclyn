@@ -1,29 +1,11 @@
 #include "KleinGordonLevel.hpp"
 #include <AMReX_ParmParse.H>
 #include <numeric>
-#include <Derive.H>
+//#include <Derive.H>
 
 using namespace amrex;
 
-
-constexpr int KleinGordonLevel::nghost;
-int  KleinGordonLevel::verbose = 0;
-int  KleinGordonLevel::rk_order = 4;
-Real KleinGordonLevel::cfl = 0.2;
-Vector<float> KleinGordonLevel::ampl;
-Vector<float> KleinGordonLevel::width;
-int KleinGordonLevel::nfields = 1;
-Real KleinGordonLevel::scalar_mass = 1.0;
-int KleinGordonLevel::ncomp = nfields*2;
-Real KleinGordonLevel::k_r = 1.0;
-Real KleinGordonLevel::alpha = 1.0;
-Vector<std::string> KleinGordonLevel::diagnostics;//this is for error checking
-
-
-static Box the_same_box(const Box& b)
-{
-  return b;
-}
+amrex::Vector<std::string> KleinGordonLevel::plot_constraints;
 
 namespace {
     struct WaveBCFill {
@@ -66,201 +48,238 @@ namespace {
     }
 }
 
-KleinGordonLevel::KleinGordonLevel (Amr& amr, int lev, const Geometry& gm,
-                            const BoxArray& ba, const DistributionMapping& dm,
-                            Real time)
-    : AmrLevel(amr,lev,gm,ba,dm,time)
-{}
 
-KleinGordonLevel::~KleinGordonLevel () {}
+// void
+// KleinGordonLevel::variableSetUp ()
+// {
 
-void
-KleinGordonLevel::variableSetUp ()
-{
-    read_params();
+//     BL_PROFILE("KleinGordonLevel::variableSetUp()");
 
-
-
-    desc_lst.addDescriptor(State_Type, IndexType::TheCellType(),
-                           StateDescriptor::Point, nghost, ncomp,
-                           &cell_quartic_interp);
-
-
-    // int lo_bc[BL_SPACEDIM] = {AMREX_D_DECL(BCType::ext_dir,    // external Dirichlet
-    //                                        BCType::int_dir,    // periodic
-    //                                        BCType::int_dir) }; // periodic
-    // int hi_bc[BL_SPACEDIM] = {AMREX_D_DECL(BCType::ext_dir,
-    //                                        BCType::int_dir,
-    //                                        BCType::int_dir) };
-    int lo_bc[BL_SPACEDIM] = {AMREX_D_DECL(BCType::int_dir,    // periodic
-                                           BCType::int_dir,    // periodic
-                                           BCType::int_dir) }; // periodic
-    int hi_bc[BL_SPACEDIM] = {AMREX_D_DECL(BCType::int_dir,
-                                           BCType::int_dir,
-                                           BCType::int_dir) };
-
-    Vector<BCRec> bcs(ncomp, BCRec(lo_bc, hi_bc));
-
-    StateDescriptor::BndryFunc bndryfunc(wave_bcfill);  
-    bndryfunc.setRunOnGPU(true);
-
-    Vector<std::string> param_names(ncomp);// = {"u1", "v1", "u2", "v2"};
+//     amrex::Print() << "HERE in K-G variable setup \n"; 
     
-    // amrex::Print() << ncomp <<  "\n";
-    // amrex::Print() << nfields <<  "\n";
+//     const int nghost = simParams().num_ghosts;
 
-    for (int n = 0; n < nfields; n++)
-      {
-        char name[6];
-	sprintf(name, "phi%d", n);
-	param_names[2*n] = name;
-	sprintf(name, "dphi%d", n);
-	param_names[2*n+1] = name;
-      }
-
-    // for (int n = 0; n < ncomp; n++)
-    //   amrex::Print() << param_names[n] << " " << n <<  "\n";
+//     desc_lst.addDescriptor(State_Type, IndexType::TheCellType(),
+//                            StateDescriptor::Point, nghost, NUM_VARS,
+//                            &cell_quartic_interp);
 
 
+//     // int lo_bc[BL_SPACEDIM] = {AMREX_D_DECL(BCType::ext_dir,    // external Dirichlet
+//     //                                        BCType::int_dir,    // periodic
+//     //                                        BCType::int_dir) }; // periodic
+//     // int hi_bc[BL_SPACEDIM] = {AMREX_D_DECL(BCType::ext_dir,
+//     //                                        BCType::int_dir,
+//     //                                        BCType::int_dir) };
+//     int lo_bc[BL_SPACEDIM] = {AMREX_D_DECL(BCType::int_dir,    // periodic
+//                                            BCType::int_dir,    // periodic
+//                                            BCType::int_dir) }; // periodic
+//     int hi_bc[BL_SPACEDIM] = {AMREX_D_DECL(BCType::int_dir,
+//                                            BCType::int_dir,
+//                                            BCType::int_dir) };
 
-    desc_lst.setComponent(State_Type, 0, param_names, bcs, bndryfunc); 
+//     Vector<BCRec> bcs(NUM_VARS, BCRec(lo_bc, hi_bc));
+
+//     StateDescriptor::BndryFunc bndryfunc(wave_bcfill);  
+//     bndryfunc.setRunOnGPU(true);
+
+//     const int ncomp = simParams().nfields*2; 
+//     Vector<std::string> param_names(ncomp);// = {"u1", "v1", "u2", "v2"};
+    
+//     // amrex::Print() << ncomp <<  "\n";
+//     // amrex::Print() << nfields <<  "\n";
+
+//     for (int n = 0; n < simParams().nfields; n++)
+//       {
+//         char name[6];
+// 	sprintf(name, "phi%d", n);
+// 	param_names[2*n] = name;
+// 	sprintf(name, "dphi%d", n);
+// 	param_names[2*n+1] = name;
+//       }
+
+//     // for (int n = 0; n < ncomp; n++)
+//     //   amrex::Print() << param_names[n] << " " << n <<  "\n";
+
+//     amrex::Vector<std::string> name(NUM_VARS);
+//     for (int i = 0; i < NUM_VARS; ++i)
+//     {
+//         name[i] = UserVariables::variable_names[i];
+//     }
+
+//     desc_lst.setComponent(State_Type, 0, name, bcs, bndryfunc); 
 
 
-    //New diagnostic variable for testing interpolation between levels (against analytic solution)
+//     //New diagnostic variable for testing interpolation between levels (against analytic solution)
 
-    derive_lst.add(
-    		   "frac_error", amrex::IndexType::TheCellType(),
-       		   1, diagnostics,
-		   //		   amrex::DeriveFuncFab(),		   
-		   derive_func_fab,
-		   [=](const amrex::Box &box) { return amrex::grow(box, nghost);},
-    		   &amrex::cell_quartic_interp);
+//     derive_lst.add(
+//     		   "frac_error", amrex::IndexType::TheCellType(),
+//        		   1, plot_constraints,
+// 		   amrex::DeriveFuncFab(),		    // amrex null function
+// 		   //		   derive_func_fab,
+// 		   [=](const amrex::Box &box) { return amrex::grow(box, nghost);},
+//     		   &amrex::cell_quartic_interp);
 
-    derive_lst.addComponent("frac_error", desc_lst, State_Type, 0, 1);
+//     derive_lst.addComponent("frac_error", desc_lst, State_Type, 0, 1);
 
+// }
 
+// void KleinGordonLevel::variableCleanUp()
+// {
+//     desc_lst.clear();
+//     derive_lst.clear();
+// }
 
-}
-
-
-void
-KleinGordonLevel::variableCleanUp ()
-{
-    desc_lst.clear();
-    derive_lst.clear();
-}
-
-
-void
-KleinGordonLevel::init (AmrLevel &old)
-{
-    Real dt_new    = parent->dtLevel(Level());
-    Real cur_time  = old.get_state_data(State_Type).curTime();
-    Real prev_time = old.get_state_data(State_Type).prevTime();
-    Real dt_old    = cur_time - prev_time;
-    setTimeLevel(cur_time,dt_old,dt_new);
-
-    for (int k = 0; k < NUM_STATE_TYPE; ++k) {
-        MultiFab& S_new = get_new_data(k);
-        FillPatch(old, S_new, 0, cur_time, k, 0, ncomp);
-    }
-}
-
-void
-KleinGordonLevel::init ()
-{
-    Real dt        = parent->dtLevel(Level());
-    Real cur_time  = getLevel(Level()-1).state[State_Type].curTime();
-    Real prev_time = getLevel(Level()-1).state[State_Type].prevTime();
-    Real dt_old = (cur_time - prev_time)/(Real)parent->MaxRefRatio(Level()-1);
-    setTimeLevel(cur_time,dt_old,dt);
-
-    for (int k = 0; k < NUM_STATE_TYPE; ++k) {
-        MultiFab& S_new = get_new_data(k);
-        FillCoarsePatch(S_new, 0, cur_time, k, 0, ncomp);
-    }
-}
 
 void
-KleinGordonLevel::computeInitialDt (int finest_level, int /*sub_cycle*/,
-                                Vector<int>& n_cycle,
-                                const Vector<IntVect>& /*ref_ratio*/,
-                                Vector<Real>& dt_level, Real stop_time)
+KleinGordonLevel::initData ()
 {
-    if (Level() > 0) { return; } // Level 0 does this for every level.
+    BL_PROFILE("KleinGordonLevel::initData()");
+  
+    const auto problo = geom.ProbLoArray();
+    const auto probhi = geom.ProbHiArray();
+    const auto dx = geom.CellSizeArray();
 
-    Vector<int> nsteps(n_cycle.size()); // Total number of steps in one level 0 step
-    std::partial_sum(n_cycle.begin(), n_cycle.end(), nsteps.begin(),
-                     std::multiplies<int>());
+    Real midpts[3];
+    midpts[0] = 0.5*(probhi[0]-problo[0]);
+    midpts[1] = 0.5*(probhi[1]-problo[1]);
+    midpts[2] = 0.5*(probhi[2]-problo[2]); 
 
-    Real dt_0 = std::numeric_limits<Real>::max();
-    for (int ilev = 0; ilev <= finest_level; ++ilev) {
-        const auto dx = parent->Geom(ilev).CellSizeArray();
-        Real dtlev = cfl * std::min({AMREX_D_DECL(dx[0],dx[1],dx[2])});
-        dt_0 = std::min(dt_0, nsteps[ilev] * dtlev);
-    }
-    // dt_0 will be the time step on level 0 (unless limited by stop_time).
+    
+    MultiFab& S_new = get_new_data(State_Type);
+    auto const& snew = S_new.arrays();
 
-    if (stop_time > 0) {
-        // Limit dt's by the value of stop_time.
-        const Real eps = 0.001 * dt_0;
-        const Real cur_time = get_state_data(State_Type).curTime();
-        if ((cur_time + dt_0) > (stop_time - eps)) {
-            dt_0 = stop_time - cur_time;
-        }
-    }
+    constexpr Real t0 = -5.4;
 
-    for (int ilev = 0; ilev <= finest_level; ++ilev) {
-        dt_level[ilev] = dt_0 / Real(nsteps[ilev]);
-    }
-}
+    amrex::Vector<amrex::Real> start_times {-5.4, 5.4};
+    amrex::Vector<amrex::Real> start_pos {midpts[0], midpts[1], midpts[2]+0.5*midpts[2], midpts[0], midpts[1], midpts[2]-0.5*midpts[2]};
 
-void
-KleinGordonLevel::computeNewDt (int finest_level, int sub_cycle,
-                            Vector<int>& n_cycle,
-                            const Vector<IntVect>& ref_ratio,
-                            Vector<Real>& /*dt_min*/, Vector<Real>& dt_level,
-                            Real stop_time, int /*post_regrid_flag*/)
-{
-    // For this code we can just call computeInitialDt.
-    computeInitialDt(finest_level, sub_cycle, n_cycle, ref_ratio, dt_level,
-                     stop_time);
-}
+    // static_assert(std::is_trivially_copyable<BinaryBH>::value,
+    //               "BinaryBH needs to be device copyable");
+    
 
-void
-KleinGordonLevel::post_timestep (int iteration)
-{
-    if (Level() < parent->finestLevel()) {
-        auto& fine_level = getLevel(Level()+1);
-        MultiFab& S_fine = fine_level.get_new_data(State_Type);
-        MultiFab& S_crse =      this->get_new_data(State_Type);
-        Real t = get_state_data(State_Type).curTime();
+    
+    InitialConditions SineGordon(simParams().alpha, simParams().k_r);
 
-        IntVect ratio = parent->refRatio(Level());
-        AMREX_ASSERT(ratio == 2 || ratio == 4);
-	       if (ratio == 2) {
-	           // Need to fill one ghost cell for the high-order interpolation below
-	           FillPatch(fine_level, S_fine, 1, t, State_Type, 0, ncomp);
-	       }
+    amrex::ParallelFor(S_new,
+    [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
+    {
+        Real x = problo[0] + (i+0.5)*dx[0];
+	Real y = problo[1] + (j+0.5)*dx[1];
+	Real z = problo[2] + (k+0.5)*dx[2];
 
+
+	//	Real rr2 = (x-0.5)*(x-0.5)+(y-0.5)*(y-0.5)+(z-0.5)*(z-0.5);
 	
-	//Original interpolation:	
-	FourthOrderInterpFromFineToCoarse(S_crse, 0, 2, S_fine, ratio);
-	//Average between cell faces, also removes need for fill patch;
-	// average_down(S_fine, S_crse, 0, S_crse.nComp(), ratio);	
-
-    }
+	//        constexpr Real Pi = 3.1415926535897932384626;
+	// constexpr Real mu = 0.7;
+	// constexpr Real mu_coeff = mu/(std::sqrt(1-mu*mu));
+	// constexpr Real t0 = 0;
 
 
 
-    AmrLevel::post_timestep(iteration);
+		// constexpr Real k_r = 1;
+		// constexpr Real omega = 1;
+	for (int n = 0; n < simParams().nfields; n++)
+	  {
+	    //	    snew[bi](i,j,k,2*n) = 0.0;
+	    //	    snew[bi](i,j,k,2*n+1) = std::exp(-16.*rr2) * std::pow(std::cos(Pi*rr2),6);
+
+
+
+	    // snew[bi](i,j,k,2*n) = 1+ampl[n]*std::exp(-width[n]*rr2);
+	    // snew[bi](i,j,k,2*n+1) = 0;
+	    
+	    snew[bi](i,j,k,2*n) = SineGordon.breather_solution(x-midpts[0], 0);
+	    snew[bi](i,j,k,2*n+1) = SineGordon.breather_solution_deriv(x-midpts[0], 0); 
+	   
+	    //	    snew[bi](i,j,k,2*n) = SineGordon.breather_solution(x-start_pos[0], y-start_pos[1], z-start_pos[2], start_times[0]) + SineGordon.breather_solution(x-start_pos[3], y-start_pos[4], z-start_pos[5], start_times[1]);
+	    //	    snew[bi](i,j,k,2*n+1) = 0;
+
+
+	    
+
+	  }
+
+    });
+}
+
+
+
+void
+KleinGordonLevel::specificAdvance ()
+{
+    // amrex::MultiFab &S_new = get_new_data(State_Type);
+    
+  // // Check for nan's
+  //   if (simParams().nan_check)
+  //   {
+  //       if (S_new.contains_nan(0, S_new.nComp(), amrex::IntVect(0), true))
+  //       {
+  //           amrex::Abort("NaN in specificAdvance");
+  //       }
+  //   }
+
 
 }
+
+void
+KleinGordonLevel::specificEvalRHS (amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
+                         const double a_time)
+{
+    BL_PROFILE("KleinGordonLevel::specificEvalRHS()");
+  
+    const auto dxinv = Geom().InvCellSizeArray();
+    AMREX_D_TERM(Real dx2inv = dxinv[0]*dxinv[0];,
+                 Real dy2inv = dxinv[1]*dxinv[1];,
+                 Real dz2inv = dxinv[2]*dxinv[2]);
+    auto const& sa = a_soln.arrays();
+    auto const& sdot = a_rhs.arrays();
+
+    Potential my_potential(simParams().scalar_mass);
+	  
+    amrex::ParallelFor(a_soln,
+    [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
+    {
+      auto const& s = sa[bi];
+      auto const& f = sdot[bi];
+
+
+
+      //      Real phi2 = std::pow(s(i,j,k,0),2)+std::pow(s(i,j,k,2),2);
+      amrex::Vector<amrex::Real> phi;
+
+      for (int n = 0; n < simParams().nfields; n++)
+	  {
+
+	    phi.push_back(s(i,j,k,2*n));
+
+	    f(i,j,k,2*n) = s(i,j,k,2*n+1);
+
+	    AMREX_D_TERM(Real lapx = dx2inv*(-2.5*s(i,j,k,2*n) + (4./3.)*(s(i-1,j,k,2*n)+s(i+1,j,k,2*n))
+					   -                (1./12.)*(s(i-2,j,k,2*n)+s(i+2,j,k,2*n)));,
+			 Real lapy = dy2inv*(-2.5*s(i,j,k,2*n) + (4./3.)*(s(i,j-1,k,2*n)+s(i,j+1,k,2*n))
+					   -                (1./12.)*(s(i,j-2,k,2*n)+s(i,j+2,k,2*n)));,
+			 Real lapz = dz2inv*(-2.5*s(i,j,k,2*n) + (4./3.)*(s(i,j,k-1,2*n)+s(i,j,k+1,2*n))
+					   -                (1./12.)*(s(i,j,k-2,2*n)+s(i,j,k+2,2*n))));
+
+	    f(i,j,k,2*n+1) = AMREX_D_TERM(lapx, +lapy, +lapz);
+
+	    f(i,j,k,2*n+1) -= std::sin(s(i,j,k,2*n));
+	  }
+
+
+    });
+    Gpu::streamSynchronize();
+}
+
+
 
 void
 KleinGordonLevel::errorEst (TagBoxArray& tags, int /*clearval*/, int /*tagval*/,
                         Real /*time*/, int /*n_error_buf*/, int /*ngrow*/)
 {
+    BL_PROFILE("KleinGordonLevel::errorEst()");
+    
     auto const& S_new = get_new_data(State_Type);
 
     const char tagval = TagBox::SET;
@@ -277,30 +296,4 @@ KleinGordonLevel::errorEst (TagBoxArray& tags, int /*clearval*/, int /*tagval*/,
 }
 
 
-void
-KleinGordonLevel::read_params ()
-{
-    ParmParse pp("wave");
-    pp.query("v", verbose); // Could use this to control verbosity during the run
-    pp.query("rk_order", rk_order);
-    pp.query("cfl", cfl);
-    pp.query("nfields", nfields);
-    pp.getarr("initial_amplitude", ampl,0,nfields); 
-    pp.getarr("initial_width", width,0,nfields); 
-    pp.query("scalar_mass", scalar_mass); 
-    pp.query("wave_vector", k_r);
-    pp.query("alpha", alpha);  
 
-    ncomp = 2*nfields;
-
-    // // read array of initial amplitudes
-    // Vector<float> ampl;
-    // int nx;
-    // if (nx=pp.countval("initial_amplitude")) {
-    //    // get nx values starting at index 0 and store in ampl.
-    //    // dx is automatically resized here.
-    //    pp.getarr("initial_amplitude",ampl,0,nx);
-    // }
-
-
-}
