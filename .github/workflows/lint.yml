@@ -1,6 +1,6 @@
 name: Lint
 
-on: [push]
+on: [push, pull_request]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -58,7 +58,8 @@ jobs:
       working-directory: ${{ env.BINARYBH_EXAMPLE_DIR }}
 
     - name: Run clang-tidy on modified files
-      uses: cpp-linter/cpp-linter-action@latest
+      uses: cpp-linter/cpp-linter-action@v2
+      id: linter
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
@@ -66,6 +67,11 @@ jobs:
         tidy-checks: ''
         version: ${{ env.LLVM_VERSION }}
         files-changed-only: true
-        lines-changed-only: 'false'
+        lines-changed-only: false
         extra-args: ${{ join(steps.flags.outputs.*,' ') }}
+        thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
+
+    - name: Fail fast?!
+      if: steps.linter.outputs.checks-failed > 0
+      run: exit 1
 
