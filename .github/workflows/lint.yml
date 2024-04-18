@@ -67,8 +67,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        style: ''
-        tidy-checks: ''
+        style: 'file' # Clang-Format style
+        tidy-checks: '' # Use .clang-tidy file cheks
         repo-root: ${{ github.workspace }}/GRTeclyn
         ignore: External
         version: ${{ env.LLVM_VERSION }}
@@ -76,6 +76,7 @@ jobs:
         lines-changed-only: false
         extra-args: ${{ join(steps.flags.outputs.*,' ') }}
         thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
+        step-summary: 'true' # Print output in the worflow job summary
 
     - name: Fail fast?!
       if: steps.linter.outputs.checks-failed > 0
