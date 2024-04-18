@@ -14,6 +14,7 @@ jobs:
       LLVM_VERSION: '16'
       AMREX_HOME: ${{ github.workspace }}/amrex
       BINARYBH_EXAMPLE_DIR: ${{ github.workspace }}/GRTeclyn/Examples/BinaryBH
+      TESTS_DIR: ${{ github.workspace }}/GRTeclyn/Tests
       TMP_BUILD_DIR: ${{ github.workspace }}/GRTeclyn/tmp_build_dir
 
     steps:
@@ -55,7 +56,9 @@ jobs:
         echo "mpiflags=$(make print-mpicxx_include_dirs COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
         echo "cxxflags=$(make print-CXXFLAGS COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
         echo "cppflags=$(make print-CPPFLAGS COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
-        echo "includes=$(make print-includes COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
+        echo "example_includes=$(make print-includes COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
+        cd ${{ env.TESTS_DIR }}
+        echo "test_includes=$(make print-includes COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
       working-directory: ${{ env.BINARYBH_EXAMPLE_DIR }}
 
     - name: Run clang-tidy on modified files
@@ -67,6 +70,7 @@ jobs:
         style: ''
         tidy-checks: ''
         repo-root: ${{ github.workspace }}/GRTeclyn
+        ignore: External
         version: ${{ env.LLVM_VERSION }}
         files-changed-only: true
         lines-changed-only: false
