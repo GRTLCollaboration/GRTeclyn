@@ -15,7 +15,8 @@ Checks: >
      performance-*,
      readability-*,
       -readability-magic-numbers,
-      -readability-avoid-const-params-in-decls
+      -readability-avoid-const-params-in-decls,
+      -readability-avoid-unconditional-preprocessor-if,
 WarningsAsErrors: ''
 HeaderFilterRegex: '.*\.hpp'
 FormatStyle:     none
