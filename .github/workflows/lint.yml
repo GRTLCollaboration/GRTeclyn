@@ -16,6 +16,8 @@ jobs:
       BINARYBH_EXAMPLE_DIR: ${{ github.workspace }}/GRTeclyn/Examples/BinaryBH
       TESTS_DIR: ${{ github.workspace }}/GRTeclyn/Tests
       TMP_BUILD_DIR: ${{ github.workspace }}/GRTeclyn/tmp_build_dir
+      COMPILATION_DATABASE: ${{ github.workspace }}/GRTeclyn/compile_commands.json
+      BUILD_ARGS: COMP=llvm USE_MPI=TRUE
 
     steps:
     - name: Checkout GRTeclyn
@@ -46,18 +48,17 @@ jobs:
       run: |
         sudo apt-get -y --no-install-recommends install libmpich-dev
 
-    - name: Generate config and Determine compiler flags
-      id: flags
+    - name: Install compiledb tool to generate compilation database
       run: |
-        make COMP=llvm AMReX_Config.H
-        echo "mpiflags=$(make print-mpicxx_include_dirs COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
-        echo "cxxflags=$(make print-CXXFLAGS COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
-        echo "cppflags=$(make print-CPPFLAGS COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
-        echo "example_includes=$(make print-includes COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
+        pip install --user compiledb
+
+    - name: Generate config and compilation database
+      run: |
+        cd ${{ env.BINARYBH_EXAMPLE_DIR }}
+        make ${{ env.BUILD_ARGS }} AMReX_Config.H
+        compiledb -o ${{ env.COMPILATION_DATABASE }} -n make ${{ env.BUILD_ARGS }}
         cd ${{ env.TESTS_DIR }}
-        # We will get duplicate includes but that's OK
-        echo "test_includes=$(make print-includes COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
-      working-directory: ${{ env.BINARYBH_EXAMPLE_DIR }}
+        compiledb -o ${{ env.COMPILATION_DATABASE }} -n make ${{ env.BUILD_ARGS }}
 
     - name: Run clang-tidy and clang-format on modified files
       uses: cpp-linter/cpp-linter-action@v2
@@ -72,7 +73,7 @@ jobs:
         version: ${{ env.LLVM_VERSION }}
         files-changed-only: true
         lines-changed-only: false
-        extra-args: ${{ join(steps.flags.outputs.*,' ') }}
+        database: ${{ github.workspace }}/GRTeclyn
         # Write a comment to the PR with the output
         thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
         step-summary: 'true' # Print output in the worflow job summary
