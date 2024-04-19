@@ -11,7 +11,7 @@ jobs:
     name: clang-tidy & clang-format
     runs-on: ubuntu-22.04
     env:
-      LLVM_VERSION: '16'
+      LLVM_VERSION: '17'
       AMREX_HOME: ${{ github.workspace }}/amrex
       BINARYBH_EXAMPLE_DIR: ${{ github.workspace }}/GRTeclyn/Examples/BinaryBH
       TESTS_DIR: ${{ github.workspace }}/GRTeclyn/Tests
