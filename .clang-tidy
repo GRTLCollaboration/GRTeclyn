@@ -19,7 +19,7 @@ Checks: >
       -readability-avoid-unconditional-preprocessor-if,
 WarningsAsErrors: ''
 HeaderFilterRegex: '.*\.hpp'
-FormatStyle:     none
+FormatStyle:     file
 CheckOptions:
   - key:             modernize-replace-auto-ptr.IncludeStyle
     value:           llvm
