@@ -7,8 +7,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  clang-tidy:
-    name: clang-tidy
+  cpp-linter:
+    name: clang-tidy & clang-format
     runs-on: ubuntu-22.04
     env:
       LLVM_VERSION: '16'
@@ -21,16 +21,13 @@ jobs:
     - name: Checkout GRTeclyn
       uses: actions/checkout@v4
       with:
-        clean: false
         path: GRTeclyn
-        submodules: true
 
     - name: Checkout AMReX
       uses: actions/checkout@v4
       with:
         repository: AMReX-Codes/amrex
         path: amrex
-        clean: false
 
     - name: Update package manager database
       id: update-database
@@ -58,10 +55,11 @@ jobs:
         echo "cppflags=$(make print-CPPFLAGS COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
         echo "example_includes=$(make print-includes COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
         cd ${{ env.TESTS_DIR }}
+        # We will get duplicate includes but that's OK
         echo "test_includes=$(make print-includes COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
       working-directory: ${{ env.BINARYBH_EXAMPLE_DIR }}
 
-    - name: Run clang-tidy on modified files
+    - name: Run clang-tidy and clang-format on modified files
       uses: cpp-linter/cpp-linter-action@v2
       id: linter
       env:
@@ -75,10 +73,11 @@ jobs:
         files-changed-only: true
         lines-changed-only: false
         extra-args: ${{ join(steps.flags.outputs.*,' ') }}
+        # Write a comment to the PR with the output
         thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
         step-summary: 'true' # Print output in the worflow job summary
 
-    - name: Fail fast?!
+    - name: Fail job if checks fail
       if: steps.linter.outputs.checks-failed > 0
       run: exit 1
 
