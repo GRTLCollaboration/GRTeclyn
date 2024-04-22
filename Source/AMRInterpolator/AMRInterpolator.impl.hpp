@@ -3,6 +3,10 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
+#if !defined(AMRINTERPOLATOR_HPP_)
+#error "This file should only be included through AMRInterpolator.hpp"
+#endif
+
 #ifndef AMRINTERPOLATOR_IMPL_HPP_
 #define AMRINTERPOLATOR_IMPL_HPP_
 

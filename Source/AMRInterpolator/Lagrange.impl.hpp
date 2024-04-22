@@ -3,6 +3,10 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
+#if !defined(LAGRANGE_HPP_)
+#error "This file should only be included through Lagrange.hpp"
+#endif
+
 #ifndef LAGRANGE_IMPL_HPP_
 #define LAGRANGE_IMPL_HPP_
 
