@@ -3,6 +3,10 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
+#if !defined(LAGRANGE_HPP_)
+#error "This file should only be included through Lagrange.hpp"
+#endif
+
 #ifndef LAGRANGE_IMPL_HPP_
 #define LAGRANGE_IMPL_HPP_
 
@@ -100,13 +104,13 @@ Lagrange<Order>::Stencil::Stencil(int width, int deriv, double dx,
     {
         amrex::Print() << TAG << "Created a stencil for deriv " << m_deriv
                        << " of width " << m_width << " for point "
-                       << m_point_offset << std::endl;
+                       << m_point_offset << '\n';
         amrex::Print() << "    Weights = { ";
         for (int i = 0; i < m_width; ++i)
         {
             amrex::Print() << m_weights[i] << " ";
         }
-        amrex::Print() << "}" << std::endl;
+        amrex::Print() << "}" << '\n';
     }
     // NOLINTEND(readability-simplify-boolean-expr)
 }
@@ -328,7 +332,7 @@ Lagrange<Order>::generateStencil(
         {
             amrex::Print() << my_weights[i] << " ";
         }
-        amrex::Print() << "}" << std::endl;
+        amrex::Print() << "}" << '\n';
     }
 
     // There is going to be potentially a LOT of temporary std::vectors getting

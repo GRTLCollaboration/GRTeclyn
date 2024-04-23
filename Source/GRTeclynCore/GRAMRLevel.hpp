@@ -91,7 +91,7 @@ class GRAMRLevel : public amrex::AmrLevel
     /**
      * \brief Operations to be done after restart.
      */
-    virtual void post_restart() override;
+    void post_restart() override;
     /**
      * \brief Init data on this level from another AmrLevel (during regrid).
      * This is a pure virtual function and hence MUST be

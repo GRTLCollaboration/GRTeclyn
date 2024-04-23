@@ -28,7 +28,7 @@ std::array<T, N + M> concatenate(const std::array<T, N> &first,
 }
 
 template <typename T, size_t N,
-          std::enable_if_t<std::is_arithmetic<T>::value, bool> = true>
+          std::enable_if_t<std::is_arithmetic_v<T>, bool> = true>
 T norm2(const std::array<T, N> &a_array)
 {
     T out = 0;
@@ -40,7 +40,7 @@ T norm2(const std::array<T, N> &a_array)
 }
 
 template <typename T, size_t N,
-          std::enable_if_t<std::is_arithmetic<T>::value, bool> = true>
+          std::enable_if_t<std::is_arithmetic_v<T>, bool> = true>
 std::string to_string(const std::array<T, N> a_array)
 {
     std::string out;

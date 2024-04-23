@@ -1,34 +1,35 @@
 name: Lint
 
-on: [push]
+on: [push, pull_request]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  clang-tidy:
-    name: clang-tidy
+  cpp-linter:
+    name: clang-tidy & clang-format
     runs-on: ubuntu-22.04
     env:
-      LLVM_VERSION: '16'
+      LLVM_VERSION: '17'
       AMREX_HOME: ${{ github.workspace }}/amrex
-      BINARYBH_EXAMPLE_DIR: ${{ github.workspace }}/Examples/BinaryBH
-      TMP_BUILD_DIR: ${{ github.workspace }}/tmp_build_dir
+      BINARYBH_EXAMPLE_DIR: ${{ github.workspace }}/GRTeclyn/Examples/BinaryBH
+      TESTS_DIR: ${{ github.workspace }}/GRTeclyn/Tests
+      TMP_BUILD_DIR: ${{ github.workspace }}/GRTeclyn/tmp_build_dir
+      COMPILATION_DATABASE: ${{ github.workspace }}/GRTeclyn/compile_commands.json
+      BUILD_ARGS: COMP=llvm USE_MPI=TRUE
 
     steps:
     - name: Checkout GRTeclyn
       uses: actions/checkout@v4
       with:
-        clean: false
-        submodules: true
+        path: GRTeclyn
 
     - name: Checkout AMReX
       uses: actions/checkout@v4
       with:
         repository: AMReX-Codes/amrex
         path: amrex
-        clean: false
 
     - name: Update package manager database
       id: update-database
@@ -47,25 +48,37 @@ jobs:
       run: |
         sudo apt-get -y --no-install-recommends install libmpich-dev
 
-    - name: Generate config and Determine compiler flags
-      id: flags
+    - name: Install compiledb tool to generate compilation database
       run: |
-        make COMP=llvm AMReX_Config.H
-        echo "mpiflags=$(make print-mpicxx_include_dirs COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
-        echo "cxxflags=$(make print-CXXFLAGS COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
-        echo "cppflags=$(make print-CPPFLAGS COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
-        echo "includes=$(make print-includes COMP=llvm | tail -n 3 | head -n 1 | sed 's/^.*\ is\ //')" >> $GITHUB_OUTPUT
-      working-directory: ${{ env.BINARYBH_EXAMPLE_DIR }}
+        pip install --user compiledb
 
-    - name: Run clang-tidy on modified files
-      uses: cpp-linter/cpp-linter-action@latest
+    - name: Generate config and compilation database
+      run: |
+        cd ${{ env.BINARYBH_EXAMPLE_DIR }}
+        make ${{ env.BUILD_ARGS }} AMReX_Config.H
+        compiledb -o ${{ env.COMPILATION_DATABASE }} -n make ${{ env.BUILD_ARGS }}
+        cd ${{ env.TESTS_DIR }}
+        compiledb -o ${{ env.COMPILATION_DATABASE }} -n make ${{ env.BUILD_ARGS }}
+
+    - name: Run clang-tidy and clang-format on modified files
+      uses: cpp-linter/cpp-linter-action@v2
+      id: linter
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        style: ''
-        tidy-checks: ''
+        style: 'file' # Clang-Format style
+        tidy-checks: '' # Use .clang-tidy file cheks
+        repo-root: ${{ github.workspace }}/GRTeclyn
+        ignore: External
         version: ${{ env.LLVM_VERSION }}
         files-changed-only: true
-        lines-changed-only: 'false'
-        extra-args: ${{ join(steps.flags.outputs.*,' ') }}
+        lines-changed-only: false
+        database: ${{ github.workspace }}/GRTeclyn
+        # Write a comment to the PR with the output
+        thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
+        step-summary: 'true' # Print output in the worflow job summary
+
+    - name: Fail job if checks fail
+      if: steps.linter.outputs.checks-failed > 0
+      run: exit 1
 
