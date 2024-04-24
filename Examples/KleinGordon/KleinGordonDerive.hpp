@@ -9,7 +9,7 @@
 
 
 
-void derive_func_fab(const amrex::Box & bx, amrex::FArrayBox& derfab,int dcomp, int /*numcomp*/,
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void derive_func_fab(const amrex::Box & bx, amrex::FArrayBox& derfab,int dcomp, int /*numcomp*/,
 		     const amrex::FArrayBox& datfab, const amrex::Geometry& geom, 
 		     const amrex::Real time, const int* /*bcomp*/, int /*scomp*/);
 
