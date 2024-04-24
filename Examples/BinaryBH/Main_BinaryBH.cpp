@@ -49,6 +49,8 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
 
     bh_amr.init(0., sim_params.stop_time);
 
+    auto start_time = std::chrono::steady_clock::now();
+
     while (
         (bh_amr.okToContinue() != 0) &&
         (bh_amr.levelSteps(0) < sim_params.max_steps ||
@@ -57,6 +59,13 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
     {
         bh_amr.coarseTimeStep(sim_params.stop_time);
     }
+
+    auto end_time = std::chrono::steady_clock::now();
+    auto elapsed  = std::chrono::duration_cast<std::chrono::duration<double>>(
+        end_time - start_time);
+
+    amrex::Print() << "Total simulation time = " << elapsed.count()
+                   << " secs\n";
 
     // Write final checkpoint and plotfile
     if (bh_amr.stepOfLastCheckPoint() < bh_amr.levelSteps(0) &&
@@ -82,11 +91,11 @@ int main(int argc, char *argv[])
 
     if (status == 0)
     {
-        amrex::Print() << "GRChombo finished." << std::endl;
+        amrex::Print() << "GRTeclyn finished." << std::endl;
     }
     else
     {
-        amrex::Print() << "GRChombo failed with return code " << status
+        amrex::Print() << "GRTeclyn failed with return code " << status
                        << std::endl;
     }
 
