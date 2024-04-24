@@ -64,8 +64,8 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
     auto elapsed  = std::chrono::duration_cast<std::chrono::duration<double>>(
         end_time - start_time);
 
-    amrex::Print() << "Total simulation time = " << elapsed.count()
-                   << " secs\n";
+    amrex::Print().SetPrecision(16)
+        << "Total simulation time = " << elapsed.count() << " secs\n";
 
     // Write final checkpoint and plotfile
     if (bh_amr.stepOfLastCheckPoint() < bh_amr.levelSteps(0) &&
