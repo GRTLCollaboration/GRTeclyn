@@ -28,6 +28,7 @@ struct CCZ4_base_params_t
     double kappa1;    //!< Damping parameter kappa1 as in arXiv:1106.2254
     double kappa2;    //!< Damping parameter kappa2 as in arXiv:1106.2254
     double kappa3;    //!< Damping parameter kappa3 as in arXiv:1106.2254
+    double kappac;    //!< Damping parameter kappac as in arXiv:1705.01071
     bool covariantZ4; //!< if true, replace kappa1->kappa1/lapse as in
                       //!<  arXiv:1307.7391 eq. 27
 };

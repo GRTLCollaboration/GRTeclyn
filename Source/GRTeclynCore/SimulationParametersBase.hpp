@@ -44,6 +44,7 @@ class SimulationParametersBase : public AMReXParameters
         pp.load("kappa1", ccz4_base_params.kappa1, 0.1);
         pp.load("kappa2", ccz4_base_params.kappa2, 0.0);
         pp.load("kappa3", ccz4_base_params.kappa3, 1.0);
+        pp.load("kappac", ccz4_base_params.kappac, 0.1);
         pp.load("covariantZ4", ccz4_base_params.covariantZ4, true);
         ccz4_params.kappa1      = ccz4_base_params.kappa1;
         ccz4_params.kappa2      = ccz4_base_params.kappa2;

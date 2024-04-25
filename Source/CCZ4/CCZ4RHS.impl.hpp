@@ -129,12 +129,19 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
 
     // A^{ij} A_{ij}. - Note the abuse of the compute trace function.
     data_t tr_A2 = compute_trace(vars.A, A_UU);
+    data_t tr_A  = compute_trace(vars.A, h_UU);
+    data_t det_h = compute_determinant(vars.h);
     rhs.chi      = advec.chi +
               (2.0 / GR_SPACEDIM) * vars.chi * (vars.lapse * vars.K - divshift);
     FOR (i, j)
     {
-        rhs.h[i][j] = advec.h[i][j] - 2.0 * vars.lapse * vars.A[i][j] -
-                      (2.0 / GR_SPACEDIM) * vars.h[i][j] * divshift;
+        rhs.h[i][j] =
+            advec.h[i][j] -
+            2.0 * vars.lapse *
+                (vars.A[i][j] - (1.0 / GR_SPACEDIM) * vars.h[i][j] * tr_A) -
+            (2.0 / GR_SPACEDIM) * vars.h[i][j] * divshift -
+            (m_params.kappac / GR_SPACEDIM) * vars.lapse * vars.h[i][j] *
+                log(det_h);
         FOR (k)
         {
             rhs.h[i][j] +=
@@ -154,7 +161,8 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
     {
         rhs.A[i][j] = advec.A[i][j] + Adot_TF[i][j] +
                       vars.A[i][j] * (vars.lapse * (vars.K - 2 * vars.Theta) -
-                                      (2.0 / GR_SPACEDIM) * divshift);
+                                      (2.0 / GR_SPACEDIM) * divshift) -
+                      (m_params.kappac / GR_SPACEDIM) * vars.lapse * tr_A;
         FOR (k)
         {
             rhs.A[i][j] +=
