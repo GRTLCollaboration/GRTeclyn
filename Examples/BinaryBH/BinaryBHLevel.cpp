@@ -10,7 +10,7 @@
 #include "PositiveChiAndAlpha.hpp"
 #include "PunctureTracker.hpp"
 // xxxxx #include "SixthOrderDerivatives.hpp"
-#include "TraceARemoval.hpp"
+// #include "TraceARemoval.hpp"
 #include "TwoPuncturesInitialData.hpp"
 #include "Weyl4.hpp"
 #include "WeylExtraction.hpp"
@@ -27,7 +27,7 @@ void BinaryBHLevel::specificAdvance()
                        {
                            amrex::CellData<amrex::Real> cell =
                                arrs[box_no].cellData(i, j, k);
-                           TraceARemoval()(cell);
+                           //    TraceARemoval()(cell);
                            PositiveChiAndAlpha()(cell);
                        });
 
@@ -99,7 +99,7 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                        {
                            amrex::CellData<amrex::Real> cell =
                                soln_arrs[box_no].cellData(i, j, k);
-                           TraceARemoval()(cell);
+                           //    TraceARemoval()(cell);
                            PositiveChiAndAlpha()(cell);
                        });
 
@@ -143,7 +143,7 @@ void BinaryBHLevel::specificUpdateODE(amrex::MultiFab &a_soln)
                        {
                            amrex::CellData<amrex::Real> cell =
                                soln_arrs[box_no].cellData(i, j, k);
-                           TraceARemoval()(cell);
+                           //    TraceARemoval()(cell);
                        });
 }
 
