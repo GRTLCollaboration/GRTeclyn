@@ -1,2 +1,2 @@
-CEXE_sources += KleinGordonLevel.cpp Main_KleinGordon.cpp KleinGordonDerive.cpp InitialConditions.cpp Potential.cpp
+CEXE_sources += KleinGordonLevel.cpp Main_KleinGordon.cpp InitialConditions.cpp Potential.cpp
 CEXE_headers += KleinGordon.hpp KleinGordonLevel.hpp InitialConditions.H Potential.H UserVariables.hpp SimulationParameters.hpp DiagnosticVariables.hpp

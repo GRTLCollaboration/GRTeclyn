@@ -4,25 +4,6 @@ include $(GRTECLYN_HOME)/Tools/GNUMake/Make.defaults
 
 AMREX_HOME ?= $(realpath ../../../amrex)
 
-DEBUG = FALSE
-
-DIM = 3
-
-USE_MPI = TRUE
-USE_OMP = FALSE
-
-USE_CUDA  = FALSE
-USE_HIP   = FALSE
-USE_SYCL  = FALSE
-
-#No Fortran
-BL_NO_FORT = TRUE
-# No Fortran probin file
-AMREX_NO_PROBINIT = TRUE
-
-CXXSTD=c++17
-
-COMP=intel-llvm
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
