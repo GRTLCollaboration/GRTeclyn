@@ -9,10 +9,9 @@
 #include "SetupFunctions.hpp"
 #include "SimulationParameters.hpp"
 
-
 // Problem specific includes:
-#include "KleinGordonLevel.hpp"
 #include "KleinGordon.hpp" // TPAMR code conditional compiled on USE_TWOPUNCTURES
+#include "KleinGordonLevel.hpp"
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
 int runGRTeclyn(int /*argc*/, char * /*argv*/[])
@@ -35,14 +34,12 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
 
     KleinGordon amr(&KleinGordon_level_bld);
 
-
     amr.init(0., sim_params.stop_time);
 
-    while (
-        (amr.okToContinue() != 0) &&
-        (amr.levelSteps(0) < sim_params.max_steps ||
-         sim_params.max_steps < 0) &&
-        (amr.cumTime() < sim_params.stop_time || sim_params.stop_time < 0.0))
+    while ((amr.okToContinue() != 0) &&
+           (amr.levelSteps(0) < sim_params.max_steps ||
+            sim_params.max_steps < 0) &&
+           (amr.cumTime() < sim_params.stop_time || sim_params.stop_time < 0.0))
     {
         amr.coarseTimeStep(sim_params.stop_time);
     }

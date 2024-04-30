@@ -9,13 +9,14 @@
 // assign an enum to each variable
 enum
 {
- c_frac_error, 
- NUM_DIAGNOSTIC_VARS,
+    c_frac_error,
+    NUM_DIAGNOSTIC_VARS,
 };
 
 namespace DiagnosticVariables
 {
-  static const std::array<std::string, NUM_DIAGNOSTIC_VARS> variable_names = {"frac_error"};
+static const std::array<std::string, NUM_DIAGNOSTIC_VARS> variable_names = {
+    "frac_error"};
 }
 
 #endif /* DIAGNOSTICVARIABLES_HPP */
