@@ -162,7 +162,7 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
         rhs.A[i][j] = advec.A[i][j] + Adot_TF[i][j] +
                       vars.A[i][j] * (vars.lapse * (vars.K - 2 * vars.Theta) -
                                       (2.0 / GR_SPACEDIM) * divshift) -
-                      (m_params.kappac / GR_SPACEDIM) * vars.lapse * tr_A;
+                      vars.h[i][j] * (m_params.kappac / GR_SPACEDIM) * vars.lapse * tr_A;
         FOR (k)
         {
             rhs.A[i][j] +=
