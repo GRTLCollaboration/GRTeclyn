@@ -56,9 +56,8 @@ template <class matter_t> class ChiRelaxation
     //! rhs_equation()
     template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    compute(int i, int j, int k, amrex::Array4<data_t> &rhs,
-            amrex::Array4<data_t const> &state) const;
-
+    compute(int i, int j, int k, const amrex::Array4<data_t> &rhs,
+            const amrex::Array4<data_t const> &state) const;
   protected:
     matter_t my_matter;         //!< The matter object, e.g. a scalar field.
     const double m_relax_speed; //!< The coefficient of the Hamiltonian used to

@@ -61,7 +61,6 @@ template <class matter_t> class MatterConstraints : public Constraints
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     compute(int i, int j, int k, const amrex::Array4<data_t> &cst,
             const amrex::Array4<data_t const> &state) const;
-
   protected:
     matter_t my_matter; //!< The matter object, e.g. a scalar field
     double m_G_Newton;  //!< Newton's constant, set to one by default.
