@@ -40,7 +40,8 @@ EMTensor<matter_t>::EMTensor(const matter_t &a_matter, const double dx,
 
 template <class matter_t>
 template <class data_t>
-void EMTensor<matter_t>::compute(Cell<data_t> current_cell) const
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+EMTensor<matter_t>::compute(Cell<data_t> current_cell) const
 {
     const auto vars = current_cell.template load_vars<Vars>();
     const auto d1   = m_deriv.template diff1<Vars>(current_cell);

@@ -12,7 +12,8 @@
 
 template <class matter_t>
 template <class data_t>
-void MatterWeyl4<matter_t>::compute(Cell<data_t> current_cell) const
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+MatterWeyl4<matter_t>::compute(Cell<data_t> current_cell) const
 {
 
     // copy data from chombo gridpoint into local variables
@@ -49,12 +50,10 @@ void MatterWeyl4<matter_t>::compute(Cell<data_t> current_cell) const
 
 template <class matter_t>
 template <class data_t>
-void MatterWeyl4<matter_t>::add_matter_EB(EBFields_t<data_t> &ebfields,
-                                          const Vars<data_t> &vars,
-                                          const Vars<Tensor<1, data_t>> &d1,
-                                          const Tensor<3, data_t> &epsilon3_LUU,
-                                          const Tensor<2, data_t> &h_UU,
-                                          const chris_t<data_t> &chris) const
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void MatterWeyl4<matter_t>::add_matter_EB(
+    EBFields_t<data_t> &ebfields, const Vars<data_t> &vars,
+    const Vars<Tensor<1, data_t>> &d1, const Tensor<3, data_t> &epsilon3_LUU,
+    const Tensor<2, data_t> &h_UU, const chris_t<data_t> &chris) const
 {
     // Calculate decomposed energy momentum tensor components
     const auto emtensor = m_matter.compute_emtensor(vars, d1, h_UU, chris.ULL);

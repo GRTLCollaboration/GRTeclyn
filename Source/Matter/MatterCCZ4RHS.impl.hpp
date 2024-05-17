@@ -23,7 +23,8 @@ MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::MatterCCZ4RHS(
 
 template <class matter_t, class gauge_t, class deriv_t>
 template <class data_t>
-void MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::compute(
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::compute(
     Cell<data_t> current_cell) const
 {
     // copy data from chombo gridpoint into local variables
@@ -53,7 +54,8 @@ void MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::compute(
 // Function to add in EM Tensor matter terms to CCZ4 rhs
 template <class matter_t, class gauge_t, class deriv_t>
 template <class data_t>
-void MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
     Vars<data_t> &matter_rhs, const Vars<data_t> &matter_vars,
     const Vars<Tensor<1, data_t>> &d1) const
 {

@@ -26,7 +26,9 @@ template <class matter_t> class EMTensor
              const Interval a_c_Si  = Interval(),
              const Interval a_c_Sij = Interval());
 
-    template <class data_t> void compute(Cell<data_t> current_cell) const;
+    template <class data_t>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    compute(Cell<data_t> current_cell) const;
 
   protected:
     const matter_t &m_matter;

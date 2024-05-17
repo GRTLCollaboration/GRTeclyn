@@ -24,7 +24,8 @@ MatterConstraints<matter_t>::MatterConstraints(
 
 template <class matter_t>
 template <class data_t>
-void MatterConstraints<matter_t>::compute(Cell<data_t> current_cell) const
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+MatterConstraints<matter_t>::compute(Cell<data_t> current_cell) const
 {
     // Load local vars and calculate derivs
     const auto vars = current_cell.template load_vars<BSSNMatterVars>();

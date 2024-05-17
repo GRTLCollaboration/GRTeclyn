@@ -57,7 +57,9 @@ template <class matter_t> class MatterConstraints : public Constraints
 
     //! The compute member which calculates the constraints at each point in the
     //! box
-    template <class data_t> void compute(Cell<data_t> current_cell) const;
+    template <class data_t>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    compute(Cell<data_t> current_cell) const;
 
   protected:
     matter_t my_matter; //!< The matter object, e.g. a scalar field

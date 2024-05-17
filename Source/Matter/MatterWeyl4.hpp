@@ -34,7 +34,9 @@ template <class matter_t> class MatterWeyl4 : public Weyl4
 
     //! The compute member which calculates the wave quantities at each point on
     //! the grid
-    template <class data_t> void compute(Cell<data_t> current_cell) const;
+    template <class data_t>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    compute(Cell<data_t> current_cell) const;
 
   protected:
     matter_t m_matter;       //!< The matter object, e.g. a scalar field
@@ -42,11 +44,12 @@ template <class matter_t> class MatterWeyl4 : public Weyl4
 
     //! Add matter terms to electric and magnetic parts
     template <class data_t>
-    void add_matter_EB(EBFields_t<data_t> &eb_fields, const Vars<data_t> &vars,
-                       const Vars<Tensor<1, data_t>> &d1,
-                       const Tensor<3, data_t> &epsilon3_LUU,
-                       const Tensor<2, data_t> &h_UU,
-                       const chris_t<data_t> &chris) const;
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    add_matter_EB(EBFields_t<data_t> &eb_fields, const Vars<data_t> &vars,
+                  const Vars<Tensor<1, data_t>> &d1,
+                  const Tensor<3, data_t> &epsilon3_LUU,
+                  const Tensor<2, data_t> &h_UU,
+                  const chris_t<data_t> &chris) const;
 };
 
 #include "MatterWeyl4.impl.hpp"
