@@ -25,12 +25,16 @@ MatterConstraints<matter_t>::MatterConstraints(
 template <class matter_t>
 template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-MatterConstraints<matter_t>::compute(Cell<data_t> current_cell) const
+MatterConstraints<matter_t>::compute(int i, int j, int k,
+                                     amrex::Array4<data_t> &cst,
+                                     amrex::Array4<data_t const> &state) const
 {
     // Load local vars and calculate derivs
-    const auto vars = current_cell.template load_vars<BSSNMatterVars>();
-    const auto d1   = m_deriv.template diff1<BSSNMatterVars>(current_cell);
-    const auto d2   = m_deriv.template diff2<BSSNMatterVars>(current_cell);
+    const auto vars = load_vars<BSSNMatterVars>(state.CellData(i, j, k));
+    const auto d1 =
+        m_deriv.template diff1<BSSNMatterVars>(state.CellData(i, j, k));
+    const auto d2 =
+        m_deriv.template diff2<BSSNMatterVars>(state.CellData(i, j, k));
 
     // Inverse metric and Christoffel symbol
     const auto h_UU  = TensorAlgebra::compute_inverse_sym(vars.h);
@@ -60,7 +64,7 @@ MatterConstraints<matter_t>::compute(Cell<data_t> current_cell) const
         }
     }
     // Write the constraints into the output FArrayBox
-    store_vars(out, current_cell);
+    store_vars(out, cst.CellData(i, j, k));
 }
 
 #endif /* NEWMATTERCONSTRAINTS_IMPL_HPP_ */

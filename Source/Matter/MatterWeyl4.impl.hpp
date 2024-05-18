@@ -13,16 +13,19 @@
 template <class matter_t>
 template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-MatterWeyl4<matter_t>::compute(Cell<data_t> current_cell) const
+MatterWeyl4<matter_t>::compute(int i, int j, int k,
+                               amrex::Array4<data_t> &derive,
+                               amrex::Array4<data_t const> &state) const
 {
 
     // copy data from chombo gridpoint into local variables
-    const auto vars = current_cell.template load_vars<Vars>();
-    const auto d1   = m_deriv.template diff1<Vars>(current_cell);
-    const auto d2   = m_deriv.template diff2<Diff2Vars>(current_cell);
+    const auto vars = load_vars<Vars>(state.CellData(i, j, k));
+    const auto d1   = m_deriv.template diff1<Vars>(state.CellData(i, j, k));
+    const auto d2 = m_deriv.template diff2<Diff2Vars>(state.CellData(i, j, k));
 
     // Get the coordinates
-    const Coordinates<data_t> coords(current_cell, m_dx, m_center);
+    amrex::IntVect cell_coords(AMREX_D_DECL(i, j, k));
+    const Coordinates<data_t> coords(cell_coords, m_dx, m_center);
 
     // Compute the inverse metric
     using namespace TensorAlgebra;
@@ -44,8 +47,10 @@ MatterWeyl4<matter_t>::compute(Cell<data_t> current_cell) const
         compute_Weyl4(ebfields, vars, d1, d2, h_UU, coords);
 
     // Write the rhs into the output FArrayBox
-    current_cell.store_vars(out.Real, c_Weyl4_Re);
-    current_cell.store_vars(out.Im, c_Weyl4_Im);
+    derive(i, j, k, m_dcomp)     = out.Real;
+    derive(i, j, k, m_dcomp + 1) = out.Im;
+    //    current_cell.store_vars(out.Real, c_Weyl4_Re);
+    //    current_cell.store_vars(out.Im, c_Weyl4_Im);
 }
 
 template <class matter_t>

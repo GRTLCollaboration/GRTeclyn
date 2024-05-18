@@ -21,12 +21,17 @@ MatterConstraints<matter_t>::MatterConstraints(const matter_t a_matter,
 
 template <class matter_t>
 template <class data_t>
-void MatterConstraints<matter_t>::compute(Cell<data_t> current_cell) const
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+MatterConstraints<matter_t>::compute(int i, int j, int k,
+                                     amrex::Array4<data_t> &cst,
+                                     amrex::Array4<data_t const> &state) const
 {
     // Load local vars and calculate derivs
-    const auto vars = current_cell.template load_vars<BSSNMatterVars>();
-    const auto d1   = m_deriv.template diff1<BSSNMatterVars>(current_cell);
-    const auto d2   = m_deriv.template diff2<BSSNMatterVars>(current_cell);
+    const auto vars = load_vars<BSSNMatterVars>(state.CellData(i, j, k));
+    const auto d1 =
+        m_deriv.template diff1<BSSNMatterVars>(state.CellData(i, j, k));
+    const auto d2 =
+        m_deriv.template diff2<BSSNMatterVars>(state.CellData(i, j, k));
 
     // Get the non matter terms for the constraints
     Vars<data_t> out = constraint_equations(vars, d1, d2);
@@ -48,7 +53,7 @@ void MatterConstraints<matter_t>::compute(Cell<data_t> current_cell) const
     }
 
     // Write the constraints into the output FArrayBox
-    current_cell.store_vars(out);
+    store_vars(out, cst.cellData(i, j, k));
 }
 
 #endif /* MATTERCONSTRAINTS_IMPL_HPP_ */

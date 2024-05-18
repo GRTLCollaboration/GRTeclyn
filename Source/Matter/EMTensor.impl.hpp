@@ -41,10 +41,11 @@ EMTensor<matter_t>::EMTensor(const matter_t &a_matter, const double dx,
 template <class matter_t>
 template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-EMTensor<matter_t>::compute(Cell<data_t> current_cell) const
+EMTensor<matter_t>::compute(int i, int j, int k,
+                            amrex::Array4<data_t> &state) const
 {
-    const auto vars = current_cell.template load_vars<Vars>();
-    const auto d1   = m_deriv.template diff1<Vars>(current_cell);
+    const auto vars = load_vars<Vars>(state.cellData(i, j, k));
+    const auto d1   = m_deriv.template diff1<Vars>(i, j, k, state);
 
     using namespace TensorAlgebra;
 
@@ -55,7 +56,7 @@ EMTensor<matter_t>::compute(Cell<data_t> current_cell) const
 
     if (m_c_rho >= 0)
     {
-        current_cell.store_vars(emtensor.rho, m_c_rho);
+        state(i, j, k, m_c_rho) = emtensor.rho;
     }
 
     if (m_c_Si.size() > 0)
@@ -63,7 +64,7 @@ EMTensor<matter_t>::compute(Cell<data_t> current_cell) const
 #if DEFAULT_TENSOR_DIM == 3
         FOR (i)
         {
-            current_cell.store_vars(emtensor.Si[i], m_c_Si.begin() + i);
+            state(i, j, k, m_c_Si.begin() + i) = emtensor.Si[i];
         }
 #endif
     }
@@ -71,12 +72,13 @@ EMTensor<matter_t>::compute(Cell<data_t> current_cell) const
     if (m_c_Sij.size() > 0)
     {
 #if DEFAULT_TENSOR_DIM == 3
-        current_cell.store_vars(emtensor.Sij[0][0], m_c_Sij.begin());
-        current_cell.store_vars(emtensor.Sij[0][1], m_c_Sij.begin() + 1);
-        current_cell.store_vars(emtensor.Sij[0][2], m_c_Sij.begin() + 2);
-        current_cell.store_vars(emtensor.Sij[1][1], m_c_Sij.begin() + 3);
-        current_cell.store_vars(emtensor.Sij[1][2], m_c_Sij.begin() + 4);
-        current_cell.store_vars(emtensor.Sij[2][2], m_c_Sij.begin() + 5);
+        state(i, j, k, m_c_Sij.begin())     = emtensor.Sij[0][0];
+        state(i, j, k, m_c_Sij.begin() + 1) = emtensor.Sij[0][1];
+        state(i, j, k, m_c_Sij.begin() + 2) = emtensor.Sij[0][2];
+        state(i, j, k, m_c_Sij.begin() + 3) = emtensor.Sij[1][1];
+        state(i, j, k, m_c_Sij.begin() + 4) = emtensor.Sij[1][2];
+        state(i, j, k, m_c_Sij.begin() + 5) = emtensor.Sij[2][2];
+
 #endif
     }
 }

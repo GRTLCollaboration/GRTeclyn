@@ -21,15 +21,17 @@ ChiRelaxation<matter_t>::ChiRelaxation(matter_t a_matter, double dx,
 template <class matter_t>
 template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-ChiRelaxation<matter_t>::compute(Cell<data_t> current_cell) const
+ChiRelaxation<matter_t>::compute(int i, int j, int k,
+                                 amrex::Array4<data_t> &rhs,
+                                 amrex::Array4<data_t const> &state) const
 {
 
     // copy data from chombo gridpoint into local variable and calculate derivs
-    const auto vars = current_cell.template load_vars<Vars>();
-    const auto d1   = m_deriv.template diff1<Vars>(current_cell);
-    const auto d2   = m_deriv.template diff2<Diff2Vars>(current_cell);
+    const auto vars = load_vars<Vars>(state.cellData(i, j, k));
+    const auto d1   = m_deriv.template diff1<Vars>(state.cellData(i, j, k));
+    const auto d2 = m_deriv.template diff2<Diff2Vars>(state.cellData(i, j, k));
     const auto advec =
-        m_deriv.template advection<Vars>(current_cell, vars.shift);
+        m_deriv.template advection<Vars>(state.cellData(i, j, k), vars.shift);
 
     // work out RHS including advection
     Vars<data_t> rhs;
@@ -39,7 +41,7 @@ ChiRelaxation<matter_t>::compute(Cell<data_t> current_cell) const
     rhs_equation(rhs, vars, d1, d2, advec);
 
     // Write the rhs into the output FArrayBox
-    current_cell.store_vars(rhs);
+    store_vars(state.cellData(i, j, k), rhs);
 }
 
 template <class matter_t>

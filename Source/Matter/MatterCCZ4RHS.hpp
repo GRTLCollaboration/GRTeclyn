@@ -95,7 +95,8 @@ class MatterCCZ4RHS : public CCZ4RHS<gauge_t, deriv_t>
     //!  \sa matter_rhs_equation()
     template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    compute(Cell<data_t> current_cell) const;
+    compute(int i, int j, int k, const amrex::Array4<data_t> &rhs,
+            const amrex::Array4<data_t const> &state) const;
 
   protected:
     //! The function which adds in the EM Tensor terms to the CCZ4 rhs \sa

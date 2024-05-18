@@ -8,9 +8,9 @@
 
 #include "CCZ4Geometry.hpp"
 #include "Cell.hpp"
-#include "Constraints.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "GRInterval.hpp"
+#include "NewConstraints.hpp"
 #include "Tensor.hpp"
 #include "simd.hpp"
 #include <array>
@@ -59,7 +59,10 @@ class [[deprecated("Use new MatterConstraints class in "
 
     //! The compute member which calculates the constraints at each point in the
     //! box
-    template <class data_t> void compute(Cell<data_t> current_cell) const;
+    template <class data_t>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    compute(int i, int j, int k, amrex::Array4<data_t> &cst,
+            amrex::Array4<data_t> const &state) const;
 
   protected:
     matter_t my_matter; //!< The matter object, e.g. a scalar field
