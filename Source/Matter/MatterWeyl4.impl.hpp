@@ -13,7 +13,6 @@
 template <class matter_t>
 template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-
 MatterWeyl4<matter_t>::compute(int i, int j, int k,
                                const amrex::Array4<data_t> &derive,
                                const amrex::Array4<data_t const> &state) const

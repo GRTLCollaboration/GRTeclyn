@@ -30,7 +30,6 @@ template <class matter_t> class EMTensor
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     compute(int i, int j, int k, const amrex::Array4<data_t> &state) const;
 
-
   protected:
     const matter_t &m_matter;
     FourthOrderDerivatives m_deriv;

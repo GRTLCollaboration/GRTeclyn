@@ -61,6 +61,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void MatterConstraints<matter_t>::compute(
         }
     }
     // Write the constraints into the output FArrayBox
+
     store_vars(out, cst.cellData(i, j, k));
 }
 
