@@ -72,6 +72,9 @@ jobs:
         if [[ "${{ matrix.comp }}" == "llvm" && "${{ matrix.omp }}" == "TRUE" ]]; then
           PACKAGES="${PACKAGES} libomp-${{ matrix.comp-version }}-dev"
         fi
+        if [[ "${{ matrix.comp }}" == "gnu" ]]; then
+          PACKAGES="${PACKAGES} cpp-${{ matrix.comp-version }}"
+        fi
         if [[ "$PACKAGES" != "" ]]; then
           sudo apt-get -y --no-install-recommends install $PACKAGES
         fi
@@ -82,6 +85,9 @@ jobs:
       run: |
         if [[ "${{ matrix.comp }}" == "gnu" ]]; then
           sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${{ matrix.comp-version }} 1000
+          # workaround for https://answers.launchpad.net/ubuntu/+question/816000
+          sudo update-alternatives --remove-all cpp
+          sudo rm -rf /etc/alternatives/cpp
           sudo update-alternatives --install /usr/bin/cpp cpp /usr/bin/cpp-${{ matrix.comp-version }} 1000
           g++ --version
           cpp --version
