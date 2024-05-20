@@ -8,29 +8,29 @@ concurrency:
 
 jobs:
   tests:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         comp: ['gnu', 'llvm']
         mpi: ['FALSE', 'TRUE']
         debug: ['FALSE', 'TRUE']
         omp: ['FALSE', 'TRUE']
-        comp-version: [9, 10, 11, 12, 13, 14, 15]
+        comp-version: [12, 13, 14, 16, 17, 18]
         exclude:
-            # see available compiler versions here: https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2204-Readme.md
-          - comp-version: 9
-            comp: 'llvm'
-          - comp-version: 10
-            comp: 'llvm'
-          - comp-version: 11
-            comp: 'llvm'
+            # see available compiler versions here: https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md
           - comp-version: 12
             comp: 'llvm'
+          - comp-version: 13
+            comp: 'llvm'
           - comp-version: 14
+            comp: 'llvm'
+          - comp-version: 16
             comp: 'gnu'
-          - comp-version: 15
+          - comp-version: 17
             comp: 'gnu'
-                
+          - comp-version: 18
+            comp: 'gnu'
+
     name: ${{ matrix.comp }} ${{ matrix.comp-version }}, DEBUG = ${{ matrix.debug }}, USE_MPI = ${{ matrix.mpi }}, USE_OMP = ${{ matrix.omp }}
     env:
       AMREX_HOME: ${{ github.workspace }}/amrex
@@ -66,7 +66,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        if [[ "${{ matrix.mpi }}" == "TRUE" ]]; then 
+        if [[ "${{ matrix.mpi }}" == "TRUE" ]]; then
           PACKAGES="libmpich-dev"
         fi
         if [[ "${{ matrix.comp }}" == "llvm" && "${{ matrix.omp }}" == "TRUE" ]]; then

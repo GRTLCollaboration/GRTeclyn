@@ -9,7 +9,7 @@ concurrency:
 jobs:
   binarybh:
     name: BinaryBH
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       AMREX_HOME: ${{ github.workspace }}/amrex
       BINARYBH_EXAMPLE_DIR: ${{ github.workspace }}/GRTeclyn/Examples/BinaryBH
@@ -44,9 +44,9 @@ jobs:
 
     - name: Set Compilers
       run: |
-        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 120
-        sudo update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-12 120
-        sudo update-alternatives --install /usr/bin/cpp cpp /usr/bin/cpp-12 120
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 140
+        sudo update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-14 140
+        sudo update-alternatives --install /usr/bin/cpp cpp /usr/bin/cpp-14 140
 
     - name: Build BinaryBH example
       run: make -j 4

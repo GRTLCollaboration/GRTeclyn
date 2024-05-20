@@ -23,7 +23,7 @@ jobs:
           - debug: 'FALSE'
             gpu-backend: 'SYCL'
 
-                
+
     name: ${{ matrix.gpu-backend }}, DEBUG = ${{ matrix.debug }}
     env:
       AMREX_HOME: ${{ github.workspace }}/amrex
