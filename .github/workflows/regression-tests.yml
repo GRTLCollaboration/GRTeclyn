@@ -13,6 +13,7 @@ jobs:
     env:
       AMREX_HOME: ${{ github.workspace }}/amrex
       BINARYBH_EXAMPLE_DIR: ${{ github.workspace }}/GRTeclyn/Examples/BinaryBH
+      GCC_VERSION: 14
 
     steps:
     - name: Checkout AMReX
@@ -44,9 +45,9 @@ jobs:
 
     - name: Set Compilers
       run: |
-        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 140
-        sudo update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-14 140
-        sudo update-alternatives --install /usr/bin/cpp cpp /usr/bin/cpp-14 140
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${{ env.GCC_VERSION }} 1000
+        sudo update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-${{ env.GCC_VERSION }} 100
+        sudo update-alternatives --install /usr/bin/cpp cpp /usr/bin/cpp-${{ env.GCC_VERSION }} 1000
 
     - name: Build BinaryBH example
       run: make -j 4
