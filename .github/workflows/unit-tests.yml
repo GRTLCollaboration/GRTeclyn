@@ -36,7 +36,7 @@ jobs:
       AMREX_HOME: ${{ github.workspace }}/amrex
       OMP_NUM_THREADS: 1
       TESTS_DIR: ${{ github.workspace }}/GRTeclyn/Tests
-      BUILD_ARGS: COMP=${{ matrix.comp }} DEBUG=${{ matrix.debug}} USE_MPI=${{ matrix.mpi }} USE_OMP=${{ matrix.omp }}
+      BUILD_CONFIG: COMP=${{ matrix.comp }} DEBUG=${{ matrix.debug}} USE_MPI=${{ matrix.mpi }} USE_OMP=${{ matrix.omp }}
 
     steps:
     - name: Checkout AMReX
@@ -92,10 +92,13 @@ jobs:
           g++ --version
           cpp --version
           echo "mpich_cxx=g++" >> $GITHUB_OUTPUT
+          echo "build_args=${BUILD_CONFIG}" >> $GITHUB_OUTPUT
         elif [[ "${{ matrix.comp }}" == "llvm" ]]; then
           sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${{ matrix.comp-version }} 1000
           clang++ --version
           echo "mpich_cxx=clang++" >> $GITHUB_OUTPUT
+          # Use the LLD linker with LLVM
+          echo "build_args=${BUILD_CONFIG} LDFLAGS=-fuse-ld=lld" >> $GITHUB_OUTPUT
         fi
 
 
@@ -103,8 +106,8 @@ jobs:
       working-directory: ${{ env.TESTS_DIR }}
       run: |
         export MPICH_CXX=${{ steps.set-compilers.outputs.mpich_cxx }}
-        make -j 4 ${{ env.BUILD_ARGS }}
+        make -j 4 ${{ steps.set-compilers.outputs.build_args }}
 
     - name: Run tests
       working-directory: ${{ env.TESTS_DIR }}
-      run: make run ${{ env.BUILD_ARGS }}
+      run: make run ${{ env.BUILD_CONFIG }}
