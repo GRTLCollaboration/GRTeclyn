@@ -188,8 +188,8 @@ void AMRInterpolator<InterpAlgo>::interp(InterpolationQuery &query)
             VariableType type = std::get<2>(comps_it);
             for (int point_idx = 0; point_idx < query.numPoints(); ++point_idx)
             {
-                int parity = get_var_parity(comp, type, point_idx, query,
-                                            deriv_it->first);
+                int parity = get_state_var_parity(comp, point_idx, query,
+                                                  deriv_it->first);
                 out[point_idx] =
                     parity * m_query_data[comp_idx][m_mpi_mapping[point_idx]];
             }
@@ -872,22 +872,10 @@ void AMRInterpolator<InterpAlgo>::set_reflective_BC()
 }
 
 template <typename InterpAlgo>
-int AMRInterpolator<InterpAlgo>::get_var_parity(int comp,
-                                                const VariableType type,
-                                                int point_idx,
-                                                const InterpolationQuery &query,
-                                                const Derivative &deriv) const
+int AMRInterpolator<InterpAlgo>::get_state_var_parity(
+    int comp, int point_idx, const InterpolationQuery &query,
+    const Derivative &deriv) const
 {
-    // check done every time because only one of the variables may be of
-    // diagnostic type
-    if (type == VariableType::diagnostic &&
-        m_bc_params.vars_parity_diagnostic[comp] ==
-            BoundaryConditions::UNDEFINED &&
-        m_bc_params.reflective_boundaries_exist)
-    {
-        amrex::Abort("Please provide parameter 'vars_parity_diagnostic' if "
-                     "extracting diagnostic variables with reflective BC");
-    }
 
     int parity = 1;
     FOR (dir)
@@ -897,8 +885,7 @@ int AMRInterpolator<InterpAlgo>::get_var_parity(int comp,
             (m_hi_boundary_reflective[dir] && coord > m_upper_corner[dir]))
         {
 
-            parity *= BoundaryConditions::get_var_parity(comp, dir, m_bc_params,
-                                                         type);
+            parity *= BoundaryConditions::get_state_var_parity(comp, dir);
             if (deriv[dir] == 1)
             { // invert parity to first derivatives
                 parity *= -1;
