@@ -7,6 +7,7 @@
 #define USERVARIABLES_HPP
 
 #include "ArrayTools.hpp"
+#include "BCParity.hpp"
 #include "CCZ4UserVariables.hpp"
 #include "DiagnosticVariables.hpp"
 
@@ -22,6 +23,9 @@ namespace UserVariables
 {
 static const std::array<std::string, NUM_VARS> variable_names =
     ccz4_variable_names;
+
+static const std::array<BCParity, NUM_VARS> variable_parities =
+    ccz4_variable_parities;
 } // namespace UserVariables
 
 #include "UserVariables.inc.hpp"

@@ -452,31 +452,6 @@ class AMReXParameters
                         "should be a valid directory");
         // pout directory exists - we create it in read_filesystem_params()
         // can't check hdf5 directory yet - only created after
-
-        if (boundary_params.reflective_boundaries_exist)
-        {
-            for (int ivar = 0; ivar < NUM_VARS; ++ivar)
-            {
-                std::string name = "vars_parity[c_" +
-                                   UserVariables::variable_names[ivar] + "]";
-                int var_parity = boundary_params.vars_parity[ivar];
-                check_parameter(name, var_parity,
-                                var_parity >= BoundaryConditions::EVEN &&
-                                    var_parity < BoundaryConditions::UNDEFINED,
-                                "parity type undefined");
-            }
-            for (int ivar = 0; ivar < NUM_DIAGNOSTIC_VARS; ++ivar)
-            {
-                std::string name = "vars_parity_diagnostic[c_" +
-                                   DiagnosticVariables::variable_names[ivar] +
-                                   "]";
-                int var_parity = boundary_params.vars_parity_diagnostic[ivar];
-                check_parameter(name, var_parity,
-                                var_parity >= BoundaryConditions::EVEN &&
-                                    var_parity <= BoundaryConditions::UNDEFINED,
-                                "parity type undefined");
-            }
-        }
     }
 
     void set_amrex_params()

@@ -20,8 +20,6 @@ BoundaryConditions::params_t::params_t()
     lo_boundary.fill(STATIC_BC);
     is_periodic.fill(true);
 
-    vars_parity.fill(BoundaryConditions::UNDEFINED);
-    vars_parity_diagnostic.fill(BoundaryConditions::EXTRAPOLATING_BC);
     vars_asymptotic_values.fill(0.0);
 }
 
@@ -136,14 +134,6 @@ void BoundaryConditions::params_t::read_params(GRParmParse &pp)
         set_lo_boundary(loBoundary);
     }
 
-    if (reflective_boundaries_exist)
-    {
-        pp.load("vars_parity", vars_parity);
-        if (pp.contains("vars_parity_diagnostic"))
-        {
-            pp.load("vars_parity_diagnostic", vars_parity_diagnostic);
-        }
-    }
     if (sommerfeld_boundaries_exist)
     {
         if (pp.contains("num_nonzero_asymptotic_vars"))
@@ -229,27 +219,16 @@ void BoundaryConditions::set_vars_asymptotic_values(
     m_params.vars_asymptotic_values = vars_asymptotic_values;
 }
 
-void BoundaryConditions::write_reflective_conditions(int idir,
-                                                     const params_t &a_params)
+void BoundaryConditions::write_reflective_conditions(int idir)
 {
     amrex::Print()
         << "The variables that are parity odd in this direction are : " << '\n';
     for (int icomp = 0; icomp < NUM_VARS; icomp++)
     {
-        int parity = get_var_parity(icomp, idir, a_params);
+        int parity = get_state_var_parity(icomp, idir);
         if (parity == -1)
         {
             amrex::Print() << UserVariables::variable_names[icomp] << "    ";
-        }
-    }
-    for (int icomp = 0; icomp < NUM_DIAGNOSTIC_VARS; icomp++)
-    {
-        int parity =
-            get_var_parity(icomp, idir, a_params, VariableType::diagnostic);
-        if (parity == -1)
-        {
-            amrex::Print() << DiagnosticVariables::variable_names[icomp]
-                           << "    ";
         }
     }
 }
@@ -319,7 +298,7 @@ void BoundaryConditions::write_boundary_conditions(const params_t &a_params)
             // high directions
             if (a_params.hi_boundary[idir] == REFLECTIVE_BC)
             {
-                write_reflective_conditions(idir, a_params);
+                write_reflective_conditions(idir);
             }
             else if (a_params.hi_boundary[idir] == SOMMERFELD_BC)
             {
@@ -336,7 +315,7 @@ void BoundaryConditions::write_boundary_conditions(const params_t &a_params)
                            << " boundaries in direction low " << idir << '\n';
             if (a_params.lo_boundary[idir] == REFLECTIVE_BC)
             {
-                write_reflective_conditions(idir, a_params);
+                write_reflective_conditions(idir);
             }
             else if (a_params.lo_boundary[idir] == SOMMERFELD_BC)
             {
@@ -353,33 +332,23 @@ void BoundaryConditions::write_boundary_conditions(const params_t &a_params)
 }
 
 /// The function which returns the parity of each of the vars in
-/// UserVariables.hpp The parity should be defined in the params file, and
-/// will be output to the pout files for checking at start/restart of
-/// simulation (It is only required for reflective boundary conditions.)
-int BoundaryConditions::get_var_parity(int a_comp, int a_dir,
-                                       const VariableType var_type) const
-{
-    int var_parity = get_var_parity(a_comp, a_dir, m_params, var_type);
-
-    return var_parity;
-}
-
-/// static version used for initial output of boundary values
+/// UserVariables.hpp (It is only required for reflective boundary conditions.)
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-int BoundaryConditions::get_var_parity(int a_comp, int a_dir,
-                                       const params_t &a_params,
-                                       const VariableType var_type)
+int BoundaryConditions::get_state_var_parity(int a_comp, int a_dir)
 {
-    int comp_parity = (var_type == VariableType::evolution
-                           ? a_params.vars_parity[a_comp]
-                           : a_params.vars_parity_diagnostic[a_comp]);
+    BCParity comp_parity = UserVariables::variable_parities[a_comp];
 
-    if (((a_dir == 0) && (comp_parity == ODD_X || comp_parity == ODD_XY ||
-                          comp_parity == ODD_XZ || comp_parity == ODD_XYZ)) ||
-        ((a_dir == 1) && (comp_parity == ODD_Y || comp_parity == ODD_XY ||
-                          comp_parity == ODD_YZ || comp_parity == ODD_XYZ)) ||
-        ((a_dir == 2) && (comp_parity == ODD_Z || comp_parity == ODD_XZ ||
-                          comp_parity == ODD_YZ || comp_parity == ODD_XYZ)))
+    if (((a_dir == 0) &&
+         (comp_parity == BCParity::odd_x || comp_parity == BCParity::odd_xy ||
+          comp_parity == BCParity::odd_xz ||
+          comp_parity == BCParity::odd_xyz)) ||
+        ((a_dir == 1) &&
+         (comp_parity == BCParity::odd_y || comp_parity == BCParity::odd_xy ||
+          comp_parity == BCParity::odd_yz ||
+          comp_parity == BCParity::odd_xyz)) ||
+        ((a_dir == 2) &&
+         (comp_parity == BCParity::odd_z || comp_parity == BCParity::odd_xz ||
+          comp_parity == BCParity::odd_yz || comp_parity == BCParity::odd_xyz)))
     {
         return -1;
     }
@@ -802,37 +771,6 @@ void BoundaryConditions::fill_sommerfeld_cell(
     }
 #endif
 }
-
-#if 0
-//xxxxxx
-void BoundaryConditions::fill_reflective_cell(
-    amrex::FArrayBox &out_box, const amrex::IntVect iv, const Side::LoHiSide a_side,
-    const int dir, const std::vector<int> &reflective_comps,
-    const VariableType var_type) const
-{
-    // assume boundary is a reflection of values within the grid
-    // care must be taken with variable parity to maintain correct
-    // values on reflection, e.g. x components of vectors are odd
-    // parity in the x direction
-    amrex::IntVect iv_copy = iv;
-    /// where to copy the data from - mirror image in domain
-    if (a_side == Side::Lo)
-    {
-        iv_copy[dir] = -iv[dir] - 1;
-    }
-    else
-    {
-        iv_copy[dir] = 2 * m_domain_box.bigEnd(dir) - iv[dir] + 1;
-    }
-
-    // replace value at iv with value at iv_copy
-    for (int icomp : reflective_comps)
-    {
-        int parity = get_var_parity(icomp, dir, var_type);
-        out_box(iv, icomp) = parity * out_box(iv_copy, icomp);
-    }
-}
-#endif
 
 #if 0
 //xxxxx

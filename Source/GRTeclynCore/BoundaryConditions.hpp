@@ -7,6 +7,7 @@
 #define BOUNDARYCONDITIONS_HPP_
 
 // Our includes
+#include "BCParity.hpp"
 #include "DimensionDefinitions.hpp"
 #include "GRParmParse.hpp"
 #include "UserVariables.hpp"
@@ -36,20 +37,6 @@ class BoundaryConditions
         MIXED_BC
     };
 
-    /// enum for possible parity states
-    enum
-    {
-        EVEN,
-        ODD_X,
-        ODD_Y,
-        ODD_Z,
-        ODD_XY,
-        ODD_YZ,
-        ODD_XZ,
-        ODD_XYZ,
-        UNDEFINED
-    };
-
     /// Structure containing the boundary condition params
     struct params_t
     {
@@ -64,9 +51,6 @@ class BoundaryConditions
         bool extrapolating_boundaries_exist{};
         bool mixed_boundaries_exist{};
 
-        std::array<int, NUM_VARS> vars_parity{};
-        std::array<int, NUM_DIAGNOSTIC_VARS>
-            vars_parity_diagnostic{}; /* needed only in AMRInterpolator */
         std::array<double, NUM_VARS> vars_asymptotic_values{};
         std::map<int, int> mixed_bc_vars_map;
         int extrapolation_order{1};
@@ -114,17 +98,9 @@ class BoundaryConditions
     static void write_boundary_conditions(const params_t &a_params);
 
     /// The function which returns the parity of each of the vars in
-    /// UserVariables.hpp The parity should be defined in the params file, and
-    /// will be output to the pout files for checking at start/restart of
-    /// simulation (It is only required for reflective boundary conditions.)
-    int
-    get_var_parity(int a_comp, int a_dir,
-                   const VariableType var_type = VariableType::evolution) const;
-
-    /// static version used for initial output of boundary values
-    static int
-    get_var_parity(int a_comp, int a_dir, const params_t &a_params,
-                   const VariableType var_type = VariableType::evolution);
+    /// UserVariables.hpp (It is only required for reflective boundary
+    /// conditions.)
+    static int get_state_var_parity(int a_comp, int a_dir);
 
     /// Get the boundary condition for given face
     int get_boundary_condition(amrex::Orientation face) const;
@@ -190,7 +166,7 @@ class BoundaryConditions
 
   private:
     /// write out reflective conditions
-    static void write_reflective_conditions(int idir, const params_t &a_params);
+    static void write_reflective_conditions(int idir);
 
     /// write out sommerfeld conditions
     static void write_sommerfeld_conditions(int idir, const params_t &a_params);
