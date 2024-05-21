@@ -50,7 +50,7 @@ jobs:
 
     - name: Install compiledb tool to generate compilation database
       run: |
-        pip install --user compiledb
+        pipx install compiledb
 
     - name: Generate config and compilation database
       run: |
