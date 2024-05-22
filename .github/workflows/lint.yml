@@ -44,9 +44,9 @@ jobs:
         sudo apt-spy2 fix --commit --launchpad --country=US
         sudo apt-get update
 
-    - name: Install MPICH
+    - name: Install OpenMPI
       run: |
-        sudo apt-get -y --no-install-recommends install libmpich-dev
+        sudo apt-get -y --no-install-recommends install libopenmpi-dev
 
     - name: Install compiledb tool to generate compilation database
       run: |

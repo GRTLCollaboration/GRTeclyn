@@ -67,7 +67,7 @@ jobs:
     - name: Install dependencies
       run: |
         if [[ "${{ matrix.mpi }}" == "TRUE" ]]; then
-          PACKAGES="libmpich-dev"
+          PACKAGES="libopenmpi-dev"
         fi
         if [[ "${{ matrix.comp }}" == "llvm" && "${{ matrix.omp }}" == "TRUE" ]]; then
           PACKAGES="${PACKAGES} libomp-${{ matrix.comp-version }}-dev"
@@ -91,12 +91,12 @@ jobs:
           sudo update-alternatives --install /usr/bin/cpp cpp /usr/bin/cpp-${{ matrix.comp-version }} 1000
           g++ --version
           cpp --version
-          echo "mpich_cxx=g++" >> $GITHUB_OUTPUT
+          echo "ompi_cxx=g++" >> $GITHUB_OUTPUT
           echo "build_args=${BUILD_CONFIG}" >> $GITHUB_OUTPUT
         elif [[ "${{ matrix.comp }}" == "llvm" ]]; then
           sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${{ matrix.comp-version }} 1000
           clang++ --version
-          echo "mpich_cxx=clang++" >> $GITHUB_OUTPUT
+          echo "ompi_cxx=clang++" >> $GITHUB_OUTPUT
           # Use the LLD linker with LLVM
           echo "build_args=${BUILD_CONFIG} LDFLAGS=-fuse-ld=lld" >> $GITHUB_OUTPUT
         fi
@@ -105,7 +105,7 @@ jobs:
     - name: Build Tests
       working-directory: ${{ env.TESTS_DIR }}
       run: |
-        export MPICH_CXX=${{ steps.set-compilers.outputs.mpich_cxx }}
+        export OMPI_CXX=${{ steps.set-compilers.outputs.ompi_cxx }}
         make -j 4 ${{ steps.set-compilers.outputs.build_args }}
 
     - name: Run tests

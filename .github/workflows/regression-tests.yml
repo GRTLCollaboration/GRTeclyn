@@ -41,7 +41,7 @@ jobs:
         sudo apt-get update
 
     - name: Install dependencies
-      run: sudo apt-get -y --no-install-recommends install libmpich-dev cpp-${{ env.GCC_VERSION }}
+      run: sudo apt-get -y --no-install-recommends install libopenmpi-dev cpp-${{ env.GCC_VERSION }}
 
     - name: Set Compilers
       run: |
@@ -57,7 +57,7 @@ jobs:
       working-directory: ${{ env.BINARYBH_EXAMPLE_DIR }}
 
     - name: Build fcompare tool
-      run: make -j 4 
+      run: make -j 4
       working-directory: ${{ env.AMREX_HOME }}/Tools/Plotfile
 
     - name: Run BinaryBH example using test parameters
