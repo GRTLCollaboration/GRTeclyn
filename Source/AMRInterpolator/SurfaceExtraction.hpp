@@ -104,9 +104,8 @@ template <class SurfaceGeometry> class SurfaceExtraction
                       double a_restart_time = 0.0);
 
     //! add a single variable or derivative of variable
-    void add_var(int a_var,
-                 const VariableType var_type = VariableType::evolution,
-                 const Derivative &a_deriv   = Derivative::LOCAL);
+    void add_var(int a_var, const VariableType var_type = VariableType::state,
+                 const Derivative &a_deriv = Derivative::LOCAL);
 
     //! add a vector of variables/derivatives of variables
     void add_vars(const std::vector<vars_t> &a_vars);

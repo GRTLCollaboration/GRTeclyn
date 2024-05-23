@@ -188,7 +188,7 @@ class BoundaryConditions
     void fill_reflective_cell(
         amrex::FArrayBox &out_box, const amrex::IntVect iv, const Side::LoHiSide a_side,
         const int dir, const std::vector<int> &reflective_comps,
-        const VariableType var_type = VariableType::evolution) const;
+        const VariableType var_type = VariableType::state) const;
 #endif
 };
 

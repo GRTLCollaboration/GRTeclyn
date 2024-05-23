@@ -108,7 +108,7 @@ void BinaryBHLevel::initData()
     // First set everything to zero (to avoid undefinded values in constraints)
     // then calculate initial data
     amrex::MultiFab &state = get_new_data(State_Type);
-    const auto &arrs       = state.arrays();
+    const auto &arrs = state.arrays();
     amrex::ParallelFor(state, state.nGrowVect(),
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
                        {
@@ -335,7 +335,7 @@ void BinaryBHLevel::specificPostTimeStep()
                 bool fill_ghosts = false;
                 m_gr_amr.m_interpolator->refresh(fill_ghosts);
                 m_gr_amr.fill_multilevel_ghosts(
-                    VariableType::diagnostic, Interval(c_Weyl4_Re, c_Weyl4_Im),
+                    VariableType::derived, Interval(c_Weyl4_Re, c_Weyl4_Im),
                     min_level);
                 WeylExtraction my_extraction(m_p.extraction_params, m_dt,
                                              m_time, first_step,
@@ -352,7 +352,7 @@ void BinaryBHLevel::specificPostTimeStep()
                        m_state_new, m_state_diagnostics, EXCLUDE_GHOST_CELLS);
         if (m_level == 0)
         {
-            AMRReductions<VariableType::diagnostic> amr_reductions(m_gr_amr);
+            AMRReductions<VariableType::derived> amr_reductions(m_gr_amr);
             double L2_Ham = amr_reductions.norm(c_Ham);
             double L2_Mom = amr_reductions.norm(Interval(c_Mom1, c_Mom3));
             SmallDataIO constraints_file(m_p.data_path + "constraint_norms",

@@ -83,7 +83,7 @@ void load_values_to_array(
     for (int i = 0; i < num_values; i++)
     {
         int icomp = a_vars_vector[i].first;
-        AMREX_ASSERT(a_vars_vector[i].second == VariableType::evolution);
+        AMREX_ASSERT(a_vars_vector[i].second == VariableType::state);
         a_values_array[icomp] = vars_values[i];
     }
 }
@@ -110,7 +110,7 @@ load_vars_to_vector(GRParmParse &pp, const char *a_vars_vector_string,
         {
             // first assume the variable is a normal evolution var
             int var = UserVariables::variable_name_to_enum(var_name);
-            VariableType var_type = VariableType::evolution;
+            VariableType var_type = VariableType::state;
             if (var < 0)
             {
                 // if not an evolution var check if it's a diagnostic var
@@ -123,7 +123,7 @@ load_vars_to_vector(GRParmParse &pp, const char *a_vars_vector_string,
                 }
                 else
                 {
-                    var_type = VariableType::diagnostic;
+                    var_type = VariableType::derived;
                 }
             }
             if (var >= 0)

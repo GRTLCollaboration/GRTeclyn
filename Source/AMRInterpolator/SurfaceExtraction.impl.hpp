@@ -105,7 +105,7 @@ void SurfaceExtraction<SurfaceGeometry>::add_evolution_vars(
 {
     for (auto var : a_vars)
     {
-        add_var(var, VariableType::evolution);
+        add_var(var, VariableType::state);
     }
 }
 
@@ -116,7 +116,7 @@ void SurfaceExtraction<SurfaceGeometry>::add_diagnostic_vars(
 {
     for (auto var : a_vars)
     {
-        add_var(var, VariableType::diagnostic);
+        add_var(var, VariableType::derived);
     }
 }
 
@@ -385,7 +385,7 @@ void SurfaceExtraction<SurfaceGeometry>::write_extraction(
                 {
                     components[ivar] = "";
                 }
-                if (std::get<1>(m_vars[ivar]) == VariableType::evolution)
+                if (std::get<1>(m_vars[ivar]) == VariableType::state)
                 {
                     components[ivar] +=
                         UserVariables::variable_names[std::get<0>(

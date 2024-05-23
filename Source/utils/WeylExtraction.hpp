@@ -25,8 +25,8 @@ class WeylExtraction : public SphericalExtraction
         : SphericalExtraction(a_params, a_dt, a_time, a_first_step,
                               a_restart_time)
     {
-        add_var(c_Weyl4_Re, VariableType::diagnostic);
-        add_var(c_Weyl4_Im, VariableType::diagnostic);
+        add_var(c_Weyl4_Re, VariableType::derived);
+        add_var(c_Weyl4_Im, VariableType::derived);
     }
 
     //! The old constructor which assumes it is called in specificPostTimeStep

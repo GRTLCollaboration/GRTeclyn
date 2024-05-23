@@ -82,7 +82,7 @@ void KerrBHLevel::specificUpdateODE(GRLevelData &a_soln,
 void KerrBHLevel::preTagCells()
 {
     // We only use chi in the tagging criterion so only fill the ghosts for chi
-    fillAllGhosts(VariableType::evolution, Interval(c_chi, c_chi));
+    fillAllGhosts(VariableType::state, Interval(c_chi, c_chi));
 }
 
 void KerrBHLevel::computeTaggingCriterion(FArrayBox &tagging_criterion,
