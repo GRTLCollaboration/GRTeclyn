@@ -9,10 +9,11 @@ concurrency:
 jobs:
   binarybh:
     name: BinaryBH
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       AMREX_HOME: ${{ github.workspace }}/amrex
       BINARYBH_EXAMPLE_DIR: ${{ github.workspace }}/GRTeclyn/Examples/BinaryBH
+      GCC_VERSION: 14
 
     steps:
     - name: Checkout AMReX
@@ -39,21 +40,24 @@ jobs:
         sudo apt-spy2 fix --commit --launchpad --country=US
         sudo apt-get update
 
-    - name: Install MPICH
-      run: sudo apt-get -y --no-install-recommends install libmpich-dev
+    - name: Install dependencies
+      run: sudo apt-get -y --no-install-recommends install libopenmpi-dev cpp-${{ env.GCC_VERSION }}
 
     - name: Set Compilers
       run: |
-        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 120
-        sudo update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-12 120
-        sudo update-alternatives --install /usr/bin/cpp cpp /usr/bin/cpp-12 120
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${{ env.GCC_VERSION }} 1000
+        sudo update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-${{ env.GCC_VERSION }} 100
+        # workaround for https://answers.launchpad.net/ubuntu/+question/816000
+        sudo update-alternatives --remove-all cpp
+        sudo rm -rf /etc/alternatives/cpp
+        sudo update-alternatives --install /usr/bin/cpp cpp /usr/bin/cpp-${{ env.GCC_VERSION }} 1000
 
     - name: Build BinaryBH example
       run: make -j 4
       working-directory: ${{ env.BINARYBH_EXAMPLE_DIR }}
 
     - name: Build fcompare tool
-      run: make -j 4 
+      run: make -j 4
       working-directory: ${{ env.AMREX_HOME }}/Tools/Plotfile
 
     - name: Run BinaryBH example using test parameters
