@@ -86,13 +86,11 @@ lo_boundary = 1 1 2
 
 # if sommerfeld boundaries selected, must select
 # non zero asymptotic values
-num_nonzero_asymptotic_vars = 5
 nonzero_asymptotic_vars = chi h11 h22 h33 lapse
 nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 
 # if you are using extrapolating BC:
 # extrapolation_order = 1
-# num_extrapolating_vars = -1
 # extrapolating_vars =
 
 #################################################

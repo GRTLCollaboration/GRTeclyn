@@ -15,7 +15,7 @@
 #include "InterpolationQuery.hpp"
 
 #include "MPIContext.hpp"
-#include "UserVariables.hpp"
+#include "StateVariables.hpp"
 
 // system includes
 #include <limits>

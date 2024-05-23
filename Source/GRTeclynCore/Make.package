@@ -9,5 +9,4 @@ GRTECLYN_CEXE_headers += AMReXParameters.hpp \
                          NullBCFill.hpp \
                          SetupFunctions.hpp \
                          SimulationParametersBase.hpp \
-                         UserVariables.inc.hpp \
                          VariableType.hpp

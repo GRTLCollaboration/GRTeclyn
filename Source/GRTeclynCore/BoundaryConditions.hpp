@@ -10,7 +10,7 @@
 #include "BCParity.hpp"
 #include "DimensionDefinitions.hpp"
 #include "GRParmParse.hpp"
-#include "UserVariables.hpp"
+#include "StateVariables.hpp"
 #include "VariableType.hpp"
 
 #include <AMReX_MultiFab.H>
@@ -98,7 +98,7 @@ class BoundaryConditions
     static void write_boundary_conditions(const params_t &a_params);
 
     /// The function which returns the parity of each of the vars in
-    /// UserVariables.hpp (It is only required for reflective boundary
+    /// StateVariables.hpp (It is only required for reflective boundary
     /// conditions.)
     static int get_state_var_parity(int a_comp, int a_dir);
 

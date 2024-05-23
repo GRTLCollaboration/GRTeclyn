@@ -3,8 +3,8 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#ifndef USERVARIABLES_HPP
-#define USERVARIABLES_HPP
+#ifndef STATEVARIABLES_HPP
+#define STATEVARIABLES_HPP
 
 #include <array>
 #include <string>
@@ -18,12 +18,10 @@ enum
     NUM_VARS
 };
 
-namespace UserVariables
+namespace StateVariables
 {
 static const std::array<std::string, NUM_VARS> variable_names = {"phi_Re",
                                                                  "phi_Im"};
 }
 
-#include "UserVariables.inc.hpp"
-
-#endif /* USERVARIABLES_HPP */
+#endif /* STATEVARIABLES_HPP */

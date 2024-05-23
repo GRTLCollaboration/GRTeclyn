@@ -11,7 +11,7 @@
 #include "GRAMR.hpp"
 // xxxxx#include "InterpSource.hpp"
 #include "SimulationParameters.hpp"
-#include "UserVariables.hpp" // need NUM_VARS
+#include "StateVariables.hpp" // need NUM_VARS
 
 #include <AMReX_AmrLevel.H>
 
@@ -30,7 +30,7 @@ class GRAMRLevel : public amrex::AmrLevel
 {
   public:
     /**
-     * \brief Set up the state variables from UserVariables.hpp.
+     * \brief Set up the state variables from StateVariables.hpp.
      * This should be called by the child's variableSetUp().
      */
     static void stateVariableSetUp();

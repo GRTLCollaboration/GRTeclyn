@@ -7,8 +7,8 @@
 #include "AMReXParameters.hpp" // for writing data
 #include "DimensionDefinitions.hpp"
 #include "InterpolationQuery.hpp"
-#include "SmallDataIO.hpp"   // for writing data
-#include "UserVariables.hpp" // for writing data
+#include "SmallDataIO.hpp"    // for writing data
+#include "StateVariables.hpp" // for writing data
 
 //! Set punctures post restart
 void PunctureTracker::initial_setup(

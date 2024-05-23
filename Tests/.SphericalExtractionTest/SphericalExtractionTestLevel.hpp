@@ -10,7 +10,7 @@
 #include "GRAMRLevel.hpp"
 #include "SetHarmonic.hpp"
 #include "SetValue.hpp"
-#include "UserVariables.hpp"
+#include "StateVariables.hpp"
 
 class SphericalExtractionTestLevel : public GRAMRLevel
 {
