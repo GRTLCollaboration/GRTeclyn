@@ -41,26 +41,6 @@ static int variable_name_to_enum(const std::string &a_var_name)
 
 } // namespace UserVariables
 
-namespace DiagnosticVariables
-{
-/// Takes a string and returns the variable enum number if the string
-/// matches one of those in UserVariables::variable_names, or returns -1
-/// otherwise
-static int variable_name_to_enum(const std::string &a_var_name)
-{
-    const auto *const var_name_it =
-        std::find(variable_names.begin(), variable_names.end(), a_var_name);
-
-    auto var = std::distance(variable_names.begin(), var_name_it);
-    if (var != NUM_DIAGNOSTIC_VARS)
-    {
-        return static_cast<int>(var);
-    }
-    return -1;
-}
-
-} // namespace DiagnosticVariables
-
 namespace UserVariables
 {
 // where one has read in a subset of variables with some feature
@@ -90,49 +70,28 @@ void load_values_to_array(
 
 // function to create a vector of enums of vars by reading in their
 // names as strings from the params file and converting it to the enums
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
-inline void
-load_vars_to_vector(GRParmParse &pp, const char *a_vars_vector_string,
-                    const char *a_vector_size_string,
-                    std::vector<std::pair<int, VariableType>> &a_vars_vector,
-                    size_t &a_vars_vector_size)
-// NOLINTEND(bugprone-easily-swappable-parameters)
+inline void load_vars_to_vector(GRParmParse &pp,
+                                const char *a_vars_vector_string,
+                                std::vector<int> &a_vars_vector)
 {
-    int num_values = 0;
-    pp.load(a_vector_size_string, num_values, -1);
-    // only set a_vars_vector and a_var_vector_size if a_vector_size_string
-    // found
-    if (num_values >= 0)
+    int num_values = pp.countval(a_vars_vector_string);
+    if (num_values > 0)
     {
         std::vector<std::string> var_names(num_values, "");
         pp.load(a_vars_vector_string, var_names, num_values, var_names);
         for (const std::string &var_name : var_names)
         {
-            // first assume the variable is a normal evolution var
             int var = UserVariables::variable_name_to_enum(var_name);
-            VariableType var_type = VariableType::state;
             if (var < 0)
             {
-                // if not an evolution var check if it's a diagnostic var
-                var = DiagnosticVariables::variable_name_to_enum(var_name);
-                if (var < 0)
-                {
-                    // it's neither :(
-                    amrex::Print()
-                        << "Variable with name " << var_name << " not found.\n";
-                }
-                else
-                {
-                    var_type = VariableType::derived;
-                }
+                amrex::Print()
+                    << "Variable with name " << var_name << " not found.\n";
             }
-            if (var >= 0)
+            else
             {
-                a_vars_vector.emplace_back(var, var_type);
+                a_vars_vector.push_back(var);
             }
         }
-        // overwrites read in value if entries have been ignored
-        a_vars_vector_size = a_vars_vector.size();
     }
 }
 
