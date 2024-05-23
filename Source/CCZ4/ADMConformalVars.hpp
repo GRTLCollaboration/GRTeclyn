@@ -6,8 +6,8 @@
 #ifndef ADMCONFORMALVARS_HPP_
 #define ADMCONFORMALVARS_HPP_
 
+#include "StateVariables.hpp"
 #include "Tensor.hpp"
-#include "UserVariables.hpp"
 #include "VarsTools.hpp"
 
 /// Namespace for ADM vars in conformally decomposed form

@@ -388,14 +388,12 @@ void SurfaceExtraction<SurfaceGeometry>::write_extraction(
                 if (std::get<1>(m_vars[ivar]) == VariableType::state)
                 {
                     components[ivar] +=
-                        UserVariables::variable_names[std::get<0>(
-                            m_vars[ivar])];
+                        StateVariables::names[std::get<0>(m_vars[ivar])];
                 }
                 else
                 {
-                    components[ivar] +=
-                        DiagnosticVariables::variable_names[std::get<0>(
-                            m_vars[ivar])];
+                    // components[ivar] +=
+                    //     DiagnosticVariables::names[std::get<0>(m_vars[ivar])];
                 }
             }
             std::vector<std::string> coords = {m_geom.u_name(),

@@ -9,8 +9,8 @@
 #include "BoostedBH.hpp"
 #include "Cell.hpp"
 #include "Coordinates.hpp"
+#include "StateVariables.hpp" //This files needs NUM_VARS - total number of components
 #include "Tensor.hpp"
-#include "UserVariables.hpp" //This files needs NUM_VARS - total number of components
 #include "simd.hpp"
 #include <array>
 

@@ -8,7 +8,7 @@
 #define POSITIVECHIANDALPHA_HPP_
 
 #include "Cell.hpp"
-#include "UserVariables.hpp"
+#include "StateVariables.hpp"
 #include "simd.hpp"
 
 class PositiveChiAndAlpha

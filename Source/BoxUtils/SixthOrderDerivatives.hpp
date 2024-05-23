@@ -8,8 +8,8 @@
 
 #include "Cell.hpp"
 #include "DimensionDefinitions.hpp"
+#include "StateVariables.hpp"
 #include "Tensor.hpp"
-#include "UserVariables.hpp"
 #include <array>
 
 class SixthOrderDerivatives

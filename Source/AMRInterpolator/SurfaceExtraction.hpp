@@ -14,7 +14,7 @@
 #include "InterpolationQuery.hpp"
 #include "Lagrange.hpp"
 #include "SmallDataIO.hpp" // for writing data
-#include "UserVariables.hpp"
+#include "StateVariables.hpp"
 
 #include <algorithm>
 #include <array>

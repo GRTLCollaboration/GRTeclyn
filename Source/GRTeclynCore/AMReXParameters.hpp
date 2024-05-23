@@ -11,7 +11,7 @@
 #include "BoundaryConditions.hpp"
 #include "FilesystemTools.hpp"
 #include "GRParmParse.hpp"
-#include "UserVariables.hpp"
+#include "StateVariables.hpp"
 #include "VariableType.hpp"
 
 #include <algorithm>

@@ -12,15 +12,15 @@
 // assign enum to each variable
 enum
 {
-    c_A,
-    c_B,
+    c_phi_Re,
+    c_phi_Im,
 
     NUM_VARS
 };
 
 namespace StateVariables
 {
-static const std::array<std::string, NUM_VARS> variable_names = {"A", "B"};
+static const std::array<std::string, NUM_VARS> names = {"phi_Re", "phi_Im"};
 }
 
 #endif /* STATEVARIABLES_HPP */

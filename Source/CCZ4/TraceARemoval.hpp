@@ -9,9 +9,9 @@
 
 #include "CCZ4Geometry.hpp"
 #include "Cell.hpp"
+#include "StateVariables.hpp"
 #include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
-#include "UserVariables.hpp"
 #include "VarsTools.hpp"
 
 class TraceARemoval

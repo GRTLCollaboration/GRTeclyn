@@ -52,9 +52,9 @@ enum
     NUM_CCZ4_VARS
 };
 
-namespace UserVariables
+namespace CCZ4Variables
 {
-static const std::array<std::string, NUM_CCZ4_VARS> ccz4_variable_names = {
+static const std::array<std::string, NUM_CCZ4_VARS> names = {
     "chi",
 
     "h11",    "h12",    "h13",    "h22", "h23", "h33",
@@ -74,7 +74,7 @@ static const std::array<std::string, NUM_CCZ4_VARS> ccz4_variable_names = {
     "B1",     "B2",     "B3",
 };
 
-static const std::array<BCParity, NUM_CCZ4_VARS> ccz4_variable_parities = {
+static const std::array<BCParity, NUM_CCZ4_VARS> parities = {
     BCParity::even, // chi
 
     BCParity::even,   // h11
@@ -109,6 +109,6 @@ static const std::array<BCParity, NUM_CCZ4_VARS> ccz4_variable_parities = {
     BCParity::odd_y, // B2
     BCParity::odd_z, // B3
 };
-} // namespace UserVariables
+} // namespace CCZ4Variables
 
 #endif /* CCZ4VARIABLES_HPP */

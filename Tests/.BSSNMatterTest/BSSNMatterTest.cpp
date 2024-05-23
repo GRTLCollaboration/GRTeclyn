@@ -19,7 +19,7 @@
 #include "Potential.hpp"
 #include "ScalarField.hpp"
 #include "SetValue.hpp"
-#include "UserVariables.hpp"
+#include "StateVariables.hpp"
 #include <iomanip>
 #include <iostream>
 #include <sys/time.h>
@@ -320,10 +320,10 @@ int main()
         double max_chf = out_fab_chf.norm(0, i, 1);
         if (max_err / max_chf > 1e-6)
         {
-            std::cout << "COMPONENT " << UserVariables::variable_names[i]
+            std::cout << "COMPONENT " << StateVariables::names[i]
                       << " DOES NOT AGREE: MAX ERROR = "
                       << out_fab.norm(0, i, 1) << std::endl;
-            std::cout << "COMPONENT " << UserVariables::variable_names[i]
+            std::cout << "COMPONENT " << StateVariables::names[i]
                       << " DOES NOT AGREE: MAX CHF Value = " << max_chf
                       << std::endl;
             failed = -1;

@@ -10,9 +10,9 @@
 #include "Cell.hpp"
 #include "Coordinates.hpp"
 #include "FourthOrderDerivatives.hpp"
+#include "StateVariables.hpp" //This files needs c_NUM - total number of components
 #include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
-#include "UserVariables.hpp" //This files needs c_NUM - total number of components
 #include "simd.hpp"
 #include <array>
 

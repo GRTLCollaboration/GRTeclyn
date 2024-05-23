@@ -1,5 +1,5 @@
 GRTECLYN_CEXE_sources += BinaryBHLevel.cpp Main_BinaryBH.cpp
 
-GRTECLYN_CEXE_headers += BinaryBHLevel.hpp  SimulationParameters.hpp  TPAMR.hpp  UserVariables.hpp
+GRTECLYN_CEXE_headers += BinaryBHLevel.hpp  SimulationParameters.hpp  TPAMR.hpp  StateVariables.hpp
 
 
