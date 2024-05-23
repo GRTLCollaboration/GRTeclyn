@@ -204,7 +204,7 @@ void PunctureTracker::interp_shift()
     m_interpolator->refresh(fill_ghosts);
     // only fill the ghosts we need
     m_interpolator->fill_multilevel_ghosts(
-        VariableType::evolution, Interval(c_shift1, c_shift3), m_min_level);
+        VariableType::state, Interval(c_shift1, c_shift3), m_min_level);
 
     // set up shift and coordinate holders
     std::vector<double> interp_shift1(m_num_punctures);

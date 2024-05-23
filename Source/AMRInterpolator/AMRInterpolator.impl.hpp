@@ -64,9 +64,9 @@ void AMRInterpolator<InterpAlgo>::refresh(const bool a_fill_ghosts)
 
     if (a_fill_ghosts)
     {
-        fill_multilevel_ghosts(VariableType::evolution);
+        fill_multilevel_ghosts(VariableType::state);
         if (NUM_DIAGNOSTIC_VARS > 0)
-            fill_multilevel_ghosts(VariableType::diagnostic);
+            fill_multilevel_ghosts(VariableType::derived);
     }
 #endif
 }
@@ -414,7 +414,7 @@ AMRInterpolator<InterpAlgo>::findBoxes(InterpolationQuery &query)
 
         const amrex::MultiFab &level_data =
             dynamic_cast<const InterpSource &>(level).getLevelData(
-                VariableType::evolution);
+                VariableType::state);
         const DisjointBoxLayout &box_layout = level_data.disjointBoxLayout();
         const Box &domain_box = level.problemDomain().domainBox();
 
@@ -689,12 +689,12 @@ void AMRInterpolator<InterpAlgo>::calculateAnswers(InterpolationQuery &query)
         const AMRLevel &level = *levels[level_idx];
         const InterpSource &source = dynamic_cast<const InterpSource &>(level);
         const amrex::MultiFab *const evolution_level_data_ptr =
-            &source.getLevelData(VariableType::evolution);
+            &source.getLevelData(VariableType::state);
         const amrex::MultiFab *diagnostics_level_data_ptr;
         if (NUM_DIAGNOSTIC_VARS > 0)
         {
             diagnostics_level_data_ptr =
-                &source.getLevelData(VariableType::diagnostic);
+                &source.getLevelData(VariableType::derived);
         }
         const DisjointBoxLayout *const evolution_box_layout_ptr =
             &evolution_level_data_ptr->disjointBoxLayout();
@@ -795,7 +795,7 @@ void AMRInterpolator<InterpAlgo>::calculateAnswers(InterpolationQuery &query)
                 if (NUM_DIAGNOSTIC_VARS > 0)
                 {
                     VariableType var_type = std::get<2>(*it);
-                    fab_ptr = (var_type == VariableType::evolution)
+                    fab_ptr = (var_type == VariableType::state)
                                   ? evolution_fab_ptr
                                   : diagnostics_fab_ptr;
                 }

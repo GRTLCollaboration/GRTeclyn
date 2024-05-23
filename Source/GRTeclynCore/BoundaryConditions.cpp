@@ -176,7 +176,7 @@ void BoundaryConditions::params_t::read_params(GRParmParse &pp)
                 {
                     // should be an evolution variable
                     AMREX_ASSERT(extrapolating_var.second ==
-                                 VariableType::evolution);
+                                 VariableType::state);
                     mixed_bc_vars_map.insert(
                         std::make_pair(icomp, EXTRAPOLATING_BC));
                     is_extrapolating = true;
@@ -519,7 +519,7 @@ void BoundaryConditions::fill_rhs_boundaries(const Side::LoHiSide a_side,
             fill_boundary_cells_dir(a_side, a_soln, a_rhs, idir,
                                     boundary_condition,
                                     Interval(0, NUM_VARS - 1),
-                                    VariableType::evolution, filling_rhs);
+                                    VariableType::state, filling_rhs);
         }
     }
 }
@@ -553,7 +553,7 @@ void BoundaryConditions::fill_solution_boundaries(const Side::LoHiSide a_side,
                 const bool filling_rhs = false;
                 fill_boundary_cells_dir(a_side, a_state, a_state, idir,
                                         boundary_condition, a_comps,
-                                        VariableType::evolution, filling_rhs);
+                                        VariableType::state, filling_rhs);
             }
         }
     }
@@ -587,7 +587,7 @@ void BoundaryConditions::fill_diagnostic_boundaries(const Side::LoHiSide a_side,
             const bool filling_rhs = false;
             fill_boundary_cells_dir(a_side, a_state, a_state, idir,
                                     boundary_condition, a_comps,
-                                    VariableType::diagnostic, filling_rhs);
+                                    VariableType::derived, filling_rhs);
         }
     }
 }
