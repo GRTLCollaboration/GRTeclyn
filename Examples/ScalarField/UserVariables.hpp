@@ -8,7 +8,6 @@
 
 #include "ArrayTools.hpp"
 #include "CCZ4UserVariables.hpp"
-#include "DiagnosticVariables.hpp"
 
 // assign an enum to each variable
 enum

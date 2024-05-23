@@ -4,7 +4,6 @@ GRTECLYN_CEXE_sources += BoundaryConditions.cpp \
 GRTECLYN_CEXE_headers += AMReXParameters.hpp \
                          BoundaryConditions.hpp \
                          DefaultLevelFactory.hpp \
-                         EmptyDiagnosticVariables.hpp \
                          GRAMR.hpp \
                          GRAMRLevel.hpp \
                          NullBCFill.hpp \
