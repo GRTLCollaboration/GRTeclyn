@@ -14,6 +14,7 @@
 // Test cases
 #include "CCZ4GeometryUnitTest.hpp"
 #include "CCZ4RHSTest.hpp"
+#include "ConstraintsTest.hpp"
 #include "CoordinateTransformationsTest.hpp"
 #include "DerivativeUnitTests.hpp"
 #include "PositiveChiAndAlphaUnitTest.hpp"
@@ -23,6 +24,15 @@
 TEST_CASE("CCZ4 Geometry") { run_ccz4_geometry_unit_tests(); }
 
 TEST_CASE("CCZ4 RHS") { run_ccz4_rhs_test(); }
+
+TEST_CASE("Constraints"
+#ifndef AMREX_USE_HDF5
+          * doctest::skip()
+#endif
+)
+{
+    run_constraints_test();
+}
 
 TEST_CASE("Coordinate Transformations")
 {
