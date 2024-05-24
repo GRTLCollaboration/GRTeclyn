@@ -49,6 +49,11 @@ template <class data_t> struct NPScalar_t
 class Weyl4
 {
   public:
+
+    /// Variable names
+    static inline const amrex::Vector<std::string> var_names = {"Weyl4_Re",
+                                                                "Weyl4_Im"};
+
     // Use the variable definitions containing the needed quantities
     template <class data_t> using Vars = CCZ4Vars::VarsWithGauge<data_t>;
     template <class data_t>

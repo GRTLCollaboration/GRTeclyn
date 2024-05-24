@@ -95,13 +95,11 @@ void run_weyl4_test()
 
         amrex::Geometry geom{box, &real_box, coord_sys};
 
-        amrex::Vector<std::string> weyl4_var_names = {"Weyl4_Re", "Weyl4_Im"};
-
         std::string this_test_dir = "Weyl4Test/";
         std::string hdf5_out_stem = this_test_dir + "Weyl4Out";
 
         amrex::WriteSingleLevelPlotfileHDF5(hdf5_out_stem, out_mf,
-                                            weyl4_var_names, geom, 0.0, 0);
+                                            Weyl4::var_names, geom, 0.0, 0);
 
         // Apparently this is necessary before calling std::system if h5diff
         // writes to the screen

@@ -25,13 +25,10 @@ void BinaryBHLevel::variableSetUp()
 
     const int nghost = simParams().num_ghosts;
 
-    // TODO: Move this definition to the Constraints class
-    amrex::Vector<std::string> constraint_vars_names = {"Ham", "Mom1", "Mom2",
-                                                        "Mom3"};
     // Add the constraints to the derive list
     derive_lst.add(
         "constraints", amrex::IndexType::TheCellType(),
-        static_cast<int>(constraint_vars_names.size()), constraint_vars_names,
+        static_cast<int>(Constraints::var_names.size()), Constraints::var_names,
         amrex::DeriveFuncFab(), // null function because we won't use
                                 // it.
         [=](const amrex::Box &box) { return amrex::grow(box, nghost); },
@@ -40,13 +37,10 @@ void BinaryBHLevel::variableSetUp()
     // We only need the non-gauge CCZ4 variables to calculate the constraints
     derive_lst.addComponent("constraints", desc_lst, State_Type, 0, c_lapse);
 
-    // TODO: Move this definition to the Weyl4 class
-    amrex::Vector<std::string> Weyl4_vars_names = {"Weyl4_Re", "Weyl4_Im"};
-
     // Add Weyl4 to the derive list
     derive_lst.add(
         "Weyl4", amrex::IndexType::TheCellType(),
-        static_cast<int>(Weyl4_vars_names.size()), Weyl4_vars_names,
+        static_cast<int>(Weyl4::var_names.size()), Weyl4::var_names,
         amrex::DeriveFuncFab(), // null function because we won't use it
         [=](const amrex::Box &box) { return amrex::grow(box, nghost); },
         &amrex::cell_quartic_interp);
