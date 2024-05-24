@@ -96,14 +96,11 @@ void run_constraints_test()
 
         amrex::Geometry geom{box, &real_box, coord_sys};
 
-        amrex::Vector<std::string> constraints_vars_names = {"Ham", "Mom1",
-                                                             "Mom2", "Mom3"};
-
         std::string this_test_dir = "ConstraintsTest/";
         std::string hdf5_out_stem = this_test_dir + "ConstraintsOut";
 
         amrex::WriteSingleLevelPlotfileHDF5(
-            hdf5_out_stem, out_mf, constraints_vars_names, geom, 1.0, 0);
+            hdf5_out_stem, out_mf, Constraints::var_names, geom, 1.0, 0);
 
         // Apparently this is necessary before calling std::system if h5diff
         // writes to the screen

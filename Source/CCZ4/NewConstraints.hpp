@@ -22,6 +22,13 @@
 class Constraints
 {
   public:
+    /// Variable names
+    static inline const amrex::Vector<std::string> var_names = {"Ham", "Mom1",
+                                                                "Mom2", "Mom3"};
+
+    static inline const amrex::Vector<std::string> var_names_norm = {"Ham",
+                                                                     "Mom"};
+
     /// CCZ4 variables
     template <class data_t> using MetricVars = BSSNVars::VarsNoGauge<data_t>;
 
