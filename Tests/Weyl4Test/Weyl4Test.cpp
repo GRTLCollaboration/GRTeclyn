@@ -97,7 +97,10 @@ void run_weyl4_test()
 
         amrex::Vector<std::string> weyl4_var_names = {"Weyl4_Re", "Weyl4_Im"};
 
-        amrex::WriteSingleLevelPlotfileHDF5("Weyl4Test/Weyl4Out", out_mf,
+        std::string this_test_dir = "Weyl4Test/";
+        std::string hdf5_out_stem = this_test_dir + "Weyl4Out";
+
+        amrex::WriteSingleLevelPlotfileHDF5(hdf5_out_stem, out_mf,
                                             weyl4_var_names, geom, 0.0, 0);
 
         // Apparently this is necessary before calling std::system if h5diff
@@ -105,8 +108,8 @@ void run_weyl4_test()
         std::cout.flush();
 
         std::string h5diff_toll        = "1.0e-10";
-        std::string grteclyn_hdf5_file = "Weyl4Test/Weyl4Out.h5";
-        std::string grchombo_hdf5_file = "Weyl4Test/Weyl4GRChombo.hdf5";
+        std::string grteclyn_hdf5_file = hdf5_out_stem + ".h5";
+        std::string grchombo_hdf5_file = this_test_dir + "Weyl4GRChombo.hdf5";
         std::string hdf5_internal_path = "/level_0/data:datatype=0";
 
         // Let's hope this is in our PATH if we're building with HDF5
@@ -115,12 +118,18 @@ void run_weyl4_test()
         h5diff_command += " " + grteclyn_hdf5_file + " " + grchombo_hdf5_file;
         h5diff_command += " " + hdf5_internal_path + " " + hdf5_internal_path;
         INFO("h5diff command: " << h5diff_command);
+        INFO("Run command manually with -r flag to print difference");
 
         // In an ideal world, we wouldn't rely on running an external program
         // but I can't think of a simple way to do this nicely.
-        // The return value should hopefully be the exit code of the command but
-        // it is not guaranteed.
-        int h5diff_retval = std::system(h5diff_command.c_str());
+        int h5diff_status = std::system(h5diff_command.c_str());
+        int h5diff_retval = -1;
+
+        // Use POSIX macros to get the exit code
+        if (WIFEXITED(h5diff_status))
+        {
+            h5diff_retval = WEXITSTATUS(h5diff_status);
+        }
 
         CHECK(h5diff_retval == 0);
 #endif
