@@ -11,6 +11,7 @@
 #include "BSSNVars.hpp"
 #include "Cell.hpp"
 #include "FourthOrderDerivatives.hpp"
+#include "Interval.hpp"
 #include "Tensor.hpp"
 #include "simd.hpp"
 
@@ -18,10 +19,16 @@
 
 #include <array>
 
-class [[deprecated(
-    "Use new Constraints class in NewConstraints.hpp")]] Constraints
+class Constraints
 {
   public:
+    /// Variable names
+    static inline const amrex::Vector<std::string> var_names = {"Ham", "Mom1",
+                                                                "Mom2", "Mom3"};
+
+    static inline const amrex::Vector<std::string> var_names_norm = {"Ham",
+                                                                     "Mom"};
+
     /// CCZ4 variables
     template <class data_t> using MetricVars = BSSNVars::VarsNoGauge<data_t>;
 
@@ -32,33 +39,48 @@ class [[deprecated(
     /// Vars object for Constraints
     template <class data_t> struct Vars
     {
-        data_t Ham;
+        data_t Ham{};
+        data_t Ham_abs_terms{};
         Tensor<1, data_t> Mom;
-
-        template <typename mapping_function_t>
-        AMREX_GPU_DEVICE void enum_mapping(mapping_function_t mapping_function)
-        {
-            using namespace VarsTools;
-            define_enum_mapping(mapping_function, c_Ham, Ham);
-            define_enum_mapping(mapping_function, GRInterval<c_Mom1, c_Mom3>(),
-                                Mom);
-        }
+        Tensor<1, data_t> Mom_abs_terms;
     };
 
-    Constraints(double dx, double cosmological_constant = 0);
+    // Constructor which allows specifying Ham and Mom vars
+    // if the interval of a_c_Moms is of size 1, then
+    // sqrt(Mom1^2 + Mom2^2 + Mom3^2) is stored in that variable
+    // ...abs_terms stores the absolute value of the individual terms in the
+    // conformally decomposed expressions which can be used in to normalize
+    // the constraint violations
+    // Any zero-length Interval or negative var is not calculated
+    Constraints(double dx, int a_c_Ham, const Interval &a_c_Moms,
+                int a_c_Ham_abs_terms              = -1,
+                const Interval &a_c_Moms_abs_terms = Interval(),
+                double cosmological_constant       = 0.0);
 
-    template <class data_t> void compute(Cell<data_t> current_cell) const;
+    template <class data_t>
+    AMREX_GPU_DEVICE void
+    compute(int i, int j, int k, const amrex::Array4<data_t> &cst,
+            const amrex::Array4<data_t const> &state) const;
 
   protected:
-    const FourthOrderDerivatives m_deriv;
+    FourthOrderDerivatives m_deriv;
+    int m_c_Ham;
+    Interval m_c_Moms;
+    int m_c_Ham_abs_terms = -1;
+    Interval m_c_Moms_abs_terms;
     double m_cosmological_constant;
 
     template <class data_t, template <typename> class vars_t,
               template <typename> class diff2_vars_t>
-    Vars<data_t>
-    constraint_equations(const vars_t<data_t> &vars,
-                         const vars_t<Tensor<1, data_t>> &d1,
-                         const diff2_vars_t<Tensor<2, data_t>> &d2) const;
+    AMREX_GPU_DEVICE Vars<data_t> constraint_equations(
+        const vars_t<data_t> &vars, const vars_t<Tensor<1, data_t>> &d1,
+        const diff2_vars_t<Tensor<2, data_t>> &d2,
+        const Tensor<2, data_t> &h_UU, const chris_t<data_t> &chris) const;
+
+    template <class data_t>
+    AMREX_GPU_DEVICE void
+    store_vars(const Vars<data_t> &out,
+               const amrex::CellData<data_t> &current_cell) const;
 };
 
 #include "Constraints.impl.hpp"

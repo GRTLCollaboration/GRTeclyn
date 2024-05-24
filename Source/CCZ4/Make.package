@@ -1,5 +1,16 @@
-GRTECLYN_CEXE_headers += ADMConformalVars.hpp  CCZ4RHS.impl.hpp GammaCalculator.hpp PositiveChiAndAlpha.hpp \
-                BSSNVars.hpp CCZ4Variables.hpp IntegratedMovingPunctureGauge.hpp \
-                TraceARemoval.hpp CCZ4Geometry.hpp CCZ4Vars.hpp MovingPunctureGauge.hpp Weyl4.hpp \
-                Constraints.hpp NewConstraints.hpp Weyl4.impl.hpp CCZ4RHS.hpp Constraints.impl.hpp \
-                NewConstraints.impl.hpp
+GRTECLYN_CEXE_headers += ADMConformalVars.hpp \
+                         BSSNVars.hpp \
+                         CCZ4Geometry.hpp \
+                         CCZ4RHS.hpp \
+                         CCZ4RHS.impl.hpp \
+                         CCZ4Variables.hpp \
+                         CCZ4Vars.hpp \
+                         Constraints.hpp \
+                         Constraints.impl.hpp \
+                         GammaCalculator.hpp \
+                         IntegratedMovingPunctureGauge.hpp \
+                         MovingPunctureGauge.hpp \
+                         PositiveChiAndAlpha.hpp \
+                         TraceARemoval.hpp \
+                         Weyl4.hpp \
+                         Weyl4.impl.hpp
