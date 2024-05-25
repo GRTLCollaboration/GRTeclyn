@@ -36,10 +36,13 @@ class InitialScalarData
     }
 
     //! Function to compute the value of all the initial vars on the grid
-    template <class data_t> void compute(Cell<data_t> current_cell) const
+    template <class data_t>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    compute(int i, int j, int k, const amrex::Array4<class data_t> &cell) const
     {
         // where am i?
-        Coordinates<data_t> coords(current_cell, m_dx, m_params.center);
+        amrex::IntVect pos(i, j, k);
+        Coordinates<data_t> coords(pos, m_dx, m_params.center);
         data_t rr  = coords.get_radius();
         data_t rr2 = rr * rr;
 
@@ -48,8 +51,8 @@ class InitialScalarData
                      (1.0 + 0.01 * rr2 * exp(-pow(rr / m_params.width, 2.0)));
 
         // store the vars
-        current_cell.store_vars(phi, c_phi);
-        current_cell.store_vars(0.0, c_Pi);
+        cell(i, j, k, c_phi) = phi;
+        cell(i, j, k, c_Pi)  = 0.0;
     }
 
   protected:
