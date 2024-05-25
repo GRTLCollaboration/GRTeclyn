@@ -9,7 +9,7 @@
 #include "CCZ4Geometry.hpp"
 #include "Cell.hpp"
 #include "FourthOrderDerivatives.hpp"
-#include "Interval.H"
+#include "Interval.hpp"
 #include "MatterCCZ4.hpp"
 #include "simd.hpp"
 

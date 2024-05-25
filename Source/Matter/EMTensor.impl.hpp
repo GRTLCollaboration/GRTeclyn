@@ -14,7 +14,7 @@
 #include "Cell.hpp"
 #include "DimensionDefinitions.hpp"
 #include "FourthOrderDerivatives.hpp"
-#include "Interval.H"
+#include "Interval.hpp"
 #include "simd.hpp"
 
 template <class matter_t>

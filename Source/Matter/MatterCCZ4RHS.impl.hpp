@@ -30,14 +30,14 @@ MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::compute(
 {
     // copy data from chombo gridpoint into local variables
     const auto matter_vars = load_vars<Vars>(state.cellData(i, j, k));
-    const auto d1          = m_deriv.template diff1<Vars>(i, j, k, state);
-    const auto d2          = m_deriv.template diff2<Diff2Vars>(i, j, k, state);
-    const auto advec =
-        m_deriv.template advection<Vars>(i, j, k, state, matter_vars.shift);
+    const auto d1          = this->m_deriv.template diff1<Vars>(i, j, k, state);
+    const auto d2    = this->m_deriv.template diff2<Diff2Vars>(i, j, k, state);
+    const auto advec = this->m_deriv.template advection<Vars>(
+        i, j, k, state, matter_vars.shift);
 
     // Call CCZ4 RHS - work out RHS without matter, no dissipation
     Vars<data_t> matter_rhs;
-    rhs_equation(matter_rhs, matter_vars, d1, d2, advec);
+    this->rhs_equation(matter_rhs, matter_vars, d1, d2, advec);
 
     // add RHS matter terms from EM Tensor
     add_emtensor_rhs(matter_rhs, matter_vars, d1);
@@ -46,7 +46,7 @@ MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::compute(
     my_matter.add_matter_rhs(matter_rhs, matter_vars, d1, d2, advec);
 
     // Add dissipation to all terms
-    m_deriv.add_dissipation(i, j, k, matter_rhs, state, m_sigma);
+    this->m_deriv.add_dissipation(i, j, k, matter_rhs, state, this->m_sigma);
 
     // Write the rhs into the output FArrayBox
     store_vars(rhs.cellData(i, j, k), matter_rhs);

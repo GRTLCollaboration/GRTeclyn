@@ -13,6 +13,8 @@
 #include "CCZ4RHSTest.hpp"
 #include "CoordinateTransformationsTest.hpp"
 #include "DerivativeUnitTests.hpp"
+#include "MatterCCZ4RHSTest.hpp"
+#include "MatterWeyl4Test.hpp"
 #include "PositiveChiAndAlphaUnitTest.hpp"
 #include "SphericalHarmonicTest.hpp"
 
@@ -30,5 +32,9 @@ TEST_CASE("Derivative Unit Tests") { run_derivative_unit_tests(); }
 TEST_CASE("Positive Chi and Alpha") { run_positive_chi_and_alpha_unit_test(); }
 
 TEST_CASE("Spherical Harmonics") { run_spherical_harmonic_test(); }
+
+TEST_CASE("Matter Weyl4") { run_matter_weyl4_test(); }
+
+TEST_CASE("Matter CCZ4") { run_matter_ccz4_rhs_test(); }
 
 #endif /* TESTCASES_HPP_ */

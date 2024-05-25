@@ -1,0 +1,17 @@
+GRTECLYN_CEXE_headers += InitialData.hpp \
+						ADMConformalVars-fdf5a7a.hpp \
+						BSSNVars-fdf5a7a.hpp \
+						CCZ4Geometry-fdf5a7a.hpp \
+						CCZ4RHS-fdf5a7a.hpp \
+						CCZ4RHS-fdf5a7a.impl.hpp \
+						CCZ4Vars-fdf5a7a.hpp \
+						Cell-fdf5a7a.hpp \
+						FourthOrderDerivatives-fdf5a7a.hpp \
+						GRInterval-fdf5a7a.hpp \
+						MovingPunctureGauge-fdf5a7a.hpp \
+						Tensor-fdf5a7a.hpp \
+						TensorAlgebra-fdf5a7a.hpp \
+						VarsTools-fdf5a7a.hpp \
+						CCZ4RHSTest.hpp
+
+GRTECLYN_CEXE_sources += CCZ4RHSTest.cpp
