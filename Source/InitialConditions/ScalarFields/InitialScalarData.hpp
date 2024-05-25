@@ -37,6 +37,7 @@ class InitialScalarData
 
     //! Function to compute the value of all the initial vars on the grid
 
+
     template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     compute(int i, int j, int k, const amrex::Array4<data_t> &cell) const
@@ -54,7 +55,10 @@ class InitialScalarData
         // store the vars
         cell(i, j, k, c_phi) = phi;
         cell(i, j, k, c_Pi)  = 0.0;
+<<<<<<< HEAD:Source/InitialConditions/ScalarFields/InitialScalarData.hpp
 
+=======
+>>>>>>> 9c8cbf5 (remove GRChombo references):Examples/ScalarField/InitialScalarData.hpp
     }
 
   protected:

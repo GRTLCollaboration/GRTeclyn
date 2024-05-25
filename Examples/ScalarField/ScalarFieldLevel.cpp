@@ -5,6 +5,7 @@
 
 // General includes common to most GR problems
 #include "ScalarFieldLevel.hpp"
+
 #include "PositiveChiAndAlpha.hpp"
 #include "TraceARemoval.hpp"
 // //#include "SixthOrderDerivatives.hpp"
@@ -18,6 +19,7 @@
 // // Problem specific includes
 // //#include "ComputePack.hpp"
 // //#include "GammaCalculator.hpp"
+
 #include "InitialScalarData.hpp"
 #include "Potential.hpp"
 #include "ScalarField.hpp"
@@ -26,6 +28,7 @@
 // Things to do at each advance step, after the RK4 is calculated
 void ScalarFieldLevel::specificAdvance()
 {
+
     BL_PROFILE("ScalarFieldLevel::specificAdvance");
     // Enforce trace free A_ij and positive chi and alpha
     amrex::MultiFab &S_new = get_new_data(State_Type);
@@ -54,6 +57,7 @@ void ScalarFieldLevel::specificAdvance()
 // Initial data for field and metric variables
 void ScalarFieldLevel::initData()
 {
+
     BL_PROFILE("ScalarFieldLevel::initData");
     if (m_verbosity)
         amrex::Print() << "ScalarFieldLevel::initialData " << Level()
@@ -90,6 +94,7 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                        amrex::MultiFab &a_rhs,
                                        const double a_time)
 {
+
     BL_PROFILE("ScalarFieldLevel::specificEvalRHS()");
 
     const auto &soln_arrs   = a_soln.arrays();
@@ -146,6 +151,7 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
 // Things to do at ODE update, after soln + rhs
 void ScalarFieldLevel::specificUpdateODE(amrex::MultiFab &a_soln)
 {
+
     BL_PROFILE("ScalarFieldLevel::specificUpdateODE()");
     // Enforce the trace free A_ij condition
     const auto &soln_arrs = a_soln.arrays();
