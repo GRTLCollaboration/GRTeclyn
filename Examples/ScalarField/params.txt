@@ -16,7 +16,7 @@ plot_prefix = ScalarFieldp_
 checkpoint_interval = 500
 # set to 0 to turn off plot files (except at t=0 and t=stop_time)
 # set to -1 to never ever print plotfiles
-plot_interval = 1
+plot_interval = -1
 num_plot_vars = 2
 plot_vars = chi phi
 
@@ -107,11 +107,8 @@ lo_boundary = 2 2 2
 # 1,2,3 = odd x, y, z
 # 4,5,6 = odd xy, yz, xz
 # 7     = odd xyz
-vars_parity            = 0 0 4 6 0 5 0    #chi and hij
-                         0 0 4 6 0 5 0    #K and Aij
-                         0 1 2 3          #Theta and Gamma
-                         0 1 2 3 1 2 3    #lapse shift and B
-                         0 0              #phi and Pi
+vars_parity = 0 0 4 6 0 5 0  0 0 4 6 0 5 0  0 1 2 3          0 1 2 3 1 2 3
+              #chi and hij   K and Aij      Theta and Gamma  Gauge
 vars_parity_diagnostic = 0 1 2 3          #Ham and Mom
 
 # if sommerfeld boundaries selected, must select
