@@ -10,7 +10,7 @@
 #include "GRAMRLevel.hpp"
 // Problem specific includes
 #include "Potential.hpp"
-#include "ScalarField.hpp"
+// #include "ScalarField.hpp"
 
 //!  A class for the evolution of a scalar field, minimally coupled to gravity
 /*!
@@ -31,30 +31,29 @@ class ScalarFieldLevel : public GRAMRLevel
     typedef ScalarField<Potential> ScalarFieldWithPotential;
 
     //! Things to do at the end of the advance step, after RK4 calculation
-    virtual void specificAdvance();
+    void specificAdvance() override;
 
     //! Initialize data for the field and metric variables
-    virtual void initialData();
+    void initData() override;
 
 #ifdef AMREX_USE_HDF5
     //! routines to do before outputting plot file
-    virtual void prePlotLevel();
+    virtual void prePlotLevel() override;
 #endif
 
     //! RHS routines used at each RK4 step
-    virtual void specificEvalRHS(GRLevelData &a_soln, GRLevelData &a_rhs,
-                                 const double a_time);
+    void specificEvalRHS(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
+                         const double a_time) override;
 
     //! Things to do in UpdateODE step, after soln + rhs update
-    virtual void specificUpdateODE(GRLevelData &a_soln,
-                                   const GRLevelData &a_rhs, Real a_dt);
+    void specificUpdateODE(amrex::MultiFab &a_soln) override;
 
     /// Things to do before tagging cells (i.e. filling ghosts)
-    virtual void preTagCells() override;
+    void preTagCells();
 
-    //! Tell Chombo how to tag cells for regridding
-    virtual void computeTaggingCriterion(FArrayBox &tagging_criterion,
-                                         const FArrayBox &current_state);
+    //! Tell GRTeclyn how to tag cells for regridding
+    void errorEst(amrex::TagBoxArray &tag_box_array, int clearval, int tagval,
+                  amrex::Real time, int n_error_buf = 0, int ngrow = 0) final;
 };
 
 #endif /* SCALARFIELDLEVEL_HPP_ */
