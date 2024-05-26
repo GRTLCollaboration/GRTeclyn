@@ -49,7 +49,7 @@ int runGRTeclyn(int argc, char *argv[])
         (gr_amr.okToContinue() != 0) &&
         (gr_amr.levelSteps(0) < sim_params.max_steps ||
          sim_params.max_steps < 0) &&
-        (gr_amr.CumTime() < sim_params.stop_time || sim_params.stop_time < 0.0))
+        (gr_amr.cumTime() < sim_params.stop_time || sim_params.stop_time < 0.0))
     {
         gr_amr.coarseTimeStep(sim_params.stop_time);
     }

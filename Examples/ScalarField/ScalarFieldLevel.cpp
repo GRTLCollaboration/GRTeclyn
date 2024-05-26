@@ -5,12 +5,12 @@
 
 // General includes common to most GR problems
 #include "ScalarFieldLevel.hpp"
-// #include "PositiveChiAndAlpha.hpp"
-// #include "TraceARemoval.hpp"
+#include "PositiveChiAndAlpha.hpp"
+#include "TraceARemoval.hpp"
 // //#include "SixthOrderDerivatives.hpp"
 
 // // For RHS update
-// #include "MatterCCZ4RHS.hpp"
+#include "MatterCCZ4RHS.hpp"
 
 // // For constraints calculation
 // #include "NewMatterConstraints.hpp"
@@ -18,45 +18,57 @@
 // // Problem specific includes
 // //#include "ComputePack.hpp"
 // //#include "GammaCalculator.hpp"
-// #include "InitialScalarData.hpp"
-// #include "Potential.hpp"
-// #include "ScalarField.hpp"
+#include "InitialScalarData.hpp"
+#include "Potential.hpp"
+#include "ScalarField.hpp"
 // //#include "SetValue.hpp"
 
 // Things to do at each advance step, after the RK4 is calculated
 void ScalarFieldLevel::specificAdvance()
 {
-    // // Enforce trace free A_ij and positive chi and alpha
-    // BoxLoops::loop(
-    //     make_compute_pack(TraceARemoval(),
-    //                       PositiveChiAndAlpha(m_p.min_chi, m_p.min_lapse)),
-    //     m_state_new, m_state_new, INCLUDE_GHOST_CELLS);
+    BL_PROFILE("ScalarFieldLevel::specificAdvance");
+    // Enforce trace free A_ij and positive chi and alpha
+    amrex::MultiFab &S_new = get_new_data(State_Type);
+    const auto &arrs       = S_new.arrays();
 
-    // // Check for nan's
-    // if (m_p.nan_check)
-    //     BoxLoops::loop(NanCheck(), m_state_new, m_state_new,
-    //                    EXCLUDE_GHOST_CELLS, disable_simd());
+    // Enforce the trace free A_ij condition and positive chi and alpha
+    amrex::ParallelFor(S_new,
+                       [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+                       {
+                           amrex::CellData<amrex::Real> cell =
+                               arrs[box_no].cellData(i, j, k);
+                           TraceARemoval()(cell);
+                           PositiveChiAndAlpha()(cell);
+                       });
+
+    // Check for nan's
+    if (simParams().nan_check)
+    {
+        if (S_new.contains_nan(0, S_new.nComp(), amrex::IntVect(0), true))
+        {
+            amrex::Abort("NaN in specificAdvance");
+        }
+    }
 }
 
 // Initial data for field and metric variables
-void ScalarFieldLevel::initialData()
+void ScalarFieldLevel::initData()
 {
-    // BL_PROFILE("ScalarFieldLevel::initialData");
-    // if (m_verbosity)
-    //     amrex::Print() << "ScalarFieldLevel::initialData " << m_level <<
-    //     endl;
+    BL_PROFILE("ScalarFieldLevel::initData");
+    if (m_verbosity)
+        amrex::Print() << "ScalarFieldLevel::initialData " << Level()
+                       << std::endl;
 
-    // // First set everything to zero then initial conditions for scalar field
-    // -
-    // // here a Kerr BH and a scalar field profile
-    // BoxLoops::loop(
-    //     make_compute_pack(SetValue(0.), KerrBH(m_p.kerr_params, m_dx),
-    //                       InitialScalarData(m_p.initial_params, m_dx)),
-    //     m_state_new, m_state_new, INCLUDE_GHOST_CELLS);
+    const auto dx = geom.CellSizeArray();
+    InitialScalarData gaussian(simParams().initial_params, dx[0]);
 
-    // fillAllGhosts();
-    // BoxLoops::loop(GammaCalculator(m_dx), m_state_new, m_state_new,
-    //                EXCLUDE_GHOST_CELLS);
+    amrex::MultiFab &state  = get_new_data(State_Type);
+    auto const &state_array = state.arrays();
+
+    amrex::ParallelFor(
+        state, state.nGrowVect(),
+        [=] AMREX_GPU_DEVICE(int box_ind, int i, int j, int k) noexcept
+        { gaussian.compute(i, j, k, state_array[box_ind]); });
 }
 
 #ifdef AMREX_USE_HDF5
@@ -78,38 +90,72 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                        amrex::MultiFab &a_rhs,
                                        const double a_time)
 {
-    // // Enforce trace free A_ij and positive chi and alpha
-    // BoxLoops::loop(
-    //     make_compute_pack(TraceARemoval(),
-    //                       PositiveChiAndAlpha(m_p.min_chi, m_p.min_lapse)),
-    //     a_soln, a_soln, INCLUDE_GHOST_CELLS);
+    BL_PROFILE("ScalarFieldLevel::specificEvalRHS()");
 
-    // // Calculate MatterCCZ4 right hand side with matter_t = ScalarField
-    // Potential potential(m_p.potential_params);
-    // ScalarFieldWithPotential scalar_field(potential);
-    // if (m_p.max_spatial_derivative_order == 4)
-    // {
-    //     MatterCCZ4RHS<ScalarFieldWithPotential, MovingPunctureGauge,
-    //                   FourthOrderDerivatives>
-    //         my_ccz4_matter(scalar_field, m_p.ccz4_params, m_dx, m_p.sigma,
-    //                        m_p.formulation, m_p.G_Newton);
-    //     BoxLoops::loop(my_ccz4_matter, a_soln, a_rhs, EXCLUDE_GHOST_CELLS);
-    // }
-    // else if (m_p.max_spatial_derivative_order == 6)
-    // {
-    //     MatterCCZ4RHS<ScalarFieldWithPotential, MovingPunctureGauge,
-    //                   SixthOrderDerivatives>
-    //         my_ccz4_matter(scalar_field, m_p.ccz4_params, m_dx, m_p.sigma,
-    //                        m_p.formulation, m_p.G_Newton);
-    //     BoxLoops::loop(my_ccz4_matter, a_soln, a_rhs, EXCLUDE_GHOST_CELLS);
-    // }
+    const auto &soln_arrs   = a_soln.arrays();
+    const auto &soln_c_arrs = a_soln.const_arrays();
+    const auto &rhs_arrs    = a_rhs.arrays();
+
+    // Enforce positive chi and alpha and trace free A
+    amrex::ParallelFor(a_soln, a_soln.nGrowVect(),
+                       [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+                       {
+                           amrex::CellData<amrex::Real> cell =
+                               soln_arrs[box_no].cellData(i, j, k);
+                           TraceARemoval()(cell);
+                           PositiveChiAndAlpha()(cell);
+                       });
+
+    // Calculate MatterCCZ4 right hand side with matter_t = ScalarField
+    Potential potential(simParams().potential_params);
+    ScalarFieldWithPotential scalar_field(potential);
+
+    // Calculate CCZ4 right hand side
+    if (simParams().max_spatial_derivative_order == 4)
+    {
+        MatterCCZ4RHS<ScalarFieldWithPotential, MovingPunctureGauge,
+                      FourthOrderDerivatives>
+            matter_ccz4_rhs(scalar_field, simParams().ccz4_params,
+                            Geom().CellSize(0), simParams().sigma,
+                            simParams().formulation, simParams().G_Newton);
+        amrex::ParallelFor(
+            a_rhs,
+            [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) {
+                matter_ccz4_rhs.compute(i, j, k, rhs_arrs[box_no],
+                                        soln_c_arrs[box_no]);
+            });
+    }
+    else if (simParams().max_spatial_derivative_order == 6)
+    {
+        amrex::Abort("xxxxx max_spatial_derivative_order == 6 todo");
+#if 0
+        MatterCCZ4RHS<ScalarFieldWithPotential, MovingPunctureGauge, SixthOrderDerivatives>
+	  matter_ccz4_rhs(scalar_field, simParams().ccz4_params, Geom().CellSize(0), simParams().sigma,
+			  simParams().formulation, simParams().G_Newton);
+        amrex::ParallelFor(a_rhs,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
+        {
+            amrex::CellData<amrex::Real const> state = soln_c_arrs[box_no].cellData(i,j,k);
+            amrex::CellData<amrex::Real> rhs = rhs_arrs[box_no].cellData(i,j,k);
+            matter_ccz4_rhs.compute(i,j,k,rhs_arrs[box_no], soln_c_arrs[box_no]);
+        });
+#endif
+    }
 }
 
 // Things to do at ODE update, after soln + rhs
 void ScalarFieldLevel::specificUpdateODE(amrex::MultiFab &a_soln)
 {
-    // // Enforce trace free A_ij
-    // BoxLoops::loop(TraceARemoval(), a_soln, a_soln, INCLUDE_GHOST_CELLS);
+    BL_PROFILE("ScalarFieldLevel::specificUpdateODE()");
+    // Enforce the trace free A_ij condition
+    const auto &soln_arrs = a_soln.arrays();
+    amrex::ParallelFor(a_soln, amrex::IntVect(0), // zero ghost cells
+                       [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+                       {
+                           amrex::CellData<amrex::Real> cell =
+                               soln_arrs[box_no].cellData(i, j, k);
+                           TraceARemoval()(cell);
+                       });
 }
 
 void ScalarFieldLevel::preTagCells()
@@ -118,11 +164,12 @@ void ScalarFieldLevel::preTagCells()
     // used here so don't fill any
 }
 
-void ScalarFieldLevel::computeTaggingCriterion(
-    amrex::TagBoxArray &tagging_criterion, int clearval, int tagval,
-    amrex::Real time, int n_error_buf = 0, int ngrow = 0)
+void ScalarFieldLevel::errorEst(amrex::TagBoxArray &tagging_criterion,
+                                int clearval, int tagval, amrex::Real time,
+                                int n_error_buf, int ngrow)
 
 {
+    BL_PROFILE("ScalarFieldLevel::errorEst()");
     // BoxLoops::loop(
     //     FixedGridsTaggingCriterion(m_dx, m_level, 2.0 * m_p.L, m_p.center),
     //     current_state, tagging_criterion);
