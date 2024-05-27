@@ -24,11 +24,11 @@ template <class matter_t> class MatterWeyl4 : public Weyl4
     //! Constructor
     MatterWeyl4(matter_t a_matter,
                 const std::array<double, AMREX_SPACEDIM> a_center,
-                const double a_dx,
+                const double a_dx, const int a_dcomp,
                 const int a_formulation = CCZ4RHS<>::USE_CCZ4,
                 double a_G_Newton       = 1.0)
         : Weyl4(a_center, a_dx, a_formulation), m_matter(a_matter),
-          m_G_Newton(a_G_Newton)
+          m_dcomp(a_dcomp), m_G_Newton(a_G_Newton)
     {
     }
 
@@ -36,11 +36,12 @@ template <class matter_t> class MatterWeyl4 : public Weyl4
     //! the grid
     template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    compute(int i, int j, int k, amrex::Array4<data_t> &rhs,
-            amrex::Array4<data_t const> &state) const;
+    compute(int i, int j, int k, const amrex::Array4<data_t> &rhs,
+            const amrex::Array4<data_t const> &state) const;
 
   protected:
     matter_t m_matter;       //!< The matter object, e.g. a scalar field
+    const int m_dcomp;       //!< index for storing the results of compute
     const double m_G_Newton; //!< Newton's constant, set to one by default
 
     //! Add matter terms to electric and magnetic parts

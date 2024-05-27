@@ -109,24 +109,16 @@ void run_matter_weyl4_test()
         amrex::FArrayBox &in_testfab       = in_fab[0];
         amrex::Array4<amrex::Real const> b = in_testfab.array();
 
-        //	matter_weyl4.compute(0,0,0, a, b);
-        // MFIter mfi(out_fab);
-        // for (MFIter mfi(out_fab); mfi.isValid(); ++mfi)
-        //   {
-        //     amrex::FArrayBox& fab = out_fab[mfi];
+        amrex::ParallelFor(out_fab,
+                           [=] AMREX_GPU_DEVICE(int ibox, int i, int j, int k)
+                           {
+                               matter_weyl4.compute(i, j, k, out_arrays[ibox],
+                                                    in_c_arrays[ibox]);
 
-        // }
-
-        // amrex::ParallelFor(out_fab,
-        //                    [=] AMREX_GPU_DEVICE(int ibox, int i, int j, int
-        //                    k)
-        //                    {
-        //                        matter_weyl4.compute(i, j, k);
-
-        //                        // matter_weyl4.compute(i, j, k,
-        //                        // out_arrays[ibox],
-        //                        //                      in_c_arrays[ibox]);
-        //                    });
+                               // matter_weyl4.compute(i, j, k,
+                               // out_arrays[ibox],
+                               //                      in_c_arrays[ibox]);
+                           });
 
         // // compute rho and store in FAB
         // BoxLoops::loop(EMTensor<DefaultScalarField>(

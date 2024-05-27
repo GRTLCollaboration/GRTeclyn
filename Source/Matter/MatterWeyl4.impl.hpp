@@ -14,14 +14,14 @@ template <class matter_t>
 template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 MatterWeyl4<matter_t>::compute(int i, int j, int k,
-                               amrex::Array4<data_t> &derive,
-                               amrex::Array4<data_t const> &state) const
+                               const amrex::Array4<data_t> &derive,
+                               const amrex::Array4<data_t const> &state) const
 {
 
     // copy data from chombo gridpoint into local variables
-    const auto vars = load_vars<Vars>(state.CellData(i, j, k));
-    const auto d1   = m_deriv.template diff1<Vars>(state.CellData(i, j, k));
-    const auto d2 = m_deriv.template diff2<Diff2Vars>(state.CellData(i, j, k));
+    const auto vars = load_vars<Vars>(state.cellData(i, j, k));
+    const auto d1   = m_deriv.template diff1<Vars>(i, j, k, state);
+    const auto d2   = m_deriv.template diff2<Diff2Vars>(i, j, k, state);
 
     // Get the coordinates
     amrex::IntVect cell_coords(AMREX_D_DECL(i, j, k));
