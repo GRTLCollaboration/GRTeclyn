@@ -53,16 +53,6 @@ class InitialScalarData
         // store the vars
         cell(i, j, k, c_phi) = phi;
         cell(i, j, k, c_Pi)  = 0.0;
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD:Source/InitialConditions/ScalarFields/InitialScalarData.hpp
-
-=======
->>>>>>> 9c8cbf5 (remove GRChombo references):Examples/ScalarField/InitialScalarData.hpp
-=======
->>>>>>> c3bfef7 (move initial conditions to source dir)
-=======
->>>>>>> 24235c44c3337cb4594805fbe749a39dba872980
     }
 
   protected:
