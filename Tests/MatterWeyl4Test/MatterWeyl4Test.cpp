@@ -109,7 +109,6 @@ void run_matter_weyl4_test()
         amrex::FArrayBox &in_testfab       = in_fab[0];
         amrex::Array4<amrex::Real const> b = in_testfab.array();
 
-
         amrex::ParallelFor(out_fab,
                            [=] AMREX_GPU_DEVICE(int ibox, int i, int j, int k)
                            {
