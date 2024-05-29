@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #include "BinaryBHLevel.hpp"
@@ -48,7 +48,7 @@ void BinaryBHLevel::initData()
     BL_PROFILE("BinaryBHLevel::initialData");
     if (m_verbosity > 0)
     {
-        amrex::Print() << "BinaryBHLevel::initialData " << Level() << std::endl;
+        amrex::Print() << "BinaryBHLevel::initialData " << Level() << "\n";
     }
 #ifdef USE_TWOPUNCTURES
     // xxxxx USE_TWOPUNCTURES todo
@@ -62,7 +62,7 @@ void BinaryBHLevel::initData()
     BinaryBH binary(simParams().bh1_params, simParams().bh2_params,
                     Geom().CellSize(0));
 
-    static_assert(std::is_trivially_copyable<BinaryBH>::value,
+    static_assert(std::is_trivially_copyable_v<BinaryBH>,
                   "BinaryBH needs to be device copyable");
 
     // First set everything to zero (to avoid undefinded values in constraints)

@@ -1,7 +1,11 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
+
+#if !defined(AMRINTERPOLATOR_HPP_)
+#error "This file should only be included through AMRInterpolator.hpp"
+#endif
 
 #ifndef AMRINTERPOLATOR_IMPL_HPP_
 #define AMRINTERPOLATOR_IMPL_HPP_
@@ -133,8 +137,7 @@ void AMRInterpolator<InterpAlgo>::interp(InterpolationQuery &query)
 
     if (m_verbosity != 0)
     {
-        amrex::Print() << TAG << "\x1b[32;1mInterpolating data\x1b[0m"
-                       << std::endl;
+        amrex::Print() << TAG << "\x1b[32;1mInterpolating data\x1b[0m" << '\n';
 
         for (auto it = query.compsBegin(); it != query.compsEnd(); ++it)
         {
@@ -150,11 +153,11 @@ void AMRInterpolator<InterpAlgo>::interp(InterpolationQuery &query)
                 }
             }
             amrex::Print() << ") data for " << it->second.size()
-                           << " components" << std::endl;
+                           << " components" << '\n';
         }
 
         amrex::Print() << "    Summary: " << query.numComps() << " datasets at "
-                       << query.numPoints() << " points" << std::endl;
+                       << query.numPoints() << " points" << '\n';
     }
 
     // Compute the bounds and spacings for each level
@@ -535,7 +538,7 @@ void AMRInterpolator<InterpAlgo>::prepareMPI(InterpolationQuery &query,
 
     if (m_verbosity != 0)
     {
-        _pout << TAG << "Entering prepareMPI" << std::endl;
+        _pout << TAG << "Entering prepareMPI" << '\n';
     }
 
     // Count the number of points queried to each rank
@@ -604,14 +607,13 @@ void AMRInterpolator<InterpAlgo>::prepareMPI(InterpolationQuery &query,
 
     if (m_verbosity >= 2)
     {
-        _pout << "    Number of points that needs to be answered back:"
-              << std::endl;
+        _pout << "    Number of points that needs to be answered back:" << '\n';
         for (int rank = 0; rank < m_mpi.comm_size(); ++rank)
         {
             _pout << "    Rank " << rank << "\t= " << m_mpi.queryCount(rank)
-                  << std::endl;
+                  << '\n';
         }
-        _pout << TAG << "Leaving prepareMPI" << std::endl;
+        _pout << TAG << "Leaving prepareMPI" << '\n';
     }
 }
 
@@ -624,7 +626,7 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIQuery()
 
     if (m_verbosity > 0)
     {
-        _pout << TAG << "Entering exchangeMPIQuery" << std::endl;
+        _pout << TAG << "Entering exchangeMPIQuery" << '\n';
     }
 
 #ifdef AMREX_USE_MPI // TODO: it would be nicer if this ifdef were moved into
@@ -650,7 +652,7 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIQuery()
 
     if (m_verbosity > 0)
     {
-        _pout << TAG << "Entering exchangeMPIQuery" << std::endl;
+        _pout << TAG << "Entering exchangeMPIQuery" << '\n';
     }
 }
 
@@ -816,7 +818,7 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIAnswer()
 
     if (m_verbosity > 0)
     {
-        amrex::Print() << TAG << "Entering exchangeMPIAnswer" << std::endl;
+        amrex::Print() << TAG << "Entering exchangeMPIAnswer" << '\n';
     }
 
 #ifdef AMREX_USE_MPI // TODO: it would be nicer if this ifdef were moved into
@@ -841,7 +843,7 @@ void AMRInterpolator<InterpAlgo>::exchangeMPIAnswer()
 
     if (m_verbosity > 0)
     {
-        amrex::Print() << TAG << "Leaving exchangeMPIAnswer" << std::endl;
+        amrex::Print() << TAG << "Leaving exchangeMPIAnswer" << '\n';
     }
 }
 

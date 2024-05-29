@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #ifndef GRAMR_HPP_
@@ -36,8 +36,7 @@ class GRAMR : public amrex::Amr
     GRAMR(amrex::LevelBld *a_levelbld);
     ~GRAMR() override;
 
-    virtual void init(amrex::Real a_strt_time,
-                      amrex::Real a_stop_time) override;
+    void init(amrex::Real a_strt_time, amrex::Real a_stop_time) override;
 
     static void
     set_simulation_parameters(const SimulationParameters &a_sim_params);
@@ -53,7 +52,7 @@ class GRAMR : public amrex::Amr
 
     void set_restart_time(double a_restart_time);
 
-    double m_start_walltime;
+    double m_start_walltime{std::nan("0.0")};
     double m_restart_time{0.0};
 };
 

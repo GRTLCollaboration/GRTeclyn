@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #ifndef GRAMRLEVEL_HPP_
@@ -42,6 +42,8 @@ class GRAMRLevel : public amrex::AmrLevel
     ~GRAMRLevel() override;
 
     static const SimulationParameters &simParams();
+
+    GRAMR *get_gramr_ptr();
 
     /**
      * \brief Compute the initial time step.
@@ -89,7 +91,7 @@ class GRAMRLevel : public amrex::AmrLevel
     /**
      * \brief Operations to be done after restart.
      */
-    virtual void post_restart() override;
+    void post_restart() override;
     /**
      * \brief Init data on this level from another AmrLevel (during regrid).
      * This is a pure virtual function and hence MUST be
@@ -147,9 +149,9 @@ class GRAMRLevel : public amrex::AmrLevel
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     static amrex::Vector<std::string> plot_constraints;
 
-  protected:
+  private:
 
-    GRAMR *m_gr_amr_ptr = dynamic_cast<GRAMR *>(parent);
+    GRAMR *m_gramr_ptr = nullptr;
 };
 
 #endif /* GRAMRLEVEL_HPP_ */

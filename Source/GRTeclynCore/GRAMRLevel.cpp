@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #include "GRAMRLevel.hpp"
@@ -175,6 +175,19 @@ const SimulationParameters &GRAMRLevel::simParams()
     return GRAMR::get_simulation_parameters();
 }
 
+GRAMR *GRAMRLevel::get_gramr_ptr()
+{
+    if (m_gramr_ptr == nullptr)
+    {
+        if (parent == nullptr)
+        {
+            amrex::Abort("AmrLevel::parent is null");
+        }
+        m_gramr_ptr = dynamic_cast<GRAMR *>(parent);
+    }
+    return m_gramr_ptr;
+}
+
 void GRAMRLevel::computeInitialDt(
     int finest_level, int /*sub_cycle*/, amrex::Vector<int> & /*n_cycle*/,
     const amrex::Vector<amrex::IntVect> & /*ref_ratio*/,
@@ -215,9 +228,9 @@ amrex::Real GRAMRLevel::advance(amrex::Real time, amrex::Real dt, int iteration,
 {
     BL_PROFILE("GRAMRLevel::advance()");
     double seconds_per_hour = 3600;
-    double evolution_speed  = (time - m_gr_amr_ptr->get_restart_time()) *
+    double evolution_speed  = (time - get_gramr_ptr()->get_restart_time()) *
                              seconds_per_hour /
-                             m_gr_amr_ptr->get_walltime_since_start();
+                             get_gramr_ptr()->get_walltime_since_start();
     amrex::Print() << "[Level " << Level() << " step "
                    << parent->levelSteps(Level()) + 1
                    << "] average evolution speed = " << evolution_speed
@@ -280,7 +293,7 @@ void GRAMRLevel::post_init(amrex::Real /*stop_time*/)
 {
     if (Level() == 0)
     {
-        m_gr_amr_ptr->set_restart_time(m_gr_amr_ptr->cumTime());
+        get_gramr_ptr()->set_restart_time(get_gramr_ptr()->cumTime());
     }
 }
 
@@ -288,7 +301,7 @@ void GRAMRLevel::post_restart()
 {
     if (Level() == 0)
     {
-        m_gr_amr_ptr->set_restart_time(m_gr_amr_ptr->cumTime());
+        get_gramr_ptr()->set_restart_time(get_gramr_ptr()->cumTime());
     }
 }
 

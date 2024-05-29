@@ -5,6 +5,7 @@ variables:
   MODULEPATHS_A100: >
     /usr/local/software/spack/spack-modules/a100-20210927/linux-centos8-zen2
     /usr/local/software/spack/spack-modules/a100-20210927/linux-centos8-zen3
+  # The OpenMPI module has a CUDA dependency so will autoload a module for it
   MODULES_A100: >
     rhel8/slurm
     rhel8/global
@@ -28,20 +29,15 @@ variables:
 
 csd3-a100:
   stage: test
-  tags: 
+  tags:
     - csd3
   script:
-    # We need to modify the relative URL to an absolute one as we're not
-    # cloning from GitHub
-    - git submodule set-url Catch2 https://github.com/catchorg/Catch2
-    - git submodule sync
-    - git submodule update --init
     - if [[ -d ../amrex ]]; then
     -   cd ../amrex
     -   git fetch --depth 1
     -   git reset --hard origin/development
     - else
-    -   git clone --depth 1 https://github.com/AMReX-Codes/amrex.git ../amrex 
+    -   git clone --depth 1 https://github.com/AMReX-Codes/amrex.git ../amrex
     - fi
     - cd ${HOME}/${CI_PROJECT_DIR}/Tests
     - module purge

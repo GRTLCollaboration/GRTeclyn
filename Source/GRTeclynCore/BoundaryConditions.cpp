@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 // Other includes
@@ -233,8 +233,7 @@ void BoundaryConditions::write_reflective_conditions(int idir,
                                                      const params_t &a_params)
 {
     amrex::Print()
-        << "The variables that are parity odd in this direction are : "
-        << std::endl;
+        << "The variables that are parity odd in this direction are : " << '\n';
     for (int icomp = 0; icomp < NUM_VARS; icomp++)
     {
         int parity = get_var_parity(icomp, idir, a_params);
@@ -260,7 +259,7 @@ void BoundaryConditions::write_sommerfeld_conditions(int /*idir*/,
 {
     amrex::Print() << "The non zero asymptotic values of the variables "
                       "in this direction are : "
-                   << std::endl;
+                   << '\n';
     for (int icomp = 0; icomp < NUM_VARS; icomp++)
     {
         if (a_params.vars_asymptotic_values[icomp] != 0)
@@ -282,7 +281,7 @@ void BoundaryConditions::write_mixed_conditions(int idir,
     // now do the write out
     amrex::Print()
         << "The variables that use extrapolating bcs in this direction are : "
-        << std::endl;
+        << '\n';
     for (int icomp = 0; icomp < NUM_VARS; icomp++)
     {
         if (a_params.mixed_bc_vars_map.at(icomp) == EXTRAPOLATING_BC)
@@ -290,20 +289,19 @@ void BoundaryConditions::write_mixed_conditions(int idir,
             amrex::Print() << UserVariables::variable_names[icomp] << "    ";
         }
     }
-    amrex::Print() << std::endl;
+    amrex::Print() << '\n';
     amrex::Print()
         << "The other variables all use Sommerfeld boundary conditions."
-        << std::endl;
+        << '\n';
     write_sommerfeld_conditions(idir, a_params);
 }
 
 /// write out boundary params (used during setup for debugging)
 void BoundaryConditions::write_boundary_conditions(const params_t &a_params)
 {
-    amrex::Print() << "You are using non periodic boundary conditions."
-                   << std::endl;
-    amrex::Print() << "The boundary params chosen are:  " << std::endl;
-    amrex::Print() << "---------------------------------" << std::endl;
+    amrex::Print() << "You are using non periodic boundary conditions." << '\n';
+    amrex::Print() << "The boundary params chosen are:  " << '\n';
+    amrex::Print() << "---------------------------------" << '\n';
 
     std::map<int, std::string> bc_names = {
         {STATIC_BC,        "Static"       },
@@ -317,8 +315,7 @@ void BoundaryConditions::write_boundary_conditions(const params_t &a_params)
         if (!a_params.is_periodic[idir])
         {
             amrex::Print() << "- " << bc_names[a_params.hi_boundary[idir]]
-                           << " boundaries in direction high " << idir
-                           << std::endl;
+                           << " boundaries in direction high " << idir << '\n';
             // high directions
             if (a_params.hi_boundary[idir] == REFLECTIVE_BC)
             {
@@ -332,12 +329,11 @@ void BoundaryConditions::write_boundary_conditions(const params_t &a_params)
             {
                 write_mixed_conditions(idir, a_params);
             }
-            amrex::Print() << "\n" << std::endl;
+            amrex::Print() << "\n" << '\n';
 
             // low directions
             amrex::Print() << "- " << bc_names[a_params.lo_boundary[idir]]
-                           << " boundaries in direction low " << idir
-                           << std::endl;
+                           << " boundaries in direction low " << idir << '\n';
             if (a_params.lo_boundary[idir] == REFLECTIVE_BC)
             {
                 write_reflective_conditions(idir, a_params);
@@ -350,10 +346,10 @@ void BoundaryConditions::write_boundary_conditions(const params_t &a_params)
             {
                 write_mixed_conditions(idir, a_params);
             }
-            amrex::Print() << "\n" << std::endl;
+            amrex::Print() << "\n" << '\n';
         }
     }
-    amrex::Print() << "---------------------------------" << std::endl;
+    amrex::Print() << "---------------------------------" << '\n';
 }
 
 /// The function which returns the parity of each of the vars in

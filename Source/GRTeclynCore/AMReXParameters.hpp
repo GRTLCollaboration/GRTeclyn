@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #ifndef AMREXPARAMETERS_HPP_
@@ -71,7 +71,7 @@ class AMReXParameters
 
         if (pp.contains("regrid_thresholds"))
         {
-            amrex::Print() << "Using multiple regrid thresholds." << std::endl;
+            amrex::Print() << "Using multiple regrid thresholds." << '\n';
             // As for regrid_interval, the last element is irrelevant
             pp.getarr("regrid_thresholds", regrid_thresholds, 0, max_level);
             regrid_thresholds.resize(max_level + 1);
@@ -79,7 +79,7 @@ class AMReXParameters
         }
         else
         {
-            amrex::Print() << "Using single regrid threshold." << std::endl;
+            amrex::Print() << "Using single regrid threshold." << '\n';
             double regrid_threshold = NAN;
             pp.load("regrid_threshold", regrid_threshold, 0.5);
             regrid_thresholds =

@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #include "PunctureTracker.hpp"
@@ -135,12 +135,12 @@ void PunctureTracker::read_in_punctures(int a_int_step, double a_current_time)
         amrex::Print() << "Puncture " << ipuncture
                        << " restarted at : " << m_puncture_coords[ipuncture][0]
                        << " " << m_puncture_coords[ipuncture][1] << " "
-                       << m_puncture_coords[ipuncture][2] << std::endl;
+                       << m_puncture_coords[ipuncture][2] << '\n';
         amrex::Print() << " with shift vector : "
                        << m_puncture_shift[ipuncture][0] << " "
                        << m_puncture_shift[ipuncture][1] << " "
-                       << m_puncture_shift[ipuncture][2] << std::endl;
-        amrex::Print() << "at time = " << a_current_time << std::endl;
+                       << m_puncture_shift[ipuncture][2] << '\n';
+        amrex::Print() << "at time = " << a_current_time << '\n';
     }
 }
 

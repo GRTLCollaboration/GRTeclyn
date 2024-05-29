@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #ifndef SETUP_FUNCTIONS_HPP_
@@ -62,14 +62,14 @@ void mainSetup(int argc, char *argv[])
 
 #if !defined(AMREX_USE_GPU)
     amrex::Print() << " simd width (doubles) = "
-                   << simd_traits<double>::simd_len << std::endl;
+                   << simd_traits<double>::simd_len << '\n';
 #endif
 
     const int required_argc = 2;
     if (argc < required_argc)
     {
         amrex::Finalize();
-        std::cerr << " usage " << argv[0] << " <input_file_name> " << std::endl;
+        std::cerr << " usage " << argv[0] << " <input_file_name> " << '\n';
         exit(0);
     }
 }
