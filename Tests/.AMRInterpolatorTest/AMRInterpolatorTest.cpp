@@ -36,7 +36,7 @@ using std::endl;
 #include "InterpolationQuery.hpp"
 #include "InterpolatorTestLevel.hpp"
 #include "Lagrange.hpp"
-#include "UserVariables.hpp"
+#include "StateVariables.hpp"
 
 #ifdef _OPENMP
 #include <omp.h>

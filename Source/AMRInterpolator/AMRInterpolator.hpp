@@ -15,7 +15,7 @@
 #include "InterpolationQuery.hpp"
 
 #include "MPIContext.hpp"
-#include "UserVariables.hpp"
+#include "StateVariables.hpp"
 
 // system includes
 #include <limits>
@@ -65,9 +65,9 @@ template <typename InterpAlgo> class AMRInterpolator
     /// set values of member 'm_lo_boundary_reflective' and
     /// 'm_hi_boundary_reflective'
     void set_reflective_BC();
-    int get_var_parity(int comp, const VariableType type, int point_idx,
-                       const InterpolationQuery &query,
-                       const Derivative &deriv) const;
+    int get_state_var_parity(int comp, int point_idx,
+                             const InterpolationQuery &query,
+                             const Derivative &deriv) const;
     /// reflect coordinates if BC set to reflective in that direction
     double apply_reflective_BC_on_coord(const InterpolationQuery &query,
                                         int dir, int point_idx) const;

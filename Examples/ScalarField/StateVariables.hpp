@@ -3,12 +3,11 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#ifndef USERVARIABLES_HPP
-#define USERVARIABLES_HPP
+#ifndef STATEVARIABLES_HPP
+#define STATEVARIABLES_HPP
 
 #include "ArrayTools.hpp"
-#include "CCZ4UserVariables.hpp"
-#include "DiagnosticVariables.hpp"
+#include "CCZ4Variables.hpp"
 
 // assign an enum to each variable
 enum
@@ -21,15 +20,13 @@ enum
     NUM_VARS
 };
 
-namespace UserVariables
+namespace StateVariables
 {
 static const std::array<std::string, NUM_VARS - NUM_CCZ4_VARS>
-    user_variable_names = {"phi", "Pi"};
+    additional_names = {"phi", "Pi"};
 
-static const std::array<std::string, NUM_VARS> variable_names =
-    ArrayTools::concatenate(ccz4_variable_names, user_variable_names);
-} // namespace UserVariables
+static const std::array<std::string, NUM_VARS> names =
+    ArrayTools::concatenate(CCZ4Variables::names, additional_names);
+} // namespace StateVariables
 
-#include "UserVariables.inc.hpp"
-
-#endif /* USERVARIABLES_HPP */
+#endif /* STATEVARIABLES_HPP */

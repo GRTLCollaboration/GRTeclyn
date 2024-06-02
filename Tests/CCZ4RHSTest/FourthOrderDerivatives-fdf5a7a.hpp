@@ -12,7 +12,7 @@
 #include "Cell-fdf5a7a.hpp"
 #include "DimensionDefinitions.hpp"
 #include "Tensor-fdf5a7a.hpp"
-#include "UserVariables.hpp"
+#include "StateVariables.hpp"
 #include "simd.hpp"
 #include <array>
 

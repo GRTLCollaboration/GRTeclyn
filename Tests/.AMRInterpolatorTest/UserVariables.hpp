@@ -3,10 +3,9 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#ifndef USERVARIABLES_HPP
-#define USERVARIABLES_HPP
+#ifndef STATEVARIABLES_HPP
+#define STATEVARIABLES_HPP
 
-#include "EmptyDiagnosticVariables.hpp"
 #include <array>
 #include <string>
 
@@ -19,11 +18,9 @@ enum
     NUM_VARS
 };
 
-namespace UserVariables
+namespace StateVariables
 {
 static const std::array<std::string, NUM_VARS> variable_names = {"A", "B"};
 }
 
-#include "UserVariables.inc.hpp"
-
-#endif /* USERVARIABLES_HPP */
+#endif /* STATEVARIABLES_HPP */

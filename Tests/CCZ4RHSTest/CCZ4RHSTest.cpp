@@ -131,10 +131,9 @@ void run_ccz4_rhs_test()
             diff_fab.maxIndex<amrex::RunOn::Device>(box, max_diff,
                                                     max_diff_index, ivar);
 
-            INFO("Max diff for var "
-                 << UserVariables::variable_names[ivar] << ": "
-                 << std::setprecision(cout_precision) << max_diff << " at "
-                 << max_diff_index);
+            INFO("Max diff for var " << StateVariables::names[ivar] << ": "
+                                     << std::setprecision(cout_precision)
+                                     << max_diff << " at " << max_diff_index);
             INFO("Old value: " << std::setprecision(cout_precision)
                                << old_out_array(max_diff_index, ivar)
                                << ", Current value: "

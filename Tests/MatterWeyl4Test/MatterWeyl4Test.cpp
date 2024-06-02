@@ -25,6 +25,7 @@
 #include <sys/time.h>
 
 // this initializes the CCZ4 variables
+#include "StateVariables.hpp"
 #include <InitialData.hpp>
 
 // test header

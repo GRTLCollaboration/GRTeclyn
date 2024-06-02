@@ -10,8 +10,8 @@
 #include "Coordinates.hpp"
 #include "MatterCCZ4RHS.hpp"
 #include "ScalarField.hpp"
+#include "StateVariables.hpp" //This files needs NUM_VARS - total no. components
 #include "Tensor.hpp"
-#include "UserVariables.hpp" //This files needs NUM_VARS - total no. components
 #include "VarsTools.hpp"
 #include "simd.hpp"
 
