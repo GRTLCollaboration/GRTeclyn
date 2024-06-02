@@ -65,23 +65,13 @@ isPeriodic = 0 0 0
 hi_boundary = 1 1 1
 lo_boundary = 1 1 2
 
-# if reflective boundaries selected, must set
-# parity of all vars (in order given by UserVariables.hpp)
-# 0 = even
-# 1,2,3 = odd x, y, z
-# 7     = odd xyz
-vars_parity = 0 0 4 6 0 5 0  0 0 4 6 0 5 0  0 1 2 3          0 1 2 3 1 2 3
-              #chi and hij   K and Aij      Theta and Gamma  Gauge
-
 # if sommerfeld boundaries selected, must select
 # non zero asymptotic values
-num_nonzero_asymptotic_vars = 5
 nonzero_asymptotic_vars = chi h11 h22 h33 lapse
 nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 
 # if you are using extrapolating BC:
 # extrapolation_order = 1
-# num_extrapolating_vars = -1
 # extrapolating_vars =
 
 #################################################

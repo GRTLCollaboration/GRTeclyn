@@ -1,14 +1,14 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #include "PunctureTracker.hpp"
 #include "AMReXParameters.hpp" // for writing data
 #include "DimensionDefinitions.hpp"
 #include "InterpolationQuery.hpp"
-#include "SmallDataIO.hpp"   // for writing data
-#include "UserVariables.hpp" // for writing data
+#include "SmallDataIO.hpp"    // for writing data
+#include "StateVariables.hpp" // for writing data
 
 //! Set punctures post restart
 void PunctureTracker::initial_setup(
@@ -135,12 +135,12 @@ void PunctureTracker::read_in_punctures(int a_int_step, double a_current_time)
         amrex::Print() << "Puncture " << ipuncture
                        << " restarted at : " << m_puncture_coords[ipuncture][0]
                        << " " << m_puncture_coords[ipuncture][1] << " "
-                       << m_puncture_coords[ipuncture][2] << std::endl;
+                       << m_puncture_coords[ipuncture][2] << '\n';
         amrex::Print() << " with shift vector : "
                        << m_puncture_shift[ipuncture][0] << " "
                        << m_puncture_shift[ipuncture][1] << " "
-                       << m_puncture_shift[ipuncture][2] << std::endl;
-        amrex::Print() << "at time = " << a_current_time << std::endl;
+                       << m_puncture_shift[ipuncture][2] << '\n';
+        amrex::Print() << "at time = " << a_current_time << '\n';
     }
 }
 
@@ -204,7 +204,7 @@ void PunctureTracker::interp_shift()
     m_interpolator->refresh(fill_ghosts);
     // only fill the ghosts we need
     m_interpolator->fill_multilevel_ghosts(
-        VariableType::evolution, Interval(c_shift1, c_shift3), m_min_level);
+        VariableType::state, Interval(c_shift1, c_shift3), m_min_level);
 
     // set up shift and coordinate holders
     std::vector<double> interp_shift1(m_num_punctures);

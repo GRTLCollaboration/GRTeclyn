@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 // This compute class enforces the positive chi and alpha condition
@@ -8,7 +8,7 @@
 #define POSITIVECHIANDALPHA_HPP_
 
 #include "Cell.hpp"
-#include "UserVariables.hpp"
+#include "StateVariables.hpp"
 #include "simd.hpp"
 
 class PositiveChiAndAlpha

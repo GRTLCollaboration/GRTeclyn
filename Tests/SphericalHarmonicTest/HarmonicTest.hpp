@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #ifndef HARMONICTEST_HPP_
@@ -13,7 +13,7 @@
 #include "Cell.hpp"
 #include "Coordinates.hpp"
 #include "Tensor.hpp"
-// #include "UserVariables.hpp" //This files needs NUM_VARS - total number of
+// #include "StateVariables.hpp" //This files needs NUM_VARS - total number of
 // components #include "simd.hpp"
 
 class HarmonicTest

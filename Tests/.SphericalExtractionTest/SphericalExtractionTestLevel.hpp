@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #ifndef SPHERICALEXTRACTIONTESTLEVEL_HPP_
@@ -10,7 +10,7 @@
 #include "GRAMRLevel.hpp"
 #include "SetHarmonic.hpp"
 #include "SetValue.hpp"
-#include "UserVariables.hpp"
+#include "StateVariables.hpp"
 
 class SphericalExtractionTestLevel : public GRAMRLevel
 {

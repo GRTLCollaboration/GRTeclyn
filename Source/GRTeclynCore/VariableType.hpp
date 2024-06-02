@@ -1,16 +1,16 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #ifndef VARIABLETYPE_HPP
 #define VARIABLETYPE_HPP
 
-// enum for evolution or diagnostic variables
+// enum for state or derived variables
 enum class VariableType
 {
-    evolution,
-    diagnostic
+    state,
+    derived
 };
 
 #endif /* VARIABLETYPE_HPP */

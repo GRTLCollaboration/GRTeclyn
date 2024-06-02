@@ -1,0 +1,3 @@
+GRTECLYN_CEXE_sources += ConstraintsTest.cpp
+
+GRTECLYN_CEXE_headers += ConstraintsTest.hpp

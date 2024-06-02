@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #ifndef SIXTHORDERDERIVATIVES_HPP_
@@ -8,8 +8,8 @@
 
 #include "Cell.hpp"
 #include "DimensionDefinitions.hpp"
+#include "StateVariables.hpp"
 #include "Tensor.hpp"
-#include "UserVariables.hpp"
 #include <array>
 
 class SixthOrderDerivatives

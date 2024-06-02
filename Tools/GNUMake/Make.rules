@@ -9,11 +9,11 @@ CLANG_TIDY_CONFIG_FLAG=--config-file=$(GRTECLYN_HOME)/.clang-tidy
 
 # We could use AMReX's clang-tidy system instead (USE_CLANG_TIDY=TRUE) but
 # define our own rules so that we only lint our files
-clang-tidy: $(GRTECLYN_CEXE_sources) $(srcTempDir)/AMReX_Config.H
-	clang-tidy $(CLANG_TIDY_CONFIG_FLAG) $(filter-out %.H, $^) -- $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) $(mpicxx_include_dirs)
+clang-tidy: $(GRTECLYN_CEXE_sources) $(GRTECLYN_CEXE_headers) $(srcTempDir)/AMReX_Config.H
+	clang-tidy $(CLANG_TIDY_CONFIG_FLAG) $(filter-out %.H %.impl.hpp %.inc.hpp, $^) -- $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) $(mpicxx_include_dirs)
 
-clang-tidy-%.cpp: $(srcTempDir)/AMReX_Config.H
-	clang-tidy $(CLANG_TIDY_CONFIG_FLAG)  $*.cpp -- $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) $(mpicxx_include_dirs)
+clang-tidy-%: % $(srcTempDir)/AMReX_Config.H
+	clang-tidy $(CLANG_TIDY_CONFIG_FLAG)  $< -- $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) $(mpicxx_include_dirs)
 
-clang-tidy-fix: $(GRTECLYN_CEXE_sources) $(srcTempDir)/AMReX_Config.H
-	clang-tidy --fix $(CLANG_TIDY_CONFIG_FLAG) $(filter-out %.H, $^) -- $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) $(mpicxx_include_dirs)
+clang-tidy-fix: $(GRTECLYN_CEXE_sources) $(GRTECLYN_CEXE_headers) $(srcTempDir)/AMReX_Config.H
+	clang-tidy --fix $(CLANG_TIDY_CONFIG_FLAG) $(filter-out %.H %.impl.hpp %.inc.hpp, $^) -- $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) $(mpicxx_include_dirs)

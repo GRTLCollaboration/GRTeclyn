@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #ifndef WEYLEXTRACTION_HPP_
@@ -25,8 +25,10 @@ class WeylExtraction : public SphericalExtraction
         : SphericalExtraction(a_params, a_dt, a_time, a_first_step,
                               a_restart_time)
     {
-        add_var(c_Weyl4_Re, VariableType::diagnostic);
-        add_var(c_Weyl4_Im, VariableType::diagnostic);
+#if 0
+        add_var(c_Weyl4_Re, VariableType::derived);
+        add_var(c_Weyl4_Im, VariableType::derived);
+#endif
     }
 
     //! The old constructor which assumes it is called in specificPostTimeStep

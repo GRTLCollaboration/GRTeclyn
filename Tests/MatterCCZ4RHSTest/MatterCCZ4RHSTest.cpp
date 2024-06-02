@@ -10,6 +10,7 @@
 
 // Common test headers
 #include "InitialData.hpp"
+#include "StateVariables.hpp"
 // #include "CCZ4UserVariables.hpp"
 #include "doctestCLIArgs.hpp"
 

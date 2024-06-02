@@ -1,10 +1,10 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 // Our headers
 #include "DimensionDefinitions.hpp"
-#include "UserVariables.hpp"
+#include "StateVariables.hpp"
 
 // AMReX headers
 #include "AMReX_Array4.H"

@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #ifndef KERRBHLEVEL_HPP_
@@ -21,11 +21,6 @@ class KerrBHLevel : public GRAMRLevel
 
     /// Initial data calculation
     virtual void initialData() override;
-
-#ifdef AMREX_USE_HDF5
-    /// Things to do before writing a plot file
-    virtual void prePlotLevel() override;
-#endif /* AMREX_USE_HDF5 */
 
     /// Calculation of the right hand side for the time stepping
     virtual void specificEvalRHS(GRLevelData &a_soln, GRLevelData &a_rhs,

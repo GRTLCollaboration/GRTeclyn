@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #ifndef GAMMACALCULATOR_HPP_
@@ -10,9 +10,9 @@
 #include "Coordinates.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "GRInterval.hpp"
+#include "StateVariables.hpp" //This files needs NUM_VARS - total number of components
 #include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
-#include "UserVariables.hpp" //This files needs NUM_VARS - total number of components
 #include "VarsTools.hpp"
 #include "simd.hpp"
 

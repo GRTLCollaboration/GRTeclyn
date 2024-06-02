@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #ifdef CH_LANG_CC
@@ -36,7 +36,7 @@ using std::endl;
 #include "InterpolationQuery.hpp"
 #include "InterpolatorTestLevel.hpp"
 #include "Lagrange.hpp"
-#include "UserVariables.hpp"
+#include "StateVariables.hpp"
 
 #ifdef _OPENMP
 #include <omp.h>

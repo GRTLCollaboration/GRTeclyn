@@ -23,7 +23,7 @@ jobs:
           - debug: 'FALSE'
             gpu-backend: 'SYCL'
 
-                
+
     name: ${{ matrix.gpu-backend }}, DEBUG = ${{ matrix.debug }}
     env:
       AMREX_HOME: ${{ github.workspace }}/amrex
@@ -87,7 +87,7 @@ jobs:
       # These have been copied/adapted from AMReX's CI dependencies
       run: |
         if [[ "${{ matrix.gpu-backend }}" == "CUDA" ]]; then
-          PACKAGES="libmpich-dev
+          PACKAGES="libopenmpi-dev
           cuda-command-line-tools-${{ env.CUDA_MAJOR_VERSION }}-${{ env.CUDA_MINOR_VERSION }}
           cuda-compiler-${{ env.CUDA_MAJOR_VERSION }}-${{ env.CUDA_MINOR_VERSION }}
           cuda-cupti-dev-${{ env.CUDA_MAJOR_VERSION }}-${{ env.CUDA_MINOR_VERSION }}
@@ -96,7 +96,7 @@ jobs:
           cuda-nvtx-${{ env.CUDA_MAJOR_VERSION }}-${{ env.CUDA_MINOR_VERSION }}
           libcurand-dev-${{ env.CUDA_MAJOR_VERSION }}-${{ env.CUDA_MINOR_VERSION }}"
         elif [[ "${{ matrix.gpu-backend }}" == "HIP" ]]; then
-          PACKAGES="libmpich-dev
+          PACKAGES="libopenmpi-dev
           rocm-dev
           roctracer-dev
           rocprofiler-dev
@@ -117,14 +117,14 @@ jobs:
         if [[ "${{ matrix.gpu-backend }}" == "CUDA" ]]; then
           export PATH=/usr/local/cuda-${{ env.CUDA_MAJOR_VERSION }}.${{ env.CUDA_MINOR_VERSION }}/bin${PATH:+:${PATH}}
           which nvcc || echo "nvcc not in PATH!"
-          export MPICH_CXX=g++
+          export OMPI_CXX=g++
         elif [[ "${{ matrix.gpu-backend }}" == "HIP" ]]; then
           export PATH=/opt/rocm/llvm/bin:/opt/rocm/bin:/opt/rocm/profiler/bin:/opt/rocm/opencl/bin:$PATH
           hipcc --version
           which clang
           which clang++
           which flang
-          export MPICH_CXX=hipcc
+          export OMPI_CXX=hipcc
         elif [[ "${{ matrix.gpu-backend }}" == "SYCL" ]]; then
           source /opt/intel/oneapi/setvars.sh
           which icpx

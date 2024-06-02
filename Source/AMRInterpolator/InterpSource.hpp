@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #ifndef INTERPSOURCE_H_
@@ -17,8 +17,8 @@
 class InterpSource
 {
   public:
-    [[nodiscard]] virtual const amrex::MultiFab &getLevelData(
-        const VariableType var_type = VariableType::evolution) const = 0;
+    [[nodiscard]] virtual const amrex::MultiFab &
+    getLevelData(const VariableType var_type = VariableType::state) const = 0;
     [[nodiscard]] virtual bool
     contains(const std::array<double, AMREX_SPACEDIM> &point) const = 0;
 

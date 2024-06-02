@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #ifndef INTERPOLATIONQUERY_HPP_
@@ -45,7 +45,7 @@ class InterpolationQuery
     InterpolationQuery &
     addComp(int comp, double *out_ptr,
             const Derivative &deriv    = Derivative::LOCAL,
-            VariableType variable_type = VariableType::evolution)
+            VariableType variable_type = VariableType::state)
     {
         AMREX_ASSERT(out_ptr != NULL || m_num_points == 0);
 

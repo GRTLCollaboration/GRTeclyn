@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 // Our includes
@@ -82,12 +82,12 @@ int main(int argc, char *argv[])
 
     if (status == 0)
     {
-        amrex::Print() << "GRChombo finished." << std::endl;
+        amrex::Print() << "GRChombo finished."
+                       << "\n";
     }
     else
     {
-        amrex::Print() << "GRChombo failed with return code " << status
-                       << std::endl;
+        amrex::Print() << "GRChombo failed with return code " << status << "\n";
     }
 
     mainFinalize();

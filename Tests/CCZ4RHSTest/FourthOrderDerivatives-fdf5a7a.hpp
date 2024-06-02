@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #ifndef FOURTHORDERDERIVATIVES_FDF5A7A_HPP_
@@ -12,7 +12,7 @@
 #include "Cell-fdf5a7a.hpp"
 #include "DimensionDefinitions.hpp"
 #include "Tensor-fdf5a7a.hpp"
-#include "UserVariables.hpp"
+#include "StateVariables.hpp"
 #include "simd.hpp"
 #include <array>
 

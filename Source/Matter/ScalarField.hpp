@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #ifndef SCALARFIELD_HPP_
@@ -10,9 +10,9 @@
 #include "DefaultPotential.hpp"
 #include "DimensionDefinitions.hpp"
 #include "FourthOrderDerivatives.hpp"
+#include "StateVariables.hpp" //This files needs NUM_VARS, total num of components
 #include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
-#include "UserVariables.hpp" //This files needs NUM_VARS, total num of components
 #include "VarsTools.hpp"
 
 //!  Calculates the matter type specific elements such as the EMTensor and

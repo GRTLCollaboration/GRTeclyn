@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #ifndef VARSTOOLS_HPP_
@@ -8,8 +8,8 @@
 
 // Our includes
 #include "GRInterval.hpp"
+#include "StateVariables.hpp"
 #include "Tensor.hpp"
-#include "UserVariables.hpp"
 
 // AMReX includes
 #include "AMReX_Print.H" //Gives us amrex::Print()
@@ -100,9 +100,8 @@ template <template <typename> class vars_t, typename data_t>
 void print(const vars_t<data_t> &vars)
 {
     vars.enum_mapping(
-        [](const int &ivar, data_t &var)
-        {
-            amrex::Print() << UserVariables::variable_names[ivar] << ": " << var
+        [](const int &ivar, data_t &var) {
+            amrex::Print() << StateVariables::names[ivar] << ": " << var
                            << "\n";
         });
 }

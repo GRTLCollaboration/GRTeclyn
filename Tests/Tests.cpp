@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 // Doctest header
 #ifdef AMREX_USE_SYCL
@@ -25,9 +25,12 @@
 
 namespace doctest
 {
+// Unfortunately the following has to be global and non-const
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 CLIArgs cli_args;
-}
+} // namespace doctest
 
+// NOLINTBEGIN(bugprone-exception-escape)
 int main(int argc, char *argv[])
 {
 #ifdef BL_USE_MPI
@@ -51,8 +54,8 @@ int main(int argc, char *argv[])
     std::cout << std::setprecision(output_precision);
 
     // also increase precision of doctest's stringmaker
-    std::ostream *ss = doctest::detail::tlssPush();
-    ss->precision(output_precision);
+    std::ostream *doctest_stringstream = doctest::detail::tlssPush();
+    doctest_stringstream->precision(output_precision);
     doctest::detail::tlssPop();
 
     int result = doctest_context.run();
@@ -63,3 +66,4 @@ int main(int argc, char *argv[])
 
     return result;
 }
+// NOLINTEND(bugprone-exception-escape)

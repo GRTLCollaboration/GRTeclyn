@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# This script checks that all source files in the repo have the header in the
+# file given in the first argument.
+
+if [[ $# != 1 ]]; then
+    echo "Usage: $0 <copyright header file>"
+    exit 2
+fi
+
+status=0
+
+# Use git to determine the root of the repo
+REPO_ROOT=$(git rev-parse --show-toplevel)
+
+copyright_header=$(cat $1)
+num_lines=$(echo "$copyright_header" | wc -l)
+
+for f in $(find $REPO_ROOT -type f -name "*.[h,c]pp" -not -path "$REPO_ROOT/External/*"); do
+    if [[ $(head -n $num_lines $f) != $copyright_header ]]; then
+        echo "$f does not have the correct copyright header. First $num_lines lines:"
+        head -n $num_lines $f
+        echo "-------------------------------------------"
+        status=1
+    fi
+done
+
+exit $status

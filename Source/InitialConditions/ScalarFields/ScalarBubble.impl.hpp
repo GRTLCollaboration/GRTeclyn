@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #if !defined(SCALARBUBBLE_HPP_)
@@ -17,11 +17,13 @@ inline ScalarBubble::ScalarBubble(params_t a_params, double a_dx)
 
 // Compute the value of the initial vars on the grid
 template <class data_t>
-void ScalarBubble::compute(Cell<data_t> current_cell) const
+void ScalarBubble::compute(int i, int j, int k,
+                           const amrex::Array4<data_t> &state) const
 {
     MatterCCZ4RHS<ScalarField<>>::Vars<data_t> vars;
     VarsTools::assign(vars, 0.); // Set only the non-zero components below
-    Coordinates<data_t> coords(current_cell, m_dx, m_params.centerSF);
+    amrex::IntVect pos{i, j, k};
+    Coordinates<data_t> coords(pos, m_dx, m_params.centerSF);
 
     // set the field vars
     vars.phi = compute_phi(coords);
@@ -32,11 +34,11 @@ void ScalarBubble::compute(Cell<data_t> current_cell) const
     vars.chi   = 1;
 
     // conformal metric is flat
-    FOR (i)
-        vars.h[i][i] = 1.;
+    FOR (index)
+        vars.h[index][index] = 1.;
 
     // Store the initial values of the variables
-    current_cell.store_vars(vars);
+    store_vars(state.cellData(i, j, k), vars);
 }
 
 // Compute the value of phi at the current point

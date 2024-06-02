@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 // General includes common to most GR problems
@@ -13,16 +13,53 @@
 #include "MatterCCZ4RHS.hpp"
 
 // // For constraints calculation
+#include "Constraints.hpp"
+#include "Weyl4.hpp"
 // #include "NewMatterConstraints.hpp"
 
-// // Problem specific includes
-// //#include "ComputePack.hpp"
-// //#include "GammaCalculator.hpp"
+// For tagging cells
+#include "ChiExtractionTaggingCriterion.hpp"
+#include "FixedGridsTaggingCriterion.hpp"
 
+// // Problem specific includes
 #include "InitialScalarData.hpp"
 #include "Potential.hpp"
 #include "ScalarField.hpp"
-// //#include "SetValue.hpp"
+
+#include <AMReX_PlotFileUtilHDF5.H>
+
+void ScalarFieldLevel::variableSetUp()
+{
+    BL_PROFILE("ScalarFieldLevel::variableSetUp()");
+
+    // Set up the state variables
+    stateVariableSetUp();
+
+    const int nghost = simParams().num_ghosts;
+
+    // // Add the constraints to the derive list
+    derive_lst.add(
+        "constraints", amrex::IndexType::TheCellType(),
+        static_cast<int>(Constraints::var_names.size()), Constraints::var_names,
+        amrex::DeriveFuncFab(), // null function because we won't use
+                                // it.
+        [=](const amrex::Box &box) { return amrex::grow(box, nghost); },
+        &amrex::cell_quartic_interp);
+
+    // We only need the non-gauge CCZ4 variables to calculate the constraints
+    derive_lst.addComponent("constraints", desc_lst, State_Type, 0, c_lapse);
+
+    // Add Weyl4 to the derive list
+    derive_lst.add(
+        "Weyl4", amrex::IndexType::TheCellType(),
+        static_cast<int>(Weyl4::var_names.size()), Weyl4::var_names,
+        amrex::DeriveFuncFab(), // null function because we won't use it
+        [=](const amrex::Box &box) { return amrex::grow(box, nghost); },
+        &amrex::cell_quartic_interp);
+
+    // We need all of the CCZ4 variables to calculate Weyl4 (except B)
+    derive_lst.addComponent("Weyl4", desc_lst, State_Type, 0, c_B1);
+}
 
 // Things to do at each advance step, after the RK4 is calculated
 void ScalarFieldLevel::specificAdvance()
@@ -61,7 +98,7 @@ void ScalarFieldLevel::initData()
                        << std::endl;
 
     const auto dx = geom.CellSizeArray();
-    InitialScalarData gaussian(simParams().initial_params, dx[0]);
+    InitialScalarData gaussian_pulse(simParams().initial_params, dx[0]);
 
     amrex::MultiFab &state  = get_new_data(State_Type);
     auto const &state_array = state.arrays();
@@ -69,22 +106,25 @@ void ScalarFieldLevel::initData()
     amrex::ParallelFor(
         state, state.nGrowVect(),
         [=] AMREX_GPU_DEVICE(int box_ind, int i, int j, int k) noexcept
-        { gaussian.compute(i, j, k, state_array[box_ind]); });
-}
+        {
+            amrex::CellData<amrex::Real> cell =
+                state_array[box_ind].cellData(i, j, k);
+            for (int n = 0; n < cell.nComp(); ++n)
+            {
+                cell[n] = 0.;
+            }
 
-#ifdef AMREX_USE_HDF5
-// Things to do before outputting a checkpoint file
-void ScalarFieldLevel::prePlotLevel()
-{
-    // fillAllGhosts();
-    // Potential potential(m_p.potential_params);
-    // ScalarFieldWithPotential scalar_field(potential);
-    // BoxLoops::loop(
-    //     MatterConstraints<ScalarFieldWithPotential>(
-    //         scalar_field, m_dx, m_p.G_Newton, c_Ham, Interval(c_Mom, c_Mom)),
-    //     m_state_new, m_state_diagnostics, EXCLUDE_GHOST_CELLS);
+            gaussian_pulse.compute(i, j, k, state_array[box_ind]);
+        });
+
+    if (simParams().nan_check)
+    {
+        if (state.contains_nan(0, state.nComp(), amrex::IntVect(0), true))
+        {
+            amrex::Abort("NaN in initData");
+        }
+    }
 }
-#endif
 
 // Things to do in RHS update, at each RK4 step
 void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
@@ -92,6 +132,21 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                        const double a_time)
 {
     BL_PROFILE("ScalarFieldLevel::specificEvalRHS()");
+
+    std::string plot_file_root =
+        "/home/dc-kwan1/rds/rds-dirac-dp002/dc-kwan1/GRTeclyn/"
+        "ScalarField/test_file";
+
+    amrex::Vector<std::string> var_names;
+    for (int i = 0; i < NUM_VARS; i++)
+    {
+        if (a_soln.contains_nan(i, 1, amrex::IntVect(0), true))
+            amrex::Print() << "Nan found in component " << i << std::endl;
+        var_names.push_back(StateVariables::names[i]);
+    }
+
+    // amrex::WriteSingleLevelPlotfileHDF5(plot_file_root, a_rhs,
+    // 				      var_names, Geom(), 0.0, 0);
 
     const auto &soln_arrs   = a_soln.arrays();
     const auto &soln_c_arrs = a_soln.const_arrays();
@@ -142,6 +197,31 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
         });
 #endif
     }
+
+    if (simParams().nan_check)
+    {
+        if (a_soln.contains_nan(0, a_soln.nComp(), amrex::IntVect(0), true))
+        {
+
+            // const std::string& pltfile = amrex::Concatenate(plot_file_root,
+            //                                           file_name_digits);
+
+            amrex::Vector<std::string> var_names;
+            for (int i = 0; i < NUM_VARS; i++)
+            {
+                if (a_soln.contains_nan(i, 1, amrex::IntVect(0), true))
+                    amrex::Print()
+                        << "Nan found in component " << i << std::endl;
+                //	      var_names.push_back(StateVariables::names[i]);
+            }
+
+            // amrex::WriteSingleLevelPlotfileHDF5(plot_file_root, a_rhs,
+            // 				      var_names, Geom(), 0.0, 0);
+
+            //	  amrex::WriteSingleLevelPlotfile(pltfile);
+            amrex::Abort("NaN in specificUpdateRHS");
+        }
+    }
 }
 
 // Things to do at ODE update, after soln + rhs
@@ -166,12 +246,60 @@ void ScalarFieldLevel::preTagCells()
 }
 
 void ScalarFieldLevel::errorEst(amrex::TagBoxArray &tagging_criterion,
-                                int clearval, int tagval, amrex::Real time,
-                                int n_error_buf, int ngrow)
+                                int /*clearval*/, int /*tagval*/,
+                                amrex::Real /*time*/, int /*n_error_buf*/,
+                                int /*ngrow*/)
 
 {
     BL_PROFILE("ScalarFieldLevel::errorEst()");
-    // BoxLoops::loop(
-    //     FixedGridsTaggingCriterion(m_dx, m_level, 2.0 * m_p.L, m_p.center),
-    //     current_state, tagging_criterion);
+
+    amrex::MultiFab &state_new = get_new_data(State_Type);
+    const auto curr_time       = get_state_data(State_Type).curTime();
+
+    const int nghost =
+        state_new.nGrow(); // Need ghost cells to compute gradient
+    const int ncomp = state_new.nComp();
+
+    // I filled all the ghost cells in case but could also just fill the ones
+    // used for tagging We only use chi in the tagging criterion so only fill
+    // the ghosts for chi
+    FillPatch(*this, state_new, nghost, curr_time, State_Type, 0, ncomp);
+
+    const auto &simpar = simParams();
+
+    const auto &tags           = tagging_criterion.arrays();
+    const auto &state_new_arrs = state_new.const_arrays();
+    const auto tagval          = amrex::TagBox::SET;
+
+    amrex::Real dx     = Geom().CellSize(0);
+    int curr_level     = Level();
+    const auto probhi  = Geom().ProbHiArray();
+    const auto problo  = Geom().ProbLoArray();
+    amrex::Real length = probhi[0] - problo[0];
+
+    const auto test_dx = Geom().CellSizeArray();
+
+    FixedGridsTaggingCriterion tagger(test_dx[0], curr_level, length,
+                                      simParams().initial_params.center);
+    // ChiExtractionTaggingCriterion tagger(Geom().CellSize(0), Level(),
+    //                                      simpar.extraction_params,
+    //                                      simpar.activate_extraction);
+
+    amrex::Real threshold = simpar.regrid_thresholds[Level()];
+    amrex::ParallelFor(state_new, amrex::IntVect(0),
+                       [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+                       {
+                           amrex::Real criterion =
+                               tagger.compute(i, j, k, state_new_arrs[box_no]);
+
+                           // amrex::Real criterion =
+                           //     tagger(i, j, k, state_new_arrs[box_no]);
+
+                           if (criterion >= threshold)
+                           {
+                               tags[box_no](i, j, k) = tagval;
+                           }
+                       });
+
+    amrex::Gpu::streamSynchronize();
 }

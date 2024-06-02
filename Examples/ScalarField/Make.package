@@ -1,5 +1,5 @@
 GRTECLYN_CEXE_sources += ScalarFieldLevel.cpp Main_ScalarField.cpp 
 
-GRTECLYN_CEXE_headers += ScalarFieldLevel.hpp  DiagnosticVariables.hpp  SimulationParameters.hpp  Potential.hpp  UserVariables.hpp
+GRTECLYN_CEXE_headers += ScalarFieldLevel.hpp  DiagnosticVariables.hpp  SimulationParameters.hpp  Potential.hpp  StateVariables.hpp
 
 

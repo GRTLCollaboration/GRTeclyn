@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #include "BinaryBHLevel.hpp"
@@ -10,10 +10,44 @@
 #include "PositiveChiAndAlpha.hpp"
 #include "PunctureTracker.hpp"
 // xxxxx #include "SixthOrderDerivatives.hpp"
+#include "Constraints.hpp"
 #include "TraceARemoval.hpp"
 #include "TwoPuncturesInitialData.hpp"
 #include "Weyl4.hpp"
 #include "WeylExtraction.hpp"
+
+void BinaryBHLevel::variableSetUp()
+{
+    BL_PROFILE("BinaryBHLevel::variableSetUp()");
+
+    // Set up the state variables
+    stateVariableSetUp();
+
+    const int nghost = simParams().num_ghosts;
+
+    // Add the constraints to the derive list
+    derive_lst.add(
+        "constraints", amrex::IndexType::TheCellType(),
+        static_cast<int>(Constraints::var_names.size()), Constraints::var_names,
+        amrex::DeriveFuncFab(), // null function because we won't use
+                                // it.
+        [=](const amrex::Box &box) { return amrex::grow(box, nghost); },
+        &amrex::cell_quartic_interp);
+
+    // We only need the non-gauge CCZ4 variables to calculate the constraints
+    derive_lst.addComponent("constraints", desc_lst, State_Type, 0, c_lapse);
+
+    // Add Weyl4 to the derive list
+    derive_lst.add(
+        "Weyl4", amrex::IndexType::TheCellType(),
+        static_cast<int>(Weyl4::var_names.size()), Weyl4::var_names,
+        amrex::DeriveFuncFab(), // null function because we won't use it
+        [=](const amrex::Box &box) { return amrex::grow(box, nghost); },
+        &amrex::cell_quartic_interp);
+
+    // We need all of the CCZ4 variables to calculate Weyl4 (except B)
+    derive_lst.addComponent("Weyl4", desc_lst, State_Type, 0, c_B1);
+}
 
 // Things to do during the advance step after RK4 steps
 void BinaryBHLevel::specificAdvance()
@@ -48,7 +82,7 @@ void BinaryBHLevel::initData()
     BL_PROFILE("BinaryBHLevel::initialData");
     if (m_verbosity > 0)
     {
-        amrex::Print() << "BinaryBHLevel::initialData " << Level() << std::endl;
+        amrex::Print() << "BinaryBHLevel::initialData " << Level() << "\n";
     }
 #ifdef USE_TWOPUNCTURES
     // xxxxx USE_TWOPUNCTURES todo
@@ -62,13 +96,13 @@ void BinaryBHLevel::initData()
     BinaryBH binary(simParams().bh1_params, simParams().bh2_params,
                     Geom().CellSize(0));
 
-    static_assert(std::is_trivially_copyable<BinaryBH>::value,
+    static_assert(std::is_trivially_copyable_v<BinaryBH>,
                   "BinaryBH needs to be device copyable");
 
     // First set everything to zero (to avoid undefinded values in constraints)
     // then calculate initial data
     amrex::MultiFab &state = get_new_data(State_Type);
-    const auto &arrs       = state.arrays();
+    const auto &arrs = state.arrays();
     amrex::ParallelFor(state, state.nGrowVect(),
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
                        {
@@ -189,6 +223,80 @@ void BinaryBHLevel::errorEst(amrex::TagBoxArray &tag_box_array,
     amrex::Gpu::streamSynchronize();
 }
 
+void BinaryBHLevel::derive(const std::string &name, amrex::Real time,
+                           amrex::MultiFab &multifab, int dcomp)
+{
+    BL_ASSERT(dcomp < multifab.nComp());
+
+    const int num_ghosts = multifab.nGrow();
+
+    const amrex::DeriveRec *rec = derive_lst.get(name);
+    if (rec != nullptr)
+    {
+        int state_idx, derive_scomp, derive_ncomp;
+
+        // we only have one state so state_idx will be State_Type = 0
+        rec->getRange(0, state_idx, derive_scomp, derive_ncomp);
+
+        // work out how many extra ghost cells we need
+        const amrex::BoxArray &src_ba = state[state_idx].boxArray();
+
+        int num_extra_ghosts = num_ghosts;
+        {
+            amrex::Box box0   = src_ba[0];
+            amrex::Box box1   = rec->boxMap()(box0);
+            num_extra_ghosts += box0.smallEnd(0) - box1.smallEnd(0);
+        }
+
+        // Make a Multifab with enough extra ghosts to calculated derived
+        // quantity. For now use NUM_VARS in case the enum mapping loads more
+        // vars than is actually needed
+        amrex::MultiFab src_mf(src_ba, dmap, NUM_VARS, num_extra_ghosts,
+                               amrex::MFInfo(), *m_factory);
+
+        // Fill the multifab with the needed state data including the ghost
+        // cells
+        FillPatch(*this, src_mf, num_extra_ghosts, time, state_idx,
+                  derive_scomp, derive_ncomp);
+
+        const auto &src_arrays = src_mf.const_arrays();
+        if (name == "constraints")
+        {
+            const auto &out_arrays = multifab.arrays();
+            int iham               = dcomp;
+            Interval imom = Interval(dcomp + 1, dcomp + AMREX_SPACEDIM);
+            Constraints constraints(Geom().CellSize(0), iham, imom);
+            amrex::ParallelFor(
+                multifab, multifab.nGrowVect(),
+                [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept {
+                    constraints.compute(i, j, k, out_arrays[box_no],
+                                        src_arrays[box_no]);
+                });
+        }
+        else if (name == "Weyl4")
+        {
+            const auto &out_arrays = multifab.arrays();
+            Weyl4 weyl4(simParams().extraction_params.center,
+                        Geom().CellSize(0), dcomp, simParams().formulation);
+            amrex::ParallelFor(
+                multifab, multifab.nGrowVect(),
+                [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept {
+                    weyl4.compute(i, j, k, out_arrays[box_no],
+                                  src_arrays[box_no]);
+                });
+        }
+        else
+        {
+            amrex::Abort("Unknown derived variable");
+        }
+    }
+    else
+    {
+        amrex::Abort("Unknown derived variable");
+    }
+    amrex::Gpu::streamSynchronize();
+}
+
 void BinaryBHLevel::specificPostTimeStep()
 {
 #if 0
@@ -221,7 +329,7 @@ void BinaryBHLevel::specificPostTimeStep()
                 bool fill_ghosts = false;
                 m_gr_amr.m_interpolator->refresh(fill_ghosts);
                 m_gr_amr.fill_multilevel_ghosts(
-                    VariableType::diagnostic, Interval(c_Weyl4_Re, c_Weyl4_Im),
+                    VariableType::derived, Interval(c_Weyl4_Re, c_Weyl4_Im),
                     min_level);
                 WeylExtraction my_extraction(m_p.extraction_params, m_dt,
                                              m_time, first_step,
@@ -238,7 +346,7 @@ void BinaryBHLevel::specificPostTimeStep()
                        m_state_new, m_state_diagnostics, EXCLUDE_GHOST_CELLS);
         if (m_level == 0)
         {
-            AMRReductions<VariableType::diagnostic> amr_reductions(m_gr_amr);
+            AMRReductions<VariableType::derived> amr_reductions(m_gr_amr);
             double L2_Ham = amr_reductions.norm(c_Ham);
             double L2_Mom = amr_reductions.norm(Interval(c_Mom1, c_Mom3));
             SmallDataIO constraints_file(m_p.data_path + "constraint_norms",
@@ -265,19 +373,3 @@ void BinaryBHLevel::specificPostTimeStep()
     }
 #endif
 }
-
-#ifdef AMREX_USE_HDF5
-// Things to do before a plot level - need to calculate the Weyl scalars
-void BinaryBHLevel::prePlotLevel()
-{
-    fillAllGhosts();
-    if (m_p.activate_extraction == 1)
-    {
-        BoxLoops::loop(
-            make_compute_pack(
-                Weyl4(m_p.extraction_params.center, m_dx, m_p.formulation),
-                Constraints(m_dx, c_Ham, Interval(c_Mom1, c_Mom3))),
-            m_state_new, m_state_diagnostics, EXCLUDE_GHOST_CELLS);
-    }
-}
-#endif /* AMREX_USE_HDF5 */

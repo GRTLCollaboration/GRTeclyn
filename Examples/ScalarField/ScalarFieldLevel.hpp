@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #ifndef SCALARFIELDLEVEL_HPP_
@@ -10,7 +10,7 @@
 #include "GRAMRLevel.hpp"
 // Problem specific includes
 #include "Potential.hpp"
-// #include "ScalarField.hpp"
+#include "ScalarField.hpp"
 
 //!  A class for the evolution of a scalar field, minimally coupled to gravity
 /*!
@@ -23,9 +23,13 @@
 */
 class ScalarFieldLevel : public GRAMRLevel
 {
+
     friend class DefaultLevelFactory<ScalarFieldLevel>;
+
     // Inherit the contructors from GRAMRLevel
     using GRAMRLevel::GRAMRLevel;
+
+    static void variableSetUp();
 
     // Typedef for scalar field
     typedef ScalarField<Potential> ScalarFieldWithPotential;
@@ -35,11 +39,6 @@ class ScalarFieldLevel : public GRAMRLevel
 
     //! Initialize data for the field and metric variables
     void initData() override;
-
-#ifdef AMREX_USE_HDF5
-    //! routines to do before outputting plot file
-    virtual void prePlotLevel() override;
-#endif
 
     //! RHS routines used at each RK4 step
     void specificEvalRHS(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,

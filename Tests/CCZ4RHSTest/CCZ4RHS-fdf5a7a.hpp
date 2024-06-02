@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #ifndef CCZ4RHS_FDF5A7A_HPP_
@@ -18,7 +18,7 @@
 #include "TensorAlgebra-fdf5a7a.hpp"
 #include "simd.hpp"
 
-#include "UserVariables.hpp" //This files needs NUM_VARS - total number of components
+#include "StateVariables.hpp" //This files needs NUM_VARS - total number of components
 
 #include <array>
 

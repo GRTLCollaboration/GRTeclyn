@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #ifndef INITIALSCALARDATA_HPP_
@@ -10,8 +10,8 @@
 #include "Coordinates.hpp"
 #include "MatterCCZ4RHS.hpp"
 #include "ScalarField.hpp"
+#include "StateVariables.hpp" //This files needs NUM_VARS - total no. components
 #include "Tensor.hpp"
-#include "UserVariables.hpp" //This files needs NUM_VARS - total no. components
 #include "VarsTools.hpp"
 #include "simd.hpp"
 
@@ -40,6 +40,17 @@ class InitialScalarData
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     compute(int i, int j, int k, const amrex::Array4<data_t> &cell) const
     {
+        MatterCCZ4RHS<ScalarField<>>::Vars<data_t> vars;
+        VarsTools::assign(vars, 0.); // Set only the non-zero components below
+
+        // start with unit lapse and flat metric (must be relaxed for chi)
+        vars.lapse = 1.0;
+        vars.chi   = 1.0;
+
+        // conformal metric is flat
+        FOR (index)
+            vars.h[index][index] = 1.;
+
         // where am i?
         amrex::IntVect pos(i, j, k);
         Coordinates<data_t> coords(pos, m_dx, m_params.center);
@@ -47,12 +58,16 @@ class InitialScalarData
         data_t rr2 = rr * rr;
 
         // calculate the field value
-        data_t phi = m_params.amplitude *
-                     (1.0 + 0.01 * rr2 * exp(-pow(rr / m_params.width, 2.0)));
+        vars.phi = m_params.amplitude *
+                   (1.0 + 0.01 * rr2 * exp(-pow(rr / m_params.width, 2.0)));
+        vars.Pi = 0;
 
         // store the vars
-        cell(i, j, k, c_phi) = phi;
-        cell(i, j, k, c_Pi)  = 0.0;
+        //        cell(i, j, k, c_phi) = phi;
+        //        cell(i, j, k, c_Pi)  = 0.0;
+
+        // Store the initial values of the variables
+        store_vars(cell.cellData(i, j, k), vars);
     }
 
   protected:

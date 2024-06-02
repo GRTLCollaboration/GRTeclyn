@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #ifndef NEWMATTERCONSTRAINTS_HPP_
@@ -8,9 +8,9 @@
 
 #include "CCZ4Geometry.hpp"
 #include "Cell.hpp"
+#include "Constraints.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "GRInterval.hpp"
-#include "NewConstraints.hpp"
 #include "Tensor.hpp"
 #include "simd.hpp"
 #include <array>

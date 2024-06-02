@@ -1,13 +1,13 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #ifndef ADMCONFORMALVARS_HPP_
 #define ADMCONFORMALVARS_HPP_
 
+#include "StateVariables.hpp"
 #include "Tensor.hpp"
-#include "UserVariables.hpp"
 #include "VarsTools.hpp"
 
 /// Namespace for ADM vars in conformally decomposed form

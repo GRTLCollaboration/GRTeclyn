@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #ifndef GRAMRLEVEL_HPP_
@@ -11,7 +11,7 @@
 #include "GRAMR.hpp"
 // xxxxx#include "InterpSource.hpp"
 #include "SimulationParameters.hpp"
-#include "UserVariables.hpp" // need NUM_VARS
+#include "StateVariables.hpp" // need NUM_VARS
 
 #include <AMReX_AmrLevel.H>
 
@@ -29,7 +29,12 @@ enum StateType
 class GRAMRLevel : public amrex::AmrLevel
 {
   public:
-    static void variableSetUp();
+    /**
+     * \brief Set up the state variables from StateVariables.hpp.
+     * This should be called by the child's variableSetUp().
+     */
+    static void stateVariableSetUp();
+
     static void variableCleanUp();
 
     GRAMRLevel();
@@ -42,6 +47,8 @@ class GRAMRLevel : public amrex::AmrLevel
     ~GRAMRLevel() override;
 
     static const SimulationParameters &simParams();
+
+    GRAMR *get_gramr_ptr();
 
     /**
      * \brief Compute the initial time step.
@@ -89,7 +96,7 @@ class GRAMRLevel : public amrex::AmrLevel
     /**
      * \brief Operations to be done after restart.
      */
-    virtual void post_restart() override;
+    void post_restart() override;
     /**
      * \brief Init data on this level from another AmrLevel (during regrid).
      * This is a pure virtual function and hence MUST be
@@ -123,8 +130,10 @@ class GRAMRLevel : public amrex::AmrLevel
     derive(const std::string &name, amrex::Real time, int ngrow) override;
 
     //! Fill mf starting with the dcomp'th component with the derived quantity.
-    void derive(const std::string &name, amrex::Real time,
-                amrex::MultiFab &multifab, int dcomp) override;
+    //! This function should be defined in the child class if derived quantities
+    //! are needed (not pure virtual in case they are not)
+    virtual void derive(const std::string &name, amrex::Real time,
+                        amrex::MultiFab &multifab, int dcomp) override;
 
     /// Virtual function for the problem specific parts of Advance
     virtual void specificAdvance() {}
@@ -144,12 +153,9 @@ class GRAMRLevel : public amrex::AmrLevel
     int m_num_ghosts{};  //!< Number of ghost cells
     bool m_is_writing_plotfile = false;
 
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-    static amrex::Vector<std::string> plot_constraints;
+  private:
 
-  protected:
-
-    GRAMR *m_gr_amr_ptr = dynamic_cast<GRAMR *>(parent);
+    GRAMR *m_gramr_ptr = nullptr;
 };
 
 #endif /* GRAMRLEVEL_HPP_ */

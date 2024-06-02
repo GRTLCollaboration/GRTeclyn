@@ -21,6 +21,7 @@ Backtrace.*
 pout.*
 *.out
 *.dat
+*.h5
 Weyl_integral*
 *ExtractionOut_*
 

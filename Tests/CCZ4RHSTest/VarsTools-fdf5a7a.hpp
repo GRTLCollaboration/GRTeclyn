@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #ifndef VARSTOOLS_FDF5A7A_HPP_
@@ -12,7 +12,7 @@
 // Our includes
 #include "GRInterval-fdf5a7a.hpp"
 #include "Tensor-fdf5a7a.hpp"
-#include "UserVariables.hpp"
+#include "StateVariables.hpp"
 
 // Chombo includes
 //#include "parstream.H" //Gives us amrex::Print()
@@ -105,7 +105,7 @@ template <template <typename> class vars_t, typename data_t>
 void print(const vars_t<data_t> &vars)
 {
     vars.enum_mapping([](const int &ivar, data_t &var) {
-        amrex::Print() << UserVariables::variable_names[ivar] << ": " << var << "\n";
+        amrex::Print() << StateVariables::names[ivar] << ": " << var << "\n";
     });
 }
 } // namespace VarsTools

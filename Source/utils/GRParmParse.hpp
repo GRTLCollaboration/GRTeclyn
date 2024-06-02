@@ -1,6 +1,6 @@
-/* GRChombo
- * Copyright 2012 The GRChombo collaboration.
- * Please refer to LICENSE in GRChombo's root directory.
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
 #ifndef GRPARMPARSE_HPP_
@@ -65,7 +65,7 @@ class GRParmParse : public amrex::ParmParse
     /// Loads a value from the parameter file
     template <class data_t>
     typename std::enable_if_t<
-        !std::is_enum<data_t>::value> // Can't use for enum types
+        !std::is_enum_v<data_t>> // Can't use for enum types
     load(const char *name, data_t &parameter) const
     {
         get(name, parameter);
@@ -74,7 +74,7 @@ class GRParmParse : public amrex::ParmParse
     /// Loads an enum value from the parameter file
     template <typename enum_type>
     typename std::enable_if_t<
-        std::is_enum<enum_type>::value> // Only enabled for enum types
+        std::is_enum_v<enum_type>> // Only enabled for enum types
     load(const char *name, enum_type &parameter) const
     {
         int iparam = 0;
@@ -153,7 +153,7 @@ class GRParmParse : public amrex::ParmParse
         {
             amrex::Print() << " " << elem;
         }
-        amrex::Print() << "." << std::endl;
+        amrex::Print() << "." << '\n';
     }
 };
 
