@@ -54,7 +54,7 @@ enum
 
 namespace CCZ4Variables
 {
-static const std::array<std::string, NUM_CCZ4_VARS> names = {
+static const amrex::Vector<std::string> names = {
     "chi",
 
     "h11",    "h12",    "h13",    "h22", "h23", "h33",

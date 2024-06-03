@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-/// A place for tools that operate on std::arrays
+/// A place for tools that operate on std::arrays and std::vectors
 namespace ArrayTools
 {
 /// This just concantenates two arrays together.
@@ -24,6 +24,15 @@ std::array<T, N + M> concatenate(const std::array<T, N> &first,
     std::array<T, N + M> out;
     std::copy(first.cbegin(), first.cend(), out.begin());
     std::copy(second.cbegin(), second.cend(), out.begin() + N);
+    return out;
+}
+
+/// This can contenate two std::vectors or amrex::Vectors
+template <typename T> T concatenate(const T &first, const T &second)
+{
+    T out(first.size() + second.size());
+    std::copy(first.cbegin(), first.cend(), out.begin());
+    std::copy(second.cbegin(), second.cend(), out.begin() + first.size());
     return out;
 }
 

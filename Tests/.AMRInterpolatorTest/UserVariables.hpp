@@ -20,7 +20,7 @@ enum
 
 namespace StateVariables
 {
-static const std::array<std::string, NUM_VARS> variable_names = {"A", "B"};
+static const amrex::Vector<std::string> variable_names = {"A", "B"};
 }
 
 #endif /* STATEVARIABLES_HPP */

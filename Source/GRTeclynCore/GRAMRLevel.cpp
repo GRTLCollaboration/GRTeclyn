@@ -61,16 +61,10 @@ void GRAMRLevel::stateVariableSetUp()
         }
     }
 
-    amrex::Vector<std::string> name(NUM_VARS);
-    for (int i = 0; i < NUM_VARS; ++i)
-    {
-        name[i] = StateVariables::names[i];
-    }
-
     amrex::StateDescriptor::BndryFunc bndryfunc(null_bc_fill);
     bndryfunc.setRunOnGPU(true); // Run the bc function on gpu.
 
-    desc_lst.setComponent(State_Type, 0, name, bcs, bndryfunc);
+    desc_lst.setComponent(State_Type, 0, StateVariables::names, bcs, bndryfunc);
 }
 
 void GRAMRLevel::variableCleanUp()

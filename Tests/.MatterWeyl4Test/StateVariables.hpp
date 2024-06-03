@@ -34,18 +34,17 @@ enum
 
 namespace StateVariables
 {
-static const std::array<std::string, NUM_VARS - NUM_CCZ4_VARS>
-    additional_names = {
+static const amrex::Vector<std::string> additional_names = {
 
-        "phi",      "Pi",
+    "phi",      "Pi",
 
-        "rho",
+    "rho",
 
-        "chi2",
+    "chi2",
 
-        "Weyl4_Re", "Weyl4_Im"};
+    "Weyl4_Re", "Weyl4_Im"};
 
-static const std::array<std::string, NUM_VARS> names =
+static const amrex::Vector<std::string> names =
     ArrayTools::concatenate(CCZ4Variables::names, additional_names);
 } // namespace StateVariables
 

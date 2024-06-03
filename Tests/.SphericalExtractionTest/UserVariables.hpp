@@ -20,8 +20,7 @@ enum
 
 namespace StateVariables
 {
-static const std::array<std::string, NUM_VARS> variable_names = {"phi_Re",
-                                                                 "phi_Im"};
+static const amrex::Vector<std::string> variable_names = {"phi_Re", "phi_Im"};
 }
 
 #endif /* STATEVARIABLES_HPP */

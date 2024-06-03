@@ -19,7 +19,7 @@ enum
 
 namespace StateVariables
 {
-static const std::array<std::string, NUM_VARS> names = CCZ4Variables::names;
+static const amrex::Vector<std::string> names = CCZ4Variables::names;
 } // namespace StateVariables
 
 #endif /* STATEVARIABLES_HPP */

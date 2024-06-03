@@ -23,8 +23,9 @@ namespace StateVariablesParmParse
 /// otherwise
 static int name_to_enum(const std::string &a_var_name)
 {
-    const auto *const var_name_it = std::find(
-        StateVariables::names.begin(), StateVariables::names.end(), a_var_name);
+    const auto var_name_it =
+        std::find(StateVariables::names.cbegin(), StateVariables::names.cend(),
+                  a_var_name);
 
     auto var = std::distance(StateVariables::names.begin(), var_name_it);
     if (var != NUM_VARS)
