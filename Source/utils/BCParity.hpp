@@ -12,6 +12,7 @@
 //! A scoped enumerator for the parity of a variable wrt reflective boundaries
 enum class BCParity
 {
+    undefined,
     even,
     odd_x,
     odd_y,
@@ -19,8 +20,7 @@ enum class BCParity
     odd_xy,
     odd_yz,
     odd_xz,
-    odd_xyz,
-    undefined
+    odd_xyz
 };
 
 static inline const std::map<BCParity, amrex::IntVect> bc_parity_map = {
