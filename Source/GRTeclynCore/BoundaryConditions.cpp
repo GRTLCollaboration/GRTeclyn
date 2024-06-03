@@ -323,21 +323,14 @@ int BoundaryConditions::get_state_var_parity(int a_comp, int a_dir)
 {
     BCParity comp_parity = StateVariables::parities[a_comp];
 
-    if (((a_dir == 0) &&
-         (comp_parity == BCParity::odd_x || comp_parity == BCParity::odd_xy ||
-          comp_parity == BCParity::odd_xz ||
-          comp_parity == BCParity::odd_xyz)) ||
-        ((a_dir == 1) &&
-         (comp_parity == BCParity::odd_y || comp_parity == BCParity::odd_xy ||
-          comp_parity == BCParity::odd_yz ||
-          comp_parity == BCParity::odd_xyz)) ||
-        ((a_dir == 2) &&
-         (comp_parity == BCParity::odd_z || comp_parity == BCParity::odd_xz ||
-          comp_parity == BCParity::odd_yz || comp_parity == BCParity::odd_xyz)))
-    {
-        return -1;
-    }
-    return 1;
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        comp_parity != BCParity::undefined,
+        "BoundaryConditions: cannot have undefined variable parities if using "
+        "reflective BCs");
+
+    auto dir_parities = bc_parity_map.at(comp_parity);
+
+    return dir_parities[a_dir];
 }
 
 /// Get the boundary condition for given face
