@@ -233,7 +233,9 @@ void BinaryBHLevel::derive(const std::string &name, amrex::Real time,
     const amrex::DeriveRec *rec = derive_lst.get(name);
     if (rec != nullptr)
     {
-        int state_idx, derive_scomp, derive_ncomp;
+        int state_idx    = 0;
+        int derive_scomp = 0;
+        int derive_ncomp = NUM_VARS;
 
         // we only have one state so state_idx will be State_Type = 0
         rec->getRange(0, state_idx, derive_scomp, derive_ncomp);
