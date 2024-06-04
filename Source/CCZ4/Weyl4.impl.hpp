@@ -10,6 +10,9 @@
 #ifndef WEYL4_IMPL_HPP_
 #define WEYL4_IMPL_HPP_
 
+// AMReX includes
+#include <AMReX_AmrLevel.H>
+
 template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 Weyl4::compute(int i, int j, int k, const amrex::Array4<data_t> &a_derive_array,
@@ -322,6 +325,25 @@ Weyl4::compute_null_tetrad(const Vars<data_t> &vars,
     }
 
     return out;
+}
+
+void Weyl4::set_up(int a_state_index)
+{
+    int num_ghosts = 2; // no advection terms so only need 2 ghost cells
+
+    auto &derive_lst     = amrex::AmrLevel::get_derive_lst();
+    const auto &desc_lst = amrex::AmrLevel::get_desc_lst();
+
+    // Add Weyl4 to the derive list
+    derive_lst.add(
+        name, amrex::IndexType::TheCellType(),
+        static_cast<int>(var_names.size()), var_names,
+        amrex::DeriveFuncFab(), // null function because we won't use it
+        [=](const amrex::Box &box) { return amrex::grow(box, 2); },
+        &amrex::cell_quartic_interp);
+
+    // We need all of the CCZ4 variables to calculate Weyl4 (except B)
+    derive_lst.addComponent(name, desc_lst, a_state_index, 0, c_B1);
 }
 
 #endif /* WEYL4_HPP_ */

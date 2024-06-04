@@ -14,6 +14,9 @@
 #include "GRInterval.hpp"
 #include "VarsTools.hpp"
 
+// AMReX includes
+#include <AMReX_AmrLevel.H>
+
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 inline Constraints::Constraints(
     double dx, int a_c_Ham, const Interval &a_c_Moms,
@@ -25,6 +28,19 @@ inline Constraints::Constraints(
       m_c_Moms_abs_terms(a_c_Moms_abs_terms),
       m_cosmological_constant(cosmological_constant)
 {
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        (a_c_Ham >= 0 && a_c_Ham_abs_terms < 0) ||
+            (a_c_Ham < 0 && a_c_Ham_abs_terms >= 0),
+        must calculate one of either Ham or Ham_abs_terms);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        a_c_Moms.size() * a_c_Moms_abs_terms.size() <= 0,
+        must choose at most one of Mom or Mom_abs_terms);
+    const auto &moms_interval =
+        (a_c_Moms.size() > 0) ? a_c_Moms : a_c_Moms_abs_terms;
+    if (moms_interval.size() > 0)
+    {
+        AMREX_ALWAYS_ASSERT(moms_interval.size() == (s_calc_mom_norm ? 1 : 3));
+    }
 }
 // NOLINTEND(bugprone-easily-swappable-parameters)
 
@@ -158,6 +174,27 @@ Constraints::store_vars(const Vars<data_t> &out,
         data_t Mom_abs_terms                     = sqrt(Mom_abs_terms_sq);
         current_cell[m_c_Moms_abs_terms.begin()] = Mom_abs_terms;
     }
+}
+
+void Constraints::set_up(int a_state_index, bool a_calc_mom_norm)
+{
+    s_calc_mom_norm = a_calc_mom_norm;
+    int num_ghosts  = 2; // no advection terms so only need 2 ghost cells
+
+    const auto &comp_names = (s_calc_mom_norm) ? var_names_norm : var_names;
+    auto &derive_lst       = amrex::AmrLevel::get_derive_lst();
+    const auto &desc_lst   = amrex::AmrLevel::get_desc_lst();
+
+    derive_lst.add(
+        name, amrex::IndexType::TheCellType(),
+        static_cast<int>(comp_names.size()), comp_names,
+        amrex::DeriveFuncFab(), // null function because we won't use
+                                // it.
+        [=](const amrex::Box &box) { return amrex::grow(box, num_ghosts); },
+        &amrex::cell_quartic_interp);
+
+    // We only need the non-gauge CCZ4 variables to calculate the constraints
+    derive_lst.addComponent(name, desc_lst, a_state_index, 0, c_lapse);
 }
 
 #endif /* CONSTRAINTS_IMPL_HPP_ */

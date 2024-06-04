@@ -49,6 +49,8 @@ template <class data_t> struct NPScalar_t
 class Weyl4
 {
   public:
+    /// derive record name
+    static inline const std::string name = "Weyl4";
 
     /// Variable names
     static inline const amrex::Vector<std::string> var_names = {"Weyl4_Re",
@@ -78,6 +80,8 @@ class Weyl4
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     compute(int i, int j, int k, const amrex::Array4<data_t> &a_derive_array,
             const amrex::Array4<data_t const> &a_state_array) const;
+
+    static void set_up(int a_state_index);
 
   protected:
     std::array<double, AMREX_SPACEDIM> m_center; //!< The grid center
