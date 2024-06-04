@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <array>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 /// A place for tools that operate on std::arrays and std::vectors
@@ -27,10 +28,15 @@ std::array<T, N + M> concatenate(const std::array<T, N> &first,
     return out;
 }
 
-/// This can contenate two std::vectors or amrex::Vectors
-template <typename T> T concatenate(const T &first, const T &second)
+/// This can concatenate two std::vectors or amrex::Vectors
+template <template <typename, typename> class vec_t, typename elem_t,
+          typename alloc_t,
+          typename = std::enable_if_t<std::is_base_of_v<
+              std::vector<elem_t, alloc_t>, vec_t<elem_t, alloc_t>>>>
+vec_t<elem_t, alloc_t> concatenate(const vec_t<elem_t, alloc_t> &first,
+                                   const vec_t<elem_t, alloc_t> &second)
 {
-    T out(first.size() + second.size());
+    vec_t<elem_t, alloc_t> out(first.size() + second.size());
     std::copy(first.cbegin(), first.cend(), out.begin());
     std::copy(second.cbegin(), second.cend(), out.begin() + first.size());
     return out;
