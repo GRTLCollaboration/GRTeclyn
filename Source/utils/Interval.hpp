@@ -5,6 +5,8 @@
 #ifndef INTERVAL_H_
 #define INTERVAL_H_
 
+#include <AMReX_GpuQualifiers.H>
+
 struct Interval
 {
     Interval() = default;
@@ -22,18 +24,18 @@ struct Interval
         m_end   = a_lastComp;
     }
 
-    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE int begin() const
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE int begin() const
     {
         return m_begin;
     }
 
     //! return last component number
-    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE int end() const
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE int end() const
     {
         return m_end;
     }
 
-    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE int size() const
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE int size() const
     {
         return m_end - m_begin + 1;
     }
