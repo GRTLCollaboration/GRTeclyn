@@ -11,13 +11,13 @@
 #define EMTENSOR_IMPL_HPP
 
 #include "CCZ4Geometry.hpp"
-#include "Cell.hpp"
+//#include "Cell.hpp"
 #include "DimensionDefinitions.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "Interval.hpp"
 #include "simd.hpp"
 
-template <class matter_t>
+template <class matter_t> AMREX_GPU_DEVICE
 EMTensor<matter_t>::EMTensor(const matter_t &a_matter, const double dx,
                              const int a_c_rho, const Interval a_c_Si,
                              const Interval a_c_Sij)

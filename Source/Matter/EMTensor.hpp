@@ -7,7 +7,7 @@
 #define EMTENSOR_HPP
 
 #include "CCZ4Geometry.hpp"
-#include "Cell.hpp"
+//#include "Cell.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "Interval.hpp"
 #include "MatterCCZ4.hpp"
@@ -22,7 +22,7 @@ template <class matter_t> class EMTensor
     using Vars = typename MatterCCZ4<matter_t>::template Vars<data_t>;
 
     //! Constructor
-    EMTensor(const matter_t &a_matter, const double dx, const int a_c_rho = -1,
+    AMREX_GPU_DEVICE EMTensor(const matter_t &a_matter, const double dx, const int a_c_rho = -1,
              const Interval a_c_Si  = Interval(),
              const Interval a_c_Sij = Interval());
 

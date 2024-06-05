@@ -23,7 +23,7 @@ MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::MatterCCZ4RHS(
 
 template <class matter_t, class gauge_t, class deriv_t>
 template <class data_t>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::compute(
     int i, int j, int k, const amrex::Array4<data_t> &rhs,
     const amrex::Array4<data_t const> &state) const
@@ -55,7 +55,7 @@ MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::compute(
 // Function to add in EM Tensor matter terms to CCZ4 rhs
 template <class matter_t, class gauge_t, class deriv_t>
 template <class data_t>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
     Vars<data_t> &matter_rhs, const Vars<data_t> &matter_vars,
     const Vars<Tensor<1, data_t>> &d1) const
