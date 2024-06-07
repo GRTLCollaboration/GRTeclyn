@@ -58,6 +58,7 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
         (bh_amr.cumTime() < sim_params.stop_time || sim_params.stop_time < 0.0))
     {
         bh_amr.coarseTimeStep(sim_params.stop_time);
+        amrex::Arena::PrintUsage();
     }
 
     auto end_time = std::chrono::steady_clock::now();
