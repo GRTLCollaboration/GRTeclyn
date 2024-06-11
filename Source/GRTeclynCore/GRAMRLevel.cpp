@@ -235,6 +235,7 @@ amrex::Real GRAMRLevel::advance(amrex::Real time, amrex::Real dt, int iteration,
             amrex::Real t, amrex::Real /*dtsub*/)
         {
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+            BL_PROFILE("GRAMRLevel::advance()::evalRHS")
             specificEvalRHS(const_cast<amrex::MultiFab &>(soln), rhs, t);
             m_boundaries.apply_sommerfeld_boundaries(rhs, soln);
         },
