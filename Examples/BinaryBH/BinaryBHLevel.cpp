@@ -18,6 +18,7 @@
 // Things to do during the advance step after RK4 steps
 void BinaryBHLevel::specificAdvance()
 {
+    BL_PROFILE("BinaryBHLevel::specificAdvance");
     amrex::MultiFab &S_new = get_new_data(State_Type);
     const auto &arrs       = S_new.arrays();
 
@@ -136,6 +137,7 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
 // enforce trace removal during RK4 substeps
 void BinaryBHLevel::specificUpdateODE(amrex::MultiFab &a_soln)
 {
+    BL_PROFILE("BinaryBHLevel::specificUpdateODE");
     // Enforce the trace free A_ij condition
     const auto &soln_arrs = a_soln.arrays();
     amrex::ParallelFor(a_soln, amrex::IntVect(0), // zero ghost cells
