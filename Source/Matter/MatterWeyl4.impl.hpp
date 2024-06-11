@@ -49,8 +49,6 @@ MatterWeyl4<matter_t>::compute(int i, int j, int k,
     // Write the rhs into the output FArrayBox
     derive(i, j, k, m_dcomp)     = out.Real;
     derive(i, j, k, m_dcomp + 1) = out.Im;
-    //    current_cell.store_vars(out.Real, c_Weyl4_Re);
-    //    current_cell.store_vars(out.Im, c_Weyl4_Im);
 }
 
 template <class matter_t>

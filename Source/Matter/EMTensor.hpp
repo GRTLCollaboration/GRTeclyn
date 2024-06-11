@@ -28,7 +28,8 @@ template <class matter_t> class EMTensor
 
     template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    compute(int i, int j, int k, const amrex::Array4<data_t> &state) const;
+    compute(int i, int j, int k, const amrex::Array4<data_t> &out_mf,
+            const amrex::Array4<const data_t> &in_mf) const;
 
   protected:
     const matter_t &m_matter;
