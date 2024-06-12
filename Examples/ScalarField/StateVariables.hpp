@@ -8,6 +8,7 @@
 
 #include "ArrayTools.hpp"
 #include "BCParity.hpp"
+
 #include "CCZ4Variables.hpp"
 
 // assign an enum to each variable
@@ -34,6 +35,7 @@ static const std::array<BCParity, NUM_VARS - NUM_CCZ4_VARS>
 
 static const std::array<BCParity, NUM_VARS> parities =
     ArrayTools::concatenate(CCZ4Variables::parities, additional_parities);
+
 } // namespace StateVariables
 
 #endif /* STATEVARIABLES_HPP */

@@ -38,6 +38,7 @@ class ScalarFieldLevel : public GRAMRLevel
     void specificAdvance() override;
 
     //! Initialize data for the field and metric variables
+
     void initData() override;
 
     //! RHS routines used at each RK4 step

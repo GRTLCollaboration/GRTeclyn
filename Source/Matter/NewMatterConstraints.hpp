@@ -38,7 +38,7 @@ template <class matter_t> class MatterConstraints : public Constraints
         /// Defines the mapping between members of Vars and Chombo grid
         /// variables (enum in User_Variables)
         template <typename mapping_function_t>
-        void enum_mapping(mapping_function_t mapping_function)
+        AMREX_GPU_DEVICE void enum_mapping(mapping_function_t mapping_function)
         {
             Constraints::MetricVars<data_t>::enum_mapping(mapping_function);
             MatterVars<data_t>::enum_mapping(mapping_function);

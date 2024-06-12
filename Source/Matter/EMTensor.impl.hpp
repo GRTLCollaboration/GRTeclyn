@@ -42,10 +42,11 @@ template <class matter_t>
 template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 EMTensor<matter_t>::compute(int i, int j, int k,
-                            const amrex::Array4<data_t> &state) const
+                            const amrex::Array4<data_t> &out_mf,
+                            const amrex::Array4<const data_t> &in_mf) const
 {
-    const auto vars = load_vars<Vars>(state.cellData(i, j, k));
-    const auto d1   = m_deriv.template diff1<Vars>(i, j, k, state);
+    const auto vars = load_vars<Vars>(in_mf.cellData(i, j, k));
+    const auto d1   = m_deriv.template diff1<Vars>(i, j, k, in_mf);
 
     using namespace TensorAlgebra;
 
@@ -56,7 +57,7 @@ EMTensor<matter_t>::compute(int i, int j, int k,
 
     if (m_c_rho >= 0)
     {
-        state(i, j, k, m_c_rho) = emtensor.rho;
+        out_mf(i, j, k, m_c_rho) = emtensor.rho;
     }
 
     if (m_c_Si.size() > 0)
@@ -64,7 +65,7 @@ EMTensor<matter_t>::compute(int i, int j, int k,
 #if DEFAULT_TENSOR_DIM == 3
         FOR (i)
         {
-            state(i, j, k, m_c_Si.begin() + i) = emtensor.Si[i];
+            out_mf(i, j, k, m_c_Si.begin() + i) = emtensor.Si[i];
         }
 #endif
     }
@@ -72,12 +73,12 @@ EMTensor<matter_t>::compute(int i, int j, int k,
     if (m_c_Sij.size() > 0)
     {
 #if DEFAULT_TENSOR_DIM == 3
-        state(i, j, k, m_c_Sij.begin())     = emtensor.Sij[0][0];
-        state(i, j, k, m_c_Sij.begin() + 1) = emtensor.Sij[0][1];
-        state(i, j, k, m_c_Sij.begin() + 2) = emtensor.Sij[0][2];
-        state(i, j, k, m_c_Sij.begin() + 3) = emtensor.Sij[1][1];
-        state(i, j, k, m_c_Sij.begin() + 4) = emtensor.Sij[1][2];
-        state(i, j, k, m_c_Sij.begin() + 5) = emtensor.Sij[2][2];
+        out_mf(i, j, k, m_c_Sij.begin())     = emtensor.Sij[0][0];
+        out_mf(i, j, k, m_c_Sij.begin() + 1) = emtensor.Sij[0][1];
+        out_mf(i, j, k, m_c_Sij.begin() + 2) = emtensor.Sij[0][2];
+        out_mf(i, j, k, m_c_Sij.begin() + 3) = emtensor.Sij[1][1];
+        out_mf(i, j, k, m_c_Sij.begin() + 4) = emtensor.Sij[1][2];
+        out_mf(i, j, k, m_c_Sij.begin() + 5) = emtensor.Sij[2][2];
 
 #endif
     }

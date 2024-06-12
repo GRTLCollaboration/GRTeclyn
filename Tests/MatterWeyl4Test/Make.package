@@ -1,3 +1,0 @@
-GRTECLYN_CEXE_headers += InitialData.hpp MatterWeyl4Test.hpp
-
-GRTECLYN_CEXE_sources += MatterWeyl4Test.cpp

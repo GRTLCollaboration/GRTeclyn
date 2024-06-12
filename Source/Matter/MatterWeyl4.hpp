@@ -6,7 +6,7 @@
 #ifndef MATTERWEYL4_HPP_
 #define MATTERWEYL4_HPP_
 
-#include "MatterCCZ4.hpp"
+#include "MatterCCZ4RHS.hpp"
 #include "Weyl4.hpp"
 
 //!  Calculates the Weyl4 scalar for spacetimes with matter content
@@ -27,7 +27,7 @@ template <class matter_t> class MatterWeyl4 : public Weyl4
                 const double a_dx, const int a_dcomp,
                 const int a_formulation = CCZ4RHS<>::USE_CCZ4,
                 double a_G_Newton       = 1.0)
-        : Weyl4(a_center, a_dx, a_formulation), m_matter(a_matter),
+        : Weyl4(a_center, a_dx, a_dcomp, a_formulation), m_matter(a_matter),
           m_dcomp(a_dcomp), m_G_Newton(a_G_Newton)
     {
     }
@@ -36,7 +36,7 @@ template <class matter_t> class MatterWeyl4 : public Weyl4
     //! the grid
     template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    compute(int i, int j, int k, const amrex::Array4<data_t> &rhs,
+    compute(int i, int j, int k, const amrex::Array4<data_t> &derive,
             const amrex::Array4<data_t const> &state) const;
 
   protected:
