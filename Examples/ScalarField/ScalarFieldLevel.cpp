@@ -26,7 +26,9 @@
 #include "Potential.hpp"
 #include "ScalarField.hpp"
 
+#ifdef AMREX_USE_HDF5
 #include <AMReX_PlotFileUtilHDF5.H>
+#endif
 
 void ScalarFieldLevel::variableSetUp()
 {
