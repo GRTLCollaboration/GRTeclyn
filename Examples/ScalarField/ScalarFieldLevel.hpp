@@ -9,6 +9,7 @@
 #include "DefaultLevelFactory.hpp"
 #include "GRAMRLevel.hpp"
 // Problem specific includes
+#include "DefaultPotential.hpp"
 #include "Potential.hpp"
 #include "ScalarField.hpp"
 
@@ -35,6 +36,8 @@ class ScalarFieldLevel : public GRAMRLevel
     // Typedef for scalar field
     typedef ScalarField<Potential> ScalarFieldWithPotential;
 
+    using DefaultScalarField = ScalarField<DefaultPotential>;
+
     //! Things to do at the end of the advance step, after RK4 calculation
     void specificAdvance() override;
 
@@ -55,6 +58,9 @@ class ScalarFieldLevel : public GRAMRLevel
     //! Tell GRTeclyn how to tag cells for regridding
     void errorEst(amrex::TagBoxArray &tag_box_array, int clearval, int tagval,
                   amrex::Real time, int n_error_buf = 0, int ngrow = 0) final;
+
+    void derive(const std::string &name, amrex::Real time,
+                amrex::MultiFab &multifab, int dcomp) override;
 };
 
 #endif /* SCALARFIELDLEVEL_HPP_ */

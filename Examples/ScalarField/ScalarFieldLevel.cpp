@@ -14,8 +14,8 @@
 
 // // For constraints calculation
 #include "Constraints.hpp"
-#include "Weyl4.hpp"
-// #include "NewMatterConstraints.hpp"
+#include "MatterWeyl4.hpp"
+#include "NewMatterConstraints.hpp"
 
 // For tagging cells
 #include "ChiExtractionTaggingCriterion.hpp"
@@ -303,5 +303,91 @@ void ScalarFieldLevel::errorEst(amrex::TagBoxArray &tagging_criterion,
                            }
                        });
 
+    amrex::Gpu::streamSynchronize();
+}
+
+void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
+                              amrex::MultiFab &multifab, int dcomp)
+{
+    BL_PROFILE("ScalarFieldLevel::derive()");
+
+    BL_ASSERT(dcomp < multifab.nComp());
+
+    const int num_ghosts = multifab.nGrow();
+
+    const amrex::DeriveRec *rec = derive_lst.get(name);
+    if (rec != nullptr)
+    {
+        int state_idx, derive_scomp, derive_ncomp;
+
+        // we only have one state so state_idx will be State_Type = 0
+        rec->getRange(0, state_idx, derive_scomp, derive_ncomp);
+
+        // work out how many extra ghost cells we need
+        const amrex::BoxArray &src_ba = state[state_idx].boxArray();
+
+        int num_extra_ghosts = num_ghosts;
+        {
+            amrex::Box box0   = src_ba[0];
+            amrex::Box box1   = rec->boxMap()(box0);
+            num_extra_ghosts += box0.smallEnd(0) - box1.smallEnd(0);
+        }
+
+        // Make a Multifab with enough extra ghosts to calculated derived
+        // quantity. For now use NUM_VARS in case the enum mapping loads more
+        // vars than is actually needed
+        amrex::MultiFab src_mf(src_ba, dmap, NUM_VARS, num_extra_ghosts,
+                               amrex::MFInfo(), *m_factory);
+
+        // Fill the multifab with the needed state data including the ghost
+        // cells
+        FillPatch(*this, src_mf, num_extra_ghosts, time, state_idx,
+                  derive_scomp, derive_ncomp);
+
+        const auto &src_arrays = src_mf.const_arrays();
+
+        Potential potential(simParams().potential_params);
+        ScalarFieldWithPotential scalar_field(potential);
+
+        if (name == "constraints")
+        {
+            const auto &out_arrays = multifab.arrays();
+            int iham               = dcomp;
+            Interval imom = Interval(dcomp + 1, dcomp + AMREX_SPACEDIM);
+            MatterConstraints<ScalarFieldWithPotential> constraints(
+                scalar_field, Geom().CellSize(0), simParams().G_Newton, iham,
+                imom);
+            amrex::ParallelFor(
+                multifab, multifab.nGrowVect(),
+                [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept {
+                    constraints.compute(i, j, k, out_arrays[box_no],
+                                        src_arrays[box_no]);
+                });
+        }
+        else if (name == "Weyl4")
+        {
+            const auto &out_arrays = multifab.arrays();
+
+            MatterWeyl4<ScalarFieldWithPotential> weyl4(
+                scalar_field, simParams().extraction_params.center,
+                Geom().CellSize(0), dcomp, simParams().formulation,
+                simParams().G_Newton);
+
+            amrex::ParallelFor(
+                multifab, multifab.nGrowVect(),
+                [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept {
+                    weyl4.compute(i, j, k, out_arrays[box_no],
+                                  src_arrays[box_no]);
+                });
+        }
+        else
+        {
+            amrex::Abort("Unknown derived variable");
+        }
+    }
+    else
+    {
+        amrex::Abort("Unknown derived variable");
+    }
     amrex::Gpu::streamSynchronize();
 }
