@@ -214,15 +214,13 @@ void run_matter_weyl4_test()
 
         std::string h5diff_tol = "1e-10";
         std::string grchombo_weyl4_hdf5_file =
-            "/home/dc-kwan1/GRChombo/Tests/MatterWeyl4Test/"
-            "GRChomboMatterWeyl4TestOut.h5";
+            "MatterWeyl4Test/GRChomboMatterWeyl4Test.h5";
 
         // this is saved separately because the GRChombo rho is outputted to the
         // input fab and these have ghost cells while we want to compare the
         // result to the GRTeclyn output fab which doesn't
         std::string grchombo_emtensor_hdf5_file =
-            "/home/dc-kwan1/GRChombo/Tests/MatterWeyl4Test/"
-            "GRChomboEMTensorTest.h5";
+            "MatterWeyl4Test/GRChomboEMTensorTest.h5";
 
         std::string hdf5_internal_path_to_rho      = "/level_0/rho";
         std::string hdf5_internal_path_to_Weyl4_Re = "/level_0/Weyl4_Re";

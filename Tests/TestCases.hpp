@@ -12,12 +12,12 @@
 #include <AMReX.H>
 
 // Test cases
+#include "BSSNMatterTest.hpp"
 #include "CCZ4GeometryUnitTest.hpp"
 #include "CCZ4RHSTest.hpp"
 #include "ConstraintsTest.hpp"
 #include "CoordinateTransformationsTest.hpp"
 #include "DerivativeUnitTests.hpp"
-#include "MatterCCZ4RHSTest.hpp"
 #include "MatterWeyl4Test.hpp"
 #include "PositiveChiAndAlphaUnitTest.hpp"
 #include "SphericalHarmonicTest.hpp"
@@ -49,7 +49,7 @@ TEST_CASE("Spherical Harmonics") { run_spherical_harmonic_test(); }
 
 TEST_CASE("Matter Weyl4") { run_matter_weyl4_test(); }
 
-TEST_CASE("Matter CCZ4") { run_matter_ccz4_rhs_test(); }
+TEST_CASE("Matter BSSN") { run_bssn_matter_test(); }
 
 TEST_CASE("Weyl4"
 #ifndef AMREX_USE_HDF5
