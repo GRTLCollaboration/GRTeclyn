@@ -31,6 +31,7 @@ template <typename InterpAlgo> class AMRInterpolator
                     const std::array<double, AMREX_SPACEDIM> &coarsest_origin,
                     const std::array<double, AMREX_SPACEDIM> &coarsest_dx,
                     int verbosity = 0);
+
     AMRInterpolator(const GRAMR &amr,
                     const std::array<double, AMREX_SPACEDIM> &coarsest_origin,
                     const std::array<double, AMREX_SPACEDIM> &coarsest_dx,

@@ -22,7 +22,6 @@ class DefaultPotential
     {
         // The potential value at phi
         V_of_phi = 0.0;
-
         // The potential gradient at phi
         dVdphi = 0.0;
     }
