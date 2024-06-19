@@ -157,14 +157,6 @@ void run_matter_weyl4_test()
         int coord_sys                        = 0;
         amrex::Vector<std::string> var_names = {"Weyl4_Re", "Weyl4_Im", "rho"};
 
-        // amrex::RealVect dx_Vect{dx};
-        // amrex::RealBox real_box{box, dx_Vect.dataPtr(),
-        //                         amrex::RealVect::Zero.dataPtr()};
-        // amrex::Geometry geom{box, &real_box, coord_sys};
-        // amrex::WriteSingleLevelPlotfileHDF5(
-        //     "MatterCCZ4RHSTest/MatterCCZ4RHSInMF", in_mf, var_names, geom,
-        //     0.0, 0);
-
         const H5std_string grteclyn_hdf5_file =
             "MatterWeyl4Test/MatterWeyl4TestOut.h5";
 

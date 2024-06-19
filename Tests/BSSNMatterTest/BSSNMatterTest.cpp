@@ -202,14 +202,6 @@ void run_bssn_matter_test()
         for (int i = 0; i < num_constraints_comps; i++)
             var_names.push_back(Constraints::var_names[i]);
 
-        amrex::RealVect dx_Vect{dx};
-        amrex::RealBox real_box{box, dx_Vect.dataPtr(),
-                                amrex::RealVect::Zero.dataPtr()};
-        amrex::Geometry geom{box, &real_box, coord_sys};
-        // amrex::WriteSingleLevelPlotfileHDF5(
-        //     "MatterCCZ4RHSTest/MatterCCZ4RHSInMF", in_mf, var_names, geom,
-        //     0.0, 0);
-
         const H5std_string grteclyn_hdf5_file =
             "BSSNMatterTest/BSSNMatterTest.h5";
 
