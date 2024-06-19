@@ -1,0 +1,33 @@
+name: Check .lint-ignore
+
+on: pull_request
+
+jobs:
+  check-lint-ignore:
+    name: Check .lint-ignore
+    runs-on: ubuntu-24.04
+
+    steps:
+    - name: Checkout GRTeclyn
+      uses: actions/checkout@v4
+      with:
+        # Tip from https://stackoverflow.com/a/74268200
+        fetch-depth: 2
+
+    - name: Check if any modified files match .lint-ignore
+      id: modified-files
+      run: |
+        git ls-files $(cat .lint-ignore | sed '/^[[:blank:]]*#/d;s/#.*//;/^$/d;') > lint_ignore_expanded
+        printf "lint_ignore_matches<<EOF\n%s\nEOF" "$(git diff --name-only HEAD^1 HEAD | grep -F -f lint_ignore_expanded)" >> "$GITHUB_OUTPUT"
+
+    - name: Post comment on PR if there are matches
+      if: steps.modified-files.outputs.lint_ignore_matches != ''
+      uses: thollander/actions-comment-pull-request@v2
+      with:
+        message: |
+          This PR modifies the following files which are ignored by [.lint-ignore](.lint-ignore):
+          ```
+          ${{ steps.modified-files.outputs.lint_ignore_matches }}
+          ```
+          Please consider removing the corresponding patterns from .lint-ignore so that these files can be linted.
+        comment_tag: lint_ignore

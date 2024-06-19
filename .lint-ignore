@@ -1,0 +1,14 @@
+# This file contains a list of files/directories to be ignored by the lint
+# GitHub action. These are mostly files that have yet to be ported to AMReX
+# Once these files have been ported to AMReX, they should be removed from this
+# file so they are linted.
+
+# These template implementation files don't make sense on their own
+*.impl.hpp
+
+# These directories have yet to be ported to AMReX
+Source/AMRInterpolator/*
+Source/Matter/*
+Examples/KerrBH/*
+Examples/ScalarField/*
+Tests/.*
