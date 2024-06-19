@@ -78,9 +78,9 @@ int main(int argc, char *argv[])
     int status = runGRTeclyn(argc, argv);
 
     if (status == 0)
-        amrex::Print() << "GRChombo finished." << std::endl;
+        amrex::Print() << "GRTeclyn finished." << std::endl;
     else
-        amrex::Print() << "GRChombo failed with return code " << status
+        amrex::Print() << "GRTeclyn failed with return code " << status
                        << std::endl;
 
     mainFinalize();

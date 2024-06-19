@@ -26,10 +26,6 @@
 #include "Potential.hpp"
 #include "ScalarField.hpp"
 
-#ifdef AMREX_USE_HDF5
-#include <AMReX_PlotFileUtilHDF5.H>
-#endif
-
 void ScalarFieldLevel::variableSetUp()
 {
     BL_PROFILE("ScalarFieldLevel::variableSetUp()");
@@ -135,18 +131,6 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
 {
     BL_PROFILE("ScalarFieldLevel::specificEvalRHS()");
 
-    std::string plot_file_root =
-        "/home/dc-kwan1/rds/rds-dirac-dp002/dc-kwan1/GRTeclyn/"
-        "ScalarField/test_file";
-
-    amrex::Vector<std::string> var_names;
-    for (int i = 0; i < NUM_VARS; i++)
-    {
-        if (a_soln.contains_nan(i, 1, amrex::IntVect(0), true))
-            amrex::Print() << "Nan found in component " << i << std::endl;
-        var_names.push_back(StateVariables::names[i]);
-    }
-
     // amrex::WriteSingleLevelPlotfileHDF5(plot_file_root, a_rhs,
     // 				      var_names, Geom(), 0.0, 0);
 
@@ -205,22 +189,13 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
         if (a_soln.contains_nan(0, a_soln.nComp(), amrex::IntVect(0), true))
         {
 
-            // const std::string& pltfile = amrex::Concatenate(plot_file_root,
-            //                                           file_name_digits);
-
-            amrex::Vector<std::string> var_names;
             for (int i = 0; i < NUM_VARS; i++)
             {
                 if (a_soln.contains_nan(i, 1, amrex::IntVect(0), true))
-                    amrex::Print()
-                        << "Nan found in component " << i << std::endl;
-                //	      var_names.push_back(StateVariables::names[i]);
+                    amrex::Print() << "Nan found in "
+                                   << StateVariables::names[i] << std::endl;
             }
 
-            // amrex::WriteSingleLevelPlotfileHDF5(plot_file_root, a_rhs,
-            // 				      var_names, Geom(), 0.0, 0);
-
-            //	  amrex::WriteSingleLevelPlotfile(pltfile);
             amrex::Abort("NaN in specificUpdateRHS");
         }
     }
