@@ -60,6 +60,14 @@ jobs:
         cd ${{ env.TESTS_DIR }}
         compiledb -o ${{ env.COMPILATION_DATABASE }} -n make ${{ env.BUILD_ARGS }}
 
+    - name: Generate list of files for clang-tidy to ignore
+      id: ignore-tidy-list
+      run: |
+        # The first sed removes comments and blank lines. The second joins lines
+        # and replaces new lines with a '|'.
+        echo "ignore-tidy=$(sed '/^[[:blank:]]*#/d;s/#.*//;/^$/d;' .lint-ignore | sed ':a;N;$!ba;s/\n/|/g')" > $GITHUB_OUTPUT
+      working-directory: GRTeclyn
+
     - name: Run clang-tidy and clang-format on modified files
       uses: cpp-linter/cpp-linter-action@v2
       id: linter
@@ -70,6 +78,7 @@ jobs:
         tidy-checks: '' # Use .clang-tidy file cheks
         repo-root: ${{ github.workspace }}/GRTeclyn
         ignore: External
+        ignore-tidy: ${{ steps.ignore-tidy-list.outputs.ignore-tidy }}
         version: ${{ env.LLVM_VERSION }}
         files-changed-only: true
         lines-changed-only: false
