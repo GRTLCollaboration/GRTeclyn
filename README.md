@@ -2,9 +2,20 @@
 
 ## Introduction
 
-This is a short walkthrough on building and running the GRTecyln BinaryBH
-example. It is still in the very early stages so lots of things have yet to be
-ported/implemented. See below for the current status.
+This hands-on exercise involves porting the RHS for Scalar Field
+example. An empty function `specificEvalRHS` has already been provided for you in
+`ScalarFieldLevel.cpp`.
+
+Other functions in `ScalarFieldLevel` have already been defined:
+* `initData`: setup the initial conditions (scalar bubble)
+* `specificAdvance` : impose trace free `Aij`, positive `chi` and `alpha`
+* `specificUpdateODE`: trace free `Aij`
+* `errorEst`: tag cells for refinement
+* `derive`: calculate derived quantities e.g. `Ham` and `Mom`
+
+
+
+
 
 ### Status
 | Feature | Ported/Implemented | Notes |
@@ -81,6 +92,8 @@ sure to check it out using e.g.
 git checkout training/202406_grchombo_meeting
 ```
 
+The solution is in the branch `enhancement/scalar_fields`. 
+
 > **Note**
 > I have assumed that you have cloned both of
 > these repositories to the same directory so that the `amrex` and `GRTeclyn`
@@ -117,17 +130,58 @@ git checkout training/202406_grchombo_meeting
 On a CSD3 login node, request an interactive session using:
 
 ```
-salloc -A training-dawn-gpu -p pvc --nodes=1 --ntasks=4 --time=01:00:00
+salloc -A training-dawn-gpu -p pvc --nodes=1 --ntasks=<#ntasks> --time=01:00:00
 ```
 
-Some modules will be loaded by default, but to be sure: 
+This is example is quite small so 1 or 2 tasks (usually MPI ranks) is
+sufficient. If you want to use the GPUs add `--gres=gpu:<#gpu>` which
+will add #gpu to your allocation. Note that you can only request a
+maximum of 4 per node. Please see the Dawn notes
+[here](https://docs.hpc.cam.ac.uk/hpc/user-guide/pvc.html) and also
+Miren's guide for running on the PVCs
+[here](https://github.com/GRTLCollaboration/GRTeclyn/issues/67)
+
+Some modules will be loaded by default, but just to be sure: 
  
 ```
+module purge
 module load default-dawn
-module load something
+module load intel-oneapi-compilers/2024.1.0/gcc/wadpqv2p
+module load intel-oneapi-mpi/2021.12.0/oneapi/nbxgtwyb
+module load intel-oneapi-mkl/2024.1.0/oneapi/xps7uyz6
 ```
 
-which provide you with the latest Intel compilers and MPI. 
+which provide you with the recommended versions of Intel compilers and
+MPI.
+
+
+The main build options are located in
+```
+~/GRTeclyn/Tools/GNUMake/Make.defaults
+```
+
+In this file, you can adjust several variables such as:
+
+* Set `USE_OMP = TRUE` to use OpenMP.
+* If you don't want to use the GNU compiler `g++` , change `COMP = gnu` to 
+  `COMP = intel` (for the Intel classic compiler `icpc`) or `COMP = llvm` (for 
+  LLVM `clang++`). 
+* If you don't have an MPI implementation available, set `USE_MPI = FALSE`.
+* Optionally, set `USE_SYCL = TRUE` to compile for the PVCs. You can also just use the CPUs though. 
+
+With the above modules loaded, I recommend using `COMP=intel-llvm` for Dawn. 
+
+
+Like Chombo, there is also a file controlling the AMReX build options:
+
+```
+~/amrex/Tools/GNUMake/Make.defs
+```
+
+but you shouldn't have to set these for this exercise. If you have
+some environment variables that you would preferrentially like to
+define, you can do so in `~/amrex/Tools/GNUMake/Make.local-pre` and
+this will be sourced by `Make.defs`.
 
 
 Now, navigate to the Scalar Field example directory
@@ -135,20 +189,17 @@ Now, navigate to the Scalar Field example directory
 cd ~/GRTeclyn/Examples/ScalarField
 ```
 
-In this directory, the build options are in the `GNUMakefile`. They are very
-similar to Chombo's, and, like Chombo, can be overriden on the command line. You
-might want to change the following: 
+Source directories and includes are defined in the `GNUMakefile`. You
+shouldn't have to modify this file for this exercise.
 
-* Set `USE_OMP = TRUE` to use OpenMP.
-* If you don't want to use the GNU compiler `g++` , change `COMP = gnu` to 
-  `COMP = intel` (for the Intel classic compiler `icpc`) or `COMP = llvm` (for 
-  LLVM `clang++`). 
-* If you don't have an MPI implementation available, set `USE_MPI = FALSE`.
+
 
 Now start building AMReX and the Scalar Field example with the command
 ```bash
-make -j 4
+make -j 4 
 ```
+Note that you can add build options here too e.g. `make -j 4 USE_MPI=FALSE` to turn off MPI.
+
 A new `tmp_build_dir` directory will be created to store the compiled object
 and auxiliary files. Assuming all is well, you should have an executable in the
 current directory of the form `main<config>.ex` e.g. `main3d.gnu.MPI.OMP.ex`.
@@ -233,9 +284,9 @@ graph BT
     LG1[GRAMRLevel] --> L1
     LG2[GRAMRLevel] --> L2
     LG3[GRAMRLevel] --> L3
-    LS1[BinaryBHLevel] --> LG1
-    LS2[BinaryBHLevel] --> LG2
-    LS3[BinaryBHLevel] --> LG3
+    LS1[ScalarFieldLevel] --> LG1
+    LS2[ScalarFieldLevel] --> LG2
+    LS3[ScalarFieldLevel] --> LG3
     SD1[StateData] -.-> LS1
     SD2[StateData] -.-> LS2
     SD3[StateData] -.-> LS3
@@ -248,7 +299,7 @@ graph BT
 Here are a list of some of the main classes in [GR]Chombo and their equivalents
 in [GR]Teclyn:
 
-| [GR]Chombo class | [GR]AMReX class  | Description |
+| [GR]Chombo class | GRTeclyn/AMReX class  | Description |
 | ---           | ---           | ---         |
 | `AMR`         | `Amr`         | Class which manages the whole AMR hierarchy and knows about all of the levels |
 | `AMRLevel`    | `AmrLevel`    | Class which manages things on a single level |
