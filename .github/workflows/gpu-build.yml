@@ -29,7 +29,7 @@ jobs:
       AMREX_HOME: ${{ github.workspace }}/amrex
       BUILD_ARGS: USE_${{ matrix.gpu-backend }}=TRUE DEBUG=${{ matrix.debug }} USE_MPI=TRUE
       CUDA_MAJOR_VERSION: 12
-      CUDA_MINOR_VERSION: 0
+      CUDA_MINOR_VERSION: 5
 
     steps:
     - name: Checkout AMReX
