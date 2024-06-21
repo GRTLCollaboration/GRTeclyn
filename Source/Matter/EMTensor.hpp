@@ -22,7 +22,7 @@ template <class matter_t> class EMTensor
     using Vars = typename MatterCCZ4<matter_t>::template Vars<data_t>;
 
     //! Constructor
-    EMTensor(const matter_t &a_matter, const double dx, const int a_c_rho = -1,
+    EMTensor(const matter_t a_matter, const double dx, const int a_c_rho = -1,
              const Interval a_c_Si  = Interval(),
              const Interval a_c_Sij = Interval());
 
@@ -32,7 +32,7 @@ template <class matter_t> class EMTensor
             const amrex::Array4<const data_t> &in_mf) const;
 
   protected:
-    const matter_t &m_matter;
+    const matter_t m_matter;
     FourthOrderDerivatives m_deriv;
     const int m_c_rho;      // var enum for the energy density
     const Interval m_c_Si;  // Interval of var enums for the momentum density

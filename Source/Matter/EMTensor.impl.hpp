@@ -18,7 +18,7 @@
 #include "simd.hpp"
 
 template <class matter_t>
-EMTensor<matter_t>::EMTensor(const matter_t &a_matter, const double dx,
+EMTensor<matter_t>::EMTensor(const matter_t a_matter, const double dx,
                              const int a_c_rho, const Interval a_c_Si,
                              const Interval a_c_Sij)
     : m_matter(a_matter), m_deriv(dx), m_c_rho(a_c_rho), m_c_Si(a_c_Si),

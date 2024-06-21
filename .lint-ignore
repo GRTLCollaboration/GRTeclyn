@@ -8,7 +8,5 @@
 
 # These directories have yet to be ported to AMReX
 Source/AMRInterpolator/*
-Source/Matter/*
 Examples/KerrBH/*
-Examples/ScalarField/*
 Tests/.*

@@ -192,7 +192,9 @@ void run_bssn_matter_test()
             CHECK(false);
         }
         else
+        {
             CHECK(true);
+        }
 
 #if AMREX_USE_HDF5
         int coord_sys = 0;
