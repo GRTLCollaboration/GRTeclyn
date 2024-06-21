@@ -81,11 +81,11 @@ jobs:
       working-directory: ${{ env.BINARYBH_EXAMPLE_DIR }}
 
     - name: Build scalar field example
-      run: make -j 4
+      run: make -j 4 DEBUG=TRUE
       working-directory: ${{ env.SCALARFIELD_EXAMPLE_DIR }}
 
     - name: Run scalar field example using test parameters
-      run: mpiexec -n 2 ./main3d.gnu.MPI.ex ./params_test.txt
+      run: mpiexec -n 2 ./main3d.gnu.DEBUG.MPI.ex ./params_test.txt
       working-directory: ${{ env.SCALARFIELD_EXAMPLE_DIR }}
 
     - name: Compare plotfile from final step with saved plotfile
