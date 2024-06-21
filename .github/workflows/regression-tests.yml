@@ -13,6 +13,7 @@ jobs:
     env:
       AMREX_HOME: ${{ github.workspace }}/amrex
       BINARYBH_EXAMPLE_DIR: ${{ github.workspace }}/GRTeclyn/Examples/BinaryBH
+      SCALARFIELD_EXAMPLE_DIR: ${{ github.workspace }}/GRTeclyn/Examples/ScalarField
       GCC_VERSION: 14
 
     steps:
@@ -78,3 +79,20 @@ jobs:
         mpiexec -n 2 ./main3d.gnu.MPI.ex ./params_test.txt
         amr.restart=chk00008 max_steps=12
       working-directory: ${{ env.BINARYBH_EXAMPLE_DIR }}
+
+    - name: Build scalar field example
+      run: make -j 4
+      working-directory: ${{ env.SCALARFIELD_EXAMPLE_DIR }}
+
+    - name: Run scalar field example using test parameters
+      run: mpiexec -n 2 ./main3d.gnu.MPI.ex ./params_test.txt
+      working-directory: ${{ env.SCALARFIELD_EXAMPLE_DIR }}
+
+    - name: Compare plotfile from final step with saved plotfile
+      run: |
+        ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex \
+        --abs_tol 1e-10 \
+        --rel_tol 1e-10 \
+        --abort_if_not_all_found \
+        ${GITHUB_WORKSPACE}/GRTeclyn/.github/workflows/data/plt_scalar_field_compare_00003 \
+        ${SCALARFIELD_EXAMPLE_DIR}/plt_00003
