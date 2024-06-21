@@ -83,13 +83,13 @@ It will be cloned to the `amrex` directory.
 Then clone the GRTeclyn repository with a command such as
 
 ```bash
-git clone -b training/202406_grchombo_meeting https://github.com/GRTLCollaboration/GRTeclyn.git
+git clone -b training/202406_grtl_meeting https://github.com/GRTLCollaboration/GRTeclyn.git
 ```
 Note that the above command automatically checks out the
-`training/202406_grchombo_meeting` branch but if you missed out this flag make
+`training/202406_grtl_meeting` branch but if you missed out this flag make
 sure to check it out using e.g.
 ```bash
-git checkout training/202406_grchombo_meeting
+git checkout training/202406_grtl_meeting
 ```
 
 The solution is in the branch `enhancement/scalar_fields`. 
@@ -169,7 +169,7 @@ In this file, you can adjust several variables such as:
 * If you don't have an MPI implementation available, set `USE_MPI = FALSE`.
 * Optionally, set `USE_SYCL = TRUE` to compile for the PVCs. You can also just use the CPUs though. 
 
-With the above modules loaded, I recommend using `COMP=intel-llvm` for Dawn. 
+With the above modules loaded, use `COMP=intel-llvm` for Dawn. 
 
 
 Like Chombo, there is also a file controlling the AMReX build options:
@@ -202,37 +202,30 @@ Note that you can add build options here too e.g. `make -j 4 USE_MPI=FALSE` to t
 
 A new `tmp_build_dir` directory will be created to store the compiled object
 and auxiliary files. Assuming all is well, you should have an executable in the
-current directory of the form `main<config>.ex` e.g. `main3d.gnu.MPI.OMP.ex`.
+current directory of the form `main<config>.ex` e.g. `main3d.intel-llvm.MPI.OMP.ex`.
 
 ## Running and visualizing the example
 
 ### Running the example
 
-There is an example parameter file called: `params.txt`. If you open the
-file, you'll find that many of the parameters have been inherited from GRChombo
-and thus their names and functions are the same. Note that not all parameters
-have been implemented (e.g. `output_path`). Consult the table in the 
-[AMReX renamed parameters](#amrex-renamed-parameters) section below.
+There is an example parameter file called: `params.txt`. You must fill
+in the output directories with your own! If you open the file, you'll
+find that many of the parameters have been inherited from GRChombo and
+thus their names and functions are the same. Note that not all
+parameters have been implemented (e.g. `output_path`). Consult the
+table in the [AMReX renamed parameters](#amrex-renamed-parameters)
+section below.
 
 Running the example is the same as for GRChombo examples e.g. (with MPI):
 ```bash
 export OMP_NUM_THREADS=2
-mpiexec -n 4 ./main3d.gnu.MPI.OMP.ex ./params.txt
+mpiexec -n 4 ./main3d.intel-llvm.MPI.OMP.ex ./params.txt
 ```
 
-
-> **Note**
-> Even though this example is quite small, as always, if
-> you are running on a cluster, it is good practice to *not* run the code on the
-> login node but instead request an interactive job. Consult your cluster's
-> documentation on how to do this. On CSD3, I use the following command 
+There's no need to resubmit this as another job if you're already on Dawn compute node for compilation.
+Otherwise, you can use the following command: 
 > ```bash
-> srun --pty --qos=INTR -p <partition> -t <time limit in minutes> -n <number of tasks> -A <account> bash
-> ```
-> or alternatively launch the code directly on a compute node which I do on CSD3
-> using a command like
-> ```bash
-> srun --qos=INTR -p <partition> -t 5 -n 4 -c 2 -A <account> --export=ALL,OMP_NUM_THREADS=2 ./main3d.gnu.MPI.OMP.ex ./params_cheap.txt
+> srun -p <partition> -t 5 -n 4 -c 2 -A <account> --export=ALL,OMP_NUM_THREADS=2 ./main3d.intel-llvm.MPI.OMP.ex ./params.txt
 > ```
 
 With the provided parameters, it should evolve 128 timesteps and write 5 plot
@@ -294,10 +287,10 @@ graph BT
     MF2["MultiFab (old data)"] -.-> SD1
 ```
 
-### [GR]Chombo to [GR]Teclyn class dictionary
+### [GR]Chombo to GRTeclyn/AMReX class dictionary
 
 Here are a list of some of the main classes in [GR]Chombo and their equivalents
-in [GR]Teclyn:
+in GRTeclyn/AMReX:
 
 | [GR]Chombo class | GRTeclyn/AMReX class  | Description |
 | ---           | ---           | ---         |

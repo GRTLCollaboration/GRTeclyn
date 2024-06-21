@@ -1,6 +1,3 @@
-# See the wiki page for an explanation of the params!
-# https://github.com/GRChombo/GRChombo/wiki/Guide-to-parameters
-
 #################################################
 # Filesystem parameters
 
@@ -8,8 +5,8 @@ verbosity = 0
 
 # location / naming of output files
 output_path = . # Main path for all files. Must exist!
-amr.check_file = /home/dc-kwan1/rds/rds-dirac-dp002/dc-kwan1/GRTeclyn/ScalarField/chk_
-amr.plot_file = /home/dc-kwan1/rds/rds-dirac-dp002/dc-kwan1/GRTeclyn/ScalarField/plt_
+amr.check_file = chk_
+amr.plot_file = plt_
 # restart_file = ScalarField_000000.3d.hdf5
 
 # HDF5files are written every dt = L/N*dt_multiplier*checkpoint_interval
@@ -118,7 +115,7 @@ stop_time = 1.0
 max_steps = 3
 
 # Spatial derivative order (only affects CCZ4 RHS)
-max_spatial_derivative_order = 4 # can be 4 or 6
+max_spatial_derivative_order = 4 # only 4
 
 nan_check = 1
 
