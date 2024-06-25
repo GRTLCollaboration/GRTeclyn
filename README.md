@@ -46,7 +46,7 @@ You will need the following software
 Note that the C++17 requirement means that older compilers you have used to
 build [GR]Chombo may not work with GRTeclyn but so long as you have a more recent
 compiler available, if you can build GRChombo, you can probably build GRTeclyn
-too. 
+too. If you the accounts provided for you on Dawn, these requirements won't be a problem. 
 
 ### Logging into CSD3 and Dawn 
 
@@ -55,7 +55,8 @@ feel free to try this example locally on your own system (the example parameter
 file is relatively small so should run fine on a laptop) if you have the above
 software.
 
-** Get login instructions from Kacper **
+> [!IMPORTANT]
+> Refer to Kacper's email for first time login instructions
 
 To access a login node use:
 
@@ -249,6 +250,14 @@ are self-explanatory.
 | `plot_interval` | `amr.plot_int` | |
 
 ### Visualizing the plot files
+The easiest way to visualize the plot files on Dawn is to use the `fsnapshot`
+tool suppiled by AMReX. Go to `~/amrex/Tools/Plotfile` and type `make`.
+You can make a plots of slices through the simulation volume using:
+```
+fsnapshot.intel-llvm.ex -v phi -p Palette plt_xxxxxx
+```
+where `phi` is the value of the field being plotted. 
+Please refer to the guide [here](https://amrex-codes.github.io/amrex/docs_html/Post_Processing.html#fsnapshot). 
 
 The `pltxxxxx` directories can be opened using ParaView (>=5.7), VisIt or yt.
 Note that, unlike GRChombo, checkpoints cannot be visualized.
