@@ -60,11 +60,11 @@ software.
 
 To access a login node use:
 
-```ssh <your_user_id>@login-icelake.hpc.cam.ac.uk```
+```ssh <your_user_id>@login.hpc.cam.ac.uk```
 
 Next download the code. 
 
-
+If the CSD3 login nodes are slow, try using the [web interface](https://login-web.hpc.cam.ac.uk/pun/sys/dashboard/) or use the `login-p-X` nodes. 
 
 ### Obtaining the code
 
@@ -229,10 +229,10 @@ Otherwise, you can use the following command:
 > srun -p <partition> -t 5 -n 4 -c 2 -A <account> --export=ALL,OMP_NUM_THREADS=2 ./main3d.intel-llvm.MPI.OMP.ex ./params.txt
 > ```
 
-With the provided parameters, it should evolve 128 timesteps and write 5 plot
-files (actually directories/folders rather than single files, each about 26 MB):
+With the provided parameters, it should evolve 3 timesteps and write 1 plot
+file (actually directories/folders rather than single files, each about 26 MB):
 ```
-plt00000  plt00032  plt00064  plt00096  plt00128
+plt00000  plt00001 ...
 ```
 This should not take longer than a few minutes on a laptop.
 
