@@ -278,7 +278,7 @@ void GRAMRLevel::post_timestep(int /*iteration*/)
             FillPatch(fine_level, S_fine, 1, t, State_Type, 0, S_fine.nComp());
         }
 
-        FourthOrderInterpFromFineToCoarse(S_crse, 0, 2, S_fine, ratio);
+        FourthOrderInterpFromFineToCoarse(S_crse, 0, NUM_VARS, S_fine, ratio);
     }
 
     specificPostTimeStep();
