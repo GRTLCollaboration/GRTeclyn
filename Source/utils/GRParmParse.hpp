@@ -85,8 +85,7 @@ class GRParmParse : public amrex::ParmParse
     /// Loads a value from the parameter file, if the value isn't defined it
     /// sets to the supplied default
     template <class data_t>
-    void load(const char *name, data_t &parameter,
-              const data_t default_value) const
+    void load(const char *name, data_t &parameter, const data_t default_value)
     {
         if (contains(name))
         {
@@ -95,6 +94,8 @@ class GRParmParse : public amrex::ParmParse
         else
         {
             parameter = default_value;
+            // Add the default value to the ParmParse table
+            this->queryAdd(name, parameter);
             default_message(name, default_value);
         }
     }
@@ -103,7 +104,7 @@ class GRParmParse : public amrex::ParmParse
     /// vector isn't defined, it is set to the supplied default
     template <class data_t>
     void load(const char *name, std::vector<data_t> &vector, const int num_comp,
-              const std::vector<data_t> &default_vector) const
+              const std::vector<data_t> &default_vector)
     {
         if (contains(name))
         {
@@ -112,6 +113,8 @@ class GRParmParse : public amrex::ParmParse
         else
         {
             vector = default_vector;
+            // Add the default value to the ParmParse table
+            this->queryAdd(name, vector);
             default_message(name, default_vector);
         }
     }
@@ -120,7 +123,7 @@ class GRParmParse : public amrex::ParmParse
     /// vector isn't defined it sets all components to the supplied default
     template <class data_t>
     void load(const char *name, std::vector<data_t> &vector, const int num_comp,
-              const data_t default_value) const
+              const data_t default_value)
     {
         load(name, vector, num_comp,
              std::vector<data_t>(num_comp, default_value));
