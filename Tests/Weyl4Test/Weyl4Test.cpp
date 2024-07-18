@@ -45,6 +45,14 @@ void run_weyl4_test()
         auto ghosted_box = box;
         ghosted_box.grow(num_ghosts);
 
+        amrex::RealVect dx_Vect{dx};
+        amrex::RealBox real_box{box, dx_Vect.dataPtr(),
+                                amrex::RealVect::Zero.dataPtr()};
+
+        int coord_sys = 0; // Cartesian
+
+        amrex::Geometry geom{box, &real_box, coord_sys};
+
         amrex::BoxArray box_array{box};
         amrex::DistributionMapping distribution_mapping{box_array};
         amrex::MFInfo mf_info;
@@ -67,34 +75,33 @@ void run_weyl4_test()
 
         amrex::Gpu::streamSynchronize();
 
-        // Calculate Weyl4 from initial data
+        // Weyl4::compute_mf looks up these parameters from the ParmParse table
+        // so we need to add them to it
+        GRParmParse pp;
         std::array<double, AMREX_SPACEDIM> center{0.0, 0.0, 0.0};
+        int formulation = CCZ4RHS<>::USE_CCZ4;
+        pp.queryAdd("extraction_center", center);
+        pp.queryAdd("formulation", formulation);
 
-        constexpr int dcomp = 0;
-        Weyl4 weyl4(center, dx, dcomp, CCZ4RHS<>::USE_CCZ4);
-
-        int num_weyl4_comps = 2;
-        int num_out_ghosts  = 0;
+        constexpr int num_weyl4_comps = 2;
+        constexpr int num_out_ghosts  = 0;
         amrex::MultiFab out_mf{box_array, distribution_mapping, num_weyl4_comps,
                                num_out_ghosts, mf_info};
-        const auto &in_c_arrays = in_mf.const_arrays();
-        const auto &out_arrays  = out_mf.arrays();
-        amrex::ParallelFor(
-            out_mf, [=] AMREX_GPU_DEVICE(int ibox, int i, int j, int k)
-            { weyl4.compute(i, j, k, out_arrays[ibox], in_c_arrays[ibox]); });
+        constexpr int dcomp = 0;
+        double time         = 0.0;
+        int *bcrec          = nullptr;
+        int level           = 0;
+
+        // Check that Weyl4::compute_mf is of type amrex::DeriveFuncMF
+        static_assert(std::is_convertible_v<decltype(&Weyl4::compute_mf),
+                                            amrex::DeriveFuncMF>);
+        Weyl4::compute_mf(out_mf, dcomp, num_weyl4_comps, in_mf, geom, time,
+                          bcrec, level);
 
         amrex::Gpu::streamSynchronize();
 
         // Write to HDF5 plot file
 #ifdef AMREX_USE_HDF5
-        amrex::RealVect dx_Vect{dx};
-        amrex::RealBox real_box{box, dx_Vect.dataPtr(),
-                                amrex::RealVect::Zero.dataPtr()};
-
-        int coord_sys = 0; // Cartesian
-
-        amrex::Geometry geom{box, &real_box, coord_sys};
-
         std::string this_test_dir = "Weyl4Test/";
         std::string hdf5_out_stem = this_test_dir + "Weyl4Out";
 

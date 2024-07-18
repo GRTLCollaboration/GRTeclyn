@@ -269,30 +269,3 @@ void GRAMRLevel::writePlotFilePost(const std::string & /*dir*/,
 {
     m_is_writing_plotfile = false;
 }
-
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
-std::unique_ptr<amrex::MultiFab> GRAMRLevel::derive(const std::string &name,
-                                                    amrex::Real time, int ngrow)
-// NOLINTEND(bugprone-easily-swappable-parameters)
-{
-    std::unique_ptr<amrex::MultiFab> multifab;
-    const amrex::DeriveRec *rec = derive_lst.get(name);
-    if (rec != nullptr)
-    {
-        multifab = std::make_unique<amrex::MultiFab>(
-            this->boxArray(), this->DistributionMap(), rec->numState(), ngrow);
-        derive(name, time, *multifab, 0);
-    }
-    else
-    {
-        amrex::Abort("Unknown derived variable");
-    }
-    return multifab;
-}
-
-void GRAMRLevel::derive(const std::string &name, amrex::Real time,
-                        amrex::MultiFab &multifab, int dcomp)
-{
-    amrex::Abort("GRAMRLevel::derive(): Implement this function in the child "
-                 "level class if derived variables are required.");
-}

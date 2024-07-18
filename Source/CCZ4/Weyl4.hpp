@@ -10,11 +10,15 @@
 #include "Cell.hpp"
 #include "Coordinates.hpp"
 #include "FourthOrderDerivatives.hpp"
+#include "GRParmParse.hpp"
 #include "StateVariables.hpp" //This files needs c_NUM - total number of components
 #include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
 #include "simd.hpp"
 #include <array>
+
+// AMReX Includes
+#include <AMReX_AmrLevel.H>
 
 //! Struct for the E and B fields
 template <class data_t> struct EBFields_t
@@ -83,7 +87,14 @@ class Weyl4
 
     static void set_up(int a_state_index);
 
-  protected:
+    // Has signature of DeriveFuncMF so that it can be stored in the derive_lst
+    static void compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
+                           const amrex::MultiFab &src_mf,
+                           const amrex::Geometry &geomdata,
+                           amrex::Real /*time*/, const int * /*bcrec*/,
+                           int /*level*/);
+
+  private:
     std::array<double, AMREX_SPACEDIM> m_center; //!< The grid center
     double m_dx;                                 //!< the grid spacing
     FourthOrderDerivatives m_deriv; //!< for calculating derivs of vars

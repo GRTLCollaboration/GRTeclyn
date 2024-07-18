@@ -45,6 +45,14 @@ void run_constraints_test()
         auto ghosted_box = box;
         ghosted_box.grow(num_ghosts);
 
+        amrex::RealVect dx_Vect{dx};
+        amrex::RealBox real_box{box, dx_Vect.dataPtr(),
+                                amrex::RealVect::Zero.dataPtr()};
+
+        int coord_sys = 0; // Cartesian
+
+        amrex::Geometry geom{box, &real_box, coord_sys};
+
         amrex::BoxArray box_array{box};
         amrex::DistributionMapping distribution_mapping{box_array};
         amrex::MFInfo mf_info;
@@ -67,35 +75,25 @@ void run_constraints_test()
 
         amrex::Gpu::streamSynchronize();
 
-        constexpr int dcomp = 0;
-        int iham            = dcomp;
-        Interval imom       = Interval(dcomp + 1, dcomp + AMREX_SPACEDIM);
-        Constraints constraints(dx, iham, imom);
-
-        int num_constraints_comps = 4;
-        int num_out_ghosts        = 0;
+        constexpr int num_constraints_comps = 4;
+        constexpr int num_out_ghosts        = 0;
         amrex::MultiFab out_mf{box_array, distribution_mapping,
                                num_constraints_comps, num_out_ghosts, mf_info};
-        const auto &in_c_arrays = in_mf.const_arrays();
-        const auto &out_arrays  = out_mf.arrays();
-        amrex::ParallelFor(out_mf,
-                           [=] AMREX_GPU_DEVICE(int ibox, int i, int j, int k) {
-                               constraints.compute(i, j, k, out_arrays[ibox],
-                                                   in_c_arrays[ibox]);
-                           });
+        constexpr int dcomp   = 0;
+        constexpr double time = 0.0;
+        int *bcrec            = nullptr;
+        int level             = 0;
+
+        // Check that Constraints::compute_mf is of type amrex::DeriveFuncMF
+        static_assert(std::is_convertible_v<decltype(&Constraints::compute_mf),
+                                            amrex::DeriveFuncMF>);
+        Constraints::compute_mf(out_mf, dcomp, num_constraints_comps, in_mf,
+                                geom, time, bcrec, level);
 
         amrex::Gpu::streamSynchronize();
 
         // Write to HDF5 plot file
 #ifdef AMREX_USE_HDF5
-        amrex::RealVect dx_Vect{dx};
-        amrex::RealBox real_box{box, dx_Vect.dataPtr(),
-                                amrex::RealVect::Zero.dataPtr()};
-
-        int coord_sys = 0; // Cartesian
-
-        amrex::Geometry geom{box, &real_box, coord_sys};
-
         std::string this_test_dir = "ConstraintsTest/";
         std::string hdf5_out_stem = this_test_dir + "ConstraintsOut";
 

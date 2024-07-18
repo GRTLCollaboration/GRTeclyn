@@ -38,11 +38,6 @@ class BinaryBHLevel : public GRAMRLevel
 
     void errorEst(amrex::TagBoxArray &tag_box_array, int clearval, int tagval,
                   amrex::Real time, int n_error_buf = 0, int ngrow = 0) final;
-
-    //! Calculate derived quantity "name" and store in multifab starting at
-    //! dcomp
-    void derive(const std::string &name, amrex::Real time,
-                amrex::MultiFab &multifab, int dcomp) final;
 };
 
 #endif /* BINARYBHLEVEL_HPP_ */

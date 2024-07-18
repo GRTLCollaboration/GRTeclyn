@@ -187,14 +187,32 @@ void Constraints::set_up(int a_state_index, bool a_calc_mom_norm)
 
     derive_lst.add(
         name, amrex::IndexType::TheCellType(),
-        static_cast<int>(comp_names.size()), comp_names,
-        amrex::DeriveFuncFab(), // null function because we won't use
-                                // it.
+        static_cast<int>(comp_names.size()), comp_names, compute_mf,
         [=](const amrex::Box &box) { return amrex::grow(box, num_ghosts); },
         &amrex::cell_quartic_interp);
 
     // We only need the non-gauge CCZ4 variables to calculate the constraints
     derive_lst.addComponent(name, desc_lst, a_state_index, 0, c_lapse);
+}
+
+void Constraints::compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
+                             const amrex::MultiFab &src_mf,
+                             const amrex::Geometry &geomdata,
+                             amrex::Real /*time*/, const int * /*bcrec*/,
+                             int /*level*/)
+{
+    const auto &out_arrays = out_mf.arrays();
+    const auto &src_arrays = src_mf.const_arrays();
+    int iham               = dcomp;
+    Interval imom          = Interval(dcomp + 1, dcomp + AMREX_SPACEDIM);
+    Constraints constraints(geomdata.CellSize(0), iham, imom);
+
+    amrex::ParallelFor(
+        out_mf, out_mf.nGrowVect(),
+        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept {
+            constraints.compute(i, j, k, out_arrays[box_no],
+                                src_arrays[box_no]);
+        });
 }
 
 #endif /* CONSTRAINTS_IMPL_HPP_ */
