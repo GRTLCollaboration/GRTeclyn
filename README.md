@@ -26,7 +26,7 @@ time this table was created but may not be correct at the time you read this.
 | Boundary Conditions | :heavy_check_mark: :grey_question: | All except mixed BCs have been implemented |
 | Plot/checkpoint files + restart | :heavy_check_mark: | AMReX-specific, not HDF5 |
 | AMR/tagging criterion | :heavy_check_mark: :grey_question: | Very basic tagging without puncture tracking |
-| Diagnostic variables | :heavy_check_mark: :grey_question: | (e.g. Constraints, $\Psi_4$) Implemented but needs refactoring to remove hardcoding and allow generalisation |
+| Diagnostic variables | :heavy_check_mark: | (e.g. Constraints, $\Psi_4$) These are now called _derived_ variables |
 | AMR Interpolator | :x: | |
 | GW extraction | :x: | Requires AMR Interpolator |
 | Puncture tracking | :x: | Requires AMR Interpolator |
