@@ -1,0 +1,12 @@
+GRTECLYN_HOME = $(realpath ../..)
+
+include $(GRTECLYN_HOME)/Tools/GNUMake/Make.base
+
+AMREX_CEXE_sources = $(CEXE_sources)
+AMREX_CEXE_headers = $(CEXE_headers)
+
+AMREX_OBJECTS = $(AMREX_CEXE_sources:.cpp=.o)
+
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules
+
+amrex-objects: $(objForExecs)
