@@ -26,11 +26,11 @@ BoundaryConditions::params_t::params_t()
 }
 
 void BoundaryConditions::params_t::set_is_periodic(
-    const std::array<bool, AMREX_SPACEDIM> &a_is_periodic)
+    const std::array<int, AMREX_SPACEDIM> &a_is_periodic_int)
 {
-    is_periodic = a_is_periodic;
     FOR (idir)
     {
+        is_periodic[idir] = static_cast<bool>(a_is_periodic_int[idir]);
         if (!is_periodic[idir])
         {
             nonperiodic_boundaries_exist = true;
@@ -115,11 +115,11 @@ void BoundaryConditions::params_t::read_params(GRParmParse &pp)
 
     // still load even if not contained, to ensure printout saying parameters
     // were set to their default values
-    std::array<bool, AMREX_SPACEDIM> isPeriodic{};
-    pp.load("isPeriodic", isPeriodic, is_periodic);
+    std::array<int, AMREX_SPACEDIM> is_periodic_int{AMREX_D_DECL(1, 1, 1)};
+    pp.load("isPeriodic", is_periodic_int, is_periodic_int);
     if (pp.contains("isPeriodic"))
     {
-        set_is_periodic(isPeriodic);
+        set_is_periodic(is_periodic_int);
     }
 
     std::array<int, AMREX_SPACEDIM> hiBoundary{};

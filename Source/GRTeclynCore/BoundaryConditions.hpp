@@ -71,8 +71,8 @@ class BoundaryConditions
         std::map<int, int> mixed_bc_vars_map;
         int extrapolation_order{1};
         params_t(); // sets the defaults
-        void
-        set_is_periodic(const std::array<bool, AMREX_SPACEDIM> &a_is_periodic);
+        void set_is_periodic(
+            const std::array<int, AMREX_SPACEDIM> &a_is_periodic_int);
         void
         set_hi_boundary(const std::array<int, AMREX_SPACEDIM> &a_hi_boundary);
         void
