@@ -40,7 +40,7 @@ void GRAMRLevel::stateVariableSetUp()
             else if (bctype == BoundaryConditions::REFLECTIVE_BC)
             {
                 int parity =
-                    boundary_conditions.get_state_var_parity(icomp, idim);
+                    BoundaryConditions::get_state_var_parity(icomp, idim);
                 if (parity == 1)
                 {
                     bc.set(face, amrex::BCType::reflect_even);

@@ -65,6 +65,7 @@ void run_weyl4_test()
         const auto &in_arrays = in_mf.arrays();
         amrex::ParallelFor(
             in_mf, in_mf.nGrowVect(),
+            // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
             [=] AMREX_GPU_DEVICE(int ibox, int i, int j, int k)
             {
                 const amrex::IntVect iv{i, j, k};

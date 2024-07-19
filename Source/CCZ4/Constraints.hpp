@@ -17,6 +17,9 @@
 #include "Tensor.hpp"
 #include "simd.hpp"
 
+// AMReX includes
+#include <AMReX_MultiFab.H>
+
 // System includes
 #include <array>
 
@@ -80,6 +83,7 @@ class Constraints
                            int /*level*/);
 
   private:
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     static inline bool s_calc_mom_norm =
         false; // set to true with set_up() to store just sqrt(Mom1^2 + Mom2^2 +
                // Mom3^2) instead of Mom1, Mom2, Mom3 separately
