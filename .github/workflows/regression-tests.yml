@@ -15,6 +15,9 @@ jobs:
       BINARYBH_EXAMPLE_DIR: ${{ github.workspace }}/GRTeclyn/Examples/BinaryBH
       SCALARFIELD_EXAMPLE_DIR: ${{ github.workspace }}/GRTeclyn/Examples/ScalarField
       GCC_VERSION: 14
+      TMP_BUILD_DIR: ${{ github.workspace }}/GRTeclyn/tmp_build_dir
+      EXECUTABLE: BinaryBH3d.gnu.MPI.ex
+      PARAMS: params_test.txt
 
     steps:
     - name: Checkout AMReX
@@ -58,25 +61,25 @@ jobs:
       working-directory: ${{ env.BINARYBH_EXAMPLE_DIR }}
 
     - name: Build fcompare tool
-      run: make -j 4
+      run: make -j 4 USE_MPI=TRUE
       working-directory: ${{ env.AMREX_HOME }}/Tools/Plotfile
 
     - name: Run BinaryBH example using test parameters
-      run: mpiexec -n 2 ./main3d.gnu.MPI.ex ./params_test.txt
+      run: mpiexec -n 2 ./$EXECUTABLE ./$PARAMS
       working-directory: ${{ env.BINARYBH_EXAMPLE_DIR }}
 
     - name: Compare plotfile from final step with saved plotfile
-      run: |
-        ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex \
-        --abs_tol 1e-10 \
-        --rel_tol 1e-10 \
-        --abort_if_not_all_found \
-        ${GITHUB_WORKSPACE}/GRTeclyn/.github/workflows/data/plt00008_compare \
+      run: >
+        mpiexec -n 1
+        ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.MPI.ex
+        --abs_tol 1e-10
+        --rel_tol 1e-10
+        ${GITHUB_WORKSPACE}/GRTeclyn/.github/workflows/data/plt00008_compare
         ${BINARYBH_EXAMPLE_DIR}/plt00008
 
     - name: Restart from last checkpoint and evolve for a few more steps
       run: >
-        mpiexec -n 2 ./main3d.gnu.MPI.ex ./params_test.txt
+        mpiexec -n 2 ./$EXECUTABLE ./$PARAMS
         amr.restart=chk00008 max_steps=12
       working-directory: ${{ env.BINARYBH_EXAMPLE_DIR }}
 

@@ -11,7 +11,10 @@ CleanExampleDirs := $(ExampleDirs:%=clean-%)
 CleanConfigTestsDir := $(TestsDir:%=cleanconfig-%)
 CleanConfigExampleDirs := $(ExampleDirs:%=cleanconfig-%)
 
-.PHONY: all examples tests tests-config run clean cleanconfig $(ExampleDirs)
+GNUMakeDir := $(GRTECLYN_HOME)/Tools/GNUMake
+MakeAmrex := $(GNUMakeDir)/Make.amrex
+
+.PHONY: all examples tests tests-config amrex-objects run clean cleanconfig $(ExampleDirs)
 
 ECHO?=@ # set this to null on the command line to increase verbosity
 
@@ -29,6 +32,10 @@ run: tests
 	$(info ################# Running Tests #################)
 	$(ECHO)$(MAKE) -C $(TestsDir) --no-print-directory run
 
+amrex-objects:
+	$(info ############# Building AMReX objects #############)
+	$(ECHO)$(MAKE) -C $(GNUMakeDir) -f $(MakeAmrex) amrex-objects
+
 examples: $(ExampleDirs)
 
 all: tests examples
@@ -40,7 +47,7 @@ cleanconfig: $(CleanConfigTestsDir) $(CleanConfigExampleDirs)
 # We add the tests-config dependency just for the case where the build
 # configuration is the same for tests and examples to avoid the race condition
 # in generating AMReX_Config.H and AMReX_Version.H when doing make all.
-$(ExampleDirs): tests-config
+$(ExampleDirs): tests-config amrex-objects
 	$(info ################# Making example $@ #################)
 	$(ECHO)$(MAKE) -C $@ --no-print-directory
 

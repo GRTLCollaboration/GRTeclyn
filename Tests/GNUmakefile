@@ -1,5 +1,7 @@
 GRTECLYN_HOME = $(realpath ..)
 
+# We can switch to using Make.base once we have tests that depend on the
+# non-base AMReX components
 include $(GRTECLYN_HOME)/Tools/GNUMake/Make.defaults
 
 # We don't want to use MPI by default for the tests
