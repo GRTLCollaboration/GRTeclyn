@@ -465,7 +465,9 @@ void BoundaryConditions::apply_sommerfeld_boundaries(
 #if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
 #pragma omp parallel
 #endif
-    for (amrex::MFIter mfi(a_rhs); mfi.isValid(); ++mfi)
+    // We can disable synchronization here as we do it in GRAMRLevel::advance()
+    for (amrex::MFIter mfi(a_rhs, amrex::MFItInfo().DisableDeviceSync());
+         mfi.isValid(); ++mfi)
     {
         const amrex::Box &valid_box                 = mfi.validbox();
         const amrex::Array4<amrex::Real const> &sol = a_soln.const_array(mfi);
