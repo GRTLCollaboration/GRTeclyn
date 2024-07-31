@@ -6,9 +6,10 @@
 #ifndef PUNCTURETRACKER_HPP_
 #define PUNCTURETRACKER_HPP_
 
-#include "AMRInterpolator.hpp"
-#include "AlwaysInline.hpp"
-#include "Lagrange.hpp"
+#include <AMReX_Particles.H>
+#include <AMReX_RealVect.H>
+
+#include "GRAMR.hpp"
 
 //!  The class tracks the puncture locations by integrating the shift at
 //!  The puncture position
@@ -17,15 +18,21 @@ class PunctureTracker
   private:
     //! Params for puncture tracking
     int m_num_punctures{0};
-    std::vector<std::array<double, AMREX_SPACEDIM>> m_puncture_coords;
-    std::vector<std::array<double, AMREX_SPACEDIM>> m_puncture_shift;
-    int m_min_level{}; //!< the min level on which punctures will be
-                       //!< (to fill ghosts)
+    amrex::Vector<amrex::RealVect> m_puncture_coords;
+    int m_update_level{}; //!< the level on which to update positions
 
     std::string m_punctures_filename;
+    std::string m_checkpoint_subdir;
 
-    // saved pointer to external interpolator
-    AMRInterpolator<Lagrange<4>> *m_interpolator{nullptr};
+    // We will use the AMREX_SPACEDIM real attributes to store the
+    // midpoint position/shift
+    static std::unique_ptr<amrex::ParticleContainerPureSoA<AMREX_SPACEDIM, 0>>
+        s_particle_container;
+
+    using PunctureIter         = s_particle_container::ParIterType;
+    using PunctureParticleType = s_particle_container::ParticleType;
+
+    GRAMR *m_gr_amr{nullptr};
 
   public:
     //! The constructor
@@ -34,29 +41,24 @@ class PunctureTracker
     //! set puncture locations on start (or restart)
     //! this needs to be done before 'setupAMRObject'
     //! if the puncture locations are required for Tagging Criteria
-    void initial_setup(const std::vector<std::array<double, AMREX_SPACEDIM>>
-                           &initial_puncture_coords,
-                       const std::string &a_filename    = "punctures",
-                       const std::string &a_output_path = "",
-                       const int a_min_level            = 0);
+    void
+    initial_setup(const amrex::Vector<amrex::RealVect> &initial_puncture_coords,
+                  GRAMR *a_gr_amr, const std::string &a_filename = "punctures",
+                  const std::string &a_output_path = "./",
+                  const int a_update_level         = 0);
 
     //! set puncture locations on start (or restart)
-    void restart_punctures();
+    void restart(int a_coarse_step);
+
+    //! write punctures to the checkpoint directory
+    void checkpoint(const std::string &a_chk_dir);
 
     //! Execute the tracking and write out
     void execute_tracking(double a_time, double a_restart_time, double a_dt,
                           const bool write_punctures = true);
 
-    ALWAYS_INLINE void
-    set_interpolator(AMRInterpolator<Lagrange<4>> *a_interpolator)
-    {
-        m_interpolator = a_interpolator;
-    }
-
     // function to get punctures
-    [[nodiscard]] ALWAYS_INLINE const
-        std::vector<std::array<double, AMREX_SPACEDIM>> &
-        get_puncture_coords() const
+    [[nodiscard]] ALWAYS_INLINE const auto &get_puncture_coords() const
     {
         return m_puncture_coords;
     }
@@ -64,9 +66,6 @@ class PunctureTracker
   private:
     //! set and write initial puncture locations
     void set_initial_punctures();
-
-    //! Set punctures post restart if m_time > 0
-    void read_in_punctures(int a_int_step, double a_current_time);
 
     //! Use the interpolator to get the value of the shift at
     //! given coords
