@@ -11,32 +11,29 @@
 
 #include "GRAMR.hpp"
 
-//!  The class tracks the puncture locations by integrating the shift at
-//!  The puncture position
-class PunctureTracker
+//!  The class tracks the puncture locations by advecting them in the reverse
+//!  direction to the shift. It is an amrex AoS ParticleContainer.
+class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 0>
 {
   private:
     //! Params for puncture tracking
     int m_num_punctures{0};
-    amrex::Vector<amrex::RealVect> m_puncture_coords;
+    amrex::Vector<amrex::RealVect>
+        m_puncture_coords; //!< the puncture location broadcast to all ranks
+    amrex::Vector<int> m_puncture_proc_ids{};
     int m_update_level{}; //!< the level on which to update positions
 
     std::string m_punctures_filename;
     std::string m_checkpoint_subdir;
 
-    // We will use the AMREX_SPACEDIM real attributes to store the
-    // midpoint position/shift
-    static std::unique_ptr<amrex::ParticleContainerPureSoA<AMREX_SPACEDIM, 0>>
-        s_particle_container;
-
-    using PunctureIter         = s_particle_container::ParIterType;
-    using PunctureParticleType = s_particle_container::ParticleType;
+    // using PunctureIter         = s_particle_container::ParIterType;
+    // using PunctureParticleType = s_particle_container::ParticleType;
 
     GRAMR *m_gr_amr{nullptr};
 
   public:
     //! The constructor
-    PunctureTracker() = default;
+    using ParticleContainer<AMREX_SPACEDIM, 0>::ParticleContainer;
 
     //! set puncture locations on start (or restart)
     //! this needs to be done before 'setupAMRObject'
@@ -57,8 +54,12 @@ class PunctureTracker
     void execute_tracking(double a_time, double a_restart_time, double a_dt,
                           const bool write_punctures = true);
 
+    //! redistribute puncture particles to correct places
+    void redistribute();
+
     // function to get punctures
-    [[nodiscard]] ALWAYS_INLINE const auto &get_puncture_coords() const
+    [[nodiscard]] ALWAYS_INLINE amrex::Vector<amrex::RealVect>
+    get_puncture_coords() const
     {
         return m_puncture_coords;
     }
@@ -66,10 +67,6 @@ class PunctureTracker
   private:
     //! set and write initial puncture locations
     void set_initial_punctures();
-
-    //! Use the interpolator to get the value of the shift at
-    //! given coords
-    void interp_shift();
 
     //! Get a vector of the puncture coords - used for write out
     [[nodiscard]] std::vector<double> get_puncture_vector() const;
