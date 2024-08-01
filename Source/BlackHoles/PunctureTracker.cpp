@@ -10,9 +10,6 @@
 #include "SmallDataIO.hpp"   // for writing data
 #include "UserVariables.hpp" // for writing data
 
-// AMReX includes
-#include <AMReX_TracerParticle_mod_K.H>
-
 //! Set up puncture tracker
 void PunctureTracker::initial_setup(
     const amrex::Vector<amrex::RealVect> &initial_puncture_coords,
@@ -28,32 +25,27 @@ void PunctureTracker::initial_setup(
     m_checkpoint_subdir  = a_filename;
 
     AMREX_ASSERT(a_amr != nullptr);
-    m_amr = a_amr;
+    m_gr_amr = a_gr_amr;
 
-    // first set the puncture data
-    m_puncture_coords = initial_puncture_coords;
-    m_num_punctures   = static_cast<int>(m_puncture_coords.size());
+    m_num_punctures     = static_cast<int>(initial_puncture_coords.size());
+    m_puncture_coords   = initial_puncture_coords;
+    m_puncture_proc_ids = amrex::Vector(m_num_punctures, 0);
 
     m_update_level = a_update_level;
 
     {
         // Disable particle tiling as we won't have many particles
-        // TODO: Remove if we add interpolation particles elsewhere
+        // TODO: Remove if we add more particles elsewhere
         GRParmParse pp("particles");
         pp.add("do_tiling", 0);
     }
 
-    s_particle_container =
-        std::make_unique<amrex::ParticleContainerPureSoA<0, 0>>(
-            dynamic_cast<amrex::ParGDBBase *>(m_gr_amr->GetParGDB()));
-
     // It doesn't matter where we put the puncture particles initially.
     // They will be redistributed later
     const int base_level = 0;
-    for (amrex::MFIter mfi = s_particle_container->MakeMFIter(base_level);
-         mfi.isValid(); ++mfi)
+    for (amrex::MFIter mfi = this->MakeMFIter(base_level); mfi.isValid(); ++mfi)
     {
-        auto &particle_tile = s_particle_container->DefineAndReturnParticleTile(
+        auto &particle_tile = this->DefineAndReturnParticleTile(
             base_level, mfi.index(), mfi.LocalTileIndex());
         if (mfi.index() != 0 || mfi.LocalTileIndex() != 0)
             continue;
@@ -62,19 +54,17 @@ void PunctureTracker::initial_setup(
 
         const auto &particle_tile_data = particle_tile.getParticleTileData();
 
-        amrex::ParallelFor(m_num_punctures,
-                           [=] AMREX_GPU_DEVICE(int ipuncture)
-                           {
-                               FOR1 (idim)
-                               {
-
-                                   particle_tile_data.pos(idim, ipuncture) =
-                                   // TODO: get the location on the GPUs
-                                   // m_puncture_coords[ipuncture][idim];
-                                   // TODO: initialize the real data (shift) to
-                                   // 0.0
-                               }
-                           });
+        for (int ipuncture = 0; ipuncture < m_num_punctures; ++ipuncture)
+        {
+            // Maybe we can get away with doing this on the host
+            FOR1 (idir)
+            {
+                auto &puncture_particle = particle_tile_data[ipuncture];
+                puncture_particle.pos(idir) =
+                    m_puncture_coords[ipuncture][idir];
+                puncture_particle.id() = ipuncture;
+            }
+        }
     }
 }
 
@@ -92,13 +82,13 @@ void PunctureTracker::restart(int a_coarse_step)
         GRParmParse pp("amr");
         pp.get("restart", restart_checkpoint);
 
-        s_particle_container->Restart(restart_checkpoint, m_checkpoint_subdir);
+        this->Restart(restart_checkpoint, m_checkpoint_subdir);
     }
 }
 
 void PunctureTracker::checkpoint(const std::string &a_chk_dir)
 {
-    s_particle_container->Checkpoint(a_chk_dir, m_checkpoint_subdir);
+    this->Checkpoint(a_chk_dir, m_checkpoint_subdir);
 }
 
 //! set and write initial puncture locations
@@ -138,6 +128,60 @@ void PunctureTracker::set_initial_punctures()
     punctures_file.write_time_data_line(get_puncture_vector());
 }
 
+void PunctureTracker::redistribute()
+{
+    // First do AMReX's particle redistribute
+    this->Redistribute();
+
+    // Now figure out which process has each puncture
+    amrex::Vector<bool> proc_has_punctures(m_num_punctures * amrex::numProcs(),
+                                           false);
+
+    for (int ilevel = 0; ilevel < m_gr_amr->finestLevel(); ilevel++)
+    {
+        if (this->NumberOfParticlesAtLevel(ilevel) == 0L)
+        {
+            continue;
+        }
+        for (ParIterType punc_iter(*this, ilevel); punc_iter.isValid();
+             ++punc_iter)
+        {
+            auto &punc_tile   = this->ParticlesAt(ilevel, punc_iter);
+            int num_punc_tile = punc_tile.numParticles();
+
+            for (int ipunc = 0; ipunc < num_punc_tile; ipunc++)
+            {
+                amrex::ParticleType &p = punc_tile[ipunc];
+                int ipuncture          = particle.id();
+                int linear_idx = m_num_punctures * amrex::procID() + ipuncture;
+                proc_has_punctures[linear_idx] = true;
+            }
+        }
+    }
+
+    // Communicate whether I have a puncture to all processes
+    amrex::ParallelAllGather::AllGather(
+        proc_has_punctures[m_num_punctures * amrex::procID()], m_num_punctures,
+        proc_has_punctures.dataPtr(),
+        amrex::ParallelDescriptor::Communicator());
+
+    // Keep track of the total number of punctures across all processes
+    int puncture_count = 0;
+
+    for (int iproc = 0; iproc < amrex::numProcs(); iproc++)
+    {
+        for (int ipuncture = 0; ipuncture < m_num_punctures; ipuncture++)
+        {
+            if (proc_has_punctures[m_num_punctures * iproc + ipuncture])
+            {
+                m_puncture_proc_ids[ipuncture] = iproc;
+                puncture_count++;
+            }
+        }
+    }
+    AMREX_ALWAYS_ASSERT(puncture_count == m_num_punctures);
+}
+
 //! Execute the tracking and write out
 void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
                                        double a_dt, const bool write_punctures)
@@ -153,18 +197,20 @@ void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
                  m_num_punctures); // sanity check
 
     // Redistribute punctures to the correct grid
-    s_particle_container->Redistribute();
+    redistribute();
 
     for (int ilevel = 0; ilevel < m_gr_amr->finestLevel(); ilevel++)
     {
-        if (s_particle_container->NumberOfParticlesAtLevel(ilevel) == 0L)
+        if (this->NumberOfParticlesAtLevel(ilevel) == 0L)
         {
             continue;
         }
         const AmrLevel &amr_level = m_gr_amr->getLevel(ilevel);
 
         amrex::MultiFab &state_level = amr_level.get_new_data(State_Type);
-        state_level.FillBoundary(c_shift1, GR_SPACEDIM);
+        // We should only need 1 ghost cell as we are doing linear interpolation
+        state_level.FillBoundary(c_shift1, AMREX_SPACEDIM,
+                                 amrex::IntVect::TheUnitVector());
 
         const Geometry &geom         = amr_level.Geom();
         const auto problem_domain_lo = geom.ProbLo();
@@ -175,11 +221,10 @@ void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
         // opposite direction to the shift.
         for (int ipass = 0; ipass < 2; ipass++)
         {
-            for (PunctureIter punc_iter(s_particle_container, ilevel);
-                 punc_iter.isValid(); ++punc_iter)
+            for (ParIterType punc_iter(*this, ilevel); punc_iter.isValid();
+                 ++punc_iter)
             {
-                auto &punc_tile =
-                    s_particle_container->ParticlesAt(ilevel, punc_iter);
+                auto &punc_tile       = this->ParticlesAt(ilevel, punc_iter);
                 int num_punc_tile     = punc_tile.numParticles();
                 const auto &fab_array = state_level.const_arrays()[punc_iter];
 
@@ -187,7 +232,7 @@ void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
                     num_punc_tile,
                     [=] AMREX_GPU_DEVICE(int ipunc)
                     {
-                        amrex::PunctureParticleType &p = punc_tile[ipunc];
+                        amrex::ParticleType &p = punc_tile[ipunc];
                         amrex::ParticleReal shift[AMREX_SPACEDIM];
                         amrex::IntVect is_nodal =
                             amrex::IntVect::TheZeroVector();
@@ -217,23 +262,33 @@ void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
                             }
                         }
                     }); // amrex::ParallelFor
+            }           // punc_iter
+        }               // ipass
 
-                // xxxxx copy the puncture location back to host
-            } // punc_iter
-        }     // ipass
-        // TODO: copy the puncture location back to host
-        // TODO: broadcast the location to all ranks
+        for (ParIterType punc_iter(*this, ilevel); punc_iter.isValid();
+             ++punc_iter)
+        {
+            auto &punc_tile   = this->ParticlesAt(ilevel, punc_iter);
+            int num_punc_tile = punc_tile.numParticles();
+
+            for (int ipunc = 0; ipunc < num_punc_tile; ipunc++)
+            {
+                amrex::ParticleType &p = punc_tile[ipunc];
+
+                m_puncture_coords[p.id()] = p.pos();
+            }
+        }
+    } // ilevel
+
+    // broadcast the locations to all ranks
+    for (int ipuncture = 0; ipuncture < m_num_punctures; ipuncture++)
+    {
+        // If there are lots of punctures, we should probably use non-blocking
+        // MPI calls which are currently not wrapped by AMReX
+        amrex::ParallelDescriptor::Bcast(m_puncture_coords[ipuncture].data(),
+                                         AMREX_SPACEDIM,
+                                         m_puncture_proc_ids[ipuncture]);
     }
-
-    // for (int ipuncture = 0; ipuncture < m_num_punctures; ipuncture++)
-    // {
-    //     FOR (i)
-    //     {
-    //         m_puncture_coords[ipuncture][i] +=
-    //             -0.5 * a_dt *
-    //             (m_puncture_shift[ipuncture][i] + old_shift[ipuncture][i]);
-    //     }
-    // }
 
     // print them out
     if (write_punctures)
@@ -245,74 +300,6 @@ void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
 
         // use a vector for the write out
         punctures_file.write_time_data_line(get_puncture_vector());
-    }
-}
-
-//! Use the interpolator to get the value of the shift at
-//! given coords
-void PunctureTracker::interp_shift()
-{
-#if 0
-//xxxxx
-    BL_PROFILE("PunctureTracker::interp_shift");
-    // resize the vector to the number of punctures
-    m_puncture_shift.resize(m_num_punctures);
-
-    // refresh interpolator
-    bool fill_ghosts = false;
-    m_interpolator->refresh(fill_ghosts);
-    // only fill the ghosts we need
-    m_interpolator->fill_multilevel_ghosts(
-        VariableType::evolution, Interval(c_shift1, c_shift3), m_min_level);
-
-    // set up shift and coordinate holders
-    std::vector<double> interp_shift1(m_num_punctures);
-    std::vector<double> interp_shift2(m_num_punctures);
-    std::vector<double> interp_shift3(m_num_punctures);
-    std::vector<double> interp_x(m_num_punctures);
-    std::vector<double> interp_y(m_num_punctures);
-    std::vector<double> interp_z(m_num_punctures);
-
-    for (int ipuncture = 0; ipuncture < m_num_punctures; ipuncture++)
-    {
-        interp_x[ipuncture] = m_puncture_coords[ipuncture][0];
-        interp_y[ipuncture] = m_puncture_coords[ipuncture][1];
-        interp_z[ipuncture] = m_puncture_coords[ipuncture][2];
-    }
-
-    // setup query
-    InterpolationQuery query(m_num_punctures);
-    query.setCoords(0, interp_x.data())
-        .setCoords(1, interp_y.data())
-        .setCoords(2, interp_z.data())
-        .addComp(c_shift1, interp_shift1.data())
-        .addComp(c_shift2, interp_shift2.data())
-        .addComp(c_shift3, interp_shift3.data());
-
-    // engage!
-    m_interpolator->interp(query);
-
-    // put the shift values into the output array
-    for (int ipuncture = 0; ipuncture < m_num_punctures; ipuncture++)
-    {
-        m_puncture_shift[ipuncture] = {interp_shift1[ipuncture],
-                                       interp_shift2[ipuncture],
-                                       interp_shift3[ipuncture]};
-    }
-#endif
-    for (int ilevel = 0; ilevel < m_gr_amr->finestLevel(); ++ilevel)
-    {
-        for (PunctureIter punc_iter(s_particle_container, ilevel);
-             punc_iter.isValid(); ++punc_iter)
-        {
-            const Box &punc_box = punc_iter.validbox();
-            const auto &state_mf =
-                m_gr_amr->getLevel(ilevel).get_new_data(State_Type);
-
-            const FArrayBox &punc_fab = state_mf[punc_iter];
-
-            amrex::ParallelFor(punc_box, [=] AMREX_GPU_DEVICE())
-        }
     }
 }
 
