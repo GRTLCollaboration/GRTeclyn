@@ -139,6 +139,12 @@ class GRAMRLevel : public amrex::AmrLevel
     void writePlotFilePost(const std::string &dir,
                            std::ostream & /*os*/) override;
 
+    //! Do pre-checkpoint work
+    void checkPointPre(const std::string &a_dir, std::ostream &a_os) override;
+
+    //! Do post-checkpoint work
+    void checkPointPost(const std::string &a_dir, std::ostream &a_os) override;
+
     /// Virtual function for the problem specific parts of Advance
     virtual void specificAdvance() {}
 
@@ -150,6 +156,24 @@ class GRAMRLevel : public amrex::AmrLevel
                                  const double a_time) = 0;
 
     virtual void specificUpdateODE(amrex::MultiFab & /*a_soln*/) {}
+
+    //! Problem specific post restart
+    virtual void specific_post_restart() {}
+
+    //! Problem specific post init
+    virtual void specific_post_init() {}
+
+    //! Problem specific pre checkpoint
+    virtual void specific_pre_checkpoint(const std::string &a_dir,
+                                         std::ostream &a_os)
+    {
+    }
+
+    //! Problem specific post checkpoint
+    virtual void specific_post_checkpoint(const std::string &a_dir,
+                                          std::ostream &a_os)
+    {
+    }
 
     BoundaryConditions m_boundaries; // the class for implementing BCs
 
