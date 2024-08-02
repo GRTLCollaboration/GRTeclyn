@@ -16,6 +16,11 @@
 #include "Weyl4.hpp"
 #include "WeylExtraction.hpp"
 
+BHAMR *BinaryBHLevel::get_bhamr_ptr()
+{
+    return dynamic_cast<BHAMR *>(get_gramr_ptr());
+}
+
 void BinaryBHLevel::variableSetUp()
 {
     BL_PROFILE("BinaryBHLevel::variableSetUp()");
@@ -205,8 +210,55 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
     amrex::Gpu::streamSynchronize();
 }
 
+void BinaryBHLevel::restart_punctures()
+{
+    if (simParams().track_punctures)
+    {
+        BHAMR *bh_amr_ptr  = get_bhamr_ptr();
+        int coarsest_level = 0;
+        bh_amr_ptr->m_puncture_tracker.restart(
+            bh_amr_ptr->levelSteps(coarsest_level));
+    }
+}
+
+void BinaryBHLevel::specific_post_init()
+{
+    BL_PROFILE("BinaryBHLevel::specific_post_init()");
+
+    restart_punctures();
+}
+
+void BinaryBHLevel::specific_post_restart()
+{
+    BL_PROFILE("BinaryBHLevel::specific_post_restart()");
+
+    restart_punctures();
+}
+
+void BinaryBHLevel::specific_post_checkpoint(const std::string &a_chk_dir,
+                                             std::ostream & /*a_os*/)
+{
+    get_bhamr_ptr()->m_puncture_tracker.checkpoint(a_chk_dir);
+}
+
 void BinaryBHLevel::specificPostTimeStep()
 {
+    // do puncture tracking on requested level
+    if (simParams().track_punctures &&
+        Level() == simParams().puncture_tracking_level)
+    {
+        BL_PROFILE("PunctureTracking");
+        // only do the write out for every coarsest level timestep
+        // int coarsest_level = 0;
+        // bool write_punctures = at_level_timestep_multiple(coarsest_level);
+        BHAMR *bh_amr            = get_bhamr_ptr();
+        bool write_punctures     = true;
+        amrex::Real cur_time     = get_state_data(State_Type).curTime();
+        amrex::Real restart_time = bh_amr->get_restart_time();
+        amrex::Real dt           = bh_amr->dtLevel(Level());
+        bh_amr->m_puncture_tracker.execute_tracking(cur_time, restart_time, dt,
+                                                    write_punctures);
+    }
 #if 0
 //xxxxx specificPostTimeStep
     BL_PROFILE("BinaryBHLevel::specificPostTimeStep");
@@ -269,15 +321,5 @@ void BinaryBHLevel::specificPostTimeStep()
         }
     }
 
-    // do puncture tracking on requested level
-    if (m_p.track_punctures && m_level == m_p.puncture_tracking_level)
-    {
-        BL_PROFILE("PunctureTracking");
-        // only do the write out for every coarsest level timestep
-        int coarsest_level = 0;
-        bool write_punctures = at_level_timestep_multiple(coarsest_level);
-        m_bh_amr.m_puncture_tracker.execute_tracking(m_time, m_restart_time,
-                                                     m_dt, write_punctures);
-    }
 #endif
 }
