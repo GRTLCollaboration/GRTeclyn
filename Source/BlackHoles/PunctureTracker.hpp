@@ -33,7 +33,7 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 0>
 
   public:
     //! The constructor
-    using ParticleContainer<AMREX_SPACEDIM, 0>::ParticleContainer;
+    using amrex::ParticleContainer<AMREX_SPACEDIM, 0>::ParticleContainer;
 
     //! set puncture locations on start (or restart)
     //! this needs to be done before 'setupAMRObject'
@@ -58,8 +58,7 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 0>
     void redistribute();
 
     // function to get punctures
-    [[nodiscard]] ALWAYS_INLINE amrex::Vector<amrex::RealVect>
-    get_puncture_coords() const
+    [[nodiscard]] amrex::Vector<amrex::RealVect> get_puncture_coords() const
     {
         return m_puncture_coords;
     }

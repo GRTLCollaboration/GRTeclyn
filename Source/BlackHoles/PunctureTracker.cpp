@@ -6,9 +6,15 @@
 #include "PunctureTracker.hpp"
 // #include "AMReXParameters.hpp" // for writing data
 #include "DimensionDefinitions.hpp"
+#include "FilesystemTools.hpp"
+#include "GRAMRLevel.hpp"
 #include "GRParmParse.hpp"
 #include "SmallDataIO.hpp"   // for writing data
 #include "UserVariables.hpp" // for writing data
+
+// AMReX includes
+#include <AMReX_AmrParGDB.H>
+#include <AMReX_TracerParticle_mod_K.H> // for linear_interpolation
 
 //! Set up puncture tracker
 void PunctureTracker::initial_setup(
@@ -24,12 +30,12 @@ void PunctureTracker::initial_setup(
     m_punctures_filename = a_output_path + a_filename;
     m_checkpoint_subdir  = a_filename;
 
-    AMREX_ASSERT(a_amr != nullptr);
+    AMREX_ASSERT(a_gr_amr != nullptr);
     m_gr_amr = a_gr_amr;
 
     m_num_punctures     = static_cast<int>(initial_puncture_coords.size());
     m_puncture_coords   = initial_puncture_coords;
-    m_puncture_proc_ids = amrex::Vector(m_num_punctures, 0);
+    m_puncture_proc_ids = amrex::Vector<int>(m_num_punctures, 0);
 
     m_update_level = a_update_level;
 
@@ -39,13 +45,63 @@ void PunctureTracker::initial_setup(
         GRParmParse pp("particles");
         pp.add("do_tiling", 0);
     }
+}
+
+void PunctureTracker::restart(int a_coarse_step)
+{
+    Define(dynamic_cast<amrex::ParGDBBase *>(m_gr_amr->GetParGDB()));
+    if (a_coarse_step == 0)
+    {
+        // if it is the first timestep, use the param values
+        set_initial_punctures();
+    }
+    else
+    {
+        std::string restart_checkpoint{};
+        GRParmParse pp("amr");
+        pp.get("restart", restart_checkpoint);
+
+        Restart(restart_checkpoint, m_checkpoint_subdir);
+    }
+}
+
+void PunctureTracker::checkpoint(const std::string &a_chk_dir)
+{
+    Checkpoint(a_chk_dir, m_checkpoint_subdir);
+}
+
+//! set and write initial puncture locations
+void PunctureTracker::set_initial_punctures()
+{
+    AMREX_ASSERT(m_puncture_coords.size() > 0); // sanity check
+
+    // now the write out to a new file
+    bool first_step     = true;
+    double dt           = 1.; // doesn't matter
+    double time         = 0.;
+    double restart_time = 0.;
+    SmallDataIO punctures_file(m_punctures_filename, dt, time, restart_time,
+                               SmallDataIO::APPEND, first_step);
+    std::vector<std::string> header1_strings(
+        static_cast<size_t>(AMREX_SPACEDIM * m_num_punctures));
+    for (int ipuncture = 0; ipuncture < m_num_punctures; ipuncture++)
+    {
+        std::string idx = std::to_string(ipuncture + 1);
+        header1_strings[AMREX_SPACEDIM * ipuncture + 0] = "x_" + idx;
+        header1_strings[AMREX_SPACEDIM * ipuncture + 1] = "y_" + idx;
+        header1_strings[AMREX_SPACEDIM * ipuncture + 2] = "z_" + idx;
+    }
+    punctures_file.write_header_line(header1_strings);
+
+    // use a vector for the write out
+    punctures_file.write_time_data_line(get_puncture_vector());
 
     // It doesn't matter where we put the puncture particles initially.
     // They will be redistributed later
     const int base_level = 0;
-    for (amrex::MFIter mfi = this->MakeMFIter(base_level); mfi.isValid(); ++mfi)
+    for (amrex::MFIter mfi = MakeMFIter(base_level); mfi.isValid(); ++mfi)
     {
-        auto &particle_tile = this->DefineAndReturnParticleTile(
+        auto &particle_tile = DefineAndReturnParticleTile(
             base_level, mfi.index(), mfi.LocalTileIndex());
         if (mfi.index() != 0 || mfi.LocalTileIndex() != 0)
             continue;
@@ -68,74 +124,14 @@ void PunctureTracker::initial_setup(
     }
 }
 
-void PunctureTracker::restart(int a_coarse_step)
-{
-
-    if (a_coarse_step == 0)
-    {
-        // if it is the first timestep, use the param values
-        set_initial_punctures();
-    }
-    else
-    {
-        std::string restart_checkpoint{};
-        GRParmParse pp("amr");
-        pp.get("restart", restart_checkpoint);
-
-        this->Restart(restart_checkpoint, m_checkpoint_subdir);
-    }
-}
-
-void PunctureTracker::checkpoint(const std::string &a_chk_dir)
-{
-    this->Checkpoint(a_chk_dir, m_checkpoint_subdir);
-}
-
-//! set and write initial puncture locations
-void PunctureTracker::set_initial_punctures()
-{
-    AMREX_ASSERT(m_puncture_coords.size() > 0); // sanity check
-
-    m_puncture_shift.resize(m_num_punctures);
-    for (int ipuncture = 0; ipuncture < m_num_punctures; ipuncture++)
-    {
-        // assume initial shift is always zero
-        FOR (i)
-        {
-            m_puncture_shift[ipuncture][i] = 0.0;
-        }
-    }
-
-    // now the write out to a new file
-    bool first_step     = true;
-    double dt           = 1.; // doesn't matter
-    double time         = 0.;
-    double restart_time = 0.;
-    SmallDataIO punctures_file(m_punctures_filename, dt, time, restart_time,
-                               SmallDataIO::APPEND, first_step);
-    std::vector<std::string> header1_strings(
-        static_cast<size_t>(AMREX_SPACEDIM * m_num_punctures));
-    for (int ipuncture = 0; ipuncture < m_num_punctures; ipuncture++)
-    {
-        std::string idx = std::to_string(ipuncture + 1);
-        header1_strings[AMREX_SPACEDIM * ipuncture + 0] = "x_" + idx;
-        header1_strings[AMREX_SPACEDIM * ipuncture + 1] = "y_" + idx;
-        header1_strings[AMREX_SPACEDIM * ipuncture + 2] = "z_" + idx;
-    }
-    punctures_file.write_header_line(header1_strings);
-
-    // use a vector for the write out
-    punctures_file.write_time_data_line(get_puncture_vector());
-}
-
 void PunctureTracker::redistribute()
 {
     // First do AMReX's particle redistribute
-    this->Redistribute();
+    Redistribute();
 
     // Now figure out which process has each puncture
-    amrex::Vector<bool> proc_has_punctures(m_num_punctures * amrex::numProcs(),
-                                           false);
+    amrex::Vector<int> proc_has_punctures(
+        m_num_punctures * amrex::ParallelDescriptor::NProcs(), 0);
 
     for (int ilevel = 0; ilevel < m_gr_amr->finestLevel(); ilevel++)
     {
@@ -146,33 +142,36 @@ void PunctureTracker::redistribute()
         for (ParIterType punc_iter(*this, ilevel); punc_iter.isValid();
              ++punc_iter)
         {
-            auto &punc_tile   = this->ParticlesAt(ilevel, punc_iter);
-            int num_punc_tile = punc_tile.numParticles();
+            auto &punc_particles = punc_iter.GetArrayOfStructs();
+            int num_punc_tile    = punc_iter.numParticles();
 
             for (int ipunc = 0; ipunc < num_punc_tile; ipunc++)
             {
-                amrex::ParticleType &p = punc_tile[ipunc];
-                int ipuncture          = particle.id();
-                int linear_idx = m_num_punctures * amrex::procID() + ipuncture;
-                proc_has_punctures[linear_idx] = true;
+                ParticleType &p = punc_particles[ipunc];
+                int ipuncture   = p.id();
+                int linear_idx =
+                    m_num_punctures * amrex::ParallelDescriptor::MyProc() +
+                    ipuncture;
+                proc_has_punctures[linear_idx] = 1;
             }
         }
     }
 
     // Communicate whether I have a puncture to all processes
     amrex::ParallelAllGather::AllGather(
-        proc_has_punctures[m_num_punctures * amrex::procID()], m_num_punctures,
-        proc_has_punctures.dataPtr(),
+        &proc_has_punctures[m_num_punctures *
+                            amrex::ParallelDescriptor::MyProc()],
+        m_num_punctures, proc_has_punctures.dataPtr(),
         amrex::ParallelDescriptor::Communicator());
 
     // Keep track of the total number of punctures across all processes
     int puncture_count = 0;
 
-    for (int iproc = 0; iproc < amrex::numProcs(); iproc++)
+    for (int iproc = 0; iproc < amrex::ParallelDescriptor::NProcs(); iproc++)
     {
         for (int ipuncture = 0; ipuncture < m_num_punctures; ipuncture++)
         {
-            if (proc_has_punctures[m_num_punctures * iproc + ipuncture])
+            if (proc_has_punctures[m_num_punctures * iproc + ipuncture] == 1)
             {
                 m_puncture_proc_ids[ipuncture] = iproc;
                 puncture_count++;
@@ -205,15 +204,16 @@ void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
         {
             continue;
         }
-        const AmrLevel &amr_level = m_gr_amr->getLevel(ilevel);
+        amrex::AmrLevel &amr_level = m_gr_amr->getLevel(ilevel);
 
+        const amrex::Geometry &geom  = amr_level.Geom();
         amrex::MultiFab &state_level = amr_level.get_new_data(State_Type);
         // We should only need 1 ghost cell as we are doing linear interpolation
         state_level.FillBoundary(c_shift1, AMREX_SPACEDIM,
-                                 amrex::IntVect::TheUnitVector());
+                                 amrex::IntVect::TheUnitVector(),
+                                 geom.periodicity());
 
-        const Geometry &geom         = amr_level.Geom();
-        const auto problem_domain_lo = geom.ProbLo();
+        const auto problem_domain_lo = geom.ProbLoArray();
         const auto dxi               = geom.InvCellSizeArray();
 
         // This code is almost identical to
@@ -224,15 +224,17 @@ void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
             for (ParIterType punc_iter(*this, ilevel); punc_iter.isValid();
                  ++punc_iter)
             {
-                auto &punc_tile       = this->ParticlesAt(ilevel, punc_iter);
-                int num_punc_tile     = punc_tile.numParticles();
-                const auto &fab_array = state_level.const_arrays()[punc_iter];
+                ParticleTileType &punc_tile = ParticlesAt(ilevel, punc_iter);
+                auto &punc_particles        = punc_tile.GetArrayOfStructs();
+                auto *punc_particles_data   = punc_particles.data();
+                int num_punc_tile           = punc_iter.numParticles();
+                const auto &fab_array = state_level[punc_iter].const_array();
 
                 amrex::ParallelFor(
                     num_punc_tile,
                     [=] AMREX_GPU_DEVICE(int ipunc)
                     {
-                        amrex::ParticleType &p = punc_tile[ipunc];
+                        auto &p = punc_particles_data[ipunc];
                         amrex::ParticleReal shift[AMREX_SPACEDIM];
                         amrex::IntVect is_nodal =
                             amrex::IntVect::TheZeroVector();
@@ -240,7 +242,7 @@ void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
 
                         amrex::linear_interpolate_to_particle(
                             p, problem_domain_lo, dxi, &fab_array, shift,
-                            is_nodal, c_shift1, AMREX_SPACEIM, num_arrays);
+                            &is_nodal, c_shift1, AMREX_SPACEDIM, num_arrays);
 
                         if (ipass == 0)
                         {
@@ -255,9 +257,9 @@ void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
                         {
                             FOR1 (idir)
                             {
-                                p.pos(idir) =
-                                    p.rdata(idir) - static_cast<ParticleReal>(
-                                                        a_dt * shift[idir]);
+                                p.pos(idir) = p.rdata(idir) -
+                                              static_cast<amrex::ParticleReal>(
+                                                  a_dt * shift[idir]);
                                 p.rdata(idir) = shift[idir];
                             }
                         }
@@ -268,12 +270,12 @@ void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
         for (ParIterType punc_iter(*this, ilevel); punc_iter.isValid();
              ++punc_iter)
         {
-            auto &punc_tile   = this->ParticlesAt(ilevel, punc_iter);
-            int num_punc_tile = punc_tile.numParticles();
+            auto &punc_particles = punc_iter.GetArrayOfStructs();
+            int num_punc_tile    = punc_iter.numParticles();
 
             for (int ipunc = 0; ipunc < num_punc_tile; ipunc++)
             {
-                amrex::ParticleType &p = punc_tile[ipunc];
+                ParticleType &p = punc_particles[ipunc];
 
                 m_puncture_coords[p.id()] = p.pos();
             }
@@ -285,7 +287,7 @@ void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
     {
         // If there are lots of punctures, we should probably use non-blocking
         // MPI calls which are currently not wrapped by AMReX
-        amrex::ParallelDescriptor::Bcast(m_puncture_coords[ipuncture].data(),
+        amrex::ParallelDescriptor::Bcast(m_puncture_coords[ipuncture].dataPtr(),
                                          AMREX_SPACEDIM,
                                          m_puncture_proc_ids[ipuncture]);
     }
