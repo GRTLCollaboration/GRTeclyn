@@ -297,6 +297,7 @@ void GRAMRLevel::post_init(amrex::Real /*stop_time*/)
     {
         get_gramr_ptr()->set_restart_time(get_gramr_ptr()->cumTime());
     }
+    specific_post_init();
 }
 
 void GRAMRLevel::post_restart()
@@ -305,6 +306,7 @@ void GRAMRLevel::post_restart()
     {
         get_gramr_ptr()->set_restart_time(get_gramr_ptr()->cumTime());
     }
+    specific_post_restart();
 }
 
 void GRAMRLevel::init(amrex::AmrLevel &old)
@@ -354,4 +356,14 @@ void GRAMRLevel::writePlotFilePost(const std::string & /*dir*/,
                                    std::ostream & /*os*/)
 {
     m_is_writing_plotfile = false;
+}
+
+void GRAMRLevel::checkPointPre(const std::string &a_dir, std::ostream &a_os)
+{
+    specificPreCheckpoint(a_dir, a_os);
+}
+
+void GRAMRLevel::checkPointPost(const std::string &a_dir, std::ostream &a_os)
+{
+    specificPostCheckpoint(a_dir, a_os);
 }
