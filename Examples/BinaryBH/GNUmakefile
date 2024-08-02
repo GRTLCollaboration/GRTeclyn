@@ -2,6 +2,9 @@ GRTECLYN_HOME = $(realpath ../..)
 
 include $(GRTECLYN_HOME)/Tools/GNUMake/Make.defaults
 
+# We use particles for the puncture tracking
+USE_PARTICLES = TRUE
+
 AMREX_HOME ?= $(realpath ../../../amrex)
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
@@ -11,6 +14,7 @@ include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
 include $(AMREX_HOME)/Src/Amr/Make.package
+include $(AMREX_HOME)/Src/Particle/Make.package
 
 GRTECLYN_HOME = $(realpath ../..)
 GRTECLYN_SOURCE = $(GRTECLYN_HOME)/Source
