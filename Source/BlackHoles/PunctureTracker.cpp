@@ -67,6 +67,7 @@ void PunctureTracker::restart(int a_coarse_step)
 
 void PunctureTracker::checkpoint(const std::string &a_chk_dir)
 {
+    redistribute();
     Checkpoint(a_chk_dir, m_checkpoint_subdir);
 }
 
@@ -130,8 +131,7 @@ void PunctureTracker::redistribute()
     Redistribute();
 
     // Now figure out which process has each puncture
-    amrex::Vector<int> proc_has_punctures(
-        m_num_punctures * amrex::ParallelDescriptor::NProcs(), 0);
+    amrex::Vector<int> local_proc_has_punctures(m_num_punctures, 0);
 
     for (int ilevel = 0; ilevel <= m_gr_amr->finestLevel(); ilevel++)
     {
@@ -147,21 +147,20 @@ void PunctureTracker::redistribute()
 
             for (int ipunc = 0; ipunc < num_punc_tile; ipunc++)
             {
-                ParticleType &p = punc_particles[ipunc];
-                int ipuncture   = p.id() - 1;
-                int linear_idx =
-                    m_num_punctures * amrex::ParallelDescriptor::MyProc() +
-                    ipuncture;
-                proc_has_punctures[linear_idx] = 1;
+                ParticleType &p                     = punc_particles[ipunc];
+                int ipuncture                       = p.id() - 1;
+                local_proc_has_punctures[ipuncture] = 1;
             }
         }
     }
 
+    amrex::Vector<int> global_proc_has_punctures(
+        m_num_punctures * amrex::ParallelDescriptor::NProcs(), 0);
+
     // Communicate whether I have a puncture to all processes
     amrex::ParallelAllGather::AllGather(
-        &proc_has_punctures[m_num_punctures *
-                            amrex::ParallelDescriptor::MyProc()],
-        m_num_punctures, proc_has_punctures.dataPtr(),
+        local_proc_has_punctures.dataPtr(), m_num_punctures,
+        global_proc_has_punctures.dataPtr(),
         amrex::ParallelDescriptor::Communicator());
 
     // Keep track of the total number of punctures across all processes
@@ -171,7 +170,8 @@ void PunctureTracker::redistribute()
     {
         for (int ipuncture = 0; ipuncture < m_num_punctures; ipuncture++)
         {
-            if (proc_has_punctures[m_num_punctures * iproc + ipuncture] == 1)
+            if (global_proc_has_punctures[m_num_punctures * iproc +
+                                          ipuncture] == 1)
             {
                 m_puncture_proc_ids[ipuncture] = iproc;
                 puncture_count++;
