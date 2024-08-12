@@ -96,15 +96,14 @@ void PunctureTracker::set_initial_punctures()
     // use a vector for the write out
     punctures_file.write_time_data_line(get_puncture_vector());
 
+    if (amrex::ParallelDescriptor::MyProc() != 0)
+        return;
+
     // It doesn't matter where we put the puncture particles initially.
     // They will be redistributed later
     const int base_level = 0;
-    for (amrex::MFIter mfi = MakeMFIter(base_level); mfi.isValid(); ++mfi)
     {
-        auto &particle_tile = DefineAndReturnParticleTile(
-            base_level, mfi.index(), mfi.LocalTileIndex());
-        if (mfi.index() != 0 || mfi.LocalTileIndex() != 0)
-            continue;
+        auto &particle_tile = DefineAndReturnParticleTile(base_level, 0, 0);
 
         particle_tile.resize(m_num_punctures);
 
@@ -118,7 +117,8 @@ void PunctureTracker::set_initial_punctures()
                 auto &puncture_particle = particle_tile_data[ipuncture];
                 puncture_particle.pos(idir) =
                     m_puncture_coords[ipuncture][idir];
-                puncture_particle.id() = ipuncture;
+                puncture_particle.id()  = ipuncture + 1;
+                puncture_particle.cpu() = 0;
             }
         }
     }
@@ -148,7 +148,7 @@ void PunctureTracker::redistribute()
             for (int ipunc = 0; ipunc < num_punc_tile; ipunc++)
             {
                 ParticleType &p = punc_particles[ipunc];
-                int ipuncture   = p.id();
+                int ipuncture   = p.id() - 1;
                 int linear_idx =
                     m_num_punctures * amrex::ParallelDescriptor::MyProc() +
                     ipuncture;
@@ -277,7 +277,7 @@ void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
             {
                 ParticleType &p = punc_particles[ipunc];
 
-                m_puncture_coords[p.id()] = p.pos();
+                m_puncture_coords[p.id() - 1] = p.pos();
             }
         }
     } // ilevel
