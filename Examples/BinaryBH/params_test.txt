@@ -54,7 +54,7 @@ isPeriodic = 0 0 0
 # 0 = static, 1 = sommerfeld, 2 = reflective
 # (see BoundaryConditions.hpp for details)
 hi_boundary = 1 1 1
-lo_boundary = 1 1 2
+lo_boundary = 1 1 1
 
 # if reflective boundaries selected, must set
 # parity of all vars (in order given by UserVariables.hpp)
@@ -110,3 +110,7 @@ sigma = 0.5
 # min_chi = 1.e-4
 # min_lapse = 1.e-4
 
+
+#################################################
+track_punctures = 1
+puncture_tracking_level = 0
