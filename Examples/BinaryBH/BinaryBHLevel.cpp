@@ -170,14 +170,11 @@ void BinaryBHLevel::errorEst(amrex::TagBoxArray &tag_box_array,
 
     const auto &simpar = simParams();
 
-    if (simpar.track_punctures)
-    {
-        amrex::Abort("BinaryBHLevel::errorEst:track_punctures TODO");
-    }
-
     const auto &tags           = tag_box_array.arrays();
     const auto &state_new_arrs = state_new.const_arrays();
     const auto tagval          = amrex::TagBox::SET;
+
+    // TODO: Change to puncture tagging
     ChiExtractionTaggingCriterion tagger(Geom().CellSize(0), Level(),
                                          simpar.extraction_params,
                                          simpar.activate_extraction);
