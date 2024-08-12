@@ -193,13 +193,10 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
     BL_PROFILE("BinaryBHLevel::tag_cells()");
     amrex::MultiFab &state_new = get_new_data(State_Type);
 
-    if (simParams().track_punctures)
-    {
-        amrex::Abort("BinaryBHLevel::tag_cells:track_punctures TODO");
-    }
-
     const auto &tag_arrs       = a_tag_box_array.arrays();
     const auto &state_new_arrs = state_new.const_arrays();
+
+    // TODO: Change to puncture tagging
     ChiExtractionTagger tagger(Geom().CellSize(0), Level(), a_regrid_threshold,
                                simParams().extraction_params,
                                simParams().activate_extraction);
