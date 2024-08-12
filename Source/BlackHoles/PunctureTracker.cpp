@@ -213,59 +213,71 @@ void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
                                  amrex::IntVect::TheUnitVector(),
                                  geom.periodicity());
 
-        const auto problem_domain_lo = geom.ProbLoArray();
-        const auto dxi               = geom.InvCellSizeArray();
+        amrex::MultiFab negative_shift_mf(state_level.boxArray(),
+                                          state_level.DistributionMap(),
+                                          AMREX_SPACEDIM, 1);
 
-        // This code is almost identical to
-        // TracerParticleContainer::AdvectWithUcc except we advect in the
-        // opposite direction to the shift.
-        for (int ipass = 0; ipass < 2; ipass++)
-        {
-            for (ParIterType punc_iter(*this, ilevel); punc_iter.isValid();
-                 ++punc_iter)
-            {
-                ParticleTileType &punc_tile = ParticlesAt(ilevel, punc_iter);
-                auto &punc_particles        = punc_tile.GetArrayOfStructs();
-                auto *punc_particles_data   = punc_particles.data();
-                int num_punc_tile           = punc_iter.numParticles();
-                const auto &fab_array = state_level[punc_iter].const_array();
+        amrex::MultiFab::Copy(negative_shift_mf, state_level, c_shift1, 0, 3,
+                              1);
 
-                amrex::ParallelFor(
-                    num_punc_tile,
-                    [=] AMREX_GPU_DEVICE(int ipunc)
-                    {
-                        auto &p = punc_particles_data[ipunc];
-                        amrex::ParticleReal shift[AMREX_SPACEDIM];
-                        amrex::IntVect is_nodal =
-                            amrex::IntVect::TheZeroVector();
-                        int num_arrays = 1;
+        negative_shift_mf.mult(-1.0);
 
-                        amrex::linear_interpolate_to_particle(
-                            p, problem_domain_lo, dxi, &fab_array, shift,
-                            &is_nodal, c_shift1, AMREX_SPACEDIM, num_arrays);
+        AdvectWithUcc(negative_shift_mf, ilevel, a_dt);
 
-                        if (ipass == 0)
-                        {
-                            FOR1 (idir)
-                            {
-                                p.rdata(idir) = p.pos(idir);
-                                p.pos(idir) -= static_cast<amrex::ParticleReal>(
-                                    0.5 * a_dt * shift[idir]);
-                            }
-                        }
-                        else
-                        {
-                            FOR1 (idir)
-                            {
-                                p.pos(idir) = p.rdata(idir) -
-                                              static_cast<amrex::ParticleReal>(
-                                                  a_dt * shift[idir]);
-                                p.rdata(idir) = shift[idir];
-                            }
-                        }
-                    }); // amrex::ParallelFor
-            }           // punc_iter
-        }               // ipass
+        // const auto problem_domain_lo = geom.ProbLoArray();
+        // const auto dxi               = geom.InvCellSizeArray();
+
+        // // This code is almost identical to
+        // // TracerParticleContainer::AdvectWithUcc except we advect in the
+        // // opposite direction to the shift.
+        // for (int ipass = 0; ipass < 2; ipass++)
+        // {
+        //     for (ParIterType punc_iter(*this, ilevel); punc_iter.isValid();
+        //          ++punc_iter)
+        //     {
+        //         ParticleTileType &punc_tile = ParticlesAt(ilevel, punc_iter);
+        //         auto &punc_particles        = punc_tile.GetArrayOfStructs();
+        //         auto *punc_particles_data   = punc_particles.data();
+        //         int num_punc_tile           = punc_iter.numParticles();
+        //         const auto &fab_array = state_level[punc_iter].const_array();
+
+        //         amrex::ParallelFor(
+        //             num_punc_tile,
+        //             [=] AMREX_GPU_DEVICE(int ipunc)
+        //             {
+        //                 auto &p = punc_particles_data[ipunc];
+        //                 amrex::ParticleReal shift[AMREX_SPACEDIM];
+        //                 amrex::IntVect is_nodal =
+        //                     amrex::IntVect::TheZeroVector();
+        //                 int num_arrays = 1;
+
+        //                 amrex::linear_interpolate_to_particle(
+        //                     p, problem_domain_lo, dxi, &fab_array, shift,
+        //                     &is_nodal, c_shift1, AMREX_SPACEDIM, num_arrays);
+
+        //                 if (ipass == 0)
+        //                 {
+        //                     FOR1 (idir)
+        //                     {
+        //                         p.rdata(idir) = p.pos(idir);
+        //                         p.pos(idir) -=
+        //                         static_cast<amrex::ParticleReal>(
+        //                             0.5 * a_dt * shift[idir]);
+        //                     }
+        //                 }
+        //                 else
+        //                 {
+        //                     FOR1 (idir)
+        //                     {
+        //                         p.pos(idir) = p.rdata(idir) -
+        //                                       static_cast<amrex::ParticleReal>(
+        //                                           a_dt * shift[idir]);
+        //                         p.rdata(idir) = shift[idir];
+        //                     }
+        //                 }
+        //             }); // amrex::ParallelFor
+        //     }           // punc_iter
+        // }               // ipass
 
         for (ParIterType punc_iter(*this, ilevel); punc_iter.isValid();
              ++punc_iter)
@@ -291,6 +303,11 @@ void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
                                          AMREX_SPACEDIM,
                                          m_puncture_proc_ids[ipuncture]);
     }
+
+    int step = static_cast<int>(std::round(a_time / a_dt));
+    std::string debug_filename =
+        m_punctures_filename + "_" + std::to_string(step) + ".dat";
+    WriteAsciiFile(debug_filename);
 
     // print them out
     if (write_punctures)

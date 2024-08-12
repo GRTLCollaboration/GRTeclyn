@@ -8,12 +8,13 @@
 
 #include <AMReX_Particles.H>
 #include <AMReX_RealVect.H>
+#include <AMReX_TracerParticles.H>
 
 #include "GRAMR.hpp"
 
 //!  The class tracks the puncture locations by advecting them in the reverse
 //!  direction to the shift. It is an amrex AoS ParticleContainer.
-class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 0>
+class PunctureTracker : public amrex::TracerParticleContainer
 {
   private:
     //! Params for puncture tracking
@@ -33,7 +34,8 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 0>
 
   public:
     //! The constructor
-    using amrex::ParticleContainer<AMREX_SPACEDIM, 0>::ParticleContainer;
+    // using amrex::ParticleContainer<AMREX_SPACEDIM, 0>::ParticleContainer;
+    using amrex::TracerParticleContainer::TracerParticleContainer;
 
     //! set puncture locations on start (or restart)
     //! this needs to be done before 'setupAMRObject'
