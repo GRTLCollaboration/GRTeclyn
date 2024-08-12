@@ -133,7 +133,7 @@ void PunctureTracker::redistribute()
     amrex::Vector<int> proc_has_punctures(
         m_num_punctures * amrex::ParallelDescriptor::NProcs(), 0);
 
-    for (int ilevel = 0; ilevel < m_gr_amr->finestLevel(); ilevel++)
+    for (int ilevel = 0; ilevel <= m_gr_amr->finestLevel(); ilevel++)
     {
         if (this->NumberOfParticlesAtLevel(ilevel) == 0L)
         {
@@ -198,7 +198,7 @@ void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
     // Redistribute punctures to the correct grid
     redistribute();
 
-    for (int ilevel = 0; ilevel < m_gr_amr->finestLevel(); ilevel++)
+    for (int ilevel = 0; ilevel <= m_gr_amr->finestLevel(); ilevel++)
     {
         if (this->NumberOfParticlesAtLevel(ilevel) == 0L)
         {
