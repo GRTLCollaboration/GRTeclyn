@@ -110,3 +110,7 @@ sigma = 0.5
 # min_chi = 1.e-4
 # min_lapse = 1.e-4
 
+#################################################
+# Puncture Tracking parameters
+track_punctures = 1
+puncture_tracking_level = 0
