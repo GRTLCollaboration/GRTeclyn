@@ -220,7 +220,10 @@ void BinaryBHLevel::specific_post_restart()
 void BinaryBHLevel::specificPostCheckpoint(const std::string &a_chk_dir,
                                            std::ostream & /*a_os*/)
 {
-    get_bhamr_ptr()->m_puncture_tracker.checkpoint(a_chk_dir);
+    if (simParams().track_punctures)
+    {
+        get_bhamr_ptr()->m_puncture_tracker.checkpoint(a_chk_dir);
+    }
 }
 
 void BinaryBHLevel::specificPostTimeStep()
