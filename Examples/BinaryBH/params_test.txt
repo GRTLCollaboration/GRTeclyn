@@ -114,3 +114,9 @@ activate_extraction = true
 # num_points_theta = 37
 # num_modes = 8
 # modes = 2 0  2 1  2 2  4 0  4 1  4 2  4 3  4 4
+
+#################################################
+# Puncture Tracking parameters
+
+track_punctures = 1
+puncture_tracking_level = 0
