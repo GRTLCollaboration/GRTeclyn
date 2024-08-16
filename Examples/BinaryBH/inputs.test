@@ -154,8 +154,8 @@ extraction_levels = 0
 num_points_phi = 24
 num_points_theta = 37
 num_modes = 3
-modes = 2 0 # l m for spherical harmonics
-        2 1
+modes = 2 0 \
+        2 1 \
         2 2
 # integral_file_prefix = "Weyl4_mode_"
 
@@ -174,4 +174,4 @@ amrex.fpe_trap_zero=1
 amrex.fpe_trap_overflow=1
 
 amr.plot_vars = chi # The default is to plot all state variables
-amr.derive_plot_vars = Ham Mom # The default is none for derived variables.
+amr.derive_plot_vars = constraints # The default is none for derived variables.
