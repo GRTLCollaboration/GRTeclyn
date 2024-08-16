@@ -338,8 +338,10 @@ void Weyl4::set_up(int a_state_index)
         [=](const amrex::Box &box) { return amrex::grow(box, 2); },
         &amrex::cell_quartic_interp);
 
-    // We need all of the CCZ4 variables to calculate Weyl4 (except B)
-    derive_lst.addComponent(name, desc_lst, a_state_index, 0, c_B1);
+    // We need all of the CCZ4 variables to calculate Weyl4
+    // (except B but easier to keep it in to avoid having to define yet another
+    // CCZ4Vars struct)
+    derive_lst.addComponent(name, desc_lst, a_state_index, 0, NUM_CCZ4_VARS);
 }
 
 void Weyl4::compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
