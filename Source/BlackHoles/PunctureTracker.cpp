@@ -110,18 +110,27 @@ void PunctureTracker::set_initial_punctures()
 
         const auto &particle_tile_data = particle_tile.getParticleTileData();
 
-        for (int ipuncture = 0; ipuncture < m_num_punctures; ++ipuncture)
-        {
-            // Maybe we can get away with doing this on the host
-            FOR1 (idir)
+        auto puncture_coords_linear = get_puncture_vector();
+        amrex::Gpu::AsyncArray<amrex::ParticleReal> puncture_coords_aa(
+            puncture_coords_linear.data(), puncture_coords_linear.size());
+
+        amrex::ParticleReal *puncture_coords_aa_ptr = puncture_coords_aa.data();
+
+        amrex::ParallelFor(
+            m_num_punctures,
+            [=] AMREX_GPU_DEVICE(int ipuncture)
             {
-                auto &puncture_particle = particle_tile_data[ipuncture];
-                puncture_particle.pos(idir) =
-                    m_puncture_coords[ipuncture][idir];
-                puncture_particle.id()  = ipuncture + 1;
-                puncture_particle.cpu() = 0;
-            }
-        }
+                FOR1 (idir)
+                {
+                    auto &puncture_particle = particle_tile_data[ipuncture];
+                    puncture_particle.pos(idir) =
+                        puncture_coords_aa_ptr[AMREX_SPACEDIM * ipuncture +
+                                               idir];
+                    puncture_particle.id()  = ipuncture + 1;
+                    puncture_particle.cpu() = 0;
+                }
+            });
+        amrex::Gpu::streamSynchronize();
     }
 }
 
@@ -131,7 +140,11 @@ void PunctureTracker::redistribute()
     Redistribute();
 
     // Now figure out which process has each puncture
-    amrex::Vector<int> local_proc_has_punctures(m_num_punctures, 0);
+    amrex::Vector<int> h_local_proc_has_punctures(m_num_punctures, 0);
+    amrex::Gpu::AsyncArray<int> d_local_proc_has_punctures(
+        h_local_proc_has_punctures.data(), m_num_punctures);
+
+    int *d_local_proc_has_punctures_ptr = d_local_proc_has_punctures.data();
 
     for (int ilevel = 0; ilevel <= m_gr_amr->finestLevel(); ilevel++)
     {
@@ -142,24 +155,35 @@ void PunctureTracker::redistribute()
         for (ParIterType punc_iter(*this, ilevel); punc_iter.isValid();
              ++punc_iter)
         {
-            auto &punc_particles = punc_iter.GetArrayOfStructs();
-            int num_punc_tile    = punc_iter.numParticles();
+            auto &punc_particles      = punc_iter.GetArrayOfStructs();
+            auto *punc_particles_data = punc_particles.data();
+            int num_punc_tile         = punc_iter.numParticles();
 
-            for (int ipunc = 0; ipunc < num_punc_tile; ipunc++)
-            {
-                ParticleType &p                     = punc_particles[ipunc];
-                int ipuncture                       = p.id() - 1;
-                local_proc_has_punctures[ipuncture] = 1;
-            }
+            amrex::ParallelFor(num_punc_tile,
+                               [=] AMREX_GPU_DEVICE(int ipunc)
+                               {
+                                   auto &p       = punc_particles_data[ipunc];
+                                   int ipuncture = p.id() - 1;
+                                   d_local_proc_has_punctures_ptr[ipuncture] =
+                                       1;
+                               });
         }
     }
-
+    d_local_proc_has_punctures.copyToHost(h_local_proc_has_punctures.data(),
+                                          m_num_punctures);
+#ifdef BL_USE_MPI
+    int default_proc_has_punctures = 0;
+#else
+    int default_proc_has_punctures = 1;
+#endif
     amrex::Vector<int> global_proc_has_punctures(
-        m_num_punctures * amrex::ParallelDescriptor::NProcs(), 0);
+        m_num_punctures * amrex::ParallelDescriptor::NProcs(),
+        default_proc_has_punctures);
 
-    // Communicate whether I have a puncture to all processes
+    // Communicate whether I have a puncture to all processes (won't do
+    // anything)
     amrex::ParallelAllGather::AllGather(
-        local_proc_has_punctures.dataPtr(), m_num_punctures,
+        h_local_proc_has_punctures.dataPtr(), m_num_punctures,
         global_proc_has_punctures.dataPtr(),
         amrex::ParallelDescriptor::Communicator());
 
@@ -273,17 +297,40 @@ void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
             }           // punc_iter
         }               // ipass
 
+        amrex::Vector<amrex::ParticleReal> h_puncture_coords_linear(
+            AMREX_SPACEDIM * m_num_punctures);
+        amrex::Gpu::AsyncArray<amrex::ParticleReal> d_puncture_coords_linear(
+            AMREX_SPACEDIM * m_num_punctures);
+        auto *d_puncture_coords_linear_ptr = d_puncture_coords_linear.data();
         for (ParIterType punc_iter(*this, ilevel); punc_iter.isValid();
              ++punc_iter)
         {
-            auto &punc_particles = punc_iter.GetArrayOfStructs();
-            int num_punc_tile    = punc_iter.numParticles();
+            auto &punc_particles      = punc_iter.GetArrayOfStructs();
+            auto *punc_particles_data = punc_particles.data();
+            int num_punc_tile         = punc_iter.numParticles();
 
-            for (int ipunc = 0; ipunc < num_punc_tile; ipunc++)
+            amrex::ParallelFor(
+                num_punc_tile,
+                [=] AMREX_GPU_DEVICE(int ipunc)
+                {
+                    auto &p      = punc_particles_data[ipunc];
+                    int punc_idx = p.id() - 1;
+                    FOR1 (idir)
+                    {
+                        d_puncture_coords_linear_ptr[punc_idx * AMREX_SPACEDIM +
+                                                     idir] = p.pos(idir);
+                    }
+                });
+        }
+        d_puncture_coords_linear.copyToHost(h_puncture_coords_linear.data(),
+                                            AMREX_SPACEDIM * m_num_punctures);
+
+        for (int ipuncture = 0; ipuncture < m_num_punctures; ipuncture++)
+        {
+            FOR1 (idir)
             {
-                ParticleType &p = punc_particles[ipunc];
-
-                m_puncture_coords[p.id() - 1] = p.pos();
+                m_puncture_coords[ipuncture][idir] =
+                    h_puncture_coords_linear[ipuncture * AMREX_SPACEDIM + idir];
             }
         }
     } // ilevel
