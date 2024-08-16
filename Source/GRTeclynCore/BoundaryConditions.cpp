@@ -5,6 +5,7 @@
 
 // Other includes
 #include "BoundaryConditions.hpp"
+#include "StateVariablesParmParse.hpp"
 
 #include <algorithm>
 #include <array>
@@ -20,8 +21,6 @@ BoundaryConditions::params_t::params_t()
     lo_boundary.fill(STATIC_BC);
     is_periodic.fill(true);
 
-    vars_parity.fill(BoundaryConditions::UNDEFINED);
-    vars_parity_diagnostic.fill(BoundaryConditions::EXTRAPOLATING_BC);
     vars_asymptotic_values.fill(0.0);
 }
 
@@ -111,8 +110,6 @@ void BoundaryConditions::params_t::set_lo_boundary(
 
 void BoundaryConditions::params_t::read_params(GRParmParse &pp)
 {
-    using namespace UserVariables; // for loading the arrays
-
     // still load even if not contained, to ensure printout saying parameters
     // were set to their default values
     std::array<int, AMREX_SPACEDIM> is_periodic_int{AMREX_D_DECL(1, 1, 1)};
@@ -136,34 +133,16 @@ void BoundaryConditions::params_t::read_params(GRParmParse &pp)
         set_lo_boundary(loBoundary);
     }
 
-    if (reflective_boundaries_exist)
-    {
-        pp.load("vars_parity", vars_parity);
-        if (pp.contains("vars_parity_diagnostic"))
-        {
-            pp.load("vars_parity_diagnostic", vars_parity_diagnostic);
-        }
-    }
     if (sommerfeld_boundaries_exist)
     {
-        if (pp.contains("num_nonzero_asymptotic_vars"))
-        {
-            size_t num_values = 0;
-            std::vector<std::pair<int, VariableType>> nonzero_asymptotic_vars;
-            load_vars_to_vector(pp, "nonzero_asymptotic_vars",
-                                "num_nonzero_asymptotic_vars",
-                                nonzero_asymptotic_vars, num_values);
-            const double default_value = 0.0;
-            load_values_to_array(pp, "nonzero_asymptotic_values",
-                                 nonzero_asymptotic_vars,
-                                 vars_asymptotic_values, default_value);
-        }
-        // for backwards compatibility, but above method should
-        // be preferred in future, as is less error prone
-        else
-        {
-            pp.load("vars_asymptotic_values", vars_asymptotic_values);
-        }
+        size_t num_values = 0;
+        std::vector<int> nonzero_asymptotic_vars;
+        StateVariablesParmParse::load_vars_to_vector(
+            pp, "nonzero_asymptotic_vars", nonzero_asymptotic_vars);
+        const double default_value = 0.0;
+        StateVariablesParmParse::load_values_to_array(
+            pp, "nonzero_asymptotic_values", nonzero_asymptotic_vars,
+            vars_asymptotic_values, default_value);
     }
     if (extrapolating_boundaries_exist)
     {
@@ -171,10 +150,9 @@ void BoundaryConditions::params_t::read_params(GRParmParse &pp)
     }
     if (mixed_boundaries_exist)
     {
-        size_t num_extrapolating_vars = 0;
-        std::vector<std::pair<int, VariableType>> extrapolating_vars;
-        load_vars_to_vector(pp, "extrapolating_vars", "num_extrapolating_vars",
-                            extrapolating_vars, num_extrapolating_vars);
+        std::vector<int> extrapolating_vars;
+        StateVariablesParmParse::load_vars_to_vector(pp, "extrapolating_vars",
+                                                     extrapolating_vars);
         for (int icomp = 0; icomp < NUM_VARS; icomp++)
         {
             bool is_extrapolating = false;
@@ -182,11 +160,8 @@ void BoundaryConditions::params_t::read_params(GRParmParse &pp)
             // is assumed to be sommerfeld by default
             for (auto &extrapolating_var : extrapolating_vars)
             {
-                if (icomp == extrapolating_var.first)
+                if (icomp == extrapolating_var)
                 {
-                    // should be an evolution variable
-                    AMREX_ASSERT(extrapolating_var.second ==
-                                 VariableType::evolution);
                     mixed_bc_vars_map.insert(
                         std::make_pair(icomp, EXTRAPOLATING_BC));
                     is_extrapolating = true;
@@ -229,27 +204,16 @@ void BoundaryConditions::set_vars_asymptotic_values(
     m_params.vars_asymptotic_values = vars_asymptotic_values;
 }
 
-void BoundaryConditions::write_reflective_conditions(int idir,
-                                                     const params_t &a_params)
+void BoundaryConditions::write_reflective_conditions(int idir)
 {
     amrex::Print()
         << "The variables that are parity odd in this direction are : " << '\n';
     for (int icomp = 0; icomp < NUM_VARS; icomp++)
     {
-        int parity = get_var_parity(icomp, idir, a_params);
+        int parity = get_state_var_parity(icomp, idir);
         if (parity == -1)
         {
-            amrex::Print() << UserVariables::variable_names[icomp] << "    ";
-        }
-    }
-    for (int icomp = 0; icomp < NUM_DIAGNOSTIC_VARS; icomp++)
-    {
-        int parity =
-            get_var_parity(icomp, idir, a_params, VariableType::diagnostic);
-        if (parity == -1)
-        {
-            amrex::Print() << DiagnosticVariables::variable_names[icomp]
-                           << "    ";
+            amrex::Print() << StateVariables::names[icomp] << "    ";
         }
     }
 }
@@ -264,7 +228,7 @@ void BoundaryConditions::write_sommerfeld_conditions(int /*idir*/,
     {
         if (a_params.vars_asymptotic_values[icomp] != 0)
         {
-            amrex::Print() << UserVariables::variable_names[icomp] << " = "
+            amrex::Print() << StateVariables::names[icomp] << " = "
                            << a_params.vars_asymptotic_values[icomp] << "    ";
         }
     }
@@ -286,7 +250,7 @@ void BoundaryConditions::write_mixed_conditions(int idir,
     {
         if (a_params.mixed_bc_vars_map.at(icomp) == EXTRAPOLATING_BC)
         {
-            amrex::Print() << UserVariables::variable_names[icomp] << "    ";
+            amrex::Print() << StateVariables::names[icomp] << "    ";
         }
     }
     amrex::Print() << '\n';
@@ -319,7 +283,7 @@ void BoundaryConditions::write_boundary_conditions(const params_t &a_params)
             // high directions
             if (a_params.hi_boundary[idir] == REFLECTIVE_BC)
             {
-                write_reflective_conditions(idir, a_params);
+                write_reflective_conditions(idir);
             }
             else if (a_params.hi_boundary[idir] == SOMMERFELD_BC)
             {
@@ -336,7 +300,7 @@ void BoundaryConditions::write_boundary_conditions(const params_t &a_params)
                            << " boundaries in direction low " << idir << '\n';
             if (a_params.lo_boundary[idir] == REFLECTIVE_BC)
             {
-                write_reflective_conditions(idir, a_params);
+                write_reflective_conditions(idir);
             }
             else if (a_params.lo_boundary[idir] == SOMMERFELD_BC)
             {
@@ -353,37 +317,20 @@ void BoundaryConditions::write_boundary_conditions(const params_t &a_params)
 }
 
 /// The function which returns the parity of each of the vars in
-/// UserVariables.hpp The parity should be defined in the params file, and
-/// will be output to the pout files for checking at start/restart of
-/// simulation (It is only required for reflective boundary conditions.)
-int BoundaryConditions::get_var_parity(int a_comp, int a_dir,
-                                       const VariableType var_type) const
-{
-    int var_parity = get_var_parity(a_comp, a_dir, m_params, var_type);
-
-    return var_parity;
-}
-
-/// static version used for initial output of boundary values
+/// StateVariables.hpp (It is only required for reflective boundary conditions.)
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-int BoundaryConditions::get_var_parity(int a_comp, int a_dir,
-                                       const params_t &a_params,
-                                       const VariableType var_type)
+int BoundaryConditions::get_state_var_parity(int a_comp, int a_dir)
 {
-    int comp_parity = (var_type == VariableType::evolution
-                           ? a_params.vars_parity[a_comp]
-                           : a_params.vars_parity_diagnostic[a_comp]);
+    BCParity comp_parity = StateVariables::parities[a_comp];
 
-    if (((a_dir == 0) && (comp_parity == ODD_X || comp_parity == ODD_XY ||
-                          comp_parity == ODD_XZ || comp_parity == ODD_XYZ)) ||
-        ((a_dir == 1) && (comp_parity == ODD_Y || comp_parity == ODD_XY ||
-                          comp_parity == ODD_YZ || comp_parity == ODD_XYZ)) ||
-        ((a_dir == 2) && (comp_parity == ODD_Z || comp_parity == ODD_XZ ||
-                          comp_parity == ODD_YZ || comp_parity == ODD_XYZ)))
-    {
-        return -1;
-    }
-    return 1;
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        comp_parity != BCParity::undefined,
+        "BoundaryConditions: cannot have undefined variable parities if using "
+        "reflective BCs");
+
+    auto dir_parities = bc_parity_map.at(comp_parity);
+
+    return dir_parities[a_dir];
 }
 
 /// Get the boundary condition for given face
@@ -552,7 +499,7 @@ void BoundaryConditions::fill_rhs_boundaries(const Side::LoHiSide a_side,
             fill_boundary_cells_dir(a_side, a_soln, a_rhs, idir,
                                     boundary_condition,
                                     Interval(0, NUM_VARS - 1),
-                                    VariableType::evolution, filling_rhs);
+                                    VariableType::state, filling_rhs);
         }
     }
 }
@@ -586,7 +533,7 @@ void BoundaryConditions::fill_solution_boundaries(const Side::LoHiSide a_side,
                 const bool filling_rhs = false;
                 fill_boundary_cells_dir(a_side, a_state, a_state, idir,
                                         boundary_condition, a_comps,
-                                        VariableType::evolution, filling_rhs);
+                                        VariableType::state, filling_rhs);
             }
         }
     }
@@ -620,7 +567,7 @@ void BoundaryConditions::fill_diagnostic_boundaries(const Side::LoHiSide a_side,
             const bool filling_rhs = false;
             fill_boundary_cells_dir(a_side, a_state, a_state, idir,
                                     boundary_condition, a_comps,
-                                    VariableType::diagnostic, filling_rhs);
+                                    VariableType::derived, filling_rhs);
         }
     }
 }
@@ -804,37 +751,6 @@ void BoundaryConditions::fill_sommerfeld_cell(
     }
 #endif
 }
-
-#if 0
-//xxxxxx
-void BoundaryConditions::fill_reflective_cell(
-    amrex::FArrayBox &out_box, const amrex::IntVect iv, const Side::LoHiSide a_side,
-    const int dir, const std::vector<int> &reflective_comps,
-    const VariableType var_type) const
-{
-    // assume boundary is a reflection of values within the grid
-    // care must be taken with variable parity to maintain correct
-    // values on reflection, e.g. x components of vectors are odd
-    // parity in the x direction
-    amrex::IntVect iv_copy = iv;
-    /// where to copy the data from - mirror image in domain
-    if (a_side == Side::Lo)
-    {
-        iv_copy[dir] = -iv[dir] - 1;
-    }
-    else
-    {
-        iv_copy[dir] = 2 * m_domain_box.bigEnd(dir) - iv[dir] + 1;
-    }
-
-    // replace value at iv with value at iv_copy
-    for (int icomp : reflective_comps)
-    {
-        int parity = get_var_parity(icomp, dir, var_type);
-        out_box(iv, icomp) = parity * out_box(iv_copy, icomp);
-    }
-}
-#endif
 
 #if 0
 //xxxxx

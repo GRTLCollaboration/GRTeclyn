@@ -17,8 +17,8 @@
 class InterpSource
 {
   public:
-    [[nodiscard]] virtual const amrex::MultiFab &getLevelData(
-        const VariableType var_type = VariableType::evolution) const = 0;
+    [[nodiscard]] virtual const amrex::MultiFab &
+    getLevelData(const VariableType var_type = VariableType::state) const = 0;
     [[nodiscard]] virtual bool
     contains(const std::array<double, AMREX_SPACEDIM> &point) const = 0;
 

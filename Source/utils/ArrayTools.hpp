@@ -9,9 +9,10 @@
 #include <algorithm>
 #include <array>
 #include <string>
+#include <type_traits>
 #include <vector>
 
-/// A place for tools that operate on std::arrays
+/// A place for tools that operate on std::arrays and std::vectors
 namespace ArrayTools
 {
 /// This just concantenates two arrays together.
@@ -24,6 +25,20 @@ std::array<T, N + M> concatenate(const std::array<T, N> &first,
     std::array<T, N + M> out;
     std::copy(first.cbegin(), first.cend(), out.begin());
     std::copy(second.cbegin(), second.cend(), out.begin() + N);
+    return out;
+}
+
+/// This can concatenate two std::vectors or amrex::Vectors
+template <template <typename, typename> class vec_t, typename elem_t,
+          typename alloc_t,
+          typename = std::enable_if_t<std::is_base_of_v<
+              std::vector<elem_t, alloc_t>, vec_t<elem_t, alloc_t>>>>
+vec_t<elem_t, alloc_t> concatenate(const vec_t<elem_t, alloc_t> &first,
+                                   const vec_t<elem_t, alloc_t> &second)
+{
+    vec_t<elem_t, alloc_t> out(first.size() + second.size());
+    std::copy(first.cbegin(), first.cend(), out.begin());
+    std::copy(second.cbegin(), second.cend(), out.begin() + first.size());
     return out;
 }
 

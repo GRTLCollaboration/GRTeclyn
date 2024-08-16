@@ -10,7 +10,7 @@
 // NOLINTBEGIN
 
 #include "Tensor-fdf5a7a.hpp"
-#include "UserVariables.hpp"
+#include "StateVariables.hpp"
 #include "VarsTools-fdf5a7a.hpp"
 
 // Namespace to avoid conflicts with current code

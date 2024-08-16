@@ -24,7 +24,7 @@
 #include "MatterWeyl4.hpp"
 #include "ScalarField.hpp"
 #include "SetValue.hpp"
-#include "UserVariables.hpp"
+#include "StateVariables.hpp"
 
 // Chombo namespace
 #include "UsingNamespace.H"
@@ -290,9 +290,9 @@ int main()
                       << " -------------------------- Remark "
                          "---------------------------- "
                       << std::endl;
-            std::cout << " --  " << UserVariables::variable_names[i]
+            std::cout << " --  " << StateVariables::names[i]
                       << " Value = " << max_chf << std::endl;
-            std::cout << " --  " << UserVariables::variable_names[i]
+            std::cout << " --  " << StateVariables::names[i]
                       << " relative error = " << max_err / max_chf * 100 << " %"
                       << std::endl;
             failed = 1;

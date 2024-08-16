@@ -10,10 +10,23 @@
 #include "PositiveChiAndAlpha.hpp"
 #include "PunctureTracker.hpp"
 // xxxxx #include "SixthOrderDerivatives.hpp"
+#include "Constraints.hpp"
 #include "TraceARemoval.hpp"
 #include "TwoPuncturesInitialData.hpp"
 #include "Weyl4.hpp"
 #include "WeylExtraction.hpp"
+
+void BinaryBHLevel::variableSetUp()
+{
+    BL_PROFILE("BinaryBHLevel::variableSetUp()");
+
+    // Set up the state variables
+    stateVariableSetUp();
+
+    Constraints::set_up(State_Type);
+
+    Weyl4::set_up(State_Type);
+}
 
 // Things to do during the advance step after RK4 steps
 void BinaryBHLevel::specificAdvance()
@@ -221,7 +234,7 @@ void BinaryBHLevel::specificPostTimeStep()
                 bool fill_ghosts = false;
                 m_gr_amr.m_interpolator->refresh(fill_ghosts);
                 m_gr_amr.fill_multilevel_ghosts(
-                    VariableType::diagnostic, Interval(c_Weyl4_Re, c_Weyl4_Im),
+                    VariableType::derived, Interval(c_Weyl4_Re, c_Weyl4_Im),
                     min_level);
                 WeylExtraction my_extraction(m_p.extraction_params, m_dt,
                                              m_time, first_step,
@@ -238,7 +251,7 @@ void BinaryBHLevel::specificPostTimeStep()
                        m_state_new, m_state_diagnostics, EXCLUDE_GHOST_CELLS);
         if (m_level == 0)
         {
-            AMRReductions<VariableType::diagnostic> amr_reductions(m_gr_amr);
+            AMRReductions<VariableType::derived> amr_reductions(m_gr_amr);
             double L2_Ham = amr_reductions.norm(c_Ham);
             double L2_Mom = amr_reductions.norm(Interval(c_Mom1, c_Mom3));
             SmallDataIO constraints_file(m_p.data_path + "constraint_norms",
@@ -265,19 +278,3 @@ void BinaryBHLevel::specificPostTimeStep()
     }
 #endif
 }
-
-#ifdef AMREX_USE_HDF5
-// Things to do before a plot level - need to calculate the Weyl scalars
-void BinaryBHLevel::prePlotLevel()
-{
-    fillAllGhosts();
-    if (m_p.activate_extraction == 1)
-    {
-        BoxLoops::loop(
-            make_compute_pack(
-                Weyl4(m_p.extraction_params.center, m_dx, m_p.formulation),
-                Constraints(m_dx, c_Ham, Interval(c_Mom1, c_Mom3))),
-            m_state_new, m_state_diagnostics, EXCLUDE_GHOST_CELLS);
-    }
-}
-#endif /* AMREX_USE_HDF5 */

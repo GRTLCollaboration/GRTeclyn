@@ -8,7 +8,7 @@
 
 #include "Cell.hpp"
 #include "Coordinates.hpp"
-#include "UserVariables.hpp"
+#include "StateVariables.hpp"
 
 // This compute class sets the grid to a certain polynomial
 class Polynomial

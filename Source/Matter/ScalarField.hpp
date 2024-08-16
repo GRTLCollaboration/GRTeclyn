@@ -10,9 +10,9 @@
 #include "DefaultPotential.hpp"
 #include "DimensionDefinitions.hpp"
 #include "FourthOrderDerivatives.hpp"
+#include "StateVariables.hpp" //This files needs NUM_VARS, total num of components
 #include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
-#include "UserVariables.hpp" //This files needs NUM_VARS, total num of components
 #include "VarsTools.hpp"
 
 //!  Calculates the matter type specific elements such as the EMTensor and

@@ -4,7 +4,7 @@
  */
 // Our headers
 #include "DimensionDefinitions.hpp"
-#include "UserVariables.hpp"
+#include "StateVariables.hpp"
 
 // AMReX headers
 #include "AMReX_Array4.H"

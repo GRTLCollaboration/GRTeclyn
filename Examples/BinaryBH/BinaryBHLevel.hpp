@@ -14,6 +14,7 @@
 class BinaryBHLevel : public GRAMRLevel
 {
   public:
+    static void variableSetUp();
 
     // Inherit the contructors from GRAMRLevel
     using GRAMRLevel::GRAMRLevel;
@@ -37,11 +38,6 @@ class BinaryBHLevel : public GRAMRLevel
 
     void errorEst(amrex::TagBoxArray &tag_box_array, int clearval, int tagval,
                   amrex::Real time, int n_error_buf = 0, int ngrow = 0) final;
-
-#ifdef AMREX_USE_HDF5
-    /// Any actions that should happen just before plot files output
-    virtual void prePlotLevel() override;
-#endif /* AMREX_USE_HDF5 */
 };
 
 #endif /* BINARYBHLEVEL_HPP_ */

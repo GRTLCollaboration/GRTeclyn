@@ -15,7 +15,7 @@
 #include "TensorAlgebra.hpp"
 #include "simd.hpp"
 
-#include "UserVariables.hpp" //This files needs NUM_VARS - total number of components
+#include "StateVariables.hpp" //This files needs NUM_VARS - total number of components
 
 #include <array>
 

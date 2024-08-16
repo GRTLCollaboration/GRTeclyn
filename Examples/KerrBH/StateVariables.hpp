@@ -3,12 +3,11 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#ifndef USERVARIABLES_HPP
-#define USERVARIABLES_HPP
+#ifndef STATEVARIABLES_HPP
+#define STATEVARIABLES_HPP
 
 #include "ArrayTools.hpp"
-#include "CCZ4UserVariables.hpp"
-#include "DiagnosticVariables.hpp"
+#include "CCZ4Variables.hpp"
 
 /// This enum gives the index of every variable stored in the grid
 enum
@@ -18,12 +17,9 @@ enum
     NUM_VARS = NUM_CCZ4_VARS,
 };
 
-namespace UserVariables
+namespace StateVariables
 {
-static const std::array<std::string, NUM_VARS> variable_names =
-    ccz4_variable_names;
-} // namespace UserVariables
+static const amrex::Vector<std::string> names = CCZ4Variables::names;
+} // namespace StateVariables
 
-#include "UserVariables.inc.hpp"
-
-#endif /* USERVARIABLES_HPP */
+#endif /* STATEVARIABLES_HPP */

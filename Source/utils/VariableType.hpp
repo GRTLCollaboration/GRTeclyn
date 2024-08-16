@@ -6,11 +6,11 @@
 #ifndef VARIABLETYPE_HPP
 #define VARIABLETYPE_HPP
 
-// enum for evolution or diagnostic variables
+// enum for state or derived variables
 enum class VariableType
 {
-    evolution,
-    diagnostic
+    state,
+    derived
 };
 
 #endif /* VARIABLETYPE_HPP */

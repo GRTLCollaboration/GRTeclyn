@@ -11,7 +11,7 @@
 #include "BoundaryConditions.hpp"
 #include "FilesystemTools.hpp"
 #include "GRParmParse.hpp"
-#include "UserVariables.hpp"
+#include "StateVariables.hpp"
 #include "VariableType.hpp"
 
 #include <algorithm>
@@ -51,11 +51,6 @@ class AMReXParameters
         // L's, N's and center
         read_grid_params(pp);
 
-#ifdef AMREX_USE_HDF5
-        pp.load("ignore_checkpoint_name_mismatch",
-                ignore_checkpoint_name_mismatch, false);
-#endif
-
         pp.load("max_level", max_level, 0);
         // the reference ratio is hard coded to 2
         // in principle it can be set to other values, but this is
@@ -91,13 +86,6 @@ class AMReXParameters
         pp.load("plot_interval", plot_interval, 0);
         pp.load("stop_time", stop_time, 1.0);
         pp.load("max_steps", max_steps, 1000000);
-#ifdef AMREX_USE_HDF5
-        pp.load("write_plot_ghosts", write_plot_ghosts, false);
-
-        // load vars to write to plot files
-        UserVariables::load_vars_to_vector(pp, "plot_vars", "num_plot_vars",
-                                           plot_vars, num_plot_vars);
-#endif
         // alias the weird chombo names to something more descriptive
         // for these box params, and default to some reasonable values
         if (pp.contains("max_grid_size"))
@@ -131,14 +119,6 @@ class AMReXParameters
         // In this function, cannot use default value - it may print a 'default
         // message' to pout and a 'setPoutBaseName' must happen before
         restart_from_checkpoint = pp.contains("restart_file");
-#ifdef AMREX_USE_HDF5
-        if (restart_from_checkpoint)
-        {
-            pp.load("restart_file", restart_file);
-        }
-        pp.load("chk_prefix", checkpoint_prefix);
-        pp.load("plot_prefix", plot_prefix);
-#endif
 
 #ifdef AMREX_USE_MPI
         // Again, cannot use default value
@@ -174,14 +154,6 @@ class AMReXParameters
         }
 #endif
 
-#ifdef AMREX_USE_HDF5
-        // user sets the 'subpath', we prepend 'output_path'
-        if (pp.contains("hdf5_subpath"))
-            pp.load("hdf5_subpath", hdf5_path);
-        else
-            hdf5_path = default_path;
-#endif
-
         // add backslash to paths
         if (!output_path.empty() && output_path.back() != '/')
         {
@@ -193,7 +165,7 @@ class AMReXParameters
             pout_path += "/";
         }
 #endif
-#ifdef AMREX_USE_HDF5
+#if 0 
         if (!hdf5_path.empty() && hdf5_path.back() != '/')
             hdf5_path += "/";
 #endif
@@ -202,13 +174,6 @@ class AMReXParameters
         {
 #ifdef AMREX_USE_MPI
             pout_path = output_path + pout_path;
-#endif
-#ifdef AMREX_USE_HDF5
-            hdf5_path = output_path + hdf5_path;
-            // assume restart_file is an absolute path if it starts with '/'
-            // otherwise assume it is relative to hdf5_path
-            if (restart_from_checkpoint && restart_file.front() != '/')
-                restart_file = hdf5_path + restart_file;
 #endif
         }
 
@@ -440,7 +405,7 @@ class AMReXParameters
 
         // check the restart_file exists and can be read if restarting from a
         // checkpoint
-#ifdef AMREX_USE_HDF5
+#if 0 // TODO
         if (restart_from_checkpoint)
         {
             bool restart_file_exists =
@@ -481,45 +446,12 @@ class AMReXParameters
         check_parameter("fill_ratio", fill_ratio,
                         (fill_ratio > 0.0) && (fill_ratio <= 1.0),
                         "must be > 0 and <= 1");
-        // (MR); while this would technically work (any plot files would just
-        // overwrite a checkpoint file), I think a user would only ever do
-        // this unintentinally
-#ifdef AMREX_USE_HDF5
-        check_parameter("plot_prefix", plot_prefix,
-                        plot_interval <= 0 || plot_prefix != checkpoint_prefix,
-                        "should be different to checkpoint_prefix");
-#endif
 
         check_parameter("output_path", output_path,
                         FilesystemTools::directory_exists(output_path),
                         "should be a valid directory");
         // pout directory exists - we create it in read_filesystem_params()
         // can't check hdf5 directory yet - only created after
-
-        if (boundary_params.reflective_boundaries_exist)
-        {
-            for (int ivar = 0; ivar < NUM_VARS; ++ivar)
-            {
-                std::string name = "vars_parity[c_" +
-                                   UserVariables::variable_names[ivar] + "]";
-                int var_parity = boundary_params.vars_parity[ivar];
-                check_parameter(name, var_parity,
-                                var_parity >= BoundaryConditions::EVEN &&
-                                    var_parity < BoundaryConditions::UNDEFINED,
-                                "parity type undefined");
-            }
-            for (int ivar = 0; ivar < NUM_DIAGNOSTIC_VARS; ++ivar)
-            {
-                std::string name = "vars_parity_diagnostic[c_" +
-                                   DiagnosticVariables::variable_names[ivar] +
-                                   "]";
-                int var_parity = boundary_params.vars_parity_diagnostic[ivar];
-                check_parameter(name, var_parity,
-                                var_parity >= BoundaryConditions::EVEN &&
-                                    var_parity <= BoundaryConditions::UNDEFINED,
-                                "parity type undefined");
-            }
-        }
     }
 
     void set_amrex_params()
@@ -580,29 +512,14 @@ class AMReXParameters
     amrex::Vector<int> regrid_interval; // steps between regrid at each level
     int max_steps{};
     bool restart_from_checkpoint{}; // whether or not to restart or start afresh
-#ifdef AMREX_USE_HDF5
-    std::string restart_file;             // The path to the restart_file
-    bool ignore_checkpoint_name_mismatch; // ignore mismatch of variable names
-                                          // between restart file and program
-#endif
     double dt_multiplier{}, stop_time{}; // The Courant factor and stop time
     int checkpoint_interval{}, plot_interval{}; // Steps between outputs
     int max_grid_size{}, block_factor{};        // max and min box sizes
     double fill_ratio{}; // determines how fussy the regridding is about tags
-#ifdef AMREX_USE_HDF5
-    std::string checkpoint_prefix, plot_prefix; // naming of files
-#endif
     std::string output_path; // base path to use for all files
 #ifdef AMREX_USE_MPI
     std::string pout_prefix; // pout file prefix
     std::string pout_path;   // base path for pout files
-#endif
-#ifdef AMREX_USE_HDF5
-    std::string hdf5_path; // base path for pout files
-    bool write_plot_ghosts;
-    int num_plot_vars;
-    std::vector<std::pair<int, VariableType>>
-        plot_vars; // vars to write to plot file
 #endif
 
     std::array<double, AMREX_SPACEDIM> origin{},

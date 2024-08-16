@@ -2,11 +2,11 @@
  * Copyright 2022 The GRTL collaboration.
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
-#ifndef USERVARIABLES_HPP
-#define USERVARIABLES_HPP
+#ifndef STATEVARIABLES_HPP
+#define STATEVARIABLES_HPP
 
 #include "ArrayTools.hpp"
-#include "CCZ4UserVariables.hpp"
+#include "CCZ4Variables.hpp"
 
 // TODO: This file can be auto-generated from a list of variable names
 // Also, we should probably scope this enum too...
@@ -32,21 +32,20 @@ enum
     NUM_VARS
 };
 
-namespace UserVariables
+namespace StateVariables
 {
-static const std::array<std::string, NUM_VARS - NUM_CCZ4_VARS>
-    user_variable_names = {
+static const amrex::Vector<std::string> additional_names = {
 
-        "phi",      "Pi",
+    "phi",      "Pi",
 
-        "rho",
+    "rho",
 
-        "chi2",
+    "chi2",
 
-        "Weyl4_Re", "Weyl4_Im"};
+    "Weyl4_Re", "Weyl4_Im"};
 
-static const std::array<std::string, NUM_VARS> variable_names =
-    ArrayTools::concatenate(ccz4_variable_names, user_variable_names);
-} // namespace UserVariables
+static const amrex::Vector<std::string> names =
+    ArrayTools::concatenate(CCZ4Variables::names, additional_names);
+} // namespace StateVariables
 
-#endif /* USERVARIABLES_HPP */
+#endif /* STATEVARIABLES_HPP */

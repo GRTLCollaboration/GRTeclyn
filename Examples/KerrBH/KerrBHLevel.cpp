@@ -8,9 +8,9 @@
 #include "CCZ4RHS.hpp"
 #include "ChiTaggingCriterion.hpp"
 #include "ComputePack.hpp"
+#include "Constraints.hpp"
 #include "KerrBHLevel.hpp"
 #include "NanCheck.hpp"
-#include "NewConstraints.hpp"
 #include "PositiveChiAndAlpha.hpp"
 #include "SetValue.hpp"
 #include "SixthOrderDerivatives.hpp"
@@ -50,15 +50,6 @@ void KerrBHLevel::initialData()
                    EXCLUDE_GHOST_CELLS);
 }
 
-#ifdef AMREX_USE_HDF5
-void KerrBHLevel::prePlotLevel()
-{
-    fillAllGhosts();
-    BoxLoops::loop(Constraints(m_dx, c_Ham, Interval(c_Mom1, c_Mom3)),
-                   m_state_new, m_state_diagnostics, EXCLUDE_GHOST_CELLS);
-}
-#endif /* AMREX_USE_HDF5 */
-
 void KerrBHLevel::specificEvalRHS(GRLevelData &a_soln, GRLevelData &a_rhs,
                                   const double a_time)
 {
@@ -91,7 +82,7 @@ void KerrBHLevel::specificUpdateODE(GRLevelData &a_soln,
 void KerrBHLevel::preTagCells()
 {
     // We only use chi in the tagging criterion so only fill the ghosts for chi
-    fillAllGhosts(VariableType::evolution, Interval(c_chi, c_chi));
+    fillAllGhosts(VariableType::state, Interval(c_chi, c_chi));
 }
 
 void KerrBHLevel::computeTaggingCriterion(FArrayBox &tagging_criterion,

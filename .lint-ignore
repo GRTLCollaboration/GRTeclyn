@@ -8,7 +8,15 @@
 
 # These directories have yet to be ported to AMReX
 Source/AMRInterpolator/*
+Source/BoxUtils/SixthOrderDerivatives.hpp
+Source/CCZ4/GammaCalculator.hpp
+Source/InitialConditions/BlackHoles/KerrBH*
+Source/InitialConditions/ScalarFields/*
 Source/Matter/*
+Source/utils/WeylExtraction*
 Examples/KerrBH/*
 Examples/ScalarField/*
 Tests/.*
+
+# These are old files we don't want to change
+Tests/CCZ4RHSTest/*fdf5a7a*

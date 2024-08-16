@@ -69,6 +69,7 @@ jobs:
         ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex \
         --abs_tol 1e-10 \
         --rel_tol 1e-10 \
+        --abort_if_not_all_found \
         ${GITHUB_WORKSPACE}/GRTeclyn/.github/workflows/data/plt00008_compare \
         ${BINARYBH_EXAMPLE_DIR}/plt00008
 
