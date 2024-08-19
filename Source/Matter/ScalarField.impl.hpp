@@ -13,7 +13,7 @@
 // Calculate the stress energy tensor elements
 template <class potential_t>
 template <class data_t, template <typename> class vars_t>
-emtensor_t<data_t> ScalarField<potential_t>::compute_emtensor(
+AMREX_GPU_DEVICE emtensor_t<data_t> ScalarField<potential_t>::compute_emtensor(
     const vars_t<data_t> &vars, const vars_t<Tensor<1, data_t>> &d1,
     const Tensor<2, data_t> &h_UU, const Tensor<3, data_t> &chris_ULL) const
 {
@@ -42,7 +42,8 @@ emtensor_t<data_t> ScalarField<potential_t>::compute_emtensor(
 // Calculate the stress energy tensor elements
 template <class potential_t>
 template <class data_t, template <typename> class vars_t>
-void ScalarField<potential_t>::emtensor_excl_potential(
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+ScalarField<potential_t>::emtensor_excl_potential(
     emtensor_t<data_t> &out, const vars_t<data_t> &vars,
     const vars_t<Tensor<1, data_t>> &d1, const Tensor<2, data_t> &h_UU,
     const Tensor<3, data_t> &chris_ULL)
@@ -80,7 +81,8 @@ template <class potential_t>
 template <class data_t, template <typename> class vars_t,
           template <typename> class diff2_vars_t,
           template <typename> class rhs_vars_t>
-void ScalarField<potential_t>::add_matter_rhs(
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+ScalarField<potential_t>::add_matter_rhs(
     rhs_vars_t<data_t> &total_rhs, const vars_t<data_t> &vars,
     const vars_t<Tensor<1, data_t>> &d1,
     const diff2_vars_t<Tensor<2, data_t>> &d2,
@@ -107,7 +109,8 @@ template <class potential_t>
 template <class data_t, template <typename> class vars_t,
           template <typename> class diff2_vars_t,
           template <typename> class rhs_vars_t>
-void ScalarField<potential_t>::matter_rhs_excl_potential(
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+ScalarField<potential_t>::matter_rhs_excl_potential(
     rhs_vars_t<data_t> &rhs, const vars_t<data_t> &vars,
     const vars_t<Tensor<1, data_t>> &d1,
     const diff2_vars_t<Tensor<2, data_t>> &d2, const vars_t<data_t> &advec)
