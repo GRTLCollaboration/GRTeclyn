@@ -54,7 +54,10 @@ template <class matter_t> class ChiRelaxation
 
     //! The compute member which calculates the RHS at each point in the box \sa
     //! rhs_equation()
-    template <class data_t> void compute(Cell<data_t> current_cell) const;
+    template <class data_t>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    compute(int i, int j, int k, const amrex::Array4<data_t> &rhs,
+            const amrex::Array4<data_t const> &state) const;
 
   protected:
     matter_t my_matter;         //!< The matter object, e.g. a scalar field.
@@ -67,7 +70,7 @@ template <class matter_t> class ChiRelaxation
     //! The function which calculates the RHS, given the vars and derivatives
     //! \sa compute()
     template <class data_t>
-    void rhs_equation(
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void rhs_equation(
         Vars<data_t> &rhs, //!< the RHS data for each variable at that point.
         const Vars<data_t> &vars, //!< the value of the variables at the point.
         const Vars<Tensor<1, data_t>>
