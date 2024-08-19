@@ -12,16 +12,20 @@
 
 template <class matter_t>
 template <class data_t>
-void MatterWeyl4<matter_t>::compute(Cell<data_t> current_cell) const
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+MatterWeyl4<matter_t>::compute(int i, int j, int k,
+                               const amrex::Array4<data_t> &derive,
+                               const amrex::Array4<data_t const> &state) const
 {
 
     // copy data from chombo gridpoint into local variables
-    const auto vars = current_cell.template load_vars<Vars>();
-    const auto d1   = m_deriv.template diff1<Vars>(current_cell);
-    const auto d2   = m_deriv.template diff2<Diff2Vars>(current_cell);
+    const auto vars = load_vars<Vars>(state.cellData(i, j, k));
+    const auto d1   = m_deriv.template diff1<Vars>(i, j, k, state);
+    const auto d2   = m_deriv.template diff2<Diff2Vars>(i, j, k, state);
 
     // Get the coordinates
-    const Coordinates<data_t> coords(current_cell, m_dx, m_center);
+    amrex::IntVect cell_coords(AMREX_D_DECL(i, j, k));
+    const Coordinates<data_t> coords(cell_coords, m_dx, m_center);
 
     // Compute the inverse metric
     using namespace TensorAlgebra;
@@ -43,18 +47,16 @@ void MatterWeyl4<matter_t>::compute(Cell<data_t> current_cell) const
         compute_Weyl4(ebfields, vars, d1, d2, h_UU, coords);
 
     // Write the rhs into the output FArrayBox
-    current_cell.store_vars(out.Real, c_Weyl4_Re);
-    current_cell.store_vars(out.Im, c_Weyl4_Im);
+    derive(i, j, k, m_dcomp)     = out.Real;
+    derive(i, j, k, m_dcomp + 1) = out.Im;
 }
 
 template <class matter_t>
 template <class data_t>
-void MatterWeyl4<matter_t>::add_matter_EB(EBFields_t<data_t> &ebfields,
-                                          const Vars<data_t> &vars,
-                                          const Vars<Tensor<1, data_t>> &d1,
-                                          const Tensor<3, data_t> &epsilon3_LUU,
-                                          const Tensor<2, data_t> &h_UU,
-                                          const chris_t<data_t> &chris) const
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void MatterWeyl4<matter_t>::add_matter_EB(
+    EBFields_t<data_t> &ebfields, const Vars<data_t> &vars,
+    const Vars<Tensor<1, data_t>> &d1, const Tensor<3, data_t> &epsilon3_LUU,
+    const Tensor<2, data_t> &h_UU, const chris_t<data_t> &chris) const
 {
     // Calculate decomposed energy momentum tensor components
     const auto emtensor = m_matter.compute_emtensor(vars, d1, h_UU, chris.ULL);
