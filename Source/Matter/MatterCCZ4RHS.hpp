@@ -58,7 +58,7 @@ class MatterCCZ4RHS : public CCZ4RHS<gauge_t, deriv_t>
         /// Defines the mapping between members of Vars and Chombo grid
         /// variables (enum in User_Variables)
         template <typename mapping_function_t>
-        void enum_mapping(mapping_function_t mapping_function)
+        AMREX_GPU_DEVICE void enum_mapping(mapping_function_t mapping_function)
         {
             CCZ4Vars<data_t>::enum_mapping(mapping_function);
             MatterVars<data_t>::enum_mapping(mapping_function);
@@ -72,7 +72,7 @@ class MatterCCZ4RHS : public CCZ4RHS<gauge_t, deriv_t>
         /// Defines the mapping between members of Vars and Chombo grid
         /// variables (enum in User_Variables)
         template <typename mapping_function_t>
-        void enum_mapping(mapping_function_t mapping_function)
+        AMREX_GPU_DEVICE void enum_mapping(mapping_function_t mapping_function)
         {
             CCZ4Diff2Vars<data_t>::enum_mapping(mapping_function);
             MatterDiff2Vars<data_t>::enum_mapping(mapping_function);
@@ -93,13 +93,16 @@ class MatterCCZ4RHS : public CCZ4RHS<gauge_t, deriv_t>
 
     //!  The compute member which calculates the RHS at each point in the box
     //!  \sa matter_rhs_equation()
-    template <class data_t> void compute(Cell<data_t> current_cell) const;
+    template <class data_t>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    compute(int i, int j, int k, const amrex::Array4<data_t> &rhs,
+            const amrex::Array4<data_t const> &state) const;
 
   protected:
     //! The function which adds in the EM Tensor terms to the CCZ4 rhs \sa
     //! compute()
     template <class data_t>
-    void add_emtensor_rhs(
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void add_emtensor_rhs(
         Vars<data_t>
             &matter_rhs, //!< the RHS data for each variable at that point.
         const Vars<data_t> &vars, //!< the value of the variables at the point.
