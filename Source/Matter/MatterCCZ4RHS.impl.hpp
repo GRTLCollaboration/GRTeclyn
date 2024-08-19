@@ -23,15 +23,17 @@ MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::MatterCCZ4RHS(
 
 template <class matter_t, class gauge_t, class deriv_t>
 template <class data_t>
-void MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::compute(
-    Cell<data_t> current_cell) const
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::compute(
+    int i, int j, int k, const amrex::Array4<data_t> &rhs,
+    const amrex::Array4<data_t const> &state) const
 {
     // copy data from chombo gridpoint into local variables
-    const auto matter_vars = current_cell.template load_vars<Vars>();
-    const auto d1          = this->m_deriv.template diff1<Vars>(current_cell);
-    const auto d2 = this->m_deriv.template diff2<Diff2Vars>(current_cell);
-    const auto advec =
-        this->m_deriv.template advection<Vars>(current_cell, matter_vars.shift);
+    const auto matter_vars = load_vars<Vars>(state.cellData(i, j, k));
+    const auto d1          = this->m_deriv.template diff1<Vars>(i, j, k, state);
+    const auto d2    = this->m_deriv.template diff2<Diff2Vars>(i, j, k, state);
+    const auto advec = this->m_deriv.template advection<Vars>(
+        i, j, k, state, matter_vars.shift);
 
     // Call CCZ4 RHS - work out RHS without matter, no dissipation
     Vars<data_t> matter_rhs;
@@ -44,16 +46,17 @@ void MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::compute(
     my_matter.add_matter_rhs(matter_rhs, matter_vars, d1, d2, advec);
 
     // Add dissipation to all terms
-    this->m_deriv.add_dissipation(matter_rhs, current_cell, this->m_sigma);
+    this->m_deriv.add_dissipation(i, j, k, matter_rhs, state, this->m_sigma);
 
     // Write the rhs into the output FArrayBox
-    current_cell.store_vars(matter_rhs);
+    store_vars(rhs.cellData(i, j, k), matter_rhs);
 }
 
 // Function to add in EM Tensor matter terms to CCZ4 rhs
 template <class matter_t, class gauge_t, class deriv_t>
 template <class data_t>
-void MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
     Vars<data_t> &matter_rhs, const Vars<data_t> &matter_vars,
     const Vars<Tensor<1, data_t>> &d1) const
 {
