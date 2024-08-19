@@ -38,7 +38,7 @@ template <class matter_t> class MatterConstraints : public Constraints
         /// Defines the mapping between members of Vars and Chombo grid
         /// variables (enum in User_Variables)
         template <typename mapping_function_t>
-        void enum_mapping(mapping_function_t mapping_function)
+        AMREX_GPU_DEVICE void enum_mapping(mapping_function_t mapping_function)
         {
             Constraints::MetricVars<data_t>::enum_mapping(mapping_function);
             MatterVars<data_t>::enum_mapping(mapping_function);
@@ -57,7 +57,10 @@ template <class matter_t> class MatterConstraints : public Constraints
 
     //! The compute member which calculates the constraints at each point in the
     //! box
-    template <class data_t> void compute(Cell<data_t> current_cell) const;
+    template <class data_t>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    compute(int i, int j, int k, const amrex::Array4<data_t> &cst,
+            const amrex::Array4<data_t const> &state) const;
 
   protected:
     matter_t my_matter; //!< The matter object, e.g. a scalar field
