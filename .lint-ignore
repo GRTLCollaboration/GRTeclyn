@@ -14,7 +14,6 @@ Source/CCZ4/GammaCalculator.hpp
 Source/CCZ4/IntegratedMovingPunctureGauge.hpp
 Source/InitialConditions/BlackHoles/KerrBH*
 Source/InitialConditions/ScalarFields/*
-Source/Matter/*
 Source/simd/*
 Source/Tagging/ChiAndPhiTaggingCriterion.hpp
 Source/Tagging/ChiPunctureExtractionTaggingCriterion.hpp
