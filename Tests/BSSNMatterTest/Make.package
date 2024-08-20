@@ -1,0 +1,3 @@
+GRTECLYN_CEXE_headers += BSSNMatterTest.hpp
+
+GRTECLYN_CEXE_sources += BSSNMatterTest.cpp

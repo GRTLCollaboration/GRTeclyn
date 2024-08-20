@@ -73,16 +73,18 @@ class Constraints
 
     /// Adds the constraints to the derive list
     /// Call in variableSetUp()
+    AMREX_FORCE_INLINE
     static void set_up(int a_state_index, bool a_calc_mom_norm = false);
 
     // Has signature of DeriveFuncMF so that it can be stored in the derive_lst
+    AMREX_FORCE_INLINE
     static void compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
                            const amrex::MultiFab &src_mf,
                            const amrex::Geometry &geomdata,
                            amrex::Real /*time*/, const int * /*bcrec*/,
                            int /*level*/);
 
-  private:
+  protected:
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     static inline bool s_calc_mom_norm =
         false; // set to true with set_up() to store just sqrt(Mom1^2 + Mom2^2 +
