@@ -6,7 +6,9 @@
 #ifndef MATTERWEYL4_HPP_
 #define MATTERWEYL4_HPP_
 
+#include "DefaultPotential.hpp"
 #include "MatterCCZ4RHS.hpp"
+#include "ScalarField.hpp"
 #include "Weyl4.hpp"
 
 //!  Calculates the Weyl4 scalar for spacetimes with matter content
@@ -39,7 +41,7 @@ template <class matter_t> class MatterWeyl4 : public Weyl4
     compute(int i, int j, int k, const amrex::Array4<data_t> &derive,
             const amrex::Array4<data_t const> &state) const;
 
-    template <class data_t> static void set_up(int a_state_index);
+    static void set_up(int a_state_index);
 
     // Has signature of DeriveFuncMF so that it can be stored in the derive_lst
     static void compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
