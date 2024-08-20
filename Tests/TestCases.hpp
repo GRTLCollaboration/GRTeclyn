@@ -12,6 +12,7 @@
 #include <AMReX.H>
 
 // Test cases
+#include "BSSNMatterTest.hpp"
 #include "CCZ4GeometryUnitTest.hpp"
 #include "CCZ4RHSTest.hpp"
 #include "ConstraintsTest.hpp"
@@ -62,6 +63,15 @@ TEST_CASE("MatterWeyl4"
 )
 {
     run_matter_weyl4_test();
+}
+
+TEST_CASE("BSSN MatterRHS"
+#ifndef AMREX_USE_HDF5
+          * doctest::skip()
+#endif
+)
+{
+    run_bssn_matter_test();
 }
 
 #endif /* TESTCASES_HPP_ */
