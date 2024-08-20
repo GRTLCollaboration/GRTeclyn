@@ -12,7 +12,6 @@ Source/BoxUtils/SixthOrderDerivatives.hpp
 Source/CCZ4/GammaCalculator.hpp
 Source/InitialConditions/BlackHoles/KerrBH*
 Source/InitialConditions/ScalarFields/*
-Source/Matter/*
 Source/utils/WeylExtraction*
 Examples/KerrBH/*
 Examples/ScalarField/*
