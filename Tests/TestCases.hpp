@@ -17,6 +17,7 @@
 #include "ConstraintsTest.hpp"
 #include "CoordinateTransformationsTest.hpp"
 #include "DerivativeUnitTests.hpp"
+#include "MatterWeyl4Test.hpp"
 #include "PositiveChiAndAlphaUnitTest.hpp"
 #include "SphericalHarmonicTest.hpp"
 #include "Weyl4Test.hpp"
@@ -52,6 +53,15 @@ TEST_CASE("Weyl4"
 )
 {
     run_weyl4_test();
+}
+
+TEST_CASE("MatterWeyl4"
+#ifndef AMREX_USE_HDF5
+          * doctest::skip()
+#endif
+)
+{
+    run_matter_weyl4_test();
 }
 
 #endif /* TESTCASES_HPP_ */

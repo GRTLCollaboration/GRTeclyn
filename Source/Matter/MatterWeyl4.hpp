@@ -39,6 +39,15 @@ template <class matter_t> class MatterWeyl4 : public Weyl4
     compute(int i, int j, int k, const amrex::Array4<data_t> &derive,
             const amrex::Array4<data_t const> &state) const;
 
+    template <class data_t> static void set_up(int a_state_index);
+
+    // Has signature of DeriveFuncMF so that it can be stored in the derive_lst
+    static void compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
+                           const amrex::MultiFab &src_mf,
+                           const amrex::Geometry &geomdata,
+                           amrex::Real /*time*/, const int * /*bcrec*/,
+                           int /*level*/);
+
   protected:
     matter_t m_matter;       //!< The matter object, e.g. a scalar field
     const int m_dcomp;       //!< index for storing the results of compute
