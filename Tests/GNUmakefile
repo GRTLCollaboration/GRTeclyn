@@ -13,32 +13,27 @@ AMREX_HOME ?= $(realpath ../../amrex)
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 include ./Make.package
+include $(AMREX_HOME)/Src/Amr/Make.package
+include $(AMREX_HOME)/Src/AmrCore/Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
-include $(AMREX_HOME)/Src/AmrCore/Make.package
-include $(AMREX_HOME)/Src/Amr/Make.package
 include $(AMREX_HOME)/Src/Particle/Make.package
 
 GRTECLYN_SOURCE = $(GRTECLYN_HOME)/Source
 
-src_dirs := $(GRTECLYN_SOURCE)/utils \
-            $(GRTECLYN_SOURCE)/simd  \
-            $(GRTECLYN_SOURCE)/CCZ4  \
-            $(GRTECLYN_SOURCE)/BoxUtils  \
-            $(GRTECLYN_SOURCE)/GRTeclynCore  \
-            $(GRTECLYN_SOURCE)/Tagging  \
+src_dirs := $(GRTECLYN_SOURCE)/AMRInterpolator \
             $(GRTECLYN_SOURCE)/BlackHoles \
-            $(GRTECLYN_SOURCE)/AMRInterpolator
+            $(GRTECLYN_SOURCE)/BoxUtils  \
+            $(GRTECLYN_SOURCE)/CCZ4  \
+            $(GRTECLYN_SOURCE)/GRTeclynCore  \
+            $(GRTECLYN_SOURCE)/Matter \
+            $(GRTECLYN_SOURCE)/simd  \
+            $(GRTECLYN_SOURCE)/Tagging  \
+            $(GRTECLYN_SOURCE)/utils 
+
 
 GRTECLYN_TESTS_HOME = $(GRTECLYN_HOME)/Tests
 
-# test_dirs = $(GRTECLYN_TESTS_HOME)/Common \
-#             $(GRTECLYN_TESTS_HOME)/CCZ4RHSTest \
-#             $(GRTECLYN_TESTS_HOME)/DerivativeUnitTests \
-#             $(GRTECLYN_TESTS_HOME)/PositiveChiAndAlphaUnitTest \
-#             $(GRTECLYN_TESTS_HOME)/CCZ4GeometryUnitTests \
-#             $(GRTECLYN_TESTS_HOME)/CoordinateTransformationsTest \
-#             $(GRTECLYN_TESTS_HOME)/SphericalHarmonicTest
 
 # Find all directories that end in "Test" or "Tests"
 # Note that hidden directories (i.e. those starting with a '.') are not included

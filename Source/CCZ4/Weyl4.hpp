@@ -85,16 +85,15 @@ class Weyl4
     compute(int i, int j, int k, const amrex::Array4<data_t> &a_derive_array,
             const amrex::Array4<data_t const> &a_state_array) const;
 
-    static void set_up(int a_state_index);
+    AMREX_FORCE_INLINE static void set_up(int a_state_index);
 
     // Has signature of DeriveFuncMF so that it can be stored in the derive_lst
-    static void compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
-                           const amrex::MultiFab &src_mf,
-                           const amrex::Geometry &geomdata,
-                           amrex::Real /*time*/, const int * /*bcrec*/,
-                           int /*level*/);
+    AMREX_FORCE_INLINE static void
+    compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
+               const amrex::MultiFab &src_mf, const amrex::Geometry &geomdata,
+               amrex::Real /*time*/, const int * /*bcrec*/, int /*level*/);
 
-  private:
+  protected:
     std::array<double, AMREX_SPACEDIM> m_center; //!< The grid center
     double m_dx;                                 //!< the grid spacing
     FourthOrderDerivatives m_deriv; //!< for calculating derivs of vars
