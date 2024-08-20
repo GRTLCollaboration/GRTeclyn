@@ -72,4 +72,26 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void MatterWeyl4<matter_t>::add_matter_EB(
     }
 }
 
+template <class matter_t>
+template <class data_t>
+void MatterWeyl4<matter_t>::set_up(int a_state_index)
+{
+    int num_ghosts = 2; // no advection terms so only need 2 ghost cells
+
+    auto &derive_lst     = amrex::AmrLevel::get_derive_lst();
+    const auto &desc_lst = amrex::AmrLevel::get_desc_lst();
+
+    // Add Weyl4 to the derive list
+    derive_lst.add(
+        name, amrex::IndexType::TheCellType(),
+        static_cast<int>(var_names.size()), var_names, MatterWeyl4::compute_mf,
+        [=](const amrex::Box &box) { return amrex::grow(box, 2); },
+        &amrex::cell_quartic_interp);
+
+    // We need all of the CCZ4 variables to calculate Weyl4
+    // (except B but easier to keep it in to avoid having to define yet another
+    // CCZ4Vars struct)
+    derive_lst.addComponent(name, desc_lst, a_state_index, 0, NUM_CCZ4_VARS);
+}
+
 #endif /* MATTERWEYL4_IMPL_HPP_ */

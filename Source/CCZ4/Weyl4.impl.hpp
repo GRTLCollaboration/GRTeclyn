@@ -324,6 +324,7 @@ Weyl4::compute_null_tetrad(const Vars<data_t> &vars,
     return out;
 }
 
+AMREX_FORCE_INLINE
 void Weyl4::set_up(int a_state_index)
 {
     int num_ghosts = 2; // no advection terms so only need 2 ghost cells
@@ -344,6 +345,7 @@ void Weyl4::set_up(int a_state_index)
     derive_lst.addComponent(name, desc_lst, a_state_index, 0, NUM_CCZ4_VARS);
 }
 
+AMREX_FORCE_INLINE
 void Weyl4::compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
                        const amrex::MultiFab &src_mf,
                        const amrex::Geometry &geomdata, amrex::Real /*time*/,

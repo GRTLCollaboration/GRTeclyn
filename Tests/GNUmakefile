@@ -22,7 +22,8 @@ GRTECLYN_SOURCE = $(GRTECLYN_HOME)/Source
 src_dirs := $(GRTECLYN_SOURCE)/utils \
             $(GRTECLYN_SOURCE)/CCZ4  \
             $(GRTECLYN_SOURCE)/BoxUtils  \
-            $(GRTECLYN_SOURCE)/simd
+            $(GRTECLYN_SOURCE)/Matter   \
+            $(GRTECLYN_SOURCE)/simd 
 
 GRTECLYN_TESTS_HOME = $(GRTECLYN_HOME)/Tests
 
