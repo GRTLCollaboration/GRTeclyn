@@ -42,6 +42,7 @@ void run_bssn_matter_test()
     char **amrex_argv = doctest::cli_args.argv();
     amrex::Initialize(amrex_argc, amrex_argv, true, MPI_COMM_WORLD);
     {
+
         constexpr int num_cells  = 32;
         constexpr int num_ghosts = 3;
         constexpr double dx      = 0.5 / (num_cells - 1);
@@ -208,10 +209,15 @@ void run_bssn_matter_test()
             "BSSNMatterTest/BSSNMatterTest.h5";
 
         // open the hdf5 file for writing
+        hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
+#if AMREX_USE_MPI
+        MPI_Info mpi_info = MPI_INFO_NULL;
+        H5Pset_fapl_mpio(plist_id, MPI_COMM_WORLD, mpi_info);
+#endif
         hid_t fid =
             H5Fcreate(grteclyn_hdf5_file.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT,
-                      H5P_DEFAULT); // H5F_ACC_TRUNC = if file exists open with
-                                    // read/write access, otherwise create file
+                      plist_id); // H5F_ACC_TRUNC = if file exists open with
+                                 // read/write access, otherwise create file
 
         // // create the group
         char level_name[8] = "level_0"; // only the one level
@@ -247,6 +253,7 @@ void run_bssn_matter_test()
             H5Pclose(dxpl_col);
         }
         H5Gclose(grp);
+        H5Pclose(plist_id);
         H5Fclose(fid);
 
         std::cout.flush();

@@ -57,6 +57,7 @@ void run_matter_weyl4_test()
 
     amrex::Initialize(amrex_argc, amrex_argv, true, MPI_COMM_WORLD);
     {
+
         constexpr int num_cells  = 32;
         constexpr int num_ghosts = 3;
         constexpr amrex::Real dx = 0.25 / (num_cells - 1);
@@ -107,9 +108,7 @@ void run_matter_weyl4_test()
 
         // Setup scalar field calculations
 
-        using DefaultScalarField = ScalarField<DefaultPotential>;
-
-        ScalarField<DefaultPotential> my_scalar_field(DefaultPotential());
+        ScalarField<DefaultPotential> my_scalar_field{DefaultPotential()};
 
         // set up weyl4 calculation
 
@@ -119,14 +118,14 @@ void run_matter_weyl4_test()
         double G_Newton = 1.0;
         std::array<double, AMREX_SPACEDIM> center{0.0, 0.0, 0.0};
 
-        MatterWeyl4<DefaultScalarField> matter_weyl4(
-            DefaultScalarField(DefaultPotential()), center, dx, dcomp_weyl4,
-            CCZ4RHS<>::USE_BSSN, G_Newton);
+        MatterWeyl4<ScalarField<DefaultPotential>> matter_weyl4(
+            my_scalar_field, center, dx, dcomp_weyl4, CCZ4RHS<>::USE_BSSN,
+            G_Newton);
 
         // Constructor for EMTensor
         constexpr int dcomp_rho = num_comps_weyl4;
-        EMTensor<DefaultScalarField> scalar_field_emtensor(
-            DefaultScalarField(DefaultPotential()), dx, dcomp_rho);
+        EMTensor<ScalarField<DefaultPotential>> scalar_field_emtensor(
+            my_scalar_field, dx, dcomp_rho);
 
         constexpr int num_comps =
             dcomp_rho + 1; // just Weyl4_Re, Weyl4_Im, rho, don't bother
@@ -161,10 +160,16 @@ void run_matter_weyl4_test()
             "MatterWeyl4Test/MatterWeyl4TestOut.h5";
 
         // open the hdf5 file for writing
-        hid_t fid =
-            H5Fcreate(grteclyn_hdf5_file.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT,
-                      H5P_DEFAULT); // H5F_ACC_TRUNC = if file exists open with
-                                    // read/write access, otherwise create file
+
+        hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
+#if AMREX_USE_MPI
+        MPI_Info mpi_info = MPI_INFO_NULL;
+        H5Pset_fapl_mpio(plist_id, MPI_COMM_WORLD, mpi_info);
+#endif
+        hid_t fid = H5Fcreate(grteclyn_hdf5_file.c_str(), H5F_ACC_TRUNC,
+                              H5P_DEFAULT, plist_id);
+        // H5F_ACC_TRUNC = if file exists open with
+        // read/write access, otherwise create file
 
         // // create the group
         char level_name[8] = "level_0"; // only the one level
@@ -200,6 +205,7 @@ void run_matter_weyl4_test()
             H5Pclose(dxpl_col);
         }
         H5Gclose(grp);
+        H5Pclose(plist_id);
         H5Fclose(fid);
 
         std::cout.flush();
