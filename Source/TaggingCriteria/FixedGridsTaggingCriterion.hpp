@@ -14,17 +14,18 @@
 class FixedGridsTaggingCriterion
 {
   protected:
-    const double m_dx;
-    const double m_L;
-    const int m_level;
-    const std::array<double, AMREX_SPACEDIM> m_center;
+    double m_dx;
+    double m_L;
+    int m_level;
+    std::array<double, AMREX_SPACEDIM> m_center;
 
   public:
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     FixedGridsTaggingCriterion(
         const double dx, const int a_level, const double a_L,
         const std::array<double, AMREX_SPACEDIM> a_center)
         : m_dx(dx), m_L(a_L), m_level(a_level), m_center(a_center){};
-
+    // NOLINTEND(bugprone-easily-swappable-parameters)
     template <class data_t>
     AMREX_GPU_DEVICE data_t
     compute(int i, int j, int k,
