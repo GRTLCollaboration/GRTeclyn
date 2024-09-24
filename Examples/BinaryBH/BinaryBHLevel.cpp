@@ -7,7 +7,6 @@
 #include "BinaryBH.hpp"
 #include "CCZ4RHS.hpp"
 #include "ChiExtractionTaggingCriterion.hpp"
-#include "FixedGridsTaggingCriterion.hpp"
 #include "PositiveChiAndAlpha.hpp"
 #include "PunctureTracker.hpp"
 // xxxxx #include "SixthOrderDerivatives.hpp"
@@ -170,6 +169,12 @@ void BinaryBHLevel::errorEst(amrex::TagBoxArray &tag_box_array,
     amrex::MultiFab &state_new = get_new_data(State_Type);
     const auto cur_time        = get_state_data(State_Type).curTime();
 
+    const int nghost =
+        state_new.nGrow(); // Need ghost cells to compute gradient
+    const int ncomp = 1;
+    // We only use chi in the tagging criterion so only fill the ghosts for chi
+    FillPatch(*this, state_new, nghost, cur_time, State_Type, c_chi, ncomp);
+
     const auto &simpar = simParams();
 
     if (simpar.track_punctures)
@@ -180,16 +185,15 @@ void BinaryBHLevel::errorEst(amrex::TagBoxArray &tag_box_array,
     const auto &tags           = tag_box_array.arrays();
     const auto &state_new_arrs = state_new.const_arrays();
     const auto tagval          = amrex::TagBox::SET;
-
-    FixedGridsTaggingCriterion tagger(Geom().CellSize(0), Level(),
-                                      Geom().ProbLength(0), simpar.center);
-
+    ChiExtractionTaggingCriterion tagger(Geom().CellSize(0), Level(),
+                                         simpar.extraction_params,
+                                         simpar.activate_extraction);
     amrex::Real threshold = simpar.regrid_thresholds[Level()];
     amrex::ParallelFor(state_new, amrex::IntVect(0),
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
                        {
                            amrex::Real criterion =
-                               tagger.compute(i, j, k, state_new_arrs[box_no]);
+                               tagger(i, j, k, state_new_arrs[box_no]);
                            if (criterion >= threshold)
                            {
                                tags[box_no](i, j, k) = tagval;
