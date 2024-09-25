@@ -56,7 +56,7 @@ jobs:
           wget https://repo.radeon.com/rocm/rocm.gpg.key -O - | gpg --dearmor |\
           sudo tee /etc/apt/keyrings/rocm.gpg > /dev/null
           echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] \
-          https://repo.radeon.com/rocm/apt/debian jammy main" | sudo tee \
+          https://repo.radeon.com/rocm/apt/6.2.1 jammy main" | sudo tee \
           /etc/apt/sources.list.d/rocm.list
           # Prefer AMD packages over system ones
           echo -e 'Package: *\nPin: release o=repo.radeon.com\nPin-Priority: 600' \
