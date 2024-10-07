@@ -63,10 +63,10 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 0>
         return m_puncture_coords;
     }
 
-  private:
     //! set and write initial puncture locations
     void set_initial_punctures();
 
+  private:
     //! Get a vector of the puncture coords - used for write out
     [[nodiscard]] std::vector<double> get_puncture_vector() const;
 };
