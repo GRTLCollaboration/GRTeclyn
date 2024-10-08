@@ -20,7 +20,8 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 0>
     int m_num_punctures{0};
     amrex::Vector<amrex::RealVect>
         m_puncture_coords; //!< the puncture location broadcast to all ranks
-    amrex::Vector<int> m_puncture_proc_ids{};
+    // amrex::Vector<int> m_puncture_proc_ids{};
+    amrex::Vector<int> m_local_proc_has_punctures;
     int m_update_level{}; //!< the level on which to update positions
 
     std::string m_punctures_filename;

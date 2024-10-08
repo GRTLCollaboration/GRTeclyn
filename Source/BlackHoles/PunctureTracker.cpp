@@ -33,9 +33,10 @@ void PunctureTracker::initial_setup(
     AMREX_ASSERT(a_gr_amr != nullptr);
     m_gr_amr = a_gr_amr;
 
-    m_num_punctures     = static_cast<int>(initial_puncture_coords.size());
-    m_puncture_coords   = initial_puncture_coords;
-    m_puncture_proc_ids = amrex::Vector<int>(m_num_punctures, 0);
+    m_num_punctures   = static_cast<int>(initial_puncture_coords.size());
+    m_puncture_coords = initial_puncture_coords;
+    // m_puncture_proc_ids = amrex::Vector<int>(m_num_punctures, 0);
+    m_local_proc_has_punctures = amrex::Vector<int>(m_num_punctures, 0);
 
     m_update_level = a_update_level;
 
@@ -140,9 +141,9 @@ void PunctureTracker::redistribute()
     Redistribute();
 
     // Now figure out which process has each puncture
-    amrex::Vector<int> h_local_proc_has_punctures(m_num_punctures, 0);
+    // amrex::Vector<int> h_local_proc_has_punctures(m_num_punctures, 0);
     amrex::Gpu::AsyncArray<int> d_local_proc_has_punctures(
-        h_local_proc_has_punctures.data(), m_num_punctures);
+        m_local_proc_has_punctures.data(), m_num_punctures);
 
     int *d_local_proc_has_punctures_ptr = d_local_proc_has_punctures.data();
 
@@ -169,40 +170,43 @@ void PunctureTracker::redistribute()
                                });
         }
     }
-    d_local_proc_has_punctures.copyToHost(h_local_proc_has_punctures.data(),
+    d_local_proc_has_punctures.copyToHost(m_local_proc_has_punctures.data(),
                                           m_num_punctures);
-#ifdef BL_USE_MPI
-    int default_proc_has_punctures = 0;
-#else
-    int default_proc_has_punctures = 1;
-#endif
-    amrex::Vector<int> global_proc_has_punctures(
-        m_num_punctures * amrex::ParallelDescriptor::NProcs(),
-        default_proc_has_punctures);
+    // #ifdef BL_USE_MPI
+    //     int default_proc_has_punctures = 0;
+    // #else
+    //     int default_proc_has_punctures = 1;
+    // #endif
+    //     amrex::Vector<int> global_proc_has_punctures(
+    //         m_num_punctures * amrex::ParallelDescriptor::NProcs(),
+    //         default_proc_has_punctures);
 
-    // Communicate whether I have a puncture to all processes (won't do
-    // anything)
-    amrex::ParallelAllGather::AllGather(
-        h_local_proc_has_punctures.dataPtr(), m_num_punctures,
-        global_proc_has_punctures.dataPtr(),
-        amrex::ParallelDescriptor::Communicator());
+    //     // Communicate whether I have a puncture to all processes (won't
+    //     do
+    //     // anything)
+    //     amrex::ParallelAllGather::AllGather(
+    //         h_local_proc_has_punctures.dataPtr(), m_num_punctures,
+    //         global_proc_has_punctures.dataPtr(),
+    //         amrex::ParallelDescriptor::Communicator());
 
-    // Keep track of the total number of punctures across all processes
-    int puncture_count = 0;
+    //     // Keep track of the total number of punctures across all
+    //     processes int puncture_count = 0;
 
-    for (int iproc = 0; iproc < amrex::ParallelDescriptor::NProcs(); iproc++)
-    {
-        for (int ipuncture = 0; ipuncture < m_num_punctures; ipuncture++)
-        {
-            if (global_proc_has_punctures[m_num_punctures * iproc +
-                                          ipuncture] == 1)
-            {
-                m_puncture_proc_ids[ipuncture] = iproc;
-                puncture_count++;
-            }
-        }
-    }
-    AMREX_ALWAYS_ASSERT(puncture_count == m_num_punctures);
+    //     for (int iproc = 0; iproc < amrex::ParallelDescriptor::NProcs();
+    //     iproc++)
+    //     {
+    //         for (int ipuncture = 0; ipuncture < m_num_punctures;
+    //         ipuncture++)
+    //         {
+    //             if (global_proc_has_punctures[m_num_punctures * iproc +
+    //                                           ipuncture] == 1)
+    //             {
+    //                 m_puncture_proc_ids[ipuncture] = iproc;
+    //                 puncture_count++;
+    //             }
+    //         }
+    //     }
+    //     AMREX_ALWAYS_ASSERT(puncture_count == m_num_punctures);
 }
 
 //! Execute the tracking and write out
@@ -221,6 +225,13 @@ void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
 
     // Redistribute punctures to the correct grid
     redistribute();
+
+    // We will perform an MPI sum reduction to get the coords so set them to
+    // zero by default
+    for (auto &puncture_coords : m_puncture_coords)
+    {
+        puncture_coords = amrex::IntVect::TheZeroVector();
+    }
 
     for (int ilevel = 0; ilevel <= m_gr_amr->finestLevel(); ilevel++)
     {
@@ -298,9 +309,9 @@ void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
         }               // ipass
 
         amrex::Vector<amrex::ParticleReal> h_puncture_coords_linear(
-            AMREX_SPACEDIM * m_num_punctures);
+            AMREX_SPACEDIM * m_num_punctures, 0.0);
         amrex::Gpu::AsyncArray<amrex::ParticleReal> d_puncture_coords_linear(
-            AMREX_SPACEDIM * m_num_punctures);
+            h_puncture_coords_linear.data(), AMREX_SPACEDIM * m_num_punctures);
         auto *d_puncture_coords_linear_ptr = d_puncture_coords_linear.data();
         for (ParIterType punc_iter(*this, ilevel); punc_iter.isValid();
              ++punc_iter)
@@ -327,22 +338,35 @@ void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
 
         for (int ipuncture = 0; ipuncture < m_num_punctures; ipuncture++)
         {
+            // We only set the puncture coords if this proc has it
+            if (m_local_proc_has_punctures[ipuncture] == 0)
+            {
+                continue;
+            }
+            amrex::Print() << "puncture " << ipuncture << " on proc "
+                           << amrex::ParallelDescriptor::MyProc()
+                           << " has coords: ";
             FOR1 (idir)
             {
                 m_puncture_coords[ipuncture][idir] =
                     h_puncture_coords_linear[ipuncture * AMREX_SPACEDIM + idir];
+                amrex::Print() << m_puncture_coords[ipuncture][idir] << " ";
             }
+            amrex::Print() << "\n";
         }
     } // ilevel
 
-    // broadcast the locations to all ranks
+    // MPI sum over all ranks
     for (int ipuncture = 0; ipuncture < m_num_punctures; ipuncture++)
     {
         // If there are lots of punctures, we should probably use non-blocking
         // MPI calls which are currently not wrapped by AMReX
-        amrex::ParallelDescriptor::Bcast(m_puncture_coords[ipuncture].dataPtr(),
-                                         AMREX_SPACEDIM,
-                                         m_puncture_proc_ids[ipuncture]);
+        // amrex::ParallelDescriptor::Bcast(m_puncture_coords[ipuncture].dataPtr(),
+        //                                  AMREX_SPACEDIM,
+        //                                  m_puncture_proc_ids[ipuncture]);
+        amrex::ParallelAllReduce::Sum(
+            m_puncture_coords[ipuncture].dataPtr(), AMREX_SPACEDIM,
+            amrex::ParallelContext::CommunicatorAll());
     }
 
     // print them out
