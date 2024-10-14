@@ -22,7 +22,7 @@ jobs:
 
     - name: Post comment on PR if there are matches
       if: steps.modified-files.outputs.lint_ignore_matches != ''
-      uses: thollander/actions-comment-pull-request@v2
+      uses: thollander/actions-comment-pull-request@v3
       with:
         message: |
           This PR modifies the following files which are ignored by [.lint-ignore](.lint-ignore):
