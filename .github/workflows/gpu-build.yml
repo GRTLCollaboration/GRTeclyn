@@ -30,9 +30,9 @@ jobs:
       BUILD_ARGS: USE_${{ matrix.gpu-backend }}=TRUE DEBUG=${{ matrix.debug }} USE_MPI=TRUE
       CUDA_MAJOR_VERSION: 12
       CUDA_MINOR_VERSION: 0
-      ROCM_VERSION: 6.2.1
+      ROCM_VERSION: 6.2.2
       ONEAPI_COMP_VERSION: 2024.2
-      ONEAPI_MPI_VERSION: 2021.9.0
+      ONEAPI_MPI_VERSION: 2021.13
 
     steps:
     - name: Checkout AMReX
