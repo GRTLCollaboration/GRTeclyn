@@ -1,9 +1,9 @@
-#include <DerivedVariables.hpp>
+#include "DerivedVariables.hpp"
 
-void derive_func_fab(const amrex::Box &bx, amrex::FArrayBox &derfab, int dcomp,
-                     int /*numcomp*/, const amrex::FArrayBox &datfab,
-                     const amrex::Geometry &geom, const amrex::Real time,
-                     const int * /*bcomp*/, int /*scomp*/)
+void calc_derive_mf(amrex::MultiFab &mf_out, int dcomp, int /*numcomp*/,
+                    const amrex::MultiFab &mf_in, const amrex::Geometry &geom,
+                    const amrex::Real time, const int * /*bcomp*/,
+                    int /*scomp*/)
 
 {
     amrex::ParmParse pp;
@@ -25,20 +25,19 @@ void derive_func_fab(const amrex::Box &bx, amrex::FArrayBox &derfab, int dcomp,
     midpts[1] = 0.5 * (probhi[1] - problo[1]);
     midpts[2] = 0.5 * (probhi[2] - problo[2]);
 
-    auto const &s     = datfab.array();
-    auto const &s_out = derfab.array();
+    auto const &array4_out = mf_out.arrays();
 
-    amrex::ParallelFor(bx,
-                       [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
-                       {
-                           amrex::Real x = problo[0] + (i + 0.5) * dx[0];
-                           amrex::Real y = problo[1] + (j + 0.5) * dx[1];
-                           amrex::Real z = problo[2] + (k + 0.5) * dx[2];
+    amrex::ParallelFor(
+        mf_out, mf_out.nGrowVect(),
+        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
+        {
+            amrex::Real x = problo[0] + (i + 0.5) * dx[0];
+            amrex::Real y = problo[1] + (j + 0.5) * dx[1];
+            amrex::Real z = problo[2] + (k + 0.5) * dx[2];
 
-                           amrex::Real exact_soln =
-                               SineGordon.breather_solution(x - midpts[0],
-                                                            time);
+            amrex::Real exact_soln =
+                SineGordon.breather_solution(x - midpts[0], time);
 
-                           s_out(i, j, k, dcomp) = exact_soln;
-                       });
+            array4_out[box_no](i, j, k, dcomp) = exact_soln;
+        });
 }

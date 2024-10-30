@@ -44,8 +44,6 @@ class KleinGordonLevel : public GRAMRLevel
 
   private:
 
-    static amrex::Vector<std::string> diagnostics; // this is for error checking
-
     //! Get AmrLevelWave
     KleinGordonLevel &getLevel(int lev)
     {

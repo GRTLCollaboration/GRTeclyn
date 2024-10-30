@@ -3,8 +3,6 @@
 
 using namespace amrex;
 
-amrex::Vector<std::string> KleinGordonLevel::diagnostics;
-
 void KleinGordonLevel::variableSetUp()
 {
     BL_PROFILE("KleinGordonLevel::variableSetUp()");
@@ -14,8 +12,7 @@ void KleinGordonLevel::variableSetUp()
 
     // Set up derived variables
     derive_lst.add(
-        "analytic_soln", amrex::IndexType::TheCellType(), 1, diagnostics,
-        derive_func_fab,
+        "analytic_soln", amrex::IndexType::TheCellType(), 1, calc_derive_mf,
         [=](const amrex::Box &box)
         { return amrex::grow(box, simParams().num_ghosts); },
         &amrex::cell_quartic_interp);
@@ -39,9 +36,9 @@ void KleinGordonLevel::initData()
     MultiFab &S_new  = get_new_data(State_Type);
     auto const &snew = S_new.arrays();
 
-    constexpr Real t0 = -5.4;
+    constexpr Real initial_time = -5.4;
 
-    amrex::Vector<amrex::Real> start_times{-5.4, 5.4};
+    amrex::Vector<amrex::Real> start_times{initial_time, initial_time * -1.0};
     amrex::Vector<amrex::Real> start_pos{
         midpts[0], midpts[1], midpts[2] + 0.5 * midpts[2],
         midpts[0], midpts[1], midpts[2] - 0.5 * midpts[2]};
@@ -50,15 +47,15 @@ void KleinGordonLevel::initData()
 
     amrex::ParallelFor(
         S_new,
-        [=] AMREX_GPU_DEVICE(int bi, int i, int j, int k) noexcept
+        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
         {
             Real x = problo[0] + (i + 0.5) * dx[0];
             Real y = problo[1] + (j + 0.5) * dx[1];
             Real z = problo[2] + (k + 0.5) * dx[2];
 
-            snew[bi](i, j, k, 0) =
+            snew[box_no](i, j, k, 0) =
                 SineGordon.breather_solution(x - midpts[0], 0);
-            snew[bi](i, j, k, 1) =
+            snew[box_no](i, j, k, 1) =
                 SineGordon.breather_solution_deriv(x - midpts[0], 0);
 
             //	    snew[bi](i,j,k,2*n) =
@@ -84,8 +81,8 @@ void KleinGordonLevel::specificEvalRHS(amrex::MultiFab &a_soln,
     AMREX_D_TERM(Real dx2inv = dxinv[0] * dxinv[0];
                  , Real dy2inv = dxinv[1] * dxinv[1];
                  , Real dz2inv = dxinv[2] * dxinv[2]);
-    auto const &sa   = a_soln.arrays();
-    auto const &sdot = a_rhs.arrays();
+    auto const &a_soln_a4 = a_soln.arrays();
+    auto const &a_rhs_a4  = a_rhs.arrays();
 
     Potential my_potential(simParams().scalar_mass);
 
@@ -93,8 +90,8 @@ void KleinGordonLevel::specificEvalRHS(amrex::MultiFab &a_soln,
         a_soln,
         [=] AMREX_GPU_DEVICE(int bi, int i, int j, int k) noexcept
         {
-            auto const &s = sa[bi];
-            auto const &f = sdot[bi];
+            auto const &s = a_soln_a4[bi];
+            auto const &f = a_rhs_a4[bi];
 
             //      Real phi2 = std::pow(s(i,j,k,0),2)+std::pow(s(i,j,k,2),2);
             amrex::Real phi = 0;
