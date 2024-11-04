@@ -46,6 +46,7 @@ class SimulationParameters : public AMReXParameters
     int ncomp               = 2;
     amrex::Real k_r         = 1.0;
     amrex::Real alpha       = 1.0;
+    amrex::Real sigma       = 0.0;
 };
 
 #endif /* SIMULATIONPARAMETERS_HPP */

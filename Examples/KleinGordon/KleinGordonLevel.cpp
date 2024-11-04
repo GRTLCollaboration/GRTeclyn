@@ -1,4 +1,6 @@
 #include "KleinGordonLevel.hpp"
+#include "FourthOrderDerivatives.hpp"
+#include "KleinGordonRHS.hpp"
 #include <numeric>
 
 using namespace amrex;
@@ -77,48 +79,26 @@ void KleinGordonLevel::specificEvalRHS(amrex::MultiFab &a_soln,
 {
     BL_PROFILE("KleinGordonLevel::specificEvalRHS()");
 
+    const auto dx    = Geom().CellSize(0);
     const auto dxinv = Geom().InvCellSizeArray();
     AMREX_D_TERM(Real dx2inv = dxinv[0] * dxinv[0];
                  , Real dy2inv = dxinv[1] * dxinv[1];
                  , Real dz2inv = dxinv[2] * dxinv[2]);
-    auto const &a_soln_a4 = a_soln.arrays();
+    auto const &a_soln_a4 = a_soln.const_arrays();
     auto const &a_rhs_a4  = a_rhs.arrays();
 
     Potential my_potential(simParams().scalar_mass);
 
+    KleinGordonRHS<FourthOrderDerivatives> klein_gordon_rhs(simParams().sigma,
+                                                            dx);
+
     amrex::ParallelFor(
         a_soln,
-        [=] AMREX_GPU_DEVICE(int bi, int i, int j, int k) noexcept
-        {
-            auto const &s = a_soln_a4[bi];
-            auto const &f = a_rhs_a4[bi];
-
-            //      Real phi2 = std::pow(s(i,j,k,0),2)+std::pow(s(i,j,k,2),2);
-            amrex::Real phi = 0;
-
-            f(i, j, k, 0) = s(i, j, k, 1);
-
-            AMREX_D_TERM(
-                Real lapx =
-                    dx2inv *
-                    (-2.5 * s(i, j, k, 0) +
-                     (4. / 3.) * (s(i - 1, j, k, 0) + s(i + 1, j, k, 0)) -
-                     (1. / 12.) * (s(i - 2, j, k, 0) + s(i + 2, j, k, 0)));
-                , Real lapy =
-                      dy2inv *
-                      (-2.5 * s(i, j, k, 0) +
-                       (4. / 3.) * (s(i, j - 1, k, 0) + s(i, j + 1, k, 0)) -
-                       (1. / 12.) * (s(i, j - 2, k, 0) + s(i, j + 2, k, 0)));
-                , Real lapz =
-                      dz2inv *
-                      (-2.5 * s(i, j, k, 0) +
-                       (4. / 3.) * (s(i, j, k - 1, 0) + s(i, j, k + 1, 0)) -
-                       (1. / 12.) * (s(i, j, k - 2, 0) + s(i, j, k + 2, 0))));
-
-            f(i, j, k, 1) = AMREX_D_TERM(lapx, +lapy, +lapz);
-
-            f(i, j, k, 1) -= std::sin(s(i, j, k, 0));
+        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept {
+            klein_gordon_rhs.compute(i, j, k, a_soln_a4[box_no],
+                                     a_rhs_a4[box_no]);
         });
+
     Gpu::streamSynchronize();
 }
 

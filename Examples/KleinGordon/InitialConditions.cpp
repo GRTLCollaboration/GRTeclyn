@@ -1,4 +1,4 @@
-#include "InitialConditions.H"
+#include "InitialConditions.hpp"
 
 AMREX_GPU_DEVICE amrex::Real
 InitialConditions::breather_solution(const amrex::Real x,

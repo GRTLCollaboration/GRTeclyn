@@ -1,4 +1,4 @@
-#include "InitialConditions.H"
+#include "InitialConditions.hpp"
 #include <AMReX_BLFort.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Geometry.H>

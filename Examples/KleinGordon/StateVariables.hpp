@@ -31,6 +31,6 @@ static const std::array<BCParity, NUM_VARS> parities = {BCParity::even,
 // boundary conditions with the above parity definitions.
 
 } // namespace StateVariables
-// #include "UserVariables.inc.hpp"
+
 
 #endif /* STATEVARIABLES_HPP */

@@ -50,3 +50,5 @@ initial_width = 0.01
 scalar_mass = 1 
 wave_vector = 100.0
 alpha = 0.7 
+
+sigma = 0.3 #coefficient for KO dissipation

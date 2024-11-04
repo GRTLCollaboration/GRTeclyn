@@ -4,8 +4,9 @@
 #include "DefaultLevelFactory.hpp"
 #include "DerivedVariables.hpp"
 #include "GRAMRLevel.hpp"
-#include "InitialConditions.H"
-#include "Potential.H"
+#include "InitialConditions.hpp"
+#include "Potential.hpp"
+#include "KleinGordonRHS.hpp"
 
 class KleinGordonLevel : public GRAMRLevel
 {
