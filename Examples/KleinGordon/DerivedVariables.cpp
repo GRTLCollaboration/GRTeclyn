@@ -14,7 +14,7 @@ void calc_derive_mf(amrex::MultiFab &mf_out, int dcomp, int /*numcomp*/,
     amrex::Real alpha = 0.7;
     pp.query("alpha", alpha);
 
-    InitialConditions SineGordon(alpha, k_r);
+    InitialConditions SineGordon(alpha);
 
     const auto problo = geom.ProbLoArray();
     const auto probhi = geom.ProbHiArray();

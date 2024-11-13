@@ -8,16 +8,22 @@
 
 #include "Cell.hpp"
 #include "FourthOrderDerivatives.hpp"
-#include "StateVariables.hpp"
 #include "TensorAlgebra.hpp"
 #include "VarsTools.hpp"
 
-template <class deriv_t = FourthOrderDerivatives> class KleinGordonRHS
+// Problem specific includes
+#include "Potential.hpp"
+#include "StateVariables.hpp"
+
+template <class deriv_t = FourthOrderDerivatives, class potential_t = Potential>
+class KleinGordonRHS
 {
   public:
 
-    KleinGordonRHS(amrex::Real sigma, amrex::Real dx)
-        : m_sigma(sigma), m_deriv(dx){};
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+    KleinGordonRHS(amrex::Real a_sigma, amrex::Real a_dx,
+                   const potential_t a_potential)
+        : m_sigma(a_sigma), m_deriv(a_dx), m_potential(a_potential){};
 
     template <class data_t> struct Vars
     {
@@ -47,9 +53,11 @@ template <class deriv_t = FourthOrderDerivatives> class KleinGordonRHS
     compute(int i, int j, int k, const amrex::Array4<data_t const> &input,
             const amrex::Array4<data_t> &output) const;
 
+
   private:
     amrex::Real m_sigma;
     deriv_t m_deriv;
+    potential_t m_potential;
 
     template <class data_t, template <typename> class vars_t,
               template <typename> class diff2_vars_t>

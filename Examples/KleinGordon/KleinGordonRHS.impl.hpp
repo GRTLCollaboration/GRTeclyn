@@ -12,12 +12,12 @@
 
 #include "KleinGordonRHS.hpp"
 
-template <class deriv_t>
+template <class deriv_t, class potential_t>
 template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-KleinGordonRHS<deriv_t>::compute(int i, int j, int k,
-                                 const amrex::Array4<data_t const> &input,
-                                 const amrex::Array4<data_t> &output) const
+KleinGordonRHS<deriv_t, potential_t>::compute(
+    int i, int j, int k, const amrex::Array4<data_t const> &input,
+    const amrex::Array4<data_t> &output) const
 
 {
     const auto vars = load_vars<Vars>(input.cellData(i, j, k));
@@ -32,16 +32,25 @@ KleinGordonRHS<deriv_t>::compute(int i, int j, int k,
     store_vars(output.cellData(i, j, k), rhs);
 }
 
-template <class deriv_t>
+template <class deriv_t, class potential_t>
 template <class data_t, template <typename> class vars_t,
           template <typename> class diff2_vars_t>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE void KleinGordonRHS<deriv_t>::rhs_equation(
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+KleinGordonRHS<deriv_t, potential_t>::rhs_equation(
     vars_t<data_t> &rhs, const vars_t<data_t> &vars,
     const vars_t<Tensor<1, data_t>> &d1,
     const diff2_vars_t<Tensor<2, data_t>> &d2) const
 {
     rhs.phi = vars.Pi;
-    rhs.Pi  = TensorAlgebra::compute_trace(d2.phi) - std::sin(vars.phi);
+    rhs.Pi  = TensorAlgebra::compute_trace(d2.phi);
+
+    // add on the potential
+    data_t V_of_phi = 0.0;
+    data_t dVdphi   = 0.0;
+
+    m_potential.compute_sine_gordon(V_of_phi, dVdphi, vars);
+
+    rhs.Pi += dVdphi;
 }
 
 #endif

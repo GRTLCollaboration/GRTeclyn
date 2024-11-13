@@ -22,15 +22,12 @@ class SimulationParameters : public AMReXParameters
         read_params(pp);
     }
 
+    // NOLINTNEXTLINE(readability-identifier-length)
     void read_params(GRParmParse &pp)
     {
 
         // These are parameters specfic to the Klein Gordon example
 
-        pp.query("initial_amplitude", ampl);
-        // What is their initial amplitude (if wave ICs )
-        pp.query("initial_width", width);
-        // What is the width of the Gaussian initial condition
         pp.query("scalar_mass",
                  scalar_mass); // What is the mass of the scalar particle?
         pp.query("wave_vector",
@@ -38,15 +35,12 @@ class SimulationParameters : public AMReXParameters
         pp.query("alpha", alpha); // this is for Sine-Gordon ICs only
     }
 
-    amrex::Real cfl = 0.2;
-    amrex::Real ampl;
-    amrex::Real width;
-    int nfields             = 1;
-    amrex::Real scalar_mass = 1.0;
-    int ncomp               = 2;
-    amrex::Real k_r         = 1.0;
-    amrex::Real alpha       = 1.0;
-    amrex::Real sigma       = 0.0;
+    amrex::Real cfl{0.2};
+    amrex::Real scalar_mass{1.0};
+    int ncomp{2};
+    amrex::Real k_r{1.0};
+    amrex::Real alpha{1.0};
+    amrex::Real sigma{0.0};
 };
 
 #endif /* SIMULATIONPARAMETERS_HPP */

@@ -5,8 +5,8 @@
 #include "DerivedVariables.hpp"
 #include "GRAMRLevel.hpp"
 #include "InitialConditions.hpp"
-#include "Potential.hpp"
 #include "KleinGordonRHS.hpp"
+#include "Potential.hpp"
 
 class KleinGordonLevel : public GRAMRLevel
 {
@@ -39,16 +39,15 @@ class KleinGordonLevel : public GRAMRLevel
     void specificPostTimeStep() override{};
 
     //! Error estimation for regridding.
-    void errorEst(amrex::TagBoxArray &tb, int clearval, int tagval,
+    void errorEst(amrex::TagBoxArray &tags, int clearval, int tagval,
                   amrex::Real time, int n_error_buf = 0,
                   int ngrow = 0) override;
 
   private:
 
-    //! Get AmrLevelWave
     KleinGordonLevel &getLevel(int lev)
     {
-        return static_cast<KleinGordonLevel &>(parent->getLevel(lev));
+        return dynamic_cast<KleinGordonLevel &>(parent->getLevel(lev));
     }
 };
 

@@ -1,4 +1,4 @@
-max_steps = 3
+max_steps = 10
 stop_time = 2
 
 #################################################
@@ -44,11 +44,11 @@ amr.plot_file = /home/dc-kwan1/rds/rds-dirac-dp002/dc-kwan1/GRTeclyn/KleinGordon
 
 rk_order = 4
 cfl = 0.2
-nfields = 1
+sigma = 0.3 #coefficient for KO dissipation
+
+#Klein Gordon Parameters 
 initial_amplitude = 10.0 
 initial_width = 0.01 
 scalar_mass = 1 
 wave_vector = 100.0
 alpha = 0.7 
-
-sigma = 0.3 #coefficient for KO dissipation

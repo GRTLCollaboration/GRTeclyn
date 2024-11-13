@@ -45,7 +45,7 @@ void KleinGordonLevel::initData()
         midpts[0], midpts[1], midpts[2] + 0.5 * midpts[2],
         midpts[0], midpts[1], midpts[2] - 0.5 * midpts[2]};
 
-    InitialConditions SineGordon(simParams().alpha, simParams().k_r);
+    InitialConditions SineGordon(simParams().alpha);
 
     amrex::ParallelFor(
         S_new,
@@ -73,6 +73,7 @@ void KleinGordonLevel::specificAdvance()
     // Usually constraints are enforced here, but we don't have any...
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void KleinGordonLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                        amrex::MultiFab &a_rhs,
                                        const double a_time)
@@ -89,8 +90,8 @@ void KleinGordonLevel::specificEvalRHS(amrex::MultiFab &a_soln,
 
     Potential my_potential(simParams().scalar_mass);
 
-    KleinGordonRHS<FourthOrderDerivatives> klein_gordon_rhs(simParams().sigma,
-                                                            dx);
+    KleinGordonRHS<FourthOrderDerivatives, Potential> klein_gordon_rhs(
+        simParams().sigma, dx, my_potential);
 
     amrex::ParallelFor(
         a_soln,
@@ -108,18 +109,19 @@ void KleinGordonLevel::errorEst(TagBoxArray &tags, int /*clearval*/,
 {
     BL_PROFILE("KleinGordonLevel::errorEst()");
 
-    auto const &S_new = get_new_data(State_Type);
+    auto const &state = get_new_data(State_Type);
 
-    const char tagval = TagBox::SET;
-    auto const &a     = tags.arrays();
-    auto const &s     = S_new.const_arrays();
+    const char tagval     = TagBox::SET;
+    auto const &arr       = tags.arrays();
+    auto const &state_arr = state.const_arrays();
     amrex::ParallelFor(tags,
-                       [=] AMREX_GPU_DEVICE(int bi, int i, int j, int k)
+                       [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
                        {
                            // Just an example, not necessarily good choice.
-                           if (amrex::Math::abs(s[bi](i, j, k, 1)) > 0.75)
+                           if (amrex::Math::abs(state_arr[box_no](i, j, k, 1)) >
+                               0.75)
                            {
-                               a[bi](i, j, k) = tagval;
+                               arr[box_no](i, j, k) = tagval;
                            }
                        });
 }

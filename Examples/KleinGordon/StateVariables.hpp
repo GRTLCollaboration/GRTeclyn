@@ -32,5 +32,4 @@ static const std::array<BCParity, NUM_VARS> parities = {BCParity::even,
 
 } // namespace StateVariables
 
-
 #endif /* STATEVARIABLES_HPP */
