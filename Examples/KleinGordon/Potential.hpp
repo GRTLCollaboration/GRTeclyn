@@ -20,7 +20,8 @@ class Potential
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     template <class data_t, template <typename> class vars_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    compute_phi_sq(data_t &V_of_phi, data_t &dVdphi, const vars_t<data_t> &vars)
+    compute_phi_sq(data_t &V_of_phi, data_t &dVdphi,
+                   const vars_t<data_t> &vars) const
     // NOLINTEND(bugprone-easily-swappable-parameters)
     {
 
@@ -33,7 +34,7 @@ class Potential
     template <class data_t, template <typename> class vars_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     compute_sine_gordon(data_t &V_of_phi, data_t &dVdphi,
-                        const vars_t<data_t> &vars)
+                        const vars_t<data_t> &vars) const
     // NOLINTEND(bugprone-easily-swappable-parameters)
     {
 
