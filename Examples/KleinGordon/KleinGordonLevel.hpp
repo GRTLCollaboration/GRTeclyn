@@ -7,6 +7,7 @@
 #include "InitialConditions.hpp"
 #include "KleinGordonRHS.hpp"
 #include "Potential.hpp"
+#include "VarsTools.hpp"
 
 class KleinGordonLevel : public GRAMRLevel
 {
@@ -21,11 +22,6 @@ class KleinGordonLevel : public GRAMRLevel
     void initData() override;
 
     //! Advance this level for one step
-    // could also use GRAMRLevel::advance
-    // but would have to also define specificEvalRHS and specificAdvance and
-    // specificUpdateODE
-    //  amrex::Real advance(amrex::Real time, amrex::Real dt, int iteration,
-    //                      int ncycle) override;
 
     void specificEvalRHS(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
                          const double a_time) override;

@@ -30,9 +30,20 @@ class SimulationParameters : public AMReXParameters
 
         pp.query("scalar_mass",
                  scalar_mass); // What is the mass of the scalar particle?
-        pp.query("wave_vector",
-                 k_r);            // What is the wave number (if wave ICs)
-        pp.query("alpha", alpha); // this is for Sine-Gordon ICs only
+
+        // If the wave number isn't found in the params file
+        // (so not wave ICs), look for the alpha parameter
+        // (assume Sine-Gordon instead).
+        if (!pp.query("wave_vector", k_r))
+        {
+            pp.query("alpha", alpha); // this is for Sine-Gordon ICs only
+            model = "SineGordon";
+        }
+        else
+        {
+            model = "Wave";
+        }
+        pp.add("model", model);
     }
 
     amrex::Real cfl{0.2};
@@ -41,6 +52,7 @@ class SimulationParameters : public AMReXParameters
     amrex::Real k_r{1.0};
     amrex::Real alpha{1.0};
     amrex::Real sigma{0.0};
+    std::string model{"Wave"};
 };
 
 #endif /* SIMULATIONPARAMETERS_HPP */

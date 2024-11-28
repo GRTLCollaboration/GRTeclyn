@@ -49,6 +49,6 @@ sigma = 0.3 #coefficient for KO dissipation
 #Klein Gordon Parameters 
 initial_amplitude = 10.0 
 initial_width = 0.01 
-scalar_mass = 1 
-wave_vector = 100.0
-alpha = 0.7 
+scalar_mass = 1
+# either specify a wave_vector for a plane wave model or alpha for a Sine Gordon model
+wave_vector = 100 

@@ -31,9 +31,10 @@ void KleinGordonLevel::initData()
     const auto dx     = geom.CellSizeArray();
 
     Real midpts[3];
-    midpts[0] = 0.5 * (probhi[0] - problo[0]);
-    midpts[1] = 0.5 * (probhi[1] - problo[1]);
-    midpts[2] = 0.5 * (probhi[2] - problo[2]);
+    int i;
+
+    FOR (i)
+        midpts[i] = 0.5 * (probhi[i] - problo[i]);
 
     MultiFab &S_new  = get_new_data(State_Type);
     auto const &snew = S_new.arrays();
@@ -45,27 +46,47 @@ void KleinGordonLevel::initData()
         midpts[0], midpts[1], midpts[2] + 0.5 * midpts[2],
         midpts[0], midpts[1], midpts[2] - 0.5 * midpts[2]};
 
-    InitialConditions SineGordon(simParams().alpha);
+    if (simParams().model == "Wave")
+    {
+        InitialConditions Wave(simParams().k_r);
+        amrex::ParallelFor(
+            S_new,
+            [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
+            {
+                Real x = problo[0] + (i + 0.5) * dx[0];
+                Real y = problo[1] + (j + 0.5) * dx[1];
+                Real z = problo[2] + (k + 0.5) * dx[2];
 
-    amrex::ParallelFor(
-        S_new,
-        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
-        {
-            Real x = problo[0] + (i + 0.5) * dx[0];
-            Real y = problo[1] + (j + 0.5) * dx[1];
-            Real z = problo[2] + (k + 0.5) * dx[2];
+                snew[box_no](i, j, k, 0) = Wave.travelling_wave(
+                    x - midpts[0], y - midpts[1], z - midpts[2], 0);
+                snew[box_no](i, j, k, 1) = Wave.travelling_wave_deriv(
+                    x - midpts[0], y - midpts[1], z - midpts[2], 0);
+            });
+    }
+    else
+    {
+        InitialConditions SineGordon(simParams().alpha);
 
-            snew[box_no](i, j, k, 0) =
-                SineGordon.breather_solution(x - midpts[0], 0);
-            snew[box_no](i, j, k, 1) =
-                SineGordon.breather_solution_deriv(x - midpts[0], 0);
+        amrex::ParallelFor(
+            S_new,
+            [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
+            {
+                Real x = problo[0] + (i + 0.5) * dx[0];
+                Real y = problo[1] + (j + 0.5) * dx[1];
+                Real z = problo[2] + (k + 0.5) * dx[2];
 
-            //	    snew[bi](i,j,k,2*n) =
-            // SineGordon.breather_solution(x-start_pos[0], y-start_pos[1],
-            // z-start_pos[2], start_times[0]) +
-            // SineGordon.breather_solution(x-start_pos[3], y-start_pos[4],
-            // z-start_pos[5], start_times[1]); snew[bi](i,j,k,2*n+1) = 0;
-        });
+                snew[box_no](i, j, k, 0) =
+                    SineGordon.breather_solution(x - midpts[0], 0);
+                snew[box_no](i, j, k, 1) =
+                    SineGordon.breather_solution_deriv(x - midpts[0], 0);
+
+                //	    snew[bi](i,j,k,2*n) =
+                // SineGordon.breather_solution(x-start_pos[0], y-start_pos[1],
+                // z-start_pos[2], start_times[0]) +
+                // SineGordon.breather_solution(x-start_pos[3], y-start_pos[4],
+                // z-start_pos[5], start_times[1]); snew[bi](i,j,k,2*n+1) = 0;
+            });
+    }
 }
 
 void KleinGordonLevel::specificAdvance()
@@ -80,11 +101,7 @@ void KleinGordonLevel::specificEvalRHS(amrex::MultiFab &a_soln,
 {
     BL_PROFILE("KleinGordonLevel::specificEvalRHS()");
 
-    const auto dx    = Geom().CellSize(0);
-    const auto dxinv = Geom().InvCellSizeArray();
-    AMREX_D_TERM(Real dx2inv = dxinv[0] * dxinv[0];
-                 , Real dy2inv = dxinv[1] * dxinv[1];
-                 , Real dz2inv = dxinv[2] * dxinv[2]);
+    const auto dx         = Geom().CellSize(0);
     auto const &a_soln_a4 = a_soln.const_arrays();
     auto const &a_rhs_a4  = a_rhs.arrays();
 
