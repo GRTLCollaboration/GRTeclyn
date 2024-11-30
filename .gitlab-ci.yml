@@ -27,6 +27,7 @@ variables:
     --account=SHELLARD-SL3-GPU 
     --partition=ampere
 
+
 csd3-a100:
   stage: test
   tags:
@@ -39,10 +40,19 @@ csd3-a100:
     - else
     -   git clone --depth 1 https://github.com/AMReX-Codes/amrex.git ../amrex
     - fi
+    - AMREX_HOME="$PWD"
+    - echo $AMREX_HOME
     - cd ${HOME}/${CI_PROJECT_DIR}/Tests
     - module purge
     - module use ${MODULEPATHS_A100}
     - module load ${MODULES_A100}
     - make -j 8 ${BUILD_CONFIG}
     - srun ${SRUN_FLAGS} make run ${BUILD_CONFIG}
+    - cd ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH
+    - make -j 8 ${BUILD_CONFIG}
+    - srun ${SRUN_FLAGS} ./main3d.gnu.DEBUG.MPI.CUDA.ex ./params_test.txt
+    - cd ${AMREX_HOME}/Tools/Plotfile
+    - make -j 8 COMP=gnu
+#    - ./fcompare.gnu.ex --abs_tol 1e-10 --rel_tol 1e-10 --abort_if_not_all_found ${HOME}/${CI_PROJECT_DIR}/Example/BinaryBH/plt00008 ${HOME}/${CI_PROJECT_DIR}/.github/workflows/data/plt00008_compare/
+
 
