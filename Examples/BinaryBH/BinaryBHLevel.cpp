@@ -52,6 +52,11 @@ void BinaryBHLevel::specificAdvance()
             amrex::Abort("NaN in specificAdvance");
         }
     }
+    else
+    {
+        // stream sync already present in nan_check so only need this here
+        amrex::Gpu::streamSynchronize();
+    }
 }
 
 // This initial data uses an approximation for the metric which
