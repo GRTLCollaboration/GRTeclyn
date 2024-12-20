@@ -122,10 +122,9 @@ processes, do
 ```bash
 make -j 4
 ```
-A new `tmp_build_dir` directory will be created under `~/GRTeclyn` to store the
-compiled object and auxiliary files. Assuming all is well, you should have an
-executable in the current directory of the form `main<config>.ex` e.g.
-`main3d.gnu.MPI.OMP.ex`.
+A new `tmp_build_dir` directory will be created to store the compiled object and
+auxiliary files. Assuming all is well, you should have an executable in the
+current directory of the form `main<config>.ex` e.g. `main3d.gnu.MPI.OMP.ex`.
 
 ## Running the code
 
