@@ -99,6 +99,7 @@ void BinaryBHLevel::initData()
                            binary.init_data(i, j, k, cell);
                        });
 #endif
+    amrex::Gpu::streamSynchronize();
 }
 
 // Calculate RHS during RK4 substeps
