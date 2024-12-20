@@ -24,8 +24,3 @@ BL_NO_FORT = TRUE
 AMREX_NO_PROBINIT = TRUE
 
 CXXSTD = c++17
-
-GRTECLYN_HOME ?= $(realpath ../..)
-
-# Use a common temporary build directory for all GRTeclyn applications
-TMP_BUILD_DIR ?= $(GRTECLYN_HOME)/tmp_build_dir
