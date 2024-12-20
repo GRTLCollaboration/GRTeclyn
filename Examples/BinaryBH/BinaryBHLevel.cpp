@@ -150,6 +150,8 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
         });
 #endif
     }
+
+    amrex::Gpu::streamSynchronize();
 }
 
 // enforce trace removal during RK4 substeps
