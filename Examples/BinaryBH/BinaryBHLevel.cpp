@@ -166,6 +166,8 @@ void BinaryBHLevel::specificUpdateODE(amrex::MultiFab &a_soln)
                                soln_arrs[box_no].cellData(i, j, k);
                            TraceARemoval()(cell);
                        });
+
+    amrex::Gpu::streamSynchronize();
 }
 
 void BinaryBHLevel::errorEst(amrex::TagBoxArray &tag_box_array,
