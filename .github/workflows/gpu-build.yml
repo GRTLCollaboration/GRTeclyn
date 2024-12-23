@@ -27,7 +27,11 @@ jobs:
     name: ${{ matrix.gpu-backend }}, DEBUG = ${{ matrix.debug }}
     env:
       AMREX_HOME: ${{ github.workspace }}/amrex
-      BUILD_ARGS: USE_${{ matrix.gpu-backend }}=TRUE DEBUG=${{ matrix.debug }} USE_MPI=TRUE
+      BUILD_ARGS: >
+        USE_${{ matrix.gpu-backend }}=TRUE
+        DEBUG=${{ matrix.debug }}
+        USE_MPI=TRUE
+        USE_CCACHE=TRUE
       CUDA_MAJOR_VERSION: 12
       CUDA_MINOR_VERSION: 0
       ROCM_VERSION: 6.2.2
@@ -46,6 +50,14 @@ jobs:
       with:
         path: GRTeclyn
         submodules: true
+
+    - name: Set Up Cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-${{ matrix.gpu-backend}}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-${{ matrix.gpu-backend}}-git-
 
     - name: Set up additional repositories
       run: |
@@ -91,30 +103,31 @@ jobs:
       run: |
         if [[ "${{ matrix.gpu-backend }}" == "CUDA" ]]; then
           CUDA_DASHED_VERSION="${{ env.CUDA_MAJOR_VERSION }}-${{ env.CUDA_MINOR_VERSION }}"
-          PACKAGES="libopenmpi-dev
-          cuda-command-line-tools-${CUDA_DASHED_VERSION}
-          cuda-compiler-${CUDA_DASHED_VERSION}
-          cuda-cupti-dev-${CUDA_DASHED_VERSION}
-          cuda-minimal-build-${CUDA_DASHED_VERSION}
-          cuda-nvml-dev-${CUDA_DASHED_VERSION}
-          cuda-nvtx-${CUDA_DASHED_VERSION}
-          libcurand-dev-${CUDA_DASHED_VERSION}
+          PACKAGES="libopenmpi-dev \
+          cuda-command-line-tools-${CUDA_DASHED_VERSION} \
+          cuda-compiler-${CUDA_DASHED_VERSION} \
+          cuda-cupti-dev-${CUDA_DASHED_VERSION} \
+          cuda-minimal-build-${CUDA_DASHED_VERSION} \
+          cuda-nvml-dev-${CUDA_DASHED_VERSION} \
+          cuda-nvtx-${CUDA_DASHED_VERSION} \
+          libcurand-dev-${CUDA_DASHED_VERSION} \
           libcusparse-dev-${CUDA_DASHED_VERSION}"
         elif [[ "${{ matrix.gpu-backend }}" == "HIP" ]]; then
-          PACKAGES="libopenmpi-dev
-          rocm-dev
-          roctracer-dev
-          rocprofiler-dev
-          rocrand-dev
-          rocprim-dev
-          rocsparse-dev
+          PACKAGES="libopenmpi-dev \
+          rocm-dev \
+          roctracer-dev \
+          rocprofiler-dev \
+          rocrand-dev \
+          rocprim-dev \
+          rocsparse-dev \
           hiprand-dev"
         elif [[ "${{ matrix.gpu-backend }}" == "SYCL" ]]; then
-          PACKAGES="intel-oneapi-compiler-dpcpp-cpp-${{ env.ONEAPI_COMP_VERSION }}
-          intel-oneapi-compiler-fortran-${{ env.ONEAPI_COMP_VERSION }}
-          intel-oneapi-mkl-devel-${{ env.ONEAPI_COMP_VERSION }}
+          PACKAGES="intel-oneapi-compiler-dpcpp-cpp-${{ env.ONEAPI_COMP_VERSION }} \
+          intel-oneapi-compiler-fortran-${{ env.ONEAPI_COMP_VERSION }} \
+          intel-oneapi-mkl-devel-${{ env.ONEAPI_COMP_VERSION }} \
           intel-oneapi-mpi-devel-${{ env.ONEAPI_MPI_VERSION }}"
         fi
+        PACKAGES="$PACKAGES ccache"
         sudo apt-get -y --no-install-recommends install $PACKAGES
 
     - name: Build tests and examples
@@ -137,4 +150,4 @@ jobs:
           export I_MPI_CXX=icpx
         fi
         make tests -j 4 ${{ env.BUILD_ARGS }}
-        make examples -j 4 ${{ env.BUILD_ARGS }} 
+        make examples -j 4 ${{ env.BUILD_ARGS }}
