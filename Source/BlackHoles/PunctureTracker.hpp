@@ -18,11 +18,9 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 0>
   private:
     //! Params for puncture tracking
     int m_num_punctures{0};
-    amrex::Vector<amrex::RealVect>
+    amrex::Vector<amrex::Real>
         m_puncture_coords; //!< the puncture location broadcast to all ranks
-    // amrex::Vector<int> m_puncture_proc_ids{};
-    amrex::Vector<int> m_local_proc_has_punctures;
-    int m_update_level{}; //!< the level on which to update positions
+    int m_update_level{};  //!< the level on which to update positions
 
     std::string m_punctures_filename;
     std::string m_checkpoint_subdir;
@@ -40,7 +38,7 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 0>
     //! this needs to be done before 'setupAMRObject'
     //! if the puncture locations are required for Tagging Criteria
     void
-    initial_setup(const amrex::Vector<amrex::RealVect> &initial_puncture_coords,
+    initial_setup(const amrex::Vector<amrex::Real> &initial_puncture_coords,
                   GRAMR *a_gr_amr, const std::string &a_filename = "punctures",
                   const std::string &a_output_path = "./",
                   const int a_update_level         = 0);
@@ -55,21 +53,8 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 0>
     void execute_tracking(double a_time, double a_restart_time, double a_dt,
                           const bool write_punctures = true);
 
-    //! redistribute puncture particles to correct places
-    void redistribute();
-
-    // function to get punctures
-    [[nodiscard]] amrex::Vector<amrex::RealVect> get_puncture_coords() const
-    {
-        return m_puncture_coords;
-    }
-
     //! set and write initial puncture locations
     void set_initial_punctures();
-
-  private:
-    //! Get a vector of the puncture coords - used for write out
-    [[nodiscard]] std::vector<double> get_puncture_vector() const;
 };
 
 #endif /* PUNCTURETRACKER_HPP_ */
