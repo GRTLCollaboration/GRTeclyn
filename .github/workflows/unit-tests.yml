@@ -42,6 +42,7 @@ jobs:
         USE_MPI=${{ matrix.mpi }}
         USE_OMP=${{ matrix.omp }}
         USE_HDF5=TRUE
+        USE_CCACHE=TRUE
 
     steps:
     - name: Checkout AMReX
@@ -55,6 +56,14 @@ jobs:
       with:
         path: GRTeclyn
         submodules: true
+
+    - name: Set Up Cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-${{ matrix.comp }}-${{ matrix.comp-version }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-${{ matrix.comp }}-${{ matrix.comp-version }}-git-
 
     - name: Update package manager database
       id: update-database
@@ -71,7 +80,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        PACKAGES="hdf5-tools"
+        PACKAGES="hdf5-tools ccache"
         if [[ "${{ matrix.mpi }}" == "TRUE" ]]; then
           PACKAGES="${PACKAGES} libopenmpi-dev libhdf5-openmpi-dev"
         else
