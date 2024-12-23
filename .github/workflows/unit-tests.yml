@@ -61,9 +61,9 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cache/ccache
-        key: ccache-${{ github.workflow }}-${{ github.job }}-${{ matrix.comp }}-${{ matrix.comp-version }}-git-${{ github.sha }}
+        key: ccache-${{ github.workflow }}-${{ github.job }}-${{ join(matrix.*, '-') }}-git-${{ github.sha }}
         restore-keys: |
-             ccache-${{ github.workflow }}-${{ github.job }}-${{ matrix.comp }}-${{ matrix.comp-version }}-git-
+             ccache-${{ github.workflow }}-${{ github.job }}-${{ join(matrix.*, '-') }}-git-
 
     - name: Update package manager database
       id: update-database
