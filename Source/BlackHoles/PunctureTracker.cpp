@@ -17,10 +17,9 @@
 #include <AMReX_TracerParticle_mod_K.H> // for linear_interpolation
 
 //! Set up puncture tracker
-void PunctureTracker::initial_setup(
+void PunctureTracker::initialize(
     const amrex::Vector<amrex::Real> &initial_puncture_coords, GRAMR *a_gr_amr,
-    const std::string &a_filename, const std::string &a_output_path,
-    const int a_update_level)
+    const std::string &a_filename, const std::string &a_output_path)
 {
     if (!FilesystemTools::directory_exists(a_output_path))
     {
@@ -37,65 +36,58 @@ void PunctureTracker::initial_setup(
         static_cast<int>(initial_puncture_coords.size() / AMREX_SPACEDIM);
     m_puncture_coords = initial_puncture_coords;
 
-    m_update_level = a_update_level;
-
     {
         // Disable particle tiling as we won't have many particles
         // TODO: Remove if we add more particles elsewhere
         GRParmParse pp("particles");
         pp.add("do_tiling", 0);
     }
+
+    m_initialized = true;
 }
 
-void PunctureTracker::restart(int a_coarse_step)
+void PunctureTracker::start_from_initial_punctures()
 {
-    Define(dynamic_cast<amrex::ParGDBBase *>(m_gr_amr->GetParGDB()));
-    if (a_coarse_step == 0)
-    {
-        // if it is the first timestep, use the param values
-        set_initial_punctures();
-    }
-    else
-    {
-        std::string restart_checkpoint{};
-        GRParmParse pp("amr");
-        pp.get("restart", restart_checkpoint);
+    AMREX_ASSERT(m_initialized);
 
-        Restart(restart_checkpoint, m_checkpoint_subdir);
-    }
+    Define(dynamic_cast<amrex::ParGDBBase *>(m_gr_amr->GetParGDB()));
+
+    // If it's first step, we use the initial puncture locations set in
+    // initialize()
+    write_initial_punctures();
+
+    // Add the initial puncture particles to the underlying
+    // ParticleContainer
+    set_initial_punctures_pc();
+
+    m_started = true;
+}
+
+void PunctureTracker::restart(const std::string &a_restart_chk_dir)
+{
+    AMREX_ASSERT(m_initialized);
+
+    Define(dynamic_cast<amrex::ParGDBBase *>(m_gr_amr->GetParGDB()));
+
+    Restart(a_restart_chk_dir, m_checkpoint_subdir);
+
+    m_started = true;
 }
 
 void PunctureTracker::checkpoint(const std::string &a_chk_dir)
 {
+    AMREX_ASSERT(m_initialized);
+    AMREX_ASSERT(m_started);
+
     Redistribute();
     Checkpoint(a_chk_dir, m_checkpoint_subdir);
 }
 
 //! set and write initial puncture locations
-void PunctureTracker::set_initial_punctures()
+void PunctureTracker::set_initial_punctures_pc()
 {
+    AMREX_ASSERT(m_initialized);
     AMREX_ASSERT(m_puncture_coords.size() > 0); // sanity check
-
-    // now the write out to a new file
-    bool first_step     = true;
-    double dt           = 1.; // doesn't matter
-    double time         = 0.;
-    double restart_time = 0.;
-    SmallDataIO punctures_file(m_punctures_filename, dt, time, restart_time,
-                               SmallDataIO::APPEND, first_step);
-    std::vector<std::string> header1_strings(
-        static_cast<size_t>(AMREX_SPACEDIM * m_num_punctures));
-    for (int ipuncture = 0; ipuncture < m_num_punctures; ipuncture++)
-    {
-        std::string idx = std::to_string(ipuncture + 1);
-        header1_strings[AMREX_SPACEDIM * ipuncture + 0] = "x_" + idx;
-        header1_strings[AMREX_SPACEDIM * ipuncture + 1] = "y_" + idx;
-        header1_strings[AMREX_SPACEDIM * ipuncture + 2] = "z_" + idx;
-    }
-    punctures_file.write_header_line(header1_strings);
-
-    // use a vector for the write out
-    punctures_file.write_time_data_line(m_puncture_coords);
 
     if (amrex::ParallelDescriptor::MyProc() != 0)
         return;
@@ -130,11 +122,41 @@ void PunctureTracker::set_initial_punctures()
     }
 }
 
-//! Execute the tracking and write out
-void PunctureTracker::execute_tracking(double a_time, double a_restart_time,
-                                       double a_dt, const bool write_punctures)
+void PunctureTracker::write_initial_punctures() const
 {
-    BL_PROFILE("PunctureTracker::execute_tracking");
+    AMREX_ASSERT(m_initialized);
+    AMREX_ASSERT(m_puncture_coords.size() > 0); // sanity check
+
+    // now the write out to a new file
+    bool first_step     = true;
+    double dt           = 1.; // doesn't matter
+    double time         = 0.;
+    double restart_time = 0.;
+    SmallDataIO punctures_file(m_punctures_filename, dt, time, restart_time,
+                               SmallDataIO::APPEND, first_step);
+    std::vector<std::string> header1_strings(
+        static_cast<size_t>(AMREX_SPACEDIM * m_num_punctures));
+    for (int ipuncture = 0; ipuncture < m_num_punctures; ipuncture++)
+    {
+        std::string idx = std::to_string(ipuncture + 1);
+        header1_strings[AMREX_SPACEDIM * ipuncture + 0] = "x_" + idx;
+        header1_strings[AMREX_SPACEDIM * ipuncture + 1] = "y_" + idx;
+        header1_strings[AMREX_SPACEDIM * ipuncture + 2] = "z_" + idx;
+    }
+    punctures_file.write_header_line(header1_strings);
+
+    // use a vector for the write out
+    punctures_file.write_time_data_line(m_puncture_coords);
+}
+
+//! track the punctures and write out if requested
+void PunctureTracker::track(double a_time, double a_restart_time, double a_dt,
+                            const bool write_punctures)
+{
+    AMREX_ASSERT(m_initialized);
+    AMREX_ASSERT(m_started);
+
+    BL_PROFILE("PunctureTracker::track");
     // leave if this is called at t=0, we don't want to move the puncture yet
     {
         if (a_time == 0.)

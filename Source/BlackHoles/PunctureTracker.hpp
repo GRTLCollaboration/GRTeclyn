@@ -20,41 +20,49 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 0>
     int m_num_punctures{0};
     amrex::Vector<amrex::Real>
         m_puncture_coords; //!< the puncture location broadcast to all ranks
-    int m_update_level{};  //!< the level on which to update positions
 
     std::string m_punctures_filename;
     std::string m_checkpoint_subdir;
 
-    // using PunctureIter         = s_particle_container::ParIterType;
-    // using PunctureParticleType = s_particle_container::ParticleType;
-
     GRAMR *m_gr_amr{nullptr};
+
+    bool m_initialized{false};
+    bool m_started{false};
 
   public:
     //! The constructor
     using amrex::ParticleContainer<AMREX_SPACEDIM, 0>::ParticleContainer;
 
-    //! set puncture locations on start (or restart)
-    //! this needs to be done before 'setupAMRObject'
-    //! if the puncture locations are required for Tagging Criteria
-    void
-    initial_setup(const amrex::Vector<amrex::Real> &initial_puncture_coords,
-                  GRAMR *a_gr_amr, const std::string &a_filename = "punctures",
-                  const std::string &a_output_path = "./",
-                  const int a_update_level         = 0);
+    //! Initialize the tracker. Note that this does not set up the underlying
+    //! ParticleContainer
+    void initialize(const amrex::Vector<amrex::Real> &initial_puncture_coords,
+                    GRAMR *a_gr_amr,
+                    const std::string &a_filename    = "punctures",
+                    const std::string &a_output_path = "./");
 
-    //! set puncture locations on start (or restart)
-    void restart(int a_coarse_step);
+    //! start the puncture tracker from the initial punctures
+    void start_from_initial_punctures();
+
+    //! restart the puncture tracker
+    void restart(const std::string &a_restart_chk_dir);
 
     //! write punctures to the checkpoint directory
     void checkpoint(const std::string &a_chk_dir);
 
-    //! Execute the tracking and write out
-    void execute_tracking(double a_time, double a_restart_time, double a_dt,
-                          const bool write_punctures = true);
+    //! Track the punctures and write out if requested
+    void track(double a_time, double a_restart_time, double a_dt,
+               const bool write_punctures = true);
 
-    //! set and write initial puncture locations
-    void set_initial_punctures();
+#ifndef AMREX_USE_CUDA
+  private: // CUDA doesn't allow lambdas in private functions
+#endif
+
+    //! set the initial punctures in the particle container
+    void set_initial_punctures_pc();
+
+  private:
+    //! write the initial punctures to a file
+    void write_initial_punctures() const;
 };
 
 #endif /* PUNCTURETRACKER_HPP_ */

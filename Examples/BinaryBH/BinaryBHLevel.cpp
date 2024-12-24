@@ -207,29 +207,27 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
     amrex::Gpu::streamSynchronize();
 }
 
-void BinaryBHLevel::restart_punctures()
-{
-    if (simParams().track_punctures)
-    {
-        BHAMR *bh_amr_ptr  = get_bhamr_ptr();
-        int coarsest_level = 0;
-        bh_amr_ptr->m_puncture_tracker.restart(
-            bh_amr_ptr->levelSteps(coarsest_level));
-    }
-}
-
 void BinaryBHLevel::specific_post_init()
 {
     BL_PROFILE("BinaryBHLevel::specific_post_init()");
 
-    restart_punctures();
+    if (simParams().track_punctures)
+    {
+        get_bhamr_ptr()->m_puncture_tracker.start_from_initial_punctures();
+    }
 }
 
 void BinaryBHLevel::specific_post_restart()
 {
     BL_PROFILE("BinaryBHLevel::specific_post_restart()");
 
-    restart_punctures();
+    if (simParams().track_punctures)
+    {
+        std::string restart_checkpoint{};
+        GRParmParse pp("amr");
+        pp.get("restart", restart_checkpoint);
+        get_bhamr_ptr()->m_puncture_tracker.restart(restart_checkpoint);
+    }
 }
 
 void BinaryBHLevel::specific_post_checkpoint(const std::string &a_chk_dir,
@@ -256,8 +254,8 @@ void BinaryBHLevel::specificPostTimeStep()
         amrex::Real cur_time     = get_state_data(State_Type).curTime();
         amrex::Real restart_time = bh_amr->get_restart_time();
         amrex::Real dt           = bh_amr->dtLevel(Level());
-        bh_amr->m_puncture_tracker.execute_tracking(cur_time, restart_time, dt,
-                                                    write_punctures);
+        bh_amr->m_puncture_tracker.track(cur_time, restart_time, dt,
+                                         write_punctures);
     }
 #if 0
 //xxxxx specificPostTimeStep

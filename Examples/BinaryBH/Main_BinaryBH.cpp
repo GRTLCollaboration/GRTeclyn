@@ -48,7 +48,7 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
 #endif
     if (sim_params.track_punctures)
     {
-        bh_amr.m_puncture_tracker.initial_setup(
+        bh_amr.m_puncture_tracker.initialize(
             {sim_params.bh1_params.center[0], sim_params.bh1_params.center[1],
              sim_params.bh1_params.center[2], sim_params.bh2_params.center[0],
              sim_params.bh2_params.center[1], sim_params.bh2_params.center[2]},

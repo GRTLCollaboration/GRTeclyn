@@ -52,11 +52,8 @@ class BinaryBHLevel : public GRAMRLevel
     void specific_post_init() override;
 
     //! Things to do after writing a checkpoint
-    void specificPostCheckpoint(const std::string &a_dir,
-                                std::ostream & /*a_os*/) override;
-
-  private:
-    void restart_punctures();
+    void specific_post_checkpoint(const std::string &a_dir,
+                                  std::ostream & /*a_os*/) override;
 };
 
 #endif /* BINARYBHLEVEL_HPP_ */
