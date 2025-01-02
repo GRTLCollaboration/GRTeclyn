@@ -213,7 +213,11 @@ void BinaryBHLevel::specific_post_init()
 
     if (simParams().track_punctures)
     {
-        get_bhamr_ptr()->m_puncture_tracker.start_from_initial_punctures();
+        get_bhamr_ptr()->m_puncture_tracker.start_from_initial_punctures(
+            {simParams().bh1_params.center[0], simParams().bh1_params.center[1],
+             simParams().bh1_params.center[2], simParams().bh2_params.center[0],
+             simParams().bh2_params.center[1],
+             simParams().bh2_params.center[2]});
     }
 }
 
@@ -249,13 +253,11 @@ void BinaryBHLevel::specificPostTimeStep()
         // only do the write out for every coarsest level timestep
         // int coarsest_level = 0;
         // bool write_punctures = at_level_timestep_multiple(coarsest_level);
-        BHAMR *bh_amr            = get_bhamr_ptr();
-        bool write_punctures     = true;
-        amrex::Real cur_time     = get_state_data(State_Type).curTime();
-        amrex::Real restart_time = bh_amr->get_restart_time();
-        amrex::Real dt           = bh_amr->dtLevel(Level());
-        bh_amr->m_puncture_tracker.track(cur_time, restart_time, dt,
-                                         write_punctures);
+        BHAMR *bh_amr        = get_bhamr_ptr();
+        bool write_punctures = true;
+        amrex::Real cur_time = get_state_data(State_Type).curTime();
+        amrex::Real dt       = bh_amr->dtLevel(Level());
+        bh_amr->m_puncture_tracker.track(cur_time, dt, write_punctures);
     }
 #if 0
 //xxxxx specificPostTimeStep

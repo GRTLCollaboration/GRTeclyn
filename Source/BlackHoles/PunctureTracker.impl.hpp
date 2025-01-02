@@ -3,23 +3,29 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#include "PunctureTracker.hpp"
+#ifndef PUNCTURETRACKER_HPP_
+#error "This file should only be included through PunctureTracker.hpp"
+#endif
+
+#ifndef PUNCTURETRACKER_IMPL_HPP_
+#define PUNCTURETRACKER_IMPL_HPP_
+
 // #include "AMReXParameters.hpp" // for writing data
 #include "DimensionDefinitions.hpp"
 #include "FilesystemTools.hpp"
-#include "GRAMRLevel.hpp"
 #include "GRParmParse.hpp"
-#include "SmallDataIO.hpp"    // for writing data
-#include "StateVariables.hpp" // for writing data
+#include "SmallDataIO.hpp" // for writing data
+#include "StateVariables.hpp"
 
 // AMReX includes
 #include <AMReX_AmrParGDB.H>
 #include <AMReX_TracerParticle_mod_K.H> // for linear_interpolation
 
 //! Set up puncture tracker
-void PunctureTracker::initialize(
-    const amrex::Vector<amrex::Real> &initial_puncture_coords, GRAMR *a_gr_amr,
-    const std::string &a_filename, const std::string &a_output_path)
+template <unsigned int num_punctures>
+void PunctureTracker<num_punctures>::initialize(
+    GRAMR *a_gr_amr, const std::string &a_filename,
+    const std::string &a_output_path)
 {
     if (!FilesystemTools::directory_exists(a_output_path))
     {
@@ -32,10 +38,6 @@ void PunctureTracker::initialize(
     AMREX_ASSERT(a_gr_amr != nullptr);
     m_gr_amr = a_gr_amr;
 
-    m_num_punctures =
-        static_cast<int>(initial_puncture_coords.size() / AMREX_SPACEDIM);
-    m_puncture_coords = initial_puncture_coords;
-
     {
         // Disable particle tiling as we won't have many particles
         // TODO: Remove if we add more particles elsewhere
@@ -46,14 +48,20 @@ void PunctureTracker::initialize(
     m_initialized = true;
 }
 
-void PunctureTracker::start_from_initial_punctures()
+template <unsigned int num_punctures>
+void PunctureTracker<num_punctures>::start_from_initial_punctures(
+    const amrex::Array<amrex::Real,
+                       PunctureTracker<num_punctures>::num_puncture_coords>
+        &a_initial_puncture_coords)
 {
     AMREX_ASSERT(m_initialized);
 
+    // Define the particle container
     Define(dynamic_cast<amrex::ParGDBBase *>(m_gr_amr->GetParGDB()));
 
-    // If it's first step, we use the initial puncture locations set in
-    // initialize()
+    m_puncture_coords = a_initial_puncture_coords;
+
+    // If it's first step, we use the initial puncture locations set above
     write_initial_punctures();
 
     // Add the initial puncture particles to the underlying
@@ -63,18 +71,28 @@ void PunctureTracker::start_from_initial_punctures()
     m_started = true;
 }
 
-void PunctureTracker::restart(const std::string &a_restart_chk_dir)
+template <unsigned int num_punctures>
+void PunctureTracker<num_punctures>::restart(
+    const std::string &a_restart_chk_dir)
 {
     AMREX_ASSERT(m_initialized);
 
+    // Define the particle container
     Define(dynamic_cast<amrex::ParGDBBase *>(m_gr_amr->GetParGDB()));
 
     Restart(a_restart_chk_dir, m_checkpoint_subdir);
 
     m_started = true;
+
+    m_restart_time = m_gr_amr->get_restart_time();
+
+    // The above Restart function will only set the punctures in the underlying
+    // ParticleContainer so let's update our own m_puncture_coords
+    update_puncture_coords();
 }
 
-void PunctureTracker::checkpoint(const std::string &a_chk_dir)
+template <unsigned int num_punctures>
+void PunctureTracker<num_punctures>::checkpoint(const std::string &a_chk_dir)
 {
     AMREX_ASSERT(m_initialized);
     AMREX_ASSERT(m_started);
@@ -84,10 +102,10 @@ void PunctureTracker::checkpoint(const std::string &a_chk_dir)
 }
 
 //! set and write initial puncture locations
-void PunctureTracker::set_initial_punctures_pc()
+template <unsigned int num_punctures>
+void PunctureTracker<num_punctures>::set_initial_punctures_pc()
 {
     AMREX_ASSERT(m_initialized);
-    AMREX_ASSERT(m_puncture_coords.size() > 0); // sanity check
 
     if (amrex::ParallelDescriptor::MyProc() != 0)
         return;
@@ -97,23 +115,22 @@ void PunctureTracker::set_initial_punctures_pc()
     const int base_level = 0;
     {
         auto &particle_tile = DefineAndReturnParticleTile(base_level, 0, 0);
-        particle_tile.resize(m_num_punctures);
+        particle_tile.resize(num_punctures);
         const auto &particle_tile_data = particle_tile.getParticleTileData();
 
-        amrex::Gpu::AsyncArray<amrex::ParticleReal> puncture_coords_aa(
-            m_puncture_coords.data(), m_puncture_coords.size());
-        amrex::ParticleReal *puncture_coords_aa_ptr = puncture_coords_aa.data();
+        amrex::GpuArray<amrex::Real, num_puncture_coords> d_puncture_coords;
+        std::copy(m_puncture_coords.begin(), m_puncture_coords.end(),
+                  d_puncture_coords.begin());
 
         amrex::ParallelFor(
-            m_num_punctures,
+            num_punctures,
             [=] AMREX_GPU_DEVICE(int ipuncture)
             {
                 FOR1 (idir)
                 {
                     auto &puncture_particle = particle_tile_data[ipuncture];
                     puncture_particle.pos(idir) =
-                        puncture_coords_aa_ptr[AMREX_SPACEDIM * ipuncture +
-                                               idir];
+                        d_puncture_coords[linear_idx(ipuncture, idir)];
                     puncture_particle.id()  = ipuncture + 1;
                     puncture_particle.cpu() = 0;
                 }
@@ -122,21 +139,33 @@ void PunctureTracker::set_initial_punctures_pc()
     }
 }
 
-void PunctureTracker::write_initial_punctures() const
+template <unsigned int num_punctures>
+std::vector<amrex::Real>
+PunctureTracker<num_punctures>::get_puncture_vector() const
 {
     AMREX_ASSERT(m_initialized);
-    AMREX_ASSERT(m_puncture_coords.size() > 0); // sanity check
+
+    std::vector<amrex::Real> puncture_coords_vector(num_puncture_coords);
+    std::copy(m_puncture_coords.begin(), m_puncture_coords.end(),
+              puncture_coords_vector.begin());
+
+    return puncture_coords_vector;
+}
+
+template <unsigned int num_punctures>
+void PunctureTracker<num_punctures>::write_initial_punctures() const
+{
+    AMREX_ASSERT(m_initialized);
 
     // now the write out to a new file
-    bool first_step     = true;
-    double dt           = 1.; // doesn't matter
-    double time         = 0.;
-    double restart_time = 0.;
-    SmallDataIO punctures_file(m_punctures_filename, dt, time, restart_time,
+    bool first_step = true;
+    double dt       = 1.; // doesn't matter
+    double time     = 0.;
+    SmallDataIO punctures_file(m_punctures_filename, dt, time, m_restart_time,
                                SmallDataIO::APPEND, first_step);
     std::vector<std::string> header1_strings(
-        static_cast<size_t>(AMREX_SPACEDIM * m_num_punctures));
-    for (int ipuncture = 0; ipuncture < m_num_punctures; ipuncture++)
+        static_cast<size_t>(num_puncture_coords));
+    for (int ipuncture = 0; ipuncture < num_punctures; ipuncture++)
     {
         std::string idx = std::to_string(ipuncture + 1);
         header1_strings[AMREX_SPACEDIM * ipuncture + 0] = "x_" + idx;
@@ -146,32 +175,26 @@ void PunctureTracker::write_initial_punctures() const
     punctures_file.write_header_line(header1_strings);
 
     // use a vector for the write out
-    punctures_file.write_time_data_line(m_puncture_coords);
+    punctures_file.write_time_data_line(get_puncture_vector());
 }
 
 //! track the punctures and write out if requested
-void PunctureTracker::track(double a_time, double a_restart_time, double a_dt,
-                            const bool write_punctures)
+template <unsigned int num_punctures>
+void PunctureTracker<num_punctures>::track(double a_time, double a_dt,
+                                           const bool a_write_punctures)
 {
+    BL_PROFILE("PunctureTracker::track");
     AMREX_ASSERT(m_initialized);
     AMREX_ASSERT(m_started);
 
-    BL_PROFILE("PunctureTracker::track");
     // leave if this is called at t=0, we don't want to move the puncture yet
     {
         if (a_time == 0.)
             return;
     }
 
-    AMREX_ASSERT(static_cast<int>(m_puncture_coords.size()) ==
-                 m_num_punctures * AMREX_SPACEDIM); // sanity check
-
     // Redistribute punctures to the correct grid
     Redistribute();
-
-    // We will perform an MPI sum reduction to get the coords so set them to
-    // zero by default
-    std::fill(m_puncture_coords.begin(), m_puncture_coords.end(), 0.0);
 
     for (int ilevel = 0; ilevel <= m_gr_amr->finestLevel(); ilevel++)
     {
@@ -247,14 +270,51 @@ void PunctureTracker::track(double a_time, double a_restart_time, double a_dt,
                     }); // amrex::ParallelFor
             }           // punc_iter
         }               // ipass
+    }                   // ilevel
 
-        amrex::Vector<amrex::Real> level_puncture_coords(
-            AMREX_SPACEDIM * m_num_punctures, 0.0);
+    // update m_puncture_coords with the updated locations of the puncture
+    // particles
+    update_puncture_coords();
+
+    // write them out
+    if (a_write_punctures)
+    {
+        bool first_step = false;
+        SmallDataIO punctures_file(m_punctures_filename, a_dt, a_time,
+                                   m_restart_time, SmallDataIO::APPEND,
+                                   first_step);
+
+        // use a vector for the write out
+        punctures_file.remove_duplicate_time_data();
+        punctures_file.write_time_data_line(get_puncture_vector());
+    }
+}
+
+template <unsigned int num_punctures>
+void PunctureTracker<num_punctures>::update_puncture_coords()
+{
+    BL_PROFILE("PunctureTracker::update_puncture_coords");
+    AMREX_ASSERT(m_initialized);
+    AMREX_ASSERT(m_started);
+
+    // We will perform an MPI sum reduction to get the coords so set them to
+    // zero by default
+    m_puncture_coords.fill(0.0);
+
+    for (int ilevel = 0; ilevel <= m_gr_amr->finestLevel(); ilevel++)
+    {
+        if (this->NumberOfParticlesAtLevel(ilevel) == 0L)
+        {
+            continue;
+        }
+
+        amrex::Array<amrex::Real, num_puncture_coords> h_level_puncture_coords;
+        h_level_puncture_coords.fill(0.0);
 
         // Now if this proc has a puncture particle, we set its location
-        amrex::Gpu::AsyncArray<amrex::ParticleReal> d_puncture_coords(
-            level_puncture_coords.dataPtr(), AMREX_SPACEDIM * m_num_punctures);
-        auto *d_puncture_coords_ptr = d_puncture_coords.data();
+        amrex::Gpu::AsyncArray<amrex::ParticleReal> d_level_puncture_coords(
+            h_level_puncture_coords.data(), num_puncture_coords);
+        auto *d_level_puncture_coords_ptr = d_level_puncture_coords.data();
         for (ParIterType punc_iter(*this, ilevel); punc_iter.isValid();
              ++punc_iter)
         {
@@ -262,48 +322,32 @@ void PunctureTracker::track(double a_time, double a_restart_time, double a_dt,
             auto *punc_particles_data = punc_particles.data();
             int num_punc_tile         = punc_iter.numParticles();
 
-            amrex::ParallelFor(
-                num_punc_tile,
-                [=] AMREX_GPU_DEVICE(int ipunc)
-                {
-                    auto &p      = punc_particles_data[ipunc];
-                    int punc_idx = p.id() - 1;
-                    FOR1 (idir)
-                    {
-                        d_puncture_coords_ptr[punc_idx * AMREX_SPACEDIM +
-                                              idir] = p.pos(idir);
-                    }
-                });
+            amrex::ParallelFor(num_punc_tile,
+                               [=] AMREX_GPU_DEVICE(int ipunc)
+                               {
+                                   auto &p      = punc_particles_data[ipunc];
+                                   int punc_idx = p.id() - 1;
+                                   FOR1 (idir)
+                                   {
+                                       d_level_puncture_coords_ptr[linear_idx(
+                                           punc_idx, idir)] = p.pos(idir);
+                                   }
+                               });
         }
-
-        // It's safe to copy all coords as the coords for the punctures we
-        // don't have will just be zero.
-        d_puncture_coords.copyToHost(level_puncture_coords.dataPtr(),
-                                     AMREX_SPACEDIM * m_num_punctures);
+        d_level_puncture_coords.copyToHost(h_level_puncture_coords.data(),
+                                           num_puncture_coords);
 
         // Sum reduce over levels in case there are punctures on multiple levels
         // on this proc
-        for (int icoord = 0; icoord < AMREX_SPACEDIM * m_num_punctures;
-             icoord++)
-        {
-            m_puncture_coords[icoord] += level_puncture_coords[icoord];
-        }
+        std::transform(m_puncture_coords.begin(), m_puncture_coords.end(),
+                       h_level_puncture_coords.begin(),
+                       m_puncture_coords.begin(), std::plus<amrex::Real>());
+
     } // ilevel
 
     // MPI sum over all ranks
-    amrex::ParallelAllReduce::Sum(m_puncture_coords.dataPtr(),
-                                  m_puncture_coords.size(),
+    amrex::ParallelAllReduce::Sum(m_puncture_coords.data(), num_puncture_coords,
                                   amrex::ParallelContext::CommunicatorAll());
-
-    // print them out
-    if (write_punctures)
-    {
-        bool first_step = false;
-        SmallDataIO punctures_file(m_punctures_filename, a_dt, a_time,
-                                   a_restart_time, SmallDataIO::APPEND,
-                                   first_step);
-
-        // use a vector for the write out
-        punctures_file.write_time_data_line(m_puncture_coords);
-    }
 }
+
+#endif

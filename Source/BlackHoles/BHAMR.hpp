@@ -17,7 +17,7 @@
 class BHAMR : public GRAMR
 {
   public:
-    PunctureTracker m_puncture_tracker;
+    PunctureTracker<2> m_puncture_tracker;
 
     BHAMR(amrex::LevelBld *a_levelbld) : GRAMR(a_levelbld) {}
 };
