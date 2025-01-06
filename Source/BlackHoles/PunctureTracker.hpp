@@ -67,17 +67,15 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 0>
     //! update m_puncture_coords from the particle locations
     void update_puncture_coords();
 
-<<<<<<< HEAD
-=======
     //! return the linear index of the coord in the idir direction for the
     //! ipuncture puncture in m_puncture_coords
-    static AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE size_t
+    static AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE int
     linear_idx(int ipuncture, int idir)
     {
-        return static_cast<size_t>(ipuncture * AMREX_SPACEDIM + idir);
+        return ipuncture * AMREX_SPACEDIM + idir;
     }
+
 #ifdef AMREX_USE_CUDA
->>>>>>> 692232c (fixup! BlackHoles: Refactor PunctureTracker again)
   private:
 #endif
     //! write the initial punctures to a file
@@ -85,14 +83,6 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 0>
 
     //! SmallDataIO requires a std::vector to write the coords
     std::vector<amrex::Real> get_puncture_vector() const;
-
-    //! return the linear index of the coord in the idir direction for the
-    //! ipuncture puncture in m_puncture_coords
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE size_t linear_idx(int ipuncture,
-                                                               int idir) const
-    {
-        return static_cast<size_t>(ipuncture * AMREX_SPACEDIM + idir);
-    }
 };
 
 #include "PunctureTracker.impl.hpp"
