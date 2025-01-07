@@ -19,9 +19,10 @@
 
 template <int num_punctures> class BHAMR : public GRAMR
 {
-  public:
+  private:
     PunctureTracker<num_punctures> m_puncture_tracker;
 
+  public:
     BHAMR(amrex::LevelBld *a_levelbld) : GRAMR(a_levelbld)
     {
         amrex::ParmParse puncture_tracking_pp("puncture_tracking");
@@ -32,6 +33,11 @@ template <int num_punctures> class BHAMR : public GRAMR
         {
             m_puncture_tracker.initialize(this);
         }
+    }
+
+    PunctureTracker<num_punctures> &get_puncture_tracker()
+    {
+        return m_puncture_tracker;
     }
 };
 

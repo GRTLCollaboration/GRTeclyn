@@ -19,7 +19,12 @@ class BinaryBHLevel : public GRAMRLevel
     // Inherit the contructors from GRAMRLevel
     using GRAMRLevel::GRAMRLevel;
 
-    BHAMR<2> *get_bhamr_ptr();
+    static constexpr int num_punctures = 2;
+
+    BHAMR<num_punctures> *get_bhamr_ptr();
+
+    /// Get a reference to the PunctureTracker object stored by BHAMR
+    PunctureTracker<num_punctures> &get_puncture_tracker();
 
     /// Things to do at every full timestep
     ///(might include several substeps, e.g. in RK4)

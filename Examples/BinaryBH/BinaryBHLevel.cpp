@@ -16,9 +16,15 @@
 #include "Weyl4.hpp"
 #include "WeylExtraction.hpp"
 
-BHAMR<2> *BinaryBHLevel::get_bhamr_ptr()
+BHAMR<BinaryBHLevel::num_punctures> *BinaryBHLevel::get_bhamr_ptr()
 {
-    return dynamic_cast<BHAMR<2> *>(get_gramr_ptr());
+    return dynamic_cast<BHAMR<num_punctures> *>(get_gramr_ptr());
+}
+
+PunctureTracker<BinaryBHLevel::num_punctures> &
+BinaryBHLevel::get_puncture_tracker()
+{
+    return get_bhamr_ptr()->get_puncture_tracker();
 }
 
 void BinaryBHLevel::variableSetUp()
@@ -213,7 +219,7 @@ void BinaryBHLevel::specific_post_init()
 
     if (simParams().puncture_tracking_enabled)
     {
-        get_bhamr_ptr()->m_puncture_tracker.start_from_initial_punctures(
+        get_puncture_tracker().start_from_initial_punctures(
             {simParams().bh1_params.center[0], simParams().bh1_params.center[1],
              simParams().bh1_params.center[2], simParams().bh2_params.center[0],
              simParams().bh2_params.center[1],
@@ -230,7 +236,7 @@ void BinaryBHLevel::specific_post_restart()
         std::string restart_checkpoint{};
         GRParmParse pp("amr");
         pp.get("restart", restart_checkpoint);
-        get_bhamr_ptr()->m_puncture_tracker.restart(restart_checkpoint);
+        get_puncture_tracker().restart(restart_checkpoint);
     }
 }
 
@@ -239,7 +245,7 @@ void BinaryBHLevel::specific_post_checkpoint(const std::string &a_chk_dir,
 {
     if (simParams().puncture_tracking_enabled)
     {
-        get_bhamr_ptr()->m_puncture_tracker.checkpoint(a_chk_dir);
+        get_puncture_tracker().checkpoint(a_chk_dir);
     }
 }
 
@@ -253,11 +259,10 @@ void BinaryBHLevel::specificPostTimeStep()
         // only do the write out for every coarsest level timestep
         // int coarsest_level = 0;
         // bool write_punctures = at_level_timestep_multiple(coarsest_level);
-        auto *bh_amr         = get_bhamr_ptr();
         bool write_punctures = true;
         amrex::Real cur_time = get_state_data(State_Type).curTime();
-        amrex::Real dt       = bh_amr->dtLevel(Level());
-        bh_amr->m_puncture_tracker.track(cur_time, dt, write_punctures);
+        amrex::Real dt       = get_gramr_ptr()->dtLevel(Level());
+        get_puncture_tracker().track(cur_time, dt, write_punctures);
     }
 #if 0
 //xxxxx specificPostTimeStep
