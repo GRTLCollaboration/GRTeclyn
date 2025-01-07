@@ -90,14 +90,16 @@ jobs:
       # These have been copied/adapted from AMReX's CI dependencies
       run: |
         if [[ "${{ matrix.gpu-backend }}" == "CUDA" ]]; then
+          CUDA_DASHED_VERSION="${{ env.CUDA_MAJOR_VERSION }}-${{ env.CUDA_MINOR_VERSION }}"
           PACKAGES="libopenmpi-dev
-          cuda-command-line-tools-${{ env.CUDA_MAJOR_VERSION }}-${{ env.CUDA_MINOR_VERSION }}
-          cuda-compiler-${{ env.CUDA_MAJOR_VERSION }}-${{ env.CUDA_MINOR_VERSION }}
-          cuda-cupti-dev-${{ env.CUDA_MAJOR_VERSION }}-${{ env.CUDA_MINOR_VERSION }}
-          cuda-minimal-build-${{ env.CUDA_MAJOR_VERSION }}-${{ env.CUDA_MINOR_VERSION }}
-          cuda-nvml-dev-${{ env.CUDA_MAJOR_VERSION }}-${{ env.CUDA_MINOR_VERSION }}
-          cuda-nvtx-${{ env.CUDA_MAJOR_VERSION }}-${{ env.CUDA_MINOR_VERSION }}
-          libcurand-dev-${{ env.CUDA_MAJOR_VERSION }}-${{ env.CUDA_MINOR_VERSION }}"
+          cuda-command-line-tools-${CUDA_DASHED_VERSION}
+          cuda-compiler-${CUDA_DASHED_VERSION}
+          cuda-cupti-dev-${CUDA_DASHED_VERSION}
+          cuda-minimal-build-${CUDA_DASHED_VERSION}
+          cuda-nvml-dev-${CUDA_DASHED_VERSION}
+          cuda-nvtx-${CUDA_DASHED_VERSION}
+          libcurand-dev-${CUDA_DASHED_VERSION}
+          libcusparse-dev-${CUDA_DASHED_VERSION}"
         elif [[ "${{ matrix.gpu-backend }}" == "HIP" ]]; then
           PACKAGES="libopenmpi-dev
           rocm-dev
@@ -105,6 +107,7 @@ jobs:
           rocprofiler-dev
           rocrand-dev
           rocprim-dev
+          rocsparse-dev
           hiprand-dev"
         elif [[ "${{ matrix.gpu-backend }}" == "SYCL" ]]; then
           PACKAGES="intel-oneapi-compiler-dpcpp-cpp-${{ env.ONEAPI_COMP_VERSION }}
