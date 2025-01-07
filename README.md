@@ -122,10 +122,28 @@ processes, do
 ```bash
 make -j 4
 ```
-A new `tmp_build_dir` directory will be created under `~/GRTeclyn` to store the
-compiled object and auxiliary files. Assuming all is well, you should have an
-executable in the current directory of the form `main<config>.ex` e.g.
-`main3d.gnu.MPI.OMP.ex`.
+A new `tmp_build_dir` directory will be created to store the compiled object and
+auxiliary files. Assuming all is well, you should have an executable in the
+current directory of the form `main<config>.ex` e.g. `main3d.gnu.MPI.OMP.ex`.
+
+If you want to clean the current build configuration you can do
+```bash
+make cleanconfig
+```
+Note that this is similar to `make clean` for GRChombo examples.
+
+If you want to clean all build configuration, you can do
+```bash
+make clean
+```
+Note that this is similar to `make realclean` for GRChombo examples.
+
+To speed up subsequent compilations, you can install
+[Ccache](https://ccache.dev/) and then add
+```
+USE_CCACHE = TRUE
+```
+to your `Make.local-pre` configuration file.
 
 ## Running the code
 
