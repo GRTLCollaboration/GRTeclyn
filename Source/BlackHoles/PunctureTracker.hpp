@@ -39,9 +39,7 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 0>
 
     //! Initialize the tracker. Note that this does not set up the underlying
     //! ParticleContainer
-    void initialize(GRAMR *a_gr_amr,
-                    const std::string &a_filename    = "punctures",
-                    const std::string &a_output_path = "./");
+    void initialize(GRAMR *a_gr_amr);
 
     //! start the puncture tracker from the initial punctures
     void start_from_initial_punctures(

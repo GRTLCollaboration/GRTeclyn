@@ -211,7 +211,7 @@ void BinaryBHLevel::specific_post_init()
 {
     BL_PROFILE("BinaryBHLevel::specific_post_init()");
 
-    if (simParams().track_punctures)
+    if (simParams().puncture_tracking_enabled)
     {
         get_bhamr_ptr()->m_puncture_tracker.start_from_initial_punctures(
             {simParams().bh1_params.center[0], simParams().bh1_params.center[1],
@@ -225,7 +225,7 @@ void BinaryBHLevel::specific_post_restart()
 {
     BL_PROFILE("BinaryBHLevel::specific_post_restart()");
 
-    if (simParams().track_punctures)
+    if (simParams().puncture_tracking_enabled)
     {
         std::string restart_checkpoint{};
         GRParmParse pp("amr");
@@ -237,7 +237,7 @@ void BinaryBHLevel::specific_post_restart()
 void BinaryBHLevel::specific_post_checkpoint(const std::string &a_chk_dir,
                                              std::ostream & /*a_os*/)
 {
-    if (simParams().track_punctures)
+    if (simParams().puncture_tracking_enabled)
     {
         get_bhamr_ptr()->m_puncture_tracker.checkpoint(a_chk_dir);
     }
@@ -246,7 +246,7 @@ void BinaryBHLevel::specific_post_checkpoint(const std::string &a_chk_dir,
 void BinaryBHLevel::specificPostTimeStep()
 {
     // do puncture tracking on requested level
-    if (simParams().track_punctures &&
+    if (simParams().puncture_tracking_enabled &&
         Level() == simParams().puncture_tracking_level)
     {
         BL_PROFILE("PunctureTracking");

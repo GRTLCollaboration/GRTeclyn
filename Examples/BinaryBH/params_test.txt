@@ -118,5 +118,5 @@ activate_extraction = true
 #################################################
 # Puncture Tracking parameters
 
-track_punctures = 1
-puncture_tracking_level = 0
+puncture_tracking.enabled = 1
+puncture_tracking.level = 0

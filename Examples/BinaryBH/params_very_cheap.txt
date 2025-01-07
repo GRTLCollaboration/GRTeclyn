@@ -133,8 +133,8 @@ covariantZ4 = 1 # 0: keep kappa1; 1 [default]: replace kappa1 -> kappa1/lapse
 # coefficient for KO numerical dissipation
 sigma = 0.3
 
-track_punctures = 1
-puncture_tracking_level = 1
+puncture_tracking.enabled = 1
+puncture_tracking.level = 1
 
 # calculate_constraint_norms = 0
 

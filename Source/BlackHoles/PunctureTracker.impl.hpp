@@ -13,27 +13,36 @@
 // #include "AMReXParameters.hpp" // for writing data
 #include "DimensionDefinitions.hpp"
 #include "FilesystemTools.hpp"
-#include "GRParmParse.hpp"
+#include "GRAMRLevel.hpp"
 #include "SmallDataIO.hpp" // for writing data
 #include "StateVariables.hpp"
 
 // AMReX includes
 #include <AMReX_AmrParGDB.H>
+#include <AMReX_ParmParse.H>
 #include <AMReX_TracerParticle_mod_K.H> // for linear_interpolation
 
 //! Set up puncture tracker
 template <unsigned int num_punctures>
-void PunctureTracker<num_punctures>::initialize(
-    GRAMR *a_gr_amr, const std::string &a_filename,
-    const std::string &a_output_path)
+void PunctureTracker<num_punctures>::initialize(GRAMR *a_gr_amr)
 {
-    if (!FilesystemTools::directory_exists(a_output_path))
+    amrex::ParmParse puncture_tracking_pp("puncture_tracking");
+
+    std::string filename{"punctures"}; // default
+    puncture_tracking_pp.queryAdd("filename", filename);
+
+    std::string output_path{"."}; // default
+    // Maybe we might want to change this to a more generic GRTeclyn output_path
+    // at some point
+    puncture_tracking_pp.queryAdd("output_path", output_path);
+
+    if (!FilesystemTools::directory_exists(output_path))
     {
-        FilesystemTools::mkdir_recursive(a_output_path);
+        FilesystemTools::mkdir_recursive(output_path);
     }
 
-    m_punctures_filename = a_output_path + a_filename;
-    m_checkpoint_subdir  = a_filename;
+    m_punctures_filename = output_path + "/" + filename;
+    m_checkpoint_subdir  = filename;
 
     AMREX_ASSERT(a_gr_amr != nullptr);
     m_gr_amr = a_gr_amr;
@@ -41,8 +50,8 @@ void PunctureTracker<num_punctures>::initialize(
     {
         // Disable particle tiling as we won't have many particles
         // TODO: Remove if we add more particles elsewhere
-        GRParmParse pp("particles");
-        pp.add("do_tiling", 0);
+        amrex::ParmParse particles_pp("particles");
+        particles_pp.add("do_tiling", 0);
     }
 
     m_initialized = true;

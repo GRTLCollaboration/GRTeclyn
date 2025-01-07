@@ -46,12 +46,6 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
 #else
     BHAMR<BinaryBHLevel::num_punctures> bh_amr(&bh_level_bld);
 #endif
-    if (sim_params.track_punctures)
-    {
-        bh_amr.m_puncture_tracker.initialize(
-            &bh_amr, "punctures",
-            sim_params.data_path /*, sim_params.output_path*/);
-    }
 
     bh_amr.init(0., sim_params.stop_time);
 
