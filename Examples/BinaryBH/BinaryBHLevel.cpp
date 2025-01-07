@@ -16,9 +16,9 @@
 #include "Weyl4.hpp"
 #include "WeylExtraction.hpp"
 
-BHAMR *BinaryBHLevel::get_bhamr_ptr()
+BHAMR<2> *BinaryBHLevel::get_bhamr_ptr()
 {
-    return dynamic_cast<BHAMR *>(get_gramr_ptr());
+    return dynamic_cast<BHAMR<2> *>(get_gramr_ptr());
 }
 
 void BinaryBHLevel::variableSetUp()
@@ -253,7 +253,7 @@ void BinaryBHLevel::specificPostTimeStep()
         // only do the write out for every coarsest level timestep
         // int coarsest_level = 0;
         // bool write_punctures = at_level_timestep_multiple(coarsest_level);
-        BHAMR *bh_amr        = get_bhamr_ptr();
+        auto *bh_amr         = get_bhamr_ptr();
         bool write_punctures = true;
         amrex::Real cur_time = get_state_data(State_Type).curTime();
         amrex::Real dt       = bh_amr->dtLevel(Level());

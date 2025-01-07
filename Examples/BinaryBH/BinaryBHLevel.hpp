@@ -19,7 +19,7 @@ class BinaryBHLevel : public GRAMRLevel
     // Inherit the contructors from GRAMRLevel
     using GRAMRLevel::GRAMRLevel;
 
-    BHAMR *get_bhamr_ptr();
+    BHAMR<2> *get_bhamr_ptr();
 
     /// Things to do at every full timestep
     ///(might include several substeps, e.g. in RK4)

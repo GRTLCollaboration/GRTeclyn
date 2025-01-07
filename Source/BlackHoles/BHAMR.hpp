@@ -14,10 +14,11 @@
 /**
  * This object inherits from GRAMR and adds tools required for BH spacetimes
  */
-class BHAMR : public GRAMR
+
+template <int num_punctures> class BHAMR : public GRAMR
 {
   public:
-    PunctureTracker<2> m_puncture_tracker;
+    PunctureTracker<num_punctures> m_puncture_tracker;
 
     BHAMR(amrex::LevelBld *a_levelbld) : GRAMR(a_levelbld) {}
 };

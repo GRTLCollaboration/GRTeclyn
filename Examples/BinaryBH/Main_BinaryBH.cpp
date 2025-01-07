@@ -44,7 +44,7 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
     // Run TwoPunctures solver
     bh_amr.m_two_punctures.Run();
 #else
-    BHAMR bh_amr(&bh_level_bld);
+    BHAMR<BinaryBHLevel::num_punctures> bh_amr(&bh_level_bld);
 #endif
     if (sim_params.track_punctures)
     {
