@@ -216,12 +216,10 @@ void PunctureTracker<num_punctures>::track(double a_time, double a_dt,
         const amrex::Geometry &geom  = amr_level.Geom();
         amrex::MultiFab &state_level = amr_level.get_new_data(State_Type);
 
-        amrex::MultiFab shift_mf(state_level, amrex::make_alias, c_shift1,
-                                 AMREX_SPACEDIM);
-
         // We should only need 1 ghost cell as we are doing linear interpolation
         amrex::IntVect ghosts_to_fill = amrex::IntVect::TheUnitVector();
-        shift_mf.FillBoundary(ghosts_to_fill, geom.periodicity());
+        state_level.FillBoundary(c_shift1, GR_SPACEDIM, ghosts_to_fill,
+                                 geom.periodicity());
 
         const auto problem_domain_lo = geom.ProbLoArray();
         const auto dxi               = geom.InvCellSizeArray();
@@ -238,8 +236,7 @@ void PunctureTracker<num_punctures>::track(double a_time, double a_dt,
                 auto &punc_particles        = punc_tile.GetArrayOfStructs();
                 auto *punc_particles_data   = punc_particles.data();
                 int num_punc_tile           = punc_iter.numParticles();
-                // const auto &fab_array = state_level[punc_iter].const_array();
-                const auto &shift_array = shift_mf[punc_iter].const_array();
+                const auto &fab_array = state_level[punc_iter].const_array();
 
                 amrex::ParallelFor(
                     num_punc_tile,
@@ -251,11 +248,9 @@ void PunctureTracker<num_punctures>::track(double a_time, double a_dt,
                             amrex::IntVect::TheZeroVector();
                         int num_arrays = 1;
 
-                        // amrex::linear_interpolate_to_particle(
-                        //     p, problem_domain_lo, dxi, &fab_array, shift,
-                        //     &is_nodal, c_shift1, AMREX_SPACEDIM, num_arrays);
-                        cic_interpolate(p, problem_domain_lo, dxi, shift_array,
-                                        shift);
+                        amrex::linear_interpolate_to_particle(
+                            p, problem_domain_lo, dxi, &fab_array, shift,
+                            &is_nodal, c_shift1, GR_SPACEDIM, num_arrays);
 
                         if (ipass == 0)
                         {
