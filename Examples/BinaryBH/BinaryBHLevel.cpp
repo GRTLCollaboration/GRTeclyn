@@ -52,6 +52,11 @@ void BinaryBHLevel::specificAdvance()
             amrex::Abort("NaN in specificAdvance");
         }
     }
+    else
+    {
+        // stream sync already present in nan_check so only need this here
+        amrex::Gpu::streamSynchronize();
+    }
 }
 
 // This initial data uses an approximation for the metric which
@@ -94,6 +99,7 @@ void BinaryBHLevel::initData()
                            binary.init_data(i, j, k, cell);
                        });
 #endif
+    amrex::Gpu::streamSynchronize();
 }
 
 // Calculate RHS during RK4 substeps
@@ -144,6 +150,8 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
         });
 #endif
     }
+
+    amrex::Gpu::streamSynchronize();
 }
 
 // enforce trace removal during RK4 substeps
@@ -158,6 +166,8 @@ void BinaryBHLevel::specificUpdateODE(amrex::MultiFab &a_soln)
                                soln_arrs[box_no].cellData(i, j, k);
                            TraceARemoval()(cell);
                        });
+
+    amrex::Gpu::streamSynchronize();
 }
 
 void BinaryBHLevel::errorEst(amrex::TagBoxArray &tag_box_array,
