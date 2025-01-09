@@ -26,6 +26,10 @@ variables:
     --time=00:10:00 
     --account=SHELLARD-SL3-GPU 
     --partition=ampere
+  FCOMPARE_FLAGS: >
+    --abs_tol 1e-10
+    --rel_tol 1e-10
+    --abort_if_not_all_found
 
 
 csd3-a100:
@@ -33,6 +37,9 @@ csd3-a100:
   tags:
     - csd3
   script:
+    - module purge
+    - module use ${MODULEPATHS_A100}
+    - module load ${MODULES_A100}
     - if [[ -d ../amrex ]]; then
     -   cd ../amrex
     -   git fetch --depth 1
@@ -41,18 +48,16 @@ csd3-a100:
     -   git clone --depth 1 https://github.com/AMReX-Codes/amrex.git ../amrex
     - fi
     - AMREX_HOME="$PWD"
-    - echo $AMREX_HOME
+    - cd ${AMREX_HOME}/Tools/Plotfile
+    - make -j 8 COMP=gnu
+    - ls
     - cd ${HOME}/${CI_PROJECT_DIR}/Tests
-    - module purge
-    - module use ${MODULEPATHS_A100}
-    - module load ${MODULES_A100}
     - make -j 8 ${BUILD_CONFIG}
     - srun ${SRUN_FLAGS} make run ${BUILD_CONFIG}
     - cd ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH
     - make -j 8 ${BUILD_CONFIG}
     - srun ${SRUN_FLAGS} ./main3d.gnu.DEBUG.MPI.CUDA.ex ./params_test.txt
-    - cd ${AMREX_HOME}/Tools/Plotfile
-    - make -j 8 COMP=gnu
-#    - ./fcompare.gnu.ex --abs_tol 1e-10 --rel_tol 1e-10 --abort_if_not_all_found ${HOME}/${CI_PROJECT_DIR}/Example/BinaryBH/plt00008 ${HOME}/${CI_PROJECT_DIR}/.github/workflows/data/plt00008_compare/
+    - ls ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex
+#    - ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex ${FCOMPARE_FLAGS} plt00008 ${HOME}/${CI_PROJECT_DIR}/.github/workflows/data/plt00008_compare/
 
 
