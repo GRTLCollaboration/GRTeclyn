@@ -50,14 +50,13 @@ csd3-a100:
     - AMREX_HOME="$PWD"
     - cd ${AMREX_HOME}/Tools/Plotfile
     - make -j 8 COMP=gnu
-    - ls
     - cd ${HOME}/${CI_PROJECT_DIR}/Tests
     - make -j 8 ${BUILD_CONFIG}
     - srun ${SRUN_FLAGS} make run ${BUILD_CONFIG}
     - cd ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH
     - make -j 8 ${BUILD_CONFIG}
     - srun ${SRUN_FLAGS} ./main3d.gnu.DEBUG.MPI.CUDA.ex ./params_test.txt
-    - ls ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex
-#    - ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex ${FCOMPARE_FLAGS} plt00008 ${HOME}/${CI_PROJECT_DIR}/.github/workflows/data/plt00008_compare/
+    - ls plt00008
+    - ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex ${FCOMPARE_FLAGS} plt00008 ${HOME}/${CI_PROJECT_DIR}/.github/workflows/data/plt00008_compare/
 
 
