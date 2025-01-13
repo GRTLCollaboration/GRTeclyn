@@ -117,9 +117,8 @@ void ScalarFieldLevel::initData()
             FLRW_background.compute(i, j, k, state_array[box_ind]);
         });
 
-    RandomField random_field(simParams().random_field_params, simParams().background_params, "position");
-    random_field.init();
-    //amrex::Error("RF init finalised");
+    RandomField random_field_initialiser(simParams().random_field_params, simParams().background_params);
+    random_field_initialiser.init(state);
 
     if (simParams().nan_check)
     {
@@ -381,15 +380,15 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
 	const auto cur_time        = get_state_data(State_Type).curTime();
 
 	auto first_step = (cur_time == 0);
-	const double volume = Geom().ProbSize(); // (!!) unitless volume
+	const int vol = std::pow(simParams().random_field_params.N_readin, 3.); // (!!) unitful volume
     const int nghost = simParams().num_ghosts;
 
-	const double phi_avg = state_new.sum(c_phi)/volume;
-	const double Pi_avg = state_new.sum(c_Pi)/volume;
-    const double chi_avg = state_new.sum(c_chi)/volume;
+	const double phi_avg = state_new.sum(c_phi)/vol;
+	const double Pi_avg = state_new.sum(c_Pi)/vol;
+    const double chi_avg = state_new.sum(c_chi)/vol;
 	const double scale_fact_avg = 1./sqrt(chi_avg);
-	const double Hubble_fact_avg = -state_new.sum(c_K)/volume/3.;
-	const double lapse_avg = state_new.sum(c_lapse)/volume;
+	const double Hubble_fact_avg = -state_new.sum(c_K)/vol/3.;
+	const double lapse_avg = state_new.sum(c_lapse)/vol;
 
     const amrex::BoxArray& ba = state_new.boxArray();
     const amrex::DistributionMapping& dm = state_new.DistributionMap();
@@ -406,18 +405,24 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
 
     Multiply(phi_alias, phi_alias, c_phi, c_phi, 1, nghost);
     Multiply(chi_alias, chi_alias, c_chi, c_chi, 1, nghost);
-    const double phi_var = phi_alias.sum(c_phi)/volume - std::pow(phi_avg, 2.);
-    const double chi_var = chi_alias.sum(c_chi)/volume - std::pow(chi_avg, 2.);
+    const double phi_var = phi_alias.sum(c_phi)/vol - std::pow(phi_avg, 2.);
+    const double chi_var = chi_alias.sum(c_chi)/vol - std::pow(chi_avg, 2.);
 
-	SmallDataIO means_file(simParams().data_path+"means_file", dt, cur_time, restart_time, SmallDataIO::APPEND, first_step, ".dat");
+	SmallDataIO means_file(simParams().data_path+"means-file", dt, cur_time, restart_time, SmallDataIO::APPEND, first_step, ".dat");
 	means_file.remove_duplicate_time_data(); // removes any duplicate data from previous run (for checkpointing)
 
     if(first_step) 
     {
         //constrs_file.write_header_line({"HamMean","HamSTD","HamAbsMean","HamNormMean","HamNormSTD","MomBar","MomAAD"});
-        means_file.write_header_line({"PhiMean","PhiVar","PiMean","ScaleFactMean","ChiMean","ChiVar","HubbleMean","LapseMean"});
+        means_file.write_header_line({"PhiMean","PhiVar","PiMean","ScaleFactMean","ChiVar","HubbleMean","LapseMean"});
     }
 
     //constrs_file.write_time_data_line({hamBar, sqrt(hamVar), hamAbsBar, hamNormBar, sqrt(hamNormVar), momBar, momAAD});
-    means_file.write_time_data_line({phi_avg, phi_var, Pi_avg, scale_fact_avg, chi_avg, chi_var, Hubble_fact_avg, lapse_avg});
+    means_file.write_time_data_line({phi_avg, phi_var, Pi_avg, scale_fact_avg, chi_var, Hubble_fact_avg, lapse_avg});
+
+    //SmallDataIO spectrum_file(simParams().data_path+"spectrum-"+std::to_string(cur_time), dt, cur_time, restart_time, SmallDataIO::NEW, first_step, ".dat");
+    //SmallDataIO statistics_file(simParams().data_path+"statistics-file", dt, cur_time, restart_time, SmallDataIO::APPEND, first_step, ".dat");
+
+    RandomField random_field_extractor(simParams().random_field_params, simParams().background_params);
+    random_field_extractor.extract(state_new, simParams().data_path, dt, cur_time, restart_time, first_step);
 }

@@ -46,12 +46,14 @@ class RandomField
             int use_window = 0;//!< Flag choosing whether to use window function
             double kstar;          //!< cut-off mode, measured in units of 2pi/L
             double Delta;          //!< cut-off width, measured like L/Delta
+
+            int calc_binned_power_spectrum = 0;
+            int bin_number = N_readin/2;
+            int calc_higher_order_statistics = 0;
         };
 
-        RandomField(params_t a_params, InitialBackgroundData::params_t a_background_params, 
-                     std::string a_spec_type)
-                : m_params(a_params), m_background_params(a_background_params), 
-                  m_spec_type(a_spec_type)
+        RandomField(params_t a_params, InitialBackgroundData::params_t a_background_params)
+                : m_params(a_params), m_background_params(a_background_params)
         {
             // Set protected class parameters
             N = m_params.N_readin;
@@ -68,8 +70,8 @@ class RandomField
             lut[2][2] = 5;
         }
 
-        void print_tensor_moment(int moment_order, MultiFab &field);
-        void init();
+        void init(amrex::MultiFab &state);
+        void extract(MultiFab &state, std::string data_path, Real dt, Real cur_time, int restart_time, int first_step);
         
     private:
         int N;              //<! Grid resolution
@@ -82,9 +84,14 @@ class RandomField
         GpuComplex<Real> calculate_mode_function(double km, std::string spec_type);
         GpuComplex<Real> calculate_random_field(int I, int J, int k, std::string spectrum_type, 
                                                                 Real rand_amp, Real rand_phase);
+        Vector<Real> calculate_basis_vector(int i, int j, int k, int which_vector);
         GpuComplex<Real> calculate_tensor_initial_conditions(int I, int J, int k, int l, int p, 
                             GpuComplex<Real> plus_field, GpuComplex<Real> cross_field);
         void apply_nyquist_conditions(int i, int j, int k, Array4<GpuComplex<Real>> const& field);
+        bool is_ghost_index(IntVect vector);
+
+        void print_tensor_moment(int moment_order, MultiFab &field);
+        void print_power_spectrum(cMultiFab &field_array, SmallDataIO &power_spec_file, int component);
 
     protected:
         const params_t m_params;
