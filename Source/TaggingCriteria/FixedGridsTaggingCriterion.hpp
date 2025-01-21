@@ -27,9 +27,7 @@ class FixedGridsTaggingCriterion
         : m_dx(dx), m_L(a_L), m_level(a_level), m_center(a_center){};
     // NOLINTEND(bugprone-easily-swappable-parameters)
     template <class data_t>
-    AMREX_GPU_DEVICE data_t
-    compute(int i, int j, int k,
-            const amrex::Array4<const data_t> &current_cell) const
+    AMREX_GPU_DEVICE data_t compute(int i, int j, int k) const
     {
         data_t criterion = 0.0;
         // make sure the inner part is regridded around the horizon
