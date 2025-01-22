@@ -31,7 +31,7 @@ void KleinGordonLevel::initData()
     const auto dx     = geom.CellSizeArray();
 
     Real midpts[3];
-    int i;
+    int i = 0;
 
     FOR (i)
         midpts[i] = 0.5 * (probhi[i] - problo[i]);

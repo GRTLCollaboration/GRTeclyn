@@ -34,7 +34,7 @@ class SimulationParameters : public AMReXParameters
         // If the wave number isn't found in the params file
         // (so not wave ICs), look for the alpha parameter
         // (assume Sine-Gordon instead).
-        if (!pp.query("wave_vector", k_r))
+        if (pp.query("wave_vector", k_r) == 0)
         {
             pp.query("alpha", alpha); // this is for Sine-Gordon ICs only
             model = "SineGordon";

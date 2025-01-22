@@ -9,8 +9,6 @@ class KleinGordon : public GRAMR
 
     KleinGordon(amrex::LevelBld *a_levelbld) : GRAMR(a_levelbld) {}
 
-    //    virtual ~KleinGordon ();
-
     // If we need to override any virtual functions in amrex::Amr, we can do
     // it here.
 };

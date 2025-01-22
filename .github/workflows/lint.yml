@@ -14,6 +14,7 @@ jobs:
       LLVM_VERSION: '19'
       AMREX_HOME: ${{ github.workspace }}/amrex
       BINARYBH_EXAMPLE_DIR: ${{ github.workspace }}/GRTeclyn/Examples/BinaryBH
+      KG_EXAMPLE_DIR: ${{ github.workspace }}/GRTeclyn/Examples/KleinGordon
       TESTS_DIR: ${{ github.workspace }}/GRTeclyn/Tests
       TMP_BUILD_DIR: ${{ github.workspace }}/GRTeclyn/tmp_build_dir
       COMPILATION_DATABASE: ${{ github.workspace }}/GRTeclyn/compile_commands.json
@@ -53,7 +54,7 @@ jobs:
         pipx install compiledb
         pipx install compdb
 
-    - name: Generate config and compilation database
+    - name: Generate config and compilation database for BinaryBH example
       run: |
         cd ${{ env.BINARYBH_EXAMPLE_DIR }}
         make ${{ env.BUILD_ARGS }} AMReX_Config.H
@@ -68,6 +69,15 @@ jobs:
       with:
         name: compilation-database
         path: ${{ env.COMPILATION_DATABASE }}
+
+    - name: Generate config and compilation database for Klein-Gordon example
+      run: |
+        cd ${{ env.KG_EXAMPLE_DIR }}
+        make ${{ env.BUILD_ARGS }} AMReX_Config.H
+        compiledb -o ${{ env.COMPILATION_DATABASE }} -n make ${{ env.BUILD_ARGS }}
+        cd ${{ env.TESTS_DIR }}
+        compiledb -o ${{ env.COMPILATION_DATABASE }} -n make ${{ env.BUILD_ARGS }}
+
 
     - name: Generate list of files for clang-tidy to ignore
       id: ignore-tidy-list

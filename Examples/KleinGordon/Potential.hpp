@@ -15,7 +15,6 @@ class Potential
 
   public:
     Potential(const amrex::Real mass) : m_mass(mass){};
-    virtual ~Potential() = default;
 
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     template <class data_t, template <typename> class vars_t>
