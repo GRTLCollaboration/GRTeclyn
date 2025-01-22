@@ -1,4 +1,5 @@
 #include "KleinGordonLevel.hpp"
+#include "FixedGridsTaggingCriterion.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "KleinGordonRHS.hpp"
 #include <numeric>
@@ -131,14 +132,28 @@ void KleinGordonLevel::errorEst(TagBoxArray &tags, int /*clearval*/,
     const char tagval     = TagBox::SET;
     auto const &arr       = tags.arrays();
     auto const &state_arr = state.const_arrays();
-    amrex::ParallelFor(tags,
-                       [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
-                       {
-                           // Just an example, not necessarily good choice.
-                           if (amrex::Math::abs(state_arr[box_no](i, j, k, 1)) >
-                               0.75)
-                           {
-                               arr[box_no](i, j, k) = tagval;
-                           }
-                       });
+
+    const amrex::Real dx         = Geom().CellSize(0);
+    const int current_level      = Level();
+    const amrex::Real box_length = Geom().ProbLength(0);
+    std::array<double, AMREX_SPACEDIM> center{AMREX_D_DECL(0., 0., 0.)};
+    GRParmParse pp;
+    pp.query("center", center);
+
+    FixedGridsTaggingCriterion my_tagging_criterion{dx, current_level,
+                                                    box_length, center};
+
+    amrex::Real threshold = simParams().regrid_thresholds[current_level];
+
+    amrex::ParallelFor(
+        tags,
+        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+        {
+            auto criterion =
+                my_tagging_criterion.template compute<amrex::Real>(i, j, k);
+            if (criterion >= threshold)
+            {
+                arr[box_no](i, j, k) = tagval;
+            }
+        });
 }

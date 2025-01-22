@@ -26,6 +26,11 @@ class SimulationParameters : public AMReXParameters
     void read_params(GRParmParse &pp)
     {
 
+        // This parameter normally gets read in inside SimulationParametersBase
+        // but this example doesn't use a lot of the other (CCZ4) parameters
+        // so SimulationParameters doesn't inherit from it.
+        pp.query("sigma", sigma);
+
         // These are parameters specfic to the Klein Gordon example
 
         pp.query("scalar_mass",
