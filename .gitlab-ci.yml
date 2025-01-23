@@ -63,7 +63,7 @@ csd3-a100:
     - fi
     - AMREX_HOME="$PWD"
     - cd ${AMREX_HOME}/Tools/Plotfile
-    - make -j 8 COMP=gnu program=fcompare
+    - make -j 8 COMP=gnu programs=fcompare
     - cd ${HOME}/${CI_PROJECT_DIR}/Tests
     - make -j 8 ${BUILD_CONFIG}
     - srun ${SRUN_FLAGS} make run ${BUILD_CONFIG}
@@ -79,3 +79,16 @@ csd3-dawn:
   script:
     - module purge
     - module load ${MODULES_DAWN}
+    - if [[ -d ../amrex ]]; then
+    -   cd ../amrex
+    -   git fetch --depth 1
+    -   git reset --hard origin/development
+    - else
+    -   git clone --depth 1 https://github.com/AMReX-Codes/amrex.git ../amrex
+    - fi
+    - AMREX_HOME="$PWD"
+    - salloc -A ZETTASCALE-PORTING-DAWN-GPU -p pvc --nodes=1 --ntasks=1 --time=00:10:00 --gres=gpu:1 --qos=INTR
+    - cd ${AMREX_HOME}/Tools/Plotfile    
+    - make -j 8 COMP=intel-llvm programs=fcompare
+
+
