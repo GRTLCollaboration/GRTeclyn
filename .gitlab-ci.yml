@@ -77,8 +77,6 @@ csd3-dawn:
   tags:
     - csd3
   script:
-    - module purge
-    - module load ${MODULES_DAWN}
     - if [[ -d ../amrex ]]; then
     -   cd ../amrex
     -   git fetch --depth 1
@@ -88,6 +86,8 @@ csd3-dawn:
     - fi
     - AMREX_HOME="$PWD"
     - salloc -A ZETTASCALE-PORTING-DAWN-GPU -p pvc --nodes=1 --ntasks=1 --time=00:10:00 --gres=gpu:1 --qos=INTR
+    - module purge
+    - module load ${MODULES_DAWN}
     - cd ${AMREX_HOME}/Tools/Plotfile    
     - make -j 8 COMP=intel-llvm programs=fcompare
 
