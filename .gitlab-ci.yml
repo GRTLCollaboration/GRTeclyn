@@ -85,10 +85,9 @@ csd3-dawn:
     -   git clone --depth 1 https://github.com/AMReX-Codes/amrex.git ../amrex
     - fi
     - AMREX_HOME="$PWD"
-    - salloc -A ZETTASCALE-PORTING-DAWN-GPU -p pvc --nodes=1 --ntasks=1 --time=00:10:00 --gres=gpu:1 --qos=INTR
     - module purge
     - module load ${MODULES_DAWN}
     - cd ${AMREX_HOME}/Tools/Plotfile    
-    - make -j 8 COMP=intel-llvm programs=fcompare
+    - srun -A ZETTASCALE-PORTING-DAWN-GPU -p pvc --nodes=1 --ntasks=1 --time=00:10:00 --gres=gpu:1 --qos=INTR make -j 8 COMP=intel-llvm programs=fcompare
 
 
