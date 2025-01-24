@@ -23,9 +23,9 @@ class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
             return num_surfaces;
         }
 
-        std::vector<double> &extraction_radii() { return surface_param_values; }
+        auto &extraction_radii() { return surface_param_values; }
 
-        [[nodiscard]] const std::vector<double> &extraction_radii() const
+        [[nodiscard]] const auto &extraction_radii() const
         {
             return surface_param_values;
         }

@@ -6,7 +6,10 @@
 #ifndef SURFACEEXTRACTION_HPP_
 #define SURFACEEXTRACTION_HPP_
 
-// Other inclues
+// AMReX includes
+#include <AMReX_GpuContainers.H>
+
+// Other includes
 #include "AMRInterpolator.hpp"
 #include "DimensionDefinitions.hpp"
 #include "FilesystemTools.hpp"
@@ -32,7 +35,7 @@ template <class SurfaceGeometry> class SurfaceExtraction
     struct params_t
     {
         int num_surfaces{}; //!< number of surfaces over which to extraction
-        std::vector<double>
+        amrex::Gpu::ManagedVector<double>
             surface_param_values; //!< the values of the
                                   //!< parameter that gives the required
                                   //!< surfaces with SurfaceGeom geometry (e.g.
@@ -41,8 +44,9 @@ template <class SurfaceGeometry> class SurfaceExtraction
                             //!< that parameterises each surface
         int num_points_v{}; //!< the number of points for the second parameter
                             //!< that parameterises each surfaces
-        std::vector<int> extraction_levels; //!< the level on which to do the
-                                            //!< extraction for each surface
+        amrex::Gpu::ManagedVector<int>
+            extraction_levels;   //!< the level on which to do the
+                                 //!< extraction for each surface
         bool write_extraction{}; //!< whether or not to write the extracted data
 
         std::string data_path, integral_file_prefix;
