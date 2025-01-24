@@ -36,8 +36,12 @@ class BinaryBHLevel : public GRAMRLevel
     // to do post each time step on every level
     void specificPostTimeStep() override;
 
-    void errorEst(amrex::TagBoxArray &tag_box_array, int clearval, int tagval,
-                  amrex::Real time, int n_error_buf = 0, int ngrow = 0) final;
+    /// Things to do before tagging cells for regridding
+    void pre_tag_cells() final;
+
+    /// Tag cells for regridding
+    void tag_cells(amrex::TagBoxArray &a_tag_box_array,
+                   amrex::Real a_regrid_threshold) final;
 };
 
 #endif /* BINARYBHLEVEL_HPP_ */

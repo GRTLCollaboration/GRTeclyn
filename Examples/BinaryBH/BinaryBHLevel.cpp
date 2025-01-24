@@ -170,43 +170,41 @@ void BinaryBHLevel::specificUpdateODE(amrex::MultiFab &a_soln)
     amrex::Gpu::streamSynchronize();
 }
 
-void BinaryBHLevel::errorEst(amrex::TagBoxArray &tag_box_array,
-                             int /*clearval*/, int /*tagval*/,
-                             amrex::Real /*time*/, int /*n_error_buf*/,
-                             int /*ngrow*/)
+void BinaryBHLevel::pre_tag_cells()
 {
-    BL_PROFILE("BinaryBHLevel::errorEst()");
     amrex::MultiFab &state_new = get_new_data(State_Type);
     const auto cur_time        = get_state_data(State_Type).curTime();
 
-    const int nghost =
-        state_new.nGrow(); // Need ghost cells to compute gradient
-    const int ncomp = 1;
-    // We only use chi in the tagging criterion so only fill the ghosts for chi
+    // Just fill 2 ghosts for chi to calculate second derivatives
+    const int nghost = 2;
+    const int ncomp  = 1;
     FillPatch(*this, state_new, nghost, cur_time, State_Type, c_chi, ncomp);
+}
 
-    const auto &simpar = simParams();
+void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
+                              amrex::Real a_regrid_threshold)
+{
+    BL_PROFILE("BinaryBHLevel::tag_cells()");
+    amrex::MultiFab &state_new = get_new_data(State_Type);
 
-    if (simpar.track_punctures)
+    if (simParams().track_punctures)
     {
-        amrex::Abort("BinaryBHLevel::errorEst:track_punctures TODO");
+        amrex::Abort("BinaryBHLevel::tag_cells:track_punctures TODO");
     }
 
-    const auto &tags           = tag_box_array.arrays();
+    const auto &tags           = a_tag_box_array.arrays();
     const auto &state_new_arrs = state_new.const_arrays();
-    const auto tagval          = amrex::TagBox::SET;
     ChiExtractionTaggingCriterion tagger(Geom().CellSize(0), Level(),
-                                         simpar.extraction_params,
-                                         simpar.activate_extraction);
-    amrex::Real threshold = simpar.regrid_thresholds[Level()];
+                                         simParams().extraction_params,
+                                         simParams().activate_extraction);
     amrex::ParallelFor(state_new, amrex::IntVect(0),
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
                        {
                            amrex::Real criterion =
                                tagger(i, j, k, state_new_arrs[box_no]);
-                           if (criterion >= threshold)
+                           if (criterion >= a_regrid_threshold)
                            {
-                               tags[box_no](i, j, k) = tagval;
+                               tags[box_no](i, j, k) = amrex::TagBox::SET;
                            }
                        });
     amrex::Gpu::streamSynchronize();
