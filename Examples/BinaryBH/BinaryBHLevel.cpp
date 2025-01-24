@@ -6,7 +6,7 @@
 #include "BinaryBHLevel.hpp"
 #include "BinaryBH.hpp"
 #include "CCZ4RHS.hpp"
-#include "ChiExtractionTaggingCriterion.hpp"
+#include "ChiExtractionTagger.hpp"
 #include "PositiveChiAndAlpha.hpp"
 #include "PunctureTracker.hpp"
 // xxxxx #include "SixthOrderDerivatives.hpp"
@@ -192,21 +192,15 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
         amrex::Abort("BinaryBHLevel::tag_cells:track_punctures TODO");
     }
 
-    const auto &tags           = a_tag_box_array.arrays();
+    const auto &tag_arrs       = a_tag_box_array.arrays();
     const auto &state_new_arrs = state_new.const_arrays();
-    ChiExtractionTaggingCriterion tagger(Geom().CellSize(0), Level(),
-                                         simParams().extraction_params,
-                                         simParams().activate_extraction);
-    amrex::ParallelFor(state_new, amrex::IntVect(0),
-                       [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
-                       {
-                           amrex::Real criterion =
-                               tagger(i, j, k, state_new_arrs[box_no]);
-                           if (criterion >= a_regrid_threshold)
-                           {
-                               tags[box_no](i, j, k) = amrex::TagBox::SET;
-                           }
-                       });
+    ChiExtractionTagger tagger(Geom().CellSize(0), Level(), a_regrid_threshold,
+                               simParams().extraction_params,
+                               simParams().activate_extraction);
+    amrex::ParallelFor(
+        state_new, amrex::IntVect(0),
+        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+        { tagger(i, j, k, tag_arrs[box_no], state_new_arrs[box_no]); });
     amrex::Gpu::streamSynchronize();
 }
 
