@@ -273,8 +273,18 @@ inline void RandomField::init(amrex::MultiFab &state)
                                                 As_ptr(i, j, k, 0), As_ptr(i, j, k, 1));
             }
 
-            for(int s=0; s<2; s++) { PrintToFile(Filename, 0) << hs_ptr(i, j, k, s) << ","; }
-            PrintToFile(Filename, 0) << "\n";
+            /*IntVect iv{i, j, k};
+            bool in_ghost_index = is_ghost_index(iv);
+            if(!in_ghost_index)
+            {
+                for(int s=0; s<2; s++) 
+                { 
+                    PrintToFile(Filename, 0) << iv << ",";
+                    PrintToFile(Filename, 0) << hs_ptr(i, j, k, s).real() << ","; 
+                    PrintToFile(Filename, 0) << hs_ptr(i, j, k, s).imag() << ",";
+                }
+                PrintToFile(Filename, 0) << "\n";
+            }*/
         });
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -295,13 +305,6 @@ inline void RandomField::init(amrex::MultiFab &state)
         MultiFab Aij_x_slice(Aij_x, make_alias, fcomp, 1);
         random_field_fft.backward(Aij_k_slice, Aij_x_slice);
     }
-
-    /*std::cout << "In generation\n";
-    std::cout << "Max: " << hij_x.max(0) << ": ";
-    std::cout << "Min: " << hij_x.min(0) << "\n";
-    std::cout << "Norm: " << norm << "\n";
-    std::cout << "--------\n";*/
-    //Error();
 
     hij_x.mult(norm);
     Aij_x.mult(norm);
@@ -339,15 +342,6 @@ inline void RandomField::init(amrex::MultiFab &state)
         });
     }
 }
-
-/*template <class data_t>
-void RandomField::compute(int i, int j, int k,
-                           const amrex::Array4<data_t> &state) const
-{
-    std::cout << "Inside compute now...\n";
-    std::cout << *hx(i, j, k, 0) << "\n";
-    Error();
-}*/
 
 /****
     Extraction routines
@@ -497,20 +491,6 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
     for (int l=0; l<3; l++) { hij_x.plus(-1., lut[l][l], 1); }
     hij_x.mult(1./norm);
 
-    /*std::cout << "In extraction\n";
-    std::cout << "Max: " << hij_x.max(0) << ": ";
-    std::cout << "Min: " << hij_x.min(0) << "\n";
-    std::cout << "Norm: " << norm << "\n";
-    std::cout << "--------\n";
-    Error();*/
-
-    /*if(i != 0 || j != 0 || k != 0)
-    {
-        std::cout << iv << ": ";
-        std::cout << "Fields: " << hij_ptr(i, j, k, 0) << "," << hij_ptr(i, j, k, 1) << "\n";
-        Error();
-    }*/
-
     // Set up the problem domain and MF ingredients (Fourier space)
     IntVect domain_low(0, 0, 0);
     IntVect domain_high(N-1, N-1, N-1);
@@ -528,13 +508,6 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
         MultiFab hij_x_slice(hij_x, make_alias, fcomp, 1);
         random_field_fft.forward(hij_x_slice, hij_k_slice);
     }
-
-    /*std::cout << "In extraction\n";
-    std::cout << "Max: " << hij_k.max(0) << ": ";
-    std::cout << "Min: " << hij_k.min(0) << "\n";
-    std::cout << "Norm: " << norm << "\n";
-    std::cout << "--------\n";
-    Error();*/
 
     for(int comp = 0; comp < 6; comp++)
     {
@@ -576,25 +549,17 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
                 hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross)/std::sqrt(2.);
             }
 
-            for(int s=0; s<2; s++) { PrintToFile(Filename, 0) << hs_ptr(i, j, k, s) << ","; }
-            PrintToFile(Filename, 0) << "\n";
-
-            /*if(i == 0 && j == 0 && k == 1)
+            /*bool in_ghost_index = is_ghost_index(iv);
+            if(!in_ghost_index)
             {
-                std::cout << "In extraction\n";
-                std::cout << iv << ": ";
-                std::cout << "Fields: " << hs_ptr(i, j, k, 0) << "," << hs_ptr(i, j, k, 1) << "\n";
-                Error();
+                for(int s=0; s<2; s++) 
+                { 
+                    PrintToFile(Filename, 0) << hs_ptr(i, j, k, s).real() << ","; 
+                    PrintToFile(Filename, 0) << hs_ptr(i, j, k, s).imag() << ",";
+                }
+                PrintToFile(Filename, 0) << "\n";
             }*/
-            
         });
-
-        /*amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-        {
-            //apply_nyquist_conditions(i, j, k, hs_ptr);
-            apply_nyquist_conditions(i, j, k, hij_ptr);
-            apply_nyquist_conditions(i, j, k, Aij_ptr);
-        });*/
 
         // THERE MAY BE AN MPI ISSUE HERE
         /*if(m_params.calc_binned_power_spectrum) 
@@ -606,6 +571,13 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
                 print_power_spectrum(hs_k, spectrum_file, comp);
             }
         }*/
+
+        /*amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            //apply_nyquist_conditions(i, j, k, hs_ptr);
+            apply_nyquist_conditions(i, j, k, hij_ptr);
+            apply_nyquist_conditions(i, j, k, Aij_ptr);
+        });*/
     }
 }
 
