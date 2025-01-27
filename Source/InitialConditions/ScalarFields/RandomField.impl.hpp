@@ -201,6 +201,7 @@ inline void RandomField::apply_nyquist_conditions(int i, int j, int k, Array4<Gp
     }
 }
 
+<<<<<<< HEAD
 inline bool RandomField::is_ghost_index(IntVect vector)
 {
     bool ret = false;
@@ -209,6 +210,11 @@ inline bool RandomField::is_ghost_index(IntVect vector)
         if(vector[0] < 0 || vector[0] > N-1) { ret = true; }
     }
     return ret;
+=======
+inline void RandomField::assign_to_grid(const CellData<Real> &current_cell, const Real tensor_field) const
+{
+    current_cell[c_h11] = tensor_field;
+>>>>>>> 411b02c72cfd5450eaab42e5f433c160acad5d30
 }
 
 inline void RandomField::init(amrex::MultiFab &state)
@@ -345,6 +351,15 @@ inline void RandomField::init(amrex::MultiFab &state)
         });
     }
 }
+
+/*template <class data_t>
+void RandomField::compute(int i, int j, int k,
+                           const amrex::Array4<data_t> &state) const
+{
+    std::cout << "Inside compute now...\n";
+    std::cout << *hx(i, j, k, 0) << "\n";
+    Error();
+}*/
 
 /****
     Extraction routines
