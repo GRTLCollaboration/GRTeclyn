@@ -237,7 +237,7 @@ inline void RandomField::init(amrex::MultiFab &state)
     MultiFab hij_x(sba, sdm, 6, 0);
     MultiFab Aij_x(sba, sdm, 6, 0);
 
-    std::string Filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/GRTeclyn-hij-k";
+    std::string Filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/hs-k-init";
     
     // Loop to create Fourier-space tensor object
     for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
@@ -272,6 +272,9 @@ inline void RandomField::init(amrex::MultiFab &state)
                 Aij_ptr(i, j, k, lut[l][p]) = calculate_tensor_initial_conditions(i, j, k, l, p, 
                                                 As_ptr(i, j, k, 0), As_ptr(i, j, k, 1));
             }
+
+            for(int s=0; s<2; s++) { PrintToFile(Filename, 0) << hs_ptr(i, j, k, s) << ","; }
+            PrintToFile(Filename, 0) << "\n";
         });
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -279,15 +282,6 @@ inline void RandomField::init(amrex::MultiFab &state)
             //apply_nyquist_conditions(i, j, k, hs_ptr);
             apply_nyquist_conditions(i, j, k, hij_ptr);
             apply_nyquist_conditions(i, j, k, Aij_ptr);
-
-            /*IntVect iv{i, j, k};
-            if(i == 0 && j == 0 && k == 1)
-            {
-                std::cout << "In generation\n";
-                std::cout << iv << ": ";
-                std::cout << "Fields: " << hs_ptr(i, j, k, 0) << "," << hs_ptr(i, j, k, 1) << "\n";
-                Error();
-            }*/
         });
     }
 
@@ -345,6 +339,15 @@ inline void RandomField::init(amrex::MultiFab &state)
         });
     }
 }
+
+/*template <class data_t>
+void RandomField::compute(int i, int j, int k,
+                           const amrex::Array4<data_t> &state) const
+{
+    std::cout << "Inside compute now...\n";
+    std::cout << *hx(i, j, k, 0) << "\n";
+    Error();
+}*/
 
 /****
     Extraction routines
@@ -538,6 +541,8 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
         hij_k.mult(std::pow(N, -3.), comp, 1); 
     }
 
+    std::string Filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/hs-k-extr";
+
     // Loop to create Fourier-space tensor object
     for (MFIter mfi(hij_k); mfi.isValid(); ++mfi) 
     {
@@ -570,6 +575,9 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
                 hs_ptr(i, j, k, 0) += (hij_ptr(i, j, k, lut[l][p]) * eplus)/std::sqrt(2.);
                 hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross)/std::sqrt(2.);
             }
+
+            for(int s=0; s<2; s++) { PrintToFile(Filename, 0) << hs_ptr(i, j, k, s) << ","; }
+            PrintToFile(Filename, 0) << "\n";
 
             /*if(i == 0 && j == 0 && k == 1)
             {

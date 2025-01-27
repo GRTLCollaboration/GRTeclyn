@@ -68,6 +68,13 @@ class RandomField
             lut[2][0] = 2;
             lut[2][1] = 4;
             lut[2][2] = 5;
+
+            // Set up the problem domain and MF ingredients (Real space)
+            /*IntVect domain_low(0, 0, 0);
+            IntVect domain_high(N-1, N-1, N-1);
+            Box domain(domain_low, domain_high);
+            BoxArray xba(domain);
+            DistributionMapping xdm(xba);*/
         }
 
         void init(amrex::MultiFab &state);
@@ -77,6 +84,7 @@ class RandomField
         int N;              //<! Grid resolution
         int lut[3][3];
         double norm;
+	    //MultiFab* hx;
 
         int flip_index(int indx);
         int invert_index(int indx);
