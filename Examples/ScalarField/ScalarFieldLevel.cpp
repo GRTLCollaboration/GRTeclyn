@@ -425,5 +425,4 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
 
     RandomField random_field_extractor(simParams().random_field_params, simParams().background_params);
     random_field_extractor.extract(state_new, simParams().data_path, dt, cur_time, restart_time, first_step);
-    Error("check initial generation and extraction.");
 }

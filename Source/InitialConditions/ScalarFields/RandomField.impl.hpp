@@ -370,14 +370,13 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
         Error("RandomField::print_power_spectrum Bin number is too large.");
     }
 
-    // Set up isotropic k axis
+    // Set up isotropic k axis and PS map
     double dk_to_bin = (double)m_params.bin_number/((double)N/2);
     double kmag = 0.;
     Vector<Real> kiso(N/2+1, 0.);
-    for (int s=0; s<=N/2; s++) { kiso[s] = s*dkiso; }
+    std::map<int, std::tuple<Real, Real, int>> ps_map;
 
-    Vector<Real> power_spec(m_params.bin_number + 1, 0.);
-    Vector<Real> k_counter(m_params.bin_number + 1, 0.);
+    for (int s=0; s<=N/2; s++) { kiso[s] = s*dkiso; ps_map[s] = std::make_tuple(kiso[s], 0., 0); }
 
     // Loop to create Fourier-space tensor object
     MFIter::allowMultipleMFIters(true);
@@ -388,13 +387,14 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
         const Box& bx = mfi.fabbox();
 
         // Loop to create mode functions then hij(k)
-        amrex::ParallelFor(bx, [=, &power_spec, &k_counter] AMREX_GPU_DEVICE (int i, int J, int K) noexcept
+        amrex::ParallelFor(bx, [=, &ps_map] AMREX_GPU_DEVICE (int i, int J, int K) noexcept
         {
             int j = invert_index(J);
             int k = invert_index(K);
             IntVect iv{i, j, k};
 
-            double kmag = std::sqrt(i*i + j*j + k*k) * 2 * M_PI / m_params.L;
+            int kint = i*i + j*j + k*k;
+            double kmag = std::sqrt(kint) * 2 * M_PI / m_params.L;
 
             // make sure you're still in the domain
             if(kmag > kiso_max) 
@@ -423,29 +423,26 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
                 // If you're somewhere in the middle
                 else if (kmag < kiso[s] && kmag >= kiso[(s-1)]) 
                 {
-                    int bin_index = round((s-1)*dk_to_bin);
-                    if(bin_index > m_params.bin_number)
-                    {
-                        std::cout << iv << "\n";
-                        Error("RandomField::print_power_spectrum Bin index larger than requested bin number.");
-                    }
+                    auto iterator = ps_map.find(s);
+                    auto& [iso, sum, kcount] = iterator->second;
 
                     Real power = (std::pow(field_ptr(i, j, k, component).real(), 2.0) 
-                                            + std::pow(field_ptr(i, j, k, component).imag(), 2.0));
-
-                    power_spec[bin_index] += power;
-                    k_counter[bin_index] += 1;
+                                                + std::pow(field_ptr(i, j, k, component).imag(), 2.0));
+                    Gpu::Atomic::Add(&sum, power);
+                    Gpu::Atomic::Add(&kcount, 1);
 
                     break;
                 }
 
                 else if(s == N/2)
                 { 
-                    Real power = (std::pow(field_ptr(i, j, k, component).real(), 2.0) 
-                                            + std::pow(field_ptr(i, j, k, component).imag(), 2.0));
+                    auto iterator = ps_map.end();
+                    auto& [iso, sum, kcount] = iterator->second;
 
-                    power_spec[m_params.bin_number + 1] += power;
-                    k_counter[m_params.bin_number + 1] += 1;
+                    Real power = (std::pow(field_ptr(i, j, k, component).real(), 2.0) 
+                                                + std::pow(field_ptr(i, j, k, component).imag(), 2.0));
+                    Gpu::Atomic::Add(&sum, power);
+                    Gpu::Atomic::Add(&kcount, 1);
 
                     break;
                 }
@@ -467,7 +464,8 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
 
     for(int s=0; s<=N/2; s++)
     {
-        if(k_counter[s] != 0) { power_spec_file.write_data_line({kiso[s], power_spec[s]/k_counter[s]}); }
+        auto [isotropic_k, power, count] = ps_map[s];
+        if(count != 0) { power_spec_file.write_data_line({isotropic_k, (double)power/count}); }
     }
 }
 
@@ -562,7 +560,7 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
         });
 
         // THERE MAY BE AN MPI ISSUE HERE
-        /*if(m_params.calc_binned_power_spectrum) 
+        if(m_params.calc_binned_power_spectrum) 
         {
             for(int comp = 0; comp < hs_k.nComp(); comp++)
             {
@@ -570,7 +568,9 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
                                             dt, cur_time, restart_time, SmallDataIO::NEW, first_step, ".dat");
                 print_power_spectrum(hs_k, spectrum_file, comp);
             }
-        }*/
+        }
+
+        //Error();
 
         /*amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
