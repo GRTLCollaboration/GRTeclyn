@@ -65,6 +65,9 @@ calc_binned_power_spectrum = 1
 calc_config_space_mode_fns = 1
 calc_higher_order_statistics = 1
 
+#(!!) must be between 1 and 4
+moments_to_print = 1 2 3 4 
+
 #################################################
 # Grid parameters
 

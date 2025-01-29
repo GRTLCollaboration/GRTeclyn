@@ -18,6 +18,7 @@
 #include <AMReX_Random.H>
 #include <AMReX_Print.H>
 #include <AMReX_Vector.H>
+#include <AMReX_Array.H>
 
 using namespace amrex;
 
@@ -74,7 +75,8 @@ class RandomField
         }
 
         void init(amrex::MultiFab &state);
-        void extract(MultiFab &state, std::string data_path, Real dt, Real cur_time, int restart_time, int first_step);
+        void extract(MultiFab &state, std::string data_path, Real dt, 
+                        Real cur_time, int restart_time, int first_step);
         
     private:
         int N;
@@ -85,6 +87,9 @@ class RandomField
         int invert_index(int indx);
         int invert_index_with_sign(int indx);
         std::string make_subdirectory(std::string base, std::string dir, int is_first_step);
+        void assign_statistics_data(Vector<std::string> &header_storage, const std::string name, 
+                            Vector<Real> &data_storage, const Array1D<Real, 0, 1> data, 
+                            const int component, const auto itr, const auto start, const int is_first_step);
 
         GpuComplex<Real> calculate_mode_function(double km, std::string spec_type);
         GpuComplex<Real> calculate_random_field(int I, int J, int k, std::string spectrum_type, 
@@ -95,7 +100,10 @@ class RandomField
         void apply_nyquist_conditions(int i, int j, int k, Array4<GpuComplex<Real>> const& field);
         bool is_ghost_index(IntVect vector);
 
-        void print_tensor_moment(MultiFab &field, int moment_order, SmallDataIO &statistics_file);
+        Real find_field_moment_x(MultiFab &field, Array1D<Real, 0, 1> mean, 
+                                                int moment, int component);
+        void print_tensor_moment(MultiFab &field, const Vector<int> moment_orders, 
+                                    SmallDataIO &file, const int is_first_step);
         void print_power_spectrum(cMultiFab &field_array, SmallDataIO &power_spec_file, int component);
 
     protected:

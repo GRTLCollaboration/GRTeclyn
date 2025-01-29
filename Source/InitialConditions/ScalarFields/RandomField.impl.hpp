@@ -41,21 +41,28 @@ inline bool RandomField::is_ghost_index(IntVect vector)
 inline std::string RandomField::make_subdirectory(std::string base, std::string dir, int is_first_step)
 {
     std::string new_path = base+dir+"/";
-
     if(is_first_step)
     {
-        if (FilesystemTools::directory_exists(base))
-        {
-            FilesystemTools::mkdir_recursive(new_path);
-        }
+        if (FilesystemTools::directory_exists(base)) { FilesystemTools::mkdir_recursive(new_path); }
         else 
         { 
             std::cout << "Directory creation failed for " << new_path << "\n";
             Error("RandomField::extract Data directory has not been created."); 
         }
     }
-
     return new_path;
+}
+
+inline void RandomField::assign_statistics_data(Vector<std::string> &header_storage, const std::string name, 
+                            Vector<Real> &data_storage, const Array1D<Real, 0, 1> data, 
+                            const int component, const auto itr, const auto start, const int is_first_step)
+{
+    int loc = component + 2*(itr - start);
+    if(is_first_step) 
+    { 
+        header_storage[loc] =  name+std::to_string(component); 
+    }
+    data_storage[loc] = data(component);
 }
 
 /****
@@ -371,9 +378,95 @@ inline void RandomField::init(amrex::MultiFab &state)
     Extraction routines
 ****/
 
-inline void RandomField::print_tensor_moment(MultiFab &field, int moment_order, SmallDataIO &statistics_file)
+inline Real RandomField::find_field_moment_x(MultiFab &field, Array1D<Real, 0, 1> mean, 
+                                                int moment, int component)
 {
-    ;
+    Real sum = 0.;
+    const Real vol = std::pow(N, 3.);
+
+    for (MFIter mfi(field); mfi.isValid(); ++mfi) 
+    {
+        Array4<Real> const& field_ptr = field.array(mfi);
+        const Box& bx = mfi.fabbox();
+
+        amrex::ParallelFor(bx, [=, &sum] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            sum += std::pow(field_ptr(i, j, k, component) - mean(component), moment);
+        });
+    }
+    if(moment == 2) { return sqrt(sum/vol); }
+    else { return sum/vol; }
+}
+
+inline void RandomField::print_tensor_moment(MultiFab &field, const Vector<int> moment_orders, 
+                                    SmallDataIO &file, const int is_first_step)
+{
+    for(const auto moment : moment_orders)
+    {
+        if(moment > 4) 
+        { 
+            Error("RandomField::print_tensor_moment Chosen moment order has not been implemented");
+        }
+    }
+
+    const Real vol = std::pow(N, 3.);
+    Array1D<Real, 0, 1> means = {0., 0.};
+    Array1D<Real, 0, 1> stdev = {0., 0.};
+    Array1D<Real, 0, 1> skew = {0., 0.};
+    Array1D<Real, 0, 1> kurt = {0., 0.};
+
+    const auto start = moment_orders.begin();
+    const auto mean_itr = std::find(moment_orders.begin(), moment_orders.end(), 1);
+    const auto stdev_itr = std::find(moment_orders.begin(), moment_orders.end(), 2);
+    const auto skew_itr = std::find(moment_orders.begin(), moment_orders.end(), 3);
+    const auto kurt_itr = std::find(moment_orders.begin(), moment_orders.end(), 4);
+
+    Vector<Real> data_to_print(2 * moment_orders.size(), 0.);
+    Vector<std::string> headers(2 * moment_orders.size(), "");
+
+    for(int comp = 0; comp < 2; comp++)
+    {
+        means(comp) = field.sum(comp)/vol;
+        if(mean_itr != moment_orders.end())
+        {
+            assign_statistics_data(headers, "Mean", data_to_print, means, comp, 
+                                    mean_itr, start, is_first_step);
+        }
+
+        if(moment_orders.back() != 1)
+        {
+            stdev(comp) = find_field_moment_x(field, means, 2, comp);
+            if(stdev_itr != moment_orders.end())
+            {
+                assign_statistics_data(headers, "Stdev", data_to_print, stdev, comp, 
+                                        stdev_itr, start, is_first_step);
+            }
+
+            if(moment_orders.back() != 2)
+            {
+                skew(comp) = find_field_moment_x(field, means, 3, comp);
+                skew(comp) /= std::pow(stdev(comp), 3.);
+
+                if(skew_itr != moment_orders.end())
+                {
+                    assign_statistics_data(headers, "Skew", data_to_print, skew, comp,
+                                            skew_itr, start, is_first_step);
+                }
+
+                if(moment_orders.back() != 3)
+                {
+                    kurt(comp) = find_field_moment_x(field, means, 4, comp);
+                    kurt(comp) /= std::pow(stdev(comp), 4.);
+
+                    assign_statistics_data(headers, "Kurt", data_to_print, kurt, comp,
+                                            kurt_itr, start, is_first_step);
+                }
+            }
+        }
+    }
+
+    if(is_first_step) { file.write_header_line(headers); }
+    file.write_time_data_line(data_to_print);
 }
 
 inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataIO &power_spec_file, int component)
@@ -606,6 +699,7 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
 
             SmallDataIO spectrum_file(spec_path+"spectrum-comp-"+std::to_string(comp)+"-time-", 
                                         dt, cur_time, restart_time, SmallDataIO::NEW, first_step, ".dat");
+            if(first_step) { spectrum_file.write_header_line({"k", "power"}, ""); }
             print_power_spectrum(hs_k, spectrum_file, comp);
         }
     }
@@ -633,6 +727,7 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
             SmallDataIO mode_function_file(mf_path+"mode-function-", dt, cur_time, 
                                             restart_time, SmallDataIO::NEW, first_step, ".dat");
             
+            if(first_step) { mode_function_file.write_header_line({"plus field", "cross field"}, ""); }
             for (MFIter mfi(hs_x); mfi.isValid(); ++mfi) 
             {
                 Array4<Real> const& hx_ptr = hs_x.array(mfi);
@@ -649,10 +744,11 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
         {
             std::string stats_path = make_subdirectory(data_path, "statistics", first_step);
 
-            SmallDataIO stats_file(stats_path+"skew-kurtosis-", dt, cur_time, 
-                                    restart_time, SmallDataIO::NEW, first_step, ".dat");
+            SmallDataIO stats_file(stats_path+"field-statistics", dt, cur_time, 
+                                    restart_time, SmallDataIO::APPEND, first_step, ".dat");
 
-            print_tensor_moment(hs_x, 3, stats_file);
+            Vector<int> orders = {1, 2, 3, 4};
+            print_tensor_moment(hs_x, orders, stats_file, first_step);
         }
     }
 }
