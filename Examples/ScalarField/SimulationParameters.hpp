@@ -48,6 +48,7 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("use_rand", random_field_params.use_rand, 1);
         pp.load("random_seed", random_field_params.random_seed, 3539263);
 
+        pp.load("use_window", random_field_params.use_window, 0);
         pp.load("kstar", random_field_params.kstar, 0.);
         pp.load("Delta", random_field_params.Delta, 1.);
 

@@ -53,10 +53,11 @@ calc_tensor_field = 1
 A = 1.
 which_seed = 1
 # N_fine = 256
-use_rand = 1
+use_rand = 0
 random_seed = 3539263
 
 # Window function parameters
+use_window = 1
 kstar = 16
 Delta = 30
 
@@ -143,7 +144,7 @@ lapse_power = 0.0
 # Shift evolution
 shift_advec_coeff = 0.0 # Usually no advection for beta
 shift_Gamma_coeff = 0.0
-eta = 1.0 # eta of gamma driver, should be of order ~1/M_ADM of spacetime
+eta = 0.0 # eta of gamma driver, should be of order ~1/M_ADM of spacetime
 
 # CCZ4 parameters
 formulation = 1 # 1 for BSSN, 0 for CCZ4
