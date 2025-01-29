@@ -51,7 +51,6 @@ scalar_mass = 1.e-4
 num_scalar_fields = 0
 calc_tensor_field = 1
 A = 1.
-which_seed = 1
 # N_fine = 256
 use_rand = 0
 random_seed = 3539263
@@ -63,6 +62,7 @@ Delta = 30
 
 # Options for tensor extraction
 calc_binned_power_spectrum = 1
+calc_config_space_mode_fns = 1
 calc_higher_order_statistics = 1
 
 #################################################

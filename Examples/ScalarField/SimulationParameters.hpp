@@ -42,7 +42,6 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("calc_tensor_field", random_field_params.calc_tensor_field, 0);
         pp.load("L_full", random_field_params.L, 1.);
         pp.load("A", random_field_params.A, 1.);
-        pp.load("which_seed", random_field_params.which_seed, 1);
         pp.load("N_full", random_field_params.N_readin, 32);
         pp.load("N_fine", random_field_params.N_fine, random_field_params.N_readin);
         pp.load("use_rand", random_field_params.use_rand, 1);
@@ -54,6 +53,7 @@ class SimulationParameters : public SimulationParametersBase
 
         pp.load("calc_binned_power_spectrum", random_field_params.calc_binned_power_spectrum, 0);
         pp.load("bin_number", random_field_params.bin_number, random_field_params.N_readin/2); 
+        pp.load("calc_config_space_mode_fns", random_field_params.calc_config_space_mode_fns, 0);
         pp.load("calc_higher_order_statistics", random_field_params.calc_higher_order_statistics, 0);
     }
 

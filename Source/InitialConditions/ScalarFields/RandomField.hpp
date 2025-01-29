@@ -9,6 +9,7 @@
 #include "Cell.hpp"
 #include "InitialScalarData.hpp"
 #include "VarsTools.hpp"
+#include "FilesystemTools.hpp"
 #include <fstream>
 
 #include <AMReX_MultiFab.H>
@@ -29,27 +30,27 @@ class RandomField
         //! A structure for storing parameters essential to this class
         struct params_t 
         {
-            int num_scalar_fields; //!< Number of fields to generate
-            int calc_tensor_field; //!< Determines whether tensor perts are calculated
-            int use_rand = 1;  //!< Flag choosing whether to use random inits
-            int random_seed = 3539263;
+            int num_scalar_fields;      //!< Number of fields to generate
+            int calc_tensor_field;      //!< Determines whether tensor perturbations are calculated
+            int use_rand = 1;           //!< Choose whether to use random initial conditions
+            int random_seed = 3539263;  //!< Seed for random number generator
 
-            double L;          //!< Length of the box
-            double A;          //!< Amplitude factor (for basic tests)
-            double Mp = 1.;    //!< Energy scale of the problem
-            int which_seed;    //!< Which random seed will be chosen (defunct?)
+            double L;                   //!< Length of the box
+            double A;                   //!< Amplitude factor (for basic tests)
+            double Mp = 1.;             //!< Energy scale of the problem
 
-            int N_readin;      //!< used to read in the private N variable
-            int N_fine;            //!< Fine resolution to downsample from, 
-                                //! used for convergence testing
+            int N_readin;               //!< used to read in the private N variable
+            int N_fine;                 //!< Fine resolution to downsample from, 
+                                        //!< used for convergence testing
 
-            int use_window = 0;//!< Flag choosing whether to use window function
-            double kstar;          //!< cut-off mode, measured in units of 2pi/L
-            double Delta;          //!< cut-off width, measured like L/Delta
+            int use_window = 0;         //!< Choose whether to use window function
+            double kstar;               //!< window's cut-off mode, measured in units of 2pi/L
+            double Delta;               //!< window's width, measured like L/Delta
 
-            int calc_binned_power_spectrum = 0;
-            int bin_number = N_readin/2;
-            int calc_higher_order_statistics = 0;
+            int calc_binned_power_spectrum = 0;   //!< Choose whether to extract the binned power spectrum
+            int bin_number = N_readin/2;          //!< How many bins to use (capped at N/2)
+            int calc_config_space_mode_fns = 0;   //!< Choose whether to print the fields in configuration space
+            int calc_higher_order_statistics = 0; //!< Choose whether to print higher-order statistics on the fields
         };
 
         RandomField(params_t a_params, InitialBackgroundData::params_t a_background_params)
@@ -57,8 +58,10 @@ class RandomField
         {
             // Set protected class parameters
             N = m_params.N_readin;
-            norm = m_params.A * pow(2. * M_PI/m_params.L, 3.);
+            norm = m_params.A * pow(2. * M_PI/m_params.L, 3.); // Physical FFT normalisation
 
+            // Look-up table 
+            // Used to construct polarisation basis tensors
             lut[0][0] = 0;
             lut[0][1] = 1;
             lut[0][2] = 2;
@@ -74,14 +77,15 @@ class RandomField
         void extract(MultiFab &state, std::string data_path, Real dt, Real cur_time, int restart_time, int first_step);
         
     private:
-        int N;              //<! Grid resolution
+        int N;
         int lut[3][3];
         double norm;
-	    //MultiFab* hx;
 
         int flip_index(int indx);
         int invert_index(int indx);
         int invert_index_with_sign(int indx);
+        std::string make_subdirectory(std::string base, std::string dir, int is_first_step);
+
         GpuComplex<Real> calculate_mode_function(double km, std::string spec_type);
         GpuComplex<Real> calculate_random_field(int I, int J, int k, std::string spectrum_type, 
                                                                 Real rand_amp, Real rand_phase);
@@ -91,7 +95,7 @@ class RandomField
         void apply_nyquist_conditions(int i, int j, int k, Array4<GpuComplex<Real>> const& field);
         bool is_ghost_index(IntVect vector);
 
-        void print_tensor_moment(int moment_order, MultiFab &field);
+        void print_tensor_moment(MultiFab &field, int moment_order, SmallDataIO &statistics_file);
         void print_power_spectrum(cMultiFab &field_array, SmallDataIO &power_spec_file, int component);
 
     protected:

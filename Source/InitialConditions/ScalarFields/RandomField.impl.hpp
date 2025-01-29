@@ -38,6 +38,26 @@ inline bool RandomField::is_ghost_index(IntVect vector)
     return ret;
 }
 
+inline std::string RandomField::make_subdirectory(std::string base, std::string dir, int is_first_step)
+{
+    std::string new_path = base+dir+"/";
+
+    if(is_first_step)
+    {
+        if (FilesystemTools::directory_exists(base))
+        {
+            FilesystemTools::mkdir_recursive(new_path);
+        }
+        else 
+        { 
+            std::cout << "Directory creation failed for " << new_path << "\n";
+            Error("RandomField::extract Data directory has not been created."); 
+        }
+    }
+
+    return new_path;
+}
+
 /****
     Initialisation routines
 ****/
@@ -351,10 +371,9 @@ inline void RandomField::init(amrex::MultiFab &state)
     Extraction routines
 ****/
 
-inline void RandomField::print_tensor_moment(int moment_order, MultiFab &field)
+inline void RandomField::print_tensor_moment(MultiFab &field, int moment_order, SmallDataIO &statistics_file)
 {
-    std::cout << field.nComp() << "\n";
-    Error();
+    ;
 }
 
 inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataIO &power_spec_file, int component)
@@ -583,9 +602,57 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
     {
         for(int comp = 0; comp < hs_k.nComp(); comp++)
         {
-            SmallDataIO spectrum_file(data_path+"spectrum-comp-"+std::to_string(comp)+"-time-", 
+            std::string spec_path = make_subdirectory(data_path, "spectra", first_step);
+
+            SmallDataIO spectrum_file(spec_path+"spectrum-comp-"+std::to_string(comp)+"-time-", 
                                         dt, cur_time, restart_time, SmallDataIO::NEW, first_step, ".dat");
             print_power_spectrum(hs_k, spectrum_file, comp);
+        }
+    }
+
+    if(m_params.calc_config_space_mode_fns || m_params.calc_higher_order_statistics)
+    {
+        // Make a multifab to store config space mode functions
+        BoxArray xba(domain);
+        DistributionMapping xdm(xba);
+        MultiFab hs_x(xba, xdm, 2, 0);
+
+        for(int fcomp = 0; fcomp < hs_x.nComp(); fcomp++)
+        {
+            cMultiFab hs_k_slice(hs_k, make_alias, fcomp, 1);
+            MultiFab hs_x_slice(hs_x, make_alias, fcomp, 1);
+            random_field_fft.backward(hs_k_slice, hs_x_slice);
+        }
+
+        hs_x.mult(norm);
+
+        if(m_params.calc_config_space_mode_fns)
+        {
+            std::string mf_path = make_subdirectory(data_path, "mode-functions", first_step);
+
+            SmallDataIO mode_function_file(mf_path+"mode-function-", dt, cur_time, 
+                                            restart_time, SmallDataIO::NEW, first_step, ".dat");
+            
+            for (MFIter mfi(hs_x); mfi.isValid(); ++mfi) 
+            {
+                Array4<Real> const& hx_ptr = hs_x.array(mfi);
+                const Box& bx = mfi.fabbox();
+
+                amrex::ParallelFor(bx, [=, &mode_function_file] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    mode_function_file.write_data_line({hx_ptr(i, j, k, 0), hx_ptr(i, j, k, 1)});
+                });
+            }
+        }
+
+        if(m_params.calc_higher_order_statistics)
+        {
+            std::string stats_path = make_subdirectory(data_path, "statistics", first_step);
+
+            SmallDataIO stats_file(stats_path+"skew-kurtosis-", dt, cur_time, 
+                                    restart_time, SmallDataIO::NEW, first_step, ".dat");
+
+            print_tensor_moment(hs_x, 3, stats_file);
         }
     }
 }
