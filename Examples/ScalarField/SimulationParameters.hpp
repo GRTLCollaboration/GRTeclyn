@@ -55,7 +55,8 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("bin_number", random_field_params.bin_number, random_field_params.N_readin/2); 
         pp.load("calc_config_space_mode_fns", random_field_params.calc_config_space_mode_fns, 0);
         pp.load("calc_higher_order_statistics", random_field_params.calc_higher_order_statistics, 0);
-        pp.getarr("moments_to_print", random_field_params.orders, 0, 4);
+        pp.load("num_moments", random_field_params.num_orders, 0);
+        pp.getarr("moments_to_print", random_field_params.orders, 0, random_field_params.num_orders);
     }
 
     void check_params()
