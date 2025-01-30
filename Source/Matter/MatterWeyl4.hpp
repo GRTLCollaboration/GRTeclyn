@@ -21,7 +21,7 @@ template <class matter_t> class MatterWeyl4 : public Weyl4
 {
   public:
     template <class data_t>
-    using Vars = typename MatterCCZ4<matter_t>::template Vars<data_t>;
+    using Vars = typename MatterCCZ4RHS<matter_t>::template Vars<data_t>;
 
     //! Constructor
     MatterWeyl4(matter_t a_matter,
@@ -29,8 +29,8 @@ template <class matter_t> class MatterWeyl4 : public Weyl4
                 const double a_dx, const int a_dcomp,
                 const int a_formulation = CCZ4RHS<>::USE_CCZ4,
                 double a_G_Newton       = 1.0)
-        : Weyl4(a_center, a_dx, a_dcomp, a_formulation), m_matter(a_matter),
-          m_dcomp(a_dcomp), m_G_Newton(a_G_Newton)
+        : Weyl4(a_center, a_dx, a_dcomp, a_formulation), m_dcomp(a_dcomp),
+          m_G_Newton(a_G_Newton), m_matter(a_matter)
     {
     }
 
@@ -41,7 +41,7 @@ template <class matter_t> class MatterWeyl4 : public Weyl4
     compute(int i, int j, int k, const amrex::Array4<data_t> &derive,
             const amrex::Array4<data_t const> &state) const;
 
-    static void set_up(int a_state_index);
+    static void set_up(matter_t a_matter, int a_state_index);
 
     // Has signature of DeriveFuncMF so that it can be stored in the derive_lst
     static void compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
@@ -51,9 +51,10 @@ template <class matter_t> class MatterWeyl4 : public Weyl4
                            int /*level*/);
 
   protected:
-    matter_t m_matter;       //!< The matter object, e.g. a scalar field
-    const int m_dcomp;       //!< index for storing the results of compute
-    const double m_G_Newton; //!< Newton's constant, set to one by default
+
+    matter_t m_matter;
+    int m_dcomp;       //!< index for storing the results of compute
+    double m_G_Newton; //!< Newton's constant, set to one by default
 
     //! Add matter terms to electric and magnetic parts
     template <class data_t>

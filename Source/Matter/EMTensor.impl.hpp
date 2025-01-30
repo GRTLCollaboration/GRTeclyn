@@ -84,4 +84,41 @@ EMTensor<matter_t>::compute(int i, int j, int k,
     }
 }
 
+template <class matter_t>
+void EMTensor<matter_t>::compute_mf(amrex::MultiFab &out_mf, int dcomp,
+                                    int ncomp, const amrex::MultiFab &src_mf,
+                                    const amrex::Geometry &geomdata,
+                                    amrex::Real /*time*/, const int * /*bcrec*/,
+                                    int /*level*/)
+{
+    const auto &out_arrays = out_mf.arrays();
+    const auto &src_arrays = src_mf.const_arrays();
+
+    // a_c_rho is stored starting from dcomp
+    // a_c_Si is stored starting from rho (dcomp+1)
+    // a_c_Sij is stored starting from a_c_Si
+
+    int c_Si_begin = dcomp + 1;
+    int c_Si_end   = c_Si_begin + DEFAULT_TENSOR_DIM;
+    Interval my_c_Si(c_Si_begin, c_Si_end);
+
+    int c_Sij_begin = c_Si_end;
+    int c_Sij_end =
+        c_Sij_begin + DEFAULT_TENSOR_DIM * (DEFAULT_TENSOR_DIM + 1) / 2;
+    Interval my_c_Sij(c_Sij_begin, c_Sij_end);
+
+    matter_t my_matter;
+
+    AMREX_ASSERT(ncomp == (my_c_Sij_end - dcomp));
+
+    EMTensor<matter_t> em_tensor(my_matter, geomdata.CellSize(0), dcomp,
+                                 my_c_Si, my_c_Sij);
+
+    amrex::ParallelFor(
+        out_mf, out_mf.nGrowVect(),
+        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept {
+            em_tensor.compute(i, j, k, out_arrays[box_no], src_arrays[box_no]);
+        });
+}
+
 #endif /* EMTENSOR_IMPL_HPP */

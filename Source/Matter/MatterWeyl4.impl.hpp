@@ -72,26 +72,30 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void MatterWeyl4<matter_t>::add_matter_EB(
     }
 }
 
-template <class matter_t> void MatterWeyl4<matter_t>::set_up(int a_state_index)
+template <class matter_t>
+void MatterWeyl4<matter_t>::set_up(matter_t a_matter, int a_state_index)
 {
-    int num_ghosts = 2; // no advection terms so only need 2 ghost cells
+
+    int num_ghosts = 2; // ??? should this not come from GRParmParse ???
 
     auto &derive_lst     = amrex::AmrLevel::get_derive_lst();
     const auto &desc_lst = amrex::AmrLevel::get_desc_lst();
 
-    // Add Weyl4 to the derive list
+    // Add MatterWeyl4 to the derive list
     derive_lst.add(
         name, amrex::IndexType::TheCellType(),
         static_cast<int>(var_names.size()), var_names, MatterWeyl4::compute_mf,
-        [=](const amrex::Box &box) { return amrex::grow(box, 2); },
+        [=](const amrex::Box &box) { return amrex::grow(box, num_ghosts); },
         &amrex::cell_quartic_interp);
 
     derive_lst.addComponent(name, desc_lst, a_state_index, 0, NUM_VARS);
 }
 template <class matter_t>
-void compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
-                const amrex::MultiFab &src_mf, const amrex::Geometry &geomdata,
-                amrex::Real /*time*/, const int * /*bcrec*/, int /*level*/)
+void MatterWeyl4<matter_t>::compute_mf(amrex::MultiFab &out_mf, int dcomp,
+                                       int ncomp, const amrex::MultiFab &src_mf,
+                                       const amrex::Geometry &geomdata,
+                                       amrex::Real /*time*/,
+                                       const int * /*bcrec*/, int /*level*/)
 {
     const auto &out_arrays = out_mf.arrays();
     const auto &src_arrays = src_mf.const_arrays();
@@ -103,13 +107,13 @@ void compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
 
     pp.get("extraction_center", center);
     pp.get("formulation", formulation);
-    pp.get("G_newton", G_newton, 0);
+    pp.load("G_newton", G_Newton, 0.0);
 
-    using DefaultScalarField = ScalarField<DefaultPotential>;
+    matter_t my_matter;
 
-    MatterWeyl4<DefaultScalarField> matter_weyl4(
-        DefaultScalarField(DefaultPotential()), center, geomdata.CellSize(0),
-        dcomp, formulation, G_newton);
+    MatterWeyl4<matter_t> matter_weyl4(my_matter, center, geomdata.CellSize(0),
+                                       dcomp, formulation, G_newton);
+
     amrex::ParallelFor(
         out_mf, out_mf.nGrowVect(),
         [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept {

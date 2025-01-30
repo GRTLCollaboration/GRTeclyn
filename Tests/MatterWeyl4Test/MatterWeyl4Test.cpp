@@ -67,6 +67,14 @@ void run_matter_weyl4_test()
         ghosted_box.grow(num_ghosts);
 
         amrex::BoxArray box_array{box};
+
+        amrex::RealVect dx_Vect{dx};
+        amrex::RealBox real_box{box, dx_Vect.dataPtr(),
+                                amrex::RealVect::Zero.dataPtr()};
+
+        int coord_sys = 0; // Cartesian
+
+        amrex::Geometry geom{box, &real_box, coord_sys};
         amrex::DistributionMapping distribution_mapping{box_array};
         amrex::MFInfo mf_info;
         mf_info.SetArena(amrex::The_Managed_Arena());
@@ -104,13 +112,37 @@ void run_matter_weyl4_test()
                                           cos(z * 2.5123 * 3.14);
             });
 
+        amrex::ParallelFor(
+            in_mf, in_mf.nGrowVect(),
+            [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+            {
+                const amrex::IntVect iv{i, j, k};
+                const amrex::RealVect coords = amrex::RealVect{iv} * dx;
+                amrex::Real x                = coords[0];
+                amrex::Real y                = coords[1];
+                amrex::Real z                = coords[2];
+
+                random_ccz4_initial_data(iv, in_arrays[box_no], coords);
+
+                // Theta is zero for BSSN
+                in_arrays[box_no](i, j, k, c_Theta) = 0.0;
+
+                // the initial data doesn't include phi or Pi so do it here:
+                in_arrays[box_no](i, j, k, c_phi) =
+                    0.21232 * sin(x * 2.1232 * 3.14) * cos(y * 2.5123 * 3.15) *
+                    cos(z * 2.1232 * 3.14);
+                in_arrays[box_no](i, j, k, c_Pi) =
+                    0.4112 * sin(x * 4.123 * 3.14) * cos(y * 2.2312 * 3.15) *
+                    cos(z * 2.5123 * 3.14);
+            });
+
         amrex::Gpu::streamSynchronize();
 
         // Setup scalar field calculations
 
+        DefaultPotential my_potential;
         ScalarField<DefaultPotential> my_scalar_field{DefaultPotential()};
-
-        // set up weyl4 calculation
+        typedef ScalarField<DefaultPotential> DefaultScalarField;
 
         constexpr int dcomp_weyl4 = 0;
         constexpr int num_comps_weyl4 =
@@ -118,17 +150,16 @@ void run_matter_weyl4_test()
         double G_Newton = 1.0;
         std::array<double, AMREX_SPACEDIM> center{0.0, 0.0, 0.0};
 
-        MatterWeyl4<ScalarField<DefaultPotential>> matter_weyl4(
-            my_scalar_field, center, dx, dcomp_weyl4, CCZ4RHS<>::USE_BSSN,
-            G_Newton);
-
         // Constructor for EMTensor
         constexpr int dcomp_rho = num_comps_weyl4;
         EMTensor<ScalarField<DefaultPotential>> scalar_field_emtensor(
             my_scalar_field, dx, dcomp_rho);
 
         constexpr int num_comps =
-            dcomp_rho + 1; // just Weyl4_Re, Weyl4_Im, rho, don't bother
+            3 + DEFAULT_TENSOR_DIM +
+            DEFAULT_TENSOR_DIM * (DEFAULT_TENSOR_DIM + 1) / 2;
+        //            dcomp_rho + 1; // just Weyl4_Re, Weyl4_Im, rho, don't
+        //            bother
         //            storing Si, Sij
 
         amrex::MultiFab out_mf{box_array, distribution_mapping, num_comps,
@@ -142,71 +173,101 @@ void run_matter_weyl4_test()
         const auto &in_c_array = in_fab.const_array();
         const auto &out_array  = out_fab.array();
 
-        amrex::ParallelFor(
-            box,
-            [=] AMREX_GPU_DEVICE(int i, int j, int k)
-            {
-                matter_weyl4.compute(i, j, k, out_array, in_c_array);
+        double time = 0.0;
+        int *bcrec  = nullptr;
+        int level   = 0;
 
-                // Rho is also computed here
-                scalar_field_emtensor.compute(i, j, k, out_array, in_c_array);
-            });
+        GRParmParse pp;
+        int formulation = CCZ4RHS<>::USE_BSSN;
+        pp.queryAdd("extraction_center", center);
+        pp.queryAdd("formulation", formulation);
+        pp.queryAdd("G_newton", G_Newton);
+
+        MatterWeyl4<DefaultScalarField>::compute_mf(out_mf, dcomp_weyl4,
+                                                    num_comps_weyl4, in_mf,
+                                                    geom, time, bcrec, level);
+
+        EMTensor<DefaultScalarField>::compute_mf(
+            out_mf, dcomp_rho, num_comps, in_mf, geom, time, bcrec, level);
+
+        // amrex::ParallelFor(box,
+        //                    [=] AMREX_GPU_DEVICE(int i, int j, int k)
+        //                    {
+        // matter_weyl4.compute(i, j, k, out_array,
+        // in_c_array);
+
+        // Rho is also computed here
+        //     scalar_field_emtensor.compute(i, j, k, out_array,
+        //                                   in_c_array);
+        // });
 
 #if AMREX_USE_HDF5
-        int coord_sys                        = 0;
         amrex::Vector<std::string> var_names = {"Weyl4_Re", "Weyl4_Im", "rho"};
 
         const H5std_string grteclyn_hdf5_file =
-            "MatterWeyl4Test/MatterWeyl4TestOut.h5";
+            "MatterWeyl4Test/TestTestMatterWeyl4TestOut.h5";
 
         // open the hdf5 file for writing
+        amrex::WriteSingleLevelPlotfileHDF5(grteclyn_hdf5_file, out_mf,
+                                            var_names, geom, 0.0, 0);
 
-        hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
-#if AMREX_USE_MPI
-        MPI_Info mpi_info = MPI_INFO_NULL;
-        H5Pset_fapl_mpio(plist_id, MPI_COMM_WORLD, mpi_info);
-#endif
-        hid_t fid = H5Fcreate(grteclyn_hdf5_file.c_str(), H5F_ACC_TRUNC,
-                              H5P_DEFAULT, plist_id);
-        // H5F_ACC_TRUNC = if file exists open with
-        // read/write access, otherwise create file
+        //         hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
+        // #if AMREX_USE_MPI
+        //         MPI_Info mpi_info = MPI_INFO_NULL;
+        //         H5Pset_fapl_mpio(plist_id, MPI_COMM_WORLD, mpi_info);
+        // #endif
+        //         hid_t fid = H5Fcreate(grteclyn_hdf5_file.c_str(),
+        //         H5F_ACC_TRUNC,
+        //                               H5P_DEFAULT, plist_id);
+        //         // H5F_ACC_TRUNC = if file exists open with
+        //         // read/write access, otherwise create file
 
-        // // create the group
-        char level_name[8] = "level_0"; // only the one level
+        //         // // create the group
+        //         char level_name[8] = "level_0"; // only the one level
 
-        hid_t grp =
-            H5Gcreate(fid, level_name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        //         hid_t grp =
+        //             H5Gcreate(fid, level_name, H5P_DEFAULT, H5P_DEFAULT,
+        //             H5P_DEFAULT);
 
-        for (int i = 0; i < num_comps; i++)
-        {
+        //         for (int i = 0; i < num_comps; i++)
+        //         {
 
-            // // create the dataset
-            char dataname[32] = "data:datatype=0";
-            hsize_t hs_procsize[1]; // only 1 dimension
-            hs_procsize[0] = box.length(0) * box.length(1) *
-                             box.length(2); // print 1 variable at a time
+        //             // // create the dataset
+        //             char dataname[32] = "data:datatype=0";
+        //             hsize_t hs_procsize[1]; // only 1 dimension
+        //             hs_procsize[0] = box.length(0) * box.length(1) *
+        //                              box.length(2); // print 1 variable at a
+        //                              time
 
-            hid_t dataspace    = H5Screate_simple(1, hs_procsize, NULL);
-            hid_t memdataspace = H5Screate_simple(1, hs_procsize, NULL);
+        //             hid_t dataspace    = H5Screate_simple(1, hs_procsize,
+        //             NULL); hid_t memdataspace = H5Screate_simple(1,
+        //             hs_procsize, NULL);
 
-            hid_t dcpl_id  = H5Pcreate(H5P_DATASET_CREATE);
-            hid_t dxpl_col = H5Pcreate(H5P_DATASET_XFER);
+        //             hid_t dcpl_id  = H5Pcreate(H5P_DATASET_CREATE);
+        //             hid_t dxpl_col = H5Pcreate(H5P_DATASET_XFER);
 
-            hid_t dataset =
-                H5Dcreate(grp, var_names[i].c_str(), H5T_NATIVE_DOUBLE,
-                          dataspace, H5P_DEFAULT, dcpl_id, H5P_DEFAULT);
-            hid_t ret = H5Dwrite(
-                dataset, H5T_NATIVE_DOUBLE, memdataspace, dataspace, dxpl_col,
-                out_fab.dataPtr(i)); // could also pass in a parameter to
-                                     // dataPtr e.g. dataPtr(c_Theta)
-            H5Dclose(dataset);
-            H5Sclose(memdataspace);
-            H5Sclose(dataspace);
-            H5Pclose(dxpl_col);
-        }
-        H5Gclose(grp);
-        H5Pclose(plist_id);
-        H5Fclose(fid);
+        //             hid_t dataset =
+        //                 H5Dcreate(grp, var_names[i].c_str(),
+        //                 H5T_NATIVE_DOUBLE,
+        //                           dataspace, H5P_DEFAULT, dcpl_id,
+        //                           H5P_DEFAULT);
+
+        // 	    const auto &test_out_arrays  = out_mf.arrays();
+
+        //             hid_t ret = H5Dwrite(
+        //                 dataset, H5T_NATIVE_DOUBLE, memdataspace, dataspace,
+        //                 dxpl_col, out_fab.dataPtr(i)); // could also pass in
+        //                 a parameter to
+        //                                      // dataPtr e.g. dataPtr(c_Theta)
+
+        // 	    H5Dclose(dataset);
+        //             H5Sclose(memdataspace);
+        //             H5Sclose(dataspace);
+        //             H5Pclose(dxpl_col);
+        //         }
+        //         H5Gclose(grp);
+        //         H5Pclose(plist_id);
+        //         H5Fclose(fid);
 
         std::cout.flush();
 
