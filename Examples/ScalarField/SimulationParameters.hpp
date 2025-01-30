@@ -55,6 +55,7 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("bin_number", random_field_params.bin_number, random_field_params.N_readin/2); 
         pp.load("calc_config_space_mode_fns", random_field_params.calc_config_space_mode_fns, 0);
         pp.load("calc_higher_order_statistics", random_field_params.calc_higher_order_statistics, 0);
+        pp.getarr("moments_to_print", random_field_params.orders, 0, 4);
     }
 
     void check_params()
@@ -66,12 +67,18 @@ class SimulationParameters : public SimulationParametersBase
                        "resolved on coarsest level");
 
         warn_parameter("kstar", random_field_params.kstar,
-                       random_field_params.kstar > 0,
+                       random_field_params.kstar >= 0,
                        "cut-off frequency index must be positive");
 
         check_parameter("Delta", random_field_params.Delta,
-                       random_field_params.Delta > 0,
+                       (!random_field_params.calc_binned_power_spectrum
+                        || random_field_params.Delta > 0),
                        "cut-off width must be positive and non-zero");
+
+        check_parameter("orders", random_field_params.calc_higher_order_statistics,
+                       (!random_field_params.calc_higher_order_statistics 
+                        || !random_field_params.orders.empty()),
+                       "moment orders must be provided");
     }
 
     // Initial data for matter and potential and BH

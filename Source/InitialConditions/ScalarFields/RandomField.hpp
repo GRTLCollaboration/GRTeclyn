@@ -52,6 +52,7 @@ class RandomField
             int bin_number = N_readin/2;          //!< How many bins to use (capped at N/2)
             int calc_config_space_mode_fns = 0;   //!< Choose whether to print the fields in configuration space
             int calc_higher_order_statistics = 0; //!< Choose whether to print higher-order statistics on the fields
+            Vector<int> orders;                   //!< Moment orders to print for extracted fields
         };
 
         RandomField(params_t a_params, InitialBackgroundData::params_t a_background_params)
@@ -102,7 +103,7 @@ class RandomField
 
         Real find_field_moment_x(MultiFab &field, Array1D<Real, 0, 1> mean, 
                                                 int moment, int component);
-        void print_tensor_moment(MultiFab &field, const Vector<int> moment_orders, 
+        void print_tensor_moment(MultiFab &field, const Vector<int> &moment_orders, 
                                     SmallDataIO &file, const int is_first_step);
         void print_power_spectrum(cMultiFab &field_array, SmallDataIO &power_spec_file, int component);
 

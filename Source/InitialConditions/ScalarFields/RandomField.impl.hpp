@@ -398,7 +398,7 @@ inline Real RandomField::find_field_moment_x(MultiFab &field, Array1D<Real, 0, 1
     else { return sum/vol; }
 }
 
-inline void RandomField::print_tensor_moment(MultiFab &field, const Vector<int> moment_orders, 
+inline void RandomField::print_tensor_moment(MultiFab &field, const Vector<int> &moment_orders, 
                                     SmallDataIO &file, const int is_first_step)
 {
     for(const auto moment : moment_orders)
@@ -740,15 +740,15 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
             }
         }
 
-        if(m_params.calc_higher_order_statistics)
+        if (m_params.calc_higher_order_statistics)
         {
-            std::string stats_path = make_subdirectory(data_path, "statistics", first_step);
-
-            SmallDataIO stats_file(stats_path+"field-statistics", dt, cur_time, 
+            SmallDataIO stats_file(data_path+"field-statistics", dt, cur_time, 
                                     restart_time, SmallDataIO::APPEND, first_step, ".dat");
 
-            Vector<int> orders = {1, 2, 3, 4};
-            print_tensor_moment(hs_x, orders, stats_file, first_step);
+            if (!m_params.orders.empty())
+            {
+                print_tensor_moment(hs_x, m_params.orders, stats_file, first_step);
+            }
         }
     }
 }
