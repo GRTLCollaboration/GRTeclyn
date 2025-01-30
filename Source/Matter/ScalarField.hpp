@@ -32,12 +32,13 @@
 template <class potential_t = DefaultPotential> class ScalarField
 {
   protected:
+    potential_t m_potential;
     //! The local copy of the potential
-    potential_t my_potential;
 
   public:
+
     //!  Constructor of class ScalarField, inputs are the matter parameters.
-    ScalarField(const potential_t a_potential) : my_potential(a_potential) {}
+    ScalarField() = default;
 
     //! Structure containing the rhs variables for the matter fields
     template <class data_t> struct Vars

@@ -13,13 +13,16 @@
 #include "MatterCCZ4.hpp"
 #include "simd.hpp"
 
+// AMReX Includes
+#include <AMReX_MultiFab.H>
+
 //! Calculates the EM tensor and then saves the ones specified in the
 //! constructor on the grid
 template <class matter_t> class EMTensor
 {
   public:
     template <class data_t>
-    using Vars = typename MatterCCZ4<matter_t>::template Vars<data_t>;
+    using Vars = typename MatterCCZ4RHS<matter_t>::template Vars<data_t>;
 
     //! Constructor
     EMTensor(const matter_t a_matter, const double dx, const int a_c_rho = -1,
@@ -30,6 +33,12 @@ template <class matter_t> class EMTensor
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     compute(int i, int j, int k, const amrex::Array4<data_t> &out_mf,
             const amrex::Array4<const data_t> &in_mf) const;
+
+    static void compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
+                           const amrex::MultiFab &src_mf,
+                           const amrex::Geometry &geomdata,
+                           amrex::Real /*time*/, const int * /*bcrec*/,
+                           int /*level*/);
 
   protected:
     const matter_t m_matter;
