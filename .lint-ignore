@@ -6,13 +6,17 @@
 # These template implementation files don't make sense on their own
 *.impl.hpp
 
-# These directories have yet to be ported to AMReX
+# These directories/files have yet to be ported to AMReX
 Source/AMRInterpolator/*
 Source/BoxUtils/SixthOrderDerivatives.hpp
 Source/CCZ4/GammaCalculator.hpp
 Source/InitialConditions/BlackHoles/KerrBH*
 Source/InitialConditions/ScalarFields/*
 Source/Matter/*
+Source/Tagging/ChiAndPhiTaggingCriterion.hpp
+Source/Tagging/ChiPunctureExtractionTaggingCriterion.hpp
+Source/Tagging/ChiTaggingCriterion.hpp
+Source/Tagging/PhiAndKTaggingCriterion.hpp
 Source/utils/WeylExtraction*
 Examples/KerrBH/*
 Examples/ScalarField/*
