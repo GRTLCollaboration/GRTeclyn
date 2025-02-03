@@ -89,5 +89,7 @@ csd3-dawn:
     - module load ${MODULES_DAWN}
     - cd ${AMREX_HOME}/Tools/Plotfile    
     - srun -A ZETTASCALE-PORTING-DAWN-GPU -p pvc --nodes=1 --ntasks=1 --time=00:10:00 --gres=gpu:1 --qos=INTR make -j 8 COMP=intel-llvm programs=fcompare
-
+    - cd ${HOME}/${CI_PROJECT_DIR}/Tests
+    - srun -A ZETTASCALE-PORTING-DAWN-GPU -p pvc --nodes=1 --ntasks=1 --time=00:10:00 --gres=gpu:1 --qos=INTR make run ${SYCL_BUILD_CONFIG}
+    
 
