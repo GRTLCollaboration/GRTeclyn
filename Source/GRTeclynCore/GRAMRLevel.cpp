@@ -254,6 +254,20 @@ void GRAMRLevel::init()
     FillCoarsePatch(S_new, 0, cur_time, State_Type, 0, S_new.nComp());
 }
 
+void GRAMRLevel::errorEst(amrex::TagBoxArray &a_tag_box_array,
+                          int /*a_clearval*/, int /*a_tagval*/,
+                          amrex::Real /*a_time*/, int /*a_n_error_buf*/,
+                          int /*a_ngrow*/)
+{
+    BL_PROFILE("GRAMRLevel::errorEst()");
+
+    pre_tag_cells();
+
+    // It is up to the derived class to use regrid_threshold in tag_cells()
+    amrex::Real regrid_threshold = simParams().regrid_thresholds[Level()];
+    tag_cells(a_tag_box_array, regrid_threshold);
+}
+
 void GRAMRLevel::writePlotFilePre(const std::string & /*dir*/,
                                   std::ostream & /*os*/)
 {

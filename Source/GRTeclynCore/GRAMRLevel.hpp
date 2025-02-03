@@ -110,12 +110,26 @@ class GRAMRLevel : public amrex::AmrLevel
      */
     void init() override;
     /**
-     * \brief Error estimation for regridding. This is a pure virtual
-     * function and hence MUST be implemented by derived classes.
-     * virtual void errorEst (amrex::TagBoxArray& tb, int clearval, int tagval,
-     *                        amrex::Real time, int n_error_buf = 0,
-     *                        int ngrow = 0);
+     * Do error estimation/tagging for regridding
+     * Most examples should not need to override this and instead override
+     * pre_tag_cells() and tag_cells()
      */
+    virtual void errorEst(amrex::TagBoxArray &a_tag_box_array, int a_clearval,
+                          int a_tagval, amrex::Real a_time,
+                          int a_n_error_buf = 0, int a_ngrow = 0) override;
+
+    /**
+     * Do any necessary work before tagging cells (e.g. calling FillPatch for
+     * any variables for which derivatives are calculated).
+     */
+    virtual void pre_tag_cells() {}
+
+    /**
+     * Tag cells for regridding. This is a pure virtual function and hence MUST
+     * be implemented by derived classes.
+     */
+    virtual void tag_cells(amrex::TagBoxArray &a_tag_box_array,
+                           amrex::Real a_regrid_threshold) = 0;
 
     //! Do pre-plotfile work
     void writePlotFilePre(const std::string &dir,

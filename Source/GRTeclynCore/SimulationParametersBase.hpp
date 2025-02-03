@@ -80,28 +80,37 @@ class SimulationParametersBase : public AMReXParameters
 
             // Check for multiple extraction radii, otherwise load single
             // radius/level (for backwards compatibility).
+            std::vector<int> extraction_levels_stdvect;
             if (pp.contains("extraction_levels"))
             {
-                pp.load("extraction_levels",
-                        extraction_params.extraction_levels,
+                pp.load("extraction_levels", extraction_levels_stdvect,
                         extraction_params.num_extraction_radii());
             }
             else
             {
-                pp.load("extraction_level", extraction_params.extraction_levels,
-                        1, 0);
+                pp.load("extraction_level", extraction_levels_stdvect, 1, 0);
             }
+            extraction_params.extraction_levels.resize(
+                extraction_params.num_extraction_radii());
+            std::copy(extraction_levels_stdvect.begin(),
+                      extraction_levels_stdvect.end(),
+                      extraction_params.extraction_levels.begin());
+
+            std::vector<double> extraction_radii_stdvect;
             if (pp.contains("extraction_radii"))
             {
-                pp.load("extraction_radii",
-                        extraction_params.extraction_radii(),
+                pp.load("extraction_radii", extraction_radii_stdvect,
                         extraction_params.num_extraction_radii());
             }
             else
             {
-                pp.load("extraction_radius",
-                        extraction_params.extraction_radii(), 1, 0.1);
+                pp.load("extraction_radius", extraction_radii_stdvect, 1, 0.1);
             }
+            extraction_params.extraction_radii().resize(
+                extraction_params.num_extraction_radii());
+            std::copy(extraction_radii_stdvect.begin(),
+                      extraction_radii_stdvect.end(),
+                      extraction_params.extraction_radii().begin());
 
             pp.load("num_points_phi", extraction_params.num_points_phi(), 2);
             pp.load("num_points_theta", extraction_params.num_points_theta(),

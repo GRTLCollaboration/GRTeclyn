@@ -3,15 +3,18 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#ifndef FIXEDGRIDSTAGGINGCRITERION_HPP_
-#define FIXEDGRIDSTAGGINGCRITERION_HPP_
+#ifndef FIXEDGRIDSTAGGER_HPP_
+#define FIXEDGRIDSTAGGER_HPP_
 
 #include "Cell.hpp"
 #include "Coordinates.hpp"
 #include "DimensionDefinitions.hpp"
 #include "Tensor.hpp"
 
-class FixedGridsTaggingCriterion
+// AMReX includes
+#include <AMReX_TagBox.H>
+
+class FixedGridsTagger
 {
   protected:
     double m_dx;
@@ -21,15 +24,15 @@ class FixedGridsTaggingCriterion
 
   public:
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-    FixedGridsTaggingCriterion(
-        const double dx, const int a_level, const double a_L,
-        const std::array<double, AMREX_SPACEDIM> a_center)
+    FixedGridsTagger(const double dx, const int a_level, const double a_L,
+                     const std::array<double, AMREX_SPACEDIM> a_center)
         : m_dx(dx), m_L(a_L), m_level(a_level), m_center(a_center){};
     // NOLINTEND(bugprone-easily-swappable-parameters)
     template <class data_t>
-    AMREX_GPU_DEVICE data_t compute(int i, int j, int k) const
+    AMREX_GPU_DEVICE void
+    operator()(int i, int j, int k,
+               const amrex::Array4<amrex::TagBox::TagType> &tags) const
     {
-        data_t criterion = 0.0;
         // make sure the inner part is regridded around the horizon
         // take L as the length of full grid, so tag inner 1/2
         // of it, which means inner \pm L/4
@@ -39,13 +42,14 @@ class FixedGridsTaggingCriterion
 
         const Coordinates<data_t> coords(cell, m_dx, m_center);
         const data_t max_abs_xy =
-            simd_max(std::abs(coords.x), std::abs(coords.y));
-        const data_t max_abs_xyz = simd_max(max_abs_xy, std::abs(coords.z));
-        auto regrid              = simd_compare_lt(max_abs_xyz, m_L * ratio);
-        criterion                = simd_conditional(regrid, 100.0, criterion);
+            std::max(std::abs(coords.x), std::abs(coords.y));
+        const data_t max_abs_xyz = std::max(max_abs_xy, std::abs(coords.z));
 
-        return criterion;
+        if (max_abs_xyz < m_L * ratio)
+        {
+            tags(i, j, k) = amrex::TagBox::SET;
+        }
     }
 };
 
-#endif /* FIXEDGRIDSTAGGINGCRITERION_HPP_ */
+#endif /* FIXEDGRIDSTAGGER_HPP_ */

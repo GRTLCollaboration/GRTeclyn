@@ -21,7 +21,7 @@ src_dirs := $(GRTECLYN_SOURCE)/utils \
             $(GRTECLYN_SOURCE)/BoxUtils  \
             $(GRTECLYN_SOURCE)/GRTeclynCore  \
             $(GRTECLYN_SOURCE)/AMRInterpolator  \
-            $(GRTECLYN_SOURCE)/TaggingCriteria  \
+            $(GRTECLYN_SOURCE)/Tagging  \
             $(GRTECLYN_SOURCE)/InitialConditions/BlackHoles \
             $(GRTECLYN_SOURCE)/BlackHoles
 
