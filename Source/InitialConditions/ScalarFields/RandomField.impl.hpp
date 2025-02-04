@@ -319,7 +319,7 @@ inline void RandomField::init(amrex::MultiFab &state)
 
     const IntVect start2{N/2, 0, 0};
     const IntVect end2{N/2, N-1, N-1};
-    Box nyq_plane_2(start1, end1);
+    Box nyq_plane_2(start2, end2);
 
     BaseFab<GpuComplex<Real>> nyq_bf_1(nyq_plane_1, 6*2);
     BaseFab<GpuComplex<Real>> nyq_bf_2(nyq_plane_2, 6*2);
@@ -744,7 +744,7 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
 
     const IntVect start2{N/2, 0, 0};
     const IntVect end2{N/2, N-1, N-1};
-    Box nyq_plane_2(start1, end1);
+    Box nyq_plane_2(start2, end2);
 
     BaseFab<GpuComplex<Real>> nyq_bf_1(nyq_plane_1, 2);
     BaseFab<GpuComplex<Real>> nyq_bf_2(nyq_plane_2, 2);
