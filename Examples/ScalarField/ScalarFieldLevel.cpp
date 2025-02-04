@@ -420,6 +420,6 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
     //constrs_file.write_time_data_line({hamBar, sqrt(hamVar), hamAbsBar, hamNormBar, sqrt(hamNormVar), momBar, momAAD});
     means_file.write_time_data_line({phi_avg, phi_var, Pi_avg, scale_fact_avg, chi_var, Hubble_fact_avg, lapse_avg});
 
-    //RandomField random_field_extractor(simParams().random_field_params, simParams().background_params);
-    //random_field_extractor.extract(state_new, simParams().data_path, dt, cur_time, restart_time, first_step);
+    RandomField random_field_extractor(simParams().random_field_params, simParams().background_params);
+    random_field_extractor.extract(state_new, simParams().data_path, dt, cur_time, restart_time, first_step);
 }

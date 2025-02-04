@@ -85,32 +85,35 @@ class RandomField
         int lut[3][3];
         double norm;
 
+        // Small functions
         int flip_index(int indx);
         int invert_index(int indx);
         int invert_index_with_sign(int indx);
+        bool is_ghost_index(IntVect vector);
         std::string make_subdirectory(std::string base, std::string dir, int is_first_step);
         void assign_statistics_data(Vector<std::string> &header_storage, const std::string name, 
                             Vector<Real> &data_storage, const Array1D<Real, 0, 1> data, 
                             const int component, const auto itr, const auto start, const int is_first_step);
 
+        // Initialisation routines 
         GpuComplex<Real> calculate_mode_function(double km, std::string spec_type);
         GpuComplex<Real> calculate_random_field(int I, int J, int k, std::string spectrum_type, 
                                                                 Real rand_amp, Real rand_phase);
         Vector<Real> calculate_basis_vector(int i, int j, int k, int which_vector);
         GpuComplex<Real> calculate_tensor_initial_conditions(int I, int J, int k, int l, int p, 
                             GpuComplex<Real> plus_field, GpuComplex<Real> cross_field);
-        bool is_independent_draw(IntVect iv);
         void apply_nyquist_point_condition(IntVect iv, int ncomp, Array4<GpuComplex<Real>> const& field_ptr);
         void apply_nyquist_plane_condition(IntVect iv, int ncomp, Array4<GpuComplex<Real>> const& field_ptr, 
-                                            Array4<GpuComplex<Real>> const& plane_ptr);
-        void apply_nyquist_conditions(cMultiFab &field, BaseFab<GpuComplex<Real>> &plane1, BaseFab<GpuComplex<Real>> &plane2);
-        bool is_ghost_index(IntVect vector);
-
+                                            Array4<GpuComplex<Real>> const& plane_ptr, int skip);
+        void apply_nyquist_conditions(cMultiFab &field, BaseFab<GpuComplex<Real>> &plane1, 
+                                        BaseFab<GpuComplex<Real>> &plane2, int skip);
+        
+        // Extraction routines
+        void print_power_spectrum(cMultiFab &field_array, SmallDataIO &power_spec_file, int component);
         Real find_field_moment_x(MultiFab &field, Array1D<Real, 0, 1> mean, 
                                                 int moment, int component);
         void print_tensor_moment(MultiFab &field, const Vector<int> &moment_orders, 
                                     SmallDataIO &file, const int is_first_step);
-        void print_power_spectrum(cMultiFab &field_array, SmallDataIO &power_spec_file, int component);
 
     protected:
         const params_t m_params;
