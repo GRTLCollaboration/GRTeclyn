@@ -229,6 +229,40 @@ inline bool RandomField::is_independent_draw(IntVect iv)
     return val;
 }
 
+inline void RandomField::apply_nyquist_point_condition(IntVect iv, int ncomp, Array4<GpuComplex<Real>> const& field_ptr)
+{
+    for(int comp = 0; comp < ncomp; comp++)
+    {
+        GpuComplex<Real> temp(field_ptr(iv[0], iv[1], iv[2], comp).real(), 0.);
+        field_ptr(iv[0], iv[1], iv[2], comp) = temp;
+    }
+}
+
+inline void RandomField::apply_nyquist_plane_condition(IntVect iv, int ncomp, Array4<GpuComplex<Real>> const& field_ptr, 
+                                            Array4<GpuComplex<Real>> const& plane_ptr)
+{
+    if((iv[2] > N/2 && iv[1] == N/2) || (iv[2] == 0 && iv[1] > N/2) ||
+       (iv[2] > N/2 && iv[1] == 0) || (iv[2] == N/2 && iv[1] > N/2))
+    {
+        for(int comp = 0; comp < ncomp; comp++) 
+        {
+            GpuComplex<Real> temp(plane_ptr(iv[0], invert_index(iv[1]), invert_index(iv[2]), comp).real(), 
+                                    -plane_ptr(iv[0], invert_index(iv[1]), invert_index(iv[2]), comp).imag());
+            field_ptr(iv[0], iv[1], iv[2], comp) = temp;
+        }
+    }
+    
+    else if(iv[1] > N/2)
+    {
+        for(int comp = 0; comp < ncomp; comp++) 
+        {
+            GpuComplex<Real> temp(plane_ptr(iv[0], invert_index(iv[1]), flip_index(iv[2]), comp).real(), 
+                                    -plane_ptr(iv[0], invert_index(iv[1]), flip_index(iv[2]), comp).imag());
+            field_ptr(iv[0], iv[1], iv[2], comp) = temp;
+        }
+    }
+}
+
 inline void RandomField::apply_nyquist_conditions(cMultiFab &field, BaseFab<GpuComplex<Real>> &plane1, BaseFab<GpuComplex<Real>> &plane2)
 {
     //REDESIGN so that the loop is over only one MPI rank/the MPI memory is shared
@@ -245,64 +279,19 @@ inline void RandomField::apply_nyquist_conditions(cMultiFab &field, BaseFab<GpuC
         {
             IntVect iv = {i, j, k};
 
-            if(i==0 && j==1 && k==1)
+            if ((i == 0 || i == N/2) && (j == 0 || j == N/2) && (k == 0 || k == N/2))
             {
-                Print() << "In assignment: " << nyq_array_1(i, j, k, 0) << "\n";
+                apply_nyquist_point_condition(iv, nc, field_ptr);
             }
 
-            if ((i==0 || i==N/2) && (j==0 || j==N/2) && (k==0 || k== N/2))
+            else if (i==0) 
             {
-                for(int comp = 0; comp < nc; comp++)
-                {
-                    GpuComplex<Real> temp(field_ptr(i, j, k, comp).real(), 0.);
-                    field_ptr(i, j, k, comp) = temp;
-                }
-            }
-
-            if (i==0) 
-            {
-                if((k>N/2 && j==N/2) || (k==0 && j>N/2) || (k>N/2 && j==0) || (k==N/2 && j>N/2))
-                {
-                    for(int comp = 0; comp < nc; comp++) 
-                    {
-                        GpuComplex<Real> temp(nyq_array_1(i, invert_index(j), invert_index(k), comp).real(), 
-                                                -nyq_array_1(i, invert_index(j), invert_index(k), comp).imag());
-                        field_ptr(i, j, k, comp) = temp;
-                    }
-                }
-                
-                else if(j > N/2)
-                {
-                    for(int comp = 0; comp < nc; comp++) 
-                    {
-                        GpuComplex<Real> temp(nyq_array_1(i, invert_index(j), flip_index(k), comp).real(), 
-                                                -nyq_array_1(i, invert_index(j), flip_index(k), comp).imag());
-                        field_ptr(i, j, k, comp) = temp;
-                    }
-                }
+                apply_nyquist_plane_condition(iv, nc, field_ptr, nyq_array_1);
             }
 
             else if (i==N/2)
             {
-                if((k>N/2 && j==N/2) || (k==0 && j>N/2) || (k>N/2 && j==0) || (k==N/2 && j>N/2))
-                {
-                    for(int comp = 0; comp < nc; comp++) 
-                    {
-                        GpuComplex<Real> temp(nyq_array_2(i, invert_index(j), invert_index(k), comp).real(), 
-                                                -nyq_array_2(i, invert_index(j), invert_index(k), comp).imag());
-                        field_ptr(i, j, k, comp) = temp;
-                    }
-                }
-                
-                else if(j > N/2)
-                {
-                    for(int comp = 0; comp < nc; comp++) 
-                    {
-                        GpuComplex<Real> temp(nyq_array_2(i, invert_index(j), flip_index(k), comp).real(), 
-                                                -nyq_array_2(i, invert_index(j), flip_index(k), comp).imag());
-                        field_ptr(i, j, k, comp) = temp;
-                    }
-                }
+                apply_nyquist_plane_condition(iv, nc, field_ptr, nyq_array_2);
             }
 
         });
