@@ -100,8 +100,7 @@ class RandomField
         GpuComplex<Real> calculate_tensor_initial_conditions(int I, int J, int k, int l, int p, 
                             GpuComplex<Real> plus_field, GpuComplex<Real> cross_field);
         bool is_independent_draw(IntVect iv);
-        int find_processor(const IntVect iv, const BoxArray &ba, Vector<int> pm);
-        void apply_nyquist_conditions(cMultiFab &field, const BoxArray &ba, const DistributionMapping &dm);
+        void apply_nyquist_conditions(cMultiFab &field, BaseFab<GpuComplex<Real>> &plane1, BaseFab<GpuComplex<Real>> &plane2);
         bool is_ghost_index(IntVect vector);
 
         Real find_field_moment_x(MultiFab &field, Array1D<Real, 0, 1> mean, 
