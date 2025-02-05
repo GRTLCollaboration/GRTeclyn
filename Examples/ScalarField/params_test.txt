@@ -14,7 +14,7 @@ checkpoint_interval = 500
 # set to 0 to turn off plot files (except at t=0 and t=stop_time)
 # set to -1 to never ever print plotfiles
 plot_interval = -1
-amr.plot_int = 1
+amr.plot_int = -1
 amr.check_int = -1
 num_plot_vars = 2
 plot_vars = chi phi
@@ -61,9 +61,9 @@ kstar = 16
 Delta = 30
 
 # Options for tensor extraction
-calc_binned_power_spectrum = 1
-calc_config_space_mode_fns = 1
-calc_higher_order_statistics = 1
+calc_binned_power_spectrum = 0
+calc_config_space_mode_fns = 0
+calc_higher_order_statistics = 0
 
 #(!!) must be between 1 and 4
 num_moments = 3
@@ -133,7 +133,7 @@ extrapolating_vars = phi Pi
 # dt will be dx*dt_multiplier on each grid level
 dt_multiplier = 0.25
 stop_time = 10000
-max_steps = 10
+max_steps = 1
 
 # Spatial derivative order (only affects CCZ4 RHS)
 max_spatial_derivative_order = 4 # can be 4 or 6

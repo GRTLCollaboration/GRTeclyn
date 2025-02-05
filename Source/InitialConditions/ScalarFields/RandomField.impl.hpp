@@ -385,17 +385,27 @@ inline void RandomField::init(amrex::MultiFab &state)
                 }
             }
 
-            /*IntVect iv{i, j, k};
-            bool in_ghost_index = is_ghost_index(iv);
+            if(i + (N/2+1)*(j + N*k) == 33) //(i==16 && j==1 && k==0)
+            {
+                std::cout << i << "," << j << "," << k << "\n";
+                //std::cout << "Pre symmetry rules: ";
+                for(int s=0; s<2; s++)
+                {
+                    std::cout << hs_ptr(i, j, k, s).real() << "," << hs_ptr(i, j, k, s).imag() << ",";
+                }
+                std::cout << "\n";
+            }
+
+            /*bool in_ghost_index = is_ghost_index(iv);
             if(!in_ghost_index)
             {
+                AllPrintToFile(Filename) << i << "," << j << "," << k << ",";
                 for(int s=0; s<2; s++) 
                 { 
-                    PrintToFile(Filename, 0) << iv << ": ";
-                    PrintToFile(Filename, 0) << hs_ptr(i, j, k, s).real() << ","; 
-                    PrintToFile(Filename, 0) << hs_ptr(i, j, k, s).imag() << ",";
+                    AllPrintToFile(Filename).SetPrecision(14) << hs_ptr(i, j, k, s).real() << ","; 
+                    AllPrintToFile(Filename).SetPrecision(14) << hs_ptr(i, j, k, s).imag() << ",";
                 }
-                PrintToFile(Filename, 0) << "\n";
+                AllPrintToFile(Filename) << "\n";
             }*/
         });
     }
@@ -408,6 +418,31 @@ inline void RandomField::init(amrex::MultiFab &state)
     //apply_nyquist_conditions(hs_k);
     apply_nyquist_conditions(hij_k, nyq_bf_1, nyq_bf_2, 0);
     apply_nyquist_conditions(Aij_k, nyq_bf_1, nyq_bf_2, 6);
+
+    /*for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
+    {
+        const Box& bx = mfi.fabbox();
+
+        // Make a pointer to the mode functions at this MF box
+        Array4<GpuComplex<Real>> const& hs_ptr = hs_k.array(mfi);
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            IntVect iv{i, j, k};
+            bool in_ghost_index = is_ghost_index(iv);
+            if(!in_ghost_index)
+            {
+                //AllPrintToFile(Filename) << iv << ": ";
+                AllPrintToFile(Filename) << i + (N/2+1)*(j + N*k) << ",";//i << "," << j << "," << k << ",";
+                for(int s=0; s<2; s++) 
+                { 
+                    AllPrintToFile(Filename).SetPrecision(14) << hs_ptr(i, j, k, s).real() << ","; 
+                    AllPrintToFile(Filename).SetPrecision(14) << hs_ptr(i, j, k, s).imag() << ",";
+                }
+                AllPrintToFile(Filename) << "\n";
+            }
+        });
+    }*/
 
     // Do the Fourier transform
     for(int fcomp = 0; fcomp < hij_k.nComp(); fcomp++)
@@ -786,6 +821,18 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
                 hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross)/std::sqrt(2.);
             }
 
+            /*if(i==16 && j==1 && k==0) //(i + (N/2+1)*(j + N*k) == 33)
+            {
+                std:: cout << iv << "\n";
+                for(int s=0; s<2; s++) 
+                { 
+                    std::cout << hs_ptr(i, j, k, s).real() << ","; 
+                    std::cout << hs_ptr(i, j, k, s).imag() << ",";
+                }
+                std::cout << "\n";
+                //Error();
+            }*/
+
             // Set aside Nyquist plane data
             if (i == 0) 
             {
@@ -801,18 +848,6 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
                     nyq_array_2(i, j, k, comp) = hs_ptr(i, j, k, comp);
                 }
             }
-
-            /*bool in_ghost_index = is_ghost_index(iv);
-            if(!in_ghost_index)
-            {
-                for(int s=0; s<2; s++) 
-                { 
-                    //PrintToFile(Filename, 0) << iv << ": ";
-                    PrintToFile(Filename, 0).SetPrecision(12) << hs_ptr(i, j, k, s).real() << ","; 
-                    PrintToFile(Filename, 0).SetPrecision(12) << hs_ptr(i, j, k, s).imag() << ",";
-                }
-                PrintToFile(Filename, 0) << "\n";
-            }*/
         });
     }
 
@@ -820,6 +855,34 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
     ParallelDescriptor::Bcast(nyq_bf_1.dataPtr(), nyq_bf_1.size());
     ParallelDescriptor::Bcast(nyq_bf_2.dataPtr(), nyq_bf_2.size());
     apply_nyquist_conditions(hs_k, nyq_bf_1, nyq_bf_2, 0);
+
+    if(first_step)
+    {
+        for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
+        {
+            const Box& bx = mfi.fabbox();
+
+            // Make a pointer to the mode functions at this MF box
+            Array4<GpuComplex<Real>> const& hs_ptr = hs_k.array(mfi);
+
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                IntVect iv{i, j, k};
+                bool in_ghost_index = is_ghost_index(iv);
+                if(!in_ghost_index)
+                {
+                    //AllPrintToFile(Filename) << iv << ": ";
+                    AllPrintToFile(Filename) << i + (N/2+1)*(j + N*k) << ",";//i << "," << j << "," << k << ",";
+                    for(int s=0; s<2; s++) 
+                    { 
+                        AllPrintToFile(Filename).SetPrecision(14) << hs_ptr(i, j, k, s).real() << ","; 
+                        AllPrintToFile(Filename).SetPrecision(14) << hs_ptr(i, j, k, s).imag() << ",";
+                    }
+                    AllPrintToFile(Filename) << "\n";
+                }
+            });
+        }
+    }
 
     // Find the binned PS for each mode function and print to data/
     if(m_params.calc_binned_power_spectrum) 
