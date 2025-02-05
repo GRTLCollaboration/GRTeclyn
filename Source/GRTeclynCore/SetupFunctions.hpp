@@ -43,6 +43,7 @@ void mainSetup(int argc, char *argv[])
 {
     // NOLINTEND(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
     bool use_parm_parse = true;
+    // NOLINTNEXTLINE(bugprone-casting-through-void)
     amrex::Initialize(argc, argv, use_parm_parse, MPI_COMM_WORLD,
                       []()
                       {

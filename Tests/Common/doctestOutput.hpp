@@ -21,13 +21,14 @@ namespace doctest
 // Hide output from non-zero ranks when building with MPI
 std::ostream &hide_output_from_non_zero_ranks(std::ostream &a_rank_zero_ostream)
 {
-    int mpi_initialized = false;
+    int mpi_initialized = 0;
     MPI_Initialized(&mpi_initialized);
-    if (!mpi_initialized)
+    if (mpi_initialized == 0)
     {
         return a_rank_zero_ostream;
     }
-    int rank;
+    int rank = 0;
+    // NOLINTNEXTLINE(bugprone-casting-through-void) // Open MPI triggers this
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     if (rank == 0)
     {

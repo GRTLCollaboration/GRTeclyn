@@ -553,7 +553,7 @@ class AMReXParameters
     }
 
     template <typename T>
-    void check_parameter(const std::string &a_name, T a_value,
+    void check_parameter(const std::string &a_name, const T &a_value,
                          const bool a_valid,
                          const std::string &a_invalid_explanation)
     {

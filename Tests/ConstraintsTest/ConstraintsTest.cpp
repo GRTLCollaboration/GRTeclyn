@@ -33,6 +33,7 @@ void run_constraints_test()
 {
     int amrex_argc    = doctest::cli_args.argc();
     char **amrex_argv = doctest::cli_args.argv();
+    // NOLINTNEXTLINE(bugprone-casting-through-void) // Open MPI triggers this
     amrex::Initialize(amrex_argc, amrex_argv, true, MPI_COMM_WORLD);
     {
         // Set up grid
