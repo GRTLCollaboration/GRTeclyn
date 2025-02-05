@@ -2,5 +2,5 @@ GRTECLYN_CEXE_headers += ChiAndPhiTaggingCriterion.hpp \
                          ChiExtractionTagger.hpp \
                          ChiPunctureExtractionTaggingCriterion.hpp \
                          ChiTaggingCriterion.hpp \
-                         FixedGridsTaggingCriterion.hpp \
+                         FixedGridsTagger.hpp \
                          PhiAndKTaggingCriterion.hpp
