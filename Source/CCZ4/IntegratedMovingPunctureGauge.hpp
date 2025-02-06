@@ -63,7 +63,7 @@ class IntegratedMovingPunctureGauge
     {
         const auto vars = current_cell.template load_vars<Vars>();
 
-        Tensor<1, data_t> B;
+        Tensor<1, data_t> B; // NOLINT(readability-identifier-length)
         FOR (i)
         {
             B[i] = m_params.shift_Gamma_coeff * vars.Gamma[i] -
