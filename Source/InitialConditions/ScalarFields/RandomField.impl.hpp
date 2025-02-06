@@ -58,7 +58,7 @@ inline std::string RandomField::make_subdirectory(std::string base, std::string 
 // Creates a custom data file layout 
 inline void RandomField::assign_statistics_data(Vector<std::string> &header_storage, const std::string name, 
                             Vector<Real> &data_storage, const Array1D<Real, 0, 1> data, 
-                            const int component, const auto itr, const auto start, const int is_first_step)
+                            const int component, Vector<int>::const_iterator itr, Vector<int>::const_iterator start, const int is_first_step)
 {
     int loc = component + 2*(itr - start);
     if(is_first_step) 
@@ -245,23 +245,30 @@ inline void RandomField::apply_nyquist_plane_condition(IntVect iv, int ncomp, Ar
             GpuComplex<Real> temp(plane_ptr(iv[0], invert_index(iv[1]), flip_index(iv[2]), comp+skip).real(), 
                                     -plane_ptr(iv[0], invert_index(iv[1]), flip_index(iv[2]), comp+skip).imag());
             field_ptr(iv[0], iv[1], iv[2], comp) = temp;
+
+            /*if((iv[0]==0 || iv[0]==N/2) && iv[1]==17 && iv[2]==0) //(i==16 && j==1 && k==0)
+            {
+                AllPrint() << iv << "\n";
+                AllPrint() << "Inside symmetry rules: ";
+                for(int s=0; s<2; s++)
+                {
+                    AllPrint() << plane_ptr(iv[0], iv[1], iv[2], comp).real() << "," << plane_ptr(iv[0], iv[1], iv[2], comp).imag() << ",";
+                }
+                AllPrint() << "\n";
+            }*/
         }
     }
 }
 
 // Applies above Nyquist conditions to a given MF
-inline void RandomField::apply_nyquist_conditions(cMultiFab &field, BaseFab<GpuComplex<Real>> &plane1, 
-                                                    BaseFab<GpuComplex<Real>> &plane2, int skip)
+inline void RandomField::apply_nyquist_conditions(cMultiFab &field)
 {
     int nc = field.nComp();
     for (MFIter mfi(field); mfi.isValid(); ++mfi) 
     {
         // The geometry for this MPI rank
         const Box& bx = mfi.fabbox();
-
         Array4<GpuComplex<Real>> const& field_ptr = field.array(mfi);
-        Array4<GpuComplex<Real>> const& nyq_array_1 = plane1.array();
-        Array4<GpuComplex<Real>> const& nyq_array_2 = plane2.array();
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
@@ -269,18 +276,63 @@ inline void RandomField::apply_nyquist_conditions(cMultiFab &field, BaseFab<GpuC
 
             if ((i == 0 || i == N/2) && (j == 0 || j == N/2) && (k == 0 || k == N/2))
             {
-                apply_nyquist_point_condition(iv, nc, field_ptr);
+                for(int comp = 0; comp < nc; comp++)
+                {
+                    GpuComplex<Real> temp(field_ptr(i, j, k, comp).real(), 0.);
+                    field_ptr(i, j, k, comp) = temp;
+                }
             }
 
-            else if (i==0) 
+            else if (i==0 || i==N/2) 
             {
-                apply_nyquist_plane_condition(iv, nc, field_ptr, nyq_array_1, skip);
+                if((k > N/2 && j == N/2) || (k == 0 && j > N/2) ||
+                    (k > N/2 && j == 0) || (k == N/2 && j > N/2))
+                {
+                    for(int comp = 0; comp < nc; comp++) 
+                    {
+                        GpuComplex<Real> temp(field_ptr(i, invert_index(j), invert_index(k), comp).real(), 
+                                                -field_ptr(i, invert_index(j), invert_index(k), comp).imag());
+                        field_ptr(i, j, k, comp) = temp;
+                    }
+                }
+                
+                else if(j > N/2)
+                {
+                    for(int comp = 0; comp < nc; comp++) 
+                    {
+                        GpuComplex<Real> temp(field_ptr(i, invert_index(j), flip_index(k), comp).real(), 
+                                                -field_ptr(i, invert_index(j), flip_index(k), comp).imag());
+                        field_ptr(i, j, k, comp) = temp;
+
+                        /*if((i==0 || i==N/2) && j==17 && k==0) //(i==16 && j==1 && k==0)
+                        {
+                            AllPrint() << iv << "\n";
+                            AllPrint() << "Inside symmetry rules: ";
+                            for(int s=0; s<2; s++)
+                            {
+                                AllPrint() << field_ptr(i, j, k, comp).real() << "," << field_ptr(i, j, k, comp).imag() << ",";
+                            }
+                            AllPrint() << "\n";
+                        }*/
+                    }
+                }
+                //apply_nyquist_plane_condition(iv, nc, field_ptr);
+                /*for(int comp=0; comp<nc; comp++) 
+                {
+                    AllPrint() << iv << ", " << comp << ": ";
+                    AllPrint() << plane1[comp][i + (N/2+1)*(j + N*k)].real() << "," << plane1[comp][i + (N/2+1)*(j + N*k)].imag() << "\n";
+                }*/
             }
 
-            else if (i==N/2)
+            /*else if (i==N/2)
             {
-                apply_nyquist_plane_condition(iv, nc, field_ptr, nyq_array_2, skip);
-            }
+                //apply_nyquist_plane_condition(iv, nc, field_ptr, nyq_array_2, skip);
+                for(int comp=0; comp<nc; comp++) 
+                {
+                    AllPrint() << iv << ", " << comp << ": ";
+                    AllPrint() << plane2[comp][i + (N/2+1)*(j + N*k)].real() << "," << plane2[comp][i + (N/2+1)*(j + N*k)].imag() << "\n";
+                }
+            }*/
 
         });
     }
@@ -298,22 +350,31 @@ inline void RandomField::init(amrex::MultiFab &state)
 
     // Make the Fourier transform and derive the Fourier space MF ingredients
     IntVect domain_low(0, 0, 0);
-    IntVect domain_high(N-1, N-1, N-1);
-    Box domain(domain_low, domain_high);
-    FFT::R2C<Real> random_field_fft(domain);
+    IntVect x_domain_high(N-1, N-1, N-1);
+    Box x_domain(domain_low, x_domain_high);
+    FFT::R2C<Real> random_field_fft(x_domain);
     auto const& [kba, kdm] = random_field_fft.getSpectralDataLayout();
 
+    Array< bool, AMREX_SPACEDIM > const &slicing{true, false, false};
+    IntVect k_domain_high(N/2, N-1, N-1);
+    Box k_domain(domain_low, k_domain_high);
+    BoxArray kba_new = decompose(k_domain, ParallelContext::NProcsAll(), slicing);
+    DistributionMapping kdm_new(kba_new);
+
+    //Print() << kba_new;
+    //Print() << kba;
+
     // Set up the MFs to store the in/out data sets
-    cMultiFab hs_k(kba, kdm, 2, 0);
-    cMultiFab As_k(kba, kdm, 2, 0);
-    cMultiFab hij_k(kba, kdm, 6, 0);
-    cMultiFab Aij_k(kba, kdm, 6, 0);
+    cMultiFab hs_k(kba_new, kdm_new, 2, 0);
+    cMultiFab As_k(kba_new, kdm_new, 2, 0);
+    cMultiFab hij_k(kba_new, kdm_new, 6, 0);
+    cMultiFab Aij_k(kba_new, kdm_new, 6, 0);
 
     MultiFab hij_x(sba, sdm, 6, 0);
     MultiFab Aij_x(sba, sdm, 6, 0);
 
     // Set up BaseFab objects to store data on the Nyquist plane
-    const IntVect start1{0, 0, 0};
+    /*const IntVect start1{0, 0, 0};
     const IntVect end1{0, N-1, N-1};
     Box nyq_plane_1(start1, end1);
 
@@ -321,8 +382,19 @@ inline void RandomField::init(amrex::MultiFab &state)
     const IntVect end2{N/2, N-1, N-1};
     Box nyq_plane_2(start2, end2);
 
-    BaseFab<GpuComplex<Real>> nyq_bf_1(nyq_plane_1, 6*2);
-    BaseFab<GpuComplex<Real>> nyq_bf_2(nyq_plane_2, 6*2);
+    BaseFab<GpuComplex<Real>> nyq_bf_1(nyq_plane_1, 2);
+    BaseFab<GpuComplex<Real>> nyq_bf_2(nyq_plane_2, 2);
+
+    GpuComplex<Real> one{1., 1.};
+    Vector<GpuComplex<Real>> nyq_buffer_1(std::pow(N, 3), one);*/
+    //Vector<GpuComplex<Real>> nyq_buffer_2[2];
+
+    /*for(int s=0; s<2; s++)
+    {
+        Vector<GpuComplex<Real>> temp(std::pow(N, 3), 0.);
+        nyq_buffer_1[s] = temp;
+        nyq_buffer_2[s] = temp;
+    }*/
 
     std::string Filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/hs-k-init";
     for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
@@ -338,8 +410,8 @@ inline void RandomField::init(amrex::MultiFab &state)
         Array4<GpuComplex<Real>> const& Aij_ptr = Aij_k.array(mfi);
 
         // Pointers to the Nyquist BaseFab arrays
-        Array4<GpuComplex<Real>> const& nyq_array_1 = nyq_bf_1.array();
-        Array4<GpuComplex<Real>> const& nyq_array_2 = nyq_bf_2.array();
+        //Array4<GpuComplex<Real>> const& nyq_array_1 = nyq_bf_1.array();
+        //Array4<GpuComplex<Real>> const& nyq_array_2 = nyq_bf_2.array();
 
         // Loop to create mode functions, then hij(k) and Aij(k)
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -368,32 +440,33 @@ inline void RandomField::init(amrex::MultiFab &state)
             // Store Nyquist plane 1
             if (i == 0) 
             {
-                for(int comp=0; comp < 6; comp++)
-                {
-                    nyq_array_1(i, j, k, comp) = hij_ptr(i, j, k, comp);
-                    nyq_array_1(i, j, k, comp+6) = Aij_ptr(i, j, k, comp);
-                }
+                //nyq_buffer_1[i + (N/2+1)*(j + N*k)] = hs_ptr(i, j, k, 0);
+                //for(int comp=0; comp < 2; comp++)
+                //{
+                    //nyq_buffer_1[i + (N/2+1)*(j + N*k)] = hs_ptr(i, j, k, comp);
+
+                    //AllPrint() << iv << ", ";// << comp << ": ";
+                    //AllPrint() << nyq_buffer_1[i + (N/2+1)*(j + N*k)] << "\n";
+                    //AllPrint() << nyq_buffer_1[comp][i + (N/2+1)*(j + N*k)].real() << "," << nyq_buffer_1[comp][i + (N/2+1)*(j + N*k)].imag() << "\n";
+                    //nyq_array_1(i, j, k, comp) = hs_ptr(i, j, k, comp);
+                    //nyq_array_1(i, j, k, comp) = hij_ptr(i, j, k, comp);
+                    //nyq_array_1(i, j, k, comp+6) = Aij_ptr(i, j, k, comp);
+                //}
             }
 
             // Store Nyquist plane 2
             else if (i == N/2)
             {
-                for(int comp=0; comp < 6; comp++)
+                for(int comp=0; comp < 2; comp++)
                 {
-                    nyq_array_2(i, j, k, comp) = hij_ptr(i, j, k, comp);
-                    nyq_array_2(i, j, k, comp+6) = Aij_ptr(i, j, k, comp);
-                }
-            }
+                    //nyq_buffer_2[comp][i + (N/2+1)*(j + N*k)] = hs_ptr(i, j, k, comp);
 
-            if(i + (N/2+1)*(j + N*k) == 33) //(i==16 && j==1 && k==0)
-            {
-                std::cout << i << "," << j << "," << k << "\n";
-                //std::cout << "Pre symmetry rules: ";
-                for(int s=0; s<2; s++)
-                {
-                    std::cout << hs_ptr(i, j, k, s).real() << "," << hs_ptr(i, j, k, s).imag() << ",";
+                    //AllPrint() << iv << ", " << comp << ": ";
+                    //AllPrint() << nyq_buffer_2[comp][i + (N/2+1)*(j + N*k)].real() << "," << nyq_buffer_2[comp][i + (N/2+1)*(j + N*k)].imag() << "\n";
+                    //nyq_array_2(i, j, k, comp) = hs_ptr(i, j, k, comp);
+                    //nyq_array_2(i, j, k, comp) = hij_ptr(i, j, k, comp);
+                    //nyq_array_2(i, j, k, comp+6) = Aij_ptr(i, j, k, comp);
                 }
-                std::cout << "\n";
             }
 
             /*bool in_ghost_index = is_ghost_index(iv);
@@ -411,15 +484,49 @@ inline void RandomField::init(amrex::MultiFab &state)
     }
 
     // Broadcast both Nyquist planes so all MPI ranks can see them
-    ParallelDescriptor::Bcast(nyq_bf_1.dataPtr(), nyq_bf_1.size());
-    ParallelDescriptor::Bcast(nyq_bf_2.dataPtr(), nyq_bf_2.size());
+    //nyq_bf_1.Bcast();
+    //MPI_Comm comm = ParallelContext::CommunicatorSub();
+    //const int root = ParallelContext::IOProcessorNumberSub();
+    //Vector<GpuComplex<Real>> nyq_root_1(std::pow(N, 3), 0.);
+
+    //ParallelDescriptor::Gather(nyq_buffer_1.data(), nyq_buffer_1.size(), nyq_root_1.data(), root);
+    //ParallelDescriptor::Bcast(nyq_root_1.data(), nyq_root_1.size(), ParallelDescriptor::Mpi_typemap<GpuComplex<Real>>::type(), root, comm);
+    /*for(int s=0; s<2; s++)
+    {
+        ParallelDescriptor::Bcast(nyq_buffer_1[s].data(), nyq_buffer_1[s].size());
+        ParallelDescriptor::Bcast(nyq_buffer_2[s].data(), nyq_buffer_2[s].size());
+    }*/
+
+    int nc = hs_k.nComp();
+    for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
+    {
+        // The geometry for this MPI rank
+        const Box& bx = mfi.fabbox();
+
+        Array4<GpuComplex<Real>> const& field_ptr = hs_k.array(mfi);
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            IntVect iv = {i, j, k};
+
+            if (i==0) 
+            {
+                //apply_nyquist_plane_condition(iv, nc, field_ptr, nyq_array_1, skip);
+                //for(int comp=0; comp<nc; comp++) 
+                //{
+                    //AllPrint() << iv << ", ";// << comp << ": ";
+                    //AllPrint() << nyq_root_1[i + (N/2+1)*(j + N*k)].real() << "," << nyq_root_1[i + (N/2+1)*(j + N*k)].imag() << "\n";
+                //}
+            }
+        });
+    }
 
     // Apply the Nyquist conditions
-    //apply_nyquist_conditions(hs_k);
-    apply_nyquist_conditions(hij_k, nyq_bf_1, nyq_bf_2, 0);
-    apply_nyquist_conditions(Aij_k, nyq_bf_1, nyq_bf_2, 6);
+    apply_nyquist_conditions(hs_k);
+    //apply_nyquist_conditions(hij_k, nyq_bf_1, nyq_bf_2, 0);
+    //apply_nyquist_conditions(Aij_k, nyq_bf_1, nyq_bf_2, 6);
 
-    /*for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
+    for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
     {
         const Box& bx = mfi.fabbox();
 
@@ -429,6 +536,18 @@ inline void RandomField::init(amrex::MultiFab &state)
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             IntVect iv{i, j, k};
+
+            /*if(i + (N/2+1)*(j + N*k) == 289) //(i==16 && j==1 && k==0)
+            {
+                AllPrint() << i << "," << j << "," << k << "\n";
+                AllPrint() << "Post symmetry rules: ";
+                for(int s=0; s<2; s++)
+                {
+                    AllPrint() << hs_ptr(i, j, k, s).real() << "," << hs_ptr(i, j, k, s).imag() << ",";
+                }
+                AllPrint() << "\n";
+            }*/
+
             bool in_ghost_index = is_ghost_index(iv);
             if(!in_ghost_index)
             {
@@ -442,7 +561,7 @@ inline void RandomField::init(amrex::MultiFab &state)
                 AllPrintToFile(Filename) << "\n";
             }
         });
-    }*/
+    }
 
     // Do the Fourier transform
     for(int fcomp = 0; fcomp < hij_k.nComp(); fcomp++)
@@ -669,11 +788,11 @@ inline void RandomField::print_tensor_moment(MultiFab &field, const Vector<int> 
     Array1D<Real, 0, 1> kurt = {0., 0.};
 
     // Find iterators, which determine which moments are requested and their ordering
-    const auto start = moment_orders.begin();
-    const auto mean_itr = std::find(moment_orders.begin(), moment_orders.end(), 1);
-    const auto stdev_itr = std::find(moment_orders.begin(), moment_orders.end(), 2);
-    const auto skew_itr = std::find(moment_orders.begin(), moment_orders.end(), 3);
-    const auto kurt_itr = std::find(moment_orders.begin(), moment_orders.end(), 4);
+    Vector<int>::const_iterator start = moment_orders.begin();
+    Vector<int>::const_iterator mean_itr = std::find(moment_orders.begin(), moment_orders.end(), 1);
+    Vector<int>::const_iterator stdev_itr = std::find(moment_orders.begin(), moment_orders.end(), 2);
+    Vector<int>::const_iterator skew_itr = std::find(moment_orders.begin(), moment_orders.end(), 3);
+    Vector<int>::const_iterator kurt_itr = std::find(moment_orders.begin(), moment_orders.end(), 4);
 
     // Allocate vectors to store header line and data lines
     Vector<Real> data_to_print(2 * moment_orders.size(), 0.);
@@ -852,9 +971,9 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
     }
 
     // Broadcast Nyquist plane data to all MPI ranks and apply Nyquist conditions
-    ParallelDescriptor::Bcast(nyq_bf_1.dataPtr(), nyq_bf_1.size());
-    ParallelDescriptor::Bcast(nyq_bf_2.dataPtr(), nyq_bf_2.size());
-    apply_nyquist_conditions(hs_k, nyq_bf_1, nyq_bf_2, 0);
+    //ParallelDescriptor::Bcast(nyq_bf_1.dataPtr(), nyq_bf_1.size());
+    //ParallelDescriptor::Bcast(nyq_bf_2.dataPtr(), nyq_bf_2.size());
+    //apply_nyquist_conditions(hs_k, nyq_bf_1, nyq_bf_2, 0);
 
     if(first_step)
     {

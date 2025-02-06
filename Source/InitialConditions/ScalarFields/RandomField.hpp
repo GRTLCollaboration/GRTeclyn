@@ -93,7 +93,7 @@ class RandomField
         std::string make_subdirectory(std::string base, std::string dir, int is_first_step);
         void assign_statistics_data(Vector<std::string> &header_storage, const std::string name, 
                             Vector<Real> &data_storage, const Array1D<Real, 0, 1> data, 
-                            const int component, const auto itr, const auto start, const int is_first_step);
+                            const int component, Vector<int>::const_iterator itr, Vector<int>::const_iterator start, const int is_first_step);
 
         // Initialisation routines 
         GpuComplex<Real> calculate_mode_function(double km, std::string spec_type);
@@ -105,8 +105,7 @@ class RandomField
         void apply_nyquist_point_condition(IntVect iv, int ncomp, Array4<GpuComplex<Real>> const& field_ptr);
         void apply_nyquist_plane_condition(IntVect iv, int ncomp, Array4<GpuComplex<Real>> const& field_ptr, 
                                             Array4<GpuComplex<Real>> const& plane_ptr, int skip);
-        void apply_nyquist_conditions(cMultiFab &field, BaseFab<GpuComplex<Real>> &plane1, 
-                                        BaseFab<GpuComplex<Real>> &plane2, int skip);
+        void apply_nyquist_conditions(cMultiFab &field);
         
         // Extraction routines
         void print_power_spectrum(cMultiFab &field_array, SmallDataIO &power_spec_file, int component);
