@@ -98,13 +98,10 @@ class RandomField
         // Initialisation routines 
         GpuComplex<Real> calculate_mode_function(double km, std::string spec_type);
         GpuComplex<Real> calculate_random_field(int I, int J, int k, std::string spectrum_type, 
-                                                                Real rand_amp, Real rand_phase);
+                                                    Real rand_amp, Real rand_phase);
         Vector<Real> calculate_basis_vector(int i, int j, int k, int which_vector);
         GpuComplex<Real> calculate_tensor_initial_conditions(int I, int J, int k, int l, int p, 
                             GpuComplex<Real> plus_field, GpuComplex<Real> cross_field);
-        void apply_nyquist_point_condition(IntVect iv, int ncomp, Array4<GpuComplex<Real>> const& field_ptr);
-        void apply_nyquist_plane_condition(IntVect iv, int ncomp, Array4<GpuComplex<Real>> const& field_ptr, 
-                                            Array4<GpuComplex<Real>> const& plane_ptr, int skip);
         void apply_nyquist_conditions(cMultiFab &field);
         
         // Extraction routines
