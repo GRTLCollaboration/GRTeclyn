@@ -62,6 +62,7 @@ class RandomField
             // Set protected class parameters
             N = m_params.N_readin;
             norm = m_params.A * pow(2. * M_PI/m_params.L, 3.); // Physical FFT normalisation
+            tolerance = 1.e-15; // Numerical tolerance, for tests
 
             // Look-up table 
             // Used to construct polarisation basis tensors
@@ -84,6 +85,7 @@ class RandomField
         int N;
         int lut[3][3];
         double norm;
+        double tolerance;
 
         // Small functions
         int flip_index(int indx);
@@ -94,6 +96,9 @@ class RandomField
         void assign_statistics_data(Vector<std::string> &header_storage, const std::string name, 
                             Vector<Real> &data_storage, const Array1D<Real, 0, 1> data, 
                             const int component, Vector<int>::const_iterator itr, Vector<int>::const_iterator start, const int is_first_step);
+
+        // Tests
+        void Test_is_trace_free(MultiFab &field);
 
         // Initialisation routines 
         GpuComplex<Real> calculate_mode_function(double km, std::string spec_type);

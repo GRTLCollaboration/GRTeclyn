@@ -69,6 +69,37 @@ inline void RandomField::assign_statistics_data(Vector<std::string> &header_stor
 }
 
 /****
+    Tests
+****/
+
+inline void RandomField::Test_is_trace_free(MultiFab &field)
+{
+    for (MFIter mfi(field); mfi.isValid(); ++mfi) 
+    {
+        Array4<Real> const& field_ptr = field.array(mfi);
+        const Box& bx = mfi.fabbox();
+
+        ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            IntVect iv{i, j, k};
+            Real sum = 0.;
+
+            for(int l=0; l<3; l++)
+            {
+                sum += field_ptr(i, j, k, lut[l][l]);
+            }
+
+            if(std::abs(sum) > tolerance)
+            {
+                Print() << iv << ": " << sum;
+                Error("RandomField::Test_is_trace_free Trace-free test failed here.");
+            }
+        });
+    }
+    
+}
+
+/****
     Initialisation routines
 ****/
 
@@ -356,6 +387,10 @@ inline void RandomField::init(amrex::MultiFab &state)
     // Apply normalisation into physical units
     hij_x.mult(norm);
     Aij_x.mult(norm);
+
+    // Test is trace-free
+    Test_is_trace_free(hij_x);
+    Test_is_trace_free(Aij_x);
 
     // Convert to BSSN variables using the BSSN-CPT dictionary
     for (int l=0; l<3; l++) { hij_x.plus(1., lut[l][l], 1); }
