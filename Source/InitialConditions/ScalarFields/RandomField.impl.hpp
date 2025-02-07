@@ -419,9 +419,11 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
     double dk_to_bin = (double)m_params.bin_number/((double)N/2);
     double kmag = 0.;
     Vector<Real> kiso(N/2+1, 0.);
-    std::map<int, std::tuple<Real, Real, int>> ps_map;
 
-    for (int s=0; s<=N/2; s++) { kiso[s] = s*dkiso; ps_map[s] = std::make_tuple(kiso[s], 0., 0); }
+    Vector<Real> ps_map(m_params.bin_number, 0.);
+    Vector<int> kcount(m_params.bin_number, 0);
+
+    for (int s=0; s<=N/2; s++) { kiso[s] = s*dkiso; }
 
     // Loop to bin the power spectrum at each point
     MFIter::allowMultipleMFIters(true); // Needed to pass the map to the ParallelFor loop
@@ -431,7 +433,7 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
         Array4<GpuComplex<Real>> const& field_ptr = field_array.array(mfi);
         const Box& bx = mfi.fabbox();
 
-        amrex::ParallelFor(bx, [=, &ps_map] AMREX_GPU_DEVICE (int i, int J, int K) noexcept
+        amrex::ParallelFor(bx, [=, &ps_map, &kcount] AMREX_GPU_DEVICE (int i, int J, int K) noexcept
         {
             IntVect iv{i, J, K};
 
@@ -471,30 +473,24 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
                     // If you're somewhere in the middle
                     else if (kmag < kiso[s] && kmag >= kiso[(s-1)]) 
                     {
-                        auto iterator = ps_map.find(s-1);
-                        auto& [iso, sum, kcount] = iterator->second;
-
                         Real power = (std::pow(field_ptr(i, j, k, component).real(), 2.0) 
                                                     + std::pow(field_ptr(i, j, k, component).imag(), 2.0));
-                        Gpu::Atomic::Add(&sum, power);
-                        Gpu::Atomic::Add(&kcount, 1);
+                        Gpu::Atomic::Add(&ps_map[s-1], power);
+                        Gpu::Atomic::Add(&kcount[s-1], 1);
 
                         break;
                     }
 
                     // If you're at the largest bin
-                    else if(s == N/2)
+                    /*else if(s == N/2)
                     { 
-                        auto iterator = ps_map.find(N/2);
-                        auto& [iso, sum, kcount] = iterator->second;
-
                         Real power = (std::pow(field_ptr(i, j, k, component).real(), 2.0) 
                                                     + std::pow(field_ptr(i, j, k, component).imag(), 2.0));
-                        Gpu::Atomic::Add(&sum, power);
-                        Gpu::Atomic::Add(&kcount, 1);
+                        Gpu::Atomic::Add(&ps_map[N/2], power);
+                        Gpu::Atomic::Add(&kcount[N/2], 1);
 
                         break;
-                    }
+                    }*/
 
                     // If you've reached the largest bin but not been captured
                     else if(s > N/2)
@@ -512,11 +508,13 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
         });
     }
 
+    ParallelAllReduce::Sum(kcount.data(), static_cast<int>(kcount.size()), ParallelContext::CommunicatorSub());
+    ParallelAllReduce::Sum(ps_map.data(), static_cast<int>(ps_map.size()), ParallelContext::CommunicatorSub());
+
     // Print the power spectrum to a new file in data/
     for(int s=0; s<=N/2; s++)
     {
-        auto [isotropic_k, power, count] = ps_map[s];
-        power_spec_file.write_data_line({isotropic_k, (double)power/count});
+        power_spec_file.write_data_line({kiso[s], (double)ps_map[s]/kcount[s]});
     }
 }
 
@@ -676,6 +674,7 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
     }
 
     std::string Filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/hs-k-extr";
+    int time_step = cur_time/dt;
 
     // Loop to extract the Fourier-space mode functions
     for (MFIter mfi(hij_k); mfi.isValid(); ++mfi) 
@@ -713,7 +712,7 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
     apply_nyquist_conditions(hs_k);
 
     // Find the binned PS for each mode function and print to data/
-    if(m_params.calc_binned_power_spectrum) 
+    if(m_params.calc_binned_power_spectrum && time_step % 150 == 0) 
     {
         for(int comp = 0; comp < hs_k.nComp(); comp++)
         {
@@ -727,7 +726,7 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
     }
 
     // Find mode functions in configuration space if requested
-    if(m_params.calc_config_space_mode_fns || m_params.calc_higher_order_statistics)
+    if((m_params.calc_config_space_mode_fns || m_params.calc_higher_order_statistics) && time_step % 150 == 0)
     {
         // Make a multifab to store config space mode functions
         BoxArray xba(x_domain);
