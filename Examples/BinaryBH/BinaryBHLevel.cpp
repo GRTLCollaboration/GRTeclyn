@@ -7,10 +7,11 @@
 #include "BinaryBH.hpp"
 #include "CCZ4RHS.hpp"
 #include "ChiExtractionTagger.hpp"
+#include "Constraints.hpp"
 #include "PositiveChiAndAlpha.hpp"
+#include "PunctureTagger.hpp"
 #include "PunctureTracker.hpp"
 // xxxxx #include "SixthOrderDerivatives.hpp"
-#include "Constraints.hpp"
 #include "TraceARemoval.hpp"
 #include "TwoPuncturesInitialData.hpp"
 #include "Weyl4.hpp"
@@ -111,6 +112,19 @@ void BinaryBHLevel::initData()
                        });
 #endif
     amrex::Gpu::streamSynchronize();
+
+    if (simParams().puncture_tracking_enabled && Level() == 0)
+    {
+        // need to set the puncture coordinates as we use it for the puncture
+        // tagging
+        get_puncture_tracker().set_puncture_coords(
+            {simParams().bh1_params.center[0], simParams().bh1_params.center[1],
+             simParams().bh1_params.center[2], simParams().bh2_params.center[0],
+             simParams().bh2_params.center[1],
+             simParams().bh2_params.center[2]});
+        // can't call start_from_initial_punctures() because we need the full
+        // AMR grid first
+    }
 }
 
 // Calculate RHS during RK4 substeps
@@ -202,14 +216,38 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
     const auto &tag_arrs       = a_tag_box_array.arrays();
     const auto &state_new_arrs = state_new.const_arrays();
 
-    // TODO: Change to puncture tagging
-    ChiExtractionTagger tagger(Geom().CellSize(0), Level(), a_regrid_threshold,
-                               simParams().extraction_params,
-                               simParams().activate_extraction);
-    amrex::ParallelFor(
-        state_new, amrex::IntVect(0),
-        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
-        { tagger(i, j, k, tag_arrs[box_no], state_new_arrs[box_no]); });
+    ChiExtractionTagger chi_extraction_tagger(
+        Geom().CellSize(0), Level(), a_regrid_threshold,
+        simParams().extraction_params, simParams().activate_extraction);
+
+    const bool puncture_tracking_enabled =
+        simParams().puncture_tracking_enabled;
+    constexpr auto num_puncture_coords =
+        static_cast<std::size_t>(AMREX_SPACEDIM * num_punctures);
+    std::array<amrex::Real, num_puncture_coords> puncture_coords{};
+
+    if (puncture_tracking_enabled)
+    {
+        puncture_coords = get_puncture_tracker().get_puncture_coords();
+    }
+
+    // Even though we create this object, it won't be used if puncture tracking
+    // is not enabled.
+    PunctureTagger<num_punctures> puncture_tagger(
+        Geom().CellSize(0), Level(), get_gramr_ptr()->maxLevel(),
+        puncture_coords,
+        {simParams().bh1_params.mass, simParams().bh2_params.mass});
+
+    amrex::ParallelFor(state_new, amrex::IntVect(0),
+                       [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+                       {
+                           chi_extraction_tagger(i, j, k, tag_arrs[box_no],
+                                                 state_new_arrs[box_no]);
+                           if (puncture_tracking_enabled)
+                           {
+                               puncture_tagger(i, j, k, tag_arrs[box_no]);
+                           }
+                       });
     amrex::Gpu::streamSynchronize();
 }
 
@@ -219,11 +257,7 @@ void BinaryBHLevel::specific_post_init()
 
     if (simParams().puncture_tracking_enabled)
     {
-        get_puncture_tracker().start_from_initial_punctures(
-            {simParams().bh1_params.center[0], simParams().bh1_params.center[1],
-             simParams().bh1_params.center[2], simParams().bh2_params.center[0],
-             simParams().bh2_params.center[1],
-             simParams().bh2_params.center[2]});
+        get_puncture_tracker().start_from_initial_punctures();
     }
 }
 

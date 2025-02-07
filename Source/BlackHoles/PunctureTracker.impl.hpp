@@ -58,17 +58,14 @@ void PunctureTracker<num_punctures>::initialize(GRAMR *a_gr_amr)
 }
 
 template <unsigned int num_punctures>
-void PunctureTracker<num_punctures>::start_from_initial_punctures(
-    const amrex::Array<amrex::Real,
-                       PunctureTracker<num_punctures>::num_puncture_coords>
-        &a_initial_puncture_coords)
+void PunctureTracker<num_punctures>::start_from_initial_punctures()
 {
     AMREX_ASSERT(m_initialized);
+    // must call set_puncture_coords for the initial punctures first
+    AMREX_ASSERT(m_puncture_coords_set);
 
     // Define the particle container
     Define(dynamic_cast<amrex::ParGDBBase *>(m_gr_amr->GetParGDB()));
-
-    m_puncture_coords = a_initial_puncture_coords;
 
     // If it's first step, we use the initial puncture locations set above
     write_initial_punctures();
@@ -149,10 +146,31 @@ void PunctureTracker<num_punctures>::set_initial_punctures_pc()
 }
 
 template <unsigned int num_punctures>
+void PunctureTracker<num_punctures>::set_puncture_coords(
+    const amrex::Array<amrex::Real,
+                       PunctureTracker<num_punctures>::num_puncture_coords>
+        &a_puncture_coords)
+{
+    m_puncture_coords = a_puncture_coords;
+
+    m_puncture_coords_set = true;
+}
+
+template <unsigned int num_punctures>
+const amrex::Array<amrex::Real,
+                   PunctureTracker<num_punctures>::num_puncture_coords> &
+PunctureTracker<num_punctures>::get_puncture_coords() const
+{
+    AMREX_ASSERT(m_puncture_coords_set);
+    return m_puncture_coords;
+}
+
+template <unsigned int num_punctures>
 std::vector<amrex::Real>
 PunctureTracker<num_punctures>::get_puncture_vector() const
 {
     AMREX_ASSERT(m_initialized);
+    AMREX_ASSERT(m_puncture_coords_set);
 
     std::vector<amrex::Real> puncture_coords_vector(num_puncture_coords);
     std::copy(m_puncture_coords.begin(), m_puncture_coords.end(),

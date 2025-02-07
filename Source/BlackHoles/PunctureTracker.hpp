@@ -29,6 +29,7 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 0>
     GRAMR *m_gr_amr{nullptr};
 
     bool m_initialized{false};
+    bool m_puncture_coords_set{false};
     bool m_started{false};
 
     double m_restart_time{0.0};
@@ -42,9 +43,7 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 0>
     void initialize(GRAMR *a_gr_amr);
 
     //! start the puncture tracker from the initial punctures
-    void start_from_initial_punctures(
-        const amrex::Array<amrex::Real, num_puncture_coords>
-            &a_initial_puncture_coords);
+    void start_from_initial_punctures();
 
     //! restart the puncture tracker
     void restart(const std::string &a_restart_chk_dir);
@@ -54,6 +53,15 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 0>
 
     //! Track the punctures and write out if requested
     void track(double a_time, double a_dt, const bool a_write_punctures = true);
+
+    //! Set the puncture coordinates (for the initial coordinates)
+    void
+    set_puncture_coords(const amrex::Array<amrex::Real, num_puncture_coords>
+                            &a_puncture_coords);
+
+    //! Get the puncture coordinates
+    const amrex::Array<amrex::Real, num_puncture_coords> &
+    get_puncture_coords() const;
 
 #ifndef AMREX_USE_CUDA
   private: // CUDA doesn't allow lambdas in private functions
