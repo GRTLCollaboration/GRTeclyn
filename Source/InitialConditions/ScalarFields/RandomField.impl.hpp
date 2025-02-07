@@ -106,14 +106,16 @@ inline GpuComplex<Real> RandomField::calculate_mode_function(double km, std::str
 }
 
 // Turns analytic PS into GRF and applies window function if requested
-inline GpuComplex<Real> RandomField::calculate_random_field(int i, int J, int K, std::string spectrum_type, 
+inline GpuComplex<Real> RandomField::calculate_random_field(IntVect iv, std::string spectrum_type, 
                                                                 Real rand_amp, Real rand_phase)
 {
     GpuComplex<Real> value(0., 0.);
 
     // Find kmag with FFTW-style inversion on the last two indices
-    int j = invert_index(J);
-    int k = invert_index(K);
+    int i = iv[0];
+    int j = invert_index(iv[1]);
+    int k = invert_index(iv[2]);
+
     double kmag = std::sqrt(i*i + j*j + k*k) * 2 * M_PI / m_params.L;
 
     // Find the analytic power spectrum
@@ -152,11 +154,12 @@ inline GpuComplex<Real> RandomField::calculate_random_field(int i, int J, int K,
 }
 
 // Calculates basis vectors required for polarisation tensors
-inline Vector<Real> RandomField::calculate_basis_vector(int i, int J, int K, int which_vector)
+inline Vector<Real> RandomField::calculate_basis_vector(IntVect iv, int which_vector)
 {
     // FFTW-style inversion with sign on the last two indices
-    int j = invert_index_with_sign(J);
-    int k = invert_index_with_sign(K);
+    int i = iv[0];
+    int j = invert_index_with_sign(iv[1]);
+    int k = invert_index_with_sign(iv[2]);
 
     Vector<Real> mhat(3, 0.);
     Vector<Real> nhat(3, 0.);
@@ -197,14 +200,14 @@ inline Vector<Real> RandomField::calculate_basis_vector(int i, int J, int K, int
 }
 
 // Assembles full tensor initial conditions given two mode functions
-inline GpuComplex<Real> RandomField::calculate_tensor_initial_conditions(int i, int J, int K, int l, int p, 
+inline GpuComplex<Real> RandomField::calculate_tensor_initial_conditions(IntVect iv, int l, int p, 
                                         GpuComplex<Real> plus_field, GpuComplex<Real> cross_field)
 {
     Vector<Real> mhat(3, 0.);
     Vector<Real> nhat(3, 0.);
 
-    mhat = calculate_basis_vector(i, J, K, 0);
-    nhat = calculate_basis_vector(i, J, K, 1);
+    mhat = calculate_basis_vector(iv, 0);
+    nhat = calculate_basis_vector(iv, 1);
 
     // Assemble the polarisation tensors
     Real eplus = mhat[l]*mhat[p] - nhat[l]*nhat[p];
@@ -320,17 +323,15 @@ inline void RandomField::init(amrex::MultiFab &state)
                 Real draw1 = amrex::Random();
                 Real draw2 = amrex::Random();
 
-                hs_ptr(i, j, k, p) = calculate_random_field(i, j, k, "position", draw1, draw2);
-                As_ptr(i, j, k, p) = calculate_random_field(i, j, k, "velocity", draw1, draw2);
+                hs_ptr(i, j, k, p) = calculate_random_field(iv, "position", draw1, draw2);
+                As_ptr(i, j, k, p) = calculate_random_field(iv, "velocity", draw1, draw2);
             }
 
             // Find basis tensors and initial tensor realisation
             for (int l=0; l<3; l++) for (int p=0; p<3; p++)
             {
-                hij_ptr(i, j, k, lut[l][p]) = calculate_tensor_initial_conditions(i, j, k, l, p, 
-                                                hs_ptr(i, j, k, 0), hs_ptr(i, j, k, 1));
-                Aij_ptr(i, j, k, lut[l][p]) = calculate_tensor_initial_conditions(i, j, k, l, p, 
-                                                As_ptr(i, j, k, 0), As_ptr(i, j, k, 1));
+                hij_ptr(i, j, k, lut[l][p]) = calculate_tensor_initial_conditions(iv, l, p, hs_ptr(i, j, k, 0), hs_ptr(i, j, k, 1));
+                Aij_ptr(i, j, k, lut[l][p]) = calculate_tensor_initial_conditions(iv, l, p, As_ptr(i, j, k, 0), As_ptr(i, j, k, 1));
             }
         });
     }
@@ -691,8 +692,8 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
             Vector<Real> mhat(3, 0.);
             Vector<Real> nhat(3, 0.);
 
-            mhat = calculate_basis_vector(i, j, k, 0);
-            nhat = calculate_basis_vector(i, j, k, 1);
+            mhat = calculate_basis_vector(iv, 0);
+            nhat = calculate_basis_vector(iv, 1);
 
             Real eplus = 0.;
             Real ecross = 0.;
@@ -712,15 +713,20 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
     apply_nyquist_conditions(hs_k);
 
     // Find the binned PS for each mode function and print to data/
-    if(m_params.calc_binned_power_spectrum && time_step % 150 == 0) 
+    if(m_params.calc_binned_power_spectrum && time_step % 10 == 0) 
     {
+        std::string spec_path = make_subdirectory(data_path, "spectra", first_step);
+        Vector<std::string> filenames(2, "");
+
         for(int comp = 0; comp < hs_k.nComp(); comp++)
         {
-            std::string spec_path = make_subdirectory(data_path, "spectra", first_step);
-
-            SmallDataIO spectrum_file(spec_path+"spectrum-comp-"+std::to_string(comp)+"-time-", 
-                                        dt, cur_time, restart_time, SmallDataIO::NEW, first_step, ".dat");
-            if(first_step) { spectrum_file.write_header_line({"k", "power"}, ""); }
+            filenames[comp] = spec_path+"spectrum-comp-"+std::to_string(comp)+"-time-";
+            SmallDataIO spectrum_file(filenames[comp], dt, cur_time, restart_time, SmallDataIO::NEW, first_step, ".dat");
+            
+            if(first_step) 
+            { 
+                spectrum_file.write_header_line({"k", "power"}, ""); 
+            }
             print_power_spectrum(hs_k, spectrum_file, comp);
         }
     }
