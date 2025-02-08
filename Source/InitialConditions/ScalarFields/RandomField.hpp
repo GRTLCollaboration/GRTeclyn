@@ -54,6 +54,7 @@ class RandomField
             int calc_higher_order_statistics = 0; //!< Choose whether to print higher-order statistics on the fields
             int num_orders;
             Vector<int> orders;                   //!< Moment orders to print for extracted fields
+            int print_interval = 1;
         };
 
         RandomField(params_t a_params, InitialBackgroundData::params_t a_background_params)

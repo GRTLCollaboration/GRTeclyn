@@ -42,7 +42,7 @@ inline bool RandomField::is_ghost_index(IntVect vector)
 // Makes subdirectories in data/
 inline std::string RandomField::make_subdirectory(std::string base, std::string dir, int is_first_step)
 {
-    std::string new_path = base+dir+"/";
+    std::string new_path = base+"../"+dir+"/";
     if(is_first_step)
     {
         if (FilesystemTools::directory_exists(base)) { FilesystemTools::mkdir_recursive(new_path); }
@@ -510,7 +510,8 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
                     else if (kmag < kiso[s] && kmag >= kiso[(s-1)]) 
                     {
                         Real power = (std::pow(field_ptr(i, j, k, component).real(), 2.0) 
-                                                    + std::pow(field_ptr(i, j, k, component).imag(), 2.0));
+                                    + std::pow(field_ptr(i, j, k, component).imag(), 2.0));
+                        
                         Gpu::Atomic::Add(&ps_map[s-1], power);
                         Gpu::Atomic::Add(&kcount[s-1], 1);
 
@@ -518,15 +519,16 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
                     }
 
                     // If you're at the largest bin
-                    /*else if(s == N/2)
+                    else if (kmag == kiso[N/2])
                     { 
                         Real power = (std::pow(field_ptr(i, j, k, component).real(), 2.0) 
-                                                    + std::pow(field_ptr(i, j, k, component).imag(), 2.0));
+                                    + std::pow(field_ptr(i, j, k, component).imag(), 2.0));
+                        
                         Gpu::Atomic::Add(&ps_map[N/2], power);
                         Gpu::Atomic::Add(&kcount[N/2], 1);
 
                         break;
-                    }*/
+                    }
 
                     // If you've reached the largest bin but not been captured
                     else if(s > N/2)
@@ -748,8 +750,9 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
     apply_nyquist_conditions(hs_k);
 
     // Find the binned PS for each mode function and print to data/
-    if(m_params.calc_binned_power_spectrum && time_step % 10 == 0) 
+    if((m_params.calc_binned_power_spectrum) && (time_step % m_params.print_interval == 0)) 
     {
+        AllPrint() << time_step << ", " << m_params.print_interval << "\n";
         std::string spec_path = make_subdirectory(data_path, "spectra", first_step);
         Vector<std::string> filenames(2, "");
 
@@ -767,7 +770,8 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
     }
 
     // Find mode functions in configuration space if requested
-    if((m_params.calc_config_space_mode_fns || m_params.calc_higher_order_statistics) && time_step % 150 == 0)
+    if((m_params.calc_config_space_mode_fns || m_params.calc_higher_order_statistics) && 
+            time_step % m_params.print_interval == 0)
     {
         // Make a multifab to store config space mode functions
         BoxArray xba(x_domain);
@@ -786,7 +790,7 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
         hs_x.mult(norm);
 
         // Print mode functions if requested
-        if(m_params.calc_config_space_mode_fns)
+        if(m_params.calc_config_space_mode_fns && time_step % m_params.print_interval == 0)
         {
             std::string mf_path = make_subdirectory(data_path, "mode-functions", first_step);
             std::string filename = mf_path+"mode-function-"+std::to_string(cur_time/dt);
