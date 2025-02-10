@@ -575,6 +575,8 @@ inline Real RandomField::find_field_moment_x(MultiFab &field, Array1D<Real, 0, 1
         });
     }
 
+    ParallelAllReduce::Sum(sum, ParallelContext::CommunicatorSub());
+
     // Normalise and return moment x
     if(moment == 2) { return sqrt(sum/vol); }
     else { return sum/vol; }
@@ -752,7 +754,6 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
     // Find the binned PS for each mode function and print to data/
     if((m_params.calc_binned_power_spectrum) && (time_step % m_params.print_interval == 0)) 
     {
-        AllPrint() << time_step << ", " << m_params.print_interval << "\n";
         std::string spec_path = make_subdirectory(data_path, "spectra", first_step);
         Vector<std::string> filenames(2, "");
 
@@ -760,11 +761,6 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
         {
             filenames[comp] = spec_path+"spectrum-comp-"+std::to_string(comp)+"-time-";
             SmallDataIO spectrum_file(filenames[comp], dt, cur_time, restart_time, SmallDataIO::NEW, first_step, ".dat");
-            
-            if(first_step) 
-            { 
-                spectrum_file.write_header_line({"k", "power"}, ""); 
-            }
             print_power_spectrum(hs_k, spectrum_file, comp);
         }
     }

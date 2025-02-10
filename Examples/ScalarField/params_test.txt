@@ -61,9 +61,9 @@ kstar = 64
 Delta = 30
 
 # Options for tensor extraction
-calc_binned_power_spectrum = 1
+calc_binned_power_spectrum = 0
 calc_config_space_mode_fns = 0
-calc_higher_order_statistics = 0
+calc_higher_order_statistics = 1
 
 print_interval = 150
 
