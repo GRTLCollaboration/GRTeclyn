@@ -57,13 +57,13 @@ inline std::string RandomField::make_subdirectory(std::string base, std::string 
 
 // Creates a custom data file layout 
 inline void RandomField::assign_statistics_data(Vector<std::string> &header_storage, const std::string name, 
-                            Vector<Real> &data_storage, const Array1D<Real, 0, 1> data, 
-                            const int component, Vector<int>::const_iterator itr, Vector<int>::const_iterator start, const int is_first_step)
+                            Vector<Real> &data_storage, const Array1D<Real, 0, 1> data, const int component,
+                            int num_comps, Vector<int>::const_iterator itr, Vector<int>::const_iterator start, const int is_first_step)
 {
-    int loc = component + 2*(itr - start);
+    int loc = component + num_comps*(itr - start);
     if(is_first_step) 
     { 
-        header_storage[loc] =  name+std::to_string(component); 
+        header_storage[loc] =  name; 
     }
     data_storage[loc] = data(component);
 }
@@ -583,8 +583,8 @@ inline Real RandomField::find_field_moment_x(MultiFab &field, Array1D<Real, 0, 1
 }
 
 // Calculates and prints requested moments (any between 1 and 4)
-inline void RandomField::print_tensor_moment(MultiFab &field, const Vector<int> &moment_orders, 
-                                    SmallDataIO &file, const int is_first_step)
+inline void RandomField::print_tensor_moment(MultiFab &field, const Vector<std::string> names, const Vector<int> &moment_orders, 
+                                                SmallDataIO &file, const int is_first_step)
 {
     // Trap instance where the user requests too large a moment
     for(const auto moment : moment_orders)
@@ -609,16 +609,18 @@ inline void RandomField::print_tensor_moment(MultiFab &field, const Vector<int> 
     Vector<int>::const_iterator skew_itr = std::find(moment_orders.begin(), moment_orders.end(), 3);
     Vector<int>::const_iterator kurt_itr = std::find(moment_orders.begin(), moment_orders.end(), 4);
 
-    // Allocate vectors to store header line and data lines
-    Vector<Real> data_to_print(2 * moment_orders.size(), 0.);
-    Vector<std::string> headers(2 * moment_orders.size(), "");
+    int nc = field.nComp();
 
-    for(int comp = 0; comp < 2; comp++)
+    // Allocate vectors to store header line and data lines
+    Vector<Real> data_to_print(nc * moment_orders.size(), 0.);
+    Vector<std::string> headers(nc * moment_orders.size(), "");
+
+    for (int comp = 0; comp < nc; comp++)
     {
         means(comp) = field.sum(comp)/vol;
         if(mean_itr != moment_orders.end())
         {
-            assign_statistics_data(headers, "Mean", data_to_print, means, comp, 
+            assign_statistics_data(headers, names[comp]+"-mean", data_to_print, means, comp, nc,
                                     mean_itr, start, is_first_step);
         }
 
@@ -627,7 +629,7 @@ inline void RandomField::print_tensor_moment(MultiFab &field, const Vector<int> 
             stdev(comp) = find_field_moment_x(field, means, 2, comp);
             if(stdev_itr != moment_orders.end())
             {
-                assign_statistics_data(headers, "Stdev", data_to_print, stdev, comp, 
+                assign_statistics_data(headers, names[comp]+"-stdev", data_to_print, stdev, comp, nc, 
                                         stdev_itr, start, is_first_step);
             }
 
@@ -638,7 +640,7 @@ inline void RandomField::print_tensor_moment(MultiFab &field, const Vector<int> 
 
                 if(skew_itr != moment_orders.end())
                 {
-                    assign_statistics_data(headers, "Skew", data_to_print, skew, comp,
+                    assign_statistics_data(headers, names[comp]+"-skew", data_to_print, skew, comp, nc,
                                             skew_itr, start, is_first_step);
                 }
 
@@ -647,7 +649,7 @@ inline void RandomField::print_tensor_moment(MultiFab &field, const Vector<int> 
                     kurt(comp) = find_field_moment_x(field, means, 4, comp);
                     kurt(comp) /= std::pow(stdev(comp), 4.);
 
-                    assign_statistics_data(headers, "Kurt", data_to_print, kurt, comp,
+                    assign_statistics_data(headers, names[comp]+"-kurt", data_to_print, kurt, comp, nc,
                                             kurt_itr, start, is_first_step);
                 }
             }
@@ -816,7 +818,8 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
 
             if (!m_params.orders.empty())
             {
-                print_tensor_moment(hs_x, m_params.orders, stats_file, first_step);
+                Vector<std::string> names{"hplus","hcross"};
+                print_tensor_moment(hs_x, names, m_params.orders, stats_file, first_step);
             }
         }
     }

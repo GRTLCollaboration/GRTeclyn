@@ -81,6 +81,9 @@ class RandomField
         void init(amrex::MultiFab &state);
         void extract(MultiFab &state, std::string data_path, Real dt, 
                         Real cur_time, int restart_time, int first_step);
+
+        void print_tensor_moment(MultiFab &field, const Vector<std::string> names, const Vector<int> &moment_orders, 
+                                    SmallDataIO &file, const int is_first_step);
         
     private:
         int N;
@@ -95,8 +98,8 @@ class RandomField
         bool is_ghost_index(IntVect vector);
         std::string make_subdirectory(std::string base, std::string dir, int is_first_step);
         void assign_statistics_data(Vector<std::string> &header_storage, const std::string name, 
-                            Vector<Real> &data_storage, const Array1D<Real, 0, 1> data, 
-                            const int component, Vector<int>::const_iterator itr, Vector<int>::const_iterator start, const int is_first_step);
+                            Vector<Real> &data_storage, const Array1D<Real, 0, 1> data, const int component,
+                            int num_comps, Vector<int>::const_iterator itr, Vector<int>::const_iterator start, const int is_first_step);
 
         // Tests
         void Test_is_trace_free(MultiFab &field);
@@ -113,8 +116,6 @@ class RandomField
         void print_power_spectrum(cMultiFab &field_array, SmallDataIO &power_spec_file, int component);
         Real find_field_moment_x(MultiFab &field, Array1D<Real, 0, 1> mean, 
                                                 int moment, int component);
-        void print_tensor_moment(MultiFab &field, const Vector<int> &moment_orders, 
-                                    SmallDataIO &file, const int is_first_step);
 
     protected:
         const params_t m_params;

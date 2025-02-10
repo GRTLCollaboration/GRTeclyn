@@ -409,11 +409,13 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
     const double chi_var = chi_alias.sum(c_chi)/vol - std::pow(chi_avg, 2.);
 
 	SmallDataIO means_file(simParams().data_path+"means-file", dt, cur_time, restart_time, SmallDataIO::APPEND, first_step, ".dat");
+    SmallDataIO constrs_file(simParams().data_path+"constraint-statistics", dt, cur_time, restart_time, SmallDataIO::APPEND, first_step, ".dat");
 	means_file.remove_duplicate_time_data(); // removes any duplicate data from previous run (for checkpointing)
+    constrs_file.remove_duplicate_time_data();
 
     if(first_step) 
     {
-        //constrs_file.write_header_line({"HamMean","HamSTD","HamAbsMean","HamNormMean","HamNormSTD","MomBar","MomAAD"});
+        //constrs_file.write_header_line({"HamAbsMean","HamAbsMeanSubtracted","HamAbsSTD","MomBar","MomSTD"});
         means_file.write_header_line({"PhiMean","PhiVar","PiMean","ScaleFactMean","ChiVar","HubbleMean","LapseMean"});
     }
 
@@ -422,4 +424,17 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
 
     RandomField random_field_extractor(simParams().random_field_params, simParams().background_params);
     random_field_extractor.extract(state_new, simParams().data_path, dt, cur_time, restart_time, first_step);
+    
+    int num=0;
+    const std::list<DeriveRec>& dlist = derive_lst.dlist();
+    for (auto const& var: dlist)
+    {
+        if(var.name() == "constraints") { num = var.numDerive(); }
+    }
+
+    MultiFab constr_alias(ba, dm, num, ngrow, MFInfo(), Factory());
+    derive("constraints", cur_time, constr_alias, 0);
+
+    Vector<int> moments{1,2};
+    random_field_extractor.print_tensor_moment(constr_alias, Constraints::var_names, moments, constrs_file, first_step);
 }
