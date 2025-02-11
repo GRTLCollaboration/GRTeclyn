@@ -437,21 +437,21 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
     const double chi_var = chi_alias.sum(c_chi)/vol - std::pow(chi_avg, 2.);
 
 	SmallDataIO means_file(simParams().data_path+"means-file", dt, cur_time, restart_time, SmallDataIO::APPEND, first_step, ".dat");
-    SmallDataIO constrs_file(simParams().data_path+"constraint-statistics", dt, cur_time, restart_time, SmallDataIO::APPEND, first_step, ".dat");
 	means_file.remove_duplicate_time_data(); // removes any duplicate data from previous run (for checkpointing)
-    constrs_file.remove_duplicate_time_data();
 
     if(first_step) 
     {
-        //constrs_file.write_header_line({"HamAbsMean","HamAbsMeanSubtracted","HamAbsSTD","MomBar","MomSTD"});
         means_file.write_header_line({"PhiMean","PhiVar","PiMean","ScaleFactMean","ChiVar","HubbleMean","LapseMean"});
     }
-
-    //constrs_file.write_time_data_line({hamBar, sqrt(hamVar), hamAbsBar, hamNormBar, sqrt(hamNormVar), momBar, momAAD});
     means_file.write_time_data_line({phi_avg, phi_var, Pi_avg, scale_fact_avg, chi_var, Hubble_fact_avg, lapse_avg});
 
+    // Extract the spectra and field statistics
     RandomField random_field_extractor(simParams().random_field_params, simParams().background_params);
     random_field_extractor.extract(state_new, simParams().data_path, dt, cur_time, restart_time, first_step);
+
+    // Make a file object for constraint statistics
+    SmallDataIO constrs_file(simParams().data_path+"constraint-statistics", dt, cur_time, restart_time, SmallDataIO::APPEND, first_step, ".dat");
+    constrs_file.remove_duplicate_time_data();
     
     // Find the constraints and put them in a MF
     int num=0;

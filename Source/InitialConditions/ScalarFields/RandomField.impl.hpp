@@ -456,8 +456,8 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
     double kmag = 0.;
     Vector<Real> kiso(N/2+1, 0.);
 
-    Vector<Real> ps_map(m_params.bin_number, 0.);
-    Vector<int> kcount(m_params.bin_number, 0);
+    Vector<Real> ps_map(m_params.bin_number+1, 0.);
+    Vector<int> kcount(m_params.bin_number+1, 0);
 
     for (int s=0; s<=N/2; s++) { kiso[s] = s*dkiso; }
 
@@ -512,8 +512,11 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
                         Real power = (std::pow(field_ptr(i, j, k, component).real(), 2.0) 
                                     + std::pow(field_ptr(i, j, k, component).imag(), 2.0));
                         
-                        Gpu::Atomic::Add(&ps_map[s-1], power);
-                        Gpu::Atomic::Add(&kcount[s-1], 1);
+                        if(power > tolerance)
+                        {
+                            Gpu::Atomic::Add(&ps_map[s-1], power);
+                            Gpu::Atomic::Add(&kcount[s-1], 1);   
+                        }
 
                         break;
                     }
@@ -524,8 +527,11 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
                         Real power = (std::pow(field_ptr(i, j, k, component).real(), 2.0) 
                                     + std::pow(field_ptr(i, j, k, component).imag(), 2.0));
                         
-                        Gpu::Atomic::Add(&ps_map[N/2], power);
-                        Gpu::Atomic::Add(&kcount[N/2], 1);
+                        if(power > tolerance)
+                        {
+                            Gpu::Atomic::Add(&ps_map[N/2], power);
+                            Gpu::Atomic::Add(&kcount[N/2], 1);
+                        }
 
                         break;
                     }
@@ -763,6 +769,7 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
             filenames[comp] = spec_path+"spectrum-comp-"+std::to_string(comp)+"-time-";
             SmallDataIO spectrum_file(filenames[comp], dt, cur_time, restart_time, SmallDataIO::NEW, first_step, ".dat");
             print_power_spectrum(hs_k, spectrum_file, comp);
+            Print() << "---------\n";
         }
     }
 
