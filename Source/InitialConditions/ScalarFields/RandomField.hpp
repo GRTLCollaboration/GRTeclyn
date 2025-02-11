@@ -98,7 +98,7 @@ class RandomField
         bool is_ghost_index(IntVect vector);
         std::string make_subdirectory(std::string base, std::string dir, int is_first_step);
         void assign_statistics_data(Vector<std::string> &header_storage, const std::string name, 
-                            Vector<Real> &data_storage, const Array1D<Real, 0, 1> data, const int component,
+                            Vector<Real> &data_storage, const Vector<Real> data, const int component,
                             int num_comps, Vector<int>::const_iterator itr, Vector<int>::const_iterator start, const int is_first_step);
 
         // Tests
@@ -114,7 +114,7 @@ class RandomField
         
         // Extraction routines
         void print_power_spectrum(cMultiFab &field_array, SmallDataIO &power_spec_file, int component);
-        Real find_field_moment_x(MultiFab &field, Array1D<Real, 0, 1> mean, 
+        Real find_field_moment_x(MultiFab &field, Vector<Real> mean, 
                                                 int moment, int component);
 
     protected:

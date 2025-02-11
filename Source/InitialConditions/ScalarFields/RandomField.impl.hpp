@@ -57,7 +57,7 @@ inline std::string RandomField::make_subdirectory(std::string base, std::string 
 
 // Creates a custom data file layout 
 inline void RandomField::assign_statistics_data(Vector<std::string> &header_storage, const std::string name, 
-                            Vector<Real> &data_storage, const Array1D<Real, 0, 1> data, const int component,
+                            Vector<Real> &data_storage, const Vector<Real> data, const int component,
                             int num_comps, Vector<int>::const_iterator itr, Vector<int>::const_iterator start, const int is_first_step)
 {
     int loc = component + num_comps*(itr - start);
@@ -65,7 +65,7 @@ inline void RandomField::assign_statistics_data(Vector<std::string> &header_stor
     { 
         header_storage[loc] =  name; 
     }
-    data_storage[loc] = data(component);
+    data_storage[loc] = data[component];
 }
 
 /****
@@ -557,7 +557,7 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
 }
 
 // Finds statistical moment x of given MultiFab
-inline Real RandomField::find_field_moment_x(MultiFab &field, Array1D<Real, 0, 1> mean, 
+inline Real RandomField::find_field_moment_x(MultiFab &field, Vector<Real> mean, 
                                                 int moment, int component)
 {
     Real sum = 0.;
@@ -571,7 +571,7 @@ inline Real RandomField::find_field_moment_x(MultiFab &field, Array1D<Real, 0, 1
 
         amrex::ParallelFor(bx, [=, &sum] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            sum += std::pow(field_ptr(i, j, k, component) - mean(component), moment);
+            sum += std::pow(field_ptr(i, j, k, component) - mean[component], moment);
         });
     }
 
@@ -596,11 +596,12 @@ inline void RandomField::print_tensor_moment(MultiFab &field, const Vector<std::
     }
 
     // Allocate arrays to store each moment
+    const int nc = field.nComp();
     const Real vol = std::pow(N, 3.);
-    Array1D<Real, 0, 1> means = {0., 0.};
-    Array1D<Real, 0, 1> stdev = {0., 0.};
-    Array1D<Real, 0, 1> skew = {0., 0.};
-    Array1D<Real, 0, 1> kurt = {0., 0.};
+    Vector<Real> means(nc, 0.);
+    Vector<Real> stdev(nc, 0.);
+    Vector<Real> skew(nc, 0.);
+    Vector<Real> kurt(nc, 0.);
 
     // Find iterators, which determine which moments are requested and their ordering
     Vector<int>::const_iterator start = moment_orders.begin();
@@ -609,15 +610,13 @@ inline void RandomField::print_tensor_moment(MultiFab &field, const Vector<std::
     Vector<int>::const_iterator skew_itr = std::find(moment_orders.begin(), moment_orders.end(), 3);
     Vector<int>::const_iterator kurt_itr = std::find(moment_orders.begin(), moment_orders.end(), 4);
 
-    int nc = field.nComp();
-
     // Allocate vectors to store header line and data lines
     Vector<Real> data_to_print(nc * moment_orders.size(), 0.);
     Vector<std::string> headers(nc * moment_orders.size(), "");
 
     for (int comp = 0; comp < nc; comp++)
     {
-        means(comp) = field.sum(comp)/vol;
+        means[comp] = field.sum(comp)/vol;
         if(mean_itr != moment_orders.end())
         {
             assign_statistics_data(headers, names[comp]+"-mean", data_to_print, means, comp, nc,
@@ -626,7 +625,7 @@ inline void RandomField::print_tensor_moment(MultiFab &field, const Vector<std::
 
         if(moment_orders.back() != 1)
         {
-            stdev(comp) = find_field_moment_x(field, means, 2, comp);
+            stdev[comp] = find_field_moment_x(field, means, 2, comp);
             if(stdev_itr != moment_orders.end())
             {
                 assign_statistics_data(headers, names[comp]+"-stdev", data_to_print, stdev, comp, nc, 
@@ -635,8 +634,8 @@ inline void RandomField::print_tensor_moment(MultiFab &field, const Vector<std::
 
             if(moment_orders.back() != 2)
             {
-                skew(comp) = find_field_moment_x(field, means, 3, comp);
-                skew(comp) /= std::pow(stdev(comp), 3.);
+                skew[comp] = find_field_moment_x(field, means, 3, comp);
+                skew[comp] /= std::pow(stdev[comp], 3.);
 
                 if(skew_itr != moment_orders.end())
                 {
@@ -646,8 +645,8 @@ inline void RandomField::print_tensor_moment(MultiFab &field, const Vector<std::
 
                 if(moment_orders.back() != 3)
                 {
-                    kurt(comp) = find_field_moment_x(field, means, 4, comp);
-                    kurt(comp) /= std::pow(stdev(comp), 4.);
+                    kurt[comp] = find_field_moment_x(field, means, 4, comp);
+                    kurt[comp] /= std::pow(stdev[comp], 4.);
 
                     assign_statistics_data(headers, names[comp]+"-kurt", data_to_print, kurt, comp, nc,
                                             kurt_itr, start, is_first_step);
@@ -768,8 +767,7 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
     }
 
     // Find mode functions in configuration space if requested
-    if((m_params.calc_config_space_mode_fns || m_params.calc_higher_order_statistics) && 
-            time_step % m_params.print_interval == 0)
+    if((m_params.calc_config_space_mode_fns || m_params.calc_higher_order_statistics))
     {
         // Make a multifab to store config space mode functions
         BoxArray xba(x_domain);
