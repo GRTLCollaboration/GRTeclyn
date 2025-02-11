@@ -49,6 +49,17 @@ void ScalarFieldLevel::variableSetUp()
     // We only need the non-gauge CCZ4 variables to calculate the constraints
     derive_lst.addComponent("constraints", desc_lst, State_Type, 0, c_lapse);
 
+    derive_lst.add(
+        "constraints_norm", amrex::IndexType::TheCellType(),
+        static_cast<int>(Constraints::var_names_norm.size()), Constraints::var_names_norm,
+        amrex::DeriveFuncFab(), // null function because we won't use
+                                // it.
+        [=](const amrex::Box &box) { return amrex::grow(box, nghost); },
+        &amrex::cell_quartic_interp);
+
+    // We only need the non-gauge CCZ4 variables to calculate the constraints
+    derive_lst.addComponent("constraints_norm", desc_lst, State_Type, 0, c_lapse);
+
     // Add Weyl4 to the derive list
     derive_lst.add(
         "Weyl4", amrex::IndexType::TheCellType(),
@@ -334,11 +345,26 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
             const auto &out_arrays = multifab.arrays();
             int iham               = dcomp;
             Interval imom = Interval(dcomp + 1, dcomp + AMREX_SPACEDIM);
-            int iham_abs           = dcomp + AMREX_SPACEDIM + 1;
-            //Interval imom_abs = Interval(dcomp + AMREX_SPACEDIM + 2, dcomp + AMREX_SPACEDIM + AMREX_SPACEDIM);
             MatterConstraints<ScalarFieldWithPotential> constraints(
                 scalar_field, Geom().CellSize(0), simParams().G_Newton, iham,
-                imom, iham_abs);
+                imom);
+            amrex::ParallelFor(
+                multifab, multifab.nGrowVect(),
+                [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept {
+                    constraints.compute(i, j, k, out_arrays[box_no],
+                                        src_arrays[box_no]);
+                });
+        }
+        else if (name == "constraints_norm")
+        {
+            const auto &out_arrays = multifab.arrays();
+            int iham     = dcomp;
+            Interval imom = Interval(dcomp + 1, dcomp + AMREX_SPACEDIM);
+            int iham_abs = dcomp + AMREX_SPACEDIM + 1;
+            Interval imom_abs     = Interval(dcomp + AMREX_SPACEDIM + 2, dcomp + AMREX_SPACEDIM + 2);
+            MatterConstraints<ScalarFieldWithPotential> constraints(
+                scalar_field, Geom().CellSize(0), simParams().G_Newton, iham,
+                imom, iham_abs, imom_abs);
             amrex::ParallelFor(
                 multifab, multifab.nGrowVect(),
                 [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept {
@@ -427,16 +453,21 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
     RandomField random_field_extractor(simParams().random_field_params, simParams().background_params);
     random_field_extractor.extract(state_new, simParams().data_path, dt, cur_time, restart_time, first_step);
     
+    // Find the constraints and put them in a MF
     int num=0;
     const std::list<DeriveRec>& dlist = derive_lst.dlist();
     for (auto const& var: dlist)
     {
-        if(var.name() == "constraints") { num = var.numDerive(); }
+        if(var.name() == "constraints_norm") { num = var.numDerive(); }
     }
-
     MultiFab constr_alias(ba, dm, num, ngrow, MFInfo(), Factory());
-    derive("constraints", cur_time, constr_alias, 0);
+    derive("constraints_norm", cur_time, constr_alias, 0);
 
+    // Separate out the abs terms
+    MultiFab abs_terms_alias(constr_alias, amrex::make_alias, 4, 2);
+    const auto abs_terms_names = amrex::Vector<std::string>(Constraints::var_names_norm.begin() + 4, Constraints::var_names_norm.end());
+
+    // Print statistics on the abs constraint terms
     Vector<int> moments{1,2};
-    random_field_extractor.print_tensor_moment(constr_alias, Constraints::var_names, moments, constrs_file, first_step);
+    random_field_extractor.print_tensor_moment(abs_terms_alias, abs_terms_names, moments, constrs_file, first_step);
 }
