@@ -52,18 +52,30 @@ num_scalar_fields = 0
 calc_tensor_field = 1
 A = 1.
 # N_fine = 256
-use_rand = 0
+use_rand = 1
 random_seed = 3539263
+
+# Random Seed bank 
+# 3539263
+# 7586572
+# 5060982
+# 6793957
+# 4764135
+# 2034988
+# 9635753
+# 9350886
+# 6855322
+# 2933414
 
 # Window function parameters
 use_window = 1
-kstar = 64
+kstar = 20
 Delta = 30
 
 # Options for tensor extraction
 calc_binned_power_spectrum = 1
-calc_config_space_mode_fns = 0
-calc_higher_order_statistics = 1
+calc_config_space_mode_fns = 1
+calc_higher_order_statistics = 0
 
 print_interval = 150
 
@@ -135,7 +147,7 @@ extrapolating_vars = phi Pi
 # dt will be dx*dt_multiplier on each grid level
 dt_multiplier = 0.25
 stop_time = 10000
-max_steps = 10 # 3000
+max_steps = 4 # 3000
 
 # Spatial derivative order (only affects CCZ4 RHS)
 max_spatial_derivative_order = 4 # can be 4 or 6
