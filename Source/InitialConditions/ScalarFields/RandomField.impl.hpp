@@ -307,14 +307,9 @@ inline void RandomField::init(amrex::MultiFab &state)
     BoxArray sba = state.boxArray();
     DistributionMapping sdm = state.DistributionMap();
 
-    // Make the Fourier transform and derive the Fourier space MF ingredients
-    IntVect domain_low(0, 0, 0);
-    IntVect x_domain_high(N-1, N-1, N-1);
-    Box x_domain(domain_low, x_domain_high);
-    FFT::R2C<Real> random_field_fft(x_domain);
-
     // Set up the problem domain in Fourier space
     // And impose that MPI ranks only slice along the i index (for Nyquist conditions)
+    IntVect domain_low(0, 0, 0);
     IntVect k_domain_high(N/2, N-1, N-1);
     Box k_domain(domain_low, k_domain_high);
     Array< bool, AMREX_SPACEDIM > const &slicing{true, false, false};
@@ -329,6 +324,11 @@ inline void RandomField::init(amrex::MultiFab &state)
 
     MultiFab hij_x(sba, sdm, 6, 0);
     MultiFab Aij_x(sba, sdm, 6, 0);
+
+    // Make the Fourier transform
+    IntVect x_domain_high(N-1, N-1, N-1);
+    Box x_domain(domain_low, x_domain_high);
+    FFT::R2C<Real> random_field_fft(x_domain, FFT::Info().setBatchSize(hij_k.nComp()));
 
     std::string Filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/hs-k-init";
     for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
@@ -373,16 +373,8 @@ inline void RandomField::init(amrex::MultiFab &state)
     apply_nyquist_conditions(Aij_k);
 
     // Do the Fourier transform
-    for(int fcomp = 0; fcomp < hij_k.nComp(); fcomp++)
-    {
-        cMultiFab hij_k_slice(hij_k, make_alias, fcomp, 1);
-        MultiFab hij_x_slice(hij_x, make_alias, fcomp, 1);
-        random_field_fft.backward(hij_k_slice, hij_x_slice);
-
-        cMultiFab Aij_k_slice(Aij_k, make_alias, fcomp, 1);
-        MultiFab Aij_x_slice(Aij_x, make_alias, fcomp, 1);
-        random_field_fft.backward(Aij_k_slice, Aij_x_slice);
-    }
+    random_field_fft.backward(hij_k, hij_x);
+    random_field_fft.backward(Aij_k, Aij_x);
 
     // Apply normalisation into physical units
     hij_x.mult(norm);
@@ -688,14 +680,9 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
     for (int l=0; l<3; l++) { hij_x.plus(-1., lut[l][l], 1); }
     hij_x.mult(1./norm);
 
-    // Set up the FFT
-    IntVect domain_low(0, 0, 0);
-    IntVect x_domain_high(N-1, N-1, N-1);
-    Box x_domain(domain_low, x_domain_high);
-    FFT::R2C<Real> random_field_fft(x_domain);
-
     // Set up the problem domain in Fourier space
     // And impose that MPI ranks only slice along the i index (for Nyquist conditions)
+    IntVect domain_low(0, 0, 0);
     IntVect k_domain_high(N/2, N-1, N-1);
     Box k_domain(domain_low, k_domain_high);
     Array< bool, AMREX_SPACEDIM > const &slicing{true, false, false};
@@ -706,13 +693,13 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
     cMultiFab hs_k(kba, kdm, 2, 0);
     cMultiFab hij_k(kba, kdm, 6, 0);
 
+    // Set up the FFT
+    IntVect x_domain_high(N-1, N-1, N-1);
+    Box x_domain(domain_low, x_domain_high);
+    FFT::R2C<Real> tensor_fft(x_domain, FFT::Info().setBatchSize(hij_k.nComp()));
+
     // Perform the fft
-    for(int fcomp = 0; fcomp < hij_x.nComp(); fcomp++)
-    {
-        cMultiFab hij_k_slice(hij_k, make_alias, fcomp, 1);
-        MultiFab hij_x_slice(hij_x, make_alias, fcomp, 1);
-        random_field_fft.forward(hij_x_slice, hij_k_slice);
-    }
+    tensor_fft.forward(hij_x, hij_k);
 
     // Normalise the fft (fftw style)
     for(int comp = 0; comp < 6; comp++)
@@ -782,12 +769,8 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
         MultiFab hs_x(xba, xdm, 2, 0);
 
         // Fourier transform
-        for(int fcomp = 0; fcomp < hs_x.nComp(); fcomp++)
-        {
-            cMultiFab hs_k_slice(hs_k, make_alias, fcomp, 1);
-            MultiFab hs_x_slice(hs_x, make_alias, fcomp, 1);
-            random_field_fft.backward(hs_k_slice, hs_x_slice);
-        }
+        FFT::R2C<Real> mode_function_fft(x_domain, FFT::Info().setBatchSize(hs_k.nComp()));
+        mode_function_fft.backward(hs_k, hs_x);
 
         // Apply physical normalisation
         hs_x.mult(norm);
