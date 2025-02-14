@@ -16,20 +16,20 @@
 ****/
 
 // Nyquist condition
-inline int RandomField::flip_index(int indx) { return std::abs(N - indx); }
+inline int RandomField::flip_index(const int indx) { return std::abs(N - indx); }
 
 // Nyquist condition and calculation of kmag
-inline int RandomField::invert_index(int indx) { return (int)(N/2 - std::abs(N/2 - indx)); }
+inline int RandomField::invert_index(const int indx) { return (int)(N/2 - std::abs(N/2 - indx)); }
 
 // For calculation of polarisation tensors
-inline int RandomField::invert_index_with_sign(int indx) 
+inline int RandomField::invert_index_with_sign(const int indx) 
 { 
     if(indx <= N/2) { return indx; }
     else { return std::abs(N/2 - indx) - N/2; }
 }
 
 // Ensures no calculation on ghost cells
-inline bool RandomField::is_ghost_index(IntVect vector)
+inline bool RandomField::is_ghost_index(const IntVect vector)
 {
     bool ret = false;
     for(int d=0; d<3; d++) 
@@ -40,7 +40,7 @@ inline bool RandomField::is_ghost_index(IntVect vector)
 }
 
 // Makes subdirectories in data/
-inline std::string RandomField::make_subdirectory(std::string base, std::string dir, int is_first_step)
+inline std::string RandomField::make_subdirectory(const std::string base, const std::string dir, const int is_first_step)
 {
     std::string new_path = base+"../"+dir+"/";
     if(is_first_step)
@@ -57,8 +57,9 @@ inline std::string RandomField::make_subdirectory(std::string base, std::string 
 
 // Creates a custom data file layout 
 inline void RandomField::assign_statistics_data(Vector<std::string> &header_storage, const std::string name, 
-                            Vector<Real> &data_storage, const Vector<Real> data, const int component,
-                            int num_comps, Vector<int>::const_iterator itr, Vector<int>::const_iterator start, const int is_first_step)
+                            Vector<Real> &data_storage, const Vector<Real> data, const int component, const int num_comps,
+                            const Vector<int>::const_iterator itr, const Vector<int>::const_iterator start, 
+                            const int is_first_step)
 {
     int loc = component + num_comps*(itr - start);
     if(is_first_step) 
@@ -104,7 +105,7 @@ inline void RandomField::Test_is_trace_free(MultiFab &field)
 ****/
 
 // Returns analytic power spectrum in modulus/argument form
-inline GpuComplex<Real> RandomField::calculate_mode_function(double km, std::string spec_type)
+inline GpuComplex<Real> RandomField::calculate_mode_function(const double km, const std::string spec_type)
 {
     // Deals with k=0 case, which is undefined if m=0
     if(km < 1.e-23) { return 0.; }
@@ -137,8 +138,8 @@ inline GpuComplex<Real> RandomField::calculate_mode_function(double km, std::str
 }
 
 // Turns analytic PS into GRF and applies window function if requested
-inline GpuComplex<Real> RandomField::calculate_random_field(IntVect iv, std::string spectrum_type, 
-                                                                Real rand_amp, Real rand_phase)
+inline GpuComplex<Real> RandomField::calculate_random_field(const IntVect iv, const std::string spectrum_type, 
+                                                            const Real rand_amp, const Real rand_phase)
 {
     GpuComplex<Real> value(0., 0.);
 
@@ -185,7 +186,7 @@ inline GpuComplex<Real> RandomField::calculate_random_field(IntVect iv, std::str
 }
 
 // Calculates basis vectors required for polarisation tensors
-inline Vector<Real> RandomField::calculate_basis_vector(IntVect iv, int which_vector)
+inline Vector<Real> RandomField::calculate_basis_vector(const IntVect iv, const int which_vector)
 {
     // FFTW-style inversion with sign on the last two indices
     int i = iv[0];
@@ -231,8 +232,9 @@ inline Vector<Real> RandomField::calculate_basis_vector(IntVect iv, int which_ve
 }
 
 // Assembles full tensor initial conditions given two mode functions
-inline GpuComplex<Real> RandomField::calculate_tensor_initial_conditions(IntVect iv, int l, int p, 
-                                        GpuComplex<Real> plus_field, GpuComplex<Real> cross_field)
+inline GpuComplex<Real> RandomField::calculate_tensor_initial_conditions(const IntVect iv, const int l, const int p, 
+                                                                         const GpuComplex<Real> plus_field, 
+                                                                         const GpuComplex<Real> cross_field)
 {
     Vector<Real> mhat(3, 0.);
     Vector<Real> nhat(3, 0.);
@@ -425,7 +427,7 @@ inline void RandomField::init(amrex::MultiFab &state)
 ****/
 
 // Calculates and prints the power spectrum
-inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataIO &power_spec_file, int component)
+inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataIO &power_spec_file, const int component)
 { 
     // Set up the isotropic k axis bounds
     double kiso_max = std::sqrt(3.) * N * M_PI / m_params.L;
@@ -555,8 +557,8 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
 }
 
 // Finds statistical moment x of given MultiFab
-inline Real RandomField::find_field_moment_x(MultiFab &field, Vector<Real> mean, 
-                                                int moment, int component)
+inline Real RandomField::find_field_moment_x(MultiFab &field, const Vector<Real> mean, 
+                                             const int moment, const int component)
 {
     Real sum = 0.;
     const Real vol = std::pow(N, 3.);
@@ -581,8 +583,9 @@ inline Real RandomField::find_field_moment_x(MultiFab &field, Vector<Real> mean,
 }
 
 // Calculates and prints requested moments (any between 1 and 4)
-inline void RandomField::print_tensor_moment(MultiFab &field, const Vector<std::string> names, const Vector<int> &moment_orders, 
-                                                SmallDataIO &file, const int is_first_step)
+inline void RandomField::print_tensor_moment(MultiFab &field, const Vector<std::string> names,  
+                                             const Vector<int> &moment_orders, SmallDataIO &file, 
+                                             const int is_first_step)
 {
     // Trap instance where the user requests too large a moment
     for(const auto moment : moment_orders)
@@ -659,7 +662,8 @@ inline void RandomField::print_tensor_moment(MultiFab &field, const Vector<std::
 }
 
 // Main extraction routine
-inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt, Real cur_time, int restart_time, int first_step)
+inline void RandomField::extract(const MultiFab &state, const std::string data_path, const Real dt,  
+                                 const Real cur_time, const int restart_time, const int first_step)
 {
     BL_PROFILE("RandomField::extract");
 
@@ -756,7 +760,6 @@ inline void RandomField::extract(MultiFab &state, std::string data_path, Real dt
             filenames[comp] = spec_path+"spectrum-comp-"+std::to_string(comp)+"-time-";
             SmallDataIO spectrum_file(filenames[comp], dt, cur_time, restart_time, SmallDataIO::NEW, first_step, ".dat");
             print_power_spectrum(hs_k, spectrum_file, comp);
-            Print() << "---------\n";
         }
     }
 

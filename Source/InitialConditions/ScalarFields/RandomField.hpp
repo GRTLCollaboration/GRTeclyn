@@ -79,11 +79,12 @@ class RandomField
         }
 
         void init(amrex::MultiFab &state);
-        void extract(MultiFab &state, std::string data_path, Real dt, 
-                        Real cur_time, int restart_time, int first_step);
+        void extract(const MultiFab &state, const std::string data_path, const Real dt,  
+                     const Real cur_time, const int restart_time, const int first_step);
 
-        void print_tensor_moment(MultiFab &field, const Vector<std::string> names, const Vector<int> &moment_orders, 
-                                    SmallDataIO &file, const int is_first_step);
+        void print_tensor_moment(MultiFab &field, const Vector<std::string> names,  
+                                 const Vector<int> &moment_orders, SmallDataIO &file, 
+                                 const int is_first_step);
         
     private:
         int N;
@@ -92,30 +93,33 @@ class RandomField
         double tolerance;
 
         // Small functions
-        int flip_index(int indx);
-        int invert_index(int indx);
-        int invert_index_with_sign(int indx);
-        bool is_ghost_index(IntVect vector);
-        std::string make_subdirectory(std::string base, std::string dir, int is_first_step);
+        int flip_index(const int indx);
+        int invert_index(const int indx);
+        int invert_index_with_sign(const int indx);
+        bool is_ghost_index(const IntVect vector);
+        std::string make_subdirectory(const std::string base, const std::string dir, const int is_first_step);
         void assign_statistics_data(Vector<std::string> &header_storage, const std::string name, 
-                            Vector<Real> &data_storage, const Vector<Real> data, const int component,
-                            int num_comps, Vector<int>::const_iterator itr, Vector<int>::const_iterator start, const int is_first_step);
+                                    Vector<Real> &data_storage, const Vector<Real> data, const int component, const int num_comps,
+                                    const Vector<int>::const_iterator itr, const Vector<int>::const_iterator start, 
+                                    const int is_first_step);
 
         // Tests
         void Test_is_trace_free(MultiFab &field);
 
         // Initialisation routines 
-        GpuComplex<Real> calculate_mode_function(double km, std::string spec_type);
-        GpuComplex<Real> calculate_random_field(IntVect iv, std::string spectrum_type, Real rand_amp, Real rand_phase);
-        Vector<Real> calculate_basis_vector(IntVect iv, int which_vector);
-        GpuComplex<Real> calculate_tensor_initial_conditions(IntVect iv, int l, int p, 
-                                GpuComplex<Real> plus_field, GpuComplex<Real> cross_field);
+        GpuComplex<Real> calculate_mode_function(const double km, const std::string spec_type);
+        GpuComplex<Real> calculate_random_field(const IntVect iv, const std::string spectrum_type, 
+                                                const Real rand_amp, const Real rand_phase);
+        Vector<Real> calculate_basis_vector(const IntVect iv, const int which_vector);
+        GpuComplex<Real> calculate_tensor_initial_conditions(const IntVect iv, const int l, const int p, 
+                                                             const GpuComplex<Real> plus_field, 
+                                                             const GpuComplex<Real> cross_field);
         void apply_nyquist_conditions(cMultiFab &field);
         
         // Extraction routines
-        void print_power_spectrum(cMultiFab &field_array, SmallDataIO &power_spec_file, int component);
-        Real find_field_moment_x(MultiFab &field, Vector<Real> mean, 
-                                                int moment, int component);
+        void print_power_spectrum(cMultiFab &field_array, SmallDataIO &power_spec_file, const int component);
+        Real find_field_moment_x(MultiFab &field, const Vector<Real> mean, 
+                                 const int moment, const int component);
 
     protected:
         const params_t m_params;
