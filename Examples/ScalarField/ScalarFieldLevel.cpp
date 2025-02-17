@@ -70,6 +70,16 @@ void ScalarFieldLevel::variableSetUp()
 
     // We need all of the CCZ4 variables to calculate Weyl4 (except B)
     derive_lst.addComponent("Weyl4", desc_lst, State_Type, 0, c_B1);
+
+    derive_lst.add(
+        "TensorPolarisations", amrex::IndexType::TheCellType(),
+        static_cast<int>(RandomField::var_names.size()), RandomField::var_names,
+        amrex::DeriveFuncFab(),
+        [=](const amrex::Box &box) { return amrex::grow(box, nghost); },
+        &amrex::cell_quartic_interp);
+
+    // We only need the spatial metric to find the polarisation fields
+    derive_lst.addComponent("TensorPolarisation", desc_lst, State_Type, 0, c_K);
 }
 
 // Things to do at each advance step, after the RK4 is calculated
@@ -387,6 +397,11 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
                     weyl4.compute(i, j, k, out_arrays[box_no],
                                   src_arrays[box_no]);
                 });
+        }
+        else if (name=="TensorPolarisations")
+        {
+            RandomField random_field_derive(simParams().random_field_params, simParams().background_params);
+            random_field_derive.derive(src_mf, multifab, dcomp);
         }
         else
         {

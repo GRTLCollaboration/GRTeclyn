@@ -28,6 +28,9 @@ using namespace amrex;
 class RandomField 
 {
     public:
+        // Names of diagnostic variables
+        static inline const Vector<std::string> var_names = {"hplus", "hcross"};
+
         //! A structure for storing parameters essential to this class
         struct params_t 
         {
@@ -79,6 +82,7 @@ class RandomField
         }
 
         void init(amrex::MultiFab &state);
+        void derive(const MultiFab &source, MultiFab &out, int dcomp);
         void extract(const MultiFab &state, const std::string data_path, const Real dt,  
                      const Real cur_time, const int restart_time, const int first_step);
 

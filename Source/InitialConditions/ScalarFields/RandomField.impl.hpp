@@ -661,6 +661,121 @@ inline void RandomField::print_tensor_moment(MultiFab &field, const Vector<std::
     file.write_time_data_line(data_to_print);
 }
 
+inline void RandomField::derive(const MultiFab &source, MultiFab &out, int dcomp)
+{
+    BL_PROFILE("RandomField::derive");
+
+    // Extract MultiFab ingredients from state
+    BoxArray sba = source.boxArray();
+    DistributionMapping sdm = source.DistributionMap();
+    MultiFab hij_x(sba, sdm, 6, 0);
+
+    // Copy the spatial metric from the state
+    Copy(hij_x, source, c_h11, lut[0][0], 1, 0);
+    Copy(hij_x, source, c_h12, lut[0][1], 1, 0);
+    Copy(hij_x, source, c_h13, lut[0][2], 1, 0);
+    Copy(hij_x, source, c_h22, lut[1][1], 1, 0);
+    Copy(hij_x, source, c_h23, lut[1][2], 1, 0);
+    Copy(hij_x, source, c_h33, lut[2][2], 1, 0);
+
+    // Undo the normalisation and BSSN-CPT conversion
+    for (int l=0; l<3; l++) { hij_x.plus(-1., lut[l][l], 1); }
+    hij_x.mult(1./norm);
+
+    // Set up the problem domain in Fourier space
+    // And impose that MPI ranks only slice along the i index (for Nyquist conditions)
+    IntVect domain_low(0, 0, 0);
+    IntVect k_domain_high(N/2, N-1, N-1);
+    Box k_domain(domain_low, k_domain_high);
+    Array< bool, AMREX_SPACEDIM > const &slicing{true, false, false};
+    BoxArray kba = decompose(k_domain, ParallelContext::NProcsAll(), slicing);
+    DistributionMapping kdm(kba);
+
+    // Set up the arrays to store the Fourier data sets
+    cMultiFab hs_k(kba, kdm, 2, 0);
+    cMultiFab hij_k(kba, kdm, 6, 0);
+
+    // Set up the FFT
+    IntVect x_domain_high(N-1, N-1, N-1);
+    Box x_domain(domain_low, x_domain_high);
+    FFT::R2C<Real> tensor_fft(x_domain, FFT::Info().setBatchSize(hij_k.nComp()));
+
+    // Perform the fft
+    tensor_fft.forward(hij_x, hij_k);
+
+    // Normalise the fft (fftw style)
+    for(int comp = 0; comp < 6; comp++)
+    {
+        hij_k.mult(std::pow(N, -3.), comp, 1); 
+    }
+
+    // Loop to extract the Fourier-space mode functions
+    for (MFIter mfi(hij_k); mfi.isValid(); ++mfi) 
+    {
+        const Box& bx = mfi.fabbox();
+
+        // Make a pointer to the mode functions at this MF box
+        Array4<GpuComplex<Real>> const& hs_ptr = hs_k.array(mfi);
+        Array4<GpuComplex<Real>> const& hij_ptr = hij_k.array(mfi);
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            IntVect iv{i, j, k};
+            Vector<Real> mhat(3, 0.);
+            Vector<Real> nhat(3, 0.);
+
+            mhat = calculate_basis_vector(iv, 0);
+            nhat = calculate_basis_vector(iv, 1);
+
+            Real eplus = 0.;
+            Real ecross = 0.;
+
+            // Find basis tensors and do the Fourier trick
+            for (int l=0; l<3; l++) for (int p=0; p<3; p++)
+            {
+                eplus = mhat[l]*mhat[p] - nhat[l]*nhat[p];
+                ecross = mhat[l]*nhat[p] + nhat[l]*mhat[p];
+
+                hs_ptr(i, j, k, 0) += (hij_ptr(i, j, k, lut[l][p]) * eplus)/std::sqrt(2.);
+                hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross)/std::sqrt(2.);
+            }
+        });
+    }
+
+    apply_nyquist_conditions(hs_k);
+
+    // Make a multifab to store config space mode functions
+    // Need to use out to make these ingredients??
+    BoxArray xba = out.boxArray();//(x_domain);
+    DistributionMapping xdm = out.DistributionMap();//(xba);
+    MultiFab hs_x(xba, xdm, 2, 0);
+
+    // Fourier transform
+    FFT::R2C<Real> mode_function_fft(x_domain, FFT::Info().setBatchSize(hs_k.nComp()));
+    mode_function_fft.backward(hs_k, hs_x);
+
+    // Apply physical normalisation
+    hs_x.mult(norm);
+
+    for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
+    {
+        Array4<Real> const& out_ptr = out.array(mfi);
+        Array4<Real> const& hs_ptr = hs_x.array(mfi);
+
+        const Box& bx = mfi.fabbox();
+        ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            const IntVect iv{i, j, k};
+            bool in_ghost_index = is_ghost_index(iv);
+            if(!in_ghost_index)
+            {
+                out_ptr(iv, dcomp) = hs_ptr(i, j, k, 0);
+                out_ptr(iv, dcomp + 1) = hs_ptr(i, j, k, 1);
+            }
+        });
+    }
+}
+
 // Main extraction routine
 inline void RandomField::extract(const MultiFab &state, const std::string data_path, const Real dt,  
                                  const Real cur_time, const int restart_time, const int first_step)
