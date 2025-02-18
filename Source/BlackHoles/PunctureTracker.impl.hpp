@@ -241,6 +241,7 @@ void PunctureTracker<num_punctures>::track(double a_time, double a_dt,
                                  geom.periodicity());
 
         const auto problem_domain_lo = geom.ProbLoArray();
+        const auto problem_domain_hi = geom.ProbHiArray();
         const auto dxi               = geom.InvCellSizeArray();
 
         // This code is almost identical to
@@ -289,6 +290,16 @@ void PunctureTracker<num_punctures>::track(double a_time, double a_dt,
                                                   a_dt * shift[idir]);
                                 p.rdata(idir) = shift[idir];
                             }
+                        }
+
+                        // make sure the particles don't leave the problem
+                        // domain otherwise AMReX will mark them invalid
+                        FOR1 (idir)
+                        {
+                            p.pos(idir) =
+                                std::max(p.pos(idir), problem_domain_lo[idir]);
+                            p.pos(idir) =
+                                std::min(p.pos(idir), problem_domain_hi[idir]);
                         }
                     }); // amrex::ParallelFor
             } // punc_iter
