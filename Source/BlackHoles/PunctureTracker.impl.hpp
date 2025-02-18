@@ -137,8 +137,9 @@ void PunctureTracker<num_punctures>::set_initial_punctures_pc()
                     auto &puncture_particle = particle_tile_data[ipuncture];
                     puncture_particle.pos(idir) =
                         d_puncture_coords[linear_idx(ipuncture, idir)];
-                    puncture_particle.id()  = ipuncture + 1;
-                    puncture_particle.cpu() = 0;
+                    puncture_particle.id()     = ipuncture + 1;
+                    puncture_particle.idata(0) = ipuncture + 1;
+                    puncture_particle.cpu()    = 0;
                 }
             });
         amrex::Gpu::streamSynchronize();
@@ -290,9 +291,9 @@ void PunctureTracker<num_punctures>::track(double a_time, double a_dt,
                             }
                         }
                     }); // amrex::ParallelFor
-            }           // punc_iter
-        }               // ipass
-    }                   // ilevel
+            } // punc_iter
+        } // ipass
+    } // ilevel
 
     // update m_puncture_coords with the updated locations of the puncture
     // particles
@@ -348,7 +349,7 @@ void PunctureTracker<num_punctures>::update_puncture_coords()
                                [=] AMREX_GPU_DEVICE(int ipunc)
                                {
                                    auto &p      = punc_particles_data[ipunc];
-                                   int punc_idx = p.id() - 1;
+                                   int punc_idx = p.idata(0) - 1;
                                    FOR1 (idir)
                                    {
                                        d_level_puncture_coords_ptr[linear_idx(

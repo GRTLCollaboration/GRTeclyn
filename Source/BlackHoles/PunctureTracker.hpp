@@ -14,7 +14,7 @@
 //!  The class tracks the puncture locations by advecting them in the reverse
 //!  direction to the shift. It is an amrex AoS ParticleContainer.
 template <unsigned int num_punctures>
-class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 0>
+class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 1>
 {
   public:
     static constexpr unsigned int num_puncture_coords =
@@ -36,7 +36,7 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 0>
 
   public:
     //! The constructor
-    using amrex::ParticleContainer<AMREX_SPACEDIM, 0>::ParticleContainer;
+    using amrex::ParticleContainer<AMREX_SPACEDIM, 1>::ParticleContainer;
 
     //! Initialize the tracker. Note that this does not set up the underlying
     //! ParticleContainer
