@@ -51,6 +51,9 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 1>
     //! write punctures to the checkpoint directory
     void checkpoint(const std::string &a_chk_dir);
 
+    //! write punctures to the plot file
+    void write_plotfile(const std::string &a_dir);
+
     //! Track the punctures and write out if requested
     void track(double a_time, double a_dt, const bool a_write_punctures = true);
 

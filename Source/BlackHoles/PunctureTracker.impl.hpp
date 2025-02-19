@@ -98,6 +98,23 @@ void PunctureTracker<num_punctures>::restart(
 }
 
 template <unsigned int num_punctures>
+void PunctureTracker<num_punctures>::write_plotfile(const std::string &a_dir)
+{
+    AMREX_ASSERT(m_initialized);
+    AMREX_ASSERT(m_started);
+
+    std::string plotfile_subdir = "particles"; // this is what ParaView expects
+
+    amrex::Vector<std::string> real_comp_names{AMREX_D_DECL(
+        StateVariables::names[c_shift1], StateVariables::names[c_shift2],
+        StateVariables::names[c_shift3])};
+
+    amrex::Vector<std::string> int_comp_names({"puncture_index"});
+
+    WritePlotFile(a_dir, plotfile_subdir, real_comp_names, int_comp_names);
+}
+
+template <unsigned int num_punctures>
 void PunctureTracker<num_punctures>::checkpoint(const std::string &a_chk_dir)
 {
     AMREX_ASSERT(m_initialized);
