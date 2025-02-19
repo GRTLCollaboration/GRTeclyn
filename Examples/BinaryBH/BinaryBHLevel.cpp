@@ -274,6 +274,15 @@ void BinaryBHLevel::specific_post_restart()
     }
 }
 
+void BinaryBHLevel::specific_post_plotfile(const std::string &a_dir,
+                                           std::ostream &a_os)
+{
+    if (simParams().puncture_tracking_enabled)
+    {
+        get_puncture_tracker().write_plotfile(a_dir);
+    }
+}
+
 void BinaryBHLevel::specific_post_checkpoint(const std::string &a_chk_dir,
                                              std::ostream & /*a_os*/)
 {
