@@ -746,8 +746,8 @@ inline void RandomField::derive(const MultiFab &source, MultiFab &out, int dcomp
 
     // Make a multifab to store config space mode functions
     // Need to use out to make these ingredients??
-    BoxArray xba = out.boxArray();//(x_domain);
-    DistributionMapping xdm = out.DistributionMap();//(xba);
+    BoxArray xba = out.boxArray();//(x_domain); //
+    DistributionMapping xdm = out.DistributionMap();//(xba); //
     MultiFab hs_x(xba, xdm, 2, 0);
 
     // Fourier transform
@@ -757,10 +757,10 @@ inline void RandomField::derive(const MultiFab &source, MultiFab &out, int dcomp
     // Apply physical normalisation
     hs_x.mult(norm);
 
-    for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
+    for (MFIter mfi(hs_x); mfi.isValid(); ++mfi) 
     {
         Array4<Real> const& out_ptr = out.array(mfi);
-        Array4<Real> const& hs_ptr = hs_x.array(mfi);
+        Array4<Real> const& hx_ptr = hs_x.array(mfi);
 
         const Box& bx = mfi.fabbox();
         ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -769,8 +769,8 @@ inline void RandomField::derive(const MultiFab &source, MultiFab &out, int dcomp
             bool in_ghost_index = is_ghost_index(iv);
             if(!in_ghost_index)
             {
-                out_ptr(iv, dcomp) = hs_ptr(i, j, k, 0);
-                out_ptr(iv, dcomp + 1) = hs_ptr(i, j, k, 1);
+                out_ptr(iv, dcomp) = hx_ptr(i, j, k, 0);
+                out_ptr(iv, dcomp + 1) = hx_ptr(i, j, k, 1);
             }
         });
     }

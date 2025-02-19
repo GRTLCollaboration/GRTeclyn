@@ -476,7 +476,10 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
         if(var.name() == "constraints_norm") { num = var.numDerive(); }
     }
     MultiFab constr_alias(ba, dm, num, ngrow, MFInfo(), Factory());
+    MultiFab pol_fields_alias(ba, dm, num, ngrow, MFInfo(), Factory());
+
     derive("constraints_norm", cur_time, constr_alias, 0);
+    derive("TensorPolarisations", cur_time, pol_fields_alias, 0);
 
     // Separate out the abs terms
     MultiFab abs_terms_alias(constr_alias, amrex::make_alias, 4, 2);
