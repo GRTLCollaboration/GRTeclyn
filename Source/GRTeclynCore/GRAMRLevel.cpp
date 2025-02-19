@@ -270,20 +270,14 @@ void GRAMRLevel::errorEst(amrex::TagBoxArray &a_tag_box_array,
     tag_cells(a_tag_box_array, regrid_threshold);
 }
 
-void GRAMRLevel::writePlotFilePre(const std::string & /*dir*/,
-                                  std::ostream & /*os*/)
+void GRAMRLevel::writePlotFilePre(const std::string &a_dir, std::ostream &a_os)
 {
-    m_is_writing_plotfile = true;
-    // auto &state_new       = get_new_data(State_Type);
-    // FillPatch(*this, state_new, state_new.nGrow(),
-    //           get_state_data(State_Type).curTime(), State_Type, 0,
-    //           state_new.nComp());
+    specific_pre_plotfile(a_dir, a_os);
 }
 
-void GRAMRLevel::writePlotFilePost(const std::string & /*dir*/,
-                                   std::ostream & /*os*/)
+void GRAMRLevel::writePlotFilePost(const std::string &a_dir, std::ostream &a_os)
 {
-    m_is_writing_plotfile = false;
+    specific_post_plotfile(a_dir, a_os);
 }
 
 void GRAMRLevel::checkPointPre(const std::string &a_dir, std::ostream &a_os)

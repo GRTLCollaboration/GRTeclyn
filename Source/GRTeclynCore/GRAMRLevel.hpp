@@ -163,6 +163,18 @@ class GRAMRLevel : public amrex::AmrLevel
     //! Problem specific post init
     virtual void specific_post_init() {}
 
+    //! Problem specific pre plotfile
+    virtual void specific_pre_plotfile(const std::string &a_dir,
+                                       std::ostream &a_os)
+    {
+    }
+
+    //! Problem specific post plotfile
+    virtual void specific_post_plotfile(const std::string &a_dir,
+                                        std::ostream &a_os)
+    {
+    }
+
     //! Problem specific pre checkpoint
     virtual void specific_pre_checkpoint(const std::string &a_dir,
                                          std::ostream &a_os)
@@ -179,7 +191,6 @@ class GRAMRLevel : public amrex::AmrLevel
 
     int m_verbosity = 0; //!< Level of verbosity of the output
     int m_num_ghosts{};  //!< Number of ghost cells
-    bool m_is_writing_plotfile = false;
 
   private:
 
