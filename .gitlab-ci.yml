@@ -11,6 +11,7 @@ variables:
     rhel8/global
     openmpi/4.1.1/gcc-9.4.0-epagguv
     gcc/9.4.0/gcc-11.2.0-72sgv5z
+    hdf5/1.10.7/openmpi-4.1.1/gcc-9.4.0-krjrm53
   BUILD_CONFIG: >
     USE_CUDA=TRUE
     CUDA_ARCH=80
@@ -18,6 +19,7 @@ variables:
     DEBUG=TRUE
     TEST=TRUE
     USE_ASSERTION=TRUE
+    USE_HDF5=TRUE
   SRUN_FLAGS: > 
     --qos=INTR 
     --nodes=1 
@@ -26,20 +28,6 @@ variables:
     --time=00:10:00 
     --account=SHELLARD-SL3-GPU 
     --partition=ampere
-  MODULES_DAWN: >
-    default-dawn
-    dawn-env/2024-12-29
-    intel-oneapi-compilers/2025.0.4/gcc/umo7dwbo
-    intel-oneapi-mpi/2021.14.1/
-    intel-oneapi-mkl/2025.0.1/
-  SYCL_BUILD_CONFIG: >
-    USE_SYCL=TRUE
-    SYCL_AOT=TRUE
-    DEBUG=TRUE
-    TEST=TRUE
-    USE_ASSERTION=TRUE
-    SYCL_SUB_GROUP_SIZE=16
-    SYCL_AOT_GRF_MODE=Large
   FCOMPARE_FLAGS: >
     --abs_tol 1e-10
     --rel_tol 1e-10
@@ -72,24 +60,6 @@ csd3-a100:
     - srun ${SRUN_FLAGS} ./main3d.gnu.DEBUG.MPI.CUDA.ex ./params_test.txt
     - ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex ${FCOMPARE_FLAGS} plt00008 ${HOME}/${CI_PROJECT_DIR}/.github/workflows/data/plt00008_compare/
 
-csd3-dawn:
-  stage: test
-  tags:
-    - csd3
-  script:
-    - if [[ -d ../amrex ]]; then
-    -   cd ../amrex
-    -   git fetch --depth 1
-    -   git reset --hard origin/development
-    - else
-    -   git clone --depth 1 https://github.com/AMReX-Codes/amrex.git ../amrex
-    - fi
-    - AMREX_HOME="$PWD"
-    - module purge
-    - module load ${MODULES_DAWN}
-    - cd ${AMREX_HOME}/Tools/Plotfile    
-    - srun -A ZETTASCALE-PORTING-DAWN-GPU -p pvc --nodes=1 --ntasks=1 --time=00:10:00 --gres=gpu:1 --qos=INTR make -j 8 COMP=intel-llvm programs=fcompare
-    - cd ${HOME}/${CI_PROJECT_DIR}/Tests
-    - srun -A ZETTASCALE-PORTING-DAWN-GPU -p pvc --nodes=1 --ntasks=1 --time=00:10:00 --gres=gpu:1 --qos=INTR make run ${SYCL_BUILD_CONFIG}
+
     
 
