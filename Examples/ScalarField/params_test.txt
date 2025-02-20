@@ -74,10 +74,7 @@ Delta = 30
 
 # Options for tensor extraction
 calc_binned_power_spectrum = 1
-calc_config_space_mode_fns = 0
 calc_higher_order_statistics = 1
-
-print_interval = 150
 
 #(!!) must be between 1 and 4
 num_moments = 3

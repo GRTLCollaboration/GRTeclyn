@@ -462,7 +462,7 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
 
     // Extract the spectra and field statistics
     RandomField random_field_extractor(simParams().random_field_params, simParams().background_params);
-    random_field_extractor.extract(state_new, simParams().data_path, dt, cur_time, restart_time, first_step);
+    random_field_extractor.extract(state_new, simParams().data_path, dt, cur_time, restart_time, first_step, simParams().plot_interval);
 
     // Make a file object for constraint statistics
     SmallDataIO constrs_file(simParams().data_path+"constraint-statistics", dt, cur_time, restart_time, SmallDataIO::APPEND, first_step, ".dat");
