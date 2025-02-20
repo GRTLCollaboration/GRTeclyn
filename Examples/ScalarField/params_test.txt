@@ -13,11 +13,11 @@ amr.plot_file = /nfs/st01/hpc-gr-epss/eaf49/dump/hdf5/plt_
 checkpoint_interval = 500
 # set to 0 to turn off plot files (except at t=0 and t=stop_time)
 # set to -1 to never ever print plotfiles
-plot_interval = -1
-amr.plot_int = -1
-amr.check_int = -1
-num_plot_vars = 2
-plot_vars = chi phi
+plot_interval = 150
+amr.plot_int = 150
+amr.check_int = 500
+num_plot_vars = 3
+plot_vars = chi hplus hcross
 
 # subpaths - specific directories for hdf5, pout, extraction data
 # (these are created at runtime)
@@ -147,7 +147,7 @@ extrapolating_vars = phi Pi
 # dt will be dx*dt_multiplier on each grid level
 dt_multiplier = 0.25
 stop_time = 10000
-max_steps = 100 # 3000
+max_steps = 3000
 
 # Spatial derivative order (only affects CCZ4 RHS)
 max_spatial_derivative_order = 4 # can be 4 or 6
