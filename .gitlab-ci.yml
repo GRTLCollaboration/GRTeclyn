@@ -11,7 +11,7 @@ variables:
     rhel8/global
     openmpi/4.1.1/gcc-9.4.0-epagguv
     gcc/9.4.0/gcc-11.2.0-72sgv5z
-    hdf5/1.10.7/openmpi-4.1.1/gcc-9.4.0-krjrm53
+    hdf5/1.12.1
   BUILD_CONFIG: >
     USE_CUDA=TRUE
     CUDA_ARCH=80
@@ -52,11 +52,12 @@ csd3-a100:
     - AMREX_HOME="$PWD"
     - cd ${AMREX_HOME}/Tools/Plotfile
     - make -j 8 COMP=gnu programs=fcompare
+    - cd ${HOME}/${CI_PROJECT_DIR}
     - cd ${HOME}/${CI_PROJECT_DIR}/Tests
-    - make -j 8 ${BUILD_CONFIG}
-    - srun ${SRUN_FLAGS} make run ${BUILD_CONFIG}
+    - make -j 8 ${BUILD_CONFIG} 
+    - srun ${SRUN_FLAGS} make run ${BUILD_CONFIG} 
     - cd ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH
-    - make -j 8 ${BUILD_CONFIG}
+    - make -j 8 ${BUILD_CONFIG} USE_HDF5=FALSE
     - srun ${SRUN_FLAGS} ./main3d.gnu.DEBUG.MPI.CUDA.ex ./params_test.txt
     - ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex ${FCOMPARE_FLAGS} plt00008 ${HOME}/${CI_PROJECT_DIR}/.github/workflows/data/plt00008_compare/
 
