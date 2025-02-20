@@ -1,0 +1,49 @@
+#################################################
+# Filesystem parameters
+
+verbosity = 0
+
+output_path = .
+
+checkpoint_interval = -1
+plot_interval = -1
+amr.plot_vars = shift2
+
+#################################################
+# Grid parameters
+
+N_full = 32
+L_full = 8
+
+max_level = 2 # There are (max_level+1) levels
+
+regrid_interval = 0 0
+
+max_grid_size = 16
+block_factor = 8
+
+#################################################
+# Boundary Conditions parameters
+
+# Periodic directions - 0 = false, 1 = true
+isPeriodic = 0 0 0
+# if not periodic, then specify the boundary type
+# 0 = static, 1 = sommerfeld, 2 = reflective
+# (see BoundaryConditions.hpp for details)
+hi_boundary = 0 0 0
+lo_boundary = 0 0 2
+
+#################################################
+# Evolution parameters
+
+# dt will be dx*dt_multiplier on each grid level
+dt_multiplier = 0.25
+# stop_time = 1.0
+max_steps = 2
+
+#################################################
+# Puncture Tracking parameters
+
+puncture_tracking.enabled = 1
+puncture_tracking.level = 0
+puncture_tracking.initial_coords = 2.0 4.0 0.0 6.0 4.0 0.0

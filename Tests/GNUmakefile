@@ -4,6 +4,7 @@ include $(GRTECLYN_HOME)/Tools/GNUMake/Make.defaults
 
 # We don't want to use MPI by default for the tests
 USE_MPI = FALSE
+USE_PARTICLES = TRUE
 
 EBASE = Tests
 
@@ -16,13 +17,18 @@ include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
 include $(AMREX_HOME)/Src/Amr/Make.package
+include $(AMREX_HOME)/Src/Particle/Make.package
 
 GRTECLYN_SOURCE = $(GRTECLYN_HOME)/Source
 
 src_dirs := $(GRTECLYN_SOURCE)/utils \
+            $(GRTECLYN_SOURCE)/simd  \
             $(GRTECLYN_SOURCE)/CCZ4  \
             $(GRTECLYN_SOURCE)/BoxUtils  \
-            $(GRTECLYN_SOURCE)/simd
+            $(GRTECLYN_SOURCE)/GRTeclynCore  \
+            $(GRTECLYN_SOURCE)/Tagging  \
+            $(GRTECLYN_SOURCE)/BlackHoles \
+            $(GRTECLYN_SOURCE)/AMRInterpolator
 
 GRTECLYN_TESTS_HOME = $(GRTECLYN_HOME)/Tests
 
