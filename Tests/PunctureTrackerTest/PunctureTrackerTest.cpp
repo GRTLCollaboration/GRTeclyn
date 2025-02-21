@@ -28,28 +28,18 @@
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
 void run_puncture_tracker_test()
 {
-    int amrex_argc    = doctest::cli_args.argc();
-    char **amrex_argv = doctest::cli_args.argv();
-
-    // Add an inputs file to our arguments
-    int new_argc = amrex_argc + 1;
-    std::vector<char *> new_args(new_argc);
-    new_args[0] = amrex_argv[0];
-
     // Use an input file that is in the same directory as this file for the
     // second argument
     std::filesystem::path this_file(__FILE__);
     std::filesystem::path input_file =
         this_file.parent_path() / std::filesystem::path("test.inputs");
-    char input_file_c_str[PATH_MAX];
-    std::strcpy(input_file_c_str, input_file.c_str());
-    new_args[1] = input_file_c_str;
+    char *input_file_c_str = strdup(input_file.c_str());
 
-    for (int iarg = 2; iarg < new_argc; ++iarg)
-    {
-        new_args[iarg] = amrex_argv[iarg - 1];
-    }
-    char **new_argv = new_args.data();
+    auto new_args = doctest::cli_args;
+    new_args.insert(1, input_file_c_str);
+
+    int new_argc    = new_args.argc();
+    char **new_argv = new_args.argv();
 
     // NOLINTNEXTLINE(bugprone-casting-through-void) // Open MPI triggers this
     amrex::Initialize(new_argc, new_argv, true, MPI_COMM_WORLD);
