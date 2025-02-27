@@ -56,12 +56,13 @@ csd3-a100:
     - make -j 8 COMP=gnu programs=fcompare
     - cd ${HOME}/${CI_PROJECT_DIR}/Tests
     - make -j 8 ${BUILD_CONFIG} 
-    - flock ${LOCKED_FILENAME} srun ${SRUN_FLAGS} make run ${BUILD_CONFIG}
+    - flock ${HOME}/${CI_PROJECT_DIR}/${LOCKED_FILENAME} srun ${SRUN_FLAGS} make run ${BUILD_CONFIG}
     - cd ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH
     - make -j 8 ${BUILD_CONFIG} USE_HDF5=FALSE
-    - flock ${LOCKED_FILENAME} srun ${SRUN_FLAGS} ./main3d.gnu.DEBUG.MPI.CUDA.ex ./params_test.txt
+    - flock ${HOME}/${CI_PROJECT_DIR}/${LOCKED_FILENAME} srun ${SRUN_FLAGS} ./main3d.gnu.DEBUG.MPI.CUDA.ex ./params_test.txt
     - ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex ${FCOMPARE_FLAGS} plt00008 ${HOME}/${CI_PROJECT_DIR}/.github/workflows/data/plt00008_compare/
-
-
+  after_script:
+    - rm -rf ${HOME}/${CI_PROJECT_DIR}/${LOCKED_FILENAME}
+    
     
 
