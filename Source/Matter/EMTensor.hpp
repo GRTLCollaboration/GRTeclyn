@@ -58,12 +58,12 @@ template <class matter_t> class EMTensor
                amrex::Real /*time*/, const int * /*bcrec*/, int /*level*/);
 
   protected:
-    const matter_t m_matter;
+    matter_t m_matter;
     FourthOrderDerivatives m_deriv;
-    const int m_c_rho;      // var enum for the energy density
-    const Interval m_c_Si;  // Interval of var enums for the momentum density
-    const Interval m_c_Sij; // Interval of var enums for the spatial
-                            // stress-energy density
+    int m_c_rho;      // var enum for the energy density
+    Interval m_c_Si;  // Interval of var enums for the momentum density
+    Interval m_c_Sij; // Interval of var enums for the spatial
+                      // stress-energy density
 };
 
 #include "EMTensor.impl.hpp"

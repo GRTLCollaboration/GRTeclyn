@@ -10,11 +10,9 @@
 #include <AMReX_MFIter.H>
 #include <AMReX_MultiFab.H>
 
-// #ifdef AMREX_USE_HDF
-#include "H5Cpp.h"
+#ifdef AMREX_USE_HDF5
 #include <AMReX_PlotFileUtilHDF5.H>
-using namespace H5;
-// #endif
+#endif
 
 // Doctest includes
 #include "doctest.h"
@@ -42,6 +40,7 @@ void run_matter_weyl4_test()
     int amrex_argc    = doctest::cli_args.argc();
     char **amrex_argv = doctest::cli_args.argv();
 
+    // NOLINTNEXTLINE(bugprone-casting-through-void) // Open MPI triggers this
     amrex::Initialize(amrex_argc, amrex_argv, true, MPI_COMM_WORLD);
     {
 
@@ -98,10 +97,7 @@ void run_matter_weyl4_test()
         amrex::Gpu::streamSynchronize();
 
         // Setup scalar field calculations
-
-        DefaultPotential my_potential;
-        ScalarField<DefaultPotential> my_scalar_field{DefaultPotential()};
-        typedef ScalarField<DefaultPotential> DefaultScalarField;
+        using DefaultScalarField = ScalarField<DefaultPotential>;
 
         constexpr int dcomp_weyl4 = 0;
         constexpr int num_comps_weyl4 =

@@ -60,11 +60,11 @@ template <class matter_t> class ChiRelaxation
             const amrex::Array4<data_t const> &state) const;
 
   protected:
-    matter_t my_matter;         //!< The matter object, e.g. a scalar field.
-    const double m_relax_speed; //!< The coefficient of the Hamiltonian used to
-                                //! set relaxation speed.
-    const double m_G_Newton;    //!< Newton's constant, set to one by default.
-    const FourthOrderDerivatives
+    matter_t my_matter;   //!< The matter object, e.g. a scalar field.
+    double m_relax_speed; //!< The coefficient of the Hamiltonian used to
+                          //! set relaxation speed.
+    double m_G_Newton;    //!< Newton's constant, set to one by default.
+    FourthOrderDerivatives
         m_deriv; //!< An object for calculating derivatives of the variables
 
     //! The function which calculates the RHS, given the vars and derivatives
