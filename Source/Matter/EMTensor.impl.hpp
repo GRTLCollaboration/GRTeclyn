@@ -10,6 +10,8 @@
 #ifndef EMTENSOR_IMPL_HPP
 #define EMTENSOR_IMPL_HPP
 
+#include <AMReX_AmrLevel.H>
+
 #include "CCZ4Geometry.hpp"
 #include "Cell.hpp"
 #include "DimensionDefinitions.hpp"
@@ -85,11 +87,34 @@ EMTensor<matter_t>::compute(int i, int j, int k,
 }
 
 template <class matter_t>
-void EMTensor<matter_t>::compute_mf(amrex::MultiFab &out_mf, int dcomp,
-                                    int ncomp, const amrex::MultiFab &src_mf,
-                                    const amrex::Geometry &geomdata,
-                                    amrex::Real /*time*/, const int * /*bcrec*/,
-                                    int /*level*/)
+AMREX_FORCE_INLINE void EMTensor<matter_t>::set_up(int a_state_index,
+                                                   bool do_all_components)
+{
+
+    if (do_all_components)
+    {
+        var_names = ArrayTools::concatenate(var_names, extra_var_names);
+    }
+
+    int num_ghosts = 2;
+
+    auto &derive_lst     = amrex::AmrLevel::get_derive_lst();
+    const auto &desc_lst = amrex::AmrLevel::get_desc_lst();
+
+    // Add EMTensor to the derive list
+    derive_lst.add(
+        name, amrex::IndexType::TheCellType(), var_names.size(), var_names,
+        EMTensor::compute_mf, [=](const amrex::Box &box)
+        { return amrex::grow(box, num_ghosts); }, &amrex::cell_quartic_interp);
+
+    derive_lst.addComponent(name, desc_lst, a_state_index, 0, NUM_VARS);
+}
+
+template <class matter_t>
+AMREX_FORCE_INLINE void EMTensor<matter_t>::compute_mf(
+    amrex::MultiFab &out_mf, int dcomp, int ncomp,
+    const amrex::MultiFab &src_mf, const amrex::Geometry &geomdata,
+    amrex::Real /*time*/, const int * /*bcrec*/, int /*level*/)
 {
     const auto &out_arrays = out_mf.arrays();
     const auto &src_arrays = src_mf.const_arrays();
@@ -98,25 +123,38 @@ void EMTensor<matter_t>::compute_mf(amrex::MultiFab &out_mf, int dcomp,
     // a_c_Si is stored starting from rho (dcomp+1)
     // a_c_Sij is stored starting from a_c_Si
 
-    int c_Si_begin = dcomp + 1;
-    int c_Si_end   = c_Si_begin + DEFAULT_TENSOR_DIM;
-    Interval my_c_Si(c_Si_begin, c_Si_end);
+    int c_Si_begin{0}, c_Si_end{-1};
+    int c_Sij_begin{0}, c_Sij_end{-1};
 
-    int c_Sij_begin = c_Si_end;
-    int c_Sij_end =
-        c_Sij_begin + DEFAULT_TENSOR_DIM * (DEFAULT_TENSOR_DIM + 1) / 2;
+    // Depending on how many components are required (ncomp), also:
+
+    // Compute the momentum density
+    if (ncomp > 1)
+    {
+        c_Si_begin = dcomp + 1;
+        c_Si_end   = c_Si_begin + DEFAULT_TENSOR_DIM;
+    }
+
+    // Compute the spatial stress-energy density
+    if (ncomp > 3)
+    {
+        c_Sij_begin = c_Si_end;
+        c_Sij_end =
+            c_Sij_begin + DEFAULT_TENSOR_DIM * (DEFAULT_TENSOR_DIM + 1) / 2;
+    }
+
+    Interval my_c_Si(c_Si_begin, c_Si_end);
     Interval my_c_Sij(c_Sij_begin, c_Sij_end);
 
     matter_t my_matter;
-
-    AMREX_ASSERT(ncomp == (my_c_Sij_end - dcomp));
 
     EMTensor<matter_t> em_tensor(my_matter, geomdata.CellSize(0), dcomp,
                                  my_c_Si, my_c_Sij);
 
     amrex::ParallelFor(
-        out_mf, out_mf.nGrowVect(),
-        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept {
+        out_mf,
+        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
+        {
             em_tensor.compute(i, j, k, out_arrays[box_no], src_arrays[box_no]);
         });
 }
