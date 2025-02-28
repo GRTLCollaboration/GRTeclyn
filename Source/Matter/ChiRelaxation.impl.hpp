@@ -27,21 +27,21 @@ ChiRelaxation<matter_t>::compute(int i, int j, int k,
 {
 
     // copy data from chombo gridpoint into local variable and calculate derivs
-    const auto vars = load_vars<Vars>(state.cellData(i, j, k));
-    const auto d1   = m_deriv.template diff1<Vars>(state.cellData(i, j, k));
-    const auto d2 = m_deriv.template diff2<Diff2Vars>(state.cellData(i, j, k));
+    const auto vars = load_vars<Vars>(state_arrays.cellData(i, j, k));
+    const auto d1   = m_deriv.template diff1<Vars>(i, j, k, state_arrays);
+    const auto d2   = m_deriv.template diff2<Diff2Vars>(i, j, k, state_arrays);
     const auto advec =
-        m_deriv.template advection<Vars>(state.cellData(i, j, k), vars.shift);
+        m_deriv.template advection<Vars>(i, j, k, state_arrays, vars.shift);
 
     // work out RHS including advection
-    Vars<data_t> rhs;
+    Vars<data_t> rhs_vars;
     VarsTools::assign(
-        rhs,
+        rhs_vars,
         0.); // All components that are not explicitly set in rhs_equation are 0
-    rhs_equation(rhs, vars, d1, d2, advec);
+    rhs_equation(rhs_vars, vars, d1, d2, advec);
 
     // Write the rhs into the output FArrayBox
-    store_vars(state.cellData(i, j, k), rhs);
+    store_vars(rhs_arrays.cellData(i, j, k), rhs_vars);
 }
 
 template <class matter_t>
