@@ -12,20 +12,19 @@
 
 template <class matter_t>
 template <class data_t>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-MatterWeyl4<matter_t>::compute(int i, int j, int k,
-                               const amrex::Array4<data_t> &derive,
-                               const amrex::Array4<data_t const> &state) const
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void MatterWeyl4<matter_t>::compute(
+    int i, int j, int k, const amrex::Array4<data_t> &derive_arrays,
+    const amrex::Array4<data_t const> &state_arrays) const
 {
 
     // copy data from chombo gridpoint into local variables
-    const auto vars = load_vars<Vars>(state.cellData(i, j, k));
-    const auto d1   = m_deriv.template diff1<Vars>(i, j, k, state);
-    const auto d2   = m_deriv.template diff2<Diff2Vars>(i, j, k, state);
+    const auto vars = load_vars<Vars>(state_arrays.cellData(i, j, k));
+    const auto d1   = m_deriv.template diff1<Vars>(i, j, k, state_arrays);
+    const auto d2   = m_deriv.template diff2<Diff2Vars>(i, j, k, state_arrays);
 
     // Get the coordinates
-    amrex::IntVect cell_coords(AMREX_D_DECL(i, j, k));
-    const Coordinates<data_t> coords(cell_coords, m_dx, m_center);
+    const Coordinates<data_t> coords(amrex::IntVect{AMREX_D_DECL(i, j, k)},
+                                     m_dx, m_center);
 
     // Compute the inverse metric
     using namespace TensorAlgebra;
@@ -47,8 +46,8 @@ MatterWeyl4<matter_t>::compute(int i, int j, int k,
         compute_Weyl4(ebfields, vars, d1, d2, h_UU, coords);
 
     // Write the rhs into the output FArrayBox
-    derive(i, j, k, m_dcomp)     = out.Real;
-    derive(i, j, k, m_dcomp + 1) = out.Im;
+    derive_arrays(i, j, k, m_dcomp)     = out.Real;
+    derive_arrays(i, j, k, m_dcomp + 1) = out.Im;
 }
 
 template <class matter_t>
@@ -72,24 +71,24 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void MatterWeyl4<matter_t>::add_matter_EB(
     }
 }
 
-template <class matter_t>
-void MatterWeyl4<matter_t>::set_up(matter_t a_matter, int a_state_index)
+template <class matter_t> void MatterWeyl4<matter_t>::set_up(int a_state_index)
 {
 
-    int num_ghosts = 2; // ??? should this not come from GRParmParse ???
+    int num_ghosts = 2;
 
     auto &derive_lst     = amrex::AmrLevel::get_derive_lst();
     const auto &desc_lst = amrex::AmrLevel::get_desc_lst();
 
     // Add MatterWeyl4 to the derive list
     derive_lst.add(
-        name, amrex::IndexType::TheCellType(),
-        static_cast<int>(var_names.size()), var_names, MatterWeyl4::compute_mf,
-        [=](const amrex::Box &box) { return amrex::grow(box, num_ghosts); },
-        &amrex::cell_quartic_interp);
+        Weyl4::name, amrex::IndexType::TheCellType(),
+        static_cast<int>(Weyl4::var_names.size()), Weyl4::var_names,
+        MatterWeyl4::compute_mf, [=](const amrex::Box &box)
+        { return amrex::grow(box, num_ghosts); }, &amrex::cell_quartic_interp);
 
-    derive_lst.addComponent(name, desc_lst, a_state_index, 0, NUM_VARS);
+    derive_lst.addComponent(Weyl4::name, desc_lst, a_state_index, 0, NUM_VARS);
 }
+
 template <class matter_t>
 void MatterWeyl4<matter_t>::compute_mf(amrex::MultiFab &out_mf, int dcomp,
                                        int ncomp, const amrex::MultiFab &src_mf,
@@ -103,7 +102,7 @@ void MatterWeyl4<matter_t>::compute_mf(amrex::MultiFab &out_mf, int dcomp,
     GRParmParse pp;
     std::array<double, AMREX_SPACEDIM> center{};
     int formulation      = 0;
-    amrex::Real G_newton = 0;
+    amrex::Real G_Newton = 0;
 
     pp.get("extraction_center", center);
     pp.get("formulation", formulation);
@@ -112,11 +111,12 @@ void MatterWeyl4<matter_t>::compute_mf(amrex::MultiFab &out_mf, int dcomp,
     matter_t my_matter;
 
     MatterWeyl4<matter_t> matter_weyl4(my_matter, center, geomdata.CellSize(0),
-                                       dcomp, formulation, G_newton);
+                                       dcomp, formulation, G_Newton);
 
     amrex::ParallelFor(
-        out_mf, out_mf.nGrowVect(),
-        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept {
+        out_mf,
+        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
+        {
             matter_weyl4.compute(i, j, k, out_arrays[box_no],
                                  src_arrays[box_no]);
         });
