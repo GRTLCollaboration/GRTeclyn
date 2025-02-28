@@ -16,7 +16,7 @@
 // GRTeclyn headers
 #include "DefaultPotential.hpp"
 #include "MatterCCZ4RHS.hpp"
-#include "NewMatterConstraints.hpp"
+#include "MatterConstraints.hpp"
 #include "ScalarField.hpp"
 
 // AMReX headers
