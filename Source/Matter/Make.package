@@ -1,4 +1,13 @@
-GRTECLYN_CEXE_headers += ChiRelaxation.hpp MatterCCZ4RHS.hpp NewMatterConstraints.hpp ChiRelaxation.impl.hpp \
-                MatterCCZ4RHS.impl.hpp NewMatterConstraints.impl.hpp DefaultPotential.hpp \
-                MatterConstraints.hpp ScalarField.hpp EMTensor.hpp MatterConstraints.impl.hpp \
-                ScalarField.impl.hpp EMTensor.impl.hpp MatterWeyl4.hpp MatterWeyl4.impl.hpp
+GRTECLYN_CEXE_headers += ChiRelaxation.hpp \
+                         ChiRelaxation.impl.hpp \
+			 DefaultPotential.hpp \
+			 EMTensor.hpp \
+			 EMTensor.impl.hpp \
+			 MatterCCZ4RHS.hpp \
+			 MatterCCZ4RHS.impl.hpp \
+			 MatterConstraints.hpp \
+			 MatterConstraints.impl.hpp \
+			 MatterWeyl4.hpp \
+			 MatterWeyl4.impl.hpp \
+			 ScalarField.hpp \
+			 ScalarField.impl.hpp
