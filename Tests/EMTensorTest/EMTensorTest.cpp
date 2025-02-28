@@ -40,6 +40,7 @@ void run_emtensor_test()
     int amrex_argc    = doctest::cli_args.argc();
     char **amrex_argv = doctest::cli_args.argv();
 
+    // NOLINTNEXTLINE(bugprone-casting-through-void) // Open MPI triggers this
     amrex::Initialize(amrex_argc, amrex_argv, true, MPI_COMM_WORLD);
     {
 
@@ -95,9 +96,8 @@ void run_emtensor_test()
 
         amrex::Gpu::streamSynchronize();
 
-        //         // Setup scalar field calculations
-
-        typedef ScalarField<DefaultPotential> DefaultScalarField;
+        // Setup scalar field calculations
+        using DefaultScalarField = ScalarField<DefaultPotential>;
 
         // // Constructor for EMTensor
         constexpr int dcomp_rho = 0;
