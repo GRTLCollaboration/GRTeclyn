@@ -163,6 +163,10 @@ class GRAMRLevel : public amrex::AmrLevel
     //! Problem specific post init
     virtual void specific_post_init() {}
 
+    //! Problem specific post-regrid
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+    virtual void specific_post_regrid(int a_lbase, int a_new_finest) {}
+
     //! Problem specific pre plotfile
     virtual void specific_pre_plotfile(const std::string &a_dir,
                                        std::ostream &a_os)

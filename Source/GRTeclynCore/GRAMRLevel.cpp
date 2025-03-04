@@ -203,9 +203,9 @@ void GRAMRLevel::post_timestep(int /*iteration*/)
     specificPostTimeStep();
 }
 
-void GRAMRLevel::post_regrid(int /*lbase*/, int /*new_finest*/)
+void GRAMRLevel::post_regrid(int a_lbase, int a_new_finest)
 {
-    // xxxxx Do we need to do anything after regrid?
+    specific_post_regrid(a_lbase, a_new_finest);
 }
 
 void GRAMRLevel::post_init(amrex::Real /*stop_time*/)
