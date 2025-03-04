@@ -12,7 +12,7 @@ amr.plot_vars = shift2
 #################################################
 # Grid parameters
 
-N_full = 32
+N_full = 48
 L_full = 8
 
 max_level = 2 # There are (max_level+1) levels

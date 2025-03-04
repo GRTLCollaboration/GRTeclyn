@@ -48,9 +48,15 @@ class PunctureTrackerLevel : public GRAMRLevel
     //! Things to do after init
     void specific_post_init() override;
 
+    //! Things to do after regridding
+    void specific_post_regrid(int a_lbase, int a_new_finest) override;
+
     //! Things to do after writing a checkpoint
     void specific_post_checkpoint(const std::string &a_chk_dir,
                                   std::ostream & /*a_os*/) override;
+
+  private:
+    void check_puncture_tagging();
 };
 
 #endif /* PUNCTURETRACKERLEVEL_HPP_ */
