@@ -7,19 +7,18 @@
 #include "ScalarFieldLevel.hpp"
 #include "PositiveChiAndAlpha.hpp"
 #include "TraceARemoval.hpp"
-// //#include "SixthOrderDerivatives.hpp"
 
 // // For RHS update
 #include "MatterCCZ4RHS.hpp"
 
 // // For constraints calculation
 #include "Constraints.hpp"
+#include "MatterConstraints.hpp"
 #include "MatterWeyl4.hpp"
-#include "NewMatterConstraints.hpp"
 
 // For tagging cells
-#include "ChiExtractionTaggingCriterion.hpp"
-#include "FixedGridsTaggingCriterion.hpp"
+#include "ChiExtractionTagger.hpp"
+#include "FixedGridsTagger.hpp"
 
 // // Problem specific includes
 #include "InitialScalarData.hpp"
@@ -217,66 +216,54 @@ void ScalarFieldLevel::specificUpdateODE(amrex::MultiFab &a_soln)
                        });
 }
 
-void ScalarFieldLevel::preTagCells()
+void ScalarFieldLevel::pre_tag_cells()
 {
     // we don't need any ghosts filled for the fixed grids tagging criterion
     // used here so don't fill any
+    amrex::MultiFab &state_new = get_new_data(State_Type);
+    const auto curr_time       = get_state_data(State_Type).curTime();
+
+    const int nghost = 2;
+    const int ncomp  = 1;
+
+    FillPatch(*this, state_new, nghost, curr_time, State_Type, c_chi, ncomp);
 }
 
-void ScalarFieldLevel::errorEst(amrex::TagBoxArray &tagging_criterion,
-                                int /*clearval*/, int /*tagval*/,
-                                amrex::Real /*time*/, int /*n_error_buf*/,
-                                int /*ngrow*/)
+void ScalarFieldLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
+                                 amrex::Real a_regrid_threshold)
 
 {
-    BL_PROFILE("ScalarFieldLevel::errorEst()");
+    BL_PROFILE("ScalarFieldLevel::tag_cells()");
 
     amrex::MultiFab &state_new = get_new_data(State_Type);
     const auto curr_time       = get_state_data(State_Type).curTime();
 
-    const int nghost =
-        state_new.nGrow(); // Need ghost cells to compute gradient
-    const int ncomp = state_new.nComp();
-
-    // I filled all the ghost cells in case but could also just fill the ones
-    // used for tagging We only use chi in the tagging criterion so only fill
-    // the ghosts for chi
-    FillPatch(*this, state_new, nghost, curr_time, State_Type, 0, ncomp);
-
     const auto &simpar = simParams();
 
-    const auto &tags           = tagging_criterion.arrays();
+    const amrex::Real sim_dx = Geom().CellSize(0);
+
+    // Check for reflective BCs but there's only ever one short/reflected side
+    const amrex::Real max_length =
+        std::max(Geom().ProbLength(0), Geom().ProbLength(1));
+
+    std::array<double, AMREX_SPACEDIM> sim_center =
+        simpar.initial_params.center;
+
+    const auto &tag_arrs       = a_tag_box_array.arrays();
     const auto &state_new_arrs = state_new.const_arrays();
-    const auto tagval          = amrex::TagBox::SET;
 
-    amrex::Real dx     = Geom().CellSize(0);
-    int curr_level     = Level();
-    const auto probhi  = Geom().ProbHiArray();
-    const auto problo  = Geom().ProbLoArray();
-    amrex::Real length = probhi[0] - problo[0];
-
-    const auto test_dx = Geom().CellSizeArray();
-
-    FixedGridsTaggingCriterion tagger(test_dx[0], curr_level, length,
-                                      simParams().initial_params.center);
-    // ChiExtractionTaggingCriterion tagger(Geom().CellSize(0), Level(),
-    //                                      simpar.extraction_params,
-    //                                      simpar.activate_extraction);
-
+    // FixedGridsTagger tagger(sim_dx, Level(), max_length, sim_center);
     amrex::Real threshold = simpar.regrid_thresholds[Level()];
+    ChiExtractionTagger tagger(Geom().CellSize(0), Level(), threshold,
+                               simParams().extraction_params,
+                               simParams().activate_extraction);
+
     amrex::ParallelFor(state_new, amrex::IntVect(0),
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
                        {
-                           amrex::Real criterion =
-                               tagger.compute(i, j, k, state_new_arrs[box_no]);
-
-                           // amrex::Real criterion =
-                           //     tagger(i, j, k, state_new_arrs[box_no]);
-
-                           if (criterion >= threshold)
-                           {
-                               tags[box_no](i, j, k) = tagval;
-                           }
+                           tagger(i, j, k, tag_arrs[box_no],
+                                  state_new_arrs[box_no]);
+                           // tagger(i, j, k, tag_arrs[box_no]);
                        });
 
     amrex::Gpu::streamSynchronize();

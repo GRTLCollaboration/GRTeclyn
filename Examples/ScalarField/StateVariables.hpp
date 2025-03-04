@@ -22,10 +22,16 @@ enum
 
 namespace StateVariables
 {
-static const amrex::Vector<std::string> additional_names = {"phi", "Pi"};
+static const amrex::Vector<std::string> scalar_field_names = {"phi", "Pi"};
 
 static const amrex::Vector<std::string> names =
-    ArrayTools::concatenate(CCZ4Variables::names, additional_names);
+    ArrayTools::concatenate(CCZ4Variables::names, scalar_field_names);
+
+static const std::array<BCParity, NUM_VARS - NUM_CCZ4_VARS>
+    scalar_field_parities = {BCParity::even, BCParity::even};
+
+static const std::array<BCParity, NUM_VARS> parities =
+    ArrayTools::concatenate(CCZ4Variables::parities, scalar_field_parities);
 } // namespace StateVariables
 
 #endif /* STATEVARIABLES_HPP */

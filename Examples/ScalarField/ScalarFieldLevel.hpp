@@ -53,11 +53,11 @@ class ScalarFieldLevel : public GRAMRLevel
     void specificUpdateODE(amrex::MultiFab &a_soln) override;
 
     /// Things to do before tagging cells (i.e. filling ghosts)
-    void preTagCells();
+    void pre_tag_cells() final;
 
     //! Tell GRTeclyn how to tag cells for regridding
-    void errorEst(amrex::TagBoxArray &tag_box_array, int clearval, int tagval,
-                  amrex::Real time, int n_error_buf = 0, int ngrow = 0) final;
+    void tag_cells(amrex::TagBoxArray &a_tag_box_array,
+                   amrex::Real a_regrid_threshold) final;
 
     void derive(const std::string &name, amrex::Real time,
                 amrex::MultiFab &multifab, int dcomp) override;
