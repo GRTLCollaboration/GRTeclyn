@@ -35,7 +35,8 @@ class ScalarBubble
     ScalarBubble(params_t a_params, double a_dx);
 
     //! Function to compute the value of all the initial vars on the grid
-    template <class data_t> void compute(Cell<data_t> current_cell) const;
+    template <class data_t>
+    void compute(int i, int j, int k, const amrex::Array4<data_t> &state) const;
 
   protected:
     double m_dx;

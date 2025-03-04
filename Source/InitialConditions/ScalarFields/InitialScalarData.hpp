@@ -36,20 +36,38 @@ class InitialScalarData
     }
 
     //! Function to compute the value of all the initial vars on the grid
-    template <class data_t> void compute(Cell<data_t> current_cell) const
+    template <class data_t>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    compute(int i, int j, int k, const amrex::Array4<data_t> &cell) const
     {
+        MatterCCZ4RHS<ScalarField<>>::Vars<data_t> vars;
+        VarsTools::assign(vars, 0.); // Set only the non-zero components below
+
+        // start with unit lapse and flat metric (must be relaxed for chi)
+        vars.lapse = 1.0;
+        vars.chi   = 1.0;
+
+        // conformal metric is flat
+        FOR (index)
+            vars.h[index][index] = 1.;
+
         // where am i?
-        Coordinates<data_t> coords(current_cell, m_dx, m_params.center);
+        amrex::IntVect pos(i, j, k);
+        Coordinates<data_t> coords(pos, m_dx, m_params.center);
         data_t rr  = coords.get_radius();
         data_t rr2 = rr * rr;
 
         // calculate the field value
-        data_t phi = m_params.amplitude *
-                     (1.0 + 0.01 * rr2 * exp(-pow(rr / m_params.width, 2.0)));
+        vars.phi = m_params.amplitude *
+                   (1.0 + 0.01 * rr2 * exp(-pow(rr / m_params.width, 2.0)));
+        vars.Pi = 0;
 
         // store the vars
-        current_cell.store_vars(phi, c_phi);
-        current_cell.store_vars(0.0, c_Pi);
+        //        cell(i, j, k, c_phi) = phi;
+        //        cell(i, j, k, c_Pi)  = 0.0;
+
+        // Store the initial values of the variables
+        store_vars(cell.cellData(i, j, k), vars);
     }
 
   protected:
