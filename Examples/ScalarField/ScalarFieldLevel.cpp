@@ -148,7 +148,7 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                        });
 
     // Calculate MatterCCZ4 right hand side with matter_t = ScalarField
-    Potential potential(simParams().potential_params);
+    Potential potential;
     ScalarFieldWithPotential scalar_field(potential);
 
     // Calculate CCZ4 right hand side
@@ -309,7 +309,7 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
 
         const auto &src_arrays = src_mf.const_arrays();
 
-        Potential potential(simParams().potential_params);
+        Potential potential;
         ScalarFieldWithPotential scalar_field(potential);
 
         if (name == "constraints")

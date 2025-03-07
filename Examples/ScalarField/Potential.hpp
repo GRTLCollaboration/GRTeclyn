@@ -21,7 +21,12 @@ class Potential
 
   public:
     //! The constructor
-    Potential(params_t a_params) : m_params(a_params) {}
+    Potential() : m_params.scalar_mass(0.0)
+    {
+        GRParmParse pp;
+
+        pp.load("scalar_mass", m_params.scalar_mass, 0.0);
+    }
 
     //! Set the potential function for the scalar field here
     template <class data_t, template <typename> class vars_t>
