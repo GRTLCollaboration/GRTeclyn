@@ -17,7 +17,7 @@ MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::MatterCCZ4RHS(
     double a_dx, double a_sigma, int a_formulation, double a_G_Newton)
     : CCZ4RHS<gauge_t, deriv_t>(a_params, a_dx, a_sigma, a_formulation,
                                 0.0 /*No cosmological constant*/),
-      my_matter(a_matter), m_G_Newton(a_G_Newton)
+      m_matter(a_matter), m_G_Newton(a_G_Newton)
 {
 }
 
@@ -25,15 +25,16 @@ template <class matter_t, class gauge_t, class deriv_t>
 template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::compute(
-    int i, int j, int k, const amrex::Array4<data_t> &rhs,
-    const amrex::Array4<data_t const> &state) const
+    int i, int j, int k, const amrex::Array4<data_t> &rhs_arrays,
+    const amrex::Array4<data_t const> &state_arrays) const
 {
     // copy data from chombo gridpoint into local variables
-    const auto matter_vars = load_vars<Vars>(state.cellData(i, j, k));
-    const auto d1          = this->m_deriv.template diff1<Vars>(i, j, k, state);
-    const auto d2    = this->m_deriv.template diff2<Diff2Vars>(i, j, k, state);
+    const auto matter_vars = load_vars<Vars>(state_arrays.cellData(i, j, k));
+    const auto d1 = this->m_deriv.template diff1<Vars>(i, j, k, state_arrays);
+    const auto d2 =
+        this->m_deriv.template diff2<Diff2Vars>(i, j, k, state_arrays);
     const auto advec = this->m_deriv.template advection<Vars>(
-        i, j, k, state, matter_vars.shift);
+        i, j, k, state_arrays, matter_vars.shift);
 
     // Call CCZ4 RHS - work out RHS without matter, no dissipation
     Vars<data_t> matter_rhs;
@@ -43,13 +44,14 @@ MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::compute(
     add_emtensor_rhs(matter_rhs, matter_vars, d1);
 
     // add evolution of matter fields themselves
-    my_matter.add_matter_rhs(matter_rhs, matter_vars, d1, d2, advec);
+    m_matter.add_matter_rhs(matter_rhs, matter_vars, d1, d2, advec);
 
     // Add dissipation to all terms
-    this->m_deriv.add_dissipation(i, j, k, matter_rhs, state, this->m_sigma);
+    this->m_deriv.add_dissipation(i, j, k, matter_rhs, state_arrays,
+                                  this->m_sigma);
 
     // Write the rhs into the output FArrayBox
-    store_vars(rhs.cellData(i, j, k), matter_rhs);
+    store_vars(rhs_arrays.cellData(i, j, k), matter_rhs);
 }
 
 // Function to add in EM Tensor matter terms to CCZ4 rhs
@@ -67,7 +69,7 @@ MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
 
     // Calculate elements of the decomposed stress energy tensor
     const auto emtensor =
-        my_matter.compute_emtensor(matter_vars, d1, h_UU, chris.ULL);
+        m_matter.compute_emtensor(matter_vars, d1, h_UU, chris.ULL);
 
     // Update RHS for K and Theta depending on formulation
     if (this->m_formulation == CCZ4RHS<>::USE_BSSN)
@@ -104,8 +106,10 @@ MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
         }
 
         matter_rhs.Gamma[i] += matter_term_Gamma;
-        matter_rhs.B[i]     += matter_term_Gamma;
     }
+    // Add matter contribution to RHS of gauge evolution
+    this->m_gauge.rhs_gauge_add_matter_terms(matter_rhs, matter_vars, h_UU,
+                                             emtensor, m_G_Newton);
 }
 
 #endif /* MATTERCCZ4RHS_IMPL_HPP_ */
