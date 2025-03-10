@@ -82,16 +82,8 @@ void run_matter_weyl4_test()
 
                 random_ccz4_initial_data(iv, in_arrays[box_no], coords);
 
-                // Theta is zero for BSSN
-                in_arrays[box_no](i, j, k, c_Theta) = 0.0;
-
-                // the initial data doesn't include phi or Pi so do it here:
-                in_arrays[box_no](i, j, k, c_phi) =
-                    0.21232 * sin(x * 2.1232 * 3.14) * cos(y * 2.5123 * 3.15) *
-                    cos(z * 2.1232 * 3.14);
-                in_arrays[box_no](i, j, k, c_Pi) =
-                    0.4112 * sin(x * 4.123 * 3.14) * cos(y * 2.2312 * 3.15) *
-                    cos(z * 2.5123 * 3.14);
+                // NB: theta is redefined here because BSSN
+                random_matter_bssn_initial_data(iv, in_arrays[box_no], coords);
             });
 
         amrex::Gpu::streamSynchronize();

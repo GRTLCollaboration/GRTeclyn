@@ -81,17 +81,7 @@ void run_bssn_matter_test()
 
                 random_ccz4_initial_data(iv, in_array[ibox], coords);
 
-                in_array[ibox](i, j, k, c_Theta) = 0.0;
-
-                // the initial data doesn't include phi or Pi so do it here:
-                in_array[ibox](i, j, k, c_phi) =
-                    0.34578 + 0.26898 * x + 0.54348 * x * x +
-                    0.33487 * x * y * y * y + 0.79469 * y * z +
-                    0.30515 * z * z + 1.88385 * z * z * z * z;
-                in_array[ibox](i, j, k, c_Pi) =
-                    0.65668 + 0.20188 * x + 0.34348 * x * x +
-                    0.31787 * x * y * y * y + 0.88469 * y * z +
-                    0.10515 * z * z + 1.88385 * z * z * z * z;
+                random_matter_bssn_initial_data(iv, in_array[ibox], coords);
             });
 
         CCZ4_params_t<MovingPunctureGauge::params_t> ccz4_params;

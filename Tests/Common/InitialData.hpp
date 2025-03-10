@@ -150,3 +150,22 @@ random_ccz4_initial_data(const amrex::IntVect &a_iv,
                           0.49523 * z * z + 1.29460 * z * z * z * z;
     // NOLINTEND(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
 }
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+random_matter_bssn_initial_data(const amrex::IntVect &a_iv,
+                                const amrex::Array4<amrex::Real> &a_array,
+                                const amrex::RealVect &a_coords)
+{
+    amrex::Real x = a_coords[0];
+    amrex::Real y = a_coords[1];
+    amrex::Real z = a_coords[2];
+
+    // Theta is zero in BSSN
+    a_array(a_iv, c_Theta) = 0.0;
+
+    // Define the values for the scalar field and (negative) conjugate momentum
+    a_array(a_iv, c_phi) = 0.21232 * sin(x * 2.1232 * 3.14) *
+                           cos(y * 2.5123 * 3.15) * cos(z * 2.1232 * 3.14);
+    a_array(a_iv, c_Pi) = 0.4112 * sin(x * 4.123 * 3.14) *
+                          cos(y * 2.2312 * 3.15) * cos(z * 2.5123 * 3.14);
+}

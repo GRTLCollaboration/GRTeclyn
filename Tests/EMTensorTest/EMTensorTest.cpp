@@ -70,9 +70,11 @@ void run_emtensor_test()
 
         const auto &in_arrays = in_mf.arrays();
 
+        // NOLINTBEGIN(bugprone-easily-swappable-parameters)
         amrex::ParallelFor(
             in_mf, in_mf.nGrowVect(),
             [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+            // NOLINTEND(bugprone-easily-swappable-parameters)
             {
                 const amrex::IntVect iv{i, j, k};
                 const amrex::RealVect coords = amrex::RealVect{iv} * dx;
@@ -82,16 +84,7 @@ void run_emtensor_test()
 
                 random_ccz4_initial_data(iv, in_arrays[box_no], coords);
 
-                // Theta is zero for BSSN
-                in_arrays[box_no](i, j, k, c_Theta) = 0.0;
-
-                // the initial data doesn't include phi or Pi so do it here:
-                in_arrays[box_no](i, j, k, c_phi) =
-                    0.21232 * sin(x * 2.1232 * 3.14) * cos(y * 2.5123 * 3.15) *
-                    cos(z * 2.1232 * 3.14);
-                in_arrays[box_no](i, j, k, c_Pi) =
-                    0.4112 * sin(x * 4.123 * 3.14) * cos(y * 2.2312 * 3.15) *
-                    cos(z * 2.5123 * 3.14);
+                random_matter_bssn_initial_data(iv, in_arrays[box_no], coords);
             });
 
         amrex::Gpu::streamSynchronize();
