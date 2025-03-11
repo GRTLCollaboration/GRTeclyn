@@ -11,7 +11,7 @@ variables:
     rhel8/global
     openmpi/4.1.1/gcc-9.4.0-epagguv
     gcc/9.4.0/gcc-11.2.0-72sgv5z
-    hdf5/1.12.1
+    hdf5/1.10.7/openmpi-4.1.1/gcc-9.4.0-krjrm53
   BUILD_CONFIG: >
     USE_CUDA=TRUE
     CUDA_ARCH=80
@@ -20,6 +20,7 @@ variables:
     TEST=TRUE
     USE_ASSERTION=TRUE
     USE_HDF5=TRUE
+    USE_MPI=TRUE
   SRUN_FLAGS: > 
     --qos=INTR 
     --nodes=1 
@@ -32,8 +33,8 @@ variables:
     --abs_tol 1e-10
     --rel_tol 1e-10
     --abort_if_not_all_found
-  LOCKED_FILENAME: >
-    file.lock
+  #We can only run a single job at a time with --qos=INTR
+  QOS_INTR_LOCK_FILE: qos-intr.lock
 
 
 csd3-a100:
@@ -44,25 +45,26 @@ csd3-a100:
     - module purge
     - module use ${MODULEPATHS_A100}
     - module load ${MODULES_A100}
-    - if [[ -d ../amrex ]]; then
-    -   cd ../amrex
+    - export HDF5_HOME=$(which h5diff | sed 's/bin\/h5diff//') #Override system version of hdf5
+    - export AMREX_HOME=$(realpath ${HOME}/${CI_PROJECT_DIR}/../amrex)
+    - if [[ -d ${AMREX_HOME} ]]; then
+    -   cd ${AMREX_HOME}
     -   git fetch --depth 1
     -   git reset --hard origin/development
     - else
-    -   git clone --depth 1 https://github.com/AMReX-Codes/amrex.git ../amrex
+    -   git clone --depth 1 https://github.com/AMReX-Codes/amrex.git ${AMREX_HOME}
     - fi
-    - AMREX_HOME="$PWD"
     - cd ${AMREX_HOME}/Tools/Plotfile
     - make -j 8 COMP=gnu programs=fcompare
     - cd ${HOME}/${CI_PROJECT_DIR}/Tests
     - make -j 8 ${BUILD_CONFIG} 
-    - flock ${HOME}/${CI_PROJECT_DIR}/${LOCKED_FILENAME} srun ${SRUN_FLAGS} make run ${BUILD_CONFIG}
+    - flock ${HOME}/${QOS_INTR_LOCK_FILE} srun ${SRUN_FLAGS} make run ${BUILD_CONFIG}
     - cd ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH
-    - make -j 8 ${BUILD_CONFIG} USE_HDF5=FALSE
-    - flock ${HOME}/${CI_PROJECT_DIR}/${LOCKED_FILENAME} srun ${SRUN_FLAGS} ./main3d.gnu.DEBUG.MPI.CUDA.ex ./params_test.txt
+    - make -j 8 ${BUILD_CONFIG} 
+    - flock ${HOME}/${QOS_INTR_LOCK_FILE} srun ${SRUN_FLAGS} ./main3d.gnu.DEBUG.MPI.CUDA.ex ./params_test.txt
     - ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex ${FCOMPARE_FLAGS} plt00008 ${HOME}/${CI_PROJECT_DIR}/.github/workflows/data/plt00008_compare/
   after_script:
-    - rm -rf ${HOME}/${CI_PROJECT_DIR}/${LOCKED_FILENAME}
+    - rm -rf ${HOME}/${QOS_INTR_LOCK_FILE}
     
     
 
