@@ -97,7 +97,7 @@ void ScalarFieldLevel::specificAdvance()
                            amrex::CellData<amrex::Real> cell =
                                arrs[box_no].cellData(i, j, k);
                            TraceARemoval()(cell);
-                           PositiveChiAndAlpha()(cell);
+                           PositiveChiAndAlpha(simParams().min_chi, simParams().min_lapse)(cell);
                        });
 
     // Check for nan's
@@ -171,7 +171,7 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                            amrex::CellData<amrex::Real> cell =
                                soln_arrs[box_no].cellData(i, j, k);
                            TraceARemoval()(cell);
-                           PositiveChiAndAlpha()(cell);
+                           PositiveChiAndAlpha(simParams().min_chi, simParams().min_lapse)(cell);
                        });
 
     // Calculate MatterCCZ4 right hand side with matter_t = ScalarField
