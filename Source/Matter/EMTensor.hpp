@@ -7,10 +7,11 @@
 #define EMTENSOR_HPP
 
 #include "CCZ4Geometry.hpp"
+#include "CCZ4RHSWithMatter.hpp"
 #include "Cell.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "Interval.hpp"
-#include "MatterCCZ4.hpp"
+#include "VarsTools.hpp"
 #include "simd.hpp"
 
 // AMReX Includes
@@ -22,7 +23,7 @@ template <class matter_t> class EMTensor
 {
   public:
     template <class data_t>
-    using Vars = typename MatterCCZ4RHS<matter_t>::template Vars<data_t>;
+    using Vars = typename CCZ4RHSWithMatter<matter_t>::template Vars<data_t>;
 
     /// derive record name
     static inline const std::string name = "EMTensor";

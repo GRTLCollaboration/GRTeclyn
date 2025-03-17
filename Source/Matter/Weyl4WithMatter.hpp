@@ -3,10 +3,10 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#ifndef MATTERWEYL4_HPP_
-#define MATTERWEYL4_HPP_
+#ifndef WEYL4WITHMATTER_HPP_
+#define WEYL4WITHMATTER_HPP_
 
-#include "MatterCCZ4RHS.hpp"
+#include "CCZ4RHSWithMatter.hpp"
 #include "Weyl4.hpp"
 
 //!  Calculates the Weyl4 scalar for spacetimes with matter content
@@ -15,17 +15,17 @@
    the Weyl4 class and adds in the matter terms as appropriate depending on the
    formulation
 */
-template <class matter_t> class MatterWeyl4 : public Weyl4
+template <class matter_t> class Weyl4WithMatter : public Weyl4
 {
   public:
     template <class data_t>
-    using Vars = typename MatterCCZ4RHS<matter_t>::template Vars<data_t>;
+    using Vars = typename CCZ4RHSWithMatter<matter_t>::template Vars<data_t>;
 
     //! Constructor
-    MatterWeyl4(const std::array<double, AMREX_SPACEDIM> a_center,
-                const double a_dx, const int a_dcomp,
-                const int a_formulation = CCZ4RHS<>::USE_CCZ4,
-                double a_G_Newton       = 1.0)
+    Weyl4WithMatter(const std::array<double, AMREX_SPACEDIM> a_center,
+                    const double a_dx, const int a_dcomp,
+                    const int a_formulation = CCZ4RHS<>::USE_CCZ4,
+                    double a_G_Newton       = 1.0)
         : Weyl4(a_center, a_dx, a_dcomp, a_formulation), m_dcomp(a_dcomp),
           m_G_Newton(a_G_Newton)
     {
@@ -63,6 +63,6 @@ template <class matter_t> class MatterWeyl4 : public Weyl4
                   const chris_t<data_t> &chris) const;
 };
 
-#include "MatterWeyl4.impl.hpp"
+#include "Weyl4WithMatter.impl.hpp"
 
-#endif /* MATTERWEYL4_HPP_ */
+#endif /* WEYL4WITHMATTER_HPP_ */

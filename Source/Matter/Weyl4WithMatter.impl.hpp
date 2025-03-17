@@ -3,16 +3,16 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#if !defined(MATTERWEYL4_HPP_)
-#error "This file should only be included through MatterWeyl4.hpp"
+#if !defined(WEYL4WITHMATTER_HPP_)
+#error "This file should only be included through Weyl4WithMatter.hpp"
 #endif
 
-#ifndef MATTERWEYL4_IMPL_HPP_
-#define MATTERWEYL4_IMPL_HPP_
+#ifndef WEYL4WITHMATTER_IMPL_HPP_
+#define WEYL4WITHMATTER_IMPL_HPP_
 
 template <class matter_t>
 template <class data_t>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE void MatterWeyl4<matter_t>::compute(
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void Weyl4WithMatter<matter_t>::compute(
     int i, int j, int k, const amrex::Array4<data_t> &derive_arrays,
     const amrex::Array4<data_t const> &state_arrays) const
 {
@@ -52,10 +52,13 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void MatterWeyl4<matter_t>::compute(
 
 template <class matter_t>
 template <class data_t>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE void MatterWeyl4<matter_t>::add_matter_EB(
-    EBFields_t<data_t> &ebfields, const Vars<data_t> &vars,
-    const Vars<Tensor<1, data_t>> &d1, const Tensor<3, data_t> &epsilon3_LUU,
-    const Tensor<2, data_t> &h_UU, const chris_t<data_t> &chris) const
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+Weyl4WithMatter<matter_t>::add_matter_EB(EBFields_t<data_t> &ebfields,
+                                         const Vars<data_t> &vars,
+                                         const Vars<Tensor<1, data_t>> &d1,
+                                         const Tensor<3, data_t> &epsilon3_LUU,
+                                         const Tensor<2, data_t> &h_UU,
+                                         const chris_t<data_t> &chris) const
 {
     // Calculate decomposed energy momentum tensor components
     const auto emtensor = m_matter.compute_emtensor(vars, d1, h_UU, chris.ULL);
@@ -71,7 +74,8 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void MatterWeyl4<matter_t>::add_matter_EB(
     }
 }
 
-template <class matter_t> void MatterWeyl4<matter_t>::set_up(int a_state_index)
+template <class matter_t>
+void Weyl4WithMatter<matter_t>::set_up(int a_state_index)
 {
 
     int num_ghosts = 2;
@@ -83,18 +87,19 @@ template <class matter_t> void MatterWeyl4<matter_t>::set_up(int a_state_index)
     derive_lst.add(
         Weyl4::name, amrex::IndexType::TheCellType(),
         static_cast<int>(Weyl4::var_names.size()), Weyl4::var_names,
-        MatterWeyl4::compute_mf, [=](const amrex::Box &box)
+        Weyl4WithMatter::compute_mf, [=](const amrex::Box &box)
         { return amrex::grow(box, num_ghosts); }, &amrex::cell_quartic_interp);
 
     derive_lst.addComponent(Weyl4::name, desc_lst, a_state_index, 0, NUM_VARS);
 }
 
 template <class matter_t>
-void MatterWeyl4<matter_t>::compute_mf(amrex::MultiFab &out_mf, int dcomp,
-                                       int ncomp, const amrex::MultiFab &src_mf,
-                                       const amrex::Geometry &geomdata,
-                                       amrex::Real /*time*/,
-                                       const int * /*bcrec*/, int /*level*/)
+void Weyl4WithMatter<matter_t>::compute_mf(amrex::MultiFab &out_mf, int dcomp,
+                                           int ncomp,
+                                           const amrex::MultiFab &src_mf,
+                                           const amrex::Geometry &geomdata,
+                                           amrex::Real /*time*/,
+                                           const int * /*bcrec*/, int /*level*/)
 {
     const auto &out_arrays = out_mf.arrays();
     const auto &src_arrays = src_mf.const_arrays();
@@ -108,16 +113,16 @@ void MatterWeyl4<matter_t>::compute_mf(amrex::MultiFab &out_mf, int dcomp,
     pp.get("formulation", formulation);
     pp.load("G_newton", G_Newton, 0.0);
 
-    MatterWeyl4<matter_t> matter_weyl4(center, geomdata.CellSize(0), dcomp,
-                                       formulation, G_Newton);
+    Weyl4WithMatter<matter_t> my_weyl4_with_matter(
+        center, geomdata.CellSize(0), dcomp, formulation, G_Newton);
 
     amrex::ParallelFor(
         out_mf,
         [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
         {
-            matter_weyl4.compute(i, j, k, out_arrays[box_no],
-                                 src_arrays[box_no]);
+            my_weyl4_with_matter.compute(i, j, k, out_arrays[box_no],
+                                         src_arrays[box_no]);
         });
 }
 
-#endif /* MATTERWEYL4_IMPL_HPP_ */
+#endif /* WEYL4WITHMATTER_IMPL_HPP_ */

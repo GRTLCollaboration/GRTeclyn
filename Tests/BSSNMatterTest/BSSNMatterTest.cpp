@@ -14,9 +14,9 @@
 #include "doctestCLIArgs.hpp"
 
 // GRTeclyn headers
+#include "CCZ4RHSWithMatter.hpp"
+#include "ConstraintsWithMatter.hpp"
 #include "DefaultPotential.hpp"
-#include "MatterCCZ4RHS.hpp"
-#include "MatterConstraints.hpp"
 #include "ScalarField.hpp"
 
 // AMReX headers
@@ -103,10 +103,10 @@ void run_bssn_matter_test()
         GRParmParse pp;
         pp.queryAdd("G_Newton", G_Newton);
 
-        MatterCCZ4RHS<DefaultScalarField, MovingPunctureGauge,
-                      FourthOrderDerivatives>
-            current_ccz4_rhs{DefaultScalarField(), ccz4_params, dx, sigma,
-                             CCZ4RHS<>::USE_BSSN,  G_Newton};
+        CCZ4RHSWithMatter<DefaultScalarField, MovingPunctureGauge,
+                          FourthOrderDerivatives>
+            current_ccz4_rhs{ccz4_params, dx, sigma, CCZ4RHS<>::USE_BSSN,
+                             G_Newton};
 
         // Set up the constraints
         constexpr int dcomp = NUM_VARS;
@@ -135,7 +135,7 @@ void run_bssn_matter_test()
         int *bcrec  = nullptr;
         int level   = 0;
 
-        MatterConstraints<DefaultScalarField>::compute_mf(
+        ConstraintsWithMatter<DefaultScalarField>::compute_mf(
             out_mf, dcomp, num_comp_constraints, in_mf, geom, time, bcrec,
             level);
 

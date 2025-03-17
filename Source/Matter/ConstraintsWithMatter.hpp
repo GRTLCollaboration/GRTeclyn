@@ -3,8 +3,8 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#ifndef MATTERCONSTRAINTS_HPP_
-#define MATTERCONSTRAINTS_HPP_
+#ifndef CONSTRAINTSWITHMATTER_HPP_
+#define CONSTRAINTSWITHMATTER_HPP_
 
 #include "CCZ4Geometry.hpp"
 #include "Cell.hpp"
@@ -24,7 +24,7 @@
    For an example of a matter_t class see ScalarField. \sa Constraints(),
    ScalarField()
 */
-template <class matter_t> class MatterConstraints : public Constraints
+template <class matter_t> class ConstraintsWithMatter : public Constraints
 {
   public:
     template <class data_t>
@@ -45,14 +45,14 @@ template <class matter_t> class MatterConstraints : public Constraints
         }
     };
 
-    //! Constructor of class MatterConstraints
+    //! Constructor of class ConstraintsWithMatter
     /*!
         Can specify the vars of the constraint vars instead of using the
         hardcoded ones.
     */
-    MatterConstraints(double dx, double G_Newton, int a_c_Ham,
-                      const Interval &a_c_Moms, int a_c_Ham_abs_terms = -1,
-                      const Interval &a_c_Moms_abs_terms = Interval());
+    ConstraintsWithMatter(double dx, double G_Newton, int a_c_Ham,
+                          const Interval &a_c_Moms, int a_c_Ham_abs_terms = -1,
+                          const Interval &a_c_Moms_abs_terms = Interval());
 
     //! The compute member which calculates the constraints at each point in the
     //! box
@@ -75,6 +75,6 @@ template <class matter_t> class MatterConstraints : public Constraints
     double m_G_Newton;  //!< Newton's constant, set to one by default.
 };
 
-#include "MatterConstraints.impl.hpp"
+#include "ConstraintsWithMatter.impl.hpp"
 
 #endif /* MATTERCONSTRAINTS_HPP_ */

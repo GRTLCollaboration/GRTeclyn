@@ -3,28 +3,28 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#if !defined(MATTERCCZ4RHS_HPP_)
+#if !defined(CCZ4RHSWITHMATTER_HPP_)
 #error "This file should only be included through MatterCCZ4RHS.hpp"
 #endif
 
-#ifndef MATTERCCZ4RHS_IMPL_HPP_
-#define MATTERCCZ4RHS_IMPL_HPP_
+#ifndef CCZ4RHSWITHMATTER_IMPL_HPP_
+#define CCZ4RHSWITHMATTER_IMPL_HPP_
 #include "DimensionDefinitions.hpp"
 
 template <class matter_t, class gauge_t, class deriv_t>
-MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::MatterCCZ4RHS(
-    matter_t a_matter, CCZ4_params_t<typename gauge_t::params_t> a_params,
-    double a_dx, double a_sigma, int a_formulation, double a_G_Newton)
+CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::CCZ4RHSWithMatter(
+    CCZ4_params_t<typename gauge_t::params_t> a_params, double a_dx,
+    double a_sigma, int a_formulation, double a_G_Newton)
     : CCZ4RHS<gauge_t, deriv_t>(a_params, a_dx, a_sigma, a_formulation,
                                 0.0 /*No cosmological constant*/),
-      m_matter(a_matter), m_G_Newton(a_G_Newton)
+      m_G_Newton(a_G_Newton)
 {
 }
 
 template <class matter_t, class gauge_t, class deriv_t>
 template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::compute(
+CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::compute(
     int i, int j, int k, const amrex::Array4<data_t> &rhs_arrays,
     const amrex::Array4<data_t const> &state_arrays) const
 {
@@ -58,7 +58,7 @@ MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::compute(
 template <class matter_t, class gauge_t, class deriv_t>
 template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
+CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
     Vars<data_t> &matter_rhs, const Vars<data_t> &matter_vars,
     const Vars<Tensor<1, data_t>> &d1) const
 {
@@ -112,4 +112,4 @@ MatterCCZ4RHS<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
                                              emtensor, m_G_Newton);
 }
 
-#endif /* MATTERCCZ4RHS_IMPL_HPP_ */
+#endif /* CCZ4RHSWITHMATTER_IMPL_HPP_ */
