@@ -97,8 +97,8 @@ void run_chi_relaxation_test()
         amrex::Real G_Newton    = 1.0;
         amrex::Real relax_speed = 0.1;
 
-        ChiRelaxation<DefaultScalarField> chi_relaxation{
-            DefaultScalarField(), dx, relax_speed, G_Newton};
+        ChiRelaxation<DefaultScalarField> chi_relaxation{dx, relax_speed,
+                                                         G_Newton};
 
         amrex::MultiFab out_mf{box_array, distribution_mapping, NUM_VARS, 0,
                                mf_info};
