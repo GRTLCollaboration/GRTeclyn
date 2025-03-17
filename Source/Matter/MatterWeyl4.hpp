@@ -22,13 +22,12 @@ template <class matter_t> class MatterWeyl4 : public Weyl4
     using Vars = typename MatterCCZ4RHS<matter_t>::template Vars<data_t>;
 
     //! Constructor
-    MatterWeyl4(matter_t a_matter,
-                const std::array<double, AMREX_SPACEDIM> a_center,
+    MatterWeyl4(const std::array<double, AMREX_SPACEDIM> a_center,
                 const double a_dx, const int a_dcomp,
                 const int a_formulation = CCZ4RHS<>::USE_CCZ4,
                 double a_G_Newton       = 1.0)
         : Weyl4(a_center, a_dx, a_dcomp, a_formulation), m_dcomp(a_dcomp),
-          m_G_Newton(a_G_Newton), m_matter(a_matter)
+          m_G_Newton(a_G_Newton)
     {
     }
 

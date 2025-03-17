@@ -20,11 +20,9 @@
 #include "simd.hpp"
 
 template <class matter_t>
-EMTensor<matter_t>::EMTensor(const matter_t a_matter, const double dx,
-                             const int a_c_rho, const Interval a_c_Si,
-                             const Interval a_c_Sij)
-    : m_matter(a_matter), m_deriv(dx), m_c_rho(a_c_rho), m_c_Si(a_c_Si),
-      m_c_Sij(a_c_Sij)
+EMTensor<matter_t>::EMTensor(const double dx, const int a_c_rho,
+                             const Interval a_c_Si, const Interval a_c_Sij)
+    : m_deriv(dx), m_c_rho(a_c_rho), m_c_Si(a_c_Si), m_c_Sij(a_c_Sij)
 {
     if (m_c_Si.size() != 0)
     {
@@ -146,10 +144,8 @@ AMREX_FORCE_INLINE void EMTensor<matter_t>::compute_mf(
     Interval my_c_Si(c_Si_begin, c_Si_end);
     Interval my_c_Sij(c_Sij_begin, c_Sij_end);
 
-    matter_t my_matter;
-
-    EMTensor<matter_t> em_tensor(my_matter, geomdata.CellSize(0), dcomp,
-                                 my_c_Si, my_c_Sij);
+    EMTensor<matter_t> em_tensor(geomdata.CellSize(0), dcomp, my_c_Si,
+                                 my_c_Sij);
 
     amrex::ParallelFor(
         out_mf,
