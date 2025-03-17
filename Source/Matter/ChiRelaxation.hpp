@@ -7,9 +7,9 @@
 #define CHIRELAXATION_HPP_
 
 #include "CCZ4Geometry.hpp"
+#include "CCZ4RHSWithMatter.hpp"
 #include "Cell.hpp"
 #include "FourthOrderDerivatives.hpp"
-#include "MatterCCZ4RHS.hpp"
 #include "StateVariables.hpp" //This files needs NUM_VARS - total number of components
 #include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
@@ -37,11 +37,11 @@ template <class matter_t> class ChiRelaxation
 
     // Use the variable definitions in MatterCCZ4
     template <class data_t>
-    using Vars = typename MatterCCZ4RHS<matter_t>::template Vars<data_t>;
+    using Vars = typename CCZ4RHSWithMatter<matter_t>::template Vars<data_t>;
 
     template <class data_t>
     using Diff2Vars =
-        typename MatterCCZ4RHS<matter_t>::template Diff2Vars<data_t>;
+        typename CCZ4RHSWithMatter<matter_t>::template Diff2Vars<data_t>;
 
   public:
     //! Constructor of class ChiRelaxation
@@ -49,8 +49,7 @@ template <class matter_t> class ChiRelaxation
         Takes in the grid spacing, plus the relaxation speed, a matter object
         and the value of Newton's constant, which is set to one by default.
     */
-    ChiRelaxation(matter_t a_matter, double dx, double relax_speed,
-                  double G_Newton = 1.0);
+    ChiRelaxation(double dx, double relax_speed, double G_Newton = 1.0);
 
     //! The compute member which calculates the RHS at each point in the box \sa
     //! rhs_equation()

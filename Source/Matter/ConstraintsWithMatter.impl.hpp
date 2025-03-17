@@ -3,17 +3,17 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#if !defined(MATTERCONSTRAINTS_HPP_)
-#error "This file should only be included through MatterConstraints.hpp"
+#if !defined(CONSTRAINTSWITHMATTER_HPP_)
+#error "This file should only be included through ConstraintsWithMatter.hpp"
 #endif
 
-#ifndef MATTERCONSTRAINTS_IMPL_HPP_
-#define MATTERCONSTRAINTS_IMPL_HPP_
+#ifndef CONSTRAINTSWITHMATTER_IMPL_HPP_
+#define CONSTRAINTSWITHMATTER_IMPL_HPP_
 #include "DimensionDefinitions.hpp"
 #include "GRParmParse.hpp"
 
 template <class matter_t>
-MatterConstraints<matter_t>::MatterConstraints(
+ConstraintsWithMatter<matter_t>::ConstraintsWithMatter(
     double dx, double G_Newton, int a_c_Ham, const Interval &a_c_Moms,
     int a_c_Ham_abs_terms /* defaulted*/,
     const Interval &a_c_Moms_abs_terms /*defaulted*/)
@@ -25,14 +25,17 @@ MatterConstraints<matter_t>::MatterConstraints(
 
 template <class matter_t>
 template <class data_t>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE void MatterConstraints<matter_t>::compute(
-    int i, int j, int k, const amrex::Array4<data_t> &cst,
-    const amrex::Array4<data_t const> &state) const
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+ConstraintsWithMatter<matter_t>::compute(
+    int i, int j, int k, const amrex::Array4<data_t> &out_arrays,
+    const amrex::Array4<data_t const> &state_arrays) const
 {
     // Load local vars and calculate derivs
-    const auto vars = load_vars<BSSNMatterVars>(state.cellData(i, j, k));
-    const auto d1   = m_deriv.template diff1<BSSNMatterVars>(i, j, k, state);
-    const auto d2   = m_deriv.template diff2<BSSNMatterVars>(i, j, k, state);
+    const auto vars = load_vars<BSSNMatterVars>(state_arrays.cellData(i, j, k));
+    const auto d1 =
+        m_deriv.template diff1<BSSNMatterVars>(i, j, k, state_arrays);
+    const auto d2 =
+        m_deriv.template diff2<BSSNMatterVars>(i, j, k, state_arrays);
 
     // Inverse metric and Christoffel symbol
     const auto h_UU  = TensorAlgebra::compute_inverse_sym(vars.h);
@@ -63,12 +66,12 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void MatterConstraints<matter_t>::compute(
     }
     // Write the constraints into the output FArrayBox
 
-    store_vars(out, cst.cellData(i, j, k));
+    store_vars(out, out_arrays.cellData(i, j, k));
 }
 
 template <class matter_t>
-void MatterConstraints<matter_t>::set_up(int a_state_index,
-                                         bool a_calc_mom_norm)
+void ConstraintsWithMatter<matter_t>::set_up(int a_state_index,
+                                             bool a_calc_mom_norm)
 {
 
     int num_ghosts = 2;
@@ -82,14 +85,14 @@ void MatterConstraints<matter_t>::set_up(int a_state_index,
     derive_lst.add(
         Constraints::name, amrex::IndexType::TheCellType(),
         static_cast<int>(comp_names.size()), comp_names,
-        MatterConstraints::compute_mf, [=](const amrex::Box &box)
+        ConstraintsWithMatter::compute_mf, [=](const amrex::Box &box)
         { return amrex::grow(box, num_ghosts); }, &amrex::cell_quartic_interp);
 
     derive_lst.addComponent(Constraints::name, desc_lst, a_state_index, 0,
                             NUM_VARS);
 }
 template <class matter_t>
-void MatterConstraints<matter_t>::compute_mf(
+void ConstraintsWithMatter<matter_t>::compute_mf(
     amrex::MultiFab &out_mf, int dcomp, int ncomp,
     const amrex::MultiFab &src_mf, const amrex::Geometry &geomdata,
     amrex::Real /*time*/, const int * /*bcrec*/, int /*level*/)
@@ -109,15 +112,16 @@ void MatterConstraints<matter_t>::compute_mf(
 
     AMREX_ALWAYS_ASSERT(ncomp == (1 + AMREX_SPACEDIM));
 
-    MatterConstraints<matter_t> matter_constraints(dx, G_Newton, iham, imom);
+    ConstraintsWithMatter<matter_t> my_matter_constraints(dx, G_Newton, iham,
+                                                          imom);
 
     amrex::ParallelFor(
         out_mf,
         [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
         {
-            matter_constraints.compute(i, j, k, out_arrays[box_no],
-                                       src_arrays[box_no]);
+            my_matter_constraints.compute(i, j, k, out_arrays[box_no],
+                                          src_arrays[box_no]);
         });
 }
 
-#endif /* MATTERCONSTRAINTS_IMPL_HPP_ */
+#endif /* CONSTRAINTSWITHMATTER_IMPL_HPP_ */

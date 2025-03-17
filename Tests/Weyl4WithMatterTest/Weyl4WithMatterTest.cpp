@@ -26,12 +26,12 @@
 #include "InitialData.hpp" //includes StateVariables.hpp
 
 // test header
-#include "MatterWeyl4Test.hpp"
+#include "Weyl4WithMatterTest.hpp"
 
 // GRTeclyn includes
 #include "DefaultPotential.hpp"
-#include "MatterWeyl4.hpp"
 #include "ScalarField.hpp"
+#include "Weyl4WithMatter.hpp"
 #include "simd.hpp"
 #include <array>
 
@@ -70,9 +70,11 @@ void run_matter_weyl4_test()
 
         const auto &in_arrays = in_mf.arrays();
 
+        // NOLINTBEGIN(bugprone-easily-swappable-parameters)
         amrex::ParallelFor(
             in_mf, in_mf.nGrowVect(),
             [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+            // NOLINTEND(bugprone-easily-swappable-parameters)
             {
                 const amrex::IntVect iv{i, j, k};
                 const amrex::RealVect coords = amrex::RealVect{iv} * dx;
@@ -113,12 +115,13 @@ void run_matter_weyl4_test()
         pp.queryAdd("formulation", formulation);
         pp.queryAdd("G_newton", G_Newton);
 
-        MatterWeyl4<DefaultScalarField>::compute_mf(out_mf, dcomp_weyl4,
-                                                    num_comps_weyl4, in_mf,
-                                                    geom, time, bcrec, level);
+        Weyl4WithMatter<DefaultScalarField>::compute_mf(
+            out_mf, dcomp_weyl4, num_comps_weyl4, in_mf, geom, time, bcrec,
+            level);
 
 #if AMREX_USE_HDF5
-        std::string grteclyn_hdf5_file = "MatterWeyl4Test/MatterWeyl4TestOut";
+        std::string grteclyn_hdf5_file =
+            "Weyl4WithMatterTest/Weyl4WithMatterTestOut";
 
         // open the hdf5 file for writing
         amrex::WriteSingleLevelPlotfileHDF5(grteclyn_hdf5_file, out_mf,
@@ -128,7 +131,7 @@ void run_matter_weyl4_test()
 
         std::string h5diff_tol = "1e-10";
         std::string grchombo_weyl4_hdf5_file =
-            "MatterWeyl4Test/GRChomboMatterWeyl4Test.h5";
+            "Weyl4WithMatterTest/GRChomboWeyl4WithMatterTest.h5";
 
         std::string hdf5_internal_path = "/level_0/data:datatype=0";
 

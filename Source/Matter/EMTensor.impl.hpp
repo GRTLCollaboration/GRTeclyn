@@ -21,19 +21,19 @@
 
 template <class matter_t>
 EMTensor<matter_t>::EMTensor(const double dx, const int a_c_rho,
-                             const Interval a_c_Si, const Interval a_c_Sij)
-    : m_deriv(dx), m_c_rho(a_c_rho), m_c_Si(a_c_Si), m_c_Sij(a_c_Sij)
+                             const Interval a_c_j, const Interval a_c_S)
+    : m_deriv(dx), m_c_rho(a_c_rho), m_c_j(a_c_j), m_c_S(a_c_S)
 {
-    if (m_c_Si.size() != 0)
+    if (m_c_j.size() != 0)
     {
-        // Si is a vector
-        AMREX_ASSERT(m_c_Si.size() == DEFAULT_TENSOR_DIM);
+        // j is a vector
+        AMREX_ASSERT(m_c_j.size() == DEFAULT_TENSOR_DIM);
     }
 
-    if (m_c_Sij.size() != 0)
+    if (m_c_S.size() != 0)
     {
-        // Sij is a symmetric tensor
-        AMREX_ASSERT(m_c_Sij.size() ==
+        // S is a symmetric tensor
+        AMREX_ASSERT(m_c_S.size() ==
                      DEFAULT_TENSOR_DIM * (DEFAULT_TENSOR_DIM + 1) / 2);
     }
 }
@@ -42,11 +42,11 @@ template <class matter_t>
 template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 EMTensor<matter_t>::compute(int i, int j, int k,
-                            const amrex::Array4<data_t> &out_mf,
-                            const amrex::Array4<const data_t> &in_mf) const
+                            const amrex::Array4<data_t> &out_arrays,
+                            const amrex::Array4<const data_t> &in_arrays) const
 {
-    const auto vars = load_vars<Vars>(in_mf.cellData(i, j, k));
-    const auto d1   = m_deriv.template diff1<Vars>(i, j, k, in_mf);
+    const auto vars = load_vars<Vars>(in_arrays.cellData(i, j, k));
+    const auto d1   = m_deriv.template diff1<Vars>(i, j, k, in_arrays);
 
     using namespace TensorAlgebra;
 
@@ -57,28 +57,28 @@ EMTensor<matter_t>::compute(int i, int j, int k,
 
     if (m_c_rho >= 0)
     {
-        out_mf(i, j, k, m_c_rho) = emtensor.rho;
+        out_arrays(i, j, k, m_c_rho) = emtensor.rho;
     }
 
-    if (m_c_Si.size() > 0)
+    if (m_c_j.size() > 0)
     {
 #if DEFAULT_TENSOR_DIM == 3
         FOR (i)
         {
-            out_mf(i, j, k, m_c_Si.begin() + i) = emtensor.Si[i];
+            out_arrays(i, j, k, m_c_j.begin() + i) = emtensor.Si[i];
         }
 #endif
     }
 
-    if (m_c_Sij.size() > 0)
+    if (m_c_S.size() > 0)
     {
 #if DEFAULT_TENSOR_DIM == 3
-        out_mf(i, j, k, m_c_Sij.begin())     = emtensor.Sij[0][0];
-        out_mf(i, j, k, m_c_Sij.begin() + 1) = emtensor.Sij[0][1];
-        out_mf(i, j, k, m_c_Sij.begin() + 2) = emtensor.Sij[0][2];
-        out_mf(i, j, k, m_c_Sij.begin() + 3) = emtensor.Sij[1][1];
-        out_mf(i, j, k, m_c_Sij.begin() + 4) = emtensor.Sij[1][2];
-        out_mf(i, j, k, m_c_Sij.begin() + 5) = emtensor.Sij[2][2];
+        out_arrays(i, j, k, m_c_S.begin())     = emtensor.Sij[0][0];
+        out_arrays(i, j, k, m_c_S.begin() + 1) = emtensor.Sij[0][1];
+        out_arrays(i, j, k, m_c_S.begin() + 2) = emtensor.Sij[0][2];
+        out_arrays(i, j, k, m_c_S.begin() + 3) = emtensor.Sij[1][1];
+        out_arrays(i, j, k, m_c_S.begin() + 4) = emtensor.Sij[1][2];
+        out_arrays(i, j, k, m_c_S.begin() + 5) = emtensor.Sij[2][2];
 
 #endif
     }
@@ -118,34 +118,32 @@ AMREX_FORCE_INLINE void EMTensor<matter_t>::compute_mf(
     const auto &src_arrays = src_mf.const_arrays();
 
     // a_c_rho is stored starting from dcomp
-    // a_c_Si is stored starting from rho (dcomp+1)
-    // a_c_Sij is stored starting from a_c_Si
+    // a_c_j is stored starting from rho (dcomp+1)
+    // a_c_S is stored starting from a_c_Si
 
-    int c_Si_begin{0}, c_Si_end{-1};
-    int c_Sij_begin{0}, c_Sij_end{-1};
+    int c_j_begin{0}, c_j_end{-1};
+    int c_S_begin{0}, c_S_end{-1};
 
     // Depending on how many components are required (ncomp), also:
 
     // Compute the momentum density
     if (ncomp > 1)
     {
-        c_Si_begin = dcomp + 1;
-        c_Si_end   = c_Si_begin + DEFAULT_TENSOR_DIM;
+        c_j_begin = dcomp + 1;
+        c_j_end   = c_j_begin + DEFAULT_TENSOR_DIM;
     }
 
     // Compute the spatial stress-energy density
     if (ncomp > 3)
     {
-        c_Sij_begin = c_Si_end;
-        c_Sij_end =
-            c_Sij_begin + DEFAULT_TENSOR_DIM * (DEFAULT_TENSOR_DIM + 1) / 2;
+        c_S_begin = c_j_end;
+        c_S_end = c_S_begin + DEFAULT_TENSOR_DIM * (DEFAULT_TENSOR_DIM + 1) / 2;
     }
 
-    Interval my_c_Si(c_Si_begin, c_Si_end);
-    Interval my_c_Sij(c_Sij_begin, c_Sij_end);
+    Interval my_c_j(c_j_begin, c_j_end);
+    Interval my_c_S(c_S_begin, c_S_end);
 
-    EMTensor<matter_t> em_tensor(geomdata.CellSize(0), dcomp, my_c_Si,
-                                 my_c_Sij);
+    EMTensor<matter_t> em_tensor(geomdata.CellSize(0), dcomp, my_c_j, my_c_S);
 
     amrex::ParallelFor(
         out_mf,
