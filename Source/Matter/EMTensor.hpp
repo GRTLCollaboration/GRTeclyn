@@ -19,7 +19,19 @@
 
 //! Calculates the EM tensor and then saves the ones specified in the
 //! constructor on the grid
-template <class matter_t> class EMTensor
+
+//! Parts of the EMTensor to store
+enum class EMTensorOptions
+{
+    justEnergyDensity,          //! just the energy density
+    energyAndMomentumDensities, //! both the energy density and the momentum
+                                //! density
+    all, //! the energy density, momentum density and the stress tensor
+};
+
+//! Calculates the EM tensor and then saves the parts depending on the
+//! em_tensor_options_t template argument
+template <class matter_t, enum EMTensorOptions em_tensor_options> class EMTensor
 {
   public:
     template <class data_t>
@@ -29,28 +41,21 @@ template <class matter_t> class EMTensor
     static inline const std::string name = "EMTensor";
 
     /// Variable names
-    static inline amrex::Vector<std::string> var_names = {"rho"};
-
-    /// 3 components for the momentum density: j_1, j_2, j_3
-    /// 6 components for the stress energy tensor (symmetric): S_11, S_12
-    /// etc.
-    static inline const amrex::Vector<std::string> extra_var_names = {
-        "j_1, j_2, j_3, S_11, S_12, S_13, S_22, S_23, S_33"};
+    static amrex::Vector<std::string> var_names();
 
     //! Constructor
-    EMTensor(const double dx, const int a_c_rho = -1,
-             const Interval a_c_j = Interval(),
-             const Interval a_c_S = Interval());
+    EMTensor(double dx, int a_dcomp);
 
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     compute(int i, int j, int k, const amrex::Array4<data_t> &out_arrays,
             const amrex::Array4<const data_t> &in_arrays) const;
+    // NOLINTEND(bugprone-easily-swappable-parameters)
 
     // Set do_all_components to true to calculate the momentum density
     // and stress energy tensors as well
-    AMREX_FORCE_INLINE static void set_up(int a_state_index,
-                                          bool do_all_components = false);
+    AMREX_FORCE_INLINE static void set_up(int a_state_index);
 
     AMREX_FORCE_INLINE static void
     compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
@@ -60,10 +65,8 @@ template <class matter_t> class EMTensor
   protected:
     matter_t m_matter;
     FourthOrderDerivatives m_deriv;
-    int m_c_rho;    // var enum for the energy density
-    Interval m_c_j; // Interval of var enums for the momentum density
-    Interval m_c_S; // Interval of var enums for the spatial
-                    // stress-energy density
+    int m_dcomp; //!< which component in the MultiFab to store the first
+                 //!< variable
 };
 
 #include "EMTensor.impl.hpp"

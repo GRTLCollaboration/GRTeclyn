@@ -106,8 +106,13 @@ void run_emtensor_test()
         int *bcrec  = nullptr;
         int level   = 0;
 
-        EMTensor<DefaultScalarField>::compute_mf(
-            out_mf, dcomp_rho, num_comps, in_mf, geom, time, bcrec, level);
+        EMTensor<DefaultScalarField,
+                 EMTensorOptions::justEnergyDensity>::compute_mf(out_mf,
+                                                                 dcomp_rho,
+                                                                 num_comps,
+                                                                 in_mf, geom,
+                                                                 time, bcrec,
+                                                                 level);
 
 #if AMREX_USE_HDF5
         amrex::Vector<std::string> var_names = {"rho"};
