@@ -24,8 +24,8 @@ variables:
   SRUN_FLAGS: > 
     --qos=INTR 
     --nodes=1 
-    --ntasks=1 
-    --gres=gpu:1 
+    --ntasks=2 
+    --gres=gpu:2 
     --time=00:10:00 
     --account=SHELLARD-SL3-GPU 
     --partition=ampere
