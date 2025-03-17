@@ -25,7 +25,7 @@ variables:
     --qos=INTR 
     --nodes=1 
     --ntasks=2 
-    --gres=gpu:2 
+    --gres=gpu:1
     --time=00:10:00 
     --account=SHELLARD-SL3-GPU 
     --partition=ampere
