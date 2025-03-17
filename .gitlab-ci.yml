@@ -58,7 +58,7 @@ csd3-a100:
     - make -j 8 COMP=gnu programs=fcompare
     - cd ${HOME}/${CI_PROJECT_DIR}/Tests
     - make -j 8 ${BUILD_CONFIG} 
-    - flock ${HOME}/${QOS_INTR_LOCK_FILE} srun ${SRUN_FLAGS} make run ${BUILD_CONFIG}
+    - flock ${HOME}/${QOS_INTR_LOCK_FILE} salloc ${SRUN_FLAGS} make run ${BUILD_CONFIG}
     - cd ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH
     - make -j 8 ${BUILD_CONFIG} 
     - flock ${HOME}/${QOS_INTR_LOCK_FILE} srun ${SRUN_FLAGS} ./main3d.gnu.DEBUG.MPI.CUDA.ex ./params_test.txt
