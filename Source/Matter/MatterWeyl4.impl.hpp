@@ -108,10 +108,8 @@ void MatterWeyl4<matter_t>::compute_mf(amrex::MultiFab &out_mf, int dcomp,
     pp.get("formulation", formulation);
     pp.load("G_newton", G_Newton, 0.0);
 
-    matter_t my_matter;
-
-    MatterWeyl4<matter_t> matter_weyl4(my_matter, center, geomdata.CellSize(0),
-                                       dcomp, formulation, G_Newton);
+    MatterWeyl4<matter_t> matter_weyl4(center, geomdata.CellSize(0), dcomp,
+                                       formulation, G_Newton);
 
     amrex::ParallelFor(
         out_mf,

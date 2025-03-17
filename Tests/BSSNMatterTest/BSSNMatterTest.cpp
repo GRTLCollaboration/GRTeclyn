@@ -101,7 +101,7 @@ void run_bssn_matter_test()
 
         double G_Newton = 1.0;
         GRParmParse pp;
-        pp.queryAdd("G_newton", G_Newton);
+        pp.queryAdd("G_Newton", G_Newton);
 
         MatterCCZ4RHS<DefaultScalarField, MovingPunctureGauge,
                       FourthOrderDerivatives>

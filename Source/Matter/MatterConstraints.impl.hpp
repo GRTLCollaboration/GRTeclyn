@@ -14,12 +14,12 @@
 
 template <class matter_t>
 MatterConstraints<matter_t>::MatterConstraints(
-    const matter_t a_matter, double dx, double G_Newton, int a_c_Ham,
-    const Interval &a_c_Moms, int a_c_Ham_abs_terms /* defaulted*/,
+    double dx, double G_Newton, int a_c_Ham, const Interval &a_c_Moms,
+    int a_c_Ham_abs_terms /* defaulted*/,
     const Interval &a_c_Moms_abs_terms /*defaulted*/)
     : Constraints(dx, a_c_Ham, a_c_Moms, a_c_Ham_abs_terms, a_c_Moms_abs_terms,
                   0.0 /*No cosmological constant*/),
-      my_matter(a_matter), m_G_Newton(G_Newton)
+      m_G_Newton(G_Newton)
 {
 }
 
@@ -98,11 +98,10 @@ void MatterConstraints<matter_t>::compute_mf(
     const auto &src_arrays = src_mf.const_arrays();
 
     GRParmParse pp;
-    amrex::Real G_newton = 0;
+    amrex::Real G_Newton = 0;
 
-    pp.get("G_newton", G_newton, 0);
+    pp.get("G_Newton", G_Newton, 0);
 
-    matter_t my_matter;
     amrex::Real dx = geomdata.CellSize(0);
     int iham       = dcomp; // Ham
     Interval imom =
@@ -110,8 +109,7 @@ void MatterConstraints<matter_t>::compute_mf(
 
     AMREX_ALWAYS_ASSERT(ncomp == (1 + AMREX_SPACEDIM));
 
-    MatterConstraints<matter_t> matter_constraints(my_matter, dx, G_newton,
-                                                   iham, imom);
+    MatterConstraints<matter_t> matter_constraints(dx, G_Newton, iham, imom);
 
     amrex::ParallelFor(
         out_mf,

@@ -38,7 +38,7 @@ template <class matter_t> class EMTensor
         "Sij_33"};
 
     //! Constructor
-    EMTensor(const matter_t a_matter, const double dx, const int a_c_rho = -1,
+    EMTensor(const double dx, const int a_c_rho = -1,
              const Interval a_c_Si  = Interval(),
              const Interval a_c_Sij = Interval());
 
