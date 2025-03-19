@@ -299,10 +299,11 @@ void BinaryBHLevel::specificPostTimeStep()
         Level() == simParams().puncture_tracking_level)
     {
         BL_PROFILE("PunctureTracking");
-        // only do the write out for every coarsest level timestep
-        // int coarsest_level = 0;
-        // bool write_punctures = at_level_timestep_multiple(coarsest_level);
-        bool write_punctures = true;
+
+        // only do the write out when we're at at a multiple of the
+        // writeout_level
+        bool write_punctures = at_level_timestep_multiple(
+            simParams().puncture_tracking_writeout_level);
         amrex::Real cur_time = get_state_data(State_Type).curTime();
         amrex::Real dt       = get_gramr_ptr()->dtLevel(Level());
         get_puncture_tracker().track(cur_time, dt, write_punctures);

@@ -39,6 +39,8 @@ class SimulationParameters : public SimulationParametersBase
         // Do we want puncture tracking and constraint norm calculation?
         pp.load("puncture_tracking.enabled", puncture_tracking_enabled, false);
         pp.load("puncture_tracking.level", puncture_tracking_level, max_level);
+        pp.load("puncture_tracking.writeout_level",
+                puncture_tracking_writeout_level, 0);
         pp.load("calculate_constraint_norms", calculate_constraint_norms,
                 false);
     }
@@ -314,6 +316,7 @@ class SimulationParameters : public SimulationParametersBase
 
     bool puncture_tracking_enabled{};
     int puncture_tracking_level{};
+    int puncture_tracking_writeout_level{};
     bool calculate_constraint_norms{};
 
     // Collection of parameters necessary for initial conditions
