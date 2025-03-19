@@ -24,6 +24,8 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 1>
     amrex::Array<amrex::Real, num_puncture_coords> m_puncture_coords;
 
     std::string m_punctures_filename;
+    bool m_disable_writeout{false}; // if true, don't write .dat file (doesn't
+                                    // affect checkpoint and plotfiles)
     std::string m_checkpoint_subdir;
 
     GRAMR *m_gr_amr{nullptr};

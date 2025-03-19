@@ -36,6 +36,8 @@ void PunctureTracker<num_punctures>::initialize(GRAMR *a_gr_amr)
     // at some point
     puncture_tracking_pp.queryAdd("output_path", output_path);
 
+    puncture_tracking_pp.queryAdd("disable_writeout", m_disable_writeout);
+
     if (!FilesystemTools::directory_exists(output_path))
     {
         FilesystemTools::mkdir_recursive(output_path);
@@ -201,7 +203,10 @@ template <unsigned int num_punctures>
 void PunctureTracker<num_punctures>::write_initial_punctures() const
 {
     AMREX_ASSERT(m_initialized);
-
+    if (m_disable_writeout)
+    {
+        return;
+    }
     // now the write out to a new file
     bool first_step = true;
     double dt       = 1.; // doesn't matter
@@ -328,7 +333,7 @@ void PunctureTracker<num_punctures>::track(double a_time, double a_dt,
     update_puncture_coords();
 
     // write them out
-    if (a_write_punctures)
+    if (a_write_punctures && !m_disable_writeout)
     {
         bool first_step = false;
         SmallDataIO punctures_file(m_punctures_filename, a_dt, a_time,
