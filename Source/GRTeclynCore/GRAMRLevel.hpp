@@ -191,6 +191,12 @@ class GRAMRLevel : public amrex::AmrLevel
     {
     }
 
+    /// Returns true if m_time is the same as the time at the end of the current
+    /// timestep on level a_level and false otherwise
+    /// Useful to check whether to calculate something in postTimeStep (which
+    /// might only be needed at the end of a_level's timestep)
+    bool at_level_timestep_multiple(int a_level);
+
     BoundaryConditions m_boundaries; // the class for implementing BCs
 
     int m_verbosity = 0; //!< Level of verbosity of the output

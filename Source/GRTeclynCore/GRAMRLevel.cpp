@@ -289,3 +289,23 @@ void GRAMRLevel::checkPointPost(const std::string &a_dir, std::ostream &a_os)
 {
     specific_post_checkpoint(a_dir, a_os);
 }
+
+bool GRAMRLevel::at_level_timestep_multiple(int a_level)
+{
+    // handle both the case a_level < Level() and a_level >= Level()
+    int coarser_level     = std::min(a_level, Level());
+    int finer_level       = std::max(a_level, Level());
+    int finer_level_steps = get_gramr_ptr()->levelSteps(finer_level);
+
+    // work out what the coarser level step number corresponds to on the finer
+    // level
+    int coarser_level_steps_at_finer_level =
+        get_gramr_ptr()->levelSteps(coarser_level);
+
+    for (int ilev = coarser_level + 1; ilev <= finer_level; ++ilev)
+    {
+        coarser_level_steps_at_finer_level *= get_gramr_ptr()->nCycle(ilev);
+    }
+    // finer_level_steps will be > coarser_level_steps
+    return (finer_level_steps == coarser_level_steps_at_finer_level);
+}
