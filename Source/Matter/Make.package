@@ -9,5 +9,6 @@ GRTECLYN_CEXE_headers += ChiRelaxation.hpp \
 			 MatterConstraints.impl.hpp \
 			 MatterWeyl4.hpp \
 			 MatterWeyl4.impl.hpp \
+			 MovingPunctureGaugeWithMatter \
 			 ScalarField.hpp \
 			 ScalarField.impl.hpp
