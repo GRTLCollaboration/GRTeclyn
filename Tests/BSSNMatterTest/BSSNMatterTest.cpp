@@ -69,9 +69,11 @@ void run_bssn_matter_test()
 
         const auto &in_array = in_mf.arrays();
 
+        // NOLINTBEGIN(bugprone-easily-swappable-parameters)
         amrex::ParallelFor(
             in_mf, in_mf.nGrowVect(),
             [=] AMREX_GPU_DEVICE(int ibox, int i, int j, int k)
+            // NOLINTEND(bugprone-easily-swappable-parameters)
             {
                 const amrex::IntVect iv{i, j, k};
                 const amrex::RealVect coords = amrex::RealVect{iv} * dx;
@@ -84,7 +86,7 @@ void run_bssn_matter_test()
                 random_matter_bssn_initial_data(iv, in_array[ibox], coords);
             });
 
-        CCZ4_params_t<MovingPunctureGauge::params_t> ccz4_params;
+        CCZ4_params_t<MovingPunctureGaugeWithMatter::params_t> ccz4_params;
         ccz4_params.kappa1            = 0.0;
         ccz4_params.kappa2            = 0.0;
         ccz4_params.kappa3            = 0.0;
@@ -103,7 +105,7 @@ void run_bssn_matter_test()
         GRParmParse pp;
         pp.queryAdd("G_Newton", G_Newton);
 
-        CCZ4RHSWithMatter<DefaultScalarField, MovingPunctureGauge,
+        CCZ4RHSWithMatter<DefaultScalarField, MovingPunctureGaugeWithMatter,
                           FourthOrderDerivatives>
             current_ccz4_rhs{ccz4_params, dx, sigma, CCZ4RHS<>::USE_BSSN,
                              G_Newton};
