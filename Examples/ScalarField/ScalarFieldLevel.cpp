@@ -478,6 +478,9 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
     MultiFab constr_alias(ba, dm, num, ngrow, MFInfo(), Factory());
     MultiFab pol_fields_alias(ba, dm, num, ngrow, MFInfo(), Factory());
 
+    constr_alias.setVal(0.0);
+    pol_fields_alias.setVal(0.0);
+
     derive("constraints_norm", cur_time, constr_alias, 0);
     derive("TensorPolarisations", cur_time, pol_fields_alias, 0);
 

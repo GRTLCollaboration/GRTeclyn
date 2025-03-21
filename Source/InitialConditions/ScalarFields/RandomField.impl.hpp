@@ -893,6 +893,26 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         // Apply physical normalisation
         hs_x.mult(norm);
 
+        // Print mode functions if requested
+        /*std::string mf_path = make_subdirectory(data_path, "mode-functions", first_step);
+        std::string filename = mf_path+"mode-function-"+std::to_string(cur_time/dt);
+
+        for (MFIter mfi(hs_x); mfi.isValid(); ++mfi) 
+        {
+            Array4<Real> const& hx_ptr = hs_x.array(mfi);
+            const Box& bx = mfi.fabbox();
+
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                AllPrintToFile(filename) << i + N*(j + N*k) << ",";
+                for(int c=0; c<2; c++)
+                {
+                    AllPrintToFile(filename).SetPrecision(14) << hx_ptr(i, j, k, c) << ",";
+                }
+                AllPrintToFile(filename) << "\n";
+            });
+        }*/
+
         // Calculate and print field moments if requested
         if (m_params.calc_higher_order_statistics)
         {

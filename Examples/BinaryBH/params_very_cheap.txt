@@ -7,7 +7,7 @@
 verbosity = 0
 
 # location / naming of output files
-# output_path = "" # Main path for all files. Must exist!
+output_path = "/nfs/st01/hpc-gr-epss/eaf49/dump/" # Main path for all files. Must exist!
 chk_prefix = BinaryBH_
 plot_prefix = BinaryBHPlot_
 # restart_file = BinaryBH_000360.3d.hdf5
