@@ -4,9 +4,9 @@
 verbosity = 0
 
 # location / naming of output files
-output_path = /nfs/st01/hpc-gr-epss/eaf49/dump/ # Main path for all files. Must exist!
-amr.check_file = /nfs/st01/hpc-gr-epss/eaf49/dump/hdf5/chk_
-amr.plot_file = /nfs/st01/hpc-gr-epss/eaf49/dump/hdf5/plt_
+output_path = /home/eaf49/rds/hpc-work/dump/ # Main path for all files. Must exist!
+amr.check_file = /home/eaf49/rds/hpc-work/dump/hdf5/chk_
+amr.plot_file = /home/eaf49/rds/hpc-work/dump/hdf5/plt_
 
 amr.derive_plot_vars = ALL
 
