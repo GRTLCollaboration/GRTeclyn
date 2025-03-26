@@ -4,21 +4,21 @@
 verbosity = 0
 
 # location / naming of output files
-output_path = /nfs/st01/hpc-gr-epss/eaf49/dump/ # Main path for all files. Must exist!
-amr.check_file = /nfs/st01/hpc-gr-epss/eaf49/dump/hdf5/chk_
-amr.plot_file = /nfs/st01/hpc-gr-epss/eaf49/dump/hdf5/plt_
+output_path = /nfs/st01/hpc-gr-epss/eaf49/A1-250-duplication/1/0/ # Main path for all files. Must exist!
+amr.check_file = /nfs/st01/hpc-gr-epss/eaf49/A1-250-duplication/1/0/hdf5/chk_
+amr.plot_file = /nfs/st01/hpc-gr-epss/eaf49/A1-250-duplication/1/0/hdf5/plt_
 
 amr.derive_plot_vars = ALL
 
 # HDF5files are written every dt = L/N*dt_multiplier*checkpoint_interval
-checkpoint_interval = 500
+checkpoint_interval = 300
 # set to 0 to turn off plot files (except at t=0 and t=stop_time)
 # set to -1 to never ever print plotfiles
-plot_interval = 1
-amr.plot_int = 1
-amr.check_int = 500
+plot_interval = 500
+amr.plot_int = 500
+amr.check_int = 300
 num_plot_vars = 2
-plot_vars = Ham Mom
+plot_vars = hplus hcross
 
 # subpaths - specific directories for hdf5, pout, extraction data
 # (these are created at runtime)
@@ -91,7 +91,7 @@ moments_to_print = 1 3 4
 # NB - if you have a non-cubic grid, you can specify 'N1' or 'N1_full',
 # 'N2' or 'N2_full' and 'N3' or 'N3_full' ( then dx_coarsest = L/N(max) )
 # NB - the N values need to be multiples of the block_factor
-N_full = 64
+N_full = 128
 L_full = 3000 
 
 # Maximum number of times you can regrid above coarsest level
@@ -145,7 +145,7 @@ extrapolating_vars = phi Pi
 # dt will be dx*dt_multiplier on each grid level
 dt_multiplier = 0.25
 stop_time = 9000
-max_steps = 3 # 3000
+max_steps = 2 # 3000
 
 # Spatial derivative order (only affects CCZ4 RHS)
 max_spatial_derivative_order = 4 # can be 4 or 6
