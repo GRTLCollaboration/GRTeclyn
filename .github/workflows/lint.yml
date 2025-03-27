@@ -48,9 +48,10 @@ jobs:
       run: |
         sudo apt-get -y --no-install-recommends install libopenmpi-dev
 
-    - name: Install compiledb tool to generate compilation database
+    - name: Install compiledb and compdb tools to generate compilation database
       run: |
         pipx install compiledb
+        pipx install compdb
 
     - name: Generate config and compilation database
       run: |
@@ -59,6 +60,14 @@ jobs:
         compiledb -o ${{ env.COMPILATION_DATABASE }} -n make ${{ env.BUILD_ARGS }}
         cd ${{ env.TESTS_DIR }}
         compiledb -o ${{ env.COMPILATION_DATABASE }} -n make ${{ env.BUILD_ARGS }}
+        compdb -p ${{ github.workspace }}/GRTeclyn list > compile_commands_with_headers.json
+        mv compile_commands_with_headers.json ${{ env.COMPILATION_DATABASE }}
+
+    - name: Upload compilation database
+      uses: actions/upload-artifact@v4
+      with:
+        name: compilation-database
+        path: ${{ env.COMPILATION_DATABASE }}
 
     - name: Generate list of files for clang-tidy to ignore
       id: ignore-tidy-list
