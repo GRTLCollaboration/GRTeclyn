@@ -357,6 +357,11 @@ void PunctureTracker<num_punctures>::update_puncture_coords()
     // zero by default
     m_puncture_coords.fill(0.0);
 
+    amrex::Gpu::DeviceVector<amrex::ParticleReal> d_puncture_coords(
+        num_puncture_coords, 0.0);
+
+    auto d_puncture_coords_ptr = d_puncture_coords.data();
+
     for (int ilevel = 0; ilevel <= m_gr_amr->finestLevel(); ilevel++)
     {
         if (this->NumberOfParticlesAtLevel(ilevel) == 0L)
@@ -364,13 +369,7 @@ void PunctureTracker<num_punctures>::update_puncture_coords()
             continue;
         }
 
-        amrex::Array<amrex::Real, num_puncture_coords> h_level_puncture_coords;
-        h_level_puncture_coords.fill(0.0);
-
         // Now if this proc has a puncture particle, we set its location
-        amrex::Gpu::AsyncArray<amrex::ParticleReal> d_level_puncture_coords(
-            h_level_puncture_coords.data(), num_puncture_coords);
-        auto *d_level_puncture_coords_ptr = d_level_puncture_coords.data();
         for (ParIterType punc_iter(*this, ilevel); punc_iter.isValid();
              ++punc_iter)
         {
@@ -378,28 +377,23 @@ void PunctureTracker<num_punctures>::update_puncture_coords()
             auto *punc_particles_data = punc_particles.data();
             int num_punc_tile         = punc_iter.numParticles();
 
-            amrex::ParallelFor(num_punc_tile,
-                               [=] AMREX_GPU_DEVICE(int ipunc)
-                               {
-                                   auto &p      = punc_particles_data[ipunc];
-                                   int punc_idx = p.idata(0) - 1;
-                                   FOR1 (idir)
-                                   {
-                                       d_level_puncture_coords_ptr[linear_idx(
-                                           punc_idx, idir)] = p.pos(idir);
-                                   }
-                               });
+            amrex::ParallelFor(
+                num_punc_tile,
+                [=] AMREX_GPU_DEVICE(int ipunc)
+                {
+                    auto &p      = punc_particles_data[ipunc];
+                    int punc_idx = p.idata(0) - 1;
+                    FOR1 (idir)
+                    {
+                        d_puncture_coords_ptr[linear_idx(punc_idx, idir)] +=
+                            p.pos(idir);
+                    }
+                });
         }
-        d_level_puncture_coords.copyToHost(h_level_puncture_coords.data(),
-                                           num_puncture_coords);
-
-        // Sum reduce over levels in case there are punctures on multiple levels
-        // on this proc
-        std::transform(m_puncture_coords.begin(), m_puncture_coords.end(),
-                       h_level_puncture_coords.begin(),
-                       m_puncture_coords.begin(), std::plus<amrex::Real>());
-
     } // ilevel
+
+    amrex::Gpu::copy(amrex::Gpu::deviceToHost, d_puncture_coords.begin(),
+                     d_puncture_coords.end(), m_puncture_coords.data());
 
     // MPI sum over all ranks
     amrex::ParallelAllReduce::Sum(m_puncture_coords.data(), num_puncture_coords,
