@@ -14,7 +14,9 @@ jobs:
       AMREX_HOME: ${{ github.workspace }}/amrex
       BINARYBH_EXAMPLE_DIR: ${{ github.workspace }}/GRTeclyn/Examples/BinaryBH
       GCC_VERSION: 14
-      BUILD_ARGS: >
+      REL_TOL: 1e-10
+      ABS_TOL: 1e-10
+      BUILD_ARGS: >-
         COMP=gnu
         USE_MPI=TRUE
         USE_CCACHE=TRUE
@@ -72,19 +74,33 @@ jobs:
       run: make -j 4 ${{ env.BUILD_ARGS }}
       working-directory: ${{ env.AMREX_HOME }}/Tools/Plotfile
 
+    - name: Build particle_compare tool
+      run: make -j 4 ${{ env.BUILD_ARGS }} particle_compare.exe
+      working-directory: ${{ env.AMREX_HOME }}/Tools/Postprocessing/C_Src
+
     - name: Run BinaryBH example using test parameters
       run: mpiexec -n 2 ./main3d.gnu.MPI.ex ./params_test.txt
       working-directory: ${{ env.BINARYBH_EXAMPLE_DIR }}
 
     - name: Compare plotfile from final step with saved plotfile
-      run: |
-        mpiexec -n 1 \
-        ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.MPI.ex \
-        --abs_tol 1e-10 \
-        --rel_tol 1e-10 \
-        --abort_if_not_all_found \
-        ${GITHUB_WORKSPACE}/GRTeclyn/.github/workflows/data/plt00008_compare \
+      run: >
+        mpiexec -n 1
+        ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.MPI.ex
+        --abs_tol ${ABS_TOL}
+        --rel_tol ${REL_TOL}
+        --abort_if_not_all_found
+        ${GITHUB_WORKSPACE}/GRTeclyn/.github/workflows/data/plt00008_compare
         ${BINARYBH_EXAMPLE_DIR}/plt00008
+
+    - name: Compare particle (puncture) data from final step with saved data
+      run: >
+        mpiexec -n 1
+        ${AMREX_HOME}/Tools/Postprocessing/C_Src/particle_compare.exe
+        --abs_tol ${ABS_TOL}
+        --rel_tol ${REL_TOL}
+        ${GITHUB_WORKSPACE}/GRTeclyn/.github/workflows/data/plt00008_compare
+        ${BINARYBH_EXAMPLE_DIR}/plt00008
+        particles
 
     - name: Restart from last checkpoint and evolve for a few more steps
       run: >
