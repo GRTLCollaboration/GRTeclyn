@@ -109,7 +109,7 @@ class CCZ4RHS
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void rhs_equation(
         vars_t<data_t> &rhs, //!< Reference to the variables into which the
                              //! output right hand side is written
-        const vars_t<data_t> &vars, //!< The values of the current variables
+        const amrex::CellData<data_t const> &cell_data, //!< The values of the current variables
         const vars_t<Tensor<1, data_t>>
             &d1, //!< First derivative of the variables
         const diff2_vars_t<Tensor<2, data_t>>
