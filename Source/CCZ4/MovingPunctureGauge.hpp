@@ -47,7 +47,7 @@ class MovingPunctureGauge
     template <class data_t, template <typename> class vars_t,
               template <typename> class diff2_vars_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    rhs_gauge(vars_t<data_t> &rhs,
+    rhs_gauge(const amrex::CellData<data_t> &rhs_cell_data,
 	      const data_t lapse,
 	      const data_t K,
 	      const data_t Theta,
@@ -56,17 +56,17 @@ class MovingPunctureGauge
               const diff2_vars_t<Tensor<2, data_t>> & /*d2*/,
               const vars_t<data_t> &advec) const
     {
-        rhs.lapse = m_params.lapse_advec_coeff * advec.lapse -
+        rhs_cell_data[c_lapse] = m_params.lapse_advec_coeff * advec.lapse -
                     m_params.lapse_coeff *
                         pow(lapse, m_params.lapse_power) *
                         (K - 2 * Theta);
         FOR (i)
         {
-            rhs.shift[i] = m_params.shift_advec_coeff * advec.shift[i] +
+          rhs_cell_data[c_shift1 + i] = m_params.shift_advec_coeff * advec.shift[i] +
                            m_params.shift_Gamma_coeff * B[i];
-            rhs.B[i] = m_params.shift_advec_coeff * advec.B[i] -
+          rhs_cell_data[c_B1 + i] = m_params.shift_advec_coeff * advec.B[i] -
                        m_params.shift_advec_coeff * advec.Gamma[i] +
-                       rhs.Gamma[i] - m_params.eta * B[i];
+                       rhs_cell_data[c_Gamma1 + i] - m_params.eta * B[i];
         }
     }
 };

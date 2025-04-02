@@ -107,7 +107,7 @@ class CCZ4RHS
     template <class data_t, template <typename> class vars_t,
               template <typename> class diff2_vars_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void rhs_equation(
-        vars_t<data_t> &rhs, //!< Reference to the variables into which the
+        const amrex::CellData<data_t> &rhs_cell_data, //!< Reference to the variables into which the
                              //! output right hand side is written
         const amrex::CellData<data_t const> &cell_data, //!< The values of the current variables
         const vars_t<Tensor<1, data_t>>

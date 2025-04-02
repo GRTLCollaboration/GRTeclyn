@@ -46,18 +46,24 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<gauge_t, deriv_t>::compute(
     int i, int j, int k, const amrex::Array4<data_t> &rhs,
     const amrex::Array4<data_t const> &state) const
 {
+    Tensor<1, data_t> shift;
+    shift[0] = state.cellData(i, j, k)[c_shift1];
+    shift[1] = state.cellData(i, j, k)[c_shift2];
+    shift[2] = state.cellData(i, j, k)[c_shift3];
+
     //const auto vars = load_vars<Vars>(state.cellData(i, j, k));
     const auto d1   = m_deriv.template diff1<Vars>(i, j, k, state);
     const auto d2   = m_deriv.template diff2<Diff2Vars>(i, j, k, state);
     const auto advec =
-        m_deriv.template advection<Vars>(i, j, k, state, vars.shift);
+        m_deriv.template advection<Vars>(i, j, k, state, shift);
 
-    Vars<data_t> rhs_vars;
-    rhs_equation(rhs_vars, state.cellData(i, j, k), d1, d2, advec);
+    //Vars<data_t> rhs_vars;
+    rhs_equation(rhs.cellData(i, j, k), state.cellData(i, j, k), d1, d2, advec);
+ 
+    //TODO: FIXME 
+    //m_deriv.add_dissipation(i, j, k, rhs_vars, state, m_sigma);
 
-    m_deriv.add_dissipation(i, j, k, rhs_vars, state, m_sigma);
-
-    store_vars(rhs.cellData(i, j, k), rhs_vars);
+    //store_vars(rhs.cellData(i, j, k), rhs_vars);
 }
 
 // NOLINTBEGIN(readability-function-cognitive-complexity)
@@ -66,7 +72,8 @@ template <class data_t, template <typename> class vars_t,
           template <typename> class diff2_vars_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
-    vars_t<data_t> &rhs, const amrex::CellData<data_t const> &cell_data,
+    const amrex::CellData<data_t> &rhs_cell_data, 
+    const amrex::CellData<data_t const> &cell_data,
     const vars_t<Tensor<1, data_t>> &d1,
     const diff2_vars_t<Tensor<2, data_t>> &d2,
     const vars_t<data_t> &advec) const
@@ -105,6 +112,11 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
     A[2][0] = cell_data[c_A13];
     A[2][1] = cell_data[c_A23];
     A[2][2] = cell_data[c_A33];
+
+    Tensor<2,data_t> rhs_h; //{cell_data[c_h11], cell_data[c_h12], cell_data[c_h13], cell_data[c_h22], cell_data[c_h23], cell_data[c_h33]};
+    Tensor<1, data_t> rhs_Gamma;
+    Tensor<1, data_t> rhs_shift;
+    Tensor<2,data_t> rhs_A;
     
     auto h_UU  = compute_inverse_sym(h);
     auto chris = compute_christoffel(d1.h, h_UU);
@@ -163,15 +175,15 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
 
     // A^{ij} A_{ij}. - Note the abuse of the compute trace function.
     data_t tr_A2 = compute_trace(A, A_UU);
-    rhs.chi      = advec.chi +
+    rhs_cell_data[c_chi]      = advec.chi +
       (2.0 / GR_SPACEDIM) * cell_data[c_chi] * (cell_data[c_lapse] * cell_data[c_K] - divshift);
     FOR (i, j)
     {
-        rhs.h[i][j] = advec.h[i][j] - 2.0 * cell_data[c_lapse] * A[i][j] -
+        rhs_h[i][j] = advec.h[i][j] - 2.0 * cell_data[c_lapse] * A[i][j] -
                       (2.0 / GR_SPACEDIM) * h[i][j] * divshift;
         FOR (k)
         {
-            rhs.h[i][j] +=
+            rhs_h[i][j] +=
                 h[k][i] * d1.shift[k][j] + h[k][j] * d1.shift[k][i];
         }
     }
@@ -186,16 +198,16 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
 
     FOR (i, j)
     {
-        rhs.A[i][j] = advec.A[i][j] + Adot_TF[i][j] +
+        rhs_A[i][j] = advec.A[i][j] + Adot_TF[i][j] +
                       A[i][j] * (cell_data[c_lapse] * (cell_data[c_K] - 2 * cell_data[c_Theta]) -
                                       (2.0 / GR_SPACEDIM) * divshift);
         FOR (k)
         {
-            rhs.A[i][j] +=
+            rhs_A[i][j] +=
                 A[k][i] * d1.shift[k][j] + A[k][j] * d1.shift[k][i];
             FOR (l)
             {
-                rhs.A[i][j] -=
+                rhs_A[i][j] -=
                     2 * cell_data[c_lapse] * h_UU[k][l] * A[i][k] * A[l][j];
             }
         }
@@ -213,15 +225,15 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
 
     if (m_formulation == USE_BSSN)
     {
-        rhs.Theta = 0; // ensure the Theta of CCZ4 remains at zero
+        rhs_cell_data[c_Theta] = 0; // ensure the Theta of CCZ4 remains at zero
         // Use hamiltonian constraint to remove ricci.scalar for BSSN update
-        rhs.K = advec.K + cell_data[c_lapse] * (tr_A2 + cell_data[c_K] * cell_data[c_K] / GR_SPACEDIM) -
+        rhs_cell_data[c_K] = advec.K + cell_data[c_lapse] * (tr_A2 + cell_data[c_K] * cell_data[c_K] / GR_SPACEDIM) -
                 tr_covd2lapse;
-        rhs.K += -2 * cell_data[c_lapse] * m_cosmological_constant / (GR_SPACEDIM - 1.);
+        rhs_cell_data[c_K] += -2 * cell_data[c_lapse] * m_cosmological_constant / (GR_SPACEDIM - 1.);
     }
     else
     {
-        rhs.Theta =
+        rhs_cell_data[c_Theta] =
             advec.Theta +
             0.5 * cell_data[c_lapse] *
                 (ricci.scalar - tr_A2 +
@@ -231,14 +243,14 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
                 ((GR_SPACEDIM + 1) + m_params.kappa2 * (GR_SPACEDIM - 1)) -
             Z_dot_d1lapse;
 
-        rhs.Theta += -cell_data[c_lapse] * m_cosmological_constant;
-        rhs.K =
+        rhs_cell_data[c_Theta] += -cell_data[c_lapse] * m_cosmological_constant;
+        rhs_cell_data[c_K] =
             advec.K +
             cell_data[c_lapse] * (ricci.scalar + cell_data[c_K] * (cell_data[c_K] - 2 * cell_data[c_Theta])) -
             kappa1_times_lapse * GR_SPACEDIM * (1 + m_params.kappa2) *
                 cell_data[c_Theta] -
             tr_covd2lapse;
-        rhs.K += -2 * cell_data[c_lapse] * GR_SPACEDIM / (GR_SPACEDIM - 1.) *
+        rhs_cell_data[c_K] += -2 * cell_data[c_lapse] * GR_SPACEDIM / (GR_SPACEDIM - 1.) *
                  m_cosmological_constant;
     }
 
@@ -275,7 +287,7 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
 
     FOR (i)
     {
-        rhs.Gamma[i] = advec.Gamma[i] + Gammadot[i];
+        rhs_Gamma[i] = advec.Gamma[i] + Gammadot[i];
     }
 
 
@@ -284,7 +296,27 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
     B[1] = cell_data[c_B2];
     B[2] = cell_data[c_B3]; 
     //need K, lapse, B, Theta
-    m_gauge.rhs_gauge(rhs, cell_data[c_lapse], cell_data[c_K], cell_data[c_Theta], B, d1, d2, advec);
+    m_gauge.rhs_gauge(rhs_cell_data, cell_data[c_lapse], cell_data[c_K], cell_data[c_Theta], B, d1, d2, advec);
+
+    rhs_cell_data[c_h11]=rhs_h[0][0]; // change to 1D
+    rhs_cell_data[c_h12]=rhs_h[0][1];
+    rhs_cell_data[c_h13]=rhs_h[0][2];
+    rhs_cell_data[c_h22]=rhs_h[1][1];
+    rhs_cell_data[c_h23]=rhs_h[1][2];
+    rhs_cell_data[c_h33]=rhs_h[2][2];
+
+    rhs_cell_data[c_Gamma1]= rhs_Gamma[0];
+    rhs_cell_data[c_Gamma2]= rhs_Gamma[1];
+    rhs_cell_data[c_Gamma3]= rhs_Gamma[2];
+
+    rhs_cell_data[c_A11]=rhs_A[0][0]; // change to 1D
+    rhs_cell_data[c_A12]=rhs_A[0][1];
+    rhs_cell_data[c_A13]=rhs_A[0][2];
+    rhs_cell_data[c_A22]=rhs_A[1][1];
+    rhs_cell_data[c_A23]=rhs_A[2][1];
+    rhs_cell_data[c_A33]=rhs_A[2][2];
+
+
 }
 // NOLINTEND(readability-function-cognitive-complexity)
 
