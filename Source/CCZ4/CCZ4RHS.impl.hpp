@@ -46,14 +46,14 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<gauge_t, deriv_t>::compute(
     int i, int j, int k, const amrex::Array4<data_t> &rhs,
     const amrex::Array4<data_t const> &state) const
 {
-    const auto vars = load_vars<Vars>(state.cellData(i, j, k));
+    //const auto vars = load_vars<Vars>(state.cellData(i, j, k));
     const auto d1   = m_deriv.template diff1<Vars>(i, j, k, state);
     const auto d2   = m_deriv.template diff2<Diff2Vars>(i, j, k, state);
     const auto advec =
         m_deriv.template advection<Vars>(i, j, k, state, vars.shift);
 
     Vars<data_t> rhs_vars;
-    rhs_equation(rhs_vars, vars, d1, d2, advec);
+    rhs_equation(cellData, d1, d2, advec);
 
     m_deriv.add_dissipation(i, j, k, rhs_vars, state, m_sigma);
 
