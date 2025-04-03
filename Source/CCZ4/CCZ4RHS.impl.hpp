@@ -54,7 +54,6 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<gauge_t, deriv_t>::compute(
     const auto advec =
         m_deriv.template advection<Vars>(i, j, k, state, shift);
 
-    //const auto vars = load_vars<Vars>(state.cellData(i, j, k));
     const auto d1   = m_deriv.template diff1<data_t, NUM_CCZ4_VARS>(i, j, k, state);
 
     Tensor<2, data_t> diff2_lapse = m_deriv.template diff2<data_t>(i, j, k, state, c_lapse);
@@ -78,8 +77,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<gauge_t, deriv_t>::compute(
 
     rhs_equation(rhs.cellData(i, j, k), state.cellData(i, j, k), d1, advec, diff2_lapse, diff2_chi, diff2_shift, diff2_h);
  
-    //TODO: FIXME 
-    //m_deriv.add_dissipation(i, j, k, rhs_vars, state, m_sigma);
+    m_deriv.add_dissipation(i, j, k, rhs.cellData(i, j, k), state, m_sigma, NUM_CCZ4_VARS);
 }
 
 // NOLINTBEGIN(readability-function-cognitive-complexity)
