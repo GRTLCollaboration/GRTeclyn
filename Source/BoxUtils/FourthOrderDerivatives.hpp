@@ -71,6 +71,42 @@ class FourthOrderDerivatives
         return d1;
     }
 
+    /// Calculates all first derivatives and returns as variable type specified
+    /// by the template parameter
+    template <class data_t>
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE auto
+    diff1(int i, int j, int k, const amrex::Array4<const data_t> &state, int ivar) const
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+        Tensor<1, data_t> d1;
+        const auto *state_ptr_ijk = state.ptr(i, j, k);
+        AMREX_D_TERM(
+            d1[0] = diff1<data_t>(state_ptr_ijk + ivar * state.nstride,
+                                    0, 1);
+            ,
+            d1[1] = diff1<data_t>(state_ptr_ijk + ivar * state.nstride,
+                                    0, static_cast<int>(state.jstride));
+            ,
+            d1[2] = diff1<data_t>(state_ptr_ijk + ivar * state.nstride,
+                                    0, static_cast<int>(state.kstride)));
+        return d1;
+    }
+
+    /// Calculates all first derivatives and returns as variable type specified
+    /// by the template parameter
+    template <class data_t, int num_vars>
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE auto
+    diff1(int i, int j, int k, const amrex::Array4<const data_t> &state) const
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+        amrex::GpuArray<Tensor<1, data_t>, num_vars> d1;
+        for(int ivar = 0; ivar < num_vars; ivar++)
+        {
+            d1[ivar] = diff1(i, j, k, state, ivar);
+        }
+        return d1;
+    }
+
     template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE data_t diff2(const double *in_ptr,
                                                      const int idx,
@@ -150,6 +186,49 @@ class FourthOrderDerivatives
                     }
                 }
             });
+        return d2;
+    }
+
+    /// Calculates all second derivatives and returns as variable type specified
+    /// by the template parameter
+    template <class data_t>
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE auto
+    diff2(int i, int j, int k, const amrex::Array4<data_t const> &state, int ivar) const
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+        Tensor<2, data_t> d2;
+        const auto *state_ptr_ijk = state.ptr(i, j, k);
+        amrex::GpuArray<int, AMREX_SPACEDIM> strides{
+            1, static_cast<int>(state.jstride),
+            static_cast<int>(state.kstride)};
+
+        const auto *pvar = state_ptr_ijk + ivar * state.nstride;
+        FOR (dir1) // First calculate the repeated derivatives
+        {
+            d2[dir1][dir1] = diff2<data_t>(pvar, 0, strides[dir1]);
+            for (int dir2 = 0; dir2 < dir1; ++dir2)
+            {
+                auto tmp = mixed_diff2<data_t>(pvar, 0, strides[dir1],
+                                                strides[dir2]);
+                d2[dir1][dir2] = tmp;
+                d2[dir2][dir1] = tmp;
+            }
+        }
+        return d2;
+    }
+
+    /// Calculates all first derivatives and returns as variable type specified
+    /// by the template parameter
+    template <class data_t, int num_vars>
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE auto
+    diff2(int i, int j, int k, const amrex::Array4<const data_t> &state) const
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+        amrex::GpuArray<Tensor<2, data_t>, num_vars> d2;
+        for(int ivar = 0; ivar < num_vars; ivar++)
+        {
+            d2[ivar] = diff2(i, j, k, state, ivar);
+        }
         return d2;
     }
 

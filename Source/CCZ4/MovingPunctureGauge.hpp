@@ -44,16 +44,15 @@ class MovingPunctureGauge
   public:
     MovingPunctureGauge(const params_t &a_params) : m_params(a_params) {}
 
-    template <class data_t, template <typename> class vars_t,
-              template <typename> class diff2_vars_t>
+    template <class data_t, template <typename> class vars_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     rhs_gauge(const amrex::CellData<data_t> &rhs_cell_data,
 	      const data_t lapse,
 	      const data_t K,
 	      const data_t Theta,
 	      const Tensor<1, data_t> B,
-              const vars_t<Tensor<1, data_t>> & /*d1*/,
-              const diff2_vars_t<Tensor<2, data_t>> & /*d2*/,
+        const amrex::GpuArray<Tensor<1, data_t>, NUM_CCZ4_VARS>  & /*d1*/,
+              //const diff2_vars_t<Tensor<2, data_t>> & /*d2*/,
               const vars_t<data_t> &advec) const
     {
         rhs_cell_data[c_lapse] = m_params.lapse_advec_coeff * advec.lapse -

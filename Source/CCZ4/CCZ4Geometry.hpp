@@ -46,26 +46,99 @@ class CCZ4Geometry
 
   public:
     template <class data_t, template <typename> class vars_t,
-              template <typename> class diff2_vars_t>
+    template <typename> class diff2_vars_t>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static ricci_t<data_t>
-    compute_ricci_Z(
-		    const data_t chi,
-		    const Tensor<2,data_t> h,
-		    const Tensor<1, data_t> Gamma,
-                    const vars_t<Tensor<1, data_t>> &d1,
-                    const diff2_vars_t<Tensor<2, data_t>> &d2,
-                    const Tensor<2, data_t> &h_UU, const chris_t<data_t> &chris,
-                    const Tensor<1, data_t> &Z_over_chi)
+    compute_ricci_Z(const vars_t<data_t> &vars,
+            const vars_t<Tensor<1, data_t>> &d1,
+            const diff2_vars_t<Tensor<2, data_t>> &d2,
+            const Tensor<2, data_t> &h_UU, const chris_t<data_t> &chris,
+            const Tensor<1, data_t> &Z_over_chi)
     {
         ricci_t<data_t> out;
 
         Tensor<2, data_t> covdtilde2chi;
         FOR (k, l)
         {
-            covdtilde2chi[k][l] = d2.chi[k][l];
+        covdtilde2chi[k][l] = d2.chi[k][l];
+        FOR (m)
+        {
+            covdtilde2chi[k][l] -= chris.ULL[m][k][l] * d1.chi[m];
+        }
+        }
+
+        Tensor<3, data_t> chris_LLU = {0.};
+        data_t boxtildechi          = 0.;
+        data_t dchi_dot_dchi        = 0.;
+        FOR (i, j)
+        {
+        boxtildechi   += covdtilde2chi[i][j] * h_UU[i][j];
+        dchi_dot_dchi += d1.chi[i] * d1.chi[j] * h_UU[i][j];
+        FOR (k, l)
+        {
+            chris_LLU[i][j][k] += h_UU[k][l] * chris.LLL[i][j][l];
+        }
+        }
+
+        FOR (i, j)
+        {
+        data_t ricci_hat = 0;
+        FOR (k)
+        {
+            // We call this ricci_hat rather than ricci_tilde as we have
+            // replaced what should be \tilde{Gamma} with \hat{Gamma} in
+            // order to avoid adding terms that cancel later on
+            ricci_hat += 0.5 * (vars.h[k][i] * d1.Gamma[k][j] +
+                                vars.h[k][j] * d1.Gamma[k][i]);
+            ricci_hat += 0.5 * vars.Gamma[k] * d1.h[i][j][k];
+            FOR (l)
+            {
+                ricci_hat += -0.5 * h_UU[k][l] * d2.h[i][j][k][l] +
+                            (chris.ULL[k][l][i] * chris_LLU[j][k][l] +
+                            chris.ULL[k][l][j] * chris_LLU[i][k][l] +
+                            chris.ULL[k][i][l] * chris_LLU[k][j][l]);
+            }
+        }
+
+        data_t ricci_chi =
+            0.5 * ((GR_SPACEDIM - 2) * covdtilde2chi[i][j] +
+                vars.h[i][j] * boxtildechi -
+                ((GR_SPACEDIM - 2) * d1.chi[i] * d1.chi[j] +
+                    GR_SPACEDIM * vars.h[i][j] * dchi_dot_dchi) /
+                    (2 * vars.chi));
+
+        data_t z_terms = compute_z_terms(i, j, Z_over_chi, vars.h, d1.chi);
+
+        out.LL[i][j] =
+            (ricci_chi + vars.chi * ricci_hat + z_terms) / vars.chi;
+        }
+
+        out.scalar = vars.chi * TensorAlgebra::compute_trace(out.LL, h_UU);
+
+        return out;
+    }
+
+    template <class data_t>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static ricci_t<data_t>
+    compute_ricci_Z(
+		    const data_t chi,
+		    const Tensor<2,data_t> h,
+		    const Tensor<1, data_t> Gamma,
+                    const amrex::GpuArray<Tensor<1, data_t>, NUM_CCZ4_VARS> &d1,
+                    const Tensor<2, data_t> &d2_chi,
+                    const Tensor<2, Tensor<2, data_t>> &d2_h,
+                    const Tensor<2, data_t> &h_UU, const chris_t<data_t> &chris,
+                    const Tensor<1, data_t> &Z_over_chi,
+                    const Tensor<2, Tensor<1, data_t>> &d1_h, bool am=true)
+    {
+        ricci_t<data_t> out;
+
+        Tensor<2, data_t> covdtilde2chi;
+        FOR (k, l)
+        {
+            covdtilde2chi[k][l] = d2_chi[k][l];
             FOR (m)
             {
-                covdtilde2chi[k][l] -= chris.ULL[m][k][l] * d1.chi[m];
+                covdtilde2chi[k][l] -= chris.ULL[m][k][l] * d1[c_chi][m];
             }
         }
 
@@ -75,11 +148,19 @@ class CCZ4Geometry
         FOR (i, j)
         {
             boxtildechi   += covdtilde2chi[i][j] * h_UU[i][j];
-            dchi_dot_dchi += d1.chi[i] * d1.chi[j] * h_UU[i][j];
+            dchi_dot_dchi += d1[c_chi][i] * d1[c_chi][j] * h_UU[i][j];
             FOR (k, l)
             {
                 chris_LLU[i][j][k] += h_UU[k][l] * chris.LLL[i][j][l];
             }
+        }
+
+        Tensor<2,data_t> d1_Gamma;
+        FOR (i)
+        {
+            d1_Gamma[0][i] = d1[c_Gamma1][i];
+            d1_Gamma[1][i] = d1[c_Gamma2][i];
+            d1_Gamma[2][i] = d1[c_Gamma3][i];
         }
 
         FOR (i, j)
@@ -90,12 +171,12 @@ class CCZ4Geometry
                 // We call this ricci_hat rather than ricci_tilde as we have
                 // replaced what should be \tilde{Gamma} with \hat{Gamma} in
                 // order to avoid adding terms that cancel later on
-                ricci_hat += 0.5 * (h[k][i] * d1.Gamma[k][j] +
-                                    h[k][j] * d1.Gamma[k][i]);
-                ricci_hat += 0.5 * Gamma[k] * d1.h[i][j][k];
+                ricci_hat += 0.5 * (h[k][i] * d1_Gamma[k][j] +
+                                    h[k][j] * d1_Gamma[k][i]);
+                ricci_hat += 0.5 * Gamma[k] * d1_h[i][j][k];
                 FOR (l)
                 {
-                    ricci_hat += -0.5 * h_UU[k][l] * d2.h[i][j][k][l] +
+                    ricci_hat += -0.5 * h_UU[k][l] * d2_h[i][j][k][l] +
                                  (chris.ULL[k][l][i] * chris_LLU[j][k][l] +
                                   chris.ULL[k][l][j] * chris_LLU[i][k][l] +
                                   chris.ULL[k][i][l] * chris_LLU[k][j][l]);
@@ -105,11 +186,11 @@ class CCZ4Geometry
             data_t ricci_chi =
                 0.5 * ((GR_SPACEDIM - 2) * covdtilde2chi[i][j] +
                        h[i][j] * boxtildechi -
-                       ((GR_SPACEDIM - 2) * d1.chi[i] * d1.chi[j] +
+                       ((GR_SPACEDIM - 2) * d1[c_chi][i] * d1[c_chi][j] +
                         GR_SPACEDIM * h[i][j] * dchi_dot_dchi) /
                            (2 * chi));
 
-            data_t z_terms = compute_z_terms(i, j, Z_over_chi, h, d1.chi);
+            data_t z_terms = compute_z_terms(i, j, Z_over_chi, h, d1[c_chi]);
 
             out.LL[i][j] =
                 (ricci_chi + chi * ricci_hat + z_terms) / chi;
@@ -157,7 +238,7 @@ class CCZ4Geometry
     {
         // get contributions from conformal metric and factor with zero Z vector
         Tensor<1, data_t> zero_Z = 0.;
-        auto ricci = compute_ricci_Z(vars.chi, vars.h, vars.Gamma, d1, d2, h_UU, chris, zero_Z);
+        auto ricci = compute_ricci_Z(vars, d1, d2, h_UU, chris, zero_Z);
 
         // need to add term to correct for d1.Gamma (includes Z contribution)
         // and Gamma in ricci_hat
