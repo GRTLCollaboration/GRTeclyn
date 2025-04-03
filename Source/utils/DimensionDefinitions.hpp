@@ -37,7 +37,9 @@ constexpr int GR_SPACEDIM = 3;
 
 #define GET_MACRO6(_1, _2, _3, _4, _5, NAME, ...) NAME
 #define FOR(...)                                                               \
-    GET_MACRO6(__VA_ARGS__, FOR5, FOR4, FOR3, FOR2, FOR1, DUMMYFOR)(__VA_ARGS__)
+    GET_MACRO6(__VA_ARGS__, FOR5, FOR4, FOR3, FOR2, FOR1, DUMMYFOR)(__VA_ARGS__)\
 // NOLINTEND(cppcoreguidelines-macro-usage)
+
+#define SYMM_INDEX(IDX0, IDX1, IDX2) IDX1 + IDX2 + min(IDX1, IDX2) < 5 ? IDX0 + IDX1 + IDX2 + min(IDX1, IDX2) : IDX0 + 5
 
 #endif /* GRUTILS_HPP_*/
