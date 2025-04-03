@@ -317,27 +317,28 @@ class FourthOrderDerivatives
                m_one_over_dx;
     }
 
-    template <class data_t, template <typename> class vars_t>
+    template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    add_dissipation(int i, int j, int k, vars_t<data_t> &vars,
+    add_dissipation(int i, int j, int k, 
+                    const amrex::CellData<data_t> &rhs_cell_data,
                     const amrex::Array4<data_t const> &state,
-                    const double factor) const
+                    const double factor,
+                    const int num_vars) const
     {
         const auto *state_ptr_ijk = state.ptr(i, j, k);
         amrex::GpuArray<int, AMREX_SPACEDIM> strides{
             1, static_cast<int>(state.jstride),
             static_cast<int>(state.kstride)};
-        vars.enum_mapping(
-            [&](const int &ivar, data_t &var)
+        for(int ivar=0; ivar < num_vars; ivar++)
+        {
+            FOR(dir)
             {
-                FOR (dir)
-                {
-                    const auto stride  = strides[dir];
-                    var               += factor *
-                           dissipation_term<data_t>(
-                               state_ptr_ijk + ivar * state.nstride, 0, stride);
-                }
-            });
+                const auto stride  = strides[dir];
+                rhs_cell_data[ivar] += factor *
+                        dissipation_term<data_t>(
+                            state_ptr_ijk + ivar * state.nstride, 0, stride);
+            }
+        }
     }
 };
 
