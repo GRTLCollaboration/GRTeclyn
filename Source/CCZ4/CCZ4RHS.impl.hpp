@@ -321,13 +321,9 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
         rhs_Gamma[i] = advec.Gamma[i] + Gammadot[i];
     }
 
-
-    Tensor<1,data_t> B;
-    B[0] = cell_data[c_B1];
-    B[1] = cell_data[c_B2];
-    B[2] = cell_data[c_B3]; 
-    //need K, lapse, B, Theta
-    m_gauge.rhs_gauge(rhs_cell_data, cell_data[c_lapse], cell_data[c_K], cell_data[c_Theta], B, d1, advec);
+    rhs_cell_data[c_Gamma1]= rhs_Gamma[0];
+    rhs_cell_data[c_Gamma2]= rhs_Gamma[1];
+    rhs_cell_data[c_Gamma3]= rhs_Gamma[2];
 
     rhs_cell_data[c_h11]=rhs_h[0][0]; // change to 1D
     rhs_cell_data[c_h12]=rhs_h[0][1];
@@ -335,10 +331,6 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
     rhs_cell_data[c_h22]=rhs_h[1][1];
     rhs_cell_data[c_h23]=rhs_h[1][2];
     rhs_cell_data[c_h33]=rhs_h[2][2];
-
-    rhs_cell_data[c_Gamma1]= rhs_Gamma[0];
-    rhs_cell_data[c_Gamma2]= rhs_Gamma[1];
-    rhs_cell_data[c_Gamma3]= rhs_Gamma[2];
 
     rhs_cell_data[c_A11]=rhs_A[0][0]; // change to 1D
     rhs_cell_data[c_A12]=rhs_A[0][1];
@@ -348,6 +340,12 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
     rhs_cell_data[c_A33]=rhs_A[2][2];
 
 
+    Tensor<1,data_t> B;
+    B[0] = cell_data[c_B1];
+    B[1] = cell_data[c_B2];
+    B[2] = cell_data[c_B3]; 
+    //need K, lapse, B, Theta
+    m_gauge.rhs_gauge(rhs_cell_data, cell_data[c_lapse], cell_data[c_K], cell_data[c_Theta], B, d1, advec);
 }
 // NOLINTEND(readability-function-cognitive-complexity)
 
