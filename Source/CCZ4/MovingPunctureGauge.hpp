@@ -47,25 +47,22 @@ class MovingPunctureGauge
     template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     rhs_gauge(const amrex::CellData<data_t> &rhs_cell_data,
-	      const data_t lapse,
-	      const data_t K,
-	      const data_t Theta,
-	      const Tensor<1, data_t> B,
+        const amrex::CellData<data_t const> &cell_data,
         const amrex::GpuArray<Tensor<1, data_t>, NUM_CCZ4_VARS>  & /*d1*/,
               //const diff2_vars_t<Tensor<2, data_t>> & /*d2*/,
               const amrex::GpuArray<data_t, NUM_CCZ4_VARS> &advec) const
     {
         rhs_cell_data[c_lapse] = m_params.lapse_advec_coeff * advec[c_lapse] -
                     m_params.lapse_coeff *
-                        pow(lapse, m_params.lapse_power) *
-                        (K - 2 * Theta);
+                        pow(cell_data[c_lapse], m_params.lapse_power) *
+                        (cell_data[c_K] - 2 * cell_data[c_Theta]);
         FOR (i)
         {
           rhs_cell_data[c_shift1 + i] = m_params.shift_advec_coeff * advec[c_shift1 + i] +
-                           m_params.shift_Gamma_coeff * B[i];
+                           m_params.shift_Gamma_coeff * cell_data[c_B1 + i];
           rhs_cell_data[c_B1 + i] = m_params.shift_advec_coeff * advec[c_B1 + i] -
                        m_params.shift_advec_coeff * advec[c_Gamma1 + i] +
-                       rhs_cell_data[c_Gamma1 + i] - m_params.eta * B[i];
+                       rhs_cell_data[c_Gamma1 + i] - m_params.eta * cell_data[c_B1 + i];
         }
     }
 };
