@@ -47,9 +47,9 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<gauge_t, deriv_t>::compute(
     const amrex::Array4<data_t const> &state) const
 {
     Tensor<1, data_t> shift;
-    FOR(i)
+    FOR(idx)
     {
-        shift[i] = state.cellData(i, j, k)[c_shift1 + i];
+        shift[idx] = state.cellData(i, j, k)[c_shift1 + idx];
     }
 
     const auto advec =
@@ -61,15 +61,15 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<gauge_t, deriv_t>::compute(
     Tensor<2, data_t> diff2_chi = m_deriv.template diff2<data_t>(i, j, k, state, c_chi);
 
     Tensor<1, Tensor<2, data_t>> diff2_shift;
-    FOR(i)
+    FOR(idx)
     {
-        diff2_shift[i] = m_deriv.template diff2<data_t>(i, j, k, state, c_shift1 + i);
+        diff2_shift[idx] = m_deriv.template diff2<data_t>(i, j, k, state, c_shift1 + idx);
     }
 
     Tensor<2, Tensor<2, data_t>> diff2_h;
-    FOR(i, j)
+    FOR(idx1, idx2)
     {
-        diff2_h[i][j] = m_deriv.template diff2<data_t>(i, j, k, state, SYMM_INDEX(c_h11, i, j));
+        diff2_h[idx1][idx2] = m_deriv.template diff2<data_t>(i, j, k, state, SYMM_INDEX(c_h11, idx1, idx2));
     }
 
     rhs_equation(rhs.cellData(i, j, k), state.cellData(i, j, k), d1, advec, diff2_lapse, diff2_chi, diff2_shift, diff2_h);
@@ -202,7 +202,6 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
     rhs_cell_data[c_chi]      = advec[c_chi] +
       (2.0 / GR_SPACEDIM) * cell_data[c_chi] * (cell_data[c_lapse] * cell_data[c_K] - divshift);
 
-    //Tensor<2,data_t> rhs_h;
     FOR (i, j)
     {
         rhs_cell_data[SYMM_INDEX(c_h11, i, j)]  = advec[SYMM_INDEX(c_h11, i, j)] - 2.0 * cell_data[c_lapse] * cell_data[SYMM_INDEX(c_A11, i, j)] -
@@ -222,7 +221,6 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
     }
     make_trace_free(Adot_TF, h, h_UU);
 
-    //Tensor<2,data_t> rhs_A;
     FOR (i, j)
     {
         rhs_cell_data[SYMM_INDEX(c_A11, i, j)] = advec[SYMM_INDEX(c_A11, i, j)] + Adot_TF[i][j] +
