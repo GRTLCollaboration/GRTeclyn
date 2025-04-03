@@ -51,6 +51,9 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<gauge_t, deriv_t>::compute(
     shift[1] = state.cellData(i, j, k)[c_shift2];
     shift[2] = state.cellData(i, j, k)[c_shift3];
 
+    const auto advec =
+        m_deriv.template advection<Vars>(i, j, k, state, shift);
+
     //const auto vars = load_vars<Vars>(state.cellData(i, j, k));
     const auto d1   = m_deriv.template diff1<data_t, NUM_CCZ4_VARS>(i, j, k, state);
 
@@ -72,10 +75,6 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<gauge_t, deriv_t>::compute(
     diff2_h[2][0] = m_deriv.template diff2<data_t>(i, j, k, state, c_h13);
     diff2_h[2][1] = m_deriv.template diff2<data_t>(i, j, k, state, c_h23);
     diff2_h[2][2] = m_deriv.template diff2<data_t>(i, j, k, state, c_h33);
-
-    //const auto d2   = m_deriv.template diff2<data_t, NUM_CCZ4_VARS>(i, j, k, state);
-    const auto advec =
-        m_deriv.template advection<Vars>(i, j, k, state, shift);
 
     rhs_equation(rhs.cellData(i, j, k), state.cellData(i, j, k), d1, advec, diff2_lapse, diff2_chi, diff2_shift, diff2_h);
  
@@ -99,7 +98,7 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
 {
     using namespace TensorAlgebra;
 
-    Tensor<2,data_t> h; //{cell_data[c_h11], cell_data[c_h12], cell_data[c_h13], cell_data[c_h22], cell_data[c_h23], cell_data[c_h33]};
+    Tensor<2,data_t> h;
     h[0][0] = cell_data[c_h11]; // change to 1D
     h[0][1] = cell_data[c_h12];
     h[0][2] = cell_data[c_h13];
@@ -109,33 +108,6 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
     h[2][0] = cell_data[c_h13];
     h[2][1] = cell_data[c_h23];
     h[2][2] = cell_data[c_h33];
-
-
-    Tensor<1, data_t> Gamma;
-    Gamma[0] = cell_data[c_Gamma1];
-    Gamma[1] = cell_data[c_Gamma2];
-    Gamma[2] = cell_data[c_Gamma3];
-
-    Tensor<1, data_t> shift;
-    shift[0] = cell_data[c_shift1];
-    shift[1] = cell_data[c_shift2];
-    shift[2] = cell_data[c_shift3];
-
-    Tensor<2,data_t> A;
-    A[0][0] = cell_data[c_A11]; // change to 1D
-    A[0][1] = cell_data[c_A12];
-    A[0][2] = cell_data[c_A13];
-    A[1][0] = cell_data[c_A12];
-    A[1][1] = cell_data[c_A22];
-    A[1][2] = cell_data[c_A23];
-    A[2][0] = cell_data[c_A13];
-    A[2][1] = cell_data[c_A23];
-    A[2][2] = cell_data[c_A33];
-
-    Tensor<2,data_t> rhs_h; //{cell_data[c_h11], cell_data[c_h12], cell_data[c_h13], cell_data[c_h22], cell_data[c_h23], cell_data[c_h33]};
-    Tensor<1, data_t> rhs_Gamma;
-    Tensor<1, data_t> rhs_shift;
-    Tensor<2,data_t> rhs_A;
     
     auto h_UU  = compute_inverse_sym(h);
     // FIXME: d1.h is no longer immediately a Tensor object
@@ -164,6 +136,11 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
 
     Tensor<1, data_t> Z_over_chi;
     Tensor<1, data_t> Z; // NOLINT(readability-identifier-length)
+
+    Tensor<1, data_t> Gamma;
+    Gamma[0] = cell_data[c_Gamma1];
+    Gamma[1] = cell_data[c_Gamma2];
+    Gamma[2] = cell_data[c_Gamma3];
 
     if (m_formulation == USE_BSSN)
     {
@@ -212,12 +189,25 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
         }
     }
 
+    Tensor<2,data_t> A;
+    A[0][0] = cell_data[c_A11]; // change to 1D
+    A[0][1] = cell_data[c_A12];
+    A[0][2] = cell_data[c_A13];
+    A[1][0] = cell_data[c_A12];
+    A[1][1] = cell_data[c_A22];
+    A[1][2] = cell_data[c_A23];
+    A[2][0] = cell_data[c_A13];
+    A[2][1] = cell_data[c_A23];
+    A[2][2] = cell_data[c_A33];
+
     Tensor<2, data_t> A_UU = raise_all(A, h_UU);
 
     // A^{ij} A_{ij}. - Note the abuse of the compute trace function.
     data_t tr_A2 = compute_trace(A, A_UU);
     rhs_cell_data[c_chi]      = advec.chi +
       (2.0 / GR_SPACEDIM) * cell_data[c_chi] * (cell_data[c_lapse] * cell_data[c_K] - divshift);
+
+    Tensor<2,data_t> rhs_h;
     FOR (i, j)
     {
         rhs_h[i][j] = advec.h[i][j] - 2.0 * cell_data[c_lapse] * A[i][j] -
@@ -237,6 +227,7 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
     }
     make_trace_free(Adot_TF, h, h_UU);
 
+    Tensor<2,data_t> rhs_A;
     FOR (i, j)
     {
         rhs_A[i][j] = advec.A[i][j] + Adot_TF[i][j] +
@@ -326,6 +317,7 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
         }
     }
 
+    Tensor<1, data_t> rhs_Gamma;
     FOR (i)
     {
         rhs_Gamma[i] = advec.Gamma[i] + Gammadot[i];
