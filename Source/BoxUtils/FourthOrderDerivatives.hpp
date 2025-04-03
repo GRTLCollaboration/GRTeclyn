@@ -234,10 +234,10 @@ class FourthOrderDerivatives
 
   protected: // Let's keep this protected ... we may want to change the
              // advection calculation
-    template <class data_t, class mask_t>
+    template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE data_t
     advection_term(const double *in_ptr, const int idx, const data_t &vec_comp,
-                   const int stride, const mask_t shift_positive) const
+                   const int stride, const bool shift_positive) const
     {
         const auto *const in   = SIMDIFY<data_t>(in_ptr);
         const data_t in_left   = in[idx - stride];
@@ -264,43 +264,54 @@ class FourthOrderDerivatives
                     weight_1 * in_centre - weight_0 * in_right) *
                    m_one_over_dx;
 
-        return simd_conditional(shift_positive, upwind, downwind);
+        return shift_positive ? upwind : downwind;
     }
 
   public:
 
     /// Calculates all second derivatives and returns as variable type specified
     /// by the template parameter
-    template <template <typename> class vars_t, class data_t>
+    template <class data_t>
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE auto
     advection(int i, int j, int k, const amrex::Array4<data_t const> &state,
-              const Tensor<1, data_t> &vector) const
+              const Tensor<1, data_t> &vector, int ivar) const
     {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-        vars_t<data_t> advec;
+        data_t advec = 0.;
         const auto *state_ptr_ijk = state.ptr(i, j, k);
         amrex::GpuArray<int, AMREX_SPACEDIM> strides{
             1, static_cast<int>(state.jstride),
             static_cast<int>(state.kstride)};
-        advec.enum_mapping(
-            [&](const int &ivar, data_t &var)
-            {
-                var              = 0.;
-                const auto *pvar = state_ptr_ijk + ivar * state.nstride;
-                FOR (dir)
-                {
-                    const auto shift_positive =
-                        simd_compare_gt(vector[dir], 0.0);
-                    var += advection_term(pvar, 0, vector[dir], strides[dir],
-                                          shift_positive);
-                }
-            });
+
+        const auto *pvar = state_ptr_ijk + ivar * state.nstride;
+        FOR (dir)
+        {
+            const auto shift_positive = (vector[dir]> 0.0);
+            advec += advection_term(pvar, 0, vector[dir], strides[dir],
+                                    shift_positive);
+        }
+        return advec;
+    }
+
+    /// Calculates all first derivatives and returns as variable type specified
+    /// by the template parameter
+    template <class data_t, int num_vars>
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE auto
+    advection(int i, int j, int k, const amrex::Array4<const data_t> &state, 
+        const Tensor<1, data_t> &vector) const
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+        amrex::GpuArray<data_t, num_vars> advec;
+        for(int ivar = 0; ivar < num_vars; ivar++)
+        {
+            advec[ivar] = advection(i, j, k, state, vector, ivar);
+        }
         return advec;
     }
 
     template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE data_t dissipation_term(
-        const double *in_ptr, const int idx, const int stride) const
+        const double *in_ptr, const int stride) const
     {
         const auto *const in = SIMDIFY<data_t>(in_ptr);
         data_t weight_vfar   = 1.56250e-2;
@@ -308,12 +319,12 @@ class FourthOrderDerivatives
         data_t weight_near   = 2.34375e-1;
         data_t weight_local  = 3.12500e-1;
 
-        return (weight_vfar * in[idx - 3 * stride] -
-                weight_far * in[idx - 2 * stride] +
-                weight_near * in[idx - stride] - weight_local * in[idx] +
-                weight_near * in[idx + stride] -
-                weight_far * in[idx + 2 * stride] +
-                weight_vfar * in[idx + 3 * stride]) *
+        return (weight_vfar * in[- 3 * stride] -
+                weight_far * in[- 2 * stride] +
+                weight_near * in[- stride] - weight_local * in[0] +
+                weight_near * in[stride] -
+                weight_far * in[2 * stride] +
+                weight_vfar * in[3 * stride]) *
                m_one_over_dx;
     }
 
@@ -336,7 +347,7 @@ class FourthOrderDerivatives
                 const auto stride  = strides[dir];
                 rhs_cell_data[ivar] += factor *
                         dissipation_term<data_t>(
-                            state_ptr_ijk + ivar * state.nstride, 0, stride);
+                            state_ptr_ijk + ivar * state.nstride, stride);
             }
         }
     }

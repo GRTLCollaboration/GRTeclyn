@@ -44,7 +44,7 @@ class MovingPunctureGauge
   public:
     MovingPunctureGauge(const params_t &a_params) : m_params(a_params) {}
 
-    template <class data_t, template <typename> class vars_t>
+    template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     rhs_gauge(const amrex::CellData<data_t> &rhs_cell_data,
 	      const data_t lapse,
@@ -53,18 +53,18 @@ class MovingPunctureGauge
 	      const Tensor<1, data_t> B,
         const amrex::GpuArray<Tensor<1, data_t>, NUM_CCZ4_VARS>  & /*d1*/,
               //const diff2_vars_t<Tensor<2, data_t>> & /*d2*/,
-              const vars_t<data_t> &advec) const
+              const amrex::GpuArray<data_t, NUM_CCZ4_VARS> &advec) const
     {
-        rhs_cell_data[c_lapse] = m_params.lapse_advec_coeff * advec.lapse -
+        rhs_cell_data[c_lapse] = m_params.lapse_advec_coeff * advec[c_lapse] -
                     m_params.lapse_coeff *
                         pow(lapse, m_params.lapse_power) *
                         (K - 2 * Theta);
         FOR (i)
         {
-          rhs_cell_data[c_shift1 + i] = m_params.shift_advec_coeff * advec.shift[i] +
+          rhs_cell_data[c_shift1 + i] = m_params.shift_advec_coeff * advec[c_shift1 + i] +
                            m_params.shift_Gamma_coeff * B[i];
-          rhs_cell_data[c_B1 + i] = m_params.shift_advec_coeff * advec.B[i] -
-                       m_params.shift_advec_coeff * advec.Gamma[i] +
+          rhs_cell_data[c_B1 + i] = m_params.shift_advec_coeff * advec[c_B1 + i] -
+                       m_params.shift_advec_coeff * advec[c_Gamma1 + i] +
                        rhs_cell_data[c_Gamma1 + i] - m_params.eta * B[i];
         }
     }

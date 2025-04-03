@@ -52,7 +52,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<gauge_t, deriv_t>::compute(
     shift[2] = state.cellData(i, j, k)[c_shift3];
 
     const auto advec =
-        m_deriv.template advection<Vars>(i, j, k, state, shift);
+        m_deriv.template advection<data_t, NUM_CCZ4_VARS>(i, j, k, state, shift);
 
     const auto d1   = m_deriv.template diff1<data_t, NUM_CCZ4_VARS>(i, j, k, state);
 
@@ -82,13 +82,13 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<gauge_t, deriv_t>::compute(
 
 // NOLINTBEGIN(readability-function-cognitive-complexity)
 template <class gauge_t, class deriv_t>
-template <class data_t, template <typename> class vars_t>
+template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
     const amrex::CellData<data_t> &rhs_cell_data, 
     const amrex::CellData<data_t const> &cell_data,
     const amrex::GpuArray<Tensor<1, data_t>, NUM_CCZ4_VARS> &d1,
-    const vars_t<data_t> &advec,
+    const amrex::GpuArray<data_t, NUM_CCZ4_VARS> &advec,
     const Tensor<2, data_t> &d2_lapse,
     const Tensor<2, data_t> &d2_chi,
     const Tensor<1, Tensor<2, data_t>> &d2_shift,
@@ -202,13 +202,25 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
 
     // A^{ij} A_{ij}. - Note the abuse of the compute trace function.
     data_t tr_A2 = compute_trace(A, A_UU);
-    rhs_cell_data[c_chi]      = advec.chi +
+    rhs_cell_data[c_chi]      = advec[c_chi] +
       (2.0 / GR_SPACEDIM) * cell_data[c_chi] * (cell_data[c_lapse] * cell_data[c_K] - divshift);
 
     Tensor<2,data_t> rhs_h;
+    Tensor<2,data_t> advec_h;
+
+    advec_h[0][0] = advec[c_h11]; // change to 1D
+    advec_h[0][1] = advec[c_h12];
+    advec_h[0][2] = advec[c_h13];
+    advec_h[1][0] = advec[c_h12];
+    advec_h[1][1] = advec[c_h22];
+    advec_h[1][2] = advec[c_h23];
+    advec_h[2][0] = advec[c_h13];
+    advec_h[2][1] = advec[c_h23];
+    advec_h[2][2] = advec[c_h33];
+
     FOR (i, j)
     {
-        rhs_h[i][j] = advec.h[i][j] - 2.0 * cell_data[c_lapse] * A[i][j] -
+        rhs_h[i][j] = advec_h[i][j] - 2.0 * cell_data[c_lapse] * A[i][j] -
                       (2.0 / GR_SPACEDIM) * h[i][j] * divshift;
         FOR (k)
         {
@@ -226,9 +238,20 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
     make_trace_free(Adot_TF, h, h_UU);
 
     Tensor<2,data_t> rhs_A;
+    Tensor<2,data_t> advec_A;
+
+    advec_A[0][0] = advec[c_A11]; // change to 1D
+    advec_A[0][1] = advec[c_A12];
+    advec_A[0][2] = advec[c_A13];
+    advec_A[1][0] = advec[c_A12];
+    advec_A[1][1] = advec[c_A22];
+    advec_A[1][2] = advec[c_A23];
+    advec_A[2][0] = advec[c_A13];
+    advec_A[2][1] = advec[c_A23];
+    advec_A[2][2] = advec[c_A33];
     FOR (i, j)
     {
-        rhs_A[i][j] = advec.A[i][j] + Adot_TF[i][j] +
+        rhs_A[i][j] = advec_A[i][j] + Adot_TF[i][j] +
                       A[i][j] * (cell_data[c_lapse] * (cell_data[c_K] - 2 * cell_data[c_Theta]) -
                                       (2.0 / GR_SPACEDIM) * divshift);
         FOR (k)
@@ -257,14 +280,14 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
     {
         rhs_cell_data[c_Theta] = 0; // ensure the Theta of CCZ4 remains at zero
         // Use hamiltonian constraint to remove ricci.scalar for BSSN update
-        rhs_cell_data[c_K] = advec.K + cell_data[c_lapse] * (tr_A2 + cell_data[c_K] * cell_data[c_K] / GR_SPACEDIM) -
+        rhs_cell_data[c_K] = advec[c_K] + cell_data[c_lapse] * (tr_A2 + cell_data[c_K] * cell_data[c_K] / GR_SPACEDIM) -
                 tr_covd2lapse;
         rhs_cell_data[c_K] += -2 * cell_data[c_lapse] * m_cosmological_constant / (GR_SPACEDIM - 1.);
     }
     else
     {
         rhs_cell_data[c_Theta] =
-            advec.Theta +
+            advec[c_Theta] +
             0.5 * cell_data[c_lapse] *
                 (ricci.scalar - tr_A2 +
                  ((GR_SPACEDIM - 1.0) / (double)GR_SPACEDIM) * cell_data[c_K] * cell_data[c_K] -
@@ -275,7 +298,7 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
 
         rhs_cell_data[c_Theta] += -cell_data[c_lapse] * m_cosmological_constant;
         rhs_cell_data[c_K] =
-            advec.K +
+            advec[c_K] +
             cell_data[c_lapse] * (ricci.scalar + cell_data[c_K] * (cell_data[c_K] - 2 * cell_data[c_Theta])) -
             kappa1_times_lapse * GR_SPACEDIM * (1 + m_params.kappa2) *
                 cell_data[c_Theta] -
@@ -318,7 +341,7 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
     Tensor<1, data_t> rhs_Gamma;
     FOR (i)
     {
-        rhs_Gamma[i] = advec.Gamma[i] + Gammadot[i];
+        rhs_Gamma[i] = advec[c_Gamma1 + i] + Gammadot[i];
     }
 
     rhs_cell_data[c_Gamma1]= rhs_Gamma[0];
@@ -344,6 +367,7 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
     B[0] = cell_data[c_B1];
     B[1] = cell_data[c_B2];
     B[2] = cell_data[c_B3]; 
+    
     //need K, lapse, B, Theta
     m_gauge.rhs_gauge(rhs_cell_data, cell_data[c_lapse], cell_data[c_K], cell_data[c_Theta], B, d1, advec);
 }
