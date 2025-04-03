@@ -47,9 +47,10 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<gauge_t, deriv_t>::compute(
     const amrex::Array4<data_t const> &state) const
 {
     Tensor<1, data_t> shift;
-    shift[0] = state.cellData(i, j, k)[c_shift1];
-    shift[1] = state.cellData(i, j, k)[c_shift2];
-    shift[2] = state.cellData(i, j, k)[c_shift3];
+    FOR(i)
+    {
+        shift[i] = state.cellData(i, j, k)[c_shift1 + i];
+    }
 
     const auto advec =
         m_deriv.template advection<data_t, NUM_CCZ4_VARS>(i, j, k, state, shift);
@@ -60,20 +61,16 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<gauge_t, deriv_t>::compute(
     Tensor<2, data_t> diff2_chi = m_deriv.template diff2<data_t>(i, j, k, state, c_chi);
 
     Tensor<1, Tensor<2, data_t>> diff2_shift;
-    diff2_shift[0] = m_deriv.template diff2<data_t>(i, j, k, state, c_shift1);
-    diff2_shift[1] = m_deriv.template diff2<data_t>(i, j, k, state, c_shift2);
-    diff2_shift[2] = m_deriv.template diff2<data_t>(i, j, k, state, c_shift3);
+    FOR(i)
+    {
+        diff2_shift[i] = m_deriv.template diff2<data_t>(i, j, k, state, c_shift1 + i);
+    }
 
     Tensor<2, Tensor<2, data_t>> diff2_h;
-    diff2_h[0][0] = m_deriv.template diff2<data_t>(i, j, k, state, c_h11);
-    diff2_h[0][1] = m_deriv.template diff2<data_t>(i, j, k, state, c_h12);
-    diff2_h[0][2] = m_deriv.template diff2<data_t>(i, j, k, state, c_h13);
-    diff2_h[1][0] = m_deriv.template diff2<data_t>(i, j, k, state, c_h12);
-    diff2_h[1][1] = m_deriv.template diff2<data_t>(i, j, k, state, c_h22);
-    diff2_h[1][2] = m_deriv.template diff2<data_t>(i, j, k, state, c_h23);
-    diff2_h[2][0] = m_deriv.template diff2<data_t>(i, j, k, state, c_h13);
-    diff2_h[2][1] = m_deriv.template diff2<data_t>(i, j, k, state, c_h23);
-    diff2_h[2][2] = m_deriv.template diff2<data_t>(i, j, k, state, c_h33);
+    FOR(i, j)
+    {
+        diff2_h[i][j] = m_deriv.template diff2<data_t>(i, j, k, state, SYMM_INDEX(c_h11, i, j));
+    }
 
     rhs_equation(rhs.cellData(i, j, k), state.cellData(i, j, k), d1, advec, diff2_lapse, diff2_chi, diff2_shift, diff2_h);
  
@@ -96,6 +93,7 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
 {
     using namespace TensorAlgebra;
 
+    // Remove these once the wrapper is written
     Tensor<2,data_t> h;
     h[0][0] = cell_data[c_h11]; // change to 1D
     h[0][1] = cell_data[c_h12];
@@ -106,9 +104,6 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
     h[2][0] = cell_data[c_h13];
     h[2][1] = cell_data[c_h23];
     h[2][2] = cell_data[c_h33];
-    
-    auto h_UU  = compute_inverse_sym(h);
-    // FIXME: d1.h is no longer immediately a Tensor object
 
     Tensor<2, Tensor<1,data_t>> d1_h; //{cell_data[c_h11], cell_data[c_h12], cell_data[c_h13], cell_data[c_h22], cell_data[c_h23], cell_data[c_h33]};
     Tensor<2,data_t> d1_shift;
@@ -128,17 +123,19 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
         d1_shift[1][i] = d1[c_shift2][i];
         d1_shift[2][i] = d1[c_shift3][i];
     }
-    
-
-    auto chris = compute_christoffel(d1_h, h_UU);
-
-    Tensor<1, data_t> Z_over_chi;
-    Tensor<1, data_t> Z; // NOLINT(readability-identifier-length)
 
     Tensor<1, data_t> Gamma;
     Gamma[0] = cell_data[c_Gamma1];
     Gamma[1] = cell_data[c_Gamma2];
     Gamma[2] = cell_data[c_Gamma3];
+    
+    auto h_UU  = compute_inverse_sym(h);
+    // FIXME: d1.h is no longer immediately a Tensor object
+
+    auto chris = compute_christoffel(d1_h, h_UU);
+
+    Tensor<1, data_t> Z_over_chi;
+    Tensor<1, data_t> Z; // NOLINT(readability-identifier-length)
 
     if (m_formulation == USE_BSSN)
     {
@@ -149,7 +146,7 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
     {
 
         FOR (i)
-            Z_over_chi[i] = 0.5 * (Gamma[i] - chris.contracted[i]);
+            Z_over_chi[i] = 0.5 * (cell_data[c_Gamma1 + i] - chris.contracted[i]);
     }
     FOR (i)
         Z[i] = cell_data[c_chi] * Z_over_chi[i];
@@ -205,27 +202,15 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
     rhs_cell_data[c_chi]      = advec[c_chi] +
       (2.0 / GR_SPACEDIM) * cell_data[c_chi] * (cell_data[c_lapse] * cell_data[c_K] - divshift);
 
-    Tensor<2,data_t> rhs_h;
-    /*Tensor<2,data_t> advec_h;
-
-    advec_h[0][0] = advec[c_h11]; // change to 1D
-    advec_h[0][1] = advec[c_h12];
-    advec_h[0][2] = advec[c_h13];
-    advec_h[1][0] = advec[c_h12];
-    advec_h[1][1] = advec[c_h22];
-    advec_h[1][2] = advec[c_h23];
-    advec_h[2][0] = advec[c_h13];
-    advec_h[2][1] = advec[c_h23];
-    advec_h[2][2] = advec[c_h33];*/
-
+    //Tensor<2,data_t> rhs_h;
     FOR (i, j)
     {
-        rhs_h[i][j] = advec[SYMM_INDEX(c_h11, i, j)] - 2.0 * cell_data[c_lapse] * A[i][j] -
-                      (2.0 / GR_SPACEDIM) * h[i][j] * divshift;
+        rhs_cell_data[SYMM_INDEX(c_h11, i, j)]  = advec[SYMM_INDEX(c_h11, i, j)] - 2.0 * cell_data[c_lapse] * cell_data[SYMM_INDEX(c_A11, i, j)] -
+                      (2.0 / GR_SPACEDIM) * cell_data[SYMM_INDEX(c_h11, i, j)] * divshift;
         FOR (k)
         {
-            rhs_h[i][j] +=
-                h[k][i] * d1_shift[k][j] + h[k][j] * d1_shift[k][i];
+            rhs_cell_data[SYMM_INDEX(c_h11, i, j)] +=
+                cell_data[SYMM_INDEX(c_h11, k, i)] * d1[c_shift1 + k][j] + cell_data[SYMM_INDEX(c_h11, k, j)] * d1[c_shift1+ k][i];
         }
     }
 
@@ -237,31 +222,20 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
     }
     make_trace_free(Adot_TF, h, h_UU);
 
-    Tensor<2,data_t> rhs_A;
-    /*Tensor<2,data_t> advec_A;
-
-    advec_A[0][0] = advec[c_A11]; // change to 1D
-    advec_A[0][1] = advec[c_A12];
-    advec_A[0][2] = advec[c_A13];
-    advec_A[1][0] = advec[c_A12];
-    advec_A[1][1] = advec[c_A22];
-    advec_A[1][2] = advec[c_A23];
-    advec_A[2][0] = advec[c_A13];
-    advec_A[2][1] = advec[c_A23];
-    advec_A[2][2] = advec[c_A33];*/
+    //Tensor<2,data_t> rhs_A;
     FOR (i, j)
     {
-        rhs_A[i][j] = advec[SYMM_INDEX(c_A11, i, j)] + Adot_TF[i][j] +
-                      A[i][j] * (cell_data[c_lapse] * (cell_data[c_K] - 2 * cell_data[c_Theta]) -
+        rhs_cell_data[SYMM_INDEX(c_A11, i, j)] = advec[SYMM_INDEX(c_A11, i, j)] + Adot_TF[i][j] +
+                      cell_data[SYMM_INDEX(c_A11, i, j)] * (cell_data[c_lapse] * (cell_data[c_K] - 2 * cell_data[c_Theta]) -
                                       (2.0 / GR_SPACEDIM) * divshift);
         FOR (k)
         {
-            rhs_A[i][j] +=
-                A[k][i] * d1_shift[k][j] + A[k][j] * d1_shift[k][i];
+            rhs_cell_data[SYMM_INDEX(c_A11, i, j)] +=
+                cell_data[SYMM_INDEX(c_A11, k, i)] * d1[c_shift1 + k][j] + cell_data[SYMM_INDEX(c_A11, k, j)] * d1[c_shift1 + k][i];
             FOR (l)
             {
-                rhs_A[i][j] -=
-                    2 * cell_data[c_lapse] * h_UU[k][l] * A[i][k] * A[l][j];
+                rhs_cell_data[SYMM_INDEX(c_A11, i, j)] -=
+                    2 * cell_data[c_lapse] * h_UU[k][l] * cell_data[SYMM_INDEX(c_A11, i, k)] * cell_data[SYMM_INDEX(c_A11, l, j)] ;
             }
         }
     }
@@ -325,7 +299,7 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
                                   h_UU[i][j] * d1[c_K][j] +
                               GR_SPACEDIM * A_UU[i][j] * d1[c_chi][j] / cell_data[c_chi]) -
                 (chris.contracted[j] + 2 * m_params.kappa3 * Z_over_chi[j]) *
-                    d1_shift[i][j];
+                    d1[c_shift1+ i][j];
 
             FOR (k)
             {
@@ -341,35 +315,11 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
     Tensor<1, data_t> rhs_Gamma;
     FOR (i)
     {
-        rhs_Gamma[i] = advec[c_Gamma1 + i] + Gammadot[i];
+        rhs_cell_data[c_Gamma1 + i] = advec[c_Gamma1 + i] + Gammadot[i];
     }
 
-    rhs_cell_data[c_Gamma1]= rhs_Gamma[0];
-    rhs_cell_data[c_Gamma2]= rhs_Gamma[1];
-    rhs_cell_data[c_Gamma3]= rhs_Gamma[2];
-
-    rhs_cell_data[c_h11]=rhs_h[0][0]; // change to 1D
-    rhs_cell_data[c_h12]=rhs_h[0][1];
-    rhs_cell_data[c_h13]=rhs_h[0][2];
-    rhs_cell_data[c_h22]=rhs_h[1][1];
-    rhs_cell_data[c_h23]=rhs_h[1][2];
-    rhs_cell_data[c_h33]=rhs_h[2][2];
-
-    rhs_cell_data[c_A11]=rhs_A[0][0]; // change to 1D
-    rhs_cell_data[c_A12]=rhs_A[0][1];
-    rhs_cell_data[c_A13]=rhs_A[0][2];
-    rhs_cell_data[c_A22]=rhs_A[1][1];
-    rhs_cell_data[c_A23]=rhs_A[2][1];
-    rhs_cell_data[c_A33]=rhs_A[2][2];
-
-
-    Tensor<1,data_t> B;
-    B[0] = cell_data[c_B1];
-    B[1] = cell_data[c_B2];
-    B[2] = cell_data[c_B3]; 
-
     //need K, lapse, B, Theta
-    m_gauge.rhs_gauge(rhs_cell_data, cell_data[c_lapse], cell_data[c_K], cell_data[c_Theta], B, d1, advec);
+    m_gauge.rhs_gauge(rhs_cell_data, cell_data, d1, advec);
 }
 // NOLINTEND(readability-function-cognitive-complexity)
 
