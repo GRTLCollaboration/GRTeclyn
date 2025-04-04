@@ -11,7 +11,7 @@
 #define BOOSTEDBH_IMPL_HPP_
 
 #include "BoostedBH.hpp"
-#include "DimensionDefinitions.hpp"
+#include "Macros.hpp"
 #include <cmath>
 
 inline BoostedBH::BoostedBH(params_t a_params) : m_params(a_params) {}

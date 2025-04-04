@@ -10,7 +10,7 @@
 #ifndef KERRBH_IMPL_HPP_
 #define KERRBH_IMPL_HPP_
 
-#include "DimensionDefinitions.hpp"
+#include "Macros.hpp"
 
 // Computes semi-isotropic Kerr solution as detailed in Liu, Etienne and Shapiro
 // 2010, arxiv gr-qc/1001.4077

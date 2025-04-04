@@ -7,7 +7,7 @@
 #ifndef CCZ4GEOMETRY_HPP_
 #define CCZ4GEOMETRY_HPP_
 
-#include "DimensionDefinitions.hpp"
+#include "Macros.hpp"
 #include "TensorAlgebra.hpp"
 
 //! A structure for the decomposed elements of the Energy Momentum Tensor in
@@ -40,6 +40,21 @@ class CCZ4Geometry
         {
             out += Z_over_chi[k] * (h[i][k] * d1_chi[j] + h[j][k] * d1_chi[i] -
                                     h[i][j] * d1_chi[k]);
+        }
+        return out;
+    }
+
+    template <class data_t>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static data_t
+    compute_z_terms(const int i, const int j,
+                    const Tensor<1, data_t> &Z_over_chi,
+                    const VarsWrapper<data_t const> &vars, const Tensor<1, data_t> &d1_chi)
+    {
+        data_t out = 0.;
+        FOR (k)
+        {
+            out += Z_over_chi[k] * (vars.h(i, k) * d1_chi[j] + vars.h(j, k) * d1_chi[i] -
+                                    vars.h(i, j) * d1_chi[k]);
         }
         return out;
     }
@@ -120,15 +135,12 @@ class CCZ4Geometry
     template <class data_t>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static ricci_t<data_t>
     compute_ricci_Z(
-		    const data_t chi,
-		    const Tensor<2,data_t> h,
-		    const Tensor<1, data_t> Gamma,
-                    const amrex::GpuArray<Tensor<1, data_t>, NUM_CCZ4_VARS> &d1,
-                    const Tensor<2, data_t> &d2_chi,
-                    const Tensor<2, Tensor<2, data_t>> &d2_h,
-                    const Tensor<2, data_t> &h_UU, const chris_t<data_t> &chris,
-                    const Tensor<1, data_t> &Z_over_chi,
-                    const Tensor<2, Tensor<1, data_t>> &d1_h, bool am=true)
+            const VarsWrapper<data_t const> &vars,
+            const amrex::GpuArray<Tensor<1, data_t>, NUM_CCZ4_VARS> &d1,
+            const Tensor<2, data_t> &d2_chi,
+            const Tensor<2, Tensor<2, data_t>> &d2_h,
+            const Tensor<2, data_t> &h_UU, const chris_t<data_t> &chris,
+            const Tensor<1, data_t> &Z_over_chi)
     {
         ricci_t<data_t> out;
 
@@ -155,14 +167,6 @@ class CCZ4Geometry
             }
         }
 
-        Tensor<2,data_t> d1_Gamma;
-        FOR (i)
-        {
-            d1_Gamma[0][i] = d1[c_Gamma1][i];
-            d1_Gamma[1][i] = d1[c_Gamma2][i];
-            d1_Gamma[2][i] = d1[c_Gamma3][i];
-        }
-
         FOR (i, j)
         {
             data_t ricci_hat = 0;
@@ -171,9 +175,9 @@ class CCZ4Geometry
                 // We call this ricci_hat rather than ricci_tilde as we have
                 // replaced what should be \tilde{Gamma} with \hat{Gamma} in
                 // order to avoid adding terms that cancel later on
-                ricci_hat += 0.5 * (h[k][i] * d1_Gamma[k][j] +
-                                    h[k][j] * d1_Gamma[k][i]);
-                ricci_hat += 0.5 * Gamma[k] * d1_h[i][j][k];
+                ricci_hat += 0.5 * (vars.h(k, i) * d1[c_Gamma1 + k][j] +
+                                    vars.h(k, j) * d1[c_Gamma1 + k][i]);
+                ricci_hat += 0.5 * vars.Gamma(k) * d1[SYMM_INDEX(c_h11, i, j)][k];
                 FOR (l)
                 {
                     ricci_hat += -0.5 * h_UU[k][l] * d2_h[i][j][k][l] +
@@ -185,18 +189,18 @@ class CCZ4Geometry
 
             data_t ricci_chi =
                 0.5 * ((GR_SPACEDIM - 2) * covdtilde2chi[i][j] +
-                       h[i][j] * boxtildechi -
+                       vars.h(i, j) * boxtildechi -
                        ((GR_SPACEDIM - 2) * d1[c_chi][i] * d1[c_chi][j] +
-                        GR_SPACEDIM * h[i][j] * dchi_dot_dchi) /
-                           (2 * chi));
+                        GR_SPACEDIM * vars.h(i, j) * dchi_dot_dchi) /
+                           (2 * vars.chi()));
 
-            data_t z_terms = compute_z_terms(i, j, Z_over_chi, h, d1[c_chi]);
+            data_t z_terms = compute_z_terms(i, j, Z_over_chi, vars, d1[c_chi]);
 
             out.LL[i][j] =
-                (ricci_chi + chi * ricci_hat + z_terms) / chi;
+                (ricci_chi + vars.chi() * ricci_hat + z_terms) / vars.chi();
         }
 
-        out.scalar = chi * TensorAlgebra::compute_trace(out.LL, h_UU);
+        out.scalar = vars.chi() * TensorAlgebra::compute_trace(out.LL, h_UU);
 
         return out;
     }

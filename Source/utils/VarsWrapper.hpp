@@ -15,27 +15,27 @@ class VarsWrapper
         {
         }
 
-        AMREX_GPU_DEVICE AMREX_FORCE_INLINE const data_t &chi() { return cell_data[c_chi]; }
-        AMREX_GPU_DEVICE AMREX_FORCE_INLINE const data_t &h(int i, int j) 
+        AMREX_GPU_DEVICE AMREX_FORCE_INLINE data_t &chi() const { return cell_data[c_chi]; }
+        AMREX_GPU_DEVICE AMREX_FORCE_INLINE data_t &h(int i, int j) const 
         {
             return cell_data[SYMM_INDEX(c_h11, i, j)];
         }
 
-        AMREX_GPU_DEVICE AMREX_FORCE_INLINE const data_t &K() { return cell_data[c_K]; }
-        AMREX_GPU_DEVICE AMREX_FORCE_INLINE const data_t &A(int i, int j) 
+        AMREX_GPU_DEVICE AMREX_FORCE_INLINE data_t &K() const { return cell_data[c_K]; }
+        AMREX_GPU_DEVICE AMREX_FORCE_INLINE data_t &A(int i, int j) const 
         {
             return cell_data[SYMM_INDEX(c_A11, i, j)];
         }
 
-        AMREX_GPU_DEVICE AMREX_FORCE_INLINE const data_t &Theta() { return cell_data[c_Theta]; }
-        AMREX_GPU_DEVICE AMREX_FORCE_INLINE const data_t &Gamma(int i) 
+        AMREX_GPU_DEVICE AMREX_FORCE_INLINE data_t &Theta() const { return cell_data[c_Theta]; }
+        AMREX_GPU_DEVICE AMREX_FORCE_INLINE data_t &Gamma(int i) const
         {
-            return cell_data[c_Gamma1 +i];
+            return cell_data[c_Gamma1 + i];
         }
 
-        AMREX_GPU_DEVICE AMREX_FORCE_INLINE const data_t &lapse() { return cell_data[c_lapse]; }
-        AMREX_GPU_DEVICE AMREX_FORCE_INLINE const data_t &shift(int i) { return cell_data[c_shift1 + i]; }
-        AMREX_GPU_DEVICE AMREX_FORCE_INLINE const data_t &B(int i) { return cell_data[c_B1 + i]; }
+        AMREX_GPU_DEVICE AMREX_FORCE_INLINE data_t &lapse() const { return cell_data[c_lapse]; }
+        AMREX_GPU_DEVICE AMREX_FORCE_INLINE data_t &shift(int i) const { return cell_data[c_shift1 + i]; }
+        AMREX_GPU_DEVICE AMREX_FORCE_INLINE data_t &B(int i) const { return cell_data[c_B1 + i]; }
 
         const amrex::CellData<data_t const> &cell_data;
 };

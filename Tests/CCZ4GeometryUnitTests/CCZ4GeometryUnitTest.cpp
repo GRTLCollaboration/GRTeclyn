@@ -14,7 +14,7 @@
 
 // Our includes
 #include "CCZ4Geometry.hpp"
-#include "DimensionDefinitions.hpp"
+#include "Macros.hpp"
 #include "Tensor.hpp"
 
 template <class data_t> struct vars_t

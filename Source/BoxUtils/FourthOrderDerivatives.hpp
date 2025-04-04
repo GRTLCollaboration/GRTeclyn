@@ -7,7 +7,7 @@
 #define FOURTHORDERDERIVATIVES_HPP_
 
 #include "Cell.hpp"
-#include "DimensionDefinitions.hpp"
+#include "Macros.hpp"
 #include "Tensor.hpp"
 // #include "StateVariables.hpp"
 #include "simd.hpp"

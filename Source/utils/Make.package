@@ -6,7 +6,7 @@ GRTECLYN_CEXE_headers += AlwaysInline.hpp \
                          CoordinateTransformations.hpp \
                          Coordinates.hpp \
                          DebuggingTools.hpp \
-                         DimensionDefinitions.hpp \
+                         Macros.hpp \
                          FilesystemTools.hpp \
                          GRInterval.hpp \
                          GRParmParse.hpp \

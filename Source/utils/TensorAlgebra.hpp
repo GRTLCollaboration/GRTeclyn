@@ -7,9 +7,10 @@
 #define TENSORALGEBRA_HPP_
 
 #include "AlwaysInline.hpp"
-#include "DimensionDefinitions.hpp"
+#include "Macros.hpp"
 #include "Tensor.hpp"
 #include <array>
+#include "VarsWrapper.hpp"
 
 template <class data_t> struct chris_t
 {
@@ -30,6 +31,20 @@ compute_determinant_sym(const Tensor<2, data_t, 3> &matrix)
                  matrix[0][0] * matrix[1][2] * matrix[1][2] -
                  matrix[1][1] * matrix[0][2] * matrix[0][2] -
                  matrix[2][2] * matrix[0][1] * matrix[0][1];
+
+    return det;
+}
+
+/// Computes determinant of a symmetric 3x3 matrix
+template <class data_t>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE data_t
+compute_determinant_sym(const VarsWrapper<data_t const> &vars)
+{
+    data_t det = vars.h(0, 0) * vars.h(1, 1) * vars.h(2, 2) +
+                 2 * vars.h(0, 1) * vars.h(0, 2) * vars.h(1, 2) -
+                 vars.h(0, 0) * vars.h(1, 2) * vars.h(1, 2) -
+                 vars.h(1, 1) * vars.h(0, 2) * vars.h(0, 2) -
+                 vars.h(2, 2) * vars.h(0, 1) * vars.h(0, 1);
 
     return det;
 }
@@ -69,6 +84,33 @@ compute_inverse_sym(const Tensor<2, data_t, 3> &matrix)
     h_UU[1][2] = (matrix[0][1] * matrix[0][2] - matrix[0][0] * matrix[1][2]) *
                  deth_inverse;
     h_UU[2][2] = (matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[0][1]) *
+                 deth_inverse;
+    h_UU[1][0] = h_UU[0][1];
+    h_UU[2][0] = h_UU[0][2];
+    h_UU[2][1] = h_UU[1][2];
+
+    return h_UU;
+}
+
+/// Computes the inverse of a symmetric 3x3 matrix directly.
+template <class data_t>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<2, data_t>
+compute_inverse_metric(const VarsWrapper<data_t const> &vars)
+{
+    data_t deth         = compute_determinant_sym(vars);
+    data_t deth_inverse = 1. / deth;
+    Tensor<2, data_t> h_UU;
+    h_UU[0][0] = vars.h(1, 1) * vars.h(2, 2) - vars.h(1, 2) * vars.h(1, 2) *
+                 deth_inverse;
+    h_UU[0][1] = (vars.h(0, 2) * vars.h(1, 2) - vars.h(0, 1) * vars.h(2, 2)) *
+                 deth_inverse;
+    h_UU[0][2] = (vars.h(0, 1) * vars.h(1, 2) - vars.h(0, 2) * vars.h(1, 1)) *
+                 deth_inverse;
+    h_UU[1][1] = (vars.h(0, 0) * vars.h(2, 2) - vars.h(0, 2) * vars.h(0, 2)) *
+                 deth_inverse;
+    h_UU[1][2] = (vars.h(0, 1) * vars.h(0, 2) - vars.h(0, 0) * vars.h(1, 2)) *
+                 deth_inverse;
+    h_UU[2][2] = (vars.h(0, 0) * vars.h(1, 1) - vars.h(0, 1) * vars.h(0, 1)) *
                  deth_inverse;
     h_UU[1][0] = h_UU[0][1];
     h_UU[2][0] = h_UU[0][2];
@@ -121,6 +163,23 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE data_t compute_trace(
     return trace;
 }
 
+/// Computes the trace of a 2-Tensor with lower indices given an inverse metric.
+template <class data_t>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE data_t compute_trace(
+    const amrex::CellData<data_t const> &cell_data,
+    const int first_component, 
+    const Tensor<2, data_t> &inverse_metric,
+    const bool is_symmetric = true)
+{
+    data_t trace = 0.;
+    FOR (i, j)
+    {
+        int idx = (is_symmetric) ? SYMM_INDEX(first_component, i, j) : INDEX(first_component, i, j);
+        trace += inverse_metric[i][j] * cell_data[idx];
+    }
+    return trace;
+}
+
 /// Computes the trace of a 1,1 Tensor (a matrix) - no metric required.
 template <class data_t>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE data_t
@@ -140,6 +199,16 @@ compute_trace(const Tensor<1, Tensor<1, data_t>> &tensor_UL)
     FOR (i)
         trace += tensor_UL[i][i];
     return trace;
+}
+
+template <class data_t>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE data_t
+compute_divshift(const amrex::GpuArray<Tensor<1, data_t>, NUM_CCZ4_VARS> &d1)
+{
+    data_t divshift = 0.;
+    FOR (i)
+        divshift += d1[c_shift1+i][i];
+    return divshift;
 }
 
 /// Computes dot product of a vector and a covector (no metric required)
@@ -186,6 +255,24 @@ make_trace_free(Tensor<2, data_t> &tensor_LL, const Tensor<2, data_t> &metric,
     }
 }
 
+/// Removes the trace of a 2-Tensor with lower indices given a metric and an
+/// inverse metric.  Or a Tensor with upper indices given an inverse metric and
+/// a metric.
+template <class data_t>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
+make_trace_free(Tensor<2, data_t> &tensor_LL, const VarsWrapper<data_t const> &vars,
+                const Tensor<2, data_t> &inverse_metric)
+// NOLINTEND(bugprone-easily-swappable-parameters)
+{
+    auto trace                  = compute_trace(tensor_LL, inverse_metric);
+    double one_over_gr_spacedim = 1. / ((double)GR_SPACEDIM);
+    FOR (i, j)
+    {
+        tensor_LL[i][j] -= one_over_gr_spacedim * vars.h(i, j) * trace;
+    }
+}
+
 /// Makes a 2-Tensor symmetric
 template <class data_t, int size>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
@@ -226,6 +313,24 @@ raise_all(const Tensor<2, data_t> &tensor_LL,
     {
         tensor_UU[i][j] +=
             inverse_metric[i][k] * inverse_metric[j][l] * tensor_LL[k][l];
+    }
+    return tensor_UU;
+}
+
+/// Raises the indices of a 2-Tensor
+template <class data_t>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<2, data_t>
+raise_all(const amrex::CellData<data_t const> &cell_data,
+          const int first_component, //const Tensor<2, data_t> &tensor_LL,
+          const Tensor<2, data_t> &inverse_metric,
+          const bool is_symmetric = true)
+{
+    Tensor<2, data_t> tensor_UU = 0.;
+    FOR (i, j, k, l)
+    {
+        int idx = (is_symmetric) ? SYMM_INDEX(first_component, k, l) : INDEX(first_component, k, l);
+        tensor_UU[i][j] +=
+            inverse_metric[i][k] * inverse_metric[j][l] * cell_data[idx];
     }
     return tensor_UU;
 }
@@ -312,6 +417,39 @@ compute_christoffel(const Tensor<2, Tensor<1, data_t>> &d1_metric,
     {
         out.LLL[i][j][k] = 0.5 * (d1_metric[j][i][k] + d1_metric[k][i][j] -
                                   d1_metric[j][k][i]);
+    }
+    FOR (i, j, k)
+    {
+        out.ULL[i][j][k] = 0;
+        FOR (l)
+        {
+            out.ULL[i][j][k] += h_UU[i][l] * out.LLL[l][j][k];
+        }
+    }
+    FOR (i)
+    {
+        out.contracted[i] = 0;
+        FOR (j, k)
+        {
+            out.contracted[i] += h_UU[j][k] * out.ULL[i][j][k];
+        }
+    }
+
+    return out;
+}
+
+/// Computes the conformal christoffel symbol
+template <class data_t>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE chris_t<data_t>
+compute_christoffel(const amrex::GpuArray<Tensor<1, data_t>, NUM_CCZ4_VARS> &d1,
+                    const Tensor<2, data_t> &h_UU)
+{
+    chris_t<data_t> out{};
+
+    FOR (i, j, k)
+    {
+        out.LLL[i][j][k] = 0.5 * (d1[INDEX(c_h11, i, j)][k] + d1[INDEX(c_h11, k, i)][j] -
+                                  d1[INDEX(c_h11, j, k)][i]);
     }
     FOR (i, j, k)
     {

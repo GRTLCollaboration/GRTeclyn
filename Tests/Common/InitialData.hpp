@@ -3,7 +3,7 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 // Our headers
-#include "DimensionDefinitions.hpp"
+#include "Macros.hpp"
 #include "StateVariables.hpp"
 
 // AMReX headers

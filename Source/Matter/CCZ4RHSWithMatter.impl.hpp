@@ -9,7 +9,7 @@
 
 #ifndef CCZ4RHSWITHMATTER_IMPL_HPP_
 #define CCZ4RHSWITHMATTER_IMPL_HPP_
-#include "DimensionDefinitions.hpp"
+#include "Macros.hpp"
 
 template <class matter_t, class gauge_t, class deriv_t>
 CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::CCZ4RHSWithMatter(

@@ -10,7 +10,7 @@
 #ifndef CONSTRAINTS_IMPL_HPP_
 #define CONSTRAINTS_IMPL_HPP_
 
-#include "DimensionDefinitions.hpp"
+#include "Macros.hpp"
 #include "GRInterval.hpp"
 #include "VarsTools.hpp"
 

@@ -8,7 +8,7 @@
 
 #include "CCZ4Vars.hpp"
 #include "Cell.hpp"
-#include "DimensionDefinitions.hpp"
+#include "Macros.hpp"
 #include "MovingPunctureGauge.hpp"
 #include "Tensor.hpp"
 

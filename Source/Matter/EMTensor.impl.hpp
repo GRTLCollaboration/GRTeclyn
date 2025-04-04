@@ -14,7 +14,7 @@
 
 #include "CCZ4Geometry.hpp"
 #include "Cell.hpp"
-#include "DimensionDefinitions.hpp"
+#include "Macros.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "Interval.hpp"
 #include "simd.hpp"

@@ -6,7 +6,7 @@
 #ifndef COORDINATETRANSFORMATIONS_HPP_
 #define COORDINATETRANSFORMATIONS_HPP_
 
-#include "DimensionDefinitions.hpp"
+#include "Macros.hpp"
 #include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
 #include "simd.hpp"
