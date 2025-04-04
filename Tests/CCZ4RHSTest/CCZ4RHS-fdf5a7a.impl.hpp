@@ -13,7 +13,7 @@
 // clang-format off
 // NOLINTBEGIN
 
-#include "DimensionDefinitions.hpp"
+#include "Macros.hpp"
 #include "GRInterval-fdf5a7a.hpp"
 #include "VarsTools-fdf5a7a.hpp"
 

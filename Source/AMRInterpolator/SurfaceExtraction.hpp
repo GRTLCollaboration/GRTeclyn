@@ -11,7 +11,7 @@
 
 // Other includes
 #include "AMRInterpolator.hpp"
-#include "DimensionDefinitions.hpp"
+#include "Macros.hpp"
 #include "FilesystemTools.hpp"
 #include "IntegrationMethod.hpp"
 #include "InterpolationQuery.hpp"

@@ -9,7 +9,7 @@
 
 #ifndef MATTERCONSTRAINTS_IMPL_HPP_
 #define MATTERCONSTRAINTS_IMPL_HPP_
-#include "DimensionDefinitions.hpp"
+#include "Macros.hpp"
 
 template <class matter_t>
 MatterConstraints<matter_t>::MatterConstraints(const matter_t a_matter,

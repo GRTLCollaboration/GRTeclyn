@@ -7,7 +7,7 @@
 #define SIXTHORDERDERIVATIVES_HPP_
 
 #include "Cell.hpp"
-#include "DimensionDefinitions.hpp"
+#include "Macros.hpp"
 #include "StateVariables.hpp"
 #include "Tensor.hpp"
 #include <array>

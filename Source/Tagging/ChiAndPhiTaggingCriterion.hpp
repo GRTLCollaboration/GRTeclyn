@@ -8,7 +8,7 @@
 
 #include "Cell.hpp"
 #include "Coordinates.hpp"
-#include "DimensionDefinitions.hpp"
+#include "Macros.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "ScalarField.hpp"
 #include "Tensor.hpp"

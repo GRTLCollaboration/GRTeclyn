@@ -8,7 +8,7 @@
 
 #include "Cell.hpp"
 #include "Coordinates.hpp"
-#include "DimensionDefinitions.hpp"
+#include "Macros.hpp"
 #include "Tensor.hpp"
 
 // AMReX includes

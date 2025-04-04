@@ -10,7 +10,7 @@
 // clang-format off
 // NOLINTBEGIN
 
-#include "DimensionDefinitions.hpp"
+#include "Macros.hpp"
 #include "TensorAlgebra-fdf5a7a.hpp"
 
 // Namespace to avoid conflicts with current code

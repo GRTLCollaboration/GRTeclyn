@@ -7,7 +7,7 @@
 #define COORDINATES_HPP_
 
 // Other includes
-#include "DimensionDefinitions.hpp"
+#include "Macros.hpp"
 #include "simd.hpp"
 
 #include <AMReX_IntVect.H>

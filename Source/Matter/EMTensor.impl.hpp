@@ -12,7 +12,7 @@
 
 #include "CCZ4Geometry.hpp"
 #include "Cell.hpp"
-#include "DimensionDefinitions.hpp"
+#include "Macros.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "Interval.H"
 #include "simd.hpp"

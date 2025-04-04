@@ -7,7 +7,7 @@
 #define CHITAGGINGCRITERION_HPP_
 
 #include "Cell.hpp"
-#include "DimensionDefinitions.hpp"
+#include "Macros.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "Tensor.hpp"
 

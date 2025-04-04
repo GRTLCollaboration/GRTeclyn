@@ -6,7 +6,7 @@
 #ifndef MOVINGPUNCTUREGAUGE_HPP_
 #define MOVINGPUNCTUREGAUGE_HPP_
 
-#include "DimensionDefinitions.hpp"
+#include "Macros.hpp"
 #include "Tensor.hpp"
 
 /// This is an example of a gauge class that can be used in the CCZ4RHS compute

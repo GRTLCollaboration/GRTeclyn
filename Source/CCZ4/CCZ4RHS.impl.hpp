@@ -10,7 +10,7 @@
 #ifndef CCZ4RHS_IMPL_HPP_
 #define CCZ4RHS_IMPL_HPP_
 
-#include "DimensionDefinitions.hpp"
+#include "Macros.hpp"
 #include "GRInterval.hpp"
 #include "VarsTools.hpp"
 #include "VarsWrapper.hpp"
@@ -94,48 +94,11 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
 {
     using namespace TensorAlgebra;
 
-    VarsWrapper<data_t> vars(cell_data);
-
-    // Remove these once the wrapper is written
-    Tensor<2,data_t> h;
-    h[0][0] = cell_data[c_h11]; // change to 1D
-    h[0][1] = cell_data[c_h12];
-    h[0][2] = cell_data[c_h13];
-    h[1][0] = cell_data[c_h12];
-    h[1][1] = cell_data[c_h22];
-    h[1][2] = cell_data[c_h23];
-    h[2][0] = cell_data[c_h13];
-    h[2][1] = cell_data[c_h23];
-    h[2][2] = cell_data[c_h33];
-
-    Tensor<2, Tensor<1,data_t>> d1_h;
-    Tensor<2,data_t> d1_shift;
-    FOR (i)
-    {
-        d1_h[0][0][i] = d1[c_h11][i]; // change to 1D
-        d1_h[0][1][i] = d1[c_h12][i];
-        d1_h[0][2][i] = d1[c_h13][i];
-        d1_h[1][0][i] = d1[c_h12][i];
-        d1_h[1][1][i] = d1[c_h22][i];
-        d1_h[1][2][i] = d1[c_h23][i];
-        d1_h[2][0][i] = d1[c_h13][i];
-        d1_h[2][1][i] = d1[c_h23][i];
-        d1_h[2][2][i] = d1[c_h33][i];
-
-        d1_shift[0][i] = d1[c_shift1][i];
-        d1_shift[1][i] = d1[c_shift2][i];
-        d1_shift[2][i] = d1[c_shift3][i];
-    }
-
-    Tensor<1, data_t> Gamma;
-    Gamma[0] = cell_data[c_Gamma1];
-    Gamma[1] = cell_data[c_Gamma2];
-    Gamma[2] = cell_data[c_Gamma3];
+    const VarsWrapper<data_t const> vars(cell_data);
     
-    auto h_UU  = compute_inverse_sym(h);
-    // FIXME: d1.h is no longer immediately a Tensor object
+    auto h_UU  = compute_inverse_metric(vars);
 
-    auto chris = compute_christoffel(d1_h, h_UU);
+    auto chris = compute_christoffel(d1, h_UU);
 
     Tensor<1, data_t> Z_over_chi;
     Tensor<1, data_t> Z; // NOLINT(readability-identifier-length)
@@ -155,9 +118,9 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
         Z[i] = vars.chi() * Z_over_chi[i];
 
     auto ricci =
-      CCZ4Geometry::compute_ricci_Z(vars.chi(), h, Gamma, d1, d2_chi, d2_h, h_UU, chris, Z_over_chi, d1_h, true);
+      CCZ4Geometry::compute_ricci_Z(vars, d1, d2_chi, d2_h, h_UU, chris, Z_over_chi);
 
-    data_t divshift        = compute_trace(d1_shift);
+    data_t divshift        = compute_divshift(d1);
     data_t Z_dot_d1lapse   = compute_dot_product(Z, d1[c_lapse]);
     data_t dlapse_dot_dchi = compute_dot_product(d1[c_lapse], d1[c_chi], h_UU);
 
@@ -173,7 +136,7 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
         covd2lapse[k][l] =
             vars.chi() * covdtilde2lapse[k][l] +
             0.5 * (d1[c_lapse][k] * d1[c_chi][l] + d1[c_chi][k] * d1[c_lapse][l] -
-                   h[k][l] * dlapse_dot_dchi);
+                   vars.h(k, l) * dlapse_dot_dchi);
     }
 
     data_t tr_covd2lapse = -(GR_SPACEDIM / 2.0) * dlapse_dot_dchi;
@@ -187,21 +150,10 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
         }
     }
 
-    Tensor<2,data_t> A;
-    A[0][0] = cell_data[c_A11]; // change to 1D
-    A[0][1] = cell_data[c_A12];
-    A[0][2] = cell_data[c_A13];
-    A[1][0] = cell_data[c_A12];
-    A[1][1] = cell_data[c_A22];
-    A[1][2] = cell_data[c_A23];
-    A[2][0] = cell_data[c_A13];
-    A[2][1] = cell_data[c_A23];
-    A[2][2] = cell_data[c_A33];
-
-    Tensor<2, data_t> A_UU = raise_all(A, h_UU);
+    Tensor<2, data_t> A_UU = raise_all(cell_data, c_A11, h_UU);
 
     // A^{ij} A_{ij}. - Note the abuse of the compute trace function.
-    data_t tr_A2 = compute_trace(A, A_UU);
+    data_t tr_A2 = compute_trace(cell_data, c_A11, A_UU);
     rhs_cell_data[c_chi]      = advec[c_chi] +
       (2.0 / GR_SPACEDIM) * vars.chi() * (vars.lapse() * vars.K() - divshift);
 
@@ -222,7 +174,7 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
         Adot_TF[i][j] =
             -covd2lapse[i][j] + vars.chi() * vars.lapse() * ricci.LL[i][j];
     }
-    make_trace_free(Adot_TF, h, h_UU);
+    make_trace_free(Adot_TF, vars, h_UU);
 
     FOR (i, j)
     {

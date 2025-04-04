@@ -10,7 +10,7 @@
 // NOLINTBEGIN
 
 #include "AlwaysInline.hpp"
-#include "DimensionDefinitions.hpp"
+#include "Macros.hpp"
 
 // Namespace to avoid conflicts with current code
 namespace Old

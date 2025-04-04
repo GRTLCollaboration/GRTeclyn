@@ -7,7 +7,7 @@
 #define TENSOR_HPP_
 
 #include "AlwaysInline.hpp"
-#include "DimensionDefinitions.hpp"
+#include "Macros.hpp"
 
 // AMReX includes
 #include "AMReX_GpuQualifiers.H"

@@ -10,7 +10,7 @@
 // NOLINTBEGIN
 
 #include "Cell-fdf5a7a.hpp"
-#include "DimensionDefinitions.hpp"
+#include "Macros.hpp"
 #include "Tensor-fdf5a7a.hpp"
 #include "StateVariables.hpp"
 #include "simd.hpp"

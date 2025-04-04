@@ -8,7 +8,7 @@
 
 // Our includes
 #include "BCParity.hpp"
-#include "DimensionDefinitions.hpp"
+#include "Macros.hpp"
 #include "GRParmParse.hpp"
 #include "StateVariables.hpp"
 #include "VariableType.hpp"
