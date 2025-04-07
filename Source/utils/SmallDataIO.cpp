@@ -7,6 +7,7 @@
 #include "SmallDataIO.hpp"
 
 #include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Utility.H>
 #include <AMReX_Vector.H>
 
 #include <cmath>
@@ -81,6 +82,16 @@ SmallDataIO::SmallDataIO(const std::string &a_filename_prefix, double a_dt,
         else
         {
             amrex::Abort("SmallDataIO: mode not supported");
+        }
+        if (m_mode == APPEND || m_mode == NEW)
+        {
+            // Rather than overwriting files from previous simulations, we
+            // rename the old files to "filename.old.<random string>" like AMReX
+            // does for checkpoints and plotfiles
+            bool call_mpi_barrier = false;
+            // Even though "directory" is in this function name, it works fine
+            // for any type of file.
+            amrex::UtilRenameDirectoryToOld(m_filename, call_mpi_barrier);
         }
         m_file.open(m_filename, file_openmode);
         if (!m_file)
