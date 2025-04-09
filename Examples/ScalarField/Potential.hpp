@@ -21,7 +21,7 @@ class Potential
 
   public:
     //! The constructor
-    Potential() : m_params.scalar_mass(0.0)
+    Potential()
     {
         GRParmParse pp;
 

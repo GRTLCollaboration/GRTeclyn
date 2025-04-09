@@ -34,7 +34,7 @@ class ScalarFieldLevel : public GRAMRLevel
     static void variableSetUp();
 
     // Typedef for scalar field
-    typedef ScalarField<Potential> ScalarFieldWithPotential;
+    using ScalarFieldWithPotential = ScalarField<Potential>;
 
     using DefaultScalarField = ScalarField<DefaultPotential>;
 

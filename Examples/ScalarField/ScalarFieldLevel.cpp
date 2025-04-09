@@ -8,19 +8,19 @@
 #include "PositiveChiAndAlpha.hpp"
 #include "TraceARemoval.hpp"
 
-// // For RHS update
-#include "MatterCCZ4RHS.hpp"
+// For RHS update
+#include "CCZ4RHSWithMatter.hpp"
 
-// // For constraints calculation
+// For constraints calculation
 #include "Constraints.hpp"
-#include "MatterConstraints.hpp"
-#include "MatterWeyl4.hpp"
+#include "ConstraintsWithMatter.hpp"
+#include "Weyl4WithMatter.hpp"
 
 // For tagging cells
 #include "ChiExtractionTagger.hpp"
 #include "FixedGridsTagger.hpp"
 
-// // Problem specific includes
+// Problem specific includes
 #include "InitialScalarData.hpp"
 #include "Potential.hpp"
 #include "ScalarField.hpp"
@@ -43,8 +43,7 @@ void ScalarFieldLevel::variableSetUp()
         [=](const amrex::Box &box) { return amrex::grow(box, nghost); },
         &amrex::cell_quartic_interp);
 
-    // We only need the non-gauge CCZ4 variables to calculate the constraints
-    derive_lst.addComponent("constraints", desc_lst, State_Type, 0, c_lapse);
+    derive_lst.addComponent("constraints", desc_lst, State_Type, 0, NUM_VARS);
 
     // Add Weyl4 to the derive list
     derive_lst.add(
@@ -54,8 +53,7 @@ void ScalarFieldLevel::variableSetUp()
         [=](const amrex::Box &box) { return amrex::grow(box, nghost); },
         &amrex::cell_quartic_interp);
 
-    // We need all of the CCZ4 variables to calculate Weyl4 (except B)
-    derive_lst.addComponent("Weyl4", desc_lst, State_Type, 0, c_B1);
+    derive_lst.addComponent("Weyl4", desc_lst, State_Type, 0, NUM_VARS);
 }
 
 // Things to do at each advance step, after the RK4 is calculated
@@ -130,9 +128,6 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
 {
     BL_PROFILE("ScalarFieldLevel::specificEvalRHS()");
 
-    // amrex::WriteSingleLevelPlotfileHDF5(plot_file_root, a_rhs,
-    // 				      var_names, Geom(), 0.0, 0);
-
     const auto &soln_arrs   = a_soln.arrays();
     const auto &soln_c_arrs = a_soln.const_arrays();
     const auto &rhs_arrs    = a_rhs.arrays();
@@ -148,38 +143,39 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                        });
 
     // Calculate MatterCCZ4 right hand side with matter_t = ScalarField
-    Potential potential;
-    ScalarFieldWithPotential scalar_field(potential);
+    ScalarFieldWithPotential scalar_field;
 
     // Calculate CCZ4 right hand side
     if (simParams().max_spatial_derivative_order == 4)
     {
-        MatterCCZ4RHS<ScalarFieldWithPotential, MovingPunctureGauge,
-                      FourthOrderDerivatives>
-            matter_ccz4_rhs(scalar_field, simParams().ccz4_params,
-                            Geom().CellSize(0), simParams().sigma,
-                            simParams().formulation, simParams().G_Newton);
-        amrex::ParallelFor(a_rhs,
-                           [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
-                           {
-                               matter_ccz4_rhs.compute(i, j, k,
-                                                       rhs_arrs[box_no],
-                                                       soln_c_arrs[box_no]);
-                           });
+        CCZ4RHSWithMatter<ScalarFieldWithPotential,
+                          MovingPunctureGaugeWithMatter, FourthOrderDerivatives>
+            ccz4_rhs_with_matter(simParams().ccz4_params, Geom().CellSize(0),
+                                 simParams().sigma, simParams().formulation,
+                                 simParams().G_Newton);
+        amrex::ParallelFor(
+            a_rhs,
+            // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+            [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+            {
+                ccz4_rhs_with_matter.compute(i, j, k, rhs_arrs[box_no],
+                                             soln_c_arrs[box_no]);
+            });
     }
     else if (simParams().max_spatial_derivative_order == 6)
     {
         amrex::Abort("xxxxx max_spatial_derivative_order == 6 todo");
 #if 0
-        MatterCCZ4RHS<ScalarFieldWithPotential, MovingPunctureGauge, SixthOrderDerivatives>
-	  matter_ccz4_rhs(scalar_field, simParams().ccz4_params, Geom().CellSize(0), simParams().sigma,
+        CCZ4RHSWithMatter<ScalarFieldWithPotential, MovingPunctureGaugeWithMatter, SixthOrderDerivatives>
+	  ccz4_rhs_with_matter(simParams().ccz4_params, Geom().CellSize(0), simParams().sigma,
 			  simParams().formulation, simParams().G_Newton);
         amrex::ParallelFor(a_rhs,
+        //NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
         {
             amrex::CellData<amrex::Real const> state = soln_c_arrs[box_no].cellData(i,j,k);
             amrex::CellData<amrex::Real> rhs = rhs_arrs[box_no].cellData(i,j,k);
-            matter_ccz4_rhs.compute(i,j,k,rhs_arrs[box_no], soln_c_arrs[box_no]);
+            ccz4_rhs_with_matter.compute(i,j,k,rhs_arrs[box_no], soln_c_arrs[box_no]);
         });
 #endif
     }
@@ -259,6 +255,7 @@ void ScalarFieldLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
                                simParams().activate_extraction);
 
     amrex::ParallelFor(state_new, amrex::IntVect(0),
+                       // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
                        {
                            tagger(i, j, k, tag_arrs[box_no],
@@ -309,17 +306,15 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
 
         const auto &src_arrays = src_mf.const_arrays();
 
-        Potential potential;
-        ScalarFieldWithPotential scalar_field(potential);
+        ScalarFieldWithPotential scalar_field;
 
         if (name == "constraints")
         {
             const auto &out_arrays = multifab.arrays();
             int iham               = dcomp;
             Interval imom = Interval(dcomp + 1, dcomp + AMREX_SPACEDIM);
-            MatterConstraints<ScalarFieldWithPotential> constraints(
-                scalar_field, Geom().CellSize(0), simParams().G_Newton, iham,
-                imom);
+            ConstraintsWithMatter<ScalarFieldWithPotential> constraints(
+                Geom().CellSize(0), simParams().G_Newton, iham, imom);
             amrex::ParallelFor(
                 multifab, multifab.nGrowVect(),
                 [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
@@ -332,10 +327,9 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
         {
             const auto &out_arrays = multifab.arrays();
 
-            MatterWeyl4<ScalarFieldWithPotential> weyl4(
-                scalar_field, simParams().extraction_params.center,
-                Geom().CellSize(0), dcomp, simParams().formulation,
-                simParams().G_Newton);
+            Weyl4WithMatter<ScalarFieldWithPotential> weyl4(
+                simParams().extraction_params.center, Geom().CellSize(0), dcomp,
+                simParams().formulation, simParams().G_Newton);
 
             amrex::ParallelFor(
                 multifab, multifab.nGrowVect(),

@@ -6,9 +6,9 @@
 #ifndef INITIALSCALARDATA_HPP_
 #define INITIALSCALARDATA_HPP_
 
+#include "CCZ4RHSWithMatter.hpp"
 #include "Cell.hpp"
 #include "Coordinates.hpp"
-#include "MatterCCZ4RHS.hpp"
 #include "ScalarField.hpp"
 #include "StateVariables.hpp" //This files needs NUM_VARS - total no. components
 #include "Tensor.hpp"
@@ -38,9 +38,9 @@ class InitialScalarData
     //! Function to compute the value of all the initial vars on the grid
     template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    compute(int i, int j, int k, const amrex::Array4<data_t> &cell) const
+    compute(int i, int j, int k, const amrex::Array4<data_t> &arrays) const
     {
-        MatterCCZ4RHS<ScalarField<>>::Vars<data_t> vars;
+        CCZ4RHSWithMatter<ScalarField<>>::Vars<data_t> vars;
         VarsTools::assign(vars, 0.); // Set only the non-zero components below
 
         // start with unit lapse and flat metric (must be relaxed for chi)
@@ -67,7 +67,7 @@ class InitialScalarData
         //        cell(i, j, k, c_Pi)  = 0.0;
 
         // Store the initial values of the variables
-        store_vars(cell.cellData(i, j, k), vars);
+        store_vars(arrays.cellData(i, j, k), vars);
     }
 
   protected:

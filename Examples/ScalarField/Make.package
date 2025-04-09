@@ -1,5 +1,4 @@
-GRTECLYN_CEXE_headers += DiagnosticVariables.hpp \
-                         Potential.hpp \
+GRTECLYN_CEXE_headers += Potential.hpp \
 			 ScalarFieldLevel.hpp \
 			 SimulationParameters.hpp \
 			 StateVariables.hpp
