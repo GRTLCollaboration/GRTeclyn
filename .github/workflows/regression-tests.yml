@@ -13,8 +13,8 @@ jobs:
     env:
       AMREX_HOME: ${{ github.workspace }}/amrex
       EXAMPLES_DIR: ${{ github.workspace }}/GRTeclyn/Examples/
-      BINARYBH_EXAMPLE_DIR: ${{ env.EXAMPLES_DIR }}/BinaryBH
-      SCALARFIELD_EXAMPLE_DIR: ${{ env.EXAMPLES_DIR }}/ScalarField
+      EXECUTABLE: main3d.gnu.MPI.ex 
+      PARAMETER_FILE: params_test.txt
       GCC_VERSION: 14
       BUILD_ARGS: >
         COMP=gnu
@@ -68,15 +68,15 @@ jobs:
 
     - name: Build BinaryBH example
       run: make -j 4
-      working-directory: ${{ env.BINARYBH_EXAMPLE_DIR }}
+      working-directory: ${{ env.EXAMPLES_DIR }}/BinaryBH
 
     - name: Build fcompare tool
-      run: make -j 4 USE_MPI=TRUE
+      run: make -j 4 USE_MPI=TRUE programs=fcompare
       working-directory: ${{ env.AMREX_HOME }}/Tools/Plotfile
 
     - name: Run BinaryBH example using test parameters
-      run: mpiexec -n 2 ./$EXECUTABLE ./$PARAMS
-      working-directory: ${{ env.BINARYBH_EXAMPLE_DIR }}
+      run: mpiexec -n 2 ./${{ env.EXECUTABLE }} ./${{ env.PARAMETER_FILE }}
+      working-directory: ${{ env.EXAMPLES_DIR }}/BinaryBH
 
     - name: Compare plotfile from final step with saved plotfile
       run: >
@@ -85,22 +85,22 @@ jobs:
         --abs_tol 1e-10
         --rel_tol 1e-10
         ${GITHUB_WORKSPACE}/GRTeclyn/.github/workflows/data/plt00008_compare
-        ${BINARYBH_EXAMPLE_DIR}/plt00008
+        ${{ env.EXAMPLES_DIR }}/BinaryBH/plt00008
 
     - name: Restart from last checkpoint and evolve for a few more steps
       run: >
-        mpiexec -n 2 ./main3d.gnu.MPI.ex ./params_test.txt
+        mpiexec -n 2 ./${{ env.EXECUTABLE }} ./${{ env.PARAMETER_FILE }}
         amr.restart=chk00008 max_steps=12
-      working-directory: ${{ env.BINARYBH_EXAMPLE_DIR }}
+      working-directory: ${{ env.EXAMPLES_DIR }}/BinaryBH
 
 
     - name: Build scalar field example
-      run: make -j 4 DEBUG=TRUE
-      working-directory: ${{ env.SCALARFIELD_EXAMPLE_DIR }}
+      run: make -j 4 
+      working-directory: ${{ env.EXAMPLES_DIR }}/ScalarField
 
     - name: Run scalar field example using test parameters
-      run: mpiexec -n 2 ./main3d.gnu.DEBUG.MPI.ex ./params_test.txt
-      working-directory: ${{ env.SCALARFIELD_EXAMPLE_DIR }}
+      run: mpiexec -n 2 ./${{ env.EXECUTABLE }} ./${{ env.PARAMETER_FILE }}
+      working-directory: ${{ env.EXAMPLES_DIR }}/ScalarField
 
     - name: Compare plotfile from final step with saved plotfile
       run: >
@@ -108,7 +108,6 @@ jobs:
         --abs_tol 1e-10 \
         --rel_tol 1e-10 \
         --abort_if_not_all_found \
-        ${GITHUB_WORKSPACE}/GRTeclyn/.github/workflows/data/plt_scalar_field_compare_00003 \
-        ${SCALARFIELD_EXAMPLE_DIR}/plt_00003
+        ${GITHUB_WORKSPACE}/GRTeclyn/.github/workflows/data/plt_scalar_field_compare_00003 ${{ env.EXAMPLES_DIR }}/ScalarField/plt_00003
 
 
