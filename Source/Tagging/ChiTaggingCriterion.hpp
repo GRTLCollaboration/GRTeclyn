@@ -7,8 +7,8 @@
 #define CHITAGGINGCRITERION_HPP_
 
 #include "Cell.hpp"
-#include "Macros.hpp"
 #include "FourthOrderDerivatives.hpp"
+#include "Macros.hpp"
 #include "Tensor.hpp"
 
 class ChiTaggingCriterion

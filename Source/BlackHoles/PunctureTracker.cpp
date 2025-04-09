@@ -5,8 +5,8 @@
 
 #include "PunctureTracker.hpp"
 #include "AMReXParameters.hpp" // for writing data
-#include "Macros.hpp"
 #include "InterpolationQuery.hpp"
+#include "Macros.hpp"
 #include "SmallDataIO.hpp"    // for writing data
 #include "StateVariables.hpp" // for writing data
 

@@ -8,8 +8,8 @@
 
 #include "Cell.hpp"
 #include "Coordinates.hpp"
-#include "Macros.hpp"
 #include "FourthOrderDerivatives.hpp"
+#include "Macros.hpp"
 #include "SphericalExtraction.hpp"
 #include "Tensor.hpp"
 

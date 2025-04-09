@@ -12,9 +12,9 @@
 
 #include "CCZ4Geometry.hpp"
 #include "Cell.hpp"
-#include "Macros.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "Interval.H"
+#include "Macros.hpp"
 #include "simd.hpp"
 
 template <class matter_t>

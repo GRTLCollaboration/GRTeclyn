@@ -9,8 +9,8 @@
 #include "AlwaysInline.hpp"
 #include "Macros.hpp"
 #include "Tensor.hpp"
-#include <array>
 #include "VarsWrapper.hpp"
+#include <array>
 
 template <class data_t> struct chris_t
 {
@@ -100,8 +100,8 @@ compute_inverse_metric(const VarsWrapper<data_t const> &vars)
     data_t deth         = compute_determinant_sym(vars);
     data_t deth_inverse = 1. / deth;
     Tensor<2, data_t> h_UU;
-    h_UU[0][0] = vars.h(1, 1) * vars.h(2, 2) - vars.h(1, 2) * vars.h(1, 2) *
-                 deth_inverse;
+    h_UU[0][0] = vars.h(1, 1) * vars.h(2, 2) -
+                 vars.h(1, 2) * vars.h(1, 2) * deth_inverse;
     h_UU[0][1] = (vars.h(0, 2) * vars.h(1, 2) - vars.h(0, 1) * vars.h(2, 2)) *
                  deth_inverse;
     h_UU[0][2] = (vars.h(0, 1) * vars.h(1, 2) - vars.h(0, 2) * vars.h(1, 1)) *
@@ -166,16 +166,15 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE data_t compute_trace(
 /// Computes the trace of a 2-Tensor with lower indices given an inverse metric.
 template <class data_t>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE data_t compute_trace(
-    const amrex::CellData<data_t const> &cell_data,
-    const int first_component, 
-    const Tensor<2, data_t> &inverse_metric,
-    const bool is_symmetric = true)
+    const amrex::CellData<data_t const> &cell_data, const int first_component,
+    const Tensor<2, data_t> &inverse_metric, const bool is_symmetric = true)
 {
     data_t trace = 0.;
     FOR (i, j)
     {
-        int idx = (is_symmetric) ? SYMM_INDEX(first_component, i, j) : INDEX(first_component, i, j);
-        trace += inverse_metric[i][j] * cell_data[idx];
+        int idx  = (is_symmetric) ? SYMM_INDEX(first_component, i, j)
+                                  : INDEX(first_component, i, j);
+        trace   += inverse_metric[i][j] * cell_data[idx];
     }
     return trace;
 }
@@ -207,7 +206,7 @@ compute_divshift(const amrex::GpuArray<Tensor<1, data_t>, NUM_CCZ4_VARS> &d1)
 {
     data_t divshift = 0.;
     FOR (i)
-        divshift += d1[c_shift1+i][i];
+        divshift += d1[c_shift1 + i][i];
     return divshift;
 }
 
@@ -261,7 +260,8 @@ make_trace_free(Tensor<2, data_t> &tensor_LL, const Tensor<2, data_t> &metric,
 template <class data_t>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-make_trace_free(Tensor<2, data_t> &tensor_LL, const VarsWrapper<data_t const> &vars,
+make_trace_free(Tensor<2, data_t> &tensor_LL,
+                const VarsWrapper<data_t const> &vars,
                 const Tensor<2, data_t> &inverse_metric)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
@@ -321,14 +321,15 @@ raise_all(const Tensor<2, data_t> &tensor_LL,
 template <class data_t>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<2, data_t>
 raise_all(const amrex::CellData<data_t const> &cell_data,
-          const int first_component, //const Tensor<2, data_t> &tensor_LL,
+          const int first_component, // const Tensor<2, data_t> &tensor_LL,
           const Tensor<2, data_t> &inverse_metric,
           const bool is_symmetric = true)
 {
     Tensor<2, data_t> tensor_UU = 0.;
     FOR (i, j, k, l)
     {
-        int idx = (is_symmetric) ? SYMM_INDEX(first_component, k, l) : INDEX(first_component, k, l);
+        int idx = (is_symmetric) ? SYMM_INDEX(first_component, k, l)
+                                 : INDEX(first_component, k, l);
         tensor_UU[i][j] +=
             inverse_metric[i][k] * inverse_metric[j][l] * cell_data[idx];
     }
@@ -448,8 +449,9 @@ compute_christoffel(const amrex::GpuArray<Tensor<1, data_t>, NUM_CCZ4_VARS> &d1,
 
     FOR (i, j, k)
     {
-        out.LLL[i][j][k] = 0.5 * (d1[INDEX(c_h11, i, j)][k] + d1[INDEX(c_h11, k, i)][j] -
-                                  d1[INDEX(c_h11, j, k)][i]);
+        out.LLL[i][j][k] =
+            0.5 * (d1[INDEX(c_h11, i, j)][k] + d1[INDEX(c_h11, k, i)][j] -
+                   d1[INDEX(c_h11, j, k)][i]);
     }
     FOR (i, j, k)
     {
