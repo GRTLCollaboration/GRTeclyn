@@ -15,9 +15,11 @@
 #include "BSSNMatterTest.hpp"
 #include "CCZ4GeometryUnitTest.hpp"
 #include "CCZ4RHSTest.hpp"
+#include "ChiRelaxationTest.hpp"
 #include "ConstraintsTest.hpp"
 #include "CoordinateTransformationsTest.hpp"
 #include "DerivativeUnitTests.hpp"
+#include "EMTensorTest.hpp"
 #include "MatterWeyl4Test.hpp"
 #include "PositiveChiAndAlphaUnitTest.hpp"
 #include "SphericalHarmonicTest.hpp"
@@ -25,7 +27,27 @@
 
 TEST_CASE("CCZ4Geometry") { run_ccz4_geometry_unit_tests(); }
 
+TEST_CASE("BSSNMatter"
+#ifndef AMREX_USE_HDF5
+          * doctest::skip()
+#endif
+)
+{
+    run_bssn_matter_test();
+}
+
+TEST_CASE("CCZ4 Geometry") { run_ccz4_geometry_unit_tests(); }
+
 TEST_CASE("CCZ4RHS") { run_ccz4_rhs_test(); }
+
+TEST_CASE("ChiRelaxation"
+#ifndef AMREX_USE_HDF5
+          * doctest::skip()
+#endif
+)
+{
+    run_chi_relaxation_test();
+}
 
 TEST_CASE("Constraints"
 #ifndef AMREX_USE_HDF5
@@ -43,17 +65,16 @@ TEST_CASE("CoordinateTransformations")
 
 TEST_CASE("DerivativeUnitTests") { run_derivative_unit_tests(); }
 
+<<<<<<< HEAD
 TEST_CASE("PositiveChiAndAlpha") { run_positive_chi_and_alpha_unit_test(); }
-
-TEST_CASE("SphericalHarmonics") { run_spherical_harmonic_test(); }
-
-TEST_CASE("Weyl4"
+=======
+TEST_CASE("EMTensor"
 #ifndef AMREX_USE_HDF5
           * doctest::skip()
 #endif
 )
 {
-    run_weyl4_test();
+    run_emtensor_test();
 }
 
 TEST_CASE("MatterWeyl4"
@@ -65,13 +86,18 @@ TEST_CASE("MatterWeyl4"
     run_matter_weyl4_test();
 }
 
-TEST_CASE("BSSN MatterRHS"
+TEST_CASE("Positive Chi and Alpha") { run_positive_chi_and_alpha_unit_test(); }
+>>>>>>> a00725e (Tests: Add new tests for EMTensor and ChiRelaxation classes)
+
+TEST_CASE("SphericalHarmonics") { run_spherical_harmonic_test(); }
+
+TEST_CASE("Weyl4"
 #ifndef AMREX_USE_HDF5
           * doctest::skip()
 #endif
 )
 {
-    run_bssn_matter_test();
+    run_weyl4_test();
 }
 
 #endif /* TESTCASES_HPP_ */

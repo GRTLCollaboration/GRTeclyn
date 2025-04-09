@@ -20,10 +20,9 @@ ChiRelaxation<matter_t>::ChiRelaxation(matter_t a_matter, double dx,
 
 template <class matter_t>
 template <class data_t>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-ChiRelaxation<matter_t>::compute(int i, int j, int k,
-                                 const amrex::Array4<data_t> &rhs,
-                                 const amrex::Array4<data_t const> &state) const
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void ChiRelaxation<matter_t>::compute(
+    int i, int j, int k, const amrex::Array4<data_t> &rhs_arrays,
+    const amrex::Array4<data_t const> &state_arrays) const
 {
 
     // copy data from chombo gridpoint into local variable and calculate derivs
