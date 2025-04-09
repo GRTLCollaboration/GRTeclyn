@@ -8,8 +8,8 @@
 
 #include "CCZ4Geometry.hpp"
 #include "DefaultPotential.hpp"
-#include "Macros.hpp"
 #include "FourthOrderDerivatives.hpp"
+#include "Macros.hpp"
 #include "StateVariables.hpp" //This files needs NUM_VARS, total num of components
 #include "Tensor.hpp"
 #include "TensorAlgebra.hpp"

@@ -8,8 +8,8 @@
 
 // Our includes
 #include "BCParity.hpp"
-#include "Macros.hpp"
 #include "GRParmParse.hpp"
+#include "Macros.hpp"
 #include "StateVariables.hpp"
 #include "VariableType.hpp"
 

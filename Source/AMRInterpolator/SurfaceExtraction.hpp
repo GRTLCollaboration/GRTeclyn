@@ -11,11 +11,11 @@
 
 // Other includes
 #include "AMRInterpolator.hpp"
-#include "Macros.hpp"
 #include "FilesystemTools.hpp"
 #include "IntegrationMethod.hpp"
 #include "InterpolationQuery.hpp"
 #include "Lagrange.hpp"
+#include "Macros.hpp"
 #include "SmallDataIO.hpp" // for writing data
 #include "StateVariables.hpp"
 

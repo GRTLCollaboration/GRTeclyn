@@ -14,9 +14,9 @@
 
 #include "CCZ4Geometry.hpp"
 #include "Cell.hpp"
-#include "Macros.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "Interval.hpp"
+#include "Macros.hpp"
 #include "simd.hpp"
 
 template <class matter_t, enum EMTensorOptions em_tensor_options>

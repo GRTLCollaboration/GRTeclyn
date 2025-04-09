@@ -106,17 +106,18 @@ class CCZ4RHS
      **/
     template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void rhs_equation(
-        const amrex::CellData<data_t> &rhs_cell_data, //!< Reference to the variables into which the
-                             //! output right hand side is written
-        const amrex::CellData<data_t const> &cell_data, //!< The values of the current variables
+        const amrex::CellData<data_t>
+            &rhs_cell_data, //!< Reference to the variables into which the
+                            //! output right hand side is written
+        const amrex::CellData<data_t const>
+            &cell_data, //!< The values of the current variables
         const amrex::GpuArray<Tensor<1, data_t>, NUM_CCZ4_VARS>
             &d1, //!< First derivative of the variables
-        const amrex::GpuArray<data_t, NUM_CCZ4_VARS> &advec, //!< The advection derivatives of the variables
-        const Tensor<2, data_t> &d2_lapse,
-        const Tensor<2, data_t> &d2_chi,
+        const amrex::GpuArray<data_t, NUM_CCZ4_VARS>
+            &advec, //!< The advection derivatives of the variables
+        const Tensor<2, data_t> &d2_lapse, const Tensor<2, data_t> &d2_chi,
         const Tensor<1, Tensor<2, data_t>> &d2_shift,
-        const Tensor<2, Tensor<2, data_t>> &d2_h
-    ) const;
+        const Tensor<2, Tensor<2, data_t>> &d2_h) const;
 };
 
 #include "CCZ4RHS.impl.hpp"
