@@ -40,7 +40,7 @@ constexpr int GR_SPACEDIM = 3;
     GET_MACRO6(__VA_ARGS__, FOR5, FOR4, FOR3, FOR2, FOR1, DUMMYFOR)(__VA_ARGS__)\
 // NOLINTEND(cppcoreguidelines-macro-usage)
 
-#define SYMM_INDEX(IDX0, IDX1, IDX2) IDX1 + IDX2 + min(IDX1, IDX2) < 5 ? IDX0 + IDX1 + IDX2 + min(IDX1, IDX2) : IDX0 + 5
+#define SYMM_INDEX(IDX0, IDX1, IDX2) IDX1 + IDX2 + std::min(IDX1, IDX2) < 5 ? IDX0 + IDX1 + IDX2 + std::min(IDX1, IDX2) : IDX0 + 5
 #define INDEX(IDX0, IDX1, IDX2) IDX0 + (GR_SPACEDIM)*IDX1 + IDX2
 
 #endif /* GRUTILS_HPP_*/
