@@ -13,7 +13,7 @@ jobs:
     env:
       AMREX_HOME: ${{ github.workspace }}/amrex
       EXAMPLES_DIR: ${{ github.workspace }}/GRTeclyn/Examples/
-      EXECUTABLE: main3d.gnu.MPI.ex 
+      EXECUTABLE: main3d.gnu.MPI.ex
       PARAMETER_FILE: params_test.txt
       GCC_VERSION: 14
       BUILD_ARGS: >
@@ -55,7 +55,9 @@ jobs:
         sudo apt-get update
 
     - name: Install dependencies
-      run: sudo apt-get -y --no-install-recommends install libopenmpi-dev cpp-${{ env.GCC_VERSION }} ccache
+      run: >
+        sudo apt-get -y --no-install-recommends install
+        libopenmpi-dev cpp-${{ env.GCC_VERSION }} ccache
 
     - name: Set Compilers
       run: |
@@ -74,6 +76,12 @@ jobs:
       run: make -j 4 USE_MPI=TRUE programs=fcompare
       working-directory: ${{ env.AMREX_HOME }}/Tools/Plotfile
 
+    - name: Upload fcompare tool
+      uses: actions/upload-artifact@v4
+      with:
+        name: fcompare.gnu.MPI.ex
+        path: ${{ env.AMREX_HOME }}/Tools/Plotfile
+
     - name: Run BinaryBH example using test parameters
       run: mpiexec -n 2 ./${{ env.EXECUTABLE }} ./${{ env.PARAMETER_FILE }}
       working-directory: ${{ env.EXAMPLES_DIR }}/BinaryBH
@@ -81,7 +89,7 @@ jobs:
     - name: Compare plotfile from final step with saved plotfile
       run: >
         mpiexec -n 1
-        ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.MPI.ex
+        ${{ env.AMREX_HOME }}/Tools/Plotfile/fcompare.gnu.MPI.ex
         --abs_tol 1e-10
         --rel_tol 1e-10
         ${GITHUB_WORKSPACE}/GRTeclyn/.github/workflows/data/plt00008_compare
@@ -95,19 +103,24 @@ jobs:
 
 
     - name: Build scalar field example
-      run: make -j 4 
+      run: make -j 4
       working-directory: ${{ env.EXAMPLES_DIR }}/ScalarField
 
     - name: Run scalar field example using test parameters
       run: mpiexec -n 2 ./${{ env.EXECUTABLE }} ./${{ env.PARAMETER_FILE }}
       working-directory: ${{ env.EXAMPLES_DIR }}/ScalarField
 
+    - name: Download fcompare tool
+      uses: actions/download-artifact@v4
+      with:
+        name: fcompare.gnu.MPI.ex
+        path: ${{ env.AMREX_HOME }}/Tools/Plotfile
+
     - name: Compare plotfile from final step with saved plotfile
       run: >
-        ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex \
-        --abs_tol 1e-10 \
-        --rel_tol 1e-10 \
-        --abort_if_not_all_found \
-        ${GITHUB_WORKSPACE}/GRTeclyn/.github/workflows/data/plt_scalar_field_compare_00003 ${{ env.EXAMPLES_DIR }}/ScalarField/plt_00003
-
-
+        ${{ env.AMREX_HOME }}/Tools/Plotfile/fcompare.gnu.MPI.ex
+        --abs_tol 1e-10
+        --rel_tol 1e-10
+        --abort_if_not_all_found
+        ${GITHUB_WORKSPACE}/GRTeclyn/.github/workflows/data/plt_scalar_field_compare_00003
+        ${{ env.EXAMPLES_DIR }}/ScalarField/plt_00003
