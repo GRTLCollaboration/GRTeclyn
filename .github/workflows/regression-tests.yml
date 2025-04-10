@@ -69,11 +69,11 @@ jobs:
         sudo update-alternatives --install /usr/bin/cpp cpp /usr/bin/cpp-${{ env.GCC_VERSION }} 1000
 
     - name: Build BinaryBH example
-      run: make -j 4
+      run: make -j 4 ${{ env.BUILD_ARGS }}
       working-directory: ${{ env.EXAMPLES_DIR }}/BinaryBH
 
     - name: Build fcompare tool
-      run: make -j 4 USE_MPI=TRUE programs=fcompare
+      run: make -j 4 ${{ env.BUILD_ARGS }} programs=fcompare
       working-directory: ${{ env.AMREX_HOME }}/Tools/Plotfile
 
 #    - name: Upload fcompare tool
@@ -152,11 +152,11 @@ jobs:
         sudo update-alternatives --install /usr/bin/cpp cpp /usr/bin/cpp-${{ env.GCC_VERSION }} 1000
 
     - name: Build fcompare tool
-      run: make -j 4 USE_MPI=TRUE programs=fcompare
+      run: make -j 4 ${{ env.BUILD_ARGS }} programs=fcompare
       working-directory: ${{ env.AMREX_HOME }}/Tools/Plotfile
 
     - name: Build scalar field example
-      run: make -j 4
+      run: make -j 4 ${{ env.BUILD_ARGS }}
       working-directory: ${{ env.EXAMPLES_DIR }}/ScalarField
 
     - name: Run scalar field example using test parameters
