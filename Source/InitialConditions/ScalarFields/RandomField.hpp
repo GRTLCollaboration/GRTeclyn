@@ -11,6 +11,7 @@
 #include "VarsTools.hpp"
 #include "FilesystemTools.hpp"
 #include <fstream>
+#include <random>
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParmParse.H>
@@ -122,6 +123,7 @@ class RandomField
         void print_power_spectrum(cMultiFab &field_array, SmallDataIO &power_spec_file, const int component);
         Real find_field_moment_x(MultiFab &field, const Vector<Real> mean, 
                                  const int moment, const int component);
+        void make_random_draws(auto &rand_fab, Box &domain);
 
     protected:
         const params_t m_params;

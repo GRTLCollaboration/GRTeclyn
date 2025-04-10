@@ -4,9 +4,9 @@
 verbosity = 0
 
 # location / naming of output files
-output_path = /nfs/st01/hpc-gr-epss/eaf49/A1-250-duplication/10/0/ # Main path for all files. Must exist!
-amr.check_file = /nfs/st01/hpc-gr-epss/eaf49/A1-250-duplication/10/0/hdf5/chk_
-amr.plot_file = /nfs/st01/hpc-gr-epss/eaf49/A1-250-duplication/10/0/hdf5/plt_
+output_path = /nfs/st01/hpc-gr-epss/eaf49/dump/ # Main path for all files. Must exist!
+amr.check_file = /nfs/st01/hpc-gr-epss/eaf49/dump/hdf5/chk_
+amr.plot_file = /nfs/st01/hpc-gr-epss/eaf49/dump/hdf5/plt_
 
 amr.derive_plot_vars = ALL
 
@@ -51,7 +51,7 @@ scalar_mass = 1.e-4
 # Random Field initial data
 num_scalar_fields = 0
 calc_tensor_field = 1
-A = 10.
+A = 1000.
 # N_fine = 256
 use_rand = 1
 random_seed = 3539263
@@ -108,8 +108,8 @@ regrid_threshold  = 0.5
 
 
 # Max and min box sizes
-max_box_size = 128
-min_box_size = 128
+max_box_size = 16
+min_box_size = 16
 
 tag_buffer_size = 0 # this example uses a fixed grid
 
@@ -145,7 +145,7 @@ extrapolating_vars = phi Pi
 # dt will be dx*dt_multiplier on each grid level
 dt_multiplier = 0.25
 stop_time = 9000
-max_steps = 3000
+max_steps = 1 # 3000
 
 # Spatial derivative order (only affects CCZ4 RHS)
 max_spatial_derivative_order = 4 # can be 4 or 6

@@ -104,6 +104,38 @@ inline void RandomField::Test_is_trace_free(MultiFab &field)
     Initialisation routines
 ****/
 
+inline void RandomField::make_random_draws(auto &rand_fab, Box &domain)
+{
+    BoxArray ba = rand_fab.boxArray();
+    DistributionMapping dm = rand_fab.DistributionMap();
+    FabArray<BaseFab<GpuArray<Real, 4>>> tmp(ba, dm, 1, 0, MFInfo{}.SetArena(The_Cpu_Arena()));
+
+    for(MFIter mfi(tmp); mfi.isValid(); ++mfi)
+    {
+        Box const& bx = mfi.validbox();
+        auto const& tmp_ptr = tmp.array(mfi);
+
+        std::mt19937 generator;
+        std::uniform_real_distribution<Real> distribution(Real(0), Real(1));
+
+        auto offset = domain.index(bx.smallEnd()) * 4;
+        for(int ofs = 0; ofs < offset; ofs++)
+        {
+            distribution(generator);
+        }
+        amrex::LoopOnCpu(bx, [&] (int i, int j, int k)
+        {
+            auto &field_point = tmp_ptr(i, j, k);
+            for(int l=0; l<4; l++)
+            {
+                field_point[l] = distribution(generator);
+            }
+        });
+    }
+
+    rand_fab.ParallelCopy(tmp);
+}
+
 // Returns analytic power spectrum in modulus/argument form
 inline GpuComplex<Real> RandomField::calculate_mode_function(const double km, const std::string spec_type)
 {
@@ -332,11 +364,16 @@ inline void RandomField::init(amrex::MultiFab &state)
     Box x_domain(domain_low, x_domain_high);
     FFT::R2C<Real> random_field_fft(x_domain, FFT::Info().setBatchSize(hij_k.nComp()));
 
+    FabArray<BaseFab<GpuArray<Real, 4>>> random_draws(kba, kdm, 1, 0);
+    make_random_draws(random_draws, k_domain);
+
     std::string Filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/hs-k-init";
     for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
     {
         // Define the domain on this MPI rank
         const Box& bx = mfi.fabbox();
+        auto const& random_box_ptr = random_draws.const_array(mfi);
+        int count = 0;
 
         // Make a pointer to the mode functions at this MF box
         Array4<GpuComplex<Real>> const& hs_ptr = hs_k.array(mfi);
@@ -346,15 +383,22 @@ inline void RandomField::init(amrex::MultiFab &state)
         Array4<GpuComplex<Real>> const& Aij_ptr = Aij_k.array(mfi);
 
         // Loop to create mode functions, then hij(k) and Aij(k)
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        amrex::ParallelFor(bx, [=, &count] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             IntVect iv = {i, j, k};
+            auto const& random_field_ptr = random_box_ptr(i, j, k);
 
             // Find the mode function realisation
             for(int p=0; p<2; p++)
             {
-                Real draw1 = amrex::Random();
-                Real draw2 = amrex::Random();
+                Real draw1 = random_field_ptr[2*p];
+                Real draw2 = random_field_ptr[2*p+1];
+
+                if(count==0)
+                {
+                    AllPrint() << ParallelContext::MyProcSub() << "," << draw1 << "\n";
+                    count++;
+                }
 
                 hs_ptr(i, j, k, p) = calculate_random_field(iv, "position", draw1, draw2);
                 As_ptr(i, j, k, p) = calculate_random_field(iv, "velocity", draw1, draw2);
