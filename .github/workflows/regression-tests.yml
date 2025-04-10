@@ -18,9 +18,65 @@ env:
     USE_CCACHE=TRUE
 
 jobs:
+  setup:
+    name: Build fcompare
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Checkout AMReX
+      uses: actions/checkout@v4
+      with:
+        repository: AMReX-Codes/amrex
+        path: amrex
+
+    - name: Set Up Cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+
+    - name: Update package manager database
+      id: update-database
+      continue-on-error: true
+      run: sudo apt-get update
+
+      # This is quite slow so only do this if the previous command fails
+    - name: Update package repository mirrors if necessary
+      if: steps.update-database.outcome == 'failure'
+      run: |
+        sudo gem install apt-spy2
+        sudo apt-spy2 fix --commit --launchpad --country=US
+        sudo apt-get update
+
+    - name: Install dependencies
+      run: >
+        sudo apt-get -y --no-install-recommends install
+        libopenmpi-dev cpp-${{ env.GCC_VERSION }} ccache
+
+    - name: Set Compilers
+      run: |
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${{ env.GCC_VERSION }} 1000
+        sudo update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-${{ env.GCC_VERSION }} 100
+        # workaround for https://answers.launchpad.net/ubuntu/+question/816000
+        sudo update-alternatives --remove-all cpp
+        sudo rm -rf /etc/alternatives/cpp
+        sudo update-alternatives --install /usr/bin/cpp cpp /usr/bin/cpp-${{ env.GCC_VERSION }} 1000
+
+    - name: Build fcompare tool
+      run: make -j 4 ${{ env.BUILD_ARGS }} programs=fcompare
+      working-directory: ${{ env.AMREX_HOME }}/Tools/Plotfile
+
+    - name: Upload fcompare tool
+      uses: actions/upload-artifact@v4
+      with:
+        name: fcompare
+        path: ${{ env.AMREX_HOME }}/Tools/Plotfile/fcompare.gnu.MPI.ex
+
   binarybh:
     name: BinaryBH
     runs-on: ubuntu-24.04
+    needs: setup
     steps:
     - name: Checkout AMReX
       uses: actions/checkout@v4
@@ -72,19 +128,15 @@ jobs:
       run: make -j 4 ${{ env.BUILD_ARGS }}
       working-directory: ${{ env.EXAMPLES_DIR }}/BinaryBH
 
-    - name: Build fcompare tool
-      run: make -j 4 ${{ env.BUILD_ARGS }} programs=fcompare
-      working-directory: ${{ env.AMREX_HOME }}/Tools/Plotfile
-
-#    - name: Upload fcompare tool
-#      uses: actions/upload-artifact@v4
-#      with:
-#        name: fcompare
-#        path: ${{ env.AMREX_HOME }}/Tools/Plotfile/fcompare.gnu.MPI.ex
-
     - name: Run BinaryBH example using test parameters
       run: mpiexec -n 2 ./${{ env.EXECUTABLE }} ./${{ env.PARAMETER_FILE }}
       working-directory: ${{ env.EXAMPLES_DIR }}/BinaryBH
+
+    - name: Download fcompare tool
+      uses: actions/download-artifact@v4
+      with:
+        name: fcompare
+        path: ${{ env.AMREX_HOME }}/Tools/Plotfile/fcompare.gnu.MPI.ex
 
     - name: Compare plotfile from final step with saved plotfile
       run: >
@@ -104,6 +156,7 @@ jobs:
   scalarfield:
     name: ScalarField
     runs-on: ubuntu-24.04
+    needs: setup
     steps:
     - name: Checkout AMReX
       uses: actions/checkout@v4
@@ -151,10 +204,6 @@ jobs:
         sudo rm -rf /etc/alternatives/cpp
         sudo update-alternatives --install /usr/bin/cpp cpp /usr/bin/cpp-${{ env.GCC_VERSION }} 1000
 
-    - name: Build fcompare tool
-      run: make -j 4 ${{ env.BUILD_ARGS }} programs=fcompare
-      working-directory: ${{ env.AMREX_HOME }}/Tools/Plotfile
-
     - name: Build scalar field example
       run: make -j 4 ${{ env.BUILD_ARGS }}
       working-directory: ${{ env.EXAMPLES_DIR }}/ScalarField
@@ -163,11 +212,11 @@ jobs:
       run: mpiexec -n 2 ./${{ env.EXECUTABLE }} ./${{ env.PARAMETER_FILE }}
       working-directory: ${{ env.EXAMPLES_DIR }}/ScalarField
 
-#    - name: Download fcompare tool
-#      uses: actions/download-artifact@v4
-#      with:
-#        name: fcompare
-#        path: ${{ env.AMREX_HOME }}/Tools/Plotfile/fcompare.gnu.MPI.ex
+    - name: Download fcompare tool
+      uses: actions/download-artifact@v4
+      with:
+        name: fcompare
+        path: ${{ env.AMREX_HOME }}/Tools/Plotfile/fcompare.gnu.MPI.ex
 
     - name: Compare plotfile from final step with saved plotfile
       run: >
