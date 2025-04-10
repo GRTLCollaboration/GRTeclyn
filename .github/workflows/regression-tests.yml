@@ -21,13 +21,8 @@ jobs:
   setup:
     name: Build fcompare
     runs-on: ubuntu-24.04
+    uses: ./.github/workflows/regression-tests-common.yml
     steps:
-    - name: Checkout AMReX
-      uses: actions/checkout@v4
-      with:
-        repository: AMReX-Codes/amrex
-        path: amrex
-
     - name: Set Up Cache
       uses: actions/cache@v4
       with:
@@ -35,33 +30,6 @@ jobs:
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
-
-    - name: Update package manager database
-      id: update-database
-      continue-on-error: true
-      run: sudo apt-get update
-
-      # This is quite slow so only do this if the previous command fails
-    - name: Update package repository mirrors if necessary
-      if: steps.update-database.outcome == 'failure'
-      run: |
-        sudo gem install apt-spy2
-        sudo apt-spy2 fix --commit --launchpad --country=US
-        sudo apt-get update
-
-    - name: Install dependencies
-      run: >
-        sudo apt-get -y --no-install-recommends install
-        libopenmpi-dev cpp-${{ env.GCC_VERSION }} ccache
-
-    - name: Set Compilers
-      run: |
-        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${{ env.GCC_VERSION }} 1000
-        sudo update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-${{ env.GCC_VERSION }} 100
-        # workaround for https://answers.launchpad.net/ubuntu/+question/816000
-        sudo update-alternatives --remove-all cpp
-        sudo rm -rf /etc/alternatives/cpp
-        sudo update-alternatives --install /usr/bin/cpp cpp /usr/bin/cpp-${{ env.GCC_VERSION }} 1000
 
     - name: Build fcompare tool
       run: make -j 4 ${{ env.BUILD_ARGS }} programs=fcompare
@@ -78,18 +46,8 @@ jobs:
     name: BinaryBH
     runs-on: ubuntu-24.04
     needs: setup
+    uses: ./.github/workflows/regression-tests-common.yml
     steps:
-    - name: Checkout AMReX
-      uses: actions/checkout@v4
-      with:
-        repository: AMReX-Codes/amrex
-        path: amrex
-
-    - name: Checkout GRTeclyn
-      uses: actions/checkout@v4
-      with:
-        path: GRTeclyn
-
     - name: Set Up Cache
       uses: actions/cache@v4
       with:
@@ -97,33 +55,6 @@ jobs:
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
-
-    - name: Update package manager database
-      id: update-database
-      continue-on-error: true
-      run: sudo apt-get update
-
-      # This is quite slow so only do this if the previous command fails
-    - name: Update package repository mirrors if necessary
-      if: steps.update-database.outcome == 'failure'
-      run: |
-        sudo gem install apt-spy2
-        sudo apt-spy2 fix --commit --launchpad --country=US
-        sudo apt-get update
-
-    - name: Install dependencies
-      run: >
-        sudo apt-get -y --no-install-recommends install
-        libopenmpi-dev cpp-${{ env.GCC_VERSION }} ccache
-
-    - name: Set Compilers
-      run: |
-        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${{ env.GCC_VERSION }} 1000
-        sudo update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-${{ env.GCC_VERSION }} 100
-        # workaround for https://answers.launchpad.net/ubuntu/+question/816000
-        sudo update-alternatives --remove-all cpp
-        sudo rm -rf /etc/alternatives/cpp
-        sudo update-alternatives --install /usr/bin/cpp cpp /usr/bin/cpp-${{ env.GCC_VERSION }} 1000
 
     - name: Build BinaryBH example
       run: make -j 4 ${{ env.BUILD_ARGS }}
@@ -162,18 +93,8 @@ jobs:
     name: ScalarField
     runs-on: ubuntu-24.04
     needs: setup
+    uses: ./.github/workflows/regression-tests-common.yml
     steps:
-    - name: Checkout AMReX
-      uses: actions/checkout@v4
-      with:
-        repository: AMReX-Codes/amrex
-        path: amrex
-
-    - name: Checkout GRTeclyn
-      uses: actions/checkout@v4
-      with:
-        path: GRTeclyn
-
     - name: Set Up Cache
       uses: actions/cache@v4
       with:
@@ -181,33 +102,6 @@ jobs:
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
-
-    - name: Update package manager database
-      id: update-database
-      continue-on-error: true
-      run: sudo apt-get update
-
-      # This is quite slow so only do this if the previous command fails
-    - name: Update package repository mirrors if necessary
-      if: steps.update-database.outcome == 'failure'
-      run: |
-        sudo gem install apt-spy2
-        sudo apt-spy2 fix --commit --launchpad --country=US
-        sudo apt-get update
-
-    - name: Install dependencies
-      run: >
-        sudo apt-get -y --no-install-recommends install
-        libopenmpi-dev cpp-${{ env.GCC_VERSION }} ccache
-
-    - name: Set Compilers
-      run: |
-        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${{ env.GCC_VERSION }} 1000
-        sudo update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-${{ env.GCC_VERSION }} 100
-        # workaround for https://answers.launchpad.net/ubuntu/+question/816000
-        sudo update-alternatives --remove-all cpp
-        sudo rm -rf /etc/alternatives/cpp
-        sudo update-alternatives --install /usr/bin/cpp cpp /usr/bin/cpp-${{ env.GCC_VERSION }} 1000
 
     - name: Build scalar field example
       run: make -j 4 ${{ env.BUILD_ARGS }}
