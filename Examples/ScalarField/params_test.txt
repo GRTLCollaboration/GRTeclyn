@@ -13,9 +13,10 @@ amr.plot_file = plt_
 checkpoint_interval = 500
 # set to 0 to turn off plot files (except at t=0 and t=stop_time)
 # set to -1 to never ever print plotfiles
-plot_interval = 1
-amr.plot_int = 1
-amr.check_int = -1
+plot_interval = 3
+amr.plot_int = 3
+check_interval = 3
+amr.check_int = 3
 num_plot_vars = 2
 plot_vars = chi phi
 
