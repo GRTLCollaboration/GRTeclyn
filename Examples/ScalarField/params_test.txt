@@ -5,20 +5,20 @@ verbosity = 0
 
 # location / naming of output files
 output_path = . # Main path for all files. Must exist!
-amr.check_file = chk_
-amr.plot_file = plt_
+amr.check_file = chk
+amr.plot_file = plt
 
 
 # HDF5files are written every dt = L/N*dt_multiplier*checkpoint_interval
 checkpoint_interval = 500
 # set to 0 to turn off plot files (except at t=0 and t=stop_time)
 # set to -1 to never ever print plotfiles
-plot_interval = 3
-amr.plot_int = 3
-check_interval = 3
-amr.check_int = 3
-num_plot_vars = 2
-plot_vars = chi phi
+plot_interval = 8
+amr.plot_int = 8
+check_interval = 8
+amr.check_int = 8
+amr.derive_plot_vars = ALL
+
 
 # subpaths - specific directories for hdf5, pout, extraction data
 # (these are created at runtime)
@@ -112,8 +112,8 @@ extrapolating_vars = phi Pi
 
 # dt will be dx*dt_multiplier on each grid level
 dt_multiplier = 0.25
-stop_time = 1.0
-max_steps = 3
+stop_time = 2.0
+max_steps = 8
 
 # Spatial derivative order (only affects CCZ4 RHS)
 max_spatial_derivative_order = 4 # can be 4 or 6

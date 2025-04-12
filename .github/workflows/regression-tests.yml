@@ -9,8 +9,6 @@ concurrency:
 env:
   AMREX_HOME: ${{ github.workspace }}/amrex
   EXAMPLES_DIR: ${{ github.workspace }}/Examples/
-  EXECUTABLE: main3d.gnu.MPI.ex
-  PARAMETER_FILE: params_test.txt
   GCC_VERSION: 14
   BUILD_ARGS: >
     COMP=gnu
@@ -52,110 +50,16 @@ jobs:
 
   binarybh:
     name: BinaryBH
-    runs-on: ubuntu-24.04
     needs: build
-    steps:
-    - name: Checkout GRTeclyn
-      uses: actions/checkout@v4
-
-    - name: Set up common actions
-      id: common
-      uses: ./.github/workflows/regression-tests-setup
-      with:
-        gcc_version: ${{ env.GCC_VERSION }}
-
-    - name: Set Up Cache
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/ccache
-        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
-        restore-keys: |
-             ccache-${{ github.workflow }}-${{ github.job }}-git-
-
-    - name: Build BinaryBH example
-      run: make -j 4 ${{ env.BUILD_ARGS }}
-      working-directory: ${{ env.EXAMPLES_DIR }}/BinaryBH
-
-    - name: Run BinaryBH example using test parameters
-      run: mpiexec -n 2 ./${{ env.EXECUTABLE }} ./${{ env.PARAMETER_FILE }}
-      working-directory: ${{ env.EXAMPLES_DIR }}/BinaryBH
-
-    - name: Download fcompare tool
-      uses: actions/download-artifact@v4
-      with:
-        name: fcompare.gnu.MPI.ex
-        path: ${{ env.AMREX_HOME }}/Tools/Plotfile/
-
-    - name: Make fcompare executable again
-      run:
-        chmod +x ${{ env.AMREX_HOME }}/Tools/Plotfile/fcompare.gnu.MPI.ex
-
-    - name: Compare plotfile from final step with saved plotfile
-      run: >
-        mpiexec -n 1
-        ${{ env.AMREX_HOME }}/Tools/Plotfile/fcompare.gnu.MPI.ex
-        --abs_tol 1e-10
-        --rel_tol 1e-10
-        ${GITHUB_WORKSPACE}/.github/workflows/data/plt00008_compare
-        ${{ env.EXAMPLES_DIR }}/BinaryBH/plt00008
-
-    - name: Restart from last checkpoint and evolve for a few more steps
-      run: >
-        mpiexec -n 2 ./${{ env.EXECUTABLE }} ./${{ env.PARAMETER_FILE }}
-        amr.restart=chk00008 max_steps=12
-      working-directory: ${{ env.EXAMPLES_DIR }}/BinaryBH
+    uses: ./.github/workflows/regression-tests-common.yml
+    with:
+      gcc_version: 14
+      example: BinaryBH
 
   scalarfield:
     name: ScalarField
-    runs-on: ubuntu-24.04
     needs: build
-    steps:
-    - name: Checkout GRTeclyn
-      uses: actions/checkout@v4
-
-    - name: Set up common actions
-      id: common
-      uses: ./.github/workflows/regression-tests-setup
-      with:
-        gcc_version: ${{ env.GCC_VERSION }}
-
-    - name: Set Up Cache
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/ccache
-        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
-        restore-keys: |
-             ccache-${{ github.workflow }}-${{ github.job }}-git-
-
-    - name: Build scalar field example
-      run: make -j 4 ${{ env.BUILD_ARGS }}
-      working-directory: ${{ env.EXAMPLES_DIR }}/ScalarField
-
-    - name: Run scalar field example using test parameters
-      run: mpiexec -n 2 ./${{ env.EXECUTABLE }} ./${{ env.PARAMETER_FILE }}
-      working-directory: ${{ env.EXAMPLES_DIR }}/ScalarField
-
-    - name: Download fcompare tool
-      uses: actions/download-artifact@v4
-      with:
-        name: fcompare.gnu.MPI.ex
-        path: ${{ env.AMREX_HOME }}/Tools/Plotfile/
-
-    - name: Make fcompare executable again
-      run:
-        chmod +x ${{ env.AMREX_HOME }}/Tools/Plotfile/fcompare.gnu.MPI.ex
-
-    - name: Compare plotfile from final step with saved plotfile
-      run: >
-        mpiexec -n 1 ${{ env.AMREX_HOME }}/Tools/Plotfile/fcompare.gnu.MPI.ex
-        --abs_tol 1e-10
-        --rel_tol 1e-10
-        --abort_if_not_all_found
-        ${GITHUB_WORKSPACE}/.github/workflows/data/plt_scalar_field_compare_00003
-        ${{ env.EXAMPLES_DIR }}/ScalarField/plt_00003
-
-    - name: Restart from last checkpoint and evolve for a few more steps
-      run: >
-        mpiexec -n 2 ./${{ env.EXECUTABLE }} ./${{ env.PARAMETER_FILE }}
-        amr.restart=chk_00003 max_steps=12
-      working-directory: ${{ env.EXAMPLES_DIR }}/ScalarField
+    uses: ./.github/workflows/regression-tests-common.yml
+    with:
+      gcc_version: 14
+      example: ScalarField

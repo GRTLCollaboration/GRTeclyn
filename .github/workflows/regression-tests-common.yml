@@ -1,0 +1,77 @@
+name: Reusable workflow
+
+on:
+  workflow_call:
+    inputs:
+      gcc_version:
+        required: true
+        type: string
+      example:            # this is the name of the example
+        required: true
+        type: string
+
+jobs:
+  run_tests:
+    runs-on: ubuntu-24.04
+    env:
+      AMREX_HOME: ${{ github.workspace }}/amrex
+      EXECUTABLE: main3d.gnu.MPI.ex
+      PARAMETER_FILE: params_test.txt
+      BUILD_ARGS: >
+        COMP=gnu
+        USE_MPI=TRUE
+        USE_CCACHE=TRUE
+
+    steps:
+    - name: Checkout GRTeclyn
+      uses: actions/checkout@v4
+
+    - name: Set up common actions
+      id: common
+      uses: ./.github/workflows/regression-tests-setup
+      with:
+        gcc_version: ${{ inputs.gcc_version }}
+
+    - name: Set Up Cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+
+    - name: Build example
+      run: make -j 4 ${{ env.BUILD_ARGS }}
+      working-directory: ${{ github.workspace }}/Examples/${{ inputs.example }}
+
+    - name: Run example using test parameters
+      run: mpiexec -n 2 ./${{ env.EXECUTABLE }} ./${{ env.PARAMETER_FILE }}
+      working-directory: ${{ github.workspace }}/Examples/${{ inputs.example }}
+
+    - name: Download fcompare tool
+      uses: actions/download-artifact@v4
+      with:
+        name: fcompare.gnu.MPI.ex
+        path: ${{ github.workspace }}/Examples/${{ inputs.example }}
+
+    - name: Make fcompare executable again
+      run:
+        chmod +x ${{ github.workspace }}/Examples/${{ inputs.example }}/fcompare.gnu.MPI.ex
+
+    - name: Compare plotfile from final step with saved plotfile
+      run: >
+        mpiexec -n 1
+        ${{ github.workspace }}/Examples/${{ inputs.example }}/fcompare.gnu.MPI.ex
+        --abs_tol 1e-10
+        --rel_tol 1e-10
+        ${{ github.workspace }}/.github/workflows/data/plt00008_${{ inputs.example }}_compare
+        ${{ github.workspace }}/Examples/${{ inputs.example }}/plt00008
+
+    - name: Restart from last checkpoint and evolve for a few more steps
+      run: >
+        mpiexec -n 2 ./${{ env.EXECUTABLE }} ./${{ env.PARAMETER_FILE }}
+        amr.restart=chk00008 max_steps=12
+      working-directory: ${{ github.workspace }}/Examples/${{ inputs.example }}
+
+
+
