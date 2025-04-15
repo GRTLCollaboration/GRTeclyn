@@ -60,11 +60,19 @@ csd3-a100:
     - make -j 8 ${BUILD_CONFIG} 
     - flock ${HOME}/${QOS_INTR_LOCK_FILE} salloc ${SRUN_FLAGS} make run ${BUILD_CONFIG}
     - cd ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH
-    - make -j 8 ${BUILD_CONFIG} 
+    - make -j 8 ${BUILD_CONFIG}
     - flock ${HOME}/${QOS_INTR_LOCK_FILE} srun ${SRUN_FLAGS} ./main3d.gnu.DEBUG.MPI.CUDA.ex ./params_test.txt
-    - ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex ${FCOMPARE_FLAGS} plt00008 ${HOME}/${CI_PROJECT_DIR}/.github/workflows/data/plt00008_compare/
+    - count=0
+    - ls
+    - while [ $count -le 5 ]; do
+    -   if [[ -d plt00008 ]]; then
+    -     ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex ${FCOMPARE_FLAGS} plt00008 ${HOME}/${CI_PROJECT_DIR}/.github/workflows/data/plt00008_compare/
+    -     break
+    -   else
+    -     sleep 30
+    -     ((count++))
+    -     echo $count
+    -   fi
+    - done
   after_script:
     - rm -rf ${HOME}/${QOS_INTR_LOCK_FILE}
-    
-    
-
