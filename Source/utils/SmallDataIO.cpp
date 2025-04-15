@@ -83,7 +83,7 @@ SmallDataIO::SmallDataIO(const std::string &a_filename_prefix, double a_dt,
         {
             amrex::Abort("SmallDataIO: mode not supported");
         }
-        if (m_mode == APPEND || m_mode == NEW)
+        if (m_mode == APPEND && m_first_step || m_mode == NEW)
         {
             // Rather than overwriting files from previous simulations, we
             // rename the old files to "filename.old.<random string>" like AMReX
