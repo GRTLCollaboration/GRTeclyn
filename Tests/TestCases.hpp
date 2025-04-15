@@ -18,6 +18,7 @@
 #include "CoordinateTransformationsTest.hpp"
 #include "DerivativeUnitTests.hpp"
 #include "PositiveChiAndAlphaUnitTest.hpp"
+#include "PunctureTrackerTest.hpp"
 #include "SphericalHarmonicTest.hpp"
 #include "Weyl4Test.hpp"
 
@@ -42,6 +43,8 @@ TEST_CASE("CoordinateTransformations")
 TEST_CASE("DerivativeUnitTests") { run_derivative_unit_tests(); }
 
 TEST_CASE("PositiveChiAndAlpha") { run_positive_chi_and_alpha_unit_test(); }
+
+TEST_CASE("PunctureTracker") { run_puncture_tracker_test(); }
 
 TEST_CASE("SphericalHarmonics") { run_spherical_harmonic_test(); }
 

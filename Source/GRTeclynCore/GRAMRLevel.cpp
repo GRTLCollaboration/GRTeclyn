@@ -203,9 +203,9 @@ void GRAMRLevel::post_timestep(int /*iteration*/)
     specificPostTimeStep();
 }
 
-void GRAMRLevel::post_regrid(int /*lbase*/, int /*new_finest*/)
+void GRAMRLevel::post_regrid(int a_lbase, int a_new_finest)
 {
-    // xxxxx Do we need to do anything after regrid?
+    specific_post_regrid(a_lbase, a_new_finest);
 }
 
 void GRAMRLevel::post_init(amrex::Real /*stop_time*/)
@@ -214,6 +214,7 @@ void GRAMRLevel::post_init(amrex::Real /*stop_time*/)
     {
         get_gramr_ptr()->set_restart_time(get_gramr_ptr()->cumTime());
     }
+    specific_post_init();
 }
 
 void GRAMRLevel::post_restart()
@@ -222,6 +223,7 @@ void GRAMRLevel::post_restart()
     {
         get_gramr_ptr()->set_restart_time(get_gramr_ptr()->cumTime());
     }
+    specific_post_restart();
 }
 
 void GRAMRLevel::init(amrex::AmrLevel &old)
@@ -268,18 +270,42 @@ void GRAMRLevel::errorEst(amrex::TagBoxArray &a_tag_box_array,
     tag_cells(a_tag_box_array, regrid_threshold);
 }
 
-void GRAMRLevel::writePlotFilePre(const std::string & /*dir*/,
-                                  std::ostream & /*os*/)
+void GRAMRLevel::writePlotFilePre(const std::string &a_dir, std::ostream &a_os)
 {
-    m_is_writing_plotfile = true;
-    // auto &state_new       = get_new_data(State_Type);
-    // FillPatch(*this, state_new, state_new.nGrow(),
-    //           get_state_data(State_Type).curTime(), State_Type, 0,
-    //           state_new.nComp());
+    specific_pre_plotfile(a_dir, a_os);
 }
 
-void GRAMRLevel::writePlotFilePost(const std::string & /*dir*/,
-                                   std::ostream & /*os*/)
+void GRAMRLevel::writePlotFilePost(const std::string &a_dir, std::ostream &a_os)
 {
-    m_is_writing_plotfile = false;
+    specific_post_plotfile(a_dir, a_os);
+}
+
+void GRAMRLevel::checkPointPre(const std::string &a_dir, std::ostream &a_os)
+{
+    specific_pre_checkpoint(a_dir, a_os);
+}
+
+void GRAMRLevel::checkPointPost(const std::string &a_dir, std::ostream &a_os)
+{
+    specific_post_checkpoint(a_dir, a_os);
+}
+
+bool GRAMRLevel::at_level_timestep_multiple(int a_level)
+{
+    // handle both the case a_level < Level() and a_level >= Level()
+    int coarser_level     = std::min(a_level, Level());
+    int finer_level       = std::max(a_level, Level());
+    int finer_level_steps = get_gramr_ptr()->levelSteps(finer_level);
+
+    // work out what the coarser level step number corresponds to on the finer
+    // level
+    int coarser_level_steps_at_finer_level =
+        get_gramr_ptr()->levelSteps(coarser_level);
+
+    for (int ilev = coarser_level + 1; ilev <= finer_level; ++ilev)
+    {
+        coarser_level_steps_at_finer_level *= get_gramr_ptr()->nCycle(ilev);
+    }
+    // finer_level_steps will be > coarser_level_steps
+    return (finer_level_steps == coarser_level_steps_at_finer_level);
 }

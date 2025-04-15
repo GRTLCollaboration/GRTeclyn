@@ -139,6 +139,12 @@ class GRAMRLevel : public amrex::AmrLevel
     void writePlotFilePost(const std::string &dir,
                            std::ostream & /*os*/) override;
 
+    //! Do pre-checkpoint work
+    void checkPointPre(const std::string &a_dir, std::ostream &a_os) override;
+
+    //! Do post-checkpoint work
+    void checkPointPost(const std::string &a_dir, std::ostream &a_os) override;
+
     /// Virtual function for the problem specific parts of Advance
     virtual void specificAdvance() {}
 
@@ -151,11 +157,50 @@ class GRAMRLevel : public amrex::AmrLevel
 
     virtual void specificUpdateODE(amrex::MultiFab & /*a_soln*/) {}
 
+    //! Problem specific post restart
+    virtual void specific_post_restart() {}
+
+    //! Problem specific post init
+    virtual void specific_post_init() {}
+
+    //! Problem specific post-regrid
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+    virtual void specific_post_regrid(int a_lbase, int a_new_finest) {}
+
+    //! Problem specific pre plotfile
+    virtual void specific_pre_plotfile(const std::string &a_dir,
+                                       std::ostream &a_os)
+    {
+    }
+
+    //! Problem specific post plotfile
+    virtual void specific_post_plotfile(const std::string &a_dir,
+                                        std::ostream &a_os)
+    {
+    }
+
+    //! Problem specific pre checkpoint
+    virtual void specific_pre_checkpoint(const std::string &a_dir,
+                                         std::ostream &a_os)
+    {
+    }
+
+    //! Problem specific post checkpoint
+    virtual void specific_post_checkpoint(const std::string &a_dir,
+                                          std::ostream &a_os)
+    {
+    }
+
+    /// Returns true if m_time is the same as the time at the end of the current
+    /// timestep on level a_level and false otherwise
+    /// Useful to check whether to calculate something in postTimeStep (which
+    /// might only be needed at the end of a_level's timestep)
+    bool at_level_timestep_multiple(int a_level);
+
     BoundaryConditions m_boundaries; // the class for implementing BCs
 
     int m_verbosity = 0; //!< Level of verbosity of the output
     int m_num_ghosts{};  //!< Number of ghost cells
-    bool m_is_writing_plotfile = false;
 
   private:
 

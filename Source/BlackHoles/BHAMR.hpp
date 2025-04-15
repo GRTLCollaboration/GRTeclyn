@@ -9,23 +9,35 @@
 #include "GRAMR.hpp"
 #include "PunctureTracker.hpp"
 
+#include <AMReX_ParmParse.H>
+
 /// A child of Chombo's AMR class to interface with tools which require
 /// access to the whole AMR hierarchy, and those of GRAMR
 /**
  * This object inherits from GRAMR and adds tools required for BH spacetimes
  */
-class BHAMR : public GRAMR
+
+template <int num_punctures> class BHAMR : public GRAMR
 {
+  private:
+    PunctureTracker<num_punctures> m_puncture_tracker;
+
   public:
-    PunctureTracker m_puncture_tracker;
-
-    BHAMR(amrex::LevelBld *a_levelbld) : GRAMR(a_levelbld) {}
-
-    void set_interpolator(
-        AMRInterpolator<Lagrange<4>> *a_interpolator) // xxxxx override
+    BHAMR(amrex::LevelBld *a_levelbld) : GRAMR(a_levelbld)
     {
-        // xxxxx   GRAMR::set_interpolator(a_interpolator);
-        m_puncture_tracker.set_interpolator(a_interpolator);
+        amrex::ParmParse puncture_tracking_pp("puncture_tracking");
+        bool puncture_tracking_enabled = false; // default
+
+        puncture_tracking_pp.query("enabled", puncture_tracking_enabled);
+        if (puncture_tracking_enabled)
+        {
+            m_puncture_tracker.initialize(this);
+        }
+    }
+
+    PunctureTracker<num_punctures> &get_puncture_tracker()
+    {
+        return m_puncture_tracker;
     }
 };
 

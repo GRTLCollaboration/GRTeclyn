@@ -3,15 +3,14 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#ifndef BINARYBHLEVEL_HPP_
-#define BINARYBHLEVEL_HPP_
+#ifndef PUNCTURETRACKERLEVEL_HPP_
+#define PUNCTURETRACKERLEVEL_HPP_
 
+#include "BHAMR.hpp"
 #include "DefaultLevelFactory.hpp"
 #include "GRAMRLevel.hpp"
-// TPAMR.hpp includes BHAMR.hpp
-#include "TPAMR.hpp"
 
-class BinaryBHLevel : public GRAMRLevel
+class PunctureTrackerLevel : public GRAMRLevel
 {
   public:
     static void variableSetUp();
@@ -20,15 +19,14 @@ class BinaryBHLevel : public GRAMRLevel
     using GRAMRLevel::GRAMRLevel;
 
     static constexpr int num_punctures = 2;
+    static constexpr std::size_t num_puncture_coords =
+        static_cast<std::size_t>(AMREX_SPACEDIM * num_punctures);
+    static constexpr amrex::Real shift_y_val = -1.0;
 
     BHAMR<num_punctures> *get_bhamr_ptr();
 
     /// Get a reference to the PunctureTracker object stored by BHAMR
     PunctureTracker<num_punctures> &get_puncture_tracker();
-
-    /// Things to do at every full timestep
-    ///(might include several substeps, e.g. in RK4)
-    void specificAdvance() override;
 
     /// Initial data calculation
     void initData() override;
@@ -37,14 +35,8 @@ class BinaryBHLevel : public GRAMRLevel
     void specificEvalRHS(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
                          const double a_time) override;
 
-    /// Things to do after dt*rhs has been added to the solution
-    void specificUpdateODE(amrex::MultiFab &a_soln) override;
-
     // to do post each time step on every level
     void specificPostTimeStep() override;
-
-    /// Things to do before tagging cells for regridding
-    void pre_tag_cells() final;
 
     /// Tag cells for regridding
     void tag_cells(amrex::TagBoxArray &a_tag_box_array,
@@ -56,13 +48,15 @@ class BinaryBHLevel : public GRAMRLevel
     //! Things to do after init
     void specific_post_init() override;
 
-    //! Things to do after writing a plotfile
-    void specific_post_plotfile(const std::string &a_dir,
-                                std::ostream & /*a_os*/) override;
+    //! Things to do after regridding
+    void specific_post_regrid(int a_lbase, int a_new_finest) override;
 
     //! Things to do after writing a checkpoint
-    void specific_post_checkpoint(const std::string &a_dir,
+    void specific_post_checkpoint(const std::string &a_chk_dir,
                                   std::ostream & /*a_os*/) override;
+
+  private:
+    void check_puncture_tagging();
 };
 
-#endif /* BINARYBHLEVEL_HPP_ */
+#endif /* PUNCTURETRACKERLEVEL_HPP_ */

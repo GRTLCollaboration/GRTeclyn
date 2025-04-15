@@ -7,14 +7,26 @@
 #include "BinaryBH.hpp"
 #include "CCZ4RHS.hpp"
 #include "ChiExtractionTagger.hpp"
+#include "Constraints.hpp"
 #include "PositiveChiAndAlpha.hpp"
+#include "PunctureTagger.hpp"
 #include "PunctureTracker.hpp"
 // xxxxx #include "SixthOrderDerivatives.hpp"
-#include "Constraints.hpp"
 #include "TraceARemoval.hpp"
 #include "TwoPuncturesInitialData.hpp"
 #include "Weyl4.hpp"
 #include "WeylExtraction.hpp"
+
+BHAMR<BinaryBHLevel::num_punctures> *BinaryBHLevel::get_bhamr_ptr()
+{
+    return dynamic_cast<BHAMR<num_punctures> *>(get_gramr_ptr());
+}
+
+PunctureTracker<BinaryBHLevel::num_punctures> &
+BinaryBHLevel::get_puncture_tracker()
+{
+    return get_bhamr_ptr()->get_puncture_tracker();
+}
 
 void BinaryBHLevel::variableSetUp()
 {
@@ -100,6 +112,19 @@ void BinaryBHLevel::initData()
                        });
 #endif
     amrex::Gpu::streamSynchronize();
+
+    if (simParams().puncture_tracking_enabled && Level() == 0)
+    {
+        // need to set the puncture coordinates as we use it for the puncture
+        // tagging
+        get_puncture_tracker().set_puncture_coords(
+            {simParams().bh1_params.center[0], simParams().bh1_params.center[1],
+             simParams().bh1_params.center[2], simParams().bh2_params.center[0],
+             simParams().bh2_params.center[1],
+             simParams().bh2_params.center[2]});
+        // can't call start_from_initial_punctures() because we need the full
+        // AMR grid first
+    }
 }
 
 // Calculate RHS during RK4 substeps
@@ -188,25 +213,101 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
     BL_PROFILE("BinaryBHLevel::tag_cells()");
     amrex::MultiFab &state_new = get_new_data(State_Type);
 
-    if (simParams().track_punctures)
-    {
-        amrex::Abort("BinaryBHLevel::tag_cells:track_punctures TODO");
-    }
-
     const auto &tag_arrs       = a_tag_box_array.arrays();
     const auto &state_new_arrs = state_new.const_arrays();
-    ChiExtractionTagger tagger(Geom().CellSize(0), Level(), a_regrid_threshold,
-                               simParams().extraction_params,
-                               simParams().activate_extraction);
-    amrex::ParallelFor(
-        state_new, amrex::IntVect(0),
-        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
-        { tagger(i, j, k, tag_arrs[box_no], state_new_arrs[box_no]); });
+
+    ChiExtractionTagger chi_extraction_tagger(
+        Geom().CellSize(0), Level(), a_regrid_threshold,
+        simParams().extraction_params, simParams().activate_extraction);
+
+    const bool puncture_tracking_enabled =
+        simParams().puncture_tracking_enabled;
+    constexpr auto num_puncture_coords =
+        static_cast<std::size_t>(AMREX_SPACEDIM * num_punctures);
+    std::array<amrex::Real, num_puncture_coords> puncture_coords{};
+
+    if (puncture_tracking_enabled)
+    {
+        puncture_coords = get_puncture_tracker().get_puncture_coords();
+    }
+
+    // Even though we create this object, it won't be used if puncture tracking
+    // is not enabled.
+    PunctureTagger<num_punctures> puncture_tagger(
+        Geom().CellSize(0), Level(), get_gramr_ptr()->maxLevel(),
+        puncture_coords,
+        {simParams().bh1_params.mass, simParams().bh2_params.mass});
+
+    amrex::ParallelFor(state_new, amrex::IntVect(0),
+                       [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+                       {
+                           chi_extraction_tagger(i, j, k, tag_arrs[box_no],
+                                                 state_new_arrs[box_no]);
+                           if (puncture_tracking_enabled)
+                           {
+                               puncture_tagger(i, j, k, tag_arrs[box_no]);
+                           }
+                       });
     amrex::Gpu::streamSynchronize();
+}
+
+void BinaryBHLevel::specific_post_init()
+{
+    BL_PROFILE("BinaryBHLevel::specific_post_init()");
+
+    if (simParams().puncture_tracking_enabled)
+    {
+        get_puncture_tracker().start_from_initial_punctures();
+    }
+}
+
+void BinaryBHLevel::specific_post_restart()
+{
+    BL_PROFILE("BinaryBHLevel::specific_post_restart()");
+
+    if (simParams().puncture_tracking_enabled)
+    {
+        std::string restart_checkpoint{};
+        GRParmParse pp("amr");
+        pp.get("restart", restart_checkpoint);
+        get_puncture_tracker().restart(restart_checkpoint);
+    }
+}
+
+void BinaryBHLevel::specific_post_plotfile(const std::string &a_dir,
+                                           std::ostream &a_os)
+{
+    if (simParams().puncture_tracking_enabled)
+    {
+        get_puncture_tracker().write_plotfile(a_dir);
+    }
+}
+
+void BinaryBHLevel::specific_post_checkpoint(const std::string &a_chk_dir,
+                                             std::ostream & /*a_os*/)
+{
+    if (simParams().puncture_tracking_enabled)
+    {
+        get_puncture_tracker().checkpoint(a_chk_dir);
+    }
 }
 
 void BinaryBHLevel::specificPostTimeStep()
 {
+    // do puncture tracking on requested level
+    if (simParams().puncture_tracking_enabled &&
+        Level() == simParams().puncture_tracking_level)
+    {
+        BL_PROFILE("PunctureTracking");
+
+        // only do the write out when we're at at a multiple of the
+        // writeout_level
+        bool write_punctures = at_level_timestep_multiple(
+            simParams().puncture_tracking_writeout_level);
+        amrex::Real cur_time = get_state_data(State_Type).curTime();
+        amrex::Real dt       = get_gramr_ptr()->dtLevel(Level());
+        get_puncture_tracker().track(cur_time, dt, write_punctures);
+    }
 #if 0
 //xxxxx specificPostTimeStep
     BL_PROFILE("BinaryBHLevel::specificPostTimeStep");
@@ -269,15 +370,5 @@ void BinaryBHLevel::specificPostTimeStep()
         }
     }
 
-    // do puncture tracking on requested level
-    if (m_p.track_punctures && m_level == m_p.puncture_tracking_level)
-    {
-        BL_PROFILE("PunctureTracking");
-        // only do the write out for every coarsest level timestep
-        int coarsest_level = 0;
-        bool write_punctures = at_level_timestep_multiple(coarsest_level);
-        m_bh_amr.m_puncture_tracker.execute_tracking(m_time, m_restart_time,
-                                                     m_dt, write_punctures);
-    }
 #endif
 }

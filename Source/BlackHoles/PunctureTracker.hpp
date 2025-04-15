@@ -6,74 +6,96 @@
 #ifndef PUNCTURETRACKER_HPP_
 #define PUNCTURETRACKER_HPP_
 
-#include "AMRInterpolator.hpp"
-#include "AlwaysInline.hpp"
-#include "Lagrange.hpp"
+#include <AMReX_Array.H>
+#include <AMReX_Particles.H>
 
-//!  The class tracks the puncture locations by integrating the shift at
-//!  The puncture position
-class PunctureTracker
+#include "GRAMR.hpp"
+
+//!  The class tracks the puncture locations by advecting them in the reverse
+//!  direction to the shift. It is an amrex AoS ParticleContainer.
+template <unsigned int num_punctures>
+class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 1>
 {
+  public:
+    static constexpr unsigned int num_puncture_coords =
+        num_punctures * AMREX_SPACEDIM;
+
   private:
-    //! Params for puncture tracking
-    int m_num_punctures{0};
-    std::vector<std::array<double, AMREX_SPACEDIM>> m_puncture_coords;
-    std::vector<std::array<double, AMREX_SPACEDIM>> m_puncture_shift;
-    int m_min_level{}; //!< the min level on which punctures will be
-                       //!< (to fill ghosts)
+    amrex::Array<amrex::Real, num_puncture_coords> m_puncture_coords;
 
     std::string m_punctures_filename;
+    bool m_disable_writeout{false}; // if true, don't write .dat file (doesn't
+                                    // affect checkpoint and plotfiles)
+    std::string m_checkpoint_subdir;
 
-    // saved pointer to external interpolator
-    AMRInterpolator<Lagrange<4>> *m_interpolator{nullptr};
+    GRAMR *m_gr_amr{nullptr};
+
+    bool m_initialized{false};
+    bool m_puncture_coords_set{false};
+    bool m_started{false};
+
+    double m_restart_time{0.0};
 
   public:
     //! The constructor
-    PunctureTracker() = default;
+    using amrex::ParticleContainer<AMREX_SPACEDIM, 1>::ParticleContainer;
 
-    //! set puncture locations on start (or restart)
-    //! this needs to be done before 'setupAMRObject'
-    //! if the puncture locations are required for Tagging Criteria
-    void initial_setup(const std::vector<std::array<double, AMREX_SPACEDIM>>
-                           &initial_puncture_coords,
-                       const std::string &a_filename    = "punctures",
-                       const std::string &a_output_path = "",
-                       const int a_min_level            = 0);
+    //! Initialize the tracker. Note that this does not set up the underlying
+    //! ParticleContainer
+    void initialize(GRAMR *a_gr_amr);
 
-    //! set puncture locations on start (or restart)
-    void restart_punctures();
+    //! start the puncture tracker from the initial punctures
+    void start_from_initial_punctures();
 
-    //! Execute the tracking and write out
-    void execute_tracking(double a_time, double a_restart_time, double a_dt,
-                          const bool write_punctures = true);
+    //! restart the puncture tracker
+    void restart(const std::string &a_restart_chk_dir);
 
-    ALWAYS_INLINE void
-    set_interpolator(AMRInterpolator<Lagrange<4>> *a_interpolator)
+    //! write punctures to the checkpoint directory
+    void checkpoint(const std::string &a_chk_dir);
+
+    //! write punctures to the plot file
+    void write_plotfile(const std::string &a_dir);
+
+    //! Track the punctures and write out if requested
+    void track(double a_time, double a_dt, const bool a_write_punctures = true);
+
+    //! Set the puncture coordinates (for the initial coordinates)
+    void
+    set_puncture_coords(const amrex::Array<amrex::Real, num_puncture_coords>
+                            &a_puncture_coords);
+
+    //! Get the puncture coordinates
+    const amrex::Array<amrex::Real, num_puncture_coords> &
+    get_puncture_coords() const;
+
+#ifndef AMREX_USE_CUDA
+  private: // CUDA doesn't allow lambdas in private functions
+#endif
+
+    //! set the initial punctures in the particle container
+    void set_initial_punctures_pc();
+
+    //! update m_puncture_coords from the particle locations
+    void update_puncture_coords();
+
+    //! return the linear index of the coord in the idir direction for the
+    //! ipuncture puncture in m_puncture_coords
+    static AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE int
+    linear_idx(int ipuncture, int idir)
     {
-        m_interpolator = a_interpolator;
+        return ipuncture * AMREX_SPACEDIM + idir;
     }
 
-    // function to get punctures
-    [[nodiscard]] ALWAYS_INLINE const
-        std::vector<std::array<double, AMREX_SPACEDIM>> &
-        get_puncture_coords() const
-    {
-        return m_puncture_coords;
-    }
-
+#ifdef AMREX_USE_CUDA
   private:
-    //! set and write initial puncture locations
-    void set_initial_punctures();
+#endif
+    //! write the initial punctures to a file
+    void write_initial_punctures() const;
 
-    //! Set punctures post restart if m_time > 0
-    void read_in_punctures(int a_int_step, double a_current_time);
-
-    //! Use the interpolator to get the value of the shift at
-    //! given coords
-    void interp_shift();
-
-    //! Get a vector of the puncture coords - used for write out
-    [[nodiscard]] std::vector<double> get_puncture_vector() const;
+    //! SmallDataIO requires a std::vector to write the coords
+    std::vector<amrex::Real> get_puncture_vector() const;
 };
+
+#include "PunctureTracker.impl.hpp"
 
 #endif /* PUNCTURETRACKER_HPP_ */

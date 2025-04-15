@@ -1,0 +1,5 @@
+GRTECLYN_CEXE_sources += PunctureTrackerLevel.cpp \
+                         PunctureTrackerTest.cpp
+
+GRTECLYN_CEXE_headers += PunctureTrackerLevel.hpp \
+                         PunctureTrackerTest.hpp
