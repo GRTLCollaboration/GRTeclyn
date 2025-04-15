@@ -104,6 +104,7 @@ inline void RandomField::Test_is_trace_free(MultiFab &field)
     Initialisation routines
 ****/
 
+// Generate unique random draws for each MFI box.
 inline void RandomField::make_random_draws(auto &rand_fab, Box &domain)
 {
     BoxArray ba = rand_fab.boxArray();
@@ -373,7 +374,7 @@ inline void RandomField::init(amrex::MultiFab &state)
         // Define the domain on this MPI rank
         const Box& bx = mfi.fabbox();
         auto const& random_box_ptr = random_draws.const_array(mfi);
-        int count = 0;
+        //int count = 0;
 
         // Make a pointer to the mode functions at this MF box
         Array4<GpuComplex<Real>> const& hs_ptr = hs_k.array(mfi);
@@ -383,7 +384,7 @@ inline void RandomField::init(amrex::MultiFab &state)
         Array4<GpuComplex<Real>> const& Aij_ptr = Aij_k.array(mfi);
 
         // Loop to create mode functions, then hij(k) and Aij(k)
-        amrex::ParallelFor(bx, [=, &count] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             IntVect iv = {i, j, k};
             auto const& random_field_ptr = random_box_ptr(i, j, k);
@@ -394,11 +395,11 @@ inline void RandomField::init(amrex::MultiFab &state)
                 Real draw1 = random_field_ptr[2*p];
                 Real draw2 = random_field_ptr[2*p+1];
 
-                if(count==0)
+                /*if(count==0)
                 {
                     AllPrint() << ParallelContext::MyProcSub() << "," << draw1 << "\n";
                     count++;
-                }
+                }*/
 
                 hs_ptr(i, j, k, p) = calculate_random_field(iv, "position", draw1, draw2);
                 As_ptr(i, j, k, p) = calculate_random_field(iv, "velocity", draw1, draw2);
