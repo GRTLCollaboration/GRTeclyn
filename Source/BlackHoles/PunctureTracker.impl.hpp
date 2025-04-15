@@ -113,6 +113,7 @@ void PunctureTracker<num_punctures>::write_plotfile(const std::string &a_dir)
 
     amrex::Vector<std::string> int_comp_names({"puncture_index"});
 
+    Redistribute();
     WritePlotFile(a_dir, plotfile_subdir, real_comp_names, int_comp_names);
 }
 
