@@ -21,13 +21,14 @@ variables:
     USE_ASSERTION=TRUE
     USE_HDF5=TRUE
     USE_MPI=TRUE
-  SRUN_FLAGS: > 
-    --qos=INTR 
-    --nodes=1 
+    USE_CCACHE=TRUE
+  SRUN_FLAGS: >
+    --qos=INTR
+    --nodes=1
     --ntasks=2 
     --gres=gpu:1
-    --time=00:10:00 
-    --account=SHELLARD-SL3-GPU 
+    --time=00:10:00
+    --account=SHELLARD-SL3-GPU
     --partition=ampere
   FCOMPARE_FLAGS: >
     --abs_tol 1e-10
@@ -57,21 +58,20 @@ csd3-a100:
     - cd ${AMREX_HOME}/Tools/Plotfile
     - make -j 8 COMP=gnu programs=fcompare
     - cd ${HOME}/${CI_PROJECT_DIR}/Tests
-    - make -j 8 ${BUILD_CONFIG} 
+    - make -j 8 ${BUILD_CONFIG}
     - flock ${HOME}/${QOS_INTR_LOCK_FILE} salloc ${SRUN_FLAGS} make run ${BUILD_CONFIG}
     - cd ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH
     - make -j 8 ${BUILD_CONFIG}
     - flock ${HOME}/${QOS_INTR_LOCK_FILE} srun ${SRUN_FLAGS} ./main3d.gnu.DEBUG.MPI.CUDA.ex ./params_test.txt
     - count=0
-    - ls
-    - while [ $count -le 5 ]; do
+    - while [ $count -le 9 ]; do
     -   if [[ -d plt00008 ]]; then
     -     ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex ${FCOMPARE_FLAGS} plt00008 ${HOME}/${CI_PROJECT_DIR}/.github/workflows/data/plt00008_compare/
     -     break
     -   else
     -     sleep 30
     -     ((count++))
-    -     echo $count
+    -     echo "Attempt number " $count " of 10"
     -   fi
     - done
   after_script:
