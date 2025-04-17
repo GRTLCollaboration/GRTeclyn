@@ -31,8 +31,8 @@ template <class matter_t> class EMTensor
     /// Variable names
     static inline amrex::Vector<std::string> var_names = {"rho"};
 
-    /// 3 components for the momentum density: Si_11, Si_22, Si_33
-    /// 6 components for the stress energy tensor (symmetric): Sij_11, Sij_12
+    /// 3 components for the momentum density: j_1, j_2, j_3
+    /// 6 components for the stress energy tensor (symmetric): S_11, S_12
     /// etc.
     static inline const amrex::Vector<std::string> extra_var_names = {
         "j_1, j_2, j_3, S_11, S_12, S_13, S_22, S_23, S_33"};

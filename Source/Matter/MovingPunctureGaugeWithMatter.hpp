@@ -47,7 +47,7 @@ class MovingPunctureGaugeWithMatter : public MovingPunctureGauge
             {
                 matter_term_Gamma += -16.0 * M_PI * G_Newton *
                                      matter_vars.lapse * h_UU[i][j] *
-                                     emtensor.Si[j];
+                                     emtensor.j[j];
             }
 
             matter_rhs.B[i] += matter_term_Gamma;

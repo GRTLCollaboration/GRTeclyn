@@ -30,10 +30,10 @@ AMREX_GPU_DEVICE emtensor_t<data_t> ScalarField<potential_t>::compute_emtensor(
     m_potential.compute_potential(V_of_phi, dVdphi, vars);
 
     out.rho += V_of_phi;
-    out.S   += -3.0 * V_of_phi;
+    out.trS += -3.0 * V_of_phi;
     FOR (i, j)
     {
-        out.Sij[i][j] += -vars.h[i][j] * V_of_phi / vars.chi;
+        out.S[i][j] += -vars.h[i][j] * V_of_phi / vars.chi;
     }
 
     return out;
@@ -56,20 +56,20 @@ ScalarField<potential_t>::emtensor_excl_potential(
     }
 
     // Calculate components of EM Tensor
-    // S_ij = T_ij
+    // S = T_ij
     FOR (i, j)
     {
-        out.Sij[i][j] =
+        out.S[i][j] =
             -0.5 * vars.h[i][j] * Vt / vars.chi + d1.phi[i] * d1.phi[j];
     }
 
-    // S = Tr_S_ij
-    out.S = vars.chi * TensorAlgebra::compute_trace(out.Sij, h_UU);
+    // trS = Tr_S_ij
+    out.trS = vars.chi * TensorAlgebra::compute_trace(out.S, h_UU);
 
-    // S_i (note lower index) = - n^a T_ai
+    // j_i (note lower index) = - n^a T_ai
     FOR (i)
     {
-        out.Si[i] = -d1.phi[i] * vars.Pi;
+        out.j[i] = -d1.phi[i] * vars.Pi;
     }
 
     // rho = n^a n^b T_ab

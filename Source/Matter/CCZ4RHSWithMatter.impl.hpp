@@ -75,25 +75,25 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
     if (this->m_formulation == CCZ4RHS<>::USE_BSSN)
     {
         matter_rhs.K += 4.0 * M_PI * m_G_Newton * matter_vars.lapse *
-                        (emtensor.S + emtensor.rho);
+                        (emtensor.trS + emtensor.rho);
         matter_rhs.Theta += 0.0;
     }
     else
     {
         matter_rhs.K += 4.0 * M_PI * m_G_Newton * matter_vars.lapse *
-                        (emtensor.S - 3 * emtensor.rho);
+                        (emtensor.trS - 3 * emtensor.rho);
         matter_rhs.Theta +=
             -8.0 * M_PI * m_G_Newton * matter_vars.lapse * emtensor.rho;
     }
 
     // Update RHS for other variables
-    Tensor<2, data_t> Sij_TF = emtensor.Sij;
-    make_trace_free(Sij_TF, matter_vars.h, h_UU);
+    Tensor<2, data_t> S_TF = emtensor.S;
+    make_trace_free(S_TF, matter_vars.h, h_UU);
 
     FOR (i, j)
     {
         matter_rhs.A[i][j] += -8.0 * M_PI * m_G_Newton * matter_vars.chi *
-                              matter_vars.lapse * Sij_TF[i][j];
+                              matter_vars.lapse * S_TF[i][j];
     }
 
     FOR (i)
@@ -102,7 +102,7 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
         FOR (j)
         {
             matter_term_Gamma += -16.0 * M_PI * m_G_Newton * matter_vars.lapse *
-                                 h_UU[i][j] * emtensor.Si[j];
+                                 h_UU[i][j] * emtensor.j[j];
         }
 
         matter_rhs.Gamma[i] += matter_term_Gamma;

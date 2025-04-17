@@ -59,9 +59,9 @@ ConstraintsWithMatter<matter_t>::compute(
     {
         FOR (i)
         {
-            out.Mom[i] += -8.0 * M_PI * m_G_Newton * emtensor.Si[i];
+            out.Mom[i] += -8.0 * M_PI * m_G_Newton * emtensor.j[i];
             out.Mom_abs_terms[i] +=
-                8.0 * M_PI * m_G_Newton * std::abs(emtensor.Si[i]);
+                8.0 * M_PI * m_G_Newton * std::abs(emtensor.j[i]);
         }
     }
     // Write the constraints into the output FArrayBox

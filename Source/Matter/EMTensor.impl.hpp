@@ -65,7 +65,7 @@ EMTensor<matter_t>::compute(int i, int j, int k,
 #if DEFAULT_TENSOR_DIM == 3
         FOR (i)
         {
-            out_arrays(i, j, k, m_c_j.begin() + i) = emtensor.Si[i];
+            out_arrays(i, j, k, m_c_j.begin() + i) = emtensor.j[i];
         }
 #endif
     }
@@ -73,12 +73,12 @@ EMTensor<matter_t>::compute(int i, int j, int k,
     if (m_c_S.size() > 0)
     {
 #if DEFAULT_TENSOR_DIM == 3
-        out_arrays(i, j, k, m_c_S.begin())     = emtensor.Sij[0][0];
-        out_arrays(i, j, k, m_c_S.begin() + 1) = emtensor.Sij[0][1];
-        out_arrays(i, j, k, m_c_S.begin() + 2) = emtensor.Sij[0][2];
-        out_arrays(i, j, k, m_c_S.begin() + 3) = emtensor.Sij[1][1];
-        out_arrays(i, j, k, m_c_S.begin() + 4) = emtensor.Sij[1][2];
-        out_arrays(i, j, k, m_c_S.begin() + 5) = emtensor.Sij[2][2];
+        out_arrays(i, j, k, m_c_S.begin())     = emtensor.S[0][0];
+        out_arrays(i, j, k, m_c_S.begin() + 1) = emtensor.S[0][1];
+        out_arrays(i, j, k, m_c_S.begin() + 2) = emtensor.S[0][2];
+        out_arrays(i, j, k, m_c_S.begin() + 3) = emtensor.S[1][1];
+        out_arrays(i, j, k, m_c_S.begin() + 4) = emtensor.S[1][2];
+        out_arrays(i, j, k, m_c_S.begin() + 5) = emtensor.S[2][2];
 
 #endif
     }
@@ -119,7 +119,7 @@ AMREX_FORCE_INLINE void EMTensor<matter_t>::compute_mf(
 
     // a_c_rho is stored starting from dcomp
     // a_c_j is stored starting from rho (dcomp+1)
-    // a_c_S is stored starting from a_c_Si
+    // a_c_S is stored starting from end of a_c_j (dcomp+4)
 
     int c_j_begin{0}, c_j_end{-1};
     int c_S_begin{0}, c_S_end{-1};

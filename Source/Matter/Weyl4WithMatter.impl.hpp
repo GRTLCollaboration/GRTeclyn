@@ -63,14 +63,14 @@ Weyl4WithMatter<matter_t>::add_matter_EB(EBFields_t<data_t> &ebfields,
     // Calculate decomposed energy momentum tensor components
     const auto emtensor = m_matter.compute_emtensor(vars, d1, h_UU, chris.ULL);
 
-    Tensor<2, data_t> Sij_TF = emtensor.Sij;
-    TensorAlgebra::make_trace_free(Sij_TF, vars.h, h_UU);
+    Tensor<2, data_t> S_TF = emtensor.S;
+    TensorAlgebra::make_trace_free(S_TF, vars.h, h_UU);
 
     // as we made the vacuum expression of Bij explictly symmetric and Eij
     // explictly trace-free, only Eij has matter terms
     FOR (i, j)
     {
-        ebfields.E[i][j] += -4.0 * M_PI * m_G_Newton * Sij_TF[i][j];
+        ebfields.E[i][j] += -4.0 * M_PI * m_G_Newton * S_TF[i][j];
     }
 }
 
