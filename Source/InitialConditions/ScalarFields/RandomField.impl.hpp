@@ -185,6 +185,7 @@ inline GpuComplex<Real> RandomField::calculate_random_field(const IntVect iv, co
 
     // Find the analytic power spectrum
     value = calculate_mode_function(kmag, spectrum_type);
+    value *= 2. * std::sqrt(2.) / m_params.Mp;
 
     // Add stochastic perturbations
     if(m_params.use_rand == 1)

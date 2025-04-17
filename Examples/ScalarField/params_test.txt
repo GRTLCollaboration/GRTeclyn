@@ -41,7 +41,7 @@ print_progress_only_to_rank_0 = 1
 # Here we decouple the evolution so the scalar evolved on the
 # metric background without backreaction (this avoids the need
 # to solve the constaints)
-G_Newton = 1.0
+G_Newton = 0.0001
 
 # Homogeneous scalar field initial data
 scalar_amplitude = 4.0000000000000000000
