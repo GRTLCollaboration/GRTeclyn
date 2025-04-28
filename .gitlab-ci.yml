@@ -56,7 +56,9 @@ csd3-a100:
     -   git clone --depth 1 https://github.com/AMReX-Codes/amrex.git ${AMREX_HOME}
     - fi
     - cd ${AMREX_HOME}/Tools/Plotfile
-    - make -j 8 COMP=gnu programs=fcompare
+    - make -j 8 COMP=gnu programs=fcompare  #Build fcompare tool
+    - cd ${AMREX_HOME}/Tools/Postprocessing/C_Src
+    - make -j 8 COMP=gnu particle_compare.exe  #Build particle compare tool
     - cd ${HOME}/${CI_PROJECT_DIR}/Tests
     - make -j 8 ${BUILD_CONFIG}
     - flock ${HOME}/${QOS_INTR_LOCK_FILE} salloc ${SRUN_FLAGS} make run ${BUILD_CONFIG}
