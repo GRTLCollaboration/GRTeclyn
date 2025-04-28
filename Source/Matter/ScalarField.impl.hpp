@@ -76,9 +76,14 @@ ScalarField<potential_t>::add_matter_rhs(
     const auto h_UU  = compute_inverse_sym(vars.h);
     const auto chris = compute_christoffel(d1.h, h_UU);
 
+    // set the potential values
+    data_t V_of_phi = 0.0;
+    data_t dVdphi   = 0.0;
+    m_potential.compute_potential(V_of_phi, dVdphi, vars);
+
     // evolution equations for scalar field and (minus) its conjugate momentum
     rhs.phi = vars.lapse * vars.Pi + advec.phi;
-    rhs.Pi  = vars.lapse * vars.K * vars.Pi + advec.Pi;
+    rhs.Pi  = vars.lapse * (vars.K * vars.Pi - dVdphi) + advec.Pi;
 
     FOR (i, j)
     {
@@ -92,14 +97,6 @@ ScalarField<potential_t>::add_matter_rhs(
                       d1.phi[k];
         }
     }
-
-    // set the potential values
-    data_t V_of_phi = 0.0;
-    data_t dVdphi   = 0.0;
-    m_potential.compute_potential(V_of_phi, dVdphi, vars);
-
-    // adjust RHS for the potential term
-    rhs.Pi += -vars.lapse * dVdphi;
 }
 
 #endif /* SCALARFIELD_IMPL_HPP_ */
