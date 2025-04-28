@@ -25,15 +25,14 @@ variables:
   SRUN_FLAGS: >
     --qos=INTR
     --nodes=1
-    --ntasks=2 
+    --ntasks=2
     --gres=gpu:1
     --time=00:10:00
     --account=SHELLARD-SL3-GPU
     --partition=ampere
-  FCOMPARE_FLAGS: >
+  ERR_TOL_FLAGS: >
     --abs_tol 1e-10
     --rel_tol 1e-10
-    --abort_if_not_all_found
   #We can only run a single job at a time with --qos=INTR
   QOS_INTR_LOCK_FILE: qos-intr.lock
 
@@ -68,7 +67,8 @@ csd3-a100:
     - count=0
     - while [ $count -le 9 ]; do
     -   if [[ -d plt00008 ]]; then
-    -     ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex ${FCOMPARE_FLAGS} plt00008 ${HOME}/${CI_PROJECT_DIR}/.github/workflows/data/plt00008_compare/
+    -     ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex ${ERR_TOL_FLAGS} --abort_if_not_all_found plt00008 ${HOME}/${CI_PROJECT_DIR}/.github/workflows/data/plt00008_compare/ 
+    -     ${AMREX_HOME}/Tools/Postprocessing/C_Src/particle_compare.exe ${ERR_TOL_FLAGS} plt00008 ${HOME}/${CI_PROJECT_DIR}/.github/workflows/data/plt00008_compare/ particles
     -     break
     -   else
     -     sleep 30
