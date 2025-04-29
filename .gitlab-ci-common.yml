@@ -1,0 +1,37 @@
+stages:
+  - test
+
+variables:
+  MODULEPATHS_A100: >
+    /usr/local/software/spack/spack-modules/a100-20210927/linux-centos8-zen2
+    /usr/local/software/spack/spack-modules/a100-20210927/linux-centos8-zen3
+  # The OpenMPI module has a CUDA dependency so will autoload a module for it
+  MODULES_A100: >
+    rhel8/slurm
+    rhel8/global
+    openmpi/4.1.1/gcc-9.4.0-epagguv
+    gcc/9.4.0/gcc-11.2.0-72sgv5z
+    hdf5/1.10.7/openmpi-4.1.1/gcc-9.4.0-krjrm53
+  BUILD_CONFIG: >
+    USE_CUDA=TRUE
+    CUDA_ARCH=80
+    COMP=gnu
+    DEBUG=TRUE
+    TEST=TRUE
+    USE_ASSERTION=TRUE
+    USE_HDF5=TRUE
+    USE_MPI=TRUE
+    USE_CCACHE=TRUE
+  SRUN_FLAGS: >
+    --qos=INTR
+    --nodes=1
+    --ntasks=2
+    --gres=gpu:1
+    --time=00:10:00
+    --account=SHELLARD-SL3-GPU
+    --partition=ampere
+  ERR_TOL_FLAGS: >
+    --abs_tol 1e-10
+    --rel_tol 1e-10
+  #We can only run a single job at a time with --qos=INTR
+  QOS_INTR_LOCK_FILE: qos-intr.lock
