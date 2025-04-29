@@ -1,4 +1,5 @@
 stages:
+  - build
   - test
 
 variables:
@@ -27,7 +28,7 @@ variables:
     --nodes=1
     --ntasks=2
     --gres=gpu:1
-    --time=00:10:00
+    --time=00:20:00
     --account=SHELLARD-SL3-GPU
     --partition=ampere
   ERR_TOL_FLAGS: >
@@ -52,4 +53,3 @@ default:
     - fi
   after_script:
     - rm -rf ${HOME}/${QOS_INTR_LOCK_FILE}
-
