@@ -35,3 +35,21 @@ variables:
     --rel_tol 1e-10
   #We can only run a single job at a time with --qos=INTR
   QOS_INTR_LOCK_FILE: qos-intr.lock
+  
+default:
+  before_script:
+    - module purge
+    - module use ${MODULEPATHS_A100}
+    - module load ${MODULES_A100}
+    - export HDF5_HOME=$(which h5diff | sed 's/bin\/h5diff//') #Override system version of hdf5
+    - export AMREX_HOME=$(realpath ${HOME}/${CI_PROJECT_DIR}/../amrex)
+    - if [[ -d ${AMREX_HOME} ]]; then
+    -   cd ${AMREX_HOME}
+    -   git fetch --depth 1
+    -   git reset --hard origin/development
+    - else
+    -   git clone --depth 1 https://github.com/AMReX-Codes/amrex.git ${AMREX_HOME}
+    - fi
+  after_script:
+    - rm -rf ${HOME}/${QOS_INTR_LOCK_FILE}
+

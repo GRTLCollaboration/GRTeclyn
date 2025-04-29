@@ -5,18 +5,6 @@ csd3-a100:
   tags:
     - csd3
   script:
-    - module purge
-    - module use ${MODULEPATHS_A100}
-    - module load ${MODULES_A100}
-    - export HDF5_HOME=$(which h5diff | sed 's/bin\/h5diff//') #Override system version of hdf5
-    - export AMREX_HOME=$(realpath ${HOME}/${CI_PROJECT_DIR}/../amrex)
-    - if [[ -d ${AMREX_HOME} ]]; then
-    -   cd ${AMREX_HOME}
-    -   git fetch --depth 1
-    -   git reset --hard origin/development
-    - else
-    -   git clone --depth 1 https://github.com/AMReX-Codes/amrex.git ${AMREX_HOME}
-    - fi
     - cd ${AMREX_HOME}/Tools/Plotfile
     - make -j 8 COMP=gnu programs=fcompare  #Build fcompare tool
     - cd ${AMREX_HOME}/Tools/Postprocessing/C_Src
@@ -39,5 +27,3 @@ csd3-a100:
     -     echo "Attempt number " $count " of 10"
     -   fi
     - done
-  after_script:
-    - rm -rf ${HOME}/${QOS_INTR_LOCK_FILE}
