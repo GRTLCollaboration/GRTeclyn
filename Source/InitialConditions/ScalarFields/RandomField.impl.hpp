@@ -392,8 +392,8 @@ inline void RandomField::init(amrex::MultiFab &state)
             // Find the mode function realisation
             for(int p=0; p<2; p++)
             {
-                Real draw1 = random_field_ptr[2*p];
-                Real draw2 = random_field_ptr[2*p+1];
+                Real draw1 = amrex::Random();//random_field_ptr[2*p];
+                Real draw2 = amrex::Random();//random_field_ptr[2*p+1];
 
                 /*if(count==0)
                 {
