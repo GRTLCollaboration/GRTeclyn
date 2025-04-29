@@ -36,11 +36,6 @@ MatterConstraints<matter_t>::compute(int i, int j, int k,
     // Get the non matter terms for the constraints
     Vars<data_t> out = constraint_equations(vars, d1, d2);
 
-    if(i==0 && j==0 && k==0)
- {
-         AllPrint() << out.Ham_abs_terms << "\n";
- }
-
     // Inverse metric and Christoffel symbol
     const auto h_UU  = TensorAlgebra::compute_inverse_sym(vars.h);
     const auto chris = TensorAlgebra::compute_christoffel(d1.h, h_UU);

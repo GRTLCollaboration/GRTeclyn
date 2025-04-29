@@ -49,11 +49,6 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void MatterConstraints<matter_t>::compute(
         out.Ham           += -16.0 * M_PI * m_G_Newton * emtensor.rho;
         out.Ham_abs_terms += 16.0 * M_PI * m_G_Newton * std::abs(emtensor.rho);
     }
-    if(i==0 && j==0 && k==0)
-    {
-        std::cout << "In constraints: " << out.Ham_abs_terms << "\n--------\n";
-        //Error();
-    }
 
     // Momentum constraints
     if (m_c_Moms.size() > 0 || m_c_Moms_abs_terms.size() > 0)

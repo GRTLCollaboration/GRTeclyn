@@ -354,7 +354,7 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
         {
             const auto &out_arrays = multifab.arrays();
             int iham               = dcomp;
-            Interval imom = Interval(dcomp + 1, dcomp + AMREX_SPACEDIM);
+            Interval imom = Interval(dcomp + 1, dcomp + 1);
             MatterConstraints<ScalarFieldWithPotential> constraints(
                 scalar_field, Geom().CellSize(0), simParams().G_Newton, iham,
                 imom);
@@ -371,7 +371,6 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
             int iham     = dcomp;
             Interval imom = Interval(dcomp + 1, dcomp + AMREX_SPACEDIM);
             int iham_abs = dcomp + AMREX_SPACEDIM + 1;
-//            Interval imom_abs     = Interval(dcomp + AMREX_SPACEDIM + 2, dcomp + AMREX_SPACEDIM + 2);
             MatterConstraints<ScalarFieldWithPotential> constraints(
                 scalar_field, Geom().CellSize(0), simParams().G_Newton, iham,
                 imom, iham_abs);
@@ -485,30 +484,6 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
 
     derive("constraints", cur_time, constr_alias, 0);
     derive("TensorPolarisations", cur_time, pol_fields_alias, 0);
-
-    //if(!first_step)
-    {
-        const auto &out_arrays = constr_alias.arrays();
-        amrex::ParallelFor(
-            constr_alias, constr_alias.nGrowVect(),
-            [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept {
-                //Print() << box_no << "," << ParallelContext::MyProcSub() << "," << out_arrays[box_no].cellData(i, j, k)[0] << "\n";
-                if(i==0 && j==0 && k==0)
-    		{   
-        		std::cout << "In ScalarField: " << out_arrays[box_no].cellData(i, j, k)[0] << "\n--------\n";
-    		} 
-
-		//if(!first_step) { Error(); }
-            });
-
-        int v = 0;
-        Print() << "Mean of " << Constraints::var_names[v] << " at time " << cur_time << ": " << constr_alias.sum(v) << "," << vol << "\n";
-        //Error();
-    }
-
-    // Separate out the abs terms
-    //MultiFab abs_terms_alias(constr_alias, amrex::make_alias, 4, 1);
-    //const auto abs_terms_names = amrex::Vector<std::string>(Constraints::var_names_norm.begin() + 4, Constraints::var_names_norm.end());
 
     // Print statistics on the abs constraint terms
     Vector<int> moments{1,2};
