@@ -11,10 +11,9 @@
 #define CHIRELAXATION_IMPL_HPP_
 
 template <class matter_t>
-ChiRelaxation<matter_t>::ChiRelaxation(matter_t a_matter, double dx,
-                                       double relax_speed, double G_Newton)
-    : my_matter(a_matter), m_relax_speed(relax_speed), m_G_Newton(G_Newton),
-      m_deriv(dx)
+ChiRelaxation<matter_t>::ChiRelaxation(double dx, double relax_speed,
+                                       double G_Newton)
+    : m_relax_speed(relax_speed), m_G_Newton(G_Newton), m_deriv(dx)
 {
 }
 

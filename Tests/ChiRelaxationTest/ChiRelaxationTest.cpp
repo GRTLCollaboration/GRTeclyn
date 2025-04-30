@@ -67,9 +67,11 @@ void run_chi_relaxation_test()
 
         const auto &in_array = in_mf.arrays();
 
+        // NOLINTBEGIN(bugprone-easily-swappable-parameters)
         amrex::ParallelFor(
             in_mf, in_mf.nGrowVect(),
             [=] AMREX_GPU_DEVICE(int ibox, int i, int j, int k)
+            // NOLINTEND(bugprone-easily-swappable-parameters)
             {
                 const amrex::IntVect iv{i, j, k};
                 const amrex::RealVect coords = amrex::RealVect{iv} * dx;
@@ -79,17 +81,7 @@ void run_chi_relaxation_test()
 
                 random_ccz4_initial_data(iv, in_array[ibox], coords);
 
-                in_array[ibox](i, j, k, c_Theta) = 0.0;
-
-                // the initial data doesn't include phi or Pi so do it here:
-                in_array[ibox](i, j, k, c_phi) =
-                    0.34578 + 0.26898 * x + 0.54348 * x * x +
-                    0.33487 * x * y * y * y + 0.79469 * y * z +
-                    0.30515 * z * z + 1.88385 * z * z * z * z;
-                in_array[ibox](i, j, k, c_Pi) =
-                    0.65668 + 0.20188 * x + 0.34348 * x * x +
-                    0.31787 * x * y * y * y + 0.88469 * y * z +
-                    0.10515 * z * z + 1.88385 * z * z * z * z;
+                random_matter_bssn_initial_data(iv, in_array[ibox], coords);
             });
 
         using DefaultScalarField = ScalarField<DefaultPotential>;
