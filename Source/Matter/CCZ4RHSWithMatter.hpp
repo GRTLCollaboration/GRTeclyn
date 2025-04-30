@@ -3,14 +3,14 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#ifndef MATTERCCZ4RHS_HPP_
-#define MATTERCCZ4RHS_HPP_
+#ifndef CCZ4RHSWITHMATTER_HPP_
+#define CCZ4RHSWITHMATTER_HPP_
 
 #include "CCZ4Geometry.hpp"
 #include "CCZ4RHS.hpp"
 #include "Cell.hpp"
 #include "FourthOrderDerivatives.hpp"
-#include "MovingPunctureGauge.hpp"
+#include "MovingPunctureGaugeWithMatter.hpp"
 #include "StateVariables.hpp" //This files needs NUM_VARS - total number of components
 #include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
@@ -29,9 +29,9 @@
    an example of a matter_t. \sa CCZ4RHS(), ScalarField()
 */
 
-template <class matter_t, class gauge_t = MovingPunctureGauge,
+template <class matter_t, class gauge_t = MovingPunctureGaugeWithMatter,
           class deriv_t = FourthOrderDerivatives>
-class MatterCCZ4RHS : public CCZ4RHS<gauge_t, deriv_t>
+class CCZ4RHSWithMatter : public CCZ4RHS<gauge_t, deriv_t>
 {
   public:
     // Use this alias for the same template instantiation as this class
@@ -58,7 +58,7 @@ class MatterCCZ4RHS : public CCZ4RHS<gauge_t, deriv_t>
         /// Defines the mapping between members of Vars and Chombo grid
         /// variables (enum in User_Variables)
         template <typename mapping_function_t>
-        void enum_mapping(mapping_function_t mapping_function)
+        AMREX_GPU_DEVICE void enum_mapping(mapping_function_t mapping_function)
         {
             CCZ4Vars<data_t>::enum_mapping(mapping_function);
             MatterVars<data_t>::enum_mapping(mapping_function);
@@ -72,7 +72,7 @@ class MatterCCZ4RHS : public CCZ4RHS<gauge_t, deriv_t>
         /// Defines the mapping between members of Vars and Chombo grid
         /// variables (enum in User_Variables)
         template <typename mapping_function_t>
-        void enum_mapping(mapping_function_t mapping_function)
+        AMREX_GPU_DEVICE void enum_mapping(mapping_function_t mapping_function)
         {
             CCZ4Diff2Vars<data_t>::enum_mapping(mapping_function);
             MatterDiff2Vars<data_t>::enum_mapping(mapping_function);
@@ -87,19 +87,22 @@ class MatterCCZ4RHS : public CCZ4RHS<gauge_t, deriv_t>
        It allows the user to set the value of Newton's constant, which is set to
        one by default.
     */
-    MatterCCZ4RHS(matter_t a_matter, params_t a_params, double a_dx,
-                  double a_sigma, int a_formulation = CCZ4RHS<>::USE_CCZ4,
-                  double a_G_Newton = 1.0);
+    CCZ4RHSWithMatter(params_t a_params, double a_dx, double a_sigma,
+                      int a_formulation = CCZ4RHS<>::USE_CCZ4,
+                      double a_G_Newton = 1.0);
 
     //!  The compute member which calculates the RHS at each point in the box
     //!  \sa matter_rhs_equation()
-    template <class data_t> void compute(Cell<data_t> current_cell) const;
+    template <class data_t>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    compute(int i, int j, int k, const amrex::Array4<data_t> &rhs_arrays,
+            const amrex::Array4<data_t const> &state_arrays) const;
 
   protected:
     //! The function which adds in the EM Tensor terms to the CCZ4 rhs \sa
     //! compute()
     template <class data_t>
-    void add_emtensor_rhs(
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void add_emtensor_rhs(
         Vars<data_t>
             &matter_rhs, //!< the RHS data for each variable at that point.
         const Vars<data_t> &vars, //!< the value of the variables at the point.
@@ -108,16 +111,10 @@ class MatterCCZ4RHS : public CCZ4RHS<gauge_t, deriv_t>
     ) const;
 
     // Class members
-    matter_t my_matter;      //!< The matter object, e.g. a scalar field.
-    const double m_G_Newton; //!< Newton's constant, set to one by default.
+    matter_t m_matter; //!< The matter object, e.g. a scalar field.
+    double m_G_Newton; //!< Newton's constant, set to one by default.
 };
 
-#include "MatterCCZ4RHS.impl.hpp"
+#include "CCZ4RHSWithMatter.impl.hpp"
 
-// This is here for backwards compatibility though the MatterCCZ4RHS
-// class should be used in future hence mark as deprecated
-template <class matter_t>
-using MatterCCZ4 [[deprecated("Use MatterCCZ4RHS instead")]] =
-    MatterCCZ4RHS<matter_t>;
-
-#endif /* MATTERCCZ4RHS_HPP_ */
+#endif /* CCZ4RHSWITHMATTER_HPP_ */

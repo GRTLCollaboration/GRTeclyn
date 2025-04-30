@@ -12,17 +12,31 @@
 #include <AMReX.H>
 
 // Test cases
+#include "BSSNMatterTest.hpp"
 #include "CCZ4GeometryUnitTest.hpp"
 #include "CCZ4RHSTest.hpp"
 #include "ConstraintsTest.hpp"
 #include "CoordinateTransformationsTest.hpp"
 #include "DerivativeUnitTests.hpp"
+#include "EMTensorTest.hpp"
 #include "PositiveChiAndAlphaUnitTest.hpp"
 #include "PunctureTrackerTest.hpp"
 #include "SphericalHarmonicTest.hpp"
 #include "Weyl4Test.hpp"
+#include "Weyl4WithMatterTest.hpp"
 
 TEST_CASE("CCZ4Geometry") { run_ccz4_geometry_unit_tests(); }
+
+TEST_CASE("BSSNMatter"
+#ifndef AMREX_USE_HDF5
+          * doctest::skip()
+#endif
+)
+{
+    run_bssn_matter_test();
+}
+
+TEST_CASE("CCZ4 Geometry") { run_ccz4_geometry_unit_tests(); }
 
 TEST_CASE("CCZ4RHS") { run_ccz4_rhs_test(); }
 
@@ -42,6 +56,15 @@ TEST_CASE("CoordinateTransformations")
 
 TEST_CASE("DerivativeUnitTests") { run_derivative_unit_tests(); }
 
+TEST_CASE("EMTensor"
+#ifndef AMREX_USE_HDF5
+          * doctest::skip()
+#endif
+)
+{
+    run_emtensor_test();
+}
+
 TEST_CASE("PositiveChiAndAlpha") { run_positive_chi_and_alpha_unit_test(); }
 
 TEST_CASE("PunctureTracker") { run_puncture_tracker_test(); }
@@ -55,6 +78,15 @@ TEST_CASE("Weyl4"
 )
 {
     run_weyl4_test();
+}
+
+TEST_CASE("Weyl4WithMatter"
+#ifndef AMREX_USE_HDF5
+          * doctest::skip()
+#endif
+)
+{
+    run_matter_weyl4_test();
 }
 
 #endif /* TESTCASES_HPP_ */

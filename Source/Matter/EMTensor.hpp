@@ -7,34 +7,66 @@
 #define EMTENSOR_HPP
 
 #include "CCZ4Geometry.hpp"
+#include "CCZ4RHSWithMatter.hpp"
 #include "Cell.hpp"
 #include "FourthOrderDerivatives.hpp"
-#include "Interval.H"
-#include "MatterCCZ4.hpp"
+#include "Interval.hpp"
+#include "VarsTools.hpp"
 #include "simd.hpp"
+
+// AMReX Includes
+#include <AMReX_MultiFab.H>
 
 //! Calculates the EM tensor and then saves the ones specified in the
 //! constructor on the grid
-template <class matter_t> class EMTensor
+
+//! Parts of the EMTensor to store
+enum class EMTensorOptions
+{
+    justEnergyDensity,          //! just the energy density
+    energyAndMomentumDensities, //! both the energy density and the momentum
+                                //! density
+    allDensities, //! the energy density, momentum density and the stress tensor
+};
+
+//! Calculates the EM tensor and then saves the parts depending on the
+//! em_tensor_options_t template argument
+template <class matter_t, enum EMTensorOptions em_tensor_options> class EMTensor
 {
   public:
     template <class data_t>
-    using Vars = typename MatterCCZ4<matter_t>::template Vars<data_t>;
+    using Vars = typename CCZ4RHSWithMatter<matter_t>::template Vars<data_t>;
+
+    /// derive record name
+    static inline const std::string name = "EMTensor";
+
+    /// Variable names
+    static amrex::Vector<std::string> var_names();
 
     //! Constructor
-    EMTensor(const matter_t &a_matter, const double dx, const int a_c_rho = -1,
-             const Interval a_c_Si  = Interval(),
-             const Interval a_c_Sij = Interval());
+    EMTensor(double dx, int a_dcomp);
 
-    template <class data_t> void compute(Cell<data_t> current_cell) const;
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
+    template <class data_t>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    compute(int i, int j, int k, const amrex::Array4<data_t> &out_arrays,
+            const amrex::Array4<const data_t> &in_arrays) const;
+    // NOLINTEND(bugprone-easily-swappable-parameters)
+
+    // Set do_all_components to true to calculate the momentum density
+    // and stress energy tensors as well
+    AMREX_FORCE_INLINE static void set_up(int a_state_index);
+
+    AMREX_FORCE_INLINE static void
+    compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
+               const amrex::MultiFab &src_mf, const amrex::Geometry &geomdata,
+               amrex::Real /*time*/, const int * /*bcrec*/, int /*level*/);
 
   protected:
-    const matter_t &m_matter;
+    matter_t m_matter;
     FourthOrderDerivatives m_deriv;
-    const int m_c_rho;      // var enum for the energy density
-    const Interval m_c_Si;  // Interval of var enums for the momentum density
-    const Interval m_c_Sij; // Interval of var enums for the spatial
-                            // stress-energy density
+    int m_dcomp; //!< which component in the MultiFab to store the first
+                 //!< variable
 };
 
 #include "EMTensor.impl.hpp"

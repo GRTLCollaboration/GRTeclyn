@@ -3,8 +3,8 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#ifndef MATTERCONSTRAINTS_HPP_
-#define MATTERCONSTRAINTS_HPP_
+#ifndef CONSTRAINTSWITHMATTER_HPP_
+#define CONSTRAINTSWITHMATTER_HPP_
 
 #include "CCZ4Geometry.hpp"
 #include "Cell.hpp"
@@ -24,10 +24,7 @@
    For an example of a matter_t class see ScalarField. \sa Constraints(),
    ScalarField()
 */
-template <class matter_t>
-class [[deprecated("Use new MatterConstraints class in "
-                   "NewMatterConstraints.hpp")]] MatterConstraints
-    : public Constraints
+template <class matter_t> class ConstraintsWithMatter : public Constraints
 {
   public:
     template <class data_t>
@@ -41,31 +38,43 @@ class [[deprecated("Use new MatterConstraints class in "
         /// Defines the mapping between members of Vars and Chombo grid
         /// variables (enum in User_Variables)
         template <typename mapping_function_t>
-        void enum_mapping(mapping_function_t mapping_function)
+        AMREX_GPU_DEVICE void enum_mapping(mapping_function_t mapping_function)
         {
             Constraints::MetricVars<data_t>::enum_mapping(mapping_function);
             MatterVars<data_t>::enum_mapping(mapping_function);
         }
     };
 
-    //!  Constructor of class MatterConstraints
+    //! Constructor of class ConstraintsWithMatter
     /*!
-         Takes in the grid spacing, and matter object plus
-         optionally the value of Newton's constant, which is set to one by
-       default.
+        Can specify the vars of the constraint vars instead of using the
+        hardcoded ones.
     */
-    MatterConstraints(const matter_t a_matter, double dx,
-                      double G_Newton = 1.0);
+    ConstraintsWithMatter(double dx, double G_Newton, int a_c_Ham,
+                          const Interval &a_c_Moms, int a_c_Ham_abs_terms = -1,
+                          const Interval &a_c_Moms_abs_terms = Interval());
 
     //! The compute member which calculates the constraints at each point in the
     //! box
-    template <class data_t> void compute(Cell<data_t> current_cell) const;
+    template <class data_t>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    compute(int i, int j, int k, const amrex::Array4<data_t> &out_arrays,
+            const amrex::Array4<data_t const> &state_arrays) const;
+
+    static void set_up(int a_state_index, bool a_calc_mom_norm = false);
+
+    // Has signature of DeriveFuncMF so that it can be stored in the derive_lst
+    static void compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
+                           const amrex::MultiFab &src_mf,
+                           const amrex::Geometry &geomdata,
+                           amrex::Real /*time*/, const int * /*bcrec*/,
+                           int /*level*/);
 
   protected:
     matter_t my_matter; //!< The matter object, e.g. a scalar field
     double m_G_Newton;  //!< Newton's constant, set to one by default.
 };
 
-#include "MatterConstraints.impl.hpp"
+#include "ConstraintsWithMatter.impl.hpp"
 
-#endif /* MATTERCONSTRAINTS_HPP_ */
+#endif /* CONSTRAINTSWITHMATTER_HPP_ */
