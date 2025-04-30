@@ -66,7 +66,7 @@ EMTensor<matter_t, em_tensor_options>::compute(
 
     if constexpr (em_tensor_options ==
                       EMTensorOptions::energyAndMomentumDensities ||
-                  em_tensor_options == EMTensorOptions::all)
+                  em_tensor_options == EMTensorOptions::allDensities)
     {
 #if DEFAULT_TENSOR_DIM == 3
         FOR (i)
@@ -76,7 +76,7 @@ EMTensor<matter_t, em_tensor_options>::compute(
 #endif
     }
 
-    if constexpr (em_tensor_options == EMTensorOptions::all)
+    if constexpr (em_tensor_options == EMTensorOptions::allDensities)
     {
 #if DEFAULT_TENSOR_DIM == 3
         out_arrays(i, j, k, m_dcomp + 4) = emtensor.S[0][0];

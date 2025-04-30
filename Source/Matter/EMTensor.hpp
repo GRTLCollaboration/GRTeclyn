@@ -26,7 +26,7 @@ enum class EMTensorOptions
     justEnergyDensity,          //! just the energy density
     energyAndMomentumDensities, //! both the energy density and the momentum
                                 //! density
-    all, //! the energy density, momentum density and the stress tensor
+    allDensities, //! the energy density, momentum density and the stress tensor
 };
 
 //! Calculates the EM tensor and then saves the parts depending on the
