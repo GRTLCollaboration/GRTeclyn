@@ -392,8 +392,8 @@ inline void RandomField::init(amrex::MultiFab &state)
             // Find the mode function realisation
             for(int p=0; p<2; p++)
             {
-                Real draw1 = amrex::Random();//random_field_ptr[2*p];
-                Real draw2 = amrex::Random();//random_field_ptr[2*p+1];
+                Real draw1 = random_field_ptr[2*p];
+                Real draw2 = random_field_ptr[2*p+1];
 
                 /*if(count==0)
                 {
@@ -974,3 +974,35 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
 }
 
 #endif /* RANDOMFIELD_IMPL_HPP_*/
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
+ */
+
+
+#if !defined(RANDOMFIELD_HPP_)
+#error "This file should only be included via RandomField.hpp"
+#endif
+
+#ifndef RANDOMFIELD_IMPL_HPP_
+#define RANDOMFIELD_IMPL_HPP_
+
+/****
+    Small functions (less than 10 lines)
+****/
+
+// Nyquist condition
+inline int RandomField::flip_index(const int indx) { return std::abs(N - indx); }
+
+// Nyquist condition and calculation of kmag
+inline int RandomField::invert_index(const int indx) { return (int)(N/2 - std::abs(N/2 - indx)); }
+
+// For calculation of polarisation tensors
+inline int RandomField::invert_index_with_sign(const int indx) 
+{ 
+    if(indx <= N/2) { return indx; }
+    else { return std::abs(N/2 - indx) - N/2; }
+}
+
+// Ensures no calculation on ghost cells
+inline bool RandomField::is_ghost_index(const IntVect vector)
