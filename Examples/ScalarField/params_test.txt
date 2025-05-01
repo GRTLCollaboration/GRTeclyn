@@ -70,7 +70,7 @@ random_seed = 3539263
 
 # Window function parameters
 use_window = 1
-kstar = 24 # 0.5 * 64 * 3/4
+kstar = 11 # 0.5 * 64 * 3/4
 Delta = 30
 
 # Options for tensor extraction
@@ -91,7 +91,7 @@ moments_to_print = 1 3 4
 # NB - if you have a non-cubic grid, you can specify 'N1' or 'N1_full',
 # 'N2' or 'N2_full' and 'N3' or 'N3_full' ( then dx_coarsest = L/N(max) )
 # NB - the N values need to be multiples of the block_factor
-N_full = 128
+N_full = 512
 L_full = 3000 
 
 # Maximum number of times you can regrid above coarsest level
