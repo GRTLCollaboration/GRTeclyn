@@ -92,7 +92,7 @@ AMREX_GPU_DEVICE Constraints::Vars<data_t> Constraints::constraint_equations(
         }
         Tensor<1, data_t> covd_A_term = 0.0;
         Tensor<1, data_t> d1_chi_term = 0.0;
-        const data_t chi_regularised  = simd_max(1e-6, vars.chi);
+        const data_t chi_regularised  = simd_max(1e-15, vars.chi);
         FOR (i, j, k)
         {
             covd_A_term[i] += h_UU[j][k] * covd_A[k][j][i];
@@ -106,6 +106,7 @@ AMREX_GPU_DEVICE Constraints::Vars<data_t> Constraints::constraint_equations(
                 std::abs(covd_A_term[i]) + std::abs(d1_chi_term[i]);
         }
     }
+
     return out;
 }
 
@@ -116,7 +117,7 @@ Constraints::store_vars(const Vars<data_t> &out,
 {
     if (m_c_Ham >= 0)
     {
-        current_cell[m_c_Ham] = out.Ham;
+        current_cell[m_c_Ham] = out.Ham_abs_terms;
     }
     if (m_c_Ham_abs_terms >= 0)
     {
@@ -127,7 +128,7 @@ Constraints::store_vars(const Vars<data_t> &out,
         FOR (i)
         {
             int ivar           = m_c_Moms.begin() + i;
-            current_cell[ivar] = out.Mom[i];
+            current_cell[ivar] = out.Mom_abs_terms[i];
         }
     }
     else if (m_c_Moms.size() == 1)
@@ -135,7 +136,7 @@ Constraints::store_vars(const Vars<data_t> &out,
         data_t Mom_sq = 0.0;
         FOR (i)
         {
-            Mom_sq += out.Mom[i] * out.Mom[i];
+            Mom_sq += out.Mom_abs_terms[i] * out.Mom_abs_terms[i];
         }
         data_t Mom                     = sqrt(Mom_sq);
         current_cell[m_c_Moms.begin()] = Mom;

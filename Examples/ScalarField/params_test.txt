@@ -51,7 +51,7 @@ scalar_mass = 1.e-4
 # Random Field initial data
 num_scalar_fields = 0
 calc_tensor_field = 1
-A = 1000.
+A = 1.
 # N_fine = 256
 use_rand = 1
 random_seed = 3539263
@@ -70,7 +70,7 @@ random_seed = 3539263
 
 # Window function parameters
 use_window = 1
-kstar = 24 # 0.5 * 64 * 3/4
+kstar = 11 # 0.5 * 64 * 3/4
 Delta = 30
 
 # Options for tensor extraction
@@ -91,7 +91,7 @@ moments_to_print = 1 3 4
 # NB - if you have a non-cubic grid, you can specify 'N1' or 'N1_full',
 # 'N2' or 'N2_full' and 'N3' or 'N3_full' ( then dx_coarsest = L/N(max) )
 # NB - the N values need to be multiples of the block_factor
-N_full = 128
+N_full = 512
 L_full = 3000 
 
 # Maximum number of times you can regrid above coarsest level
@@ -115,7 +115,7 @@ tag_buffer_size = 0 # this example uses a fixed grid
 
 # grid_buffer_size = 8
 # fill_ratio = 0.7
-# num_ghosts = 3
+# num_ghosts = 1
 # center = 64 64 64 # 32 32 32 
 
 #################################################
