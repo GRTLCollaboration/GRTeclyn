@@ -52,7 +52,7 @@ class InitialBackgroundData
             			vars.h[index][index] = 1.;
 
 			const double phi = m_params.phi0 * m_params.Mp;
-			const double Pi = m_params.Pi0;
+			const double Pi = m_params.Pi0 * std::pow(m_params.Mp, 2.);
 			const double H0 = sqrt((8. * M_PI/3./pow(m_params.Mp, 2.))*0.5*(pow(Pi, 2.) 
 						+ pow(m_params.m * m_params.Mp * phi, 2.0)));
 
