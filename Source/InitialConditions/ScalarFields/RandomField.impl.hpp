@@ -259,17 +259,6 @@ inline Vector<Real> RandomField::calculate_basis_vector(const IntVect iv, const 
         Error("RandomField::calculate_polarisation_tensors Part of Fourier grid not covered.");
     }
 
-    /*if(iv[0]==255 && iv[1] == 182 && iv[2] == 0)
-    {    
-        std::ostringstream s;
-        s << "indeces: " << i << "," << j << "," << k << "\n";
-        s << "comp 0: " << sqrt(std::pow(i, 2.)*(std::pow(k, 2.) + std::pow(j, 2.)) + pow(k*k + j*j, 2.)) << "\n";
-	//s << "comp 1: " << i*j/sqrt(i*i*(k*k + j*j) + pow(k*k + j*j, 2.)) << "\n";
-	//s << "comp 2: " << -(k*k + j*j)/sqrt(i*i*(k*k + j*j) + pow(k*k + j*j, 2.)) << "\n";
-	//s << "basis vectors:\n"; 
-        //for(int l=0; l<3; l++) { s << mhat[l] << ", " << nhat[l] << "\n"; }     
-        Error(s.str());
-    }*/
 
     if(which_vector == 0) { return mhat; }
     else if(which_vector == 1) { return nhat; }
@@ -286,14 +275,6 @@ inline GpuComplex<Real> RandomField::calculate_tensor_initial_conditions(const I
 
     mhat = calculate_basis_vector(iv, 0);
     nhat = calculate_basis_vector(iv, 1);
-
-    /*if(iv[0]==255 && iv[1] == 182 && iv[2] == 0)
-    { 
-	std::ostringstream s;
-	s << "basis vectors:\n"; 
-	for(int l=0; l<3; l++) { s << mhat[l] << ", " << nhat[l] << "\n"; }         
-	Error(s.str());
-    }*/
 
     // Assemble the polarisation tensors
     Real eplus = mhat[l]*mhat[p] - nhat[l]*nhat[p];
@@ -415,31 +396,8 @@ inline void RandomField::init(amrex::MultiFab &state)
                 Real draw1 = random_field_ptr[2*p];
                 Real draw2 = random_field_ptr[2*p+1];
 
-                /*if(count==0)
-                {
-                    AllPrint() << ParallelContext::MyProcSub() << "," << draw1 << "\n";
-                    count++;
-                }*/
 
                 hs_ptr(i, j, k, p) = calculate_random_field(iv, "position", draw1, draw2);
-                if(amrex::isnan(hs_ptr(i, j, k, p).real())) 
-		{
-			Print() << iv; 
-			Error("NaN found in Re[hs(k)]"); 
-		}
-		
-		if(amrex::isnan(hs_ptr(i, j, k, p).imag()))
-                {
-                        Print() << iv;
-                        Error("NaN found in Imag[hs(k)]");
-                }
-
-		/*if(i==255 && j == 182 && k==0) 
-		{ 
-			std::ostringstream s;
-			s << "Mode functions: " << hs_ptr(i, j, k, p).real() << ", " << hs_ptr(i, j, k, p).imag() << "\n"; 
-			Error(s.str());
-		}*/
 
 		As_ptr(i, j, k, p) = calculate_random_field(iv, "velocity", draw1, draw2);
             }
@@ -448,13 +406,6 @@ inline void RandomField::init(amrex::MultiFab &state)
             for (int l=0; l<3; l++) for (int p=0; p<3; p++)
             {
                 hij_ptr(i, j, k, lut[l][p]) = calculate_tensor_initial_conditions(iv, l, p, hs_ptr(i, j, k, 0), hs_ptr(i, j, k, 1));
-                if(amrex::isnan(hij_ptr(i, j, k, lut[l][p]).real())) 
-		{ 
-			std::ostringstream s; 
-			s << iv << ", " << l << ", " << p << "\n"; 
-			Error(s.str()); }
-		if(amrex::isnan(hij_ptr(i, j, k, p).imag())) { Print() << iv << ", " << p << "\n"; Error("NaN found in Im[hij(k)]"); }
-		//if(hij_ptr(i, j, k, p).real() == NAN && hij_ptr(i, j, k, p).imag() == NAN) { Error("NaN found in ParallelFor!\n"); }
 
 		Aij_ptr(i, j, k, lut[l][p]) = calculate_tensor_initial_conditions(iv, l, p, As_ptr(i, j, k, 0), As_ptr(i, j, k, 1));
             }
@@ -470,10 +421,6 @@ inline void RandomField::init(amrex::MultiFab &state)
     random_field_fft.backward(hij_k, hij_x);
     random_field_fft.backward(Aij_k, Aij_x);
 
-    /*if (hij_x.contains_nan(0, hij_x.nComp(), amrex::IntVect(0), true))
-    {   
-        amrex::Abort("RandomFields::NaN in hij(x)");
-    }*/
 
     // Apply normalisation into physical units
     hij_x.mult(norm);
