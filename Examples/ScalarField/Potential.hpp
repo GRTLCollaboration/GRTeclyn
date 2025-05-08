@@ -14,6 +14,7 @@ class Potential
     struct params_t
     {
         double scalar_mass;
+	double Mp;
     };
 
   private:
@@ -21,7 +22,7 @@ class Potential
 
   public:
     //! The constructor
-    Potential(params_t a_params) : m_params(a_params) {}
+    Potential(params_t a_params) : m_params(a_params) { m_params.scalar_mass *= m_params.Mp; }
 
     //! Set the potential function for the scalar field here
     template <class data_t, template <typename> class vars_t>

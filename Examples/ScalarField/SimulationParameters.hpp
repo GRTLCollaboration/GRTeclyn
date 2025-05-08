@@ -34,6 +34,8 @@ class SimulationParameters : public SimulationParametersBase
                  0.0); // for now the example neglects backreaction
         background_params.Mp = 1./std::sqrt(G_Newton);
         random_field_params.Mp = 1./std::sqrt(G_Newton);
+	potential_params.Mp = 1./std::sqrt(G_Newton);
+
 	    pp.load("scalar_mass", potential_params.scalar_mass, 0.1);	
 
 	    pp.load("scalar_amplitude", background_params.phi0, 0.0);

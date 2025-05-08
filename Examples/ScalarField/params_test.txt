@@ -4,9 +4,9 @@
 verbosity = 0
 
 # location / naming of output files
-output_path = /nfs/st01/hpc-gr-epss/eaf49/dump/ # Main path for all files. Must exist!
-amr.check_file = /nfs/st01/hpc-gr-epss/eaf49/dump/hdf5/chk_
-amr.plot_file = /nfs/st01/hpc-gr-epss/eaf49/dump/hdf5/plt_
+output_path = /nfs/st01/hpc-gr-epss/eaf49/Mp-to-Potential/ # Main path for all files. Must exist!
+amr.check_file = /nfs/st01/hpc-gr-epss/eaf49/Mp-to-Potential/hdf5/chk_
+amr.plot_file = /nfs/st01/hpc-gr-epss/eaf49/Mp-to-Potential/hdf5/plt_
 
 amr.derive_plot_vars = ALL
 
@@ -14,9 +14,9 @@ amr.derive_plot_vars = ALL
 checkpoint_interval = 300
 # set to 0 to turn off plot files (except at t=0 and t=stop_time)
 # set to -1 to never ever print plotfiles
-plot_interval = 1
-amr.plot_int = 1
-amr.check_int = 20
+plot_interval = 100
+amr.plot_int = 100
+amr.check_int = 200
 num_plot_vars = 2
 plot_vars = hplus hcross
 
@@ -41,7 +41,7 @@ print_progress_only_to_rank_0 = 1
 # Here we decouple the evolution so the scalar evolved on the
 # metric background without backreaction (this avoids the need
 # to solve the constaints)
-G_Newton = 0.0001
+G_Newton = 0.0001 
 
 # Homogeneous scalar field initial data
 scalar_amplitude = 4.0000000000000000000
@@ -144,7 +144,7 @@ extrapolating_vars = phi Pi
 
 # dt will be dx*dt_multiplier on each grid level
 dt_multiplier = 0.25
-stop_time = 100
+stop_time = 100 # 100
 max_steps = 900
 
 # Spatial derivative order (only affects CCZ4 RHS)
