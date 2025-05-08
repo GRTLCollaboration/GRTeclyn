@@ -4,9 +4,9 @@
 verbosity = 0
 
 # location / naming of output files
-output_path = /nfs/st01/hpc-gr-epss/eaf49/Mp-to-Potential/ # Main path for all files. Must exist!
-amr.check_file = /nfs/st01/hpc-gr-epss/eaf49/Mp-to-Potential/hdf5/chk_
-amr.plot_file = /nfs/st01/hpc-gr-epss/eaf49/Mp-to-Potential/hdf5/plt_
+output_path = /nfs/st01/hpc-gr-epss/eaf49/monodromy-test/ # Main path for all files. Must exist!
+amr.check_file = /nfs/st01/hpc-gr-epss/eaf49/monodromy-test/hdf5/chk_
+amr.plot_file = /nfs/st01/hpc-gr-epss/eaf49/monodromy-test/hdf5/plt_
 
 amr.derive_plot_vars = ALL
 
@@ -41,11 +41,11 @@ print_progress_only_to_rank_0 = 1
 # Here we decouple the evolution so the scalar evolved on the
 # metric background without backreaction (this avoids the need
 # to solve the constaints)
-G_Newton = 0.0001 
+G_Newton = 4.e-6
 
 # Homogeneous scalar field initial data
-scalar_amplitude = 4.0000000000000000000
-scalar_velocity = -0.00001627328880468423
+scalar_amplitude = -0.4
+scalar_velocity = 0.00001522182703875943
 scalar_mass = 1.e-4
 
 # Random Field initial data
@@ -70,7 +70,7 @@ random_seed = 3539263
 
 # Window function parameters
 use_window = 1
-kstar = 11 # 0.5 * 64 * 3/4
+# kstar = 11 # 0.5 * 64 * 3/4
 Delta = 30
 
 # Options for tensor extraction
@@ -78,8 +78,8 @@ calc_binned_power_spectrum = 1
 calc_higher_order_statistics = 1
 
 #(!!) must be between 1 and 4
-num_moments = 3
-moments_to_print = 1 3 4 
+num_moments = 4
+moments_to_print = 1 2 3 4 
 
 #################################################
 # Grid parameters
@@ -92,7 +92,7 @@ moments_to_print = 1 3 4
 # 'N2' or 'N2_full' and 'N3' or 'N3_full' ( then dx_coarsest = L/N(max) )
 # NB - the N values need to be multiples of the block_factor
 N_full = 64
-L_full = 30 
+L_full = 154 
 
 # Maximum number of times you can regrid above coarsest level
 max_level = 0 # There are (max_level+1) grids, so min is zero
@@ -144,8 +144,8 @@ extrapolating_vars = phi Pi
 
 # dt will be dx*dt_multiplier on each grid level
 dt_multiplier = 0.25
-stop_time = 100 # 100
-max_steps = 900
+stop_time = 40
+max_steps = 70
 
 # Spatial derivative order (only affects CCZ4 RHS)
 max_spatial_derivative_order = 4 # can be 4 or 6
