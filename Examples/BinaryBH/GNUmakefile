@@ -1,6 +1,6 @@
 GRTECLYN_HOME = $(realpath ../..)
 
-include $(GRTECLYN_HOME)/Tools/GNUMake/Make.defaults
+include $(GRTECLYN_HOME)/External/Tools/GNUMake/Make.defaults
 
 # We use particles for the puncture tracking
 USE_PARTICLES = TRUE
@@ -26,7 +26,6 @@ src_dirs := $(GRTECLYN_SOURCE)/utils \
             $(GRTECLYN_SOURCE)/GRTeclynCore  \
             $(GRTECLYN_SOURCE)/AMRInterpolator  \
             $(GRTECLYN_SOURCE)/Tagging  \
-            $(GRTECLYN_SOURCE)/InitialConditions/BlackHoles \
             $(GRTECLYN_SOURCE)/BlackHoles
 
 src_pack := $(foreach dir, $(src_dirs), $(dir)/Make.package)
@@ -36,4 +35,4 @@ CEXE_headers += $(GRTECLYN_CEXE_headers)
 VPATH_LOCATIONS += $(src_dirs)
 INCLUDE_LOCATIONS += $(realpath .) $(src_dirs)
 
-include $(GRTECLYN_HOME)/Tools/GNUMake/Make.rules
+include $(GRTECLYN_HOME)/External/Tools/GNUMake/Make.rules

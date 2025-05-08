@@ -1,6 +1,6 @@
 GRTECLYN_HOME = $(realpath ..)
 
-include $(GRTECLYN_HOME)/Tools/GNUMake/Make.defaults
+include $(GRTECLYN_HOME)/External/Tools/GNUMake/Make.defaults
 
 # We don't want to use MPI by default for the tests
 USE_MPI = FALSE
@@ -59,7 +59,7 @@ VPATH_LOCATIONS += $(src_dirs) $(test_dirs)
 INCLUDE_LOCATIONS += $(realpath .) $(src_dirs) $(test_dirs)
 SYSTEM_INCLUDE_LOCATIONS += $(doctest_dir)
 
-include $(GRTECLYN_HOME)/Tools/GNUMake/Make.rules
+include $(GRTECLYN_HOME)/External/Tools/GNUMake/Make.rules
 
 ifeq ($(USE_MPI), TRUE)
 LAUNCH = mpiexec -n 2 ./
