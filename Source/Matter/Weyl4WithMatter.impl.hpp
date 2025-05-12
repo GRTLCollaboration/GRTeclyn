@@ -87,8 +87,9 @@ void Weyl4WithMatter<matter_t>::set_up(int a_state_index)
     derive_lst.add(
         Weyl4::name, amrex::IndexType::TheCellType(),
         static_cast<int>(Weyl4::var_names.size()), Weyl4::var_names,
-        Weyl4WithMatter::compute_mf, [=](const amrex::Box &box)
-        { return amrex::grow(box, num_ghosts); }, &amrex::cell_quartic_interp);
+        Weyl4WithMatter::compute_mf,
+        [=](const amrex::Box &box) { return amrex::grow(box, num_ghosts); },
+        &amrex::cell_quartic_interp);
 
     derive_lst.addComponent(Weyl4::name, desc_lst, a_state_index, 0, NUM_VARS);
 }

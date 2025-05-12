@@ -7,7 +7,7 @@
 #define STATEVARIABLES_HPP
 
 #include "ArrayTools.hpp"
-#include "CCZ4Variables.hpp"
+#include "CCZ4StateVariables.hpp"
 
 // assign an enum to each variable
 enum
@@ -25,7 +25,7 @@ namespace StateVariables
 static const amrex::Vector<std::string> additional_names = {"phi", "Pi"};
 
 static const amrex::Vector<std::string> names =
-    ArrayTools::concatenate(CCZ4Variables::names, additional_names);
+    ArrayTools::concatenate(CCZ4StateVariables::names, additional_names);
 } // namespace StateVariables
 
 #endif /* STATEVARIABLES_HPP */

@@ -8,7 +8,7 @@
 
 #include "ArrayTools.hpp"
 #include "BCParity.hpp"
-#include "CCZ4Variables.hpp"
+#include "CCZ4StateVariables.hpp"
 
 #include <array>
 #include <string>
@@ -26,13 +26,13 @@ namespace StateVariables
 static const amrex::Vector<std::string> additional_names = {"phi", "Pi"};
 
 static const amrex::Vector<std::string> names =
-    ArrayTools::concatenate(CCZ4Variables::names, additional_names);
+    ArrayTools::concatenate(CCZ4StateVariables::names, additional_names);
 
 static const std::array<BCParity, NUM_VARS - NUM_CCZ4_VARS>
     user_variable_parities = {BCParity::even, BCParity::even};
 
-static const std::array<BCParity, NUM_VARS> parities =
-    ArrayTools::concatenate(CCZ4Variables::parities, user_variable_parities);
+static const std::array<BCParity, NUM_VARS> parities = ArrayTools::concatenate(
+    CCZ4StateVariables::parities, user_variable_parities);
 } // namespace StateVariables
 
 #endif /* STATEVARIABLES_HPP */
