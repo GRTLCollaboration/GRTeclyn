@@ -19,10 +19,11 @@ include $(AMREX_HOME)/Src/Particle/Make.package
 GRTECLYN_HOME = $(realpath ../..)
 GRTECLYN_SOURCE = $(GRTECLYN_HOME)/Source
 
-src_dirs := $(GRTECLYN_SOURCE)/utils \
+src_dirs := $(GRTECLYN_SOURCE)/IOTools  \
+            $(GRTECLYN_SOURCE)/GridTools  \
+            $(GRTECLYN_SOURCE)/MathsTools  \
             $(GRTECLYN_SOURCE)/simd  \
             $(GRTECLYN_SOURCE)/CCZ4  \
-            $(GRTECLYN_SOURCE)/BoxUtils  \
             $(GRTECLYN_SOURCE)/GRTeclynCore  \
             $(GRTECLYN_SOURCE)/AMRInterpolator  \
             $(GRTECLYN_SOURCE)/Tagging  \

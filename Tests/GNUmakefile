@@ -23,13 +23,14 @@ GRTECLYN_SOURCE = $(GRTECLYN_HOME)/Source
 
 src_dirs := $(GRTECLYN_SOURCE)/AMRInterpolator \
             $(GRTECLYN_SOURCE)/BlackHoles \
-            $(GRTECLYN_SOURCE)/BoxUtils  \
+            $(GRTECLYN_SOURCE)/IOTools  \
+            $(GRTECLYN_SOURCE)/GridTools  \
+            $(GRTECLYN_SOURCE)/MathsTools  \
             $(GRTECLYN_SOURCE)/CCZ4  \
             $(GRTECLYN_SOURCE)/GRTeclynCore  \
             $(GRTECLYN_SOURCE)/Matter \
             $(GRTECLYN_SOURCE)/simd  \
-            $(GRTECLYN_SOURCE)/Tagging  \
-            $(GRTECLYN_SOURCE)/utils 
+            $(GRTECLYN_SOURCE)/Tagging
 
 
 GRTECLYN_TESTS_HOME = $(GRTECLYN_HOME)/Tests

@@ -1,0 +1,6 @@
+GRTECLYN_CEXE_sources += BoundaryConditions.cpp
+
+GRTECLYN_CEXE_headers += SixthOrderDerivatives.hpp FourthOrderDerivatives.hpp \
+                         BCParity.hpp BoundaryConditions.hpp \
+                         DimensionDefinitions.hpp Coordinates.hpp \
+                         Cell.hpp Tensor.hpp VarsTools.hpp
