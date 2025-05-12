@@ -126,7 +126,8 @@ void run_bssn_matter_test()
         const auto &out_fab_array = out_fab.array();
 
         amrex::ParallelFor(out_mf,
-                           [=] AMREX_GPU_DEVICE(int ibox, int i, int j, int k) {
+                           [=] AMREX_GPU_DEVICE(int ibox, int i, int j, int k)
+                           {
                                current_ccz4_rhs.compute(i, j, k,
                                                         out_mf_array[ibox],
                                                         in_c_array[ibox]);

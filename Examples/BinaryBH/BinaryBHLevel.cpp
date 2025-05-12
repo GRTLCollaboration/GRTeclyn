@@ -153,11 +153,12 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
         CCZ4RHS<MovingPunctureGauge, FourthOrderDerivatives> ccz4rhs(
             simParams().ccz4_params, Geom().CellSize(0), simParams().sigma,
             simParams().formulation);
-        amrex::ParallelFor(
-            a_rhs,
-            [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) {
-                ccz4rhs.compute(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]);
-            });
+        amrex::ParallelFor(a_rhs,
+                           [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+                           {
+                               ccz4rhs.compute(i, j, k, rhs_arrs[box_no],
+                                               soln_c_arrs[box_no]);
+                           });
     }
     else if (simParams().max_spatial_derivative_order == 6)
     {

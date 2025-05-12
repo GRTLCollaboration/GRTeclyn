@@ -325,9 +325,9 @@ void PunctureTracker<num_punctures>::track(double a_time, double a_dt,
                                 std::min(p.pos(idir), problem_domain_hi[idir]);
                         }
                     }); // amrex::ParallelFor
-            }           // punc_iter
-        }               // ipass
-    }                   // ilevel
+            } // punc_iter
+        } // ipass
+    } // ilevel
 
     // update m_puncture_coords with the updated locations of the puncture
     // particles

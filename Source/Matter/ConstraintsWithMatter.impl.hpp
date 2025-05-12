@@ -85,9 +85,8 @@ void ConstraintsWithMatter<matter_t>::set_up(int a_state_index,
     derive_lst.add(
         Constraints::name, amrex::IndexType::TheCellType(),
         static_cast<int>(comp_names.size()), comp_names,
-        ConstraintsWithMatter::compute_mf,
-        [=](const amrex::Box &box) { return amrex::grow(box, num_ghosts); },
-        &amrex::cell_quartic_interp);
+        ConstraintsWithMatter::compute_mf, [=](const amrex::Box &box)
+        { return amrex::grow(box, num_ghosts); }, &amrex::cell_quartic_interp);
 
     derive_lst.addComponent(Constraints::name, desc_lst, a_state_index, 0,
                             NUM_VARS);
