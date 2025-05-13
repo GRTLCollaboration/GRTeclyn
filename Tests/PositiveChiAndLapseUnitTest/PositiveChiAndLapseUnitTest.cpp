@@ -7,7 +7,7 @@
 #include "doctest.h"
 
 // Test header
-#include "PositiveChiAndAlphaUnitTest.hpp"
+#include "PositiveChiAndLapseUnitTest.hpp"
 
 // Common includes
 #include "doctestCLIArgs.hpp"
@@ -17,10 +17,10 @@
 #include "AMReX_FArrayBox.H"
 
 // Other includes
-#include "PositiveChiAndAlpha.hpp"
+#include "PositiveChiAndLapse.hpp"
 #include "Tensor.hpp"
 
-void run_positive_chi_and_alpha_unit_test()
+void run_positive_chi_and_lapse_unit_test()
 {
     int amrex_argc    = doctest::cli_args.argc();
     char **amrex_argv = doctest::cli_args.argv();
@@ -50,7 +50,7 @@ void run_positive_chi_and_alpha_unit_test()
                            [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
                            {
                                auto cell = in_array.cellData(ix, iy, iz);
-                               PositiveChiAndAlpha()(cell);
+                               PositiveChiAndLapse()(cell);
                            });
 
         amrex::Gpu::streamSynchronize();

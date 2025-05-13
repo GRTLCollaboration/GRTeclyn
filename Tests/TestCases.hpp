@@ -19,7 +19,7 @@
 #include "CoordinateTransformationsTest.hpp"
 #include "DerivativeUnitTests.hpp"
 #include "EMTensorTest.hpp"
-#include "PositiveChiAndAlphaUnitTest.hpp"
+#include "PositiveChiAndLapseUnitTest.hpp"
 #include "PunctureTrackerTest.hpp"
 #include "SphericalHarmonicTest.hpp"
 #include "Weyl4Test.hpp"
@@ -65,7 +65,7 @@ TEST_CASE("EMTensor"
     run_emtensor_test();
 }
 
-TEST_CASE("PositiveChiAndAlpha") { run_positive_chi_and_alpha_unit_test(); }
+TEST_CASE("PositiveChiAndLapse") { run_positive_chi_and_lapse_unit_test(); }
 
 TEST_CASE("PunctureTracker") { run_puncture_tracker_test(); }
 
