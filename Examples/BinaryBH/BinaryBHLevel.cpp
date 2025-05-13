@@ -8,7 +8,7 @@
 #include "CCZ4RHS.hpp"
 #include "ChiExtractionTagger.hpp"
 #include "Constraints.hpp"
-#include "PositiveChiAndAlpha.hpp"
+#include "PositiveChiAndLapse.hpp"
 #include "PunctureTagger.hpp"
 #include "PunctureTracker.hpp"
 // xxxxx #include "SixthOrderDerivatives.hpp"
@@ -46,14 +46,14 @@ void BinaryBHLevel::specificAdvance()
     amrex::MultiFab &S_new = get_new_data(State_Type);
     const auto &arrs       = S_new.arrays();
 
-    // Enforce the trace free A_ij condition and positive chi and alpha
+    // Enforce the trace free A_ij condition and positive chi and lapse
     amrex::ParallelFor(S_new,
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
                        {
                            amrex::CellData<amrex::Real> cell =
                                arrs[box_no].cellData(i, j, k);
                            TraceARemoval()(cell);
-                           PositiveChiAndAlpha()(cell);
+                           PositiveChiAndLapse()(cell);
                        });
 
     // Check for nan's
@@ -137,14 +137,14 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
     const auto &soln_c_arrs = a_soln.const_arrays();
     const auto &rhs_arrs    = a_rhs.arrays();
 
-    // Enforce positive chi and alpha and trace free A
+    // Enforce positive chi and lapse and trace free A
     amrex::ParallelFor(a_soln, a_soln.nGrowVect(),
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
                        {
                            amrex::CellData<amrex::Real> cell =
                                soln_arrs[box_no].cellData(i, j, k);
                            TraceARemoval()(cell);
-                           PositiveChiAndAlpha()(cell);
+                           PositiveChiAndLapse()(cell);
                        });
 
     // Calculate CCZ4 right hand side

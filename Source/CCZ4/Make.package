@@ -10,7 +10,7 @@ GRTECLYN_CEXE_headers += ADMConformalVars.hpp \
                          GammaCalculator.hpp \
                          IntegratedMovingPunctureGauge.hpp \
                          MovingPunctureGauge.hpp \
-                         PositiveChiAndAlpha.hpp \
+                         PositiveChiAndLapse.hpp \
                          TraceARemoval.hpp \
                          Weyl4.hpp \
                          Weyl4.impl.hpp

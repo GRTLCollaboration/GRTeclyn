@@ -3,15 +3,15 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-// This compute class enforces the positive chi and alpha condition
-#ifndef POSITIVECHIANDALPHA_HPP_
-#define POSITIVECHIANDALPHA_HPP_
+// This compute class enforces the positive chi and lapse condition
+#ifndef POSITIVECHIANDLAPSE_HPP_
+#define POSITIVECHIANDLAPSE_HPP_
 
 #include "Cell.hpp"
 #include "StateVariables.hpp"
 #include "simd.hpp"
 
-class PositiveChiAndAlpha
+class PositiveChiAndLapse
 {
   private:
     double m_min_chi;
@@ -20,7 +20,7 @@ class PositiveChiAndAlpha
   public:
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     //! Constructor for class
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE PositiveChiAndAlpha(
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE PositiveChiAndLapse(
         const double a_min_chi = 1e-4, const double a_min_lapse = 1e-4)
         : m_min_chi(a_min_chi), m_min_lapse(a_min_lapse)
     {
@@ -42,4 +42,4 @@ class PositiveChiAndAlpha
     }
 };
 
-#endif /* POSITIVECHIANDALPHA_HPP_ */
+#endif /* POSITIVECHIANDLAPSE_HPP_ */
