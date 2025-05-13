@@ -119,7 +119,8 @@ void ScalarFieldLevel::initData()
                        << std::endl;
 
     const auto dx = geom.CellSizeArray();
-    InitialBackgroundData FLRW_background(simParams().background_params);
+    Potential potential(simParams().potential_params);
+    InitialBackgroundData FLRW_background(simParams().background_params, potential);
 
     amrex::MultiFab &state  = get_new_data(State_Type);
     auto const &state_array = state.arrays();

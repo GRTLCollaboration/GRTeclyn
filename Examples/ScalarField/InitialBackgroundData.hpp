@@ -14,10 +14,12 @@
 #include "Tensor.hpp"
 #include "VarsTools.hpp"
 #include "simd.hpp"
+#include "Potential.hpp"
 
 //#include "MayDay.H"
 //#include <fstream>
 
+//template <class potential_t>
 class InitialBackgroundData
 {
 	public:
@@ -29,8 +31,8 @@ class InitialBackgroundData
 			double Mp = 1.;    //!< Energy scale [Mp]
 		};
 
-		InitialBackgroundData(params_t a_params)
-			: m_params(a_params)
+		InitialBackgroundData(params_t a_params, const Potential a_potential)
+			: m_params(a_params), m_potential(a_potential)
 		{
 		}
 
@@ -53,17 +55,21 @@ class InitialBackgroundData
 
 			const double phi = m_params.phi0 * m_params.Mp;
 			const double Pi = m_params.Pi0 * std::pow(m_params.Mp, 2.);
-			const double H0 = sqrt((8. * M_PI/3./pow(m_params.Mp, 2.))*0.5*(pow(Pi, 2.) 
-						+ pow(m_params.m * m_params.Mp * phi, 2.0)));
 
 			vars.phi = phi;
 			vars.Pi = Pi;
+
+			double V, dV;
+			m_potential.compute_potential(V, dV, vars);
+			
+			const double H0 = sqrt((8. * M_PI/3./pow(m_params.Mp, 2.))*(0.5*pow(Pi, 2.) + V));
 			vars.K = -3.*H0;
 
 			store_vars(cell.cellData(i, j, k), vars);
 		}
 	protected:
 		const params_t m_params;
+		const Potential m_potential;
 
 };
 

@@ -16,13 +16,13 @@ class Potential
         double scalar_mass;
 
 	double phi0;
+	double df0;
+	double Mp; 
+
 	double width;	
 	double location;
 	double amplitude;
 	double wavelength;
-	double df0;
-
-	double Mp;
     };
 
   private:
@@ -33,9 +33,12 @@ class Potential
     Potential(params_t a_params) : m_params(a_params) 
     {
 	m_params.scalar_mass *= m_params.Mp;
+	m_params.phi0 *= m_params.Mp;
+	m_params.df0 *= std::pow(m_params.Mp, 2.);
+
 	m_params.width = 2. * m_params.df0 / (9.e-6) / m_params.Mp;
 	m_params.location = m_params.phi0 + 0.5 * m_params.width;
-	m_params.amplitude *= std::pow(m_params.Mp, 4);
+	m_params.amplitude *= std::pow(m_params.Mp, 4.);
 	m_params.wavelength *= m_params.Mp;
     }
 
@@ -47,22 +50,23 @@ class Potential
     {
 	// The potential value at phi
 	// Monodromy model, loosely based off the one used in STOIIC_GR
-	double envelope = 0.25 * (1. + tanh((vars.phi - m_params.location)/m_params.wavelength)) 
-				* (1. + tanh((m_params.location - vars.phi + m_params.width)/m_params.wavelength);
+	double argument = (vars.phi - m_params.location)/m_params.wavelength;
+	double displaced_argument = (m_params.location - vars.phi + m_params.width)/m_params.wavelength;
 	
-	double oscillation = cos((vars.phi - m_params.location)/m_params.wavelength) - 1.; 	
+	double envelope = 0.25 * (1. + tanh(argument)) * (1. + tanh(displaced_argument));
+	double oscillation = cos(argument) - 1.; 	
 
 	V_of_phi = 0.5 * pow(m_params.scalar_mass * vars.phi, 2.0);
 	V_of_phi += m_params.amplitude * (envelope * oscillation);
-	
-        // The potential value at phi
-        // 1/2 m^2 phi^2
-        // V_of_phi = 0.5 * pow(m_params.scalar_mass * vars.phi, 2.0);
 
         // The potential gradient at phi
-        // m^2 phi
+	double d_envelope = 0.25/m_params.wavelength * 
+				((1. + tanh(argument)) * (std::pow(tanh(displaced_argument), 2.) - 1.)
+			       + (1. + tanh(displaced_argument)) * (1. - std::pow(tanh(argument), 2.)));
+	double d_oscillation = -sin(argument)/m_params.wavelength;
+
         dVdphi = pow(m_params.scalar_mass, 2.0) * vars.phi;
-	dVdphi += m_params.amplitude * 
+	dVdphi += m_params.amplitude * (envelope * d_oscillation + d_envelope * oscillation);
     }
 };
 

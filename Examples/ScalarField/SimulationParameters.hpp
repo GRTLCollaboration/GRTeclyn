@@ -36,10 +36,14 @@ class SimulationParameters : public SimulationParametersBase
         random_field_params.Mp = 1./std::sqrt(G_Newton);
 	potential_params.Mp = 1./std::sqrt(G_Newton);
 
-	    pp.load("scalar_mass", potential_params.scalar_mass, 0.1);	
+	pp.load("scalar_mass", potential_params.scalar_mass, 0.1);
+	pp.load("scalar_amplitude", potential_params.phi0, 4.);
+	pp.load("feature_df0", potential_params.df0, 1.e-7);
+	pp.load("feature_amplitude", potential_params.amplitude, 1.e-10);
+	pp.load("feature_wavelength", potential_params.wavelength, 1.e-3);	
 
-	    pp.load("scalar_amplitude", background_params.phi0, 0.0);
-	    pp.load("scalar_velocity", background_params.Pi0, 0.0);
+	pp.load("scalar_amplitude", background_params.phi0, 0.0);
+	pp.load("scalar_velocity", background_params.Pi0, 0.0);
         pp.load("scalar_mass", background_params.m, 0.0);
 
         pp.load("num_scalar_fields", random_field_params.num_scalar_fields, 0);

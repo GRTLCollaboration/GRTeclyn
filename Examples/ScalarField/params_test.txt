@@ -14,9 +14,9 @@ amr.derive_plot_vars = ALL
 checkpoint_interval = 300
 # set to 0 to turn off plot files (except at t=0 and t=stop_time)
 # set to -1 to never ever print plotfiles
-plot_interval = 100
-amr.plot_int = 100
-amr.check_int = 200
+plot_interval = 1
+amr.plot_int = 1
+amr.check_int = 20
 num_plot_vars = 2
 plot_vars = hplus hcross
 
@@ -45,8 +45,13 @@ G_Newton = 4.e-6
 
 # Homogeneous scalar field initial data
 scalar_amplitude = -0.4
-scalar_velocity = 0.00001522182703875943
+scalar_velocity = 0.0000152218311885744
 scalar_mass = 1.e-4
+
+# Axion monodromy feature parameters
+feature_df0 = 4.e-7
+feature_amplitude = 1.e-10
+feature_wavelength = 5.e-3
 
 # Random Field initial data
 num_scalar_fields = 0
