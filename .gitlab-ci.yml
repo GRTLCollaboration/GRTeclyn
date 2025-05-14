@@ -11,29 +11,36 @@ csd3-a100-build:
     - make -j 8 COMP=gnu particle_compare.exe  #Build particle compare tool
     - cd ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH
     - make -j 8 ${BUILD_CONFIG}
-    - mv ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex ${HOME}/${CI_PROJECT_DIR}
-    - mv ${AMREX_HOME}/Tools/Postprocessing/C_Src/particle_compare.exe ${HOME}/${CI_PROJECT_DIR}
-  artifacts:   
-    paths: #must relative to project directory
-      - ${HOME}/${CI_PROJECT_DIR}/fcompare.gnu.ex
-      - ${HOME}/${CI_PROJECT_DIR}/particle_compare.exe
-      - ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH/main3d.gnu.DEBUG.MPI.CUDA.ex
+    - export STORE=$(realpath ${HOME}/build)
+    - echo "STORE=$(realpath ${HOME}/build)" >> ${HOME}/${CI_PROJECT_DIR}/build.env
+    - if [[ ! -d ${STORE} ]]; then
+    -   mkdir ${STORE}
+    - fi    
+    - mv ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex ${STORE}
+    - mv ${AMREX_HOME}/Tools/Postprocessing/C_Src/particle_compare.exe ${STORE}
+    - mv ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH/main3d.gnu.DEBUG.MPI.CUDA.ex ${STORE}
+  artifacts:
+    reports:
+      dotenv: ${HOME}/${CI_PROJECT_DIR}/build.env
 
 csd3-a100-test:
   stage: test
   tags:
     - csd3
+  dependencies:
+    - csd3-a100-build
   script:
+    - echo ${STORE}
     - cd ${HOME}/${CI_PROJECT_DIR}/Tests
     - make -j 8 ${BUILD_CONFIG}
     - flock ${HOME}/${QOS_INTR_LOCK_FILE} salloc ${SRUN_FLAGS} make run ${BUILD_CONFIG}    
     - cd ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH
-    - flock ${HOME}/${QOS_INTR_LOCK_FILE} srun ${SRUN_FLAGS} ${HOME}/${CI_PROJECT_DIR}/main3d.gnu.DEBUG.MPI.CUDA.ex ./params_test.txt
+    - flock ${HOME}/${QOS_INTR_LOCK_FILE} srun ${SRUN_FLAGS} ${STORE}/main3d.gnu.DEBUG.MPI.CUDA.ex ./params_test.txt
     - count=0
     - while [ $count -le 9 ]; do
     -   if [[ -d plt00008 ]]; then
-    -     ${HOME}/${CI_PROJECT_DIR}/fcompare.gnu.ex ${ERR_TOL_FLAGS} --abort_if_not_all_found plt00008 ${HOME}/${CI_PROJECT_DIR}/.github/workflows/data/plt00008_compare/
-    -     ${HOME}/${CI_PROJECT_DIR}/particle_compare.exe ${ERR_TOL_FLAGS} plt00008 ${HOME}/${CI_PROJECT_DIR}/.github/workflows/data/plt00008_compare/ particles
+    -     ${STORE}/fcompare.gnu.ex ${ERR_TOL_FLAGS} --abort_if_not_all_found plt00008 ${HOME}/${CI_PROJECT_DIR}/.github/workflows/data/plt00008_compare/
+    -     ${STORE}/particle_compare.exe ${ERR_TOL_FLAGS} plt00008 ${HOME}/${CI_PROJECT_DIR}/.github/workflows/data/plt00008_compare/ particles
     -     break
     -   else
     -     sleep 30
