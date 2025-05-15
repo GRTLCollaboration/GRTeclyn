@@ -59,7 +59,7 @@ void run_coordinate_transformations_test()
     int amrex_argc    = doctest::cli_args.argc();
     char **amrex_argv = doctest::cli_args.argv();
     // NOLINTNEXTLINE(bugprone-casting-through-void) // Open MPI triggers this
-    amrex::Initialize(amrex_argc, amrex_argv, true, MPI_COMM_WORLD);
+    amrex::Initialize(amrex_argc, amrex_argv, true, amrex::MPI_COMM_WORLD);
     {
         const double dx = 0.1;
         amrex::IntVect iv{1, 2, 3};
