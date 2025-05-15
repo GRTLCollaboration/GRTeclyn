@@ -1,4 +1,4 @@
-include: '.gitlab-ci-common.yml'
+include: '.gitlab/.gitlab-ci-common.yml'
 
 csd3-a100-build:
   stage: build
@@ -35,7 +35,7 @@ csd3-a100-test:
     - flock ${HOME}/${QOS_INTR_LOCK_FILE} salloc ${SRUN_FLAGS} make run ${BUILD_CONFIG}    
     - cd ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH
     - flock ${HOME}/${QOS_INTR_LOCK_FILE} srun ${SRUN_FLAGS} ${STORE}/main3d.gnu.DEBUG.MPI.CUDA.ex ./params_test.txt
-    - source ${HOME}/${CI_PROJECT_DIR}/.gitlab-ci-test-output.sh ${STORE} ${CI_PROJECT_DIR}
+    - source ${HOME}/${CI_PROJECT_DIR}/.gitlab/.gitlab-ci-test-output.sh ${STORE} ${CI_PROJECT_DIR}
 #    - count=0
 #    - while [ $count -le 9 ]; do
 #    -   if [[ -d plt00008 ]]; then
