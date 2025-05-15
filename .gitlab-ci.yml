@@ -11,8 +11,8 @@ csd3-a100-build:
     - make -j 8 COMP=gnu particle_compare.exe  #Build particle compare tool
     - cd ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH
     - make -j 8 ${BUILD_CONFIG}
-    - export STORE=$(realpath ${HOME}/build)
-    - echo "STORE=$(realpath ${HOME}/build)" >> ${HOME}/${CI_PROJECT_DIR}/build.env
+    - export STORE=$(realpath ${HOME}/a100-build-${CI_PIPELINE_ID})
+    - echo "STORE=$(realpath ${HOME}/a100-build-${CI_PIPELINE_ID})" >> ${HOME}/${CI_PROJECT_DIR}/build.env
     - if [[ ! -d ${STORE} ]]; then
     -   mkdir ${STORE}
     - fi    
@@ -36,15 +36,5 @@ csd3-a100-test:
     - cd ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH
     - flock ${HOME}/${QOS_INTR_LOCK_FILE} srun ${SRUN_FLAGS} ${STORE}/main3d.gnu.DEBUG.MPI.CUDA.ex ./params_test.txt
     - source ${HOME}/${CI_PROJECT_DIR}/.gitlab/.gitlab-ci-test-output.sh ${STORE} ${CI_PROJECT_DIR}
-#    - count=0
-#    - while [ $count -le 9 ]; do
-#    -   if [[ -d plt00008 ]]; then
-#    -     ${STORE}/fcompare.gnu.ex ${ERR_TOL_FLAGS} --abort_if_not_all_found plt00008 ${HOME}/${CI_PROJECT_DIR}/.github/workflows/data/plt00008_compare/
-#    -     ${STORE}/particle_compare.exe ${ERR_TOL_FLAGS} plt00008 ${HOME}/${CI_PROJECT_DIR}/.github/workflows/data/plt00008_compare/ particles
-#    -     break
-#    -   else
-#    -     sleep 30
-#    -     ((count++))
-#    -     echo "Attempt number " $count " of 10"
-#    -   fi
-#    - done
+    - rm -rf ${STORE}
+    
