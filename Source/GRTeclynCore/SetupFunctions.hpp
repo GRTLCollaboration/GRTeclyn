@@ -29,7 +29,7 @@
 #include <iostream>
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
-/// This function calls MPI_Init, makes sure a parameter file is supplied etc...
+/// This function calls MPI_Init
 void mainSetup(int argc, char *argv[]);
 
 /// This function calls all finalisations
@@ -42,17 +42,8 @@ const int simd_traits<double>::simd_len; // Still needs to be defined
 void mainSetup(int argc, char *argv[])
 {
     // NOLINTEND(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
-    bool use_parm_parse = true;
     // NOLINTNEXTLINE(bugprone-casting-through-void)
-    amrex::Initialize(argc, argv, use_parm_parse, MPI_COMM_WORLD,
-                      []()
-                      {
-                          amrex::ParmParse pp("amrex");
-                          bool the_arena_is_managed = false;
-                          // don't use managed memory by default
-                          pp.queryAdd("the_arena_is_managed",
-                                      the_arena_is_managed);
-                      });
+    amrex::Initialize(argc, argv);
 
 #ifdef EQUATION_DEBUG_MODE
     EquationDebugging::check_no_omp();
