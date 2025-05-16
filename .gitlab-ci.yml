@@ -11,17 +11,12 @@ csd3-a100-build:
     - make -j 8 COMP=gnu particle_compare.exe  #Build particle compare tool
     - cd ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH
     - make -j 8 ${BUILD_CONFIG}
-    - export BINARY_DIR=$(realpath ${HOME}/a100-build-${CI_PIPELINE_ID})
-    - echo "BINARY_DIR=$(realpath ${HOME}/a100-build-${CI_PIPELINE_ID})" >> ${HOME}/${CI_PROJECT_DIR}/build.env
     - if [[ ! -d ${BINARY_DIR} ]]; then
     -   mkdir ${BINARY_DIR}
     - fi    
     - mv ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex ${BINARY_DIR}
     - mv ${AMREX_HOME}/Tools/Postprocessing/C_Src/particle_compare.exe ${BINARY_DIR}
     - mv ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH/main3d.gnu.DEBUG.MPI.CUDA.ex ${BINARY_DIR}
-  artifacts:
-    reports:
-      dotenv: ${HOME}/${CI_PROJECT_DIR}/build.env
 
 csd3-a100-test:
   stage: test
@@ -36,6 +31,5 @@ csd3-a100-test:
     - cd ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH
     - flock ${HOME}/${QOS_INTR_LOCK_FILE} srun ${SRUN_FLAGS} ${BINARY_DIR}/main3d.gnu.DEBUG.MPI.CUDA.ex ./params_test.txt
     - source ${HOME}/${CI_PROJECT_DIR}/.gitlab/.gitlab-ci-test-output.sh ${BINARY_DIR} ${CI_PROJECT_DIR}
-  after_script:
     - rm -rf ${BINARY_DIR}
     
