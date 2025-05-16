@@ -40,7 +40,7 @@ void run_bssn_matter_test()
     char **amrex_argv = doctest::cli_args.argv();
 
     // NOLINTNEXTLINE(bugprone-casting-through-void) // Open MPI triggers this
-    amrex::Initialize(amrex_argc, amrex_argv, true, amrex::MPI_COMM_WORLD);
+    amrex::Initialize(amrex_argc, amrex_argv);
     {
 
         constexpr int num_cells  = 32;

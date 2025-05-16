@@ -29,7 +29,7 @@ std::ostream &hide_output_from_non_zero_ranks(std::ostream &a_rank_zero_ostream)
     }
     int rank = 0;
     // NOLINTNEXTLINE(bugprone-casting-through-void) // Open MPI triggers this
-    MPI_Comm_rank(amrex::MPI_COMM_WORLD, &rank);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     if (rank == 0)
     {
         return a_rank_zero_ostream;

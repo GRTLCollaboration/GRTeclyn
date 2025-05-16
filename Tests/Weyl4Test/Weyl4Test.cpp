@@ -34,7 +34,7 @@ void run_weyl4_test()
     int amrex_argc    = doctest::cli_args.argc();
     char **amrex_argv = doctest::cli_args.argv();
     // NOLINTNEXTLINE(bugprone-casting-through-void) // Open MPI triggers this
-    amrex::Initialize(amrex_argc, amrex_argv, true, amrex::MPI_COMM_WORLD);
+    amrex::Initialize(amrex_argc, amrex_argv);
     {
         // Set up grid
         constexpr int num_cells  = 32;

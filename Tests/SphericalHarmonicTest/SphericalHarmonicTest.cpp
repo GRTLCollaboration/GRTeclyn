@@ -31,7 +31,7 @@ void run_spherical_harmonic_test()
     int amrex_argc    = doctest::cli_args.argc();
     char **amrex_argv = doctest::cli_args.argv();
     // NOLINTNEXTLINE(bugprone-casting-through-void) // Open MPI triggers this
-    amrex::Initialize(amrex_argc, amrex_argv, true, amrex::MPI_COMM_WORLD);
+    amrex::Initialize(amrex_argc, amrex_argv);
     {
         const int N_GRID = 64;
         amrex::Box box(amrex::IntVect::TheZeroVector(),
