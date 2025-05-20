@@ -52,5 +52,3 @@ default:
     -   git clone --depth 1 https://github.com/AMReX-Codes/amrex.git ${AMREX_HOME}
     - fi
     - export BINARY_DIR=$(realpath ${HOME}/a100-build-${CI_PIPELINE_ID})    
-  after_script:
-    - rm -rf ${HOME}/${QOS_INTR_LOCK_FILE}
