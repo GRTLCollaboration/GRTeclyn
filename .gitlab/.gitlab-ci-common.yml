@@ -34,21 +34,27 @@ variables:
   ERR_TOL_FLAGS: >
     --abs_tol 1e-10
     --rel_tol 1e-10
-  #We can only run a single job at a time with --qos=INTR
+  # We can only run a single job at a time with --qos=INTR
   QOS_INTR_LOCK_FILE: qos-intr.lock
-  
+  OUTPUT_DIR: /rds/project/rds-YVo7YUJF2mk/grteclyn-ci-svc/a100-test-${CI_PIPELINE_ID}/
+
+
 default:
   before_script:
     - module purge
     - module use ${MODULEPATHS_A100}
     - module load ${MODULES_A100}
-    - export HDF5_HOME=$(which h5diff | sed 's/bin\/h5diff//') #Override system version of hdf5
+    # Override system version of hdf5
+    - export HDF5_HOME=$(which h5diff | sed 's/bin\/h5diff//')
     - export AMREX_HOME=$(realpath ${HOME}/${CI_PROJECT_DIR}/../amrex)
-    - if [[ -d ${AMREX_HOME} ]]; then
-    -   cd ${AMREX_HOME}
-    -   git fetch --depth 1
-    -   git reset --hard origin/development
-    - else
-    -   git clone --depth 1 https://github.com/AMReX-Codes/amrex.git ${AMREX_HOME}
-    - fi
-    - export BINARY_DIR=$(realpath ${HOME}/a100-build-${CI_PIPELINE_ID})    
+    - >
+      if [[ -d ${AMREX_HOME} ]]; then
+        cd ${AMREX_HOME}
+        git fetch --depth 1
+        git reset --hard origin/development
+      else
+        git clone --depth 1 https://github.com/AMReX-Codes/amrex.git ${AMREX_HOME}
+      fi
+    # Set up some environment variables, $HOME not defined in global variable scope
+    - export BINARY_DIR=$(realpath ${HOME}/a100-build-${CI_PIPELINE_ID})
+    - export COMPARE_DIR=$(realpath ${HOME}/${CI_PROJECT_DIR}/.github/workflows/data)
