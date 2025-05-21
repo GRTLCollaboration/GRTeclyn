@@ -41,9 +41,10 @@ csd3-a100-test:
   after_script:
     - rm -rf ${HOME}/${QOS_INTR_LOCK_FILE}    
     - rm -rf ${BINARY_DIR}
-    - if [[ -d ${OUTPUT_DIR} ]]; then
-    -   rm -rf ${OUTPUT_DIR}
-    - fi        
+    - >
+      if [[ -d ${OUTPUT_DIR} ]]; then
+        rm -rf ${OUTPUT_DIR}
+      fi        
     
 
     
