@@ -29,15 +29,14 @@ class KleinGordonLevel : public GRAMRLevel
     void specificAdvance() override;
 
     /// Things to do after dt*rhs has been added to the solution
-    void specificUpdateODE(amrex::MultiFab &a_soln) override{};
+    void specificUpdateODE(amrex::MultiFab &a_soln) override {};
 
     // to do post each time step on every level
-    void specificPostTimeStep() override{};
+    void specificPostTimeStep() override {};
 
     //! Error estimation for regridding.
-    void errorEst(amrex::TagBoxArray &tags, int clearval, int tagval,
-                  amrex::Real time, int n_error_buf = 0,
-                  int ngrow = 0) override;
+    void tag_cells(amrex::TagBoxArray &tags,
+                   amrex::Real a_regrid_threshold) override;
 
   private:
 

@@ -1,5 +1,5 @@
 #include "KleinGordonLevel.hpp"
-#include "FixedGridsTaggingCriterion.hpp"
+#include "FixedGridsTagger.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "KleinGordonRHS.hpp"
 #include <numeric>
@@ -88,6 +88,7 @@ void KleinGordonLevel::initData()
                 // z-start_pos[5], start_times[1]); snew[bi](i,j,k,2*n+1) = 0;
             });
     }
+    amrex::Gpu::streamSynchronize();
 }
 
 void KleinGordonLevel::specificAdvance()
@@ -113,25 +114,25 @@ void KleinGordonLevel::specificEvalRHS(amrex::MultiFab &a_soln,
 
     amrex::ParallelFor(
         a_soln,
-        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept {
+        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
+        {
             klein_gordon_rhs.compute(i, j, k, a_soln_a4[box_no],
                                      a_rhs_a4[box_no]);
         });
 
-    Gpu::streamSynchronize();
+    amrex::Gpu::streamSynchronize();
 }
 
-void KleinGordonLevel::errorEst(TagBoxArray &tags, int /*clearval*/,
-                                int /*tagval*/, Real /*time*/,
-                                int /*n_error_buf*/, int /*ngrow*/)
+void KleinGordonLevel::tag_cells(amrex::TagBoxArray &tags,
+                                 amrex::Real a_regrid_threshold)
 {
-    BL_PROFILE("KleinGordonLevel::errorEst()");
+    BL_PROFILE("KleinGordonLevel::tag_cells()");
 
-    auto const &state = get_new_data(State_Type);
+    amrex::MultiFab &state_new = get_new_data(State_Type);
 
-    const char tagval     = TagBox::SET;
-    auto const &arr       = tags.arrays();
-    auto const &state_arr = state.const_arrays();
+    const char tagval      = TagBox::SET;
+    const auto &tag_arrs   = tags.arrays();
+    const auto &state_arrs = state_new.arrays();
 
     const amrex::Real dx         = Geom().CellSize(0);
     const int current_level      = Level();
@@ -140,20 +141,14 @@ void KleinGordonLevel::errorEst(TagBoxArray &tags, int /*clearval*/,
     GRParmParse pp;
     pp.query("center", center);
 
-    FixedGridsTaggingCriterion my_tagging_criterion{dx, current_level,
-                                                    box_length, center};
+    FixedGridsTagger my_tagging_criterion{dx, current_level, box_length,
+                                          center};
 
-    amrex::Real threshold = simParams().regrid_thresholds[current_level];
-
-    amrex::ParallelFor(
-        tags,
-        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
-        {
-            auto criterion =
-                my_tagging_criterion.template compute<amrex::Real>(i, j, k);
-            if (criterion >= threshold)
-            {
-                arr[box_no](i, j, k) = tagval;
-            }
-        });
+    amrex::ParallelFor(tags,
+                       [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+                       {
+                           my_tagging_criterion.operator()<amrex::Real>(
+                               i, j, k, tag_arrs[box_no]);
+                       });
+    amrex::Gpu::streamSynchronize();
 }
