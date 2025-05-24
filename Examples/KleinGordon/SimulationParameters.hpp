@@ -39,19 +39,23 @@ class SimulationParameters : public AMReXParameters
         // If the wave number isn't found in the params file
         // (so not wave ICs), look for the alpha parameter
         // (assume Sine-Gordon instead).
-        if (pp.query("wave_vector", k_r) == 0)
+
+        pp.query("model", model);
+
+        if (model == "Wave")
         {
-            pp.query("alpha", alpha); // this is for Sine-Gordon ICs only
-            model = "SineGordon";
+            pp.query("wave_vector", k_r);
+        }
+        else if (model == "SineGordon") // this is for Sine-Gordon ICs only
+        {
+            pp.query("alpha", alpha);
         }
         else
         {
-            model = "Wave";
+            amrex::Abort("Model option not recognized");
         }
-        pp.add("model", model);
     }
 
-    amrex::Real cfl{0.2};
     amrex::Real scalar_mass{1.0};
     int ncomp{2};
     amrex::Real k_r{1.0};

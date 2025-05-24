@@ -43,12 +43,15 @@ amr.plot_file = /home/dc-kwan1/rds/rds-dirac-dp002/dc-kwan1/GRTeclyn/KleinGordon
 
 
 rk_order = 4
-cfl = 0.2
+dt_multiplier = 0.2
 sigma = 0.3 #coefficient for KO dissipation
 
 #Klein Gordon Parameters 
 initial_amplitude = 10.0 
 initial_width = 0.01 
 scalar_mass = 1
-# either specify a wave_vector for a plane wave model or alpha for a Sine Gordon model
-wave_vector = 100 
+# Choose from "Wave" or "SineGordon"
+# If "Wave" is specified then wave_vector must also be defined
+# If SineGordon is specified then alpha must also be defined
+model = SineGordon
+alpha = 0.7
