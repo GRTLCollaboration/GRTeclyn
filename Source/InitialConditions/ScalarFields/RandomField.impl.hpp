@@ -146,12 +146,7 @@ inline GpuComplex<Real> RandomField::calculate_mode_function(const double km, co
     // Stores modulus and argument 
     Real ms_mag = 0.;
     Real ms_arg = 0.;
-
-    // Hubble at t=0, needed for tensor solution
-    Real H0 = sqrt((4.0 * M_PI/3.0/pow(m_params.Mp, 2.))
-                * (pow(m_background_params.m * m_background_params.phi0, 2.0) 
-                    + pow(m_background_params.Pi0, 2.)));
-
+    
     double kpr = km/H0;
     if (spec_type == "position") // Position mode funcion
     {
@@ -193,7 +188,7 @@ inline GpuComplex<Real> RandomField::calculate_random_field(const IntVect iv, co
         BL_PROFILE("RandomField::calculate_random_field Random initialisation is used");
 
         // Make one random draw for the amplitude and phase individually
-        Real rand_mod = sqrt(-2. * log(rand_amp)); // Rayleigh distribution about |h|
+        Real rand_mod = sqrt(-1. * log(rand_amp)); // Rayleigh distribution about |h|
         Real rand_arg = 2. * M_PI * rand_phase;      // Uniform random phase
 
         // Multiply amplitude by Rayleigh draw
@@ -370,6 +365,10 @@ inline void RandomField::init(amrex::MultiFab &state)
     FabArray<BaseFab<GpuArray<Real, 4>>> random_draws(kba, kdm, 1, 0);
     make_random_draws(random_draws, k_domain);
 
+    const auto state_ars = state.arrays();
+    IntVect iv0{0, 0, 0};
+    H0 = -state_ars[0](iv0, c_K)/3.;
+
     std::string Filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/hs-k-init";
     for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
     {
@@ -397,9 +396,7 @@ inline void RandomField::init(amrex::MultiFab &state)
                 Real draw1 = random_field_ptr[2*p];
                 Real draw2 = random_field_ptr[2*p+1];
 
-
                 hs_ptr(i, j, k, p) = calculate_random_field(iv, "position", draw1, draw2);
-
 		As_ptr(i, j, k, p) = calculate_random_field(iv, "velocity", draw1, draw2);
             }
 
@@ -597,7 +594,7 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
     ParallelAllReduce::Sum(ps_map.data(), static_cast<int>(ps_map.size()), ParallelContext::CommunicatorSub());
 
     // Print the power spectrum to a new file in data/
-    for(int s=0; s<=N/2; s++)
+    for(int s=0; s<N/2; s++)
     {
         power_spec_file.write_data_line({(kiso[s]+kiso[s+1])/2., (double)ps_map[s]/kcount[s]});
     }
