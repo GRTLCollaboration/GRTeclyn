@@ -4,9 +4,9 @@
 verbosity = 0
 
 # location / naming of output files
-output_path = /nfs/st01/hpc-gr-epss/eaf49/dump/ # Main path for all files. Must exist!
-amr.check_file = /nfs/st01/hpc-gr-epss/eaf49/dump/hdf5/chk_
-amr.plot_file = /nfs/st01/hpc-gr-epss/eaf49/dump/hdf5/plt_
+output_path = /nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-data/monodromy-model/tensors-on/N256 # Main path for all files. Must exist!
+amr.check_file = /nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-data/monodromy-model/tensors-on/N256/hdf5/chk_
+amr.plot_file = /nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-data/monodromy-model/tensors-on/N256/hdf5/plt_
 # amr.restart = /nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-data/monodromy-model/tensors-on/N64/hdf5/chk_00067
 
 amr.derive_plot_vars = ALL
@@ -15,9 +15,9 @@ amr.derive_plot_vars = ALL
 checkpoint_interval = 300
 # set to 0 to turn off plot files (except at t=0 and t=stop_time)
 # set to -1 to never ever print plotfiles
-plot_interval = 2
-amr.plot_int = 2
-amr.check_int = 50
+plot_interval = 8
+amr.plot_int = 8
+amr.check_int = 100
 num_plot_vars = 2
 plot_vars = hplus hcross
 
@@ -97,7 +97,7 @@ moments_to_print = 1 2 3 4
 # NB - if you have a non-cubic grid, you can specify 'N1' or 'N1_full',
 # 'N2' or 'N2_full' and 'N3' or 'N3_full' ( then dx_coarsest = L/N(max) )
 # NB - the N values need to be multiples of the block_factor
-N_full = 64
+N_full = 256
 L_full = 154 
 
 # Maximum number of times you can regrid above coarsest level
@@ -114,8 +114,8 @@ regrid_threshold  = 0.5
 
 
 # Max and min box sizes
-max_box_size = 16
-min_box_size = 16
+max_box_size = 32
+min_box_size = 32
 
 tag_buffer_size = 0 # this example uses a fixed grid
 

@@ -365,9 +365,7 @@ inline void RandomField::init(amrex::MultiFab &state)
     FabArray<BaseFab<GpuArray<Real, 4>>> random_draws(kba, kdm, 1, 0);
     make_random_draws(random_draws, k_domain);
 
-    const auto state_ars = state.arrays();
-    IntVect iv0{0, 0, 0};
-    H0 = -state_ars[0](iv0, c_K)/3.;
+    H0 = -state.sum(c_K)/std::pow(N, 3.)/3.;
 
     std::string Filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/hs-k-init";
     for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
