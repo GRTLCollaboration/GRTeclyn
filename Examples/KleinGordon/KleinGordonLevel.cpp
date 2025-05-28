@@ -64,6 +64,7 @@ void KleinGordonLevel::initData()
                 S_new,
                 [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
                 {
+
                     amrex::Real x = problo[0] + (i + 0.5) * dx[0] - center[0];
 
                     snew[box_no](i, j, k, 0) =
@@ -84,6 +85,7 @@ void KleinGordonLevel::initData()
                 S_new,
                 [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
                 {
+
                     amrex::Real x = problo[0] + (i + 0.5) * dx[0] - center[0];
                     amrex::Real y = problo[1] + (j + 0.5) * dx[1] - center[1];
                     amrex::Real z = problo[2] + (k + 0.5) * dx[2] - center[2];
