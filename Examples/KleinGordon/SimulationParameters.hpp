@@ -31,11 +31,6 @@ class SimulationParameters : public AMReXParameters
         // so SimulationParameters doesn't inherit from it.
         pp.query("sigma", sigma);
 
-        // These are parameters specfic to the Klein Gordon example
-
-        pp.query("scalar_mass",
-                 scalar_mass); // What is the mass of the scalar particle?
-
         // If the wave number isn't found in the params file
         // (so not wave ICs), look for the alpha parameter
         // (assume Sine-Gordon instead).
@@ -44,10 +39,19 @@ class SimulationParameters : public AMReXParameters
 
         if (model == "Wave")
         {
+
             pp.query("wave_vector", k_r);
+            // Only wave example has the scalar mass as a parameter
+            // SineGordon potential does not have a mass
+            // associated with it.
+
+            pp.query("scalar_mass",
+                     scalar_mass); // What is the mass of the scalar particle?
         }
-        else if (model == "SineGordon") // this is for Sine-Gordon ICs only
+        else if (model.find("SineGordon") ==
+                 0) // this is for Sine-Gordon ICs only
         {
+            // These are parameters specfic to the Sine Gordon example
             pp.query("alpha", alpha);
         }
         else
@@ -56,7 +60,7 @@ class SimulationParameters : public AMReXParameters
         }
     }
 
-    amrex::Real scalar_mass{1.0};
+    amrex::Real scalar_mass{0.0};
     int ncomp{2};
     amrex::Real k_r{1.0};
     amrex::Real alpha{1.0};

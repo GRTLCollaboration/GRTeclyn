@@ -31,6 +31,7 @@ void KleinGordonLevel::initData()
     const auto probhi = geom.ProbHiArray();
     const auto dx     = geom.CellSizeArray();
 
+    std::array<double, AMREX_SPACEDIM> center{};
     Real midpts[3];
     int i = 0;
 
@@ -39,13 +40,6 @@ void KleinGordonLevel::initData()
 
     MultiFab &S_new  = get_new_data(State_Type);
     auto const &snew = S_new.arrays();
-
-    constexpr Real initial_time = -5.4;
-
-    amrex::Vector<amrex::Real> start_times{initial_time, initial_time * -1.0};
-    amrex::Vector<amrex::Real> start_pos{
-        midpts[0], midpts[1], midpts[2] + 0.5 * midpts[2],
-        midpts[0], midpts[1], midpts[2] - 0.5 * midpts[2]};
 
     if (simParams().model == "Wave")
     {
@@ -68,29 +62,50 @@ void KleinGordonLevel::initData()
     {
         InitialConditions SineGordon(simParams().alpha);
 
-        amrex::ParallelFor(
-            S_new,
-            [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
-            {
-                Real x = problo[0] + (i + 0.5) * dx[0];
-                Real y = problo[1] + (j + 0.5) * dx[1];
-                Real z = problo[2] + (k + 0.5) * dx[2];
+        if (simParams().model == "SineGordon1D")
+        {
+            amrex::ParallelFor(
+                S_new,
+                [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
+                {
+                    Real x = problo[0] + (i + 0.5) * dx[0];
 
-                snew[box_no](i, j, k, 0) =
-                    SineGordon.breather_solution(x - midpts[0], 0);
-                snew[box_no](i, j, k, 1) =
-                    SineGordon.breather_solution_deriv(x - midpts[0], 0);
+                    snew[box_no](i, j, k, 0) =
+                        SineGordon.breather_solution(x - midpts[0], 0);
+                    snew[box_no](i, j, k, 1) =
+                        SineGordon.breather_solution_deriv(x - midpts[0], 0);
+                });
+        }
+        else
+        {
 
-                //	    snew[bi](i,j,k,2*n) =
-                // SineGordon.breather_solution(x-start_pos[0], y-start_pos[1],
-                // z-start_pos[2], start_times[0]) +
-                // SineGordon.breather_solution(x-start_pos[3], y-start_pos[4],
-                // z-start_pos[5], start_times[1]); snew[bi](i,j,k,2*n+1) = 0;
-            });
+            amrex::Real initial_time = -5.4;
+
+            amrex::ParmParse pp;
+            pp.query("initial_time", initial_time);
+
+            amrex::Vector<amrex::Real> start_times{initial_time,
+                                                   initial_time * -1.0};
+            amrex::Vector<amrex::Real> start_pos{midpts[0], midpts[1],
+                                                 midpts[2]};
+
+            amrex::ParallelFor(
+                S_new,
+                [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
+                {
+                    Real x = problo[0] + (i + 0.5) * dx[0];
+                    Real y = problo[1] + (j + 0.5) * dx[1];
+                    Real z = problo[2] + (k + 0.5) * dx[2];
+
+                    snew[box_no](i, j, k, 0) = SineGordon.breather_solution(
+                        x - start_pos[0], y - start_pos[1], z - start_pos[2],
+                        initial_time);
+                    snew[box_no](i, j, k, 1) = 0;
+                });
+        }
     }
     amrex::Gpu::streamSynchronize();
 }
-
 void KleinGordonLevel::specificAdvance()
 {
     // Usually constraints are enforced here, but we don't have any...
@@ -104,8 +119,8 @@ void KleinGordonLevel::specificEvalRHS(amrex::MultiFab &a_soln,
     BL_PROFILE("KleinGordonLevel::specificEvalRHS()");
 
     const auto dx         = Geom().CellSize(0);
-    auto const &a_soln_a4 = a_soln.const_arrays();
-    auto const &a_rhs_a4  = a_rhs.arrays();
+    auto const &soln_arrs = a_soln.const_arrays();
+    auto const &rhs_arrs  = a_rhs.arrays();
 
     Potential my_potential(simParams().scalar_mass);
 
@@ -116,8 +131,8 @@ void KleinGordonLevel::specificEvalRHS(amrex::MultiFab &a_soln,
         a_soln,
         [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
         {
-            klein_gordon_rhs.compute(i, j, k, a_soln_a4[box_no],
-                                     a_rhs_a4[box_no]);
+            klein_gordon_rhs.compute(i, j, k, soln_arrs[box_no],
+                                     rhs_arrs[box_no]);
         });
 
     amrex::Gpu::streamSynchronize();

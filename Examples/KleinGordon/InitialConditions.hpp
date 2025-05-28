@@ -17,7 +17,7 @@ class InitialConditions
     amrex::Real m_initial{1};
 
   public:
-    InitialConditions(const amrex::Real a_initial) : m_initial(a_initial){};
+    InitialConditions(const amrex::Real a_initial) : m_initial(a_initial) {};
 
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
@@ -40,22 +40,15 @@ class InitialConditions
         amrex::Real alpha = m_initial;
         amrex::Real beta  = std::sqrt(1.0 - alpha * alpha);
 
-        // First derivative of Sine Gordon 1D breather solution
-        amrex::Real x1_origin = 0; // for two different breathers
-        amrex::Real x2_origin = 0; // located at x1_origin and x2_origin
-        amrex::Real v         = 0;
+        // Sine Gordon 3D psuedo-breather solution
 
-        amrex::Real y1_origin = t - v * x + x1_origin;
-        amrex::Real y2_origin = x - v * t + x2_origin;
-
-        amrex::Real numerator =
-            alpha * std::sin(alpha * y1_origin) * std::cosh(beta * y2_origin);
-        amrex::Real denominator = alpha * alpha * std::cosh(beta * y2_origin) *
-                                      std::cosh(beta * y2_origin) +
-                                  beta * beta * std::cos(alpha * y1_origin) *
-                                      std::cos(alpha * y1_origin);
-
-        return -4 * alpha * beta * numerator / denominator;
+        return 4 * 4 * 4 *
+               std::atan(alpha * std::sin(beta * t) / beta /
+                         std::cosh(alpha * x)) *
+               std::atan(alpha * std::sin(beta * t) / beta /
+                         std::cosh(alpha * y)) *
+               std::atan(alpha * std::sin(beta * t) / beta /
+                         std::cosh(alpha * z));
     }
 
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real

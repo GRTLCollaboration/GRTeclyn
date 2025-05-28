@@ -19,6 +19,9 @@ void calc_derive_mf(amrex::MultiFab &mf_out, int dcomp, int /*numcomp*/,
 
     amrex::Real midpts[3];
 
+    std::array<double, AMREX_SPACEDIM> center{};
+    pp.query("center", center); // queryAdd??
+
     int i = 0;
 
     FOR (i)
@@ -26,7 +29,7 @@ void calc_derive_mf(amrex::MultiFab &mf_out, int dcomp, int /*numcomp*/,
 
     auto const &array4_out = mf_out.arrays();
 
-    if (model == "SineGordon")
+    if (model == "SineGordon1D")
     {
         amrex::Real alpha = 0.7;
         pp.query("alpha", alpha);
@@ -38,13 +41,36 @@ void calc_derive_mf(amrex::MultiFab &mf_out, int dcomp, int /*numcomp*/,
             [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
             {
                 amrex::Real x = problo[0] + (i + 0.5) * dx[0];
-                amrex::Real y = problo[1] + (j + 0.5) * dx[1];
-                amrex::Real z = problo[2] + (k + 0.5) * dx[2];
 
                 amrex::Real exact_soln =
                     AnalyticSoln.breather_solution(x - midpts[0], time);
 
                 array4_out[box_no](i, j, k, dcomp) = exact_soln;
+            });
+    }
+
+    if (model == "SineGordon3D")
+    {
+        amrex::Real alpha        = 0.7;
+        amrex::Real initial_time = -5.4;
+
+        pp.query("alpha", alpha);
+        pp.query("initial_time", initial_time);
+
+        InitialConditions AnalyticSoln(alpha);
+
+        amrex::ParallelFor(
+            mf_out, mf_out.nGrowVect(),
+            [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
+            {
+                amrex::Real x = problo[0] + (i + 0.5) * dx[0];
+                amrex::Real y = problo[1] + (j + 0.5) * dx[1];
+                amrex::Real z = problo[2] + (k + 0.5) * dx[2];
+
+                array4_out[box_no](i, j, k, dcomp) =
+                    AnalyticSoln.breather_solution(x - midpts[0], y - midpts[1],
+                                                   z - midpts[2],
+                                                   initial_time + time);
             });
     }
 

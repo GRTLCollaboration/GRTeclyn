@@ -46,12 +46,17 @@ rk_order = 4
 dt_multiplier = 0.2
 sigma = 0.3 #coefficient for KO dissipation
 
+tag_buffer_size=1
+
 #Klein Gordon Parameters 
-initial_amplitude = 10.0 
-initial_width = 0.01 
 scalar_mass = 1
-# Choose from "Wave" or "SineGordon"
+# Choose from "Wave" or "SineGordon1D" or "SineGordon3D"
 # If "Wave" is specified then wave_vector must also be defined
 # If SineGordon is specified then alpha must also be defined
-model = SineGordon
+# If SineGordon3D is specified then you also need an initial time
+# that can't be 0 because then the solution is uniformly 0 
+
+model = SineGordon3D
 alpha = 0.7
+initial_time = -5.4; 
+
