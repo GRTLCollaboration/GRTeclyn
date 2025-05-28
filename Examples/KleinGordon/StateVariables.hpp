@@ -12,12 +12,10 @@
 // assign an enum to each variable
 enum
 {
-    // Note that it is important that the first enum value is set to 1 more than
-
     c_phi,
     c_Pi,
 
-    NUM_VARS = 2,
+    NUM_VARS,
 };
 
 namespace StateVariables

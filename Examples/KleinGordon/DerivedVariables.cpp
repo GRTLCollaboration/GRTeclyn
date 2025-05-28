@@ -14,18 +14,10 @@ void calc_derive_mf(amrex::MultiFab &mf_out, int dcomp, int /*numcomp*/,
 
     // Get the geometry of the problem
     const auto problo = geom.ProbLoArray();
-    const auto probhi = geom.ProbHiArray();
     const auto dx     = geom.CellSizeArray();
 
-    amrex::Real midpts[3];
-
     std::array<double, AMREX_SPACEDIM> center{};
-    pp.query("center", center); // queryAdd??
-
-    int i = 0;
-
-    FOR (i)
-        midpts[i] = 0.5 * (probhi[i] - problo[i]);
+    pp.query("center", center);
 
     auto const &array4_out = mf_out.arrays();
 
@@ -40,10 +32,10 @@ void calc_derive_mf(amrex::MultiFab &mf_out, int dcomp, int /*numcomp*/,
             mf_out, mf_out.nGrowVect(),
             [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
             {
-                amrex::Real x = problo[0] + (i + 0.5) * dx[0];
+                amrex::Real x = problo[0] + (i + 0.5) * dx[0] - center[0];
 
                 amrex::Real exact_soln =
-                    AnalyticSoln.breather_solution(x - midpts[0], time);
+                    AnalyticSoln.breather_solution(x, time);
 
                 array4_out[box_no](i, j, k, dcomp) = exact_soln;
             });
@@ -63,13 +55,12 @@ void calc_derive_mf(amrex::MultiFab &mf_out, int dcomp, int /*numcomp*/,
             mf_out, mf_out.nGrowVect(),
             [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
             {
-                amrex::Real x = problo[0] + (i + 0.5) * dx[0];
-                amrex::Real y = problo[1] + (j + 0.5) * dx[1];
-                amrex::Real z = problo[2] + (k + 0.5) * dx[2];
+                amrex::Real x = problo[0] + (i + 0.5) * dx[0] - center[0];
+                amrex::Real y = problo[1] + (j + 0.5) * dx[1] - center[1];
+                amrex::Real z = problo[2] + (k + 0.5) * dx[2] - center[2];
 
                 array4_out[box_no](i, j, k, dcomp) =
-                    AnalyticSoln.breather_solution(x - midpts[0], y - midpts[1],
-                                                   z - midpts[2],
+                    AnalyticSoln.breather_solution(x, y, z,
                                                    initial_time + time);
             });
     }
@@ -85,12 +76,12 @@ void calc_derive_mf(amrex::MultiFab &mf_out, int dcomp, int /*numcomp*/,
             mf_out, mf_out.nGrowVect(),
             [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
             {
-                amrex::Real x = problo[0] + (i + 0.5) * dx[0];
-                amrex::Real y = problo[1] + (j + 0.5) * dx[1];
-                amrex::Real z = problo[2] + (k + 0.5) * dx[2];
+                amrex::Real x = problo[0] + (i + 0.5) * dx[0] - center[0];
+                amrex::Real y = problo[1] + (j + 0.5) * dx[1] - center[1];
+                amrex::Real z = problo[2] + (k + 0.5) * dx[2] - center[2];
 
-                amrex::Real exact_soln = AnalyticSoln.travelling_wave(
-                    x - midpts[0], y - midpts[1], z - midpts[2], time);
+                amrex::Real exact_soln =
+                    AnalyticSoln.travelling_wave(x, y, z, time);
 
                 array4_out[box_no](i, j, k, dcomp) = exact_soln;
             });

@@ -31,7 +31,7 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
     GRAMR::set_simulation_parameters(sim_params);
 
     amrex::Print() << "Now running " << sim_params.model << " simulation"
-                   << std::endl;
+                   << "\n";
 
     DefaultLevelFactory<KleinGordonLevel> KleinGordon_level_bld;
 

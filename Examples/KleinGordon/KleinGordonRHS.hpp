@@ -23,7 +23,7 @@ class KleinGordonRHS
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     KleinGordonRHS(amrex::Real a_sigma, amrex::Real a_dx,
                    const potential_t a_potential)
-        : m_sigma(a_sigma), m_deriv(a_dx), m_potential(a_potential){};
+        : m_sigma(a_sigma), m_deriv(a_dx), m_potential(a_potential) {};
 
     template <class data_t> struct Vars
     {

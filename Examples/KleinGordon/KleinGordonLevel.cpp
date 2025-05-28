@@ -28,15 +28,12 @@ void KleinGordonLevel::initData()
     BL_PROFILE("KleinGordonLevel::initData()");
 
     const auto problo = geom.ProbLoArray();
-    const auto probhi = geom.ProbHiArray();
     const auto dx     = geom.CellSizeArray();
 
     std::array<double, AMREX_SPACEDIM> center{};
-    Real midpts[3];
-    int i = 0;
 
-    FOR (i)
-        midpts[i] = 0.5 * (probhi[i] - problo[i]);
+    amrex::ParmParse pp;
+    pp.query("center", center);
 
     MultiFab &S_new  = get_new_data(State_Type);
     auto const &snew = S_new.arrays();
@@ -48,14 +45,13 @@ void KleinGordonLevel::initData()
             S_new,
             [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
             {
-                Real x = problo[0] + (i + 0.5) * dx[0];
-                Real y = problo[1] + (j + 0.5) * dx[1];
-                Real z = problo[2] + (k + 0.5) * dx[2];
+                amrex::Real x = problo[0] + (i + 0.5) * dx[0] - center[0];
+                amrex::Real y = problo[1] + (j + 0.5) * dx[1] - center[1];
+                amrex::Real z = problo[2] + (k + 0.5) * dx[2] - center[2];
 
-                snew[box_no](i, j, k, 0) = Wave.travelling_wave(
-                    x - midpts[0], y - midpts[1], z - midpts[2], 0);
-                snew[box_no](i, j, k, 1) = Wave.travelling_wave_deriv(
-                    x - midpts[0], y - midpts[1], z - midpts[2], 0);
+                snew[box_no](i, j, k, 0) = Wave.travelling_wave(x, y, z, 0);
+                snew[box_no](i, j, k, 1) =
+                    Wave.travelling_wave_deriv(x, y, z, 0);
             });
     }
     else
@@ -68,12 +64,12 @@ void KleinGordonLevel::initData()
                 S_new,
                 [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
                 {
-                    Real x = problo[0] + (i + 0.5) * dx[0];
+                    amrex::Real x = problo[0] + (i + 0.5) * dx[0] - center[0];
 
                     snew[box_no](i, j, k, 0) =
-                        SineGordon.breather_solution(x - midpts[0], 0);
+                        SineGordon.breather_solution(x, 0);
                     snew[box_no](i, j, k, 1) =
-                        SineGordon.breather_solution_deriv(x - midpts[0], 0);
+                        SineGordon.breather_solution_deriv(x, 0);
                 });
         }
         else
@@ -84,22 +80,16 @@ void KleinGordonLevel::initData()
             amrex::ParmParse pp;
             pp.query("initial_time", initial_time);
 
-            amrex::Vector<amrex::Real> start_times{initial_time,
-                                                   initial_time * -1.0};
-            amrex::Vector<amrex::Real> start_pos{midpts[0], midpts[1],
-                                                 midpts[2]};
-
             amrex::ParallelFor(
                 S_new,
                 [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
                 {
-                    Real x = problo[0] + (i + 0.5) * dx[0];
-                    Real y = problo[1] + (j + 0.5) * dx[1];
-                    Real z = problo[2] + (k + 0.5) * dx[2];
+                    amrex::Real x = problo[0] + (i + 0.5) * dx[0] - center[0];
+                    amrex::Real y = problo[1] + (j + 0.5) * dx[1] - center[1];
+                    amrex::Real z = problo[2] + (k + 0.5) * dx[2] - center[2];
 
-                    snew[box_no](i, j, k, 0) = SineGordon.breather_solution(
-                        x - start_pos[0], y - start_pos[1], z - start_pos[2],
-                        initial_time);
+                    snew[box_no](i, j, k, 0) =
+                        SineGordon.breather_solution(x, y, z, initial_time);
                     snew[box_no](i, j, k, 1) = 0;
                 });
         }
