@@ -433,6 +433,11 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
 	const double Hubble_fact_avg = -state_new.sum(c_K)/vol/3.;
 	const double lapse_avg = state_new.sum(c_lapse)/vol;
 
+	//Potential potential(simParams().potential_params);
+	//const double V, dV;
+	
+
+
     const amrex::BoxArray& ba = state_new.boxArray();
     const amrex::DistributionMapping& dm = state_new.DistributionMap();
     int ncomp = state_new.nComp();

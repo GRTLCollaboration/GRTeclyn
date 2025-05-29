@@ -38,7 +38,7 @@ class SimulationParameters : public SimulationParametersBase
 
 	pp.load("scalar_mass", potential_params.scalar_mass, 0.1);
 	pp.load("scalar_amplitude", potential_params.phi0, 4.);
-	pp.load("feature_df0", potential_params.df0, 1.e-7);
+	pp.load("feature_dphi", potential_params.dphi, 1.e-7);
 	pp.load("feature_amplitude", potential_params.amplitude, 1.e-10);
 	pp.load("feature_wavelength", potential_params.wavelength, 1.e-3);	
 

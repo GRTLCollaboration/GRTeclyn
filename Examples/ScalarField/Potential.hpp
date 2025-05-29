@@ -16,7 +16,7 @@ class Potential
         double scalar_mass;
 
 	double phi0;
-	double df0;
+	double dphi;
 	double Mp; 
 
 	double width;	
@@ -34,12 +34,12 @@ class Potential
     {
 	m_params.scalar_mass *= m_params.Mp;
 	m_params.phi0 *= m_params.Mp;
-	m_params.df0 *= std::pow(m_params.Mp, 2.);
+	m_params.dphi *= m_params.Mp;
 
-	m_params.width = 2. * m_params.df0 / (9.e-6) / m_params.Mp;
-	m_params.location = m_params.phi0 + 0.5 * m_params.width;
+	m_params.width = 0.5 * m_params.dphi;
+	m_params.location = m_params.phi0 - 0.75 * m_params.dphi;
 	m_params.amplitude *= std::pow(m_params.Mp, 4.);
-	m_params.wavelength *= m_params.Mp;
+	m_params.wavelength *= 2. * M_PI * m_params.Mp;
     }
 
     //! Set the potential function for the scalar field here
