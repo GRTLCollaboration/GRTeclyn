@@ -820,7 +820,7 @@ inline void RandomField::derive(const MultiFab &source, MultiFab &out, int dcomp
 
 // Main extraction routine
 inline void RandomField::extract(const MultiFab &state, const std::string data_path, const Real dt,  
-                                 const Real cur_time, const int restart_time, const int first_step, const int plot_int)
+                                 const Real cur_time, const int restart_time, const int first_step)
 {
     BL_PROFILE("RandomField::extract");
 
@@ -907,7 +907,7 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
     apply_nyquist_conditions(hs_k);
 
     // Find the binned PS for each mode function and print to data/
-    if((m_params.calc_binned_power_spectrum) && (time_step % plot_int == 0)) 
+    if((m_params.calc_binned_power_spectrum) && (time_step % m_params.plot_int == 0)) 
     {
         std::string spec_path = make_subdirectory(data_path, "spectra", first_step);
         Vector<std::string> filenames(2, "");

@@ -40,6 +40,16 @@ class Potential
 	m_params.location = m_params.phi0 - 0.75 * m_params.dphi;
 	m_params.amplitude *= std::pow(m_params.Mp, 4.);
 	m_params.wavelength *= 2. * M_PI * m_params.Mp;
+
+	/*amrex::Print().SetPrecision(15) << m_params.scalar_mass << "\n";
+	amrex::Print().SetPrecision(15) << m_params.phi0 << "\n";
+	amrex::Print().SetPrecision(15) << m_params.dphi << "\n";
+	
+	amrex::Print().SetPrecision(15) << m_params.width << "\n";
+	amrex::Print().SetPrecision(15) << m_params.location << "\n";
+	amrex::Print().SetPrecision(15) << m_params.amplitude << "\n";
+	amrex::Print().SetPrecision(15) << m_params.wavelength << "\n";
+	amrex::Print().SetPrecision(15) << m_params.Mp << "\n";*/
     }
 
     //! Set the potential function for the scalar field here
@@ -67,6 +77,11 @@ class Potential
 
         dVdphi = pow(m_params.scalar_mass, 2.0) * vars.phi;
 	dVdphi += m_params.amplitude * (envelope * d_oscillation + d_envelope * oscillation);
+    
+	/*amrex::Print().SetPrecision(15) << "V" << V_of_phi << "\n";
+	amrex::Print().SetPrecision(15) << "dV" << dVdphi << "\n";
+	amrex::Error();*/
+
     }
 };
 

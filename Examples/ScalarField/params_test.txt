@@ -16,7 +16,7 @@ checkpoint_interval = 300
 # set to -1 to never ever print plotfiles
 plot_interval = 500
 amr.plot_int = 500
-amr.check_int = 300
+amr.check_int = 1000
 num_plot_vars = 2
 plot_vars = hplus hcross
 
@@ -75,6 +75,7 @@ random_seed = 3539263
 
 # Window function parameters
 use_window = 1
+spec_interval = 400
 kstar = 11 # 0.5 * 64 * 3/4
 Delta = 30
 
@@ -83,8 +84,8 @@ calc_binned_power_spectrum = 1
 calc_higher_order_statistics = 1
 
 #(!!) must be between 1 and 4
-num_moments = 3
-moments_to_print = 1 3 4 
+num_moments = 4
+moments_to_print = 1 2 3 4 
 
 #################################################
 # Grid parameters
@@ -96,8 +97,8 @@ moments_to_print = 1 3 4
 # NB - if you have a non-cubic grid, you can specify 'N1' or 'N1_full',
 # 'N2' or 'N2_full' and 'N3' or 'N3_full' ( then dx_coarsest = L/N(max) )
 # NB - the N values need to be multiples of the block_factor
-N_full = 128 # 512
-L_full = 3000 
+N_full = 256
+L_full = 2000 
 
 # Maximum number of times you can regrid above coarsest level
 max_level = 0 # There are (max_level+1) grids, so min is zero
@@ -113,8 +114,8 @@ regrid_threshold  = 0.5
 
 
 # Max and min box sizes
-max_box_size = 16
-min_box_size = 16
+max_box_size = 32
+min_box_size = 32
 
 tag_buffer_size = 0 # this example uses a fixed grid
 
@@ -150,7 +151,7 @@ extrapolating_vars = phi Pi
 # dt will be dx*dt_multiplier on each grid level
 dt_multiplier = 0.25
 stop_time = 9000
-max_steps = 3000
+max_steps = 290000
 
 # Spatial derivative order (only affects CCZ4 RHS)
 max_spatial_derivative_order = 4 # can be 4 or 6

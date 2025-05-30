@@ -53,7 +53,9 @@ class RandomField
             double Delta;               //!< window's width, measured like L/Delta
 
             int calc_binned_power_spectrum = 0;   //!< Choose whether to extract the binned power spectrum
-            int bin_number = N_readin/2;          //!< How many bins to use (capped at N/2)
+            int plot_int = 100;
+	
+	    int bin_number = N_readin/2;          //!< How many bins to use (capped at N/2)
             int calc_higher_order_statistics = 0; //!< Choose whether to print higher-order statistics on the fields
             int num_orders;
             Vector<int> orders;                   //!< Moment orders to print for extracted fields
@@ -83,7 +85,7 @@ class RandomField
         void init(amrex::MultiFab &state);
         void derive(const MultiFab &source, MultiFab &out, int dcomp);
         void extract(const MultiFab &state, const std::string data_path, const Real dt,  
-                     const Real cur_time, const int restart_time, const int first_step, const int plot_int);
+                     const Real cur_time, const int restart_time, const int first_step);
 
         void print_tensor_moment(MultiFab &field, const Vector<std::string> names,  
                                  const Vector<int> &moment_orders, SmallDataIO &file, 
