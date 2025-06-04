@@ -76,7 +76,7 @@ random_seed = 3539263
 # Window function parameters
 use_window = 1
 spec_interval = 400
-kstar = 11 # 0.5 * 64 * 3/4
+# kstar = 11 # 0.5 * 64 * 3/4
 Delta = 30
 
 # Options for tensor extraction
@@ -176,7 +176,7 @@ kappa3 = 0.
 covariantZ4 = 1 # 0: keep kappa1; 1 [default]: replace kappa1 -> kappa1/lapse
 
 # coefficient for KO numerical dissipation
-sigma = 0.0
+sigma = 0.0 # 0.05
 
 min_chi = 1.e-24
 min_lapse = 1.e-24
