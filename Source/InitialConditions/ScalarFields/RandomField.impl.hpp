@@ -165,7 +165,7 @@ inline GpuComplex<Real> RandomField::calculate_mode_function(const double km, co
     return ps;
 }
 
-inline GpuComplex<Real> RandomField::apply_window(GpuComplex<Real> point, Real kmag)
+inline GpuComplex<Real> RandomField::apply_window(GpuComplex<Real> point, double kmag)
 {
     //old kstar format: m_params.kstar * 2. * M_PI/m_params.L;
     double ks = std::sqrt(3.) * N * M_PI / m_params.L / 5.;
@@ -890,6 +890,13 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             IntVect iv{i, j, k};
+
+            // Find kmag with FFTW-style inversion on the last two indices
+            int i = iv[0];
+            int j = invert_index(iv[1]);
+            int k = invert_index(iv[2]);
+            double kmag = std::sqrt(i*i + j*j + k*k) * 2 * M_PI / m_params.L;
+
             Vector<Real> mhat(3, 0.);
             Vector<Real> nhat(3, 0.);
 
@@ -914,7 +921,7 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
                 BL_PROFILE("RandomField::extract Window function is used")
                 for(int s=0; s<2; s++)
                 {
-                    hs_ptr(i, j, k, s) = apply_window(hs_ptr(i, j, k, s));
+                    hs_ptr(i, j, k, s) = apply_window(hs_ptr(i, j, k, s), );
                 }
             }
         });
