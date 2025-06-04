@@ -917,7 +917,7 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
                 BL_PROFILE("RandomField::extract Window function is used")
                 for(int s=0; s<2; s++)
                 {
-                    hs_ptr(i, j, k, s) = apply_window(hs_ptr(i, j, k, s), );
+                    hs_ptr(i, j, k, s) = apply_window(hs_ptr(i, j, k, s), kmag);
                 }
             }
         });
