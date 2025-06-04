@@ -165,7 +165,7 @@ inline GpuComplex<Real> RandomField::calculate_mode_function(const double km, co
     return ps;
 }
 
-inline GpuComplex<Real> RandomField::apply_window(GpuComplex<Real> point)
+inline GpuComplex<Real> RandomField::apply_window(GpuComplex<Real> point, Real kmag)
 {
     //old kstar format: m_params.kstar * 2. * M_PI/m_params.L;
     double ks = std::sqrt(3.) * N * M_PI / m_params.L / 5.;
@@ -215,7 +215,7 @@ inline GpuComplex<Real> RandomField::calculate_random_field(const IntVect iv, co
     if(m_params.use_window == 1) 
     { 
         BL_PROFILE("RandomField::calculate_random_field Window function is used")
-        value = apply_window(value);
+        value = apply_window(value, kmag);
     }
 
     return value;
