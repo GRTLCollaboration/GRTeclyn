@@ -890,12 +890,8 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             IntVect iv{i, j, k};
-
-            // Find kmag with FFTW-style inversion on the last two indices
-            int i = iv[0];
-            int j = invert_index(iv[1]);
-            int k = invert_index(iv[2]);
-            double kmag = std::sqrt(i*i + j*j + k*k) * 2 * M_PI / m_params.L;
+            double kmag = std::sqrt(std::pow(i, 2.) + std::pow(invert_index(j), 2.) + std::pow(invert_index(k), 2.)) 
+                            * 2 * M_PI / m_params.L;
 
             Vector<Real> mhat(3, 0.);
             Vector<Real> nhat(3, 0.);
