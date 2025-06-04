@@ -115,7 +115,7 @@ class RandomField
 
         // Initialisation routines 
         GpuComplex<Real> calculate_mode_function(const double km, const std::string spec_type);
-        GpuComplex<Real> apply_window(GpuComplex<Real> point)
+        GpuComplex<Real> apply_window(GpuComplex<Real> point);
         GpuComplex<Real> calculate_random_field(const IntVect iv, const std::string spectrum_type, 
                                                 const Real rand_amp, const Real rand_phase);
         Vector<Real> calculate_basis_vector(const IntVect iv, const int which_vector);
