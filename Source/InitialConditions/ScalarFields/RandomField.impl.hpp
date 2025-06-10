@@ -180,6 +180,15 @@ inline GpuComplex<Real> RandomField::calculate_mode_function(const double km, co
     return ps;
 }
 
+inline GpuComplex<Real> RandomField::apply_window(GpuComplex<Real> point, double kmag)
+{
+    //old kstar format: m_params.kstar * 2. * M_PI/m_params.L;
+    double ks = std::sqrt(3.) * N * M_PI / m_params.L / 5.;
+    double D = m_params.L/m_params.Delta;
+
+    return point * 0.5 * (1.0 - tanh(D * (kmag - ks))); 
+}
+
 // Turns analytic PS into GRF and applies window function if requested
 inline GpuComplex<Real> RandomField::calculate_random_field(const IntVect iv, const std::string spectrum_type, 
                                                             const Real rand_amp, const Real rand_phase)
@@ -221,9 +230,7 @@ inline GpuComplex<Real> RandomField::calculate_random_field(const IntVect iv, co
     if(m_params.use_window == 1) 
     { 
         BL_PROFILE("RandomField::calculate_random_field Window function is used")
-        double ks = std::sqrt(3.) * N * M_PI / m_params.L / 5.; //m_params.kstar * 2. * M_PI/m_params.L;
-        double Dt = m_params.L/m_params.Delta;
-        value *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
+        value = apply_window(value, kmag);
     }
 
     return value;
@@ -898,6 +905,9 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             IntVect iv{i, j, k};
+            double kmag = std::sqrt(std::pow(i, 2.) + std::pow(invert_index(j), 2.) + std::pow(invert_index(k), 2.)) 
+                            * 2 * M_PI / m_params.L;
+
             Vector<Real> mhat(3, 0.);
             Vector<Real> nhat(3, 0.);
 
@@ -915,6 +925,15 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
 
                 hs_ptr(i, j, k, 0) += (hij_ptr(i, j, k, lut[l][p]) * eplus)/std::sqrt(2.);
                 hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross)/std::sqrt(2.);
+            }
+
+            if(m_params.apply_window_in_extraction)
+            {
+                BL_PROFILE("RandomField::extract Window function is used")
+                for(int s=0; s<2; s++)
+                {
+                    hs_ptr(i, j, k, s) = apply_window(hs_ptr(i, j, k, s), kmag);
+                }
             }
         });
     }

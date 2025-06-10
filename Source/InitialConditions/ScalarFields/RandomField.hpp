@@ -52,12 +52,13 @@ class RandomField
             double kstar;               //!< window's cut-off mode, measured in units of 2pi/L
             double Delta;               //!< window's width, measured like L/Delta
 
-            int calc_binned_power_spectrum = 0;   //!< Choose whether to extract the binned power spectrum
-            int plot_int = 100;
+            int calc_binned_power_spectrum = 0;     //!< Choose whether to extract the binned power spectrum
+            bool apply_window_in_extraction = true; //!< Should the window be applied on the extracted polarisation field?
+            int plot_int = 100;                     //!< Interval to extract spectrum on (can be more frequent than the standard plot_interval)
 	
-	    int bin_number = N_readin/2;          //!< How many bins to use (capped at N/2)
+	        int bin_number = N_readin/2;          //!< How many bins to use (capped at N/2)
             int calc_higher_order_statistics = 0; //!< Choose whether to print higher-order statistics on the fields
-            int num_orders;
+            int num_orders;                       //!< Number of moments to extract
             Vector<int> orders;                   //!< Moment orders to print for extracted fields
         };
 
@@ -96,7 +97,7 @@ class RandomField
         int lut[3][3];
         double norm;
         double tolerance;
-	double H0 = 0.;
+	    double H0 = 0.;
 
         // Small functions
         int flip_index(const int indx);
@@ -114,6 +115,7 @@ class RandomField
 
         // Initialisation routines 
         GpuComplex<Real> calculate_mode_function(const double km, const std::string spec_type);
+        GpuComplex<Real> apply_window(GpuComplex<Real> point, double kmag);
         GpuComplex<Real> calculate_random_field(const IntVect iv, const std::string spectrum_type, 
                                                 const Real rand_amp, const Real rand_phase);
         Vector<Real> calculate_basis_vector(const IntVect iv, const int which_vector);
