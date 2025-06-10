@@ -3,8 +3,8 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#ifndef BOOSTEDBH_HPP_
-#define BOOSTEDBH_HPP_
+#ifndef BOOSTEDBHINITIALDATA_HPP_
+#define BOOSTEDBHINITIALDATA_HPP_
 /**
  * BOOSTED SCHWARZSCHILD BLACK HOLE
  * Baumgarte & Shapiro, pp. 73-74
@@ -15,7 +15,7 @@
 #include "Tensor.hpp"
 #include <array>
 
-class BoostedBH
+class BoostedBHInitialData
 {
 
   public:
@@ -26,7 +26,7 @@ class BoostedBH
         std::array<double, AMREX_SPACEDIM> momentum;
     };
 
-    BoostedBH(params_t a_params);
+    BoostedBHInitialData(params_t a_params);
 
     // conformal factor
     template <class data_t>
@@ -52,6 +52,6 @@ class BoostedBH
     template <class data_t> AMREX_GPU_DEVICE data_t psi2_2(data_t a_r) const;
 };
 
-#include "BoostedBH.impl.hpp"
+#include "BoostedBHInitialData.impl.hpp"
 
-#endif /*BOOSTEDBH_HPP_*/
+#endif /*BOOSTEDBHINITIALDATA_HPP_*/

@@ -9,13 +9,12 @@ Tests/CCZ4GeometryUnitTests/CCZ4GeometryMathematicaValues.hpp
 
 # These directories/files have yet to be ported to AMReX
 Source/AMRInterpolator/*
-Source/GridTools/SixthOrderDerivatives.hpp
+Source/Grids/SixthOrderDerivatives.hpp
 Source/CCZ4/GammaCalculator.hpp
 Source/CCZ4/IntegratedMovingPunctureGauge.hpp
 Source/BlackHoles/KerrBH*
 Source/simd/*
-Source/IOTools/WeylExtraction*
-Source/IOTools/MultiLevelTask.hpp
+Source/IO/MultiLevelTask.hpp
 Examples/ScalarField/*
 Tests/.*
 

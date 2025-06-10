@@ -4,7 +4,7 @@
  */
 
 #include "BinaryBHLevel.hpp"
-#include "BinaryBH.hpp"
+#include "BinaryBHInitialData.hpp"
 #include "CCZ4RHS.hpp"
 #include "ChiExtractionTagger.hpp"
 #include "Constraints.hpp"
@@ -89,11 +89,11 @@ void BinaryBHLevel::initData()
                    INCLUDE_GHOST_CELLS, disable_simd());
 #else
     // Set up the compute class for the BinaryBH initial data
-    BinaryBH binary(simParams().bh1_params, simParams().bh2_params,
-                    Geom().CellSize(0));
+    BinaryBHInitialData binary(simParams().bh1_params, simParams().bh2_params,
+                               Geom().CellSize(0));
 
-    static_assert(std::is_trivially_copyable_v<BinaryBH>,
-                  "BinaryBH needs to be device copyable");
+    static_assert(std::is_trivially_copyable_v<BinaryBHInitialData>,
+                  "BinaryBHInitialData needs to be device copyable");
 
     // First set everything to zero (to avoid undefinded values in constraints)
     // then calculate initial data

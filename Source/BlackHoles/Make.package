@@ -1,5 +1,11 @@
-GRTECLYN_CEXE_headers += BHAMR.hpp PunctureTracker.hpp PunctureTracker.impl.hpp \
-                         BinaryBH.hpp BoostedBH.hpp KerrBH.hpp \
+GRTECLYN_CEXE_headers += BHAMR.hpp \
+                         BinaryBHInitialData.hpp \
+                         BinaryBHInitialData.impl.hpp \
+                         BoostedBHInitialData.hpp \
+                         BoostedBHInitialData.impl.hpp \
+                         KerrBHInitialData.hpp \
+                         KerrBHInitialData.impl.hpp \
+                         PunctureTracker.hpp \
+                         PunctureTracker.impl.hpp \
                          TwoPuncturesInitialData.hpp \
-                         BinaryBH.impl.hpp BoostedBH.impl.hpp KerrBH.impl.hpp \
                          TwoPuncturesInitialData.impl.hpp

@@ -4,5 +4,4 @@ GRTECLYN_CEXE_headers += DebuggingTools.hpp \
                          GRParmParse.hpp \
                          MultiLevelTask.hpp \
                          SmallDataIO.hpp \
-                         StateVariablesParmParse.hpp \
-                         WeylExtraction.hpp
+                         StateVariablesParmParse.hpp

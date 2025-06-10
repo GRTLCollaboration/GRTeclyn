@@ -1,6 +1,6 @@
 GRTECLYN_HOME = $(realpath ..)
 
-include $(GRTECLYN_HOME)/External/Tools/GNUMake/Make.defaults
+include $(GRTECLYN_HOME)/Tools/GNUMake/Make.defaults
 
 # We don't want to use MPI by default for the tests
 USE_MPI = FALSE
@@ -23,13 +23,13 @@ GRTECLYN_SOURCE = $(GRTECLYN_HOME)/Source
 
 src_dirs := $(GRTECLYN_SOURCE)/AMRInterpolator \
             $(GRTECLYN_SOURCE)/BlackHoles \
-            $(GRTECLYN_SOURCE)/IOTools  \
-            $(GRTECLYN_SOURCE)/GridTools  \
-            $(GRTECLYN_SOURCE)/MathsTools  \
-            $(GRTECLYN_SOURCE)/CCZ4  \
-            $(GRTECLYN_SOURCE)/GRTeclynCore  \
+            $(GRTECLYN_SOURCE)/CCZ4 \
+            $(GRTECLYN_SOURCE)/Grids \
+            $(GRTECLYN_SOURCE)/GRTeclynCore \
+            $(GRTECLYN_SOURCE)/IO \
+            $(GRTECLYN_SOURCE)/Maths \
             $(GRTECLYN_SOURCE)/Matter \
-            $(GRTECLYN_SOURCE)/simd  \
+            $(GRTECLYN_SOURCE)/simd \
             $(GRTECLYN_SOURCE)/Tagging
 
 
@@ -51,7 +51,7 @@ test_pack := $(foreach dir, $(test_dirs), $(dir)/Make.package)
 include $(src_pack)
 include $(test_pack)
 
-doctest_dir := $(GRTECLYN_HOME)/External/doctest
+doctest_dir := $(GRTECLYN_HOME)/external/doctest
 doctest_headers := doctest.h
 
 CEXE_sources += $(GRTECLYN_CEXE_sources)
@@ -60,7 +60,7 @@ VPATH_LOCATIONS += $(src_dirs) $(test_dirs)
 INCLUDE_LOCATIONS += $(realpath .) $(src_dirs) $(test_dirs)
 SYSTEM_INCLUDE_LOCATIONS += $(doctest_dir)
 
-include $(GRTECLYN_HOME)/External/Tools/GNUMake/Make.rules
+include $(GRTECLYN_HOME)/Tools/GNUMake/Make.rules
 
 ifeq ($(USE_MPI), TRUE)
 LAUNCH = mpiexec -n 2 ./

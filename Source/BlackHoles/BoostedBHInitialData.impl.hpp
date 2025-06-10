@@ -3,22 +3,25 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#if !defined(BOOSTEDBH_HPP_)
-#error "This file should only be included through BoostedBH.hpp"
+#if !defined(BOOSTEDBHINITIALDATA_HPP_)
+#error "This file should only be included through BoostedBHInitialData.hpp"
 #endif
 
-#ifndef BOOSTEDBH_IMPL_HPP_
-#define BOOSTEDBH_IMPL_HPP_
+#ifndef BOOSTEDBHINITIALDATA_IMPL_HPP_
+#define BOOSTEDBHINITIALDATA_IMPL_HPP_
 
-#include "BoostedBH.hpp"
+#include "BoostedBHInitialData.hpp"
 #include "DimensionDefinitions.hpp"
 #include <cmath>
 
-inline BoostedBH::BoostedBH(params_t a_params) : m_params(a_params) {}
+inline BoostedBHInitialData::BoostedBHInitialData(params_t a_params)
+    : m_params(a_params)
+{
+}
 
 template <class data_t>
 AMREX_GPU_DEVICE data_t
-BoostedBH::psi_minus_one(Coordinates<data_t> coords) const
+BoostedBHInitialData::psi_minus_one(Coordinates<data_t> coords) const
 {
     const data_t r         = center_dist(coords);
     const data_t cos_theta = (coords.z - m_params.center[2]) / r;
@@ -31,7 +34,7 @@ BoostedBH::psi_minus_one(Coordinates<data_t> coords) const
 
 template <class data_t>
 AMREX_GPU_DEVICE Tensor<2, data_t>
-BoostedBH::Aij(Coordinates<data_t> a_coords) const
+BoostedBHInitialData::Aij(Coordinates<data_t> a_coords) const
 {
     const data_t r = center_dist(a_coords);
     const Tensor<1, data_t> l{(a_coords.x - m_params.center[0]) / r,
@@ -58,7 +61,7 @@ BoostedBH::Aij(Coordinates<data_t> a_coords) const
 
 template <class data_t>
 AMREX_GPU_DEVICE data_t
-BoostedBH::center_dist(Coordinates<data_t> a_coords) const
+BoostedBHInitialData::center_dist(Coordinates<data_t> a_coords) const
 {
     data_t r = std::sqrt(std::pow(a_coords.x - m_params.center[0], 2) +
                          std::pow(a_coords.y - m_params.center[1], 2) +
@@ -69,19 +72,20 @@ BoostedBH::center_dist(Coordinates<data_t> a_coords) const
 }
 
 template <class data_t>
-AMREX_GPU_DEVICE data_t BoostedBH::psi0(data_t a_r) const
+AMREX_GPU_DEVICE data_t BoostedBHInitialData::psi0(data_t a_r) const
 {
     return m_params.mass / (2 * a_r);
 }
 
 template <class data_t>
-AMREX_GPU_DEVICE data_t BoostedBH::psi2(data_t a_r, data_t a_cos_theta) const
+AMREX_GPU_DEVICE data_t BoostedBHInitialData::psi2(data_t a_r,
+                                                   data_t a_cos_theta) const
 {
     return psi2_0(a_r) + psi2_2(a_r) * (1.5 * a_cos_theta * a_cos_theta - 0.5);
 }
 
 template <class data_t>
-AMREX_GPU_DEVICE data_t BoostedBH::psi2_0(data_t a_r) const
+AMREX_GPU_DEVICE data_t BoostedBHInitialData::psi2_0(data_t a_r) const
 {
     const data_t psi0_here    = psi0(a_r);
     const data_t psi0_sq_here = psi0_here * psi0_here;
@@ -91,7 +95,7 @@ AMREX_GPU_DEVICE data_t BoostedBH::psi2_0(data_t a_r) const
 }
 
 template <class data_t>
-AMREX_GPU_DEVICE data_t BoostedBH::psi2_2(data_t a_r) const
+AMREX_GPU_DEVICE data_t BoostedBHInitialData::psi2_2(data_t a_r) const
 {
     const data_t psi0_here    = psi0(a_r);
     const data_t psi0_sq_here = psi0_here * psi0_here;
@@ -103,4 +107,4 @@ AMREX_GPU_DEVICE data_t BoostedBH::psi2_2(data_t a_r) const
            4.2 * psi0_here * psi0_sq_here * log(psi0_here / (1 + psi0_here));
 }
 
-#endif /* BOOSTEDBH_IMPL_HPP_ */
+#endif /* BOOSTEDBHINITIALDATA_IMPL_HPP_ */
