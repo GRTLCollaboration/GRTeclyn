@@ -116,11 +116,6 @@ inline void RandomField::make_random_draws(auto &rand_fab, Box &domain)
         Box const& bx = mfi.validbox();
         auto const& tmp_ptr = tmp.array(mfi);
 
-	//AllPrint() << ParallelContext::MyProcAll() << "," << mfi.index() << ": ";
-	//AllPrint() << domain.index(bx.smallEnd()) << "," << domain.index(bx.bigEnd()) << "\n";
-	//AllPrint() << domain.smallEnd() << "," << domain.bigEnd() << ": ";
-	//AllPrint() << bx.smallEnd() << "," << bx.bigEnd() << "," << bx.numPts() << "\n";
-
         std::mt19937 generator;
         std::uniform_real_distribution<Real> distribution(Real(0), Real(1));
 
@@ -132,13 +127,11 @@ inline void RandomField::make_random_draws(auto &rand_fab, Box &domain)
 	}
 
         auto offset = bx.smallEnd()[0] * std::pow(N, 2) * 4; //domain.index(bx.smallEnd()) * 4;
-	//AllPrint() << ParallelContext::MyProcAll() << "," << mfi.index() << ": " << offset << "\n";
 
         for(int ofs = 0; ofs < offset; ofs++)
         {
             distribution(generator);
         }
-        //amrex::LoopOnCpu(bx, [&] (int i, int j, int k)
         
 	const auto lo = lbound(bx);
 	const auto hi = ubound(bx);
@@ -151,16 +144,6 @@ inline void RandomField::make_random_draws(auto &rand_fab, Box &domain)
             {
                 field_point[l] = distribution(generator);
             }
-	
-		/*if(i==2 && j==4 && k=15) 
-		{
-			AllPrint() << domain.smallEnd() << "," << domain.bigEnd() << ": ";
-			AllPrint() << mfi.index() << "," << offset << "\n";
-			for(int l=0; l<4; l++)
-			{ 
-				AllPrint() << field_point[l] << "\n"; 
-			}
-		}*/
         }
 	}
 	}
@@ -425,8 +408,6 @@ inline void RandomField::init(amrex::MultiFab &state)
             {
                 Real draw1 = random_field_ptr[2*p];
                 Real draw2 = random_field_ptr[2*p+1];
-
-		AllPrintToFile(Filename) << iv << ": " << draw1 << "," << draw2 << "\n";
 
                 hs_ptr(i, j, k, p) = calculate_random_field(iv, "position", draw1, draw2);
 		As_ptr(i, j, k, p) = calculate_random_field(iv, "velocity", draw1, draw2);
@@ -973,7 +954,7 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         std::string mf_path = make_subdirectory(data_path, "mode-functions", first_step);
         std::string filename = mf_path+"mode-function-"+std::to_string(cur_time/dt);
 
-	if(first_step)
+	/*if(first_step)
 	{
 
 	        for (MFIter mfi(hs_x); mfi.isValid(); ++mfi) 
@@ -991,7 +972,7 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
 				AllPrintToFile(filename) << "\n";
 			    });
         	}
-	}
+	}*/
 
         // Calculate and print field moments if requested
         if (m_params.calc_higher_order_statistics)
