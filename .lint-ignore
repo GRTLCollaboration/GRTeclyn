@@ -6,6 +6,7 @@
 # These files don't make sense on their own
 *.impl.hpp
 Tests/CCZ4GeometryUnitTests/CCZ4GeometryMathematicaValues.hpp
+external/*
 
 # These directories/files have yet to be ported to AMReX
 Source/AMRInterpolator/*
