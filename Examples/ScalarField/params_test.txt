@@ -4,9 +4,10 @@
 verbosity = 0
 
 # location / naming of output files
-output_path = /nfs/st01/hpc-gr-epss/eaf49/dump/ # Main path for all files. Must exist!
-amr.check_file = /nfs/st01/hpc-gr-epss/eaf49/dump/hdf5/chk_
-amr.plot_file = /nfs/st01/hpc-gr-epss/eaf49/dump/hdf5/plt_
+output_path = /nfs/st01/hpc-gr-epss/eaf49/MPI-bugfix/2-ranks/ # Main path for all files. Must exist!
+amr.check_file = /nfs/st01/hpc-gr-epss/eaf49/MPI-bugfix/2-ranks/hdf5/chk_
+amr.plot_file = /nfs/st01/hpc-gr-epss/eaf49/MPI-bugfix/2-ranks/hdf5/plt_
+# amr.restart = /nfs/st01/hpc-gr-epss/eaf49/dump/hdf5/chk_02700
 
 amr.derive_plot_vars = ALL
 
@@ -97,7 +98,7 @@ moments_to_print = 1 2 3 4
 # NB - if you have a non-cubic grid, you can specify 'N1' or 'N1_full',
 # 'N2' or 'N2_full' and 'N3' or 'N3_full' ( then dx_coarsest = L/N(max) )
 # NB - the N values need to be multiples of the block_factor
-N_full = 256
+N_full = 32
 L_full = 2000 
 
 # Maximum number of times you can regrid above coarsest level
@@ -151,7 +152,7 @@ extrapolating_vars = phi Pi
 # dt will be dx*dt_multiplier on each grid level
 dt_multiplier = 0.25
 stop_time = 9000
-max_steps = 290000
+max_steps = 5 # 290000
 
 # Spatial derivative order (only affects CCZ4 RHS)
 max_spatial_derivative_order = 4 # can be 4 or 6
