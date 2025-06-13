@@ -11,9 +11,9 @@
 #define PUNCTURETRACKER_IMPL_HPP_
 
 // #include "AMReXParameters.hpp" // for writing data
-#include "DimensionDefinitions.hpp"
 #include "FilesystemTools.hpp"
 #include "GRAMRLevel.hpp"
+#include "Macros.hpp"
 #include "SmallDataIO.hpp" // for writing data
 #include "StateVariables.hpp"
 
