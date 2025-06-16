@@ -11,7 +11,11 @@ csd3-a100-build:
     - cd ${AMREX_HOME}/Tools/Postprocessing/C_Src
     # Build particle compare tool
     - make -j 8 COMP=gnu particle_compare.exe
+    # Build BinaryBH example
     - cd ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH
+    - make -j 8 ${BUILD_CONFIG}
+    # Build tests
+    - cd ${HOME}/${CI_PROJECT_DIR}/Tests
     - make -j 8 ${BUILD_CONFIG}
     - >
       if [[ ! -d ${BINARY_DIR} ]]; then
@@ -20,8 +24,9 @@ csd3-a100-build:
     - mv ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex ${BINARY_DIR}
     - mv ${AMREX_HOME}/Tools/Postprocessing/C_Src/particle_compare.exe ${BINARY_DIR}
     - mv ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH/main3d.gnu.DEBUG.MPI.CUDA.ex ${BINARY_DIR}
+    - mv ${HOME}/${CI_PROJECT_DIR}/Tests/Tests3d.gnu.DEBUG.MPI.CUDA.ex ${BINARY_DIR}
   after_script:
-    - rm -rf ${HOME}/${QOS_INTR_LOCK_FILE}    
+    - rm -rf ${HOME}/${QOS_INTR_LOCK_FILE}
 
 csd3-a100-test:
   stage: test
@@ -30,9 +35,9 @@ csd3-a100-test:
   dependencies:
     - csd3-a100-build
   script:
+    - mv ${BINARY_DIR}/Tests3d.gnu.DEBUG.MPI.CUDA.ex ${HOME}/${CI_PROJECT_DIR}/Tests
     - cd ${HOME}/${CI_PROJECT_DIR}/Tests
-    - make -j 8 ${BUILD_CONFIG}
-    - flock ${HOME}/${QOS_INTR_LOCK_FILE} salloc ${SRUN_FLAGS} make run ${BUILD_CONFIG}    
+    - flock ${HOME}/${QOS_INTR_LOCK_FILE} salloc ${SRUN_FLAGS} make run ${BUILD_CONFIG}
     - cd ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH
     - >
       if [[ ! -d ${OUTPUT_DIR} ]]; then
