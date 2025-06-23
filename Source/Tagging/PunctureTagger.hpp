@@ -7,8 +7,8 @@
 #define PUNCTURETAGGER_HPP_
 
 #include "Coordinates.hpp"
-#include "DimensionDefinitions.hpp"
 #include "FourthOrderDerivatives.hpp"
+#include "Macros.hpp"
 #include "Tensor.hpp"
 
 #include <AMReX_Array4.H>
