@@ -14,4 +14,4 @@ repos:
     rev: v1.29.0
     hooks:
       - id: yamllint
-
+        args: ['-d {rules: {line-length: {level: warning}}}']

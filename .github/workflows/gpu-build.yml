@@ -39,115 +39,115 @@ jobs:
       ONEAPI_MPI_VERSION: 2021.13
 
     steps:
-    - name: Checkout AMReX
-      uses: actions/checkout@v4
-      with:
-        repository: AMReX-Codes/amrex
-        path: amrex
+      - name: Checkout AMReX
+        uses: actions/checkout@v4
+        with:
+          repository: AMReX-Codes/amrex
+          path: amrex
 
-    - name: Checkout ${{ github.repository }}
-      uses: actions/checkout@v4
-      with:
-        path: GRTeclyn
-        submodules: true
+      - name: Checkout ${{ github.repository }}
+        uses: actions/checkout@v4
+        with:
+          path: GRTeclyn
+          submodules: true
 
-    - name: Set Up Cache
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/ccache
-        key: ccache-${{ github.workflow }}-${{ github.job }}-${{ matrix.gpu-backend}}-git-${{ github.sha }}
-        restore-keys: |
-             ccache-${{ github.workflow }}-${{ github.job }}-${{ matrix.gpu-backend}}-git-
+      - name: Set Up Cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ccache
+          key: ccache-${{ github.workflow }}-${{ github.job }}-${{ matrix.gpu-backend}}-git-${{ github.sha }}
+          restore-keys: |
+            ccache-${{ github.workflow }}-${{ github.job }}-${{ matrix.gpu-backend}}-git-
 
-    - name: Set up additional repositories
-      run: |
-        if [[ "${{ matrix.gpu-backend }}" == "CUDA" ]]; then
+      - name: Set up additional repositories
+        run: |
+          if [[ "${{ matrix.gpu-backend }}" == "CUDA" ]]; then
           # See https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#ubuntu
-          curl -O https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
-          sudo dpkg -i cuda-keyring_1.1-1_all.deb
-        elif [[ "${{ matrix.gpu-backend }}" == "HIP" ]]; then
-          # See https://rocmdocs.amd.com/en/latest/deploy/linux/quick_start.html
-          sudo mkdir --parents --mode=0755 /etc/apt/keyrings
-          wget https://repo.radeon.com/rocm/rocm.gpg.key -O - | gpg --dearmor |\
-          sudo tee /etc/apt/keyrings/rocm.gpg > /dev/null
-          echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] \
-          https://repo.radeon.com/rocm/apt/${{ env.ROCM_VERSION }} jammy main" | sudo tee \
-          /etc/apt/sources.list.d/rocm.list
-          # Prefer AMD packages over system ones
-          echo -e 'Package: *\nPin: release o=repo.radeon.com\nPin-Priority: 600' \
-          | sudo tee /etc/apt/preferences.d/rocm-pin-600
-        elif [[ "${{matrix.gpu-backend }}" == "SYCL" ]]; then
-          # See https://www.intel.com/content/www/us/en/docs/oneapi/installation-guide-linux/2023-2/apt.html
-          wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB \
-          | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
-          echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] \
-          https://apt.repos.intel.com/oneapi all main" | sudo tee \
-          /etc/apt/sources.list.d/oneAPI.list
-        fi
+            curl -O https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
+            sudo dpkg -i cuda-keyring_1.1-1_all.deb
+          elif [[ "${{ matrix.gpu-backend }}" == "HIP" ]]; then
+            # See https://rocmdocs.amd.com/en/latest/deploy/linux/quick_start.html
+            sudo mkdir --parents --mode=0755 /etc/apt/keyrings
+            wget https://repo.radeon.com/rocm/rocm.gpg.key -O - | gpg --dearmor |\
+            sudo tee /etc/apt/keyrings/rocm.gpg > /dev/null
+            echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] \
+            https://repo.radeon.com/rocm/apt/${{ env.ROCM_VERSION }} jammy main" | sudo tee \
+            /etc/apt/sources.list.d/rocm.list
+            # Prefer AMD packages over system ones
+            echo -e 'Package: *\nPin: release o=repo.radeon.com\nPin-Priority: 600' \
+            | sudo tee /etc/apt/preferences.d/rocm-pin-600
+          elif [[ "${{matrix.gpu-backend }}" == "SYCL" ]]; then
+            # See https://www.intel.com/content/www/us/en/docs/oneapi/installation-guide-linux/2023-2/apt.html
+            wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB \
+            | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
+            echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] \
+            https://apt.repos.intel.com/oneapi all main" | sudo tee \
+            /etc/apt/sources.list.d/oneAPI.list
+          fi
 
-    - name: Update package manager database
-      id: update-database
-      continue-on-error: true
-      run: sudo apt-get update
+      - name: Update package manager database
+        id: update-database
+        continue-on-error: true
+        run: sudo apt-get update
 
-      # This is quite slow so only do this if the previous command fails
-    - name: Update package repository mirrors if necessary
-      if: steps.update-database.outcome == 'failure'
-      run: |
-        sudo gem install apt-spy2
-        sudo apt-spy2 fix --commit --launchpad --country=US
-        sudo apt-get update
+        # This is quite slow so only do this if the previous command fails
+      - name: Update package repository mirrors if necessary
+        if: steps.update-database.outcome == 'failure'
+        run: |
+          sudo gem install apt-spy2
+          sudo apt-spy2 fix --commit --launchpad --country=US
+          sudo apt-get update
 
-    - name: Install dependencies
-      # These have been copied/adapted from AMReX's CI dependencies
-      run: |
-        if [[ "${{ matrix.gpu-backend }}" == "CUDA" ]]; then
-          CUDA_DASHED_VERSION="${{ env.CUDA_MAJOR_VERSION }}-${{ env.CUDA_MINOR_VERSION }}"
-          PACKAGES="libopenmpi-dev \
-          cuda-command-line-tools-${CUDA_DASHED_VERSION} \
-          cuda-compiler-${CUDA_DASHED_VERSION} \
-          cuda-cupti-dev-${CUDA_DASHED_VERSION} \
-          cuda-minimal-build-${CUDA_DASHED_VERSION} \
-          cuda-nvml-dev-${CUDA_DASHED_VERSION} \
-          cuda-nvtx-${CUDA_DASHED_VERSION} \
-          libcurand-dev-${CUDA_DASHED_VERSION} \
-          libcusparse-dev-${CUDA_DASHED_VERSION}"
-        elif [[ "${{ matrix.gpu-backend }}" == "HIP" ]]; then
-          PACKAGES="libopenmpi-dev \
-          rocm-dev \
-          roctracer-dev \
-          rocprofiler-dev \
-          rocrand-dev \
-          rocprim-dev \
-          rocsparse-dev \
-          hiprand-dev"
-        elif [[ "${{ matrix.gpu-backend }}" == "SYCL" ]]; then
-          PACKAGES="intel-oneapi-compiler-dpcpp-cpp-${{ env.ONEAPI_COMP_VERSION }} \
-          intel-oneapi-compiler-fortran-${{ env.ONEAPI_COMP_VERSION }} \
-          intel-oneapi-mkl-devel-${{ env.ONEAPI_COMP_VERSION }} \
-          intel-oneapi-mpi-devel-${{ env.ONEAPI_MPI_VERSION }}"
-        fi
-        PACKAGES="$PACKAGES ccache"
-        sudo apt-get -y --no-install-recommends install $PACKAGES
+      - name: Install dependencies
+        # These have been copied/adapted from AMReX's CI dependencies
+        run: |
+          if [[ "${{ matrix.gpu-backend }}" == "CUDA" ]]; then
+            CUDA_DASHED_VERSION="${{ env.CUDA_MAJOR_VERSION }}-${{ env.CUDA_MINOR_VERSION }}"
+            PACKAGES="libopenmpi-dev \
+            cuda-command-line-tools-${CUDA_DASHED_VERSION} \
+            cuda-compiler-${CUDA_DASHED_VERSION} \
+            cuda-cupti-dev-${CUDA_DASHED_VERSION} \
+            cuda-minimal-build-${CUDA_DASHED_VERSION} \
+            cuda-nvml-dev-${CUDA_DASHED_VERSION} \
+            cuda-nvtx-${CUDA_DASHED_VERSION} \
+            libcurand-dev-${CUDA_DASHED_VERSION} \
+            libcusparse-dev-${CUDA_DASHED_VERSION}"
+          elif [[ "${{ matrix.gpu-backend }}" == "HIP" ]]; then
+            PACKAGES="libopenmpi-dev \
+            rocm-dev \
+            roctracer-dev \
+            rocprofiler-dev \
+            rocrand-dev \
+            rocprim-dev \
+            rocsparse-dev \
+            hiprand-dev"
+          elif [[ "${{ matrix.gpu-backend }}" == "SYCL" ]]; then
+            PACKAGES="intel-oneapi-compiler-dpcpp-cpp-${{ env.ONEAPI_COMP_VERSION }} \
+            intel-oneapi-compiler-fortran-${{ env.ONEAPI_COMP_VERSION }} \
+            intel-oneapi-mkl-devel-${{ env.ONEAPI_COMP_VERSION }} \
+            intel-oneapi-mpi-devel-${{ env.ONEAPI_MPI_VERSION }}"
+          fi
+          PACKAGES="$PACKAGES ccache"
+          sudo apt-get -y --no-install-recommends install $PACKAGES
 
-    - name: Build tests and examples
-      working-directory: GRTeclyn
-      run: |
-        if [[ "${{ matrix.gpu-backend }}" == "CUDA" ]]; then
-          export PATH=/usr/local/cuda-${{ env.CUDA_MAJOR_VERSION }}.${{ env.CUDA_MINOR_VERSION }}/bin${PATH:+:${PATH}}
-          which nvcc || echo "nvcc not in PATH!"
-          export OMPI_CXX=g++
-        elif [[ "${{ matrix.gpu-backend }}" == "HIP" ]]; then
-          export PATH=/opt/rocm/llvm/bin:/opt/rocm/bin:/opt/rocm/profiler/bin:/opt/rocm/opencl/bin:$PATH
-          hipcc --version
-          which clang
-          which clang++
-          which flang
-          export OMPI_CXX=hipcc
-        elif [[ "${{ matrix.gpu-backend }}" == "SYCL" ]]; then
-          source /opt/intel/oneapi/setvars.sh
-          which icpx
-          export I_MPI_CXX=icpx
-        fi
-        make tests -j 4 ${{ env.BUILD_ARGS }}
-        make examples -j 4 ${{ env.BUILD_ARGS }}
+      - name: Build tests and examples
+        working-directory: GRTeclyn
+        run: |
+          if [[ "${{ matrix.gpu-backend }}" == "CUDA" ]]; then
+            export PATH=/usr/local/cuda-${{ env.CUDA_MAJOR_VERSION }}.${{ env.CUDA_MINOR_VERSION }}/bin${PATH:+:${PATH}}
+            which nvcc || echo "nvcc not in PATH!"
+            export OMPI_CXX=g++
+          elif [[ "${{ matrix.gpu-backend }}" == "HIP" ]]; then
+            export PATH=/opt/rocm/llvm/bin:/opt/rocm/bin:/opt/rocm/profiler/bin:/opt/rocm/opencl/bin:$PATH
+            hipcc --version
+            which clang
+            which clang++
+            which flang
+            export OMPI_CXX=hipcc
+          elif [[ "${{ matrix.gpu-backend }}" == "SYCL" ]]; then
+            source /opt/intel/oneapi/setvars.sh
+            which icpx
+            export I_MPI_CXX=icpx
+          fi
+          make tests -j 4 ${{ env.BUILD_ARGS }}
+          make examples -j 4 ${{ env.BUILD_ARGS }}
