@@ -3,9 +3,8 @@
 set -eu -o pipefail
 
 find . -type d \( -name .git \
-                  -o -path ./paper \
                   -o -name build -o -name install \
-                  -o -name tmp_build_dir -o -name tmp_install_dir \
+                  -o -name tmp_build_dir \
                \) -prune -o \
        -type f \( -name "*.f" -o -name "*.F" -o -name "*.f90" -o -name "*.F90" \
                   -o -name "*.py" \
