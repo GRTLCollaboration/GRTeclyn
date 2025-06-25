@@ -62,7 +62,11 @@ SYSTEM_INCLUDE_LOCATIONS += $(doctest_dir)
 include $(GRTECLYN_HOME)/Tools/GNUMake/Make.rules
 
 ifeq ($(USE_MPI), TRUE)
-LAUNCH = mpiexec -n 2 ./
+  ifeq ($(origin SLURM_NTASKS),undefined)
+    LAUNCH = mpiexec -n 2 ./
+  else
+    LAUNCH = mpiexec -n ${SLURM_NTASKS} ./
+  endif 
 else
 LAUNCH = ./
 endif
