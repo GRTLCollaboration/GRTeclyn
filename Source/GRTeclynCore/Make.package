@@ -3,6 +3,7 @@ GRTECLYN_CEXE_sources += GRAMR.cpp \
 
 GRTECLYN_CEXE_headers += AMReXParameters.hpp \
                          AlwaysInline.hpp \
+                         ArrayTools.hpp \
                          DefaultLevelFactory.hpp \
                          GRAMR.hpp \
                          GRAMRLevel.hpp \

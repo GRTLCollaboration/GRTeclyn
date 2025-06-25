@@ -1,7 +1,6 @@
 GRTECLYN_CEXE_sources += BoundaryConditions.cpp
 
-GRTECLYN_CEXE_headers += ArrayTools.hpp \
-                         BCParity.hpp \
+GRTECLYN_CEXE_headers += BCParity.hpp \
                          BoundaryConditions.hpp \
                          Cell.hpp \
                          Coordinates.hpp \
