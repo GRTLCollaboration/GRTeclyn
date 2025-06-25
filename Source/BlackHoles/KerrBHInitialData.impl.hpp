@@ -3,18 +3,19 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#if !defined(KERRBH_HPP_)
-#error "This file should only be included through KerrBH.hpp"
+#if !defined(KERRBHINITIALDATA_HPP_)
+#error "This file should only be included through KerrBHInitialData.hpp"
 #endif
 
-#ifndef KERRBH_IMPL_HPP_
-#define KERRBH_IMPL_HPP_
+#ifndef KERRBHINITIALDATA_IMPL_HPP_
+#define KERRBHINITIALDATA_IMPL_HPP_
 
 #include "DimensionDefinitions.hpp"
 
 // Computes semi-isotropic Kerr solution as detailed in Liu, Etienne and Shapiro
 // 2010, arxiv gr-qc/1001.4077
-template <class data_t> void KerrBH::compute(Cell<data_t> current_cell) const
+template <class data_t>
+void KerrBHInitialData::compute(Cell<data_t> current_cell) const
 {
     // set up vars for the metric and extrinsic curvature, shift and lapse in
     // spherical coords
@@ -72,11 +73,11 @@ template <class data_t> void KerrBH::compute(Cell<data_t> current_cell) const
 }
 
 template <class data_t>
-void KerrBH::compute_kerr(Tensor<2, data_t> &spherical_g,
-                          Tensor<2, data_t> &spherical_K,
-                          Tensor<1, data_t> &spherical_shift,
-                          data_t &kerr_lapse,
-                          const Coordinates<data_t> coords) const
+void KerrBHInitialData::compute_kerr(Tensor<2, data_t> &spherical_g,
+                                     Tensor<2, data_t> &spherical_K,
+                                     Tensor<1, data_t> &spherical_shift,
+                                     data_t &kerr_lapse,
+                                     const Coordinates<data_t> coords) const
 {
     // Kerr black hole params - mass M and spin a
     double M = m_params.mass;
@@ -154,4 +155,4 @@ void KerrBH::compute_kerr(Tensor<2, data_t> &spherical_g,
     spherical_shift[2] = -2.0 * M * a * r_BL / AA;
 }
 
-#endif /* KERRBH_IMPL_HPP_ */
+#endif /* KERRBHINITIALDATA_IMPL_HPP_ */

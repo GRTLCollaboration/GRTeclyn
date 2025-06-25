@@ -1,7 +1,25 @@
-GRTECLYN_CEXE_headers += AMRInterpolator.hpp IntegrationMethod.hpp Lagrange.hpp QuinticConvolution.hpp \
-                AMRInterpolator.impl.hpp IntegrationMethodSetup.hpp Lagrange.impl.hpp \
-                QuinticConvolution.impl.hpp CylindricalExtraction.hpp InterpolationAlgorithm.hpp \
-                MPIContext.hpp SphericalExtraction.hpp CylindricalGeometry.hpp \
-                InterpolationLayout.hpp MPIContext.impl.hpp SphericalGeometry.hpp Derivative.hpp \
-                InterpolationQuery.hpp MPILayout.hpp SurfaceExtraction.hpp DerivativeSetup.hpp \
-                InterpSource.hpp MPILayout.impl.hpp SurfaceExtraction.impl.hpp
+GRTECLYN_CEXE_headers += AMRInterpolator.hpp \
+                         AMRInterpolator.impl.hpp \
+                         CylindricalExtraction.hpp \
+                         CylindricalGeometry.hpp \
+                         Derivative.hpp \
+                         DerivativeSetup.hpp \
+                         IntegrationMethod.hpp \
+                         IntegrationMethodSetup.hpp \
+                         InterpolationAlgorithm.hpp \
+                         InterpolationLayout.hpp \
+                         InterpolationQuery.hpp \
+                         InterpSource.hpp \
+                         Lagrange.hpp \
+                         Lagrange.impl.hpp \
+                         MPIContext.hpp \
+                         MPIContext.impl.hpp \
+                         MPILayout.hpp \
+                         MPILayout.impl.hpp \
+                         QuinticConvolution.hpp \
+                         QuinticConvolution.impl.hpp \
+                         SphericalExtraction.hpp \
+                         SphericalGeometry.hpp \
+                         SurfaceExtraction.hpp \
+                         SurfaceExtraction.impl.hpp \
+                         WeylExtraction.hpp

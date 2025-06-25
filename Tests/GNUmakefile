@@ -23,13 +23,14 @@ GRTECLYN_SOURCE = $(GRTECLYN_HOME)/Source
 
 src_dirs := $(GRTECLYN_SOURCE)/AMRInterpolator \
             $(GRTECLYN_SOURCE)/BlackHoles \
-            $(GRTECLYN_SOURCE)/BoxUtils  \
-            $(GRTECLYN_SOURCE)/CCZ4  \
-            $(GRTECLYN_SOURCE)/GRTeclynCore  \
+            $(GRTECLYN_SOURCE)/CCZ4 \
+            $(GRTECLYN_SOURCE)/Grids \
+            $(GRTECLYN_SOURCE)/GRTeclynCore \
+            $(GRTECLYN_SOURCE)/IO \
+            $(GRTECLYN_SOURCE)/Maths \
             $(GRTECLYN_SOURCE)/Matter \
-            $(GRTECLYN_SOURCE)/simd  \
-            $(GRTECLYN_SOURCE)/Tagging  \
-            $(GRTECLYN_SOURCE)/utils 
+            $(GRTECLYN_SOURCE)/simd \
+            $(GRTECLYN_SOURCE)/Tagging
 
 
 GRTECLYN_TESTS_HOME = $(GRTECLYN_HOME)/Tests
@@ -50,7 +51,7 @@ test_pack := $(foreach dir, $(test_dirs), $(dir)/Make.package)
 include $(src_pack)
 include $(test_pack)
 
-doctest_dir := $(GRTECLYN_HOME)/External/doctest
+doctest_dir := $(GRTECLYN_HOME)/external/doctest
 doctest_headers := doctest.h
 
 CEXE_sources += $(GRTECLYN_CEXE_sources)

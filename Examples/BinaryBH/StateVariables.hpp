@@ -8,7 +8,7 @@
 
 #include "ArrayTools.hpp"
 #include "BCParity.hpp"
-#include "CCZ4Variables.hpp"
+#include "CCZ4StateVariables.hpp"
 
 /// This enum gives the index of every variable stored in the grid
 enum
@@ -20,9 +20,10 @@ enum
 
 namespace StateVariables
 {
-static const amrex::Vector<std::string> names = CCZ4Variables::names;
+static const amrex::Vector<std::string> names = CCZ4StateVariables::names;
 
-static const std::array<BCParity, NUM_VARS> parities = CCZ4Variables::parities;
+static const std::array<BCParity, NUM_VARS> parities =
+    CCZ4StateVariables::parities;
 } // namespace StateVariables
 
 #endif /* STATEVARIABLES_HPP */

@@ -3,8 +3,8 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#ifndef CCZ4VARIABLES_HPP
-#define CCZ4VARIABLES_HPP
+#ifndef CCZ4STATEVARIABLES_HPP
+#define CCZ4STATEVARIABLES_HPP
 
 #include <algorithm>
 #include <array>
@@ -12,7 +12,7 @@
 
 #include "BCParity.hpp"
 
-/// This enum gives the index of the CCZ4 variables on the grid
+/// This enum gives the index of the CCZ4 state variables on the grid
 enum
 {
     c_chi,
@@ -52,7 +52,7 @@ enum
     NUM_CCZ4_VARS
 };
 
-namespace CCZ4Variables
+namespace CCZ4StateVariables
 {
 static const amrex::Vector<std::string> names = {
     "chi",
@@ -109,6 +109,6 @@ static const std::array<BCParity, NUM_CCZ4_VARS> parities = {
     BCParity::odd_y, // B2
     BCParity::odd_z, // B3
 };
-} // namespace CCZ4Variables
+} // namespace CCZ4StateVariables
 
-#endif /* CCZ4VARIABLES_HPP */
+#endif /* CCZ4STATEVARIABLES_HPP */

@@ -1,0 +1,3 @@
+GRTECLYN_CEXE_headers += PositiveChiAndLapseUnitTest.hpp
+
+GRTECLYN_CEXE_sources += PositiveChiAndLapseUnitTest.cpp
