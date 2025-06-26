@@ -55,34 +55,40 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/ccache
-          key: ccache-${{ github.workflow }}-${{ github.job }}-${{ matrix.gpu-backend}}-git-${{ github.sha }}
-          restore-keys: |
-            ccache-${{ github.workflow }}-${{ github.job }}-${{ matrix.gpu-backend}}-git-
+          key: >
+            ccache-${{ github.workflow }}-${{ github.job }}-
+            ${{ matrix.gpu-backend}}-git-${{ github.sha }}
+          restore-keys: >
+            ccache-${{ github.workflow }}-${{ github.job }}-
+            ${{ matrix.gpu-backend}}-git-
 
       - name: Set up additional repositories
         run: |
           if [[ "${{ matrix.gpu-backend }}" == "CUDA" ]]; then
           # See https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#ubuntu
-            curl -O https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
+            curl -O \
+              https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
             sudo dpkg -i cuda-keyring_1.1-1_all.deb
           elif [[ "${{ matrix.gpu-backend }}" == "HIP" ]]; then
             # See https://rocmdocs.amd.com/en/latest/deploy/linux/quick_start.html
             sudo mkdir --parents --mode=0755 /etc/apt/keyrings
-            wget https://repo.radeon.com/rocm/rocm.gpg.key -O - | gpg --dearmor |\
+            wget \
+            https://repo.radeon.com/rocm/rocm.gpg.key -O - | gpg --dearmor |\
             sudo tee /etc/apt/keyrings/rocm.gpg > /dev/null
             echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] \
-            https://repo.radeon.com/rocm/apt/${{ env.ROCM_VERSION }} jammy main" | sudo tee \
-            /etc/apt/sources.list.d/rocm.list
+            https://repo.radeon.com/rocm/apt/${{ env.ROCM_VERSION }} jammy main" |\
+            sudo tee /etc/apt/sources.list.d/rocm.list
             # Prefer AMD packages over system ones
-            echo -e 'Package: *\nPin: release o=repo.radeon.com\nPin-Priority: 600' \
-            | sudo tee /etc/apt/preferences.d/rocm-pin-600
+            echo -e 'Package: *\nPin: release o=repo.radeon.com\nPin-Priority: 600' |\
+            sudo tee /etc/apt/preferences.d/rocm-pin-600
           elif [[ "${{matrix.gpu-backend }}" == "SYCL" ]]; then
-            # See https://www.intel.com/content/www/us/en/docs/oneapi/installation-guide-linux/2023-2/apt.html
-            wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB \
-            | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
+            # See
+            # https://www.intel.com/content/www/us/en/docs/oneapi/installation-guide-linux/2023-2/apt.html
+            wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB |\
+            gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
             echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] \
-            https://apt.repos.intel.com/oneapi all main" | sudo tee \
-            /etc/apt/sources.list.d/oneAPI.list
+            https://apt.repos.intel.com/oneapi all main" |\
+            sudo tee /etc/apt/sources.list.d/oneAPI.list
           fi
 
       - name: Update package manager database
@@ -134,11 +140,15 @@ jobs:
         working-directory: GRTeclyn
         run: |
           if [[ "${{ matrix.gpu-backend }}" == "CUDA" ]]; then
-            export PATH=/usr/local/cuda-${{ env.CUDA_MAJOR_VERSION }}.${{ env.CUDA_MINOR_VERSION }}/bin${PATH:+:${PATH}}
+            CUDA_DOTTED_VERSION=${{ env.CUDA_MAJOR_VERSION }}.${{ env.CUDA_MINOR_VERSION }}
+            export PATH="/usr/local/cuda-${CUDA_DOTTED_VERSION}/bin${PATH:+:${PATH}}"
             which nvcc || echo "nvcc not in PATH!"
             export OMPI_CXX=g++
           elif [[ "${{ matrix.gpu-backend }}" == "HIP" ]]; then
-            export PATH=/opt/rocm/llvm/bin:/opt/rocm/bin:/opt/rocm/profiler/bin:/opt/rocm/opencl/bin:$PATH
+            export PATH="/opt/rocm/llvm/bin:\
+                         /opt/rocm/bin:\
+                         /opt/rocm/profiler/bin:\
+                         /opt/rocm/opencl/bin":$PATH
             hipcc --version
             which clang
             which clang++

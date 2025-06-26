@@ -14,4 +14,7 @@ repos:
     rev: v1.29.0
     hooks:
       - id: yamllint
-        args: ['-d {rules: {line-length: {level: warning}}}']
+        args: 
+          ['-d {rules: {line-length: {max: 101, allow-non-breakable-words: true,
+          allow-non-breakable-inline-mappings: true}}}']
+
