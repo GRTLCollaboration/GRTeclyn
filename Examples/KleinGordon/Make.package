@@ -4,7 +4,6 @@ CEXE_sources += DerivedVariables.cpp \
 
 CEXE_headers += DerivedVariables.hpp \
                 InitialConditions.hpp \
-		KleinGordon.hpp \
 		KleinGordonLevel.hpp \
 		KleinGordonRHS.hpp \
 		Potential.hpp \

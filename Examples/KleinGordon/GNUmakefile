@@ -17,14 +17,12 @@ include $(GRTECLYN_HOME)/Tools/GNUMake/Make.rules
 
 GRTECLYN_SOURCE = $(GRTECLYN_HOME)/Source
 
-src_dirs := $(GRTECLYN_SOURCE)/utils \
-            $(GRTECLYN_SOURCE)/simd  \
-            $(GRTECLYN_SOURCE)/CCZ4  \
-            $(GRTECLYN_SOURCE)/BoxUtils  \
-            $(GRTECLYN_SOURCE)/GRTeclynCore  \
-            $(GRTECLYN_SOURCE)/AMRInterpolator  \
+src_dirs := $(GRTECLYN_SOURCE)/AMRInterpolator \
+            $(GRTECLYN_SOURCE)/Grids \
+            $(GRTECLYN_SOURCE)/GRTeclynCore \
+            $(GRTECLYN_SOURCE)/IO \
+            $(GRTECLYN_SOURCE)/Maths \
             $(GRTECLYN_SOURCE)/Tagging
-
 
 
 src_pack := $(foreach dir, $(src_dirs), $(dir)/Make.package)
@@ -35,8 +33,5 @@ VPATH_LOCATIONS += $(src_dirs)
 INCLUDE_LOCATIONS += $(realpath .) $(src_dirs)
 
 include $(GRTECLYN_HOME)/Tools/GNUMake/Make.rules
-
-# Use a common temporary build directory for all GRTeclyn applications
-TMP_BUILD_DIR ?= $(GRTECLYN_HOME)/tmp_build_dir
 
 
