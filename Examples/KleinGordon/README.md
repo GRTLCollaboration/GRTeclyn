@@ -1,26 +1,42 @@
-This solves the Klein-Gordon equation $\frac{\partial^2 \phi}{\partial t^2} = \nabla \phi + V(\phi)$, based on the wave example in the [AMReX guided tutorials](https://github.com/AMReX-Codes/amrex-tutorials). 
+This solves the Klein-Gordon equation
+```math
+\frac{\partial^2 \phi}{\partial t^2} = \nabla^2 \phi + V(\phi),
+```
+based on the wave example in the [AMReX guided tutorials](https://github.com/AMReX-Codes/amrex-tutorials).
 
-The potential is $m^2 \phi^2$, and in the case of multiple scalar fields this is: $\phi^2 = \phi_1^2 + \phi_2^2 + ...$
+Choose from three possible models in the input parameter file:
+- "Wave" for the wave equation:
+```math
+\frac{\partial^2 \phi}{\partial t^2} = \nabla^2 \phi + \frac{1}{2} m^2 \phi^2
+```
+Without the potential term, the analytic solution is:
+```math
+$$ \phi (\bf{r},t) = \exp\[i(\bf{k_r \cdot \bf{r}} - \omega t)\] $$
+```
+and $\omega = k_r$ since $c=1$.
 
-The initial condition is a Gaussian pulse: $1.0 + A * exp(-r^2/\sigma)$
+- "SineGordon1D" for the 1D Sine Gordon breather solution to the equation:
+```math
+\frac{\partial^2 \phi}{\partial t^2} = \frac{\partial^2 \phi}{\partial x^2} - \sin \phi
+```
+The analytic solution is:
+```math
+\phi(x,t) = 4 \arctan \left(\frac{\beta \cos(\alpha t)}{\alpha \cosh(\beta x)} \right)
+```
+where $\beta = \sqrt(1-\alpha^2)$
+Note that it is a 1D solution embedded in a 3D simulation volume so `AMREX_SPACEDIM` is still set to 3.
+- "SineGordon3D" for the 3D Sine Gordon pseudo-breather solution to the equation:
+$$\frac{\partial^2 \phi}{\partial t^2} = \nabla^2 \phi - \sin \phi$$
+The analytic solution is
+```math
+\phi(x,y,z,t) = 4 \arctan \left(\frac{\beta \cos(\alpha t)}{\alpha \cosh(\beta x)} \right) \times
+                4 \arctan \left(\frac{\beta \cos(\alpha t)}{\alpha \cosh(\beta y)} \right) \times
+                4 \arctan \left(\frac{\beta \cos(\alpha t)}{\alpha \cosh(\beta z)} \right)
+
+```
 
 
-There are several properties of the scalar fields that are set in the input parameter file:
-* wave.nfields - the number of scalar fields
-* wave.initial_amplitude - the initial amplitude of the Gaussian pulse, there should nfield integers here, separated by a space
-* wave.initial_width - intial width of Gaussian pulse, again one value per scalar field
-* wave.scalar_mass - scalar field mass, one per scalar field
-
-
-
-
-
-From the original README: 
-
->The Laplacian operator is discretized dimension by dimension with a fourth-order stencil,
-
->$$\frac{\partial^2 u}{\partial x^2} = \left(-\frac{5}{2} u_i + \frac{4}{3} (u_{i-1} + u_{i+1}) - \frac{1}{12} (u_{i-2} + u_{i+2})\right) / \Delta x^2$$
-
->The time stepping is done with a Runge-Kutta method (RK2, RK3 or RK4).  
->In this test, the displacement at the x-direction boundaries is zero, and the it's periodic in the y-direction.  
->Note that refluxing is not implemented in this test code.
+Other settings in the parameter file:
+* `alpha` - (only for SineGordon models) controls the frequency of the breather mode and must be less than 1.
+* `scalar_mass` - (only for Wave model) mass of the scalar field in the potential
+* `initial_time` - starting time for the initial conditions, this is important for the analytic solution to match up
