@@ -10,7 +10,6 @@
 #include "SimulationParameters.hpp"
 
 // Problem specific includes:
-#include "KleinGordon.hpp" // TPAMR code conditional compiled on USE_TWOPUNCTURES
 #include "KleinGordonLevel.hpp"
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
