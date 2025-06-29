@@ -143,8 +143,6 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                        {
                            amrex::CellData<amrex::Real> cell =
                                soln_arrs[box_no].cellData(i, j, k);
-                           TraceARemoval()(cell);
-                           PositiveChiAndLapse()(cell);
                        });
 
     // Calculate CCZ4 right hand side
