@@ -31,7 +31,6 @@ class AMReXParameters
 
     void read_params(GRParmParse &pp)
     {
-        // must be before any amrex::Print() in the code to setPoutBaseName
         read_filesystem_params(pp);
 
         // Grid setup
@@ -108,9 +107,6 @@ class AMReXParameters
         {
             just_check_params = true;
         }
-
-        pp.load("print_progress_only_to_rank_0", print_progress_only_to_rank_0,
-                false);
     }
 
     void read_filesystem_params(GRParmParse &pp)
@@ -120,74 +116,6 @@ class AMReXParameters
         {
             pp.get("amr.restart", restart_file);
         }
-
-#ifdef AMREX_USE_MPI
-        // Again, cannot use default value
-        if (pp.contains("pout_prefix"))
-        {
-            pp.load("pout_prefix", pout_prefix);
-        }
-        else
-        {
-            pout_prefix = "pout";
-        }
-#endif
-
-        std::string default_path;
-        if (pp.contains("output_path"))
-        {
-            pp.load("output_path", output_path);
-        }
-        else
-        {
-            output_path = default_path;
-        }
-
-#ifdef AMREX_USE_MPI
-        // user sets the 'subpath', we prepend 'output_path'
-        if (pp.contains("pout_subpath"))
-        {
-            pp.load("pout_subpath", pout_path);
-        }
-        else
-        {
-            pout_path = default_path;
-        }
-#endif
-
-        // add backslash to paths
-        if (!output_path.empty() && output_path.back() != '/')
-        {
-            output_path += "/";
-        }
-#ifdef AMREX_USE_MPI
-        if (!pout_path.empty() && pout_path.back() != '/')
-        {
-            pout_path += "/";
-        }
-#endif
-#if 0 
-        if (!hdf5_path.empty() && hdf5_path.back() != '/')
-            hdf5_path += "/";
-#endif
-
-        if (output_path != "./" && !output_path.empty())
-        {
-#ifdef AMREX_USE_MPI
-            pout_path = output_path + pout_path;
-#endif
-        }
-
-#ifdef AMREX_USE_MPI
-        // change pout base name!
-        if (!FilesystemTools::directory_exists(pout_path))
-        {
-            FilesystemTools::mkdir_recursive(pout_path);
-        }
-        // xxxxx setPoutBaseName(pout_path + pout_prefix);
-#endif
-
-        // only create hdf5 directory in setupAMRObject (when it becomes needed)
     }
 
     // NOLINTBEGIN(readability-function-cognitive-complexity)
@@ -445,12 +373,6 @@ class AMReXParameters
         check_parameter("fill_ratio", fill_ratio,
                         (fill_ratio > 0.0) && (fill_ratio <= 1.0),
                         "must be > 0 and <= 1");
-
-        check_parameter("output_path", output_path,
-                        FilesystemTools::directory_exists(output_path),
-                        "should be a valid directory");
-        // pout directory exists - we create it in read_filesystem_params()
-        // can't check hdf5 directory yet - only created after
     }
 
     void set_amrex_params()
@@ -514,11 +436,6 @@ class AMReXParameters
     int checkpoint_interval{}, plot_interval{}; // Steps between outputs
     int max_grid_size{}, block_factor{};        // max and min box sizes
     double fill_ratio{}; // determines how fussy the regridding is about tags
-    std::string output_path; // base path to use for all files
-#ifdef AMREX_USE_MPI
-    std::string pout_prefix; // pout file prefix
-    std::string pout_path;   // base path for pout files
-#endif
 
     std::array<double, AMREX_SPACEDIM> origin{},
         dx{}; // location of coarsest origin and dx
@@ -532,7 +449,6 @@ class AMReXParameters
     // For checking parameters and then exiting rather before instantiating
     // GRAMR (or child) object
     bool just_check_params = false;
-    bool print_progress_only_to_rank_0{};
 
   protected:
     // the low and high corners of the domain taking into account reflective BCs

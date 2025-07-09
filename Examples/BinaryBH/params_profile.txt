@@ -9,7 +9,6 @@
 amrex.verbose = 1
 amr.verbose = 1
 
-
 #ifdef AMREX_USE_GPU
 amrex.use_gpu_aware_mpi = 1
 #endif
@@ -18,6 +17,7 @@ puncture_tracking.enabled = 0
 puncture_tracking.level = 5
 
 output_path = .
+
 amr.check_file = BinaryBHChk_
 amr.plot_file = BinaryBHPlt_
 # amr.restart = BinaryBHChk_00100
