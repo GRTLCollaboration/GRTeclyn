@@ -7,7 +7,8 @@
 
 #include "InitialConditions.hpp"
 
-void calc_derive_mf(amrex::MultiFab &mf_out, int dcomp, int /*numcomp*/,
-                    const amrex::MultiFab &mf_in, const amrex::Geometry &geom,
-                    const amrex::Real time, const int * /*bcomp*/,
-                    int /*scomp*/);
+void calc_analytic_solution_mf(amrex::MultiFab &mf_out, int dcomp,
+                               int /*numcomp*/, const amrex::MultiFab &mf_in,
+                               const amrex::Geometry &geom,
+                               const amrex::Real time, const int * /*bcomp*/,
+                               int /*scomp*/);

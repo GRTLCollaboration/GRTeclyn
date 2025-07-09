@@ -15,8 +15,8 @@ void KleinGordonLevel::variableSetUp()
 
     // Set up derived variables
     derive_lst.add(
-        "analytic_soln", amrex::IndexType::TheCellType(), 1, calc_derive_mf,
-        [=](const amrex::Box &box)
+        "analytic_soln", amrex::IndexType::TheCellType(), 1,
+        calc_analytic_solution_mf, [=](const amrex::Box &box)
         { return amrex::grow(box, simParams().num_ghosts); },
         &amrex::cell_quartic_interp);
 
