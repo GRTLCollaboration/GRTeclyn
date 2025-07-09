@@ -115,9 +115,11 @@ class AMReXParameters
 
     void read_filesystem_params(GRParmParse &pp)
     {
-        // In this function, cannot use default value - it may print a 'default
-        // message' to pout and a 'setPoutBaseName' must happen before
-        restart_from_checkpoint = pp.contains("restart_file");
+        restart_from_checkpoint = pp.contains("amr.restart");
+        if (restart_from_checkpoint)
+        {
+            pp.get("amr.restart", restart_file);
+        }
 
 #ifdef AMREX_USE_MPI
         // Again, cannot use default value
@@ -404,7 +406,6 @@ class AMReXParameters
 
         // check the restart_file exists and can be read if restarting from a
         // checkpoint
-#if 0 // TODO
         if (restart_from_checkpoint)
         {
             bool restart_file_exists =
@@ -412,7 +413,6 @@ class AMReXParameters
             check_parameter("restart_file", restart_file, restart_file_exists,
                             "file cannot be opened for reading");
         }
-#endif
 
         check_parameter("dt_multiplier", dt_multiplier, dt_multiplier > 0.0,
                         "must be > 0.0");
@@ -509,6 +509,7 @@ class AMReXParameters
     amrex::Vector<int> regrid_interval; // steps between regrid at each level
     int max_steps{};
     bool restart_from_checkpoint{}; // whether or not to restart or start afresh
+    std::string restart_file;       // the file to restart from, if any
     double dt_multiplier{}, stop_time{}; // The Courant factor and stop time
     int checkpoint_interval{}, plot_interval{}; // Steps between outputs
     int max_grid_size{}, block_factor{};        // max and min box sizes
