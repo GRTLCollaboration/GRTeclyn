@@ -1,7 +1,8 @@
 #################################################
 # Filesystem parameters
 
-verbosity = 0
+amrex.verbose = 1
+amr.verbose = 0
 
 output_path = .
 

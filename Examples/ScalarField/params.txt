@@ -4,7 +4,8 @@
 #################################################
 # Filesystem parameters
 
-verbosity = 0
+amrex.verbose = 1
+amr.verbose = 0
 
 # location / naming of output files
 # output_path = "" # Main path for all files. Must exist!

@@ -6,7 +6,8 @@
 #################################################
 # Filesystem parameters
 
-verbosity = 1
+amrex.verbose = 1
+amr.verbose = 1
 
 output_path = .
 amr.check_file = BinaryBHChk_

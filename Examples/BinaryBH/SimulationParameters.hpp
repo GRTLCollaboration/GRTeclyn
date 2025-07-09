@@ -48,7 +48,7 @@ class SimulationParameters : public SimulationParametersBase
 #ifdef USE_TWOPUNCTURES
     void read_tp_params(GRParmParse &pp)
     {
-        tp_params.verbose = (verbosity > 0);
+        pp.get("amrex.verbose", tp_params.verbose);
         // check whether to calculate the target ADM masses or use provided bare
         // masses
         bool calculate_target_masses;

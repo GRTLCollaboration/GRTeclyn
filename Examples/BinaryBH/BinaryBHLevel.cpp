@@ -62,7 +62,7 @@ void BinaryBHLevel::specificAdvance()
 void BinaryBHLevel::initData()
 {
     BL_PROFILE("BinaryBHLevel::initialData");
-    if (m_verbosity > 0)
+    if (get_gramr_ptr()->Verbose() > 0)
     {
         amrex::Print() << "BinaryBHLevel::initialData " << Level() << "\n";
     }
