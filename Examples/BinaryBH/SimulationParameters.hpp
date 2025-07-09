@@ -36,6 +36,8 @@ class SimulationParameters : public SimulationParametersBase
     // NOLINTNEXTLINE(readability-identifier-length)
     void read_shared_params(GRParmParse &pp)
     {
+        int max_level = -1;
+        pp.get("amr.max_level", max_level);
         // Do we want puncture tracking and constraint norm calculation?
         pp.load("puncture_tracking.enabled", puncture_tracking_enabled, false);
         pp.load("puncture_tracking.level", puncture_tracking_level, max_level);
@@ -308,10 +310,10 @@ class SimulationParameters : public SimulationParametersBase
                            "should be within the computational domain");
         }
 #endif /* USE_TWOPUNCTURES */
-        check_parameter("puncture_tracking_level", puncture_tracking_level,
-                        (puncture_tracking_level >= 0) &&
-                            (puncture_tracking_level <= max_level),
-                        "must be between 0 and max_level (inclusive)");
+        // check_parameter("puncture_tracking_level", puncture_tracking_level,
+        //                 (puncture_tracking_level >= 0) &&
+        //                     (puncture_tracking_level <= max_level),
+        //                 "must be between 0 and max_level (inclusive)");
     }
 
     bool puncture_tracking_enabled{};

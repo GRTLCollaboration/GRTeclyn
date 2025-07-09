@@ -12,9 +12,9 @@ amr.verbose = 1
 # amr.file_name_digits = 5
 
 amr.check_int = 0
-checkpoint_interval = 0
+amr.check_int = 0
 amr.plot_int = 8
-plot_interval = 8
+amr.plot_int = 8
 amr.derive_plot_vars = ALL
 
 #################################################
@@ -35,9 +35,9 @@ momentumB = 0.0  0.1 0.0
 N_full = 32
 L_full = 8
 
-max_level = 0 # There are (max_level+1) levels
+amr.max_level = 0 # There are (max_level+1) levels
 
-regrid_interval = 0 # no point regridding with no AMR
+amr.regrid_int = 0 # no point regridding with no AMR
 
 max_grid_size = 16
 block_factor = 16

@@ -49,24 +49,14 @@ class AMReXParameters
         // L's, N's and center
         read_grid_params(pp);
 
-        pp.load("max_level", max_level, 0);
-        // the reference ratio is hard coded to 2
-        // in principle it can be set to other values, but this is
-        // not recommended since we do not test GRChombo with other
-        // refinement ratios - use other values at your own risk
-        ref_ratios.resize(max_level + 1, 2);
-        pp.getarr("regrid_interval", regrid_interval, 0, max_level);
-        // Regridding on max_level does nothing but Chombo's AMR class
-        // expects this Vector to be of length max_level + 1
-        // so just set the final value to 0.
-        regrid_interval.resize(max_level + 1);
-        regrid_interval[max_level] = 0;
+        int max_level = -1;
+        pp.get("amr.max_level", max_level);
 
-        if (pp.contains("regrid_thresholds"))
+        if (pp.contains("amr.regrid_thresholds"))
         {
             amrex::Print() << "Using multiple regrid thresholds." << '\n';
             // As for regrid_interval, the last element is irrelevant
-            pp.getarr("regrid_thresholds", regrid_thresholds, 0, max_level);
+            pp.getarr("amr.regrid_thresholds", regrid_thresholds, 0, max_level);
             regrid_thresholds.resize(max_level + 1);
             regrid_thresholds[max_level] = regrid_thresholds[max_level - 1];
         }
@@ -74,14 +64,12 @@ class AMReXParameters
         {
             amrex::Print() << "Using single regrid threshold." << '\n';
             double regrid_threshold = NAN;
-            pp.load("regrid_threshold", regrid_threshold, 0.5);
+            pp.load("amr.regrid_threshold", regrid_threshold, 0.5);
             regrid_thresholds =
                 amrex::Vector<double>(max_level + 1, regrid_threshold);
         }
 
         // time stepping outputs and regrid data
-        pp.load("checkpoint_interval", checkpoint_interval, 1);
-        pp.load("plot_interval", plot_interval, 0);
         pp.load("stop_time", stop_time, 1.0);
         pp.load("max_steps", max_steps, 1000000);
         // alias the weird chombo names to something more descriptive
@@ -310,7 +298,8 @@ class AMReXParameters
     void check_params()
     {
         check_parameter("L", L, L > 0.0, "must be > 0.0");
-        check_parameter("max_level", max_level, max_level >= 0, "must be >= 0");
+        // check_parameter("max_level", max_level, max_level >= 0, "must be >=
+        // 0");
         check_parameter("max_spatial_derivative_order",
                         max_spatial_derivative_order,
                         max_spatial_derivative_order == 4 ||
@@ -400,16 +389,16 @@ class AMReXParameters
         }
         {
             amrex::ParmParse pp("amr");
-            pp.add("max_level", max_level);
             pp.add("n_error_buf", tag_buffer_size);
+            // the reference ratio is hard coded to 2
+            // in principle it can be set to other values, but this is
+            // not recommended since we do not test GRTeclyn with other
+            // refinement ratios - use other values at your own risk
             pp.add("ref_ratio", 2);
             pp.add("max_grid_size", max_grid_size);
             pp.add("blocking_factor", block_factor);
             pp.addarr("n_cell",
                       std::vector<int>{ivN[0] + 1, ivN[1] + 1, ivN[2] + 1});
-            pp.addarr("regrid_int", regrid_interval);
-            pp.add("check_int", checkpoint_interval);
-            pp.add("plot_int", plot_interval);
         }
     }
 
@@ -419,22 +408,17 @@ class AMReXParameters
     amrex::IntVect ivN; // The number of grid cells in each dimension
     double coarsest_dx{},
         coarsest_dt{}; // The coarsest resolution in space and time
-    int max_level{};   // the max number of regriddings to do
     int max_spatial_derivative_order{}; // The maximum order of the spatial
                                         // derivatives - does nothing
                                         // in Chombo but can be used in examples
     int num_ghosts{};       // min dependent on max_spatial_derivative_order
     int tag_buffer_size{};  // Amount the tagged region is grown by
     int grid_buffer_size{}; // Number of cells between level
-    amrex::Vector<int> ref_ratios; // ref ratios between levels
-    // boundaries.
-    amrex::Vector<int> regrid_interval; // steps between regrid at each level
     int max_steps{};
     bool restart_from_checkpoint{}; // whether or not to restart or start afresh
     std::string restart_file;       // the file to restart from, if any
     double dt_multiplier{}, stop_time{}; // The Courant factor and stop time
-    int checkpoint_interval{}, plot_interval{}; // Steps between outputs
-    int max_grid_size{}, block_factor{};        // max and min box sizes
+    int max_grid_size{}, block_factor{}; // max and min box sizes
     double fill_ratio{}; // determines how fussy the regridding is about tags
 
     std::array<double, AMREX_SPACEDIM> origin{},

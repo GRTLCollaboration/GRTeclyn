@@ -14,8 +14,8 @@ amr.plot_file = BinaryBHPlt_
 # amr.restart = BinaryBHChk_00100
 # amr.file_name_digits = 5
 
-checkpoint_interval = 100
-plot_interval = 5
+amr.check_int = 100
+amr.plot_int = 5
 
 #################################################
 # Initial Data parameters
@@ -39,11 +39,11 @@ momentumB = 0.0841746  0.000510846 0.0
 N_full = 128
 L_full = 1024
 
-max_level = 9 # There are (max_level+1) grids, so min is zero
+amr.max_level = 9 # There are (max_level+1) grids, so min is zero
 
 # -1 disables regridding
-regrid_interval = -1 -1 1 -1 -1 -1 -1 -1 -1 -1
-regrid_threshold = 0.02
+amr.regrid_int = -1 -1 1 -1 -1 -1 -1 -1 -1 -1
+amr.regrid_threshold = 0.02
 
 # Max and min box sizes
 max_grid_size = 32

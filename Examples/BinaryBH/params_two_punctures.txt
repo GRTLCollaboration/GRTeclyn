@@ -12,11 +12,10 @@ chk_prefix = BinaryBHChk_
 plot_prefix = BinaryBHPlot_
 # amr.restart = chk00000
 
-# HDF5files are written every dt = L/N*dt_multiplier*checkpoint_interval
-checkpoint_interval = 100
+amr.check_int = 100
 # set to 0 to turn off plot files (except at t=0 and t=stop_time)
 # set to -1 to never ever print plotfiles
-plot_interval = 10
+amr.plot_int = 10
 num_plot_vars = 3
 plot_vars = chi Weyl4_Re Weyl4_Im
 
@@ -56,12 +55,12 @@ N_full = 64
 L_full = 512
 
 # Maximum number of times you can regrid above coarsest level
-max_level = 9 # There are (max_level+1) grids, so min is zero
+amr.max_level = 9 # There are (max_level+1) grids, so min is zero
 
 # need max_level entries for regrid interval
 # Level Regridding: 0   1   2   3   4   5   6   7   8
-regrid_interval =   0   0   0   64  64  64  64  64  64
-regrid_threshold = 0.05
+amr.regrid_int =   0   0   0   64  64  64  64  64  64
+amr.regrid_threshold = 0.05
 
 # Max and min box sizes
 max_box_size = 16

@@ -9,8 +9,8 @@ plot_prefix = TestPlt_
 num_points = 30
 
 num_ghosts = 3
-max_level = 1
-regrid_interval = 1 1 1 1 0 0 0 0 0
+amr.max_level = 1
+amr.regrid_int = 1 1 1 1 0 0 0 0 0
 
 #boundaries and periodicity of grid
 #Periodic directions - 0 = false, 1 = true

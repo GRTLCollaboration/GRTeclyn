@@ -5,8 +5,8 @@ amrex.verbose = 1
 amr.verbose = 0
 
 
-checkpoint_interval = -1
-plot_interval = -1
+amr.check_int = -1
+amr.plot_int = -1
 amr.plot_vars = shift2
 
 #################################################
@@ -15,9 +15,9 @@ amr.plot_vars = shift2
 N_full = 48
 L_full = 8
 
-max_level = 2 # There are (max_level+1) levels
+amr.max_level = 2 # There are (max_level+1) levels
 
-regrid_interval = 0 0
+amr.regrid_int = 0 0
 
 max_grid_size = 16
 block_factor = 8

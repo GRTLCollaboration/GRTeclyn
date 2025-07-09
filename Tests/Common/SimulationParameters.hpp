@@ -23,7 +23,8 @@ class SimulationParameters : public SimulationParametersBase
     // NOLINTNEXTLINE(readability-identifier-length)
     void read_params(GRParmParse &pp)
     {
-
+        int max_level = -1;
+        pp.get("amr.max_level", max_level);
         // Do we want puncture tracking and constraint norm calculation?
         pp.load("puncture_tracking.enabled", puncture_tracking_enabled, true);
         pp.load("puncture_tracking.level", puncture_tracking_level, max_level);
