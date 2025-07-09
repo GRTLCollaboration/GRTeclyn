@@ -34,7 +34,6 @@ class AMReXParameters
         // must be before any amrex::Print() in the code to setPoutBaseName
         read_filesystem_params(pp);
 
-        pp.load("verbosity", verbosity, 0);
         // Grid setup
         pp.load("max_spatial_derivative_order", max_spatial_derivative_order,
                 4);
@@ -479,7 +478,6 @@ class AMReXParameters
         }
         {
             amrex::ParmParse pp("amr");
-            pp.add("v", verbosity);
             pp.add("max_level", max_level);
             pp.add("n_error_buf", tag_buffer_size);
             pp.add("ref_ratio", 2);
@@ -494,7 +492,6 @@ class AMReXParameters
     }
 
     // General parameters
-    int verbosity{};
     double L{}; // Physical sidelength of the grid
     std::array<double, AMREX_SPACEDIM> center{}; // grid center
     amrex::IntVect ivN; // The number of grid cells in each dimension

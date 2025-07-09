@@ -1,4 +1,5 @@
-verbosity = 0
+amrex.verbose = 1
+amr.verbose = 0
 N_full = 32
 L_full = 16
 
