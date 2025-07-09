@@ -11,7 +11,7 @@ amr.verbose = 0
 # output_path = "" # Main path for all files. Must exist!
 chk_prefix = BinaryBHChk_
 plot_prefix = BinaryBHPlot_
-# restart_file = BinaryBHChk_000000.3d.hdf5
+# amr.restart = chk00000
 
 # HDF5files are written every dt = L/N*dt_multiplier*checkpoint_interval
 checkpoint_interval = 100
