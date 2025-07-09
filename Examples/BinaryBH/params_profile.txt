@@ -9,7 +9,6 @@
 amrex.verbose = 1
 amr.verbose = 1
 
-output_path = .
 amr.check_file = BinaryBHChk_
 amr.plot_file = BinaryBHPlt_
 # amr.restart = BinaryBHChk_00100

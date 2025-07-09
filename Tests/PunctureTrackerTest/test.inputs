@@ -4,7 +4,6 @@
 amrex.verbose = 1
 amr.verbose = 0
 
-output_path = .
 
 checkpoint_interval = -1
 plot_interval = -1

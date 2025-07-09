@@ -65,10 +65,6 @@ class SimulationParametersBase : public AMReXParameters
         {
             data_path += "/";
         }
-        if (output_path != "./" && !output_path.empty())
-        {
-            data_path = output_path + data_path;
-        }
 
         // Extraction params
         pp.load("activate_extraction", activate_extraction, false);
@@ -161,10 +157,6 @@ class SimulationParametersBase : public AMReXParameters
             if (!extraction_path.empty() && extraction_path.back() != '/')
             {
                 extraction_path += "/";
-            }
-            if (output_path != "./" && !output_path.empty())
-            {
-                extraction_path = output_path + extraction_path;
             }
 
             extraction_params.data_path       = data_path;

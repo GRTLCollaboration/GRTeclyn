@@ -6,7 +6,6 @@
 amrex.verbose = 1
 amr.verbose = 1
 
-output_path = .
 # amr.check_file = chk
 # amr.plot_file = plt
 # amr.restart = chk00000

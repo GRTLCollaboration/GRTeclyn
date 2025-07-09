@@ -8,7 +8,6 @@ amrex.verbose = 1
 amr.verbose = 0
 
 # location / naming of output files
-# output_path = "" # Main path for all files. Must exist!
 chk_prefix = BinaryBHChk_
 plot_prefix = BinaryBHPlot_
 # amr.restart = chk00000
@@ -21,15 +20,8 @@ plot_interval = 10
 num_plot_vars = 3
 plot_vars = chi Weyl4_Re Weyl4_Im
 
-# subpaths - specific directories for hdf5, pout, extraction data
-# (these are created at runtime)
-hdf5_subpath = "hdf5"
-pout_subpath = "pout"
+# subpaths (these are created at runtime)
 data_subpath = "data"
-
-# change the name of output files
-# pout_prefix = "pout"
-print_progress_only_to_rank_0 = 1
 
 # ignore_checkpoint_name_mismatch = 0
 # write_plot_ghosts = 0
