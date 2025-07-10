@@ -35,22 +35,23 @@ void KleinGordonLevel::initData()
     amrex::ParmParse pp;
     pp.query("center", center);
 
-    MultiFab &S_new  = get_new_data(State_Type);
-    auto const &snew = S_new.arrays();
+    MultiFab &state_new   = get_new_data(State_Type);
+    auto const &array_new = state_new.arrays();
 
     if (simParams().model == "Wave")
     {
         InitialConditions Wave(simParams().k_r);
         amrex::ParallelFor(
-            S_new,
+            state_new,
             [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
             {
                 amrex::Real x = problo[0] + (i + 0.5) * dx[0] - center[0];
                 amrex::Real y = problo[1] + (j + 0.5) * dx[1] - center[1];
                 amrex::Real z = problo[2] + (k + 0.5) * dx[2] - center[2];
 
-                snew[box_no](i, j, k, 0) = Wave.travelling_wave(x, y, z, 0);
-                snew[box_no](i, j, k, 1) =
+                array_new[box_no](i, j, k, 0) =
+                    Wave.travelling_wave(x, y, z, 0);
+                array_new[box_no](i, j, k, 1) =
                     Wave.travelling_wave_deriv(x, y, z, 0);
             });
     }
@@ -61,14 +62,14 @@ void KleinGordonLevel::initData()
         if (simParams().model == "SineGordon1D")
         {
             amrex::ParallelFor(
-                S_new,
+                state_new,
                 [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
                 {
                     amrex::Real x = problo[0] + (i + 0.5) * dx[0] - center[0];
 
-                    snew[box_no](i, j, k, 0) =
+                    array_new[box_no](i, j, k, 0) =
                         SineGordon.breather_solution(x, 0);
-                    snew[box_no](i, j, k, 1) =
+                    array_new[box_no](i, j, k, 1) =
                         SineGordon.breather_solution_deriv(x, 0);
                 });
         }
@@ -81,16 +82,16 @@ void KleinGordonLevel::initData()
             pp.query("initial_time", initial_time);
 
             amrex::ParallelFor(
-                S_new,
+                state_new,
                 [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
                 {
                     amrex::Real x = problo[0] + (i + 0.5) * dx[0] - center[0];
                     amrex::Real y = problo[1] + (j + 0.5) * dx[1] - center[1];
                     amrex::Real z = problo[2] + (k + 0.5) * dx[2] - center[2];
 
-                    snew[box_no](i, j, k, 0) =
+                    array_new[box_no](i, j, k, 0) =
                         SineGordon.breather_solution(x, y, z, initial_time);
-                    snew[box_no](i, j, k, 1) = 0;
+                    array_new[box_no](i, j, k, 1) = 0;
                 });
         }
     }
