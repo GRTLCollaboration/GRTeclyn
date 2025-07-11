@@ -6,32 +6,28 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  AMREX_HOME: ${{ github.workspace }}/amrex
+  EXAMPLES_DIR: ${{ github.workspace }}/Examples/
+  GCC_VERSION: 14
+  BUILD_ARGS: >
+    COMP=gnu
+    USE_MPI=TRUE
+    USE_CCACHE=TRUE
+
 jobs:
-  binarybh:
-    name: BinaryBH
+  build:
+    name: Build fcompare
     runs-on: ubuntu-24.04
-    env:
-      AMREX_HOME: ${{ github.workspace }}/amrex
-      BINARYBH_EXAMPLE_DIR: ${{ github.workspace }}/GRTeclyn/Examples/BinaryBH
-      GCC_VERSION: 14
-      REL_TOL: 1e-10
-      ABS_TOL: 1e-10
-      BUILD_ARGS: >-
-        COMP=gnu
-        USE_MPI=TRUE
-        USE_CCACHE=TRUE
-
     steps:
-    - name: Checkout AMReX
-      uses: actions/checkout@v5
-      with:
-        repository: AMReX-Codes/amrex
-        path: amrex
-
     - name: Checkout GRTeclyn
-      uses: actions/checkout@v5
+      uses: actions/checkout@v4
+
+    - name: Set up common actions
+      id: common
+      uses: ./.github/workflows/regression-tests
       with:
-        path: GRTeclyn
+        gcc_version: ${{ env.GCC_VERSION }}
 
     - name: Set Up Cache
       uses: actions/cache@v4
@@ -41,69 +37,29 @@ jobs:
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
 
-    - name: Update package manager database
-      id: update-database
-      continue-on-error: true
-      run: sudo apt-get update
-
-      # This is quite slow so only do this if the previous command fails
-    - name: Update package repository mirrors if necessary
-      if: steps.update-database.outcome == 'failure'
-      run: |
-        sudo gem install apt-spy2
-        sudo apt-spy2 fix --commit --launchpad --country=US
-        sudo apt-get update
-
-    - name: Install dependencies
-      run: sudo apt-get -y --no-install-recommends install libopenmpi-dev cpp-${{ env.GCC_VERSION }} ccache
-
-    - name: Set Compilers
-      run: |
-        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${{ env.GCC_VERSION }} 1000
-        sudo update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-${{ env.GCC_VERSION }} 100
-        # workaround for https://answers.launchpad.net/ubuntu/+question/816000
-        sudo update-alternatives --remove-all cpp
-        sudo rm -rf /etc/alternatives/cpp
-        sudo update-alternatives --install /usr/bin/cpp cpp /usr/bin/cpp-${{ env.GCC_VERSION }} 1000
-
-    - name: Build BinaryBH example
-      run: make -j 4 ${{ env.BUILD_ARGS }}
-      working-directory: ${{ env.BINARYBH_EXAMPLE_DIR }}
-
     - name: Build fcompare tool
-      run: make -j 4 ${{ env.BUILD_ARGS }}
+      run: make -j 4 ${{ env.BUILD_ARGS }} programs=fcompare
       working-directory: ${{ env.AMREX_HOME }}/Tools/Plotfile
 
-    - name: Build particle_compare tool
-      run: make -j 4 ${{ env.BUILD_ARGS }} particle_compare.exe
-      working-directory: ${{ env.AMREX_HOME }}/Tools/Postprocessing/C_Src
+    - name: Upload fcompare tool
+      uses: actions/upload-artifact@v4
+      with:
+        name: fcompare.gnu.MPI.ex
+        path: ${{ env.AMREX_HOME }}/Tools/Plotfile/fcompare.gnu.MPI.ex
+        compression-level: 0
 
-    - name: Run BinaryBH example using test parameters
-      run: mpiexec -n 2 ./main3d.gnu.MPI.ex ./params_test.txt
-      working-directory: ${{ env.BINARYBH_EXAMPLE_DIR }}
+  binarybh:
+    name: BinaryBH
+    needs: build
+    uses: ./.github/workflows/regression-tests-common.yml
+    with:
+      gcc_version: 14
+      example: BinaryBH
 
-    - name: Compare plotfile from final step with saved plotfile
-      run: >
-        mpiexec -n 1
-        ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.MPI.ex
-        --abs_tol ${ABS_TOL}
-        --rel_tol ${REL_TOL}
-        --abort_if_not_all_found
-        ${GITHUB_WORKSPACE}/GRTeclyn/.github/workflows/data/plt00008_compare
-        ${BINARYBH_EXAMPLE_DIR}/plt00008
-
-    - name: Compare particle (puncture) data from final step with saved data
-      run: >
-        mpiexec -n 1
-        ${AMREX_HOME}/Tools/Postprocessing/C_Src/particle_compare.exe
-        --abs_tol ${ABS_TOL}
-        --rel_tol ${REL_TOL}
-        ${GITHUB_WORKSPACE}/GRTeclyn/.github/workflows/data/plt00008_compare
-        ${BINARYBH_EXAMPLE_DIR}/plt00008
-        particles
-
-    - name: Restart from last checkpoint and evolve for a few more steps
-      run: >
-        mpiexec -n 2 ./main3d.gnu.MPI.ex ./params_test.txt
-        amr.restart=chk00008 max_steps=12
-      working-directory: ${{ env.BINARYBH_EXAMPLE_DIR }}
+  kleingordon:
+    name: KleinGordon
+    needs: build
+    uses: ./.github/workflows/regression-tests-common.yml
+    with:
+      gcc_version: 14
+      example: KleinGordon

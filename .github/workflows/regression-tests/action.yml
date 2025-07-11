@@ -1,0 +1,49 @@
+name: Common tasks
+
+inputs:
+  gcc_version:
+    required: true
+    type: string
+
+runs:
+  using: "composite"
+  steps:
+  - name: Checkout AMReX
+    uses: actions/checkout@v4
+    with:
+      repository: AMReX-Codes/amrex
+      path: amrex
+
+  - name: Update package manager database
+    id: update-database
+    shell: bash
+    continue-on-error: true
+    run: sudo apt-get update
+
+    # This is quite slow so only do this if the previous command fails
+  - name: Update package repository mirrors if necessary
+    shell: bash
+    if: steps.update-database.outcome == 'failure'
+    run: |
+      sudo gem install apt-spy2
+      sudo apt-spy2 fix --commit --launchpad --country=US
+      sudo apt-get update
+
+  - name: Install dependencies
+    shell: bash
+    run: >
+      sudo apt-get -y --no-install-recommends install
+      libopenmpi-dev cpp-${{ inputs.gcc_version }} ccache
+
+  - name: Set Compilers
+    shell: bash
+    run: |
+      sudo update-alternatives --install \
+      /usr/bin/g++ g++ /usr/bin/g++-${{ inputs.gcc_version }} 1000
+      sudo update-alternatives --install \
+      /usr/bin/gfortran gfortran /usr/bin/gfortran-${{ inputs.gcc_version }} 100
+      # workaround for https://answers.launchpad.net/ubuntu/+question/816000
+      sudo update-alternatives --remove-all cpp
+      sudo rm -rf /etc/alternatives/cpp
+      sudo update-alternatives --install \
+      /usr/bin/cpp cpp /usr/bin/cpp-${{ inputs.gcc_version }} 1000

@@ -1,0 +1,62 @@
+max_steps = 8
+stop_time = 2
+
+#################################################
+# Geometry and Boundary Conditions parameters
+
+# Periodic directions - 0 = false, 1 = true
+isPeriodic          =  1   1   1
+center              =  0.5 0.5 0.5
+
+L_full              =  1     # geometric extent (same for all directions)
+N_full              =  64    # size of coarse grid
+
+
+#################################################
+# AMR parameters
+
+verbosity           =  1
+max_level           =  2     # maximum level number allowed
+regrid_interval     =  2 2 2 # how often to regrid
+max_box_size        =  64    # maximum allowed grid size
+block_factor        =  16    # block factor
+
+amr.v = 1
+
+
+
+##################################################
+
+output_path = "."           # not used right now
+amr.plot_files_output = 1   # write plot files or not (overrides all other plot file commands)
+#How often to write plot files, can use either
+plot_interval = 1           # (hold over from GRChombo)
+amr.plot_int = 1            # (AMReX variable)
+checkpoint_interval = 8
+
+amr.checkpoint_files_output = 1  # write checkpoint files or not (overrides all other checkpoint options)
+amr.check_int = 8
+
+amr.plot_vars = ALL
+amr.derive_plot_vars = ALL   #also write out derived parameters
+amr.plot_file = plt
+amr.check_file =chk
+
+
+rk_order = 4
+dt_multiplier = 0.2
+sigma = 0.3 #coefficient for KO dissipation
+
+tag_buffer_size=1
+
+#Klein Gordon Parameters
+scalar_mass = 1
+# Choose from "Wave" or "SineGordon1D" or "SineGordon3D"
+# If "Wave" is specified then wave_vector must also be defined
+# If SineGordon is specified then alpha must also be defined
+# If SineGordon3D is specified then you also need an initial time
+# that can't be 0 because then the solution is uniformly 0
+
+model = SineGordon3D
+alpha = 0.7
+initial_time = -5.4;
