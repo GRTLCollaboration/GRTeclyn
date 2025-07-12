@@ -122,6 +122,33 @@ class FourthOrderDerivatives
                m_one_over_dx2;
     }
 
+    /// Calculates all second derivatives for a single variable
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<2, amrex::Real>
+    diff2(int i, int j, int k, const amrex::Array4<amrex::Real const> &state,
+          const int ivar) const
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+        Tensor<2, amrex::Real> d2;
+        const auto *state_ptr_ijk = state.ptr(i, j, k);
+        amrex::GpuArray<int, AMREX_SPACEDIM> strides{
+            1, static_cast<int>(state.jstride),
+            static_cast<int>(state.kstride)};
+        const auto *pvar = state_ptr_ijk + ivar * state.nstride;
+        FOR (dir1) // First calculate the repeated derivatives
+        {
+            d2[dir1][dir1] = diff2<amrex::Real>(pvar, 0, strides[dir1]);
+            for (int dir2 = 0; dir2 < dir1; ++dir2)
+            {
+                auto tmp = mixed_diff2<amrex::Real>(pvar, 0, strides[dir1],
+                                                    strides[dir2]);
+                d2[dir1][dir2] = tmp;
+                d2[dir2][dir1] = tmp;
+            }
+        }
+        return d2;
+    }
+
+    // TODO: Eventually get rid of this one once data_t gone and vars refactored
     /// Calculates all second derivatives and returns as variable type specified
     /// by the template parameter
     template <template <typename> class vars_t, class data_t>

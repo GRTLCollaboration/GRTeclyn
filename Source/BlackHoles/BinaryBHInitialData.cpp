@@ -3,35 +3,38 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#if !defined(BINARYBHINITIALDATA_HPP_)
-#error "This file should only be included through BinaryBHInitialData.hpp"
-#endif
-
-#ifndef BINARYBHINITIALDATA_IMPL_HPP_
-#define BINARYBHINITIALDATA_IMPL_HPP_
-
-#include "BSSNVars.hpp"
 #include "BinaryBHInitialData.hpp"
+#include "BSSNVars.hpp"
+#include "BoostedBHInitialData.hpp"
 #include "VarsTools.hpp"
-#include "simd.hpp"
 
-template <class data_t>
-AMREX_GPU_DEVICE data_t
-BinaryBHInitialData::compute_chi(Coordinates<data_t> coords) const
+// Constructor
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
+BinaryBHInitialData::BinaryBHInitialData(
+    BoostedBHInitialData::params_t a_bh1_params,
+    BoostedBHInitialData::params_t a_bh2_params, double a_dx,
+    int a_initial_lapse)
+    : m_dx(a_dx), bh1(a_bh1_params), bh2(a_bh2_params),
+      m_initial_lapse(a_initial_lapse)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
-    const data_t psi =
+}
+
+AMREX_GPU_DEVICE amrex::Real
+BinaryBHInitialData::compute_chi(Coordinates coords) const
+{
+    const amrex::Real psi =
         1. + bh1.psi_minus_one(coords) + bh2.psi_minus_one(coords);
     return pow(psi, -4);
 }
 
-template <class data_t>
-AMREX_GPU_DEVICE Tensor<2, data_t>
-BinaryBHInitialData::compute_A(data_t chi, Coordinates<data_t> coords) const
+AMREX_GPU_DEVICE Tensor<2, amrex::Real>
+BinaryBHInitialData::compute_A(amrex::Real chi, Coordinates coords) const
 {
 
-    Tensor<2, data_t> Aij1 = bh1.Aij(coords);
-    Tensor<2, data_t> Aij2 = bh2.Aij(coords);
-    Tensor<2, data_t> out;
+    Tensor<2, amrex::Real> Aij1 = bh1.Aij(coords);
+    Tensor<2, amrex::Real> Aij2 = bh2.Aij(coords);
+    Tensor<2, amrex::Real> out;
 
     // Aij(CCZ4) = psi^(-6) * Aij(Baumgarte&Shapiro book)
     FOR (i, j)
@@ -40,16 +43,16 @@ BinaryBHInitialData::compute_A(data_t chi, Coordinates<data_t> coords) const
     return out;
 }
 
-template <class data_t>
 AMREX_GPU_DEVICE // or AMREX_GPU_HOST_DEVICE depending on what's needed
     void
-    BinaryBHInitialData::init_data(int i, int j, int k,
-                                   const amrex::CellData<data_t> &cell) const
+    BinaryBHInitialData::init_data(
+        int i, int j, int k, const amrex::CellData<amrex::Real> &cell) const
 {
-    BSSNVars::VarsWithGauge<data_t> vars;
+    // TODO: Remove this once BSSNVars de-data_t-ed
+    BSSNVars::VarsWithGauge<amrex::Real> vars;
     VarsTools::assign(vars,
                       0.); // Set only the non-zero components explicitly below
-    Coordinates<data_t> coords(amrex::IntVect(i, j, k), m_dx);
+    Coordinates coords(amrex::IntVect(i, j, k), m_dx);
 
     vars.chi = compute_chi(coords);
 
@@ -77,5 +80,3 @@ AMREX_GPU_DEVICE // or AMREX_GPU_HOST_DEVICE depending on what's needed
 
     store_vars(cell, vars);
 }
-
-#endif /* BinaryBHINITIALDATA_IMPL_HPP_ */

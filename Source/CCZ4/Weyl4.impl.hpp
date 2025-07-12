@@ -10,10 +10,10 @@
 #ifndef WEYL4_IMPL_HPP_
 #define WEYL4_IMPL_HPP_
 
-template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-Weyl4::compute(int i, int j, int k, const amrex::Array4<data_t> &a_derive_array,
-               const amrex::Array4<data_t const> &a_state_array) const
+Weyl4::compute(int i, int j, int k,
+               const amrex::Array4<amrex::Real> &a_derive_array,
+               const amrex::Array4<amrex::Real const> &a_state_array) const
 {
     // copy data from the state array into local variables
     const auto state_cell = a_state_array.cellData(i, j, k);
@@ -22,7 +22,7 @@ Weyl4::compute(int i, int j, int k, const amrex::Array4<data_t> &a_derive_array,
     const auto d2 = m_deriv.template diff2<Diff2Vars>(i, j, k, a_state_array);
 
     // Get the coordinates
-    const Coordinates<data_t> coords(amrex::IntVect(i, j, k), m_dx, m_center);
+    const Coordinates coords(amrex::IntVect(i, j, k), m_dx, m_center);
 
     // Compute the inverse metric and Christoffel symbols
     using namespace TensorAlgebra;
@@ -33,25 +33,23 @@ Weyl4::compute(int i, int j, int k, const amrex::Array4<data_t> &a_derive_array,
     const auto epsilon3_LUU = compute_epsilon3_LUU(vars, h_UU);
 
     // Compute the E and B fields
-    EBFields_t<data_t> ebfields =
+    EBFields_t ebfields =
         compute_EB_fields(vars, d1, d2, epsilon3_LUU, h_UU, chris);
 
     // work out the Newman Penrose scalar
-    NPScalar_t<data_t> out =
-        compute_Weyl4(ebfields, vars, d1, d2, h_UU, coords);
+    NPScalar_t out = compute_Weyl4(ebfields, vars, d1, d2, h_UU, coords);
 
     // store the result
     a_derive_array(i, j, k, m_dcomp)     = out.Real;
     a_derive_array(i, j, k, m_dcomp + 1) = out.Im;
 }
 
-template <class data_t>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<3, data_t>
-Weyl4::compute_epsilon3_LUU(const Vars<data_t> &vars,
-                            const Tensor<2, data_t> &h_UU) const
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<3, amrex::Real>
+Weyl4::compute_epsilon3_LUU(const Vars<amrex::Real> &vars,
+                            const Tensor<2, amrex::Real> &h_UU) const
 {
     // raised normal vector, NB index 3 is time
-    Tensor<1, data_t, 4> n_U;
+    Tensor<1, amrex::Real, 4> n_U;
     n_U[3] = 1. / vars.lapse;
     FOR (i)
     {
@@ -60,8 +58,8 @@ Weyl4::compute_epsilon3_LUU(const Vars<data_t> &vars,
 
     // 4D levi civita symbol and 3D levi civita tensor in LLL and LUU form
     const auto epsilon4 = TensorAlgebra::epsilon4D();
-    Tensor<3, data_t> epsilon3_LLL;
-    Tensor<3, data_t> epsilon3_LUU;
+    Tensor<3, amrex::Real> epsilon3_LLL;
+    Tensor<3, amrex::Real> epsilon3_LUU;
 
     // Projection of antisymmentric Tensor onto hypersurface - see 8.3.17,
     // Alcubierre
@@ -97,19 +95,18 @@ Weyl4::compute_epsilon3_LUU(const Vars<data_t> &vars,
 // BSSN expressions from Alcubierre book
 // CCZ4 expressions calculated by MR and checked with TF see:
 // https://www.overleaf.com/read/tvqjbyhvqqtp
-template <class data_t>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t<data_t> Weyl4::compute_EB_fields(
-    const Vars<data_t> &vars, const Vars<Tensor<1, data_t>> &d1,
-    const Diff2Vars<Tensor<2, data_t>> &d2,
-    const Tensor<3, data_t> &epsilon3_LUU, const Tensor<2, data_t> &h_UU,
-    const chris_t<data_t> &chris) const
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t Weyl4::compute_EB_fields(
+    const Vars<amrex::Real> &vars, const Vars<Tensor<1, amrex::Real>> &d1,
+    const Diff2Vars<Tensor<2, amrex::Real>> &d2,
+    const Tensor<3, amrex::Real> &epsilon3_LUU,
+    const Tensor<2, amrex::Real> &h_UU, const chris_t<amrex::Real> &chris) const
 {
-    EBFields_t<data_t> out;
+    EBFields_t out;
 
     // Extrinsic curvature
-    Tensor<2, data_t> K_tensor;
-    Tensor<3, data_t> d1_K_tensor;
-    Tensor<3, data_t> covariant_deriv_K_tensor;
+    Tensor<2, amrex::Real> K_tensor;
+    Tensor<3, amrex::Real> d1_K_tensor;
+    Tensor<3, amrex::Real> covariant_deriv_K_tensor;
 
     // Compute inverse, Christoffel symbols, Ricci tensor and Z terms
     // Note that unlike in CCZ4 equations we want R_ij + 0.5(D_iZ_j + D_jZ_i)
@@ -120,7 +117,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t<data_t> Weyl4::compute_EB_fields(
 
     // Compute full spatial Christoffel symbols
     using namespace TensorAlgebra;
-    const Tensor<3, data_t> chris_phys =
+    const Tensor<3, amrex::Real> chris_phys =
         compute_phys_chris(d1.chi, vars.chi, vars.h, h_UU, chris.ULL);
 
     // Extrinsic curvature and corresponding covariant and partial derivatives
@@ -152,7 +149,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t<data_t> Weyl4::compute_EB_fields(
 
     // Use 'K-Theta' in CCZ4. Just 'K' in BSSN. Not a mistake, this is not to
     // confuse with the typical 'K-2*Theta' that appears in the CCZ4 equations
-    data_t K_minus_theta = vars.K;
+    amrex::Real K_minus_theta = vars.K;
     if (m_formulation == CCZ4RHS<>::USE_CCZ4)
     {
         K_minus_theta -= vars.Theta;
@@ -198,16 +195,16 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t<data_t> Weyl4::compute_EB_fields(
 }
 
 // Calculation of the Weyl4 scalar
-template <class data_t>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE NPScalar_t<data_t> Weyl4::compute_Weyl4(
-    const EBFields_t<data_t> &ebfields, const Vars<data_t> &vars,
-    const Vars<Tensor<1, data_t>> &d1, const Diff2Vars<Tensor<2, data_t>> &d2,
-    const Tensor<2, data_t> &h_UU, const Coordinates<data_t> &coords) const
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE NPScalar_t Weyl4::compute_Weyl4(
+    const EBFields_t &ebfields, const Vars<amrex::Real> &vars,
+    const Vars<Tensor<1, amrex::Real>> &d1,
+    const Diff2Vars<Tensor<2, amrex::Real>> &d2,
+    const Tensor<2, amrex::Real> &h_UU, const Coordinates &coords) const
 {
-    NPScalar_t<data_t> out;
+    NPScalar_t out;
 
     // Calculate the tetrads
-    const Tetrad_t<data_t> tetrad = compute_null_tetrad(vars, h_UU, coords);
+    const Tetrad_t tetrad = compute_null_tetrad(vars, h_UU, coords);
 
     // Projection of Electric and magnetic field components using tetrads
     out.Real = 0.0;
@@ -229,18 +226,16 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE NPScalar_t<data_t> Weyl4::compute_Weyl4(
 // Defintions from gr-qc/0104063
 // "The Lazarus project: A pragmatic approach to binary black hole evolutions",
 // Baker et al.
-template <class data_t>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tetrad_t<data_t>
-Weyl4::compute_null_tetrad(const Vars<data_t> &vars,
-                           const Tensor<2, data_t> &h_UU,
-                           const Coordinates<data_t> &coords) const
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tetrad_t Weyl4::compute_null_tetrad(
+    const Vars<amrex::Real> &vars, const Tensor<2, amrex::Real> &h_UU,
+    const Coordinates &coords) const
 {
-    Tetrad_t<data_t> out;
+    Tetrad_t out;
 
     // compute coords
-    const data_t x = coords.x;
-    const double y = coords.y;
-    const double z = coords.z;
+    const amrex::Real x = coords.x;
+    const double y      = coords.y;
+    const double z      = coords.z;
 
     // the alternating levi civita symbol
     const Tensor<3, double> epsilon = TensorAlgebra::epsilon();
@@ -259,7 +254,7 @@ Weyl4::compute_null_tetrad(const Vars<data_t> &vars,
     out.w[2] = 0.0;
 
     // floor on chi
-    const data_t chi = simd_max(vars.chi, 1e-4);
+    const amrex::Real chi = simd_max(vars.chi, 1e-4);
 
     FOR (i, j, k, m)
     {
@@ -269,7 +264,7 @@ Weyl4::compute_null_tetrad(const Vars<data_t> &vars,
 
     // Gram Schmitt orthonormalisation
     // Choice of orthonormalisaion to avoid frame-dragging
-    data_t omega_11 = 0.0;
+    amrex::Real omega_11 = 0.0;
     FOR (i, j)
     {
         omega_11 += out.v[i] * out.v[j] * vars.h[i][j] / chi;
@@ -279,7 +274,7 @@ Weyl4::compute_null_tetrad(const Vars<data_t> &vars,
         out.v[i] = out.v[i] / sqrt(omega_11);
     }
 
-    data_t omega_12 = 0.0;
+    amrex::Real omega_12 = 0.0;
     FOR (i, j)
     {
         omega_12 += out.v[i] * out.u[j] * vars.h[i][j] / chi;
@@ -289,7 +284,7 @@ Weyl4::compute_null_tetrad(const Vars<data_t> &vars,
         out.u[i] += -omega_12 * out.v[i];
     }
 
-    data_t omega_22 = 0.0;
+    amrex::Real omega_22 = 0.0;
     FOR (i, j)
     {
         omega_22 += out.u[i] * out.u[j] * vars.h[i][j] / chi;
@@ -299,8 +294,8 @@ Weyl4::compute_null_tetrad(const Vars<data_t> &vars,
         out.u[i] = out.u[i] / sqrt(omega_22);
     }
 
-    data_t omega_13 = 0.0;
-    data_t omega_23 = 0.0;
+    amrex::Real omega_13 = 0.0;
+    amrex::Real omega_23 = 0.0;
     FOR (i, j)
     {
         omega_13 += out.v[i] * out.w[j] * vars.h[i][j] / chi;
@@ -311,7 +306,7 @@ Weyl4::compute_null_tetrad(const Vars<data_t> &vars,
         out.w[i] += -(omega_13 * out.v[i] + omega_23 * out.u[i]);
     }
 
-    data_t omega_33 = 0.0;
+    amrex::Real omega_33 = 0.0;
     FOR (i, j)
     {
         omega_33 += out.w[i] * out.w[j] * vars.h[i][j] / chi;

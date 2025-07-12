@@ -12,7 +12,6 @@
 #include "FourthOrderDerivatives.hpp"
 #include "SphericalExtraction.hpp"
 #include "Tensor.hpp"
-#include "VarsTools.hpp"
 
 //! This class tags cells based on two criteria - the
 //! value of the second derivs and the extraction regions
@@ -30,18 +29,6 @@ class ChiExtractionTagger
     int m_level;
 
   public:
-    template <class data_t> struct Vars
-    {
-        data_t chi; //!< Conformal factor
-
-        template <typename mapping_function_t>
-        AMREX_GPU_DEVICE void enum_mapping(mapping_function_t mapping_function)
-        {
-            using namespace VarsTools; // define_enum_mapping is part of
-                                       // VarsTools
-            define_enum_mapping(mapping_function, c_chi, chi);
-        }
-    };
 
     // The constructor
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
@@ -63,20 +50,19 @@ class ChiExtractionTagger
         }
     }
 
-    template <class data_t>
     AMREX_GPU_DEVICE void
     operator()(int i, int j, int k,
                const amrex::Array4<amrex::TagBox::TagType> &tags,
-               const amrex::Array4<data_t const> &state) const
+               const amrex::Array4<amrex::Real const> &state) const
     {
         // first test the gradients for regions of high curvature
-        const auto d2     = m_deriv.template diff2<Vars>(i, j, k, state);
-        data_t mod_d2_chi = 0;
+        const auto d2_chi      = m_deriv.diff2(i, j, k, state, c_chi);
+        amrex::Real mod_d2_chi = 0;
         FOR (idir, jdir)
         {
-            mod_d2_chi += d2.chi[idir][jdir] * d2.chi[idir][jdir];
+            mod_d2_chi += d2_chi[idir][jdir] * d2_chi[idir][jdir];
         }
-        data_t criterion = m_dx * std::sqrt(mod_d2_chi);
+        amrex::Real criterion = m_dx * std::sqrt(mod_d2_chi);
         if (criterion >= m_threshold)
         {
             tags(i, j, k) = amrex::TagBox::SET;
@@ -91,8 +77,8 @@ class ChiExtractionTagger
             // refinement
             if (m_level < m_extraction_levels_ptr[iradius])
             {
-                const Coordinates<data_t> coords(cell, m_dx, m_center);
-                const data_t r = coords.get_radius();
+                const Coordinates coords(cell, m_dx, m_center);
+                const amrex::Real r = coords.get_radius();
                 // add a 20% buffer to extraction zone so not too near to
                 // boundary
                 if (r < 1.2 * m_extraction_radii_ptr[iradius])
