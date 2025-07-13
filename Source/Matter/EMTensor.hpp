@@ -47,10 +47,9 @@ template <class matter_t, enum EMTensorOptions em_tensor_options> class EMTensor
     EMTensor(double dx, int a_dcomp);
 
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-    template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    compute(int i, int j, int k, const amrex::Array4<data_t> &out_arrays,
-            const amrex::Array4<const data_t> &in_arrays) const;
+    compute(int i, int j, int k, const amrex::Array4<amrex::Real> &out_arrays,
+            const amrex::Array4<const amrex::Real> &in_arrays) const;
     // NOLINTEND(bugprone-easily-swappable-parameters)
 
     // Set do_all_components to true to calculate the momentum density

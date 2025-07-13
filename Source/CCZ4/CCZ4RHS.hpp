@@ -13,7 +13,6 @@
 #include "MovingPunctureGauge.hpp"
 #include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
-#include "simd.hpp"
 
 #include "StateVariables.hpp" //This files needs NUM_VARS - total number of components
 

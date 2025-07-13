@@ -11,10 +11,9 @@
 #define WEYL4WITHMATTER_IMPL_HPP_
 
 template <class matter_t>
-template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void Weyl4WithMatter<matter_t>::compute(
-    int i, int j, int k, const amrex::Array4<data_t> &derive_arrays,
-    const amrex::Array4<data_t const> &state_arrays) const
+    int i, int j, int k, const amrex::Array4<amrex::Real> &derive_arrays,
+    const amrex::Array4<amrex::Real const> &state_arrays) const
 {
 
     // copy data from chombo gridpoint into local variables
@@ -23,8 +22,8 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void Weyl4WithMatter<matter_t>::compute(
     const auto d2   = m_deriv.template diff2<Diff2Vars>(i, j, k, state_arrays);
 
     // Get the coordinates
-    const Coordinates<data_t> coords(amrex::IntVect{AMREX_D_DECL(i, j, k)},
-                                     m_dx, m_center);
+    const Coordinates coords(amrex::IntVect{AMREX_D_DECL(i, j, k)}, m_dx,
+                             m_center);
 
     // Compute the inverse metric
     using namespace TensorAlgebra;
@@ -35,15 +34,14 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void Weyl4WithMatter<matter_t>::compute(
     const auto epsilon3_LUU = compute_epsilon3_LUU(vars, h_UU);
 
     // Compute the E and B fields
-    EBFields_t<data_t> ebfields =
+    EBFields_t ebfields =
         compute_EB_fields(vars, d1, d2, epsilon3_LUU, h_UU, chris);
 
     // Add in matter terms to E and B fields
     add_matter_EB(ebfields, vars, d1, epsilon3_LUU, h_UU, chris);
 
     // work out the Newman Penrose scalar
-    NPScalar_t<data_t> out =
-        compute_Weyl4(ebfields, vars, d1, d2, h_UU, coords);
+    NPScalar_t out = compute_Weyl4(ebfields, vars, d1, d2, h_UU, coords);
 
     // Write the rhs into the output FArrayBox
     derive_arrays(i, j, k, m_dcomp)     = out.Real;
@@ -51,19 +49,17 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void Weyl4WithMatter<matter_t>::compute(
 }
 
 template <class matter_t>
-template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-Weyl4WithMatter<matter_t>::add_matter_EB(EBFields_t<data_t> &ebfields,
-                                         const Vars<data_t> &vars,
-                                         const Vars<Tensor<1, data_t>> &d1,
-                                         const Tensor<3, data_t> &epsilon3_LUU,
-                                         const Tensor<2, data_t> &h_UU,
-                                         const chris_t<data_t> &chris) const
+Weyl4WithMatter<matter_t>::add_matter_EB(
+    EBFields_t &ebfields, const Vars<amrex::Real> &vars,
+    const Vars<Tensor<1, amrex::Real>> &d1,
+    const Tensor<3, amrex::Real> &epsilon3_LUU,
+    const Tensor<2, amrex::Real> &h_UU, const chris_t<amrex::Real> &chris) const
 {
     // Calculate decomposed energy momentum tensor components
     const auto emtensor = m_matter.compute_emtensor(vars, d1, h_UU, chris.ULL);
 
-    Tensor<2, data_t> S_TF = emtensor.S;
+    Tensor<2, amrex::Real> S_TF = emtensor.S;
     TensorAlgebra::make_trace_free(S_TF, vars.h, h_UU);
 
     // as we made the vacuum expression of Bij explictly symmetric and Eij

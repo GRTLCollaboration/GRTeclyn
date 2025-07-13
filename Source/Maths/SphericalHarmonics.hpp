@@ -35,7 +35,9 @@ spin_Y_lm(const data_t x, const double y, const double z,
     Y_lm_t<data_t> Y_lm{};
 
     // calculate useful position quantities
-    data_t r     = simd_max(sqrt(x * x + y * y + z * z), 1e-6);
+    data_t min_r = 1e-6;
+    data_t r     = sqrt(x * x + y * y + z * z);
+    r            = (r < min_r) ? min_r : r;
     data_t theta = acos(z / r);
     data_t phi   = atan2(y, x);
 

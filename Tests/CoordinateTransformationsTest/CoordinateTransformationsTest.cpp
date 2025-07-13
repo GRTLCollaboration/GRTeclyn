@@ -64,7 +64,7 @@ void run_coordinate_transformations_test()
         const double dx = 0.1;
         amrex::IntVect iv{1, 2, 3};
 
-        Coordinates<double> coords(iv, dx);
+        Coordinates coords(iv, dx);
         const double x     = coords.x;
         const double y     = coords.y;
         const double z     = coords.z;
