@@ -33,10 +33,10 @@ template <class matter_t> class Weyl4WithMatter : public Weyl4
 
     //! The compute member which calculates the wave quantities at each point on
     //! the grid
-    template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    compute(int i, int j, int k, const amrex::Array4<data_t> &derive_arrays,
-            const amrex::Array4<data_t const> &state_arrays) const;
+    compute(int i, int j, int k,
+            const amrex::Array4<amrex::Real> &derive_arrays,
+            const amrex::Array4<amrex::Real const> &state_arrays) const;
 
     static void set_up(int a_state_index);
 
@@ -54,13 +54,12 @@ template <class matter_t> class Weyl4WithMatter : public Weyl4
     double m_G_Newton; //!< Newton's constant, set to one by default
 
     //! Add matter terms to electric and magnetic parts
-    template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    add_matter_EB(EBFields_t<data_t> &eb_fields, const Vars<data_t> &vars,
-                  const Vars<Tensor<1, data_t>> &d1,
-                  const Tensor<3, data_t> &epsilon3_LUU,
-                  const Tensor<2, data_t> &h_UU,
-                  const chris_t<data_t> &chris) const;
+    add_matter_EB(EBFields_t &eb_fields, const Vars<amrex::Real> &vars,
+                  const Vars<Tensor<1, amrex::Real>> &d1,
+                  const Tensor<3, amrex::Real> &epsilon3_LUU,
+                  const Tensor<2, amrex::Real> &h_UU,
+                  const chris_t<amrex::Real> &chris) const;
 };
 
 #include "Weyl4WithMatter.impl.hpp"

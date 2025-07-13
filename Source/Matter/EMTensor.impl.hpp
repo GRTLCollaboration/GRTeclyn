@@ -45,11 +45,10 @@ EMTensor<matter_t, em_tensor_options>::EMTensor(double a_dx, int a_dcomp)
 
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 template <class matter_t, enum EMTensorOptions em_tensor_options>
-template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 EMTensor<matter_t, em_tensor_options>::compute(
-    int i, int j, int k, const amrex::Array4<data_t> &out_arrays,
-    const amrex::Array4<const data_t> &in_arrays) const
+    int i, int j, int k, const amrex::Array4<amrex::Real> &out_arrays,
+    const amrex::Array4<const amrex::Real> &in_arrays) const
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
     const auto vars = load_vars<Vars>(in_arrays.cellData(i, j, k));

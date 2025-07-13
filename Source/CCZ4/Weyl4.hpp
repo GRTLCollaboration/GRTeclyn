@@ -14,7 +14,6 @@
 #include "StateVariables.hpp" //This files needs c_NUM - total number of components
 #include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
-#include "simd.hpp"
 #include <array>
 
 // AMReX Includes

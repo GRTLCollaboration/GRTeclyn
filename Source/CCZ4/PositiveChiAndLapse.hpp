@@ -9,7 +9,6 @@
 
 #include "Cell.hpp"
 #include "StateVariables.hpp"
-#include "simd.hpp"
 
 class PositiveChiAndLapse
 {
@@ -34,8 +33,8 @@ class PositiveChiAndLapse
         auto chi   = cell[c_chi];
         auto lapse = cell[c_lapse];
 
-        chi   = simd_max(chi, m_min_chi);
-        lapse = simd_max(lapse, m_min_lapse);
+        chi   = (chi < m_min_chi) ? m_min_chi : chi;
+        lapse = (lapse < m_min_lapse) ? m_min_lapse : chi;
 
         cell[c_chi]   = chi;
         cell[c_lapse] = lapse;

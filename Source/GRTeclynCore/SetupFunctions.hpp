@@ -16,8 +16,6 @@
 #include "GRParmParse.hpp"
 #include "IntegrationMethodSetup.hpp"
 
-#include "simd.hpp"
-
 #ifdef EQUATION_DEBUG_MODE
 #include "DebuggingTools.hpp"
 #endif

@@ -15,7 +15,6 @@
 #include "FourthOrderDerivatives.hpp"
 #include "Interval.hpp"
 #include "Tensor.hpp"
-#include "simd.hpp"
 
 // AMReX includes
 #include <AMReX_MultiFab.H>

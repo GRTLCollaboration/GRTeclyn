@@ -38,12 +38,13 @@ class GammaCalculator
   public:
     GammaCalculator(double a_dx) : m_deriv(a_dx) {}
 
-    template <class data_t> void compute(Cell<data_t> current_cell) const
+    void compute(Cell current_cell) const
     {
         // copy data from chombo gridpoint into local variables, and calc 1st
         // derivs
-        const auto vars = current_cell.template load_vars<Vars>();
-        const auto d1   = m_deriv.template diff1<Vars>(current_cell);
+        Vars<amrex::Real> vars;
+        load_vars(current_cell, vars);
+        const auto d1 = m_deriv.template diff1<Vars>(current_cell);
 
         using namespace TensorAlgebra;
         const auto h_UU  = compute_inverse_sym(vars.h);
