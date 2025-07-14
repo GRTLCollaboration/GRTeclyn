@@ -91,10 +91,9 @@ class CCZ4RHS
      * grid cell. This function is called by the BoxLoops::loop for each grid
      * cell; there should rarely be a need to call it directly.
      */
-    template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    compute(int i, int j, int k, const amrex::Array4<data_t> &rhs,
-            const amrex::Array4<data_t const> &state) const;
+    compute(int i, int j, int k, const amrex::Array4<amrex::Real> &rhs,
+            const amrex::Array4<amrex::Real const> &state) const;
 
   protected:
     /// Calculates the rhs for CCZ4
@@ -103,18 +102,14 @@ class CCZ4RHS
      *at least the members: chi, h[i][j], Gamma[i], A[i][j], Theta, lapse and
      *shift[i].
      **/
-    template <class data_t, template <typename> class vars_t,
-              template <typename> class diff2_vars_t>
+    template <class vars_t, class d1_vars_t, class d2_vars_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void rhs_equation(
-        vars_t<data_t> &rhs, //!< Reference to the variables into which the
+        vars_t &rhs,         //!< Reference to the variables into which the
                              //! output right hand side is written
-        const vars_t<data_t> &vars, //!< The values of the current variables
-        const vars_t<Tensor<1, data_t>>
-            &d1, //!< First derivative of the variables
-        const diff2_vars_t<Tensor<2, data_t>>
-            &d2, //!< The second derivative the variables
-        const vars_t<data_t>
-            &advec //!< The advection derivatives of the variables
+        const vars_t &vars,  //!< The values of the current variables
+        const d1_vars_t &d1, //!< First derivative of the variables
+        const d2_vars_t &d2, //!< The second derivative the variables
+        const vars_t &advec  //!< The advection derivatives of the variables
     ) const;
 };
 

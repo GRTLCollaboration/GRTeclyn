@@ -59,11 +59,11 @@ class IntegratedMovingPunctureGauge
     // fillAllGhosts();
     // BoxLoops::loop(IntegratedMovingPunctureGauge(m_p.ccz4_params),
     // m_state_new, m_state_new, EXCLUDE_GHOST_CELLS);
-    template <class data_t> void compute(Cell<data_t> current_cell) const
+    void compute(Cell<amrex::Real> current_cell) const
     {
         const auto vars = current_cell.template load_vars<Vars>();
 
-        Tensor<1, data_t> B; // NOLINT(readability-identifier-length)
+        Tensor<1, amrex::Real> B; // NOLINT(readability-identifier-length)
         FOR (i)
         {
             B[i] = m_params.shift_Gamma_coeff * vars.Gamma[i] -
@@ -73,13 +73,10 @@ class IntegratedMovingPunctureGauge
         current_cell.store_vars(B, GRInterval<c_B1, c_B3>());
     }
 
-    template <class data_t, template <typename> class vars_t,
-              template <typename> class diff2_vars_t>
+    template <class vars_t, class d1_vars_t, class d2_vars_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    rhs_gauge(vars_t<data_t> &rhs, const vars_t<data_t> &vars,
-              const vars_t<Tensor<1, data_t>> &d1,
-              const diff2_vars_t<Tensor<2, data_t>> &d2,
-              const vars_t<data_t> &advec) const
+    rhs_gauge(vars_t &rhs, const vars_t &vars, const d1_vars_t &d1,
+              const d2_vars_t &d2, const vars_t &advec) const
     {
         rhs.lapse = m_params.lapse_advec_coeff * advec.lapse -
                     m_params.lapse_coeff *

@@ -26,15 +26,14 @@ class PositiveChiAndLapse
     }
     // NOLINTEND(bugprone-easily-swappable-parameters)
 
-    template <class data_t>
     AMREX_GPU_HOST_DEVICE void
-    operator()(const amrex::CellData<data_t> &cell) const
+    operator()(const amrex::CellData<amrex::Real> &cell) const
     {
         auto chi   = cell[c_chi];
         auto lapse = cell[c_lapse];
 
         chi   = (chi < m_min_chi) ? m_min_chi : chi;
-        lapse = (lapse < m_min_lapse) ? m_min_lapse : chi;
+        lapse = (lapse < m_min_lapse) ? m_min_lapse : lapse;
 
         cell[c_chi]   = chi;
         cell[c_lapse] = lapse;

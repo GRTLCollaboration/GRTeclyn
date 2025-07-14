@@ -29,24 +29,27 @@ class BoostedBHInitialData
     BoostedBHInitialData(params_t a_params);
 
     // conformal factor
-    AMREX_GPU_DEVICE amrex::Real psi_minus_one(Coordinates a_coords) const;
+    AMREX_GPU_DEVICE [[nodiscard]] amrex::Real
+    psi_minus_one(Coordinates a_coords) const;
 
     // extrinsic curvature
-    AMREX_GPU_DEVICE Tensor<2, amrex::Real> Aij(Coordinates a_coords) const;
+    AMREX_GPU_DEVICE [[nodiscard]] Tensor<2, amrex::Real>
+    Aij(Coordinates a_coords) const;
 
   private:
     params_t m_params;
 
-    AMREX_GPU_DEVICE amrex::Real center_dist(Coordinates a_coords) const;
+    AMREX_GPU_DEVICE [[nodiscard]] amrex::Real
+    center_dist(Coordinates a_coords) const;
 
-    AMREX_GPU_DEVICE amrex::Real psi0(amrex::Real a_r) const;
+    AMREX_GPU_DEVICE [[nodiscard]] amrex::Real psi0(amrex::Real a_r) const;
 
-    AMREX_GPU_DEVICE amrex::Real psi2(amrex::Real a_r,
-                                      amrex::Real a_cos_theta) const;
+    AMREX_GPU_DEVICE [[nodiscard]] amrex::Real
+    psi2(amrex::Real a_r, amrex::Real a_cos_theta) const;
 
-    AMREX_GPU_DEVICE amrex::Real psi2_0(amrex::Real a_r) const;
+    AMREX_GPU_DEVICE [[nodiscard]] amrex::Real psi2_0(amrex::Real a_r) const;
 
-    AMREX_GPU_DEVICE amrex::Real psi2_2(amrex::Real a_r) const;
+    AMREX_GPU_DEVICE [[nodiscard]] amrex::Real psi2_2(amrex::Real a_r) const;
 };
 
 #endif /*BOOSTEDBHINITIALDATA_HPP_*/

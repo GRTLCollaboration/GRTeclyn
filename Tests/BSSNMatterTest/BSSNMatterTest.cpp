@@ -17,6 +17,7 @@
 #include "CCZ4RHSWithMatter.hpp"
 #include "ConstraintsWithMatter.hpp"
 #include "DefaultPotential.hpp"
+#include "GRParmParse.hpp"
 #include "ScalarField.hpp"
 
 // AMReX headers

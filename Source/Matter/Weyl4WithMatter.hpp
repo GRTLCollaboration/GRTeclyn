@@ -59,7 +59,7 @@ template <class matter_t> class Weyl4WithMatter : public Weyl4
                   const Vars<Tensor<1, amrex::Real>> &d1,
                   const Tensor<3, amrex::Real> &epsilon3_LUU,
                   const Tensor<2, amrex::Real> &h_UU,
-                  const chris_t<amrex::Real> &chris) const;
+                  const chris_t &chris) const;
 };
 
 #include "Weyl4WithMatter.impl.hpp"

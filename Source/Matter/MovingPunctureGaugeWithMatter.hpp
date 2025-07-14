@@ -33,16 +33,17 @@ class MovingPunctureGaugeWithMatter : public MovingPunctureGauge
     }
 
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-    template <class data_t, template <typename> class vars_t>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void rhs_gauge_add_matter_terms(
-        vars_t<data_t> &matter_rhs, const vars_t<data_t> &matter_vars,
-        Tensor<2, data_t, 3> h_UU, const emtensor_t<data_t> emtensor,
-        const double G_Newton) const
+    template <class vars_t>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    rhs_gauge_add_matter_terms(vars_t &matter_rhs, const vars_t &matter_vars,
+                               Tensor<2, amrex::Real, 3> h_UU,
+                               const emtensor_t emtensor,
+                               const double G_Newton) const
     // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         FOR (i)
         {
-            data_t matter_term_Gamma = 0.0;
+            amrex::Real matter_term_Gamma = 0.0;
             FOR (j)
             {
                 matter_term_Gamma += -16.0 * M_PI * G_Newton *
