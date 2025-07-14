@@ -12,30 +12,28 @@
 
 //! A structure for the decomposed elements of the Energy Momentum Tensor in
 //! 3+1D
-template <class data_t> struct emtensor_t
+struct emtensor_t
 {
-    Tensor<2, data_t> S; //!< S_ij = T_ij
-    Tensor<1, data_t> j; //!< j_i = T_ia_n^a
-    data_t trS;          //!< trS = S^i_i
-    data_t rho;          //!< rho = T_ab n^a n^b
+    Tensor<2, amrex::Real> S; //!< S_ij = T_ij
+    Tensor<1, amrex::Real> j; //!< j_i = T_ia_n^a
+    amrex::Real trS;          //!< trS = S^i_i
+    amrex::Real rho;          //!< rho = T_ab n^a n^b
 };
 
-template <class data_t> struct ricci_t
+struct ricci_t
 {
-    Tensor<2, data_t> LL; // Ricci with two indices down
-    data_t scalar{};      // Ricci scalar
+    Tensor<2, amrex::Real> LL; // Ricci with two indices down
+    amrex::Real scalar{};      // Ricci scalar
 };
 
 class CCZ4Geometry
 {
   protected:
-    template <class data_t>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static data_t
-    compute_z_terms(const int i, const int j,
-                    const Tensor<1, data_t> &Z_over_chi,
-                    const Tensor<2, data_t> &h, const Tensor<1, data_t> &d1_chi)
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static amrex::Real compute_z_terms(
+        const int i, const int j, const Tensor<1, amrex::Real> &Z_over_chi,
+        const Tensor<2, amrex::Real> &h, const Tensor<1, amrex::Real> &d1_chi)
     {
-        data_t out = 0.;
+        amrex::Real out = 0.;
         FOR (k)
         {
             out += Z_over_chi[k] * (h[i][k] * d1_chi[j] + h[j][k] * d1_chi[i] -
@@ -45,18 +43,16 @@ class CCZ4Geometry
     }
 
   public:
-    template <class data_t, template <typename> class vars_t,
-              template <typename> class diff2_vars_t>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static ricci_t<data_t>
-    compute_ricci_Z(const vars_t<data_t> &vars,
-                    const vars_t<Tensor<1, data_t>> &d1,
-                    const diff2_vars_t<Tensor<2, data_t>> &d2,
-                    const Tensor<2, data_t> &h_UU, const chris_t<data_t> &chris,
-                    const Tensor<1, data_t> &Z_over_chi)
+    template <class vars_t, class d1_vars_t, class d2_vars_t>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static ricci_t
+    compute_ricci_Z(const vars_t &vars, const d1_vars_t &d1,
+                    const d2_vars_t &d2, const Tensor<2, amrex::Real> &h_UU,
+                    const chris_t &chris,
+                    const Tensor<1, amrex::Real> &Z_over_chi)
     {
-        ricci_t<data_t> out;
+        ricci_t out;
 
-        Tensor<2, data_t> covdtilde2chi;
+        Tensor<2, amrex::Real> covdtilde2chi;
         FOR (k, l)
         {
             covdtilde2chi[k][l] = d2.chi[k][l];
@@ -66,9 +62,9 @@ class CCZ4Geometry
             }
         }
 
-        Tensor<3, data_t> chris_LLU = {0.};
-        data_t boxtildechi          = 0.;
-        data_t dchi_dot_dchi        = 0.;
+        Tensor<3, amrex::Real> chris_LLU = {0.};
+        amrex::Real boxtildechi          = 0.;
+        amrex::Real dchi_dot_dchi        = 0.;
         FOR (i, j)
         {
             boxtildechi   += covdtilde2chi[i][j] * h_UU[i][j];
@@ -81,7 +77,7 @@ class CCZ4Geometry
 
         FOR (i, j)
         {
-            data_t ricci_hat = 0;
+            amrex::Real ricci_hat = 0;
             FOR (k)
             {
                 // We call this ricci_hat rather than ricci_tilde as we have
@@ -99,14 +95,15 @@ class CCZ4Geometry
                 }
             }
 
-            data_t ricci_chi =
+            amrex::Real ricci_chi =
                 0.5 * ((GR_SPACEDIM - 2) * covdtilde2chi[i][j] +
                        vars.h[i][j] * boxtildechi -
                        ((GR_SPACEDIM - 2) * d1.chi[i] * d1.chi[j] +
                         GR_SPACEDIM * vars.h[i][j] * dchi_dot_dchi) /
                            (2 * vars.chi));
 
-            data_t z_terms = compute_z_terms(i, j, Z_over_chi, vars.h, d1.chi);
+            amrex::Real z_terms =
+                compute_z_terms(i, j, Z_over_chi, vars.h, d1.chi);
 
             out.LL[i][j] =
                 (ricci_chi + vars.chi * ricci_hat + z_terms) / vars.chi;
@@ -117,18 +114,17 @@ class CCZ4Geometry
         return out;
     }
 
-    template <class data_t>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static Tensor<2, data_t>
-    compute_d1_chris_contracted(const Tensor<2, data_t> &h_UU,
-                                const Tensor<2, Tensor<1, data_t>> &d1_h,
-                                const Tensor<2, Tensor<2, data_t>> &d2_h)
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static Tensor<2, amrex::Real>
+    compute_d1_chris_contracted(const Tensor<2, amrex::Real> &h_UU,
+                                const Tensor<2, Tensor<1, amrex::Real>> &d1_h,
+                                const Tensor<2, Tensor<2, amrex::Real>> &d2_h)
     {
-        Tensor<2, data_t> d1_chris_contracted = 0.0;
+        Tensor<2, amrex::Real> d1_chris_contracted = 0.0;
         FOR (i, j)
         {
             FOR (m, n, p)
             {
-                data_t d1_terms = 0.0;
+                amrex::Real d1_terms = 0.0;
                 FOR (q, r)
                 {
                     d1_terms += -h_UU[q][r] * (d1_h[n][q][j] * d1_h[m][p][r] +
@@ -143,24 +139,22 @@ class CCZ4Geometry
 
     // This function allows adding arbitrary multiples of D_{(i}Z_{j)}
     // to the Ricci scalar rather than the default of 2 in compute_ricci_Z
-    template <class data_t, template <typename> class vars_t,
-              template <typename> class diff2_vars_t>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static ricci_t<data_t>
-    compute_ricci_Z_general(const vars_t<data_t> &vars,
-                            const vars_t<Tensor<1, data_t>> &d1,
-                            const diff2_vars_t<Tensor<2, data_t>> &d2,
-                            const Tensor<2, data_t> &h_UU,
-                            const chris_t<data_t> &chris, const double dZ_coeff)
+    template <class vars_t, class d1_vars_t, class d2_vars_t>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static ricci_t
+    compute_ricci_Z_general(const vars_t &vars, const d1_vars_t &d1,
+                            const d2_vars_t &d2,
+                            const Tensor<2, amrex::Real> &h_UU,
+                            const chris_t &chris, const double dZ_coeff)
     {
         // get contributions from conformal metric and factor with zero Z vector
-        Tensor<1, data_t> zero_Z = 0.;
+        Tensor<1, amrex::Real> zero_Z = 0.;
         auto ricci = compute_ricci_Z(vars, d1, d2, h_UU, chris, zero_Z);
 
         // need to add term to correct for d1.Gamma (includes Z contribution)
         // and Gamma in ricci_hat
         auto d1_chris_contracted =
             compute_d1_chris_contracted(h_UU, d1.h, d2.h);
-        Tensor<1, data_t> Z_over_chi;
+        Tensor<1, amrex::Real> Z_over_chi;
         FOR (i)
         {
             Z_over_chi[i] = 0.5 * (vars.Gamma[i] - chris.contracted[i]);
@@ -178,7 +172,8 @@ class CCZ4Geometry
                          (d1_chris_contracted[m][i] - d1.Gamma[m][i]) +
                      (chris.contracted[m] - vars.Gamma[m]) * d1.h[i][j][m]);
             }
-            data_t z_terms  = compute_z_terms(i, j, Z_over_chi, vars.h, d1.chi);
+            amrex::Real z_terms =
+                compute_z_terms(i, j, Z_over_chi, vars.h, d1.chi);
             ricci.LL[i][j] += 0.5 * dZ_coeff * z_terms / vars.chi;
         }
         ricci.scalar = vars.chi * TensorAlgebra::compute_trace(ricci.LL, h_UU);
@@ -187,13 +182,10 @@ class CCZ4Geometry
 
     // This function returns the pure Ricci scalar with no contribution from the
     // Z vector - used e.g. in the constraint calculations.
-    template <class data_t, template <typename> class vars_t,
-              template <typename> class diff2_vars_t>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE static ricci_t<data_t>
-    compute_ricci(const vars_t<data_t> &vars,
-                  const vars_t<Tensor<1, data_t>> &d1,
-                  const diff2_vars_t<Tensor<2, data_t>> &d2,
-                  const Tensor<2, data_t> &h_UU, const chris_t<data_t> &chris)
+    template <class vars_t, class d1_vars_t, class d2_vars_t>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE static ricci_t
+    compute_ricci(const vars_t &vars, const d1_vars_t &d1, const d2_vars_t &d2,
+                  const Tensor<2, amrex::Real> &h_UU, const chris_t &chris)
     {
         return compute_ricci_Z_general(vars, d1, d2, h_UU, chris, 0.0);
     }

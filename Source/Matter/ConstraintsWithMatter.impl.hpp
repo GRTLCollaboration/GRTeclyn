@@ -9,6 +9,8 @@
 
 #ifndef CONSTRAINTSWITHMATTER_IMPL_HPP_
 #define CONSTRAINTSWITHMATTER_IMPL_HPP_
+
+#include "ConstraintsWithMatter.hpp"
 #include "DimensionDefinitions.hpp"
 #include "GRParmParse.hpp"
 
@@ -24,11 +26,10 @@ ConstraintsWithMatter<matter_t>::ConstraintsWithMatter(
 }
 
 template <class matter_t>
-template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 ConstraintsWithMatter<matter_t>::compute(
-    int i, int j, int k, const amrex::Array4<data_t> &out_arrays,
-    const amrex::Array4<data_t const> &state_arrays) const
+    int i, int j, int k, const amrex::Array4<amrex::Real> &out_arrays,
+    const amrex::Array4<amrex::Real const> &state_arrays) const
 {
     // Load local vars and calculate derivs
     const auto vars = load_vars<BSSNMatterVars>(state_arrays.cellData(i, j, k));
@@ -42,7 +43,7 @@ ConstraintsWithMatter<matter_t>::compute(
     const auto chris = TensorAlgebra::compute_christoffel(d1.h, h_UU);
 
     // Get the non matter terms for the constraints
-    Vars<data_t> out = constraint_equations(vars, d1, d2, h_UU, chris);
+    Vars out = constraint_equations(vars, d1, d2, h_UU, chris);
 
     // Energy Momentum Tensor
     const auto emtensor = my_matter.compute_emtensor(vars, d1, h_UU, chris.ULL);

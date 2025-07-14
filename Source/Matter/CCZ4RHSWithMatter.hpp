@@ -15,7 +15,6 @@
 #include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
 #include "VarsTools.hpp"
-#include "simd.hpp"
 
 //!  Calculates RHS using CCZ4 including matter terms, and matter variable
 //!  evolution

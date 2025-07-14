@@ -9,38 +9,37 @@
 #include "AlwaysInline.hpp"
 #include "DimensionDefinitions.hpp"
 #include "Tensor.hpp"
+#include <AMReX_REAL.H>
 #include <array>
 
-template <class data_t> struct chris_t
+struct chris_t
 {
-    Tensor<3, data_t> ULL;        //!< standard christoffel symbols
-    Tensor<3, data_t> LLL;        //!< 3 lower indices
-    Tensor<1, data_t> contracted; //!< contracted christoffel
+    Tensor<3, amrex::Real> ULL;        //!< standard christoffel symbols
+    Tensor<3, amrex::Real> LLL;        //!< 3 lower indices
+    Tensor<1, amrex::Real> contracted; //!< contracted christoffel
 };
 
 namespace TensorAlgebra
 {
 /// Computes determinant of a symmetric 3x3 matrix
-template <class data_t>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE data_t
-compute_determinant_sym(const Tensor<2, data_t, 3> &matrix)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
+compute_determinant_sym(const Tensor<2, amrex::Real, 3> &matrix)
 {
-    data_t det = matrix[0][0] * matrix[1][1] * matrix[2][2] +
-                 2 * matrix[0][1] * matrix[0][2] * matrix[1][2] -
-                 matrix[0][0] * matrix[1][2] * matrix[1][2] -
-                 matrix[1][1] * matrix[0][2] * matrix[0][2] -
-                 matrix[2][2] * matrix[0][1] * matrix[0][1];
+    amrex::Real det = matrix[0][0] * matrix[1][1] * matrix[2][2] +
+                      2 * matrix[0][1] * matrix[0][2] * matrix[1][2] -
+                      matrix[0][0] * matrix[1][2] * matrix[1][2] -
+                      matrix[1][1] * matrix[0][2] * matrix[0][2] -
+                      matrix[2][2] * matrix[0][1] * matrix[0][1];
 
     return det;
 }
 
 /// Computes the determinant of a general 3x3 matrix.
 /// Note: for a symmetric matrix use the simplified function
-template <class data_t>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE data_t
-compute_determinant(const Tensor<2, data_t, 3> &matrix)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
+compute_determinant(const Tensor<2, amrex::Real, 3> &matrix)
 {
-    data_t det =
+    amrex::Real det =
         matrix[0][0] *
             (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1]) -
         matrix[0][1] *
@@ -51,13 +50,12 @@ compute_determinant(const Tensor<2, data_t, 3> &matrix)
 }
 
 /// Computes the inverse of a symmetric 3x3 matrix directly.
-template <class data_t>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<2, data_t>
-compute_inverse_sym(const Tensor<2, data_t, 3> &matrix)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<2, amrex::Real>
+compute_inverse_sym(const Tensor<2, amrex::Real, 3> &matrix)
 {
-    data_t deth         = compute_determinant_sym(matrix);
-    data_t deth_inverse = 1. / deth;
-    Tensor<2, data_t> h_UU;
+    amrex::Real deth         = compute_determinant_sym(matrix);
+    amrex::Real deth_inverse = 1. / deth;
+    Tensor<2, amrex::Real> h_UU;
     h_UU[0][0] = (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[1][2]) *
                  deth_inverse;
     h_UU[0][1] = (matrix[0][2] * matrix[1][2] - matrix[0][1] * matrix[2][2]) *
@@ -79,13 +77,12 @@ compute_inverse_sym(const Tensor<2, data_t, 3> &matrix)
 
 /// Computes the inverse of a general 3x3 matrix.
 /// Note: for a symmetric matrix use the simplified function
-template <class data_t>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<2, data_t>
-compute_inverse(const Tensor<2, data_t, 3> &matrix)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<2, amrex::Real>
+compute_inverse(const Tensor<2, amrex::Real, 3> &matrix)
 {
-    data_t deth         = compute_determinant(matrix);
-    data_t deth_inverse = 1. / deth;
-    Tensor<2, data_t> h_UU;
+    amrex::Real deth         = compute_determinant(matrix);
+    amrex::Real deth_inverse = 1. / deth;
+    Tensor<2, amrex::Real> h_UU;
     h_UU[0][0] = (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1]) *
                  deth_inverse;
     h_UU[1][1] = (matrix[0][0] * matrix[2][2] - matrix[0][2] * matrix[2][0]) *
@@ -109,11 +106,11 @@ compute_inverse(const Tensor<2, data_t, 3> &matrix)
 }
 
 /// Computes the trace of a 2-Tensor with lower indices given an inverse metric.
-template <class data_t>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE data_t compute_trace(
-    const Tensor<2, data_t> &tensor_LL, const Tensor<2, data_t> &inverse_metric)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
+compute_trace(const Tensor<2, amrex::Real> &tensor_LL,
+              const Tensor<2, amrex::Real> &inverse_metric)
 {
-    data_t trace = 0.;
+    amrex::Real trace = 0.;
     FOR (i, j)
     {
         trace += inverse_metric[i][j] * tensor_LL[i][j];
@@ -122,32 +119,30 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE data_t compute_trace(
 }
 
 /// Computes the trace of a 1,1 Tensor (a matrix) - no metric required.
-template <class data_t>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE data_t
-compute_trace(const Tensor<2, data_t> &tensor_UL)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
+compute_trace(const Tensor<2, amrex::Real> &tensor_UL)
 {
-    data_t trace = 0.;
+    amrex::Real trace = 0.;
     FOR (i)
         trace += tensor_UL[i][i];
     return trace;
 }
 
-template <class data_t>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE data_t
-compute_trace(const Tensor<1, Tensor<1, data_t>> &tensor_UL)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
+compute_trace(const Tensor<1, Tensor<1, amrex::Real>> &tensor_UL)
 {
-    data_t trace = 0.;
+    amrex::Real trace = 0.;
     FOR (i)
         trace += tensor_UL[i][i];
     return trace;
 }
 
 /// Computes dot product of a vector and a covector (no metric required)
-template <class data_t>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE data_t compute_dot_product(
-    const Tensor<1, data_t> &vector_U, const Tensor<1, data_t> &covector_L)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
+compute_dot_product(const Tensor<1, amrex::Real> &vector_U,
+                    const Tensor<1, amrex::Real> &covector_L)
 {
-    data_t dot_product = 0.;
+    amrex::Real dot_product = 0.;
     FOR (i)
         dot_product += vector_U[i] * covector_L[i];
     return dot_product;
@@ -155,12 +150,12 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE data_t compute_dot_product(
 
 /// Computes dot product of two covectors given an inverse metric or
 /// the dot product of two vectors given a metric.
-template <class data_t>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE data_t compute_dot_product(
-    const Tensor<1, data_t> &covector1_L, const Tensor<1, data_t> &covector2_L,
-    const Tensor<2, data_t> &inverse_metric)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
+compute_dot_product(const Tensor<1, amrex::Real> &covector1_L,
+                    const Tensor<1, amrex::Real> &covector2_L,
+                    const Tensor<2, amrex::Real> &inverse_metric)
 {
-    data_t dot_product = 0.;
+    amrex::Real dot_product = 0.;
     FOR (m, n)
     {
         dot_product += inverse_metric[m][n] * covector1_L[m] * covector2_L[n];
@@ -171,11 +166,11 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE data_t compute_dot_product(
 /// Removes the trace of a 2-Tensor with lower indices given a metric and an
 /// inverse metric.  Or a Tensor with upper indices given an inverse metric and
 /// a metric.
-template <class data_t>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-make_trace_free(Tensor<2, data_t> &tensor_LL, const Tensor<2, data_t> &metric,
-                const Tensor<2, data_t> &inverse_metric)
+make_trace_free(Tensor<2, amrex::Real> &tensor_LL,
+                const Tensor<2, amrex::Real> &metric,
+                const Tensor<2, amrex::Real> &inverse_metric)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
     auto trace                  = compute_trace(tensor_LL, inverse_metric);
@@ -187,9 +182,9 @@ make_trace_free(Tensor<2, data_t> &tensor_LL, const Tensor<2, data_t> &metric,
 }
 
 /// Makes a 2-Tensor symmetric
-template <class data_t, int size>
+template <int size>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-make_symmetric(Tensor<2, data_t, size> &tensor_LL)
+make_symmetric(Tensor<2, amrex::Real, size> &tensor_LL)
 {
     for (int i = 0; i < size; ++i)
     {
@@ -202,12 +197,11 @@ make_symmetric(Tensor<2, data_t, size> &tensor_LL)
 }
 
 /// Raises the index of a covector
-template <class data_t>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<1, data_t>
-raise_all(const Tensor<1, data_t> &tensor_L,
-          const Tensor<2, data_t> &inverse_metric)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<1, amrex::Real>
+raise_all(const Tensor<1, amrex::Real> &tensor_L,
+          const Tensor<2, amrex::Real> &inverse_metric)
 {
-    Tensor<1, data_t> tensor_U = 0.;
+    Tensor<1, amrex::Real> tensor_U = 0.;
     FOR (i, j)
     {
         tensor_U[i] += inverse_metric[i][j] * tensor_L[j];
@@ -216,12 +210,11 @@ raise_all(const Tensor<1, data_t> &tensor_L,
 }
 
 /// Raises the indices of a 2-Tensor
-template <class data_t>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<2, data_t>
-raise_all(const Tensor<2, data_t> &tensor_LL,
-          const Tensor<2, data_t> &inverse_metric)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<2, amrex::Real>
+raise_all(const Tensor<2, amrex::Real> &tensor_LL,
+          const Tensor<2, amrex::Real> &inverse_metric)
 {
-    Tensor<2, data_t> tensor_UU = 0.;
+    Tensor<2, amrex::Real> tensor_UU = 0.;
     FOR (i, j, k, l)
     {
         tensor_UU[i][j] +=
@@ -232,18 +225,18 @@ raise_all(const Tensor<2, data_t> &tensor_LL,
 
 /// Lowers the indices of a vector
 /// Note: same functionality as raise; included to improve readibility
-template <class data_t>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<1, data_t>
-lower_all(const Tensor<1, data_t> &tensor_U, const Tensor<2, data_t> &metric)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<1, amrex::Real>
+lower_all(const Tensor<1, amrex::Real> &tensor_U,
+          const Tensor<2, amrex::Real> &metric)
 { // The code for lowering is exactly the same as for raising
     return raise_all(tensor_U, metric);
 }
 
 /// Lowers the indices of a 2-Tensor
 /// Note: same functionality as raise; included to improve readibility
-template <class data_t>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<2, data_t>
-lower_all(const Tensor<2, data_t> &tensor_UU, const Tensor<2, data_t> &metric)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<2, amrex::Real>
+lower_all(const Tensor<2, amrex::Real> &tensor_UU,
+          const Tensor<2, amrex::Real> &metric)
 { // The code for lowering is exactly the same as for raising
     return raise_all(tensor_UU, metric);
 }
@@ -301,12 +294,11 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<4, double, 4> epsilon4D()
 }
 
 /// Computes the conformal christoffel symbol
-template <class data_t>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE chris_t<data_t>
-compute_christoffel(const Tensor<2, Tensor<1, data_t>> &d1_metric,
-                    const Tensor<2, data_t> &h_UU)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE chris_t
+compute_christoffel(const Tensor<2, Tensor<1, amrex::Real>> &d1_metric,
+                    const Tensor<2, amrex::Real> &h_UU)
 {
-    chris_t<data_t> out{};
+    chris_t out{};
 
     FOR (i, j, k)
     {
@@ -333,14 +325,14 @@ compute_christoffel(const Tensor<2, Tensor<1, data_t>> &d1_metric,
     return out;
 }
 
-template <class data_t>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<3, data_t>
-compute_phys_chris(const Tensor<1, data_t> &d1_chi, const data_t &vars_chi,
-                   const Tensor<2, data_t> &vars_h,
-                   const Tensor<2, data_t> &h_UU,
-                   const Tensor<3, data_t> &chris_ULL)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<3, amrex::Real>
+compute_phys_chris(const Tensor<1, amrex::Real> &d1_chi,
+                   const amrex::Real &vars_chi,
+                   const Tensor<2, amrex::Real> &vars_h,
+                   const Tensor<2, amrex::Real> &h_UU,
+                   const Tensor<3, amrex::Real> &chris_ULL)
 {
-    Tensor<3, data_t> chris_phys;
+    Tensor<3, amrex::Real> chris_phys;
     FOR (i, j, k)
     {
         chris_phys[i][j][k] =

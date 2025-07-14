@@ -54,7 +54,7 @@ Weyl4WithMatter<matter_t>::add_matter_EB(
     EBFields_t &ebfields, const Vars<amrex::Real> &vars,
     const Vars<Tensor<1, amrex::Real>> &d1,
     const Tensor<3, amrex::Real> &epsilon3_LUU,
-    const Tensor<2, amrex::Real> &h_UU, const chris_t<amrex::Real> &chris) const
+    const Tensor<2, amrex::Real> &h_UU, const chris_t &chris) const
 {
     // Calculate decomposed energy momentum tensor components
     const auto emtensor = m_matter.compute_emtensor(vars, d1, h_UU, chris.ULL);

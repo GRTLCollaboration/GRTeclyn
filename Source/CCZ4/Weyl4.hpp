@@ -103,11 +103,13 @@ class Weyl4
     int m_formulation; //!< CCZ4 or BSSN?
 
     //! Compute spatial volume element
+    [[nodiscard]]
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<3, amrex::Real>
     compute_epsilon3_LUU(const Vars<amrex::Real> &vars,
                          const Tensor<2, amrex::Real> &h_UU) const;
 
     //! Calculation of Weyl_4 scalar
+    [[nodiscard]]
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE NPScalar_t compute_Weyl4(
         const EBFields_t &ebfields, const Vars<amrex::Real> &vars,
         const Vars<Tensor<1, amrex::Real>> &d1,
@@ -115,18 +117,19 @@ class Weyl4
         const Tensor<2, amrex::Real> &h_UU, const Coordinates &coords) const;
 
     //! Calculation of the tetrads
+    [[nodiscard]]
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tetrad_t compute_null_tetrad(
         const Vars<amrex::Real> &vars, const Tensor<2, amrex::Real> &h_UU,
         const Coordinates &coords) const;
 
     //! Calulation of the decomposition of the Weyl tensor in Electric and
     //! Magnetic fields
+    [[nodiscard]]
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t compute_EB_fields(
         const Vars<amrex::Real> &vars, const Vars<Tensor<1, amrex::Real>> &d1,
         const Diff2Vars<Tensor<2, amrex::Real>> &d2,
         const Tensor<3, amrex::Real> &epsilon3_LUU,
-        const Tensor<2, amrex::Real> &h_UU,
-        const chris_t<amrex::Real> &chris) const;
+        const Tensor<2, amrex::Real> &h_UU, const chris_t &chris) const;
 };
 
 #include "Weyl4.impl.hpp"

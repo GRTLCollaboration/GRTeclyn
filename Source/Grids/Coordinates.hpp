@@ -7,7 +7,6 @@
 #define COORDINATES_HPP_
 
 // Other includes
-#include "AlwaysInline.hpp"
 #include "DimensionDefinitions.hpp"
 
 #include <AMReX_IntVect.H>
@@ -18,14 +17,14 @@
 class Coordinates
 {
   public:
-    double x{}; // We vectorise over x so we must allow x to be a vector
-    double y{};
-    double z{};
+    amrex::Real x{};
+    amrex::Real y{};
+    amrex::Real z{};
     std::array<double, AMREX_SPACEDIM> m_center;
 
     AMREX_GPU_HOST_DEVICE
     Coordinates(amrex::IntVect integer_coords, double dx,
-                std::array<double, AMREX_SPACEDIM> center = {0})
+                std::array<amrex::Real, AMREX_SPACEDIM> center = {0})
         : m_center(center)
     {
         compute_coord(x, integer_coords[0], dx, center[0]);
@@ -45,29 +44,12 @@ class Coordinates
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static void
-    compute_coord(double &out, int position, double dx,
+    compute_coord(amrex::Real &out, int position, double dx,
                   double center_distance = 0)
     {
         out = (position + 0.5) * dx - center_distance;
     }
 
-    /*
-    #if !defined(AMREX_USE_GPU)
-        AMREX_FORCE_INLINE
-        static typename std::enable_if_t<(simd_traits<double>::simd_len > 1),
-    void> compute_coord(simd<double> &out, int position, double dx, double
-    center_distance = 0)
-        {
-            // NOLINTNEXTLINE
-            double out_arr[simd_traits<double>::simd_len];
-            for (int i = 0; i < simd_traits<double>::simd_len; ++i)
-            {
-                out_arr[i] = (position + i + 0.5) * dx - center_distance;
-            }
-            out = simd<double>::load(&out_arr[0]);
-        }
-    #endif
-    */
     /// This function returns the radius subject to a floor for a given
     /// Coordinates object.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
@@ -76,7 +58,7 @@ class Coordinates
         // Note that this is not currently dimension independent
         amrex::Real r = sqrt(x * x + y * y + z * z);
 
-        const double minimum_r = 1e-6;
+        const amrex::Real minimum_r = 1e-6;
         return (r < minimum_r) ? minimum_r : r;
     }
 
@@ -86,9 +68,9 @@ class Coordinates
     get_radius(amrex::IntVect integer_coords, double dx,
                std::array<double, AMREX_SPACEDIM> center = {0})
     {
-        double x = NAN;
-        double y = NAN;
-        double z = NAN;
+        amrex::Real x = NAN;
+        amrex::Real y = NAN;
+        amrex::Real z = NAN;
 
         // Note that this is not currently dimension independent
         compute_coord(x, integer_coords[0], dx, center[0]);
@@ -97,13 +79,13 @@ class Coordinates
 
         amrex::Real r = std::sqrt(x * x + y * y + z * z);
 
-        const double minimum_r = 1e-6;
+        const amrex::Real minimum_r = 1e-6;
         return (r < minimum_r) ? minimum_r : r;
     }
 };
 
-ALWAYS_INLINE std::ostream &operator<<(std::ostream &a_os,
-                                       const Coordinates &in_coords)
+AMREX_FORCE_INLINE std::ostream &operator<<(std::ostream &a_os,
+                                            const Coordinates &in_coords)
 {
     a_os << "(x,y,z) = (" << in_coords.x << "," << in_coords.y << ","
          << in_coords.z << ")"

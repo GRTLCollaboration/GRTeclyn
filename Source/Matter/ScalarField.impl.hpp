@@ -12,23 +12,23 @@
 
 // Calculate the stress energy tensor elements
 template <class potential_t>
-template <class data_t, template <typename> class vars_t>
-AMREX_GPU_DEVICE emtensor_t<data_t> ScalarField<potential_t>::compute_emtensor(
-    const vars_t<data_t> &vars, const vars_t<Tensor<1, data_t>> &d1,
-    const Tensor<2, data_t> &h_UU, const Tensor<3, data_t> &chris_ULL) const
+template <class vars_t, class d1_vars_t>
+AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t>::compute_emtensor(
+    const vars_t &vars, const d1_vars_t &d1, const Tensor<2, amrex::Real> &h_UU,
+    const Tensor<3, amrex::Real> &chris_ULL) const
 {
-    emtensor_t<data_t> out;
+    emtensor_t out;
 
     //    Useful quantity Vt
-    data_t Vt = -vars.Pi * vars.Pi;
+    amrex::Real Vt = -vars.Pi * vars.Pi;
     FOR (i, j)
     {
         Vt += vars.chi * h_UU[i][j] * d1.phi[i] * d1.phi[j];
     }
 
     // set the potential values
-    data_t V_of_phi = 0.0;
-    data_t dVdphi   = 0.0;
+    amrex::Real V_of_phi = 0.0;
+    amrex::Real dVdphi   = 0.0;
 
     // compute potential and add constributions to EM Tensor
     m_potential.compute_potential(V_of_phi, dVdphi, vars);
@@ -60,15 +60,12 @@ AMREX_GPU_DEVICE emtensor_t<data_t> ScalarField<potential_t>::compute_emtensor(
 
 // Adds in the RHS for the matter vars
 template <class potential_t>
-template <class data_t, template <typename> class vars_t,
-          template <typename> class diff2_vars_t,
-          template <typename> class rhs_vars_t>
+template <class rhs_vars_t, class vars_t, class d1_vars_t, class d2_vars_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-ScalarField<potential_t>::add_matter_rhs(
-    rhs_vars_t<data_t> &rhs, const vars_t<data_t> &vars,
-    const vars_t<Tensor<1, data_t>> &d1,
-    const diff2_vars_t<Tensor<2, data_t>> &d2,
-    const vars_t<data_t> &advec) const
+ScalarField<potential_t>::add_matter_rhs(rhs_vars_t &rhs, const vars_t &vars,
+                                         const d1_vars_t &d1,
+                                         const d2_vars_t &d2,
+                                         const vars_t &advec) const
 {
     using namespace TensorAlgebra;
 
@@ -77,8 +74,8 @@ ScalarField<potential_t>::add_matter_rhs(
     const auto chris = compute_christoffel(d1.h, h_UU);
 
     // set the potential values
-    data_t V_of_phi = 0.0;
-    data_t dVdphi   = 0.0;
+    amrex::Real V_of_phi = 0.0;
+    amrex::Real dVdphi   = 0.0;
     m_potential.compute_potential(V_of_phi, dVdphi, vars);
 
     // evolution equations for scalar field and (minus) its conjugate momentum

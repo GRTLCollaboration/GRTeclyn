@@ -18,14 +18,14 @@ static Tensor<2, amrex::Real> spherical_jacobian(const amrex::Real x,
                                                  const double y, const double z)
 {
     // calculate useful position quantities
-    amrex::Real rho2     = x * x + y * y;
-    amrex::Real min_rho2 = 1e-12;
-    rho2                 = (rho2 < min_rho2) ? min_rho2 : rho2;
-    amrex::Real rho      = sqrt(rho2);
-    amrex::Real min_r2   = 1e-12;
-    amrex::Real r2       = x * x + y * y + z * z;
-    r2                   = (r2 < min_r2) ? min_r2 : r2;
-    amrex::Real r        = sqrt(r2);
+    amrex::Real rho2    = x * x + y * y;
+    amrex::Real rho     = std::sqrt(rho2);
+    amrex::Real min_rho = 1e-6;
+    rho                 = (rho < min_rho) ? min_rho : rho;
+    amrex::Real r2      = x * x + y * y + z * z;
+    amrex::Real r       = std::sqrt(r2);
+    amrex::Real min_r   = 1e-6;
+    r                   = (r < min_r) ? min_r : r;
 
     // And the sines and cosines of phi and theta
     amrex::Real cos_phi = x / rho;
@@ -53,11 +53,11 @@ inverse_spherical_jacobian(const amrex::Real x, const double y, const double z)
     amrex::Real rho2     = x * x + y * y;
     amrex::Real min_rho2 = 1e-12;
     rho2                 = (rho2 < min_rho2) ? min_rho2 : rho2;
-    amrex::Real rho      = sqrt(rho2);
+    amrex::Real rho      = std::sqrt(rho2);
     amrex::Real min_r2   = 1e-12;
     amrex::Real r2       = x * x + y * y + z * z;
     r2                   = (r2 < min_r2) ? min_r2 : r2;
-    amrex::Real r        = sqrt(r2);
+    amrex::Real r        = std::sqrt(r2);
 
     // And the sines and cosines of phi and theta
     // data_t sin_theta = rho / r;
@@ -268,8 +268,8 @@ cartesian_to_spherical_L(const Tensor<1, amrex::Real> &cartesian_v_L,
 // The area element of a sphere
 amrex::Real area_element_sphere(const Tensor<2, amrex::Real> &spherical_g)
 {
-    return sqrt(spherical_g[1][1] * spherical_g[2][2] -
-                spherical_g[1][2] * spherical_g[2][1]);
+    return std::sqrt(spherical_g[1][1] * spherical_g[2][2] -
+                     spherical_g[1][2] * spherical_g[2][1]);
 }
 
 } // namespace CoordinateTransformations

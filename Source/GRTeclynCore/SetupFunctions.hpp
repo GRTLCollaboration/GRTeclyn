@@ -34,7 +34,8 @@ void mainSetup(int argc, char *argv[]);
 void mainFinalize();
 
 #if !defined(AMREX_USE_GPU)
-const int simd_traits<double>::simd_len; // Still needs to be defined
+// TODO: FIXME
+// const int simd_traits<double>::simd_len; // Still needs to be defined
 #endif
 
 void mainSetup(int argc, char *argv[])
@@ -51,8 +52,9 @@ void mainSetup(int argc, char *argv[])
 #endif
 
 #if !defined(AMREX_USE_GPU)
-    amrex::Print() << " simd width (doubles) = "
-                   << simd_traits<double>::simd_len << '\n';
+// TODO: FIXME
+//    amrex::Print() << " simd width (doubles) = "
+//                   << simd_traits<double>::simd_len << '\n';
 #endif
 
     const int required_argc = 2;

@@ -41,10 +41,9 @@ inline CCZ4RHS<gauge_t, deriv_t>::CCZ4RHS(
 }
 
 template <class gauge_t, class deriv_t>
-template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<gauge_t, deriv_t>::compute(
-    int i, int j, int k, const amrex::Array4<data_t> &rhs,
-    const amrex::Array4<data_t const> &state) const
+    int i, int j, int k, const amrex::Array4<amrex::Real> &rhs,
+    const amrex::Array4<amrex::Real const> &state) const
 {
     const auto vars = load_vars<Vars>(state.cellData(i, j, k));
     const auto d1   = m_deriv.template diff1<Vars>(i, j, k, state);
@@ -52,7 +51,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<gauge_t, deriv_t>::compute(
     const auto advec =
         m_deriv.template advection<Vars>(i, j, k, state, vars.shift);
 
-    Vars<data_t> rhs_vars;
+    Vars<amrex::Real> rhs_vars;
     rhs_equation(rhs_vars, vars, d1, d2, advec);
 
     m_deriv.add_dissipation(i, j, k, rhs_vars, state, m_sigma);
@@ -62,22 +61,20 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<gauge_t, deriv_t>::compute(
 
 // NOLINTBEGIN(readability-function-cognitive-complexity)
 template <class gauge_t, class deriv_t>
-template <class data_t, template <typename> class vars_t,
-          template <typename> class diff2_vars_t>
+template <class vars_t, class d1_vars_t, class d2_vars_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
-    vars_t<data_t> &rhs, const vars_t<data_t> &vars,
-    const vars_t<Tensor<1, data_t>> &d1,
-    const diff2_vars_t<Tensor<2, data_t>> &d2,
-    const vars_t<data_t> &advec) const
+CCZ4RHS<gauge_t, deriv_t>::rhs_equation(vars_t &rhs, const vars_t &vars,
+                                        const d1_vars_t &d1,
+                                        const d2_vars_t &d2,
+                                        const vars_t &advec) const
 {
     using namespace TensorAlgebra;
 
     auto h_UU  = compute_inverse_sym(vars.h);
     auto chris = compute_christoffel(d1.h, h_UU);
 
-    Tensor<1, data_t> Z_over_chi;
-    Tensor<1, data_t> Z; // NOLINT(readability-identifier-length)
+    Tensor<1, amrex::Real> Z_over_chi;
+    Tensor<1, amrex::Real> Z; // NOLINT(readability-identifier-length)
 
     if (m_formulation == USE_BSSN)
     {
@@ -95,12 +92,12 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
     auto ricci =
         CCZ4Geometry::compute_ricci_Z(vars, d1, d2, h_UU, chris, Z_over_chi);
 
-    data_t divshift        = compute_trace(d1.shift);
-    data_t Z_dot_d1lapse   = compute_dot_product(Z, d1.lapse);
-    data_t dlapse_dot_dchi = compute_dot_product(d1.lapse, d1.chi, h_UU);
+    amrex::Real divshift        = compute_trace(d1.shift);
+    amrex::Real Z_dot_d1lapse   = compute_dot_product(Z, d1.lapse);
+    amrex::Real dlapse_dot_dchi = compute_dot_product(d1.lapse, d1.chi, h_UU);
 
-    Tensor<2, data_t> covdtilde2lapse;
-    Tensor<2, data_t> covd2lapse;
+    Tensor<2, amrex::Real> covdtilde2lapse;
+    Tensor<2, amrex::Real> covd2lapse;
     FOR (k, l)
     {
         covdtilde2lapse[k][l] = d2.lapse[k][l];
@@ -114,7 +111,7 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
                    vars.h[k][l] * dlapse_dot_dchi);
     }
 
-    data_t tr_covd2lapse = -(GR_SPACEDIM / 2.0) * dlapse_dot_dchi;
+    amrex::Real tr_covd2lapse = -(GR_SPACEDIM / 2.0) * dlapse_dot_dchi;
     FOR (i)
     {
         tr_covd2lapse -= vars.chi * chris.contracted[i] * d1.lapse[i];
@@ -125,11 +122,11 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
         }
     }
 
-    Tensor<2, data_t> A_UU = raise_all(vars.A, h_UU);
+    Tensor<2, amrex::Real> A_UU = raise_all(vars.A, h_UU);
 
     // A^{ij} A_{ij}. - Note the abuse of the compute trace function.
-    data_t tr_A2 = compute_trace(vars.A, A_UU);
-    rhs.chi      = advec.chi +
+    amrex::Real tr_A2 = compute_trace(vars.A, A_UU);
+    rhs.chi           = advec.chi +
               (2.0 / GR_SPACEDIM) * vars.chi * (vars.lapse * vars.K - divshift);
     FOR (i, j)
     {
@@ -142,7 +139,7 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
         }
     }
 
-    Tensor<2, data_t> Adot_TF;
+    Tensor<2, amrex::Real> Adot_TF;
     FOR (i, j)
     {
         Adot_TF[i][j] =
@@ -167,7 +164,7 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
         }
     }
 
-    data_t kappa1_times_lapse;
+    amrex::Real kappa1_times_lapse;
     if (m_params.covariantZ4)
     {
         kappa1_times_lapse = m_params.kappa1;
@@ -208,7 +205,7 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
                  m_cosmological_constant;
     }
 
-    Tensor<1, data_t> Gammadot;
+    Tensor<1, amrex::Real> Gammadot;
     FOR (i)
     {
         Gammadot[i] = (2.0 / GR_SPACEDIM) *

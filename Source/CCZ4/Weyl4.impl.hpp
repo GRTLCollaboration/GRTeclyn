@@ -99,7 +99,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t Weyl4::compute_EB_fields(
     const Vars<amrex::Real> &vars, const Vars<Tensor<1, amrex::Real>> &d1,
     const Diff2Vars<Tensor<2, amrex::Real>> &d2,
     const Tensor<3, amrex::Real> &epsilon3_LUU,
-    const Tensor<2, amrex::Real> &h_UU, const chris_t<amrex::Real> &chris) const
+    const Tensor<2, amrex::Real> &h_UU, const chris_t &chris) const
 {
     EBFields_t out;
 
@@ -254,7 +254,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tetrad_t Weyl4::compute_null_tetrad(
     out.w[2] = 0.0;
 
     // floor on chi
-    const amrex::Real chi = simd_max(vars.chi, 1e-4);
+    const amrex::Real chi = (vars.chi < 1e-4) ? 1e-4 : vars.chi;
 
     FOR (i, j, k, m)
     {

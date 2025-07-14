@@ -17,6 +17,7 @@
 #include "Tensor.hpp"
 
 // AMReX includes
+#include <AMReX_AmrLevel.H>
 #include <AMReX_MultiFab.H>
 
 // System includes
@@ -42,12 +43,12 @@ class Constraints
     using Diff2Vars = BSSNVars::Diff2VarsNoGauge<data_t>;
 
     /// Vars object for Constraints
-    template <class data_t> struct Vars
+    struct Vars
     {
-        data_t Ham{};
-        data_t Ham_abs_terms{};
-        Tensor<1, data_t> Mom;
-        Tensor<1, data_t> Mom_abs_terms;
+        amrex::Real Ham{};
+        amrex::Real Ham_abs_terms{};
+        Tensor<1, amrex::Real> Mom;
+        Tensor<1, amrex::Real> Mom_abs_terms;
     };
 
     // Constructor which allows specifying Ham and Mom vars
@@ -65,18 +66,15 @@ class Constraints
                 const Interval &a_c_Moms_abs_terms = Interval(),
                 double cosmological_constant       = 0.0);
 
-    template <class data_t>
     AMREX_GPU_DEVICE void
-    compute(int i, int j, int k, const amrex::Array4<data_t> &cst,
-            const amrex::Array4<data_t const> &state) const;
+    compute(int i, int j, int k, const amrex::Array4<amrex::Real> &cst,
+            const amrex::Array4<amrex::Real const> &state) const;
 
     /// Adds the constraints to the derive list
     /// Call in variableSetUp()
-    AMREX_FORCE_INLINE
     static void set_up(int a_state_index, bool a_calc_mom_norm = false);
 
     // Has signature of DeriveFuncMF so that it can be stored in the derive_lst
-    AMREX_FORCE_INLINE
     static void compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
                            const amrex::MultiFab &src_mf,
                            const amrex::Geometry &geomdata,
@@ -95,17 +93,14 @@ class Constraints
     Interval m_c_Moms_abs_terms;
     double m_cosmological_constant;
 
-    template <class data_t, template <typename> class vars_t,
-              template <typename> class diff2_vars_t>
-    AMREX_GPU_DEVICE Vars<data_t> constraint_equations(
-        const vars_t<data_t> &vars, const vars_t<Tensor<1, data_t>> &d1,
-        const diff2_vars_t<Tensor<2, data_t>> &d2,
-        const Tensor<2, data_t> &h_UU, const chris_t<data_t> &chris) const;
+    template <class vars_t, class d1_vars_t, class d2_vars_t>
+    AMREX_GPU_DEVICE Vars constraint_equations(
+        const vars_t &vars, const d1_vars_t &d1, const d2_vars_t &d2,
+        const Tensor<2, amrex::Real> &h_UU, const chris_t &chris) const;
 
-    template <class data_t>
     AMREX_GPU_DEVICE void
-    store_vars(const Vars<data_t> &out,
-               const amrex::CellData<data_t> &current_cell) const;
+    store_vars(const Vars &out,
+               const amrex::CellData<amrex::Real> &current_cell) const;
 };
 
 #include "Constraints.impl.hpp"
