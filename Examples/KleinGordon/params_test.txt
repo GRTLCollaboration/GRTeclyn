@@ -16,8 +16,8 @@ N_full              =  64    # size of coarse grid
 # AMR parameters
 
 verbosity           =  1
-max_level           =  2     # maximum level number allowed
-regrid_interval     =  2 2 2 # how often to regrid
+max_level           =  0     # maximum level number allowed
+regrid_interval     =  2     # must be defined even if single level
 max_box_size        =  64    # maximum allowed grid size
 block_factor        =  16    # block factor
 
@@ -52,11 +52,19 @@ tag_buffer_size=1
 #Klein Gordon Parameters
 scalar_mass = 1
 # Choose from "Wave" or "SineGordon1D" or "SineGordon3D"
-# If "Wave" is specified then wave_vector must also be defined
-# If SineGordon is specified then alpha must also be defined
-# If SineGordon3D is specified then you also need an initial time
-# that can't be 0 because then the solution is uniformly 0
+
+# Example parameters for SineGordon models
+# NB: alpha must be defined
+# If SineGordon3D is specified then the initial time
+# can't be 0 because then the solution is uniformly 0
 
 model = SineGordon3D
 alpha = 0.7
 initial_time = -5.4;
+
+# Example parameters for Wave model
+# NB: wave_vector must be defined
+#model = Wave
+#wave_vector = 10.
+#scalar_mass = 1      # potential is scalar_mass^2 phi^2 - only relevant for Wave models
+
