@@ -1,3 +1,5 @@
+GRTECLYN_CEXE_sources += Constraints.cpp
+
 GRTECLYN_CEXE_headers += ADMConformalVars.hpp \
                          BSSNVars.hpp \
                          CCZ4Geometry.hpp \
