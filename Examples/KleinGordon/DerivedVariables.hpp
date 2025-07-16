@@ -1,3 +1,6 @@
+#ifndef DERIVEDVARIABLES_HPP
+#define DERIVEDVARIABLES_HPP
+
 #include <AMReX_BLFort.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Geometry.H>
@@ -7,8 +10,20 @@
 
 #include "InitialConditions.hpp"
 
-void calc_analytic_solution_mf(amrex::MultiFab &mf_out, int dcomp,
-                               int /*numcomp*/, const amrex::MultiFab &mf_in,
-                               const amrex::Geometry &geom,
-                               const amrex::Real time, const int * /*bcomp*/,
-                               int /*scomp*/);
+void calc_sine_gordon_1d_analytic_solution(
+    amrex::MultiFab &mf_out, int dcomp, int /*numcomp*/,
+    const amrex::MultiFab &mf_in, const amrex::Geometry &geom,
+    const amrex::Real time, const int * /*bcomp*/, int /*scomp*/);
+
+void calc_sine_gordon_3d_analytic_solution(
+    amrex::MultiFab &mf_out, int dcomp, int /*numcomp*/,
+    const amrex::MultiFab &mf_in, const amrex::Geometry &geom,
+    const amrex::Real time, const int * /*bcomp*/, int /*scomp*/);
+
+void calc_wave_analytic_solution(amrex::MultiFab &mf_out, int dcomp,
+                                 int /*numcomp*/, const amrex::MultiFab &mf_in,
+                                 const amrex::Geometry &geom,
+                                 const amrex::Real time, const int * /*bcomp*/,
+                                 int /*scomp*/);
+
+#endif // DERIVEDVARIABLES_HPP

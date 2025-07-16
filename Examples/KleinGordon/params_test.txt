@@ -50,7 +50,6 @@ sigma = 0.3 #coefficient for KO dissipation
 tag_buffer_size=1
 
 #Klein Gordon Parameters
-scalar_mass = 1
 # Choose from "Wave" or "SineGordon1D" or "SineGordon3D"
 
 # Example parameters for SineGordon models
@@ -62,9 +61,9 @@ model = SineGordon3D
 alpha = 0.7
 initial_time = -5.4;
 
+
 # Example parameters for Wave model
 # NB: wave_vector must be defined
 #model = Wave
 #wave_vector = 10.
 #scalar_mass = 1      # potential is scalar_mass^2 phi^2 - only relevant for Wave models
-

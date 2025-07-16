@@ -13,14 +13,45 @@ void KleinGordonLevel::variableSetUp()
     // Set up the state variables
     stateVariableSetUp();
 
-    // Set up derived variables
-    derive_lst.add(
-        "analytic_soln", amrex::IndexType::TheCellType(), 1,
-        calc_analytic_solution_mf, [=](const amrex::Box &box)
-        { return amrex::grow(box, simParams().num_ghosts); },
-        &amrex::cell_quartic_interp);
+    amrex::ParmParse pp;
 
-    derive_lst.addComponent("analytic_soln", desc_lst, State_Type, 0, 1);
+    std::string model;
+    pp.query("model", model);
+
+    amrex::Real scalar_mass{0.0};
+    pp.query("scalar_mass", scalar_mass);
+
+    // Set up derived variables
+    if (model == "SineGordon1D")
+    {
+        derive_lst.add(
+            "analytic_soln", amrex::IndexType::TheCellType(), 1,
+            calc_sine_gordon_1d_analytic_solution, [=](const amrex::Box &box)
+            { return amrex::grow(box, simParams().num_ghosts); },
+            &amrex::cell_quartic_interp);
+        derive_lst.addComponent("analytic_soln", desc_lst, State_Type, 0, 1);
+    }
+
+    if (model == "SineGordon3D")
+    {
+        derive_lst.add(
+            "analytic_soln", amrex::IndexType::TheCellType(), 1,
+            calc_sine_gordon_3d_analytic_solution, [=](const amrex::Box &box)
+            { return amrex::grow(box, simParams().num_ghosts); },
+            &amrex::cell_quartic_interp);
+        derive_lst.addComponent("analytic_soln", desc_lst, State_Type, 0, 1);
+    }
+
+    // This is a special case because the analytic solution assumes no potential
+    if (model == "Wave" && scalar_mass == 0)
+    {
+        derive_lst.add(
+            "analytic_soln", amrex::IndexType::TheCellType(), 1,
+            calc_sine_gordon_3d_analytic_solution, [=](const amrex::Box &box)
+            { return amrex::grow(box, simParams().num_ghosts); },
+            &amrex::cell_quartic_interp);
+        derive_lst.addComponent("analytic_soln", desc_lst, State_Type, 0, 1);
+    }
 }
 
 void KleinGordonLevel::initData()
@@ -40,7 +71,7 @@ void KleinGordonLevel::initData()
 
     if (simParams().model == "Wave")
     {
-        amrex::Real k_r;
+        amrex::Real k_r{10.0};
         pp.query("k_r", k_r);
 
         amrex::ParallelFor(
@@ -59,7 +90,7 @@ void KleinGordonLevel::initData()
     }
     else
     {
-        amrex::Real alpha;
+        amrex::Real alpha{0.7};
         pp.query("alpha", alpha);
 
         if (simParams().model == "SineGordon1D")
@@ -79,7 +110,7 @@ void KleinGordonLevel::initData()
         else
         {
 
-            amrex::Real initial_time = -5.4;
+            amrex::Real initial_time{-5.4};
 
             amrex::ParmParse pp;
             pp.query("initial_time", initial_time);
