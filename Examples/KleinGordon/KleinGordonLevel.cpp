@@ -40,7 +40,9 @@ void KleinGordonLevel::initData()
 
     if (simParams().model == "Wave")
     {
-        InitialConditions Wave(simParams().k_r);
+        amrex::Real k_r;
+        pp.query("k_r", k_r);
+
         amrex::ParallelFor(
             state_new,
             [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
@@ -50,14 +52,15 @@ void KleinGordonLevel::initData()
                 amrex::Real z = problo[2] + (k + 0.5) * dx[2] - center[2];
 
                 array_new[box_no](i, j, k, 0) =
-                    Wave.travelling_wave(x, y, z, 0);
+                    KleinGordon::travelling_wave(k_r, x, y, z, 0);
                 array_new[box_no](i, j, k, 1) =
-                    Wave.travelling_wave_deriv(x, y, z, 0);
+                    KleinGordon::travelling_wave_deriv(k_r, x, y, z, 0);
             });
     }
     else
     {
-        InitialConditions SineGordon(simParams().alpha);
+        amrex::Real alpha;
+        pp.query("alpha", alpha);
 
         if (simParams().model == "SineGordon1D")
         {
@@ -68,9 +71,9 @@ void KleinGordonLevel::initData()
                     amrex::Real x = problo[0] + (i + 0.5) * dx[0] - center[0];
 
                     array_new[box_no](i, j, k, 0) =
-                        SineGordon.breather_solution(x, 0);
+                        KleinGordon::breather_solution(alpha, x, 0);
                     array_new[box_no](i, j, k, 1) =
-                        SineGordon.breather_solution_deriv(x, 0);
+                        KleinGordon::breather_solution_deriv(alpha, x, 0);
                 });
         }
         else
@@ -90,7 +93,8 @@ void KleinGordonLevel::initData()
                     amrex::Real z = problo[2] + (k + 0.5) * dx[2] - center[2];
 
                     array_new[box_no](i, j, k, 0) =
-                        SineGordon.breather_solution(x, y, z, initial_time);
+                        KleinGordon::breather_solution(alpha, x, y, z,
+                                                       initial_time);
                     array_new[box_no](i, j, k, 1) = 0;
                 });
         }
