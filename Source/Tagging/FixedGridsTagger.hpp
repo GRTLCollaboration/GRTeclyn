@@ -28,7 +28,6 @@ class FixedGridsTagger
                      const std::array<double, AMREX_SPACEDIM> a_center)
         : m_dx(dx), m_L(a_L), m_level(a_level), m_center(a_center) {};
     // NOLINTEND(bugprone-easily-swappable-parameters)
-    template <class data_t>
     AMREX_GPU_DEVICE void
     operator()(int i, int j, int k,
                const amrex::Array4<amrex::TagBox::TagType> &tags) const
@@ -40,10 +39,11 @@ class FixedGridsTagger
 
         amrex::IntVect cell(AMREX_D_DECL(i, j, k));
 
-        const Coordinates<data_t> coords(cell, m_dx, m_center);
-        const data_t max_abs_xy =
+        const Coordinates coords(cell, m_dx, m_center);
+        const amrex::Real max_abs_xy =
             std::max(std::abs(coords.x), std::abs(coords.y));
-        const data_t max_abs_xyz = std::max(max_abs_xy, std::abs(coords.z));
+        const amrex::Real max_abs_xyz =
+            std::max(max_abs_xy, std::abs(coords.z));
 
         if (max_abs_xyz < m_L * ratio)
         {

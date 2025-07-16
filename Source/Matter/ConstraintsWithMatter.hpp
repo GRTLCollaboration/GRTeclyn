@@ -12,7 +12,6 @@
 #include "FourthOrderDerivatives.hpp"
 #include "GRInterval.hpp"
 #include "Tensor.hpp"
-#include "simd.hpp"
 #include <array>
 
 //!  Calculates the Hamiltonian and Momentum constraints with matter fields

@@ -9,6 +9,7 @@
 #include "DimensionDefinitions.hpp"
 #include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
+#include <cmath>
 
 namespace CoordinateTransformations
 {
@@ -22,10 +23,12 @@ static Tensor<2, amrex::Real> spherical_jacobian(const amrex::Real x,
     amrex::Real rho     = std::sqrt(rho2);
     amrex::Real min_rho = 1e-6;
     rho                 = (rho < min_rho) ? min_rho : rho;
-    amrex::Real r2      = x * x + y * y + z * z;
-    amrex::Real r       = std::sqrt(r2);
-    amrex::Real min_r   = 1e-6;
-    r                   = (r < min_r) ? min_r : r;
+    // NOLINTBEGIN [readability-identifier-length]
+    amrex::Real r2 = x * x + y * y + z * z;
+    amrex::Real r  = std::sqrt(r2);
+    // NOLINTEND [readability-identifier-length]
+    amrex::Real min_r = 1e-6;
+    r                 = (r < min_r) ? min_r : r;
 
     // And the sines and cosines of phi and theta
     amrex::Real cos_phi = x / rho;

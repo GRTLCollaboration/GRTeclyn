@@ -12,7 +12,6 @@
 #include "FourthOrderDerivatives.hpp"
 #include "Interval.hpp"
 #include "VarsTools.hpp"
-#include "simd.hpp"
 
 // AMReX Includes
 #include <AMReX_MultiFab.H>
