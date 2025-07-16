@@ -21,6 +21,8 @@ include $(AMREX_HOME)/Src/Particle/Make.package
 
 GRTECLYN_SOURCE = $(GRTECLYN_HOME)/Source
 
+GRTECLYN_TESTS_HOME = $(GRTECLYN_HOME)/Tests
+
 src_dirs := $(GRTECLYN_SOURCE)/AMRInterpolator \
             $(GRTECLYN_SOURCE)/BlackHoles \
             $(GRTECLYN_SOURCE)/CCZ4 \
@@ -29,11 +31,8 @@ src_dirs := $(GRTECLYN_SOURCE)/AMRInterpolator \
             $(GRTECLYN_SOURCE)/IO \
             $(GRTECLYN_SOURCE)/Maths \
             $(GRTECLYN_SOURCE)/Matter \
-            $(GRTECLYN_SOURCE)/simd \
-            $(GRTECLYN_SOURCE)/Tagging
-
-
-GRTECLYN_TESTS_HOME = $(GRTECLYN_HOME)/Tests
+            $(GRTECLYN_SOURCE)/Tagging \
+            $(GRTECLYN_TESTS_HOME)/simd
 
 
 # Find all directories that end in "Test" or "Tests"

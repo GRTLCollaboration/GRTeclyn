@@ -30,6 +30,7 @@ class TraceARemoval
     AMREX_GPU_HOST_DEVICE void
     operator()(const amrex::CellData<amrex::Real> &cell) const
     {
+        // NOLINTNEXTLINE [cppcoreguidelines-pro-type-member-init]
         Vars vars;
         load_vars(cell, vars);
 

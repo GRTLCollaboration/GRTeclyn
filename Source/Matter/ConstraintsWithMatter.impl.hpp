@@ -66,7 +66,6 @@ ConstraintsWithMatter<matter_t>::compute(
         }
     }
     // Write the constraints into the output FArrayBox
-
     store_vars(out, out_arrays.cellData(i, j, k));
 }
 

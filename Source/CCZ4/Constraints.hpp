@@ -17,8 +17,8 @@
 #include "Tensor.hpp"
 
 // AMReX includes
-#include <AMReX_AmrLevel.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_REAL.H>
 
 // System includes
 #include <array>
