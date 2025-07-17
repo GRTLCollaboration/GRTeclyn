@@ -19,9 +19,11 @@
 #include <AMReX_AmrLevel.H>
 
 template <class vars_t, class d1_vars_t, class d2_vars_t>
-AMREX_GPU_DEVICE Constraints::Vars Constraints::constraint_equations(
-    const vars_t &vars, const d1_vars_t &d1, const d2_vars_t &d2,
-    const Tensor<2, amrex::Real> &h_UU, const chris_t &chris) const
+AMREX_FORCE_INLINE AMREX_GPU_DEVICE Constraints::Vars
+Constraints::constraint_equations(const vars_t &vars, const d1_vars_t &d1,
+                                  const d2_vars_t &d2,
+                                  const Tensor<2, amrex::Real> &h_UU,
+                                  const chris_t &chris) const
 {
     Vars out;
 
