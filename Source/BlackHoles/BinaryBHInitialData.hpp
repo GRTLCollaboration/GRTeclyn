@@ -41,11 +41,12 @@ class BinaryBHInitialData
               const amrex::CellData<amrex::Real> &cell) const;
 
   protected:
-    AMREX_GPU_DEVICE [[nodiscard]] amrex::Real
-    compute_chi(Coordinates coords) const;
+    [[nodiscard]]
+    AMREX_GPU_DEVICE amrex::Real compute_chi(Coordinates coords) const;
 
-    AMREX_GPU_DEVICE [[nodiscard]] Tensor<2, amrex::Real>
-    compute_A(amrex::Real chi, Coordinates coords) const;
+    [[nodiscard]]
+    AMREX_GPU_DEVICE Tensor<2, amrex::Real> compute_A(amrex::Real chi,
+                                                      Coordinates coords) const;
 };
 
 #endif /* BINARYBHINITIALDATA_HPP_ */

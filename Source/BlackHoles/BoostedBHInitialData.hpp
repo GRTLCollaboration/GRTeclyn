@@ -29,12 +29,12 @@ class BoostedBHInitialData
     BoostedBHInitialData(params_t a_params);
 
     // conformal factor
-    AMREX_GPU_DEVICE [[nodiscard]] amrex::Real
-    psi_minus_one(Coordinates a_coords) const;
+    [[nodiscard]]
+    AMREX_GPU_DEVICE amrex::Real psi_minus_one(Coordinates a_coords) const;
 
     // extrinsic curvature
-    AMREX_GPU_DEVICE [[nodiscard]] Tensor<2, amrex::Real>
-    Aij(Coordinates a_coords) const;
+    [[nodiscard]]
+    AMREX_GPU_DEVICE Tensor<2, amrex::Real> Aij(Coordinates a_coords) const;
 
   private:
     params_t m_params;
