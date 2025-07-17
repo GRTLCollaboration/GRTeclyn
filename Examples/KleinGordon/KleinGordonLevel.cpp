@@ -13,124 +13,73 @@ void KleinGordonLevel::variableSetUp()
     // Set up the state variables
     stateVariableSetUp();
 
-    amrex::ParmParse pp;
+    const std::string &comp_type                = {"analytic_soln"};
+    const amrex::Vector<std::string> comp_names = {"phi_analytic",
+                                                   "Pi_analytic"};
 
-    std::string model;
-    pp.query("model", model);
-
-    amrex::Real scalar_mass{0.0};
-    pp.query("scalar_mass", scalar_mass);
-
-    // Set up derived variables
-    if (model == "SineGordon1D")
-    {
-        derive_lst.add(
-            "analytic_soln", amrex::IndexType::TheCellType(), 1,
-            calc_sine_gordon_1d_analytic_solution, [=](const amrex::Box &box)
-            { return amrex::grow(box, simParams().num_ghosts); },
-            &amrex::cell_quartic_interp);
-        derive_lst.addComponent("analytic_soln", desc_lst, State_Type, 0, 1);
-    }
-
-    if (model == "SineGordon3D")
-    {
-        derive_lst.add(
-            "analytic_soln", amrex::IndexType::TheCellType(), 1,
-            calc_sine_gordon_3d_analytic_solution, [=](const amrex::Box &box)
-            { return amrex::grow(box, simParams().num_ghosts); },
-            &amrex::cell_quartic_interp);
-        derive_lst.addComponent("analytic_soln", desc_lst, State_Type, 0, 1);
-    }
-
-    // This is a special case because the analytic solution assumes no potential
-    if (model == "Wave" && scalar_mass == 0)
-    {
-        derive_lst.add(
-            "analytic_soln", amrex::IndexType::TheCellType(), 1,
-            calc_sine_gordon_3d_analytic_solution, [=](const amrex::Box &box)
-            { return amrex::grow(box, simParams().num_ghosts); },
-            &amrex::cell_quartic_interp);
-        derive_lst.addComponent("analytic_soln", desc_lst, State_Type, 0, 1);
-    }
+    derive_lst.add(
+        comp_type, amrex::IndexType::TheCellType(),
+        static_cast<int>(comp_names.size()), comp_names, calc_analytic_solution,
+        [=](const amrex::Box &box)
+        { return amrex::grow(box, simParams().num_ghosts); },
+        &amrex::cell_quartic_interp);
+    derive_lst.addComponent("analytic_soln", desc_lst, State_Type, 0, 1);
 }
 
 void KleinGordonLevel::initData()
 {
     BL_PROFILE("KleinGordonLevel::initData()");
 
-    const auto problo = geom.ProbLoArray();
-    const auto dx     = geom.CellSizeArray();
-
     std::array<double, AMREX_SPACEDIM> center{};
+    std::string model{};
 
     amrex::ParmParse pp;
     pp.query("center", center);
+    pp.query("model", model);
 
     MultiFab &state_new   = get_new_data(State_Type);
     auto const &array_new = state_new.arrays();
 
-    if (simParams().model == "Wave")
+    int dcomp{0};
+    amrex::Real initial_time{0.0};
+    pp.query("initial_time", initial_time);
+
+    // NB: the analytic solutions are defined in InitialConditions.cpp
+    // The functions below are defined in DerivedVariables.cpp
+    if (model == "Wave")
     {
-        amrex::Real k_r{10.0};
-        pp.query("k_r", k_r);
+        calc_wave_analytic_solution(state_new, dcomp, geom, initial_time);
+
+        amrex::Real scalar_mass{0.0};
+        pp.query("scalar_mass", scalar_mass);
 
         amrex::ParallelFor(
-            state_new,
+            state_new, state_new.nGrowVect(),
             [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
             {
-                amrex::Real x = problo[0] + (i + 0.5) * dx[0] - center[0];
-                amrex::Real y = problo[1] + (j + 0.5) * dx[1] - center[1];
-                amrex::Real z = problo[2] + (k + 0.5) * dx[2] - center[2];
+                amrex::Real phi = array_new[box_no](i, j, k, dcomp);
 
-                array_new[box_no](i, j, k, 0) =
-                    KleinGordon::travelling_wave(k_r, x, y, z, 0);
-                array_new[box_no](i, j, k, 1) =
-                    KleinGordon::travelling_wave_deriv(k_r, x, y, z, 0);
+                amrex::Real V_of_phi =
+                    0.5 * scalar_mass * scalar_mass * phi * phi;
+
+                amrex::Real dVdphi = scalar_mass * scalar_mass * phi;
+
+                array_new[box_no](i, j, k, dcomp) += V_of_phi;
+
+                array_new[box_no](i, j, k, dcomp + 1) += dVdphi;
             });
+        amrex::Gpu::streamSynchronize();
+    }
+    else if (model == "SineGordon1D")
+    {
+        calc_sine_gordon_1d_analytic_solution(state_new, dcomp, geom,
+                                              initial_time);
     }
     else
     {
-        amrex::Real alpha{0.7};
-        pp.query("alpha", alpha);
-
-        if (simParams().model == "SineGordon1D")
-        {
-            amrex::ParallelFor(
-                state_new,
-                [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
-                {
-                    amrex::Real x = problo[0] + (i + 0.5) * dx[0] - center[0];
-
-                    array_new[box_no](i, j, k, 0) =
-                        KleinGordon::breather_solution(alpha, x, 0);
-                    array_new[box_no](i, j, k, 1) =
-                        KleinGordon::breather_solution_deriv(alpha, x, 0);
-                });
-        }
-        else
-        {
-
-            amrex::Real initial_time{-5.4};
-
-            amrex::ParmParse pp;
-            pp.query("initial_time", initial_time);
-
-            amrex::ParallelFor(
-                state_new,
-                [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
-                {
-                    amrex::Real x = problo[0] + (i + 0.5) * dx[0] - center[0];
-                    amrex::Real y = problo[1] + (j + 0.5) * dx[1] - center[1];
-                    amrex::Real z = problo[2] + (k + 0.5) * dx[2] - center[2];
-
-                    array_new[box_no](i, j, k, 0) =
-                        KleinGordon::breather_solution(alpha, x, y, z,
-                                                       initial_time);
-                    array_new[box_no](i, j, k, 1) = 0;
-                });
-        }
+        calc_sine_gordon_3d_analytic_solution(state_new, dcomp, geom,
+                                              initial_time);
     }
-    amrex::Gpu::streamSynchronize();
 }
 void KleinGordonLevel::specificAdvance()
 {
