@@ -177,19 +177,19 @@ class FourthOrderDerivatives
         amrex::Real weight_3 = -5.00000000000000000000e-1;
         amrex::Real weight_4 = +8.33333333333333333333e-2;
 
-        amrex::Real upwind;
-        upwind = vec_comp *
-                 (weight_0 * in_left + weight_1 * in_centre +
-                  weight_2 * in_right + weight_3 * in_ptr[idx + 2 * stride] +
-                  weight_4 * in_ptr[idx + 3 * stride]) *
-                 m_one_over_dx;
+        amrex::Real upwind =
+            vec_comp *
+            (weight_0 * in_left + weight_1 * in_centre + weight_2 * in_right +
+             weight_3 * in_ptr[idx + 2 * stride] +
+             weight_4 * in_ptr[idx + 3 * stride]) *
+            m_one_over_dx;
 
-        amrex::Real downwind;
-        downwind = vec_comp *
-                   (-weight_4 * in_ptr[idx - 3 * stride] -
-                    weight_3 * in_ptr[idx - 2 * stride] - weight_2 * in_left -
-                    weight_1 * in_centre - weight_0 * in_right) *
-                   m_one_over_dx;
+        amrex::Real downwind =
+            vec_comp *
+            (-weight_4 * in_ptr[idx - 3 * stride] -
+             weight_3 * in_ptr[idx - 2 * stride] - weight_2 * in_left -
+             weight_1 * in_centre - weight_0 * in_right) *
+            m_one_over_dx;
 
         return (shift_positive) ? upwind : downwind;
     }
@@ -217,8 +217,7 @@ class FourthOrderDerivatives
                 const auto *pvar = state_ptr_ijk + ivar * state.nstride;
                 FOR (dir)
                 {
-                    const bool shift_positive =
-                        (vector[dir] > 0.0) ? true : false;
+                    const bool shift_positive = (vector[dir] > 0.0);
                     var += advection_term(pvar, 0, vector[dir], strides[dir],
                                           shift_positive);
                 }
