@@ -7,6 +7,7 @@
 #define DEFAULTPOTENTIAL_HPP_
 
 #include "Tensor.hpp"
+#include <AMReX_REAL.H>
 
 class DefaultPotential
 {

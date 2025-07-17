@@ -8,9 +8,6 @@
 #include "GRInterval.hpp"
 #include "VarsTools.hpp"
 
-// AMReX includes
-#include <AMReX_AmrLevel.H>
-
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 Constraints::Constraints(double dx, int a_c_Ham, const Interval &a_c_Moms,
                          int a_c_Ham_abs_terms /*defaulted*/,

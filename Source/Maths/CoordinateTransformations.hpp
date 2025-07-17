@@ -53,6 +53,7 @@ static Tensor<2, amrex::Real>
 inverse_spherical_jacobian(const amrex::Real x, const double y, const double z)
 {
     // calculate useful position quantities
+    // NOLINTBEGIN [readability-identifier-length]
     amrex::Real rho2     = x * x + y * y;
     amrex::Real min_rho2 = 1e-12;
     rho2                 = (rho2 < min_rho2) ? min_rho2 : rho2;
@@ -61,6 +62,7 @@ inverse_spherical_jacobian(const amrex::Real x, const double y, const double z)
     amrex::Real r2       = x * x + y * y + z * z;
     r2                   = (r2 < min_r2) ? min_r2 : r2;
     amrex::Real r        = std::sqrt(r2);
+    // NOLINTEND [readability-identifier-length]
 
     // And the sines and cosines of phi and theta
     // data_t sin_theta = rho / r;
