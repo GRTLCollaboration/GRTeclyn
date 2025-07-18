@@ -32,53 +32,45 @@ void KleinGordonLevel::initData()
 
     std::array<double, AMREX_SPACEDIM> center{};
     std::string model{};
+    amrex::Real initial_time{0.0};
 
     amrex::ParmParse pp;
     pp.query("center", center);
     pp.query("model", model);
+    pp.query("initial_time", initial_time);
 
     MultiFab &state_new   = get_new_data(State_Type);
     auto const &array_new = state_new.arrays();
 
     int dcomp{0};
-    amrex::Real initial_time{0.0};
-    pp.query("initial_time", initial_time);
+    amrex::Real current_time{0.0}; // initial time is an internal parameter
+                                   // to the model class so the actual
+                                   // simulation time is what we want here
 
     // NB: the analytic solutions are defined in InitialConditions.cpp
     // The functions below are defined in DerivedVariables.cpp
     if (model == "Wave")
     {
-        calc_wave_analytic_solution(state_new, dcomp, geom, initial_time);
-
+        amrex::Real k_r{1.0};
         amrex::Real scalar_mass{0.0};
+        pp.query("wave_vector", k_r);
         pp.query("scalar_mass", scalar_mass);
-
-        amrex::ParallelFor(
-            state_new, state_new.nGrowVect(),
-            [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
-            {
-                amrex::Real phi = array_new[box_no](i, j, k, dcomp);
-
-                amrex::Real V_of_phi =
-                    0.5 * scalar_mass * scalar_mass * phi * phi;
-
-                amrex::Real dVdphi = scalar_mass * scalar_mass * phi;
-
-                array_new[box_no](i, j, k, dcomp) += V_of_phi;
-
-                array_new[box_no](i, j, k, dcomp + 1) += dVdphi;
-            });
-        amrex::Gpu::streamSynchronize();
+        Wave my_wave_model(k_r, scalar_mass, initial_time);
+        my_wave_model.calc_mf(state_new, dcomp, geom, current_time);
     }
     else if (model == "SineGordon1D")
     {
-        calc_sine_gordon_1d_analytic_solution(state_new, dcomp, geom,
-                                              initial_time);
+        amrex::Real alpha{0.7};
+        pp.query("alpha", alpha);
+        SineGordon sine_gordon_1d(alpha, initial_time);
+        sine_gordon_1d.calc_mf_1d(state_new, dcomp, geom, current_time);
     }
     else
     {
-        calc_sine_gordon_3d_analytic_solution(state_new, dcomp, geom,
-                                              initial_time);
+        amrex::Real alpha{0.7};
+        pp.query("alpha", alpha);
+        SineGordon sine_gordon_3d(alpha, initial_time);
+        sine_gordon_3d.calc_mf_3d(state_new, dcomp, geom, current_time);
     }
 }
 void KleinGordonLevel::specificAdvance()
@@ -97,18 +89,55 @@ void KleinGordonLevel::specificEvalRHS(amrex::MultiFab &a_soln,
     auto const &soln_arrs = a_soln.const_arrays();
     auto const &rhs_arrs  = a_rhs.arrays();
 
-    Potential my_potential(simParams().scalar_mass);
+    amrex::ParmParse pp;
 
-    KleinGordonRHS<FourthOrderDerivatives, Potential> klein_gordon_rhs(
-        simParams().sigma, dx, my_potential);
+    amrex::Real scalar_mass{0.0};
+    amrex::Real initial_time{0.0};
+    std::string model{};
 
-    amrex::ParallelFor(
-        a_soln,
-        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
+    pp.query("model", model);
+    pp.query("initial_time", initial_time);
+
+    // Here std::variant is used to allow dynamic polymorphism between two
+    // unrelated classes. my_model_variant can be either Wave or SineGordon,
+    // until the if statement selects a class based on the value of the string,
+    // model.
+
+    using ModelVariant = std::variant<Wave, SineGordon>;
+    ModelVariant my_model_variant;
+
+    if (model == "Wave")
+    {
+        my_model_variant = Wave{};
+    }
+    else
+    {
+        my_model_variant = SineGordon{};
+    }
+
+    // But! The KleinGordonRHS constructor doesn't accept a std::variant object
+    // in it's constructor. So std::visit is called to handle the multiple types
+    // that might be contained in a std::variant object. In this case, they are
+    // both model_t type but a variant could also be constructed from
+    // std::variant<string, int> or other such combo.
+
+    // Points to notice:
+    // * std::visit is using another lambda function as a visitor function on
+    // top of the one in ParallelFor (but captured by reference this time [&] )
+    // * the double ampersand is an rvalue reference - it prevents another copy
+    // being made since the object can be initialized by the move constructor
+    // instead
+
+    std::visit(
+        [&](auto &&my_model)
         {
-            klein_gordon_rhs.compute(i, j, k, soln_arrs[box_no],
-                                     rhs_arrs[box_no]);
-        });
+            KleinGordonRHS rhs(simParams().sigma, dx, my_model);
+            amrex::ParallelFor(
+                a_soln,
+                [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
+                { rhs.compute(i, j, k, soln_arrs[box_no], rhs_arrs[box_no]); });
+        },
+        my_model_variant);
 
     amrex::Gpu::streamSynchronize();
 }

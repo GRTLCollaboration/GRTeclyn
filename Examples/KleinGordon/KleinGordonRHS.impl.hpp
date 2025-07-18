@@ -12,10 +12,10 @@
 
 #include "KleinGordonRHS.hpp"
 
-template <class deriv_t, class potential_t>
+template <class model_t, class deriv_t>
 template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-KleinGordonRHS<deriv_t, potential_t>::compute(
+KleinGordonRHS<model_t, deriv_t>::compute(
     int i, int j, int k, const amrex::Array4<data_t const> &input,
     const amrex::Array4<data_t> &output) const
 
@@ -32,11 +32,11 @@ KleinGordonRHS<deriv_t, potential_t>::compute(
     store_vars(output.cellData(i, j, k), rhs);
 }
 
-template <class deriv_t, class potential_t>
+template <class model_t, class deriv_t>
 template <class data_t, template <typename> class vars_t,
           template <typename> class diff2_vars_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-KleinGordonRHS<deriv_t, potential_t>::rhs_equation(
+KleinGordonRHS<model_t, deriv_t>::rhs_equation(
     vars_t<data_t> &rhs, const vars_t<data_t> &vars,
     const vars_t<Tensor<1, data_t>> &d1,
     const diff2_vars_t<Tensor<2, data_t>> &d2) const
@@ -48,7 +48,7 @@ KleinGordonRHS<deriv_t, potential_t>::rhs_equation(
     data_t V_of_phi = 0.0;
     data_t dVdphi   = 0.0;
 
-    m_potential.compute_sine_gordon(V_of_phi, dVdphi, vars);
+    m_model.compute_potential(V_of_phi, dVdphi, vars);
 
     rhs.Pi += dVdphi;
 }

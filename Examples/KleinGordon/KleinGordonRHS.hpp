@@ -6,24 +6,23 @@
 #ifndef KLEINGORDONRHS_HPP_
 #define KLEINGORDONRHS_HPP_
 
+// GRTeclyn includes
 #include "Cell.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "TensorAlgebra.hpp"
 #include "VarsTools.hpp"
 
 // Problem specific includes
-#include "Potential.hpp"
 #include "StateVariables.hpp"
 
-template <class deriv_t = FourthOrderDerivatives, class potential_t = Potential>
+template <class model_t, class deriv_t = FourthOrderDerivatives>
 class KleinGordonRHS
 {
   public:
 
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-    KleinGordonRHS(amrex::Real a_sigma, amrex::Real a_dx,
-                   const potential_t a_potential)
-        : m_sigma(a_sigma), m_deriv(a_dx), m_potential(a_potential) {};
+    KleinGordonRHS(amrex::Real a_sigma, amrex::Real a_dx, model_t a_model)
+        : m_sigma(a_sigma), m_deriv(a_dx), m_model(a_model) {};
 
     template <class data_t> struct Vars
     {
@@ -53,11 +52,10 @@ class KleinGordonRHS
     compute(int i, int j, int k, const amrex::Array4<data_t const> &input,
             const amrex::Array4<data_t> &output) const;
 
-
   private:
     amrex::Real m_sigma;
     deriv_t m_deriv;
-    potential_t m_potential;
+    model_t m_model;
 
     template <class data_t, template <typename> class vars_t,
               template <typename> class diff2_vars_t>

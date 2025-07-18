@@ -1,11 +1,11 @@
 CEXE_sources += DerivedVariables.cpp \
                 KleinGordonLevel.cpp \
-		Main_KleinGordon.cpp
+                Main_KleinGordon.cpp
 
 CEXE_headers += DerivedVariables.hpp \
-                InitialConditions.hpp \
-		KleinGordonLevel.hpp \
-		KleinGordonRHS.hpp \
-		Potential.hpp \
-		SimulationParameters.hpp \
-		StateVariables.hpp
+                KleinGordonLevel.hpp \
+                KleinGordonRHS.hpp \
+                SimulationParameters.hpp \
+                SineGordon.hpp \
+                StateVariables.hpp \
+                Wave.hpp
