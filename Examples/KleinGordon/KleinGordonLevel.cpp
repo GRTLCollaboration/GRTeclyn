@@ -43,34 +43,24 @@ void KleinGordonLevel::initData()
     auto const &array_new = state_new.arrays();
 
     int dcomp{0};
-    amrex::Real current_time{0.0}; // initial time is an internal parameter
-                                   // to the model class so the actual
-                                   // simulation time is what we want here
+    const amrex::Real current_time{
+        0.0}; // initial time is an internal parameter
+              // to the model class so the actual
+              // simulation time is what we want here
 
     // NB: the analytic solutions are defined in InitialConditions.cpp
     // The functions below are defined in DerivedVariables.cpp
     if (model == "Wave")
     {
-        amrex::Real k_r{1.0};
-        amrex::Real scalar_mass{0.0};
-        pp.query("wave_vector", k_r);
-        pp.query("scalar_mass", scalar_mass);
-        Wave my_wave_model(k_r, scalar_mass, initial_time);
-        my_wave_model.calc_mf(state_new, dcomp, geom, current_time);
+        calc_analytic_mf_3d<Wave>(state_new, dcomp, geom, current_time);
     }
     else if (model == "SineGordon1D")
     {
-        amrex::Real alpha{0.7};
-        pp.query("alpha", alpha);
-        SineGordon sine_gordon_1d(alpha, initial_time);
-        sine_gordon_1d.calc_mf_1d(state_new, dcomp, geom, current_time);
+        calc_analytic_mf_1d<SineGordon>(state_new, dcomp, geom, current_time);
     }
     else
     {
-        amrex::Real alpha{0.7};
-        pp.query("alpha", alpha);
-        SineGordon sine_gordon_3d(alpha, initial_time);
-        sine_gordon_3d.calc_mf_3d(state_new, dcomp, geom, current_time);
+        calc_analytic_mf_3d<SineGordon>(state_new, dcomp, geom, current_time);
     }
 }
 void KleinGordonLevel::specificAdvance()
@@ -91,7 +81,6 @@ void KleinGordonLevel::specificEvalRHS(amrex::MultiFab &a_soln,
 
     amrex::ParmParse pp;
 
-    amrex::Real scalar_mass{0.0};
     amrex::Real initial_time{0.0};
     std::string model{};
 
@@ -149,7 +138,6 @@ void KleinGordonLevel::tag_cells(amrex::TagBoxArray &tags,
 
     amrex::MultiFab &state_new = get_new_data(State_Type);
 
-    const char tagval      = TagBox::SET;
     const auto &tag_arrs   = tags.arrays();
     const auto &state_arrs = state_new.arrays();
 

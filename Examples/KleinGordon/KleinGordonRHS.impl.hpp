@@ -53,4 +53,4 @@ KleinGordonRHS<model_t, deriv_t>::rhs_equation(
     rhs.Pi += dVdphi;
 }
 
-#endif
+#endif // KLEINGORDONRHS_IMPL_HPP_

@@ -5,6 +5,7 @@
 #include <cmath>
 // AMReX includes
 #include <AMReX_MultiFab.H>
+#include <AMReX_ParmParse.H>
 // GRTeclyn includes
 #include "simd.hpp"
 // KleinGordon includes
@@ -12,19 +13,21 @@
 
 class SineGordon
 {
-  private:
-    const amrex::Real m_alpha;
-    const amrex::Real m_t0;
-
   public:
-    SineGordon() = default;
+    amrex::Real m_alpha{0.7};
+    amrex::Real m_t0{0.0};
 
-    SineGordon(amrex::Real a_alpha, amrex::Real a_initial_time)
-        : m_alpha(a_alpha), m_t0(a_initial_time) {};
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+    SineGordon()
+    {
+        amrex::ParmParse pp;
+        pp.query("alpha", m_alpha);
+        pp.query("initial_time", m_t0);
+    };
 
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
-    calculate(const amrex::Real x, const amrex::Real t)
+    calculate(const amrex::Real x, const amrex::Real t) const
     // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         // Sine Gordon 1D breather solution
@@ -35,7 +38,7 @@ class SineGordon
     };
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-    calculate_derivative(const amrex::Real x, const amrex::Real t)
+    calculate_derivative(const amrex::Real x, const amrex::Real t) const
     {
         amrex::Real beta = std::sqrt(1.0 - m_alpha * m_alpha);
 
@@ -61,7 +64,7 @@ class SineGordon
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
     calculate(const amrex::Real x, const amrex::Real y, const amrex::Real z,
-              const amrex::Real t)
+              const amrex::Real t) const
     // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         amrex::Real beta = std::sqrt(1.0 - m_alpha * m_alpha);
@@ -77,6 +80,19 @@ class SineGordon
                          std::cosh(m_alpha * z));
     };
 
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters,
+    // readability-convert-member-functions-to-static)
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+    calculate_derivative(const amrex::Real x, const amrex::Real y,
+                         const amrex::Real z, const amrex::Real t) const
+    // NOLINTEND(bugprone-easily-swappable-parameters,
+    // readability-convert-member-functions-to-static)
+    {
+        // Sine Gordon 3D psuedo-breather solution
+
+        return 0.0;
+    };
+
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     template <class data_t, template <typename> class vars_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
@@ -87,61 +103,6 @@ class SineGordon
         V_of_phi = std::sin(vars.phi);
 
         dVdphi = std::cos(vars.phi);
-    }
-
-    void calc_mf_1d(amrex::MultiFab &mf_out, int dcomp,
-                    const amrex::Geometry &geom, const amrex::Real time)
-    {
-        amrex::ParmParse pp;
-
-        // Get the geometry of the problem
-        const auto problo = geom.ProbLoArray();
-        const auto dx     = geom.CellSizeArray();
-
-        std::array<double, AMREX_SPACEDIM> center{};
-        pp.query("center", center);
-
-        auto const &arrs = mf_out.arrays();
-
-        amrex::ParallelFor(
-            mf_out, mf_out.nGrowVect(),
-            [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
-            {
-                amrex::Real x = problo[0] + (i + 0.5) * dx[0] - center[0];
-
-                arrs[box_no](i, j, k, dcomp) = calculate(x, time);
-                arrs[box_no](i, j, k, dcomp + 1) =
-                    calculate_derivative(x, time);
-            });
-        amrex::Gpu::streamSynchronize();
-    }
-
-    void calc_mf_3d(amrex::MultiFab &mf_out, int dcomp,
-                    const amrex::Geometry &geom, const amrex::Real time)
-    {
-        amrex::ParmParse pp;
-
-        // Get the geometry of the problem
-        const auto problo = geom.ProbLoArray();
-        const auto dx     = geom.CellSizeArray();
-
-        std::array<double, AMREX_SPACEDIM> center{};
-        pp.query("center", center);
-
-        auto const &arrs = mf_out.arrays();
-
-        amrex::ParallelFor(
-            mf_out, mf_out.nGrowVect(),
-            [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
-            {
-                amrex::Real x = problo[0] + (i + 0.5) * dx[0] - center[0];
-                amrex::Real y = problo[1] + (j + 0.5) * dx[1] - center[1];
-                amrex::Real z = problo[2] + (k + 0.5) * dx[2] - center[2];
-
-                arrs[box_no](i, j, k, dcomp)     = calculate(x, y, z, time);
-                arrs[box_no](i, j, k, dcomp + 1) = 0.0;
-            });
-        amrex::Gpu::streamSynchronize();
     }
 };
 #endif // SINEGORDON_HPP_

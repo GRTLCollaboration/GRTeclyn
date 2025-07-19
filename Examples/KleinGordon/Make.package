@@ -1,8 +1,8 @@
-CEXE_sources += DerivedVariables.cpp \
-                KleinGordonLevel.cpp \
+CEXE_sources += KleinGordonLevel.cpp \
                 Main_KleinGordon.cpp
 
 CEXE_headers += DerivedVariables.hpp \
+                DerivedVariables.impl.hpp \
                 KleinGordonLevel.hpp \
                 KleinGordonRHS.hpp \
                 SimulationParameters.hpp \

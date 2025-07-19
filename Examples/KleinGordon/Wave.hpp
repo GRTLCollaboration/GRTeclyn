@@ -5,6 +5,7 @@
 #include <cmath>
 // AMReX includes
 #include <AMReX_MultiFab.H>
+#include <AMReX_ParmParse.H>
 // GRTeclyn includes
 #include "simd.hpp"
 // KleinGordon includes
@@ -12,21 +13,24 @@
 
 class Wave
 {
-  private:
-    const amrex::Real m_k_r;
-    const amrex::Real m_mass;
-    const amrex::Real m_t0;
-
   public:
-    Wave() = default;
+    amrex::Real m_k_r{1.0};
+    amrex::Real m_mass{0.0};
+    amrex::Real m_t0{0.0};
 
-    Wave(amrex::Real a_k_r, amrex::Real a_mass, amrex::Real a_initial_time)
-        : m_k_r(a_k_r), m_mass(a_mass), m_t0(a_initial_time) {};
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+    Wave()
+    {
+        amrex::ParmParse pp;
+        pp.query("wave_vector", m_k_r);
+        pp.query("scalar_mass", m_mass);
+        pp.query("initial_time", m_t0);
+    };
 
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
     calculate(const amrex::Real x, const amrex::Real y, const amrex::Real z,
-              const amrex::Real t)
+              const amrex::Real t) const
     // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         amrex::Real omega = m_k_r;
@@ -41,7 +45,7 @@ class Wave
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
     calculate_derivative(const amrex::Real x, const amrex::Real y,
-                         const amrex::Real z, const amrex::Real t)
+                         const amrex::Real z, const amrex::Real t) const
     // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         amrex::Real omega = m_k_r;
@@ -65,34 +69,6 @@ class Wave
 
         dVdphi = m_mass * m_mass * vars.phi;
     }
-
-    void calc_mf(amrex::MultiFab &mf_out, int dcomp,
-                 const amrex::Geometry &geom, const amrex::Real time)
-    {
-        amrex::ParmParse pp;
-
-        // Get the geometry of the problem
-        const auto problo = geom.ProbLoArray();
-        const auto dx     = geom.CellSizeArray();
-
-        std::array<double, AMREX_SPACEDIM> center{};
-        pp.query("center", center);
-
-        auto const &arrs = mf_out.arrays();
-
-        amrex::ParallelFor(
-            mf_out, mf_out.nGrowVect(),
-            [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
-            {
-                amrex::Real x = problo[0] + (i + 0.5) * dx[0] - center[0];
-                amrex::Real y = problo[1] + (j + 0.5) * dx[1] - center[1];
-                amrex::Real z = problo[2] + (k + 0.5) * dx[2] - center[2];
-
-                arrs[box_no](i, j, k, dcomp) = calculate(x, y, z, time);
-                arrs[box_no](i, j, k, dcomp + 1) =
-                    calculate_derivative(x, y, z, time);
-            });
-        amrex::Gpu::streamSynchronize();
-    }
 };
+
 #endif // WAVE_HPP_
