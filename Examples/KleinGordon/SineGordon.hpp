@@ -33,8 +33,8 @@ class SineGordon
         // Sine Gordon 1D breather solution
         amrex::Real beta = std::sqrt(1.0 - m_alpha * m_alpha);
 
-        return 4 * std::atan(beta * std::cos(m_alpha * (t + m_t0)) / m_alpha /
-                             std::cosh(beta * x));
+        return 4.0 * std::atan(beta * std::cos(m_alpha * (t + m_t0)) / m_alpha /
+                               std::cosh(beta * x));
     };
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
@@ -43,22 +43,17 @@ class SineGordon
         amrex::Real beta = std::sqrt(1.0 - m_alpha * m_alpha);
 
         // First derivative of Sine Gordon 1D breather solution
-        amrex::Real x1_origin = 0;
-        amrex::Real x2_origin = 0;
-        amrex::Real v         = 0;
 
-        amrex::Real y1_origin = (t + m_t0) - v * x + x1_origin;
-        amrex::Real y2_origin = x - v * (t + m_t0) + x2_origin;
+        // Using cosh^2 (beta*x) = 1/2(1+cosh(2*beta*x)) and
+        // cos^2(alpha*x) = 0.5*(1+cos(2*beta*x))
 
-        amrex::Real numerator = m_alpha * std::sin(m_alpha * y1_origin) *
-                                std::cosh(beta * y2_origin);
-        amrex::Real denominator = m_alpha * m_alpha *
-                                      std::cosh(beta * y2_origin) *
-                                      std::cosh(beta * y2_origin) +
-                                  beta * beta * std::cos(m_alpha * y1_origin) *
-                                      std::cos(m_alpha * y1_origin);
+        amrex::Real numerator =
+            m_alpha * std::sin(m_alpha * (t + m_t0)) * std::cosh(beta * x);
+        amrex::Real denominator =
+            0.5 * m_alpha * m_alpha * (1.0 + std::cosh(2.0 * beta * x)) +
+            0.5 * beta * beta * (1.0 + std::cos(2.0 * beta * x));
 
-        return -4 * m_alpha * beta * numerator / denominator;
+        return -4.0 * m_alpha * beta * numerator / denominator;
     };
 
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
@@ -71,7 +66,7 @@ class SineGordon
 
         // Sine Gordon 3D psuedo-breather solution
 
-        return 4 * 4 * 4 *
+        return 4.0 * 4.0 * 4.0 *
                std::atan(m_alpha * std::sin(beta * (t + m_t0)) / beta /
                          std::cosh(m_alpha * x)) *
                std::atan(m_alpha * std::sin(beta * (t + m_t0)) / beta /
