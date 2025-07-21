@@ -26,7 +26,7 @@ class InitialBackgroundData
 			double phi0; //!< Amplitude of k=0 mode of initial SF
 			double Pi0;  //!< Amplitude of initial SF velocity
 			double m;    //!< SF mass
-			double E = 1.;    //!< Energy scale [Mp]
+			//double E = 1.;    //!< Energy scale [Mp]
 		};
 
 		InitialBackgroundData(params_t a_params)
@@ -51,12 +51,12 @@ class InitialBackgroundData
         		FOR (index)
             			vars.h[index][index] = 1.;
 
-			const double Mp = 1./m_params.E;
+			//const double Mp = 1./m_params.E;
 
 			const double phi = m_params.phi0;
 			const double Pi = m_params.Pi0;
-			const double H0 = sqrt((8. * M_PI/3./pow(Mp, 2.))*0.5*(pow(Pi, 2.) 
-						+ pow(m_params.m * phi, 2.0)));
+			const double H0 = sqrt((8. * M_PI/3.)*0.5*(pow(Pi, 2.) 
+						+ pow(m_params.m * phi, 2.0))); ///pow(Mp, 2.)
 
 			vars.phi = phi;
 			vars.Pi = Pi;

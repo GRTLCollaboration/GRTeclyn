@@ -105,7 +105,7 @@ inline void RandomField::Test_is_trace_free(MultiFab &field)
 ****/
 
 // Generate unique random draws for each MFI box.
-inline void RandomField::make_random_draws(auto &rand_fab, Box &domain)
+inline void RandomField::make_random_draws(FabArray<BaseFab<GpuArray<Real, 4>>> &rand_fab, Box &domain)
 {
     BoxArray ba = rand_fab.boxArray();
     DistributionMapping dm = rand_fab.DistributionMap();
@@ -261,7 +261,7 @@ inline Vector<Real> RandomField::calculate_basis_vector(const IntVect iv, const 
 
     if(which_vector == 0) { return mhat; }
     else if(which_vector == 1) { return nhat; }
-    else { Error("RandomField::calculate_basis_vector Incompatable vector type."); }
+    else { Error("RandomField::calculate_basis_vector Incompatable vector type."); return mhat; }
 }
 
 // Assembles full tensor initial conditions given two mode functions
@@ -488,6 +488,11 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
     else if (m_params.bin_number > kiso_max/dkiso)
     {
         Error("RandomField::print_power_spectrum Bin number is too large.");
+    }
+    // check your bin number isn't greater than the max resolvable bins
+    else if(m_params.bin_number > m_params.N_readin/2)
+    {
+        Error("RandomField::print_power_spectrum bin number must be less than N/2.");
     }
 
     // Set up isotropic k axis and PS map

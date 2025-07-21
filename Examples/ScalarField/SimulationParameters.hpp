@@ -32,18 +32,18 @@ class SimulationParameters : public SimulationParametersBase
             center; // already read in SimulationParametersBase
          pp.load("G_Newton", G_Newton,
                  0.0); // for now the example neglects backreaction
-	    pp.load("scalar_mass", potential_params.scalar_mass, 0.1);	
+	    pp.load("potential_param_1", potential_params.scalar_mass, 0.1);	
 
-	    pp.load("scalar_amplitude", background_params.phi0, 0.0);
-	    pp.load("scalar_velocity", background_params.Pi0, 0.0);
-        pp.load("scalar_mass", background_params.m, 0.0);
+	    pp.load("background_phi", background_params.phi0, 0.0);
+	    pp.load("background_dphi", background_params.Pi0, 0.0);
+        pp.load("potential_param_1", background_params.m, 0.0);
 
         pp.load("num_scalar_fields", random_field_params.num_scalar_fields, 0);
         pp.load("calc_tensor_field", random_field_params.calc_tensor_field, 0);
-        pp.load("L_full", random_field_params.L, 1.);
+        pp.load("L", random_field_params.L, 1.);
         pp.load("A", random_field_params.A, 1.);
-        pp.load("N_full", random_field_params.N_readin, 32);
-        pp.load("N_fine", random_field_params.N_fine, random_field_params.N_readin);
+        pp.load("N", random_field_params.N_readin, 32);
+        //pp.load("N_fine", random_field_params.N_fine, random_field_params.N_readin);
         pp.load("use_rand", random_field_params.use_rand, 1);
         pp.load("random_seed", random_field_params.random_seed, 3539263);
 

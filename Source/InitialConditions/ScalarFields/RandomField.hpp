@@ -53,7 +53,7 @@ class RandomField
             double Delta;               //!< window's width, measured like L/Delta
 
             int calc_binned_power_spectrum = 0;   //!< Choose whether to extract the binned power spectrum
-            int bin_number = N_readin/2;          //!< How many bins to use (capped at N/2)
+            int bin_number;                   //!< How many bins to use (capped at N/2)
             int calc_higher_order_statistics = 0; //!< Choose whether to print higher-order statistics on the fields
             int num_orders;
             Vector<int> orders;                   //!< Moment orders to print for extracted fields
@@ -123,7 +123,7 @@ class RandomField
         void print_power_spectrum(cMultiFab &field_array, SmallDataIO &power_spec_file, const int component);
         Real find_field_moment_x(MultiFab &field, const Vector<Real> mean, 
                                  const int moment, const int component);
-        void make_random_draws(auto &rand_fab, Box &domain);
+        void make_random_draws(FabArray<BaseFab<GpuArray<Real, 4>>> &rand_fab, Box &domain);
 
     protected:
         const params_t m_params;
