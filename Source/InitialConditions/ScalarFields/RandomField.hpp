@@ -35,7 +35,6 @@ class RandomField
         //! A structure for storing parameters essential to this class
         struct params_t 
         {
-            int num_scalar_fields;      //!< Number of fields to generate
             int calc_tensor_field;      //!< Determines whether tensor perturbations are calculated
             int use_rand = 1;           //!< Choose whether to use random initial conditions
             int random_seed = 3539263;  //!< Seed for random number generator
@@ -57,6 +56,11 @@ class RandomField
             int calc_higher_order_statistics = 0; //!< Choose whether to print higher-order statistics on the fields
             int num_orders;
             Vector<int> orders;                   //!< Moment orders to print for extracted fields
+
+            int read_from_stoiic = 0.;
+            Vector<Real> init_k;
+            Vector<Vector<Real>> scalar_ps;       //!< Structure: four fields * two components, power spec values
+            Vector<Vector<Real>> tensor_ps;       //!< Structure: two fields * two components, power spec values
         };
 
         RandomField(params_t a_params, InitialBackgroundData::params_t a_background_params)
@@ -110,9 +114,12 @@ class RandomField
         void Test_is_trace_free(MultiFab &field);
 
         // Initialisation routines 
-        GpuComplex<Real> calculate_mode_function(const double km, const std::string spec_type);
-        GpuComplex<Real> calculate_random_field(const IntVect iv, const std::string spectrum_type, 
-                                                const Real rand_amp, const Real rand_phase);
+        GpuComplex<Real> calculate_mode_function(const double km, const int spec_indx);
+        int find_k_index(const double km);
+        GpuComplex<Real> find_in_stoiic(const double km, const int field_indx, std::string field_type);
+        GpuComplex<Real> calculate_random_field(const IntVect iv, const int field_index, 
+                                                const Real rand_amp, const Real rand_phase, 
+                                                std::string field_type);
         Vector<Real> calculate_basis_vector(const IntVect iv, const int which_vector);
         GpuComplex<Real> calculate_tensor_initial_conditions(const IntVect iv, const int l, const int p, 
                                                              const GpuComplex<Real> plus_field, 
@@ -123,7 +130,7 @@ class RandomField
         void print_power_spectrum(cMultiFab &field_array, SmallDataIO &power_spec_file, const int component);
         Real find_field_moment_x(MultiFab &field, const Vector<Real> mean, 
                                  const int moment, const int component);
-        void make_random_draws(FabArray<BaseFab<GpuArray<Real, 4>>> &rand_fab, Box &domain);
+        void make_random_draws(MultiFab &rand_fab, Box &domain);
 
     protected:
         const params_t m_params;

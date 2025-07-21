@@ -138,8 +138,8 @@ void ScalarFieldLevel::initData()
             FLRW_background.compute(i, j, k, state_array[box_ind]);
         });
 
-    //RandomField random_field_initialiser(simParams().random_field_params, simParams().background_params);
-    //random_field_initialiser.init(state);
+    RandomField random_field_initialiser(simParams().random_field_params, simParams().background_params);
+    random_field_initialiser.init(state);
 
     if (simParams().nan_check)
     {

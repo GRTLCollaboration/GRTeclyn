@@ -7,9 +7,9 @@
 verbosity = 0
 
 # location / naming of output files
-output_path = /cephfs/store/gr-eps1/eaf49/stoiic-test
-amr.check_file = /cephfs/store/gr-eps1/eaf49/stoiic-test/output/chk_
-amr.plot_file = /cephfs/store/gr-eps1/eaf49/stoiic-test/output/plt_
+output_path = /cephfs/store/gr-eps1/eaf49/stoiic-test/
+amr.check_file = /cephfs/store/gr-eps1/eaf49/stoiic-test/hdf5/chk_
+amr.plot_file = /cephfs/store/gr-eps1/eaf49/stoiic-test/hdf5/plt_
 # restart_file = /cephfs/store/gr-eps1/eaf49/stoiic-test/output/chk_000000.3d.hdf5
 
 # HDF5files are written every dt = L/N*dt_multiplier*checkpoint_interval
@@ -63,7 +63,6 @@ G_Newton = 0.039788735772973836
 background_phi = 13.664143398487044
 background_dphi = 1.414080601431222e-06
 
-
 # Potential type (1 = quadratic, 2 = USR, 3 = quadratic + bumps, 4 = quadratic + bump)
 potential_type = 1
 potential_param_1 = 1.7349447958987209e-06
@@ -73,7 +72,7 @@ potential_param_4 = 1
 potential_param_5 = 1
 
 # Random Field initial data
-num_scalar_fields = 3
+read_from_stoiic = 0
 calc_tensor_field = 1
 use_rand = 1
 random_seed = 3539263

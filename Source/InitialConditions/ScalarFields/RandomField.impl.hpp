@@ -105,11 +105,11 @@ inline void RandomField::Test_is_trace_free(MultiFab &field)
 ****/
 
 // Generate unique random draws for each MFI box.
-inline void RandomField::make_random_draws(FabArray<BaseFab<GpuArray<Real, 4>>> &rand_fab, Box &domain)
+inline void RandomField::make_random_draws(MultiFab &rand_fab, Box &domain)
 {
     BoxArray ba = rand_fab.boxArray();
     DistributionMapping dm = rand_fab.DistributionMap();
-    FabArray<BaseFab<GpuArray<Real, 4>>> tmp(ba, dm, 1, 0, MFInfo{}.SetArena(The_Cpu_Arena()));
+    MultiFab tmp(ba, dm, 6, 0, MFInfo{}.SetArena(The_Cpu_Arena()));
 
     for(MFIter mfi(tmp); mfi.isValid(); ++mfi)
     {
@@ -119,17 +119,16 @@ inline void RandomField::make_random_draws(FabArray<BaseFab<GpuArray<Real, 4>>> 
         std::mt19937 generator;
         std::uniform_real_distribution<Real> distribution(Real(0), Real(1));
 
-        auto offset = domain.index(bx.smallEnd()) * 4;
+        auto offset = domain.index(bx.smallEnd()) * 6;
         for(int ofs = 0; ofs < offset; ofs++)
         {
             distribution(generator);
         }
         amrex::LoopOnCpu(bx, [&] (int i, int j, int k)
         {
-            auto &field_point = tmp_ptr(i, j, k);
-            for(int l=0; l<4; l++)
+            for(int l=0; l<6; l++)
             {
-                field_point[l] = distribution(generator);
+                tmp_ptr(i, j, k, l) = distribution(generator);
             }
         });
     }
@@ -138,7 +137,7 @@ inline void RandomField::make_random_draws(FabArray<BaseFab<GpuArray<Real, 4>>> 
 }
 
 // Returns analytic power spectrum in modulus/argument form
-inline GpuComplex<Real> RandomField::calculate_mode_function(const double km, const std::string spec_type)
+inline GpuComplex<Real> RandomField::calculate_mode_function(const double km, const int spec_indx)
 {
     // Deals with k=0 case, which is undefined if m=0
     if(km < 1.e-23) { return 0.; }
@@ -153,12 +152,12 @@ inline GpuComplex<Real> RandomField::calculate_mode_function(const double km, co
                     + pow(m_background_params.Pi0, 2.)));
 
     double kpr = km/H0;
-    if (spec_type == "position") // Position mode funcion
+    if (spec_indx == 0) // Position mode funcion
     {
         ms_mag = sqrt((1.0/km + H0*H0/pow(km, 3.))/2.);
         ms_arg = atan2((cos(kpr) + kpr*sin(kpr)), (kpr*cos(kpr) - sin(kpr)));
     }
-    else if (spec_type == "velocity") // Velocity mode funcion
+    else if (spec_indx == 1) // Velocity mode funcion
     {
         ms_mag = sqrt(km/2.);
         ms_arg = -atan2(cos(kpr), sin(kpr));
@@ -170,9 +169,35 @@ inline GpuComplex<Real> RandomField::calculate_mode_function(const double km, co
     return ps;
 }
 
+inline int RandomField::find_k_index(const double km)
+{
+    for(int idx=0; idx<m_params.init_k.size(); idx++)
+    {
+        if(std::abs(km - m_params.init_k[idx]) < 1e-15) { return idx; }
+    }
+    Print() << "Mode: " << km << "\n";
+    Error("RandomField::find_k_index this mode is unaccounted for in the stoiic input.");
+    return 0.;
+}
+
+inline GpuComplex<Real> RandomField::find_in_stoiic(const double km, const int field_indx, std::string field_type)
+{
+    int spec_index = find_k_index(km);
+    if(field_type == "tensor")
+    {
+        return GpuComplex<Real>{m_params.tensor_ps[2*field_indx][spec_index], m_params.tensor_ps[2*field_indx+1][spec_index]};
+    }
+    else if(field_type == "scalar")
+    {
+        return GpuComplex<Real>{m_params.scalar_ps[2*field_indx][spec_index], m_params.scalar_ps[2*field_indx+1][spec_index]};
+    }
+    else { Error("RandomField::find_in_stoiic field cannot be found."); return GpuComplex<Real>{0., 0.}; }
+}
+
 // Turns analytic PS into GRF and applies window function if requested
-inline GpuComplex<Real> RandomField::calculate_random_field(const IntVect iv, const std::string spectrum_type, 
-                                                            const Real rand_amp, const Real rand_phase)
+inline GpuComplex<Real> RandomField::calculate_random_field(const IntVect iv, const int field_index, 
+                                                            const Real rand_amp, const Real rand_phase, 
+                                                            std::string field_type = "tensor")
 {
     GpuComplex<Real> value(0., 0.);
 
@@ -184,7 +209,14 @@ inline GpuComplex<Real> RandomField::calculate_random_field(const IntVect iv, co
     double kmag = std::sqrt(i*i + j*j + k*k) * 2 * M_PI / m_params.L;
 
     // Find the analytic power spectrum
-    value = calculate_mode_function(kmag, spectrum_type);
+    if(m_params.read_from_stoiic)
+    {
+        value = find_in_stoiic(kmag, field_index, field_type);
+    }
+    else
+    {
+        value = calculate_mode_function(kmag, field_index);
+    }
 
     // Add stochastic perturbations
     if(m_params.use_rand == 1)
@@ -360,20 +392,27 @@ inline void RandomField::init(amrex::MultiFab &state)
     MultiFab hij_x(sba, sdm, 6, 0);
     MultiFab Aij_x(sba, sdm, 6, 0);
 
+    cMultiFab scalar_fields_k(kba, kdm, 4, 0);
+    MultiFab scalar_fields_x(sba, sdm, 4, 0);
+
     // Make the Fourier transform
     IntVect x_domain_high(N-1, N-1, N-1);
     Box x_domain(domain_low, x_domain_high);
     FFT::R2C<Real> random_field_fft(x_domain, FFT::Info().setBatchSize(hij_k.nComp()));
 
-    FabArray<BaseFab<GpuArray<Real, 4>>> random_draws(kba, kdm, 1, 0);
+    MultiFab random_draws(kba, kdm, 6, 0);
     make_random_draws(random_draws, k_domain);
+
+    MultiFab tensor_draws(random_draws, amrex::make_alias, 0, 4);
+    MultiFab scalar_draws(random_draws, amrex::make_alias, 4, 2);
 
     std::string Filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/hs-k-init";
     for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
     {
         // Define the domain on this MPI rank
         const Box& bx = mfi.fabbox();
-        auto const& random_box_ptr = random_draws.const_array(mfi);
+        auto const& tensor_draw_ptr = tensor_draws.const_array(mfi);
+        auto const& scalar_draw_ptr = scalar_draws.const_array(mfi);
         //int count = 0;
 
         // Make a pointer to the mode functions at this MF box
@@ -383,26 +422,32 @@ inline void RandomField::init(amrex::MultiFab &state)
         Array4<GpuComplex<Real>> const& As_ptr = As_k.array(mfi);
         Array4<GpuComplex<Real>> const& Aij_ptr = Aij_k.array(mfi);
 
+        Array4<GpuComplex<Real>> const& scalar_fields_ptr = scalar_fields_k.array(mfi);
+
         // Loop to create mode functions, then hij(k) and Aij(k)
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             IntVect iv = {i, j, k};
-            auto const& random_field_ptr = random_box_ptr(i, j, k);
 
             // Find the mode function realisation
             for(int p=0; p<2; p++)
             {
-                Real draw1 = amrex::Random();//random_field_ptr[2*p];
-                Real draw2 = amrex::Random();//random_field_ptr[2*p+1];
+                Real draw1 = tensor_draw_ptr(i, j, k, 2*p);
+                Real draw2 = tensor_draw_ptr(i, j, k, 2*p+1);
 
-                /*if(count==0)
+                hs_ptr(i, j, k, p) = calculate_random_field(iv, 0, draw1, draw2);
+                As_ptr(i, j, k, p) = calculate_random_field(iv, 1, draw1, draw2);
+            }
+
+            if(m_params.read_from_stoiic)
+            {
+                for(int f=0; f<4; f++)
                 {
-                    AllPrint() << ParallelContext::MyProcSub() << "," << draw1 << "\n";
-                    count++;
-                }*/
+                    Real draw1 = scalar_draw_ptr(i, j, k, 0);
+                    Real draw2 = scalar_draw_ptr(i, j, k, 1);
 
-                hs_ptr(i, j, k, p) = calculate_random_field(iv, "position", draw1, draw2);
-                As_ptr(i, j, k, p) = calculate_random_field(iv, "velocity", draw1, draw2);
+                    scalar_fields_ptr(i, j, k, f) = calculate_random_field(iv, f, draw1, draw2, "scalar");
+                }
             }
 
             // Find basis tensors and initial tensor realisation
@@ -427,6 +472,13 @@ inline void RandomField::init(amrex::MultiFab &state)
     hij_x.mult(norm);
     Aij_x.mult(norm);
 
+    if(m_params.read_from_stoiic) 
+    { 
+        apply_nyquist_conditions(scalar_fields_k); 
+        random_field_fft.backward(scalar_fields_k, scalar_fields_x);
+        scalar_fields_x.mult(norm);
+    }
+
     // Test is trace-free
     Test_is_trace_free(hij_x);
     Test_is_trace_free(Aij_x);
@@ -441,6 +493,7 @@ inline void RandomField::init(amrex::MultiFab &state)
         Array4<Real> const& state_ptr = state.array(mfi);
         Array4<Real> const& hij_ptr = hij_x.array(mfi);
         Array4<Real> const& Aij_ptr = Aij_x.array(mfi);
+        Array4<Real> const& scalar_ptr = scalar_fields_x.array(mfi);
 
         const Box& bx = mfi.fabbox();
         ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -462,6 +515,14 @@ inline void RandomField::init(amrex::MultiFab &state)
                 state_ptr(iv, c_A22) = Aij_ptr(i, j, k, lut[1][1]);
                 state_ptr(iv, c_A23) = Aij_ptr(i, j, k, lut[1][2]);
                 state_ptr(iv, c_A33) = Aij_ptr(i, j, k, lut[2][2]);
+
+                if(m_params.read_from_stoiic)
+                {
+                    state_ptr(iv, c_phi) = scalar_ptr(i, j, k, 0);
+                    state_ptr(iv, c_Pi) = scalar_ptr(i, j, k, 1);
+                    state_ptr(iv, c_chi) = scalar_ptr(i, j, k, 2);
+                    state_ptr(iv, c_K) = scalar_ptr(i, j, k, 3);
+                }
             }
         });
     }

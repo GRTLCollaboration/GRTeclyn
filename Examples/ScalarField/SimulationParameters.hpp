@@ -39,7 +39,6 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("potential_param_1", background_params.m, 0.0);
         pp.load("G_Newton", background_params.G_Newton, 1.);
 
-        pp.load("num_scalar_fields", random_field_params.num_scalar_fields, 0);
         pp.load("calc_tensor_field", random_field_params.calc_tensor_field, 0);
         pp.load("L", random_field_params.L, 1.);
         pp.load("A", random_field_params.A, 1.);
@@ -57,6 +56,30 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("calc_higher_order_statistics", random_field_params.calc_higher_order_statistics, 0);
         pp.load("num_moments", random_field_params.num_orders, 0);
         pp.getarr("moments_to_print", random_field_params.orders, 0, random_field_params.num_orders);
+
+        pp.load("read_from_stoiic", random_field_params.read_from_stoiic, 0);
+        if(random_field_params.read_from_stoiic)
+        {
+            int num_modes;
+            pp.load("n_k", num_modes, 0);
+            pp.getarr("init_k", random_field_params.init_k, 0, num_modes);
+
+            random_field_params.scalar_ps = amrex::Vector<amrex::Vector<amrex::Real>>(8, amrex::Vector<amrex::Real>(num_modes, 0.));
+            pp.getarr("re_phi_k", random_field_params.scalar_ps[0], 0, num_modes);
+            pp.getarr("im_phi_k", random_field_params.scalar_ps[1], 0, num_modes);
+            pp.getarr("re_Pi_k", random_field_params.scalar_ps[2], 0, num_modes);
+            pp.getarr("im_Pi_k", random_field_params.scalar_ps[3], 0, num_modes);
+            pp.getarr("re_X_k", random_field_params.scalar_ps[4], 0, num_modes);
+            pp.getarr("im_X_k", random_field_params.scalar_ps[5], 0, num_modes);
+            pp.getarr("re_K_k", random_field_params.scalar_ps[6], 0, num_modes);
+            pp.getarr("im_K_k", random_field_params.scalar_ps[7], 0, num_modes);
+
+            random_field_params.tensor_ps = amrex::Vector<amrex::Vector<amrex::Real>>(4, amrex::Vector<amrex::Real>(num_modes, 0.));
+            pp.getarr("re_h_k", random_field_params.tensor_ps[0], 0, num_modes);
+            pp.getarr("im_h_k", random_field_params.tensor_ps[1], 0, num_modes);
+            pp.getarr("re_dh_k", random_field_params.tensor_ps[2], 0, num_modes);
+            pp.getarr("im_dh_k", random_field_params.tensor_ps[3], 0, num_modes);
+        }
     }
 
     void check_params()
