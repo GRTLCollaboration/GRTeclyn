@@ -7,10 +7,10 @@
 verbosity = 0
 
 # location / naming of output files
-output_path = /cosma8/data/dp002/dc-flor1/stoiic-check
-amr.check_file = /cosma8/data/dp002/dc-flor1/stoiic-check/output/chk_
-amr.plot_file = /cosma8/data/dp002/dc-flor1/stoiic-check/output/plt_
-# restart_file = /cosma8/data/dp002/dc-flor1/stoiic-check/output/chk_000000.3d.hdf5
+output_path = /cephfs/store/gr-eps1/eaf49/stoiic-test
+amr.check_file = /cephfs/store/gr-eps1/eaf49/stoiic-test/output/chk_
+amr.plot_file = /cephfs/store/gr-eps1/eaf49/stoiic-test/output/plt_
+# restart_file = /cephfs/store/gr-eps1/eaf49/stoiic-test/output/chk_000000.3d.hdf5
 
 # HDF5files are written every dt = L/N*dt_multiplier*checkpoint_interval
 checkpoint_interval = 500
@@ -60,7 +60,7 @@ print_progress_only_to_rank_0 = 1
 G_Newton = 0.039788735772973836
 
 # Background scalar field initial data
-background_phi = -13.664143398487044
+background_phi = 13.664143398487044
 background_dphi = 1.414080601431222e-06
 
 
@@ -117,8 +117,8 @@ regrid_interval   = 0   0   0   0   0   0
 regrid_interval = 0 0 0 0 0 0
 
 # Max and min box sizes
-max_box_size = 64
-min_box_size = 64
+max_box_size = 32
+min_box_size = 32
 
 tag_buffer_size = 0 # this example uses a fixed grid
 

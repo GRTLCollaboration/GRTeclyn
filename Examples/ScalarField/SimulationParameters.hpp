@@ -37,6 +37,7 @@ class SimulationParameters : public SimulationParametersBase
 	    pp.load("background_phi", background_params.phi0, 0.0);
 	    pp.load("background_dphi", background_params.Pi0, 0.0);
         pp.load("potential_param_1", background_params.m, 0.0);
+        pp.load("G_Newton", background_params.G_Newton, 1.);
 
         pp.load("num_scalar_fields", random_field_params.num_scalar_fields, 0);
         pp.load("calc_tensor_field", random_field_params.calc_tensor_field, 0);
