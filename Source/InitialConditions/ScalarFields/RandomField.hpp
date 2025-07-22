@@ -115,7 +115,6 @@ class RandomField
 
         // Initialisation routines 
         GpuComplex<Real> calculate_mode_function(const double km, const int spec_indx);
-        int find_k_index(const double km);
         GpuComplex<Real> find_in_stoiic(const double km, const int field_indx, std::string field_type);
         GpuComplex<Real> calculate_random_field(const IntVect iv, const int field_index, 
                                                 const Real rand_amp, const Real rand_phase, 

@@ -169,20 +169,18 @@ inline GpuComplex<Real> RandomField::calculate_mode_function(const double km, co
     return ps;
 }
 
-inline int RandomField::find_k_index(const double km)
-{
-    for(int idx=0; idx<m_params.init_k.size(); idx++)
-    {
-        if(std::abs(km - m_params.init_k[idx]) < 1e-15) { return idx; }
-    }
-    Print() << "Mode: " << km << "\n";
-    Error("RandomField::find_k_index this mode is unaccounted for in the stoiic input.");
-    return 0.;
-}
-
 inline GpuComplex<Real> RandomField::find_in_stoiic(const double km, const int field_indx, std::string field_type)
 {
-    int spec_index = find_k_index(km);
+    GpuComplex<Real> zero(0., 0.);
+    if(km == 0) { return zero; }
+
+    int spec_index;
+    for(int idx = 0; idx < m_params.init_k.size(); idx++)
+    {
+        if(std::abs(km - m_params.init_k[idx]) < 1e-15) { spec_index = idx; break; }
+        else if (idx == m_params.init_k.size() - 1) { return zero; }
+    }
+
     if(field_type == "tensor")
     {
         return GpuComplex<Real>{m_params.tensor_ps[2*field_indx][spec_index], m_params.tensor_ps[2*field_indx+1][spec_index]};
@@ -398,7 +396,8 @@ inline void RandomField::init(amrex::MultiFab &state)
     // Make the Fourier transform
     IntVect x_domain_high(N-1, N-1, N-1);
     Box x_domain(domain_low, x_domain_high);
-    FFT::R2C<Real> random_field_fft(x_domain, FFT::Info().setBatchSize(hij_k.nComp()));
+    FFT::R2C<Real> tensor_fft(x_domain, FFT::Info().setBatchSize(hij_k.nComp()));
+    FFT::R2C<Real> scalar_fft(x_domain, FFT::Info().setBatchSize(scalar_fields_k.nComp()));
 
     MultiFab random_draws(kba, kdm, 6, 0);
     make_random_draws(random_draws, k_domain);
@@ -465,8 +464,8 @@ inline void RandomField::init(amrex::MultiFab &state)
     apply_nyquist_conditions(Aij_k);
 
     // Do the Fourier transform
-    random_field_fft.backward(hij_k, hij_x);
-    random_field_fft.backward(Aij_k, Aij_x);
+    tensor_fft.backward(hij_k, hij_x);
+    tensor_fft.backward(Aij_k, Aij_x);
 
     // Apply normalisation into physical units
     hij_x.mult(norm);
@@ -475,7 +474,7 @@ inline void RandomField::init(amrex::MultiFab &state)
     if(m_params.read_from_stoiic) 
     { 
         apply_nyquist_conditions(scalar_fields_k); 
-        random_field_fft.backward(scalar_fields_k, scalar_fields_x);
+        scalar_fft.backward(scalar_fields_k, scalar_fields_x);
         scalar_fields_x.mult(norm);
     }
 
@@ -518,10 +517,10 @@ inline void RandomField::init(amrex::MultiFab &state)
 
                 if(m_params.read_from_stoiic)
                 {
-                    state_ptr(iv, c_phi) = scalar_ptr(i, j, k, 0);
-                    state_ptr(iv, c_Pi) = scalar_ptr(i, j, k, 1);
-                    state_ptr(iv, c_chi) = scalar_ptr(i, j, k, 2);
-                    state_ptr(iv, c_K) = scalar_ptr(i, j, k, 3);
+                    state_ptr(iv, c_phi) += scalar_ptr(i, j, k, 0);
+                    state_ptr(iv, c_Pi) += scalar_ptr(i, j, k, 1);
+                    state_ptr(iv, c_chi) += scalar_ptr(i, j, k, 2);
+                    state_ptr(iv, c_K) += scalar_ptr(i, j, k, 3);
                 }
             }
         });

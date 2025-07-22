@@ -7,9 +7,9 @@
 verbosity = 0
 
 # location / naming of output files
-output_path = /cephfs/store/gr-eps1/eaf49/stoiic-test/
-amr.check_file = /cephfs/store/gr-eps1/eaf49/stoiic-test/hdf5/chk_
-amr.plot_file = /cephfs/store/gr-eps1/eaf49/stoiic-test/hdf5/plt_
+output_path = /cephfs/store/gr-eps1/eaf49/
+amr.check_file = /cephfs/store/gr-eps1/eaf49/hdf5/chk_
+amr.plot_file = /cephfs/store/gr-eps1/eaf49/hdf5/plt_
 # restart_file = /cephfs/store/gr-eps1/eaf49/stoiic-test/output/chk_000000.3d.hdf5
 
 # HDF5files are written every dt = L/N*dt_multiplier*checkpoint_interval
@@ -33,8 +33,8 @@ calc_binned_power_spectrum = 1
 calc_higher_order_statistics = 1
 
 #(!!) must be between 1 and 4
-num_moments = 3
-moments_to_print = 1 3 4 
+num_moments = 4
+moments_to_print = 1 2 3 4 
 
 # subpaths - specific directories for hdf5, pout, extraction data
 # (these are created at runtime)
@@ -72,7 +72,7 @@ potential_param_4 = 1
 potential_param_5 = 1
 
 # Random Field initial data
-read_from_stoiic = 0
+read_from_stoiic = 1
 calc_tensor_field = 1
 use_rand = 1
 random_seed = 3539263
