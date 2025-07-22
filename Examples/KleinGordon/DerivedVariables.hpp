@@ -12,6 +12,7 @@
 #include "VarsTools.hpp"
 
 // KleinGordon includes
+#include "KleinGordonRHS.hpp"
 #include "SineGordon.hpp"
 #include "Wave.hpp"
 
@@ -22,10 +23,18 @@
 
 // NB: The analytic solution doesn't use the input MultiFab mf_in - if you want
 // to use the current state variables, you will need to uncomment this.
-void AMREX_FORCE_INLINE calc_analytic_solution(
-    amrex::MultiFab &mf_out, int dcomp, int /*numcomp*/,
-    const amrex::MultiFab & /*mf_in*/, const amrex::Geometry &geom,
-    const amrex::Real time, const int * /*bcomp*/, int /*scomp*/);
+AMREX_FORCE_INLINE void
+calc_analytic_solution(amrex::MultiFab &mf_out, int dcomp, int /*numcomp*/,
+                       const amrex::MultiFab & /*mf_in*/,
+                       const amrex::Geometry &geom, const amrex::Real time,
+                       const int * /*bcomp*/, int /*scomp*/);
+
+template <typename model_t>
+AMREX_FORCE_INLINE void
+calc_energy_density(amrex::MultiFab &mf_out, int dcomp, int /*numcomp*/,
+                    const amrex::MultiFab &mf_in,
+                    const amrex::Geometry /*&geom*/, const amrex::Real time,
+                    const int * /*bcomp*/, int /*scomp*/);
 
 template <typename model_t>
 AMREX_FORCE_INLINE void calc_analytic_mf_3d(amrex::MultiFab &mf_out, int dcomp,

@@ -4,8 +4,6 @@
 #include "KleinGordonRHS.hpp"
 #include <numeric>
 
-using namespace amrex;
-
 void KleinGordonLevel::variableSetUp()
 {
     BL_PROFILE("KleinGordonLevel::variableSetUp()");
@@ -13,17 +11,54 @@ void KleinGordonLevel::variableSetUp()
     // Set up the state variables
     stateVariableSetUp();
 
+    // The first two derived variables calculate the analytic solution
+    //  for phi and Pi
+
     const std::string &comp_type                = {"analytic_soln"};
     const amrex::Vector<std::string> comp_names = {"phi_analytic",
                                                    "Pi_analytic"};
 
+    int ncomp_analytic{
+        static_cast<int>(comp_names.size())}; // how many derived variables
+
     derive_lst.add(
-        comp_type, amrex::IndexType::TheCellType(),
-        static_cast<int>(comp_names.size()), comp_names, calc_analytic_solution,
-        [=](const amrex::Box &box)
-        { return amrex::grow(box, simParams().num_ghosts); },
+        comp_type, amrex::IndexType::TheCellType(), ncomp_analytic, comp_names,
+        calc_analytic_solution, [=](const amrex::Box &box) { return box; },
         &amrex::cell_quartic_interp);
-    derive_lst.addComponent("analytic_soln", desc_lst, State_Type, 0, 1);
+    derive_lst.addComponent("analytic_soln", desc_lst, State_Type, 0,
+                            ncomp_analytic);
+
+    // The following is an example of how to use the current state to compute a
+    // new derived variable that depends on the state variables and the
+    // potential
+
+    amrex::ParmParse pp;
+    std::string model{};
+    pp.query("model", model);
+
+    const int ncomp_rho{1}; // only one component associated with energy density
+    const int nghosts_rho{2};
+
+    if (model == "Wave")
+    {
+        derive_lst.add(
+            "rho", amrex::IndexType::TheCellType(), ncomp_rho,
+            calc_energy_density<Wave>, [=](const amrex::Box &box)
+            { return amrex::grow(box, nghosts_rho); },
+            &amrex::cell_quartic_interp);
+    }
+
+    if (model.find("SineGordon") == 0)
+    {
+        derive_lst.add(
+            "rho", amrex::IndexType::TheCellType(), ncomp_rho,
+            calc_energy_density<SineGordon>, [=](const amrex::Box &box)
+            { return amrex::grow(box, nghosts_rho); },
+            &amrex::cell_quartic_interp);
+    }
+
+
+    derive_lst.addComponent("rho", desc_lst, State_Type, 0, NUM_VARS);
 }
 
 void KleinGordonLevel::initData()
@@ -39,8 +74,8 @@ void KleinGordonLevel::initData()
     pp.query("model", model);
     pp.query("initial_time", initial_time);
 
-    MultiFab &state_new   = get_new_data(State_Type);
-    auto const &array_new = state_new.arrays();
+    amrex::MultiFab &state_new = get_new_data(State_Type);
+    auto const &array_new      = state_new.arrays();
 
     int dcomp{0};
     const amrex::Real current_time{
@@ -63,10 +98,6 @@ void KleinGordonLevel::initData()
         calc_analytic_mf_3d<SineGordon>(state_new, dcomp, geom, current_time);
     }
 }
-void KleinGordonLevel::specificAdvance()
-{
-    // Usually constraints are enforced here, but we don't have any...
-}
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void KleinGordonLevel::specificEvalRHS(amrex::MultiFab &a_soln,
@@ -81,11 +112,9 @@ void KleinGordonLevel::specificEvalRHS(amrex::MultiFab &a_soln,
 
     amrex::ParmParse pp;
 
-    amrex::Real initial_time{0.0};
     std::string model{};
 
     pp.query("model", model);
-    pp.query("initial_time", initial_time);
 
     // Here std::variant is used to allow dynamic polymorphism between two
     // unrelated classes. my_model_variant can be either Wave or SineGordon,
@@ -134,6 +163,15 @@ void KleinGordonLevel::specificEvalRHS(amrex::MultiFab &a_soln,
 void KleinGordonLevel::tag_cells(amrex::TagBoxArray &tags,
                                  amrex::Real a_regrid_threshold)
 {
+
+    // This is an example of how to apply a tagging criterion to mark cells for
+    // further refinement.
+
+    // The FixedGridsTagger used here will always tag the inner
+    // L/4 cells of the simulation volume, regardless of the
+    // field values. You can also ask that the cells be tagged
+    // when the field value or its derivative reaches a certain value.
+
     BL_PROFILE("KleinGordonLevel::tag_cells()");
 
     amrex::MultiFab &state_new = get_new_data(State_Type);
@@ -153,9 +191,6 @@ void KleinGordonLevel::tag_cells(amrex::TagBoxArray &tags,
 
     amrex::ParallelFor(tags,
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
-                       {
-                           my_tagging_criterion.operator()<amrex::Real>(
-                               i, j, k, tag_arrs[box_no]);
-                       });
+                       { my_tagging_criterion(i, j, k, tag_arrs[box_no]); });
     amrex::Gpu::streamSynchronize();
 }

@@ -6,8 +6,6 @@
 // AMReX includes
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParmParse.H>
-// GRTeclyn includes
-#include "simd.hpp"
 // KleinGordon includes
 #include "StateVariables.hpp"
 
@@ -44,8 +42,8 @@ class Wave
 
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
-    calculate_derivative(const amrex::Real x, const amrex::Real y,
-                         const amrex::Real z, const amrex::Real t) const
+    calculate_time_derivative(const amrex::Real x, const amrex::Real y,
+                              const amrex::Real z, const amrex::Real t) const
     // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         amrex::Real omega = m_k_r;
@@ -58,16 +56,16 @@ class Wave
     };
 
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-    template <class data_t, template <typename> class vars_t>
+    template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     compute_potential(data_t &V_of_phi, data_t &dVdphi,
-                      const vars_t<data_t> &vars) const
+                      const amrex::Real &phi) const
     // NOLINTEND(bugprone-easily-swappable-parameters)
     {
 
-        V_of_phi = 0.5 * m_mass * m_mass * vars.phi * vars.phi;
+        V_of_phi = 0.5 * m_mass * m_mass * phi * phi;
 
-        dVdphi = m_mass * m_mass * vars.phi;
+        dVdphi = m_mass * m_mass * phi;
     }
 };
 

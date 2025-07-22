@@ -48,7 +48,7 @@ KleinGordonRHS<model_t, deriv_t>::rhs_equation(
     data_t V_of_phi = 0.0;
     data_t dVdphi   = 0.0;
 
-    m_model.compute_potential(V_of_phi, dVdphi, vars);
+    m_model.compute_potential(V_of_phi, dVdphi, vars.phi);
 
     rhs.Pi += dVdphi;
 }

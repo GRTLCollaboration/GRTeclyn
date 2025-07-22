@@ -6,8 +6,6 @@
 // AMReX includes
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParmParse.H>
-// GRTeclyn includes
-#include "simd.hpp"
 // KleinGordon includes
 #include "StateVariables.hpp"
 
@@ -17,7 +15,6 @@ class SineGordon
     amrex::Real m_alpha{0.7};
     amrex::Real m_t0{0.0};
 
-    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     SineGordon()
     {
         amrex::ParmParse pp;
@@ -38,7 +35,7 @@ class SineGordon
     };
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-    calculate_derivative(const amrex::Real x, const amrex::Real t) const
+    calculate_time_derivative(const amrex::Real x, const amrex::Real t) const
     {
         amrex::Real beta = std::sqrt(1.0 - m_alpha * m_alpha);
 
@@ -64,22 +61,20 @@ class SineGordon
     {
         amrex::Real beta = std::sqrt(1.0 - m_alpha * m_alpha);
 
+        amrex::Real numerator = m_alpha * std::sin(beta * (t + m_t0)) / beta;
+
         // Sine Gordon 3D psuedo-breather solution
 
-        return 4.0 * 4.0 * 4.0 *
-               std::atan(m_alpha * std::sin(beta * (t + m_t0)) / beta /
-                         std::cosh(m_alpha * x)) *
-               std::atan(m_alpha * std::sin(beta * (t + m_t0)) / beta /
-                         std::cosh(m_alpha * y)) *
-               std::atan(m_alpha * std::sin(beta * (t + m_t0)) / beta /
-                         std::cosh(m_alpha * z));
+        return 4.0 * 4.0 * 4.0 * std::atan(numerator / std::cosh(m_alpha * x)) *
+               std::atan(numerator / std::cosh(m_alpha * y)) *
+               std::atan(numerator / std::cosh(m_alpha * z));
     };
 
     // NOLINTBEGIN(bugprone-easily-swappable-parameters,
     // readability-convert-member-functions-to-static)
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
-    calculate_derivative(const amrex::Real x, const amrex::Real y,
-                         const amrex::Real z, const amrex::Real t) const
+    calculate_time_derivative(const amrex::Real x, const amrex::Real y,
+                              const amrex::Real z, const amrex::Real t) const
     // NOLINTEND(bugprone-easily-swappable-parameters,
     // readability-convert-member-functions-to-static)
     {
@@ -89,15 +84,15 @@ class SineGordon
     };
 
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-    template <class data_t, template <typename> class vars_t>
+    template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     compute_potential(data_t &V_of_phi, data_t &dVdphi,
-                      const vars_t<data_t> &vars) const
+                      const amrex::Real &phi) const
     // NOLINTEND(bugprone-easily-swappable-parameters)
     {
-        V_of_phi = std::sin(vars.phi);
+        V_of_phi = std::sin(phi);
 
-        dVdphi = std::cos(vars.phi);
+        dVdphi = std::cos(phi);
     }
 };
 #endif // SINEGORDON_HPP_

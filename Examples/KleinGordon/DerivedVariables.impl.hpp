@@ -5,10 +5,11 @@
 #ifndef DERIVEDVARIABLES_IMPL_HPP_
 #define DERIVEDVARIABLES_IMPL_HPP_
 
-void AMREX_FORCE_INLINE calc_analytic_solution(
-    amrex::MultiFab &mf_out, int dcomp, int /*numcomp*/,
-    const amrex::MultiFab & /*mf_in*/, const amrex::Geometry &geom,
-    const amrex::Real time, const int * /*bcomp*/, int /*scomp*/)
+AMREX_FORCE_INLINE void
+calc_analytic_solution(amrex::MultiFab &mf_out, int dcomp, int /*numcomp*/,
+                       const amrex::MultiFab & /*mf_in*/,
+                       const amrex::Geometry &geom, const amrex::Real time,
+                       const int * /*bcomp*/, int /*scomp*/)
 {
     amrex::ParmParse pp;
     std::string model{};
@@ -31,6 +32,41 @@ void AMREX_FORCE_INLINE calc_analytic_solution(
     {
         calc_analytic_mf_3d<Wave>(mf_out, dcomp, geom, time);
     }
+}
+
+template <typename model_t>
+AMREX_FORCE_INLINE void
+calc_energy_density(amrex::MultiFab &mf_out, int dcomp, int /*numcomp*/,
+                    const amrex::MultiFab &mf_in,
+                    const amrex::Geometry /*&geom*/, const amrex::Real time,
+                    const int * /*bcomp*/, int /*scomp*/)
+{
+
+    auto const &arrs_out = mf_out.arrays();
+    auto const &arrs_in =
+        mf_in.const_arrays(); // do not alter the original values
+
+    model_t model;
+
+    amrex::ParallelFor(
+        mf_out, mf_out.nGrowVect(),
+        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
+        {
+            auto const field_values = arrs_in[box_no].cellData(i, j, k);
+
+            // You can also access any state variables like this:
+            // amrex::Real phi = arrs_in[box_no](i, j, k, c_phi);
+            // amrex::Real Pi = arrs_in[box_no](i, j, k, c_Pi);
+
+            amrex::Real V_of_phi = 0.0;
+            amrex::Real dVdphi   = 0.0;
+
+            model.compute_potential(V_of_phi, dVdphi, field_values[c_phi]);
+
+            arrs_out[box_no](i, j, k, dcomp) =
+                0.5 * field_values[c_phi] * field_values[c_phi] - V_of_phi;
+        });
+    amrex::Gpu::streamSynchronize();
 }
 
 template <typename model_t>
@@ -60,7 +96,7 @@ AMREX_FORCE_INLINE void calc_analytic_mf_3d(amrex::MultiFab &mf_out, int dcomp,
             arrs[box_no](i, j, k, dcomp) =
                 model.calculate(pos.x, pos.y, pos.z, time);
             arrs[box_no](i, j, k, dcomp + 1) =
-                model.calculate_derivative(x, y, z, time);
+                model.calculate_time_derivative(pos.x, pos.y, pos.z, time);
         });
     amrex::Gpu::streamSynchronize();
 };
@@ -91,7 +127,7 @@ AMREX_FORCE_INLINE void calc_analytic_mf_1d(amrex::MultiFab &mf_out, int dcomp,
 
             arrs[box_no](i, j, k, dcomp) = model.calculate(pos.x, time);
             arrs[box_no](i, j, k, dcomp + 1) =
-                model.calculate_derivative(x, time);
+                model.calculate_time_derivative(pos.x, time);
         });
     amrex::Gpu::streamSynchronize();
 };
