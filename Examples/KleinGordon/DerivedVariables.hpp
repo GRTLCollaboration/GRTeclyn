@@ -33,7 +33,7 @@ template <typename model_t>
 AMREX_FORCE_INLINE void
 calc_energy_density(amrex::MultiFab &mf_out, int dcomp, int /*numcomp*/,
                     const amrex::MultiFab &mf_in,
-                    const amrex::Geometry /*&geom*/, const amrex::Real time,
+                    const amrex::Geometry /*&geom*/, const amrex::Real /*time*/,
                     const int * /*bcomp*/, int /*scomp*/);
 
 template <typename model_t>

@@ -25,8 +25,7 @@ void KleinGordonLevel::variableSetUp()
         comp_type, amrex::IndexType::TheCellType(), ncomp_analytic, comp_names,
         calc_analytic_solution, [=](const amrex::Box &box) { return box; },
         &amrex::cell_quartic_interp);
-    derive_lst.addComponent("analytic_soln", desc_lst, State_Type, 0,
-                            ncomp_analytic);
+    derive_lst.addComponent("analytic_soln", desc_lst, State_Type, 0, 1);
 
     // The following is an example of how to use the current state to compute a
     // new derived variable that depends on the state variables and the
@@ -56,7 +55,6 @@ void KleinGordonLevel::variableSetUp()
             { return amrex::grow(box, nghosts_rho); },
             &amrex::cell_quartic_interp);
     }
-
 
     derive_lst.addComponent("rho", desc_lst, State_Type, 0, NUM_VARS);
 }

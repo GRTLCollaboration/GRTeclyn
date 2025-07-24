@@ -1,8 +1,10 @@
 HyperCLaw-V1.1
-3
+5
 phi
 Pi
-analytic_soln
+phi_analytic
+Pi_analytic
+rho
 3
 0.025
 0
