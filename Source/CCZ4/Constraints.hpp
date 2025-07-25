@@ -61,25 +61,26 @@ class Constraints
     // If a positive interval is passed for one of a_c_Moms or
     // a_c_moms_abs_terms then it must have length consistent with
     // s_calc_mom_norm
+    AMREX_FORCE_INLINE
     Constraints(double dx, int a_c_Ham, const Interval &a_c_Moms,
                 int a_c_Ham_abs_terms              = -1,
                 const Interval &a_c_Moms_abs_terms = Interval(),
                 double cosmological_constant       = 0.0);
 
-    AMREX_GPU_DEVICE void
+    AMREX_FORCE_INLINE AMREX_GPU_DEVICE void
     compute(int i, int j, int k, const amrex::Array4<amrex::Real> &cst,
             const amrex::Array4<amrex::Real const> &state) const;
 
     /// Adds the constraints to the derive list
     /// Call in variableSetUp()
-    static void set_up(int a_state_index, bool a_calc_mom_norm = false);
+    AMREX_FORCE_INLINE static void set_up(int a_state_index,
+                                          bool a_calc_mom_norm = false);
 
     // Has signature of DeriveFuncMF so that it can be stored in the derive_lst
-    static void compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
-                           const amrex::MultiFab &src_mf,
-                           const amrex::Geometry &geomdata,
-                           amrex::Real /*time*/, const int * /*bcrec*/,
-                           int /*level*/);
+    AMREX_FORCE_INLINE static void
+    compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
+               const amrex::MultiFab &src_mf, const amrex::Geometry &geomdata,
+               amrex::Real /*time*/, const int * /*bcrec*/, int /*level*/);
 
   protected:
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
@@ -94,11 +95,11 @@ class Constraints
     double m_cosmological_constant;
 
     template <class vars_t, class d1_vars_t, class d2_vars_t>
-    AMREX_GPU_DEVICE Vars constraint_equations(
+    AMREX_FORCE_INLINE AMREX_GPU_DEVICE Vars constraint_equations(
         const vars_t &vars, const d1_vars_t &d1, const d2_vars_t &d2,
         const Tensor<2, amrex::Real> &h_UU, const chris_t &chris) const;
 
-    AMREX_GPU_DEVICE void
+    AMREX_FORCE_INLINE AMREX_GPU_DEVICE void
     store_vars(const Vars &out,
                const amrex::CellData<amrex::Real> &current_cell) const;
 };
