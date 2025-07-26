@@ -3,14 +3,19 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#include "BinaryBHInitialData.hpp"
+#if !defined(BINARYBHINITIALDATA_HPP_)
+#error "This file should only be included through BinaryBHInitialData.hpp"
+#endif
+
+#ifndef BINARYBHINITIALDATA_IMPL_HPP_
+#define BINARYBHINITIALDATA_IMPL_HPP_
+
 #include "BSSNVars.hpp"
-#include "BoostedBHInitialData.hpp"
 #include "VarsTools.hpp"
 
 // Constructor
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-BinaryBHInitialData::BinaryBHInitialData(
+AMREX_FORCE_INLINE BinaryBHInitialData::BinaryBHInitialData(
     BoostedBHInitialData::params_t a_bh1_params,
     BoostedBHInitialData::params_t a_bh2_params, double a_dx,
     int a_initial_lapse)
@@ -20,7 +25,7 @@ BinaryBHInitialData::BinaryBHInitialData(
 {
 }
 
-AMREX_GPU_DEVICE amrex::Real
+[[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE amrex::Real
 BinaryBHInitialData::compute_chi(Coordinates coords) const
 {
     const amrex::Real psi =
@@ -28,7 +33,7 @@ BinaryBHInitialData::compute_chi(Coordinates coords) const
     return pow(psi, -4);
 }
 
-AMREX_GPU_DEVICE Tensor<2, amrex::Real>
+[[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE Tensor<2, amrex::Real>
 BinaryBHInitialData::compute_A(amrex::Real chi, Coordinates coords) const
 {
 
@@ -43,6 +48,7 @@ BinaryBHInitialData::compute_A(amrex::Real chi, Coordinates coords) const
     return out;
 }
 
+AMREX_FORCE_INLINE
 AMREX_GPU_DEVICE // or AMREX_GPU_HOST_DEVICE depending on what's needed
     void
     BinaryBHInitialData::init_data(
@@ -80,3 +86,5 @@ AMREX_GPU_DEVICE // or AMREX_GPU_HOST_DEVICE depending on what's needed
 
     store_vars(cell, vars);
 }
+
+#endif /* BINARYBHINITIALDATA_IMPL_HPP_ */

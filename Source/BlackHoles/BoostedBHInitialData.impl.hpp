@@ -3,17 +3,23 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#include "BoostedBHInitialData.hpp"
+#if !defined(BOOSTEDBHINITIALDATA_HPP_)
+#error "This file should only be included through BoostedBHInitialData.hpp"
+#endif
+
+#ifndef BOOSTEDBHINITIALDATA_IMPL_HPP_
+#define BOOSTEDBHINITIALDATA_IMPL_HPP_
+
 #include "AlwaysInline.hpp"
 #include "DimensionDefinitions.hpp"
 #include <cmath>
 
-BoostedBHInitialData::BoostedBHInitialData(params_t a_params)
+AMREX_FORCE_INLINE BoostedBHInitialData::BoostedBHInitialData(params_t a_params)
     : m_params(a_params)
 {
 }
 
-AMREX_GPU_DEVICE amrex::Real
+[[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE amrex::Real
 BoostedBHInitialData::psi_minus_one(Coordinates coords) const
 {
     const amrex::Real r         = center_dist(coords);
@@ -25,7 +31,7 @@ BoostedBHInitialData::psi_minus_one(Coordinates coords) const
            P_squared * psi2(r, cos_theta) / (m_params.mass * m_params.mass);
 }
 
-AMREX_GPU_DEVICE Tensor<2, amrex::Real>
+[[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE Tensor<2, amrex::Real>
 BoostedBHInitialData::Aij(Coordinates a_coords) const
 {
     const amrex::Real r = center_dist(a_coords);
@@ -51,7 +57,7 @@ BoostedBHInitialData::Aij(Coordinates a_coords) const
 
 /* PRIVATE */
 
-AMREX_GPU_DEVICE amrex::Real
+[[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE amrex::Real
 BoostedBHInitialData::center_dist(Coordinates a_coords) const
 {
     amrex::Real r = std::sqrt(std::pow(a_coords.x - m_params.center[0], 2) +
@@ -62,18 +68,20 @@ BoostedBHInitialData::center_dist(Coordinates a_coords) const
     return (r < minimum_r) ? minimum_r : r;
 }
 
-AMREX_GPU_DEVICE amrex::Real BoostedBHInitialData::psi0(amrex::Real a_r) const
+[[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE amrex::Real
+BoostedBHInitialData::psi0(amrex::Real a_r) const
 {
     return m_params.mass / (2 * a_r);
 }
 
-AMREX_GPU_DEVICE amrex::Real
+[[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE amrex::Real
 BoostedBHInitialData::psi2(amrex::Real a_r, amrex::Real a_cos_theta) const
 {
     return psi2_0(a_r) + psi2_2(a_r) * (1.5 * a_cos_theta * a_cos_theta - 0.5);
 }
 
-AMREX_GPU_DEVICE amrex::Real BoostedBHInitialData::psi2_0(amrex::Real a_r) const
+[[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE amrex::Real
+BoostedBHInitialData::psi2_0(amrex::Real a_r) const
 {
     const amrex::Real psi0_here    = psi0(a_r);
     const amrex::Real psi0_sq_here = psi0_here * psi0_here;
@@ -82,7 +90,8 @@ AMREX_GPU_DEVICE amrex::Real BoostedBHInitialData::psi2_0(amrex::Real a_r) const
             10 * psi0_sq_here + 10 * psi0_here + 5);
 }
 
-AMREX_GPU_DEVICE amrex::Real BoostedBHInitialData::psi2_2(amrex::Real a_r) const
+[[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE amrex::Real
+BoostedBHInitialData::psi2_2(amrex::Real a_r) const
 {
     const amrex::Real psi0_here    = psi0(a_r);
     const amrex::Real psi0_sq_here = psi0_here * psi0_here;
@@ -93,3 +102,5 @@ AMREX_GPU_DEVICE amrex::Real BoostedBHInitialData::psi2_2(amrex::Real a_r) const
                 192 * psi0_here + 15) +
            4.2 * psi0_here * psi0_sq_here * log(psi0_here / (1 + psi0_here));
 }
+
+#endif /* BOOSTEDBHINITIALDATA_IMPL_HPP_ */

@@ -30,23 +30,27 @@ class BinaryBHInitialData
 
   public:
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
+    AMREX_FORCE_INLINE
     BinaryBHInitialData(BoostedBHInitialData::params_t a_bh1_params,
                         BoostedBHInitialData::params_t a_bh2_params,
                         double a_dx,
                         int a_initial_lapse = Lapse::PRE_COLLAPSED);
     // NOLINTEND(bugprone-easily-swappable-parameters)
 
-    AMREX_GPU_DEVICE void
+    AMREX_FORCE_INLINE AMREX_GPU_DEVICE void
     init_data(int i, int j, int k,
               const amrex::CellData<amrex::Real> &cell) const;
 
   protected:
     [[nodiscard]]
-    AMREX_GPU_DEVICE amrex::Real compute_chi(Coordinates coords) const;
+    AMREX_FORCE_INLINE AMREX_GPU_DEVICE amrex::Real
+    compute_chi(Coordinates coords) const;
 
     [[nodiscard]]
-    AMREX_GPU_DEVICE Tensor<2, amrex::Real> compute_A(amrex::Real chi,
-                                                      Coordinates coords) const;
+    AMREX_FORCE_INLINE AMREX_GPU_DEVICE Tensor<2, amrex::Real>
+    compute_A(amrex::Real chi, Coordinates coords) const;
 };
+
+#include "BinaryBHInitialData.impl.hpp"
 
 #endif /* BINARYBHINITIALDATA_HPP_ */
