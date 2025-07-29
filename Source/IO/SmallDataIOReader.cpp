@@ -4,6 +4,7 @@
  */
 
 #include "SmallDataIOReader.hpp"
+
 #include <algorithm>
 #include <cassert>
 #include <iomanip>
@@ -21,99 +22,84 @@ void SmallDataIOReader::file_structure_t::clear()
 }
 
 // Constructor
-SmallDataIOReader::SmallDataIOReader() : m_structure_defined{false} {}
+SmallDataIOReader::SmallDataIOReader()
+    : m_structure_defined{false}, m_rank{amrex::ParallelDescriptor::MyProc()}
+{
+}
 
 // Destructor
 SmallDataIOReader::~SmallDataIOReader()
 {
+    close();
     if (m_file.is_open())
     {
-        close();
+        m_file.close();
     }
 }
 
-// Opens the file and sets m_filename. Note that this does not determine the
-// file structure
+// Opens the file and sets m_filename and m_file_structure
 void SmallDataIOReader::open(const std::string &a_filename)
 {
 
     // TODO: move into constructor
+    m_filename = a_filename;
 
-    m_filename          = a_filename;
-    m_structure_defined = false;
-    m_file_contents     = read_entire_file(a_filename);
-
-    //    m_file.open(m_filename);
-
-    // check file opening successful
-    // if (!m_file)
-    // {
-    //     std::cerr << "Error in opening " << m_filename << ". Exiting..."
-    //               << std::endl;
-    //     exit(1);
-    // }
+    if (amrex::ParallelDescriptor::IOProcessor())
+    {
+        read_file(a_filename);
+        determine_file_structure();
+    }
 }
 
 // Closes the file
 void SmallDataIOReader::close()
 {
-    // TODO: move into destructor
-
-    // if (m_file.is_open())
-    // {
-    //     m_file.close();
-    // }
     m_filename.clear();
     m_structure_defined = false;
-    m_file_structure.clear();
-    m_file_contents.clear();
+
+    if (amrex::ParallelDescriptor::IOProcessor())
+    {
+        m_file_structure.clear();
+        m_file_contents.clear();
+    }
 }
 
-std::string SmallDataIOReader::read_entire_file(const std::string &a_filename)
+void SmallDataIOReader::read_file(const std::string &a_filename)
 {
-
-    std::string warning{"Failed to open file \n"};
+    std::string warning{"Failed to open file: " + a_filename};
 
     if (std::ifstream input_stream{a_filename,
                                    std::ios::binary | std::ios::ate})
     {
         auto size = input_stream.tellg();
-        if (size > max_file_size)
-        {
-            return ("File size is too large for SmallDataIOReader.\n");
-            exit(1);
-        }
+
+        AMREX_ASSERT_WITH_MESSAGE(
+            size < max_file_size,
+            "File size is too large for SmallDataIOReader.\n");
 
         std::string file_contents(size,
                                   '\0'); // construct string to stream size
         input_stream.seekg(0);
-        if (input_stream.read(file_contents.data(), size))
-        {
-            //            std::cout << file_contents << '\n';
-            return (file_contents);
-        }
-        else
-        {
-            return (warning);
-            exit(1);
-        }
+        input_stream.read(file_contents.data(), size);
+        AMREX_ASSERT_WITH_MESSAGE(!file_contents.empty(),
+                                  "File contents of " + a_filename +
+                                      " could not be read");
+
+        m_file_contents = file_contents;
     }
     else
     {
-        return (warning);
-        exit(1);
+        amrex::Abort(warning);
     }
 }
 
 // Parses the file and determines its structure
+// Don't call this directly, it will automatically be called when you open a
+// file
 void SmallDataIOReader::determine_file_structure()
 {
     // first check that the file has been read
-    assert(m_file_contents.empty() == false);
-
-    // move file stream position to start of file
-    // m_file.clear();
-    // m_file.seekg(0, std::ios::beg);
+    AMREX_ASSERT(m_file_contents.empty() == false);
 
     std::istringstream file_stream(m_file_contents);
     // go through each line and determine structure
@@ -147,46 +133,23 @@ void SmallDataIOReader::determine_file_structure()
                     m_file_structure.block_starts.push_back(
                         block_start_position);
                     ++block_counter;
-                    // determine column structure from first data row in block
-                    // get a vector of the widths of the columns including
-                    // preceeding whitespace
+                    // determine column structure from first data row in
+                    // block get a vector of the widths of the columns
+                    // including preceeding whitespace
                     std::string::size_type start_whitespace = 0;
-                    std::vector<int> data_widths{};
+
+                    int ncols{0};
                     while (!(start_whitespace == std::string::npos))
                     {
                         std::string::size_type start_non_whitespace =
                             line.find_first_not_of(' ', start_whitespace);
                         std::string::size_type next_start_whitespace =
                             line.find_first_of(' ', start_non_whitespace);
-                        std::string::size_type width = 0;
-                        if (next_start_whitespace == std::string::npos)
-                        {
-                            width = line.length() - start_whitespace;
-                        }
-                        else
-                        {
-                            width = next_start_whitespace - start_whitespace;
-                        }
-                        data_widths.push_back(width);
                         start_whitespace = next_start_whitespace;
+                        ncols++;
                     }
 
-                    // if (block_counter == 1)
-                    // {
-                    //     // first data row in file so get coord and data width
-                    //     // from this. assume min width is coord width and max
-                    //     is
-                    //     // data width
-                    //     auto widths_minmax_it = std::minmax_element(
-                    //         m_file_structure.data_widths.begin(),
-                    //         m_file_structure.data_widths.end());
-                    //     m_file_structure.coords_width =
-                    //         *(widths_minmax_it.first);
-                    //     m_file_structure.data_width =
-                    //         *(widths_minmax_it.second);
-                    // }
-                    m_file_structure.num_data_columns.push_back(
-                        data_widths.size());
+                    m_file_structure.num_data_columns.push_back(ncols);
                 }
             }
         }
@@ -198,6 +161,7 @@ void SmallDataIOReader::determine_file_structure()
                 // end of previous block
                 m_file_structure.num_header_rows.push_back(header_row_counter);
                 m_file_structure.num_data_rows.push_back(data_row_counter);
+                // reset the counters
                 header_row_counter = 0;
                 data_row_counter   = 0;
             }
@@ -209,19 +173,18 @@ void SmallDataIOReader::determine_file_structure()
     {
         m_file_structure.num_header_rows.push_back(header_row_counter);
         m_file_structure.num_data_rows.push_back(data_row_counter);
-        header_row_counter = 0;
-        data_row_counter   = 0;
     }
 
     m_file_structure.num_blocks = block_counter;
 
-    assert(m_file_structure.num_data_rows.size() ==
-           m_file_structure.num_blocks);
-    assert(m_file_structure.num_header_rows.size() ==
-           m_file_structure.num_blocks);
-    assert(m_file_structure.num_data_columns.size() ==
-           m_file_structure.num_blocks);
-    assert(m_file_structure.block_starts.size() == m_file_structure.num_blocks);
+    AMREX_ASSERT(m_file_structure.num_data_rows.size() ==
+                 m_file_structure.num_blocks);
+    AMREX_ASSERT(m_file_structure.num_header_rows.size() ==
+                 m_file_structure.num_blocks);
+    AMREX_ASSERT(m_file_structure.num_data_columns.size() ==
+                 m_file_structure.num_blocks);
+    AMREX_ASSERT(m_file_structure.block_starts.size() ==
+                 m_file_structure.num_blocks);
 
     m_structure_defined = true;
 }
@@ -242,317 +205,318 @@ SmallDataIOReader::get_file_structure() const
     return m_file_structure;
 }
 
-// Get an interval of columns (inclusive) from a block
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
-std::vector<SmallDataIOReader::column_t>
-SmallDataIOReader::get_columns(int a_min_column, int a_max_column, int a_block)
-// NOLINTEND(bugprone-easily-swappable-parameters)
+// Utility for viewing the file struture
+
+void SmallDataIOReader::print_file_structure() const
 {
-
-    assert(m_file_contents.empty() == false);
-    assert(m_structure_defined);
-    assert(0 <= a_min_column);
-    assert(a_max_column <= m_file_structure.num_data_columns[a_block]);
-    assert(a_min_column <= a_max_column);
-    const int num_columns = a_max_column - a_min_column + 1;
-    std::vector<column_t> out(num_columns);
-    for (auto &column : out)
+    if (amrex::ParallelDescriptor::IOProcessor())
     {
-        column.resize(m_file_structure.num_data_rows[a_block]);
-    }
+        assert(m_structure_defined);
+        amrex::Print() << "Total number of blocks: "
+                       << m_file_structure.num_blocks << "\n";
 
-    // move stream position to start of block
-    //    m_file_stream.clear();
-
-    std::istringstream file_stream(m_file_contents);
-    file_stream.seekg(m_file_structure.block_starts[a_block], std::ios::beg);
-
-    // assume header rows are all at the top of the block so skip these
-    for (int irow = 0; irow < m_file_structure.num_header_rows[a_block]; ++irow)
-    {
-        file_stream.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    }
-    for (int irow = 0; irow < m_file_structure.num_data_rows[a_block]; ++irow)
-    {
-        //        std::getline(file_stream, line);
-        //        std::istringstream ss(line);
-        // std::string temp;
-        // char del = ' ';
-        double discard = 0.0;
-
-        for (int icolumn = 0;
-             icolumn < m_file_structure.num_data_columns[a_block]; ++icolumn)
+        for (int i = 0; i < m_file_structure.num_blocks; i++)
         {
-            if (a_min_column <= icolumn && icolumn < a_max_column)
-            {
 
-                file_stream >> out[icolumn - a_min_column][irow];
-                std::cout << out[icolumn - a_min_column][irow] << '\n';
-            }
-            else
+            // Printing info on file structure:
+            amrex::Print() << "#######" << "\n";
+            amrex::Print() << "Info on Block " << i << ":" << "\n";
+            amrex::Print() << "Block start: "
+                           << m_file_structure.block_starts[i] << "\n";
+            amrex::Print() << "Number of columns in Block " << i << ": "
+                           << m_file_structure.num_data_columns[i] << "\n";
+            amrex::Print() << "Number of rows in Block " << i << ": "
+                           << m_file_structure.num_data_rows[i] << "\n";
+            amrex::Print() << "Number of header rows in Block " << i << ": "
+                           << m_file_structure.num_header_rows[i] << "\n";
+
+            // Printing column names:
+
+            std::vector<std::string> header;
+            get_header_strings(header, i);
+
+            amrex::Print() << "Header strings found: ";
+            for (auto &column_name : header)
             {
-                file_stream >> discard;
+                amrex::Print() << column_name << " ";
             }
+            amrex::Print() << "\n";
+            amrex::Print() << "#######" << "\n";
         }
-        std::cout << '\n';
     }
-
-    return out;
 }
 
 // Get an interval of columns (inclusive) from a block
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-std::vector<SmallDataIOReader::column_t>
-SmallDataIOReader::get_columns(const std::string &column_names,
-                               const int a_block)
+void SmallDataIOReader::get_columns(
+    std::vector<SmallDataIOReader::column_t> &out, int a_min_column,
+    int a_max_column, int a_block)
+// NOLINTEND(bugprone-easily-swappable-parameters)
+{
+    if (amrex::ParallelDescriptor::IOProcessor())
+    {
+        AMREX_ASSERT(m_file_contents.empty() == false);
+        AMREX_ASSERT(m_structure_defined);
+        AMREX_ASSERT(0 <= a_min_column);
+        AMREX_ASSERT(a_max_column <=
+                     m_file_structure.num_data_columns[a_block]);
+        AMREX_ASSERT(a_min_column <= a_max_column);
+        const int num_columns = a_max_column - a_min_column + 1;
+
+        out.resize(num_columns);
+        for (auto &column : out)
+        {
+            column.resize(m_file_structure.num_data_rows[a_block]);
+        }
+
+        std::istringstream file_stream(m_file_contents);
+        skip_ahead(file_stream, m_file_structure.num_header_rows[a_block],
+                   a_block);
+
+        for (int irow = 0; irow < m_file_structure.num_data_rows[a_block];
+             ++irow)
+        {
+            double discard = 0.0;
+
+            for (int icolumn = 0;
+                 icolumn < m_file_structure.num_data_columns[a_block];
+                 ++icolumn)
+            {
+                if (a_min_column <= icolumn && icolumn <= a_max_column)
+                {
+
+                    file_stream >> out[icolumn - a_min_column][irow];
+                }
+                else
+                {
+                    file_stream >> discard;
+                }
+            }
+        }
+    }
+}
+
+// Get columns from a block based on their names in the header
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
+void SmallDataIOReader::get_columns(
+    std::vector<SmallDataIOReader::column_t> &out,
+    const std::vector<std::string> &column_names, const int a_block)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
 
-    // in case there are several entries, split column_name into separate names
-    std::istringstream name_stream(column_names);
-    std::vector<std::string> separate_names;
-
-    while (!name_stream.eof())
+    if (amrex::ParallelDescriptor::IOProcessor())
     {
-        std::string name;
-        name_stream >> name;
-        separate_names.push_back(name);
-    }
+        // Resize for the number of requested columns
+        out.resize(column_names.size());
 
-    // get column names from header
-    auto header = get_header_strings(1, a_block);
-
-    std::string test_string;
-    for (const auto &piece : header)
-    {
-        test_string += piece;
-        test_string += " ";
-    }
-    std::cout << test_string << '\n';
-
-    std::vector<int> column_numbers;
-
-    for (const auto &name : separate_names)
-    {
-        for (int j = 0; j < m_file_structure.num_data_columns[a_block]; ++j)
+        // Resize for the total number of rows
+        for (auto &column : out)
         {
-            const std::string &current_name = header[j];
-            if (current_name.find(name) == 0)
-            {
-                column_numbers.push_back(j);
-                std::cout << "Found column name " << name << '\n';
-                break;
-            }
-        }
-        // auto col_num = test_string.find(indiv_names[i]);
-        // std::cout << col_num << std::endl;
-        // column_numbers.push_back(col_num);
-    }
-    // for (int i=0; i < m_file_structure.num_data_columns[a_block]; ++i)
-    // {
-    //   std::string header_name = header[i];
-
-    //   //        std::cout << *it << std::endl;
-    // 	if(header_name.find(indiv_names[0])==0)
-    // 	  {
-    // 	    column_numbers.push_back(i);
-    // 	    std::cout << "Found column name" << std::endl;
-    // 	    break;
-    // 	  }
-    // }
-
-    std::sort(column_numbers.begin(), column_numbers.end());
-
-    // for (auto it = column_numbers.begin(); it != column_numbers.end(); ++it)
-    // {
-    //     std::cout << *it << '\n';
-    // }
-
-    // placeholders for now
-    auto want_cols =
-        std::minmax_element(column_numbers.begin(), column_numbers.end());
-    int a_min_column = *want_cols.first;
-    int a_max_column = *want_cols.second + 1;
-
-    assert(m_file_contents.empty() == false);
-    assert(m_structure_defined);
-    assert(0 <= a_min_column);
-    assert(a_max_column <= m_file_structure.num_data_columns[a_block]);
-    assert(a_min_column <= a_max_column);
-    const int num_columns = a_max_column - a_min_column + 1;
-    std::vector<column_t> out(num_columns);
-    for (auto &column : out)
-    {
-        column.resize(m_file_structure.num_data_rows[a_block]);
-    }
-
-    // move stream position to start of block
-    //    m_file_stream.clear();
-
-    std::istringstream file_stream(m_file_contents);
-    file_stream.seekg(m_file_structure.block_starts[a_block], std::ios::beg);
-
-    // assume header rows are all at the top of the block so skip these
-    for (int irow = 0; irow < m_file_structure.num_header_rows[a_block]; ++irow)
-    {
-        file_stream.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    }
-    for (int irow = 0; irow < m_file_structure.num_data_rows[a_block]; ++irow)
-    {
-        //        std::getline(file_stream, line);
-        //        std::istringstream ss(line);
-        // std::string temp;
-        // char del = ' ';
-        double discard = 0.0;
-
-        // skip over to minimum column number in this line
-        for (int icolumn = 0; icolumn < a_min_column; ++icolumn)
-        {
-            file_stream >> discard;
+            column.resize(m_file_structure.num_data_rows[a_block]);
         }
 
-        int count = 0;
-        for (int icolumn = a_min_column; icolumn < a_max_column; ++icolumn)
+        AMREX_ASSERT(m_file_contents.empty() == false);
+        AMREX_ASSERT(m_structure_defined);
+
+        // Get column names from header
+        // Assume that the column names are in the line immediately proceeding
+        // the data, like this:
+        // # blah blah this is my data blah blah
+        // # blah blah more things to say blah blah
+        // # x y z
+
+        std::vector<std::string> header;
+        get_header_strings(header, a_block);
+
+        // Associate each column name with the number
+        // of where they are in the file
+
+        std::vector<int> column_numbers;
+
+        for (const auto &column_name : column_names)
         {
-            if (column_numbers[count] == icolumn)
-
+            int column_no = 0;
+            for (const auto &header_name : header)
             {
+                if (header_name == column_name)
+                {
 
-                file_stream >> out[count][irow];
-                count++;
+                    column_numbers.push_back(column_no);
+                    break;
+                }
+                column_no++;
             }
-            else
+
+            // If all header_names have been checked but column_name has not
+            // been found...
+            if (column_no == m_file_structure.num_data_columns[a_block])
             {
-                file_stream >> discard;
+                std::string error_message{
+                    column_name + " could not be read. Please double check "
+                                  "your inputs to SmallDataIOReader"};
+                amrex::Abort(error_message);
             }
         }
 
-        // skip over max column number in this line
-        for (int icolumn = a_max_column;
-             icolumn < m_file_structure.num_data_columns[a_block]; ++icolumn)
+        std::istringstream file_stream(m_file_contents);
+
+        skip_ahead(file_stream, m_file_structure.num_header_rows[a_block],
+                   a_block);
+
+        for (int irow = 0; irow < m_file_structure.num_data_rows[a_block];
+             ++irow)
         {
-            file_stream >> discard;
+            double discard = 0.0;
+
+            // This is a bit slow but returns the columns in the order that the
+            // user requested them
+
+            for (int icolumn = 0;
+                 icolumn < m_file_structure.num_data_columns[a_block];
+                 ++icolumn)
+            {
+                auto const column_ptr = std::find(
+                    column_numbers.begin(), column_numbers.end(), icolumn);
+                if (column_ptr != column_numbers.end())
+                {
+                    auto column_index = column_ptr - column_numbers.begin();
+                    file_stream >> out[column_index][irow];
+                }
+                else
+                {
+                    file_stream >> discard;
+                }
+            }
         }
-
-        // std::cout << std::endl;
     }
-
-    return out;
 }
 
 // Get a data column from a block
-std::vector<SmallDataIOReader::column_t>
-SmallDataIOReader::get_all_data_columns(int a_block)
+void SmallDataIOReader::get_all_data_columns(
+    std::vector<SmallDataIOReader::column_t> &out, int a_block)
 {
     assert(m_structure_defined);
     int min_data_column = 0;
     int max_data_column = m_file_structure.num_data_columns[a_block];
-    return get_columns(min_data_column, max_data_column, a_block);
+    get_columns(out, min_data_column, max_data_column, a_block);
 }
 
-SmallDataIOReader::column_t SmallDataIOReader::get_column(int a_column,
-                                                          int a_block)
+void SmallDataIOReader::get_column(
+    std::vector<SmallDataIOReader::column_t> &out, int a_column, int a_block)
 {
-    auto out_vect = get_columns(a_column, a_column, a_block);
-    return out_vect[0];
+    get_columns(out, a_column, a_column, a_block);
 }
 
 // Returns a vector of numeric values from a header row
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-std::vector<double>
-SmallDataIOReader::get_data_from_header(int a_header_row_number, int a_block)
+void SmallDataIOReader::get_data_from_header(std::vector<amrex::Real> &out,
+                                             int a_header_row_number,
+                                             int a_block) const
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
-
-    assert(m_file_contents.empty() == false);
-    assert(m_structure_defined);
-    assert(a_header_row_number < m_file_structure.num_header_rows[a_block]);
-
-    // move stream to start of block
-    // m_file.clear();
-    std::istringstream file_stream(m_file_contents);
-    file_stream.seekg(m_file_structure.block_starts[a_block], std::ios::beg);
-    std::string line;
-
-    // assume header rows are at start of block
-    for (int irow = 0; irow < a_header_row_number; ++irow)
+    if (amrex::ParallelDescriptor::IOProcessor())
     {
-        // skip lines before desired row
-        file_stream.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
+        assert(m_file_contents.empty() == false);
+        assert(m_structure_defined);
+        assert(a_header_row_number < m_file_structure.num_header_rows[a_block]);
+
+        std::istringstream file_stream(m_file_contents);
+        skip_ahead(file_stream, a_header_row_number, a_block);
+
+        // get desired header line
+        std::string line;
+        std::getline(file_stream, line);
+
+        // find numbers in header using regex
+        // I think this takes a long time to compile...
+        std::regex number("[+-]?([0-9]*\\.)?[0-9]+");
+        auto numbers_begin =
+            std::sregex_iterator(line.begin(), line.end(), number);
+        auto numbers_end = std::sregex_iterator();
+
+        for (std::sregex_iterator rit = numbers_begin; rit != numbers_end;
+             ++rit)
+        {
+            // put matches in vector
+            out.push_back(std::stod((*rit).str()));
+        }
     }
-
-    // get desired header line
-    std::getline(file_stream, line);
-
-    // find numbers in header using regex
-    // I think this takes a long time to compile...
-    std::regex number("[+-]?([0-9]*\\.)?[0-9]+");
-    auto numbers_begin = std::sregex_iterator(line.begin(), line.end(), number);
-    auto numbers_end   = std::sregex_iterator();
-    std::vector<double> out;
-    for (std::sregex_iterator rit = numbers_begin; rit != numbers_end; ++rit)
-    {
-        // put matches in vector
-        out.push_back(std::stod((*rit).str()));
-    }
-
-    return out;
 }
+
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-std::vector<std::string>
-SmallDataIOReader::get_header_strings(int a_header_row_number, int a_block)
+void SmallDataIOReader::get_header_strings(std::vector<std::string> &header,
+                                           int a_block) const
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
 
-    assert(m_file_contents.empty() == false);
-    assert(m_structure_defined);
-    assert(a_header_row_number < m_file_structure.num_header_rows[a_block]);
+    if (amrex::ParallelDescriptor::IOProcessor())
+    {
+        assert(m_file_contents.empty() == false);
+        assert(m_structure_defined);
 
-    // move stream to start of block
-    //    m_file.clear();
-    std::istringstream file_stream(m_file_contents);
+        header.resize(m_file_structure.num_data_columns[0]);
+
+        std::istringstream file_stream(m_file_contents);
+        int nlines_to_skip = m_file_structure.num_header_rows[a_block] - 1;
+        skip_ahead(file_stream, nlines_to_skip, a_block);
+
+        std::string hashes; // remove the #s at the beginning of the line
+        file_stream >> hashes;
+
+        //    std::vector<std::string>
+        //    out(m_file_structure.num_data_columns[a_block]);
+
+        for (auto &icol : header)
+        {
+            file_stream >> icol;
+        }
+    }
+}
+// Helper function to skip lines e.g. header lines
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
+void SmallDataIOReader::skip_ahead(std::istringstream &file_stream,
+                                   int nlines_to_skip, int a_block) const
+// NOLINTEND(bugprone-easily-swappable-parameters)
+{
+    // rewind to the beginning of the block
     file_stream.seekg(m_file_structure.block_starts[a_block], std::ios::beg);
 
     // assume header rows are at start of block
-    for (int irow = 0; irow < a_header_row_number; ++irow)
+    for (int irow = 0; irow < nlines_to_skip; ++irow)
     {
         // skip lines before desired row
         file_stream.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     }
+}
 
-    std::string hashes; // remove the #s at the beginning of the line
-    file_stream >> hashes;
+// Helper function to redistribute data amongst all ranks
+void SmallDataIOReader::broadcast_data(
+    std::vector<SmallDataIOReader::column_t> &data)
+{
+    int nrows{0};
+    int ncols{0};
 
-    std::vector<std::string> out(m_file_structure.num_data_columns[a_block]);
-
-    std::map<std::string, int> m;
-    for (auto &icol : out)
+    if (amrex::ParallelDescriptor::IOProcessor())
     {
-        file_stream >> icol;
-        //	m.emplace(out[icol], icol);
+        nrows = data[0].size();
+        ncols = data.size();
+    }
+    amrex::ParallelDescriptor::Bcast(
+        &ncols, 1, amrex::ParallelDescriptor::IOProcessorNumber());
+
+    amrex::ParallelDescriptor::Bcast(
+        &nrows, 1, amrex::ParallelDescriptor::IOProcessorNumber());
+
+    data.resize(ncols);
+
+    for (auto &column : data)
+    {
+        column.resize(nrows);
+        amrex::ParallelDescriptor::Bcast(
+            column.data(), nrows,
+            amrex::ParallelDescriptor::IOProcessorNumber());
     }
 
-    // For (int icol = 0; icol < out.size(); ++icol)
-    // {
-    //     // int start_idx = m_file_structure.num_coords_columns[a_block] *
-    //     //                     m_file_structure.coords_width +
-    //     //                 icol * m_file_structure.data_width;
-    //   int start_idx = icol * m_file_structure.data_width;
-    //     if (start_idx < line.size())
-    //     {
-    //         std::string column_header =
-    //             line.substr(start_idx, m_file_structure.data_width);
-    //         int first_non_whitespace_char = std::distance(
-    //             column_header.begin(),
-    //             std::find_if(column_header.begin(), column_header.end(),
-    //                          [](char c) { return (c != ' '); }));
-    //         out[icol] = column_header.substr(first_non_whitespace_char);
-    //     }
-    //     else
-    //     {
-    //         out[icol] = "";
-    //     }
-    // }
-
-    return out;
+    amrex::ParallelDescriptor::Barrier();
 }

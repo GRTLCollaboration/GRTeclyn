@@ -12,6 +12,12 @@
 #include <string>
 #include <vector>
 
+#include "AMReX.H"
+#include "AMReX_BLassert.H"
+
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Print.H>
+
 // A class to read files written using SmallDataIO.
 
 class SmallDataIOReader
@@ -34,12 +40,19 @@ class SmallDataIOReader
         void clear();
     };
 
-  protected:
+  private:
     std::string m_filename;
     std::ifstream m_file;
     std::string m_file_contents;
     file_structure_t m_file_structure;
     bool m_structure_defined;
+    int m_rank; // only the AMReX IO rank does the reading
+
+    // Reads the entire file
+    void read_file(const std::string &a_filename);
+
+    // Parses the file and determines its structure
+    void determine_file_structure();
 
   public:
     // Constructor
@@ -55,12 +68,6 @@ class SmallDataIOReader
     // Closes the file
     void close();
 
-    // Reads the entire file
-    static std::string read_entire_file(const std::string &a_filename);
-
-    // Parses the file and determines its structure
-    void determine_file_structure();
-
     // Set structure if known already (e.g. same as another file already
     // determined)
     void set_file_structure(const file_structure_t &a_file_structure);
@@ -68,31 +75,47 @@ class SmallDataIOReader
     // File struture getter
     const file_structure_t &get_file_structure() const;
 
-    // Get an interval of columns (inclusive) from a block
-    std::vector<column_t> get_columns(int a_min_column, int a_max_column,
-                                      int a_block = 0);
+    // Print file structure
+    void print_file_structure() const;
 
-    std::vector<column_t> get_columns(const std::string &column_names,
-                                      const int a_block = 0);
+    // Get an interval of columns (inclusive) from a block
+    void get_columns(std::vector<column_t> &out, int a_min_column,
+                     int a_max_column, int a_block = 0);
+
+    // Get columns based on their names in the header
+    // (does not assume continguous column numbers)
+    void get_columns(std::vector<column_t> &out,
+                     const std::vector<std::string> &column_names,
+                     const int a_block = 0);
 
     // Get all data columns from a block
-    std::vector<column_t> get_all_data_columns(int a_block = 0);
+    void get_all_data_columns(std::vector<column_t> &out, int a_block = 0);
 
     // Get a single column from a block
-    column_t get_column(int a_column, int a_block = 0);
+    void get_column(std::vector<column_t> &out, int a_column, int a_block = 0);
 
     // Get same data column from all blocks
-    std::vector<std::vector<double>>
-    get_data_column_from_all_blocks(int a_data_column);
+    void get_data_column_from_all_blocks(std::vector<column_t> &out,
+                                         int a_data_column);
 
     // Returns a vector of numeric values from a header row
-    std::vector<double> get_data_from_header(int a_header_row_number,
-                                             int a_block = 0);
+    void get_data_from_header(std::vector<double> &out, int a_header_row_number,
+                              int a_block) const;
 
     // Returns a vector of strings from a header row
-    std::vector<std::string> get_header_strings(int a_header_row_number,
-                                                int a_block = 0);
+    void get_header_strings(std::vector<std::string> &header,
+                            int a_block = 0) const;
 
+    // Utility function to skip the header rows to start reading where the data
+    // is located
+    void skip_ahead(std::istringstream &file_stream, int nlines_to_skip,
+                    int a_block) const;
+
+    // Only rank designated as the IOProcessor reads. This is a helper function
+    // to redistribute data amongst all ranks
+    static void broadcast_data(std::vector<SmallDataIOReader::column_t> &data);
+
+    // Maximum allowed file size in bytes
     static constexpr int max_file_size = 1024 * 1024 * 1024;
 };
 
