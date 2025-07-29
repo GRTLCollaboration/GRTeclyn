@@ -27,7 +27,7 @@ void PunctureTrackerLevel::variableSetUp() { stateVariableSetUp(); }
 
 void PunctureTrackerLevel::initData()
 {
-    amrex::MultiFab &state = get_new_data(State_Type);
+    amrex::MultiFab &state = get_new_data(zero_state_index);
     const auto &arrs       = state.arrays();
     amrex::ParallelFor(state, state.nGrowVect(),
                        // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
@@ -66,7 +66,7 @@ void PunctureTrackerLevel::specificEvalRHS(amrex::MultiFab &a_soln,
 void PunctureTrackerLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
                                      amrex::Real a_regrid_threshold)
 {
-    amrex::MultiFab &state_new = get_new_data(State_Type);
+    amrex::MultiFab &state_new = get_new_data(zero_state_index);
 
     const auto &tag_arrs       = a_tag_box_array.arrays();
     const auto &state_new_arrs = state_new.const_arrays();
@@ -130,7 +130,7 @@ void PunctureTrackerLevel::check_puncture_tagging()
     const amrex::Real factor       = fudge_factor * std::pow(2.0, exponent);
 
     const auto &puncture_coords = get_puncture_tracker().get_puncture_coords();
-    const auto &state_new       = get_new_data(State_Type);
+    const auto &state_new       = get_new_data(zero_state_index);
     const auto &box_array       = state_new.boxArray();
 
     for (int ipuncture = 0; ipuncture < num_punctures; ++ipuncture)
@@ -205,7 +205,7 @@ void PunctureTrackerLevel::specificPostTimeStep()
     if (Level() == simParams().puncture_tracking_level)
     {
         bool write_punctures = false;
-        amrex::Real cur_time = get_state_data(State_Type).curTime();
+        amrex::Real cur_time = get_state_data(zero_state_index).curTime();
         amrex::Real dt       = get_gramr_ptr()->dtLevel(Level());
         get_puncture_tracker().track(cur_time, dt, write_punctures);
 

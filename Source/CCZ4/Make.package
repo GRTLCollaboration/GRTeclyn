@@ -5,6 +5,7 @@ GRTECLYN_CEXE_headers += ADMConformalVars.hpp \
                          CCZ4RHS.impl.hpp \
                          CCZ4StateVariables.hpp \
                          CCZ4Vars.hpp \
+                         CCZ4Vars2.hpp \
                          Constraints.hpp \
                          Constraints.impl.hpp \
                          GammaCalculator.hpp \
