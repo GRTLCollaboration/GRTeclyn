@@ -7,8 +7,7 @@
 #define CCZ4VARS2_HPP_
 
 // A function to return the right index for the tensor
-[[nodiscard]]
-int var_idx(int ivar, int i, int j)
+[[nodiscard]] AMREX_FORCE_INLINE int var_idx(int ivar, int i, int j)
 {
     return ivar + i + j + ((i * j != 0) ? 1 : 0);
 }
@@ -17,7 +16,7 @@ class CCZ4Vars2
 {
   public:
     AMREX_GPU_DEVICE inline CCZ4Vars2(
-        const amrex::CellData<amrex::Real const> &input_cell_data)
+        const amrex::CellData<amrex::Real> &input_cell_data)
         : cell_data(input_cell_data)
     {
     }
@@ -76,7 +75,77 @@ class CCZ4Vars2
         return cell_data[c_B1 + i];
     }
 
-    const amrex::CellData<amrex::Real const> &cell_data;
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void store_var(amrex::Real var,
+                                                       int ivar)
+    {
+        cell_data[ivar] = var;
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void store_chi(amrex::Real chi)
+    {
+        cell_data[c_chi] = chi;
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    store_h(Tensor<2, amrex::Real> h_LL)
+    {
+        FOR2 (i, j)
+        {
+            cell_data[var_idx(c_h11, i, j)] = h_LL[i][j];
+        }
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void store_K(amrex::Real K)
+    {
+        cell_data[c_K] = K;
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    store_A(Tensor<2, amrex::Real> A_LL)
+    {
+        FOR2 (i, j)
+        {
+            cell_data[var_idx(c_A11, i, j)] = A_LL[i][j];
+        }
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void store_Theta(amrex::Real Theta)
+    {
+        cell_data[c_Theta] = Theta;
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    store_Gamma(Tensor<1, amrex::Real> Gamma_U)
+    {
+        FOR (i)
+        {
+            cell_data[c_Gamma1 + i] = Gamma_U[i];
+        }
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void store_lapse(amrex::Real lapse)
+    {
+        cell_data[c_lapse] = lapse;
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    store_shift(Tensor<1, amrex::Real> shift_U)
+    {
+        FOR (i)
+        {
+            cell_data[c_shift1 + i] = shift_U[i];
+        }
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void store_B(Tensor<1, amrex::Real> B_U)
+    {
+        FOR (i)
+        {
+            cell_data[c_B1 + i] = B_U[i];
+        }
+    }
+
+    const amrex::CellData<amrex::Real> &cell_data;
 };
 
 #endif /* CCZ4VARS2_HPP */

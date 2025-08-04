@@ -92,8 +92,9 @@ void BinaryBHLevel::initData()
                    INCLUDE_GHOST_CELLS, disable_simd());
 #else
     // Set up the compute class for the BinaryBH initial data
-    BinaryBHInitialData binary(simParams().bh1_params, simParams().bh2_params,
-                               Geom().CellSize(0));
+    double dx = Geom().CellSize(0);
+    BinaryBHInitialData binary_initial_data(simParams().bh1_params,
+                                            simParams().bh2_params, dx);
 
     static_assert(std::is_trivially_copyable_v<BinaryBHInitialData>,
                   "BinaryBHInitialData needs to be device copyable");
@@ -111,7 +112,8 @@ void BinaryBHLevel::initData()
                            {
                                cell[n] = 0.;
                            }
-                           binary.init_data(ix, iy, iz, cell);
+                           binary_initial_data(ix, iy, iz,
+                                               state_arrays[box_no]);
                        });
 #endif
     amrex::Gpu::streamSynchronize();

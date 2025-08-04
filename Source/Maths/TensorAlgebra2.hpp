@@ -14,6 +14,8 @@
 
 namespace TensorAlgebra2
 {
+/// Computes the (i,j) component of the Kronecker delta
+constexpr int delta(int i, int j) { return static_cast<int>(i == j); }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_determinant_sym(const CCZ4Vars2 &vars)

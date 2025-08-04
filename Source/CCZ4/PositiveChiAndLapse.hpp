@@ -34,16 +34,16 @@ class PositiveChiAndLapse
 
         const amrex::CellData<amrex::Real> &state_cell_data =
             state.cellData(ix, iy, iz);
-        const CCZ4Vars2 vars(state_cell_data);
+        CCZ4Vars2 vars(state_cell_data);
 
-        auto chi   = vars.chi();
-        auto lapse = vars.lapse();
+        amrex::Real chi   = vars.chi();
+        amrex::Real lapse = vars.lapse();
 
         chi   = std::max(chi, m_min_chi);
         lapse = std::max(lapse, m_min_lapse);
 
-        state_cell_data[c_chi]   = chi;
-        state_cell_data[c_lapse] = lapse;
+        vars.store_chi(chi);
+        vars.store_lapse(lapse);
     }
 };
 

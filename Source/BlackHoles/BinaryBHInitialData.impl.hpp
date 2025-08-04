@@ -3,14 +3,10 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#if !defined(BINARYBHINITIALDATA_HPP_)
-#error "This file should only be included through BinaryBHInitialData.hpp"
-#endif
-
-#ifndef BINARYBHINITIALDATA_IMPL_HPP_
-#define BINARYBHINITIALDATA_IMPL_HPP_
-
-#include "BSSNVars.hpp"
+#include "BinaryBHInitialData.hpp"
+#include "BoostedBHInitialData.hpp"
+#include "CCZ4Vars2.hpp"
+#include "TensorAlgebra2.hpp"
 #include "VarsTools.hpp"
 
 // Constructor
@@ -39,52 +35,56 @@ BinaryBHInitialData::compute_A(amrex::Real chi, Coordinates coords) const
 
     Tensor<2, amrex::Real> Aij1 = bh1.Aij(coords);
     Tensor<2, amrex::Real> Aij2 = bh2.Aij(coords);
-    Tensor<2, amrex::Real> out;
+    Tensor<2, amrex::Real> Aij_total;
 
     // Aij(CCZ4) = psi^(-6) * Aij(Baumgarte&Shapiro book)
     FOR (i, j)
-        out[i][j] = pow(chi, 3 / 2.) * (Aij1[i][j] + Aij2[i][j]);
+        Aij_total[i][j] = pow(chi, 3 / 2.) * (Aij1[i][j] + Aij2[i][j]);
 
-    return out;
+    return Aij_total;
 }
 
 AMREX_FORCE_INLINE
 AMREX_GPU_DEVICE // or AMREX_GPU_HOST_DEVICE depending on what's needed
     void
-    BinaryBHInitialData::init_data(
-        int i, int j, int k, const amrex::CellData<amrex::Real> &cell) const
+    BinaryBHInitialData::operator()(
+        int ix, int iy, int iz, const amrex::Array4<amrex::Real> &state) const
 {
-    // TODO: Remove this once BSSNVars de-data_t-ed
-    BSSNVars::VarsWithGauge<amrex::Real> vars;
-    VarsTools::assign(vars,
-                      0.); // Set only the non-zero components explicitly below
-    Coordinates coords(amrex::IntVect(i, j, k), m_dx);
 
-    vars.chi = compute_chi(coords);
+    const amrex::CellData<amrex::Real> &state_cell_data =
+        state.cellData(ix, iy, iz);
+    CCZ4Vars2 vars(state_cell_data);
+    Coordinates coords(amrex::IntVect(ix, iy, iz), m_dx);
 
-    // Conformal metric is flat
-    FOR (ii)
-        vars.h[ii][ii] = 1.;
+    // Assign non zero values
+    amrex::Real chi = compute_chi(coords);
+    vars.store_chi(chi);
 
-    vars.A = compute_A(vars.chi, coords);
+    Tensor<2, amrex::Real> h_LL;
+    FOR2 (i, j)
+    {
+        h_LL[i][j] = TensorAlgebra2::delta(i, j);
+    }
+    vars.store_h(h_LL);
+
+    Tensor<2, amrex::Real> total_A_LL = compute_A(chi, coords);
+    vars.store_A(total_A_LL);
 
     switch (m_initial_lapse)
     {
     case Lapse::ONE:
-        vars.lapse = 1.;
+        vars.store_lapse(1.0);
         break;
     case Lapse::PRE_COLLAPSED:
-        vars.lapse = std::sqrt(vars.chi);
+        vars.store_lapse(std::sqrt(chi));
         break;
     case Lapse::CHI:
-        vars.lapse = vars.chi;
+        vars.store_lapse(chi);
         break;
     default:
         amrex::Abort(
             "BinaryBHInitialData::Supplied initial lapse not supported.");
     }
-
-    store_vars(cell, vars);
 }
 
 #endif /* BINARYBHINITIALDATA_IMPL_HPP_ */
