@@ -48,22 +48,21 @@ void BinaryBHLevel::specificAdvance()
 
     // The classes to be used
     TraceARemoval trace_a_removal;
-    // PositiveChiAndLapse positive_chi_lapse;
+    PositiveChiAndLapse positive_chi_lapse;
 
     // Enforce the trace free A_ij condition and positive chi and lapse
     amrex::ParallelFor(state_new,
-                       [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+                       [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
                        {
-                           amrex::CellData<amrex::Real> cell =
-                               state_arrays[box_no].cellData(i, j, k);
-                           trace_a_removal(i, j, k, state_arrays[box_no]);
-                           PositiveChiAndLapse()(cell);
+                           trace_a_removal(ix, iy, iz, state_arrays[box_no]);
+                           positive_chi_lapse(ix, iy, iz, state_arrays[box_no]);
                        });
 
     // Check for nan's
     if (simParams().nan_check)
     {
-        if (state_new.contains_nan(0, state.nComp(), amrex::IntVect(0), true))
+        if (state_new.contains_nan(0, state_new.nComp(), amrex::IntVect(0),
+                                   true))
         {
             amrex::Abort("NaN in specificAdvance");
         }
@@ -104,15 +103,15 @@ void BinaryBHLevel::initData()
     amrex::MultiFab &state_new = get_new_data(state_index);
     const auto &state_arrays   = state_new.arrays();
     amrex::ParallelFor(state_new, state_new.nGrowVect(),
-                       [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+                       [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
                        {
                            amrex::CellData<amrex::Real> cell =
-                               state_arrays[box_no].cellData(i, j, k);
+                               state_arrays[box_no].cellData(ix, iy, iz);
                            for (int n = 0; n < cell.nComp(); ++n)
                            {
                                cell[n] = 0.;
                            }
-                           binary.init_data(i, j, k, cell);
+                           binary.init_data(ix, iy, iz, cell);
                        });
 #endif
     amrex::Gpu::streamSynchronize();
@@ -144,16 +143,14 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
 
     // The classes to be used
     TraceARemoval trace_a_removal;
-    // PositiveChiAndLapse positive_chi_lapse;
+    PositiveChiAndLapse positive_chi_lapse;
 
     // Enforce positive chi and lapse and trace free A
     amrex::ParallelFor(a_soln, soln_ghosts,
-                       [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+                       [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
                        {
-                           amrex::CellData<amrex::Real> cell =
-                               soln_arrays[box_no].cellData(i, j, k);
-                           trace_a_removal(i, j, k, soln_arrays[box_no]);
-                           PositiveChiAndLapse()(cell);
+                           trace_a_removal(ix, iy, iz, soln_arrays[box_no]);
+                           positive_chi_lapse(ix, iy, iz, soln_arrays[box_no]);
                        });
 
     // Calculate CCZ4 right hand side
@@ -163,12 +160,13 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
             simParams().ccz4_params, Geom().CellSize(0), simParams().sigma,
             simParams().formulation);
 
-        amrex::ParallelFor(a_rhs,
-                           [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
-                           {
-                               ccz4rhs.compute(i, j, k, rhs_arrays[box_no],
-                                               const_soln_arrays[box_no]);
-                           });
+        amrex::ParallelFor(
+            a_rhs,
+            [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+            {
+                ccz4rhs.compute(ix, iy, iz, rhs_arrays[box_no],
+                                const_soln_arrays[box_no]);
+            });
     }
     else if (simParams().max_spatial_derivative_order == 6)
     {
@@ -178,10 +176,10 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
             ccz4rhs(simParams().ccz4_params, Geom().CellSize(0), simParams().sigma,
                     simParams().formulation);
         amrex::ParallelFor(a_rhs,
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
+        [=] AMREX_GPU_DEVICE (int box_no, int ix, int iy, int iz)
         {
             amrex::CellData<amrex::Real const> state = const_soln_arrays[box_no].cellData(i,j,k);
-            amrex::CellData<amrex::Real> rhs = rhs_arrays[box_no].cellData(i,j,k);
+            amrex::CellData<amrex::Real> rhs = rhs_arrays[box_no].cellData(ix,iy,iz);
             ccz4rhs.compute(rhs, state);
         });
 #endif
@@ -200,8 +198,8 @@ void BinaryBHLevel::specificUpdateODE(amrex::MultiFab &a_soln)
     // Enforce the trace free A_ij condition
     const auto &soln_arrays = a_soln.arrays();
     amrex::ParallelFor(a_soln, soln_ghosts,
-                       [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
-                       { trace_a_removal(i, j, k, soln_arrays[box_no]); });
+                       [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+                       { trace_a_removal(ix, iy, iz, soln_arrays[box_no]); });
 
     amrex::Gpu::streamSynchronize();
 }
@@ -209,12 +207,13 @@ void BinaryBHLevel::specificUpdateODE(amrex::MultiFab &a_soln)
 void BinaryBHLevel::pre_tag_cells()
 {
     amrex::MultiFab &state_new = get_new_data(state_index);
-    const auto cur_time        = get_state_data(state_index).curTime();
+    const auto current_time    = get_state_data(state_index).curTime();
 
     // Just fill 2 ghosts for chi to calculate second derivatives
     const int nghost = 2;
     const int ncomp  = 1;
-    FillPatch(*this, state_new, nghost, cur_time, state_index, c_chi, ncomp);
+    FillPatch(*this, state_new, nghost, current_time, state_index, c_chi,
+              ncomp);
 }
 
 void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
@@ -249,13 +248,13 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
         {simParams().bh1_params.mass, simParams().bh2_params.mass});
 
     amrex::ParallelFor(state_new, amrex::IntVect(0),
-                       [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+                       [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
                        {
-                           chi_extraction_tagger(i, j, k, tag_arrays[box_no],
+                           chi_extraction_tagger(ix, iy, iz, tag_arrays[box_no],
                                                  state_const_arrays[box_no]);
                            if (puncture_tracking_enabled)
                            {
-                               puncture_tagger(i, j, k, tag_arrays[box_no]);
+                               puncture_tagger(ix, iy, iz, tag_arrays[box_no]);
                            }
                        });
     amrex::Gpu::streamSynchronize();

@@ -6,10 +6,11 @@
 #ifndef CHIEXTRACTIONTAGGER_HPP_
 #define CHIEXTRACTIONTAGGER_HPP_
 
+#include "CCZ4Vars2.hpp"
 #include "Cell.hpp"
 #include "Coordinates.hpp"
 #include "DimensionDefinitions.hpp"
-#include "FourthOrderDerivatives.hpp"
+#include "FourthOrderDerivatives2.hpp"
 #include "SphericalExtraction.hpp"
 #include "Tensor.hpp"
 
@@ -19,7 +20,7 @@ class ChiExtractionTagger
 {
   protected:
     double m_dx;
-    FourthOrderDerivatives m_deriv;
+    FourthOrderDerivatives2 m_deriv;
     amrex::Real m_threshold;
     // const SphericalExtraction::params_t m_params;  not GPU friendly
     int m_num_extraction_radii;
@@ -51,26 +52,27 @@ class ChiExtractionTagger
     }
 
     AMREX_GPU_DEVICE void
-    operator()(int i, int j, int k,
+    operator()(int ix, int iy, int iz,
                const amrex::Array4<amrex::TagBox::TagType> &tags,
                const amrex::Array4<amrex::Real const> &state) const
     {
         // first test the gradients for regions of high curvature
-        const auto d2_chi      = m_deriv.diff2(i, j, k, state, c_chi);
+        const Tensor<2, amrex::Real> d2_chi =
+            m_deriv.diff2(ix, iy, iz, state, c_chi);
         amrex::Real mod_d2_chi = 0;
-        FOR (idir, jdir)
+        FOR (i, j)
         {
-            mod_d2_chi += d2_chi[idir][jdir] * d2_chi[idir][jdir];
+            mod_d2_chi += d2_chi[i][j] * d2_chi[i][j];
         }
         amrex::Real criterion = m_dx * std::sqrt(mod_d2_chi);
         if (criterion >= m_threshold)
         {
-            tags(i, j, k) = amrex::TagBox::SET;
+            tags(ix, iy, iz) = amrex::TagBox::SET;
         }
 
         // if extracting weyl data at a given radius, enforce a given resolution
         // there
-        amrex::IntVect cell(AMREX_D_DECL(i, j, k));
+        amrex::IntVect cell(AMREX_D_DECL(ix, iy, iz));
         for (int iradius = 0; iradius < m_num_extraction_radii; ++iradius)
         {
             // regrid if within extraction level and not at required
@@ -83,7 +85,7 @@ class ChiExtractionTagger
                 // boundary
                 if (r < 1.2 * m_extraction_radii_ptr[iradius])
                 {
-                    tags(i, j, k) = amrex::TagBox::SET;
+                    tags(ix, iy, iz) = amrex::TagBox::SET;
                 }
             }
         }

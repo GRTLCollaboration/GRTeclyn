@@ -1,0 +1,222 @@
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
+ */
+
+#ifndef FOURTHORDERDERIVATIVES2_HPP_
+#define FOURTHORDERDERIVATIVES2_HPP_
+
+#include "CCZ4Vars2.hpp"
+#include "Cell.hpp"
+#include "DimensionDefinitions.hpp"
+#include "Tensor.hpp"
+#include <array>
+
+class FourthOrderDerivatives2
+{
+  private:
+    amrex::Real m_dx;
+    amrex::Real m_one_over_dx;
+    amrex::Real m_one_over_dx2;
+
+  public:
+    AMREX_GPU_HOST_DEVICE FourthOrderDerivatives2(double dx)
+        : m_dx(dx), m_one_over_dx(1 / dx), m_one_over_dx2(1 / (dx * dx))
+    {
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+    diff1(const amrex::Real *in_ptr, const int stride, const int idx = 0) const
+    {
+        amrex::Real weight_far  = 8.33333333333333333333e-2;
+        amrex::Real weight_near = 6.66666666666666666667e-1;
+
+        return (weight_far * in_ptr[idx - 2 * stride] -
+                weight_near * in_ptr[idx - stride] +
+                weight_near * in_ptr[idx + stride] -
+                weight_far * in_ptr[idx + 2 * stride]) *
+               m_one_over_dx;
+    }
+
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<1, amrex::Real>
+    diff1(int ix, int iy, int iz, const amrex::Array4<const amrex::Real> &state,
+          const int ivar) const
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+        Tensor<1, amrex::Real> d1;
+        const auto *state_ptr_xyz = state.ptr(ix, iy, iz);
+        amrex::GpuArray<int, AMREX_SPACEDIM> strides{
+            1, static_cast<int>(state.jstride),
+            static_cast<int>(state.kstride)};
+        const auto *var_ptr = state_ptr_xyz + ivar * state.nstride;
+        FOR (idir)
+        {
+            d1[idir] = diff1(var_ptr, strides[idir]);
+        }
+        return d1;
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+    diff2(const amrex::Real *in_ptr, const int stride, const int idx = 0) const
+    {
+        amrex::Real weight_far   = 8.33333333333333333333e-2;
+        amrex::Real weight_near  = 1.33333333333333333333e+0;
+        amrex::Real weight_local = 2.50000000000000000000e+0;
+
+        return (-weight_far * in_ptr[idx - 2 * stride] +
+                weight_near * in_ptr[idx - stride] -
+                weight_local * in_ptr[idx] +
+                weight_near * in_ptr[idx + stride] -
+                weight_far * in_ptr[idx + 2 * stride]) *
+               m_one_over_dx2;
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+    mixed_diff2(const amrex::Real *in_ptr, const int stride1, const int stride2,
+                const int idx = 0) const
+    {
+        amrex::Real weight_far_far   = 6.94444444444444444444e-3;
+        amrex::Real weight_near_far  = 5.55555555555555555556e-2;
+        amrex::Real weight_near_near = 4.44444444444444444444e-1;
+
+        return (weight_far_far * in_ptr[idx - 2 * stride1 - 2 * stride2] -
+                weight_near_far * in_ptr[idx - 2 * stride1 - stride2] +
+                weight_near_far * in_ptr[idx - 2 * stride1 + stride2] -
+                weight_far_far * in_ptr[idx - 2 * stride1 + 2 * stride2]
+
+                - weight_near_far * in_ptr[idx - stride1 - 2 * stride2] +
+                weight_near_near * in_ptr[idx - stride1 - stride2] -
+                weight_near_near * in_ptr[idx - stride1 + stride2] +
+                weight_near_far * in_ptr[idx - stride1 + 2 * stride2]
+
+                + weight_near_far * in_ptr[idx + stride1 - 2 * stride2] -
+                weight_near_near * in_ptr[idx + stride1 - stride2] +
+                weight_near_near * in_ptr[idx + stride1 + stride2] -
+                weight_near_far * in_ptr[idx + stride1 + 2 * stride2]
+
+                - weight_far_far * in_ptr[idx + 2 * stride1 - 2 * stride2] +
+                weight_near_far * in_ptr[idx + 2 * stride1 - stride2] -
+                weight_near_far * in_ptr[idx + 2 * stride1 + stride2] +
+                weight_far_far * in_ptr[idx + 2 * stride1 + 2 * stride2]) *
+               m_one_over_dx2;
+    }
+
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<2, amrex::Real>
+    diff2(int ix, int iy, int iz, const amrex::Array4<amrex::Real const> &state,
+          const int ivar) const
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+        Tensor<2, amrex::Real> d2;
+        const auto *state_ptr_xyz = state.ptr(ix, iy, iz);
+        amrex::GpuArray<int, AMREX_SPACEDIM> strides{
+            1, static_cast<int>(state.jstride),
+            static_cast<int>(state.kstride)};
+        const auto *var_ptr = state_ptr_xyz + ivar * state.nstride;
+        FOR (idir1)
+        {
+            d2[idir1][idir1] = diff2(var_ptr, strides[idir1]);
+            for (int idir2 = 0; idir2 < idir1; ++idir2)
+            {
+                auto d2_tmp =
+                    mixed_diff2(var_ptr, strides[idir1], strides[idir2]);
+                d2[idir1][idir2] = d2_tmp;
+                d2[idir2][idir1] = d2_tmp;
+            }
+        }
+        return d2;
+    }
+
+  protected:
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+    advection_term(const amrex::Real *in_ptr, const amrex::Real &shift_comp,
+                   const int stride, const bool shift_positive,
+                   const int idx = 0) const
+    {
+        amrex::Real weight_0 = -2.50000000000000000000e-1;
+        amrex::Real weight_1 = -8.33333333333333333333e-1;
+        amrex::Real weight_2 = +1.50000000000000000000e+0;
+        amrex::Real weight_3 = -5.00000000000000000000e-1;
+        amrex::Real weight_4 = +8.33333333333333333333e-2;
+
+        amrex::Real upwind =
+            shift_comp *
+            (weight_0 * in_ptr[idx - stride] + weight_1 * in_ptr[idx] +
+             weight_2 * in_ptr[idx + stride] +
+             weight_3 * in_ptr[idx + 2 * stride] +
+             weight_4 * in_ptr[idx + 3 * stride]) *
+            m_one_over_dx;
+
+        amrex::Real downwind =
+            shift_comp *
+            (-weight_4 * in_ptr[idx - 3 * stride] -
+             weight_3 * in_ptr[idx - 2 * stride] -
+             weight_2 * in_ptr[idx - stride] - weight_1 * in_ptr[idx] -
+             weight_0 * in_ptr[idx + stride]) *
+            m_one_over_dx;
+
+        return (shift_positive) ? upwind : downwind;
+    }
+
+  public:
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+    advection(int ix, int iy, int iz,
+              const amrex::Array4<amrex::Real const> &state,
+              const Tensor<1, amrex::Real> &shift_vector, const int ivar) const
+    {
+        amrex::Real advec         = 0.0;
+        const auto *state_ptr_xyz = state.ptr(ix, iy, iz);
+        amrex::GpuArray<int, AMREX_SPACEDIM> strides{
+            1, static_cast<int>(state.jstride),
+            static_cast<int>(state.kstride)};
+
+        const auto *var_ptr = state_ptr_xyz + ivar * state.nstride;
+        FOR (idir)
+        {
+            const bool shift_positive = (shift_vector[idir] > 0.0);
+            advec += advection_term(var_ptr, shift_vector[idir], strides[idir],
+                                    shift_positive);
+        }
+        return advec;
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+    dissipation_term(const double *in_ptr, const int stride,
+                     const int idx = 0) const
+    {
+        amrex::Real weight_vfar  = 1.56250e-2;
+        amrex::Real weight_far   = 9.37500e-2;
+        amrex::Real weight_near  = 2.34375e-1;
+        amrex::Real weight_local = 3.12500e-1;
+
+        return (weight_vfar * in_ptr[idx - 3 * stride] -
+                weight_far * in_ptr[idx - 2 * stride] +
+                weight_near * in_ptr[idx - stride] -
+                weight_local * in_ptr[idx] +
+                weight_near * in_ptr[idx + stride] -
+                weight_far * in_ptr[idx + 2 * stride] +
+                weight_vfar * in_ptr[idx + 3 * stride]) *
+               m_one_over_dx;
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+    add_dissipation(int ix, int iy, int iz,
+                    const amrex::Array4<amrex::Real const> &state,
+                    const double sigma_coeff, const int ivar) const
+    {
+        amrex::Real diss          = 0.0;
+        const auto *state_ptr_xyz = state.ptr(ix, iy, iz);
+        amrex::GpuArray<int, AMREX_SPACEDIM> strides{
+            1, static_cast<int>(state.jstride),
+            static_cast<int>(state.kstride)};
+        FOR (idir)
+        {
+            const auto stride = strides[idir];
+            diss +=
+                sigma_coeff *
+                dissipation_term(state_ptr_xyz + ivar * state.nstride, stride);
+        }
+        return diss;
+    }
+};
+
+#endif /* FOURTHORDERDERIVATIVES2_HPP_ */
