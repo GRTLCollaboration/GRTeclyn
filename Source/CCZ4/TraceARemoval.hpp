@@ -22,11 +22,11 @@ class TraceARemoval
 
     // Compute function
     AMREX_GPU_HOST_DEVICE void
-    operator()(int i, int j, int k,
+    operator()(int ix, int iy, int iz,
                const amrex::Array4<amrex::Real> &state) const
     {
         const amrex::CellData<amrex::Real> &state_cell_data =
-            state.cellData(i, j, k);
+            state.cellData(ix, iy, iz);
         const CCZ4Vars2 vars(state_cell_data);
 
         using namespace TensorAlgebra2;

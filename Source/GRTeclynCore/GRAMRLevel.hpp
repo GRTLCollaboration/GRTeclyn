@@ -21,7 +21,7 @@
 
 enum StateType
 {
-    zero_state_index = 0,
+    state_index = 0,
     NUM_STATE_TYPE
 };
 

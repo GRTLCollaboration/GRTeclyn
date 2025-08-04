@@ -35,23 +35,23 @@ void BinaryBHLevel::variableSetUp()
     // Set up the state variables
     stateVariableSetUp();
 
-    Constraints::set_up(zero_state_index);
+    Constraints::set_up(state_index);
 
-    Weyl4::set_up(zero_state_index);
+    Weyl4::set_up(state_index);
 }
 
 // Things to do during the advance step after RK4 steps
 void BinaryBHLevel::specificAdvance()
 {
-    amrex::MultiFab &state   = get_new_data(zero_state_index);
-    const auto &state_arrays = state.arrays();
+    amrex::MultiFab &state_new = get_new_data(state_index);
+    const auto &state_arrays   = state_new.arrays();
 
     // The classes to be used
     TraceARemoval trace_a_removal;
     // PositiveChiAndLapse positive_chi_lapse;
 
     // Enforce the trace free A_ij condition and positive chi and lapse
-    amrex::ParallelFor(state,
+    amrex::ParallelFor(state_new,
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
                        {
                            amrex::CellData<amrex::Real> cell =
@@ -63,7 +63,7 @@ void BinaryBHLevel::specificAdvance()
     // Check for nan's
     if (simParams().nan_check)
     {
-        if (state.contains_nan(0, state.nComp(), amrex::IntVect(0), true))
+        if (state_new.contains_nan(0, state.nComp(), amrex::IntVect(0), true))
         {
             amrex::Abort("NaN in specificAdvance");
         }
@@ -101,9 +101,9 @@ void BinaryBHLevel::initData()
 
     // First set everything to zero (to avoid undefinded values in constraints)
     // then calculate initial data
-    amrex::MultiFab &state   = get_new_data(zero_state_index);
-    const auto &state_arrays = state.arrays();
-    amrex::ParallelFor(state, state.nGrowVect(),
+    amrex::MultiFab &state_new = get_new_data(state_index);
+    const auto &state_arrays   = state_new.arrays();
+    amrex::ParallelFor(state_new, state_new.nGrowVect(),
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
                        {
                            amrex::CellData<amrex::Real> cell =
@@ -208,24 +208,23 @@ void BinaryBHLevel::specificUpdateODE(amrex::MultiFab &a_soln)
 
 void BinaryBHLevel::pre_tag_cells()
 {
-    amrex::MultiFab &state_new = get_new_data(zero_state_index);
-    const auto cur_time        = get_state_data(zero_state_index).curTime();
+    amrex::MultiFab &state_new = get_new_data(state_index);
+    const auto cur_time        = get_state_data(state_index).curTime();
 
     // Just fill 2 ghosts for chi to calculate second derivatives
     const int nghost = 2;
     const int ncomp  = 1;
-    FillPatch(*this, state_new, nghost, cur_time, zero_state_index, c_chi,
-              ncomp);
+    FillPatch(*this, state_new, nghost, cur_time, state_index, c_chi, ncomp);
 }
 
 void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
                               amrex::Real a_regrid_threshold)
 {
     BL_PROFILE("BinaryBHLevel::tag_cells()");
-    amrex::MultiFab &state = get_new_data(zero_state_index);
+    amrex::MultiFab &state_new = get_new_data(state_index);
 
-    const auto &tag_arrays     = a_tag_box_array.arrays();
-    const auto &state_c_arrays = state.const_arrays();
+    const auto &tag_arrays         = a_tag_box_array.arrays();
+    const auto &state_const_arrays = state_new.const_arrays();
 
     ChiExtractionTagger chi_extraction_tagger(
         Geom().CellSize(0), Level(), a_regrid_threshold,
@@ -249,11 +248,11 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
         puncture_coords,
         {simParams().bh1_params.mass, simParams().bh2_params.mass});
 
-    amrex::ParallelFor(state, amrex::IntVect(0),
+    amrex::ParallelFor(state_new, amrex::IntVect(0),
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
                        {
                            chi_extraction_tagger(i, j, k, tag_arrays[box_no],
-                                                 state_c_arrays[box_no]);
+                                                 state_const_arrays[box_no]);
                            if (puncture_tracking_enabled)
                            {
                                puncture_tagger(i, j, k, tag_arrays[box_no]);
@@ -315,7 +314,7 @@ void BinaryBHLevel::specificPostTimeStep()
         // writeout_level
         bool write_punctures = at_level_timestep_multiple(
             simParams().puncture_tracking_writeout_level);
-        amrex::Real cur_time = get_state_data(zero_state_index).curTime();
+        amrex::Real cur_time = get_state_data(state_index).curTime();
         amrex::Real dt       = get_gramr_ptr()->dtLevel(Level());
         get_puncture_tracker().track(cur_time, dt, write_punctures);
     }

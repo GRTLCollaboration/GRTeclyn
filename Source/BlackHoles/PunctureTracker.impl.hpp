@@ -256,7 +256,7 @@ void PunctureTracker<num_punctures>::track(double a_time, double a_dt,
         amrex::AmrLevel &amr_level = m_gr_amr->getLevel(ilevel);
 
         const amrex::Geometry &geom  = amr_level.Geom();
-        amrex::MultiFab &state_level = amr_level.get_new_data(zero_state_index);
+        amrex::MultiFab &state_level = amr_level.get_new_data(state_index);
 
         // We should only need 1 ghost cell as we are doing linear interpolation
         amrex::IntVect ghosts_to_fill = amrex::IntVect::TheUnitVector();
