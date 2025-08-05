@@ -44,6 +44,9 @@ class GammaCalculator
         // derivs
         Vars<amrex::Real> vars;
         load_vars(current_cell, vars);
+        // TODO: Port this code
+        // This code hasn't been ported to GRTeclyn.
+        // We've just removed templating over data_t.
         const auto d1 = m_deriv.template diff1<Vars>(current_cell);
 
         using namespace TensorAlgebra;

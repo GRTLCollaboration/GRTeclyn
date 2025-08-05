@@ -94,9 +94,10 @@ class Constraints
     Interval m_c_Moms_abs_terms;
     double m_cosmological_constant;
 
-    template <class vars_t, class d1_vars_t, class d2_vars_t>
+    template <template <class> class vars_t, class d2_vars_t>
     AMREX_FORCE_INLINE AMREX_GPU_DEVICE Vars constraint_equations(
-        const vars_t &vars, const d1_vars_t &d1, const d2_vars_t &d2,
+        const vars_t<amrex::Real> &vars,
+        const vars_t<Tensor<1, amrex::Real>> &d1, const d2_vars_t &d2,
         const Tensor<2, amrex::Real> &h_UU, const chris_t &chris) const;
 
     AMREX_FORCE_INLINE AMREX_GPU_DEVICE void

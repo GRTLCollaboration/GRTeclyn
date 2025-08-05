@@ -119,7 +119,7 @@ class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
             double x = geom.get_grid_coord(0, r, theta, phi) - center[0];
             double y = geom.get_grid_coord(1, r, theta, phi) - center[1];
             double z = geom.get_grid_coord(2, r, theta, phi) - center[2];
-            SphericalHarmonics::Y_lm_t<double> Y_lm =
+            SphericalHarmonics::Y_lm_t Y_lm =
                 SphericalHarmonics::spin_Y_lm(x, y, z, es, el, em);
             auto function_here = a_function(a_data_here, r, theta, phi);
             return (function_here.first * Y_lm.Real +
@@ -138,7 +138,7 @@ class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
             double x = geom.get_grid_coord(0, r, theta, phi) - center[0];
             double y = geom.get_grid_coord(1, r, theta, phi) - center[1];
             double z = geom.get_grid_coord(2, r, theta, phi) - center[2];
-            SphericalHarmonics::Y_lm_t<double> Y_lm =
+            SphericalHarmonics::Y_lm_t Y_lm =
                 SphericalHarmonics::spin_Y_lm(x, y, z, es, el, em);
             auto function_here = a_function(a_data_here, r, theta, phi);
             return (function_here.second * Y_lm.Real -

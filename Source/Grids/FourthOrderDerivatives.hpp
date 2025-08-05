@@ -9,7 +9,10 @@
 #include "Cell.hpp"
 #include "DimensionDefinitions.hpp"
 #include "Tensor.hpp"
+#include <AMReX_REAL.H>
 #include <array>
+
+using namespace amrex::literals;
 
 class FourthOrderDerivatives
 {
@@ -27,8 +30,8 @@ class FourthOrderDerivatives
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
     diff1(const amrex::Real *in_ptr, const int idx, const int stride) const
     {
-        amrex::Real weight_far  = 8.33333333333333333333e-2;
-        amrex::Real weight_near = 6.66666666666666666667e-1;
+        amrex::Real weight_far  = 8.33333333333333333333e-2_rt;
+        amrex::Real weight_near = 6.66666666666666666667e-1_rt;
 
         return (weight_far * in_ptr[idx - 2 * stride] -
                 weight_near * in_ptr[idx - stride] +
@@ -63,9 +66,9 @@ class FourthOrderDerivatives
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
     diff2(const amrex::Real *in_ptr, const int idx, const int stride) const
     {
-        amrex::Real weight_far   = 8.33333333333333333333e-2;
-        amrex::Real weight_near  = 1.33333333333333333333e+0;
-        amrex::Real weight_local = 2.50000000000000000000e+0;
+        amrex::Real weight_far   = 8.33333333333333333333e-2_rt;
+        amrex::Real weight_near  = 1.33333333333333333333e+0_rt;
+        amrex::Real weight_local = 2.50000000000000000000e+0_rt;
 
         return (-weight_far * in_ptr[idx - 2 * stride] +
                 weight_near * in_ptr[idx - stride] -
@@ -79,9 +82,9 @@ class FourthOrderDerivatives
     mixed_diff2(const amrex::Real *in_ptr, const int idx, const int stride1,
                 const int stride2) const
     {
-        amrex::Real weight_far_far   = 6.94444444444444444444e-3;
-        amrex::Real weight_near_far  = 5.55555555555555555556e-2;
-        amrex::Real weight_near_near = 4.44444444444444444444e-1;
+        amrex::Real weight_far_far   = 6.94444444444444444444e-3_rt;
+        amrex::Real weight_near_far  = 5.55555555555555555556e-2_rt;
+        amrex::Real weight_near_near = 4.44444444444444444444e-1_rt;
 
         return (weight_far_far * in_ptr[idx - 2 * stride1 - 2 * stride2] -
                 weight_near_far * in_ptr[idx - 2 * stride1 - stride2] +
@@ -171,11 +174,11 @@ class FourthOrderDerivatives
         const amrex::Real in_centre = in_ptr[idx];
         const amrex::Real in_right  = in_ptr[idx + stride];
 
-        amrex::Real weight_0 = -2.50000000000000000000e-1;
-        amrex::Real weight_1 = -8.33333333333333333333e-1;
-        amrex::Real weight_2 = +1.50000000000000000000e+0;
-        amrex::Real weight_3 = -5.00000000000000000000e-1;
-        amrex::Real weight_4 = +8.33333333333333333333e-2;
+        amrex::Real weight_0 = -2.50000000000000000000e-1_rt;
+        amrex::Real weight_1 = -8.33333333333333333333e-1_rt;
+        amrex::Real weight_2 = +1.50000000000000000000e+0_rt;
+        amrex::Real weight_3 = -5.00000000000000000000e-1_rt;
+        amrex::Real weight_4 = +8.33333333333333333333e-2_rt;
 
         amrex::Real upwind =
             vec_comp *
@@ -229,10 +232,10 @@ class FourthOrderDerivatives
     dissipation_term(const double *in_ptr, const int idx,
                      const int stride) const
     {
-        amrex::Real weight_vfar  = 1.56250e-2;
-        amrex::Real weight_far   = 9.37500e-2;
-        amrex::Real weight_near  = 2.34375e-1;
-        amrex::Real weight_local = 3.12500e-1;
+        amrex::Real weight_vfar  = 1.56250e-2_rt;
+        amrex::Real weight_far   = 9.37500e-2_rt;
+        amrex::Real weight_near  = 2.34375e-1_rt;
+        amrex::Real weight_local = 3.12500e-1_rt;
 
         return (weight_vfar * in_ptr[idx - 3 * stride] -
                 weight_far * in_ptr[idx - 2 * stride] +

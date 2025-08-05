@@ -234,8 +234,8 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tetrad_t Weyl4::compute_null_tetrad(
 
     // compute coords
     const amrex::Real x = coords.x;
-    const double y      = coords.y;
-    const double z      = coords.z;
+    const amrex::Real y = coords.y;
+    const amrex::Real z = coords.z;
 
     // the alternating levi civita symbol
     const Tensor<3, double> epsilon = TensorAlgebra::epsilon();
@@ -253,13 +253,10 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tetrad_t Weyl4::compute_null_tetrad(
     out.w[1] = 0.0;
     out.w[2] = 0.0;
 
-    // floor on chi
-    const amrex::Real chi = (vars.chi < 1e-4) ? 1e-4 : vars.chi;
-
     FOR (i, j, k, m)
     {
-        out.w[i] += 1. / sqrt(chi) * h_UU[i][j] * epsilon[j][k][m] * out.v[k] *
-                    out.u[m];
+        out.w[i] += 1. / sqrt(vars.chi) * h_UU[i][j] * epsilon[j][k][m] *
+                    out.v[k] * out.u[m];
     }
 
     // Gram Schmitt orthonormalisation
@@ -267,7 +264,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tetrad_t Weyl4::compute_null_tetrad(
     amrex::Real omega_11 = 0.0;
     FOR (i, j)
     {
-        omega_11 += out.v[i] * out.v[j] * vars.h[i][j] / chi;
+        omega_11 += out.v[i] * out.v[j] * vars.h[i][j] / vars.chi;
     }
     FOR (i)
     {
@@ -277,7 +274,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tetrad_t Weyl4::compute_null_tetrad(
     amrex::Real omega_12 = 0.0;
     FOR (i, j)
     {
-        omega_12 += out.v[i] * out.u[j] * vars.h[i][j] / chi;
+        omega_12 += out.v[i] * out.u[j] * vars.h[i][j] / vars.chi;
     }
     FOR (i)
     {
@@ -287,7 +284,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tetrad_t Weyl4::compute_null_tetrad(
     amrex::Real omega_22 = 0.0;
     FOR (i, j)
     {
-        omega_22 += out.u[i] * out.u[j] * vars.h[i][j] / chi;
+        omega_22 += out.u[i] * out.u[j] * vars.h[i][j] / vars.chi;
     }
     FOR (i)
     {
@@ -298,8 +295,8 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tetrad_t Weyl4::compute_null_tetrad(
     amrex::Real omega_23 = 0.0;
     FOR (i, j)
     {
-        omega_13 += out.v[i] * out.w[j] * vars.h[i][j] / chi;
-        omega_23 += out.u[i] * out.w[j] * vars.h[i][j] / chi;
+        omega_13 += out.v[i] * out.w[j] * vars.h[i][j] / vars.chi;
+        omega_23 += out.u[i] * out.w[j] * vars.h[i][j] / vars.chi;
     }
     FOR (i)
     {
@@ -309,7 +306,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tetrad_t Weyl4::compute_null_tetrad(
     amrex::Real omega_33 = 0.0;
     FOR (i, j)
     {
-        omega_33 += out.w[i] * out.w[j] * vars.h[i][j] / chi;
+        omega_33 += out.w[i] * out.w[j] * vars.h[i][j] / vars.chi;
     }
     FOR (i)
     {

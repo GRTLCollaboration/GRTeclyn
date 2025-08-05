@@ -29,8 +29,8 @@ namespace
 constexpr int ulp               = 15; // units in the last place
 constexpr double double_epsilon = std::numeric_limits<double>::epsilon();
 
-void check_tensor(const Tensor<2, double> &tensor,
-                  const Tensor<2, double> &correct_tensor,
+void check_tensor(const Tensor<2, amrex::Real> &tensor,
+                  const Tensor<2, amrex::Real> &correct_tensor,
                   const std::string &test_name)
 {
     FOR (i, j)
@@ -41,8 +41,8 @@ void check_tensor(const Tensor<2, double> &tensor,
     }
 }
 
-void check_vector(const Tensor<1, double> &vector,
-                  const Tensor<1, double> &correct_vector,
+void check_vector(const Tensor<1, amrex::Real> &vector,
+                  const Tensor<1, amrex::Real> &correct_vector,
                   const std::string &test_name)
 {
     FOR (i)
@@ -61,16 +61,16 @@ void run_coordinate_transformations_test()
     // NOLINTNEXTLINE(bugprone-casting-through-void) // Open MPI triggers this
     amrex::Initialize(amrex_argc, amrex_argv);
     {
-        const double dx = 0.1;
+        const amrex::Real dx = 0.1;
         amrex::IntVect iv{1, 2, 3};
 
         Coordinates coords(iv, dx);
-        const double x     = coords.x;
-        const double y     = coords.y;
-        const double z     = coords.z;
-        const double r     = coords.get_radius();
-        double rho2        = std::max(x * x + y * y, 1e-12);
-        double r2sin2theta = rho2;
+        const amrex::Real x     = coords.x;
+        const amrex::Real y     = coords.y;
+        const amrex::Real z     = coords.z;
+        const amrex::Real r     = coords.get_radius();
+        amrex::Real rho2        = std::max(x * x + y * y, 1e-12);
+        amrex::Real r2sin2theta = rho2;
 
         /* for debugging
         std::cout << "x " << x << std::endl;
@@ -83,13 +83,13 @@ void run_coordinate_transformations_test()
         using namespace CoordinateTransformations;
 
         // Test if inv_jac is really the inverse of the jacobian
-        Tensor<2, double> jac           = spherical_jacobian(x, y, z);
-        Tensor<2, double> inv_jac       = inverse_spherical_jacobian(x, y, z);
-        Tensor<2, double> inv_jac_check = compute_inverse(jac);
+        Tensor<2, amrex::Real> jac     = spherical_jacobian(x, y, z);
+        Tensor<2, amrex::Real> inv_jac = inverse_spherical_jacobian(x, y, z);
+        Tensor<2, amrex::Real> inv_jac_check = compute_inverse(jac);
         check_tensor(inv_jac, inv_jac_check, "inverse_jacobian");
 
         // Test tensor transformations
-        Tensor<2, double> Mij_cart;
+        Tensor<2, amrex::Real> Mij_cart;
         FOR (i, j)
         {
             Mij_cart[i][j] = 0.;
@@ -98,7 +98,7 @@ void run_coordinate_transformations_test()
         Mij_cart[1][1] = 1.;
         Mij_cart[2][2] = 1.;
 
-        Tensor<2, double> Mij_spher;
+        Tensor<2, amrex::Real> Mij_spher;
         FOR (i, j)
         {
             Mij_spher[i][j] = 0.;
@@ -108,18 +108,18 @@ void run_coordinate_transformations_test()
         Mij_spher[2][2] = r2sin2theta;
 
         // Test cartesian_to_spherical_LL
-        Tensor<2, double> Mij_spher_check;
+        Tensor<2, amrex::Real> Mij_spher_check;
         Mij_spher_check = cartesian_to_spherical_LL(Mij_cart, x, y, z);
         check_tensor(Mij_spher_check, Mij_spher, "cartesian_to_spherical_LL");
 
         // Test spherical_to_cartesian_LL
-        Tensor<2, double> Mij_cart_check;
+        Tensor<2, amrex::Real> Mij_cart_check;
         Mij_cart_check = spherical_to_cartesian_LL(Mij_spher, x, y, z);
         check_tensor(Mij_cart_check, Mij_cart, "spherical_to_cartesian_LL");
 
         // Test cartesian_to_spherical_UU
-        Tensor<2, double> Mij_spher_UU;
-        Tensor<2, double> Mij_spher_UU_check;
+        Tensor<2, amrex::Real> Mij_spher_UU;
+        Tensor<2, amrex::Real> Mij_spher_UU_check;
         Mij_spher_UU_check =
             cartesian_to_spherical_UU(compute_inverse_sym(Mij_cart), x, y, z);
         Mij_spher_UU = compute_inverse_sym(Mij_spher);
@@ -127,8 +127,8 @@ void run_coordinate_transformations_test()
                      "cartesian_to_spherical_UU");
 
         // Test spherical_to_cartesian_UU
-        Tensor<2, double> Mij_cart_UU;
-        Tensor<2, double> Mij_cart_UU_check;
+        Tensor<2, amrex::Real> Mij_cart_UU;
+        Tensor<2, amrex::Real> Mij_cart_UU_check;
         Mij_cart_UU_check =
             spherical_to_cartesian_UU(compute_inverse_sym(Mij_spher), x, y, z);
         Mij_cart_UU = compute_inverse_sym(Mij_cart);
@@ -136,39 +136,39 @@ void run_coordinate_transformations_test()
                      "spherical_to_cartesian_UU");
 
         // Test vector transformations
-        Tensor<1, double> si_cart;
+        Tensor<1, amrex::Real> si_cart;
         si_cart[0] = x / r;
         si_cart[1] = y / r;
         si_cart[2] = z / r;
 
-        Tensor<1, double> si_spher;
+        Tensor<1, amrex::Real> si_spher;
         si_spher[0] = 1.0;
         si_spher[1] = 0.0;
         si_spher[2] = 0.0;
 
         // Test cartesian_to_spherical_U
-        Tensor<1, double> si_spher_U_check;
+        Tensor<1, amrex::Real> si_spher_U_check;
         si_spher_U_check = cartesian_to_spherical_U(si_cart, x, y, z);
         check_vector(si_spher_U_check, si_spher, "cartesian_to_spherical_U");
 
         // Test spherical_to_cartesian_U
-        Tensor<1, double> si_cart_U_check;
+        Tensor<1, amrex::Real> si_cart_U_check;
         si_cart_U_check = spherical_to_cartesian_U(si_spher, x, y, z);
         check_vector(si_cart_U_check, si_cart, "spherical_to_cartesian_U");
 
         // Test cartesian_to_spherical_L
-        Tensor<1, double> si_spher_L_check;
+        Tensor<1, amrex::Real> si_spher_L_check;
         si_spher_L_check = cartesian_to_spherical_L(si_cart, x, y, z);
         check_vector(si_spher_L_check, si_spher, "cartesian_to_spherical_L");
 
         // Test spherical_to_cartesian_L
-        Tensor<1, double> si_cart_L_check;
+        Tensor<1, amrex::Real> si_cart_L_check;
         si_cart_L_check = spherical_to_cartesian_L(si_spher, x, y, z);
         check_vector(si_cart_L_check, si_cart, "spherical_to_cartesian_L");
 
         // Test area_element_sphere
-        double area_element       = r * sqrt(rho2);
-        double area_element_check = area_element_sphere(Mij_spher);
+        amrex::Real area_element       = r * sqrt(rho2);
+        amrex::Real area_element_check = area_element_sphere(Mij_spher);
         CHECK(
             area_element ==
             doctest::Approx(area_element_check).epsilon(ulp * double_epsilon));

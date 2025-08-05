@@ -32,8 +32,8 @@ class PositiveChiAndLapse
         auto chi   = cell[c_chi];
         auto lapse = cell[c_lapse];
 
-        chi   = (chi < m_min_chi) ? m_min_chi : chi;
-        lapse = (lapse < m_min_lapse) ? m_min_lapse : lapse;
+        chi   = std::max(chi, m_min_chi);
+        lapse = std::max(lapse, m_min_lapse);
 
         cell[c_chi]   = chi;
         cell[c_lapse] = lapse;

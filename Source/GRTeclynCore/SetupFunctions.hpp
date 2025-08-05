@@ -33,11 +33,6 @@ void mainSetup(int argc, char *argv[]);
 /// This function calls all finalisations
 void mainFinalize();
 
-#if !defined(AMREX_USE_GPU)
-// TODO: FIXME
-// const int simd_traits<double>::simd_len; // Still needs to be defined
-#endif
-
 void mainSetup(int argc, char *argv[])
 {
     // NOLINTEND(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
@@ -49,12 +44,6 @@ void mainSetup(int argc, char *argv[])
     amrex::Warning("GRTeclyn is running in equation debug mode. This mode is "
                    "intended only for debugging and leads to significantly "
                    "worse performance.");
-#endif
-
-#if !defined(AMREX_USE_GPU)
-// TODO: FIXME
-//    amrex::Print() << " simd width (doubles) = "
-//                   << simd_traits<double>::simd_len << '\n';
 #endif
 
     const int required_argc = 2;

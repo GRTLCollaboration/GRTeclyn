@@ -19,16 +19,12 @@ static Tensor<2, amrex::Real> spherical_jacobian(const amrex::Real x,
                                                  const double y, const double z)
 {
     // calculate useful position quantities
-    amrex::Real rho2    = x * x + y * y;
-    amrex::Real rho     = std::sqrt(rho2);
-    amrex::Real min_rho = 1e-6;
-    rho                 = (rho < min_rho) ? min_rho : rho;
-    // NOLINTBEGIN [readability-identifier-length]
-    amrex::Real r2 = x * x + y * y + z * z;
-    amrex::Real r  = std::sqrt(r2);
-    // NOLINTEND [readability-identifier-length]
-    amrex::Real min_r = 1e-6;
-    r                 = (r < min_r) ? min_r : r;
+    amrex::Real rho2 = x * x + y * y;
+    rho2             = std::max(rho2, 1e-12);
+    amrex::Real rho  = std::sqrt(rho2);
+    amrex::Real r2   = x * x + y * y + z * z;
+    r2               = std::max(r2, 1e-12);
+    amrex::Real r    = std::sqrt(r2);
 
     // And the sines and cosines of phi and theta
     amrex::Real cos_phi = x / rho;
@@ -53,16 +49,12 @@ static Tensor<2, amrex::Real>
 inverse_spherical_jacobian(const amrex::Real x, const double y, const double z)
 {
     // calculate useful position quantities
-    // NOLINTBEGIN [readability-identifier-length]
-    amrex::Real rho2     = x * x + y * y;
-    amrex::Real min_rho2 = 1e-12;
-    rho2                 = (rho2 < min_rho2) ? min_rho2 : rho2;
-    amrex::Real rho      = std::sqrt(rho2);
-    amrex::Real min_r2   = 1e-12;
-    amrex::Real r2       = x * x + y * y + z * z;
-    r2                   = (r2 < min_r2) ? min_r2 : r2;
-    amrex::Real r        = std::sqrt(r2);
-    // NOLINTEND [readability-identifier-length]
+    amrex::Real rho2 = x * x + y * y;
+    amrex::Real rho  = std::sqrt(rho2);
+    rho              = std::max(rho, 1e-6);
+    amrex::Real r2   = x * x + y * y + z * z;
+    amrex::Real r    = std::sqrt(r2);
+    r                = std::max(r, 1e-6);
 
     // And the sines and cosines of phi and theta
     // data_t sin_theta = rho / r;

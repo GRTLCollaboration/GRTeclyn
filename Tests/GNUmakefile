@@ -31,9 +31,7 @@ src_dirs := $(GRTECLYN_SOURCE)/AMRInterpolator \
             $(GRTECLYN_SOURCE)/IO \
             $(GRTECLYN_SOURCE)/Maths \
             $(GRTECLYN_SOURCE)/Matter \
-            $(GRTECLYN_SOURCE)/Tagging \
-            $(GRTECLYN_TESTS_HOME)/simd
-
+            $(GRTECLYN_SOURCE)/Tagging
 
 # Find all directories that end in "Test" or "Tests"
 # Note that hidden directories (i.e. those starting with a '.') are not included

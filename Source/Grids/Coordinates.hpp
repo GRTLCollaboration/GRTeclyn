@@ -57,9 +57,7 @@ class Coordinates
     {
         // Note that this is not currently dimension independent
         amrex::Real r = sqrt(x * x + y * y + z * z);
-
-        const amrex::Real minimum_r = 1e-6;
-        return (r < minimum_r) ? minimum_r : r;
+        return std::max(r, 1e-6);
     }
 
     /// This static function returns the radius subject to a floor
@@ -78,9 +76,7 @@ class Coordinates
         compute_coord(z, integer_coords[2], dx, center[2]);
 
         amrex::Real r = std::sqrt(x * x + y * y + z * z);
-
-        const amrex::Real minimum_r = 1e-6;
-        return (r < minimum_r) ? minimum_r : r;
+        return std::max(r, 1e-6);
     }
 };
 

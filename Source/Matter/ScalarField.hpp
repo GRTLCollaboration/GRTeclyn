@@ -73,24 +73,26 @@ template <class potential_t = DefaultPotential> class ScalarField
 
     //! The function which calculates the EM Tensor, given the vars and
     //! derivatives, including the potential
-    template <class vars_t, class d1_vars_t>
-    AMREX_GPU_DEVICE emtensor_t
-    compute_emtensor(const vars_t &vars,  //!< the value of the variables
-                     const d1_vars_t &d1, //!< the value of the 1st derivs
-                     const Tensor<2, amrex::Real>
-                         &h_UU, //!< the inverse metric (raised indices)
-                     const Tensor<3, amrex::Real> &chris_ULL)
+    template <template <class> class vars_t>
+    AMREX_GPU_DEVICE emtensor_t compute_emtensor(
+        const vars_t<amrex::Real> &vars, //!< the value of the variables
+        const vars_t<Tensor<1, amrex::Real>>
+            &d1, //!< the value of the 1st derivs
+        const Tensor<2, amrex::Real>
+            &h_UU, //!< the inverse metric (raised indices)
+        const Tensor<3, amrex::Real> &chris_ULL)
         const; //!< the conformal christoffel symbol
 
     //! The function which adds in the RHS for the matter field vars,
     //! including the potential
-    template <class rhs_vars_t, class vars_t, class d1_vars_t, class d2_vars_t>
+    template <template <class> class vars_t, class rhs_vars_t, class d2_vars_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void add_matter_rhs(
-        rhs_vars_t &rhs,            //!< value of the RHS for all vars
-        const vars_t &vars,         //!< value of the variables
-        const d1_vars_t &d1,        //!< value of the 1st derivs
-        const d2_vars_t &d2,        //!< value of the 2nd derivs
-        const vars_t &advec) const; //!< the value of the advection terms
+        rhs_vars_t &rhs,                 //!< value of the RHS for all vars
+        const vars_t<amrex::Real> &vars, //!< value of the variables
+        const vars_t<Tensor<1, amrex::Real>> &d1, //!< value of the 1st derivs
+        const d2_vars_t &d2,                      //!< value of the 2nd derivs
+        const vars_t<amrex::Real> &advec)
+        const; //!< the value of the advection terms
 };
 
 #include "ScalarField.impl.hpp"

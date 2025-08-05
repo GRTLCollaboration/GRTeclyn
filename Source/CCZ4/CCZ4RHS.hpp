@@ -102,14 +102,17 @@ class CCZ4RHS
      *at least the members: chi, h[i][j], Gamma[i], A[i][j], Theta, lapse and
      *shift[i].
      **/
-    template <class vars_t, class d1_vars_t, class d2_vars_t>
+    template <template <class> class vars_t, class d2_vars_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void rhs_equation(
-        vars_t &rhs,         //!< Reference to the variables into which the
-                             //! output right hand side is written
-        const vars_t &vars,  //!< The values of the current variables
-        const d1_vars_t &d1, //!< First derivative of the variables
+        vars_t<amrex::Real> &rhs, //!< Reference to the variables into which the
+                                  //! output right hand side is written
+        const vars_t<amrex::Real>
+            &vars, //!< The values of the current variables
+        const vars_t<Tensor<1, amrex::Real>>
+            &d1,             //!< First derivative of the variables
         const d2_vars_t &d2, //!< The second derivative the variables
-        const vars_t &advec  //!< The advection derivatives of the variables
+        const vars_t<amrex::Real>
+            &advec //!< The advection derivatives of the variables
     ) const;
 };
 
