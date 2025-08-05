@@ -22,11 +22,10 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::CCZ4RHSWithMatter(
 }
 
 template <class matter_t, class gauge_t, class deriv_t>
-template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::compute(
-    int i, int j, int k, const amrex::Array4<data_t> &rhs_arrays,
-    const amrex::Array4<data_t const> &state_arrays) const
+    int i, int j, int k, const amrex::Array4<amrex::Real> &rhs_arrays,
+    const amrex::Array4<amrex::Real const> &state_arrays) const
 {
     // copy data from chombo gridpoint into local variables
     const auto matter_vars = load_vars<Vars>(state_arrays.cellData(i, j, k));
@@ -37,7 +36,7 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::compute(
         i, j, k, state_arrays, matter_vars.shift);
 
     // Call CCZ4 RHS - work out RHS without matter, no dissipation
-    Vars<data_t> matter_rhs;
+    Vars<amrex::Real> matter_rhs;
     this->rhs_equation(matter_rhs, matter_vars, d1, d2, advec);
 
     // add RHS matter terms from EM Tensor
@@ -56,11 +55,10 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::compute(
 
 // Function to add in EM Tensor matter terms to CCZ4 rhs
 template <class matter_t, class gauge_t, class deriv_t>
-template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
-    Vars<data_t> &matter_rhs, const Vars<data_t> &matter_vars,
-    const Vars<Tensor<1, data_t>> &d1) const
+    Vars<amrex::Real> &matter_rhs, const Vars<amrex::Real> &matter_vars,
+    const Vars<Tensor<1, amrex::Real>> &d1) const
 {
     using namespace TensorAlgebra;
 
@@ -87,7 +85,7 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
     }
 
     // Update RHS for other variables
-    Tensor<2, data_t> S_TF = emtensor.S;
+    Tensor<2, amrex::Real> S_TF = emtensor.S;
     make_trace_free(S_TF, matter_vars.h, h_UU);
 
     FOR (i, j)
@@ -98,7 +96,7 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
 
     FOR (i)
     {
-        data_t matter_term_Gamma = 0.0;
+        amrex::Real matter_term_Gamma = 0.0;
         FOR (j)
         {
             matter_term_Gamma += -16.0 * M_PI * m_G_Newton * matter_vars.lapse *

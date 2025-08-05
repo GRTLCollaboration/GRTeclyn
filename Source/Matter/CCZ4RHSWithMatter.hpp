@@ -92,20 +92,19 @@ class CCZ4RHSWithMatter : public CCZ4RHS<gauge_t, deriv_t>
 
     //!  The compute member which calculates the RHS at each point in the box
     //!  \sa matter_rhs_equation()
-    template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    compute(int i, int j, int k, const amrex::Array4<data_t> &rhs_arrays,
-            const amrex::Array4<data_t const> &state_arrays) const;
+    compute(int i, int j, int k, const amrex::Array4<amrex::Real> &rhs_arrays,
+            const amrex::Array4<amrex::Real const> &state_arrays) const;
 
   protected:
     //! The function which adds in the EM Tensor terms to the CCZ4 rhs \sa
     //! compute()
-    template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void add_emtensor_rhs(
-        Vars<data_t>
+        Vars<amrex::Real>
             &matter_rhs, //!< the RHS data for each variable at that point.
-        const Vars<data_t> &vars, //!< the value of the variables at the point.
-        const Vars<Tensor<1, data_t>>
+        const Vars<amrex::Real>
+            &vars, //!< the value of the variables at the point.
+        const Vars<Tensor<1, amrex::Real>>
             &d1 //!< the value of the first derivatives of the variables.
     ) const;
 

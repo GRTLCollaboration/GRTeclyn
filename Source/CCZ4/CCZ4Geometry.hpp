@@ -43,9 +43,10 @@ class CCZ4Geometry
     }
 
   public:
-    template <class vars_t, class d1_vars_t, class d2_vars_t>
+    template <template <class> class vars_t, class d2_vars_t>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static ricci_t
-    compute_ricci_Z(const vars_t &vars, const d1_vars_t &d1,
+    compute_ricci_Z(const vars_t<amrex::Real> &vars,
+                    const vars_t<Tensor<1, amrex::Real>> &d1,
                     const d2_vars_t &d2, const Tensor<2, amrex::Real> &h_UU,
                     const chris_t &chris,
                     const Tensor<1, amrex::Real> &Z_over_chi)
@@ -139,9 +140,10 @@ class CCZ4Geometry
 
     // This function allows adding arbitrary multiples of D_{(i}Z_{j)}
     // to the Ricci scalar rather than the default of 2 in compute_ricci_Z
-    template <class vars_t, class d1_vars_t, class d2_vars_t>
+    template <template <class> class vars_t, class d2_vars_t>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static ricci_t
-    compute_ricci_Z_general(const vars_t &vars, const d1_vars_t &d1,
+    compute_ricci_Z_general(const vars_t<amrex::Real> &vars,
+                            const vars_t<Tensor<1, amrex::Real>> &d1,
                             const d2_vars_t &d2,
                             const Tensor<2, amrex::Real> &h_UU,
                             const chris_t &chris, const double dZ_coeff)
@@ -182,9 +184,10 @@ class CCZ4Geometry
 
     // This function returns the pure Ricci scalar with no contribution from the
     // Z vector - used e.g. in the constraint calculations.
-    template <class vars_t, class d1_vars_t, class d2_vars_t>
+    template <template <class> class vars_t, class d2_vars_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE static ricci_t
-    compute_ricci(const vars_t &vars, const d1_vars_t &d1, const d2_vars_t &d2,
+    compute_ricci(const vars_t<amrex::Real> &vars,
+                  const vars_t<Tensor<1, amrex::Real>> &d1, const d2_vars_t &d2,
                   const Tensor<2, amrex::Real> &h_UU, const chris_t &chris)
     {
         return compute_ricci_Z_general(vars, d1, d2, h_UU, chris, 0.0);

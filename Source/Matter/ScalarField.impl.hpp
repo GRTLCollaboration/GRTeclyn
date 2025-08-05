@@ -12,9 +12,10 @@
 
 // Calculate the stress energy tensor elements
 template <class potential_t>
-template <class vars_t, class d1_vars_t>
+template <template <class> class vars_t>
 AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t>::compute_emtensor(
-    const vars_t &vars, const d1_vars_t &d1, const Tensor<2, amrex::Real> &h_UU,
+    const vars_t<amrex::Real> &vars, const vars_t<Tensor<1, amrex::Real>> &d1,
+    const Tensor<2, amrex::Real> &h_UU,
     const Tensor<3, amrex::Real> &chris_ULL) const
 {
     emtensor_t out;
@@ -60,12 +61,12 @@ AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t>::compute_emtensor(
 
 // Adds in the RHS for the matter vars
 template <class potential_t>
-template <class rhs_vars_t, class vars_t, class d1_vars_t, class d2_vars_t>
+template <template <class> class vars_t, class rhs_vars_t, class d2_vars_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-ScalarField<potential_t>::add_matter_rhs(rhs_vars_t &rhs, const vars_t &vars,
-                                         const d1_vars_t &d1,
-                                         const d2_vars_t &d2,
-                                         const vars_t &advec) const
+ScalarField<potential_t>::add_matter_rhs(
+    rhs_vars_t &rhs, const vars_t<amrex::Real> &vars,
+    const vars_t<Tensor<1, amrex::Real>> &d1, const d2_vars_t &d2,
+    const vars_t<amrex::Real> &advec) const
 {
     using namespace TensorAlgebra;
 

@@ -61,12 +61,12 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<gauge_t, deriv_t>::compute(
 
 // NOLINTBEGIN(readability-function-cognitive-complexity)
 template <class gauge_t, class deriv_t>
-template <class vars_t, class d1_vars_t, class d2_vars_t>
+template <template <class> class vars_t, class d2_vars_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-CCZ4RHS<gauge_t, deriv_t>::rhs_equation(vars_t &rhs, const vars_t &vars,
-                                        const d1_vars_t &d1,
-                                        const d2_vars_t &d2,
-                                        const vars_t &advec) const
+CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
+    vars_t<amrex::Real> &rhs, const vars_t<amrex::Real> &vars,
+    const vars_t<Tensor<1, amrex::Real>> &d1, const d2_vars_t &d2,
+    const vars_t<amrex::Real> &advec) const
 {
     using namespace TensorAlgebra;
 

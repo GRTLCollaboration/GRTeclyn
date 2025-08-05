@@ -38,7 +38,7 @@ template <unsigned int num_punctures> class PunctureTagger
         // NOLINTEND(bugprone-easily-swappable-parameters)
         : m_dx(a_dx), m_level(a_level), m_max_level(a_max_level),
           m_puncture_masses(a_puncture_masses),
-          m_puncture_coords(a_puncture_coords) {};
+          m_puncture_coords(a_puncture_coords){};
 
     AMREX_GPU_DEVICE void
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)

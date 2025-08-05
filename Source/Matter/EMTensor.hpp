@@ -30,38 +30,37 @@ enum class EMTensorOptions
 
 //! Calculates the EM tensor and then saves the parts depending on the
 //! em_tensor_options_t template argument
-template <class matter_t, enum EMTensorOptions em_tensor_options> class EMTensor
-{
-  public:
-    template <class data_t>
-    using Vars = typename CCZ4RHSWithMatter<matter_t>::template Vars<data_t>;
+template <class matter_t, enum EMTensorOptions em_tensor_options>
+class EMTensor {
+    public : template <class data_t> using Vars =
+        typename CCZ4RHSWithMatter<matter_t>::template Vars<data_t>;
 
     /// derive record name
     static inline const std::string name = "EMTensor";
 
     /// Variable names
-    static amrex::Vector<std::string> var_names();
+    static amrex::Vector<std::string>
+        var_names();
 
     //! Constructor
     EMTensor(double dx, int a_dcomp);
 
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    compute(int i, int j, int k, const amrex::Array4<amrex::Real> &out_arrays,
-            const amrex::Array4<const amrex::Real> &in_arrays) const;
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void compute(
+        int i, int j, int k, const amrex::Array4<amrex::Real> &out_arrays,
+        const amrex::Array4<const amrex::Real> &in_arrays) const;
     // NOLINTEND(bugprone-easily-swappable-parameters)
 
     // Set do_all_components to true to calculate the momentum density
     // and stress energy tensors as well
     AMREX_FORCE_INLINE static void set_up(int a_state_index);
 
-    AMREX_FORCE_INLINE static void
-    compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
-               const amrex::MultiFab &src_mf, const amrex::Geometry &geomdata,
-               amrex::Real /*time*/, const int * /*bcrec*/, int /*level*/);
+    AMREX_FORCE_INLINE static void compute_mf(
+        amrex::MultiFab & out_mf, int dcomp, int ncomp,
+        const amrex::MultiFab &src_mf, const amrex::Geometry &geomdata,
+        amrex::Real /*time*/, const int * /*bcrec*/, int /*level*/);
 
-  protected:
-    matter_t m_matter;
+    protected : matter_t m_matter;
     FourthOrderDerivatives m_deriv;
     int m_dcomp; //!< which component in the MultiFab to store the first
                  //!< variable

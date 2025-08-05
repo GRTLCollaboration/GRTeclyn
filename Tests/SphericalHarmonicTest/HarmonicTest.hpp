@@ -32,8 +32,7 @@ class HarmonicTest
     double m_dx;
     std::array<double, AMREX_SPACEDIM> m_center;
 
-    [[nodiscard]]
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
     compute_harmonic(Coordinates coords) const;
 };
 

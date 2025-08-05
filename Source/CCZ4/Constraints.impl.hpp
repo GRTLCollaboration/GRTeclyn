@@ -146,16 +146,16 @@ void Constraints::compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
 
     amrex::ParallelFor(
         out_mf, out_mf.nGrowVect(),
-        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
-        {
+        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept {
             constraints.compute(i, j, k, out_arrays[box_no],
                                 src_arrays[box_no]);
         });
 }
 
-template <class vars_t, class d1_vars_t, class d2_vars_t>
+template <template <class> class vars_t, class d2_vars_t>
 AMREX_FORCE_INLINE AMREX_GPU_DEVICE Constraints::Vars
-Constraints::constraint_equations(const vars_t &vars, const d1_vars_t &d1,
+Constraints::constraint_equations(const vars_t<amrex::Real> &vars,
+                                  const vars_t<Tensor<1, amrex::Real>> &d1,
                                   const d2_vars_t &d2,
                                   const Tensor<2, amrex::Real> &h_UU,
                                   const chris_t &chris) const

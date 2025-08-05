@@ -358,6 +358,6 @@ CheckOptions:
   - key:             readability-identifier-length.IgnoredLoopCounterNames
     value:           '^[ijklmnpqr]$'
   - key:             readability-identifier-length.IgnoredVariableNames
-    value:           '^((N|d)?[12ilmrtuvwxyz]|i[nvxyz]|N|bc|pp)$'
+    value:           '^((N|d)?[12ilmrtuvwxyz]|i[nvxyz]|N|bc|pp|r2|r|es|el|em)$'
 ...
 

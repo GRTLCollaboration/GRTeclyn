@@ -61,6 +61,8 @@ class IntegratedMovingPunctureGauge
     // m_state_new, m_state_new, EXCLUDE_GHOST_CELLS);
     void compute(Cell<amrex::Real> current_cell) const
     {
+        // TODO: Port this class
+        // We've just removed templating over data_t
         const auto vars = current_cell.template load_vars<Vars>();
 
         Tensor<1, amrex::Real> B; // NOLINT(readability-identifier-length)
@@ -73,10 +75,11 @@ class IntegratedMovingPunctureGauge
         current_cell.store_vars(B, GRInterval<c_B1, c_B3>());
     }
 
-    template <class vars_t, class d1_vars_t, class d2_vars_t>
+    template <template <class> class vars_t, class d2_vars_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    rhs_gauge(vars_t &rhs, const vars_t &vars, const d1_vars_t &d1,
-              const d2_vars_t &d2, const vars_t &advec) const
+    rhs_gauge(vars_t<amrex::Real> &rhs, const vars_t &vars<amrex::Real>,
+              const vars_t<Tensor<1, amrex::Real>> &d1, const d2_vars_t &d2,
+              const vars_t<amrex::Real> &advec) const
     {
         rhs.lapse = m_params.lapse_advec_coeff * advec.lapse -
                     m_params.lapse_coeff *

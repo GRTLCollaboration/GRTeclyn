@@ -12,6 +12,9 @@ GRTECLYN_CEXE_headers += InitialData.hpp \
 						Tensor-fdf5a7a.hpp \
 						TensorAlgebra-fdf5a7a.hpp \
 						VarsTools-fdf5a7a.hpp \
+            simd.hpp \
+            simdify.hpp \
+            simd_base.hpp \
 						CCZ4RHSTest.hpp
 
 GRTECLYN_CEXE_sources += CCZ4RHSTest.cpp
