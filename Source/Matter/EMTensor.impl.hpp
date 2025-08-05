@@ -102,9 +102,8 @@ EMTensor<matter_t, em_tensor_options>::set_up(int a_state_index)
     // Add EMTensor to the derive list
     derive_lst.add(
         name, amrex::IndexType::TheCellType(), derive_var_names.size(),
-        derive_var_names, EMTensor::compute_mf,
-        [=](const amrex::Box &box) { return amrex::grow(box, num_ghosts); },
-        &amrex::cell_quartic_interp);
+        derive_var_names, EMTensor::compute_mf, [=](const amrex::Box &box)
+        { return amrex::grow(box, num_ghosts); }, &amrex::cell_quartic_interp);
 
     derive_lst.addComponent(name, desc_lst, a_state_index, 0, NUM_VARS);
 }
@@ -123,7 +122,8 @@ AMREX_FORCE_INLINE void EMTensor<matter_t, em_tensor_options>::compute_mf(
 
     amrex::ParallelFor(
         out_mf,
-        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept {
+        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
+        {
             em_tensor.compute(i, j, k, out_arrays[box_no], src_arrays[box_no]);
         });
 }

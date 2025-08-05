@@ -8,6 +8,7 @@
 
 #include "DimensionDefinitions.hpp"
 #include "Tensor.hpp"
+#include <AMReX_REAL.H>
 
 /// This is an example of a gauge class that can be used in the CCZ4RHS compute
 /// class

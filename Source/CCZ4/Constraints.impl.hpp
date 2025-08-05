@@ -146,7 +146,8 @@ void Constraints::compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
 
     amrex::ParallelFor(
         out_mf, out_mf.nGrowVect(),
-        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept {
+        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
+        {
             constraints.compute(i, j, k, out_arrays[box_no],
                                 src_arrays[box_no]);
         });
