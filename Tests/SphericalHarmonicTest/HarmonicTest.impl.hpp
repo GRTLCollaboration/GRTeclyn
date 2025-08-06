@@ -40,11 +40,9 @@ HarmonicTest::compute_harmonic(Coordinates coords) const
 
     // Add in el, em spherical harmonics here, spin weight es
     using namespace SphericalHarmonics;
-    // NOLINTBEGIN(readability-identifier-length)
-    int es = -1;
-    int el = 2;
-    int em = -1;
-    // NOLINTEND(readability-identifier-length)
+    int es          = -1;
+    int el          = 2;
+    int em          = -1;
     auto Y_lm       = spin_Y_lm(coords.x, coords.y, coords.z, es, el, em);
     amrex::Real out = Y_lm.Real;
 
