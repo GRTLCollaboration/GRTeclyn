@@ -6,6 +6,9 @@
 #ifndef CCZ4VARS2_HPP_
 #define CCZ4VARS2_HPP_
 
+#include "StateVariables.hpp"
+#include "Tensor.hpp"
+
 // A function to return the right index for the tensor
 [[nodiscard]] AMREX_FORCE_INLINE int var_idx(int ivar, int i, int j)
 {

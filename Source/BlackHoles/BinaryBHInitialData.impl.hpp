@@ -3,6 +3,13 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
+#if !defined(BINARYBHINITIALDATA_HPP_)
+#error "This file should only be included through BinaryBHInitialData.hpp"
+#endif
+
+#ifndef BINARYBHINITIALDATA_IMPL_HPP_
+#define BINARYBHINITIALDATA_IMPL_HPP_
+
 #include "BinaryBHInitialData.hpp"
 #include "BoostedBHInitialData.hpp"
 #include "CCZ4Vars2.hpp"
