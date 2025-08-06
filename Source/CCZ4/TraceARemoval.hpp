@@ -17,10 +17,10 @@
 class TraceARemoval
 {
   public:
-    struct Vars
+    template <class data_t> struct Vars
     {
-        Tensor<2, amrex::Real> h;
-        Tensor<2, amrex::Real> A;
+        Tensor<2, data_t> h;
+        Tensor<2, data_t> A;
 
         template <typename mapping_function_t>
         AMREX_GPU_HOST_DEVICE void
@@ -30,9 +30,7 @@ class TraceARemoval
     AMREX_GPU_HOST_DEVICE void
     operator()(const amrex::CellData<amrex::Real> &cell) const
     {
-        // NOLINTNEXTLINE [cppcoreguidelines-pro-type-member-init]
-        Vars vars;
-        load_vars(cell, vars);
+        auto vars = load_vars<Vars>(cell);
 
         const auto h_UU = TensorAlgebra::compute_inverse_sym(vars.h);
         TensorAlgebra::make_trace_free(vars.A, vars.h, h_UU);
@@ -41,9 +39,10 @@ class TraceARemoval
     }
 };
 
+template <class data_t>
 template <typename mapping_function_t>
 AMREX_GPU_HOST_DEVICE void
-TraceARemoval::Vars::enum_mapping(mapping_function_t mapping_function)
+TraceARemoval::Vars<data_t>::enum_mapping(mapping_function_t mapping_function)
 {
     VarsTools::define_symmetric_enum_mapping(mapping_function,
                                              GRInterval<c_h11, c_h33>(), h);

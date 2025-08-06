@@ -9,6 +9,7 @@
 #include <AMReX_Array4.H>
 
 using namespace amrex::disabled;
+// TODO: Remove these functions once we refactor the vars
 
 template <class vars_t>
 AMREX_GPU_HOST_DEVICE void store_vars(const amrex::CellData<amrex::Real> &cell,
@@ -22,15 +23,6 @@ AMREX_GPU_HOST_DEVICE void store_vars(const amrex::CellData<amrex::Real> &cell,
         });
 }
 
-template <class vars_t>
-AMREX_GPU_HOST_DEVICE void load_vars(const amrex::CellData<amrex::Real> &cell,
-                                     vars_t &vars)
-{
-    vars.enum_mapping([&](const int &ivar, amrex::Real &var)
-                      { var = cell[ivar]; });
-}
-
-// TODO: Remove the next function once we refactor the vars
 template <template <typename> class vars_t, class data_t>
 AMREX_GPU_HOST_DEVICE void load_vars(const amrex::CellData<data_t> &cell,
                                      vars_t<std::remove_const_t<data_t>> &vars)
@@ -39,7 +31,6 @@ AMREX_GPU_HOST_DEVICE void load_vars(const amrex::CellData<data_t> &cell,
                       { var = cell[ivar]; });
 }
 
-// TODO: Remove the next function once we refactor the vars
 template <template <typename> class vars_t, class data_t>
 AMREX_GPU_HOST_DEVICE auto load_vars(const amrex::CellData<data_t> &cell)
 {
