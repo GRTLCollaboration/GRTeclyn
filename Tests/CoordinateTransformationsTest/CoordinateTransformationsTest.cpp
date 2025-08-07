@@ -26,8 +26,8 @@
 
 namespace
 {
-constexpr int ulp               = 15; // units in the last place
-constexpr double double_epsilon = std::numeric_limits<double>::epsilon();
+constexpr int ulp             = 15; // units in the last place
+constexpr double real_epsilon = std::numeric_limits<amrex::Real>::epsilon();
 
 void check_tensor(const Tensor<2, amrex::Real> &tensor,
                   const Tensor<2, amrex::Real> &correct_tensor,
@@ -36,8 +36,9 @@ void check_tensor(const Tensor<2, amrex::Real> &tensor,
     FOR (i, j)
     {
         INFO(test_name << ": component [" << i << "][" << j << "]");
-        CHECK(tensor[i][j] == doctest::Approx(correct_tensor[i][j])
-                                  .epsilon(ulp * double_epsilon));
+        CHECK(
+            tensor[i][j] ==
+            doctest::Approx(correct_tensor[i][j]).epsilon(ulp * real_epsilon));
     }
 }
 
@@ -49,7 +50,7 @@ void check_vector(const Tensor<1, amrex::Real> &vector,
     {
         INFO(test_name << ": component [" << i << "]");
         CHECK(vector[i] ==
-              doctest::Approx(correct_vector[i]).epsilon(ulp * double_epsilon));
+              doctest::Approx(correct_vector[i]).epsilon(ulp * real_epsilon));
     }
 }
 } // namespace
@@ -169,9 +170,8 @@ void run_coordinate_transformations_test()
         // Test area_element_sphere
         amrex::Real area_element       = r * sqrt(rho2);
         amrex::Real area_element_check = area_element_sphere(Mij_spher);
-        CHECK(
-            area_element ==
-            doctest::Approx(area_element_check).epsilon(ulp * double_epsilon));
+        CHECK(area_element ==
+              doctest::Approx(area_element_check).epsilon(ulp * real_epsilon));
     }
     amrex::Finalize();
 }
