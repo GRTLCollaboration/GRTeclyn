@@ -31,10 +31,10 @@ inline Constraints::Constraints(
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
         (a_c_Ham >= 0 && a_c_Ham_abs_terms < 0) ||
             (a_c_Ham < 0 && a_c_Ham_abs_terms >= 0),
-        must calculate one of either Ham or Ham_abs_terms);
+        "must calculate one of either Ham or Ham_abs_terms");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
         a_c_Moms.size() * a_c_Moms_abs_terms.size() <= 0,
-        must choose at most one of Mom or Mom_abs_terms);
+        "must choose at most one of Mom or Mom_abs_terms");
     const auto &moms_interval =
         (a_c_Moms.size() > 0) ? a_c_Moms : a_c_Moms_abs_terms;
     if (moms_interval.size() > 0)
