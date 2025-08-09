@@ -19,6 +19,13 @@ class FourthOrderDerivatives2
     amrex::Real m_one_over_dx;
     amrex::Real m_one_over_dx2;
 
+    // A function to return the right index for the tensor
+    [[nodiscard]] AMREX_FORCE_INLINE const int var_idx(int ivar, int i,
+                                                       int j) const
+    {
+        return ivar + i + j + ((i * j != 0) ? 1 : 0);
+    }
+
   public:
     AMREX_GPU_HOST_DEVICE FourthOrderDerivatives2(double dx)
         : m_dx(dx), m_one_over_dx(1 / dx), m_one_over_dx2(1 / (dx * dx))
@@ -54,6 +61,52 @@ class FourthOrderDerivatives2
             d1[idir] = diff1(var_ptr, strides[idir]);
         }
         return d1;
+    }
+
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<1, amrex::Real>
+    diff1_scalar(int ix, int iy, int iz,
+                 const amrex::Array4<const amrex::Real> &state,
+                 const int ivar) const
+    {
+        return diff1(ix, iy, iz, state, ivar);
+    }
+
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<2, amrex::Real>
+    diff1_vector(int ix, int iy, int iz,
+                 const amrex::Array4<const amrex::Real> &state,
+                 const int ivar_0) const
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+        Tensor<2, amrex::Real> d1_vector;
+        FOR (icomp)
+        {
+            const int ivar                = ivar_0 + icomp;
+            Tensor<1, amrex::Real> d1_var = diff1(ix, iy, iz, state, ivar);
+            FOR (idir)
+            {
+                d1_vector[icomp][idir] = d1_var[idir];
+            }
+        }
+        return d1_vector;
+    }
+
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<3, amrex::Real>
+    diff1_tensor(int ix, int iy, int iz,
+                 const amrex::Array4<const amrex::Real> &state,
+                 const int ivar_0) const
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+        Tensor<3, amrex::Real> d1_tensor;
+        FOR (icomp, jcomp)
+        {
+            const int ivar                = var_idx(ivar_0, icomp, jcomp);
+            Tensor<1, amrex::Real> d1_var = diff1(ix, iy, iz, state, ivar);
+            FOR (idir)
+            {
+                d1_tensor[icomp][jcomp][idir] = d1_var[idir];
+            }
+        }
+        return d1_tensor;
     }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
@@ -124,6 +177,53 @@ class FourthOrderDerivatives2
             }
         }
         return d2;
+    }
+
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<2, amrex::Real>
+    diff2_scalar(int ix, int iy, int iz,
+                 const amrex::Array4<const amrex::Real> &state,
+                 const int ivar) const
+    {
+        return diff2(ix, iy, iz, state, ivar);
+    }
+
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<3, amrex::Real>
+    diff2_vector(int ix, int iy, int iz,
+                 const amrex::Array4<const amrex::Real> &state,
+                 const int ivar_0) const
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+        Tensor<3, amrex::Real> d2_vector;
+        FOR (icomp)
+        {
+            const int ivar                = ivar_0 + icomp;
+            Tensor<2, amrex::Real> d2_var = diff2(ix, iy, iz, state, ivar);
+            FOR (idir, jdir)
+            {
+                d2_vector[icomp][idir][jdir] = d2_var[idir][jdir];
+            }
+        }
+        return d2_vector;
+    }
+
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<4, amrex::Real>
+    diff2_tensor(int ix, int iy, int iz,
+                 const amrex::Array4<const amrex::Real> &state,
+                 const int ivar_0) const
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+        Tensor<4, amrex::Real> d2_tensor;
+        FOR (icomp, jcomp)
+        {
+            const int ivar                = var_idx(ivar_0, icomp, jcomp);
+            Tensor<2, amrex::Real> d1_var = diff2(ix, iy, iz, state, ivar);
+
+            FOR (idir, jdir)
+            {
+                d2_tensor[icomp][jcomp][idir][jdir] = d1_var[idir][jdir];
+            }
+        }
+        return d2_tensor;
     }
 
   protected:

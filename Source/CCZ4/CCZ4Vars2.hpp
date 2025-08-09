@@ -9,12 +9,6 @@
 #include "StateVariables.hpp"
 #include "Tensor.hpp"
 
-// A function to return the right index for the tensor
-[[nodiscard]] AMREX_FORCE_INLINE int var_idx(int ivar, int i, int j)
-{
-    return ivar + i + j + ((i * j != 0) ? 1 : 0);
-}
-
 class CCZ4Vars2
 {
   public:

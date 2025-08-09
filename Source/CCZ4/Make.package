@@ -1,6 +1,7 @@
 GRTECLYN_CEXE_headers += ADMConformalVars.hpp \
                          BSSNVars.hpp \
                          CCZ4Geometry.hpp \
+                         CCZ4Geometry2.hpp \
                          CCZ4RHS.hpp \
                          CCZ4RHS.impl.hpp \
                          CCZ4StateVariables.hpp \

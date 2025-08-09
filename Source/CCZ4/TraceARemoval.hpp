@@ -6,11 +6,11 @@
 #ifndef TRACEAREMOVAL_HPP_
 #define TRACEAREMOVAL_HPP_
 
+#include "CCZ4Geometry2.hpp"
 #include "CCZ4Vars2.hpp"
 #include "Cell.hpp"
 #include "StateVariables.hpp"
 #include "Tensor.hpp"
-#include "TensorAlgebra2.hpp"
 
 // This class enforces A to be trace-free
 class TraceARemoval
@@ -29,9 +29,8 @@ class TraceARemoval
             state.cellData(ix, iy, iz);
         const CCZ4Vars2 vars(state_cell_data);
 
-        using namespace TensorAlgebra2;
-        const auto h_UU                   = compute_inverse_metric(vars);
-        const auto trace_A                = compute_trace_A(vars, h_UU);
+        using namespace CCZ4Geometry2;
+        const auto trace_A                = compute_trace_A(vars);
         const double one_over_gr_spacedim = 1. / ((double)GR_SPACEDIM);
         FOR (i, j)
         {
