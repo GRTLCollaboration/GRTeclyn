@@ -17,9 +17,8 @@ Source/BlackHoles/KerrBH*
 Source/IO/MultiLevelTask.hpp
 Examples/ScalarField/*
 Tests/.*
-Tests/CCZ4RHSTest/x64/*
-
 
 # These are old files we don't want to change
 Tests/CCZ4RHSTest/*fdf5a7a*
 Tests/CCZ4RHSTest/simd*
+Tests/CCZ4RHSTest/x64/*
