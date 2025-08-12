@@ -9,7 +9,7 @@ jobs:
 
     steps:
     - name: Checkout GRTeclyn
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         # Tip from https://stackoverflow.com/a/74268200
         fetch-depth: 2
