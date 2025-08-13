@@ -117,7 +117,7 @@ Constraints::store_vars(const Vars<data_t> &out,
 {
     if (m_c_Ham >= 0)
     {
-        current_cell[m_c_Ham] = out.Ham_abs_terms;
+        current_cell[m_c_Ham] = out.Ham;
     }
     if (m_c_Ham_abs_terms >= 0)
     {
@@ -128,7 +128,7 @@ Constraints::store_vars(const Vars<data_t> &out,
         FOR (i)
         {
             int ivar           = m_c_Moms.begin() + i;
-            current_cell[ivar] = out.Mom_abs_terms[i];
+            current_cell[ivar] = out.Mom[i];
         }
     }
     else if (m_c_Moms.size() == 1)
