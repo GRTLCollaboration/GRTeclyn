@@ -28,6 +28,11 @@ inline int RandomField::invert_index_with_sign(const int indx)
     else { return std::abs(N/2 - indx) - N/2; }
 }
 
+inline Real RandomField::get_kmag(int i, int j, int k)
+{
+    return std::sqrt(i*i + j*j + k*k) * 2 * M_PI / m_params.L;
+}
+
 // Ensures no calculation on ghost cells
 inline bool RandomField::is_ghost_index(const IntVect vector)
 {
@@ -204,7 +209,7 @@ inline GpuComplex<Real> RandomField::calculate_random_field(const IntVect iv, co
     int j = invert_index(iv[1]);
     int k = invert_index(iv[2]);
 
-    double kmag = std::sqrt(i*i + j*j + k*k) * 2 * M_PI / m_params.L;
+    double kmag = get_kmag(i, j, k);
 
     // Find the analytic power spectrum
     if(m_params.read_from_stoiic)
@@ -532,7 +537,7 @@ inline void RandomField::init(amrex::MultiFab &state)
 ****/
 
 // Calculates and prints the power spectrum
-inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataIO &power_spec_file, const int component)
+inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataIO &power_spec_file, const int component = 0)
 { 
     // Set up the isotropic k axis bounds
     double kiso_max = std::sqrt(3.) * N * M_PI / m_params.L;
@@ -583,7 +588,7 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
             {
                 int j = invert_index(J);
                 int k = invert_index(K);
-                double kmag = std::sqrt(i*i + j*j + k*k) * 2 * M_PI / m_params.L;
+                double kmag = get_kmag(i, j, k);
 
                 // make sure you're still in the domain
                 if(kmag > kiso_max) 
@@ -897,6 +902,10 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
     DistributionMapping sdm = state.DistributionMap();
     MultiFab hij_x(sba, sdm, 6, 0);
 
+    // 0: scalar field
+    // 1: conformal factor
+    MultiFab scalars_x(sba, sdm, 2, 0);
+
     // Copy the spatial metric from the state
     Copy(hij_x, state, c_h11, lut[0][0], 1, 0);
     Copy(hij_x, state, c_h12, lut[0][1], 1, 0);
@@ -904,6 +913,21 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
     Copy(hij_x, state, c_h22, lut[1][1], 1, 0);
     Copy(hij_x, state, c_h23, lut[1][2], 1, 0);
     Copy(hij_x, state, c_h33, lut[2][2], 1, 0);
+
+    int m_c_phi = 0;
+    int m_c_chi = 1;
+    Copy(scalars_x, state, c_phi, m_c_phi, 1, 0);
+    Copy(scalars_x, state, c_chi, m_c_chi, 1, 0);
+
+    // Find background quantities needed to extract \cal R
+    const int vol = std::pow(m_params.N_readin, 3);
+    const double K_bar = state.sum(c_K)/vol;
+    const double alpha_bar = state.sum(c_lapse)/vol;
+    const double Pi_bar = state.sum(c_Pi)/vol;
+    const double phi_bar = state.sum(c_phi)/vol;
+
+    // Remove background from scalar field
+    scalars_x.plus(-phi_bar, m_c_phi, 1);
 
     // Undo the normalisation and BSSN-CPT conversion
     for (int l=0; l<3; l++) { hij_x.plus(-1., lut[l][l], 1); }
@@ -921,20 +945,22 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
     // Set up the arrays to store the Fourier data sets
     cMultiFab hs_k(kba, kdm, 2, 0);
     cMultiFab hij_k(kba, kdm, 6, 0);
+    cMultiFab scalars_k(kba, kdm, 2, 0);
+    cMultiFab R_k(kba, kdm, 1, 0);
 
     // Set up the FFT
     IntVect x_domain_high(N-1, N-1, N-1);
     Box x_domain(domain_low, x_domain_high);
     FFT::R2C<Real> tensor_fft(x_domain, FFT::Info().setBatchSize(hij_k.nComp()));
+    FFT::R2C<Real> scalar_fft(x_domain, FFT::Info().setBatchSize(scalars_k.nComp()));
 
     // Perform the fft
     tensor_fft.forward(hij_x, hij_k);
+    scalar_fft.forward(scalars_x, scalars_k);
 
     // Normalise the fft (fftw style)
-    for(int comp = 0; comp < 6; comp++)
-    {
-        hij_k.mult(std::pow(N, -3.), comp, 1); 
-    }
+    for(int comp = 0; comp < 6; comp++) { hij_k.mult(std::pow(N, -3.), comp, 1); }
+    for(int comp = 0; comp < 2; comp++) { scalars_k.mult(std::pow(N, -3.), comp, 1); }
 
     std::string Filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/hs-k-extr";
     int time_step = cur_time/dt;
@@ -947,6 +973,8 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         // Make a pointer to the mode functions at this MF box
         Array4<GpuComplex<Real>> const& hs_ptr = hs_k.array(mfi);
         Array4<GpuComplex<Real>> const& hij_ptr = hij_k.array(mfi);
+        Array4<GpuComplex<Real>> const& scalars_ptr = scalars_k.array(mfi);
+        Array4<GpuComplex<Real>> const& R_k_ptr = R_k.array(mfi);
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
@@ -969,10 +997,27 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
                 hs_ptr(i, j, k, 0) += (hij_ptr(i, j, k, lut[l][p]) * eplus)/std::sqrt(2.);
                 hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross)/std::sqrt(2.);
             }
+
+            Vector<Real> iv_k(iv.begin(), iv.end());
+            for(auto& k_comp : iv_k) { k_comp *= 2. * M_PI / m_params.L; }
+            Real kmag = get_kmag(i, j, k);
+            GpuComplex<Real> Phi = 0;
+
+            // converstion from chi, gamma_ij -> Phi
+            for(int l=0; l<3; l++) for(int p=0; p<3; p++)
+            {
+                Phi += (iv_k[l] * iv_k[p] * hij_ptr(i, j, k, lut[l][p]))/std::pow(kmag, 2.);
+            }
+            Phi *= -1./48.;
+            Phi += 0.5 * (scalars_ptr(i, j, k, m_c_chi) - 1.);
+
+            // calculate R_k
+            R_k_ptr(i, j, k, 0) = Phi - K_bar * scalars_ptr(i, j, k, m_c_phi) / alpha_bar / Pi_bar;
         });
     }
 
     apply_nyquist_conditions(hs_k);
+    apply_nyquist_conditions(R_k);
 
     // Find the binned PS for each mode function and print to data/
     if((m_params.calc_binned_power_spectrum) && (time_step % plot_int == 0)) 
@@ -986,6 +1031,10 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
             SmallDataIO spectrum_file(filenames[comp], dt, cur_time, restart_time, SmallDataIO::NEW, first_step, ".dat");
             print_power_spectrum(hs_k, spectrum_file, comp);
         }
+
+        std::string filename = spec_path+"spectrum-Rk-time-";
+        SmallDataIO spectrum_file(filename, dt, cur_time, restart_time, SmallDataIO::NEW, first_step, ".dat");
+        print_power_spectrum(R_k, spectrum_file, 0);
     }
 
     // Find mode functions in configuration space if requested

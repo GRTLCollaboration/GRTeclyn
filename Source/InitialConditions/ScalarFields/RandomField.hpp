@@ -104,6 +104,8 @@ class RandomField
         int invert_index(const int indx);
         int invert_index_with_sign(const int indx);
         bool is_ghost_index(const IntVect vector);
+        Real get_kmag(int i, int j, int k);
+
         std::string make_subdirectory(const std::string base, const std::string dir, const int is_first_step);
         void assign_statistics_data(Vector<std::string> &header_storage, const std::string name, 
                                     Vector<Real> &data_storage, const Vector<Real> data, const int component, const int num_comps,
