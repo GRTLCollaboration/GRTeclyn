@@ -13,7 +13,7 @@
 #include "BinaryBHInitialData.hpp"
 #include "BoostedBHInitialData.hpp"
 #include "CCZ4Vars2.hpp"
-#include "TensorAlgebra2.hpp"
+#include "TensorAlgebra.hpp"
 #include "VarsTools.hpp"
 
 // Constructor
@@ -70,7 +70,7 @@ AMREX_GPU_DEVICE // or AMREX_GPU_HOST_DEVICE depending on what's needed
     Tensor<2, amrex::Real> h_LL;
     FOR2 (i, j)
     {
-        h_LL[i][j] = TensorAlgebra2::delta(i, j);
+        h_LL[i][j] = TensorAlgebra::delta(i, j);
     }
     vars.store_h(h_LL);
 

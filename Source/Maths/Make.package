@@ -1,5 +1,4 @@
 GRTECLYN_CEXE_headers += Combinatorics.hpp \
                          CoordinateTransformations.hpp \
                          SphericalHarmonics.hpp \
-                         TensorAlgebra.hpp \
-                         TensorAlgebra2.hpp
+                         TensorAlgebra.hpp

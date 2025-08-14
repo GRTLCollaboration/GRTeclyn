@@ -279,6 +279,45 @@ class FourthOrderDerivatives2
         return advec;
     }
 
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real advec_scalar(
+        int ix, int iy, int iz, const amrex::Array4<amrex::Real const> &state,
+        const Tensor<1, amrex::Real> &shift_vector, const int ivar) const
+    {
+        return advection(ix, iy, iz, state, shift_vector, ivar);
+    }
+
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<1, amrex::Real>
+    advec_vector(int ix, int iy, int iz,
+                 const amrex::Array4<amrex::Real const> &state,
+                 const Tensor<1, amrex::Real> &shift_vector,
+                 const int ivar0) const
+    {
+        Tensor<1, amrex::Real> advec_vector;
+        FOR (icomp)
+        {
+            int ivar = ivar0 + icomp;
+            advec_vector[idir] =
+                advection(ix, iy, iz, state, shift_vector, ivar);
+        }
+        return advec_vector;
+    }
+
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<2, amrex::Real>
+    advec_tensor(int ix, int iy, int iz,
+                 const amrex::Array4<amrex::Real const> &state,
+                 const Tensor<1, amrex::Real> &shift_vector,
+                 const int ivar0) const
+    {
+        Tensor<1, amrex::Real> advec_tensor;
+        FOR (icomp, jcomp)
+        {
+            int ivar = var_idx(ivar0, icomp, jcomp);
+            advec_tensor[icomp][jcomp] =
+                advection(ix, iy, iz, state, shift_vector, ivar);
+        }
+        return advec_tensor;
+    }
+
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
     dissipation_term(const double *in_ptr, const int stride,
                      const int idx = 0) const

@@ -5,9 +5,7 @@ GRTECLYN_CEXE_headers += BCParity.hpp \
                          Cell.hpp \
                          Coordinates.hpp \
                          DimensionDefinitions.hpp \
-                         FourthOrderDerivatives.hpp \
                          FourthOrderDerivatives2.hpp \
                          NullBCFill.hpp \
                          SixthOrderDerivatives.hpp \
-                         Tensor.hpp \
-                         VarsTools.hpp
+                         Tensor.hpp
