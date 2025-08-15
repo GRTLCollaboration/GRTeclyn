@@ -14,7 +14,6 @@
 #include "BoostedBHInitialData.hpp"
 #include "CCZ4Vars2.hpp"
 #include "TensorAlgebra.hpp"
-#include "VarsTools.hpp"
 
 // Constructor
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)

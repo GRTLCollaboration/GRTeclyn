@@ -296,7 +296,7 @@ class FourthOrderDerivatives2
         FOR (icomp)
         {
             int ivar = ivar0 + icomp;
-            advec_vector[idir] =
+            advec_vector[icomp] =
                 advection(ix, iy, iz, state, shift_vector, ivar);
         }
         return advec_vector;
@@ -308,7 +308,7 @@ class FourthOrderDerivatives2
                  const Tensor<1, amrex::Real> &shift_vector,
                  const int ivar0) const
     {
-        Tensor<1, amrex::Real> advec_tensor;
+        Tensor<2, amrex::Real> advec_tensor;
         FOR (icomp, jcomp)
         {
             int ivar = var_idx(ivar0, icomp, jcomp);

@@ -13,7 +13,6 @@
 #include "DimensionDefinitions.hpp"
 #include "TensorAlgebra.hpp"
 
-/*
 //! A structure for the decomposed elements of the Energy Momentum Tensor in
 //! 3+1D
 struct emtensor_t
@@ -29,7 +28,6 @@ struct ricci_t
     Tensor<2, amrex::Real> LL; // Ricci with two indices down
     amrex::Real scalar{};      // Ricci scalar
 };
-*/
 
 namespace CCZ4Geometry2
 {
@@ -155,18 +153,18 @@ compute_trace_A(const ConstCCZ4Vars &vars,
     return trace_A;
 }
 
-// This is A_ij A^ij
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-compute_Aij_squared(const CCZ4Vars2 &vars)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Tensor<2, amrex::Real>
+compute_A_UU(const ConstCCZ4Vars &vars,
+             const Tensor<2, amrex::Real> &inverse_metric)
 {
-    Tensor<2, amrex::Real> inverse_metric = compute_inverse_metric(vars);
-    amrex::Real Aij_squared               = 0.0;
+    Tensor<2, amrex::Real> A_UU;
     FOR (i, j, k, l)
     {
-        Aij_squared += inverse_metric[i][k] * inverse_metric[j][l] *
-                       vars.A(i, j) * vars.A(k, l);
+        A_UU[i][j] +=
+            inverse_metric[i][k] * inverse_metric[j][l] * vars.A(k, l);
     }
-    return Aij_squared;
+    return A_UU;
 }
 
 // This is A_ij A^ij
@@ -182,7 +180,7 @@ compute_Aij_squared(const ConstCCZ4Vars &vars)
     }
     return Aij_squared;
 }
-
+/*
 // This is A_ij A^ij
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_Aij_squared(const CCZ4Vars2 &vars,
@@ -196,7 +194,7 @@ compute_Aij_squared(const CCZ4Vars2 &vars,
     }
     return Aij_squared;
 }
-
+*/
 // This is A_ij A^ij
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_Aij_squared(const ConstCCZ4Vars &vars,

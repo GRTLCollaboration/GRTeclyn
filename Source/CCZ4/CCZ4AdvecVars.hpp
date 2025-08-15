@@ -18,16 +18,22 @@ class CCZ4AdvecVars
         int ix, int iy, int iz, const amrex::Array4<const amrex::Real> &state,
         const FourthOrderDerivatives2 &a_deriv)
     {
+        Tensor<1, amrex::Real> shift_vector;
+        FOR (idir)
+        {
+            shift_vector[idir] = state(ix, iy, iz, c_shift1 + idir);
+        }
+
         // Calculate the d1 quantities for all vars
-        chi   = a_deriv.advec_scalar(ix, iy, iz, state, c_chi);
-        K     = a_deriv.advec_scalar(ix, iy, iz, state, c_K);
-        lapse = a_deriv.advec_scalar(ix, iy, iz, state, c_lapse);
-        Theta = a_deriv.advec_scalar(ix, iy, iz, state, c_Theta);
-        shift = a_deriv.advec_vector(ix, iy, iz, state, c_shift1);
-        Gamma = a_deriv.advec_vector(ix, iy, iz, state, c_Gamma1);
-        B     = a_deriv.advec_vector(ix, iy, iz, state, c_B1);
-        h     = a_deriv.advec_tensor(ix, iy, iz, state, c_h11);
-        A     = a_deriv.advec_tensor(ix, iy, iz, state, c_A11);
+        chi   = a_deriv.advec_scalar(ix, iy, iz, state, shift_vector, c_chi);
+        K     = a_deriv.advec_scalar(ix, iy, iz, state, shift_vector, c_K);
+        lapse = a_deriv.advec_scalar(ix, iy, iz, state, shift_vector, c_lapse);
+        Theta = a_deriv.advec_scalar(ix, iy, iz, state, shift_vector, c_Theta);
+        shift = a_deriv.advec_vector(ix, iy, iz, state, shift_vector, c_shift1);
+        Gamma = a_deriv.advec_vector(ix, iy, iz, state, shift_vector, c_Gamma1);
+        B     = a_deriv.advec_vector(ix, iy, iz, state, shift_vector, c_B1);
+        h     = a_deriv.advec_tensor(ix, iy, iz, state, shift_vector, c_h11);
+        A     = a_deriv.advec_tensor(ix, iy, iz, state, shift_vector, c_A11);
     }
 
     Tensor<2, amrex::Real> h;

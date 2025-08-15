@@ -8,6 +8,7 @@
 
 #include "CCZ4AdvecVars.hpp"
 #include "CCZ4D1Vars.hpp"
+#include "CCZ4D2Vars.hpp"
 #include "CCZ4Geometry2.hpp"
 #include "CCZ4Vars2.hpp"
 #include "Cell.hpp"
@@ -59,6 +60,8 @@ class CCZ4RHS
         USE_BSSN
     };
 
+    using params_t = CCZ4_params_t<typename gauge_t::params_t>;
+
   protected:
     params_t m_params; //!< CCZ4 parameters
     gauge_t m_gauge;   //!< Class to compute gauge in rhs_equation
@@ -87,10 +90,9 @@ class CCZ4RHS
 
   protected:
     /// Calculates the rhs for CCZ4
-    template <template <class> class vars_t, class d2_vars_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     rhs_equation(CCZ4Vars2 &rhs, const ConstCCZ4Vars &vars,
-                 const CCZ4D1Vars &d1, const d2_vars_t &d2,
+                 const CCZ4D1Vars &d1, const CCZ4D2Vars &d2,
                  const CCZ4AdvecVars &advec) const;
 };
 
