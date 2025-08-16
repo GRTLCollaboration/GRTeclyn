@@ -3,19 +3,26 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#ifndef CCZ4VARS2_HPP_
-#define CCZ4VARS2_HPP_
+#ifndef CCZ4VARS_HPP_
+#define CCZ4VARS_HPP_
 
 #include "StateVariables.hpp"
 #include "Tensor.hpp"
 
-class CCZ4Vars2
+class CCZ4Vars
 {
   public:
-    AMREX_GPU_DEVICE inline CCZ4Vars2(
+    AMREX_GPU_DEVICE inline CCZ4Vars(
         const amrex::CellData<amrex::Real> &input_cell_data)
         : cell_data(input_cell_data)
     {
+    }
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &
+    get_var(int ivar) const
+    {
+        return cell_data[ivar];
     }
 
     [[nodiscard]]
@@ -145,4 +152,4 @@ class CCZ4Vars2
     const amrex::CellData<amrex::Real> &cell_data;
 };
 
-#endif /* CCZ4VARS2_HPP */
+#endif /* CCZ4VARS_HPP */

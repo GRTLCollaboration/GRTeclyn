@@ -6,11 +6,11 @@
 #ifndef CHIEXTRACTIONTAGGER_HPP_
 #define CHIEXTRACTIONTAGGER_HPP_
 
-#include "CCZ4Vars2.hpp"
+#include "CCZ4Vars.hpp"
 #include "Cell.hpp"
 #include "Coordinates.hpp"
 #include "DimensionDefinitions.hpp"
-#include "FourthOrderDerivatives2.hpp"
+#include "FourthOrderDerivatives.hpp"
 #include "SphericalExtraction.hpp"
 #include "Tensor.hpp"
 
@@ -20,7 +20,7 @@ class ChiExtractionTagger
 {
   protected:
     double m_dx;
-    FourthOrderDerivatives2 m_deriv;
+    FourthOrderDerivatives m_deriv;
     amrex::Real m_threshold;
     // const SphericalExtraction::params_t m_params;  not GPU friendly
     int m_num_extraction_radii;

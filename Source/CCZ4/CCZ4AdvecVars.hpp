@@ -6,8 +6,8 @@
 #ifndef CCZ4ADVECVARS_HPP_
 #define CCZ4ADVECVARS_HPP_
 
-#include "CCZ4Vars2.hpp"
-#include "FourthOrderDerivatives2.hpp"
+#include "CCZ4Vars.hpp"
+#include "FourthOrderDerivatives.hpp"
 #include "StateVariables.hpp"
 #include "Tensor.hpp"
 
@@ -16,7 +16,7 @@ class CCZ4AdvecVars
   public:
     AMREX_GPU_DEVICE inline CCZ4AdvecVars(
         int ix, int iy, int iz, const amrex::Array4<const amrex::Real> &state,
-        const FourthOrderDerivatives2 &a_deriv)
+        const FourthOrderDerivatives &a_deriv)
     {
         Tensor<1, amrex::Real> shift_vector;
         FOR (idir)

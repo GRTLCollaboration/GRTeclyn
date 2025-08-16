@@ -6,8 +6,8 @@
 #ifndef TRACEAREMOVAL_HPP_
 #define TRACEAREMOVAL_HPP_
 
-#include "CCZ4Geometry2.hpp"
-#include "CCZ4Vars2.hpp"
+#include "CCZ4Geometry.hpp"
+#include "CCZ4Vars.hpp"
 #include "Cell.hpp"
 #include "StateVariables.hpp"
 #include "Tensor.hpp"
@@ -27,9 +27,9 @@ class TraceARemoval
     {
         const amrex::CellData<amrex::Real> &state_cell_data =
             state.cellData(ix, iy, iz);
-        const CCZ4Vars2 vars(state_cell_data);
+        const CCZ4Vars vars(state_cell_data);
 
-        using namespace CCZ4Geometry2;
+        using namespace CCZ4Geometry;
         const auto trace_A                = compute_trace_A(vars);
         const double one_over_gr_spacedim = 1. / ((double)GR_SPACEDIM);
         FOR (i, j)

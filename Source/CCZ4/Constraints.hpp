@@ -10,11 +10,11 @@
 
 // GRTeclyn includes
 #include "CCZ4D1Vars.hpp"
-#include "CCZ4Geometry2.hpp"
+#include "CCZ4Geometry.hpp"
 #include "Cell.hpp"
 #include "ConstCCZ4Vars.hpp"
 #include "DimensionDefinitions.hpp"
-#include "FourthOrderDerivatives2.hpp"
+#include "FourthOrderDerivatives.hpp"
 #include "GRInterval.hpp"
 #include "Interval.hpp"
 #include "Tensor.hpp"
@@ -85,7 +85,7 @@ class Constraints
     static inline bool s_calc_mom_norm =
         false; // set to true with set_up() to store just sqrt(Mom1^2 + Mom2^2 +
                // Mom3^2) instead of Mom1, Mom2, Mom3 separately
-    FourthOrderDerivatives2 m_deriv;
+    FourthOrderDerivatives m_deriv;
     int m_c_Ham;
     Interval m_c_Moms;
     int m_c_Ham_abs_terms = -1;

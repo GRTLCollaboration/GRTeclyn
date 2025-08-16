@@ -6,11 +6,11 @@
 #ifndef WEYL4_HPP_
 #define WEYL4_HPP_
 
-#include "CCZ4Geometry2.hpp"
+#include "CCZ4Geometry.hpp"
 #include "CCZ4RHS.hpp"
 #include "Cell.hpp"
 #include "Coordinates.hpp"
-#include "FourthOrderDerivatives2.hpp"
+#include "FourthOrderDerivatives.hpp"
 #include "GRParmParse.hpp"
 #include "StateVariables.hpp" //This files needs c_NUM - total number of components
 #include "Tensor.hpp"
@@ -92,7 +92,7 @@ class Weyl4
   protected:
     std::array<double, AMREX_SPACEDIM> m_center; //!< The grid center
     double m_dx;                                 //!< the grid spacing
-    FourthOrderDerivatives2 m_deriv; //!< for calculating derivs of vars
+    FourthOrderDerivatives m_deriv; //!< for calculating derivs of vars
     int m_out_comp;    //!< Which commponent to store Weyl4_Re (Weyl4_Im will be
                        //!< m_out_comp+1)
     int m_formulation; //!< CCZ4 or BSSN?

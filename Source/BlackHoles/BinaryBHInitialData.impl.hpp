@@ -12,7 +12,7 @@
 
 #include "BinaryBHInitialData.hpp"
 #include "BoostedBHInitialData.hpp"
-#include "CCZ4Vars2.hpp"
+#include "CCZ4Vars.hpp"
 #include "TensorAlgebra.hpp"
 
 // Constructor
@@ -59,7 +59,7 @@ AMREX_GPU_DEVICE // or AMREX_GPU_HOST_DEVICE depending on what's needed
 
     const amrex::CellData<amrex::Real> &state_cell_data =
         state.cellData(ix, iy, iz);
-    CCZ4Vars2 vars(state_cell_data);
+    CCZ4Vars vars(state_cell_data);
     Coordinates coords(amrex::IntVect(ix, iy, iz), m_dx);
 
     // Assign non zero values

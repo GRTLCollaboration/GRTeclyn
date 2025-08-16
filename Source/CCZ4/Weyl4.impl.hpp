@@ -27,7 +27,7 @@ Weyl4::operator()(int ix, int iy, int iz,
         m_deriv.diff2(ix, iy, iz, state, c_chi);
     const Tensor<4, amrex::Real> d2_h =
         m_deriv.diff2_tensor(ix, iy, iz, state, c_h11);
-    const auto h_UU  = CCZ4Geometry2::compute_inverse_metric(vars);
+    const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
     const auto chris = TensorAlgebra::compute_christoffel(d1.h, h_UU);
 
     // Get the coordinates
@@ -117,12 +117,12 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t Weyl4::compute_EB_fields(
     // Note that unlike in CCZ4 equations we want R_ij + 0.5(D_iZ_j + D_jZ_i)
     // rather than R_ij + D_iZ_j + D_jZ_i hence use compute_ricci_Z_general
     double dZ_coeff        = (m_formulation == CCZ4RHS<>::USE_CCZ4) ? 1. : 0.;
-    auto ricci_and_Z_terms = CCZ4Geometry2::compute_ricci_Z_general(
+    auto ricci_and_Z_terms = CCZ4Geometry::compute_ricci_Z_general(
         vars, d1, d2_chi, d2_h, h_UU, chris, dZ_coeff);
 
     // Compute full spatial Christoffel symbols
     const Tensor<3, amrex::Real> chris_phys =
-        CCZ4Geometry2::compute_phys_chris(d1.chi, vars, h_UU, chris.ULL);
+        CCZ4Geometry::compute_phys_chris(d1.chi, vars, h_UU, chris.ULL);
 
     // Extrinsic curvature and corresponding covariant and partial derivatives
     FOR (i, j)
@@ -194,7 +194,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t Weyl4::compute_EB_fields(
     // assuming the Hamiltonian constraint is satisfied, we can make the
     // expression explicitly trace free, which we enforce below
     // (see Alcubierre chapter 8.3, from eq. 8.3.15 onwards)
-    CCZ4Geometry2::make_trace_free(out.E, vars, h_UU);
+    CCZ4Geometry::make_trace_free(out.E, vars, h_UU);
 
     return out;
 }

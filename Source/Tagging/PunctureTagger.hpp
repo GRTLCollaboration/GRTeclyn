@@ -8,7 +8,6 @@
 
 #include "Coordinates.hpp"
 #include "DimensionDefinitions.hpp"
-#include "FourthOrderDerivatives2.hpp"
 #include "Tensor.hpp"
 
 #include <AMReX_Array4.H>

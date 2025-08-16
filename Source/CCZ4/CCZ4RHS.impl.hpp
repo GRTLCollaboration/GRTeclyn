@@ -53,9 +53,9 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<gauge_t, deriv_t>::operator()(
     const CCZ4D2Vars d2(ix, iy, iz, state, m_deriv);
     const CCZ4AdvecVars advec(ix, iy, iz, state, m_deriv);
 
-    const amrex::CellData<const amrex::Real> &rhs_cell_data =
+    const amrex::CellData<amrex::Real> &rhs_cell_data =
         rhs.cellData(ix, iy, iz);
-    CCZ4Vars2 rhs_vars(rhs_cell_data);
+    CCZ4Vars rhs_vars(rhs_cell_data);
 
     rhs_equation(rhs_vars, vars, d1, d2, advec);
 
@@ -65,14 +65,14 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<gauge_t, deriv_t>::operator()(
 // NOLINTBEGIN(readability-function-cognitive-complexity)
 template <class gauge_t, class deriv_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-CCZ4RHS<gauge_t, deriv_t>::rhs_equation(CCZ4Vars2 &rhs,
+CCZ4RHS<gauge_t, deriv_t>::rhs_equation(CCZ4Vars &rhs,
                                         const ConstCCZ4Vars &vars,
                                         const CCZ4D1Vars &d1,
                                         const CCZ4D2Vars &d2,
                                         const CCZ4AdvecVars &advec) const
 {
 
-    const auto h_UU  = CCZ4Geometry2::compute_inverse_metric(vars);
+    const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
     const auto chris = TensorAlgebra::compute_christoffel(d1.h, h_UU);
 
     Tensor<1, amrex::Real> Z_over_chi;
@@ -91,8 +91,8 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(CCZ4Vars2 &rhs,
     FOR (i)
         Z[i] = vars.chi() * Z_over_chi[i];
 
-    auto ricci = CCZ4Geometry2::compute_ricci_Z(vars, d1, d2.chi, d2.h, h_UU,
-                                                chris, Z_over_chi);
+    auto ricci = CCZ4Geometry::compute_ricci_Z(vars, d1, d2.chi, d2.h, h_UU,
+                                               chris, Z_over_chi);
 
     amrex::Real divshift      = TensorAlgebra::compute_trace(d1.shift);
     amrex::Real Z_dot_d1lapse = TensorAlgebra::compute_dot_product(Z, d1.lapse);
@@ -125,10 +125,10 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(CCZ4Vars2 &rhs,
         }
     }
 
-    Tensor<2, amrex::Real> A_UU = CCZ4Geometry2::compute_A_UU(vars, h_UU);
+    Tensor<2, amrex::Real> A_UU = CCZ4Geometry::compute_A_UU(vars, h_UU);
 
     // A^{ij} A_{ij}
-    amrex::Real Aij_squared = CCZ4Geometry2::compute_Aij_squared(vars, h_UU);
+    amrex::Real Aij_squared = CCZ4Geometry::compute_Aij_squared(vars, h_UU);
     amrex::Real rhs_chi = advec.chi + (2.0 / (double)GR_SPACEDIM) * vars.chi() *
                                           (vars.lapse() * vars.K() - divshift);
     rhs.store_chi(rhs_chi);
@@ -152,7 +152,7 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(CCZ4Vars2 &rhs,
         Adot_TF[i][j] =
             -covd2lapse[i][j] + vars.chi() * vars.lapse() * ricci.LL[i][j];
     }
-    CCZ4Geometry2::make_trace_free(Adot_TF, vars, h_UU);
+    CCZ4Geometry::make_trace_free(Adot_TF, vars, h_UU);
 
     Tensor<2, amrex::Real> rhs_A;
     FOR (i, j)

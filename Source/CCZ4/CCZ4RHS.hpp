@@ -9,11 +9,11 @@
 #include "CCZ4AdvecVars.hpp"
 #include "CCZ4D1Vars.hpp"
 #include "CCZ4D2Vars.hpp"
-#include "CCZ4Geometry2.hpp"
-#include "CCZ4Vars2.hpp"
+#include "CCZ4Geometry.hpp"
+#include "CCZ4Vars.hpp"
 #include "Cell.hpp"
 #include "ConstCCZ4Vars.hpp"
-#include "FourthOrderDerivatives2.hpp"
+#include "FourthOrderDerivatives.hpp"
 #include "MovingPunctureGauge.hpp"
 #include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
@@ -50,7 +50,7 @@ struct CCZ4_params_t : public CCZ4_base_params_t, public gauge_params_t
  * This compute class implements the CCZ4 right hand side equations.
  **/
 template <class gauge_t = MovingPunctureGauge,
-          class deriv_t = FourthOrderDerivatives2>
+          class deriv_t = FourthOrderDerivatives>
 class CCZ4RHS
 {
   public:
@@ -91,9 +91,8 @@ class CCZ4RHS
   protected:
     /// Calculates the rhs for CCZ4
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    rhs_equation(CCZ4Vars2 &rhs, const ConstCCZ4Vars &vars,
-                 const CCZ4D1Vars &d1, const CCZ4D2Vars &d2,
-                 const CCZ4AdvecVars &advec) const;
+    rhs_equation(CCZ4Vars &rhs, const ConstCCZ4Vars &vars, const CCZ4D1Vars &d1,
+                 const CCZ4D2Vars &d2, const CCZ4AdvecVars &advec) const;
 };
 
 #include "CCZ4RHS.impl.hpp"

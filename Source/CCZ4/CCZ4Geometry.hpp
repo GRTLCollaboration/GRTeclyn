@@ -4,11 +4,11 @@
  */
 
 // This file calculates CCZ4 geometric quantities (or a similar 3+1 split).
-#ifndef CCZ4GEOMETRY2_HPP_
-#define CCZ4GEOMETRY2_HPP_
+#ifndef CCZ4GEOMETRY_HPP_
+#define CCZ4GEOMETRY_HPP_
 
 #include "CCZ4D1Vars.hpp"
-#include "CCZ4Vars2.hpp"
+#include "CCZ4Vars.hpp"
 #include "ConstCCZ4Vars.hpp"
 #include "DimensionDefinitions.hpp"
 #include "TensorAlgebra.hpp"
@@ -29,10 +29,10 @@ struct ricci_t
     amrex::Real scalar{};      // Ricci scalar
 };
 
-namespace CCZ4Geometry2
+namespace CCZ4Geometry
 {
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-compute_metric_determinant(const CCZ4Vars2 &vars)
+compute_metric_determinant(const CCZ4Vars &vars)
 {
     amrex::Real det = vars.h(0, 0) * vars.h(1, 1) * vars.h(2, 2) +
                       2 * vars.h(0, 1) * vars.h(0, 2) * vars.h(1, 2) -
@@ -81,7 +81,7 @@ compute_inverse_metric(const ConstCCZ4Vars &vars)
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<2, amrex::Real>
-compute_inverse_metric(const CCZ4Vars2 &vars)
+compute_inverse_metric(const CCZ4Vars &vars)
 {
     amrex::Real det_h         = compute_metric_determinant(vars);
     amrex::Real det_h_inverse = 1. / det_h;
@@ -106,7 +106,7 @@ compute_inverse_metric(const CCZ4Vars2 &vars)
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-compute_trace_A(const CCZ4Vars2 &vars)
+compute_trace_A(const CCZ4Vars &vars)
 {
     Tensor<2, amrex::Real> inverse_metric = compute_inverse_metric(vars);
     amrex::Real trace_A                   = 0.0;
@@ -130,7 +130,7 @@ compute_trace_A(const ConstCCZ4Vars &vars)
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-compute_trace_A(const CCZ4Vars2 &vars,
+compute_trace_A(const CCZ4Vars &vars,
                 const Tensor<2, amrex::Real> &inverse_metric)
 {
     amrex::Real trace_A = 0.0;
@@ -153,8 +153,7 @@ compute_trace_A(const ConstCCZ4Vars &vars,
     return trace_A;
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-Tensor<2, amrex::Real>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<2, amrex::Real>
 compute_A_UU(const ConstCCZ4Vars &vars,
              const Tensor<2, amrex::Real> &inverse_metric)
 {
@@ -183,7 +182,7 @@ compute_Aij_squared(const ConstCCZ4Vars &vars)
 /*
 // This is A_ij A^ij
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-compute_Aij_squared(const CCZ4Vars2 &vars,
+compute_Aij_squared(const CCZ4Vars &vars,
                     const Tensor<2, amrex::Real> &inverse_metric)
 {
     amrex::Real Aij_squared = 0.0;
@@ -401,6 +400,6 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci(
     return compute_ricci_Z_general(vars, d1, d2_chi, d2_h, h_UU, chris, 0.0);
 }
 
-} // namespace CCZ4Geometry2
+} // namespace CCZ4Geometry
 
-#endif /* CCZ4GEOMETRY2_HPP_ */
+#endif /* CCZ4GEOMETRY_HPP_ */

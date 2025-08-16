@@ -7,7 +7,7 @@
 #ifndef POSITIVECHIANDLAPSE_HPP_
 #define POSITIVECHIANDLAPSE_HPP_
 
-#include "CCZ4Vars2.hpp"
+#include "CCZ4Vars.hpp"
 #include "Cell.hpp"
 #include "StateVariables.hpp"
 
@@ -34,7 +34,7 @@ class PositiveChiAndLapse
 
         const amrex::CellData<amrex::Real> &state_cell_data =
             state.cellData(ix, iy, iz);
-        CCZ4Vars2 vars(state_cell_data);
+        CCZ4Vars vars(state_cell_data);
 
         amrex::Real chi   = vars.chi();
         amrex::Real lapse = vars.lapse();

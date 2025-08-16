@@ -6,8 +6,8 @@
 #ifndef CCZ4D1VARS_HPP_
 #define CCZ4D1VARS_HPP_
 
-#include "CCZ4Vars2.hpp"
-#include "FourthOrderDerivatives2.hpp"
+#include "CCZ4Vars.hpp"
+#include "FourthOrderDerivatives.hpp"
 #include "StateVariables.hpp"
 #include "Tensor.hpp"
 
@@ -16,7 +16,7 @@ class CCZ4D1Vars
   public:
     AMREX_GPU_DEVICE inline CCZ4D1Vars(
         int ix, int iy, int iz, const amrex::Array4<const amrex::Real> &state,
-        const FourthOrderDerivatives2 &a_deriv)
+        const FourthOrderDerivatives &a_deriv)
     {
         // Calculate the d1 quantities for all vars
         chi   = a_deriv.diff1_scalar(ix, iy, iz, state, c_chi);

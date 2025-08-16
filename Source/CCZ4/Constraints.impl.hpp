@@ -60,7 +60,7 @@ Constraints::operator()(int ix, int iy, int iz,
     const Tensor<4, amrex::Real> d2_h =
         m_deriv.diff2_tensor(ix, iy, iz, state, c_h11);
 
-    const auto h_UU  = CCZ4Geometry2::compute_inverse_metric(vars);
+    const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
     const auto chris = TensorAlgebra::compute_christoffel(d1.h, h_UU);
 
     Vars out = constraint_equations(vars, d1, d2_chi, d2_h, h_UU, chris);
@@ -81,11 +81,10 @@ Constraints::Vars Constraints::constraint_equations(
     if (m_c_Ham >= 0 || m_c_Ham_abs_terms >= 0)
     {
         auto ricci =
-            CCZ4Geometry2::compute_ricci(vars, d1, d2_chi, d2_h, h_UU, chris);
+            CCZ4Geometry::compute_ricci(vars, d1, d2_chi, d2_h, h_UU, chris);
 
         // This is A_ij A^ij
-        amrex::Real Aij_squared =
-            CCZ4Geometry2::compute_Aij_squared(vars, h_UU);
+        amrex::Real Aij_squared = CCZ4Geometry::compute_Aij_squared(vars, h_UU);
 
         out.Ham = ricci.scalar +
                   (GR_SPACEDIM - 1.) * vars.K() * vars.K() / GR_SPACEDIM -

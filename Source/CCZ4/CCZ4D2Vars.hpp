@@ -6,8 +6,8 @@
 #ifndef CCZ4D2VARS_HPP_
 #define CCZ4D2VARS_HPP_
 
-#include "CCZ4Vars2.hpp"
-#include "FourthOrderDerivatives2.hpp"
+#include "CCZ4Vars.hpp"
+#include "FourthOrderDerivatives.hpp"
 #include "StateVariables.hpp"
 #include "Tensor.hpp"
 
@@ -16,7 +16,7 @@ class CCZ4D2Vars
   public:
     AMREX_GPU_DEVICE inline CCZ4D2Vars(
         int ix, int iy, int iz, const amrex::Array4<const amrex::Real> &state,
-        const FourthOrderDerivatives2 &a_deriv)
+        const FourthOrderDerivatives &a_deriv)
     {
         // Calculate the d2 quantities for all required vars to calculate rhs
         chi = a_deriv.diff2_scalar(ix, iy, iz, state, c_chi);
@@ -30,15 +30,15 @@ class CCZ4D2Vars
         // A     = a_deriv.diff2_tensor(ix, iy, iz, state, c_A11);
     }
 
-    Tensor<3, amrex::Real> h;
-    // Tensor<3, amrex::Real> A;
-    // Tensor<2, amrex::Real> Gamma;
-    Tensor<2, amrex::Real> shift;
-    // Tensor<2, amrex::Real> B;
-    Tensor<1, amrex::Real> chi;
-    // Tensor<1, amrex::Real> K;
-    Tensor<1, amrex::Real> lapse;
-    // Tensor<1, amrex::Real> Theta;
+    Tensor<4, amrex::Real> h;
+    // Tensor<4, amrex::Real> A;
+    // Tensor<3, amrex::Real> Gamma;
+    Tensor<3, amrex::Real> shift;
+    // Tensor<3, amrex::Real> B;
+    Tensor<2, amrex::Real> chi;
+    // Tensor<2, amrex::Real> K;
+    Tensor<2, amrex::Real> lapse;
+    // Tensor<2, amrex::Real> Theta;
 };
 
 #endif /* CCZ4D2VARS_HPP */

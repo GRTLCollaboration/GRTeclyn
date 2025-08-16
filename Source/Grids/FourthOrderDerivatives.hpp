@@ -3,16 +3,16 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#ifndef FOURTHORDERDERIVATIVES2_HPP_
-#define FOURTHORDERDERIVATIVES2_HPP_
+#ifndef FOURTHORDERDERIVATIVES_HPP_
+#define FOURTHORDERDERIVATIVES_HPP_
 
-#include "CCZ4Vars2.hpp"
+#include "CCZ4Vars.hpp"
 #include "Cell.hpp"
 #include "DimensionDefinitions.hpp"
 #include "Tensor.hpp"
 #include <array>
 
-class FourthOrderDerivatives2
+class FourthOrderDerivatives
 {
   private:
     amrex::Real m_dx;
@@ -27,7 +27,7 @@ class FourthOrderDerivatives2
     }
 
   public:
-    AMREX_GPU_HOST_DEVICE FourthOrderDerivatives2(double dx)
+    AMREX_GPU_HOST_DEVICE FourthOrderDerivatives(double dx)
         : m_dx(dx), m_one_over_dx(1 / dx), m_one_over_dx2(1 / (dx * dx))
     {
     }
@@ -338,9 +338,9 @@ class FourthOrderDerivatives2
     }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
-    add_dissipation(int ix, int iy, int iz,
-                    const amrex::Array4<amrex::Real const> &state,
-                    const double sigma_coeff, const int ivar) const
+    calculate_dissipation(int ix, int iy, int iz,
+                          const amrex::Array4<amrex::Real const> &state,
+                          const double sigma_coeff, const int ivar) const
     {
         amrex::Real diss          = 0.0;
         const auto *state_ptr_xyz = state.ptr(ix, iy, iz);
@@ -355,6 +355,21 @@ class FourthOrderDerivatives2
                 dissipation_term(state_ptr_xyz + ivar * state.nstride, stride);
         }
         return diss;
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    add_dissipation(int ix, int iy, int iz, CCZ4Vars &vars,
+                    const amrex::Array4<amrex::Real const> &state,
+                    const double sigma_coeff,
+                    int num_vars = NUM_CCZ4_VARS) const
+    {
+        for (int ivar = 0; ivar < num_vars; ivar++)
+        {
+            amrex::Real diss =
+                calculate_dissipation(ix, iy, iz, state, sigma_coeff, ivar);
+            amrex::Real var_plus_diss = vars.get_var(ivar) + diss;
+            vars.store_var(ivar, var_plus_diss);
+        }
     }
 };
 
