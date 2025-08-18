@@ -85,7 +85,8 @@ class CCZ4RHS
      * grid cell.
      */
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    operator()(int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs,
+    operator()(int ix, int iy, int iz,
+               const amrex::Array4<amrex::Real> &rhs_state,
                const amrex::Array4<amrex::Real const> &state) const;
 
   protected:

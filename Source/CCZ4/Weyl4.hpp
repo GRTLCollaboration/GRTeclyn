@@ -36,7 +36,7 @@ struct Tetrad_t
 };
 
 //! Struct for the Newman Penrose scalar
-struct NPScalar_t
+struct weyl_scalar_t
 {
     amrex::Real Real; // Real component
     amrex::Real Im;   // Imaginary component
@@ -103,9 +103,10 @@ class Weyl4
                          const Tensor<2, amrex::Real> &h_UU) const;
 
     //! Calculation of Weyl_4 scalar
-    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE NPScalar_t compute_Weyl4(
-        const EBFields_t &ebfields, const ConstCCZ4Vars &vars,
-        const Tensor<2, amrex::Real> &h_UU, const Coordinates &coords) const;
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE weyl_scalar_t
+    compute_Weyl4(const EBFields_t &ebfields, const ConstCCZ4Vars &vars,
+                  const Tensor<2, amrex::Real> &h_UU,
+                  const Coordinates &coords) const;
 
     //! Calculation of the tetrads
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tetrad_t

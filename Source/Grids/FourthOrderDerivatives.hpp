@@ -19,13 +19,6 @@ class FourthOrderDerivatives
     amrex::Real m_one_over_dx;
     amrex::Real m_one_over_dx2;
 
-    // A function to return the right index for the tensor
-    [[nodiscard]] AMREX_FORCE_INLINE const int var_idx(int ivar, int i,
-                                                       int j) const
-    {
-        return ivar + i + j + ((i * j != 0) ? 1 : 0);
-    }
-
   public:
     AMREX_GPU_HOST_DEVICE FourthOrderDerivatives(double dx)
         : m_dx(dx), m_one_over_dx(1 / dx), m_one_over_dx2(1 / (dx * dx))
@@ -360,8 +353,7 @@ class FourthOrderDerivatives
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     add_dissipation(int ix, int iy, int iz, CCZ4Vars &vars,
                     const amrex::Array4<amrex::Real const> &state,
-                    const double sigma_coeff,
-                    int num_vars = NUM_CCZ4_VARS) const
+                    const double sigma_coeff, int num_vars = NUM_VARS) const
     {
         for (int ivar = 0; ivar < num_vars; ivar++)
         {

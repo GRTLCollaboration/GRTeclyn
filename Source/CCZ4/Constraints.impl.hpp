@@ -63,7 +63,8 @@ Constraints::operator()(int ix, int iy, int iz,
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
     const auto chris = TensorAlgebra::compute_christoffel(d1.h, h_UU);
 
-    Vars out = constraint_equations(vars, d1, d2_chi, d2_h, h_UU, chris);
+    constraints_t out =
+        constraint_equations(vars, d1, d2_chi, d2_h, h_UU, chris);
 
     // TODO: Simplify this storing so less choice but more readable
     const auto constraint_cell_data = constraints.cellData(ix, iy, iz);
@@ -71,12 +72,12 @@ Constraints::operator()(int ix, int iy, int iz,
 }
 
 AMREX_GPU_DEVICE
-Constraints::Vars Constraints::constraint_equations(
+Constraints::constraints_t Constraints::constraint_equations(
     const ConstCCZ4Vars &vars, const CCZ4D1Vars &d1,
     const Tensor<2, amrex::Real> &d2_chi, const Tensor<4, amrex::Real> &d2_h,
     const Tensor<2, amrex::Real> &h_UU, const chris_t &chris) const
 {
-    Vars out;
+    constraints_t out;
 
     if (m_c_Ham >= 0 || m_c_Ham_abs_terms >= 0)
     {
@@ -134,7 +135,7 @@ Constraints::Vars Constraints::constraint_equations(
 }
 
 AMREX_GPU_DEVICE void
-Constraints::store_vars(const Vars &out,
+Constraints::store_vars(const constraints_t &out,
                         const amrex::CellData<amrex::Real> &current_cell) const
 {
     if (m_c_Ham >= 0)

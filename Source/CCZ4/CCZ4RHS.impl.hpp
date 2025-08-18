@@ -41,7 +41,7 @@ inline CCZ4RHS<gauge_t, deriv_t>::CCZ4RHS(
 
 template <class gauge_t, class deriv_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<gauge_t, deriv_t>::operator()(
-    int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs,
+    int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs_state,
     const amrex::Array4<amrex::Real const> &state) const
 {
     const amrex::CellData<const amrex::Real> &state_cell_data =
@@ -54,12 +54,12 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<gauge_t, deriv_t>::operator()(
     const CCZ4AdvecVars advec(ix, iy, iz, state, m_deriv);
 
     const amrex::CellData<amrex::Real> &rhs_cell_data =
-        rhs.cellData(ix, iy, iz);
-    CCZ4Vars rhs_vars(rhs_cell_data);
+        rhs_state.cellData(ix, iy, iz);
+    CCZ4Vars rhs(rhs_cell_data);
 
-    rhs_equation(rhs_vars, vars, d1, d2, advec);
+    rhs_equation(rhs, vars, d1, d2, advec);
 
-    m_deriv.add_dissipation(ix, iy, iz, rhs_vars, state, m_sigma);
+    m_deriv.add_dissipation(ix, iy, iz, rhs, state, m_sigma);
 }
 
 // NOLINTBEGIN(readability-function-cognitive-complexity)

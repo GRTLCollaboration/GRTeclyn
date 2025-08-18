@@ -39,8 +39,8 @@ class Constraints
     static inline const amrex::Vector<std::string> var_names_norm = {"Ham",
                                                                      "Mom"};
 
-    /// Vars object for Constraints
-    struct Vars
+    /// Struct for Constraints
+    struct constraints_t
     {
         amrex::Real Ham{};
         amrex::Real Ham_abs_terms{};
@@ -92,14 +92,14 @@ class Constraints
     Interval m_c_Moms_abs_terms;
     double m_cosmological_constant;
 
-    AMREX_GPU_DEVICE Vars constraint_equations(
+    AMREX_GPU_DEVICE constraints_t constraint_equations(
         const ConstCCZ4Vars &vars, const CCZ4D1Vars &d1,
         const Tensor<2, amrex::Real> &d2_chi,
         const Tensor<4, amrex::Real> &d2_h, const Tensor<2, amrex::Real> &h_UU,
         const chris_t &chris) const;
 
     AMREX_FORCE_INLINE AMREX_GPU_DEVICE void
-    store_vars(const Vars &out,
+    store_vars(const constraints_t &out,
                const amrex::CellData<amrex::Real> &current_cell) const;
 };
 

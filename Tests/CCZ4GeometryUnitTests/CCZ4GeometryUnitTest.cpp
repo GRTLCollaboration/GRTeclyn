@@ -8,6 +8,7 @@
 
 // Test header
 #include "CCZ4GeometryUnitTest.hpp"
+#include "CCZ4Vars.hpp"
 
 // System includes
 // #include <iostream>
@@ -16,6 +17,11 @@
 #include "CCZ4Geometry.hpp"
 #include "DimensionDefinitions.hpp"
 #include "Tensor.hpp"
+
+// AMReX headers
+#include "AMReX.H"
+#include <AMReX_Print.H>
+#include "AMReX_FArrayBox.H"
 
 template <class data_t> struct vars_t
 {
@@ -34,12 +40,12 @@ void run_ccz4_geometry_unit_tests()
 
 #include "CCZ4GeometryMathematicaValues.hpp" //Including the auto generated file with values
 
-    auto h_UU = TensorAlgebra::compute_inverse_sym(vars.h);
-
+    auto h_UU  = TensorAlgebra::compute_inverse_sym(vars.h);
     auto chris = TensorAlgebra::compute_christoffel(d1.h, h_UU);
 
-    auto ricciZ =
-        CCZ4Geometry::compute_ricci_Z(vars, d1, d2, h_UU, chris, Z_over_chi);
+    // TODO: Need to fix this for new vars
+    auto ricciZ = CCZ4Geometry::compute_ricci_Z(vars, d1, d2.chi, d2.h, h_UU,
+                                                chris, Z_over_chi);
 
     double test_threshold = 1e-14;
 

@@ -8,13 +8,13 @@
 
 #include "CCZ4Geometry.hpp"
 #include "CCZ4RHS.hpp"
+#include "CCZ4Vars.hpp"
 #include "Cell.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "MovingPunctureGaugeWithMatter.hpp"
 #include "StateVariables.hpp" //This files needs NUM_VARS - total number of components
 #include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
-#include "VarsTools.hpp"
 
 //!  Calculates RHS using CCZ4 including matter terms, and matter variable
 //!  evolution
@@ -38,46 +38,6 @@ class CCZ4RHSWithMatter : public CCZ4RHS<gauge_t, deriv_t>
 
     using params_t = CCZ4_params_t<typename gauge_t::params_t>;
 
-    template <class data_t>
-    using MatterVars = typename matter_t::template Vars<data_t>;
-
-    template <class data_t>
-    using MatterDiff2Vars = typename matter_t::template Diff2Vars<data_t>;
-
-    template <class data_t>
-    using CCZ4Vars = typename CCZ4::template Vars<data_t>;
-
-    template <class data_t>
-    using CCZ4Diff2Vars = typename CCZ4::template Diff2Vars<data_t>;
-
-    // Inherit the variable definitions from CCZ4RHS + matter_t
-    template <class data_t>
-    struct Vars : public CCZ4Vars<data_t>, public MatterVars<data_t>
-    {
-        /// Defines the mapping between members of Vars and Chombo grid
-        /// variables (enum in User_Variables)
-        template <typename mapping_function_t>
-        AMREX_GPU_DEVICE void enum_mapping(mapping_function_t mapping_function)
-        {
-            CCZ4Vars<data_t>::enum_mapping(mapping_function);
-            MatterVars<data_t>::enum_mapping(mapping_function);
-        }
-    };
-
-    template <class data_t>
-    struct Diff2Vars : public CCZ4Diff2Vars<data_t>,
-                       public MatterDiff2Vars<data_t>
-    {
-        /// Defines the mapping between members of Vars and Chombo grid
-        /// variables (enum in User_Variables)
-        template <typename mapping_function_t>
-        AMREX_GPU_DEVICE void enum_mapping(mapping_function_t mapping_function)
-        {
-            CCZ4Diff2Vars<data_t>::enum_mapping(mapping_function);
-            MatterDiff2Vars<data_t>::enum_mapping(mapping_function);
-        }
-    };
-
     //!  Constructor of class MatterCCZ4
     /*!
        Inputs are the grid spacing, plus the CCZ4 evolution parameters and a
@@ -93,18 +53,19 @@ class CCZ4RHSWithMatter : public CCZ4RHS<gauge_t, deriv_t>
     //!  The compute member which calculates the RHS at each point in the box
     //!  \sa matter_rhs_equation()
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    compute(int i, int j, int k, const amrex::Array4<amrex::Real> &rhs_arrays,
-            const amrex::Array4<amrex::Real const> &state_arrays) const;
+    operator()(int ix, int iy, int iz,
+               const amrex::Array4<amrex::Real> &rhs_state,
+               const amrex::Array4<amrex::Real const> &state) const;
 
   protected:
     //! The function which adds in the EM Tensor terms to the CCZ4 rhs \sa
     //! compute()
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void add_emtensor_rhs(
-        Vars<amrex::Real>
-            &matter_rhs, //!< the RHS data for each variable at that point.
-        const Vars<amrex::Real>
-            &vars, //!< the value of the variables at the point.
-        const Vars<Tensor<1, amrex::Real>>
+        typename matter_t::Vars
+            &rhs, //!< the RHS data for each variable at that point.
+        const typename matter_t::ConstVars
+            &state, //!< the value of the variables at the point.
+        const typename matter_t::D1Vars
             &d1 //!< the value of the first derivatives of the variables.
     ) const;
 

@@ -41,7 +41,7 @@ Weyl4::operator()(int ix, int iy, int iz,
         compute_EB_fields(vars, d1, d2_chi, d2_h, epsilon3_LUU, h_UU, chris);
 
     // work out the Newman Penrose scalar
-    NPScalar_t out = compute_Weyl4(ebfields, vars, h_UU, coords);
+    weyl_scalar_t out = compute_Weyl4(ebfields, vars, h_UU, coords);
 
     // store the result
     weyl_scalars(ix, iy, iz, m_out_comp)     = out.Real;
@@ -200,11 +200,11 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t Weyl4::compute_EB_fields(
 }
 
 // Calculation of the Weyl4 scalar
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE NPScalar_t Weyl4::compute_Weyl4(
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE weyl_scalar_t Weyl4::compute_Weyl4(
     const EBFields_t &ebfields, const ConstCCZ4Vars &vars,
     const Tensor<2, amrex::Real> &h_UU, const Coordinates &coords) const
 {
-    NPScalar_t out;
+    weyl_scalar_t out;
 
     // Calculate the tetrads
     const Tetrad_t tetrad = compute_null_tetrad(vars, h_UU, coords);
