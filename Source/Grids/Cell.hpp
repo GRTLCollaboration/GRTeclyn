@@ -9,13 +9,14 @@
 #include <AMReX_Array4.H>
 
 using namespace amrex::disabled;
+// TODO: Remove these functions once we refactor the vars
 
-template <template <typename> class vars_t, class data_t>
-AMREX_GPU_HOST_DEVICE void store_vars(const amrex::CellData<data_t> &cell,
-                                      vars_t<data_t> &vars)
+template <class vars_t>
+AMREX_GPU_HOST_DEVICE void store_vars(const amrex::CellData<amrex::Real> &cell,
+                                      vars_t &vars)
 {
     vars.enum_mapping(
-        [&](const int &ivar, const data_t &var)
+        [&](const int &ivar, const amrex::Real &var)
         {
             // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.Assign)
             cell[ivar] = var;

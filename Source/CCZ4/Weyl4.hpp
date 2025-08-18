@@ -14,32 +14,31 @@
 #include "StateVariables.hpp" //This files needs c_NUM - total number of components
 #include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
-#include "simd.hpp"
 #include <array>
 
 // AMReX Includes
 #include <AMReX_AmrLevel.H>
 
 //! Struct for the E and B fields
-template <class data_t> struct EBFields_t
+struct EBFields_t
 {
-    Tensor<2, data_t> E; //!< Electric component of Weyltensor
-    Tensor<2, data_t> B; //!< Magnetic component of Weyltensor
+    Tensor<2, amrex::Real> E; //!< Electric component of Weyltensor
+    Tensor<2, amrex::Real> B; //!< Magnetic component of Weyltensor
 };
 
 //! Struct for the null tetrad
-template <class data_t> struct Tetrad_t
+struct Tetrad_t
 {
-    Tensor<1, data_t> u; //!< the vector u^i
-    Tensor<1, data_t> v; //!< the vector v^i
-    Tensor<1, data_t> w; //!< the vector w^i
+    Tensor<1, amrex::Real> u; //!< the vector u^i
+    Tensor<1, amrex::Real> v; //!< the vector v^i
+    Tensor<1, amrex::Real> w; //!< the vector w^i
 };
 
 //! Struct for the Newman Penrose scalar
-template <class data_t> struct NPScalar_t
+struct NPScalar_t
 {
-    data_t Real; // Real component
-    data_t Im;   // Imaginary component
+    amrex::Real Real; // Real component
+    amrex::Real Im;   // Imaginary component
 };
 
 //!  Calculates the Weyl4 scalar for spacetimes without matter content
@@ -61,6 +60,8 @@ class Weyl4
                                                                 "Weyl4_Im"};
 
     // Use the variable definitions containing the needed quantities
+    // TODO: Get rid of these data_ts once the derivatives are refactored -
+    // at the moment they require the vars to have template arguments
     template <class data_t> using Vars = CCZ4Vars::VarsWithGauge<data_t>;
     template <class data_t>
     using Diff2Vars = ADMConformalVars::Diff2VarsNoGauge<data_t>;
@@ -80,10 +81,10 @@ class Weyl4
     // NOLINTEND(bugprone-easily-swappable-parameters)
 
     //! Computes Weyl4 in a cell
-    template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    compute(int i, int j, int k, const amrex::Array4<data_t> &a_derive_array,
-            const amrex::Array4<data_t const> &a_state_array) const;
+    compute(int i, int j, int k,
+            const amrex::Array4<amrex::Real> &a_derive_array,
+            const amrex::Array4<amrex::Real const> &a_state_array) const;
 
     AMREX_FORCE_INLINE static void set_up(int a_state_index);
 
@@ -102,34 +103,32 @@ class Weyl4
     int m_formulation; //!< CCZ4 or BSSN?
 
     //! Compute spatial volume element
-    template <class data_t>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<3, data_t>
-    compute_epsilon3_LUU(const Vars<data_t> &vars,
-                         const Tensor<2, data_t> &h_UU) const;
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<3, amrex::Real>
+    compute_epsilon3_LUU(const Vars<amrex::Real> &vars,
+                         const Tensor<2, amrex::Real> &h_UU) const;
 
     //! Calculation of Weyl_4 scalar
-    template <class data_t>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE NPScalar_t<data_t>
-    compute_Weyl4(const EBFields_t<data_t> &ebfields, const Vars<data_t> &vars,
-                  const Vars<Tensor<1, data_t>> &d1,
-                  const Diff2Vars<Tensor<2, data_t>> &d2,
-                  const Tensor<2, data_t> &h_UU,
-                  const Coordinates<data_t> &coords) const;
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE NPScalar_t compute_Weyl4(
+        const EBFields_t &ebfields, const Vars<amrex::Real> &vars,
+        const Vars<Tensor<1, amrex::Real>> &d1,
+        const Diff2Vars<Tensor<2, amrex::Real>> &d2,
+        const Tensor<2, amrex::Real> &h_UU, const Coordinates &coords) const;
 
     //! Calculation of the tetrads
-    template <class data_t>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tetrad_t<data_t>
-    compute_null_tetrad(const Vars<data_t> &vars, const Tensor<2, data_t> &h_UU,
-                        const Coordinates<data_t> &coords) const;
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tetrad_t
+    compute_null_tetrad(const Vars<amrex::Real> &vars,
+                        const Tensor<2, amrex::Real> &h_UU,
+                        const Coordinates &coords) const;
 
     //! Calulation of the decomposition of the Weyl tensor in Electric and
     //! Magnetic fields
-    template <class data_t>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t<data_t> compute_EB_fields(
-        const Vars<data_t> &vars, const Vars<Tensor<1, data_t>> &d1,
-        const Diff2Vars<Tensor<2, data_t>> &d2,
-        const Tensor<3, data_t> &epsilon3_LUU, const Tensor<2, data_t> &h_UU,
-        const chris_t<data_t> &chris) const;
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t
+    compute_EB_fields(const Vars<amrex::Real> &vars,
+                      const Vars<Tensor<1, amrex::Real>> &d1,
+                      const Diff2Vars<Tensor<2, amrex::Real>> &d2,
+                      const Tensor<3, amrex::Real> &epsilon3_LUU,
+                      const Tensor<2, amrex::Real> &h_UU,
+                      const chris_t &chris) const;
 };
 
 #include "Weyl4.impl.hpp"

@@ -14,37 +14,36 @@
 // See paper arXiv:gr-qc/0610128 eqn 40
 namespace SphericalHarmonics
 {
-template <class data_t> struct Y_lm_t
+struct Y_lm_t
 {
-    data_t Real;
-    data_t Im;
-    data_t magnitude;
+    amrex::Real Real;
+    amrex::Real Im;
+    amrex::Real magnitude;
 };
 
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 // Calculates the spin weight es, el, em spherical harmonic
-template <class data_t>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Y_lm_t<data_t>
-spin_Y_lm(const data_t x, const double y, const double z,
-          // NOLINTNEXTLINE(readability-identifier-length)
-          const int es, const int el, const int em)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Y_lm_t
+spin_Y_lm(const amrex::Real x, const double y, const double z, const int es,
+          const int el, const int em)
 {
 
     AMREX_ASSERT((el >= 0) && (el >= std::abs(em)));
 
-    Y_lm_t<data_t> Y_lm{};
+    Y_lm_t Y_lm{};
 
     // calculate useful position quantities
-    data_t r     = simd_max(sqrt(x * x + y * y + z * z), 1e-6);
-    data_t theta = acos(z / r);
-    data_t phi   = atan2(y, x);
+    amrex::Real r     = sqrt(x * x + y * y + z * z);
+    r                 = std::max(r, 1.0e-6);
+    amrex::Real theta = acos(z / r);
+    amrex::Real phi   = atan2(y, x);
 
     using namespace Combinatorics;
     double coefficient  = pow(-1.0, es) * sqrt((2.0 * el + 1.0) / (4.0 * M_PI));
     coefficient        *= sqrt(factorial(el + em) * factorial(el - em) /
                                factorial(el + es) / factorial(el - es));
 
-    data_t sum      = 0.0;
+    amrex::Real sum = 0.0;
     int lower_limit = em + es > 0 ? em + es : 0;
     int upper_limit = el + em < el + es ? el + em : el + es;
 

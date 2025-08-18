@@ -9,7 +9,6 @@
 
 #include "Cell.hpp"
 #include "StateVariables.hpp"
-#include "simd.hpp"
 
 class PositiveChiAndLapse
 {
@@ -27,15 +26,14 @@ class PositiveChiAndLapse
     }
     // NOLINTEND(bugprone-easily-swappable-parameters)
 
-    template <class data_t>
     AMREX_GPU_HOST_DEVICE void
-    operator()(const amrex::CellData<data_t> &cell) const
+    operator()(const amrex::CellData<amrex::Real> &cell) const
     {
         auto chi   = cell[c_chi];
         auto lapse = cell[c_lapse];
 
-        chi   = simd_max(chi, m_min_chi);
-        lapse = simd_max(lapse, m_min_lapse);
+        chi   = std::max(chi, m_min_chi);
+        lapse = std::max(lapse, m_min_lapse);
 
         cell[c_chi]   = chi;
         cell[c_lapse] = lapse;

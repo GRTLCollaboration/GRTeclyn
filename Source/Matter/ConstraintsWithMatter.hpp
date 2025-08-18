@@ -12,7 +12,6 @@
 #include "FourthOrderDerivatives.hpp"
 #include "GRInterval.hpp"
 #include "Tensor.hpp"
-#include "simd.hpp"
 #include <array>
 
 //!  Calculates the Hamiltonian and Momentum constraints with matter fields
@@ -56,10 +55,9 @@ template <class matter_t> class ConstraintsWithMatter : public Constraints
 
     //! The compute member which calculates the constraints at each point in the
     //! box
-    template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    compute(int i, int j, int k, const amrex::Array4<data_t> &out_arrays,
-            const amrex::Array4<data_t const> &state_arrays) const;
+    compute(int i, int j, int k, const amrex::Array4<amrex::Real> &out_arrays,
+            const amrex::Array4<amrex::Real const> &state_arrays) const;
 
     static void set_up(int a_state_index, bool a_calc_mom_norm = false);
 

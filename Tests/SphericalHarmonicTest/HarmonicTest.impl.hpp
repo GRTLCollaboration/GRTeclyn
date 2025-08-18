@@ -12,44 +12,39 @@
 
 // #include "DebuggingTools.hpp"
 #include "SphericalHarmonics.hpp"
-// #include "simd.hpp"
 
-template <class data_t>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 HarmonicTest::compute(int i, int j, int k,
-                      const amrex::CellData<data_t> &current_cell) const
+                      const amrex::CellData<amrex::Real> &current_cell) const
 {
 
-    Coordinates<data_t> coords{
+    Coordinates coords{
         amrex::IntVect{i, j, k},
         m_dx, m_center
     };
 
-    data_t phi = compute_harmonic(coords);
+    amrex::Real phi = compute_harmonic(coords);
 
     // test both get_radius functions in the Coordinates class here
-    data_t radius1 = coords.get_radius();
-    data_t radius2 = Coordinates<data_t>::get_radius(amrex::IntVect{i, j, k},
-                                                     m_dx, m_center);
-    phi            = phi / radius1 / radius2;
+    amrex::Real radius1 = coords.get_radius();
+    amrex::Real radius2 =
+        Coordinates::get_radius(amrex::IntVect{i, j, k}, m_dx, m_center);
+    phi = phi / radius1 / radius2;
 
     current_cell[0] = phi;
 }
 
-template <class data_t>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE data_t
-HarmonicTest::compute_harmonic(Coordinates<data_t> coords) const
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
+HarmonicTest::compute_harmonic(Coordinates coords) const
 {
 
     // Add in el, em spherical harmonics here, spin weight es
     using namespace SphericalHarmonics;
-    // NOLINTBEGIN(readability-identifier-length)
-    int es = -1;
-    int el = 2;
-    int em = -1;
-    // NOLINTEND(readability-identifier-length)
-    auto Y_lm  = spin_Y_lm(coords.x, coords.y, coords.z, es, el, em);
-    data_t out = Y_lm.Real;
+    int es          = -1;
+    int el          = 2;
+    int em          = -1;
+    auto Y_lm       = spin_Y_lm(coords.x, coords.y, coords.z, es, el, em);
+    amrex::Real out = Y_lm.Real;
 
     return out;
 }

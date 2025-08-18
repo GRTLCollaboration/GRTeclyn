@@ -34,16 +34,16 @@ template <typename t> struct simd_base
     using simd_data_t         = typename simd_traits<t>::data_t;
     simd_data_t m_value;
 
-    ALWAYS_INLINE
+    AMREX_FORCE_INLINE
     simd_base() : m_value() {}
 
-    ALWAYS_INLINE
+    AMREX_FORCE_INLINE
     simd_base(const simd_data_t &x) : m_value(x) {}
 
-    ALWAYS_INLINE
+    AMREX_FORCE_INLINE
     operator simd_data_t &() { return m_value; }
 
-    ALWAYS_INLINE
+    AMREX_FORCE_INLINE
     operator const simd_data_t &() const { return m_value; }
 
     // Note: These binary ops allow us to write e.g. simd<double>+int
@@ -54,45 +54,49 @@ template <typename t> struct simd_base
     // on the two operand types, however this gives rise to
     // ambiguity because we have defined
     // casts between t and simd<t>
-    friend ALWAYS_INLINE simd<t> operator+(const simd<t> &a, const simd<t> &b)
+    friend AMREX_FORCE_INLINE simd<t> operator+(const simd<t> &a,
+                                                const simd<t> &b)
     {
         simd<t> out(a);
         out += b;
         return out;
     }
 
-    friend ALWAYS_INLINE simd<t> operator-(const simd<t> &a, const simd<t> &b)
+    friend AMREX_FORCE_INLINE simd<t> operator-(const simd<t> &a,
+                                                const simd<t> &b)
     {
         simd<t> out(a);
         out -= b;
         return out;
     }
 
-    friend ALWAYS_INLINE simd<t> operator-(const simd<t> &a)
+    friend AMREX_FORCE_INLINE simd<t> operator-(const simd<t> &a)
     {
         simd<t> out(0);
         out -= a;
         return out;
     }
 
-    friend ALWAYS_INLINE simd<t> operator*(const simd<t> &a, const simd<t> &b)
+    friend AMREX_FORCE_INLINE simd<t> operator*(const simd<t> &a,
+                                                const simd<t> &b)
     {
         simd<t> out(a);
         out *= b;
         return out;
     }
 
-    friend ALWAYS_INLINE simd<t> operator/(const simd<t> &a, const simd<t> &b)
+    friend AMREX_FORCE_INLINE simd<t> operator/(const simd<t> &a,
+                                                const simd<t> &b)
     {
         simd<t> out(a);
         out /= b;
         return out;
     }
 
-    ALWAYS_INLINE
+    AMREX_FORCE_INLINE
     t operator[](int index) const { return m_value[index]; }
 
-    template <typename op_t> ALWAYS_INLINE simd<t> foreach (op_t op) const
+    template <typename op_t> AMREX_FORCE_INLINE simd<t> foreach (op_t op) const
     {
         t in_arr[simd_traits<t>::simd_len];
         t out_arr[simd_traits<t>::simd_len];
@@ -110,7 +114,7 @@ template <typename t> struct simd_base
     }
 
     template <typename op_t>
-    ALWAYS_INLINE simd<t> foreach (op_t op, simd<t> arg) const
+    AMREX_FORCE_INLINE simd<t> foreach (op_t op, simd<t> arg) const
     {
         t in_arr[simd_traits<t>::simd_len];
         t arg_arr[simd_traits<t>::simd_len];
@@ -131,14 +135,14 @@ template <typename t> struct simd_base
 };
 
 #define define_simd_overload(op)                                               \
-    template <typename t> ALWAYS_INLINE simd<t> op(const simd<t> &a)           \
+    template <typename t> AMREX_FORCE_INLINE simd<t> op(const simd<t> &a)      \
     {                                                                          \
         return a.foreach (([&](t x) { return op(x); }));                       \
     }
 
 #define define_binary_simd_overload(op)                                        \
     template <typename t>                                                      \
-    ALWAYS_INLINE simd<t> op(const simd<t> &a, const simd<t> &b)               \
+    AMREX_FORCE_INLINE simd<t> op(const simd<t> &a, const simd<t> &b)          \
     {                                                                          \
         return a.foreach (([&](t x, t arg) { return op(x, arg); }), b);        \
     }
@@ -158,7 +162,7 @@ define_simd_overload(exp) define_simd_overload(exp2) define_simd_overload(sin)
 
     /* Extra pow overloads */
     template <typename t, typename t1>
-    ALWAYS_INLINE simd<t> pow(const simd<t> &a, const t1 b)
+    AMREX_FORCE_INLINE simd<t> pow(const simd<t> &a, const t1 b)
 {
     simd<t> simd_b(b);
     return pow(a, simd_b);
@@ -166,14 +170,15 @@ define_simd_overload(exp) define_simd_overload(exp2) define_simd_overload(sin)
 
 /* Extra atan2 overloads */
 template <typename t, typename t1>
-ALWAYS_INLINE simd<t> atan2(const t1 b, const simd<t> &a)
+AMREX_FORCE_INLINE simd<t> atan2(const t1 b, const simd<t> &a)
 {
     simd<t> simd_b(b);
     return atan2(simd_b, a);
 }
 
 template <typename t>
-ALWAYS_INLINE std::ostream &operator<<(std::ostream &os, const simd<t> &in_simd)
+AMREX_FORCE_INLINE std::ostream &operator<<(std::ostream &os,
+                                            const simd<t> &in_simd)
 {
     t in_arr[simd_traits<t>::simd_len];
     simd<t>::store(in_arr, in_simd);

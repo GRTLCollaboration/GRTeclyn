@@ -26,30 +26,33 @@ class BoostedBHInitialData
         std::array<double, AMREX_SPACEDIM> momentum;
     };
 
-    BoostedBHInitialData(params_t a_params);
+    AMREX_FORCE_INLINE BoostedBHInitialData(params_t a_params);
 
     // conformal factor
-    template <class data_t>
-    AMREX_GPU_DEVICE data_t psi_minus_one(Coordinates<data_t> a_coords) const;
+    [[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE amrex::Real
+    psi_minus_one(Coordinates a_coords) const;
 
     // extrinsic curvature
-    template <class data_t>
-    AMREX_GPU_DEVICE Tensor<2, data_t> Aij(Coordinates<data_t> a_coords) const;
+    [[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE Tensor<2, amrex::Real>
+    Aij(Coordinates a_coords) const;
 
   private:
     params_t m_params;
 
-    template <class data_t>
-    AMREX_GPU_DEVICE data_t center_dist(Coordinates<data_t> a_coords) const;
+    [[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE amrex::Real
+    center_dist(Coordinates a_coords) const;
 
-    template <class data_t> AMREX_GPU_DEVICE data_t psi0(data_t a_r) const;
+    [[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE amrex::Real
+    psi0(amrex::Real a_r) const;
 
-    template <class data_t>
-    AMREX_GPU_DEVICE data_t psi2(data_t a_r, data_t a_cos_theta) const;
+    [[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE amrex::Real
+    psi2(amrex::Real a_r, amrex::Real a_cos_theta) const;
 
-    template <class data_t> AMREX_GPU_DEVICE data_t psi2_0(data_t a_r) const;
+    [[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE amrex::Real
+    psi2_0(amrex::Real a_r) const;
 
-    template <class data_t> AMREX_GPU_DEVICE data_t psi2_2(data_t a_r) const;
+    [[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE amrex::Real
+    psi2_2(amrex::Real a_r) const;
 };
 
 #include "BoostedBHInitialData.impl.hpp"

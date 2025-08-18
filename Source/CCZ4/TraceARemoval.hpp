@@ -27,9 +27,8 @@ class TraceARemoval
         enum_mapping(mapping_function_t mapping_function);
     };
 
-    template <class data_t>
     AMREX_GPU_HOST_DEVICE void
-    operator()(const amrex::CellData<data_t> &cell) const
+    operator()(const amrex::CellData<amrex::Real> &cell) const
     {
         auto vars = load_vars<Vars>(cell);
 

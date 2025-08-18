@@ -10,41 +10,39 @@
 #ifndef BOOSTEDBHINITIALDATA_IMPL_HPP_
 #define BOOSTEDBHINITIALDATA_IMPL_HPP_
 
-#include "BoostedBHInitialData.hpp"
+#include "AlwaysInline.hpp"
 #include "DimensionDefinitions.hpp"
 #include <cmath>
 
-inline BoostedBHInitialData::BoostedBHInitialData(params_t a_params)
+AMREX_FORCE_INLINE BoostedBHInitialData::BoostedBHInitialData(params_t a_params)
     : m_params(a_params)
 {
 }
 
-template <class data_t>
-AMREX_GPU_DEVICE data_t
-BoostedBHInitialData::psi_minus_one(Coordinates<data_t> coords) const
+[[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE amrex::Real
+BoostedBHInitialData::psi_minus_one(Coordinates coords) const
 {
-    const data_t r         = center_dist(coords);
-    const data_t cos_theta = (coords.z - m_params.center[2]) / r;
-    const data_t P_squared = std::pow(m_params.momentum[0], 2) +
-                             std::pow(m_params.momentum[1], 2) +
-                             std::pow(m_params.momentum[2], 2);
+    const amrex::Real r         = center_dist(coords);
+    const amrex::Real cos_theta = (coords.z - m_params.center[2]) / r;
+    const amrex::Real P_squared = std::pow(m_params.momentum[0], 2) +
+                                  std::pow(m_params.momentum[1], 2) +
+                                  std::pow(m_params.momentum[2], 2);
     return psi0(r) +
            P_squared * psi2(r, cos_theta) / (m_params.mass * m_params.mass);
 }
 
-template <class data_t>
-AMREX_GPU_DEVICE Tensor<2, data_t>
-BoostedBHInitialData::Aij(Coordinates<data_t> a_coords) const
+[[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE Tensor<2, amrex::Real>
+BoostedBHInitialData::Aij(Coordinates a_coords) const
 {
-    const data_t r = center_dist(a_coords);
-    const Tensor<1, data_t> l{(a_coords.x - m_params.center[0]) / r,
-                              (a_coords.y - m_params.center[1]) / r,
-                              (a_coords.z - m_params.center[2]) / r};
-    const data_t l_dot_p = l[0] * m_params.momentum[0] +
-                           l[1] * m_params.momentum[1] +
-                           l[2] * m_params.momentum[2];
+    const amrex::Real r = center_dist(a_coords);
+    const Tensor<1, amrex::Real> l{(a_coords.x - m_params.center[0]) / r,
+                                   (a_coords.y - m_params.center[1]) / r,
+                                   (a_coords.z - m_params.center[2]) / r};
+    const amrex::Real l_dot_p = l[0] * m_params.momentum[0] +
+                                l[1] * m_params.momentum[1] +
+                                l[2] * m_params.momentum[2];
 
-    Tensor<2, data_t> out;
+    Tensor<2, amrex::Real> out;
 
     FOR (i, j)
     {
@@ -59,46 +57,43 @@ BoostedBHInitialData::Aij(Coordinates<data_t> a_coords) const
 
 /* PRIVATE */
 
-template <class data_t>
-AMREX_GPU_DEVICE data_t
-BoostedBHInitialData::center_dist(Coordinates<data_t> a_coords) const
+[[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE amrex::Real
+BoostedBHInitialData::center_dist(Coordinates a_coords) const
 {
-    data_t r = std::sqrt(std::pow(a_coords.x - m_params.center[0], 2) +
-                         std::pow(a_coords.y - m_params.center[1], 2) +
-                         std::pow(a_coords.z - m_params.center[2], 2));
+    amrex::Real r = std::sqrt(std::pow(a_coords.x - m_params.center[0], 2) +
+                              std::pow(a_coords.y - m_params.center[1], 2) +
+                              std::pow(a_coords.z - m_params.center[2], 2));
 
-    double minimum_r = 1e-6;
-    return simd_max(r, minimum_r);
+    return std::max(r, 1e-6);
 }
 
-template <class data_t>
-AMREX_GPU_DEVICE data_t BoostedBHInitialData::psi0(data_t a_r) const
+[[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE amrex::Real
+BoostedBHInitialData::psi0(amrex::Real a_r) const
 {
     return m_params.mass / (2 * a_r);
 }
 
-template <class data_t>
-AMREX_GPU_DEVICE data_t BoostedBHInitialData::psi2(data_t a_r,
-                                                   data_t a_cos_theta) const
+[[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE amrex::Real
+BoostedBHInitialData::psi2(amrex::Real a_r, amrex::Real a_cos_theta) const
 {
     return psi2_0(a_r) + psi2_2(a_r) * (1.5 * a_cos_theta * a_cos_theta - 0.5);
 }
 
-template <class data_t>
-AMREX_GPU_DEVICE data_t BoostedBHInitialData::psi2_0(data_t a_r) const
+[[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE amrex::Real
+BoostedBHInitialData::psi2_0(amrex::Real a_r) const
 {
-    const data_t psi0_here    = psi0(a_r);
-    const data_t psi0_sq_here = psi0_here * psi0_here;
+    const amrex::Real psi0_here    = psi0(a_r);
+    const amrex::Real psi0_sq_here = psi0_here * psi0_here;
     return std::pow(1 + psi0_here, -5) * (psi0_here / 8) *
            (psi0_sq_here * psi0_sq_here + 5 * psi0_here * psi0_sq_here +
             10 * psi0_sq_here + 10 * psi0_here + 5);
 }
 
-template <class data_t>
-AMREX_GPU_DEVICE data_t BoostedBHInitialData::psi2_2(data_t a_r) const
+[[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE amrex::Real
+BoostedBHInitialData::psi2_2(amrex::Real a_r) const
 {
-    const data_t psi0_here    = psi0(a_r);
-    const data_t psi0_sq_here = psi0_here * psi0_here;
+    const amrex::Real psi0_here    = psi0(a_r);
+    const amrex::Real psi0_sq_here = psi0_here * psi0_here;
     return 0.05 * std::pow(1 + psi0_here, -5) * psi0_sq_here *
                (84 * psi0_here * psi0_sq_here * psi0_sq_here +
                 378 * psi0_sq_here * psi0_sq_here +

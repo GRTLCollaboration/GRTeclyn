@@ -14,10 +14,11 @@ Source/Grids/SixthOrderDerivatives.hpp
 Source/CCZ4/GammaCalculator.hpp
 Source/CCZ4/IntegratedMovingPunctureGauge.hpp
 Source/BlackHoles/KerrBH*
-Source/simd/*
 Source/IO/MultiLevelTask.hpp
 Examples/ScalarField/*
 Tests/.*
 
 # These are old files we don't want to change
 Tests/CCZ4RHSTest/*fdf5a7a*
+Tests/CCZ4RHSTest/simd*
+Tests/CCZ4RHSTest/x64/*

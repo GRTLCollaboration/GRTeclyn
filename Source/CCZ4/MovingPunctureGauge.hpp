@@ -8,6 +8,7 @@
 
 #include "DimensionDefinitions.hpp"
 #include "Tensor.hpp"
+#include <AMReX_REAL.H>
 
 /// This is an example of a gauge class that can be used in the CCZ4RHS compute
 /// class
@@ -43,14 +44,11 @@ class MovingPunctureGauge
 
   public:
     MovingPunctureGauge(const params_t &a_params) : m_params(a_params) {}
-
-    template <class data_t, template <typename> class vars_t,
-              template <typename> class diff2_vars_t>
+    template <template <class> class vars_t, class d2_vars_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    rhs_gauge(vars_t<data_t> &rhs, const vars_t<data_t> &vars,
-              const vars_t<Tensor<1, data_t>> & /*d1*/,
-              const diff2_vars_t<Tensor<2, data_t>> & /*d2*/,
-              const vars_t<data_t> &advec) const
+    rhs_gauge(vars_t<amrex::Real> &rhs, const vars_t<amrex::Real> &vars,
+              const vars_t<Tensor<1, amrex::Real>> & /*d1*/,
+              const d2_vars_t & /*d2*/, const vars_t<amrex::Real> &advec) const
     {
         rhs.lapse = m_params.lapse_advec_coeff * advec.lapse -
                     m_params.lapse_coeff *
