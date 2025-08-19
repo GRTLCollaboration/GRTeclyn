@@ -1,6 +1,3 @@
-GRTECLYN_CEXE_headers += SmallDataIO.hpp \
-                         SmallDataIOReader.hpp \
-                         SmallDataIOTest.hpp
+GRTECLYN_CEXE_headers += SmallDataIOTest.hpp
 
-GRTECLYN_CEXE_sources += SmallDataIOReader.cpp \
-                         SmallDataIOTest.cpp
+GRTECLYN_CEXE_sources += SmallDataIOTest.cpp

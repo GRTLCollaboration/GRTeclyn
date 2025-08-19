@@ -1,9 +1,7 @@
-GRTECLYN_CEXE_sources += SmallDataIO.cpp \
-                         SmallDataIOReader.cpp
+GRTECLYN_CEXE_sources += SmallDataIO.cpp
 GRTECLYN_CEXE_headers += DebuggingTools.hpp \
                          FilesystemTools.hpp \
                          GRParmParse.hpp \
                          MultiLevelTask.hpp \
                          SmallDataIO.hpp \
-			 SmallDataIOReader.hpp \
                          StateVariablesParmParse.hpp
