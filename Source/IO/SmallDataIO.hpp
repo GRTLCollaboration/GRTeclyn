@@ -75,7 +75,6 @@ class SmallDataIO
     static constexpr int s_default_filename_steps_width = 6;
 
     std::fstream m_file;
-    int m_rank; // only rank 0 does the write out
 
     // These used for reading SmallDataIO files
     [[maybe_unused]] std::string m_file_contents;

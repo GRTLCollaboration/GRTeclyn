@@ -190,7 +190,7 @@ void SmallDataIO::write_header_line(
     const std::vector<std::string> &a_pre_header_strings)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
-    if (m_rank == 0)
+    if (amrex::ParallelDescriptor::IOProcessor())
     {
         // all header lines start with a '#'.
         m_file << "#";
@@ -233,7 +233,7 @@ void SmallDataIO::write_data_line(const std::vector<double> &a_data,
                                   const std::vector<double> &a_coords)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
-    if (m_rank == 0)
+    if (amrex::ParallelDescriptor::IOProcessor())
     {
         m_file << std::fixed << std::setprecision(m_coords_precision);
         for (double coord : a_coords)
@@ -251,7 +251,7 @@ void SmallDataIO::write_data_line(const std::vector<double> &a_data,
 
 void SmallDataIO::line_break()
 {
-    if (m_rank == 0)
+    if (amrex::ParallelDescriptor::IOProcessor())
     {
         m_file << "\n\n";
     }
@@ -259,8 +259,8 @@ void SmallDataIO::line_break()
 
 void SmallDataIO::remove_duplicate_time_data(const bool keep_m_time_data)
 {
-    if (m_rank == 0 && m_restart_time > 0. && m_mode == APPEND &&
-        m_time < m_restart_time + m_dt + m_coords_epsilon)
+    if (amrex::ParallelDescriptor::IOProcessor() && m_restart_time > 0. &&
+        m_mode == APPEND && m_time < m_restart_time + m_dt + m_coords_epsilon)
     {
         // copy lines with time < m_time into a temporary file
         m_file.seekg(0);
@@ -729,7 +729,7 @@ void SmallDataIO::skip_ahead(std::istringstream &file_stream,
 void SmallDataIO::get_specific_data_line(std::vector<double> &a_out_data,
                                          const std::vector<double> &a_coords)
 {
-    if (m_rank == 0)
+    if (amrex::ParallelDescriptor::IOProcessor())
     {
         bool line_found = false;
         // first set the current position to the beginning of the file
