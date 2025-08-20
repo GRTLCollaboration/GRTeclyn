@@ -55,8 +55,6 @@ void BinaryBHLevel::specificAdvance()
                            TraceARemoval()(cell);
                            PositiveChiAndLapse()(cell);
                        });
-
-    
 }
 
 // This initial data uses an approximation for the metric which
