@@ -54,6 +54,7 @@ template <int N> class LagrangeInterpolator
     amrex::Real wx[N], wy[N],
         wz[N]; // where we store the weights for each dimension
 
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     LagrangeInterpolator() {};
 
     template <typename P>

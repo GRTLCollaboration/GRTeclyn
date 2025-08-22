@@ -101,7 +101,7 @@ amrex::Real ParticleInterpolators::reflect_particle(amrex::Real x,
                                                     amrex::Real lo,
                                                     amrex::Real hi,
                                                     bool lo_reflect,
-                                                    bool hi_reflect) const
+                                                    bool hi_reflect) 
 {
     // enforce a new particle position if needed
     amrex::Real xl = x;

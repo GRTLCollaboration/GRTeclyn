@@ -58,8 +58,8 @@ class ParticleInterpolators
     // a function to reflect a particle back into the valid domain, when
     // symmetry BCs are used
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    amrex::Real reflect_particle(amrex::Real x, amrex::Real lo, amrex::Real hi,
-                                 bool lo_reflect, bool hi_reflect) const;
+    static amrex::Real reflect_particle(amrex::Real x, amrex::Real lo, amrex::Real hi,
+                                 bool lo_reflect, bool hi_reflect);
 
     // allocate particles at the query points
     void populate_from_query(const InterpolationQueryParticle &query);
