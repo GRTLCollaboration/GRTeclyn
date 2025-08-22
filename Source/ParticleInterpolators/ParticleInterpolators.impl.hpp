@@ -108,14 +108,14 @@ amrex::Real ParticleInterpolators::reflect_particle(amrex::Real x,
     if (lo_reflect && xl < lo)
     {
         xl = lo + (lo - xl); // reflect across lo
-        amrex::Print() << "Particle position " << x << " reflected to " << xl
-                       << " across the low boundary.\n";
+        // amrex::Print() << "Particle position " << x << " reflected to " << xl
+        //                << " across the low boundary.\n";
     }
     if (hi_reflect && xl > hi)
     {
         xl = hi - (xl - hi); // reflect across hi
-        amrex::Print() << "Particle position " << x << " reflected to " << xl
-                       << " across the high boundary.\n";
+        // amrex::Print() << "Particle position " << x << " reflected to " << xl
+        //                << " across the high boundary.\n";
     }
 
     return xl;
