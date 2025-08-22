@@ -12,10 +12,11 @@
 #include "PunctureTagger.hpp"
 #include "PunctureTracker.hpp"
 // xxxxx #include "SixthOrderDerivatives.hpp"
+#include "CustomExtraction.hpp"
 #include "TraceARemoval.hpp"
 #include "TwoPuncturesInitialData.hpp"
 #include "Weyl4.hpp"
-#include "WeylExtraction.hpp"
+// #include "WeylExtraction.hpp"
 
 BHAMR<BinaryBHLevel::num_punctures> *BinaryBHLevel::get_bhamr_ptr()
 {
@@ -294,6 +295,32 @@ void BinaryBHLevel::specific_post_checkpoint(const std::string &a_chk_dir,
 
 void BinaryBHLevel::specificPostTimeStep()
 {
+
+    // Custon extraction
+    bool first_step = (parent->levelSteps(0) == 0);
+
+    if (Level() == 1)
+    {
+        // set the interpolator
+        ParticleInterpolators interpolator(simParams().boundary_params,
+                                           c_chi, 1);
+        interpolator.set_gramr_ptr(get_gramr_ptr());
+
+        // set up the query and execute it
+        std::array<double, AMREX_SPACEDIM> extraction_origin = {
+            0.0, simParams().L / 2, -4.0};
+
+        double m_time       = get_state_data(State_Type).curTime();
+        double m_dt         = get_gramr_ptr()->dtLevel(Level());
+        double restart_time = get_gramr_ptr()->get_restart_time();
+
+        // a random chi lineout
+        CustomExtraction chi_extraction(c_chi, 1, 15, simParams().L / 2.,
+                                        extraction_origin, m_dt, m_time,
+                                        restart_time, first_step);
+        chi_extraction.execute_query(interpolator, "chi_lineout");
+    }
+
     // do puncture tracking on requested level
     if (simParams().puncture_tracking_enabled &&
         Level() == simParams().puncture_tracking_level)
@@ -308,6 +335,7 @@ void BinaryBHLevel::specificPostTimeStep()
         amrex::Real dt       = get_gramr_ptr()->dtLevel(Level());
         get_puncture_tracker().track(cur_time, dt, write_punctures);
     }
+
 #if 0
 //xxxxx specificPostTimeStep
     BL_PROFILE("BinaryBHLevel::specificPostTimeStep");

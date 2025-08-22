@@ -19,6 +19,7 @@
 #include "CoordinateTransformationsTest.hpp"
 #include "DerivativeUnitTests.hpp"
 #include "EMTensorTest.hpp"
+#include "LagrangeTest.hpp"
 #include "PositiveChiAndLapseUnitTest.hpp"
 #include "PunctureTrackerTest.hpp"
 #include "SphericalHarmonicTest.hpp"
@@ -37,6 +38,8 @@ TEST_CASE("BSSNMatter"
 }
 
 TEST_CASE("CCZ4 Geometry") { run_ccz4_geometry_unit_tests(); }
+
+TEST_CASE("Lagrange") { run_lagrange_test(); }
 
 TEST_CASE("CCZ4RHS") { run_ccz4_rhs_test(); }
 

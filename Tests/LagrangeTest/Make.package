@@ -1,0 +1,5 @@
+GRTECLYN_CEXE_headers += PolynomialTest.hpp \
+                         PolynomialTest.impl.hpp \
+                         LagrangeTest.hpp \
+
+GRTECLYN_CEXE_sources += LagrangeUnitTests.cpp
