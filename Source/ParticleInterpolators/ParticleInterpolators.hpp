@@ -34,9 +34,9 @@ class ParticleInterpolators
     // dx on level 0
     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> m_dx{};
 
-    // reflective BC flags per side on the low and hihh sides
-    std::array<bool, AMREX_SPACEDIM> m_lo_boundary_reflective{{false}};
-    std::array<bool, AMREX_SPACEDIM> m_hi_boundary_reflective{{false}};
+    // reflective BC flags per side on the low and high sides
+    amrex::GpuArray<bool, AMREX_SPACEDIM> m_lo_boundary_reflective{{false}};
+    amrex::GpuArray<bool, AMREX_SPACEDIM> m_hi_boundary_reflective{{false}};
 
     // copy of BC params
     BoundaryConditions::params_t m_bc_params{};

@@ -148,6 +148,13 @@ void ParticleInterpolators::populate_from_query(
         const double *z = query.m_coords[2];
 #endif
 
+        // copy stuff as otherwise I get errors with lambdas; this is a bit annoying as I have to copy a few things; any other alternative ways?
+        const auto prob_lo = m_prob_lo;           
+        const auto prob_hi = m_prob_hi;
+        const auto lo_reflect = m_lo_boundary_reflective;
+        const auto hi_reflect = m_hi_boundary_reflective;
+        const int ncomp = m_ncomp;
+
         // loop over particles and place them at the required points
         amrex::ParallelFor(
             n,
@@ -159,15 +166,15 @@ void ParticleInterpolators::populate_from_query(
 
                 // reflect into valid region for seeding
                 const amrex::Real xr = reflect_particle(
-                    static_cast<amrex::Real>(x[ip]), m_prob_lo[0], m_prob_hi[0],
-                    m_lo_boundary_reflective[0], m_hi_boundary_reflective[0]);
+                    static_cast<amrex::Real>(x[ip]), prob_lo[0], prob_hi[0],
+                    lo_reflect[0], hi_reflect[0]);
                 const amrex::Real yr = reflect_particle(
-                    static_cast<amrex::Real>(y[ip]), m_prob_lo[1], m_prob_hi[1],
-                    m_lo_boundary_reflective[1], m_hi_boundary_reflective[1]);
+                    static_cast<amrex::Real>(y[ip]), prob_lo[1], prob_hi[1],
+                    lo_reflect[1], hi_reflect[1]);
 #if AMREX_SPACEDIM == 3
                 const amrex::Real zr = reflect_particle(
-                    static_cast<amrex::Real>(z[ip]), m_prob_lo[2], m_prob_hi[2],
-                    m_lo_boundary_reflective[2], m_hi_boundary_reflective[2]);
+                    static_cast<amrex::Real>(z[ip]), prob_lo[2], prob_hi[2],
+                    lo_reflect[2], hi_reflect[2]);
 #endif
 
                 // Run a check on coords you are interpolating on
@@ -187,7 +194,7 @@ void ParticleInterpolators::populate_from_query(
 #endif
                 p.idata(0) = ip;
 
-                for (int s = 0; s < m_ncomp; ++s)
+                for (int s = 0; s < ncomp; ++s)
                     particle_data.rdata(s)[ip] = 0.0; // for now set all to zero (this is where we will store the interpolated values)
             });
 
@@ -206,6 +213,9 @@ void ParticleInterpolators::interpolate_to_particle()
     AMREX_ASSERT(m_initialized);
     AMREX_ALWAYS_ASSERT(m_ncomp >= 1 && m_ncomp <= AMREX_SPACEDIM);
     AMREX_ASSERT(m_start_comp >= 0);
+
+    const int start_comp = m_start_comp;
+    const int ncomp      = m_ncomp;
 
     for (int lev = 0; lev <= m_gr_amr->finestLevel(); ++lev)
     {
@@ -245,10 +255,10 @@ void ParticleInterpolators::interpolate_to_particle()
                     interp.compute_weights(sp, plo, dxi, is_nodal);
 
                     amrex::ParticleReal vals[AMREX_SPACEDIM];
-                    interp.interpolate(&fab_array, vals, m_start_comp, m_ncomp);
+                    interp.interpolate(&fab_array, vals, start_comp, ncomp);
 
                     // write results to SOA
-                    for (int k = 0; k < m_ncomp; ++k)
+                    for (int k = 0; k < ncomp; ++k)
                     {
                         ptd.rdata(k)[ip] = vals[k];
                     }
