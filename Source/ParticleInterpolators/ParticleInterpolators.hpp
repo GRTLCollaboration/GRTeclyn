@@ -57,6 +57,7 @@ class ParticleInterpolators
 
     // a function to reflect a particle back into the valid domain, when
     // symmetry BCs are used
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     amrex::Real reflect_particle(amrex::Real x, amrex::Real lo, amrex::Real hi,
                                  bool lo_reflect, bool hi_reflect) const;
 
@@ -72,7 +73,7 @@ class ParticleInterpolators
 
     // A function to check whether the query point is inside the physical domain
     template <int dim>
-    void check_domain(const std::array<double, dim> &x, int guard_cells = 0);
+    void check_domain(const std::array<double, dim> &x, int guard_cells = 0) const;
 
     // TODO: I have not tested the below yet!!
 
