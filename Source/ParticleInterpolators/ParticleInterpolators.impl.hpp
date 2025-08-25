@@ -296,6 +296,7 @@ void ParticleInterpolators::interpolate_to_particle()
 
 // mirror of AMRInterpolator::interp(); assembles all particle data and writes
 // parity * value into the query out arrays
+// TODO: Rewrite for GPUs (currently this has awkward copying from devicwe to host)
 void ParticleInterpolators::interp(InterpolationQueryParticle &query)
 {
     AMREX_ASSERT(m_initialized);
@@ -317,19 +318,36 @@ void ParticleInterpolators::interp(InterpolationQueryParticle &query)
         {
             local_particle_counter += it.numParticles();
 
+	    // amrex::AllPrint() << "levl " << lev  << "m_ncomp " << m_ncomp  << "npts " << npts << "\n";
+
             const auto &ptile = this->ParticlesAt(lev, it);
             const auto aos    = ptile.GetArrayOfStructs();
             const auto *P     = aos.data();
-            const auto soa = ptile.getConstParticleTileData(); // read-only SoA
+            const auto soa = ptile.getConstParticleTileData(); 
             const int np   = it.numParticles();
+	    
+	    // amrex::AllPrint() << "np " << np << "\n";
+	    
+
+	    amrex::Gpu::HostVector<ParticleType> hp(np);
+	    amrex::Gpu::copyAsync(amrex::Gpu::deviceToHost, aos.data(), aos.data()+np, hp.begin());
+
+	    std::vector<amrex::Gpu::HostVector<amrex::ParticleReal>> hr(m_ncomp);
+	    for (int k = 0; k < m_ncomp; ++k) {
+		    hr[k].resize(np);
+		    auto dptr = ptile.GetStructOfArrays().GetRealData(k).data();
+		    amrex::Gpu::copyAsync(amrex::Gpu::deviceToHost, dptr, dptr+np, hr[k].begin());
+	    }
+	    amrex::Gpu::streamSynchronize();
 
             for (int i = 0; i < np; ++i)
             {
-                auto &p     = P[i];
-                const int q = p.idata(0); // get particle index
-                for (int k = 0; k < m_ncomp; ++k)
+                const int pid = hp[i].id();
+                const int q = static_cast<int>(pid) - 1; // get particle index
+                if (q<0 || q>=npts){amrex::Abort("interp(): particle id out of range");}
+		for (int k = 0; k < m_ncomp; ++k)
                 {
-                    value_at_point[k][q] = static_cast<double>(soa.rdata(k)[i]);
+                    value_at_point[k][q] = static_cast<double>(hr[k][i]);
                 }
                 have[q] = 1; // mark that we have a value for this point
             }

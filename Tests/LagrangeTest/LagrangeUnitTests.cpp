@@ -124,14 +124,16 @@ void run_lagrange_test()
         auto &particle_tile =
             particles.DefineAndReturnParticleTile(lev, grid, tile);
         particle_tile.resize(1); // create space for one particle
-        auto &arr_particles = particle_tile.GetArrayOfStructs();
-        auto &p             = arr_particles[0];
-
-        p.id()   = MyParticleContainer::ParticleType::NextID();
+        
+	auto ptd = particle_tile.getParticleTileData();
+        amrex::ParticleReal x = x_interp, y = y_interp, z = z_interp;
+		
+        MyParticleContainer::ParticleType p;
+	p.id()   = MyParticleContainer::ParticleType::NextID();
         p.cpu()  = amrex::ParallelDescriptor::MyProc();
-        p.pos(0) = x_interp;
-        p.pos(1) = y_interp;
-        p.pos(2) = z_interp;
+        p.pos(0) = x;
+        p.pos(1) = y;
+        p.pos(2) = z;
 
         // For debugging
         // std::cout << "Particle initialized with ID: " << p.id() << "\n";
@@ -151,9 +153,13 @@ void run_lagrange_test()
         amrex::Array4<const double> const_out_array = out_array;
         interp.interpolate(&const_out_array, result, c_poly, 1);
 
-        p.rdata(0) = result[0];
+	amrex::ParticleReal val0 = result[0];
+	amrex::ParallelFor(1, [=] AMREX_GPU_DEVICE (int i) {
+	ptd[i].rdata(0) = val0;
+	});
+	amrex::Gpu::streamSynchronize();
 
-        double interp_val = p.rdata(0);
+        double interp_val = static_cast<double>(result[0]);
         double error      = std::abs(interp_val - expected_val);
 
         const double test_tolerance = 1e-10; // set your desired tolerance
@@ -169,8 +175,6 @@ void run_lagrange_test()
                        << std::setprecision(cout_precision) << error << "\n";
 
         CHECK(error == doctest::Approx(0.0).epsilon(test_tolerance));
-
-        amrex::Gpu::streamSynchronize();
     }
     amrex::Finalize();
 }
