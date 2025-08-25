@@ -19,7 +19,7 @@ class Wave
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     Wave()
     {
-        amrex::ParmParse pp;
+        amrex::ParmParse pp("klein_gordon");
         pp.query("wave_vector", m_k_r);
         pp.query("scalar_mass", m_mass);
         pp.query("initial_time", m_t0);

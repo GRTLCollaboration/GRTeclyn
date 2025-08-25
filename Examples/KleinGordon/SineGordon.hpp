@@ -17,7 +17,7 @@ class SineGordon
 
     SineGordon()
     {
-        amrex::ParmParse pp;
+        amrex::ParmParse pp("klein_gordon");
         pp.query("alpha", m_alpha);
         pp.query("initial_time", m_t0);
     };

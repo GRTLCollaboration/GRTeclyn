@@ -31,7 +31,7 @@ void KleinGordonLevel::variableSetUp()
     // new derived variable that depends on the state variables and the
     // potential
 
-    amrex::ParmParse pp;
+    amrex::ParmParse pp("klein_gordon");
     std::string model{};
     pp.query("model", model);
 
@@ -69,8 +69,8 @@ void KleinGordonLevel::initData()
 
     amrex::ParmParse pp;
     pp.query("center", center);
-    pp.query("model", model);
-    pp.query("initial_time", initial_time);
+    pp.query("klein_gordon.model", model);
+    pp.query("klein_gordon.initial_time", initial_time);
 
     amrex::MultiFab &state_new = get_new_data(State_Type);
     auto const &array_new      = state_new.arrays();
@@ -108,7 +108,7 @@ void KleinGordonLevel::specificEvalRHS(amrex::MultiFab &a_soln,
     auto const &soln_arrs = a_soln.const_arrays();
     auto const &rhs_arrs  = a_rhs.arrays();
 
-    amrex::ParmParse pp;
+    amrex::ParmParse pp("klein_gordon");
 
     std::string model{};
 

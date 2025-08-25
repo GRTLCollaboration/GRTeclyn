@@ -19,53 +19,59 @@ class SimulationParameters : public AMReXParameters
     // NOLINTNEXTLINE(readability-identifier-length)
     SimulationParameters(GRParmParse &pp) : AMReXParameters(pp)
     {
-        read_params(pp);
-    }
-
-    // NOLINTNEXTLINE(readability-identifier-length)
-    void read_params(GRParmParse &pp)
-    {
-
         // This parameter normally gets read in inside SimulationParametersBase
         // but this example doesn't use a lot of the other (CCZ4) parameters
         // so SimulationParameters doesn't inherit from it.
+
         pp.queryAdd("sigma", sigma);
 
+        read_klein_gordon_params(pp);
+    }
+
+    // NOLINTNEXTLINE(readability-identifier-length)
+    void read_klein_gordon_params(GRParmParse &pp)
+    {
         // If the wave number isn't found in the params file
         // (so not wave ICs), look for the alpha parameter
         // (assume Sine-Gordon instead).
 
-        pp.queryAdd("model", model);
+        pp.queryAdd("klein_gordon.model", model);
+        pp.queryAdd("klein_gordon.initial_time", t0);
 
         if (model == "Wave")
         {
 
-            pp.queryAdd("wave_vector", k_r);
+            pp.queryAdd("klein_gordon.wave_vector", k_r);
             // Only wave example has the scalar mass as a parameter
             // SineGordon potential does not have a mass
             // associated with it.
 
             pp.queryAdd(
-                "scalar_mass",
+                "klein_gordon.scalar_mass",
                 scalar_mass); // What is the mass of the scalar particle?
         }
         else if (model.find("SineGordon") ==
                  0) // this is for Sine-Gordon ICs only
         {
             // These are parameters specfic to the Sine Gordon example
-            pp.queryAdd("alpha", alpha);
+            pp.queryAdd("klein_gordon.alpha", alpha);
         }
         else
         {
-            amrex::Abort("Model option not recognized");
+            amrex::Abort(
+                "SimulationParameters: Klein Gordon model option not "
+                "recognized. Choose from Wave, SineGordon1D or SineGordon3D.");
         }
     }
 
-    amrex::Real scalar_mass{0.0};
     static const int ncomp{2};
-    amrex::Real k_r{1.0};
+
     amrex::Real alpha{1.0};
+    amrex::Real k_r{1.0};
+    amrex::Real scalar_mass{0.0};
     amrex::Real sigma{0.0};
+    amrex::Real t0{0.0};
+
     std::string model{"Wave"};
 };
 

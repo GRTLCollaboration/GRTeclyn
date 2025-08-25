@@ -11,7 +11,7 @@ calc_analytic_solution(amrex::MultiFab &mf_out, int dcomp, int /*numcomp*/,
                        const amrex::Geometry &geom, const amrex::Real time,
                        const int * /*bcomp*/, int /*scomp*/)
 {
-    amrex::ParmParse pp;
+    amrex::ParmParse pp("klein_gordon");
     std::string model{};
     pp.query("model", model);
 
