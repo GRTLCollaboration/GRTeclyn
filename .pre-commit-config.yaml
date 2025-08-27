@@ -9,12 +9,17 @@ repos:
     rev: v3.11.0-1
     hooks:
       - id: shfmt         # prebuilt upstream executable
-  # Yamllint    
+  # Yamllint
   - repo: https://github.com/adrienverge/yamllint.git
     rev: v1.29.0
     hooks:
       - id: yamllint
-        args: 
+        args:
           ['-d {rules: {line-length: {max: 101, allow-non-breakable-words: true,
           allow-non-breakable-inline-mappings: true}}}']
+  # trailing white space
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+    -   id: trailing-whitespace
 
