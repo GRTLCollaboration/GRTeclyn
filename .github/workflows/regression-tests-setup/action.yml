@@ -1,4 +1,4 @@
-name: Common tasks
+name: Set up regression tests
 
 inputs:
   gcc_version:
@@ -47,3 +47,11 @@ runs:
       sudo rm -rf /etc/alternatives/cpp
       sudo update-alternatives --install \
       /usr/bin/cpp cpp /usr/bin/cpp-${{ inputs.gcc_version }} 1000
+
+  - name: Set Up Cache
+    uses: actions/cache@v4
+    with:
+      path: ~/.cache/ccache
+      key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+      restore-keys: |
+           ccache-${{ github.workflow }}-${{ github.job }}-git-

@@ -25,21 +25,17 @@ jobs:
 
     - name: Set up common actions
       id: common
-      uses: ./.github/workflows/regression-tests
+      uses: ./.github/workflows/regression-tests-setup
       with:
         gcc_version: ${{ env.GCC_VERSION }}
-
-    - name: Set Up Cache
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/ccache
-        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
-        restore-keys: |
-             ccache-${{ github.workflow }}-${{ github.job }}-git-
 
     - name: Build fcompare tool
       run: make -j 4 ${{ env.BUILD_ARGS }} programs=fcompare
       working-directory: ${{ env.AMREX_HOME }}/Tools/Plotfile
+
+    - name: Build particle_compare tool
+      run: make -j 4 ${{ env.BUILD_ARGS }}
+      working-directory: ${{ env.AMREX_HOME }}/Tools/Postprocessing/C_Src
 
     - name: Upload fcompare tool
       uses: actions/upload-artifact@v4
@@ -48,18 +44,22 @@ jobs:
         path: ${{ env.AMREX_HOME }}/Tools/Plotfile/fcompare.gnu.MPI.ex
         compression-level: 0
 
-  binarybh:
-    name: BinaryBH
-    needs: build
-    uses: ./.github/workflows/regression-tests-common.yml
-    with:
-      gcc_version: 14
-      example: BinaryBH
+    - name: Upload particle_compare tool
+      uses: actions/upload-artifact@v4
+      with:
+        name: particle_compare.exe
+        path: ${{ env.AMREX_HOME }}/Tools/Postprocessing/C_Src
+        compression-level: 0
 
-  kleingordon:
-    name: KleinGordon
+  # for whatever reason, GitHub actions will not accept global environment variables
+  # below so the gcc version has to be put in by hand.
+  run-examples:
+    name: Run examples
     needs: build
-    uses: ./.github/workflows/regression-tests-common.yml
+    strategy:
+      matrix:
+        example_name: [BinaryBH, KleinGordon]
+    uses: ./.github/workflows/regression-tests-examples-template.yml
     with:
       gcc_version: 14
-      example: KleinGordon
+      example_name: ${{ matrix.example_name }}

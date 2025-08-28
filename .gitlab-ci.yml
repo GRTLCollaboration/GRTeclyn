@@ -57,10 +57,10 @@ csd3-a100-test:
       ./params_test.txt amr.plot_file=${OUTPUT_DIR}/plt
     - >  # Use fcompare to check for correctness
       ${BINARY_DIR}/fcompare.gnu.ex ${ERR_TOL_FLAGS}
-      ${OUTPUT_DIR}/plt00008/ ${COMPARE_DIR}/plt00008_BinaryBH_compare
+      ${OUTPUT_DIR}/plt00008/ ${COMPARE_DIR}/BinaryBH/plt00008_compare
     - >  # Use Particle compare tool to check the punctures
       ${BINARY_DIR}/particle_compare.exe ${ERR_TOL_FLAGS}
-      ${OUTPUT_DIR}/plt00008/ ${COMPARE_DIR}/plt00008_BinaryBH_compare/ particles
+      ${OUTPUT_DIR}/plt00008/ ${COMPARE_DIR}/BinaryBH/plt00008_compare/ particles
     - cd ${HOME}/${CI_PROJECT_DIR}/Examples/KleinGordon
     - >  # Run the Klein Gordon example
       flock ${HOME}/${QOS_INTR_LOCK_FILE}
@@ -68,7 +68,7 @@ csd3-a100-test:
       ./params_test.txt amr.plot_file=${OUTPUT_DIR}/plt
     - >  # Use fcompare to check for correctness
       ${BINARY_DIR}/fcompare.gnu.ex ${ERR_TOL_FLAGS}
-      ${OUTPUT_DIR}/plt00008/ ${COMPARE_DIR}/plt00008_KleinGordon_compare
+      ${OUTPUT_DIR}/plt00008/ ${COMPARE_DIR}/KleinGordon/plt00008_compare
   after_script:
     - rm -rf ${HOME}/${QOS_INTR_LOCK_FILE}
     # This deletes BINARY_DIR but because it was defined in

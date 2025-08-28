@@ -1,0 +1,87 @@
+name: Build and run examples
+
+on:
+  workflow_call:
+    inputs:
+      gcc_version:
+        required: true
+        type: string
+      example_name:            # this is the name of the example
+        required: true
+        type: string
+
+jobs:
+  run_tests:
+    runs-on: ubuntu-24.04
+    env:
+      AMREX_HOME: ${{ github.workspace }}/amrex
+      EXECUTABLE: main3d.gnu.MPI.ex
+      PARAMETER_FILE: params_test.txt
+      BUILD_ARGS: >-
+        COMP=gnu
+        USE_MPI=TRUE
+        USE_CCACHE=TRUE
+      TOLERANCES: >-
+        --abs_tol 1e-10
+        --rel_tol 1e-10
+      COMPARE_DIR: ${{ github.workspace }}/.github/workflows/data
+
+    steps:
+    - name: Checkout GRTeclyn
+      uses: actions/checkout@v4
+
+    - name: Set up common actions
+      id: common
+      uses: ./.github/workflows/regression-tests-setup
+      with:
+        gcc_version: ${{ inputs.gcc_version }}
+
+    - name: Build example
+      run: make -j 4 ${{ env.BUILD_ARGS }}
+      working-directory: ${{ github.workspace }}/Examples/${{ inputs.example_name }}
+
+    - name: Run example using test parameters
+      run: mpiexec -n 2 ./${{ env.EXECUTABLE }} ./${{ env.PARAMETER_FILE }}
+      working-directory: ${{ github.workspace }}/Examples/${{ inputs.example_name }}
+
+    - name: Download fcompare tool
+      uses: actions/download-artifact@v5
+      with:
+        name: fcompare.gnu.MPI.ex
+        path: ${{ github.workspace }}/Examples/${{ inputs.example_name }}
+
+    - name: Make fcompare executable again
+      run:
+        chmod +x fcompare.gnu.MPI.ex
+      working-directory: ${{ github.workspace }}/Examples/${{ inputs.example_name }}
+
+    - name: Compare plotfile from final step with saved plotfile
+      run: >
+        mpiexec -n 1 ./fcompare.gnu.MPI.ex ${{ env.TOLERANCES }}
+        ${{ env.COMPARE_DIR }}/${{ inputs.example_name }}/plt00008_compare plt00008
+      working-directory: ${{ github.workspace }}/Examples/${{ inputs.example_name }}
+
+    - name: Download particle_compare tool
+      if: ${{ inputs.example_name == 'BinaryBH' }}
+      uses: actions/download-artifact@v5
+      with:
+        name: particle_compare.exe
+        path: ${{ github.workspace }}/Examples/${{ inputs.example_name }}
+
+    - name: Run particle_compare tool
+      if: ${{ inputs.example_name == 'BinaryBH' }}
+      run: |
+        chmod +x particle_compare.exe
+        export OLD_PLT_FILES=${{ env.COMPARE_DIR }}/${{ inputs.example_name }}/plt00008_compare
+        export OPT="particles"
+        ./particle_compare.exe ${{ env.TOLERANCES }} $OLD_PLT_FILES plt00008 $OPT
+      working-directory: ${{ github.workspace }}/Examples/${{ inputs.example_name }}
+
+    - name: Restart from last checkpoint and evolve for a few more steps
+      run: >
+        mpiexec -n 2 ./${{ env.EXECUTABLE }} ./${{ env.PARAMETER_FILE }}
+        amr.restart=chk00008 max_steps=12
+      working-directory: ${{ github.workspace }}/Examples/${{ inputs.example_name }}
+
+
+
