@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Useful resources - GRTeclyn</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Useful resources";
+        var mkdocs_page_input_path = "useful_resources.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> GRTeclyn
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../about/">About</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../prerequisites/">Getting started</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../porting/">Moving from GRChombo</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../code_structure/">Code structure</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../CPUs/">Building and Running on CPUs</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../GPUs/">Building and Running on GPUs</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../performance/">Performance optimization</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../convergence/">Convergence testing</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../setups/">Working on HPC systems</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">Useful resources</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#amrex">AMReX</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#numerical-relativity-nr">Numerical Relativity (NR)</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#useful-c-resources">Useful C++ resources</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#hpc-cluster-usage">HPC cluster usage</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#git-guide">Git guide</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#visit">VisIt</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#yt">yt</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#miscellaneous">Miscellaneous</a>
+    </li>
+    </ul>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">GRTeclyn</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Useful resources</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="useful-resources">Useful resources</h1>
+<h2 id="amrex">AMReX</h2>
+<p>GRTeclyn is built on top of the AMReX library and we try to follow the thinking behind AMReX pretty closely e.g. the GPU strategy. 
+The <a href="https://amrex-codes.github.io/amrex/docs_html/">AMReX documentation</a> is a great resource that introduces a lot of basic concepts that you will encounter in GRTeclyn e.g. <code>MultiFab</code>, <code>Array4</code> and <code>ParallelFor</code> as well as build options for various GPU architectures. There are also suggestions for analysing and visualising PlotFiles and profiling and debugging. If a problem you encounter is not covered in this (admittedly short) wiki, then the AMReX documentation should be your next stop. </p>
+<p>There is also a set of short demos and exercises compiled by the AMReX team available <a href="https://github.com/AMReX-Codes/amrex-tutorials">here</a>.</p>
+<p>Failing that, the tests directory of AMReX, <code>${AMREX_HOME}/Tests</code>, also functions as code examples for how to use certain AMReX features. </p>
+<h2 id="numerical-relativity-nr">Numerical Relativity (NR)</h2>
+<p>There are many useful introductions to NR, but we recommend in particular the following open source resources:</p>
+<ul>
+<li>[[ Living Reviews in Relativity | http://www.springer.com/gp/livingreviews/relativity/lrr-articles ]] has a dedicated section on Numerical Relativity.</li>
+<li>[[ Eric Gourgoulhon's notes on NR | https://arxiv.org/abs/gr-qc/0703035 ]] give a detailed introduction to the ADM decomposition, with a focus on the geometric interpretation.</li>
+</ul>
+<p>The textbooks of Alcubierre, Baumgarte &amp; Shapiro, and Shibata are also bookcase essentials for anyone working in NR.</p>
+<h2 id="useful-c-resources">Useful C++ resources</h2>
+<p>Style guide for C++
+https://google.github.io/styleguide/cppguide.html</p>
+<p>Basic guide to C++
+https://www.tutorialspoint.com/cplusplus/index.htm</p>
+<p>One should review in particular the sections on classes and templating, which are both used extensively in the code.</p>
+<p>All these places offer courses relevant for scientific programming, best check them regularly </p>
+<ul>
+<li>https://www.archer.ac.uk/training/ </li>
+<li>https://training.prace-ri.eu/</li>
+<li>https://extremecomputingtraining.anl.gov/ ( ATPESC - yearly course, typically around a week. Recommended for more advanced students)</li>
+<li>https://learn.tacc.utexas.edu/ </li>
+<li>https://portal.xsede.org/training/overview </li>
+</ul>
+<h2 id="hpc-cluster-usage">HPC cluster usage</h2>
+<p>Most machines have their own webpages which give a guide to usage, and tell you things particular to each machine, like compilers available, the job submission system, where to store your data etc.</p>
+<p>The Rosetta stone of job submission commands is here:
+https://slurm.schedmd.com/rosetta.pdf</p>
+<p>Some useful commands:</p>
+<pre><code>- 'passwd' can be used to change your login password.
+- 'grep' to search for text in your files
+</code></pre>
+<h2 id="git-guide">Git guide</h2>
+<p>A comprehensive guide to git:</p>
+<p>https://www.tutorialspoint.com/git/git_quick_guide.htm</p>
+<p>in particular, a useful guide to "rebase a branch to master" is</p>
+<p>https://www.theserverside.com/blog/Coffee-Talk-Java-News-Stories-and-Opinions/How-to-Git-rebase-a-branch-to-master-example</p>
+<h2 id="visit">VisIt</h2>
+<p>The VisIt wiki is here:</p>
+<p>http://www.visitusers.org/index.php?title=Main_Page</p>
+<p>and the user manual is here:</p>
+<p>http://visit-sphinx-user-manual.readthedocs.io/en/latest/</p>
+<h2 id="yt">yt</h2>
+<p>The yt package is also useful for analysing data, and has an excellent cookbook containing examples:</p>
+<p>http://yt-project.org/doc/index.html</p>
+<h2 id="miscellaneous">Miscellaneous</h2>
+<p>A very useful GUI tool to compare two directories is Meld:</p>
+<h1 id="welcome-to-grteclyns-documentation">Welcome to GRTeclyn's documentation!</h1>
+<p>GRTeclyn is a flexible numerical relativity code based on <a href="https://github.com/GRTLCollaboration/GRChombo">GRChombo</a> and
+built on the <a href="https://amrex-codes.github.io/amrex/">AMReX</a> library. The
+GRTeclyn source code is available on
+<a href="https://github.com/GRTLCollaboration/GRTeclyn">GitHub</a> under the
+BSD-3-Clause license.</p>
+<p>If you can't find the answers to your questions here, we also have a GitHub <a href="https://github.com/GRTLCollaboration/GRTeclyn/wiki">Wiki</a> and Slack channel (contact us for details on how to sign up). </p>
+<h2 id="where-should-i-start">Where should I start?</h2>
+<p>Here are some suggestions depending on your goal:</p>
+<h3 id="i-want-to-know-if-grteclyn-is-the-right-code-for-my-research-project"><em>I want to know if GRTeclyn is the right code for my research project</em></h3>
+<p>Start with the <a href=""><strong>Capabilities</strong></a> page for an overview of GRTeclyn's current features.</p>
+<p>GRTeclyn is <strong>not</strong> a black-box code. You’ll need to understand how it works, and may need to write your own tools for specific applications. If you're a supervisor planning to assign a student to work on the code, please ensure you have sufficient background in <strong>numerical relativity</strong> and <strong>C++/GPU computing</strong> to support them.</p>
+<p>For simpler projects e.g. for masters students, consider using the 1D code <a href="https://github.com/GRTLCollaboration/engrenage/wiki"><strong>engrenage</strong></a>, which is a python based code that runs easily on laptops.</p>
+<h4 id="i-want-to-compile-and-run-an-example-eg-binary-black-hole-merger"><em>I want to compile and run an example (e.g. binary black hole merger)</em></h4>
+<p>Follow sequentially the <strong>Getting started</strong> section. This step-by-step guide assumes only basic command-line experience (that of most new PhD students). We also assume access to a high-performance computing cluster (preferably with GPU support). While we provide laptop tips, most realistic simulations require HPC.</p>
+<h4 id="i-already-have-nr-experience-and-want-to-use-or-adapt-the-code"><em>I already have NR experience and want to use or adapt the code</em></h4>
+<ol>
+<li>Still begin with the <strong>Getting started</strong> section to ensure your environment is set up properly.</li>
+<li>Then head to the section <strong>Doing Physics with GRTeclyn</strong>, which covers the code structure, design philosophy and guidance for adding your own physics</li>
+</ol>
+<p>If you have questions, feel free to <a href="Contact-us"><strong>Contact us</strong></a> — we’ll try to help. But do keep in mind our unofficial motto:</p>
+<blockquote>
+<p><em>“If you want it, you build it.”</em></p>
+</blockquote>
+<p>Before publishing results, don’t forget to check the <a href="License"><strong>License</strong></a> and <a href="Citation"><strong>Citation</strong></a> pages.</p>
+<h4 id="i-found-a-bug"><em>I found a bug</em></h4>
+<p>Please file an <a href="https://github.com/GRTLCollaboration/GRTeclyn/issues">issue</a> on <strong>GitHub</strong>:
+- Include your code version/commit hash
+- Try to include as much information as you can, including: 
+  - Detailed steps to reproduce the issue
+  - Your build/runtime environment
+  - Any error messages
+  - The expected outcome/output of your run</p>
+<p>You can also <a href="Contact-us"><strong>Contact us</strong></a>, but GitHub Issues are preferred for code-related problems.</p>
+<h4 id="i-want-to-contribute-to-grteclyn"><em>I want to contribute to GRTeclyn</em></h4>
+<p>That's great! See <a href="Contributing-to-GRTeclyn"><strong>Contributing to GRTeclyn</strong></a> for contribution guidelines and tips to get started.</p>
+<h3 id="disclaimer">️ Disclaimer</h3>
+<blockquote>
+<p><strong>GRTeclyn is a research code under active development.</strong><br />
+We aim to provide a stable core, but not all features are guaranteed to work perfectly.<br />
+<strong>Use it at your own risk!</strong>
+https://meldmerge.org/</p>
+</blockquote>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../setups/" class="btn btn-neutral float-left" title="Working on HPC systems"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../setups/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

@@ -1,3 +1,0 @@
-GRTECLYN_CEXE_headers += EMTensorTest.hpp
-
-GRTECLYN_CEXE_sources += EMTensorTest.cpp

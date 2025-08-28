@@ -1,5 +1,0 @@
-GRTECLYN_CEXE_headers += HarmonicTest.hpp \
-                         HarmonicTest.impl.hpp \
-                         SphericalHarmonicTest.hpp
-
-GRTECLYN_CEXE_sources += SphericalHarmonicTest.cpp

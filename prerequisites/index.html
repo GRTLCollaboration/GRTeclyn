@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Getting started - GRTeclyn</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Getting started";
+        var mkdocs_page_input_path = "prerequisites.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> GRTeclyn
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../about/">About</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">Getting started</a>
+    <ul class="current">
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../porting/">Moving from GRChombo</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../code_structure/">Code structure</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../CPUs/">Building and Running on CPUs</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../GPUs/">Building and Running on GPUs</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../performance/">Performance optimization</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../convergence/">Convergence testing</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../setups/">Working on HPC systems</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../useful_resources/">Useful resources</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">GRTeclyn</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Getting started</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <p>To compile and run <strong>GRTeclyn</strong>, you will need the following software and tools:</p>
+<hr />
+<h2 id="required-software">🧰 Required Software</h2>
+<ul>
+<li><strong>C++ compiler with C++17 support</strong><br />
+  GRTeclyn uses modern C++17 features. Supported compilers include:</li>
+<li>GCC ≥ 8</li>
+<li>Clang ≥ 6</li>
+<li>Intel Classic ≥ 19.1.4  </li>
+</ul>
+<p>⚠️ The use of C++17 is stricter than GRChombo’s C++14 requirement. Older compilers that worked with GRChombo may not work here — but if you have a newer one available, and could build GRChombo, you can likely build GRTeclyn too.</p>
+<ul>
+<li><strong><a href="https://www.mpi-forum.org/">MPI</a></strong> (optional but recommended)<br />
+  Required for running in parallel across nodes or cores.<br />
+  Supported implementations: OpenMPI, MPICH, Intel MPI, etc.</li>
+</ul>
+<p>Many computer clusters use some form of <code>modules</code> command to control the environment. They will probably have the C++ and MPI prerequisites installed above but you will need to manually load them (and unload any preloaded conflicting ones).</p>
+<p>Here are some useful module commands:</p>
+<ul>
+<li><code>module avail [&lt;name&gt;]</code></li>
+<li>What modules are available/available with name <code>&lt;name&gt;</code>?</li>
+<li><code>module [un]load &lt;module name&gt;</code></li>
+<li>Load/unload a module.</li>
+<li><code>module swap &lt;old module&gt; &lt;new module&gt;</code></li>
+<li>Swap <code>&lt;old module&gt;</code> for <code>&lt;new module&gt;</code>.</li>
+<li><code>module list</code></li>
+<li>What modules are loaded currently?</li>
+<li><code>module display &lt;module name&gt;</code></li>
+<li>Tell me more about <code>&lt;module name&gt;</code>: how does it change the environment?</li>
+</ul>
+<p>Some newer clusters use <a href="https://spack.io/">spack</a> to manage the installation of modules. On these systems, modules installed with spack will typically be appended by a 7 character hash (e.g. <code>hdf5-1.10.4-gcc-5.4.0-7zl2gou</code> on the CSD3 cluster). If there are multiple modules with similar names that only differ by their hash, you can can query the dependencies with the command <code>spack find -lvd &lt;name&gt;</code>.</p>
+<blockquote>
+<p><strong>Warning</strong>  See <a href="https://amrex-codes.github.io/amrex/docs_html/BuildingAMReX.html#gcc-on-macos">this page</a> if you want to build on macOS using Homebrew GCC.</p>
+</blockquote>
+<p>The following are required, but are likely to be loaded by default on most systems:</p>
+<ul>
+<li>
+<p><strong><a href="https://git-scm.com/">Git</a></strong><br />
+  Used to obtain GRTeclyn and AMReX.</p>
+</li>
+<li>
+<p><strong><a href="https://www.gnu.org/software/make/">GNU Make</a></strong> (version ≥ 3.81)<br />
+  Standard build system used across the codebase.</p>
+</li>
+<li>
+<p><strong><a href="https://www.python.org/">Python</a></strong> (version ≥ 2.7)<br />
+  Used in build and analysis utilities.</p>
+</li>
+<li>
+<p><strong>Unix-like environment</strong> with:</p>
+</li>
+<li><code>perl</code></li>
+<li><code>sed</code></li>
+<li>Standard shell tools<br />
+  These are available by default on most Linux/macOS systems.</li>
+</ul>
+<hr />
+<h2 id="obtaining-the-amrex-and-grteclyn-codes">🛠️ Obtaining the AMReX and GRTeclyn codes</h2>
+<p>First <code>cd</code> into a directory you are happy to clone the code into. For simplicity, we shall assume that is your home directory (so adjust any commands below accordingly if not).</p>
+<p>The AMReX source code is hosted on <a href="https://github.com/AMReX-Codes/amrex">GitHub</a>. Clone this with the command</p>
+<pre><code class="language-bash">git clone https://github.com/AMReX-Codes/amrex.git
+</code></pre>
+<p>It will be cloned to the <code>amrex</code> directory.</p>
+<p>Next, clone the GRTeclyn repository</p>
+<pre><code class="language-bash">git clone https://github.com/GRChombo/GRTeclyn.git
+</code></pre>
+<p><strong>Note</strong>
+We have assumed that you have cloned both of these repositories to the same directory so that the <code>amrex</code> and <code>GRTeclyn</code> directories share the same parent directory. This fact is used to locate AMReX when GRTeclyn builds its examples, and it is recommended as it makes it easier to be sure about the version you are using.</p>
+<p>If you want to keep AMReX elsewhere, you need to set the <code>AMREX_HOME</code> environment variable appropriately in your shell</p>
+<pre><code class="language-bash">export AMREX_HOME=/path/to/amrex
+</code></pre>
+<p>(and you probably want to add this to your <code>.bashrc</code> file in your home directory too so it is run automatically when you log into the cluster you are using).</p>
+<hr />
+<h2 id="setup-the-pre-commit-hook">Setup the pre-commit hook</h2>
+<p>We like to maintain a certain format to our coding style for uniformity and correctness which is enforced by <code>clang-format</code>. This can be checked within your editor and should be checked again when committing new code to the repository. Please see this <a href="https://github.com/GRTLCollaboration/GRTeclyn/wiki/Using-Clang-Format">page</a> for more details on how to install <code>clang-format</code> and 'pre-commit'. </p>
+<p>The pre-commit hook protects us from writing badly formatted code and should be installed whenever you are working on a new system. </p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../about/" class="btn btn-neutral float-left" title="About"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../porting/" class="btn btn-neutral float-right" title="Moving from GRChombo">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../about/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../porting/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

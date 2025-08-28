@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Building and Running on GPUs - GRTeclyn</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Building and Running on GPUs";
+        var mkdocs_page_input_path = "GPUs.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> GRTeclyn
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../about/">About</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../prerequisites/">Getting started</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../porting/">Moving from GRChombo</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../code_structure/">Code structure</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../CPUs/">Building and Running on CPUs</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">Building and Running on GPUs</a>
+    <ul class="current">
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../performance/">Performance optimization</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../convergence/">Convergence testing</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../setups/">Working on HPC systems</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../useful_resources/">Useful resources</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">GRTeclyn</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Building and Running on GPUs</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <p>Compiling GRTeclyn for GPUs is in principle very easy, but in practise can be a bit of a pain. You will probably find it useful to look at some of the specific systems examples, e.g. the one for the Cosma8 AMD MI300 GPUs <a href="https://github.com/GRTLCollaboration/GRTeclyn/wiki/Example-system-setups-and-jobscripts#cosma8-gpu-partition">here</a>.</p>
+<p>The same process is followed as for CPUs, with the following changes:</p>
+<h2 id="you-need-to-install-the-right-gpu-compiler">You need to install the right GPU compiler</h2>
+<p>One of the annoying things about GPUs is that there are 3 types related to the 3 vendors (Intel, AMD and Nvidia), and since they can't agree on things (thank you capitalism :pray:) you have to be able to understand the slightly different (but essentially the same) terminology and tools from all three. </p>
+<p>Fortunately (thank you AMReX and historic US government funding :pray:), AMReX takes care of all the pain of implementing the code so it works on all three architectures. But you still have to think about this when you compile and run on a particular one. You may need to ask a lot of questions to the system admin, and you will probably end up feeling confused and stupid. That's ok. It will be worth it when you see the speed up, and once you are set up things should run smoothly. </p>
+<p>For AMD GPUs, you need to be using the HIP compiler, for Intel it is SYCL and for Nvidia it is the more well known CUDA. You can think of them all as being like CUDA, but with a different name.</p>
+<p>If you are on a login node, this will be a CPU node, but you may be able to module load the GPU compiler, e.g. on cosma8 you do</p>
+<pre><code>module load hipcc/6.3amd
+</code></pre>
+<p>If you are ssh-ing directly into the GPU node the compiler may be installed already by default, or you module load it as above. (TIP: You can always try to compile and see if it complains about not having the compiler.)</p>
+<p>If you want to run with MPI over multiple GPUs, you will also need an MPI distribution, but note that this <strong>needs to have been built with support for the GPUs you are using</strong>, and often that won't be the case. You may need to ask the system admins for guidance. On Cosma8 they have an openmpi module with specific support, so you can just do:</p>
+<pre><code>module load openmpi/5.0.3
+</code></pre>
+<p>The good news about MPI is that if you really get stuck, it may be that you can just run on a single GPU, and don't need to use MPI. Incredibly, the BBH example runs on a single GPU really well. The problem with doing this is that usually the GPU node has multiple GPUs, and they are rarely set up for each one to support exclusive use. So you may find yourself sharing the memory of the GPU you are using with other users, which will utterly tank your performance. Therefore although in principle running on a single GPU without MPI is fine, in practise you may encounter problems until systems are configured better.</p>
+<h2 id="you-need-to-tell-amrex-to-compile-with-gpu-offload-support">You need to tell AMReX to compile with GPU offload support</h2>
+<p>This is the easy bit! Update your <code>make.local-pre</code> to activate the appropriate options, with <code>USE_CUDA=TRUE</code> for Nvidia and <code>USE_HIP=TRUE</code> for AMD and <code>USE_SYCL</code> for Intel GPUs.</p>
+<p>Note that it can help to set <code>AMREX_USE_GPU=TRUE</code> (to make AMReX more "gpu aware") and you may also need to give it a specific flag for the architecture, which you can google for. For example, your <code>make.local-pre</code> may look something like:</p>
+<pre><code>COMP = intel-gnu
+AMREX_USE_GPU=TRUE
+USE_HIP=TRUE         
+# for AMD MI300                                                 
+AMREX_AMD_ARCH=gfx942
+# Optionally uncomment to turn off MPI
+# USE_MPI=FALSE
+</code></pre>
+<h2 id="you-need-to-run-it-differently-in-the-jobscript">You need to run it differently in the jobscript</h2>
+<p>Slurm isn't really designed for GPUs so the way you select the options in your jobscript can be a bit strange. Again it is worth asking for advice from the system admins if the documentation doesn't cover it, or looking at our example jobscripts. A usual set up is that you want to ask for one node that controls a certain number of GPUs, usually something like 8. As mentioned above, you would ideally like exclusive use of these GPUs, but if you pick a smaller number than the total number the node has that won't always be guaranteed.</p>
+<p>The really important thing to understand is that how you are doing your parallelisation is very different now. GPUs are <strong>huge and hungry</strong> and they need to be fed a lot of points to process at the same time. So your grid is going to be divided up into a much smaller number of boxes, each with a lot of cells, and each big chunk will typically be given to a <strong>single MPI process</strong> running on a <strong>single GPU</strong>. This is why you can even use a single GPU to process the whole box in one go without using MPI at all. Make sure you have read [[Performance optimisation | Performance optimisation]] to understand how subdivision of the grid works, and consider whether you need to amend your params file to account for using GPUs (usually by increasing the max box size and blocking factor).</p>
+<p>A typical command for running 8 MPI processes (which would be appropriate on a node that has 8 GPUs, and where you had 8 boxes to share out), is</p>
+<pre><code>mpirun -n 8 --exclusive ./main3d.hip.MPI.HIP.ex params.txt
+</code></pre>
+<p>You may also want to amend the <code>params.txt</code> file to specify the memory available to you and again make AMReX aware of the use of GPUs for how it uses MPI. e.g. for the MI300X I add: </p>
+<pre><code># 192GB is the size of 1 GPU MI300X (it seems to work better to ask for a slightly smaller amount)
+amrex.the_arena_init_size = 190000000000
+amrex.use_gpu_aware_mpi = 1
+</code></pre>
+<p>(Usually you are using one MPI process per GPU, so you specify the per GPU amount of memory, not the total for your whole job.)</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../CPUs/" class="btn btn-neutral float-left" title="Building and Running on CPUs"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../examples/" class="btn btn-neutral float-right" title="Examples">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../CPUs/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../examples/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

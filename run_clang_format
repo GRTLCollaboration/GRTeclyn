@@ -1,2 +1,0 @@
-for f in $(find . -name "*.hpp" -not -path "./External/*"); do clang-format -style=file -i $f; done
-for f in $(find . -name "*.cpp" -not -path "./External/*"); do clang-format -style=file -i $f; done

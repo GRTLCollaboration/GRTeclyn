@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Convergence testing - GRTeclyn</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Convergence testing";
+        var mkdocs_page_input_path = "convergence.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> GRTeclyn
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../about/">About</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../prerequisites/">Getting started</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../porting/">Moving from GRChombo</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../code_structure/">Code structure</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../CPUs/">Building and Running on CPUs</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../GPUs/">Building and Running on GPUs</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../performance/">Performance optimization</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">Convergence testing</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../setups/">Working on HPC systems</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../useful_resources/">Useful resources</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">GRTeclyn</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Convergence testing</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <blockquote>
+<p>“Whatever the ways of the universe may require us to suffer, let us take it up with high mindedness. This is the oath by which we are bound, not to be disturbed by what we do not have the power to avoid.” Seneca, On the Happy Life</p>
+</blockquote>
+<p>Seneca was certainly thinking about convergence testing when he said this.</p>
+<p>Convergence testing with an AMR code can be challenging, but it is essential. The basic principle of convergence testing is that, once the solution is well resolved, running with a higher resolution should give roughly the same result, with an error that decreases at an order set by the finite difference and time evolution stencils used, in the case of GRTeclyn this is 4th order.</p>
+<p>Here is a rough guide to how we do convergence testing. You should refer to Alcubierre's book on numerical relativity for a more detailed treatment of convergence and convergence rates. Here we just give practical tips related to GRTeclyn.</p>
+<ul>
+<li><em>What should I do my convergence testing on?</em> </li>
+</ul>
+<p>The general rule is that you should convergence test all the physical results that you want to present in any research publication for which you are using the code. So if you are calculating GW waveforms, you need to check their amplitude and phase converge. If you are tracking a total mass of matter, you should check that. In general global quantities will give better convergence than local ones, but if you are showing plots of the field value at a particular point, you might want to convergence test that. </p>
+<p>One thing you can and should always do a convergence test on is the constraint error - this has the advantage that you know it should be zero, so you can calculate the convergence rate with only 2 (rather than 3) simulation resolutions. Usually we take a norm of the constraint across the region of interest - this may involve zeroing it near the boundaries, where you will always get constraint error because Sommerfeld conditions are not constraint preserving. This may feel like cheating, but as long as the region of physical interest is converging well, this is good enough to support your physical result. Likewise it is conventional to zero within any BH horizons to remove the spurious effect of the singularity (which has higher constraint error the better your resolution).</p>
+<p>Note that there are functions for taking quantities across the grid in the AMRReductions class. These will often be very useful for convergence testing as they allow global quantities to be extracted.</p>
+<ul>
+<li><em>How do I set the resolutions so the grid does the right thing?</em></li>
+</ul>
+<p>This is where AMR makes thing hard. Say you are trying to double the resolution (normally in practise you would aim for some smaller ratio like 1.5 as doubling is expensive, but let's say double just for illustration). Your goal should be to double the resolution of every region of the domain, so each grid should cover the same area as before but with double the resolution. Obviously you need to double the resolution of the coarsest grid, and reduce your tagging thresholds, but depending on the tagging criteria you are using getting regions to match up may be very hard to achieve exactly. However, provided you roughly cover the same regions at double resolution, and in particular make sure any regions driving your convergence quantity are appropriately re-refined, the convergence test should work ok. In general we aim to adjust the thresholds until we get the finest grid to cover the same area at double the resolution, and let the other levels do what they want to do.</p>
+<ul>
+<li><em>I have run three versions of the simulation at 3 different resolutions HR, MR and LR, now what?</em></li>
+</ul>
+<p>You now need to take your outputs at each resolution and difference them, so ErrorH = HR - MR and ErrorL = MR - LR. ErrorL should be bigger than ErrorH - if it is not you are in trouble and definitely need higher resolution. Note that you may need to use an interpolating function (e.g. in Python) to obtain comparable data at the same times, since the time steps won't match up at different resolutions. </p>
+<p>However, just seeing that error decreases with resolution <em>tells you nothing</em>. The expected order of the convergence must be right - so for 4th order stencils and doubling the resolutions it should be (1/2)^4 smaller.   This validates that this specific source of error (ie, from the numerical integration) is dominating, which is the goal of the convergence test.   If you obtain a different rate, some other error source is dominating, and if you don’t know what that is, you could be in trouble.   </p>
+<p>e.g. If you hit a place where you converge slower than expected, it could be that numerical precision error is now dominating. This might be ok, but then it also tells you that you are wasting time resolution, because you have hit a wall where you can’t get better by taking better resolutions.</p>
+<p>Equally, if you find the error getting smaller too fast, don't celebrate - it is likely that your low resolution run was not in the convergence regime, so you should again increase resolution to check you can achieve the appropriate rate.</p>
+<ul>
+<li><em>I don't get exactly the right convergence rate, but my results look exactly the same at each resolution and when I add more resolution I get the same thing. Help!</em></li>
+</ul>
+<p>This is when you need to apply some judgement. Anyone who does simulations will tell you that convergence is an art rather than a science, and it won't always be perfect. If you plot your quantity of interest and you can't see any difference in the 3 resolutions by eye (and you have tried increasing the resolution again with the same result), it might be fine and you have just reached some fundamental limit of numerical precision somewhere. But higher resolution should always give you smaller error, otherwise you definitely need to investigate more. You might especially lose some convergence order when there is a lot of rapid regridding in the AMR, which does introduce errors. </p>
+<p>You should also consider the accuracy of your initial data - if you use data from the <a href="https://github.com/GRTLCollaboration/GRTresna">GRTresna Initial Condition Solver</a> that is only 2nd order accurate, and this error will tend to dominate at initial times, so you may only recover 3rd/4th order at later times once the evolution error starts to dominate. </p>
+<p>Also consider whether you have used some interpolation error in extracting the data or taking a volume integral - this will add a source of error too. The AMRInterpolator uses by default 4th order interpolation, so should not spoil the convergence results. However, yt uses zeroth order interpolation unless you tell it to do otherwise. </p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../performance/" class="btn btn-neutral float-left" title="Performance optimization"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../setups/" class="btn btn-neutral float-right" title="Working on HPC systems">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../performance/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../setups/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
