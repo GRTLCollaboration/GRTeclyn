@@ -82,10 +82,6 @@ test_small_data_io_reader(const std::vector<std::string> &column_names)
     std::vector<std::string> header;
     test_reader.get_header_strings(header, 0);
 
-    // Columns do not have to be in order, you could also have entered
-    // {"z", "x"} for example. But data[0] will always go with the
-    // first entry, data[1] with the second etc.
-
     // If a column name doesn't exist in the header, amrex::Abort will
     // be called
 
@@ -162,7 +158,13 @@ void run_small_data_io_test()
 
         // Test the file reader: read the random numbers back in using their
         // column names
-        std::vector<std::string> read_these_columns{"x", "z"};
+
+        // Columns do not have to be in order, this is tested below using
+        // {"z", "x"}. But the first column returned will always go
+        // with the first entry, the second column returned  with the second
+        // entered etc.
+
+        std::vector<std::string> read_these_columns{"z", "x"};
         auto read_data1 = test_small_data_io_reader(read_these_columns);
 
         // Test the file reader: read the data by specifying the column numbers
@@ -170,8 +172,8 @@ void run_small_data_io_test()
         const int max_col = 3;
         auto read_data2   = test_small_data_io_reader(min_col, max_col);
 
-        check_almost_equal(read_data1[0], write_data[0], err_tol);
-        check_almost_equal(read_data1[1], write_data[2], err_tol);
+        check_almost_equal(read_data1[0], write_data[2], err_tol);
+        check_almost_equal(read_data1[1], write_data[0], err_tol);
         check_almost_equal(read_data2[0], write_data[0], err_tol);
         check_almost_equal(read_data2[1], write_data[1], err_tol);
         check_almost_equal(read_data2[2], write_data[2], err_tol);

@@ -99,13 +99,15 @@ SmallDataIO::SmallDataIO(const std::string &a_filename_prefix, double a_dt,
 
         if (!m_file)
         {
-            amrex::Abort("SmallDataIO::error opening file " + m_filename);
+            amrex::Abort("SmallDataIO: error opening file " + m_filename);
         }
         if (m_mode == READ)
         {
             read_file();
             if (a_file_structure == nullptr)
+            {
                 determine_file_structure();
+            }
             else
             {
                 set_file_structure(*a_file_structure);
@@ -571,31 +573,47 @@ void SmallDataIO::get_columns(std::vector<SmallDataIO::column_t> &out,
         // Associate each column name with the number
         // of where they are in the file
 
-        std::vector<int> column_numbers;
+        // First entry in the std::map is the column number in the file
+        // (file_column) Second entry in the std::map is the column number given
+        // by the user (input_column)
+        std::map<int, int> column_mapping;
 
-        for (const auto &column_name : column_names)
+        bool found{false};
+
+        for (int input_column = 0; input_column < column_names.size();
+             input_column++)
         {
-            int column_no = 0;
-            for (const auto &header_name : header)
+            for (int file_column = 0; file_column < header.size();
+                 file_column++)
             {
-                if (header_name == column_name)
+                if (header[file_column] == column_names[input_column])
                 {
-
-                    column_numbers.push_back(column_no);
-                    break;
+                    column_mapping.emplace(file_column, input_column);
+                    found = true;
                 }
-                column_no++;
             }
-
             // If all header_names have been checked but column_name has not
             // been found...
-            if (column_no == m_file_structure.num_data_columns[a_block])
+            if (!found)
             {
                 std::string error_message{
-                    column_name + " could not be read. Please double check "
-                                  "your inputs to SmallDataIO"};
+                    "SmallDataIO: " + column_names[input_column] +
+                    " could not be read. Please double check "
+                    "your inputs to SmallDataIO::get_columns"};
                 amrex::Abort(error_message);
             }
+        }
+
+        const int ncols = m_file_structure.num_data_columns[a_block];
+
+        // To avoid calling std::map::find for each row of data,
+        // we define a bool for each column (in the original file ordering) so
+        // we know if that value needs to be saved or not.
+        std::vector<bool> columns_requested(ncols, false);
+
+        for (auto const &[file_order, user_order] : column_mapping)
+        {
+            columns_requested[file_order] = true;
         }
 
         std::istringstream file_stream(m_file_contents);
@@ -604,22 +622,18 @@ void SmallDataIO::get_columns(std::vector<SmallDataIO::column_t> &out,
                    a_block);
 
         double discard = 0.0;
-        for (int irow = 0; irow < m_file_structure.num_data_rows[a_block];
-             ++irow)
+        for (int row = 0; row < m_file_structure.num_data_rows[a_block]; ++row)
         {
-            // This is a bit slow but returns the columns in the order that the
-            // user requested them
-
-            for (int icolumn = 0;
-                 icolumn < m_file_structure.num_data_columns[a_block];
-                 ++icolumn)
+            for (int file_column = 0;
+                 file_column < m_file_structure.num_data_columns[a_block];
+                 ++file_column)
             {
-                auto const column_ptr = std::find(
-                    column_numbers.begin(), column_numbers.end(), icolumn);
-                if (column_ptr != column_numbers.end())
+                if (columns_requested[file_column])
                 {
-                    auto column_index = column_ptr - column_numbers.begin();
-                    file_stream >> out[column_index][irow];
+                    // The mapping is there to return the columns in the same
+                    // order as the user input
+
+                    file_stream >> out[column_mapping.at(file_column)][row];
                 }
                 else
                 {
