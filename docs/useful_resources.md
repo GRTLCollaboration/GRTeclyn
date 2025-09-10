@@ -20,11 +20,8 @@ The textbooks of Alcubierre, Baumgarte & Shapiro, and Shibata are also bookcase 
 
 ## Useful C++ resources
 
-Style guide for C++
-https://google.github.io/styleguide/cppguide.html
-
-Basic guide to C++
-https://www.tutorialspoint.com/cplusplus/index.htm
+* [Style guide for C++](https://google.github.io/styleguide/cppguide.html)
+* [Basic guide to C++](https://www.tutorialspoint.com/cplusplus/index.htm)
 
 One should review in particular the sections on classes and templating, which are both used extensively in the code.
 
@@ -53,93 +50,30 @@ Some useful commands:
 
 A comprehensive guide to git:
 
-https://www.tutorialspoint.com/git/git_quick_guide.htm
+<https://www.tutorialspoint.com/git/git_quick_guide.htm>
 
 in particular, a useful guide to "rebase a branch to master" is
 
-https://www.theserverside.com/blog/Coffee-Talk-Java-News-Stories-and-Opinions/How-to-Git-rebase-a-branch-to-master-example
+<https://www.theserverside.com/blog/Coffee-Talk-Java-News-Stories-and-Opinions/How-to-Git-rebase-a-branch-to-master-example>
 
 ## VisIt
 
 The VisIt wiki is here:
 
-http://www.visitusers.org/index.php?title=Main_Page
+<http://www.visitusers.org/index.php?title=Main_Page>
 
 and the user manual is here:
 
-http://visit-sphinx-user-manual.readthedocs.io/en/latest/
+<http://visit-sphinx-user-manual.readthedocs.io/en/latest/>
 
 ## yt
 
 The yt package is also useful for analysing data, and has an excellent cookbook containing examples:
 
-http://yt-project.org/doc/index.html
+<http://yt-project.org/doc/index.html>
 
 ## Miscellaneous
 
 A very useful GUI tool to compare two directories is Meld:
 
-# Welcome to GRTeclyn's documentation!
-
-GRTeclyn is a flexible numerical relativity code based on [GRChombo](https://github.com/GRTLCollaboration/GRChombo) and
-built on the [AMReX](https://amrex-codes.github.io/amrex/) library. The
-GRTeclyn source code is available on
-[GitHub](https://github.com/GRTLCollaboration/GRTeclyn) under the
-BSD-3-Clause license.
-
-If you can't find the answers to your questions here, we also have a GitHub [Wiki](https://github.com/GRTLCollaboration/GRTeclyn/wiki) and Slack channel (contact us for details on how to sign up). 
-
-## Where should I start?
-
-Here are some suggestions depending on your goal:
-
-### *I want to know if GRTeclyn is the right code for my research project*
-
-Start with the [**Capabilities**]() page for an overview of GRTeclyn's current features.
-
-GRTeclyn is **not** a black-box code. You’ll need to understand how it works, and may need to write your own tools for specific applications. If you're a supervisor planning to assign a student to work on the code, please ensure you have sufficient background in **numerical relativity** and **C++/GPU computing** to support them.
-
-For simpler projects e.g. for masters students, consider using the 1D code [**engrenage**](https://github.com/GRTLCollaboration/engrenage/wiki), which is a python based code that runs easily on laptops.
-
-
-#### *I want to compile and run an example (e.g. binary black hole merger)*
-
-Follow sequentially the **Getting started** section. This step-by-step guide assumes only basic command-line experience (that of most new PhD students). We also assume access to a high-performance computing cluster (preferably with GPU support). While we provide laptop tips, most realistic simulations require HPC.
-
-
-#### *I already have NR experience and want to use or adapt the code*
-
-1. Still begin with the **Getting started** section to ensure your environment is set up properly.
-2. Then head to the section **Doing Physics with GRTeclyn**, which covers the code structure, design philosophy and guidance for adding your own physics
-
-If you have questions, feel free to [**Contact us**](Contact-us) — we’ll try to help. But do keep in mind our unofficial motto:
-
-> _“If you want it, you build it.”_
-
-Before publishing results, don’t forget to check the [**License**](License) and [**Citation**](Citation) pages.
-
-
-#### *I found a bug*
-
-Please file an [issue](https://github.com/GRTLCollaboration/GRTeclyn/issues) on **GitHub**:
-- Include your code version/commit hash
-- Try to include as much information as you can, including: 
-  - Detailed steps to reproduce the issue
-  - Your build/runtime environment
-  - Any error messages
-  - The expected outcome/output of your run
-
-You can also [**Contact us**](Contact-us), but GitHub Issues are preferred for code-related problems.
-
-
-#### *I want to contribute to GRTeclyn*
-
-That's great! See [**Contributing to GRTeclyn**](Contributing-to-GRTeclyn) for contribution guidelines and tips to get started.
-
-
-###️ Disclaimer
-
-> **GRTeclyn is a research code under active development.**  
-> We aim to provide a stable core, but not all features are guaranteed to work perfectly.  
-> **Use it at your own risk!**
-https://meldmerge.org/
+<https://meldmerge.org/>
