@@ -142,10 +142,10 @@ The <a href="https://amrex-codes.github.io/amrex/docs_html/">AMReX documentation
 </ul>
 <p>The textbooks of Alcubierre, Baumgarte &amp; Shapiro, and Shibata are also bookcase essentials for anyone working in NR.</p>
 <h2 id="useful-c-resources">Useful C++ resources</h2>
-<p>Style guide for C++
-https://google.github.io/styleguide/cppguide.html</p>
-<p>Basic guide to C++
-https://www.tutorialspoint.com/cplusplus/index.htm</p>
+<ul>
+<li><a href="https://google.github.io/styleguide/cppguide.html">Style guide for C++</a></li>
+<li><a href="https://www.tutorialspoint.com/cplusplus/index.htm">Basic guide to C++</a></li>
+</ul>
 <p>One should review in particular the sections on classes and templating, which are both used extensively in the code.</p>
 <p>All these places offer courses relevant for scientific programming, best check them regularly </p>
 <ul>
@@ -165,62 +165,20 @@ https://slurm.schedmd.com/rosetta.pdf</p>
 </code></pre>
 <h2 id="git-guide">Git guide</h2>
 <p>A comprehensive guide to git:</p>
-<p>https://www.tutorialspoint.com/git/git_quick_guide.htm</p>
+<p><a href="https://www.tutorialspoint.com/git/git_quick_guide.htm">https://www.tutorialspoint.com/git/git_quick_guide.htm</a></p>
 <p>in particular, a useful guide to "rebase a branch to master" is</p>
-<p>https://www.theserverside.com/blog/Coffee-Talk-Java-News-Stories-and-Opinions/How-to-Git-rebase-a-branch-to-master-example</p>
+<p><a href="https://www.theserverside.com/blog/Coffee-Talk-Java-News-Stories-and-Opinions/How-to-Git-rebase-a-branch-to-master-example">https://www.theserverside.com/blog/Coffee-Talk-Java-News-Stories-and-Opinions/How-to-Git-rebase-a-branch-to-master-example</a></p>
 <h2 id="visit">VisIt</h2>
 <p>The VisIt wiki is here:</p>
-<p>http://www.visitusers.org/index.php?title=Main_Page</p>
+<p><a href="http://www.visitusers.org/index.php?title=Main_Page">http://www.visitusers.org/index.php?title=Main_Page</a></p>
 <p>and the user manual is here:</p>
-<p>http://visit-sphinx-user-manual.readthedocs.io/en/latest/</p>
+<p><a href="http://visit-sphinx-user-manual.readthedocs.io/en/latest/">http://visit-sphinx-user-manual.readthedocs.io/en/latest/</a></p>
 <h2 id="yt">yt</h2>
 <p>The yt package is also useful for analysing data, and has an excellent cookbook containing examples:</p>
-<p>http://yt-project.org/doc/index.html</p>
+<p><a href="http://yt-project.org/doc/index.html">http://yt-project.org/doc/index.html</a></p>
 <h2 id="miscellaneous">Miscellaneous</h2>
 <p>A very useful GUI tool to compare two directories is Meld:</p>
-<h1 id="welcome-to-grteclyns-documentation">Welcome to GRTeclyn's documentation!</h1>
-<p>GRTeclyn is a flexible numerical relativity code based on <a href="https://github.com/GRTLCollaboration/GRChombo">GRChombo</a> and
-built on the <a href="https://amrex-codes.github.io/amrex/">AMReX</a> library. The
-GRTeclyn source code is available on
-<a href="https://github.com/GRTLCollaboration/GRTeclyn">GitHub</a> under the
-BSD-3-Clause license.</p>
-<p>If you can't find the answers to your questions here, we also have a GitHub <a href="https://github.com/GRTLCollaboration/GRTeclyn/wiki">Wiki</a> and Slack channel (contact us for details on how to sign up). </p>
-<h2 id="where-should-i-start">Where should I start?</h2>
-<p>Here are some suggestions depending on your goal:</p>
-<h3 id="i-want-to-know-if-grteclyn-is-the-right-code-for-my-research-project"><em>I want to know if GRTeclyn is the right code for my research project</em></h3>
-<p>Start with the <a href=""><strong>Capabilities</strong></a> page for an overview of GRTeclyn's current features.</p>
-<p>GRTeclyn is <strong>not</strong> a black-box code. You’ll need to understand how it works, and may need to write your own tools for specific applications. If you're a supervisor planning to assign a student to work on the code, please ensure you have sufficient background in <strong>numerical relativity</strong> and <strong>C++/GPU computing</strong> to support them.</p>
-<p>For simpler projects e.g. for masters students, consider using the 1D code <a href="https://github.com/GRTLCollaboration/engrenage/wiki"><strong>engrenage</strong></a>, which is a python based code that runs easily on laptops.</p>
-<h4 id="i-want-to-compile-and-run-an-example-eg-binary-black-hole-merger"><em>I want to compile and run an example (e.g. binary black hole merger)</em></h4>
-<p>Follow sequentially the <strong>Getting started</strong> section. This step-by-step guide assumes only basic command-line experience (that of most new PhD students). We also assume access to a high-performance computing cluster (preferably with GPU support). While we provide laptop tips, most realistic simulations require HPC.</p>
-<h4 id="i-already-have-nr-experience-and-want-to-use-or-adapt-the-code"><em>I already have NR experience and want to use or adapt the code</em></h4>
-<ol>
-<li>Still begin with the <strong>Getting started</strong> section to ensure your environment is set up properly.</li>
-<li>Then head to the section <strong>Doing Physics with GRTeclyn</strong>, which covers the code structure, design philosophy and guidance for adding your own physics</li>
-</ol>
-<p>If you have questions, feel free to <a href="Contact-us"><strong>Contact us</strong></a> — we’ll try to help. But do keep in mind our unofficial motto:</p>
-<blockquote>
-<p><em>“If you want it, you build it.”</em></p>
-</blockquote>
-<p>Before publishing results, don’t forget to check the <a href="License"><strong>License</strong></a> and <a href="Citation"><strong>Citation</strong></a> pages.</p>
-<h4 id="i-found-a-bug"><em>I found a bug</em></h4>
-<p>Please file an <a href="https://github.com/GRTLCollaboration/GRTeclyn/issues">issue</a> on <strong>GitHub</strong>:
-- Include your code version/commit hash
-- Try to include as much information as you can, including: 
-  - Detailed steps to reproduce the issue
-  - Your build/runtime environment
-  - Any error messages
-  - The expected outcome/output of your run</p>
-<p>You can also <a href="Contact-us"><strong>Contact us</strong></a>, but GitHub Issues are preferred for code-related problems.</p>
-<h4 id="i-want-to-contribute-to-grteclyn"><em>I want to contribute to GRTeclyn</em></h4>
-<p>That's great! See <a href="Contributing-to-GRTeclyn"><strong>Contributing to GRTeclyn</strong></a> for contribution guidelines and tips to get started.</p>
-<h3 id="disclaimer">️ Disclaimer</h3>
-<blockquote>
-<p><strong>GRTeclyn is a research code under active development.</strong><br />
-We aim to provide a stable core, but not all features are guaranteed to work perfectly.<br />
-<strong>Use it at your own risk!</strong>
-https://meldmerge.org/</p>
-</blockquote>
+<p><a href="https://meldmerge.org/">https://meldmerge.org/</a></p>
               
             </div>
           </div><footer>

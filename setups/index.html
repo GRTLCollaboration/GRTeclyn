@@ -82,6 +82,28 @@
               <ul class="current">
                 <li class="toctree-l1 current"><a class="reference internal current" href="#">Working on HPC systems</a>
     <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#mac-laptop">Mac laptop</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#cosma8-cpus">Cosma8 (CPUs)</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#cosma8-gpus">Cosma8 (GPUs)</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#amd-mi300x-partition">AMD MI300X partition</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#tursa">Tursa</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#building-grteclyn">Building GRTeclyn</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#running-grteclyn">Running GRTeclyn</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#swirles">Swirles</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#csd3">CSD3</a>
+    </li>
     </ul>
                 </li>
               </ul>
@@ -112,10 +134,12 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
             <div class="section" itemprop="articleBody">
               
-                <p>In general you should start with an example hybrid MPI/OpenMP or GPU jobscript from your cluster documentation, and adapt it for your GRChombo run.</p>
+                <h1 id="working-on-hpc-systems">Working on HPC systems</h1>
+<p>In general you should start with an example hybrid MPI/OpenMP or GPU jobscript from your cluster documentation, and adapt it for your GRChombo run.</p>
 <p>However, some example jobs for systems we often use are collected here - to be copied at your own risk!</p>
 <hr />
-<h2 id="a-mac-laptop-only-really-for-debugging">A Mac laptop (only really for debugging)</h2>
+<h2 id="mac-laptop">Mac laptop</h2>
+<p>This is really for only for debugging. </p>
 <p>Install command line tools on your Mac using the command <code>xcode-select --install</code> in the terminal.</p>
 <p>In the <code>make.local-pre</code> file:</p>
 <pre><code>COMP = llvm
@@ -124,7 +148,7 @@ USE_MPI = FALSE
 </code></pre>
 <p>then to run <code>./main3d.llvm.ex params.txt</code>.</p>
 <hr />
-<h2 id="cosma8-cpu-partition">Cosma8 (CPU partition)</h2>
+<h2 id="cosma8-cpus">Cosma8 (CPUs)</h2>
 <p>The modules used</p>
 <pre><code>module load gnu_comp openmpi
 </code></pre>
@@ -199,7 +223,8 @@ workdir=&quot;$SLURM_SUBMIT_DIR&quot;
 mpirun --map-by ppr:$mpi_tasks_per_node:node -np $SLURM_NTASKS $application $options
 </code></pre>
 <hr />
-<h2 id="cosma8-amd-mi300x-partition">Cosma8 (AMD MI300X partition)</h2>
+<h2 id="cosma8-gpus">Cosma8 (GPUs)</h2>
+<h3 id="amd-mi300x-partition">AMD MI300X partition</h3>
 <p>The modules used</p>
 <pre><code>module load hipcc/6.3amd openmpi/5.0.3
 </code></pre>
@@ -261,7 +286,7 @@ Then every time you log back into Tursa, you can load the same environment using
 </ol>
 <pre><code>srun -p pvc --nodes=1 --ntasks=28 --gres=gpu:1 --time=1:00:00 --pty bash
 </code></pre>
-<p>This will give you a quarter of the node and 1 GPU for 1 hour (each node has 4 GPUs and 112 cores spread over 2 sockets). If you want your own node add <code>--exclusive</code> and change to <code>--gres=gpu:4</code>. Do not build GRTeclyn on the head node if you want to run on the Intel GPUs - it is a different architecture. </p>
+<p>This will give you a quarter of the node and 1 GPU for 1 hour (each node has 4 GPUs and 112 cores spread over 2 sockets). If you want your own node add <code>--exclusive</code> and change to <code>--gres=gpu:4</code>. Do not build GRTeclyn on the head node if you want to run on the Intel GPUs - it has a different architecture. </p>
 <ol>
 <li>Source the environment from the git repo <code>swirles-training</code>:</li>
 </ol>
