@@ -302,8 +302,8 @@ void BinaryBHLevel::specificPostTimeStep()
     if (Level() == 1)
     {
         // set the interpolator
-        ParticleInterpolators interpolator(simParams().boundary_params,
-                                           c_chi, 1);
+        ParticleInterpolators interpolator(simParams().boundary_params, c_chi,
+                                           1);
         interpolator.set_gramr_ptr(get_gramr_ptr());
 
         // set up the query and execute it

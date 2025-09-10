@@ -27,6 +27,9 @@ class ParticleInterpolators
     int m_start_comp{0}; // first component
     int m_ncomp{1};      // number of components
 
+    bool m_particles_seeded{false};
+    bool m_need_redistribute{false};
+
     // physical domain corners on level 0 for parity logic
     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> m_prob_lo{};
     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> m_prob_hi{};
@@ -57,9 +60,9 @@ class ParticleInterpolators
 
     // a function to reflect a particle back into the valid domain, when
     // symmetry BCs are used
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    static amrex::Real reflect_particle(amrex::Real x, amrex::Real lo, amrex::Real hi,
-                                 bool lo_reflect, bool hi_reflect);
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static amrex::Real
+    reflect_particle(amrex::Real x, amrex::Real lo, amrex::Real hi,
+                     bool lo_reflect, bool hi_reflect);
 
     // allocate particles at the query points
     void populate_from_query(const InterpolationQueryParticle &query);
@@ -73,7 +76,12 @@ class ParticleInterpolators
 
     // A function to check whether the query point is inside the physical domain
     template <int dim>
-    void check_domain(const std::array<double, dim> &x, int guard_cells = 0) const;
+    void check_domain(const std::array<double, dim> &x,
+                      int guard_cells = 0) const;
+
+    inline void ensure_redistributed();
+
+    void force_redistribute(bool flag) noexcept;
 
     // TODO: I have not tested the below yet!!
 

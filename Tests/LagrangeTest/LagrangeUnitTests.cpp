@@ -124,12 +124,12 @@ void run_lagrange_test()
         auto &particle_tile =
             particles.DefineAndReturnParticleTile(lev, grid, tile);
         particle_tile.resize(1); // create space for one particle
-        
-	auto ptd = particle_tile.getParticleTileData();
+
+        auto ptd              = particle_tile.getParticleTileData();
         amrex::ParticleReal x = x_interp, y = y_interp, z = z_interp;
-		
+
         MyParticleContainer::ParticleType p;
-	p.id()   = MyParticleContainer::ParticleType::NextID();
+        p.id()   = MyParticleContainer::ParticleType::NextID();
         p.cpu()  = amrex::ParallelDescriptor::MyProc();
         p.pos(0) = x;
         p.pos(1) = y;
@@ -153,11 +153,10 @@ void run_lagrange_test()
         amrex::Array4<const double> const_out_array = out_array;
         interp.interpolate(&const_out_array, result, c_poly, 1);
 
-	amrex::ParticleReal val0 = result[0];
-	amrex::ParallelFor(1, [=] AMREX_GPU_DEVICE (int i) {
-	ptd[i].rdata(0) = val0;
-	});
-	amrex::Gpu::streamSynchronize();
+        amrex::ParticleReal val0 = result[0];
+        amrex::ParallelFor(1, [=] AMREX_GPU_DEVICE(int i)
+                           { ptd[i].rdata(0) = val0; });
+        amrex::Gpu::streamSynchronize();
 
         double interp_val = static_cast<double>(result[0]);
         double error      = std::abs(interp_val - expected_val);

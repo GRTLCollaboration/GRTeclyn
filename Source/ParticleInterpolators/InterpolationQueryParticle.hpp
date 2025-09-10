@@ -56,6 +56,17 @@ class InterpolationQueryParticle
     {
         AMREX_ASSERT(out_ptr != NULL || m_num_points == 0);
 
+        // for now we do not allow derivatives
+        for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
+        {
+            if (deriv[dir] != 0)
+            {
+                amrex::Abort(
+                    "InterpolationQueryParticle::addComp(): "
+                    "Derivative interpolation is not yet implemented :/ !");
+            }
+        }
+
         auto result = m_comps.find(deriv);
         if (result == m_comps.end())
         {
@@ -92,6 +103,13 @@ class InterpolationQueryParticle
     inline iterator compsBegin() { return m_comps.begin(); }
 
     inline iterator compsEnd() { return m_comps.end(); }
+
+    // some gpu friendly overloads
+    InterpolationQueryParticle &
+    setCoords(int dim, const amrex::Gpu::ManagedVector<double> &v)
+    {
+        return setCoords(dim, v.data()); // managed pointer (host+device)
+    }
 };
 
 #endif /* INTERPOLATIONQUERYPARTICLE_HPP_ */
