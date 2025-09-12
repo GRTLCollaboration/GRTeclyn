@@ -8,18 +8,18 @@
 
 #include "Derivative.hpp"
 
-const Derivative Derivative::LOCAL;
+inline const Derivative Derivative::LOCAL;
 
-const Derivative Derivative::dx(0);
-const Derivative Derivative::dy(1);
-const Derivative Derivative::dz(2);
+inline const Derivative Derivative::dx(0);
+inline const Derivative Derivative::dy(1);
+inline const Derivative Derivative::dz(2);
 
-const Derivative Derivative::dxdx(0, 0);
-const Derivative Derivative::dydy(1, 1);
-const Derivative Derivative::dzdz(2, 2);
+inline const Derivative Derivative::dxdx(0, 0);
+inline const Derivative Derivative::dydy(1, 1);
+inline const Derivative Derivative::dzdz(2, 2);
 
-const Derivative Derivative::dxdy(0, 1);
-const Derivative Derivative::dxdz(0, 2);
-const Derivative Derivative::dydz(1, 2);
+inline const Derivative Derivative::dxdy(0, 1);
+inline const Derivative Derivative::dxdz(0, 2);
+inline const Derivative Derivative::dydz(1, 2);
 
 #endif /* DERIVATIVESETUP_HPP_ */

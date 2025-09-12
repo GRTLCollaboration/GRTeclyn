@@ -165,7 +165,7 @@ void run_lagrange_test()
 
             double value_A = 42. + x * x + y * y * z * z;
 
-            diff = abs(A[ipoint] - value_A);
+            diff = fabs(A[ipoint] - value_A);
 
             amrex::Print() << "Absolute error is " << std::setprecision(10)
                            << diff << "\n";

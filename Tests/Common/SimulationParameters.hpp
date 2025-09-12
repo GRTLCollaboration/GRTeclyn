@@ -34,6 +34,8 @@ class SimulationParameters : public SimulationParametersBase
 
         pp.load("fake_bh1_mass", fake_bh1_mass, 0.5);
         pp.load("fake_bh2_mass", fake_bh2_mass, 0.5);
+
+        pp.load("num_points", num_points, 2);
     }
 
     bool puncture_tracking_enabled{};
@@ -43,6 +45,8 @@ class SimulationParameters : public SimulationParametersBase
 
     amrex::Real fake_bh1_mass{};
     amrex::Real fake_bh2_mass{};
+
+    int num_points;
 };
 
 #endif /* SIMULATIONPARAMETERS_HPP */
