@@ -1,0 +1,36 @@
+#################################################
+# Filesystem parameters
+
+verbosity = 0
+
+output_path = .
+
+#################################################
+# Grid parameters
+
+N_full = 32
+L_full = 16
+
+max_level = 1
+regrid_interval = 1 1
+num_ghosts = 3
+
+#################################################
+# Boundary Conditions parameters
+#Periodic directions - 0 = false, 1 = true
+isPeriodic = 0 0 0
+# if not periodic, then specify the boundary type
+# 0 = static, 1 = sommerfeld, 2 = reflective
+# (see BoundaryConditions.hpp for details)
+hi_boundary = 1 1 1
+lo_boundary = 1 1 1
+
+#################################################
+# Evolution parameters
+
+max_steps = 2
+
+#################################################
+# Extraction parameters
+
+num_points = 30

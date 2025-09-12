@@ -20,160 +20,159 @@
 #include <AMReX_Print.H>
 #include "AMReX_IntVect.H"
 
-// Our includes
-#include "LagrangeInterpolation.hpp"
+// Base includes
+#include "DefaultLevelFactory.hpp"
+#include "GRAMR.hpp"
+#include "GRParmParse.hpp"
+
+// Problem specific includes
+#include "Derivative.hpp"
+#include "DerivativeSetup.hpp"
+#include "InterpolatorTestLevel.hpp"
+#include "ParticleInterpolators.hpp"
 #include "PolynomialTest.hpp"
-// #include "LinearInterpolation.hpp"
+#include "SimulationParameters.hpp"
 
-enum
-{
-    c_poly,
-    NUM_POLYNOMIAL_VARS
-};
+// Others
+#include <filesystem>
 
-// A made-up interpolation problem
+// An interpolation problem borrowed from original GRChombo tests (using only
+// one polynomial example however) We treat the polynomial as a derived
+// variable, and then interpolate it to some points using the
+// ParticleInterpolators class.
+
 void run_lagrange_test()
 {
-    int amrex_argc    = doctest::cli_args.argc();
-    char **amrex_argv = doctest::cli_args.argv();
+
+    // Use an input file that is in the same directory as this file for the
+    // second argument
+    std::filesystem::path this_file(__FILE__);
+    std::filesystem::path input_file =
+        this_file.parent_path() /
+        std::filesystem::path("AMRInterpolatorTest.inputs");
+    char *input_file_c_str = strdup(input_file.c_str());
+
+    auto new_args = doctest::cli_args;
+    new_args.insert(1, input_file_c_str);
+
+    int new_argc    = new_args.argc();
+    char **new_argv = new_args.argv();
+
     // NOLINTNEXTLINE(bugprone-casting-through-void) // Open MPI triggers this
-    amrex::Initialize(amrex_argc, amrex_argv);
+    amrex::Initialize(new_argc, new_argv);
     {
-        // First custom thing below
-        const int nx        = 32;           // number of cells
-        double length       = 32.;          // total length of the grid
-        const double center = 0.5 * length; // grid center
-        std::array<double, AMREX_SPACEDIM> center_vector = {
-            center, center, center};       // center of the grid
-        const double dx     = length / nx; // grid spacing
-        const double inv_dx = 1. / dx;     // inverse grid spacing
+        // Simulation parameters
+        GRParmParse pp;
+        SimulationParameters sim_params(pp);
+        GRAMR::set_simulation_parameters(sim_params);
 
-        // Build grid data
-        amrex::Box box(amrex::IntVect(0, 0, 0),
-                       amrex::IntVect(nx - 1, nx - 1, nx - 1));
+        // Set the center
+        PolynomialTest::set_center(sim_params.center);
 
-        // define number of components in the FArrayBox (we have only 1)
-        amrex::FArrayBox out_fab(
-            box, NUM_POLYNOMIAL_VARS,
-            amrex::The_Managed_Arena()); // managed memory arena supports both
-                                         // CPU and GPU?
+        // Set up the AMR object
+        DefaultLevelFactory<InterpolatorTestLevel> interpolator_test_level_fact;
+        GRAMR gr_amr(&interpolator_test_level_fact);
+        gr_amr.init(0., sim_params.stop_time);
 
-        auto out_array = out_fab.array(); // get the element-wise access to the
-                                          // data stored in the FArrayBox
+        // Build the polynomial on the grid; we iterate over levels and fill a
+        // MultiFab at each level
+        const int finest = gr_amr.finestLevel(); // get finest level here
+        const int ngrow  = 2;                    // no of ghost cells
+        std::vector<std::unique_ptr<amrex::MultiFab>> poly_by_lev(finest + 1);
 
-        // Ok, now we are ready to populate the polynomial on the grid
-        PolynomialTest poly_test(center_vector, dx);
+        // iterate
+        for (int lev = 0; lev <= finest; ++lev)
+        {
+            auto &L        = gr_amr.getLevel(lev);       // level
+            auto &state    = L.get_new_data(State_Type); // state data
+            const auto &ba = state.boxArray();           // box array
+            const auto &dm = state.DistributionMap();    // distribution map
 
-        amrex::ParallelFor(box,
-                           [=] AMREX_GPU_DEVICE(int i, int j, int k)
-                           {
-                               // We are cell-centered, so...
-                               const double x = (i + 0.5) * dx - center;
-                               const double y = (j + 0.5) * dx - center;
-                               const double z = (k + 0.5) * dx - center;
+            poly_by_lev[lev] = std::make_unique<amrex::MultiFab>(
+                ba, dm, 1, ngrow); // we have 1 number of comps
 
-                               const amrex::IntVect iv{i, j, k};
-
-                               double val = poly_test.compute(i, j, k);
-                               out_array(i, j, k, c_poly) = val;
-                           });
-
+            // fill the MultiFab: note that destination comp = 0, number of
+            // components = 1, geometry is read from AMRLevel see e.g. here
+            // (https://amrex-codes.github.io/amrex/doxygen/classamrex_1_1AmrLevel.html)
+            PolynomialTest::compute_mf(
+                *poly_by_lev[lev], 0, 1, *poly_by_lev[lev], // unused
+                L.Geom(), /*time=*/0.0, /*bcrec=*/nullptr, lev);
+        }
         amrex::Gpu::streamSynchronize();
 
-        // Random point where we will interpolate later on below, this is also
-        // the position where we put the particle on
-        amrex::IntVect cell(20, 20, 20);
-        double x_interp = (cell[0] + 0.1) * dx - center;
-        double y_interp = (cell[1] + 0.5) * dx - center;
-        double z_interp = (cell[2] + 0.7) * dx - center;
+        // Build the point from sim_params
+        const int num_points = sim_params.num_points;
 
-        // Get the expected value; will be used in the check later on
-        double expected_val =
-            poly_test.compute_polynomial(x_interp, y_interp, z_interp);
+        std::vector<double> A(num_points);
+        std::vector<double> interp_x(num_points);
+        std::vector<double> interp_y(num_points);
+        std::vector<double> interp_z(num_points);
 
-        // Define a particle container: we have only one particle, so this is
-        // redundant, but will be useful for the future
-        using MyParticleContainer = amrex::ParticleContainer<AMREX_SPACEDIM, 1>;
-        MyParticleContainer particles;
+        double extract_radius = sim_params.L / 4;
 
-        // Now, we are ready to set-up our particle. This requires defining: (i)
-        // geometry (ii) distribution mapping and (iii) a box array.
+        for (int ipoint = 0; ipoint < num_points; ++ipoint)
+        {
+            double phi   = ipoint * 2. * M_PI / num_points;
+            double theta = ipoint * M_PI / num_points;
+            interp_x[ipoint] =
+                sim_params.center[0] + extract_radius * cos(phi) * sin(theta);
+            interp_y[ipoint] =
+                sim_params.center[1] + extract_radius * sin(phi) * sin(theta);
+            interp_z[ipoint] =
+                sim_params.center[2] + extract_radius * cos(theta);
+        }
 
-        // First, geometry:
-        amrex::RealVect prob_lo{-0.5 * length};
-        amrex::RealVect prob_hi{+0.5 * length};
-        amrex::RealBox real_box{
-            prob_lo.dataPtr(),
-            prob_hi.dataPtr()}; // real box is essentially the physical box,
-                                // unlike just the 'box' in Amrex.
-        int coord_sys = 0;      // for Cartesian coordinates
-        amrex::Geometry geom{box, &real_box, coord_sys};
+        // std::cout << "Interp_x[0] " << interp_x[0] - sim_params.center[0] <<
+        // std::endl; std::cout << "Interp_y[0] " << interp_y[0] -
+        // sim_params.center[1] << std::endl; std::cout << "Interp_z[0] " <<
+        // interp_z[0] - sim_params.center[2] << std::endl;
 
-        // Second: box array
-        amrex::BoxArray box_array{box};
+        // set-up query
+        InterpolationQueryParticle query(num_points);
+        query.setCoords(0, interp_x.data())
+            .setCoords(1, interp_y.data())
+            .setCoords(2, interp_z.data())
+            .addComp(0, A.data(), Derivative::LOCAL, VariableType::derived);
 
-        // Third: distribution mapping
-        amrex::DistributionMapping distribution_mapping(box_array);
-        particles.Define(geom, distribution_mapping, box_array);
+        // set up interpolation using Particles
+        ParticleInterpolators interpolator(sim_params.boundary_params, 0, 1);
+        interpolator.set_gramr_ptr(&gr_amr);
+        interpolator.populate_from_query(query);
 
-        // For the particle:
-        int lev  = 0;
-        int grid = 0;
-        int tile = 0;
+        std::vector<const amrex::MultiFab *> fields;
+        fields.reserve(poly_by_lev.size());
+        for (const auto &mf_uptr : poly_by_lev)
+        {
+            fields.push_back(
+                mf_uptr.get()); // convert to const amrex::MultiFab* to feed to
+                                // interp call like below
+        }
 
-        auto &particle_tile =
-            particles.DefineAndReturnParticleTile(lev, grid, tile);
-        particle_tile.resize(1); // create space for one particle
+        std::vector<int> comps(fields.size(),
+                               0); // we have only one comp, which is 0
 
-        auto ptd              = particle_tile.getParticleTileData();
-        amrex::ParticleReal x = x_interp, y = y_interp, z = z_interp;
+        interpolator.interpolate_to_particle_from_derived_fields(fields);
 
-        MyParticleContainer::ParticleType p;
-        p.id()   = MyParticleContainer::ParticleType::NextID();
-        p.cpu()  = amrex::ParallelDescriptor::MyProc();
-        p.pos(0) = x;
-        p.pos(1) = y;
-        p.pos(2) = z;
+        interpolator.interp(query, VariableType::derived);
 
-        // For debugging
-        // std::cout << "Particle initialized with ID: " << p.id() << "\n";
-        // std::cout << "Particle position: (" << p.pos(0) << ", "
-        //           << p.pos(1) << ", " << p.pos(2) << ")\n";
+        double diff = 0; // absolute error
 
-        // Now we can interpolate using 4th order Lagrange
-        amrex::GpuArray<amrex::Real, 3> plo = {-0.5 * length, -0.5 * length,
-                                               -0.5 * length};
-        amrex::GpuArray<amrex::Real, 3> dxi = {inv_dx, inv_dx, inv_dx};
-        amrex::IntVect is_nodal{0, 0, 0};
+        for (int ipoint = 0; ipoint < num_points; ++ipoint)
+        {
+            double x = interp_x[ipoint] - sim_params.center[0];
+            double y = interp_y[ipoint] - sim_params.center[1];
+            double z = interp_z[ipoint] - sim_params.center[2];
 
-        LagrangeInterpolator<5> interp;
-        // LinearInterpolator interp;
-        interp.compute_weights(p, plo, dxi, is_nodal);
-        amrex::ParticleReal result[1]; // One component
-        amrex::Array4<const double> const_out_array = out_array;
-        interp.interpolate(&const_out_array, result, c_poly, 1);
+            double value_A = 42. + x * x + y * y * z * z;
 
-        amrex::ParticleReal val0 = result[0];
-        amrex::ParallelFor(1, [=] AMREX_GPU_DEVICE(int i)
-                           { ptd[i].rdata(0) = val0; });
-        amrex::Gpu::streamSynchronize();
+            diff = abs(A[ipoint] - value_A);
 
-        double interp_val = static_cast<double>(result[0]);
-        double error      = std::abs(interp_val - expected_val);
+            amrex::Print() << "Absolute error is " << std::setprecision(10)
+                           << diff << "\n";
 
-        const double test_tolerance = 1e-10; // set your desired tolerance
-        const int cout_precision    = 17;
+            CHECK(diff == doctest::Approx(0.0).epsilon(1e-10));
+        }
 
-        amrex::Print() << "Interpolated value is "
-                       << std::setprecision(cout_precision) << interp_val
-                       << "\n"
-                       << "Expected value is "
-                       << std::setprecision(cout_precision) << expected_val
-                       << "\n"
-                       << "Absolute error is "
-                       << std::setprecision(cout_precision) << error << "\n";
-
-        CHECK(error == doctest::Approx(0.0).epsilon(test_tolerance));
+        amrex::Finalize();
     }
-    amrex::Finalize();
 }

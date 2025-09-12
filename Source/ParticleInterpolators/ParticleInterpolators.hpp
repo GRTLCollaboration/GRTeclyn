@@ -70,9 +70,13 @@ class ParticleInterpolators
     // interpolate variables into SOA slots
     void interpolate_to_particle();
 
+    // interpolate variables into SOA slots for derived vars
+    void interpolate_to_particle_from_derived_fields(
+        const std::vector<const amrex::MultiFab *> &fields);
+
     // mirror of AMRInterpolator::interp(); assembles all particle data and
     // writes parity * value into the query out arrays
-    void interp(InterpolationQueryParticle &query);
+    void interp(InterpolationQueryParticle &query, VariableType variable_type);
 
     // A function to check whether the query point is inside the physical domain
     template <int dim>

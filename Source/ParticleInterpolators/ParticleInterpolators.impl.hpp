@@ -12,6 +12,7 @@
 
 #include "InterpolationQueryParticle.hpp"
 #include "LagrangeInterpolation.hpp"
+#include "VariableType.hpp"
 
 // amrex includes
 
@@ -282,13 +283,96 @@ void ParticleInterpolators::interpolate_to_particle()
     m_need_redistribute = true;
 }
 
-// mirror of AMRInterpolator::interp(); assembles all particle data and writes
-// parity * value into the query out arrays
-// This is currently done on CPUs; I am not sure if there is an advantage of
-// having any of this on GPUs
-void ParticleInterpolators::interp(InterpolationQueryParticle &query)
+// Interpolation for derived vars, takes in MultiFab and comps (unique
+// components numbers), as e.g. we may want to interpolate several fields at
+// once. However, as per current implementation, we can have only contiguous
+// comps
+void ParticleInterpolators::interpolate_to_particle_from_derived_fields(
+    const std::vector<const amrex::MultiFab *> &fields_by_lev)
 {
     AMREX_ASSERT(m_initialized);
+
+    const int nlevs = m_gr_amr->finestLevel() + 1;
+    AMREX_ASSERT((int)fields_by_lev.size() == nlevs);
+
+    ensure_redistributed();
+
+    const int start_comp = m_start_comp;
+    const int ncomp      = m_ncomp;
+
+    for (int lev = 0; lev <= m_gr_amr->finestLevel(); ++lev)
+    {
+        if (this->NumberOfParticlesAtLevel(lev) == 0)
+            continue;
+
+        auto &level               = m_gr_amr->getLevel(lev);
+        const auto &geom          = level.Geom();
+        const amrex::MultiFab &mf = *fields_by_lev[lev];
+
+        AMREX_ASSERT(mf.nComp() >= m_start_comp + m_ncomp);
+
+        // Fill boundaries
+        amrex::IntVect nghost(AMREX_D_DECL(2, 2, 2));
+        const_cast<amrex::MultiFab &>(mf).FillBoundary(
+            m_start_comp, m_ncomp, nghost, geom.periodicity());
+
+        const auto plo = geom.ProbLoArray();
+        const auto dxi = geom.InvCellSizeArray();
+
+        for (ParIterType it(*this, lev); it.isValid(); ++it)
+        {
+            auto arrs    = mf[it].const_array();
+            auto &ptile  = this->ParticlesAt(lev, it);
+            auto ptd     = ptile.getParticleTileData();
+            const int np = it.numParticles();
+
+            amrex::ParallelFor(
+                np,
+                [=] AMREX_GPU_DEVICE(int ip)
+                {
+                    auto &sp = ptd[ip];
+
+                    amrex::IntVect is_nodal = amrex::IntVect::TheZeroVector();
+                    LagrangeInterpolator<5> interp;
+                    interp.compute_weights(sp, plo, dxi, is_nodal);
+
+                    amrex::ParticleReal vals[AMREX_SPACEDIM];
+                    interp.interpolate(&arrs, vals, start_comp, ncomp);
+                    for (int k = 0; k < ncomp; ++k)
+                    {
+                        ptd.rdata(k)[ip] = vals[k];
+                    }
+                });
+        }
+        amrex::Gpu::streamSynchronize();
+    }
+
+    m_particles_seeded  = true;
+    m_need_redistribute = true;
+}
+
+// mirror of AMRInterpolator::interp(); assembles all particle data and writes
+// parity * value into the query out arrays
+// Throws an error now if use requests interpolation of a derived variable and
+// applies reflective BCs (needs fixing later!!) This is currently done on CPUs;
+// I am not sure if there is an advantage of having any of this on GPUs
+void ParticleInterpolators::interp(
+    InterpolationQueryParticle &query,
+    VariableType variable_type = VariableType::state)
+{
+    AMREX_ASSERT(m_initialized);
+
+    if (variable_type == VariableType::derived)
+    {
+        for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
+        {
+            if (m_lo_boundary_reflective[dir] || m_hi_boundary_reflective[dir])
+            {
+                amrex::Abort("Help!!! Sorry, interp(): reflective BCs with "
+                             "derived variables not supported yet");
+            }
+        }
+    }
 
     // get total query points here
     const int npts = static_cast<int>(query.numPoints());
@@ -383,7 +467,8 @@ void ParticleInterpolators::interp(InterpolationQueryParticle &query)
 
                 const int k =
                     comp -
-                    m_start_comp; // reindex the variable component from 0
+                    m_start_comp; // reindex the variable component from 0;
+                                  // works only for contiguous components
                 AMREX_ALWAYS_ASSERT(k >= 0 && k < m_ncomp);
 
                 for (int ip = 0; ip < npts; ++ip)
