@@ -28,7 +28,7 @@ class ParticleInterpolators
     int m_ncomp{1};      // number of components
 
     bool m_particles_seeded{false};
-    bool m_need_redistribute{false};
+    bool m_need_redistribute{true};
 
     // physical domain corners on level 0 for parity logic
     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> m_prob_lo{};

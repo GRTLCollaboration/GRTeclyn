@@ -68,6 +68,8 @@ void run_lagrange_test()
 
         // Set the center
         PolynomialTest::set_center(sim_params.center);
+	
+	amrex::Print() << "NProcs = " << amrex::ParallelDescriptor::NProcs() << "\n";
 
         // Set up the AMR object
         DefaultLevelFactory<InterpolatorTestLevel> interpolator_test_level_fact;

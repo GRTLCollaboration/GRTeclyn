@@ -295,7 +295,7 @@ void ParticleInterpolators::interpolate_to_particle()
     }
 
     m_particles_seeded  = true;
-    m_need_redistribute = true;
+    m_need_redistribute = false;
 }
 
 // Interpolation for derived vars, takes in MultiFab and comps (unique
@@ -363,7 +363,7 @@ void ParticleInterpolators::interpolate_to_particle_from_derived_fields(
     }
 
     m_particles_seeded  = true;
-    m_need_redistribute = true;
+    m_need_redistribute = false;
 }
 
 // mirror of AMRInterpolator::interp(); assembles all particle data and writes
