@@ -71,24 +71,29 @@ class PolynomialTest
 
         PolynomialTest polynomial(ipoly);
 
+        auto center = my_center;
+
         amrex::ParallelFor(out_mf, out_mf.nGrowVect(),
                            [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
                            {
                                // compute for given cell (i,j,k) in box number
                                // box_no
                                polynomial.compute(i, j, k, out_arrays[box_no],
-                                                  src_arrays[box_no], plo, dx);
+                                                  src_arrays[box_no], plo, dx,
+                                                  center);
                            });
     }
 
     // Compute function
     AMREX_GPU_DEVICE
-    void compute(int i, int j, int k, const amrex::Array4<amrex::Real> &cst,
-                 const amrex::Array4<amrex::Real const> &state,
-                 amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const &plo,
-                 amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const &dx) const
+    void
+    compute(int i, int j, int k, const amrex::Array4<amrex::Real> &cst,
+            const amrex::Array4<amrex::Real const> &state,
+            amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const &plo,
+            amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const &dx,
+            amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const &center) const
     {
-        auto ctr = my_center;
+        const auto &ctr = center;
 
         // set up the coords
         amrex::Real x = plo[0] + (i + 0.5) * dx[0] - ctr[0];
