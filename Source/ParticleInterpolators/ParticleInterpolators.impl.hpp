@@ -400,8 +400,8 @@ void ParticleInterpolators::interp(
     const int npts = static_cast<int>(query.numPoints());
 
     // value_at_point[k][ip], where k in [0..m_ncomp-1]
-    std::vector<std::vector<double>> value_at_point(
-        m_ncomp, std::vector<double>(npts, 0.0));
+    std::vector<std::vector<amrex::Real>> value_at_point(
+        m_ncomp, std::vector<amrex::Real>(npts, 0.0));
     // a vector to mark which points have values
     std::vector<int> have(npts, 0);
 

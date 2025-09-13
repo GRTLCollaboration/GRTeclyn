@@ -155,22 +155,25 @@ void run_lagrange_test()
 
         interpolator.interp(query, VariableType::derived);
 
-        double diff = 0; // absolute error
-
-        for (int ipoint = 0; ipoint < num_points; ++ipoint)
+        if (amrex::ParallelDescriptor::IOProcessor())
         {
-            double x = interp_x[ipoint] - sim_params.center[0];
-            double y = interp_y[ipoint] - sim_params.center[1];
-            double z = interp_z[ipoint] - sim_params.center[2];
+            double diff = 0; // absolute error
 
-            double value_A = 42. + x * x + y * y * z * z;
+            for (int ipoint = 0; ipoint < num_points; ++ipoint)
+            {
+                double x = interp_x[ipoint] - sim_params.center[0];
+                double y = interp_y[ipoint] - sim_params.center[1];
+                double z = interp_z[ipoint] - sim_params.center[2];
 
-            diff = fabs(A[ipoint] - value_A);
+                double value_A = 42. + x * x + y * y * z * z;
 
-            amrex::Print() << "Absolute error is " << std::setprecision(10)
-                           << diff << "\n";
+                diff = fabs(A[ipoint] - value_A);
 
-            CHECK(diff == doctest::Approx(0.0).epsilon(1e-10));
+                amrex::Print() << "Absolute error is " << std::setprecision(10)
+                               << diff << "\n";
+
+                CHECK(diff == doctest::Approx(0.0).epsilon(1e-10));
+            }
         }
 
         amrex::Finalize();
