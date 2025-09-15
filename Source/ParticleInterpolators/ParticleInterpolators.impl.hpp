@@ -171,27 +171,25 @@ void ParticleInterpolators::populate_from_query(
         const amrex::Real *x_p = nullptr, *y_p = nullptr, *z_p = nullptr;
         amrex::Gpu::DeviceVector<amrex::Real> Xd, Yd, Zd;
 
-        if (amrex::Gpu::inLaunchRegion())
-        {
-            Xd.assign(x, x + n);
-            x_p = Xd.data();
-            Yd.assign(y, y + n);
-            y_p = Yd.data();
-#if AMREX_SPACEDIM == 3
-            Zd.assign(z, z + n);
-            z_p = Zd.data();
-#endif
-        }
-        else
-        {
-            x_p = reinterpret_cast<const amrex::Real *>(x);
-            y_p = reinterpret_cast<const amrex::Real *>(y);
-#if AMREX_SPACEDIM == 3
-            z_p = reinterpret_cast<const amrex::Real *>(z);
-#endif
-        }
+	// copy x,y,z to device vectors now
+        amrex::Gpu::DeviceVector<double> X(n), Y(n);
+        amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, x, x + n, X.begin());
+        amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, y, y + n, Y.begin());
 
-        // loop over particles and place them at the required points
+#if AMREX_SPACEDIM == 3
+        amrex::Gpu::DeviceVector<double> Z(n);
+        amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, z, z + n, Z.begin());
+#endif
+        amrex::Gpu::streamSynchronize(); // ensure copies complete
+
+        // Get raw device pointers to capture by value
+        auto x_d = X.data();
+        auto y_d = Y.data();
+#if AMREX_SPACEDIM == 3
+        auto z_d = Z.data();
+#endif
+
+	// loop over particles and place them at the required points
         amrex::ParallelFor(
             n,
             [=] AMREX_GPU_DEVICE(int ip)
@@ -202,14 +200,14 @@ void ParticleInterpolators::populate_from_query(
 
                 // reflect into valid region for seeding
                 const amrex::Real xr = reflect_particle(
-                    static_cast<amrex::Real>(x_p[ip]), prob_lo[0], prob_hi[0],
+                    static_cast<amrex::Real>(x_d[ip]), prob_lo[0], prob_hi[0],
                     lo_reflect[0], hi_reflect[0]);
                 const amrex::Real yr = reflect_particle(
-                    static_cast<amrex::Real>(y_p[ip]), prob_lo[1], prob_hi[1],
+                    static_cast<amrex::Real>(y_d[ip]), prob_lo[1], prob_hi[1],
                     lo_reflect[1], hi_reflect[1]);
 #if AMREX_SPACEDIM == 3
                 const amrex::Real zr = reflect_particle(
-                    static_cast<amrex::Real>(z_p[ip]), prob_lo[2], prob_hi[2],
+                    static_cast<amrex::Real>(z_d[ip]), prob_lo[2], prob_hi[2],
                     lo_reflect[2], hi_reflect[2]);
 #endif
 
