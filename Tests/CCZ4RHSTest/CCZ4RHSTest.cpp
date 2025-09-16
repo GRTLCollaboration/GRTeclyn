@@ -108,9 +108,8 @@ void run_ccz4_rhs_test()
             box,
             [=] AMREX_GPU_DEVICE(int i, int j, int k)
             {
-                current_ccz4_rhs.compute(i, j, k, current_out_array,
-                                         in_c_array);
                 old_ccz4_rhs.compute(i, j, k, old_out_array, in_c_array);
+                current_ccz4_rhs(i, j, k, current_out_array, in_c_array);
 
                 for (int ivar = 0; ivar < NUM_CCZ4_VARS; ++ivar)
                 {
