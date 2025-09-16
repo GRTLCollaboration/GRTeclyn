@@ -46,22 +46,23 @@ EMTensor<matter_t, em_tensor_options>::EMTensor(double a_dx, int a_dcomp)
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 template <class matter_t, enum EMTensorOptions em_tensor_options>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-EMTensor<matter_t, em_tensor_options>::compute(
-    int i, int j, int k, const amrex::Array4<amrex::Real> &out_arrays,
-    const amrex::Array4<const amrex::Real> &in_arrays) const
+EMTensor<matter_t, em_tensor_options>::operator()(
+    int ix, int iy, int iz, const amrex::Array4<amrex::Real> &emtensor_out,
+    const amrex::Array4<const amrex::Real> &state) const
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
-    const auto vars = load_vars<Vars>(in_arrays.cellData(i, j, k));
-    const auto d1   = m_deriv.template diff1<Vars>(i, j, k, in_arrays);
 
-    using namespace TensorAlgebra;
+    const amrex::CellData<const amrex::Real> &state_cell_data =
+        state.cellData(ix, iy, iz);
+    ConstVars vars(state_cell_data);
+    const typename matter_t::D1Vars d1(ix, iy, iz, state, m_deriv);
 
-    const auto h_UU  = compute_inverse_sym(vars.h);
-    const auto chris = compute_christoffel(d1.h, h_UU);
+    const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
+    const auto chris = TensorAlgebra::compute_christoffel(d1.h, h_UU);
 
     const auto emtensor = m_matter.compute_emtensor(vars, d1, h_UU, chris.ULL);
 
-    out_arrays(i, j, k, m_dcomp) = emtensor.rho;
+    emtensor_out(ix, iy, iz, m_dcomp) = emtensor.rho;
 
     if constexpr (em_tensor_options ==
                       EMTensorOptions::energyAndMomentumDensities ||
@@ -70,7 +71,7 @@ EMTensor<matter_t, em_tensor_options>::compute(
 #if DEFAULT_TENSOR_DIM == 3
         FOR (i)
         {
-            out_arrays(i, j, k, m_dcomp + 1 + i) = emtensor.j[i];
+            emtensor_out(ix, iy, iz, m_dcomp + 1 + i) = emtensor.j[i];
         }
 #endif
     }
@@ -78,12 +79,12 @@ EMTensor<matter_t, em_tensor_options>::compute(
     if constexpr (em_tensor_options == EMTensorOptions::allDensities)
     {
 #if DEFAULT_TENSOR_DIM == 3
-        out_arrays(i, j, k, m_dcomp + 4) = emtensor.S[0][0];
-        out_arrays(i, j, k, m_dcomp + 5) = emtensor.S[0][1];
-        out_arrays(i, j, k, m_dcomp + 6) = emtensor.S[0][2];
-        out_arrays(i, j, k, m_dcomp + 7) = emtensor.S[1][1];
-        out_arrays(i, j, k, m_dcomp + 8) = emtensor.S[1][2];
-        out_arrays(i, j, k, m_dcomp + 9) = emtensor.S[2][2];
+        emtensor_out(ix, iy, iz, m_dcomp + 4) = emtensor.S[0][0];
+        emtensor_out(ix, iy, iz, m_dcomp + 5) = emtensor.S[0][1];
+        emtensor_out(ix, iy, iz, m_dcomp + 6) = emtensor.S[0][2];
+        emtensor_out(ix, iy, iz, m_dcomp + 7) = emtensor.S[1][1];
+        emtensor_out(ix, iy, iz, m_dcomp + 8) = emtensor.S[1][2];
+        emtensor_out(ix, iy, iz, m_dcomp + 9) = emtensor.S[2][2];
     }
 }
 #endif
@@ -111,21 +112,19 @@ EMTensor<matter_t, em_tensor_options>::set_up(int a_state_index)
 template <class matter_t, enum EMTensorOptions em_tensor_options>
 AMREX_FORCE_INLINE void EMTensor<matter_t, em_tensor_options>::compute_mf(
     amrex::MultiFab &out_mf, int dcomp, int ncomp,
-    const amrex::MultiFab &src_mf, const amrex::Geometry &geomdata,
+    const amrex::MultiFab &state_mf, const amrex::Geometry &geomdata,
     amrex::Real /*time*/, const int * /*bcrec*/, int /*level*/)
 {
-    const auto &out_arrays = out_mf.arrays();
-    const auto &src_arrays = src_mf.const_arrays();
+    const auto &emtensor_out = out_mf.arrays();
+    const auto &state        = state_mf.const_arrays();
 
     EMTensor<matter_t, em_tensor_options> em_tensor(geomdata.CellSize(0),
                                                     dcomp);
 
     amrex::ParallelFor(
         out_mf,
-        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
-        {
-            em_tensor.compute(i, j, k, out_arrays[box_no], src_arrays[box_no]);
-        });
+        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz) noexcept
+        { em_tensor(ix, iy, iz, emtensor_out[box_no], state[box_no]); });
 }
 
 #endif /* EMTENSOR_IMPL_HPP */

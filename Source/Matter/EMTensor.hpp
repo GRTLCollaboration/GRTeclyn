@@ -11,7 +11,6 @@
 #include "Cell.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "Interval.hpp"
-#include "VarsTools.hpp"
 
 // AMReX Includes
 #include <AMReX_MultiFab.H>
@@ -33,8 +32,7 @@ enum class EMTensorOptions
 template <class matter_t, enum EMTensorOptions em_tensor_options> class EMTensor
 {
   public:
-    template <class data_t>
-    using Vars = typename CCZ4RHSWithMatter<matter_t>::template Vars<data_t>;
+    using ConstVars = typename matter_t::ConstVars;
 
     /// derive record name
     static inline const std::string name = "EMTensor";
@@ -47,8 +45,9 @@ template <class matter_t, enum EMTensorOptions em_tensor_options> class EMTensor
 
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    compute(int i, int j, int k, const amrex::Array4<amrex::Real> &out_arrays,
-            const amrex::Array4<const amrex::Real> &in_arrays) const;
+    operator()(int ix, int iy, int iz,
+               const amrex::Array4<amrex::Real> &emtensor_out,
+               const amrex::Array4<const amrex::Real> &state) const;
     // NOLINTEND(bugprone-easily-swappable-parameters)
 
     // Set do_all_components to true to calculate the momentum density
@@ -57,7 +56,7 @@ template <class matter_t, enum EMTensorOptions em_tensor_options> class EMTensor
 
     AMREX_FORCE_INLINE static void
     compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
-               const amrex::MultiFab &src_mf, const amrex::Geometry &geomdata,
+               const amrex::MultiFab &state_mf, const amrex::Geometry &geomdata,
                amrex::Real /*time*/, const int * /*bcrec*/, int /*level*/);
 
   protected:

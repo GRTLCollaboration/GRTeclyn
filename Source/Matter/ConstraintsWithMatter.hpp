@@ -26,23 +26,6 @@
 template <class matter_t> class ConstraintsWithMatter : public Constraints
 {
   public:
-    template <class data_t>
-    using MatterVars = typename matter_t::template Vars<data_t>;
-
-    // Inherit the variable definitions from CCZ4 + matter_t
-    template <class data_t>
-    struct BSSNMatterVars : public Constraints::MetricVars<data_t>,
-                            public MatterVars<data_t>
-    {
-        /// Defines the mapping between members of Vars and Chombo grid
-        /// variables (enum in User_Variables)
-        template <typename mapping_function_t>
-        AMREX_GPU_DEVICE void enum_mapping(mapping_function_t mapping_function)
-        {
-            Constraints::MetricVars<data_t>::enum_mapping(mapping_function);
-            MatterVars<data_t>::enum_mapping(mapping_function);
-        }
-    };
 
     //! Constructor of class ConstraintsWithMatter
     /*!
@@ -56,8 +39,9 @@ template <class matter_t> class ConstraintsWithMatter : public Constraints
     //! The compute member which calculates the constraints at each point in the
     //! box
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    compute(int i, int j, int k, const amrex::Array4<amrex::Real> &out_arrays,
-            const amrex::Array4<amrex::Real const> &state_arrays) const;
+    operator()(int ix, int iy, int iz,
+               const amrex::Array4<amrex::Real> &constraints,
+               const amrex::Array4<amrex::Real const> &state) const;
 
     static void set_up(int a_state_index, bool a_calc_mom_norm = false);
 
