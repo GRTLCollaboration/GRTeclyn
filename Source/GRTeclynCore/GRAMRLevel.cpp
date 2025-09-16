@@ -9,13 +9,13 @@
 void GRAMRLevel::stateVariableSetUp()
 {
     const int nghost = simParams().num_ghosts;
-    desc_lst.addDescriptor(State_Type, amrex::IndexType::TheCellType(),
+    desc_lst.addDescriptor(state_index, amrex::IndexType::TheCellType(),
                            amrex::StateDescriptor::Point, nghost, NUM_VARS,
                            &amrex::cell_quartic_interp);
 
-    BoundaryConditions::params_t bparms = simParams().boundary_params;
+    BoundaryConditions::params_t boundary_params = simParams().boundary_params;
     BoundaryConditions boundary_conditions;
-    boundary_conditions.define(simParams().center, bparms,
+    boundary_conditions.define(simParams().center, boundary_params,
                                amrex::DefaultGeometry(), nghost);
 
     amrex::Vector<amrex::BCRec> bcs(NUM_VARS);
@@ -61,10 +61,11 @@ void GRAMRLevel::stateVariableSetUp()
         }
     }
 
-    amrex::StateDescriptor::BndryFunc bndryfunc(null_bc_fill);
-    bndryfunc.setRunOnGPU(true); // Run the bc function on gpu.
+    amrex::StateDescriptor::BndryFunc boundary_function(null_bc_fill);
+    boundary_function.setRunOnGPU(true); // Run the bc function on gpu.
 
-    desc_lst.setComponent(State_Type, 0, StateVariables::names, bcs, bndryfunc);
+    desc_lst.setComponent(state_index, 0, StateVariables::names, bcs,
+                          boundary_function);
 }
 
 void GRAMRLevel::variableCleanUp()
@@ -162,7 +163,7 @@ amrex::Real GRAMRLevel::advance(amrex::Real time, amrex::Real dt, int iteration,
     }
 
     amrex::AmrLevel::RK(
-        4, State_Type, time, dt, iteration, ncycle,
+        4, state_index, time, dt, iteration, ncycle,
         [&](int /*stage*/, amrex::MultiFab &rhs, const amrex::MultiFab &soln,
             amrex::Real t, amrex::Real /*dtsub*/)
         {
@@ -183,10 +184,10 @@ void GRAMRLevel::post_timestep(int /*iteration*/)
     const int lev = Level();
     if (lev < parent->finestLevel())
     {
-        auto &fine_level        = parent->getLevel(Level() + 1);
-        amrex::MultiFab &S_fine = fine_level.get_new_data(State_Type);
-        amrex::MultiFab &S_crse = this->get_new_data(State_Type);
-        amrex::Real t           = get_state_data(State_Type).curTime();
+        auto &fine_level              = parent->getLevel(Level() + 1);
+        amrex::MultiFab &state_fine   = fine_level.get_new_data(state_index);
+        amrex::MultiFab &state_coarse = this->get_new_data(state_index);
+        amrex::Real t                 = get_state_data(state_index).curTime();
 
         amrex::IntVect ratio = parent->refRatio(lev);
         AMREX_ASSERT(ratio == 2 || ratio == 4);
@@ -194,10 +195,12 @@ void GRAMRLevel::post_timestep(int /*iteration*/)
         {
             // Need to fill one ghost cell for the high-order interpolation
             // below
-            FillPatch(fine_level, S_fine, 1, t, State_Type, 0, S_fine.nComp());
+            FillPatch(fine_level, state_fine, 1, t, state_index, 0,
+                      state_fine.nComp());
         }
 
-        FourthOrderInterpFromFineToCoarse(S_crse, 0, NUM_VARS, S_fine, ratio);
+        FourthOrderInterpFromFineToCoarse(state_coarse, 0, NUM_VARS, state_fine,
+                                          ratio);
     }
 
     specificPostTimeStep();
@@ -230,13 +233,13 @@ void GRAMRLevel::init(amrex::AmrLevel &old)
 {
     BL_PROFILE("GRAMRLevel::init()");
     amrex::Real dt_new    = parent->dtLevel(level);
-    amrex::Real cur_time  = old.get_state_data(State_Type).curTime();
-    amrex::Real prev_time = old.get_state_data(State_Type).prevTime();
+    amrex::Real cur_time  = old.get_state_data(state_index).curTime();
+    amrex::Real prev_time = old.get_state_data(state_index).prevTime();
     amrex::Real dt_old    = cur_time - prev_time;
     setTimeLevel(cur_time, dt_old, dt_new);
 
-    amrex::MultiFab &S_new = get_new_data(State_Type);
-    FillPatch(old, S_new, 0, cur_time, State_Type, 0, S_new.nComp());
+    amrex::MultiFab &S_new = get_new_data(state_index);
+    FillPatch(old, S_new, 0, cur_time, state_index, 0, S_new.nComp());
 }
 
 void GRAMRLevel::init()
@@ -244,7 +247,7 @@ void GRAMRLevel::init()
     BL_PROFILE("GRAMRLevel::init()");
     amrex::Real dt = parent->dtLevel(level);
     const auto &coarse_state =
-        parent->getLevel(level - 1).get_state_data(State_Type);
+        parent->getLevel(level - 1).get_state_data(state_index);
     amrex::Real cur_time  = coarse_state.curTime();
     amrex::Real prev_time = coarse_state.prevTime();
     amrex::Real dt_old =
@@ -252,8 +255,8 @@ void GRAMRLevel::init()
         static_cast<amrex::Real>(parent->MaxRefRatio(level - 1));
     setTimeLevel(cur_time, dt_old, dt);
 
-    amrex::MultiFab &S_new = get_new_data(State_Type);
-    FillCoarsePatch(S_new, 0, cur_time, State_Type, 0, S_new.nComp());
+    amrex::MultiFab &S_new = get_new_data(state_index);
+    FillCoarsePatch(S_new, 0, cur_time, state_index, 0, S_new.nComp());
 }
 
 void GRAMRLevel::errorEst(amrex::TagBoxArray &a_tag_box_array,
