@@ -171,7 +171,7 @@ void ParticleInterpolators::populate_from_query(
         const amrex::Real *x_p = nullptr, *y_p = nullptr, *z_p = nullptr;
         amrex::Gpu::DeviceVector<amrex::Real> Xd, Yd, Zd;
 
-	// copy x,y,z to device vectors now
+        // copy x,y,z to device vectors now
         amrex::Gpu::DeviceVector<double> X(n), Y(n);
         amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, x, x + n, X.begin());
         amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, y, y + n, Y.begin());
@@ -189,7 +189,7 @@ void ParticleInterpolators::populate_from_query(
         auto z_d = Z.data();
 #endif
 
-	// loop over particles and place them at the required points
+        // loop over particles and place them at the required points
         amrex::ParallelFor(
             n,
             [=] AMREX_GPU_DEVICE(int ip)
