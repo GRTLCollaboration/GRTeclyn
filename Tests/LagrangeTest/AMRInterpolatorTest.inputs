@@ -30,7 +30,7 @@ lo_boundary = 1 1 1
 #################################################
 # Evolution parameters
 
-max_steps = 2
+max_steps = 1
 
 #################################################
 # Extraction parameters

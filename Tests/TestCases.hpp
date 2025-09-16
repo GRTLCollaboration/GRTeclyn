@@ -19,7 +19,7 @@
 #include "CoordinateTransformationsTest.hpp"
 #include "DerivativeUnitTests.hpp"
 #include "EMTensorTest.hpp"
-#include "LagrangeTest.hpp"
+#include "LagrangeUnitTest.hpp"
 #include "PositiveChiAndLapseUnitTest.hpp"
 #include "PunctureTrackerTest.hpp"
 #include "SphericalHarmonicTest.hpp"
