@@ -18,9 +18,7 @@ constexpr int GR_SPACEDIM = 3;
 // NOLINTBEGIN(cppcoreguidelines-macro-usage)
 // Fancy 'for' loop macros to iterate through spatial tensors
 // use as "FOR(i, j) { ... }"
-// We don't need parentheses around args as IDX will be a single symbol
-// NOLINTNEXTLINE(bugprone-macro-parentheses)
-#define FOR1(IDX) for (int IDX = 0; IDX < DEFAULT_TENSOR_DIM; ++IDX)
+#define FOR1(IDX) for (int(IDX) = 0; (IDX) < DEFAULT_TENSOR_DIM; ++(IDX))
 #define FOR2(IDX1, IDX2)                                                       \
     FOR1 (IDX1)                                                                \
         FOR1 (IDX2)

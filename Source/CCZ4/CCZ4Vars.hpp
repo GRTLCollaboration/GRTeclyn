@@ -6,64 +6,151 @@
 #ifndef CCZ4VARS_HPP_
 #define CCZ4VARS_HPP_
 
-#include "ADMConformalVars.hpp"
-#include "BSSNVars.hpp"
+#include "StateVariables.hpp"
 #include "Tensor.hpp"
-#include "VarsTools.hpp"
+#include "AMReX_Array4.H"
 
-/// Namespace for CCZ4 vars
-/** The structs in this namespace collect all the CCZ4 variables. It's main use
- *  is to make a local, nicely laid-out, copy of the CCZ4 variables for the
- *  current grid cell (Otherwise, this data would only exist on the grid in
- *  the huge, flattened Chombo array). \sa {CCZ4Vars, ADMConformalVars}
- **/
-namespace CCZ4Vars
+class CCZ4Vars
 {
-/// Vars object for CCZ4 vars, including gauge vars
-template <class data_t>
-struct VarsNoGauge : public BSSNVars::VarsNoGauge<data_t>
-{
-    data_t Theta; //!< CCZ4 quantity associated to Hamiltonian constraint
-
-    /// Defines the mapping between members of Vars and Chombo grid
-    /// variables (enum in User_Variables)
-    template <typename mapping_function_t>
-    AMREX_GPU_DEVICE void enum_mapping(mapping_function_t mapping_function)
+  public:
+    AMREX_GPU_DEVICE
+    CCZ4Vars(const amrex::CellData<amrex::Real> &input_cell_data)
+        : cell_data(input_cell_data)
     {
-        using namespace VarsTools; // define_enum_mapping is part of VarsTools
-        BSSNVars::VarsNoGauge<data_t>::enum_mapping(mapping_function);
-        define_enum_mapping(mapping_function, c_Theta, Theta);
     }
-};
 
-/// Vars object for CCZ4 vars, including gauge vars
-template <class data_t>
-struct VarsWithGauge : public BSSNVars::VarsWithGauge<data_t>
-{
-    data_t Theta{}; //!< CCZ4 quantity associated to hamiltonian constraint
-
-    /// Defines the mapping between members of Vars and Chombo grid
-    /// variables (enum in User_Variables)
-    template <typename mapping_function_t>
-    AMREX_GPU_DEVICE void enum_mapping(mapping_function_t mapping_function)
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &
+    get_var(int ivar) const
     {
-        using namespace VarsTools; // define_enum_mapping is part of VarsTools
-        BSSNVars::VarsWithGauge<data_t>::enum_mapping(mapping_function);
-        define_enum_mapping(mapping_function, c_Theta, Theta);
+        return cell_data[ivar];
     }
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &chi() const
+    {
+        return cell_data[c_chi];
+    }
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &h(int i, int j) const
+    {
+        return cell_data[var_idx(c_h11, i, j)];
+    }
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &K() const
+    {
+        return cell_data[c_K];
+    }
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &A(int i, int j) const
+    {
+        return cell_data[var_idx(c_A11, i, j)];
+    }
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &Theta() const
+    {
+        return cell_data[c_Theta];
+    }
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &Gamma(int i) const
+    {
+        return cell_data[c_Gamma1 + i];
+    }
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &lapse() const
+    {
+        return cell_data[c_lapse];
+    }
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &shift(int i) const
+    {
+        return cell_data[c_shift1 + i];
+    }
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &B(int i) const
+    {
+        return cell_data[c_B1 + i];
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void store_var(amrex::Real var,
+                                                       int ivar)
+    {
+        cell_data[ivar] = var;
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void store_chi(amrex::Real chi)
+    {
+        cell_data[c_chi] = chi;
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    store_h(Tensor<2, amrex::Real> h_LL)
+    {
+        FOR2 (i, j)
+        {
+            cell_data[var_idx(c_h11, i, j)] = h_LL[i][j];
+        }
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void store_K(amrex::Real K)
+    {
+        cell_data[c_K] = K;
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    store_A(Tensor<2, amrex::Real> A_LL)
+    {
+        FOR2 (i, j)
+        {
+            cell_data[var_idx(c_A11, i, j)] = A_LL[i][j];
+        }
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void store_Theta(amrex::Real Theta)
+    {
+        cell_data[c_Theta] = Theta;
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    store_Gamma(Tensor<1, amrex::Real> Gamma_U)
+    {
+        FOR (i)
+        {
+            cell_data[c_Gamma1 + i] = Gamma_U[i];
+        }
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void store_lapse(amrex::Real lapse)
+    {
+        cell_data[c_lapse] = lapse;
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    store_shift(Tensor<1, amrex::Real> shift_U)
+    {
+        FOR (i)
+        {
+            cell_data[c_shift1 + i] = shift_U[i];
+        }
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void store_B(Tensor<1, amrex::Real> B_U)
+    {
+        FOR (i)
+        {
+            cell_data[c_B1 + i] = B_U[i];
+        }
+    }
+
+    const amrex::CellData<amrex::Real> &cell_data;
 };
 
-/// Vars object for CCZ4 vars needing second derivs, excluding gauge vars
-template <class data_t>
-struct Diff2VarsNoGauge : public ADMConformalVars::Diff2VarsNoGauge<data_t>
-{
-};
-
-/// Vars object for CCZ4 vars needing second derivs, including gauge vars
-template <class data_t>
-struct Diff2VarsWithGauge : public ADMConformalVars::Diff2VarsWithGauge<data_t>
-{
-};
-} // namespace CCZ4Vars
-
-#endif /* CCZ4VARS_HPP_ */
+#endif /* CCZ4VARS_HPP */

@@ -7,6 +7,7 @@
 #ifndef POSITIVECHIANDLAPSE_HPP_
 #define POSITIVECHIANDLAPSE_HPP_
 
+#include "CCZ4Vars.hpp"
 #include "Cell.hpp"
 #include "StateVariables.hpp"
 
@@ -27,16 +28,22 @@ class PositiveChiAndLapse
     // NOLINTEND(bugprone-easily-swappable-parameters)
 
     AMREX_GPU_HOST_DEVICE void
-    operator()(const amrex::CellData<amrex::Real> &cell) const
+    operator()(int ix, int iy, int iz,
+               const amrex::Array4<amrex::Real> &state) const
     {
-        auto chi   = cell[c_chi];
-        auto lapse = cell[c_lapse];
+
+        const amrex::CellData<amrex::Real> &state_cell_data =
+            state.cellData(ix, iy, iz);
+        CCZ4Vars vars(state_cell_data);
+
+        amrex::Real chi   = vars.chi();
+        amrex::Real lapse = vars.lapse();
 
         chi   = std::max(chi, m_min_chi);
         lapse = std::max(lapse, m_min_lapse);
 
-        cell[c_chi]   = chi;
-        cell[c_lapse] = lapse;
+        vars.store_chi(chi);
+        vars.store_lapse(lapse);
     }
 };
 
