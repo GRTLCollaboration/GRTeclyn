@@ -55,20 +55,6 @@ void BinaryBHLevel::specificAdvance()
                            TraceARemoval()(cell);
                            PositiveChiAndLapse()(cell);
                        });
-
-    // Check for nan's
-    if (simParams().nan_check)
-    {
-        if (S_new.contains_nan(0, S_new.nComp(), amrex::IntVect(0), true))
-        {
-            amrex::Abort("NaN in specificAdvance");
-        }
-    }
-    else
-    {
-        // stream sync already present in nan_check so only need this here
-        amrex::Gpu::streamSynchronize();
-    }
 }
 
 // This initial data uses an approximation for the metric which
