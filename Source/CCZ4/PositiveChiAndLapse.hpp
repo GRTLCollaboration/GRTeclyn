@@ -27,7 +27,7 @@ class PositiveChiAndLapse
     }
     // NOLINTEND(bugprone-easily-swappable-parameters)
 
-    AMREX_GPU_HOST_DEVICE void
+    AMREX_GPU_DEVICE void
     operator()(int ix, int iy, int iz,
                const amrex::Array4<amrex::Real> &state) const
     {
