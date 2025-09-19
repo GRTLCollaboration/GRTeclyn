@@ -18,7 +18,6 @@
 
 // Other includes
 #include "PositiveChiAndLapse.hpp"
-#include "Tensor.hpp"
 
 void run_positive_chi_and_lapse_unit_test()
 {

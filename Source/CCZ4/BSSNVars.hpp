@@ -7,7 +7,6 @@
 #define BSSNVARS_HPP_
 
 #include "ADMConformalVars.hpp"
-#include "Tensor.hpp"
 #include "VarsTools.hpp"
 
 /// Namespace for BSSN vars
@@ -22,7 +21,7 @@ namespace BSSNVars
 template <class data_t>
 struct VarsNoGauge : public ADMConformalVars::VarsNoGauge<data_t>
 {
-    Tensor<1, data_t> Gamma; //!< Conformal connection functions
+    amrex::Array1D<data_t, 0, 3> Gamma; //!< Conformal connection functions
 
     /// Defines the mapping between members of Vars and Chombo grid
     /// variables (enum in User_Variables)
@@ -40,9 +39,10 @@ struct VarsNoGauge : public ADMConformalVars::VarsNoGauge<data_t>
 template <class data_t> struct VarsWithGauge : public VarsNoGauge<data_t>
 {
     data_t lapse{};
-    Tensor<1, data_t> shift;
-    Tensor<1, data_t> B; //!< \f$B^i = \partial_t \beta^i\f$, this is used
-                         //! for second order shift conditions
+    amrex::Array1D<data_t, 0, 3> shift;
+    amrex::Array1D<data_t, 0, 3>
+        B; //!< \f$B^i = \partial_t \beta^i\f$, this is used
+           //! for second order shift conditions
 
     /// Defines the mapping between members of Vars and Chombo grid
     /// variables (enum in User_Variables)

@@ -11,7 +11,6 @@
 #include "Cell.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "MovingPunctureGauge.hpp"
-#include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
 
 #include "StateVariables.hpp" //This files needs NUM_VARS - total number of components
@@ -108,7 +107,7 @@ class CCZ4RHS
                                   //! output right hand side is written
         const vars_t<amrex::Real>
             &vars, //!< The values of the current variables
-        const vars_t<Tensor<1, amrex::Real>>
+        const vars_t<amrex::Array1D<amrex::Real, 0, 3>>
             &d1,             //!< First derivative of the variables
         const d2_vars_t &d2, //!< The second derivative the variables
         const vars_t<amrex::Real>

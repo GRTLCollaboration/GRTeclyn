@@ -14,9 +14,10 @@
 template <class potential_t>
 template <template <class> class vars_t>
 AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t>::compute_emtensor(
-    const vars_t<amrex::Real> &vars, const vars_t<Tensor<1, amrex::Real>> &d1,
-    const Tensor<2, amrex::Real> &h_UU,
-    const Tensor<3, amrex::Real> &chris_ULL) const
+    const vars_t<amrex::Real> &vars,
+    const vars_t<amrex::Array1D<amrex::Real, 0, 3>> &d1,
+    const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU,
+    const amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> &chris_ULL) const
 {
     emtensor_t out;
 
@@ -24,7 +25,7 @@ AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t>::compute_emtensor(
     amrex::Real Vt = -vars.Pi * vars.Pi;
     FOR (i, j)
     {
-        Vt += vars.chi * h_UU[i][j] * d1.phi[i] * d1.phi[j];
+        Vt += vars.chi * h_UU(i, j) * d1.phi(i) * d1.phi(j);
     }
 
     // set the potential values
@@ -38,9 +39,9 @@ AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t>::compute_emtensor(
     // S = T_ij
     FOR (i, j)
     {
-        out.S[i][j] = -0.5 * vars.h[i][j] * Vt / vars.chi +
-                      d1.phi[i] * d1.phi[j] -
-                      vars.h[i][j] * V_of_phi / vars.chi;
+        out.S(i, j) = -0.5 * vars.h(i, j) * Vt / vars.chi +
+                      d1.phi(i) * d1.phi(j) -
+                      vars.h(i, j) * V_of_phi / vars.chi;
     }
 
     // rho = n^a n^b T_ab
@@ -53,7 +54,7 @@ AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t>::compute_emtensor(
     //    j_i (note lower index) = - n^a T_ai
     FOR (i)
     {
-        out.j[i] = -d1.phi[i] * vars.Pi;
+        out.j(i) = -d1.phi(i) * vars.Pi;
     }
 
     return out;
@@ -65,7 +66,7 @@ template <template <class> class vars_t, class rhs_vars_t, class d2_vars_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 ScalarField<potential_t>::add_matter_rhs(
     rhs_vars_t &rhs, const vars_t<amrex::Real> &vars,
-    const vars_t<Tensor<1, amrex::Real>> &d1, const d2_vars_t &d2,
+    const vars_t<amrex::Array1D<amrex::Real, 0, 3>> &d1, const d2_vars_t &d2,
     const vars_t<amrex::Real> &advec) const
 {
     using namespace TensorAlgebra;
@@ -86,13 +87,13 @@ ScalarField<potential_t>::add_matter_rhs(
     FOR (i, j)
     {
         // includes non conformal parts of chris not included in chris_ULL
-        rhs.Pi += h_UU[i][j] * (-0.5 * d1.chi[j] * vars.lapse * d1.phi[i] +
-                                vars.chi * vars.lapse * d2.phi[i][j] +
-                                vars.chi * d1.lapse[i] * d1.phi[j]);
+        rhs.Pi += h_UU(i, j) * (-0.5 * d1.chi(j) * vars.lapse * d1.phi(i) +
+                                vars.chi * vars.lapse * d2.phi(i, j) +
+                                vars.chi * d1.lapse(i) * d1.phi(j));
         FOR (k)
         {
-            rhs.Pi += -vars.chi * vars.lapse * h_UU[i][j] * chris.ULL[k][i][j] *
-                      d1.phi[k];
+            rhs.Pi += -vars.chi * vars.lapse * h_UU(i, j) * chris.ULL(k, i, j) *
+                      d1.phi(k);
         }
     }
 }

@@ -12,7 +12,6 @@
 #include "FourthOrderDerivatives.hpp"
 #include "MovingPunctureGaugeWithMatter.hpp"
 #include "StateVariables.hpp" //This files needs NUM_VARS - total number of components
-#include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
 #include "VarsTools.hpp"
 
@@ -104,7 +103,7 @@ class CCZ4RHSWithMatter : public CCZ4RHS<gauge_t, deriv_t>
             &matter_rhs, //!< the RHS data for each variable at that point.
         const Vars<amrex::Real>
             &vars, //!< the value of the variables at the point.
-        const Vars<Tensor<1, amrex::Real>>
+        const Vars<amrex::Array1D<amrex::Real, 0, AMREX_SPACEDIM>>
             &d1 //!< the value of the first derivatives of the variables.
     ) const;
 

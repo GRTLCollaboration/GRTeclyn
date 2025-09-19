@@ -10,7 +10,6 @@
 #include "CCZ4Geometry.hpp"
 #include "Cell.hpp"
 #include "StateVariables.hpp"
-#include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
 #include "VarsTools.hpp"
 
@@ -19,8 +18,8 @@ class TraceARemoval
   public:
     template <class data_t> struct Vars
     {
-        Tensor<2, data_t> h;
-        Tensor<2, data_t> A;
+        amrex::Array2D<amrex::Real, 0, 3, 0, 3> h;
+        amrex::Array2D<amrex::Real, 0, 3, 0, 3> A;
 
         template <typename mapping_function_t>
         AMREX_GPU_HOST_DEVICE void

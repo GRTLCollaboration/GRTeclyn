@@ -8,7 +8,6 @@
 
 #include "ADMConformalVars.hpp"
 #include "BSSNVars.hpp"
-#include "Tensor.hpp"
 #include "VarsTools.hpp"
 
 /// Namespace for CCZ4 vars

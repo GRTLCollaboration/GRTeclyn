@@ -7,7 +7,8 @@
 #define MOVINGPUNCTUREGAUGE_HPP_
 
 #include "DimensionDefinitions.hpp"
-#include "Tensor.hpp"
+#include <AMReX_Array.H>
+#include <AMReX_GpuQualifiers.H>
 #include <AMReX_REAL.H>
 
 /// This is an example of a gauge class that can be used in the CCZ4RHS compute
@@ -47,7 +48,7 @@ class MovingPunctureGauge
     template <template <class> class vars_t, class d2_vars_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     rhs_gauge(vars_t<amrex::Real> &rhs, const vars_t<amrex::Real> &vars,
-              const vars_t<Tensor<1, amrex::Real>> & /*d1*/,
+              const vars_t<amrex::Array1D<amrex::Real, 0, 3>> & /*d1*/,
               const d2_vars_t & /*d2*/, const vars_t<amrex::Real> &advec) const
     {
         rhs.lapse = m_params.lapse_advec_coeff * advec.lapse -
@@ -56,11 +57,11 @@ class MovingPunctureGauge
                         (vars.K - 2 * vars.Theta);
         FOR (i)
         {
-            rhs.shift[i] = m_params.shift_advec_coeff * advec.shift[i] +
-                           m_params.shift_Gamma_coeff * vars.B[i];
-            rhs.B[i] = m_params.shift_advec_coeff * advec.B[i] -
-                       m_params.shift_advec_coeff * advec.Gamma[i] +
-                       rhs.Gamma[i] - m_params.eta * vars.B[i];
+            rhs.shift(i) = m_params.shift_advec_coeff * advec.shift(i) +
+                           m_params.shift_Gamma_coeff * vars.B(i);
+            rhs.B(i) = m_params.shift_advec_coeff * advec.B(i) -
+                       m_params.shift_advec_coeff * advec.Gamma(i) +
+                       rhs.Gamma(i) - m_params.eta * vars.B(i);
         }
     }
 };

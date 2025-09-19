@@ -54,12 +54,12 @@ template <class matter_t> class Weyl4WithMatter : public Weyl4
     double m_G_Newton; //!< Newton's constant, set to one by default
 
     //! Add matter terms to electric and magnetic parts
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    add_matter_EB(EBFields_t &eb_fields, const Vars<amrex::Real> &vars,
-                  const Vars<Tensor<1, amrex::Real>> &d1,
-                  const Tensor<3, amrex::Real> &epsilon3_LUU,
-                  const Tensor<2, amrex::Real> &h_UU,
-                  const chris_t &chris) const;
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void add_matter_EB(
+        EBFields_t &eb_fields, const Vars<amrex::Real> &vars,
+        const Vars<amrex::Array1D<amrex::Real, 0, 3>> &d1,
+        const amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> &epsilon3_LUU,
+        const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU,
+        const chris_array_t &chris) const;
 };
 
 #include "Weyl4WithMatter.impl.hpp"

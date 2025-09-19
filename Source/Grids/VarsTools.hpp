@@ -7,13 +7,13 @@
 #define VARSTOOLS_HPP_
 
 // Our includes
+#include "DimensionDefinitions.hpp" // Gives us DEFAULT_TENSOR_DIM
 #include "GRInterval.hpp"
 #include "StateVariables.hpp"
-#include "Tensor.hpp"
 
 // AMReX includes
+#include "AMReX_Array.H" //Gives us amrex::Array1D, amrex::Array2D etc.
 #include "AMReX_Print.H" //Gives us amrex::Print()
-
 namespace VarsTools
 {
 template <typename mapping_function_t, typename data_t>
@@ -24,16 +24,17 @@ define_enum_mapping(mapping_function_t mapping_function, const int &ivar,
     mapping_function(ivar, scalar);
 }
 
+// TODO: check that tensor doesn't need start_var and end_var in template
 template <typename mapping_function_t, typename data_t, int start_var,
           int end_var>
 AMREX_GPU_HOST_DEVICE void
 define_enum_mapping(mapping_function_t mapping_function,
                     const GRInterval<start_var, end_var> interval,
-                    Tensor<1, data_t, end_var - start_var + 1> &tensor)
+                    amrex::Array1D<data_t, 0, end_var - start_var + 1> &tensor)
 {
     for (int ivar = 0; ivar < interval.size(); ++ivar)
     {
-        mapping_function(start_var + ivar, tensor[ivar]);
+        mapping_function(start_var + ivar, tensor(ivar));
     }
 }
 
@@ -42,26 +43,26 @@ template <typename mapping_function_t, typename data_t, int start_var,
 AMREX_GPU_HOST_DEVICE void
 define_symmetric_enum_mapping(mapping_function_t mapping_function,
                               const GRInterval<start_var, end_var> interval,
-                              Tensor<2, data_t> &tensor)
+                              amrex::Array2D<data_t, 0, 3, 0, 3> &tensor)
 {
     static_assert(interval.size() ==
                       DEFAULT_TENSOR_DIM * (DEFAULT_TENSOR_DIM + 1) / 2,
                   "Interval has wrong size");
 #if DEFAULT_TENSOR_DIM == 3
-    mapping_function(start_var, tensor[0][0]);
+    mapping_function(start_var, tensor(0, 0));
 
-    mapping_function(start_var + 1, tensor[0][1]);
-    mapping_function(start_var + 1, tensor[1][0]);
+    mapping_function(start_var + 1, tensor(0, 1));
+    mapping_function(start_var + 1, tensor(1, 0));
 
-    mapping_function(start_var + 2, tensor[0][2]);
-    mapping_function(start_var + 2, tensor[2][0]);
+    mapping_function(start_var + 2, tensor(0, 2));
+    mapping_function(start_var + 2, tensor(2, 0));
 
-    mapping_function(start_var + 3, tensor[1][1]);
+    mapping_function(start_var + 3, tensor(1, 1));
 
-    mapping_function(start_var + 4, tensor[1][2]);
-    mapping_function(start_var + 4, tensor[2][1]);
+    mapping_function(start_var + 4, tensor(1, 2));
+    mapping_function(start_var + 4, tensor(2, 1));
 
-    mapping_function(start_var + 5, tensor[2][2]);
+    mapping_function(start_var + 5, tensor(2, 2));
 #else
 #error DEFAULT_TENSOR_DIM not equal to three not implemented yet...
 #endif

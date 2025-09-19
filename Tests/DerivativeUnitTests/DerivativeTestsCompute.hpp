@@ -69,19 +69,19 @@ template <class deriv_t> class DerivativeTestsCompute
         VarsTools::assign(out_diss, 0.);
         m_deriv.add_dissipation(i, j, k, out_diss, in, 1.0);
 
-        Tensor<1, data_t> shift_down = {-2., 0., -3.};
+        amrex::Array1D<data_t, 0, 3> shift_down = {-2., 0., -3.};
         const auto out_advec_down =
             m_deriv.template advection<Vars>(i, j, k, in, shift_down);
 
-        Tensor<1, data_t> shift_up = {2., 0., 3.};
+        amrex::Array1D<data_t, 0, 3> shift_up = {2., 0., 3.};
         const auto out_advec_up =
             m_deriv.template advection<Vars>(i, j, k, in, shift_up);
 
         const auto out_cell_data = out.cellData(i, j, k);
 
-        out_cell_data[c_d1]         = out_d1.d1[2];
-        out_cell_data[c_d2]         = out_d2.d2[2][2];
-        out_cell_data[c_d2_mixed]   = out_d2.d2[0][2];
+        out_cell_data[c_d1]         = out_d1.d1(2);
+        out_cell_data[c_d2]         = out_d2.d2(2, 2);
+        out_cell_data[c_d2_mixed]   = out_d2.d2(0, 2);
         out_cell_data[c_diss]       = out_diss.diss;
         out_cell_data[c_advec_down] = out_advec_down.advec_down;
         out_cell_data[c_advec_up]   = out_advec_up.advec_up;

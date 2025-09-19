@@ -58,7 +58,7 @@ template <class matter_t, class gauge_t, class deriv_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
     Vars<amrex::Real> &matter_rhs, const Vars<amrex::Real> &matter_vars,
-    const Vars<Tensor<1, amrex::Real>> &d1) const
+    const Vars<amrex::Array1D<amrex::Real, 0, AMREX_SPACEDIM>> &d1) const
 {
     using namespace TensorAlgebra;
 
@@ -85,13 +85,13 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
     }
 
     // Update RHS for other variables
-    Tensor<2, amrex::Real> S_TF = emtensor.S;
+    amrex::Array2D<amrex::Real, 0, 3, 0, 3> S_TF = emtensor.S;
     make_trace_free(S_TF, matter_vars.h, h_UU);
 
     FOR (i, j)
     {
-        matter_rhs.A[i][j] += -8.0 * M_PI * m_G_Newton * matter_vars.chi *
-                              matter_vars.lapse * S_TF[i][j];
+        matter_rhs.A(i, j) += -8.0 * M_PI * m_G_Newton * matter_vars.chi *
+                              matter_vars.lapse * S_TF(i, j);
     }
 
     FOR (i)
@@ -100,10 +100,10 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
         FOR (j)
         {
             matter_term_Gamma += -16.0 * M_PI * m_G_Newton * matter_vars.lapse *
-                                 h_UU[i][j] * emtensor.j[j];
+                                 h_UU(i, j) * emtensor.j(j);
         }
 
-        matter_rhs.Gamma[i] += matter_term_Gamma;
+        matter_rhs.Gamma(i) += matter_term_Gamma;
     }
     // Add matter contribution to RHS of gauge evolution
     this->m_gauge.rhs_gauge_add_matter_terms(matter_rhs, matter_vars, h_UU,

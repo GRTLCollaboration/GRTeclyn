@@ -9,7 +9,6 @@
 #include "Cell.hpp"
 #include "Coordinates.hpp"
 #include "DimensionDefinitions.hpp"
-#include "Tensor.hpp"
 
 // AMReX includes
 #include <AMReX_TagBox.H>

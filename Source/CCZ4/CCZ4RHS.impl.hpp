@@ -65,7 +65,7 @@ template <template <class> class vars_t, class d2_vars_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
     vars_t<amrex::Real> &rhs, const vars_t<amrex::Real> &vars,
-    const vars_t<Tensor<1, amrex::Real>> &d1, const d2_vars_t &d2,
+    const vars_t<amrex::Array1D<amrex::Real, 0, 3>> &d1, const d2_vars_t &d2,
     const vars_t<amrex::Real> &advec) const
 {
     using namespace TensorAlgebra;
@@ -73,21 +73,22 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
     auto h_UU  = compute_inverse_sym(vars.h);
     auto chris = compute_christoffel(d1.h, h_UU);
 
-    Tensor<1, amrex::Real> Z_over_chi;
-    Tensor<1, amrex::Real> Z; // NOLINT(readability-identifier-length)
+    amrex::Array1D<amrex::Real, 0, 3> Z_over_chi;
+    amrex::Array1D<amrex::Real, 0, 3>
+        Z; // NOLINT(readability-identifier-length)
 
     if (m_formulation == USE_BSSN)
     {
         FOR (i)
-            Z_over_chi[i] = 0.0;
+            Z_over_chi(i) = 0.0;
     }
     else
     {
         FOR (i)
-            Z_over_chi[i] = 0.5 * (vars.Gamma[i] - chris.contracted[i]);
+            Z_over_chi(i) = 0.5 * (vars.Gamma(i) - chris.contracted(i));
     }
     FOR (i)
-        Z[i] = vars.chi * Z_over_chi[i];
+        Z(i) = vars.chi * Z_over_chi(i);
 
     auto ricci =
         CCZ4Geometry::compute_ricci_Z(vars, d1, d2, h_UU, chris, Z_over_chi);
@@ -96,33 +97,33 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
     amrex::Real Z_dot_d1lapse   = compute_dot_product(Z, d1.lapse);
     amrex::Real dlapse_dot_dchi = compute_dot_product(d1.lapse, d1.chi, h_UU);
 
-    Tensor<2, amrex::Real> covdtilde2lapse;
-    Tensor<2, amrex::Real> covd2lapse;
+    amrex::Array2D<amrex::Real, 0, 3, 0, 3> covdtilde2lapse;
+    amrex::Array2D<amrex::Real, 0, 3, 0, 3> covd2lapse;
     FOR (k, l)
     {
-        covdtilde2lapse[k][l] = d2.lapse[k][l];
+        covdtilde2lapse(k, l) = d2.lapse(k, l);
         FOR (m)
         {
-            covdtilde2lapse[k][l] -= chris.ULL[m][k][l] * d1.lapse[m];
+            covdtilde2lapse(k, l) -= chris.ULL(m, k, l) * d1.lapse(m);
         }
-        covd2lapse[k][l] =
-            vars.chi * covdtilde2lapse[k][l] +
-            0.5 * (d1.lapse[k] * d1.chi[l] + d1.chi[k] * d1.lapse[l] -
-                   vars.h[k][l] * dlapse_dot_dchi);
+        covd2lapse(k, l) =
+            vars.chi * covdtilde2lapse(k, l) +
+            0.5 * (d1.lapse(k) * d1.chi(l) + d1.chi(k) * d1.lapse(l) -
+                   vars.h(k, l) * dlapse_dot_dchi);
     }
 
     amrex::Real tr_covd2lapse = -(GR_SPACEDIM / 2.0) * dlapse_dot_dchi;
     FOR (i)
     {
-        tr_covd2lapse -= vars.chi * chris.contracted[i] * d1.lapse[i];
+        tr_covd2lapse -= vars.chi * chris.contracted(i) * d1.lapse(i);
         FOR (j)
         {
-            tr_covd2lapse += h_UU[i][j] * (vars.chi * d2.lapse[i][j] +
-                                           d1.lapse[i] * d1.chi[j]);
+            tr_covd2lapse += h_UU(i, j) * (vars.chi * d2.lapse(i, j) +
+                                           d1.lapse(i) * d1.chi(j));
         }
     }
 
-    Tensor<2, amrex::Real> A_UU = raise_all(vars.A, h_UU);
+    amrex::Array2D<amrex::Real, 0, 3, 0, 3> A_UU = raise_all(vars.A, h_UU);
 
     // A^{ij} A_{ij}. - Note the abuse of the compute trace function.
     amrex::Real tr_A2 = compute_trace(vars.A, A_UU);
@@ -130,36 +131,36 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
               (2.0 / GR_SPACEDIM) * vars.chi * (vars.lapse * vars.K - divshift);
     FOR (i, j)
     {
-        rhs.h[i][j] = advec.h[i][j] - 2.0 * vars.lapse * vars.A[i][j] -
-                      (2.0 / GR_SPACEDIM) * vars.h[i][j] * divshift;
+        rhs.h(i, j) = advec.h(i, j) - 2.0 * vars.lapse * vars.A(i, j) -
+                      (2.0 / GR_SPACEDIM) * vars.h(i, j) * divshift;
         FOR (k)
         {
-            rhs.h[i][j] +=
-                vars.h[k][i] * d1.shift[k][j] + vars.h[k][j] * d1.shift[k][i];
+            rhs.h(i, j) +=
+                vars.h(k, i) * d1.shift(k)(j) + vars.h(k, j) * d1.shift(k)(i);
         }
     }
 
-    Tensor<2, amrex::Real> Adot_TF;
+    amrex::Array2D<amrex::Real, 0, 3, 0, 3> Adot_TF;
     FOR (i, j)
     {
-        Adot_TF[i][j] =
-            -covd2lapse[i][j] + vars.chi * vars.lapse * ricci.LL[i][j];
+        Adot_TF(i, j) =
+            -covd2lapse(i, j) + vars.chi * vars.lapse * ricci.LL(i, j);
     }
     make_trace_free(Adot_TF, vars.h, h_UU);
 
     FOR (i, j)
     {
-        rhs.A[i][j] = advec.A[i][j] + Adot_TF[i][j] +
-                      vars.A[i][j] * (vars.lapse * (vars.K - 2 * vars.Theta) -
+        rhs.A(i, j) = advec.A(i, j) + Adot_TF(i, j) +
+                      vars.A(i, j) * (vars.lapse * (vars.K - 2 * vars.Theta) -
                                       (2.0 / GR_SPACEDIM) * divshift);
         FOR (k)
         {
-            rhs.A[i][j] +=
-                vars.A[k][i] * d1.shift[k][j] + vars.A[k][j] * d1.shift[k][i];
+            rhs.A(i, j) +=
+                vars.A(k, i) * d1.shift(k)(j) + vars.A(k, j) * d1.shift(k)(i);
             FOR (l)
             {
-                rhs.A[i][j] -=
-                    2 * vars.lapse * h_UU[k][l] * vars.A[i][k] * vars.A[l][j];
+                rhs.A(i, j) -=
+                    2 * vars.lapse * h_UU(k, l) * vars.A(i, k) * vars.A(l, j);
             }
         }
     }
@@ -205,40 +206,40 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
                  m_cosmological_constant;
     }
 
-    Tensor<1, amrex::Real> Gammadot;
+    amrex::Array1D<amrex::Real, 0, 3> Gammadot;
     FOR (i)
     {
-        Gammadot[i] = (2.0 / GR_SPACEDIM) *
-                          (divshift * (chris.contracted[i] +
-                                       2 * m_params.kappa3 * Z_over_chi[i]) -
-                           2 * vars.lapse * vars.K * Z_over_chi[i]) -
-                      2 * kappa1_times_lapse * Z_over_chi[i];
+        Gammadot(i) = (2.0 / GR_SPACEDIM) *
+                          (divshift * (chris.contracted(i) +
+                                       2 * m_params.kappa3 * Z_over_chi(i)) -
+                           2 * vars.lapse * vars.K * Z_over_chi(i)) -
+                      2 * kappa1_times_lapse * Z_over_chi(i);
         FOR (j)
         {
-            Gammadot[i] +=
-                2 * h_UU[i][j] *
-                    (vars.lapse * d1.Theta[j] - vars.Theta * d1.lapse[j]) -
-                2 * A_UU[i][j] * d1.lapse[j] -
+            Gammadot(i) +=
+                2 * h_UU(i, j) *
+                    (vars.lapse * d1.Theta(j) - vars.Theta * d1.lapse(j)) -
+                2 * A_UU(i, j) * d1.lapse(j) -
                 vars.lapse * ((2 * (GR_SPACEDIM - 1.0) / (double)GR_SPACEDIM) *
-                                  h_UU[i][j] * d1.K[j] +
-                              GR_SPACEDIM * A_UU[i][j] * d1.chi[j] / vars.chi) -
-                (chris.contracted[j] + 2 * m_params.kappa3 * Z_over_chi[j]) *
-                    d1.shift[i][j];
+                                  h_UU(i, j) * d1.K(j) +
+                              GR_SPACEDIM * A_UU(i, j) * d1.chi(j) / vars.chi) -
+                (chris.contracted(j) + 2 * m_params.kappa3 * Z_over_chi(j)) *
+                    d1.shift(i)(j);
 
             FOR (k)
             {
-                Gammadot[i] +=
-                    2 * vars.lapse * chris.ULL[i][j][k] * A_UU[j][k] +
-                    h_UU[j][k] * d2.shift[i][j][k] +
-                    ((GR_SPACEDIM - 2.0) / (double)GR_SPACEDIM) * h_UU[i][j] *
-                        d2.shift[k][j][k];
+                Gammadot(i) +=
+                    2 * vars.lapse * chris.ULL(i, j, k) * A_UU(j, k) +
+                    h_UU(j, k) * d2.shift(i)(j, k) +
+                    ((GR_SPACEDIM - 2.0) / (double)GR_SPACEDIM) * h_UU(i, j) *
+                        d2.shift(k)(j, k);
             }
         }
     }
 
     FOR (i)
     {
-        rhs.Gamma[i] = advec.Gamma[i] + Gammadot[i];
+        rhs.Gamma(i) = advec.Gamma(i) + Gammadot(i);
     }
 
     m_gauge.rhs_gauge(rhs, vars, d1, d2, advec);

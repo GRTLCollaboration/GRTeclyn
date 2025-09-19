@@ -12,7 +12,6 @@
  */
 
 #include "Coordinates.hpp"
-#include "Tensor.hpp"
 #include <array>
 
 class BoostedBHInitialData
@@ -33,8 +32,9 @@ class BoostedBHInitialData
     psi_minus_one(Coordinates a_coords) const;
 
     // extrinsic curvature
-    [[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE Tensor<2, amrex::Real>
-    Aij(Coordinates a_coords) const;
+    [[nodiscard]] AMREX_FORCE_INLINE
+        AMREX_GPU_DEVICE amrex::Array2D<amrex::Real, 0, 3, 0, 3>
+        Aij(Coordinates a_coords) const;
 
   private:
     params_t m_params;

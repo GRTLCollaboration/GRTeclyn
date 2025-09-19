@@ -7,8 +7,9 @@
 #define ADMCONFORMALVARS_HPP_
 
 #include "StateVariables.hpp"
-#include "Tensor.hpp"
 #include "VarsTools.hpp"
+
+#include "AMReX_Array.H"
 
 /// Namespace for ADM vars in conformally decomposed form
 /** The structs in this namespace collect all the ADM variables. It's main use
@@ -21,12 +22,13 @@ namespace ADMConformalVars
 /// Vars object for ADM vars, including gauge vars
 template <class data_t> struct VarsNoGauge
 {
-    data_t chi{};        //!< Conformal factor
-    Tensor<2, data_t> h; //!< Conformal metric
-    data_t K{};          //!< Trace of the extrinsic curvature
-    Tensor<2, data_t> A; //!< trace-free part of the rescale extrinsic
-                         //! curvature, i.e. \f$\chi
-                         //!(K_{ij})^{\mathrm{TF}}\f$
+    data_t chi{};                         //!< Conformal factor
+    amrex::Array2D<data_t, 0, 3, 0, 3> h; //!< Conformal metric
+    data_t K{};                           //!< Trace of the extrinsic curvature
+    amrex::Array2D<data_t, 0, 3, 0, 3>
+        A; //!< trace-free part of the rescale extrinsic
+           //! curvature, i.e. \f$\chi
+           //!(K_{ij})^{\mathrm{TF}}\f$
 
     /// Defines the mapping between members of Vars and Chombo grid
     /// variables (enum in User_Variables)
@@ -50,7 +52,7 @@ template <class data_t> struct VarsNoGauge
 template <class data_t> struct VarsWithGauge : public VarsNoGauge<data_t>
 {
     data_t lapse;
-    Tensor<1, data_t> shift;
+    amrex::Array1D<data_t, 0, 3> shift;
 
     /// Defines the mapping between members of Vars and Chombo grid
     /// variables (enum in User_Variables)
@@ -68,8 +70,8 @@ template <class data_t> struct VarsWithGauge : public VarsNoGauge<data_t>
 /// Vars object for ADM vars requiring second derivs, excluding gauge vars
 template <class data_t> struct Diff2VarsNoGauge
 {
-    data_t chi;          //!< Conformal factor
-    Tensor<2, data_t> h; //!< Conformal metric
+    data_t chi;                           //!< Conformal factor
+    amrex::Array2D<data_t, 0, 3, 0, 3> h; //!< Conformal metric
 
     template <typename mapping_function_t>
     AMREX_GPU_DEVICE void enum_mapping(mapping_function_t mapping_function)
@@ -86,7 +88,7 @@ template <class data_t>
 struct Diff2VarsWithGauge : public Diff2VarsNoGauge<data_t>
 {
     data_t lapse;
-    Tensor<1, data_t> shift;
+    amrex::Array1D<data_t, 0, 3> shift;
 
     /// Defines the mapping between members of Vars and Chombo grid
     /// variables (enum in User_Variables)

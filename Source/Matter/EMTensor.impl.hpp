@@ -70,7 +70,7 @@ EMTensor<matter_t, em_tensor_options>::compute(
 #if DEFAULT_TENSOR_DIM == 3
         FOR (i)
         {
-            out_arrays(i, j, k, m_dcomp + 1 + i) = emtensor.j[i];
+            out_arrays(i, j, k, m_dcomp + 1 + i) = emtensor.j(i);
         }
 #endif
     }
@@ -78,12 +78,12 @@ EMTensor<matter_t, em_tensor_options>::compute(
     if constexpr (em_tensor_options == EMTensorOptions::allDensities)
     {
 #if DEFAULT_TENSOR_DIM == 3
-        out_arrays(i, j, k, m_dcomp + 4) = emtensor.S[0][0];
-        out_arrays(i, j, k, m_dcomp + 5) = emtensor.S[0][1];
-        out_arrays(i, j, k, m_dcomp + 6) = emtensor.S[0][2];
-        out_arrays(i, j, k, m_dcomp + 7) = emtensor.S[1][1];
-        out_arrays(i, j, k, m_dcomp + 8) = emtensor.S[1][2];
-        out_arrays(i, j, k, m_dcomp + 9) = emtensor.S[2][2];
+        out_arrays(i, j, k, m_dcomp + 4) = emtensor.S(0, 0);
+        out_arrays(i, j, k, m_dcomp + 5) = emtensor.S(0, 1);
+        out_arrays(i, j, k, m_dcomp + 6) = emtensor.S(0, 2);
+        out_arrays(i, j, k, m_dcomp + 7) = emtensor.S(1, 1);
+        out_arrays(i, j, k, m_dcomp + 8) = emtensor.S(1, 2);
+        out_arrays(i, j, k, m_dcomp + 9) = emtensor.S(2, 2);
     }
 }
 #endif

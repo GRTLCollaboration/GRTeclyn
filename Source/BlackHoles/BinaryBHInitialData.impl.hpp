@@ -33,17 +33,18 @@ BinaryBHInitialData::compute_chi(Coordinates coords) const
     return pow(psi, -4);
 }
 
-[[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE Tensor<2, amrex::Real>
-BinaryBHInitialData::compute_A(amrex::Real chi, Coordinates coords) const
+[[nodiscard]] AMREX_FORCE_INLINE
+    AMREX_GPU_DEVICE amrex::Array2D<amrex::Real, 0, 3, 0, 3>
+    BinaryBHInitialData::compute_A(amrex::Real chi, Coordinates coords) const
 {
 
-    Tensor<2, amrex::Real> Aij1 = bh1.Aij(coords);
-    Tensor<2, amrex::Real> Aij2 = bh2.Aij(coords);
-    Tensor<2, amrex::Real> out;
+    amrex::Array2D<amrex::Real, 0, 3, 0, 3> Aij1 = bh1.Aij(coords);
+    amrex::Array2D<amrex::Real, 0, 3, 0, 3> Aij2 = bh2.Aij(coords);
+    amrex::Array2D<amrex::Real, 0, 3, 0, 3> out;
 
     // Aij(CCZ4) = psi^(-6) * Aij(Baumgarte&Shapiro book)
     FOR (i, j)
-        out[i][j] = pow(chi, 3 / 2.) * (Aij1[i][j] + Aij2[i][j]);
+        out(i, j) = pow(chi, 3 / 2.) * (Aij1(i, j) + Aij2(i, j));
 
     return out;
 }
@@ -64,7 +65,7 @@ AMREX_GPU_DEVICE // or AMREX_GPU_HOST_DEVICE depending on what's needed
 
     // Conformal metric is flat
     FOR (ii)
-        vars.h[ii][ii] = 1.;
+        vars.h(ii, ii) = 1.;
 
     vars.A = compute_A(vars.chi, coords);
 
