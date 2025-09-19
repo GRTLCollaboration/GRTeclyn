@@ -8,6 +8,7 @@
 
 #include "Cell.hpp"
 #include "DimensionDefinitions.hpp"
+
 #include "StateVariables.hpp"
 #include "Tensor.hpp"
 #include <AMReX_REAL.H>
@@ -172,6 +173,7 @@ class FourthOrderDerivatives
                m_one_over_dx2;
     }
 
+
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<2, amrex::Real>
     diff2(int ix, int iy, int iz, const amrex::Array4<amrex::Real const> &state,
           const int ivar) const
@@ -207,6 +209,7 @@ class FourthOrderDerivatives
                  const amrex::Array4<const amrex::Real> &state,
                  const int ivar) const
     {
+
         return diff2(ix, iy, iz, state, ivar);
     }
 

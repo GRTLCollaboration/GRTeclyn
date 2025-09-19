@@ -82,13 +82,14 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
     }
 
     // Update RHS for other variables
-    Tensor<2, amrex::Real> S_TF = emtensor.S;
+    amrex::Array2D<amrex::Real, 0, 3, 0, 3> S_TF = emtensor.S;
     CCZ4Geometry::make_trace_free(S_TF, vars, h_UU);
 
     FOR2_SYM(i, j)
     {
+
         rhs[VAR_IDX(c_A11, i, j)] +=
-            -8.0 * M_PI * m_G_Newton * vars.chi() * vars.lapse() * S_TF[i][j];
+            -8.0 * M_PI * m_G_Newton * vars.chi() * vars.lapse() * S_TF(i, j);
     }
 
     FOR (i)
@@ -97,7 +98,7 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
         FOR (j)
         {
             matter_term_Gamma += -16.0 * M_PI * m_G_Newton * vars.lapse() *
-                                 h_UU[i][j] * emtensor.j[j];
+                                 h_UU(i, j) * emtensor.j(j);
         }
         rhs[c_Gamma1 + i] += matter_term_Gamma;
     }

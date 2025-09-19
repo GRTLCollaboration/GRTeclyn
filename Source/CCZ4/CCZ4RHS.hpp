@@ -14,7 +14,6 @@
 #include "Cell.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "MovingPunctureGauge.hpp"
-#include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
 
 #include "StateVariables.hpp" //This files needs NUM_VARS - total number of components
@@ -90,6 +89,7 @@ class CCZ4RHS
 
   protected:
     /// Calculates the rhs for CCZ4
+
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     rhs_equation(const amrex::CellData<amrex::Real> &rhs, const CCZ4Vars &vars,
                  const CCZ4D1Vars &d1, const CCZ4D2Vars &d2,
