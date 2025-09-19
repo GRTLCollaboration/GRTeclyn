@@ -55,20 +55,20 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 Weyl4WithMatter<matter_t>::add_matter_EB(
     EBFields_t &ebfields, const typename matter_t::Vars &vars,
     const typename matter_t::D1Vars &d1,
-    const Tensor<3, amrex::Real> &epsilon3_LUU,
-    const Tensor<2, amrex::Real> &h_UU, const chris_t &chris) const
+    const amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> &epsilon3_LUU,
+    const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU, const chris_array_t &chris) const
 {
     // Calculate decomposed energy momentum tensor components
     const auto emtensor = m_matter.compute_emtensor(vars, d1, h_UU, chris.ULL);
 
-    Tensor<2, amrex::Real> S_TF = emtensor.S;
-    CCZ4Geometry::make_trace_free(S_TF, vars, h_UU);
+    amrex::Array2D<amrex::Real, 0, 3, 0, 3> S_TF = emtensor.S;
+    CCZ4Geometry::make_trace_free(S_TF, vars, h_UU);    
 
     // as we made the vacuum expression of Bij explictly symmetric and Eij
     // explictly trace-free, only Eij has matter terms
     FOR (i, j)
     {
-        ebfields.E[i][j] += -4.0 * M_PI * m_G_Newton * S_TF[i][j];
+        ebfields.E(i, j) += -4.0 * M_PI * m_G_Newton * S_TF(i, j);
     }
 }
 

@@ -12,7 +12,6 @@
 #include "Cell.hpp"
 #include "Coordinates.hpp"
 #include "StateVariables.hpp" //This files needs NUM_VARS - total number of components
-#include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
 #include "TwoPunctures.hpp"
 #include "VarsTools.hpp"
@@ -41,12 +40,12 @@ class TwoPuncturesInitialData
     void compute(Cell<double> current_cell) const;
 
   protected:
-    void interpolate_tp_vars(const Coordinates<double> &coords,
-                             Tensor<2, double> &out_h_phys,
-                             Tensor<2, double> &out_extrinsic_K,
-                             double &out_lapse, Tensor<1, double> &out_shift,
-                             double &out_Theta,
-                             Tensor<1, double> &out_Z3) const;
+    void interpolate_tp_vars(
+        const Coordinates<double> &coords,
+        amrex::Array2D<amrex::Real, 0, 3, 0, 3> &out_h_phys,
+        amrex::Array2D<amrex::Real, 0, 3, 0, 3> &out_extrinsic_K,
+        double &out_lapse, amrex::Array1D<amrex::Real, 0, 3> &out_shift,
+        double &out_Theta, amrex::Array1D<amrex::Real, 0, 3> &out_Z3) const;
 };
 
 #include "TwoPuncturesInitialData.impl.hpp"

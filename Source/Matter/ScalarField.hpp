@@ -15,7 +15,6 @@
 #include "ScalarFieldD2Vars.hpp"
 #include "ScalarFieldVars.hpp"
 #include "StateVariables.hpp" //This files needs NUM_VARS, total num of components
-#include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
 
 //!  Calculates the matter type specific elements such as the EMTensor and
@@ -53,13 +52,14 @@ template <class potential_t = DefaultPotential> class ScalarField
     [[nodiscard]]
     AMREX_GPU_DEVICE emtensor_t
     compute_emtensor(const Vars &vars, const D1Vars &d1,
-                     const Tensor<2, amrex::Real>
+                     const amrex::Array2D<amrex::Real, 0, 3, 0, 3>
                          &h_UU, //!< the inverse metric (raised indices)
-                     const Tensor<3, amrex::Real> &chris_ULL)
+                     const amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> &chris_ULL)
         const; //!< the conformal christoffel symbol
 
     //! The function which adds in the RHS for the matter field vars,
     //! including the potential
+
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     add_matter_rhs(const amrex::CellData<amrex::Real> &rhs, const Vars &vars,
                    const D1Vars &d1, const D2Vars &d2,

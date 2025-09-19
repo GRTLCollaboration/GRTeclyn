@@ -13,6 +13,7 @@
 #include "Interval.hpp"
 
 // AMReX Includes
+#include <AMReX_Array.H>
 #include <AMReX_MultiFab.H>
 
 //! Calculates the EM tensor and then saves the ones specified in the

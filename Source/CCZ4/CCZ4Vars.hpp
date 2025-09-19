@@ -6,6 +6,7 @@
 #ifndef CCZ4VARS_HPP_
 #define CCZ4VARS_HPP_
 
+
 #include "StateVariables.hpp"
 #include "Tensor.hpp"
 #include "AMReX_Array4.H"

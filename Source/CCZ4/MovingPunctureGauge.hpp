@@ -11,7 +11,8 @@
 #include "CCZ4D2Vars.hpp"
 #include "CCZ4Vars.hpp"
 #include "DimensionDefinitions.hpp"
-#include "Tensor.hpp"
+#include <AMReX_Array.H>
+#include <AMReX_GpuQualifiers.H>
 #include <AMReX_REAL.H>
 
 /// This is an example of a gauge class that can be used in the CCZ4RHS compute

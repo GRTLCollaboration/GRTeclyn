@@ -12,7 +12,6 @@
 #include "DimensionDefinitions.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "SphericalExtraction.hpp"
-#include "Tensor.hpp"
 
 //! This class tags cells based on two criteria - the
 //! value of the second derivs and the extraction regions
@@ -57,12 +56,12 @@ class ChiExtractionTagger
                const amrex::Array4<amrex::Real const> &state) const
     {
         // first test the gradients for regions of high curvature
-        const Tensor<2, amrex::Real> d2_chi =
+      const amrex::Array2D<amrex::Real, 0, 3, 0, 3> d2_chi =
             m_deriv.diff2(ix, iy, iz, state, c_chi);
         amrex::Real mod_d2_chi = 0;
         FOR (i, j)
         {
-            mod_d2_chi += d2_chi[i][j] * d2_chi[i][j];
+	  mod_d2_chi += d2_chi(i, j) * d2_chi(i, j);
         }
         amrex::Real criterion = m_dx * std::sqrt(mod_d2_chi);
         if (criterion >= m_threshold)

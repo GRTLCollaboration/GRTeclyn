@@ -66,6 +66,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<gauge_t, deriv_t>::operator()(
 // NOLINTBEGIN(readability-function-cognitive-complexity)
 template <class gauge_t, class deriv_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+
 CCZ4RHS<gauge_t, deriv_t>::rhs_equation(const amrex::CellData<amrex::Real> &rhs,
                                         const CCZ4Vars &vars,
                                         const CCZ4D1Vars &d1,
@@ -76,22 +77,23 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(const amrex::CellData<amrex::Real> &rhs,
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
     const auto chris = CCZ4Geometry::compute_christoffel(d1, h_UU);
 
-    Tensor<1, amrex::Real> Z_over_chi;
-    Tensor<1, amrex::Real> Z; // NOLINT(readability-identifier-length)
+    amrex::Array1D<amrex::Real, 0, 3> Z_over_chi;
+    amrex::Array1D<amrex::Real, 0, 3>
+        Z; // NOLINT(readability-identifier-length)
 
     if (m_formulation == USE_BSSN)
     {
         FOR (i)
-            Z_over_chi[i] = 0.0;
+            Z_over_chi(i) = 0.0;
     }
     else
     {
 
         FOR (i)
-            Z_over_chi[i] = 0.5 * (vars.Gamma(i) - chris.contracted[i]);
+            Z_over_chi(i) = 0.5 * (vars.Gamma(i) - chris.contracted(i));
     }
     FOR (i)
-        Z[i] = vars.chi() * Z_over_chi[i];
+      Z(i) = vars.chi() * Z_over_chi(i);
 
     auto ricci = CCZ4Geometry::compute_ricci_Z(vars, d1, d2.chi, d2.h, h_UU,
                                                chris, Z_over_chi);
@@ -102,17 +104,17 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(const amrex::CellData<amrex::Real> &rhs,
     amrex::Real dlapse_dot_dchi =
         TensorAlgebra::compute_dot_product(d1.lapse(), d1.chi(), h_UU);
 
-    Tensor<2, amrex::Real> covdtilde2lapse;
-    Tensor<2, amrex::Real> covd2lapse;
+    amrex::Array2D<amrex::Real, 0, 3, 0, 3> covdtilde2lapse;
+    amrex::Array2D<amrex::Real, 0, 3, 0, 3> covd2lapse;
     FOR (k, l)
     {
-        covdtilde2lapse[k][l] = d2.lapse[k][l];
+        covdtilde2lapse(k, l) = d2.lapse[k][l];
         FOR (m)
         {
-            covdtilde2lapse[k][l] -= chris.ULL[m][k][l] * d1.lapse(m);
+            covdtilde2lapse(k, l) -= chris.ULL(m, k, l) * d1.lapse(m);
         }
-        covd2lapse[k][l] =
-            vars.chi() * covdtilde2lapse[k][l] +
+        covd2lapse(k, l) =
+	  vars.chi() * covdtilde2lapse(k, l) +
             0.5 * (d1.lapse(k) * d1.chi(l) + d1.chi(k) * d1.lapse(l) -
                    vars.h(k, l) * dlapse_dot_dchi);
     }
@@ -120,15 +122,15 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(const amrex::CellData<amrex::Real> &rhs,
     amrex::Real tr_covd2lapse = -((double)GR_SPACEDIM / 2.0) * dlapse_dot_dchi;
     FOR (i)
     {
-        tr_covd2lapse -= vars.chi() * chris.contracted[i] * d1.lapse(i);
+      tr_covd2lapse -= vars.chi() * chris.contracted(i) * d1.lapse(i);
         FOR (j)
         {
-            tr_covd2lapse += h_UU[i][j] * (vars.chi() * d2.lapse[i][j] +
+	  tr_covd2lapse += h_UU(i, j) * (vars.chi() * d2.lapse[i][j] +
                                            d1.lapse(i) * d1.chi(j));
         }
     }
 
-    Tensor<2, amrex::Real> A_UU = CCZ4Geometry::compute_A_UU(vars, h_UU);
+    amrex::Array2D<amrex::Real, 0, 3, 0, 3> A_UU = CCZ4Geometry::compute_A_UU(vars, h_UU);
 
     // A^{ij} A_{ij}
     amrex::Real Aij_squared =
@@ -138,6 +140,7 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(const amrex::CellData<amrex::Real> &rhs,
 
     FOR2_SYM(i, j)
     {
+
         rhs[VAR_IDX(c_h11, i, j)] =
             advec.h(i, j) - 2.0 * vars.lapse() * vars.A(i, j) -
             (2.0 / (double)GR_SPACEDIM) * vars.h(i, j) * divshift;
@@ -148,18 +151,19 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(const amrex::CellData<amrex::Real> &rhs,
         }
     }
 
-    Tensor<2, amrex::Real> Adot_TF;
+    amrex::Array2D<amrex::Real, 0, 3, 0, 3> Adot_TF;
     FOR (i, j)
     {
-        Adot_TF[i][j] =
-            -covd2lapse[i][j] + vars.chi() * vars.lapse() * ricci.LL[i][j];
+        Adot_TF(i, j) =
+            -covd2lapse(i, j) + vars.chi() * vars.lapse() * ricci.LL(i, j);
     }
     CCZ4Geometry::make_trace_free(Adot_TF, vars, h_UU);
 
     FOR2_SYM(i, j)
     {
+
         rhs[VAR_IDX(c_A11, i, j)] =
-            advec.A(i, j) + Adot_TF[i][j] +
+            advec.A(i, j) + Adot_TF(i, j) +
             vars.A(i, j) * (vars.lapse() * (vars.K() - 2.0 * vars.Theta()) -
                             (2.0 / (double)GR_SPACEDIM) * divshift);
         FOR (k)
@@ -168,7 +172,7 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(const amrex::CellData<amrex::Real> &rhs,
                 vars.A(k, i) * d1.shift(k, j) + vars.A(k, j) * d1.shift(k, i);
             FOR (l)
             {
-                rhs[VAR_IDX(c_A11, i, j)] -= 2.0 * vars.lapse() * h_UU[k][l] *
+                rhs[VAR_IDX(c_A11, i, j)] -= 2.0 * vars.lapse() * h_UU(k, l) *
                                              vars.A(i, k) * vars.A(l, j);
             }
         }
@@ -220,47 +224,48 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(const amrex::CellData<amrex::Real> &rhs,
                        ((double)GR_SPACEDIM - 1.0) * m_cosmological_constant;
     }
 
-    Tensor<1, amrex::Real> Gammadot;
+    amrex::Array1D<amrex::Real, 0, 3> Gammadot;
     FOR (i)
     {
-        Gammadot[i] = (2.0 / (double)GR_SPACEDIM) *
-                          (divshift * (chris.contracted[i] +
-                                       2.0 * m_params.kappa3 * Z_over_chi[i]) -
-                           2.0 * vars.lapse() * vars.K() * Z_over_chi[i]) -
-                      2.0 * kappa1_times_lapse * Z_over_chi[i];
+
+        Gammadot(i) = (2.0 / (double)GR_SPACEDIM) *
+                          (divshift * (chris.contracted(i) +
+                                       2.0 * m_params.kappa3 * Z_over_chi(i)) -
+                           2.0 * vars.lapse() * vars.K() * Z_over_chi(i)) -
+                      2.0 * kappa1_times_lapse * Z_over_chi(i);
 
         FOR (j)
         {
-            Gammadot[i] +=
-                2.0 * h_UU[i][j] *
+            Gammadot(i) +=
+                2.0 * h_UU(i, j) *
                     (vars.lapse() * d1.Theta(j) - vars.Theta() * d1.lapse(j)) -
-                2.0 * A_UU[i][j] * d1.lapse(j) -
+                2.0 * A_UU(i, j) * d1.lapse(j) -
                 vars.lapse() *
                     ((2.0 * ((double)GR_SPACEDIM - 1.0) / (double)GR_SPACEDIM) *
-                         h_UU[i][j] * d1.K(j) +
-                     (double)GR_SPACEDIM * A_UU[i][j] * d1.chi(j) /
+                         h_UU(i, j) * d1.K(j) +
+                     (double)GR_SPACEDIM * A_UU(i, j) * d1.chi(j) /
                          vars.chi()) -
-                (chris.contracted[j] + 2.0 * m_params.kappa3 * Z_over_chi[j]) *
+                (chris.contracted(j) + 2.0 * m_params.kappa3 * Z_over_chi(j)) *
                     d1.shift(i, j);
 
             FOR (k)
             {
-                Gammadot[i] +=
-                    2.0 * vars.lapse() * chris.ULL[i][j][k] * A_UU[j][k] +
-                    h_UU[j][k] * d2.shift[i][j][k] +
+                Gammadot(i) +=
+                    2.0 * vars.lapse() * chris.ULL(i, j, k) * A_UU(j, k) +
+                    h_UU(j, k) * d2.shift[i][j][k] +
                     (((double)GR_SPACEDIM - 2.0) / (double)GR_SPACEDIM) *
-                        h_UU[i][j] * d2.shift[k][j][k];
+                        h_UU(i, j) * d2.shift[k][j][k];
             }
         }
     }
-
     FOR (i)
     {
-        rhs[c_Gamma1 + i] = advec.Gamma(i) + Gammadot[i];
+        rhs[c_Gamma1 + i] = advec.Gamma(i) + Gammadot(i);
     }
 
     m_gauge.rhs_gauge(rhs, vars, d1, d2, advec);
 }
+
 // NOLINTEND(readability-function-cognitive-complexity)
 
 #endif /* CCZ4RHS_IMPL_HPP_ */

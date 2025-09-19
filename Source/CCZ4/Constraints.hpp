@@ -17,10 +17,12 @@
 #include "FourthOrderDerivatives.hpp"
 #include "GRInterval.hpp"
 #include "Interval.hpp"
+
 #include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
 
 // AMReX includes
+#include <AMReX_Array.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_REAL.H>
 
@@ -44,8 +46,8 @@ class Constraints
     {
         amrex::Real Ham{};
         amrex::Real Ham_abs_terms{};
-        Tensor<1, amrex::Real> Mom;
-        Tensor<1, amrex::Real> Mom_abs_terms;
+        amrex::Array1D<amrex::Real, 0, 3> Mom{};
+        amrex::Array1D<amrex::Real, 0, 3> Mom_abs_terms{};
     };
 
     // Constructor which allows specifying Ham and Mom vars
@@ -92,12 +94,13 @@ class Constraints
     Interval m_c_Moms_abs_terms;
     double m_cosmological_constant;
 
+
     [[nodiscard]]
     AMREX_FORCE_INLINE AMREX_GPU_DEVICE constraints_t constraint_equations(
         const CCZ4Vars &vars, const CCZ4D1Vars &d1,
         const Tensor<2, amrex::Real> &d2_chi,
-        const Tensor<4, amrex::Real> &d2_h, const Tensor<2, amrex::Real> &h_UU,
-        const chris_t &chris) const;
+        const Tensor<4, amrex::Real> &d2_h, const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU,
+        const chris_array_t &chris) const;
 
     AMREX_FORCE_INLINE AMREX_GPU_DEVICE void
     store_vars(const constraints_t &out,

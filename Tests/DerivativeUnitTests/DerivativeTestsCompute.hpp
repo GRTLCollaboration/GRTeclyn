@@ -39,11 +39,12 @@ template <class deriv_t> class DerivativeTestsCompute
         Tensor<1, amrex::Real> out_d1 = m_deriv.diff1(ix, iy, iz, in, c_d1);
         Tensor<2, amrex::Real> out_d2 = m_deriv.diff2(ix, iy, iz, in, c_d2);
 
+        Tensor<1, amrex::Real> shift_up   = {2., 0., 3.};
         Tensor<1, amrex::Real> shift_down = {-2., 0., -3.};
+
         const amrex::Real out_advec_down =
             m_deriv.advection(ix, iy, iz, in, shift_down, c_advec_down);
 
-        Tensor<1, amrex::Real> shift_up = {2., 0., 3.};
         const amrex::Real out_advec_up =
             m_deriv.advection(ix, iy, iz, in, shift_up, c_advec_up);
 

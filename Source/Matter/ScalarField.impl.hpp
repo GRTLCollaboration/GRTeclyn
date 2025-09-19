@@ -13,8 +13,9 @@
 // Calculate the stress energy tensor elements
 template <class potential_t>
 AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t>::compute_emtensor(
-    const Vars &vars, const D1Vars &d1, const Tensor<2, amrex::Real> &h_UU,
-    const Tensor<3, amrex::Real> &chris_ULL) const
+    const Vars &vars, const D1Vars &d1,
+    const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU,
+    const amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> &chris_ULL) const
 {
     emtensor_t out;
 
@@ -22,7 +23,7 @@ AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t>::compute_emtensor(
     amrex::Real Vt = -vars.Pi() * vars.Pi();
     FOR (i, j)
     {
-        Vt += vars.chi() * h_UU[i][j] * d1.phi(i) * d1.phi(j);
+        Vt += vars.chi() * h_UU(i, j) * d1.phi(i) * d1.phi(j);
     }
 
     // set the potential values
@@ -36,7 +37,7 @@ AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t>::compute_emtensor(
     // S = T_ij
     FOR (i, j)
     {
-        out.S[i][j] = -0.5 * vars.h(i, j) * Vt / vars.chi() +
+        out.S(i, j) = -0.5 * vars.h(i, j) * Vt / vars.chi() +
                       d1.phi(i) * d1.phi(j) -
                       vars.h(i, j) * V_of_phi / vars.chi();
     }
@@ -51,7 +52,7 @@ AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t>::compute_emtensor(
     //    j_i (note lower index) = - n^a T_ai
     FOR (i)
     {
-        out.j[i] = -d1.phi(i) * vars.Pi();
+        out.j(i) = -d1.phi(i) * vars.Pi();
     }
 
     return out;
@@ -81,13 +82,14 @@ ScalarField<potential_t>::add_matter_rhs(
     FOR (i, j)
     {
         // includes non conformal parts of chris not included in chris_ULL
-        rhs[c_Pi] += h_UU[i][j] * (-0.5 * d1.chi(j) * vars.lapse() * d1.phi(i) +
-                                   vars.chi() * vars.lapse() * d2.phi[i][j] +
-                                   vars.chi() * d1.lapse(i) * d1.phi(j));
+        rhs[c_Pi] +=
+            h_UU(i, j) * (-0.5 * d1.chi(j) * vars.lapse() * d1.phi(i) +
+                          vars.chi() * vars.lapse() * d2.phi[i][j] +
+                          vars.chi() * d1.lapse(i) * d1.phi(j));
         FOR (k)
         {
-            rhs[c_Pi] += -vars.chi() * vars.lapse() * h_UU[i][j] *
-                         chris.ULL[k][i][j] * d1.phi(k);
+            rhs[c_Pi] += -vars.chi() * vars.lapse() * h_UU(i, j) *
+                            chris.ULL(k, i, j) * d1.phi(k);
         }
     }
 }
