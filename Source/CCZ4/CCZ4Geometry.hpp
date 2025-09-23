@@ -9,7 +9,6 @@
 
 #include "CCZ4D1Vars.hpp"
 #include "CCZ4Vars.hpp"
-#include "ConstCCZ4Vars.hpp"
 #include "DimensionDefinitions.hpp"
 #include "TensorAlgebra.hpp"
 
@@ -41,43 +40,6 @@ compute_metric_determinant(const CCZ4Vars &vars)
                       vars.h(2, 2) * vars.h(0, 1) * vars.h(0, 1);
 
     return det;
-}
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-compute_metric_determinant(const ConstCCZ4Vars &vars)
-{
-    amrex::Real det = vars.h(0, 0) * vars.h(1, 1) * vars.h(2, 2) +
-                      2 * vars.h(0, 1) * vars.h(0, 2) * vars.h(1, 2) -
-                      vars.h(0, 0) * vars.h(1, 2) * vars.h(1, 2) -
-                      vars.h(1, 1) * vars.h(0, 2) * vars.h(0, 2) -
-                      vars.h(2, 2) * vars.h(0, 1) * vars.h(0, 1);
-
-    return det;
-}
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<2, amrex::Real>
-compute_inverse_metric(const ConstCCZ4Vars &vars)
-{
-    amrex::Real det_h         = compute_metric_determinant(vars);
-    amrex::Real det_h_inverse = 1. / det_h;
-    Tensor<2, amrex::Real> h_UU;
-    h_UU[0][0] = (vars.h(1, 1) * vars.h(2, 2) - vars.h(1, 2) * vars.h(2, 1)) *
-                 det_h_inverse;
-    h_UU[0][1] = (vars.h(2, 0) * vars.h(1, 2) - vars.h(1, 0) * vars.h(2, 2)) *
-                 det_h_inverse;
-    h_UU[0][2] = (vars.h(1, 0) * vars.h(2, 1) - vars.h(2, 0) * vars.h(1, 1)) *
-                 det_h_inverse;
-    h_UU[1][1] = (vars.h(0, 0) * vars.h(2, 2) - vars.h(2, 0) * vars.h(0, 2)) *
-                 det_h_inverse;
-    h_UU[1][2] = (vars.h(0, 1) * vars.h(2, 0) - vars.h(0, 0) * vars.h(2, 1)) *
-                 det_h_inverse;
-    h_UU[2][2] = (vars.h(0, 0) * vars.h(1, 1) - vars.h(0, 1) * vars.h(1, 0)) *
-                 det_h_inverse;
-    h_UU[1][0] = h_UU[0][1];
-    h_UU[2][0] = h_UU[0][2];
-    h_UU[2][1] = h_UU[1][2];
-
-    return h_UU;
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<2, amrex::Real>
@@ -118,18 +80,6 @@ compute_trace_A(const CCZ4Vars &vars)
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-compute_trace_A(const ConstCCZ4Vars &vars)
-{
-    Tensor<2, amrex::Real> inverse_metric = compute_inverse_metric(vars);
-    amrex::Real trace_A                   = 0.0;
-    FOR (i, j)
-    {
-        trace_A += inverse_metric[i][j] * vars.A(i, j);
-    }
-    return trace_A;
-}
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_trace_A(const CCZ4Vars &vars,
                 const Tensor<2, amrex::Real> &inverse_metric)
 {
@@ -141,21 +91,8 @@ compute_trace_A(const CCZ4Vars &vars,
     return trace_A;
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-compute_trace_A(const ConstCCZ4Vars &vars,
-                const Tensor<2, amrex::Real> &inverse_metric)
-{
-    amrex::Real trace_A = 0.0;
-    FOR (i, j)
-    {
-        trace_A += inverse_metric[i][j] * vars.A(i, j);
-    }
-    return trace_A;
-}
-
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<2, amrex::Real>
-compute_A_UU(const ConstCCZ4Vars &vars,
-             const Tensor<2, amrex::Real> &inverse_metric)
+compute_A_UU(const CCZ4Vars &vars, const Tensor<2, amrex::Real> &inverse_metric)
 {
     Tensor<2, amrex::Real> A_UU;
     FOR (i, j)
@@ -172,7 +109,7 @@ compute_A_UU(const ConstCCZ4Vars &vars,
 
 // This is A_ij A^ij
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-compute_Aij_squared(const ConstCCZ4Vars &vars)
+compute_Aij_squared(const CCZ4Vars &vars)
 {
     Tensor<2, amrex::Real> inverse_metric = compute_inverse_metric(vars);
     amrex::Real Aij_squared               = 0.0;
@@ -183,7 +120,7 @@ compute_Aij_squared(const ConstCCZ4Vars &vars)
     }
     return Aij_squared;
 }
-/*
+
 // This is A_ij A^ij
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_Aij_squared(const CCZ4Vars &vars,
@@ -197,24 +134,40 @@ compute_Aij_squared(const CCZ4Vars &vars,
     }
     return Aij_squared;
 }
-*/
-// This is A_ij A^ij
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-compute_Aij_squared(const ConstCCZ4Vars &vars,
-                    const Tensor<2, amrex::Real> &inverse_metric)
+
+/// Computes the conformal christoffel symbol
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE chris_t
+compute_christoffel(const CCZ4D1Vars &d1, const Tensor<2, amrex::Real> &h_UU)
 {
-    amrex::Real Aij_squared = 0.0;
-    FOR (i, j, k, l)
+    chris_t out{};
+
+    FOR (i, j, k)
     {
-        Aij_squared += inverse_metric[i][k] * inverse_metric[j][l] *
-                       vars.A(i, j) * vars.A(k, l);
+        out.LLL[i][j][k] =
+            0.5 * (d1.h(j, i, k) + d1.h(k, i, j) - d1.h(j, k, i));
     }
-    return Aij_squared;
+    FOR (i, j, k)
+    {
+        out.ULL[i][j][k] = 0;
+        FOR (l)
+        {
+            out.ULL[i][j][k] += h_UU[i][l] * out.LLL[l][j][k];
+        }
+    }
+    FOR (i)
+    {
+        out.contracted[i] = 0;
+        FOR (j, k)
+        {
+            out.contracted[i] += h_UU[j][k] * out.ULL[i][j][k];
+        }
+    }
+
+    return out;
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<3, amrex::Real>
-compute_phys_chris(const Tensor<1, amrex::Real> &d1_chi,
-                   const ConstCCZ4Vars &vars,
+compute_phys_chris(const Tensor<1, amrex::Real> &d1_chi, const CCZ4Vars &vars,
                    const Tensor<2, amrex::Real> &h_UU,
                    const Tensor<3, amrex::Real> &chris_ULL)
 {
@@ -235,10 +188,19 @@ compute_phys_chris(const Tensor<1, amrex::Real> &d1_chi,
     return chris_phys;
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
+compute_divshift(const CCZ4D1Vars &d1)
+{
+    amrex::Real divshift = 0.;
+    FOR (i)
+        divshift += d1.shift(i, i);
+    return divshift;
+}
+
 /// Removes the trace of a 2-Tensor with lower indices given a metric and an
 /// inverse metric.
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-make_trace_free(Tensor<2, amrex::Real> &tensor_LL, const ConstCCZ4Vars vars,
+make_trace_free(Tensor<2, amrex::Real> &tensor_LL, const CCZ4Vars vars,
                 const Tensor<2, amrex::Real> &inverse_metric)
 {
     auto trace = TensorAlgebra::compute_trace(tensor_LL, inverse_metric);
@@ -251,8 +213,8 @@ make_trace_free(Tensor<2, amrex::Real> &tensor_LL, const ConstCCZ4Vars vars,
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_z_terms(const int i, const int j,
-                const Tensor<1, amrex::Real> &Z_over_chi,
-                const ConstCCZ4Vars &vars, const Tensor<1, amrex::Real> &d1_chi)
+                const Tensor<1, amrex::Real> &Z_over_chi, const CCZ4Vars &vars,
+                const Tensor<1, amrex::Real> &d1_chi)
 {
     amrex::Real out = 0.;
     FOR (k)
@@ -265,7 +227,7 @@ compute_z_terms(const int i, const int j,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z(
-    const ConstCCZ4Vars &vars, const CCZ4D1Vars &d1,
+    const CCZ4Vars &vars, const CCZ4D1Vars &d1,
     const Tensor<2, amrex::Real> &d2_chi, const Tensor<4, amrex::Real> &d2_h,
     const Tensor<2, amrex::Real> &h_UU, const chris_t &chris,
     const Tensor<1, amrex::Real> &Z_over_chi)
@@ -278,7 +240,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z(
         covdtilde2chi[k][l] = d2_chi[k][l];
         FOR (m)
         {
-            covdtilde2chi[k][l] -= chris.ULL[m][k][l] * d1.chi[m];
+            covdtilde2chi[k][l] -= chris.ULL[m][k][l] * d1.chi(m);
         }
     }
 
@@ -288,7 +250,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z(
     FOR (i, j)
     {
         boxtildechi   += covdtilde2chi[i][j] * h_UU[i][j];
-        dchi_dot_dchi += d1.chi[i] * d1.chi[j] * h_UU[i][j];
+        dchi_dot_dchi += d1.chi(i) * d1.chi(j) * h_UU[i][j];
         FOR (k, l)
         {
             chris_LLU[i][j][k] += h_UU[k][l] * chris.LLL[i][j][l];
@@ -303,9 +265,9 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z(
             // We call this ricci_hat rather than ricci_tilde as we have
             // replaced what should be \tilde{Gamma} with \hat{Gamma} in
             // order to avoid adding terms that cancel later on
-            ricci_hat += 0.5 * (vars.h(k, i) * d1.Gamma[k][j] +
-                                vars.h(k, j) * d1.Gamma[k][i]);
-            ricci_hat += 0.5 * vars.Gamma(k) * d1.h[i][j][k];
+            ricci_hat += 0.5 * (vars.h(k, i) * d1.Gamma(k, j) +
+                                vars.h(k, j) * d1.Gamma(k, i));
+            ricci_hat += 0.5 * vars.Gamma(k) * d1.h(i, j, k);
             FOR (l)
             {
                 ricci_hat += -0.5 * h_UU[k][l] * d2_h[i][j][k][l] +
@@ -318,11 +280,11 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z(
         amrex::Real ricci_chi =
             0.5 * ((GR_SPACEDIM - 2) * covdtilde2chi[i][j] +
                    vars.h(i, j) * boxtildechi -
-                   ((GR_SPACEDIM - 2) * d1.chi[i] * d1.chi[j] +
+                   ((GR_SPACEDIM - 2) * d1.chi(i) * d1.chi(j) +
                     GR_SPACEDIM * vars.h(i, j) * dchi_dot_dchi) /
                        (2 * vars.chi()));
 
-        amrex::Real z_terms = compute_z_terms(i, j, Z_over_chi, vars, d1.chi);
+        amrex::Real z_terms = compute_z_terms(i, j, Z_over_chi, vars, d1.chi());
 
         out.LL[i][j] =
             (ricci_chi + vars.chi() * ricci_hat + z_terms) / vars.chi();
@@ -335,7 +297,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z(
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<2, amrex::Real>
 compute_d1_chris_contracted(const Tensor<2, amrex::Real> &h_UU,
-                            const Tensor<3, amrex::Real> &d1_h,
+                            const CCZ4D1Vars &d1,
                             const Tensor<4, amrex::Real> &d2_h)
 {
     Tensor<2, amrex::Real> d1_chris_contracted = 0.0;
@@ -346,8 +308,8 @@ compute_d1_chris_contracted(const Tensor<2, amrex::Real> &h_UU,
             amrex::Real d1_terms = 0.0;
             FOR (q, r)
             {
-                d1_terms += -h_UU[q][r] * (d1_h[n][q][j] * d1_h[m][p][r] +
-                                           d1_h[m][n][j] * d1_h[p][q][r]);
+                d1_terms += -h_UU[q][r] * (d1.h(n, q, j) * d1.h(m, p, r) +
+                                           d1.h(m, n, j) * d1.h(p, q, r));
             }
             d1_chris_contracted[i][j] +=
                 h_UU[i][m] * h_UU[n][p] * (d2_h[m][n][j][p] + d1_terms);
@@ -359,7 +321,7 @@ compute_d1_chris_contracted(const Tensor<2, amrex::Real> &h_UU,
 // This function allows adding arbitrary multiples of D_{(i}Z_{j)}
 // to the Ricci scalar rather than the default of 2 in compute_ricci_Z
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z_general(
-    const ConstCCZ4Vars &vars, const CCZ4D1Vars &d1,
+    const CCZ4Vars &vars, const CCZ4D1Vars &d1,
     const Tensor<2, amrex::Real> &d2_chi, const Tensor<4, amrex::Real> &d2_h,
     const Tensor<2, amrex::Real> &h_UU, const chris_t &chris,
     const double dZ_coeff)
@@ -370,7 +332,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z_general(
 
     // need to add term to correct for d1.Gamma (includes Z contribution)
     // and Gamma in ricci_hat
-    auto d1_chris_contracted = compute_d1_chris_contracted(h_UU, d1.h, d2_h);
+    auto d1_chris_contracted = compute_d1_chris_contracted(h_UU, d1, d2_h);
     Tensor<1, amrex::Real> Z_over_chi;
     FOR (i)
     {
@@ -383,12 +345,12 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z_general(
             // This corrects for the \hat{Gamma}s in ricci_hat
             ricci.LL[i][j] +=
                 (1. - 0.5 * dZ_coeff) * 0.5 *
-                (vars.h(m, i) * (d1_chris_contracted[m][j] - d1.Gamma[m][j]) +
-                 vars.h(m, j) * (d1_chris_contracted[m][i] - d1.Gamma[m][i]) +
-                 (chris.contracted[m] - vars.Gamma(m)) * d1.h[i][j][m]);
+                (vars.h(m, i) * (d1_chris_contracted[m][j] - d1.Gamma(m, j)) +
+                 vars.h(m, j) * (d1_chris_contracted[m][i] - d1.Gamma(m, i)) +
+                 (chris.contracted[m] - vars.Gamma(m)) * d1.h(i, j, m));
         }
-        amrex::Real z_terms  = compute_z_terms(i, j, Z_over_chi, vars, d1.chi);
-        ricci.LL[i][j]      += 0.5 * dZ_coeff * z_terms / vars.chi();
+        amrex::Real z_terms = compute_z_terms(i, j, Z_over_chi, vars, d1.chi());
+        ricci.LL[i][j] += 0.5 * dZ_coeff * z_terms / vars.chi();
     }
     ricci.scalar = vars.chi() * TensorAlgebra::compute_trace(ricci.LL, h_UU);
     return ricci;
@@ -397,7 +359,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z_general(
 // This function returns the pure Ricci scalar with no contribution from the
 // Z vector - used e.g. in the constraint calculations.
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci(
-    const ConstCCZ4Vars &vars, const CCZ4D1Vars &d1,
+    const CCZ4Vars &vars, const CCZ4D1Vars &d1,
     const Tensor<2, amrex::Real> &d2_chi, const Tensor<4, amrex::Real> &d2_h,
     const Tensor<2, amrex::Real> &h_UU, const chris_t &chris)
 {

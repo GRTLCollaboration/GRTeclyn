@@ -324,6 +324,7 @@ compute_christoffel(const Tensor<2, Tensor<1, amrex::Real>> &d1_metric,
 
     return out;
 }
+
 /// Computes the conformal christoffel symbol
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE chris_t compute_christoffel(
     const Tensor<3, amrex::Real> &d1_metric, const Tensor<2, amrex::Real> &h_UU)

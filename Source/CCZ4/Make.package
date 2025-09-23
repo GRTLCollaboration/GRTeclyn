@@ -1,11 +1,11 @@
 GRTECLYN_CEXE_headers += CCZ4AdvecVars.hpp \
                          CCZ4D1Vars.hpp \
-                         CCZ4Geometry2.hpp \
+                         CCZ4D2Vars.hpp \
+                         CCZ4Geometry.hpp \
                          CCZ4RHS.hpp \
                          CCZ4RHS.impl.hpp \
                          CCZ4StateVariables.hpp \
-                         CCZ4Vars2.hpp \
-                         ConstCCZ4Vars.hpp \
+                         CCZ4Vars.hpp \
                          Constraints.hpp \
                          Constraints.impl.hpp \
                          GammaCalculator.hpp \

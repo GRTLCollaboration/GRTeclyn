@@ -34,7 +34,7 @@ class MovingPunctureGaugeWithMatter : public MovingPunctureGauge
     {
     }
 
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void rhs_gauge_add_matter_terms(
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE static void rhs_gauge_add_matter_terms(
         CCZ4Vars &rhs, const ConstCCZ4Vars &vars, Tensor<2, amrex::Real> h_UU,
         const emtensor_t emtensor, const double G_Newton) const
     {

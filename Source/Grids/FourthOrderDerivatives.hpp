@@ -104,6 +104,20 @@ class FourthOrderDerivatives
         return d1_tensor;
     }
 
+    [[nodiscard]] AMREX_GPU_DEVICE
+        AMREX_FORCE_INLINE amrex::GpuArray<Tensor<1, amrex::Real>, NUM_VARS>
+        diff1_state(int ix, int iy, int iz,
+                    const amrex::Array4<const amrex::Real> &state) const
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+        amrex::GpuArray<Tensor<1, amrex::Real>, NUM_VARS> d1_state;
+        for (int ivar = 0; ivar < NUM_VARS; ivar++)
+        {
+            d1_state[ivar] = diff1(ix, iy, iz, state, ivar);
+        }
+        return d1_state;
+    }
+
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
     diff2(const amrex::Real *in_ptr, const int stride, const int idx = 0) const
     {
@@ -225,6 +239,20 @@ class FourthOrderDerivatives
         return d2_tensor;
     }
 
+    [[nodiscard]] AMREX_GPU_DEVICE
+        AMREX_FORCE_INLINE amrex::GpuArray<Tensor<2, amrex::Real>, NUM_VARS>
+        diff2_state(int ix, int iy, int iz,
+                    const amrex::Array4<const amrex::Real> &state) const
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+        amrex::GpuArray<Tensor<2, amrex::Real>, NUM_VARS> d2_state;
+        for (int ivar = 0; ivar < NUM_VARS; ivar++)
+        {
+            d2_state[ivar] = diff2(ix, iy, iz, state, ivar);
+        }
+        return d2_state;
+    }
+
   protected:
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
     advection_term(const amrex::Real *in_ptr, const amrex::Real &shift_comp,
@@ -319,6 +347,23 @@ class FourthOrderDerivatives
         return advec_tensor;
     }
 
+    [[nodiscard]] AMREX_GPU_DEVICE
+        AMREX_FORCE_INLINE amrex::GpuArray<amrex::Real, NUM_VARS>
+        advec_state(int ix, int iy, int iz,
+                    const amrex::Array4<const amrex::Real> &state,
+                    const Tensor<1, amrex::Real> &shift_vector) const
+
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+        amrex::GpuArray<amrex::Real, NUM_VARS> advec_state;
+        for (int ivar = 0; ivar < NUM_VARS; ivar++)
+        {
+            advec_state[ivar] =
+                advection(ix, iy, iz, state, shift_vector, ivar);
+        }
+        return advec_state;
+    }
+
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
     dissipation_term(const double *in_ptr, const int stride,
                      const int idx = 0) const
@@ -362,7 +407,8 @@ class FourthOrderDerivatives
     }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    add_dissipation(int ix, int iy, int iz, CCZ4Vars &vars,
+    add_dissipation(int ix, int iy, int iz,
+                    const amrex::CellData<amrex::Real> &rhs,
                     const amrex::Array4<amrex::Real const> &state,
                     const double sigma_coeff, int num_vars = NUM_VARS) const
     {
@@ -370,8 +416,7 @@ class FourthOrderDerivatives
         {
             amrex::Real diss =
                 calculate_dissipation(ix, iy, iz, state, sigma_coeff, ivar);
-            amrex::Real var_plus_diss = vars.get_var(ivar) + diss;
-            vars.store_var(var_plus_diss, ivar);
+            rhs[ivar] += diss;
         }
     }
 };

@@ -52,6 +52,7 @@ template <class potential_t = DefaultPotential> class ScalarField
 
     //! The function which calculates the EM Tensor, given the vars and
     //! derivatives, including the potential
+    [[nodiscard]]
     AMREX_GPU_DEVICE emtensor_t
     compute_emtensor(const ConstVars &vars, const D1Vars &d1,
                      const Tensor<2, amrex::Real>

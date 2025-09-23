@@ -59,33 +59,33 @@ AMREX_GPU_DEVICE // or AMREX_GPU_HOST_DEVICE depending on what's needed
 
     const amrex::CellData<amrex::Real> &state_cell_data =
         state.cellData(ix, iy, iz);
-    CCZ4Vars vars(state_cell_data);
     Coordinates coords(amrex::IntVect(ix, iy, iz), m_dx);
 
     // Assign non zero values
-    amrex::Real chi = compute_chi(coords);
-    vars.store_chi(chi);
+    amrex::Real chi        = compute_chi(coords);
+    state_cell_data[c_chi] = chi;
 
-    Tensor<2, amrex::Real> h_LL;
     FOR2 (i, j)
     {
-        h_LL[i][j] = TensorAlgebra::delta(i, j);
+        state_cell_data[var_idx(c_h11, i, j)] = TensorAlgebra::delta(i, j);
     }
-    vars.store_h(h_LL);
 
     Tensor<2, amrex::Real> total_A_LL = compute_A(chi, coords);
-    vars.store_A(total_A_LL);
+    FOR2 (i, j)
+    {
+        state_cell_data[var_idx(c_A11, i, j)] = total_A_LL[i][j];
+    }
 
     switch (m_initial_lapse)
     {
     case Lapse::ONE:
-        vars.store_lapse(1.0);
+        state_cell_data[c_lapse] = 1.0;
         break;
     case Lapse::PRE_COLLAPSED:
-        vars.store_lapse(std::sqrt(chi));
+        state_cell_data[c_lapse] = std::sqrt(chi);
         break;
     case Lapse::CHI:
-        vars.store_lapse(chi);
+        state_cell_data[c_lapse] = chi;
         break;
     default:
         amrex::Abort(

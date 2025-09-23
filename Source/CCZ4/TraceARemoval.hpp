@@ -18,7 +18,7 @@ class TraceARemoval
   public:
 
     // Constructor
-    TraceARemoval() {}
+    TraceARemoval() = default;
 
     // Compute function
     AMREX_GPU_HOST_DEVICE void

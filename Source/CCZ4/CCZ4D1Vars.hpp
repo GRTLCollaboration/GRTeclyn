@@ -18,62 +18,82 @@ class CCZ4D1Vars
                                 const amrex::Array4<const amrex::Real> &state,
                                 const FourthOrderDerivatives &a_deriv)
     {
-        // Calculate the d1 quantities for all vars
-        calculate_d1_derivs(ix, iy, iz, state, a_deriv);
+        m_d1_state = a_deriv.diff1_state(ix, iy, iz, state);
     }
 
-    // default empty contructor
-    AMREX_GPU_DEVICE CCZ4D1Vars() { zero_d1_derivs(); }
+    amrex::GpuArray<Tensor<1, amrex::Real>, NUM_VARS> m_d1_state;
 
-    // default empty contructor
-    AMREX_GPU_DEVICE void zero_d1_derivs()
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &chi(int i) const
     {
-        FOR (k)
-        {
-            chi[k]   = 0.0;
-            Theta[k] = 0.0;
-            K[k]     = 0.0;
-            lapse[k] = 0.0;
-            FOR (i)
-            {
-                shift[i][k] = 0.0;
-                B[i][k]     = 0.0;
-                Gamma[i][k] = 0.0;
-                FOR (j)
-                {
-                    h[i][j][k] = 0.0;
-                    A[i][j][k] = 0.0;
-                }
-            }
-        }
+        return m_d1_state[c_chi][i];
     }
 
-    AMREX_GPU_DEVICE void
-    calculate_d1_derivs(int ix, int iy, int iz,
-                        const amrex::Array4<const amrex::Real> &state,
-                        const FourthOrderDerivatives &a_deriv)
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const Tensor<1, amrex::Real> &
+    chi() const
     {
-        // Calculate the d1 quantities for all vars
-        chi   = a_deriv.diff1_scalar(ix, iy, iz, state, c_chi);
-        K     = a_deriv.diff1_scalar(ix, iy, iz, state, c_K);
-        lapse = a_deriv.diff1_scalar(ix, iy, iz, state, c_lapse);
-        Theta = a_deriv.diff1_scalar(ix, iy, iz, state, c_Theta);
-        shift = a_deriv.diff1_vector(ix, iy, iz, state, c_shift1);
-        Gamma = a_deriv.diff1_vector(ix, iy, iz, state, c_Gamma1);
-        B     = a_deriv.diff1_vector(ix, iy, iz, state, c_B1);
-        h     = a_deriv.diff1_tensor(ix, iy, iz, state, c_h11);
-        A     = a_deriv.diff1_tensor(ix, iy, iz, state, c_A11);
+        return m_d1_state[c_chi];
     }
 
-    Tensor<3, amrex::Real> h;
-    Tensor<3, amrex::Real> A;
-    Tensor<2, amrex::Real> Gamma;
-    Tensor<2, amrex::Real> shift;
-    Tensor<2, amrex::Real> B;
-    Tensor<1, amrex::Real> chi;
-    Tensor<1, amrex::Real> K;
-    Tensor<1, amrex::Real> lapse;
-    Tensor<1, amrex::Real> Theta;
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &h(int i, int j,
+                                                             int k) const
+    {
+        return m_d1_state[var_idx(c_h11, i, j)][k];
+    }
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &K(int i) const
+    {
+        return m_d1_state[c_K][i];
+    }
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &A(int i, int j,
+                                                             int k) const
+    {
+        return m_d1_state[var_idx(c_A11, i, j)][k];
+    }
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &Theta(int i) const
+    {
+        return m_d1_state[c_Theta][i];
+    }
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &Gamma(int i,
+                                                                 int j) const
+    {
+        return m_d1_state[c_Gamma1 + i][j];
+    }
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &lapse(int i) const
+    {
+        return m_d1_state[c_lapse][i];
+    }
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const Tensor<1, amrex::Real> &
+    lapse() const
+    {
+        return m_d1_state[c_lapse];
+    }
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &shift(int i,
+                                                                 int j) const
+    {
+        return m_d1_state[c_shift1 + i][j];
+    }
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &B(int i, int j) const
+    {
+        return m_d1_state[c_B1 + i][j];
+    }
 };
 
 #endif /* CCZ4D1VARS_HPP */
