@@ -12,7 +12,6 @@
 #include "CCZ4Geometry.hpp"
 #include "CCZ4Vars.hpp"
 #include "Cell.hpp"
-#include "ConstCCZ4Vars.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "MovingPunctureGauge.hpp"
 #include "Tensor.hpp"
@@ -92,8 +91,9 @@ class CCZ4RHS
   protected:
     /// Calculates the rhs for CCZ4
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    rhs_equation(CCZ4Vars &rhs, const ConstCCZ4Vars &vars, const CCZ4D1Vars &d1,
-                 const CCZ4D2Vars &d2, const CCZ4AdvecVars &advec) const;
+    rhs_equation(const amrex::CellData<amrex::Real> &rhs, const CCZ4Vars &vars,
+                 const CCZ4D1Vars &d1, const CCZ4D2Vars &d2,
+                 const CCZ4AdvecVars &advec) const;
 };
 
 #include "CCZ4RHS.impl.hpp"

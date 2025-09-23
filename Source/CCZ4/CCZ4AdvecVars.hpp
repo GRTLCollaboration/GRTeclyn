@@ -20,67 +20,72 @@ class CCZ4AdvecVars
                   const amrex::Array4<const amrex::Real> &state,
                   const FourthOrderDerivatives &a_deriv)
     {
-        // Calculate the advec quantities for all vars
-        calculate_advec_derivs(ix, iy, iz, state, a_deriv);
-    }
-    // NOLINTEND(cppcoreguidelines-pro-type-member-init)
-
-    // NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
-    // default empty contructor
-    AMREX_GPU_DEVICE CCZ4AdvecVars() { zero_advec_derivs(); }
-    // NOLINTEND(cppcoreguidelines-pro-type-member-init)
-
-    AMREX_GPU_DEVICE void zero_advec_derivs()
-    {
-        chi   = 0.0;
-        Theta = 0.0;
-        K     = 0.0;
-        lapse = 0.0;
-        FOR (i)
-        {
-            shift[i] = 0.0;
-            B[i]     = 0.0;
-            Gamma[i] = 0.0;
-            FOR (j)
-            {
-                h[i][j] = 0.0;
-                A[i][j] = 0.0;
-            }
-        }
-    }
-
-    AMREX_GPU_DEVICE void
-    calculate_advec_derivs(int ix, int iy, int iz,
-                           const amrex::Array4<const amrex::Real> &state,
-                           const FourthOrderDerivatives &a_deriv)
-    {
         Tensor<1, amrex::Real> shift_vector;
         FOR (idir)
         {
             shift_vector[idir] = state(ix, iy, iz, c_shift1 + idir);
         }
 
-        // Calculate the d1 quantities for all vars
-        chi   = a_deriv.advec_scalar(ix, iy, iz, state, shift_vector, c_chi);
-        K     = a_deriv.advec_scalar(ix, iy, iz, state, shift_vector, c_K);
-        lapse = a_deriv.advec_scalar(ix, iy, iz, state, shift_vector, c_lapse);
-        Theta = a_deriv.advec_scalar(ix, iy, iz, state, shift_vector, c_Theta);
-        shift = a_deriv.advec_vector(ix, iy, iz, state, shift_vector, c_shift1);
-        Gamma = a_deriv.advec_vector(ix, iy, iz, state, shift_vector, c_Gamma1);
-        B     = a_deriv.advec_vector(ix, iy, iz, state, shift_vector, c_B1);
-        h     = a_deriv.advec_tensor(ix, iy, iz, state, shift_vector, c_h11);
-        A     = a_deriv.advec_tensor(ix, iy, iz, state, shift_vector, c_A11);
+        // Calculate the advec quantities for all vars
+        m_advec_state = a_deriv.advec_state(ix, iy, iz, state, shift_vector);
+    }
+    // NOLINTEND(cppcoreguidelines-pro-type-member-init)
+
+    amrex::GpuArray<amrex::Real, NUM_VARS> m_advec_state;
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &chi() const
+    {
+        return m_advec_state[c_chi];
     }
 
-    Tensor<2, amrex::Real> h;
-    Tensor<2, amrex::Real> A;
-    Tensor<1, amrex::Real> Gamma;
-    Tensor<1, amrex::Real> shift;
-    Tensor<1, amrex::Real> B;
-    amrex::Real chi;
-    amrex::Real K;
-    amrex::Real lapse;
-    amrex::Real Theta;
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &h(int i, int j) const
+    {
+        return m_advec_state[var_idx(c_h11, i, j)];
+    }
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &K() const
+    {
+        return m_advec_state[c_K];
+    }
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &A(int i, int j) const
+    {
+        return m_advec_state[var_idx(c_A11, i, j)];
+    }
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &Theta() const
+    {
+        return m_advec_state[c_Theta];
+    }
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &Gamma(int i) const
+    {
+        return m_advec_state[c_Gamma1 + i];
+    }
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &lapse() const
+    {
+        return m_advec_state[c_lapse];
+    }
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &shift(int i) const
+    {
+        return m_advec_state[c_shift1 + i];
+    }
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &B(int i) const
+    {
+        return m_advec_state[c_B1 + i];
+    }
 };
 
 #endif /* CCZ4ADVECVARS_HPP */

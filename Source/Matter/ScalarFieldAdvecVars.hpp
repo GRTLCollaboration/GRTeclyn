@@ -14,9 +14,10 @@
 class ScalarFieldAdvecVars : public CCZ4AdvecVars
 {
   public:
-    AMREX_GPU_DEVICE inline ScalarFieldAdvecVars(
-        int ix, int iy, int iz, const amrex::Array4<const amrex::Real> &state,
-        const FourthOrderDerivatives &a_deriv)
+    AMREX_GPU_DEVICE
+    ScalarFieldAdvecVars(int ix, int iy, int iz,
+                         const amrex::Array4<const amrex::Real> &state,
+                         const FourthOrderDerivatives &a_deriv)
         : CCZ4AdvecVars(ix, iy, iz, state, a_deriv)
     {
         Tensor<1, amrex::Real> shift_vector;

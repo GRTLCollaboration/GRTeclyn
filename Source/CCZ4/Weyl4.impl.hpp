@@ -18,7 +18,7 @@ Weyl4::operator()(int ix, int iy, int iz,
     // We do not want to amend the cell data values, so use const CCZ4Vars
     const amrex::CellData<const amrex::Real> &state_cell_data =
         state.cellData(ix, iy, iz);
-    ConstCCZ4Vars vars(state_cell_data);
+    CCZ4Vars vars(state_cell_data);
 
     // we need d1 chi, K, h, A... this just gets all of them
     const CCZ4D1Vars d1(ix, iy, iz, state, m_deriv);
@@ -28,7 +28,7 @@ Weyl4::operator()(int ix, int iy, int iz,
     const Tensor<4, amrex::Real> d2_h =
         m_deriv.diff2_tensor(ix, iy, iz, state, c_h11);
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
-    const auto chris = TensorAlgebra::compute_christoffel(d1.h, h_UU);
+    const auto chris = CCZ4Geometry::compute_christoffel(d1, h_UU);
 
     // Get the coordinates
     const Coordinates coords(amrex::IntVect(ix, iy, iz), m_dx, m_center);
@@ -49,7 +49,7 @@ Weyl4::operator()(int ix, int iy, int iz,
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<3, amrex::Real>
-Weyl4::compute_epsilon3_LUU(const ConstCCZ4Vars &vars,
+Weyl4::compute_epsilon3_LUU(const CCZ4Vars &vars,
                             const Tensor<2, amrex::Real> &h_UU) const
 {
     // raised normal vector, NB index 3 is time
@@ -101,7 +101,7 @@ Weyl4::compute_epsilon3_LUU(const ConstCCZ4Vars &vars,
 // CCZ4 expressions calculated by MR and checked with TF see:
 // https://www.overleaf.com/read/tvqjbyhvqqtp
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t Weyl4::compute_EB_fields(
-    const ConstCCZ4Vars &vars, const CCZ4D1Vars &d1,
+    const CCZ4Vars &vars, const CCZ4D1Vars &d1,
     const Tensor<2, amrex::Real> &d2_chi, const Tensor<4, amrex::Real> &d2_h,
     const Tensor<3, amrex::Real> &epsilon3_LUU,
     const Tensor<2, amrex::Real> &h_UU, const chris_t &chris) const
@@ -122,7 +122,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t Weyl4::compute_EB_fields(
 
     // Compute full spatial Christoffel symbols
     const Tensor<3, amrex::Real> chris_phys =
-        CCZ4Geometry::compute_phys_chris(d1.chi, vars, h_UU, chris.ULL);
+        CCZ4Geometry::compute_phys_chris(d1.chi(), vars, h_UU, chris.ULL);
 
     // Extrinsic curvature and corresponding covariant and partial derivatives
     FOR (i, j)
@@ -133,10 +133,10 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t Weyl4::compute_EB_fields(
         FOR (k)
         {
             d1_K_tensor[i][j][k] =
-                d1.A[i][j][k] / vars.chi() -
-                d1.chi[k] / vars.chi() * K_tensor[i][j] +
-                1. / 3. * d1.h[i][j][k] * vars.K() / vars.chi() +
-                1. / 3. * vars.h(i, j) * d1.K[k] / vars.chi();
+                d1.A(i, j, k) / vars.chi() -
+                d1.chi(k) / vars.chi() * K_tensor[i][j] +
+                1. / 3. * d1.h(i, j, k) * vars.K() / vars.chi() +
+                1. / 3. * vars.h(i, j) * d1.K(k) / vars.chi();
         }
     }
     // covariant derivative of K
@@ -201,7 +201,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t Weyl4::compute_EB_fields(
 
 // Calculation of the Weyl4 scalar
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE weyl_scalar_t Weyl4::compute_Weyl4(
-    const EBFields_t &ebfields, const ConstCCZ4Vars &vars,
+    const EBFields_t &ebfields, const CCZ4Vars &vars,
     const Tensor<2, amrex::Real> &h_UU, const Coordinates &coords) const
 {
     weyl_scalar_t out;
@@ -230,7 +230,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE weyl_scalar_t Weyl4::compute_Weyl4(
 // "The Lazarus project: A pragmatic approach to binary black hole evolutions",
 // Baker et al.
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tetrad_t Weyl4::compute_null_tetrad(
-    const ConstCCZ4Vars &vars, const Tensor<2, amrex::Real> &h_UU,
+    const CCZ4Vars &vars, const Tensor<2, amrex::Real> &h_UU,
     const Coordinates &coords) const
 {
     Tetrad_t out;

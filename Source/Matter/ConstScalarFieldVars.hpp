@@ -13,7 +13,7 @@
 class ConstScalarFieldVars : public ConstCCZ4Vars
 {
   public:
-    AMREX_GPU_DEVICE inline ConstScalarFieldVars(
+    AMREX_GPU_DEVICE ConstScalarFieldVars(
         const amrex::CellData<const amrex::Real> &input_cell_data)
         : ConstCCZ4Vars(input_cell_data)
     {

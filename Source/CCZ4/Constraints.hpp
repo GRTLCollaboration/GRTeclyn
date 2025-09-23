@@ -11,8 +11,8 @@
 // GRTeclyn includes
 #include "CCZ4D1Vars.hpp"
 #include "CCZ4Geometry.hpp"
+#include "CCZ4Vars.hpp"
 #include "Cell.hpp"
-#include "ConstCCZ4Vars.hpp"
 #include "DimensionDefinitions.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "GRInterval.hpp"
@@ -94,7 +94,7 @@ class Constraints
 
     [[nodiscard]]
     AMREX_FORCE_INLINE AMREX_GPU_DEVICE constraints_t constraint_equations(
-        const ConstCCZ4Vars &vars, const CCZ4D1Vars &d1,
+        const CCZ4Vars &vars, const CCZ4D1Vars &d1,
         const Tensor<2, amrex::Real> &d2_chi,
         const Tensor<4, amrex::Real> &d2_h, const Tensor<2, amrex::Real> &h_UU,
         const chris_t &chris) const;

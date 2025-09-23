@@ -39,11 +39,8 @@ class PositiveChiAndLapse
         amrex::Real chi   = vars.chi();
         amrex::Real lapse = vars.lapse();
 
-        chi   = std::max(chi, m_min_chi);
-        lapse = std::max(lapse, m_min_lapse);
-
-        vars.store_chi(chi);
-        vars.store_lapse(lapse);
+        state_cell_data[c_chi]   = std::max(chi, m_min_chi);
+        state_cell_data[c_lapse] = std::max(lapse, m_min_lapse);
     }
 };
 
