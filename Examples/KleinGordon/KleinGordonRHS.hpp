@@ -24,29 +24,6 @@ class KleinGordonRHS
     KleinGordonRHS(amrex::Real a_sigma, amrex::Real a_dx, model_t a_model)
         : m_sigma(a_sigma), m_deriv(a_dx), m_model(a_model) {};
 
-    template <class data_t> struct Vars
-    {
-        data_t phi, Pi;
-
-        template <typename mapping_function_t>
-        AMREX_GPU_DEVICE void enum_mapping(mapping_function_t mapping_function)
-        {
-            VarsTools::define_enum_mapping(mapping_function, c_phi, phi);
-            VarsTools::define_enum_mapping(mapping_function, c_Pi, Pi);
-        }
-    };
-
-    template <class data_t> struct Diff2Vars
-    {
-        data_t phi;
-
-        template <typename mapping_function_t>
-        AMREX_GPU_DEVICE void enum_mapping(mapping_function_t mapping_function)
-        {
-            VarsTools::define_enum_mapping(mapping_function, c_phi, phi);
-        }
-    };
-
     template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     compute(int i, int j, int k, const amrex::Array4<data_t const> &input,
@@ -57,12 +34,11 @@ class KleinGordonRHS
     deriv_t m_deriv;
     model_t m_model;
 
-    template <class data_t, template <typename> class vars_t,
-              template <typename> class diff2_vars_t>
+    template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    rhs_equation(vars_t<data_t> &rhs, const vars_t<data_t> &vars,
-                 const vars_t<Tensor<1, data_t>> &d1,
-                 const diff2_vars_t<Tensor<2, data_t>> &d2) const;
+    rhs_equation(const amrex::CellData<data_t const> &input_cell_data,
+                 const amrex::CellData<data_t> &output_cell_data,
+                 const amrex::Array1D<data_t, 0, AMREX_SPACEDIM> &d2phi) const;
 };
 
 #include "KleinGordonRHS.impl.hpp"

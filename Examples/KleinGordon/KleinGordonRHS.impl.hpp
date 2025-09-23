@@ -20,37 +20,64 @@ KleinGordonRHS<model_t, deriv_t>::compute(
     const amrex::Array4<data_t> &output) const
 
 {
-    const auto vars = load_vars<Vars>(input.cellData(i, j, k));
-    const auto d1   = this->m_deriv.template diff1<Vars>(i, j, k, input);
-    const auto d2   = this->m_deriv.template diff2<Diff2Vars>(i, j, k, input);
+    const auto my_cell_data = input.cellData(i, j, k);
 
-    Vars<data_t> rhs;
-    rhs_equation(rhs, vars, d1, d2);
+    const auto phi = my_cell_data[c_phi];
+    const auto Pi  = my_cell_data[c_Pi];
 
-    m_deriv.add_dissipation(i, j, k, rhs, input, m_sigma);
+    const auto *input_ptr_ijk = input.ptr(i, j, k);
+    amrex::Array1D<amrex::Real, 0, AMREX_SPACEDIM>
+        d2phi{}; // no cross second order derivatives needed
+    amrex::Array1D<int, 0, AMREX_SPACEDIM> strides{AMREX_D_DECL(
+        1, static_cast<int>(input.jstride), static_cast<int>(input.kstride))};
 
-    store_vars(output.cellData(i, j, k), rhs);
+    FOR (i)
+    {
+        d2phi(i) =
+            m_deriv.diff2(input_ptr_ijk + c_phi * input.nstride, 0, strides(i));
+    }
+
+    rhs_equation(input.cellData(i, j, k), output.cellData(i, j, k), d2phi);
+
+    // add dissipation term
+    amrex::Real phi_dissipation = 0.0;
+    amrex::Real Pi_dissipation  = 0.0;
+
+    FOR (i)
+    {
+
+        phi_dissipation +=
+            m_sigma * m_deriv.dissipation_term(
+                          input_ptr_ijk + c_phi * input.nstride, 0, strides(i));
+
+        Pi_dissipation +=
+            m_sigma * m_deriv.dissipation_term(
+                          input_ptr_ijk + c_Pi * input.nstride, 0, strides(i));
+    }
+
+    output.cellData(i, j, k)[c_phi] += phi_dissipation;
+    output.cellData(i, j, k)[c_Pi]  += Pi_dissipation;
 }
 
 template <class model_t, class deriv_t>
-template <class data_t, template <typename> class vars_t,
-          template <typename> class diff2_vars_t>
+template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 KleinGordonRHS<model_t, deriv_t>::rhs_equation(
-    vars_t<data_t> &rhs, const vars_t<data_t> &vars,
-    const vars_t<Tensor<1, data_t>> &d1,
-    const diff2_vars_t<Tensor<2, data_t>> &d2) const
+    const amrex::CellData<data_t const> &input_cell_data,
+    const amrex::CellData<data_t> &output_cell_data,
+    const amrex::Array1D<data_t, 0, AMREX_SPACEDIM> &d2phi) const
 {
-    rhs.phi = vars.Pi;
-    rhs.Pi  = TensorAlgebra::compute_trace(d2.phi);
+    output_cell_data[c_phi] = input_cell_data[c_Pi];
+
+    output_cell_data[c_Pi] = d2phi.sum();
 
     // add on the potential
     data_t V_of_phi = 0.0;
     data_t dVdphi   = 0.0;
 
-    m_model.compute_potential(V_of_phi, dVdphi, vars.phi);
+    m_model.compute_potential(V_of_phi, dVdphi, input_cell_data[c_phi]);
 
-    rhs.Pi += dVdphi;
+    output_cell_data[c_Pi] += dVdphi;
 }
 
 #endif // KLEINGORDONRHS_IMPL_HPP_
