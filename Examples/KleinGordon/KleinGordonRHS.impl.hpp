@@ -20,11 +20,6 @@ KleinGordonRHS<model_t, deriv_t>::compute(
     const amrex::Array4<data_t> &output) const
 
 {
-    const auto my_cell_data = input.cellData(i, j, k);
-
-    const auto phi = my_cell_data[c_phi];
-    const auto Pi  = my_cell_data[c_Pi];
-
     const auto *input_ptr_ijk = input.ptr(i, j, k);
     amrex::Array1D<amrex::Real, 0, AMREX_SPACEDIM>
         d2phi{}; // no cross second order derivatives needed

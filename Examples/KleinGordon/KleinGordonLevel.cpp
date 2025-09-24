@@ -104,7 +104,6 @@ void KleinGordonLevel::specificEvalRHS(amrex::MultiFab &a_soln,
 {
     BL_PROFILE("KleinGordonLevel::specificEvalRHS()");
 
-    const auto dx         = Geom().CellSize(0);
     auto const &soln_arrs = a_soln.const_arrays();
     auto const &rhs_arrs  = a_rhs.arrays();
 
@@ -114,48 +113,35 @@ void KleinGordonLevel::specificEvalRHS(amrex::MultiFab &a_soln,
 
     pp.query("model", model);
 
-    // Here std::variant is used to allow dynamic polymorphism between two
-    // unrelated classes. my_model_variant can be either Wave or SineGordon,
-    // until the if statement selects a class based on the value of the string,
-    // model.
-
-    using ModelVariant = std::variant<Wave, SineGordon>;
-    ModelVariant my_model_variant;
-
     if (model == "Wave")
     {
-        my_model_variant = Wave{};
+        eval_model_specific_rhs<Wave>(a_soln, a_rhs);
     }
     else
     {
-        my_model_variant = SineGordon{};
+        eval_model_specific_rhs<SineGordon>(a_soln, a_rhs);
     }
 
-    // But! The KleinGordonRHS constructor doesn't accept a std::variant object
-    // in it's constructor. So std::visit is called to handle the multiple types
-    // that might be contained in a std::variant object. In this case, they are
-    // both model_t type but a variant could also be constructed from
-    // std::variant<string, int> or other such combo.
-
-    // Points to notice:
-    // * std::visit is using another lambda function as a visitor function on
-    // top of the one in ParallelFor (but captured by reference this time [&] )
-    // * the double ampersand is an rvalue reference - it prevents another copy
-    // being made since the object can be initialized by the move constructor
-    // instead
-
-    std::visit(
-        [&](auto &&my_model)
-        {
-            KleinGordonRHS rhs(simParams().sigma, dx, my_model);
-            amrex::ParallelFor(
-                a_soln,
-                [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
-                { rhs.compute(i, j, k, soln_arrs[box_no], rhs_arrs[box_no]); });
-        },
-        my_model_variant);
-
     amrex::Gpu::streamSynchronize();
+}
+
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
+template <class model_t>
+void KleinGordonLevel::eval_model_specific_rhs(amrex::MultiFab &a_soln,
+                                               amrex::MultiFab &a_rhs)
+// NOLINTEND(bugprone-easily-swappable-parameters)
+{
+
+    const auto dx         = Geom().CellSize(0);
+    const auto &soln_arrs = a_soln.const_arrays();
+    const auto &rhs_arrs  = a_rhs.arrays();
+
+    model_t my_model;
+    KleinGordonRHS rhs(simParams().sigma, dx, my_model);
+
+    amrex::ParallelFor(
+        a_soln, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
+        { rhs.compute(i, j, k, soln_arrs[box_no], rhs_arrs[box_no]); });
 }
 
 void KleinGordonLevel::tag_cells(amrex::TagBoxArray &tags,

@@ -7,8 +7,6 @@
 #include "KleinGordonRHS.hpp"
 #include "VarsTools.hpp"
 
-#include <variant>
-
 class KleinGordonLevel : public GRAMRLevel
 {
   public:
@@ -35,6 +33,10 @@ class KleinGordonLevel : public GRAMRLevel
     //! Error estimation for regridding.
     void tag_cells(amrex::TagBoxArray &tags,
                    amrex::Real a_regrid_threshold) override;
+
+    template <class model_t>
+    void eval_model_specific_rhs(amrex::MultiFab &a_soln,
+                                 amrex::MultiFab &a_rhs);
 
   private:
 
