@@ -46,6 +46,7 @@ amr.check_file =chk
 rk_order = 4
 dt_multiplier = 0.2
 sigma = 0.3 #coefficient for KO dissipation
+nan_check=True
 
 tag_buffer_size=1
 

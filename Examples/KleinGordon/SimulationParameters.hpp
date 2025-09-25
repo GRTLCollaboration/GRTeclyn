@@ -19,11 +19,13 @@ class SimulationParameters : public AMReXParameters
     // NOLINTNEXTLINE(readability-identifier-length)
     SimulationParameters(GRParmParse &pp) : AMReXParameters(pp)
     {
-        // This parameter normally gets read in inside SimulationParametersBase
-        // but this example doesn't use a lot of the other (CCZ4) parameters
-        // so SimulationParameters doesn't inherit from it.
+        // These parameters normally get read in inside SimulationParametersBase
+        // but as this example doesn't use a lot of the other (CCZ4) parameters
+        // this particular SimulationParameters class doesn't inherit from it.
 
         pp.queryAdd("sigma", sigma);
+
+        pp.queryAdd("nan_check", nan_check);
 
         read_klein_gordon_params(pp);
     }
@@ -73,6 +75,7 @@ class SimulationParameters : public AMReXParameters
     amrex::Real t0{0.0};
 
     std::string model{"Wave"};
+    bool nan_check{true};
 };
 
 #endif /* SIMULATIONPARAMETERS_HPP */
