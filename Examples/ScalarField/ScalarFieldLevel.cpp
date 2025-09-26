@@ -468,10 +468,7 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
 
     // Extract the spectra and field statistics
     RandomField random_field_extractor(simParams().random_field_params, simParams().background_params);
-    if (random_field_extractor.using_tensors) 
-    {
-        random_field_extractor.extract(state_new, simParams().data_path, dt, cur_time, restart_time, first_step, simParams().plot_interval);
-    }
+    random_field_extractor.extract(state_new, simParams().data_path, dt, cur_time, restart_time, first_step, simParams().plot_interval);
 
     // Make a file object for constraint statistics
     SmallDataIO constrs_file(simParams().data_path+"constraint-statistics", dt, cur_time, restart_time, SmallDataIO::APPEND, first_step, ".dat");
@@ -490,15 +487,11 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
     constr_alias.setVal(0.0);
     derive("constraints", cur_time, constr_alias, 0);
     
+    /*MultiFab pol_fields_alias(ba, dm, 2, ngrow, MFInfo(), Factory());
+    pol_fields_alias.setVal(0.0);
+    derive("TensorPolarisations", cur_time, pol_fields_alias, 0);
 
-    if(random_field_extractor.using_tensors)
-    {
-        MultiFab pol_fields_alias(ba, dm, 2, ngrow, MFInfo(), Factory());
-        pol_fields_alias.setVal(0.0);
-        derive("TensorPolarisations", cur_time, pol_fields_alias, 0);
-
-        // Print statistics on the abs constraint terms
-        Vector<int> moments{1,2};
-        random_field_extractor.print_tensor_moment(constr_alias, Constraints::var_names, moments, constrs_file, first_step); 
-    }
+    // Print statistics on the abs constraint terms
+    Vector<int> moments{1,2};
+    random_field_extractor.print_tensor_moment(constr_alias, Constraints::var_names, moments, constrs_file, first_step);*/ 
 }

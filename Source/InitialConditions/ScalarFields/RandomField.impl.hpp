@@ -444,16 +444,16 @@ inline void RandomField::init(amrex::MultiFab &state)
 
             if(m_params.read_from_stoiic)
             {
-                AllPrintToFile(Filename) << iv << ", " << IntVect{i, invert_index(j), invert_index(k)} << ", " << get_kmag(iv) << ": ";
+                //PrintToFile(Filename) << iv << ", " << IntVect{i, invert_index(j), invert_index(k)} << ", " << get_kmag(iv) << ": ";
                 for(int f=0; f<4; f++)
                 {
                     Real draw1 = scalar_draw_ptr(i, j, k, 0);
                     Real draw2 = scalar_draw_ptr(i, j, k, 1);
 
                     scalar_fields_ptr(i, j, k, f) = calculate_random_field(iv, f, draw1, draw2, "scalar");
-                    AllPrintToFile(Filename) << scalar_fields_ptr(i, j, k, f).real() << "," << scalar_fields_ptr(i, j, k, f).imag() << ": ";
+                    //PrintToFile(Filename) << scalar_fields_ptr(i, j, k, f).real() << "," << scalar_fields_ptr(i, j, k, f).imag() << ": ";
                 }
-                AllPrintToFile(Filename) << "\n";
+                //PrintToFile(Filename) << "\n";
             }
 
             // Find basis tensors and initial tensor realisation

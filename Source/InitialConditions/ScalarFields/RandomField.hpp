@@ -64,12 +64,13 @@ class RandomField
         };
 
         RandomField(params_t a_params, InitialBackgroundData::params_t a_background_params)
-                : m_params(a_params), m_background_params(a_background_params), using_tensors(m_params.tensor_init)
+                : m_params(a_params), m_background_params(a_background_params)
         {
             // Set protected class parameters
             N = m_params.N_readin;
             norm = m_params.A * pow(2. * M_PI/m_params.L, 3.); // Physical FFT normalisation
             tolerance = 1.e-15; // Numerical tolerance, for tests
+            using_tensors = m_params.tensor_init;
 
             // Look-up table 
             // Used to construct polarisation basis tensors
@@ -84,7 +85,7 @@ class RandomField
             lut[2][2] = 5;
         }
 
-        const int using_tensors;
+        int using_tensors;
         void init(amrex::MultiFab &state);
         void derive(const MultiFab &source, MultiFab &out, int dcomp);
         void extract(const MultiFab &state, const std::string data_path, const Real dt,  
