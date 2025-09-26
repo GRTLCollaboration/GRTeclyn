@@ -28,8 +28,11 @@ inline int RandomField::invert_index_with_sign(const int indx)
     else { return std::abs(N/2 - indx) - N/2; }
 }
 
-inline Real RandomField::get_kmag(int i, int j, int k)
+inline Real RandomField::get_kmag(IntVect iv)
 {
+    const int i = iv[0];
+    const int j = invert_index(iv[1]);
+    const int k = invert_index(iv[2]);
     return std::sqrt(i*i + j*j + k*k) * 2 * M_PI / m_params.L;
 }
 
@@ -183,7 +186,7 @@ inline GpuComplex<Real> RandomField::find_in_stoiic(const double km, const int f
     for(int idx = 0; idx < m_params.init_k.size(); idx++)
     {
         if(std::abs(km - m_params.init_k[idx]) < 1e-15) { spec_index = idx; break; }
-        else if (idx == m_params.init_k.size() - 1) { return zero; }
+        else if (idx == m_params.init_k.size() - 1) { AllPrint() << km << "\n"; Error("The above k was not found in the STOIIC file."); }
     }
 
     if(field_type == "tensor")
@@ -205,11 +208,7 @@ inline GpuComplex<Real> RandomField::calculate_random_field(const IntVect iv, co
     GpuComplex<Real> value(0., 0.);
 
     // Find kmag with FFTW-style inversion on the last two indices
-    int i = iv[0];
-    int j = invert_index(iv[1]);
-    int k = invert_index(iv[2]);
-
-    double kmag = get_kmag(i, j, k);
+    double kmag = get_kmag(iv);
 
     // Find the analytic power spectrum
     if(m_params.read_from_stoiic)
@@ -410,7 +409,7 @@ inline void RandomField::init(amrex::MultiFab &state)
     MultiFab tensor_draws(random_draws, amrex::make_alias, 0, 4);
     MultiFab scalar_draws(random_draws, amrex::make_alias, 4, 2);
 
-    std::string Filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/hs-k-init";
+    std::string Filename = "/cephfs/home/eaf49/GRTeclyn-workspace/Examples/ScalarField/comp-to-dparams.txt";
     for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
     {
         // Define the domain on this MPI rank
@@ -445,13 +444,16 @@ inline void RandomField::init(amrex::MultiFab &state)
 
             if(m_params.read_from_stoiic)
             {
+                AllPrintToFile(Filename) << iv << ", " << IntVect{i, invert_index(j), invert_index(k)} << ", " << get_kmag(iv) << ": ";
                 for(int f=0; f<4; f++)
                 {
                     Real draw1 = scalar_draw_ptr(i, j, k, 0);
                     Real draw2 = scalar_draw_ptr(i, j, k, 1);
 
                     scalar_fields_ptr(i, j, k, f) = calculate_random_field(iv, f, draw1, draw2, "scalar");
+                    AllPrintToFile(Filename) << scalar_fields_ptr(i, j, k, f).real() << "," << scalar_fields_ptr(i, j, k, f).imag() << ": ";
                 }
+                AllPrintToFile(Filename) << "\n";
             }
 
             // Find basis tensors and initial tensor realisation
@@ -506,19 +508,22 @@ inline void RandomField::init(amrex::MultiFab &state)
             bool in_ghost_index = is_ghost_index(iv);
             if(!in_ghost_index)
             {
-                state_ptr(iv, c_h11) = hij_ptr(i, j, k, lut[0][0]);
-                state_ptr(iv, c_h12) = hij_ptr(i, j, k, lut[0][1]);
-                state_ptr(iv, c_h13) = hij_ptr(i, j, k, lut[0][2]);
-                state_ptr(iv, c_h22) = hij_ptr(i, j, k, lut[1][1]);
-                state_ptr(iv, c_h23) = hij_ptr(i, j, k, lut[1][2]);
-                state_ptr(iv, c_h33) = hij_ptr(i, j, k, lut[2][2]);
+                if(m_params.tensor_init)
+                {
+                    state_ptr(iv, c_h11) = hij_ptr(i, j, k, lut[0][0]);
+                    state_ptr(iv, c_h12) = hij_ptr(i, j, k, lut[0][1]);
+                    state_ptr(iv, c_h13) = hij_ptr(i, j, k, lut[0][2]);
+                    state_ptr(iv, c_h22) = hij_ptr(i, j, k, lut[1][1]);
+                    state_ptr(iv, c_h23) = hij_ptr(i, j, k, lut[1][2]);
+                    state_ptr(iv, c_h33) = hij_ptr(i, j, k, lut[2][2]);
 
-                state_ptr(iv, c_A11) = Aij_ptr(i, j, k, lut[0][0]);
-                state_ptr(iv, c_A12) = Aij_ptr(i, j, k, lut[0][1]);
-                state_ptr(iv, c_A13) = Aij_ptr(i, j, k, lut[0][2]);
-                state_ptr(iv, c_A22) = Aij_ptr(i, j, k, lut[1][1]);
-                state_ptr(iv, c_A23) = Aij_ptr(i, j, k, lut[1][2]);
-                state_ptr(iv, c_A33) = Aij_ptr(i, j, k, lut[2][2]);
+                    state_ptr(iv, c_A11) = Aij_ptr(i, j, k, lut[0][0]);
+                    state_ptr(iv, c_A12) = Aij_ptr(i, j, k, lut[0][1]);
+                    state_ptr(iv, c_A13) = Aij_ptr(i, j, k, lut[0][2]);
+                    state_ptr(iv, c_A22) = Aij_ptr(i, j, k, lut[1][1]);
+                    state_ptr(iv, c_A23) = Aij_ptr(i, j, k, lut[1][2]);
+                    state_ptr(iv, c_A33) = Aij_ptr(i, j, k, lut[2][2]);
+                }
 
                 if(m_params.read_from_stoiic)
                 {
@@ -578,17 +583,14 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
         Array4<GpuComplex<Real>> const& field_ptr = field_array.array(mfi);
         const Box& bx = mfi.fabbox();
 
-        amrex::ParallelFor(bx, [=, &ps_map, &kcount] AMREX_GPU_DEVICE (int i, int J, int K) noexcept
+        amrex::ParallelFor(bx, [=, &ps_map, &kcount] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            IntVect iv{i, J, K};
-
             // Check to see if you're in a ghost cell
+            IntVect iv{i, j, k};
             bool in_ghost_index = is_ghost_index(iv);
             if(!in_ghost_index)
             {
-                int j = invert_index(J);
-                int k = invert_index(K);
-                double kmag = get_kmag(i, j, k);
+                double kmag = get_kmag(iv);
 
                 // make sure you're still in the domain
                 if(kmag > kiso_max) 
@@ -1000,7 +1002,7 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
 
             Vector<Real> iv_k(iv.begin(), iv.end());
             for(auto& k_comp : iv_k) { k_comp *= 2. * M_PI / m_params.L; }
-            Real kmag = get_kmag(i, j, k);
+            Real kmag = get_kmag(iv);
             GpuComplex<Real> Phi = 0;
 
             // converstion from chi, gamma_ij -> Phi
@@ -1025,11 +1027,14 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         std::string spec_path = make_subdirectory(data_path, "spectra", first_step);
         Vector<std::string> filenames(2, "");
 
-        for(int comp = 0; comp < hs_k.nComp(); comp++)
+        if(m_params.tensor_init)
         {
-            filenames[comp] = spec_path+"spectrum-comp-"+std::to_string(comp)+"-time-";
-            SmallDataIO spectrum_file(filenames[comp], dt, cur_time, restart_time, SmallDataIO::NEW, first_step, ".dat");
-            print_power_spectrum(hs_k, spectrum_file, comp);
+            for(int comp = 0; comp < hs_k.nComp(); comp++)
+            {
+                filenames[comp] = spec_path+"spectrum-comp-"+std::to_string(comp)+"-time-";
+                SmallDataIO spectrum_file(filenames[comp], dt, cur_time, restart_time, SmallDataIO::NEW, first_step, ".dat");
+                print_power_spectrum(hs_k, spectrum_file, comp);
+            }
         }
 
         std::string filename = spec_path+"spectrum-Rk-time-";
@@ -1038,7 +1043,7 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
     }
 
     // Find mode functions in configuration space if requested
-    if(m_params.calc_higher_order_statistics)
+    if(m_params.calc_higher_order_statistics && m_params.tensor_init)
     {
         // Make a multifab to store config space mode functions
         BoxArray xba(x_domain);

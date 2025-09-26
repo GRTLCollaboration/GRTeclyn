@@ -35,7 +35,7 @@ class RandomField
         //! A structure for storing parameters essential to this class
         struct params_t 
         {
-            int calc_tensor_field;      //!< Determines whether tensor perturbations are calculated
+            int tensor_init = 1;      //!< Determines whether tensor perturbations are calculated
             int use_rand = 1;           //!< Choose whether to use random initial conditions
             int random_seed = 3539263;  //!< Seed for random number generator
 
@@ -64,7 +64,7 @@ class RandomField
         };
 
         RandomField(params_t a_params, InitialBackgroundData::params_t a_background_params)
-                : m_params(a_params), m_background_params(a_background_params)
+                : m_params(a_params), m_background_params(a_background_params), using_tensors(m_params.tensor_init)
         {
             // Set protected class parameters
             N = m_params.N_readin;
@@ -84,6 +84,7 @@ class RandomField
             lut[2][2] = 5;
         }
 
+        const int using_tensors;
         void init(amrex::MultiFab &state);
         void derive(const MultiFab &source, MultiFab &out, int dcomp);
         void extract(const MultiFab &state, const std::string data_path, const Real dt,  
@@ -104,7 +105,7 @@ class RandomField
         int invert_index(const int indx);
         int invert_index_with_sign(const int indx);
         bool is_ghost_index(const IntVect vector);
-        Real get_kmag(int i, int j, int k);
+        Real get_kmag(IntVect iv);
 
         std::string make_subdirectory(const std::string base, const std::string dir, const int is_first_step);
         void assign_statistics_data(Vector<std::string> &header_storage, const std::string name, 

@@ -400,7 +400,10 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
         else if (name=="TensorPolarisations")
         {
             RandomField random_field_derive(simParams().random_field_params, simParams().background_params);
-            random_field_derive.derive(src_mf, multifab, dcomp);
+            if (random_field_derive.using_tensors)
+            {
+                random_field_derive.derive(src_mf, multifab, dcomp);
+            }
         }
         else
         {
@@ -465,7 +468,10 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
 
     // Extract the spectra and field statistics
     RandomField random_field_extractor(simParams().random_field_params, simParams().background_params);
-    random_field_extractor.extract(state_new, simParams().data_path, dt, cur_time, restart_time, first_step, simParams().plot_interval);
+    if (random_field_extractor.using_tensors) 
+    {
+        random_field_extractor.extract(state_new, simParams().data_path, dt, cur_time, restart_time, first_step, simParams().plot_interval);
+    }
 
     // Make a file object for constraint statistics
     SmallDataIO constrs_file(simParams().data_path+"constraint-statistics", dt, cur_time, restart_time, SmallDataIO::APPEND, first_step, ".dat");
@@ -481,15 +487,18 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
     if(first_step) { std::cout << "Num derive vars: " << num << "\n"; }
 
     MultiFab constr_alias(ba, dm, num, ngrow, MFInfo(), Factory());
-    MultiFab pol_fields_alias(ba, dm, 2, ngrow, MFInfo(), Factory());
-
     constr_alias.setVal(0.0);
-    pol_fields_alias.setVal(0.0);
-
     derive("constraints", cur_time, constr_alias, 0);
-    derive("TensorPolarisations", cur_time, pol_fields_alias, 0);
+    
 
-    // Print statistics on the abs constraint terms
-    Vector<int> moments{1,2};
-    random_field_extractor.print_tensor_moment(constr_alias, Constraints::var_names, moments, constrs_file, first_step);
+    if(random_field_extractor.using_tensors)
+    {
+        MultiFab pol_fields_alias(ba, dm, 2, ngrow, MFInfo(), Factory());
+        pol_fields_alias.setVal(0.0);
+        derive("TensorPolarisations", cur_time, pol_fields_alias, 0);
+
+        // Print statistics on the abs constraint terms
+        Vector<int> moments{1,2};
+        random_field_extractor.print_tensor_moment(constr_alias, Constraints::var_names, moments, constrs_file, first_step); 
+    }
 }

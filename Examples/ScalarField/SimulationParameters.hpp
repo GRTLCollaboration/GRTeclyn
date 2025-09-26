@@ -39,7 +39,7 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("potential_param_1", background_params.m, 0.0);
         pp.load("G_Newton", background_params.G_Newton, 1.);
 
-        pp.load("calc_tensor_field", random_field_params.calc_tensor_field, 0);
+        pp.load("tensor_init", random_field_params.tensor_init, 1);
         pp.load("L", random_field_params.L, 1.);
         pp.load("A", random_field_params.A, 1.);
         pp.load("N", random_field_params.N_readin, 32);
