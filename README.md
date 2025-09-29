@@ -53,7 +53,7 @@ too.
 ### Obtaining the code
 
 First `cd` into a directory you are happy to clone the code into. For
-simplicity, we shall assume that is your home directory (so adjust any commands 
+simplicity, we shall assume that is your home directory (so adjust any commands
 below accordingly if not).
 
 The AMReX source code is hosted on
@@ -75,14 +75,14 @@ git clone https://github.com/GRChombo/GRTeclyn.git
 > these repositories to the same directory so that the `amrex` and `GRTeclyn`
 > directories share the same parent directory. If you want to clone AMReX
 > elsewhere, make sure to set the `AMREX_HOME` environment variable
-> appropriately e.g. 
+> appropriately e.g.
 > ```bash
 > export AMREX_HOME=/path/to/amrex
 > ```
 
 ### Building the BinaryBH example
 
-> **Warning** 
+> **Warning**
 > See [this
 > page](https://amrex-codes.github.io/amrex/docs_html/BuildingAMReX.html#gcc-on-macos)
 > if you want to build on macOS using Homebrew GCC.
@@ -105,12 +105,12 @@ file at
 amrex/Tools/GNUMake/Make.local-pre
 ```
 which sets the build configuration variables as you wish. You might want to
-change some of the following: 
+change some of the following:
 
 * Set `USE_OMP = TRUE` to use OpenMP or `USE_CUDA = TRUE` to use CUDA GPU
   offload support.
-* If you don't want to use the GNU compiler `g++` , change `COMP = gnu` to 
-  `COMP = intel-llvm` (for the Intel LLVM-based C++ compiler `icpx`) or 
+* If you don't want to use the GNU compiler `g++` , change `COMP = gnu` to
+  `COMP = intel-llvm` (for the Intel LLVM-based C++ compiler `icpx`) or
   `COMP = llvm` (for LLVM `clang++`).
 * If you don't have an MPI implementation available, set `USE_MPI = FALSE`.
 

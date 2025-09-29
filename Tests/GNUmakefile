@@ -65,7 +65,7 @@ ifeq ($(USE_MPI), TRUE)
     LAUNCH = mpiexec -n 2 ./
   else
     LAUNCH = mpiexec -n ${SLURM_NTASKS} ./
-  endif 
+  endif
 else
 LAUNCH = ./
 endif
