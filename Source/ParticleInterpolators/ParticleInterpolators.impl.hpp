@@ -19,18 +19,20 @@
 #include <AMReX_AmrLevel.H>
 #include <AMReX_AmrParGDB.H>
 #include <AMReX_ParallelDescriptor.H>
+#include <AMReX_ParmParse.H>
 
-inline ParticleInterpolators::ParticleInterpolators(
-    const BoundaryConditions::params_t &a_bc_params, int a_start_comp,
-    int a_ncomp)
+template <int num_components>
+ParticleInterpolators<num_components>::ParticleInterpolators(
+    const BoundaryConditions::params_t &a_bc_params, int a_start_comp)
     : m_gr_amr(nullptr), m_initialized(false), m_start_comp(a_start_comp),
-      m_ncomp(a_ncomp), m_bc_params(a_bc_params)
+      m_bc_params(a_bc_params)
 {
     // constructor body
 }
 
 // initialise everything and perform some sanity checks
-void ParticleInterpolators::set_gramr_ptr(GRAMR *gr_amr_ptr)
+template <int num_components>
+void ParticleInterpolators<num_components>::set_gramr_ptr(GRAMR *gr_amr_ptr)
 {
     // is GRAMR properly set?
     AMREX_ASSERT(gr_amr_ptr != nullptr);
@@ -39,7 +41,8 @@ void ParticleInterpolators::set_gramr_ptr(GRAMR *gr_amr_ptr)
     this->Define(dynamic_cast<amrex::ParGDBBase *>(m_gr_amr->GetParGDB()));
     m_initialized = true;
 
-    AMREX_ALWAYS_ASSERT(m_ncomp >= 1 && m_ncomp <= AMREX_SPACEDIM);
+    AMREX_ALWAYS_ASSERT(num_components >= 1);
+    AMREX_ALWAYS_ASSERT(m_start_comp >= 0);
 
     // read in the physical bounds for reflective BC checks (it is sufficient to
     // do this on lev = 0)
@@ -66,7 +69,8 @@ void ParticleInterpolators::set_gramr_ptr(GRAMR *gr_amr_ptr)
 }
 
 // a parity helper (the same way as it was defined in the AMRInterpolator)
-int ParticleInterpolators::get_state_var_parity(
+template <int num_components>
+int ParticleInterpolators<num_components>::get_state_var_parity(
     int comp, int point_idx, const InterpolationQueryParticle &query,
     const Derivative &deriv) const
 {
@@ -95,10 +99,13 @@ int ParticleInterpolators::get_state_var_parity(
 
 // a function to reflect a particle back into the valid domain, when symmetry
 // BCs are used
+template <int num_components>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-ParticleInterpolators::reflect_particle(amrex::Real x, amrex::Real lo,
-                                        amrex::Real hi, bool lo_reflect,
-                                        bool hi_reflect)
+ParticleInterpolators<num_components>::reflect_particle(amrex::Real x,
+                                                        amrex::Real lo,
+                                                        amrex::Real hi,
+                                                        bool lo_reflect,
+                                                        bool hi_reflect)
 {
     // enforce a new particle position if needed
     amrex::Real xl = x;
@@ -119,7 +126,8 @@ ParticleInterpolators::reflect_particle(amrex::Real x, amrex::Real lo,
 }
 
 // allocate particles at the query points
-void ParticleInterpolators::populate_from_query(
+template <int num_components>
+void ParticleInterpolators<num_components>::populate_from_query(
     const InterpolationQueryParticle &query)
 {
     AMREX_ASSERT(m_initialized);
@@ -155,7 +163,7 @@ void ParticleInterpolators::populate_from_query(
                                                       z[i]
 #endif
             };
-            check_domain<AMREX_SPACEDIM>(coords, 0);
+            check_domain(coords, 0);
         }
 
         // copy stuff as otherwise I get errors with lambdas when I use class
@@ -165,7 +173,7 @@ void ParticleInterpolators::populate_from_query(
         const auto prob_hi    = m_prob_hi;
         const auto lo_reflect = m_lo_boundary_reflective;
         const auto hi_reflect = m_hi_boundary_reflective;
-        const int ncomp       = m_ncomp;
+        const int ncomp       = num_components;
 
         // copy coords here
         const amrex::Real *x_p = nullptr, *y_p = nullptr, *z_p = nullptr;
@@ -233,7 +241,8 @@ void ParticleInterpolators::populate_from_query(
 }
 
 // interpolate variables into SOA slots
-void ParticleInterpolators::interpolate_to_particle()
+template <int num_components>
+void ParticleInterpolators<num_components>::interpolate_to_particle()
 {
     AMREX_ASSERT(m_initialized);
 
@@ -241,11 +250,8 @@ void ParticleInterpolators::interpolate_to_particle()
     if (m_particles_seeded)
         return;
 
-    AMREX_ALWAYS_ASSERT(m_ncomp >= 1 && m_ncomp <= AMREX_SPACEDIM);
-    AMREX_ASSERT(m_start_comp >= 0);
-
     const int start_comp = m_start_comp;
-    const int ncomp      = m_ncomp;
+    const int ncomp      = num_components;
 
     for (int lev = 0; lev <= m_gr_amr->finestLevel(); ++lev)
     {
@@ -258,10 +264,10 @@ void ParticleInterpolators::interpolate_to_particle()
         const amrex::Geometry &geom = level.Geom();
         amrex::MultiFab &state      = level.get_new_data(State_Type);
 
-        AMREX_ASSERT(m_start_comp + m_ncomp <= state.nComp());
+        AMREX_ASSERT(start_comp + ncomp <= state.nComp());
 
         amrex::IntVect nghost(AMREX_D_DECL(2, 2, 2));
-        state.FillBoundary(m_start_comp, m_ncomp, nghost, geom.periodicity());
+        state.FillBoundary(start_comp, ncomp, nghost, geom.periodicity());
 
         const auto plo = geom.ProbLoArray();
         const auto dxi = geom.InvCellSizeArray();
@@ -307,8 +313,10 @@ void ParticleInterpolators::interpolate_to_particle()
 // components numbers), as e.g. we may want to interpolate several fields at
 // once. However, as per current implementation, we can have only contiguous
 // comps
-void ParticleInterpolators::interpolate_to_particle_from_derived_fields(
-    const std::vector<const amrex::MultiFab *> &fields_by_lev)
+template <int num_components>
+void ParticleInterpolators<num_components>::
+    interpolate_to_particle_from_derived_fields(
+        const std::vector<const amrex::MultiFab *> &fields_by_lev)
 {
     AMREX_ASSERT(m_initialized);
 
@@ -318,7 +326,7 @@ void ParticleInterpolators::interpolate_to_particle_from_derived_fields(
     ensure_redistributed();
 
     const int start_comp = m_start_comp;
-    const int ncomp      = m_ncomp;
+    const int ncomp      = num_components;
 
     for (int lev = 0; lev <= m_gr_amr->finestLevel(); ++lev)
     {
@@ -329,12 +337,12 @@ void ParticleInterpolators::interpolate_to_particle_from_derived_fields(
         const auto &geom          = level.Geom();
         const amrex::MultiFab &mf = *fields_by_lev[lev];
 
-        AMREX_ASSERT(mf.nComp() >= m_start_comp + m_ncomp);
+        AMREX_ASSERT(mf.nComp() >= start_comp + ncomp);
 
         // Fill boundaries
         amrex::IntVect nghost(AMREX_D_DECL(2, 2, 2));
         const_cast<amrex::MultiFab &>(mf).FillBoundary(
-            m_start_comp, m_ncomp, nghost, geom.periodicity());
+            start_comp, ncomp, nghost, geom.periodicity());
 
         const auto plo = geom.ProbLoArray();
         const auto dxi = geom.InvCellSizeArray();
@@ -376,9 +384,9 @@ void ParticleInterpolators::interpolate_to_particle_from_derived_fields(
 // Throws an error now if use requests interpolation of a derived variable and
 // applies reflective BCs (needs fixing later!!) This is currently done on CPUs;
 // I am not sure if there is an advantage of having any of this on GPUs
-void ParticleInterpolators::interp(
-    InterpolationQueryParticle &query,
-    VariableType variable_type = VariableType::state)
+template <int num_components>
+void ParticleInterpolators<num_components>::interp(
+    InterpolationQueryParticle &query, VariableType variable_type)
 {
     AMREX_ASSERT(m_initialized);
 
@@ -397,9 +405,9 @@ void ParticleInterpolators::interp(
     // get total query points here
     const int npts = static_cast<int>(query.numPoints());
 
-    // value_at_point[k][ip], where k in [0..m_ncomp-1]
+    // value_at_point[k][ip], where k in [0..num_components-1]
     std::vector<std::vector<amrex::Real>> value_at_point(
-        m_ncomp, std::vector<amrex::Real>(npts, 0.0));
+        num_components, std::vector<amrex::Real>(npts, 0.0));
     // a vector to mark which points have values
     std::vector<int> have(npts, 0);
 
@@ -427,8 +435,8 @@ void ParticleInterpolators::interp(
                                   aos.data() + np, hp.begin());
 
             std::vector<amrex::Gpu::HostVector<amrex::ParticleReal>> hr(
-                m_ncomp);
-            for (int k = 0; k < m_ncomp; ++k)
+                num_components);
+            for (int k = 0; k < num_components; ++k)
             {
                 hr[k].resize(np);
                 auto dptr = ptile.GetStructOfArrays().GetRealData(k).data();
@@ -445,7 +453,7 @@ void ParticleInterpolators::interp(
                 {
                     amrex::Abort("interp(): particle id out of range");
                 }
-                for (int k = 0; k < m_ncomp; ++k)
+                for (int k = 0; k < num_components; ++k)
                 {
                     value_at_point[k][q] = static_cast<double>(hr[k][i]);
                 }
@@ -458,7 +466,7 @@ void ParticleInterpolators::interp(
                       << " holds " << local_particle_counter << " particles\n";
 
     // reduce across ranks
-    for (int k = 0; k < m_ncomp; ++k)
+    for (int k = 0; k < num_components; ++k)
     {
         amrex::ParallelDescriptor::ReduceRealSum(value_at_point[k].data(),
                                                  npts);
@@ -489,7 +497,7 @@ void ParticleInterpolators::interp(
                     comp -
                     m_start_comp; // reindex the variable component from 0;
                                   // works only for contiguous components
-                AMREX_ALWAYS_ASSERT(k >= 0 && k < m_ncomp);
+                AMREX_ALWAYS_ASSERT(k >= 0 && k < num_components);
 
                 for (int ip = 0; ip < npts; ++ip)
                 {
@@ -510,11 +518,11 @@ void ParticleInterpolators::interp(
 }
 
 // A function to check whether the query point is inside the physical domain
-template <int dim>
-void ParticleInterpolators::check_domain(const std::array<double, dim> &x,
-                                         int guard_cells) const
+template <int num_components>
+void ParticleInterpolators<num_components>::check_domain(
+    std::array<double, AMREX_SPACEDIM> &x, int guard_cells) const
 {
-    for (int d = 0; d < dim; ++d)
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
 
         const double lo_g = m_prob_lo[d] - guard_cells * m_dx[d];
@@ -559,7 +567,8 @@ void ParticleInterpolators::check_domain(const std::array<double, dim> &x,
 }
 
 // Ensure that particles are redistributed if needed
-inline void ParticleInterpolators::ensure_redistributed()
+template <int num_components>
+inline void ParticleInterpolators<num_components>::ensure_redistributed()
 {
     int need = (m_need_redistribute ? 1 : 0);
     amrex::ParallelDescriptor::ReduceIntMax(need);
@@ -571,7 +580,9 @@ inline void ParticleInterpolators::ensure_redistributed()
 }
 
 // Option to force Redistribute() flag if needed globally
-void ParticleInterpolators::force_redistribute(bool flag) noexcept
+template <int num_components>
+void ParticleInterpolators<num_components>::force_redistribute(
+    bool flag) noexcept
 {
     m_need_redistribute = flag;
 }
@@ -579,7 +590,8 @@ void ParticleInterpolators::force_redistribute(bool flag) noexcept
 // TODO: I have not tested the below yet!!
 
 // Should I have a function to clear particles at a specific level?
-void ParticleInterpolators::clear_level(int lev)
+template <int num_components>
+void ParticleInterpolators<num_components>::clear_level(int lev)
 {
     for (ParIterType it(*this, lev); it.isValid(); ++it)
     {
@@ -590,7 +602,8 @@ void ParticleInterpolators::clear_level(int lev)
 }
 
 // Clear particles on all levels
-void ParticleInterpolators::clear_all()
+template <int num_components>
+void ParticleInterpolators<num_components>::clear_all()
 {
     for (int lev = 0; lev <= this->finestLevel(); ++lev)
     {

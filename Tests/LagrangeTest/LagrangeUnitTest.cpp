@@ -134,7 +134,7 @@ void run_lagrange_test()
             .addComp(0, A.data(), Derivative::LOCAL, VariableType::derived);
 
         // set up interpolation using Particles
-        ParticleInterpolators interpolator(sim_params.boundary_params, 0, 1);
+        ParticleInterpolators<1> interpolator(sim_params.boundary_params, 0);
         interpolator.set_gramr_ptr(&gr_amr);
         interpolator.populate_from_query(query);
 

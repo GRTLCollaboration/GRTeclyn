@@ -1,8 +1,9 @@
 #ifndef PARTICLEINTERPOLATORS_HPP_
 #define PARTICLEINTERPOLATORS_HPP_
 
-#include <AMReX_AmrLevel.H>
-#include <AMReX_AmrParGDB.H>
+#include <AMReX_Array.H>
+#include <AMReX_ParIter.H>
+#include <AMReX_Particles.H>
 
 #include "BoundaryConditions.hpp"
 #include "GRAMR.hpp"
@@ -11,13 +12,14 @@
 // This class interpolates one variable (that may be multi-component) at
 // arbitrary coordinates provided via InterpolationQuery, using amrex particles.
 
+template <int num_components>
 class ParticleInterpolators
     : public amrex::ParticleContainer<
-          /*NStructReal*/ 0,             // for positions
+          /*NStructReal*/ 0,
           /*NStructInt*/ 1,              // particle index
-          /*NArrayReal*/ AMREX_SPACEDIM, // SOA slots to store interpolated
-                                         // values, cannot have more than
-                                         // AMREX_SPACEDIM for one variable
+          /*NArrayReal*/ num_components, // number of SOA slots to store
+                                         // interpolated values (assumes
+                                         // contiguous storage)
           /*NArrayInt*/ 0>
 {
   private:
@@ -25,7 +27,7 @@ class ParticleInterpolators
     bool m_initialized{
         false};          // a guard to make sure we do not uninitialised GRAMR
     int m_start_comp{0}; // first component
-    int m_ncomp{1};      // number of components
+    // int m_ncomp{1};      // number of components
 
     bool m_particles_seeded{false};
     bool m_need_redistribute{true};
@@ -45,10 +47,13 @@ class ParticleInterpolators
     BoundaryConditions::params_t m_bc_params{};
 
   public:
-    using amrex::ParticleContainer<0, 1, AMREX_SPACEDIM, 0>::ParticleContainer;
+    using Base         = amrex::ParticleContainer<0, 1, num_components, 0>;
+    using ParIterType  = typename Base::ParIterType;
+    using ParticleType = typename Base::ParticleType;
+    using Base::Base;
 
     ParticleInterpolators(const BoundaryConditions::params_t &a_bc_params,
-                          int a_start_comp, int a_ncomp);
+                          int a_start_comp);
 
     // initialise everything and perform some sanity checks
     void set_gramr_ptr(GRAMR *gr_amr_ptr);
@@ -76,11 +81,11 @@ class ParticleInterpolators
 
     // mirror of AMRInterpolator::interp(); assembles all particle data and
     // writes parity * value into the query out arrays
-    void interp(InterpolationQueryParticle &query, VariableType variable_type);
+    void interp(InterpolationQueryParticle &query,
+                VariableType variable_type = VariableType::state);
 
     // A function to check whether the query point is inside the physical domain
-    template <int dim>
-    void check_domain(const std::array<double, dim> &x,
+    void check_domain(std::array<double, AMREX_SPACEDIM> &x,
                       int guard_cells = 0) const;
 
     inline void ensure_redistributed();

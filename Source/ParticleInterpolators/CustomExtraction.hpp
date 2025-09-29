@@ -48,7 +48,7 @@ class CustomExtraction
     ~CustomExtraction() = default;
 
     //! Execute using particle-based interpolation
-    void execute_query(ParticleInterpolators &particles,
+    void execute_query(ParticleInterpolators<1> &particles,
                        std::string a_file_prefix) const
     {
 
