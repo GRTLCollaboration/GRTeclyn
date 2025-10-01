@@ -6,8 +6,9 @@
 #include "BinaryBHLevel.hpp"
 #include "BinaryBHInitialData.hpp"
 #include "CCZ4RHS.hpp"
-#include "ChiExtractionTagger.hpp"
+#include "ChiTagger.hpp"
 #include "Constraints.hpp"
+#include "ExtractionTagger.hpp"
 #include "PositiveChiAndLapse.hpp"
 #include "PunctureTagger.hpp"
 #include "PunctureTracker.hpp"
@@ -202,9 +203,11 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
     const auto &tag_arrs       = a_tag_box_array.arrays();
     const auto &state_new_arrs = state_new.const_arrays();
 
-    ChiExtractionTagger chi_extraction_tagger(
-        Geom().CellSize(0), Level(), a_regrid_threshold,
-        simParams().extraction_params, simParams().activate_extraction);
+    ChiTagger chi_tagger(Geom().CellSize(0), a_regrid_threshold);
+
+    ExtractionTagger extraction_tagger(Geom().CellSize(0), Level(),
+                                       simParams().extraction_params,
+                                       simParams().activate_extraction);
 
     const bool puncture_tracking_enabled =
         simParams().puncture_tracking_enabled;
@@ -217,21 +220,25 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
         puncture_coords = get_puncture_tracker().get_puncture_coords();
     }
 
-    // Even though we create this object, it won't be used if puncture tracking
-    // is not enabled.
     PunctureTagger<num_punctures> puncture_tagger(
         Geom().CellSize(0), Level(), get_gramr_ptr()->maxLevel(),
         puncture_coords,
         {simParams().bh1_params.mass, simParams().bh2_params.mass});
 
     amrex::ParallelFor(state_new, amrex::IntVect(0),
+                       // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
                        {
-                           chi_extraction_tagger(i, j, k, tag_arrs[box_no],
-                                                 state_new_arrs[box_no]);
+                           const auto &tags_arr  = tag_arrs[box_no];
+                           const auto &state_arr = state_new_arrs[box_no];
+
+                           chi_tagger(i, j, k, tags_arr, state_arr);
+
+                           extraction_tagger(i, j, k, tags_arr);
+
                            if (puncture_tracking_enabled)
                            {
-                               puncture_tagger(i, j, k, tag_arrs[box_no]);
+                               puncture_tagger(i, j, k, tags_arr);
                            }
                        });
     amrex::Gpu::streamSynchronize();
