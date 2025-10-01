@@ -154,11 +154,6 @@ inline GpuComplex<Real> RandomField::calculate_mode_function(const double km, co
     Real ms_mag = 0.;
     Real ms_arg = 0.;
 
-    // Hubble at t=0, needed for tensor solution
-    Real H0 = sqrt((4.0 * M_PI/3.0/pow(m_params.Mp, 2.))
-                * (pow(m_background_params.m * m_background_params.phi0, 2.0) 
-                    + pow(m_background_params.Pi0, 2.)));
-
     double kpr = km/H0;
     if (spec_indx == 0) // Position mode funcion
     {
@@ -930,6 +925,8 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
 
     // Remove background from scalar field
     scalars_x.plus(-phi_bar, m_c_phi, 1);
+    scalars_x.plus(-1., m_c_chi, 1);
+    scalars_x.mult(1./norm);
 
     // Undo the normalisation and BSSN-CPT conversion
     for (int l=0; l<3; l++) { hij_x.plus(-1., lut[l][l], 1); }
@@ -964,7 +961,7 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
     for(int comp = 0; comp < 6; comp++) { hij_k.mult(std::pow(N, -3.), comp, 1); }
     for(int comp = 0; comp < 2; comp++) { scalars_k.mult(std::pow(N, -3.), comp, 1); }
 
-    std::string Filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/hs-k-extr";
+    std::string Filename = "/cephfs/home/eaf49/GRTeclyn-workspace/Examples/ScalarField/Rk-check.dat";
     int time_step = cur_time/dt;
 
     // Loop to extract the Fourier-space mode functions
@@ -981,23 +978,27 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             IntVect iv{i, j, k};
-            Vector<Real> mhat(3, 0.);
-            Vector<Real> nhat(3, 0.);
-
-            mhat = calculate_basis_vector(iv, 0);
-            nhat = calculate_basis_vector(iv, 1);
-
-            Real eplus = 0.;
-            Real ecross = 0.;
-
-            // Find basis tensors and do the Fourier trick
-            for (int l=0; l<3; l++) for (int p=0; p<3; p++)
+            
+            if(m_params.tensor_init)
             {
-                eplus = mhat[l]*mhat[p] - nhat[l]*nhat[p];
-                ecross = mhat[l]*nhat[p] + nhat[l]*mhat[p];
+                Vector<Real> mhat(3, 0.);
+                Vector<Real> nhat(3, 0.);
 
-                hs_ptr(i, j, k, 0) += (hij_ptr(i, j, k, lut[l][p]) * eplus)/std::sqrt(2.);
-                hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross)/std::sqrt(2.);
+                mhat = calculate_basis_vector(iv, 0);
+                nhat = calculate_basis_vector(iv, 1);
+
+                Real eplus = 0.;
+                Real ecross = 0.;
+
+                // Find basis tensors and do the Fourier trick
+                for (int l=0; l<3; l++) for (int p=0; p<3; p++)
+                {
+                    eplus = mhat[l]*mhat[p] - nhat[l]*nhat[p];
+                    ecross = mhat[l]*nhat[p] + nhat[l]*mhat[p];
+
+                    hs_ptr(i, j, k, 0) += (hij_ptr(i, j, k, lut[l][p]) * eplus)/std::sqrt(2.);
+                    hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross)/std::sqrt(2.);
+                }
             }
 
             Vector<Real> iv_k(iv.begin(), iv.end());
@@ -1005,16 +1006,24 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
             Real kmag = get_kmag(iv);
             GpuComplex<Real> Phi = 0;
 
-            // converstion from chi, gamma_ij -> Phi
-            for(int l=0; l<3; l++) for(int p=0; p<3; p++)
+            if(kmag == 0)
             {
-                Phi += (iv_k[l] * iv_k[p] * hij_ptr(i, j, k, lut[l][p]))/std::pow(kmag, 2.);
+                R_k_ptr(i, j, k, 0) = GpuComplex<Real>{0., 0.};
             }
-            Phi *= -1./48.;
-            Phi += 0.5 * (scalars_ptr(i, j, k, m_c_chi) - 1.);
 
-            // calculate R_k
-            R_k_ptr(i, j, k, 0) = Phi - K_bar * scalars_ptr(i, j, k, m_c_phi) / alpha_bar / Pi_bar;
+            else
+            {
+                // converstion from chi, gamma_ij -> Phi
+                for(int l=0; l<3; l++) for(int p=0; p<3; p++)
+                {
+                    Phi += (iv_k[l] * iv_k[p] * hij_ptr(i, j, k, lut[l][p]))/std::pow(kmag, 2.);
+                }
+                Phi *= -1./48.;
+                Phi += 0.5 * (scalars_ptr(i, j, k, m_c_chi));
+
+                // calculate R_k
+                R_k_ptr(i, j, k, 0) = Phi - K_bar * scalars_ptr(i, j, k, m_c_phi) / alpha_bar / Pi_bar;
+            }
         });
     }
 

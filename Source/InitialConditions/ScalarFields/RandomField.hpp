@@ -72,6 +72,10 @@ class RandomField
             tolerance = 1.e-15; // Numerical tolerance, for tests
             using_tensors = m_params.tensor_init;
 
+            H0 = sqrt((4.0 * M_PI/3.0/pow(m_params.Mp, 2.))
+                * (pow(m_background_params.m * m_background_params.phi0, 2.0) 
+                    + pow(m_background_params.Pi0, 2.)));
+
             // Look-up table 
             // Used to construct polarisation basis tensors
             lut[0][0] = 0;
@@ -97,6 +101,7 @@ class RandomField
         
     private:
         int N;
+        Real H0;
         int lut[3][3];
         double norm;
         double tolerance;
