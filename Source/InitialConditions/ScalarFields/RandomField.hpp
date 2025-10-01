@@ -36,6 +36,7 @@ class RandomField
         struct params_t 
         {
             int tensor_init = 1;      //!< Determines whether tensor perturbations are calculated
+            int tensor_extract = 1;
             int use_rand = 1;           //!< Choose whether to use random initial conditions
             int random_seed = 3539263;  //!< Seed for random number generator
 

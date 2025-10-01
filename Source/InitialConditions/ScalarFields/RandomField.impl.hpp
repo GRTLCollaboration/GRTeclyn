@@ -979,7 +979,7 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         {
             IntVect iv{i, j, k};
             
-            if(m_params.tensor_init)
+            if(m_params.tensor_extract)
             {
                 Vector<Real> mhat(3, 0.);
                 Vector<Real> nhat(3, 0.);
@@ -1036,7 +1036,7 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         std::string spec_path = make_subdirectory(data_path, "spectra", first_step);
         Vector<std::string> filenames(2, "");
 
-        if(m_params.tensor_init)
+        if(m_params.tensor_extract)
         {
             for(int comp = 0; comp < hs_k.nComp(); comp++)
             {
@@ -1052,7 +1052,7 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
     }
 
     // Find mode functions in configuration space if requested
-    if(m_params.calc_higher_order_statistics && m_params.tensor_init)
+    if(m_params.calc_higher_order_statistics && m_params.tensor_extract)
     {
         // Make a multifab to store config space mode functions
         BoxArray xba(x_domain);
