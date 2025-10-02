@@ -17,7 +17,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void Weyl4WithMatter<matter_t>::operator()(
 {
     const amrex::CellData<const amrex::Real> &state_cell_data =
         state.cellData(ix, iy, iz);
-    const typename matter_t::ConstVars vars(state_cell_data);
+    const typename matter_t::Vars vars(state_cell_data);
 
     const typename matter_t::D1Vars d1(ix, iy, iz, state, m_deriv);
     // we only need d2 of chi and h
@@ -26,7 +26,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void Weyl4WithMatter<matter_t>::operator()(
     const Tensor<4, amrex::Real> d2_h =
         m_deriv.diff2_tensor(ix, iy, iz, state, c_h11);
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
-    const auto chris = TensorAlgebra::compute_christoffel(d1.h, h_UU);
+    const auto chris = CCZ4Geometry::compute_christoffel(d1, h_UU);
 
     // Get the coordinates
     const Coordinates coords(amrex::IntVect{AMREX_D_DECL(ix, iy, iz)}, m_dx,
@@ -53,7 +53,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void Weyl4WithMatter<matter_t>::operator()(
 template <class matter_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 Weyl4WithMatter<matter_t>::add_matter_EB(
-    EBFields_t &ebfields, const typename matter_t::ConstVars &vars,
+    EBFields_t &ebfields, const typename matter_t::Vars &vars,
     const typename matter_t::D1Vars &d1,
     const Tensor<3, amrex::Real> &epsilon3_LUU,
     const Tensor<2, amrex::Real> &h_UU, const chris_t &chris) const

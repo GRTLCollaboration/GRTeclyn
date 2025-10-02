@@ -30,7 +30,7 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::operator()(
 
     const amrex::CellData<const amrex::Real> &state_cell_data =
         state.cellData(ix, iy, iz);
-    const typename matter_t::ConstVars vars(state_cell_data);
+    const typename matter_t::Vars vars(state_cell_data);
 
     // Get the derivatives
     const typename matter_t::D1Vars d1(ix, iy, iz, state, this->m_deriv);
@@ -39,29 +39,28 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::operator()(
 
     const amrex::CellData<amrex::Real> &rhs_cell_data =
         rhs_state.cellData(ix, iy, iz);
-    typename matter_t::Vars rhs(rhs_cell_data);
 
-    this->rhs_equation(rhs, vars, d1, d2, advec);
+    this->rhs_equation(rhs_cell_data, vars, d1, d2, advec);
 
     // add RHS matter terms from EM Tensor
-    add_emtensor_rhs(rhs, vars, d1);
+    add_emtensor_rhs(rhs_cell_data, vars, d1);
 
     // add evolution of matter fields themselves
-    m_matter.add_matter_rhs(rhs, vars, d1, d2, advec);
+    m_matter.add_matter_rhs(rhs_cell_data, vars, d1, d2, advec);
 
     // Add dissipation to all terms
-    this->m_deriv.add_dissipation(ix, iy, iz, rhs, state, this->m_sigma);
+    this->m_deriv.add_dissipation(ix, iy, iz, rhs_cell_data, state, this->m_sigma);
 }
 
 // Function to add in EM Tensor matter terms to CCZ4 rhs
 template <class matter_t, class gauge_t, class deriv_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
-    typename matter_t::Vars &rhs, const typename matter_t::ConstVars &vars,
+    const amrex::CellData<amrex::Real> &rhs, const typename matter_t::Vars &vars,
     const typename matter_t::D1Vars &d1) const
 {
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
-    const auto chris = TensorAlgebra::compute_christoffel(d1.h, h_UU);
+    const auto chris = CCZ4Geometry::compute_christoffel(d1, h_UU);
 
     // Calculate elements of the decomposed stress energy tensor
     const auto emtensor = m_matter.compute_emtensor(vars, d1, h_UU, chris.ULL);
@@ -69,34 +68,27 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
     // Update RHS for K and Theta depending on formulation
     if (this->m_formulation == CCZ4RHS<>::USE_BSSN)
     {
-        amrex::Real rhs_K = rhs.K() + 4.0 * M_PI * m_G_Newton * vars.lapse() *
+        rhs[c_K] += 4.0 * M_PI * m_G_Newton * vars.lapse() *
                                           (emtensor.trS + emtensor.rho);
-        rhs.store_K(rhs_K);
-        rhs.store_Theta(0.0);
+        rhs[c_Theta] = 0.0;
     }
     else
     {
-        amrex::Real rhs_K = rhs.K() + 4.0 * M_PI * m_G_Newton * vars.lapse() *
+        rhs[c_K] += 4.0 * M_PI * m_G_Newton * vars.lapse() *
                                           (emtensor.trS - 3 * emtensor.rho);
-        rhs.store_K(rhs_K);
-        amrex::Real rhs_Theta =
-            rhs.Theta() - 8.0 * M_PI * m_G_Newton * vars.lapse() * emtensor.rho;
-        rhs.store_Theta(rhs_Theta);
+        rhs[c_Theta] += - 8.0 * M_PI * m_G_Newton * vars.lapse() * emtensor.rho;
     }
 
     // Update RHS for other variables
     Tensor<2, amrex::Real> S_TF = emtensor.S;
     CCZ4Geometry::make_trace_free(S_TF, vars, h_UU);
 
-    Tensor<2, amrex::Real> rhs_A;
     FOR (i, j)
     {
-        rhs_A[i][j] = rhs.A(i, j) - 8.0 * M_PI * m_G_Newton * vars.chi() *
+        rhs[var_idx(c_A11, i, j)] += - 8.0 * M_PI * m_G_Newton * vars.chi() *
                                         vars.lapse() * S_TF[i][j];
     }
-    rhs.store_A(rhs_A);
 
-    Tensor<1, amrex::Real> rhs_Gamma;
     FOR (i)
     {
         amrex::Real matter_term_Gamma = 0.0;
@@ -105,10 +97,8 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
             matter_term_Gamma += -16.0 * M_PI * m_G_Newton * vars.lapse() *
                                  h_UU[i][j] * emtensor.j[j];
         }
-
-        rhs_Gamma[i] = rhs.Gamma(i) + matter_term_Gamma;
+        rhs[c_Gamma1 + i] += matter_term_Gamma;
     }
-    rhs.store_Gamma(rhs_Gamma);
 
     // Add matter contribution to RHS of gauge evolution
     this->m_gauge.rhs_gauge_add_matter_terms(rhs, vars, h_UU, emtensor,

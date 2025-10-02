@@ -54,11 +54,11 @@ EMTensor<matter_t, em_tensor_options>::operator()(
 
     const amrex::CellData<const amrex::Real> &state_cell_data =
         state.cellData(ix, iy, iz);
-    ConstVars vars(state_cell_data);
+    Vars vars(state_cell_data);
     const typename matter_t::D1Vars d1(ix, iy, iz, state, m_deriv);
 
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
-    const auto chris = TensorAlgebra::compute_christoffel(d1.h, h_UU);
+    const auto chris = CCZ4Geometry::compute_christoffel(d1, h_UU);
 
     const auto emtensor = m_matter.compute_emtensor(vars, d1, h_UU, chris.ULL);
 

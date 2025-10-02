@@ -7,7 +7,6 @@
 #define SCALARFIELD_HPP_
 
 #include "CCZ4Geometry.hpp"
-#include "ConstScalarFieldVars.hpp"
 #include "DefaultPotential.hpp"
 #include "DimensionDefinitions.hpp"
 #include "FourthOrderDerivatives.hpp"
@@ -45,7 +44,6 @@ template <class potential_t = DefaultPotential> class ScalarField
     ScalarField() = default;
 
     using Vars      = ScalarFieldVars;
-    using ConstVars = ConstScalarFieldVars;
     using D1Vars    = ScalarFieldD1Vars;
     using D2Vars    = ScalarFieldD2Vars;
     using AdvecVars = ScalarFieldAdvecVars;
@@ -54,7 +52,7 @@ template <class potential_t = DefaultPotential> class ScalarField
     //! derivatives, including the potential
     [[nodiscard]]
     AMREX_GPU_DEVICE emtensor_t
-    compute_emtensor(const ConstVars &vars, const D1Vars &d1,
+    compute_emtensor(const Vars &vars, const D1Vars &d1,
                      const Tensor<2, amrex::Real>
                          &h_UU, //!< the inverse metric (raised indices)
                      const Tensor<3, amrex::Real> &chris_ULL)
@@ -63,7 +61,8 @@ template <class potential_t = DefaultPotential> class ScalarField
     //! The function which adds in the RHS for the matter field vars,
     //! including the potential
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    add_matter_rhs(Vars &rhs, const ConstVars &vars, const D1Vars &d1,
+    add_matter_rhs(const amrex::CellData<amrex::Real> &rhs, 
+                   const Vars &vars, const D1Vars &d1,
                    const D2Vars &d2, const AdvecVars &advec) const;
 };
 

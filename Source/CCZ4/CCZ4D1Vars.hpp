@@ -21,6 +21,11 @@ class CCZ4D1Vars
         m_d1_state = a_deriv.diff1_state(ix, iy, iz, state);
     }
 
+    AMREX_GPU_DEVICE CCZ4D1Vars(int ix, int iy, int iz)
+    {
+        // Used for tests
+    }
+
     amrex::GpuArray<Tensor<1, amrex::Real>, NUM_VARS> m_d1_state;
 
     [[nodiscard]]

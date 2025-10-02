@@ -61,9 +61,9 @@ class CCZ4RHSWithMatter : public CCZ4RHS<gauge_t, deriv_t>
     //! The function which adds in the EM Tensor terms to the CCZ4 rhs \sa
     //! compute()
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void add_emtensor_rhs(
-        typename matter_t::Vars
+        const amrex::CellData<amrex::Real>
             &rhs, //!< the RHS data for each variable at that point.
-        const typename matter_t::ConstVars
+        const typename matter_t::Vars
             &state, //!< the value of the variables at the point.
         const typename matter_t::D1Vars
             &d1 //!< the value of the first derivatives of the variables.
