@@ -6,15 +6,15 @@ The AMReX documentation can be found [here](https://amrex-codes.github.io/amrex/
 
 The name follows a similar pattern to GRChombo, namely "GR" + "\<Tool in a foreign language\>". In this case, "Teclyn" is a Welsh word for "Tool".
 
-### Development status
+## Development status
 
 The current timeline for releasing GRTeclyn is December 2025 - the goal is that at this point it should contain well tested methods for vacuum binaries with gravitational wave extraction, and capabilities to add scalar fields. Further features will be ported later.
 
 A detailed list of the status of particular features can be found in the [documentation](https://grtlcollaboration.github.io/GRTeclyn/#summary-of-features).
 
-### Documentation
+## Documentation
 
-The documentation is also under construction, but can be found [here](https://grtlcollaboration.github.io/GRTeclyn/). Note that the wiki in GitHub is no longer in use.
+Documentation can be found [here](https://grtlcollaboration.github.io/GRTeclyn/) (under construction). Note that the GitHub wiki is no longer in use.
 
 The documentation contains useful information on obtaining and building the code, prerequisities and running the binary black hole example.
 
