@@ -8,9 +8,7 @@ The name follows a similar pattern to GRChombo, namely "GR" + "\<Tool in a forei
 
 ## Development status
 
-The current timeline for releasing GRTeclyn is December 2025 - the goal is that at this point it should contain well tested methods for vacuum binaries with gravitational wave extraction, and capabilities to add scalar fields. Further features will be ported later.
-
-A detailed list of the status of particular features can be found in the [documentation](https://grtlcollaboration.github.io/GRTeclyn/#summary-of-features).
+Please consult this [documentation page](https://grtlcollaboration.github.io/GRTeclyn/#summary-of-features) for a list of the development status of specific features.
 
 ## Documentation
 
