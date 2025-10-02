@@ -37,7 +37,7 @@ void run_ccz4_geometry_unit_tests()
         amrex::Real chi = 0.0;
         Tensor<1, amrex::Real> Gamma;
         Tensor<2, amrex::Real> h;
-        CCZ4D1Vars d1;
+        CCZ4D1Vars d1(0,0,0);
         CCZ4D2Vars d2;
         Tensor<1, amrex::Real> Z_over_chi;
 
@@ -62,11 +62,10 @@ void run_ccz4_geometry_unit_tests()
 
         const amrex::CellData<const amrex::Real> &cell_data =
             in_array.cellData(0, 0, 0);
-        ConstCCZ4Vars vars(cell_data);
+        CCZ4Vars vars(cell_data);
 
         auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
-        auto chris = TensorAlgebra::compute_christoffel(d1.h, h_UU);
-
+        auto chris = CCZ4Geometry::compute_christoffel(d1, h_UU);
         auto ricciZ = CCZ4Geometry::compute_ricci_Z(vars, d1, d2.chi, d2.h,
                                                     h_UU, chris, Z_over_chi);
 

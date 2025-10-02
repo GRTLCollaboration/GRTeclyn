@@ -6,7 +6,7 @@
 #ifndef DEFAULTPOTENTIAL_HPP_
 #define DEFAULTPOTENTIAL_HPP_
 
-#include "ConstScalarFieldVars.hpp"
+#include "ScalarFieldVars.hpp"
 #include "Tensor.hpp"
 #include <AMReX_REAL.H>
 
@@ -20,7 +20,7 @@ class DefaultPotential
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE static void
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     compute_potential(amrex::Real &V_of_phi, amrex::Real &dVdphi,
-                      const ConstScalarFieldVars &vars) const
+                      const ScalarFieldVars &vars)
     {
         // The potential value at phi
         V_of_phi = 0.0;

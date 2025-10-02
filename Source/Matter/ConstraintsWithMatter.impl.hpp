@@ -33,7 +33,7 @@ ConstraintsWithMatter<matter_t>::operator()(
 {
     const amrex::CellData<const amrex::Real> &state_cell_data =
         state.cellData(ix, iy, iz);
-    typename matter_t::ConstVars vars(state_cell_data);
+    typename matter_t::Vars vars(state_cell_data);
     const typename matter_t::D1Vars d1(ix, iy, iz, state, m_deriv);
     const Tensor<2, amrex::Real> d2_chi =
         m_deriv.diff2(ix, iy, iz, state, c_chi);
@@ -42,7 +42,7 @@ ConstraintsWithMatter<matter_t>::operator()(
 
     // Inverse metric and Christoffel symbol
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
-    const auto chris = TensorAlgebra::compute_christoffel(d1.h, h_UU);
+    const auto chris = CCZ4Geometry::compute_christoffel(d1, h_UU);
 
     // Get the non matter terms for the constraints
     constraints_t out =

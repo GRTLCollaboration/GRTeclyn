@@ -13,8 +13,8 @@
 class ScalarFieldVars : public CCZ4Vars
 {
   public:
-    AMREX_GPU_DEVICE inline ScalarFieldVars(
-        const amrex::CellData<amrex::Real> &input_cell_data)
+    AMREX_GPU_DEVICE ScalarFieldVars(
+        const amrex::CellData<const amrex::Real> &input_cell_data)
         : CCZ4Vars(input_cell_data)
     {
     }
@@ -29,16 +29,6 @@ class ScalarFieldVars : public CCZ4Vars
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &Pi() const
     {
         return cell_data[c_Pi];
-    }
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void store_phi(amrex::Real phi)
-    {
-        cell_data[c_phi] = phi;
-    }
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void store_Pi(amrex::Real Pi)
-    {
-        cell_data[c_Pi] = Pi;
     }
 };
 

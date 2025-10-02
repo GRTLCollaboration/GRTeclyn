@@ -26,13 +26,24 @@ class ScalarFieldAdvecVars : public CCZ4AdvecVars
             shift_vector[idir] = state(ix, iy, iz, c_shift1 + idir);
         }
 
-        // Calculate the d1 quantities for all vars
-        phi = a_deriv.advec_scalar(ix, iy, iz, state, shift_vector, c_phi);
-        Pi  = a_deriv.advec_scalar(ix, iy, iz, state, shift_vector, c_Pi);
+        // Calculate the advec quantities for all vars
+        m_advec_state = a_deriv.advec_state(ix, iy, iz, state, shift_vector);
+
     }
 
-    amrex::Real phi;
-    amrex::Real Pi;
+    amrex::GpuArray<amrex::Real, NUM_VARS> m_advec_state;
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &phi() const
+    {
+        return m_advec_state[c_phi];
+    }
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &Pi() const
+    {
+        return m_advec_state[c_Pi];
+    }
 };
 
 #endif /* SCALARFIELDADVECVARS_HPP */
