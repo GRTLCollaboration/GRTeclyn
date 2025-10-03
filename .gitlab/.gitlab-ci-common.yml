@@ -1,3 +1,17 @@
+workflow:
+# Only run GitLab CI on changes in the following paths
+  rules:
+    - changes:
+        - Examples/**
+        - external/**
+        - Source/**
+        - Tests/**
+        - Tools/GNUMake/**
+        - .gitlab-ci.yml
+        - .gitlab/**
+      when: always
+    - when: never
+
 stages:
   - build
   - test
