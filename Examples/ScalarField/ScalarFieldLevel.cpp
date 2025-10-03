@@ -400,10 +400,7 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
         else if (name=="TensorPolarisations")
         {
             RandomField random_field_derive(simParams().random_field_params, simParams().background_params);
-            if (random_field_derive.using_tensors)
-            {
-                random_field_derive.derive(src_mf, multifab, dcomp);
-            }
+            random_field_derive.derive(src_mf, multifab, dcomp);
         }
         else
         {

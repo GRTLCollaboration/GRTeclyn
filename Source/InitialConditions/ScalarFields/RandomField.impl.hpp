@@ -206,14 +206,8 @@ inline GpuComplex<Real> RandomField::calculate_random_field(const IntVect iv, co
     double kmag = get_kmag(iv);
 
     // Find the analytic power spectrum
-    if(m_params.read_from_stoiic)
-    {
-        value = find_in_stoiic(kmag, field_index, field_type);
-    }
-    else
-    {
-        value = calculate_mode_function(kmag, field_index);
-    }
+    if(m_params.scalar_init) { value = find_in_stoiic(kmag, field_index, field_type); }
+    else { value = calculate_mode_function(kmag, field_index); }
 
     // Add stochastic perturbations
     if(m_params.use_rand == 1)
@@ -392,6 +386,15 @@ inline void RandomField::init(amrex::MultiFab &state)
     cMultiFab scalar_fields_k(kba, kdm, 4, 0);
     MultiFab scalar_fields_x(sba, sdm, 4, 0);
 
+    hs_k.setVal(0.0);
+    As_k.setVal(0.0);
+    hij_k.setVal(0.0);
+    Aij_k.setVal(0.0);
+    hij_x.setVal(0.0);
+    Aij_x.setVal(0.0);
+    scalar_fields_k.setVal(0.0);
+    scalar_fields_x.setVal(0.0);
+
     // Make the Fourier transform
     IntVect x_domain_high(N-1, N-1, N-1);
     Box x_domain(domain_low, x_domain_high);
@@ -400,18 +403,16 @@ inline void RandomField::init(amrex::MultiFab &state)
 
     MultiFab random_draws(kba, kdm, 6, 0);
     make_random_draws(random_draws, k_domain);
-
     MultiFab tensor_draws(random_draws, amrex::make_alias, 0, 4);
     MultiFab scalar_draws(random_draws, amrex::make_alias, 4, 2);
 
-    std::string Filename = "/cephfs/home/eaf49/GRTeclyn-workspace/Examples/ScalarField/comp-to-dparams.txt";
+    // std::string Filename = "/cephfs/home/eaf49/GRTeclyn-workspace/Examples/ScalarField/comp-to-dparams.txt";
     for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
     {
         // Define the domain on this MPI rank
         const Box& bx = mfi.fabbox();
         auto const& tensor_draw_ptr = tensor_draws.const_array(mfi);
         auto const& scalar_draw_ptr = scalar_draws.const_array(mfi);
-        //int count = 0;
 
         // Make a pointer to the mode functions at this MF box
         Array4<GpuComplex<Real>> const& hs_ptr = hs_k.array(mfi);
@@ -437,18 +438,15 @@ inline void RandomField::init(amrex::MultiFab &state)
                 As_ptr(i, j, k, p) = calculate_random_field(iv, 1, draw1, draw2);
             }
 
-            if(m_params.read_from_stoiic)
+            if(m_params.scalar_init)
             {
-                //PrintToFile(Filename) << iv << ", " << IntVect{i, invert_index(j), invert_index(k)} << ", " << get_kmag(iv) << ": ";
                 for(int f=0; f<4; f++)
                 {
                     Real draw1 = scalar_draw_ptr(i, j, k, 0);
                     Real draw2 = scalar_draw_ptr(i, j, k, 1);
 
                     scalar_fields_ptr(i, j, k, f) = calculate_random_field(iv, f, draw1, draw2, "scalar");
-                    //PrintToFile(Filename) << scalar_fields_ptr(i, j, k, f).real() << "," << scalar_fields_ptr(i, j, k, f).imag() << ": ";
                 }
-                //PrintToFile(Filename) << "\n";
             }
 
             // Find basis tensors and initial tensor realisation
@@ -464,21 +462,17 @@ inline void RandomField::init(amrex::MultiFab &state)
     apply_nyquist_conditions(hs_k);
     apply_nyquist_conditions(hij_k);
     apply_nyquist_conditions(Aij_k);
+    apply_nyquist_conditions(scalar_fields_k);
 
     // Do the Fourier transform
     tensor_fft.backward(hij_k, hij_x);
     tensor_fft.backward(Aij_k, Aij_x);
+    scalar_fft.backward(scalar_fields_k, scalar_fields_x);
 
     // Apply normalisation into physical units
     hij_x.mult(norm);
     Aij_x.mult(norm);
-
-    if(m_params.read_from_stoiic) 
-    { 
-        apply_nyquist_conditions(scalar_fields_k); 
-        scalar_fft.backward(scalar_fields_k, scalar_fields_x);
-        scalar_fields_x.mult(norm);
-    }
+    scalar_fields_x.mult(norm);
 
     // Test is trace-free
     Test_is_trace_free(hij_x);
@@ -520,7 +514,7 @@ inline void RandomField::init(amrex::MultiFab &state)
                     state_ptr(iv, c_A33) = Aij_ptr(i, j, k, lut[2][2]);
                 }
 
-                if(m_params.read_from_stoiic)
+                if(m_params.scalar_init)
                 {
                     state_ptr(iv, c_phi) += scalar_ptr(i, j, k, 0);
                     state_ptr(iv, c_Pi) += scalar_ptr(i, j, k, 1);
@@ -781,6 +775,7 @@ inline void RandomField::derive(const MultiFab &source, MultiFab &out, int dcomp
     BoxArray sba = source.boxArray();
     DistributionMapping sdm = source.DistributionMap();
     MultiFab hij_x(sba, sdm, 6, 0);
+    hij_x.setVal(0.0);
 
     // Copy the spatial metric from the state
     Copy(hij_x, source, c_h11, lut[0][0], 1, 0);
@@ -806,6 +801,8 @@ inline void RandomField::derive(const MultiFab &source, MultiFab &out, int dcomp
     // Set up the arrays to store the Fourier data sets
     cMultiFab hs_k(kba, kdm, 2, 0);
     cMultiFab hij_k(kba, kdm, 6, 0);
+    hs_k.setVal(0.0);
+    hij_k.setVal(0.0);
 
     // Set up the FFT
     IntVect x_domain_high(N-1, N-1, N-1);
@@ -861,6 +858,7 @@ inline void RandomField::derive(const MultiFab &source, MultiFab &out, int dcomp
     BoxArray xba = out.boxArray();//(x_domain); //
     DistributionMapping xdm = out.DistributionMap();//(xba); //
     MultiFab hs_x(xba, xdm, 2, 0);
+    hs_x.setVal(0.0);
 
     // Fourier transform
     FFT::R2C<Real> mode_function_fft(x_domain, FFT::Info().setBatchSize(hs_k.nComp()));
@@ -947,6 +945,11 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
     cMultiFab scalars_k(kba, kdm, 2, 0);
     cMultiFab R_k(kba, kdm, 1, 0);
 
+    hs_k.setVal(0.0);
+    hij_k.setVal(0.0);
+    scalars_k.setVal(0.0);
+    R_k.setVal(0.0);
+
     // Set up the FFT
     IntVect x_domain_high(N-1, N-1, N-1);
     Box x_domain(domain_low, x_domain_high);
@@ -979,26 +982,23 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         {
             IntVect iv{i, j, k};
             
-            if(m_params.tensor_extract)
+            Vector<Real> mhat(3, 0.);
+            Vector<Real> nhat(3, 0.);
+
+            mhat = calculate_basis_vector(iv, 0);
+            nhat = calculate_basis_vector(iv, 1);
+
+            Real eplus = 0.;
+            Real ecross = 0.;
+
+            // Find basis tensors and do the Fourier trick
+            for (int l=0; l<3; l++) for (int p=0; p<3; p++)
             {
-                Vector<Real> mhat(3, 0.);
-                Vector<Real> nhat(3, 0.);
+                eplus = mhat[l]*mhat[p] - nhat[l]*nhat[p];
+                ecross = mhat[l]*nhat[p] + nhat[l]*mhat[p];
 
-                mhat = calculate_basis_vector(iv, 0);
-                nhat = calculate_basis_vector(iv, 1);
-
-                Real eplus = 0.;
-                Real ecross = 0.;
-
-                // Find basis tensors and do the Fourier trick
-                for (int l=0; l<3; l++) for (int p=0; p<3; p++)
-                {
-                    eplus = mhat[l]*mhat[p] - nhat[l]*nhat[p];
-                    ecross = mhat[l]*nhat[p] + nhat[l]*mhat[p];
-
-                    hs_ptr(i, j, k, 0) += (hij_ptr(i, j, k, lut[l][p]) * eplus)/std::sqrt(2.);
-                    hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross)/std::sqrt(2.);
-                }
+                hs_ptr(i, j, k, 0) += (hij_ptr(i, j, k, lut[l][p]) * eplus)/std::sqrt(2.);
+                hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross)/std::sqrt(2.);
             }
 
             Vector<Real> iv_k(iv.begin(), iv.end());
@@ -1036,14 +1036,11 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         std::string spec_path = make_subdirectory(data_path, "spectra", first_step);
         Vector<std::string> filenames(2, "");
 
-        if(m_params.tensor_extract)
+        for(int comp = 0; comp < hs_k.nComp(); comp++)
         {
-            for(int comp = 0; comp < hs_k.nComp(); comp++)
-            {
-                filenames[comp] = spec_path+"spectrum-comp-"+std::to_string(comp)+"-time-";
-                SmallDataIO spectrum_file(filenames[comp], dt, cur_time, restart_time, SmallDataIO::NEW, first_step, ".dat");
-                print_power_spectrum(hs_k, spectrum_file, comp);
-            }
+            filenames[comp] = spec_path+"spectrum-comp-"+std::to_string(comp)+"-time-";
+            SmallDataIO spectrum_file(filenames[comp], dt, cur_time, restart_time, SmallDataIO::NEW, first_step, ".dat");
+            print_power_spectrum(hs_k, spectrum_file, comp);
         }
 
         std::string filename = spec_path+"spectrum-Rk-time-";
@@ -1052,12 +1049,13 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
     }
 
     // Find mode functions in configuration space if requested
-    if(m_params.calc_higher_order_statistics && m_params.tensor_extract)
+    if(m_params.calc_higher_order_statistics)
     {
         // Make a multifab to store config space mode functions
         BoxArray xba(x_domain);
         DistributionMapping xdm(xba);
         MultiFab hs_x(xba, xdm, 2, 0);
+        hs_x.setVal(0.0);
 
         // Fourier transform
         FFT::R2C<Real> mode_function_fft(x_domain, FFT::Info().setBatchSize(hs_k.nComp()));

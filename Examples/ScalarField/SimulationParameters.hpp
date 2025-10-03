@@ -40,11 +40,10 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("G_Newton", background_params.G_Newton, 1.);
 
         pp.load("tensor_init", random_field_params.tensor_init, 1);
-        pp.load("tensor_extract", random_field_params.tensor_extract, 1);
         pp.load("L", random_field_params.L, 1.);
         pp.load("A", random_field_params.A, 1.);
         pp.load("N", random_field_params.N_readin, 32);
-        //pp.load("N_fine", random_field_params.N_fine, random_field_params.N_readin);
+        pp.load("N_fine", random_field_params.N_fine, random_field_params.N_readin);
         pp.load("use_rand", random_field_params.use_rand, 1);
         pp.load("random_seed", random_field_params.random_seed, 3539263);
 
@@ -58,8 +57,8 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("num_moments", random_field_params.num_orders, 0);
         pp.getarr("moments_to_print", random_field_params.orders, 0, random_field_params.num_orders);
 
-        pp.load("read_from_stoiic", random_field_params.read_from_stoiic, 0);
-        if(random_field_params.read_from_stoiic)
+        pp.load("scalar_init", random_field_params.scalar_init, 0);
+        if(random_field_params.scalar_init)
         {
             int num_modes;
             pp.load("n_k", num_modes, 0);

@@ -35,31 +35,34 @@ class RandomField
         //! A structure for storing parameters essential to this class
         struct params_t 
         {
-            int tensor_init = 1;      //!< Determines whether tensor perturbations are calculated
-            int tensor_extract = 1;
+            // Basic initialisation flags
+            int tensor_init = 0;        //!< Determines whether tensor perturbations are calculated
+            int scalar_init = 0;  //!< Read in perturbations from STOIIC dparams
             int use_rand = 1;           //!< Choose whether to use random initial conditions
-            int random_seed = 3539263;  //!< Seed for random number generator
 
+            // Grid parameters
             double L;                   //!< Length of the box
             double A;                   //!< Amplitude factor (for basic tests)
             double Mp = 1.;             //!< Energy scale of the problem
-
             int N_readin;               //!< used to read in the private N variable
             int N_fine;                 //!< Fine resolution to downsample from, 
                                         //!< used for convergence testing
 
+            // Initial condition options
+            int random_seed = 3539263;  //!< Seed for random number generator
             int use_window = 0;         //!< Choose whether to use window function
             double kstar;               //!< window's cut-off mode, measured in units of 2pi/L
             double Delta;               //!< window's width, measured like L/Delta
 
+            // Extraction parameters
             int calc_binned_power_spectrum = 0;   //!< Choose whether to extract the binned power spectrum
-            int bin_number;                   //!< How many bins to use (capped at N/2)
+            int bin_number;                       //!< How many bins to use (capped at N/2)
             int calc_higher_order_statistics = 0; //!< Choose whether to print higher-order statistics on the fields
-            int num_orders;
+            int num_orders;                       //!< Number of moments to print (required by vector read-in)
             Vector<int> orders;                   //!< Moment orders to print for extracted fields
 
-            int read_from_stoiic = 0.;
-            Vector<Real> init_k;
+            // STOIIC read-in structures
+            Vector<Real> init_k;                  //!< ks printed by STOIIC, at which Fourier-space fields are provided
             Vector<Vector<Real>> scalar_ps;       //!< Structure: four fields * two components, power spec values
             Vector<Vector<Real>> tensor_ps;       //!< Structure: two fields * two components, power spec values
         };
@@ -71,7 +74,6 @@ class RandomField
             N = m_params.N_readin;
             norm = m_params.A * pow(2. * M_PI/m_params.L, 3.); // Physical FFT normalisation
             tolerance = 1.e-15; // Numerical tolerance, for tests
-            using_tensors = m_params.tensor_init;
 
             H0 = sqrt((4.0 * M_PI/3.0/pow(m_params.Mp, 2.))
                 * (pow(m_background_params.m * m_background_params.phi0, 2.0) 
@@ -90,7 +92,6 @@ class RandomField
             lut[2][2] = 5;
         }
 
-        int using_tensors;
         void init(amrex::MultiFab &state);
         void derive(const MultiFab &source, MultiFab &out, int dcomp);
         void extract(const MultiFab &state, const std::string data_path, const Real dt,  
