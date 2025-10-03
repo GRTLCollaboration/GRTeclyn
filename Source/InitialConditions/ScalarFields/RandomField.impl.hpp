@@ -231,7 +231,7 @@ inline GpuComplex<Real> RandomField::calculate_random_field(const IntVect iv, co
     if(m_params.use_window == 1) 
     { 
         BL_PROFILE("RandomField::calculate_random_field Window function is used")
-        double ks = std::sqrt(3.) * N * M_PI / m_params.L / 5.;//m_params.kstar * 2. * M_PI/m_params.L;
+        double ks = std::sqrt(3.) * N * M_PI / m_params.L / 5.; //m_params.kstar * 2. * M_PI/m_params.L;
         double Dt = m_params.L/m_params.Delta;
         value *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
     }
@@ -985,6 +985,7 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             IntVect iv{i, j, k};
+            Real kmag = get_kmag(iv);
             
             Vector<Real> mhat(3, 0.);
             Vector<Real> nhat(3, 0.);
@@ -1010,13 +1011,14 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
                 BL_PROFILE("RandomField::extract Window function is used")
                 for(int s=0; s<2; s++)
                 {
-                    hs_ptr(i, j, k, s) = apply_window(hs_ptr(i, j, k, s), kmag);
+                    double ks = std::sqrt(3.) * N * M_PI / m_params.L / 5.; //m_params.kstar * 2. * M_PI/m_params.L;
+                    double Dt = m_params.L/m_params.Delta;
+                    hs_ptr(i, j, k, s) *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
                 }
             }
 
             Vector<Real> iv_k(iv.begin(), iv.end());
             for(auto& k_comp : iv_k) { k_comp *= 2. * M_PI / m_params.L; }
-            Real kmag = get_kmag(iv);
             GpuComplex<Real> Phi = 0;
 
             if(kmag == 0) { R_k_ptr(i, j, k, 0) = GpuComplex<Real>{0., 0.}; }

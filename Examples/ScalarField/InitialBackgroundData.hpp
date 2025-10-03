@@ -28,7 +28,6 @@ class InitialBackgroundData
 			double phi0; //!< Amplitude of k=0 mode of initial SF
 			double Pi0;  //!< Amplitude of initial SF velocity
 			double m;    //!< SF mass
-			double G_Newton = 1.;    //!< Energy scale [Mp]
 		};
 
 		InitialBackgroundData(params_t a_params, const Potential a_potential)
@@ -53,16 +52,13 @@ class InitialBackgroundData
         		FOR (index)
             			vars.h[index][index] = 1.;
 
-			const double phi = m_params.phi0 * m_params.Mp;
-			const double Pi = m_params.Pi0 * std::pow(m_params.Mp, 2.);
-
-			vars.phi = phi;
-			vars.Pi = Pi;
+			vars.phi = m_params.phi0;
+			vars.Pi = m_params.Pi0;
 
 			double V, dV;
 			m_potential.compute_potential(V, dV, vars);
 			
-			const double H0 = sqrt((8. * M_PI/3./pow(m_params.Mp, 2.))*(0.5*pow(Pi, 2.) + V));
+			const double H0 = sqrt((8. * M_PI/3.)*(0.5*pow(m_params.Pi0, 2.) + V));
 			vars.K = -3.*H0;
 
 			store_vars(cell.cellData(i, j, k), vars);

@@ -15,14 +15,14 @@ class Potential
     {
         double scalar_mass;
 
-	double phi0;
-	double dphi;
-	double Mp; 
+		/*double phi0;
+		double dphi;
+		double Mp; */
 
-	double width;	
-	double location;
-	double amplitude;
-	double wavelength;
+		double width;	
+		double location;
+		double amplitude;
+		double period;
     };
 
   private:
@@ -32,24 +32,24 @@ class Potential
     //! The constructor
     Potential(params_t a_params) : m_params(a_params) 
     {
-	m_params.scalar_mass *= m_params.Mp;
-	m_params.phi0 *= m_params.Mp;
-	m_params.dphi *= m_params.Mp;
+		/*m_params.scalar_mass *= m_params.Mp;
+		m_params.phi0 *= m_params.Mp;
+		m_params.dphi *= m_params.Mp;*/
 
-	m_params.width = 0.5 * m_params.dphi;
-	m_params.location = m_params.phi0 - 0.75 * m_params.dphi;
-	m_params.amplitude *= std::pow(m_params.Mp, 4.);
-	m_params.wavelength *= 2. * M_PI * m_params.Mp;
+		/*m_params.width = 0.5 * m_params.dphi;
+		m_params.location = m_params.phi0 - 0.75 * m_params.dphi;
+		m_params.amplitude *= std::pow(m_params.Mp, 4.);
+		m_params.period *= 2. * M_PI * m_params.Mp;*/
 
-	/*amrex::Print().SetPrecision(15) << m_params.scalar_mass << "\n";
-	amrex::Print().SetPrecision(15) << m_params.phi0 << "\n";
-	amrex::Print().SetPrecision(15) << m_params.dphi << "\n";
-	
-	amrex::Print().SetPrecision(15) << m_params.width << "\n";
-	amrex::Print().SetPrecision(15) << m_params.location << "\n";
-	amrex::Print().SetPrecision(15) << m_params.amplitude << "\n";
-	amrex::Print().SetPrecision(15) << m_params.wavelength << "\n";
-	amrex::Print().SetPrecision(15) << m_params.Mp << "\n";*/
+		/*amrex::Print().SetPrecision(15) << m_params.scalar_mass << "\n";
+		amrex::Print().SetPrecision(15) << m_params.phi0 << "\n";
+		amrex::Print().SetPrecision(15) << m_params.dphi << "\n";
+		
+		amrex::Print().SetPrecision(15) << m_params.width << "\n";
+		amrex::Print().SetPrecision(15) << m_params.location << "\n";
+		amrex::Print().SetPrecision(15) << m_params.amplitude << "\n";
+		amrex::Print().SetPrecision(15) << m_params.period << "\n";
+		amrex::Print().SetPrecision(15) << m_params.Mp << "\n";*/
     }
 
     //! Set the potential function for the scalar field here
@@ -60,8 +60,8 @@ class Potential
     {
 	// The potential value at phi
 	// Monodromy model, loosely based off the one used in STOIIC_GR
-	double argument = (vars.phi - m_params.location)/m_params.wavelength;
-	double displaced_argument = (m_params.location - vars.phi + m_params.width)/m_params.wavelength;
+	double argument = (vars.phi - m_params.location)/m_params.period;
+	double displaced_argument = (m_params.location - vars.phi + m_params.width)/m_params.period;
 	
 	double envelope = 0.25 * (1. + tanh(argument)) * (1. + tanh(displaced_argument));
 	double oscillation = cos(argument) - 1.; 	
@@ -70,10 +70,10 @@ class Potential
 	V_of_phi += m_params.amplitude * (envelope * oscillation);
 
         // The potential gradient at phi
-	double d_envelope = 0.25/m_params.wavelength * 
+	double d_envelope = 0.25/m_params.period * 
 				((1. + tanh(argument)) * (std::pow(tanh(displaced_argument), 2.) - 1.)
 			       + (1. + tanh(displaced_argument)) * (1. - std::pow(tanh(argument), 2.)));
-	double d_oscillation = -sin(argument)/m_params.wavelength;
+	double d_oscillation = -sin(argument)/m_params.period;
 
         dVdphi = pow(m_params.scalar_mass, 2.0) * vars.phi;
 	dVdphi += m_params.amplitude * (envelope * d_oscillation + d_envelope * oscillation);

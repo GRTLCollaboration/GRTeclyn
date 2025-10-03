@@ -109,7 +109,6 @@ class RandomField
         int lut[3][3];
         double norm;
         double tolerance;
-	    double H0 = 0.;
 
         // Small functions
         int flip_index(const int indx);

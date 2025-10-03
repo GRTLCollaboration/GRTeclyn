@@ -32,20 +32,21 @@ class SimulationParameters : public SimulationParametersBase
             center; // already read in SimulationParametersBase
          pp.load("G_Newton", G_Newton,
                  0.0); // for now the example neglects backreaction
-        background_params.Mp = 1./std::sqrt(G_Newton);
         random_field_params.Mp = 1./std::sqrt(G_Newton);
-        potential_params.Mp = 1./std::sqrt(G_Newton);
 
         pp.load("potential_param_1", potential_params.scalar_mass, 0.1);
         background_params.m = potential_params.scalar_mass;
 
         // Check these
-        pp.load("scalar_amplitude", potential_params.phi0, 4.);
-        pp.load("feature_dphi", potential_params.dphi, 1.e-7);
-        pp.load("feature_amplitude", potential_params.amplitude, 1.e-10);
-        pp.load("feature_wavelength", potential_params.wavelength, 1.e-3);	
-        pp.load("scalar_amplitude", background_params.phi0, 0.0);
-        pp.load("scalar_velocity", background_params.Pi0, 0.0);	
+        //pp.load("scalar_amplitude", potential_params.phi0, 4.);
+        //pp.load("feature_dphi", potential_params.dphi, 1.e-7);
+        pp.load("potential_param_2", potential_params.location, 0.);
+        pp.load("potential_param_3", potential_params.width);
+        pp.load("potential_param_4", potential_params.amplitude, 0.);
+        pp.load("potential_param_5", potential_params.period);
+
+        pp.load("background_phi", background_params.phi0, 0.0);
+        pp.load("background_dphi", background_params.Pi0, 0.0);	
 
         pp.load("tensor_init", random_field_params.tensor_init, 1);
         pp.load("L", random_field_params.L, 1.);
