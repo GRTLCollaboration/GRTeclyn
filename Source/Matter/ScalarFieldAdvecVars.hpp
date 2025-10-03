@@ -14,6 +14,7 @@
 class ScalarFieldAdvecVars : public CCZ4AdvecVars
 {
   public:
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
     AMREX_GPU_DEVICE
     ScalarFieldAdvecVars(int ix, int iy, int iz,
                          const amrex::Array4<const amrex::Real> &state,
@@ -28,8 +29,8 @@ class ScalarFieldAdvecVars : public CCZ4AdvecVars
 
         // Calculate the advec quantities for all vars
         m_advec_state = a_deriv.advec_state(ix, iy, iz, state, shift_vector);
-
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
     amrex::GpuArray<amrex::Real, NUM_VARS> m_advec_state;
 

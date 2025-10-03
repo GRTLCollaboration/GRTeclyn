@@ -14,6 +14,7 @@
 class CCZ4D1Vars
 {
   public:
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
     AMREX_GPU_DEVICE CCZ4D1Vars(int ix, int iy, int iz,
                                 const amrex::Array4<const amrex::Real> &state,
                                 const FourthOrderDerivatives &a_deriv)
@@ -21,10 +22,12 @@ class CCZ4D1Vars
         m_d1_state = a_deriv.diff1_state(ix, iy, iz, state);
     }
 
-    AMREX_GPU_DEVICE CCZ4D1Vars(int ix, int iy, int iz)
+    // empty constructor used for tests
+    AMREX_GPU_HOST_DEVICE CCZ4D1Vars()
     {
-        // Used for tests
+        // Could zero the values of m_d1_state here?
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
     amrex::GpuArray<Tensor<1, amrex::Real>, NUM_VARS> m_d1_state;
 

@@ -37,7 +37,7 @@ void run_ccz4_geometry_unit_tests()
         amrex::Real chi = 0.0;
         Tensor<1, amrex::Real> Gamma;
         Tensor<2, amrex::Real> h;
-        CCZ4D1Vars d1(0,0,0);
+        CCZ4D1Vars d1;
         CCZ4D2Vars d2;
         Tensor<1, amrex::Real> Z_over_chi;
 
@@ -48,7 +48,7 @@ void run_ccz4_geometry_unit_tests()
         const amrex::IntVect iv_zeros(0, 0, 0);
         const amrex::Box box(iv_zeros, iv_zeros);
         amrex::FArrayBox in_fab{box, NUM_CCZ4_VARS, amrex::The_Managed_Arena()};
-        in_fab.setVal(0.0);
+        in_fab.setVal<amrex::RunOn::Device>(0.0);
         const amrex::Array4<amrex::Real> &in_array = in_fab.array();
         in_array(0, 0, 0, c_chi)                   = chi;
         FOR (i)
@@ -64,8 +64,8 @@ void run_ccz4_geometry_unit_tests()
             in_array.cellData(0, 0, 0);
         CCZ4Vars vars(cell_data);
 
-        auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
-        auto chris = CCZ4Geometry::compute_christoffel(d1, h_UU);
+        auto h_UU   = CCZ4Geometry::compute_inverse_metric(vars);
+        auto chris  = CCZ4Geometry::compute_christoffel(d1, h_UU);
         auto ricciZ = CCZ4Geometry::compute_ricci_Z(vars, d1, d2.chi, d2.h,
                                                     h_UU, chris, Z_over_chi);
 

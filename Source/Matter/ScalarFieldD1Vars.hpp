@@ -15,6 +15,7 @@
 class ScalarFieldD1Vars : public CCZ4D1Vars
 {
   public:
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
     AMREX_GPU_DEVICE
     ScalarFieldD1Vars(int ix, int iy, int iz,
                       const amrex::Array4<const amrex::Real> &state,
@@ -24,6 +25,7 @@ class ScalarFieldD1Vars : public CCZ4D1Vars
         // Calculate the d1 quantities for all vars
         m_d1_state = a_deriv.diff1_state(ix, iy, iz, state);
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
     amrex::GpuArray<Tensor<1, amrex::Real>, NUM_VARS> m_d1_state;
 

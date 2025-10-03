@@ -60,10 +60,9 @@ AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t>::compute_emtensor(
 // Adds in the RHS for the matter vars
 template <class potential_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-ScalarField<potential_t>::add_matter_rhs(const amrex::CellData<amrex::Real> &rhs, 
-                                         const Vars &vars,
-                                         const D1Vars &d1, const D2Vars &d2,
-                                         const AdvecVars &advec) const
+ScalarField<potential_t>::add_matter_rhs(
+    const amrex::CellData<amrex::Real> &rhs, const Vars &vars, const D1Vars &d1,
+    const D2Vars &d2, const AdvecVars &advec) const
 {
     // call the function for the rhs excluding the potential
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
@@ -83,8 +82,8 @@ ScalarField<potential_t>::add_matter_rhs(const amrex::CellData<amrex::Real> &rhs
     {
         // includes non conformal parts of chris not included in chris_ULL
         rhs[c_Pi] += h_UU[i][j] * (-0.5 * d1.chi(j) * vars.lapse() * d1.phi(i) +
-                                vars.chi() * vars.lapse() * d2.phi[i][j] +
-                                vars.chi() * d1.lapse(i) * d1.phi(j));
+                                   vars.chi() * vars.lapse() * d2.phi[i][j] +
+                                   vars.chi() * d1.lapse(i) * d1.phi(j));
         FOR (k)
         {
             rhs[c_Pi] += -vars.chi() * vars.lapse() * h_UU[i][j] *

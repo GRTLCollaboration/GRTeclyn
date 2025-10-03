@@ -42,7 +42,6 @@ compute_metric_determinant(const CCZ4Vars &vars)
     return det;
 }
 
-
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<2, amrex::Real>
 compute_inverse_metric(const CCZ4Vars &vars)
 {
@@ -80,7 +79,6 @@ compute_trace_A(const CCZ4Vars &vars)
     return trace_A;
 }
 
-
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_trace_A(const CCZ4Vars &vars,
                 const Tensor<2, amrex::Real> &inverse_metric)
@@ -92,7 +90,6 @@ compute_trace_A(const CCZ4Vars &vars,
     }
     return trace_A;
 }
-
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<2, amrex::Real>
 compute_A_UU(const CCZ4Vars &vars, const Tensor<2, amrex::Real> &inverse_metric)
@@ -229,7 +226,6 @@ compute_z_terms(const int i, const int j,
     }
     return out;
 }
-
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z(
     const CCZ4Vars &vars, const CCZ4D1Vars &d1,
