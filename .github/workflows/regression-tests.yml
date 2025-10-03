@@ -1,6 +1,25 @@
 name: Regression Tests
 
-on: [push]
+on:
+  push:
+    paths-ignore: &regression_tests_paths_ignore
+      - '.gitlab/**'
+      - 'Docs/**'
+      - 'external/**'
+      - 'Tests/**'
+      - 'Tools/CopyrightHeaders'
+      - 'Tools/Doxygen'
+      - '.clang-*'
+      - '.gitignore'
+      - '.gitlab-ci.yml'
+      - '.lint-ignore'
+      - '.pre-commit-config.yaml'
+      - 'LICENSE'
+      - 'README.md'
+      - 'run_clang_format'
+  pull_request:
+    paths-ignore: *regression_tests_paths_ignore
+
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

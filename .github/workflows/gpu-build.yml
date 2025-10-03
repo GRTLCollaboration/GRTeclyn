@@ -2,7 +2,24 @@ name: GPU Build
 # We can't test running on a GPU using GitHub hosted runners but we can test
 #building
 
-on: [push]
+on:
+  push:
+    paths-ignore: &gpu_build_paths_ignore
+      - '.gitlab/**'
+      - 'Docs/**'
+      - 'external/**'
+      - 'Tools/CopyrightHeaders'
+      - 'Tools/Doxygen'
+      - '.clang-*'
+      - '.gitignore'
+      - '.gitlab-ci.yml'
+      - '.lint-ignore'
+      - '.pre-commit-config.yaml'
+      - 'LICENSE'
+      - 'README.md'
+      - 'run_clang_format'
+  pull_request:
+    paths-ignore: *gpu_build_paths_ignore
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
