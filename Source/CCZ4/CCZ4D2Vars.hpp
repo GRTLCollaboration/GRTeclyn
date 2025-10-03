@@ -22,11 +22,8 @@ class CCZ4D2Vars
         calculate_d2_derivs(ix, iy, iz, state, a_deriv);
     }
 
-    // default empty contructor
-    AMREX_GPU_DEVICE CCZ4D2Vars() { zero_d2_derivs(); }
-
-    // default empty contructor
-    AMREX_GPU_DEVICE void zero_d2_derivs()
+    // default empty contructor - for tests
+    AMREX_GPU_HOST_DEVICE CCZ4D2Vars() 
     {
         FOR (k, l)
         {

@@ -109,9 +109,9 @@ void run_ccz4_rhs_test()
             [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
             {
                 old_ccz4_rhs.compute(ix, iy, iz, old_out_array, in_c_array);
-                std::cout << "testing here 2" << std::endl;
+                //std::cout << "testing here bug start\n";
                 current_ccz4_rhs(ix, iy, iz, current_out_array, in_c_array);
-                std::cout << "testing here 3" << std::endl;
+                //std::cout << "testing here bug end\n";
 
                 for (int ivar = 0; ivar < NUM_CCZ4_VARS; ++ivar)
                 {

@@ -1,6 +1,5 @@
 GRTECLYN_CEXE_headers += ConstraintsWithMatter.hpp \
                          ConstraintsWithMatter.impl.hpp \
-                         ConstScalarFieldVars.hpp \
                          DefaultPotential.hpp \
                          EMTensor.hpp \
                          EMTensor.impl.hpp \

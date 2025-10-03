@@ -61,9 +61,9 @@ template <class potential_t = DefaultPotential> class ScalarField
     //! The function which adds in the RHS for the matter field vars,
     //! including the potential
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    add_matter_rhs(const amrex::CellData<amrex::Real> &rhs, 
-                   const Vars &vars, const D1Vars &d1,
-                   const D2Vars &d2, const AdvecVars &advec) const;
+    add_matter_rhs(const amrex::CellData<amrex::Real> &rhs, const Vars &vars,
+                   const D1Vars &d1, const D2Vars &d2,
+                   const AdvecVars &advec) const;
 };
 
 #include "ScalarField.impl.hpp"

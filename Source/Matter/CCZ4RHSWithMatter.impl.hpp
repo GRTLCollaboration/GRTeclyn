@@ -49,14 +49,16 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::operator()(
     m_matter.add_matter_rhs(rhs_cell_data, vars, d1, d2, advec);
 
     // Add dissipation to all terms
-    this->m_deriv.add_dissipation(ix, iy, iz, rhs_cell_data, state, this->m_sigma);
+    this->m_deriv.add_dissipation(ix, iy, iz, rhs_cell_data, state,
+                                  this->m_sigma);
 }
 
 // Function to add in EM Tensor matter terms to CCZ4 rhs
 template <class matter_t, class gauge_t, class deriv_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
-    const amrex::CellData<amrex::Real> &rhs, const typename matter_t::Vars &vars,
+    const amrex::CellData<amrex::Real> &rhs,
+    const typename matter_t::Vars &vars,
     const typename matter_t::D1Vars &d1) const
 {
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
@@ -69,14 +71,14 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
     if (this->m_formulation == CCZ4RHS<>::USE_BSSN)
     {
         rhs[c_K] += 4.0 * M_PI * m_G_Newton * vars.lapse() *
-                                          (emtensor.trS + emtensor.rho);
+                    (emtensor.trS + emtensor.rho);
         rhs[c_Theta] = 0.0;
     }
     else
     {
         rhs[c_K] += 4.0 * M_PI * m_G_Newton * vars.lapse() *
-                                          (emtensor.trS - 3 * emtensor.rho);
-        rhs[c_Theta] += - 8.0 * M_PI * m_G_Newton * vars.lapse() * emtensor.rho;
+                    (emtensor.trS - 3 * emtensor.rho);
+        rhs[c_Theta] += -8.0 * M_PI * m_G_Newton * vars.lapse() * emtensor.rho;
     }
 
     // Update RHS for other variables
@@ -85,8 +87,8 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
 
     FOR (i, j)
     {
-        rhs[var_idx(c_A11, i, j)] += - 8.0 * M_PI * m_G_Newton * vars.chi() *
-                                        vars.lapse() * S_TF[i][j];
+        rhs[var_idx(c_A11, i, j)] +=
+            -8.0 * M_PI * m_G_Newton * vars.chi() * vars.lapse() * S_TF[i][j];
     }
 
     FOR (i)
