@@ -33,8 +33,6 @@ csd3-a100-build:
       mv ${HOME}/${CI_PROJECT_DIR}/Examples/KleinGordon/main3d.gnu.DEBUG.MPI.CUDA.ex
       ${BINARY_DIR}/KleinGordon_main3d.gnu.DEBUG.MPI.CUDA.ex
     - mv ${HOME}/${CI_PROJECT_DIR}/Tests/Tests3d.gnu.DEBUG.MPI.CUDA.ex ${BINARY_DIR}
-  after_script:
-    - rm -rf ${HOME}/${QOS_INTR_LOCK_FILE}
 
 csd3-a100-test:
   stage: test
@@ -68,7 +66,6 @@ csd3-a100-test:
       ${BINARY_DIR}/particle_compare.exe ${ERR_TOL_FLAGS}
       ${OUTPUT_DIR}/BinaryBH_00008/ ${COMPARE_DIR}/BinaryBH/plt00008_compare/ particles
   after_script:
-    - rm -rf ${HOME}/${QOS_INTR_LOCK_FILE}
     # This deletes BINARY_DIR but because it was defined in
     # the before_script, there is no way to access that
     # environment variable in the after_script
