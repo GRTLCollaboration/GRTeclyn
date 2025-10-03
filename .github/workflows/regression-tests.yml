@@ -1,6 +1,6 @@
 name: Regression Tests
 
-on: [push]
+on: [push, pull_request]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -16,7 +16,12 @@ env:
     USE_CCACHE=TRUE
 
 jobs:
+  check-changes:
+    uses: ./.github/workflows/check-changes.yml
+
   build:
+    needs: check-changes
+    if: ${{ needs.check-changes.outputs.has_changes }} == 'true'
     name: Build fcompare
     runs-on: ubuntu-24.04
     steps:
