@@ -20,36 +20,36 @@ jobs:
     name: Build fcompare
     runs-on: ubuntu-24.04
     steps:
-    - name: Checkout GRTeclyn
-      uses: actions/checkout@v5
+      - name: Checkout GRTeclyn
+        uses: actions/checkout@v5
 
-    - name: Set up common actions
-      id: common
-      uses: ./.github/workflows/regression-tests-setup
-      with:
-        gcc_version: ${{ env.GCC_VERSION }}
+      - name: Set up common actions
+        id: common
+        uses: ./.github/workflows/regression-tests-setup
+        with:
+          gcc_version: ${{ env.GCC_VERSION }}
 
-    - name: Build fcompare tool
-      run: make -j 4 ${{ env.BUILD_ARGS }} programs=fcompare
-      working-directory: ${{ env.AMREX_HOME }}/Tools/Plotfile
+      - name: Build fcompare tool
+        run: make -j 4 ${{ env.BUILD_ARGS }} programs=fcompare
+        working-directory: ${{ env.AMREX_HOME }}/Tools/Plotfile
 
-    - name: Build particle_compare tool
-      run: make -j 4 ${{ env.BUILD_ARGS }}
-      working-directory: ${{ env.AMREX_HOME }}/Tools/Postprocessing/C_Src
+      - name: Build particle_compare tool
+        run: make -j 4 ${{ env.BUILD_ARGS }}
+        working-directory: ${{ env.AMREX_HOME }}/Tools/Postprocessing/C_Src
 
-    - name: Upload fcompare tool
-      uses: actions/upload-artifact@v5
-      with:
-        name: fcompare.gnu.MPI.ex
-        path: ${{ env.AMREX_HOME }}/Tools/Plotfile/fcompare.gnu.MPI.ex
-        compression-level: 0
+      - name: Upload fcompare tool
+        uses: actions/upload-artifact@v5
+        with:
+          name: fcompare.gnu.MPI.ex
+          path: ${{ env.AMREX_HOME }}/Tools/Plotfile/fcompare.gnu.MPI.ex
+          compression-level: 0
 
-    - name: Upload particle_compare tool
-      uses: actions/upload-artifact@v5
-      with:
-        name: particle_compare.exe
-        path: ${{ env.AMREX_HOME }}/Tools/Postprocessing/C_Src
-        compression-level: 0
+      - name: Upload particle_compare tool
+        uses: actions/upload-artifact@v5
+        with:
+          name: particle_compare.exe
+          path: ${{ env.AMREX_HOME }}/Tools/Postprocessing/C_Src
+          compression-level: 0
 
   # for whatever reason, GitHub actions will not accept global environment variables
   # below so the gcc version has to be put in by hand.
