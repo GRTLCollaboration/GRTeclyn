@@ -417,15 +417,14 @@ inline void RandomField::init(amrex::MultiFab &state)
                 Real draw2 = random_field_ptr[2*p+1];
 
                 hs_ptr(i, j, k, p) = calculate_random_field(iv, "position", draw1, draw2);
-		As_ptr(i, j, k, p) = calculate_random_field(iv, "velocity", draw1, draw2);
+		        As_ptr(i, j, k, p) = calculate_random_field(iv, "velocity", draw1, draw2);
             }
 
             // Find basis tensors and initial tensor realisation
             for (int l=0; l<3; l++) for (int p=0; p<3; p++)
             {
                 hij_ptr(i, j, k, lut[l][p]) = calculate_tensor_initial_conditions(iv, l, p, hs_ptr(i, j, k, 0), hs_ptr(i, j, k, 1));
-
-		Aij_ptr(i, j, k, lut[l][p]) = calculate_tensor_initial_conditions(iv, l, p, As_ptr(i, j, k, 0), As_ptr(i, j, k, 1));
+		        Aij_ptr(i, j, k, lut[l][p]) = calculate_tensor_initial_conditions(iv, l, p, As_ptr(i, j, k, 0), As_ptr(i, j, k, 1));
             }
         });
     }
