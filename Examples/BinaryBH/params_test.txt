@@ -32,8 +32,9 @@ momentumB = 0.0  0.1 0.0
 #################################################
 # Grid parameters
 
-N_full = 32
-L_full = 8
+geometry.prob_lo = -4.0 -4.0 0.0
+geometry.prob_hi =  4.0  4.0  4.0
+amr.n_cell = 32 32 16
 
 max_level = 0 # There are (max_level+1) levels
 

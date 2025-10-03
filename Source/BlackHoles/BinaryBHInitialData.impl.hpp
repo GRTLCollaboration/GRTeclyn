@@ -17,9 +17,9 @@
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_FORCE_INLINE BinaryBHInitialData::BinaryBHInitialData(
     BoostedBHInitialData::params_t a_bh1_params,
-    BoostedBHInitialData::params_t a_bh2_params, double a_dx,
+    BoostedBHInitialData::params_t a_bh2_params, const amrex::Geometry &a_geom,
     int a_initial_lapse)
-    : m_dx(a_dx), bh1(a_bh1_params), bh2(a_bh2_params),
+    : bh1(a_bh1_params), bh2(a_bh2_params), m_geom(a_geom),
       m_initial_lapse(a_initial_lapse)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
@@ -58,7 +58,7 @@ AMREX_GPU_DEVICE // or AMREX_GPU_HOST_DEVICE depending on what's needed
     BSSNVars::VarsWithGauge<amrex::Real> vars;
     VarsTools::assign(vars,
                       0.); // Set only the non-zero components explicitly below
-    Coordinates coords(amrex::IntVect(i, j, k), m_dx);
+    Coordinates coords(amrex::IntVect(i, j, k), m_geom);
 
     vars.chi = compute_chi(coords);
 

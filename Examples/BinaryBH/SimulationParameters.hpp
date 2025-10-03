@@ -299,12 +299,12 @@ class SimulationParameters : public SimulationParametersBase
             double center_A_dir = bh1_params.center[idir];
             double center_B_dir = bh2_params.center[idir];
             warn_parameter(nameA, center_A_dir,
-                           (center_A_dir >= 0.0) &&
-                               (center_A_dir <= (ivN[idir] + 1) * coarsest_dx),
+                           (center_A_dir >= reflective_domain_lo[idir]) &&
+                               (center_A_dir <= reflective_domain_hi[idir]),
                            "should be within the computational domain");
             warn_parameter(nameB, center_B_dir,
-                           (center_B_dir >= 0.0) &&
-                               (center_B_dir <= (ivN[idir] + 1) * coarsest_dx),
+                           (center_B_dir >= reflective_domain_lo[idir]) &&
+                               (center_B_dir <= reflective_domain_hi[idir]),
                            "should be within the computational domain");
         }
 #endif /* USE_TWOPUNCTURES */

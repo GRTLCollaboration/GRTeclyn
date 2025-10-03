@@ -13,6 +13,8 @@
 #include "Tensor.hpp"
 #include <array>
 
+#include <AMReX_Geometry.H>
+
 enum Lapse
 {
     ONE,
@@ -23,7 +25,7 @@ enum Lapse
 class BinaryBHInitialData
 {
   protected:
-    double m_dx;
+    amrex::Geometry m_geom;
     BoostedBHInitialData bh1;
     BoostedBHInitialData bh2;
     int m_initial_lapse;
@@ -33,7 +35,7 @@ class BinaryBHInitialData
     AMREX_FORCE_INLINE
     BinaryBHInitialData(BoostedBHInitialData::params_t a_bh1_params,
                         BoostedBHInitialData::params_t a_bh2_params,
-                        double a_dx,
+                        const amrex::Geometry &a_geom,
                         int a_initial_lapse = Lapse::PRE_COLLAPSED);
     // NOLINTEND(bugprone-easily-swappable-parameters)
 

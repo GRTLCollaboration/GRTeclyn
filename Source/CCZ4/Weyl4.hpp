@@ -72,10 +72,11 @@ class Weyl4
         Takes in the centre for the calculation of the tetrads, grid spacing and
         the formulation.
     */
-    Weyl4(const std::array<double, AMREX_SPACEDIM> &a_center, double a_dx,
-          int a_dcomp, int a_formulation = CCZ4RHS<>::USE_CCZ4)
-        : m_center(a_center), m_dx(a_dx), m_deriv(a_dx), m_dcomp(a_dcomp),
-          m_formulation(a_formulation)
+    Weyl4(const std::array<double, AMREX_SPACEDIM> &a_center,
+          const amrex::Geometry &a_geom, int a_dcomp,
+          int a_formulation = CCZ4RHS<>::USE_CCZ4)
+        : m_center(a_center), m_geom(a_geom), m_deriv(a_geom.CellSize(0)),
+          m_dcomp(a_dcomp), m_formulation(a_formulation)
     {
     }
     // NOLINTEND(bugprone-easily-swappable-parameters)
@@ -96,7 +97,7 @@ class Weyl4
 
   protected:
     std::array<double, AMREX_SPACEDIM> m_center; //!< The grid center
-    double m_dx;                                 //!< the grid spacing
+    amrex::Geometry m_geom;                      //!< the grid spacing
     FourthOrderDerivatives m_deriv; //!< for calculating derivs of vars
     int m_dcomp;       //!< Which commponent to store Weyl4_Re (Weyl4_Im will be
                        //!< m_dcomp+1)

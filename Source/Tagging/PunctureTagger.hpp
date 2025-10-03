@@ -19,7 +19,7 @@
 template <unsigned int num_punctures> class PunctureTagger
 {
   protected:
-    amrex::Real m_dx;
+    amrex::Geometry m_geom;
     int m_level;
     int m_max_level;
     static constexpr unsigned int num_puncture_coords =
@@ -32,11 +32,11 @@ template <unsigned int num_punctures> class PunctureTagger
     // The constructor
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     PunctureTagger(
-        const amrex::Real a_dx, const int a_level, const int a_max_level,
+        const amrex::Geometry &a_geom, const int a_level, const int a_max_level,
         const std::array<amrex::Real, num_puncture_coords> &a_puncture_coords,
         const std::array<amrex::Real, num_punctures> &a_puncture_masses)
         // NOLINTEND(bugprone-easily-swappable-parameters)
-        : m_dx(a_dx), m_level(a_level), m_max_level(a_max_level),
+        : m_geom(a_geom), m_level(a_level), m_max_level(a_max_level),
           m_puncture_masses(a_puncture_masses),
           m_puncture_coords(a_puncture_coords) {};
 
@@ -67,7 +67,7 @@ template <unsigned int num_punctures> class PunctureTagger
                     m_puncture_coords[ipuncture * AMREX_SPACEDIM + 1],
                     m_puncture_coords[ipuncture * AMREX_SPACEDIM + 2])};
 
-            const Coordinates coords(current_cell, m_dx,
+            const Coordinates coords(current_cell, m_geom,
                                      current_puncture_coords);
             const amrex::Real r = coords.get_radius();
             // decide whether to tag based on distance to horizon

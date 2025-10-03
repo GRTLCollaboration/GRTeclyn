@@ -18,7 +18,7 @@
 class ChiExtractionTagger
 {
   protected:
-    double m_dx;
+    amrex::Geometry m_geom;
     FourthOrderDerivatives m_deriv;
     amrex::Real m_threshold;
     // const SphericalExtraction::params_t m_params;  not GPU friendly
@@ -32,11 +32,11 @@ class ChiExtractionTagger
 
     // The constructor
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-    ChiExtractionTagger(const double dx, const int a_level,
+    ChiExtractionTagger(const amrex::Geometry &a_geom, const int a_level,
                         const amrex::Real a_threshold,
                         const SphericalExtraction::params_t &a_params,
                         const bool activate_extraction = false)
-        : m_dx(dx), m_deriv(dx), m_threshold(a_threshold),
+        : m_geom(a_geom), m_deriv(a_geom.CellSize(0)), m_threshold(a_threshold),
           m_num_extraction_radii(a_params.num_extraction_radii()),
           m_extraction_radii_ptr(a_params.extraction_radii().data()),
           m_extraction_levels_ptr(a_params.extraction_levels.data()),
@@ -62,7 +62,7 @@ class ChiExtractionTagger
         {
             mod_d2_chi += d2_chi[idir][jdir] * d2_chi[idir][jdir];
         }
-        amrex::Real criterion = m_dx * std::sqrt(mod_d2_chi);
+        amrex::Real criterion = m_geom.CellSize(0) * std::sqrt(mod_d2_chi);
         if (criterion >= m_threshold)
         {
             tags(i, j, k) = amrex::TagBox::SET;
@@ -77,7 +77,7 @@ class ChiExtractionTagger
             // refinement
             if (m_level < m_extraction_levels_ptr[iradius])
             {
-                const Coordinates coords(cell, m_dx, m_center);
+                const Coordinates coords(cell, m_geom, m_center);
                 const amrex::Real r = coords.get_radius();
                 // add a 20% buffer to extraction zone so not too near to
                 // boundary

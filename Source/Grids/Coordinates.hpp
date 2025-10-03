@@ -9,6 +9,7 @@
 // Other includes
 #include "DimensionDefinitions.hpp"
 
+#include <AMReX_Geometry.H>
 #include <AMReX_IntVect.H>
 
 #include <array>
@@ -23,19 +24,19 @@ class Coordinates
     std::array<double, AMREX_SPACEDIM> m_center;
 
     AMREX_GPU_HOST_DEVICE
-    Coordinates(amrex::IntVect integer_coords, double dx,
+    Coordinates(amrex::IntVect integer_coords, const amrex::Geometry &a_geom,
                 std::array<amrex::Real, AMREX_SPACEDIM> center = {0})
         : m_center(center)
     {
-        compute_coord(x, integer_coords[0], dx, center[0]);
+        compute_coord(x, integer_coords[0], 0, a_geom, center[0]);
 
 // The below code allows for 2D Cartoon reduction:
 #if DEFAULT_TENSOR_DIM == AMREX_SPACEDIM && AMREX_SPACEDIM == 3
-        compute_coord(y, integer_coords[1], dx, center[1]);
-        compute_coord(z, integer_coords[2], dx, center[2]);
+        compute_coord(y, integer_coords[1], 1, a_geom, center[1]);
+        compute_coord(z, integer_coords[2], 2, a_geom, center[2]);
 #elif DEFAULT_TENSOR_DIM == AMREX_SPACEDIM + 1 && AMREX_SPACEDIM == 2
         y = 0;
-        compute_coord(z, integer_coords[1], dx, center[1]);
+        compute_coord(z, integer_coords[1], 1, a_geom, center[1]);
 #else
 #ifdef AMREX_SPACEDIM
 #error compute_coord has not got your dimension combination implemented.
@@ -44,10 +45,11 @@ class Coordinates
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static void
-    compute_coord(amrex::Real &out, int position, double dx,
-                  double center_distance = 0)
+    compute_coord(amrex::Real &out, int position, int a_dir,
+                  const amrex::Geometry &a_geom, double center_distance = 0)
     {
-        out = (position + 0.5) * dx - center_distance;
+        out = a_geom.ProbLo(a_dir) + (position + 0.5) * a_geom.CellSize(a_dir) -
+              center_distance;
     }
 
     /// This function returns the radius subject to a floor for a given
@@ -63,7 +65,7 @@ class Coordinates
     /// This static function returns the radius subject to a floor
     /// for when no coordinates object exists.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static amrex::Real
-    get_radius(amrex::IntVect integer_coords, double dx,
+    get_radius(amrex::IntVect integer_coords, const amrex::Geometry &a_geom,
                std::array<double, AMREX_SPACEDIM> center = {0})
     {
         amrex::Real x = NAN;
@@ -71,9 +73,9 @@ class Coordinates
         amrex::Real z = NAN;
 
         // Note that this is not currently dimension independent
-        compute_coord(x, integer_coords[0], dx, center[0]);
-        compute_coord(y, integer_coords[1], dx, center[1]);
-        compute_coord(z, integer_coords[2], dx, center[2]);
+        compute_coord(x, integer_coords[0], 0, a_geom, center[0]);
+        compute_coord(y, integer_coords[1], 1, a_geom, center[1]);
+        compute_coord(z, integer_coords[2], 2, a_geom, center[2]);
 
         amrex::Real r = std::sqrt(x * x + y * y + z * z);
         return std::max(r, 1e-6);

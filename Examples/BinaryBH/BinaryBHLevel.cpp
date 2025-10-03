@@ -76,7 +76,7 @@ void BinaryBHLevel::initData()
 #else
     // Set up the compute class for the BinaryBH initial data
     BinaryBHInitialData binary(simParams().bh1_params, simParams().bh2_params,
-                               Geom().CellSize(0));
+                               Geom());
 
     static_assert(std::is_trivially_copyable_v<BinaryBHInitialData>,
                   "BinaryBHInitialData needs to be device copyable");
@@ -203,8 +203,8 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
     const auto &state_new_arrs = state_new.const_arrays();
 
     ChiExtractionTagger chi_extraction_tagger(
-        Geom().CellSize(0), Level(), a_regrid_threshold,
-        simParams().extraction_params, simParams().activate_extraction);
+        Geom(), Level(), a_regrid_threshold, simParams().extraction_params,
+        simParams().activate_extraction);
 
     const bool puncture_tracking_enabled =
         simParams().puncture_tracking_enabled;
@@ -220,8 +220,7 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
     // Even though we create this object, it won't be used if puncture tracking
     // is not enabled.
     PunctureTagger<num_punctures> puncture_tagger(
-        Geom().CellSize(0), Level(), get_gramr_ptr()->maxLevel(),
-        puncture_coords,
+        Geom(), Level(), get_gramr_ptr()->maxLevel(), puncture_coords,
         {simParams().bh1_params.mass, simParams().bh2_params.mass});
 
     amrex::ParallelFor(state_new, amrex::IntVect(0),

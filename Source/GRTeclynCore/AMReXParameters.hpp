@@ -165,7 +165,7 @@ class AMReXParameters
             pout_path += "/";
         }
 #endif
-#if 0 
+#if 0
         if (!hdf5_path.empty() && hdf5_path.back() != '/')
             hdf5_path += "/";
 #endif
@@ -192,195 +192,50 @@ class AMReXParameters
     // NOLINTBEGIN(readability-function-cognitive-complexity)
     void read_grid_params(GRParmParse &pp)
     {
-        // Grid N
-        std::array<int, AMREX_SPACEDIM> Ni_full{};
-        std::array<int, AMREX_SPACEDIM> Ni{};
-        ivN = amrex::IntVect::TheUnitVector();
 
-        // cannot contain both
-        if ((pp.contains("N_full") && pp.contains("N")))
+        std::array<amrex::Real, AMREX_SPACEDIM> prob_lo{};
+        std::array<amrex::Real, AMREX_SPACEDIM> prob_hi{};
+
+        pp.load("geometry.prob_lo", prob_lo);
+        pp.load("geometry.prob_hi", prob_hi);
+
+        std::array<int, AMREX_SPACEDIM> n_cell{};
+        pp.load("amr.n_cell", n_cell);
+
+        FOR (idir)
         {
-            amrex::Abort("Please only provide 'N' or 'N_full', not both");
+            coarsest_dx[idir] = (prob_hi[idir] - prob_lo[idir]) /
+                                static_cast<amrex::Real>(n_cell[idir]);
         }
-
-        int N_full = -1;
-        int N      = -1;
-        if (pp.contains("N_full"))
-        {
-            pp.load("N_full", N_full);
-        }
-        else if (pp.contains("N"))
-        {
-            pp.load("N", N);
-        }
-
-        // read all options (N, N_full, Ni_full and Ni) and then choose
-        // accordingly
-        FOR (dir)
-        {
-            std::string name      = ("N" + std::to_string(dir + 1));
-            std::string name_full = ("N" + std::to_string(dir + 1) + "_full");
-            Ni_full[dir]          = -1;
-            Ni[dir]               = -1;
-
-            // only one of them exists - this passes if none of the 4 exist, but
-            // that is asserted below
-            // NOLINTBEGIN(readability-simplify-boolean-expr)
-            if (!((N_full > 0 || N > 0) && !pp.contains(name.c_str()) &&
-                  !pp.contains(name_full.c_str())) &&
-                !((N_full < 0 && N < 0) && !(pp.contains(name.c_str()) &&
-                                             pp.contains(name_full.c_str()))))
-            // NOLINTEND(readability-simplify-boolean-expr)
-            {
-                error("Please provide 'N' or 'N_full' or a set of "
-                      "'N1/N1_full', 'N2/N2_full', 'N3/N3_full'");
-            }
-
-            if (N_full < 0 && N < 0)
-            {
-                if (pp.contains(name_full.c_str()))
-                {
-                    pp.load(name_full.c_str(), Ni_full[dir]);
-                }
-                else
-                {
-                    pp.load(name.c_str(), Ni[dir]);
-                }
-            }
-            if (N < 0 && N_full < 0 && Ni[dir] < 0 && Ni_full[dir] < 0)
-            { // sanity check
-                error("Please provide 'N' or 'N_full' or a set of "
-                      "'N1/N1_full', 'N2/N2_full', 'N3/N3_full'");
-            }
-
-            if (N_full > 0)
-            {
-                Ni_full[dir] = N_full;
-            }
-            else if (N > 0)
-            {
-                Ni[dir] = N;
-            }
-
-            if (Ni[dir] > 0)
-            {
-                if (boundary_params.lo_boundary[dir] ==
-                        BoundaryConditions::REFLECTIVE_BC ||
-                    boundary_params.hi_boundary[dir] ==
-                        BoundaryConditions::REFLECTIVE_BC)
-                {
-
-                    Ni_full[dir] = Ni[dir] * 2;
-                }
-                else
-                {
-                    Ni_full[dir] = Ni[dir];
-                }
-            }
-            else
-            {
-                if (boundary_params.lo_boundary[dir] ==
-                        BoundaryConditions::REFLECTIVE_BC ||
-                    boundary_params.hi_boundary[dir] ==
-                        BoundaryConditions::REFLECTIVE_BC)
-                {
-                    check_parameter("N" + std::to_string(dir) + "_full",
-                                    Ni_full[dir], Ni_full[dir] % 2 == 0,
-                                    "must be a multiple of 2");
-
-                    Ni[dir] = Ni_full[dir] / 2;
-                }
-                else
-                {
-                    Ni[dir] = Ni_full[dir];
-                }
-            }
-            ivN[dir] = Ni[dir] - 1;
-        }
-        int max_N_full = *std::max_element(Ni_full.begin(), Ni_full.end());
-        int max_N      = ivN.max() + 1;
-
-        // Grid L
-        // cannot contain both
-        if ((pp.contains("L_full") && pp.contains("L")))
-        {
-            error("Please only provide 'L' or 'L_full', not both");
-        }
-
-        double L_full = -1.;
-        if (pp.contains("L_full"))
-        {
-            pp.load("L_full", L_full);
-        }
-        else
-        {
-            pp.load("L", L, 1.0);
-        }
-
-        if (L_full > 0.)
-        {
-            // necessary for some reflective BC cases, as 'L' is the
-            // length of the longest side of the box
-            L = (L_full * max_N) / max_N_full;
-        }
-
-        coarsest_dx = L / max_N;
-        coarsest_dt = coarsest_dx * dt_multiplier;
-
-        // grid spacing params
-        dx.fill(coarsest_dx);
-        origin.fill(coarsest_dx / 2.0);
-
         // These aren't parameters but used in parameter checks
         FOR (idir)
         {
-            reflective_domain_lo[idir] = ((boundary_params.lo_boundary[idir] ==
-                                           BoundaryConditions::REFLECTIVE_BC)
-                                              ? -1.0
-                                              : 0.0) *
-                                         (ivN[idir] + 1) * coarsest_dx;
-            reflective_domain_hi[idir] = ((boundary_params.hi_boundary[idir] ==
-                                           BoundaryConditions::REFLECTIVE_BC)
-                                              ? 2.0
-                                              : 1.0) *
-                                         (ivN[idir] + 1) * coarsest_dx;
+            reflective_domain_lo[idir] = (boundary_params.lo_boundary[idir] ==
+                                          BoundaryConditions::REFLECTIVE_BC)
+                                             ? -prob_hi[idir]
+                                             : prob_lo[idir];
+            reflective_domain_hi[idir] = (boundary_params.hi_boundary[idir] ==
+                                          BoundaryConditions::REFLECTIVE_BC)
+                                             ? -prob_lo[idir]
+                                             : prob_hi[idir];
         }
+        amrex::Print() << "reflective_domain_lo: " << reflective_domain_lo[0]
+                       << ' ' << reflective_domain_lo[1] << ' '
+                       << reflective_domain_lo[2] << '\n';
+        amrex::Print() << "reflective_domain_hi: " << reflective_domain_hi[0]
+                       << ' ' << reflective_domain_hi[1] << ' '
+                       << reflective_domain_hi[2] << '\n';
 
-        // First work out the default center ignoring reflective BCs
-        // but taking into account different grid lengths in each direction
-        std::array<double, AMREX_SPACEDIM> default_center{};
-#if AMREX_SPACEDIM == 3
-        default_center = {0.5 * Ni[0] * coarsest_dx, 0.5 * Ni[1] * coarsest_dx,
-                          0.5 * Ni[2] * coarsest_dx};
-#elif AMREX_SPACEDIM == 2
-        default_center = {0.5 * Ni[0] * coarsest_dx, 0.5 * Ni[1] * coarsest_dx};
-#endif
-        // Now take into account reflective BCs
-        FOR (idir)
-        {
-            if ((boundary_params.lo_boundary[idir] ==
-                 BoundaryConditions::REFLECTIVE_BC) &&
-                (boundary_params.hi_boundary[idir] !=
-                 BoundaryConditions::REFLECTIVE_BC))
-            {
-                default_center[idir] = 0.;
-            }
-            else if ((boundary_params.hi_boundary[idir] ==
-                      BoundaryConditions::REFLECTIVE_BC) &&
-                     (boundary_params.lo_boundary[idir] !=
-                      BoundaryConditions::REFLECTIVE_BC))
-            {
-                default_center[idir] = coarsest_dx * Ni[idir];
-            }
-        }
-
+        // default center to origin
+        std::array<double, AMREX_SPACEDIM> default_center{
+            AMREX_D_DECL(0.0, 0.0, 0.0)};
         pp.load("center", center, default_center); // default to center
     }
     // NOLINTEND(readability-function-cognitive-complexity)
 
     void check_params()
     {
-        check_parameter("L", L, L > 0.0, "must be > 0.0");
+        // check_parameter("L", L, L > 0.0, "must be > 0.0");
         check_parameter("max_level", max_level, max_level >= 0, "must be >= 0");
         check_parameter("max_spatial_derivative_order",
                         max_spatial_derivative_order,
@@ -432,16 +287,10 @@ class AMReXParameters
                             std::to_string(max_grid_size));
         FOR (idir)
         {
-            std::string Ni_string       = "N" + std::to_string(idir + 1);
-            std::string invalid_message = "must divide " + Ni_string;
-            if (boundary_params.reflective_boundaries_exist)
-            {
-                invalid_message += " (or " + Ni_string + "_full/2)";
-            }
-            invalid_message += " = " + std::to_string(ivN[idir] + 1);
-            check_parameter("block_factor/min_box_size", block_factor,
-                            (ivN[idir] + 1) % block_factor == 0,
-                            invalid_message);
+            check_parameter(
+                "coarsest_dx[" + std::to_string(idir) + "]", coarsest_dx[idir],
+                amrex::almostEqual(coarsest_dx[idir], coarsest_dx[0]),
+                "must be the same in all directions");
         }
         check_parameter("fill_ratio", fill_ratio,
                         (fill_ratio > 0.0) && (fill_ratio <= 1.0),
@@ -460,15 +309,6 @@ class AMReXParameters
         {
             amrex::ParmParse pp("geometry");
 
-            amrex::Vector<double> prob_extent(AMREX_SPACEDIM);
-            int nmax = ivN.max() + 1;
-            for (int i = 0; i < AMREX_SPACEDIM; ++i)
-            {
-                prob_extent[i] = L * (static_cast<double>(ivN[i] + 1) /
-                                      static_cast<double>(nmax));
-            }
-            pp.addarr("prob_extent", prob_extent);
-
             amrex::Vector<int> is_periodic(AMREX_SPACEDIM);
             for (int i = 0; i < AMREX_SPACEDIM; ++i)
             {
@@ -485,8 +325,8 @@ class AMReXParameters
             pp.add("ref_ratio", 2);
             pp.add("max_grid_size", max_grid_size);
             pp.add("blocking_factor", block_factor);
-            pp.addarr("n_cell",
-                      std::vector<int>{ivN[0] + 1, ivN[1] + 1, ivN[2] + 1});
+            // pp.addarr("n_cell",
+            //           std::vector<int>{ivN[0] + 1, ivN[1] + 1, ivN[2] + 1});
             pp.addarr("regrid_int", regrid_interval);
             pp.add("check_int", checkpoint_interval);
             pp.add("plot_int", plot_interval);
@@ -495,12 +335,9 @@ class AMReXParameters
 
     // General parameters
     int verbosity{};
-    double L{}; // Physical sidelength of the grid
     std::array<double, AMREX_SPACEDIM> center{}; // grid center
-    amrex::IntVect ivN; // The number of grid cells in each dimension
-    double coarsest_dx{},
-        coarsest_dt{}; // The coarsest resolution in space and time
-    int max_level{};   // the max number of regriddings to do
+    amrex::RealVect coarsest_dx{};               // coarsest grid spacing
+    int max_level{};                    // the max number of regriddings to do
     int max_spatial_derivative_order{}; // The maximum order of the spatial
                                         // derivatives - does nothing
                                         // in Chombo but can be used in examples

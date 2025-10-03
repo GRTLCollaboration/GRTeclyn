@@ -22,7 +22,7 @@ Weyl4::compute(int i, int j, int k,
     const auto d2 = m_deriv.template diff2<Diff2Vars>(i, j, k, a_state_array);
 
     // Get the coordinates
-    const Coordinates coords(amrex::IntVect(i, j, k), m_dx, m_center);
+    const Coordinates coords(amrex::IntVect(i, j, k), m_geom, m_center);
 
     // Compute the inverse metric and Christoffel symbols
     using namespace TensorAlgebra;
@@ -349,10 +349,17 @@ void Weyl4::compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
     GRParmParse pp;
     std::array<double, AMREX_SPACEDIM> center{};
     int formulation = 0;
-    pp.get("extraction_center", center);
+    if (pp.contains("extraction_center"))
+    {
+        pp.get("extraction_center", center);
+    }
+    else
+    {
+        pp.get("center", center);
+    }
     pp.get("formulation", formulation);
 
-    Weyl4 weyl4(center, geomdata.CellSize(0), dcomp, formulation);
+    Weyl4 weyl4(center, geomdata, dcomp, formulation);
     amrex::ParallelFor(
         out_mf, out_mf.nGrowVect(),
         [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
