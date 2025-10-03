@@ -4,10 +4,9 @@
 verbosity = 0
 
 # location / naming of output files
-output_path = /nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-data/monodromy-model/horizon-crossing-model/L-2000-incrimenting-c/0/ # Main path for all files. Must exist!
-amr.check_file = /nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-data/monodromy-model/horizon-crossing-model/L-2000-incrimenting-c/0/hdf5/chk_
-amr.plot_file = /nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-data/monodromy-model/horizon-crossing-model/L-2000-incrimenting-c/0/hdf5/plt_
-# amr.restart = /nfs/st01/hpc-gr-epss/eaf49/dump/hdf5/chk_02700
+output_path = /cephfs/store/gr-eps1/eaf49/dump/ # Main path for all files. Must exist!
+amr.check_file = /cephfs/store/gr-eps1/eaf49/dump/hdf5/chk_
+amr.plot_file = /cephfs/store/gr-eps1/eaf49/dump/hdf5/plt_
 
 amr.derive_plot_vars = ALL
 

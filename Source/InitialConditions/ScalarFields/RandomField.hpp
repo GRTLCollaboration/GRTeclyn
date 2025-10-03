@@ -35,19 +35,21 @@ class RandomField
         //! A structure for storing parameters essential to this class
         struct params_t 
         {
-            int num_scalar_fields;      //!< Number of fields to generate
-            int calc_tensor_field;      //!< Determines whether tensor perturbations are calculated
+            // Basic initialisation flags
+            int tensor_init = 0;        //!< Determines whether tensor perturbations are calculated
+            int scalar_init = 0;  //!< Read in perturbations from STOIIC dparams
             int use_rand = 1;           //!< Choose whether to use random initial conditions
-            int random_seed = 3539263;  //!< Seed for random number generator
 
+            // Grid parameters
             double L;                   //!< Length of the box
             double A;                   //!< Amplitude factor (for basic tests)
             double Mp = 1.;             //!< Energy scale of the problem
-
             int N_readin;               //!< used to read in the private N variable
             int N_fine;                 //!< Fine resolution to downsample from, 
                                         //!< used for convergence testing
 
+            // Initial condition options
+            int random_seed = 3539263;  //!< Seed for random number generator
             int use_window = 0;         //!< Choose whether to use window function
             double kstar;               //!< window's cut-off mode, measured in units of 2pi/L
             double Delta;               //!< window's width, measured like L/Delta
@@ -60,6 +62,11 @@ class RandomField
             int calc_higher_order_statistics = 0; //!< Choose whether to print higher-order statistics on the fields
             int num_orders;                       //!< Number of moments to extract
             Vector<int> orders;                   //!< Moment orders to print for extracted fields
+
+            // STOIIC read-in structures
+            Vector<Real> init_k;                  //!< ks printed by STOIIC, at which Fourier-space fields are provided
+            Vector<Vector<Real>> scalar_ps;       //!< Structure: four fields * two components, power spec values
+            Vector<Vector<Real>> tensor_ps;       //!< Structure: two fields * two components, power spec values
         };
 
         RandomField(params_t a_params, InitialBackgroundData::params_t a_background_params)
@@ -69,6 +76,10 @@ class RandomField
             N = m_params.N_readin;
             norm = m_params.A * pow(2. * M_PI/m_params.L, 3.); // Physical FFT normalisation
             tolerance = 1.e-15; // Numerical tolerance, for tests
+
+            H0 = sqrt((4.0 * M_PI/3.0/pow(m_params.Mp, 2.))
+                * (pow(m_background_params.m * m_background_params.phi0, 2.0) 
+                    + pow(m_background_params.Pi0, 2.)));
 
             // Look-up table 
             // Used to construct polarisation basis tensors
@@ -94,6 +105,7 @@ class RandomField
         
     private:
         int N;
+        Real H0;
         int lut[3][3];
         double norm;
         double tolerance;
@@ -104,6 +116,8 @@ class RandomField
         int invert_index(const int indx);
         int invert_index_with_sign(const int indx);
         bool is_ghost_index(const IntVect vector);
+        Real get_kmag(IntVect iv);
+
         std::string make_subdirectory(const std::string base, const std::string dir, const int is_first_step);
         void assign_statistics_data(Vector<std::string> &header_storage, const std::string name, 
                                     Vector<Real> &data_storage, const Vector<Real> data, const int component, const int num_comps,
@@ -114,10 +128,11 @@ class RandomField
         void Test_is_trace_free(MultiFab &field);
 
         // Initialisation routines 
-        GpuComplex<Real> calculate_mode_function(const double km, const std::string spec_type);
-        GpuComplex<Real> apply_window(GpuComplex<Real> point, double kmag);
-        GpuComplex<Real> calculate_random_field(const IntVect iv, const std::string spectrum_type, 
-                                                const Real rand_amp, const Real rand_phase);
+        GpuComplex<Real> calculate_mode_function(const double km, const int spec_indx);
+        GpuComplex<Real> find_in_stoiic(const double km, const int field_indx, std::string field_type);
+        GpuComplex<Real> calculate_random_field(const IntVect iv, const int field_index, 
+                                                const Real rand_amp, const Real rand_phase, 
+                                                std::string field_type);
         Vector<Real> calculate_basis_vector(const IntVect iv, const int which_vector);
         GpuComplex<Real> calculate_tensor_initial_conditions(const IntVect iv, const int l, const int p, 
                                                              const GpuComplex<Real> plus_field, 
@@ -128,7 +143,7 @@ class RandomField
         void print_power_spectrum(cMultiFab &field_array, SmallDataIO &power_spec_file, const int component);
         Real find_field_moment_x(MultiFab &field, const Vector<Real> mean, 
                                  const int moment, const int component);
-        void make_random_draws(auto &rand_fab, Box &domain);
+        void make_random_draws(MultiFab &rand_fab, Box &domain);
 
     protected:
         const params_t m_params;

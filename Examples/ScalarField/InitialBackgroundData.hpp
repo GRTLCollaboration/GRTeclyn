@@ -28,7 +28,7 @@ class InitialBackgroundData
 			double phi0; //!< Amplitude of k=0 mode of initial SF
 			double Pi0;  //!< Amplitude of initial SF velocity
 			double m;    //!< SF mass
-			double Mp = 1.;    //!< Energy scale [Mp]
+			double G_Newton = 1.;    //!< Energy scale [Mp]
 		};
 
 		InitialBackgroundData(params_t a_params, const Potential a_potential)

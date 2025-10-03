@@ -423,7 +423,7 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
 	const auto cur_time        = get_state_data(State_Type).curTime();
 
 	auto first_step = (cur_time == 0);
-	const int vol = std::pow(simParams().random_field_params.N_readin, 3.); // (!!) unitful volume
+	const int vol = std::pow(simParams().random_field_params.N_readin, 3.); // (!!) unitless volume
     const int nghost = simParams().num_ghosts;
 
 	const double phi_avg = state_new.sum(c_phi)/vol;
@@ -451,10 +451,14 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
     if(phi_alias.empty()) { amrex::Error("ScalarFieldLevel::specificPostTimeStep Copy failed"); }
     else if(chi_alias.empty()) { amrex::Error("ScalarFieldLevel::specificPostTimeStep Copy failed"); }
 
+    phi_alias.plus(-phi_avg, c_phi, 1, nghost);
+    chi_alias.plus(-chi_avg, c_chi, 1, nghost);
+    
     Multiply(phi_alias, phi_alias, c_phi, c_phi, 1, nghost);
     Multiply(chi_alias, chi_alias, c_chi, c_chi, 1, nghost);
-    const double phi_var = phi_alias.sum(c_phi)/vol - std::pow(phi_avg, 2.);
-    const double chi_var = chi_alias.sum(c_chi)/vol - std::pow(chi_avg, 2.);
+    
+    const double phi_var = phi_alias.sum(c_phi)/vol;// - std::pow(phi_avg, 2.);
+    const double chi_var = chi_alias.sum(c_chi)/vol;// - std::pow(chi_avg, 2.);
 
 	SmallDataIO means_file(simParams().data_path+"means-file", dt, cur_time, restart_time, SmallDataIO::APPEND, first_step, ".dat");
 	means_file.remove_duplicate_time_data(); // removes any duplicate data from previous run (for checkpointing)
@@ -463,7 +467,7 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
     {
         means_file.write_header_line({"PhiMean","PhiVar","PiMean","ScaleFactMean","ChiVar","HubbleMean","LapseMean"});
     }
-    means_file.write_time_data_line({phi_avg, phi_var, Pi_avg, scale_fact_avg, chi_var, Hubble_fact_avg, lapse_avg});
+    means_file.write_time_data_line({phi_avg, sqrt(phi_var), Pi_avg, scale_fact_avg, sqrt(chi_var), Hubble_fact_avg, lapse_avg});
 
     // Extract the spectra and field statistics
     RandomField random_field_extractor(simParams().random_field_params, simParams().background_params);
@@ -483,15 +487,14 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
     if(first_step) { std::cout << "Num derive vars: " << num << "\n"; }
 
     MultiFab constr_alias(ba, dm, num, ngrow, MFInfo(), Factory());
-    MultiFab pol_fields_alias(ba, dm, 2, ngrow, MFInfo(), Factory());
-
     constr_alias.setVal(0.0);
-    pol_fields_alias.setVal(0.0);
-
     derive("constraints", cur_time, constr_alias, 0);
+    
+    /*MultiFab pol_fields_alias(ba, dm, 2, ngrow, MFInfo(), Factory());
+    pol_fields_alias.setVal(0.0);
     derive("TensorPolarisations", cur_time, pol_fields_alias, 0);
 
     // Print statistics on the abs constraint terms
     Vector<int> moments{1,2};
-    random_field_extractor.print_tensor_moment(constr_alias, Constraints::var_names, moments, constrs_file, first_step);
+    random_field_extractor.print_tensor_moment(constr_alias, Constraints::var_names, moments, constrs_file, first_step);*/ 
 }
