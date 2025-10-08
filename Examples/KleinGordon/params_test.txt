@@ -6,10 +6,10 @@ stop_time = 2
 
 # Periodic directions - 0 = false, 1 = true
 isPeriodic          =  1   1   1
-center              =  0.5 0.5 0.5
+center              =  16 16 16
 
-L_full              =  1     # geometric extent (same for all directions)
-N_full              =  64    # size of coarse grid
+L_full              =  32     # geometric extent (same for all directions)
+N_full              =  64     # size of coarse grid
 
 
 #################################################
