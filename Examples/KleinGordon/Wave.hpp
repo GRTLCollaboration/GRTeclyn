@@ -56,9 +56,8 @@ class Wave
     };
 
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-    template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    compute_potential(data_t &V_of_phi, data_t &dVdphi,
+    compute_potential(amrex::Real &V_of_phi, amrex::Real &dVdphi,
                       const amrex::Real &phi) const
     // NOLINTEND(bugprone-easily-swappable-parameters)
     {

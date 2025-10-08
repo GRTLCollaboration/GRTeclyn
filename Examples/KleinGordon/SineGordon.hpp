@@ -108,10 +108,8 @@ class SineGordon
     };
 
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-    template <class data_t>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    compute_potential(data_t &V_of_phi, data_t &dVdphi,
-                      const amrex::Real &phi) const
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void static compute_potential(
+        amrex::Real &V_of_phi, amrex::Real &dVdphi, const amrex::Real &phi)
     // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         V_of_phi = std::sin(phi);

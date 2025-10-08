@@ -13,11 +13,10 @@
 #include "KleinGordonRHS.hpp"
 
 template <class model_t, class deriv_t>
-template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 KleinGordonRHS<model_t, deriv_t>::compute(
-    int i, int j, int k, const amrex::Array4<data_t const> &input,
-    const amrex::Array4<data_t> &output) const
+    int i, int j, int k, const amrex::Array4<amrex::Real const> &input,
+    const amrex::Array4<amrex::Real> &output) const
 
 {
     const auto *input_ptr_ijk = input.ptr(i, j, k);
@@ -55,20 +54,19 @@ KleinGordonRHS<model_t, deriv_t>::compute(
 }
 
 template <class model_t, class deriv_t>
-template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 KleinGordonRHS<model_t, deriv_t>::rhs_equation(
-    const amrex::CellData<data_t const> &input_cell_data,
-    const amrex::CellData<data_t> &output_cell_data,
-    const amrex::Array1D<data_t, 0, AMREX_SPACEDIM> &d2phi) const
+    const amrex::CellData<amrex::Real const> &input_cell_data,
+    const amrex::CellData<amrex::Real> &output_cell_data,
+    const amrex::Array1D<amrex::Real, 0, AMREX_SPACEDIM> &d2phi) const
 {
     output_cell_data[c_phi] = input_cell_data[c_Pi];
 
     output_cell_data[c_Pi] = d2phi.sum();
 
     // add on the potential
-    data_t V_of_phi = 0.0;
-    data_t dVdphi   = 0.0;
+    amrex::Real V_of_phi = 0.0;
+    amrex::Real dVdphi   = 0.0;
 
     m_model.compute_potential(V_of_phi, dVdphi, input_cell_data[c_phi]);
 
