@@ -1,6 +1,6 @@
 # Klein-Gordon Solver
 
-This example solves the Klein-Gordon equation in the absense of GR.
+This example solves the Klein-Gordon equation in the absense of GR. Please note that this example does not have a dynamical metric, and simply assumes a Minkowski-flat background metric. It is intended to provide a simple example that implements a real scalar wave equation, showing how different initial data, diagnostics and parameters can be set.
 ```math
 \frac{\partial^2 \phi}{\partial t^2} = \nabla^2 \phi + V(\phi),
 ```
@@ -27,7 +27,7 @@ The analytic breather solution is:
 ```math
 \phi(x,t) = 4 \arctan \left(\frac{\beta \cos(\alpha t)}{\alpha \cosh(\beta x)} \right)
 ```
-where $\beta = \sqrt(1-\alpha^2)$
+where $\beta = \sqrt{1-\alpha^2}$
 Note that it is a 1D solution embedded in a 3D simulation volume so `AMREX_SPACEDIM` is still set to 3.
 #### SineGordon3D
 This will solve the 3D Sine Gordon  equation:
