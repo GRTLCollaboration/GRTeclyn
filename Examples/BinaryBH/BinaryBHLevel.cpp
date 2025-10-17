@@ -12,11 +12,11 @@
 #include "PunctureTagger.hpp"
 #include "PunctureTracker.hpp"
 // xxxxx #include "SixthOrderDerivatives.hpp"
-#include "CustomExtraction.hpp"
+// #include "CustomExtraction.hpp"
 #include "TraceARemoval.hpp"
 #include "TwoPuncturesInitialData.hpp"
 #include "Weyl4.hpp"
-// #include "WeylExtraction.hpp"
+#include "WeylExtractionParticle.hpp"
 
 BHAMR<BinaryBHLevel::num_punctures> *BinaryBHLevel::get_bhamr_ptr()
 {
@@ -252,6 +252,25 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
     amrex::Gpu::streamSynchronize();
 }
 
+// This is called by amrex on every level after regridding. After regrid we
+// should redistribute the particles again if BoxArrays or DistributionMappings
+// have changed, for example?
+void BinaryBHLevel::specific_post_regrid(int a_lbase, int a_new_finest)
+{
+    amrex::Print() << "BinaryBHLevel::specific_post_regrid() on level "
+                   << Level() << "\n";
+    if (get_gramr_ptr()->cumTime() > 0.0)
+    {
+        if (auto *bh = get_bhamr_ptr())
+        {
+            if (bh->m_weyl_interpolator)
+            {
+                bh->m_weyl_interpolator->force_redistribute(true);
+            }
+        }
+    }
+}
+
 void BinaryBHLevel::specific_post_init()
 {
     BL_PROFILE("BinaryBHLevel::specific_post_init()");
@@ -295,31 +314,90 @@ void BinaryBHLevel::specific_post_checkpoint(const std::string &a_chk_dir,
 
 void BinaryBHLevel::specificPostTimeStep()
 {
-
-    // Custon extraction
+    // std::cout << "BinaryBHLevel::specificPostTimeStep() on level " << Level()
+    //           << std::endl;
     bool first_step = (parent->levelSteps(0) == 0);
 
-    if (Level() == 1)
+    if (Level() == 0)
     {
-        // set the interpolator
-        ParticleInterpolators<1> interpolator(simParams().boundary_params,
-                                              c_chi);
-        interpolator.set_gramr_ptr(get_gramr_ptr());
+        // Weyl extraction
+        const int finest = get_gramr_ptr()->finestLevel();
+        amrex::Vector<std::unique_ptr<amrex::MultiFab>> out_weyl(finest + 1);
 
-        // set up the query and execute it
-        std::array<double, AMREX_SPACEDIM> extraction_origin = {
-            0.0, simParams().L / 2, -4.0};
+        // get all the derived info on Weyl
+        auto &lst       = amrex::AmrLevel::get_derive_lst();
+        const auto *rec = lst.get("Weyl4");
+        int state_index = -1, scomp = -1, ncomp_in = -1;
+        rec->getRange(
+            0, state_index, scomp,
+            ncomp_in); // here scomp indicated the starting comp in the state
+                       // (needed to calculate the derived var); similarly
+                       // ncomp_in is the overall number of state comps needed.
+                       // Currently Weyl4 fills all CCZ4 vars, which may be
+                       // problematic.
 
-        double m_time       = get_state_data(State_Type).curTime();
-        double m_dt         = get_gramr_ptr()->dtLevel(Level());
-        double restart_time = get_gramr_ptr()->get_restart_time();
+        // std::cout << "Number of components in Weyl query " << ncomp_in <<
+        // std::endl; std::cout << "Starting component " << scomp << std::endl;
+        // std::cout << "Number of components in Weyl derive " <<
+        // rec->numDerive() << std::endl;
 
-        // a random chi lineout
-        CustomExtraction chi_extraction(c_chi, 1, 15, simParams().L / 2.,
-                                        extraction_origin, m_dt, m_time,
-                                        restart_time, first_step);
-        chi_extraction.execute_query(interpolator, "chi_lineout");
+        const int ngrow = 2;
+        const int nout  = rec->numDerive();
+
+        for (int lev = 0; lev <= finest; ++lev)
+        {
+            auto &L           = get_gramr_ptr()->getLevel(lev);
+            const auto &geom  = L.Geom();
+            const auto &state = L.get_new_data(state_index);
+
+            out_weyl[lev] = std::make_unique<amrex::MultiFab>(
+                state.boxArray(), state.DistributionMap(), nout, ngrow);
+
+            // fill ghosts
+            amrex::MultiFab src(state.boxArray(), state.DistributionMap(),
+                                ncomp_in, ngrow);
+            amrex::Copy(src, state, /*scomp=*/scomp, /*dcomp=*/0,
+                        /*ncomp=*/ncomp_in, /*nghost=*/ngrow);
+            src.FillBoundary(geom.periodicity());
+
+            Weyl4::compute_mf(*out_weyl[lev], /*dcomp=*/0, /*ncomp=*/nout, src,
+                              geom, /*time=*/0.0, /*bcrec=*/nullptr,
+                              /*level=*/lev);
+        }
+
+        amrex::Vector<const amrex::MultiFab *> fields;
+        get_gramr_ptr()->convert_derived_multifabs(out_weyl, fields);
+
+        // Perform extraction
+        double m_time         = get_state_data(State_Type).curTime();
+        double m_dt           = get_gramr_ptr()->dtLevel(Level());
+        double m_restart_time = get_gramr_ptr()->get_restart_time();
+
+        WeylExtractionParticle my_extraction(simParams().extraction_params,
+                                             m_dt, m_time, first_step,
+                                             m_restart_time);
+        my_extraction.execute_query(get_bhamr_ptr()->m_weyl_interpolator,
+                                    fields);
     }
+
+    // Custom extraction
+    // if (Level() == 1)
+    // {
+    //     // set up the query and execute it
+    //     std::array<double, AMREX_SPACEDIM> extraction_origin = {
+    //         0.0, simParams().L / 2, -4.0};
+
+    //     double m_time       = get_state_data(State_Type).curTime();
+    //     double m_dt         = get_gramr_ptr()->dtLevel(Level());
+    //     double restart_time = get_gramr_ptr()->get_restart_time();
+
+    //     // a random chi lineout
+    //     CustomExtraction chi_extraction(c_chi, 1, 15, simParams().L / 2.,
+    //                                     extraction_origin, m_dt, m_time,
+    //                                     restart_time, first_step);
+    //     chi_extraction.execute_query(*get_bhamr_ptr()->m_weyl_interpolator,
+    //                                  "chi_lineout");
+    // }
 
     // do puncture tracking on requested level
     if (simParams().puncture_tracking_enabled &&

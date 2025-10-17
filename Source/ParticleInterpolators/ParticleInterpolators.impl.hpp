@@ -12,6 +12,7 @@
 
 #include "InterpolationQueryParticle.hpp"
 #include "LagrangeInterpolation.hpp"
+#include "StateVariables.hpp"
 #include "VariableType.hpp"
 
 // amrex includes
@@ -27,7 +28,6 @@ ParticleInterpolators<num_components>::ParticleInterpolators(
     : m_gr_amr(nullptr), m_initialized(false), m_start_comp(a_start_comp),
       m_bc_params(a_bc_params)
 {
-    // constructor body
 }
 
 // initialise everything and perform some sanity checks
@@ -68,30 +68,61 @@ void ParticleInterpolators<num_components>::set_gramr_ptr(GRAMR *gr_amr_ptr)
     m_dx = geom0.CellSizeArray();
 }
 
+template <int num_components>
+void ParticleInterpolators<num_components>::set_derived_var_parity(int comp,
+                                                                   BCParity p)
+{
+    AMREX_ALWAYS_ASSERT(comp >= 0 && comp < num_components);
+    m_derived_bc_parity[comp] = p;
+}
+
 // a parity helper (the same way as it was defined in the AMRInterpolator)
 template <int num_components>
 int ParticleInterpolators<num_components>::get_state_var_parity(
     int comp, int point_idx, const InterpolationQueryParticle &query,
-    const Derivative &deriv) const
+    const Derivative &deriv, VariableType variable_type) const
 {
-    int parity = 1;
+    int parity;
+
     for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
     {
         // get the coords
         const double x = query.m_coords[dir][point_idx];
 
-        // check where we are w.r.t to the prob domain
+        // check where we are w.r.t to the problem domain
         const bool beyond_lo =
             (m_lo_boundary_reflective[dir] && x < m_prob_lo[dir]);
         const bool beyond_hi =
             (m_hi_boundary_reflective[dir] && x > m_prob_hi[dir]);
 
+        // std::cout << "dir " << dir << " beyond_lo " << beyond_lo
+        //           << " beyond_hi " << beyond_hi << std::endl;
+
         if (beyond_lo || beyond_hi)
         {
-            parity *= BoundaryConditions::get_state_var_parity(comp, dir);
+            if (variable_type == VariableType::state)
+            {
+                parity *= BoundaryConditions::get_state_var_parity(comp, dir);
+            }
+            else if (variable_type == VariableType::derived)
+            {
+                // if parity was not set for derived vars, print a message
+                AMREX_ALWAYS_ASSERT(m_derived_bc_parity[comp] !=
+                                    BCParity::undefined);
+                BCParity comp_parity = m_derived_bc_parity[comp];
+                auto dir_parities    = bc_parity_map.at(comp_parity);
+                amrex::Print() << "Component " << comp << " has dir " << dir
+                               << " which gives parity "
+                               << static_cast<int>(dir_parities[dir]) << "\n";
+                parity = dir_parities[dir];
+            }
             // invert parity for first derivatives
             if (deriv[dir] == 1)
                 parity *= -1;
+        }
+        else
+        {
+            parity = 1; // inside domain, parity is 1
         }
     }
     return parity;
@@ -130,6 +161,8 @@ template <int num_components>
 void ParticleInterpolators<num_components>::populate_from_query(
     const InterpolationQueryParticle &query)
 {
+    amrex::Print() << "In populate \n";
+
     AMREX_ASSERT(m_initialized);
 
     // we populate particles with rank 0
@@ -262,7 +295,8 @@ void ParticleInterpolators<num_components>::interpolate_to_particle()
 
         amrex::AmrLevel &level      = m_gr_amr->getLevel(lev);
         const amrex::Geometry &geom = level.Geom();
-        amrex::MultiFab &state      = level.get_new_data(State_Type);
+        amrex::MultiFab &state      = level.get_new_data(static_cast<int>(
+            0)); // TODO: fix declaration issues with State_Type
 
         AMREX_ASSERT(start_comp + ncomp <= state.nComp());
 
@@ -364,7 +398,7 @@ void ParticleInterpolators<num_components>::
                     LagrangeInterpolator<5> interp;
                     interp.compute_weights(sp, plo, dxi, is_nodal);
 
-                    amrex::ParticleReal vals[AMREX_SPACEDIM];
+                    amrex::ParticleReal vals[ncomp];
                     interp.interpolate(&arrs, vals, start_comp, ncomp);
                     for (int k = 0; k < ncomp; ++k)
                     {
@@ -390,14 +424,15 @@ void ParticleInterpolators<num_components>::interp(
 {
     AMREX_ASSERT(m_initialized);
 
-    if (variable_type == VariableType::derived)
+    if (variable_type == VariableType::derived ||
+        variable_type == VariableType::state)
     {
         for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
         {
             if (m_lo_boundary_reflective[dir] || m_hi_boundary_reflective[dir])
             {
-                amrex::Abort("Help!!! Sorry, interp(): reflective BCs with "
-                             "derived variables not supported yet");
+                amrex::Abort("Help!!! reflective BCs are implemented, but not "
+                             "yet tested. Likely to give absolute gibberish!");
             }
         }
     }
@@ -478,6 +513,10 @@ void ParticleInterpolators<num_components>::interp(
         amrex::AllPrint() << "The IO rank is = "
                           << amrex::ParallelDescriptor::IOProcessorNumber()
                           << "\n";
+
+        amrex::Print() << "m_comps size of the query is = " << query.numComps()
+                       << "\n";
+
         // loop for each component and apply parity assumptions now
         for (auto deriv_it = query.compsBegin(); deriv_it != query.compsEnd();
              ++deriv_it)
@@ -507,8 +546,9 @@ void ParticleInterpolators<num_components>::interp(
                                      std::to_string(ip));
                     }
 
-                    const int parity =
-                        get_state_var_parity(comp, ip, query, dkey);
+                    int parity = get_state_var_parity(comp, ip, query, dkey,
+                                                      variable_type);
+
                     const double v = have[ip] ? value_at_point[k][ip] : 0.0;
                     out[ip]        = parity * v;
                 }
@@ -568,12 +608,15 @@ void ParticleInterpolators<num_components>::check_domain(
 
 // Ensure that particles are redistributed if needed
 template <int num_components>
-inline void ParticleInterpolators<num_components>::ensure_redistributed()
+void ParticleInterpolators<num_components>::ensure_redistributed()
 {
     int need = (m_need_redistribute ? 1 : 0);
-    amrex::ParallelDescriptor::ReduceIntMax(need);
+    amrex::ParallelDescriptor::ReduceIntMax(
+        need); // do we want all ranks to redistribute particles, if one rank
+               // requires to do so?
     if (need)
     {
+        amrex::Print() << "Redistributing all particles \n";
         this->Redistribute();
         m_need_redistribute = false;
     }
@@ -581,8 +624,7 @@ inline void ParticleInterpolators<num_components>::ensure_redistributed()
 
 // Option to force Redistribute() flag if needed globally
 template <int num_components>
-void ParticleInterpolators<num_components>::force_redistribute(
-    bool flag) noexcept
+void ParticleInterpolators<num_components>::force_redistribute(bool flag)
 {
     m_need_redistribute = flag;
 }

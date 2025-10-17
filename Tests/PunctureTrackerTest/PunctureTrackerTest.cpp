@@ -18,7 +18,6 @@
 
 // Problem specific includes:
 #include "PunctureTrackerLevel.hpp"
-
 // System includes
 #include <chrono>
 #include <climits> // for PATH_MAX

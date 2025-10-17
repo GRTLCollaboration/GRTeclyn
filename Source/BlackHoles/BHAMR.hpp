@@ -7,6 +7,8 @@
 #define BHAMR_HPP_
 
 #include "GRAMR.hpp"
+#include "InterpolationQueryParticle.hpp"
+#include "ParticleInterpolators.hpp"
 #include "PunctureTracker.hpp"
 
 #include <AMReX_ParmParse.H>
@@ -21,8 +23,18 @@ template <int num_punctures> class BHAMR : public GRAMR
 {
   private:
     PunctureTracker<num_punctures> m_puncture_tracker;
+    InterpolationQueryParticle *m_query =
+        nullptr; // query used for interpolation
+    bool m_query_populated =
+        false; // flag to identify whether the query has been populated: for
+               // particles that will be fixed we want to do this only once
+               // here!
 
   public:
+
+    ParticleInterpolators<2> *m_weyl_interpolator =
+        nullptr; // weyl interpolator
+
     BHAMR(amrex::LevelBld *a_levelbld) : GRAMR(a_levelbld)
     {
         amrex::ParmParse puncture_tracking_pp("puncture_tracking");
@@ -38,6 +50,42 @@ template <int num_punctures> class BHAMR : public GRAMR
     PunctureTracker<num_punctures> &get_puncture_tracker()
     {
         return m_puncture_tracker;
+    }
+
+    // set weyl interpolator
+    void set_interpolator(ParticleInterpolators<2> *a_interpolator)
+    {
+        AMREX_ASSERT(a_interpolator != nullptr);
+
+        m_weyl_interpolator = a_interpolator;
+        m_weyl_interpolator->set_gramr_ptr(this);
+    }
+
+    // set query
+    void set_query(InterpolationQueryParticle &q) override
+    {
+        if (m_query != &q)
+        { // only if the query object changed
+            m_query           = &q;
+            m_query_populated = false;
+        }
+    }
+
+    // populate only once
+    void ensure_query_populated() override
+    {
+        AMREX_ASSERT(m_query);
+        if (!m_query_populated)
+        {
+            m_weyl_interpolator->populate_from_query(*m_query);
+            m_query_populated = true;
+        }
+    }
+
+    // access to a cached query
+    InterpolationQueryParticle *query() override
+    {
+        return m_query ? &*m_query : nullptr;
     }
 };
 

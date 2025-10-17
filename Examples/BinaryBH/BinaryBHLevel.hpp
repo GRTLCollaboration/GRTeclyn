@@ -50,6 +50,9 @@ class BinaryBHLevel : public GRAMRLevel
     void tag_cells(amrex::TagBoxArray &a_tag_box_array,
                    amrex::Real a_regrid_threshold) final;
 
+    /// Things to do after regrid
+    void specific_post_regrid(int a_lbase, int a_new_finest) override;
+
     //! Things to do after a restart
     void specific_post_restart() override;
 

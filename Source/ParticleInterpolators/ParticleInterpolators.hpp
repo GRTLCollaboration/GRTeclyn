@@ -5,6 +5,7 @@
 #include <AMReX_ParIter.H>
 #include <AMReX_Particles.H>
 
+#include "BCParity.hpp"
 #include "BoundaryConditions.hpp"
 #include "GRAMR.hpp"
 #include "InterpolationQueryParticle.hpp"
@@ -27,10 +28,12 @@ class ParticleInterpolators
     bool m_initialized{
         false};          // a guard to make sure we do not uninitialised GRAMR
     int m_start_comp{0}; // first component
-    // int m_ncomp{1};      // number of components
 
     bool m_particles_seeded{false};
     bool m_need_redistribute{true};
+
+    std::array<BCParity, num_components> m_derived_bc_parity{
+        BCParity::undefined}; // default parity set for derived vars
 
     // physical domain corners on level 0 for parity logic
     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> m_prob_lo{};
@@ -58,10 +61,22 @@ class ParticleInterpolators
     // initialise everything and perform some sanity checks
     void set_gramr_ptr(GRAMR *gr_amr_ptr);
 
+    InterpolationQueryParticle *current_query()
+    {
+        AMREX_ALWAYS_ASSERT(m_gr_amr);
+        return m_gr_amr->query(); // returns a pointer to query
+    }
+    void set_query(InterpolationQueryParticle &q) { m_gr_amr->set_query(q); }
+    void ensure_query_populated() { m_gr_amr->ensure_query_populated(); }
+
+    // helper function to set parities of derived vars per component
+    void set_derived_var_parity(int comp, BCParity p);
+
     // a parity helper (the same way as it was defined in the AMRInterpolator)
-    int get_state_var_parity(int comp, int point_idx,
-                             const InterpolationQueryParticle &query,
-                             const Derivative &deriv) const;
+    int get_state_var_parity(
+        int comp, int point_idx, const InterpolationQueryParticle &query,
+        const Derivative &deriv,
+        VariableType variable_type = VariableType::state) const;
 
     // a function to reflect a particle back into the valid domain, when
     // symmetry BCs are used
@@ -88,9 +103,9 @@ class ParticleInterpolators
     void check_domain(std::array<double, AMREX_SPACEDIM> &x,
                       int guard_cells = 0) const;
 
-    inline void ensure_redistributed();
+    void ensure_redistributed();
 
-    void force_redistribute(bool flag) noexcept;
+    void force_redistribute(bool flag);
 
     // TODO: I have not tested the below yet!!
 

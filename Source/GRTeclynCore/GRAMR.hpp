@@ -7,6 +7,7 @@
 #define GRAMR_HPP_
 
 // xxxxx#include "Lagrange.hpp"
+#include "InterpolationQueryParticle.hpp"
 #include "VariableType.hpp"
 #include <AMReX_Amr.H>
 #include <algorithm>
@@ -33,6 +34,12 @@ class GRAMR : public amrex::Amr
 
   public:
 
+    // Set of virtual functions to be overridden by the example AMR class (e.g.
+    // BHAMR)
+    virtual void set_query(InterpolationQueryParticle &) {}
+    virtual void ensure_query_populated() {}
+    virtual InterpolationQueryParticle *query() { return nullptr; }
+
     GRAMR(amrex::LevelBld *a_levelbld);
     ~GRAMR() override;
 
@@ -45,6 +52,12 @@ class GRAMR : public amrex::Amr
     double get_walltime_since_start() const;
 
     double get_restart_time() const;
+
+    // A helper function to convert the derived multifabs into the required
+    // interpolation input
+    void convert_derived_multifabs(
+        const amrex::Vector<std::unique_ptr<amrex::MultiFab>> &inputs,
+        amrex::Vector<const amrex::MultiFab *> &fields);
 
   private:
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)

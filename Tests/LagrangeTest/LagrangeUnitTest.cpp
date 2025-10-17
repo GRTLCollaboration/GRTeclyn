@@ -152,6 +152,9 @@ void run_lagrange_test()
 
         interpolator.interpolate_to_particle_from_derived_fields(fields);
 
+        // Do not forget to set the parity!
+        interpolator.set_derived_var_parity(0, BCParity::even);
+
         interpolator.interp(query, VariableType::derived);
 
         if (amrex::ParallelDescriptor::MyProc() == 0)

@@ -9,6 +9,8 @@
 // Other includes
 #include "Derivative.hpp"
 #include "VariableType.hpp"
+#include <AMReX_Gpu.H>
+#include <AMReX_GpuContainers.H>
 #include <map>
 #include <tuple>
 #include <utility>
