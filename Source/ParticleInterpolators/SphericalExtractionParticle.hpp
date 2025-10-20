@@ -121,6 +121,8 @@ class SphericalExtractionParticle
             double x = geom.get_grid_coord(0, r, theta, phi) - center[0];
             double y = geom.get_grid_coord(1, r, theta, phi) - center[1];
             double z = geom.get_grid_coord(2, r, theta, phi) - center[2];
+            amrex::Print() << "Calculating Y_lm at (x,y,z)=(" << x << "," << y
+                           << "," << z << ")\n";
             SphericalHarmonics::Y_lm_t Y_lm =
                 SphericalHarmonics::spin_Y_lm(x, y, z, es, el, em);
             auto function_here = a_function(a_data_here, r, theta, phi);

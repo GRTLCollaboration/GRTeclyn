@@ -435,8 +435,13 @@ void SurfaceExtractionParticle<SurfaceGeometry>::write_extraction(
                                     m_dt, m_time, m_restart_time,
                                     SmallDataIO::NEW, m_first_step);
 
+        amrex::Print() << "Writing extraction data to file: "
+                       << m_params.extraction_path + a_file_prefix << "\n";
         for (int isurface = 0; isurface < m_params.num_surfaces; ++isurface)
         {
+            amrex::Print() << " Writing surface at " << m_geom.param_name()
+                           << " = " << m_params.surface_param_values[isurface]
+                           << "\n";
             // Write headers
             std::vector<std::string> header1_strings = {
                 "time = " + std::to_string(m_time) + ",",
@@ -446,15 +451,17 @@ void SurfaceExtractionParticle<SurfaceGeometry>::write_extraction(
             std::vector<std::string> components(m_vars.size());
             for (std::size_t ivar = 0; ivar < m_vars.size(); ++ivar)
             {
-                if (std::get<2>(m_vars[ivar]) != Derivative::LOCAL)
-                {
-                    components[ivar] =
-                        Derivative::name(std::get<2>(m_vars[ivar])) + "_";
-                }
-                else
-                {
-                    components[ivar] = "";
-                }
+                amrex::Print() << "  Writing variable " << ivar + 1 << " of "
+                               << m_vars.size() << "\n";
+                // if (std::get<2>(m_vars[ivar]) != Derivative::LOCAL)
+                // {
+                //     components[ivar] =
+                //         Derivative::name(std::get<2>(m_vars[ivar])) + "_";
+                // }
+                // else
+                // {
+                //     components[ivar] = "";
+                // }
                 if (std::get<1>(m_vars[ivar]) == VariableType::state)
                 {
                     components[ivar] +=
@@ -464,6 +471,12 @@ void SurfaceExtractionParticle<SurfaceGeometry>::write_extraction(
                 {
                     // components[ivar] +=
                     //     DiagnosticVariables::names[std::get<0>(m_vars[ivar])];
+                    components[ivar] +=
+                        (std::get<0>(m_vars[ivar]) == 0 ? "Re"
+                         : std::get<0>(m_vars[ivar]) == 1
+                             ? "Im"
+                             : std::string("diag") +
+                                   std::to_string(std::get<0>(m_vars[ivar])));
                 }
             }
             std::vector<std::string> coords = {m_geom.u_name(),

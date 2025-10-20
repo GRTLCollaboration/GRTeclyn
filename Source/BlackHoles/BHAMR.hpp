@@ -32,7 +32,7 @@ template <int num_punctures> class BHAMR : public GRAMR
 
   public:
 
-    ParticleInterpolators<2> *m_weyl_interpolator =
+    ParticleInterpolators<1> *m_weyl_interpolator =
         nullptr; // weyl interpolator
 
     BHAMR(amrex::LevelBld *a_levelbld) : GRAMR(a_levelbld)
@@ -53,7 +53,7 @@ template <int num_punctures> class BHAMR : public GRAMR
     }
 
     // set weyl interpolator
-    void set_interpolator(ParticleInterpolators<2> *a_interpolator)
+    void set_interpolator(ParticleInterpolators<1> *a_interpolator)
     {
         AMREX_ASSERT(a_interpolator != nullptr);
 

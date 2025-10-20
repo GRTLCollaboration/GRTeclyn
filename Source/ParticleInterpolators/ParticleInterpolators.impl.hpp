@@ -82,12 +82,14 @@ int ParticleInterpolators<num_components>::get_state_var_parity(
     int comp, int point_idx, const InterpolationQueryParticle &query,
     const Derivative &deriv, VariableType variable_type) const
 {
-    int parity;
+    int parity = 1;
 
     for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
     {
         // get the coords
         const double x = query.m_coords[dir][point_idx];
+        amrex::Print() << "I am at the point x[ " << dir << " ] = " << x
+                       << "\n";
 
         // check where we are w.r.t to the problem domain
         const bool beyond_lo =
@@ -111,18 +113,18 @@ int ParticleInterpolators<num_components>::get_state_var_parity(
                                     BCParity::undefined);
                 BCParity comp_parity = m_derived_bc_parity[comp];
                 auto dir_parities    = bc_parity_map.at(comp_parity);
-                amrex::Print() << "Component " << comp << " has dir " << dir
-                               << " which gives parity "
-                               << static_cast<int>(dir_parities[dir]) << "\n";
-                parity = dir_parities[dir];
+                // amrex::Print() << "Component " << comp << " has dir " << dir
+                //                << " which gives parity "
+                //                << static_cast<int>(dir_parities[dir]) <<
+                //                "\n";
+                parity *= dir_parities[dir];
             }
             // invert parity for first derivatives
             if (deriv[dir] == 1)
+            {
+                amrex::Print() << "I have a derivative" << "\n";
                 parity *= -1;
-        }
-        else
-        {
-            parity = 1; // inside domain, parity is 1
+            }
         }
     }
     return parity;
@@ -386,7 +388,12 @@ void ParticleInterpolators<num_components>::
             auto arrs    = mf[it].const_array();
             auto &ptile  = this->ParticlesAt(lev, it);
             auto ptd     = ptile.getParticleTileData();
-            const int np = it.numParticles();
+            const int np = it.numRealParticles();
+
+            // amrex::Gpu::DeviceVector<amrex::ParticleReal> d_vals(np * ncomp);
+            // amrex::Gpu::DeviceVector<long> d_pid(np); // AMReX particle id
+            // type amrex::ParticleReal* vals_d = d_vals.data(); long* pid_d =
+            // d_pid.data();
 
             amrex::ParallelFor(
                 np,
@@ -403,10 +410,36 @@ void ParticleInterpolators<num_components>::
                     for (int k = 0; k < ncomp; ++k)
                     {
                         ptd.rdata(k)[ip] = vals[k];
+                        // vals_d[ip * ncomp + k] = vals[k];
                     }
+
+                    // pid_d[ip] = ptd.id(ip);
                 });
+
+            amrex::Gpu::streamSynchronize();
+
+            // // copy back for host debugging
+            // std::vector<amrex::ParticleReal> h_vals(np * ncomp);
+            // std::vector<long> h_pid(np);
+            // amrex::Gpu::copy(amrex::Gpu::deviceToHost, d_vals.begin(),
+            // d_vals.end(), h_vals.begin());
+            // amrex::Gpu::copy(amrex::Gpu::deviceToHost, d_pid.begin(),
+            // d_pid.end(), h_pid.begin());
+
+            // const int rank = amrex::ParallelDescriptor::MyProc();
+            // const int tile = it.tileIndex();
+            // for (int ip = 0; ip < np; ++ip) {
+            //     for (int k = 0; k < ncomp; ++k) {
+            //         amrex::Print() << "rank " << rank
+            //                    << " tile " << tile
+            //                    << " pid "  << h_pid[ip]
+            //                    << " (local ip " << ip << ")"
+            //                    << " component " << k
+            //                    << " value = " << h_vals[ip * ncomp + k] <<
+            //                    "\n";
+            //     }
+            // }
         }
-        amrex::Gpu::streamSynchronize();
     }
 
     m_particles_seeded  = true;
@@ -424,18 +457,21 @@ void ParticleInterpolators<num_components>::interp(
 {
     AMREX_ASSERT(m_initialized);
 
-    if (variable_type == VariableType::derived ||
-        variable_type == VariableType::state)
-    {
-        for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
-        {
-            if (m_lo_boundary_reflective[dir] || m_hi_boundary_reflective[dir])
-            {
-                amrex::Abort("Help!!! reflective BCs are implemented, but not "
-                             "yet tested. Likely to give absolute gibberish!");
-            }
-        }
-    }
+    // if (variable_type == VariableType::derived ||
+    //     variable_type == VariableType::state)
+    // {
+    //     for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
+    //     {
+    //         if (m_lo_boundary_reflective[dir] ||
+    //         m_hi_boundary_reflective[dir])
+    //         {
+    //             amrex::Abort("Help!!! reflective BCs are implemented, but not
+    //             "
+    //                          "yet tested. Likely to give absolute
+    //                          gibberish!");
+    //         }
+    //     }
+    // }
 
     // get total query points here
     const int npts = static_cast<int>(query.numPoints());
@@ -548,6 +584,9 @@ void ParticleInterpolators<num_components>::interp(
 
                     int parity = get_state_var_parity(comp, ip, query, dkey,
                                                       variable_type);
+                    amrex::Print() << "Point " << ip << " comp " << comp
+                                   << " value " << value_at_point[k][ip]
+                                   << " has parity " << parity << "\n";
 
                     const double v = have[ip] ? value_at_point[k][ip] : 0.0;
                     out[ip]        = parity * v;
@@ -568,7 +607,7 @@ void ParticleInterpolators<num_components>::check_domain(
         const double lo_g = m_prob_lo[d] - guard_cells * m_dx[d];
         const double hi_g = m_prob_hi[d] + guard_cells * m_dx[d];
 
-        // reflect into the required side is reflective
+        // reflect into the required side if reflective
         double xr = x[d];
         if (m_lo_boundary_reflective[d] && xr < m_prob_lo[d])
         {
@@ -638,9 +677,9 @@ void ParticleInterpolators<num_components>::clear_level(int lev)
     for (ParIterType it(*this, lev); it.isValid(); ++it)
     {
         auto &ptile = this->ParticlesAt(lev, it);
-        ptile.resize(0); // by resizing to 0 we clear the particles?
+        ptile.resize(0); // by resizing to 0 we clear the particles
     }
-    this->Redistribute(); // I am not sure about this :/
+    this->Redistribute();
 }
 
 // Clear particles on all levels
