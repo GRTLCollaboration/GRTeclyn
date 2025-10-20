@@ -433,11 +433,6 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
 	const double Hubble_fact_avg = -state_new.sum(c_K)/vol/3.;
 	const double lapse_avg = state_new.sum(c_lapse)/vol;
 
-	//Potential potential(simParams().potential_params);
-	//const double V, dV;
-	
-
-
     const amrex::BoxArray& ba = state_new.boxArray();
     const amrex::DistributionMapping& dm = state_new.DistributionMap();
     int ncomp = state_new.nComp();
@@ -457,8 +452,8 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
     Multiply(phi_alias, phi_alias, c_phi, c_phi, 1, nghost);
     Multiply(chi_alias, chi_alias, c_chi, c_chi, 1, nghost);
     
-    const double phi_var = phi_alias.sum(c_phi)/vol;// - std::pow(phi_avg, 2.);
-    const double chi_var = chi_alias.sum(c_chi)/vol;// - std::pow(chi_avg, 2.);
+    const double phi_var = phi_alias.sum(c_phi)/vol - std::pow(phi_avg, 2.);
+    const double chi_var = chi_alias.sum(c_chi)/vol - std::pow(chi_avg, 2.);
 
 	SmallDataIO means_file(simParams().data_path+"means-file", dt, cur_time, restart_time, SmallDataIO::APPEND, first_step, ".dat");
 	means_file.remove_duplicate_time_data(); // removes any duplicate data from previous run (for checkpointing)

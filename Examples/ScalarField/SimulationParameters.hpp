@@ -50,6 +50,7 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("background_dphi", background_params.Pi0, 0.0);	
 
         pp.load("tensor_init", random_field_params.tensor_init, 1);
+        pp.load("scalar_init", random_field_params.scalar_init, 1);
         pp.load("L", random_field_params.L, 1.);
         pp.load("A", random_field_params.A, 1.);
         pp.load("N", random_field_params.N_readin, 32);
