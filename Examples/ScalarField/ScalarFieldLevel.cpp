@@ -49,7 +49,7 @@ void ScalarFieldLevel::variableSetUp()
     // We only need the non-gauge CCZ4 variables to calculate the constraints
     derive_lst.addComponent("constraints", desc_lst, State_Type, 0, NUM_VARS);
 
-    /*derive_lst.add(
+    derive_lst.add(
         "constraints_norm", amrex::IndexType::TheCellType(),
         static_cast<int>(Constraints::var_names_norm.size()), Constraints::var_names_norm,
         amrex::DeriveFuncFab(), // null function because we won't use
@@ -58,7 +58,7 @@ void ScalarFieldLevel::variableSetUp()
         &amrex::cell_quartic_interp);
 
     // We only need the non-gauge CCZ4 variables to calculate the constraints
-    derive_lst.addComponent("constraints_norm", desc_lst, State_Type, 0, NUM_VARS);*/
+    derive_lst.addComponent("constraints_norm", desc_lst, State_Type, 0, NUM_VARS);
 
     // Add Weyl4 to the derive list
     derive_lst.add(
@@ -487,9 +487,9 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
     
     /*MultiFab pol_fields_alias(ba, dm, 2, ngrow, MFInfo(), Factory());
     pol_fields_alias.setVal(0.0);
-    derive("TensorPolarisations", cur_time, pol_fields_alias, 0);
+    derive("TensorPolarisations", cur_time, pol_fields_alias, 0);*/
 
     // Print statistics on the abs constraint terms
     Vector<int> moments{1,2};
-    random_field_extractor.print_tensor_moment(constr_alias, Constraints::var_names, moments, constrs_file, first_step);*/ 
+    random_field_extractor.print_tensor_moment(constr_alias, Constraints::var_names, moments, constrs_file, first_step);
 }
