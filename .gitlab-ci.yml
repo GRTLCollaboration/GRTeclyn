@@ -14,6 +14,9 @@ csd3-a100-build:
     # Build BinaryBH example
     - cd ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH
     - make -j 8 ${BUILD_CONFIG}
+    # Build Klein Gordon example
+    - cd ${HOME}/${CI_PROJECT_DIR}/Examples/KleinGordon
+    - make -j 8 ${BUILD_CONFIG}
     # Build tests
     - cd ${HOME}/${CI_PROJECT_DIR}/Tests
     - make -j 8 ${BUILD_CONFIG}
@@ -23,7 +26,12 @@ csd3-a100-build:
       fi
     - mv ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex ${BINARY_DIR}
     - mv ${AMREX_HOME}/Tools/Postprocessing/C_Src/particle_compare.exe ${BINARY_DIR}
-    - mv ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH/main3d.gnu.DEBUG.MPI.CUDA.ex ${BINARY_DIR}
+    - >
+      mv ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH/main3d.gnu.DEBUG.MPI.CUDA.ex
+      ${BINARY_DIR}/BinaryBH_main3d.gnu.DEBUG.MPI.CUDA.ex
+    - >
+      mv ${HOME}/${CI_PROJECT_DIR}/Examples/KleinGordon/main3d.gnu.DEBUG.MPI.CUDA.ex
+      ${BINARY_DIR}/KleinGordon_main3d.gnu.DEBUG.MPI.CUDA.ex
     - mv ${HOME}/${CI_PROJECT_DIR}/Tests/Tests3d.gnu.DEBUG.MPI.CUDA.ex ${BINARY_DIR}
   after_script:
     - rm -rf ${HOME}/${QOS_INTR_LOCK_FILE}
@@ -35,17 +43,30 @@ csd3-a100-test:
   dependencies:
     - csd3-a100-build
   script:
+    # Move binaries back into their original directories
     - mv ${BINARY_DIR}/Tests3d.gnu.DEBUG.MPI.CUDA.ex ${HOME}/${CI_PROJECT_DIR}/Tests
-    - cd ${HOME}/${CI_PROJECT_DIR}/Tests
-    - flock ${HOME}/${QOS_INTR_LOCK_FILE} salloc ${SRUN_FLAGS} make run ${BUILD_CONFIG}
-    - cd ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH
     - >
+      mv ${BINARY_DIR}/BinaryBH_main3d.gnu.DEBUG.MPI.CUDA.ex
+      ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH
+    - >
+      mv ${BINARY_DIR}/KleinGordon_main3d.gnu.DEBUG.MPI.CUDA.ex
+      ${HOME}/${CI_PROJECT_DIR}/Examples/KleinGordon
+    - > # Prepare the output directory - there is a single directory for BOTH examples
       if [[ ! -d ${OUTPUT_DIR} ]]; then
         mkdir ${OUTPUT_DIR}
       fi
-    - flock ${HOME}/${QOS_INTR_LOCK_FILE} srun ${SRUN_FLAGS} ${BINARY_DIR}/main3d.gnu.DEBUG.MPI.CUDA.ex ./params_test.txt amr.plot_file=${OUTPUT_DIR}/plt
-    - ${BINARY_DIR}/fcompare.gnu.ex ${ERR_TOL_FLAGS} ${OUTPUT_DIR}/plt00008/ ${COMPARE_DIR}/plt00008_compare
-    - ${BINARY_DIR}/particle_compare.exe ${ERR_TOL_FLAGS} ${OUTPUT_DIR}/plt00008/ ${COMPARE_DIR}/plt00008_compare/ particles
+    - flock ${HOME}/${QOS_INTR_LOCK_FILE} sbatch -W ${HOME}/${CI_PROJECT_DIR}/.gitlab/run-examples.sh
+    # Use fcompare to check plotfiles for correctness
+    - >
+      ${BINARY_DIR}/fcompare.gnu.ex ${ERR_TOL_FLAGS}
+      ${OUTPUT_DIR}/BinaryBH_00008/ ${COMPARE_DIR}/BinaryBH/plt00008_compare
+    - >
+      ${BINARY_DIR}/fcompare.gnu.ex ${ERR_TOL_FLAGS}
+      ${OUTPUT_DIR}/KleinGordon_00008/ ${COMPARE_DIR}/KleinGordon/plt00008_compare
+    # Use Particle compare tool to check the punctures
+    - >
+      ${BINARY_DIR}/particle_compare.exe ${ERR_TOL_FLAGS}
+      ${OUTPUT_DIR}/BinaryBH_00008/ ${COMPARE_DIR}/BinaryBH/plt00008_compare/ particles
   after_script:
     - rm -rf ${HOME}/${QOS_INTR_LOCK_FILE}
     # This deletes BINARY_DIR but because it was defined in
