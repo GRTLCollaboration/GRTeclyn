@@ -137,7 +137,7 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                     amrex::MultiFab &a_rhs,
                                     const double /*a_time*/)
 {
-    BL_PROFILE("BinaryBHLevel::specificEvalRHS()");
+
     const auto &soln_arrays       = a_soln.arrays();
     const auto &const_soln_arrays = a_soln.const_arrays();
     const auto &rhs_arrays        = a_rhs.arrays();
@@ -162,13 +162,77 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
             simParams().ccz4_params, Geom().CellSize(0), simParams().sigma,
             simParams().formulation);
 
-        amrex::ParallelFor(
-            a_rhs,
-            [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
-            {
-                ccz4rhs(ix, iy, iz, rhs_arrays[box_no],
+        // amrex::ParallelFor(
+        //     a_rhs,
+        //     [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+        //     {
+        //         ccz4rhs(ix, iy, iz, rhs_arrays[box_no],
+        //                 const_soln_arrays[box_no]);
+        //     });
+        {
+            BL_PROFILE("BinaryBHLevel::specificEvalRHS()-chi");
+            amrex::ParallelFor(
+                a_rhs,
+                [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+                {
+                    ccz4rhs.calculate_chi_rhs(ix, iy, iz, rhs_arrays[box_no],
+                                              const_soln_arrays[box_no]);
+                });
+        }
+        {
+            BL_PROFILE("BinaryBHLevel::specificEvalRHS()-hij");
+            amrex::ParallelFor(
+                a_rhs,
+                [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+                {
+                    ccz4rhs.calculate_h_ij_rhs(ix, iy, iz, rhs_arrays[box_no],
+                                               const_soln_arrays[box_no]);
+                });
+        }
+        {
+            BL_PROFILE("BinaryBHLevel::specificEvalRHS()-Aij");
+            amrex::ParallelFor(
+                a_rhs,
+                [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+                {
+                    ccz4rhs.calculate_A_ij_rhs(ix, iy, iz, rhs_arrays[box_no],
+                                               const_soln_arrays[box_no]);
+                });
+        }
+        {
+            BL_PROFILE("BinaryBHLevel::specificEvalRHS()-Gamma");
+
+            amrex::ParallelFor(
+                a_rhs,
+                [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+                {
+                    ccz4rhs.calculate_Gamma_rhs(ix, iy, iz, rhs_arrays[box_no],
+                                                const_soln_arrays[box_no]);
+                });
+        }
+        {
+            BL_PROFILE("BinaryBHLevel::specificEvalRHS()-Theta");
+
+            amrex::ParallelFor(
+                a_rhs,
+                [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+                {
+                    ccz4rhs.calculate_Theta_rhs(ix, iy, iz, rhs_arrays[box_no],
+                                                const_soln_arrays[box_no]);
+                });
+        }
+
+        {
+            BL_PROFILE("BinaryBHLevel::specificEvalRHS()-gauge");
+            amrex::ParallelFor(
+                a_rhs,
+                [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+                {
+                    ccz4rhs.apply_gauge_and_dissipation(
+                        ix, iy, iz, rhs_arrays[box_no],
                         const_soln_arrays[box_no]);
-            });
+                });
+        }
     }
     else if (simParams().max_spatial_derivative_order == 6)
     {

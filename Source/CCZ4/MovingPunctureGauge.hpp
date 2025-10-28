@@ -70,6 +70,35 @@ class MovingPunctureGauge
                             rhs[c_Gamma1 + i] - m_params.eta * vars.B(i);
         }
     }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
+    rhs_gauge(const amrex::CellData<amrex::Real> &rhs_cell_data,
+              const amrex::CellData<amrex::Real const> &state_cell_data,
+              const amrex::Real &advec_lapse,
+              const Tensor<1, amrex::Real> &advec_shift,
+              const Tensor<1, amrex::Real> &advec_B,
+              const Tensor<1, amrex::Real> &advec_Gamma) const
+    // NOLINTEND(bugprone-easily-swappable-parameters)
+    {
+        rhs_cell_data[c_lapse] =
+            m_params.lapse_advec_coeff * advec_lapse -
+            m_params.lapse_coeff *
+                pow(state_cell_data[c_lapse], m_params.lapse_power) *
+                (state_cell_data[c_K] - 2.0 * state_cell_data[c_Theta]);
+
+        FOR (i)
+        {
+            rhs_cell_data[c_shift1 + i] =
+                m_params.shift_advec_coeff * advec_shift[i] +
+                m_params.shift_Gamma_coeff * state_cell_data[c_B1 + i];
+            rhs_cell_data[c_B1 + i] =
+                m_params.shift_advec_coeff * advec_B[i] -
+                m_params.shift_advec_coeff * advec_Gamma[i] +
+                rhs_cell_data[c_Gamma1 + i] -
+                m_params.eta * state_cell_data[c_B1 + i];
+        }
+    }
 };
 
 #endif /* MOVINGPUNCTUREGAUGE_HPP_ */

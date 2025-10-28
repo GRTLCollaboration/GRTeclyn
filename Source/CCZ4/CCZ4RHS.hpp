@@ -87,6 +87,35 @@ class CCZ4RHS
     operator()(int ix, int iy, int iz,
                const amrex::Array4<amrex::Real> &rhs_state,
                const amrex::Array4<amrex::Real const> &state) const;
+    /// Calculates the rhs for chi
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    calculate_chi_rhs(int ix, int iy, int iz,
+                      const amrex::Array4<amrex::Real> &rhs_state,
+                      const amrex::Array4<amrex::Real const> &state) const;
+    /// Calculates the rhs for h_ij
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    calculate_h_ij_rhs(int ix, int iy, int iz,
+                       const amrex::Array4<amrex::Real> &rhs_state,
+                       const amrex::Array4<amrex::Real const> &state) const;
+    // Calculates rhs for A_ij
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    calculate_A_ij_rhs(int ix, int iy, int iz,
+                       const amrex::Array4<amrex::Real> &rhs_state,
+                       const amrex::Array4<amrex::Real const> &state) const;
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    calculate_Theta_rhs(int ix, int iy, int iz,
+                        const amrex::Array4<amrex::Real> &rhs_state,
+                        const amrex::Array4<amrex::Real const> &state) const;
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    calculate_Gamma_rhs(int ix, int iy, int iz,
+                        const amrex::Array4<amrex::Real> &rhs_state,
+                        const amrex::Array4<amrex::Real const> &state) const;
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void apply_gauge_and_dissipation(
+        int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs_state,
+        const amrex::Array4<amrex::Real const> &state) const;
 
   protected:
     /// Calculates the rhs for CCZ4
