@@ -101,6 +101,28 @@ CCZ4RHS<gauge_t, deriv_t>::calculate_chi_rhs(
         advec_chi +
         (2.0 / (double)GR_SPACEDIM) * state_cell_data[c_chi] *
             (state_cell_data[c_lapse] * state_cell_data[c_K] - divshift);
+
+    // Calculation of h_ij RHS
+
+    Tensor<2, amrex::Real> advec_h =
+        m_deriv.advec_tensor(ix, iy, iz, state, shift_vector, c_h11);
+
+    FOR (i, j)
+    {
+        rhs_cell_data[var_idx(c_h11, i, j)] =
+            advec_h[i][j] -
+            2.0 * state_cell_data[c_lapse] *
+                state_cell_data[var_idx(c_A11, i, j)] -
+            (2.0 / (double)GR_SPACEDIM) *
+                state_cell_data[var_idx(c_h11, i, j)] * divshift;
+
+        FOR (k)
+        {
+            rhs_cell_data[var_idx(c_h11, i, j)] +=
+                state_cell_data[var_idx(c_h11, k, i)] * d1_shift[k][j] +
+                state_cell_data[var_idx(c_h11, k, j)] * d1_shift[k][i];
+        }
+    }
 }
 
 template <class gauge_t, class deriv_t>
@@ -253,6 +275,130 @@ CCZ4RHS<gauge_t, deriv_t>::calculate_A_ij_rhs(
                     state_cell_data[var_idx(c_A11, l, j)];
             }
         }
+    }
+
+    // Theta specific parts
+
+    amrex::Real Aij_squared =
+        CCZ4Geometry::compute_Aij_squared(state_cell_data, h_UU);
+
+    amrex::Real advec_K =
+        m_deriv.advection(ix, iy, iz, state, shift_vector, c_K);
+
+    amrex::Real tr_covd2lapse = -((double)GR_SPACEDIM / 2.0) * dlapse_dot_dchi;
+    FOR (i)
+    {
+        tr_covd2lapse -=
+            state_cell_data[c_chi] * chris.contracted[i] * d1_lapse[i];
+        FOR (j)
+        {
+            tr_covd2lapse +=
+                h_UU[i][j] * (state_cell_data[c_chi] * d2_lapse[i][j] +
+                              d1_lapse[i] * d1_chi[j]);
+        }
+    }
+
+    amrex::Real kappa1_times_lapse;
+    if (m_params.covariantZ4)
+    {
+        kappa1_times_lapse = m_params.kappa1;
+    }
+    else
+    {
+        kappa1_times_lapse = m_params.kappa1 * state_cell_data[c_lapse];
+    }
+
+    if (m_formulation == USE_BSSN)
+    {
+        // ensure the Theta of CCZ4 remains at zero
+        rhs_cell_data[c_Theta] = 0.0;
+        // Use hamiltonian constraint to remove ricci.scalar for BSSN update
+        rhs_cell_data[c_K] =
+            advec_K +
+            state_cell_data[c_lapse] *
+                (Aij_squared + state_cell_data[c_K] * state_cell_data[c_K] /
+                                   (double)GR_SPACEDIM) -
+            tr_covd2lapse -
+            2.0 * state_cell_data[c_lapse] * m_cosmological_constant /
+                ((double)GR_SPACEDIM - 1.0);
+    }
+    else
+    {
+        amrex::Real advec_Theta =
+            m_deriv.advection(ix, iy, iz, state, shift_vector, c_Theta);
+
+        rhs_cell_data[c_Theta] =
+            advec_Theta +
+            0.5 * state_cell_data[c_lapse] *
+                (ricci.scalar - Aij_squared +
+                 (((double)GR_SPACEDIM - 1.0) / (double)GR_SPACEDIM) *
+                     state_cell_data[c_K] * state_cell_data[c_K] -
+                 2.0 * state_cell_data[c_Theta] * state_cell_data[c_K]) -
+            0.5 * state_cell_data[c_Theta] * kappa1_times_lapse *
+                (((double)GR_SPACEDIM + 1) +
+                 m_params.kappa2 * ((double)GR_SPACEDIM - 1.0)) -
+            Z_dot_d1lapse - state_cell_data[c_lapse] * m_cosmological_constant;
+
+        rhs_cell_data[c_K] =
+            advec_K +
+            state_cell_data[c_lapse] *
+                (ricci.scalar +
+                 state_cell_data[c_K] *
+                     (state_cell_data[c_K] - 2.0 * state_cell_data[c_Theta])) -
+            kappa1_times_lapse * (double)GR_SPACEDIM * (1.0 + m_params.kappa2) *
+                state_cell_data[c_Theta] -
+            tr_covd2lapse -
+            2.0 * state_cell_data[c_lapse] * (double)GR_SPACEDIM /
+                ((double)GR_SPACEDIM - 1.0) * m_cosmological_constant;
+    }
+
+    // Gamma specific parts:
+    Tensor<1, amrex::Real> Gammadot;
+    auto d2_shift = m_deriv.diff2_vector(ix, iy, iz, state, c_shift1);
+    auto d1_K     = m_deriv.diff1_scalar(ix, iy, iz, state, c_K);
+    auto d1_Theta = m_deriv.diff1_scalar(ix, iy, iz, state, c_Theta);
+
+    FOR (i)
+    {
+        Gammadot[i] = (2.0 / (double)GR_SPACEDIM) *
+                          (divshift * (chris.contracted[i] +
+                                       2.0 * m_params.kappa3 * Z_over_chi[i]) -
+                           2.0 * state_cell_data[c_lapse] *
+                               state_cell_data[c_K] * Z_over_chi[i]) -
+                      2.0 * kappa1_times_lapse * Z_over_chi[i];
+
+        FOR (j)
+        {
+            Gammadot[i] +=
+                2.0 * h_UU[i][j] *
+                    (state_cell_data[c_lapse] * d1_Theta[j] -
+                     state_cell_data[c_Theta] * d1_lapse[j]) -
+                2.0 * A_UU[i][j] * d1_lapse[j] -
+                state_cell_data[c_lapse] *
+                    ((2.0 * ((double)GR_SPACEDIM - 1.0) / (double)GR_SPACEDIM) *
+                         h_UU[i][j] * d1_K[j] +
+                     (double)GR_SPACEDIM * A_UU[i][j] * d1_chi[j] /
+                         state_cell_data[c_chi]) -
+                (chris.contracted[j] + 2.0 * m_params.kappa3 * Z_over_chi[j]) *
+                    d1_shift[i][j];
+
+            FOR (k)
+            {
+                Gammadot[i] +=
+                    2.0 * state_cell_data[c_lapse] * chris.ULL[i][j][k] *
+                        A_UU[j][k] +
+                    h_UU[j][k] * d2_shift[i][j][k] +
+                    (((double)GR_SPACEDIM - 2.0) / (double)GR_SPACEDIM) *
+                        h_UU[i][j] * d2_shift[k][j][k];
+            }
+        }
+    }
+
+    auto advec_Gamma =
+        m_deriv.advec_vector(ix, iy, iz, state, shift_vector, c_Gamma1);
+    FOR (i)
+    {
+        rhs_cell_data[c_Gamma1 + i] = advec_Gamma[i] + Gammadot[i];
     }
 }
 
