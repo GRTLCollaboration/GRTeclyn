@@ -266,19 +266,18 @@ void BinaryBHLevel::specific_post_regrid(int a_lbase, int a_new_finest)
     auto *gramr = get_gramr_ptr();
     auto *bh    = get_bhamr_ptr();
 
-    amrex::Print() << "  cumTime = " << (gramr ? gramr->cumTime() : -1.0)
-                   << "\n";
-    amrex::Print() << "  bh ptr  = " << (void *)bh << "\n";
+    amrex::Print() << "cumTime = " << (gramr ? gramr->cumTime() : -1.0) << "\n";
+    amrex::Print() << "bh ptr  = " << (void *)bh << "\n";
 
     if (bh && bh->m_weyl_interpolator)
     {
-        amrex::Print() << "  Forcing redistribute flag on this rank/level\n";
+        amrex::Print() << "Forcing redistribute flag on this rank/level\n";
         bh->m_weyl_interpolator->force_redistribute(true);
         bh->m_weyl_interpolator->Redistribute();
     }
     else
     {
-        amrex::Print() << "  Skipping: interpolator is null here\n";
+        amrex::Print() << "Skipping: interpolator is null here\n";
     }
 }
 
