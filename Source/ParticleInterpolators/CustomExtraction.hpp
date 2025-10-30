@@ -53,18 +53,14 @@ class CustomExtraction
     {
 
         // build coordinates along x from origin to origin + L
-        std::vector<double> interp_x(m_num_points, m_origin[0]);
+        std::vector<double> interp_x(m_num_points);
         std::vector<double> interp_y(m_num_points, m_origin[1]);
-        std::vector<double> interp_z(m_num_points);
+        std::vector<double> interp_z(m_num_points, m_origin[2]);
 
-        for (int i = 0; i < m_num_points; ++i)
+	for (int i = 0; i < m_num_points; ++i)
         {
-            const double t = (i + 0.5) / static_cast<double>(m_num_points);
-            interp_z[i]    = m_origin[2] + t * m_L;
-            amrex::Print() << " CustomExtraction: point " << i
-                           << " at x = " << interp_x[i]
-                           << " at y = " << interp_y[i]
-                           << " at z = " << interp_z[i] << "\n";
+            interp_x[i] =
+                m_origin[0] + (double(i) / double(m_num_points - 1)) * m_L;
         }
 
         // set up InterpolationQuery
@@ -87,7 +83,13 @@ class CustomExtraction
         }
 
         // populate particles at the query points
-        particles.populate_from_query(query);
+        //particles.populate_from_query(query);
+	
+        auto *qptr_now = particles.current_query();
+        //if (!qptr_now)
+        // query not set?
+        particles.set_query(query);
+        particles.ensure_query_populated();
 
         // interpolate from the AMR state into particle SOA
         particles.interpolate_to_particle();
@@ -109,7 +111,7 @@ class CustomExtraction
             for (int i = 0; i < m_num_points; ++i)
             {
                 header_line[i] =
-                    "z = " + to_string_with_precision(interp_z[i], 2);
+                    "x = " + to_string_with_precision(interp_x[i], 2);
             }
             output_file.write_header_line(header_line);
         }

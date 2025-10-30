@@ -259,15 +259,20 @@ void BinaryBHLevel::specific_post_regrid(int a_lbase, int a_new_finest)
 {
     amrex::Print() << "BinaryBHLevel::specific_post_regrid() on level "
                    << Level() << "\n";
-    if (get_gramr_ptr()->cumTime() > 0.0)
-    {
-        if (auto *bh = get_bhamr_ptr())
-        {
-            if (bh->m_weyl_interpolator)
-            {
-                bh->m_weyl_interpolator->force_redistribute(true);
-            }
-        }
+
+    auto* gramr = get_gramr_ptr();
+    auto* bh    = get_bhamr_ptr();
+
+    amrex::Print() << "  cumTime = " << (gramr ? gramr->cumTime() : -1.0) << "\n";
+    amrex::Print() << "  bh ptr  = " << (void*)bh << "\n";
+
+    if (bh && bh->m_weyl_interpolator) {
+        amrex::Print() << "  Forcing redistribute flag on this rank/level\n";
+        bh->m_weyl_interpolator->force_redistribute(true);
+        // Even safer: do the migration right now:
+        bh->m_weyl_interpolator->Redistribute();
+    } else {
+        amrex::Print() << "  Skipping: interpolator is null here\n";
     }
 }
 
@@ -385,12 +390,12 @@ void BinaryBHLevel::specificPostTimeStep()
     // }
 
     // Custom extraction
-    if (Level() == 1)
+    if (Level() == 3)
     {
         // set up the query and execute it
         std::array<double, AMREX_SPACEDIM> extraction_origin = {
             simParams().L / 2, simParams().L / 2,
-            -simParams().L / 2}; // amend appropriately depending on whether you
+           simParams().L / 2-1.}; // amend appropriately depending on whether you
                                  // used symmetric BCs or something else
 
         double m_time       = get_state_data(State_Type).curTime();
@@ -398,7 +403,7 @@ void BinaryBHLevel::specificPostTimeStep()
         double restart_time = get_gramr_ptr()->get_restart_time();
 
         // a random chi lineout
-        CustomExtraction chi_extraction(c_chi, 1, 15, simParams().L / 2.,
+        CustomExtraction chi_extraction(c_chi, 1, 15, simParams().L / 4.,
                                         extraction_origin, m_dt, m_time,
                                         restart_time, first_step);
         chi_extraction.execute_query(*get_bhamr_ptr()->m_weyl_interpolator,

@@ -282,8 +282,6 @@ void ParticleInterpolators<num_components>::interpolate_to_particle()
     AMREX_ASSERT(m_initialized);
 
     ensure_redistributed();
-    if (m_particles_seeded)
-        return;
 
     const int start_comp = m_start_comp;
     const int ncomp      = num_components;
