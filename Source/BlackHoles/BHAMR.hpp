@@ -66,7 +66,8 @@ template <int num_punctures> class BHAMR : public GRAMR
     {
         if (m_query != &q)
         { // only if the query object changed
-            m_query           = &q;
+	    amrex::Print() << "Query object changed \n";
+	    m_query           = &q;
             m_query_populated = false;
         }
     }
@@ -77,6 +78,7 @@ template <int num_punctures> class BHAMR : public GRAMR
         AMREX_ASSERT(m_query);
         if (!m_query_populated)
         {
+	    amrex::Print() << "Query being populated \n";
             m_weyl_interpolator->populate_from_query(*m_query);
             m_query_populated = true;
         }

@@ -179,13 +179,15 @@ void SurfaceExtractionParticle<SurfaceGeometry>::extract(
                                          "m_vars contains non-state entries");
     }
 
+    // THIS IS NOT FULLY TESTED YET!!
+
     // a_interpolator->populate_from_query(query);
     auto *qptr_now = a_interpolator->current_query();
-    if (!qptr_now)
-    { // query not set?
-        a_interpolator->set_query(query);
-        a_interpolator->ensure_query_populated();
-    }
+    // if (!qptr_now)
+    // query not set?
+    a_interpolator->set_query(query);
+    a_interpolator->ensure_query_populated();
+
     a_interpolator->interpolate_to_particle();
     a_interpolator->interp(query, VariableType::state);
 

@@ -43,6 +43,8 @@ void GRAMR::set_restart_time(double a_restart_time)
     m_restart_time = a_restart_time;
 }
 
+// we do not need std::unique_ptr here strictly speaking. We can actually omit
+// this step.
 void GRAMR::convert_derived_multifabs(
     const amrex::Vector<std::unique_ptr<amrex::MultiFab>> &inputs,
     amrex::Vector<const amrex::MultiFab *> &fields)
