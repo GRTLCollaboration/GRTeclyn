@@ -28,7 +28,7 @@ jobs:
 
     steps:
     - name: Checkout GRTeclyn
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Set up common actions
       id: common
