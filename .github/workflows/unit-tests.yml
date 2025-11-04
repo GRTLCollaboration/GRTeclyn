@@ -12,7 +12,7 @@ jobs:
 
   tests:
     needs: check-changes
-    if: ${{ needs.check-changes.outputs.has_changes }} == 'true'
+    if: ${{ needs.check-changes.outputs.has_unit_test_changes == 'true' }}
     runs-on: ubuntu-24.04
     strategy:
       matrix:

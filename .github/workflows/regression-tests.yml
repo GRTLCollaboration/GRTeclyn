@@ -21,7 +21,7 @@ jobs:
 
   build:
     needs: check-changes
-    if: ${{ needs.check-changes.outputs.has_changes }} == 'true'
+    if: ${{  needs.check-changes.outputs.has_regression_test_changes == 'true' }}
     name: Build fcompare
     runs-on: ubuntu-24.04
     steps:
