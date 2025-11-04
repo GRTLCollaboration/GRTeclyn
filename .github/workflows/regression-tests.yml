@@ -1,25 +1,6 @@
 name: Regression Tests
 
-on:
-  push:
-    paths-ignore: &regression_tests_paths_ignore
-      - '.gitlab/**'
-      - 'Docs/**'
-      - 'external/**'
-      - 'Tests/**'
-      - 'Tools/CopyrightHeaders'
-      - 'Tools/Doxygen'
-      - '.clang-*'
-      - '.gitignore'
-      - '.gitlab-ci.yml'
-      - '.lint-ignore'
-      - '.pre-commit-config.yaml'
-      - 'LICENSE'
-      - 'README.md'
-      - 'run_clang_format'
-  pull_request:
-    paths-ignore: *regression_tests_paths_ignore
-
+on: [push, pull_request]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -35,7 +16,28 @@ env:
     USE_CCACHE=TRUE
 
 jobs:
+  check-changes:
+    runs-on: ubuntu-24.04
+    permissions:
+      pull-requests: read
+    outputs:
+      build: ${{ steps.filter.outputs.source }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            source:
+              - 'Source/**'
+              - '.github/**'
+              - 'GNUmakefile'
+              - 'Examples/**'
+              - 'Tools/GNUMake'
+
   build:
+    needs: check-changes
+    if: ${{ needs.check-changes.outputs.source }} == 'true'
     name: Build fcompare
     runs-on: ubuntu-24.04
     steps:
