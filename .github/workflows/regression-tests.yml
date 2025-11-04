@@ -17,27 +17,11 @@ env:
 
 jobs:
   check-changes:
-    runs-on: ubuntu-24.04
-    permissions:
-      pull-requests: read
-    outputs:
-      build: ${{ steps.filter.outputs.source }}
-    steps:
-      - uses: actions/checkout@v5
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            source:
-              - 'Source/**'
-              - '.github/**'
-              - 'GNUmakefile'
-              - 'Examples/**'
-              - 'Tools/GNUMake'
+    uses: ./.github/workflows/check-changes.yml
 
   build:
     needs: check-changes
-    if: ${{ needs.check-changes.outputs.source }} == 'true'
+    if: ${{ needs.check-changes.outputs.has_changes }} == 'true'
     name: Build fcompare
     runs-on: ubuntu-24.04
     steps:

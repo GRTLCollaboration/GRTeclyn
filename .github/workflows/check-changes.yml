@@ -1,0 +1,31 @@
+name: Check for changes to Source files
+
+# This allows us to exclude certain GitHub actions from running
+# if, say, only changes to the documentation are made.
+# Simply add this as the first step in your jobs and check the
+# return value in subsequent steps. It will return true if any
+# of the files in the 'has_changes' variable is true
+
+on:
+  workflow_call:
+    outputs:
+      has_changes:
+        value: ${{ jobs.check-changes.outputs.has_changes }}
+
+jobs:
+  check-changes:
+    runs-on: ubuntu-24.04
+    outputs:
+      has_changes: ${{ steps.filter.outputs.has_changes }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            has_changes:
+              - 'Source/**'
+              - '.github/**'
+              - 'GNUmakefile'
+              - 'Examples/**'
+              - 'Tools/GNUMake'
