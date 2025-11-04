@@ -9,23 +9,36 @@ name: Check for changes to Source files
 on:
   workflow_call:
     outputs:
-      has_changes:
-        value: ${{ jobs.check-changes.outputs.has_changes }}
+      has_core_changes:
+        value: ${{ jobs.check-changes.outputs.has_core_changes }}
+      has_example_changes:
+        value: ${{ jobs.check-changes.outputs.has_example_changes }}
+      has_unit_test_changes:
+        value: ${{ jobs.check-changes.outputs.has_unit_test_changes }}
 
 jobs:
   check-changes:
     runs-on: ubuntu-24.04
     outputs:
-      has_changes: ${{ steps.filter.outputs.has_changes }}
+      has_core_changes: ${{ steps.filter.outputs.has_core_changes }}
+      has_example_changes: ${{ steps.filter.outputs.has_example_changes }}
+      has_unit_test_changes: ${{ steps.filter.outputs.has_unit_test_changes }}
     steps:
       - uses: actions/checkout@v5
       - uses: dorny/paths-filter@v3
         id: filter
         with:
+          base: ${{ github.event_name == 'pull_request' && '' || github.ref }}
           filters: |
-            has_changes:
+            has_core_changes: &core
               - 'Source/**'
               - '.github/**'
               - 'GNUmakefile'
+              - 'Tools/GNUMake/**'
+            has_example_changes:
+              - *core
               - 'Examples/**'
-              - 'Tools/GNUMake'
+            has_unit_test_changes:
+              - *core
+              - 'Test/**'
+              - 'external/doctest/**'
