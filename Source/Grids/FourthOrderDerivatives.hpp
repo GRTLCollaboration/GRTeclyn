@@ -11,6 +11,7 @@
 #include "DimensionDefinitions.hpp"
 #include "Tensor.hpp"
 #include <array>
+#include "AMReX_Array.H"
 
 class FourthOrderDerivatives
 {
@@ -55,6 +56,26 @@ class FourthOrderDerivatives
         }
         return d1;
     }
+
+    // [[nodiscard]] AMREX_GPU_DEVICE
+    //     AMREX_FORCE_INLINE amrex::Array1D<amrex::Real, 0, 3>
+    //     diff1(int ix, int iy, int iz,
+    //           const amrex::Array4<const amrex::Real> &state,
+    //           const int ivar) const
+    // {
+    //     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+    //     amrex::Array<amrex::Real, 0, 3> d1;
+    //     const auto *state_ptr_xyz = state.ptr(ix, iy, iz);
+    //     amrex::GpuArray<int, AMREX_SPACEDIM> strides{
+    //         1, static_cast<int>(state.jstride),
+    //         static_cast<int>(state.kstride)};
+    //     const auto *var_ptr = state_ptr_xyz + ivar * state.nstride;
+    //     FOR (idir)
+    //     {
+    //         d1(idir) = diff1(var_ptr, strides[idir]);
+    //     }
+    //     return d1;
+    // }
 
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<1, amrex::Real>
     diff1_scalar(int ix, int iy, int iz,
@@ -182,6 +203,89 @@ class FourthOrderDerivatives
                 d2[idir1][idir2] = d2_tmp;
                 d2[idir2][idir1] = d2_tmp;
             }
+        }
+        return d2;
+    }
+
+    [[nodiscard]] AMREX_GPU_DEVICE
+        AMREX_FORCE_INLINE amrex::Array1D<amrex::Real, 0, 6>
+        diff2_sym_scalar(int ix, int iy, int iz,
+                         const amrex::Array4<amrex::Real const> &state,
+                         const int ivar) const
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+        amrex::Array1D<amrex::Real, 0, 6> d2;
+        const auto *state_ptr_xyz = state.ptr(ix, iy, iz);
+        amrex::GpuArray<int, AMREX_SPACEDIM> strides{
+            1, static_cast<int>(state.jstride),
+            static_cast<int>(state.kstride)};
+        const auto *var_ptr = state_ptr_xyz + ivar * state.nstride;
+
+        d2(0) = diff2(var_ptr, strides[0]);
+        d2(3) = diff2(var_ptr, strides[1]);
+        d2(5) = diff2(var_ptr, strides[2]);
+
+        d2(1) = mixed_diff2(var_ptr, strides[0], strides[1]);
+        d2(2) = mixed_diff2(var_ptr, strides[0], strides[2]);
+        d2(4) = mixed_diff2(var_ptr, strides[1], strides[2]);
+
+        return d2;
+    }
+
+    [[nodiscard]] AMREX_GPU_DEVICE
+        AMREX_FORCE_INLINE amrex::Array2D<amrex::Real, 0, 3, 0, 6>
+        diff2_sym_vector(int ix, int iy, int iz,
+                         const amrex::Array4<amrex::Real const> &state,
+                         const int ivar_0) const
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+        amrex::Array2D<amrex::Real, 0, 3, 0, 6> d2;
+        const auto *state_ptr_xyz = state.ptr(ix, iy, iz);
+        amrex::GpuArray<int, AMREX_SPACEDIM> strides{
+            1, static_cast<int>(state.jstride),
+            static_cast<int>(state.kstride)};
+
+        FOR (icomp)
+        {
+            const int ivar      = ivar_0 + icomp;
+            const auto *var_ptr = state_ptr_xyz + ivar * state.nstride;
+
+            d2(icomp, 0) = diff2(var_ptr, strides[0]);
+            d2(icomp, 3) = diff2(var_ptr, strides[1]);
+            d2(icomp, 5) = diff2(var_ptr, strides[2]);
+
+            d2(icomp, 1) = mixed_diff2(var_ptr, strides[0], strides[1]);
+            d2(icomp, 2) = mixed_diff2(var_ptr, strides[0], strides[2]);
+            d2(icomp, 4) = mixed_diff2(var_ptr, strides[1], strides[2]);
+        }
+        return d2;
+    }
+
+    [[nodiscard]] AMREX_GPU_DEVICE
+        AMREX_FORCE_INLINE amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 6>
+        diff2_sym_tensor(int ix, int iy, int iz,
+                         const amrex::Array4<amrex::Real const> &state,
+                         const int ivar_0) const
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+        amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 6> d2;
+        const auto *state_ptr_xyz = state.ptr(ix, iy, iz);
+        amrex::GpuArray<int, AMREX_SPACEDIM> strides{
+            1, static_cast<int>(state.jstride),
+            static_cast<int>(state.kstride)};
+
+        FOR (icomp, jcomp)
+        {
+            const int ivar      = var_idx(ivar_0, icomp, jcomp);
+            const auto *var_ptr = state_ptr_xyz + ivar * state.nstride;
+
+            d2(icomp, jcomp, 0) = diff2(var_ptr, strides[0]);
+            d2(icomp, jcomp, 3) = diff2(var_ptr, strides[1]);
+            d2(icomp, jcomp, 5) = diff2(var_ptr, strides[2]);
+
+            d2(icomp, jcomp, 1) = mixed_diff2(var_ptr, strides[0], strides[1]);
+            d2(icomp, jcomp, 2) = mixed_diff2(var_ptr, strides[0], strides[2]);
+            d2(icomp, jcomp, 4) = mixed_diff2(var_ptr, strides[1], strides[2]);
         }
         return d2;
     }

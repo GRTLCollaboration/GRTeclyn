@@ -178,7 +178,7 @@ CCZ4RHS<gauge_t, deriv_t>::calculate_A_ij_rhs(
     const amrex::CellData<const amrex::Real> &state_cell_data =
         state.cellData(ix, iy, iz);
 
-    const auto h_UU = CCZ4Geometry::compute_inverse_metric(state_cell_data);
+    const auto h_UU = CCZ4Geometry::compute_inverse_metric_sym(state_cell_data);
 
     // hij derivatives
     Tensor<3, amrex::Real> d1_h =
@@ -199,7 +199,7 @@ CCZ4RHS<gauge_t, deriv_t>::calculate_A_ij_rhs(
 
         FOR (i)
             Z_over_chi[i] =
-                0.5 * (state_cell_data[c_Gamma1 + i] - chris.contracted[i]);
+                0.5 * (state_cell_data[c_Gamma1 + i] - chris.contracted(i));
     }
     FOR (i)
         Z[i] = state_cell_data[c_chi] * Z_over_chi[i];
@@ -220,14 +220,15 @@ CCZ4RHS<gauge_t, deriv_t>::calculate_A_ij_rhs(
 
     Tensor<2, amrex::Real> covdtilde2lapse;
     Tensor<2, amrex::Real> covd2lapse;
-    auto d2_lapse = m_deriv.diff2_scalar(ix, iy, iz, state, c_lapse);
+    auto d2_lapse = m_deriv.diff2_sym_scalar(ix, iy, iz, state, c_lapse);
 
     FOR (k, l)
     {
-        covdtilde2lapse[k][l] = d2_lapse[k][l];
+        int idx               = k + l + ((k * l != 0) ? 1 : 0);
+        covdtilde2lapse[k][l] = d2_lapse(idx);
         FOR (m)
         {
-            covdtilde2lapse[k][l] -= chris.ULL[m][k][l] * d1_lapse[m];
+            covdtilde2lapse[k][l] -= chris.ULL(m, k, l) * d1_lapse[m];
         }
         covd2lapse[k][l] =
             state_cell_data[c_chi] * covdtilde2lapse[k][l] +
@@ -269,8 +270,9 @@ CCZ4RHS<gauge_t, deriv_t>::calculate_A_ij_rhs(
                 state_cell_data[var_idx(c_A11, k, j)] * d1_shift[k][i];
             FOR (l)
             {
+                int idx = k + l + ((k * l != 0) ? 1 : 0);
                 rhs_cell_data[var_idx(c_A11, i, j)] -=
-                    2.0 * state_cell_data[c_lapse] * h_UU[k][l] *
+                    2.0 * state_cell_data[c_lapse] * h_UU(idx) *
                     state_cell_data[var_idx(c_A11, i, k)] *
                     state_cell_data[var_idx(c_A11, l, j)];
             }
@@ -289,12 +291,13 @@ CCZ4RHS<gauge_t, deriv_t>::calculate_A_ij_rhs(
     FOR (i)
     {
         tr_covd2lapse -=
-            state_cell_data[c_chi] * chris.contracted[i] * d1_lapse[i];
+            state_cell_data[c_chi] * chris.contracted(i) * d1_lapse[i];
         FOR (j)
         {
+            int idx = i + j + ((i * j != 0) ? 1 : 0);
             tr_covd2lapse +=
-                h_UU[i][j] * (state_cell_data[c_chi] * d2_lapse[i][j] +
-                              d1_lapse[i] * d1_chi[j]);
+                h_UU(idx) * (state_cell_data[c_chi] * d2_lapse(idx) +
+                             d1_lapse[i] * d1_chi[j]);
         }
     }
 
@@ -354,14 +357,14 @@ CCZ4RHS<gauge_t, deriv_t>::calculate_A_ij_rhs(
 
     // Gamma specific parts:
     Tensor<1, amrex::Real> Gammadot;
-    auto d2_shift = m_deriv.diff2_vector(ix, iy, iz, state, c_shift1);
+    auto d2_shift = m_deriv.diff2_sym_vector(ix, iy, iz, state, c_shift1);
     auto d1_K     = m_deriv.diff1_scalar(ix, iy, iz, state, c_K);
     auto d1_Theta = m_deriv.diff1_scalar(ix, iy, iz, state, c_Theta);
 
     FOR (i)
     {
         Gammadot[i] = (2.0 / (double)GR_SPACEDIM) *
-                          (divshift * (chris.contracted[i] +
+                          (divshift * (chris.contracted(i) +
                                        2.0 * m_params.kappa3 * Z_over_chi[i]) -
                            2.0 * state_cell_data[c_lapse] *
                                state_cell_data[c_K] * Z_over_chi[i]) -
@@ -369,27 +372,29 @@ CCZ4RHS<gauge_t, deriv_t>::calculate_A_ij_rhs(
 
         FOR (j)
         {
+            int idx1 = i + j + ((i * j != 0) ? 1 : 0);
             Gammadot[i] +=
-                2.0 * h_UU[i][j] *
+                2.0 * h_UU(idx1) *
                     (state_cell_data[c_lapse] * d1_Theta[j] -
                      state_cell_data[c_Theta] * d1_lapse[j]) -
                 2.0 * A_UU[i][j] * d1_lapse[j] -
                 state_cell_data[c_lapse] *
                     ((2.0 * ((double)GR_SPACEDIM - 1.0) / (double)GR_SPACEDIM) *
-                         h_UU[i][j] * d1_K[j] +
+                         h_UU(idx1) * d1_K[j] +
                      (double)GR_SPACEDIM * A_UU[i][j] * d1_chi[j] /
                          state_cell_data[c_chi]) -
-                (chris.contracted[j] + 2.0 * m_params.kappa3 * Z_over_chi[j]) *
+                (chris.contracted(j) + 2.0 * m_params.kappa3 * Z_over_chi[j]) *
                     d1_shift[i][j];
 
             FOR (k)
             {
+                int idx2 = j + k + ((j * k != 0) ? 1 : 0);
                 Gammadot[i] +=
-                    2.0 * state_cell_data[c_lapse] * chris.ULL[i][j][k] *
+                    2.0 * state_cell_data[c_lapse] * chris.ULL(i, j, k) *
                         A_UU[j][k] +
-                    h_UU[j][k] * d2_shift[i][j][k] +
+                    h_UU(idx2) * d2_shift(i, idx2) +
                     (((double)GR_SPACEDIM - 2.0) / (double)GR_SPACEDIM) *
-                        h_UU[i][j] * d2_shift[k][j][k];
+                        h_UU(idx1) * d2_shift(k, idx2);
             }
         }
     }
