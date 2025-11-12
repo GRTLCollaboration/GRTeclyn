@@ -37,6 +37,7 @@ struct chris_t
     Tensor<1, amrex::Real> contracted; //!< contracted christoffel
 };
 
+
 struct chris_array_t
 {
     amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3>
@@ -243,6 +244,19 @@ compute_trace(const Tensor<2, amrex::Real> &tensor_LL,
     return trace;
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
+compute_trace(const Tensor<2, amrex::Real> &tensor_LL,
+              const amrex::Array1D<amrex::Real, 0, 6> &inverse_metric_sym)
+{
+    amrex::Real trace = 0.;
+    FOR (i, j)
+    {
+        int idx  = i + j + ((i * j != 0) ? 1 : 0);
+        trace   += inverse_metric_sym(idx) * tensor_LL[i][j];
+    }
+    return trace;
+}
+
 /// Computes the trace of a 1,1 Tensor (a matrix) - no metric required.
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_trace(const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &tensor_UL)
@@ -359,6 +373,21 @@ compute_dot_product(const Tensor<1, amrex::Real> &covector1_L,
     FOR (m, n)
     {
         dot_product += inverse_metric[m][n] * covector1_L[m] * covector2_L[n];
+    }
+    return dot_product;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
+compute_dot_product(const Tensor<1, amrex::Real> &covector1_L,
+                    const Tensor<1, amrex::Real> &covector2_L,
+                    const amrex::Array1D<amrex::Real, 0, 6> &inverse_metric_sym)
+{
+    amrex::Real dot_product = 0.;
+    FOR (m, n)
+    {
+        int idx = m + n + ((m * n != 0) ? 1 : 0);
+        dot_product +=
+            inverse_metric_sym(idx) * covector1_L[m] * covector2_L[n];
     }
     return dot_product;
 }
