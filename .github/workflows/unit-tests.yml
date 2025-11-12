@@ -2,10 +2,6 @@ name: Unit Tests
 
 on: [push, pull_request]
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   check-changes:
     uses: ./.github/workflows/check-changes.yml
@@ -14,6 +10,10 @@ jobs:
     needs: check-changes
     if: ${{ needs.check-changes.outputs.has_unit_test_changes == 'true' }}
     runs-on: ubuntu-24.04
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.comp }}-${{
+        matrix.comp-version }}-${{ matrix.mpi }}-${{ matrix.debug }}-${{ matrix.omp }}
+      cancel-in-progress: true
     strategy:
       matrix:
         comp: ['gnu', 'llvm']

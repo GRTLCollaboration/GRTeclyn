@@ -4,10 +4,6 @@ name: GPU Build
 
 on: [push, pull_request]
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   check-changes:
     uses: ./.github/workflows/check-changes.yml
@@ -17,6 +13,9 @@ jobs:
     if: ${{ needs.check-changes.outputs.has_example_changes == 'true' ||
       needs.check-changes.outputs.has_unit_test_changes == 'true' }}
     runs-on: ubuntu-22.04
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.gpu-backend }}
+      cancel-in-progress: true
     strategy:
       matrix:
         gpu-backend: ["CUDA", "HIP", "SYCL"]

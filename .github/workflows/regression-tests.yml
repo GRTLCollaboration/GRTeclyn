@@ -2,10 +2,6 @@ name: Regression Tests
 
 on: [push, pull_request]
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 env:
   AMREX_HOME: ${{ github.workspace }}/amrex
   EXAMPLES_DIR: ${{ github.workspace }}/Examples/
@@ -24,6 +20,9 @@ jobs:
     if: ${{  needs.check-changes.outputs.has_example_changes == 'true' }}
     name: Build fcompare
     runs-on: ubuntu-24.04
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-build
+      cancel-in-progress: true
     steps:
       - name: Checkout GRTeclyn
         uses: actions/checkout@v5
@@ -61,6 +60,9 @@ jobs:
   run-examples:
     name: Run examples
     needs: build
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-run-examples-${{ matrix.example_name }}
+      cancel-in-progress: true
     strategy:
       matrix:
         example_name: [BinaryBH, KleinGordon]
