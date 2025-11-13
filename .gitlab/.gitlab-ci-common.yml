@@ -49,7 +49,7 @@ variables:
     --abs_tol 1e-10
     --rel_tol 1e-10
   # We can only run a single job at a time with --qos=INTR
-  QOS_INTR_LOCK_FILE: qos-intr.lock
+  QOS_INTR_LOCK_FILE: /rds/project/rds-YVo7YUJF2mk/grteclyn-ci-svc/qos-intr.lock
   OUTPUT_DIR: /rds/project/rds-YVo7YUJF2mk/grteclyn-ci-svc/a100-test-${CI_PIPELINE_ID}/
 
 
