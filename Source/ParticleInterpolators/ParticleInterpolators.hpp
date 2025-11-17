@@ -29,6 +29,8 @@ class ParticleInterpolators
         false};          // a guard to make sure we do not uninitialised GRAMR
     int m_start_comp{0}; // first component
 
+    bool m_verbosity{false};
+
     bool m_particles_seeded{false};
     bool m_need_redistribute{true};
 
@@ -56,7 +58,7 @@ class ParticleInterpolators
     using Base::Base;
 
     ParticleInterpolators(const BoundaryConditions::params_t &a_bc_params,
-                          int a_start_comp);
+                          int a_start_comp, bool a_verbosity = false);
 
     // initialise everything and perform some sanity checks
     void set_gramr_ptr(GRAMR *gr_amr_ptr);

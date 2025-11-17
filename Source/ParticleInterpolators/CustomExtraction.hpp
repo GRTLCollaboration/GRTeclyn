@@ -57,7 +57,7 @@ class CustomExtraction
         std::vector<double> interp_y(m_num_points, m_origin[1]);
         std::vector<double> interp_z(m_num_points, m_origin[2]);
 
-	for (int i = 0; i < m_num_points; ++i)
+        for (int i = 0; i < m_num_points; ++i)
         {
             interp_x[i] =
                 m_origin[0] + (double(i) / double(m_num_points - 1)) * m_L;
@@ -82,11 +82,6 @@ class CustomExtraction
                                       // stuff into out_k array
         }
 
-        // populate particles at the query points
-        //particles.populate_from_query(query);
-	
-        auto *qptr_now = particles.current_query();
-        //if (!qptr_now)
         // query not set?
         particles.set_query(query);
         particles.ensure_query_populated();

@@ -181,9 +181,6 @@ void SurfaceExtractionParticle<SurfaceGeometry>::extract(
 
     // THIS IS NOT FULLY TESTED YET!!
 
-    // a_interpolator->populate_from_query(query);
-    auto *qptr_now = a_interpolator->current_query();
-    // if (!qptr_now)
     // query not set?
     a_interpolator->set_query(query);
     a_interpolator->ensure_query_populated();
@@ -236,13 +233,11 @@ void SurfaceExtractionParticle<SurfaceGeometry>::extract(
                 // our particles again
     a_interpolator->ensure_query_populated(); // populate query if this is the
                                               // first instance here
-    auto *qptr =
-        a_interpolator->current_query(); // get the cached query pointer
 
     // Now interpolate!
     a_interpolator->interpolate_to_particle_from_derived_fields(
         derived_fields); // obviously Weyl is derived
-    a_interpolator->interp(*qptr, VariableType::derived);
+    a_interpolator->interp(query, VariableType::derived);
 
     m_done_extraction = true;
 }
