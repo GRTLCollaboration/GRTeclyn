@@ -11,11 +11,11 @@
 #include "BoundaryConditions.hpp"
 #include "CCZ4RHS.hpp"
 #include "GRParmParse.hpp"
-#include "SphericalExtractionParticle.hpp"
+#include "SphericalExtraction.hpp"
 #include <limits>
 
 // add this type alias here for backwards compatibility
-using extraction_params_t = SphericalExtractionParticle::params_t;
+using extraction_params_t = SphericalExtraction::params_t;
 
 class SimulationParametersBase : public AMReXParameters
 {
@@ -339,7 +339,7 @@ class SimulationParametersBase : public AMReXParameters
     CCZ4_params_t<> ccz4_params;
 
     bool activate_extraction{};
-    SphericalExtractionParticle::params_t extraction_params;
+    SphericalExtraction::params_t extraction_params;
 
     std::string data_path;
 };
