@@ -1,9 +1,5 @@
 GRTECLYN_CEXE_headers += ParticleInterpolators.hpp \
                          ParticleInterpolators.impl.hpp \
                          InterpolationQueryParticle.hpp \
-                         LagrangeInterpolation.hpp \
-                         SphericalExtractionParticle.hpp \
-                         SurfaceExtractionParticle.hpp \
-                         SurfaceExtractionParticle.impl.hpp \
-                         WeylExtractionParticle.hpp
+                         LagrangeInterpolation.hpp
 

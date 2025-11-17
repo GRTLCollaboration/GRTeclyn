@@ -10,7 +10,7 @@
 #include "Coordinates.hpp"
 #include "DimensionDefinitions.hpp"
 #include "FourthOrderDerivatives.hpp"
-#include "SphericalExtractionParticle.hpp"
+#include "SphericalExtraction.hpp"
 #include "Tensor.hpp"
 
 //! This class tags cells based on two criteria - the
@@ -34,7 +34,7 @@ class ChiExtractionTagger
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     ChiExtractionTagger(const double dx, const int a_level,
                         const amrex::Real a_threshold,
-                        const SphericalExtractionParticle::params_t &a_params,
+                        const SphericalExtraction::params_t &a_params,
                         const bool activate_extraction = false)
         : m_dx(dx), m_deriv(dx), m_threshold(a_threshold),
           m_num_extraction_radii(a_params.num_extraction_radii()),

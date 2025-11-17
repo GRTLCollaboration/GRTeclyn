@@ -12,11 +12,9 @@
 #include "PunctureTagger.hpp"
 #include "PunctureTracker.hpp"
 // xxxxx #include "SixthOrderDerivatives.hpp"
-#include "CustomExtraction.hpp"
 #include "TraceARemoval.hpp"
 #include "TwoPuncturesInitialData.hpp"
 #include "Weyl4.hpp"
-#include "WeylExtractionParticle.hpp"
 
 BHAMR<BinaryBHLevel::num_punctures> *BinaryBHLevel::get_bhamr_ptr()
 {
@@ -257,28 +255,30 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
 // have changed, for example?
 void BinaryBHLevel::specific_post_regrid(int a_lbase, int a_new_finest)
 {
-    amrex::Print()
-        << "BinaryBHLevel::specific_post_regrid() on level " << Level()
-        << "\n"; // this will be called on each level, so redistribute() will
-                 // happen several times. This is lossy, should be ideally
-                 // changed so that it happens only once.
+    // amrex::Print()
+    //     << "BinaryBHLevel::specific_post_regrid() on level " << Level()
+    //     << "\n";
+
+    // NOTE: this will be called on each level, so redistribute() will
+    // happen several times. This is lossy, should be ideally
+    // changed so that it happens only once.
 
     auto *gramr = get_gramr_ptr();
     auto *bh    = get_bhamr_ptr();
 
-    amrex::Print() << "cumTime = " << (gramr ? gramr->cumTime() : -1.0) << "\n";
-    amrex::Print() << "bh ptr  = " << (void *)bh << "\n";
+    // amrex::Print() << "cumTime = " << (gramr ? gramr->cumTime() : -1.0) <<
+    // "\n"; amrex::Print() << "bh ptr  = " << (void *)bh << "\n";
 
     if (bh && bh->m_weyl_interpolator)
     {
-        amrex::Print() << "Forcing redistribute flag on this rank/level\n";
+        // amrex::Print() << "Forcing redistribute flag on this rank/level\n";
         bh->m_weyl_interpolator->force_redistribute(true);
         bh->m_weyl_interpolator->Redistribute();
     }
-    else
-    {
-        amrex::Print() << "Skipping: interpolator is null here\n";
-    }
+    // else
+    // {
+    //     amrex::Print() << "Skipping: interpolator is null here\n";
+    // }
 }
 
 void BinaryBHLevel::specific_post_init()
@@ -324,68 +324,6 @@ void BinaryBHLevel::specific_post_checkpoint(const std::string &a_chk_dir,
 
 void BinaryBHLevel::specificPostTimeStep()
 {
-    // std::cout << "BinaryBHLevel::specificPostTimeStep() on level " << Level()
-    //           << std::endl;
-    bool first_step = (parent->levelSteps(0) == 0);
-
-    // Weyl extraction
-    // if (Level() == 0)
-    // {
-    //     // Weyl extraction
-    //     int ngrow = 5;
-    //     int finest = get_gramr_ptr()->finestLevel();
-
-    //     amrex::Vector<std::unique_ptr<amrex::MultiFab>> out_weyl(finest + 1);
-
-    //     double m_time       = get_state_data(State_Type).curTime();
-    //     double m_dt         = get_gramr_ptr()->dtLevel(Level());
-    //     double restart_time = get_gramr_ptr()->get_restart_time();
-
-    // for (int lev = 0; lev <= finest; ++lev)
-    //     {
-    //         auto &L = get_gramr_ptr()->getLevel(lev);
-
-    //         out_weyl[lev] = L.derive("Weyl4", m_time, ngrow);
-
-    //         AMREX_ALWAYS_ASSERT(out_weyl[lev]);  // sanity check
-
-    //         amrex::Print() << "lev " << lev
-    //                << " nComp = " << out_weyl[lev]->nComp()
-    //                << " ngrow = " << out_weyl[lev]->nGrow()
-    //                << " norm0(comp 0) = " << out_weyl[lev]->norm0(0)
-    //                << "\n";
-    //     }
-
-    //     amrex::Vector<const amrex::MultiFab*> fields;
-    //     get_gramr_ptr()->convert_derived_multifabs(out_weyl, fields);
-
-    //     WeylExtractionParticle my_extraction(simParams().extraction_params,
-    //                                  m_dt, m_time, first_step,
-    //                                  restart_time);
-    //     my_extraction.execute_query(get_bhamr_ptr()->m_weyl_interpolator,
-    //                         fields);
-    // }
-
-    // Custom extraction
-    if (Level() == 3)
-    {
-        // set up the query and execute it
-        std::array<double, AMREX_SPACEDIM> extraction_origin = {
-            simParams().L / 2, simParams().L / 2,
-            simParams().L / 2 - 1.}; // amend appropriately depending on whether
-                                     // you used symmetric BCs or something else
-
-        double m_time       = get_state_data(State_Type).curTime();
-        double m_dt         = get_gramr_ptr()->dtLevel(Level());
-        double restart_time = get_gramr_ptr()->get_restart_time();
-
-        // a random chi lineout
-        CustomExtraction chi_extraction(c_chi, 1, 15, simParams().L / 4.,
-                                        extraction_origin, m_dt, m_time,
-                                        restart_time, first_step);
-        chi_extraction.execute_query(*get_bhamr_ptr()->m_weyl_interpolator,
-                                     "chi_lineout");
-    }
 
     // do puncture tracking on requested level
     if (simParams().puncture_tracking_enabled &&

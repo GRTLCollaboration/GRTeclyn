@@ -436,8 +436,6 @@ void ParticleInterpolators<num_components>::interp(
 
     int local_particle_counter = 0;
 
-    amrex::Print() << "Starting to gather particle values \n";
-
     // gather all particle values
     for (int lev = 0; lev <= this->finestLevel(); ++lev)
     {
