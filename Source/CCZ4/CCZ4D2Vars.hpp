@@ -23,7 +23,7 @@ class CCZ4D2Vars
     }
 
     // default empty contructor - for tests
-    AMREX_GPU_HOST_DEVICE CCZ4D2Vars() 
+    AMREX_GPU_HOST_DEVICE CCZ4D2Vars()
     {
         FOR (k, l)
         {

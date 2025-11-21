@@ -34,7 +34,11 @@ class PositiveChiAndLapse
 
         const amrex::CellData<amrex::Real> &state_cell_data =
             state.cellData(ix, iy, iz);
-        CCZ4Vars vars(state_cell_data);
+        // Copy here, to ensure reference in constructor stays in scope
+        const amrex::CellData<const amrex::Real> &const_state_cell_data =
+            state_cell_data;
+
+        CCZ4Vars vars(const_state_cell_data);
 
         amrex::Real chi   = vars.chi();
         amrex::Real lapse = vars.lapse();

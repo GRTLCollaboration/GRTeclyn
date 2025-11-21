@@ -27,7 +27,10 @@ class TraceARemoval
     {
         const amrex::CellData<amrex::Real> &state_cell_data =
             state.cellData(ix, iy, iz);
-        const CCZ4Vars vars(state_cell_data);
+        // Copy here, to ensure reference in constructor stays in scope
+        const amrex::CellData<const amrex::Real> &const_state_cell_data =
+            state_cell_data;
+        const CCZ4Vars vars(const_state_cell_data);
 
         using namespace CCZ4Geometry;
         const auto trace_A                = compute_trace_A(vars);
