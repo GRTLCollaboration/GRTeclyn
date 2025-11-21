@@ -243,37 +243,6 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
     amrex::Gpu::streamSynchronize();
 }
 
-// This is called by amrex on every level after regridding. After regrid we
-// should redistribute the particles again if BoxArrays or DistributionMappings
-// have changed, for example?
-void BinaryBHLevel::specific_post_regrid(int a_lbase, int a_new_finest)
-{
-    // amrex::Print()
-    //     << "BinaryBHLevel::specific_post_regrid() on level " << Level()
-    //     << "\n";
-
-    // NOTE: this will be called on each level, so redistribute() will
-    // happen several times. This is lossy, should be ideally
-    // changed so that it happens only once.
-
-    auto *gramr = get_gramr_ptr();
-    auto *bh    = get_bhamr_ptr();
-
-    // amrex::Print() << "cumTime = " << (gramr ? gramr->cumTime() : -1.0) <<
-    // "\n"; amrex::Print() << "bh ptr  = " << (void *)bh << "\n";
-
-    if (bh && bh->m_weyl_interpolator)
-    {
-        // amrex::Print() << "Forcing redistribute flag on this rank/level\n";
-        bh->m_weyl_interpolator->force_redistribute(true);
-        bh->m_weyl_interpolator->Redistribute();
-    }
-    // else
-    // {
-    //     amrex::Print() << "Skipping: interpolator is null here\n";
-    // }
-}
-
 void BinaryBHLevel::specific_post_init()
 {
     BL_PROFILE("BinaryBHLevel::specific_post_init()");

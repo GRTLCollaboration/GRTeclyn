@@ -426,7 +426,14 @@ void ParticleInterpolators<num_components>::interp(
     // }
 
     // get total query points here
-    const int npts = static_cast<int>(query.numPoints());
+    int npts = 0;
+    if (amrex::ParallelDescriptor::IOProcessor())
+    {
+        npts = static_cast<int>(query.numPoints()); // only rank 0 touches query
+    }
+    // broadcast
+    amrex::ParallelDescriptor::Bcast(
+        &npts, 1, amrex::ParallelDescriptor::IOProcessorNumber());
 
     // value_at_point[k][ip], where k in [0..num_components-1]
     std::vector<std::vector<amrex::Real>> value_at_point(
@@ -467,8 +474,7 @@ void ParticleInterpolators<num_components>::interp(
 
             for (int i = 0; i < np; ++i)
             {
-                const int pid = hp[i].id();
-                const int q   = static_cast<int>(pid) - 1; // get particle index
+                const int q = hp[i].idata(0); // get particle index
                 if (q < 0 || q >= npts)
                 {
                     amrex::Abort("interp(): particle id out of range");
