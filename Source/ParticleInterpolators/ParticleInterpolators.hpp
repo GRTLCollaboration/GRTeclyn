@@ -68,7 +68,10 @@ class ParticleInterpolators
         AMREX_ALWAYS_ASSERT(m_gr_amr);
         return m_gr_amr->query(); // returns a pointer to query
     }
-    void set_query(InterpolationQueryParticle &q) { m_gr_amr->set_query(q); }
+    void set_query(InterpolationQueryParticle &query)
+    {
+        m_gr_amr->set_query(query);
+    }
     void ensure_query_populated() { m_gr_amr->ensure_query_populated(); }
 
     // helper function to set parities of derived vars per component

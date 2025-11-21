@@ -36,7 +36,7 @@ class GRAMR : public amrex::Amr
 
     // Set of virtual functions to be overridden by the example AMR class (e.g.
     // BHAMR)
-    virtual void set_query(InterpolationQueryParticle &) {}
+    virtual void set_query(InterpolationQueryParticle &a_query) {}
     virtual void ensure_query_populated() {}
     virtual InterpolationQueryParticle *query() { return nullptr; }
 
@@ -55,6 +55,7 @@ class GRAMR : public amrex::Amr
 
     // A helper function to convert the derived multifabs into the required
     // interpolation input
+    // NOLINT(readability-convert-member-functions-to-static)
     void convert_derived_multifabs(
         const amrex::Vector<std::unique_ptr<amrex::MultiFab>> &inputs,
         amrex::Vector<const amrex::MultiFab *> &fields);

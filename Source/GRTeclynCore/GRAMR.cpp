@@ -52,5 +52,7 @@ void GRAMR::convert_derived_multifabs(
     fields.clear();
     fields.reserve(inputs.size());
     for (auto const &level_content : inputs)
+    {
         fields.push_back(level_content.get());
+    }
 }
