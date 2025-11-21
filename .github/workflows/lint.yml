@@ -14,6 +14,7 @@ jobs:
       LLVM_VERSION: '19'
       AMREX_HOME: ${{ github.workspace }}/amrex
       BINARYBH_EXAMPLE_DIR: ${{ github.workspace }}/GRTeclyn/Examples/BinaryBH
+      KG_EXAMPLE_DIR: ${{ github.workspace }}/GRTeclyn/Examples/KleinGordon
       TESTS_DIR: ${{ github.workspace }}/GRTeclyn/Tests
       TMP_BUILD_DIR: ${{ github.workspace }}/GRTeclyn/tmp_build_dir
       COMPILATION_DATABASE: ${{ github.workspace }}/GRTeclyn/compile_commands.json
@@ -53,28 +54,35 @@ jobs:
         pipx install compiledb
         pipx install compdb
 
-    - name: Generate config and compilation database
+    - name: Generate config and compilation database for tests and examples
       run: |
         cd ${{ env.BINARYBH_EXAMPLE_DIR }}
         make ${{ env.BUILD_ARGS }} AMReX_Config.H
         compiledb -o ${{ env.COMPILATION_DATABASE }} -n make ${{ env.BUILD_ARGS }}
+        cd ${{ env.KG_EXAMPLE_DIR }}
+        compiledb -o ${{ env.COMPILATION_DATABASE }} -n make ${{ env.BUILD_ARGS }}
         cd ${{ env.TESTS_DIR }}
         compiledb -o ${{ env.COMPILATION_DATABASE }} -n make ${{ env.BUILD_ARGS }}
+
+    - name: Generate compilation database for headers
+      run: |
         compdb -p ${{ github.workspace }}/GRTeclyn list > compile_commands_with_headers.json
         mv compile_commands_with_headers.json ${{ env.COMPILATION_DATABASE }}
 
     - name: Upload compilation database
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: compilation-database
         path: ${{ env.COMPILATION_DATABASE }}
+
 
     - name: Generate list of files for clang-tidy to ignore
       id: ignore-tidy-list
       run: |
         # The first sed removes comments and blank lines. The second joins lines
         # and replaces new lines with a '|'.
-        echo "ignore-tidy=$(sed '/^[[:blank:]]*#/d;s/#.*//;/^$/d;' .lint-ignore | sed ':a;N;$!ba;s/\n/|/g')" > $GITHUB_OUTPUT
+        echo "ignore-tidy=$(sed '/^[[:blank:]]*#/d;s/#.*//;/^$/d;' .lint-ignore |\
+        sed ':a;N;$!ba;s/\n/|/g')" > $GITHUB_OUTPUT
       working-directory: GRTeclyn
 
     - name: Run clang-tidy and clang-format on modified files

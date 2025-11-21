@@ -77,7 +77,7 @@ max_steps = 8
 
 # max_spatial_derivative_order = 4 # only 4 implemented at the moment
 
-# nan_check = true
+nan_check = true
 
 # Lapse evolution
 lapse_advec_coeff = 1.0

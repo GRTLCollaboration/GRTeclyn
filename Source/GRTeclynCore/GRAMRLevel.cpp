@@ -199,6 +199,15 @@ void GRAMRLevel::post_timestep(int /*iteration*/)
 
         FourthOrderInterpFromFineToCoarse(S_crse, 0, NUM_VARS, S_fine, ratio);
     }
+    if (simParams().nan_check)
+    {
+        amrex::MultiFab &state_new = get_new_data(State_Type);
+        if (state_new.contains_nan(0, state_new.nComp(), amrex::IntVect(0),
+                                   true))
+        {
+            amrex::Abort("NaN in GRAMRLevel::post_timestep");
+        }
+    }
 
     specificPostTimeStep();
 }
