@@ -2,27 +2,31 @@ name: GPU Build
 # We can't test running on a GPU using GitHub hosted runners but we can test
 #building
 
-on: [push]
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+on: [push, pull_request]
 
 jobs:
+  check-changes:
+    uses: ./.github/workflows/check-changes.yml
+
   tests:
+    needs: check-changes
+    if: ${{ needs.check-changes.outputs.has_example_changes == 'true' ||
+      needs.check-changes.outputs.has_unit_test_changes == 'true' }}
     runs-on: ubuntu-22.04
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.gpu-backend }}
+      cancel-in-progress: true
     strategy:
       matrix:
-        gpu-backend: ['CUDA', 'HIP', 'SYCL']
+        gpu-backend: ["CUDA", "HIP", "SYCL"]
         include:
-          - debug: 'TRUE'
-            gpu-backend: 'CUDA'
+          - debug: "TRUE"
+            gpu-backend: "CUDA"
           # HIP and SYCL takes ages to build with DEBUG=TRUE
-          - debug: 'FALSE'
-            gpu-backend: 'HIP'
-          - debug: 'FALSE'
-            gpu-backend: 'SYCL'
-
+          - debug: "FALSE"
+            gpu-backend: "HIP"
+          - debug: "FALSE"
+            gpu-backend: "SYCL"
 
     name: ${{ matrix.gpu-backend }}, DEBUG = ${{ matrix.debug }}
     env:

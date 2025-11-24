@@ -1,14 +1,19 @@
 name: Unit Tests
 
-on: [push]
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+on: [push, pull_request]
 
 jobs:
+  check-changes:
+    uses: ./.github/workflows/check-changes.yml
+
   tests:
+    needs: check-changes
+    if: ${{ needs.check-changes.outputs.has_unit_test_changes == 'true' }}
     runs-on: ubuntu-24.04
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.comp }}-${{
+        matrix.comp-version }}-${{ matrix.mpi }}-${{ matrix.debug }}-${{ matrix.omp }}
+      cancel-in-progress: true
     strategy:
       matrix:
         comp: ['gnu', 'llvm']
@@ -17,7 +22,8 @@ jobs:
         omp: ['FALSE', 'TRUE']
         comp-version: [12, 13, 14, 16, 17, 18]
         exclude:
-            # see available compiler versions here: https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md
+            # see available compiler versions here:
+            # https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md
           - comp-version: 12
             comp: 'llvm'
           - comp-version: 13
@@ -31,7 +37,8 @@ jobs:
           - comp-version: 18
             comp: 'gnu'
 
-    name: ${{ matrix.comp }} ${{ matrix.comp-version }}, DEBUG = ${{ matrix.debug }}, USE_MPI = ${{ matrix.mpi }}, USE_OMP = ${{ matrix.omp }}
+    name: ${{ matrix.comp }} ${{ matrix.comp-version }}, DEBUG = ${{ matrix.debug }},
+          USE_MPI = ${{ matrix.mpi }}, USE_OMP = ${{ matrix.omp }}
     env:
       AMREX_HOME: ${{ github.workspace }}/amrex
       OMP_NUM_THREADS: 1
@@ -61,9 +68,12 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cache/ccache
-        key: ccache-${{ github.workflow }}-${{ github.job }}-${{ join(matrix.*, '-') }}-git-${{ github.sha }}
+        # yamllint disable rule:line-length
+        key: |
+          ccache-${{ github.workflow }}-${{ github.job }}-${{ join(matrix.*, '-') }}-git-${{ github.sha }}
         restore-keys: |
-             ccache-${{ github.workflow }}-${{ github.job }}-${{ join(matrix.*, '-') }}-git-
+          ccache-${{ github.workflow }}-${{ github.job }}-${{ join(matrix.*, '-') }}-git-
+        # yamllint enable rule:line-length
 
     - name: Update package manager database
       id: update-database
@@ -101,17 +111,20 @@ jobs:
       id: set-compilers
       run: |
         if [[ "${{ matrix.comp }}" == "gnu" ]]; then
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${{ matrix.comp-version }} 1000
+          sudo update-alternatives --install /usr/bin/g++ g++ \
+              /usr/bin/g++-${{ matrix.comp-version }} 1000
           # workaround for https://answers.launchpad.net/ubuntu/+question/816000
           sudo update-alternatives --remove-all cpp
           sudo rm -rf /etc/alternatives/cpp
-          sudo update-alternatives --install /usr/bin/cpp cpp /usr/bin/cpp-${{ matrix.comp-version }} 1000
+          sudo update-alternatives --install /usr/bin/cpp cpp \
+              /usr/bin/cpp-${{ matrix.comp-version }} 1000
           g++ --version
           cpp --version
           echo "ompi_cxx=g++" >> $GITHUB_OUTPUT
           echo "build_args=${BUILD_CONFIG}" >> $GITHUB_OUTPUT
         elif [[ "${{ matrix.comp }}" == "llvm" ]]; then
-          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${{ matrix.comp-version }} 1000
+          sudo update-alternatives --install /usr/bin/clang++ clang++ \
+              /usr/bin/clang++-${{ matrix.comp-version }} 1000
           clang++ --version
           echo "ompi_cxx=clang++" >> $GITHUB_OUTPUT
           # Use the LLD linker with LLVM
