@@ -135,7 +135,7 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(const amrex::CellData<amrex::Real> &rhs,
     rhs[c_chi] = advec.chi() + (2.0 / (double)GR_SPACEDIM) * vars.chi() *
                                    (vars.lapse() * vars.K() - divshift);
 
-    FOR (i, j)
+    FOR2_SYM(i, j)
     {
         rhs[var_idx(c_h11, i, j)] =
             advec.h(i, j) - 2.0 * vars.lapse() * vars.A(i, j) -
@@ -155,7 +155,7 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(const amrex::CellData<amrex::Real> &rhs,
     }
     CCZ4Geometry::make_trace_free(Adot_TF, vars, h_UU);
 
-    FOR (i, j)
+    FOR2_SYM(i, j)
     {
         rhs[var_idx(c_A11, i, j)] =
             advec.A(i, j) + Adot_TF[i][j] +

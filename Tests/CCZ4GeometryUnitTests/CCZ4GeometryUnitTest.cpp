@@ -27,8 +27,8 @@
 #include "Tensor.hpp"
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-compute_ccz4_test_geometry(const amrex::IntVect &a_iv,
-                           const amrex::Array4<amrex::Real> &a_array,
+compute_ccz4_test_geometry(const amrex::Array4<amrex::Real> &a_array,
+                           const amrex::IntVect &a_iv,
                            const amrex::Array4<amrex::Real> &a_geometry_array)
 {
     amrex::Real chi = 0.0;
@@ -109,7 +109,7 @@ void run_ccz4_geometry_unit_tests()
                            [=] AMREX_GPU_DEVICE(int i, int j, int k)
                            {
                                const amrex::IntVect iv{i, j, k};
-                               compute_ccz4_test_geometry(iv, in_array,
+                               compute_ccz4_test_geometry(in_array, iv,
                                                           geometry_array);
                            });
 

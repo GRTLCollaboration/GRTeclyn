@@ -35,7 +35,7 @@ class TraceARemoval
         using namespace CCZ4Geometry;
         const auto trace_A                = compute_trace_A(vars);
         const double one_over_gr_spacedim = 1. / ((double)GR_SPACEDIM);
-        FOR (i, j)
+        FOR2_SYM(i, j)
         {
             state_cell_data[var_idx(c_A11, i, j)] -=
                 one_over_gr_spacedim * vars.h(i, j) * trace_A;

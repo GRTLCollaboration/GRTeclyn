@@ -85,7 +85,7 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
     Tensor<2, amrex::Real> S_TF = emtensor.S;
     CCZ4Geometry::make_trace_free(S_TF, vars, h_UU);
 
-    FOR (i, j)
+    FOR2_SYM(i, j)
     {
         rhs[var_idx(c_A11, i, j)] +=
             -8.0 * M_PI * m_G_Newton * vars.chi() * vars.lapse() * S_TF[i][j];

@@ -31,10 +31,11 @@ class PositiveChiAndLapse
     operator()(int ix, int iy, int iz,
                const amrex::Array4<amrex::Real> &state) const
     {
-
+        // Create non-const CellData for writing into
         const amrex::CellData<amrex::Real> &state_cell_data =
             state.cellData(ix, iy, iz);
-        // Copy here, to ensure reference in constructor stays in scope
+        // Copy to const CellData here to read data from CCZ4Vars (to ensure
+        // reference member stays in scope)
         const amrex::CellData<const amrex::Real> &const_state_cell_data =
             state_cell_data;
 

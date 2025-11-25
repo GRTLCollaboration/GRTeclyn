@@ -122,7 +122,7 @@ compute_Aij_squared(const CCZ4Vars &vars)
 }
 
 // This is A_ij A^ij
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_Aij_squared(const CCZ4Vars &vars,
                     const Tensor<2, amrex::Real> &inverse_metric)
 {

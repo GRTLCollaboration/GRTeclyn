@@ -23,7 +23,16 @@ class CCZ4D1Vars
     }
 
     // empty constructor used for tests
-    AMREX_GPU_HOST_DEVICE CCZ4D1Vars() = default;
+    AMREX_GPU_HOST_DEVICE CCZ4D1Vars()
+    {
+        for (int ivar = 0; ivar < NUM_VARS; ++ivar)
+        {
+            FOR (i)
+            {
+                m_d1_state[ivar][i] = 0.0;
+            }
+        }
+    }
     // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
     amrex::GpuArray<Tensor<1, amrex::Real>, NUM_VARS> m_d1_state;

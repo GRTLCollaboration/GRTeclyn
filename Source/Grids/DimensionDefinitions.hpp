@@ -35,6 +35,10 @@ constexpr int GR_SPACEDIM = 3;
                    // 'ISO C++11 requires at least one argument for the "..." in
                    // a variadic macro'
 
+#define FOR2_SYM(IDX1, IDX2)                                                   \
+    for (int(IDX1) = 0; (IDX1) < DEFAULT_TENSOR_DIM; ++(IDX1))                 \
+        for (int(IDX2) = IDX1; (IDX2) < DEFAULT_TENSOR_DIM; ++(IDX2))
+
 #define GET_MACRO6(_1, _2, _3, _4, _5, NAME, ...) NAME
 #define FOR(...)                                                               \
     GET_MACRO6(__VA_ARGS__, FOR5, FOR4, FOR3, FOR2, FOR1, DUMMYFOR)(__VA_ARGS__)
