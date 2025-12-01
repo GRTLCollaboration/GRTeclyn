@@ -19,7 +19,13 @@
 class InterpolationQueryParticle
 {
   public:
-    using out_t      = std::tuple<int, double *, VariableType>;
+    struct out_t
+    {
+        int comp;
+        amrex::ParticleReal *out_data_ptr;
+        VariableType variable_type; // state or derived?
+    };
+
     using comp_map_t = std::map<Derivative, std::vector<out_t>>;
     using iterator =
         typename std::map<Derivative, std::vector<out_t>>::iterator;
@@ -78,7 +84,7 @@ class InterpolationQueryParticle
                          .first;
         }
 
-        result->second.emplace_back(comp, out_ptr, variable_type);
+        result->second.push_back(out_t{comp, out_ptr, variable_type});
         return *this;
     }
 
@@ -105,13 +111,6 @@ class InterpolationQueryParticle
     inline iterator compsBegin() { return m_comps.begin(); }
 
     inline iterator compsEnd() { return m_comps.end(); }
-
-    // some gpu friendly overloads
-    InterpolationQueryParticle &
-    setCoords(int dim, const amrex::Gpu::ManagedVector<double> &v)
-    {
-        return setCoords(dim, v.data()); // managed pointer (host+device)
-    }
 };
 
 #endif /* INTERPOLATIONQUERYPARTICLE_HPP_ */

@@ -11,7 +11,7 @@
 #define PARTICLEINTERPOLATORS_IMPL_HPP_
 
 #include "InterpolationQueryParticle.hpp"
-#include "LagrangeInterpolation.hpp"
+#include "Lagrange.hpp"
 #include "StateVariables.hpp"
 #include "VariableType.hpp"
 
@@ -22,22 +22,18 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParmParse.H>
 
-template <int num_components>
-ParticleInterpolators<num_components>::ParticleInterpolators(
-    const BoundaryConditions::params_t &a_bc_params, int a_start_comp,
-    bool a_verbosity)
-    : m_gr_amr(nullptr), m_initialized(false), m_start_comp(a_start_comp),
-      m_bc_params(a_bc_params), m_verbosity(a_verbosity)
-{
-}
-
 // initialise everything and perform some sanity checks
 template <int num_components>
-void ParticleInterpolators<num_components>::set_gramr_ptr(GRAMR *gr_amr_ptr)
+void ParticleInterpolators<num_components>::set_gramr_ptr(
+    GRAMR *gr_amr_ptr, const BoundaryConditions::params_t &a_bc_params,
+    int a_start_comp, bool a_verbosity)
 {
     // is GRAMR properly set?
     AMREX_ASSERT(gr_amr_ptr != nullptr);
-    m_gr_amr = gr_amr_ptr;
+    m_gr_amr     = gr_amr_ptr;
+    m_bc_params  = a_bc_params;
+    m_start_comp = a_start_comp;
+    m_verbosity  = a_verbosity;
 
     this->Define(dynamic_cast<amrex::ParGDBBase *>(m_gr_amr->GetParGDB()));
     m_initialized = true;
@@ -48,13 +44,8 @@ void ParticleInterpolators<num_components>::set_gramr_ptr(GRAMR *gr_amr_ptr)
     // read in the physical bounds for reflective BC checks (it is sufficient to
     // do this on lev = 0)
     const amrex::Geometry &geom0 = m_gr_amr->getLevel(0).Geom();
-    const auto plo               = geom0.ProbLoArray();
-    const auto phi               = geom0.ProbHiArray();
-    for (int d = 0; d < AMREX_SPACEDIM; ++d)
-    {
-        m_prob_lo[d] = plo[d];
-        m_prob_hi[d] = phi[d];
-    }
+    m_prob_lo                    = geom0.ProbLoArray();
+    m_prob_hi                    = geom0.ProbHiArray();
 
     // set the reflective flags from BC params
     for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
@@ -66,7 +57,7 @@ void ParticleInterpolators<num_components>::set_gramr_ptr(GRAMR *gr_amr_ptr)
     }
 
     // get resolution on level 0
-    m_dx = geom0.CellSizeArray();
+    m_coarsest_dx = geom0.CellSizeArray();
 }
 
 template <int num_components>
@@ -79,7 +70,7 @@ void ParticleInterpolators<num_components>::set_derived_var_parity(int comp,
 
 // a parity helper (the same way as it was defined in the AMRInterpolator)
 template <int num_components>
-int ParticleInterpolators<num_components>::get_state_var_parity(
+int ParticleInterpolators<num_components>::get_var_parity(
     int comp, int point_idx, const InterpolationQueryParticle &query,
     const Derivative &deriv, VariableType variable_type) const
 {
@@ -177,44 +168,30 @@ void ParticleInterpolators<num_components>::populate_from_query(
         // Run a check on coords you are interpolating on
         for (int i = 0; i < n; i++)
         {
-            std::array<double, AMREX_SPACEDIM> coords{x[i], y[i]
-#if AMREX_SPACEDIM == 3
-                                                      ,
-                                                      z[i]
-#endif
-            };
+            std::array<double, AMREX_SPACEDIM> coords{
+                AMREX_D_DECL(x[i], y[i], z[i])};
             check_domain(coords, 0);
         }
-
-        // copy stuff as otherwise I get errors with lambdas when I use class
-        // members inside the GPU loops; this is a bit annoying as I have to
-        // copy a few things; any other alternative ways?
-        const auto prob_lo    = m_prob_lo;
-        const auto prob_hi    = m_prob_hi;
-        const auto lo_reflect = m_lo_boundary_reflective;
-        const auto hi_reflect = m_hi_boundary_reflective;
-        const int ncomp       = num_components;
-
         // copy coords here
         const amrex::Real *x_p = nullptr, *y_p = nullptr, *z_p = nullptr;
         amrex::Gpu::DeviceVector<amrex::Real> Xd, Yd, Zd;
 
         // copy x,y,z to device vectors now
-        amrex::Gpu::DeviceVector<double> X(n), Y(n);
-        amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, x, x + n, X.begin());
-        amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, y, y + n, Y.begin());
+        amrex::Gpu::DeviceVector<double> x_d(n), y_d(n);
+        amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, x, x + n, x_d.begin());
+        amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, y, y + n, y_d.begin());
 
 #if AMREX_SPACEDIM == 3
-        amrex::Gpu::DeviceVector<double> Z(n);
-        amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, z, z + n, Z.begin());
+        amrex::Gpu::DeviceVector<double> z_d(n);
+        amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, z, z + n, z_d.begin());
 #endif
         amrex::Gpu::streamSynchronize(); // ensure copies complete
 
-        // Get raw device pointers to capture by value
-        auto x_d = X.data();
-        auto y_d = Y.data();
+        // Get device pointers to capture by value
+        auto x_d_ptr = x_d.data();
+        auto y_d_ptr = y_d.data();
 #if AMREX_SPACEDIM == 3
-        auto z_d = Z.data();
+        auto z_d_ptr = z_d.data();
 #endif
 
         // loop over particles and place them at the required points
@@ -226,35 +203,35 @@ void ParticleInterpolators<num_components>::populate_from_query(
                 p.id()  = ip + 1; // particle id starts from 1
                 p.cpu() = 0;      // CPU id, not used here
 
-                // reflect into valid region for seeding
-                const amrex::Real xr = reflect_particle(
-                    static_cast<amrex::Real>(x_d[ip]), prob_lo[0], prob_hi[0],
-                    lo_reflect[0], hi_reflect[0]);
-                const amrex::Real yr = reflect_particle(
-                    static_cast<amrex::Real>(y_d[ip]), prob_lo[1], prob_hi[1],
-                    lo_reflect[1], hi_reflect[1]);
+                // reflect into valid region and set
+                p.pos(0) = reflect_particle(
+                    static_cast<amrex::Real>(x_d_ptr[ip]), m_prob_lo[0],
+                    m_prob_hi[0], m_lo_boundary_reflective[0],
+                    m_hi_boundary_reflective[0]);
+                p.pos(1) = reflect_particle(
+                    static_cast<amrex::Real>(y_d_ptr[ip]), m_prob_lo[1],
+                    m_prob_hi[1], m_lo_boundary_reflective[1],
+                    m_hi_boundary_reflective[1]);
 #if AMREX_SPACEDIM == 3
-                const amrex::Real zr = reflect_particle(
-                    static_cast<amrex::Real>(z_d[ip]), prob_lo[2], prob_hi[2],
-                    lo_reflect[2], hi_reflect[2]);
-#endif
-
-                // set position
-                p.pos(0) = xr;
-                p.pos(1) = yr;
-#if AMREX_SPACEDIM == 3
-                p.pos(2) = zr;
+                p.pos(2) = reflect_particle(
+                    static_cast<amrex::Real>(z_d_ptr[ip]), m_prob_lo[2],
+                    m_prob_hi[2], m_lo_boundary_reflective[2],
+                    m_hi_boundary_reflective[2]);
 #endif
                 p.idata(0) = ip;
 
-                for (int s = 0; s < ncomp; ++s)
+                for (int s = 0; s < num_components; ++s)
+                {
                     particle_data.rdata(s)[ip] =
                         0.0; // for now set all to zero (this is where we will
                              // store the interpolated values)
+                }
             });
 
         amrex::Gpu::streamSynchronize();
     }
+
+    m_particles_seeded = true;
 
     // amrex::ParallelDescriptor::Barrier(); // TODO! test if this makes a
     // difference.
@@ -268,13 +245,14 @@ void ParticleInterpolators<num_components>::interpolate_to_particle()
 
     ensure_redistributed();
 
-    const int start_comp = m_start_comp;
-    const int ncomp      = num_components;
+    const int start_comp              = m_start_comp;
+    const int ncomp                   = num_components;
+    static constexpr int interp_order = 4; // 4th order Lagrange
+    static constexpr int num_ghosts =
+        interp_order / 2; // number of ghosts needed
 
     for (int lev = 0; lev <= m_gr_amr->finestLevel(); ++lev)
     {
-        // if particles are only on the coarsest level, skip the looping over
-        // levels
         if (this->NumberOfParticlesAtLevel(lev) == 0)
             continue;
 
@@ -284,37 +262,41 @@ void ParticleInterpolators<num_components>::interpolate_to_particle()
 
         AMREX_ASSERT(start_comp + ncomp <= state.nComp());
 
-        amrex::IntVect nghost(AMREX_D_DECL(2, 2, 2));
+        amrex::IntVect nghost(AMREX_D_DECL(num_ghosts, num_ghosts, num_ghosts));
         state.FillBoundary(start_comp, ncomp, nghost, geom.periodicity());
 
-        const auto plo = geom.ProbLoArray();
-        const auto dxi = geom.InvCellSizeArray();
+        const auto problem_domain_lo = geom.ProbLoArray();
+        const auto dxi               = geom.InvCellSizeArray();
 
         // loop over tiles and interpolate now
-        for (ParIterType it(*this, lev); it.isValid(); ++it)
+        for (ParIterType par_iter(*this, lev); par_iter.isValid(); ++par_iter)
         {
-            auto &ptile    = this->ParticlesAt(lev, it);
-            auto ptd       = ptile.getParticleTileData();
-            const int np   = it.numParticles();
-            auto fab_array = state[it].const_array();
+            auto &particle_tile     = this->ParticlesAt(lev, par_iter);
+            auto particle_tile_data = particle_tile.getParticleTileData();
+            const int num_particles = par_iter.numParticles();
+            auto fab_array          = state[par_iter].const_array();
 
             amrex::ParallelFor(
-                np,
+                num_particles,
                 [=] AMREX_GPU_DEVICE(int ip)
                 {
-                    auto &sp = ptd[ip];
+                    auto &particle = particle_tile_data[ip];
 
                     amrex::IntVect is_nodal = amrex::IntVect::TheZeroVector();
-                    LagrangeInterpolator<5> interp; // 4th order interpolation
-                    interp.compute_weights(sp, plo, dxi, is_nodal);
+                    Lagrange<interp_order + 1>
+                        lagrange_interp; // 4th order interpolation
+                    lagrange_interp.compute_weights(particle, problem_domain_lo,
+                                                    dxi, is_nodal);
 
-                    amrex::ParticleReal vals[AMREX_SPACEDIM];
-                    interp.interpolate(&fab_array, vals, start_comp, ncomp);
+                    amrex::ParticleReal interpolated_vals[ncomp];
+                    lagrange_interp.interpolate(&fab_array, interpolated_vals,
+                                                start_comp, ncomp);
 
                     // write results to SOA
-                    for (int k = 0; k < ncomp; ++k)
+                    for (int icomp = 0; icomp < ncomp; ++icomp)
                     {
-                        ptd.rdata(k)[ip] = vals[k];
+                        particle_tile_data.rdata(icomp)[ip] =
+                            interpolated_vals[icomp];
                     }
                 });
         }
@@ -323,7 +305,6 @@ void ParticleInterpolators<num_components>::interpolate_to_particle()
         amrex::Gpu::streamSynchronize();
     }
 
-    m_particles_seeded  = true;
     m_need_redistribute = false;
 }
 
@@ -334,12 +315,12 @@ void ParticleInterpolators<num_components>::interpolate_to_particle()
 template <int num_components>
 void ParticleInterpolators<num_components>::
     interpolate_to_particle_from_derived_fields(
-        const std::vector<const amrex::MultiFab *> &fields_by_lev)
+        const std::vector<amrex::MultiFab *> &a_derived_mf_vect)
 {
     AMREX_ASSERT(m_initialized);
 
     const int nlevs = m_gr_amr->finestLevel() + 1;
-    AMREX_ASSERT((int)fields_by_lev.size() == nlevs);
+    AMREX_ASSERT((int)a_derived_mf_vect.size() == nlevs);
 
     ensure_redistributed();
 
@@ -353,7 +334,7 @@ void ParticleInterpolators<num_components>::
 
         auto &level               = m_gr_amr->getLevel(lev);
         const auto &geom          = level.Geom();
-        const amrex::MultiFab &mf = *fields_by_lev[lev];
+        const amrex::MultiFab &mf = *a_derived_mf_vect[lev];
 
         AMREX_ASSERT(mf.nComp() >= start_comp + ncomp);
 
@@ -379,7 +360,7 @@ void ParticleInterpolators<num_components>::
                     auto &sp = ptd[ip];
 
                     amrex::IntVect is_nodal = amrex::IntVect::TheZeroVector();
-                    LagrangeInterpolator<5> interp;
+                    Lagrange<5> interp;
                     interp.compute_weights(sp, plo, dxi, is_nodal);
 
                     amrex::ParticleReal vals[ncomp];
@@ -400,46 +381,28 @@ void ParticleInterpolators<num_components>::
 
 // mirror of AMRInterpolator::interp(); assembles all particle data and writes
 // parity * value into the query out arrays
-// Throws an error now if use requests interpolation of a derived variable and
-// applies reflective BCs (needs fixing later!!) This is currently done on CPUs;
-// I am not sure if there is an advantage of having any of this on GPUs
 template <int num_components>
 void ParticleInterpolators<num_components>::interp(
-    InterpolationQueryParticle &query, VariableType variable_type)
+    InterpolationQueryParticle &query)
 {
     AMREX_ASSERT(m_initialized);
 
-    // if (variable_type == VariableType::derived ||
-    //     variable_type == VariableType::state)
-    // {
-    //     for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
-    //     {
-    //         if (m_lo_boundary_reflective[dir] ||
-    //         m_hi_boundary_reflective[dir])
-    //         {
-    //             amrex::Abort("Help!!! reflective BCs are implemented, but not
-    //             "
-    //                          "yet tested. Likely to give absolute
-    //                          gibberish!");
-    //         }
-    //     }
-    // }
-
     // get total query points here
-    int npts = 0;
+    int num_points = 0;
     if (amrex::ParallelDescriptor::IOProcessor())
     {
-        npts = static_cast<int>(query.numPoints()); // only rank 0 touches query
+        num_points =
+            static_cast<int>(query.numPoints()); // only rank 0 touches query
     }
     // broadcast
     amrex::ParallelDescriptor::Bcast(
-        &npts, 1, amrex::ParallelDescriptor::IOProcessorNumber());
+        &num_points, 1, amrex::ParallelDescriptor::IOProcessorNumber());
 
     // value_at_point[k][ip], where k in [0..num_components-1]
     std::vector<std::vector<amrex::Real>> value_at_point(
-        num_components, std::vector<amrex::Real>(npts, 0.0));
+        num_components, std::vector<amrex::Real>(num_points, 0.0));
     // a vector to mark which points have values
-    std::vector<int> have(npts, 0);
+    std::vector<int> have(num_points, 0);
 
     int local_particle_counter = 0;
 
@@ -452,36 +415,37 @@ void ParticleInterpolators<num_components>::interp(
 
             const auto &ptile = this->ParticlesAt(lev, it);
             const auto aos    = ptile.GetArrayOfStructs();
-            const auto *P     = aos.data();
-            const auto soa    = ptile.getConstParticleTileData();
             const int np      = it.numParticles();
 
-            amrex::Gpu::HostVector<ParticleType> hp(np);
+            amrex::Gpu::HostVector<ParticleType> host_aos(np);
             amrex::Gpu::copyAsync(amrex::Gpu::deviceToHost, aos.data(),
-                                  aos.data() + np, hp.begin());
+                                  aos.data() + np, host_aos.begin());
 
-            std::vector<amrex::Gpu::HostVector<amrex::ParticleReal>> hr(
-                num_components);
+            std::vector<amrex::Gpu::HostVector<amrex::ParticleReal>>
+                host_soa_real(num_components);
 
             for (int k = 0; k < num_components; ++k)
             {
-                hr[k].resize(np);
-                auto dptr = ptile.GetStructOfArrays().GetRealData(k).data();
-                amrex::Gpu::copyAsync(amrex::Gpu::deviceToHost, dptr, dptr + np,
-                                      hr[k].begin());
+                host_soa_real[k].resize(np);
+                auto soa_real_dptr =
+                    ptile.GetStructOfArrays().GetRealData(k).data();
+                amrex::Gpu::copyAsync(amrex::Gpu::deviceToHost, soa_real_dptr,
+                                      soa_real_dptr + np,
+                                      host_soa_real[k].begin());
             }
             amrex::Gpu::streamSynchronize();
 
             for (int i = 0; i < np; ++i)
             {
-                const int q = hp[i].idata(0); // get particle index
-                if (q < 0 || q >= npts)
+                const int q = host_aos[i].idata(0); // get particle index
+                if (q < 0 || q >= num_points)
                 {
                     amrex::Abort("interp(): particle id out of range");
                 }
                 for (int k = 0; k < num_components; ++k)
                 {
-                    value_at_point[k][q] = static_cast<double>(hr[k][i]);
+                    value_at_point[k][q] =
+                        static_cast<double>(host_soa_real[k][i]);
                 }
                 have[q] = 1; // mark that we have a value for this point
             }
@@ -489,18 +453,18 @@ void ParticleInterpolators<num_components>::interp(
     }
     if (m_verbosity)
     {
-        amrex::AllPrint() << "rank " << amrex::ParallelDescriptor::MyProc()
-                          << " holds " << local_particle_counter
-                          << " particles\n";
+        amrex::AllPrint() << "ParticleInterpolator: rank "
+                          << amrex::ParallelDescriptor::MyProc() << " holds "
+                          << local_particle_counter << " particles\n";
     }
 
     // reduce across ranks
     for (int k = 0; k < num_components; ++k)
     {
         amrex::ParallelDescriptor::ReduceRealSum(value_at_point[k].data(),
-                                                 npts);
+                                                 num_points);
     }
-    amrex::ParallelDescriptor::ReduceIntSum(have.data(), npts);
+    amrex::ParallelDescriptor::ReduceIntSum(have.data(), num_points);
 
     if (amrex::ParallelDescriptor::IOProcessor())
     {
@@ -520,10 +484,13 @@ void ParticleInterpolators<num_components>::interp(
 
             for (auto &entry : comps)
             {
-                const int comp = std::get<0>(entry);
-                double *out = std::get<1>(entry); // this is where interpolated
-                                                  // values are written into
-                const Derivative &dkey = deriv_it->first;
+                const int comp = entry.comp;
+                ;
+                amrex::ParticleReal *out =
+                    entry.out_data_ptr; // this is where interpolated
+                                        // values are written into
+                const Derivative &dkey           = deriv_it->first;
+                const VariableType variable_type = entry.variable_type;
 
                 const int k =
                     comp -
@@ -531,7 +498,7 @@ void ParticleInterpolators<num_components>::interp(
                                   // works only for contiguous components
                 AMREX_ALWAYS_ASSERT(k >= 0 && k < num_components);
 
-                for (int ip = 0; ip < npts; ++ip)
+                for (int ip = 0; ip < num_points; ++ip)
                 {
                     if (!have[ip])
                     {
@@ -539,8 +506,8 @@ void ParticleInterpolators<num_components>::interp(
                                      std::to_string(ip));
                     }
 
-                    int parity = get_state_var_parity(comp, ip, query, dkey,
-                                                      variable_type);
+                    int parity =
+                        get_var_parity(comp, ip, query, dkey, variable_type);
                     // amrex::Print() << "Point " << ip << " comp " << comp
                     //                << " value " << value_at_point[k][ip]
                     //                << " has parity " << parity << "\n";
@@ -561,8 +528,8 @@ void ParticleInterpolators<num_components>::check_domain(
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
 
-        const double lo_g = m_prob_lo[d] - guard_cells * m_dx[d];
-        const double hi_g = m_prob_hi[d] + guard_cells * m_dx[d];
+        const double lo_g = m_prob_lo[d] - guard_cells * m_coarsest_dx[d];
+        const double hi_g = m_prob_hi[d] + guard_cells * m_coarsest_dx[d];
 
         // reflect into the required side if reflective
         double xr = x[d];

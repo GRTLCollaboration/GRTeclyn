@@ -16,6 +16,7 @@
 #include "TraceARemoval.hpp"
 #include "TwoPuncturesInitialData.hpp"
 #include "Weyl4.hpp"
+#include "WeylExtraction.hpp"
 
 BHAMR<BinaryBHLevel::num_punctures> *BinaryBHLevel::get_bhamr_ptr()
 {
@@ -286,7 +287,6 @@ void BinaryBHLevel::specific_post_checkpoint(const std::string &a_chk_dir,
 
 void BinaryBHLevel::specificPostTimeStep()
 {
-
     // do puncture tracking on requested level
     if (simParams().puncture_tracking_enabled &&
         Level() == simParams().puncture_tracking_level)
@@ -301,7 +301,6 @@ void BinaryBHLevel::specificPostTimeStep()
         amrex::Real dt       = get_gramr_ptr()->dtLevel(Level());
         get_puncture_tracker().track(cur_time, dt, write_punctures);
     }
-
 #if 0
 //xxxxx specificPostTimeStep
     BL_PROFILE("BinaryBHLevel::specificPostTimeStep");

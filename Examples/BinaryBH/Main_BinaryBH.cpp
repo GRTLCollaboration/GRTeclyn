@@ -50,13 +50,9 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
 
     bh_amr.init(0., sim_params.stop_time);
 
-    // Hand the interpolation pointer to BHAMR
-    // ParticleInterpolators<1> weyl_interpolator(
-    //     sim_params.boundary_params,
-    //     0, true); // for weyl: the derived component usually starts from 0
-    ParticleInterpolators<1> weyl_interpolator(
-        sim_params.boundary_params, c_chi, true); // for chi custom extraction
-    bh_amr.set_interpolator(&weyl_interpolator);
+    // Set up the particle interpolator
+    bh_amr.m_weyl_interpolator.set_gramr_ptr(
+        &bh_amr, sim_params.boundary_params, c_chi, true);
 
     while (
         (bh_amr.okToContinue() != 0) &&

@@ -1,5 +1,5 @@
-#ifndef LAGRANGEINTERPOLATION_HPP_
-#define LAGRANGEINTERPOLATION_HPP_
+#ifndef LAGRANGE_HPP_
+#define LAGRANGE_HPP_
 
 #include <AMReX_Array4.H>
 #include <AMReX_Gpu.H>
@@ -13,14 +13,15 @@
 // field at a time. But the field itself can have multiple components. Assumes
 // uniform grids
 
-template <int N> class LagrangeInterpolator
+template <int N> class Lagrange
 {
-
   private:
-    int i0, j0,
-        k0; // indices of the lower left corner of the stencil in the grid
+    // indices of the lower left corner of the stencil in the grid
+    int i0;
+    int j0;
+    int k0;
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     build_stencil(amrex::Real grid_pos, int &base_idx, amrex::Real *weights)
     {
         int stencil[N];
@@ -51,13 +52,15 @@ template <int N> class LagrangeInterpolator
     }
 
   public:
-    amrex::Real wx[N], wy[N],
-        wz[N]; // where we store the weights for each dimension
+    // where we store the weights for each dimension
+    amrex::Real weights_x[N];
+    amrex::Real weights_y[N];
+    amrex::Real weights_z[N];
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE LagrangeInterpolator() {};
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE Lagrange() {};
 
     template <typename P>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     compute_weights(const P &p,
                     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const &plo,
                     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const &dxi,
@@ -76,35 +79,27 @@ template <int N> class LagrangeInterpolator
                   (amrex::Real(p.pos(2)) - plo[2]) * dxi[2] -
                   static_cast<amrex::Real>(!is_nodal[2]) * amrex::Real(0.5););
 
-        build_stencil(lx, i0, wx);
-
-        // std::cout << "wx: " << wx[0] << ", " << wx[1] << ", " << wx[2] << ",
-        // " << wx[3] << ", " << wx[4] << std::endl;
+        build_stencil(lx, i0, weights_x);
 
 #if AMREX_SPACEDIM >= 2
-        build_stencil(ly, j0, wy);
-        ;
-        // std::cout << "wy: " << wy[0] << ", " << wy[1] << ", " << wy[2] << ",
-        // " << wy[3] << ", " << wy[4] << std::endl;
+        build_stencil(ly, j0, weights_y);
 #endif
 #if AMREX_SPACEDIM == 3
-        build_stencil(lz, k0, wz);
-        // std::cout << "wz: " << wz[0] << ", " << wz[1] << ", " << wz[2] << ",
-        // " << wz[3] << ", " << wz[4] << std::endl;
+        build_stencil(lz, k0, weights_z);
 #endif
     }
 
     // Function to perform the interpolation
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     interpolate(const amrex::Array4<amrex::Real const> *data_arr,
                 amrex::ParticleReal *val, int start_comp, int ncomp) const
     {
-        int ctr          = 0;
+        int counter      = 0;
         auto const &data = data_arr[0];
 
         for (int comp = start_comp; comp < start_comp + ncomp; ++comp)
         {
-            val[ctr] = amrex::ParticleReal(0.0);
+            val[counter] = amrex::ParticleReal(0.0);
 #if AMREX_SPACEDIM == 3
             for (int kk = 0; kk < N; ++kk)
             {
@@ -115,10 +110,12 @@ template <int N> class LagrangeInterpolator
 #endif
                     for (int ii = 0; ii < N; ++ii)
                     {
-                        val[ctr] += data(amrex::IntVect(AMREX_D_DECL(
-                                             i0 + ii, j0 + jj, k0 + kk)),
-                                         comp) *
-                                    AMREX_D_TERM(wx[ii], *wy[jj], *wz[kk]);
+                        val[counter] +=
+                            data(amrex::IntVect(
+                                     AMREX_D_DECL(i0 + ii, j0 + jj, k0 + kk)),
+                                 comp) *
+                            AMREX_D_TERM(weights_x[ii], *weights_y[jj],
+                                         *weights_z[kk]);
                     }
 #if AMREX_SPACEDIM >= 2
                 }
@@ -126,25 +123,9 @@ template <int N> class LagrangeInterpolator
 #if AMREX_SPACEDIM == 3
             }
 #endif
-            ++ctr;
+            ++counter;
         } // end of for comp loop
-
-        // std::cout << "z at i = " << i0+0 << " j = " << j0+0 << " k = " <<
-        // k0+0 << " : " << data(amrex::IntVect(AMREX_D_DECL(i0 + 0, j0 + 0, k0
-        // + 0)), start_comp) << std::endl; std::cout << "z at i = " << i0+0 <<
-        // " j = " << j0+0 << " k = " << k0+1 << " : " <<
-        // data(amrex::IntVect(AMREX_D_DECL(i0 + 0, j0 + 0, k0 + 1)),
-        // start_comp) << std::endl; std::cout << "z at i = " << i0+0 << " j = "
-        // << j0+0 << " k = " << k0+2 << " : " <<
-        // data(amrex::IntVect(AMREX_D_DECL(i0 + 0, j0 + 0, k0 + 2)),
-        // start_comp) << std::endl; std::cout << "z at i = " << i0+0 << " j = "
-        // << j0+0 << " k = " << k0+3 << " : " <<
-        // data(amrex::IntVect(AMREX_D_DECL(i0 + 0, j0 + 0, k0 + 3)),
-        // start_comp) << std::endl; std::cout << "z at i = " << i0+0 << " j = "
-        // << j0+0 << " k = " << k0+4 << " : " <<
-        // data(amrex::IntVect(AMREX_D_DECL(i0 + 0, j0 + 0, k0 + 4)),
-        // start_comp) << std::endl;
     }
 };
 
-#endif /* LAGRANGEINTERPOLATION_HPP_ */
+#endif /* LAGRANGE_HPP_ */

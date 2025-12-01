@@ -34,12 +34,6 @@ class GRAMR : public amrex::Amr
 
   public:
 
-    // Set of virtual functions to be overridden by the example AMR class (e.g.
-    // BHAMR)
-    virtual void set_query(InterpolationQueryParticle &a_query) {}
-    virtual void ensure_query_populated() {}
-    virtual InterpolationQueryParticle *query() { return nullptr; }
-
     GRAMR(amrex::LevelBld *a_levelbld);
     ~GRAMR() override;
 
