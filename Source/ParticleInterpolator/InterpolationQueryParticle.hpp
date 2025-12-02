@@ -31,7 +31,7 @@ class InterpolationQueryParticle
         typename std::map<Derivative, std::vector<out_t>>::iterator;
 
   private:
-    template <int num_components> friend class ParticleInterpolators;
+    template <int num_components> friend class ParticleInterpolator;
 
     size_t m_num_points;
     std::vector<const double *> m_coords;

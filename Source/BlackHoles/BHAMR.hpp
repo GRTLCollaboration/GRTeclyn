@@ -8,7 +8,7 @@
 
 #include "GRAMR.hpp"
 #include "InterpolationQueryParticle.hpp"
-#include "ParticleInterpolators.hpp"
+#include "ParticleInterpolator.hpp"
 #include "PunctureTracker.hpp"
 
 #include <AMReX_ParmParse.H>
@@ -28,7 +28,7 @@ template <int num_punctures> class BHAMR : public GRAMR
 
   public:
 
-    ParticleInterpolators<1>
+    ParticleInterpolator<1>
         m_weyl_interpolator; // weyl interpolator (used as chi interpolator in
                              // this example)
 

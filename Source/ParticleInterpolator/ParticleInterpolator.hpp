@@ -1,5 +1,5 @@
-#ifndef PARTICLEINTERPOLATORS_HPP_
-#define PARTICLEINTERPOLATORS_HPP_
+#ifndef PARTICLEINTERPOLATOR_HPP_
+#define PARTICLEINTERPOLATOR_HPP_
 
 #include <AMReX_Array.H>
 #include <AMReX_ParIter.H>
@@ -14,7 +14,7 @@
 // arbitrary coordinates provided via InterpolationQuery, using amrex particles.
 
 template <int num_components>
-class ParticleInterpolators
+class ParticleInterpolator
     : public amrex::ParticleContainer<
           /*NStructReal*/ 0,
           /*NStructInt*/ 1,              // particle index
@@ -76,7 +76,7 @@ class ParticleInterpolators
     using ParticleType = typename Base::ParticleType;
     using Base::Base;
 
-    ParticleInterpolators() = default; // default constructible
+    ParticleInterpolator() = default; // default constructible
 
     // initialise everything and perform some sanity checks
     void set_gramr_ptr(GRAMR *gr_amr_ptr,
@@ -113,6 +113,6 @@ class ParticleInterpolators
     void clear_all();
 };
 
-#include "ParticleInterpolators.impl.hpp"
+#include "ParticleInterpolator.impl.hpp"
 
-#endif // PARTICLEINTERPOLATORS_HPP_
+#endif // PARTICLEINTERPOLATOR_HPP_

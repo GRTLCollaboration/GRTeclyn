@@ -1,5 +1,0 @@
-GRTECLYN_CEXE_headers += ParticleInterpolators.hpp \
-                         ParticleInterpolators.impl.hpp \
-                         InterpolationQueryParticle.hpp \
-                         Lagrange.hpp
-

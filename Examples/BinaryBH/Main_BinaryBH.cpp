@@ -15,7 +15,7 @@
 // Problem specific includes:
 #include "BinaryBHLevel.hpp"
 
-#include "ParticleInterpolators.hpp"
+#include "ParticleInterpolator.hpp"
 
 // System includes
 #include <chrono>

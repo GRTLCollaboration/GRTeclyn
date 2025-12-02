@@ -3,12 +3,12 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#if !defined(PARTICLEINTERPOLATORS_HPP_)
-#error "This file should only be included through ParticleInterpolators.hpp"
+#if !defined(PARTICLEINTERPOLATOR_HPP_)
+#error "This file should only be included through ParticleInterpolator.hpp"
 #endif
 
-#ifndef PARTICLEINTERPOLATORS_IMPL_HPP_
-#define PARTICLEINTERPOLATORS_IMPL_HPP_
+#ifndef PARTICLEINTERPOLATOR_IMPL_HPP_
+#define PARTICLEINTERPOLATOR_IMPL_HPP_
 
 #include "InterpolationQueryParticle.hpp"
 #include "Lagrange.hpp"
@@ -24,7 +24,7 @@
 
 // initialise everything and perform some sanity checks
 template <int num_components>
-void ParticleInterpolators<num_components>::set_gramr_ptr(
+void ParticleInterpolator<num_components>::set_gramr_ptr(
     GRAMR *gr_amr_ptr, const BoundaryConditions::params_t &a_bc_params,
     int a_start_comp, bool a_verbosity)
 {
@@ -61,8 +61,8 @@ void ParticleInterpolators<num_components>::set_gramr_ptr(
 }
 
 template <int num_components>
-void ParticleInterpolators<num_components>::set_derived_var_parity(int comp,
-                                                                   BCParity p)
+void ParticleInterpolator<num_components>::set_derived_var_parity(int comp,
+                                                                  BCParity p)
 {
     AMREX_ALWAYS_ASSERT(comp >= 0 && comp < num_components);
     m_derived_bc_parity[comp] = p;
@@ -70,7 +70,7 @@ void ParticleInterpolators<num_components>::set_derived_var_parity(int comp,
 
 // a parity helper (the same way as it was defined in the AMRInterpolator)
 template <int num_components>
-int ParticleInterpolators<num_components>::get_var_parity(
+int ParticleInterpolator<num_components>::get_var_parity(
     int comp, int point_idx, const InterpolationQueryParticle &query,
     const Derivative &deriv, VariableType variable_type) const
 {
@@ -116,11 +116,11 @@ int ParticleInterpolators<num_components>::get_var_parity(
 // BCs are used
 template <int num_components>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-ParticleInterpolators<num_components>::reflect_particle(amrex::Real x,
-                                                        amrex::Real lo,
-                                                        amrex::Real hi,
-                                                        bool lo_reflect,
-                                                        bool hi_reflect)
+ParticleInterpolator<num_components>::reflect_particle(amrex::Real x,
+                                                       amrex::Real lo,
+                                                       amrex::Real hi,
+                                                       bool lo_reflect,
+                                                       bool hi_reflect)
 {
     // enforce a new particle position if needed
     amrex::Real xl = x;
@@ -138,7 +138,7 @@ ParticleInterpolators<num_components>::reflect_particle(amrex::Real x,
 
 // allocate particles at the query points
 template <int num_components>
-void ParticleInterpolators<num_components>::populate_from_query(
+void ParticleInterpolator<num_components>::populate_from_query(
     const InterpolationQueryParticle &query)
 {
     AMREX_ASSERT(m_initialized);
@@ -239,7 +239,7 @@ void ParticleInterpolators<num_components>::populate_from_query(
 
 // interpolate variables into SOA slots
 template <int num_components>
-void ParticleInterpolators<num_components>::interpolate_to_particle()
+void ParticleInterpolator<num_components>::interpolate_to_particle()
 {
     AMREX_ASSERT(m_initialized);
 
@@ -313,7 +313,7 @@ void ParticleInterpolators<num_components>::interpolate_to_particle()
 // once. However, as per current implementation, we can have only contiguous
 // comps
 template <int num_components>
-void ParticleInterpolators<num_components>::
+void ParticleInterpolator<num_components>::
     interpolate_to_particle_from_derived_fields(
         const std::vector<amrex::MultiFab *> &a_derived_mf_vect)
 {
@@ -382,7 +382,7 @@ void ParticleInterpolators<num_components>::
 // mirror of AMRInterpolator::interp(); assembles all particle data and writes
 // parity * value into the query out arrays
 template <int num_components>
-void ParticleInterpolators<num_components>::interp(
+void ParticleInterpolator<num_components>::interp(
     InterpolationQueryParticle &query)
 {
     AMREX_ASSERT(m_initialized);
@@ -522,7 +522,7 @@ void ParticleInterpolators<num_components>::interp(
 
 // A function to check whether the query point is inside the physical domain
 template <int num_components>
-void ParticleInterpolators<num_components>::check_domain(
+void ParticleInterpolator<num_components>::check_domain(
     std::array<double, AMREX_SPACEDIM> &x, int guard_cells) const
 {
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
@@ -558,7 +558,7 @@ void ParticleInterpolators<num_components>::check_domain(
 
         if (error)
         {
-            std::string msg = "ParticleInterpolators::check_domain() Oi oi oi! "
+            std::string msg = "ParticleInterpolator::check_domain() Oi oi oi! "
                               "You are trying to access the point at x[" +
                               std::to_string(d) +
                               "] = " + std::to_string(x[d]) +
@@ -571,7 +571,7 @@ void ParticleInterpolators<num_components>::check_domain(
 
 // Ensure that particles are redistributed if needed
 template <int num_components>
-void ParticleInterpolators<num_components>::ensure_redistributed()
+void ParticleInterpolator<num_components>::ensure_redistributed()
 {
     int need = (m_need_redistribute ? 1 : 0);
     amrex::ParallelDescriptor::ReduceIntMax(
@@ -590,7 +590,7 @@ void ParticleInterpolators<num_components>::ensure_redistributed()
 
 // Option to force Redistribute() flag if needed globally
 template <int num_components>
-void ParticleInterpolators<num_components>::force_redistribute(bool flag)
+void ParticleInterpolator<num_components>::force_redistribute(bool flag)
 {
     m_need_redistribute = flag;
 }
@@ -599,7 +599,7 @@ void ParticleInterpolators<num_components>::force_redistribute(bool flag)
 
 // Should I have a function to clear particles at a specific level?
 template <int num_components>
-void ParticleInterpolators<num_components>::clear_level(int lev)
+void ParticleInterpolator<num_components>::clear_level(int lev)
 {
     for (ParIterType it(*this, lev); it.isValid(); ++it)
     {
@@ -611,7 +611,7 @@ void ParticleInterpolators<num_components>::clear_level(int lev)
 
 // Clear particles on all levels
 template <int num_components>
-void ParticleInterpolators<num_components>::clear_all()
+void ParticleInterpolator<num_components>::clear_all()
 {
     for (int lev = 0; lev <= this->finestLevel(); ++lev)
     {
@@ -619,4 +619,4 @@ void ParticleInterpolators<num_components>::clear_all()
     }
 }
 
-#endif /* PARTICLEINTERPOLATORS_IMPL_HPP_ */
+#endif /* PARTICLEINTERPOLATOR_IMPL_HPP_ */

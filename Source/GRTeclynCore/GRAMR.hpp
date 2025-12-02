@@ -7,7 +7,6 @@
 #define GRAMR_HPP_
 
 // xxxxx#include "Lagrange.hpp"
-#include "InterpolationQueryParticle.hpp"
 #include "VariableType.hpp"
 #include <AMReX_Amr.H>
 #include <algorithm>

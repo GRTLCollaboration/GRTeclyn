@@ -29,7 +29,7 @@
 #include "Derivative.hpp"
 #include "DerivativeSetup.hpp"
 #include "InterpolatorTestLevel.hpp"
-#include "ParticleInterpolators.hpp"
+#include "ParticleInterpolator.hpp"
 #include "PolynomialTest.hpp"
 #include "SimulationParameters.hpp"
 
@@ -39,7 +39,7 @@
 // An interpolation problem borrowed from original GRChombo tests (using only
 // one polynomial example however) We treat the polynomial as a derived
 // variable, and then interpolate it to some points using the
-// ParticleInterpolators class.
+// ParticleInterpolator class.
 
 void run_lagrange_test()
 {
@@ -134,7 +134,7 @@ void run_lagrange_test()
             .addComp(0, A.data(), Derivative::LOCAL, VariableType::derived);
 
         // set up interpolation using Particles
-        ParticleInterpolators<1> interpolator(sim_params.boundary_params, 0);
+        ParticleInterpolator<1> interpolator(sim_params.boundary_params, 0);
         interpolator.set_gramr_ptr(&gr_amr);
         interpolator.populate_from_query(query);
 

@@ -18,7 +18,6 @@ include $(GRTECLYN_HOME)/Tools/GNUMake/Make.rules
 GRTECLYN_SOURCE = $(GRTECLYN_HOME)/Source
 
 src_dirs := $(GRTECLYN_SOURCE)/AMRInterpolator \
-	    $(GRTECLYN_SOURCE)/ParticleInterpolators \
             $(GRTECLYN_SOURCE)/Grids \
             $(GRTECLYN_SOURCE)/GRTeclynCore \
             $(GRTECLYN_SOURCE)/IO \
