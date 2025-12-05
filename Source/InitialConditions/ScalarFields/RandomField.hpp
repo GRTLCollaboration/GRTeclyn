@@ -39,6 +39,7 @@ class RandomField
             int tensor_init = 0;        //!< Determines whether tensor perturbations are calculated
             int scalar_init = 0;  //!< Read in perturbations from STOIIC dparams
             int use_rand = 1;           //!< Choose whether to use random initial conditions
+            int plot_int;
 
             // Grid parameters
             double L;                   //!< Length of the box
@@ -54,13 +55,11 @@ class RandomField
             double kstar;               //!< window's cut-off mode, measured in units of 2pi/L
             double Delta;               //!< window's width, measured like L/Delta
 
-            int calc_binned_power_spectrum = 0;     //!< Choose whether to extract the binned power spectrum
-            bool apply_window_in_extraction = true; //!< Should the window be applied on the extracted polarisation field?
-            int plot_int = 100;                     //!< Interval to extract spectrum on (can be more frequent than the standard plot_interval)
-	
-	        int bin_number = N_readin/2;          //!< How many bins to use (capped at N/2)
+            // Extraction parameters
+            int calc_binned_power_spectrum = 0;   //!< Choose whether to extract the binned power spectrum
+            int bin_number;                       //!< How many bins to use (capped at N/2)
             int calc_higher_order_statistics = 0; //!< Choose whether to print higher-order statistics on the fields
-            int num_orders;                       //!< Number of moments to extract
+            int num_orders;                       //!< Number of moments to print (required by vector read-in)
             Vector<int> orders;                   //!< Moment orders to print for extracted fields
 
             // STOIIC read-in structures
@@ -99,7 +98,7 @@ class RandomField
         void extract(const MultiFab &state, const std::string data_path, const Real dt,  
                      const Real cur_time, const int restart_time, const int first_step);
 
-        void print_tensor_moment(MultiFab &field, const Vector<std::string> names,  
+        Vector<Real> print_moment(MultiFab &field, const Vector<std::string> names,  
                                  const Vector<int> &moment_orders, SmallDataIO &file, 
                                  const int is_first_step);
         

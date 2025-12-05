@@ -466,6 +466,7 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
 
     // Extract the spectra and field statistics
     RandomField random_field_extractor(simParams().random_field_params, simParams().background_params);
+    amrex::Print() << simParams().plot_interval;
     random_field_extractor.extract(state_new, simParams().data_path, dt, cur_time, restart_time, first_step);
 
     // Make a file object for constraint statistics
@@ -491,5 +492,5 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
 
     // Print statistics on the abs constraint terms
     Vector<int> moments{1,2};
-    random_field_extractor.print_tensor_moment(constr_alias, Constraints::var_names, moments, constrs_file, first_step);
+    random_field_extractor.print_moment(constr_alias, Constraints::var_names, moments, constrs_file, first_step);
 }

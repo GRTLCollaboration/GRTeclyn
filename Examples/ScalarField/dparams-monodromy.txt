@@ -25,6 +25,7 @@ amr.derive_plot_vars =ALL #R_NL1 R_NL2 R_NL3
 
 # Options for tensor extraction
 calc_binned_power_spectrum = 1
+spec_interval = 100
 calc_higher_order_statistics = 1
 
 #(!!) must be between 1 and 4

@@ -139,7 +139,8 @@ inline void RandomField::make_random_draws(MultiFab &rand_fab, Box &domain)
                 tmp_ptr(i, j, k, l) = distribution(generator);
             }
         });
-	}
+    }
+
     rand_fab.ParallelCopy(tmp);
 }
 
@@ -152,6 +153,7 @@ inline GpuComplex<Real> RandomField::calculate_mode_function(const double km, co
     // Stores modulus and argument 
     Real ms_mag = 0.;
     Real ms_arg = 0.;
+
     double kpr = km/H0;
     if (spec_indx == 0) // Position mode funcion
     {
@@ -213,7 +215,7 @@ inline GpuComplex<Real> RandomField::calculate_random_field(const IntVect iv, co
         BL_PROFILE("RandomField::calculate_random_field Random initialisation is used");
 
         // Make one random draw for the amplitude and phase individually
-        Real rand_mod = sqrt(-1. * log(rand_amp)); // Rayleigh distribution about |h|
+        Real rand_mod = sqrt(-2. * log(rand_amp)); // Rayleigh distribution about |h|
         Real rand_arg = 2. * M_PI * rand_phase;      // Uniform random phase
 
         // Multiply amplitude by Rayleigh draw
@@ -231,7 +233,7 @@ inline GpuComplex<Real> RandomField::calculate_random_field(const IntVect iv, co
     if(m_params.use_window == 1) 
     { 
         BL_PROFILE("RandomField::calculate_random_field Window function is used")
-        double ks = std::sqrt(3.) * N * M_PI / m_params.L / 5.; //m_params.kstar * 2. * M_PI/m_params.L;
+        double ks = std::sqrt(3.) * N * M_PI / m_params.L / 5.;//m_params.kstar * 2. * M_PI/m_params.L;
         double Dt = m_params.L/m_params.Delta;
         value *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
     }
@@ -257,9 +259,9 @@ inline Vector<Real> RandomField::calculate_basis_vector(const IntVect iv, const 
                                 }
 
         else { mhat[0] = j/sqrt(k*k+j*j); mhat[1] = -k/sqrt(k*k+j*j); mhat[2] = 0.L;
-               nhat[0] = k*i/sqrt(std::pow(i, 2.)*(std::pow(k, 2.) + std::pow(j, 2.)) + pow(k*k + j*j, 2.));
-               nhat[1] = i*j/sqrt(std::pow(i, 2.)*(std::pow(k, 2.) + std::pow(j, 2.)) + pow(k*k + j*j, 2.));
-               nhat[2] = -(k*k + j*j)/sqrt(std::pow(i, 2.)*(std::pow(k, 2.) + std::pow(j, 2.)) + pow(k*k + j*j, 2.)); 
+               nhat[0] = k*i/sqrt(i*i*(k*k + j*j) + pow(k*k + j*j, 2.));
+               nhat[1] = i*j/sqrt(i*i*(k*k + j*j) + pow(k*k + j*j, 2.));
+               nhat[2] = -(k*k + j*j)/sqrt(i*i*(k*k + j*j) + pow(k*k + j*j, 2.)); 
              }
     }
 
@@ -279,7 +281,6 @@ inline Vector<Real> RandomField::calculate_basis_vector(const IntVect iv, const 
     {
         Error("RandomField::calculate_polarisation_tensors Part of Fourier grid not covered.");
     }
-
 
     if(which_vector == 0) { return mhat; }
     else if(which_vector == 1) { return nhat; }
@@ -405,9 +406,7 @@ inline void RandomField::init(amrex::MultiFab &state)
     MultiFab tensor_draws(random_draws, amrex::make_alias, 0, 4);
     MultiFab scalar_draws(random_draws, amrex::make_alias, 4, 2);
 
-    H0 = -state.sum(c_K)/std::pow(N, 3.)/3.;
-
-    //std::string Filename = "/nfs/st01/hpc-gr-epss/eaf49/MPI-bugfix/2-ranks/rands";
+    // std::string Filename = "/cephfs/home/eaf49/GRTeclyn-workspace/Examples/ScalarField/comp-to-dparams.txt";
     for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
     {
         // Define the domain on this MPI rank
@@ -454,7 +453,7 @@ inline void RandomField::init(amrex::MultiFab &state)
             for (int l=0; l<3; l++) for (int p=0; p<3; p++)
             {
                 hij_ptr(i, j, k, lut[l][p]) = calculate_tensor_initial_conditions(iv, l, p, hs_ptr(i, j, k, 0), hs_ptr(i, j, k, 1));
-		        Aij_ptr(i, j, k, lut[l][p]) = calculate_tensor_initial_conditions(iv, l, p, As_ptr(i, j, k, 0), As_ptr(i, j, k, 1));
+                Aij_ptr(i, j, k, lut[l][p]) = calculate_tensor_initial_conditions(iv, l, p, As_ptr(i, j, k, 0), As_ptr(i, j, k, 1));
             }
         });
     }
@@ -469,7 +468,6 @@ inline void RandomField::init(amrex::MultiFab &state)
     tensor_fft.backward(hij_k, hij_x);
     tensor_fft.backward(Aij_k, Aij_x);
     scalar_fft.backward(scalar_fields_k, scalar_fields_x);
-
 
     // Apply normalisation into physical units
     hij_x.mult(norm);
@@ -495,8 +493,6 @@ inline void RandomField::init(amrex::MultiFab &state)
         const Box& bx = mfi.fabbox();
         ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            for(int p=0; p<2; p++) { if(amrex::isnan(hij_ptr(i, j, k, p))) { Error("Nan found in hij(x)!\n"); } }
-
             const IntVect iv{i, j, k};
             bool in_ghost_index = is_ghost_index(iv);
             if(!in_ghost_index)
@@ -660,7 +656,7 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
     ParallelAllReduce::Sum(ps_map.data(), static_cast<int>(ps_map.size()), ParallelContext::CommunicatorSub());
 
     // Print the power spectrum to a new file in data/
-    for(int s=0; s<N/2; s++)
+    for(int s=0; s<=N/2; s++)
     {
         power_spec_file.write_data_line({(kiso[s]+kiso[s+1])/2., (double)ps_map[s]/kcount[s]});
     }
@@ -693,7 +689,7 @@ inline Real RandomField::find_field_moment_x(MultiFab &field, const Vector<Real>
 }
 
 // Calculates and prints requested moments (any between 1 and 4)
-inline void RandomField::print_tensor_moment(MultiFab &field, const Vector<std::string> names,  
+inline Vector<Real> RandomField::print_moment(MultiFab &field, const Vector<std::string> names,  
                                              const Vector<int> &moment_orders, SmallDataIO &file, 
                                              const int is_first_step)
 {
@@ -702,7 +698,7 @@ inline void RandomField::print_tensor_moment(MultiFab &field, const Vector<std::
     {
         if(moment > 4) 
         { 
-            Error("RandomField::print_tensor_moment Chosen moment order has not been implemented");
+            Error("RandomField::print_moment Chosen moment order has not been implemented");
         }
     }
 
@@ -769,6 +765,7 @@ inline void RandomField::print_tensor_moment(MultiFab &field, const Vector<std::
     // Write header and data lines
     if(is_first_step) { file.write_header_line(headers); }
     file.write_time_data_line(data_to_print);
+    return stdev;
 }
 
 inline void RandomField::derive(const MultiFab &source, MultiFab &out, int dcomp)
@@ -985,7 +982,6 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             IntVect iv{i, j, k};
-            Real kmag = get_kmag(iv);
             
             Vector<Real> mhat(3, 0.);
             Vector<Real> nhat(3, 0.);
@@ -1006,22 +1002,16 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
                 hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross)/std::sqrt(2.);
             }
 
-            if(m_params.apply_window_in_extraction)
-            {
-                BL_PROFILE("RandomField::extract Window function is used")
-                for(int s=0; s<2; s++)
-                {
-                    double ks = std::sqrt(3.) * N * M_PI / m_params.L / 5.; //m_params.kstar * 2. * M_PI/m_params.L;
-                    double Dt = m_params.L/m_params.Delta;
-                    hs_ptr(i, j, k, s) *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
-                }
-            }
-
             Vector<Real> iv_k(iv.begin(), iv.end());
             for(auto& k_comp : iv_k) { k_comp *= 2. * M_PI / m_params.L; }
+            Real kmag = get_kmag(iv);
             GpuComplex<Real> Phi = 0;
 
-            if(kmag == 0) { R_k_ptr(i, j, k, 0) = GpuComplex<Real>{0., 0.}; }
+            if(kmag == 0)
+            {
+                R_k_ptr(i, j, k, 0) = GpuComplex<Real>{0., 0.};
+            }
+
             else
             {
                 // converstion from chi, gamma_ij -> Phi
@@ -1066,40 +1056,47 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         BoxArray xba(x_domain);
         DistributionMapping xdm(xba);
         MultiFab hs_x(xba, xdm, 2, 0);
+        MultiFab R_x(xba, xdm, 1, 0);
         hs_x.setVal(0.0);
+        R_x.setVal(0.0);
 
         // Fourier transform
-        FFT::R2C<Real> mode_function_fft(x_domain, FFT::Info().setBatchSize(hs_k.nComp()));
-        mode_function_fft.backward(hs_k, hs_x);
+        FFT::R2C<Real> tensor_mode_function_fft(x_domain, FFT::Info().setBatchSize(hs_k.nComp()));
+        FFT::R2C<Real> scalar_mode_function_fft(x_domain, FFT::Info().setBatchSize(R_k.nComp()));
+        tensor_mode_function_fft.backward(hs_k, hs_x);
+        scalar_mode_function_fft.backward(R_k, R_x);
 
         // Apply physical normalisation
         hs_x.mult(norm);
+        R_x.mult(norm);
+
+        int output_comps = hs_x.nComp() + R_x.nComp();
+        MultiFab out_MF(hs_x.boxArray(), hs_x.DistributionMap(), output_comps, 0);
+        Copy(out_MF, R_x, 0, 0, R_k.nComp(), 0);
+        Copy(out_MF, hs_x, 0, R_k.nComp(), hs_x.nComp(), 0);
 
         // Print mode functions if requested
-        std::string mf_path = make_subdirectory(data_path, "mode-functions", first_step);
+        /*std::string mf_path = make_subdirectory(data_path, "mode-functions", first_step);
         std::string filename = mf_path+"mode-function-"+std::to_string(cur_time/dt);
 
-        /*if(first_step)
+        for (MFIter mfi(hs_x); mfi.isValid(); ++mfi) 
         {
+            Array4<Real> const& hx_ptr = hs_x.array(mfi);
+            const Box& bx = mfi.fabbox();
 
-                for (MFIter mfi(hs_x); mfi.isValid(); ++mfi) 
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                AllPrintToFile(filename) << i + N*(j + N*k) << ",";
+                for(int c=0; c<2; c++)
                 {
-                        Array4<Real> const& hx_ptr = hs_x.array(mfi);
-                        const Box& bx = mfi.fabbox();
-
-                    amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                    {
-                    AllPrintToFile(filename) << i + N*(j + N*k) << ",";
-                    for(int c=0; c<2; c++)
-                    {
-                        AllPrintToFile(filename).SetPrecision(14) << hx_ptr(i, j, k, c) << ",";
-                    }
-                    AllPrintToFile(filename) << "\n";
-                    });
+                    AllPrintToFile(filename).SetPrecision(14) << hx_ptr(i, j, k, c) << ",";
                 }
+                AllPrintToFile(filename) << "\n";
+            });
         }*/
 
         // Calculate and print field moments if requested
+        Vector<Real> stdevs;
         if (m_params.calc_higher_order_statistics)
         {
             SmallDataIO stats_file(data_path+"field-statistics", dt, cur_time, 
@@ -1107,10 +1104,15 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
 
             if (!m_params.orders.empty())
             {
-                Vector<std::string> names{"hplus","hcross"};
-                print_tensor_moment(hs_x, names, m_params.orders, stats_file, first_step);
+                Vector<std::string> names{"R","hplus","hcross"};
+                stdevs = print_moment(out_MF, names, m_params.orders, stats_file, first_step);
             }
         }
+        
+        SmallDataIO ts_file(data_path+"tensor-scalar-ratio", dt, cur_time, 
+                                    restart_time, SmallDataIO::APPEND, first_step, ".dat");
+        if(first_step) { ts_file.write_header_line({"T/S ratio (plus)", "T/S ratio (cross)"}); }
+        ts_file.write_time_data_line({stdevs[1] / stdevs[0], stdevs[2] / stdevs[0]});
     }
 }
 
