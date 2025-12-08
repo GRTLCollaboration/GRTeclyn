@@ -47,7 +47,7 @@ void GRAMR::set_restart_time(double a_restart_time)
 // this step.
 void GRAMR::convert_derived_multifabs(
     const amrex::Vector<std::unique_ptr<amrex::MultiFab>> &inputs,
-    amrex::Vector<const amrex::MultiFab *> &fields)
+    amrex::Vector<amrex::MultiFab *> &fields)
 {
     fields.clear();
     fields.reserve(inputs.size());

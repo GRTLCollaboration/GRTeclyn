@@ -2,10 +2,10 @@
  * Copyright 2022 The GRTL collaboration.
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
-#ifndef LAGRANGEUNITTEST_HPP_
-#define LAGRANGEUNITTEST_HPP_
+#ifndef PARTICLEINTERPOLATORUNITTEST_HPP_
+#define PARTICLEINTERPOLATORUNITTEST_HPP_
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
-void run_lagrange_test();
+void run_particle_interpolator_test();
 
-#endif /* LAGRANGEUNITTEST_HPP_ */
+#endif /* PARTICLEINTERPOLATORUNITTEST_HPP_ */

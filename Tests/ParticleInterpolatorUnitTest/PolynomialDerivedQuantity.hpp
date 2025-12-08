@@ -3,8 +3,8 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#ifndef POLYNOMIALTEST_HPP_
-#define POLYNOMIALTEST_HPP_
+#ifndef POLYNOMIALDERIVEDQUANTITY_HPP_
+#define POLYNOMIALDERIVEDQUANTITY_HPP_
 
 // AMReX includes
 #include <AMReX_AmrLevel.H>
@@ -15,11 +15,11 @@
 // My attempt to make a derived variable (a polynomial). I followed what has
 // been done for Constraints before.
 
-class PolynomialTest
+class PolynomialDerivedQuantity
 {
   public:
 
-    static inline amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> my_center{
+    static inline amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> m_center{
         AMREX_D_DECL(0., 0., 0.)}; // some random default here
 
     // read in the center which will be used to populating the polynomial
@@ -27,7 +27,9 @@ class PolynomialTest
     static void set_center(const std::array<double, AMREX_SPACEDIM> &c)
     {
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
-            my_center[d] = c[d];
+        {
+            m_center[d] = c[d];
+        }
     }
 
     static inline const std::string name = "polynomial";
@@ -69,9 +71,9 @@ class PolynomialTest
         const auto &src_arrays = src_mf.const_arrays(); // this is read-only
         int ipoly              = dcomp;
 
-        PolynomialTest polynomial(ipoly);
+        PolynomialDerivedQuantity polynomial(ipoly);
 
-        auto center = my_center;
+        auto center = m_center;
 
         amrex::ParallelFor(out_mf, out_mf.nGrowVect(),
                            [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
@@ -87,33 +89,31 @@ class PolynomialTest
     // Compute function
     AMREX_GPU_DEVICE
     void
-    compute(int i, int j, int k, const amrex::Array4<amrex::Real> &cst,
+    compute(int i, int j, int k, const amrex::Array4<amrex::Real> &a_array,
             const amrex::Array4<amrex::Real const> &state,
-            amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const &plo,
-            amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const &dx,
-            amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const &center) const
+            const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> &plo,
+            const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> &dx,
+            const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> &center) const
     {
-        const auto &ctr = center;
-
         // set up the coords
-        amrex::Real x = plo[0] + (i + 0.5) * dx[0] - ctr[0];
-        amrex::Real y = plo[1] + (j + 0.5) * dx[1] - ctr[1];
+        amrex::Real x = plo[0] + (i + 0.5) * dx[0] - center[0];
+        amrex::Real y = plo[1] + (j + 0.5) * dx[1] - center[1];
 #if AMREX_SPACEDIM == 3
-        amrex::Real z = plo[2] + (k + 0.5) * dx[2] - ctr[2];
+        amrex::Real z = plo[2] + (k + 0.5) * dx[2] - center[2];
 #else
         amrex::Real z = 0.0;
 #endif
 
         // write via cell data
-        auto cell    = cst.cellData(i, j, k);
-        cell[m_poly] = 42.0 + x * x + y * y * z * z;
+        auto cell      = a_array.cellData(i, j, k);
+        cell[m_c_poly] = 42.0 + x * x + y * y * z * z;
     }
 
     // Constructor
-    PolynomialTest(int a_c_poly) : m_poly(a_c_poly) {}
+    PolynomialDerivedQuantity(int a_c_poly) : m_c_poly(a_c_poly) {}
 
   private:
-    int m_poly; // destination comp
+    int m_c_poly; // destination comp
 };
 
-#endif /* POLYNOMIALTEST_HPP_ */
+#endif /* POLYNOMIALDERIVEDQUANTITY_HPP_ */

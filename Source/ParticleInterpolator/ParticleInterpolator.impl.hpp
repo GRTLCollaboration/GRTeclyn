@@ -172,6 +172,15 @@ void ParticleInterpolator<num_components>::populate_from_query(
                 AMREX_D_DECL(x[i], y[i], z[i])};
             check_domain(coords, 0);
         }
+
+        // copy stuff as otherwise I get errors with lambdas when I use class
+        // members inside the GPU loops; this is a bit annoying as I have to
+        // copy a few things; any other alternative ways?
+        const auto prob_lo    = m_prob_lo;
+        const auto prob_hi    = m_prob_hi;
+        const auto lo_reflect = m_lo_boundary_reflective;
+        const auto hi_reflect = m_hi_boundary_reflective;
+
         // copy coords here
         const amrex::Real *x_p = nullptr, *y_p = nullptr, *z_p = nullptr;
         amrex::Gpu::DeviceVector<amrex::Real> Xd, Yd, Zd;
@@ -205,18 +214,15 @@ void ParticleInterpolator<num_components>::populate_from_query(
 
                 // reflect into valid region and set
                 p.pos(0) = reflect_particle(
-                    static_cast<amrex::Real>(x_d_ptr[ip]), m_prob_lo[0],
-                    m_prob_hi[0], m_lo_boundary_reflective[0],
-                    m_hi_boundary_reflective[0]);
+                    static_cast<amrex::Real>(x_d_ptr[ip]), prob_lo[0],
+                    prob_hi[0], lo_reflect[0], hi_reflect[0]);
                 p.pos(1) = reflect_particle(
-                    static_cast<amrex::Real>(y_d_ptr[ip]), m_prob_lo[1],
-                    m_prob_hi[1], m_lo_boundary_reflective[1],
-                    m_hi_boundary_reflective[1]);
+                    static_cast<amrex::Real>(y_d_ptr[ip]), prob_lo[1],
+                    prob_hi[1], lo_reflect[1], hi_reflect[1]);
 #if AMREX_SPACEDIM == 3
                 p.pos(2) = reflect_particle(
-                    static_cast<amrex::Real>(z_d_ptr[ip]), m_prob_lo[2],
-                    m_prob_hi[2], m_lo_boundary_reflective[2],
-                    m_hi_boundary_reflective[2]);
+                    static_cast<amrex::Real>(z_d_ptr[ip]), prob_lo[2],
+                    prob_hi[2], lo_reflect[2], hi_reflect[2]);
 #endif
                 p.idata(0) = ip;
 

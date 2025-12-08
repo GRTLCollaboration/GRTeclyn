@@ -1,6 +1,0 @@
-GRTECLYN_CEXE_headers += PolynomialTest.hpp \
-                         PolynomialTest.impl.hpp \
-                         LagrangeUnitTest.hpp \
-                         InterpolatorTestLevel.hpp \
-
-GRTECLYN_CEXE_sources += LagrangeUnitTest.cpp

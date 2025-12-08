@@ -51,7 +51,7 @@ class GRAMR : public amrex::Amr
     // NOLINT(readability-convert-member-functions-to-static)
     void convert_derived_multifabs(
         const amrex::Vector<std::unique_ptr<amrex::MultiFab>> &inputs,
-        amrex::Vector<const amrex::MultiFab *> &fields);
+        amrex::Vector<amrex::MultiFab *> &fields);
 
   private:
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
