@@ -7,7 +7,7 @@
 #include "doctest.h"
 
 // Test include
-#include "LagrangeUnitTest.hpp"
+#include "ParticleInterpolatorUnitTest.hpp"
 
 // Common includes
 #include "doctestCLIArgs.hpp"
@@ -28,27 +28,27 @@
 // Problem specific includes
 #include "Derivative.hpp"
 #include "DerivativeSetup.hpp"
-#include "InterpolatorTestLevel.hpp"
 #include "ParticleInterpolator.hpp"
-#include "PolynomialTest.hpp"
+#include "ParticleInterpolatorLevel.hpp"
+#include "PolynomialDerivedQuantity.hpp"
 #include "SimulationParameters.hpp"
 
 // Others
 #include <filesystem>
 
-// An interpolation problem borrowed from original GRChombo tests (using only
-// one polynomial example however) We treat the polynomial as a derived
-// variable, and then interpolate it to some points using the
+// An interpolation problem borrowed from original GRChombo tests. We treat one
+// of the polynomials as a derived variable, and the other as a state variable.
+// We interpolate them to some specified (x,y,z) points using the
 // ParticleInterpolator class.
 
-void run_lagrange_test()
+void run_particle_interpolator_test()
 {
     // Use an input file that is in the same directory as this file for the
     // second argument
     std::filesystem::path this_file(__FILE__);
     std::filesystem::path input_file =
         this_file.parent_path() /
-        std::filesystem::path("AMRInterpolatorTest.inputs");
+        std::filesystem::path("ParticleInterpolatorUnitTest.inputs");
     char *input_file_c_str = strdup(input_file.c_str());
 
     auto new_args = doctest::cli_args;
@@ -64,45 +64,28 @@ void run_lagrange_test()
         GRParmParse pp;
         SimulationParameters sim_params(pp);
         GRAMR::set_simulation_parameters(sim_params);
+        ParticleInterpolatorLevel::variableSetUp();
 
         // Set the center
-        PolynomialTest::set_center(sim_params.center);
+        PolynomialDerivedQuantity::set_center(sim_params.center);
 
         // Set up the AMR object
-        DefaultLevelFactory<InterpolatorTestLevel> interpolator_test_level_fact;
+        DefaultLevelFactory<ParticleInterpolatorLevel>
+            interpolator_test_level_fact;
         GRAMR gr_amr(&interpolator_test_level_fact);
         gr_amr.init(0., sim_params.stop_time);
 
-        // Build the polynomial on the grid; we iterate over levels and fill a
-        // MultiFab at each level
-        const int finest = gr_amr.finestLevel(); // get finest level here
-        const int ngrow  = 2;                    // no of ghost cells
-        std::vector<std::unique_ptr<amrex::MultiFab>> poly_by_lev(finest + 1);
-
-        // iterate
-        for (int lev = 0; lev <= finest; ++lev)
-        {
-            auto &L        = gr_amr.getLevel(lev);       // level
-            auto &state    = L.get_new_data(State_Type); // state data
-            const auto &ba = state.boxArray();           // box array
-            const auto &dm = state.DistributionMap();    // distribution map
-
-            poly_by_lev[lev] = std::make_unique<amrex::MultiFab>(
-                ba, dm, 1, ngrow); // we have 1 number of comps
-
-            // fill the MultiFab: note that destination comp = 0, number of
-            // components = 1, geometry is read from AMRLevel see e.g. here
-            // (https://amrex-codes.github.io/amrex/doxygen/classamrex_1_1AmrLevel.html)
-            PolynomialTest::compute_mf(
-                *poly_by_lev[lev], 0, 1, *poly_by_lev[lev], // unused
-                L.Geom(), /*time=*/0.0, /*bcrec=*/nullptr, lev);
-        }
-        amrex::Gpu::streamSynchronize();
+        int ngrow = 2;
+        auto out_poly =
+            gr_amr.derive(PolynomialDerivedQuantity::name, 0, ngrow);
+        amrex::Vector<amrex::MultiFab *> fields;
+        gr_amr.convert_derived_multifabs(out_poly, fields);
 
         // Build the point from sim_params
         const int num_points = sim_params.num_points;
 
-        std::vector<double> A(num_points);
+        std::vector<double> A(num_points); // for storing derived polynomial
+        std::vector<double> B(num_points); // for storing state polynomial
         std::vector<double> interp_x(num_points);
         std::vector<double> interp_y(num_points);
         std::vector<double> interp_z(num_points);
@@ -121,60 +104,60 @@ void run_lagrange_test()
                 sim_params.center[2] + extract_radius * cos(theta);
         }
 
-        // std::cout << "Interp_x[0] " << interp_x[0] - sim_params.center[0] <<
-        // std::endl; std::cout << "Interp_y[0] " << interp_y[0] -
-        // sim_params.center[1] << std::endl; std::cout << "Interp_z[0] " <<
-        // interp_z[0] - sim_params.center[2] << std::endl;
-
-        // set-up query
+        // set-up query for derived variable A
         InterpolationQueryParticle query(num_points);
         query.setCoords(0, interp_x.data())
             .setCoords(1, interp_y.data())
             .setCoords(2, interp_z.data())
             .addComp(0, A.data(), Derivative::LOCAL, VariableType::derived);
 
-        // set up interpolation using Particles
-        ParticleInterpolator<1> interpolator(sim_params.boundary_params, 0);
-        interpolator.set_gramr_ptr(&gr_amr);
+        // set up interpolation using Particles for derived vars
+        ParticleInterpolator<1> interpolator;
+        interpolator.set_gramr_ptr(&gr_amr, sim_params.boundary_params, 0,
+                                   true);
         interpolator.populate_from_query(query);
-
-        std::vector<const amrex::MultiFab *> fields;
-        fields.reserve(poly_by_lev.size());
-        for (const auto &mf_uptr : poly_by_lev)
-        {
-            fields.push_back(
-                mf_uptr.get()); // convert to const amrex::MultiFab* to feed to
-                                // interp call like below
-        }
-
-        std::vector<int> comps(fields.size(),
-                               0); // we have only one comp, which is 0
-
         interpolator.interpolate_to_particle_from_derived_fields(fields);
-
         // Do not forget to set the parity!
         interpolator.set_derived_var_parity(0, BCParity::even);
+        interpolator.interp(query);
 
-        interpolator.interp(query, VariableType::derived);
+        // set-up query for state variable B
+        InterpolationQueryParticle query_state(num_points);
+        query_state.setCoords(0, interp_x.data())
+            .setCoords(1, interp_y.data())
+            .setCoords(2, interp_z.data())
+            .addComp(0, B.data(), Derivative::LOCAL, VariableType::state);
+
+        // set up interpolation using Particles for state vars
+        ParticleInterpolator<1> interpolator_state;
+        interpolator_state.set_gramr_ptr(&gr_amr, sim_params.boundary_params, 0,
+                                         true);
+        interpolator_state.populate_from_query(query_state);
+        interpolator_state.interpolate_to_particle();
+        interpolator_state.interp(query_state);
 
         if (amrex::ParallelDescriptor::MyProc() == 0)
         {
-            double diff = 0; // absolute error
-
             for (int ipoint = 0; ipoint < num_points; ++ipoint)
             {
                 double x = interp_x[ipoint] - sim_params.center[0];
                 double y = interp_y[ipoint] - sim_params.center[1];
                 double z = interp_z[ipoint] - sim_params.center[2];
 
-                double value_A = 42. + x * x + y * y * z * z;
+                double A_known = 42. + x * x + y * y * z * z; // derived
+                double B_known = pow(x, 3);                   // state
 
-                diff = fabs(A[ipoint] - value_A);
+                INFO("Interpolated A is " << A[ipoint] << " at point x = " << x
+                                          << " y = " << y << " z = " << z
+                                          << ". The true value should be "
+                                          << A_known);
+                INFO("Interpolated B is " << B[ipoint] << " at point x = " << x
+                                          << " y = " << y << " z = " << z
+                                          << ". The true value should be "
+                                          << B_known);
 
-                amrex::Print() << "Absolute error is " << std::setprecision(10)
-                               << diff << "\n";
-
-                CHECK(diff == doctest::Approx(0.0).epsilon(1e-10));
+                CHECK(A[ipoint] == doctest::Approx(A_known).epsilon(1e-10));
+                CHECK(B[ipoint] == doctest::Approx(B_known).epsilon(1e-10));
             }
         }
     }
