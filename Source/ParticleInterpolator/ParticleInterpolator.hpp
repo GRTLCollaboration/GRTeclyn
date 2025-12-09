@@ -70,11 +70,6 @@ class ParticleInterpolator
     void check_domain(std::array<double, AMREX_SPACEDIM> &x,
                       int guard_cells = 0) const;
 
-    // A helper function that does interpolation from grid onto particles
-    void interpolation_to_particle_helper(int lev, amrex::MultiFab &mf,
-                                          const amrex::Geometry &geom,
-                                          int num_ghosts);
-
   public:
 
     using Base         = amrex::ParticleContainer<0, 1, num_components, 0>;
@@ -95,6 +90,11 @@ class ParticleInterpolator
     // allocate particles at the query points
     void populate_from_query(const InterpolationQueryParticle &query);
 
+    // A helper function that does interpolation from grid onto particles
+    void interpolation_to_particle_helper(int lev, amrex::MultiFab &mf,
+                                          const amrex::Geometry &geom,
+                                          int num_ghosts);
+
     // interpolate variables into SOA slots
     void interpolate_to_particle();
 
@@ -104,7 +104,12 @@ class ParticleInterpolator
 
     // mirror of AMRInterpolator::interp(); assembles all particle data and
     // writes parity * value into the query out arrays
-    void interp(InterpolationQueryParticle &query);
+    void aggregate_points(InterpolationQueryParticle &query);
+
+    // final interpolation routine exposed to the users
+    void interp(InterpolationQueryParticle &query, VariableType variable_type,
+                const std::string &name_derived = "",
+                double time_derived             = 0.0);
 
     void ensure_redistributed();
 

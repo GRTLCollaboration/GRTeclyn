@@ -364,10 +364,48 @@ void ParticleInterpolator<num_components>::
     m_need_redistribute = false;
 }
 
+// A wrapper function that the user needs to call to perform interpolation
+// It uses/collates together all the methods defined in this class
+template <int num_components>
+void ParticleInterpolator<num_components>::interp(
+    InterpolationQueryParticle &query, VariableType variable_type,
+    const std::string &name_derived, double time_derived /*=0.0*/)
+{
+    static constexpr int interp_order = 4; // 4th order Lagrange
+    static constexpr int num_ghosts =
+        interp_order / 2; // number of ghosts needed
+
+    // Populate particles
+    populate_from_query(query);
+
+    // Interpolate to all particles
+    if (variable_type == VariableType::state)
+    {
+        interpolate_to_particle();
+    }
+    else if (VariableType::derived == variable_type)
+    {
+        auto out_derived =
+            m_gr_amr->derive(name_derived, time_derived, num_ghosts);
+        amrex::Vector<amrex::MultiFab *> derived_mf_vect;
+        m_gr_amr->convert_derived_multifabs(out_derived, derived_mf_vect);
+
+        interpolate_to_particle_from_derived_fields(derived_mf_vect);
+    }
+    else
+    {
+        amrex::Abort("The type of VaribaleType is not recognized in "
+                     "ParticleInterpolator::interp()!");
+    }
+
+    // Aggregate results
+    aggregate_points(query);
+}
+
 // mirror of AMRInterpolator::interp(); assembles all particle data and writes
 // parity * value into the query out arrays
 template <int num_components>
-void ParticleInterpolator<num_components>::interp(
+void ParticleInterpolator<num_components>::aggregate_points(
     InterpolationQueryParticle &query)
 {
     AMREX_ASSERT(m_initialized);
@@ -427,7 +465,8 @@ void ParticleInterpolator<num_components>::interp(
                 const int q = host_aos[i].idata(0); // get particle index
                 if (q < 0 || q >= num_points)
                 {
-                    amrex::Abort("interp(): particle id out of range");
+                    amrex::Abort(
+                        "aggregate_points(): particle id out of range");
                 }
                 for (int k = 0; k < num_components; ++k)
                 {
@@ -494,8 +533,9 @@ void ParticleInterpolator<num_components>::interp(
 #ifdef AMREX_DEBUG
                     if (!have[ip])
                     {
-                        amrex::Abort("interp(): no data for query point " +
-                                     std::to_string(ip));
+                        amrex::Abort(
+                            "aggregate_points(): no data for query point " +
+                            std::to_string(ip));
                     }
 #endif
                     int parity =

@@ -75,12 +75,6 @@ void run_particle_interpolator_test()
         GRAMR gr_amr(&interpolator_test_level_fact);
         gr_amr.init(0., sim_params.stop_time);
 
-        int ngrow = 2;
-        auto out_poly =
-            gr_amr.derive(PolynomialDerivedQuantity::name, 0, ngrow);
-        amrex::Vector<amrex::MultiFab *> fields;
-        gr_amr.convert_derived_multifabs(out_poly, fields);
-
         // Build the point from sim_params
         const int num_points = sim_params.num_points;
 
@@ -115,11 +109,10 @@ void run_particle_interpolator_test()
         ParticleInterpolator<1> interpolator;
         interpolator.set_gramr_ptr(&gr_amr, sim_params.boundary_params, 0,
                                    true);
-        interpolator.populate_from_query(query);
-        interpolator.interpolate_to_particle_from_derived_fields(fields);
-        // Do not forget to set the parity!
         interpolator.set_derived_var_parity(0, BCParity::even);
-        interpolator.interp(query);
+        int ngrow = 2;
+        interpolator.interp(query, VariableType::derived,
+                            PolynomialDerivedQuantity::name, 0.0);
 
         // set-up query for state variable B
         InterpolationQueryParticle query_state(num_points);
@@ -132,9 +125,7 @@ void run_particle_interpolator_test()
         ParticleInterpolator<1> interpolator_state;
         interpolator_state.set_gramr_ptr(&gr_amr, sim_params.boundary_params, 0,
                                          true);
-        interpolator_state.populate_from_query(query_state);
-        interpolator_state.interpolate_to_particle();
-        interpolator_state.interp(query_state);
+        interpolator_state.interp(query_state, VariableType::state);
 
         if (amrex::ParallelDescriptor::MyProc() == 0)
         {
