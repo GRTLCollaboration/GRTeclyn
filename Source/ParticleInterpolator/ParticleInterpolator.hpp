@@ -70,10 +70,24 @@ class ParticleInterpolator
     void check_domain(std::array<double, AMREX_SPACEDIM> &x,
                       int guard_cells = 0) const;
 
+    // allocate particles at the query points
+    void populate_from_query(const InterpolationQueryParticle &query);
+
     // A helper function that does interpolation from grid onto particles
     void interpolation_to_particle_helper(int lev, amrex::MultiFab &mf,
                                           const amrex::Geometry &geom,
                                           int num_ghosts);
+
+    // interpolate variables into SOA slots
+    void interpolate_to_particle();
+
+    // interpolate variables into SOA slots for derived vars
+    void interpolate_to_particle_from_derived_fields(
+        const std::vector<amrex::MultiFab *> &a_derived_mf_vect);
+
+    // mirror of AMRInterpolator::interp(); assembles all particle data and
+    // writes parity * value into the query out arrays
+    void aggregate_points(InterpolationQueryParticle &query);
 
   public:
 
@@ -92,19 +106,10 @@ class ParticleInterpolator
     // helper function to set parities of derived vars per component
     void set_derived_var_parity(int comp, BCParity p);
 
-    // allocate particles at the query points
-    void populate_from_query(const InterpolationQueryParticle &query);
-
-    // interpolate variables into SOA slots
-    void interpolate_to_particle();
-
-    // interpolate variables into SOA slots for derived vars
-    void interpolate_to_particle_from_derived_fields(
-        const std::vector<amrex::MultiFab *> &a_derived_mf_vect);
-
-    // mirror of AMRInterpolator::interp(); assembles all particle data and
-    // writes parity * value into the query out arrays
-    void interp(InterpolationQueryParticle &query);
+    // final interpolation routine exposed to the users
+    void interp(InterpolationQueryParticle &query, VariableType variable_type,
+                const std::string &name_derived = "",
+                double time_derived             = 0.0);
 
     void ensure_redistributed();
 
