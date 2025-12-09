@@ -438,35 +438,34 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
     int ncomp = state_new.nComp();
     int ngrow = state_new.nGrow();
 
-    amrex::MultiFab phi_alias(ba, dm, ncomp, ngrow);
-    amrex::MultiFab chi_alias(ba, dm, ncomp, ngrow);
-    amrex::MultiFab::Copy(phi_alias, state_new, c_phi, c_phi, 1, ngrow);
-    amrex::MultiFab::Copy(chi_alias, state_new, c_chi, c_chi, 1, ngrow);
+    // amrex::MultiFab phi_alias(ba, dm, ncomp, ngrow);
+    // amrex::MultiFab chi_alias(ba, dm, ncomp, ngrow);
+    // amrex::MultiFab::Copy(phi_alias, state_new, c_phi, c_phi, 1, ngrow);
+    // amrex::MultiFab::Copy(chi_alias, state_new, c_chi, c_chi, 1, ngrow);
 
-    if(phi_alias.empty()) { amrex::Error("ScalarFieldLevel::specificPostTimeStep Copy failed"); }
-    else if(chi_alias.empty()) { amrex::Error("ScalarFieldLevel::specificPostTimeStep Copy failed"); }
+    // if(phi_alias.empty()) { amrex::Error("ScalarFieldLevel::specificPostTimeStep Copy failed"); }
+    // else if(chi_alias.empty()) { amrex::Error("ScalarFieldLevel::specificPostTimeStep Copy failed"); }
 
-    phi_alias.plus(-phi_avg, c_phi, 1, nghost);
-    chi_alias.plus(-chi_avg, c_chi, 1, nghost);
+    // phi_alias.plus(-phi_avg, c_phi, 1, nghost);
+    // chi_alias.plus(-chi_avg, c_chi, 1, nghost);
     
-    Multiply(phi_alias, phi_alias, c_phi, c_phi, 1, nghost);
-    Multiply(chi_alias, chi_alias, c_chi, c_chi, 1, nghost);
+    // Multiply(phi_alias, phi_alias, c_phi, c_phi, 1, nghost);
+    // Multiply(chi_alias, chi_alias, c_chi, c_chi, 1, nghost);
     
-    const double phi_var = phi_alias.sum(c_phi)/vol - std::pow(phi_avg, 2.);
-    const double chi_var = chi_alias.sum(c_chi)/vol - std::pow(chi_avg, 2.);
+    // const double phi_var = phi_alias.sum(c_phi)/vol - std::pow(phi_avg, 2.);
+    // const double chi_var = chi_alias.sum(c_chi)/vol - std::pow(chi_avg, 2.);
 
 	SmallDataIO means_file(simParams().data_path+"means-file", dt, cur_time, restart_time, SmallDataIO::APPEND, first_step, ".dat");
 	means_file.remove_duplicate_time_data(); // removes any duplicate data from previous run (for checkpointing)
 
     if(first_step) 
     {
-        means_file.write_header_line({"PhiMean","PhiVar","PiMean","ScaleFactMean","ChiVar","HubbleMean","LapseMean"});
+        means_file.write_header_line({"PhiMean","PiMean","ScaleFactMean","HubbleMean","LapseMean"});
     }
-    means_file.write_time_data_line({phi_avg, sqrt(phi_var), Pi_avg, scale_fact_avg, sqrt(chi_var), Hubble_fact_avg, lapse_avg});
+    means_file.write_time_data_line({phi_avg, Pi_avg, scale_fact_avg, Hubble_fact_avg, lapse_avg});
 
     // Extract the spectra and field statistics
     RandomField random_field_extractor(simParams().random_field_params, simParams().background_params);
-    amrex::Print() << simParams().plot_interval;
     random_field_extractor.extract(state_new, simParams().data_path, dt, cur_time, restart_time, first_step);
 
     // Make a file object for constraint statistics

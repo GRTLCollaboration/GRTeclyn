@@ -233,7 +233,7 @@ inline GpuComplex<Real> RandomField::calculate_random_field(const IntVect iv, co
     if(m_params.use_window == 1) 
     { 
         BL_PROFILE("RandomField::calculate_random_field Window function is used")
-        double ks = std::sqrt(3.) * N * M_PI / m_params.L / 5.;//m_params.kstar * 2. * M_PI/m_params.L;
+        double ks = std::sqrt(3.) * N * M_PI / m_params.L / 5. / 2.;//m_params.kstar * 2. * M_PI/m_params.L;
         double Dt = m_params.L/m_params.Delta;
         value *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
     }
@@ -406,6 +406,8 @@ inline void RandomField::init(amrex::MultiFab &state)
     MultiFab tensor_draws(random_draws, amrex::make_alias, 0, 4);
     MultiFab scalar_draws(random_draws, amrex::make_alias, 4, 2);
 
+    Print() << "Starting initial condition generation/read in...\n";
+
     // std::string Filename = "/cephfs/home/eaf49/GRTeclyn-workspace/Examples/ScalarField/comp-to-dparams.txt";
     for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
     {
@@ -428,16 +430,6 @@ inline void RandomField::init(amrex::MultiFab &state)
         {
             IntVect iv = {i, j, k};
 
-            // Find the mode function realisation
-            for(int p=0; p<2; p++)
-            {
-                Real draw1 = tensor_draw_ptr(i, j, k, 2*p);
-                Real draw2 = tensor_draw_ptr(i, j, k, 2*p+1);
-
-                hs_ptr(i, j, k, p) = calculate_random_field(iv, 0, draw1, draw2);
-                As_ptr(i, j, k, p) = calculate_random_field(iv, 1, draw1, draw2);
-            }
-
             if(m_params.scalar_init)
             {
                 for(int f=0; f<4; f++)
@@ -449,11 +441,24 @@ inline void RandomField::init(amrex::MultiFab &state)
                 }
             }
 
-            // Find basis tensors and initial tensor realisation
-            for (int l=0; l<3; l++) for (int p=0; p<3; p++)
+            if(m_params.tensor_init)
             {
-                hij_ptr(i, j, k, lut[l][p]) = calculate_tensor_initial_conditions(iv, l, p, hs_ptr(i, j, k, 0), hs_ptr(i, j, k, 1));
-                Aij_ptr(i, j, k, lut[l][p]) = calculate_tensor_initial_conditions(iv, l, p, As_ptr(i, j, k, 0), As_ptr(i, j, k, 1));
+                // Find the mode function realisation
+                for(int p=0; p<2; p++)
+                {
+                    Real draw1 = tensor_draw_ptr(i, j, k, 2*p);
+                    Real draw2 = tensor_draw_ptr(i, j, k, 2*p+1);
+
+                    hs_ptr(i, j, k, p) = calculate_random_field(iv, 0, draw1, draw2);
+                    As_ptr(i, j, k, p) = calculate_random_field(iv, 1, draw1, draw2);
+                }
+
+                // Find basis tensors and initial tensor realisation
+                for (int l=0; l<3; l++) for (int p=0; p<3; p++)
+                {
+                    hij_ptr(i, j, k, lut[l][p]) = calculate_tensor_initial_conditions(iv, l, p, hs_ptr(i, j, k, 0), hs_ptr(i, j, k, 1));
+                    Aij_ptr(i, j, k, lut[l][p]) = calculate_tensor_initial_conditions(iv, l, p, As_ptr(i, j, k, 0), As_ptr(i, j, k, 1));
+                }
             }
         });
     }
@@ -682,9 +687,12 @@ inline Real RandomField::find_field_moment_x(MultiFab &field, const Vector<Real>
     }
 
     ParallelAllReduce::Sum(sum, ParallelContext::CommunicatorSub());
+    //if (moment == 3) { Print() << "Components of skewness: ";
+    //                   Print() << sum << ", " << sum/vol << "\n"; }
 
     // Normalise and return moment x
-    if(moment == 2) { return sqrt(sum/vol); }
+    if (sum == 0) { return 0; }
+    else if(moment == 2) { return sqrt(sum/vol); }
     else { return sum/vol; }
 }
 

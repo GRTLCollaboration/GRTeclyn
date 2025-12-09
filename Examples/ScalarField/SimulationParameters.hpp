@@ -76,6 +76,8 @@ class SimulationParameters : public SimulationParametersBase
             pp.load("n_k", num_modes, 0);
             pp.getarr("init_k", random_field_params.init_k, 0, num_modes);
 
+            Print() << "Begin read in of scalars...\n";
+
             random_field_params.scalar_ps = amrex::Vector<amrex::Vector<amrex::Real>>(8, amrex::Vector<amrex::Real>(num_modes, 0.));
             pp.getarr("re_phi_k", random_field_params.scalar_ps[0], 0, num_modes);
             pp.getarr("im_phi_k", random_field_params.scalar_ps[1], 0, num_modes);
@@ -86,11 +88,16 @@ class SimulationParameters : public SimulationParametersBase
             pp.getarr("re_K_k", random_field_params.scalar_ps[6], 0, num_modes);
             pp.getarr("im_K_k", random_field_params.scalar_ps[7], 0, num_modes);
 
-            random_field_params.tensor_ps = amrex::Vector<amrex::Vector<amrex::Real>>(4, amrex::Vector<amrex::Real>(num_modes, 0.));
-            pp.getarr("re_h_k", random_field_params.tensor_ps[0], 0, num_modes);
-            pp.getarr("im_h_k", random_field_params.tensor_ps[1], 0, num_modes);
-            pp.getarr("re_dh_k", random_field_params.tensor_ps[2], 0, num_modes);
-            pp.getarr("im_dh_k", random_field_params.tensor_ps[3], 0, num_modes);
+            if(random_field_params.tensor_init)
+            {
+                Print() << "Begin read in of tensors...\n";
+
+                random_field_params.tensor_ps = amrex::Vector<amrex::Vector<amrex::Real>>(4, amrex::Vector<amrex::Real>(num_modes, 0.));
+                pp.getarr("re_h_k", random_field_params.tensor_ps[0], 0, num_modes);
+                pp.getarr("im_h_k", random_field_params.tensor_ps[1], 0, num_modes);
+                pp.getarr("re_dh_k", random_field_params.tensor_ps[2], 0, num_modes);
+                pp.getarr("im_dh_k", random_field_params.tensor_ps[3], 0, num_modes);
+            }
         }
     }
 
