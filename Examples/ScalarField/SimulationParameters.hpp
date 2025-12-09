@@ -35,12 +35,11 @@ class SimulationParameters : public SimulationParametersBase
         random_field_params.Mp = 1./std::sqrt(G_Newton);
         background_params.G_Newton = G_Newton;
 
+        pp.load("potential_type", potential_params.type, 0);
         pp.load("potential_param_1", potential_params.scalar_mass, 0.1);
         background_params.m = potential_params.scalar_mass;
-
+        
         // Check these
-        //pp.load("scalar_amplitude", potential_params.phi0, 4.);
-        //pp.load("feature_dphi", potential_params.dphi, 1.e-7);
         pp.load("potential_param_2", potential_params.location, 0.);
         pp.load("potential_param_3", potential_params.width);
         pp.load("potential_param_4", potential_params.amplitude, 0.);
