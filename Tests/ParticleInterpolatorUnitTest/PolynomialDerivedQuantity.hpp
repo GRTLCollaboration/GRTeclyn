@@ -42,11 +42,9 @@ class PolynomialDerivedQuantity
         const auto &desc_lst = amrex::AmrLevel::get_desc_lst();
         auto &derive_lst     = amrex::AmrLevel::get_derive_lst();
 
-        derive_lst.add(
-            name, amrex::IndexType::TheCellType(), 1, var_names, compute_mf,
-            // grow by 2 (ghost cells)
-            [](const amrex::Box &b) { return amrex::grow(b, 2); },
-            &amrex::cell_quartic_interp);
+        derive_lst.add(name, amrex::IndexType::TheCellType(), 1, var_names,
+                       compute_mf, amrex::DeriveRec::TheSameBox,
+                       &amrex::cell_quartic_interp);
 
         // arguments: string (name), DescriptorList, int for state index,
         // starting comp, number of comps: we have only 1 polynomial so s_comp

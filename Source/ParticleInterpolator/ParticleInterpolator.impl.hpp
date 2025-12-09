@@ -243,6 +243,65 @@ void ParticleInterpolator<num_components>::populate_from_query(
     // difference.
 }
 
+// a helper function that helps with interpolation from grid onto particles
+template <int num_components>
+void ParticleInterpolator<num_components>::interpolation_to_particle_helper(
+    int lev, amrex::MultiFab &mf, const amrex::Geometry &geom, int num_ghosts)
+{
+    const int start_comp              = m_start_comp;
+    const int ncomp                   = num_components;
+    static constexpr int interp_order = 4; // 4th order Lagrange
+
+    AMREX_ASSERT(mf.nComp() >= start_comp + ncomp);
+
+    if (this->NumberOfParticlesAtLevel(lev) == 0)
+        return;
+
+    // Fill ghost cells
+    amrex::IntVect nghost(AMREX_D_DECL(num_ghosts, num_ghosts, num_ghosts));
+    mf.FillBoundary(start_comp, ncomp, nghost, geom.periodicity());
+
+    const auto problem_domain_lo = geom.ProbLoArray();
+    const auto dxi               = geom.InvCellSizeArray();
+
+    // loop over tiles and interpolate now
+    for (ParIterType par_iter(*this, lev); par_iter.isValid(); ++par_iter)
+    {
+        auto &particle_tile     = this->ParticlesAt(lev, par_iter);
+        auto particle_tile_data = particle_tile.getParticleTileData();
+        const int num_particles = par_iter.numParticles();
+        auto fab_array          = mf[par_iter].const_array();
+
+        amrex::ParallelFor(
+            num_particles,
+            [=] AMREX_GPU_DEVICE(int ip)
+            {
+                auto &particle = particle_tile_data[ip];
+
+                amrex::IntVect is_nodal = amrex::IntVect::TheZeroVector();
+                // 4th-order Lagrange (5-point stencil)
+                Lagrange<interp_order + 1>
+                    lagrange_interp; // 4th order interpolation
+                lagrange_interp.compute_weights(particle, problem_domain_lo,
+                                                dxi, is_nodal);
+
+                amrex::ParticleReal interpolated_vals[ncomp];
+                lagrange_interp.interpolate(&fab_array, interpolated_vals,
+                                            start_comp, ncomp);
+
+                // write results to SOA
+                for (int icomp = 0; icomp < ncomp; ++icomp)
+                {
+                    particle_tile_data.rdata(icomp)[ip] =
+                        interpolated_vals[icomp];
+                }
+            });
+
+        // synchronize GPU streams to ensure all particles are updated
+        amrex::Gpu::streamSynchronize();
+    }
+}
+
 // interpolate variables into SOA slots
 template <int num_components>
 void ParticleInterpolator<num_components>::interpolate_to_particle()
@@ -251,8 +310,6 @@ void ParticleInterpolator<num_components>::interpolate_to_particle()
 
     ensure_redistributed();
 
-    const int start_comp              = m_start_comp;
-    const int ncomp                   = num_components;
     static constexpr int interp_order = 4; // 4th order Lagrange
     static constexpr int num_ghosts =
         interp_order / 2; // number of ghosts needed
@@ -264,51 +321,9 @@ void ParticleInterpolator<num_components>::interpolate_to_particle()
 
         amrex::AmrLevel &level      = m_gr_amr->getLevel(lev);
         const amrex::Geometry &geom = level.Geom();
-        amrex::MultiFab &state      = level.get_new_data(static_cast<int>(0));
+        amrex::MultiFab &state      = level.get_new_data(0);
 
-        AMREX_ASSERT(start_comp + ncomp <= state.nComp());
-
-        amrex::IntVect nghost(AMREX_D_DECL(num_ghosts, num_ghosts, num_ghosts));
-        state.FillBoundary(start_comp, ncomp, nghost, geom.periodicity());
-
-        const auto problem_domain_lo = geom.ProbLoArray();
-        const auto dxi               = geom.InvCellSizeArray();
-
-        // loop over tiles and interpolate now
-        for (ParIterType par_iter(*this, lev); par_iter.isValid(); ++par_iter)
-        {
-            auto &particle_tile     = this->ParticlesAt(lev, par_iter);
-            auto particle_tile_data = particle_tile.getParticleTileData();
-            const int num_particles = par_iter.numParticles();
-            auto fab_array          = state[par_iter].const_array();
-
-            amrex::ParallelFor(
-                num_particles,
-                [=] AMREX_GPU_DEVICE(int ip)
-                {
-                    auto &particle = particle_tile_data[ip];
-
-                    amrex::IntVect is_nodal = amrex::IntVect::TheZeroVector();
-                    Lagrange<interp_order + 1>
-                        lagrange_interp; // 4th order interpolation
-                    lagrange_interp.compute_weights(particle, problem_domain_lo,
-                                                    dxi, is_nodal);
-
-                    amrex::ParticleReal interpolated_vals[ncomp];
-                    lagrange_interp.interpolate(&fab_array, interpolated_vals,
-                                                start_comp, ncomp);
-
-                    // write results to SOA
-                    for (int icomp = 0; icomp < ncomp; ++icomp)
-                    {
-                        particle_tile_data.rdata(icomp)[ip] =
-                            interpolated_vals[icomp];
-                    }
-                });
-        }
-
-        // synchronize GPU streams to ensure all particles are updated
-        amrex::Gpu::streamSynchronize();
+        interpolation_to_particle_helper(lev, state, geom, num_ghosts);
     }
 
     m_need_redistribute = false;
@@ -330,58 +345,22 @@ void ParticleInterpolator<num_components>::
 
     ensure_redistributed();
 
-    const int start_comp = m_start_comp;
-    const int ncomp      = num_components;
+    static constexpr int interp_order = 4; // 4th order Lagrange
+    static constexpr int num_ghosts =
+        interp_order / 2; // number of ghosts needed
 
     for (int lev = 0; lev <= m_gr_amr->finestLevel(); ++lev)
     {
         if (this->NumberOfParticlesAtLevel(lev) == 0)
             continue;
 
-        auto &level               = m_gr_amr->getLevel(lev);
-        const auto &geom          = level.Geom();
-        const amrex::MultiFab &mf = *a_derived_mf_vect[lev];
+        auto &level      = m_gr_amr->getLevel(lev);
+        const auto &geom = level.Geom();
+        auto &mf         = *a_derived_mf_vect[lev];
 
-        AMREX_ASSERT(mf.nComp() >= start_comp + ncomp);
-
-        // Fill boundaries
-        amrex::IntVect nghost(AMREX_D_DECL(2, 2, 2));
-        const_cast<amrex::MultiFab &>(mf).FillBoundary(
-            start_comp, ncomp, nghost, geom.periodicity());
-
-        const auto plo = geom.ProbLoArray();
-        const auto dxi = geom.InvCellSizeArray();
-
-        for (ParIterType it(*this, lev); it.isValid(); ++it)
-        {
-            auto arrs    = mf[it].const_array();
-            auto &ptile  = this->ParticlesAt(lev, it);
-            auto ptd     = ptile.getParticleTileData();
-            const int np = it.numRealParticles();
-
-            amrex::ParallelFor(
-                np,
-                [=] AMREX_GPU_DEVICE(int ip)
-                {
-                    auto &sp = ptd[ip];
-
-                    amrex::IntVect is_nodal = amrex::IntVect::TheZeroVector();
-                    Lagrange<5> interp;
-                    interp.compute_weights(sp, plo, dxi, is_nodal);
-
-                    amrex::ParticleReal vals[ncomp];
-                    interp.interpolate(&arrs, vals, start_comp, ncomp);
-                    for (int k = 0; k < ncomp; ++k)
-                    {
-                        ptd.rdata(k)[ip] = vals[k];
-                    }
-                });
-
-            amrex::Gpu::streamSynchronize();
-        }
+        interpolation_to_particle_helper(lev, mf, geom, num_ghosts);
     }
 
-    m_particles_seeded  = true;
     m_need_redistribute = false;
 }
 
@@ -408,7 +387,9 @@ void ParticleInterpolator<num_components>::interp(
     std::vector<std::vector<amrex::Real>> value_at_point(
         num_components, std::vector<amrex::Real>(num_points, 0.0));
     // a vector to mark which points have values
+#ifdef AMREX_DEBUG
     std::vector<int> have(num_points, 0);
+#endif
 
     int local_particle_counter = 0;
 
@@ -453,7 +434,10 @@ void ParticleInterpolator<num_components>::interp(
                     value_at_point[k][q] =
                         static_cast<double>(host_soa_real[k][i]);
                 }
+
+#ifdef AMREX_DEBUG
                 have[q] = 1; // mark that we have a value for this point
+#endif
             }
         }
     }
@@ -470,8 +454,9 @@ void ParticleInterpolator<num_components>::interp(
         amrex::ParallelDescriptor::ReduceRealSum(value_at_point[k].data(),
                                                  num_points);
     }
+#ifdef AMREX_DEBUG
     amrex::ParallelDescriptor::ReduceIntSum(have.data(), num_points);
-
+#endif
     if (amrex::ParallelDescriptor::IOProcessor())
     {
         if (m_verbosity)
@@ -506,20 +491,16 @@ void ParticleInterpolator<num_components>::interp(
 
                 for (int ip = 0; ip < num_points; ++ip)
                 {
+#ifdef AMREX_DEBUG
                     if (!have[ip])
                     {
                         amrex::Abort("interp(): no data for query point " +
                                      std::to_string(ip));
                     }
-
+#endif
                     int parity =
                         get_var_parity(comp, ip, query, dkey, variable_type);
-                    // amrex::Print() << "Point " << ip << " comp " << comp
-                    //                << " value " << value_at_point[k][ip]
-                    //                << " has parity " << parity << "\n";
-
-                    const double v = have[ip] ? value_at_point[k][ip] : 0.0;
-                    out[ip]        = parity * v;
+                    out[ip] = parity * value_at_point[k][ip];
                 }
             }
         }
@@ -531,6 +512,8 @@ template <int num_components>
 void ParticleInterpolator<num_components>::check_domain(
     std::array<double, AMREX_SPACEDIM> &x, int guard_cells) const
 {
+    AMREX_ASSERT(guard_cells >= 0);
+
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
 

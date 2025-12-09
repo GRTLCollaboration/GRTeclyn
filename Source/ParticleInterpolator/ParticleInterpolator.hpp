@@ -29,6 +29,14 @@ class ParticleInterpolator
         false};          // a guard to make sure we do not uninitialised GRAMR
     int m_start_comp{0}; // first component
 
+    // physical domain corners on level 0 for parity logic
+    amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> m_prob_lo{};
+    amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> m_prob_hi{};
+
+    // reflective BC flags per side on the low and high sides
+    amrex::GpuArray<bool, AMREX_SPACEDIM> m_lo_boundary_reflective{{false}};
+    amrex::GpuArray<bool, AMREX_SPACEDIM> m_hi_boundary_reflective{{false}};
+
     bool m_verbosity{false};
 
     bool m_particles_seeded{false};
@@ -62,14 +70,12 @@ class ParticleInterpolator
     void check_domain(std::array<double, AMREX_SPACEDIM> &x,
                       int guard_cells = 0) const;
 
-  public:
-    // physical domain corners on level 0 for parity logic
-    amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> m_prob_lo{};
-    amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> m_prob_hi{};
+    // A helper function that does interpolation from grid onto particles
+    void interpolation_to_particle_helper(int lev, amrex::MultiFab &mf,
+                                          const amrex::Geometry &geom,
+                                          int num_ghosts);
 
-    // reflective BC flags per side on the low and high sides
-    amrex::GpuArray<bool, AMREX_SPACEDIM> m_lo_boundary_reflective{{false}};
-    amrex::GpuArray<bool, AMREX_SPACEDIM> m_hi_boundary_reflective{{false}};
+  public:
 
     using Base         = amrex::ParticleContainer<0, 1, num_components, 0>;
     using ParIterType  = typename Base::ParIterType;
