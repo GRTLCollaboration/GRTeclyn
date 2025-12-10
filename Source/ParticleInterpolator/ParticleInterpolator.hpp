@@ -95,17 +95,6 @@ class ParticleInterpolator
                                           const amrex::Geometry &geom,
                                           int num_ghosts);
 
-    // interpolate variables into SOA slots
-    void interpolate_to_particle();
-
-    // interpolate variables into SOA slots for derived vars
-    void interpolate_to_particle_from_derived_fields(
-        const std::vector<amrex::MultiFab *> &a_derived_mf_vect);
-
-    // mirror of AMRInterpolator::interp(); assembles all particle data and
-    // writes parity * value into the query out arrays
-    void aggregate_points(InterpolationQueryParticle &query);
-
     // final interpolation routine exposed to the users
     void interp(InterpolationQueryParticle &query, VariableType variable_type,
                 const std::string &name_derived = "",
