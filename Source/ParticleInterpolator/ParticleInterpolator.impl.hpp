@@ -24,22 +24,20 @@
 
 // initialise everything and perform some sanity checks
 template <int num_components>
-void ParticleInterpolator<num_components>::set_gramr_ptr(
+void ParticleInterpolator<num_components>::setup(
     GRAMR *gr_amr_ptr, const BoundaryConditions::params_t &a_bc_params,
-    int a_start_comp, bool a_verbosity)
+    bool a_verbosity, const DerivedParity *parities)
 {
     // is GRAMR properly set?
     AMREX_ASSERT(gr_amr_ptr != nullptr);
-    m_gr_amr     = gr_amr_ptr;
-    m_bc_params  = a_bc_params;
-    m_start_comp = a_start_comp;
-    m_verbosity  = a_verbosity;
+    m_gr_amr    = gr_amr_ptr;
+    m_bc_params = a_bc_params;
+    m_verbosity = a_verbosity;
 
     this->Define(dynamic_cast<amrex::ParGDBBase *>(m_gr_amr->GetParGDB()));
     m_initialized = true;
 
     AMREX_ALWAYS_ASSERT(num_components >= 1);
-    AMREX_ALWAYS_ASSERT(m_start_comp >= 0);
 
     // read in the physical bounds for reflective BC checks (it is sufficient to
     // do this on lev = 0)
@@ -58,6 +56,15 @@ void ParticleInterpolator<num_components>::set_gramr_ptr(
 
     // get resolution on level 0
     m_coarsest_dx = geom0.CellSizeArray();
+
+    // set derived var parities if provided
+    if (parities != nullptr)
+    {
+        for (int i = 0; i < num_components; ++i)
+        {
+            set_derived_var_parity(parities[i].comp, parities[i].parity);
+        }
+    }
 }
 
 template <int num_components>
@@ -138,10 +145,12 @@ ParticleInterpolator<num_components>::reflect_particle(amrex::Real x,
 
 // allocate particles at the query points
 template <int num_components>
-void ParticleInterpolator<num_components>::populate_from_query(
-    const InterpolationQueryParticle &query)
+void ParticleInterpolator<num_components>::populate_from_query()
 {
     AMREX_ASSERT(m_initialized);
+    AMREX_ALWAYS_ASSERT(m_query);
+
+    auto &query = *m_query;
 
     // we populate particles with rank 0
     const bool amroot = (amrex::ParallelDescriptor::MyProc() == 0);
@@ -248,7 +257,7 @@ template <int num_components>
 void ParticleInterpolator<num_components>::interpolation_to_particle_helper(
     int lev, amrex::MultiFab &mf, const amrex::Geometry &geom, int num_ghosts)
 {
-    const int start_comp              = m_start_comp;
+    int start_comp                    = m_start_comp;
     const int ncomp                   = num_components;
     static constexpr int interp_order = 4; // 4th order Lagrange
 
@@ -376,7 +385,21 @@ void ParticleInterpolator<num_components>::interp(
         interp_order / 2; // number of ghosts needed
 
     // Populate particles
-    populate_from_query(query);
+    if (!m_particles_seeded)
+    {
+        if (m_verbosity)
+        {
+            amrex::AllPrint()
+                << "ParticleInterpolator: populating particles from query\n";
+        }
+        m_query = std::make_unique<InterpolationQueryParticle>(query);
+        // get a starting comp
+        auto it         = m_query->compsBegin();
+        const auto &vec = it->second;
+        m_start_comp    = vec.front().comp;
+
+        populate_from_query();
+    }
 
     // Interpolate to all particles
     if (variable_type == VariableType::state)
@@ -399,16 +422,19 @@ void ParticleInterpolator<num_components>::interp(
     }
 
     // Aggregate results
-    aggregate_points(query);
+    aggregate_points();
 }
 
 // mirror of AMRInterpolator::interp(); assembles all particle data and writes
 // parity * value into the query out arrays
 template <int num_components>
-void ParticleInterpolator<num_components>::aggregate_points(
-    InterpolationQueryParticle &query)
+void ParticleInterpolator<num_components>::aggregate_points()
 {
     AMREX_ASSERT(m_initialized);
+    AMREX_ALWAYS_ASSERT(m_query);
+
+    auto &query    = *m_query;
+    int start_comp = m_start_comp;
 
     // get total query points here
     int num_points = 0;
@@ -523,9 +549,8 @@ void ParticleInterpolator<num_components>::aggregate_points(
                 const VariableType variable_type = entry.variable_type;
 
                 const int k =
-                    comp -
-                    m_start_comp; // reindex the variable component from 0;
-                                  // works only for contiguous components
+                    comp - start_comp; // reindex the variable component from 0;
+                                       // works only for contiguous components
                 AMREX_ALWAYS_ASSERT(k >= 0 && k < num_components);
 
                 for (int ip = 0; ip < num_points; ++ip)

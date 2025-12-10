@@ -107,9 +107,10 @@ void run_particle_interpolator_test()
 
         // set up interpolation using Particles for derived vars
         ParticleInterpolator<1> interpolator;
-        interpolator.set_gramr_ptr(&gr_amr, sim_params.boundary_params, 0,
-                                   true);
-        interpolator.set_derived_var_parity(0, BCParity::even);
+        ParticleInterpolator<1>::DerivedParity parities[] = {
+            {0, BCParity::even}
+        };
+        interpolator.setup(&gr_amr, sim_params.boundary_params, true, parities);
         int ngrow = 2;
         interpolator.interp(query, VariableType::derived,
                             PolynomialDerivedQuantity::name, 0.0);
@@ -123,8 +124,7 @@ void run_particle_interpolator_test()
 
         // set up interpolation using Particles for state vars
         ParticleInterpolator<1> interpolator_state;
-        interpolator_state.set_gramr_ptr(&gr_amr, sim_params.boundary_params, 0,
-                                         true);
+        interpolator_state.setup(&gr_amr, sim_params.boundary_params, true);
         interpolator_state.interp(query_state, VariableType::state);
 
         if (amrex::ParallelDescriptor::MyProc() == 0)

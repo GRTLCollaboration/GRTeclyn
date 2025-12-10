@@ -26,8 +26,8 @@ class ParticleInterpolator
   private:
     GRAMR *m_gr_amr{nullptr};
     bool m_initialized{
-        false};          // a guard to make sure we do not uninitialised GRAMR
-    int m_start_comp{0}; // first component
+        false};       // a guard to make sure we do not uninitialised GRAMR
+    int m_start_comp; // starting component for interpolation set from query
 
     // physical domain corners on level 0 for parity logic
     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> m_prob_lo{};
@@ -79,16 +79,24 @@ class ParticleInterpolator
 
     ParticleInterpolator() = default; // default constructible
 
+    // A struct to set parity for derived variables
+    struct DerivedParity
+    {
+        int comp;        // component of the derived varable
+        BCParity parity; // parity to be applied
+    };
+
     // initialise everything and perform some sanity checks
-    void set_gramr_ptr(GRAMR *gr_amr_ptr,
-                       const BoundaryConditions::params_t &a_bc_params,
-                       int a_start_comp, bool a_verbosity = false);
+    void setup(GRAMR *gr_amr_ptr,
+               const BoundaryConditions::params_t &a_bc_params,
+               bool a_verbosity              = false,
+               const DerivedParity *parities = nullptr);
 
     // helper function to set parities of derived vars per component
     void set_derived_var_parity(int comp, BCParity p);
 
     // allocate particles at the query points
-    void populate_from_query(const InterpolationQueryParticle &query);
+    void populate_from_query();
 
     // A helper function that does interpolation from grid onto particles
     void interpolation_to_particle_helper(int lev, amrex::MultiFab &mf,
@@ -103,7 +111,7 @@ class ParticleInterpolator
         const std::vector<amrex::MultiFab *> &a_derived_mf_vect);
 
     // A function that aggregates all the points together from the query
-    void aggregate_points(InterpolationQueryParticle &query);
+    void aggregate_points();
 
     // final interpolation routine exposed to the users
     void interp(InterpolationQueryParticle &query, VariableType variable_type,
