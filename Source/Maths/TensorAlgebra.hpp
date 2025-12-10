@@ -245,14 +245,37 @@ compute_trace(const Tensor<2, amrex::Real> &tensor_LL,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
+compute_trace(amrex::Array2D<amrex::Real, 0, 3, 0, 3> &tensor_LL,
+              const amrex::Array1D<amrex::Real, 0, 6> &inverse_metric_sym)
+{
+    amrex::Real trace = 0.;
+    FOR (i, j)
+    {
+        trace += inverse_metric_sym(SYMM_IDX(i, j)) * tensor_LL(i, j);
+    }
+    return trace;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
+compute_trace(amrex::Array2D<amrex::Real, 0, 3, 0, 3> &tensor_LL,
+              const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &inverse_metric)
+{
+    amrex::Real trace = 0.;
+    FOR (i, j)
+    {
+        trace += inverse_metric(i, j) * tensor_LL(i, j);
+    }
+    return trace;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_trace(const Tensor<2, amrex::Real> &tensor_LL,
               const amrex::Array1D<amrex::Real, 0, 6> &inverse_metric_sym)
 {
     amrex::Real trace = 0.;
     FOR (i, j)
     {
-        int idx  = i + j + ((i * j != 0) ? 1 : 0);
-        trace   += inverse_metric_sym(idx) * tensor_LL[i][j];
+        trace += inverse_metric_sym(SYMM_IDX(i, j)) * tensor_LL[i][j];
     }
     return trace;
 }
@@ -330,6 +353,16 @@ compute_dot_product(const Tensor<1, amrex::Real> &vector_U,
     return dot_product;
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
+compute_dot_product(const amrex::Array1D<amrex::Real, 0, 3> &vector_U,
+                    const amrex::Array1D<amrex::Real, 0, 3> &covector_L)
+{
+    amrex::Real dot_product = 0.;
+    FOR (i)
+        dot_product += vector_U(i) * covector_L(i);
+    return dot_product;
+}
+
 /// Computes dot product of two covectors given an inverse metric or
 /// the dot product of two vectors given a metric.
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
@@ -378,8 +411,8 @@ compute_dot_product(const Tensor<1, amrex::Real> &covector1_L,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-compute_dot_product(const Tensor<1, amrex::Real> &covector1_L,
-                    const Tensor<1, amrex::Real> &covector2_L,
+compute_dot_product(const amrex::Array1D<amrex::Real, 0, 3> &covector1_L,
+                    const amrex::Array1D<amrex::Real, 0, 3> &covector2_L,
                     const amrex::Array1D<amrex::Real, 0, 6> &inverse_metric_sym)
 {
     amrex::Real dot_product = 0.;
@@ -387,7 +420,20 @@ compute_dot_product(const Tensor<1, amrex::Real> &covector1_L,
     {
         int idx = m + n + ((m * n != 0) ? 1 : 0);
         dot_product +=
-            inverse_metric_sym(idx) * covector1_L[m] * covector2_L[n];
+            inverse_metric_sym(idx) * covector1_L(m) * covector2_L(n);
+    }
+    return dot_product;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real compute_dot_product(
+    const amrex::Array1D<amrex::Real, 0, 3> &covector1_L,
+    const amrex::Array1D<amrex::Real, 0, 3> &covector2_L,
+    const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &inverse_metric)
+{
+    amrex::Real dot_product = 0.;
+    FOR (m, n)
+    {
+        dot_product += inverse_metric(m, n) * covector1_L(m) * covector2_L(n);
     }
     return dot_product;
 }
