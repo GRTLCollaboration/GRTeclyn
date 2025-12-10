@@ -148,35 +148,36 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
             simParams().ccz4_params, Geom().CellSize(0), simParams().sigma,
             simParams().formulation);
 
+        amrex::ParallelFor(
+            a_rhs,
+            [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+            {
+                ccz4rhs.calculate_rhs(ix, iy, iz, rhs_arrays[box_no],
+                                      const_soln_arrays[box_no]);
+            });
+
         // amrex::ParallelFor(
         //     a_rhs,
         //     [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
         //     {
-        //         ccz4rhs(ix, iy, iz, rhs_arrays[box_no],
-        //                 const_soln_arrays[box_no]);
+        //         ccz4rhs.calculate_chi_rhs(ix, iy, iz, rhs_arrays[box_no],
+        //                                   const_soln_arrays[box_no]);
         //     });
-
-        amrex::ParallelFor(
-            a_rhs,
-            [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
-            {
-                ccz4rhs.calculate_chi_rhs(ix, iy, iz, rhs_arrays[box_no],
-                                          const_soln_arrays[box_no]);
-            });
-        amrex::ParallelFor(
-            a_rhs,
-            [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
-            {
-                ccz4rhs.calculate_A_ij_rhs(ix, iy, iz, rhs_arrays[box_no],
-                                           const_soln_arrays[box_no]);
-            });
-        amrex::ParallelFor(
-            a_rhs,
-            [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
-            {
-                ccz4rhs.apply_gauge_and_dissipation(
-                    ix, iy, iz, rhs_arrays[box_no], const_soln_arrays[box_no]);
-            });
+        // amrex::ParallelFor(
+        //     a_rhs,
+        //     [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+        //     {
+        //         ccz4rhs.calculate_A_ij_rhs(ix, iy, iz, rhs_arrays[box_no],
+        //                                    const_soln_arrays[box_no]);
+        //     });
+        // amrex::ParallelFor(
+        //     a_rhs,
+        //     [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+        //     {
+        //         ccz4rhs.apply_gauge_and_dissipation(
+        //             ix, iy, iz, rhs_arrays[box_no],
+        //             const_soln_arrays[box_no]);
+        //     });
     }
     else if (simParams().max_spatial_derivative_order == 6)
     {
