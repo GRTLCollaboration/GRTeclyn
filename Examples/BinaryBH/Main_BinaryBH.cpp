@@ -50,10 +50,6 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
 
     bh_amr.init(0., sim_params.stop_time);
 
-    // Set up the particle interpolator
-    bh_amr.m_weyl_interpolator.set_gramr_ptr(
-        &bh_amr, sim_params.boundary_params, c_chi, true);
-
     while (
         (bh_amr.okToContinue() != 0) &&
         (bh_amr.levelSteps(0) < sim_params.max_steps ||

@@ -9,6 +9,7 @@
 #include "BoundaryConditions.hpp"
 #include "GRAMR.hpp"
 #include "InterpolationQueryParticle.hpp"
+#include "MPIContext.hpp"
 
 // This class interpolates one variable (that may be multi-component) at
 // arbitrary coordinates provided via InterpolationQuery, using amrex particles.
@@ -79,6 +80,15 @@ class ParticleInterpolator
 
     ParticleInterpolator() = default; // default constructible
 
+    MPIContext m_mpi;
+    std::vector<int> m_mpi_mapping; // size of num_points, maps ip to recv index
+    // send buffers
+    std::vector<int> m_answer_idx; // indices of the answers to be sent back
+    std::vector<std::vector<double>> m_answer_data; // data to be sent back
+    // receive buffers
+    std::vector<int> m_query_idx; // receives query indices from other ranks
+    std::vector<std::vector<double>> m_query_data; // receives component values
+
     // A struct to set parity for derived variables
     struct DerivedParity
     {
@@ -110,8 +120,23 @@ class ParticleInterpolator
     void interpolate_to_particle_from_derived_fields(
         const std::vector<amrex::MultiFab *> &a_derived_mf_vect);
 
-    // A function that aggregates all the points together from the query
+    // A helper function that aggregates all the points together from senders
+    // and receivers, collects the them into out array and applies parity
     void aggregate_points();
+
+    // A helper function to prepare send buffers, packs m_answer_idx and
+    // m_answer_data
+    void prepare_answers();
+
+    // A helper function to prepare receive buffers, packs m_query_idx and
+    // m_query_data
+    void prepare_queries();
+
+    // Use m_mpi to exchange m_answer_* and m_query_* objects
+    void exchange_answers();
+
+    // Build query values on owner ranks and apply parity into out arrays
+    void build_values_and_apply_parity();
 
     // final interpolation routine exposed to the users
     void interp(InterpolationQueryParticle &query, VariableType variable_type,
