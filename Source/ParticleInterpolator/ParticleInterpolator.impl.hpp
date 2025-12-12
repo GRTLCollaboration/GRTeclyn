@@ -618,8 +618,8 @@ void ParticleInterpolator<num_components>::exchange_answers()
     m_mpi.asyncEnd();
 #else
     // serial
-    m_answer_idx  = m_query_idx;
-    m_answer_data = m_query_data;
+    m_query_idx  = m_answer_idx;
+    m_query_data = m_answer_data;
 #endif
 }
 

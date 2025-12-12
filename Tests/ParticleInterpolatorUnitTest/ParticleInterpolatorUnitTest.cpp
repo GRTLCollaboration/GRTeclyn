@@ -122,16 +122,16 @@ void run_particle_interpolator_test()
                             PolynomialDerivedQuantity::name, 0.0);
 
         // set-up query for state variable B
-        // InterpolationQueryParticle query_state(num_points_local);
-        // query_state.setCoords(0, interp_x.data())
-        //     .setCoords(1, interp_y.data())
-        //     .setCoords(2, interp_z.data())
-        //     .addComp(0, B.data(), Derivative::LOCAL, VariableType::state);
+        InterpolationQueryParticle query_state(num_points_local);
+        query_state.setCoords(0, interp_x.data())
+            .setCoords(1, interp_y.data())
+            .setCoords(2, interp_z.data())
+            .addComp(0, B.data(), Derivative::LOCAL, VariableType::state);
 
-        // // set up interpolation using Particles for state vars
-        // ParticleInterpolator<1> interpolator_state;
-        // interpolator_state.setup(&gr_amr, sim_params.boundary_params, true);
-        // interpolator_state.interp(query_state, VariableType::state);
+        // set up interpolation using Particles for state vars
+        ParticleInterpolator<1> interpolator_state;
+        interpolator_state.setup(&gr_amr, sim_params.boundary_params, true);
+        interpolator_state.interp(query_state, VariableType::state);
 
         if (amrex::ParallelDescriptor::MyProc() == 0)
         {
@@ -148,14 +148,13 @@ void run_particle_interpolator_test()
                                           << " y = " << y << " z = " << z
                                           << ". The true value should be "
                                           << A_known);
-                // INFO("Interpolated B is " << B[ipoint] << " at point x = " <<
-                // x
-                //                           << " y = " << y << " z = " << z
-                //                           << ". The true value should be "
-                //                           << B_known);
+                INFO("Interpolated B is " << B[ipoint] << " at point x = " << x
+                                          << " y = " << y << " z = " << z
+                                          << ". The true value should be "
+                                          << B_known);
 
                 CHECK(A[ipoint] == doctest::Approx(A_known).epsilon(1e-10));
-                // CHECK(B[ipoint] == doctest::Approx(B_known).epsilon(1e-10));
+                CHECK(B[ipoint] == doctest::Approx(B_known).epsilon(1e-10));
             }
         }
     }
