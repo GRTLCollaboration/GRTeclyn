@@ -82,12 +82,14 @@ class ParticleInterpolator
 
     MPIContext m_mpi;
     std::vector<int> m_mpi_mapping; // size of num_points, maps ip to recv index
-    // send buffers
-    std::vector<int> m_answer_idx; // indices of the answers to be sent back
-    std::vector<std::vector<double>> m_answer_data; // data to be sent back
-    // receive buffers
-    std::vector<int> m_query_idx; // receives query indices from other ranks
-    std::vector<std::vector<double>> m_query_data; // receives component values
+
+    std::vector<int> m_answer_idx; // indices of the answers
+    std::vector<std::vector<double>>
+        m_answer_data; // data buffers on the answering rank
+
+    std::vector<int> m_query_idx; // indices of query
+    std::vector<std::vector<double>>
+        m_query_data; // receive buffers on the query rank
 
     // A struct to set parity for derived variables
     struct DerivedParity
@@ -126,11 +128,11 @@ class ParticleInterpolator
 
     // A helper function to prepare send buffers, packs m_answer_idx and
     // m_answer_data
-    void prepare_answers();
+    void prepare_send_buffers();
 
     // A helper function to prepare receive buffers, packs m_query_idx and
     // m_query_data
-    void prepare_queries();
+    void prepare_receive_buffers();
 
     // Use m_mpi to exchange m_answer_* and m_query_* objects
     void exchange_answers();

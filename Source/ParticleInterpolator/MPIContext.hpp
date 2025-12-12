@@ -55,8 +55,10 @@ class MPIContext
     static int comm_rank();
 
   private:
-    MPILayout m_query;  // how many things I want to send to each rank
-    MPILayout m_answer; // how many things I want to receive from each rank
+    MPILayout m_query; // how many things this ranks wants to receive from each
+                       // other rank
+    MPILayout
+        m_answer; // how many things this rank wants to send to each other rank
 
     bool m_async_active{false};
 #ifdef AMREX_USE_MPI

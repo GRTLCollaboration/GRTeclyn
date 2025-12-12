@@ -438,18 +438,18 @@ void ParticleInterpolator<num_components>::aggregate_points()
     AMREX_ALWAYS_ASSERT(m_query);
 
     // pack m_answer_idx and m_answer_data
-    prepare_answers();
+    prepare_send_buffers();
     // pack m_query_idx and m_query_data
-    prepare_queries();
+    prepare_receive_buffers();
     // exchange answers
     exchange_answers();
     // build query values and apply parity
     build_values_and_apply_parity();
 }
 
-// Prepare send buffers
+// Prepare send buffers: who do I send answers to?
 template <int num_components>
-void ParticleInterpolator<num_components>::prepare_answers()
+void ParticleInterpolator<num_components>::prepare_send_buffers()
 {
     const int nprocs = amrex::ParallelDescriptor::NProcs();
 
@@ -500,12 +500,17 @@ void ParticleInterpolator<num_components>::prepare_answers()
 
             amrex::Gpu::streamSynchronize();
 
+            const int myproc = amrex::ParallelDescriptor::MyProc();
+
             for (int i = 0; i < np; ++i)
             {
+
                 const auto &p        = host_aos[i];
                 const int owner_rank = static_cast<int>(
                     p.cpu()); // this is the rank that owns the query, so it
                               // should receive its value
+                const int ip = p.idata(0);
+
                 AMREX_ASSERT(owner_rank >= 0 && owner_rank < nprocs);
 
                 // how many answers each owner rank will receive
@@ -535,19 +540,18 @@ void ParticleInterpolator<num_components>::prepare_answers()
     // build a global MPI communication layout
     m_mpi.exchangeLayout();
 
-    const int total_queries =
+    const int total_send =
         m_mpi.totalQueryCount(); // total answers this rank will SEND
 
-    m_answer_idx.resize(
-        total_queries); // resize the index array I will send back
+    m_answer_idx.resize(total_send); // resize the index array I will send back
     m_answer_data.resize(
         num_components); // resize the component data array I will send back
 
     // but my m_answer data is in fact
-    // m_answer_data[num_components][total_queries]
+    // m_answer_data[num_components][total_send]
     for (int k = 0; k < num_components; ++k)
     {
-        m_answer_data[k].assign(total_queries, 0.0); // initialize to zero here
+        m_answer_data[k].assign(total_send, 0.0); // initialize to zero here
     }
 
     const int mpi_procs = MPIContext::comm_size();
@@ -562,7 +566,6 @@ void ParticleInterpolator<num_components>::prepare_answers()
     {
         const int owner_rank = layout.rank[owner];
 
-        // idx = queryDispl(owner_rank) + rank_counter[owner_rank]
         // idx = start of send buffer + how many items I have packaged already
         const int idx =
             m_mpi.queryDispl(owner_rank) + rank_counter[owner_rank]++;
@@ -578,7 +581,7 @@ void ParticleInterpolator<num_components>::prepare_answers()
 
 // Prepare receive buffers
 template <int num_components>
-void ParticleInterpolator<num_components>::prepare_queries()
+void ParticleInterpolator<num_components>::prepare_receive_buffers()
 {
     const int total_recv = m_mpi.totalAnswerCount();
 
@@ -600,7 +603,7 @@ void ParticleInterpolator<num_components>::exchange_answers()
     m_mpi.asyncBegin();
 
     // exchange indices
-    m_mpi.asyncExchangeAnswer(m_answer_idx.data(), m_query_idx.data(), MPI_INT);
+    m_mpi.asyncExchangeQuery(m_answer_idx.data(), m_query_idx.data(), MPI_INT);
 
     // exchange values for each component
     MPI_Datatype mpi_real =
@@ -608,15 +611,15 @@ void ParticleInterpolator<num_components>::exchange_answers()
 
     for (int k = 0; k < num_components; ++k)
     {
-        m_mpi.asyncExchangeAnswer(m_answer_data[k].data(),
-                                  m_query_data[k].data(), mpi_real);
+        m_mpi.asyncExchangeQuery(m_answer_data[k].data(),
+                                 m_query_data[k].data(), mpi_real);
     }
 
     m_mpi.asyncEnd();
 #else
     // serial
-    m_query_idx  = m_answer_idx;
-    m_query_data = m_answer_data;
+    m_answer_idx  = m_query_idx;
+    m_answer_data = m_query_data;
 #endif
 }
 
@@ -645,10 +648,20 @@ void ParticleInterpolator<num_components>::build_values_and_apply_parity()
                 "build_values_and_apply_parity(): received index out of range");
         }
 
-        // one-to-one: each query ip should be filled exactly once
-        AMREX_ALWAYS_ASSERT(m_mpi_mapping[index] == -1);
         m_mpi_mapping[index] = i;
     }
+
+#if AMREX_DEBUG
+    for (int ip = 0; ip < num_points; ++ip)
+    {
+        if (m_mpi_mapping[ip] < 0)
+        {
+            amrex::AllPrint() << "Rank " << amrex::ParallelDescriptor::MyProc()
+                              << " missing answer for ip=" << ip << "\n";
+            amrex::Abort("Missing answers: mapping incomplete");
+        }
+    }
+#endif
 
     // Apply parity
     for (auto deriv_it = query.compsBegin(); deriv_it != query.compsEnd();
