@@ -45,7 +45,7 @@ jobs:
       working-directory: ${{ github.workspace }}/Examples/${{ inputs.example_name }}
 
     - name: Download fcompare tool
-      uses: actions/download-artifact@v6
+      uses: actions/download-artifact@v7
       with:
         name: fcompare.gnu.MPI.ex
         path: ${{ github.workspace }}/Examples/${{ inputs.example_name }}
@@ -63,7 +63,7 @@ jobs:
 
     - name: Download particle_compare tool
       if: ${{ inputs.example_name == 'BinaryBH' }}
-      uses: actions/download-artifact@v6
+      uses: actions/download-artifact@v7
       with:
         name: particle_compare.exe
         path: ${{ github.workspace }}/Examples/${{ inputs.example_name }}
