@@ -42,14 +42,14 @@ jobs:
         working-directory: ${{ env.AMREX_HOME }}/Tools/Postprocessing/C_Src
 
       - name: Upload fcompare tool
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: fcompare.gnu.MPI.ex
           path: ${{ env.AMREX_HOME }}/Tools/Plotfile/fcompare.gnu.MPI.ex
           compression-level: 0
 
       - name: Upload particle_compare tool
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: particle_compare.exe
           path: ${{ env.AMREX_HOME }}/Tools/Postprocessing/C_Src
