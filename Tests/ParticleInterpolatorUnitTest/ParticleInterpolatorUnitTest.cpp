@@ -75,16 +75,70 @@ void run_particle_interpolator_test()
         GRAMR gr_amr(&interpolator_test_level_fact);
         gr_amr.init(0., sim_params.stop_time);
 
-        // Build the point from sim_params
-        const int num_points = sim_params.num_points;
+        // Read from params
+        const int num_points  = sim_params.num_points;
+        double extract_radius = sim_params.L / 4;
 
+        // Number of processes and local processes
+        const int nprocs = amrex::ParallelDescriptor::NProcs();
+        const int myproc = amrex::ParallelDescriptor::MyProc();
+
+#ifdef AMREX_USE_MPI
+        // Partition the points across ranks
+        const int base      = num_points / nprocs;
+        const int remainder = num_points % nprocs;
+
+        const int n_local =
+            base + (myproc < remainder
+                        ? 1
+                        : 0); // local number of particles on the rank
+        amrex::AllPrint() << "I am rank " << myproc << " and I query "
+                          << n_local << " LOCAL particles \n";
+        const int start =
+            myproc * base + std::min(myproc, remainder); // global start index
+        const int end = start + n_local;
+
+        // Allocate vectors for writing
+        std::vector<double> A_local(n_local); // for storing derived polynomial
+        std::vector<double> B_local(n_local); // for storing state polynomial
+        std::vector<double> interp_x_local(n_local);
+        std::vector<double> interp_y_local(n_local);
+        std::vector<double> interp_z_local(n_local);
+
+        for (int j = 0; j < n_local; ++j)
+        {
+            int ipoint   = start + j; // global index
+            double phi   = ipoint * 2. * M_PI / num_points;
+            double theta = ipoint * M_PI / num_points;
+
+            interp_x_local[j] =
+                sim_params.center[0] + extract_radius * cos(phi) * sin(theta);
+            interp_y_local[j] =
+                sim_params.center[1] + extract_radius * sin(phi) * sin(theta);
+            interp_z_local[j] =
+                sim_params.center[2] + extract_radius * cos(theta);
+        }
+
+        // set-up query for derived variable A
+        InterpolationQueryParticle query(n_local);
+        query.setCoords(0, interp_x_local.data())
+            .setCoords(1, interp_y_local.data())
+            .setCoords(2, interp_z_local.data())
+            .addComp(0, A_local.data(), Derivative::LOCAL,
+                     VariableType::derived);
+
+        // set-up query for state variable B
+        InterpolationQueryParticle query_state(n_local);
+        query_state.setCoords(0, interp_x_local.data())
+            .setCoords(1, interp_y_local.data())
+            .setCoords(2, interp_z_local.data())
+            .addComp(0, B_local.data(), Derivative::LOCAL, VariableType::state);
+#else
         std::vector<double> A(num_points); // for storing derived polynomial
         std::vector<double> B(num_points); // for storing state polynomial
         std::vector<double> interp_x(num_points);
         std::vector<double> interp_y(num_points);
         std::vector<double> interp_z(num_points);
-
-        double extract_radius = sim_params.L / 4;
 
         for (int ipoint = 0; ipoint < num_points; ++ipoint)
         {
@@ -98,11 +152,9 @@ void run_particle_interpolator_test()
                 sim_params.center[2] + extract_radius * cos(theta);
         }
 
-        const int myproc = amrex::ParallelDescriptor::MyProc();
-        const int root   = 0;
-
-        const int num_points_global = num_points;
-        const int num_points_local  = (myproc == root) ? num_points_global : 0;
+        const int root = 0;
+        const int num_points_local =
+            (myproc == root) ? num_points : 0; // points queries on rank 0
 
         // set-up query for derived variable A
         InterpolationQueryParticle query(num_points_local);
@@ -111,28 +163,51 @@ void run_particle_interpolator_test()
             .setCoords(2, interp_z.data())
             .addComp(0, A.data(), Derivative::LOCAL, VariableType::derived);
 
-        // set up interpolation using Particles for derived vars
-        ParticleInterpolator<1> interpolator;
-        ParticleInterpolator<1>::DerivedParity parities[] = {
-            {0, BCParity::even}
-        };
-        interpolator.setup(&gr_amr, sim_params.boundary_params, true, parities);
-        int ngrow = 2;
-        interpolator.interp(query, VariableType::derived,
-                            PolynomialDerivedQuantity::name, 0.0);
-
         // set-up query for state variable B
         InterpolationQueryParticle query_state(num_points_local);
         query_state.setCoords(0, interp_x.data())
             .setCoords(1, interp_y.data())
             .setCoords(2, interp_z.data())
             .addComp(0, B.data(), Derivative::LOCAL, VariableType::state);
+#endif
+
+        // set up interpolation using Particles for derived vars
+        ParticleInterpolator<1> interpolator;
+        ParticleInterpolator<1>::DerivedParity parities[] = {
+            {0, BCParity::even}
+        };
+
+        interpolator.setup(&gr_amr, sim_params.boundary_params, true, parities);
+        int ngrow = 2;
+        interpolator.interp(query, VariableType::derived,
+                            PolynomialDerivedQuantity::name, 0.0);
 
         // set up interpolation using Particles for state vars
         ParticleInterpolator<1> interpolator_state;
         interpolator_state.setup(&gr_amr, sim_params.boundary_params, true);
         interpolator_state.interp(query_state, VariableType::state);
 
+#ifdef AMREX_USE_MPI
+        for (int ipoint = 0; ipoint < n_local; ++ipoint)
+        {
+            double x = interp_x_local[ipoint] - sim_params.center[0];
+            double y = interp_y_local[ipoint] - sim_params.center[1];
+            double z = interp_z_local[ipoint] - sim_params.center[2];
+
+            double A_known = 42. + x * x + y * y * z * z;
+            double B_known = pow(x, 3);
+
+            INFO("Interpolated A is "
+                 << A_local[ipoint] << " at point x = " << x << " y = " << y
+                 << " z = " << z << ". The true value should be " << A_known);
+            INFO("Interpolated B is "
+                 << B_local[ipoint] << " at point x = " << x << " y = " << y
+                 << " z = " << z << ". The true value should be " << B_known);
+
+            CHECK(A_local[ipoint] == doctest::Approx(A_known).epsilon(1e-10));
+            CHECK(B_local[ipoint] == doctest::Approx(B_known).epsilon(1e-10));
+        }
+#else
         if (amrex::ParallelDescriptor::MyProc() == 0)
         {
             for (int ipoint = 0; ipoint < num_points; ++ipoint)
@@ -157,7 +232,7 @@ void run_particle_interpolator_test()
                 CHECK(B[ipoint] == doctest::Approx(B_known).epsilon(1e-10));
             }
         }
+#endif
     }
-
     amrex::Finalize();
 }
