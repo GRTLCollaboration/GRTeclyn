@@ -89,14 +89,6 @@ class ParticleInterpolator
     // helper function to set parities of derived vars per component
     void set_derived_var_parity(int comp, BCParity p);
 
-    // allocate particles at the query points
-    void populate_from_query();
-
-    // A helper function that does interpolation from grid onto particles
-    void interpolation_to_particle_helper(int lev, amrex::MultiFab &mf,
-                                          const amrex::Geometry &geom,
-                                          int num_ghosts);
-
     // Interpolate to particle function
     void interpolate_to_particle();
 
@@ -143,6 +135,14 @@ class ParticleInterpolator
                const BoundaryConditions::params_t &a_bc_params,
                bool a_verbosity              = false,
                const DerivedParity *parities = nullptr);
+    
+    // allocate particles at the query points
+    void populate_from_query();
+
+    // A helper function that does interpolation from grid onto particles
+    void interpolation_to_particle_helper(int lev, amrex::MultiFab &mf,
+                                          const amrex::Geometry &geom,
+                                          int num_ghosts);
 
     // final interpolation routine exposed to the users
     void interp(InterpolationQueryParticle &query, VariableType variable_type,
