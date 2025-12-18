@@ -20,7 +20,7 @@ TEST_CASE("<test case name>")
 {
     <test code>
 
-    CHECK(<condition that is true if test passes and false if test fail>);
+    CHECK(<condition that is true if test passes and false if test fail>);    
 }
 ```
 
@@ -35,7 +35,7 @@ void run_my_test_case()
 {
     <test code>
 
-    CHECK(<condition that is true if test passes and false if test fail>);
+    CHECK(<condition that is true if test passes and false if test fail>);    
 }
 ```
 
@@ -90,7 +90,7 @@ you have cloned it into the same directory you cloned this repository (i.e.
 [../../amrex](../../amrex/) relative to where this `README.md` file is located)
 but you can instead clone it elsewhere and set the `AMREX_HOME` environment
 variable appropriately:
-```bash
+```bash 
 export AMREX_HOME=/path/to/amrex
 ```
 
@@ -162,7 +162,7 @@ basic steps to adding a new test to the [Tests application](./Tests.cpp).
 
    // Provides doctest::cli_args
    #include "doctestCLIArgs.hpp"
-
+   
    // AMReX includes
    #include "AMReX.H"
    ```
@@ -175,7 +175,7 @@ basic steps to adding a new test to the [Tests application](./Tests.cpp).
         // doctest::cli_args stores the non -dt- command line args
         int amrex_argc    = doctest::cli_args.argc();
         char **amrex_argv = doctest::cli_args.argv();
-        // MPI_COMM_WORLD defined in AMReX_ccse-mpi.H even when compiling
+        // MPI_COMM_WORLD defined in AMReX_ccse-mpi.H even when compiling 
         // without MPI
         amrex::Initialize(amrex_argc, amrex_argv, true, MPI_COMM_WORLD);
         {
@@ -197,7 +197,7 @@ basic steps to adding a new test to the [Tests application](./Tests.cpp).
    ```
    Don't forget to include a header guard!
 5. Create a `Make.package` file in the same directory with the following
-   content:
+   content: 
    ```makefile
    GRTECLYN_CEXE_headers += NewGRTeclynTest.hpp <any other headers>
 
