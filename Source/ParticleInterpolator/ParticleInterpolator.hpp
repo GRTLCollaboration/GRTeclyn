@@ -23,12 +23,13 @@ class ParticleInterpolator
                                          // interpolated values (assumes
                                          // contiguous storage)
           /*NArrayInt*/ 0>
+// TODO: to decide whether we want to store particle index in SoA integer slot
+// (see my comments on review page)
 {
   private:
     GRAMR *m_gr_amr{nullptr};
     bool m_initialized{
-        false};       // a guard to make sure we do not uninitialised GRAMR
-    int m_start_comp; // starting component for interpolation set from query
+        false}; // a guard to make sure we do not uninitialised GRAMR
 
     // physical domain corners on level 0 for parity logic
     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> m_prob_lo{};
@@ -54,6 +55,20 @@ class ParticleInterpolator
 
     // store the query here
     std::unique_ptr<InterpolationQueryParticle> m_query;
+    // for getting the starting component of query
+    int start_comp_getter();
+
+    // mpi stuff
+    MPIContext m_mpi;
+    std::vector<int> m_mpi_mapping; // size of num_points, maps ip to recv index
+
+    std::vector<int> m_answer_idx; // indices of the answers
+    std::vector<std::vector<double>>
+        m_answer_data; // data buffers on the answering rank
+
+    std::vector<int> m_query_idx; // indices of query
+    std::vector<std::vector<double>>
+        m_query_data; // receive buffers on the query rank
 
     // a parity helper (the same way as it was defined in the AMRInterpolator)
     int get_var_parity(int comp, int point_idx,
@@ -70,39 +85,6 @@ class ParticleInterpolator
     // A function to check whether the query point is inside the physical domain
     void check_domain(std::array<double, AMREX_SPACEDIM> &x,
                       int guard_cells = 0) const;
-
-  public:
-
-    using Base         = amrex::ParticleContainer<0, 1, num_components, 0>;
-    using ParIterType  = typename Base::ParIterType;
-    using ParticleType = typename Base::ParticleType;
-    using Base::Base;
-
-    ParticleInterpolator() = default; // default constructible
-
-    MPIContext m_mpi;
-    std::vector<int> m_mpi_mapping; // size of num_points, maps ip to recv index
-
-    std::vector<int> m_answer_idx; // indices of the answers
-    std::vector<std::vector<double>>
-        m_answer_data; // data buffers on the answering rank
-
-    std::vector<int> m_query_idx; // indices of query
-    std::vector<std::vector<double>>
-        m_query_data; // receive buffers on the query rank
-
-    // A struct to set parity for derived variables
-    struct DerivedParity
-    {
-        int comp;        // component of the derived varable
-        BCParity parity; // parity to be applied
-    };
-
-    // initialise everything and perform some sanity checks
-    void setup(GRAMR *gr_amr_ptr,
-               const BoundaryConditions::params_t &a_bc_params,
-               bool a_verbosity              = false,
-               const DerivedParity *parities = nullptr);
 
     // helper function to set parities of derived vars per component
     void set_derived_var_parity(int comp, BCParity p);
@@ -123,14 +105,14 @@ class ParticleInterpolator
         const std::vector<amrex::MultiFab *> &a_derived_mf_vect);
 
     // A helper function that aggregates all the points together from senders
-    // and receivers, collects the them into out array and applies parity
+    // and receivers, collects the them into out arrays and applies parity
     void aggregate_points();
 
     // A helper function to prepare send buffers, packs m_answer_idx and
     // m_answer_data
-    void prepare_send_buffers();
+    void send_buffers();
 
-    // A helper function to prepare receive buffers, packs m_query_idx and
+    // A helper function to initialise receive buffers, i.e. m_query_idx and
     // m_query_data
     void prepare_receive_buffers();
 
@@ -139,6 +121,28 @@ class ParticleInterpolator
 
     // Build query values on owner ranks and apply parity into out arrays
     void build_values_and_apply_parity();
+
+  public:
+
+    using Base         = amrex::ParticleContainer<0, 1, num_components, 0>;
+    using ParIterType  = typename Base::ParIterType;
+    using ParticleType = typename Base::ParticleType;
+    using Base::Base;
+
+    ParticleInterpolator() = default; // default constructible
+
+    // A struct to set parity for derived variables
+    struct DerivedParity
+    {
+        int comp;        // component of the derived varable
+        BCParity parity; // parity to be applied
+    };
+
+    // initialise everything and perform some sanity checks
+    void setup(GRAMR *gr_amr_ptr,
+               const BoundaryConditions::params_t &a_bc_params,
+               bool a_verbosity              = false,
+               const DerivedParity *parities = nullptr);
 
     // final interpolation routine exposed to the users
     void interp(InterpolationQueryParticle &query, VariableType variable_type,

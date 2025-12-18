@@ -46,13 +46,6 @@ class GRAMR : public amrex::Amr
 
     double get_restart_time() const;
 
-    // A helper function to convert the derived multifabs into the required
-    // interpolation input
-    // NOLINT(readability-convert-member-functions-to-static)
-    void convert_derived_multifabs(
-        const amrex::Vector<std::unique_ptr<amrex::MultiFab>> &inputs,
-        amrex::Vector<amrex::MultiFab *> &fields);
-
   private:
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     static const SimulationParameters *m_sim_params;

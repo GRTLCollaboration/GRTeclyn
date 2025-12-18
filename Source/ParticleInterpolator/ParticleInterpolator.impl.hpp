@@ -153,9 +153,7 @@ void ParticleInterpolator<num_components>::populate_from_query()
 
     auto &query = *m_query;
 
-    // we populate particles with rank 0
-    const bool amroot = (amrex::ParallelDescriptor::MyProc() == 0);
-    const int myproc  = amrex::ParallelDescriptor::MyProc();
+    const int myproc = amrex::ParallelDescriptor::MyProc();
 
     const int lev = 0;
     const int n =
@@ -261,7 +259,7 @@ template <int num_components>
 void ParticleInterpolator<num_components>::interpolation_to_particle_helper(
     int lev, amrex::MultiFab &mf, const amrex::Geometry &geom, int num_ghosts)
 {
-    int start_comp                    = m_start_comp;
+    int start_comp                    = start_comp_getter();
     const int ncomp                   = num_components;
     static constexpr int interp_order = 4; // 4th order Lagrange
 
@@ -397,10 +395,6 @@ void ParticleInterpolator<num_components>::interp(
                 << "ParticleInterpolator: populating particles from query\n";
         }
         m_query = std::make_unique<InterpolationQueryParticle>(query);
-        // get a starting comp
-        auto it         = m_query->compsBegin();
-        const auto &vec = it->second;
-        m_start_comp    = vec.front().comp;
 
         populate_from_query();
     }
@@ -415,7 +409,9 @@ void ParticleInterpolator<num_components>::interp(
         auto out_derived =
             m_gr_amr->derive(name_derived, time_derived, num_ghosts);
         amrex::Vector<amrex::MultiFab *> derived_mf_vect;
-        m_gr_amr->convert_derived_multifabs(out_derived, derived_mf_vect);
+        derived_mf_vect = amrex::GetVecOfPtrs(
+            out_derived); // see here for more details
+                          // (https://amrex-codes.github.io/amrex/doxygen/AMReX__Vector_8H_source.html)
 
         interpolate_to_particle_from_derived_fields(derived_mf_vect);
     }
@@ -438,8 +434,8 @@ void ParticleInterpolator<num_components>::aggregate_points()
     AMREX_ALWAYS_ASSERT(m_query);
 
     // pack m_answer_idx and m_answer_data
-    prepare_send_buffers();
-    // pack m_query_idx and m_query_data
+    send_buffers();
+    // initialise m_query_idx and m_query_data
     prepare_receive_buffers();
     // exchange answers
     exchange_answers();
@@ -447,9 +443,9 @@ void ParticleInterpolator<num_components>::aggregate_points()
     build_values_and_apply_parity();
 }
 
-// Prepare send buffers: who do I send answers to?
+// Prepare send buffers and package them up: who do I send answers to?
 template <int num_components>
-void ParticleInterpolator<num_components>::prepare_send_buffers()
+void ParticleInterpolator<num_components>::send_buffers()
 {
     const int nprocs = amrex::ParallelDescriptor::NProcs();
 
@@ -466,11 +462,11 @@ void ParticleInterpolator<num_components>::prepare_send_buffers()
     // loop over particles: count + cache data
     for (int lev = 0; lev <= this->finestLevel(); ++lev)
     {
-        for (ParIterType it(*this, lev); it.isValid(); ++it)
+        for (ParIterType par_iter(*this, lev); par_iter.isValid(); ++par_iter)
         {
-            const auto &ptile = this->ParticlesAt(lev, it);
+            const auto &ptile = this->ParticlesAt(lev, par_iter);
             const auto aos    = ptile.GetArrayOfStructs();
-            const int np      = it.numParticles();
+            const int np      = par_iter.numParticles();
 
             if (np == 0)
             {
@@ -504,7 +500,6 @@ void ParticleInterpolator<num_components>::prepare_send_buffers()
 
             for (int i = 0; i < np; ++i)
             {
-
                 const auto &p        = host_aos[i];
                 const int owner_rank = static_cast<int>(
                     p.cpu()); // this is the rank that owns the query, so it
@@ -630,7 +625,7 @@ void ParticleInterpolator<num_components>::build_values_and_apply_parity()
     AMREX_ALWAYS_ASSERT(m_query);
 
     auto &query    = *m_query;
-    int start_comp = m_start_comp;
+    int start_comp = start_comp_getter();
 
     const int num_points = static_cast<int>(query.numPoints());
     const int total_recv = m_mpi.totalAnswerCount();
@@ -723,9 +718,9 @@ void ParticleInterpolator<num_components>::check_domain(
             false; // error flag to track when we are outside the domain
 
         // outside on a non-reflective side (beyond physical domain)
-        if (x[d] < m_prob_lo[d] && !m_lo_boundary_reflective[d] && x[d] < lo_g)
+        if (!m_lo_boundary_reflective[d] && x[d] < lo_g)
             error = true;
-        if (x[d] > m_prob_hi[d] && !m_hi_boundary_reflective[d] && x[d] > hi_g)
+        if (!m_hi_boundary_reflective[d] && x[d] > hi_g)
             error = true;
 
         // still outside physical domain, even after applying reflective
@@ -744,6 +739,18 @@ void ParticleInterpolator<num_components>::check_domain(
             amrex::Abort(msg);
         }
     }
+}
+
+// A getter function to get the starting component from the query
+template <int num_components>
+int ParticleInterpolator<num_components>::start_comp_getter()
+{
+    AMREX_ASSERT(m_query);
+    auto it         = m_query->compsBegin();
+    const auto &vec = it->second;
+    int start_comp  = vec.front().comp;
+
+    return start_comp;
 }
 
 // Ensure that particles are redistributed if needed

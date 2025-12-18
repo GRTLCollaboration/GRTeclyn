@@ -6,6 +6,9 @@ GRTECLYN_CEXE_headers += ParticleInterpolator.hpp \
                          MPIContext.hpp \
                          MPIContext.impl.hpp \
                          MPILayout.hpp \
-                         MPILayout.impl.hpp
+                         MPILayout.impl.hpp \
+                         Derivative.hpp \
+                         DerivativeSetup.hpp
+
 
 
