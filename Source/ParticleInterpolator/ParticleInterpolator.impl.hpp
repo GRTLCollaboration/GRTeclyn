@@ -192,10 +192,6 @@ void ParticleInterpolator<num_components>::populate_from_query()
     const auto lo_reflect = m_lo_boundary_reflective;
     const auto hi_reflect = m_hi_boundary_reflective;
 
-    // copy coords here
-    const amrex::Real *x_p = nullptr, *y_p = nullptr, *z_p = nullptr;
-    amrex::Gpu::DeviceVector<amrex::Real> Xd, Yd, Zd;
-
     // copy x,y,z to device vectors now
     amrex::Gpu::DeviceVector<double> x_d(n), y_d(n);
     amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, x, x + n, x_d.begin());
@@ -249,19 +245,18 @@ void ParticleInterpolator<num_components>::populate_from_query()
     amrex::Gpu::streamSynchronize();
 
     m_particles_seeded = true;
-
-    // amrex::ParallelDescriptor::Barrier(); // TODO! test if this makes a
-    // difference.
 }
 
 // a helper function that helps with interpolation from grid onto particles
 template <int num_components>
 void ParticleInterpolator<num_components>::interpolation_to_particle_helper(
-    int lev, amrex::MultiFab &mf, const amrex::Geometry &geom, int num_ghosts)
+    int lev, amrex::MultiFab &mf, const amrex::Geometry &geom)
 {
     int start_comp                    = start_comp_getter();
     const int ncomp                   = num_components;
     static constexpr int interp_order = 4; // 4th order Lagrange
+    static constexpr int num_ghosts =
+        interp_order / 2; // number of ghosts needed
 
     AMREX_ASSERT(mf.nComp() >= start_comp + ncomp);
 
@@ -321,10 +316,6 @@ void ParticleInterpolator<num_components>::interpolate_to_particle()
 
     ensure_redistributed();
 
-    static constexpr int interp_order = 4; // 4th order Lagrange
-    static constexpr int num_ghosts =
-        interp_order / 2; // number of ghosts needed
-
     for (int lev = 0; lev <= m_gr_amr->finestLevel(); ++lev)
     {
         if (this->NumberOfParticlesAtLevel(lev) == 0)
@@ -334,7 +325,7 @@ void ParticleInterpolator<num_components>::interpolate_to_particle()
         const amrex::Geometry &geom = level.Geom();
         amrex::MultiFab &state      = level.get_new_data(0);
 
-        interpolation_to_particle_helper(lev, state, geom, num_ghosts);
+        interpolation_to_particle_helper(lev, state, geom);
     }
 
     m_need_redistribute = false;
@@ -356,10 +347,6 @@ void ParticleInterpolator<num_components>::
 
     ensure_redistributed();
 
-    static constexpr int interp_order = 4; // 4th order Lagrange
-    static constexpr int num_ghosts =
-        interp_order / 2; // number of ghosts needed
-
     for (int lev = 0; lev <= m_gr_amr->finestLevel(); ++lev)
     {
         if (this->NumberOfParticlesAtLevel(lev) == 0)
@@ -369,7 +356,7 @@ void ParticleInterpolator<num_components>::
         const auto &geom = level.Geom();
         auto &mf         = *a_derived_mf_vect[lev];
 
-        interpolation_to_particle_helper(lev, mf, geom, num_ghosts);
+        interpolation_to_particle_helper(lev, mf, geom);
     }
 
     m_need_redistribute = false;
