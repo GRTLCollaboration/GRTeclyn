@@ -136,10 +136,10 @@
               
                 <h1 id="useful-resources">Useful resources</h1>
 <h2 id="amrex">AMReX</h2>
-<p>GRTeclyn is built on top of the AMReX library and we try to follow the thinking behind AMReX pretty closely e.g. the GPU strategy. 
-The <a href="https://amrex-codes.github.io/amrex/docs_html/">AMReX documentation</a> is a great resource that introduces a lot of basic concepts that you will encounter in GRTeclyn e.g. <code>MultiFab</code>, <code>Array4</code> and <code>ParallelFor</code> as well as build options for various GPU architectures. There are also suggestions for analysing and visualising PlotFiles and profiling and debugging. If a problem you encounter is not covered in this (admittedly short) wiki, then the AMReX documentation should be your next stop. </p>
+<p>GRTeclyn is built on top of the AMReX library and we try to follow the thinking behind AMReX pretty closely e.g. the GPU strategy.
+The <a href="https://amrex-codes.github.io/amrex/docs_html/">AMReX documentation</a> is a great resource that introduces a lot of basic concepts that you will encounter in GRTeclyn e.g. <code>MultiFab</code>, <code>Array4</code> and <code>ParallelFor</code> as well as build options for various GPU architectures. There are also suggestions for analysing and visualising PlotFiles and profiling and debugging. If a problem you encounter is not covered in this (admittedly short) wiki, then the AMReX documentation should be your next stop.</p>
 <p>There is also a set of short demos and exercises compiled by the AMReX team available <a href="https://github.com/AMReX-Codes/amrex-tutorials">here</a>.</p>
-<p>Failing that, the tests directory of AMReX, <code>${AMREX_HOME}/Tests</code>, also functions as code examples for how to use certain AMReX features. </p>
+<p>Failing that, the tests directory of AMReX, <code>${AMREX_HOME}/Tests</code>, also functions as code examples for how to use certain AMReX features.</p>
 <h2 id="numerical-relativity-nr">Numerical Relativity (NR)</h2>
 <p>There are many useful introductions to NR, but we recommend in particular the following open source resources:</p>
 <ul>
@@ -151,10 +151,10 @@ The <a href="https://amrex-codes.github.io/amrex/docs_html/">AMReX documentation
 <p>Some useful information related to status updates and new features can be gleaned from these past GRTeclyn/GRTL talks:</p>
 <h3 id="2025">2025</h3>
 <ul>
-<li>Numerical Relativity with AMReX - Miren Radia, HPSF Conference <a href="https://youtu.be/PDUpokvDCEM?si=9dUoStGdEyCV_aCX">Video</a><a href="https://mirenradia.github.io/20250507_HPSF_NR_with_AMReX/">Slides</a></li>
+<li>Numerical Relativity with AMReX - Miren Radia, HPSF Conference <a href="https://youtu.be/PDUpokvDCEM?si=9dUoStGdEyCV_aCX">Video</a> <a href="https://mirenradia.github.io/20250507_HPSF_NR_with_AMReX/">Slides</a></li>
 <li>GRTeclyn and MHDuet - Miren Radia, Gregynog Numerical Relativity <a href="https://mirenradia.github.io/20250618_UKNR_Gregynog_GRTeclyn_MHDuet/">Slides</a></li>
 <li>GRChombo and GRTeclyn - Miren Radia, New Frontiers in NR <a href="https://mirenradia.github.io/20250723_New_Frontiers_GRChombo_GRTeclyn_panel_intro/">Slides</a></li>
-<li>GRTeclyn: GRChombo for the GPU gegneration - Katy Clough, European ET Meeting <a href="https://youtu.be/xjbnmpdyNqU">Video</a><a href="https://drive.google.com/file/d/151_bHpZmY5dggV908egPXWtQrZ4YNfnU/view">Slides</a></li>
+<li>GRTeclyn: GRChombo for the GPU gegneration - Katy Clough, European ET Meeting <a href="https://youtu.be/xjbnmpdyNqU">Video</a> <a href="https://drive.google.com/file/d/151_bHpZmY5dggV908egPXWtQrZ4YNfnU/view">Slides</a></li>
 </ul>
 <h2 id="useful-c-resources">Useful C++ resources</h2>
 <ul>
@@ -162,18 +162,18 @@ The <a href="https://amrex-codes.github.io/amrex/docs_html/">AMReX documentation
 <li><a href="https://www.tutorialspoint.com/cplusplus/index.htm">Basic guide to C++</a></li>
 </ul>
 <p>One should review in particular the sections on classes and templating, which are both used extensively in the code.</p>
-<p>All these places offer courses relevant for scientific programming, best check them regularly </p>
+<p>All these places offer courses relevant for scientific programming, best check them regularly</p>
 <ul>
 <li><a href="https://www.archer.ac.uk/training/">https://www.archer.ac.uk/training/</a></li>
 <li><a href="https://training.prace-ri.eu/">https://training.prace-ri.eu/</a></li>
-<li><a href="https://extremecomputingtraining.anl.gov/">ATPESC</a> - yearly course, typically around a week. Recommended for more advanced students)</li>
+<li><a href="https://extremecomputingtraining.anl.gov/">ATPESC</a> - yearly course, typically around a week. Recommended for more advanced students</li>
 <li><a href="https://learn.tacc.utexas.edu/">https://learn.tacc.utexas.edu/</a></li>
 <li><a href="https://portal.xsede.org/training/overview">https://portal.xsede.org/training/overview</a></li>
 </ul>
 <h2 id="hpc-cluster-usage">HPC cluster usage</h2>
 <p>Most machines have their own webpages which give a guide to usage, and tell you things particular to each machine, like compilers available, the job submission system, where to store your data etc.</p>
-<p>The Rosetta stone of job submission commands is here:
-https://slurm.schedmd.com/rosetta.pdf</p>
+<p>There is a separate page <a href="../setups/">here</a> that offers some guidance to common HPC systems used by this group.</p>
+<p>The Rosetta stone of job submission commands is <a href="https://slurm.schedmd.com/rosetta.pdf">here</a>.</p>
 <p>Some useful commands:</p>
 <pre><code>- 'passwd' can be used to change your login password.
 - 'grep' to search for text in your files
@@ -181,7 +181,7 @@ https://slurm.schedmd.com/rosetta.pdf</p>
 <h2 id="git-guide">Git guide</h2>
 <p>A comprehensive guide to Git:</p>
 <p><a href="https://www.tutorialspoint.com/git/git_quick_guide.htm">https://www.tutorialspoint.com/git/git_quick_guide.htm</a></p>
-<p>In particular, <a href="https://www.theserverside.com/blog/Coffee-Talk-Java-News-Stories-and-Opinions/How-to-Git-rebase-a-branch-to-master-example">this</a> is a useful guide to "rebase a branch to master". </p>
+<p>In particular, <a href="https://www.theserverside.com/blog/Coffee-Talk-Java-News-Stories-and-Opinions/How-to-Git-rebase-a-branch-to-master-example">this</a> is a useful guide to "rebase a branch to master".</p>
 <h2 id="visit">VisIt</h2>
 <p>The VisIt wiki is here:</p>
 <p><a href="http://www.visitusers.org/index.php?title=Main_Page">http://www.visitusers.org/index.php?title=Main_Page</a></p>

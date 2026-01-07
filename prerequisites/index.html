@@ -116,16 +116,16 @@
 <hr />
 <h2 id="required-software">🧰 Required Software</h2>
 <ul>
-<li><strong>C++ compiler with C++17 support</strong><br />
+<li><strong>C++ compiler with C++17 support</strong>
   GRTeclyn uses modern C++17 features. Supported compilers include:</li>
 <li>GCC ≥ 8</li>
 <li>Clang ≥ 6</li>
-<li>Intel Classic ≥ 19.1.4  </li>
+<li>Intel Classic ≥ 19.1.4</li>
 </ul>
 <p>⚠️ The use of C++17 is stricter than GRChombo’s C++14 requirement. Older compilers that worked with GRChombo may not work here — but if you have a newer one available, and could build GRChombo, you can likely build GRTeclyn too.</p>
 <ul>
-<li><strong><a href="https://www.mpi-forum.org/">MPI</a></strong> (optional but recommended)<br />
-  Required for running in parallel across nodes or cores.<br />
+<li><strong><a href="https://www.mpi-forum.org/">MPI</a></strong> (optional but recommended)
+  Required for running in parallel across nodes or cores.
   Supported implementations: OpenMPI, MPICH, Intel MPI, etc.</li>
 </ul>
 <p>Many computer clusters use some form of <code>modules</code> command to control the environment. They will probably have the C++ and MPI prerequisites installed above but you will need to manually load them (and unload any preloaded conflicting ones).</p>
@@ -149,15 +149,15 @@
 <p>The following are required, but are likely to be loaded by default on most systems:</p>
 <ul>
 <li>
-<p><strong><a href="https://git-scm.com/">Git</a></strong><br />
+<p><strong><a href="https://git-scm.com/">Git</a></strong>
   Used to obtain GRTeclyn and AMReX.</p>
 </li>
 <li>
-<p><strong><a href="https://www.gnu.org/software/make/">GNU Make</a></strong> (version ≥ 3.81)<br />
+<p><strong><a href="https://www.gnu.org/software/make/">GNU Make</a></strong> (version ≥ 3.81)
   Standard build system used across the codebase.</p>
 </li>
 <li>
-<p><strong><a href="https://www.python.org/">Python</a></strong> (version ≥ 2.7)<br />
+<p><strong><a href="https://www.python.org/">Python</a></strong> (version ≥ 2.7)
   Used in build and analysis utilities.</p>
 </li>
 <li>
@@ -165,7 +165,7 @@
 </li>
 <li><code>perl</code></li>
 <li><code>sed</code></li>
-<li>Standard shell tools<br />
+<li>Standard shell tools
   These are available by default on most Linux/macOS systems.</li>
 </ul>
 <hr />
@@ -186,8 +186,8 @@ We have assumed that you have cloned both of these repositories to the same dire
 <p>(and you probably want to add this to your <code>.bashrc</code> file in your home directory too so it is run automatically when you log into the cluster you are using).</p>
 <hr />
 <h2 id="setup-the-pre-commit-hook">Setup the pre-commit hook</h2>
-<p>We like to maintain a certain format to our coding style for uniformity and correctness which is enforced by <code>clang-format</code>. This can be checked within your editor and should be checked again when committing new code to the repository. Please see this <a href="https://github.com/GRTLCollaboration/GRTeclyn/wiki/Using-Clang-Format">page</a> for more details on how to install <code>clang-format</code> and 'pre-commit'. </p>
-<p>The pre-commit hook protects us from writing badly formatted code and should be installed whenever you are working on a new system. </p>
+<p>We like to maintain a certain format to our coding style for uniformity and correctness which is enforced by <code>clang-format</code>. This can be checked within your editor and should be checked again when committing new code to the repository. Please see this <a href="https://github.com/GRTLCollaboration/GRTeclyn/wiki/Using-Clang-Format">page</a> for more details on how to install <code>clang-format</code> and 'pre-commit'.</p>
+<p>The pre-commit hook protects us from writing badly formatted code and should be installed whenever you are working on a new system.</p>
               
             </div>
           </div><footer>
