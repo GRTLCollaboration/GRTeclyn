@@ -169,7 +169,7 @@ CCZ4RHS<gauge_t, deriv_t>::calculate_h_ij_rhs(
 
 template <class gauge_t, class deriv_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-CCZ4RHS<gauge_t, deriv_t>::calculate_A_ij_rhs(
+CCZ4RHS<gauge_t, deriv_t>::calculate_A_ij_rhs_use_amrex_array(
     int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs_state,
     const amrex::Array4<amrex::Real const> &state) const
 {
@@ -181,55 +181,56 @@ CCZ4RHS<gauge_t, deriv_t>::calculate_A_ij_rhs(
     const auto h_UU = CCZ4Geometry::compute_inverse_metric_sym(state_cell_data);
 
     // hij derivatives
-    const auto d1_h = m_deriv.diff1_sym_tensor(ix, iy, iz, state, c_h11);
+    auto d1_h = m_deriv.diff1_sym_tensor(ix, iy, iz, state, c_h11);
 
     const auto chris = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
 
-    amrex::Array1D<amrex::Real, 0, 3> Z_over_chi;
-    amrex::Array1D<amrex::Real, 0, 3>
-        Z; // NOLINT(readability-identifier-length)
+    Tensor<1, amrex::Real> Z_over_chi;
+    Tensor<1, amrex::Real> Z; // NOLINT(readability-identifier-length)
 
     if (m_formulation == USE_BSSN)
     {
         FOR (i)
-            Z_over_chi(i) = 0.0;
+            Z_over_chi[i] = 0.0;
     }
     else
     {
 
         FOR (i)
-            Z_over_chi(i) =
+            Z_over_chi[i] =
                 0.5 * (state_cell_data[c_Gamma1 + i] - chris.contracted(i));
     }
     FOR (i)
-        Z(i) = state_cell_data[c_chi] * Z_over_chi(i);
+        Z[i] = state_cell_data[c_chi] * Z_over_chi[i];
 
     auto ricci = CCZ4Geometry::compute_ricci_Z(
         ix, iy, iz, rhs_state, state, h_UU, chris, Z_over_chi, m_deriv);
 
-    auto d1_shift = m_deriv.diff1_array_vector(ix, iy, iz, state, c_shift1);
+    Tensor<2, amrex::Real> d1_shift =
+        m_deriv.diff1_vector(ix, iy, iz, state, c_shift1);
     amrex::Real divshift = CCZ4Geometry::compute_divshift(d1_shift);
 
-    auto d1_lapse = m_deriv.diff1_array_scalar(ix, iy, iz, state, c_lapse);
-    auto d1_chi   = m_deriv.diff1_array_scalar(ix, iy, iz, state, c_chi);
+    auto d1_lapse = m_deriv.diff1_scalar(ix, iy, iz, state, c_lapse);
+    auto d1_chi   = m_deriv.diff1_scalar(ix, iy, iz, state, c_chi);
 
     amrex::Real Z_dot_d1lapse = TensorAlgebra::compute_dot_product(Z, d1_lapse);
     amrex::Real dlapse_dot_dchi =
         TensorAlgebra::compute_dot_product(d1_lapse, d1_chi, h_UU);
 
-    amrex::Array2D<amrex::Real, 0, 3, 0, 3> covdtilde2lapse;
-    amrex::Array2D<amrex::Real, 0, 3, 0, 3> covd2lapse;
+    Tensor<2, amrex::Real> covdtilde2lapse;
+    Tensor<2, amrex::Real> covd2lapse;
     auto d2_lapse = m_deriv.diff2_sym_scalar(ix, iy, iz, state, c_lapse);
 
     FOR (k, l)
     {
-        covdtilde2lapse(k, l) = d2_lapse(SYMM_IDX(k, l));
+        int idx               = k + l + ((k * l != 0) ? 1 : 0);
+        covdtilde2lapse[k][l] = d2_lapse(idx);
         FOR (m)
         {
-            covdtilde2lapse(k, l) -= chris.ULL(m, k, l) * d1_lapse(m);
+            covdtilde2lapse[k][l] -= chris.ULL[m][k][l] * d1_lapse[m];
         }
-        covd2lapse(k, l) =
-            state_cell_data[c_chi] * covdtilde2lapse(k, l) +
+        covd2lapse[k][l] =
+            state_cell_data[c_chi] * covdtilde2lapse[k][l] +
             0.5 * (d1_lapse(k) * d1_chi(l) + d1_chi(k) * d1_lapse(l) -
                    state_cell_data[var_idx(c_h11, k, l)] * dlapse_dot_dchi);
     }
@@ -239,7 +240,7 @@ CCZ4RHS<gauge_t, deriv_t>::calculate_A_ij_rhs(
     amrex::Array2D<amrex::Real, 0, 3, 0, 3> Adot_TF;
     FOR (i, j)
     {
-        Adot_TF(i, j) = -covd2lapse(i, j) + state_cell_data[c_chi] *
+        Adot_TF(i, j) = -covd2lapse[i][j] + state_cell_data[c_chi] *
                                                 state_cell_data[c_lapse] *
                                                 ricci.LL(i, j);
     }
@@ -264,8 +265,8 @@ CCZ4RHS<gauge_t, deriv_t>::calculate_A_ij_rhs(
         FOR (k)
         {
             rhs_cell_data[idx] +=
-                state_cell_data[var_idx(c_A11, k, i)] * d1_shift(k, j) +
-                state_cell_data[var_idx(c_A11, k, j)] * d1_shift(k, i);
+                state_cell_data[var_idx(c_A11, k, i)] * d1_shift[k][j] +
+                state_cell_data[var_idx(c_A11, k, j)] * d1_shift[k][i];
             FOR (l)
             {
                 rhs_cell_data[idx] -= 2.0 * state_cell_data[c_lapse] *
@@ -363,10 +364,10 @@ CCZ4RHS<gauge_t, deriv_t>::calculate_A_ij_rhs(
         rhs_cell_data[c_Gamma1 + i] =
             (2.0 / (double)GR_SPACEDIM) *
                 (divshift * (chris.contracted(i) +
-                             2.0 * m_params.kappa3 * Z_over_chi(i)) -
+                             2.0 * m_params.kappa3 * Z_over_chi[i]) -
                  2.0 * state_cell_data[c_lapse] * state_cell_data[c_K] *
-                     Z_over_chi(i)) -
-            2.0 * kappa1_times_lapse * Z_over_chi(i);
+                     Z_over_chi[i]) -
+            2.0 * kappa1_times_lapse * Z_over_chi[i];
 
         FOR (j)
         {
@@ -381,14 +382,15 @@ CCZ4RHS<gauge_t, deriv_t>::calculate_A_ij_rhs(
                          h_UU(SYMM_IDX(i, j)) * d1_K(j) +
                      (double)GR_SPACEDIM * A_UU(i, j) * d1_chi(j) /
                          state_cell_data[c_chi]) -
-                (chris.contracted(j) + 2.0 * m_params.kappa3 * Z_over_chi(j)) *
-                    d1_shift(i, j);
+                (chris.contracted(j) + 2.0 * m_params.kappa3 * Z_over_chi[j]) *
+                    d1_shift[i][j];
 
             FOR (k)
             {
                 //                int idx2 = j + k + ((j * k != 0) ? 1 : 0);
                 rhs_cell_data[c_Gamma1 + i] +=
                     2.0 * state_cell_data[c_lapse] * chris.ULL(i, j, k) *
+
                         A_UU(j, k) +
                     h_UU(SYMM_IDX(j, k)) * d2_shift(i, SYMM_IDX(j, k)) +
                     (((double)GR_SPACEDIM - 2.0) / (double)GR_SPACEDIM) *
@@ -402,6 +404,466 @@ CCZ4RHS<gauge_t, deriv_t>::calculate_A_ij_rhs(
     FOR (i)
     {
         rhs_cell_data[c_Gamma1 + i] += advec_Gamma[i];
+    }
+}
+
+template <class gauge_t, class deriv_t>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+CCZ4RHS<gauge_t, deriv_t>::calculate_A_ij_rhs_no_amrex_array(
+    int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs_state,
+    const amrex::Array4<amrex::Real const> &state) const
+{
+    const amrex::CellData<amrex::Real> &rhs_cell_data =
+        rhs_state.cellData(ix, iy, iz);
+    const amrex::CellData<const amrex::Real> &state_cell_data =
+        state.cellData(ix, iy, iz);
+
+    const auto h_UU = CCZ4Geometry::compute_inverse_metric(state_cell_data);
+
+    // hij derivatives
+    Tensor<3, amrex::Real> d1_h =
+        m_deriv.diff1_tensor(ix, iy, iz, state, c_h11);
+
+    const auto chris = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
+
+    Tensor<1, amrex::Real> Z_over_chi;
+    Tensor<1, amrex::Real> Z; // NOLINT(readability-identifier-length)
+
+    if (m_formulation == USE_BSSN)
+    {
+        FOR (i)
+            Z_over_chi[i] = 0.0;
+    }
+    else
+    {
+
+        FOR (i)
+            Z_over_chi[i] =
+                0.5 * (state_cell_data[c_Gamma1 + i] - chris.contracted[i]);
+    }
+    FOR (i)
+        Z[i] = state_cell_data[c_chi] * Z_over_chi[i];
+
+    auto ricci = CCZ4Geometry::compute_ricci_Z(
+        ix, iy, iz, rhs_state, state, h_UU, chris, Z_over_chi, m_deriv);
+
+    Tensor<2, amrex::Real> d1_shift =
+        m_deriv.diff1_vector(ix, iy, iz, state, c_shift1);
+    amrex::Real divshift = CCZ4Geometry::compute_divshift(d1_shift);
+
+    auto d1_lapse = m_deriv.diff1_scalar(ix, iy, iz, state, c_lapse);
+    auto d1_chi   = m_deriv.diff1_scalar(ix, iy, iz, state, c_chi);
+
+    amrex::Real Z_dot_d1lapse = TensorAlgebra::compute_dot_product(Z, d1_lapse);
+    amrex::Real dlapse_dot_dchi =
+        TensorAlgebra::compute_dot_product(d1_lapse, d1_chi, h_UU);
+
+    Tensor<2, amrex::Real> covdtilde2lapse;
+    Tensor<2, amrex::Real> covd2lapse;
+    auto d2_lapse = m_deriv.diff2_sym_scalar(ix, iy, iz, state, c_lapse);
+
+    FOR (k, l)
+    {
+        int idx               = k + l + ((k * l != 0) ? 1 : 0);
+        covdtilde2lapse[k][l] = d2_lapse(idx);
+        FOR (m)
+        {
+            covdtilde2lapse[k][l] -= chris.ULL[m][k][l] * d1_lapse[m];
+        }
+        covd2lapse[k][l] =
+            state_cell_data[c_chi] * covdtilde2lapse[k][l] +
+            0.5 * (d1_lapse[k] * d1_chi[l] + d1_chi[k] * d1_lapse[l] -
+                   state_cell_data[var_idx(c_h11, k, l)] * dlapse_dot_dchi);
+    }
+
+    Tensor<2, amrex::Real> A_UU =
+        CCZ4Geometry::compute_A_UU(state_cell_data, h_UU);
+
+    Tensor<2, amrex::Real> Adot_TF;
+    FOR (i, j)
+    {
+        Adot_TF[i][j] = -covd2lapse[i][j] + state_cell_data[c_chi] *
+                                                state_cell_data[c_lapse] *
+                                                ricci.LL[i][j];
+    }
+    CCZ4Geometry::make_trace_free(Adot_TF, state_cell_data, h_UU);
+
+    Tensor<1, amrex::Real> shift_vector;
+    FOR (idir)
+    {
+        shift_vector[idir] = state(ix, iy, iz, c_shift1 + idir);
+    }
+    auto advec_A = m_deriv.advec_tensor(ix, iy, iz, state, shift_vector, c_A11);
+
+    FOR (i, j)
+    {
+        rhs_cell_data[var_idx(c_A11, i, j)] =
+            advec_A[i][j] + Adot_TF[i][j] +
+            state_cell_data[var_idx(c_A11, i, j)] *
+                (state_cell_data[c_lapse] *
+                     (state_cell_data[c_K] - 2.0 * state_cell_data[c_Theta]) -
+                 (2.0 / (double)GR_SPACEDIM) * divshift);
+        FOR (k)
+        {
+            rhs_cell_data[var_idx(c_A11, i, j)] +=
+                state_cell_data[var_idx(c_A11, k, i)] * d1_shift[k][j] +
+                state_cell_data[var_idx(c_A11, k, j)] * d1_shift[k][i];
+            FOR (l)
+            {
+                int idx = k + l + ((k * l != 0) ? 1 : 0);
+                rhs_cell_data[var_idx(c_A11, i, j)] -=
+                    2.0 * state_cell_data[c_lapse] * h_UU[k][l] *
+                    state_cell_data[var_idx(c_A11, i, k)] *
+                    state_cell_data[var_idx(c_A11, l, j)];
+            }
+        }
+    }
+
+    // Theta specific parts
+
+    amrex::Real Aij_squared =
+        CCZ4Geometry::compute_Aij_squared(state_cell_data, A_UU);
+
+    amrex::Real advec_K =
+        m_deriv.advection(ix, iy, iz, state, shift_vector, c_K);
+
+    amrex::Real tr_covd2lapse = -((double)GR_SPACEDIM / 2.0) * dlapse_dot_dchi;
+    FOR (i)
+    {
+        tr_covd2lapse -=
+            state_cell_data[c_chi] * chris.contracted[i] * d1_lapse[i];
+        FOR (j)
+        {
+            int idx = i + j + ((i * j != 0) ? 1 : 0);
+            tr_covd2lapse +=
+                h_UU[i][j] * (state_cell_data[c_chi] * d2_lapse(idx) +
+                              d1_lapse[i] * d1_chi[j]);
+        }
+    }
+
+    amrex::Real kappa1_times_lapse;
+    if (m_params.covariantZ4)
+    {
+        kappa1_times_lapse = m_params.kappa1;
+    }
+    else
+    {
+        kappa1_times_lapse = m_params.kappa1 * state_cell_data[c_lapse];
+    }
+
+    if (m_formulation == USE_BSSN)
+    {
+        // ensure the Theta of CCZ4 remains at zero
+        rhs_cell_data[c_Theta] = 0.0;
+        // Use hamiltonian constraint to remove ricci.scalar for BSSN update
+        rhs_cell_data[c_K] =
+            advec_K +
+            state_cell_data[c_lapse] *
+                (Aij_squared + state_cell_data[c_K] * state_cell_data[c_K] /
+                                   (double)GR_SPACEDIM) -
+            tr_covd2lapse -
+            2.0 * state_cell_data[c_lapse] * m_cosmological_constant /
+                ((double)GR_SPACEDIM - 1.0);
+    }
+    else
+    {
+        amrex::Real advec_Theta =
+            m_deriv.advection(ix, iy, iz, state, shift_vector, c_Theta);
+
+        rhs_cell_data[c_Theta] =
+            advec_Theta +
+            0.5 * state_cell_data[c_lapse] *
+                (ricci.scalar - Aij_squared +
+                 (((double)GR_SPACEDIM - 1.0) / (double)GR_SPACEDIM) *
+                     state_cell_data[c_K] * state_cell_data[c_K] -
+                 2.0 * state_cell_data[c_Theta] * state_cell_data[c_K]) -
+            0.5 * state_cell_data[c_Theta] * kappa1_times_lapse *
+                (((double)GR_SPACEDIM + 1) +
+                 m_params.kappa2 * ((double)GR_SPACEDIM - 1.0)) -
+            Z_dot_d1lapse - state_cell_data[c_lapse] * m_cosmological_constant;
+
+        rhs_cell_data[c_K] =
+            advec_K +
+            state_cell_data[c_lapse] *
+                (ricci.scalar +
+                 state_cell_data[c_K] *
+                     (state_cell_data[c_K] - 2.0 * state_cell_data[c_Theta])) -
+            kappa1_times_lapse * (double)GR_SPACEDIM * (1.0 + m_params.kappa2) *
+                state_cell_data[c_Theta] -
+            tr_covd2lapse -
+            2.0 * state_cell_data[c_lapse] * (double)GR_SPACEDIM /
+                ((double)GR_SPACEDIM - 1.0) * m_cosmological_constant;
+    }
+
+    // Gamma specific parts:
+    Tensor<1, amrex::Real> Gammadot;
+    auto d2_shift = m_deriv.diff2_sym_vector(ix, iy, iz, state, c_shift1);
+    auto d1_K     = m_deriv.diff1_scalar(ix, iy, iz, state, c_K);
+    auto d1_Theta = m_deriv.diff1_scalar(ix, iy, iz, state, c_Theta);
+
+    FOR (i)
+    {
+        Gammadot[i] = (2.0 / (double)GR_SPACEDIM) *
+                          (divshift * (chris.contracted[i] +
+                                       2.0 * m_params.kappa3 * Z_over_chi[i]) -
+                           2.0 * state_cell_data[c_lapse] *
+                               state_cell_data[c_K] * Z_over_chi[i]) -
+                      2.0 * kappa1_times_lapse * Z_over_chi[i];
+
+        FOR (j)
+        {
+            int idx1 = i + j + ((i * j != 0) ? 1 : 0);
+            Gammadot[i] +=
+                2.0 * h_UU[i][j] *
+                    (state_cell_data[c_lapse] * d1_Theta[j] -
+                     state_cell_data[c_Theta] * d1_lapse[j]) -
+                2.0 * A_UU[i][j] * d1_lapse[j] -
+                state_cell_data[c_lapse] *
+                    ((2.0 * ((double)GR_SPACEDIM - 1.0) / (double)GR_SPACEDIM) *
+                         h_UU[i][j] * d1_K[j] +
+                     (double)GR_SPACEDIM * A_UU[i][j] * d1_chi[j] /
+                         state_cell_data[c_chi]) -
+                (chris.contracted[j] + 2.0 * m_params.kappa3 * Z_over_chi[j]) *
+                    d1_shift[i][j];
+
+            FOR (k)
+            {
+                int idx2 = j + k + ((j * k != 0) ? 1 : 0);
+                Gammadot[i] +=
+                    2.0 * state_cell_data[c_lapse] * chris.ULL[i][j][k] *
+                        A_UU[j][k] +
+                    h_UU[j][k] * d2_shift(i, idx2) +
+                    (((double)GR_SPACEDIM - 2.0) / (double)GR_SPACEDIM) *
+                        h_UU[i][j] * d2_shift(k, idx2);
+            }
+        }
+    }
+
+    auto advec_Gamma =
+        m_deriv.advec_vector(ix, iy, iz, state, shift_vector, c_Gamma1);
+    FOR (i)
+    {
+        rhs_cell_data[c_Gamma1 + i] = advec_Gamma[i] + Gammadot[i];
+    }
+}
+
+template <class gauge_t, class deriv_t>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+CCZ4RHS<gauge_t, deriv_t>::calculate_Theta_rhs(
+    int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs_state,
+    const amrex::Array4<amrex::Real const> &state) const
+{
+    const amrex::CellData<amrex::Real> &rhs_cell_data =
+        rhs_state.cellData(ix, iy, iz);
+    const amrex::CellData<const amrex::Real> &state_cell_data =
+        state.cellData(ix, iy, iz);
+
+    auto d1_lapse = m_deriv.diff1_scalar(ix, iy, iz, state, c_lapse);
+    auto d2_lapse = m_deriv.diff2_scalar(ix, iy, iz, state, c_lapse);
+
+    auto d1_chi = m_deriv.diff1_scalar(ix, iy, iz, state, c_chi);
+
+    auto d1_h = m_deriv.diff1_tensor(ix, iy, iz, state, c_h11);
+
+    const auto h_UU = CCZ4Geometry::compute_inverse_metric(state_cell_data);
+
+    amrex::Real dlapse_dot_dchi =
+        TensorAlgebra::compute_dot_product(d1_lapse, d1_chi, h_UU);
+
+    const auto chris          = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
+    amrex::Real tr_covd2lapse = -((double)GR_SPACEDIM / 2.0) * dlapse_dot_dchi;
+    FOR (i)
+    {
+        tr_covd2lapse -=
+            state_cell_data[c_chi] * chris.contracted(i) * d1_lapse[i];
+        FOR (j)
+        {
+            tr_covd2lapse +=
+                h_UU[i][j] * (state_cell_data[c_chi] * d2_lapse[i][j] +
+                              d1_lapse[i] * d1_chi[j]);
+        }
+    }
+
+    Tensor<1, amrex::Real> shift_vector;
+    FOR (idir)
+    {
+        shift_vector[idir] = state(ix, iy, iz, c_shift1 + idir);
+    }
+
+    amrex::Real advec_K =
+        m_deriv.advection(ix, iy, iz, state, shift_vector, c_K);
+
+    amrex::Real Aij_squared =
+        CCZ4Geometry::compute_Aij_squared(state_cell_data, h_UU);
+
+    if (m_formulation == USE_BSSN)
+    {
+        // ensure the Theta of CCZ4 remains at zero
+        rhs_cell_data[c_Theta] = 0.0;
+        // Use hamiltonian constraint to remove ricci.scalar for BSSN update
+        rhs_cell_data[c_K] =
+            advec_K +
+            state_cell_data[c_lapse] *
+                (Aij_squared + state_cell_data[c_K] * state_cell_data[c_K] /
+                                   (double)GR_SPACEDIM) -
+            tr_covd2lapse -
+            2.0 * state_cell_data[c_lapse] * m_cosmological_constant /
+                ((double)GR_SPACEDIM - 1.0);
+    }
+    else
+    {
+        amrex::Real advec_Theta =
+            m_deriv.advection(ix, iy, iz, state, shift_vector, c_Theta);
+
+        // hij derivatives
+        Tensor<1, amrex::Real> Z_over_chi;
+
+        FOR (i)
+            Z_over_chi[i] =
+                0.5 * (state_cell_data[c_Gamma1 + i] - chris.contracted[i]);
+
+        Tensor<1, amrex::Real> Z; // NOLINT(readability-identifier-length)
+        FOR (i)
+            Z[i] = state_cell_data[c_chi] * Z_over_chi[i];
+
+        auto ricci = CCZ4Geometry::compute_ricci_Z(
+            ix, iy, iz, rhs_state, state, h_UU, chris, Z_over_chi, m_deriv);
+
+        amrex::Real kappa1_times_lapse;
+        if (m_params.covariantZ4)
+        {
+            kappa1_times_lapse = m_params.kappa1;
+        }
+        else
+        {
+            kappa1_times_lapse = m_params.kappa1 * state_cell_data[c_lapse];
+        }
+
+        amrex::Real Z_dot_d1lapse =
+            TensorAlgebra::compute_dot_product(Z, d1_lapse);
+
+        rhs_cell_data[c_Theta] =
+            advec_Theta +
+            0.5 * state_cell_data[c_lapse] *
+                (ricci.scalar - Aij_squared +
+                 (((double)GR_SPACEDIM - 1.0) / (double)GR_SPACEDIM) *
+                     state_cell_data[c_K] * state_cell_data[c_K] -
+                 2.0 * state_cell_data[c_Theta] * state_cell_data[c_K]) -
+            0.5 * state_cell_data[c_Theta] * kappa1_times_lapse *
+                (((double)GR_SPACEDIM + 1) +
+                 m_params.kappa2 * ((double)GR_SPACEDIM - 1.0)) -
+            Z_dot_d1lapse - state_cell_data[c_lapse] * m_cosmological_constant;
+
+        rhs_cell_data[c_K] =
+            advec_K +
+            state_cell_data[c_lapse] *
+                (ricci.scalar +
+                 state_cell_data[c_K] *
+                     (state_cell_data[c_K] - 2.0 * state_cell_data[c_Theta])) -
+            kappa1_times_lapse * (double)GR_SPACEDIM * (1.0 + m_params.kappa2) *
+                state_cell_data[c_Theta] -
+            tr_covd2lapse -
+            2.0 * state_cell_data[c_lapse] * (double)GR_SPACEDIM /
+                ((double)GR_SPACEDIM - 1.0) * m_cosmological_constant;
+    }
+}
+
+template <class gauge_t, class deriv_t>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+CCZ4RHS<gauge_t, deriv_t>::calculate_Gamma_rhs(
+    int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs_state,
+    const amrex::Array4<amrex::Real const> &state) const
+{
+    const amrex::CellData<amrex::Real> &rhs_cell_data =
+        rhs_state.cellData(ix, iy, iz);
+    const amrex::CellData<const amrex::Real> &state_cell_data =
+        state.cellData(ix, iy, iz);
+
+    Tensor<2, amrex::Real> d1_shift =
+        m_deriv.diff1_vector(ix, iy, iz, state, c_shift1);
+    amrex::Real divshift = CCZ4Geometry::compute_divshift(d1_shift);
+
+    // hij derivatives
+    Tensor<3, amrex::Real> d1_h =
+        m_deriv.diff1_tensor(ix, iy, iz, state, c_h11);
+
+    const auto h_UU = CCZ4Geometry::compute_inverse_metric(state_cell_data);
+    Tensor<2, amrex::Real> A_UU =
+        CCZ4Geometry::compute_A_UU(state_cell_data, h_UU);
+
+    const auto chris = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
+
+    Tensor<1, amrex::Real> Z_over_chi;
+    Tensor<1, amrex::Real> Z; // NOLINT(readability-identifier-length)
+
+    FOR (i)
+        Z_over_chi[i] =
+            0.5 * (state_cell_data[c_Gamma1 + i] - chris.contracted[i]);
+
+    Tensor<1, amrex::Real> Gammadot;
+
+    auto d1_lapse = m_deriv.diff1_scalar(ix, iy, iz, state, c_lapse);
+    auto d1_chi   = m_deriv.diff1_scalar(ix, iy, iz, state, c_chi);
+    auto d1_K     = m_deriv.diff1_scalar(ix, iy, iz, state, c_K);
+    auto d1_Theta = m_deriv.diff1_scalar(ix, iy, iz, state, c_Theta);
+    auto d2_shift = m_deriv.diff2_vector(ix, iy, iz, state, c_shift1);
+
+    amrex::Real kappa1_times_lapse;
+    if (m_params.covariantZ4)
+    {
+        kappa1_times_lapse = m_params.kappa1;
+    }
+    else
+    {
+        kappa1_times_lapse = m_params.kappa1 * state_cell_data[c_lapse];
+    }
+
+    FOR (i)
+    {
+        Gammadot[i] = (2.0 / (double)GR_SPACEDIM) *
+                          (divshift * (chris.contracted[i] +
+                                       2.0 * m_params.kappa3 * Z_over_chi[i]) -
+                           2.0 * state_cell_data[c_lapse] *
+                               state_cell_data[c_K] * Z_over_chi[i]) -
+                      2.0 * kappa1_times_lapse * Z_over_chi[i];
+
+        FOR (j)
+        {
+            Gammadot[i] +=
+                2.0 * h_UU[i][j] *
+                    (state_cell_data[c_lapse] * d1_Theta[j] -
+                     state_cell_data[c_Theta] * d1_lapse[j]) -
+                2.0 * A_UU[i][j] * d1_lapse[j] -
+                state_cell_data[c_lapse] *
+                    ((2.0 * ((double)GR_SPACEDIM - 1.0) / (double)GR_SPACEDIM) *
+                         h_UU[i][j] * d1_K[j] +
+                     (double)GR_SPACEDIM * A_UU[i][j] * d1_chi[j] /
+                         state_cell_data[c_chi]) -
+                (chris.contracted[j] + 2.0 * m_params.kappa3 * Z_over_chi[j]) *
+                    d1_shift[i][j];
+
+            FOR (k)
+            {
+                Gammadot[i] +=
+                    2.0 * state_cell_data[c_lapse] * chris.ULL[i][j][k] *
+                        A_UU[j][k] +
+                    h_UU[j][k] * d2_shift[i][j][k] +
+                    (((double)GR_SPACEDIM - 2.0) / (double)GR_SPACEDIM) *
+                        h_UU[i][j] * d2_shift[k][j][k];
+            }
+        }
+    }
+    Tensor<1, amrex::Real> shift_vector;
+    FOR (idir)
+    {
+        shift_vector[idir] = state(ix, iy, iz, c_shift1 + idir);
+    }
+
+    auto advec_Gamma =
+        m_deriv.advec_vector(ix, iy, iz, state, shift_vector, c_Gamma1);
+    FOR (i)
+    {
+        rhs_cell_data[c_Gamma1 + i] = advec_Gamma[i] + Gammadot[i];
     }
 }
 
@@ -694,7 +1156,7 @@ CCZ4RHS<gauge_t, deriv_t>::calculate_rhs(
     }
     /////////////////////////////////////////////////////////////////////////
     const amrex::Array2D<amrex::Real, 0, 3, 0, 3> h_UU =
-        CCZ4Geometry::compute_inverse_metric(state_cell_data);
+        CCZ4Geometry::compute_inverse_metric_array(state_cell_data);
 
     // hij derivatives
     const auto d1_h = m_deriv.diff1_array_tensor(ix, iy, iz, state, c_h11);
