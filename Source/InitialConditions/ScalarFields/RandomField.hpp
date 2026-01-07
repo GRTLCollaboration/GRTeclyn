@@ -61,6 +61,7 @@ class RandomField
             int calc_higher_order_statistics = 0; //!< Choose whether to print higher-order statistics on the fields
             int num_orders;                       //!< Number of moments to print (required by vector read-in)
             Vector<int> orders;                   //!< Moment orders to print for extracted fields
+            int print_mode_functions = 0;
 
             // STOIIC read-in structures
             Vector<Real> init_k;                  //!< ks printed by STOIIC, at which Fourier-space fields are provided

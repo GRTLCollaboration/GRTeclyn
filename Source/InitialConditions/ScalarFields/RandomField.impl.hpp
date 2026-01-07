@@ -661,6 +661,7 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
     ParallelAllReduce::Sum(ps_map.data(), static_cast<int>(ps_map.size()), ParallelContext::CommunicatorSub());
 
     // Print the power spectrum to a new file in data/
+#pragma omp single
     for(int s=0; s<=N/2; s++)
     {
         power_spec_file.write_data_line({(kiso[s]+kiso[s+1])/2., (double)ps_map[s]/kcount[s]});
@@ -771,8 +772,15 @@ inline Vector<Real> RandomField::print_moment(MultiFab &field, const Vector<std:
     }
 
     // Write header and data lines
-    if(is_first_step) { file.write_header_line(headers); }
+#pragma omp single
+    if(is_first_step) 
+    { 
+        file.write_header_line(headers); 
+    }
+
+#pragma omp single
     file.write_time_data_line(data_to_print);
+    
     return stdev;
 }
 
@@ -974,7 +982,6 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
     for(int comp = 0; comp < 2; comp++) { scalars_k.mult(std::pow(N, -3.), comp, 1); }
 
     std::string Filename = "/cephfs/home/eaf49/GRTeclyn-workspace/Examples/ScalarField/Rk-check.dat";
-    int time_step = cur_time/dt;
 
     // Loop to extract the Fourier-space mode functions
     for (MFIter mfi(hij_k); mfi.isValid(); ++mfi) 
@@ -1040,8 +1047,10 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
     apply_nyquist_conditions(R_k);
 
     // Find the binned PS for each mode function and print to data/
-    if((m_params.calc_binned_power_spectrum) && (time_step % m_params.plot_int == 0)) 
+    if((m_params.calc_binned_power_spectrum) 
+	    && (static_cast<int>(cur_time/dt) % m_params.plot_int == 0))
     {
+	    Print() << "Time step at print: " << static_cast<int>(std::round(cur_time/dt)) << "\n";
         std::string spec_path = make_subdirectory(data_path, "spectra", first_step);
         Vector<std::string> filenames(2, "");
 
@@ -1084,24 +1093,27 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         Copy(out_MF, hs_x, 0, R_k.nComp(), hs_x.nComp(), 0);
 
         // Print mode functions if requested
-        /*std::string mf_path = make_subdirectory(data_path, "mode-functions", first_step);
-        std::string filename = mf_path+"mode-function-"+std::to_string(cur_time/dt);
-
-        for (MFIter mfi(hs_x); mfi.isValid(); ++mfi) 
+        if(m_params.print_mode_functions == 1)
         {
-            Array4<Real> const& hx_ptr = hs_x.array(mfi);
-            const Box& bx = mfi.fabbox();
+            std::string mf_path = make_subdirectory(data_path, "mode-functions", first_step);
+            std::string filename = mf_path+"mode-function-"+std::to_string(cur_time/dt);
 
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            for (MFIter mfi(hs_x); mfi.isValid(); ++mfi) 
             {
-                AllPrintToFile(filename) << i + N*(j + N*k) << ",";
-                for(int c=0; c<2; c++)
+                Array4<Real> const& hx_ptr = hs_x.array(mfi);
+                const Box& bx = mfi.fabbox();
+
+                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    AllPrintToFile(filename).SetPrecision(14) << hx_ptr(i, j, k, c) << ",";
-                }
-                AllPrintToFile(filename) << "\n";
-            });
-        }*/
+                    AllPrintToFile(filename) << i + N*(j + N*k) << ",";
+                    for(int c=0; c<2; c++)
+                    {
+                        AllPrintToFile(filename).SetPrecision(14) << hx_ptr(i, j, k, c) << ",";
+                    }
+                    AllPrintToFile(filename) << "\n";
+                });
+            }
+        }
 
         // Calculate and print field moments if requested
         Vector<Real> stdevs;
@@ -1119,8 +1131,14 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         
         SmallDataIO ts_file(data_path+"tensor-scalar-ratio", dt, cur_time, 
                                     restart_time, SmallDataIO::APPEND, first_step, ".dat");
-        if(first_step) { ts_file.write_header_line({"T/S ratio (plus)", "T/S ratio (cross)"}); }
-        ts_file.write_time_data_line({stdevs[1] / stdevs[0], stdevs[2] / stdevs[0]});
+#pragma omp single
+        if(first_step) 
+    	{ 
+            ts_file.write_header_line({"T/S ratio (plus)", "T/S ratio (cross)"}); 
+        }
+        
+#pragma omp single
+    	ts_file.write_time_data_line({stdevs[1] / stdevs[0], stdevs[2] / stdevs[0]}); 
     }
 }
 

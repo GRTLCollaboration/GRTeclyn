@@ -8,6 +8,7 @@
 
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Vector.H>
+#include <AMReX_Print.H>
 
 #include <cmath>
 #include <random>
