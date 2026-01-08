@@ -13,13 +13,13 @@ class Potential
   public:
     struct params_t
     {
-		// Quadratic parameters
-        double scalar_mass = 0.;
 		int type;
+		double param1, param2, param3, param4, param5;
 
 		// Monodromy parameters
-		double width;	
+		double scalar_mass = 0.;
 		double location;
+		double width;	
 		double amplitude;
 		double period;
 
@@ -34,7 +34,24 @@ class Potential
   public:
     //! The constructor
     Potential(params_t a_params) : m_params(a_params) 
-	{}
+	{
+		switch (m_params.type)
+		{
+			case 1:
+				m_params.scalar_mass = m_params.param1;
+
+			case 8:
+				m_params.scalar_mass = m_params.param1;
+				m_params.location = m_params.param2;
+				m_params.width = m_params.param3;
+				m_params.amplitude = m_params.param4;
+				m_params.period = m_params.param5;
+
+			case 9:
+				m_params.Lambda = m_params.param1;
+				m_params.v = m_params.param2;
+		}
+	}
 
 	// Classic quadratic potenital
 	template <class data_t>

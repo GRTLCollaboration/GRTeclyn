@@ -10,6 +10,7 @@
 #include "InitialScalarData.hpp"
 #include "VarsTools.hpp"
 #include "FilesystemTools.hpp"
+#include "Potential.hpp"
 #include <fstream>
 #include <random>
 
@@ -69,17 +70,52 @@ class RandomField
             Vector<Vector<Real>> tensor_ps;       //!< Structure: two fields * two components, power spec values
         };
 
-        RandomField(params_t a_params, InitialBackgroundData::params_t a_background_params)
-                : m_params(a_params), m_background_params(a_background_params)
+        // Constructor used when initialising stochastic fields
+        RandomField(params_t a_params, InitialBackgroundData::params_t bkgd_params, const Potential::params_t potential_params)
+                : m_params(a_params)
         {
+            // Compute background potential
+            double V, dV;
+            Potential potential(potential_params);
+            switch (potential_params.type)
+            {
+                case 1:
+                    potential.quadratic(V, dV, bkgd_params.phi0);
+                case 8:
+                    potential.monodromy(V, dV, bkgd_params.phi0);
+                case 9:
+                    potential.USR(V, dV, bkgd_params.phi0);
+            }
+
+            // Compute initial Hubble parameter
+            H0 = sqrt((8. * M_PI * bkgd_params.G_Newton/3.)*(0.5*pow(bkgd_params.Pi0, 2.) + V));
+
             // Set protected class parameters
             N = m_params.N_readin;
             norm = m_params.A * pow(2. * M_PI/m_params.L, 3.); // Physical FFT normalisation
             tolerance = 1.e-15; // Numerical tolerance, for tests
 
-            H0 = sqrt((4.0 * M_PI/3.0/pow(m_params.Mp, 2.))
-                * (pow(m_background_params.m * m_background_params.phi0, 2.0) 
-                    + pow(m_background_params.Pi0, 2.)));
+            // Look-up table 
+            // Used to construct polarisation basis tensors
+            lut[0][0] = 0;
+            lut[0][1] = 1;
+            lut[0][2] = 2;
+            lut[1][0] = 1;
+            lut[1][1] = 3;
+            lut[1][2] = 4;
+            lut[2][0] = 2;
+            lut[2][1] = 4;
+            lut[2][2] = 5;
+        }
+
+        // Constructor used in extraction of diagnostics
+        RandomField(params_t a_params)
+                : m_params(a_params)
+        {
+            // Set protected class parameters
+            N = m_params.N_readin;
+            norm = m_params.A * pow(2. * M_PI/m_params.L, 3.); // Physical FFT normalisation
+            tolerance = 1.e-15; // Numerical tolerance, for tests
 
             // Look-up table 
             // Used to construct polarisation basis tensors
@@ -146,8 +182,6 @@ class RandomField
 
     protected:
         const params_t m_params;
-        const InitialBackgroundData::params_t m_background_params;
-        const std::string m_spec_type;
 };
 
 #include "RandomField.impl.hpp"

@@ -27,7 +27,6 @@ class InitialBackgroundData
 		{
 			double phi0; //!< Amplitude of k=0 mode of initial SF
 			double Pi0;  //!< Amplitude of initial SF velocity
-			double m;    //!< SF mass
 			double G_Newton; 
 		};
 
@@ -59,7 +58,7 @@ class InitialBackgroundData
 			double V, dV;
 			m_potential.compute_potential(V, dV, vars);
 			
-			const double H0 = sqrt((8. * M_PI * m_params.G_Newton/3.)*(0.5*pow(m_params.Pi0, 2.) + V));
+			double H0 = sqrt((8. * M_PI * m_params.G_Newton/3.)*(0.5*pow(m_params.Pi0, 2.) + V));
 			vars.K = -3.*H0;
 
 			store_vars(cell.cellData(i, j, k), vars);

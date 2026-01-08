@@ -139,7 +139,7 @@ void ScalarFieldLevel::initData()
             FLRW_background.compute(i, j, k, state_array[box_ind]);
         });
 
-    RandomField random_field_initialiser(simParams().random_field_params, simParams().background_params);
+    RandomField random_field_initialiser(simParams().random_field_params, simParams().background_params, simParams().potential_params);
     random_field_initialiser.init(state);
 
     if (simParams().nan_check)
@@ -400,7 +400,7 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
         }
         else if (name=="TensorPolarisations")
         {
-            RandomField random_field_derive(simParams().random_field_params, simParams().background_params);
+            RandomField random_field_derive(simParams().random_field_params);
             random_field_derive.derive(src_mf, multifab, dcomp);
         }
         else
@@ -451,7 +451,7 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
     means_file.write_time_data_line({phi_avg, Pi_avg, scale_fact_avg, Hubble_fact_avg, lapse_avg});
 
     // Extract the spectra and field statistics
-    RandomField random_field_extractor(simParams().random_field_params, simParams().background_params);
+    RandomField random_field_extractor(simParams().random_field_params);
     random_field_extractor.extract(state_new, simParams().data_path, dt, cur_time, restart_time, first_step);
 
     // Make a file object for constraint statistics

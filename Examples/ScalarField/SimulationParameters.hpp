@@ -36,14 +36,13 @@ class SimulationParameters : public SimulationParametersBase
         background_params.G_Newton = G_Newton;
 
         pp.load("potential_type", potential_params.type, 0);
-        pp.load("potential_param_1", potential_params.scalar_mass, 0.1);
-        background_params.m = potential_params.scalar_mass;
+        pp.load("potential_param_1", potential_params.param1, 0.1);
         
         // Check these
-        pp.load("potential_param_2", potential_params.location, 0.);
-        pp.load("potential_param_3", potential_params.width);
-        pp.load("potential_param_4", potential_params.amplitude, 0.);
-        pp.load("potential_param_5", potential_params.period);
+        pp.load("potential_param_2", potential_params.param2, 0.);
+        pp.load("potential_param_3", potential_params.param3);
+        pp.load("potential_param_4", potential_params.param4, 0.);
+        pp.load("potential_param_5", potential_params.param5);
 
         pp.load("background_phi", background_params.phi0, 0.0);
         pp.load("background_dphi", background_params.Pi0, 0.0);	
@@ -102,11 +101,11 @@ class SimulationParameters : public SimulationParametersBase
 
     void check_params()
     {
-        warn_parameter("scalar_mass", background_params.m,
-                       background_params.m <
-                           0.2 / coarsest_dx / dt_multiplier,
-                       "oscillations of scalar field do not appear to be "
-                       "resolved on coarsest level");
+        // warn_parameter("scalar_mass", background_params.m,
+        //                background_params.m <
+        //                    0.2 / coarsest_dx / dt_multiplier,
+        //                "oscillations of scalar field do not appear to be "
+        //                "resolved on coarsest level");
 
         warn_parameter("kstar", random_field_params.kstar,
                        random_field_params.kstar >= 0,
