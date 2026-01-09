@@ -18,7 +18,7 @@ template <int num_components>
 class ParticleInterpolator
     : public amrex::ParticleContainer<
           /*NStructReal*/ 0,
-          /*NStructInt*/ 1,              // particle index
+          /*NStructInt*/ 0,
           /*NArrayReal*/ num_components, // number of SOA slots to store
                                          // interpolated values (assumes
                                          // contiguous storage)
@@ -116,7 +116,7 @@ class ParticleInterpolator
 
   public:
 
-    using Base         = amrex::ParticleContainer<0, 1, num_components, 0>;
+    using Base         = amrex::ParticleContainer<0, 0, num_components, 0>;
     using ParIterType  = typename Base::ParIterType;
     using ParticleType = typename Base::ParticleType;
     using Base::Base;

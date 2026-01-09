@@ -216,9 +216,9 @@ void ParticleInterpolator<num_components>::populate_from_query()
         [=] AMREX_GPU_DEVICE(int ip)
         {
             auto &p = particle_data[ip];
-            p.id() = ip + 1; // this is a local index! particle id starts from 1
+            p.id()  = ip; // this is a local index!
             p.cpu() =
-                myproc; // rank number, stays unique "at borth" of the particle
+                myproc; // rank number, stays unique "at birth" of the particle
 
             // reflect into valid region and set
             p.pos(0) = reflect_particle(static_cast<amrex::Real>(x_d_ptr[ip]),
@@ -232,7 +232,6 @@ void ParticleInterpolator<num_components>::populate_from_query()
                                         prob_lo[2], prob_hi[2], lo_reflect[2],
                                         hi_reflect[2]);
 #endif
-            p.idata(0) = ip;
 
             for (int s = 0; s < num_components; ++s)
             {
@@ -491,7 +490,6 @@ void ParticleInterpolator<num_components>::send_buffers()
                 const int owner_rank = static_cast<int>(
                     p.cpu()); // this is the rank that owns the query, so it
                               // should receive its value
-                const int ip = p.idata(0);
 
                 AMREX_ASSERT(owner_rank >= 0 && owner_rank < nprocs);
 
@@ -500,7 +498,7 @@ void ParticleInterpolator<num_components>::send_buffers()
                 ++local_particle_counter; // count the particle in
                 // cache owner rank and local query index
                 layout.rank.push_back(owner_rank);
-                layout.q_local.push_back(p.idata(0)); // index in owner's query
+                layout.q_local.push_back(p.id()); // index in owner's query
 
                 // cache component values
                 for (int k = 0; k < num_components; ++k)
