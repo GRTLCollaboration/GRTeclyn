@@ -83,7 +83,6 @@ void run_particle_interpolator_test()
         const int nprocs = amrex::ParallelDescriptor::NProcs();
         const int myproc = amrex::ParallelDescriptor::MyProc();
 
-#ifdef AMREX_USE_MPI
         // Partition the points across ranks
         const int base      = num_points / nprocs;
         const int remainder = num_points % nprocs;
@@ -133,43 +132,6 @@ void run_particle_interpolator_test()
             .setCoords(1, interp_y_local.data())
             .setCoords(2, interp_z_local.data())
             .addComp(0, B_local.data(), Derivative::LOCAL, VariableType::state);
-#else
-        std::vector<double> A(num_points); // for storing derived polynomial
-        std::vector<double> B(num_points); // for storing state polynomial
-        std::vector<double> interp_x(num_points);
-        std::vector<double> interp_y(num_points);
-        std::vector<double> interp_z(num_points);
-
-        for (int ipoint = 0; ipoint < num_points; ++ipoint)
-        {
-            double phi   = ipoint * 2. * M_PI / num_points;
-            double theta = ipoint * M_PI / num_points;
-            interp_x[ipoint] =
-                sim_params.center[0] + extract_radius * cos(phi) * sin(theta);
-            interp_y[ipoint] =
-                sim_params.center[1] + extract_radius * sin(phi) * sin(theta);
-            interp_z[ipoint] =
-                sim_params.center[2] + extract_radius * cos(theta);
-        }
-
-        const int root = 0;
-        const int num_points_local =
-            (myproc == root) ? num_points : 0; // points queries on rank 0
-
-        // set-up query for derived variable A
-        InterpolationQueryParticle query(num_points_local);
-        query.setCoords(0, interp_x.data())
-            .setCoords(1, interp_y.data())
-            .setCoords(2, interp_z.data())
-            .addComp(0, A.data(), Derivative::LOCAL, VariableType::derived);
-
-        // set-up query for state variable B
-        InterpolationQueryParticle query_state(num_points_local);
-        query_state.setCoords(0, interp_x.data())
-            .setCoords(1, interp_y.data())
-            .setCoords(2, interp_z.data())
-            .addComp(0, B.data(), Derivative::LOCAL, VariableType::state);
-#endif
 
         // set up interpolation using Particles for derived vars
         ParticleInterpolator<1> interpolator;
@@ -187,7 +149,6 @@ void run_particle_interpolator_test()
         interpolator_state.setup(&gr_amr, sim_params.boundary_params, true);
         interpolator_state.interp(query_state, VariableType::state);
 
-#ifdef AMREX_USE_MPI
         for (int ipoint = 0; ipoint < n_local; ++ipoint)
         {
             double x = interp_x_local[ipoint] - sim_params.center[0];
@@ -207,32 +168,6 @@ void run_particle_interpolator_test()
             CHECK(A_local[ipoint] == doctest::Approx(A_known).epsilon(1e-10));
             CHECK(B_local[ipoint] == doctest::Approx(B_known).epsilon(1e-10));
         }
-#else
-        if (amrex::ParallelDescriptor::MyProc() == 0)
-        {
-            for (int ipoint = 0; ipoint < num_points; ++ipoint)
-            {
-                double x = interp_x[ipoint] - sim_params.center[0];
-                double y = interp_y[ipoint] - sim_params.center[1];
-                double z = interp_z[ipoint] - sim_params.center[2];
-
-                double A_known = 42. + x * x + y * y * z * z; // derived
-                double B_known = pow(x, 3);                   // state
-
-                INFO("Interpolated A is " << A[ipoint] << " at point x = " << x
-                                          << " y = " << y << " z = " << z
-                                          << ". The true value should be "
-                                          << A_known);
-                INFO("Interpolated B is " << B[ipoint] << " at point x = " << x
-                                          << " y = " << y << " z = " << z
-                                          << ". The true value should be "
-                                          << B_known);
-
-                CHECK(A[ipoint] == doctest::Approx(A_known).epsilon(1e-10));
-                CHECK(B[ipoint] == doctest::Approx(B_known).epsilon(1e-10));
-            }
-        }
-#endif
     }
     amrex::Finalize();
 }
