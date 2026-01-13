@@ -81,9 +81,9 @@ class RandomField
             {
                 case 1:
                     potential.quadratic(V, dV, bkgd_params.phi0);
-                case 8:
-                    potential.monodromy(V, dV, bkgd_params.phi0);
                 case 9:
+                    potential.monodromy(V, dV, bkgd_params.phi0);
+                case 8:
                     potential.USR(V, dV, bkgd_params.phi0);
             }
 
@@ -178,7 +178,7 @@ class RandomField
         void print_power_spectrum(cMultiFab &field_array, SmallDataIO &power_spec_file, const int component);
         Real find_field_moment_x(MultiFab &field, const Vector<Real> mean, 
                                  const int moment, const int component);
-        void make_random_draws(MultiFab &rand_fab, Box &domain);
+        void make_random_draws(MultiFab &rand_fab, Box &domain, const int seed);
 
     protected:
         const params_t m_params;

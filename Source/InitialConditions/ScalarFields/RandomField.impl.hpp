@@ -113,7 +113,7 @@ inline void RandomField::Test_is_trace_free(MultiFab &field)
 ****/
 
 // Generate unique random draws for each MFI box.
-inline void RandomField::make_random_draws(MultiFab &rand_fab, Box &domain)
+inline void RandomField::make_random_draws(MultiFab &rand_fab, Box &domain, const int seed)
 {
     BoxArray ba = rand_fab.boxArray();
     DistributionMapping dm = rand_fab.DistributionMap();
@@ -124,7 +124,7 @@ inline void RandomField::make_random_draws(MultiFab &rand_fab, Box &domain)
         Box const& bx = mfi.validbox();
         auto const& tmp_ptr = tmp.array(mfi);
 
-        std::mt19937 generator;
+        std::mt19937 generator(seed);
         std::uniform_real_distribution<Real> distribution(Real(0), Real(1));
 
         auto offset = domain.index(bx.smallEnd()) * 6;
@@ -359,7 +359,6 @@ inline void RandomField::apply_nyquist_conditions(cMultiFab &field)
 inline void RandomField::init(amrex::MultiFab &state)
 {
     BL_PROFILE("RandomField::init");
-    InitRandom(m_params.random_seed);
 
     // Derive MultiFab ingredients from state (configuration space)
     BoxArray sba = state.boxArray();
@@ -402,7 +401,7 @@ inline void RandomField::init(amrex::MultiFab &state)
     FFT::R2C<Real> scalar_fft(x_domain, FFT::Info().setBatchSize(scalar_fields_k.nComp()));
 
     MultiFab random_draws(kba, kdm, 6, 0);
-    make_random_draws(random_draws, k_domain);
+    make_random_draws(random_draws, k_domain, m_params.random_seed);
     MultiFab tensor_draws(random_draws, amrex::make_alias, 0, 4);
     MultiFab scalar_draws(random_draws, amrex::make_alias, 4, 2);
 

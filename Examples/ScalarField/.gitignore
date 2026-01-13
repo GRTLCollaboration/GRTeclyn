@@ -1,0 +1,5 @@
+dparams*.txt 
+*.sh
+err/
+out/
+old-params/

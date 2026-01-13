@@ -40,14 +40,14 @@ class Potential
 			case 1:
 				m_params.scalar_mass = m_params.param1;
 
-			case 8:
+			case 9:
 				m_params.scalar_mass = m_params.param1;
 				m_params.location = m_params.param2;
 				m_params.width = m_params.param3;
 				m_params.amplitude = m_params.param4;
 				m_params.period = m_params.param5;
 
-			case 9:
+			case 8:
 				m_params.Lambda = m_params.param1;
 				m_params.v = m_params.param2;
 		}
