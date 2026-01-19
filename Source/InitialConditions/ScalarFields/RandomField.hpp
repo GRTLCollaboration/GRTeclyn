@@ -37,6 +37,7 @@ class RandomField
         struct params_t 
         {
             // Basic initialisation flags
+            int read_from_stoiic = 0;   //!< Whether to read spectrum from stoiic dparams.txt input
             int tensor_init = 0;        //!< Determines whether tensor perturbations are calculated
             int scalar_init = 0;  //!< Read in perturbations from STOIIC dparams
             int use_rand = 1;           //!< Choose whether to use random initial conditions

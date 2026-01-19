@@ -198,7 +198,7 @@ inline GpuComplex<Real> RandomField::find_in_stoiic(const double km, const int f
 // Turns analytic PS into GRF and applies window function if requested
 inline GpuComplex<Real> RandomField::calculate_random_field(const IntVect iv, const int field_index, 
                                                             const Real rand_amp, const Real rand_phase, 
-                                                            std::string field_type = "tensor")
+                                                            std::string field_type)
 {
     GpuComplex<Real> value(0., 0.);
 
@@ -206,7 +206,7 @@ inline GpuComplex<Real> RandomField::calculate_random_field(const IntVect iv, co
     double kmag = get_kmag(iv);
 
     // Find the analytic power spectrum
-    if(m_params.scalar_init) { value = find_in_stoiic(kmag, field_index, field_type); }
+    if(m_params.read_from_stoiic) { value = find_in_stoiic(kmag, field_index, field_type); }
     else { value = calculate_mode_function(kmag, field_index); }
 
     // Add stochastic perturbations
@@ -448,8 +448,8 @@ inline void RandomField::init(amrex::MultiFab &state)
                     Real draw1 = tensor_draw_ptr(i, j, k, 2*p);
                     Real draw2 = tensor_draw_ptr(i, j, k, 2*p+1);
 
-                    hs_ptr(i, j, k, p) = calculate_random_field(iv, 0, draw1, draw2);
-                    As_ptr(i, j, k, p) = calculate_random_field(iv, 1, draw1, draw2);
+                    hs_ptr(i, j, k, p) = calculate_random_field(iv, 0, draw1, draw2, "tensor");
+                    As_ptr(i, j, k, p) = calculate_random_field(iv, 1, draw1, draw2, "tensor");
                 }
 
                 // Find basis tensors and initial tensor realisation
@@ -1016,28 +1016,31 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
                 hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross)/std::sqrt(2.);
             }
 
-            Vector<Real> iv_k(iv.begin(), iv.end());
-            for(auto& k_comp : iv_k) { k_comp *= 2. * M_PI / m_params.L; }
-            Real kmag = get_kmag(iv);
-            GpuComplex<Real> Phi = 0;
-
-            if(kmag == 0)
+            if(m_params.scalar_init)
             {
-                R_k_ptr(i, j, k, 0) = GpuComplex<Real>{0., 0.};
-            }
+                Vector<Real> iv_k(iv.begin(), iv.end());
+                for(auto& k_comp : iv_k) { k_comp *= 2. * M_PI / m_params.L; }
+                Real kmag = get_kmag(iv);
+                GpuComplex<Real> Phi = 0;
 
-            else
-            {
-                // converstion from chi, gamma_ij -> Phi
-                for(int l=0; l<3; l++) for(int p=0; p<3; p++)
+                if(kmag == 0)
                 {
-                    Phi += (iv_k[l] * iv_k[p] * hij_ptr(i, j, k, lut[l][p]))/std::pow(kmag, 2.);
+                    R_k_ptr(i, j, k, 0) = GpuComplex<Real>{0., 0.};
                 }
-                Phi *= -1./48.;
-                Phi += 0.5 * (scalars_ptr(i, j, k, m_c_chi));
 
-                // calculate R_k
-                R_k_ptr(i, j, k, 0) = Phi - K_bar * scalars_ptr(i, j, k, m_c_phi) / alpha_bar / Pi_bar;
+                else
+                {
+                    // converstion from chi, gamma_ij -> Phi
+                    for(int l=0; l<3; l++) for(int p=0; p<3; p++)
+                    {
+                        Phi += (iv_k[l] * iv_k[p] * hij_ptr(i, j, k, lut[l][p]))/std::pow(kmag, 2.);
+                    }
+                    Phi *= -1./48.;
+                    Phi += 0.5 * (scalars_ptr(i, j, k, m_c_chi));
+
+                    // calculate R_k
+                    R_k_ptr(i, j, k, 0) = Phi - K_bar * scalars_ptr(i, j, k, m_c_phi) / alpha_bar / Pi_bar;
+                }
             }
         });
     }
