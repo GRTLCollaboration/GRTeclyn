@@ -282,6 +282,16 @@ inline Vector<Real> RandomField::calculate_basis_vector(const IntVect iv, const 
         Error("RandomField::calculate_polarisation_tensors Part of Fourier grid not covered.");
     }
 
+    if(m_params.alpha != 0)
+    {
+        double m_alpha = m_params.alpha * M_PI/180.;
+        for (int i=0; i<3; i++)
+        {
+            mhat[i] = cos(m_alpha) * mhat[i] + sin(m_alpha) * nhat[i];
+            nhat[i] = -sin(m_alpha) * mhat[i] + cos(m_alpha) * nhat[i];
+        }
+    }
+
     if(which_vector == 0) { return mhat; }
     else if(which_vector == 1) { return nhat; }
     else { Error("RandomField::calculate_basis_vector Incompatable vector type."); return mhat; }

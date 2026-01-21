@@ -47,6 +47,7 @@ class RandomField
             double L;                   //!< Length of the box
             double A;                   //!< Amplitude factor (for basic tests)
             double Mp = 1.;             //!< Energy scale of the problem
+            double alpha = 0.;          //!< Internal rotation angle in the +/x decomposition basis
             int N_readin;               //!< used to read in the private N variable
             int N_fine;                 //!< Fine resolution to downsample from, 
                                         //!< used for convergence testing
