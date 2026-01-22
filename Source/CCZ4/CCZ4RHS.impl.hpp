@@ -178,10 +178,11 @@ CCZ4RHS<gauge_t, deriv_t>::calculate_A_ij_rhs_use_amrex_array(
     const amrex::CellData<const amrex::Real> &state_cell_data =
         state.cellData(ix, iy, iz);
 
-    const auto h_UU = CCZ4Geometry::compute_inverse_metric_sym(state_cell_data);
+    const auto h_UU =
+        CCZ4Geometry::compute_inverse_metric_array(state_cell_data);
 
     // hij derivatives
-    auto d1_h = m_deriv.diff1_sym_tensor(ix, iy, iz, state, c_h11);
+    auto d1_h = m_deriv.diff1_array_tensor(ix, iy, iz, state, c_h11);
 
     const auto chris = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
 
@@ -227,11 +228,11 @@ CCZ4RHS<gauge_t, deriv_t>::calculate_A_ij_rhs_use_amrex_array(
         covdtilde2lapse[k][l] = d2_lapse(idx);
         FOR (m)
         {
-            covdtilde2lapse[k][l] -= chris.ULL[m][k][l] * d1_lapse[m];
+            covdtilde2lapse[k][l] -= chris.ULL(m, k, l) * d1_lapse[m];
         }
         covd2lapse[k][l] =
             state_cell_data[c_chi] * covdtilde2lapse[k][l] +
-            0.5 * (d1_lapse(k) * d1_chi(l) + d1_chi(k) * d1_lapse(l) -
+            0.5 * (d1_lapse[k] * d1_chi[l] + d1_chi[k] * d1_lapse[l] -
                    state_cell_data[var_idx(c_h11, k, l)] * dlapse_dot_dchi);
     }
 
@@ -270,7 +271,7 @@ CCZ4RHS<gauge_t, deriv_t>::calculate_A_ij_rhs_use_amrex_array(
             FOR (l)
             {
                 rhs_cell_data[idx] -= 2.0 * state_cell_data[c_lapse] *
-                                      h_UU(SYMM_IDX(k, l)) *
+                                      h_UU(k, l) *
                                       state_cell_data[var_idx(c_A11, i, k)] *
                                       state_cell_data[var_idx(c_A11, l, j)];
             }
@@ -289,13 +290,12 @@ CCZ4RHS<gauge_t, deriv_t>::calculate_A_ij_rhs_use_amrex_array(
     FOR (i)
     {
         tr_covd2lapse -=
-            state_cell_data[c_chi] * chris.contracted(i) * d1_lapse(i);
+            state_cell_data[c_chi] * chris.contracted(i) * d1_lapse[i];
         FOR (j)
         {
-            tr_covd2lapse +=
-                h_UU(SYMM_IDX(i, j)) *
-                (state_cell_data[c_chi] * d2_lapse(SYMM_IDX(i, j)) +
-                 d1_lapse(i) * d1_chi(j));
+            tr_covd2lapse += h_UU(i, j) * (state_cell_data[c_chi] *
+                                               d2_lapse(SYMM_IDX(i, j)) +
+                                           d1_lapse[i] * d1_chi[j]);
         }
     }
 
@@ -373,14 +373,14 @@ CCZ4RHS<gauge_t, deriv_t>::calculate_A_ij_rhs_use_amrex_array(
         {
             //            int idx1 = i + j + ((i * j != 0) ? 1 : 0);
             rhs_cell_data[c_Gamma1 + i] +=
-                2.0 * h_UU(SYMM_IDX(i, j)) *
+                2.0 * h_UU(i, j) *
                     (state_cell_data[c_lapse] * d1_Theta(j) -
-                     state_cell_data[c_Theta] * d1_lapse(j)) -
-                2.0 * A_UU(i, j) * d1_lapse(j) -
+                     state_cell_data[c_Theta] * d1_lapse[j]) -
+                2.0 * A_UU(i, j) * d1_lapse[j] -
                 state_cell_data[c_lapse] *
                     ((2.0 * ((double)GR_SPACEDIM - 1.0) / (double)GR_SPACEDIM) *
-                         h_UU(SYMM_IDX(i, j)) * d1_K(j) +
-                     (double)GR_SPACEDIM * A_UU(i, j) * d1_chi(j) /
+                         h_UU(i, j) * d1_K(j) +
+                     (double)GR_SPACEDIM * A_UU(i, j) * d1_chi[j] /
                          state_cell_data[c_chi]) -
                 (chris.contracted(j) + 2.0 * m_params.kappa3 * Z_over_chi[j]) *
                     d1_shift[i][j];
@@ -392,9 +392,9 @@ CCZ4RHS<gauge_t, deriv_t>::calculate_A_ij_rhs_use_amrex_array(
                     2.0 * state_cell_data[c_lapse] * chris.ULL(i, j, k) *
 
                         A_UU(j, k) +
-                    h_UU(SYMM_IDX(j, k)) * d2_shift(i, SYMM_IDX(j, k)) +
+                    h_UU(j, k) * d2_shift(i, SYMM_IDX(j, k)) +
                     (((double)GR_SPACEDIM - 2.0) / (double)GR_SPACEDIM) *
-                        h_UU(SYMM_IDX(i, j)) * d2_shift(k, SYMM_IDX(j, k));
+                        h_UU(i, j) * d2_shift(k, SYMM_IDX(j, k));
             }
         }
     }

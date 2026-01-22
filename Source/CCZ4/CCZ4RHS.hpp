@@ -103,12 +103,6 @@ class CCZ4RHS
                        const amrex::Array4<amrex::Real> &rhs_state,
                        const amrex::Array4<amrex::Real const> &state) const;
     // Calculates rhs for A_ij
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    calculate_A_ij_rhs(int ix, int iy, int iz,
-                       const amrex::Array4<amrex::Real> &rhs_state,
-                       const amrex::Array4<amrex::Real const> &state) const;
-
-    // Calculates rhs for A_ij
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void calculate_A_ij_rhs_use_amrex_array(
         int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs_state,
         const amrex::Array4<amrex::Real const> &state) const;
