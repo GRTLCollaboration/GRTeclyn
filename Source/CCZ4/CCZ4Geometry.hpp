@@ -923,45 +923,59 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t_array compute_ricci_Z(
         int idx        = i + j + ((i * j != 0) ? 1 : 0);
         boxtildechi   += covdtilde2chi[i][j] * h_UU(i, j);
         dchi_dot_dchi += d1_chi[i] * d1_chi[j] * h_UU(i, j);
-        FOR (k, l)
-        {
-            int idx             = k + l + ((k * l != 0) ? 1 : 0);
-            chris_LLU(i, j, k) += h_UU(k, l) * chris.LLL(i, j, l);
-        }
     }
 
     // Gamma derivatives
-    Tensor<2, amrex::Real> d1_Gamma =
-        m_deriv.diff1_vector(ix, iy, iz, state, c_Gamma1);
+    auto d1_Gamma = m_deriv.diff1_array_vector(ix, iy, iz, state, c_Gamma1);
 
     // hij derivatives
-    Tensor<3, amrex::Real> d1_h =
-        m_deriv.diff1_tensor(ix, iy, iz, state, c_h11);
+    auto d1_h = m_deriv.diff1_sym_tensor(ix, iy, iz, state, c_h11);
 
-    //       auto d2_h = m_deriv.diff2_sym_tensor(ix, iy, iz, state, c_h11);
+    // auto d2_h = m_deriv.diff2_sym_tensor(ix, iy, iz, state, c_h11);
     auto d2_h = m_deriv.diff2_sym_tensor_test_array(ix, iy, iz, state, c_h11);
 
     FOR (i, j)
     {
         amrex::Real ricci_hat = 0;
         int idx1              = i + j + ((i * j != 0) ? 1 : 0);
+
         FOR (k)
         {
+
+            amrex::Real chris_LLU_jkl;
+            amrex::Real chris_LLU_ikl;
+            amrex::Real chris_LLU_kjl;
+
             // We call this ricci_hat rather than ricci_tilde as we have
             // replaced what should be \tilde{Gamma} with \hat{Gamma} in
             // order to avoid adding terms that cancel later on
             ricci_hat +=
-                0.5 * (state_cell_data[var_idx(c_h11, k, i)] * d1_Gamma[k][j] +
-                       state_cell_data[var_idx(c_h11, k, j)] * d1_Gamma[k][i]);
-            ricci_hat += 0.5 * state_cell_data[c_Gamma1 + k] * d1_h[i][j][k];
+                0.5 * (state_cell_data[var_idx(c_h11, k, i)] * d1_Gamma(k, j) +
+                       state_cell_data[var_idx(c_h11, k, j)] * d1_Gamma(k, i));
+            ricci_hat += 0.5 * state_cell_data[c_Gamma1 + k] * d1_h(idx1, k);
+
             FOR (l)
             {
 
-                int idx2   = k + l + ((k * l != 0) ? 1 : 0);
+                // jkl
+                chris_LLU_jkl = h_UU(l, 0) * chris.LLL(j, k, 0) +
+                                h_UU(l, 1) * chris.LLL(j, k, 1) +
+                                h_UU(l, 2) * chris.LLL(j, k, 2);
+                // ikl
+                chris_LLU_ikl = h_UU(l, 0) * chris.LLL(i, k, 0) +
+                                h_UU(l, 1) * chris.LLL(i, k, 1) +
+                                h_UU(l, 2) * chris.LLL(i, k, 2);
+                // kjl
+                chris_LLU_kjl = h_UU(l, 0) * chris.LLL(k, j, 0) +
+                                h_UU(l, 1) * chris.LLL(k, j, 1) +
+                                h_UU(l, 2) * chris.LLL(k, j, 2);
+
+                int idx2 = k + l + ((k * l != 0) ? 1 : 0);
+
                 ricci_hat += -0.5 * h_UU(k, l) * d2_h(idx1, idx2) +
-                             (chris.ULL(k, l, i) * chris_LLU(j, k, l) +
-                              chris.ULL(k, l, j) * chris_LLU(i, k, l) +
-                              chris.ULL(k, i, l) * chris_LLU(k, j, l));
+                             chris.ULL(k, l, i) * chris_LLU_jkl +
+                             chris.ULL(k, l, j) * chris_LLU_ikl +
+                             chris.ULL(k, i, l) * chris_LLU_kjl;
             }
         }
 
