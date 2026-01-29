@@ -1,7 +1,7 @@
 #################################################
 # Filesystem parameters
 
-verbosity = 0
+verbosity = 1
 
 output_path = .
 checkpoint_interval = -1
@@ -25,7 +25,7 @@ isPeriodic = 0 0 0
 # 0 = static, 1 = sommerfeld, 2 = reflective
 # (see BoundaryConditions.hpp for details)
 hi_boundary = 1 1 1
-lo_boundary = 1 1 1
+lo_boundary = 1 1 2
 
 #################################################
 # Evolution parameters

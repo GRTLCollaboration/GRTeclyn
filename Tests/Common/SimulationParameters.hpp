@@ -36,6 +36,7 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("fake_bh2_mass", fake_bh2_mass, 0.5);
 
         pp.load("num_points", num_points, 2);
+        pp.load("verbosity", verbosity, false);
     }
 
     bool puncture_tracking_enabled{};
@@ -46,7 +47,9 @@ class SimulationParameters : public SimulationParametersBase
     amrex::Real fake_bh1_mass{};
     amrex::Real fake_bh2_mass{};
 
+    // For ParticleInterpolator Test
     int num_points;
+    bool verbosity;
 };
 
 #endif /* SIMULATIONPARAMETERS_HPP */

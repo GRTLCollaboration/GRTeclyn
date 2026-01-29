@@ -10,7 +10,6 @@
 #ifndef PARTICLEINTERPOLATOR_IMPL_HPP_
 #define PARTICLEINTERPOLATOR_IMPL_HPP_
 
-#include "InterpolationLayoutParticle.hpp"
 #include "InterpolationQueryParticle.hpp"
 #include "Lagrange.hpp"
 #include "StateVariables.hpp"
@@ -26,23 +25,21 @@
 // initialise everything and perform some sanity checks
 template <int num_components>
 void ParticleInterpolator<num_components>::setup(
-    GRAMR *gr_amr_ptr, const BoundaryConditions::params_t &a_bc_params,
+    GRAMR *gramr_ptr, const BoundaryConditions::params_t &a_bc_params,
     bool a_verbosity, const DerivedParity *parities)
 {
     // is GRAMR properly set?
     AMREX_ASSERT(gr_amr_ptr != nullptr);
-    m_gr_amr    = gr_amr_ptr;
+    m_gramr_ptr = gramr_ptr;
     m_bc_params = a_bc_params;
     m_verbosity = a_verbosity;
 
-    this->Define(dynamic_cast<amrex::ParGDBBase *>(m_gr_amr->GetParGDB()));
+    this->Define(dynamic_cast<amrex::ParGDBBase *>(m_gramr_ptr->GetParGDB()));
     m_initialized = true;
-
-    AMREX_ALWAYS_ASSERT(num_components >= 1);
 
     // read in the physical bounds for reflective BC checks (it is sufficient to
     // do this on lev = 0)
-    const amrex::Geometry &geom0 = m_gr_amr->getLevel(0).Geom();
+    const amrex::Geometry &geom0 = m_gramr_ptr->getLevel(0).Geom();
     m_prob_lo                    = geom0.ProbLoArray();
     m_prob_hi                    = geom0.ProbHiArray();
 
@@ -156,8 +153,6 @@ void ParticleInterpolator<num_components>::populate_from_query()
     const int myproc = amrex::ParallelDescriptor::MyProc();
 
     const int lev = 0;
-    const int n =
-        static_cast<int>(query.m_num_points); // number of query points
 
     amrex::MFIter mfi = this->MakeMFIter(lev);
     const int grid    = mfi.index();
@@ -166,21 +161,26 @@ void ParticleInterpolator<num_components>::populate_from_query()
     // it does not matter on which level the particles are initialised so
     // long as we Redistribute() them later
     auto &ptile = this->DefineAndReturnParticleTile(lev, grid, tile);
-    ptile.resize(n);
+    ptile.resize(query.m_num_points);
     auto particle_data = ptile.getParticleTileData();
 
     // get coords from query
-    const double *x = query.m_coords[0];
-    const double *y = query.m_coords[1];
-#if AMREX_SPACEDIM == 3
-    const double *z = query.m_coords[2];
+    amrex::GpuArray<const double *, AMREX_SPACEDIM> query_coords{
+        query.m_coords[0], query.m_coords[1]
+#if (AMREX_SPACEDIM == 3)
+        ,
+        query.m_coords[2]
 #endif
+    };
 
     // Run a check on coords you are interpolating on
-    for (int i = 0; i < n; i++)
+    for (int i = 0; i < query.m_num_points; ++i)
     {
-        std::array<double, AMREX_SPACEDIM> coords{
-            AMREX_D_DECL(x[i], y[i], z[i])};
+        amrex::GpuArray<double, AMREX_SPACEDIM> coords;
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
+            coords[d] = query_coords[d][i];
+        }
         check_domain(coords, 0);
     }
 
@@ -192,46 +192,59 @@ void ParticleInterpolator<num_components>::populate_from_query()
     const auto lo_reflect = m_lo_boundary_reflective;
     const auto hi_reflect = m_hi_boundary_reflective;
 
-    // copy x,y,z to device vectors now
-    amrex::Gpu::DeviceVector<double> x_d(n), y_d(n);
-    amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, x, x + n, x_d.begin());
-    amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, y, y + n, y_d.begin());
+    // coords on device
+    // amrex::GpuArray<amrex::Gpu::DeviceVector<double>, AMREX_SPACEDIM>
+    // coords_d; amrex::GpuArray<const double*, AMREX_SPACEDIM> coords_d_ptr =
+    // query_coords;
 
-#if AMREX_SPACEDIM == 3
-    amrex::Gpu::DeviceVector<double> z_d(n);
-    amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, z, z + n, z_d.begin());
-#endif
-    amrex::Gpu::streamSynchronize(); // ensure copies complete
+    // for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    // {
+    //     coords_d[d].resize(query.m_num_points);
 
-    // Get device pointers to capture by value
-    auto x_d_ptr = x_d.data();
-    auto y_d_ptr = y_d.data();
-#if AMREX_SPACEDIM == 3
-    auto z_d_ptr = z_d.data();
-#endif
+    //    // copy x,y,z to device vectors now
+    //     amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice,
+    //                           query_coords[d],
+    //                           query_coords[d] + query.m_num_points,
+    //                           coords_d[d].begin());
+
+    //     // Get device pointers to capture by value
+    //     coords_d_ptr[d] = coords_d[d].data();
+    // }
+    // amrex::Gpu::streamSynchronize(); // ensure copies complete
 
     // loop over particles and place them at the required points
     amrex::ParallelFor(
-        n,
+        query.m_num_points,
         [=] AMREX_GPU_DEVICE(int ip)
         {
             auto &p = particle_data[ip];
-            p.id()  = ip; // this is a local index!
-            p.cpu() =
-                myproc; // rank number, stays unique "at birth" of the particle
+            p.id()  = ip;     // this is a local index!
+            p.cpu() = myproc; // doesn't change on redistribute
 
             // reflect into valid region and set
-            p.pos(0) = reflect_particle(static_cast<amrex::Real>(x_d_ptr[ip]),
-                                        prob_lo[0], prob_hi[0], lo_reflect[0],
-                                        hi_reflect[0]);
-            p.pos(1) = reflect_particle(static_cast<amrex::Real>(y_d_ptr[ip]),
-                                        prob_lo[1], prob_hi[1], lo_reflect[1],
-                                        hi_reflect[1]);
-#if AMREX_SPACEDIM == 3
-            p.pos(2) = reflect_particle(static_cast<amrex::Real>(z_d_ptr[ip]),
-                                        prob_lo[2], prob_hi[2], lo_reflect[2],
-                                        hi_reflect[2]);
-#endif
+            for (int d = 0; d < AMREX_SPACEDIM; ++d)
+            {
+                p.pos(d) = reflect_particle(
+                    static_cast<amrex::Real>(query_coords[d][ip]), prob_lo[d],
+                    prob_hi[d], lo_reflect[d], hi_reflect[d]);
+            }
+            //             p.pos(0) =
+            //             reflect_particle(static_cast<amrex::Real>(x_d_ptr[ip]),
+            //                                         prob_lo[0], prob_hi[0],
+            //                                         lo_reflect[0],
+            //                                         hi_reflect[0]);
+            //             p.pos(1) =
+            //             reflect_particle(static_cast<amrex::Real>(y_d_ptr[ip]),
+            //                                         prob_lo[1], prob_hi[1],
+            //                                         lo_reflect[1],
+            //                                         hi_reflect[1]);
+            // #if AMREX_SPACEDIM == 3
+            //             p.pos(2) =
+            //             reflect_particle(static_cast<amrex::Real>(z_d_ptr[ip]),
+            //                                         prob_lo[2], prob_hi[2],
+            //                                         lo_reflect[2],
+            //                                         hi_reflect[2]);
+            // #endif
 
             for (int s = 0; s < num_components; ++s)
             {
@@ -243,19 +256,18 @@ void ParticleInterpolator<num_components>::populate_from_query()
 
     amrex::Gpu::streamSynchronize();
 
-    m_particles_seeded = true;
+    m_particles_populated = true;
 }
 
 // a helper function that helps with interpolation from grid onto particles
 template <int num_components>
-void ParticleInterpolator<num_components>::interpolation_to_particle_helper(
+void ParticleInterpolator<num_components>::interpolate_to_particle_helper(
     int lev, amrex::MultiFab &mf, const amrex::Geometry &geom)
 {
-    int start_comp                    = start_comp_getter();
-    const int ncomp                   = num_components;
-    static constexpr int interp_order = 4; // 4th order Lagrange
-    static constexpr int num_ghosts =
-        interp_order / 2; // number of ghosts needed
+    int start_comp             = get_start_comp();
+    const int ncomp            = num_components;
+    constexpr int interp_order = 4;                // 4th order Lagrange
+    constexpr int num_ghosts   = interp_order / 2; // number of ghosts needed
 
     AMREX_ASSERT(mf.nComp() >= start_comp + ncomp);
 
@@ -301,10 +313,9 @@ void ParticleInterpolator<num_components>::interpolation_to_particle_helper(
                         interpolated_vals[icomp];
                 }
             });
-
-        // synchronize GPU streams to ensure all particles are updated
-        amrex::Gpu::streamSynchronize();
     }
+    // synchronize GPU streams to ensure all particles are updated
+    amrex::Gpu::streamSynchronize();
 }
 
 // interpolate variables into SOA slots
@@ -315,19 +326,19 @@ void ParticleInterpolator<num_components>::interpolate_to_particle()
 
     ensure_redistributed();
 
-    for (int lev = 0; lev <= m_gr_amr->finestLevel(); ++lev)
+    for (int lev = 0; lev <= m_gramr_ptr->finestLevel(); ++lev)
     {
         if (this->NumberOfParticlesAtLevel(lev) == 0)
             continue;
 
-        amrex::AmrLevel &level      = m_gr_amr->getLevel(lev);
+        amrex::AmrLevel &level      = m_gramr_ptr->getLevel(lev);
         const amrex::Geometry &geom = level.Geom();
         amrex::MultiFab &state      = level.get_new_data(0);
 
-        interpolation_to_particle_helper(lev, state, geom);
+        interpolate_to_particle_helper(lev, state, geom);
     }
 
-    m_need_redistribute = false;
+    // m_need_redistribute = false;
 }
 
 // Interpolation for derived vars, takes in MultiFab and comps (unique
@@ -341,24 +352,24 @@ void ParticleInterpolator<num_components>::
 {
     AMREX_ASSERT(m_initialized);
 
-    const int nlevs = m_gr_amr->finestLevel() + 1;
+    const int nlevs = m_gramr_ptr->finestLevel() + 1;
     AMREX_ASSERT((int)a_derived_mf_vect.size() == nlevs);
 
     ensure_redistributed();
 
-    for (int lev = 0; lev <= m_gr_amr->finestLevel(); ++lev)
+    for (int lev = 0; lev <= m_gramr_ptr->finestLevel(); ++lev)
     {
         if (this->NumberOfParticlesAtLevel(lev) == 0)
             continue;
 
-        auto &level      = m_gr_amr->getLevel(lev);
+        auto &level      = m_gramr_ptr->getLevel(lev);
         const auto &geom = level.Geom();
         auto &mf         = *a_derived_mf_vect[lev];
 
-        interpolation_to_particle_helper(lev, mf, geom);
+        interpolate_to_particle_helper(lev, mf, geom);
     }
 
-    m_need_redistribute = false;
+    // m_need_redistribute = false;
 }
 
 // A wrapper function that the user needs to call to perform interpolation
@@ -373,14 +384,16 @@ void ParticleInterpolator<num_components>::interp(
         interp_order / 2; // number of ghosts needed
 
     // Populate particles
-    if (!m_particles_seeded)
+    if (!m_particles_populated)
     {
         if (m_verbosity)
         {
             amrex::AllPrint()
                 << "ParticleInterpolator: populating particles from query\n";
         }
-        m_query = std::make_unique<InterpolationQueryParticle>(query);
+
+        // pass the query over
+        m_query = &query;
 
         populate_from_query();
     }
@@ -390,21 +403,20 @@ void ParticleInterpolator<num_components>::interp(
     {
         interpolate_to_particle();
     }
-    else if (VariableType::derived == variable_type)
+    else if (variable_type == VariableType::derived)
     {
         auto out_derived =
-            m_gr_amr->derive(name_derived, time_derived, num_ghosts);
+            m_gramr_ptr->derive(name_derived, time_derived, num_ghosts);
         amrex::Vector<amrex::MultiFab *> derived_mf_vect;
-        derived_mf_vect = amrex::GetVecOfPtrs(
-            out_derived); // see here for more details
-                          // (https://amrex-codes.github.io/amrex/doxygen/AMReX__Vector_8H_source.html)
+        // convert vector of unique_ptrs to one of raw pointers
+        derived_mf_vect = amrex::GetVecOfPtrs(out_derived);
 
         interpolate_to_particle_from_derived_fields(derived_mf_vect);
     }
     else
     {
-        amrex::Abort("The type of VaribaleType is not recognized in "
-                     "ParticleInterpolator::interp()!");
+        amrex::Abort(
+            "ParticleInterpolator::interp(): unsupported VariableType");
     }
 
     // Aggregate results
@@ -420,50 +432,46 @@ void ParticleInterpolator<num_components>::aggregate_points()
     AMREX_ALWAYS_ASSERT(m_query);
 
     // pack m_answer_idx and m_answer_data
-    send_buffers();
+    prepare_send_buffers();
     // initialise m_query_idx and m_query_data
     prepare_receive_buffers();
     // exchange answers
     exchange_answers();
-    // build query values and apply parity
-    build_values_and_apply_parity();
+    // apply parity
+    apply_parity_and_store_values();
 }
 
 // Prepare send buffers and package them up: who do I send answers to?
 template <int num_components>
-void ParticleInterpolator<num_components>::send_buffers()
+void ParticleInterpolator<num_components>::prepare_send_buffers()
 {
     const int nprocs = amrex::ParallelDescriptor::NProcs();
 
     m_mpi.clearQueryCounts();
     int local_particle_counter = 0;
 
-    // we do not know how many local particles we will see, so start empty.
-    InterpolationLayoutParticle layout(0);
-
     // a temporary storage vector for component values, one entry per local
     // particle
     std::array<std::vector<double>, num_components> comp_values;
+    // layout data for storing query ranks and indices
+    std::vector<int> query_ranks;
+    std::vector<int> query_indices;
 
     // loop over particles: count + cache data
     for (int lev = 0; lev <= this->finestLevel(); ++lev)
     {
         for (ParIterType par_iter(*this, lev); par_iter.isValid(); ++par_iter)
         {
-            const auto &ptile = this->ParticlesAt(lev, par_iter);
-            const auto aos    = ptile.GetArrayOfStructs();
-            const int np      = par_iter.numParticles();
-
-            if (np == 0)
-            {
-                continue;
-            }
+            const auto &particle_tile = this->ParticlesAt(lev, par_iter);
+            const auto particle_aos   = particle_tile.GetArrayOfStructs();
+            const int num_particles   = par_iter.numParticles();
 
             // Copy AoS to host; this is needed as we will need some information
             // (e.g. cpu()) that is stored in the AoS!
-            amrex::Gpu::HostVector<ParticleType> host_aos(np);
-            amrex::Gpu::copyAsync(amrex::Gpu::deviceToHost, aos.data(),
-                                  aos.data() + np, host_aos.begin());
+            amrex::Gpu::HostVector<ParticleType> particle_aos_h(num_particles);
+            amrex::Gpu::copyAsync(amrex::Gpu::deviceToHost, particle_aos.data(),
+                                  particle_aos.data() + num_particles,
+                                  particle_aos_h.begin());
 
             // Copy SoA real components to host
             std::array<amrex::Gpu::HostVector<amrex::ParticleReal>,
@@ -472,21 +480,29 @@ void ParticleInterpolator<num_components>::send_buffers()
 
             for (int k = 0; k < num_components; ++k)
             {
-                host_soa_real[k].resize(np);
+                host_soa_real[k].resize(num_particles);
                 auto soa_real_dptr =
-                    ptile.GetStructOfArrays().GetRealData(k).data();
+                    particle_tile.GetStructOfArrays().GetRealData(k).data();
                 amrex::Gpu::copyAsync(amrex::Gpu::deviceToHost, soa_real_dptr,
-                                      soa_real_dptr + np,
+                                      soa_real_dptr + num_particles,
                                       host_soa_real[k].begin());
             }
 
             amrex::Gpu::streamSynchronize();
 
-            const int myproc = amrex::ParallelDescriptor::MyProc();
-
-            for (int i = 0; i < np; ++i)
+            // each component vector has num_particles
+            for (int k = 0; k < num_components; ++k)
             {
-                const auto &p        = host_aos[i];
+                comp_values[k].resize(num_particles);
+            }
+
+            // Resize query_ranks and query_indices
+            query_ranks.resize(num_particles);
+            query_indices.resize(num_particles);
+
+            for (int i = 0; i < num_particles; ++i)
+            {
+                const auto &p        = particle_aos_h[i];
                 const int owner_rank = static_cast<int>(
                     p.cpu()); // this is the rank that owns the query, so it
                               // should receive its value
@@ -496,15 +512,15 @@ void ParticleInterpolator<num_components>::send_buffers()
                 // how many answers each owner rank will receive
                 m_mpi.incrementQueryCount(owner_rank);
                 ++local_particle_counter; // count the particle in
-                // cache owner rank and local query index
-                layout.rank.push_back(owner_rank);
-                layout.q_local.push_back(p.id()); // index in owner's query
+                // write in
+                query_ranks[i]   = owner_rank;
+                query_indices[i] = p.id();
 
                 // cache component values
                 for (int k = 0; k < num_components; ++k)
                 {
-                    comp_values[k].push_back(
-                        static_cast<double>(host_soa_real[k][i]));
+                    comp_values[k][i] =
+                        static_cast<double>(host_soa_real[k][i]);
                 }
             }
         }
@@ -539,22 +555,20 @@ void ParticleInterpolator<num_components>::send_buffers()
                                   0); // to keep track of how many answers I
                                       // have packed for destination rank r
 
-    const int owner_size = static_cast<int>(layout.rank.size());
-
     // Pack the cached data into the flat answer arrays according to MPI layout
-    for (int owner = 0; owner < owner_size; ++owner)
+    for (int iquery = 0; iquery < total_send; ++iquery)
     {
-        const int owner_rank = layout.rank[owner];
+        const int owner_rank = query_ranks[iquery];
 
         // idx = start of send buffer + how many items I have packaged already
         const int idx =
             m_mpi.queryDispl(owner_rank) + rank_counter[owner_rank]++;
 
-        m_answer_idx[idx] = layout.q_local[owner];
+        m_answer_idx[idx] = query_indices[iquery];
 
         for (int k = 0; k < num_components; ++k)
         {
-            m_answer_data[k][idx] = comp_values[k][owner];
+            m_answer_data[k][idx] = comp_values[k][iquery];
         }
     }
 }
@@ -605,40 +619,41 @@ void ParticleInterpolator<num_components>::exchange_answers()
 
 // Build values at particle positions and apply parities
 template <int num_components>
-void ParticleInterpolator<num_components>::build_values_and_apply_parity()
+void ParticleInterpolator<num_components>::apply_parity_and_store_values()
 {
     AMREX_ALWAYS_ASSERT(m_query);
 
     auto &query    = *m_query;
-    int start_comp = start_comp_getter();
+    int start_comp = get_start_comp();
 
     const int num_points = static_cast<int>(query.numPoints());
     const int total_recv = m_mpi.totalAnswerCount();
 
     // Build a mapping between query index ip and position i in
     // m_query_data[?][i]
-    m_mpi_mapping.assign(num_points, -1);
+    std::vector<int> mpi_mapping; // size of num_points, maps ip to recv index
+    mpi_mapping.assign(num_points, -1);
 
     for (int i = 0; i < total_recv; ++i)
     {
         const int index = m_query_idx[i]; // local query index on this rank
-        if (index < 0 || index >= num_points)
-        {
-            amrex::Abort(
-                "build_values_and_apply_parity(): received index out of range");
-        }
 
-        m_mpi_mapping[index] = i;
+        AMREX_ALWAYS_ASSERT(index >= 0);
+        AMREX_ALWAYS_ASSERT(index <= num_points);
+
+        mpi_mapping[index] = i;
     }
 
 #if AMREX_DEBUG
     for (int ip = 0; ip < num_points; ++ip)
     {
-        if (m_mpi_mapping[ip] < 0)
+        if (mpi_mapping[ip] < 0)
         {
-            amrex::AllPrint() << "Rank " << amrex::ParallelDescriptor::MyProc()
+            amrex::AllPrint() << "ParticleInterpolator: Rank "
+                              << amrex::ParallelDescriptor::MyProc()
                               << " missing answer for ip=" << ip << "\n";
-            amrex::Abort("Missing answers: mapping incomplete");
+            amrex::Abort(
+                "ParticleInterpolator: Missing answers. Mapping incomplete.");
         }
     }
 #endif
@@ -664,7 +679,7 @@ void ParticleInterpolator<num_components>::build_values_and_apply_parity()
 
             for (int ip = 0; ip < num_points; ++ip)
             {
-                const int recv_idx = m_mpi_mapping[ip];
+                const int recv_idx = mpi_mapping[ip];
 
                 int parity =
                     get_var_parity(comp, ip, query, dkey, variable_type);
@@ -678,7 +693,7 @@ void ParticleInterpolator<num_components>::build_values_and_apply_parity()
 // A function to check whether the query point is inside the physical domain
 template <int num_components>
 void ParticleInterpolator<num_components>::check_domain(
-    std::array<double, AMREX_SPACEDIM> &x, int guard_cells) const
+    amrex::GpuArray<double, AMREX_SPACEDIM> &x, int guard_cells) const
 {
     AMREX_ASSERT(guard_cells >= 0);
 
@@ -728,7 +743,7 @@ void ParticleInterpolator<num_components>::check_domain(
 
 // A getter function to get the starting component from the query
 template <int num_components>
-int ParticleInterpolator<num_components>::start_comp_getter()
+int ParticleInterpolator<num_components>::get_start_comp()
 {
     AMREX_ASSERT(m_query);
     auto it         = m_query->compsBegin();
@@ -762,30 +777,6 @@ template <int num_components>
 void ParticleInterpolator<num_components>::force_redistribute(bool flag)
 {
     m_need_redistribute = flag;
-}
-
-// TODO: I have not tested the below yet!!
-
-// Should I have a function to clear particles at a specific level?
-template <int num_components>
-void ParticleInterpolator<num_components>::clear_level(int lev)
-{
-    for (ParIterType it(*this, lev); it.isValid(); ++it)
-    {
-        auto &ptile = this->ParticlesAt(lev, it);
-        ptile.resize(0); // by resizing to 0 we clear the particles
-    }
-    this->Redistribute();
-}
-
-// Clear particles on all levels
-template <int num_components>
-void ParticleInterpolator<num_components>::clear_all()
-{
-    for (int lev = 0; lev <= this->finestLevel(); ++lev)
-    {
-        clear_level(lev);
-    }
 }
 
 #endif /* PARTICLEINTERPOLATOR_IMPL_HPP_ */

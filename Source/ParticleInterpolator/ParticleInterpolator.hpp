@@ -23,11 +23,12 @@ class ParticleInterpolator
                                          // interpolated values (assumes
                                          // contiguous storage)
           /*NArrayInt*/ 0>
-// TODO: to decide whether we want to store particle index in SoA integer slot
-// (see my comments on review page)
 {
+
+    static_assert(num_components >= 1);
+
   private:
-    GRAMR *m_gr_amr{nullptr};
+    GRAMR *m_gramr_ptr{nullptr};
     bool m_initialized{
         false}; // a guard to make sure we do not uninitialised GRAMR
 
@@ -41,7 +42,7 @@ class ParticleInterpolator
 
     bool m_verbosity{false};
 
-    bool m_particles_seeded{false};
+    bool m_particles_populated{false};
     bool m_need_redistribute{true};
 
     std::array<BCParity, num_components> m_derived_bc_parity{
@@ -54,13 +55,12 @@ class ParticleInterpolator
     BoundaryConditions::params_t m_bc_params{};
 
     // store the query here
-    std::unique_ptr<InterpolationQueryParticle> m_query;
+    InterpolationQueryParticle *m_query;
     // for getting the starting component of query
-    int start_comp_getter();
+    int get_start_comp();
 
     // mpi stuff
     MPIContext m_mpi;
-    std::vector<int> m_mpi_mapping; // size of num_points, maps ip to recv index
 
     std::vector<int> m_answer_idx; // indices of the answers
     std::vector<std::vector<double>>
@@ -83,7 +83,7 @@ class ParticleInterpolator
                      bool lo_reflect, bool hi_reflect);
 
     // A function to check whether the query point is inside the physical domain
-    void check_domain(std::array<double, AMREX_SPACEDIM> &x,
+    void check_domain(amrex::GpuArray<double, AMREX_SPACEDIM> &x,
                       int guard_cells = 0) const;
 
     // helper function to set parities of derived vars per component
@@ -102,7 +102,7 @@ class ParticleInterpolator
 
     // A helper function to prepare send buffers, packs m_answer_idx and
     // m_answer_data
-    void send_buffers();
+    void prepare_send_buffers();
 
     // A helper function to initialise receive buffers, i.e. m_query_idx and
     // m_query_data
@@ -111,8 +111,8 @@ class ParticleInterpolator
     // Use m_mpi to exchange m_answer_* and m_query_* objects
     void exchange_answers();
 
-    // Build query values on owner ranks and apply parity into out arrays
-    void build_values_and_apply_parity();
+    // Apply parities and store interpolated values in out arrays
+    void apply_parity_and_store_values();
 
   public:
 
@@ -131,7 +131,7 @@ class ParticleInterpolator
     };
 
     // initialise everything and perform some sanity checks
-    void setup(GRAMR *gr_amr_ptr,
+    void setup(GRAMR *gramr_ptr,
                const BoundaryConditions::params_t &a_bc_params,
                bool a_verbosity              = false,
                const DerivedParity *parities = nullptr);
@@ -140,8 +140,8 @@ class ParticleInterpolator
     void populate_from_query();
 
     // A helper function that does interpolation from grid onto particles
-    void interpolation_to_particle_helper(int lev, amrex::MultiFab &mf,
-                                          const amrex::Geometry &geom);
+    void interpolate_to_particle_helper(int lev, amrex::MultiFab &mf,
+                                        const amrex::Geometry &geom);
 
     // final interpolation routine exposed to the users
     void interp(InterpolationQueryParticle &query, VariableType variable_type,
@@ -151,14 +151,6 @@ class ParticleInterpolator
     void ensure_redistributed();
 
     void force_redistribute(bool flag);
-
-    // TODO: I have not tested the below yet!!
-
-    // Should I have a function to clear particles at a specific level?
-    void clear_level(int lev);
-
-    // Clear particles on all levels
-    void clear_all();
 };
 
 #include "ParticleInterpolator.impl.hpp"

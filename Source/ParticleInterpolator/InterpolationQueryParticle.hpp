@@ -34,12 +34,12 @@ class InterpolationQueryParticle
     template <int num_components> friend class ParticleInterpolator;
 
     size_t m_num_points;
-    std::vector<const double *> m_coords;
+    std::array<const double *, AMREX_SPACEDIM> m_coords;
     comp_map_t m_comps;
 
   public:
     InterpolationQueryParticle(int num_points)
-        : m_num_points(num_points), m_coords(AMREX_SPACEDIM, nullptr)
+        : m_num_points(num_points), m_coords{}
     {
     }
 

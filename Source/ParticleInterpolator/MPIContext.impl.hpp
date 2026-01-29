@@ -77,7 +77,7 @@ inline void MPIContext::asyncExchangeQuery(void *sendbuf, void *recvbuf,
     MPI_Request req = 0;
     m_mpi_requests.push_back(req);
 
-#if MPI_VERSION >= 3 && !defined(OPEN_MPI)
+#if MPI_VERSION >= 3
     MPI_Ialltoallv(sendbuf, m_query.countsPtr(), m_query.displsPtr(), type,
                    recvbuf, m_answer.countsPtr(), m_answer.displsPtr(), type,
                    amrex::ParallelDescriptor::Communicator(),
@@ -96,7 +96,7 @@ inline void MPIContext::asyncExchangeAnswer(void *sendbuf, void *recvbuf,
     MPI_Request req = 0;
     m_mpi_requests.push_back(req);
 
-#if MPI_VERSION >= 3 && !defined(OPEN_MPI)
+#if MPI_VERSION >= 3
     MPI_Ialltoallv(sendbuf, m_answer.countsPtr(), m_answer.displsPtr(), type,
                    recvbuf, m_query.countsPtr(), m_query.displsPtr(), type,
                    amrex::ParallelDescriptor::Communicator(),
@@ -113,7 +113,7 @@ inline void MPIContext::asyncEnd()
     AMREX_ASSERT(m_async_active);
     m_async_active = false;
 
-#if MPI_VERSION >= 3 && !defined(OPEN_MPI)
+#if MPI_VERSION >= 3
     MPI_Waitall(
         static_cast<int>(m_mpi_requests.size()), m_mpi_requests.data(),
         MPI_STATUSES_IGNORE); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)

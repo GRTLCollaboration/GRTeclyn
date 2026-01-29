@@ -77,6 +77,7 @@ void run_particle_interpolator_test()
 
         // Read from params
         const int num_points  = sim_params.num_points;
+        bool verbosity        = sim_params.verbosity;
         double extract_radius = sim_params.L / 4;
 
         // Number of processes and local processes
@@ -91,8 +92,11 @@ void run_particle_interpolator_test()
             base + (myproc < remainder
                         ? 1
                         : 0); // local number of particles on the rank
-        amrex::AllPrint() << "I am rank " << myproc << " and I query "
-                          << n_local << " LOCAL particles \n";
+        if (verbosity)
+        {
+            amrex::AllPrint() << "I am rank " << myproc << " and I query "
+                              << n_local << " LOCAL particles \n";
+        }
         const int start =
             myproc * base + std::min(myproc, remainder); // global start index
         const int end = start + n_local;
@@ -134,19 +138,20 @@ void run_particle_interpolator_test()
             .addComp(0, B_local.data(), Derivative::LOCAL, VariableType::state);
 
         // set up interpolation using Particles for derived vars
-        ParticleInterpolator<1> interpolator;
+        ParticleInterpolator<1> interpolator_derived;
         ParticleInterpolator<1>::DerivedParity parities[] = {
             {0, BCParity::even}
         };
 
-        interpolator.setup(&gr_amr, sim_params.boundary_params, true, parities);
-        int ngrow = 2;
-        interpolator.interp(query, VariableType::derived,
-                            PolynomialDerivedQuantity::name, 0.0);
+        interpolator_derived.setup(&gr_amr, sim_params.boundary_params,
+                                   verbosity, parities);
+        interpolator_derived.interp(query, VariableType::derived,
+                                    PolynomialDerivedQuantity::name, 0.0);
 
         // set up interpolation using Particles for state vars
         ParticleInterpolator<1> interpolator_state;
-        interpolator_state.setup(&gr_amr, sim_params.boundary_params, true);
+        interpolator_state.setup(&gr_amr, sim_params.boundary_params,
+                                 verbosity);
         interpolator_state.interp(query_state, VariableType::state);
 
         for (int ipoint = 0; ipoint < n_local; ++ipoint)

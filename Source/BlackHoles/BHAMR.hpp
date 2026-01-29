@@ -7,7 +7,6 @@
 #define BHAMR_HPP_
 
 #include "GRAMR.hpp"
-#include "InterpolationQueryParticle.hpp"
 #include "ParticleInterpolator.hpp"
 #include "PunctureTracker.hpp"
 
@@ -23,8 +22,6 @@ template <int num_punctures> class BHAMR : public GRAMR
 {
   private:
     PunctureTracker<num_punctures> m_puncture_tracker;
-    // particles that will be fixed we want to do this only once
-    // here!
 
   public:
 
