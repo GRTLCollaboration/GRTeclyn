@@ -193,24 +193,21 @@ void ParticleInterpolator<num_components>::populate_from_query()
     const auto hi_reflect = m_hi_boundary_reflective;
 
     // coords on device
-    // amrex::GpuArray<amrex::Gpu::DeviceVector<double>, AMREX_SPACEDIM>
-    // coords_d; amrex::GpuArray<const double*, AMREX_SPACEDIM> coords_d_ptr =
-    // query_coords;
+    amrex::GpuArray<amrex::Gpu::DeviceVector<double>, AMREX_SPACEDIM> coords_d;
+    amrex::GpuArray<const double *, AMREX_SPACEDIM> coords_d_ptr = query_coords;
 
-    // for (int d = 0; d < AMREX_SPACEDIM; ++d)
-    // {
-    //     coords_d[d].resize(query.m_num_points);
+    // copy coords to device vectors
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        coords_d[d].resize(query.m_num_points);
 
-    //    // copy x,y,z to device vectors now
-    //     amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice,
-    //                           query_coords[d],
-    //                           query_coords[d] + query.m_num_points,
-    //                           coords_d[d].begin());
+        amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, query_coords[d],
+                              query_coords[d] + query.m_num_points,
+                              coords_d[d].begin());
 
-    //     // Get device pointers to capture by value
-    //     coords_d_ptr[d] = coords_d[d].data();
-    // }
-    // amrex::Gpu::streamSynchronize(); // ensure copies complete
+        coords_d_ptr[d] = coords_d[d].data(); // get associated device pointer
+    }
+    amrex::Gpu::streamSynchronize(); // ensure copies complete
 
     // loop over particles and place them at the required points
     amrex::ParallelFor(
@@ -225,26 +222,9 @@ void ParticleInterpolator<num_components>::populate_from_query()
             for (int d = 0; d < AMREX_SPACEDIM; ++d)
             {
                 p.pos(d) = reflect_particle(
-                    static_cast<amrex::Real>(query_coords[d][ip]), prob_lo[d],
+                    static_cast<amrex::Real>(coords_d_ptr[d][ip]), prob_lo[d],
                     prob_hi[d], lo_reflect[d], hi_reflect[d]);
             }
-            //             p.pos(0) =
-            //             reflect_particle(static_cast<amrex::Real>(x_d_ptr[ip]),
-            //                                         prob_lo[0], prob_hi[0],
-            //                                         lo_reflect[0],
-            //                                         hi_reflect[0]);
-            //             p.pos(1) =
-            //             reflect_particle(static_cast<amrex::Real>(y_d_ptr[ip]),
-            //                                         prob_lo[1], prob_hi[1],
-            //                                         lo_reflect[1],
-            //                                         hi_reflect[1]);
-            // #if AMREX_SPACEDIM == 3
-            //             p.pos(2) =
-            //             reflect_particle(static_cast<amrex::Real>(z_d_ptr[ip]),
-            //                                         prob_lo[2], prob_hi[2],
-            //                                         lo_reflect[2],
-            //                                         hi_reflect[2]);
-            // #endif
 
             for (int s = 0; s < num_components; ++s)
             {
