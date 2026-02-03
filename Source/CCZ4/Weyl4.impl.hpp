@@ -80,7 +80,7 @@ Weyl4::compute_epsilon3_LUU(const CCZ4Vars &vars,
         {
             epsilon3_LLL[i][j][k] += n_U[l] * epsilon4[i][j][k][l] *
                                      vars.lapse() /
-                                     (vars.chi() * sqrt(vars.chi()));
+                                     (vars.chi() * std::sqrt(vars.chi()));
         }
     }
     // rasing indices
@@ -258,7 +258,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tetrad_t Weyl4::compute_null_tetrad(
 
     FOR (i, j, k, m)
     {
-        out.w[i] += 1. / sqrt(vars.chi()) * h_UU[i][j] * epsilon[j][k][m] *
+        out.w[i] += 1. / std::sqrt(vars.chi()) * h_UU[i][j] * epsilon[j][k][m] *
                     out.v[k] * out.u[m];
     }
 
@@ -271,7 +271,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tetrad_t Weyl4::compute_null_tetrad(
     }
     FOR (i)
     {
-        out.v[i] = out.v[i] / sqrt(omega_11);
+        out.v[i] = out.v[i] / std::sqrt(omega_11);
     }
 
     amrex::Real omega_12 = 0.0;
@@ -291,7 +291,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tetrad_t Weyl4::compute_null_tetrad(
     }
     FOR (i)
     {
-        out.u[i] = out.u[i] / sqrt(omega_22);
+        out.u[i] = out.u[i] / std::sqrt(omega_22);
     }
 
     amrex::Real omega_13 = 0.0;
@@ -313,7 +313,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tetrad_t Weyl4::compute_null_tetrad(
     }
     FOR (i)
     {
-        out.w[i] = out.w[i] / sqrt(omega_33);
+        out.w[i] = out.w[i] / std::sqrt(omega_33);
     }
 
     return out;

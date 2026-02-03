@@ -106,12 +106,14 @@ void run_ccz4_geometry_unit_tests()
         const auto &geometry_array                 = geometry_fab.array();
 
         amrex::ParallelFor(box,
-                           [=] AMREX_GPU_DEVICE(int i, int j, int k)
+                           [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
                            {
-                               const amrex::IntVect iv{i, j, k};
+                               const amrex::IntVect iv{ix, iy, iz};
                                compute_ccz4_test_geometry(in_array, iv,
                                                           geometry_array);
                            });
+
+        amrex::Gpu::streamSynchronize();
 
         double test_threshold = 1e-14;
 

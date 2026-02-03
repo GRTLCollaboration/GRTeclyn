@@ -20,18 +20,18 @@ class CCZ4AdvecVars
                   const amrex::Array4<const amrex::Real> &state,
                   const FourthOrderDerivatives &a_deriv)
     {
-        Tensor<1, amrex::Real> shift_vector;
         FOR (idir)
         {
-            shift_vector[idir] = state(ix, iy, iz, c_shift1 + idir);
+            m_shift_vector[idir] = state(ix, iy, iz, c_shift1 + idir);
         }
 
         // Calculate the advec quantities for all vars
-        m_advec_state = a_deriv.advec_state(ix, iy, iz, state, shift_vector);
+        m_advec_state = a_deriv.advec_state(ix, iy, iz, state, m_shift_vector);
     }
     // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
     amrex::GpuArray<amrex::Real, NUM_VARS> m_advec_state;
+    Tensor<1, amrex::Real> m_shift_vector;
 
     [[nodiscard]]
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &chi() const

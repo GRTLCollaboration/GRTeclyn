@@ -8,8 +8,8 @@
 
 verbosity = 1
 
-amrex.the_arena_init_size = 190000000000
-amrex.use_gpu_aware_mpi = 1
+# Uncomment if using GPUs
+# amrex.use_gpu_aware_mpi = 1
 
 puncture_tracking.enabled = 1
 puncture_tracking.level = 5
@@ -86,7 +86,7 @@ nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 # dt will be dx*dt_multiplier on each grid level
 dt_multiplier = 0.25
 # stop_time = 2.0
-max_steps = 10
+max_steps = 1
 
 # Spatial derivative order (only affects CCZ4 RHS)
 max_spatial_derivative_order = 4 # only 4 currently implemented

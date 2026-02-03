@@ -21,14 +21,8 @@ class ScalarFieldAdvecVars : public CCZ4AdvecVars
                          const FourthOrderDerivatives &a_deriv)
         : CCZ4AdvecVars(ix, iy, iz, state, a_deriv)
     {
-        Tensor<1, amrex::Real> shift_vector;
-        FOR (idir)
-        {
-            shift_vector[idir] = state(ix, iy, iz, c_shift1 + idir);
-        }
-
         // Calculate the advec quantities for all vars
-        m_advec_state = a_deriv.advec_state(ix, iy, iz, state, shift_vector);
+        m_advec_state = a_deriv.advec_state(ix, iy, iz, state, m_shift_vector);
     }
     // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 

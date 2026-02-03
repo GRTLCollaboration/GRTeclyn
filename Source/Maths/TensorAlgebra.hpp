@@ -355,29 +355,6 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE chris_t compute_christoffel(
 
     return out;
 }
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<3, amrex::Real>
-compute_phys_chris(const Tensor<1, amrex::Real> &d1_chi,
-                   const amrex::Real &vars_chi,
-                   const Tensor<2, amrex::Real> &vars_h,
-                   const Tensor<2, amrex::Real> &h_UU,
-                   const Tensor<3, amrex::Real> &chris_ULL)
-{
-    Tensor<3, amrex::Real> chris_phys;
-    FOR (i, j, k)
-    {
-        chris_phys[i][j][k] =
-            chris_ULL[i][j][k] -
-            0.5 / vars_chi *
-                (delta(i, k) * d1_chi[j] + delta(i, j) * d1_chi[k]);
-        FOR (m)
-        {
-            chris_phys[i][j][k] +=
-                0.5 / vars_chi * vars_h[j][k] * h_UU[i][m] * d1_chi[m];
-        }
-    }
-    return chris_phys;
-}
 } // namespace TensorAlgebra
 
 #endif /* TENSORALGEBRA_HPP_ */
