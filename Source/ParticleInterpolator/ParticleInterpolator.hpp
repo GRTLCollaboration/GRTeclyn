@@ -89,13 +89,6 @@ class ParticleInterpolator
     // helper function to set parities of derived vars per component
     void set_derived_var_parity(int comp, BCParity p);
 
-    // Interpolate to particle function
-    void interpolate_to_particle();
-
-    // Interpolate to particle for derived variables
-    void interpolate_to_particle_from_derived_fields(
-        const std::vector<amrex::MultiFab *> &a_derived_mf_vect);
-
     // A helper function that aggregates all the points together from senders
     // and receivers, collects the them into out arrays and applies parity
     void aggregate_points();
@@ -140,8 +133,8 @@ class ParticleInterpolator
     void populate_from_query();
 
     // A helper function that does interpolation from grid onto particles
-    void interpolate_to_particle_helper(int lev, amrex::MultiFab &mf,
-                                        const amrex::Geometry &geom);
+    void interpolate_to_particle(int lev, amrex::MultiFab &mf,
+                                 const amrex::Geometry &geom);
 
     // final interpolation routine exposed to the users
     void interp(InterpolationQueryParticle &query, VariableType variable_type,

@@ -241,7 +241,7 @@ void ParticleInterpolator<num_components>::populate_from_query()
 
 // a helper function that helps with interpolation from grid onto particles
 template <int num_components>
-void ParticleInterpolator<num_components>::interpolate_to_particle_helper(
+void ParticleInterpolator<num_components>::interpolate_to_particle(
     int lev, amrex::MultiFab &mf, const amrex::Geometry &geom)
 {
     int start_comp             = get_start_comp();
@@ -298,60 +298,6 @@ void ParticleInterpolator<num_components>::interpolate_to_particle_helper(
     amrex::Gpu::streamSynchronize();
 }
 
-// interpolate variables into SOA slots
-template <int num_components>
-void ParticleInterpolator<num_components>::interpolate_to_particle()
-{
-    AMREX_ASSERT(m_initialized);
-
-    ensure_redistributed();
-
-    for (int lev = 0; lev <= m_gramr_ptr->finestLevel(); ++lev)
-    {
-        if (this->NumberOfParticlesAtLevel(lev) == 0)
-            continue;
-
-        amrex::AmrLevel &level      = m_gramr_ptr->getLevel(lev);
-        const amrex::Geometry &geom = level.Geom();
-        amrex::MultiFab &state      = level.get_new_data(0);
-
-        interpolate_to_particle_helper(lev, state, geom);
-    }
-
-    // m_need_redistribute = false;
-}
-
-// Interpolation for derived vars, takes in MultiFab and comps (unique
-// components numbers), as e.g. we may want to interpolate several fields at
-// once. However, as per current implementation, we can have only contiguous
-// comps
-template <int num_components>
-void ParticleInterpolator<num_components>::
-    interpolate_to_particle_from_derived_fields(
-        const std::vector<amrex::MultiFab *> &a_derived_mf_vect)
-{
-    AMREX_ASSERT(m_initialized);
-
-    const int nlevs = m_gramr_ptr->finestLevel() + 1;
-    AMREX_ASSERT((int)a_derived_mf_vect.size() == nlevs);
-
-    ensure_redistributed();
-
-    for (int lev = 0; lev <= m_gramr_ptr->finestLevel(); ++lev)
-    {
-        if (this->NumberOfParticlesAtLevel(lev) == 0)
-            continue;
-
-        auto &level      = m_gramr_ptr->getLevel(lev);
-        const auto &geom = level.Geom();
-        auto &mf         = *a_derived_mf_vect[lev];
-
-        interpolate_to_particle_helper(lev, mf, geom);
-    }
-
-    // m_need_redistribute = false;
-}
-
 // A wrapper function that the user needs to call to perform interpolation
 // It uses/collates together all the methods defined in this class
 template <int num_components>
@@ -359,6 +305,7 @@ void ParticleInterpolator<num_components>::interp(
     InterpolationQueryParticle &query, VariableType variable_type,
     const std::string &name_derived, double time_derived /*=0.0*/)
 {
+
     static constexpr int interp_order = 4; // 4th order Lagrange
     static constexpr int num_ghosts =
         interp_order / 2; // number of ghosts needed
@@ -378,20 +325,50 @@ void ParticleInterpolator<num_components>::interp(
         populate_from_query();
     }
 
+    AMREX_ASSERT(m_initialized);
+    ensure_redistributed();
+
     // Interpolate to all particles
     if (variable_type == VariableType::state)
     {
-        interpolate_to_particle();
+        for (int lev = 0; lev <= m_gramr_ptr->finestLevel(); ++lev)
+        {
+            if (this->NumberOfParticlesAtLevel(lev) == 0)
+                continue;
+
+            amrex::AmrLevel &level      = m_gramr_ptr->getLevel(lev);
+            const amrex::Geometry &geom = level.Geom();
+            amrex::MultiFab &state      = level.get_new_data(0);
+
+            interpolate_to_particle(lev, state, geom);
+        }
     }
+    // Interpolation for derived vars, takes in MultiFab and comps (unique
+    // components numbers), as e.g. we may want to interpolate several fields at
+    // once. However, as per current implementation, we can have only contiguous
+    // comps
     else if (variable_type == VariableType::derived)
     {
+        const int nlevs = m_gramr_ptr->finestLevel() + 1;
+        AMREX_ASSERT((int)a_derived_mf_vect.size() == nlevs);
+
         auto out_derived =
             m_gramr_ptr->derive(name_derived, time_derived, num_ghosts);
         amrex::Vector<amrex::MultiFab *> derived_mf_vect;
         // convert vector of unique_ptrs to one of raw pointers
         derived_mf_vect = amrex::GetVecOfPtrs(out_derived);
 
-        interpolate_to_particle_from_derived_fields(derived_mf_vect);
+        for (int lev = 0; lev <= m_gramr_ptr->finestLevel(); ++lev)
+        {
+            if (this->NumberOfParticlesAtLevel(lev) == 0)
+                continue;
+
+            auto &level      = m_gramr_ptr->getLevel(lev);
+            const auto &geom = level.Geom();
+            auto &mf         = *derived_mf_vect[lev];
+
+            interpolate_to_particle(lev, mf, geom);
+        }
     }
     else
     {
@@ -503,14 +480,15 @@ void ParticleInterpolator<num_components>::prepare_send_buffers()
                         static_cast<double>(host_soa_real[k][i]);
                 }
             }
-        }
-    }
 
-    if (m_verbosity)
-    {
-        amrex::AllPrint() << "ParticleInterpolator: rank "
-                          << amrex::ParallelDescriptor::MyProc() << " holds "
-                          << local_particle_counter << " particles\n";
+            if (m_verbosity)
+            {
+                amrex::AllPrint()
+                    << "ParticleInterpolator: rank "
+                    << amrex::ParallelDescriptor::MyProc() << " holds "
+                    << num_particles << " particles\n";
+            }
+        }
     }
 
     // build a global MPI communication layout
