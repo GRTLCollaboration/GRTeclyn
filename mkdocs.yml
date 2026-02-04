@@ -1,6 +1,6 @@
 site_name: GRTeclyn
 nav:
-  - Home: home.md
+  - Home: index.md
   - Capabilities: capabilities.md
   - Prerequisites: prerequisites.md
   - Building and running on CPUs: building_cpus.md
