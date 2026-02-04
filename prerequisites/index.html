@@ -5,14 +5,14 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <link rel="shortcut icon" href="../img/favicon.ico" />
-    <title>Getting started - GRTeclyn</title>
+    <title>Prerequisites - GRTeclyn</title>
     <link rel="stylesheet" href="../css/theme.css" />
     <link rel="stylesheet" href="../css/theme_extra.css" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
     
       <script>
         // Current page data
-        var mkdocs_page_name = "Getting started";
+        var mkdocs_page_name = "Prerequisites";
         var mkdocs_page_input_path = "prerequisites.md";
         var mkdocs_page_url = null;
       </script>
@@ -40,33 +40,35 @@
 
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                <li class="toctree-l1"><a class="reference internal" href="../home/">Home</a>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../about/">About</a>
+                <li class="toctree-l1"><a class="reference internal" href="../capabilities/">Capabilities</a>
                 </li>
               </ul>
               <ul class="current">
-                <li class="toctree-l1 current"><a class="reference internal current" href="#">Getting started</a>
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">Prerequisites</a>
     <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#required-software">Required Software</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#obtaining-the-amrex-and-grteclyn-codes">Obtaining the AMReX and GRTeclyn codes</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#setup-the-pre-commit-hook">Setup the pre-commit hook</a>
+    </li>
     </ul>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../porting/">Moving from GRChombo</a>
+                <li class="toctree-l1"><a class="reference internal" href="../building_cpus/">Building and running on CPUs</a>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../code_structure/">Code structure</a>
+                <li class="toctree-l1"><a class="reference internal" href="../building_gpus/">Building and running on GPUs</a>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../CPUs/">Building and Running on CPUs</a>
-                </li>
-              </ul>
-              <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../GPUs/">Building and Running on GPUs</a>
+                <li class="toctree-l1"><a class="reference internal" href="../example_configs/">Example configs for specific HPC systems</a>
                 </li>
               </ul>
               <ul>
@@ -74,19 +76,31 @@
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../performance/">Performance optimization</a>
+                <li class="toctree-l1"><a class="reference internal" href="../moving_from_grchombo/">Moving from GRChombo</a>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../convergence/">Convergence testing</a>
+                <li class="toctree-l1"><a class="reference internal" href="../code_structure/">Code structure</a>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../setups/">Working on HPC systems</a>
+                <li class="toctree-l1"><a class="reference internal" href="../performance_optimisation/">Performance optimisation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../convergence_testing/">Convergence testing</a>
                 </li>
               </ul>
               <ul>
                 <li class="toctree-l1"><a class="reference internal" href="../useful_resources/">Useful resources</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../license_and_citation/">License and citation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../contact_us/">Contact us</a>
                 </li>
               </ul>
       </div>
@@ -103,7 +117,7 @@
         <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
     <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
-      <li class="breadcrumb-item active">Getting started</li>
+      <li class="breadcrumb-item active">Prerequisites</li>
     <li class="wy-breadcrumbs-aside">
     </li>
   </ul>
@@ -112,9 +126,10 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
             <div class="section" itemprop="articleBody">
               
-                <p>To compile and run <strong>GRTeclyn</strong>, you will need the following software and tools:</p>
+                <h1 id="prerequisites">Prerequisites</h1>
+<p>To compile and run <strong>GRTeclyn</strong>, you will need the following software and tools:</p>
 <hr />
-<h2 id="required-software">🧰 Required Software</h2>
+<h2 id="required-software">Required Software</h2>
 <ul>
 <li><strong>C++ compiler with C++17 support</strong>
   GRTeclyn uses modern C++17 features. Supported compilers include:</li>
@@ -122,7 +137,7 @@
 <li>Clang ≥ 6</li>
 <li>Intel Classic ≥ 19.1.4</li>
 </ul>
-<p>⚠️ The use of C++17 is stricter than GRChombo’s C++14 requirement. Older compilers that worked with GRChombo may not work here — but if you have a newer one available, and could build GRChombo, you can likely build GRTeclyn too.</p>
+<p>WARNING: The use of C++17 is stricter than GRChombo’s C++14 requirement. Older compilers that worked with GRChombo may not work here — but if you have a newer one available, and could build GRChombo, you can likely build GRTeclyn too.</p>
 <ul>
 <li><strong><a href="https://www.mpi-forum.org/">MPI</a></strong> (optional but recommended)
   Required for running in parallel across nodes or cores.
@@ -169,7 +184,7 @@
   These are available by default on most Linux/macOS systems.</li>
 </ul>
 <hr />
-<h2 id="obtaining-the-amrex-and-grteclyn-codes">🛠️ Obtaining the AMReX and GRTeclyn codes</h2>
+<h2 id="obtaining-the-amrex-and-grteclyn-codes">Obtaining the AMReX and GRTeclyn codes</h2>
 <p>First <code>cd</code> into a directory you are happy to clone the code into. For simplicity, we shall assume that is your home directory (so adjust any commands below accordingly if not).</p>
 <p>The AMReX source code is hosted on <a href="https://github.com/AMReX-Codes/amrex">GitHub</a>. Clone this with the command</p>
 <pre><code class="language-bash">git clone https://github.com/AMReX-Codes/amrex.git
@@ -192,8 +207,8 @@ We have assumed that you have cloned both of these repositories to the same dire
             </div>
           </div><footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
-        <a href="../about/" class="btn btn-neutral float-left" title="About"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-        <a href="../porting/" class="btn btn-neutral float-right" title="Moving from GRChombo">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../capabilities/" class="btn btn-neutral float-left" title="Capabilities"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../building_cpus/" class="btn btn-neutral float-right" title="Building and running on CPUs">Next <span class="icon icon-circle-arrow-right"></span></a>
     </div>
 
   <hr/>
@@ -216,10 +231,10 @@ We have assumed that you have cloned both of these repositories to the same dire
   <span class="rst-current-version" data-toggle="rst-current-version">
     
     
-      <span><a href="../about/" style="color: #fcfcfc">&laquo; Previous</a></span>
+      <span><a href="../capabilities/" style="color: #fcfcfc">&laquo; Previous</a></span>
     
     
-      <span><a href="../porting/" style="color: #fcfcfc">Next &raquo;</a></span>
+      <span><a href="../building_cpus/" style="color: #fcfcfc">Next &raquo;</a></span>
     
   </span>
 </div>

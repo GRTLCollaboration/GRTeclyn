@@ -40,31 +40,27 @@
 
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                <li class="toctree-l1"><a class="reference internal" href="../home/">Home</a>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../about/">About</a>
+                <li class="toctree-l1"><a class="reference internal" href="../capabilities/">Capabilities</a>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../prerequisites/">Getting started</a>
+                <li class="toctree-l1"><a class="reference internal" href="../prerequisites/">Prerequisites</a>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../porting/">Moving from GRChombo</a>
+                <li class="toctree-l1"><a class="reference internal" href="../building_cpus/">Building and running on CPUs</a>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../code_structure/">Code structure</a>
+                <li class="toctree-l1"><a class="reference internal" href="../building_gpus/">Building and running on GPUs</a>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../CPUs/">Building and Running on CPUs</a>
-                </li>
-              </ul>
-              <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../GPUs/">Building and Running on GPUs</a>
+                <li class="toctree-l1"><a class="reference internal" href="../example_configs/">Example configs for specific HPC systems</a>
                 </li>
               </ul>
               <ul>
@@ -72,15 +68,19 @@
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../performance/">Performance optimization</a>
+                <li class="toctree-l1"><a class="reference internal" href="../moving_from_grchombo/">Moving from GRChombo</a>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../convergence/">Convergence testing</a>
+                <li class="toctree-l1"><a class="reference internal" href="../code_structure/">Code structure</a>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../setups/">Working on HPC systems</a>
+                <li class="toctree-l1"><a class="reference internal" href="../performance_optimisation/">Performance optimisation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../convergence_testing/">Convergence testing</a>
                 </li>
               </ul>
               <ul class="current">
@@ -111,6 +111,14 @@
     </ul>
                 </li>
               </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../license_and_citation/">License and citation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../contact_us/">Contact us</a>
+                </li>
+              </ul>
       </div>
     </div>
     </nav>
@@ -135,11 +143,13 @@
             <div class="section" itemprop="articleBody">
               
                 <h1 id="useful-resources">Useful resources</h1>
+<hr />
 <h2 id="amrex">AMReX</h2>
 <p>GRTeclyn is built on top of the AMReX library and we try to follow the thinking behind AMReX pretty closely e.g. the GPU strategy.
 The <a href="https://amrex-codes.github.io/amrex/docs_html/">AMReX documentation</a> is a great resource that introduces a lot of basic concepts that you will encounter in GRTeclyn e.g. <code>MultiFab</code>, <code>Array4</code> and <code>ParallelFor</code> as well as build options for various GPU architectures. There are also suggestions for analysing and visualising PlotFiles and profiling and debugging. If a problem you encounter is not covered in this (admittedly short) wiki, then the AMReX documentation should be your next stop.</p>
 <p>There is also a set of short demos and exercises compiled by the AMReX team available <a href="https://github.com/AMReX-Codes/amrex-tutorials">here</a>.</p>
 <p>Failing that, the tests directory of AMReX, <code>${AMREX_HOME}/Tests</code>, also functions as code examples for how to use certain AMReX features.</p>
+<hr />
 <h2 id="numerical-relativity-nr">Numerical Relativity (NR)</h2>
 <p>There are many useful introductions to NR, but we recommend in particular the following open source resources:</p>
 <ul>
@@ -147,6 +157,7 @@ The <a href="https://amrex-codes.github.io/amrex/docs_html/">AMReX documentation
 <li><a href="https://arxiv.org/abs/gr-qc/0703035">Eric Gourgoulhon's notes on NR</a> give a detailed introduction to the ADM decomposition, with a focus on the geometric interpretation.</li>
 </ul>
 <p>The textbooks of Alcubierre, Baumgarte &amp; Shapiro, and Shibata are also bookcase essentials for anyone working in NR.</p>
+<hr />
 <h2 id="past-grteclyn-presentations">Past GRTeclyn presentations</h2>
 <p>Some useful information related to status updates and new features can be gleaned from these past GRTeclyn/GRTL talks:</p>
 <h3 id="2025">2025</h3>
@@ -156,6 +167,7 @@ The <a href="https://amrex-codes.github.io/amrex/docs_html/">AMReX documentation
 <li>GRChombo and GRTeclyn - Miren Radia, New Frontiers in NR <a href="https://mirenradia.github.io/20250723_New_Frontiers_GRChombo_GRTeclyn_panel_intro/">Slides</a></li>
 <li>GRTeclyn: GRChombo for the GPU gegneration - Katy Clough, European ET Meeting <a href="https://youtu.be/xjbnmpdyNqU">Video</a> <a href="https://drive.google.com/file/d/151_bHpZmY5dggV908egPXWtQrZ4YNfnU/view">Slides</a></li>
 </ul>
+<hr />
 <h2 id="useful-c-resources">Useful C++ resources</h2>
 <ul>
 <li><a href="https://google.github.io/styleguide/cppguide.html">Style guide for C++</a></li>
@@ -170,26 +182,31 @@ The <a href="https://amrex-codes.github.io/amrex/docs_html/">AMReX documentation
 <li><a href="https://learn.tacc.utexas.edu/">https://learn.tacc.utexas.edu/</a></li>
 <li><a href="https://portal.xsede.org/training/overview">https://portal.xsede.org/training/overview</a></li>
 </ul>
+<hr />
 <h2 id="hpc-cluster-usage">HPC cluster usage</h2>
 <p>Most machines have their own webpages which give a guide to usage, and tell you things particular to each machine, like compilers available, the job submission system, where to store your data etc.</p>
-<p>There is a separate page <a href="../setups/">here</a> that offers some guidance to common HPC systems used by this group.</p>
+<p>There is a separate page <a href="setups.md">here</a> that offers some guidance to common HPC systems used by this group.</p>
 <p>The Rosetta stone of job submission commands is <a href="https://slurm.schedmd.com/rosetta.pdf">here</a>.</p>
 <p>Some useful commands:</p>
 <pre><code>- 'passwd' can be used to change your login password.
 - 'grep' to search for text in your files
 </code></pre>
+<hr />
 <h2 id="git-guide">Git guide</h2>
 <p>A comprehensive guide to Git:</p>
 <p><a href="https://www.tutorialspoint.com/git/git_quick_guide.htm">https://www.tutorialspoint.com/git/git_quick_guide.htm</a></p>
 <p>In particular, <a href="https://www.theserverside.com/blog/Coffee-Talk-Java-News-Stories-and-Opinions/How-to-Git-rebase-a-branch-to-master-example">this</a> is a useful guide to "rebase a branch to master".</p>
+<hr />
 <h2 id="visit">VisIt</h2>
 <p>The VisIt wiki is here:</p>
 <p><a href="http://www.visitusers.org/index.php?title=Main_Page">http://www.visitusers.org/index.php?title=Main_Page</a></p>
 <p>and the user manual is here:</p>
 <p><a href="http://visit-sphinx-user-manual.readthedocs.io/en/latest/">http://visit-sphinx-user-manual.readthedocs.io/en/latest/</a></p>
+<hr />
 <h2 id="yt">yt</h2>
 <p>The yt package is also useful for analysing data, and has an excellent cookbook containing examples:</p>
 <p><a href="http://yt-project.org/doc/index.html">http://yt-project.org/doc/index.html</a></p>
+<hr />
 <h2 id="miscellaneous">Miscellaneous</h2>
 <p>A very useful GUI tool to compare two directories is Meld:</p>
 <p><a href="https://meldmerge.org/">https://meldmerge.org/</a></p>
@@ -197,7 +214,8 @@ The <a href="https://amrex-codes.github.io/amrex/docs_html/">AMReX documentation
             </div>
           </div><footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
-        <a href="../setups/" class="btn btn-neutral float-left" title="Working on HPC systems"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../convergence_testing/" class="btn btn-neutral float-left" title="Convergence testing"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../license_and_citation/" class="btn btn-neutral float-right" title="License and citation">Next <span class="icon icon-circle-arrow-right"></span></a>
     </div>
 
   <hr/>
@@ -220,8 +238,10 @@ The <a href="https://amrex-codes.github.io/amrex/docs_html/">AMReX documentation
   <span class="rst-current-version" data-toggle="rst-current-version">
     
     
-      <span><a href="../setups/" style="color: #fcfcfc">&laquo; Previous</a></span>
+      <span><a href="../convergence_testing/" style="color: #fcfcfc">&laquo; Previous</a></span>
     
+    
+      <span><a href="../license_and_citation/" style="color: #fcfcfc">Next &raquo;</a></span>
     
   </span>
 </div>

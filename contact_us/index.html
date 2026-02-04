@@ -5,15 +5,15 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <link rel="shortcut icon" href="../img/favicon.ico" />
-    <title>Moving from GRChombo - GRTeclyn</title>
+    <title>Contact us - GRTeclyn</title>
     <link rel="stylesheet" href="../css/theme.css" />
     <link rel="stylesheet" href="../css/theme_extra.css" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
     
       <script>
         // Current page data
-        var mkdocs_page_name = "Moving from GRChombo";
-        var mkdocs_page_input_path = "porting.md";
+        var mkdocs_page_name = "Contact us";
+        var mkdocs_page_input_path = "contact_us.md";
         var mkdocs_page_url = null;
       </script>
     
@@ -40,33 +40,27 @@
 
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                <li class="toctree-l1"><a class="reference internal" href="../home/">Home</a>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../about/">About</a>
+                <li class="toctree-l1"><a class="reference internal" href="../capabilities/">Capabilities</a>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../prerequisites/">Getting started</a>
-                </li>
-              </ul>
-              <ul class="current">
-                <li class="toctree-l1 current"><a class="reference internal current" href="#">Moving from GRChombo</a>
-    <ul class="current">
-    </ul>
+                <li class="toctree-l1"><a class="reference internal" href="../prerequisites/">Prerequisites</a>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../code_structure/">Code structure</a>
+                <li class="toctree-l1"><a class="reference internal" href="../building_cpus/">Building and running on CPUs</a>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../CPUs/">Building and Running on CPUs</a>
+                <li class="toctree-l1"><a class="reference internal" href="../building_gpus/">Building and running on GPUs</a>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../GPUs/">Building and Running on GPUs</a>
+                <li class="toctree-l1"><a class="reference internal" href="../example_configs/">Example configs for specific HPC systems</a>
                 </li>
               </ul>
               <ul>
@@ -74,19 +68,33 @@
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../performance/">Performance optimization</a>
+                <li class="toctree-l1"><a class="reference internal" href="../moving_from_grchombo/">Moving from GRChombo</a>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../convergence/">Convergence testing</a>
+                <li class="toctree-l1"><a class="reference internal" href="../code_structure/">Code structure</a>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../setups/">Working on HPC systems</a>
+                <li class="toctree-l1"><a class="reference internal" href="../performance_optimisation/">Performance optimisation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../convergence_testing/">Convergence testing</a>
                 </li>
               </ul>
               <ul>
                 <li class="toctree-l1"><a class="reference internal" href="../useful_resources/">Useful resources</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../license_and_citation/">License and citation</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">Contact us</a>
+    <ul class="current">
+    </ul>
                 </li>
               </ul>
       </div>
@@ -103,7 +111,7 @@
         <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
     <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
-      <li class="breadcrumb-item active">Moving from GRChombo</li>
+      <li class="breadcrumb-item active">Contact us</li>
     <li class="wy-breadcrumbs-aside">
     </li>
   </ul>
@@ -112,35 +120,13 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
             <div class="section" itemprop="articleBody">
               
-                <p>This page is intended to help those coming from using the numerical relativity code <a href="https://github.com/GRTLCollaboration/GRChombo">GRChombo</a> that was the predecessor code to GRTeclyn. If you are new to GRChombo and GRTeclyn, you can skip it!</p>
-<h2 id="why-port-to-grtelcyn">Why port to GRTelcyn?</h2>
-<p>GRTeclyn is a new and improved version of the GRChombo code. It supports GPUs, meaning your code can run as much as 10x faster if you have access to these resources. Even if you only have access to CPUs, GRTeclyn should be faster to run and has a few useful improvements and new features. Most importantly, at some point GRTeclyn will be the default code for our collaboration and so all new features and updates will be focused here.</p>
-<h2 id="will-it-be-painful">Will it be painful?</h2>
-<p>No - it might even be fun! Porting your code will help you to understand both codes better, and most of the changes are cosmetic rather than fundamental, since Chombo and AMReX share common ancestry in BoxLibs. You should find most of GRTelcyn looks pretty familiar. In this page we will provide some detailed tips to get you started, but the basic idea is: look at how the binary or scalar field examples have changed from GRChombo to GRTeclyn, and then copy the same approach for your own examples.</p>
-<h2 id="key-changes">Key changes</h2>
-<ol>
-<li>
-<p>No <code>data_t</code> ...</p>
-</li>
-<li>
-<p><code>Boxloops()</code> is now <code>ParallelFor</code>.</p>
-</li>
-<li>
-<p>Storing and loading of variables is replaced by direct access to the grid ... wrapper access to specific variables for readability.</p>
-</li>
-<li>
-<p>Certain functions, e.g. those responsible for the RHS calculations, must be instrumented by GPU macros, <code>AMREX_GPU_DEVICE</code> if they are to be run on the GPU. This is true regardless of the GPU architecture (the AMReX backend will expand these as appropriate for CUDA, SYCL etc.) They may also need <code>AMREX_FORCE_INLINE</code> as an additional function qualifier.</p>
-</li>
-<li>
-<p>Puncture tracking is done with spectator particles.</p>
-</li>
-</ol>
+                <h1 id="contact-us">Contact us</h1>
+<p>For contact details see <a href="https://www.grtlcollaboration.org">our website</a>.</p>
               
             </div>
           </div><footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
-        <a href="../prerequisites/" class="btn btn-neutral float-left" title="Getting started"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-        <a href="../code_structure/" class="btn btn-neutral float-right" title="Code structure">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../license_and_citation/" class="btn btn-neutral float-left" title="License and citation"><span class="icon icon-circle-arrow-left"></span> Previous</a>
     </div>
 
   <hr/>
@@ -163,10 +149,8 @@
   <span class="rst-current-version" data-toggle="rst-current-version">
     
     
-      <span><a href="../prerequisites/" style="color: #fcfcfc">&laquo; Previous</a></span>
+      <span><a href="../license_and_citation/" style="color: #fcfcfc">&laquo; Previous</a></span>
     
-    
-      <span><a href="../code_structure/" style="color: #fcfcfc">Next &raquo;</a></span>
     
   </span>
 </div>

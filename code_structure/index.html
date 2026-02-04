@@ -40,33 +40,27 @@
 
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                <li class="toctree-l1"><a class="reference internal" href="../home/">Home</a>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../about/">About</a>
+                <li class="toctree-l1"><a class="reference internal" href="../capabilities/">Capabilities</a>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../prerequisites/">Getting started</a>
+                <li class="toctree-l1"><a class="reference internal" href="../prerequisites/">Prerequisites</a>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../porting/">Moving from GRChombo</a>
-                </li>
-              </ul>
-              <ul class="current">
-                <li class="toctree-l1 current"><a class="reference internal current" href="#">Code structure</a>
-    <ul class="current">
-    </ul>
+                <li class="toctree-l1"><a class="reference internal" href="../building_cpus/">Building and running on CPUs</a>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../CPUs/">Building and Running on CPUs</a>
+                <li class="toctree-l1"><a class="reference internal" href="../building_gpus/">Building and running on GPUs</a>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../GPUs/">Building and Running on GPUs</a>
+                <li class="toctree-l1"><a class="reference internal" href="../example_configs/">Example configs for specific HPC systems</a>
                 </li>
               </ul>
               <ul>
@@ -74,19 +68,41 @@
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../performance/">Performance optimization</a>
+                <li class="toctree-l1"><a class="reference internal" href="../moving_from_grchombo/">Moving from GRChombo</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">Code structure</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#hierarchy-of-grteclyn">Hierarchy of GRTeclyn</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#where-to-find-the-files">Where to find the files</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#hooks-and-virtual-functions">Hooks and virtual functions</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#a-note-on-amr-gramrbhamr-versus-amrlevel-gramrlevelbinarybhlevel">A note on AMR (GRAMR/BHAMR) versus AMRLevel (GRAMRLevel/BinaryBHLevel)</a>
+    </li>
+    </ul>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../convergence/">Convergence testing</a>
+                <li class="toctree-l1"><a class="reference internal" href="../performance_optimisation/">Performance optimisation</a>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../setups/">Working on HPC systems</a>
+                <li class="toctree-l1"><a class="reference internal" href="../convergence_testing/">Convergence testing</a>
                 </li>
               </ul>
               <ul>
                 <li class="toctree-l1"><a class="reference internal" href="../useful_resources/">Useful resources</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../license_and_citation/">License and citation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../contact_us/">Contact us</a>
                 </li>
               </ul>
       </div>
@@ -112,7 +128,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
             <div class="section" itemprop="articleBody">
               
-                <p>Yes, we know, GRTeclyn is a <em>big</em> code. At first the number of files will seem overwhelming, but with time you will start to learn where to find things and the structure will make (some) sense. </p>
+                <h1 id="code-structure">Code structure</h1>
+<p>Yes, we know, GRTeclyn is a <em>big</em> code. At first the number of files will seem overwhelming, but with time you will start to learn where to find things and the structure will make (some) sense. </p>
 <p>On this page we provide some hints on how to find your way around the code, but in the end you just have to dive in and learn as you go.</p>
 <p>Some useful references can be found in <a href="../useful_resources/">Useful resources</a>. One should look at the guides on C++ classes, inheritance and templating, which are used extensively in the code - some basic knowledge of these concepts is assumed below.</p>
 <h2 id="hierarchy-of-grteclyn">Hierarchy of GRTeclyn</h2>
@@ -177,8 +194,8 @@
             </div>
           </div><footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
-        <a href="../porting/" class="btn btn-neutral float-left" title="Moving from GRChombo"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-        <a href="../CPUs/" class="btn btn-neutral float-right" title="Building and Running on CPUs">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../moving_from_grchombo/" class="btn btn-neutral float-left" title="Moving from GRChombo"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../performance_optimisation/" class="btn btn-neutral float-right" title="Performance optimisation">Next <span class="icon icon-circle-arrow-right"></span></a>
     </div>
 
   <hr/>
@@ -201,10 +218,10 @@
   <span class="rst-current-version" data-toggle="rst-current-version">
     
     
-      <span><a href="../porting/" style="color: #fcfcfc">&laquo; Previous</a></span>
+      <span><a href="../moving_from_grchombo/" style="color: #fcfcfc">&laquo; Previous</a></span>
     
     
-      <span><a href="../CPUs/" style="color: #fcfcfc">Next &raquo;</a></span>
+      <span><a href="../performance_optimisation/" style="color: #fcfcfc">Next &raquo;</a></span>
     
   </span>
 </div>

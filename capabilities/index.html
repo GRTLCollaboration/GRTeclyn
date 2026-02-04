@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Capabilities - GRTeclyn</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Capabilities";
+        var mkdocs_page_input_path = "capabilities.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> GRTeclyn
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../home/">Home</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">Capabilities</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#current-key-features-in-the-public-code">Current key features in the public code</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#formulation-of-the-einstein-equations">Formulation of the Einstein equations</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#gauge-choice-and-boundaries">Gauge choice and boundaries</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#black-hole-spacetimes">Black hole spacetimes</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#scalar-fields-on-dynamical-backgrounds">Scalar fields on dynamical backgrounds</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#adaptive-mesh-refinement-amr">Adaptive Mesh Refinement (AMR)</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#finite-differencing-scheme">Finite differencing scheme</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#checkpointing-and-restart">Checkpointing and restart</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#diagnostics">Diagnostics</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#parallel-performance-and-gpu-support">Parallel performance and GPU support</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#features-under-development-coming-soon">Features under development (coming soon)</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#forthcoming-features">Forthcoming features</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#summary-of-development-status">Summary of development status</a>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../prerequisites/">Prerequisites</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../building_cpus/">Building and running on CPUs</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../building_gpus/">Building and running on GPUs</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../example_configs/">Example configs for specific HPC systems</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../moving_from_grchombo/">Moving from GRChombo</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../code_structure/">Code structure</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../performance_optimisation/">Performance optimisation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../convergence_testing/">Convergence testing</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../useful_resources/">Useful resources</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../license_and_citation/">License and citation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../contact_us/">Contact us</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">GRTeclyn</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Capabilities</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="capabilities-of-grteclyn">Capabilities of GRTeclyn</h1>
+<p><strong>GRTeclyn</strong> is a modern C++ based code for doing numerical relativity simulations. It solves the Einstein equations of general relativity to evolve the metric components and matter fields from chosen initial conditions. It is built on <a href="https://amrex-codes.github.io/">AMReX</a>, a powerful framework for massively parallel block-structured adaptive mesh refinement (AMR), and supports both CPU and GPU architectures for high-performance computing.</p>
+<p>GRTeclyn is the next-generation version of <a href="https://github.com/GRTLCollaboration/GRChombo">GRChombo</a>, with a modular and extensible design focused on clarity, maintainability, and performance portability. It is actively under development, and many of the core numerical relativity features from GRChombo are already implemented or underway.</p>
+<p>Note that GRTeclyn is designed as a research tool, not a black box. Users are encouraged to modify and extend it for their physics cases. If you're a student or supervisor considering using GRTeclyn, please ensure your team has familiarity with numerical relativity, C++ and HPC environments.</p>
+<hr />
+<h2 id="current-key-features-in-the-public-code">Current key features in the public code</h2>
+<h3 id="formulation-of-the-einstein-equations">Formulation of the Einstein equations</h3>
+<ul>
+<li>GRTeclyn uses the <a href="https://inspirehep.net/literature/913488">CCZ4</a> formulation with constraint damping to evolve the Einstein equations. </li>
+<li>The implementation supports full 3+1D spacetimes with dynamic metrics and gauge evolution.</li>
+<li>The code is written modularly, with clearly separated evolution and diagnostic systems.</li>
+</ul>
+<h3 id="gauge-choice-and-boundaries">Gauge choice and boundaries</h3>
+<ul>
+<li>The moving puncture gauge is currently implemented by default, suitable for evolving black hole spacetimes.</li>
+<li>The gauge system is extensible and designed to support alternative slicing and shift conditions.</li>
+<li>The current version supports Sommerfeld (radiative) and reflective boundary conditions.</li>
+</ul>
+<h3 id="black-hole-spacetimes">Black hole spacetimes</h3>
+<ul>
+<li>Binary black hole (BBH) simulations are supported using Bowen–York initial data. </li>
+<li>The <strong>BinaryBH</strong> example is fully functional for boosted cases. Currently the code uses an approximate solution but we plan to integrate the TwoPunctures code shortly, which will allow fully general initial momenta and spins.</li>
+<li>Puncture positions are tracked and recorded throughout the simulation using particle methods.</li>
+</ul>
+<h3 id="scalar-fields-on-dynamical-backgrounds">Scalar fields on dynamical backgrounds</h3>
+<ul>
+<li>Oscillaton example under development but minimally coupled scalar field is working.</li>
+</ul>
+<h3 id="adaptive-mesh-refinement-amr">Adaptive Mesh Refinement (AMR)</h3>
+<ul>
+<li>AMReX handles dynamic block-structured AMR with tagging criteria based on physical fields or custom diagnostics.</li>
+<li>Time sub-cycling and regridding are fully implemented and compatible with multi-level evolution.</li>
+</ul>
+<h3 id="finite-differencing-scheme">Finite differencing scheme</h3>
+<ul>
+<li>The code supports 4th-order finite differencing in space and 4th-order Runge-Kutta in time.</li>
+<li>Support for higher-order stencils (6th order) is planned in future releases.</li>
+</ul>
+<h3 id="checkpointing-and-restart">Checkpointing and restart</h3>
+<ul>
+<li>Checkpointing is implemented for recovery after interruption.</li>
+<li>Simulations can be resumed from saved checkpoints with consistent memory and time-step restoration.</li>
+</ul>
+<h3 id="diagnostics">Diagnostics</h3>
+<ul>
+<li>Standard diagnostic variables (e.g., Hamiltonian and momentum constraints, stress-energy quantities) are implemented and can be output.</li>
+<li>A diagnostic system allows for easy addition of new variables to be monitored during the run. These are calculated only when required for output.</li>
+<li>Output is in AMReX-native plotfiles viewable in tools like <strong>yt</strong> or <strong>AMReX-based viewers</strong>, and small data files.</li>
+</ul>
+<h3 id="parallel-performance-and-gpu-support">Parallel performance and GPU support</h3>
+<ul>
+<li>Designed for MPI-parallel runs using AMReX's distributed mesh management.</li>
+<li>GPU execution is supported using AMReX’s <code>GPU_LAUNCH</code> macros (e.g., CUDA/HIP/SYCL).</li>
+<li>OpenMP is supported for CPU parallelism on shared-memory systems.</li>
+</ul>
+<hr />
+<h2 id="features-under-development-coming-soon">Features under development (coming soon)</h2>
+<p>These features are implemented in working branches or are actively being ported from GRChombo. They may be available on request (at your own risk pending testing).</p>
+<ul>
+<li><strong>Gravitational wave extraction</strong> — Weyl scalar calculations for waveform analysis, and output of data for CCE extraction.</li>
+<li><strong>Apparent horizon finder</strong> — for locating black hole horizons in dynamical simulations.</li>
+<li><strong>Initial condition solver</strong> — a link to the GRTelcyn solver, to solve the Hamiltonian and Momentum constraints numerically for scalar or vacuum spacetimes. Integration of TwoPunctures as discussed above.</li>
+<li><strong>AMR interpolation tools</strong> — to enable conservative variable interpolation and post-processing, based on particle methods.</li>
+<li><strong>ADM mass and momenta diagnostics</strong> — for computing global quantities.</li>
+<li><strong>Higher-order spatial stencils</strong> — planned support for 6th-order differencing.</li>
+</ul>
+<hr />
+<h2 id="forthcoming-features">Forthcoming features</h2>
+<p>The following features have been developed internally or in GRChombo and are expected to be ported or reimplemented in GRTeclyn. If you're interested in working on one of these, feel free to contact us — we may be able to share existing code for inspiration or adaptation.</p>
+<ul>
+<li><strong>Fixed background metrics</strong> — support for scalar field evolution on Schwarzschild or Kerr backgrounds using analytic metrics - by adapting the existing <a href="https://github.com/GRTLCollaboration/GRDzhadzha">GRDzhaDzha</a> code to GRTeclyn.</li>
+<li><strong>Massive vector (Proca) fields</strong> — a matter class for evolving massive vector fields.</li>
+<li><strong>Cartoon formalism</strong> — support for dimensional reduction using symmetries (e.g., axisymmetry).</li>
+<li><strong>Other matter models</strong> — we will include perfect fluids and vector fields in future.</li>
+</ul>
+<hr />
+<h2 id="summary-of-development-status">Summary of development status</h2>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CCZ4 evolution</td>
+<td>✅ Ported</td>
+</tr>
+<tr>
+<td>Adaptive Mesh Refinement (AMR)</td>
+<td>✅ Ported</td>
+</tr>
+<tr>
+<td>Checkpointing &amp; Restart</td>
+<td>✅ Ported</td>
+</tr>
+<tr>
+<td>Moving puncture gauge</td>
+<td>✅ Ported</td>
+</tr>
+<tr>
+<td>BinaryBH example</td>
+<td>✅ Ported</td>
+</tr>
+<tr>
+<td>Diagnostic variables</td>
+<td>✅ Ported</td>
+</tr>
+<tr>
+<td>AMReX GPU offload</td>
+<td>✅ Ported</td>
+</tr>
+<tr>
+<td>MPI parallelism</td>
+<td>✅ Ported</td>
+</tr>
+<tr>
+<td>Scalar field matter model</td>
+<td>✅ Ported</td>
+</tr>
+<tr>
+<td>Puncture tracking</td>
+<td>✅ Ported</td>
+</tr>
+<tr>
+<td>Particle-based diagnostics</td>
+<td>🔧 In progress</td>
+</tr>
+<tr>
+<td>Weyl scalar / CCE extraction</td>
+<td>🔧 In progress</td>
+</tr>
+<tr>
+<td>Apparent horizon finder</td>
+<td>🔧 In progress</td>
+</tr>
+<tr>
+<td>Initial condition solver</td>
+<td>🔧 In progress</td>
+</tr>
+<tr>
+<td>ADM quantities</td>
+<td>🔧 In progress</td>
+</tr>
+<tr>
+<td>6th-order finite differencing</td>
+<td>🔮 Planned</td>
+</tr>
+<tr>
+<td>Proca field matter</td>
+<td>🔮 Planned</td>
+</tr>
+<tr>
+<td>Perfect fluid matter</td>
+<td>🔮 Planned</td>
+</tr>
+<tr>
+<td>Cartoon formalism</td>
+<td>🔮 Planned</td>
+</tr>
+</tbody>
+</table>
+<hr />
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../home/" class="btn btn-neutral float-left" title="Home"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../prerequisites/" class="btn btn-neutral float-right" title="Prerequisites">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../home/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../prerequisites/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
