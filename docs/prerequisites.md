@@ -1,8 +1,10 @@
+#Prerequisites
+
 To compile and run **GRTeclyn**, you will need the following software and tools:
 
 ---
 
-## 🧰 Required Software
+## Required Software
 
 - **C++ compiler with C++17 support**
   GRTeclyn uses modern C++17 features. Supported compilers include:
@@ -10,7 +12,7 @@ To compile and run **GRTeclyn**, you will need the following software and tools:
   - Clang ≥ 6
   - Intel Classic ≥ 19.1.4
 
-⚠️ The use of C++17 is stricter than GRChombo’s C++14 requirement. Older compilers that worked with GRChombo may not work here — but if you have a newer one available, and could build GRChombo, you can likely build GRTeclyn too.
+WARNING: The use of C++17 is stricter than GRChombo’s C++14 requirement. Older compilers that worked with GRChombo may not work here — but if you have a newer one available, and could build GRChombo, you can likely build GRTeclyn too.
 
 - **[MPI](https://www.mpi-forum.org/)** (optional but recommended)
   Required for running in parallel across nodes or cores.
@@ -54,7 +56,7 @@ The following are required, but are likely to be loaded by default on most syste
 
 ---
 
-## 🛠️ Obtaining the AMReX and GRTeclyn codes
+## Obtaining the AMReX and GRTeclyn codes
 
 First `cd` into a directory you are happy to clone the code into. For simplicity, we shall assume that is your home directory (so adjust any commands below accordingly if not).
 

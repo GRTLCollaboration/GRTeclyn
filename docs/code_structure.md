@@ -1,3 +1,5 @@
+# Code structure
+
 Yes, we know, GRTeclyn is a *big* code. At first the number of files will seem overwhelming, but with time you will start to learn where to find things and the structure will make (some) sense. 
 
 On this page we provide some hints on how to find your way around the code, but in the end you just have to dive in and learn as you go.

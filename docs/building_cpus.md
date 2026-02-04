@@ -1,3 +1,5 @@
+# Building on CPUs
+
 Unlike in the predecessor code GRChombo, you don't have to separately build AMReX and GRTeclyn. Building an example in GRTeclyn will compile the relevant parts of AMReX too.
 
 But you should have checked that you have the set up described in [Getting started](prerequisites.md) before trying to compile an example.

@@ -1,20 +1,21 @@
 site_name: GRTeclyn
 nav:
-  - Home: index.md
-  - About: about.md
-  - Getting started: prerequisites.md
-  - Moving from GRChombo: porting.md
-  - Code structure: code_structure.md
-  - Building and Running on CPUs: CPUs.md
-  - Building and Running on GPUs: GPUs.md
+  - Home: home.md
+  - Capabilities: capabilities.md
+  - Prerequisites: prerequisites.md
+  - Building and running on CPUs: building_cpus.md
+  - Building and running on GPUs: building_gpus.md
+  - Example configs for specific HPC systems: example_configs.md
   - Examples: examples.md
+  - Moving from GRChombo: moving_from_grchombo.md
+  - Code structure: code_structure.md
 #  - Visualizations: viz.md
-  - Performance optimization: performance.md
-  - Convergence testing: convergence.md
-  - Working on HPC systems: setups.md
+  - Performance optimisation: performance_optimisation.md
+  - Convergence testing: convergence_testing.md
   - Useful resources: useful_resources.md
+  - License and citation: license_and_citation.md
 #  - Pull requests:
 #  - Updating the wiki:
 #  - Coding conventions:
-#  - Contact us:
+  - Contact us: contact_us.md
 theme: readthedocs

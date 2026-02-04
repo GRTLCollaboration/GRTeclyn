@@ -1,3 +1,5 @@
+# Moving from GRChombo
+
 This page is intended to help those coming from using the numerical relativity code [GRChombo](https://github.com/GRTLCollaboration/GRChombo) that was the predecessor code to GRTeclyn. If you are new to GRChombo and GRTeclyn, you can skip it!
 
 ## Why port to GRTelcyn?

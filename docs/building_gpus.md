@@ -1,3 +1,5 @@
+# Building on GPUs
+
 Compiling GRTeclyn for GPUs is in principle very easy, but in practise can be a bit of a pain. You will probably find it useful to look at some of the specific systems examples, e.g. the one for the Cosma8 AMD MI300 GPUs [here](https://github.com/GRTLCollaboration/GRTeclyn/wiki/Example-system-setups-and-jobscripts#cosma8-gpu-partition).
 
 The same process is followed as for CPUs, with the following changes:
@@ -50,7 +52,7 @@ A typical command for running 8 MPI processes (which would be appropriate on a n
 mpirun -n 8 --exclusive ./main3d.hip.MPI.HIP.ex params.txt
 ```
 
-You may also want to amend the `params.txt` file to specify the memory available to you and again make AMReX aware of the use of GPUs for how it uses MPI. e.g. for the MI300X I add: 
+Depending on the system you may also need to amend the `params.txt` file to specify the memory available to you and again make AMReX aware of the use of GPUs for how it uses MPI. e.g. for the MI300X I add: 
 
 ```
 # 192GB is the size of 1 GPU MI300X (it seems to work better to ask for a slightly smaller amount)

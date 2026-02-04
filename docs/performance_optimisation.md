@@ -1,9 +1,11 @@
-## Load balancing on CPUs
+# Performance optimisation
 
 GRTeclyn’s efficiency when running on a large number of distributed-memory nodes is highly dependent on good load balancing of the available computational work across those nodes. Load balancing seeks to avoid the situation where most of the nodes are waiting for some small subset of nodes to finish their computational work, and it does this by seeking to distribute the amount of work to be done per time step evenly among all of the nodes.
 
-⚠️ Some of the load balancing work is done by AMReX automatically.
+Some of the load balancing work is done by AMReX automatically.
 **However, adjusting the input parameters will change how the main grids are split into boxes to be shared between processors, and understanding this and adapting the setup is crucial for the load balancing process.**
+
+## Load balancing on CPUs
 
 For example, if the coarsest level is divided into grid cells of 64^3, and you set the `max_box_size` to 64, then GRTeclyn *will not subdivide the coarsest grid*, but will just allow one box to cover the entire area. Thus only one process can work on this level, even if you run the code with 64 cores. If instead you set the maximum box size to 16, then the grid will be divided into (64/16)^3 = 64 boxes. Then running it on 64 cores, every process should get one box, and the problem will efficiently use the resources.
 

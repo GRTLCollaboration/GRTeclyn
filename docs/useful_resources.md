@@ -1,5 +1,7 @@
 # Useful resources
 
+---
+
 ## AMReX
 
 GRTeclyn is built on top of the AMReX library and we try to follow the thinking behind AMReX pretty closely e.g. the GPU strategy.
@@ -9,6 +11,8 @@ There is also a set of short demos and exercises compiled by the AMReX team avai
 
 Failing that, the tests directory of AMReX, `${AMREX_HOME}/Tests`, also functions as code examples for how to use certain AMReX features.
 
+---
+
 ## Numerical Relativity (NR)
 
 There are many useful introductions to NR, but we recommend in particular the following open source resources:
@@ -17,6 +21,8 @@ There are many useful introductions to NR, but we recommend in particular the fo
 * [Eric Gourgoulhon's notes on NR](https://arxiv.org/abs/gr-qc/0703035) give a detailed introduction to the ADM decomposition, with a focus on the geometric interpretation.
 
 The textbooks of Alcubierre, Baumgarte & Shapiro, and Shibata are also bookcase essentials for anyone working in NR.
+
+---
 
 ## Past GRTeclyn presentations
 
@@ -28,6 +34,7 @@ Some useful information related to status updates and new features can be gleane
 * GRChombo and GRTeclyn - Miren Radia, New Frontiers in NR [Slides](https://mirenradia.github.io/20250723_New_Frontiers_GRChombo_GRTeclyn_panel_intro/)
 * GRTeclyn: GRChombo for the GPU gegneration - Katy Clough, European ET Meeting [Video](https://youtu.be/xjbnmpdyNqU) [Slides](https://drive.google.com/file/d/151_bHpZmY5dggV908egPXWtQrZ4YNfnU/view)
 
+---
 ## Useful C++ resources
 
 * [Style guide for C++](https://google.github.io/styleguide/cppguide.html)
@@ -44,6 +51,8 @@ All these places offer courses relevant for scientific programming, best check t
 * <https://learn.tacc.utexas.edu/>
 * <https://portal.xsede.org/training/overview>
 
+---
+
 ## HPC cluster usage
 
 Most machines have their own webpages which give a guide to usage, and tell you things particular to each machine, like compilers available, the job submission system, where to store your data etc.
@@ -57,6 +66,8 @@ Some useful commands:
     - 'passwd' can be used to change your login password.
     - 'grep' to search for text in your files
 
+---
+
 ## Git guide
 
 A comprehensive guide to Git:
@@ -65,6 +76,7 @@ A comprehensive guide to Git:
 
 In particular, [this](https://www.theserverside.com/blog/Coffee-Talk-Java-News-Stories-and-Opinions/How-to-Git-rebase-a-branch-to-master-example) is a useful guide to "rebase a branch to master".
 
+---
 
 ## VisIt
 
@@ -76,11 +88,15 @@ and the user manual is here:
 
 <http://visit-sphinx-user-manual.readthedocs.io/en/latest/>
 
+---
+
 ## yt
 
 The yt package is also useful for analysing data, and has an excellent cookbook containing examples:
 
 <http://yt-project.org/doc/index.html>
+
+---
 
 ## Miscellaneous
 

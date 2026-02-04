@@ -1,3 +1,5 @@
+# Convergence testing
+
 > “Whatever the ways of the universe may require us to suffer, let us take it up with high mindedness. This is the oath by which we are bound, not to be disturbed by what we do not have the power to avoid.” Seneca, On the Happy Life
 
 Seneca was certainly thinking about convergence testing when he said this.
