@@ -204,7 +204,7 @@ void GRAMRLevel::post_timestep(int /*iteration*/)
     }
     if (simParams().nan_check)
     {
-        amrex::MultiFab &state_new = get_new_data(State_Type);
+        amrex::MultiFab &state_new = get_new_data(state_index);
         if (state_new.contains_nan(0, state_new.nComp(), amrex::IntVect(0),
                                    true))
         {

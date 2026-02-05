@@ -25,7 +25,7 @@ class CCZ4D1Vars
     // empty constructor used for tests
     AMREX_GPU_HOST_DEVICE CCZ4D1Vars()
     {
-        for (int ivar = 0; ivar < NUM_VARS; ++ivar)
+        for (int ivar = 0; ivar < NUM_CCZ4_VARS; ++ivar)
         {
             FOR (i)
             {
@@ -35,7 +35,7 @@ class CCZ4D1Vars
     }
     // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
-    amrex::GpuArray<Tensor<1, amrex::Real>, NUM_VARS> m_d1_state;
+    amrex::GpuArray<Tensor<1, amrex::Real>, NUM_CCZ4_VARS> m_d1_state;
 
     [[nodiscard]]
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &chi(int i) const
@@ -54,7 +54,7 @@ class CCZ4D1Vars
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &h(int i, int j,
                                                              int k) const
     {
-        return m_d1_state[var_idx(c_h11, i, j)][k];
+        return m_d1_state[VAR_IDX(c_h11, i, j)][k];
     }
 
     [[nodiscard]]
@@ -67,7 +67,7 @@ class CCZ4D1Vars
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &A(int i, int j,
                                                              int k) const
     {
-        return m_d1_state[var_idx(c_A11, i, j)][k];
+        return m_d1_state[VAR_IDX(c_A11, i, j)][k];
     }
 
     [[nodiscard]]

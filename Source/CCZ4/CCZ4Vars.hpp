@@ -28,7 +28,7 @@ class CCZ4Vars
     [[nodiscard]]
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &h(int i, int j) const
     {
-        return cell_data[var_idx(c_h11, i, j)];
+        return cell_data[VAR_IDX(c_h11, i, j)];
     }
 
     [[nodiscard]]
@@ -40,7 +40,7 @@ class CCZ4Vars
     [[nodiscard]]
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &A(int i, int j) const
     {
-        return cell_data[var_idx(c_A11, i, j)];
+        return cell_data[VAR_IDX(c_A11, i, j)];
     }
 
     [[nodiscard]]

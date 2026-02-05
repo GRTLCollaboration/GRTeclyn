@@ -97,7 +97,7 @@ class FourthOrderDerivatives
         Tensor<3, amrex::Real> d1_tensor;
         FOR (icomp, jcomp)
         {
-            const int ivar                = var_idx(ivar_0, icomp, jcomp);
+            const int ivar                = VAR_IDX(ivar_0, icomp, jcomp);
             Tensor<1, amrex::Real> d1_var = diff1(ix, iy, iz, state, ivar);
             FOR (idir)
             {
@@ -107,14 +107,14 @@ class FourthOrderDerivatives
         return d1_tensor;
     }
 
-    [[nodiscard]] AMREX_GPU_DEVICE
-        AMREX_FORCE_INLINE amrex::GpuArray<Tensor<1, amrex::Real>, NUM_VARS>
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+        amrex::GpuArray<Tensor<1, amrex::Real>, NUM_CCZ4_VARS>
         diff1_state(int ix, int iy, int iz,
                     const amrex::Array4<const amrex::Real> &state) const
     {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-        amrex::GpuArray<Tensor<1, amrex::Real>, NUM_VARS> d1_state;
-        for (int ivar = 0; ivar < NUM_VARS; ivar++)
+        amrex::GpuArray<Tensor<1, amrex::Real>, NUM_CCZ4_VARS> d1_state;
+        for (int ivar = 0; ivar < NUM_CCZ4_VARS; ivar++)
         {
             d1_state[ivar] = diff1(ix, iy, iz, state, ivar);
         }
@@ -231,7 +231,7 @@ class FourthOrderDerivatives
         Tensor<4, amrex::Real> d2_tensor;
         FOR (icomp, jcomp)
         {
-            const int ivar                = var_idx(ivar_0, icomp, jcomp);
+            const int ivar                = VAR_IDX(ivar_0, icomp, jcomp);
             Tensor<2, amrex::Real> d1_var = diff2(ix, iy, iz, state, ivar);
 
             FOR (idir, jdir)
@@ -242,14 +242,14 @@ class FourthOrderDerivatives
         return d2_tensor;
     }
 
-    [[nodiscard]] AMREX_GPU_DEVICE
-        AMREX_FORCE_INLINE amrex::GpuArray<Tensor<2, amrex::Real>, NUM_VARS>
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+        amrex::GpuArray<Tensor<2, amrex::Real>, NUM_CCZ4_VARS>
         diff2_state(int ix, int iy, int iz,
                     const amrex::Array4<const amrex::Real> &state) const
     {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-        amrex::GpuArray<Tensor<2, amrex::Real>, NUM_VARS> d2_state;
-        for (int ivar = 0; ivar < NUM_VARS; ivar++)
+        amrex::GpuArray<Tensor<2, amrex::Real>, NUM_CCZ4_VARS> d2_state;
+        for (int ivar = 0; ivar < NUM_CCZ4_VARS; ivar++)
         {
             d2_state[ivar] = diff2(ix, iy, iz, state, ivar);
         }
@@ -343,7 +343,7 @@ class FourthOrderDerivatives
         Tensor<2, amrex::Real> advec_tensor;
         FOR (icomp, jcomp)
         {
-            int ivar = var_idx(ivar0, icomp, jcomp);
+            int ivar = VAR_IDX(ivar0, icomp, jcomp);
             advec_tensor[icomp][jcomp] =
                 advection(ix, iy, iz, state, shift_vector, ivar);
         }
@@ -351,15 +351,15 @@ class FourthOrderDerivatives
     }
 
     [[nodiscard]] AMREX_GPU_DEVICE
-        AMREX_FORCE_INLINE amrex::GpuArray<amrex::Real, NUM_VARS>
+        AMREX_FORCE_INLINE amrex::GpuArray<amrex::Real, NUM_CCZ4_VARS>
         advec_state(int ix, int iy, int iz,
                     const amrex::Array4<const amrex::Real> &state,
                     const Tensor<1, amrex::Real> &shift_vector) const
 
     {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-        amrex::GpuArray<amrex::Real, NUM_VARS> advec_state;
-        for (int ivar = 0; ivar < NUM_VARS; ivar++)
+        amrex::GpuArray<amrex::Real, NUM_CCZ4_VARS> advec_state;
+        for (int ivar = 0; ivar < NUM_CCZ4_VARS; ivar++)
         {
             advec_state[ivar] =
                 advection(ix, iy, iz, state, shift_vector, ivar);
@@ -371,10 +371,10 @@ class FourthOrderDerivatives
     dissipation_term(const double *in_ptr, const int stride,
                      const int idx = 0) const
     {
-        amrex::Real weight_vfar  = 1.56250e-2;
-        amrex::Real weight_far   = 9.37500e-2;
-        amrex::Real weight_near  = 2.34375e-1;
-        amrex::Real weight_local = 3.12500e-1;
+        amrex::Real weight_vfar  = 1.56250e-2_rt;
+        amrex::Real weight_far   = 9.37500e-2_rt;
+        amrex::Real weight_near  = 2.34375e-1_rt;
+        amrex::Real weight_local = 3.12500e-1_rt;
 
         return (weight_vfar * in_ptr[idx - 3 * stride] -
                 weight_far * in_ptr[idx - 2 * stride] +

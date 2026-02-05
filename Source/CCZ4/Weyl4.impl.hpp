@@ -53,8 +53,8 @@ Weyl4::compute_epsilon3_LUU(const CCZ4Vars &vars,
                             const Tensor<2, amrex::Real> &h_UU) const
 {
     // raised normal vector, NB index 3 is time
-    Tensor<1, amrex::Real, 4> n_U;
-    n_U[3] = 1. / vars.lapse();
+    Tensor<1, amrex::Real, GR_SPACEDIM + 1> n_U;
+    n_U[GR_SPACEDIM] = 1. / vars.lapse();
     FOR (i)
     {
         n_U[i] = -vars.shift(i) / vars.lapse();
@@ -76,7 +76,7 @@ Weyl4::compute_epsilon3_LUU(const CCZ4Vars &vars,
     // note last index contracted as per footnote 86 pg 290 Alcubierre
     FOR (i, j, k)
     {
-        for (int l = 0; l < 4; ++l)
+        for (int l = 0; l < GR_SPACEDIM + 1; ++l)
         {
             epsilon3_LLL[i][j][k] += n_U[l] * epsilon4[i][j][k][l] *
                                      vars.lapse() /
@@ -340,7 +340,7 @@ void Weyl4::set_up(int a_state_index)
 }
 
 AMREX_FORCE_INLINE
-void Weyl4::compute_mf(amrex::MultiFab &out_mf, int out_comp, int ncomp,
+void Weyl4::compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
                        const amrex::MultiFab &src_mf,
                        const amrex::Geometry &geomdata, amrex::Real /*time*/,
                        const int * /*bcrec*/, int /*level*/)
@@ -354,7 +354,7 @@ void Weyl4::compute_mf(amrex::MultiFab &out_mf, int out_comp, int ncomp,
     pp.get("extraction_center", center);
     pp.get("formulation", formulation);
 
-    Weyl4 weyl4(center, geomdata.CellSize(0), out_comp, formulation);
+    Weyl4 weyl4(center, geomdata.CellSize(0), dcomp, formulation);
     amrex::ParallelFor(
         out_mf, out_mf.nGrowVect(),
         [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz) noexcept

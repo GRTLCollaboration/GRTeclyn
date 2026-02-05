@@ -201,7 +201,7 @@ void Constraints::set_up(int a_state_index, bool a_calc_mom_norm)
 
     // Get all the vars to allow us to use the CCZ4Vars class
     // Technically not all needed but probably doesn't hurt performance
-    derive_lst.addComponent(name, desc_lst, a_state_index, 0, NUM_VARS);
+    derive_lst.addComponent(name, desc_lst, a_state_index, 0, NUM_CCZ4_VARS);
 }
 
 void Constraints::compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,

@@ -87,7 +87,7 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
 
     FOR2_SYM(i, j)
     {
-        rhs[var_idx(c_A11, i, j)] +=
+        rhs[VAR_IDX(c_A11, i, j)] +=
             -8.0 * M_PI * m_G_Newton * vars.chi() * vars.lapse() * S_TF[i][j];
     }
 

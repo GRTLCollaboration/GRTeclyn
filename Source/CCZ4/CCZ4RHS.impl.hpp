@@ -131,18 +131,19 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(const amrex::CellData<amrex::Real> &rhs,
     Tensor<2, amrex::Real> A_UU = CCZ4Geometry::compute_A_UU(vars, h_UU);
 
     // A^{ij} A_{ij}
-    amrex::Real Aij_squared = CCZ4Geometry::compute_Aij_squared(vars, h_UU);
+    amrex::Real Aij_squared =
+        CCZ4Geometry::compute_Aij_squared_with_A_UU(vars, A_UU);
     rhs[c_chi] = advec.chi() + (2.0 / (double)GR_SPACEDIM) * vars.chi() *
                                    (vars.lapse() * vars.K() - divshift);
 
     FOR2_SYM(i, j)
     {
-        rhs[var_idx(c_h11, i, j)] =
+        rhs[VAR_IDX(c_h11, i, j)] =
             advec.h(i, j) - 2.0 * vars.lapse() * vars.A(i, j) -
             (2.0 / (double)GR_SPACEDIM) * vars.h(i, j) * divshift;
         FOR (k)
         {
-            rhs[var_idx(c_h11, i, j)] +=
+            rhs[VAR_IDX(c_h11, i, j)] +=
                 vars.h(k, i) * d1.shift(k, j) + vars.h(k, j) * d1.shift(k, i);
         }
     }
@@ -157,17 +158,17 @@ CCZ4RHS<gauge_t, deriv_t>::rhs_equation(const amrex::CellData<amrex::Real> &rhs,
 
     FOR2_SYM(i, j)
     {
-        rhs[var_idx(c_A11, i, j)] =
+        rhs[VAR_IDX(c_A11, i, j)] =
             advec.A(i, j) + Adot_TF[i][j] +
             vars.A(i, j) * (vars.lapse() * (vars.K() - 2.0 * vars.Theta()) -
                             (2.0 / (double)GR_SPACEDIM) * divshift);
         FOR (k)
         {
-            rhs[var_idx(c_A11, i, j)] +=
+            rhs[VAR_IDX(c_A11, i, j)] +=
                 vars.A(k, i) * d1.shift(k, j) + vars.A(k, j) * d1.shift(k, i);
             FOR (l)
             {
-                rhs[var_idx(c_A11, i, j)] -= 2.0 * vars.lapse() * h_UU[k][l] *
+                rhs[VAR_IDX(c_A11, i, j)] -= 2.0 * vars.lapse() * h_UU[k][l] *
                                              vars.A(i, k) * vars.A(l, j);
             }
         }

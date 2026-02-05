@@ -135,6 +135,19 @@ compute_Aij_squared(const CCZ4Vars &vars,
     return Aij_squared;
 }
 
+// This is A_ij A^ij
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+compute_Aij_squared_with_A_UU(const CCZ4Vars &vars,
+                              const Tensor<2, amrex::Real> &A_UU)
+{
+    amrex::Real Aij_squared = 0.0;
+    FOR (i, j)
+    {
+        Aij_squared += A_UU[i][j] * vars.A(i, j);
+    }
+    return Aij_squared;
+}
+
 /// Computes the conformal christoffel symbol
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE chris_t
 compute_christoffel(const CCZ4D1Vars &d1, const Tensor<2, amrex::Real> &h_UU)

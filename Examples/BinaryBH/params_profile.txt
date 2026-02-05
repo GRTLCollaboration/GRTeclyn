@@ -8,8 +8,9 @@
 
 verbosity = 1
 
-# Uncomment if using GPUs
-# amrex.use_gpu_aware_mpi = 1
+#ifdef AMREX_USE_GPU
+amrex.use_gpu_aware_mpi = 1
+#endif
 
 puncture_tracking.enabled = 1
 puncture_tracking.level = 5

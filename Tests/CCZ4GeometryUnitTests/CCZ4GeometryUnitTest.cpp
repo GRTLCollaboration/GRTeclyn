@@ -47,7 +47,7 @@ compute_ccz4_test_geometry(const amrex::Array4<amrex::Real> &a_array,
         a_array(a_iv, c_Gamma1 + i) = Gamma[i];
         FOR (j)
         {
-            a_array(a_iv, var_idx(c_h11, i, j)) = h[i][j];
+            a_array(a_iv, VAR_IDX(c_h11, i, j)) = h[i][j];
         }
     }
 

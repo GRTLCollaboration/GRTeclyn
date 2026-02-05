@@ -238,10 +238,10 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
     amrex::ParallelFor(state_new, amrex::IntVect(0),
                        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
                        {
-                           chi_tagger(ix, iy, iz, tags_arrays[box_no],
+                           chi_tagger(ix, iy, iz, tag_arrays[box_no],
                                       state_const_arrays[box_no]);
 
-                           extraction_tagger(ix, iy, iz, tags_arrays[box_no]);
+                           extraction_tagger(ix, iy, iz, tag_arrays[box_no]);
 
                            if (puncture_tracking_enabled)
                            {

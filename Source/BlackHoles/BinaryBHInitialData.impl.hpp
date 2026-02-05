@@ -67,11 +67,11 @@ AMREX_GPU_DEVICE // or AMREX_GPU_HOST_DEVICE depending on what's needed
 
     FOR2_SYM(i, j)
     {
-        state_cell_data[var_idx(c_h11, i, j)] = TensorAlgebra::delta(i, j);
+        state_cell_data[VAR_IDX(c_h11, i, j)] = TensorAlgebra::delta(i, j);
     }
 
     Tensor<2, amrex::Real> total_A_LL = compute_A(chi, coords);
-    FOR2_SYM(i, j) { state_cell_data[var_idx(c_A11, i, j)] = total_A_LL[i][j]; }
+    FOR2_SYM(i, j) { state_cell_data[VAR_IDX(c_A11, i, j)] = total_A_LL[i][j]; }
 
     switch (m_initial_lapse)
     {

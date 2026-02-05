@@ -23,22 +23,23 @@ class ScalarFieldD1Vars : public CCZ4D1Vars
         : CCZ4D1Vars(ix, iy, iz, state, a_deriv)
     {
         // Calculate the d1 quantities for all vars
-        m_d1_state = a_deriv.diff1_state(ix, iy, iz, state);
+        m_d1_state[c_phi] = a_deriv.diff1_scalar(ix, iy, iz, state, c_phi);
+        m_d1_state[c_Pi]  = a_deriv.diff1_scalar(ix, iy, iz, state, c_Pi);
     }
     // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
-    amrex::GpuArray<Tensor<1, amrex::Real>, NUM_VARS> m_d1_state;
+    amrex::GpuArray<Tensor<1, amrex::Real>, 2> m_scalar_d1_state;
 
     [[nodiscard]]
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &phi(int i) const
     {
-        return m_d1_state[c_phi][i];
+        return m_scalar_d1_state[c_phi][i];
     }
 
     [[nodiscard]]
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &Pi(int i) const
     {
-        return m_d1_state[c_Pi][i];
+        return m_scalar_d1_state[c_Pi][i];
     }
 };
 

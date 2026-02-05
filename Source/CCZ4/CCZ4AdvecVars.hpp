@@ -30,7 +30,7 @@ class CCZ4AdvecVars
     }
     // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
-    amrex::GpuArray<amrex::Real, NUM_VARS> m_advec_state;
+    amrex::GpuArray<amrex::Real, NUM_CCZ4_VARS> m_advec_state;
     Tensor<1, amrex::Real> m_shift_vector;
 
     [[nodiscard]]
@@ -42,7 +42,7 @@ class CCZ4AdvecVars
     [[nodiscard]]
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &h(int i, int j) const
     {
-        return m_advec_state[var_idx(c_h11, i, j)];
+        return m_advec_state[VAR_IDX(c_h11, i, j)];
     }
 
     [[nodiscard]]
@@ -54,7 +54,7 @@ class CCZ4AdvecVars
     [[nodiscard]]
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &A(int i, int j) const
     {
-        return m_advec_state[var_idx(c_A11, i, j)];
+        return m_advec_state[VAR_IDX(c_A11, i, j)];
     }
 
     [[nodiscard]]

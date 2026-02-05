@@ -20,6 +20,9 @@
 // AMReX Includes
 #include <AMReX_AmrLevel.H>
 
+// This class only works for 3+1D
+static_assert(GR_SPACEDIM == 3, "GR_SPACEDIM must be 3");
+
 //! Struct for the E and B fields
 struct EBFields_t
 {
@@ -85,7 +88,7 @@ class Weyl4
 
     // Has signature of DeriveFuncMF so that it can be stored in the derive_lst
     AMREX_FORCE_INLINE static void
-    compute_mf(amrex::MultiFab &out_mf, int out_comp, int ncomp,
+    compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
                const amrex::MultiFab &src_mf, const amrex::Geometry &geomdata,
                amrex::Real /*time*/, const int * /*bcrec*/, int /*level*/);
 

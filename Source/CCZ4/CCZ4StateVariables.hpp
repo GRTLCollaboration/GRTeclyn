@@ -11,6 +11,7 @@
 #include <string>
 
 #include "BCParity.hpp"
+#include "DimensionDefinitions.hpp"
 
 /// This enum gives the index of the CCZ4 state variables on the grid
 enum
@@ -51,14 +52,6 @@ enum
 
     NUM_CCZ4_VARS
 };
-
-// A function to return the right index for the tensors based on the
-// ordering below 0: T11, 1: T12, 2: T13, 3: T22, 4: T23, 5: T33
-[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE int var_idx(int ivar,
-                                                                   int i, int j)
-{
-    return ivar + i + j + ((i * j != 0) ? 1 : 0);
-}
 
 namespace CCZ4StateVariables
 {

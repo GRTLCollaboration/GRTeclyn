@@ -63,7 +63,7 @@ template <class matter_t, enum EMTensorOptions em_tensor_options> class EMTensor
     matter_t m_matter;
     FourthOrderDerivatives m_deriv;
     int m_dcomp; //!< which component in the MultiFab to store the first
-                 //!< variable
+                 //!< variable (d=destination)
 };
 
 #include "EMTensor.impl.hpp"
