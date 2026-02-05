@@ -881,7 +881,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t_array compute_ricci_Z(
     int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs_state,
     const amrex::Array4<amrex::Real const> &state,
     const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU,
-    const chris_t_array &chris, const Tensor<1, amrex::Real> &Z_over_chi,
+    const chris_t_array &chris, amrex::Array1D<amrex::Real, 0, 3> &Z_over_chi,
     const FourthOrderDerivatives &m_deriv)
 {
     ricci_t_array out;
@@ -898,19 +898,18 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t_array compute_ricci_Z(
     }
 
     // chi derivatives
-    Tensor<1, amrex::Real> d1_chi =
-        m_deriv.diff1_scalar(ix, iy, iz, state, c_chi);
+    auto d1_chi = m_deriv.diff1_array_scalar(ix, iy, iz, state, c_chi);
 
     auto d2_chi = m_deriv.diff2_sym_scalar(ix, iy, iz, state, c_chi);
 
-    Tensor<2, amrex::Real> covdtilde2chi;
+    amrex::Array2D<amrex::Real, 0, 3, 0, 3> covdtilde2chi;
     FOR (k, l)
     {
         int idx             = k + l + ((k * l != 0) ? 1 : 0);
-        covdtilde2chi[k][l] = d2_chi(idx);
+        covdtilde2chi(k, l) = d2_chi(idx);
         FOR (m)
         {
-            covdtilde2chi[k][l] -= chris.ULL(m, k, l) * d1_chi[m];
+            covdtilde2chi(k, l) -= chris.ULL(m, k, l) * d1_chi(m);
         }
     }
 
@@ -921,8 +920,8 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t_array compute_ricci_Z(
     FOR (i, j)
     {
         int idx        = i + j + ((i * j != 0) ? 1 : 0);
-        boxtildechi   += covdtilde2chi[i][j] * h_UU(i, j);
-        dchi_dot_dchi += d1_chi[i] * d1_chi[j] * h_UU(i, j);
+        boxtildechi   += covdtilde2chi(i, j) * h_UU(i, j);
+        dchi_dot_dchi += d1_chi(i) * d1_chi(j) * h_UU(i, j);
     }
 
     // Gamma derivatives
@@ -980,9 +979,9 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t_array compute_ricci_Z(
         }
 
         amrex::Real ricci_chi =
-            0.5 * ((GR_SPACEDIM - 2) * covdtilde2chi[i][j] +
+            0.5 * ((GR_SPACEDIM - 2) * covdtilde2chi(i, j) +
                    state_cell_data[var_idx(c_h11, i, j)] * boxtildechi -
-                   ((GR_SPACEDIM - 2) * d1_chi[i] * d1_chi[j] +
+                   ((GR_SPACEDIM - 2) * d1_chi(i) * d1_chi(j) +
                     GR_SPACEDIM * state_cell_data[var_idx(c_h11, i, j)] *
                         dchi_dot_dchi) /
                        (2 * state_cell_data[c_chi]));
