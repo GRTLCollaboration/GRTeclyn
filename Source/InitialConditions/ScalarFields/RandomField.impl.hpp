@@ -596,7 +596,7 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
                 double kmag = get_kmag(iv);
 
                 // make sure you're still in the domain
-                if(kmag > kiso_max) 
+                if(kmag - kiso_max > tolerance) 
                 { 
                     Print() << iv << "\n";
                     Print() << kmag << "," << kiso_max << "\n";
