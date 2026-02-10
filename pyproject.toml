@@ -1,0 +1,13 @@
+[project]
+name = "grteclyn-analysis"
+version = "0.1.0"
+description = "Analysis and visualization for GRTeclyn simulations"
+dependencies = [
+    "yt",
+    "numpy",
+    "matplotlib",
+]
+requires-python = ">=3.10"
+
+[tool.uv]
+managed = true
