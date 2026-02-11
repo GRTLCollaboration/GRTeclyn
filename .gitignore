@@ -40,3 +40,15 @@ Doxygen/html
 log*
 *.patch
 *.log
+
+# Visualization output (frames, movies) - scripts in src/visualisation/ are kept
+src/visualisation/K/
+src/visualisation/lapse/
+src/visualisation/Theta/
+src/visualisation/chi/
+src/visualisation/binary_bh/
+src/visualisation/waves/
+
+
+#Running scripts
+script/

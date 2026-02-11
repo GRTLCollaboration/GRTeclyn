@@ -9,5 +9,8 @@ dependencies = [
 ]
 requires-python = ">=3.10"
 
+[project.optional-dependencies]
+mpi = ["mpi4py"]
+
 [tool.uv]
 managed = true
