@@ -54,11 +54,12 @@ class FourthOrderDerivatives
             [&](const int &ivar, Tensor<1, amrex::Real> &var)
             {
                 AMREX_D_TERM(
-                    var[0] = diff1(state_ptr_ijk + ivar * state.nstride, 0, 1);
-                    , var[1] = diff1(state_ptr_ijk + ivar * state.nstride, 0,
-                                     static_cast<int>(state.jstride));
-                    , var[2] = diff1(state_ptr_ijk + ivar * state.nstride, 0,
-                                     static_cast<int>(state.kstride)));
+                    var[0] =
+                        diff1(state_ptr_ijk + ivar * state.stride.a[2], 0, 1);
+                    , var[1] = diff1(state_ptr_ijk + ivar * state.stride.a[2],
+                                     0, static_cast<int>(state.stride.a[0]));
+                    , var[2] = diff1(state_ptr_ijk + ivar * state.stride.a[2],
+                                     0, static_cast<int>(state.stride.a[1])));
             });
         return d1;
     }
@@ -117,9 +118,9 @@ class FourthOrderDerivatives
         Tensor<2, amrex::Real> d2;
         const auto *state_ptr_ijk = state.ptr(i, j, k);
         amrex::GpuArray<int, AMREX_SPACEDIM> strides{
-            1, static_cast<int>(state.jstride),
-            static_cast<int>(state.kstride)};
-        const auto *pvar = state_ptr_ijk + ivar * state.nstride;
+            1, static_cast<int>(state.stride.a[0]),
+            static_cast<int>(state.stride.a[1])};
+        const auto *pvar = state_ptr_ijk + ivar * state.stride.a[2];
         FOR (dir1) // First calculate the repeated derivatives
         {
             d2[dir1][dir1] = diff2(pvar, 0, strides[dir1]);
@@ -142,12 +143,12 @@ class FourthOrderDerivatives
         vars_t<Tensor<2, amrex::Real>> d2;
         const auto *state_ptr_ijk = state.ptr(i, j, k);
         amrex::GpuArray<int, AMREX_SPACEDIM> strides{
-            1, static_cast<int>(state.jstride),
-            static_cast<int>(state.kstride)};
+            1, static_cast<int>(state.stride.a[0]),
+            static_cast<int>(state.stride.a[1])};
         d2.enum_mapping(
             [&](const int &ivar, Tensor<2, amrex::Real> &var)
             {
-                const auto *pvar = state_ptr_ijk + ivar * state.nstride;
+                const auto *pvar = state_ptr_ijk + ivar * state.stride.a[2];
                 FOR (dir1) // First calculate the repeated derivatives
                 {
                     var[dir1][dir1] = diff2(pvar, 0, strides[dir1]);
@@ -211,13 +212,13 @@ class FourthOrderDerivatives
         vars_t<amrex::Real> advec;
         const auto *state_ptr_ijk = state.ptr(i, j, k);
         amrex::GpuArray<int, AMREX_SPACEDIM> strides{
-            1, static_cast<int>(state.jstride),
-            static_cast<int>(state.kstride)};
+            1, static_cast<int>(state.stride.a[0]),
+            static_cast<int>(state.stride.a[1])};
         advec.enum_mapping(
             [&](const int &ivar, amrex::Real &var)
             {
                 var              = 0.;
-                const auto *pvar = state_ptr_ijk + ivar * state.nstride;
+                const auto *pvar = state_ptr_ijk + ivar * state.stride.a[2];
                 FOR (dir)
                 {
                     const bool shift_positive = (vector[dir] > 0.0);
@@ -255,17 +256,18 @@ class FourthOrderDerivatives
     {
         const auto *state_ptr_ijk = state.ptr(i, j, k);
         amrex::GpuArray<int, AMREX_SPACEDIM> strides{
-            1, static_cast<int>(state.jstride),
-            static_cast<int>(state.kstride)};
+            1, static_cast<int>(state.stride.a[0]),
+            static_cast<int>(state.stride.a[1])};
         vars.enum_mapping(
             [&](const int &ivar, amrex::Real &var)
             {
                 FOR (dir)
                 {
-                    const auto stride  = strides[dir];
-                    var               += factor *
-                           dissipation_term(
-                               state_ptr_ijk + ivar * state.nstride, 0, stride);
+                    const auto stride = strides[dir];
+                    var +=
+                        factor * dissipation_term(state_ptr_ijk +
+                                                      ivar * state.stride.a[2],
+                                                  0, stride);
                 }
             });
     }

@@ -22,13 +22,14 @@ KleinGordonRHS<model_t, deriv_t>::compute(
     const auto *input_ptr_ijk = input.ptr(i, j, k);
     amrex::Array1D<amrex::Real, 0, AMREX_SPACEDIM>
         d2phi{}; // no cross second order derivatives needed
-    amrex::Array1D<int, 0, AMREX_SPACEDIM> strides{AMREX_D_DECL(
-        1, static_cast<int>(input.jstride), static_cast<int>(input.kstride))};
+    amrex::Array1D<int, 0, AMREX_SPACEDIM> strides{
+        AMREX_D_DECL(1, static_cast<int>(input.stride.a[0]),
+                     static_cast<int>(input.stride.a[1]))};
 
     FOR (i)
     {
-        d2phi(i) =
-            m_deriv.diff2(input_ptr_ijk + c_phi * input.nstride, 0, strides(i));
+        d2phi(i) = m_deriv.diff2(input_ptr_ijk + c_phi * input.stride.a[2], 0,
+                                 strides(i));
     }
 
     rhs_equation(input.cellData(i, j, k), output.cellData(i, j, k), d2phi);
@@ -41,12 +42,14 @@ KleinGordonRHS<model_t, deriv_t>::compute(
     {
 
         phi_dissipation +=
-            m_sigma * m_deriv.dissipation_term(
-                          input_ptr_ijk + c_phi * input.nstride, 0, strides(i));
+            m_sigma *
+            m_deriv.dissipation_term(input_ptr_ijk + c_phi * input.stride.a[2],
+                                     0, strides(i));
 
         Pi_dissipation +=
-            m_sigma * m_deriv.dissipation_term(
-                          input_ptr_ijk + c_Pi * input.nstride, 0, strides(i));
+            m_sigma *
+            m_deriv.dissipation_term(input_ptr_ijk + c_Pi * input.stride.a[2],
+                                     0, strides(i));
     }
 
     output.cellData(i, j, k)[c_phi] += phi_dissipation;
