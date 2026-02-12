@@ -11,7 +11,6 @@ inline MPIContext::MPIContext() : m_query(comm_size()), m_answer(comm_size()) {}
 inline int MPIContext::queryCount(int rank) { return m_query.count(rank); }
 
 inline int MPIContext::totalQueryCount() { return m_query.totalCount(); }
-
 inline int MPIContext::answerCount(int rank) { return m_answer.count(rank); }
 
 inline int MPIContext::totalAnswerCount() { return m_answer.totalCount(); }
@@ -26,24 +25,24 @@ inline int MPIContext::answerDispl(int rank)
     return m_answer.displ(rank);
 } // where in the receive buffer the ranks' data starts
 
-inline void MPIContext::setQueryCount(int rank, int count)
+inline void MPIContext::setAnswerCount(int rank, int count)
 {
     AMREX_ASSERT(!m_async_active);
-    m_query.setCount(rank, count);
+    m_answer.setCount(rank, count);
 }
 
 // m_query is how many things I want to send the rank in the arg. So I need to
 // make a space for it!
-inline void MPIContext::incrementQueryCount(int rank)
+inline void MPIContext::incrementAnswerCount(int rank)
 {
     AMREX_ASSERT(!m_async_active);
-    m_query.incrementCount(rank);
+    m_answer.incrementCount(rank);
 }
 
-inline void MPIContext::clearQueryCounts()
+inline void MPIContext::clearAnswerCounts()
 {
     AMREX_ASSERT(!m_async_active);
-    m_query.clearCounts();
+    m_answer.clearCounts();
 }
 
 // set up the exchange of points between all the ranks
@@ -55,12 +54,12 @@ inline void MPIContext::exchangeLayout()
 {
     AMREX_ASSERT(!m_async_active);
 #ifdef AMREX_USE_MPI
-    MPI_Alltoall(m_query.countsPtr(), 1, MPI_INT, m_answer.countsPtr(), 1,
+    MPI_Alltoall(m_answer.countsPtr(), 1, MPI_INT, m_query.countsPtr(), 1,
                  MPI_INT, amrex::ParallelDescriptor::Communicator());
 #else
-    *m_answer.countsPtr() = *m_query.countsPtr();
+    *m_query.countsPtr() = *m_answer.countsPtr();
 #endif
-    m_answer.updateDirty();
+    m_query.updateDirty();
 }
 
 #ifdef AMREX_USE_MPI
@@ -68,25 +67,6 @@ inline void MPIContext::asyncBegin()
 {
     AMREX_ASSERT(!m_async_active);
     m_async_active = true;
-}
-
-inline void MPIContext::asyncExchangeQuery(void *sendbuf, void *recvbuf,
-                                           MPI_Datatype type)
-{
-    AMREX_ASSERT(m_async_active);
-    MPI_Request req = 0;
-    m_mpi_requests.push_back(req);
-
-#if MPI_VERSION >= 3
-    MPI_Ialltoallv(sendbuf, m_query.countsPtr(), m_query.displsPtr(), type,
-                   recvbuf, m_answer.countsPtr(), m_answer.displsPtr(), type,
-                   amrex::ParallelDescriptor::Communicator(),
-                   &m_mpi_requests.back());
-#else
-    MPI_Alltoallv(sendbuf, m_query.countsPtr(), m_query.displsPtr(), type,
-                  recvbuf, m_answer.countsPtr(), m_answer.displsPtr(), type,
-                  amrex::ParallelDescriptor::Communicator());
-#endif
 }
 
 inline void MPIContext::asyncExchangeAnswer(void *sendbuf, void *recvbuf,

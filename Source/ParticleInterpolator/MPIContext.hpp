@@ -34,17 +34,15 @@ class MPIContext
     inline int answerDispl(int rank);
 
     // Setters
-    inline void setQueryCount(int rank, int count);
-    inline void incrementQueryCount(int rank);
-    inline void clearQueryCounts();
+    inline void setAnswerCount(int rank, int count);
+    inline void incrementAnswerCount(int rank);
+    inline void clearAnswerCounts();
 
     void exchangeLayout();
 
 #ifdef AMREX_USE_MPI
     // MPI asynchronous comms
     inline void asyncBegin();
-    inline void asyncExchangeQuery(void *sendbuf, void *recvbuf,
-                                   MPI_Datatype type);
     inline void asyncExchangeAnswer(void *sendbuf, void *recvbuf,
                                     MPI_Datatype type);
     inline void asyncEnd();

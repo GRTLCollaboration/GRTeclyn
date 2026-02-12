@@ -388,7 +388,7 @@ void ParticleInterpolator<num_components>::prepare_send_buffers()
 {
     const int nprocs = amrex::ParallelDescriptor::NProcs();
 
-    m_mpi.clearQueryCounts();
+    m_mpi.clearAnswerCounts();
 
     // a temporary storage vector for component values, one entry per local
     // particle
@@ -450,7 +450,7 @@ void ParticleInterpolator<num_components>::prepare_send_buffers()
                 AMREX_ASSERT(owner_rank >= 0 && owner_rank < nprocs);
 
                 // how many answers each owner rank will receive
-                m_mpi.incrementQueryCount(owner_rank);
+                m_mpi.incrementAnswerCount(owner_rank);
                 // write in
                 query_ranks[i]   = owner_rank;
                 query_indices[i] = p.id();
@@ -477,7 +477,7 @@ void ParticleInterpolator<num_components>::prepare_send_buffers()
     m_mpi.exchangeLayout();
 
     const int total_send =
-        m_mpi.totalQueryCount(); // total answers this rank will SEND
+        m_mpi.totalAnswerCount(); // total answers this rank will SEND
 
     m_answer_idx.resize(total_send); // resize the index array I will send back
     m_answer_data.resize(
@@ -490,7 +490,7 @@ void ParticleInterpolator<num_components>::prepare_send_buffers()
         m_answer_data[k].assign(total_send, 0.0); // initialize to zero here
     }
 
-    const int mpi_procs = MPIContext::comm_size();
+    const int mpi_procs = m_mpi.comm_size();
     std::vector<int> rank_counter(mpi_procs,
                                   0); // to keep track of how many answers I
                                       // have packed for destination rank r
@@ -502,7 +502,7 @@ void ParticleInterpolator<num_components>::prepare_send_buffers()
 
         // idx = start of send buffer + how many items I have packaged already
         const int idx =
-            m_mpi.queryDispl(owner_rank) + rank_counter[owner_rank]++;
+            m_mpi.answerDispl(owner_rank) + rank_counter[owner_rank]++;
 
         m_answer_idx[idx] = query_indices[iquery];
 
@@ -517,7 +517,7 @@ void ParticleInterpolator<num_components>::prepare_send_buffers()
 template <int num_components>
 void ParticleInterpolator<num_components>::prepare_receive_buffers()
 {
-    const int total_recv = m_mpi.totalAnswerCount();
+    const int total_recv = m_mpi.totalQueryCount();
 
     // resize recv buffers (m_query_*) to what THIS rank will receive
     m_query_idx.resize(total_recv);
@@ -537,7 +537,7 @@ void ParticleInterpolator<num_components>::exchange_answers()
     m_mpi.asyncBegin();
 
     // exchange indices
-    m_mpi.asyncExchangeQuery(m_answer_idx.data(), m_query_idx.data(), MPI_INT);
+    m_mpi.asyncExchangeAnswer(m_answer_idx.data(), m_query_idx.data(), MPI_INT);
 
     // exchange values for each component
     MPI_Datatype mpi_real =
@@ -545,8 +545,8 @@ void ParticleInterpolator<num_components>::exchange_answers()
 
     for (int k = 0; k < num_components; ++k)
     {
-        m_mpi.asyncExchangeQuery(m_answer_data[k].data(),
-                                 m_query_data[k].data(), mpi_real);
+        m_mpi.asyncExchangeAnswer(m_answer_data[k].data(),
+                                  m_query_data[k].data(), mpi_real);
     }
 
     m_mpi.asyncEnd();
@@ -567,7 +567,7 @@ void ParticleInterpolator<num_components>::apply_parity_and_store_values()
     int start_comp = get_start_comp();
 
     const int num_points = static_cast<int>(query.numPoints());
-    const int total_recv = m_mpi.totalAnswerCount();
+    const int total_recv = m_mpi.totalQueryCount();
 
     // Build a mapping between query index ip and position i in
     // m_query_data[?][i]
