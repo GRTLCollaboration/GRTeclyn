@@ -15,6 +15,8 @@ constexpr int GR_SPACEDIM = 3;
 #define DEFAULT_TENSOR_DIM AMREX_SPACEDIM
 #endif
 
+// NOLINTBEGIN(cppcoreguidelines-macro-usage)
+
 // A function to return the right index for the tensors based on the
 // ordering below 0: T11, 1: T12, 2: T13, 3: T22, 4: T23, 5: T33
 #define VAR_IDX(ivar, i, j) ((ivar) + (i) + (j) + (((i) * (j) != 0) ? 1 : 0))
@@ -22,7 +24,6 @@ constexpr int GR_SPACEDIM = 3;
 // A version for where the base reference for the tensor is 0
 #define VAR_IDX0(i, j) VAR_IDX(0, (i), (j))
 
-// NOLINTBEGIN(cppcoreguidelines-macro-usage)
 // Fancy 'for' loop macros to iterate through spatial tensors
 // use as "FOR(i, j) { ... }"
 #define FOR1(IDX) for (int(IDX) = 0; (IDX) < DEFAULT_TENSOR_DIM; ++(IDX))

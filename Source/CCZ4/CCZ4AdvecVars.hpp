@@ -26,7 +26,8 @@ class CCZ4AdvecVars
         }
 
         // Calculate the advec quantities for all vars
-        m_advec_state = a_deriv.advec_state(ix, iy, iz, state, m_shift_vector);
+        m_advec_state = a_deriv.advec_state<NUM_CCZ4_VARS>(ix, iy, iz, state,
+                                                           m_shift_vector);
     }
     // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 

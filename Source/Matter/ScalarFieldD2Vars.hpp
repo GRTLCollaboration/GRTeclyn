@@ -15,9 +15,10 @@
 class ScalarFieldD2Vars : public CCZ4D2Vars
 {
   public:
-    AMREX_GPU_DEVICE inline ScalarFieldD2Vars(
-        int ix, int iy, int iz, const amrex::Array4<const amrex::Real> &state,
-        const FourthOrderDerivatives &a_deriv)
+    AMREX_GPU_DEVICE
+    ScalarFieldD2Vars(int ix, int iy, int iz,
+                      const amrex::Array4<const amrex::Real> &state,
+                      const FourthOrderDerivatives &a_deriv)
         : CCZ4D2Vars(ix, iy, iz, state, a_deriv)
     {
         // Calculate the d2 quantities for all vars needed for RHS

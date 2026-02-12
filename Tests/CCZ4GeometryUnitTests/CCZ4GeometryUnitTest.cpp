@@ -26,6 +26,7 @@
 #include "DimensionDefinitions.hpp"
 #include "Tensor.hpp"
 
+// NOLINTBEGIN(readability-function-cognitive-complexity)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 compute_ccz4_test_geometry(const amrex::Array4<amrex::Real> &a_array,
                            const amrex::IntVect &a_iv,
@@ -87,7 +88,6 @@ compute_ccz4_test_geometry(const amrex::Array4<amrex::Real> &a_array,
     a_geometry_array(a_iv, vars_counter) = ricciZ.scalar;
 }
 
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void run_ccz4_geometry_unit_tests()
 {
 
@@ -165,3 +165,5 @@ void run_ccz4_geometry_unit_tests()
     }
     amrex::Finalize();
 }
+
+// NOLINTEND(readability-function-cognitive-complexity)

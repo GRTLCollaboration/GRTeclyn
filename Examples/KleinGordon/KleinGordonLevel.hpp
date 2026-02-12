@@ -5,7 +5,6 @@
 #include "DerivedVariables.hpp"
 #include "GRAMRLevel.hpp"
 #include "KleinGordonRHS.hpp"
-#include "VarsTools.hpp"
 
 class KleinGordonLevel : public GRAMRLevel
 {

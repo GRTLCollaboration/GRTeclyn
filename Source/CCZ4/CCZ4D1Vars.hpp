@@ -19,7 +19,7 @@ class CCZ4D1Vars
                                 const amrex::Array4<const amrex::Real> &state,
                                 const FourthOrderDerivatives &a_deriv)
     {
-        m_d1_state = a_deriv.diff1_state(ix, iy, iz, state);
+        m_d1_state = a_deriv.diff1_state<NUM_CCZ4_VARS>(ix, iy, iz, state);
     }
 
     // empty constructor used for tests

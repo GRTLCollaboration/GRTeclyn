@@ -9,7 +9,6 @@
 
 // GRTeclyn includes
 #include "Coordinates.hpp"
-#include "VarsTools.hpp"
 
 // KleinGordon includes
 #include "KleinGordonRHS.hpp"
