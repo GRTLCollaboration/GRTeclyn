@@ -41,8 +41,7 @@ inline void MPILayout::setCount(int rank, int count)
     m_dirty        = true;
 }
 
-// increment by one the number of points for a rank (need to make space when
-// receive points)
+// increment by one the number of points for a rank
 inline void MPILayout::incrementCount(int rank)
 {
     AMREX_ASSERT(rank < m_num_process);

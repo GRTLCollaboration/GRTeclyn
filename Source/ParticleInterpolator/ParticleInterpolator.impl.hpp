@@ -443,17 +443,19 @@ void ParticleInterpolator<num_components>::prepare_send_buffers()
             for (int i = 0; i < num_particles; ++i)
             {
                 const auto &p        = particle_aos_h[i];
-                const int owner_rank = static_cast<int>(
-                    p.cpu()); // this is the rank that owns the query, so it
+                const int query_rank = static_cast<int>(
+                    p.cpu()); // this is the rank that has a query, so it
                               // should receive its value
 
-                AMREX_ASSERT(owner_rank >= 0 && owner_rank < nprocs);
+                AMREX_ASSERT(query_rank >= 0 && query_rank < nprocs);
 
-                // how many answers each owner rank will receive
-                m_mpi.incrementAnswerCount(owner_rank);
+                // how many answers each quering rank will receive
+                m_mpi.incrementAnswerCount(query_rank);
                 // write in
-                query_ranks[i]   = owner_rank;
-                query_indices[i] = p.id();
+                query_ranks[i] = query_rank;
+                query_indices[i] =
+                    p.id(); // need particle identifier to know which particle
+                            // the interpolated value corresponds to
 
                 // cache component values
                 for (int k = 0; k < num_components; ++k)
@@ -473,15 +475,15 @@ void ParticleInterpolator<num_components>::prepare_send_buffers()
         }
     }
 
-    // build a global MPI communication layout
+    // build a global MPI communication layout: once again answers are sending
+    // buffers, queries are receiving buffers
     m_mpi.exchangeLayout();
 
-    const int total_send =
-        m_mpi.totalAnswerCount(); // total answers this rank will SEND
+    const int total_send = m_mpi.totalAnswerCount(); // total answers/sends
 
-    m_answer_idx.resize(total_send); // resize the index array I will send back
+    m_answer_idx.resize(total_send); // resize the index array I will send
     m_answer_data.resize(
-        num_components); // resize the component data array I will send back
+        num_components); // resize the component data array I will send
 
     // but my m_answer data is in fact
     // m_answer_data[num_components][total_send]
@@ -498,11 +500,11 @@ void ParticleInterpolator<num_components>::prepare_send_buffers()
     // Pack the cached data into the flat answer arrays according to MPI layout
     for (int iquery = 0; iquery < total_send; ++iquery)
     {
-        const int owner_rank = query_ranks[iquery];
+        const int query_rank = query_ranks[iquery];
 
         // idx = start of send buffer + how many items I have packaged already
         const int idx =
-            m_mpi.answerDispl(owner_rank) + rank_counter[owner_rank]++;
+            m_mpi.answerDispl(query_rank) + rank_counter[query_rank]++;
 
         m_answer_idx[idx] = query_indices[iquery];
 

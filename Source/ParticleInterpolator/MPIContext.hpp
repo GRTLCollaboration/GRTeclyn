@@ -10,15 +10,19 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <vector>
 
-// This class sets up the MPI communication between the different ranks.
-// In particular, this is necessary because our interpolation routine allows for
-// a flexible logic, where (i) different ranks can work on (i.e. interpolate)
-// different points (ii) different ranks can own different query points This
-// means ownership and interpolation of the point may not be on the same rank.
-// For example: rank 0 wants to interpolate at point A and rank 1 at point B.
-// But: the query of point A is owned by rank 1 and point B by rank 0! (notice
-// the swap here) So, when rank 0 "queries" point B, the interpolated value
-// needs to be sent back from rank 1; and similarly for rank 1 querying point A.
+// This class sets up the MPI communication between the 'answering' and
+// 'quering' ranks. In particular, this is necessary because our interpolation
+// routine allows for a flexible logic, where (i) 'answering' ranks can work on
+// (i.e. interpolate) different points (ii) 'quering' ranks can ask for some
+// different sets of points. This means that asking for a point or interpolating
+// a point may happen on DIFFERENT ranks. For example: rank 0 wants to
+// interpolate at point A and rank 1 at point B. But: the query of point A
+// happens on rank 1 and of point B on rank 0! (notice the swap here) So, when
+// rank 0 "queries" point B, the interpolated value needs to be sent back from
+// rank 1; and similarly for point A.
+
+// Our philosophy here is therefore -- answering ranks are sending stuff whilst
+// quering ranks are receiving stuff.
 
 class MPIContext
 {
@@ -53,10 +57,9 @@ class MPIContext
     static int comm_rank();
 
   private:
-    MPILayout m_query; // how many things this ranks wants to receive from each
-                       // other rank
-    MPILayout
-        m_answer; // how many things this rank wants to send to each other rank
+    MPILayout m_query;  // things this ranks wants to receive from each
+                        // other rank
+    MPILayout m_answer; // things this rank wants to send to each other rank
 
     bool m_async_active{false};
 #ifdef AMREX_USE_MPI

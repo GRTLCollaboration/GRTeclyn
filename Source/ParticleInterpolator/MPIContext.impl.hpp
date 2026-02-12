@@ -18,12 +18,12 @@ inline int MPIContext::totalAnswerCount() { return m_answer.totalCount(); }
 inline int MPIContext::queryDispl(int rank)
 {
     return m_query.displ(rank);
-} // where in the send buffer the rank's data starts
+} // where in the receive buffer the rank's data starts
 
 inline int MPIContext::answerDispl(int rank)
 {
     return m_answer.displ(rank);
-} // where in the receive buffer the ranks' data starts
+} // where in the sending buffer the ranks' data starts
 
 inline void MPIContext::setAnswerCount(int rank, int count)
 {
@@ -31,8 +31,7 @@ inline void MPIContext::setAnswerCount(int rank, int count)
     m_answer.setCount(rank, count);
 }
 
-// m_query is how many things I want to send the rank in the arg. So I need to
-// make a space for it!
+// how many things I want to send the rank in the arg
 inline void MPIContext::incrementAnswerCount(int rank)
 {
     AMREX_ASSERT(!m_async_active);
@@ -46,8 +45,8 @@ inline void MPIContext::clearAnswerCounts()
 }
 
 // set up the exchange of points between all the ranks
-// m_query is how many things I want to send to each rank
-// m_answer is how many things I will receive from each rank
+// m_query is things I want to receive
+// m_answer is things I will send
 // see also here:
 // (https://www.mpich.org/static/docs/v3.1/www3/MPI_Alltoall.html)
 inline void MPIContext::exchangeLayout()

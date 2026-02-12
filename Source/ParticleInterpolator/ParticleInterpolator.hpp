@@ -59,11 +59,11 @@ class ParticleInterpolator
     // mpi stuff
     MPIContext m_mpi;
 
-    std::vector<int> m_answer_idx; // indices of the answers
+    std::vector<int> m_answer_idx; // indices of the answers (send buffers)
     std::vector<std::vector<double>>
-        m_answer_data; // data buffers on the answering rank
+        m_answer_data; // send buffers on the answering rank
 
-    std::vector<int> m_query_idx; // indices of query
+    std::vector<int> m_query_idx; // indices of query (receiving buffers)
     std::vector<std::vector<double>>
         m_query_data; // receive buffers on the query rank
 
