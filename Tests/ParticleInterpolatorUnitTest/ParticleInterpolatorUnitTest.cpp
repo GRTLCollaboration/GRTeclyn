@@ -99,7 +99,6 @@ void run_particle_interpolator_test()
         }
         const int start =
             myproc * base + std::min(myproc, remainder); // global start index
-        const int end = start + n_local;
 
         // Allocate vectors for writing
         std::vector<double> A_local(n_local); // for storing derived polynomial

@@ -3,10 +3,10 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#ifndef MPICONTEXT_HPP_
-#define MPICONTEXT_HPP_
+#ifndef MPICONTEXTPARTICLE_HPP_
+#define MPICONTEXTPARTICLE_HPP_
 
-#include "MPILayout.hpp"
+#include "MPILayoutParticle.hpp"
 #include <AMReX_ParallelDescriptor.H>
 #include <vector>
 
@@ -24,10 +24,10 @@
 // Our philosophy here is therefore -- answering ranks are sending stuff whilst
 // quering ranks are receiving stuff.
 
-class MPIContext
+class MPIContextParticle
 {
   public:
-    MPIContext();
+    MPIContextParticle();
 
     // Getters
     inline int queryCount(int rank);
@@ -57,9 +57,10 @@ class MPIContext
     static int comm_rank();
 
   private:
-    MPILayout m_query;  // things this ranks wants to receive from each
-                        // other rank
-    MPILayout m_answer; // things this rank wants to send to each other rank
+    MPILayoutParticle m_query; // things this ranks wants to receive from each
+                               // other rank
+    MPILayoutParticle
+        m_answer; // things this rank wants to send to each other rank
 
     bool m_async_active{false};
 #ifdef AMREX_USE_MPI
@@ -67,16 +68,16 @@ class MPIContext
 #endif
 };
 
-inline int MPIContext::comm_size()
+inline int MPIContextParticle::comm_size()
 {
     return amrex::ParallelDescriptor::NProcs();
 }
 
-inline int MPIContext::comm_rank()
+inline int MPIContextParticle::comm_rank()
 {
     return amrex::ParallelDescriptor::MyProc();
 }
 
-#include "MPIContext.impl.hpp"
+#include "MPIContextParticle.impl.hpp"
 
-#endif /* MPICONTEXT_HPP_ */
+#endif /* MPICONTEXTPARTICLE_HPP_ */

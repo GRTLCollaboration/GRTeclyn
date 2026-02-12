@@ -9,7 +9,7 @@
 #include "BoundaryConditions.hpp"
 #include "GRAMR.hpp"
 #include "InterpolationQueryParticle.hpp"
-#include "MPIContext.hpp"
+#include "MPIContextParticle.hpp"
 
 // This class interpolates one variable (that may be multi-component) at
 // arbitrary coordinates provided via InterpolationQuery, using amrex particles.
@@ -57,7 +57,7 @@ class ParticleInterpolator
     int get_start_comp();
 
     // mpi stuff
-    MPIContext m_mpi;
+    MPIContextParticle m_mpi;
 
     std::vector<int> m_answer_idx; // indices of the answers (send buffers)
     std::vector<std::vector<double>>

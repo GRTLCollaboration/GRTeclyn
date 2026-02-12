@@ -3,42 +3,57 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#ifndef MPICONTEXT_IMPL_HPP_
-#define MPICONTEXT_IMPL_HPP_
+#ifndef MPICONTEXTPARTICLE_IMPL_HPP_
+#define MPICONTEXTPARTICLE_IMPL_HPP_
 
-inline MPIContext::MPIContext() : m_query(comm_size()), m_answer(comm_size()) {}
+inline MPIContextParticle::MPIContextParticle()
+    : m_query(comm_size()), m_answer(comm_size())
+{
+}
 
-inline int MPIContext::queryCount(int rank) { return m_query.count(rank); }
+inline int MPIContextParticle::queryCount(int rank)
+{
+    return m_query.count(rank);
+}
 
-inline int MPIContext::totalQueryCount() { return m_query.totalCount(); }
-inline int MPIContext::answerCount(int rank) { return m_answer.count(rank); }
+inline int MPIContextParticle::totalQueryCount()
+{
+    return m_query.totalCount();
+}
+inline int MPIContextParticle::answerCount(int rank)
+{
+    return m_answer.count(rank);
+}
 
-inline int MPIContext::totalAnswerCount() { return m_answer.totalCount(); }
+inline int MPIContextParticle::totalAnswerCount()
+{
+    return m_answer.totalCount();
+}
 
-inline int MPIContext::queryDispl(int rank)
+inline int MPIContextParticle::queryDispl(int rank)
 {
     return m_query.displ(rank);
 } // where in the receive buffer the rank's data starts
 
-inline int MPIContext::answerDispl(int rank)
+inline int MPIContextParticle::answerDispl(int rank)
 {
     return m_answer.displ(rank);
 } // where in the sending buffer the ranks' data starts
 
-inline void MPIContext::setAnswerCount(int rank, int count)
+inline void MPIContextParticle::setAnswerCount(int rank, int count)
 {
     AMREX_ASSERT(!m_async_active);
     m_answer.setCount(rank, count);
 }
 
 // how many things I want to send the rank in the arg
-inline void MPIContext::incrementAnswerCount(int rank)
+inline void MPIContextParticle::incrementAnswerCount(int rank)
 {
     AMREX_ASSERT(!m_async_active);
     m_answer.incrementCount(rank);
 }
 
-inline void MPIContext::clearAnswerCounts()
+inline void MPIContextParticle::clearAnswerCounts()
 {
     AMREX_ASSERT(!m_async_active);
     m_answer.clearCounts();
@@ -49,7 +64,7 @@ inline void MPIContext::clearAnswerCounts()
 // m_answer is things I will send
 // see also here:
 // (https://www.mpich.org/static/docs/v3.1/www3/MPI_Alltoall.html)
-inline void MPIContext::exchangeLayout()
+inline void MPIContextParticle::exchangeLayout()
 {
     AMREX_ASSERT(!m_async_active);
 #ifdef AMREX_USE_MPI
@@ -62,14 +77,15 @@ inline void MPIContext::exchangeLayout()
 }
 
 #ifdef AMREX_USE_MPI
-inline void MPIContext::asyncBegin()
+inline void MPIContextParticle::asyncBegin()
 {
     AMREX_ASSERT(!m_async_active);
     m_async_active = true;
 }
 
-inline void MPIContext::asyncExchangeAnswer(void *sendbuf, void *recvbuf,
-                                            MPI_Datatype type)
+inline void MPIContextParticle::asyncExchangeAnswer(void *sendbuf,
+                                                    void *recvbuf,
+                                                    MPI_Datatype type)
 {
     AMREX_ASSERT(m_async_active);
     MPI_Request req = 0;
@@ -87,7 +103,7 @@ inline void MPIContext::asyncExchangeAnswer(void *sendbuf, void *recvbuf,
 #endif
 }
 
-inline void MPIContext::asyncEnd()
+inline void MPIContextParticle::asyncEnd()
 {
     AMREX_ASSERT(m_async_active);
     m_async_active = false;
@@ -102,4 +118,4 @@ inline void MPIContext::asyncEnd()
 }
 #endif /* ifdef AMREX_USE_MPI */
 
-#endif /* MPICONTEXT_IMPL_HPP_ */
+#endif /* MPICONTEXTPARTICLE_IMPL_HPP_ */

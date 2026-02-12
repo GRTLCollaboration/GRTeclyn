@@ -3,8 +3,8 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#ifndef MPILAYOUT_HPP_
-#define MPILAYOUT_HPP_
+#ifndef MPILAYOUTPARTICLE_HPP_
+#define MPILAYOUTPARTICLE_HPP_
 
 #include <vector>
 
@@ -16,7 +16,7 @@
 // i.e. how many points it stores and where each rank's chunk starts in a flat
 // buffer.
 
-class MPILayout
+class MPILayoutParticle
 {
 
   public:
@@ -31,9 +31,9 @@ class MPILayout
     inline void clearCounts();
 
   private:
-    friend class MPIContext;
+    friend class MPIContextParticle;
 
-    MPILayout(int num_process);
+    MPILayoutParticle(int num_process);
 
     int m_num_process;         // number of processes/ranks
     std::vector<int> m_counts; // how many items/points per rank
@@ -48,6 +48,6 @@ class MPILayout
     inline int *displsPtr();
 };
 
-#include "MPILayout.impl.hpp"
+#include "MPILayoutParticle.impl.hpp"
 
-#endif /* MPILAYOUT_HPP_ */
+#endif /* MPILAYOUTPARTICLE_HPP_ */

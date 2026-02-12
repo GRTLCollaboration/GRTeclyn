@@ -29,7 +29,7 @@ void ParticleInterpolator<num_components>::setup(
     bool a_verbosity)
 {
     // is GRAMR properly set?
-    AMREX_ASSERT(gr_amr_ptr != nullptr);
+    AMREX_ASSERT(gramr_ptr != nullptr);
     m_gramr_ptr = gramr_ptr;
     m_bc_params = a_bc_params;
     m_verbosity = a_verbosity;
@@ -156,7 +156,7 @@ void ParticleInterpolator<num_components>::populate_from_query()
     };
 
     // Run a check on coords you are interpolating on
-    for (int i = 0; i < query.m_num_points; ++i)
+    for (int i = 0; i < int(query.m_num_points); ++i)
     {
         amrex::GpuArray<double, AMREX_SPACEDIM> coords;
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
@@ -333,9 +333,6 @@ void ParticleInterpolator<num_components>::interp(
     // comps
     else if (variable_type == VariableType::derived)
     {
-        const int nlevs = m_gramr_ptr->finestLevel() + 1;
-        AMREX_ASSERT((int)a_derived_mf_vect.size() == nlevs);
-
         auto out_derived =
             m_gramr_ptr->derive(name_derived, time_derived, num_ghosts);
         amrex::Vector<amrex::MultiFab *> derived_mf_vect;
