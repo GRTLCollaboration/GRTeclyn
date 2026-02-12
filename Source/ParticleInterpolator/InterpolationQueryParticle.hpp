@@ -7,6 +7,7 @@
 #define INTERPOLATIONQUERYPARTICLE_HPP_
 
 // Other includes
+#include "BCParity.hpp"
 #include "Derivative.hpp"
 #include "VariableType.hpp"
 #include <AMReX_Gpu.H>
@@ -23,7 +24,9 @@ class InterpolationQueryParticle
     {
         int comp;
         amrex::ParticleReal *out_data_ptr;
-        VariableType variable_type; // state or derived?
+        BCParity parity{
+            BCParity::undefined}; // default parity is undefined, but should be
+                                  // set for diagnostic variables
     };
 
     using comp_map_t = std::map<Derivative, std::vector<out_t>>;
@@ -36,6 +39,10 @@ class InterpolationQueryParticle
     size_t m_num_points;
     std::array<const double *, AMREX_SPACEDIM> m_coords;
     comp_map_t m_comps;
+    VariableType m_variable_type; // for a given InterpolationQueryParticle the
+                                  // varibale type must be the same!
+    bool m_variable_type_set =
+        false; // flag to check whether var type has been set
 
   public:
     InterpolationQueryParticle(int num_points)
@@ -59,10 +66,32 @@ class InterpolationQueryParticle
 
     InterpolationQueryParticle &
     addComp(int comp, double *out_ptr,
-            const Derivative &deriv    = Derivative::LOCAL,
-            VariableType variable_type = VariableType::state)
+            VariableType variable_type = VariableType::state,
+            BCParity parity            = BCParity::undefined,
+            const Derivative &deriv    = Derivative::LOCAL)
     {
         AMREX_ASSERT(out_ptr != NULL || m_num_points == 0);
+
+        if (!m_variable_type_set)
+        {
+            m_variable_type = variable_type; // first comp sets var type here
+            m_variable_type_set = true;
+        }
+        else
+        {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                m_variable_type == variable_type,
+                "InterpolationQueryParticle::addComp(): VariableType mismatch "
+                "across comps");
+        }
+
+        if (variable_type == VariableType::derived &&
+            parity == BCParity::undefined)
+        {
+            amrex::Abort("InterpolationQueryParticle::addComp(): Parity has "
+                         "not been defined! You should set it appropriately "
+                         "for diagnostic variables!");
+        }
 
         // for now we do not allow derivatives
         for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
@@ -84,14 +113,23 @@ class InterpolationQueryParticle
                          .first;
         }
 
-        result->second.push_back(out_t{comp, out_ptr, variable_type});
+        result->second.push_back(out_t{comp, out_ptr, parity});
         return *this;
     }
 
     InterpolationQueryParticle &clearComps()
     {
         m_comps.clear();
+        m_variable_type_set = false; // reset the initialised var type flag
         return *this;
+    }
+
+    VariableType getVariableType() const
+    {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            m_variable_type_set, "InterpolationQueryParticle: VariableType "
+                                 "accessed before any comps were added");
+        return m_variable_type;
     }
 
     inline int numComps()

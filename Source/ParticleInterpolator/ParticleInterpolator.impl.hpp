@@ -26,7 +26,7 @@
 template <int num_components>
 void ParticleInterpolator<num_components>::setup(
     GRAMR *gramr_ptr, const BoundaryConditions::params_t &a_bc_params,
-    bool a_verbosity, const DerivedParity *parities)
+    bool a_verbosity)
 {
     // is GRAMR properly set?
     AMREX_ASSERT(gr_amr_ptr != nullptr);
@@ -54,30 +54,14 @@ void ParticleInterpolator<num_components>::setup(
 
     // get resolution on level 0
     m_coarsest_dx = geom0.CellSizeArray();
-
-    // set derived var parities if provided
-    if (parities != nullptr)
-    {
-        for (int i = 0; i < num_components; ++i)
-        {
-            set_derived_var_parity(parities[i].comp, parities[i].parity);
-        }
-    }
-}
-
-template <int num_components>
-void ParticleInterpolator<num_components>::set_derived_var_parity(int comp,
-                                                                  BCParity p)
-{
-    AMREX_ALWAYS_ASSERT(comp >= 0 && comp < num_components);
-    m_derived_bc_parity[comp] = p;
 }
 
 // a parity helper (the same way as it was defined in the AMRInterpolator)
 template <int num_components>
 int ParticleInterpolator<num_components>::get_var_parity(
     int comp, int point_idx, const InterpolationQueryParticle &query,
-    const Derivative &deriv, VariableType variable_type) const
+    const Derivative &deriv, VariableType variable_type,
+    BCParity derived_parity) const
 {
     int parity = 1;
 
@@ -101,11 +85,9 @@ int ParticleInterpolator<num_components>::get_var_parity(
             else if (variable_type == VariableType::derived)
             {
                 // if parity was not set for derived vars, print a message
-                AMREX_ALWAYS_ASSERT(m_derived_bc_parity[comp] !=
-                                    BCParity::undefined);
-                BCParity comp_parity  = m_derived_bc_parity[comp];
-                auto dir_parities     = bc_parity_map.at(comp_parity);
-                parity               *= dir_parities[dir];
+                AMREX_ALWAYS_ASSERT(derived_parity != BCParity::undefined);
+                auto dir_parities  = bc_parity_map.at(derived_parity);
+                parity            *= dir_parities[dir];
             }
             // invert parity for first derivatives
             if (deriv[dir] == 1)
@@ -194,7 +176,7 @@ void ParticleInterpolator<num_components>::populate_from_query()
 
     // coords on device
     amrex::GpuArray<amrex::Gpu::DeviceVector<double>, AMREX_SPACEDIM> coords_d;
-    amrex::GpuArray<const double *, AMREX_SPACEDIM> coords_d_ptr = query_coords;
+    amrex::GpuArray<const double *, AMREX_SPACEDIM> coords_d_ptr{};
 
     // copy coords to device vectors
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
@@ -302,8 +284,8 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
 // It uses/collates together all the methods defined in this class
 template <int num_components>
 void ParticleInterpolator<num_components>::interp(
-    InterpolationQueryParticle &query, VariableType variable_type,
-    const std::string &name_derived, double time_derived /*=0.0*/)
+    InterpolationQueryParticle &query, const std::string &name_derived,
+    double time_derived /*=0.0*/)
 {
 
     static constexpr int interp_order = 4; // 4th order Lagrange
@@ -327,6 +309,8 @@ void ParticleInterpolator<num_components>::interp(
 
     AMREX_ASSERT(m_initialized);
     ensure_redistributed();
+
+    VariableType variable_type = query.getVariableType();
 
     // Interpolate to all particles
     if (variable_type == VariableType::state)
@@ -405,7 +389,6 @@ void ParticleInterpolator<num_components>::prepare_send_buffers()
     const int nprocs = amrex::ParallelDescriptor::NProcs();
 
     m_mpi.clearQueryCounts();
-    int local_particle_counter = 0;
 
     // a temporary storage vector for component values, one entry per local
     // particle
@@ -468,7 +451,6 @@ void ParticleInterpolator<num_components>::prepare_send_buffers()
 
                 // how many answers each owner rank will receive
                 m_mpi.incrementQueryCount(owner_rank);
-                ++local_particle_counter; // count the particle in
                 // write in
                 query_ranks[i]   = owner_rank;
                 query_indices[i] = p.id();
@@ -625,12 +607,12 @@ void ParticleInterpolator<num_components>::apply_parity_and_store_values()
 
         const Derivative &dkey = deriv_it->first;
 
+        const VariableType variable_type = query.getVariableType();
+
         for (auto &entry : comps)
         {
             const int comp           = entry.comp;
             amrex::ParticleReal *out = entry.out_data_ptr;
-
-            const VariableType variable_type = entry.variable_type;
 
             const int k = comp - start_comp; // reindex from 0
             AMREX_ASSERT(k >= 0 && k < num_components);
@@ -639,8 +621,8 @@ void ParticleInterpolator<num_components>::apply_parity_and_store_values()
             {
                 const int recv_idx = mpi_mapping[ip];
 
-                int parity =
-                    get_var_parity(comp, ip, query, dkey, variable_type);
+                int parity = get_var_parity(comp, ip, query, dkey,
+                                            variable_type, entry.parity);
 
                 out[ip] = parity * m_query_data[k][recv_idx];
             }

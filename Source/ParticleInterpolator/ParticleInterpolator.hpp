@@ -45,9 +45,6 @@ class ParticleInterpolator
     bool m_particles_populated{false};
     bool m_need_redistribute{true};
 
-    std::array<BCParity, num_components> m_derived_bc_parity{
-        BCParity::undefined}; // default parity set for derived vars
-
     // dx on level 0
     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> m_coarsest_dx{};
 
@@ -74,7 +71,8 @@ class ParticleInterpolator
     int get_var_parity(int comp, int point_idx,
                        const InterpolationQueryParticle &query,
                        const Derivative &deriv,
-                       VariableType variable_type = VariableType::state) const;
+                       VariableType variable_type = VariableType::state,
+                       BCParity derived_parity    = BCParity::undefined) const;
 
     // a function to reflect a particle back into the valid domain, when
     // symmetry BCs are used
@@ -85,9 +83,6 @@ class ParticleInterpolator
     // A function to check whether the query point is inside the physical domain
     void check_domain(amrex::GpuArray<double, AMREX_SPACEDIM> &x,
                       int guard_cells = 0) const;
-
-    // helper function to set parities of derived vars per component
-    void set_derived_var_parity(int comp, BCParity p);
 
     // A helper function that aggregates all the points together from senders
     // and receivers, collects the them into out arrays and applies parity
@@ -116,18 +111,10 @@ class ParticleInterpolator
 
     ParticleInterpolator() = default; // default constructible
 
-    // A struct to set parity for derived variables
-    struct DerivedParity
-    {
-        int comp;        // component of the derived varable
-        BCParity parity; // parity to be applied
-    };
-
     // initialise everything and perform some sanity checks
     void setup(GRAMR *gramr_ptr,
                const BoundaryConditions::params_t &a_bc_params,
-               bool a_verbosity              = false,
-               const DerivedParity *parities = nullptr);
+               bool a_verbosity = false);
 
     // allocate particles at the query points
     void populate_from_query();
@@ -137,7 +124,7 @@ class ParticleInterpolator
                                  const amrex::Geometry &geom);
 
     // final interpolation routine exposed to the users
-    void interp(InterpolationQueryParticle &query, VariableType variable_type,
+    void interp(InterpolationQueryParticle &query,
                 const std::string &name_derived = "",
                 double time_derived             = 0.0);
 
