@@ -35,6 +35,6 @@ include $(src_pack)
 CEXE_sources += $(GRTECLYN_CEXE_sources)
 CEXE_headers += $(GRTECLYN_CEXE_headers)
 VPATH_LOCATIONS += $(src_dirs)
-INCLUDE_LOCATIONS += $(realpath .) $(src_dirs)
+INCLUDE_LOCATIONS += $(realpath .) $(src_dirs) $(GRTECLYN_HOME)/Tests/CCZ4RHSTest
 
 include $(GRTECLYN_HOME)/Tools/GNUMake/Make.rules
