@@ -48,6 +48,10 @@ src/visualisation/Theta/
 src/visualisation/chi/
 src/visualisation/binary_bh/
 src/visualisation/waves/
+src/visualisation/chi_y
+src/visualisation/chi_z
+src/visualisation/chi_x
+src/visualisation/K_z
 
 
 #Running scripts
