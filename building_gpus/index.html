@@ -72,11 +72,39 @@
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                <li class="toctree-l1"><a class="reference internal" href="../moving_from_grchombo/">Moving from GRChombo</a>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../moving_from_grchombo/">Moving from GRChombo</a>
+                <li class="toctree-l1"><a class="reference internal" href="../bbh_example/">Running the binary black hole example</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../sf_example/">Running the scalar field example</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../kg_example/">Testing with the Klein Gordon example</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../visualising_outputs/">Visualising outputs</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../parameters/">Parameters guide</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../initial_data/">Initial data</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../particle_interpolator/">Particle interpolator</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../ah_finder/">Apparent horizon finder</a>
                 </li>
               </ul>
               <ul>
@@ -97,6 +125,14 @@
               </ul>
               <ul>
                 <li class="toctree-l1"><a class="reference internal" href="../license_and_citation/">License and citation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../pull_requests/">Pull requests</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../coding_conventions/">Coding conventions</a>
                 </li>
               </ul>
               <ul>
@@ -127,7 +163,7 @@
             <div class="section" itemprop="articleBody">
               
                 <h1 id="building-on-gpus">Building on GPUs</h1>
-<p>Compiling GRTeclyn for GPUs is in principle very easy, but in practise can be a bit of a pain. You will probably find it useful to look at some of the specific systems examples, e.g. the one for the Cosma8 AMD MI300 GPUs <a href="https://github.com/GRTLCollaboration/GRTeclyn/wiki/Example-system-setups-and-jobscripts#cosma8-gpu-partition">here</a>.</p>
+<p>Compiling GRTeclyn for GPUs is in principle very easy, but in practise can be a bit of a pain. You will probably find it useful to look at some of the specific systems examples, e.g. the one for the Cosma8 AMD MI300 GPUs in <a href="../example_configs/">Example configs for specific HPC systems</a>.</p>
 <p>The same process is followed as for CPUs, with the following changes:</p>
 <h2 id="you-need-to-install-the-right-gpu-compiler">You need to install the right GPU compiler</h2>
 <p>One of the annoying things about GPUs is that there are 3 types related to the 3 vendors (Intel, AMD and Nvidia), and since they can't agree on things (thank you capitalism :pray:) you have to be able to understand the slightly different (but essentially the same) terminology and tools from all three. </p>
@@ -154,7 +190,7 @@ AMREX_AMD_ARCH=gfx942
 </code></pre>
 <h2 id="you-need-to-run-it-differently-in-the-jobscript">You need to run it differently in the jobscript</h2>
 <p>Slurm isn't really designed for GPUs so the way you select the options in your jobscript can be a bit strange. Again it is worth asking for advice from the system admins if the documentation doesn't cover it, or looking at our example jobscripts. A usual set up is that you want to ask for one node that controls a certain number of GPUs, usually something like 8. As mentioned above, you would ideally like exclusive use of these GPUs, but if you pick a smaller number than the total number the node has that won't always be guaranteed.</p>
-<p>The really important thing to understand is that how you are doing your parallelisation is very different now. GPUs are <strong>huge and hungry</strong> and they need to be fed a lot of points to process at the same time. So your grid is going to be divided up into a much smaller number of boxes, each with a lot of cells, and each big chunk will typically be given to a <strong>single MPI process</strong> running on a <strong>single GPU</strong>. This is why you can even use a single GPU to process the whole box in one go without using MPI at all. Make sure you have read <a href="performance.md">Performance optimization</a> to understand how subdivision of the grid works, and consider whether you need to amend your params file to account for using GPUs (usually by increasing the max box size and blocking factor).  </p>
+<p>The really important thing to understand is that how you are doing your parallelisation is very different now. GPUs are <strong>huge and hungry</strong> and they need to be fed a lot of points to process at the same time. So your grid is going to be divided up into a much smaller number of boxes, each with a lot of cells, and each big chunk will typically be given to a <strong>single MPI process</strong> running on a <strong>single GPU</strong>. This is why you can even use a single GPU to process the whole box in one go without using MPI at all. Make sure you have read <a href="../performance_optimisation/">Performance optimisation</a> to understand how subdivision of the grid works, and consider whether you need to amend your params file to account for using GPUs (usually by increasing the max box size and blocking factor).  </p>
 <p>A typical command for running 8 MPI processes (which would be appropriate on a node that has 8 GPUs, and where you had 8 boxes to share out), is</p>
 <pre><code>mpirun -n 8 --exclusive ./main3d.hip.MPI.HIP.ex params.txt
 </code></pre>

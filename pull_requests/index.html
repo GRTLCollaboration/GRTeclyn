@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Pull requests - GRTeclyn</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Pull requests";
+        var mkdocs_page_input_path = "pull_requests.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> GRTeclyn
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../capabilities/">Capabilities</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../prerequisites/">Prerequisites</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../building_cpus/">Building and running on CPUs</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../building_gpus/">Building and running on GPUs</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../example_configs/">Example configs for specific HPC systems</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../moving_from_grchombo/">Moving from GRChombo</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../bbh_example/">Running the binary black hole example</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../sf_example/">Running the scalar field example</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../kg_example/">Testing with the Klein Gordon example</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../visualising_outputs/">Visualising outputs</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../parameters/">Parameters guide</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../initial_data/">Initial data</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../particle_interpolator/">Particle interpolator</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../ah_finder/">Apparent horizon finder</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../code_structure/">Code structure</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../performance_optimisation/">Performance optimisation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../convergence_testing/">Convergence testing</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../useful_resources/">Useful resources</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../license_and_citation/">License and citation</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">Pull requests</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#step-1-testing">Step 1: Testing</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#step-2-a-fresh-copy">Step 2: A fresh copy</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#step-3-compile-and-debug">Step 3: Compile and debug</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#step-4-tidy-and-comment-the-code">Step 4: Tidy and comment the code</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#step-5-create-or-amend-the-documentation">Step 5: Create or amend the documentation</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#step-6-create-a-pull-request-pr">Step 6: Create a pull request (PR)</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#step-7-review">Step 7 : Review</a>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../coding_conventions/">Coding conventions</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../contact_us/">Contact us</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">GRTeclyn</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Pull requests</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="pull-requests">Pull requests</h1>
+<p>Here we describe the rough procedure that one should follow for making changes to the code. It is not set in stone, but strongly advised as best practice.</p>
+<p>No one is too new or junior to add code to the repository, you don't need permission, but if you are unsure contact Katy or Miren for informal guidance. It may take a little time for it to be reviewed, but please always consider adding your code if you have made a nice new feature, and consider it <em>an absolute moral obligation</em> to report bugs (by creating a <a href="https://github.com/GRTeclyn/GRTeclyn/issues/new/choose">new issue</a>). Although contributing back your changes might not naively seem like the absolute best use of your time, remember that if everyone contributes back their features and modifications, this saves time for others when they need them for a project later on; this is the power of open source coding!</p>
+<h2 id="step-1-testing">Step 1: Testing</h2>
+<p>Thoroughly test your code and ensure as far as practically possible that it does not introduce any regressions. If you are pushing to a branch in this repo (see <a href="#step-2-a-fresh-copy">below</a> on how to do this), then the tests are automatically run with multiple compilers every time you push new changes, although this is not sufficient on its own to ensure correctness of your new feature and that it does not introduce regressions.  For large new features or substantial modifications, ideally one article should have been published using it before it is ready to be merged into this repository. Equally, if you have new code from a published article, please do make it public! If it was useful for you it will certainly be useful for others. GRTeclyn is open source for a reason.</p>
+<h2 id="step-2-a-fresh-copy">Step 2: A fresh copy</h2>
+<p>If your fork of the GRTeclyn repository is messy (as many of ours are) and has significant divergences from the <code>main</code> branch in this repository, it might be easiest to start with a new branch based off this <code>main</code> branch and copy in your changes incrementally to this new branch. Make sure you have fetched/pulled the latest commits from the <code>main</code> branch on GitHub before starting. When pushing to GitHub, please push to this repository rather than your own fork.</p>
+<blockquote>
+<p><strong>Note</strong>
+Contact <a href="https://github.com/KAClough/">Katy</a> or
+<a href="https://github.com/mirenradia">Miren</a> if you don't have the necessary
+permissions to push to this repository.</p>
+</blockquote>
+<p>If you have a local clone of your fork, you can add the main public "upstream" repository as a new remote repository using the command</p>
+<pre><code class="language-bash">git remote add upstream https://github.com/GRChombo/GRChombo.git
+</code></pre>
+<p>You can replace <code>upstream</code> with whatever name you prefer e.g. <code>public</code> but we shall stick with <code>upstream</code> below. Then, make sure you fetch the latest commits from this new remote using the command</p>
+<pre><code class="language-bash">git fetch upstream
+</code></pre>
+<p>Finally, to create a new branch based off upstream's <code>main</code>, you can do the two commands</p>
+<pre><code class="language-bash">git checkout upstream/main
+git branch enhancement/my_new_enhancement
+</code></pre>
+<p>Finally, once you have added and committed your changes to this new branch, you can push it to <code>upstream</code> by using the command</p>
+<pre><code class="language-bash">git push -u upstream enhancement/my_new_enhancement
+</code></pre>
+<p>This local branch will be set to track a branch of the same name in the upstream repository (rather than on your fork).</p>
+<p>Alternatively, if you don't want to have to deal with multiple remote repositories, you can clone this repository to a separate directory to your fork.</p>
+<p>It is probably useful to make your changes in several staged commits, so that you can look back through the process of what you did. For example, if you plan to add a new file and then amend it, first add the file, then commit, then amend it, then commit again. This way the commit history will show the changes you made. If you only commit after editing, the whole thing will appear as a new file, which isn't very helpful. </p>
+<p>When writing commit messages, try to follow <a href="https://cbea.ms/git-commit/">this style guide</a>. In particular, rather than
+writing one long message using a command such as</p>
+<pre><code class="language-bash">git commit -m &quot;My really really really long single-line commit message that goes on for far too long&quot;
+</code></pre>
+<p>do</p>
+<pre><code class="language-bash">git commit
+</code></pre>
+<p>which should open you into a text editor where you can separate out the short title of the commit (ideally &lt;= 50 chars) from a more detailed description in the body (this is not always necessary for small changes).</p>
+<blockquote>
+<p><strong>Note</strong>
+The default editor is usually <code>vim</code> but if
+you prefer a different editor you can change it using the command
+<code>bash
+git config --global core.editor "&lt;my preferred text editor command&gt;"</code></p>
+</blockquote>
+<p>Small commits for minor changes (e.g. fixing a single typo) should be avoided. These can be rebased or squashed into one commit using an
+interactive rebase:</p>
+<pre><code class="language-bash">git rebase -i
+</code></pre>
+<p>but if you have the code already developed, you should be able to avoid them by adding things carefully in a logical order. </p>
+<p>Having said the advice above, don't be too fussy; it's better to get the (tidy, readable) code in with a messy commit history than not add it at all.</p>
+<h2 id="step-3-compile-and-debug">Step 3: Compile and debug</h2>
+<p>Unless your code was already up-to-date with the main branch, you may now have compilation issues that you need to fix. You should add a new test for any major changes to confirm that the feature still behaves as expected and later changes don't introduce regressions. Looking at the existing tests will give you ideas on how to set these up, but ask for help if you aren't sure.</p>
+<h2 id="step-4-tidy-and-comment-the-code">Step 4: Tidy and comment the code</h2>
+<p>All new code will be held to high standards of readability. You should follow the design principles in this wiki, and the coding conventions in [[Coding conventions| Coding conventions]]. In particular you will need to ensure code is formatted using Clang Format. </p>
+<h2 id="step-5-create-or-amend-the-documentation">Step 5: Create or amend the documentation</h2>
+<p>You should also draft documentation for the wiki for any major new features that need explaining, or update the existing docs for any changes.</p>
+<p>You can view the docs locally in your browser by installing mkdocs:</p>
+<p><code>pip install mkdocs</code></p>
+<p>and then running</p>
+<p><code>mkdocs serve</code></p>
+<p>in the folder in which the index <code>mkdocs.yml</code> lives (the base folder).</p>
+<p>It should say something like <code>Serving on http://127.0.0.1:8000/</code>, and you can then open this address in your browser to view the docs as they will appear online once you push them.</p>
+<h2 id="step-6-create-a-pull-request-pr">Step 6: Create a pull request (PR)</h2>
+<p>Open a <a href="https://github.com/GRTLCollaboration/GRTeclyn/pulls">new Pull request (PR)</a> in this repository, requesting to merge code from your new branch into the <code>main</code> branch.</p>
+<p>This is a place for your new code to be reviewed by other members of the collaboration and improved prior to inclusion. The format is mostly self-explanatory, but will highlight the changes to the code you have made, and show whether the automatically run unit tests have passed. More details on GitHub pull requests are given here:
+<a href="https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests">Pull Requests</a></p>
+<p>The main thing you need to do is write some text which explains what your amendment does, why it is needed, and how you have confirmed that it works as required. You should also explain the reasoning behind any unusual approaches you may have taken.</p>
+<p>You can make the PR
+<a href="https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests#draft-pull-requests">draft</a>
+if you don't want anyone to review it yet but might appreciate constructive comments.</p>
+<h2 id="step-7-review">Step 7 : Review</h2>
+<p>The code needs to be reviewed by someone else in the collaboration, and strictly it should not be someone from the same institution as you or who has collaborated on the same project that produced the code. It needs to be someone critical who can look at it with fresh eyes and really challenge whether it is good quality code. The person you want to review it should be tagged in the PR, if in doubt tag both @mirenradia and @KAClough and we will do it or delegate.</p>
+<blockquote>
+<p>TOP TIP: Don't take the review personally! Use it as a learning experience and really engage in the discussions to make the code as good as it can be. (Respectful) creative conflict is your friend. </p>
+</blockquote>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../license_and_citation/" class="btn btn-neutral float-left" title="License and citation"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../coding_conventions/" class="btn btn-neutral float-right" title="Coding conventions">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../license_and_citation/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../coding_conventions/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
