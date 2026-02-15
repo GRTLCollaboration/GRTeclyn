@@ -1,6 +1,6 @@
 # Building on GPUs
 
-Compiling GRTeclyn for GPUs is in principle very easy, but in practise can be a bit of a pain. You will probably find it useful to look at some of the specific systems examples, e.g. the one for the Cosma8 AMD MI300 GPUs [here](https://github.com/GRTLCollaboration/GRTeclyn/wiki/Example-system-setups-and-jobscripts#cosma8-gpu-partition).
+Compiling GRTeclyn for GPUs is in principle very easy, but in practise can be a bit of a pain. You will probably find it useful to look at some of the specific systems examples, e.g. the one for the Cosma8 AMD MI300 GPUs in [Example configs for specific HPC systems](example_configs.md).
 
 The same process is followed as for CPUs, with the following changes:
 
@@ -44,7 +44,7 @@ AMREX_AMD_ARCH=gfx942
 
 Slurm isn't really designed for GPUs so the way you select the options in your jobscript can be a bit strange. Again it is worth asking for advice from the system admins if the documentation doesn't cover it, or looking at our example jobscripts. A usual set up is that you want to ask for one node that controls a certain number of GPUs, usually something like 8. As mentioned above, you would ideally like exclusive use of these GPUs, but if you pick a smaller number than the total number the node has that won't always be guaranteed.
 
-The really important thing to understand is that how you are doing your parallelisation is very different now. GPUs are **huge and hungry** and they need to be fed a lot of points to process at the same time. So your grid is going to be divided up into a much smaller number of boxes, each with a lot of cells, and each big chunk will typically be given to a **single MPI process** running on a **single GPU**. This is why you can even use a single GPU to process the whole box in one go without using MPI at all. Make sure you have read [Performance optimization](performance.md) to understand how subdivision of the grid works, and consider whether you need to amend your params file to account for using GPUs (usually by increasing the max box size and blocking factor).  
+The really important thing to understand is that how you are doing your parallelisation is very different now. GPUs are **huge and hungry** and they need to be fed a lot of points to process at the same time. So your grid is going to be divided up into a much smaller number of boxes, each with a lot of cells, and each big chunk will typically be given to a **single MPI process** running on a **single GPU**. This is why you can even use a single GPU to process the whole box in one go without using MPI at all. Make sure you have read [Performance optimisation](performance_optimisation.md) to understand how subdivision of the grid works, and consider whether you need to amend your params file to account for using GPUs (usually by increasing the max box size and blocking factor).  
 
 A typical command for running 8 MPI processes (which would be appropriate on a node that has 8 GPUs, and where you had 8 boxes to share out), is
 

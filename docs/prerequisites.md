@@ -81,9 +81,3 @@ export AMREX_HOME=/path/to/amrex
 ```
 (and you probably want to add this to your `.bashrc` file in your home directory too so it is run automatically when you log into the cluster you are using).
 
----
-
-## Setup the pre-commit hook
-We like to maintain a certain format to our coding style for uniformity and correctness which is enforced by `clang-format`. This can be checked within your editor and should be checked again when committing new code to the repository. Please see this [page](https://github.com/GRTLCollaboration/GRTeclyn/wiki/Using-Clang-Format) for more details on how to install `clang-format` and 'pre-commit'.
-
-The pre-commit hook protects us from writing badly formatted code and should be installed whenever you are working on a new system.

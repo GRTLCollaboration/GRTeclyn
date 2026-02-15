@@ -6,16 +6,21 @@ nav:
   - Building and running on CPUs: building_cpus.md
   - Building and running on GPUs: building_gpus.md
   - Example configs for specific HPC systems: example_configs.md
-  - Examples: examples.md
   - Moving from GRChombo: moving_from_grchombo.md
+  - Running the binary black hole example: bbh_example.md
+  - Running the scalar field example: sf_example.md
+  - Testing with the Klein Gordon example: kg_example.md
+  - Visualising outputs: visualising_outputs.md
+  - Parameters guide: parameters.md
+  - Initial data: initial_data.md
+  - Particle interpolator: particle_interpolator.md
+  - Apparent horizon finder: ah_finder.md
   - Code structure: code_structure.md
-#  - Visualizations: viz.md
   - Performance optimisation: performance_optimisation.md
   - Convergence testing: convergence_testing.md
   - Useful resources: useful_resources.md
   - License and citation: license_and_citation.md
-#  - Pull requests:
-#  - Updating the wiki:
-#  - Coding conventions:
+  - Pull requests: pull_requests.md
+  - Coding conventions: coding_conventions.md
   - Contact us: contact_us.md
 theme: readthedocs

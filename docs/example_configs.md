@@ -1,8 +1,8 @@
-# Working on HPC systems
+# Example configs for specific HPC systems
 
 In general you should start with an example hybrid MPI/OpenMP or GPU jobscript from your cluster documentation, and adapt it for your GRChombo run.
 
-However, some example jobs for systems we often use are collected here - to be copied at your own risk!
+However, some example jobs for systems we often use are collected here, along with the `make.local-pre` setup and some helpful tips - to be copied at your own risk!
 
 ---
 
