@@ -165,7 +165,7 @@ class AMReXParameters
             pout_path += "/";
         }
 #endif
-#if 0
+#if 0 
         if (!hdf5_path.empty() && hdf5_path.back() != '/')
             hdf5_path += "/";
 #endif

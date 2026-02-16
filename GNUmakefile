@@ -48,10 +48,10 @@ clean-testsdir:
 	$(ECHO)$(MAKE) -C $(TestsDir) --no-print-directory clean
 
 $(CleanExampleDirs):
-	$(ECHO)$(MAKE) -C $(@:clean-%=%) --no-print-directory clean
+	$(ECHO)$(MAKE) -C $(@:clean-%=%) --no-print-directory clean 
 
 $(CleanConfigTestsDir):
-	$(ECHO)$(MAKE) -C $(@:cleanconfig-%=%) --no-print-directory cleanconfig
+	$(ECHO)$(MAKE) -C $(@:cleanconfig-%=%) --no-print-directory cleanconfig 
 
 $(CleanConfigExampleDirs):
-	$(ECHO)$(MAKE) -C $(@:cleanconfig-%=%) --no-print-directory cleanconfig
+	$(ECHO)$(MAKE) -C $(@:cleanconfig-%=%) --no-print-directory cleanconfig 
