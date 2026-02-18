@@ -1,0 +1,154 @@
+#################################################
+# Filesystem parameters
+
+verbosity = 1
+
+output_path = "/home/jovyan/nachevsky/test/simulation/data_2gpu"
+amr.check_file = "/home/jovyan/nachevsky/test/simulation/data_2gpu/WormholeChk"
+amr.plot_file  = "/home/jovyan/nachevsky/test/simulation/data_2gpu/WormholePlt"
+
+# Save often to catch the moment before the crash
+checkpoint_interval = 20
+plot_interval       = 1
+
+# Plotfile contents (AMReX keys):
+# - `amr.plot_vars` controls which *state* variables are written.
+# - `amr.derive_plot_vars` controls which *derived* variables are written.
+amr.plot_vars = chi K lapse
+# NOTE: AMReX derive variables are requested by *record name* (not component name).
+# In this codebase the record name is "Weyl4" (components: Weyl4_Re, Weyl4_Im).
+amr.derive_plot_vars = Weyl4
+
+hdf5_subpath = "hdf5"
+pout_subpath = "pout"
+data_subpath = "data"
+
+print_progress_only_to_rank_0 = 1
+
+#################################################
+# Wormhole Initial Data parameters
+
+# Unsupported two-mouth wormhole-inspired initial data (isotropic superposition):
+#   psi(x) = 1 + bA^2/(4|x-cA|^2) + bB^2/(4|x-cB|^2)
+#   chi = psi^{-4},  h_ij = δ_ij,  K = 0.
+#
+# Backward-compatible single value (used as default for A/B if *_A/_B not set):
+wormhole_throat_radius = 1.0
+#
+# Preferred explicit two-mouth settings:
+wormhole_throat_radius_A = 1.0
+wormhole_throat_radius_B = 1.0
+wormhole_centerA = 3.0 0.0 0.0
+wormhole_centerB = -3.0 0.0 0.0
+
+# IMPORTANT:
+# Your "Resolution of the Origin Singularity: Isotropic Coordinates" section
+# implies a conformally-flat spatial metric (tilde{gamma}_{ij} = delta_{ij}),
+# i.e. the legacy initialization with h_ij = δ_ij and chi(r) from psi(r).
+#
+# The nontrivial Cartesian gamma_ij option is legacy/debug only.
+wormhole_use_cartesian_gamma = 0
+
+#################################################
+# Grid parameters
+
+# Coarse grid settings
+# dx = L_full / N_full = 0.5
+L_full = 80.0
+N_full = 160
+
+# Center of the grid
+# Centered at X=0, Y=0, Z=0 (All boundaries are symmetry)
+center = 0.0 0.0 0.0
+
+# Maximum refinement levels
+max_level = 6
+
+# Frequency of regridding
+# Level:          0   1   2   3   4   5   6
+regrid_interval = 8   8   8   8   8   8   8
+regrid_threshold = 0.01
+
+max_box_size = 32
+min_box_size = 8
+
+
+#################################################
+# Boundary Conditions parameters
+
+isPeriodic = 0 0 0
+hi_boundary = 1 1 1
+# Symmetry at X=0 and Y=0 (lo_boundary 2 is symmetry)
+# Z is symmetry (2) to model only z>=0
+lo_boundary = 2 2 2
+
+nonzero_asymptotic_vars = chi h11 h22 h33 lapse
+nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
+
+#################################################
+# Evolution parameters
+
+# FIX: Smaller timestep to ensure stability
+dt_multiplier = 0.25
+stop_time = 25.0
+
+max_spatial_derivative_order = 4
+nan_check = 1
+
+# Floors
+min_chi = 1.0e-10
+min_lapse = 1.0e-10
+
+# Lapse (1+log)
+lapse_advec_coeff = 1.0
+lapse_coeff = 2.0
+lapse_power = 1.0
+
+# Shift (Gamma-driver)
+shift_advec_coeff = 0.0
+shift_Gamma_coeff = 0.75
+eta = 1.0
+
+formulation = 0
+kappa1 = 0.1
+kappa2 = 0.
+kappa3 = 1.
+covariantZ4 = 1
+
+# FIX: Increased dissipation to smooth out shocks
+sigma = 1.0
+
+puncture_tracking.enabled = 0
+calculate_constraint_norms = 1
+
+#################################################
+# Extraction parameters
+
+extraction_center = 0.0 0.0 0.0
+activate_extraction = 1
+
+num_extraction_radii = 2
+extraction_radii = 14.0 30.0
+extraction_levels = 1 0
+
+num_points_phi = 24
+num_points_theta = 37
+num_modes = 3
+modes = 2 0 \
+        2 1 \
+        2 2
+
+#################################################
+# GPU / MPI parameters
+# IMPORTANT:
+# `amrex.the_arena_init_size` is a *per-MPI-rank* (per GPU) pre-allocation.
+# If you set it too large, `nvidia-smi` will show high memory use on every GPU
+# and you can hit OOM earlier.
+#
+# Start conservative and increase only if you see fragmentation / slowdowns.
+# (20GB here is a safe default for 80GB GPUs.)
+amrex.the_arena_init_size = 20000000000
+# NOTE:
+# Set this to 0 unless your MPI build is CUDA-aware. A non-CUDA-aware MPI can
+# segfault during halo exchanges if this is enabled.
+amrex.use_gpu_aware_mpi = 0

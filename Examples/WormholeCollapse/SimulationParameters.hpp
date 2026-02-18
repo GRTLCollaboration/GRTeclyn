@@ -25,19 +25,42 @@ class SimulationParameters : public SimulationParametersBase
 
     void read_wormhole_params(GRParmParse &pp)
     {
-        // Read Wormhole specific parameters
-        pp.load("wormhole_throat_radius", wormhole_params.throat_radius, 1.0);
-        pp.load("wormhole_k_amplitude", wormhole_params.k_amplitude, 0.1);
-        pp.load("wormhole_k_width", wormhole_params.k_width, 1.0);
+        // Grid center for coordinate mapping
+        pp.load("center", wormhole_params.grid_center, center);
 
-        // Center of the wormhole
-        pp.load("center", wormhole_params.center, center);
+        // Backward-compatible single value
+        double b0_single = 1.0;
+        std::array<double, AMREX_SPACEDIM> c_single = {0.0, 0.0, 0.0};
+        pp.load("wormhole_throat_radius", b0_single, 1.0);
+        pp.load("wormhole_center", c_single,
+                std::array<double, AMREX_SPACEDIM>{2.0, 0.0, 0.0});
+
+        // Two-mouth parameters (preferred)
+        pp.load("wormhole_throat_radius_A", wormhole_params.throat_radius_A,
+                b0_single);
+        pp.load("wormhole_throat_radius_B", wormhole_params.throat_radius_B,
+                b0_single);
+        pp.load("wormhole_centerA", wormhole_params.centerA, c_single);
+
+        std::array<double, AMREX_SPACEDIM> default_centerB = {
+            -wormhole_params.centerA[0],
+            -wormhole_params.centerA[1],
+            -wormhole_params.centerA[2],
+        };
+        pp.load("wormhole_centerB", wormhole_params.centerB, default_centerB);
+
+        // Legacy/debug option
+        pp.load("wormhole_use_cartesian_gamma", wormhole_params.use_cartesian_gamma,
+                false);
     }
 
     void check_params()
     {
-        check_parameter("wormhole_throat_radius", wormhole_params.throat_radius,
-                        wormhole_params.throat_radius > 0.0,
+        check_parameter("wormhole_throat_radius_A", wormhole_params.throat_radius_A,
+                        wormhole_params.throat_radius_A > 0.0,
+                        "must be positive");
+        check_parameter("wormhole_throat_radius_B", wormhole_params.throat_radius_B,
+                        wormhole_params.throat_radius_B > 0.0,
                         "must be positive");
     }
 

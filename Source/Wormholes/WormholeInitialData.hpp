@@ -6,115 +6,139 @@
 #ifndef WORMHOLEINITIALDATA_HPP_
 #define WORMHOLEINITIALDATA_HPP_
 
-#include "CCZ4StateVariables.hpp" // For c_chi, c_h11, etc.
+#include "CCZ4StateVariables.hpp"
 #include "Cell.hpp"
 #include "Coordinates.hpp"
 #include "Tensor.hpp"
-#include "TensorAlgebra.hpp"
 #include "VarsTools.hpp"
 #include "simd.hpp"
 
-//! Class which calculates the initial data for a Morris-Thorne wormhole
+//! Initial data for an "unsupported wormhole" experiment.
+//!
+//! This class provides a conformally-flat isotropic *two-mouth* ansatz via
+//! superposition of Ellis–Bronnikov potentials:
+//!
+//!   psi(x) = 1 + bA^2/(4|x-cA|^2) + bB^2/(4|x-cB|^2),
+//!   chi = psi^{-4},  h_ij = delta_ij.
+//!
+//! The evolution system is vacuum CCZ4. Therefore, this initial slice is not in
+//! general a vacuum-constraint solution and will emit an early transient as it
+//! relaxes.
 class WormholeInitialData
 {
   public:
-    //! Structure for the input parameters
     struct params_t
     {
-        double throat_radius; // b_0
-        double k_amplitude;   // Amplitude of the Gaussian perturbation
-        double k_width;       // Width (sigma) of the Gaussian
-        std::array<double, AMREX_SPACEDIM> center;
+        // Grid center used for index->physical coordinate mapping
+        std::array<double, AMREX_SPACEDIM> grid_center;
+
+        // Mouth parameters
+        double throat_radius_A; // b_A
+        double throat_radius_B; // b_B
+        std::array<double, AMREX_SPACEDIM> centerA;
+        std::array<double, AMREX_SPACEDIM> centerB;
+
+        // Legacy/debug option: initialise a nontrivial Cartesian gamma_ij
+        // (single-throat proper-distance metric centred at the origin).
+        bool use_cartesian_gamma;
     };
 
-    //! Constructor
     WormholeInitialData(params_t a_params, double a_dx)
         : m_params(a_params), m_dx(a_dx)
     {
     }
 
-    //! Function to compute the value of all the initial vars on the grid
     template <class data_t>
-    void compute(int i, int j, int k, amrex::Array4<data_t> cell) const
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    compute(int i, int j, int k, amrex::Array4<data_t> cell) const
     {
-        // 1. Get Coordinates
-        // The grid coordinates (x,y,z) correspond to the proper distance l
         amrex::IntVect grid_index(i, j, k);
-        Coordinates<data_t> coords(grid_index, m_dx, m_params.center);
+        Coordinates coords(grid_index, m_dx, m_params.grid_center);
 
-        data_t x = coords.x;
-        data_t y = coords.y;
-        data_t z = coords.z;
+        const data_t x = coords.x;
+        const data_t y = coords.y;
+        const data_t z = coords.z;
 
-        // Calculate l^2 (proper radial distance squared)
-        // Add a tiny epsilon to avoid division by zero at the exact center
-        data_t l2 = x * x + y * y + z * z + 1e-12;
-        data_t l  = std::sqrt(l2);
+        const double bA = m_params.throat_radius_A;
+        const double bB = m_params.throat_radius_B;
+        const double bA_sq = bA * bA;
+        const double bB_sq = bB * bB;
 
-        // 2. Geometric Parameters
-        double b0    = m_params.throat_radius;
-        double b0_sq = b0 * b0;
+        // Distances to mouths
+        const data_t dxA = x - (data_t)m_params.centerA[0];
+        const data_t dyA = y - (data_t)m_params.centerA[1];
+        const data_t dzA = z - (data_t)m_params.centerA[2];
+        const data_t rA2 = dxA * dxA + dyA * dyA + dzA * dzA;
 
-        // A = b_0^2 / l^2
-        data_t A_term = b0_sq / l2;
+        const data_t dxB = x - (data_t)m_params.centerB[0];
+        const data_t dyB = y - (data_t)m_params.centerB[1];
+        const data_t dzB = z - (data_t)m_params.centerB[2];
+        const data_t rB2 = dxB * dxB + dyB * dyB + dzB * dzB;
 
-        // 3. Conformal Factor
-        // chi = (1 + b_0^2/l^2)^(-2/3)
-        data_t chi = std::pow(1.0 + A_term, -2.0 / 3.0);
+        // Regularisation to avoid division by zero at a mouth center
+        const data_t eps2 = (data_t)1.0e-24;
+        const data_t rA2_reg = simd_max(rA2, eps2);
+        const data_t rB2_reg = simd_max(rB2, eps2);
 
-        // 4. Conformal Metric \tilde{gamma}_{ij}
-        // Derived form: \tilde{gamma}_{ij} = (1+A)^{1/3} delta_{ij} -
-        // A(1+A)^{-2/3} n_i n_j Where n_i = x_i / l
+        data_t chi = 1.0;
+        data_t h11 = 1.0, h12 = 0.0, h13 = 0.0, h22 = 1.0, h23 = 0.0, h33 = 1.0;
 
-        data_t prefactor_delta = std::pow(1.0 + A_term, 1.0 / 3.0);
-        data_t prefactor_n     = A_term * chi; // A * (1+A)^(-2/3)
+        if (m_params.use_cartesian_gamma)
+        {
+            // Legacy/debug: proper-distance single-throat metric at origin
+            const data_t r0_2 = x * x + y * y + z * z;
+            const data_t ell2 = r0_2 + (data_t)m_dx * (data_t)m_dx;
+            const data_t ell  = sqrt(ell2);
 
-        // Normal vector components n_i
-        data_t nx = x / l;
-        data_t ny = y / l;
-        data_t nz = z / l;
+            const data_t fac = (data_t)bA_sq / ell2;
+            const data_t A   = 1.0 + fac;
+            const data_t nx = x / ell;
+            const data_t ny = y / ell;
+            const data_t nz = z / ell;
 
-        Tensor<2, data_t> h;
+            const data_t g11 = A - fac * nx * nx;
+            const data_t g22 = A - fac * ny * ny;
+            const data_t g33 = A - fac * nz * nz;
+            const data_t g12 = -fac * nx * ny;
+            const data_t g13 = -fac * nx * nz;
+            const data_t g23 = -fac * ny * nz;
 
-        // Diagonal
-        h[0][0] = prefactor_delta - prefactor_n * nx * nx;
-        h[1][1] = prefactor_delta - prefactor_n * ny * ny;
-        h[2][2] = prefactor_delta - prefactor_n * nz * nz;
+            // det(gamma)=A^2 (radial eigenvalue ~1) -> chi = A^{-2/3}
+            chi = pow(A, (data_t)(-2.0 / 3.0));
+            h11 = chi * g11;
+            h22 = chi * g22;
+            h33 = chi * g33;
+            h12 = chi * g12;
+            h13 = chi * g13;
+            h23 = chi * g23;
+        }
+        else
+        {
+            // Two-mouth isotropic superposition
+            const data_t termA = (data_t)bA_sq / (4.0 * rA2_reg);
+            const data_t termB = (data_t)bB_sq / (4.0 * rB2_reg);
+            const data_t psi   = 1.0 + termA + termB;
+            const data_t psi2  = psi * psi;
+            const data_t psi4  = psi2 * psi2;
+            chi = 1.0 / psi4;
+        }
 
-        // Off-diagonal
-        h[0][1] = -prefactor_n * nx * ny;
-        h[0][2] = -prefactor_n * nx * nz;
-        h[1][2] = -prefactor_n * ny * nz;
+        // Floors (avoid NaNs in evolution)
+        if (chi < (data_t)1.0e-10) chi = (data_t)1.0e-10;
 
-        // Symmetric parts
-        h[1][0] = h[0][1];
-        h[2][0] = h[0][2];
-        h[2][1] = h[1][2];
+        // Time-symmetric data: K = 0, A_ij = 0
+        const data_t K = 0.0;
+        const data_t lapse = 1.0;
 
-        // 5. Extrinsic Curvature
-        // K = K_amp * exp(-l^2 / sigma^2)
-        // A_ij (traceless part) = 0
-        data_t K = m_params.k_amplitude *
-                   exp(-l2 / (m_params.k_width * m_params.k_width));
-
-        // 6. Lapse and Shift
-        // alpha = 1, beta = 0
-        data_t lapse = 1.0;
-
-        // 7. Store variables
         cell(i, j, k, c_chi) = chi;
+        cell(i, j, k, c_h11) = h11;
+        cell(i, j, k, c_h12) = h12;
+        cell(i, j, k, c_h13) = h13;
+        cell(i, j, k, c_h22) = h22;
+        cell(i, j, k, c_h23) = h23;
+        cell(i, j, k, c_h33) = h33;
 
-        // Metric components
-        cell(i, j, k, c_h11) = h[0][0];
-        cell(i, j, k, c_h12) = h[0][1];
-        cell(i, j, k, c_h13) = h[0][2];
-        cell(i, j, k, c_h22) = h[1][1];
-        cell(i, j, k, c_h23) = h[1][2];
-        cell(i, j, k, c_h33) = h[2][2];
-
-        // Extrinsic curvature
         cell(i, j, k, c_K) = K;
-        // Traceless A_ij is zero
         cell(i, j, k, c_A11) = 0.0;
         cell(i, j, k, c_A12) = 0.0;
         cell(i, j, k, c_A13) = 0.0;
@@ -122,7 +146,6 @@ class WormholeInitialData
         cell(i, j, k, c_A23) = 0.0;
         cell(i, j, k, c_A33) = 0.0;
 
-        // Gauge variables
         cell(i, j, k, c_lapse)  = lapse;
         cell(i, j, k, c_shift1) = 0.0;
         cell(i, j, k, c_shift2) = 0.0;
@@ -131,12 +154,11 @@ class WormholeInitialData
         cell(i, j, k, c_B2)     = 0.0;
         cell(i, j, k, c_B3)     = 0.0;
 
-        // Theta (CCZ4 damping)
         cell(i, j, k, c_Theta) = 0.0;
     }
 
   protected:
-    WormholeInitialData::params_t m_params;
+    params_t m_params;
     double m_dx;
 };
 

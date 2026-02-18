@@ -1,29 +1,34 @@
 # GRTeclyn Visualization
 
-Scripts for visualizing GRTeclyn simulation results (plotfiles in BoxLib/AMReX format). All outputs are saved in this folder.
+Scripts for visualizing GRTeclyn simulation results (plotfiles in BoxLib/AMReX format).
+
+- **`visualize/`** — Field slice plots and movies. Outputs go to `src/visualisation/visualize/`.
+- **`extract_wave/`** — GW extraction from Weyl scalar \(\Psi_4\) (Weyl4) and spectra. Outputs go to `src/visualisation/extract_wave/`.
 
 ## Prerequisites
 
-1. Activate the virtual environment (from the project root):
+1. Install dependencies (from the project root):
 
    ```bash
-   source .venv/bin/activate
+   uv sync
+   # or: source .venv/bin/activate && pip install -e .
    ```
 
-2. Required Python packages: `yt`, `numpy`, `matplotlib` (installed via `pyproject.toml`).  
-   Optional for MPI: `pip install mpi4py`
+2. Required packages: `yt`, `numpy`, `matplotlib`, `scipy` (from `pyproject.toml`).
+   Optional for MPI: `uv sync --extra mpi` or `pip install mpi4py`
 
 3. For animations: `ffmpeg` must be installed.
 
-4. Simulation data: plotfiles (`plt*` folders) in the default location `../data` relative to the project root, or pass `--data` to override.
+4. Simulation data: plotfiles (`plt*` folders) in the default location `../data` relative to the project root.
+   If your simulation writes somewhere else (e.g. `output_path = ".../data_2gpu"` in `params_2gpu.txt`), pass `--data` to point to that folder.
 
 ---
 
 ## Scripts
 
-### 1. `visualize.py` — Main field visualization
+### 1. `visualize/` — Main field visualization
 
-Plots slice views of GR fields. You can choose the slice plane (axis and coordinate). Supports multiple fields and can create MP4 animations.
+Plots slice views of GR fields. You can choose the slice plane (axis and coordinate). Supports multiple fields and can create MP4 animations. Outputs to `src/visualisation/visualize/` by default.
 
 **Available fields:**
 
@@ -33,7 +38,10 @@ Plots slice views of GR fields. You can choose the slice plane (axis and coordin
 | `K`        | Trace of extrinsic curvature         |
 | `Theta`    | Z4 constraint                        |
 | `lapse`    | Lapse (alpha)                        |
-| `Weyl4_Re` | Gravitational waves (Re Psi4)        |
+| `Ham`      | Hamiltonian constraint               |
+| `A11`, `A12`, `A22`, `A33` | Extrinsic curvature components |
+| `GW_Plus`  | GW strain proxy (+): A11 − A22       |
+| `GW_Cross` | GW strain proxy (×): 2 A12            |
 
 **Understanding the variables**
 
@@ -80,10 +88,14 @@ Numerical relativity (like GRTeclyn) treats the universe as a "stack" of 3D snap
 
 ```bash
 # Single-frame plot of the last timestep (default: chi)
-python src/visualisation/visualize.py --field K
+python -m src.visualisation.visualize --field K
 
 # Animation for a specific field
-python src/visualisation/visualize.py --field K --animate --zoom 100
+python -m src.visualisation.visualize --field K --animate --zoom 100
+
+# If your simulation output folder is not the default ../data (e.g. output_path=.../data_2gpu),
+# pass it explicitly:
+python -m src.visualisation.visualize --field K --animate --zoom 100 --data /home/jovyan/nachevsky/test/simulation/data_2gpu
 ```
 
 **Options:**
@@ -94,9 +106,9 @@ python src/visualisation/visualize.py --field K --animate --zoom 100
 | `--axis`     | `z`      | Axis normal to slice: `x`, `y`, or `z`   |
 | `--coord`    | see below| Coordinate along axis (default: 0 for z, 64 for x/y) |
 | `--animate`  | off      | Create MP4 animation from all plotfiles  |
-| `--zoom`     | `60`     | Plot width in code units                 |
+| `--zoom`     | full domain | Plot width in code units            |
 | `--data`     | `../data`| Path to plt folders                      |
-| `--out`      | this dir | Output directory                         |
+| `--out`      | `visualize/` | Output directory                         |
 | `--mpi`      | off      | Use MPI for parallel frame generation   |
 
 **Zoom explanation** (for a box size L_full = 128):
@@ -112,64 +124,135 @@ python src/visualisation/visualize.py --field K --animate --zoom 100
 1. **Standard top-down view (default)** — Looks at the orbital plane (z=0).
 
    ```bash
-   python src/visualisation/visualize.py --field chi --animate
+   python -m src.visualisation.visualize --field chi --animate
    # or explicitly:
-   python src/visualisation/visualize.py --field chi --axis z --animate
+   python -m src.visualisation.visualize --field chi --axis z --animate
    ```
 
 2. **Side view** — Cutting through the Y-axis. Shows "gravity wells" from the side. Center of the 128-unit box is at 64.
 
    ```bash
-   python src/visualisation/visualize.py --field chi --axis y --animate
+   python -m src.visualisation.visualize --field chi --axis y --animate
    # or with explicit coordinate:
-   python src/visualisation/visualize.py --field chi --axis y --coord 64 --animate
+   python -m src.visualisation.visualize --field chi --axis y --coord 64 --animate
    ```
 
 3. **Front view** — Cutting through the X-axis.
 
    ```bash
-   python src/visualisation/visualize.py --field chi --axis x --animate
+   python -m src.visualisation.visualize --field chi --axis x --animate
    ```
 
 4. **Visualizing waves (side view)** — Gravitational waves propagating upwards look best from the side.
 
    ```bash
-   python src/visualisation/visualize.py --field Weyl4_Re --axis y --zoom 100 --animate
-   # or use K if Weyl4_Re is not available
-   python src/visualisation/visualize.py --field K --axis y --zoom 100 --animate
+   python -m src.visualisation.visualize --field GW_Plus --axis y --zoom 100 --animate
+   # or use K for extrinsic curvature ripples
+   python -m src.visualisation.visualize --field K --axis y --zoom 100 --animate
    ```
 
 **MPI (parallel) usage:**
 
 ```bash
-mpirun -np 8 python src/visualisation/visualize.py --field K --animate --zoom 100 --mpi
+mpirun -np 8 python -m src.visualisation.visualize --field K --animate --zoom 100 --mpi
 ```
 
 **Output:** `{field}_{axis}/frames/frame_XXXX.png` and `{field}_{axis}/movie_{field}_{axis}.mp4` (if `--animate`).
 
 ---
 
-### 2. `visualize_sim.py` — Binary black hole chi movie
+### 2. Gravitational Wave Visualization (without Weyl4)
 
-Creates a binary BH movie using the conformal factor `chi`, tuned for puncture/BH evolution.
+In the absence of full Weyl scalar ($\Psi_4$) extraction, we can visualize gravitational waves using proxies derived from the **Extrinsic Curvature ($A_{ij}$)**.
 
-```bash
-python src/visualisation/visualize_sim.py
-```
+Since gravitational waves are perturbations in the spacetime metric, they manifest as ripples in the extrinsic curvature components. For a wave propagating along the **z-axis**, the transverse-traceless (TT) gauge strain components $h_+$ and $h_\times$ can be approximated by:
 
-**Output:** `binary_bh/frames/frame_XXXX.png` and `binary_bh/binary_bh_movie.mp4`.
+- **$h_+$ (Plus Polarization):** Proportional to $A_{11} - A_{22}$ (or $A_{xx} - A_{yy}$).
+- **$h_\times$ (Cross Polarization):** Proportional to $2 A_{12}$ (or $2 A_{xy}$).
 
----
+The `visualize` module provides derived fields `GW_Plus` and `GW_Cross` to plot these directly.
 
-### 3. `visualize_waves.py` — Gravitational wave plots
-
-Plots the `Weyl4_Re` field (real part of Weyl4) to visualize gravitational waves. Skips `plt00000` (usually no wave data at t=0).
+**Usage:**
 
 ```bash
-python src/visualisation/visualize_waves.py
+# Visualize the Plus polarization
+python -m src.visualisation.visualize --field GW_Plus --axis z --animate --zoom 40
+
+# Visualize the Cross polarization
+python -m src.visualisation.visualize --field GW_Cross --axis z --animate --zoom 40
 ```
 
-**Output:** `waves/wave_frame_XXXX.png`.
+### 3. Wave Extraction Tool (`extract_wave/`)
+
+This module extracts the gravitational wave signal from the Weyl scalar \(\Psi_4\) (Weyl4) at multiple radii and plots \(\Psi_4(t)\) and its spectrum (PSD).
+
+We intentionally **do not reconstruct strain \(h(t)\)** in this workflow, because double time-integration is ill-conditioned and tends to amplify low-frequency gauge/near-zone contamination. Instead, we infer the GW frequency content directly from the \(\Psi_4\) modes.
+
+The extractor supports **symmetry-reduced domains** (e.g. octant symmetry with `lo_boundary = 2 2 2`) by sampling only the in-domain part of the extraction sphere and renormalizing the surface integral to \(4\pi\).
+
+**Usage:**
+
+```bash
+# Plot Psi4 (time series + PSD). Data defaults to ../data relative to project root.
+python -m src.visualisation.extract_wave --radii 14 30 --n-points 24
+
+# Plot with retarded time (t - R):
+python -m src.visualisation.extract_wave --radii 14 30 --n-points 24 --time-axis retarded
+
+# With custom data path:
+python -m src.visualisation.extract_wave --data /path/to/data --radii 14 30 --n-points 24
+
+# Example: WormholeCollapse multi-GPU run that writes to data_2gpu/
+python -m src.visualisation.extract_wave --data /home/jovyan/nachevsky/test/simulation/data_2gpu --radii 14 30 --n-points 24
+```
+
+**Options (both scripts):**
+- `--data PATH`: Path to simulation data (default: `../data` from project root)
+- `--out PATH`: Output directory (default: the script folder)
+- `--radii R1 R2 ...`: Radii to extract from (e.g. `14 30`)
+- `--n-points N`: Angular resolution (samples an \(N\\times N\) grid on the sphere)
+- `--time-axis {simulation,retarded}`: Plot x-axis as simulation time \(t\) or retarded time \(t-R\)
+- `--t-min`, `--t-max`: x-range to display
+- `--psd-hide-raw`: Hide the raw (dotted) PSD points and show only the smoothed curve
+
+**Output:**
+- `psi4_analysis_R14.0_R30.0_n24.png` (time series + PSD)
+
+**Note on “negative time” in plots**
+
+If you use retarded time \(t_{\\rm ret} = t - R_{\\rm ext}\), the x-axis can be negative: this corresponds to early simulation times (\(t < R_{\\rm ext}\)) before the wave reaches that radius. Any structure there is usually **junk radiation / gauge transient** or near-zone curvature.
+
+### 4. Constraint norms (`constraines/`)
+
+Some simulations write constraint norms to a `constraint_norms.dat` file (SmallDataIO format), typically under a `data/` subfolder next to your plotfiles.
+
+The constraints plotting script accepts an explicit path, so if your simulation output folder changes you do **not** need to edit any code — just pass the new file location.
+
+**Usage:**
+
+```bash
+# Default-ish case (simulation output in ../data relative to repo root):
+python -m src.visualisation.constraines ../data/data/constraint_norms.dat
+
+# Example: WormholeCollapse multi-GPU run output in data_2gpu/
+python -m src.visualisation.constraines /home/jovyan/nachevsky/test/simulation/data_2gpu/data/constraint_norms.dat
+```
+
+### 5. Visualizing Symmetry-Reduced Domains
+
+When a simulation uses symmetry (e.g. octant symmetry with `lo_boundary = 2 2 2`), only a portion of the physical space is simulated (e.g. \(x\\ge 0, y\\ge 0, z\\ge 0\)). The physical “center” is at the symmetry planes (the origin).
+
+The `visualize` tool supports:
+- `--center x y z`: explicit plot center
+- `--corner`: place the symmetry origin at the bottom-left corner of the 2D plot (helpful for octant/quadrant runs)
+
+**Example (octant run, domain 0→84):**
+
+```bash
+python -m src.visualisation.visualize --field K --axis z --coord 0 --zoom 84 --corner --animate
+```
+
+- With `--corner`, the symmetry origin (0,0) appears at the bottom-left of the image, so outward-propagating waves are easier to interpret visually.
 
 ---
 
@@ -177,21 +260,20 @@ python src/visualisation/visualize_waves.py
 
 ```
 src/visualisation/
-├── chi_z/          # From visualize.py --field chi --axis z
-│   ├── frames/
-│   └── movie_chi_z.mp4
-├── chi_x/
-├── chi_y/
-├── K_z/
-├── lapse/
-├── Theta/
-├── binary_bh/      # From visualize_sim.py
-│   ├── frames/
-│   └── binary_bh_movie.mp4
-└── waves/          # From visualize_waves.py
-    └── wave_frame_XXXX.png
+├── visualize/           # Field slice plots and movies
+│   ├── chi_z/          # From --field chi --axis z
+│   │   ├── frames/
+│   │   └── movie_chi_z.mp4
+│   ├── chi_x/
+│   ├── chi_y/
+│   ├── K_z/
+│   ├── lapse_z/
+│   ├── Theta_z/
+│   └── ...
+├── extract_wave/        # GW waveform extraction
+│   └── psi4_analysis_R14.0_R30.0_n24.png
+└── README.md
 ```
-
 ---
 
 ## Custom paths
@@ -199,5 +281,6 @@ src/visualisation/
 To override data or output paths:
 
 ```bash
-python src/visualisation/visualize.py --field K --data /path/to/plt --out /path/to/output
+python -m src.visualisation.visualize --field K --data /path/to/plt --out /path/to/output
 ```
+
