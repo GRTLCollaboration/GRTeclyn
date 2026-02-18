@@ -2,11 +2,16 @@
 #include "CCZ4RHS.hpp"
 #include "ChiTagger.hpp"
 #include "Constraints.hpp"
+#include "GRParmParse.hpp"
 #include "PositiveChiAndLapse.hpp"
+#include "SmallDataIO.hpp"
 #include "TraceARemoval.hpp"
 #include "Weyl4.hpp"
 #include "WeylExtraction.hpp"
 #include "WormholeInitialData.hpp"
+
+#include <AMReX_Reduce.H>
+#include <AMReX_Utility.H>
 
 void WormholeLevel::variableSetUp()
 {
@@ -136,6 +141,93 @@ void WormholeLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
 
 void WormholeLevel::specificPostTimeStep()
 {
-    // Implement diagnostics here (e.g., Weyl4 extraction)
-    // This is similar to BinaryBH but stripped of PunctureTracker
+    BL_PROFILE("WormholeLevel::specificPostTimeStep");
+
+    // --- Constraint norms (small-data output) ---
+    // Compute volume-weighted L2 norms of Ham and Mom on level 0.
+    if (simParams().calculate_constraint_norms && Level() == 0)
+    {
+        const amrex::Real time         = get_state_data(State_Type).curTime();
+        const amrex::Real dt           = parent->dtLevel(0);
+        const amrex::Real restart_time = get_gramr_ptr()->get_restart_time();
+        const bool first_step          = (time == 0.0);
+
+        // Fill ghosts for constraint calculation
+        amrex::MultiFab &state_new = get_new_data(State_Type);
+        FillPatch(*this, state_new, 2, time, State_Type, 0, state_new.nComp());
+
+        // Compute constraints into a temporary MultiFab (Ham, Mom1, Mom2, Mom3)
+        amrex::MultiFab cst(state_new.boxArray(), state_new.DistributionMap(), 4,
+                            0);
+        cst.setVal(0.0);
+        Constraints::compute_mf(cst, 0, 4, state_new, Geom(), time, nullptr, 0);
+
+        // Volume-weighted reductions on this level (constant cell volume on a level)
+        const auto dx = Geom().CellSizeArray();
+        const amrex::Real cell_vol = dx[0] * dx[1] * dx[2];
+
+        amrex::ReduceOps<amrex::ReduceOpSum, amrex::ReduceOpSum,
+                         amrex::ReduceOpSum>
+            reduce_ops;
+        amrex::ReduceData<amrex::Real, amrex::Real, amrex::Real> reduce_data(
+            reduce_ops);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+
+        for (amrex::MFIter mfi(cst, amrex::TilingIfNotGPU()); mfi.isValid();
+             ++mfi)
+        {
+            const amrex::Box &bx = mfi.validbox();
+            const auto arr       = cst.const_array(mfi);
+            reduce_ops.eval(
+                bx, reduce_data,
+                [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTuple
+                {
+                    const amrex::Real ham = arr(i, j, k, 0);
+                    const amrex::Real m1  = arr(i, j, k, 1);
+                    const amrex::Real m2  = arr(i, j, k, 2);
+                    const amrex::Real m3  = arr(i, j, k, 3);
+                    const amrex::Real mom2 = (m1 * m1 + m2 * m2 + m3 * m3);
+                    return {ham * ham * cell_vol, mom2 * cell_vol, cell_vol};
+                });
+        }
+
+        auto [sum_ham2, sum_mom2, sum_vol] = reduce_data.value();
+        amrex::ParallelDescriptor::ReduceRealSum(sum_ham2);
+        amrex::ParallelDescriptor::ReduceRealSum(sum_mom2);
+        amrex::ParallelDescriptor::ReduceRealSum(sum_vol);
+
+        const double L2_Ham =
+            (sum_vol > 0.0) ? std::sqrt(sum_ham2 / sum_vol) : 0.0;
+        const double L2_Mom =
+            (sum_vol > 0.0) ? std::sqrt(sum_mom2 / sum_vol) : 0.0;
+
+        // Build output directory: output_path + data_subpath
+        GRParmParse pp;
+        std::string output_path = "./";
+        pp.load("output_path", output_path, std::string("./"));
+        std::string data_subpath;
+        pp.load("data_subpath", data_subpath, std::string(""));
+
+        if (!output_path.empty() && output_path.back() != '/')
+            output_path += "/";
+        if (!data_subpath.empty() && data_subpath.back() != '/')
+            data_subpath += "/";
+
+        const std::string out_dir = output_path + data_subpath;
+        if (!out_dir.empty())
+        {
+            amrex::UtilCreateDirectory(out_dir, 0755, false);
+        }
+
+        const std::string prefix = out_dir + "constraint_norms";
+
+        SmallDataIO constraints_file(prefix, dt, time, restart_time,
+                                     SmallDataIO::APPEND, first_step);
+        constraints_file.remove_duplicate_time_data();
+        if (first_step)
+        {
+            constraints_file.write_header_line({"L2_Ham", "L2_Mom"});
+        }
+        constraints_file.write_time_data_line({L2_Ham, L2_Mom});
+    }
 }

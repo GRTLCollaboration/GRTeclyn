@@ -33,13 +33,13 @@ print_progress_only_to_rank_0 = 1
 #   chi = psi^{-4},  h_ij = δ_ij,  K = 0.
 #
 # Backward-compatible single value (used as default for A/B if *_A/_B not set):
-wormhole_throat_radius = 1.0
+wormhole_throat_radius = 0.5
 #
 # Preferred explicit two-mouth settings:
 wormhole_throat_radius_A = 1.0
 wormhole_throat_radius_B = 1.0
-wormhole_centerA = 3.0 0.0 0.0
-wormhole_centerB = -3.0 0.0 0.0
+wormhole_centerA = 15.0 0.0 0.0
+wormhole_centerB = -15.0 0.0 0.0
 
 # IMPORTANT:
 # Your "Resolution of the Origin Singularity: Isotropic Coordinates" section
@@ -54,19 +54,19 @@ wormhole_use_cartesian_gamma = 0
 
 # Coarse grid settings
 # dx = L_full / N_full = 0.5
-L_full = 80.0
-N_full = 160
+L_full = 64.0
+N_full = 128
 
 # Center of the grid
 # Centered at X=0, Y=0, Z=0 (All boundaries are symmetry)
 center = 0.0 0.0 0.0
 
 # Maximum refinement levels
-max_level = 6
+max_level = 5
 
 # Frequency of regridding
 # Level:          0   1   2   3   4   5   6
-regrid_interval = 8   8   8   8   8   8   8
+regrid_interval = 16   16  16   16   16   16   16
 regrid_threshold = 0.01
 
 max_box_size = 32

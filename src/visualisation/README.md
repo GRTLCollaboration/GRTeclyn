@@ -284,3 +284,10 @@ To override data or output paths:
 python -m src.visualisation.visualize --field K --data /path/to/plt --out /path/to/output
 ```
 
+```bash
+python -m src.visualisation.constraines /home/jovyan/nachevsky/test/simulation/data_2gpu/data/constraint_norms.dat
+```
+
+```bash
+python3 /home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/visualize/make_movies.py   --root /home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/visualize
+```
