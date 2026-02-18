@@ -427,15 +427,20 @@ void ParticleInterpolator<num_components>::prepare_send_buffers()
 
             amrex::Gpu::streamSynchronize();
 
+            const int level_size = static_cast<int>(
+                query_ranks
+                    .size()); // this should count per level, starts at zero and
+                              // then adds as we loop through levels
+
+            // Resize query_ranks and query_indices
+            query_ranks.resize(level_size + num_particles);
+            query_indices.resize(level_size + num_particles);
+
             // each component vector has num_particles
             for (int k = 0; k < num_components; ++k)
             {
-                comp_values[k].resize(num_particles);
+                comp_values[k].resize(level_size + num_particles);
             }
-
-            // Resize query_ranks and query_indices
-            query_ranks.resize(num_particles);
-            query_indices.resize(num_particles);
 
             for (int i = 0; i < num_particles; ++i)
             {
@@ -449,15 +454,16 @@ void ParticleInterpolator<num_components>::prepare_send_buffers()
                 // how many answers each quering rank will receive
                 m_mpi.incrementAnswerCount(query_rank);
                 // write in
-                query_ranks[i] = query_rank;
-                query_indices[i] =
+                const int j    = level_size + i; // shift the index
+                query_ranks[j] = query_rank;
+                query_indices[j] =
                     p.id(); // need particle identifier to know which particle
                             // the interpolated value corresponds to
 
                 // cache component values
                 for (int k = 0; k < num_components; ++k)
                 {
-                    comp_values[k][i] =
+                    comp_values[k][j] =
                         static_cast<double>(host_soa_real[k][i]);
                 }
             }
@@ -477,6 +483,12 @@ void ParticleInterpolator<num_components>::prepare_send_buffers()
     m_mpi.exchangeLayout();
 
     const int total_send = m_mpi.totalAnswerCount(); // total answers/sends
+    AMREX_ASSERT(static_cast<int>(query_ranks.size()) == total_send);
+    AMREX_ASSERT(static_cast<int>(query_indices.size()) == total_send);
+    for (int k = 0; k < num_components; ++k)
+    {
+        AMREX_ASSERT(static_cast<int>(comp_values[k].size()) == total_send);
+    }
 
     m_answer_idx.resize(total_send); // resize the index array I will send
     m_answer_data.resize(
