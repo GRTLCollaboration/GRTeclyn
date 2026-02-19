@@ -1,26 +1,33 @@
 site_name: GRTeclyn
 nav:
-  - Home: index.md
-  - Capabilities: capabilities.md
-  - Prerequisites: prerequisites.md
-  - Building and running on CPUs: building_cpus.md
-  - Building and running on GPUs: building_gpus.md
-  - Example configs for specific HPC systems: example_configs.md
-  - Moving from GRChombo: moving_from_grchombo.md
-  - Running the binary black hole example: bbh_example.md
-  - Running the scalar field example: sf_example.md
-  - Testing with the Klein Gordon example: kg_example.md
-  - Visualising outputs: visualising_outputs.md
-  - Parameters guide: parameters.md
-  - Initial data: initial_data.md
-  - Particle interpolator: particle_interpolator.md
-  - Apparent horizon finder: ah_finder.md
-  - Code structure: code_structure.md
-  - Performance optimisation: performance_optimisation.md
-  - Convergence testing: convergence_testing.md
-  - Useful resources: useful_resources.md
-  - License and citation: license_and_citation.md
-  - Pull requests: pull_requests.md
-  - Coding conventions: coding_conventions.md
+  - Home: 
+    - Overview: index.md
+    - Capabilities: capabilities.md
+    - License and citation: license_and_citation.md
+  - Getting started:
+    - Prerequisites: prerequisites.md
+    - Building and running on CPUs: building_cpus.md
+    - Building and running on GPUs: building_gpus.md
+    - Example configs for specific HPC systems: example_configs.md
+  - Running and modifying examples:
+    - Running the binary black hole example: bbh_example.md
+    - Running the scalar field example: sf_example.md
+    - Visualising outputs: visualising_outputs.md
+    - Testing with the Klein Gordon example: kg_example.md
+    - Parameters guide: parameters.md
+    - Performance optimisation: performance_optimisation.md
+    - Convergence testing: convergence_testing.md
+  - Developing code:
+    - Moving from GRChombo: moving_from_grchombo.md
+    - Code structure: code_structure.md
+    - Coding conventions: coding_conventions.md
+    - Pull requests: pull_requests.md
+  - Other features and tools:
+    - Initial data: initial_data.md
+    - Particle interpolator: particle_interpolator.md
+    - Apparent horizon finder: ah_finder.md
+  - Misc resources :
+    - Useful resources: useful_resources.md
   - Contact us: contact_us.md
+
 theme: readthedocs

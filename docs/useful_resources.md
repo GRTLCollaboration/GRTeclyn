@@ -57,7 +57,7 @@ All these places offer courses relevant for scientific programming, best check t
 
 Most machines have their own webpages which give a guide to usage, and tell you things particular to each machine, like compilers available, the job submission system, where to store your data etc.
 
-There is a separate page [here](setups.md) that offers some guidance to common HPC systems used by this group.
+There is a separate page [here](example_configs.md) that offers some guidance to common HPC systems used by this group.
 
 The Rosetta stone of job submission commands is [here](https://slurm.schedmd.com/rosetta.pdf).
 
