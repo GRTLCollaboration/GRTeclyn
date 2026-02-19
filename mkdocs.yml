@@ -1,6 +1,6 @@
 site_name: GRTeclyn
 nav:
-  - Home: 
+  - Home:
     - Overview: index.md
     - Capabilities: capabilities.md
     - License and citation: license_and_citation.md
