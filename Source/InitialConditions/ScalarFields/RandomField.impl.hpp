@@ -928,19 +928,19 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
     // Extract MultiFab ingredients from state
     BoxArray sba = state.boxArray();
     DistributionMapping sdm = state.DistributionMap();
-    MultiFab hij_x(sba, sdm, 6, 0);
+    MultiFab gij_x(sba, sdm, 6, 0);
 
     // 0: scalar field
     // 1: conformal factor
     MultiFab scalars_x(sba, sdm, 2, 0);
 
     // Copy the spatial metric from the state
-    Copy(hij_x, state, c_h11, lut[0][0], 1, 0);
-    Copy(hij_x, state, c_h12, lut[0][1], 1, 0);
-    Copy(hij_x, state, c_h13, lut[0][2], 1, 0);
-    Copy(hij_x, state, c_h22, lut[1][1], 1, 0);
-    Copy(hij_x, state, c_h23, lut[1][2], 1, 0);
-    Copy(hij_x, state, c_h33, lut[2][2], 1, 0);
+    Copy(gij_x, state, c_h11, lut[0][0], 1, 0);
+    Copy(gij_x, state, c_h12, lut[0][1], 1, 0);
+    Copy(gij_x, state, c_h13, lut[0][2], 1, 0);
+    Copy(gij_x, state, c_h22, lut[1][1], 1, 0);
+    Copy(gij_x, state, c_h23, lut[1][2], 1, 0);
+    Copy(gij_x, state, c_h33, lut[2][2], 1, 0);
 
     int m_c_phi = 0;
     int m_c_chi = 1;
@@ -960,8 +960,8 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
     scalars_x.mult(1./norm);
 
     // Undo the normalisation and BSSN-CPT conversion
-    for (int l=0; l<3; l++) { hij_x.plus(-1., lut[l][l], 1); }
-    hij_x.mult(1./norm);
+    for (int l=0; l<3; l++) { gij_x.plus(-1., lut[l][l], 1); }
+    gij_x.mult(1./norm);
 
     // Set up the problem domain in Fourier space
     // And impose that MPI ranks only slice along the i index (for Nyquist conditions)
@@ -974,39 +974,39 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
 
     // Set up the arrays to store the Fourier data sets
     cMultiFab hs_k(kba, kdm, 2, 0);
-    cMultiFab hij_k(kba, kdm, 6, 0);
+    cMultiFab gij_k(kba, kdm, 6, 0);
     cMultiFab scalars_k(kba, kdm, 2, 0);
     cMultiFab R_k(kba, kdm, 1, 0);
 
     hs_k.setVal(0.0);
-    hij_k.setVal(0.0);
+    gij_k.setVal(0.0);
     scalars_k.setVal(0.0);
     R_k.setVal(0.0);
 
     // Set up the FFT
     IntVect x_domain_high(N-1, N-1, N-1);
     Box x_domain(domain_low, x_domain_high);
-    FFT::R2C<Real> tensor_fft(x_domain, FFT::Info().setBatchSize(hij_k.nComp()));
+    FFT::R2C<Real> tensor_fft(x_domain, FFT::Info().setBatchSize(gij_k.nComp()));
     FFT::R2C<Real> scalar_fft(x_domain, FFT::Info().setBatchSize(scalars_k.nComp()));
 
     // Perform the fft
-    tensor_fft.forward(hij_x, hij_k);
+    tensor_fft.forward(gij_x, gij_k);
     scalar_fft.forward(scalars_x, scalars_k);
 
     // Normalise the fft (fftw style)
-    for(int comp = 0; comp < 6; comp++) { hij_k.mult(std::pow(N, -3.), comp, 1); }
+    for(int comp = 0; comp < 6; comp++) { gij_k.mult(std::pow(N, -3.), comp, 1); }
     for(int comp = 0; comp < 2; comp++) { scalars_k.mult(std::pow(N, -3.), comp, 1); }
 
     std::string Filename = "/cephfs/home/eaf49/GRTeclyn-workspace/Examples/ScalarField/Rk-check.dat";
 
     // Loop to extract the Fourier-space mode functions
-    for (MFIter mfi(hij_k); mfi.isValid(); ++mfi) 
+    for (MFIter mfi(gij_k); mfi.isValid(); ++mfi) 
     {
         const Box& bx = mfi.fabbox();
 
         // Make a pointer to the mode functions at this MF box
         Array4<GpuComplex<Real>> const& hs_ptr = hs_k.array(mfi);
-        Array4<GpuComplex<Real>> const& hij_ptr = hij_k.array(mfi);
+        Array4<GpuComplex<Real>> const& hij_ptr = gij_k.array(mfi);
         Array4<GpuComplex<Real>> const& scalars_ptr = scalars_k.array(mfi);
         Array4<GpuComplex<Real>> const& R_k_ptr = R_k.array(mfi);
 
