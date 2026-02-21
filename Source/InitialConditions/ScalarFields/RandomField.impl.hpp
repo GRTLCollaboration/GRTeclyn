@@ -312,7 +312,7 @@ inline GpuComplex<Real> RandomField::calculate_tensor_initial_conditions(const I
     Real eplus = mhat[l]*mhat[p] - nhat[l]*nhat[p];
     Real ecross = mhat[l]*nhat[p] + nhat[l]*mhat[p];
 
-    return (eplus * plus_field + ecross * cross_field)/std::sqrt(2.);
+    return (eplus * plus_field + ecross * cross_field);
 }
 
 // Applies above Nyquist conditions to a given MF
@@ -467,6 +467,13 @@ inline void RandomField::init(amrex::MultiFab &state)
                 {
                     hij_ptr(i, j, k, lut[l][p]) = calculate_tensor_initial_conditions(iv, l, p, hs_ptr(i, j, k, 0), hs_ptr(i, j, k, 1));
                     Aij_ptr(i, j, k, lut[l][p]) = calculate_tensor_initial_conditions(iv, l, p, As_ptr(i, j, k, 0), As_ptr(i, j, k, 1));
+
+                    // if(i == 1 && j == 0 && k == 1)
+                    // {
+                    //     Print() << "In init: \n";
+                    //     Print() << l << ", " << p << ": ";
+                    //     Print() << hij_ptr(i, j, k, lut[l][p]) << "\n";
+                    // }
                 }
             }
         });
@@ -1013,17 +1020,39 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
             mhat = calculate_basis_vector(iv, 0);
             nhat = calculate_basis_vector(iv, 1);
 
-            Real eplus = 0.;
-            Real ecross = 0.;
+            Tensor<2, Real> eplus, ecross;
 
             // Find basis tensors and do the Fourier trick
             for (int l=0; l<3; l++) for (int p=0; p<3; p++)
             {
-                eplus = mhat[l]*mhat[p] - nhat[l]*nhat[p];
-                ecross = mhat[l]*nhat[p] + nhat[l]*mhat[p];
+                eplus[l][p] = mhat[l]*mhat[p] - nhat[l]*nhat[p];
+                ecross[l][p] = mhat[l]*nhat[p] + nhat[l]*mhat[p];
 
-                hs_ptr(i, j, k, 0) += (hij_ptr(i, j, k, lut[l][p]) * eplus)/std::sqrt(2.);
-                hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross)/std::sqrt(2.);
+                hs_ptr(i, j, k, 0) += (hij_ptr(i, j, k, lut[l][p]) * eplus[l][p])/2.;
+                hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross[l][p])/2.;
+            }
+
+            Tensor<2, GpuComplex<Real>> hij, hSV;
+            GpuComplex<Real> hij_tr = 0.;
+            GpuComplex<Real> hSV_tr = 0.;
+            for (int l=0; l<3; l++) for (int p=0; p<3; p++)
+            {
+                hij[l][p] = hs_ptr(i, j, k, 0) * eplus[l][p] + hs_ptr(i, j, k, 1) * ecross[l][p];
+                hSV[l][p] = hij_ptr(i, j, k, lut[l][p]) - hij[l][p];
+
+                if(l==p) { hij_tr += hij[l][p]; hSV_tr += hSV[l][p]; }
+
+                // if(i == 1 && j == 0 && k == 1)
+                // {
+                //     Print() << "In extract: \n";
+                //     Print() << l << ", " << p << ": ";
+                //     Print() << hij[l][p] << ", " << hSV[l][p] << "\n";
+                // }
+            }
+            if(i == 1 && j == 2 && k == 1)
+            {
+                Print() << "Traces: ";
+                Print() << hij_tr << ", " << hSV_tr << "\n";
             }
 
             if(m_params.scalar_init)
@@ -1043,7 +1072,7 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
                     // converstion from chi, gamma_ij -> Phi
                     for(int l=0; l<3; l++) for(int p=0; p<3; p++)
                     {
-                        Phi += (iv_k[l] * iv_k[p] * hij_ptr(i, j, k, lut[l][p]))/std::pow(kmag, 2.);
+                        Phi += (iv_k[l] * iv_k[p] * hSV[l][p])/std::pow(kmag, 2.);
                     }
                     Phi *= -1./48.;
                     Phi += 0.5 * (scalars_ptr(i, j, k, m_c_chi));

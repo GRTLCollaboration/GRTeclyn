@@ -11,6 +11,7 @@
 #include "VarsTools.hpp"
 #include "FilesystemTools.hpp"
 #include "Potential.hpp"
+#include "Tensor.hpp"
 #include <fstream>
 #include <random>
 
