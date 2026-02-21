@@ -999,6 +999,9 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
 
     std::string Filename = "/cephfs/home/eaf49/GRTeclyn-workspace/Examples/ScalarField/Rk-check.dat";
 
+    Real hij_tr_max = 0.;
+    Real hSV_tr_max = 0.;
+
     // Loop to extract the Fourier-space mode functions
     for (MFIter mfi(gij_k); mfi.isValid(); ++mfi) 
     {
@@ -1010,7 +1013,7 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         Array4<GpuComplex<Real>> const& scalars_ptr = scalars_k.array(mfi);
         Array4<GpuComplex<Real>> const& R_k_ptr = R_k.array(mfi);
 
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        amrex::ParallelFor(bx, [=, &hij_tr_max, &hSV_tr_max] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             IntVect iv{i, j, k};
             
@@ -1049,11 +1052,18 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
                 //     Print() << hij[l][p] << ", " << hSV[l][p] << "\n";
                 // }
             }
-            if(i == 1 && j == 2 && k == 1)
-            {
-                Print() << "Traces: ";
-                Print() << hij_tr << ", " << hSV_tr << "\n";
-            }
+            
+            Real hij_tr_mag = sqrt(pow(hij_tr.real(), 2.) + pow(hij_tr.imag(), 2.));
+            Real hSV_tr_mag = sqrt(pow(hSV_tr.real(), 2.) + pow(hSV_tr.imag(), 2.));
+
+            if (hij_tr_mag > hij_tr_max) { hij_tr_max = hij_tr_mag; }
+            if (hSV_tr_mag > hSV_tr_max) { hSV_tr_max = hSV_tr_mag; }
+            
+            // if(i == 1 && j == 2 && k == 1)
+            // {
+            //     Print() << "Traces: ";
+            //     Print() << hij_tr << ", " << hSV_tr << "\n";
+            // }
 
             if(m_params.scalar_init)
             {
@@ -1086,6 +1096,14 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
 
     apply_nyquist_conditions(hs_k);
     apply_nyquist_conditions(R_k);
+
+    SmallDataIO trace_file(data_path+"tensor-traces", dt, cur_time, 
+                                restart_time, SmallDataIO::APPEND, first_step, ".dat");
+    if(first_step) 
+    { 
+        trace_file.write_header_line({"hij trace max", "hSV trace max"}); 
+    }
+    trace_file.write_time_data_line({hij_tr_max, hSV_tr_max}); 
 
     // Find the binned PS for each mode function and print to data/
     if((m_params.calc_binned_power_spectrum) 
