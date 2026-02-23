@@ -36,10 +36,13 @@ print_progress_only_to_rank_0 = 1
 wormhole_throat_radius = 0.5
 #
 # Preferred explicit two-mouth settings:
-wormhole_throat_radius_A = 1.0
-wormhole_throat_radius_B = 1.0
-wormhole_centerA = 15.0 0.0 0.0
-wormhole_centerB = -15.0 0.0 0.0
+wormhole_throat_radius_A = 0.2
+wormhole_throat_radius_B = 0.2
+# Mouth locations are specified in *physical coordinates* (after the `center`
+# shift in the grid section). With `center = L_full/2`, these are in the middle
+# of the box and separated by 30 units along x.
+wormhole_centerA = 25.0 0.0 0.0
+wormhole_centerB = -25.0 0.0 0.0
 
 # IMPORTANT:
 # Your "Resolution of the Origin Singularity: Isotropic Coordinates" section
@@ -54,12 +57,14 @@ wormhole_use_cartesian_gamma = 0
 
 # Coarse grid settings
 # dx = L_full / N_full = 0.5
-L_full = 64.0
-N_full = 128
+L_full = 128.0
+N_full = 256
 
 # Center of the grid
-# Centered at X=0, Y=0, Z=0 (All boundaries are symmetry)
-center = 0.0 0.0 0.0
+# IMPORTANT: physical coordinates are (i+0.5)*dx - center.
+# We keep Y and Z centered on the reflection planes (y=0, z=0) to save 75% of
+# the domain, while centering X so both mouths fit inside the box.
+center = 64.0 0.0 0.0
 
 # Maximum refinement levels
 max_level = 5
@@ -78,9 +83,9 @@ min_box_size = 8
 
 isPeriodic = 0 0 0
 hi_boundary = 1 1 1
-# Symmetry at X=0 and Y=0 (lo_boundary 2 is symmetry)
-# Z is symmetry (2) to model only z>=0
-lo_boundary = 2 2 2
+# X: Sommerfeld (full x-axis so both mouths are present)
+# Y,Z: reflective symmetry at y=0 and z=0
+lo_boundary = 1 2 2
 
 nonzero_asymptotic_vars = chi h11 h22 h33 lapse
 nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
@@ -110,7 +115,7 @@ shift_Gamma_coeff = 0.75
 eta = 1.0
 
 formulation = 0
-kappa1 = 0.1
+kappa1 = 2.0
 kappa2 = 0.
 kappa3 = 1.
 covariantZ4 = 1
@@ -124,7 +129,7 @@ calculate_constraint_norms = 1
 #################################################
 # Extraction parameters
 
-extraction_center = 0.0 0.0 0.0
+extraction_center = 64.0 0.0 0.0
 activate_extraction = 1
 
 num_extraction_radii = 2

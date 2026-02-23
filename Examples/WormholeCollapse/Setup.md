@@ -2,11 +2,24 @@
 
 ## Prerequisites
 
-**CUDA must be in your PATH.** The build uses `nvcc` directly (not `CUDA_HOME`). If you see `nvcc: not found`:
+**CUDA must be in your PATH.** The build uses `nvcc` directly (not just `CUDA_HOME`).
+If you see `nvcc: not found`, it means CUDA is installed but not activated in your shell
+(or CUDA is provided via environment modules).
 
 ```bash
+# If your system uses modules (common on clusters), do this first:
+# module avail cuda
+# module load cuda
+
+# Otherwise, add CUDA to PATH (adjust to your local install):
 export PATH=/usr/local/cuda/bin:$PATH
-# Or for CUDA 12: export PATH=/usr/local/cuda-12/bin:$PATH
+
+# Common alternatives you may need:
+# export PATH=/usr/local/cuda-12/bin:$PATH
+# export PATH=/usr/local/cuda-12.*/bin:$PATH
+# export PATH=/opt/cuda/bin:$PATH
+
+command -v nvcc && nvcc --version
 ```
 
 Add to `~/.bashrc` if needed:

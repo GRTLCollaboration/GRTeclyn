@@ -2,6 +2,21 @@
 
 Extract \(\Psi_4\) from plotfiles, append to a small `.dat` file, optionally delete plotfiles. Plot later from the `.dat` without needing plotfiles.
 
+## Quick Start (Psi4 + frames, cleans K_z etc. before run)
+
+```bash
+python -m src.visualisation.process_wave.consume_plotfiles \
+  --data "/home/jovyan/nachevsky/test/simulation/data_2gpu" \
+  --out  "/home/jovyan/nachevsky/test/simulation/data_2gpu/small_data" \
+  --radii 12 14 \
+  --n-points 12 \
+  --frames-fields chi K Weyl4_Re \
+  --frames-axis z \
+  --frames-out "/home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/visualize" \
+  --watch --delete --keep-last 2 \
+  --verbose
+```
+
 ## Requirements
 
 Plotfiles must contain `Weyl4_Re` and `Weyl4_Im` (in params: `amr.derive_plot_vars = Weyl4`).
@@ -21,7 +36,7 @@ python -m src.visualisation.process_wave.consume_plotfiles \
 python -m src.visualisation.process_wave.consume_plotfiles \
   --data "/home/jovyan/nachevsky/test/simulation/data_2gpu" \
   --out  "/home/jovyan/nachevsky/test/simulation/data_2gpu/small_data" \
-  --radii 10 12 \
+  --radii 10 14 \
   --n-points 64 \
   --verbose \
   --watch \
@@ -124,6 +139,20 @@ python -m src.visualisation.process_wave.plot_extracted_psi4 \
 ## Workflow
 
 1. Set `plot_interval = 1` and `amr.derive_plot_vars = Weyl4` in params.
-2. Start consumer: `python -m src.visualisation.process_wave.consume_plotfiles ... --watch --delete`
+2. Start consumer (Psi4 + frames, cleans K_z etc. before run):
+
+```bash
+python -m src.visualisation.process_wave.consume_plotfiles \
+  --data "/home/jovyan/nachevsky/test/simulation/data_2gpu" \
+  --out  "/home/jovyan/nachevsky/test/simulation/data_2gpu/small_data" \
+  --radii 12 14 \
+  --n-points 12 \
+  --frames-fields chi K Weyl4_Re \
+  --frames-axis z \
+  --frames-out "/home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/visualize" \
+  --watch --delete --keep-last 2 \
+  --verbose
+```
+
 3. Run simulation in another terminal.
 4. Plot: `python -m src.visualisation.process_wave.plot_extracted_psi4 <path/to/psi4_mode_l2m0.dat>`

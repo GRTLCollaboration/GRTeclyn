@@ -30,10 +30,12 @@ class SimulationParameters : public SimulationParametersBase
 
         // Backward-compatible single value
         double b0_single = 1.0;
-        std::array<double, AMREX_SPACEDIM> c_single = {0.0, 0.0, 0.0};
+        // Default to a two-mouth separation of 30 (centred about the origin in
+        // physical coordinates when `center = L_full/2`).
+        std::array<double, AMREX_SPACEDIM> c_single = {15.0, 0.0, 0.0};
         pp.load("wormhole_throat_radius", b0_single, 1.0);
         pp.load("wormhole_center", c_single,
-                std::array<double, AMREX_SPACEDIM>{2.0, 0.0, 0.0});
+                std::array<double, AMREX_SPACEDIM>{15.0, 0.0, 0.0});
 
         // Two-mouth parameters (preferred)
         pp.load("wormhole_throat_radius_A", wormhole_params.throat_radius_A,
