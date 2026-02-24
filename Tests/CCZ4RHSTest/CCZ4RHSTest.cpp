@@ -42,14 +42,14 @@ void run_ccz4_rhs_test()
         amrex::Box ghosted_box = box;
         ghosted_box.grow(num_ghosts);
 
-        amrex::FArrayBox in_fab{ghosted_box, NUM_VARS,
+        amrex::FArrayBox in_fab{ghosted_box, NUM_CCZ4_VARS,
                                 amrex::The_Managed_Arena()};
 
         const amrex::Array4<amrex::Real> &in_array = in_fab.array();
         amrex::ParallelFor(ghosted_box,
-                           [=] AMREX_GPU_DEVICE(int i, int j, int k)
+                           [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
                            {
-                               const amrex::IntVect iv{i, j, k};
+                               const amrex::IntVect iv{ix, iy, iz};
                                const amrex::RealVect coords =
                                    amrex::RealVect{iv} * dx;
 
@@ -91,10 +91,12 @@ void run_ccz4_rhs_test()
         Old::CCZ4RHS<Old::MovingPunctureGauge, Old::FourthOrderDerivatives>
             old_ccz4_rhs{old_ccz4_params, dx, sigma};
 
-        amrex::FArrayBox current_out_fab{box, NUM_VARS,
+        amrex::FArrayBox current_out_fab{box, NUM_CCZ4_VARS,
                                          amrex::The_Managed_Arena()};
-        amrex::FArrayBox old_out_fab{box, NUM_VARS, amrex::The_Managed_Arena()};
-        amrex::FArrayBox diff_fab{box, NUM_VARS, amrex::The_Managed_Arena()};
+        amrex::FArrayBox old_out_fab{box, NUM_CCZ4_VARS,
+                                     amrex::The_Managed_Arena()};
+        amrex::FArrayBox diff_fab{box, NUM_CCZ4_VARS,
+                                  amrex::The_Managed_Arena()};
 
         const auto &in_c_array        = in_fab.const_array();
         const auto &current_out_array = current_out_fab.array();
