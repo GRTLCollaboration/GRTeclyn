@@ -208,14 +208,18 @@ def _render_slice_frame(
     mid_y = float((ds.domain_right_edge[1] + ds.domain_left_edge[1]) / 2.0)
     physics_center = [mid_x, mid_y, 0.0]
 
+    # Corner mode: treat `center_xyz` as the symmetry origin (corner) and set
+    # plot center to origin + zoom/2 in the slice plane.
     if corner and zoom is not None:
         slice_plane_val = 0.0 if coord is None else float(coord)
+        origin = np.array(center_xyz, dtype=float) if center_xyz is not None else np.array(ds.domain_left_edge, dtype=float)
+        w = float(zoom)
         if axis == "z":
-            physics_center = [zoom / 2.0, zoom / 2.0, slice_plane_val]
+            physics_center = [origin[0] + w / 2.0, origin[1] + w / 2.0, slice_plane_val]
         elif axis == "y":
-            physics_center = [zoom / 2.0, slice_plane_val, zoom / 2.0]
+            physics_center = [origin[0] + w / 2.0, slice_plane_val, origin[2] + w / 2.0]
         elif axis == "x":
-            physics_center = [slice_plane_val, zoom / 2.0, zoom / 2.0]
+            physics_center = [slice_plane_val, origin[1] + w / 2.0, origin[2] + w / 2.0]
     elif center_xyz is not None:
         physics_center = [float(center_xyz[0]), float(center_xyz[1]), float(center_xyz[2])]
 
@@ -245,6 +249,8 @@ def _render_slice_frame(
     })
 
     slc = yt.SlicePlot(ds, axis, ("boxlib", field), center=plot_center)
+    # Use dataset-native coordinates (e.g. [0,40]) on axes for symmetry-reduced domains.
+    slc.set_origin("native")
     slc.set_axes_unit("code_length")
     if zoom is not None:
         slc.set_width((float(zoom), "code_length"))
@@ -279,6 +285,16 @@ def _render_slice_frame(
     slc.set_xlabel(r"$%s$" % xlabel_name)
     slc.set_ylabel(r"$%s$" % ylabel_name)
     slc.set_colorbar_label(("boxlib", field), cfg['label'])
+
+    # Remove the duplicated "0" tick label at the symmetry origin corner.
+    if corner:
+        slc.render()
+        plot = slc.plots[("boxlib", field)]
+        ax = plot.axes
+        ymin = float(ax.get_ylim()[0])
+        for tick, lbl in zip(ax.get_yticks(), ax.get_yticklabels()):
+            if abs(float(tick) - ymin) < 1.0e-9:
+                lbl.set_visible(False)
 
     output_dir = os.path.join(frames_out_dir, f"{field}_{axis}")
     frames_dir = os.path.join(output_dir, "frames")

@@ -164,12 +164,12 @@ def main() -> None:
         if not radii:
             raise SystemExit(f"No requested radii found in file. Available: {radii_all}")
 
-    # Style matches constraints plot
+    # Publication-style LaTeX (mathtext) typography
     plt.rcParams.update(
         {
             "font.family": "serif",
-            "font.serif": ["DejaVu Serif", "Times New Roman", "serif"],
-            "mathtext.fontset": "stix",
+            "font.serif": ["Computer Modern Roman", "DejaVu Serif", "Times New Roman", "serif"],
+            "mathtext.fontset": "cm",
             "axes.labelsize": 14,
             "axes.titlesize": 16,
             "xtick.labelsize": 12,
@@ -213,16 +213,16 @@ def main() -> None:
 
         plotted_any = True
 
-    ax1.set_xlabel(r"$t$" if args.time_axis == "simulation" else r"$(t - R_{\mathrm{ext}})$")
-    ax1.set_ylabel(r"$r\,\mathrm{Re}\,\Psi_4^{20}$")
-    ax1.set_title(r"Gravitational wave curvature $\Psi_4$ (mode $\ell=2$, $m=0$)")
+    ax1.set_xlabel(r"$t$" if args.time_axis == "simulation" else r"$t - R_{\mathrm{ext}}$")
+    ax1.set_ylabel(r"$r\,\mathrm{Re}\!\left(\Psi_4^{2,0}\right)$")
+    ax1.set_title(r"Gravitational-wave curvature $\Psi_4$ (mode $\ell=2$, $m=0$)")
     if plotted_any:
         ax1.legend(loc="upper right", frameon=True, framealpha=0.9)
     ax1.grid(True, which="both", ls="--", alpha=0.6)
     ax1.tick_params(axis="both", which="major", direction="in", top=True, right=True)
 
-    ax2.set_xlabel(r"Frequency ($M^{-1}$)")
-    ax2.set_ylabel(r"PSD of $\Psi_4$")
+    ax2.set_xlabel(r"$f\,(M^{-1})$")
+    ax2.set_ylabel(r"$\mathrm{PSD}\left[\Psi_4\right]$")
     ax2.grid(True, which="major", ls="--", alpha=0.6)
     ax2.tick_params(axis="both", which="major", direction="in", top=True, right=True)
 

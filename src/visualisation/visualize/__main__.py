@@ -24,8 +24,8 @@ def create_visualizations():
     parser.add_argument("--coord", type=float, default=None, help="Coordinate to slice at")
     parser.add_argument("--animate", action="store_true")
     parser.add_argument("--zoom", type=float, default=None, help="Zoom width in code units (default: full domain)")
-    parser.add_argument("--center", type=float, nargs=3, default=None, help="Center of the plot (x y z)")
-    parser.add_argument("--corner", action="store_true", help="Place the symmetry origin (0,0) at the bottom-left corner")
+    parser.add_argument("--center", type=float, nargs=3, default=None, help="Plot center (x y z). With --corner, this is treated as the symmetry origin (corner).")
+    parser.add_argument("--corner", action="store_true", help="Corner mode for symmetry-reduced domains (origin at bottom-left). Requires --zoom for deterministic extents.")
     parser.add_argument("--data", type=str, default=_DEFAULT_DATA)
     parser.add_argument("--out", type=str, default=_DEFAULT_OUT)
     parser.add_argument("--mpi", action="store_true")
@@ -37,17 +37,17 @@ def create_visualizations():
     use_mpi = size > 1 or (args.mpi and size > 1)
 
     configs = {
-        "chi":   {"zlim": (0.0, 1.0),  "cmap": "magma", "label": "Conformal Factor (chi)"},
-        "K":     {"zlim": (-0.1, 0.1), "cmap": "RdBu",  "label": "Trace of Extrinsic Curvature (K)"},
-        "Theta": {"zlim": (-0.005, 0.005), "cmap": "RdBu", "label": "Z4 Constraint (Theta)"},
-        "lapse": {"zlim": (0.0, 1.0),  "cmap": "viridis", "label": "Lapse (alpha)"},
-        "Ham":   {"zlim": (-0.1, 0.1), "cmap": "RdBu", "label": "Hamiltonian Constraint"},
-        "A11":   {"zlim": (-0.05, 0.05), "cmap": "PuOr", "label": "Extrinsic Curvature A11 (hxx)"},
-        "A12":   {"zlim": (-0.05, 0.05), "cmap": "PuOr", "label": "Extrinsic Curvature A12 (hxy)"},
-        "A22":   {"zlim": (-0.05, 0.05), "cmap": "PuOr", "label": "Extrinsic Curvature A22 (hyy)"},
-        "A33":   {"zlim": (-0.05, 0.05), "cmap": "PuOr", "label": "Extrinsic Curvature A33 (hzz)"},
-        "GW_Plus": {"zlim": (-5.0e-6, 5.0e-6), "cmap": "PiYG", "label": "GW Strain Proxy (+): A11 - A22"},
-        "GW_Cross": {"zlim": (-5.0e-6, 5.0e-6), "cmap": "PiYG", "label": "GW Strain Proxy (x): 2 * A12"},
+        "chi":   {"zlim": (0.0, 1.0),  "cmap": "magma", "label": r"Conformal Factor $\chi$"},
+        "K":     {"zlim": (-0.1, 0.1), "cmap": "RdBu",  "label": r"Trace of Extrinsic Curvature $K$"},
+        "Theta": {"zlim": (-0.005, 0.005), "cmap": "RdBu", "label": r"Z4 Constraint $\Theta$"},
+        "lapse": {"zlim": (0.0, 1.0),  "cmap": "viridis", "label": r"Lapse $\alpha$"},
+        "Ham":   {"zlim": (-0.1, 0.1), "cmap": "RdBu", "label": r"Hamiltonian Constraint $\mathcal{H}$"},
+        "A11":   {"zlim": (-0.05, 0.05), "cmap": "PuOr", "label": r"Extrinsic Curvature $\tilde{A}_{11}$"},
+        "A12":   {"zlim": (-0.05, 0.05), "cmap": "PuOr", "label": r"Extrinsic Curvature $\tilde{A}_{12}$"},
+        "A22":   {"zlim": (-0.05, 0.05), "cmap": "PuOr", "label": r"Extrinsic Curvature $\tilde{A}_{22}$"},
+        "A33":   {"zlim": (-0.05, 0.05), "cmap": "PuOr", "label": r"Extrinsic Curvature $\tilde{A}_{33}$"},
+        "GW_Plus": {"zlim": (-5.0e-6, 5.0e-6), "cmap": "PiYG", "label": r"GW Strain Proxy $h_+$"},
+        "GW_Cross": {"zlim": (-5.0e-6, 5.0e-6), "cmap": "PiYG", "label": r"GW Strain Proxy $h_\times$"},
     }
     cfg = configs.get(args.field, {"zlim": (None, None), "cmap": "viridis", "label": args.field})
 
@@ -122,20 +122,20 @@ def create_visualizations():
 
         physics_center = [mid_x, mid_y, z_center]
 
+        # Corner mode: treat --center as the symmetry origin (lower-left corner)
+        # and set the plot center to origin + zoom/2 in the slice plane.
         if args.corner and args.zoom is not None:
-            slice_plane_val = 0.0
-            if args.coord is not None:
-                slice_plane_val = args.coord
-
-            if args.axis == 'z':
-                physics_center = [args.zoom / 2.0, args.zoom / 2.0, slice_plane_val]
-            elif args.axis == 'y':
-                physics_center = [args.zoom / 2.0, slice_plane_val, args.zoom / 2.0]
-            elif args.axis == 'x':
-                physics_center = [slice_plane_val, args.zoom / 2.0, args.zoom / 2.0]
-
+            slice_plane_val = 0.0 if args.coord is None else float(args.coord)
+            origin = np.array(args.center, dtype=float) if args.center is not None else np.array(ds.domain_left_edge, dtype=float)
+            zoom = float(args.zoom)
+            if args.axis == "z":
+                physics_center = [origin[0] + zoom / 2.0, origin[1] + zoom / 2.0, slice_plane_val]
+            elif args.axis == "y":
+                physics_center = [origin[0] + zoom / 2.0, slice_plane_val, origin[2] + zoom / 2.0]
+            elif args.axis == "x":
+                physics_center = [slice_plane_val, origin[1] + zoom / 2.0, origin[2] + zoom / 2.0]
         elif args.center is not None:
-            physics_center = args.center
+            physics_center = list(args.center)
 
         # 3. Adjust based on slicing axis (--coord override)
         if args.axis == 'z':
@@ -149,6 +149,8 @@ def create_visualizations():
         # ----------------------------
 
         slc = yt.SlicePlot(ds, args.axis, ('boxlib', args.field), center=plot_center)
+        # Use physical (native) dataset coordinates on axes (no auto-centering to [-L/2, L/2]).
+        slc.set_origin("native")
         if args.zoom is not None:
             slc.set_width((args.zoom, "code_length"))
         slc.set_log(('boxlib', args.field), False)
@@ -171,7 +173,26 @@ def create_visualizations():
         slc.set_cmap(('boxlib', args.field), cfg["cmap"])
 
         coord_val = physics_center[{'x':0,'y':1,'z':2}[args.axis]]
-        slc.annotate_title(f"{cfg['label']} | T={ds.current_time:.2f} | {args.axis}={coord_val:.1f}")
+        slc.annotate_title(r"%s $\quad t=%.2f \quad %s=%.1f$" % (cfg["label"], float(ds.current_time), args.axis, coord_val))
+
+        # Force pure LaTeX axis labels (no "(code length)" units in label text).
+        axis_map = {"x": ("y", "z"), "y": ("z", "x"), "z": ("x", "y")}
+        xlabel_name, ylabel_name = axis_map[args.axis]
+        slc.set_xlabel(r"$%s$" % xlabel_name)
+        slc.set_ylabel(r"$%s$" % ylabel_name)
+        slc.set_colorbar_label(("boxlib", args.field), cfg["label"])
+
+        # Remove the duplicated "0" tick label at the symmetry origin corner.
+        # In corner mode the plot lower-left is (0,0); hide the y-axis 0 label
+        # so only one "0" is shown in the corner.
+        if args.corner:
+            slc.render()
+            plot = slc.plots[('boxlib', args.field)]
+            ax = plot.axes
+            ymin = float(ax.get_ylim()[0])
+            for tick, lbl in zip(ax.get_yticks(), ax.get_yticklabels()):
+                if abs(float(tick) - ymin) < 1.0e-9:
+                    lbl.set_visible(False)
 
         frame_idx = frame_counter if not use_mpi else i
         frame_name = f"frame_{args.axis}_{frame_idx:04d}.png"
