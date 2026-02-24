@@ -25,6 +25,11 @@ class SimulationParameters : public SimulationParametersBase
 
     void read_wormhole_params(GRParmParse &pp)
     {
+        // Select between different initial-data realisations
+        pp.load("wormhole_metric_type", wormhole_params.metric_type, 0);
+        pp.load("wormhole_initial_lapse_type", wormhole_params.initial_lapse_type,
+                0);
+
         // Grid center for coordinate mapping
         pp.load("center", wormhole_params.grid_center, center);
 
@@ -62,6 +67,16 @@ class SimulationParameters : public SimulationParametersBase
 
     void check_params()
     {
+        check_parameter("wormhole_metric_type", wormhole_params.metric_type,
+                        (wormhole_params.metric_type == 0) ||
+                            (wormhole_params.metric_type == 1),
+                        "must be 0 (two-mouth) or 1 (single-throat)");
+        check_parameter("wormhole_initial_lapse_type",
+                        wormhole_params.initial_lapse_type,
+                        (wormhole_params.initial_lapse_type >= 0) &&
+                            (wormhole_params.initial_lapse_type <= 2),
+                        "must be 0, 1, or 2");
+
         check_parameter("wormhole_throat_radius_A", wormhole_params.throat_radius_A,
                         wormhole_params.throat_radius_A > 0.0,
                         "must be positive");

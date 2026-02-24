@@ -13,6 +13,8 @@
 #include "VarsTools.hpp"
 #include "simd.hpp"
 
+#include <cmath>
+
 //! Initial data for an "unsupported wormhole" experiment.
 //!
 //! This class provides a conformally-flat isotropic *two-mouth* ansatz via
@@ -29,6 +31,17 @@ class WormholeInitialData
   public:
     struct params_t
     {
+        // Metric realisation selector:
+        // 0 = two-mouth isotropic superposition (default, centers A/B)
+        // 1 = single-throat Morris–Thorne / Ellis–Bronnikov (uses centerA only)
+        int metric_type;
+
+        // Initial lapse selector:
+        // 0 = alpha = 1
+        // 1 = alpha = sqrt(chi) (pre-collapsed)
+        // 2 = alpha = 1 - 3*log(chi) (N=2, 1+log-inspired using gamma = chi^{-3})
+        int initial_lapse_type;
+
         // Grid center used for index->physical coordinate mapping
         std::array<double, AMREX_SPACEDIM> grid_center;
 
@@ -121,9 +134,13 @@ class WormholeInitialData
         }
         else
         {
-            // Two-mouth isotropic superposition
+            // Isotropic conformally-flat Ellis–Bronnikov form:
+            // - metric_type=0: two-mouth superposition
+            // - metric_type=1: single-throat Morris–Thorne / Ellis–Bronnikov
             const data_t termA = (data_t)bA_sq / (4.0 * rA2_reg);
-            const data_t termB = (data_t)bB_sq / (4.0 * rB2_reg);
+            const data_t termB = (m_params.metric_type == 1)
+                                     ? (data_t)0.0
+                                     : (data_t)bB_sq / (4.0 * rB2_reg);
             const data_t psi   = 1.0 + termA + termB;
             const data_t psi2  = psi * psi;
             const data_t psi4  = psi2 * psi2;
@@ -138,11 +155,32 @@ class WormholeInitialData
         if ((m_params.k_amplitude != 0.0) && (m_params.k_width > 0.0))
         {
             const data_t sig2 = (data_t)(m_params.k_width * m_params.k_width);
-            K = (data_t)m_params.k_amplitude *
-                (exp(-rA2 / sig2) + exp(-rB2 / sig2));
+            if (m_params.metric_type == 1)
+            {
+                // Single throat: seed collapse at centerA only
+                K = (data_t)m_params.k_amplitude * exp(-rA2 / sig2);
+            }
+            else
+            {
+                // Two mouths: kick both
+                K = (data_t)m_params.k_amplitude *
+                    (exp(-rA2 / sig2) + exp(-rB2 / sig2));
+            }
         }
 
-        const data_t lapse = 1.0;
+        data_t lapse = 1.0;
+        if (m_params.initial_lapse_type == 1)
+        {
+            lapse = sqrt(chi);
+        }
+        else if (m_params.initial_lapse_type == 2)
+        {
+            // For conformal variables with det(h)=1, det(gamma)=chi^{-3}.
+            // Using alpha = 1 + ln(gamma^{N/2}) with N=2 gives:
+            // alpha = 1 + ln(gamma) = 1 - 3 ln(chi).
+            lapse = 1.0 - (data_t)3.0 * log(chi);
+        }
+        if (lapse < (data_t)1.0e-10) lapse = (data_t)1.0e-10;
 
         cell(i, j, k, c_chi) = chi;
         cell(i, j, k, c_h11) = h11;
