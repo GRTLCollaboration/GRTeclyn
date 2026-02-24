@@ -7,7 +7,7 @@ output_path = "/home/jovyan/nachevsky/test/simulation/data_2gpu"
 amr.check_file = "/home/jovyan/nachevsky/test/simulation/data_2gpu/WormholeChk"
 amr.plot_file  = "/home/jovyan/nachevsky/test/simulation/data_2gpu/WormholePlt"
 
-# Save often to catch the moment before the crash
+# Save less often to avoid memory spikes during I/O and improve speed
 checkpoint_interval = 100
 plot_interval       = 1
 
@@ -16,10 +16,8 @@ plot_interval       = 1
 # - `amr.derive_plot_vars` controls which *derived* variables are written.
 amr.plot_vars = chi K lapse
 # NOTE: AMReX derive variables are requested by *record name* (not component name).
-# In this codebase:
-# - record "Weyl4" writes (Weyl4_Re, Weyl4_Im)
-# - record "constraints" writes (Ham, Mom1, Mom2, Mom3)
-amr.derive_plot_vars = Weyl4 constraints
+# In this codebase the record name is "Weyl4" (components: Weyl4_Re, Weyl4_Im).
+amr.derive_plot_vars = Weyl4
 
 hdf5_subpath = "hdf5"
 pout_subpath = "pout"
@@ -63,11 +61,11 @@ wormhole_metric_type = 1
 # - 2: alpha = 1 - 3*log(chi) (N=2, 1+log-inspired using gamma=chi^{-3})
 wormhole_initial_lapse_type = 0
 
-# Amp = 3, width = 2
-wormhole_throat_radius = 1.0
+# Amp = 5.0, width = 1.0 (Increased width to resolve kick on grid, kept strong Amp)
+wormhole_throat_radius = 0.5
 wormhole_centerA = 0.0 0.0 0.0
 wormhole_k_amplitude   = 2.0
-wormhole_k_width       = 3.0
+wormhole_k_width       = 1.0
 
 # IMPORTANT:
 # Your "Resolution of the Origin Singularity: Isotropic Coordinates" section
@@ -95,11 +93,11 @@ max_level = 5
 
 # Frequency of regridding
 # Level:          0   1   2   3   4   5   6
-regrid_interval = 16   16   16   16   16   8   8
+regrid_interval = 32 32 16 16 16 16 16
 regrid_threshold = 0.01
 
 max_box_size = 32
-min_box_size = 8
+min_box_size = 16
 
 
 #################################################
@@ -118,8 +116,8 @@ nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 # Evolution parameters
 
 # FIX: Smaller timestep to ensure stability
-dt_multiplier = 0.25
-stop_time = 25.0
+dt_multiplier = 0.1
+stop_time = 50.0
 
 max_spatial_derivative_order = 4
 nan_check = 1
@@ -139,7 +137,7 @@ shift_Gamma_coeff = 0.75
 eta = 1.0
 
 formulation = 0
-kappa1 = 2.0
+kappa1 = 3.0
 kappa2 = 0.
 kappa3 = 1.
 covariantZ4 = 1
@@ -175,8 +173,8 @@ modes = 2 0 \
 # and you can hit OOM earlier.
 #
 # Start conservative and increase only if you see fragmentation / slowdowns.
-# (20GB here is a safe default for 80GB GPUs.)
-amrex.the_arena_init_size = 20000000000
+# (Let AMReX manage growth - start small to avoid locking memory early)
+amrex.the_arena_init_size = 1048576
 # NOTE:
 # Set this to 0 unless your MPI build is CUDA-aware. A non-CUDA-aware MPI can
 # segfault during halo exchanges if this is enabled.

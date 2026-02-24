@@ -76,6 +76,7 @@ def _canonical_field_name(name: str) -> str:
         "Weyl4": "Weyl4_Re",
         "Weyl_Re": "Weyl4_Re",
         "Weyl_Im": "Weyl4_Im",
+        "Weyl_Mag": "Weyl4_Mag",
     }
     return aliases.get(name, name)
 
@@ -162,11 +163,16 @@ def _register_derived_fields(ds, field: str) -> None:
             return 2.0 * data["boxlib", "A12"]
         ds.add_field(("boxlib", "GW_Cross"), function=_gw_cross, sampling_type="cell", units="")
     elif field == "Weyl4_Mag":
-        def _weyl4_mag(_field, data):
+        def _weyl4_mag(field, data):
             re_v = data["boxlib", "Weyl4_Re"]
             im_v = data["boxlib", "Weyl4_Im"]
             return np.sqrt(re_v**2 + im_v**2)
         ds.add_field(("boxlib", "Weyl4_Mag"), function=_weyl4_mag, sampling_type="cell", units="")
+
+    elif field == "Weyl4_Re":
+        # Ensure base fields are available if asked for explicitly?
+        # Usually they are just read from disk.
+        pass
 
 def _render_slice_frame(
     ds,
