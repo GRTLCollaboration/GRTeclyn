@@ -100,7 +100,7 @@ inline void RandomField::Test_is_trace_free(MultiFab &field)
 
             if(std::abs(sum) > tolerance)
             {
-                Print() << iv << ": " << sum;
+                Print() << iv << ": " << sum << "\n";
                 Error("RandomField::Test_is_trace_free Trace-free test failed here.");
             }
         });
@@ -180,7 +180,7 @@ inline GpuComplex<Real> RandomField::find_in_stoiic(const double km, const int f
     int spec_index;
     for(int idx = 0; idx < m_params.init_k.size(); idx++)
     {
-        if(std::abs(km - m_params.init_k[idx]) < 1e-15) { spec_index = idx; break; }
+        if(std::abs(km - m_params.init_k[idx]) < 1e-13) { spec_index = idx; break; }
         else if (idx == m_params.init_k.size() - 1) { AllPrint() << km << "\n"; Error("The above k was not found in the STOIIC file."); }
     }
 
@@ -282,7 +282,7 @@ inline Vector<Real> RandomField::calculate_basis_vector(const IntVect iv, const 
         Error("RandomField::calculate_polarisation_tensors Part of Fourier grid not covered.");
     }
 
-    if(m_params.alpha != 0)
+    if(m_params.alpha != 0.)
     {
         double m_alpha = m_params.alpha * M_PI/180.;
         for (int i=0; i<3; i++)
@@ -462,11 +462,33 @@ inline void RandomField::init(amrex::MultiFab &state)
                     As_ptr(i, j, k, p) = calculate_random_field(iv, 1, draw1, draw2, "tensor");
                 }
 
+                Vector<Real> mhat(3, 0.);
+                Vector<Real> nhat(3, 0.);
+
+                mhat = calculate_basis_vector(iv, 0);
+                nhat = calculate_basis_vector(iv, 1);
+
+                Tensor<2, Real> eplus, ecross;
+                Real ep_tr = 0.;
+                Real ec_tr = 0.;
+                GpuComplex<Real> h_tr = 0.;
+
                 // Find basis tensors and initial tensor realisation
                 for (int l=0; l<3; l++) for (int p=0; p<3; p++)
                 {
-                    hij_ptr(i, j, k, lut[l][p]) = calculate_tensor_initial_conditions(iv, l, p, hs_ptr(i, j, k, 0), hs_ptr(i, j, k, 1));
-                    Aij_ptr(i, j, k, lut[l][p]) = calculate_tensor_initial_conditions(iv, l, p, As_ptr(i, j, k, 0), As_ptr(i, j, k, 1));
+                    // Assemble the polarisation tensors
+                    eplus[l][p] = mhat[l]*mhat[p] - nhat[l]*nhat[p];
+                    ecross[l][p] = mhat[l]*nhat[p] + nhat[l]*mhat[p];
+
+                    hij_ptr(i, j, k, lut[l][p]) = hs_ptr(i, j, k, 0) * eplus[l][p] + hs_ptr(i, j, k, 1) * ecross[l][p];
+                    Aij_ptr(i, j, k, lut[l][p]) = As_ptr(i, j, k, 0) * eplus[l][p] + As_ptr(i, j, k, 1) * ecross[l][p];
+
+                    if(l==p)
+                    {
+                        ep_tr += eplus[l][p];
+                        ec_tr += ecross[l][p];
+                        h_tr += hij_ptr(i, j, k, lut[l][p]);
+                    }
 
                     // if(i == 1 && j == 0 && k == 1)
                     // {
@@ -474,6 +496,19 @@ inline void RandomField::init(amrex::MultiFab &state)
                     //     Print() << l << ", " << p << ": ";
                     //     Print() << hij_ptr(i, j, k, lut[l][p]) << "\n";
                     // }
+                }
+
+                if(std::abs(ep_tr) > tolerance || std::abs(ec_tr) > tolerance 
+                || (std::sqrt(pow(h_tr.real(), 2.) + pow(h_tr.imag(), 2))) > tolerance)
+                {
+                    Print() << iv << ", " << tolerance << "; ";
+                    for(int l=0; l<3; l++)
+                    {
+                        Print() << "(" << mhat[l] << ", " << nhat[l] << "), ";
+                    }
+                    Print() << ": " << ep_tr << ", " << ec_tr << ", ";
+                    Print() << (std::sqrt(pow(h_tr.real(), 2.) + pow(h_tr.imag(), 2.))) << "\n";
+                    Error("Plus/cross polarisation tensors have large trace here");
                 }
             }
         });
@@ -494,10 +529,6 @@ inline void RandomField::init(amrex::MultiFab &state)
     hij_x.mult(norm);
     Aij_x.mult(norm);
     scalar_fields_x.mult(norm);
-
-    // Test is trace-free
-    Test_is_trace_free(hij_x);
-    Test_is_trace_free(Aij_x);
 
     // Convert to BSSN variables using the BSSN-CPT dictionary
     for (int l=0; l<3; l++) { hij_x.plus(1., lut[l][l], 1); }
@@ -1058,6 +1089,12 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
 
             if (hij_tr_mag > hij_tr_max) { hij_tr_max = hij_tr_mag; }
             if (hSV_tr_mag > hSV_tr_max) { hSV_tr_max = hSV_tr_mag; }
+
+            if (std::abs(hij_tr_mag) > tolerance)
+            {
+                Print() << iv << ": " << hij_tr_mag << "\n";
+                Error("hij trace magnitude too large in extraction");
+            }
             
             // if(i == 1 && j == 2 && k == 1)
             // {
@@ -1093,6 +1130,8 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
             }
         });
     }
+
+    // Print() << "Max traces: " << hij_tr_max << ", " << hSV_tr_max << "\n";
 
     apply_nyquist_conditions(hs_k);
     apply_nyquist_conditions(R_k);

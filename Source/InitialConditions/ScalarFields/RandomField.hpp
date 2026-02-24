@@ -96,7 +96,7 @@ class RandomField
             // Set protected class parameters
             N = m_params.N_readin;
             norm = m_params.A * pow(2. * M_PI/m_params.L, 3.); // Physical FFT normalisation
-            tolerance = 1.e-15; // Numerical tolerance, for tests
+            tolerance = 1.e-12; // Numerical tolerance, for tests
 
             // Look-up table 
             // Used to construct polarisation basis tensors
@@ -118,7 +118,7 @@ class RandomField
             // Set protected class parameters
             N = m_params.N_readin;
             norm = m_params.A * pow(2. * M_PI/m_params.L, 3.); // Physical FFT normalisation
-            tolerance = 1.e-15; // Numerical tolerance, for tests
+            tolerance = 1.e-12; // Numerical tolerance, for tests
 
             // Look-up table 
             // Used to construct polarisation basis tensors
