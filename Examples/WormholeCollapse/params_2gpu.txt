@@ -8,7 +8,7 @@ amr.check_file = "/home/jovyan/nachevsky/test/simulation/data_2gpu/WormholeChk"
 amr.plot_file  = "/home/jovyan/nachevsky/test/simulation/data_2gpu/WormholePlt"
 
 # Save often to catch the moment before the crash
-checkpoint_interval = 20
+checkpoint_interval = 100
 plot_interval       = 1
 
 # Plotfile contents (AMReX keys):
@@ -36,13 +36,17 @@ print_progress_only_to_rank_0 = 1
 wormhole_throat_radius = 0.5
 #
 # Preferred explicit two-mouth settings:
-wormhole_throat_radius_A = 0.2
-wormhole_throat_radius_B = 0.2
+wormhole_throat_radius_A = 0.1
+wormhole_throat_radius_B = 0.1
 # Mouth locations are specified in *physical coordinates* (after the `center`
 # shift in the grid section). With `center = L_full/2`, these are in the middle
 # of the box and separated by 30 units along x.
 wormhole_centerA = 25.0 0.0 0.0
 wormhole_centerB = -25.0 0.0 0.0
+
+# Gentle inward kick to break the K=0 equilibrium (set amplitude=0 to disable)
+wormhole_k_amplitude = -0.50
+wormhole_k_width     = 2.0
 
 # IMPORTANT:
 # Your "Resolution of the Origin Singularity: Isotropic Coordinates" section
@@ -95,7 +99,7 @@ nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 
 # FIX: Smaller timestep to ensure stability
 dt_multiplier = 0.25
-stop_time = 25.0
+stop_time = 50.0
 
 max_spatial_derivative_order = 4
 nan_check = 1
@@ -115,7 +119,7 @@ shift_Gamma_coeff = 0.75
 eta = 1.0
 
 formulation = 0
-kappa1 = 2.0
+kappa1 = 5.0
 kappa2 = 0.
 kappa3 = 1.
 covariantZ4 = 1

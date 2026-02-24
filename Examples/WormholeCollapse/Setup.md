@@ -77,6 +77,11 @@ On an 8×H100 node you can run with 8 GPUs (8 MPI ranks) like this:
 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 mpirun -n 8 ./main3d.gnu.MPI.CUDA.ex params_2gpu.txt
 ```
 
+Run on some random gpus 
+```bash
+CUDA_VISIBLE_DEVICES=4,5,6,7 mpirun -n 8 ./main3d.gnu.MPI.CUDA.ex params_2gpu.txt
+```
+
 #### Recommended: bind MPI ranks to GPUs (avoids mapping warnings)
 AMReX may warn that multiple GPUs are visible to each rank. A robust way to
 ensure rank 0 uses GPU 0 and rank 1 uses GPU 1 is to make each rank see only a

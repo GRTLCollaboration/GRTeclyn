@@ -54,6 +54,10 @@ class SimulationParameters : public SimulationParametersBase
         // Legacy/debug option
         pp.load("wormhole_use_cartesian_gamma", wormhole_params.use_cartesian_gamma,
                 false);
+
+        // Optional inward kick (negative K perturbation) to break equilibrium
+        pp.load("wormhole_k_amplitude", wormhole_params.k_amplitude, 0.0);
+        pp.load("wormhole_k_width", wormhole_params.k_width, 0.0);
     }
 
     void check_params()
@@ -64,6 +68,12 @@ class SimulationParameters : public SimulationParametersBase
         check_parameter("wormhole_throat_radius_B", wormhole_params.throat_radius_B,
                         wormhole_params.throat_radius_B > 0.0,
                         "must be positive");
+
+        // Kick params: width must be > 0 if amplitude is nonzero
+        check_parameter("wormhole_k_width", wormhole_params.k_width,
+                        (wormhole_params.k_amplitude == 0.0) ||
+                            (wormhole_params.k_width > 0.0),
+                        "must be > 0 when wormhole_k_amplitude != 0");
     }
 
     bool calculate_constraint_norms{};

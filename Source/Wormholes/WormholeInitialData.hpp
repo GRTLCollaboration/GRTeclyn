@@ -38,6 +38,13 @@ class WormholeInitialData
         std::array<double, AMREX_SPACEDIM> centerA;
         std::array<double, AMREX_SPACEDIM> centerB;
 
+        // Optional inward "kick" via a small negative K perturbation
+        // applied as a sum of Gaussians centered at each mouth:
+        //   K = k_amplitude * (exp(-rA^2/k_width^2) + exp(-rB^2/k_width^2))
+        // Set k_amplitude = 0 to disable.
+        double k_amplitude;
+        double k_width;
+
         // Legacy/debug option: initialise a nontrivial Cartesian gamma_ij
         // (single-throat proper-distance metric centred at the origin).
         bool use_cartesian_gamma;
@@ -126,8 +133,15 @@ class WormholeInitialData
         // Floors (avoid NaNs in evolution)
         if (chi < (data_t)1.0e-10) chi = (data_t)1.0e-10;
 
-        // Time-symmetric data: K = 0, A_ij = 0
-        const data_t K = 0.0;
+        // Optional "kick": a small inward K perturbation at each mouth.
+        data_t K = 0.0;
+        if ((m_params.k_amplitude != 0.0) && (m_params.k_width > 0.0))
+        {
+            const data_t sig2 = (data_t)(m_params.k_width * m_params.k_width);
+            K = (data_t)m_params.k_amplitude *
+                (exp(-rA2 / sig2) + exp(-rB2 / sig2));
+        }
+
         const data_t lapse = 1.0;
 
         cell(i, j, k, c_chi) = chi;
