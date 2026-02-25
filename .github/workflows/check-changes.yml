@@ -40,5 +40,5 @@ jobs:
               - 'Examples/**'
             has_unit_test_changes:
               - *core
-              - 'Test/**'
+              - 'Tests/**'
               - 'external/doctest/**'
