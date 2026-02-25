@@ -14,8 +14,9 @@
 #include "Tensor-fdf5a7a.hpp"
 #include "StateVariables.hpp"
 
-// Chombo includes
-//#include "parstream.H" //Gives us amrex::Print()
+
+// AMReX includes
+#include <AMReX_Print.H>
 
 // Namespace to avoid conflicts with current code
 namespace Old
