@@ -27,6 +27,7 @@ from typing import Dict, List, Sequence, Tuple
 import numpy as np
 import yt
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FuncFormatter
 
 
 def _default_data_dir() -> str:
@@ -292,22 +293,35 @@ def _render_slice_frame(
     slc.set_ylabel(r"$%s$" % ylabel_name)
     slc.set_colorbar_label(("boxlib", field), cfg['label'])
 
+    # Render now so we can tweak tick labels on the matplotlib axes.
+    # NOTE: yt may re-render inside slc.save(); to make tick tweaks stick we save
+    # via matplotlib after rendering.
+    slc.render()
+    plot = slc.plots[("boxlib", field)]
+    ax = plot.axes
+
     # Remove the duplicated "0" tick label at the symmetry origin corner.
+    # Keep the x-axis "0" label, hide ONLY the y-axis tick label at y=0.
+    # Using a formatter is robust against yt/matplotlib regenerating tick labels.
     if corner:
-        slc.render()
-        plot = slc.plots[("boxlib", field)]
-        ax = plot.axes
-        ymin = float(ax.get_ylim()[0])
-        for tick, lbl in zip(ax.get_yticks(), ax.get_yticklabels()):
-            if abs(float(tick) - ymin) < 1.0e-9:
-                lbl.set_visible(False)
+        def _fmt_y(val, _pos):
+            if abs(float(val)) < 1.0e-12:
+                return ""
+            return f"{val:g}"
+
+        ax.yaxis.set_major_formatter(FuncFormatter(_fmt_y))
+        try:
+            plot.figure.canvas.draw()
+        except Exception:
+            pass
 
     output_dir = os.path.join(frames_out_dir, f"{field}_{axis}")
     frames_dir = os.path.join(output_dir, "frames")
     os.makedirs(frames_dir, exist_ok=True)
     frame_name = f"frame_{axis}_{frame_idx:04d}.png"
     out_path = os.path.join(frames_dir, frame_name)
-    slc.save(out_path)
+    plot.figure.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.close(plot.figure)
 
     if verbose:
         print(f"[frame] {field} -> {out_path}")

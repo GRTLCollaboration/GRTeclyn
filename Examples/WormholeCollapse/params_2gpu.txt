@@ -8,7 +8,7 @@ amr.check_file = "/home/jovyan/nachevsky/test/simulation/data_2gpu/WormholeChk"
 amr.plot_file  = "/home/jovyan/nachevsky/test/simulation/data_2gpu/WormholePlt"
 
 # Save less often to avoid memory spikes during I/O and improve speed
-checkpoint_interval = 100
+checkpoint_interval = 1000
 plot_interval       = 1
 
 # Plotfile contents (AMReX keys):
@@ -64,7 +64,7 @@ wormhole_initial_lapse_type = 0
 # Amp = 5.0, width = 1.0 (Increased width to resolve kick on grid, kept strong Amp)
 wormhole_throat_radius = 0.5
 wormhole_centerA = 0.0 0.0 0.0
-wormhole_k_amplitude   = 2.0
+wormhole_k_amplitude   = -3.0
 wormhole_k_width       = 1.0
 
 # IMPORTANT:

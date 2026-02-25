@@ -166,3 +166,20 @@ python -m src.visualisation.process_wave.consume_plotfiles \
 
 3. Run simulation in another terminal.
 4. Plot: `python -m src.visualisation.process_wave.plot_extracted_psi4 <path/to/psi4_mode_l2m0.dat>`
+
+
+
+
+Comamnd that hides the y=0 label 
+```bash
+python -m src.visualisation.process_wave.consume_plotfiles \
+  --data "/home/jovyan/nachevsky/test/simulation/data_2gpu" \
+  --out  "/home/jovyan/nachevsky/test/simulation/data_2gpu/small_data" \
+  --no-psi4 \
+  --frames-fields chi K Weyl4_Re Weyl4_Mag \
+  --frames-axis z \
+  --frames-corner \
+  --frames-out "/home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/visualize" \
+  --watch --delete --keep-last 2 \
+  --verbose
+  ```

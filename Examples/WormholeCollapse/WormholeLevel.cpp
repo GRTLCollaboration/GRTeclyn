@@ -267,7 +267,10 @@ void WormholeLevel::specificPostTimeStep()
                 });
         }
 
-        auto [min_lapse, min_chi, max_abs_K] = reduce_data.value();
+        const auto reduce_vals = reduce_data.value();
+        amrex::Real min_lapse  = amrex::get<0>(reduce_vals);
+        amrex::Real min_chi    = amrex::get<1>(reduce_vals);
+        amrex::Real max_abs_K  = amrex::get<2>(reduce_vals);
         amrex::ParallelDescriptor::ReduceRealMin(min_lapse);
         amrex::ParallelDescriptor::ReduceRealMin(min_chi);
         amrex::ParallelDescriptor::ReduceRealMax(max_abs_K);
