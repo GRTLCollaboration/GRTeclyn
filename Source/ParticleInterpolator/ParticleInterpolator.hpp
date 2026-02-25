@@ -81,8 +81,8 @@ class ParticleInterpolator
     // a function to reflect a particle back into the valid domain, when
     // symmetry BCs are used
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static amrex::Real
-    reflect_particle(amrex::Real x, amrex::Real lo, amrex::Real hi,
-                     bool lo_reflect, bool hi_reflect);
+    reflect_particle(amrex::Real x, amrex::Real low, amrex::Real high,
+                     bool low_reflect, bool high_reflect);
 
     // A function to check whether the query point is inside the physical domain
     void check_domain(amrex::GpuArray<double, AMREX_SPACEDIM> &x,
@@ -124,7 +124,7 @@ class ParticleInterpolator
     void populate_from_query();
 
     // A helper function that does interpolation from grid onto particles
-    void interpolate_to_particle(int lev, amrex::MultiFab &mf,
+    void interpolate_to_particle(int lev, amrex::MultiFab &mfab,
                                  const amrex::Geometry &geom);
 
     // final interpolation routine exposed to the users
