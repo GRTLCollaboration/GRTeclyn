@@ -46,7 +46,7 @@ class InterpolationQueryParticle
 
   public:
     InterpolationQueryParticle(int num_points)
-        : m_num_points(num_points), m_coords{}
+        : m_num_points(num_points), m_coords
     {
     }
 

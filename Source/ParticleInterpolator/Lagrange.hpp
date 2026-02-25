@@ -38,9 +38,9 @@ template <int N> class Lagrange
         }
 
         // Compute the relative position from the interpolation point
-        // NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays)
+        // NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
         amrex::Real rel_pos[N];
-        // NOLINTEND(cppcoreguidelines-avoid-c-arrays)
+        // NOLINTEND(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
         for (int i = 0; i < N; ++i)
         {
             rel_pos[i] = static_cast<amrex::Real>(stencil[i]) - grid_pos;
@@ -55,11 +55,11 @@ template <int N> class Lagrange
 
   public:
     // where we store the weights for each dimension
-    // NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays)
-    amrex::Real weights_x[N];
-    amrex::Real weights_y[N];
-    amrex::Real weights_z[N];
-    // NOLINTEND(cppcoreguidelines-avoid-c-arrays)
+    // NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
+    amrex::Real weights_x[N]{};
+    amrex::Real weights_y[N]{};
+    amrex::Real weights_z[N]{};
+    // NOLINTEND(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE Lagrange() = default;
 
