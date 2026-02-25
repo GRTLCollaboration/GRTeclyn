@@ -45,10 +45,7 @@ class InterpolationQueryParticle
         false; // flag to check whether var type has been set
 
   public:
-    InterpolationQueryParticle(int num_points)
-        : m_num_points(num_points), m_coords
-    {
-    }
+    InterpolationQueryParticle(int num_points) : m_num_points(num_points) {}
 
     // Returns the pointer that was passed to setCoords
     [[nodiscard]] const double *coords(int dim) const
