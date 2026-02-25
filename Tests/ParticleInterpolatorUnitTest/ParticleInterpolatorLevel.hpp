@@ -43,22 +43,22 @@ class ParticleInterpolatorLevel : public GRAMRLevel
         pp.query("center", center);
 
         // Fill the state
-        // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-        amrex::ParallelFor(state, state.nGrowVect(),
-                           [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
-                           {
-                               const auto &array = arrs[box_no];
+        amrex::ParallelFor(
+            state, state.nGrowVect(),
+            // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+            [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+            {
+                const auto &array = arrs[box_no];
 
-                               // compute coordinates
-                               amrex::Real x =
-                                   prob_lo[0] + (i + 0.5) * dx[0] - center[0];
+                // compute coordinates
+                amrex::Real x = prob_lo[0] + (i + 0.5) * dx[0] - center[0];
 
-                               // zero out everything first
-                               array(i, j, k, c_polystate) = 0.0;
+                // zero out everything first
+                array(i, j, k, c_polystate) = 0.0;
 
-                               // write in
-                               array(i, j, k, c_polystate) = x * x * x;
-                           });
+                // write in
+                array(i, j, k, c_polystate) = x * x * x;
+            });
 
         amrex::Gpu::streamSynchronize();
     }
