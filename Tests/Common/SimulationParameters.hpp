@@ -48,8 +48,8 @@ class SimulationParameters : public SimulationParametersBase
     amrex::Real fake_bh2_mass{};
 
     // For ParticleInterpolator Test
-    int num_points;
-    bool verbosity;
+    int num_points{};
+    bool verbosity{};
 };
 
 #endif /* SIMULATIONPARAMETERS_HPP */

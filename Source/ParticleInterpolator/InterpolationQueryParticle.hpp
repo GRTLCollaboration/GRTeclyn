@@ -37,10 +37,10 @@ class InterpolationQueryParticle
     template <int num_components> friend class ParticleInterpolator;
 
     size_t m_num_points;
-    std::array<const double *, AMREX_SPACEDIM> m_coords;
+    std::array<const double *, AMREX_SPACEDIM> m_coords{};
     comp_map_t m_comps;
-    VariableType m_variable_type; // for a given InterpolationQueryParticle the
-                                  // varibale type must be the same!
+    VariableType m_variable_type{}; // for a given InterpolationQueryParticle
+                                    // the varibale type must be the same!
     bool m_variable_type_set =
         false; // flag to check whether var type has been set
 
@@ -51,7 +51,7 @@ class InterpolationQueryParticle
     }
 
     // Returns the pointer that was passed to setCoords
-    inline const double *coords(int dim) const
+    [[nodiscard]] const double *coords(int dim) const
     {
         AMREX_ASSERT(dim >= 0 && dim < AMREX_SPACEDIM);
         return m_coords[dim];
@@ -124,7 +124,7 @@ class InterpolationQueryParticle
         return *this;
     }
 
-    VariableType getVariableType() const
+    [[nodiscard]] VariableType getVariableType() const
     {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             m_variable_type_set, "InterpolationQueryParticle: VariableType "
@@ -132,7 +132,7 @@ class InterpolationQueryParticle
         return m_variable_type;
     }
 
-    inline int numComps()
+    int numComps()
     {
         int accum = 0;
 
@@ -144,11 +144,11 @@ class InterpolationQueryParticle
         return accum;
     }
 
-    [[nodiscard]] inline size_t numPoints() const { return m_num_points; }
+    [[nodiscard]] size_t numPoints() const { return m_num_points; }
 
-    inline iterator compsBegin() { return m_comps.begin(); }
+    iterator compsBegin() { return m_comps.begin(); }
 
-    inline iterator compsEnd() { return m_comps.end(); }
+    iterator compsEnd() { return m_comps.end(); }
 };
 
 #endif /* INTERPOLATIONQUERYPARTICLE_HPP_ */

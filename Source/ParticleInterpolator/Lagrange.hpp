@@ -17,14 +17,14 @@ template <int N> class Lagrange
 {
   private:
     // indices of the lower left corner of the stencil in the grid
-    int i0;
-    int j0;
-    int k0;
+    int i0{};
+    int j0{};
+    int k0{};
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     build_stencil(amrex::Real grid_pos, int &base_idx, amrex::Real *weights)
     {
-        int stencil[N];
+        std::array<int, N> stencil;
         constexpr int center_offset =
             N / 2; // offset based on the number of points we are using
         int center = static_cast<int>(
@@ -38,7 +38,9 @@ template <int N> class Lagrange
         }
 
         // Compute the relative position from the interpolation point
+        // NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays)
         amrex::Real rel_pos[N];
+        // NOLINTEND(cppcoreguidelines-avoid-c-arrays)
         for (int i = 0; i < N; ++i)
         {
             rel_pos[i] = static_cast<amrex::Real>(stencil[i]) - grid_pos;
@@ -53,15 +55,17 @@ template <int N> class Lagrange
 
   public:
     // where we store the weights for each dimension
+    // NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays)
     amrex::Real weights_x[N];
     amrex::Real weights_y[N];
     amrex::Real weights_z[N];
+    // NOLINTEND(cppcoreguidelines-avoid-c-arrays)
 
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE Lagrange() {};
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE Lagrange() = default;
 
     template <typename P>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    compute_weights(const P &p,
+    compute_weights(const P &par,
                     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const &plo,
                     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const &dxi,
                     const amrex::IntVect &is_nodal)
@@ -69,23 +73,22 @@ template <int N> class Lagrange
 
         // Compute the grid index of the position
         AMREX_D_TERM(
-            amrex::Real lx =
-                (amrex::Real(p.pos(0)) - plo[0]) * dxi[0] -
+            amrex::Real xpos =
+                (amrex::Real(par.pos(0)) - plo[0]) * dxi[0] -
                 static_cast<amrex::Real>(!is_nodal[0]) * amrex::Real(0.5);
-            , amrex::Real ly =
-                  (amrex::Real(p.pos(1)) - plo[1]) * dxi[1] -
+            , amrex::Real ypos =
+                  (amrex::Real(par.pos(1)) - plo[1]) * dxi[1] -
                   static_cast<amrex::Real>(!is_nodal[1]) * amrex::Real(0.5);
-            , amrex::Real lz =
-                  (amrex::Real(p.pos(2)) - plo[2]) * dxi[2] -
+            , amrex::Real zpos =
+                  (amrex::Real(par.pos(2)) - plo[2]) * dxi[2] -
                   static_cast<amrex::Real>(!is_nodal[2]) * amrex::Real(0.5););
 
-        build_stencil(lx, i0, weights_x);
-
+        build_stencil(xpos, i0, weights_x);
 #if AMREX_SPACEDIM >= 2
-        build_stencil(ly, j0, weights_y);
+        build_stencil(ypos, j0, weights_y);
 #endif
 #if AMREX_SPACEDIM == 3
-        build_stencil(lz, k0, weights_z);
+        build_stencil(zpos, k0, weights_z);
 #endif
     }
 

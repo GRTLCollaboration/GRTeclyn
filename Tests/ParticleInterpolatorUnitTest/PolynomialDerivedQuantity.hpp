@@ -24,11 +24,11 @@ class PolynomialDerivedQuantity
 
     // read in the center which will be used to populating the polynomial
     // properly
-    static void set_center(const std::array<double, AMREX_SPACEDIM> &c)
+    static void set_center(const std::array<double, AMREX_SPACEDIM> &my_center)
     {
-        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        for (int index = 0; index < AMREX_SPACEDIM; ++index)
         {
-            m_center[d] = c[d];
+            m_center[index] = my_center[index];
         }
     }
 

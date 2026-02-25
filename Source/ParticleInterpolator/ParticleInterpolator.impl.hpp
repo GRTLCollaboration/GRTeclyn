@@ -104,20 +104,20 @@ int ParticleInterpolator<num_components>::get_var_parity(
 template <int num_components>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 ParticleInterpolator<num_components>::reflect_particle(amrex::Real x,
-                                                       amrex::Real lo,
-                                                       amrex::Real hi,
-                                                       bool lo_reflect,
-                                                       bool hi_reflect)
+                                                       amrex::Real low,
+                                                       amrex::Real high,
+                                                       bool low_reflect,
+                                                       bool high_reflect)
 {
     // enforce a new particle position if needed
     amrex::Real xl = x;
-    if (lo_reflect && xl < lo)
+    if (low_reflect && xl < low)
     {
-        xl = lo + (lo - xl); // reflect across lo
+        xl = low + (low - xl); // reflect across low
     }
-    if (hi_reflect && xl > hi)
+    if (high_reflect && xl > high)
     {
-        xl = hi - (xl - hi); // reflect across hi
+        xl = high - (xl - high); // reflect across high
     }
 
     return xl;
@@ -224,12 +224,12 @@ void ParticleInterpolator<num_components>::populate_from_query()
 // a helper function that helps with interpolation from grid onto particles
 template <int num_components>
 void ParticleInterpolator<num_components>::interpolate_to_particle(
-    int lev, amrex::MultiFab &mf, const amrex::Geometry &geom)
+    int lev, amrex::MultiFab &mfab, const amrex::Geometry &geom)
 {
     int start_comp  = get_start_comp();
     const int ncomp = num_components;
 
-    AMREX_ASSERT(mf.nComp() >= start_comp + ncomp);
+    AMREX_ASSERT(mfab.nComp() >= start_comp + ncomp);
 
     if (this->NumberOfParticlesAtLevel(lev) == 0)
         return;
@@ -243,7 +243,7 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
         auto &particle_tile     = this->ParticlesAt(lev, par_iter);
         auto particle_tile_data = particle_tile.getParticleTileData();
         const int num_particles = par_iter.numParticles();
-        auto fab_array          = mf[par_iter].const_array();
+        auto fab_array          = mfab[par_iter].const_array();
 
         amrex::ParallelFor(
             num_particles,

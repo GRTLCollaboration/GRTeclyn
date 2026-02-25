@@ -42,7 +42,7 @@ class ParticleInterpolator
     amrex::GpuArray<bool, AMREX_SPACEDIM> m_hi_boundary_reflective{{false}};
 
     static constexpr int m_interp_order = 4;
-    const int m_num_ghosts              = m_interp_order / 2;
+    static constexpr int m_num_ghosts   = m_interp_order / 2;
 
     bool m_verbosity{false};
 
@@ -53,10 +53,10 @@ class ParticleInterpolator
     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> m_coarsest_dx{};
 
     // copy of BC params
-    BoundaryConditions::params_t m_bc_params{};
+    BoundaryConditions::params_t m_bc_params;
 
     // store the query here
-    InterpolationQueryParticle *m_query;
+    InterpolationQueryParticle *m_query{};
     // for getting the starting component of query
     int get_start_comp();
 

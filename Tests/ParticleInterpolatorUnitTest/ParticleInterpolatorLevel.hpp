@@ -29,7 +29,7 @@ class ParticleInterpolatorLevel : public GRAMRLevel
     }
 
     // initialize data
-    void initData()
+    void initData() override
     {
         amrex::MultiFab &state = get_new_data(State_Type);
         const auto &arrs       = state.arrays();
@@ -62,8 +62,9 @@ class ParticleInterpolatorLevel : public GRAMRLevel
         amrex::Gpu::streamSynchronize();
     }
 
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     void specificEvalRHS(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
-                         const double a_time)
+                         const double a_time) override
     {
     }
 
@@ -85,6 +86,7 @@ class ParticleInterpolatorLevel : public GRAMRLevel
         FixedGridsTagger my_tagging_criterion{dx, current_level, box_length,
                                               center};
 
+        // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
         amrex::ParallelFor(
             a_tag_box_array,
             [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
