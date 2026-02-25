@@ -8,6 +8,7 @@
 #include "BCParity.hpp"
 #include "BoundaryConditions.hpp"
 #include "GRAMR.hpp"
+#include "GRAMRLevel.hpp"
 #include "InterpolationQueryParticle.hpp"
 #include "MPIContextParticle.hpp"
 
@@ -39,6 +40,9 @@ class ParticleInterpolator
     // reflective BC flags per side on the low and high sides
     amrex::GpuArray<bool, AMREX_SPACEDIM> m_lo_boundary_reflective{{false}};
     amrex::GpuArray<bool, AMREX_SPACEDIM> m_hi_boundary_reflective{{false}};
+
+    static constexpr int m_interp_order = 4;
+    const int m_num_ghosts              = m_interp_order / 2;
 
     bool m_verbosity{false};
 

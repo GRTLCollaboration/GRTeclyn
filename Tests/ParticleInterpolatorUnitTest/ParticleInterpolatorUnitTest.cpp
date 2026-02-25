@@ -122,8 +122,8 @@ void run_particle_interpolator_test()
         }
 
         // set-up query for derived variable A
-        InterpolationQueryParticle query(n_local);
-        query.setCoords(0, interp_x_local.data())
+        InterpolationQueryParticle query_derived(n_local);
+        query_derived.setCoords(0, interp_x_local.data())
             .setCoords(1, interp_y_local.data())
             .setCoords(2, interp_z_local.data())
             .addComp(0, A_local.data(), VariableType::derived, BCParity::even,
@@ -141,8 +141,8 @@ void run_particle_interpolator_test()
 
         interpolator_derived.setup(&gr_amr, sim_params.boundary_params,
                                    verbosity);
-        interpolator_derived.interp(query, PolynomialDerivedQuantity::name,
-                                    0.0);
+        interpolator_derived.interp(query_derived,
+                                    PolynomialDerivedQuantity::name, 0.0);
 
         // set up interpolation using Particles for state vars
         ParticleInterpolator<1> interpolator_state;

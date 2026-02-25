@@ -11,9 +11,9 @@
 #include <vector>
 
 // This class sets up the MPI communication between the 'answering' and
-// 'quering' ranks. In particular, this is necessary because our interpolation
+// 'querying' ranks. In particular, this is necessary because our interpolation
 // routine allows for a flexible logic, where (i) 'answering' ranks can work on
-// (i.e. interpolate) different points (ii) 'quering' ranks can ask for some
+// (i.e. interpolate) different points (ii) 'querying' ranks can ask for some
 // different sets of points. This means that asking for a point or interpolating
 // a point may happen on DIFFERENT ranks. For example: rank 0 wants to
 // interpolate at point A and rank 1 at point B. But: the query of point A
@@ -22,7 +22,7 @@
 // rank 1; and similarly for point A.
 
 // Our philosophy here is therefore -- answering ranks are sending stuff whilst
-// quering ranks are receiving stuff.
+// querying ranks are receiving stuff.
 
 class MPIContextParticle
 {

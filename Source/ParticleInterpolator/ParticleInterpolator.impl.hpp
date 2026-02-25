@@ -226,19 +226,13 @@ template <int num_components>
 void ParticleInterpolator<num_components>::interpolate_to_particle(
     int lev, amrex::MultiFab &mf, const amrex::Geometry &geom)
 {
-    int start_comp             = get_start_comp();
-    const int ncomp            = num_components;
-    constexpr int interp_order = 4;                // 4th order Lagrange
-    constexpr int num_ghosts   = interp_order / 2; // number of ghosts needed
+    int start_comp  = get_start_comp();
+    const int ncomp = num_components;
 
     AMREX_ASSERT(mf.nComp() >= start_comp + ncomp);
 
     if (this->NumberOfParticlesAtLevel(lev) == 0)
         return;
-
-    // Fill ghost cells
-    amrex::IntVect nghost(AMREX_D_DECL(num_ghosts, num_ghosts, num_ghosts));
-    mf.FillBoundary(start_comp, ncomp, nghost, geom.periodicity());
 
     const auto problem_domain_lo = geom.ProbLoArray();
     const auto dxi               = geom.InvCellSizeArray();
@@ -259,7 +253,7 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
 
                 amrex::IntVect is_nodal = amrex::IntVect::TheZeroVector();
                 // 4th-order Lagrange (5-point stencil)
-                Lagrange<interp_order + 1>
+                Lagrange<m_interp_order + 1>
                     lagrange_interp; // 4th order interpolation
                 lagrange_interp.compute_weights(particle, problem_domain_lo,
                                                 dxi, is_nodal);
@@ -287,11 +281,6 @@ void ParticleInterpolator<num_components>::interp(
     InterpolationQueryParticle &query, const std::string &name_derived,
     double time_derived /*=0.0*/)
 {
-
-    static constexpr int interp_order = 4; // 4th order Lagrange
-    static constexpr int num_ghosts =
-        interp_order / 2; // number of ghosts needed
-
     // Populate particles
     if (!m_particles_populated)
     {
@@ -315,14 +304,27 @@ void ParticleInterpolator<num_components>::interp(
     // Interpolate to all particles
     if (variable_type == VariableType::state)
     {
+        int start_comp  = get_start_comp();
+        const int ncomp = num_components;
+
         for (int lev = 0; lev <= m_gramr_ptr->finestLevel(); ++lev)
         {
             if (this->NumberOfParticlesAtLevel(lev) == 0)
                 continue;
 
-            amrex::AmrLevel &level      = m_gramr_ptr->getLevel(lev);
+            amrex::AmrLevel &level = m_gramr_ptr->getLevel(lev);
+            amrex::Real cur_time   = level.get_state_data(State_Type).curTime();
             const amrex::Geometry &geom = level.Geom();
-            amrex::MultiFab &state      = level.get_new_data(0);
+            amrex::MultiFab &state      = level.get_new_data(State_Type);
+
+            // Fill ghost cells
+            // So FillPatch and FillBoundary in amrex are different routines!
+            // FillPatch is more general and fills the ghost cells at the
+            // boundaries of fine and coarse levels, whilst FillBoundary is
+            // single-level operation only! There is a nice explanation on this
+            // issue here: https://github.com/AMReX-Codes/amrex/issues/391
+            amrex::AmrLevel::FillPatch(level, state, m_num_ghosts, cur_time,
+                                       State_Type, start_comp, ncomp);
 
             interpolate_to_particle(lev, state, geom);
         }
@@ -333,8 +335,11 @@ void ParticleInterpolator<num_components>::interp(
     // comps
     else if (variable_type == VariableType::derived)
     {
+        // If you look into AMReX_AmrLevel.cpp you will find that derive calls
+        // FillPatch automatically, so no need to worry about ghost cells for
+        // derived vars.
         auto out_derived =
-            m_gramr_ptr->derive(name_derived, time_derived, num_ghosts);
+            m_gramr_ptr->derive(name_derived, time_derived, m_num_ghosts);
         amrex::Vector<amrex::MultiFab *> derived_mf_vect;
         // convert vector of unique_ptrs to one of raw pointers
         derived_mf_vect = amrex::GetVecOfPtrs(out_derived);
@@ -451,7 +456,7 @@ void ParticleInterpolator<num_components>::prepare_send_buffers()
 
                 AMREX_ASSERT(query_rank >= 0 && query_rank < nprocs);
 
-                // how many answers each quering rank will receive
+                // how many answers each querying rank will receive
                 m_mpi.incrementAnswerCount(query_rank);
                 // write in
                 const int j    = level_size + i; // shift the index
@@ -473,7 +478,7 @@ void ParticleInterpolator<num_components>::prepare_send_buffers()
                 amrex::AllPrint()
                     << "ParticleInterpolator: rank "
                     << amrex::ParallelDescriptor::MyProc() << " holds "
-                    << num_particles << " particles\n";
+                    << num_particles << " particles on level " << lev << "\n";
             }
         }
     }
