@@ -230,4 +230,130 @@ void WormholeLevel::specificPostTimeStep()
         }
         constraints_file.write_time_data_line({L2_Ham, L2_Mom});
     }
+
+    // --- Collapse / strong-field diagnostics (small-data output) ---
+    // These are cheap global reductions that can be recorded even when plotfiles
+    // are deleted on-the-fly.
+    if (Level() == 0)
+    {
+        const amrex::Real time         = get_state_data(State_Type).curTime();
+        const amrex::Real dt           = parent->dtLevel(0);
+        const amrex::Real restart_time = get_gramr_ptr()->get_restart_time();
+        const bool first_step          = (time == 0.0);
+
+        amrex::MultiFab &state_new = get_new_data(State_Type);
+        FillPatch(*this, state_new, 2, time, State_Type, 0, state_new.nComp());
+
+        amrex::ReduceOps<amrex::ReduceOpMin, amrex::ReduceOpMin,
+                         amrex::ReduceOpMax>
+            reduce_ops;
+        amrex::ReduceData<amrex::Real, amrex::Real, amrex::Real> reduce_data(
+            reduce_ops);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+
+        for (amrex::MFIter mfi(state_new, amrex::TilingIfNotGPU());
+             mfi.isValid(); ++mfi)
+        {
+            const amrex::Box &bx = mfi.validbox();
+            const auto arr       = state_new.const_array(mfi);
+            reduce_ops.eval(
+                bx, reduce_data,
+                [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTuple
+                {
+                    const amrex::Real lapse = arr(i, j, k, c_lapse);
+                    const amrex::Real chi   = arr(i, j, k, c_chi);
+                    const amrex::Real K     = arr(i, j, k, c_K);
+                    return {lapse, chi, amrex::Math::abs(K)};
+                });
+        }
+
+        auto [min_lapse, min_chi, max_abs_K] = reduce_data.value();
+        amrex::ParallelDescriptor::ReduceRealMin(min_lapse);
+        amrex::ParallelDescriptor::ReduceRealMin(min_chi);
+        amrex::ParallelDescriptor::ReduceRealMax(max_abs_K);
+
+        // Location of the global minimum lapse (average over ties).
+        // This helps confirm the collapse localizes at the throat/center rather
+        // than being a boundary artifact.
+        const auto dx      = Geom().CellSizeArray();
+        const auto prob_lo = Geom().ProbLoArray();
+        const amrex::Real tol =
+            amrex::max(amrex::Real(1.0e-14), amrex::Real(1.0e-12) * amrex::Math::abs(min_lapse));
+
+        amrex::ReduceOps<amrex::ReduceOpSum, amrex::ReduceOpSum,
+                         amrex::ReduceOpSum, amrex::ReduceOpSum>
+            reduce_ops_loc;
+        amrex::ReduceData<amrex::Real, amrex::Real, amrex::Real, amrex::Real>
+            reduce_data_loc(reduce_ops_loc);
+        using ReduceTupleLoc = typename decltype(reduce_data_loc)::Type;
+
+        for (amrex::MFIter mfi(state_new, amrex::TilingIfNotGPU());
+             mfi.isValid(); ++mfi)
+        {
+            const amrex::Box &bx = mfi.validbox();
+            const auto arr       = state_new.const_array(mfi);
+            reduce_ops_loc.eval(
+                bx, reduce_data_loc,
+                [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTupleLoc
+                {
+                    const amrex::Real lapse = arr(i, j, k, c_lapse);
+                    const bool is_min       = (amrex::Math::abs(lapse - min_lapse) <= tol);
+                    if (!is_min)
+                    {
+                        return {0.0, 0.0, 0.0, 0.0};
+                    }
+                    const amrex::Real x =
+                        prob_lo[0] + (amrex::Real(i) + 0.5) * dx[0];
+                    const amrex::Real y =
+                        prob_lo[1] + (amrex::Real(j) + 0.5) * dx[1];
+                    const amrex::Real z =
+                        prob_lo[2] + (amrex::Real(k) + 0.5) * dx[2];
+                    return {x, y, z, 1.0};
+                });
+        }
+
+        auto [sum_x, sum_y, sum_z, count] = reduce_data_loc.value();
+        amrex::ParallelDescriptor::ReduceRealSum(sum_x);
+        amrex::ParallelDescriptor::ReduceRealSum(sum_y);
+        amrex::ParallelDescriptor::ReduceRealSum(sum_z);
+        amrex::ParallelDescriptor::ReduceRealSum(count);
+
+        const amrex::Real min_lapse_x = (count > 0.0) ? (sum_x / count) : 0.0;
+        const amrex::Real min_lapse_y = (count > 0.0) ? (sum_y / count) : 0.0;
+        const amrex::Real min_lapse_z = (count > 0.0) ? (sum_z / count) : 0.0;
+
+        GRParmParse pp;
+        std::string output_path = "./";
+        pp.load("output_path", output_path, std::string("./"));
+        std::string data_subpath;
+        pp.load("data_subpath", data_subpath, std::string(""));
+
+        if (!output_path.empty() && output_path.back() != '/')
+            output_path += "/";
+        if (!data_subpath.empty() && data_subpath.back() != '/')
+            data_subpath += "/";
+
+        const std::string out_dir = output_path + data_subpath;
+        if (!out_dir.empty())
+        {
+            amrex::UtilCreateDirectory(out_dir, 0755, false);
+        }
+
+        const std::string prefix = out_dir + "collapse_diagnostics";
+        SmallDataIO diag_file(prefix, dt, time, restart_time, SmallDataIO::APPEND,
+                              first_step);
+        diag_file.remove_duplicate_time_data();
+        if (first_step)
+        {
+            diag_file.write_header_line(
+                {"min_lapse", "min_chi", "max_abs_K", "min_lapse_x",
+                 "min_lapse_y", "min_lapse_z"});
+        }
+        diag_file.write_time_data_line({static_cast<double>(min_lapse),
+                                        static_cast<double>(min_chi),
+                                        static_cast<double>(max_abs_K),
+                                        static_cast<double>(min_lapse_x),
+                                        static_cast<double>(min_lapse_y),
+                                        static_cast<double>(min_lapse_z)});
+    }
 }

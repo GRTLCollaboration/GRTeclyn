@@ -27,6 +27,10 @@ matplotlib.use("Agg")
 def _default_data_dir() -> Path:
     script_dir = Path(__file__).resolve().parent
     project_root = script_dir.parent.parent.parent
+    # Check for data_2gpu first, then data
+    d2 = (project_root.parent / "data_2gpu").resolve()
+    if d2.exists():
+        return d2
     return (project_root.parent / "data").resolve()
 
 
@@ -143,7 +147,8 @@ def main() -> None:
     parser.add_argument("input", nargs="?", default=str(default_data), help=f"Input .dat (default: {default_data})")
     parser.add_argument("--out", default=str(script_dir), help="Output directory (default: this folder)")
     parser.add_argument("--radii", type=float, nargs="*", default=None, help="Subset of radii to plot (defaults to all)")
-    parser.add_argument("--time-axis", choices=["simulation", "retarded"], default="simulation")
+    parser.add_argument("--time-axis", choices=["simulation", "retarded"], default="simulation", help="Time axis to use (default: simulation)")
+    parser.add_argument("--plot-psd", action="store_true", help="Enable PSD plot (default: False)")
     parser.add_argument("--t-min", type=float, default=None)
     parser.add_argument("--t-max", type=float, default=None)
     parser.add_argument("--psd-smooth-window", type=int, default=21)
@@ -177,14 +182,19 @@ def main() -> None:
             "axes.linewidth": 1.2,
             "grid.alpha": 0.5,
             "legend.fontsize": 12,
-            "figure.figsize": (10, 8),
+            "figure.figsize": (10, 8) if args.plot_psd else (10, 5),
         }
     )
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
+    if args.plot_psd:
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
+    else:
+        fig, ax1 = plt.subplots(1, 1, figsize=(10, 5))
+        ax2 = None
+
     n_r = len(radii)
-    psi4_colors = plt.cm.Blues(np.linspace(0.5, 0.85, n_r))[::-1]
-    psd_colors = plt.cm.Greens(np.linspace(0.5, 0.85, n_r))[::-1]
+    # User requested red and blue
+    colors = ["tab:red", "tab:blue"]
 
     # time step for PSD
     dt = np.median(np.diff(t)) if t.size >= 2 else np.nan
@@ -192,6 +202,7 @@ def main() -> None:
 
     plotted_any = False
     for i, R in enumerate(radii):
+        color = colors[i % len(colors)]
         psi4 = series[R]
         x = t if args.time_axis == "simulation" else (t - float(R))
         y = np.real(psi4)
@@ -202,14 +213,15 @@ def main() -> None:
         if args.t_max is not None:
             m &= x <= args.t_max
 
-        ax1.plot(x[m], y[m], color=psi4_colors[i], linewidth=1.5, label=f"R={R:g}")
+        ax1.plot(x[m], y[m], color=color, linewidth=1.2, label=f"R={R:g}")
 
-        if fs is not None and psi4.size >= 8:
+        if args.plot_psd and ax2 is not None and fs is not None and psi4.size >= 8:
             freqs, psd = welch(np.real(psi4), fs, nperseg=min(128, max(8, psi4.size // 2)))
             psd_s = _smooth_psd(psd, window=args.psd_smooth_window, polyorder=args.psd_smooth_polyorder)
-            if not args.psd_hide_raw:
-                ax2.semilogy(freqs, psd, "o", color="red", markersize=3.0, markeredgewidth=0, alpha=0.35)
-            ax2.semilogy(freqs, psd_s, "-", color=psd_colors[i], linewidth=1.5, label=f"R={R:g}")
+            # User requested no dots; plotted only the smoothed line
+            # if not args.psd_hide_raw:
+            #     ax2.semilogy(freqs, psd, "o", color="red", markersize=3.0, markeredgewidth=0, alpha=0.35)
+            ax2.semilogy(freqs, psd_s, "-", color=color, linewidth=1.2, label=f"R={R:g}")
 
         plotted_any = True
 
@@ -221,10 +233,11 @@ def main() -> None:
     ax1.grid(True, which="both", ls="--", alpha=0.6)
     ax1.tick_params(axis="both", which="major", direction="in", top=True, right=True)
 
-    ax2.set_xlabel(r"$f\,(M^{-1})$")
-    ax2.set_ylabel(r"$\mathrm{PSD}\left[\Psi_4\right]$")
-    ax2.grid(True, which="major", ls="--", alpha=0.6)
-    ax2.tick_params(axis="both", which="major", direction="in", top=True, right=True)
+    if args.plot_psd and ax2 is not None:
+        ax2.set_xlabel(r"$f\,(M^{-1})$")
+        ax2.set_ylabel(r"$\mathrm{PSD}\left[\Psi_4\right]$")
+        ax2.grid(True, which="major", ls="--", alpha=0.6)
+        ax2.tick_params(axis="both", which="major", direction="in", top=True, right=True)
 
     out_dir = Path(args.out).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)

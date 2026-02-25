@@ -104,13 +104,25 @@ This prevents accidental “append to old run” when reusing the same output di
 
 ```bash
 python -m src.visualisation.process_wave.plot_extracted_psi4 \
-  "/home/jovyan/nachevsky/test/simulation/data_2gpu/small_data/psi4_mode_l2m0.dat" \
-  --time-axis retarded --out "/home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/process_wave"
+  --time-axis retarded \
+  --out "/home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/process_wave" \
+  --plot-psd
 ```
 
 **Output:** `psi4_extracted_R10_R15.png`
 
 ## Options
+
+### plot_extracted_psi4 arguments
+
+- `input`: Path to the `.dat` file (default: searches in `data_2gpu/small_data` or `data/small_data`)
+- `--out PATH`: Output directory for the plot
+- `--radii R1 R2 ...`: Subset of radii to plot
+- `--time-axis {simulation, retarded}`: Choose time axis (default: `simulation`). `retarded` plots $t - R$.
+- `--plot-psd`: Enable Power Spectral Density (PSD) plot (default: disabled)
+- `--t-min T`, `--t-max T`: Time range to plot
+- `--psd-smooth-window N`, `--psd-smooth-polyorder N`: PSD smoothing parameters
+- `--psd-hide-raw`: Hide raw PSD dots
 
 ### consume_plotfiles arguments
 
@@ -133,8 +145,6 @@ python -m src.visualisation.process_wave.plot_extracted_psi4 \
 - `--frames-out PATH`: base output dir for frames (default: `src/visualisation/visualize`)
 - `--delete`: delete processed plotfile directories after successful extraction
 - `--keep-last N`: keep newest N plotfiles (don’t delete them)
-
-**plot_extracted_psi4:** `input`, `--out`, `--radii`, `--time-axis`, `--t-min`, `--t-max`, `--psd-smooth-window`, `--psd-smooth-polyorder`, `--psd-hide-raw`
 
 ## Workflow
 
