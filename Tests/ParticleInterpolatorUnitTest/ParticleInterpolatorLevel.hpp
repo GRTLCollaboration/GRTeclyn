@@ -43,6 +43,7 @@ class ParticleInterpolatorLevel : public GRAMRLevel
         pp.query("center", center);
 
         // Fill the state
+        // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
         amrex::ParallelFor(state, state.nGrowVect(),
                            [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
                            {
