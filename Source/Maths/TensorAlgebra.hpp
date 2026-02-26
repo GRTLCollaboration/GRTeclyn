@@ -251,7 +251,7 @@ compute_trace(amrex::Array2D<amrex::Real, 0, 3, 0, 3> &tensor_LL,
     amrex::Real trace = 0.;
     FOR (i, j)
     {
-        trace += inverse_metric_sym(SYMM_IDX(i, j)) * tensor_LL(i, j);
+        trace += inverse_metric_sym(VAR_IDX0(i, j)) * tensor_LL(i, j);
     }
     return trace;
 }
@@ -275,7 +275,7 @@ compute_trace(const Tensor<2, amrex::Real> &tensor_LL,
     amrex::Real trace = 0.;
     FOR (i, j)
     {
-        trace += inverse_metric_sym(SYMM_IDX(i, j)) * tensor_LL[i][j];
+        trace += inverse_metric_sym(VAR_IDX0(i, j)) * tensor_LL[i][j];
     }
     return trace;
 }
