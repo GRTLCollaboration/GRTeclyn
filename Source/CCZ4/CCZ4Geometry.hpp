@@ -53,16 +53,16 @@ compute_metric_determinant(const CCZ4Vars &vars)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_metric_determinant(const amrex::CellData<const amrex::Real> &h)
 {
-    amrex::Real det = h[var_idx(c_h11, 0, 0)] * h[var_idx(c_h11, 1, 1)] *
-                          h[var_idx(c_h11, 2, 2)] +
-                      2 * h[var_idx(c_h11, 0, 1)] * h[var_idx(c_h11, 0, 2)] *
-                          h[var_idx(c_h11, 1, 2)] -
-                      h[var_idx(c_h11, 0, 0)] * h[var_idx(c_h11, 1, 2)] *
-                          h[var_idx(c_h11, 1, 2)] -
-                      h[var_idx(c_h11, 1, 1)] * h[var_idx(c_h11, 0, 2)] *
-                          h[var_idx(c_h11, 0, 2)] -
-                      h[var_idx(c_h11, 2, 2)] * h[var_idx(c_h11, 0, 1)] *
-                          h[var_idx(c_h11, 0, 1)];
+    amrex::Real det = h[VAR_IDX(c_h11, 0, 0)] * h[VAR_IDX(c_h11, 1, 1)] *
+                          h[VAR_IDX(c_h11, 2, 2)] +
+                      2 * h[VAR_IDX(c_h11, 0, 1)] * h[VAR_IDX(c_h11, 0, 2)] *
+                          h[VAR_IDX(c_h11, 1, 2)] -
+                      h[VAR_IDX(c_h11, 0, 0)] * h[VAR_IDX(c_h11, 1, 2)] *
+                          h[VAR_IDX(c_h11, 1, 2)] -
+                      h[VAR_IDX(c_h11, 1, 1)] * h[VAR_IDX(c_h11, 0, 2)] *
+                          h[VAR_IDX(c_h11, 0, 2)] -
+                      h[VAR_IDX(c_h11, 2, 2)] * h[VAR_IDX(c_h11, 0, 1)] *
+                          h[VAR_IDX(c_h11, 0, 1)];
 
     return det;
 }
@@ -100,23 +100,23 @@ compute_inverse_metric(const amrex::CellData<const amrex::Real> &h)
     amrex::Real det_h_inverse = 1. / det_h;
     Tensor<2, amrex::Real> h_UU;
 
-    h_UU[0][0] = (h[var_idx(c_h11, 1, 1)] * h[var_idx(c_h11, 2, 2)] -
-                  h[var_idx(c_h11, 1, 2)] * h[var_idx(c_h11, 2, 1)]) *
+    h_UU[0][0] = (h[VAR_IDX(c_h11, 1, 1)] * h[VAR_IDX(c_h11, 2, 2)] -
+                  h[VAR_IDX(c_h11, 1, 2)] * h[VAR_IDX(c_h11, 2, 1)]) *
                  det_h_inverse;
-    h_UU[0][1] = (h[var_idx(c_h11, 2, 0)] * h[var_idx(c_h11, 1, 2)] -
-                  h[var_idx(c_h11, 1, 0)] * h[var_idx(c_h11, 2, 2)]) *
+    h_UU[0][1] = (h[VAR_IDX(c_h11, 2, 0)] * h[VAR_IDX(c_h11, 1, 2)] -
+                  h[VAR_IDX(c_h11, 1, 0)] * h[VAR_IDX(c_h11, 2, 2)]) *
                  det_h_inverse;
-    h_UU[0][2] = (h[var_idx(c_h11, 1, 0)] * h[var_idx(c_h11, 2, 1)] -
-                  h[var_idx(c_h11, 2, 0)] * h[var_idx(c_h11, 1, 1)]) *
+    h_UU[0][2] = (h[VAR_IDX(c_h11, 1, 0)] * h[VAR_IDX(c_h11, 2, 1)] -
+                  h[VAR_IDX(c_h11, 2, 0)] * h[VAR_IDX(c_h11, 1, 1)]) *
                  det_h_inverse;
-    h_UU[1][1] = (h[var_idx(c_h11, 0, 0)] * h[var_idx(c_h11, 2, 2)] -
-                  h[var_idx(c_h11, 2, 0)] * h[var_idx(c_h11, 0, 2)]) *
+    h_UU[1][1] = (h[VAR_IDX(c_h11, 0, 0)] * h[VAR_IDX(c_h11, 2, 2)] -
+                  h[VAR_IDX(c_h11, 2, 0)] * h[VAR_IDX(c_h11, 0, 2)]) *
                  det_h_inverse;
-    h_UU[1][2] = (h[var_idx(c_h11, 0, 1)] * h[var_idx(c_h11, 2, 0)] -
-                  h[var_idx(c_h11, 0, 0)] * h[var_idx(c_h11, 2, 1)]) *
+    h_UU[1][2] = (h[VAR_IDX(c_h11, 0, 1)] * h[VAR_IDX(c_h11, 2, 0)] -
+                  h[VAR_IDX(c_h11, 0, 0)] * h[VAR_IDX(c_h11, 2, 1)]) *
                  det_h_inverse;
-    h_UU[2][2] = (h[var_idx(c_h11, 0, 0)] * h[var_idx(c_h11, 1, 1)] -
-                  h[var_idx(c_h11, 0, 1)] * h[var_idx(c_h11, 1, 0)]) *
+    h_UU[2][2] = (h[VAR_IDX(c_h11, 0, 0)] * h[VAR_IDX(c_h11, 1, 1)] -
+                  h[VAR_IDX(c_h11, 0, 1)] * h[VAR_IDX(c_h11, 1, 0)]) *
                  det_h_inverse;
     h_UU[1][0] = h_UU[0][1];
     h_UU[2][0] = h_UU[0][2];
@@ -131,23 +131,23 @@ compute_inverse_metric_sym_tensor(const amrex::CellData<const amrex::Real> &h)
     amrex::Real det_h         = compute_metric_determinant(h);
     amrex::Real det_h_inverse = 1. / det_h;
     Tensor<1, amrex::Real, 6> h_UU;
-    h_UU[0] = (h[var_idx(c_h11, 1, 1)] * h[var_idx(c_h11, 2, 2)] -
-               h[var_idx(c_h11, 1, 2)] * h[var_idx(c_h11, 2, 1)]) *
+    h_UU[0] = (h[VAR_IDX(c_h11, 1, 1)] * h[VAR_IDX(c_h11, 2, 2)] -
+               h[VAR_IDX(c_h11, 1, 2)] * h[VAR_IDX(c_h11, 2, 1)]) *
               det_h_inverse;
-    h_UU[1] = (h[var_idx(c_h11, 2, 0)] * h[var_idx(c_h11, 1, 2)] -
-               h[var_idx(c_h11, 1, 0)] * h[var_idx(c_h11, 2, 2)]) *
+    h_UU[1] = (h[VAR_IDX(c_h11, 2, 0)] * h[VAR_IDX(c_h11, 1, 2)] -
+               h[VAR_IDX(c_h11, 1, 0)] * h[VAR_IDX(c_h11, 2, 2)]) *
               det_h_inverse;
-    h_UU[2] = (h[var_idx(c_h11, 1, 0)] * h[var_idx(c_h11, 2, 1)] -
-               h[var_idx(c_h11, 2, 0)] * h[var_idx(c_h11, 1, 1)]) *
+    h_UU[2] = (h[VAR_IDX(c_h11, 1, 0)] * h[VAR_IDX(c_h11, 2, 1)] -
+               h[VAR_IDX(c_h11, 2, 0)] * h[VAR_IDX(c_h11, 1, 1)]) *
               det_h_inverse;
-    h_UU[3] = (h[var_idx(c_h11, 0, 0)] * h[var_idx(c_h11, 2, 2)] -
-               h[var_idx(c_h11, 2, 0)] * h[var_idx(c_h11, 0, 2)]) *
+    h_UU[3] = (h[VAR_IDX(c_h11, 0, 0)] * h[VAR_IDX(c_h11, 2, 2)] -
+               h[VAR_IDX(c_h11, 2, 0)] * h[VAR_IDX(c_h11, 0, 2)]) *
               det_h_inverse;
-    h_UU[4] = (h[var_idx(c_h11, 0, 1)] * h[var_idx(c_h11, 2, 0)] -
-               h[var_idx(c_h11, 0, 0)] * h[var_idx(c_h11, 2, 1)]) *
+    h_UU[4] = (h[VAR_IDX(c_h11, 0, 1)] * h[VAR_IDX(c_h11, 2, 0)] -
+               h[VAR_IDX(c_h11, 0, 0)] * h[VAR_IDX(c_h11, 2, 1)]) *
               det_h_inverse;
-    h_UU[5] = (h[var_idx(c_h11, 0, 0)] * h[var_idx(c_h11, 1, 1)] -
-               h[var_idx(c_h11, 0, 1)] * h[var_idx(c_h11, 1, 0)]) *
+    h_UU[5] = (h[VAR_IDX(c_h11, 0, 0)] * h[VAR_IDX(c_h11, 1, 1)] -
+               h[VAR_IDX(c_h11, 0, 1)] * h[VAR_IDX(c_h11, 1, 0)]) *
               det_h_inverse;
 
     return h_UU;
@@ -159,23 +159,23 @@ compute_inverse_metric_sym(const amrex::CellData<const amrex::Real> &h)
     amrex::Real det_h         = compute_metric_determinant(h);
     amrex::Real det_h_inverse = 1. / det_h;
     amrex::Array1D<amrex::Real, 0, 6> h_UU;
-    h_UU(0) = (h[var_idx(c_h11, 1, 1)] * h[var_idx(c_h11, 2, 2)] -
-               h[var_idx(c_h11, 1, 2)] * h[var_idx(c_h11, 2, 1)]) *
+    h_UU(0) = (h[VAR_IDX(c_h11, 1, 1)] * h[VAR_IDX(c_h11, 2, 2)] -
+               h[VAR_IDX(c_h11, 1, 2)] * h[VAR_IDX(c_h11, 2, 1)]) *
               det_h_inverse;
-    h_UU(1) = (h[var_idx(c_h11, 2, 0)] * h[var_idx(c_h11, 1, 2)] -
-               h[var_idx(c_h11, 1, 0)] * h[var_idx(c_h11, 2, 2)]) *
+    h_UU(1) = (h[VAR_IDX(c_h11, 2, 0)] * h[VAR_IDX(c_h11, 1, 2)] -
+               h[VAR_IDX(c_h11, 1, 0)] * h[VAR_IDX(c_h11, 2, 2)]) *
               det_h_inverse;
-    h_UU(2) = (h[var_idx(c_h11, 1, 0)] * h[var_idx(c_h11, 2, 1)] -
-               h[var_idx(c_h11, 2, 0)] * h[var_idx(c_h11, 1, 1)]) *
+    h_UU(2) = (h[VAR_IDX(c_h11, 1, 0)] * h[VAR_IDX(c_h11, 2, 1)] -
+               h[VAR_IDX(c_h11, 2, 0)] * h[VAR_IDX(c_h11, 1, 1)]) *
               det_h_inverse;
-    h_UU(3) = (h[var_idx(c_h11, 0, 0)] * h[var_idx(c_h11, 2, 2)] -
-               h[var_idx(c_h11, 2, 0)] * h[var_idx(c_h11, 0, 2)]) *
+    h_UU(3) = (h[VAR_IDX(c_h11, 0, 0)] * h[VAR_IDX(c_h11, 2, 2)] -
+               h[VAR_IDX(c_h11, 2, 0)] * h[VAR_IDX(c_h11, 0, 2)]) *
               det_h_inverse;
-    h_UU(4) = (h[var_idx(c_h11, 0, 1)] * h[var_idx(c_h11, 2, 0)] -
-               h[var_idx(c_h11, 0, 0)] * h[var_idx(c_h11, 2, 1)]) *
+    h_UU(4) = (h[VAR_IDX(c_h11, 0, 1)] * h[VAR_IDX(c_h11, 2, 0)] -
+               h[VAR_IDX(c_h11, 0, 0)] * h[VAR_IDX(c_h11, 2, 1)]) *
               det_h_inverse;
-    h_UU(5) = (h[var_idx(c_h11, 0, 0)] * h[var_idx(c_h11, 1, 1)] -
-               h[var_idx(c_h11, 0, 1)] * h[var_idx(c_h11, 1, 0)]) *
+    h_UU(5) = (h[VAR_IDX(c_h11, 0, 0)] * h[VAR_IDX(c_h11, 1, 1)] -
+               h[VAR_IDX(c_h11, 0, 1)] * h[VAR_IDX(c_h11, 1, 0)]) *
               det_h_inverse;
 
     return h_UU;
@@ -187,23 +187,23 @@ compute_inverse_metric_array(const amrex::CellData<const amrex::Real> &h)
     amrex::Real det_h         = compute_metric_determinant(h);
     amrex::Real det_h_inverse = 1. / det_h;
     amrex::Array2D<amrex::Real, 0, 3, 0, 3> h_UU;
-    h_UU(0, 0) = (h[var_idx(c_h11, 1, 1)] * h[var_idx(c_h11, 2, 2)] -
-                  h[var_idx(c_h11, 1, 2)] * h[var_idx(c_h11, 2, 1)]) *
+    h_UU(0, 0) = (h[VAR_IDX(c_h11, 1, 1)] * h[VAR_IDX(c_h11, 2, 2)] -
+                  h[VAR_IDX(c_h11, 1, 2)] * h[VAR_IDX(c_h11, 2, 1)]) *
                  det_h_inverse;
-    h_UU(0, 1) = (h[var_idx(c_h11, 2, 0)] * h[var_idx(c_h11, 1, 2)] -
-                  h[var_idx(c_h11, 1, 0)] * h[var_idx(c_h11, 2, 2)]) *
+    h_UU(0, 1) = (h[VAR_IDX(c_h11, 2, 0)] * h[VAR_IDX(c_h11, 1, 2)] -
+                  h[VAR_IDX(c_h11, 1, 0)] * h[VAR_IDX(c_h11, 2, 2)]) *
                  det_h_inverse;
-    h_UU(0, 2) = (h[var_idx(c_h11, 1, 0)] * h[var_idx(c_h11, 2, 1)] -
-                  h[var_idx(c_h11, 2, 0)] * h[var_idx(c_h11, 1, 1)]) *
+    h_UU(0, 2) = (h[VAR_IDX(c_h11, 1, 0)] * h[VAR_IDX(c_h11, 2, 1)] -
+                  h[VAR_IDX(c_h11, 2, 0)] * h[VAR_IDX(c_h11, 1, 1)]) *
                  det_h_inverse;
-    h_UU(1, 1) = (h[var_idx(c_h11, 0, 0)] * h[var_idx(c_h11, 2, 2)] -
-                  h[var_idx(c_h11, 2, 0)] * h[var_idx(c_h11, 0, 2)]) *
+    h_UU(1, 1) = (h[VAR_IDX(c_h11, 0, 0)] * h[VAR_IDX(c_h11, 2, 2)] -
+                  h[VAR_IDX(c_h11, 2, 0)] * h[VAR_IDX(c_h11, 0, 2)]) *
                  det_h_inverse;
-    h_UU(1, 2) = (h[var_idx(c_h11, 0, 1)] * h[var_idx(c_h11, 2, 0)] -
-                  h[var_idx(c_h11, 0, 0)] * h[var_idx(c_h11, 2, 1)]) *
+    h_UU(1, 2) = (h[VAR_IDX(c_h11, 0, 1)] * h[VAR_IDX(c_h11, 2, 0)] -
+                  h[VAR_IDX(c_h11, 0, 0)] * h[VAR_IDX(c_h11, 2, 1)]) *
                  det_h_inverse;
-    h_UU(2, 2) = (h[var_idx(c_h11, 0, 0)] * h[var_idx(c_h11, 1, 1)] -
-                  h[var_idx(c_h11, 0, 1)] * h[var_idx(c_h11, 1, 0)]) *
+    h_UU(2, 2) = (h[VAR_IDX(c_h11, 0, 0)] * h[VAR_IDX(c_h11, 1, 1)] -
+                  h[VAR_IDX(c_h11, 0, 1)] * h[VAR_IDX(c_h11, 1, 0)]) *
                  det_h_inverse;
     h_UU(1, 0) = h_UU(0, 1);
     h_UU(2, 0) = h_UU(0, 2);
@@ -265,7 +265,7 @@ compute_A_UU(const amrex::CellData<amrex::Real const> &cell_data,
         FOR (k, l)
         {
             A_UU[i][j] += inverse_metric[i][k] * inverse_metric[j][l] *
-                          cell_data[var_idx(c_A11, k, l)];
+                          cell_data[VAR_IDX(c_A11, k, l)];
         }
     }
     return A_UU;
@@ -283,7 +283,7 @@ compute_A_UU(const amrex::CellData<amrex::Real const> &cell_data,
         {
             A_UU(i, j) += inverse_metric_sym(SYMM_IDX(i, k)) *
                           inverse_metric_sym(SYMM_IDX(j, l)) *
-                          cell_data[var_idx(c_A11, k, l)];
+                          cell_data[VAR_IDX(c_A11, k, l)];
         }
     }
     return A_UU;
@@ -300,7 +300,7 @@ compute_A_UU(const amrex::CellData<amrex::Real const> &cell_data,
         FOR (k, l)
         {
             A_UU(i, j) += inverse_metric(i, k) * inverse_metric(j, l) *
-                          cell_data[var_idx(c_A11, k, l)];
+                          cell_data[VAR_IDX(c_A11, k, l)];
         }
     }
     return A_UU;
@@ -355,7 +355,8 @@ compute_Aij_squared(const amrex::CellData<const amrex::Real> &A,
     FOR (i, j, k, l)
     {
         Aij_squared += inverse_metric[i][k] * inverse_metric[j][l] *
-                       A[var_idx(c_A11, i, j)] * A[var_idx(c_A11, k, l)];
+                       A[VAR_IDX(c_A11, i, j)] * A[VAR_IDX(c_A11, k, l)];
+
     }
     return Aij_squared;
 }
@@ -370,7 +371,7 @@ compute_Aij_squared(const amrex::CellData<const amrex::Real> &A,
 
         Aij_squared += inverse_metric_sym(SYMM_IDX(i, k)) *
                        inverse_metric_sym(SYMM_IDX(j, l)) *
-                       A[var_idx(c_A11, i, j)] * A[var_idx(c_A11, k, l)];
+                       A[VAR_IDX(c_A11, i, j)] * A[VAR_IDX(c_A11, k, l)];
     }
     return Aij_squared;
 }
@@ -382,20 +383,21 @@ compute_Aij_squared(const amrex::CellData<const amrex::Real> &A,
     amrex::Real Aij_squared = 0.0;
     FOR (i, j)
     {
-        Aij_squared += A[var_idx(c_A11, i, j)] * A_UU(i, j);
+        Aij_squared += A[VAR_IDX(c_A11, i, j)] * A_UU(i, j);
     }
     return Aij_squared;
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-compute_Aij_squared(const amrex::CellData<const amrex::Real> &A,
-                    const Tensor<2, amrex::Real> &A_UU)
+compute_Aij_squared_with_A_UU(const amrex::CellData<const amrex::Real> &A,
+                              const Tensor<2, amrex::Real> &A_UU)
 {
     amrex::Real Aij_squared = 0.0;
     FOR (i, j)
     {
-        Aij_squared += A[var_idx(c_A11, i, j)] * A_UU[i][j];
+        Aij_squared += A[VAR_IDX(c_A11, i, j)] * A_UU[i][j];
     }
+
     return Aij_squared;
 }
 
@@ -432,11 +434,11 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE chris_array_t compute_christoffel(
 
 /// Computes the conformal christoffel symbol - using AMReX Arrays
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE chris_t_array
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE chris_array_t
 compute_christoffel(const amrex::Array2D<amrex::Real, 0, 6, 0, 3> &d1_h,
                     const amrex::Array1D<amrex::Real, 0, 6> &h_UU)
 {
-    chris_t_array out{};
+    chris_array_t out{};
 
     FOR (i, j, k)
     {
@@ -559,7 +561,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE chris_array_t
 compute_christoffel(const amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> &d1_h,
                     const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU)
 {
-    chris_t_array out{};
+    chris_array_t out{};
 
     FOR (i, j, k)
     {
@@ -588,11 +590,11 @@ compute_christoffel(const amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> &d1_h,
 }
 
 /// Computes the conformal christoffel symbol - using tensors
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE chris_t_array
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE chris_array_t
 compute_christoffel(const amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> &d1_h,
                     const amrex::Array1D<amrex::Real, 0, 6> &h_UU)
 {
-    chris_t_array out{};
+    chris_array_t out{};
 
     FOR (i, j, k)
     {
@@ -621,11 +623,11 @@ compute_christoffel(const amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> &d1_h,
 }
 
 /// Computes the conformal christoffel symbol - using tensors
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE chris_t_array
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE chris_array_t
 compute_christoffel_test(const Tensor<3, amrex::Real> &d1_h,
                          const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU)
 {
-    chris_t_array out{};
+    chris_array_t out{};
 
     FOR (i, j, k)
     {
@@ -655,11 +657,11 @@ compute_christoffel_test(const Tensor<3, amrex::Real> &d1_h,
 }
 
 /// Computes the conformal christoffel symbol - using tensors
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE chris_t_array compute_christoffel_test(
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE chris_array_t compute_christoffel_test(
     const amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> &d1_h,
     const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU)
 {
-    chris_t_array out{};
+    chris_array_t out{};
 
     FOR (i, j, k)
     {
@@ -766,7 +768,7 @@ make_trace_free(Tensor<2, amrex::Real> &tensor_LL,
     FOR (i, j)
     {
         tensor_LL[i][j] -=
-            one_over_gr_spacedim * h[var_idx(c_h11, i, j)] * trace;
+            one_over_gr_spacedim * h[VAR_IDX(c_h11, i, j)] * trace;
     }
 }
 
@@ -780,7 +782,7 @@ make_trace_free(amrex::Array2D<amrex::Real, 0, 3, 0, 3> &tensor_LL,
     FOR (i, j)
     {
         tensor_LL(i, j) -=
-            one_over_gr_spacedim * h[var_idx(c_h11, i, j)] * trace;
+            one_over_gr_spacedim * h[VAR_IDX(c_h11, i, j)] * trace;
     }
 }
 
@@ -794,7 +796,7 @@ make_trace_free(amrex::Array2D<amrex::Real, 0, 3, 0, 3> &tensor_LL,
     FOR (i, j)
     {
         tensor_LL(i, j) -=
-            one_over_gr_spacedim * h[var_idx(c_h11, i, j)] * trace;
+            one_over_gr_spacedim * h[VAR_IDX(c_h11, i, j)] * trace;
     }
 }
 
@@ -808,7 +810,7 @@ make_trace_free(Tensor<2, amrex::Real> &tensor_LL,
     FOR (i, j)
     {
         tensor_LL[i][j] -=
-            one_over_gr_spacedim * h[var_idx(c_h11, i, j)] * trace;
+            one_over_gr_spacedim * h[VAR_IDX(c_h11, i, j)] * trace;
     }
 }
 
@@ -836,9 +838,9 @@ compute_z_terms(const int i, const int j,
     amrex::Real out = 0.;
     FOR (k)
     {
-        out += Z_over_chi[k] * (h[var_idx(c_h11, i, k)] * d1_chi[j] +
-                                h[var_idx(c_h11, j, k)] * d1_chi[i] -
-                                h[var_idx(c_h11, i, j)] * d1_chi[k]);
+        out += Z_over_chi[k] * (h[VAR_IDX(c_h11, i, k)] * d1_chi[j] +
+                                h[VAR_IDX(c_h11, j, k)] * d1_chi[i] -
+                                h[VAR_IDX(c_h11, i, j)] * d1_chi[k]);
     }
     return out;
 }
@@ -852,9 +854,9 @@ compute_z_terms(const int i, const int j,
     amrex::Real out = 0.;
     FOR (k)
     {
-        out += Z_over_chi(k) * (h[var_idx(c_h11, i, k)] * d1_chi(j) +
-                                h[var_idx(c_h11, j, k)] * d1_chi(i) -
-                                h[var_idx(c_h11, i, j)] * d1_chi(k));
+        out += Z_over_chi(k) * (h[VAR_IDX(c_h11, i, k)] * d1_chi(j) +
+                                h[VAR_IDX(c_h11, j, k)] * d1_chi(i) -
+                                h[VAR_IDX(c_h11, i, j)] * d1_chi(k));
     }
 
     return out;
@@ -869,9 +871,9 @@ compute_z_terms(const int i, const int j,
     amrex::Real out = 0.;
     FOR (k)
     {
-        out += Z_over_chi[k] * (h[var_idx(c_h11, i, k)] * d1_chi(j) +
-                                h[var_idx(c_h11, j, k)] * d1_chi(i) -
-                                h[var_idx(c_h11, i, j)] * d1_chi(k));
+        out += Z_over_chi[k] * (h[VAR_IDX(c_h11, i, k)] * d1_chi(j) +
+                                h[VAR_IDX(c_h11, j, k)] * d1_chi(i) -
+                                h[VAR_IDX(c_h11, i, j)] * d1_chi(k));
     }
 
     return out;
@@ -881,7 +883,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t_array compute_ricci_Z(
     int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs_state,
     const amrex::Array4<amrex::Real const> &state,
     const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU,
-    const chris_t_array &chris, amrex::Array1D<amrex::Real, 0, 3> &Z_over_chi,
+    const chris_array_t &chris, amrex::Array1D<amrex::Real, 0, 3> &Z_over_chi,
     const FourthOrderDerivatives &m_deriv)
 {
     ricci_t_array out;
@@ -949,8 +951,8 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t_array compute_ricci_Z(
             // replaced what should be \tilde{Gamma} with \hat{Gamma} in
             // order to avoid adding terms that cancel later on
             ricci_hat +=
-                0.5 * (state_cell_data[var_idx(c_h11, k, i)] * d1_Gamma(k, j) +
-                       state_cell_data[var_idx(c_h11, k, j)] * d1_Gamma(k, i));
+                0.5 * (state_cell_data[VAR_IDX(c_h11, k, i)] * d1_Gamma(k, j) +
+                       state_cell_data[VAR_IDX(c_h11, k, j)] * d1_Gamma(k, i));
             ricci_hat += 0.5 * state_cell_data[c_Gamma1 + k] * d1_h(idx1, k);
 
             FOR (l)
@@ -980,9 +982,9 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t_array compute_ricci_Z(
 
         amrex::Real ricci_chi =
             0.5 * ((GR_SPACEDIM - 2) * covdtilde2chi(i, j) +
-                   state_cell_data[var_idx(c_h11, i, j)] * boxtildechi -
+                   state_cell_data[VAR_IDX(c_h11, i, j)] * boxtildechi -
                    ((GR_SPACEDIM - 2) * d1_chi(i) * d1_chi(j) +
-                    GR_SPACEDIM * state_cell_data[var_idx(c_h11, i, j)] *
+                    GR_SPACEDIM * state_cell_data[VAR_IDX(c_h11, i, j)] *
                         dchi_dot_dchi) /
                        (2 * state_cell_data[c_chi]));
 
@@ -1003,7 +1005,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t_array compute_ricci_Z(
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z_sym(
     int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs_state,
     const amrex::Array4<amrex::Real const> &state,
-    const amrex::Array1D<amrex::Real, 0, 6> &h_UU, const chris_t_array &chris,
+    const amrex::Array1D<amrex::Real, 0, 6> &h_UU, const chris_array_t &chris,
     const Tensor<1, amrex::Real> &Z_over_chi,
     const FourthOrderDerivatives &m_deriv)
 {
@@ -1061,8 +1063,8 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z_sym(
             // order to avoid adding terms that cancel later on
 
             ricci_hat +=
-                0.5 * (state_cell_data[var_idx(c_h11, k, i)] * d1_Gamma(k, j) +
-                       state_cell_data[var_idx(c_h11, k, j)] * d1_Gamma(k, i));
+                0.5 * (state_cell_data[VAR_IDX(c_h11, k, i)] * d1_Gamma(k, j) +
+                       state_cell_data[VAR_IDX(c_h11, k, j)] * d1_Gamma(k, i));
             ricci_hat += 0.5 * state_cell_data[c_Gamma1 + k] * d1_h(i, j, k);
             FOR (l)
             {
@@ -1099,7 +1101,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z_sym(
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t_array compute_ricci_Z(
     int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs_state,
     const amrex::Array4<amrex::Real const> &state,
-    const amrex::Array1D<amrex::Real, 0, 6> &h_UU, const chris_t_array &chris,
+    const amrex::Array1D<amrex::Real, 0, 6> &h_UU, const chris_array_t &chris,
     const amrex::Array1D<amrex::Real, 0, 3> &Z_over_chi,
     const FourthOrderDerivatives &m_deriv)
 {
@@ -1165,8 +1167,8 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t_array compute_ricci_Z(
             // order to avoid adding terms that cancel later on
 
             ricci_hat +=
-                0.5 * (state_cell_data[var_idx(c_h11, k, i)] * d1_Gamma(k, j) +
-                       state_cell_data[var_idx(c_h11, k, j)] * d1_Gamma(k, i));
+                0.5 * (state_cell_data[VAR_IDX(c_h11, k, i)] * d1_Gamma(k, j) +
+                       state_cell_data[VAR_IDX(c_h11, k, j)] * d1_Gamma(k, i));
             ricci_hat += 0.5 * state_cell_data[c_Gamma1 + k] * d1_h(idx1, k);
             FOR (l)
             {
@@ -1276,8 +1278,8 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z(
             // order to avoid adding terms that cancel later on
 
             ricci_hat +=
-                0.5 * (state_cell_data[var_idx(c_h11, k, i)] * d1_Gamma[k][j] +
-                       state_cell_data[var_idx(c_h11, k, j)] * d1_Gamma[k][i]);
+                0.5 * (state_cell_data[VAR_IDX(c_h11, k, i)] * d1_Gamma[k][j] +
+                       state_cell_data[VAR_IDX(c_h11, k, j)] * d1_Gamma[k][i]);
             ricci_hat += 0.5 * state_cell_data[c_Gamma1 + k] * d1_h[i][j][k];
             FOR (l)
             {
@@ -1291,9 +1293,9 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z(
 
         amrex::Real ricci_chi =
             0.5 * ((GR_SPACEDIM - 2) * covdtilde2chi[i][j] +
-                   state_cell_data[var_idx(c_h11, i, j)] * boxtildechi -
+                   state_cell_data[VAR_IDX(c_h11, i, j)] * boxtildechi -
                    ((GR_SPACEDIM - 2) * d1_chi[i] * d1_chi[j] +
-                    GR_SPACEDIM * state_cell_data[var_idx(c_h11, i, j)] *
+                    GR_SPACEDIM * state_cell_data[VAR_IDX(c_h11, i, j)] *
                         dchi_dot_dchi) /
                        (2 * state_cell_data[c_chi]));
 
