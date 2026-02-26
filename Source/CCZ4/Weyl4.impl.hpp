@@ -11,49 +11,53 @@
 #define WEYL4_IMPL_HPP_
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-Weyl4::compute(int i, int j, int k,
-               const amrex::Array4<amrex::Real> &a_derive_array,
-               const amrex::Array4<amrex::Real const> &a_state_array) const
+Weyl4::operator()(int ix, int iy, int iz,
+                  const amrex::Array4<amrex::Real> &weyl_scalars,
+                  const amrex::Array4<amrex::Real const> &state) const
 {
-    // copy data from the state array into local variables
-    const auto state_cell = a_state_array.cellData(i, j, k);
-    const auto vars       = load_vars<Vars>(state_cell);
-    const auto d1 = m_deriv.template diff1<Vars>(i, j, k, a_state_array);
-    const auto d2 = m_deriv.template diff2<Diff2Vars>(i, j, k, a_state_array);
+    // We do not want to amend the cell data values, so use const CCZ4Vars
+    const amrex::CellData<const amrex::Real> &state_cell_data =
+        state.cellData(ix, iy, iz);
+    CCZ4Vars vars(state_cell_data);
+
+    // we need d1 chi, K, h, A... this just gets all of them
+    const CCZ4D1Vars d1(ix, iy, iz, state, m_deriv);
+    // we only need d2 of chi and h
+    const Tensor<2, amrex::Real> d2_chi =
+        m_deriv.diff2(ix, iy, iz, state, c_chi);
+    const Tensor<4, amrex::Real> d2_h =
+        m_deriv.diff2_tensor(ix, iy, iz, state, c_h11);
+    const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
+    const auto chris = CCZ4Geometry::compute_christoffel(d1, h_UU);
 
     // Get the coordinates
-    const Coordinates coords(amrex::IntVect(i, j, k), m_dx, m_center);
-
-    // Compute the inverse metric and Christoffel symbols
-    using namespace TensorAlgebra;
-    const auto h_UU  = compute_inverse_sym(vars.h);
-    const auto chris = compute_christoffel(d1.h, h_UU);
+    const Coordinates coords(amrex::IntVect(ix, iy, iz), m_dx, m_center);
 
     // Compute the spatial volume element
     const auto epsilon3_LUU = compute_epsilon3_LUU(vars, h_UU);
 
     // Compute the E and B fields
     EBFields_t ebfields =
-        compute_EB_fields(vars, d1, d2, epsilon3_LUU, h_UU, chris);
+        compute_EB_fields(vars, d1, d2_chi, d2_h, epsilon3_LUU, h_UU, chris);
 
     // work out the Newman Penrose scalar
-    NPScalar_t out = compute_Weyl4(ebfields, vars, d1, d2, h_UU, coords);
+    weyl_scalar_t out = compute_Weyl4(ebfields, vars, h_UU, coords);
 
     // store the result
-    a_derive_array(i, j, k, m_dcomp)     = out.Real;
-    a_derive_array(i, j, k, m_dcomp + 1) = out.Im;
+    weyl_scalars(ix, iy, iz, m_out_comp)     = out.Real;
+    weyl_scalars(ix, iy, iz, m_out_comp + 1) = out.Im;
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<3, amrex::Real>
-Weyl4::compute_epsilon3_LUU(const Vars<amrex::Real> &vars,
+Weyl4::compute_epsilon3_LUU(const CCZ4Vars &vars,
                             const Tensor<2, amrex::Real> &h_UU) const
 {
     // raised normal vector, NB index 3 is time
-    Tensor<1, amrex::Real, 4> n_U;
-    n_U[3] = 1. / vars.lapse;
+    Tensor<1, amrex::Real, GR_SPACEDIM + 1> n_U;
+    n_U[GR_SPACEDIM] = 1. / vars.lapse();
     FOR (i)
     {
-        n_U[i] = -vars.shift[i] / vars.lapse;
+        n_U[i] = -vars.shift(i) / vars.lapse();
     }
 
     // 4D levi civita symbol and 3D levi civita tensor in LLL and LUU form
@@ -72,10 +76,11 @@ Weyl4::compute_epsilon3_LUU(const Vars<amrex::Real> &vars,
     // note last index contracted as per footnote 86 pg 290 Alcubierre
     FOR (i, j, k)
     {
-        for (int l = 0; l < 4; ++l)
+        for (int l = 0; l < GR_SPACEDIM + 1; ++l)
         {
             epsilon3_LLL[i][j][k] += n_U[l] * epsilon4[i][j][k][l] *
-                                     vars.lapse / (vars.chi * sqrt(vars.chi));
+                                     vars.lapse() /
+                                     (vars.chi() * std::sqrt(vars.chi()));
         }
     }
     // rasing indices
@@ -84,7 +89,7 @@ Weyl4::compute_epsilon3_LUU(const Vars<amrex::Real> &vars,
         FOR (m, n)
         {
             epsilon3_LUU[i][j][k] += epsilon3_LLL[i][m][n] * h_UU[m][j] *
-                                     vars.chi * h_UU[n][k] * vars.chi;
+                                     vars.chi() * h_UU[n][k] * vars.chi();
         }
     }
 
@@ -96,8 +101,8 @@ Weyl4::compute_epsilon3_LUU(const Vars<amrex::Real> &vars,
 // CCZ4 expressions calculated by MR and checked with TF see:
 // https://www.overleaf.com/read/tvqjbyhvqqtp
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t Weyl4::compute_EB_fields(
-    const Vars<amrex::Real> &vars, const Vars<Tensor<1, amrex::Real>> &d1,
-    const Diff2Vars<Tensor<2, amrex::Real>> &d2,
+    const CCZ4Vars &vars, const CCZ4D1Vars &d1,
+    const Tensor<2, amrex::Real> &d2_chi, const Tensor<4, amrex::Real> &d2_h,
     const Tensor<3, amrex::Real> &epsilon3_LUU,
     const Tensor<2, amrex::Real> &h_UU, const chris_t &chris) const
 {
@@ -113,25 +118,25 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t Weyl4::compute_EB_fields(
     // rather than R_ij + D_iZ_j + D_jZ_i hence use compute_ricci_Z_general
     double dZ_coeff        = (m_formulation == CCZ4RHS<>::USE_CCZ4) ? 1. : 0.;
     auto ricci_and_Z_terms = CCZ4Geometry::compute_ricci_Z_general(
-        vars, d1, d2, h_UU, chris, dZ_coeff);
+        vars, d1, d2_chi, d2_h, h_UU, chris, dZ_coeff);
 
     // Compute full spatial Christoffel symbols
-    using namespace TensorAlgebra;
     const Tensor<3, amrex::Real> chris_phys =
-        compute_phys_chris(d1.chi, vars.chi, vars.h, h_UU, chris.ULL);
+        CCZ4Geometry::compute_phys_chris(d1.chi(), vars, h_UU, chris.ULL);
 
     // Extrinsic curvature and corresponding covariant and partial derivatives
     FOR (i, j)
     {
-        K_tensor[i][j] = vars.A[i][j] / vars.chi +
-                         1. / 3. * (vars.h[i][j] * vars.K) / vars.chi;
+        K_tensor[i][j] = vars.A(i, j) / vars.chi() +
+                         1. / 3. * (vars.h(i, j) * vars.K()) / vars.chi();
 
         FOR (k)
         {
-            d1_K_tensor[i][j][k] = d1.A[i][j][k] / vars.chi -
-                                   d1.chi[k] / vars.chi * K_tensor[i][j] +
-                                   1. / 3. * d1.h[i][j][k] * vars.K / vars.chi +
-                                   1. / 3. * vars.h[i][j] * d1.K[k] / vars.chi;
+            d1_K_tensor[i][j][k] =
+                d1.A(i, j, k) / vars.chi() -
+                d1.chi(k) / vars.chi() * K_tensor[i][j] +
+                1. / 3. * d1.h(i, j, k) * vars.K() / vars.chi() +
+                1. / 3. * vars.h(i, j) * d1.K(k) / vars.chi();
         }
     }
     // covariant derivative of K
@@ -149,10 +154,10 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t Weyl4::compute_EB_fields(
 
     // Use 'K-Theta' in CCZ4. Just 'K' in BSSN. Not a mistake, this is not to
     // confuse with the typical 'K-2*Theta' that appears in the CCZ4 equations
-    amrex::Real K_minus_theta = vars.K;
+    amrex::Real K_minus_Theta = vars.K();
     if (m_formulation == CCZ4RHS<>::USE_CCZ4)
     {
-        K_minus_theta -= vars.Theta;
+        K_minus_Theta -= vars.Theta();
     }
 
     // Calculate electric and magnetic fields
@@ -165,12 +170,12 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t Weyl4::compute_EB_fields(
     FOR (i, j)
     {
         out.E[i][j] +=
-            ricci_and_Z_terms.LL[i][j] + K_minus_theta * K_tensor[i][j];
+            ricci_and_Z_terms.LL[i][j] + K_minus_Theta * K_tensor[i][j];
 
         FOR (k, l)
         {
             out.E[i][j] +=
-                -K_tensor[i][k] * K_tensor[l][j] * h_UU[k][l] * vars.chi;
+                -K_tensor[i][k] * K_tensor[l][j] * h_UU[k][l] * vars.chi();
 
             out.B[i][j] +=
                 epsilon3_LUU[i][k][l] * covariant_deriv_K_tensor[l][j][k];
@@ -189,19 +194,17 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t Weyl4::compute_EB_fields(
     // assuming the Hamiltonian constraint is satisfied, we can make the
     // expression explicitly trace free, which we enforce below
     // (see Alcubierre chapter 8.3, from eq. 8.3.15 onwards)
-    TensorAlgebra::make_trace_free(out.E, vars.h, h_UU);
+    CCZ4Geometry::make_trace_free(out.E, vars, h_UU);
 
     return out;
 }
 
 // Calculation of the Weyl4 scalar
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE NPScalar_t Weyl4::compute_Weyl4(
-    const EBFields_t &ebfields, const Vars<amrex::Real> &vars,
-    const Vars<Tensor<1, amrex::Real>> &d1,
-    const Diff2Vars<Tensor<2, amrex::Real>> &d2,
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE weyl_scalar_t Weyl4::compute_Weyl4(
+    const EBFields_t &ebfields, const CCZ4Vars &vars,
     const Tensor<2, amrex::Real> &h_UU, const Coordinates &coords) const
 {
-    NPScalar_t out;
+    weyl_scalar_t out;
 
     // Calculate the tetrads
     const Tetrad_t tetrad = compute_null_tetrad(vars, h_UU, coords);
@@ -227,7 +230,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE NPScalar_t Weyl4::compute_Weyl4(
 // "The Lazarus project: A pragmatic approach to binary black hole evolutions",
 // Baker et al.
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tetrad_t Weyl4::compute_null_tetrad(
-    const Vars<amrex::Real> &vars, const Tensor<2, amrex::Real> &h_UU,
+    const CCZ4Vars &vars, const Tensor<2, amrex::Real> &h_UU,
     const Coordinates &coords) const
 {
     Tetrad_t out;
@@ -255,7 +258,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tetrad_t Weyl4::compute_null_tetrad(
 
     FOR (i, j, k, m)
     {
-        out.w[i] += 1. / sqrt(vars.chi) * h_UU[i][j] * epsilon[j][k][m] *
+        out.w[i] += 1. / std::sqrt(vars.chi()) * h_UU[i][j] * epsilon[j][k][m] *
                     out.v[k] * out.u[m];
     }
 
@@ -264,17 +267,17 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tetrad_t Weyl4::compute_null_tetrad(
     amrex::Real omega_11 = 0.0;
     FOR (i, j)
     {
-        omega_11 += out.v[i] * out.v[j] * vars.h[i][j] / vars.chi;
+        omega_11 += out.v[i] * out.v[j] * vars.h(i, j) / vars.chi();
     }
     FOR (i)
     {
-        out.v[i] = out.v[i] / sqrt(omega_11);
+        out.v[i] = out.v[i] / std::sqrt(omega_11);
     }
 
     amrex::Real omega_12 = 0.0;
     FOR (i, j)
     {
-        omega_12 += out.v[i] * out.u[j] * vars.h[i][j] / vars.chi;
+        omega_12 += out.v[i] * out.u[j] * vars.h(i, j) / vars.chi();
     }
     FOR (i)
     {
@@ -284,19 +287,19 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tetrad_t Weyl4::compute_null_tetrad(
     amrex::Real omega_22 = 0.0;
     FOR (i, j)
     {
-        omega_22 += out.u[i] * out.u[j] * vars.h[i][j] / vars.chi;
+        omega_22 += out.u[i] * out.u[j] * vars.h(i, j) / vars.chi();
     }
     FOR (i)
     {
-        out.u[i] = out.u[i] / sqrt(omega_22);
+        out.u[i] = out.u[i] / std::sqrt(omega_22);
     }
 
     amrex::Real omega_13 = 0.0;
     amrex::Real omega_23 = 0.0;
     FOR (i, j)
     {
-        omega_13 += out.v[i] * out.w[j] * vars.h[i][j] / vars.chi;
-        omega_23 += out.u[i] * out.w[j] * vars.h[i][j] / vars.chi;
+        omega_13 += out.v[i] * out.w[j] * vars.h(i, j) / vars.chi();
+        omega_23 += out.u[i] * out.w[j] * vars.h(i, j) / vars.chi();
     }
     FOR (i)
     {
@@ -306,11 +309,11 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tetrad_t Weyl4::compute_null_tetrad(
     amrex::Real omega_33 = 0.0;
     FOR (i, j)
     {
-        omega_33 += out.w[i] * out.w[j] * vars.h[i][j] / vars.chi;
+        omega_33 += out.w[i] * out.w[j] * vars.h(i, j) / vars.chi();
     }
     FOR (i)
     {
-        out.w[i] = out.w[i] / sqrt(omega_33);
+        out.w[i] = out.w[i] / std::sqrt(omega_33);
     }
 
     return out;
@@ -332,8 +335,7 @@ void Weyl4::set_up(int a_state_index)
         &amrex::cell_quartic_interp);
 
     // We need all of the CCZ4 variables to calculate Weyl4
-    // (except B but easier to keep it in to avoid having to define yet another
-    // CCZ4Vars struct)
+    // (except B but easier to keep it in)
     derive_lst.addComponent(name, desc_lst, a_state_index, 0, NUM_CCZ4_VARS);
 }
 
@@ -355,8 +357,8 @@ void Weyl4::compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
     Weyl4 weyl4(center, geomdata.CellSize(0), dcomp, formulation);
     amrex::ParallelFor(
         out_mf, out_mf.nGrowVect(),
-        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
-        { weyl4.compute(i, j, k, out_arrays[box_no], src_arrays[box_no]); });
+        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz) noexcept
+        { weyl4(ix, iy, iz, out_arrays[box_no], src_arrays[box_no]); });
 }
 
 #endif /* WEYL4_HPP_ */

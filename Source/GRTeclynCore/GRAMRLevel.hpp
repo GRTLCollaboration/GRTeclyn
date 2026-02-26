@@ -21,7 +21,7 @@
 
 enum StateType
 {
-    State_Type = 0,
+    state_index = 0,
     NUM_STATE_TYPE
 };
 
@@ -114,9 +114,9 @@ class GRAMRLevel : public amrex::AmrLevel
      * Most examples should not need to override this and instead override
      * pre_tag_cells() and tag_cells()
      */
-    virtual void errorEst(amrex::TagBoxArray &a_tag_box_array, int a_clearval,
-                          int a_tagval, amrex::Real a_time,
-                          int a_n_error_buf = 0, int a_ngrow = 0) override;
+    void errorEst(amrex::TagBoxArray &a_tag_box_array, int a_clearval,
+                  int a_tagval, amrex::Real a_time, int a_n_error_buf = 0,
+                  int a_ngrow = 0) override;
 
     /**
      * Do any necessary work before tagging cells (e.g. calling FillPatch for

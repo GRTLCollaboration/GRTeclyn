@@ -60,7 +60,7 @@ void run_constraints_test()
         amrex::MFInfo mf_info;
         mf_info.SetArena(amrex::The_Managed_Arena());
 
-        amrex::MultiFab in_mf{box_array, distribution_mapping, NUM_CCZ4_VARS,
+        amrex::MultiFab in_mf{box_array, distribution_mapping, NUM_VARS,
                               num_ghosts, mf_info};
 
         // Calculate initial data

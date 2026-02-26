@@ -6,6 +6,9 @@
 #ifndef CCZ4RHS_HPP_
 #define CCZ4RHS_HPP_
 
+#include "CCZ4AdvecVars.hpp"
+#include "CCZ4D1Vars.hpp"
+#include "CCZ4D2Vars.hpp"
 #include "CCZ4Geometry.hpp"
 #include "CCZ4Vars.hpp"
 #include "Cell.hpp"
@@ -43,10 +46,7 @@ struct CCZ4_params_t : public CCZ4_base_params_t, public gauge_params_t
 
 /// Compute class to calculate the CCZ4 right hand side
 /**
- * This compute class implements the CCZ4 right hand side equations. Use it by
- *handing it to a loop in the BoxLoops namespace. CCZ4RHS includes a struct
- *in its scope: CCZ4RHS::Vars (the CCZ4 variables like conformal factor,
- *conformal metric, extrinsic curvature, etc).
+ * This compute class implements the CCZ4 right hand side equations.
  **/
 template <class gauge_t = MovingPunctureGauge,
           class deriv_t = FourthOrderDerivatives>
@@ -60,13 +60,6 @@ class CCZ4RHS
     };
 
     using params_t = CCZ4_params_t<typename gauge_t::params_t>;
-
-    /// CCZ4 variables
-    template <class data_t> using Vars = CCZ4Vars::VarsWithGauge<data_t>;
-
-    /// CCZ4 variables
-    template <class data_t>
-    using Diff2Vars = CCZ4Vars::Diff2VarsWithGauge<data_t>;
 
   protected:
     params_t m_params; //!< CCZ4 parameters
@@ -88,32 +81,19 @@ class CCZ4RHS
 
     /// Compute function
     /** This function orchestrates the calculation of the rhs for one specific
-     * grid cell. This function is called by the BoxLoops::loop for each grid
-     * cell; there should rarely be a need to call it directly.
+     * grid cell.
      */
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    compute(int i, int j, int k, const amrex::Array4<amrex::Real> &rhs,
-            const amrex::Array4<amrex::Real const> &state) const;
+    operator()(int ix, int iy, int iz,
+               const amrex::Array4<amrex::Real> &rhs_state,
+               const amrex::Array4<amrex::Real const> &state) const;
 
   protected:
     /// Calculates the rhs for CCZ4
-    /** Calculates the right hand side for CCZ4 and calls rhs_gauge for the
-     *gauge conditions The variables (the template argument vars_t) must contain
-     *at least the members: chi, h[i][j], Gamma[i], A[i][j], Theta, lapse and
-     *shift[i].
-     **/
-    template <template <class> class vars_t, class d2_vars_t>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void rhs_equation(
-        vars_t<amrex::Real> &rhs, //!< Reference to the variables into which the
-                                  //! output right hand side is written
-        const vars_t<amrex::Real>
-            &vars, //!< The values of the current variables
-        const vars_t<Tensor<1, amrex::Real>>
-            &d1,             //!< First derivative of the variables
-        const d2_vars_t &d2, //!< The second derivative the variables
-        const vars_t<amrex::Real>
-            &advec //!< The advection derivatives of the variables
-    ) const;
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    rhs_equation(const amrex::CellData<amrex::Real> &rhs, const CCZ4Vars &vars,
+                 const CCZ4D1Vars &d1, const CCZ4D2Vars &d2,
+                 const CCZ4AdvecVars &advec) const;
 };
 
 #include "CCZ4RHS.impl.hpp"

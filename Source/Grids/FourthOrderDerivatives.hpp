@@ -8,6 +8,7 @@
 
 #include "Cell.hpp"
 #include "DimensionDefinitions.hpp"
+#include "StateVariables.hpp"
 #include "Tensor.hpp"
 #include <AMReX_REAL.H>
 #include <array>
@@ -27,8 +28,10 @@ class FourthOrderDerivatives
     {
     }
 
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
+
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
-    diff1(const amrex::Real *in_ptr, const int idx, const int stride) const
+    diff1(const amrex::Real *in_ptr, const int stride, const int idx = 0) const
     {
         amrex::Real weight_far  = 8.33333333333333333333e-2_rt;
         amrex::Real weight_near = 6.66666666666666666667e-1_rt;
@@ -40,32 +43,92 @@ class FourthOrderDerivatives
                m_one_over_dx;
     }
 
-    /// Calculates all first derivatives and returns as variable type specified
-    /// by the template parameter
-    template <template <typename> class vars_t>
-    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE auto
-    diff1(int i, int j, int k,
-          const amrex::Array4<const amrex::Real> &state) const
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<1, amrex::Real>
+    diff1(int ix, int iy, int iz, const amrex::Array4<const amrex::Real> &state,
+          const int ivar) const
     {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-        vars_t<Tensor<1, amrex::Real>> d1;
-        const auto *state_ptr_ijk = state.ptr(i, j, k);
-        d1.enum_mapping(
-            [&](const int &ivar, Tensor<1, amrex::Real> &var)
-            {
-                AMREX_D_TERM(
-                    var[0] =
-                        diff1(state_ptr_ijk + ivar * state.stride.a[2], 0, 1);
-                    , var[1] = diff1(state_ptr_ijk + ivar * state.stride.a[2],
-                                     0, static_cast<int>(state.stride.a[0]));
-                    , var[2] = diff1(state_ptr_ijk + ivar * state.stride.a[2],
-                                     0, static_cast<int>(state.stride.a[1])));
-            });
+        Tensor<1, amrex::Real> d1;
+        const auto *state_ptr_xyz = state.ptr(ix, iy, iz);
+        int j_stride              = static_cast<int>(state.stride.a[0]);
+        int k_stride              = static_cast<int>(state.stride.a[1]);
+        int n_stride              = static_cast<int>(state.stride.a[2]);
+
+        amrex::GpuArray<int, AMREX_SPACEDIM> strides{1, j_stride, k_stride};
+        const auto *var_ptr =
+            state_ptr_xyz + static_cast<amrex::Long>(ivar) * n_stride;
+        FOR (idir)
+        {
+            d1[idir] = diff1(var_ptr, strides[idir]);
+        }
         return d1;
     }
 
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<1, amrex::Real>
+    diff1_scalar(int ix, int iy, int iz,
+                 const amrex::Array4<const amrex::Real> &state,
+                 const int ivar) const
+    {
+        return diff1(ix, iy, iz, state, ivar);
+    }
+
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<2, amrex::Real>
+    diff1_vector(int ix, int iy, int iz,
+                 const amrex::Array4<const amrex::Real> &state,
+                 const int ivar_0) const
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+        Tensor<2, amrex::Real> d1_vector;
+        FOR (icomp)
+        {
+            const int ivar                = ivar_0 + icomp;
+            Tensor<1, amrex::Real> d1_var = diff1(ix, iy, iz, state, ivar);
+            FOR (idir)
+            {
+                d1_vector[icomp][idir] = d1_var[idir];
+            }
+        }
+        return d1_vector;
+    }
+
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<3, amrex::Real>
+    diff1_tensor(int ix, int iy, int iz,
+                 const amrex::Array4<const amrex::Real> &state,
+                 const int ivar_0) const
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+        Tensor<3, amrex::Real> d1_tensor;
+        FOR (icomp, jcomp)
+        {
+            const int ivar                = VAR_IDX(ivar_0, icomp, jcomp);
+            Tensor<1, amrex::Real> d1_var = diff1(ix, iy, iz, state, ivar);
+            FOR (idir)
+            {
+                d1_tensor[icomp][jcomp][idir] = d1_var[idir];
+            }
+        }
+        return d1_tensor;
+    }
+
+    // gets the derivative of a consecutive series of vars in a state
+    template <int num_diff_vars>
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+        amrex::GpuArray<Tensor<1, amrex::Real>, num_diff_vars>
+        diff1_state(int ix, int iy, int iz,
+                    const amrex::Array4<const amrex::Real> &state,
+                    int first_var = 0) const
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+        amrex::GpuArray<Tensor<1, amrex::Real>, num_diff_vars> d1_state;
+        for (int ivar = first_var; ivar < (first_var + num_diff_vars); ivar++)
+        {
+            d1_state[ivar] = diff1(ix, iy, iz, state, ivar);
+        }
+        return d1_state;
+    }
+
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
-    diff2(const amrex::Real *in_ptr, const int idx, const int stride) const
+    diff2(const amrex::Real *in_ptr, const int stride, const int idx = 0) const
     {
         amrex::Real weight_far   = 8.33333333333333333333e-2_rt;
         amrex::Real weight_near  = 1.33333333333333333333e+0_rt;
@@ -80,8 +143,8 @@ class FourthOrderDerivatives
     }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
-    mixed_diff2(const amrex::Real *in_ptr, const int idx, const int stride1,
-                const int stride2) const
+    mixed_diff2(const amrex::Real *in_ptr, const int stride1, const int stride2,
+                const int idx = 0) const
     {
         amrex::Real weight_far_far   = 6.94444444444444444444e-3_rt;
         amrex::Real weight_near_far  = 5.55555555555555555556e-2_rt;
@@ -109,72 +172,106 @@ class FourthOrderDerivatives
                m_one_over_dx2;
     }
 
-    /// Calculates all second derivatives for a single variable
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<2, amrex::Real>
-    diff2(int i, int j, int k, const amrex::Array4<amrex::Real const> &state,
+    diff2(int ix, int iy, int iz, const amrex::Array4<amrex::Real const> &state,
           const int ivar) const
     {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
         Tensor<2, amrex::Real> d2;
-        const auto *state_ptr_ijk = state.ptr(i, j, k);
-        amrex::GpuArray<int, AMREX_SPACEDIM> strides{
-            1, static_cast<int>(state.stride.a[0]),
-            static_cast<int>(state.stride.a[1])};
-        const auto *pvar = state_ptr_ijk + ivar * state.stride.a[2];
-        FOR (dir1) // First calculate the repeated derivatives
+        const auto *state_ptr_xyz = state.ptr(ix, iy, iz);
+        int j_stride              = static_cast<int>(state.stride.a[0]);
+        int k_stride              = static_cast<int>(state.stride.a[1]);
+        int n_stride              = static_cast<int>(state.stride.a[2]);
+
+        amrex::GpuArray<int, AMREX_SPACEDIM> strides{1, j_stride, k_stride};
+
+        const auto *var_ptr =
+            state_ptr_xyz + static_cast<amrex::Long>(ivar) * n_stride;
+
+        FOR (idir1)
         {
-            d2[dir1][dir1] = diff2(pvar, 0, strides[dir1]);
-            for (int dir2 = 0; dir2 < dir1; ++dir2)
+            d2[idir1][idir1] = diff2(var_ptr, strides[idir1]);
+            for (int idir2 = 0; idir2 < idir1; ++idir2)
             {
-                auto tmp = mixed_diff2(pvar, 0, strides[dir1], strides[dir2]);
-                d2[dir1][dir2] = tmp;
-                d2[dir2][dir1] = tmp;
+                auto d2_tmp =
+                    mixed_diff2(var_ptr, strides[idir1], strides[idir2]);
+                d2[idir1][idir2] = d2_tmp;
+                d2[idir2][idir1] = d2_tmp;
             }
         }
         return d2;
     }
 
-    template <template <typename> class vars_t>
-    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE auto
-    diff2(int i, int j, int k,
-          const amrex::Array4<amrex::Real const> &state) const
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<2, amrex::Real>
+    diff2_scalar(int ix, int iy, int iz,
+                 const amrex::Array4<const amrex::Real> &state,
+                 const int ivar) const
     {
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-        vars_t<Tensor<2, amrex::Real>> d2;
-        const auto *state_ptr_ijk = state.ptr(i, j, k);
-        amrex::GpuArray<int, AMREX_SPACEDIM> strides{
-            1, static_cast<int>(state.stride.a[0]),
-            static_cast<int>(state.stride.a[1])};
-        d2.enum_mapping(
-            [&](const int &ivar, Tensor<2, amrex::Real> &var)
-            {
-                const auto *pvar = state_ptr_ijk + ivar * state.stride.a[2];
-                FOR (dir1) // First calculate the repeated derivatives
-                {
-                    var[dir1][dir1] = diff2(pvar, 0, strides[dir1]);
-                    for (int dir2 = 0; dir2 < dir1; ++dir2)
-                    {
-                        auto tmp =
-                            mixed_diff2(pvar, 0, strides[dir1], strides[dir2]);
-                        var[dir1][dir2] = tmp;
-                        var[dir2][dir1] = tmp;
-                    }
-                }
-            });
-        return d2;
+        return diff2(ix, iy, iz, state, ivar);
     }
 
-  protected: // Let's keep this protected ... we may want to change the
-             // advection calculation
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
-    advection_term(const amrex::Real *in_ptr, const int idx,
-                   const amrex::Real &vec_comp, const int stride,
-                   const bool shift_positive) const
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<3, amrex::Real>
+    diff2_vector(int ix, int iy, int iz,
+                 const amrex::Array4<const amrex::Real> &state,
+                 const int ivar_0) const
     {
-        const amrex::Real in_left   = in_ptr[idx - stride];
-        const amrex::Real in_centre = in_ptr[idx];
-        const amrex::Real in_right  = in_ptr[idx + stride];
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+        Tensor<3, amrex::Real> d2_vector;
+        FOR (icomp)
+        {
+            const int ivar                = ivar_0 + icomp;
+            Tensor<2, amrex::Real> d2_var = diff2(ix, iy, iz, state, ivar);
+            FOR (idir, jdir)
+            {
+                d2_vector[icomp][idir][jdir] = d2_var[idir][jdir];
+            }
+        }
+        return d2_vector;
+    }
 
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<4, amrex::Real>
+    diff2_tensor(int ix, int iy, int iz,
+                 const amrex::Array4<const amrex::Real> &state,
+                 const int ivar_0) const
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+        Tensor<4, amrex::Real> d2_tensor;
+        FOR (icomp, jcomp)
+        {
+            const int ivar                = VAR_IDX(ivar_0, icomp, jcomp);
+            Tensor<2, amrex::Real> d1_var = diff2(ix, iy, iz, state, ivar);
+
+            FOR (idir, jdir)
+            {
+                d2_tensor[icomp][jcomp][idir][jdir] = d1_var[idir][jdir];
+            }
+        }
+        return d2_tensor;
+    }
+
+    // gets the derivative of a consecutive series of vars in a state
+    template <int num_diff_vars>
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+        amrex::GpuArray<Tensor<2, amrex::Real>, num_diff_vars>
+        diff2_state(int ix, int iy, int iz,
+                    const amrex::Array4<const amrex::Real> &state,
+                    int first_var = 0) const
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+        amrex::GpuArray<Tensor<2, amrex::Real>, num_diff_vars> d2_state;
+        for (int ivar = first_var; ivar < (first_var + num_diff_vars); ivar++)
+        {
+            d2_state[ivar] = diff2(ix, iy, iz, state, ivar);
+        }
+        return d2_state;
+    }
+
+  protected:
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+    advection_term(const amrex::Real *in_ptr, const amrex::Real &shift_comp,
+                   const int stride, const bool shift_positive,
+                   const int idx = 0) const
+    {
         amrex::Real weight_0 = -2.50000000000000000000e-1_rt;
         amrex::Real weight_1 = -8.33333333333333333333e-1_rt;
         amrex::Real weight_2 = +1.50000000000000000000e+0_rt;
@@ -182,56 +279,111 @@ class FourthOrderDerivatives
         amrex::Real weight_4 = +8.33333333333333333333e-2_rt;
 
         amrex::Real upwind =
-            vec_comp *
-            (weight_0 * in_left + weight_1 * in_centre + weight_2 * in_right +
+            shift_comp *
+            (weight_0 * in_ptr[idx - stride] + weight_1 * in_ptr[idx] +
+             weight_2 * in_ptr[idx + stride] +
              weight_3 * in_ptr[idx + 2 * stride] +
              weight_4 * in_ptr[idx + 3 * stride]) *
             m_one_over_dx;
 
         amrex::Real downwind =
-            vec_comp *
+            shift_comp *
             (-weight_4 * in_ptr[idx - 3 * stride] -
-             weight_3 * in_ptr[idx - 2 * stride] - weight_2 * in_left -
-             weight_1 * in_centre - weight_0 * in_right) *
+             weight_3 * in_ptr[idx - 2 * stride] -
+             weight_2 * in_ptr[idx - stride] - weight_1 * in_ptr[idx] -
+             weight_0 * in_ptr[idx + stride]) *
             m_one_over_dx;
 
         return (shift_positive) ? upwind : downwind;
     }
 
   public:
-
-    /// Calculates all second derivatives and returns as variable type specified
-    /// by the template parameter
-    template <template <typename> class vars_t>
-    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE auto
-    advection(int i, int j, int k,
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+    advection(int ix, int iy, int iz,
               const amrex::Array4<amrex::Real const> &state,
-              const Tensor<1, amrex::Real> &vector) const
+              const Tensor<1, amrex::Real> &shift_vector, const int ivar) const
     {
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-        vars_t<amrex::Real> advec;
-        const auto *state_ptr_ijk = state.ptr(i, j, k);
-        amrex::GpuArray<int, AMREX_SPACEDIM> strides{
-            1, static_cast<int>(state.stride.a[0]),
-            static_cast<int>(state.stride.a[1])};
-        advec.enum_mapping(
-            [&](const int &ivar, amrex::Real &var)
-            {
-                var              = 0.;
-                const auto *pvar = state_ptr_ijk + ivar * state.stride.a[2];
-                FOR (dir)
-                {
-                    const bool shift_positive = (vector[dir] > 0.0);
-                    var += advection_term(pvar, 0, vector[dir], strides[dir],
-                                          shift_positive);
-                }
-            });
+        amrex::Real advec         = 0.0;
+        const auto *state_ptr_xyz = state.ptr(ix, iy, iz);
+        int j_stride              = static_cast<int>(state.stride.a[0]);
+        int k_stride              = static_cast<int>(state.stride.a[1]);
+        int n_stride              = static_cast<int>(state.stride.a[2]);
+
+        amrex::GpuArray<int, AMREX_SPACEDIM> strides{1, j_stride, k_stride};
+
+        const auto *var_ptr =
+            state_ptr_xyz + static_cast<amrex::Long>(ivar) * n_stride;
+        FOR (idir)
+        {
+            const bool shift_positive = (shift_vector[idir] > 0.0);
+            advec += advection_term(var_ptr, shift_vector[idir], strides[idir],
+                                    shift_positive);
+        }
         return advec;
     }
 
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real advec_scalar(
+        int ix, int iy, int iz, const amrex::Array4<amrex::Real const> &state,
+        const Tensor<1, amrex::Real> &shift_vector, const int ivar) const
+    {
+        return advection(ix, iy, iz, state, shift_vector, ivar);
+    }
+
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<1, amrex::Real>
+    advec_vector(int ix, int iy, int iz,
+                 const amrex::Array4<amrex::Real const> &state,
+                 const Tensor<1, amrex::Real> &shift_vector,
+                 const int ivar0) const
+    {
+        Tensor<1, amrex::Real> advec_vector;
+        FOR (icomp)
+        {
+            int ivar = ivar0 + icomp;
+            advec_vector[icomp] =
+                advection(ix, iy, iz, state, shift_vector, ivar);
+        }
+        return advec_vector;
+    }
+
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<2, amrex::Real>
+    advec_tensor(int ix, int iy, int iz,
+                 const amrex::Array4<amrex::Real const> &state,
+                 const Tensor<1, amrex::Real> &shift_vector,
+                 const int ivar0) const
+    {
+        Tensor<2, amrex::Real> advec_tensor;
+        FOR (icomp, jcomp)
+        {
+            int ivar = VAR_IDX(ivar0, icomp, jcomp);
+            advec_tensor[icomp][jcomp] =
+                advection(ix, iy, iz, state, shift_vector, ivar);
+        }
+        return advec_tensor;
+    }
+
+    // gets the derivative of a consecutive series of vars in a state
+    template <int num_diff_vars>
+    [[nodiscard]] AMREX_GPU_DEVICE
+        AMREX_FORCE_INLINE amrex::GpuArray<amrex::Real, num_diff_vars>
+        advec_state(int ix, int iy, int iz,
+                    const amrex::Array4<const amrex::Real> &state,
+                    const Tensor<1, amrex::Real> &shift_vector,
+                    int first_var = 0) const
+
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+        amrex::GpuArray<amrex::Real, num_diff_vars> advec_state;
+        for (int ivar = first_var; ivar < (first_var + num_diff_vars); ivar++)
+        {
+            advec_state[ivar] =
+                advection(ix, iy, iz, state, shift_vector, ivar);
+        }
+        return advec_state;
+    }
+
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
-    dissipation_term(const double *in_ptr, const int idx,
-                     const int stride) const
+    dissipation_term(const double *in_ptr, const int stride,
+                     const int idx = 0) const
     {
         amrex::Real weight_vfar  = 1.56250e-2_rt;
         amrex::Real weight_far   = 9.37500e-2_rt;
@@ -248,29 +400,47 @@ class FourthOrderDerivatives
                m_one_over_dx;
     }
 
-    template <template <typename> class vars_t>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    add_dissipation(int i, int j, int k, vars_t<amrex::Real> &vars,
-                    const amrex::Array4<amrex::Real const> &state,
-                    const double factor) const
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+    calculate_dissipation(int ix, int iy, int iz,
+                          const amrex::Array4<amrex::Real const> &state,
+                          const double sigma_coeff, const int ivar) const
     {
-        const auto *state_ptr_ijk = state.ptr(i, j, k);
-        amrex::GpuArray<int, AMREX_SPACEDIM> strides{
-            1, static_cast<int>(state.stride.a[0]),
-            static_cast<int>(state.stride.a[1])};
-        vars.enum_mapping(
-            [&](const int &ivar, amrex::Real &var)
-            {
-                FOR (dir)
-                {
-                    const auto stride = strides[dir];
-                    var +=
-                        factor * dissipation_term(state_ptr_ijk +
-                                                      ivar * state.stride.a[2],
-                                                  0, stride);
-                }
-            });
+        amrex::Real diss          = 0.0;
+        const auto *state_ptr_xyz = state.ptr(ix, iy, iz);
+
+        int j_stride = static_cast<int>(state.stride.a[0]);
+        int k_stride = static_cast<int>(state.stride.a[1]);
+        int n_stride = static_cast<int>(state.stride.a[2]);
+
+        amrex::GpuArray<int, AMREX_SPACEDIM> strides{1, j_stride, k_stride};
+
+        FOR (idir)
+        {
+            const auto stride = strides[idir];
+            diss +=
+                sigma_coeff *
+                dissipation_term(state_ptr_xyz +
+                                     static_cast<amrex::Long>(ivar) * n_stride,
+                                 stride);
+        }
+        return diss;
     }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    add_dissipation(int ix, int iy, int iz,
+                    const amrex::CellData<amrex::Real> &rhs,
+                    const amrex::Array4<amrex::Real const> &state,
+                    const double sigma_coeff, int num_vars = NUM_VARS) const
+    {
+        for (int ivar = 0; ivar < num_vars; ivar++)
+        {
+            amrex::Real diss =
+                calculate_dissipation(ix, iy, iz, state, sigma_coeff, ivar);
+            rhs[ivar] += diss;
+        }
+    }
+
+    // NOLINTEND(bugprone-easily-swappable-parameters)
 };
 
-#endif /* FOURTHORDERDERIVATIVES_HPP_ */
+#endif /* FOURTHORDERDERIVATIVES2_HPP_ */

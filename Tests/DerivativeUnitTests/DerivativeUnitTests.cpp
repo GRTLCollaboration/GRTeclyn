@@ -50,19 +50,19 @@ void run_derivative_unit_tests()
         const amrex::Array4<amrex::Real> &in_array = in_fab.array();
 
         amrex::ParallelFor(ghosted_box,
-                           [=] AMREX_GPU_DEVICE(int i, int j, int k)
+                           [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
                            {
                                // no point having data varying wrt y as we only
                                // 1 true cell in that dimension
-                               const double x = (0.5 + i) * dx;
-                               const double z = (0.5 + k) * dx;
+                               const double x = (0.5 + ix) * dx;
+                               const double z = (0.5 + iz) * dx;
                                for (int ivar = 0; ivar < in_array.nComp();
                                     ++ivar)
                                {
-                                   in_array(i, j, k, ivar) = x * z * (z - 1);
+                                   in_array(ix, iy, iz, ivar) = x * z * (z - 1);
                                }
                                // The dissipation component is special:
-                               in_array(i, j, k, c_diss) =
+                               in_array(ix, iy, iz, c_diss) =
                                    (pow(z - 0.5, 6) - 0.015625) / 720. +
                                    (z - 1) * z * pow(x, 6) / 720.;
                            });
@@ -77,9 +77,12 @@ void run_derivative_unit_tests()
         {
             DerivativeTestsCompute<FourthOrderDerivatives>
                 derivative_tests_compute(dx);
-            amrex::ParallelFor(
-                box, [=] AMREX_GPU_DEVICE(int i, int j, int k)
-                { derivative_tests_compute(i, j, k, out_array, in_c_array); });
+            amrex::ParallelFor(box,
+                               [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
+                               {
+                                   derivative_tests_compute(
+                                       ix, iy, iz, out_array, in_c_array);
+                               });
 
             amrex::Gpu::streamSynchronize();
             AMREX_GPU_ERROR_CHECK();
@@ -90,46 +93,42 @@ void run_derivative_unit_tests()
 
             amrex::LoopOnCpu(
                 box,
-                [=](int i, int j, int k)
+                [=](int ix, int iy, int iz)
                 {
                     // only 1 cell in the y direction
-                    const double x = (0.5 + i) * dx;
-                    const double z = (0.5 + k) * dx;
+                    const double x = (0.5 + ix) * dx;
+                    const double z = (0.5 + iz) * dx;
 
-                    amrex::IntVect iv(i, j, k);
-
-                    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-                    DerivativeTestsCompute<FourthOrderDerivatives>::Vars<
-                        amrex::Real>
-                        vars;
-                    const auto &cell_data = out_c_array.cellData(i, j, k);
-                    load_vars(cell_data, vars);
+                    amrex::IntVect iv(ix, iy, iz);
+                    const auto &cell_data = out_c_array.cellData(ix, iy, iz);
 
                     INFO("diff1 (fourth order) at " << iv);
-                    CHECK(vars.d1 == doctest::Approx(2. * x * (z - 0.5))
-                                         .epsilon(test_threshold));
+                    CHECK(cell_data[c_d1] == doctest::Approx(2. * x * (z - 0.5))
+                                                 .epsilon(test_threshold));
 
                     INFO("diff2 (fourth order) at " << iv);
-                    CHECK(vars.d2 ==
+                    CHECK(cell_data[c_d2] ==
                           doctest::Approx(2. * x).epsilon(test_threshold));
 
                     INFO("mixed diff2 (fourth order) at " << iv);
-                    CHECK(vars.d2_mixed == doctest::Approx(2. * (z - 0.5))
-                                               .epsilon(test_threshold));
+                    CHECK(cell_data[c_d2_mixed] ==
+                          doctest::Approx(2. * (z - 0.5))
+                              .epsilon(test_threshold));
 
                     INFO("dissipation (fourth order) at " << iv);
-                    CHECK(vars.diss == doctest::Approx((1. + z * (z - 1.)) *
-                                                       pow(dx, 5) / 64.)
-                                           .epsilon(test_threshold));
+                    CHECK(
+                        cell_data[c_diss] ==
+                        doctest::Approx((1. + z * (z - 1.)) * pow(dx, 5) / 64.)
+                            .epsilon(test_threshold));
 
                     INFO("advection down (fourth order) at " << iv);
-                    CHECK(vars.advec_down ==
+                    CHECK(cell_data[c_advec_down] ==
                           doctest::Approx(-2. * z * (z - 1.) -
                                           3. * x * (2. * z - 1.))
                               .epsilon(test_threshold));
 
                     INFO("advection up (fourth order) at " << iv);
-                    CHECK(vars.advec_up ==
+                    CHECK(cell_data[c_advec_up] ==
                           doctest::Approx(2. * z * (z - 1.) +
                                           3. * x * (2. * z - 1.))
                               .epsilon(test_threshold));
