@@ -47,6 +47,10 @@ class ParticleInterpolator
     bool m_verbosity{false};
 
     bool m_particles_populated{false};
+    std::vector<int>
+        m_last_redistribute_step; // a vector to keep the steps at which
+                                  // redistribute happended (this is a vector of
+                                  // values stored for all levels)
     bool m_need_redistribute{true};
 
     // dx on level 0

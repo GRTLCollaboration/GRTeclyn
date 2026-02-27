@@ -713,6 +713,31 @@ int ParticleInterpolator<num_components>::get_start_comp()
 template <int num_components>
 void ParticleInterpolator<num_components>::ensure_redistributed()
 {
+    const int nlev = m_gramr_ptr->finestLevel() + 1;
+
+    // m_last_redistribute_step is empty at the beginning, so resize
+    // also if we add or drop a level, it will also need appropsiate resizing
+    if (m_last_redistribute_step.size() != nlev)
+    {
+        m_last_redistribute_step.resize(
+            nlev, -1); // put -1s to indicate no redistribute has happened yet
+        // upon initialisation this would automatically trigger a regrid
+        m_need_redistribute = true;
+    }
+
+    // Did a regrid occur since the last redistribution?
+    for (int lev = 0; lev < nlev; ++lev)
+    {
+        int last_regrid_step =
+            m_gramr_ptr->levelSteps(lev) - m_gramr_ptr->levelCount(lev);
+
+        if (last_regrid_step > m_last_redistribute_step[lev])
+        {
+            m_need_redistribute = true;
+            break;
+        }
+    }
+
     int need = (m_need_redistribute ? 1 : 0);
     amrex::ParallelDescriptor::ReduceIntMax(
         need); // do we want all ranks to redistribute particles, if one rank
