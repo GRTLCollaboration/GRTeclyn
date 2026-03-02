@@ -70,7 +70,7 @@ jobs:
         mv compile_commands_with_headers.json ${{ env.COMPILATION_DATABASE }}
 
     - name: Upload compilation database
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: compilation-database
         path: ${{ env.COMPILATION_DATABASE }}
