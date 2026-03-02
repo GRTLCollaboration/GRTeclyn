@@ -86,14 +86,13 @@ CCZ4RHS<gauge_t, deriv_t>::calculate_chi_rhs(
     const amrex::CellData<const amrex::Real> &state_cell_data =
         state.cellData(ix, iy, iz);
 
-    Tensor<1, amrex::Real> shift_vector;
+    amrex::Array1D<amrex::Real, 0, 3> shift_vector;
     FOR (idir)
     {
-        shift_vector[idir] = state(ix, iy, iz, c_shift1 + idir);
+        shift_vector(idir) = state(ix, iy, iz, c_shift1 + idir);
     }
 
-    Tensor<2, amrex::Real> d1_shift =
-        m_deriv.diff1_vector(ix, iy, iz, state, c_shift1);
+    auto d1_shift = m_deriv.diff1_array_vector(ix, iy, iz, state, c_shift1);
     amrex::Real divshift = CCZ4Geometry::compute_divshift(d1_shift);
     amrex::Real advec_chi =
         m_deriv.advection(ix, iy, iz, state, shift_vector, c_chi);
@@ -104,13 +103,15 @@ CCZ4RHS<gauge_t, deriv_t>::calculate_chi_rhs(
 
     // Calculation of h_ij RHS
 
-    Tensor<2, amrex::Real> advec_h =
-        m_deriv.advec_tensor(ix, iy, iz, state, shift_vector, c_h11);
+    // auto advec_h =
+    //     m_deriv.advec_tensor(ix, iy, iz, state, shift_vector, c_h11);
 
     FOR2_SYM(i, j)
+    //    FOR(i, j)
     {
         rhs_cell_data[VAR_IDX(c_h11, i, j)] =
-            advec_h[i][j] -
+            m_deriv.advection(ix, iy, iz, state, shift_vector,
+                              VAR_IDX(c_h11, i, j)) -
             2.0 * state_cell_data[c_lapse] *
                 state_cell_data[VAR_IDX(c_A11, i, j)] -
             (2.0 / (double)GR_SPACEDIM) *
@@ -119,8 +120,8 @@ CCZ4RHS<gauge_t, deriv_t>::calculate_chi_rhs(
         FOR (k)
         {
             rhs_cell_data[VAR_IDX(c_h11, i, j)] +=
-                state_cell_data[VAR_IDX(c_h11, k, i)] * d1_shift[k][j] +
-                state_cell_data[VAR_IDX(c_h11, k, j)] * d1_shift[k][i];
+                state_cell_data[VAR_IDX(c_h11, k, i)] * d1_shift(k, j) +
+                state_cell_data[VAR_IDX(c_h11, k, j)] * d1_shift(k, i);
         }
     }
 }
@@ -247,18 +248,22 @@ CCZ4RHS<gauge_t, deriv_t>::calculate_A_ij_rhs_use_amrex_array(
     }
     CCZ4Geometry::make_trace_free(Adot_TF, state_cell_data, h_UU);
 
-    Tensor<1, amrex::Real> shift_vector;
+    amrex::Array1D<amrex::Real, 0, 3> shift_vector;
+    //    Tensor<1, amrex::Real> shift_vector;
     FOR (idir)
     {
-        shift_vector[idir] = state(ix, iy, iz, c_shift1 + idir);
+        shift_vector(idir) = state(ix, iy, iz, c_shift1 + idir);
     }
-    auto advec_A = m_deriv.advec_tensor(ix, iy, iz, state, shift_vector, c_A11);
+    // auto advec_A =
+    //     m_deriv.advec_tensor(ix, iy, iz, state, shift_vector, c_A11);
 
     FOR2_SYM(i, j)
+    //    FOR (i, j)
     {
         int idx = VAR_IDX(c_A11, i, j);
         rhs_cell_data[idx] =
-            advec_A[i][j] + Adot_TF(i, j) +
+            m_deriv.advection(ix, iy, iz, state, shift_vector, idx) +
+            Adot_TF(i, j) +
             state_cell_data[idx] *
                 (state_cell_data[c_lapse] *
                      (state_cell_data[c_K] - 2.0 * state_cell_data[c_Theta]) -
@@ -403,7 +408,7 @@ CCZ4RHS<gauge_t, deriv_t>::calculate_A_ij_rhs_use_amrex_array(
         m_deriv.advec_vector(ix, iy, iz, state, shift_vector, c_Gamma1);
     FOR (i)
     {
-        rhs_cell_data[c_Gamma1 + i] += advec_Gamma[i];
+        rhs_cell_data[c_Gamma1 + i] += advec_Gamma(i);
     }
 }
 
@@ -878,10 +883,10 @@ CCZ4RHS<gauge_t, deriv_t>::apply_gauge_and_dissipation(
     const amrex::CellData<const amrex::Real> &state_cell_data =
         state.cellData(ix, iy, iz);
 
-    Tensor<1, amrex::Real> shift_vector;
+    amrex::Array1D<amrex::Real, 0, 3> shift_vector;
     FOR (idir)
     {
-        shift_vector[idir] = state(ix, iy, iz, c_shift1 + idir);
+        shift_vector(idir) = state(ix, iy, iz, c_shift1 + idir);
     }
 
     auto advec_lapse =

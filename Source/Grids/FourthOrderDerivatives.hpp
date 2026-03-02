@@ -628,6 +628,31 @@ class FourthOrderDerivatives
         return advec;
     }
 
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+    advection(int ix, int iy, int iz,
+              const amrex::Array4<amrex::Real const> &state,
+              const amrex::Array1D<amrex::Real, 0, 3> &shift_vector,
+              const int ivar) const
+    {
+        amrex::Real advec         = 0.0;
+        const auto *state_ptr_xyz = state.ptr(ix, iy, iz);
+        int j_stride              = static_cast<int>(state.stride.a[0]);
+        int k_stride              = static_cast<int>(state.stride.a[1]);
+        int n_stride              = static_cast<int>(state.stride.a[2]);
+
+        amrex::GpuArray<int, AMREX_SPACEDIM> strides{1, j_stride, k_stride};
+
+        const auto *var_ptr =
+            state_ptr_xyz + static_cast<amrex::Long>(ivar) * n_stride;
+        FOR (idir)
+        {
+            const bool shift_positive = (shift_vector(idir) > 0.0);
+            advec += advection_term(var_ptr, shift_vector(idir), strides[idir],
+                                    shift_positive);
+        }
+        return advec;
+    }
+
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real advec_scalar(
         int ix, int iy, int iz, const amrex::Array4<amrex::Real const> &state,
         const Tensor<1, amrex::Real> &shift_vector, const int ivar) const
@@ -651,23 +676,6 @@ class FourthOrderDerivatives
         return advec_vector;
     }
 
-    [[nodiscard]] AMREX_GPU_DEVICE
-        AMREX_FORCE_INLINE amrex::Array1D<amrex::Real, 0, 3>
-        advec_array(int ix, int iy, int iz,
-                    const amrex::Array4<amrex::Real const> &state,
-                    const Tensor<1, amrex::Real> &shift_vector,
-                    const int ivar0) const
-    {
-        amrex::Array1D<amrex::Real, 0, 3> advec_vector;
-        FOR (icomp)
-        {
-            int ivar = ivar0 + icomp;
-            advec_vector(icomp) =
-                advection(ix, iy, iz, state, shift_vector, ivar);
-        }
-        return advec_vector;
-    }
-
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<2, amrex::Real>
     advec_tensor(int ix, int iy, int iz,
                  const amrex::Array4<amrex::Real const> &state,
@@ -684,6 +692,49 @@ class FourthOrderDerivatives
         return advec_tensor;
     }
 
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+    advec_scalar(int ix, int iy, int iz,
+                 const amrex::Array4<amrex::Real const> &state,
+                 const amrex::Array1D<amrex::Real, 0, 3> &shift_vector,
+                 const int ivar) const
+    {
+        return advection(ix, iy, iz, state, shift_vector, ivar);
+    }
+
+    [[nodiscard]] AMREX_GPU_DEVICE
+        AMREX_FORCE_INLINE amrex::Array1D<amrex::Real, 0, 3>
+        advec_vector(int ix, int iy, int iz,
+                     const amrex::Array4<amrex::Real const> &state,
+                     const amrex::Array1D<amrex::Real, 0, 3> &shift_vector,
+                     const int ivar0) const
+    {
+        amrex::Array1D<amrex::Real, 0, 3> advec_vector{};
+        FOR (icomp)
+        {
+            int ivar = ivar0 + icomp;
+            advec_vector(icomp) =
+                advection(ix, iy, iz, state, shift_vector, ivar);
+        }
+        return advec_vector;
+    }
+
+    [[nodiscard]] AMREX_GPU_DEVICE
+        AMREX_FORCE_INLINE amrex::Array2D<amrex::Real, 0, 3, 0, 3>
+        advec_tensor(int ix, int iy, int iz,
+                     const amrex::Array4<amrex::Real const> &state,
+                     const amrex::Array1D<amrex::Real, 0, 3> &shift_vector,
+                     const int ivar0) const
+    {
+        amrex::Array2D<amrex::Real, 0, 3, 0, 3> advec_tensor{};
+        FOR (icomp, jcomp)
+        {
+            int ivar = VAR_IDX(ivar0, icomp, jcomp);
+            advec_tensor(icomp, jcomp) =
+                advection(ix, iy, iz, state, shift_vector, ivar);
+        }
+        return advec_tensor;
+    }
+
     // gets the derivative of a consecutive series of vars in a state
     [[nodiscard]] AMREX_GPU_DEVICE
         AMREX_FORCE_INLINE amrex::Array1D<amrex::Real, 0, 6>
@@ -692,7 +743,7 @@ class FourthOrderDerivatives
                          const Tensor<1, amrex::Real> &shift_vector,
                          const int ivar0) const
     {
-        amrex::Array1D<amrex::Real, 0, 6> advec_tensor;
+        amrex::Array1D<amrex::Real, 0, 6> advec_tensor{};
 
         for (int i = 0; i < 6; i++)
         {

@@ -25,11 +25,11 @@ struct emtensor_t
 
 struct ricci_t
 {
-    amrex::Array2D<amrex::Real, 0, 3, 0, 3> LL; // Ricci with two indices down
-    amrex::Real scalar{};                       // Ricci scalar
+    Tensor<2, amrex::Real> LL; // Ricci with two indices down
+    amrex::Real scalar{};      // Ricci scalar
 };
 
-struct ricci_t_array
+struct ricci_array_t
 {
     amrex::Array2D<amrex::Real, 0, 3, 0, 3> LL; // Ricci with two indices down
     amrex::Real scalar{};                       // Ricci scalar
@@ -356,7 +356,6 @@ compute_Aij_squared(const amrex::CellData<const amrex::Real> &A,
     {
         Aij_squared += inverse_metric[i][k] * inverse_metric[j][l] *
                        A[VAR_IDX(c_A11, i, j)] * A[VAR_IDX(c_A11, k, l)];
-
     }
     return Aij_squared;
 }
@@ -879,14 +878,14 @@ compute_z_terms(const int i, const int j,
     return out;
 }
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t_array compute_ricci_Z(
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_array_t compute_ricci_Z(
     int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs_state,
     const amrex::Array4<amrex::Real const> &state,
     const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU,
     const chris_array_t &chris, amrex::Array1D<amrex::Real, 0, 3> &Z_over_chi,
     const FourthOrderDerivatives &m_deriv)
 {
-    ricci_t_array out;
+    ricci_array_t out;
 
     const amrex::CellData<amrex::Real> &rhs_cell_data =
         rhs_state.cellData(ix, iy, iz);
@@ -1098,14 +1097,14 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z_sym(
     return out;
 }
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t_array compute_ricci_Z(
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_array_t compute_ricci_Z(
     int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs_state,
     const amrex::Array4<amrex::Real const> &state,
     const amrex::Array1D<amrex::Real, 0, 6> &h_UU, const chris_array_t &chris,
     const amrex::Array1D<amrex::Real, 0, 3> &Z_over_chi,
     const FourthOrderDerivatives &m_deriv)
 {
-    ricci_t_array out;
+    ricci_array_t out;
 
     const amrex::CellData<amrex::Real> &rhs_cell_data =
         rhs_state.cellData(ix, iy, iz);
@@ -1313,14 +1312,14 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z(
     return out;
 }
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z(
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_array_t compute_ricci_Z(
     const CCZ4Vars &vars, const CCZ4D1Vars &d1,
     const Tensor<2, amrex::Real> &d2_chi, const Tensor<4, amrex::Real> &d2_h,
     const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU,
     const chris_array_t &chris,
     const amrex::Array1D<amrex::Real, 0, 3> &Z_over_chi)
 {
-    ricci_t out;
+    ricci_array_t out;
 
     amrex::Array2D<amrex::Real, 0, 3, 0, 3> covdtilde2chi{};
     FOR (k, l)
@@ -1410,7 +1409,7 @@ compute_d1_chris_contracted(const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU,
 
 // This function allows adding arbitrary multiples of D_{(i}Z_{j)}
 // to the Ricci scalar rather than the default of 2 in compute_ricci_Z
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z_general(
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_array_t compute_ricci_Z_general(
     const CCZ4Vars &vars, const CCZ4D1Vars &d1,
     const Tensor<2, amrex::Real> &d2_chi, const Tensor<4, amrex::Real> &d2_h,
     const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU,
@@ -1448,7 +1447,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z_general(
 
 // This function returns the pure Ricci scalar with no contribution from the
 // Z vector - used e.g. in the constraint calculations.
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci(
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_array_t compute_ricci(
     const CCZ4Vars &vars, const CCZ4D1Vars &d1,
     const Tensor<2, amrex::Real> &d2_chi, const Tensor<4, amrex::Real> &d2_h,
     const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU,
