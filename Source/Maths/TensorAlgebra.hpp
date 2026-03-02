@@ -37,7 +37,6 @@ struct chris_t
     Tensor<1, amrex::Real> contracted; //!< contracted christoffel
 };
 
-
 struct chris_array_t
 {
     amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3>
@@ -335,17 +334,6 @@ compute_trace(const Tensor<1, Tensor<1, amrex::Real>> &tensor_UL)
 /// Computes dot product of a vector and a covector (no metric required)
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_dot_product(const amrex::Array1D<amrex::Real, 0, 3> &vector_U,
-                    const amrex::Array1D<amrex::Real, 0, 3> &covector_L)
-{
-    amrex::Real dot_product = 0.;
-    FOR (i)
-        dot_product += vector_U(i) * covector_L(i);
-    return dot_product;
-}
-
-/// Computes dot product of a vector and a covector (no metric required)
-[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-compute_dot_product(const amrex::Array1D<amrex::Real, 0, 3> &vector_U,
                     const Tensor<1, amrex::Real> &covector_L)
 {
     amrex::Real dot_product = 0.;
@@ -365,7 +353,8 @@ compute_dot_product(const Tensor<1, amrex::Real> &vector_U,
     return dot_product;
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
+/// Computes dot product of a vector and a covector (no metric required)
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_dot_product(const amrex::Array1D<amrex::Real, 0, 3> &vector_U,
                     const amrex::Array1D<amrex::Real, 0, 3> &covector_L)
 {
@@ -437,31 +426,33 @@ compute_dot_product(const amrex::Array1D<amrex::Real, 0, 3> &covector1_L,
     return dot_product;
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real compute_dot_product(
-    const amrex::Array1D<amrex::Real, 0, 3> &covector1_L,
-    const amrex::Array1D<amrex::Real, 0, 3> &covector2_L,
-    const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &inverse_metric)
-{
-    amrex::Real dot_product = 0.;
-    FOR (m, n)
-    {
-        dot_product += inverse_metric(m, n) * covector1_L(m) * covector2_L(n);
-    }
-    return dot_product;
-}
+// AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real compute_dot_product(
+//     const amrex::Array1D<amrex::Real, 0, 3> &covector1_L,
+//     const amrex::Array1D<amrex::Real, 0, 3> &covector2_L,
+//     const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &inverse_metric)
+// {
+//     amrex::Real dot_product = 0.;
+//     FOR (m, n)
+//     {
+//         dot_product += inverse_metric(m, n) * covector1_L(m) *
+//         covector2_L(n);
+//     }
+//     return dot_product;
+// }
 
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real compute_dot_product(
-    const Tensor<1, amrex::Real> &covector1_L,
-    const Tensor<1, amrex::Real> &covector2_L,
-    const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &inverse_metric)
-{
-    amrex::Real dot_product = 0.;
-    FOR (m, n)
-    {
-        dot_product += inverse_metric(m, n) * covector1_L[m] * covector2_L[n];
-    }
-    return dot_product;
-}
+// AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real compute_dot_product(
+//     const Tensor<1, amrex::Real> &covector1_L,
+//     const Tensor<1, amrex::Real> &covector2_L,
+//     const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &inverse_metric)
+// {
+//     amrex::Real dot_product = 0.;
+//     FOR (m, n)
+//     {
+//         dot_product += inverse_metric(m, n) * covector1_L[m] *
+//         covector2_L[n];
+//     }
+//     return dot_product;
+// }
 
 /// Removes the trace of a 2-Tensor with lower indices given a metric and an
 /// inverse metric.  Or a Tensor with upper indices given an inverse metric and
