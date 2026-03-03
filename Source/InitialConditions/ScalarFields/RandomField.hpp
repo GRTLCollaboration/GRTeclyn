@@ -164,6 +164,11 @@ class RandomField
 
         // Tests
         void Test_is_trace_free(MultiFab &field);
+        void Test_vector_orthonorm(const IntVect iv, const Vector<Real> mhat, 
+                                                                 const Vector<Real> nhat);
+        void Test_polarisation_tensor_orthonorm(const IntVect iv, const Tensor<2, Real> eplus,
+                                                const Tensor<2, Real> ecross, const Tensor<2, Real> eplus_rot,
+                                                const Tensor<2, Real> ecross_rot);
 
         // Initialisation routines 
         GpuComplex<Real> calculate_mode_function(const double km, const int spec_indx);
@@ -172,9 +177,6 @@ class RandomField
                                                 const Real rand_amp, const Real rand_phase, 
                                                 std::string field_type);
         Vector<Real> calculate_basis_vector(const IntVect iv, const int which_vector);
-        GpuComplex<Real> calculate_tensor_initial_conditions(const IntVect iv, const int l, const int p, 
-                                                             const GpuComplex<Real> plus_field, 
-                                                             const GpuComplex<Real> cross_field);
         void apply_nyquist_conditions(cMultiFab &field);
         
         // Extraction routines

@@ -83,6 +83,11 @@ inline void RandomField::assign_statistics_data(Vector<std::string> &header_stor
 
 inline void RandomField::Test_is_trace_free(MultiFab &field)
 {
+    if (field.nComp() != 6)
+    {
+        Error("RandomField::Test_is_trace_free, input field is not a tensor field");
+    }
+
     for (MFIter mfi(field); mfi.isValid(); ++mfi) 
     {
         Array4<Real> const& field_ptr = field.array(mfi);
@@ -106,6 +111,77 @@ inline void RandomField::Test_is_trace_free(MultiFab &field)
         });
     }
     
+}
+
+inline void RandomField::Test_vector_orthonorm(const IntVect iv, const Vector<Real> mhat, 
+                                                                 const Vector<Real> nhat)
+{
+    // Confirm basis vectors are orthonormal
+    if (iv != IntVect{0, 0, 0})
+    {
+        Real dot1 = 0.;
+        Real dot2 = 0.;
+        Real cross1 = 0.;
+        for(int l=0; l<3; l++)
+        {
+            dot1 += mhat[l] * mhat[l];
+            dot2 += nhat[l] * nhat[l];
+            cross1 += mhat[l] * nhat[l];
+        }
+
+        if(std::abs(dot1 - 1.) > tolerance || std::abs(dot2 - 1.) > tolerance || cross1 > tolerance)
+        {
+            Print() << "Location: " << iv << "\n";
+            Print() << "Dot products: " << dot1 << ", " << dot2 << "\n";
+            Print() << "Cross product: " << cross1 << "\n";
+            Print() << "Vectors: \n";
+            for(int l=0; l<3; l++)
+            {
+                Print() << l << ", " << mhat[l] << ", " << nhat[l] << "\n";
+            }
+            Error("RandomField::Test_vector_orthonorm: Basis vectors are not orthonormal here");
+        }
+    }
+}
+
+inline void RandomField::Test_polarisation_tensor_orthonorm(const IntVect iv, const Tensor<2, Real> eplus,
+                                                            const Tensor<2, Real> ecross, const Tensor<2, Real> eplus_rot,
+                                                            const Tensor<2, Real> ecross_rot)
+{
+    Real parll = 0.;
+    Real perp = 0.;
+    Real parll_rot = 0.;
+    Real perp_rot = 0.;
+
+    for (int l=0; l<3; l++) for (int p=0; p<3; p++)
+    {
+        parll += ecross[l][p] * ecross[l][p];
+        perp += eplus[l][p] * ecross[l][p];
+
+        parll_rot += ecross_rot[l][p] * ecross_rot[l][p];
+        perp_rot += eplus_rot[l][p] * ecross_rot[l][p];
+    }
+
+    // Confirm polarisation tensors are orthornormal
+    if(iv != IntVect{0, 0, 0})
+    {
+        bool plc = (std::abs(parll / 2. - 1.) > tolerance 
+                    && std::abs(parll_rot / 2. - 1.) > tolerance);
+        bool ppc = (std::abs(perp) > tolerance && std::abs(perp_rot) > tolerance);
+        if (plc || ppc)
+        {
+            Print() << "---------\nLocation: " << iv << "\n";
+            Print() << "Fourier products, base: " << parll / 2. << ", " << perp << "\n";
+            Print() << "Fourier products, rotated: " << parll_rot / 2. << ", " << perp_rot << "\n";
+            Print() << "Base tensor components: \n";
+            for (int l=0; l<3; l++) for (int p=0; p<3; p++)
+            {
+                Print() << l << ", " << p << ": ";
+                Print() << eplus[l][p] << ", " << ecross[l][p] << "\n";
+            }
+            Error("RandomField::Test_polarisation_tensor_orthonorm: polarisation tensors are not orthonormal here");
+        }
+    }
 }
 
 /****
@@ -245,74 +321,61 @@ inline GpuComplex<Real> RandomField::calculate_random_field(const IntVect iv, co
 inline Vector<Real> RandomField::calculate_basis_vector(const IntVect iv, const int which_vector)
 {
     // FFTW-style inversion with sign on the last two indices
-    int i = iv[0];
-    int j = invert_index_with_sign(iv[1]);
-    int k = invert_index_with_sign(iv[2]);
+    const Real i = static_cast<Real>(iv[0]);
+    const Real j = static_cast<Real>(invert_index_with_sign(iv[1]));
+    const Real k = static_cast<Real>(invert_index_with_sign(iv[2]));
 
     Vector<Real> mhat(3, 0.);
     Vector<Real> nhat(3, 0.);
 
-    if (i > 0.) 
-    {
-        if (k == 0. && j == 0.) { mhat[0] = 1.; mhat[1] = 0.; mhat[2] = 0.; 
-                                  nhat[0] = 0.; nhat[1] = 1.; nhat[2] = 0.; 
-                                }
+    // Skip the 0 mode, as tensors have no average
+    if (iv == IntVect{0, 0, 0}) { ; }
 
-        else { mhat[0] = j/sqrt(k*k+j*j); mhat[1] = -k/sqrt(k*k+j*j); mhat[2] = 0.L;
-               nhat[0] = k*i/sqrt(i*i*(k*k + j*j) + pow(k*k + j*j, 2.));
-               nhat[1] = i*j/sqrt(i*i*(k*k + j*j) + pow(k*k + j*j, 2.));
-               nhat[2] = -(k*k + j*j)/sqrt(i*i*(k*k + j*j) + pow(k*k + j*j, 2.)); 
-             }
+    else if (i > 0.) 
+    {
+        if (k == 0. && j == 0.) 
+        { 
+            mhat = Vector<Real>{0., 1., 0.};
+            nhat = Vector<Real>{0., 0., 1.}; 
+        }
+
+        else 
+        { 
+            Real norm = sqrt((i*i + j*j) * (i*i + j*j + k*k));
+            mhat = Vector<Real>{j/sqrt(i*i + j*j), -i/sqrt(i*i + j*j), 0.}; 
+            nhat = Vector<Real>{(i*k) / norm, (j*k) / norm, -(i*i + j*j) / norm}; 
+        }
     }
 
-    else if (std::abs(j) > 0) { mhat[0] = 0.; mhat[1] = 0.; mhat[2] = -1.;
-                      nhat[0] = -j/sqrt(j*j + k*k);
-                      nhat[1] = k/sqrt(j*j + k*k);
-                      nhat[2] = 0.; 
-                    }
+    else if (std::abs(j) > 0) 
+    { 
+        if(k == 0.)
+        {
+            mhat = Vector<Real>{0., 0., 1.};
+            nhat = Vector<Real>{1., 0., 0.};
+        }
 
-    else if (std::abs(k) > 0) { mhat[0] = 0.; mhat[1] = 1.; mhat[2] = 0.;
-                      nhat[0] = 0.; nhat[1] = 0.; nhat[2] = 1.;
-                    }
+        else
+        {
+            mhat = Vector<Real>{-1., 0., 0.};
+            nhat = Vector<Real>{0., -k / sqrt(j*j + k*k), j / sqrt(j*j + k*k)};
+        }
+    }
 
-    else if (i==0 && j==0 && k==0) { ; }
+    else if (std::abs(k) > 0) 
+    { 
+        mhat = Vector<Real>{1., 0., 0.};
+        nhat = Vector<Real>{0., 1., 0.};
+    }
 
     else 
     {
         Error("RandomField::calculate_polarisation_tensors Part of Fourier grid not covered.");
     }
 
-    if(m_params.alpha != 0.)
-    {
-        double m_alpha = m_params.alpha * M_PI/180.;
-        for (int i=0; i<3; i++)
-        {
-            mhat[i] = cos(m_alpha) * mhat[i] + sin(m_alpha) * nhat[i];
-            nhat[i] = -sin(m_alpha) * mhat[i] + cos(m_alpha) * nhat[i];
-        }
-    }
-
     if(which_vector == 0) { return mhat; }
     else if(which_vector == 1) { return nhat; }
     else { Error("RandomField::calculate_basis_vector Incompatable vector type."); return mhat; }
-}
-
-// Assembles full tensor initial conditions given two mode functions
-inline GpuComplex<Real> RandomField::calculate_tensor_initial_conditions(const IntVect iv, const int l, const int p, 
-                                                                         const GpuComplex<Real> plus_field, 
-                                                                         const GpuComplex<Real> cross_field)
-{
-    Vector<Real> mhat(3, 0.);
-    Vector<Real> nhat(3, 0.);
-
-    mhat = calculate_basis_vector(iv, 0);
-    nhat = calculate_basis_vector(iv, 1);
-
-    // Assemble the polarisation tensors
-    Real eplus = mhat[l]*mhat[p] - nhat[l]*nhat[p];
-    Real ecross = mhat[l]*nhat[p] + nhat[l]*mhat[p];
-
-    return (eplus * plus_field + ecross * cross_field);
 }
 
 // Applies above Nyquist conditions to a given MF
@@ -461,14 +524,14 @@ inline void RandomField::init(amrex::MultiFab &state)
                     hs_ptr(i, j, k, p) = calculate_random_field(iv, 0, draw1, draw2, "tensor");
                     As_ptr(i, j, k, p) = calculate_random_field(iv, 1, draw1, draw2, "tensor");
                 }
+                
+                // Find basis vectors
+                Vector<Real> mhat = calculate_basis_vector(iv, 0);;
+                Vector<Real> nhat = calculate_basis_vector(iv, 1);
+                Test_vector_orthonorm(iv, mhat, nhat);
 
-                Vector<Real> mhat(3, 0.);
-                Vector<Real> nhat(3, 0.);
-
-                mhat = calculate_basis_vector(iv, 0);
-                nhat = calculate_basis_vector(iv, 1);
-
-                Tensor<2, Real> eplus, ecross;
+                // Construct polarisation tensors from basis vectors
+                Tensor<2, Real> eplus, ecross, eplus_rot, ecross_rot;
                 Real ep_tr = 0.;
                 Real ec_tr = 0.;
                 GpuComplex<Real> h_tr = 0.;
@@ -480,8 +543,22 @@ inline void RandomField::init(amrex::MultiFab &state)
                     eplus[l][p] = mhat[l]*mhat[p] - nhat[l]*nhat[p];
                     ecross[l][p] = mhat[l]*nhat[p] + nhat[l]*mhat[p];
 
-                    hij_ptr(i, j, k, lut[l][p]) = hs_ptr(i, j, k, 0) * eplus[l][p] + hs_ptr(i, j, k, 1) * ecross[l][p];
-                    Aij_ptr(i, j, k, lut[l][p]) = As_ptr(i, j, k, 0) * eplus[l][p] + As_ptr(i, j, k, 1) * ecross[l][p];
+                    // Rotate polarisation tensors if requested
+                    if(m_params.alpha != 0.)
+                    {
+                        Real angle = m_params.alpha * (M_PI / 180.);
+                        eplus_rot[l][p] = eplus[l][p] * cos(angle) + ecross[l][p] * sin(angle);
+                        ecross_rot[l][p] = -eplus[l][p] * sin(angle) + ecross[l][p] * cos(angle);
+
+                        hij_ptr(i, j, k, lut[l][p]) = hs_ptr(i, j, k, 0) * eplus_rot[l][p] + hs_ptr(i, j, k, 1) * ecross_rot[l][p];
+                        Aij_ptr(i, j, k, lut[l][p]) = As_ptr(i, j, k, 0) * eplus_rot[l][p] + As_ptr(i, j, k, 1) * ecross_rot[l][p];
+                    }
+
+                    else
+                    {
+                        hij_ptr(i, j, k, lut[l][p]) = hs_ptr(i, j, k, 0) * eplus[l][p] + hs_ptr(i, j, k, 1) * ecross[l][p];
+                        Aij_ptr(i, j, k, lut[l][p]) = As_ptr(i, j, k, 0) * eplus[l][p] + As_ptr(i, j, k, 1) * ecross[l][p];
+                    }
 
                     if(l==p)
                     {
@@ -489,14 +566,9 @@ inline void RandomField::init(amrex::MultiFab &state)
                         ec_tr += ecross[l][p];
                         h_tr += hij_ptr(i, j, k, lut[l][p]);
                     }
-
-                    // if(i == 1 && j == 0 && k == 1)
-                    // {
-                    //     Print() << "In init: \n";
-                    //     Print() << l << ", " << p << ": ";
-                    //     Print() << hij_ptr(i, j, k, lut[l][p]) << "\n";
-                    // }
                 }
+
+                Test_polarisation_tensor_orthonorm(iv, eplus, ecross, eplus_rot, ecross_rot);
 
                 if(std::abs(ep_tr) > tolerance || std::abs(ec_tr) > tolerance 
                 || (std::sqrt(pow(h_tr.real(), 2.) + pow(h_tr.imag(), 2))) > tolerance)
@@ -529,6 +601,8 @@ inline void RandomField::init(amrex::MultiFab &state)
     hij_x.mult(norm);
     Aij_x.mult(norm);
     scalar_fields_x.mult(norm);
+
+    Test_is_trace_free(hij_x);
 
     // Convert to BSSN variables using the BSSN-CPT dictionary
     for (int l=0; l<3; l++) { hij_x.plus(1., lut[l][l], 1); }
