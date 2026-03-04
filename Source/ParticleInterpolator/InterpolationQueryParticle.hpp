@@ -40,7 +40,7 @@ class InterpolationQueryParticle
     std::array<const double *, AMREX_SPACEDIM> m_coords{};
     comp_map_t m_comps;
     VariableType m_variable_type{}; // for a given InterpolationQueryParticle
-                                    // the varibale type must be the same!
+                                    // the variable type must be the same!
     bool m_variable_type_set =
         false; // flag to check whether var type has been set
 

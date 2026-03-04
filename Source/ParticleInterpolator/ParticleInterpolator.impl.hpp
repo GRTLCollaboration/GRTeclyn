@@ -253,7 +253,7 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
 
                 amrex::IntVect is_nodal = amrex::IntVect::TheZeroVector();
                 // 4th-order Lagrange (5-point stencil)
-                Lagrange<m_interp_order + 1>
+                Lagrange<s_interp_order + 1>
                     lagrange_interp; // 4th order interpolation
                 lagrange_interp.compute_weights(particle, problem_domain_lo,
                                                 dxi, is_nodal);
@@ -323,7 +323,7 @@ void ParticleInterpolator<num_components>::interp(
             // boundaries of fine and coarse levels, whilst FillBoundary is
             // single-level operation only! There is a nice explanation on this
             // issue here: https://github.com/AMReX-Codes/amrex/issues/391
-            amrex::AmrLevel::FillPatch(level, state, m_num_ghosts, cur_time,
+            amrex::AmrLevel::FillPatch(level, state, s_num_ghosts, cur_time,
                                        State_Type, start_comp, ncomp);
 
             interpolate_to_particle(lev, state, geom);
@@ -339,7 +339,7 @@ void ParticleInterpolator<num_components>::interp(
         // FillPatch automatically, so no need to worry about ghost cells for
         // derived vars.
         auto out_derived =
-            m_gramr_ptr->derive(name_derived, time_derived, m_num_ghosts);
+            m_gramr_ptr->derive(name_derived, time_derived, s_num_ghosts);
         amrex::Vector<amrex::MultiFab *> derived_mf_vect;
         // convert vector of unique_ptrs to one of raw pointers
         derived_mf_vect = amrex::GetVecOfPtrs(out_derived);
@@ -746,7 +746,8 @@ void ParticleInterpolator<num_components>::ensure_redistributed()
     {
         if (m_verbosity)
         {
-            amrex::Print() << "Redistributing all particles \n";
+            amrex::Print()
+                << "ParticleInterpolator: Redistributing particles\n";
         }
         this->Redistribute();
         m_need_redistribute = false;

@@ -41,8 +41,8 @@ class ParticleInterpolator
     amrex::GpuArray<bool, AMREX_SPACEDIM> m_lo_boundary_reflective{{false}};
     amrex::GpuArray<bool, AMREX_SPACEDIM> m_hi_boundary_reflective{{false}};
 
-    static constexpr int m_interp_order = 4;
-    static constexpr int m_num_ghosts   = m_interp_order / 2;
+    static constexpr int s_interp_order = 4;
+    static constexpr int s_num_ghosts   = s_interp_order / 2;
 
     bool m_verbosity{false};
 
