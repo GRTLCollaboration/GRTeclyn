@@ -1,0 +1,4 @@
+GRTECLYN_CEXE_headers += AHFinderLevel.hpp \
+                         AHFinderUnitTest.hpp
+
+GRTECLYN_CEXE_sources += AHFinderUnitTest.cpp

@@ -24,10 +24,10 @@
 // if you want to interpolate chi, the first derivative of chi and h_11 the
 // value of num_components should be 3
 
-template <int num_components>
+template <int num_reals, int num_components>
 class ParticleInterpolator
     : public amrex::ParticleContainer<
-          /*NStructReal*/ 0,
+          /*NStructReal*/ num_reals,
           /*NStructInt*/ 0,
           /*NArrayReal*/ num_components, // number of SOA slots to store
                                          // interpolated values (assumes
@@ -37,9 +37,14 @@ class ParticleInterpolator
 
     static_assert(num_components >= 1);
 
-  private:
+  protected:
     GRAmr *m_gr_amr_ptr{nullptr};
 
+    // A function to check whether the query point is inside the physical domain
+    void check_domain(amrex::GpuArray<amrex::ParticleReal, AMREX_SPACEDIM> &x,
+                      int guard_cells = 0) const;
+
+  private:
     bool m_initialized{
         false}; // a guard to make sure we do not uninitialised GRAmr
 
@@ -103,10 +108,6 @@ class ParticleInterpolator
     reflect_particle(amrex::Real x, amrex::Real low, amrex::Real high,
                      bool low_reflect, bool high_reflect);
 
-    // A function to check whether the query point is inside the physical domain
-    void check_domain(amrex::GpuArray<amrex::ParticleReal, AMREX_SPACEDIM> &x,
-                      int guard_cells = 0) const;
-
     // A helper function that aggregates all the points together from senders
     // and receivers, collects the them into out arrays and applies parity
     void aggregate_points(const InterpolationQueryParticle &query);
@@ -127,7 +128,7 @@ class ParticleInterpolator
 
   public:
 
-    using Base         = amrex::ParticleContainer<0, 0, num_components, 0>;
+    using Base = amrex::ParticleContainer<num_reals, 0, num_components, 0>;
     using ParIterType  = typename Base::ParIterType;
     using ParticleType = typename Base::ParticleType;
     using Base::Base;

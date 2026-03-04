@@ -35,7 +35,8 @@ class InterpolationQueryParticle
         typename std::map<Derivative, std::vector<out_t>>::const_iterator;
 
   private:
-    template <int num_components> friend class ParticleInterpolator;
+    template <int num_reals, int num_components>
+    friend class ParticleInterpolator;
 
     size_t m_num_points;
     std::array<const amrex::ParticleReal *, AMREX_SPACEDIM> m_coords{};

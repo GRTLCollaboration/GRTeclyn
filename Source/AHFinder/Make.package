@@ -1,0 +1,2 @@
+GRTECLYN_CEXE_headers += AHFinder.hpp \
+                         AHFinder.impl.hpp
