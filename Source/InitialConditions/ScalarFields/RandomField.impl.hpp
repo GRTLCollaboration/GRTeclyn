@@ -33,7 +33,7 @@ inline Real RandomField::get_kmag(IntVect iv)
     const int i = iv[0];
     const int j = invert_index(iv[1]);
     const int k = invert_index(iv[2]);
-    return std::sqrt(i*i + j*j + k*k) * 2 * M_PI / m_params.L;
+    return std::sqrt(i*i + j*j + k*k) * 2. * M_PI / m_params.L;
 }
 
 // Ensures no calculation on ghost cells
@@ -155,6 +155,11 @@ inline void RandomField::Test_polarisation_tensor_orthonorm(const IntVect iv, co
 
     for (int l=0; l<3; l++) for (int p=0; p<3; p++)
     {
+        // if(iv == IntVect{1,0,0})
+        // {
+        //     Print() << iv << ", ";
+        //     Print() << eplus[l][p] << ", " << ecross[l][p] << "\n";
+        // }
         parll += ecross[l][p] * ecross[l][p];
         perp += eplus[l][p] * ecross[l][p];
 
@@ -528,6 +533,15 @@ inline void RandomField::init(amrex::MultiFab &state)
                 // Find basis vectors
                 Vector<Real> mhat = calculate_basis_vector(iv, 0);;
                 Vector<Real> nhat = calculate_basis_vector(iv, 1);
+                // if(iv == IntVect{1,0,0})
+                // {
+                //     Print() << "Basis vectors: \n";
+                //     for (int p=0; p<3; p++)
+                //     {
+                //         Print() << mhat[p] << ", " << nhat[p] << "\n";
+                //     }
+                //     Print() << "Basis components: \n";
+                // }
                 Test_vector_orthonorm(iv, mhat, nhat);
 
                 // Construct polarisation tensors from basis vectors
@@ -535,6 +549,12 @@ inline void RandomField::init(amrex::MultiFab &state)
                 Real ep_tr = 0.;
                 Real ec_tr = 0.;
                 GpuComplex<Real> h_tr = 0.;
+
+                /* if(iv == IntVect{1, 3, 0})
+                {
+                    Print() << iv << "\n";
+                    Print() << "In init: " << hs_ptr(i, j, k, 0) << "\n";
+                } */
 
                 // Find basis tensors and initial tensor realisation
                 for (int l=0; l<3; l++) for (int p=0; p<3; p++)
@@ -552,6 +572,14 @@ inline void RandomField::init(amrex::MultiFab &state)
 
                         hij_ptr(i, j, k, lut[l][p]) = hs_ptr(i, j, k, 0) * eplus_rot[l][p] + hs_ptr(i, j, k, 1) * ecross_rot[l][p];
                         Aij_ptr(i, j, k, lut[l][p]) = As_ptr(i, j, k, 0) * eplus_rot[l][p] + As_ptr(i, j, k, 1) * ecross_rot[l][p];
+
+                        // if(iv == IntVect{1, 3, 0})
+                        // {
+                        //     // Print() << "Polarisation tensors: \n";
+                        //     Print() << l << ", " << p << ": ";
+                        //     // Print().SetPrecision(10) << eplus_rot[l][p] << ", " << ecross_rot[l][p] << "\n";
+                        //     Print().SetPrecision(10) << hij_ptr(i, j, k, lut[l][p]) << "\n";
+                        // }
                     }
 
                     else
@@ -568,8 +596,6 @@ inline void RandomField::init(amrex::MultiFab &state)
                     }
                 }
 
-                Test_polarisation_tensor_orthonorm(iv, eplus, ecross, eplus_rot, ecross_rot);
-
                 if(std::abs(ep_tr) > tolerance || std::abs(ec_tr) > tolerance 
                 || (std::sqrt(pow(h_tr.real(), 2.) + pow(h_tr.imag(), 2))) > tolerance)
                 {
@@ -582,6 +608,8 @@ inline void RandomField::init(amrex::MultiFab &state)
                     Print() << (std::sqrt(pow(h_tr.real(), 2.) + pow(h_tr.imag(), 2.))) << "\n";
                     Error("Plus/cross polarisation tensors have large trace here");
                 }
+
+                if (m_params.alpha != 0.) { Test_polarisation_tensor_orthonorm(iv, eplus, ecross, eplus_rot, ecross_rot); }
             }
         });
     }
@@ -596,6 +624,30 @@ inline void RandomField::init(amrex::MultiFab &state)
     tensor_fft.backward(hij_k, hij_x);
     tensor_fft.backward(Aij_k, Aij_x);
     scalar_fft.backward(scalar_fields_k, scalar_fields_x);
+
+    /* for (MFIter mfi(hij_x); mfi.isValid(); ++mfi) 
+    {
+        // Define the domain on this MPI rank
+        const Box& bx = mfi.fabbox();
+
+        // Make a pointer to the mode functions at this MF box
+        Array4<Real> const& hij_ptr = hij_x.array(mfi);
+
+        // Loop to create mode functions, then hij(k) and Aij(k)
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            IntVect iv{i, j, k};
+            if(iv == IntVect{1, 3, 0})
+            {
+                Print() << "In extract: \n";
+                for (int l=0; l<3; l++) for (int p=0; p<3; p++)
+                {
+                    Print() << l << ", " << p << ": ";
+                    Print().SetPrecision(10) << hij_ptr(i, j, k, lut[l][p]) << "\n";
+                }
+            }
+        });
+    } */
 
     // Apply normalisation into physical units
     hij_x.mult(norm);
@@ -638,6 +690,16 @@ inline void RandomField::init(amrex::MultiFab &state)
                     state_ptr(iv, c_A22) = Aij_ptr(i, j, k, lut[1][1]);
                     state_ptr(iv, c_A23) = Aij_ptr(i, j, k, lut[1][2]);
                     state_ptr(iv, c_A33) = Aij_ptr(i, j, k, lut[2][2]);
+
+                    /* if(iv == IntVect{1, 3, 0})
+                    {
+                        Print() << "In init: \n";
+                        for (int l=0; l<3; l++) for (int p=0; p<3; p++)
+                        {
+                            Print() << l << ", " << p << ": ";
+                            Print().SetPrecision(10) << hij_ptr(i, j, k, lut[l][p]) << "\n";
+                        }
+                    } */
                 }
 
                 if(m_params.scalar_init)
@@ -968,23 +1030,32 @@ inline void RandomField::derive(const MultiFab &source, MultiFab &out, int dcomp
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             IntVect iv{i, j, k};
-            Vector<Real> mhat(3, 0.);
-            Vector<Real> nhat(3, 0.);
-
-            mhat = calculate_basis_vector(iv, 0);
-            nhat = calculate_basis_vector(iv, 1);
-
-            Real eplus = 0.;
-            Real ecross = 0.;
+            Vector<Real> mhat = calculate_basis_vector(iv, 0);
+            Vector<Real> nhat = calculate_basis_vector(iv, 1);
+            Tensor<2, Real> eplus, ecross, eplus_rot, ecross_rot;
 
             // Find basis tensors and do the Fourier trick
             for (int l=0; l<3; l++) for (int p=0; p<3; p++)
             {
-                eplus = mhat[l]*mhat[p] - nhat[l]*nhat[p];
-                ecross = mhat[l]*nhat[p] + nhat[l]*mhat[p];
+                eplus[l][p] = mhat[l]*mhat[p] - nhat[l]*nhat[p];
+                ecross[l][p] = mhat[l]*nhat[p] + nhat[l]*mhat[p];
 
-                hs_ptr(i, j, k, 0) += (hij_ptr(i, j, k, lut[l][p]) * eplus)/std::sqrt(2.);
-                hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross)/std::sqrt(2.);
+                // Rotate polarisation tensors if requested
+                if(m_params.alpha != 0.)
+                {
+                    Real angle = m_params.alpha * (M_PI / 180.);
+                    eplus_rot[l][p] = eplus[l][p] * cos(angle) + ecross[l][p] * sin(angle);
+                    ecross_rot[l][p] = -eplus[l][p] * sin(angle) + ecross[l][p] * cos(angle);
+
+                    hs_ptr(i, j, k, 0) += (hij_ptr(i, j, k, lut[l][p]) * eplus_rot[l][p])/2.;
+                    hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross_rot[l][p])/2.;
+                }
+
+                else
+                {
+                    hs_ptr(i, j, k, 0) += (hij_ptr(i, j, k, lut[l][p]) * eplus[l][p])/2.;
+                    hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross[l][p])/2.;
+                }
             }
         });
     }
@@ -1068,6 +1139,30 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
     for (int l=0; l<3; l++) { gij_x.plus(-1., lut[l][l], 1); }
     gij_x.mult(1./norm);
 
+    /* for (MFIter mfi(gij_x); mfi.isValid(); ++mfi) 
+    {
+        // Define the domain on this MPI rank
+        const Box& bx = mfi.fabbox();
+
+        // Make a pointer to the mode functions at this MF box
+        Array4<Real> const& g_ptr = gij_x.array(mfi);
+
+        // Loop to create mode functions, then hij(k) and Aij(k)
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            IntVect iv{i, j, k};
+            if(iv == IntVect{1, 3, 0})
+            {
+                Print() << "In extract: \n";
+                for (int l=0; l<3; l++) for (int p=0; p<3; p++)
+                {
+                    Print() << l << ", " << p << ": ";
+                    Print().SetPrecision(10) << g_ptr(i, j, k, lut[l][p]) << "\n";
+                }
+            }
+        });
+    } */
+
     // Set up the problem domain in Fourier space
     // And impose that MPI ranks only slice along the i index (for Nyquist conditions)
     IntVect domain_low(0, 0, 0);
@@ -1122,13 +1217,9 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         {
             IntVect iv{i, j, k};
             
-            Vector<Real> mhat(3, 0.);
-            Vector<Real> nhat(3, 0.);
-
-            mhat = calculate_basis_vector(iv, 0);
-            nhat = calculate_basis_vector(iv, 1);
-
-            Tensor<2, Real> eplus, ecross;
+            Vector<Real> mhat = calculate_basis_vector(iv, 0);
+            Vector<Real> nhat = calculate_basis_vector(iv, 1);
+            Tensor<2, Real> eplus, ecross, eplus_rot, ecross_rot;
 
             // Find basis tensors and do the Fourier trick
             for (int l=0; l<3; l++) for (int p=0; p<3; p++)
@@ -1136,16 +1227,53 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
                 eplus[l][p] = mhat[l]*mhat[p] - nhat[l]*nhat[p];
                 ecross[l][p] = mhat[l]*nhat[p] + nhat[l]*mhat[p];
 
-                hs_ptr(i, j, k, 0) += (hij_ptr(i, j, k, lut[l][p]) * eplus[l][p])/2.;
-                hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross[l][p])/2.;
+                // Rotate polarisation tensors if requested
+                if(m_params.alpha != 0.)
+                {
+                    Real angle = m_params.alpha * (M_PI / 180.);
+                    eplus_rot[l][p] = eplus[l][p] * cos(angle) + ecross[l][p] * sin(angle);
+                    ecross_rot[l][p] = -eplus[l][p] * sin(angle) + ecross[l][p] * cos(angle);
+
+                    hs_ptr(i, j, k, 0) += (hij_ptr(i, j, k, lut[l][p]) * eplus_rot[l][p])/2.;
+                    hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross_rot[l][p])/2.;
+                }
+
+                else
+                {
+                    hs_ptr(i, j, k, 0) += (hij_ptr(i, j, k, lut[l][p]) * eplus[l][p])/2.;
+                    hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross[l][p])/2.;
+                }
+                // if(iv == IntVect{1, 3, 0})
+                // {
+                //     // Print() << "In extract: \nPolarisation tensors: \n";
+                //     Print() << l << ", " << p << ": ";
+                //     // Print().SetPrecision(10) << eplus_rot[l][p] << ", " << ecross_rot[l][p] << "\n";
+                //     Print().SetPrecision(10) << hij_ptr(i, j, k, lut[l][p]) << "\n";
+                // }
             }
+
+            /* if(iv == IntVect{1, 3, 0})
+            {
+                Print() << iv << "\n";
+                Print() << "In extract: " << hs_ptr(i, j, k, 0) << "\n";
+            } */
+
+            if (m_params.alpha != 0.) { Test_polarisation_tensor_orthonorm(iv, eplus, ecross, eplus_rot, ecross_rot); }
 
             Tensor<2, GpuComplex<Real>> hij, hSV;
             GpuComplex<Real> hij_tr = 0.;
             GpuComplex<Real> hSV_tr = 0.;
             for (int l=0; l<3; l++) for (int p=0; p<3; p++)
             {
-                hij[l][p] = hs_ptr(i, j, k, 0) * eplus[l][p] + hs_ptr(i, j, k, 1) * ecross[l][p];
+                if (m_params.alpha != 0.) 
+                {
+                    hij[l][p] = hs_ptr(i, j, k, 0) * eplus_rot[l][p] + hs_ptr(i, j, k, 1) * ecross_rot[l][p];
+                }
+                else
+                {
+                    hij[l][p] = hs_ptr(i, j, k, 0) * eplus[l][p] + hs_ptr(i, j, k, 1) * ecross[l][p];
+                }
+
                 hSV[l][p] = hij_ptr(i, j, k, lut[l][p]) - hij[l][p];
 
                 if(l==p) { hij_tr += hij[l][p]; hSV_tr += hSV[l][p]; }
