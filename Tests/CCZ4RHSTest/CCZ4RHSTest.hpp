@@ -2,6 +2,7 @@
  * Copyright 2022 The GRTL collaboration.
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
+
 #ifndef CCZ4RHSTEST_HPP_
 #define CCZ4RHSTEST_HPP_
 
