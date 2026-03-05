@@ -28,6 +28,7 @@ inline int RandomField::invert_index_with_sign(const int indx)
     else { return std::abs(N/2 - indx) - N/2; }
 }
 
+// Find the magnitude of the Fourier wavevector at this point
 inline Real RandomField::get_kmag(IntVect iv)
 {
     const int i = iv[0];
@@ -81,6 +82,7 @@ inline void RandomField::assign_statistics_data(Vector<std::string> &header_stor
     Tests
 ****/
 
+// Test that the input tensor field (config space) is trace free (global)
 inline void RandomField::Test_is_trace_free(MultiFab &field)
 {
     if (field.nComp() != 6)
@@ -113,6 +115,7 @@ inline void RandomField::Test_is_trace_free(MultiFab &field)
     
 }
 
+// Test that the input vectors are orthonormal (local)
 inline void RandomField::Test_vector_orthonorm(const IntVect iv, const Vector<Real> mhat, 
                                                                  const Vector<Real> nhat)
 {
@@ -144,6 +147,7 @@ inline void RandomField::Test_vector_orthonorm(const IntVect iv, const Vector<Re
     }
 }
 
+// Test that the input basis tensors, and their rotated counterparts, are orthonormal
 inline void RandomField::Test_polarisation_tensor_orthonorm(const IntVect iv, const Tensor<2, Real> eplus,
                                                             const Tensor<2, Real> ecross, const Tensor<2, Real> eplus_rot,
                                                             const Tensor<2, Real> ecross_rot)
@@ -155,11 +159,6 @@ inline void RandomField::Test_polarisation_tensor_orthonorm(const IntVect iv, co
 
     for (int l=0; l<3; l++) for (int p=0; p<3; p++)
     {
-        // if(iv == IntVect{1,0,0})
-        // {
-        //     Print() << iv << ", ";
-        //     Print() << eplus[l][p] << ", " << ecross[l][p] << "\n";
-        // }
         parll += ecross[l][p] * ecross[l][p];
         perp += eplus[l][p] * ecross[l][p];
 
@@ -167,7 +166,6 @@ inline void RandomField::Test_polarisation_tensor_orthonorm(const IntVect iv, co
         perp_rot += eplus_rot[l][p] * ecross_rot[l][p];
     }
 
-    // Confirm polarisation tensors are orthornormal
     if(iv != IntVect{0, 0, 0})
     {
         bool plc = (std::abs(parll / 2. - 1.) > tolerance 
@@ -325,7 +323,8 @@ inline GpuComplex<Real> RandomField::calculate_random_field(const IntVect iv, co
 // Calculates basis vectors required for polarisation tensors
 inline Vector<Real> RandomField::calculate_basis_vector(const IntVect iv, const int which_vector)
 {
-    // FFTW-style inversion with sign on the last two indices
+    // Hermitian symmetry inversion on j and k, with sign on the last two indices.
+    // (!!) The FT implemented in AMReX symmetrises across the i index.
     const Real i = static_cast<Real>(iv[0]);
     const Real j = static_cast<Real>(invert_index_with_sign(iv[1]));
     const Real k = static_cast<Real>(invert_index_with_sign(iv[2]));
@@ -472,20 +471,19 @@ inline void RandomField::init(amrex::MultiFab &state)
     scalar_fields_k.setVal(0.0);
     scalar_fields_x.setVal(0.0);
 
-    // Make the Fourier transform
+    // Construct the Fourier transform
     IntVect x_domain_high(N-1, N-1, N-1);
     Box x_domain(domain_low, x_domain_high);
     FFT::R2C<Real> tensor_fft(x_domain, FFT::Info().setBatchSize(hij_k.nComp()));
     FFT::R2C<Real> scalar_fft(x_domain, FFT::Info().setBatchSize(scalar_fields_k.nComp()));
 
+    // Construct MFs to hold the random number draws
     MultiFab random_draws(kba, kdm, 6, 0);
     make_random_draws(random_draws, k_domain, m_params.random_seed);
     MultiFab tensor_draws(random_draws, amrex::make_alias, 0, 4);
     MultiFab scalar_draws(random_draws, amrex::make_alias, 4, 2);
 
     Print() << "Starting initial condition generation/read in...\n";
-
-    // std::string Filename = "/cephfs/home/eaf49/GRTeclyn-workspace/Examples/ScalarField/comp-to-dparams.txt";
     for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
     {
         // Define the domain on this MPI rank
@@ -493,7 +491,7 @@ inline void RandomField::init(amrex::MultiFab &state)
         auto const& tensor_draw_ptr = tensor_draws.const_array(mfi);
         auto const& scalar_draw_ptr = scalar_draws.const_array(mfi);
 
-        // Make a pointer to the mode functions at this MF box
+        // Make a pointer to the mode functions at this MPI box
         Array4<GpuComplex<Real>> const& hs_ptr = hs_k.array(mfi);
         Array4<GpuComplex<Real>> const& hij_ptr = hij_k.array(mfi);
 
@@ -533,28 +531,10 @@ inline void RandomField::init(amrex::MultiFab &state)
                 // Find basis vectors
                 Vector<Real> mhat = calculate_basis_vector(iv, 0);;
                 Vector<Real> nhat = calculate_basis_vector(iv, 1);
-                // if(iv == IntVect{1,0,0})
-                // {
-                //     Print() << "Basis vectors: \n";
-                //     for (int p=0; p<3; p++)
-                //     {
-                //         Print() << mhat[p] << ", " << nhat[p] << "\n";
-                //     }
-                //     Print() << "Basis components: \n";
-                // }
                 Test_vector_orthonorm(iv, mhat, nhat);
 
                 // Construct polarisation tensors from basis vectors
                 Tensor<2, Real> eplus, ecross, eplus_rot, ecross_rot;
-                Real ep_tr = 0.;
-                Real ec_tr = 0.;
-                GpuComplex<Real> h_tr = 0.;
-
-                /* if(iv == IntVect{1, 3, 0})
-                {
-                    Print() << iv << "\n";
-                    Print() << "In init: " << hs_ptr(i, j, k, 0) << "\n";
-                } */
 
                 // Find basis tensors and initial tensor realisation
                 for (int l=0; l<3; l++) for (int p=0; p<3; p++)
@@ -572,14 +552,6 @@ inline void RandomField::init(amrex::MultiFab &state)
 
                         hij_ptr(i, j, k, lut[l][p]) = hs_ptr(i, j, k, 0) * eplus_rot[l][p] + hs_ptr(i, j, k, 1) * ecross_rot[l][p];
                         Aij_ptr(i, j, k, lut[l][p]) = As_ptr(i, j, k, 0) * eplus_rot[l][p] + As_ptr(i, j, k, 1) * ecross_rot[l][p];
-
-                        // if(iv == IntVect{1, 3, 0})
-                        // {
-                        //     // Print() << "Polarisation tensors: \n";
-                        //     Print() << l << ", " << p << ": ";
-                        //     // Print().SetPrecision(10) << eplus_rot[l][p] << ", " << ecross_rot[l][p] << "\n";
-                        //     Print().SetPrecision(10) << hij_ptr(i, j, k, lut[l][p]) << "\n";
-                        // }
                     }
 
                     else
@@ -587,26 +559,6 @@ inline void RandomField::init(amrex::MultiFab &state)
                         hij_ptr(i, j, k, lut[l][p]) = hs_ptr(i, j, k, 0) * eplus[l][p] + hs_ptr(i, j, k, 1) * ecross[l][p];
                         Aij_ptr(i, j, k, lut[l][p]) = As_ptr(i, j, k, 0) * eplus[l][p] + As_ptr(i, j, k, 1) * ecross[l][p];
                     }
-
-                    if(l==p)
-                    {
-                        ep_tr += eplus[l][p];
-                        ec_tr += ecross[l][p];
-                        h_tr += hij_ptr(i, j, k, lut[l][p]);
-                    }
-                }
-
-                if(std::abs(ep_tr) > tolerance || std::abs(ec_tr) > tolerance 
-                || (std::sqrt(pow(h_tr.real(), 2.) + pow(h_tr.imag(), 2))) > tolerance)
-                {
-                    Print() << iv << ", " << tolerance << "; ";
-                    for(int l=0; l<3; l++)
-                    {
-                        Print() << "(" << mhat[l] << ", " << nhat[l] << "), ";
-                    }
-                    Print() << ": " << ep_tr << ", " << ec_tr << ", ";
-                    Print() << (std::sqrt(pow(h_tr.real(), 2.) + pow(h_tr.imag(), 2.))) << "\n";
-                    Error("Plus/cross polarisation tensors have large trace here");
                 }
 
                 if (m_params.alpha != 0.) { Test_polarisation_tensor_orthonorm(iv, eplus, ecross, eplus_rot, ecross_rot); }
@@ -614,7 +566,7 @@ inline void RandomField::init(amrex::MultiFab &state)
         });
     }
 
-    // Apply the Nyquist conditions
+    // Apply the DC and Nyquist symmetry conditions
     apply_nyquist_conditions(hs_k);
     apply_nyquist_conditions(hij_k);
     apply_nyquist_conditions(Aij_k);
@@ -625,56 +577,43 @@ inline void RandomField::init(amrex::MultiFab &state)
     tensor_fft.backward(Aij_k, Aij_x);
     scalar_fft.backward(scalar_fields_k, scalar_fields_x);
 
-    /* for (MFIter mfi(hij_x); mfi.isValid(); ++mfi) 
-    {
-        // Define the domain on this MPI rank
-        const Box& bx = mfi.fabbox();
-
-        // Make a pointer to the mode functions at this MF box
-        Array4<Real> const& hij_ptr = hij_x.array(mfi);
-
-        // Loop to create mode functions, then hij(k) and Aij(k)
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-        {
-            IntVect iv{i, j, k};
-            if(iv == IntVect{1, 3, 0})
-            {
-                Print() << "In extract: \n";
-                for (int l=0; l<3; l++) for (int p=0; p<3; p++)
-                {
-                    Print() << l << ", " << p << ": ";
-                    Print().SetPrecision(10) << hij_ptr(i, j, k, lut[l][p]) << "\n";
-                }
-            }
-        });
-    } */
-
     // Apply normalisation into physical units
     hij_x.mult(norm);
     Aij_x.mult(norm);
     scalar_fields_x.mult(norm);
 
+    // Test that the resuling tensor perturbation field is trace-free
     Test_is_trace_free(hij_x);
 
     // Convert to BSSN variables using the BSSN-CPT dictionary
     for (int l=0; l<3; l++) { hij_x.plus(1., lut[l][l], 1); }
     Aij_x.mult(-0.5);
 
-    // Put these initial conditions into state
+    // Put these initial conditions into the state MF
     for (MFIter mfi(hij_x); mfi.isValid(); ++mfi) 
     {
+        const Box& bx = mfi.fabbox();
         Array4<Real> const& state_ptr = state.array(mfi);
         Array4<Real> const& hij_ptr = hij_x.array(mfi);
         Array4<Real> const& Aij_ptr = Aij_x.array(mfi);
         Array4<Real> const& scalar_ptr = scalar_fields_x.array(mfi);
 
-        const Box& bx = mfi.fabbox();
         ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             const IntVect iv{i, j, k};
             bool in_ghost_index = is_ghost_index(iv);
             if(!in_ghost_index)
             {
+                // Add scalar perturbations to the existing background values
+                if(m_params.scalar_init)
+                {
+                    state_ptr(iv, c_phi) += scalar_ptr(i, j, k, 0);
+                    state_ptr(iv, c_Pi) += scalar_ptr(i, j, k, 1);
+                    state_ptr(iv, c_chi) += scalar_ptr(i, j, k, 2);
+                    state_ptr(iv, c_K) += scalar_ptr(i, j, k, 3);
+                }
+
+                // Set the entire tensor object here
                 if(m_params.tensor_init)
                 {
                     state_ptr(iv, c_h11) = hij_ptr(i, j, k, lut[0][0]);
@@ -690,24 +629,6 @@ inline void RandomField::init(amrex::MultiFab &state)
                     state_ptr(iv, c_A22) = Aij_ptr(i, j, k, lut[1][1]);
                     state_ptr(iv, c_A23) = Aij_ptr(i, j, k, lut[1][2]);
                     state_ptr(iv, c_A33) = Aij_ptr(i, j, k, lut[2][2]);
-
-                    /* if(iv == IntVect{1, 3, 0})
-                    {
-                        Print() << "In init: \n";
-                        for (int l=0; l<3; l++) for (int p=0; p<3; p++)
-                        {
-                            Print() << l << ", " << p << ": ";
-                            Print().SetPrecision(10) << hij_ptr(i, j, k, lut[l][p]) << "\n";
-                        }
-                    } */
-                }
-
-                if(m_params.scalar_init)
-                {
-                    state_ptr(iv, c_phi) += scalar_ptr(i, j, k, 0);
-                    state_ptr(iv, c_Pi) += scalar_ptr(i, j, k, 1);
-                    state_ptr(iv, c_chi) += scalar_ptr(i, j, k, 2);
-                    state_ptr(iv, c_K) += scalar_ptr(i, j, k, 3);
                 }
             }
         });
@@ -1139,30 +1060,6 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
     for (int l=0; l<3; l++) { gij_x.plus(-1., lut[l][l], 1); }
     gij_x.mult(1./norm);
 
-    /* for (MFIter mfi(gij_x); mfi.isValid(); ++mfi) 
-    {
-        // Define the domain on this MPI rank
-        const Box& bx = mfi.fabbox();
-
-        // Make a pointer to the mode functions at this MF box
-        Array4<Real> const& g_ptr = gij_x.array(mfi);
-
-        // Loop to create mode functions, then hij(k) and Aij(k)
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-        {
-            IntVect iv{i, j, k};
-            if(iv == IntVect{1, 3, 0})
-            {
-                Print() << "In extract: \n";
-                for (int l=0; l<3; l++) for (int p=0; p<3; p++)
-                {
-                    Print() << l << ", " << p << ": ";
-                    Print().SetPrecision(10) << g_ptr(i, j, k, lut[l][p]) << "\n";
-                }
-            }
-        });
-    } */
-
     // Set up the problem domain in Fourier space
     // And impose that MPI ranks only slice along the i index (for Nyquist conditions)
     IntVect domain_low(0, 0, 0);
@@ -1197,8 +1094,8 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
     for(int comp = 0; comp < 6; comp++) { gij_k.mult(std::pow(N, -3.), comp, 1); }
     for(int comp = 0; comp < 2; comp++) { scalars_k.mult(std::pow(N, -3.), comp, 1); }
 
-    std::string Filename = "/cephfs/home/eaf49/GRTeclyn-workspace/Examples/ScalarField/Rk-check.dat";
-
+    // Set variables to store the maximum trace 
+    // of the scalar and tensor components
     Real hij_tr_max = 0.;
     Real hSV_tr_max = 0.;
 
@@ -1206,8 +1103,6 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
     for (MFIter mfi(gij_k); mfi.isValid(); ++mfi) 
     {
         const Box& bx = mfi.fabbox();
-
-        // Make a pointer to the mode functions at this MF box
         Array4<GpuComplex<Real>> const& hs_ptr = hs_k.array(mfi);
         Array4<GpuComplex<Real>> const& hij_ptr = gij_k.array(mfi);
         Array4<GpuComplex<Real>> const& scalars_ptr = scalars_k.array(mfi);
@@ -1243,23 +1138,12 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
                     hs_ptr(i, j, k, 0) += (hij_ptr(i, j, k, lut[l][p]) * eplus[l][p])/2.;
                     hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross[l][p])/2.;
                 }
-                // if(iv == IntVect{1, 3, 0})
-                // {
-                //     // Print() << "In extract: \nPolarisation tensors: \n";
-                //     Print() << l << ", " << p << ": ";
-                //     // Print().SetPrecision(10) << eplus_rot[l][p] << ", " << ecross_rot[l][p] << "\n";
-                //     Print().SetPrecision(10) << hij_ptr(i, j, k, lut[l][p]) << "\n";
-                // }
             }
-
-            /* if(iv == IntVect{1, 3, 0})
-            {
-                Print() << iv << "\n";
-                Print() << "In extract: " << hs_ptr(i, j, k, 0) << "\n";
-            } */
 
             if (m_params.alpha != 0.) { Test_polarisation_tensor_orthonorm(iv, eplus, ecross, eplus_rot, ecross_rot); }
 
+            // Calculate the TT and scalar-(vector) components of the 
+            // metric, by reconstructing hij and subtracting it from \tilde{gamma}_ij
             Tensor<2, GpuComplex<Real>> hij, hSV;
             GpuComplex<Real> hij_tr = 0.;
             GpuComplex<Real> hSV_tr = 0.;
@@ -1276,14 +1160,8 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
 
                 hSV[l][p] = hij_ptr(i, j, k, lut[l][p]) - hij[l][p];
 
+                // Find the traces of these components, as a diagnostic
                 if(l==p) { hij_tr += hij[l][p]; hSV_tr += hSV[l][p]; }
-
-                // if(i == 1 && j == 0 && k == 1)
-                // {
-                //     Print() << "In extract: \n";
-                //     Print() << l << ", " << p << ": ";
-                //     Print() << hij[l][p] << ", " << hSV[l][p] << "\n";
-                // }
             }
             
             Real hij_tr_mag = sqrt(pow(hij_tr.real(), 2.) + pow(hij_tr.imag(), 2.));
@@ -1292,25 +1170,25 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
             if (hij_tr_mag > hij_tr_max) { hij_tr_max = hij_tr_mag; }
             if (hSV_tr_mag > hSV_tr_max) { hSV_tr_max = hSV_tr_mag; }
 
+            // Confirm hij is trace-free in Fourier space
             if (std::abs(hij_tr_mag) > tolerance)
             {
                 Print() << iv << ": " << hij_tr_mag << "\n";
                 Error("hij trace magnitude too large in extraction");
             }
-            
-            // if(i == 1 && j == 2 && k == 1)
-            // {
-            //     Print() << "Traces: ";
-            //     Print() << hij_tr << ", " << hSV_tr << "\n";
-            // }
 
+            // Extract R according to the scheme detailed in 
+            // Appendix B (Eq. B1) of arxiv:2502.06783, using hSV as the 
+            // spatial metric instead of \tilde{gamma}_ij
             if(m_params.scalar_init)
             {
+                // Find the unitful k vector
                 Vector<Real> iv_k(iv.begin(), iv.end());
                 for(auto& k_comp : iv_k) { k_comp *= 2. * M_PI / m_params.L; }
                 Real kmag = get_kmag(iv);
                 GpuComplex<Real> Phi = 0;
 
+                // Set the zero mode
                 if(kmag == 0)
                 {
                     R_k_ptr(i, j, k, 0) = GpuComplex<Real>{0., 0.};
@@ -1318,26 +1196,22 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
 
                 else
                 {
-                    // converstion from chi, gamma_ij -> Phi
+                    // converstion from chi and gamma_ij -> Phi
                     for(int l=0; l<3; l++) for(int p=0; p<3; p++)
                     {
                         Phi += (iv_k[l] * iv_k[p] * hSV[l][p])/std::pow(kmag, 2.);
                     }
-                    Phi *= -1./48.;
+                    Phi *= -1./4.;
                     Phi += 0.5 * (scalars_ptr(i, j, k, m_c_chi));
 
-                    // calculate R_k
+                    // Combine the above to find R(k)
                     R_k_ptr(i, j, k, 0) = Phi - K_bar * scalars_ptr(i, j, k, m_c_phi) / alpha_bar / Pi_bar;
                 }
             }
         });
     }
 
-    // Print() << "Max traces: " << hij_tr_max << ", " << hSV_tr_max << "\n";
-
-    apply_nyquist_conditions(hs_k);
-    apply_nyquist_conditions(R_k);
-
+    // Output the max traces of the tensor components as a diagnostic
     SmallDataIO trace_file(data_path+"tensor-traces", dt, cur_time, 
                                 restart_time, SmallDataIO::APPEND, first_step, ".dat");
     if(first_step) 
@@ -1345,6 +1219,9 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         trace_file.write_header_line({"hij trace max", "hSV trace max"}); 
     }
     trace_file.write_time_data_line({hij_tr_max, hSV_tr_max}); 
+
+    apply_nyquist_conditions(hs_k);
+    apply_nyquist_conditions(R_k);
 
     // Find the binned PS for each mode function and print to data/
     if((m_params.calc_binned_power_spectrum) 
@@ -1366,7 +1243,10 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         print_power_spectrum(R_k, spectrum_file, 0);
     }
 
-    // Find mode functions in configuration space if requested
+    // Find mode functions in configuration space if requested,
+    // and find the statistics (orders 1-4) of the polarisation fields 
+    // and the R field. 
+    // And print the tensor-to-scalar ratio if requested.
     if(m_params.calc_higher_order_statistics)
     {
         // Make a multifab to store config space mode functions
