@@ -303,8 +303,7 @@ void BinaryBHLevel::specificPostTimeStep()
 
         // only do the write out when we're at at a multiple of the
         // writeout_level
-        bool write_punctures = at_level_timestep_multiple(
-            simParams().puncture_tracking_writeout_level);
+        bool write_punctures     = false;
         amrex::Real current_time = get_state_data(state_index).curTime();
         amrex::Real dt           = get_gramr_ptr()->dtLevel(Level());
         get_puncture_tracker().track(current_time, dt, write_punctures);
