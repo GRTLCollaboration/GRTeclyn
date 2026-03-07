@@ -12,19 +12,17 @@
 
 // Calculate the stress energy tensor elements
 template <class potential_t>
-template <template <class> class vars_t>
 AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t>::compute_emtensor(
-    const vars_t<amrex::Real> &vars, const vars_t<Tensor<1, amrex::Real>> &d1,
-    const Tensor<2, amrex::Real> &h_UU,
+    const Vars &vars, const D1Vars &d1, const Tensor<2, amrex::Real> &h_UU,
     const Tensor<3, amrex::Real> &chris_ULL) const
 {
     emtensor_t out;
 
     //    Useful quantity Vt
-    amrex::Real Vt = -vars.Pi * vars.Pi;
+    amrex::Real Vt = -vars.Pi() * vars.Pi();
     FOR (i, j)
     {
-        Vt += vars.chi * h_UU[i][j] * d1.phi[i] * d1.phi[j];
+        Vt += vars.chi() * h_UU[i][j] * d1.phi(i) * d1.phi(j);
     }
 
     // set the potential values
@@ -38,22 +36,22 @@ AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t>::compute_emtensor(
     // S = T_ij
     FOR (i, j)
     {
-        out.S[i][j] = -0.5 * vars.h[i][j] * Vt / vars.chi +
-                      d1.phi[i] * d1.phi[j] -
-                      vars.h[i][j] * V_of_phi / vars.chi;
+        out.S[i][j] = -0.5 * vars.h(i, j) * Vt / vars.chi() +
+                      d1.phi(i) * d1.phi(j) -
+                      vars.h(i, j) * V_of_phi / vars.chi();
     }
 
     // rho = n^a n^b T_ab
-    out.rho = vars.Pi * vars.Pi + 0.5 * Vt + V_of_phi;
+    out.rho = vars.Pi() * vars.Pi() + 0.5 * Vt + V_of_phi;
 
     // trS = Tr_S_ij
     out.trS =
-        vars.chi * TensorAlgebra::compute_trace(out.S, h_UU) - 3.0 * V_of_phi;
+        vars.chi() * TensorAlgebra::compute_trace(out.S, h_UU) - 3.0 * V_of_phi;
 
     //    j_i (note lower index) = - n^a T_ai
     FOR (i)
     {
-        out.j[i] = -d1.phi[i] * vars.Pi;
+        out.j[i] = -d1.phi(i) * vars.Pi();
     }
 
     return out;
@@ -61,18 +59,14 @@ AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t>::compute_emtensor(
 
 // Adds in the RHS for the matter vars
 template <class potential_t>
-template <template <class> class vars_t, class rhs_vars_t, class d2_vars_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 ScalarField<potential_t>::add_matter_rhs(
-    rhs_vars_t &rhs, const vars_t<amrex::Real> &vars,
-    const vars_t<Tensor<1, amrex::Real>> &d1, const d2_vars_t &d2,
-    const vars_t<amrex::Real> &advec) const
+    const amrex::CellData<amrex::Real> &rhs, const Vars &vars, const D1Vars &d1,
+    const D2Vars &d2, const AdvecVars &advec) const
 {
-    using namespace TensorAlgebra;
-
     // call the function for the rhs excluding the potential
-    const auto h_UU  = compute_inverse_sym(vars.h);
-    const auto chris = compute_christoffel(d1.h, h_UU);
+    const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
+    const auto chris = CCZ4Geometry::compute_christoffel(d1, h_UU);
 
     // set the potential values
     amrex::Real V_of_phi = 0.0;
@@ -80,19 +74,20 @@ ScalarField<potential_t>::add_matter_rhs(
     m_potential.compute_potential(V_of_phi, dVdphi, vars);
 
     // evolution equations for scalar field and (minus) its conjugate momentum
-    rhs.phi = vars.lapse * vars.Pi + advec.phi;
-    rhs.Pi  = vars.lapse * (vars.K * vars.Pi - dVdphi) + advec.Pi;
+    rhs[c_phi] = vars.lapse() * vars.Pi() + advec.phi();
+
+    rhs[c_Pi] = vars.lapse() * (vars.K() * vars.Pi() - dVdphi) + advec.Pi();
 
     FOR (i, j)
     {
         // includes non conformal parts of chris not included in chris_ULL
-        rhs.Pi += h_UU[i][j] * (-0.5 * d1.chi[j] * vars.lapse * d1.phi[i] +
-                                vars.chi * vars.lapse * d2.phi[i][j] +
-                                vars.chi * d1.lapse[i] * d1.phi[j]);
+        rhs[c_Pi] += h_UU[i][j] * (-0.5 * d1.chi(j) * vars.lapse() * d1.phi(i) +
+                                   vars.chi() * vars.lapse() * d2.phi[i][j] +
+                                   vars.chi() * d1.lapse(i) * d1.phi(j));
         FOR (k)
         {
-            rhs.Pi += -vars.chi * vars.lapse * h_UU[i][j] * chris.ULL[k][i][j] *
-                      d1.phi[k];
+            rhs[c_Pi] += -vars.chi() * vars.lapse() * h_UU[i][j] *
+                         chris.ULL[k][i][j] * d1.phi(k);
         }
     }
 }

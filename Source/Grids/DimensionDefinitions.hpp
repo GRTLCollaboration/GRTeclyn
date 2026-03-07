@@ -16,11 +16,17 @@ constexpr int GR_SPACEDIM = 3;
 #endif
 
 // NOLINTBEGIN(cppcoreguidelines-macro-usage)
+
+// A function to return the right index for the tensors based on the
+// ordering below 0: T11, 1: T12, 2: T13, 3: T22, 4: T23, 5: T33
+#define VAR_IDX(ivar, i, j) ((ivar) + (i) + (j) + (((i) * (j) != 0) ? 1 : 0))
+
+// A version for where the base reference for the tensor is 0
+#define VAR_IDX0(i, j) VAR_IDX(0, (i), (j))
+
 // Fancy 'for' loop macros to iterate through spatial tensors
 // use as "FOR(i, j) { ... }"
-// We don't need parentheses around args as IDX will be a single symbol
-// NOLINTNEXTLINE(bugprone-macro-parentheses)
-#define FOR1(IDX) for (int IDX = 0; IDX < DEFAULT_TENSOR_DIM; ++IDX)
+#define FOR1(IDX) for (int(IDX) = 0; (IDX) < DEFAULT_TENSOR_DIM; ++(IDX))
 #define FOR2(IDX1, IDX2)                                                       \
     FOR1 (IDX1)                                                                \
         FOR1 (IDX2)
@@ -36,6 +42,10 @@ constexpr int GR_SPACEDIM = 3;
 #define DUMMYFOR() // prevents warning that appeared in debug mode:
                    // 'ISO C++11 requires at least one argument for the "..." in
                    // a variadic macro'
+
+#define FOR2_SYM(IDX1, IDX2)                                                   \
+    for (int(IDX1) = 0; (IDX1) < DEFAULT_TENSOR_DIM; ++(IDX1))                 \
+        for (int(IDX2) = IDX1; (IDX2) < DEFAULT_TENSOR_DIM; ++(IDX2))
 
 #define GET_MACRO6(_1, _2, _3, _4, _5, NAME, ...) NAME
 #define FOR(...)                                                               \

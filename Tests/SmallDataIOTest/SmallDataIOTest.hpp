@@ -2,6 +2,7 @@
  * Copyright 2022 The GRTL collaboration.
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
+
 #ifndef SMALLDATAIOTEST_HPP_
 #define SMALLDATAIOTEST_HPP_
 

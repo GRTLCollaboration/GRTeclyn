@@ -313,9 +313,9 @@ void ParticleInterpolator<num_components>::interp(
                 continue;
 
             amrex::AmrLevel &level = m_gramr_ptr->getLevel(lev);
-            amrex::Real cur_time   = level.get_state_data(State_Type).curTime();
+            amrex::Real cur_time   = level.get_state_data(state_index).curTime();
             const amrex::Geometry &geom = level.Geom();
-            amrex::MultiFab &state      = level.get_new_data(State_Type);
+            amrex::MultiFab &state      = level.get_new_data(state_index);
 
             // Fill ghost cells
             // So FillPatch and FillBoundary in amrex are different routines!
@@ -324,7 +324,7 @@ void ParticleInterpolator<num_components>::interp(
             // single-level operation only! There is a nice explanation on this
             // issue here: https://github.com/AMReX-Codes/amrex/issues/391
             amrex::AmrLevel::FillPatch(level, state, s_num_ghosts, cur_time,
-                                       State_Type, start_comp, ncomp);
+                                       state_index, start_comp, ncomp);
 
             interpolate_to_particle(lev, state, geom);
         }

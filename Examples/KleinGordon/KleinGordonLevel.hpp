@@ -1,3 +1,8 @@
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
+ */
+
 #ifndef KLEINGORDONLEVEL_HPP_
 #define KLEINGORDONLEVEL_HPP_
 
@@ -5,7 +10,6 @@
 #include "DerivedVariables.hpp"
 #include "GRAMRLevel.hpp"
 #include "KleinGordonRHS.hpp"
-#include "VarsTools.hpp"
 
 class KleinGordonLevel : public GRAMRLevel
 {

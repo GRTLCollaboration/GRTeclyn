@@ -25,13 +25,13 @@ class ParticleInterpolatorLevel : public GRAMRLevel
     static void variableSetUp()
     {
         stateVariableSetUp();
-        PolynomialDerivedQuantity::set_up(State_Type);
+        PolynomialDerivedQuantity::set_up(state_index);
     }
 
     // initialize data
     void initData() override
     {
-        amrex::MultiFab &state = get_new_data(State_Type);
+        amrex::MultiFab &state = get_new_data(state_index);
         const auto &arrs       = state.arrays();
         auto const &geom       = Geom();
         auto const prob_lo     = geom.ProbLoArray();
@@ -72,7 +72,7 @@ class ParticleInterpolatorLevel : public GRAMRLevel
     void tag_cells(amrex::TagBoxArray &a_tag_box_array,
                    amrex::Real a_regrid_threshold) final
     {
-        amrex::MultiFab &state_new = get_new_data(State_Type);
+        amrex::MultiFab &state_new = get_new_data(state_index);
 
         const auto &tag_arrs   = a_tag_box_array.arrays();
         const auto &state_arrs = state_new.arrays();

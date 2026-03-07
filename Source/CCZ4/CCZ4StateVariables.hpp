@@ -11,6 +11,7 @@
 #include <string>
 
 #include "BCParity.hpp"
+#include "DimensionDefinitions.hpp"
 
 /// This enum gives the index of the CCZ4 state variables on the grid
 enum

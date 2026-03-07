@@ -2,6 +2,7 @@
  * Copyright 2022 The GRTL collaboration.
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
+
 // Doctest header
 #ifdef AMREX_USE_SYCL
 // Intel's GPU runtime uses SIGSEGV to trigger migration of managed memory

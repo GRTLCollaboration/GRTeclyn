@@ -6,13 +6,26 @@ jobs:
   tabs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Tabs
         run: .github/workflows/style/check_tabs.sh
 
   trailing_whitespaces:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Trailing Whitespaces
         run: .github/workflows/style/check_trailing_whitespaces.sh
+
+  copyright-headers:
+    name: Check copyright headers
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout GRTeclyn
+        uses: actions/checkout@v6
+
+      - name: Check copyright headers
+        run: |
+          ./check_copyright_headers copyright_header
+        working-directory: ${{ github.workspace }}/Tools/CopyrightHeaders

@@ -14,66 +14,48 @@
 
 template <class model_t, class deriv_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-KleinGordonRHS<model_t, deriv_t>::compute(
-    int i, int j, int k, const amrex::Array4<amrex::Real const> &input,
-    const amrex::Array4<amrex::Real> &output) const
-
+KleinGordonRHS<model_t, deriv_t>::operator()(
+    int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs_state,
+    const amrex::Array4<amrex::Real const> &state) const
 {
-    const auto *input_ptr_ijk = input.ptr(i, j, k);
+    const auto *state_ptr_ijk = state.ptr(ix, iy, iz);
     amrex::Array1D<amrex::Real, 0, AMREX_SPACEDIM>
-        d2phi{}; // no cross second order derivatives needed
+        d2_phi{}; // no cross second order derivatives needed
     amrex::Array1D<int, 0, AMREX_SPACEDIM> strides{
-        AMREX_D_DECL(1, static_cast<int>(input.stride.a[0]),
-                     static_cast<int>(input.stride.a[1]))};
+        AMREX_D_DECL(1, static_cast<int>(state.stride.a[0]),
+                     static_cast<int>(state.stride.a[1]))};
 
     FOR (i)
     {
-        d2phi(i) = m_deriv.diff2(input_ptr_ijk + c_phi * input.stride.a[2], 0,
-                                 strides(i));
+        d2_phi(i) = m_deriv.diff2(state_ptr_ijk + c_phi * state.stride.a[2],
+                                  strides(i));
     }
 
-    rhs_equation(input.cellData(i, j, k), output.cellData(i, j, k), d2phi);
+    rhs_equation(rhs_state.cellData(ix, iy, iz), state.cellData(ix, iy, iz),
+                 d2_phi);
 
-    // add dissipation term
-    amrex::Real phi_dissipation = 0.0;
-    amrex::Real Pi_dissipation  = 0.0;
-
-    FOR (i)
-    {
-
-        phi_dissipation +=
-            m_sigma *
-            m_deriv.dissipation_term(input_ptr_ijk + c_phi * input.stride.a[2],
-                                     0, strides(i));
-
-        Pi_dissipation +=
-            m_sigma *
-            m_deriv.dissipation_term(input_ptr_ijk + c_Pi * input.stride.a[2],
-                                     0, strides(i));
-    }
-
-    output.cellData(i, j, k)[c_phi] += phi_dissipation;
-    output.cellData(i, j, k)[c_Pi]  += Pi_dissipation;
+    m_deriv.add_dissipation(ix, iy, iz, rhs_state.cellData(ix, iy, iz), state,
+                            m_sigma);
 }
 
 template <class model_t, class deriv_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 KleinGordonRHS<model_t, deriv_t>::rhs_equation(
-    const amrex::CellData<amrex::Real const> &input_cell_data,
-    const amrex::CellData<amrex::Real> &output_cell_data,
-    const amrex::Array1D<amrex::Real, 0, AMREX_SPACEDIM> &d2phi) const
+    const amrex::CellData<amrex::Real> &rhs_cell_data,
+    const amrex::CellData<amrex::Real const> &state_cell_data,
+    const amrex::Array1D<amrex::Real, 0, AMREX_SPACEDIM> &d2_phi) const
 {
-    output_cell_data[c_phi] = input_cell_data[c_Pi];
+    rhs_cell_data[c_phi] = state_cell_data[c_Pi];
 
-    output_cell_data[c_Pi] = d2phi.sum();
+    rhs_cell_data[c_Pi] = d2_phi.sum();
 
     // add on the potential
     amrex::Real V_of_phi = 0.0;
     amrex::Real dVdphi   = 0.0;
 
-    m_model.compute_potential(V_of_phi, dVdphi, input_cell_data[c_phi]);
+    m_model.compute_potential(V_of_phi, dVdphi, state_cell_data[c_phi]);
 
-    output_cell_data[c_Pi] += dVdphi;
+    rhs_cell_data[c_Pi] += dVdphi;
 }
 
 #endif // KLEINGORDONRHS_IMPL_HPP_

@@ -2,6 +2,7 @@
  * Copyright 2022 The GRTL collaboration.
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
+
 // Doctest header
 #include "doctest.h"
 
@@ -47,9 +48,9 @@ void run_ccz4_rhs_test()
 
         const amrex::Array4<amrex::Real> &in_array = in_fab.array();
         amrex::ParallelFor(ghosted_box,
-                           [=] AMREX_GPU_DEVICE(int i, int j, int k)
+                           [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
                            {
-                               const amrex::IntVect iv{i, j, k};
+                               const amrex::IntVect iv{ix, iy, iz};
                                const amrex::RealVect coords =
                                    amrex::RealVect{iv} * dx;
 
@@ -106,17 +107,16 @@ void run_ccz4_rhs_test()
         // Do the current and old CCZ4RHS calculation in the same loop
         amrex::ParallelFor(
             box,
-            [=] AMREX_GPU_DEVICE(int i, int j, int k)
+            [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
             {
-                current_ccz4_rhs.compute(i, j, k, current_out_array,
-                                         in_c_array);
-                old_ccz4_rhs.compute(i, j, k, old_out_array, in_c_array);
+                old_ccz4_rhs.compute(ix, iy, iz, old_out_array, in_c_array);
+                current_ccz4_rhs(ix, iy, iz, current_out_array, in_c_array);
 
                 for (int ivar = 0; ivar < NUM_CCZ4_VARS; ++ivar)
                 {
-                    diff_array(i, j, k, ivar) =
-                        std::fabs(current_out_array(i, j, k, ivar) -
-                                  old_out_array(i, j, k, ivar));
+                    diff_array(ix, iy, iz, ivar) =
+                        std::fabs(current_out_array(ix, iy, iz, ivar) -
+                                  old_out_array(ix, iy, iz, ivar));
                 }
             });
 

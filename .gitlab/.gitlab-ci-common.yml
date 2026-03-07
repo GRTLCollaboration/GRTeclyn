@@ -1,3 +1,17 @@
+workflow:
+# Only run GitLab CI on changes in the following paths
+  rules:
+    - changes:
+        - Examples/**
+        - external/**
+        - Source/**
+        - Tests/**
+        - Tools/GNUMake/**
+        - .gitlab-ci.yml
+        - .gitlab/**
+      when: always
+    - when: never
+
 stages:
   - build
   - test
@@ -35,7 +49,7 @@ variables:
     --abs_tol 1e-10
     --rel_tol 1e-10
   # We can only run a single job at a time with --qos=INTR
-  QOS_INTR_LOCK_FILE: qos-intr.lock
+  QOS_INTR_LOCK_FILE: /rds/project/rds-YVo7YUJF2mk/grteclyn-ci-svc/qos-intr.lock
   OUTPUT_DIR: /rds/project/rds-YVo7YUJF2mk/grteclyn-ci-svc/a100-test-${CI_PIPELINE_ID}/
 
 

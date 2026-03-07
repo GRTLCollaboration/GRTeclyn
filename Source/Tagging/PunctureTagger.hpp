@@ -8,7 +8,6 @@
 
 #include "Coordinates.hpp"
 #include "DimensionDefinitions.hpp"
-#include "FourthOrderDerivatives.hpp"
 #include "Tensor.hpp"
 
 #include <AMReX_Array4.H>
@@ -42,7 +41,7 @@ template <unsigned int num_punctures> class PunctureTagger
 
     AMREX_GPU_DEVICE void
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-    operator()(int i, int j, int k,
+    operator()(int ix, int iy, int iz,
                const amrex::Array4<amrex::TagBox::TagType> &tags) const
     // NOLINTEND(bugprone-easily-swappable-parameters)
     {
@@ -57,7 +56,7 @@ template <unsigned int num_punctures> class PunctureTagger
         const int exponent  = std::min(m_max_level - m_level - 1, 1);
         const double factor = std::pow(2.0, exponent);
 
-        amrex::IntVect current_cell(AMREX_D_DECL(i, j, k));
+        amrex::IntVect current_cell(AMREX_D_DECL(ix, iy, iz));
         // loop over puncture masses
         for (int ipuncture = 0; ipuncture < num_punctures; ++ipuncture)
         {
