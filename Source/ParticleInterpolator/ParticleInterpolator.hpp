@@ -1,3 +1,8 @@
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
+ */
+
 #ifndef PARTICLEINTERPOLATOR_HPP_
 #define PARTICLEINTERPOLATOR_HPP_
 

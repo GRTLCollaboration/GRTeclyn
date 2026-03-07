@@ -313,7 +313,7 @@ void ParticleInterpolator<num_components>::interp(
                 continue;
 
             amrex::AmrLevel &level = m_gramr_ptr->getLevel(lev);
-            amrex::Real cur_time   = level.get_state_data(state_index).curTime();
+            amrex::Real cur_time = level.get_state_data(state_index).curTime();
             const amrex::Geometry &geom = level.Geom();
             amrex::MultiFab &state      = level.get_new_data(state_index);
 

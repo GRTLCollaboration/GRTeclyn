@@ -2,6 +2,7 @@
  * Copyright 2022 The GRTL collaboration.
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
+
 #ifndef PARTICLEINTERPOLATORUNITTEST_HPP_
 #define PARTICLEINTERPOLATORUNITTEST_HPP_
 
