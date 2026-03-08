@@ -1,3 +1,8 @@
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
+ */
+
 #ifndef DERIVEDVARIABLES_HPP_
 #define DERIVEDVARIABLES_HPP_
 
@@ -9,7 +14,6 @@
 
 // GRTeclyn includes
 #include "Coordinates.hpp"
-#include "VarsTools.hpp"
 
 // KleinGordon includes
 #include "KleinGordonRHS.hpp"

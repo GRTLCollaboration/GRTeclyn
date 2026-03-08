@@ -6,6 +6,10 @@
 #ifndef MOVINGPUNCTUREGAUGE_HPP_
 #define MOVINGPUNCTUREGAUGE_HPP_
 
+#include "CCZ4AdvecVars.hpp"
+#include "CCZ4D1Vars.hpp"
+#include "CCZ4D2Vars.hpp"
+#include "CCZ4Vars.hpp"
 #include "DimensionDefinitions.hpp"
 #include "Tensor.hpp"
 #include <AMReX_REAL.H>
@@ -44,23 +48,26 @@ class MovingPunctureGauge
 
   public:
     MovingPunctureGauge(const params_t &a_params) : m_params(a_params) {}
-    template <template <class> class vars_t, class d2_vars_t>
+
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    rhs_gauge(vars_t<amrex::Real> &rhs, const vars_t<amrex::Real> &vars,
-              const vars_t<Tensor<1, amrex::Real>> & /*d1*/,
-              const d2_vars_t & /*d2*/, const vars_t<amrex::Real> &advec) const
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
+    rhs_gauge(const amrex::CellData<amrex::Real> &rhs, const CCZ4Vars &vars,
+              const CCZ4D1Vars &d1, const CCZ4D2Vars &d2,
+              const CCZ4AdvecVars &advec) const
+    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
-        rhs.lapse = m_params.lapse_advec_coeff * advec.lapse -
-                    m_params.lapse_coeff *
-                        pow(vars.lapse, m_params.lapse_power) *
-                        (vars.K - 2 * vars.Theta);
+        rhs[c_lapse] = m_params.lapse_advec_coeff * advec.lapse() -
+                       m_params.lapse_coeff *
+                           pow(vars.lapse(), m_params.lapse_power) *
+                           (vars.K() - 2.0 * vars.Theta());
+
         FOR (i)
         {
-            rhs.shift[i] = m_params.shift_advec_coeff * advec.shift[i] +
-                           m_params.shift_Gamma_coeff * vars.B[i];
-            rhs.B[i] = m_params.shift_advec_coeff * advec.B[i] -
-                       m_params.shift_advec_coeff * advec.Gamma[i] +
-                       rhs.Gamma[i] - m_params.eta * vars.B[i];
+            rhs[c_shift1 + i] = m_params.shift_advec_coeff * advec.shift(i) +
+                                m_params.shift_Gamma_coeff * vars.B(i);
+            rhs[c_B1 + i] = m_params.shift_advec_coeff * advec.B(i) -
+                            m_params.shift_advec_coeff * advec.Gamma(i) +
+                            rhs[c_Gamma1 + i] - m_params.eta * vars.B(i);
         }
     }
 };

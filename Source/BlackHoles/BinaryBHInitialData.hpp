@@ -37,9 +37,9 @@ class BinaryBHInitialData
                         int a_initial_lapse = Lapse::PRE_COLLAPSED);
     // NOLINTEND(bugprone-easily-swappable-parameters)
 
-    AMREX_FORCE_INLINE AMREX_GPU_DEVICE void
-    init_data(int i, int j, int k,
-              const amrex::CellData<amrex::Real> &cell) const;
+    AMREX_GPU_DEVICE void
+    operator()(int ix, int iy, int iz,
+               const amrex::Array4<amrex::Real> &state) const;
 
   protected:
     [[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE amrex::Real

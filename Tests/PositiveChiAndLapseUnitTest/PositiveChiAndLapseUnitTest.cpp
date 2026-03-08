@@ -46,12 +46,8 @@ void run_positive_chi_and_lapse_unit_test()
 
         amrex::Gpu::streamSynchronize();
 
-        amrex::ParallelFor(box,
-                           [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
-                           {
-                               auto cell = in_array.cellData(ix, iy, iz);
-                               PositiveChiAndLapse()(cell);
-                           });
+        amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
+                           { PositiveChiAndLapse()(ix, iy, iz, in_array); });
 
         amrex::Gpu::streamSynchronize();
 

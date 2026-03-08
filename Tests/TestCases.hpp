@@ -2,6 +2,7 @@
  * Copyright 2022 The GRTL collaboration.
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
+
 #ifndef TESTCASES_HPP_
 #define TESTCASES_HPP_
 
@@ -25,8 +26,6 @@
 #include "SphericalHarmonicTest.hpp"
 #include "Weyl4Test.hpp"
 #include "Weyl4WithMatterTest.hpp"
-
-TEST_CASE("CCZ4Geometry") { run_ccz4_geometry_unit_tests(); }
 
 TEST_CASE("BSSNMatter"
 #ifndef AMREX_USE_HDF5

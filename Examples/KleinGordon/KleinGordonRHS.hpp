@@ -10,7 +10,6 @@
 #include "Cell.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "TensorAlgebra.hpp"
-#include "VarsTools.hpp"
 
 // Problem specific includes
 #include "StateVariables.hpp"
@@ -25,8 +24,9 @@ class KleinGordonRHS
         : m_sigma(a_sigma), m_deriv(a_dx), m_model(a_model) {};
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    compute(int i, int j, int k, const amrex::Array4<amrex::Real const> &input,
-            const amrex::Array4<amrex::Real> &output) const;
+    operator()(int ix, int iy, int iz,
+               const amrex::Array4<amrex::Real> &rhs_state,
+               const amrex::Array4<amrex::Real const> &state) const;
 
   private:
     amrex::Real m_sigma;
@@ -34,9 +34,9 @@ class KleinGordonRHS
     model_t m_model;
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void rhs_equation(
-        const amrex::CellData<amrex::Real const> &input_cell_data,
-        const amrex::CellData<amrex::Real> &output_cell_data,
-        const amrex::Array1D<amrex::Real, 0, AMREX_SPACEDIM> &d2phi) const;
+        const amrex::CellData<amrex::Real> &rhs_cell_data,
+        const amrex::CellData<amrex::Real const> &state_cell_data,
+        const amrex::Array1D<amrex::Real, 0, AMREX_SPACEDIM> &d2_phi) const;
 };
 
 #include "KleinGordonRHS.impl.hpp"

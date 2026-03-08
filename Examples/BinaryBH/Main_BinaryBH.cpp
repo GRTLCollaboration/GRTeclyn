@@ -82,12 +82,12 @@ int main(int argc, char *argv[])
 
     if (status == 0)
     {
-        amrex::Print() << "GRChombo finished."
+        amrex::Print() << "GRTeclyn finished."
                        << "\n";
     }
     else
     {
-        amrex::Print() << "GRChombo failed with return code " << status << "\n";
+        amrex::Print() << "GRTeclyn failed with return code " << status << "\n";
     }
 
     mainFinalize();

@@ -1,3 +1,8 @@
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
+ */
+
 #include "KleinGordonLevel.hpp"
 #include "FixedGridsTagger.hpp"
 #include "FourthOrderDerivatives.hpp"
@@ -25,7 +30,7 @@ void KleinGordonLevel::variableSetUp()
         comp_type, amrex::IndexType::TheCellType(), ncomp_analytic, comp_names,
         calc_analytic_solution, [=](const amrex::Box &box) { return box; },
         &amrex::cell_quartic_interp);
-    derive_lst.addComponent("analytic_soln", desc_lst, State_Type, 0, 1);
+    derive_lst.addComponent("analytic_soln", desc_lst, state_index, 0, 1);
 
     // The following is an example of how to use the current state to compute a
     // new derived variable that depends on the state variables and the
@@ -56,7 +61,7 @@ void KleinGordonLevel::variableSetUp()
             &amrex::cell_quartic_interp);
     }
 
-    derive_lst.addComponent("rho", desc_lst, State_Type, 0, NUM_VARS);
+    derive_lst.addComponent("rho", desc_lst, state_index, 0, NUM_VARS);
 }
 
 void KleinGordonLevel::initData()
@@ -72,7 +77,7 @@ void KleinGordonLevel::initData()
     pp.query("klein_gordon.model", model);
     pp.query("klein_gordon.initial_time", initial_time);
 
-    amrex::MultiFab &state_new = get_new_data(State_Type);
+    amrex::MultiFab &state_new = get_new_data(state_index);
     auto const &array_new      = state_new.arrays();
 
     int dcomp{0};
@@ -104,9 +109,6 @@ void KleinGordonLevel::specificEvalRHS(amrex::MultiFab &a_soln,
 {
     BL_PROFILE("KleinGordonLevel::specificEvalRHS()");
 
-    auto const &soln_arrs = a_soln.const_arrays();
-    auto const &rhs_arrs  = a_rhs.arrays();
-
     amrex::ParmParse pp("klein_gordon");
 
     std::string model{};
@@ -132,16 +134,17 @@ void KleinGordonLevel::eval_model_specific_rhs(amrex::MultiFab &a_soln,
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
 
-    const auto dx         = Geom().CellSize(0);
-    const auto &soln_arrs = a_soln.const_arrays();
-    const auto &rhs_arrs  = a_rhs.arrays();
+    const auto dx                 = Geom().CellSize(0);
+    const auto &const_soln_arrays = a_soln.const_arrays();
+    const auto &rhs_arrays        = a_rhs.arrays();
 
     model_t my_model;
-    KleinGordonRHS rhs(simParams().sigma, dx, my_model);
+    KleinGordonRHS kg_rhs(simParams().sigma, dx, my_model);
 
     amrex::ParallelFor(
-        a_soln, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
-        { rhs.compute(i, j, k, soln_arrs[box_no], rhs_arrs[box_no]); });
+        a_soln,
+        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz) noexcept
+        { kg_rhs(ix, iy, iz, rhs_arrays[box_no], const_soln_arrays[box_no]); });
 }
 
 void KleinGordonLevel::tag_cells(amrex::TagBoxArray &tags,
@@ -158,7 +161,7 @@ void KleinGordonLevel::tag_cells(amrex::TagBoxArray &tags,
 
     BL_PROFILE("KleinGordonLevel::tag_cells()");
 
-    amrex::MultiFab &state_new = get_new_data(State_Type);
+    amrex::MultiFab &state_new = get_new_data(state_index);
 
     const auto &tag_arrs   = tags.arrays();
     const auto &state_arrs = state_new.arrays();
@@ -174,7 +177,7 @@ void KleinGordonLevel::tag_cells(amrex::TagBoxArray &tags,
                                           center};
 
     amrex::ParallelFor(tags,
-                       [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
-                       { my_tagging_criterion(i, j, k, tag_arrs[box_no]); });
+                       [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+                       { my_tagging_criterion(ix, iy, iz, tag_arrs[box_no]); });
     amrex::Gpu::streamSynchronize();
 }

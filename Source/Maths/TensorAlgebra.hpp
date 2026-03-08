@@ -325,27 +325,35 @@ compute_christoffel(const Tensor<2, Tensor<1, amrex::Real>> &d1_metric,
     return out;
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<3, amrex::Real>
-compute_phys_chris(const Tensor<1, amrex::Real> &d1_chi,
-                   const amrex::Real &vars_chi,
-                   const Tensor<2, amrex::Real> &vars_h,
-                   const Tensor<2, amrex::Real> &h_UU,
-                   const Tensor<3, amrex::Real> &chris_ULL)
+/// Computes the conformal christoffel symbol
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE chris_t compute_christoffel(
+    const Tensor<3, amrex::Real> &d1_metric, const Tensor<2, amrex::Real> &h_UU)
 {
-    Tensor<3, amrex::Real> chris_phys;
+    chris_t out{};
+
     FOR (i, j, k)
     {
-        chris_phys[i][j][k] =
-            chris_ULL[i][j][k] -
-            0.5 / vars_chi *
-                (delta(i, k) * d1_chi[j] + delta(i, j) * d1_chi[k]);
-        FOR (m)
+        out.LLL[i][j][k] = 0.5 * (d1_metric[j][i][k] + d1_metric[k][i][j] -
+                                  d1_metric[j][k][i]);
+    }
+    FOR (i, j, k)
+    {
+        out.ULL[i][j][k] = 0;
+        FOR (l)
         {
-            chris_phys[i][j][k] +=
-                0.5 / vars_chi * vars_h[j][k] * h_UU[i][m] * d1_chi[m];
+            out.ULL[i][j][k] += h_UU[i][l] * out.LLL[l][j][k];
         }
     }
-    return chris_phys;
+    FOR (i)
+    {
+        out.contracted[i] = 0;
+        FOR (j, k)
+        {
+            out.contracted[i] += h_UU[j][k] * out.ULL[i][j][k];
+        }
+    }
+
+    return out;
 }
 } // namespace TensorAlgebra
 

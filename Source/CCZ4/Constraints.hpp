@@ -9,12 +9,16 @@
 #define CONSTRAINTS_HPP_
 
 // GRTeclyn includes
-#include "BSSNVars.hpp"
+#include "CCZ4D1Vars.hpp"
 #include "CCZ4Geometry.hpp"
+#include "CCZ4Vars.hpp"
 #include "Cell.hpp"
+#include "DimensionDefinitions.hpp"
 #include "FourthOrderDerivatives.hpp"
+#include "GRInterval.hpp"
 #include "Interval.hpp"
 #include "Tensor.hpp"
+#include "TensorAlgebra.hpp"
 
 // AMReX includes
 #include <AMReX_MultiFab.H>
@@ -35,15 +39,8 @@ class Constraints
     static inline const amrex::Vector<std::string> var_names_norm = {"Ham",
                                                                      "Mom"};
 
-    /// CCZ4 variables
-    template <class data_t> using MetricVars = BSSNVars::VarsNoGauge<data_t>;
-
-    /// CCZ4 variables
-    template <class data_t>
-    using Diff2Vars = BSSNVars::Diff2VarsNoGauge<data_t>;
-
-    /// Vars object for Constraints
-    struct Vars
+    /// Struct for Constraints
+    struct constraints_t
     {
         amrex::Real Ham{};
         amrex::Real Ham_abs_terms{};
@@ -68,8 +65,9 @@ class Constraints
                 double cosmological_constant       = 0.0);
 
     AMREX_FORCE_INLINE AMREX_GPU_DEVICE void
-    compute(int i, int j, int k, const amrex::Array4<amrex::Real> &cst,
-            const amrex::Array4<amrex::Real const> &state) const;
+    operator()(int ix, int iy, int iz,
+               const amrex::Array4<amrex::Real> &constraints,
+               const amrex::Array4<amrex::Real const> &state) const;
 
     /// Adds the constraints to the derive list
     /// Call in variableSetUp()
@@ -94,14 +92,15 @@ class Constraints
     Interval m_c_Moms_abs_terms;
     double m_cosmological_constant;
 
-    template <template <class> class vars_t, class d2_vars_t>
-    AMREX_FORCE_INLINE AMREX_GPU_DEVICE Vars constraint_equations(
-        const vars_t<amrex::Real> &vars,
-        const vars_t<Tensor<1, amrex::Real>> &d1, const d2_vars_t &d2,
-        const Tensor<2, amrex::Real> &h_UU, const chris_t &chris) const;
+    [[nodiscard]]
+    AMREX_FORCE_INLINE AMREX_GPU_DEVICE constraints_t constraint_equations(
+        const CCZ4Vars &vars, const CCZ4D1Vars &d1,
+        const Tensor<2, amrex::Real> &d2_chi,
+        const Tensor<4, amrex::Real> &d2_h, const Tensor<2, amrex::Real> &h_UU,
+        const chris_t &chris) const;
 
     AMREX_FORCE_INLINE AMREX_GPU_DEVICE void
-    store_vars(const Vars &out,
+    store_vars(const constraints_t &out,
                const amrex::CellData<amrex::Real> &current_cell) const;
 };
 

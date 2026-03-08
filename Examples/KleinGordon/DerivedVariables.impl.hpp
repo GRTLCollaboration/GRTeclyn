@@ -1,3 +1,8 @@
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
+ */
+
 #if !defined(DERIVEDVARIABLES_HPP_)
 #error "This file should only be included through DerivedVariables.hpp"
 #endif
