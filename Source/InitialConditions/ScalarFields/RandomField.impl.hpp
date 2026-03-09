@@ -544,7 +544,7 @@ inline void RandomField::init(amrex::MultiFab &state)
                     ecross[l][p] = mhat[l]*nhat[p] + nhat[l]*mhat[p];
 
                     // Rotate polarisation tensors if requested
-                    if(m_params.alpha != 0.)
+                    if(m_params.alpha != 0)
                     {
                         Real angle = m_params.alpha * (M_PI / 180.);
                         eplus_rot[l][p] = eplus[l][p] * cos(angle) + ecross[l][p] * sin(angle);
@@ -561,7 +561,7 @@ inline void RandomField::init(amrex::MultiFab &state)
                     }
                 }
 
-                if (m_params.alpha != 0.) { Test_polarisation_tensor_orthonorm(iv, eplus, ecross, eplus_rot, ecross_rot); }
+                if (m_params.alpha != 0) { Test_polarisation_tensor_orthonorm(iv, eplus, ecross, eplus_rot, ecross_rot); }
             }
         });
     }
@@ -962,7 +962,7 @@ inline void RandomField::derive(const MultiFab &source, MultiFab &out, int dcomp
                 ecross[l][p] = mhat[l]*nhat[p] + nhat[l]*mhat[p];
 
                 // Rotate polarisation tensors if requested
-                if(m_params.alpha != 0.)
+                if(m_params.alpha != 0)
                 {
                     Real angle = m_params.alpha * (M_PI / 180.);
                     eplus_rot[l][p] = eplus[l][p] * cos(angle) + ecross[l][p] * sin(angle);
@@ -1050,10 +1050,11 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
     const double alpha_bar = state.sum(c_lapse)/vol;
     const double Pi_bar = state.sum(c_Pi)/vol;
     const double phi_bar = state.sum(c_phi)/vol;
+    const double chi_bar = state.sum(c_chi)/vol;
 
     // Remove background from scalar field
     scalars_x.plus(-phi_bar, m_c_phi, 1);
-    scalars_x.plus(-1., m_c_chi, 1);
+    scalars_x.plus(-chi_bar, m_c_chi, 1);
     scalars_x.mult(1./norm);
 
     // Undo the normalisation and BSSN-CPT conversion
@@ -1123,7 +1124,7 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
                 ecross[l][p] = mhat[l]*nhat[p] + nhat[l]*mhat[p];
 
                 // Rotate polarisation tensors if requested
-                if(m_params.alpha != 0.)
+                if(m_params.alpha != 0)
                 {
                     Real angle = m_params.alpha * (M_PI / 180.);
                     eplus_rot[l][p] = eplus[l][p] * cos(angle) + ecross[l][p] * sin(angle);
@@ -1140,7 +1141,7 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
                 }
             }
 
-            if (m_params.alpha != 0.) { Test_polarisation_tensor_orthonorm(iv, eplus, ecross, eplus_rot, ecross_rot); }
+            if (m_params.alpha != 0) { Test_polarisation_tensor_orthonorm(iv, eplus, ecross, eplus_rot, ecross_rot); }
 
             // Calculate the TT and scalar-(vector) components of the 
             // metric, by reconstructing hij and subtracting it from \tilde{gamma}_ij
@@ -1149,7 +1150,7 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
             GpuComplex<Real> hSV_tr = 0.;
             for (int l=0; l<3; l++) for (int p=0; p<3; p++)
             {
-                if (m_params.alpha != 0.) 
+                if (m_params.alpha != 0) 
                 {
                     hij[l][p] = hs_ptr(i, j, k, 0) * eplus_rot[l][p] + hs_ptr(i, j, k, 1) * ecross_rot[l][p];
                 }
@@ -1201,7 +1202,7 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
                     {
                         Phi += (iv_k[l] * iv_k[p] * hSV[l][p])/std::pow(kmag, 2.);
                     }
-                    Phi *= -1./4.;
+                    Phi *= 1./4.;
                     Phi += 0.5 * (scalars_ptr(i, j, k, m_c_chi));
 
                     // Combine the above to find R(k)
@@ -1266,6 +1267,9 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         // Apply physical normalisation
         hs_x.mult(norm);
         R_x.mult(norm);
+
+        /* Print() << "Max tensor polarisations: " << hs_x.max(0) << ", " << hs_x.max(1) << "\n";
+        Print() << "R max and min bounds: " << R_x.max(0) << ", " << R_x.min(0) << "\n"; */
 
         int output_comps = hs_x.nComp() + R_x.nComp();
         MultiFab out_MF(hs_x.boxArray(), hs_x.DistributionMap(), output_comps, 0);

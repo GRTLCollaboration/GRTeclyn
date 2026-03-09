@@ -470,10 +470,6 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
     MultiFab constr_alias(ba, dm, num, ngrow, MFInfo(), Factory());
     constr_alias.setVal(0.0);
     derive("constraints", cur_time, constr_alias, 0);
-    
-    /*MultiFab pol_fields_alias(ba, dm, 2, ngrow, MFInfo(), Factory());
-    pol_fields_alias.setVal(0.0);
-    derive("TensorPolarisations", cur_time, pol_fields_alias, 0);*/
 
     // Print statistics on the abs constraint terms
     Vector<int> moments{1,2};
