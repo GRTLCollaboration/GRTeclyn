@@ -149,33 +149,27 @@ inline void RandomField::Test_vector_orthonorm(const IntVect iv, const Vector<Re
 
 // Test that the input basis tensors, and their rotated counterparts, are orthonormal
 inline void RandomField::Test_polarisation_tensor_orthonorm(const IntVect iv, const Tensor<2, Real> eplus,
-                                                            const Tensor<2, Real> ecross, const Tensor<2, Real> eplus_rot,
-                                                            const Tensor<2, Real> ecross_rot)
+                                                                              const Tensor<2, Real> ecross)
 {
-    Real parll = 0.;
-    Real perp = 0.;
-    Real parll_rot = 0.;
-    Real perp_rot = 0.;
+    Vector<Real> conds(3, 0.);
 
     for (int l=0; l<3; l++) for (int p=0; p<3; p++)
     {
-        parll += ecross[l][p] * ecross[l][p];
-        perp += eplus[l][p] * ecross[l][p];
-
-        parll_rot += ecross_rot[l][p] * ecross_rot[l][p];
-        perp_rot += eplus_rot[l][p] * ecross_rot[l][p];
+        conds[0] += eplus[l][p] * eplus[l][p];
+        conds[1] += eplus[l][p] * ecross[l][p];
+        conds[2] += ecross[l][p] * ecross[l][p];
     }
 
     if(iv != IntVect{0, 0, 0})
     {
-        bool plc = (std::abs(parll / 2. - 1.) > tolerance 
-                    && std::abs(parll_rot / 2. - 1.) > tolerance);
-        bool ppc = (std::abs(perp) > tolerance && std::abs(perp_rot) > tolerance);
+        bool plc = (std::abs(conds[0] / 2. - 1.) > tolerance 
+                    || std::abs(conds[2] / 2. - 1.) > tolerance);
+        bool ppc = (std::abs(conds[1]) > tolerance);
         if (plc || ppc)
         {
             Print() << "---------\nLocation: " << iv << "\n";
-            Print() << "Fourier products, base: " << parll / 2. << ", " << perp << "\n";
-            Print() << "Fourier products, rotated: " << parll_rot / 2. << ", " << perp_rot << "\n";
+            Print() << "Dot products: " << conds[0] / 2. << ", " << conds[2] / 2. << "\n";
+            Print() << "Cross product: " << conds[1] << "\n";
             Print() << "Base tensor components: \n";
             for (int l=0; l<3; l++) for (int p=0; p<3; p++)
             {
@@ -377,9 +371,35 @@ inline Vector<Real> RandomField::calculate_basis_vector(const IntVect iv, const 
         Error("RandomField::calculate_polarisation_tensors Part of Fourier grid not covered.");
     }
 
-    if(which_vector == 0) { return mhat; }
-    else if(which_vector == 1) { return nhat; }
-    else { Error("RandomField::calculate_basis_vector Incompatable vector type."); return mhat; }
+    if (m_params.alpha != 0)
+    {
+        Real a = m_params.alpha * (M_PI) / 180.;
+        Vector<Real> mp(3), np(3);
+        for(int l=0; l<3; l++)
+        {
+            mp[l] = cos(a) * mhat[l] + sin(a) * nhat[l];
+            np[l] = -sin(a) * mhat[l] + cos(a) * nhat[l];
+        }
+
+        if(which_vector == 0) { return mp; }
+        else if(which_vector == 1) { return np; }
+        else 
+        { 
+            Error("RandomField::calculate_basis_vector Incompatable vector type."); 
+            return Vector<Real>{0,0,0}; 
+        }
+    }
+
+    else
+    {
+        if(which_vector == 0) { return mhat; }
+        else if(which_vector == 1) { return nhat; }
+        else 
+        { 
+            Error("RandomField::calculate_basis_vector Incompatable vector type."); 
+            return Vector<Real>{0,0,0}; 
+        }
+    }
 }
 
 // Applies above Nyquist conditions to a given MF
@@ -534,7 +554,7 @@ inline void RandomField::init(amrex::MultiFab &state)
                 Test_vector_orthonorm(iv, mhat, nhat);
 
                 // Construct polarisation tensors from basis vectors
-                Tensor<2, Real> eplus, ecross, eplus_rot, ecross_rot;
+                Tensor<2, Real> eplus, ecross; //, eplus_rot, ecross_rot;
 
                 // Find basis tensors and initial tensor realisation
                 for (int l=0; l<3; l++) for (int p=0; p<3; p++)
@@ -544,7 +564,7 @@ inline void RandomField::init(amrex::MultiFab &state)
                     ecross[l][p] = mhat[l]*nhat[p] + nhat[l]*mhat[p];
 
                     // Rotate polarisation tensors if requested
-                    if(m_params.alpha != 0)
+                    /* if(m_params.alpha != 0)
                     {
                         Real angle = m_params.alpha * (M_PI / 180.);
                         eplus_rot[l][p] = eplus[l][p] * cos(angle) + ecross[l][p] * sin(angle);
@@ -552,16 +572,16 @@ inline void RandomField::init(amrex::MultiFab &state)
 
                         hij_ptr(i, j, k, lut[l][p]) = hs_ptr(i, j, k, 0) * eplus_rot[l][p] + hs_ptr(i, j, k, 1) * ecross_rot[l][p];
                         Aij_ptr(i, j, k, lut[l][p]) = As_ptr(i, j, k, 0) * eplus_rot[l][p] + As_ptr(i, j, k, 1) * ecross_rot[l][p];
-                    }
+                    } */
 
-                    else
-                    {
-                        hij_ptr(i, j, k, lut[l][p]) = hs_ptr(i, j, k, 0) * eplus[l][p] + hs_ptr(i, j, k, 1) * ecross[l][p];
-                        Aij_ptr(i, j, k, lut[l][p]) = As_ptr(i, j, k, 0) * eplus[l][p] + As_ptr(i, j, k, 1) * ecross[l][p];
-                    }
+                    //else
+                    //{
+                    hij_ptr(i, j, k, lut[l][p]) = hs_ptr(i, j, k, 0) * eplus[l][p] + hs_ptr(i, j, k, 1) * ecross[l][p];
+                    Aij_ptr(i, j, k, lut[l][p]) = As_ptr(i, j, k, 0) * eplus[l][p] + As_ptr(i, j, k, 1) * ecross[l][p];
+                    //}
                 }
 
-                if (m_params.alpha != 0) { Test_polarisation_tensor_orthonorm(iv, eplus, ecross, eplus_rot, ecross_rot); }
+                if (m_params.alpha != 0) { Test_polarisation_tensor_orthonorm(iv, eplus, ecross); }
             }
         });
     }
@@ -1115,7 +1135,7 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
             
             Vector<Real> mhat = calculate_basis_vector(iv, 0);
             Vector<Real> nhat = calculate_basis_vector(iv, 1);
-            Tensor<2, Real> eplus, ecross, eplus_rot, ecross_rot;
+            Tensor<2, Real> eplus, ecross; //, eplus_rot, ecross_rot;
 
             // Find basis tensors and do the Fourier trick
             for (int l=0; l<3; l++) for (int p=0; p<3; p++)
@@ -1124,7 +1144,7 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
                 ecross[l][p] = mhat[l]*nhat[p] + nhat[l]*mhat[p];
 
                 // Rotate polarisation tensors if requested
-                if(m_params.alpha != 0)
+                /* if(m_params.alpha != 0)
                 {
                     Real angle = m_params.alpha * (M_PI / 180.);
                     eplus_rot[l][p] = eplus[l][p] * cos(angle) + ecross[l][p] * sin(angle);
@@ -1132,16 +1152,16 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
 
                     hs_ptr(i, j, k, 0) += (hij_ptr(i, j, k, lut[l][p]) * eplus_rot[l][p])/2.;
                     hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross_rot[l][p])/2.;
-                }
+                } */
 
-                else
-                {
-                    hs_ptr(i, j, k, 0) += (hij_ptr(i, j, k, lut[l][p]) * eplus[l][p])/2.;
-                    hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross[l][p])/2.;
-                }
+                //else
+                //{
+                hs_ptr(i, j, k, 0) += (hij_ptr(i, j, k, lut[l][p]) * eplus[l][p])/2.;
+                hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross[l][p])/2.;
+                //}
             }
 
-            if (m_params.alpha != 0) { Test_polarisation_tensor_orthonorm(iv, eplus, ecross, eplus_rot, ecross_rot); }
+            if (m_params.alpha != 0) { Test_polarisation_tensor_orthonorm(iv, eplus, ecross); }
 
             // Calculate the TT and scalar-(vector) components of the 
             // metric, by reconstructing hij and subtracting it from \tilde{gamma}_ij
@@ -1150,14 +1170,14 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
             GpuComplex<Real> hSV_tr = 0.;
             for (int l=0; l<3; l++) for (int p=0; p<3; p++)
             {
-                if (m_params.alpha != 0) 
+                /* if (m_params.alpha != 0) 
                 {
                     hij[l][p] = hs_ptr(i, j, k, 0) * eplus_rot[l][p] + hs_ptr(i, j, k, 1) * ecross_rot[l][p];
-                }
-                else
-                {
+                } */
+                //else
+                //{
                     hij[l][p] = hs_ptr(i, j, k, 0) * eplus[l][p] + hs_ptr(i, j, k, 1) * ecross[l][p];
-                }
+                //}
 
                 hSV[l][p] = hij_ptr(i, j, k, lut[l][p]) - hij[l][p];
 

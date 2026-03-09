@@ -167,8 +167,7 @@ class RandomField
         void Test_vector_orthonorm(const IntVect iv, const Vector<Real> mhat, 
                                                                  const Vector<Real> nhat);
         void Test_polarisation_tensor_orthonorm(const IntVect iv, const Tensor<2, Real> eplus,
-                                                const Tensor<2, Real> ecross, const Tensor<2, Real> eplus_rot,
-                                                const Tensor<2, Real> ecross_rot);
+                                                const Tensor<2, Real> ecross);
 
         // Initialisation routines 
         GpuComplex<Real> calculate_mode_function(const double km, const int spec_indx);
