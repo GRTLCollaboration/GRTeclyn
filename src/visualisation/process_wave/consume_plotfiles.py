@@ -428,12 +428,23 @@ def _extract_mode_amps_l2m0(
     weyl = np.full(sx.shape, np.nan + 1j * np.nan, dtype=np.complex128)
     pts = np.column_stack((sx[idxs], sy[idxs], sz[idxs]))
 
+    def _coerce_scalar_samples(values) -> np.ndarray:
+        arr = np.asarray(values)
+        if arr.dtype != object and arr.ndim == 1:
+            return arr.astype(float, copy=False)
+
+        out = np.empty(len(values), dtype=float)
+        for jj, v in enumerate(values):
+            vv = np.asarray(v, dtype=float).reshape(-1)
+            out[jj] = vv[0] if vv.size else np.nan
+        return out
+
     try:
         vals = ds.find_field_values_at_points(
             [("boxlib", "Weyl4_Re"), ("boxlib", "Weyl4_Im")], pts
         )
-        re_vals = np.asarray(vals[0], dtype=float)
-        im_vals = np.asarray(vals[1], dtype=float)
+        re_vals = _coerce_scalar_samples(vals[0])
+        im_vals = _coerce_scalar_samples(vals[1])
         weyl[idxs] = re_vals + 1j * im_vals
     except Exception:
         # Fallback: per-point sampling (slow, but should still work)

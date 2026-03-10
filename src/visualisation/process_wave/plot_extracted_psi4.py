@@ -227,7 +227,7 @@ def main() -> None:
 
     ax1.set_xlabel(r"$t$" if args.time_axis == "simulation" else r"$t - R_{\mathrm{ext}}$")
     ax1.set_ylabel(r"$r\,\mathrm{Re}\!\left(\Psi_4^{2,0}\right)$")
-    ax1.set_title(r"Gravitational-wave curvature $\Psi_4$ (mode $\ell=2$, $m=0$)")
+    ax1.set_title(r"Radius-scaled waveform $r\,\mathrm{Re}(\Psi_4^{2,0})$")
     if plotted_any:
         ax1.legend(loc="upper right", frameon=True, framealpha=0.9)
     ax1.grid(True, which="both", ls="--", alpha=0.6)
@@ -235,7 +235,7 @@ def main() -> None:
 
     if args.plot_psd and ax2 is not None:
         ax2.set_xlabel(r"$f\,(M^{-1})$")
-        ax2.set_ylabel(r"$\mathrm{PSD}\left[\Psi_4\right]$")
+        ax2.set_ylabel(r"$\mathrm{PSD}\left[r\,\mathrm{Re}(\Psi_4^{2,0})\right]$")
         ax2.grid(True, which="major", ls="--", alpha=0.6)
         ax2.tick_params(axis="both", which="major", direction="in", top=True, right=True)
 

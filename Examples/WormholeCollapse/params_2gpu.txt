@@ -64,7 +64,7 @@ wormhole_initial_lapse_type = 0
 # Amp = 5.0, width = 1.0 (Increased width to resolve kick on grid, kept strong Amp)
 wormhole_throat_radius = 0.5
 wormhole_centerA = 0.0 0.0 0.0
-wormhole_k_amplitude   = -3.0
+wormhole_k_amplitude   = -0.0
 wormhole_k_width       = 1.0
 
 # IMPORTANT:
@@ -117,7 +117,7 @@ nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 
 # FIX: Smaller timestep to ensure stability
 dt_multiplier = 0.1
-stop_time = 50.0
+stop_time = 30.0
 
 max_spatial_derivative_order = 4
 nan_check = 1

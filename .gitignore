@@ -59,8 +59,10 @@ script/
 
 
 scr/visualisation/visualize
-src/
-
+src/visualisation/ArticleResults/
+src/visualisation/visualize/
+src/visualisation/visualize_zoom/
+src/visualisation/process_wave/__pycache__/
 #cach
 cache/
 __pycache__/

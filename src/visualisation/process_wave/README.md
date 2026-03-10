@@ -2,16 +2,31 @@
 
 Extract \(\Psi_4\) from plotfiles, append to a small `.dat` file, optionally delete plotfiles. Plot later from the `.dat` without needing plotfiles.
 
-## Quick Start (Psi4 + frames, cleans K_z etc. before run)
+## Quick Start (Psi4 + frames, corner-origin plots)
 
 ```bash
 python -m src.visualisation.process_wave.consume_plotfiles \
   --data "/home/jovyan/nachevsky/test/simulation/data_2gpu" \
   --out  "/home/jovyan/nachevsky/test/simulation/data_2gpu/small_data" \
-  --radii 12 14 \
-  --n-points 12 \
-  --frames-fields chi K Weyl4_Re \
+  --radii 10 14 \
+  --n-points 64 \
+  --frames-fields chi K Weyl4_Re Weyl4_Mag \
   --frames-axis z \
+  --frames-corner \
+  --frames-out "/home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/visualize" \
+  --watch --delete --keep-last 2 \
+  --verbose
+```
+
+```bash
+python -m src.visualisation.process_wave.consume_plotfiles \
+  --data "/home/jovyan/nachevsky/test/simulation/data_2gpu" \
+  --out  "/home/jovyan/nachevsky/test/simulation/data_2gpu/small_data" \
+  --radii 8 12 16 \
+  --n-points 64 \
+  --frames-fields chi K Weyl4_Re Weyl4_Mag \
+  --frames-axis z \
+  --frames-corner \
   --frames-out "/home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/visualize" \
   --watch --delete --keep-last 2 \
   --verbose
@@ -54,16 +69,17 @@ Frames are written under:
 
 - `.../src/visualisation/visualize/<field>_<axis>/frames/frame_<axis>_####.png`
 
-**Psi4 + frames (chi, K, Weyl4_Re), then delete plotfiles:**
+**Psi4 + frames (chi, K, Weyl4_Re, Weyl4_Mag), then delete plotfiles:**
 
 ```bash
 python -m src.visualisation.process_wave.consume_plotfiles \
   --data "/home/jovyan/nachevsky/test/simulation/data_2gpu" \
   --out  "/home/jovyan/nachevsky/test/simulation/data_2gpu/small_data" \
-  --radii 12 14 \
-  --n-points 12 \
-  --frames-fields chi K Weyl4_Re \
+  --radii 10 14 \
+  --n-points 64 \
+  --frames-fields chi K Weyl4_Re Weyl4_Mag \
   --frames-axis z \
+  --frames-corner \
   --frames-out "/home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/visualize" \
   --watch --delete --keep-last 2 \
   --verbose
@@ -75,8 +91,9 @@ python -m src.visualisation.process_wave.consume_plotfiles \
 python -m src.visualisation.process_wave.consume_plotfiles \
   --no-psi4 \
   --data "/home/jovyan/nachevsky/test/simulation/data_2gpu" \
-  --frames-fields chi K Weyl4_Mag \
+  --frames-fields chi K Weyl4_Re Weyl4_Mag \
   --frames-axis z \
+  --frames-corner \
   --frames-out "/home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/visualize" \
   --watch --delete --keep-last 2 \
   --verbose
@@ -104,12 +121,14 @@ This prevents accidental “append to old run” when reusing the same output di
 
 ```bash
 python -m src.visualisation.process_wave.plot_extracted_psi4 \
+  "/home/jovyan/nachevsky/test/simulation/data_2gpu/small_data/psi4_mode_l2m0.dat" \
+  --radii 10 14 \
   --time-axis retarded \
   --out "/home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/process_wave" \
   --plot-psd
 ```
 
-**Output:** `psi4_extracted_R10_R15.png`
+**Output:** `psi4_extracted_R10_R14.png`
 
 ## Options
 
@@ -155,10 +174,11 @@ python -m src.visualisation.process_wave.plot_extracted_psi4 \
 python -m src.visualisation.process_wave.consume_plotfiles \
   --data "/home/jovyan/nachevsky/test/simulation/data_2gpu" \
   --out  "/home/jovyan/nachevsky/test/simulation/data_2gpu/small_data" \
-  --radii 12 14 \
-  --n-points 12 \
-  --frames-fields chi K Weyl4_Re \
+  --radii 10 14 \
+  --n-points 64 \
+  --frames-fields chi K Weyl4_Re Weyl4_Mag \
   --frames-axis z \
+  --frames-corner \
   --frames-out "/home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/visualize" \
   --watch --delete --keep-last 2 \
   --verbose
@@ -168,18 +188,6 @@ python -m src.visualisation.process_wave.consume_plotfiles \
 4. Plot: `python -m src.visualisation.process_wave.plot_extracted_psi4 <path/to/psi4_mode_l2m0.dat>`
 
 
+### Note on corner-origin plots
 
-
-Comamnd that hides the y=0 label 
-```bash
-python -m src.visualisation.process_wave.consume_plotfiles \
-  --data "/home/jovyan/nachevsky/test/simulation/data_2gpu" \
-  --out  "/home/jovyan/nachevsky/test/simulation/data_2gpu/small_data" \
-  --no-psi4 \
-  --frames-fields chi K Weyl4_Re Weyl4_Mag \
-  --frames-axis z \
-  --frames-corner \
-  --frames-out "/home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/visualize" \
-  --watch --delete --keep-last 2 \
-  --verbose
-  ```
+For octant/symmetry-reduced runs, add `--frames-corner` so the axes are drawn as `0..L` and the y-axis `0` label at the origin is suppressed (keeping the x-axis `0`).
