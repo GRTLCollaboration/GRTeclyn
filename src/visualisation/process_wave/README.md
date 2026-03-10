@@ -130,13 +130,23 @@ python -m src.visualisation.process_wave.plot_extracted_psi4 \
 
 **Output:** `psi4_extracted_R10_R14.png`
 
+If you omit `--radii`, the script plots **all radii present in the `.dat` file**:
+
+```bash
+python -m src.visualisation.process_wave.plot_extracted_psi4 \
+  "/home/jovyan/nachevsky/test/simulation/data_2gpu/small_data/psi4_mode_l2m0.dat" \
+  --time-axis retarded \
+  --out "/home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/process_wave" \
+  --plot-psd
+```
+
 ## Options
 
 ### plot_extracted_psi4 arguments
 
 - `input`: Path to the `.dat` file (default: searches in `data_2gpu/small_data` or `data/small_data`)
 - `--out PATH`: Output directory for the plot
-- `--radii R1 R2 ...`: Subset of radii to plot
+- `--radii R1 R2 ...`: Optional subset of radii to plot. If omitted, all radii stored in the `.dat` file are plotted.
 - `--time-axis {simulation, retarded}`: Choose time axis (default: `simulation`). `retarded` plots $t - R$.
 - `--plot-psd`: Enable Power Spectral Density (PSD) plot (default: disabled)
 - `--t-min T`, `--t-max T`: Time range to plot
