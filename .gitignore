@@ -57,6 +57,7 @@ src/visualisation/K_z
 #Running scripts
 script/
 
+src/SimResults/
 
 scr/visualisation/visualize
 src/visualisation/ArticleResults/

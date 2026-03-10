@@ -4,7 +4,8 @@ set -euo pipefail
 # Plot all standard diagnostics for a run:
 # - constraint norms
 # - collapse diagnostics
-# - extracted Psi4 waveform / PSD
+# - extracted Psi4 waveform / PSD in retarded time
+# - extracted Psi4 waveform / PSD in simulation time
 #
 # Usage:
 #   ./src/visualisation/scripts/plot_diagnostic.sh [RUN_DIR] [RADIUS ...]
@@ -57,12 +58,21 @@ python -m src.visualisation.diagnostic.diagnostic \
   "${COLLAPSE_FILE}" \
   --out "${VIS_DIR}/diagnostic"
 
-echo "[3/3] Plotting extracted Psi4..."
+echo "[3/4] Plotting extracted Psi4 in retarded time..."
 python -m src.visualisation.process_wave.plot_extracted_psi4 \
   "${PSI4_FILE}" \
   "${RADII_ARGS[@]}" \
   --time-axis retarded \
   --out "${VIS_DIR}/process_wave" \
+  --plot-psd
+
+echo "[4/4] Plotting extracted Psi4 in simulation time..."
+python -m src.visualisation.process_wave.plot_extracted_psi4 \
+  "${PSI4_FILE}" \
+  "${RADII_ARGS[@]}" \
+  --time-axis simulation \
+  --out "${VIS_DIR}/process_wave" \
+  --name "psi4_extracted_simulation.png" \
   --plot-psd
 
 echo "Done."

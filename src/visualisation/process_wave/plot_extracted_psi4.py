@@ -146,6 +146,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Plot extracted Psi4 time-series (.dat) with PSD.")
     parser.add_argument("input", nargs="?", default=str(default_data), help=f"Input .dat (default: {default_data})")
     parser.add_argument("--out", default=str(script_dir), help="Output directory (default: this folder)")
+    parser.add_argument("--name", default=None, help="Optional output filename (default: auto-generated from radii)")
     parser.add_argument("--radii", type=float, nargs="*", default=None, help="Subset of radii to plot (defaults to all)")
     parser.add_argument("--time-axis", choices=["simulation", "retarded"], default="simulation", help="Time axis to use (default: simulation)")
     parser.add_argument("--plot-psd", action="store_true", help="Enable PSD plot (default: False)")
@@ -242,7 +243,8 @@ def main() -> None:
     out_dir = Path(args.out).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     suffix = "_".join([f"R{r:g}" for r in radii])
-    out_path = out_dir / f"psi4_extracted_{suffix}.png"
+    out_name = args.name if args.name else f"psi4_extracted_{suffix}.png"
+    out_path = out_dir / out_name
     plt.tight_layout()
     plt.savefig(out_path, dpi=300, bbox_inches="tight")
     print(f"Saved to {out_path}")
