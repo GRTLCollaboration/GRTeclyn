@@ -1,0 +1,5 @@
+---
+alwaysApply: true
+---
+
+Do not create random .md files while answering to the user in the chat or explaining something

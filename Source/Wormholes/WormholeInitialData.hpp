@@ -151,20 +151,35 @@ class WormholeInitialData
         if (chi < (data_t)1.0e-10) chi = (data_t)1.0e-10;
 
         // Optional "kick": a small inward K perturbation at each mouth.
+        // As requested to break spherical symmetry and emit GWs, we use a quadrupole 
+        // l=2, m=0 perturbation proportional to Y_{20} ~ (3 cos^2(theta) - 1).
         data_t K = 0.0;
         if ((m_params.k_amplitude != 0.0) && (m_params.k_width > 0.0))
         {
             const data_t sig2 = (data_t)(m_params.k_width * m_params.k_width);
+            
+            // Calculate quadrupole angular dependence: 3(z/r)^2 - 1
+            // A small regularization eps is used to avoid division by zero at the exact center.
+            const data_t eps2_ang = (data_t)1.0e-24;
+            
+            const data_t rA2_safe = simd_max(rA2, eps2_ang);
+            const data_t cos_theta_A_sq = dzA * dzA / rA2_safe;
+            const data_t Y20_A = 3.0 * cos_theta_A_sq - 1.0;
+            
+            const data_t rB2_safe = simd_max(rB2, eps2_ang);
+            const data_t cos_theta_B_sq = dzB * dzB / rB2_safe;
+            const data_t Y20_B = 3.0 * cos_theta_B_sq - 1.0;
+            
             if (m_params.metric_type == 1)
             {
-                // Single throat: seed collapse at centerA only
-                K = (data_t)m_params.k_amplitude * exp(-rA2 / sig2);
+                // Single throat: seed collapse at centerA only with Y20 modulation
+                K = (data_t)m_params.k_amplitude * exp(-rA2 / sig2) * Y20_A;
             }
             else
             {
-                // Two mouths: kick both
+                // Two mouths: kick both with Y20 modulation
                 K = (data_t)m_params.k_amplitude *
-                    (exp(-rA2 / sig2) + exp(-rB2 / sig2));
+                    (exp(-rA2 / sig2) * Y20_A + exp(-rB2 / sig2) * Y20_B);
             }
         }
 

@@ -59,12 +59,18 @@ wormhole_metric_type = 1
 # - 0: alpha = 1
 # - 1: alpha = sqrt(chi) (pre-collapsed)
 # - 2: alpha = 1 - 3*log(chi) (N=2, 1+log-inspired using gamma=chi^{-3})
-wormhole_initial_lapse_type = 0
+wormhole_initial_lapse_type = 1
 
-# Amp = 5.0, width = 1.0 (Increased width to resolve kick on grid, kept strong Amp)
-wormhole_throat_radius = 0.5
+# Quadrupolar kick notes:
+# - The kick now uses a Y20-like angular factor, so it is not purely inward/outward.
+# - Flipping the sign no longer means "collapse vs expansion"; it swaps which lobes
+#   are compressed and which are rarefied.
+# - Start with a small amplitude and tune upward only if needed.
+# - Keep width = 1.0 for now.
+#was 0.5 initally
+wormhole_throat_radius = 0.5 
 wormhole_centerA = 0.0 0.0 0.0
-wormhole_k_amplitude   = -0.0
+wormhole_k_amplitude   = 1.0
 wormhole_k_width       = 1.0
 
 # IMPORTANT:

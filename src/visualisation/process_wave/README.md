@@ -214,3 +214,10 @@ python -m src.visualisation.process_wave.consume_plotfiles \
 ### Note on corner-origin plots
 
 For octant/symmetry-reduced runs, add `--frames-corner` so the axes are drawn as `0..L` and the y-axis `0` label at the origin is suppressed (keeping the x-axis `0`).
+
+
+
+for the last simulating setup for consistency 
+```bash 
+python -m src.visualisation.process_wave.consume_plotfiles   --data "/home/jovyan/nachevsky/test/simulation/data_2gpu"   --out  "/home/jovyan/nachevsky/test/simulation/data_2gpu/small_data"   --radii 8 12 16   --n-points 32   --frames-fields chi K Weyl4_Re Weyl4_Mag   --frames-axis z   --frames-corner   --frames-out "/home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/visualize"   --watch --delete --keep-last 2   --verbose
+```

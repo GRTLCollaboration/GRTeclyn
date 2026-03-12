@@ -17,23 +17,23 @@ void WormholeLevel::variableSetUp()
 {
     BL_PROFILE("WormholeLevel::variableSetUp()");
     stateVariableSetUp();
-    Constraints::set_up(State_Type);
-    Weyl4::set_up(State_Type);
+    Constraints::set_up(state_index);
+    Weyl4::set_up(state_index);
 }
 
 void WormholeLevel::specificAdvance()
 {
-    amrex::MultiFab &S_new = get_new_data(State_Type);
+    amrex::MultiFab &S_new = get_new_data(state_index);
     const auto &arrs       = S_new.arrays();
+    TraceARemoval trace_A_removal;
+    PositiveChiAndLapse positive_chi_lapse;
 
     // Enforce algebraic constraints
     amrex::ParallelFor(S_new,
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
                        {
-                           amrex::CellData<amrex::Real> cell =
-                               arrs[box_no].cellData(i, j, k);
-                           TraceARemoval()(cell);
-                           PositiveChiAndLapse()(cell);
+                           trace_A_removal(i, j, k, arrs[box_no]);
+                           positive_chi_lapse(i, j, k, arrs[box_no]);
                        });
 }
 
@@ -45,7 +45,7 @@ void WormholeLevel::initData()
     WormholeInitialData wormhole(simParams().wormhole_params,
                                  Geom().CellSize(0));
 
-    amrex::MultiFab &state = get_new_data(State_Type);
+    amrex::MultiFab &state = get_new_data(state_index);
     const auto &arrs       = state.arrays();
 
     amrex::ParallelFor(state, state.nGrowVect(),
@@ -73,15 +73,15 @@ void WormholeLevel::specificEvalRHS(amrex::MultiFab &a_soln,
     const auto &soln_arrs   = a_soln.arrays();
     const auto &soln_c_arrs = a_soln.const_arrays();
     const auto &rhs_arrs    = a_rhs.arrays();
+    TraceARemoval trace_A_removal;
+    PositiveChiAndLapse positive_chi_lapse;
 
     // Enforce algebraic constraints pre-RHS
     amrex::ParallelFor(a_soln, a_soln.nGrowVect(),
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
                        {
-                           amrex::CellData<amrex::Real> cell =
-                               soln_arrs[box_no].cellData(i, j, k);
-                           TraceARemoval()(cell);
-                           PositiveChiAndLapse()(cell);
+                           trace_A_removal(i, j, k, soln_arrs[box_no]);
+                           positive_chi_lapse(i, j, k, soln_arrs[box_no]);
                        });
 
     // Calculate CCZ4 Right Hand Side (Vacuum Einstein Equations)
@@ -91,7 +91,7 @@ void WormholeLevel::specificEvalRHS(amrex::MultiFab &a_soln,
 
     amrex::ParallelFor(
         a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
-        { ccz4rhs.compute(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]); });
+        { ccz4rhs(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]); });
 
     amrex::Gpu::streamSynchronize();
 }
@@ -99,12 +99,11 @@ void WormholeLevel::specificEvalRHS(amrex::MultiFab &a_soln,
 void WormholeLevel::specificUpdateODE(amrex::MultiFab &a_soln)
 {
     const auto &soln_arrs = a_soln.arrays();
+    TraceARemoval trace_A_removal;
     amrex::ParallelFor(a_soln, amrex::IntVect(0),
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
                        {
-                           amrex::CellData<amrex::Real> cell =
-                               soln_arrs[box_no].cellData(i, j, k);
-                           TraceARemoval()(cell);
+                           trace_A_removal(i, j, k, soln_arrs[box_no]);
                        });
 
     amrex::Gpu::streamSynchronize();
@@ -112,16 +111,16 @@ void WormholeLevel::specificUpdateODE(amrex::MultiFab &a_soln)
 
 void WormholeLevel::pre_tag_cells()
 {
-    amrex::MultiFab &state_new = get_new_data(State_Type);
-    const auto cur_time        = get_state_data(State_Type).curTime();
-    FillPatch(*this, state_new, 2, cur_time, State_Type, c_chi, 1);
+    amrex::MultiFab &state_new = get_new_data(state_index);
+    const auto cur_time        = get_state_data(state_index).curTime();
+    FillPatch(*this, state_new, 2, cur_time, state_index, c_chi, 1);
 }
 
 void WormholeLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
                               amrex::Real a_regrid_threshold)
 {
     BL_PROFILE("WormholeLevel::tag_cells()");
-    amrex::MultiFab &state_new = get_new_data(State_Type);
+    amrex::MultiFab &state_new = get_new_data(state_index);
     const auto &tag_arrs       = a_tag_box_array.arrays();
     const auto &state_new_arrs = state_new.const_arrays();
 
@@ -147,14 +146,14 @@ void WormholeLevel::specificPostTimeStep()
     // Compute volume-weighted L2 norms of Ham and Mom on level 0.
     if (simParams().calculate_constraint_norms && Level() == 0)
     {
-        const amrex::Real time         = get_state_data(State_Type).curTime();
+        const amrex::Real time         = get_state_data(state_index).curTime();
         const amrex::Real dt           = parent->dtLevel(0);
         const amrex::Real restart_time = get_gramr_ptr()->get_restart_time();
         const bool first_step          = (time == 0.0);
 
         // Fill ghosts for constraint calculation
-        amrex::MultiFab &state_new = get_new_data(State_Type);
-        FillPatch(*this, state_new, 2, time, State_Type, 0, state_new.nComp());
+        amrex::MultiFab &state_new = get_new_data(state_index);
+        FillPatch(*this, state_new, 2, time, state_index, 0, state_new.nComp());
 
         // Compute constraints into a temporary MultiFab (Ham, Mom1, Mom2, Mom3)
         amrex::MultiFab cst(state_new.boxArray(), state_new.DistributionMap(), 4,
@@ -236,13 +235,13 @@ void WormholeLevel::specificPostTimeStep()
     // are deleted on-the-fly.
     if (Level() == 0)
     {
-        const amrex::Real time         = get_state_data(State_Type).curTime();
+        const amrex::Real time         = get_state_data(state_index).curTime();
         const amrex::Real dt           = parent->dtLevel(0);
         const amrex::Real restart_time = get_gramr_ptr()->get_restart_time();
         const bool first_step          = (time == 0.0);
 
-        amrex::MultiFab &state_new = get_new_data(State_Type);
-        FillPatch(*this, state_new, 2, time, State_Type, 0, state_new.nComp());
+        amrex::MultiFab &state_new = get_new_data(state_index);
+        FillPatch(*this, state_new, 2, time, state_index, 0, state_new.nComp());
 
         amrex::ReduceOps<amrex::ReduceOpMin, amrex::ReduceOpMin,
                          amrex::ReduceOpMax>

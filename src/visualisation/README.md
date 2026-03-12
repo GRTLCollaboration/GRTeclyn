@@ -291,3 +291,9 @@ python -m src.visualisation.constraines /home/jovyan/nachevsky/test/simulation/d
 ```bash
 python3 /home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/visualize/make_movies.py   --root /home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/visualize
 ```
+
+
+Copy the results to the new folder 
+```bash
+./src/visualisation/scripts/move_files.sh run_A_plus_3
+```
