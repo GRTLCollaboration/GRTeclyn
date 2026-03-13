@@ -4,7 +4,7 @@
 // General includes
 #include "GRParmParse.hpp"
 #include "SimulationParametersBase.hpp"
-#include "WormholeInitialData.hpp" // Add this
+#include "SupportedWormholeInitialData.hpp" // Add this
 
 class SimulationParameters : public SimulationParametersBase
 {
@@ -60,6 +60,9 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("wormhole_use_cartesian_gamma", wormhole_params.use_cartesian_gamma,
                 false);
 
+        pp.load("wormhole_support_strength", wormhole_params.support_strength,
+                1.0);
+
         // Kick parameters:
         // - wormhole_k_monopole_amplitude controls the coherent compressive part
         // - wormhole_k_quadrupole_amplitude controls the Y20 deformation
@@ -104,7 +107,7 @@ class SimulationParameters : public SimulationParametersBase
     bool calculate_constraint_norms{};
 
     // Store parameters for Initial Data
-    WormholeInitialData::params_t wormhole_params{};
+    SupportedWormholeInitialData::params_t wormhole_params{};
 };
 
 #endif /* SIMULATIONPARAMETERS_HPP */

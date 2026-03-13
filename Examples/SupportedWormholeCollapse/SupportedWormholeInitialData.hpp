@@ -3,8 +3,8 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#ifndef WORMHOLEINITIALDATA_HPP_
-#define WORMHOLEINITIALDATA_HPP_
+#ifndef SUPPORTEDWORMHOLEINITIALDATA_HPP_
+#define SUPPORTEDWORMHOLEINITIALDATA_HPP_
 
 #include "CCZ4StateVariables.hpp"
 #include "Cell.hpp"
@@ -26,7 +26,7 @@
 //! The evolution system is vacuum CCZ4. Therefore, this initial slice is not in
 //! general a vacuum-constraint solution and will emit an early transient as it
 //! relaxes.
-class WormholeInitialData
+class SupportedWormholeInitialData
 {
   public:
     struct params_t
@@ -73,9 +73,12 @@ class WormholeInitialData
         // Legacy/debug option: initialise a nontrivial Cartesian gamma_ij
         // (single-throat proper-distance metric centred at the origin).
         bool use_cartesian_gamma;
+
+        // Overall multiplier for the exotic scalar field support
+        double support_strength;
     };
 
-    WormholeInitialData(params_t a_params, double a_dx)
+    SupportedWormholeInitialData(params_t a_params, double a_dx)
         : m_params(a_params), m_dx(a_dx)
     {
     }
@@ -209,6 +212,32 @@ class WormholeInitialData
             }
         }
 
+        // Initialize scalar field phi and Pi (static Ellis-Bronnikov solution)
+        data_t phi = 0.0;
+        data_t Pi = 0.0;
+        
+        // phi(r) = (1/sqrt(4*pi)) * arctan( (r - b0^2/(4r)) / b0 )
+        // Using G=1.
+        if (m_params.metric_type == 1)
+        {
+            const data_t rA = sqrt(rA2_reg);
+            const data_t argA = (rA - (data_t)bA_sq / (4.0 * rA)) / (data_t)bA;
+            phi = (data_t)(1.0 / sqrt(4.0 * M_PI)) * atan(argA);
+        }
+        else
+        {
+            // Simple superposition for two mouths
+            const data_t rA = sqrt(rA2_reg);
+            const data_t argA = (rA - (data_t)bA_sq / (4.0 * rA)) / (data_t)bA;
+            const data_t phiA = (data_t)(1.0 / sqrt(4.0 * M_PI)) * atan(argA);
+            
+            const data_t rB = sqrt(rB2_reg);
+            const data_t argB = (rB - (data_t)bB_sq / (4.0 * rB)) / (data_t)bB;
+            const data_t phiB = (data_t)(1.0 / sqrt(4.0 * M_PI)) * atan(argB);
+            
+            phi = phiA + phiB;
+        }
+
         data_t lapse = 1.0;
         if (m_params.initial_lapse_type == 1)
         {
@@ -248,6 +277,9 @@ class WormholeInitialData
         cell(i, j, k, c_B3)     = 0.0;
 
         cell(i, j, k, c_Theta) = 0.0;
+        
+        cell(i, j, k, c_phi) = phi;
+        cell(i, j, k, c_Pi) = Pi;
     }
 
   protected:
@@ -255,4 +287,4 @@ class WormholeInitialData
     double m_dx;
 };
 
-#endif /* WORMHOLEINITIALDATA_HPP_ */
+#endif /* SUPPORTEDWORMHOLEINITIALDATA_HPP_ */

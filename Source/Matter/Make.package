@@ -13,4 +13,6 @@ GRTECLYN_CEXE_headers += ConstraintsWithMatter.hpp \
                          ScalarFieldVars.hpp \
                          ScalarFieldAdvecVars.hpp \
                          ScalarFieldD1Vars.hpp \
-                         ScalarFieldD2Vars.hpp
+                         ScalarFieldD2Vars.hpp \
+                         ExoticScalarField.hpp \
+                         ExoticScalarField.impl.hpp
