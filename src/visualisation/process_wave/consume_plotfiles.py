@@ -48,7 +48,7 @@ def _iter_plotfile_dirs(data_dir: str) -> List[str]:
     if not os.path.isdir(data_dir):
         return out
     for name in os.listdir(data_dir):
-        if not (name.startswith("WormholePlt") or name.startswith("plt")):
+        if not (name.startswith("WormholePlt") or name.startswith("SupportedWormholePlt") or name.startswith("plt")):
             continue
         p = os.path.join(data_dir, name)
         if os.path.isdir(p):

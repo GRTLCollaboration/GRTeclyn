@@ -62,6 +62,10 @@ class SimulationParameters : public SimulationParametersBase
 
         pp.load("wormhole_support_strength", wormhole_params.support_strength,
                 1.0);
+        pp.load("wormhole_support_ramp_start", wormhole_params.support_ramp_start,
+                -1.0); // negative means no ramp
+        pp.load("wormhole_support_ramp_duration", wormhole_params.support_ramp_duration,
+                5.0);
 
         // Kick parameters:
         // - wormhole_k_monopole_amplitude controls the coherent compressive part

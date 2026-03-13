@@ -6,7 +6,7 @@ Expected input: collapse_diagnostics.dat (SmallDataIO ASCII), typically located 
   <run_output>/data/collapse_diagnostics.dat
 
 Columns (current format):
-  time  min_lapse  min_chi  max_abs_K  min_lapse_x  min_lapse_y  min_lapse_z
+  time  min_lapse  min_chi  max_abs_K  min_lapse_x  min_lapse_y  min_lapse_z max_ah_r
 
 This script produces a publication-style multi-panel figure (one panel per value).
 """
@@ -72,9 +72,9 @@ def load_collapse_diagnostics(path: Path) -> Dict[str, np.ndarray]:
         raise SystemExit(f"No data rows found in {path}")
 
     arr = np.asarray(rows, dtype=float)
-    if arr.shape[1] not in (4, 7):
+    if arr.shape[1] not in (4, 7, 8):
         raise SystemExit(
-            f"Unexpected number of columns in {path}: got {arr.shape[1]}, expected 4 or 7"
+            f"Unexpected number of columns in {path}: got {arr.shape[1]}, expected 4, 7, or 8"
         )
 
     t = arr[:, 0]
@@ -84,7 +84,7 @@ def load_collapse_diagnostics(path: Path) -> Dict[str, np.ndarray]:
         "min_chi": arr[:, 2],
         "max_abs_K": arr[:, 3],
     }
-    if arr.shape[1] == 7:
+    if arr.shape[1] >= 7:
         out.update(
             {
                 "min_lapse_x": arr[:, 4],
@@ -100,6 +100,11 @@ def load_collapse_diagnostics(path: Path) -> Dict[str, np.ndarray]:
                 "min_lapse_z": np.full_like(t, np.nan),
             }
         )
+        
+    if arr.shape[1] >= 8:
+        out["max_ah_r"] = arr[:, 7]
+    else:
+        out["max_ah_r"] = np.full_like(t, np.nan)
 
     # sort by time
     idx = np.argsort(out["t"])
@@ -130,7 +135,7 @@ def plot_collapse_diagnostics(data: Dict[str, np.ndarray], out_path: Path) -> No
 
     t = data["t"]
 
-    fig, axes = plt.subplots(3, 2, figsize=(12, 10), sharex=True)
+    fig, axes = plt.subplots(4, 2, figsize=(12, 13), sharex=True)
     axes = np.asarray(axes)
 
     # Left column: scalar collapse indicators (log scale)
@@ -138,6 +143,7 @@ def plot_collapse_diagnostics(data: Dict[str, np.ndarray], out_path: Path) -> No
         ("min_lapse", r"$\min(\alpha)$", r"Minimum lapse: $\alpha$"),
         ("min_chi", r"$\min(\chi)$", r"Minimum conformal factor: $\chi$"),
         ("max_abs_K", r"$\max(|K|)$", r"Maximum curvature: $|K|$"),
+        ("max_ah_r", r"$r_{\rm AH}$", r"Max Trapped Surface Radius: $\theta_+ \leq 0$"),
     )
 
     for i, (key, ylabel, title) in enumerate(left_specs):
@@ -145,7 +151,10 @@ def plot_collapse_diagnostics(data: Dict[str, np.ndarray], out_path: Path) -> No
         y = np.asarray(data[key], dtype=float)
         # Avoid semilogy issues if zeros appear (shouldn't, but safe).
         y_plot = np.where(y > 0, y, np.nan)
-        ax.semilogy(t, y_plot, color="blue", linewidth=1.5)
+        if key == "max_ah_r":
+            ax.plot(t, y, color="red", linewidth=1.5)
+        else:
+            ax.semilogy(t, y_plot, color="blue", linewidth=1.5)
         ax.set_ylabel(ylabel)
         ax.set_title(title)
         ax.grid(True, which="both", ls="--", alpha=0.6)
@@ -165,6 +174,9 @@ def plot_collapse_diagnostics(data: Dict[str, np.ndarray], out_path: Path) -> No
         ax.set_title(title)
         ax.grid(True, which="both", ls="--", alpha=0.6)
         ax.tick_params(axis="both", which="major", direction="in")
+        
+    # Hide the empty 4th plot on the right
+    axes[3, 1].axis('off')
 
     axes[-1, 0].set_xlabel(r"$t$")
     axes[-1, 1].set_xlabel(r"$t$")

@@ -12,8 +12,8 @@ set -euo pipefail
 #
 # Examples:
 #   ./src/visualisation/scripts/plot_diagnostic.sh
-#   ./src/visualisation/scripts/plot_diagnostic.sh "/home/jovyan/nachevsky/test/simulation/data_2gpu"
-#   ./src/visualisation/scripts/plot_diagnostic.sh "/home/jovyan/nachevsky/test/simulation/data_2gpu" 10 14
+#   ./src/visualisation/scripts/plot_diagnostic.sh "/home/jovyan/nachevsky/test/simulation/data_supported"
+#   ./src/visualisation/scripts/plot_diagnostic.sh "/home/jovyan/nachevsky/test/simulation/data_supported" 10 14
 #
 # If no radii are given, plot_extracted_psi4.py will plot all radii found in
 # psi4_mode_l2m0.dat.
@@ -21,7 +21,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VIS_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 REPO_ROOT="$(cd "${VIS_DIR}/../.." && pwd)"
-DEFAULT_RUN_DIR="$(cd "${REPO_ROOT}/.." && pwd)/data_2gpu"
+DEFAULT_RUN_DIR="$(cd "${REPO_ROOT}/.." && pwd)/data_supported"
 
 RUN_DIR="${1:-$DEFAULT_RUN_DIR}"
 if [[ $# -gt 0 ]]; then

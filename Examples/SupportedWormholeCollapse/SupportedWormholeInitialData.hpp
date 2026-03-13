@@ -76,6 +76,8 @@ class SupportedWormholeInitialData
 
         // Overall multiplier for the exotic scalar field support
         double support_strength;
+        double support_ramp_start;
+        double support_ramp_duration;
     };
 
     SupportedWormholeInitialData(params_t a_params, double a_dx)

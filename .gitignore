@@ -68,3 +68,5 @@ src/visualisation/process_wave/__pycache__/
 cache/
 __pycache__/
 .pytest_cache/
+
+src/visualisation/visualize_supported

@@ -21,7 +21,18 @@ ConstraintsWithMatter<matter_t>::ConstraintsWithMatter(
     const Interval &a_c_Moms_abs_terms /*defaulted*/)
     : Constraints(dx, a_c_Ham, a_c_Moms, a_c_Ham_abs_terms, a_c_Moms_abs_terms,
                   0.0 /*No cosmological constant*/),
-      m_G_Newton(G_Newton)
+      my_matter(matter_t()), m_G_Newton(G_Newton)
+{
+}
+
+template <class matter_t>
+ConstraintsWithMatter<matter_t>::ConstraintsWithMatter(
+    matter_t a_matter, double dx, double G_Newton, int a_c_Ham, const Interval &a_c_Moms,
+    int a_c_Ham_abs_terms /* defaulted*/,
+    const Interval &a_c_Moms_abs_terms /*defaulted*/)
+    : Constraints(dx, a_c_Ham, a_c_Moms, a_c_Ham_abs_terms, a_c_Moms_abs_terms,
+                  0.0 /*No cosmological constant*/),
+      my_matter(a_matter), m_G_Newton(G_Newton)
 {
 }
 

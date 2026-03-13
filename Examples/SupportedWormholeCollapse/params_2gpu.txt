@@ -3,9 +3,9 @@
 
 verbosity = 1
 
-output_path = "/home/jovyan/nachevsky/test/simulation/data_2gpu"
-amr.check_file = "/home/jovyan/nachevsky/test/simulation/data_2gpu/WormholeChk"
-amr.plot_file  = "/home/jovyan/nachevsky/test/simulation/data_2gpu/WormholePlt"
+output_path = "/home/jovyan/nachevsky/test/simulation/data_supported"
+amr.check_file = "/home/jovyan/nachevsky/test/simulation/data_supported/SupportedWormholeChk"
+amr.plot_file  = "/home/jovyan/nachevsky/test/simulation/data_supported/SupportedWormholePlt"
 
 # Save less often to avoid memory spikes during I/O and improve speed
 checkpoint_interval = 1000
@@ -87,9 +87,7 @@ wormhole_centerA = 0.0 0.0 0.0
 # Collapse attempt (strong kick, stabilized numerics):
 # - A0 drives the main collapse dynamics; A2 just breaks symmetry for Psi4
 # - wide kick keeps it coherent, but large |A0| can cause NaNs unless dt is reduced
-wormhole_k_monopole_amplitude   = 3.0
-wormhole_k_quadrupole_amplitude = 0.05
-wormhole_k_width       = 1.0
+# (disabled for supported evolution)
 
 # IMPORTANT:
 # Your "Resolution of the Origin Singularity: Isotropic Coordinates" section
@@ -100,7 +98,15 @@ wormhole_k_width       = 1.0
 # large gradients near the origin (may trigger NaNs).
 wormhole_use_cartesian_gamma = 0
 
-#################################################
+wormhole_support_strength = 1.0
+wormhole_support_ramp_start = 5.0
+wormhole_support_ramp_duration = 5.0
+
+# Keep the collapse trigger dominated by support release.
+# Use only a small quadrupole seed so exact symmetry is broken for diagnostics.
+wormhole_k_monopole_amplitude   = 0.0
+wormhole_k_quadrupole_amplitude = 0.02
+wormhole_k_width       = 1.0
 # Grid parameters
 
 # Coarse grid settings
@@ -177,6 +183,8 @@ calculate_constraint_norms = 1
 
 extraction_center = 0.0 0.0 0.0
 activate_extraction = 1
+write_extraction = 1
+extraction_subpath = "data"
 
 num_extraction_radii = 2
 extraction_radii = 14.0 30.0

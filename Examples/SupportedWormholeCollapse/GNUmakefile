@@ -22,6 +22,7 @@ GRTECLYN_SOURCE = $(GRTECLYN_HOME)/Source
 src_dirs := $(GRTECLYN_SOURCE)/AMRInterpolator \
             $(GRTECLYN_SOURCE)/BlackHoles \
             $(GRTECLYN_SOURCE)/CCZ4 \
+            $(GRTECLYN_SOURCE)/Matter \
             $(GRTECLYN_SOURCE)/Grids \
             $(GRTECLYN_SOURCE)/GRTeclynCore \
             $(GRTECLYN_SOURCE)/IO \

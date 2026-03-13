@@ -36,6 +36,10 @@ template <class matter_t> class ConstraintsWithMatter : public Constraints
                           const Interval &a_c_Moms, int a_c_Ham_abs_terms = -1,
                           const Interval &a_c_Moms_abs_terms = Interval());
 
+    ConstraintsWithMatter(matter_t a_matter, double dx, double G_Newton, int a_c_Ham,
+                          const Interval &a_c_Moms, int a_c_Ham_abs_terms = -1,
+                          const Interval &a_c_Moms_abs_terms = Interval());
+
     //! The compute member which calculates the constraints at each point in the
     //! box
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
