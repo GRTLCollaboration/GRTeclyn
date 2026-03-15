@@ -69,10 +69,11 @@ wormhole_initial_lapse_type = 0
 # - the legacy parameter `wormhole_k_amplitude` is now just a backward-compatible
 #   alias for the quadrupole amplitude
 #
-# Recommended usage for collapse studies:
-# - choose A0 to drive the global pinch-off
-# - keep |A2| << |A0| so the quadrupole perturbs the collapse without dominating it
-# - keep width = 1.0 for now and scan amplitudes gradually
+# Recommended usage for the clean supported-collapse experiment:
+# - let support removal drive the dynamics
+# - keep the t=0 initial-data kick at zero
+# - apply a small delayed kick only after the throat has been de-supported
+# - use a broad profile so the perturbation does not inject a sharp junk burst
 #was 0.5 initally
 wormhole_throat_radius = 0.5 
 wormhole_centerA = 0.0 0.0 0.0
@@ -84,10 +85,11 @@ wormhole_centerA = 0.0 0.0 0.0
 # - A2 = wormhole_k_quadrupole_amplitude
 #   symmetry-breaking Y20 term used to generate non-spherical dynamics / Psi4
 #
-# Collapse attempt (supercritical kick, stabilized numerics):
-# - A0 drives the main collapse dynamics; A2 just breaks symmetry for Psi4
-# - in this code, positive K is the branch that drives the 1+log lapse downward
-# - use a narrower, stronger monopole to recover the collapsing branch
+# Delayed-kick supported-collapse scan:
+# - support removal is the primary trigger
+# - keep the initial-data kick at zero so the early transient stays small
+# - after the throat is unsupported, apply a short delayed pulse in K
+# - judge success by sustained lapse collapse and r_AH > 0, not by Psi4 alone
 
 # IMPORTANT:
 # Your "Resolution of the Origin Singularity: Isotropic Coordinates" section
@@ -99,19 +101,26 @@ wormhole_centerA = 0.0 0.0 0.0
 wormhole_use_cartesian_gamma = 0
 
 wormhole_support_strength = 1.0
-wormhole_support_ramp_start = 0.0
-wormhole_support_ramp_duration = 0.0001
+wormhole_support_ramp_start = 3.0
+wormhole_support_ramp_duration = 1.0
 # If > 0, remove support causally from the throat outward at this coordinate
 # speed instead of switching the whole slice at once.
 wormhole_support_causal_speed = 1.0
 
-# Turn on the initial collapse-driving kick to inject positive mass-energy
-# and inward focusing. Without this kick, the supported wormhole tends to
-# relax/disperse when support is removed.
-# For the current gauge/sign conventions, A0 > 0 is the collapsing branch.
-wormhole_k_monopole_amplitude   = 3.0
-wormhole_k_quadrupole_amplitude = 0.05
+# Initial-data kick kept at zero. Trigger later with the delayed pulse below.
+wormhole_k_monopole_amplitude   = 0.0
+wormhole_k_quadrupole_amplitude = 0.0
 wormhole_k_width       = 1.0
+
+# Delayed kick:
+# - starts after support has switched off at the throat
+# - amplitudes are integrated K-injections over the pulse window
+# - keep A2 tiny; scan A0 upward if r_AH stays zero
+wormhole_delayed_kick_start = 4.5
+wormhole_delayed_kick_duration = 0.5
+wormhole_delayed_kick_monopole_amplitude = 0.10
+wormhole_delayed_kick_quadrupole_amplitude = 0.01
+wormhole_delayed_kick_width = 1.0
 # Grid parameters
 
 # Coarse grid settings
@@ -150,9 +159,9 @@ nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 #################################################
 # Evolution parameters
 
-# Smaller timestep to avoid NaNs during the sharper supercritical collapse
+# Conservative timestep for the long, weakly forced supported run
 dt_multiplier = 0.05
-stop_time = 30.0
+stop_time = 40.0
 
 max_spatial_derivative_order = 4
 nan_check = 1

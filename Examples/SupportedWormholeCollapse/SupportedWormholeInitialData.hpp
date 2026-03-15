@@ -78,6 +78,16 @@ class SupportedWormholeInitialData
         double support_strength;
         double support_ramp_start;
         double support_ramp_duration;
+
+        // Optional delayed kick applied during evolution after the support has
+        // begun to switch off. This is distinct from the t=0 initial-data kick
+        // above and is used to probe the unsupported branch after the throat has
+        // been de-supported.
+        double delayed_kick_start;
+        double delayed_kick_duration;
+        double delayed_kick_monopole_amplitude;
+        double delayed_kick_quadrupole_amplitude;
+        double delayed_kick_width;
     };
 
     SupportedWormholeInitialData(params_t a_params, double a_dx)

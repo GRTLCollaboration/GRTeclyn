@@ -66,6 +66,16 @@ class SimulationParameters : public SimulationParametersBase
                 -1.0); // negative means no ramp
         pp.load("wormhole_support_ramp_duration", wormhole_params.support_ramp_duration,
                 5.0);
+        pp.load("wormhole_delayed_kick_start",
+                wormhole_params.delayed_kick_start, -1.0);
+        pp.load("wormhole_delayed_kick_duration",
+                wormhole_params.delayed_kick_duration, 0.0);
+        pp.load("wormhole_delayed_kick_monopole_amplitude",
+                wormhole_params.delayed_kick_monopole_amplitude, 0.0);
+        pp.load("wormhole_delayed_kick_quadrupole_amplitude",
+                wormhole_params.delayed_kick_quadrupole_amplitude, 0.0);
+        pp.load("wormhole_delayed_kick_width",
+                wormhole_params.delayed_kick_width, 0.0);
 
         // Kick parameters:
         // - wormhole_k_monopole_amplitude controls the coherent compressive part
@@ -106,6 +116,20 @@ class SimulationParameters : public SimulationParametersBase
                          (wormhole_params.k_quadrupole_amplitude == 0.0)) ||
                             (wormhole_params.k_width > 0.0),
                         "must be > 0 when any wormhole kick amplitude is nonzero");
+
+        check_parameter(
+            "wormhole_delayed_kick_width", wormhole_params.delayed_kick_width,
+            ((wormhole_params.delayed_kick_monopole_amplitude == 0.0) &&
+             (wormhole_params.delayed_kick_quadrupole_amplitude == 0.0)) ||
+                (wormhole_params.delayed_kick_width > 0.0),
+            "must be > 0 when any delayed kick amplitude is nonzero");
+        check_parameter(
+            "wormhole_delayed_kick_duration",
+            wormhole_params.delayed_kick_duration,
+            ((wormhole_params.delayed_kick_monopole_amplitude == 0.0) &&
+             (wormhole_params.delayed_kick_quadrupole_amplitude == 0.0)) ||
+                (wormhole_params.delayed_kick_duration > 0.0),
+            "must be > 0 when any delayed kick amplitude is nonzero");
     }
 
     bool calculate_constraint_norms{};

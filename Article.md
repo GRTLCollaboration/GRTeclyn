@@ -98,7 +98,7 @@ as an initial value problem, using the 3+1 decomposition and setting $G = c = 1$
 \begin{equation}
     ds^2 = \left(-\alpha^2 + \beta_i \beta^i \right) dt^2 + 2 \beta_i dt dx^i + \gamma_{ij} dx^i dx^j.
 \end{equation}
-The dynamical evolution is governed by the vacuum ($T_{\mu\nu}=0$) Einstein equations, implemented within the \texttt{GRTeclyn} framework using the conformal and covariant Z4 (CCZ4) formulation. To simulate the collapse of a wormhole, we must define the initial geometry on $\Sigma_0$ and provide an explicit mechanism that drives the system toward topological pinch-off. In pure analytical relativity, an unstable equilibrium (such as an unsupported wormhole throat) will eventually collapse under any infinitesimal perturbation. However, in numerical relativity, initial data that violates the Hamiltonian constraint but possesses perfect time symmetry ($K_{ij} = 0$) sits at a mathematical saddle point. Because the initial coordinate velocities are exactly zero, the simulated spacetime will attempt to remain artificially static until numerical truncation errors—which are inherently small and stochastic—accumulate enough to push the system off the equilibrium point. To prevent this arbitrary, resolution-dependent "hovering" period and to systematically control the onset of the dynamics, it is standard practice to manually inject a small, controlled perturbation (a "kick") into the extrinsic curvature to explicitly break the time symmetry and reliably trigger the collapse.
+For the supported-collapse experiments studied here, the dynamical evolution is governed by the Einstein equations coupled to a phantom scalar field, implemented within the \texttt{GRTeclyn} framework using the conformal and covariant Z4 (CCZ4) formulation. Our objective is to start from a constraint-consistent Ellis-Bronnikov wormhole at $t=0$ and then drive the system away from equilibrium by reducing the exotic support that keeps the throat open. In this setup, the primary trigger is the controlled removal of the supporting stress-energy, not a large vacuum kick. Any extrinsic-curvature perturbation that is added is kept parametrically small and is used only to select the unstable branch and break exact spherical symmetry. This ``clean'' supported setup is therefore conceptually distinct from separate forced-collapse vacuum experiments, in which a strong kick dominates the early-time dynamics.
 
 \subsection{Initial Data: The Morris-Thorne Wormhole in Isotropic Coordinates}
 
@@ -135,18 +135,29 @@ This smoothly vanishes at the origin ($\chi \to 0$), accurately mirroring the "p
 
 \subsection{Dynamical Triggering via Support Removal}
 
-The initialized Ellis-Bronnikov geometry requires exotic matter violating the Null Energy Condition to remain static. Previous studies often relied on a "sudden approximation," evolving this geometry in a pure vacuum ($T_{\mu\nu}=0$), which results in a massive, instantaneous violation of the Hamiltonian constraint and violent numerical transients.
+The initialized Ellis-Bronnikov geometry requires exotic matter violating the Null Energy Condition to remain static. Previous studies often relied on a ``sudden approximation,'' evolving this geometry in a pure vacuum ($T_{\mu\nu}=0$), which results in a massive, instantaneous violation of the Hamiltonian constraint and violent numerical transients.
 
 To achieve a physically consistent, controlled collapse, we instead explicitly model the required exotic matter. We couple the CCZ4 evolution to a "phantom" scalar field $\phi$. The stress-energy tensor for this field is defined with a reversed overall sign relative to a canonical scalar field, providing the negative energy density necessary to support the wormhole throat and satisfy the constraints at $t=0$.
 
-We systematically control the onset of the dynamics by smoothly removing this supporting matter. We define a time-dependent support strength multiplier $S(t)$. For an initial settling period ($t < t_{\rm start}$), $S(t) = 1$, and the wormhole remains in a supported, quasi-static equilibrium. To trigger the collapse, $S(t)$ is smoothly ramped down to zero over a duration $\Delta t$ using a cosine profile:
+We systematically control the onset of the dynamics by reducing this support in a causal, throat-centered manner. Rather than switching the entire slice at once, we define a local support multiplier
 \begin{equation}
-    S(t) = \frac{1}{2} \left[ 1 + \cos\left( \pi \frac{t - t_{\rm start}}{\Delta t} \right) \right].
+    S(\mathbf{x},t) = S_0\!\left(t - \frac{r_{\rm th}(\mathbf{x})}{v_{\rm c}}\right),
 \end{equation}
-As the exotic matter support vanishes, gravity dictates the dynamics, and the throat naturally collapses under its own weight. To break exact spherical symmetry and generate a small, clean gravitational wave signal, we inject a minor quadrupole ($l=2$) perturbation into the extrinsic curvature:
+where $r_{\rm th}(\mathbf{x})$ is the coordinate distance to the nearest throat and $v_{\rm c}$ is the speed at which the support-removal front propagates outward. The throat-center schedule $S_0$ is held at unity during an initial settling stage and then reduced smoothly to zero over a duration $\Delta t$ using a cosine profile:
 \begin{equation}
-    K(\bar{r}, \theta, \phi) = A_2 \exp\left(-\frac{\bar{r}^2}{\sigma^2}\right) Y_{20}(\theta, \phi).
+    S_0(t) =
+    \begin{cases}
+        1, & t \le t_{\rm start}, \\
+        \frac{1}{2} \left[ 1 + \cos\left( \pi \frac{t - t_{\rm start}}{\Delta t} \right) \right], & t_{\rm start} < t < t_{\rm start} + \Delta t, \\
+        0, & t \ge t_{\rm start} + \Delta t.
+    \end{cases}
 \end{equation}
+This construction suppresses the unphysical, non-causal whole-domain response produced by a global quench and ensures that the unsupported region first forms near the throat and only later propagates outward through the rest of the slice. In the clean supported-collapse setup, we set the initial-data kick to zero at $t=0$ so that the spacetime begins in a supported equilibrium state without an artificial implosive impulse. After the support-removal front has passed through the throat and the geometry has entered the unsupported regime, we then apply a separate weak delayed pulse in the trace of the extrinsic curvature,
+\begin{equation}
+    K(\bar{r}, \theta, \phi) = \left[A_0 + A_2 Y_{20}(\theta, \phi)\right]
+    \exp\left(-\frac{\bar{r}^2}{\sigma^2}\right),
+\end{equation}
+with $|A_0|, |A_2| \ll 1$, multiplied by a compact-in-time envelope and activated only after a prescribed delay $t_{\rm kick} > t_{\rm start} + \Delta t$. Operationally, this means that support removal remains the primary physical trigger, while the delayed $K$ pulse acts only as a branch selector and symmetry breaker that nudges the now-unsupported throat off the near-equilibrium branch. This delayed forcing cleanly separates the physical de-supporting process from the later perturbation used to probe whether the unsupported geometry relaxes, disperses, or enters genuine topological collapse.
 
 \subsection{Apparent Horizon Detection}
 
@@ -162,11 +173,11 @@ To ensure stability through the highly non-linear topological transition from a 
 
 For the shift vector, we initially set $\beta^i = 0$. Since our initial state possesses no tangential rotation or shift, and the physical mechanism under investigation is a radial pinch-off, a vanishing initial shift prevents gauge-induced artifacts from contaminating the early gravitational wave extraction.
 
-For the lapse function, we employ the $1+\log$ slicing condition, which evolves as $\partial_t \alpha - \beta^i \partial_i \alpha = -2\alpha K$. To prevent severe "gauge shocks" at $t=0$ caused by the massive curvature at the throats, we initialize the lapse in a "pre-collapsed" state:
+For the lapse function, we employ the $1+\log$ slicing condition, which evolves as $\partial_t \alpha - \beta^i \partial_i \alpha = -2\alpha K$. In the clean supported runs we initialize the lapse as
 \begin{equation}
-    \alpha(t=0) = \chi^{1/2} = \left( \frac{4\bar{r}^2}{4\bar{r}^2 + b_0^2} \right)^{2}.
+    \alpha(t=0) = 1,
 \end{equation}
-As $\bar{r} \to 0$ (the asymptotic infinity of the secondary universe), the lapse smoothly approaches zero. During the evolution, as the wormhole throat collapses and physical singularities begin to form, the $1+\log$ condition forces the lapse to drop rapidly toward zero ("lapse collapse"), effectively freezing the evolution near the singularities and preventing numerical breakdown.
+so that the subsequent lapse evolution is generated dynamically by the matter removal and the geometry itself rather than being biased toward an already ``pre-collapsed'' gauge profile. During the evolution, if the throat truly enters a collapsing branch and physical singularities begin to form, the $1+\log$ condition drives the lapse toward zero (``lapse collapse''), effectively freezing the evolution near the singular region and preventing numerical breakdown.
 
 
 
@@ -178,7 +189,7 @@ Numerical evolutions were performed using the \texttt{GRTeclyn} codebase, which 
 
 The full physical computational domain spans a coordinate length of $L_{\text{full}} = 80.0$, covered by a coarse grid of $N_{\text{full}} = 160$ cells, yielding a coarse resolution of $dx_{\text{coarse}} = 0.5$. However, to drastically minimize memory consumption, we rigorously exploit the Cartesian reflection symmetries inherent in the spherically symmetric initial geometry. We evolve only the positive octant ($x \ge 0, y \ge 0, z \ge 0$) of the full domain, effectively modeling just 1/8th of the physical volume. Parity symmetry conditions are strictly applied at the inner reflection boundaries ($x=0, y=0, z=0$), while Sommerfeld radiative boundary conditions are enforced at the outer edges.
 
-To capture the extreme curvature gradients developing during the collapse while maintaining tractability, we employ 5 levels of 2:1 adaptive mesh refinement (AMR). The mesh is dynamically regridded based on the gradients of the conformal factor ($\chi$), allowing the code to focus resolution precisely where the wormhole throat is pinching off. On the finest level of refinement (level 5), the grid spacing reaches $dx_{\text{fine}} \approx 0.0156$. Time stepping is handled using a 4th-order Runge-Kutta scheme, with a Courant factor (dt\_multiplier) reduced to 0.1 to guarantee stability during the violent topological transition.
+To capture the extreme curvature gradients developing during the collapse while maintaining tractability, we employ 5 levels of 2:1 adaptive mesh refinement (AMR). The mesh is dynamically regridded based on the gradients of the conformal factor ($\chi$), allowing the code to focus resolution precisely where the wormhole throat is pinching off. On the finest level of refinement (level 5), the grid spacing reaches $dx_{\text{fine}} \approx 0.0156$. Time stepping is handled using a 4th-order Runge-Kutta scheme, with a conservative Courant factor (dt\_multiplier) reduced to 0.05 to maintain stability during the long, weakly forced supported evolutions as well as the more abrupt collapse branches.
 
 The primary objective of this work is to investigate the collapse dynamics subject to Gaussian extrinsic curvature perturbations. We explored two main geometric configurations:
 \begin{enumerate}
@@ -221,7 +232,7 @@ The specific topology of the spacetime (e.g., number of mouths or punctures) is 
     \label{fig:k_evolution}
 \end{figure*}
 
-To establish the stability and dynamical fate of the wormhole topology, we performed a series of simulations evolving the supported Ellis-Bronnikov wormhole. The support strength $S(t)$ was held at $1.0$ for an initial period to allow initial data transients to damp, and then smoothly reduced to zero over $t \in [5.0, 10.0]M$. A small quadrupole perturbation ($A_2 = 0.02$) was included to break exact spherical symmetry.
+To establish the stability and dynamical fate of the wormhole topology, we performed a series of simulations evolving the supported Ellis-Bronnikov wormhole. At the throat center, the support schedule was held at $S_0=1$ for an initial period to allow the geometry to settle, and then smoothly reduced over $t \in [5.0, 10.0]M$ while the support-removal front propagated causally outward from the throat. Only a weak branch-selecting perturbation was retained in $K$ so that the support reduction, rather than a violent kick, remained the dominant trigger.
 
 Contrary to the expectation of a violent, immediate collapse into a black hole (as often seen in violently over-kicked vacuum initial data), the controlled removal of the scalar field support reveals a more gradual dynamical relaxation. 
 
