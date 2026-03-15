@@ -22,9 +22,10 @@ template <class matter_t> class Weyl4WithMatter : public Weyl4
     Weyl4WithMatter(const std::array<double, AMREX_SPACEDIM> a_center,
                     const double a_dx, const int a_dcomp,
                     const int a_formulation = CCZ4RHS<>::USE_CCZ4,
-                    double a_G_Newton       = 1.0)
+                    double a_G_Newton       = 1.0,
+                    amrex::Real a_time      = 0.0)
         : Weyl4(a_center, a_dx, a_dcomp, a_formulation), m_dcomp(a_dcomp),
-          m_G_Newton(a_G_Newton)
+          m_G_Newton(a_G_Newton), m_time(a_time)
     {
     }
 
@@ -41,7 +42,7 @@ template <class matter_t> class Weyl4WithMatter : public Weyl4
     static void compute_mf(amrex::MultiFab &out_mf, int out_comp, int ncomp,
                            const amrex::MultiFab &src_mf,
                            const amrex::Geometry &geomdata,
-                           amrex::Real /*time*/, const int * /*bcrec*/,
+                           amrex::Real time, const int * /*bcrec*/,
                            int /*level*/);
 
   protected:
@@ -49,11 +50,13 @@ template <class matter_t> class Weyl4WithMatter : public Weyl4
     matter_t m_matter;
     int m_dcomp;       //!< index for storing the results of compute
     double m_G_Newton; //!< Newton's constant, set to one by default
+    amrex::Real m_time;
 
     //! Add matter terms to electric and magnetic parts
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     add_matter_EB(EBFields_t &eb_fields, const typename matter_t::Vars &vars,
                   const typename matter_t::D1Vars &d1,
+                  const Coordinates &coords,
                   const Tensor<3, amrex::Real> &epsilon3_LUU,
                   const Tensor<2, amrex::Real> &h_UU,
                   const chris_t &chris) const;

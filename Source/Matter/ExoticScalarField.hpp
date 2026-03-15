@@ -7,6 +7,7 @@
 #define EXOTICSCALARFIELD_HPP_
 
 #include "CCZ4Geometry.hpp"
+#include "Coordinates.hpp"
 #include "DefaultPotential.hpp"
 #include "DimensionDefinitions.hpp"
 #include "FourthOrderDerivatives.hpp"
@@ -38,20 +39,47 @@ template <class potential_t = DefaultPotential> class ExoticScalarField
   protected:
     potential_t m_potential;
     double m_support_strength;
+    double m_support_ramp_start;
+    double m_support_ramp_duration;
+    double m_support_causal_speed;
+    int m_metric_type;
+    std::array<double, AMREX_SPACEDIM> m_centerA;
+    std::array<double, AMREX_SPACEDIM> m_centerB;
     //! The local copy of the potential
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE double
+    support_schedule(amrex::Real time) const;
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
+    nearest_throat_radius(const Coordinates &coords) const;
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE double
+    local_support_strength(const Coordinates &coords, amrex::Real time) const;
 
   public:
 
     //!  Constructor of class ExoticScalarField, inputs are the matter parameters.
     ExoticScalarField(potential_t a_potential = potential_t(), double a_support_strength = 1.0)
-        : m_potential(a_potential), m_support_strength(a_support_strength)
+        : m_potential(a_potential), m_support_strength(a_support_strength),
+          m_support_ramp_start(-1.0), m_support_ramp_duration(5.0),
+          m_support_causal_speed(0.0), m_metric_type(1), m_centerA{0.0},
+          m_centerB{0.0}
     {
-        // If constructed without arguments (e.g. by compute_mf), read from param parse
+        GRParmParse pp;
         if (a_support_strength == 1.0)
-        {
-            GRParmParse pp;
             pp.load("wormhole_support_strength", m_support_strength, 1.0);
-        }
+
+        pp.load("wormhole_support_ramp_start", m_support_ramp_start, -1.0);
+        pp.load("wormhole_support_ramp_duration", m_support_ramp_duration, 5.0);
+        pp.load("wormhole_support_causal_speed", m_support_causal_speed, 0.0);
+        pp.load("wormhole_metric_type", m_metric_type, 1);
+
+        std::array<double, AMREX_SPACEDIM> default_centerA = {0.0, 0.0, 0.0};
+        pp.load("wormhole_centerA", m_centerA, default_centerA);
+
+        std::array<double, AMREX_SPACEDIM> default_centerB = {
+            -m_centerA[0], -m_centerA[1], -m_centerA[2]};
+        pp.load("wormhole_centerB", m_centerB, default_centerB);
     }
 
     using Vars      = ScalarFieldVars;
@@ -68,6 +96,13 @@ template <class potential_t = DefaultPotential> class ExoticScalarField
                          &h_UU, //!< the inverse metric (raised indices)
                      const Tensor<3, amrex::Real> &chris_ULL)
         const; //!< the conformal christoffel symbol
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE emtensor_t
+    compute_emtensor(const Vars &vars, const D1Vars &d1,
+                     const Tensor<2, amrex::Real> &h_UU,
+                     const Tensor<3, amrex::Real> &chris_ULL,
+                     const Coordinates &coords, amrex::Real time) const;
 
     //! The function which adds in the RHS for the matter field vars,
     //! including the potential

@@ -16,6 +16,7 @@ AMREX_GPU_DEVICE emtensor_t ExoticScalarField<potential_t>::compute_emtensor(
     const Vars &vars, const D1Vars &d1, const Tensor<2, amrex::Real> &h_UU,
     const Tensor<3, amrex::Real> &chris_ULL) const
 {
+    const double support_strength = m_support_strength;
     emtensor_t out;
 
     //    Useful quantity Vt
@@ -36,26 +37,128 @@ AMREX_GPU_DEVICE emtensor_t ExoticScalarField<potential_t>::compute_emtensor(
     // S = T_ij
     FOR (i, j)
     {
-        out.S[i][j] = - m_support_strength * (-0.5 * vars.h(i, j) * Vt / vars.chi() +
-                         d1.phi(i) * d1.phi(j) -
-                         vars.h(i, j) * V_of_phi / vars.chi());
+        out.S[i][j] = -support_strength *
+                      (-0.5 * vars.h(i, j) * Vt / vars.chi() + d1.phi(i) * d1.phi(j) -
+                       vars.h(i, j) * V_of_phi / vars.chi());
     }
 
     // rho = n^a n^b T_ab
-    out.rho = - m_support_strength * (vars.Pi() * vars.Pi() + 0.5 * Vt + V_of_phi);
+    out.rho = -support_strength * (vars.Pi() * vars.Pi() + 0.5 * Vt + V_of_phi);
 
     // trS = Tr_S_ij
-    // note: out.S is already scaled by m_support_strength, so compute_trace(out.S) is scaled.
-    // normal trS has -3.0 * V, so phantom trS has +3.0 * V.
-    out.trS = vars.chi() * TensorAlgebra::compute_trace(out.S, h_UU) + m_support_strength * 3.0 * V_of_phi;
+    // note: out.S is already scaled by support_strength, so compute_trace(out.S)
+    // is scaled. normal trS has -3.0 * V, so phantom trS has +3.0 * V.
+    out.trS = vars.chi() * TensorAlgebra::compute_trace(out.S, h_UU) +
+              support_strength * 3.0 * V_of_phi;
 
     //    j_i (note lower index) = - n^a T_ai
     FOR (i)
     {
-        out.j[i] = - m_support_strength * (-d1.phi(i) * vars.Pi());
+        out.j[i] = -support_strength * (-d1.phi(i) * vars.Pi());
     }
 
     return out;
+}
+
+template <class potential_t>
+AMREX_GPU_DEVICE emtensor_t ExoticScalarField<potential_t>::compute_emtensor(
+    const Vars &vars, const D1Vars &d1, const Tensor<2, amrex::Real> &h_UU,
+    const Tensor<3, amrex::Real> &chris_ULL, const Coordinates &coords,
+    amrex::Real time) const
+{
+    const double support_strength = local_support_strength(coords, time);
+    emtensor_t out;
+
+    //    Useful quantity Vt
+    amrex::Real Vt = -vars.Pi() * vars.Pi();
+    FOR (i, j)
+    {
+        Vt += vars.chi() * h_UU[i][j] * d1.phi(i) * d1.phi(j);
+    }
+
+    // set the potential values
+    amrex::Real V_of_phi = 0.0;
+    amrex::Real dVdphi   = 0.0;
+
+    // compute potential and add constributions to EM Tensor
+    m_potential.compute_potential(V_of_phi, dVdphi, vars);
+
+    // Calculate components of EM Tensor
+    // S = T_ij
+    FOR (i, j)
+    {
+        out.S[i][j] = -support_strength *
+                      (-0.5 * vars.h(i, j) * Vt / vars.chi() + d1.phi(i) * d1.phi(j) -
+                       vars.h(i, j) * V_of_phi / vars.chi());
+    }
+
+    // rho = n^a n^b T_ab
+    out.rho = -support_strength * (vars.Pi() * vars.Pi() + 0.5 * Vt + V_of_phi);
+
+    // trS = Tr_S_ij
+    // note: out.S is already scaled by support_strength, so compute_trace(out.S)
+    // is scaled.
+    // normal trS has -3.0 * V, so phantom trS has +3.0 * V.
+    out.trS = vars.chi() * TensorAlgebra::compute_trace(out.S, h_UU) +
+              support_strength * 3.0 * V_of_phi;
+
+    //    j_i (note lower index) = - n^a T_ai
+    FOR (i)
+    {
+        out.j[i] = -support_strength * (-d1.phi(i) * vars.Pi());
+    }
+
+    return out;
+}
+
+template <class potential_t>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE double
+ExoticScalarField<potential_t>::support_schedule(amrex::Real time) const
+{
+    if (m_support_ramp_start < 0.0 || time <= m_support_ramp_start)
+        return 1.0;
+
+    if (m_support_ramp_duration <= 0.0 ||
+        time >= m_support_ramp_start + m_support_ramp_duration)
+        return 0.0;
+
+    const double x = (time - m_support_ramp_start) / m_support_ramp_duration;
+    return 0.5 * (1.0 + cos(M_PI * x));
+}
+
+template <class potential_t>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
+ExoticScalarField<potential_t>::nearest_throat_radius(
+    const Coordinates &coords) const
+{
+    const amrex::Real dxA = coords.x - m_centerA[0];
+    const amrex::Real dyA = coords.y - m_centerA[1];
+    const amrex::Real dzA = coords.z - m_centerA[2];
+    const amrex::Real rA =
+        std::sqrt(dxA * dxA + dyA * dyA + dzA * dzA);
+
+    if (m_metric_type == 1)
+        return rA;
+
+    const amrex::Real dxB = coords.x - m_centerB[0];
+    const amrex::Real dyB = coords.y - m_centerB[1];
+    const amrex::Real dzB = coords.z - m_centerB[2];
+    const amrex::Real rB =
+        std::sqrt(dxB * dxB + dyB * dyB + dzB * dzB);
+    return amrex::min(rA, rB);
+}
+
+template <class potential_t>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE double
+ExoticScalarField<potential_t>::local_support_strength(
+    const Coordinates &coords, amrex::Real time) const
+{
+    if (m_support_causal_speed <= 0.0)
+        return m_support_strength * support_schedule(time);
+
+    const amrex::Real r = nearest_throat_radius(coords);
+    const amrex::Real retarded_time = time - r / m_support_causal_speed;
+    return m_support_strength * support_schedule(retarded_time);
 }
 
 // Adds in the RHS for the matter vars

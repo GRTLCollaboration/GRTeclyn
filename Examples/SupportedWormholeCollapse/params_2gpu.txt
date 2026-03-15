@@ -100,7 +100,10 @@ wormhole_use_cartesian_gamma = 0
 
 wormhole_support_strength = 1.0
 wormhole_support_ramp_start = 0.0
-wormhole_support_ramp_duration = 1.0
+wormhole_support_ramp_duration = 0.0001
+# If > 0, remove support causally from the throat outward at this coordinate
+# speed instead of switching the whole slice at once.
+wormhole_support_causal_speed = 1.0
 
 # Turn on the initial collapse-driving kick to inject positive mass-energy
 # and inward focusing. Without this kick, the supported wormhole tends to

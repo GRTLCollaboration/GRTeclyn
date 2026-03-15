@@ -57,6 +57,17 @@ AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t>::compute_emtensor(
     return out;
 }
 
+template <class potential_t>
+AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t>::compute_emtensor(
+    const Vars &vars, const D1Vars &d1, const Tensor<2, amrex::Real> &h_UU,
+    const Tensor<3, amrex::Real> &chris_ULL, const Coordinates &coords,
+    amrex::Real time) const
+{
+    (void)coords;
+    (void)time;
+    return compute_emtensor(vars, d1, h_UU, chris_ULL);
+}
+
 // Adds in the RHS for the matter vars
 template <class potential_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void

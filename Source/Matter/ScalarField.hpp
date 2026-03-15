@@ -7,6 +7,7 @@
 #define SCALARFIELD_HPP_
 
 #include "CCZ4Geometry.hpp"
+#include "Coordinates.hpp"
 #include "DefaultPotential.hpp"
 #include "DimensionDefinitions.hpp"
 #include "FourthOrderDerivatives.hpp"
@@ -57,6 +58,13 @@ template <class potential_t = DefaultPotential> class ScalarField
                          &h_UU, //!< the inverse metric (raised indices)
                      const Tensor<3, amrex::Real> &chris_ULL)
         const; //!< the conformal christoffel symbol
+
+    [[nodiscard]]
+    AMREX_GPU_DEVICE emtensor_t
+    compute_emtensor(const Vars &vars, const D1Vars &d1,
+                     const Tensor<2, amrex::Real> &h_UU,
+                     const Tensor<3, amrex::Real> &chris_ULL,
+                     const Coordinates &coords, amrex::Real time) const;
 
     //! The function which adds in the RHS for the matter field vars,
     //! including the potential

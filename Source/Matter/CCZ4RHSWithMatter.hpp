@@ -10,6 +10,7 @@
 #include "CCZ4RHS.hpp"
 #include "CCZ4Vars.hpp"
 #include "Cell.hpp"
+#include "Coordinates.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "MovingPunctureGaugeWithMatter.hpp"
 #include "StateVariables.hpp" //This files needs NUM_VARS - total number of components
@@ -48,11 +49,15 @@ class CCZ4RHSWithMatter : public CCZ4RHS<gauge_t, deriv_t>
     */
     CCZ4RHSWithMatter(params_t a_params, double a_dx, double a_sigma,
                       int a_formulation = CCZ4RHS<>::USE_CCZ4,
-                      double a_G_Newton = 1.0);
+                      double a_G_Newton = 1.0,
+                      std::array<double, AMREX_SPACEDIM> a_center = {0.0, 0.0, 0.0},
+                      amrex::Real a_time = 0.0);
 
     CCZ4RHSWithMatter(matter_t a_matter, params_t a_params, double a_dx, double a_sigma,
                       int a_formulation = CCZ4RHS<>::USE_CCZ4,
-                      double a_G_Newton = 1.0);
+                      double a_G_Newton = 1.0,
+                      std::array<double, AMREX_SPACEDIM> a_center = {0.0, 0.0, 0.0},
+                      amrex::Real a_time = 0.0);
 
     //!  The compute member which calculates the RHS at each point in the box
     //!  \sa matter_rhs_equation()
@@ -70,12 +75,16 @@ class CCZ4RHSWithMatter : public CCZ4RHS<gauge_t, deriv_t>
         const typename matter_t::Vars
             &state, //!< the value of the variables at the point.
         const typename matter_t::D1Vars
-            &d1 //!< the value of the first derivatives of the variables.
+            &d1, //!< the value of the first derivatives of the variables.
+        const Coordinates &coords
     ) const;
 
     // Class members
     matter_t m_matter; //!< The matter object, e.g. a scalar field.
     double m_G_Newton; //!< Newton's constant, set to one by default.
+    double m_dx;
+    std::array<double, AMREX_SPACEDIM> m_center;
+    amrex::Real m_time;
 };
 
 #include "CCZ4RHSWithMatter.impl.hpp"

@@ -87,32 +87,13 @@ void SupportedWormholeLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                            positive_chi_lapse(i, j, k, soln_arrs[box_no]);
                        });
 
-    double current_strength = simParams().wormhole_params.support_strength;
-    double t_start = simParams().wormhole_params.support_ramp_start;
-    double t_dur = simParams().wormhole_params.support_ramp_duration;
-    if (t_start >= 0.0)
-    {
-        if (a_time > t_start)
-        {
-            if (a_time >= t_start + t_dur)
-            {
-                current_strength = 0.0;
-            }
-            else
-            {
-                // smoothstep (cosine)
-                double x = (a_time - t_start) / t_dur;
-                current_strength *= 0.5 * (1.0 + cos(M_PI * x));
-            }
-        }
-    }
-
     // Calculate CCZ4 Right Hand Side (Einstein Equations + Matter)
-    ExoticScalarField<> exotic_scalar(DefaultPotential(), current_strength);
+    ExoticScalarField<> exotic_scalar(
+        DefaultPotential(), simParams().wormhole_params.support_strength);
     CCZ4RHSWithMatter<ExoticScalarField<>, MovingPunctureGaugeWithMatter, FourthOrderDerivatives> ccz4rhs(
-        exotic_scalar,
-        simParams().ccz4_params, Geom().CellSize(0), simParams().sigma,
-        simParams().formulation);
+        exotic_scalar, simParams().ccz4_params, Geom().CellSize(0),
+        simParams().sigma, simParams().formulation, 1.0,
+        simParams().wormhole_params.grid_center, a_time);
 
     amrex::ParallelFor(
         a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
@@ -184,23 +165,12 @@ void SupportedWormholeLevel::specificPostTimeStep()
         amrex::MultiFab cst(state_new.boxArray(), state_new.DistributionMap(), 4,
                             0);
         cst.setVal(0.0);
-        double current_strength = simParams().wormhole_params.support_strength;
-        double t_start = simParams().wormhole_params.support_ramp_start;
-        double t_dur = simParams().wormhole_params.support_ramp_duration;
-        if (t_start >= 0.0 && time > t_start)
-        {
-            if (time >= t_start + t_dur)
-                current_strength = 0.0;
-            else
-            {
-                double x = (time - t_start) / t_dur;
-                current_strength *= 0.5 * (1.0 + cos(M_PI * x));
-            }
-        }
-
-        ExoticScalarField<> exotic_scalar(DefaultPotential(), current_strength);
+        ExoticScalarField<> exotic_scalar(
+            DefaultPotential(), simParams().wormhole_params.support_strength);
         const auto dx = Geom().CellSizeArray();
-        ConstraintsWithMatter<ExoticScalarField<>> my_constraints(exotic_scalar, dx[0], 1.0, 0, Interval(1, 3));
+        ConstraintsWithMatter<ExoticScalarField<>> my_constraints(
+            exotic_scalar, dx[0], 1.0, 0, Interval(1, 3),
+            simParams().wormhole_params.grid_center, time);
 
         for (amrex::MFIter mfi(cst, amrex::TilingIfNotGPU()); mfi.isValid();
              ++mfi)

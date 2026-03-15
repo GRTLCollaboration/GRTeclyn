@@ -40,7 +40,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void Weyl4WithMatter<matter_t>::operator()(
         compute_EB_fields(vars, d1, d2_chi, d2_h, epsilon3_LUU, h_UU, chris);
 
     // Add in matter terms to E and B fields
-    add_matter_EB(ebfields, vars, d1, epsilon3_LUU, h_UU, chris);
+    add_matter_EB(ebfields, vars, d1, coords, epsilon3_LUU, h_UU, chris);
 
     // work out the Newman Penrose scalar
     weyl_scalar_t out = compute_Weyl4(ebfields, vars, h_UU, coords);
@@ -54,12 +54,13 @@ template <class matter_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 Weyl4WithMatter<matter_t>::add_matter_EB(
     EBFields_t &ebfields, const typename matter_t::Vars &vars,
-    const typename matter_t::D1Vars &d1,
+    const typename matter_t::D1Vars &d1, const Coordinates &coords,
     const Tensor<3, amrex::Real> &epsilon3_LUU,
     const Tensor<2, amrex::Real> &h_UU, const chris_t &chris) const
 {
     // Calculate decomposed energy momentum tensor components
-    const auto emtensor = m_matter.compute_emtensor(vars, d1, h_UU, chris.ULL);
+    const auto emtensor =
+        m_matter.compute_emtensor(vars, d1, h_UU, chris.ULL, coords, m_time);
 
     Tensor<2, amrex::Real> S_TF = emtensor.S;
     CCZ4Geometry::make_trace_free(S_TF, vars, h_UU);
@@ -96,7 +97,7 @@ void Weyl4WithMatter<matter_t>::compute_mf(amrex::MultiFab &out_mf,
                                            int out_comp, int ncomp,
                                            const amrex::MultiFab &src_mf,
                                            const amrex::Geometry &geomdata,
-                                           amrex::Real /*time*/,
+                                           amrex::Real time,
                                            const int * /*bcrec*/, int /*level*/)
 {
     const auto &out_arrays = out_mf.arrays();
@@ -112,7 +113,7 @@ void Weyl4WithMatter<matter_t>::compute_mf(amrex::MultiFab &out_mf,
     pp.queryAdd("G_newton", G_Newton);
 
     Weyl4WithMatter<matter_t> my_weyl4_with_matter(
-        center, geomdata.CellSize(0), out_comp, formulation, G_Newton);
+        center, geomdata.CellSize(0), out_comp, formulation, G_Newton, time);
 
     amrex::ParallelFor(
         out_mf,

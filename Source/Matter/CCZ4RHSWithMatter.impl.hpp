@@ -14,20 +14,24 @@
 template <class matter_t, class gauge_t, class deriv_t>
 CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::CCZ4RHSWithMatter(
     CCZ4_params_t<typename gauge_t::params_t> a_params, double a_dx,
-    double a_sigma, int a_formulation, double a_G_Newton)
+    double a_sigma, int a_formulation, double a_G_Newton,
+    std::array<double, AMREX_SPACEDIM> a_center, amrex::Real a_time)
     : CCZ4RHS<gauge_t, deriv_t>(a_params, a_dx, a_sigma, a_formulation,
                                 0.0 /*No cosmological constant*/),
-      m_matter(matter_t()), m_G_Newton(a_G_Newton)
+      m_matter(matter_t()), m_G_Newton(a_G_Newton), m_dx(a_dx),
+      m_center(a_center), m_time(a_time)
 {
 }
 
 template <class matter_t, class gauge_t, class deriv_t>
 CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::CCZ4RHSWithMatter(
     matter_t a_matter, CCZ4_params_t<typename gauge_t::params_t> a_params, double a_dx,
-    double a_sigma, int a_formulation, double a_G_Newton)
+    double a_sigma, int a_formulation, double a_G_Newton,
+    std::array<double, AMREX_SPACEDIM> a_center, amrex::Real a_time)
     : CCZ4RHS<gauge_t, deriv_t>(a_params, a_dx, a_sigma, a_formulation,
                                 0.0 /*No cosmological constant*/),
-      m_matter(a_matter), m_G_Newton(a_G_Newton)
+      m_matter(a_matter), m_G_Newton(a_G_Newton), m_dx(a_dx),
+      m_center(a_center), m_time(a_time)
 {
 }
 
@@ -46,6 +50,7 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::operator()(
     const typename matter_t::D1Vars d1(ix, iy, iz, state, this->m_deriv);
     const typename matter_t::D2Vars d2(ix, iy, iz, state, this->m_deriv);
     const typename matter_t::AdvecVars advec(ix, iy, iz, state, this->m_deriv);
+    const Coordinates coords(amrex::IntVect{AMREX_D_DECL(ix, iy, iz)}, m_dx, m_center);
 
     const amrex::CellData<amrex::Real> &rhs_cell_data =
         rhs_state.cellData(ix, iy, iz);
@@ -53,7 +58,7 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::operator()(
     this->rhs_equation(rhs_cell_data, vars, d1, d2, advec);
 
     // add RHS matter terms from EM Tensor
-    add_emtensor_rhs(rhs_cell_data, vars, d1);
+    add_emtensor_rhs(rhs_cell_data, vars, d1, coords);
 
     // add evolution of matter fields themselves
     m_matter.add_matter_rhs(rhs_cell_data, vars, d1, d2, advec);
@@ -69,13 +74,14 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
     const amrex::CellData<amrex::Real> &rhs,
     const typename matter_t::Vars &vars,
-    const typename matter_t::D1Vars &d1) const
+    const typename matter_t::D1Vars &d1, const Coordinates &coords) const
 {
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
     const auto chris = CCZ4Geometry::compute_christoffel(d1, h_UU);
 
     // Calculate elements of the decomposed stress energy tensor
-    const auto emtensor = m_matter.compute_emtensor(vars, d1, h_UU, chris.ULL);
+    const auto emtensor =
+        m_matter.compute_emtensor(vars, d1, h_UU, chris.ULL, coords, m_time);
 
     // Update RHS for K and Theta depending on formulation
     if (this->m_formulation == CCZ4RHS<>::USE_BSSN)
