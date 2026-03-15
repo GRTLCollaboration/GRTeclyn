@@ -84,12 +84,18 @@ wormhole_centerA = 0.0 0.0 0.0
 # - A2 = wormhole_k_quadrupole_amplitude
 #   symmetry-breaking Y20 term used to generate non-spherical dynamics / Psi4
 #
-# Collapse attempt (strong kick, stabilized numerics):
-# - A0 drives the main collapse dynamics; A2 just breaks symmetry for Psi4
-# - wide kick keeps it coherent, but large |A0| can cause NaNs unless dt is reduced
-wormhole_k_monopole_amplitude   = 3.0
-wormhole_k_quadrupole_amplitude = 0.05
+# Delayed-kick test:
+# - keep the initial-data kick at zero to let the vacuum wormhole relax first
+# - then inject the same profile later during evolution
+wormhole_k_monopole_amplitude   = 0.0
+wormhole_k_quadrupole_amplitude = 0.0
 wormhole_k_width       = 1.0
+
+wormhole_delayed_kick_start = 3.0
+wormhole_delayed_kick_duration = 0.5
+wormhole_delayed_kick_monopole_amplitude = 3.0
+wormhole_delayed_kick_quadrupole_amplitude = 0.05
+wormhole_delayed_kick_width = 1.0
 
 # IMPORTANT:
 # Your "Resolution of the Origin Singularity: Isotropic Coordinates" section

@@ -43,6 +43,8 @@ template <class potential_t = DefaultPotential> class ExoticScalarField
     double m_support_ramp_duration;
     double m_support_causal_speed;
     int m_metric_type;
+    double m_throat_radius_A;
+    double m_throat_radius_B;
     std::array<double, AMREX_SPACEDIM> m_centerA;
     std::array<double, AMREX_SPACEDIM> m_centerB;
     //! The local copy of the potential
@@ -62,7 +64,8 @@ template <class potential_t = DefaultPotential> class ExoticScalarField
     ExoticScalarField(potential_t a_potential = potential_t(), double a_support_strength = 1.0)
         : m_potential(a_potential), m_support_strength(a_support_strength),
           m_support_ramp_start(-1.0), m_support_ramp_duration(5.0),
-          m_support_causal_speed(0.0), m_metric_type(1), m_centerA{0.0},
+          m_support_causal_speed(0.0), m_metric_type(1),
+          m_throat_radius_A(1.0), m_throat_radius_B(1.0), m_centerA{0.0},
           m_centerB{0.0}
     {
         GRParmParse pp;
@@ -73,6 +76,8 @@ template <class potential_t = DefaultPotential> class ExoticScalarField
         pp.load("wormhole_support_ramp_duration", m_support_ramp_duration, 5.0);
         pp.load("wormhole_support_causal_speed", m_support_causal_speed, 0.0);
         pp.load("wormhole_metric_type", m_metric_type, 1);
+        pp.load("wormhole_throat_radius_A", m_throat_radius_A, 1.0);
+        pp.load("wormhole_throat_radius_B", m_throat_radius_B, m_throat_radius_A);
 
         std::array<double, AMREX_SPACEDIM> default_centerA = {0.0, 0.0, 0.0};
         pp.load("wormhole_centerA", m_centerA, default_centerA);

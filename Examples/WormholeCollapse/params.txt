@@ -25,8 +25,18 @@ print_progress_only_to_rank_0 = 1
 # These must match the names used in your SimulationParameters.hpp
 
 wormhole_throat_radius = 1.0   # b_0: Physical size of the throat
-wormhole_k_amplitude   = -0.1  # K_amp: Negative triggers inward collapse
-wormhole_k_width       = 1.0   # sigma: Width of the Gaussian perturbation
+
+# Keep the initial-data kick off, then trigger the collapse attempt later.
+wormhole_k_amplitude            = 0.0
+wormhole_k_monopole_amplitude   = 0.0
+wormhole_k_quadrupole_amplitude = 0.0
+wormhole_k_width                = 1.0
+
+wormhole_delayed_kick_start = 3.0
+wormhole_delayed_kick_duration = 0.5
+wormhole_delayed_kick_monopole_amplitude = 3.0
+wormhole_delayed_kick_quadrupole_amplitude = 0.05
+wormhole_delayed_kick_width = 1.0
 
 #################################################
 # Grid parameters

@@ -70,6 +70,15 @@ class WormholeInitialData
         double k_quadrupole_amplitude;
         double k_width;
 
+        // Optional delayed kick applied during evolution after the initial
+        // gauge/constraint transient has had time to leave the throat region.
+        // This is distinct from the t=0 initial-data kick above.
+        double delayed_kick_start;
+        double delayed_kick_duration;
+        double delayed_kick_monopole_amplitude;
+        double delayed_kick_quadrupole_amplitude;
+        double delayed_kick_width;
+
         // Legacy/debug option: initialise a nontrivial Cartesian gamma_ij
         // (single-throat proper-distance metric centred at the origin).
         bool use_cartesian_gamma;

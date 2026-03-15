@@ -143,7 +143,7 @@ We systematically control the onset of the dynamics by reducing this support in 
 \begin{equation}
     S(\mathbf{x},t) = S_0\!\left(t - \frac{r_{\rm th}(\mathbf{x})}{v_{\rm c}}\right),
 \end{equation}
-where $r_{\rm th}(\mathbf{x})$ is the coordinate distance to the nearest throat and $v_{\rm c}$ is the speed at which the support-removal front propagates outward. The throat-center schedule $S_0$ is held at unity during an initial settling stage and then reduced smoothly to zero over a duration $\Delta t$ using a cosine profile:
+where $r_{\rm th}(\mathbf{x})$ measures distance from the \emph{throat surface} and $v_{\rm c}$ is the speed at which the support-removal front propagates outward. In the single-throat isotropic Ellis-Bronnikov chart used here, the coordinate origin $\bar r=0$ is not the throat itself but the compactified asymptotic end of the second universe, while the physical throat is the spherical shell at $\bar r=b_0/2$ around the grid center. Accordingly, the support-removal front is launched from that shell rather than from the coordinate origin. The throat-center schedule $S_0$ is held at unity during an initial settling stage and then reduced smoothly to zero over a duration $\Delta t$ using a cosine profile:
 \begin{equation}
     S_0(t) =
     \begin{cases}

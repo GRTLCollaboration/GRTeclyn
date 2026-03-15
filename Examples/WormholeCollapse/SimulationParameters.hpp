@@ -60,6 +60,17 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("wormhole_use_cartesian_gamma", wormhole_params.use_cartesian_gamma,
                 false);
 
+        pp.load("wormhole_delayed_kick_start",
+                wormhole_params.delayed_kick_start, -1.0);
+        pp.load("wormhole_delayed_kick_duration",
+                wormhole_params.delayed_kick_duration, 0.0);
+        pp.load("wormhole_delayed_kick_monopole_amplitude",
+                wormhole_params.delayed_kick_monopole_amplitude, 0.0);
+        pp.load("wormhole_delayed_kick_quadrupole_amplitude",
+                wormhole_params.delayed_kick_quadrupole_amplitude, 0.0);
+        pp.load("wormhole_delayed_kick_width",
+                wormhole_params.delayed_kick_width, 0.0);
+
         // Kick parameters:
         // - wormhole_k_monopole_amplitude controls the coherent compressive part
         // - wormhole_k_quadrupole_amplitude controls the Y20 deformation
@@ -99,6 +110,19 @@ class SimulationParameters : public SimulationParametersBase
                          (wormhole_params.k_quadrupole_amplitude == 0.0)) ||
                             (wormhole_params.k_width > 0.0),
                         "must be > 0 when any wormhole kick amplitude is nonzero");
+        check_parameter(
+            "wormhole_delayed_kick_width", wormhole_params.delayed_kick_width,
+            ((wormhole_params.delayed_kick_monopole_amplitude == 0.0) &&
+             (wormhole_params.delayed_kick_quadrupole_amplitude == 0.0)) ||
+                (wormhole_params.delayed_kick_width > 0.0),
+            "must be > 0 when any delayed kick amplitude is nonzero");
+        check_parameter(
+            "wormhole_delayed_kick_duration",
+            wormhole_params.delayed_kick_duration,
+            ((wormhole_params.delayed_kick_monopole_amplitude == 0.0) &&
+             (wormhole_params.delayed_kick_quadrupole_amplitude == 0.0)) ||
+                (wormhole_params.delayed_kick_duration > 0.0),
+            "must be > 0 when any delayed kick amplitude is nonzero");
     }
 
     bool calculate_constraint_norms{};

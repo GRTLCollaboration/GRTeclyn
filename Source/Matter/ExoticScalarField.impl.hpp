@@ -136,16 +136,20 @@ ExoticScalarField<potential_t>::nearest_throat_radius(
     const amrex::Real dzA = coords.z - m_centerA[2];
     const amrex::Real rA =
         std::sqrt(dxA * dxA + dyA * dyA + dzA * dzA);
+    const amrex::Real throatA = amrex::Math::abs(
+        rA - amrex::Real(0.5 * m_throat_radius_A));
 
     if (m_metric_type == 1)
-        return rA;
+        return throatA;
 
     const amrex::Real dxB = coords.x - m_centerB[0];
     const amrex::Real dyB = coords.y - m_centerB[1];
     const amrex::Real dzB = coords.z - m_centerB[2];
     const amrex::Real rB =
         std::sqrt(dxB * dxB + dyB * dyB + dzB * dzB);
-    return amrex::min(rA, rB);
+    const amrex::Real throatB = amrex::Math::abs(
+        rB - amrex::Real(0.5 * m_throat_radius_B));
+    return amrex::min(throatA, throatB);
 }
 
 template <class potential_t>

@@ -67,7 +67,7 @@ void WormholeLevel::initData()
 
 void WormholeLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                     amrex::MultiFab &a_rhs,
-                                    const double /*a_time*/)
+                                    const double a_time)
 {
     BL_PROFILE("WormholeLevel::specificEvalRHS()");
     const auto &soln_arrs   = a_soln.arrays();
@@ -92,6 +92,75 @@ void WormholeLevel::specificEvalRHS(amrex::MultiFab &a_soln,
     amrex::ParallelFor(
         a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
         { ccz4rhs(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]); });
+
+    const auto delayed_start =
+        simParams().wormhole_params.delayed_kick_start;
+    const auto delayed_duration =
+        simParams().wormhole_params.delayed_kick_duration;
+    const auto delayed_monopole =
+        simParams().wormhole_params.delayed_kick_monopole_amplitude;
+    const auto delayed_quadrupole =
+        simParams().wormhole_params.delayed_kick_quadrupole_amplitude;
+    const auto delayed_width =
+        simParams().wormhole_params.delayed_kick_width;
+
+    if (delayed_start >= 0.0 && delayed_duration > 0.0 &&
+        ((delayed_monopole != 0.0) || (delayed_quadrupole != 0.0)) &&
+        delayed_width > 0.0 && a_time >= delayed_start &&
+        a_time <= delayed_start + delayed_duration)
+    {
+        const double x = (a_time - delayed_start) / delayed_duration;
+        // Smooth pulse with zero endpoints. The time integral over the window is
+        // unity, so the delayed amplitudes correspond approximately to the
+        // injected change in K.
+        const double temporal_weight =
+            (1.0 - std::cos(2.0 * M_PI * x)) / delayed_duration;
+        const double sig2 = delayed_width * delayed_width;
+        const auto center = simParams().wormhole_params.grid_center;
+        const auto centerA = simParams().wormhole_params.centerA;
+        const auto centerB = simParams().wormhole_params.centerB;
+        const int metric_type = simParams().wormhole_params.metric_type;
+        const double dx = Geom().CellSize(0);
+
+        amrex::ParallelFor(
+            a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+            {
+                Coordinates coords(amrex::IntVect(AMREX_D_DECL(i, j, k)), dx,
+                                   center);
+                const amrex::Real xloc = coords.x;
+                const amrex::Real yloc = coords.y;
+                const amrex::Real zloc = coords.z;
+
+                const amrex::Real dxA = xloc - centerA[0];
+                const amrex::Real dyA = yloc - centerA[1];
+                const amrex::Real dzA = zloc - centerA[2];
+                const amrex::Real rA2 = dxA * dxA + dyA * dyA + dzA * dzA;
+                const amrex::Real rA2_safe = amrex::max(rA2, amrex::Real(1.0e-24));
+                const amrex::Real y20A = 3.0 * dzA * dzA / rA2_safe - 1.0;
+                const amrex::Real kickA =
+                    (delayed_monopole + delayed_quadrupole * y20A) *
+                    std::exp(-rA2 / sig2);
+
+                amrex::Real delayed_kick = kickA;
+                if (metric_type != 1)
+                {
+                    const amrex::Real dxB = xloc - centerB[0];
+                    const amrex::Real dyB = yloc - centerB[1];
+                    const amrex::Real dzB = zloc - centerB[2];
+                    const amrex::Real rB2 = dxB * dxB + dyB * dyB + dzB * dzB;
+                    const amrex::Real rB2_safe =
+                        amrex::max(rB2, amrex::Real(1.0e-24));
+                    const amrex::Real y20B =
+                        3.0 * dzB * dzB / rB2_safe - 1.0;
+                    delayed_kick +=
+                        (delayed_monopole + delayed_quadrupole * y20B) *
+                        std::exp(-rB2 / sig2);
+                }
+
+                rhs_arrs[box_no](i, j, k, c_K) +=
+                    temporal_weight * delayed_kick;
+            });
+    }
 
     amrex::Gpu::streamSynchronize();
 }

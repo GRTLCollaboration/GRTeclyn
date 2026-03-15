@@ -101,8 +101,8 @@ wormhole_centerA = 0.0 0.0 0.0
 wormhole_use_cartesian_gamma = 0
 
 wormhole_support_strength = 1.0
-wormhole_support_ramp_start = 3.0
-wormhole_support_ramp_duration = 1.0
+wormhole_support_ramp_start = -1.0
+wormhole_support_ramp_duration = -1.0
 # If > 0, remove support causally from the throat outward at this coordinate
 # speed instead of switching the whole slice at once.
 wormhole_support_causal_speed = 1.0
@@ -116,11 +116,11 @@ wormhole_k_width       = 1.0
 # - starts after support has switched off at the throat
 # - amplitudes are integrated K-injections over the pulse window
 # - keep A2 tiny; scan A0 upward if r_AH stays zero
-wormhole_delayed_kick_start = 4.5
+wormhole_delayed_kick_start = 3.0
 wormhole_delayed_kick_duration = 0.5
-wormhole_delayed_kick_monopole_amplitude = 0.10
+wormhole_delayed_kick_monopole_amplitude = 2.0
 wormhole_delayed_kick_quadrupole_amplitude = 0.01
-wormhole_delayed_kick_width = 1.0
+wormhole_delayed_kick_width = 2.0
 # Grid parameters
 
 # Coarse grid settings
