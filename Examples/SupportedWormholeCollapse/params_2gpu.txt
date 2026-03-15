@@ -84,10 +84,10 @@ wormhole_centerA = 0.0 0.0 0.0
 # - A2 = wormhole_k_quadrupole_amplitude
 #   symmetry-breaking Y20 term used to generate non-spherical dynamics / Psi4
 #
-# Collapse attempt (strong kick, stabilized numerics):
+# Collapse attempt (supercritical kick, stabilized numerics):
 # - A0 drives the main collapse dynamics; A2 just breaks symmetry for Psi4
-# - wide kick keeps it coherent, but large |A0| can cause NaNs unless dt is reduced
-# (disabled for supported evolution)
+# - in this code, positive K is the branch that drives the 1+log lapse downward
+# - use a narrower, stronger monopole to recover the collapsing branch
 
 # IMPORTANT:
 # Your "Resolution of the Origin Singularity: Isotropic Coordinates" section
@@ -99,13 +99,15 @@ wormhole_centerA = 0.0 0.0 0.0
 wormhole_use_cartesian_gamma = 0
 
 wormhole_support_strength = 1.0
-wormhole_support_ramp_start = 5.0
-wormhole_support_ramp_duration = 5.0
+wormhole_support_ramp_start = 0.0
+wormhole_support_ramp_duration = 1.0
 
-# Keep the collapse trigger dominated by support release.
-# Use only a small quadrupole seed so exact symmetry is broken for diagnostics.
-wormhole_k_monopole_amplitude   = 0.0
-wormhole_k_quadrupole_amplitude = 0.02
+# Turn on the initial collapse-driving kick to inject positive mass-energy
+# and inward focusing. Without this kick, the supported wormhole tends to
+# relax/disperse when support is removed.
+# For the current gauge/sign conventions, A0 > 0 is the collapsing branch.
+wormhole_k_monopole_amplitude   = 3.0
+wormhole_k_quadrupole_amplitude = 0.05
 wormhole_k_width       = 1.0
 # Grid parameters
 
@@ -145,7 +147,7 @@ nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 #################################################
 # Evolution parameters
 
-# Smaller timestep to avoid NaNs during sharp collapse
+# Smaller timestep to avoid NaNs during the sharper supercritical collapse
 dt_multiplier = 0.05
 stop_time = 30.0
 

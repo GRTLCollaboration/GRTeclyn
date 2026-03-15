@@ -8,19 +8,19 @@ set -euo pipefail
 # - extracted Psi4 waveform / PSD in simulation time
 #
 # Usage:
-#   ./src/visualisation/scripts/plot_diagnostic.sh [RUN_DIR] [RADIUS ...]
+#   ./src/scripts/plot_diagnostic.sh [RUN_DIR] [RADIUS ...]
 #
 # Examples:
-#   ./src/visualisation/scripts/plot_diagnostic.sh
-#   ./src/visualisation/scripts/plot_diagnostic.sh "/home/jovyan/nachevsky/test/simulation/data_supported"
-#   ./src/visualisation/scripts/plot_diagnostic.sh "/home/jovyan/nachevsky/test/simulation/data_supported" 10 14
+#   ./src/scripts/plot_diagnostic.sh
+#   ./src/scripts/plot_diagnostic.sh "/home/jovyan/nachevsky/test/simulation/data_supported"
+#   ./src/scripts/plot_diagnostic.sh "/home/jovyan/nachevsky/test/simulation/data_supported" 10 14
 #
 # If no radii are given, plot_extracted_psi4.py will plot all radii found in
 # psi4_mode_l2m0.dat.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VIS_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-REPO_ROOT="$(cd "${VIS_DIR}/../.." && pwd)"
+VIS_DIR="$(cd "${SCRIPT_DIR}/../visualisation" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 DEFAULT_RUN_DIR="$(cd "${REPO_ROOT}/.." && pwd)/data_supported"
 
 RUN_DIR="${1:-$DEFAULT_RUN_DIR}"

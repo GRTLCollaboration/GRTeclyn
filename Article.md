@@ -131,19 +131,30 @@ To strictly avoid division-by-zero errors at the grid origin ($\bar{r}=0$), the 
 \begin{equation}
     \chi = \left( \frac{4\bar{r}^2}{4\bar{r}^2 + b_0^2} \right)^{4}.
 \end{equation}
-This smoothly vanishes at the origin ($\chi \to 0$), accurately mirroring the "puncture" methodology used for black holes. The initial data passed to the solver therefore consists of a flat conformal metric ($\tilde{\gamma}_{ij} = \delta_{ij}$) and a scalar field $\chi$ that entirely captures the wormhole geometry.
+This smoothly vanishes at the origin ($\chi \to 0$), accurately mirroring the "puncture" methodology used for black holes. The initial data passed to the solver therefore consists of a flat conformal metric ($\tilde{\gamma}_{ij} = \delta_{ij}$) and a coupled scalar field $\phi$ profile that entirely captures the wormhole geometry and stress-energy.
 
-\subsection{Dynamical Triggering and Vacuum Evolution}
+\subsection{Dynamical Triggering via Support Removal}
 
-The initialized Ellis-Bronnikov geometry requires exotic matter violating the Null Energy Condition to remain static. By evolving this state using the \emph{vacuum} Einstein equations ($T_{\mu\nu}=0$), the initial slice functions as an "unsupported" structure; it does not satisfy the vacuum Hamiltonian constraint at $t=0$. The spacetime responds to this effective constraint violation by radiating away the defect and attempting to relax.
+The initialized Ellis-Bronnikov geometry requires exotic matter violating the Null Energy Condition to remain static. Previous studies often relied on a "sudden approximation," evolving this geometry in a pure vacuum ($T_{\mu\nu}=0$), which results in a massive, instantaneous violation of the Hamiltonian constraint and violent numerical transients.
 
-To systematically study the collapse dynamics rather than relying on the stochastic accumulation of numerical truncation errors, we apply a "sudden approximation" by breaking the time symmetry of the initial data. While the trace-free extrinsic curvature is set to zero ($\tilde{A}_{ij} = 0$), we inject a localized quadrupole ($l=2$) perturbation into the trace of the extrinsic curvature, $K$:
+To achieve a physically consistent, controlled collapse, we instead explicitly model the required exotic matter. We couple the CCZ4 evolution to a "phantom" scalar field $\phi$. The stress-energy tensor for this field is defined with a reversed overall sign relative to a canonical scalar field, providing the negative energy density necessary to support the wormhole throat and satisfy the constraints at $t=0$.
+
+We systematically control the onset of the dynamics by smoothly removing this supporting matter. We define a time-dependent support strength multiplier $S(t)$. For an initial settling period ($t < t_{\rm start}$), $S(t) = 1$, and the wormhole remains in a supported, quasi-static equilibrium. To trigger the collapse, $S(t)$ is smoothly ramped down to zero over a duration $\Delta t$ using a cosine profile:
 \begin{equation}
-    K(\bar{r}, \theta, \phi) = A_{\rm kick} \exp\left(-\frac{\bar{r}^2}{\sigma^2}\right) Y_{20}(\theta, \phi),
+    S(t) = \frac{1}{2} \left[ 1 + \cos\left( \pi \frac{t - t_{\rm start}}{\Delta t} \right) \right].
 \end{equation}
-where $\sigma$ defines the width of the perturbation, $A_{\rm kick}$ is the amplitude, and $Y_{20}$ explicitly breaks the continuous spherical symmetry of the physics. Without this angular dependence, Birkhoff's theorem would dictate that the system cannot emit gravitational waves, and any observed $l=2$ waveforms would be purely numerical artifacts caused by the Cartesian grid. 
+As the exotic matter support vanishes, gravity dictates the dynamics, and the throat naturally collapses under its own weight. To break exact spherical symmetry and generate a small, clean gravitational wave signal, we inject a minor quadrupole ($l=2$) perturbation into the extrinsic curvature:
+\begin{equation}
+    K(\bar{r}, \theta, \phi) = A_2 \exp\left(-\frac{\bar{r}^2}{\sigma^2}\right) Y_{20}(\theta, \phi).
+\end{equation}
 
-It is important to acknowledge that this "sudden approximation" involves evolving a spacetime that massively violates the vacuum Hamiltonian constraint at $t=0$, which generates substantial "junk" radiation at early times. However, the CCZ4 formulation is specifically designed to handle such violations by propagating them away and damping them. As we demonstrate in our constraint analysis (see Appendix A), the CCZ4 system successfully sweeps away these initial constraint violations rapidly. Consequently, the subsequent strong-field dynamics accurately represent a valid, physical topological pinch-off of the wormhole throat. 
+\subsection{Apparent Horizon Detection}
+
+To definitively distinguish true topological pinch-off and black hole formation from mere gauge effects (such as "lapse collapse"), we implemented a geometric trapped-surface diagnostic. At each time step, we perform a spherical-shell scan outward from the origin, calculating the expansion of outgoing null rays, $\theta_+$. In spherical symmetry, this is given by:
+\begin{equation}
+    \theta_+ = \frac{2\sqrt{\chi}}{r} + \frac{2}{3}K - \chi \tilde{A}_{rr}.
+\end{equation}
+The formation of a trapped surface is unambiguously identified when $\theta_+ \le 0$. The maximum radius where this condition holds provides a proxy for the apparent horizon radius, $r_{\rm AH}$. The sudden jump of $r_{\rm AH}$ from zero to a finite positive value during the simulation serves as our primary physical indicator of successful collapse.
 
 \subsection{Gauge Conditions}
 
@@ -201,7 +212,7 @@ The specific topology of the spacetime (e.g., number of mouths or punctures) is 
 
 \section{Results}
 
-\subsection{Dynamics of Collapse and Horizon Formation}
+\subsection{Dynamics of Support Removal and Relaxation}
 
 \begin{figure*}[t] % the * makes it span both columns in a 2-column paper
     \centering
@@ -210,20 +221,22 @@ The specific topology of the spacetime (e.g., number of mouths or punctures) is 
     \label{fig:k_evolution}
 \end{figure*}
 
-To establish that the observed radiation is generated by the physical collapse of the wormhole topology, we performed a series of simulations varying the initial perturbation amplitude \(A\) on a wormhole with a fixed initial throat radius of $b_0 = 0.5M$. The results reveal a clear threshold for collapse and a strong asymmetry with respect to the sign of the perturbation.
+To establish the stability and dynamical fate of the wormhole topology, we performed a series of simulations evolving the supported Ellis-Bronnikov wormhole. The support strength $S(t)$ was held at $1.0$ for an initial period to allow initial data transients to damp, and then smoothly reduced to zero over $t \in [5.0, 10.0]M$. A small quadrupole perturbation ($A_2 = 0.02$) was included to break exact spherical symmetry.
 
-For negative amplitudes (\(A = -1, -2, -3, -4\)), the initial perturbation imparts an outward velocity to the throat. In these subcritical scenarios, the wormhole expands and dissipates, and the distinct outburst of gravitational radiation is not observed. 
+Contrary to the expectation of a violent, immediate collapse into a black hole (as often seen in violently over-kicked vacuum initial data), the controlled removal of the scalar field support reveals a more gradual dynamical relaxation. 
 
-In contrast, positive perturbations ($A > 0$) force the throat inward. For the $b_0 = 0.5M$ geometry, we find a critical threshold for collapse: for \(A \ge 3\), the perturbation is supercritical, leading to the dynamic crush of the throat. During this process, the global minimum of the lapse function \(\alpha\) drops abruptly toward zero, as shown in Figure~\ref{fig:collapse_diagnostics_plot}. This phenomenon, known as the ``collapse of the lapse,'' is a characteristic gauge behavior in moving-puncture slicing conditions that definitively signals the formation of a black hole (and an apparent horizon). 
+As shown in Figure~\ref{fig:collapse_diagnostics_plot}, during the ramp-down of the support strength, the global minimum of the lapse function \(\alpha\) does not plunge toward zero. Instead, it experiences a small initial dip (reflecting the early gauge adjustment and transient waves) but remains firmly above $\alpha \approx 0.8$. In moving-puncture formalisms, a definitive collapse to a black hole is characterized by "lapse collapse" ($\alpha \to 0$) alongside a corresponding crush in the conformal factor ($\chi \to 0$). Here, the conformal factor minimum actually \emph{increases}, indicating an expansion or widening of the geometry at the throat rather than a crush.
 
 \begin{figure}[h]
     \centering
     \includegraphics[width=\linewidth]{collapse_diagnostics_plot.png}
-    \caption{Evolution of the minimum lapse ($\alpha$) and minimum conformal factor ($\chi$) for the supercritical collapse case ($b_0 = 0.5M, A=+4$). The sharp drop in the lapse function towards zero definitively indicates the formation of a black hole horizon.}
+    \caption{Evolution of the minimum lapse ($\alpha$), minimum conformal factor ($\chi$), and maximum trapped surface radius ($r_{\rm AH}$) during the support removal phase. The lapse remains high and no trapped surface ($\theta_+ \le 0$) forms, indicating the wormhole relaxes and expands rather than collapsing into a black hole.}
     \label{fig:collapse_diagnostics_plot}
 \end{figure}
 
-Crucially, the prominent burst of gravitational radiation is exclusively produced in these supercritical cases (\(A \ge 3\)). The direct correlation between the collapse of the lapse function---indicating black hole formation---and the emission of the outgoing wave strongly supports the conclusion that the observed radiation genuinely originates from the violent nonlinear dynamics of the wormhole collapsing into a black hole.
+To definitively rule out the formation of an event horizon, we monitored the maximum radius at which the outgoing null expansion satisfies $\theta_+ \le 0$. Throughout the entire evolution, this radius remains strictly zero ($r_{\rm AH} = 0$), confirming that no apparent horizon or trapped surface forms.
+
+These results indicate that, in the absence of a massive implosive kick ($K < 0$), the removal of the exotic matter threading the throat does not automatically lead to catastrophic gravitational collapse. The surrounding mass-energy of the wormhole is insufficient to self-trap, and instead, the defect gently dissipates and expands outward.
 
 \subsection{Role of Perturbation Width and Amplitude}
 

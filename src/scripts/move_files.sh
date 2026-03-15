@@ -13,10 +13,13 @@ fi
 FOLDER_NAME="$1"
 
 # Base directories
-BASE_VISUALISATION_DIR="/home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation"
-TARGET_DIR="/home/jovyan/nachevsky/test/simulation/GRTeclyn/src/SimResults/$FOLDER_NAME"
-DATA_DIR="/home/jovyan/nachevsky/test/simulation/data_2gpu"
-PARAMS_FILE="/home/jovyan/nachevsky/test/simulation/GRTeclyn/Examples/WormholeCollapse/params_2gpu.txt"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+
+BASE_VISUALISATION_DIR="${REPO_ROOT}/src/visualisation"
+TARGET_DIR="${REPO_ROOT}/src/SimResults/$FOLDER_NAME"
+DATA_DIR="$(cd "${REPO_ROOT}/.." && pwd)/data_supported"
+PARAMS_FILE="${REPO_ROOT}/Examples/SupportedWormholeCollapse/params_2gpu.txt"
 
 echo "=========================================="
 echo "Creating target directory: $TARGET_DIR"
@@ -25,10 +28,10 @@ mkdir -p "$TARGET_DIR"
 
 echo "Copying frames (chi_z, K_z, Weyl4_Mag_z, Weyl4_Re_z)..."
 # Using cp -ur to copy directories and update only if source is newer
-cp -ur "$BASE_VISUALISATION_DIR/visualize/chi_z" "$TARGET_DIR/"
-cp -ur "$BASE_VISUALISATION_DIR/visualize/K_z" "$TARGET_DIR/"
-cp -ur "$BASE_VISUALISATION_DIR/visualize/Weyl4_Mag_z" "$TARGET_DIR/"
-cp -ur "$BASE_VISUALISATION_DIR/visualize/Weyl4_Re_z" "$TARGET_DIR/"
+cp -ur "$BASE_VISUALISATION_DIR/visualize_supported/chi" "$TARGET_DIR/" || cp -ur "$BASE_VISUALISATION_DIR/visualize_supported/chi_z" "$TARGET_DIR/"
+cp -ur "$BASE_VISUALISATION_DIR/visualize_supported/K" "$TARGET_DIR/" || cp -ur "$BASE_VISUALISATION_DIR/visualize_supported/K_z" "$TARGET_DIR/"
+cp -ur "$BASE_VISUALISATION_DIR/visualize_supported/Weyl4_Mag" "$TARGET_DIR/" || cp -ur "$BASE_VISUALISATION_DIR/visualize_supported/Weyl4_Mag_z" "$TARGET_DIR/"
+cp -ur "$BASE_VISUALISATION_DIR/visualize_supported/Weyl4_Re" "$TARGET_DIR/" || cp -ur "$BASE_VISUALISATION_DIR/visualize_supported/Weyl4_Re_z" "$TARGET_DIR/"
 
 echo "Copying plot files..."
 # Using cp -u to copy files and update only if source is newer
