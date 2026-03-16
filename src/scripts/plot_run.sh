@@ -3,7 +3,7 @@
 # Exit immediately if a command exits with a non-zero status
 set -e
 
-DATA_DIR="/home/jovyan/nachevsky/test/simulation/data_supported"
+DATA_DIR="/home/jovyan/nachevsky/test/simulation/data_2gpu"
 REPO_DIR="/home/jovyan/nachevsky/test/simulation/GRTeclyn"
 
 echo "=========================================="
@@ -24,13 +24,13 @@ echo "=========================================="
 echo "Starting plot processing..."
 echo "=========================================="
 python -m src.visualisation.process_wave.consume_plotfiles \
-  --data "/home/jovyan/nachevsky/test/simulation/data_supported" \
-  --out "/home/jovyan/nachevsky/test/simulation/data_supported/small_data" \
+  --data "$DATA_DIR" \
+  --out "$DATA_DIR/small_data" \
   --radii 8 12 16 \
   --n-points 32 \
   --frames-fields chi K Weyl4_Re Weyl4_Mag \
   --frames-axis z \
   --frames-corner \
-  --frames-out "/home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/visualize_supported" \
+  --frames-out "/home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/visualize" \
   --watch --delete --keep-last 2 \
   --verbose

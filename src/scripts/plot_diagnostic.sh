@@ -21,7 +21,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VIS_DIR="$(cd "${SCRIPT_DIR}/../visualisation" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-DEFAULT_RUN_DIR="$(cd "${REPO_ROOT}/.." && pwd)/data_supported"
+DEFAULT_RUN_DIR="$(cd "${REPO_ROOT}/.." && pwd)/data_2gpu"
 
 RUN_DIR="${1:-$DEFAULT_RUN_DIR}"
 if [[ $# -gt 0 ]]; then

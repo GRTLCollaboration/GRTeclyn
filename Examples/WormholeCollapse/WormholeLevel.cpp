@@ -313,11 +313,14 @@ void WormholeLevel::specificPostTimeStep()
         FillPatch(*this, state_new, 2, time, state_index, 0, state_new.nComp());
 
         amrex::ReduceOps<amrex::ReduceOpMin, amrex::ReduceOpMin,
-                         amrex::ReduceOpMax>
+                         amrex::ReduceOpMax, amrex::ReduceOpMax>
             reduce_ops;
-        amrex::ReduceData<amrex::Real, amrex::Real, amrex::Real> reduce_data(
-            reduce_ops);
+        amrex::ReduceData<amrex::Real, amrex::Real, amrex::Real, amrex::Real>
+            reduce_data(reduce_ops);
         using ReduceTuple = typename decltype(reduce_data)::Type;
+
+        const auto dx_arr  = Geom().CellSizeArray();
+        const auto prob_lo = Geom().ProbLoArray();
 
         for (amrex::MFIter mfi(state_new, amrex::TilingIfNotGPU());
              mfi.isValid(); ++mfi)
@@ -331,7 +334,45 @@ void WormholeLevel::specificPostTimeStep()
                     const amrex::Real lapse = arr(i, j, k, c_lapse);
                     const amrex::Real chi   = arr(i, j, k, c_chi);
                     const amrex::Real K     = arr(i, j, k, c_K);
-                    return {lapse, chi, amrex::Math::abs(K)};
+
+                    const amrex::Real x =
+                        prob_lo[0] + (amrex::Real(i) + 0.5) * dx_arr[0];
+                    const amrex::Real y =
+                        prob_lo[1] + (amrex::Real(j) + 0.5) * dx_arr[1];
+                    const amrex::Real z =
+                        prob_lo[2] + (amrex::Real(k) + 0.5) * dx_arr[2];
+                    const amrex::Real r2 = x * x + y * y + z * z;
+                    const amrex::Real r  = std::sqrt(r2);
+
+                    amrex::Real ah_radius = 0.0;
+                    if (r > 1e-6) // avoid division by zero at the throat center
+                    {
+                        const amrex::Real A11 = arr(i, j, k, c_A11);
+                        const amrex::Real A22 = arr(i, j, k, c_A22);
+                        const amrex::Real A33 = arr(i, j, k, c_A33);
+                        const amrex::Real A12 = arr(i, j, k, c_A12);
+                        const amrex::Real A13 = arr(i, j, k, c_A13);
+                        const amrex::Real A23 = arr(i, j, k, c_A23);
+
+                        const amrex::Real Arr =
+                            (A11 * x * x + A22 * y * y + A33 * z * z +
+                             2.0 * A12 * x * y + 2.0 * A13 * x * z +
+                             2.0 * A23 * y * z) /
+                            r2;
+
+                        // Spherical trapped-surface proxy:
+                        // theta_+ = 2 sqrt(chi) / r + 2/3 K - chi * A_rr
+                        const amrex::Real theta_plus =
+                            2.0 * std::sqrt(chi) / r + (2.0 / 3.0) * K -
+                            chi * Arr;
+
+                        if (theta_plus <= 0.0)
+                        {
+                            ah_radius = r;
+                        }
+                    }
+
+                    return {lapse, chi, amrex::Math::abs(K), ah_radius};
                 });
         }
 
@@ -339,15 +380,15 @@ void WormholeLevel::specificPostTimeStep()
         amrex::Real min_lapse  = amrex::get<0>(reduce_vals);
         amrex::Real min_chi    = amrex::get<1>(reduce_vals);
         amrex::Real max_abs_K  = amrex::get<2>(reduce_vals);
+        amrex::Real max_ah_r   = amrex::get<3>(reduce_vals);
         amrex::ParallelDescriptor::ReduceRealMin(min_lapse);
         amrex::ParallelDescriptor::ReduceRealMin(min_chi);
         amrex::ParallelDescriptor::ReduceRealMax(max_abs_K);
+        amrex::ParallelDescriptor::ReduceRealMax(max_ah_r);
 
         // Location of the global minimum lapse (average over ties).
         // This helps confirm the collapse localizes at the throat/center rather
         // than being a boundary artifact.
-        const auto dx      = Geom().CellSizeArray();
-        const auto prob_lo = Geom().ProbLoArray();
         const amrex::Real tol =
             amrex::max(amrex::Real(1.0e-14), amrex::Real(1.0e-12) * amrex::Math::abs(min_lapse));
 
@@ -418,13 +459,14 @@ void WormholeLevel::specificPostTimeStep()
         {
             diag_file.write_header_line(
                 {"min_lapse", "min_chi", "max_abs_K", "min_lapse_x",
-                 "min_lapse_y", "min_lapse_z"});
+                 "min_lapse_y", "min_lapse_z", "max_ah_r"});
         }
         diag_file.write_time_data_line({static_cast<double>(min_lapse),
                                         static_cast<double>(min_chi),
                                         static_cast<double>(max_abs_K),
                                         static_cast<double>(min_lapse_x),
                                         static_cast<double>(min_lapse_y),
-                                        static_cast<double>(min_lapse_z)});
+                                        static_cast<double>(min_lapse_z),
+                                        static_cast<double>(max_ah_r)});
     }
 }
