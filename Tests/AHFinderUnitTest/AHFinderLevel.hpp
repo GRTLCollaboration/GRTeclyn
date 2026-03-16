@@ -10,7 +10,6 @@
 #include "FixedGridsTagger.hpp"
 #include "GRAMR.hpp"
 #include "GRAMRLevel.hpp"
-#include "PolynomialDerivedQuantity.hpp"
 
 // We basically need this to have a valid AMR hierarchy
 
@@ -22,11 +21,7 @@ class AHFinderLevel : public GRAMRLevel
     // Inherit the contructors from GRAMRLevel
     using GRAMRLevel::GRAMRLevel;
 
-    static void variableSetUp()
-    {
-        stateVariableSetUp();
-        PolynomialDerivedQuantity::set_up(State_Type);
-    }
+    static void variableSetUp() { stateVariableSetUp(); }
 
     // initialize data
     void initData()
@@ -43,21 +38,25 @@ class AHFinderLevel : public GRAMRLevel
         pp.query("center", center);
 
         // Fill the state
-        amrex::ParallelFor(state, state.nGrowVect(),
-                           [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
-                           {
-                               const auto &array = arrs[box_no];
+        amrex::ParallelFor(
+            state, state.nGrowVect(),
+            [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+            {
+                const auto &array = arrs[box_no];
 
-                               // compute coordinates
-                               amrex::Real x =
-                                   prob_lo[0] + (i + 0.5) * dx[0] - center[0];
+                // compute coordinates
+                amrex::Real x = prob_lo[0] + (i + 0.5) * dx[0] - center[0];
+                amrex::Real y = prob_lo[1] + (j + 0.5) * dx[1] - center[1];
+                amrex::Real z = prob_lo[2] + (k + 0.5) * dx[2] - center[2];
 
-                               // zero out everything first
-                               array(i, j, k, c_polystate) = 0.0;
+                amrex::Real centre_distance = sqrt(x * x + y * y + z * z);
 
-                               // write in
-                               array(i, j, k, c_polystate) = x * x * x;
-                           });
+                // zero out everything first
+                array(i, j, k, c_polystate) = 0.0;
+
+                // write in
+                array(i, j, k, c_polystate) = pow(centre_distance, 3) - 8;
+            });
 
         amrex::Gpu::streamSynchronize();
     }

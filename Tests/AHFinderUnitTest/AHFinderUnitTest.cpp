@@ -61,7 +61,7 @@ void run_ah_finder_unit_test()
 
         // Read from params
         const int num_particles = 10;
-        bool verbosity          = true; // sim_params.verbosity;
+        bool verbosity          = sim_params.verbosity;
 
         // Number of processes and local processes
         const int nprocs = amrex::ParallelDescriptor::NProcs();
@@ -81,10 +81,9 @@ void run_ah_finder_unit_test()
                               << n_local << " LOCAL particles \n";
         }
 
-        AHFinder<1> finder(num_particles);
+        AHFinder<1> finder(num_particles, sim_params.center);
 
-        finder.init(&gr_amr, sim_params.boundary_params, sim_params.center,
-                    verbosity);
+        finder.init(&gr_amr, sim_params.boundary_params, verbosity);
     }
 
     amrex::Finalize();

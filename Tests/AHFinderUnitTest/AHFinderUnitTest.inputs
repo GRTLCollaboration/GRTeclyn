@@ -1,7 +1,7 @@
 #################################################
 # Filesystem parameters
 
-verbosity = 1
+verbosity = 0
 
 output_path = .
 checkpoint_interval = -1
