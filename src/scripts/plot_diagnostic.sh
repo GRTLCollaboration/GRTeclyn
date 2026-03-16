@@ -12,8 +12,8 @@ set -euo pipefail
 #
 # Examples:
 #   ./src/scripts/plot_diagnostic.sh
-#   ./src/scripts/plot_diagnostic.sh "/home/jovyan/nachevsky/test/simulation/data_supported"
-#   ./src/scripts/plot_diagnostic.sh "/home/jovyan/nachevsky/test/simulation/data_supported" 10 14
+#   ./src/scripts/plot_diagnostic.sh "/home/jovyan/nachevsky/test/simulation/data_2gpu"
+#   ./src/scripts/plot_diagnostic.sh "/home/jovyan/nachevsky/test/simulation/data" 10 14
 #
 # If no radii are given, plot_extracted_psi4.py will plot all radii found in
 # psi4_mode_l2m0.dat.
@@ -21,7 +21,56 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VIS_DIR="$(cd "${SCRIPT_DIR}/../visualisation" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-DEFAULT_RUN_DIR="$(cd "${REPO_ROOT}/.." && pwd)/data_2gpu"
+SIM_ROOT="$(cd "${REPO_ROOT}/.." && pwd)"
+
+candidate_run_mtime() {
+  local run_dir="$1"
+  local constraint_file="${run_dir}/data/constraint_norms.dat"
+  local collapse_file="${run_dir}/data/collapse_diagnostics.dat"
+  local psi4_file="${run_dir}/small_data/psi4_mode_l2m0.dat"
+
+  if [[ ! -f "${constraint_file}" || ! -f "${collapse_file}" || ! -f "${psi4_file}" ]]; then
+    return 1
+  fi
+
+  local t1 t2 t3 newest
+  t1=$(stat -c %Y "${constraint_file}")
+  t2=$(stat -c %Y "${collapse_file}")
+  t3=$(stat -c %Y "${psi4_file}")
+  newest="${t1}"
+  if (( t2 > newest )); then newest="${t2}"; fi
+  if (( t3 > newest )); then newest="${t3}"; fi
+  printf '%s\n' "${newest}"
+}
+
+choose_default_run_dir() {
+  local candidates=("${SIM_ROOT}/data_2gpu" "${SIM_ROOT}/data")
+  local best_dir=""
+  local best_mtime=-1
+  local dir mtime
+
+  for dir in "${candidates[@]}"; do
+    if mtime=$(candidate_run_mtime "${dir}"); then
+      if (( mtime > best_mtime )); then
+        best_mtime="${mtime}"
+        best_dir="${dir}"
+      fi
+    fi
+  done
+
+  if [[ -n "${best_dir}" ]]; then
+    printf '%s\n' "${best_dir}"
+    return 0
+  fi
+
+  if [[ -d "${SIM_ROOT}/data_2gpu" ]]; then
+    printf '%s\n' "${SIM_ROOT}/data_2gpu"
+  else
+    printf '%s\n' "${SIM_ROOT}/data"
+  fi
+}
+
+DEFAULT_RUN_DIR="$(choose_default_run_dir)"
 
 RUN_DIR="${1:-$DEFAULT_RUN_DIR}"
 if [[ $# -gt 0 ]]; then
@@ -45,15 +94,17 @@ if [[ ! -f "${PSI4_FILE}" ]]; then
   exit 1
 fi
 
+echo "Using run directory: ${RUN_DIR}"
+
 RADII_ARGS=()
 if [[ $# -gt 0 ]]; then
   RADII_ARGS=(--radii "$@")
 fi
 
-echo "[1/3] Plotting constraint norms..."
+echo "[1/4] Plotting constraint norms..."
 python -m src.visualisation.constraines "${CONSTRAINT_FILE}"
 
-echo "[2/3] Plotting collapse diagnostics..."
+echo "[2/4] Plotting collapse diagnostics..."
 python -m src.visualisation.diagnostic.diagnostic \
   "${COLLAPSE_FILE}" \
   --out "${VIS_DIR}/diagnostic"

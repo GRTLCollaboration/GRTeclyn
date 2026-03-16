@@ -415,11 +415,11 @@ void WormholeLevel::specificPostTimeStep()
                         return {0.0, 0.0, 0.0, 0.0};
                     }
                     const amrex::Real x =
-                        prob_lo[0] + (amrex::Real(i) + 0.5) * dx[0];
+                        prob_lo[0] + (amrex::Real(i) + 0.5) * dx_arr[0];
                     const amrex::Real y =
-                        prob_lo[1] + (amrex::Real(j) + 0.5) * dx[1];
+                        prob_lo[1] + (amrex::Real(j) + 0.5) * dx_arr[1];
                     const amrex::Real z =
-                        prob_lo[2] + (amrex::Real(k) + 0.5) * dx[2];
+                        prob_lo[2] + (amrex::Real(k) + 0.5) * dx_arr[2];
                     return {x, y, z, 1.0};
                 });
         }

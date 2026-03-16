@@ -58,6 +58,12 @@ Use `mpirun` to launch the MPI version of the executable.
 CUDA_VISIBLE_DEVICES=0,1 mpirun -n 2 ./main3d.gnu.MPI.CUDA.ex params_2gpu.txt
 ```
 
+For the vacuum-collapse example, the compressive kick is seeded directly in the
+initial data at `t=0` through `wormhole_k_monopole_amplitude`,
+`wormhole_k_quadrupole_amplitude`, and `wormhole_k_width` in the params file.
+The delayed-kick parameters are still supported by the code for alternate
+experiments, but they are disabled by default in the example inputs.
+
 ### Multi-GPU (e.g. 4 GPUs)
 This example also works with 4 GPUs (4 MPI ranks):
 

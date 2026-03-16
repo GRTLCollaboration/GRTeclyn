@@ -28,7 +28,7 @@ print_progress_only_to_rank_0 = 1
 #################################################
 # Wormhole Initial Data parameters
 
-# How to switch between the two supported initial-data setups
+# How to switch between the two unsupported initial-data setups
 # ----------------------------------------------------------
 # This example supports TWO metric realisations, controlled by `wormhole_metric_type`.
 #
@@ -84,17 +84,17 @@ wormhole_centerA = 0.0 0.0 0.0
 # - A2 = wormhole_k_quadrupole_amplitude
 #   symmetry-breaking Y20 term used to generate non-spherical dynamics / Psi4
 #
-# Delayed-kick test:
-# - keep the initial-data kick at zero to let the vacuum wormhole relax first
-# - then inject the same profile later during evolution
-wormhole_k_monopole_amplitude   = 0.0
-wormhole_k_quadrupole_amplitude = 0.0
+# For the pure-vacuum collapse branch we seed the compressive kick directly in
+# the initial data at t=0. The delayed-kick machinery remains available in code
+# for scans, but is disabled here by zeroing its amplitudes below.
+wormhole_k_monopole_amplitude   = 1.5
+wormhole_k_quadrupole_amplitude = 0.05
 wormhole_k_width       = 1.0
 
-wormhole_delayed_kick_start = 3.0
-wormhole_delayed_kick_duration = 0.5
-wormhole_delayed_kick_monopole_amplitude = 1.0
-wormhole_delayed_kick_quadrupole_amplitude = 0.05
+wormhole_delayed_kick_start = -1.0
+wormhole_delayed_kick_duration = 0.0
+wormhole_delayed_kick_monopole_amplitude = 0.0
+wormhole_delayed_kick_quadrupole_amplitude = 0.0
 wormhole_delayed_kick_width = 1.0
 
 # IMPORTANT:
@@ -146,7 +146,8 @@ nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 # Evolution parameters
 
 # Smaller timestep to avoid NaNs during sharp collapse
-dt_multiplier = 0.05
+#was 0.05
+dt_multiplier = 0.1
 stop_time = 30.0
 
 max_spatial_derivative_order = 4
