@@ -7,16 +7,10 @@ output_path = "/home/jovyan/nachevsky/test/simulation/data_2gpu"
 amr.check_file = "/home/jovyan/nachevsky/test/simulation/data_2gpu/WormholeChk"
 amr.plot_file  = "/home/jovyan/nachevsky/test/simulation/data_2gpu/WormholePlt"
 
-# Save less often to avoid memory spikes during I/O and improve speed
 checkpoint_interval = 1000
 plot_interval       = 1
 
-# Plotfile contents (AMReX keys):
-# - `amr.plot_vars` controls which *state* variables are written.
-# - `amr.derive_plot_vars` controls which *derived* variables are written.
 amr.plot_vars = chi K lapse
-# NOTE: AMReX derive variables are requested by *record name* (not component name).
-# In this codebase the record name is "Weyl4" (components: Weyl4_Re, Weyl4_Im).
 amr.derive_plot_vars = Weyl4
 
 hdf5_subpath = "hdf5"
@@ -28,98 +22,43 @@ print_progress_only_to_rank_0 = 1
 #################################################
 # Wormhole Initial Data parameters
 
-# How to switch between the two unsupported initial-data setups
-# ----------------------------------------------------------
-# This example supports TWO metric realisations, controlled by `wormhole_metric_type`.
-#
-# (A) Single-throat Morris–Thorne / Ellis–Bronnikov (recommended for x/y/z symmetry)
-#     wormhole_metric_type = 1
-#     - Uses ONLY `wormhole_centerA` as the throat location (centerB is ignored).
-#     - Typical symmetry setup (octant):
-#         center      = 0.0 0.0 0.0
-#         lo_boundary = 2 2 2
-#     - Typical extraction:
-#         extraction_center = 0.0 0.0 0.0
-#
-# (B) Two-mouth isotropic superposition (binary-like)
-#     wormhole_metric_type = 0
-#     - Uses BOTH `wormhole_centerA` and `wormhole_centerB`.
-#     - Typical symmetry setup (reflect only on y=0, z=0 planes):
-#         center      = L_full/2  0.0 0.0
-#         lo_boundary = 1 2 2
-#     - Typical extraction:
-#         extraction_center = center (same as grid center)
-#     - You must also set:
-#         wormhole_throat_radius_A / wormhole_throat_radius_B
-#         wormhole_centerA / wormhole_centerB
-#     (For this mode, keep x as a full axis—no symmetry at x=0—so both mouths exist.)
-#
+# Metric realisation selector:
+#   1 = single-throat Ellis–Bronnikov / Morris–Thorne (octant symmetry)
+#   0 = two-mouth superposition (not used in this file)
 wormhole_metric_type = 1
-# Initial lapse at t=0:
-# - 0: alpha = 1
-# - 1: alpha = sqrt(chi) (pre-collapsed)
-# - 2: alpha = 1 - 3*log(chi) (N=2, 1+log-inspired using gamma=chi^{-3})
 wormhole_initial_lapse_type = 0
 
-# Kick model:
-#   K(r,theta) = [A0 + A2 * (3 cos^2(theta) - 1)] * exp(-r^2 / sigma^2)
-# where:
-# - A0 is the monopole / coherent compression term
-# - A2 is the quadrupole term used to break spherical symmetry
-# - the legacy parameter `wormhole_k_amplitude` is now just a backward-compatible
-#   alias for the quadrupole amplitude
-#
-# Recommended usage for collapse studies:
-# - choose A0 to drive the global pinch-off
-# - keep |A2| << |A0| so the quadrupole perturbs the collapse without dominating it
-# - keep width = 1.0 for now and scan amplitudes gradually
-#was 0.5 initally
-wormhole_throat_radius = 0.5 
+# Throat parameters (single-throat mode uses centerA only)
+wormhole_throat_radius = 0.2
 wormhole_centerA = 0.0 0.0 0.0
-# Kick coefficients in:
-#   K(r,theta) = [A0 + A2 * (3 cos^2(theta) - 1)] * exp(-r^2 / sigma^2)
-# where:
-# - A0 = wormhole_k_monopole_amplitude
-#   coherent spherically symmetric compression / expansion term
-# - A2 = wormhole_k_quadrupole_amplitude
-#   symmetry-breaking Y20 term used to generate non-spherical dynamics / Psi4
-#
-# For the pure-vacuum collapse branch we seed the compressive kick directly in
-# the initial data at t=0. The delayed-kick machinery remains available in code
-# for scans, but is disabled here by zeroing its amplitudes below.
-wormhole_k_monopole_amplitude   = 1.5
-wormhole_k_quadrupole_amplitude = 0.05
-wormhole_k_width       = 1.0
 
+# Extrinsic-curvature kick at t=0:
+#   K(r,theta) = [A0 + A2(3cos^2(theta)-1)] exp(-r^2/sigma^2)
+wormhole_k_monopole_amplitude   = 10.0
+wormhole_k_quadrupole_amplitude = 0.05
+wormhole_k_width       = 0.2
+
+# Optional delayed kick (disabled by default)
 wormhole_delayed_kick_start = -1.0
 wormhole_delayed_kick_duration = 0.0
 wormhole_delayed_kick_monopole_amplitude = 0.0
 wormhole_delayed_kick_quadrupole_amplitude = 0.0
 wormhole_delayed_kick_width = 1.0
 
-# IMPORTANT:
-# Your "Resolution of the Origin Singularity: Isotropic Coordinates" section
-# implies a conformally-flat spatial metric (tilde{gamma}_{ij} = delta_{ij}),
-# i.e. the legacy initialization with h_ij = δ_ij and chi(r) from psi(r).
-#
-# The nontrivial Cartesian gamma_ij option is experimental and can introduce
-# large gradients near the origin (may trigger NaNs).
 wormhole_use_cartesian_gamma = 0
 
 #################################################
 # Grid parameters
 
-# Coarse grid settings
-# dx = L_full / N_full = 0.5
-L_full = 80.0
+# Coarse grid settings (dx = L_full / N_full)
+L_full = 40.0
 N_full = 160
 
-# Center of the grid
-# Centered at X=0, Y=0, Z=0 (All boundaries are symmetry)
+# Grid center (octant symmetry)
 center = 0.0 0.0 0.0
 
 # Maximum refinement levels
-max_level = 5
+max_level = 6
 
 # Frequency of regridding
 # Level:          0   1   2   3   4   5   6
@@ -135,8 +74,6 @@ min_box_size = 16
 
 isPeriodic = 0 0 0
 hi_boundary = 1 1 1
-# Symmetry at X=0 and Y=0 (lo_boundary 2 is symmetry)
-# Z is symmetry (2) to model only z>=0
 lo_boundary = 2 2 2
 
 nonzero_asymptotic_vars = chi h11 h22 h33 lapse
@@ -145,9 +82,7 @@ nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 #################################################
 # Evolution parameters
 
-# Smaller timestep to avoid NaNs during sharp collapse
-#was 0.05
-dt_multiplier = 0.1
+dt_multiplier = 0.05
 stop_time = 30.0
 
 max_spatial_derivative_order = 4
@@ -186,7 +121,8 @@ extraction_center = 0.0 0.0 0.0
 activate_extraction = 1
 
 num_extraction_radii = 2
-extraction_radii = 14.0 30.0
+# With octant symmetry and center=0, extraction_radii must be <= L_full/2.
+extraction_radii = 8.0 16.0
 extraction_levels = 1 0
 
 num_points_phi = 24
@@ -198,15 +134,5 @@ modes = 2 0 \
 
 #################################################
 # GPU / MPI parameters
-# IMPORTANT:
-# `amrex.the_arena_init_size` is a *per-MPI-rank* (per GPU) pre-allocation.
-# If you set it too large, `nvidia-smi` will show high memory use on every GPU
-# and you can hit OOM earlier.
-#
-# Start conservative and increase only if you see fragmentation / slowdowns.
-# (Let AMReX manage growth - start small to avoid locking memory early)
 amrex.the_arena_init_size = 1048576
-# NOTE:
-# Set this to 0 unless your MPI build is CUDA-aware. A non-CUDA-aware MPI can
-# segfault during halo exchanges if this is enabled.
 amrex.use_gpu_aware_mpi = 0

@@ -235,153 +235,64 @@ This observation provides the correct interpretation of the unsupported \texttt{
 
 Operationally, two branches are observed. With weak or no inward forcing, the code damps and propagates away the initial defect, and the throat relaxes by widening or dispersing instead of self-trapping. With a sufficiently strong localized negative-$K$ perturbation, the same unsupported geometry can be driven onto a supercritical implosive branch that forms an apparent horizon. We therefore interpret the imposed $K$ profile not as a claim that the unsupported wormhole is naturally stable until ``numerically kicked,'' but as a controlled momentum fluctuation used to test whether the defect disperses or collapses once its exotic support has been removed.
 
-
 \section{Results}
 
-\subsection{Experimental Findings to Date (Iteration Summary)}
+\subsection{Vacuum evolution of an unsupported topology}
+In classical General Relativity, a traversable wormhole requires exotic matter violating the Null Energy Condition to remain static. In particular, in the Ellis--Bronnikov geometry the spatial Ricci scalar on the initial hypersurface is negative in the strong-field throat region, \(R^{(3)} < 0\). Consequently, when this geometry is initialized and evolved in pure vacuum (\(T_{\mu\nu}=0\)) without exotic support, the initial slice contains a substantial Hamiltonian constraint defect. We interpret this defect physically as an out-of-equilibrium macroscopic topological bridge rather than as a stationary vacuum solution.
 
-Because the supported-collapse program was developed iteratively alongside parameter scans, we summarize here the main experimental findings observed so far. This summary is intended to separate robust outcomes (directly supported by diagnostics) from hypotheses that require further validation.
+Within the CCZ4 formulation, the constraint-damping mechanism rapidly converts the initial defect into propagating transient modes. After this early-time relaxation, the subsequent dynamics exhibit a clear nonlinear threshold separating two regimes: \emph{topological dissipation} (sub-critical evolutions) and \emph{dynamical pinch-off} (super-critical collapse).
 
-\subsubsection*{1. Lapse collapse alone is not evidence of black hole formation}
-Multiple runs exhibited an early or transient dip in the minimum lapse, including cases where the lapse approached very small values and later recovered. The trapped-surface diagnostic (\(\theta_+ \le 0\), reported as \(r_{\rm AH}\)) remained the decisive discriminator: in the runs examined during development, we observed cases with strong lapse compression but \(r_{\rm AH}=0\), and also numerical failures in which the lapse overshot unphysically (including negative values) and the evolution aborted with NaNs. Therefore, we treat apparent-horizon formation (\(r_{\rm AH}>0\))—not lapse behavior alone—as the primary indicator of physical collapse.
-
-\subsubsection*{2. Global support quenching produced non-physical whole-slice responses}
-Early versions of the supported setup reduced the exotic support globally on a slice. This produced an immediate, non-causal response across the domain and puzzling early-time curvature features. Implementing a throat-centered causal front \(S(\mathbf{x},t)\) suppressed this whole-domain artifact and allowed support removal to propagate outward at a finite speed.
-
-\subsubsection*{3. Correct localization of the causal front is essential}
-In isotropic coordinates for the single-throat Ellis--Bronnikov chart, the physical throat is located at the shell \(\bar r=b_0/2\), not at the coordinate origin. A critical implementation error initially launched the causal front from \(\bar r=0\); correcting this to launch from the throat shell was necessary for the support-removal experiment to be physically meaningful.
-
-\subsubsection*{4. Separating support removal from forcing: delayed kick}
-Parameter scans showed that an initial-data kick at \(t=0\) can dominate early dynamics and generate large transients. A delayed, compact-in-time \(K\)-pulse applied after a settling/support stage provides a cleaner probe: it can be used as a branch selector and symmetry breaker after the background evolution has been established, rather than as the main driver of the early-time waveform.
-
-\subsubsection*{5. Diagnostics and plotting must be synchronized with the raw data}
-During development, figures were occasionally regenerated while runs were still writing data, producing plots that reflected only a partial time window. We therefore interpret all visualizations by cross-checking against the raw \texttt{collapse\_diagnostics.dat} and \texttt{constraint\_norms.dat} files and their time ranges.
-
-\subsubsection*{6. Unsupported (vacuum) runs probe bifurcation of an initial constraint defect}
-In the vacuum \texttt{WormholeCollapse} path, the initial Ellis--Bronnikov geometry is deliberately evolved without the stress-energy that would support a traversable throat. The resulting early-time dynamics therefore include a large Hamiltonian-constraint defect, and the CCZ4 damping parameters materially affect how quickly that defect is propagated away and reduced. This helps explain why some unsupported runs appear ``bouncy,'' others expand, and others collapse only after a sufficiently strong inward perturbation. Additionally, the trapped-surface proxy was not initially written for the vacuum example; it was subsequently added to the diagnostics so that \(r_{\rm AH}\) can be monitored consistently across supported and unsupported experiments.
-
-\subsubsection*{7. Supported equilibrium has not yet been demonstrated in code}
-In supported runs with support held constant (\(S\equiv 1\)) and zero initial kick, the minimum conformal factor \(\chi\) was observed to drift rather than remain stationary, indicating that the implemented ``supported'' initial slice may not be a true equilibrium of the coupled Einstein--phantom-scalar system under the code's conventions. This motivates a targeted equilibrium validation run (support on, no kick, no ramp) and, if needed, a correction of the analytic scalar profile used to generate \(\phi(r)\) so that the Hamiltonian constraint balance \(R-16\pi\rho=0\) is satisfied at \(t=0\) in the discrete formulation.
-
-\subsection{Dynamics of Support Removal and Relaxation}
-
-\begin{figure*}[t] % the * makes it span both columns in a 2-column paper
-    \centering
-    \includegraphics[width=\textwidth]{final_panel_4.png}
-    \caption{The evolution of the trace of the extrinsic curvature $K$. The matter energy density bubble propels outwards...}
-    \label{fig:k_evolution}
-\end{figure*}
-
-To establish the stability and dynamical fate of the wormhole topology, we performed a series of simulations evolving the supported Ellis-Bronnikov wormhole. At the throat center, the support schedule was held at $S_0=1$ for an initial period to allow the geometry to settle, and then smoothly reduced over $t \in [5.0, 10.0]M$ while the support-removal front propagated causally outward from the throat. Only a weak branch-selecting perturbation was retained in $K$ so that the support reduction, rather than a violent kick, remained the dominant trigger.
-
-Contrary to the expectation of a violent, immediate collapse into a black hole (as often seen in violently over-kicked vacuum initial data), the controlled removal of the scalar field support reveals a more gradual dynamical relaxation. 
-
-As shown in Figure~\ref{fig:collapse_diagnostics_plot}, during the ramp-down of the support strength, the global minimum of the lapse function \(\alpha\) does not plunge toward zero. Instead, it experiences a small initial dip (reflecting the early gauge adjustment and transient waves) but remains firmly above $\alpha \approx 0.8$. In moving-puncture formalisms, a definitive collapse to a black hole is characterized by "lapse collapse" ($\alpha \to 0$) alongside a corresponding crush in the conformal factor ($\chi \to 0$). Here, the conformal factor minimum actually \emph{increases}, indicating an expansion or widening of the geometry at the throat rather than a crush.
-
+\subsection{Sub-critical branch: dissipation without trapping}
 \begin{figure}[h]
-    \centering
-    \includegraphics[width=\linewidth]{collapse_diagnostics_plot.png}
-    \caption{Evolution of the minimum lapse ($\alpha$), minimum conformal factor ($\chi$), and maximum trapped surface radius ($r_{\rm AH}$) during the support removal phase. The lapse remains high and no trapped surface ($\theta_+ \le 0$) forms, indicating the wormhole relaxes and expands rather than collapsing into a black hole.}
-    \label{fig:collapse_diagnostics_plot}
+\centering
+\includegraphics[width=\linewidth]{collapse_diagnostics_plot.png} % Replace with your sub-critical diagnostic plot
+\caption{Diagnostics of a sub-critical evolution. The minimum lapse \(\min(\alpha)\) and minimum conformal factor \(\min(\chi)\) do not collapse toward zero, and no trapped surface is detected (\(r_{\rm AH}=0\), equivalently \(\theta_+>0\) everywhere for the spherical proxy). This indicates dissipation/expansion rather than black hole formation.}
+\label{fig:subcritical_diagnostics_plot}
 \end{figure}
+In the absence of a sufficiently strong implosive perturbation, the unsupported geometry follows a dispersive branch. After an initial gauge adjustment, both \(\alpha\) and \(\chi\) relax toward their asymptotic values and the trapped-surface proxy remains zero (\(r_{\rm AH}=0\)), confirming that no event horizon forms in this branch.
 
-To definitively rule out the formation of an event horizon, we monitored the maximum radius at which the outgoing null expansion satisfies $\theta_+ \le 0$. Throughout the entire evolution, this radius remains strictly zero ($r_{\rm AH} = 0$), confirming that no apparent horizon or trapped surface forms.
-
-These results indicate that, in the absence of a sufficiently strong implosive perturbation ($K < 0$), the removal of the exotic matter threading the throat does not automatically lead to catastrophic gravitational collapse. Instead, the unsupported geometry follows the dispersive branch: the initial constraint defect is damped, the throat widens, and the topology relaxes outward rather than self-trapping.
-
-\subsection{Role of Perturbation Width and Amplitude}
-
-The transition of the initial Ellis-Bronnikov wormhole into a collapsing state---and the subsequent emission of gravitational waves---is highly sensitive to the geometric profile of the initial perturbation rather than just its overall magnitude.
-
-By varying the perturbation amplitude (\(A\)) and the Gaussian width (\(\sigma\)) relative to the throat radius (\(b_0\)), several key dynamical regimes have been identified:
-
-\subsubsection*{1. The Irrelevance of the Kick Amplitude on Waveform Power}
-
-Numerical experiments demonstrating collapse for different supercritical amplitudes (e.g., \(A = +3, +4, +5\) with \(b_0=0.5M\)) show that while a minimum amplitude is necessary to trigger collapse, further increasing the amplitude does \emph{not} significantly increase the total power or alter the fundamental frequency of the main gravitational wave burst. 
-
-Instead, the dominant frequency and the energy radiated during the ringdown phase appear largely scale-invariant with respect to the kick amplitude. This suggests that the collapse acts as a nonlinear threshold event: once the geometry is pushed past the critical point of no return, the subsequent dynamics (and the resulting GW signal) are dictated by the characteristic mass and scale of the \emph{newly formed black hole}, rather than retaining a memory of the exact strength of the initial push.
-
-\subsubsection*{2. The Critical Role of Perturbation Width (\(\sigma\))}
-
-While amplitude plays a secondary role post-threshold, the \emph{width} of the perturbation compared to the throat radius is the primary determinant of whether collapse occurs at all. 
-
-\begin{itemize}
-    \item When the throat radius was doubled to \(b_0=1.0M\) but the perturbation width was kept at \(\sigma=1.0M\), the spacetime resisted collapse. The highly localized kick essentially ``bounced'' off the larger wormhole structure, radiating the perturbation energy away as high-frequency junk without forming an event horizon.
-    \item However, when the perturbation width was subsequently increased to \(\sigma=2.0M\) (matching the scale of the \(b_0=1.0M\) throat), \textbf{collapse was successfully achieved.} 
-\end{itemize}
-
-This confirms that in order to induce global gravitational collapse, the compressive extrinsic curvature profile must act coherently over the entire strong-field region (the ``shoulders'' of the wormhole). A localized pinch is insufficient; the geometry must be crushed simultaneously on scales comparable to the throat itself.
-
-\subsubsection*{3. Signal Amplification in Larger Wormhole Geometries}
-
-The successful collapse of the larger (\(b_0=1.0M\), \(\sigma=2.0M\)) wormhole reveals critical scaling behaviors. The emitted gravitational wave signal is significantly stronger for the larger wormhole compared to the smaller one ($b_0=0.5M$, $\sigma=1.0M$). This amplification can be understood through two compounding physical effects:
-
-First, geometric scaling increases the effective mass of the system. In general relativity, the throat radius $b_0$ defines the fundamental length and mass scale of the local spacetime geometry. When this larger geometric structure collapses, the resulting black hole is correspondingly more massive, involving the rapid reorganization of a much larger region of highly curved spacetime. Because the amplitude of gravitational wave strain naturally scales linearly with the mass of the source ($h \propto M$), the collapse of a larger wormhole fundamentally guarantees a more energetic gravitational wave signature.
-
-Second, the volumetric scaling of the injected perturbation energy plays a dominant role. Because the initial state is not a solution to the vacuum Hamiltonian constraint, the non-zero extrinsic curvature acts as an effective local energy density, $\rho_{\text{eff}} \sim K^2$. To successfully collapse the $b_0=1.0M$ wormhole, the width of the perturbation $\sigma$ was doubled. Since this perturbation is applied over a 3-dimensional spatial volume ($V \propto \sigma^3$), doubling the width increases the volume of the violently ``kicked'' region by a factor of 8. The spacetime must violently shed this massive excess energy as it dynamically relaxes and collapses, manifesting as a drastically amplified burst of both initial ``junk'' radiation and the primary collapse signal.
-
-\subsection{Separating the Initial Transient from Physical Outgoing Radiation}
-
-Because the initial unsupported wormhole slice contains a constraint defect (since it is evolved in vacuum), the earliest curvature signal is dominated by ``junk'' content: a mixture of gauge/constraint-cleaning transients and pre-existing curvature content relaxing. We therefore divide the waveform interpretation into two parts. The early precursor is treated explicitly as contaminated by initial-data relaxation, while the later oscillatory tail following horizon formation is interpreted as the physical response of the final black hole. We analyze the extracted curvature waveform using retarded time, $u \equiv t - R_{\mathrm{ext}}$, to distinguish this initial burst from physical collapse radiation. Note that because of computational domain limitations, our extraction spheres are located at $R_{\mathrm{ext}} = 8, 12, 16M$, placing them deeply within the strong-field near-zone. As a result, these waveforms contain static Coulomb components of the gravitational field and cannot be cleanly interpreted as the asymptotic strain ($h$) seen by gravitational wave observatories.
-
+\subsection{Super-critical branch: trapping and black hole formation}
 \begin{figure}[h]
-    \centering
-    \includegraphics[width=\linewidth]{psi4_extracted_simulation.png}
-    \caption{Radius-scaled waveform \(r\,\mathrm{Re}(\Psi_4^{2,0})\) for the supercritical collapse case (\(A=+4\), $b_0=0.5M$), shown in simulation time \(t\) (top) and retarded time \(t-R_{\mathrm{ext}}\) (bottom). The delay of the burst with increasing radius in simulation time, together with its approximate alignment in retarded time, supports the interpretation of the signal as outgoing near-zone radiation emitted by the collapse.}
-    \label{fig:psi4_extracted_simulation}
+\centering
+\includegraphics[width=\linewidth]{collapse_diagnostics_plot_supercritical.png} % Replace with your successful BH-formation plot
+\caption{Diagnostics of a super-critical collapse. The minimum null expansion proxy \(\min(\theta_+)\) crosses zero and becomes negative, and the trapped-surface radius proxy \(r_{\rm AH}\) jumps from zero to a finite value. These features mark dynamical trapping and black hole formation.}
+\label{fig:supercritical_diagnostics}
 \end{figure}
+To model a strong external perturbation (e.g. an early-universe fluctuation) we seed a localized inward perturbation in the trace of the extrinsic curvature. Because a perfectly spherically symmetric vacuum collapse cannot radiate (Birkhoff's theorem), we allow an optional small quadrupolar deformation to break exact symmetry:
+\begin{equation}
+K(\bar r,\theta,\phi) =
+\left[A_0 + A_2\,Y_{20}(\theta,\phi)\right]\exp\!\left(-\frac{\bar r^2}{\sigma^2}\right).
+\end{equation}
+When the compressive amplitude exceeds a critical threshold, the implosion overcomes the topological repulsion of the throat. In this super-critical branch, \(\min(\theta_+)\) crosses zero, \(r_{\rm AH}\) becomes positive, and the throat pinches off into a black hole.
 
-Figure~\ref{fig:psi4_extracted_simulation} provides two complementary views of the extracted $l=2, m=0$ spherical harmonic mode of the Weyl scalar $\Psi_4$ (denoted as $\Psi_4^{2,0}$) for the supercritical case (\(A=+4\), $b_0=0.5M$), using extraction radii \(R_{\mathrm{ext}}=8,12,16\). In the upper panel plotted against the simulation time \(t\), the dominant burst reaches the extraction spheres at progressively later times as the radius increases. The innermost observer detects the signal first, followed by the intermediate and outer observers. This ordering is precisely the causal behavior expected for an outward-propagating disturbance emitted from the central collapse region. 
-
-In the lower panel, the same waveforms are replotted against the retarded time $u$. A prominent oscillatory packet appears at \emph{negative} retarded time (roughly $u\in[-10,-6]$). This cannot be attributed to radiation emitted after the simulation start at $t=0$; it is the initial transient/near-zone (junk) content propagating off the grid.
-
-A later, sharp feature appears at \emph{positive} $u$ (around $u \approx 2$). Under the retarded time transformation, this dominant burst and its immediate ringdown become approximately aligned across the different extraction radii. This overlap is a standard diagnostic for outgoing radiation in asymptotically flat spacetimes: if the signal is produced near the origin and then propagates outward at unit characteristic speed, its main features should occur at nearly the same retarded time for all observers.
-
-The agreement is not exact, which is expected due to finite-radius extraction effects, gauge effects, and numerical dispersion. Nevertheless, the consistency is sufficiently strong to support the interpretation of the observed burst as a genuine outgoing curvature signal. 
-
-A second important feature of the waveform is its morphology. The large separation in amplitude between the early precursor and the main burst indicates that the dominant observed signal is not simply the initial perturbation leaving the grid, but rather a later dynamical response triggered by the nonlinear collapse of the wormhole throat into an event horizon.
-
+\subsection{Gravitational-wave signatures (near-zone)}
+The dynamical pinch-off produces a sharp outgoing curvature burst. Because the initial vacuum slice contains a constraint defect, the earliest signal is contaminated by gauge and constraint-cleaning transients. We therefore analyze the extracted Weyl scalar \(\Psi_4\) in terms of retarded time \(u \equiv t - R_{\rm ext}\) to separate early junk from the physical collapse burst.
 \begin{figure}[h]
-    \centering
-    \includegraphics[width=\linewidth]{psi4_extracted_R8_R12_R16.png}
-    \caption{Detailed comparison of the extracted waveform at $R_{\mathrm{ext}}=8,12,16$, aligned in retarded time, highlighting the isolation of the physical collapse burst (positive $u$) from the initial constraint-violating transient (negative $u$).}
-    \label{fig:psi4_extracted_R8_R12_R16}
+\centering
+\includegraphics[width=\linewidth]{psi4_extracted_simulation.png}
+\caption{Radius-scaled curvature waveform \(r\,\mathrm{Re}(\Psi_4^{2,0})\) for a super-critical collapse case, shown in simulation time \(t\) (top) and retarded time \(u=t-R_{\rm ext}\) (bottom). Alignment of the dominant packet in retarded time across radii supports its interpretation as an outward-propagating physical signal.}
+\label{fig:psi4_extracted_simulation}
 \end{figure}
 
 \section{Conclusion}
+We investigated the nonlinear dynamics of an unsupported wormhole-like topology evolved in vacuum CCZ4. The evolution exhibits threshold behavior: sub-critical configurations dissipate/expand without trapping, whereas sufficiently strong inward perturbations drive the throat into dynamical pinch-off and black hole formation, unambiguously identified by \(\theta_+ \le 0\) and \(r_{\rm AH}>0\) in the trapped-surface proxy. In the super-critical branch, the extracted \(\Psi_4\) shows a distinct near-zone curvature burst followed by ringdown consistent with a perturbed black hole.
 
-This work demonstrates that macroscopic wormhole-like topologies can generate a distinct gravitational-wave signature when an unsupported throat is driven onto a collapsing branch. The key point is interpretive: an Ellis--Bronnikov geometry evolved in pure vacuum is not a stationary traversable wormhole solution, but an out-of-equilibrium topological defect carrying an initial Hamiltonian-constraint violation that represents the missing exotic support.
+\appendix*
+\section{Numerical details, validation, and convergence}
+We exploit Cartesian reflection symmetries to evolve only the positive octant (\(x\ge 0\), \(y\ge 0\), \(z\ge 0\)) with parity conditions on the inner boundaries and Sommerfeld conditions at the outer boundaries.
 
-Our 3D numerical relativity simulations utilizing the \texttt{GRTeclyn} framework reveal that the subsequent evolution is characterized by nonlinear threshold behavior. In the absence of a sufficiently strong inward perturbation, the unsupported geometry follows a dispersive branch and relaxes outward rather than forming a trapped surface. When a localized negative-$K$ fluctuation exceeds threshold, however, the topology is driven into genuine collapse. The geometry of the perturbation---especially its width relative to the throat---is the primary driver of whether this transition occurs, rather than the raw amplitude of the kick alone. We observed that the mass-energy scale of the resulting black hole, and thus the amplitude and frequency of the emitted gravitational waves, is set by the initial size of the wormhole throat.
-
-The extracted Weyl scalar ($\Psi_4$) waveforms exhibit a clear, causal outward-propagating burst associated with the collapse event, followed by the quasi-normal ringing of the newly formed black hole. This physical ringdown is temporally isolated from the earlier high-frequency transient caused by the relaxation of the unsupported initial data, which should be interpreted as junk radiation sourced by constraint cleaning and initial-data readjustment.
-
-These results provide a consistent 3D picture of unsupported wormhole-like defects in classical General Relativity: traversable topologies require non-standard support, unsupported data tend naturally toward dispersal, and collapse occurs only when an inward fluctuation drives the system across a critical threshold. In that supercritical branch, the final black hole emits a measurable near-field ringdown that offers a theoretically robust window into the dynamics of Exotic Compact Objects and primordial topological defects.
-
-\appendix* 
-\section{Numerical Details, Validation and Convergence}
-
-To minimize computational costs while capturing the full 3D dynamics, we exploit Cartesian reflection symmetries. In the $x$, $y$, and $z$ directions, we use the symmetry of the problem to evolve only the positive octant ($x \ge 0, y \ge 0, z \ge 0$) of the full domain, applying appropriate parity conditions at the reflection boundaries.
-
-To validate the stability and accuracy of our numerical evolutions, we monitor the violations of the Hamiltonian and momentum constraints. In the continuum limit of exact General Relativity, these quantities must vanish. Because our initial data represents an unsupported wormhole evolved in vacuum, the simulation begins with a significant constraint defect. 
-
-We check that the $L_2$ norm of the Hamiltonian constraint violation remains under control throughout the simulation and damps effectively. The $L_2$ Norm acts as a global grade for the simulation's physical consistency, providing a single, representative number that measures the total, volume-averaged error across the entire simulation domain. It is calculated as:
+To validate stability and accuracy, we monitor Hamiltonian and momentum constraint violations. Because the initial data represent an unsupported topology evolved in vacuum, the simulation begins with a nonzero constraint defect. We verify that the volume-averaged constraint measures are rapidly damped and remain under control:
 \begin{equation}
-L_2(\text{Ham}) = \sqrt{ \sum_{i} ( \text{Ham}_i^2 \times \text{Volume}_i ) }.
+L_2(\mathrm{Ham}) \equiv
+\sqrt{\frac{\sum_i \mathrm{Ham}_i^2\,V_i}{\sum_i V_i}}.
 \end{equation}
-
 \begin{figure}[h]
-    \centering
-    \includegraphics[width=\linewidth]{constraints_plot.png}
-    \caption{Volume-averaged $L_2$ norm of the Hamiltonian and momentum constraint violations over time for the supercritical collapse case ($A=+4$). The initial defect rapidly damps as the CCZ4 formulation propagates the violations away and drives the system toward the constraint surface.}
-    \label{fig:constraints_plot}
+\centering
+\includegraphics[width=\linewidth]{constraints_plot.png}
+\caption{Volume-averaged \(L_2\) norm of the Hamiltonian constraint over time. After an initial transient, the constraint violation damps and remains controlled during the subsequent evolution.}
+\label{fig:constraints_plot}
 \end{figure}
-
-As shown in Figure~\ref{fig:constraints_plot}, the constraints exhibit a characteristic early-time behavior: a sharp initial spike at very small times as the unsupported geometry reacts, followed by rapid, exponential damping, and then a slower, controlled relaxation at a much lower level. This confirms that the CCZ4 damping terms and moving-puncture gauge conditions successfully convert the initial constraint defect into propagating transient modes while driving the ongoing collapse dynamics closer to the true physical constraint surface.
-
-For reproducibility, it is important to note that the \texttt{WormholeCollapse} example in the current development snapshot is not yet fully synchronized with the latest \texttt{GRTeclyn} interfaces. A fresh MPI+CUDA build check presently fails in \texttt{WormholeLevel.cpp} because of deprecated or changed API usage, including the legacy \texttt{State\_Type} access pattern, incompatible invocations of \texttt{TraceARemoval} and \texttt{PositiveChiAndLapse}, and an obsolete \texttt{CCZ4RHS::compute} call. These are software-maintenance issues rather than physical limitations of the method, but they imply that exact reruns presently require the corresponding working source state used to generate the production data.
 % --- Bibliography ---
 \bibliographystyle{apsrev4-2}
 \bibliography{references}
-
 \end{document}

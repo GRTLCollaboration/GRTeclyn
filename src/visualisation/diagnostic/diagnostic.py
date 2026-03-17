@@ -6,7 +6,7 @@ Expected input: collapse_diagnostics.dat (SmallDataIO ASCII), typically located 
   <run_output>/data/collapse_diagnostics.dat
 
 Columns (current format):
-  time  min_lapse  min_chi  max_abs_K  min_lapse_x  min_lapse_y  min_lapse_z max_ah_r
+  time  min_lapse  min_chi  max_abs_K  min_lapse_x  min_lapse_y  min_lapse_z  max_ah_r  min_theta_plus  r_at_min_theta_plus
 
 This script produces a publication-style multi-panel figure (one panel per value).
 """
@@ -72,9 +72,9 @@ def load_collapse_diagnostics(path: Path) -> Dict[str, np.ndarray]:
         raise SystemExit(f"No data rows found in {path}")
 
     arr = np.asarray(rows, dtype=float)
-    if arr.shape[1] not in (4, 7, 8):
+    if arr.shape[1] not in (4, 7, 8, 10):
         raise SystemExit(
-            f"Unexpected number of columns in {path}: got {arr.shape[1]}, expected 4, 7, or 8"
+            f"Unexpected number of columns in {path}: got {arr.shape[1]}, expected 4, 7, 8, or 10"
         )
 
     t = arr[:, 0]
@@ -101,10 +101,14 @@ def load_collapse_diagnostics(path: Path) -> Dict[str, np.ndarray]:
             }
         )
         
-    if arr.shape[1] >= 8:
-        out["max_ah_r"] = arr[:, 7]
+    out["max_ah_r"] = arr[:, 7] if arr.shape[1] >= 8 else np.full_like(t, np.nan)
+
+    if arr.shape[1] >= 10:
+        out["min_theta_plus"] = arr[:, 8]
+        out["r_at_min_theta_plus"] = arr[:, 9]
     else:
-        out["max_ah_r"] = np.full_like(t, np.nan)
+        out["min_theta_plus"] = np.full_like(t, np.nan)
+        out["r_at_min_theta_plus"] = np.full_like(t, np.nan)
 
     # sort by time
     idx = np.argsort(out["t"])
@@ -135,15 +139,22 @@ def plot_collapse_diagnostics(data: Dict[str, np.ndarray], out_path: Path) -> No
 
     t = data["t"]
 
-    fig, axes = plt.subplots(4, 2, figsize=(12, 13), sharex=True)
+    # For octant-symmetric single-throat runs, the min-lapse location is
+    # typically pinned at the throat/center and provides little information.
+    # Use a 3x2 layout with collapse-focused diagnostics.
+    fig, axes = plt.subplots(3, 2, figsize=(12, 12), sharex=True)
     axes = np.asarray(axes)
 
-    # Left column: scalar collapse indicators (log scale)
     left_specs: Tuple[Tuple[str, str, str], ...] = (
         ("min_lapse", r"$\min(\alpha)$", r"Minimum lapse: $\alpha$"),
         ("min_chi", r"$\min(\chi)$", r"Minimum conformal factor: $\chi$"),
         ("max_abs_K", r"$\max(|K|)$", r"Maximum curvature: $|K|$"),
-        ("max_ah_r", r"$r_{\rm AH}$", r"Max Trapped Surface Radius: $\theta_+ \leq 0$"),
+    )
+
+    right_specs: Tuple[Tuple[str, str, str], ...] = (
+        ("max_ah_r", r"$r_{\rm AH}$", r"Max trapped surface radius: $\theta_+ \leq 0$"),
+        ("min_theta_plus", r"$\min(\theta_+)$", r"Minimum null expansion proxy: $\theta_+$"),
+        ("r_at_min_theta_plus", r"$r_{\min\theta_+}$", r"Radius at min $\theta_+$"),
     )
 
     for i, (key, ylabel, title) in enumerate(left_specs):
@@ -151,32 +162,26 @@ def plot_collapse_diagnostics(data: Dict[str, np.ndarray], out_path: Path) -> No
         y = np.asarray(data[key], dtype=float)
         # Avoid semilogy issues if zeros appear (shouldn't, but safe).
         y_plot = np.where(y > 0, y, np.nan)
-        if key == "max_ah_r":
-            ax.plot(t, y, color="red", linewidth=1.5)
-        else:
-            ax.semilogy(t, y_plot, color="blue", linewidth=1.5)
+        ax.semilogy(t, y_plot, color="black", linewidth=1.5)
         ax.set_ylabel(ylabel)
         ax.set_title(title)
         ax.grid(True, which="both", ls="--", alpha=0.6)
         ax.tick_params(axis="both", which="major", direction="in")
 
-    # Right column: location of min lapse (linear)
-    right_specs: Tuple[Tuple[str, str, str], ...] = (
-        ("min_lapse_x", r"$x_{\min\alpha}$", r"Min-lapse location: $x$"),
-        ("min_lapse_y", r"$y_{\min\alpha}$", r"Min-lapse location: $y$"),
-        ("min_lapse_z", r"$z_{\min\alpha}$", r"Min-lapse location: $z$"),
-    )
     for i, (key, ylabel, title) in enumerate(right_specs):
         ax = axes[i, 1]
         y = np.asarray(data[key], dtype=float)
-        ax.plot(t, y, color="green", linewidth=1.5)
+        if key == "max_ah_r":
+            ax.plot(t, y, color="black", linewidth=1.5)
+        elif key == "min_theta_plus":
+            ax.plot(t, y, color="black", linewidth=1.5)
+            ax.axhline(0.0, color="black", linewidth=0.8, alpha=0.7)
+        else:
+            ax.plot(t, y, color="black", linewidth=1.5)
         ax.set_ylabel(ylabel)
         ax.set_title(title)
         ax.grid(True, which="both", ls="--", alpha=0.6)
         ax.tick_params(axis="both", which="major", direction="in")
-        
-    # Hide the empty 4th plot on the right
-    axes[3, 1].axis('off')
 
     axes[-1, 0].set_xlabel(r"$t$")
     axes[-1, 1].set_xlabel(r"$t$")

@@ -44,7 +44,7 @@ candidate_run_mtime() {
 }
 
 choose_default_run_dir() {
-  local candidates=("${SIM_ROOT}/data_2gpu" "${SIM_ROOT}/data")
+  local candidates=("${SIM_ROOT}/data_2gpu" "${SIM_ROOT}/data_supported" "${SIM_ROOT}/data")
   local best_dir=""
   local best_mtime=-1
   local dir mtime
@@ -102,15 +102,15 @@ if [[ $# -gt 0 ]]; then
 fi
 
 echo "[1/4] Plotting constraint norms..."
-python -m src.visualisation.constraines "${CONSTRAINT_FILE}"
+python3 -m src.visualisation.constraines "${CONSTRAINT_FILE}"
 
 echo "[2/4] Plotting collapse diagnostics..."
-python -m src.visualisation.diagnostic.diagnostic \
+python3 "${VIS_DIR}/diagnostic/diagnostic.py" \
   "${COLLAPSE_FILE}" \
   --out "${VIS_DIR}/diagnostic"
 
 echo "[3/4] Plotting extracted Psi4 in retarded time..."
-python -m src.visualisation.process_wave.plot_extracted_psi4 \
+python3 -m src.visualisation.process_wave.plot_extracted_psi4 \
   "${PSI4_FILE}" \
   "${RADII_ARGS[@]}" \
   --time-axis retarded \
@@ -118,7 +118,7 @@ python -m src.visualisation.process_wave.plot_extracted_psi4 \
   --plot-psd
 
 echo "[4/4] Plotting extracted Psi4 in simulation time..."
-python -m src.visualisation.process_wave.plot_extracted_psi4 \
+python3 -m src.visualisation.process_wave.plot_extracted_psi4 \
   "${PSI4_FILE}" \
   "${RADII_ARGS[@]}" \
   --time-axis simulation \
