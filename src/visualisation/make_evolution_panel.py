@@ -79,8 +79,13 @@ def create_panel(frame_dir, output_path, frame_indices):
         panel.paste(crop, (current_x, 0))
         current_x += crop.width
 
-    panel.save(output_path, dpi=(300, 300))
-    print(f"Saved panel plot to {output_path}")
+    # Get the base path without extension
+    import pathlib
+    out_path = pathlib.Path(output_path)
+    
+    panel.save(out_path.with_suffix('.png'), dpi=(600, 600))
+    panel.save(out_path.with_suffix('.pdf'), dpi=(600, 600), resolution=600)
+    print(f"Saved panel plot to {out_path.with_suffix('.png')} and .pdf")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Create a panel plot from simulation frames.")

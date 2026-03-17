@@ -188,8 +188,10 @@ def plot_collapse_diagnostics(data: Dict[str, np.ndarray], out_path: Path) -> No
 
     plt.tight_layout()
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(out_path, dpi=150, bbox_inches="tight")
-    print(f"Saved: {out_path}")
+    fig.savefig(out_path.with_suffix(".png"), dpi=600, bbox_inches="tight")
+    fig.savefig(out_path.with_suffix(".eps"), dpi=600, bbox_inches="tight")
+    fig.savefig(out_path.with_suffix(".pdf"), dpi=600, bbox_inches="tight")
+    print(f"Saved: {out_path.with_suffix('.png')}, .eps, and .pdf")
 
 
 def main() -> None:
@@ -213,12 +215,12 @@ def main() -> None:
     parser.add_argument(
         "--out",
         default=str(script_dir),
-        help="Output directory for collapse_diagnostics_plot.png",
+        help="Output directory for collapse_diagnostics_plot.eps",
     )
     parser.add_argument(
         "--name",
-        default="collapse_diagnostics_plot.png",
-        help="Output filename (default: collapse_diagnostics_plot.png)",
+        default="collapse_diagnostics_plot.eps",
+        help="Output filename (default: collapse_diagnostics_plot.eps)",
     )
     args = parser.parse_args()
 

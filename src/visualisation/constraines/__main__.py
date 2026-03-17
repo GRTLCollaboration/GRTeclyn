@@ -105,7 +105,7 @@ def plot_constraints(times, l2_ham, l2_mom, output_path):
 
     # Hamiltonian Plot
     ax1 = axes[0]
-    ax1.semilogy(times, l2_ham, label=r'$\|\mathcal{H}\|_{L^2}$', color='blue', linewidth=1.5)
+    ax1.semilogy(times, l2_ham, label=r'$\|\mathcal{H}\|_{L^2}$', color='black', linestyle='-', linewidth=1.5)
     ax1.set_ylabel(r'$\|\mathcal{H}\|_{L^2}$')
     ax1.set_title(r'Hamiltonian Constraint: $\mathcal{H}$')
     ax1.grid(True, which="both", ls="--", alpha=0.6)
@@ -114,7 +114,7 @@ def plot_constraints(times, l2_ham, l2_mom, output_path):
 
     # Momentum Plot
     ax2 = axes[1]
-    ax2.semilogy(times, l2_mom, label=r'$\|\mathcal{M}\|_{L^2}$', color='red', linewidth=1.5)
+    ax2.semilogy(times, l2_mom, label=r'$\|\mathcal{M}\|_{L^2}$', color='black', linestyle='-', linewidth=1.5)
     ax2.set_xlabel(r'$t$ $[M]$')
     ax2.set_ylabel(r'$\|\mathcal{M}\|_{L^2}$')
     ax2.set_title(r'Momentum Constraint: $\mathcal{M}^i$')
@@ -123,8 +123,10 @@ def plot_constraints(times, l2_ham, l2_mom, output_path):
     ax2.tick_params(axis='both', which='major', direction='in', top=True, right=True)
 
     plt.tight_layout()
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    print(f"Plot saved to: {output_path}")
+    plt.savefig(output_path.with_suffix(".png"), dpi=600, bbox_inches='tight')
+    plt.savefig(output_path.with_suffix(".eps"), dpi=600, bbox_inches='tight')
+    plt.savefig(output_path.with_suffix(".pdf"), dpi=600, bbox_inches='tight')
+    print(f"Plot saved to: {output_path.with_suffix('.png')}, .eps, and .pdf")
     plt.close(fig)
 
 
@@ -153,8 +155,8 @@ def main():
     parser = argparse.ArgumentParser(description="Plot constraint norms from simulation data.")
     parser.add_argument("input_file", nargs="?", default=str(default_data_path),
                         help=f"Path to constraint_norms.dat file (default: {default_data_path})")
-    parser.add_argument("-o", "--output", default="constraints_plot.png",
-                        help="Output filename (default: constraints_plot.png)")
+    parser.add_argument("-o", "--output", default="constraints_plot.eps",
+                        help="Output filename (default: constraints_plot.eps)")
 
     args = parser.parse_args()
 

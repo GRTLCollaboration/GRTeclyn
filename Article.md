@@ -245,7 +245,7 @@ Within the CCZ4 formulation, the constraint-damping mechanism rapidly converts t
 \subsection{Sub-critical branch: dissipation without trapping}
 \begin{figure}[h]
 \centering
-\includegraphics[width=\linewidth]{collapse_diagnostics_plot.png} % Replace with your sub-critical diagnostic plot
+\includegraphics[width=\linewidth]{collapse_diagnostics_plot.pdf} % Replace with your sub-critical diagnostic plot
 \caption{Diagnostics of a sub-critical evolution. The minimum lapse \(\min(\alpha)\) and minimum conformal factor \(\min(\chi)\) do not collapse toward zero, and no trapped surface is detected (\(r_{\rm AH}=0\), equivalently \(\theta_+>0\) everywhere for the spherical proxy). This indicates dissipation/expansion rather than black hole formation.}
 \label{fig:subcritical_diagnostics_plot}
 \end{figure}
@@ -254,7 +254,7 @@ In the absence of a sufficiently strong implosive perturbation, the unsupported 
 \subsection{Super-critical branch: trapping and black hole formation}
 \begin{figure}[h]
 \centering
-\includegraphics[width=\linewidth]{collapse_diagnostics_plot_supercritical.png} % Replace with your successful BH-formation plot
+\includegraphics[width=\linewidth]{collapse_diagnostics_plot_supercritical.pdf} % Replace with your successful BH-formation plot
 \caption{Diagnostics of a super-critical collapse. The minimum null expansion proxy \(\min(\theta_+)\) crosses zero and becomes negative, and the trapped-surface radius proxy \(r_{\rm AH}\) jumps from zero to a finite value. These features mark dynamical trapping and black hole formation.}
 \label{fig:supercritical_diagnostics}
 \end{figure}
@@ -269,7 +269,7 @@ When the compressive amplitude exceeds a critical threshold, the implosion overc
 The dynamical pinch-off produces a sharp outgoing curvature burst. Because the initial vacuum slice contains a constraint defect, the earliest signal is contaminated by gauge and constraint-cleaning transients. We therefore analyze the extracted Weyl scalar \(\Psi_4\) in terms of retarded time \(u \equiv t - R_{\rm ext}\) to separate early junk from the physical collapse burst.
 \begin{figure}[h]
 \centering
-\includegraphics[width=\linewidth]{psi4_extracted_simulation.png}
+\includegraphics[width=\linewidth]{psi4_extracted_simulation.pdf}
 \caption{Radius-scaled curvature waveform \(r\,\mathrm{Re}(\Psi_4^{2,0})\) for a super-critical collapse case, shown in simulation time \(t\) (top) and retarded time \(u=t-R_{\rm ext}\) (bottom). Alignment of the dominant packet in retarded time across radii supports its interpretation as an outward-propagating physical signal.}
 \label{fig:psi4_extracted_simulation}
 \end{figure}
@@ -277,19 +277,29 @@ The dynamical pinch-off produces a sharp outgoing curvature burst. Because the i
 \section{Conclusion}
 We investigated the nonlinear dynamics of an unsupported wormhole-like topology evolved in vacuum CCZ4. The evolution exhibits threshold behavior: sub-critical configurations dissipate/expand without trapping, whereas sufficiently strong inward perturbations drive the throat into dynamical pinch-off and black hole formation, unambiguously identified by \(\theta_+ \le 0\) and \(r_{\rm AH}>0\) in the trapped-surface proxy. In the super-critical branch, the extracted \(\Psi_4\) shows a distinct near-zone curvature burst followed by ringdown consistent with a perturbed black hole.
 
+\section{Acknowledgements}
+This research was supported by Gravity Frontiers (\texttt{ic@gravityfrontiers.org}) under a research grant for the development of software for mathematical modeling of wormholes.
+
+The author also thanks Ilya Nachevsky for generously providing the high-performance computing resources necessary for this work. These simulations would not have been possible without his support. 
+
 \appendix*
 \section{Numerical details, validation, and convergence}
-We exploit Cartesian reflection symmetries to evolve only the positive octant (\(x\ge 0\), \(y\ge 0\), \(z\ge 0\)) with parity conditions on the inner boundaries and Sommerfeld conditions at the outer boundaries.
-
-To validate stability and accuracy, we monitor Hamiltonian and momentum constraint violations. Because the initial data represent an unsupported topology evolved in vacuum, the simulation begins with a nonzero constraint defect. We verify that the volume-averaged constraint measures are rapidly damped and remain under control:
-\begin{equation}
-L_2(\mathrm{Ham}) \equiv
-\sqrt{\frac{\sum_i \mathrm{Ham}_i^2\,V_i}{\sum_i V_i}}.
-\end{equation}
+We exploit Cartesian reflection symmetries and evolve only the positive octant, \(x\ge 0\), \(y\ge 0\), \(z\ge 0\), imposing parity conditions on the inner faces and Sommerfeld radiative conditions at the outer boundary. For the validation diagnostics shown here, the constraints are computed directly during the evolution on AMR level 0, after filling two ghost cells of the updated state. The code then evaluates the standard CCZ4 constraint operator into a temporary four-component field containing the Hamiltonian constraint and the three momentum-constraint components,
+\[
+(\mathrm{Ham},\mathrm{Mom}_x,\mathrm{Mom}_y,\mathrm{Mom}_z),
+\]
+and forms volume-weighted root-mean-square norms over the valid level-0 cells. Since the cell volume is constant on a given AMR level, the reported diagnostics reduce to
+\begin{align}
+L_2(\mathrm{Ham}) &=
+\left(\frac{\sum_i \mathrm{Ham}_i^2\,V_i}{\sum_i V_i}\right)^{1/2},\\
+L_2(\mathrm{Mom}) &=
+\left(\frac{\sum_i \left(\mathrm{Mom}_{x,i}^2+\mathrm{Mom}_{y,i}^2+\mathrm{Mom}_{z,i}^2\right)V_i}{\sum_i V_i}\right)^{1/2}.
+\end{align}
+These two scalars are written to the small-data file as \texttt{L2\_Ham} and \texttt{L2\_Mom}. Because the unsupported or partially unsupported evolutions begin from data that are not exactly on the target vacuum constraint surface, these norms are generically nonzero at \(t=0\). The relevant stability test is therefore not whether the initial slice is constraint-free, but whether the CCZ4 evolution damps the initial defect and keeps the subsequent violation bounded during the collapse. Figure~\ref{fig:constraints_plot} shows precisely this behavior: both the Hamiltonian and momentum RMS norms exhibit an initial transient and then remain under control throughout the evolution.
 \begin{figure}[h]
 \centering
-\includegraphics[width=\linewidth]{constraints_plot.png}
-\caption{Volume-averaged \(L_2\) norm of the Hamiltonian constraint over time. After an initial transient, the constraint violation damps and remains controlled during the subsequent evolution.}
+\includegraphics[width=\linewidth]{constraints_plot.pdf}
+\caption{Level-0, volume-weighted RMS norms of the Hamiltonian and momentum constraints written to \texttt{constraint\_norms.dat} as \texttt{L2\_Ham} and \texttt{L2\_Mom}. The initial slice carries a finite constraint defect, but the CCZ4 evolution damps the transient and keeps both diagnostics bounded during the subsequent evolution.}
 \label{fig:constraints_plot}
 \end{figure}
 % --- Bibliography ---

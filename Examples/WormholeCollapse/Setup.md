@@ -28,6 +28,53 @@ echo 'export PATH=/usr/local/cuda/bin:$PATH' >> ~/.bashrc
 source ~/.bashrc
 ```
 
+## MPI Prerequisite For Multi-GPU Runs
+
+The MPI executable `main3d.gnu.MPI.CUDA.ex` needs both:
+
+- `mpirun` in your `PATH`
+- `libmpi.so.40` in your library path
+
+If you see either
+
+```bash
+bash: mpirun: command not found
+```
+
+or
+
+```bash
+ldd ./main3d.gnu.MPI.CUDA.ex | grep libmpi
+libmpi.so.40 => not found
+```
+
+then CUDA is active but the OpenMPI runtime is not.
+
+### Local OpenMPI under `~/nachevsky`
+
+If you installed OpenMPI locally at
+`/home/jovyan/nachevsky/test/simulation/local/openmpi-5.0.8`, activate it in
+the current shell before running the MPI executable:
+
+```bash
+export PATH=$HOME/nachevsky/test/simulation/local/openmpi-5.0.8/bin:$PATH
+export LD_LIBRARY_PATH=$HOME/nachevsky/test/simulation/local/openmpi-5.0.8/lib:${LD_LIBRARY_PATH:-}
+```
+
+Verify that the shell sees the correct runtime:
+
+```bash
+which mpirun
+ldd ./main3d.gnu.MPI.CUDA.ex | grep libmpi
+```
+
+Expected output should point into your local install, for example:
+
+```bash
+/home/jovyan/nachevsky/test/simulation/local/openmpi-5.0.8/bin/mpirun
+libmpi.so.40 => /home/jovyan/nachevsky/test/simulation/local/openmpi-5.0.8/lib/libmpi.so.40
+```
+
 ## Build
 
 ### Single-GPU (No MPI)
@@ -51,12 +98,19 @@ For H100 GPUs, `CUDA_ARCH=90` is correct.
 CUDA_VISIBLE_DEVICES=0 ./main3d.gnu.CUDA.ex params.txt
 ```
 
+If `params.txt` aborts with a `ParmParse` error about `modes`, use
+`params_2gpu.txt` instead, or add `\` line continuations to the multi-line
+`modes` entry in `params.txt`.
+
 ### Multi-GPU (e.g. 2 GPUs)
 Use `mpirun` to launch the MPI version of the executable.
 ```bash
 # Use GPUs 0 and 1
 CUDA_VISIBLE_DEVICES=0,1 mpirun -n 2 ./main3d.gnu.MPI.CUDA.ex params_2gpu.txt
 ```
+
+If you are using the local OpenMPI install above, activate it in the shell
+first, then run the command from this directory.
 
 For the vacuum-collapse example, the compressive kick is seeded directly in the
 initial data at `t=0` through `wormhole_k_monopole_amplitude`,
@@ -82,6 +136,18 @@ On an 8×H100 node you can run with 8 GPUs (8 MPI ranks) like this:
 ```bash
 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 mpirun -n 8 ./main3d.gnu.MPI.CUDA.ex params_2gpu.txt
 ```
+
+#### Quick MPI troubleshooting
+
+Before running the MPI executable, it is worth checking:
+
+```bash
+which mpirun
+ldd ./main3d.gnu.MPI.CUDA.ex | grep libmpi
+```
+
+If `which mpirun` is empty, or `libmpi.so.40` is reported as `not found`, the
+OpenMPI runtime is not active in your shell yet.
 
 Run on some random gpus 
 ```bash

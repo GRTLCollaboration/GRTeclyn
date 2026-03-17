@@ -123,7 +123,7 @@ python3 -m src.visualisation.process_wave.plot_extracted_psi4 \
   "${RADII_ARGS[@]}" \
   --time-axis simulation \
   --out "${VIS_DIR}/process_wave" \
-  --name "psi4_extracted_simulation.png" \
+  --name "psi4_extracted_simulation.eps" \
   --plot-psd
 
 echo "Done."

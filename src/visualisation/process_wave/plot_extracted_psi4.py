@@ -194,8 +194,7 @@ def main() -> None:
         ax2 = None
 
     n_r = len(radii)
-    # User requested red and blue
-    colors = ["tab:red", "tab:blue"]
+    linestyles = ["-", "-.", "--", ":"]
 
     # time step for PSD
     dt = np.median(np.diff(t)) if t.size >= 2 else np.nan
@@ -203,7 +202,8 @@ def main() -> None:
 
     plotted_any = False
     for i, R in enumerate(radii):
-        color = colors[i % len(colors)]
+        color = "black"
+        linestyle = linestyles[i % len(linestyles)]
         psi4 = series[R]
         x = t if args.time_axis == "simulation" else (t - float(R))
         y = np.real(psi4)
@@ -214,15 +214,15 @@ def main() -> None:
         if args.t_max is not None:
             m &= x <= args.t_max
 
-        ax1.plot(x[m], y[m], color=color, linewidth=1.2, label=f"R={R:g}")
+        ax1.plot(x[m], y[m], color=color, linestyle=linestyle, linewidth=1.2, label=rf"$R={R:g}$")
 
         if args.plot_psd and ax2 is not None and fs is not None and psi4.size >= 8:
             freqs, psd = welch(np.real(psi4), fs, nperseg=min(128, max(8, psi4.size // 2)))
             psd_s = _smooth_psd(psd, window=args.psd_smooth_window, polyorder=args.psd_smooth_polyorder)
             # User requested no dots; plotted only the smoothed line
             # if not args.psd_hide_raw:
-            #     ax2.semilogy(freqs, psd, "o", color="red", markersize=3.0, markeredgewidth=0, alpha=0.35)
-            ax2.semilogy(freqs, psd_s, "-", color=color, linewidth=1.2, label=f"R={R:g}")
+            #     ax2.semilogy(freqs, psd, "o", color="black", markersize=3.0, markeredgewidth=0, alpha=0.35)
+            ax2.semilogy(freqs, psd_s, color=color, linestyle=linestyle, linewidth=1.2, label=rf"$R={R:g}$")
 
         plotted_any = True
 
@@ -243,11 +243,13 @@ def main() -> None:
     out_dir = Path(args.out).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     suffix = "_".join([f"R{r:g}" for r in radii])
-    out_name = args.name if args.name else f"psi4_extracted_{suffix}.png"
+    out_name = args.name if args.name else f"psi4_extracted_{suffix}.eps"
     out_path = out_dir / out_name
     plt.tight_layout()
-    plt.savefig(out_path, dpi=300, bbox_inches="tight")
-    print(f"Saved to {out_path}")
+    plt.savefig(out_path.with_suffix(".png"), dpi=600, bbox_inches="tight")
+    plt.savefig(out_path.with_suffix(".eps"), dpi=600, bbox_inches="tight")
+    plt.savefig(out_path.with_suffix(".pdf"), dpi=600, bbox_inches="tight")
+    print(f"Saved to {out_path.with_suffix('.png')}, .eps, and .pdf")
 
 
 if __name__ == "__main__":

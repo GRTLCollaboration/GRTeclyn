@@ -52,9 +52,17 @@ if [[ -d "${RUN_DATA_DIR}" ]]; then
 fi
 
 rm -f "${VIS_ROOT}/constraines/constraints_plot.png" \
+      "${VIS_ROOT}/constraines/constraints_plot.eps" \
+      "${VIS_ROOT}/constraines/constraints_plot.pdf" \
       "${VIS_ROOT}/diagnostic/collapse_diagnostics_plot.png" \
+      "${VIS_ROOT}/diagnostic/collapse_diagnostics_plot.eps" \
+      "${VIS_ROOT}/diagnostic/collapse_diagnostics_plot.pdf" \
       "${VIS_ROOT}/process_wave/psi4_extracted_R8_R12_R16.png" \
-      "${VIS_ROOT}/process_wave/psi4_extracted_simulation.png"
+      "${VIS_ROOT}/process_wave/psi4_extracted_R8_R12_R16.eps" \
+      "${VIS_ROOT}/process_wave/psi4_extracted_R8_R12_R16.pdf" \
+      "${VIS_ROOT}/process_wave/psi4_extracted_simulation.png" \
+      "${VIS_ROOT}/process_wave/psi4_extracted_simulation.eps" \
+      "${VIS_ROOT}/process_wave/psi4_extracted_simulation.pdf"
 echo "Removed shared generated plot images"
 
 echo "=========================================="
