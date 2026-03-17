@@ -118,6 +118,39 @@ initial data at `t=0` through `wormhole_k_monopole_amplitude`,
 The delayed-kick parameters are still supported by the code for alternate
 experiments, but they are disabled by default in the example inputs.
 
+### Stabilization Parameters: `kappa`, `sigma`, and `shift_advec_coeff`
+
+Three commonly tuned stabilization parameters in the wormhole runs are `kappa1`,
+`sigma`, and `shift_advec_coeff`, but they act in completely different ways.
+
+- `kappa1` is a CCZ4 constraint-damping parameter. It damps violations of the
+  Z4/CCZ4 constraint variables during evolution. Increasing `kappa1` means
+  stronger damping of those constraint-violating modes.
+- `sigma` is the Kreiss-Oliger numerical dissipation coefficient. It adds
+  high-frequency smoothing to the finite-difference RHS and mainly suppresses
+  grid-scale numerical noise.
+- `shift_advec_coeff` controls whether the spatial shift vector is advected by
+  itself ($\beta^j \partial_j \beta^i$). In strong-field / moving-puncture
+  simulations, the shift vector gets very steep. Multiplying a steep shift by
+  its own derivative creates extreme numerical gradients. 
+
+So while they all affect stability, they are not interchangeable:
+
+- raise `kappa1` if the run looks dominated by growing CCZ4 constraint
+  violations,
+- raise `sigma` if the run looks contaminated by short-wavelength numerical
+  noise or interpolation junk,
+- set `shift_advec_coeff = 0.0` (disabled) instead of `1.0` if the run suffers
+  from extreme gauge-shock NaNs near the throat/puncture. Dropping this term
+  is technically a gauge "hack", but it is a standard necessity for surviving
+  violent collapses in the Gamma-driver gauge.
+
+`kappa1` is not a physical observable like mass or throat radius; it is a
+formulation parameter. So using `kappa1 = 3.0` is not "unphysical" by itself.
+It simply means stronger CCZ4 constraint damping than `kappa1 = 0.1`, and can
+be a reasonable choice if it improves stability without spoiling convergence or
+the qualitative behavior of the solution.
+
 ### Multi-GPU (e.g. 4 GPUs)
 This example also works with 4 GPUs (4 MPI ranks):
 

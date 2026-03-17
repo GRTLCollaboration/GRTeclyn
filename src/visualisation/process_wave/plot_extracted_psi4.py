@@ -194,7 +194,7 @@ def main() -> None:
         ax2 = None
 
     n_r = len(radii)
-    linestyles = ["-", "-.", "--", ":"]
+    colors = ["tab:blue", "tab:orange", "tab:green", "tab:red"]
 
     # time step for PSD
     dt = np.median(np.diff(t)) if t.size >= 2 else np.nan
@@ -202,8 +202,7 @@ def main() -> None:
 
     plotted_any = False
     for i, R in enumerate(radii):
-        color = "black"
-        linestyle = linestyles[i % len(linestyles)]
+        color = colors[i % len(colors)]
         psi4 = series[R]
         x = t if args.time_axis == "simulation" else (t - float(R))
         y = np.real(psi4)
@@ -214,7 +213,7 @@ def main() -> None:
         if args.t_max is not None:
             m &= x <= args.t_max
 
-        ax1.plot(x[m], y[m], color=color, linestyle=linestyle, linewidth=1.2, label=rf"$R={R:g}$")
+        ax1.plot(x[m], y[m], color=color, linestyle="-", linewidth=1.2, label=rf"$R={R:g}$")
 
         if args.plot_psd and ax2 is not None and fs is not None and psi4.size >= 8:
             freqs, psd = welch(np.real(psi4), fs, nperseg=min(128, max(8, psi4.size // 2)))
@@ -222,7 +221,7 @@ def main() -> None:
             # User requested no dots; plotted only the smoothed line
             # if not args.psd_hide_raw:
             #     ax2.semilogy(freqs, psd, "o", color="black", markersize=3.0, markeredgewidth=0, alpha=0.35)
-            ax2.semilogy(freqs, psd_s, color=color, linestyle=linestyle, linewidth=1.2, label=rf"$R={R:g}$")
+            ax2.semilogy(freqs, psd_s, color=color, linestyle="-", linewidth=1.2, label=rf"$R={R:g}$")
 
         plotted_any = True
 

@@ -386,7 +386,7 @@ void WormholeLevel::specificPostTimeStep()
                         // Spherical trapped-surface proxy:
                         // theta_+ = 2 sqrt(chi) / r + 2/3 K - chi * A_rr
                         const amrex::Real theta_plus =
-                            2.0 * std::sqrt(chi) / r + (2.0 / 3.0) * K -
+                            2.0 * std::sqrt(amrex::max(chi, amrex::Real(0.0))) / r + (2.0 / 3.0) * K -
                             chi * Arr;
                         theta_plus_min_proxy = theta_plus;
 
@@ -512,7 +512,7 @@ void WormholeLevel::specificPostTimeStep()
                         r2;
 
                     const amrex::Real theta_plus =
-                        2.0 * std::sqrt(chi) / r + (2.0 / 3.0) * K -
+                        2.0 * std::sqrt(amrex::max(chi, amrex::Real(0.0))) / r + (2.0 / 3.0) * K -
                         chi * Arr;
 
                     const bool is_min =

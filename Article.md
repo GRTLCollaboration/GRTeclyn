@@ -252,11 +252,13 @@ Within the CCZ4 formulation, the constraint-damping mechanism rapidly converts t
 In the absence of a sufficiently strong implosive perturbation, the unsupported geometry follows a dispersive branch. After an initial gauge adjustment, both \(\alpha\) and \(\chi\) relax toward their asymptotic values and the trapped-surface proxy remains zero (\(r_{\rm AH}=0\)), confirming that no event horizon forms in this branch.
 
 \subsection{Super-critical branch: trapping and black hole formation}
+Because a full elliptic Apparent Horizon finder is currently under active development within the \texttt{GRTeclyn} framework, we implemented a local trapped-surface proxy to track the dynamical pinch-off of the wormhole. At each time step, we evaluate the outgoing null expansion \(\theta_+ = \frac{2\sqrt{\chi}}{r} + \frac{2}{3}K - \chi \tilde{A}_{rr}\) assuming spherical symmetry. Grid cells satisfying \(\theta_+ \le 0\) are flagged as trapped. We report the maximum coordinate radius of these flagged cells as \(r_{\rm AH}\). While this proxy does not measure the exact physical area of an apparent horizon, its sudden transition from zero to a positive value serves as a robust, unambiguous indicator of the onset of gravitational trapping and the formation of a black hole. The subsequent step-wise growth of \(r_{\rm AH}\) reflects the discrete sampling of the AMR grid as the interior moving-puncture gauge coordinates stretch.
+
 \begin{figure}[h]
-\centering
-\includegraphics[width=\linewidth]{collapse_diagnostics_plot_supercritical.pdf} % Replace with your successful BH-formation plot
-\caption{Diagnostics of a super-critical collapse. The minimum null expansion proxy \(\min(\theta_+)\) crosses zero and becomes negative, and the trapped-surface radius proxy \(r_{\rm AH}\) jumps from zero to a finite value. These features mark dynamical trapping and black hole formation.}
-\label{fig:supercritical_diagnostics}
+    \centering
+    \includegraphics[width=\linewidth]{collapse_diagnostics_plot.pdf}
+    \caption{Diagnostics of a super-critical collapse. The minimum lapse (\(\alpha\)) and conformal factor (\(\chi\)) plunge toward zero, demonstrating the time-freezing and infinite spatial stretching characteristic of the moving-puncture gauge. Concurrently, the minimum null expansion proxy \(\min(\theta_+)\) crosses zero and becomes negative, causing the trapped-surface radius proxy \(r_{\rm AH}\) to jump from zero to a finite value. The subsequent step-wise growth in \(r_{\rm AH}\) is an expected artifact of the discrete Cartesian AMR grid tracking the outward coordinate stretching of the trapped region. Together, these features definitively mark dynamical pinch-off and black hole formation.}
+    \label{fig:supercritical_diagnostics}
 \end{figure}
 To model a strong external perturbation (e.g. an early-universe fluctuation) we seed a localized inward perturbation in the trace of the extrinsic curvature. Because a perfectly spherically symmetric vacuum collapse cannot radiate (Birkhoff's theorem), we allow an optional small quadrupolar deformation to break exact symmetry:
 \begin{equation}
