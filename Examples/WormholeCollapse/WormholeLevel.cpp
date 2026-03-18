@@ -71,6 +71,14 @@ void WormholeLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                     const double a_time)
 {
     BL_PROFILE("WormholeLevel::specificEvalRHS()");
+    const int soln_ghosts = a_soln.nGrowVect()[0];
+    if (soln_ghosts > 0)
+    {
+        // Ensure ghost cells are valid before enforcing algebraic constraints
+        // and evaluating high-order derivatives in the RHS.
+        FillPatch(*this, a_soln, soln_ghosts, a_time, state_index, 0,
+                  a_soln.nComp());
+    }
     const auto &soln_arrs   = a_soln.arrays();
     const auto &soln_c_arrs = a_soln.const_arrays();
     const auto &rhs_arrs    = a_rhs.arrays();
@@ -171,10 +179,13 @@ void WormholeLevel::specificUpdateODE(amrex::MultiFab &a_soln)
 {
     const auto &soln_arrs = a_soln.arrays();
     TraceARemoval trace_A_removal;
+    PositiveChiAndLapse positive_chi_lapse(simParams().min_chi,
+                                           simParams().min_lapse);
     amrex::ParallelFor(a_soln, amrex::IntVect(0),
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
                        {
                            trace_A_removal(i, j, k, soln_arrs[box_no]);
+                           positive_chi_lapse(i, j, k, soln_arrs[box_no]);
                        });
 
     amrex::Gpu::streamSynchronize();

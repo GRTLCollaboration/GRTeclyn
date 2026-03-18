@@ -176,10 +176,13 @@ void SupportedWormholeLevel::specificUpdateODE(amrex::MultiFab &a_soln)
 {
     const auto &soln_arrs = a_soln.arrays();
     TraceARemoval trace_A_removal;
+    PositiveChiAndLapse positive_chi_lapse(simParams().min_chi,
+                                           simParams().min_lapse);
     amrex::ParallelFor(a_soln, amrex::IntVect(0),
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
                        {
                            trace_A_removal(i, j, k, soln_arrs[box_no]);
+                           positive_chi_lapse(i, j, k, soln_arrs[box_no]);
                        });
 
     amrex::Gpu::streamSynchronize();

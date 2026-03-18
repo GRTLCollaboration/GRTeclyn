@@ -26,17 +26,32 @@ print_progress_only_to_rank_0 = 1
 #   1 = single-throat Ellis–Bronnikov / Morris–Thorne (octant symmetry)
 #   0 = two-mouth superposition (not used in this file)
 wormhole_metric_type = 1
-wormhole_initial_lapse_type = 0
+
+# Initial lapse at t=0:
+#   0 = alpha = 1 everywhere
+#   1 = alpha = sqrt(chi) (pre-collapsed lapse; often more stable near the throat)
+wormhole_initial_lapse_type = 1
 
 # Throat parameters (single-throat mode uses centerA only)
-wormhole_throat_radius = 0.2
+wormhole_throat_radius = 0.5
 wormhole_centerA = 0.0 0.0 0.0
 
 # Extrinsic-curvature kick at t=0:
 #   K(r,theta) = [A0 + A2(3cos^2(theta)-1)] exp(-r^2/sigma^2)
-wormhole_k_monopole_amplitude   = 10.0
-wormhole_k_quadrupole_amplitude = 0.05
-wormhole_k_width       = 0.2
+#
+# - A0 = wormhole_k_monopole_amplitude:
+#     Spherically symmetric compression/expansion trigger (does NOT produce GW by itself).
+#     This mainly controls how strongly/quickly the throat is driven toward collapse.
+# - A2 = wormhole_k_quadrupole_amplitude:
+#     Non-spherical Y20 deformation (this IS what generates Psi4 / GW signal).
+#     The legacy parameter `wormhole_k_amplitude` is an alias for this quadrupole piece.
+# - wormhole_k_width:
+#     Radial width of the kick. Too small → very sharp gradients → more likely NaNs.
+#
+# For a clean comparison with the old working run, use the legacy alias only.
+# This means: monopole = 0, quadrupole = wormhole_k_amplitude.
+wormhole_k_amplitude            = 0.0
+wormhole_k_width       = 1.0
 
 # Optional delayed kick (disabled by default)
 wormhole_delayed_kick_start = -1.0
@@ -51,14 +66,14 @@ wormhole_use_cartesian_gamma = 0
 # Grid parameters
 
 # Coarse grid settings (dx = L_full / N_full)
-L_full = 40.0
+L_full = 80.0
 N_full = 160
 
 # Grid center (octant symmetry)
 center = 0.0 0.0 0.0
 
 # Maximum refinement levels
-max_level = 6
+max_level = 5
 
 # Frequency of regridding
 # Level:          0   1   2   3   4   5   6
@@ -82,8 +97,8 @@ nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 #################################################
 # Evolution parameters
 
-dt_multiplier = 0.05
-stop_time = 20.0
+dt_multiplier = 0.1
+stop_time = 30.0
 
 max_spatial_derivative_order = 4
 nan_check = 1
@@ -98,12 +113,17 @@ lapse_coeff = 2.0
 lapse_power = 1.0
 
 # Shift (Gamma-driver)
-shift_advec_coeff = 1.0
+# shift_advec_coeff: 1.0 = enable shift advection (mathematically rigorous but unstable near punctures)
+#                    0.0 = disable shift advection (standard numerical relativity hack for stability)
+shift_advec_coeff = 0.0
 shift_Gamma_coeff = 0.75
 eta = 1.0
 
 formulation = 0
-kappa1 = 1.0
+# CCZ4 damping parameter kappa1:
+#   0.1 = weak damping (typical default)
+#   3.0 = strong damping (often helps stabilize violently collapsing wormholes)
+kappa1 = 3.0
 kappa2 = 0.
 kappa3 = 1.
 covariantZ4 = 1
@@ -122,7 +142,7 @@ activate_extraction = 1
 
 num_extraction_radii = 2
 # With octant symmetry and center=0, extraction_radii must be <= L_full/2.
-extraction_radii = 8.0 16.0
+extraction_radii = 14.0 30.0
 extraction_levels = 1 0
 
 num_points_phi = 24

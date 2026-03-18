@@ -208,6 +208,19 @@ void GRAMRLevel::post_timestep(int /*iteration*/)
         if (state_new.contains_nan(0, state_new.nComp(), amrex::IntVect(0),
                                    true))
         {
+            for (int icomp = 0; icomp < state_new.nComp(); ++icomp)
+            {
+                if (state_new.contains_nan(icomp, 1, amrex::IntVect(0), true))
+                {
+                    amrex::AllPrint()
+                        << "NaN diagnostic: rank="
+                        << amrex::ParallelDescriptor::MyProc()
+                        << " level=" << lev << " component=" << icomp
+                        << " name=" << StateVariables::names[icomp]
+                        << std::endl;
+                    break;
+                }
+            }
             amrex::Abort("NaN in GRAMRLevel::post_timestep");
         }
     }

@@ -11,6 +11,8 @@
 #include "Cell.hpp"
 #include "StateVariables.hpp"
 
+#include <cmath>
+
 class PositiveChiAndLapse
 {
   private:
@@ -44,8 +46,17 @@ class PositiveChiAndLapse
         amrex::Real chi   = vars.chi();
         amrex::Real lapse = vars.lapse();
 
-        state_cell_data[c_chi]   = std::max(chi, m_min_chi);
-        state_cell_data[c_lapse] = std::max(lapse, m_min_lapse);
+        if (!std::isfinite(chi) || chi < m_min_chi)
+        {
+            chi = m_min_chi;
+        }
+        if (!std::isfinite(lapse) || lapse < m_min_lapse)
+        {
+            lapse = m_min_lapse;
+        }
+
+        state_cell_data[c_chi]   = chi;
+        state_cell_data[c_lapse] = lapse;
     }
 };
 

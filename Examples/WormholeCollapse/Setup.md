@@ -105,8 +105,8 @@ If `params.txt` aborts with a `ParmParse` error about `modes`, use
 ### Multi-GPU (e.g. 2 GPUs)
 Use `mpirun` to launch the MPI version of the executable.
 ```bash
-# Use GPUs 0 and 1
-CUDA_VISIBLE_DEVICES=0,1 mpirun -n 2 ./main3d.gnu.MPI.CUDA.ex params_2gpu.txt
+# Use GPUs 0,1,2,3,4,5,6,7
+CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 mpirun -n 8 ./main3d.gnu.MPI.CUDA.ex params_2gpu.txt
 ```
 
 If you are using the local OpenMPI install above, activate it in the shell
