@@ -1,0 +1,13 @@
+GRTECLYN_CEXE_headers += ParticleInterpolator.hpp \
+                         ParticleInterpolator.impl.hpp \
+                         InterpolationQueryParticle.hpp \
+                         Lagrange.hpp \
+                         MPIContextParticle.hpp \
+                         MPIContextParticle.impl.hpp \
+                         MPILayoutParticle.hpp \
+                         MPILayoutParticle.impl.hpp \
+                         Derivative.hpp \
+                         DerivativeSetup.hpp
+
+
+

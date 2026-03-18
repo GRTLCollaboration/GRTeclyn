@@ -20,6 +20,7 @@
 #include "CoordinateTransformationsTest.hpp"
 #include "DerivativeUnitTests.hpp"
 #include "EMTensorTest.hpp"
+#include "ParticleInterpolatorUnitTest.hpp"
 #include "PositiveChiAndLapseUnitTest.hpp"
 #include "PunctureTrackerTest.hpp"
 #include "SmallDataIOTest.hpp"
@@ -37,6 +38,8 @@ TEST_CASE("BSSNMatter"
 }
 
 TEST_CASE("CCZ4 Geometry") { run_ccz4_geometry_unit_tests(); }
+
+TEST_CASE("Particle Interpolator") { run_particle_interpolator_test(); }
 
 TEST_CASE("CCZ4RHS") { run_ccz4_rhs_test(); }
 

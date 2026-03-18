@@ -443,4 +443,4 @@ class FourthOrderDerivatives
     // NOLINTEND(bugprone-easily-swappable-parameters)
 };
 
-#endif /* FOURTHORDERDERIVATIVES2_HPP_ */
+#endif /* FOURTHORDERDERIVATIVES_HPP_ */

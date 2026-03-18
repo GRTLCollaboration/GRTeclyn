@@ -15,6 +15,8 @@
 // Problem specific includes:
 #include "BinaryBHLevel.hpp"
 
+#include "ParticleInterpolator.hpp"
+
 // System includes
 #include <chrono>
 #include <iostream>
@@ -35,7 +37,6 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
     }
 
     GRAMR::set_simulation_parameters(sim_params);
-
     DefaultLevelFactory<BinaryBHLevel> bh_level_bld;
 
 #ifdef USE_TWOPUNCTURES
