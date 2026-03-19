@@ -20,9 +20,16 @@ void AHFinder<num_components>::init(
     bool a_verbosity)
 {
     m_tol = 1e-4;
-    m_dt  = 0.01;
     m_eta = 5;
     m_c   = 1.0;
+    m_dt  = 0.01;
+
+    amrex::Real r      = 1.15;
+    amrex::Real min_dt = 1e-4;
+    amrex::Real max_dt = 1e2;
+
+    amrex::Real theta_old;
+    amrex::Real theta_new;
 
     int n_iter = 0;
 
@@ -42,19 +49,32 @@ void AHFinder<num_components>::init(
 
     this->interp(query);
 
+    theta_new = inf_norm(interp_vals);
+
     this->move_radial();
 
-    while (this->inf_norm(interp_vals) > m_tol)
+    while (theta_new > m_tol)
     {
+        theta_old = theta_new;
         this->update_v();
         this->move_radial();
         this->interp(query);
+
+        theta_new = inf_norm(interp_vals);
+
+        // Update time step based on ratio of old to new theta
+        // As we converge to theta = 0 we can increase the timestep
+        m_dt = r * m_dt * theta_new / theta_old;
+
+        // Ensure timestep doesn't grow too large or small
+        m_dt = std::max(m_dt, min_dt);
+        m_dt = std::min(m_dt, max_dt);
+
         n_iter++;
     }
 
     amrex::AllPrint() << "\n AHFinder converged with inf norm of theta = "
-                      << this->inf_norm(interp_vals) << " in " << n_iter
-                      << " iterations\n";
+                      << theta_new << " in " << n_iter << " iterations\n";
 }
 
 template <int num_components>
