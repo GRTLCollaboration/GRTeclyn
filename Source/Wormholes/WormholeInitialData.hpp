@@ -17,13 +17,15 @@
 
 //! Initial data for an "unsupported wormhole" experiment.
 //!
-//! This class provides a conformally-flat isotropic *two-mouth* ansatz via
-//! superposition of Ellis–Bronnikov potentials:
+//! This class provides a conformally-flat isotropic ansatz. For a single
+//! Ellis-Bronnikov throat in isotropic radius r one has
 //!
-//!   psi(x) = 1 + bA^2/(4|x-cA|^2) + bB^2/(4|x-cB|^2),
-//!   chi = psi^{-4},  h_ij = delta_ij.
+//!   gamma_ij = Omega(r)^2 delta_ij,
+//!   Omega(r) = 1 + b^2 / (4 r^2),
+//!   chi = Omega^{-2},  h_ij = delta_ij.
 //!
-//! The evolution system is vacuum CCZ4. Therefore, this initial slice is not in
+//! The two-mouth option below is a heuristic superposition of those isotropic
+//! scale factors. The evolution system is vacuum CCZ4, so this slice is not in
 //! general a vacuum-constraint solution and will emit an early transient as it
 //! relaxes.
 class WormholeInitialData
@@ -162,10 +164,8 @@ class WormholeInitialData
             const data_t termB = (m_params.metric_type == 1)
                                      ? (data_t)0.0
                                      : (data_t)bB_sq / (4.0 * rB2_reg);
-            const data_t psi   = 1.0 + termA + termB;
-            const data_t psi2  = psi * psi;
-            const data_t psi4  = psi2 * psi2;
-            chi = 1.0 / psi4;
+            const data_t conformal_scale = 1.0 + termA + termB;
+            chi = 1.0 / (conformal_scale * conformal_scale);
         }
 
         // Floors (avoid NaNs in evolution)

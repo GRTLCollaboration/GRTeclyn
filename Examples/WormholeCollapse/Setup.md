@@ -118,6 +118,31 @@ initial data at `t=0` through `wormhole_k_monopole_amplitude`,
 The delayed-kick parameters are still supported by the code for alternate
 experiments, but they are disabled by default in the example inputs.
 
+## Physics Status Of This Example
+
+`Examples/WormholeCollapse` is the unsupported, vacuum-relaxation experiment.
+It should be interpreted as follows:
+
+- The spatial metric is initialized from the isotropic Ellis-Bronnikov scale
+  factor `gamma_ij = Omega^2 delta_ij` with `Omega = 1 + b^2/(4 r^2)`, so
+  `chi = Omega^{-2}` in CCZ4 variables.
+- No exotic scalar field is evolved in this example. If you want the supported
+  Ellis-Bronnikov matter content, use `Examples/SupportedWormholeCollapse`.
+- Because the support field is removed rather than solved for, the unsupported
+  initial slice is not a vacuum constraint solution. The code therefore starts
+  with a finite Hamiltonian defect, and any nontrivial `K(r,theta)` kick also
+  introduces momentum-constraint violation at `t=0`.
+- The early-time waveform and throat diagnostics must therefore be interpreted
+  as a vacuum-relaxation / constraint-cleaning transient of an unsupported
+  geometry, not as a clean perturbation of an exact stationary wormhole.
+- The trapped-surface diagnostic is only a spherical proxy on Cartesian
+  coordinate spheres. It now includes the radial gradient of `chi`, but it is
+  still not a full elliptic apparent-horizon finder.
+
+This makes the example useful for studying how an unsupported throat-like
+geometry self-traps or disperses under CCZ4 evolution, but not for claiming an
+exact constraint-satisfying Ellis-Bronnikov initial value solution in vacuum.
+
 ### Stabilization Parameters: `kappa`, `sigma`, and `shift_advec_coeff`
 
 Three commonly tuned stabilization parameters in the wormhole runs are `kappa1`,

@@ -313,8 +313,8 @@ void WormholeLevel::specificPostTimeStep()
     }
 
     // --- Collapse / strong-field diagnostics (small-data output) ---
-    // These are cheap global reductions that can be recorded even when plotfiles
-    // are deleted on-the-fly.
+    // Sample from the finest AMR level so the throat region is fully resolved.
+    // Triggered once per coarse step (Level 0) but reads finest-level data.
     if (Level() == 0)
     {
         const amrex::Real time         = get_state_data(state_index).curTime();
@@ -322,18 +322,20 @@ void WormholeLevel::specificPostTimeStep()
         const amrex::Real restart_time = get_gramr_ptr()->get_restart_time();
         const bool first_step          = (time == 0.0);
 
-        amrex::MultiFab &state_new = get_new_data(state_index);
-        FillPatch(*this, state_new, 2, time, state_index, 0, state_new.nComp());
+        const int finest_lev = parent->finestLevel();
+        auto &fine_level     = parent->getLevel(finest_lev);
+        amrex::MultiFab &state_fine = fine_level.get_new_data(state_index);
+        const auto &fine_geom       = parent->Geom(finest_lev);
 
-        // Enforce algebraic constraints after coarse-fine synchronization and
-        // ghost filling. High-order interpolation can introduce small overshoots
-        // (including negative lapse) even if each level was floored locally.
+        FillPatch(fine_level, state_fine, 2, time, state_index, 0,
+                  state_fine.nComp());
+
         {
-            const auto &arrs = state_new.arrays();
+            const auto &arrs = state_fine.arrays();
             TraceARemoval trace_A_removal;
             PositiveChiAndLapse positive_chi_lapse(simParams().min_chi,
                                                    simParams().min_lapse);
-            amrex::ParallelFor(state_new, amrex::IntVect(0),
+            amrex::ParallelFor(state_fine, amrex::IntVect(0),
                                [=] AMREX_GPU_DEVICE(int box_no, int i, int j,
                                                     int k)
                                {
@@ -352,14 +354,14 @@ void WormholeLevel::specificPostTimeStep()
             reduce_data(reduce_ops);
         using ReduceTuple = typename decltype(reduce_data)::Type;
 
-        const auto dx_arr  = Geom().CellSizeArray();
-        const auto prob_lo = Geom().ProbLoArray();
+        const auto dx_arr  = fine_geom.CellSizeArray();
+        const auto prob_lo = fine_geom.ProbLoArray();
 
-        for (amrex::MFIter mfi(state_new, amrex::TilingIfNotGPU());
+        for (amrex::MFIter mfi(state_fine, amrex::TilingIfNotGPU());
              mfi.isValid(); ++mfi)
         {
             const amrex::Box &bx = mfi.validbox();
-            const auto arr       = state_new.const_array(mfi);
+            const auto arr       = state_fine.const_array(mfi);
             reduce_ops.eval(
                 bx, reduce_data,
                 [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTuple
@@ -379,7 +381,7 @@ void WormholeLevel::specificPostTimeStep()
 
                     amrex::Real ah_radius = 0.0;
                     amrex::Real theta_plus_min_proxy = 1.0e30;
-                    if (r > 1e-6) // avoid division by zero at the throat center
+                    if (r > 1e-6)
                     {
                         const amrex::Real A11 = arr(i, j, k, c_A11);
                         const amrex::Real A22 = arr(i, j, k, c_A22);
@@ -394,11 +396,23 @@ void WormholeLevel::specificPostTimeStep()
                              2.0 * A23 * y * z) /
                             r2;
 
-                        // Spherical trapped-surface proxy:
-                        // theta_+ = 2 sqrt(chi) / r + 2/3 K - chi * A_rr
+                        const amrex::Real dx_chi =
+                            (arr(i + 1, j, k, c_chi) - arr(i - 1, j, k, c_chi)) /
+                            (2.0 * dx_arr[0]);
+                        const amrex::Real dy_chi =
+                            (arr(i, j + 1, k, c_chi) - arr(i, j - 1, k, c_chi)) /
+                            (2.0 * dx_arr[1]);
+                        const amrex::Real dz_chi =
+                            (arr(i, j, k + 1, c_chi) - arr(i, j, k - 1, c_chi)) /
+                            (2.0 * dx_arr[2]);
+                        const amrex::Real dchi_dr =
+                            (x * dx_chi + y * dy_chi + z * dz_chi) / r;
+                        const amrex::Real sqrt_chi =
+                            std::sqrt(amrex::max(chi, amrex::Real(1.0e-20)));
+
                         const amrex::Real theta_plus =
-                            2.0 * std::sqrt(amrex::max(chi, amrex::Real(0.0))) / r + (2.0 / 3.0) * K -
-                            chi * Arr;
+                            2.0 * sqrt_chi / r - dchi_dr / sqrt_chi + Arr -
+                            (2.0 / 3.0) * K;
                         theta_plus_min_proxy = theta_plus;
 
                         if (theta_plus <= 0.0)
@@ -424,9 +438,6 @@ void WormholeLevel::specificPostTimeStep()
         amrex::ParallelDescriptor::ReduceRealMax(max_ah_r);
         amrex::ParallelDescriptor::ReduceRealMin(min_theta_plus);
 
-        // Location of the global minimum lapse (average over ties).
-        // This helps confirm the collapse localizes at the throat/center rather
-        // than being a boundary artifact.
         const amrex::Real tol =
             amrex::max(amrex::Real(1.0e-14), amrex::Real(1.0e-12) * amrex::Math::abs(min_lapse));
 
@@ -437,11 +448,11 @@ void WormholeLevel::specificPostTimeStep()
             reduce_data_loc(reduce_ops_loc);
         using ReduceTupleLoc = typename decltype(reduce_data_loc)::Type;
 
-        for (amrex::MFIter mfi(state_new, amrex::TilingIfNotGPU());
+        for (amrex::MFIter mfi(state_fine, amrex::TilingIfNotGPU());
              mfi.isValid(); ++mfi)
         {
             const amrex::Box &bx = mfi.validbox();
-            const auto arr       = state_new.const_array(mfi);
+            const auto arr       = state_fine.const_array(mfi);
             reduce_ops_loc.eval(
                 bx, reduce_data_loc,
                 [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTupleLoc
@@ -472,7 +483,6 @@ void WormholeLevel::specificPostTimeStep()
         const amrex::Real min_lapse_y = (count > 0.0) ? (sum_y / count) : 0.0;
         const amrex::Real min_lapse_z = (count > 0.0) ? (sum_z / count) : 0.0;
 
-        // Radius at which theta_plus is minimized (average over ties).
         const amrex::Real tol_theta = amrex::max(
             amrex::Real(1.0e-12),
             amrex::Real(1.0e-8) * amrex::Math::abs(min_theta_plus));
@@ -483,11 +493,11 @@ void WormholeLevel::specificPostTimeStep()
             reduce_ops_theta_loc);
         using ReduceTupleThetaLoc = typename decltype(reduce_data_theta_loc)::Type;
 
-        for (amrex::MFIter mfi(state_new, amrex::TilingIfNotGPU());
+        for (amrex::MFIter mfi(state_fine, amrex::TilingIfNotGPU());
              mfi.isValid(); ++mfi)
         {
             const amrex::Box &bx = mfi.validbox();
-            const auto arr       = state_new.const_array(mfi);
+            const auto arr       = state_fine.const_array(mfi);
             reduce_ops_theta_loc.eval(
                 bx, reduce_data_theta_loc,
                 [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTupleThetaLoc
@@ -522,9 +532,23 @@ void WormholeLevel::specificPostTimeStep()
                          2.0 * A23 * y * z) /
                         r2;
 
+                    const amrex::Real dx_chi =
+                        (arr(i + 1, j, k, c_chi) - arr(i - 1, j, k, c_chi)) /
+                        (2.0 * dx_arr[0]);
+                    const amrex::Real dy_chi =
+                        (arr(i, j + 1, k, c_chi) - arr(i, j - 1, k, c_chi)) /
+                        (2.0 * dx_arr[1]);
+                    const amrex::Real dz_chi =
+                        (arr(i, j, k + 1, c_chi) - arr(i, j, k - 1, c_chi)) /
+                        (2.0 * dx_arr[2]);
+                    const amrex::Real dchi_dr =
+                        (x * dx_chi + y * dy_chi + z * dz_chi) / r;
+                    const amrex::Real sqrt_chi =
+                        std::sqrt(amrex::max(chi, amrex::Real(1.0e-20)));
+
                     const amrex::Real theta_plus =
-                        2.0 * std::sqrt(amrex::max(chi, amrex::Real(0.0))) / r + (2.0 / 3.0) * K -
-                        chi * Arr;
+                        2.0 * sqrt_chi / r - dchi_dr / sqrt_chi + Arr -
+                        (2.0 / 3.0) * K;
 
                     const bool is_min =
                         (amrex::Math::abs(theta_plus - min_theta_plus) <=

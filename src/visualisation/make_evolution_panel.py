@@ -8,7 +8,20 @@ def erase_box(img_arr, x0, x1, y0, y1):
     img_arr[y0:y1, x0:x1] = 255
     return img_arr
 
-def create_panel(frame_dir, output_path, frame_indices):
+
+def to_grayscale_rgb(img_rgb: np.ndarray) -> np.ndarray:
+    """
+    Convert an RGB uint8 image to grayscale *but keep 3 channels* (RGB)
+    so downstream cropping/pasting logic remains unchanged.
+    """
+    img = img_rgb.astype(np.float32)
+    # ITU-R BT.601 luma transform (standard for sRGB-like imagery)
+    y = 0.299 * img[:, :, 0] + 0.587 * img[:, :, 1] + 0.114 * img[:, :, 2]
+    y8 = np.clip(y, 0, 255).astype(np.uint8)
+    return np.stack([y8, y8, y8], axis=-1)
+
+
+def create_panel(frame_dir, output_path, frame_indices, grayscale: bool = True):
     """
     Creates a 1xN panel of simulation frames, removing overlapping x-axis labels
     and keeping only one colorbar on the right side.
@@ -20,9 +33,9 @@ def create_panel(frame_dir, output_path, frame_indices):
         path_std = os.path.join(frame_dir, f"frame_{f_idx:04d}.png")
         
         if os.path.exists(path_z):
-            frames.append(np.array(Image.open(path_z).convert('RGB')))
+            frames.append(np.array(Image.open(path_z).convert("RGB")))
         elif os.path.exists(path_std):
-            frames.append(np.array(Image.open(path_std).convert('RGB')))
+            frames.append(np.array(Image.open(path_std).convert("RGB")))
         else:
             raise FileNotFoundError(f"Could not find frame {f_idx} in {frame_dir}")
 
@@ -48,6 +61,8 @@ def create_panel(frame_dir, output_path, frame_indices):
     crops = []
     for i, frame in enumerate(frames):
         f = frame.copy()
+        if grayscale:
+            f = to_grayscale_rgb(f)
         
         # Make the greyish background completely white
         # VisIt sometimes uses 246, but edges might be slightly off.
@@ -92,7 +107,12 @@ if __name__ == "__main__":
     parser.add_argument("--frame_dir", type=str, required=True, help="Directory containing the frames (e.g., K_z/frames)")
     parser.add_argument("--out", type=str, required=True, help="Output image path")
     parser.add_argument("--frames", type=int, nargs='+', default=[0, 20, 40, 60], help="Frame indices to plot")
+    parser.add_argument(
+        "--no-grayscale",
+        action="store_true",
+        help="Disable grayscale conversion (keep original colors).",
+    )
     
     args = parser.parse_args()
     
-    create_panel(args.frame_dir, args.out, args.frames)
+    create_panel(args.frame_dir, args.out, args.frames, grayscale=not args.no_grayscale)

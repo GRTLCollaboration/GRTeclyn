@@ -141,24 +141,24 @@ def plot_collapse_diagnostics(data: Dict[str, np.ndarray], out_path: Path) -> No
 
     # For octant-symmetric single-throat runs, the min-lapse location is
     # typically pinned at the throat/center and provides little information.
-    # Use a 3x2 layout with collapse-focused diagnostics.
-    fig, axes = plt.subplots(3, 2, figsize=(12, 12), sharex=True)
+    # Use a 2x3 layout with collapse-focused diagnostics.
+    fig, axes = plt.subplots(2, 3, figsize=(15, 8), sharex=True)
     axes = np.asarray(axes)
 
-    left_specs: Tuple[Tuple[str, str, str], ...] = (
+    top_specs: Tuple[Tuple[str, str, str], ...] = (
         ("min_lapse", r"$\min(\alpha)$", r"Minimum lapse: $\alpha$"),
         ("min_chi", r"$\min(\chi)$", r"Minimum conformal factor: $\chi$"),
         ("max_abs_K", r"$\max(|K|)$", r"Maximum curvature: $|K|$"),
     )
 
-    right_specs: Tuple[Tuple[str, str, str], ...] = (
+    bottom_specs: Tuple[Tuple[str, str, str], ...] = (
         ("max_ah_r", r"$r_{\rm AH}$", r"Max trapped surface radius: $\theta_+ \leq 0$"),
         ("min_theta_plus", r"$\min(\theta_+)$", r"Minimum null expansion proxy: $\theta_+$"),
         ("r_at_min_theta_plus", r"$r_{\min\theta_+}$", r"Radius at min $\theta_+$"),
     )
 
-    for i, (key, ylabel, title) in enumerate(left_specs):
-        ax = axes[i, 0]
+    for i, (key, ylabel, title) in enumerate(top_specs):
+        ax = axes[0, i]
         y = np.asarray(data[key], dtype=float)
         # Avoid semilogy issues if zeros appear (shouldn't, but safe).
         y_plot = np.where(y > 0, y, np.nan)
@@ -168,8 +168,8 @@ def plot_collapse_diagnostics(data: Dict[str, np.ndarray], out_path: Path) -> No
         ax.grid(True, which="both", ls="--", alpha=0.6)
         ax.tick_params(axis="both", which="major", direction="in")
 
-    for i, (key, ylabel, title) in enumerate(right_specs):
-        ax = axes[i, 1]
+    for i, (key, ylabel, title) in enumerate(bottom_specs):
+        ax = axes[1, i]
         y = np.asarray(data[key], dtype=float)
         if key == "max_ah_r":
             ax.plot(t, y, color="black", linewidth=1.5)
@@ -183,8 +183,8 @@ def plot_collapse_diagnostics(data: Dict[str, np.ndarray], out_path: Path) -> No
         ax.grid(True, which="both", ls="--", alpha=0.6)
         ax.tick_params(axis="both", which="major", direction="in")
 
-    axes[-1, 0].set_xlabel(r"$t$")
-    axes[-1, 1].set_xlabel(r"$t$")
+    for i in range(3):
+        axes[1, i].set_xlabel(r"$t$")
 
     plt.tight_layout()
     out_path.parent.mkdir(parents=True, exist_ok=True)
