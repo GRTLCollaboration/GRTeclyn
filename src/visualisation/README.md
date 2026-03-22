@@ -343,14 +343,16 @@ python -m src.visualisation.process_wave.consume_plotfiles \
   --embedding --embedding-rmax 5.0 \
   --frames-fields chi K \
   --frames-corner \
-  --watch --delete --keep-last 2 --verbose
+  --watch --delete --keep-last 2 --verbose -j 64
 ```
 
-| Option             | Description                                           |
-|--------------------|-------------------------------------------------------|
-| `--areal-radius`   | Extract min areal radius \(R_{\text{areal}} = r/\sqrt{\chi}\) along x-axis to `areal_radius.dat` |
-| `--embedding`      | Render 3D embedding diagram frames (surface of revolution from \(\chi\) profile) |
+| Option | Description |
+|---|---|
+| `--areal-radius` | Extract min areal radius \(R_{\text{areal}} = r/\sqrt{\chi}\) along x-axis to `areal_radius.dat` |
+| `--embedding` | Render 3D embedding diagram frames (surface of revolution from \(\chi\) profile) |
 | `--embedding-rmax` | Max coordinate radius for the embedding (default: full domain). Choose ~10× the throat radius for a good view of the funnel without the flat region dominating. |
+| `-j`, `--jobs` | Run plotfile processing and rendering in parallel across N workers (e.g. `-j 64`). Drastically reduces rendering time. |
+| `--keep-existing-frames` | Do not clear pre-existing visualization frames from output folders upon startup (useful when resuming processing). |
 
 **Choosing `--embedding-rmax`:** If the throat radius is \(b\), a good starting value is `--embedding-rmax` \(\approx 10b\). Too large a value makes the flat asymptotic region dominate and the throat becomes invisible; too small clips the funnel before it flares out.
 
@@ -469,24 +471,36 @@ Two shell scripts automate the full visualization pipeline. Both auto-detect the
 
 ### `plot_run.sh` — Live plotfile processing (run during simulation)
 
-Watches for new plotfiles, extracts Ψ4 waveforms, areal radius, renders field frames and embedding diagrams. Deletes consumed plotfiles to save disk space.
+Watches for new plotfiles, extracts Ψ4 waveforms, areal radius, renders field frames and embedding diagrams. Deletes consumed plotfiles to save disk space. It automatically processes plotfiles in parallel for maximum speed.
 
 ```bash
-# Default (auto-detects data_2gpu or data):
+# Default (auto-detects data_2gpu or data, uses 64 jobs):
 ./src/scripts/plot_run.sh
 
 # Explicit data path:
 ./src/scripts/plot_run.sh /path/to/data_2gpu
+
+# Keep existing plotfiles and generated frames (useful for restarting processing):
+./src/scripts/plot_run.sh --not-remove /path/to/data_2gpu
+
+# Specify a custom number of parallel jobs (e.g. 16 workers instead of 64):
+./src/scripts/plot_run.sh -j 16 /path/to/data_2gpu
+
+# Run with a custom number of jobs AND keep existing files (order of arguments does not matter):
+./src/scripts/plot_run.sh --not-remove -j 16
+./src/scripts/plot_run.sh --not-remove -j 16 /path/to/data_2gpu
 ```
 
 What it does:
-1. Removes stale plotfiles and resets extracted small-data
+1. Removes stale plotfiles, old extracted small-data, and old image frames (unless `--not-remove` is provided, which preserves them).
 2. Launches `consume_plotfiles.py` in watch mode with:
    - `--radii 8 12 16 --n-points 32`
    - `--areal-radius` (throat areal radius extraction)
    - `--embedding --embedding-rmax 5.0` (3D embedding diagram frames)
    - `--frames-fields chi K Weyl4_Re Weyl4_Mag`
    - `--watch --delete --keep-last 2`
+   - `-j 64` (uses 64 parallel worker processes by default, adjustable via `-j` / `--jobs`)
+   - `--keep-existing-frames` (if `--not-remove` was specified)
 
 ### `plot_diagnostic.sh` — Post-run diagnostics (run after simulation)
 

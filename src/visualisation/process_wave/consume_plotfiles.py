@@ -698,6 +698,108 @@ def _append_line(path: Path, header: str, line: str) -> None:
         f.write(line.rstrip() + "\n")
 
 
+def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_frame_idx: int) -> dict:
+    import yt
+    
+    try:
+        yt.funcs.mylog.setLevel(30 if args_dict.get("verbose") else 40)
+    except Exception:
+        pass
+
+    t0 = time.time()
+    result = {
+        "p": p,
+        "key": os.path.basename(p),
+        "t": 0.0,
+        "psi4_line": None,
+        "areal_line": None,
+        "success": False,
+        "deleted": False,
+        "status_str": "",
+        "dt_s": 0.0,
+        "error": None
+    }
+    
+    try:
+        ds = yt.load(p)
+        t = float(ds.current_time)
+        result["t"] = t
+        key = result["key"]
+
+        # --- Psi4 extraction (optional) ---
+        if args_dict.get("psi4"):
+            if ("boxlib", "Weyl4_Re") not in ds.field_list or ("boxlib", "Weyl4_Im") not in ds.field_list:
+                raise RuntimeError("Plotfile missing Weyl4_Re/Im. Set: amr.derive_plot_vars = Weyl4 and re-run.")
+            amps = _extract_mode_amps_l2m0(
+                ds,
+                radii=[float(r) for r in args_dict["radii"]],
+                n_points=int(args_dict["n_points"]),
+                center=args_dict["center"],
+            )
+            result["psi4_line"] = f"{t:.16e}  " + "  ".join([f"{a.real:.16e}  {a.imag:.16e}" for a in amps])
+
+        # --- Frame rendering (optional) ---
+        frame_fields = [_canonical_field_name(f) for f in args_dict.get("frames_fields", [])]
+        if frame_fields:
+            idx = _parse_plot_index(key)
+            frame_idx = idx if idx is not None else fallback_frame_idx
+            for fld in frame_fields:
+                _render_slice_frame(
+                    ds,
+                    field=fld,
+                    axis=args_dict["frames_axis"],
+                    coord=args_dict.get("frames_coord"),
+                    zoom=args_dict.get("frames_zoom"),
+                    center_xyz=args_dict.get("frames_center"),
+                    corner=args_dict.get("frames_corner"),
+                    frames_out_dir=args_dict["frames_out"],
+                    frame_idx=int(frame_idx),
+                    verbose=args_dict.get("verbose", False),
+                )
+
+        # --- Areal radius extraction (optional) ---
+        if args_dict.get("areal_radius"):
+            if ("boxlib", "chi") in ds.field_list:
+                R_min, r_min = _extract_areal_radius_min(ds, center=args_dict["center"])
+                result["areal_line"] = f"{t:.16e}  {R_min:.16e}  {r_min:.16e}"
+            else:
+                if args_dict.get("verbose", False):
+                    print(f"WARNING: plotfile {key} missing chi field; skipping areal radius.")
+
+        # --- Embedding diagram frame (optional) ---
+        if args_dict.get("embedding"):
+            if ("boxlib", "chi") in ds.field_list:
+                e_idx = _parse_plot_index(key)
+                embed_frame_idx = e_idx if e_idx is not None else fallback_frame_idx
+                _render_embedding_frame(
+                    ds,
+                    frames_out_dir=args_dict["frames_out"],
+                    frame_idx=int(embed_frame_idx),
+                    center=args_dict["center"],
+                    r_max=args_dict.get("embedding_rmax"),
+                    verbose=args_dict.get("verbose", False),
+                )
+            else:
+                if args_dict.get("verbose", False):
+                    print(f"WARNING: plotfile {key} missing chi field; skipping embedding.")
+
+        result["success"] = True
+        
+        # --- Delete ---
+        if args_dict.get("delete") and (p not in protected):
+            shutil.rmtree(p)
+            result["deleted"] = True
+
+    except Exception as e:
+        result["error"] = str(e)
+
+    result["dt_s"] = time.time() - t0
+    status = "deleted" if result["deleted"] else ("kept" if args_dict.get("delete") else "kept(no-delete)")
+    result["status_str"] = status
+    
+    return result
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Extract Psi4 (l=2,m=0) from plotfiles and optionally delete them."
@@ -766,6 +868,17 @@ def main() -> None:
         default=2,
         help="Never delete the newest N plotfiles (safety, default: 2)",
     )
+    parser.add_argument(
+        "-j", "--jobs",
+        type=int,
+        default=1,
+        help="Number of parallel worker processes to use",
+    )
+    parser.add_argument(
+        "--keep-existing-frames",
+        action="store_true",
+        help="Do not delete existing frames at startup.",
+    )
     args = parser.parse_args()
 
     # Reduce yt logging overhead/spam (can be noisy in watch mode).
@@ -797,7 +910,7 @@ def main() -> None:
 
     # If rendering frames, clear existing frames for the requested fields/axis at startup.
     frame_fields_startup = [_canonical_field_name(f) for f in args.frames_fields]
-    if frame_fields_startup:
+    if frame_fields_startup and not args.keep_existing_frames:
         _cleanup_existing_frames(
             frames_out_dir=os.path.abspath(args.frames_out),
             fields=frame_fields_startup,
@@ -805,7 +918,7 @@ def main() -> None:
             verbose=args.verbose,
         )
 
-    if args.embedding:
+    if args.embedding and not args.keep_existing_frames:
         _cleanup_embedding_frames(
             frames_out_dir=os.path.abspath(args.frames_out),
             verbose=args.verbose,
@@ -815,100 +928,69 @@ def main() -> None:
         plot_dirs = _iter_plotfile_dirs(data_dir)
         if not plot_dirs:
             return 0
-        processed = 0
+        processed_count = 0
 
         # Never delete newest keep_last plotfiles
         protected = set(plot_dirs[-max(0, int(args.keep_last)) :])
 
+        to_process = []
         for p in plot_dirs:
             key = os.path.basename(p)
             if state.get(key):
                 continue
             if not _is_plotfile_ready(p, stable_seconds=float(args.stable_seconds)):
                 continue
+            to_process.append(p)
 
-            try:
-                t0 = time.time()
-                ds = yt.load(p)
-                t = float(ds.current_time)
+        if not to_process:
+            return 0
 
-                # --- Psi4 extraction (optional) ---
-                if args.psi4:
-                    # Validate fields once per plotfile
-                    if ("boxlib", "Weyl4_Re") not in ds.field_list or ("boxlib", "Weyl4_Im") not in ds.field_list:
-                        raise RuntimeError(
-                            "Plotfile missing Weyl4_Re/Im. Set: amr.derive_plot_vars = Weyl4 and re-run."
-                        )
-                    amps = _extract_mode_amps_l2m0(
-                        ds,
-                        radii=[float(r) for r in args.radii],
-                        n_points=int(args.n_points),
-                        center=args.center,
-                    )
-                    line = f"{t:.16e}  " + "  ".join([f"{a.real:.16e}  {a.imag:.16e}" for a in amps])
-                    _append_line(out_path, header=header, line=line)
-
-                # --- Frame rendering (optional) ---
-                frame_fields = [_canonical_field_name(f) for f in args.frames_fields]
-                if frame_fields:
-                    idx = _parse_plot_index(key)
-                    frame_idx = idx if idx is not None else processed
-                    for fld in frame_fields:
-                        _render_slice_frame(
-                            ds,
-                            field=fld,
-                            axis=args.frames_axis,
-                            coord=args.frames_coord,
-                            zoom=args.frames_zoom,
-                            center_xyz=args.frames_center,
-                            corner=args.frames_corner,
-                            frames_out_dir=os.path.abspath(args.frames_out),
-                            frame_idx=int(frame_idx),
-                            verbose=args.verbose,
-                        )
-
-                # --- Areal radius extraction (optional) ---
-                if args.areal_radius:
-                    if ("boxlib", "chi") in ds.field_list:
-                        R_min, r_min = _extract_areal_radius_min(ds, center=args.center)
-                        areal_line = f"{t:.16e}  {R_min:.16e}  {r_min:.16e}"
-                        _append_line(areal_out_path, header=areal_header, line=areal_line)
-                    else:
-                        print(f"WARNING: plotfile {key} missing chi field; skipping areal radius.")
-
-                # --- Embedding diagram frame (optional) ---
-                if args.embedding:
-                    if ("boxlib", "chi") in ds.field_list:
-                        e_idx = _parse_plot_index(key)
-                        embed_frame_idx = e_idx if e_idx is not None else processed
-                        _render_embedding_frame(
-                            ds,
-                            frames_out_dir=os.path.abspath(args.frames_out),
-                            frame_idx=int(embed_frame_idx),
-                            center=args.center,
-                            r_max=args.embedding_rmax,
-                            verbose=args.verbose,
-                        )
-                    else:
-                        print(f"WARNING: plotfile {key} missing chi field; skipping embedding.")
-
-                state[key] = True
-                _save_state(state_path, state)
-                processed += 1
-
-                deleted = False
-                if args.delete and (p not in protected):
-                    shutil.rmtree(p)
-                    deleted = True
-
-                if args.verbose:
-                    dt_s = time.time() - t0
-                    status = "deleted" if deleted else ("kept" if args.delete else "kept(no-delete)")
-                    print(f"[ok] {key}  t={t:.6g}  {status}  ({dt_s:.2f}s)")
-            except Exception as e:
-                # Do not mark as processed; do not delete.
-                print(f"WARNING: failed to process {p}: {e}")
-                continue
+        args_dict = vars(args)
+        args_dict["frames_out"] = os.path.abspath(args.frames_out)
+        
+        if args.jobs > 1:
+            from concurrent.futures import ProcessPoolExecutor
+            with ProcessPoolExecutor(max_workers=args.jobs) as executor:
+                futures = []
+                for i, p in enumerate(to_process):
+                    futures.append(executor.submit(_process_single_plotfile, p, args_dict, protected, processed_count + i))
+                
+                for p, f in zip(to_process, futures):
+                    try:
+                        res = f.result()
+                        if res["success"]:
+                            if res["psi4_line"]:
+                                _append_line(out_path, header=header, line=res["psi4_line"])
+                            if res["areal_line"]:
+                                _append_line(areal_out_path, header=areal_header, line=res["areal_line"])
+                            
+                            state[res["key"]] = True
+                            _save_state(state_path, state)
+                            processed_count += 1
+                            
+                            if args.verbose:
+                                print(f"[ok] {res['key']}  t={res['t']:.6g}  {res['status_str']}  ({res['dt_s']:.2f}s)")
+                        else:
+                            print(f"WARNING: failed to process {p}: {res.get('error', 'Unknown error')}")
+                    except Exception as e:
+                        print(f"WARNING: worker failed for {p}: {e}")
+        else:
+            for i, p in enumerate(to_process):
+                res = _process_single_plotfile(p, args_dict, protected, processed_count + i)
+                if res["success"]:
+                    if res["psi4_line"]:
+                        _append_line(out_path, header=header, line=res["psi4_line"])
+                    if res["areal_line"]:
+                        _append_line(areal_out_path, header=areal_header, line=res["areal_line"])
+                    
+                    state[res["key"]] = True
+                    _save_state(state_path, state)
+                    processed_count += 1
+                    
+                    if args.verbose:
+                        print(f"[ok] {res['key']}  t={res['t']:.6g}  {res['status_str']}  ({res['dt_s']:.2f}s)")
+                else:
+                    print(f"WARNING: failed to process {p}: {res.get('error', 'Unknown error')}")
 
         # Cleanup pass: delete plotfiles that were processed earlier but were
         # inside keep-last at the time. Once they are no longer protected, we
@@ -929,7 +1011,7 @@ def main() -> None:
                 except Exception as e:
                     print(f"WARNING: failed to delete {p}: {e}")
 
-        return processed
+        return processed_count
 
     if args.watch:
         print(f"Watching {data_dir} for plotfiles. Writing {out_path}")

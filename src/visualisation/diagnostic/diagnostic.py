@@ -19,6 +19,7 @@ This script produces a publication-style multi-panel figure with:
 from __future__ import annotations
 
 import argparse
+import string
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
@@ -372,6 +373,12 @@ def plot_collapse_diagnostics(
         ax_life.set_title(r"$|K|$ decay and lifetime $\tau$")
         ax_life.grid(True, which="both", ls="--", alpha=0.6)
         ax_life.tick_params(axis="both", which="major", direction="in")
+
+    # Add letter labels to subplot titles
+    for ax, letter in zip(axes.flatten(), string.ascii_lowercase):
+        title = ax.get_title()
+        if title:
+            ax.set_title(f"({letter}) {title}")
 
     # x-axis labels on bottom row
     for i in range(3):
