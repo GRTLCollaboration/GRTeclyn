@@ -1,13 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Plot all standard diagnostics for a run:
-# - constraint norms
-# - collapse diagnostics (+ areal radius & K-decay lifetime when available)
-# - extracted Psi4 waveform / PSD in retarded time
-# - extracted Psi4 waveform / PSD in simulation time
-# - strain PSD with LIGO noise curve overlay & SNR
-# - propagation speed analysis (GW vs junk separation)
+# Plot all standard diagnostics for a run.
+# All output goes to a single folder: src/visualisation/plots/
+# The folder is wiped on each invocation so results are always fresh.
+#
+# Plots produced:
+#   constraints_plot.*            — constraint norms
+#   collapse_diagnostics_plot.*   — collapse diagnostics (+ areal radius + K-decay lifetime)
+#   psi4_retarded.*               — Psi4 waveform + PSD (retarded time)
+#   psi4_simulation.*             — Psi4 waveform + PSD (simulation time)
+#   psi4_strain_analysis.*        — strain PSD + LIGO overlay + SNR
+#   psi4_propagation_speed.*      — propagation speed analysis
 #
 # Usage:
 #   ./src/scripts/plot_diagnostic.sh [RUN_DIR] [RADIUS ...]
@@ -24,6 +28,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VIS_DIR="$(cd "${SCRIPT_DIR}/../visualisation" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 SIM_ROOT="$(cd "${REPO_ROOT}/.." && pwd)"
+PLOTS_DIR="${VIS_DIR}/plots"
 
 candidate_run_mtime() {
   local run_dir="$1"
@@ -97,6 +102,10 @@ if [[ ! -f "${PSI4_FILE}" ]]; then
 fi
 
 echo "Using run directory: ${RUN_DIR}"
+echo "All plots -> ${PLOTS_DIR}"
+
+rm -rf "${PLOTS_DIR}"
+mkdir -p "${PLOTS_DIR}"
 
 RADII_ARGS=()
 if [[ $# -gt 0 ]]; then
@@ -104,20 +113,23 @@ if [[ $# -gt 0 ]]; then
 fi
 
 echo "[1/6] Plotting constraint norms..."
-python3 -m src.visualisation.constraines "${CONSTRAINT_FILE}"
+python3 -m src.visualisation.constraines \
+  "${CONSTRAINT_FILE}" \
+  -o "${PLOTS_DIR}/constraints_plot.eps"
 
 echo "[2/6] Plotting collapse diagnostics (+ areal radius + K-decay lifetime)..."
 python3 "${VIS_DIR}/diagnostic/diagnostic.py" \
   "${COLLAPSE_FILE}" \
   --data "${RUN_DIR}" \
-  --out "${VIS_DIR}/diagnostic"
+  --out "${PLOTS_DIR}"
 
 echo "[3/6] Plotting extracted Psi4 in retarded time..."
 python3 -m src.visualisation.process_wave.plot_extracted_psi4 \
   "${PSI4_FILE}" \
   "${RADII_ARGS[@]}" \
   --time-axis retarded \
-  --out "${VIS_DIR}/process_wave" \
+  --out "${PLOTS_DIR}" \
+  --name "psi4_retarded.eps" \
   --plot-psd
 
 echo "[4/6] Plotting extracted Psi4 in simulation time..."
@@ -125,8 +137,8 @@ python3 -m src.visualisation.process_wave.plot_extracted_psi4 \
   "${PSI4_FILE}" \
   "${RADII_ARGS[@]}" \
   --time-axis simulation \
-  --out "${VIS_DIR}/process_wave" \
-  --name "psi4_extracted_simulation.eps" \
+  --out "${PLOTS_DIR}" \
+  --name "psi4_simulation.eps" \
   --plot-psd
 
 echo "[5/6] Plotting strain PSD + LIGO overlay + SNR..."
@@ -134,7 +146,7 @@ python3 -m src.visualisation.process_wave.plot_extracted_psi4 \
   "${PSI4_FILE}" \
   "${RADII_ARGS[@]}" \
   --time-axis retarded \
-  --out "${VIS_DIR}/process_wave" \
+  --out "${PLOTS_DIR}" \
   --name "psi4_strain_analysis.eps" \
   --plot-psd --strain --mass-msun 30 --distance-mpc 10
 
@@ -143,8 +155,10 @@ python3 -m src.visualisation.process_wave.plot_extracted_psi4 \
   "${PSI4_FILE}" \
   "${RADII_ARGS[@]}" \
   --time-axis simulation \
-  --out "${VIS_DIR}/process_wave" \
+  --out "${PLOTS_DIR}" \
   --name "psi4_propagation_speed.eps" \
   --propagation-speed
 
-echo "Done."
+echo ""
+echo "All plots saved to: ${PLOTS_DIR}"
+ls -1 "${PLOTS_DIR}"

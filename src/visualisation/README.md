@@ -306,6 +306,32 @@ python -m src.visualisation.process_wave.plot_extracted_psi4 \
 
 The plotfile consumer can also extract **areal radius** and render **embedding diagram frames** from each plotfile during live processing.
 
+#### Areal radius
+
+At each timestep the script shoots a `yt` ray along the positive x-axis (at y=0, z=0), reads the conformal factor \(\chi\), and computes the areal radius \(R_{\text{areal}}(r) = r / \sqrt{\chi(r)}\). The minimum of this profile (excluding the coordinate singularity at r=0) is the physical throat size. It is appended to `areal_radius.dat` as `(t, R_{\text{areal,min}}, r_{\text{at\,min}})`.
+
+#### Embedding diagrams — algorithm
+
+The embedding diagram visualises the spatial geometry around the wormhole throat as a 3D surface of revolution. The construction works as follows:
+
+1. **Extract \(\chi(r)\) along x-axis.** A `yt` ray from the domain centre to the right boundary yields cell-centred values of \(\chi\) at the AMR cell positions.
+
+2. **Interpolate onto a uniform grid.** The raw ray data has uneven spacing (fine near the throat, coarse far away) and step-like jumps at AMR refinement boundaries. The values are linearly interpolated onto a uniform grid of 1024+ points, then smoothed with a Gaussian filter whose width matches the coarsest AMR cell size. This eliminates derivative discontinuities at level boundaries while preserving physical structure.
+
+3. **Compute \(R_{\text{areal}}(r)\) and \(z_{\text{embed}}(r)\).** In conformal-flat isotropic coordinates the spatial metric is \(dl^2 = \chi^{-1} dr^2\). The isometric embedding into flat 3D space requires a surface of revolution \((R(r),\, z(r))\) satisfying \(dR^2 + dz^2 = dl^2\). With \(R_{\text{areal}} = r/\sqrt{\chi}\):
+
+   \[
+   \frac{dz}{dr} = \sqrt{\frac{1}{\chi} - \left(\frac{dR_{\text{areal}}}{dr}\right)^{\!2}}
+   \]
+
+   \(z_{\text{embed}}\) is obtained by cumulative trapezoidal integration of this expression.
+
+4. **Mirror to show both sheets.** Octant symmetry places the throat at x=0. The one-sided profile (x > 0) is reflected to negative \(z_{\text{embed}}\), producing the classic symmetric two-funnel wormhole shape with the throat at \(z=0\).
+
+5. **Surface of revolution.** The 1D profile \((R_{\text{areal}},\, z_{\text{embed}})\) is swept through \(\phi \in [0, 2\pi]\) to produce a 3D surface, coloured by \(z_{\text{embed}}\) (viridis colourmap).
+
+6. **Fixed axis limits.** The x, y, and z axes are locked to values derived from `--embedding-rmax` so that the coordinate box stays static across all frames. Only the wormhole geometry changes between frames, producing smooth animations without axis jumps.
+
 **Usage:**
 
 ```bash
@@ -324,7 +350,9 @@ python -m src.visualisation.process_wave.consume_plotfiles \
 |--------------------|-------------------------------------------------------|
 | `--areal-radius`   | Extract min areal radius \(R_{\text{areal}} = r/\sqrt{\chi}\) along x-axis to `areal_radius.dat` |
 | `--embedding`      | Render 3D embedding diagram frames (surface of revolution from \(\chi\) profile) |
-| `--embedding-rmax` | Max coordinate radius for the embedding (default: full domain) |
+| `--embedding-rmax` | Max coordinate radius for the embedding (default: full domain). Choose ~10× the throat radius for a good view of the funnel without the flat region dominating. |
+
+**Choosing `--embedding-rmax`:** If the throat radius is \(b\), a good starting value is `--embedding-rmax` \(\approx 10b\). Too large a value makes the flat asymptotic region dominate and the throat becomes invisible; too small clips the funnel before it flares out.
 
 **Output files:**
 - `small_data/areal_radius.dat` — time-series of throat areal radius
@@ -462,7 +490,7 @@ What it does:
 
 ### `plot_diagnostic.sh` — Post-run diagnostics (run after simulation)
 
-Generates all diagnostic plots from the extracted data files.
+Generates all diagnostic plots from the extracted data files. All output goes into a single folder `src/visualisation/plots/` which is **wiped and recreated on each run** so results are always fresh.
 
 ```bash
 # Default (auto-detects most recent run):
@@ -482,6 +510,19 @@ What it does (6 steps):
 4. Ψ4 waveform + PSD in simulation time
 5. Strain PSD + LIGO noise overlay + SNR (30 M⊙ at 10 Mpc)
 6. Propagation speed analysis (GW vs constraint-mode separation)
+
+**Output files** (all in `src/visualisation/plots/`):
+
+| File                            | Content                          |
+|---------------------------------|----------------------------------|
+| `constraints_plot.*`            | Constraint norms (Ham + Mom)     |
+| `collapse_diagnostics_plot.*`   | Collapse diagnostics (up to 3x3)|
+| `psi4_retarded.*`               | Ψ4 waveform + PSD (retarded)    |
+| `psi4_simulation.*`             | Ψ4 waveform + PSD (simulation)  |
+| `psi4_strain_analysis.*`        | Strain PSD + LIGO + SNR          |
+| `psi4_propagation_speed.*`      | Propagation speed analysis       |
+
+Each plot is saved as `.png`, `.eps`, and `.pdf`.
 
 ### Typical workflow
 

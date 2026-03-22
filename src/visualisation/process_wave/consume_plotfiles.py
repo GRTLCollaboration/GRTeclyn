@@ -519,38 +519,65 @@ def _extract_embedding_profile(
     The spatial metric is dl^2 = (1/chi) dr^2.  The embedding surface satisfies
     dR^2 + dz^2 = dl^2,  where R_areal = r / sqrt(chi).
 
+    Because the wormhole throat sits at x=0 (octant symmetry boundary), R_areal(0)
+    is numerically 0/0.  We skip points near r=0, then mirror the one-sided profile
+    to produce a symmetric two-funnel embedding with the throat at z_embed=0.
+
+    The raw AMR ray data is interpolated onto a uniform fine grid to eliminate
+    step artifacts at refinement-level boundaries.
+
     Returns arrays (R_areal, z_embed) suitable for surface-of-revolution plotting.
     """
     right = float(ds.domain_right_edge[0])
     c = np.asarray(center, dtype=float)
     ray = ds.ray(c, [right, c[1], c[2]])
 
-    r_arr = np.asarray(ray[("index", "x")], dtype=float) - c[0]
-    chi_arr = np.asarray(ray[("boxlib", "chi")], dtype=float)
+    r_raw = np.asarray(ray[("index", "x")], dtype=float) - c[0]
+    chi_raw = np.asarray(ray[("boxlib", "chi")], dtype=float)
 
-    order = np.argsort(r_arr)
-    r_arr = r_arr[order]
-    chi_arr = chi_arr[order]
+    order = np.argsort(r_raw)
+    r_raw = r_raw[order]
+    chi_raw = chi_raw[order]
 
+    chi_raw = np.maximum(chi_raw, chi_floor)
+
+    valid = r_raw > 1.0e-12
+    r_raw = r_raw[valid]
+    chi_raw = chi_raw[valid]
+
+    if len(r_raw) < 3:
+        return np.array([]), np.array([])
+
+    r_end = float(r_max) if r_max is not None else float(r_raw[-1])
+    n_pts = max(1024, len(r_raw) * 4)
+    r_arr = np.linspace(float(r_raw[0]), r_end, n_pts)
+    chi_arr = np.interp(r_arr, r_raw, chi_raw)
     chi_arr = np.maximum(chi_arr, chi_floor)
 
-    if r_max is not None:
-        keep = r_arr <= r_max
-        r_arr = r_arr[keep]
-        chi_arr = chi_arr[keep]
+    from scipy.ndimage import gaussian_filter1d
+    dr = r_arr[1] - r_arr[0]
+    dx_fine = float(np.min(np.diff(r_raw))) if len(r_raw) > 1 else dr
+    sigma_pts = max(2.0, 3.0 * dx_fine / dr)
+    chi_arr = gaussian_filter1d(chi_arr, sigma=sigma_pts, mode="nearest")
+    chi_arr = np.maximum(chi_arr, chi_floor)
 
     R_areal = r_arr / np.sqrt(chi_arr)
+
+    R_areal = gaussian_filter1d(R_areal, sigma=sigma_pts, mode="nearest")
 
     dR_dr = np.gradient(R_areal, r_arr)
     dl_dr_sq = 1.0 / chi_arr
     dz_dr_sq = dl_dr_sq - dR_dr**2
     dz_dr = np.sqrt(np.maximum(dz_dr_sq, 0.0))
 
-    z_embed = np.zeros_like(r_arr)
+    z_one_side = np.zeros_like(r_arr)
     if len(r_arr) > 1:
-        z_embed[1:] = cumulative_trapezoid(dz_dr, r_arr)
+        z_one_side[1:] = cumulative_trapezoid(dz_dr, r_arr)
 
-    return R_areal, z_embed
+    R_full = np.concatenate([R_areal[::-1], R_areal])
+    z_full = np.concatenate([-z_one_side[::-1], z_one_side])
+
+    return R_full, z_full
 
 
 def _render_embedding_frame(
@@ -566,6 +593,12 @@ def _render_embedding_frame(
     if len(R_areal) < 3:
         raise RuntimeError("Too few points for embedding diagram.")
 
+    if r_max is None:
+        r_max = float(ds.domain_right_edge[0]) - center[0]
+
+    lim_xy = float(r_max) * 1.15
+    lim_z = float(r_max) * 0.8
+
     phi = np.linspace(0, 2 * np.pi, 80)
     PHI, _ = np.meshgrid(phi, np.arange(len(R_areal)))
     X_3d = R_areal[:, None] * np.cos(PHI)
@@ -578,32 +611,42 @@ def _render_embedding_frame(
         "mathtext.fontset": "cm",
         "axes.labelsize": 14,
         "axes.titlesize": 16,
-        "xtick.labelsize": 10,
-        "ytick.labelsize": 10,
-        "axes.linewidth": 1.0,
+        "xtick.labelsize": 12,
+        "ytick.labelsize": 12,
+        "axes.linewidth": 1.2,
     })
 
     fig = plt.figure(figsize=(8, 6))
     ax = fig.add_subplot(111, projection="3d")
 
-    norm = plt.Normalize(vmin=float(np.min(z_embed)), vmax=float(np.max(z_embed)))
+    norm = plt.Normalize(vmin=-lim_z, vmax=lim_z)
     colors = plt.cm.viridis(norm(Z_3d))
     ax.plot_surface(X_3d, Y_3d, Z_3d, facecolors=colors, shade=True, alpha=0.85,
                     rstride=2, cstride=2, linewidth=0)
 
+    ax.set_xlim(-lim_xy, lim_xy)
+    ax.set_ylim(-lim_xy, lim_xy)
+    ax.set_zlim(-lim_z, lim_z)
+
     ax.view_init(elev=25, azim=-60)
     t_sim = float(ds.current_time)
-    ax.set_title(r"Embedding Diagram $\quad t=%.3f$" % t_sim, fontsize=14)
-    ax.set_xlabel(r"$x$")
-    ax.set_ylabel(r"$y$")
-    ax.set_zlabel(r"$z_{\mathrm{embed}}$")
+    ax.set_title(r"$\mathrm{Embedding\;Diagram}\quad t=%.3f$" % t_sim, fontsize=16)
+    ax.set_xlabel(r"$x$", fontsize=14)
+    ax.set_ylabel(r"$y$", fontsize=14)
+    ax.set_zlabel(r"$z_{\mathrm{embed}}$", fontsize=14)
+
+    from matplotlib.ticker import FuncFormatter
+    math_fmt = FuncFormatter(lambda v, _: r"$%g$" % v)
+    ax.xaxis.set_major_formatter(math_fmt)
+    ax.yaxis.set_major_formatter(math_fmt)
+    ax.zaxis.set_major_formatter(math_fmt)
 
     output_dir = os.path.join(frames_out_dir, "embedding")
     frames_dir = os.path.join(output_dir, "frames")
     os.makedirs(frames_dir, exist_ok=True)
     frame_name = f"frame_{frame_idx:04d}.png"
     out_path = os.path.join(frames_dir, frame_name)
-    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    fig.savefig(out_path, dpi=150, bbox_inches="tight", pad_inches=0.3)
     plt.close(fig)
 
     if verbose:

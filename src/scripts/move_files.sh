@@ -61,19 +61,20 @@ cp -ur "$VIS_FRAMES_DIR/K"* "$TARGET_DIR/" 2>/dev/null || true
 cp -ur "$VIS_FRAMES_DIR/Weyl4_Mag"* "$TARGET_DIR/" 2>/dev/null || true
 cp -ur "$VIS_FRAMES_DIR/Weyl4_Re"* "$TARGET_DIR/" 2>/dev/null || true
 
-echo "Copying plot files (PDF, EPS, PNG)..."
-cp -u "$BASE_VISUALISATION_DIR/constraines/constraints_plot".* "$TARGET_DIR/" 2>/dev/null || true
-cp -u "$BASE_VISUALISATION_DIR/diagnostic/collapse_diagnostics_plot".* "$TARGET_DIR/" 2>/dev/null || true
-cp -u "$BASE_VISUALISATION_DIR/process_wave/psi4_extracted_R"*.png "$TARGET_DIR/" 2>/dev/null || true
-cp -u "$BASE_VISUALISATION_DIR/process_wave/psi4_extracted_R"*.pdf "$TARGET_DIR/" 2>/dev/null || true
-cp -u "$BASE_VISUALISATION_DIR/process_wave/psi4_extracted_R"*.eps "$TARGET_DIR/" 2>/dev/null || true
-cp -u "$BASE_VISUALISATION_DIR/process_wave/psi4_extracted_simulation".* "$TARGET_DIR/" 2>/dev/null || true
+PLOTS_DIR="${BASE_VISUALISATION_DIR}/plots"
+echo "Copying plot files from ${PLOTS_DIR} ..."
+if [ -d "$PLOTS_DIR" ]; then
+  cp -u "$PLOTS_DIR"/* "$TARGET_DIR/" 2>/dev/null || true
+else
+  echo "  Warning: plots directory not found at $PLOTS_DIR — run plot_diagnostic.sh first"
+fi
 
 echo "Copying data files from $DATA_DIR..."
 cp -u "$DATA_DIR/data/collapse_diagnostics.dat" "$TARGET_DIR/" 2>/dev/null || true
 cp -u "$DATA_DIR/data/constraint_norms.dat" "$TARGET_DIR/" 2>/dev/null || true
 cp -u "$DATA_DIR/small_data/consume_state.json" "$TARGET_DIR/" 2>/dev/null || true
 cp -u "$DATA_DIR/small_data/psi4_mode_l2m0.dat" "$TARGET_DIR/" 2>/dev/null || true
+cp -u "$DATA_DIR/small_data/areal_radius.dat" "$TARGET_DIR/" 2>/dev/null || true
 
 echo "Copying parameter file..."
 cp -u "$PARAMS_FILE" "$TARGET_DIR/" 2>/dev/null || true

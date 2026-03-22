@@ -72,6 +72,8 @@ __pycache__/
 src/visualisation/visualize_supported
 
 
+src/visualisation/plots/
+
 src/visualisation/constraines/constraints_plot.eps
 src/visualisation/constraines/constraints_plot.pdf
 src/visualisation/diagnostic/collapse_diagnostics_plot.eps
