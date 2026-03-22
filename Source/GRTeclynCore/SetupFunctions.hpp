@@ -14,7 +14,6 @@
 #include "FilesystemTools.hpp"
 #include "GRAMR.hpp"
 #include "GRParmParse.hpp"
-#include "IntegrationMethodSetup.hpp"
 
 #ifdef EQUATION_DEBUG_MODE
 #include "DebuggingTools.hpp"

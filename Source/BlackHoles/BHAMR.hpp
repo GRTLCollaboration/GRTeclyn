@@ -7,6 +7,7 @@
 #define BHAMR_HPP_
 
 #include "GRAMR.hpp"
+#include "ParticleInterpolator.hpp"
 #include "PunctureTracker.hpp"
 
 #include <AMReX_ParmParse.H>
@@ -23,6 +24,11 @@ template <int num_punctures> class BHAMR : public GRAMR
     PunctureTracker<num_punctures> m_puncture_tracker;
 
   public:
+
+    ParticleInterpolator<1>
+        m_weyl_interpolator; // weyl interpolator (used as chi interpolator in
+                             // this example)
+
     BHAMR(amrex::LevelBld *a_levelbld) : GRAMR(a_levelbld)
     {
         amrex::ParmParse puncture_tracking_pp("puncture_tracking");

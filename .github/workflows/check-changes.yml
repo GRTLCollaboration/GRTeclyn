@@ -25,7 +25,7 @@ jobs:
       has_unit_test_changes: ${{ steps.filter.outputs.has_unit_test_changes }}
     steps:
       - uses: actions/checkout@v6
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@v4
         id: filter
         with:
           base: ${{ github.event_name == 'pull_request' && '' || github.ref }}
