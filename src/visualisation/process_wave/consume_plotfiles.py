@@ -28,6 +28,8 @@ import numpy as np
 import yt
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
+from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 -- registers 3D projection
+from scipy.integrate import cumulative_trapezoid
 
 
 def _default_data_dir() -> str:
@@ -474,6 +476,161 @@ def _extract_mode_amps_l2m0(
     return amps
 
 
+def _extract_areal_radius_min(
+    ds,
+    center: Sequence[float] = (0.0, 0.0, 0.0),
+    chi_floor: float = 1.0e-8,
+) -> Tuple[float, float]:
+    """Extract the minimum areal radius R_areal = r / sqrt(chi) along the x-axis.
+
+    Returns (R_areal_min, r_at_min).
+    """
+    right = float(ds.domain_right_edge[0])
+    c = np.asarray(center, dtype=float)
+    ray = ds.ray(c, [right, c[1], c[2]])
+
+    r_arr = np.asarray(ray[("index", "x")], dtype=float) - c[0]
+    chi_arr = np.asarray(ray[("boxlib", "chi")], dtype=float)
+
+    order = np.argsort(r_arr)
+    r_arr = r_arr[order]
+    chi_arr = chi_arr[order]
+
+    chi_arr = np.maximum(chi_arr, chi_floor)
+    R_areal = r_arr / np.sqrt(chi_arr)
+
+    skip = r_arr > 1.0e-12
+    if not np.any(skip):
+        return (0.0, 0.0)
+    R_areal_valid = R_areal[skip]
+    r_valid = r_arr[skip]
+    i_min = np.argmin(R_areal_valid)
+    return (float(R_areal_valid[i_min]), float(r_valid[i_min]))
+
+
+def _extract_embedding_profile(
+    ds,
+    center: Sequence[float] = (0.0, 0.0, 0.0),
+    chi_floor: float = 1.0e-8,
+    r_max: float | None = None,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Compute the isometric embedding profile (R_areal, z_embed) from chi along x-axis.
+
+    The spatial metric is dl^2 = (1/chi) dr^2.  The embedding surface satisfies
+    dR^2 + dz^2 = dl^2,  where R_areal = r / sqrt(chi).
+
+    Returns arrays (R_areal, z_embed) suitable for surface-of-revolution plotting.
+    """
+    right = float(ds.domain_right_edge[0])
+    c = np.asarray(center, dtype=float)
+    ray = ds.ray(c, [right, c[1], c[2]])
+
+    r_arr = np.asarray(ray[("index", "x")], dtype=float) - c[0]
+    chi_arr = np.asarray(ray[("boxlib", "chi")], dtype=float)
+
+    order = np.argsort(r_arr)
+    r_arr = r_arr[order]
+    chi_arr = chi_arr[order]
+
+    chi_arr = np.maximum(chi_arr, chi_floor)
+
+    if r_max is not None:
+        keep = r_arr <= r_max
+        r_arr = r_arr[keep]
+        chi_arr = chi_arr[keep]
+
+    R_areal = r_arr / np.sqrt(chi_arr)
+
+    dR_dr = np.gradient(R_areal, r_arr)
+    dl_dr_sq = 1.0 / chi_arr
+    dz_dr_sq = dl_dr_sq - dR_dr**2
+    dz_dr = np.sqrt(np.maximum(dz_dr_sq, 0.0))
+
+    z_embed = np.zeros_like(r_arr)
+    if len(r_arr) > 1:
+        z_embed[1:] = cumulative_trapezoid(dz_dr, r_arr)
+
+    return R_areal, z_embed
+
+
+def _render_embedding_frame(
+    ds,
+    frames_out_dir: str,
+    frame_idx: int,
+    center: Sequence[float] = (0.0, 0.0, 0.0),
+    r_max: float | None = None,
+    verbose: bool = False,
+) -> str:
+    """Render a 3D embedding-diagram frame (surface of revolution) and save as PNG."""
+    R_areal, z_embed = _extract_embedding_profile(ds, center=center, r_max=r_max)
+    if len(R_areal) < 3:
+        raise RuntimeError("Too few points for embedding diagram.")
+
+    phi = np.linspace(0, 2 * np.pi, 80)
+    PHI, _ = np.meshgrid(phi, np.arange(len(R_areal)))
+    X_3d = R_areal[:, None] * np.cos(PHI)
+    Y_3d = R_areal[:, None] * np.sin(PHI)
+    Z_3d = np.broadcast_to(z_embed[:, None], X_3d.shape)
+
+    plt.rcParams.update({
+        "font.family": "serif",
+        "font.serif": ["Computer Modern Roman", "DejaVu Serif", "Times New Roman", "serif"],
+        "mathtext.fontset": "cm",
+        "axes.labelsize": 14,
+        "axes.titlesize": 16,
+        "xtick.labelsize": 10,
+        "ytick.labelsize": 10,
+        "axes.linewidth": 1.0,
+    })
+
+    fig = plt.figure(figsize=(8, 6))
+    ax = fig.add_subplot(111, projection="3d")
+
+    norm = plt.Normalize(vmin=float(np.min(z_embed)), vmax=float(np.max(z_embed)))
+    colors = plt.cm.viridis(norm(Z_3d))
+    ax.plot_surface(X_3d, Y_3d, Z_3d, facecolors=colors, shade=True, alpha=0.85,
+                    rstride=2, cstride=2, linewidth=0)
+
+    ax.view_init(elev=25, azim=-60)
+    t_sim = float(ds.current_time)
+    ax.set_title(r"Embedding Diagram $\quad t=%.3f$" % t_sim, fontsize=14)
+    ax.set_xlabel(r"$x$")
+    ax.set_ylabel(r"$y$")
+    ax.set_zlabel(r"$z_{\mathrm{embed}}$")
+
+    output_dir = os.path.join(frames_out_dir, "embedding")
+    frames_dir = os.path.join(output_dir, "frames")
+    os.makedirs(frames_dir, exist_ok=True)
+    frame_name = f"frame_{frame_idx:04d}.png"
+    out_path = os.path.join(frames_dir, frame_name)
+    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+    if verbose:
+        print(f"[embedding] t={t_sim:.4f} -> {out_path}")
+
+    return out_path
+
+
+def _cleanup_embedding_frames(frames_out_dir: str, verbose: bool) -> None:
+    """Remove existing embedding PNG frames and movie."""
+    base = Path(frames_out_dir) / "embedding" / "frames"
+    if base.is_dir():
+        for p in base.glob("*.png"):
+            try:
+                p.unlink()
+            except FileNotFoundError:
+                pass
+        if verbose:
+            print(f"[clean] cleared embedding frames in {base}")
+    movie = Path(frames_out_dir) / "embedding" / "movie_embedding.mp4"
+    if movie.exists():
+        try:
+            movie.unlink()
+        except FileNotFoundError:
+            pass
+
+
 def _load_state(state_path: Path) -> Dict[str, bool]:
     if not state_path.exists():
         return {}
@@ -540,6 +697,22 @@ def main() -> None:
     parser.add_argument("--frames-corner", action="store_true", help="Corner mode for symmetry-reduced domains (frames).")
     parser.add_argument("--frames-out", default=_default_frames_out_dir(), help="Frames output base dir (default: src/visualisation/visualize).")
     parser.add_argument(
+        "--areal-radius",
+        action="store_true",
+        help="Extract minimum areal radius R_areal = r/sqrt(chi) along x-axis to areal_radius.dat.",
+    )
+    parser.add_argument(
+        "--embedding",
+        action="store_true",
+        help="Render 3D embedding-diagram frames (surface of revolution from chi profile).",
+    )
+    parser.add_argument(
+        "--embedding-rmax",
+        type=float,
+        default=None,
+        help="Maximum coordinate radius for embedding diagram (default: full domain).",
+    )
+    parser.add_argument(
         "--delete",
         action="store_true",
         help="Delete plotfile directory after successful extraction",
@@ -563,18 +736,19 @@ def main() -> None:
     out_dir = Path(args.out) if args.out else Path(data_dir) / "small_data"
     state_path = out_dir / "consume_state.json"
     out_path = out_dir / "psi4_mode_l2m0.dat"
+    areal_out_path = out_dir / "areal_radius.dat"
     header = "# time  " + "  ".join([f"Re(R={R:g})  Im(R={R:g})" for R in args.radii])
+    areal_header = "# time  R_areal_min  r_at_R_areal_min"
 
     state = _load_state(state_path)
 
     # Auto-reset on simulation restart (same output dir reused):
-    # If we detect plotfiles starting again from 0 but our saved state refers to
-    # plotfiles that don't exist, truncate outputs and start fresh.
     plot_dirs_now = _iter_plotfile_dirs(data_dir)
     if _should_auto_reset(plot_dirs_now, state):
         print("Detected a likely simulation restart in the same output directory.")
         print(f"Resetting: {out_path} and {state_path}")
         _truncate_if_exists(out_path)
+        _truncate_if_exists(areal_out_path)
         _save_state(state_path, {})
         state = {}
 
@@ -585,6 +759,12 @@ def main() -> None:
             frames_out_dir=os.path.abspath(args.frames_out),
             fields=frame_fields_startup,
             axis=args.frames_axis,
+            verbose=args.verbose,
+        )
+
+    if args.embedding:
+        _cleanup_embedding_frames(
+            frames_out_dir=os.path.abspath(args.frames_out),
             verbose=args.verbose,
         )
 
@@ -643,6 +823,31 @@ def main() -> None:
                             frame_idx=int(frame_idx),
                             verbose=args.verbose,
                         )
+
+                # --- Areal radius extraction (optional) ---
+                if args.areal_radius:
+                    if ("boxlib", "chi") in ds.field_list:
+                        R_min, r_min = _extract_areal_radius_min(ds, center=args.center)
+                        areal_line = f"{t:.16e}  {R_min:.16e}  {r_min:.16e}"
+                        _append_line(areal_out_path, header=areal_header, line=areal_line)
+                    else:
+                        print(f"WARNING: plotfile {key} missing chi field; skipping areal radius.")
+
+                # --- Embedding diagram frame (optional) ---
+                if args.embedding:
+                    if ("boxlib", "chi") in ds.field_list:
+                        e_idx = _parse_plot_index(key)
+                        embed_frame_idx = e_idx if e_idx is not None else processed
+                        _render_embedding_frame(
+                            ds,
+                            frames_out_dir=os.path.abspath(args.frames_out),
+                            frame_idx=int(embed_frame_idx),
+                            center=args.center,
+                            r_max=args.embedding_rmax,
+                            verbose=args.verbose,
+                        )
+                    else:
+                        print(f"WARNING: plotfile {key} missing chi field; skipping embedding.")
 
                 state[key] = True
                 _save_state(state_path, state)

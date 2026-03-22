@@ -159,6 +159,36 @@ mpirun -np 8 python -m src.visualisation.visualize --field K --animate --zoom 10
 
 **Output:** `{field}_{axis}/frames/frame_XXXX.png` and `{field}_{axis}/movie_{field}_{axis}.mp4` (if `--animate`).
 
+### 1b. Evolution panel (`make_evolution_panel.py`)
+
+Horizontal strip figure from existing PNG frames (one column per timestep). Looks for `frame_z_####.png` or `frame_####.png` inside `--frame_dir`. Writes both `.png` and `.pdf` next to `--out` (extension is replaced).
+
+**Default frames** if you omit `--frames`: `0 20 40 60`.
+
+**With explicit frame indices** (any count; indices are the `####` in the filename):
+
+```bash
+# From the repository root; example: K on the z slice
+python src/visualisation/make_evolution_panel.py \
+  --frame_dir src/visualisation/visualize/K_z/frames \
+  --out src/visualisation/evolution_K_z_panel \
+  --frames 1600 1610 1620 1630
+
+# Keep original colours (default is grayscale + white background cleanup)
+python src/visualisation/make_evolution_panel.py \
+  --frame_dir src/visualisation/visualize/K_z/frames \
+  --out src/visualisation/evolution_K_z_panel_colour \
+  --frames 0 500 1000 1500 \
+  --no-grayscale
+```
+
+| Option | Description |
+|--------|-------------|
+| `--frame_dir` | Directory containing the frame PNGs (e.g. `visualize/K_z/frames`) |
+| `--out` | Output base path (`.png` / `.pdf` are written) |
+| `--frames` | Space-separated indices (default `0 20 40 60`) |
+| `--no-grayscale` | Do not convert panels to grayscale |
+
 ---
 
 ### 2. Gravitational Wave Visualization (without Weyl4)
@@ -222,7 +252,125 @@ python -m src.visualisation.extract_wave --data /home/jovyan/nachevsky/test/simu
 
 If you use retarded time \(t_{\\rm ret} = t - R_{\\rm ext}\), the x-axis can be negative: this corresponds to early simulation times (\(t < R_{\\rm ext}\)) before the wave reaches that radius. Any structure there is usually **junk radiation / gauge transient** or near-zone curvature.
 
-### 4. Constraint norms (`constraines/`)
+### 3b. Strain PSD & Propagation Speed (`process_wave/plot_extracted_psi4.py`)
+
+The `plot_extracted_psi4.py` script can convert the \(\Psi_4\) PSD into a **strain PSD** and overlay it on the Advanced LIGO design sensitivity curve.
+
+It can also measure the **propagation speed** of the signal across extraction radii to separate physical gravitational waves (\(v = c\)) from CCZ4 constraint-cleaning modes (\(v \neq c\)).
+
+**Strain conversion math:** \(|\tilde{h}(f)| = |\tilde{\Psi}_4(f)| / (2\pi f)^2\), so the strain PSD is \(S_h(f) = S_{\Psi_4}(f) / (2\pi f)^4\). Physical frequency scaling uses \(f_{\text{phys}} = f_{\text{code}} / (M \cdot G M_\odot / c^3)\).
+
+**Usage:**
+
+```bash
+# Basic waveform + PSD (existing)
+python -m src.visualisation.process_wave.plot_extracted_psi4 \
+  /path/to/small_data/psi4_mode_l2m0.dat --plot-psd
+
+# Strain PSD + LIGO overlay + SNR (for 30 M_sun at 10 Mpc)
+python -m src.visualisation.process_wave.plot_extracted_psi4 \
+  /path/to/small_data/psi4_mode_l2m0.dat \
+  --plot-psd --strain --mass-msun 30 --distance-mpc 10
+
+# Propagation speed analysis (GW vs junk separation)
+python -m src.visualisation.process_wave.plot_extracted_psi4 \
+  /path/to/small_data/psi4_mode_l2m0.dat \
+  --propagation-speed
+
+# All analyses combined
+python -m src.visualisation.process_wave.plot_extracted_psi4 \
+  /path/to/small_data/psi4_mode_l2m0.dat \
+  --plot-psd --strain --propagation-speed --mass-msun 30 --distance-mpc 10
+```
+
+**Strain options:**
+
+| Option             | Default | Description                                       |
+|--------------------|---------|---------------------------------------------------|
+| `--strain`         | off     | Enable strain PSD conversion + LIGO overlay        |
+| `--mass-msun`      | `30.0`  | Total mass in solar masses for physical scaling    |
+| `--distance-mpc`   | `10.0`  | Luminosity distance in Mpc for SNR calculation     |
+| `--propagation-speed` | off  | Measure signal speed across extraction radii       |
+
+**Output panels** (when all flags active):
+
+1. Time-domain waveform \(r \cdot \text{Re}(\Psi_4^{2,0})\)
+2. \(\Psi_4\) PSD in code units
+3. Strain PSD \(S_h(f)\) in code units
+4. Characteristic strain \(h_{\text{char}}(f) = \sqrt{f \cdot S_h}\) vs Advanced LIGO \(\sqrt{f \cdot S_n}\)
+5. Propagation speed panel with peak markers and \(v/c\) annotations
+
+**Console output** includes peak frequency (code + Hz), SNR, frequency band classification, and per-radius-pair propagation speeds with GW/constraint-mode classification.
+
+### 3c. Areal Radius & Embedding Extraction (`process_wave/consume_plotfiles.py`)
+
+The plotfile consumer can also extract **areal radius** and render **embedding diagram frames** from each plotfile during live processing.
+
+**Usage:**
+
+```bash
+# Live extraction with areal radius + embedding (during simulation)
+python -m src.visualisation.process_wave.consume_plotfiles \
+  --data /path/to/data_2gpu \
+  --radii 8 12 16 --n-points 32 \
+  --areal-radius \
+  --embedding --embedding-rmax 5.0 \
+  --frames-fields chi K \
+  --frames-corner \
+  --watch --delete --keep-last 2 --verbose
+```
+
+| Option             | Description                                           |
+|--------------------|-------------------------------------------------------|
+| `--areal-radius`   | Extract min areal radius \(R_{\text{areal}} = r/\sqrt{\chi}\) along x-axis to `areal_radius.dat` |
+| `--embedding`      | Render 3D embedding diagram frames (surface of revolution from \(\chi\) profile) |
+| `--embedding-rmax` | Max coordinate radius for the embedding (default: full domain) |
+
+**Output files:**
+- `small_data/areal_radius.dat` — time-series of throat areal radius
+- `visualize/embedding/frames/frame_NNNN.png` — 3D embedding diagram frames (can be stitched with `make_movies.py`)
+
+### 4. Collapse diagnostics (`diagnostic/`)
+
+Plots streaming collapse diagnostics: min lapse, min chi, max|K|, trapped-surface proxy, null expansion. When `areal_radius.dat` is available (from `consume_plotfiles.py --areal-radius`), also plots **throat areal radius**, **expansion velocity** \(dR_{\text{areal}}/dt\), and fits the **K-decay lifetime** \(\tau\).
+
+**Usage:**
+
+```bash
+# Standard diagnostics (auto-detects areal_radius.dat from --data)
+python3 src/visualisation/diagnostic/diagnostic.py \
+  --data /path/to/data_2gpu
+
+# With explicit areal radius file
+python3 src/visualisation/diagnostic/diagnostic.py \
+  /path/to/collapse_diagnostics.dat \
+  --data /path/to/data_2gpu \
+  --areal-radius-file /path/to/areal_radius.dat
+
+# Disable K-decay lifetime fit
+python3 src/visualisation/diagnostic/diagnostic.py \
+  --data /path/to/data_2gpu --no-fit-lifetime
+
+# Custom mass for physical unit conversion
+python3 src/visualisation/diagnostic/diagnostic.py \
+  --data /path/to/data_2gpu --mass-msun 30
+```
+
+| Option                | Default | Description                                       |
+|-----------------------|---------|---------------------------------------------------|
+| `--data`              | auto    | Run output directory                               |
+| `--areal-radius-file` | auto   | Path to `areal_radius.dat` (auto-detected)         |
+| `--no-fit-lifetime`   | off     | Disable exponential fit to K decay                 |
+| `--mass-msun`         | `30.0`  | Total mass for physical unit conversion            |
+
+**Plot layout** (3x3 when areal radius data available):
+- Row 1: min(lapse), min(chi), max|K|
+- Row 2: trapped-surface radius, min(theta+), radius at min(theta+)
+- Row 3: R\_areal\_min(t), expansion velocity dR/dt (with c=1 line), K-decay with exponential fit
+
+**Console output** includes expansion velocity (mean/peak in units of c), K-decay lifetime \(\tau\) in code units and physical seconds.
+
+### 5. Constraint norms (`constraines/`)
 
 Some simulations write constraint norms to a `constraint_norms.dat` file (SmallDataIO format), typically under a `data/` subfolder next to your plotfiles.
 
@@ -238,7 +386,7 @@ python -m src.visualisation.constraines ../data/data/constraint_norms.dat
 python -m src.visualisation.constraines /home/jovyan/nachevsky/test/simulation/data_2gpu/data/constraint_norms.dat
 ```
 
-### 5. Visualizing Symmetry-Reduced Domains
+### 6. Visualizing Symmetry-Reduced Domains
 
 When a simulation uses symmetry (e.g. octant symmetry with `lo_boundary = 2 2 2`), only a portion of the physical space is simulated (e.g. \(x\\ge 0, y\\ge 0, z\\ge 0\)). The physical “center” is at the symmetry planes (the origin).
 
@@ -260,20 +408,94 @@ python -m src.visualisation.visualize --field K --axis z --coord 0 --zoom 84 --c
 
 ```
 src/visualisation/
-├── visualize/           # Field slice plots and movies
-│   ├── chi_z/          # From --field chi --axis z
+├── visualize/                  # Field slice plots and movies
+│   ├── chi_z/                  # From --field chi --axis z
 │   │   ├── frames/
 │   │   └── movie_chi_z.mp4
-│   ├── chi_x/
-│   ├── chi_y/
 │   ├── K_z/
 │   ├── lapse_z/
 │   ├── Theta_z/
+│   ├── embedding/              # 3D embedding diagram frames (from --embedding)
+│   │   └── frames/
+│   │       └── frame_NNNN.png
 │   └── ...
-├── extract_wave/        # GW waveform extraction
+├── extract_wave/               # GW waveform extraction
 │   └── psi4_analysis_R14.0_R30.0_n24.png
+├── process_wave/               # Processed waveform plots
+│   ├── psi4_extracted_R*.png   # Time-domain + PSD
+│   ├── psi4_strain_analysis.*  # Strain PSD + LIGO overlay + SNR
+│   └── psi4_propagation_speed.*# Propagation speed analysis
+├── diagnostic/                 # Collapse diagnostics
+│   └── collapse_diagnostics_plot.png  # Multi-panel (up to 3x3)
 └── README.md
+
+<data_dir>/small_data/
+├── psi4_mode_l2m0.dat          # Extracted Psi4 time series
+└── areal_radius.dat            # Throat areal radius time series
 ```
+---
+
+## Automation Scripts
+
+Two shell scripts automate the full visualization pipeline. Both auto-detect the most recent run directory.
+
+### `plot_run.sh` — Live plotfile processing (run during simulation)
+
+Watches for new plotfiles, extracts Ψ4 waveforms, areal radius, renders field frames and embedding diagrams. Deletes consumed plotfiles to save disk space.
+
+```bash
+# Default (auto-detects data_2gpu or data):
+./src/scripts/plot_run.sh
+
+# Explicit data path:
+./src/scripts/plot_run.sh /path/to/data_2gpu
+```
+
+What it does:
+1. Removes stale plotfiles and resets extracted small-data
+2. Launches `consume_plotfiles.py` in watch mode with:
+   - `--radii 8 12 16 --n-points 32`
+   - `--areal-radius` (throat areal radius extraction)
+   - `--embedding --embedding-rmax 5.0` (3D embedding diagram frames)
+   - `--frames-fields chi K Weyl4_Re Weyl4_Mag`
+   - `--watch --delete --keep-last 2`
+
+### `plot_diagnostic.sh` — Post-run diagnostics (run after simulation)
+
+Generates all diagnostic plots from the extracted data files.
+
+```bash
+# Default (auto-detects most recent run):
+./src/scripts/plot_diagnostic.sh
+
+# Explicit run directory:
+./src/scripts/plot_diagnostic.sh /path/to/data_2gpu
+
+# With specific extraction radii:
+./src/scripts/plot_diagnostic.sh /path/to/data_2gpu 8 12 16
+```
+
+What it does (6 steps):
+1. Constraint norms plot
+2. Collapse diagnostics (+ areal radius + K-decay lifetime if `areal_radius.dat` exists)
+3. Ψ4 waveform + PSD in retarded time
+4. Ψ4 waveform + PSD in simulation time
+5. Strain PSD + LIGO noise overlay + SNR (30 M⊙ at 10 Mpc)
+6. Propagation speed analysis (GW vs constraint-mode separation)
+
+### Typical workflow
+
+```bash
+# 1. Start simulation + live processing in one terminal:
+./src/scripts/plot_run.sh /path/to/data_2gpu
+
+# 2. After simulation completes, generate all diagnostic plots:
+./src/scripts/plot_diagnostic.sh /path/to/data_2gpu
+
+# 3. Copy results to SimResults archive:
+./src/scripts/move_files.sh SupportedWormholeCollapse
+```
+
 ---
 
 ## Custom paths
@@ -289,11 +511,13 @@ python -m src.visualisation.constraines /home/jovyan/nachevsky/test/simulation/d
 ```
 
 ```bash
-python3 /home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/visualize/make_movies.py   --root /home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/visualize
+python3 /home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/visualize/make_movies.py \
+  --root /home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/visualize
 ```
 
+Copy the results to a run-labelled folder under `src/SimResults/` (folder name is derived from `params_2gpu.txt`; optional first arg is run type):
 
-Copy the results to the new folder 
 ```bash
-./src/visualisation/scripts/move_files.sh run_A_plus_3
+./src/scripts/move_files.sh
+./src/scripts/move_files.sh SupportedWormholeCollapse
 ```

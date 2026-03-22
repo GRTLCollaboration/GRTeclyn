@@ -41,6 +41,7 @@ shopt -u nullglob
 
 if [[ -d "${SMALL_DATA_DIR}" ]]; then
   rm -f "${SMALL_DATA_DIR}/psi4_mode_l2m0.dat" \
+        "${SMALL_DATA_DIR}/areal_radius.dat" \
         "${SMALL_DATA_DIR}/consume_state.json"
   echo "Reset extracted small-data state in: ${SMALL_DATA_DIR}"
 fi
@@ -62,7 +63,14 @@ rm -f "${VIS_ROOT}/constraines/constraints_plot.png" \
       "${VIS_ROOT}/process_wave/psi4_extracted_R8_R12_R16.pdf" \
       "${VIS_ROOT}/process_wave/psi4_extracted_simulation.png" \
       "${VIS_ROOT}/process_wave/psi4_extracted_simulation.eps" \
-      "${VIS_ROOT}/process_wave/psi4_extracted_simulation.pdf"
+      "${VIS_ROOT}/process_wave/psi4_extracted_simulation.pdf" \
+      "${VIS_ROOT}/process_wave/psi4_strain_analysis.png" \
+      "${VIS_ROOT}/process_wave/psi4_strain_analysis.eps" \
+      "${VIS_ROOT}/process_wave/psi4_strain_analysis.pdf" \
+      "${VIS_ROOT}/process_wave/psi4_propagation_speed.png" \
+      "${VIS_ROOT}/process_wave/psi4_propagation_speed.eps" \
+      "${VIS_ROOT}/process_wave/psi4_propagation_speed.pdf"
+rm -rf "${VIS_ROOT}/visualize/embedding"
 echo "Removed shared generated plot images"
 
 echo "=========================================="
@@ -75,6 +83,8 @@ python -m src.visualisation.process_wave.consume_plotfiles \
   --out "${DATA_DIR}/small_data" \
   --radii 8 12 16 \
   --n-points 32 \
+  --areal-radius \
+  --embedding --embedding-rmax 5.0 \
   --frames-fields chi K Weyl4_Re Weyl4_Mag \
   --frames-axis z \
   --frames-corner \

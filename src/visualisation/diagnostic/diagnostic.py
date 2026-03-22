@@ -8,24 +8,35 @@ Expected input: collapse_diagnostics.dat (SmallDataIO ASCII), typically located 
 Columns (current format):
   time  min_lapse  min_chi  max_abs_K  min_lapse_x  min_lapse_y  min_lapse_z  max_ah_r  min_theta_plus  r_at_min_theta_plus
 
-This script produces a publication-style multi-panel figure (one panel per value).
+Optional additional input: areal_radius.dat (from consume_plotfiles.py --areal-radius)
+  time  R_areal_min  r_at_R_areal_min
+
+This script produces a publication-style multi-panel figure with:
+  - Rows 1-2: standard collapse diagnostics
+  - Row 3 (when areal_radius.dat available): R_areal_min, expansion velocity, K-decay lifetime
 """
 
 from __future__ import annotations
 
 import argparse
-import os
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.optimize import curve_fit
+from scipy.signal import savgol_filter
+
+# Physical constants
+M_SUN_SEC = 4.9255e-6  # G*M_sun/c^3 in seconds
 
 
 def _default_run_dir() -> Path:
-    # Mirror other visualisation scripts: <repo>/src/visualisation/<module>/... -> <repo>/data by default
     script_dir = Path(__file__).resolve().parent
-    project_root = script_dir.parent.parent.parent  # .../GRTeclyn/src
+    project_root = script_dir.parent.parent.parent
+    d2 = (project_root.parent / "data_2gpu").resolve()
+    if d2.exists():
+        return d2
     return (project_root.parent / "data").resolve()
 
 
@@ -36,9 +47,6 @@ def _resolve_input_path(data_dir: Path, explicit_input: str | None) -> Path:
             raise SystemExit(f"Input not found: {p}")
         return p
 
-    # Common layouts:
-    # - <run>/data/collapse_diagnostics.dat  (recommended)
-    # - <run>/collapse_diagnostics.dat       (fallback)
     candidates = [
         data_dir / "data" / "collapse_diagnostics.dat",
         data_dir / "collapse_diagnostics.dat",
@@ -53,8 +61,25 @@ def _resolve_input_path(data_dir: Path, explicit_input: str | None) -> Path:
     )
 
 
+def _resolve_areal_path(data_dir: Path, explicit: str | None) -> Optional[Path]:
+    if explicit:
+        p = Path(explicit).expanduser().resolve()
+        return p if p.exists() else None
+
+    candidates = [
+        data_dir / "small_data" / "areal_radius.dat",
+        data_dir / "areal_radius.dat",
+    ]
+    for c in candidates:
+        if c.exists():
+            return c.resolve()
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Data loaders
+# ---------------------------------------------------------------------------
 def load_collapse_diagnostics(path: Path) -> Dict[str, np.ndarray]:
-    # SmallDataIO files may or may not include a header; we accept both.
     rows = []
     with path.open("r", encoding="utf-8") as f:
         for line in f:
@@ -85,22 +110,18 @@ def load_collapse_diagnostics(path: Path) -> Dict[str, np.ndarray]:
         "max_abs_K": arr[:, 3],
     }
     if arr.shape[1] >= 7:
-        out.update(
-            {
-                "min_lapse_x": arr[:, 4],
-                "min_lapse_y": arr[:, 5],
-                "min_lapse_z": arr[:, 6],
-            }
-        )
+        out.update({
+            "min_lapse_x": arr[:, 4],
+            "min_lapse_y": arr[:, 5],
+            "min_lapse_z": arr[:, 6],
+        })
     else:
-        out.update(
-            {
-                "min_lapse_x": np.full_like(t, np.nan),
-                "min_lapse_y": np.full_like(t, np.nan),
-                "min_lapse_z": np.full_like(t, np.nan),
-            }
-        )
-        
+        out.update({
+            "min_lapse_x": np.full_like(t, np.nan),
+            "min_lapse_y": np.full_like(t, np.nan),
+            "min_lapse_z": np.full_like(t, np.nan),
+        })
+
     out["max_ah_r"] = arr[:, 7] if arr.shape[1] >= 8 else np.full_like(t, np.nan)
 
     if arr.shape[1] >= 10:
@@ -110,57 +131,144 @@ def load_collapse_diagnostics(path: Path) -> Dict[str, np.ndarray]:
         out["min_theta_plus"] = np.full_like(t, np.nan)
         out["r_at_min_theta_plus"] = np.full_like(t, np.nan)
 
-    # sort by time
     idx = np.argsort(out["t"])
     for k in list(out.keys()):
         out[k] = out[k][idx]
     return out
 
 
+def load_areal_radius(path: Path) -> Dict[str, np.ndarray]:
+    """Parse areal_radius.dat -> dict with keys t, R_areal_min, r_at_min."""
+    rows = []
+    with path.open("r", encoding="utf-8") as f:
+        for line in f:
+            s = line.strip()
+            if not s or s.startswith("#"):
+                continue
+            parts = s.split()
+            try:
+                vals = [float(x) for x in parts]
+            except ValueError:
+                continue
+            if len(vals) >= 3:
+                rows.append(vals[:3])
+
+    if not rows:
+        raise SystemExit(f"No data rows found in {path}")
+
+    arr = np.asarray(rows, dtype=float)
+    idx = np.argsort(arr[:, 0])
+    return {
+        "t": arr[idx, 0],
+        "R_areal_min": arr[idx, 1],
+        "r_at_min": arr[idx, 2],
+    }
+
+
+# ---------------------------------------------------------------------------
+# Analysis functions
+# ---------------------------------------------------------------------------
+def _compute_expansion_velocity(
+    t: np.ndarray, R_areal: np.ndarray, smooth_window: int = 11
+) -> np.ndarray:
+    """Numerical derivative dR_areal/dt, optionally smoothed."""
+    v = np.gradient(R_areal, t)
+    n = len(v)
+    w = smooth_window
+    if w % 2 == 0:
+        w += 1
+    if n > w >= 5:
+        try:
+            v = savgol_filter(v, window_length=w, polyorder=3, mode="interp")
+        except Exception:
+            pass
+    return v
+
+
+def _exp_decay(t: np.ndarray, A: float, tau: float, C: float) -> np.ndarray:
+    return A * np.exp(-t / tau) + C
+
+
+def _fit_K_lifetime(
+    t: np.ndarray, max_abs_K: np.ndarray, fit_start_fraction: float = 0.4
+) -> Optional[Tuple[float, float, float, np.ndarray, np.ndarray]]:
+    """Fit max|K| late-time tail to A*exp(-t/tau) + C.
+
+    Returns (tau, A, C, fit_t, fit_K) or None if fit fails.
+    """
+    t_start = t[0] + fit_start_fraction * (t[-1] - t[0])
+    mask = t >= t_start
+    if np.sum(mask) < 5:
+        return None
+
+    t_fit = t[mask]
+    K_fit = max_abs_K[mask]
+
+    valid = np.isfinite(K_fit) & (K_fit > 0)
+    if np.sum(valid) < 5:
+        return None
+    t_fit = t_fit[valid]
+    K_fit = K_fit[valid]
+
+    try:
+        A0 = float(K_fit[0] - K_fit[-1])
+        tau0 = float(t_fit[-1] - t_fit[0]) / 3.0
+        C0 = float(K_fit[-1])
+        popt, _ = curve_fit(
+            _exp_decay, t_fit, K_fit,
+            p0=[max(A0, 0.1), max(tau0, 0.01), max(C0, 0.0)],
+            maxfev=5000,
+            bounds=([0, 1e-6, 0], [np.inf, np.inf, np.inf]),
+        )
+        A, tau, C = popt
+        return (float(tau), float(A), float(C), t_fit, _exp_decay(t_fit, *popt))
+    except Exception:
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Plotting
+# ---------------------------------------------------------------------------
 def _apply_scientific_style() -> None:
-    # Match src/visualisation/hamiltonian/__main__.py style.
-    plt.rcParams.update(
-        {
-            "font.family": "serif",
-            "font.serif": ["DejaVu Serif", "Times New Roman", "serif"],
-            "mathtext.fontset": "stix",
-            "axes.labelsize": 12,
-            "axes.titlesize": 13,
-            "xtick.labelsize": 10,
-            "ytick.labelsize": 10,
-            "axes.linewidth": 1.0,
-            "grid.alpha": 0.5,
-        }
-    )
+    plt.rcParams.update({
+        "font.family": "serif",
+        "font.serif": ["DejaVu Serif", "Times New Roman", "serif"],
+        "mathtext.fontset": "stix",
+        "axes.labelsize": 12,
+        "axes.titlesize": 13,
+        "xtick.labelsize": 10,
+        "ytick.labelsize": 10,
+        "axes.linewidth": 1.0,
+        "grid.alpha": 0.5,
+    })
 
 
-def plot_collapse_diagnostics(data: Dict[str, np.ndarray], out_path: Path) -> None:
+def plot_collapse_diagnostics(
+    data: Dict[str, np.ndarray],
+    out_path: Path,
+    areal_data: Optional[Dict[str, np.ndarray]] = None,
+    fit_lifetime: bool = True,
+    mass_msun: float = 30.0,
+) -> None:
     _apply_scientific_style()
 
     t = data["t"]
+    has_areal = areal_data is not None and len(areal_data.get("t", [])) > 2
+    n_rows = 3 if (has_areal or fit_lifetime) else 2
 
-    # For octant-symmetric single-throat runs, the min-lapse location is
-    # typically pinned at the throat/center and provides little information.
-    # Use a 2x3 layout with collapse-focused diagnostics.
-    fig, axes = plt.subplots(2, 3, figsize=(15, 8), sharex=True)
+    fig, axes = plt.subplots(n_rows, 3, figsize=(15, 4.0 * n_rows), sharex=True)
     axes = np.asarray(axes)
 
+    # -- Row 1 --
     top_specs: Tuple[Tuple[str, str, str], ...] = (
         ("min_lapse", r"$\min(\alpha)$", r"Minimum lapse: $\alpha$"),
         ("min_chi", r"$\min(\chi)$", r"Minimum conformal factor: $\chi$"),
         ("max_abs_K", r"$\max(|K|)$", r"Maximum curvature: $|K|$"),
     )
 
-    bottom_specs: Tuple[Tuple[str, str, str], ...] = (
-        ("max_ah_r", r"$r_{\rm AH}$", r"Max trapped surface radius: $\theta_+ \leq 0$"),
-        ("min_theta_plus", r"$\min(\theta_+)$", r"Minimum null expansion proxy: $\theta_+$"),
-        ("r_at_min_theta_plus", r"$r_{\min\theta_+}$", r"Radius at min $\theta_+$"),
-    )
-
     for i, (key, ylabel, title) in enumerate(top_specs):
         ax = axes[0, i]
         y = np.asarray(data[key], dtype=float)
-        # Avoid semilogy issues if zeros appear (shouldn't, but safe).
         y_plot = np.where(y > 0, y, np.nan)
         ax.semilogy(t, y_plot, color="black", linewidth=1.5)
         ax.set_ylabel(ylabel)
@@ -168,12 +276,17 @@ def plot_collapse_diagnostics(data: Dict[str, np.ndarray], out_path: Path) -> No
         ax.grid(True, which="both", ls="--", alpha=0.6)
         ax.tick_params(axis="both", which="major", direction="in")
 
+    # -- Row 2 --
+    bottom_specs: Tuple[Tuple[str, str, str], ...] = (
+        ("max_ah_r", r"$r_{\rm AH}$", r"Max trapped surface radius: $\theta_+ \leq 0$"),
+        ("min_theta_plus", r"$\min(\theta_+)$", r"Minimum null expansion proxy: $\theta_+$"),
+        ("r_at_min_theta_plus", r"$r_{\min\theta_+}$", r"Radius at min $\theta_+$"),
+    )
+
     for i, (key, ylabel, title) in enumerate(bottom_specs):
         ax = axes[1, i]
         y = np.asarray(data[key], dtype=float)
-        if key == "max_ah_r":
-            ax.plot(t, y, color="black", linewidth=1.5)
-        elif key == "min_theta_plus":
+        if key == "min_theta_plus":
             ax.plot(t, y, color="black", linewidth=1.5)
             ax.axhline(0.0, color="black", linewidth=0.8, alpha=0.7)
         else:
@@ -183,15 +296,93 @@ def plot_collapse_diagnostics(data: Dict[str, np.ndarray], out_path: Path) -> No
         ax.grid(True, which="both", ls="--", alpha=0.6)
         ax.tick_params(axis="both", which="major", direction="in")
 
+    # -- Row 3: Areal radius, expansion velocity, K-decay lifetime --
+    if n_rows >= 3:
+        # Panel 3a: R_areal_min vs t
+        ax_areal = axes[2, 0]
+        if has_areal:
+            ta = areal_data["t"]
+            Ra = areal_data["R_areal_min"]
+            ax_areal.plot(ta, Ra, color="black", linewidth=1.5)
+            ax_areal.set_ylabel(r"$R_{\mathrm{areal,min}}$")
+            ax_areal.set_title(r"Throat areal radius $R_{\mathrm{areal}}$")
+
+            print("\n=== Areal Radius ===")
+            print(f"  Initial R_areal_min = {Ra[0]:.6f}")
+            print(f"  Final   R_areal_min = {Ra[-1]:.6f}")
+        else:
+            ax_areal.text(0.5, 0.5, "No areal_radius.dat", transform=ax_areal.transAxes,
+                          ha="center", va="center", fontsize=11, color="gray")
+            ax_areal.set_title(r"Throat areal radius $R_{\mathrm{areal}}$")
+        ax_areal.grid(True, which="both", ls="--", alpha=0.6)
+        ax_areal.tick_params(axis="both", which="major", direction="in")
+
+        # Panel 3b: expansion velocity dR/dt
+        ax_vel = axes[2, 1]
+        if has_areal:
+            ta = areal_data["t"]
+            Ra = areal_data["R_areal_min"]
+            vel = _compute_expansion_velocity(ta, Ra)
+            ax_vel.plot(ta, vel, color="black", linewidth=1.5)
+            ax_vel.axhline(1.0, color="red", linewidth=0.8, linestyle="--", alpha=0.7, label=r"$c=1$")
+            ax_vel.axhline(-1.0, color="red", linewidth=0.8, linestyle="--", alpha=0.7)
+            ax_vel.axhline(0.0, color="gray", linewidth=0.5, alpha=0.5)
+            ax_vel.set_ylabel(r"$dR_{\mathrm{areal}}/dt\;(c)$")
+            ax_vel.set_title("Expansion velocity")
+            ax_vel.legend(loc="upper right", frameon=True, framealpha=0.9, fontsize=9)
+
+            mean_vel = float(np.mean(vel))
+            peak_vel = float(vel[np.argmax(np.abs(vel))])
+            print("\n=== Expansion Velocity ===")
+            print(f"  Mean velocity: {mean_vel:.4f} c")
+            print(f"  Peak velocity: {peak_vel:.4f} c")
+            T_phys = mass_msun * M_SUN_SEC
+            print(f"  (At M = {mass_msun:g} M_sun, c = 1 code unit = {1.0 / T_phys:.2e} code_length/s)")
+        else:
+            ax_vel.text(0.5, 0.5, "No areal_radius.dat", transform=ax_vel.transAxes,
+                        ha="center", va="center", fontsize=11, color="gray")
+            ax_vel.set_title("Expansion velocity")
+        ax_vel.grid(True, which="both", ls="--", alpha=0.6)
+        ax_vel.tick_params(axis="both", which="major", direction="in")
+
+        # Panel 3c: K-decay lifetime fit
+        ax_life = axes[2, 2]
+        K_data = np.asarray(data["max_abs_K"], dtype=float)
+        ax_life.semilogy(t, np.where(K_data > 0, K_data, np.nan), color="black", linewidth=1.5, label=r"$\max|K|$")
+
+        if fit_lifetime:
+            fit_result = _fit_K_lifetime(t, K_data)
+            if fit_result is not None:
+                tau, A, C, t_fit, K_fitted = fit_result
+                ax_life.semilogy(t_fit, K_fitted, color="red", linewidth=1.5, linestyle="--",
+                                 label=rf"Fit: $\tau={tau:.3f}$")
+                ax_life.legend(loc="upper right", frameon=True, framealpha=0.9, fontsize=9)
+
+                T_phys = mass_msun * M_SUN_SEC
+                tau_sec = tau * T_phys
+                print(f"\n=== K-Decay Lifetime ===")
+                print(f"  tau = {tau:.4f} [code units]")
+                print(f"  At M = {mass_msun:g} M_sun: tau = {tau_sec:.4e} s")
+                print(f"  Fit: A={A:.4f}, C={C:.4f}")
+            else:
+                print("\n=== K-Decay Lifetime ===")
+                print("  Exponential fit did not converge.")
+
+        ax_life.set_ylabel(r"$\max(|K|)$")
+        ax_life.set_title(r"$|K|$ decay and lifetime $\tau$")
+        ax_life.grid(True, which="both", ls="--", alpha=0.6)
+        ax_life.tick_params(axis="both", which="major", direction="in")
+
+    # x-axis labels on bottom row
     for i in range(3):
-        axes[1, i].set_xlabel(r"$t$")
+        axes[n_rows - 1, i].set_xlabel(r"$t$")
 
     plt.tight_layout()
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path.with_suffix(".png"), dpi=600, bbox_inches="tight")
     fig.savefig(out_path.with_suffix(".eps"), dpi=600, bbox_inches="tight")
     fig.savefig(out_path.with_suffix(".pdf"), dpi=600, bbox_inches="tight")
-    print(f"Saved: {out_path.with_suffix('.png')}, .eps, and .pdf")
+    print(f"\nSaved: {out_path.with_suffix('.png')}, .eps, and .pdf")
 
 
 def main() -> None:
@@ -199,28 +390,35 @@ def main() -> None:
     default_data = _default_run_dir()
 
     parser = argparse.ArgumentParser(
-        description="Plot collapse_diagnostics.dat (min lapse/chi/max|K| and min-lapse location)."
+        description="Plot collapse diagnostics with areal radius and K-decay lifetime."
     )
     parser.add_argument(
-        "input",
-        nargs="?",
-        default=None,
+        "input", nargs="?", default=None,
         help="Path to collapse_diagnostics.dat (optional; otherwise inferred from --data).",
     )
     parser.add_argument(
-        "--data",
-        default=str(default_data),
+        "--data", default=str(default_data),
         help="Run output directory (expects data/collapse_diagnostics.dat inside).",
     )
     parser.add_argument(
-        "--out",
-        default=str(script_dir),
+        "--out", default=str(script_dir),
         help="Output directory for collapse_diagnostics_plot.eps",
     )
     parser.add_argument(
-        "--name",
-        default="collapse_diagnostics_plot.eps",
+        "--name", default="collapse_diagnostics_plot.eps",
         help="Output filename (default: collapse_diagnostics_plot.eps)",
+    )
+    parser.add_argument(
+        "--areal-radius-file", default=None,
+        help="Explicit path to areal_radius.dat (auto-detected from --data by default).",
+    )
+    parser.add_argument(
+        "--no-fit-lifetime", action="store_true",
+        help="Disable exponential fit to K decay.",
+    )
+    parser.add_argument(
+        "--mass-msun", type=float, default=30.0,
+        help="Total mass in solar masses for physical unit conversion (default: 30).",
     )
     args = parser.parse_args()
 
@@ -228,9 +426,24 @@ def main() -> None:
     in_path = _resolve_input_path(data_dir, args.input)
     data = load_collapse_diagnostics(in_path)
 
+    areal_path = _resolve_areal_path(data_dir, args.areal_radius_file)
+    areal_data = None
+    if areal_path is not None:
+        try:
+            areal_data = load_areal_radius(areal_path)
+            print(f"Loaded areal radius data from {areal_path}")
+        except Exception as e:
+            print(f"WARNING: Could not load areal radius data: {e}")
+
     out_dir = Path(args.out).expanduser().resolve()
     out_path = out_dir / str(args.name)
-    plot_collapse_diagnostics(data, out_path=out_path)
+    plot_collapse_diagnostics(
+        data,
+        out_path=out_path,
+        areal_data=areal_data,
+        fit_lifetime=not args.no_fit_lifetime,
+        mass_msun=args.mass_msun,
+    )
 
 
 if __name__ == "__main__":
