@@ -174,12 +174,18 @@ python src/visualisation/make_evolution_panel.py \
   --out src/visualisation/evolution_K_z_panel \
   --frames 1600 1610 1620 1630
 
-# Keep original colours (default is grayscale + white background cleanup)
+# Keep original colours (default)
 python src/visualisation/make_evolution_panel.py \
   --frame_dir src/visualisation/visualize/K_z/frames \
-  --out src/visualisation/evolution_K_z_panel_colour \
+  --out src/visualisation/evolution_K_z_panel \
+  --frames 0 500 1000 1500
+
+# Make panels grayscale with white background cleanup
+python src/visualisation/make_evolution_panel.py \
+  --frame_dir src/visualisation/visualize/K_z/frames \
+  --out src/visualisation/evolution_K_z_panel_gray \
   --frames 0 500 1000 1500 \
-  --no-grayscale
+  --grayscale
 ```
 
 | Option | Description |
@@ -187,7 +193,8 @@ python src/visualisation/make_evolution_panel.py \
 | `--frame_dir` | Directory containing the frame PNGs (e.g. `visualize/K_z/frames`) |
 | `--out` | Output base path (`.png` / `.pdf` are written) |
 | `--frames` | Space-separated indices (default `0 20 40 60`) |
-| `--no-grayscale` | Do not convert panels to grayscale |
+| `--grayscale` | Convert panels to grayscale (default is original colors) |
+| `--no-grid` | Disable drawing the dashed grid over the plots |
 
 ---
 

@@ -318,10 +318,13 @@ def _fit_qnm(
     t_tail = t_tail - t_tail[0]
 
     n_start = max(1, int(tail_fraction * len(t_tail)))
-    t_fit = t_tail[n_start:]
+    t_fit_raw = t_tail[n_start:]
     y_fit = y_tail[n_start:]
-    if len(t_fit) < 10:
+    if len(t_fit_raw) < 10:
         return None
+
+    # Shift fit time to start at 0 so the damped sinusoid decays from t=0
+    t_fit = t_fit_raw - t_fit_raw[0]
 
     env_fit = np.abs(y_fit)
     A0 = float(np.max(env_fit)) if np.max(env_fit) > 0 else 1e-6
@@ -333,6 +336,9 @@ def _fit_qnm(
         f0_guess = 1.0 / (2.0 * dt_peaks) if dt_peaks > 0 else 1.0
     else:
         f0_guess = 2.0
+
+    # Retarded-time coordinate where the fit window starts
+    t_ret_fit_start = t_ret[i_peak] + t_fit_raw[0]
 
     try:
         popt, pcov = curve_fit(
@@ -346,21 +352,22 @@ def _fit_qnm(
         return {
             "A": A, "tau": tau, "f_qnm": f_qnm, "phi": phi,
             "A_err": perr[0], "tau_err": perr[1], "f_qnm_err": perr[2],
-            "t_fit": t_fit + t_ret[i_peak] + t_tail[n_start],
-            "y_fit": _damped_sinusoid(t_fit, *popt),
-            "t_ret_offset": t_ret[i_peak] + t_tail[n_start],
+            "t_ret_start": t_ret_fit_start,
+            "t_ret_end": t_ret_fit_start + t_fit[-1],
         }
     except Exception:
         return None
 
 
+_QNM_OMEGA_R_DIMLESS = 0.37367   # Re(ω·M) for Schwarzschild l=2 n=0 (Leaver 1985)
+_QNM_OMEGA_I_DIMLESS = 0.08896   # Im(ω·M)
+
+
 def _schwarzschild_qnm_l2(M_bh: float) -> Tuple[float, float]:
     """Fundamental l=2 QNM of Schwarzschild: (f_code, tau_code) for mass M_bh."""
-    f_code = 0.08896 / M_bh
-    tau_code = 1.0 / (0.08896 * 2 * np.pi / (2 * 0.0950 / M_bh))
-    omega_R = 2 * np.pi * 0.08896 / M_bh
-    omega_I = 0.0950 / M_bh
-    return omega_R / (2 * np.pi), 1.0 / omega_I
+    f_code = _QNM_OMEGA_R_DIMLESS / (2 * np.pi * M_bh)
+    tau_code = M_bh / _QNM_OMEGA_I_DIMLESS
+    return f_code, tau_code
 
 
 # ---------------------------------------------------------------------------
@@ -411,19 +418,40 @@ def _find_peak_times(
 
 
 def _compute_propagation_speeds(
-    radii: List[float], peak_data: Dict[float, List[Tuple[float, float]]]
+    radii: List[float], peak_data: Dict[float, List[Tuple[float, float]]],
+    t: np.ndarray = None, series: Dict[float, np.ndarray] = None,
 ) -> List[Tuple[float, float, float]]:
-    """Return list of (R1, R2, speed) using dominant peak at each radius."""
+    """Return list of (R1, R2, speed).
+
+    Uses wavefront tracking: the dominant peak at the innermost radius
+    defines a reference retarded time.  At each subsequent radius, the
+    peak whose retarded time is closest to that reference is selected,
+    ensuring we track the *same* physical wavefront rather than jumping
+    to a different (potentially constraint-dominated) feature.
+    """
+    if not radii or not peak_data:
+        return []
+
+    R_ref = radii[0]
+    t_ref_sim = peak_data[R_ref][0][0]
+    t_ref_ret = t_ref_sim - R_ref
+
+    matched_sim: Dict[float, float] = {R_ref: t_ref_sim}
+    for R in radii[1:]:
+        best_t_sim = peak_data[R][0][0]
+        best_dt_ret = abs((best_t_sim - R) - t_ref_ret)
+        for (t_pk, _) in peak_data[R]:
+            dt_ret = abs((t_pk - R) - t_ref_ret)
+            if dt_ret < best_dt_ret:
+                best_dt_ret = dt_ret
+                best_t_sim = t_pk
+        matched_sim[R] = best_t_sim
+
     speeds = []
     for i in range(len(radii) - 1):
         R1, R2 = radii[i], radii[i + 1]
-        t1 = peak_data[R1][0][0]
-        t2 = peak_data[R2][0][0]
-        dt = t2 - t1
-        if abs(dt) > 1e-15:
-            v = (R2 - R1) / dt
-        else:
-            v = np.inf
+        dt = matched_sim[R2] - matched_sim[R1]
+        v = (R2 - R1) / dt if abs(dt) > 1e-15 else np.inf
         speeds.append((R1, R2, v))
     return speeds
 
@@ -462,7 +490,8 @@ def _draw_waveform(
     ax.tick_params(axis="both", which="major", direction="in", top=True, right=True)
 
 
-def _draw_psd(ax, radii, stored_psd, linestyles, smooth_w, smooth_p):
+def _draw_psd(ax, radii, stored_psd, linestyles, smooth_w, smooth_p,
+              pert_sigma=None):
     for i, R in enumerate(radii):
         if R not in stored_psd:
             continue
@@ -470,6 +499,22 @@ def _draw_psd(ax, radii, stored_psd, linestyles, smooth_w, smooth_p):
         psd_s = _smooth_psd(psd, window=smooth_w, polyorder=smooth_p)
         ls = linestyles[i % len(linestyles)]
         ax.semilogy(freqs, psd_s, color="black", linestyle=ls, linewidth=1.0, label=rf"$R={R:g}$")
+
+    if pert_sigma is not None and pert_sigma > 0:
+        any_R = next(iter(stored_psd))
+        f_arr, psd_arr = stored_psd[any_R]
+        nz = f_arr > 0
+        psd_peak = np.max(_smooth_psd(psd_arr, window=smooth_w, polyorder=smooth_p)[nz])
+        gauss_psd = np.exp(-2.0 * (np.pi * pert_sigma * f_arr[nz]) ** 2)
+        gauss_psd *= psd_peak
+        visible = gauss_psd > psd_peak * 1e-8
+        if np.any(visible):
+            ax.semilogy(f_arr[nz][visible], gauss_psd[visible], color="red",
+                        linewidth=1.2, linestyle=":",
+                        label=rf"Gaussian pert. ($\sigma_K={pert_sigma:g}$)")
+        f_char = 1.0 / (np.pi * pert_sigma * np.sqrt(2))
+        ax.axvline(f_char, color="red", linewidth=0.8, linestyle="--", alpha=0.6)
+
     ax.set_xlabel(r"$f\,(M^{-1})$")
     ax.set_ylabel(r"$\mathrm{ESD}\left[r\,\Psi_4^{2,0}\right]$")
     ax.legend(loc="upper right", frameon=True, framealpha=0.9, fontsize=9)
@@ -538,16 +583,30 @@ def _draw_strain_ligo(ax, freqs, strain_psd_code, mass_msun, distance_mpc, R_ext
 
 def _draw_propagation(ax, t, radii, series, linestyles):
     peak_data = _find_peak_times(t, series, radii)
-    speeds = _compute_propagation_speeds(radii, peak_data)
+    speeds = _compute_propagation_speeds(radii, peak_data, t=t, series=series)
+
+    R_ref = radii[0]
+    t_ref_ret = peak_data[R_ref][0][0] - R_ref
+    matched_sim: Dict[float, float] = {}
+    for R in radii:
+        best_t = peak_data[R][0][0]
+        best_dt = abs((best_t - R) - t_ref_ret)
+        for (t_pk, _) in peak_data[R]:
+            dt_ret = abs((t_pk - R) - t_ref_ret)
+            if dt_ret < best_dt:
+                best_dt = dt_ret
+                best_t = t_pk
+        matched_sim[R] = best_t
 
     for i, R in enumerate(radii):
         psi4 = series[R]
         retarded = t - float(R)
+        envelope = np.abs(psi4)
         ls = linestyles[i % len(linestyles)]
-        ax.plot(retarded, np.abs(psi4), color="black", linestyle=ls, linewidth=0.8, label=rf"$R={R:g}$")
-        if peak_data[R]:
-            t_pk, amp_pk = peak_data[R][0]
-            ax.plot(t_pk - float(R), amp_pk, "o", color="red", markersize=5)
+        ax.plot(retarded, envelope, color="black", linestyle=ls, linewidth=0.8, label=rf"$R={R:g}$")
+        t_matched = matched_sim[R]
+        idx = np.argmin(np.abs(t - t_matched))
+        ax.plot(t_matched - float(R), envelope[idx], "o", color="red", markersize=5)
 
     y_text = 0.92
     for R1, R2, v in speeds:
@@ -579,9 +638,21 @@ def _plot_combined(t, radii, series, stored_psd, args, linestyles, fs):
 
     fig, axes = plt.subplots(3, 2, figsize=(14, 14))
 
-    # (a) Waveform — simulation time
+    # (a) Waveform — simulation time + initial K perturbation profile
     _draw_waveform(axes[0, 0], t, radii, series, linestyles, "simulation",
                    t_min=args.t_min, t_max=args.t_max)
+    if args.pert_sigma is not None and args.pert_sigma > 0:
+        A0 = getattr(args, "pert_A0", None) or 0.0
+        A2 = getattr(args, "pert_A2", None) or 0.0
+        sigma = args.pert_sigma
+        r_prof = np.linspace(0, 5 * sigma, 300)
+        K_prof = (A0 + A2) * np.exp(-r_prof ** 2 / sigma ** 2)
+        ax_k = axes[0, 0].twinx()
+        ax_k.plot(r_prof, K_prof, color="blue", linewidth=1.0, linestyle="-", alpha=0.5,
+                  label=r"$K(r,\theta{=}0)$ at $t{=}0$")
+        ax_k.set_ylabel(r"$K(r)$", color="blue", fontsize=12)
+        ax_k.tick_params(axis="y", colors="blue", labelsize=10)
+        ax_k.legend(loc="center right", frameon=True, framealpha=0.8, fontsize=8)
 
     # (b) Waveform — retarded time + QNM overlay
     _draw_waveform(axes[0, 1], t, radii, series, linestyles, "retarded",
@@ -590,12 +661,11 @@ def _plot_combined(t, radii, series, stored_psd, args, linestyles, fs):
     R_inner = radii[0]
     qnm_result = _fit_qnm(t, series[R_inner], R_inner)
     if qnm_result is not None:
-        t_overlay = qnm_result["t_fit"]
-        y_overlay = qnm_result["y_fit"]
-        t_ret_start = qnm_result["t_ret_offset"]
-        t_plot = np.linspace(t_overlay[0], t_overlay[-1], 300)
+        t0 = qnm_result["t_ret_start"]
+        t1 = qnm_result["t_ret_end"]
+        t_plot = np.linspace(t0, t1, 300)
         y_plot = _damped_sinusoid(
-            t_plot - t_overlay[0],
+            t_plot - t0,
             qnm_result["A"], qnm_result["tau"],
             qnm_result["f_qnm"], qnm_result["phi"],
         )
@@ -617,18 +687,31 @@ def _plot_combined(t, radii, series, stored_psd, args, linestyles, fs):
         print(f"\n=== QNM Ringdown Fit (R={R_inner:g}) ===")
         print(f"  f_QNM = {f_qnm:.4f} M^-1  (tau = {tau_qnm:.4f} M)")
         print(f"  Quality factor Q = pi * f * tau = {np.pi * f_qnm * tau_qnm:.2f}")
-        M_from_f = 0.08896 / f_qnm
-        M_from_tau = 0.0950 / (1.0 / tau_qnm) if tau_qnm > 0 else 0
+        M_from_f = _QNM_OMEGA_R_DIMLESS / (2 * np.pi * f_qnm)
+        M_from_tau = tau_qnm * _QNM_OMEGA_I_DIMLESS if tau_qnm > 0 else 0
         f_schw, tau_schw = _schwarzschild_qnm_l2(M_from_f)
-        print(f"  -> If Schwarzschild l=2 QNM:  M_BH = {M_from_f:.4f} (from f)")
-        print(f"     Predicted tau = {1.0 / (0.0950 / M_from_f):.4f} M  (observed: {tau_qnm:.4f})")
+        print(f"  -> If Schwarzschild l=2 QNM:  M_BH = {M_from_f:.4f} (from f),  {M_from_tau:.4f} (from tau)")
+        print(f"     Predicted tau = {tau_schw:.4f} M  (observed: {tau_qnm:.4f})")
         T_M = args.mass_msun * M_SUN_SEC
         f_phys_qnm = f_qnm / T_M
         print(f"  -> At M = {args.mass_msun:g} M_sun: f_QNM = {f_phys_qnm:.0f} Hz")
+        if args.pert_sigma is not None and args.pert_sigma > 0:
+            f_pert = 1.0 / (np.pi * args.pert_sigma * np.sqrt(2))
+            ratio = f_qnm / f_pert
+            print(f"  --- Initial K perturbation vs QNM comparison ---")
+            print(f"  Gaussian perturbation sigma_K = {args.pert_sigma:g}")
+            print(f"  Perturbation char. freq  = {f_pert:.4f} M^-1")
+            print(f"  Fitted QNM freq          = {f_qnm:.4f} M^-1")
+            print(f"  Ratio f_QNM / f_pert     = {ratio:.3f}")
+            if 0.7 < ratio < 1.4:
+                print(f"  WARNING: f_QNM ~ f_pert -- cannot distinguish QNM from initial perturbation response")
+            else:
+                print(f"  -> Frequencies differ significantly: signal is NOT dominated by initial perturbation shape")
 
-    # (c) PSD of Ψ4
+    # (c) ESD of Ψ4 + perturbation spectral content
     _draw_psd(axes[1, 0], radii, stored_psd, linestyles,
-              args.psd_smooth_window, args.psd_smooth_polyorder)
+              args.psd_smooth_window, args.psd_smooth_polyorder,
+              pert_sigma=args.pert_sigma)
 
     # (d) Propagation speed analysis
     if len(radii) >= 2:
@@ -700,7 +783,8 @@ def _plot_stacked(t, radii, series, stored_psd, args, linestyles, fs):
     if args.plot_psd:
         ax_psd = axes_arr[ax_idx]; ax_idx += 1
         _draw_psd(ax_psd, radii, stored_psd, linestyles,
-                  args.psd_smooth_window, args.psd_smooth_polyorder)
+                  args.psd_smooth_window, args.psd_smooth_polyorder,
+                  pert_sigma=args.pert_sigma)
         ax_psd.set_title(r"Power Spectral Density of $\Psi_4$")
 
     # Strain
@@ -780,6 +864,16 @@ def main() -> None:
     parser.add_argument("--mass-msun", type=float, default=30.0, help="Total mass in solar masses (default: 30)")
     parser.add_argument("--distance-mpc", type=float, default=10.0, help="Luminosity distance in Mpc (default: 10)")
     parser.add_argument("--propagation-speed", action="store_true", help="Measure propagation speed across extraction radii")
+    parser.add_argument(
+        "--pert-sigma", type=float, default=None,
+        help="Width sigma_K of the initial Gaussian K perturbation (code units). "
+             "When set, overlays the perturbation's spectral content on the ESD panel "
+             "to distinguish initial-data artifacts from genuine QNM ringdown.",
+    )
+    parser.add_argument("--pert-A0", type=float, default=0.0,
+                        help="Monopole amplitude A0 of the initial K perturbation")
+    parser.add_argument("--pert-A2", type=float, default=0.0,
+                        help="Quadrupole amplitude A2 of the initial K perturbation")
     parser.add_argument(
         "--combined", action="store_true",
         help="Produce a single 3x2 publication figure with all analysis panels."
