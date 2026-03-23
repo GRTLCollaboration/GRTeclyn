@@ -26,6 +26,10 @@ class Potential
 		// USR (Prokopec) parameters
 		double Lambda;
 		double v = 0.;
+
+		// Punctuated inflation params
+		int n;
+		double lambda;
     };
 
   private:
@@ -50,6 +54,11 @@ class Potential
 			case 8:
 				m_params.Lambda = m_params.param1;
 				m_params.v = m_params.param2;
+			
+			case 10:
+				m_params.scalar_mass = m_params.param1;
+				m_params.n = m_params.param2;
+				m_params.lambda = m_params.param3;
 		}
 	}
 
@@ -122,6 +131,27 @@ class Potential
 		dV = - 2. * m_params.Lambda * pow(m_params.v, 5.) * phi * fraction;
 	}
 
+	// Prokopec USR model, from arxiv:0809.3915v2
+	template <class data_t>
+	AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+	punctuated(data_t &V, data_t &dV, const data_t &phi) const
+	{
+		if (m_params.scalar_mass == 0 && m_params.lambda == 0)
+		{
+			amrex::Error("Potential::punctuated, punctuated inflation parameters uninitialised.");
+		}
+
+		// Calculate V
+		V = pow(m_params.scalar_mass * phi, 2.) / 2.;
+		V += m_params.lambda * pow(phi, 2 * (m_params.n - 1)) / 4.;
+		V -= sqrt(2. * m_params.lambda * (m_params.n - 1)) * m_params.scalar_mass * pow(phi, m_params.n) / m_params.n;
+
+		// Calculate dV
+		dV = pow(m_params.scalar_mass, 2.) * phi;
+		dV += m_params.lambda * (m_params.n - 1) * pow(phi, 2 * m_params.n - 3) / 2.;
+		dV -= sqrt(2. * m_params.lambda * (m_params.n - 1)) * m_params.scalar_mass * pow(phi, m_params.n - 1);
+	}
+
     //! Set the potential function for the scalar field here
     template <class data_t, template <typename> class vars_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
@@ -140,10 +170,14 @@ class Potential
 		{
 			monodromy(V_of_phi, dVdphi, vars.phi);
 		}
+		else if (m_params.type == 10)
+		{
+			punctuated(V_of_phi, dVdphi, vars.phi);
+		}
 		else
 		{
 			amrex::Print() << m_params.type << "\n";
-			amrex::Error("Potential::compute_potential, requested potential type is not supported.");
+			amrex::Error("Potential::compute_potential, requested potential type is m_params.not supported.");
 		}
     
 		/*amrex::Print().SetPrecision(15) << "V: " << V_of_phi << "\n";

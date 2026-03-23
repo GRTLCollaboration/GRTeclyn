@@ -95,7 +95,7 @@ class RandomField
 
             // Set protected class parameters
             N = m_params.N_readin;
-            norm = m_params.A * pow(2. * M_PI/m_params.L, 3.); // Physical FFT normalisation
+            norm = pow(1./m_params.L, 3.); // Physical FFT normalisation
             tolerance = 1.e-12; // Numerical tolerance, for tests
 
             // Look-up table 
@@ -117,7 +117,7 @@ class RandomField
         {
             // Set protected class parameters
             N = m_params.N_readin;
-            norm = m_params.A * pow(2. * M_PI/m_params.L, 3.); // Physical FFT normalisation
+            norm = pow(1./m_params.L, 3.); // Physical FFT normalisation
             tolerance = 1.e-12; // Numerical tolerance, for tests
 
             // Look-up table 

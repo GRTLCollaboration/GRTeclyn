@@ -1,0 +1,27 @@
+Varying L to pin down 2nd order tensor dynamics
+
+This series of runs uses the monodromy dparams template 
+from STOIIC, so the input file config_GRT_gravitons_monodromy, 
+with the potential type == 1, so that we are enforcing the 
+use of the quadratic background of this monodromy model.
+
+These runs make the additional change that H0 = 1e-4 in the 
+init function of the monodromy potential in STOIIC, rather than 
+its default of H0=1e-5. This gives us more room to lower L.
+
+Essentially, the point of this set of runs is to see if we can 
+uncover a second order gravitational-wave background in the 
+quadratic case, with sufficiently explainable dynamics and 
+above machine precision.
+
+High values of L suppress the resulting scalar perturbation field, 
+as the Fourier transform is normalised by 1/L^3. For a more standard 
+value of L, such as 1000, the stdev of R sits around 1e-8, leaving 
+the possible signal stdev of h near 1e-16, below machine precision 
+for floats, which sits near 1e-15.
+
+This necessitates the use of smaller values of L. However, for L 
+values that are too small, spurrious oscillations creep in for both 
+the scalar and tensor fields, perhaps a function of the step size 
+growing too coarse to resolve the relevant modes. 
+
