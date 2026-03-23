@@ -59,6 +59,9 @@ class Potential
 				m_params.scalar_mass = m_params.param1;
 				m_params.n = m_params.param2;
 				m_params.lambda = m_params.param3;
+
+			default:
+				amrex::Error("Potential::Potential, requested potential type has not been implemented.");
 		}
 	}
 
