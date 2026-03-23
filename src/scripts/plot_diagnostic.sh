@@ -8,10 +8,8 @@ set -euo pipefail
 # Plots produced:
 #   constraints_plot.*            — constraint norms
 #   collapse_diagnostics_plot.*   — collapse diagnostics (+ areal radius + K-decay lifetime)
-#   psi4_retarded.*               — Psi4 waveform + PSD (retarded time)
-#   psi4_simulation.*             — Psi4 waveform + PSD (simulation time)
-#   psi4_strain_analysis.*        — strain PSD + LIGO overlay + SNR
-#   psi4_propagation_speed.*      — propagation speed analysis
+#   psi4_analysis.*               — combined 3x2 panel: waveforms, PSD, propagation speed,
+#                                   strain PSD, and LIGO sensitivity overlay
 #
 # Usage:
 #   ./src/scripts/plot_diagnostic.sh [RUN_DIR] [RADIUS ...]
@@ -112,52 +110,25 @@ if [[ $# -gt 0 ]]; then
   RADII_ARGS=(--radii "$@")
 fi
 
-echo "[1/6] Plotting constraint norms..."
+echo "[1/3] Plotting constraint norms..."
 python3 -m src.visualisation.constraines \
   "${CONSTRAINT_FILE}" \
   -o "${PLOTS_DIR}/constraints_plot.eps"
 
-echo "[2/6] Plotting collapse diagnostics (+ areal radius + K-decay lifetime)..."
+echo "[2/3] Plotting collapse diagnostics (+ areal radius + K-decay lifetime)..."
 python3 "${VIS_DIR}/diagnostic/diagnostic.py" \
   "${COLLAPSE_FILE}" \
   --data "${RUN_DIR}" \
   --out "${PLOTS_DIR}"
 
-echo "[3/6] Plotting extracted Psi4 in retarded time..."
+echo "[3/3] Plotting combined Psi4 analysis (waveforms + PSD + propagation + strain + LIGO)..."
 python3 -m src.visualisation.process_wave.plot_extracted_psi4 \
   "${PSI4_FILE}" \
   "${RADII_ARGS[@]}" \
-  --time-axis retarded \
   --out "${PLOTS_DIR}" \
-  --name "psi4_retarded.eps" \
-  --plot-psd
-
-echo "[4/6] Plotting extracted Psi4 in simulation time..."
-python3 -m src.visualisation.process_wave.plot_extracted_psi4 \
-  "${PSI4_FILE}" \
-  "${RADII_ARGS[@]}" \
-  --time-axis simulation \
-  --out "${PLOTS_DIR}" \
-  --name "psi4_simulation.eps" \
-  --plot-psd
-
-echo "[5/6] Plotting strain PSD + LIGO overlay + SNR..."
-python3 -m src.visualisation.process_wave.plot_extracted_psi4 \
-  "${PSI4_FILE}" \
-  "${RADII_ARGS[@]}" \
-  --time-axis retarded \
-  --out "${PLOTS_DIR}" \
-  --name "psi4_strain_analysis.eps" \
-  --plot-psd --strain --mass-msun 30 --distance-mpc 10
-
-echo "[6/6] Plotting propagation speed analysis..."
-python3 -m src.visualisation.process_wave.plot_extracted_psi4 \
-  "${PSI4_FILE}" \
-  "${RADII_ARGS[@]}" \
-  --time-axis simulation \
-  --out "${PLOTS_DIR}" \
-  --name "psi4_propagation_speed.eps" \
-  --propagation-speed
+  --name "psi4_analysis.eps" \
+  --combined \
+  --strain --mass-msun 30 --distance-mpc 10
 
 echo ""
 echo "All plots saved to: ${PLOTS_DIR}"

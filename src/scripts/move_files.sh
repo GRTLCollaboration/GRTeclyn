@@ -55,11 +55,12 @@ echo "Creating target directory: $TARGET_DIR"
 echo "=========================================="
 mkdir -p "$TARGET_DIR"
 
-echo "Copying frames (chi, K, Weyl4_Mag, Weyl4_Re)..."
+echo "Copying frames (chi, K, Weyl4_Mag, Weyl4_Re, embedding)..."
 cp -ur "$VIS_FRAMES_DIR/chi"* "$TARGET_DIR/" 2>/dev/null || true
 cp -ur "$VIS_FRAMES_DIR/K"* "$TARGET_DIR/" 2>/dev/null || true
 cp -ur "$VIS_FRAMES_DIR/Weyl4_Mag"* "$TARGET_DIR/" 2>/dev/null || true
 cp -ur "$VIS_FRAMES_DIR/Weyl4_Re"* "$TARGET_DIR/" 2>/dev/null || true
+cp -ur "$VIS_FRAMES_DIR/embedding"* "$TARGET_DIR/" 2>/dev/null || true
 
 PLOTS_DIR="${BASE_VISUALISATION_DIR}/plots"
 echo "Copying plot files from ${PLOTS_DIR} ..."

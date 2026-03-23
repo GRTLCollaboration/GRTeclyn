@@ -190,6 +190,91 @@ def _exp_decay(t: np.ndarray, A: float, tau: float, C: float) -> np.ndarray:
     return A * np.exp(-t / tau) + C
 
 
+def _extract_bh_mass(
+    t: np.ndarray,
+    R_areal: np.ndarray,
+    max_abs_K: np.ndarray,
+    min_lapse: np.ndarray,
+    plateau_fraction: float = 0.3,
+) -> Optional[Dict[str, float]]:
+    """Extract the final BH mass from late-time plateaux.
+
+    Uses three independent diagnostics:
+      1) Areal radius plateau -> M_irr = sqrt(A/16pi) with A = 4*pi*R^2
+      2) max|K| plateau -> M from trumpet K = 2.517/M (1+log, Gamma-driver)
+      3) min(alpha) plateau -> consistency check
+
+    The 1+log trumpet equilibrium values for Schwarzschild are from
+    Hannam et al. (2007): R_trumpet ~ 1.312 M, K_trumpet ~ 2.517 / M.
+    """
+    n = len(t)
+    i_start = int((1.0 - plateau_fraction) * n)
+    if i_start >= n - 3:
+        return None
+
+    R_late = R_areal[i_start:]
+    K_late = max_abs_K[i_start:]
+    alpha_late = min_lapse[i_start:]
+
+    R_plateau = float(np.median(R_late[np.isfinite(R_late)]))
+    K_plateau = float(np.median(K_late[np.isfinite(K_late) & (K_late > 0)]))
+    alpha_plateau = float(np.median(alpha_late[np.isfinite(alpha_late) & (alpha_late > 0)]))
+
+    R_TRUMPET_OVER_M = 1.312
+    K_TRUMPET_TIMES_M = 2.517
+
+    M_from_R = R_plateau / R_TRUMPET_OVER_M if R_plateau > 0 else 0.0
+    M_from_K = K_TRUMPET_TIMES_M / K_plateau if K_plateau > 0 else 0.0
+
+    A_AH = 4.0 * np.pi * R_plateau ** 2
+    M_irr = np.sqrt(A_AH / (16.0 * np.pi))
+
+    return {
+        "R_plateau": R_plateau,
+        "K_plateau": K_plateau,
+        "alpha_plateau": alpha_plateau,
+        "M_from_R": M_from_R,
+        "M_from_K": M_from_K,
+        "M_irr": M_irr,
+        "A_AH": A_AH,
+    }
+
+
+def _compute_lyapunov_exponent(
+    t: np.ndarray,
+    signal: np.ndarray,
+    t_start: float = 0.0,
+    t_end_frac: float = 0.3,
+) -> Optional[Tuple[float, np.ndarray, np.ndarray]]:
+    """Fit exp growth to early-time signal to extract the Lyapunov exponent.
+
+    Fits log|signal| = lambda*t + const during the early growth phase.
+    Returns (lambda, t_fit, fit_line) or None if fit fails.
+    """
+    t_end = t[0] + t_end_frac * (t[-1] - t[0])
+    mask = (t >= t_start) & (t <= t_end)
+    if np.sum(mask) < 5:
+        return None
+
+    t_sel = t[mask]
+    sig_sel = np.abs(signal[mask])
+    valid = sig_sel > 0
+    if np.sum(valid) < 5:
+        return None
+
+    log_sig = np.log(sig_sel[valid])
+    t_valid = t_sel[valid]
+
+    finite = np.isfinite(log_sig)
+    if np.sum(finite) < 5:
+        return None
+
+    coeffs = np.polyfit(t_valid[finite], log_sig[finite], 1)
+    lyapunov = float(coeffs[0])
+    fit_line = np.polyval(coeffs, t_valid[finite])
+    return (lyapunov, t_valid[finite], fit_line)
+
+
 def _fit_K_lifetime(
     t: np.ndarray, max_abs_K: np.ndarray, fit_start_fraction: float = 0.4
 ) -> Optional[Tuple[float, float, float, np.ndarray, np.ndarray]]:
@@ -373,6 +458,55 @@ def plot_collapse_diagnostics(
         ax_life.set_title(r"$|K|$ decay and lifetime $\tau$")
         ax_life.grid(True, which="both", ls="--", alpha=0.6)
         ax_life.tick_params(axis="both", which="major", direction="in")
+
+    # --- Black-hole remnant characterisation ---
+    K_data = np.asarray(data["max_abs_K"], dtype=float)
+    min_lapse = np.asarray(data["min_lapse"], dtype=float)
+
+    if has_areal:
+        bh_info = _extract_bh_mass(
+            areal_data["t"], areal_data["R_areal_min"], K_data, min_lapse
+        )
+        if bh_info is not None:
+            T_phys = mass_msun * M_SUN_SEC
+            print("\n=== Black-Hole Remnant Characterisation ===")
+            print(f"  Late-time R_areal plateau : {bh_info['R_plateau']:.6f}")
+            print(f"  Late-time max|K| plateau  : {bh_info['K_plateau']:.4f}")
+            print(f"  Late-time min(alpha)      : {bh_info['alpha_plateau']:.6f}")
+            M_from_R = bh_info["M_from_R"]
+            print(f"  --- Mass estimates (code units) ---")
+            print(f"  M (from R_trumpet/1.312)  : {M_from_R:.6f}")
+            print(f"  M_irr  = sqrt(A_trumpet/16pi): {bh_info['M_irr']:.6f}")
+            print(f"  Note: M_irr uses trumpet area, not AH area; R_trumpet < R_AH = 2M")
+            print(f"  --- Trumpet verification (Hannam+ 2007 reference values) ---")
+            K_pred = 2.517 / M_from_R if M_from_R > 0 else 0
+            alpha_pred_range = "0.02--0.05"
+            print(f"  Predicted K_trumpet (at M={M_from_R:.4f}) = {K_pred:.4f}  (observed: {bh_info['K_plateau']:.4f})")
+            print(f"  Predicted alpha_min (literature)   ~ {alpha_pred_range}  (observed: {bh_info['alpha_plateau']:.6f})")
+            ratio = bh_info['K_plateau'] / K_pred if K_pred > 0 else float('inf')
+            print(f"  K ratio (observed/predicted) = {ratio:.3f}")
+            print(f"  --- Physical mass ---")
+            M_phys = M_from_R * mass_msun
+            print(f"  At M_total = {mass_msun:g} M_sun: M_BH = {M_phys:.4f} M_sun")
+
+    # --- Lyapunov exponent from areal radius departure ---
+    if has_areal:
+        Ra = areal_data["R_areal_min"]
+        ta = areal_data["t"]
+        departure = np.abs(Ra - Ra[0])
+        departure = np.where(departure > 1e-15, departure, 1e-15)
+        lyap_result = _compute_lyapunov_exponent(ta, departure, t_start=0.0, t_end_frac=0.35)
+        if lyap_result is not None:
+            lam, t_fit_lyap, fit_line_lyap = lyap_result
+            print(f"\n=== Instability Growth Rate (Lyapunov Exponent) ===")
+            print(f"  lambda = {lam:.4f} M^-1  (from early-time |R_areal(t) - R_areal(0)| growth)")
+            if lam > 0:
+                print(f"  e-folding time = {1.0/lam:.4f} M")
+                T_phys = mass_msun * M_SUN_SEC
+                t_efold_phys = (1.0 / lam) * T_phys
+                print(f"  At M = {mass_msun:g} M_sun: lambda = {lam / T_phys:.4e} s^-1, t_e-fold = {t_efold_phys:.4e} s")
+            else:
+                print(f"  (decay, not growth -- collapse too rapid for clear exponential phase)")
 
     # Add letter labels to subplot titles
     for ax, letter in zip(axes.flatten(), string.ascii_lowercase):

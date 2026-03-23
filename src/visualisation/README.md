@@ -489,6 +489,8 @@ Watches for new plotfiles, extracts Ψ4 waveforms, areal radius, renders field f
 # Run with a custom number of jobs AND keep existing files (order of arguments does not matter):
 ./src/scripts/plot_run.sh --not-remove -j 16
 ./src/scripts/plot_run.sh --not-remove -j 16 /path/to/data_2gpu
+
+./src/scripts/plot_run.sh -j 16
 ```
 
 What it does:
