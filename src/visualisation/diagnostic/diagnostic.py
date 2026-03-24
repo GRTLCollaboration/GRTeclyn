@@ -340,10 +340,21 @@ def plot_collapse_diagnostics(
 
     t = data["t"]
     has_areal = areal_data is not None and len(areal_data.get("t", [])) > 2
-    n_rows = 3 if (has_areal or fit_lifetime) else 2
+    has_phantom = "min_phi" in data and len(data["min_phi"]) > 0
+
+    base_rows = 2
+    if has_areal or fit_lifetime:
+        base_rows += 1
+    if has_phantom:
+        base_rows += 1
+    
+    n_rows = base_rows
 
     fig, axes = plt.subplots(n_rows, 3, figsize=(15, 4.0 * n_rows), sharex=True)
     axes = np.asarray(axes)
+    
+    if len(axes.shape) == 1:
+        axes = np.expand_dims(axes, axis=0)
 
     # -- Row 1 --
     top_specs: Tuple[Tuple[str, str, str], ...] = (

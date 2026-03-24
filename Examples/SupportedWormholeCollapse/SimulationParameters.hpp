@@ -65,6 +65,8 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("wormhole_support_strength", wormhole_params.support_strength,
                 1.0);
 
+        pp.load("wormhole_phi_monopole_amplitude",
+                wormhole_params.phi_monopole_amplitude, 0.0);
         pp.load("wormhole_phi_perturbation_amplitude",
                 wormhole_params.phi_perturbation_amplitude, 0.0);
         pp.load("wormhole_phi_perturbation_width",
@@ -92,9 +94,10 @@ class SimulationParameters : public SimulationParametersBase
 
         check_parameter("wormhole_phi_perturbation_width",
                         wormhole_params.phi_perturbation_width,
-                        (wormhole_params.phi_perturbation_amplitude == 0.0) ||
+                        (wormhole_params.phi_perturbation_amplitude == 0.0 &&
+                         wormhole_params.phi_monopole_amplitude == 0.0) ||
                             (wormhole_params.phi_perturbation_width > 0.0),
-                        "must be > 0 when phi_perturbation_amplitude is nonzero");
+                        "must be > 0 when any phi perturbation amplitude is nonzero");
     }
 
     bool calculate_constraint_norms{};

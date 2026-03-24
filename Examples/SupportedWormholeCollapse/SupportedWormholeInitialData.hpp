@@ -56,6 +56,7 @@ class SupportedWormholeInitialData
         // With Pi=0 and K_ij=0, the momentum constraint is satisfied exactly.
         // Only the Hamiltonian constraint picks up a small spin-0 residual
         // from the changed gradient energy, which does not contaminate Psi4.
+        double phi_monopole_amplitude;
         double phi_perturbation_amplitude;
         double phi_perturbation_width;
 
@@ -178,12 +179,15 @@ class SupportedWormholeInitialData
             phi = phiA + phiB;
         }
 
-        // Quadrupolar scalar field profile perturbation:
-        //   phi += A * Y20(theta) * exp(-r^2 / sigma^2)
+        // Scalar field profile perturbation at t=0:
+        //   phi += (A_0 + A_phi * Y20(theta)) * exp(-r^2 / sigma^2)
+        // A_0 = monopolar amplitude (drives fast symmetric collapse)
+        // A_phi = quadrupolar amplitude (breaks spherical symmetry -> GW signal)
         // Pi remains zero, so the momentum constraint is exactly satisfied.
+        const double phi_mono = m_params.phi_monopole_amplitude;
         const double phi_amp = m_params.phi_perturbation_amplitude;
         const double phi_width = m_params.phi_perturbation_width;
-        if (phi_amp != 0.0 && phi_width > 0.0)
+        if ((phi_mono != 0.0 || phi_amp != 0.0) && phi_width > 0.0)
         {
             const data_t sig2 = (data_t)(phi_width * phi_width);
             const data_t eps2_ang = (data_t)1.0e-24;
@@ -191,7 +195,8 @@ class SupportedWormholeInitialData
             const data_t rA2_safe = simd_max(rA2, eps2_ang);
             const data_t cos_theta_A_sq = dzA * dzA / rA2_safe;
             const data_t Y20_A = 3.0 * cos_theta_A_sq - 1.0;
-            const data_t dphi_A = (data_t)phi_amp * Y20_A * exp(-rA2 / sig2);
+            const data_t dphi_A = ((data_t)phi_mono + (data_t)phi_amp * Y20_A)
+                                  * exp(-rA2 / sig2);
 
             if (m_params.metric_type == 1)
             {
@@ -202,7 +207,8 @@ class SupportedWormholeInitialData
                 const data_t rB2_safe = simd_max(rB2, eps2_ang);
                 const data_t cos_theta_B_sq = dzB * dzB / rB2_safe;
                 const data_t Y20_B = 3.0 * cos_theta_B_sq - 1.0;
-                const data_t dphi_B = (data_t)phi_amp * Y20_B * exp(-rB2 / sig2);
+                const data_t dphi_B = ((data_t)phi_mono + (data_t)phi_amp * Y20_B)
+                                      * exp(-rB2 / sig2);
                 phi += dphi_A + dphi_B;
             }
         }

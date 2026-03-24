@@ -519,9 +519,11 @@ def _extract_embedding_profile(
     The spatial metric is dl^2 = (1/chi) dr^2.  The embedding surface satisfies
     dR^2 + dz^2 = dl^2,  where R_areal = r / sqrt(chi).
 
-    Because the wormhole throat sits at x=0 (octant symmetry boundary), R_areal(0)
-    is numerically 0/0.  We skip points near r=0, then mirror the one-sided profile
-    to produce a symmetric two-funnel embedding with the throat at z_embed=0.
+    In isotropic coordinates, the throat (minimum R_areal) is at r = b0/2, NOT
+    at the grid origin r=0 (which represents the compactified second universe's
+    asymptotic infinity).  We locate the throat, then integrate z_embed outward
+    in both directions to produce a symmetric two-funnel embedding with the
+    throat at z_embed=0.
 
     The raw AMR ray data is interpolated onto a uniform fine grid to eliminate
     step artifacts at refinement-level boundaries.
@@ -562,7 +564,6 @@ def _extract_embedding_profile(
     chi_arr = np.maximum(chi_arr, chi_floor)
 
     R_areal = r_arr / np.sqrt(chi_arr)
-
     R_areal = gaussian_filter1d(R_areal, sigma=sigma_pts, mode="nearest")
 
     dR_dr = np.gradient(R_areal, r_arr)
@@ -570,12 +571,22 @@ def _extract_embedding_profile(
     dz_dr_sq = dl_dr_sq - dR_dr**2
     dz_dr = np.sqrt(np.maximum(dz_dr_sq, 0.0))
 
-    z_one_side = np.zeros_like(r_arr)
-    if len(r_arr) > 1:
-        z_one_side[1:] = cumulative_trapezoid(dz_dr, r_arr)
+    # Find the throat (minimum R_areal) and build the outer funnel.
+    # The Ellis-Bronnikov geometry is symmetric under r <-> b0^2/(4r),
+    # so both funnels have identical embedding profiles when parameterized
+    # by R_areal.  The inner funnel (r -> 0, second universe) is poorly
+    # resolved numerically (chi hits the floor), so we use the well-resolved
+    # outer funnel and mirror it to produce the classic symmetric embedding.
+    i_throat = int(np.argmin(R_areal))
 
-    R_full = np.concatenate([R_areal[::-1], R_areal])
-    z_full = np.concatenate([-z_one_side[::-1], z_one_side])
+    R_outer = R_areal[i_throat:]
+    dz_outer = dz_dr[i_throat:]
+    z_outer = np.zeros(len(R_outer))
+    if len(R_outer) > 1:
+        z_outer[1:] = cumulative_trapezoid(dz_outer, r_arr[i_throat:])
+
+    R_full = np.concatenate([R_outer[::-1], R_outer[1:]])
+    z_full = np.concatenate([-z_outer[::-1], z_outer[1:]])
 
     return R_full, z_full
 
@@ -598,6 +609,16 @@ def _render_embedding_frame(
 
     lim_xy = float(r_max) * 1.15
     lim_z = float(r_max) * 0.8
+
+    # Clip embedding data to the z-axis display range. Near the grid origin
+    # (compactified second universe) chi -> 0 produces enormous dl/dr,
+    # making z_embed blow up while R_areal remains large. Matplotlib 3D does
+    # not clip surfaces to axis limits, so unclipped data obscures the throat.
+    mask = np.abs(z_embed) <= lim_z * 1.05
+    if mask.sum() >= 3:
+        R_areal = R_areal[mask]
+        z_embed = z_embed[mask]
+        lim_xy = min(lim_xy, float(np.max(R_areal)) * 1.15)
 
     phi = np.linspace(0, 2 * np.pi, 80)
     PHI, _ = np.meshgrid(phi, np.arange(len(R_areal)))

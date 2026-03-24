@@ -307,10 +307,14 @@ void SupportedWormholeLevel::specificPostTimeStep()
 
         amrex::ReduceOps<amrex::ReduceOpMin, amrex::ReduceOpMin,
                          amrex::ReduceOpMax, amrex::ReduceOpMax,
-                         amrex::ReduceOpMin>
+                         amrex::ReduceOpMin,
+                         amrex::ReduceOpMin, amrex::ReduceOpMax,
+                         amrex::ReduceOpMin, amrex::ReduceOpMax>
             reduce_ops;
         amrex::ReduceData<amrex::Real, amrex::Real, amrex::Real, amrex::Real,
-                          amrex::Real>
+                          amrex::Real,
+                          amrex::Real, amrex::Real,
+                          amrex::Real, amrex::Real>
             reduce_data(reduce_ops);
         using ReduceTuple = typename decltype(reduce_data)::Type;
         
@@ -374,7 +378,11 @@ void SupportedWormholeLevel::specificPostTimeStep()
                         }
                     }
 
-                    return {lapse, chi, amrex::Math::abs(K), ah_radius, theta_plus_min_proxy};
+                    const amrex::Real sf_phi = arr(i, j, k, c_phi);
+                    const amrex::Real sf_Pi  = arr(i, j, k, c_Pi);
+
+                    return {lapse, chi, amrex::Math::abs(K), ah_radius, theta_plus_min_proxy,
+                            sf_phi, sf_phi, sf_Pi, sf_Pi};
                 });
         }
 
@@ -384,11 +392,19 @@ void SupportedWormholeLevel::specificPostTimeStep()
         amrex::Real max_abs_K  = amrex::get<2>(reduce_vals);
         amrex::Real max_ah_r   = amrex::get<3>(reduce_vals);
         amrex::Real min_theta_plus = amrex::get<4>(reduce_vals);
+        amrex::Real min_phi    = amrex::get<5>(reduce_vals);
+        amrex::Real max_phi    = amrex::get<6>(reduce_vals);
+        amrex::Real min_Pi     = amrex::get<7>(reduce_vals);
+        amrex::Real max_Pi     = amrex::get<8>(reduce_vals);
         amrex::ParallelDescriptor::ReduceRealMin(min_lapse);
         amrex::ParallelDescriptor::ReduceRealMin(min_chi);
         amrex::ParallelDescriptor::ReduceRealMax(max_abs_K);
         amrex::ParallelDescriptor::ReduceRealMax(max_ah_r);
         amrex::ParallelDescriptor::ReduceRealMin(min_theta_plus);
+        amrex::ParallelDescriptor::ReduceRealMin(min_phi);
+        amrex::ParallelDescriptor::ReduceRealMax(max_phi);
+        amrex::ParallelDescriptor::ReduceRealMin(min_Pi);
+        amrex::ParallelDescriptor::ReduceRealMax(max_Pi);
 
         // Location of the global minimum lapse (average over ties).
         // This helps confirm the collapse localizes at the throat/center rather
@@ -548,7 +564,8 @@ void SupportedWormholeLevel::specificPostTimeStep()
             diag_file.write_header_line(
                 {"min_lapse", "min_chi", "max_abs_K", "min_lapse_x",
                  "min_lapse_y", "min_lapse_z", "max_ah_r", "min_theta_plus",
-                 "r_at_min_theta_plus"});
+                 "r_at_min_theta_plus",
+                 "min_phi", "max_phi", "min_Pi", "max_Pi"});
         }
         diag_file.write_time_data_line({static_cast<double>(min_lapse),
                                         static_cast<double>(min_chi),
@@ -558,6 +575,10 @@ void SupportedWormholeLevel::specificPostTimeStep()
                                         static_cast<double>(min_lapse_z),
                                         static_cast<double>(max_ah_r),
                                         static_cast<double>(min_theta_plus),
-                                        static_cast<double>(r_at_min_theta_plus)});
+                                        static_cast<double>(r_at_min_theta_plus),
+                                        static_cast<double>(min_phi),
+                                        static_cast<double>(max_phi),
+                                        static_cast<double>(min_Pi),
+                                        static_cast<double>(max_Pi)});
     }
 }
