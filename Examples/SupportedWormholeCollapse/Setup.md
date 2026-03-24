@@ -264,3 +264,12 @@ MPI:
 ```bash
 CUDA_VISIBLE_DEVICES=0,1 mpirun -n 2 ./main3d.gnu.MPI.CUDA.ex params_2gpu.txt amrex.use_gpu_aware_mpi=0
 ```
+```
+# Terminal 1: simulation
+```bash
+CUDA_VISIBLE_DEVICES=1,2,3,4,5,6,7 mpirun -n 7 ./main3d.gnu.MPI.CUDA.ex params_2gpu.txt
+```
+# Terminal 2: plotting consumer
+```bash
+./src/scripts/plot_run.sh /home/jovyan/nachevsky/test/simulation/data_supported
+```

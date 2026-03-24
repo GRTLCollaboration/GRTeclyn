@@ -51,45 +51,19 @@ class SupportedWormholeInitialData
         std::array<double, AMREX_SPACEDIM> centerA;
         std::array<double, AMREX_SPACEDIM> centerB;
 
-        // Optional kick in the trace of the extrinsic curvature K.
-        //
-        // The kick is decomposed into:
-        //   - a monopole (spherically symmetric / compressive) piece
-        //   - a quadrupole (Y20-like) piece that breaks spherical symmetry
-        //
-        // For a single-throat setup:
-        //   K = [k_monopole_amplitude
-        //        + k_quadrupole_amplitude * (3 cos^2(theta) - 1)]
-        //       * exp(-rA^2 / k_width^2)
-        //
-        // For a two-mouth setup the same profile is applied around each mouth
-        // and summed. The legacy k_amplitude parameter is retained as a
-        // backward-compatible alias for the quadrupole amplitude.
-        double k_amplitude;
-        double k_monopole_amplitude;
-        double k_quadrupole_amplitude;
-        double k_width;
+        // Scalar field profile perturbation at t=0:
+        //   phi -> phi_EB(r) + A * Y20(theta) * exp(-r^2/sigma^2)
+        // With Pi=0 and K_ij=0, the momentum constraint is satisfied exactly.
+        // Only the Hamiltonian constraint picks up a small spin-0 residual
+        // from the changed gradient energy, which does not contaminate Psi4.
+        double phi_perturbation_amplitude;
+        double phi_perturbation_width;
 
-        // Legacy/debug option: initialise a nontrivial Cartesian gamma_ij
-        // (single-throat proper-distance metric centred at the origin).
         bool use_cartesian_gamma;
 
         double phantom_mass;
 
-        // Overall multiplier for the exotic scalar field support
         double support_strength;
-        double support_ramp_start;
-        double support_ramp_duration;
-
-        // Optional delayed kick applied during evolution after the support has
-        // begun to switch off. This is distinct from the t=0 initial-data kick
-        // above and is used to probe the unsupported branch after the throat has
-        // been de-supported.
-        double delayed_kick_start;
-        double delayed_kick_duration;
-        double delayed_kick_monopole_amplitude;
-        double delayed_kick_quadrupole_amplitude;
-        double delayed_kick_width;
     };
 
     SupportedWormholeInitialData(params_t a_params, double a_dx)
@@ -179,59 +153,11 @@ class SupportedWormholeInitialData
         // Floors (avoid NaNs in evolution)
         if (chi < (data_t)1.0e-10) chi = (data_t)1.0e-10;
 
-        // Optional K kick:
-        //   - monopole piece drives coherent compression / expansion
-        //   - quadrupole piece breaks spherical symmetry to source GW content
-        data_t K = 0.0;
-        const double monopole_amplitude = m_params.k_monopole_amplitude;
-        const double quadrupole_amplitude = m_params.k_quadrupole_amplitude;
-        if (((monopole_amplitude != 0.0) || (quadrupole_amplitude != 0.0)) &&
-            (m_params.k_width > 0.0))
-        {
-            const data_t sig2 = (data_t)(m_params.k_width * m_params.k_width);
-
-            // Calculate quadrupole angular dependence: 3(z/r)^2 - 1.
-            // A small regularization eps is used to avoid division by zero at
-            // the exact center.
-            const data_t eps2_ang = (data_t)1.0e-24;
-
-            const data_t rA2_safe = simd_max(rA2, eps2_ang);
-            const data_t cos_theta_A_sq = dzA * dzA / rA2_safe;
-            const data_t Y20_A = 3.0 * cos_theta_A_sq - 1.0;
-
-            const data_t rB2_safe = simd_max(rB2, eps2_ang);
-            const data_t cos_theta_B_sq = dzB * dzB / rB2_safe;
-            const data_t Y20_B = 3.0 * cos_theta_B_sq - 1.0;
-
-            const data_t gaussian_A = exp(-rA2 / sig2);
-            const data_t gaussian_B = exp(-rB2 / sig2);
-            const data_t kick_A =
-                ((data_t)monopole_amplitude +
-                 (data_t)quadrupole_amplitude * Y20_A) *
-                gaussian_A;
-            const data_t kick_B =
-                ((data_t)monopole_amplitude +
-                 (data_t)quadrupole_amplitude * Y20_B) *
-                gaussian_B;
-
-            if (m_params.metric_type == 1)
-            {
-                // Single throat: seed collapse at centerA only.
-                K = kick_A;
-            }
-            else
-            {
-                // Two mouths: kick both mouths and sum their contributions.
-                K = kick_A + kick_B;
-            }
-        }
-
-        // Initialize scalar field phi and Pi (static Ellis-Bronnikov solution)
+        // Initialize scalar field phi and Pi
         data_t phi = 0.0;
         data_t Pi = 0.0;
         
         // phi(r) = (1/sqrt(4*pi)) * arctan( (r - b0^2/(4r)) / b0 )
-        // Using G=1.
         if (m_params.metric_type == 1)
         {
             const data_t rA = sqrt(rA2_reg);
@@ -250,6 +176,35 @@ class SupportedWormholeInitialData
             const data_t phiB = (data_t)(1.0 / sqrt(4.0 * M_PI)) * atan(argB);
             
             phi = phiA + phiB;
+        }
+
+        // Quadrupolar scalar field profile perturbation:
+        //   phi += A * Y20(theta) * exp(-r^2 / sigma^2)
+        // Pi remains zero, so the momentum constraint is exactly satisfied.
+        const double phi_amp = m_params.phi_perturbation_amplitude;
+        const double phi_width = m_params.phi_perturbation_width;
+        if (phi_amp != 0.0 && phi_width > 0.0)
+        {
+            const data_t sig2 = (data_t)(phi_width * phi_width);
+            const data_t eps2_ang = (data_t)1.0e-24;
+
+            const data_t rA2_safe = simd_max(rA2, eps2_ang);
+            const data_t cos_theta_A_sq = dzA * dzA / rA2_safe;
+            const data_t Y20_A = 3.0 * cos_theta_A_sq - 1.0;
+            const data_t dphi_A = (data_t)phi_amp * Y20_A * exp(-rA2 / sig2);
+
+            if (m_params.metric_type == 1)
+            {
+                phi += dphi_A;
+            }
+            else
+            {
+                const data_t rB2_safe = simd_max(rB2, eps2_ang);
+                const data_t cos_theta_B_sq = dzB * dzB / rB2_safe;
+                const data_t Y20_B = 3.0 * cos_theta_B_sq - 1.0;
+                const data_t dphi_B = (data_t)phi_amp * Y20_B * exp(-rB2 / sig2);
+                phi += dphi_A + dphi_B;
+            }
         }
 
         data_t lapse = 1.0;
@@ -274,7 +229,7 @@ class SupportedWormholeInitialData
         cell(i, j, k, c_h23) = h23;
         cell(i, j, k, c_h33) = h33;
 
-        cell(i, j, k, c_K) = K;
+        cell(i, j, k, c_K) = 0.0;
         cell(i, j, k, c_A11) = 0.0;
         cell(i, j, k, c_A12) = 0.0;
         cell(i, j, k, c_A13) = 0.0;

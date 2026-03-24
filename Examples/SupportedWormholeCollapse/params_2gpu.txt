@@ -28,27 +28,17 @@ wormhole_initial_lapse_type = 1
 wormhole_throat_radius = 0.5
 wormhole_centerA = 0.0 0.0 0.0
 
-# Extrinsic-curvature kick at t=0:
-#   K(r,theta) = [A0 + A2(3cos^2(theta)-1)] exp(-r^2/sigma^2)
-wormhole_k_monopole_amplitude   = 0.0
-wormhole_k_quadrupole_amplitude = 0.05
-wormhole_k_width                = 0.5
-
-# Delayed kick (disabled)
-wormhole_delayed_kick_start = -1.0
-wormhole_delayed_kick_duration = 0.0
-wormhole_delayed_kick_monopole_amplitude = 0.0
-wormhole_delayed_kick_quadrupole_amplitude = 0.0
-wormhole_delayed_kick_width = 1.0
+# Scalar field profile perturbation at t=0:
+#   phi -> phi_EB(r) + A * Y20(theta) * exp(-r^2/sigma^2)
+# Pi=0, K_ij=0 => momentum constraint satisfied exactly.
+wormhole_phi_perturbation_amplitude = 0.05
+wormhole_phi_perturbation_width     = 0.5
 
 wormhole_use_cartesian_gamma = 0
 
-# Phantom scalar field support (constant strength, mass drives dispersal)
+# Phantom scalar field support
 wormhole_support_strength = 1.0
-wormhole_support_ramp_start = -1.0
-wormhole_support_ramp_duration = -1.0
-wormhole_support_causal_speed = 0.0
-phantom_mass = 1.0
+phantom_mass = 0.0
 
 #################################################
 # Grid parameters
