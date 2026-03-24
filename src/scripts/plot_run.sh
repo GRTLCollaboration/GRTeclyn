@@ -6,9 +6,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 SIM_ROOT="$(cd "${REPO_DIR}/.." && pwd)"
 
-DEFAULT_DATA_DIR="${SIM_ROOT}/data_2gpu"
-if [[ ! -d "${DEFAULT_DATA_DIR}" && -d "${SIM_ROOT}/data" ]]; then
-  DEFAULT_DATA_DIR="${SIM_ROOT}/data"
+DEFAULT_DATA_DIR=""
+for candidate in "${SIM_ROOT}/data_2gpu" "${SIM_ROOT}/data_supported" "${SIM_ROOT}/data"; do
+  if [[ -d "${candidate}" ]]; then
+    DEFAULT_DATA_DIR="${candidate}"
+    break
+  fi
+done
+if [[ -z "${DEFAULT_DATA_DIR}" ]]; then
+  DEFAULT_DATA_DIR="${SIM_ROOT}/data_2gpu"
 fi
 
 REMOVE_STALE=true

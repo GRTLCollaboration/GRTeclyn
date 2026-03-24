@@ -1,4 +1,4 @@
-# WormholeCollapse Setup
+# SupportedWormholeCollapse Setup
 
 ## Prerequisites
 
@@ -28,6 +28,53 @@ echo 'export PATH=/usr/local/cuda/bin:$PATH' >> ~/.bashrc
 source ~/.bashrc
 ```
 
+## MPI Prerequisite For Multi-GPU Runs
+
+The MPI executable `main3d.gnu.MPI.CUDA.ex` needs both:
+
+- `mpirun` in your `PATH`
+- `libmpi.so.40` in your library path
+
+If you see either
+
+```bash
+bash: mpirun: command not found
+```
+
+or
+
+```bash
+ldd ./main3d.gnu.MPI.CUDA.ex | grep libmpi
+libmpi.so.40 => not found
+```
+
+then CUDA is active but the OpenMPI runtime is not.
+
+### Local OpenMPI under `~/nachevsky`
+
+If you installed OpenMPI locally at
+`/home/jovyan/nachevsky/test/simulation/local/openmpi-5.0.8`, activate it in
+the current shell before running the MPI executable:
+
+```bash
+export PATH=$HOME/nachevsky/test/simulation/local/openmpi-5.0.8/bin:$PATH
+export LD_LIBRARY_PATH=$HOME/nachevsky/test/simulation/local/openmpi-5.0.8/lib:${LD_LIBRARY_PATH:-}
+```
+
+Verify that the shell sees the correct runtime:
+
+```bash
+which mpirun
+ldd ./main3d.gnu.MPI.CUDA.ex | grep libmpi
+```
+
+Expected output should point into your local install, for example:
+
+```bash
+/home/jovyan/nachevsky/test/simulation/local/openmpi-5.0.8/bin/mpirun
+libmpi.so.40 => /home/jovyan/nachevsky/test/simulation/local/openmpi-5.0.8/lib/libmpi.so.40
+```
+
 ## Build
 
 ### Single-GPU (No MPI)
@@ -54,9 +101,61 @@ CUDA_VISIBLE_DEVICES=0 ./main3d.gnu.CUDA.ex params.txt
 ### Multi-GPU (e.g. 2 GPUs)
 Use `mpirun` to launch the MPI version of the executable.
 ```bash
-# Use GPUs 0 and 1
-CUDA_VISIBLE_DEVICES=0,1 mpirun -n 2 ./main3d.gnu.MPI.CUDA.ex params_2gpu.txt
+# Use GPUs 0,1,2,3,4,5,6,7
+CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 mpirun -n 8 ./main3d.gnu.MPI.CUDA.ex params_2gpu.txt
 ```
+
+If you are using the local OpenMPI install above, activate it in the shell
+first, then run the command from this directory.
+
+## Physics Status Of This Example
+
+`Examples/SupportedWormholeCollapse` is the self-consistent, constraint-satisfying
+Ellis-Bronnikov wormhole experiment. It differs from `Examples/WormholeCollapse` as
+follows:
+
+- The spatial metric is initialized from the isotropic Ellis-Bronnikov scale
+  factor, identical to the unsupported case.
+- A phantom scalar field (`ExoticScalarField`) is evolved alongside the geometry
+  via `CCZ4RHSWithMatter`. The field is initialized to the exact
+  Ellis-Bronnikov solution `phi(r) = (1/sqrt(4pi)) arctan((r - b^2/(4r))/b)`.
+- Because the full coupled Einstein + matter system is solved, the initial data
+  satisfies the Hamiltonian and Momentum constraints to truncation error (no
+  finite constraint defect at `t=0`).
+- A `PhantomDecayPotential` with `V(phi) = 1/2 m^2 phi^2` is used to drive
+  dispersal of the phantom scalar field. The mass parameter `phantom_mass`
+  controls the dispersal timescale (~1/m). Setting `phantom_mass = 0` recovers
+  the exact stationary Ellis-Bronnikov solution (useful as a null test).
+- The `wormhole_support_strength` is held constant at 1.0 (no time-dependent
+  ramp). All dynamics are driven by the mass term in the potential.
+- An optional extrinsic-curvature kick (`wormhole_k_quadrupole_amplitude`) can
+  be applied at `t=0` to break spherical symmetry and source gravitational wave
+  content.
+
+### Stabilization Parameters: `kappa`, `sigma`, and `shift_advec_coeff`
+
+Three commonly tuned stabilization parameters in the wormhole runs are `kappa1`,
+`sigma`, and `shift_advec_coeff`, but they act in completely different ways.
+
+- `kappa1` is a CCZ4 constraint-damping parameter. It damps violations of the
+  Z4/CCZ4 constraint variables during evolution. Increasing `kappa1` means
+  stronger damping of those constraint-violating modes.
+- `sigma` is the Kreiss-Oliger numerical dissipation coefficient. It adds
+  high-frequency smoothing to the finite-difference RHS and mainly suppresses
+  grid-scale numerical noise.
+- `shift_advec_coeff` controls whether the spatial shift vector is advected by
+  itself. In strong-field / moving-puncture simulations, the shift vector gets
+  very steep. Multiplying a steep shift by its own derivative creates extreme
+  numerical gradients.
+
+So while they all affect stability, they are not interchangeable:
+
+- raise `kappa1` if the run looks dominated by growing CCZ4 constraint
+  violations,
+- raise `sigma` if the run looks contaminated by short-wavelength numerical
+  noise or interpolation junk,
+- set `shift_advec_coeff = 0.0` (disabled) instead of `1.0` if the run suffers
+  from extreme gauge-shock NaNs near the throat/puncture.
 
 ### Multi-GPU (e.g. 4 GPUs)
 This example also works with 4 GPUs (4 MPI ranks):
@@ -65,19 +164,26 @@ This example also works with 4 GPUs (4 MPI ranks):
 CUDA_VISIBLE_DEVICES=0,1,2,3 mpirun -n 4 ./main3d.gnu.MPI.CUDA.ex params_2gpu.txt
 ```
 
-You may see a warning like:
-“Multiple GPUs are visible to each MPI rank... rank-to-GPU mapping...”.
-It can still run correctly, but for the most robust rank→GPU mapping, use the
-binding method below.
-
 ### Multi-GPU (e.g. 8 GPUs)
-On an 8×H100 node you can run with 8 GPUs (8 MPI ranks) like this:
+On an 8xH100 node you can run with 8 GPUs (8 MPI ranks) like this:
 
 ```bash
 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 mpirun -n 8 ./main3d.gnu.MPI.CUDA.ex params_2gpu.txt
 ```
 
-Run on some random gpus 
+#### Quick MPI troubleshooting
+
+Before running the MPI executable, it is worth checking:
+
+```bash
+which mpirun
+ldd ./main3d.gnu.MPI.CUDA.ex | grep libmpi
+```
+
+If `which mpirun` is empty, or `libmpi.so.40` is reported as `not found`, the
+OpenMPI runtime is not active in your shell yet.
+
+Run on some random gpus
 ```bash
 CUDA_VISIBLE_DEVICES=4,5,6,7 mpirun -n 8 ./main3d.gnu.MPI.CUDA.ex params_2gpu.txt
 ```
@@ -91,35 +197,35 @@ single GPU:
 mpirun -n 2 bash -c 'export CUDA_VISIBLE_DEVICES=$OMPI_COMM_WORLD_LOCAL_RANK; exec ./main3d.gnu.MPI.CUDA.ex params_2gpu.txt'
 ```
 
-For 4 GPUs (ranks 0–3 → GPUs 0–3):
+For 4 GPUs (ranks 0-3 -> GPUs 0-3):
 
 ```bash
 mpirun -n 4 bash -c 'export CUDA_VISIBLE_DEVICES=$OMPI_COMM_WORLD_LOCAL_RANK; exec ./main3d.gnu.MPI.CUDA.ex params_2gpu.txt'
 ```
 
-For 8 GPUs (ranks 0–7 → GPUs 0–7):
+For 8 GPUs (ranks 0-7 -> GPUs 0-7):
 
 ```bash
 mpirun -n 8 bash -c 'export CUDA_VISIBLE_DEVICES=$OMPI_COMM_WORLD_LOCAL_RANK; exec ./main3d.gnu.MPI.CUDA.ex params_2gpu.txt'
 ```
 
 #### Will it be faster with more GPUs?
-It depends — not automatically.
+It depends -- not automatically.
 
-- You will almost always get more total throughput than 1 GPU, but **8 GPUs will not be 8× faster** for this kind of AMR code.
-- With many small grids (e.g. lots of `8×8×8` up to `32×32×32`), scaling is often limited by:
-  - MPI halo exchanges (more ranks → more communication),
+- You will almost always get more total throughput than 1 GPU, but **8 GPUs will not be 8x faster** for this kind of AMR code.
+- With many small grids (e.g. lots of `8x8x8` up to `32x32x32`), scaling is often limited by:
+  - MPI halo exchanges (more ranks -> more communication),
   - regridding / load-balancing overhead,
   - kernel launch overhead on small tiles.
 
 **What you should expect**
-- **2 → 4 GPUs** often gives a noticeable speedup.
-- **4 → 8 GPUs** may give a smaller gain, and sometimes can be close to flat if communication dominates.
+- **2 -> 4 GPUs** often gives a noticeable speedup.
+- **4 -> 8 GPUs** may give a smaller gain, and sometimes can be close to flat if communication dominates.
 
 **How to know for sure (quick test)**
-Run the same setup for a short time (e.g. set `stop_time = 1.0`) with `-n 2`, `-n 4`, `-n 8` and compare the printed “average evolution speed” / walltime per step. That’s the only reliable answer on your specific problem + node.
+Run the same setup for a short time (e.g. set `stop_time = 1.0`) with `-n 2`, `-n 4`, `-n 8` and compare the printed "average evolution speed" / walltime per step. That's the only reliable answer on your specific problem + node.
 
-#### If it looks “stuck” after `AMReX ... initialized`
+#### If it looks "stuck" after `AMReX ... initialized`
 It can spend noticeable time on **CPU-side initialization** (grid generation,
 distribution mapping, regridding setup) before the first evolution step prints.
 During this phase GPU utilization can be low even though the run is progressing.
