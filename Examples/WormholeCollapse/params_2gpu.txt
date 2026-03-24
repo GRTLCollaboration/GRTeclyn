@@ -34,7 +34,7 @@ wormhole_centerA = 0.0 0.0 0.0
 
 # Extrinsic-curvature kick at t=0:
 #   K(r,theta) = [A0 + A2(3cos^2(theta)-1)] exp(-r^2/sigma^2)
-wormhole_k_monopole_amplitude   = 2.0
+wormhole_k_monopole_amplitude   = 0.0
 wormhole_k_quadrupole_amplitude = 0.05
 wormhole_k_width       = 0.5
 

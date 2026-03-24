@@ -74,6 +74,8 @@ class SupportedWormholeInitialData
         // (single-throat proper-distance metric centred at the origin).
         bool use_cartesian_gamma;
 
+        double phantom_mass;
+
         // Overall multiplier for the exotic scalar field support
         double support_strength;
         double support_ramp_start;

@@ -59,7 +59,7 @@ wormhole_metric_type = 1
 # - 0: alpha = 1
 # - 1: alpha = sqrt(chi) (pre-collapsed)
 # - 2: alpha = 1 - 3*log(chi) (N=2, 1+log-inspired using gamma=chi^{-3})
-wormhole_initial_lapse_type = 0
+wormhole_initial_lapse_type = 1
 
 # Kick model:
 #   K(r,theta) = [A0 + A2 * (3 cos^2(theta) - 1)] * exp(-r^2 / sigma^2)
@@ -105,18 +105,20 @@ wormhole_support_ramp_start = -1.0
 wormhole_support_ramp_duration = -1.0
 # If > 0, remove support causally from the throat outward at this coordinate
 # speed instead of switching the whole slice at once.
-wormhole_support_causal_speed = 1.0
+wormhole_support_causal_speed = 0.0
+
+phantom_mass = 1.0
 
 # Initial-data kick kept at zero. Trigger later with the delayed pulse below.
 wormhole_k_monopole_amplitude   = 0.0
-wormhole_k_quadrupole_amplitude = 0.0
-wormhole_k_width       = 1.0
+wormhole_k_quadrupole_amplitude = 0.05
+wormhole_k_width       = 0.5
 
 # Delayed kick:
 # - starts after support has switched off at the throat
 # - amplitudes are integrated K-injections over the pulse window
 # - keep A2 tiny; scan A0 upward if r_AH stays zero
-wormhole_delayed_kick_start = 3.0
+wormhole_delayed_kick_start = -1.0
 wormhole_delayed_kick_duration = 0.5
 wormhole_delayed_kick_monopole_amplitude = 2.0
 wormhole_delayed_kick_quadrupole_amplitude = 0.01

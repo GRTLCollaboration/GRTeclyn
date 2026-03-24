@@ -60,6 +60,8 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("wormhole_use_cartesian_gamma", wormhole_params.use_cartesian_gamma,
                 false);
 
+        pp.load("phantom_mass", wormhole_params.phantom_mass, 0.0);
+
         pp.load("wormhole_support_strength", wormhole_params.support_strength,
                 1.0);
         pp.load("wormhole_support_ramp_start", wormhole_params.support_ramp_start,
