@@ -98,9 +98,9 @@ def load_collapse_diagnostics(path: Path) -> Dict[str, np.ndarray]:
         raise SystemExit(f"No data rows found in {path}")
 
     arr = np.asarray(rows, dtype=float)
-    if arr.shape[1] not in (4, 7, 8, 10):
+    if arr.shape[1] not in (4, 7, 8, 10, 14):
         raise SystemExit(
-            f"Unexpected number of columns in {path}: got {arr.shape[1]}, expected 4, 7, 8, or 10"
+            f"Unexpected number of columns in {path}: got {arr.shape[1]}, expected 4, 7, 8, 10, or 14"
         )
 
     t = arr[:, 0]
@@ -131,6 +131,12 @@ def load_collapse_diagnostics(path: Path) -> Dict[str, np.ndarray]:
     else:
         out["min_theta_plus"] = np.full_like(t, np.nan)
         out["r_at_min_theta_plus"] = np.full_like(t, np.nan)
+
+    if arr.shape[1] >= 14:
+        out["min_phi"] = arr[:, 10]
+        out["max_phi"] = arr[:, 11]
+        out["min_Pi"] = arr[:, 12]
+        out["max_Pi"] = arr[:, 13]
 
     idx = np.argsort(out["t"])
     for k in list(out.keys()):
@@ -470,6 +476,37 @@ def plot_collapse_diagnostics(
         ax_life.grid(True, which="both", ls="--", alpha=0.6)
         ax_life.tick_params(axis="both", which="major", direction="in")
 
+    if has_phantom:
+        row_idx = base_rows - 1
+        
+        # Panel 4a: min/max phi
+        ax_phi = axes[row_idx, 0]
+        y_min_phi = np.asarray(data["min_phi"], dtype=float)
+        y_max_phi = np.asarray(data["max_phi"], dtype=float)
+        ax_phi.plot(t, y_max_phi, color="black", linewidth=1.5, linestyle="-", label=r"$\max(\phi)$")
+        ax_phi.plot(t, y_min_phi, color="black", linewidth=1.5, linestyle="--", label=r"$\min(\phi)$")
+        ax_phi.set_ylabel(r"$\phi$")
+        ax_phi.set_title(r"Scalar field profile $\phi$")
+        ax_phi.legend(loc="best", frameon=True, framealpha=0.9, fontsize=9)
+        ax_phi.grid(True, which="both", ls="--", alpha=0.6)
+        ax_phi.tick_params(axis="both", which="major", direction="in")
+
+        # Panel 4b: min/max Pi
+        ax_pi = axes[row_idx, 1]
+        y_min_pi = np.asarray(data["min_Pi"], dtype=float)
+        y_max_pi = np.asarray(data["max_Pi"], dtype=float)
+        ax_pi.plot(t, y_max_pi, color="black", linewidth=1.5, linestyle="-", label=r"$\max(\Pi)$")
+        ax_pi.plot(t, y_min_pi, color="black", linewidth=1.5, linestyle="--", label=r"$\min(\Pi)$")
+        ax_pi.set_ylabel(r"$\Pi$")
+        ax_pi.set_title(r"Scalar field momentum $\Pi$")
+        ax_pi.legend(loc="best", frameon=True, framealpha=0.9, fontsize=9)
+        ax_pi.grid(True, which="both", ls="--", alpha=0.6)
+        ax_pi.tick_params(axis="both", which="major", direction="in")
+
+        # Panel 4c: (empty/placeholder or derived quantity if needed)
+        ax_empty = axes[row_idx, 2]
+        ax_empty.axis("off")
+
     # --- Black-hole remnant characterisation ---
     K_data = np.asarray(data["max_abs_K"], dtype=float)
     min_lapse = np.asarray(data["min_lapse"], dtype=float)
@@ -526,7 +563,7 @@ def plot_collapse_diagnostics(
             ax.set_title(f"({letter}) {title}")
 
     # x-axis labels on bottom row
-    for i in range(3):
+    for i in range(axes.shape[1]):
         axes[n_rows - 1, i].set_xlabel(r"$t$")
 
     plt.tight_layout()

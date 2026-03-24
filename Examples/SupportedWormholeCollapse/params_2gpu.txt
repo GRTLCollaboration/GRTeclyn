@@ -33,7 +33,7 @@ wormhole_centerA = 0.0 0.0 0.0
 # A_0 = monopole (drives fast symmetric collapse)
 # A_phi = quadrupole (breaks spherical symmetry -> GW signal)
 # Pi=0, K_ij=0 => momentum constraint satisfied exactly.
-wormhole_phi_monopole_amplitude     = 1.0
+wormhole_phi_monopole_amplitude     = 0.5
 wormhole_phi_perturbation_amplitude = 0.05
 wormhole_phi_perturbation_width     = 0.5
 
