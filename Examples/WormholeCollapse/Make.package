@@ -1,2 +1,0 @@
-GRTECLYN_CEXE_sources += WormholeLevel.cpp Main_Wormhole.cpp
-GRTECLYN_CEXE_headers += WormholeLevel.hpp SimulationParameters.hpp WormholeInitialData.hpp StateVariables.hpp
