@@ -15,7 +15,7 @@
 
 #include <cmath>
 
-//! Initial data for an "unsupported wormhole" experiment.
+//! Initial data for a self-consistent "supported wormhole" experiment.
 //!
 //! This class provides a conformally-flat isotropic *two-mouth* ansatz via
 //! superposition of Ellis–Bronnikov potentials:
@@ -23,19 +23,14 @@
 //!   psi(x) = 1 + bA^2/(4|x-cA|^2) + bB^2/(4|x-cB|^2),
 //!   chi = psi^{-4},  h_ij = delta_ij.
 //!
-//! The evolution system is vacuum CCZ4. Therefore, this initial slice is not in
-//! general a vacuum-constraint solution and will emit an early transient as it
-//! relaxes.
+//! The evolution system is the fully coupled Einstein-Klein-Gordon system
+//! with a phantom (ghost) scalar field. This initial slice represents an
+//! exact solution to the constraints at t=0.
 class SupportedWormholeInitialData
 {
   public:
     struct params_t
     {
-        // Metric realisation selector:
-        // 0 = two-mouth isotropic superposition (default, centers A/B)
-        // 1 = single-throat Morris–Thorne / Ellis–Bronnikov (uses centerA only)
-        int metric_type;
-
         // Initial lapse selector:
         // 0 = alpha = 1
         // 1 = alpha = sqrt(chi) (pre-collapsed)
@@ -45,14 +40,12 @@ class SupportedWormholeInitialData
         // Grid center used for index->physical coordinate mapping
         std::array<double, AMREX_SPACEDIM> grid_center;
 
-        // Mouth parameters
-        double throat_radius_A; // b_A
-        double throat_radius_B; // b_B
+        // Mouth parameter
+        double b0; // Throat radius
         std::array<double, AMREX_SPACEDIM> centerA;
-        std::array<double, AMREX_SPACEDIM> centerB;
 
         // Scalar field profile perturbation at t=0:
-        //   phi -> phi_EB(r) + A * Y20(theta) * exp(-r^2/sigma^2)
+        //   phi -> phi_EB(r) + (A_0 + A_phi * Y20(theta)) * exp(-r^2/sigma^2)
         // With Pi=0 and K_ij=0, the momentum constraint is satisfied exactly.
         // Only the Hamiltonian constraint picks up a small spin-0 residual
         // from the changed gradient energy, which does not contaminate Psi4.
@@ -60,10 +53,7 @@ class SupportedWormholeInitialData
         double phi_perturbation_amplitude;
         double phi_perturbation_width;
 
-        bool use_cartesian_gamma;
-
         double phantom_mass;
-
         double support_strength;
     };
 
@@ -83,73 +73,28 @@ class SupportedWormholeInitialData
         const data_t y = coords.y;
         const data_t z = coords.z;
 
-        const double bA = m_params.throat_radius_A;
-        const double bB = m_params.throat_radius_B;
-        const double bA_sq = bA * bA;
-        const double bB_sq = bB * bB;
+        const double b0 = m_params.throat_radius_A;
+        const double b0_sq = b0 * b0;
 
-        // Distances to mouths
+        // Distances to throat
         const data_t dxA = x - (data_t)m_params.centerA[0];
         const data_t dyA = y - (data_t)m_params.centerA[1];
         const data_t dzA = z - (data_t)m_params.centerA[2];
         const data_t rA2 = dxA * dxA + dyA * dyA + dzA * dzA;
 
-        const data_t dxB = x - (data_t)m_params.centerB[0];
-        const data_t dyB = y - (data_t)m_params.centerB[1];
-        const data_t dzB = z - (data_t)m_params.centerB[2];
-        const data_t rB2 = dxB * dxB + dyB * dyB + dzB * dzB;
-
-        // Regularisation to avoid division by zero at a mouth center
+        // Regularisation to avoid division by zero at origin
         const data_t eps2 = (data_t)1.0e-24;
         const data_t rA2_reg = simd_max(rA2, eps2);
-        const data_t rB2_reg = simd_max(rB2, eps2);
 
         data_t chi = 1.0;
         data_t h11 = 1.0, h12 = 0.0, h13 = 0.0, h22 = 1.0, h23 = 0.0, h33 = 1.0;
 
-        if (m_params.use_cartesian_gamma)
-        {
-            // Legacy/debug: proper-distance single-throat metric at origin
-            const data_t r0_2 = x * x + y * y + z * z;
-            const data_t ell2 = r0_2 + (data_t)m_dx * (data_t)m_dx;
-            const data_t ell  = sqrt(ell2);
-
-            const data_t fac = (data_t)bA_sq / ell2;
-            const data_t A   = 1.0 + fac;
-            const data_t nx = x / ell;
-            const data_t ny = y / ell;
-            const data_t nz = z / ell;
-
-            const data_t g11 = A - fac * nx * nx;
-            const data_t g22 = A - fac * ny * ny;
-            const data_t g33 = A - fac * nz * nz;
-            const data_t g12 = -fac * nx * ny;
-            const data_t g13 = -fac * nx * nz;
-            const data_t g23 = -fac * ny * nz;
-
-            // det(gamma)=A^2 (radial eigenvalue ~1) -> chi = A^{-2/3}
-            chi = pow(A, (data_t)(-2.0 / 3.0));
-            h11 = chi * g11;
-            h22 = chi * g22;
-            h33 = chi * g33;
-            h12 = chi * g12;
-            h13 = chi * g13;
-            h23 = chi * g23;
-        }
-        else
-        {
-            // Isotropic conformally-flat Ellis–Bronnikov form:
-            // - metric_type=0: two-mouth superposition
-            // - metric_type=1: single-throat Morris–Thorne / Ellis–Bronnikov
-            const data_t termA = (data_t)bA_sq / (4.0 * rA2_reg);
-            const data_t termB = (m_params.metric_type == 1)
-                                     ? (data_t)0.0
-                                     : (data_t)bB_sq / (4.0 * rB2_reg);
-            const data_t psi   = 1.0 + termA + termB;
-            const data_t psi2  = psi * psi;
-            const data_t psi4  = psi2 * psi2;
-            chi = 1.0 / psi4;
-        }
+        // Isotropic conformally-flat Ellis–Bronnikov form:
+        const data_t termA = (data_t)b0_sq / (4.0 * rA2_reg);
+        const data_t psi   = 1.0 + termA;
+        const data_t psi2  = psi * psi;
+        const data_t psi4  = psi2 * psi2;
+        chi = 1.0 / psi4;
 
         // Floors (avoid NaNs in evolution)
         if (chi < (data_t)1.0e-10) chi = (data_t)1.0e-10;
@@ -159,25 +104,9 @@ class SupportedWormholeInitialData
         data_t Pi = 0.0;
         
         // phi(r) = (1/sqrt(4*pi)) * arctan( (r - b0^2/(4r)) / b0 )
-        if (m_params.metric_type == 1)
-        {
-            const data_t rA = sqrt(rA2_reg);
-            const data_t argA = (rA - (data_t)bA_sq / (4.0 * rA)) / (data_t)bA;
-            phi = (data_t)(1.0 / sqrt(4.0 * M_PI)) * atan(argA);
-        }
-        else
-        {
-            // Simple superposition for two mouths
-            const data_t rA = sqrt(rA2_reg);
-            const data_t argA = (rA - (data_t)bA_sq / (4.0 * rA)) / (data_t)bA;
-            const data_t phiA = (data_t)(1.0 / sqrt(4.0 * M_PI)) * atan(argA);
-            
-            const data_t rB = sqrt(rB2_reg);
-            const data_t argB = (rB - (data_t)bB_sq / (4.0 * rB)) / (data_t)bB;
-            const data_t phiB = (data_t)(1.0 / sqrt(4.0 * M_PI)) * atan(argB);
-            
-            phi = phiA + phiB;
-        }
+        const data_t rA = sqrt(rA2_reg);
+        const data_t argA = (rA - (data_t)b0_sq / (4.0 * rA)) / (data_t)b0;
+        phi = (data_t)(1.0 / sqrt(4.0 * M_PI)) * atan(argA);
 
         // Scalar field profile perturbation at t=0:
         //   phi += (A_0 + A_phi * Y20(theta)) * exp(-r^2 / sigma^2)
@@ -198,19 +127,7 @@ class SupportedWormholeInitialData
             const data_t dphi_A = ((data_t)phi_mono + (data_t)phi_amp * Y20_A)
                                   * exp(-rA2 / sig2);
 
-            if (m_params.metric_type == 1)
-            {
-                phi += dphi_A;
-            }
-            else
-            {
-                const data_t rB2_safe = simd_max(rB2, eps2_ang);
-                const data_t cos_theta_B_sq = dzB * dzB / rB2_safe;
-                const data_t Y20_B = 3.0 * cos_theta_B_sq - 1.0;
-                const data_t dphi_B = ((data_t)phi_mono + (data_t)phi_amp * Y20_B)
-                                      * exp(-rB2 / sig2);
-                phi += dphi_A + dphi_B;
-            }
+            phi += dphi_A;
         }
 
         data_t lapse = 1.0;

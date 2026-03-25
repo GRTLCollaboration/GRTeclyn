@@ -124,11 +124,11 @@ echo "=========================================="
 python -m src.visualisation.process_wave.consume_plotfiles \
   --data "${DATA_DIR}" \
   --out "${DATA_DIR}/small_data" \
-  --radii 8 12 16 \
-  --n-points 32 \
+  --radii 12 16 20 24 \
+  --n-points 64 \
   --areal-radius \
   --embedding --embedding-rmax 5.0 \
-  --frames-fields chi K Weyl4_Re Weyl4_Mag \
+  --frames-fields K Weyl4_Re \
   --frames-axis z \
   --frames-corner \
   --frames-out "${REPO_DIR}/src/visualisation/visualize" \

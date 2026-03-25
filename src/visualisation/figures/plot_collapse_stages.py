@@ -34,8 +34,8 @@ def plot_wormhole_stages(output_dir):
         "axes.titlesize": 22,   # Increased from 16
     })
     
-    # We will create two rows: one for collapse, one for expansion
-    fig = plt.figure(figsize=(20, 12))  # Increased figure size for better resolution when scaled down
+    # We will create one row for collapse stages
+    fig = plt.figure(figsize=(20, 6))  # Reduced height for one row
     
     # Parameters
     b0 = 1.0
@@ -47,29 +47,22 @@ def plot_wormhole_stages(output_dir):
     
     # Use pure white for the surface, with only black lines
     collapse_stages = [
-        {"title": "(a) Initial Traversable Wormhole", "pinch": 1.0},
-        {"title": "(b) Throat Constriction (K < 0)", "pinch": 0.4},
-        {"title": "(c) Bifurcation & BH Formation", "pinch": 0.05} 
+        {"title": "(a) Initial Traversable Wormhole", "pinch": 1.0, "with_waves": False},
+        {"title": "(b) Dynamical Constriction", "pinch": 0.4, "with_waves": False},
+        {"title": "(c) Pinch-off & Black Hole", "pinch": 0.05, "with_waves": True} 
     ]
     
-    # Define the stages for expansion (Row 2)
-    expansion_stages = [
-        {"title": "(d) Initial Traversable Wormhole", "pinch": 1.0, "scale": 1.0},
-        {"title": "(e) Throat Expansion (K >= 0)", "pinch": 1.5, "scale": 1.5},
-        {"title": "(f) Complete Dissipation (Minkowski)", "pinch": 3.0, "scale": 3.0}
-    ]
-    
-    all_stages = [collapse_stages, expansion_stages]
+    all_stages = [collapse_stages]
     
     for row_idx, row_stages in enumerate(all_stages):
-        is_expansion = (row_idx == 1)
         
         for col_idx, stage in enumerate(row_stages):
-            # 2 rows, 3 columns
-            ax = fig.add_subplot(2, 3, row_idx*3 + col_idx + 1, projection='3d')
+            # 1 row, 3 columns
+            ax = fig.add_subplot(1, 3, col_idx + 1, projection='3d')
             
             pinch = stage["pinch"]
-            scale = stage.get("scale", 1.0)
+            is_with_waves = stage.get("with_waves", False)
+            scale = 1.0
             
             # Surface properties: white face color, black edges, opaque
             surf_kwargs = {
@@ -80,53 +73,39 @@ def plot_wormhole_stages(output_dir):
                 'shade': False # This turns off the 3D lighting shadows completely!
             }
             
-            # Special Case: Complete Dissipation to Minkowski (Row 2, Last Column)
-            if is_expansion and scale >= 3.0:
-                # One single, solid, perfectly flat grid
-                r_flat = np.linspace(0.01, r_max, num_r + 4) # Fill in the hole (r starts near 0)
-                R_flat, Theta_flat = np.meshgrid(r_flat, theta)
-                X_flat = R_flat * np.cos(Theta_flat)
-                Y_flat = R_flat * np.sin(Theta_flat)
-                Z_flat = np.zeros_like(R_flat) # Perfectly flat Z=0
+            # Normal Wormhole embedding (for all other panels)
+            # Upper universe
+            r_up = np.linspace(b0 * pinch, r_max, num_r)
+            R_up, Theta = np.meshgrid(r_up, theta)
+            X_up = R_up * np.cos(Theta)
+            Y_up = R_up * np.sin(Theta)
+            Z_up = wormhole_embedding(R_up, b0, scale=scale, throat_pinch=pinch)
+            
+            # Lower universe
+            r_down = np.linspace(b0 * pinch, r_max, num_r)
+            R_down, Theta = np.meshgrid(r_down, theta)
+            X_down = R_down * np.cos(Theta)
+            Y_down = R_down * np.sin(Theta)
+            Z_down = -wormhole_embedding(R_down, b0, scale=scale, throat_pinch=pinch)
+            
+            # If it's the pinch-off stage, separate the two universes slightly
+            if pinch <= 0.05:
+                Z_up += 1.2
+                Z_down -= 1.2
                 
-                # Plot the upper Minkowski plane (now disconnected and flat)
-                ax.plot_surface(X_flat, Y_flat, Z_flat + 1.2, **surf_kwargs)
+                # Draw event horizons (black spheres)
+                u = np.linspace(0, 2 * np.pi, 20)
+                v = np.linspace(0, np.pi, 20)
+                hx = 0.3 * np.outer(np.cos(u), np.sin(v))
+                hy = 0.3 * np.outer(np.sin(u), np.sin(v))
+                hz_up = 0.3 * np.outer(np.ones(np.size(u)), np.cos(v)) + Z_up.min()
+                hz_down = 0.3 * np.outer(np.ones(np.size(u)), np.cos(v)) + Z_down.max()
                 
-                # Plot the lower Minkowski plane (now disconnected and flat)
-                ax.plot_surface(X_flat, Y_flat, Z_flat - 1.2, **surf_kwargs)
-            else:
-                # Normal Wormhole embedding (for all other panels)
-                # Upper universe
-                r_up = np.linspace(b0 * pinch, r_max, num_r)
-                R_up, Theta = np.meshgrid(r_up, theta)
-                X_up = R_up * np.cos(Theta)
-                Y_up = R_up * np.sin(Theta)
-                Z_up = wormhole_embedding(R_up, b0, scale=scale, throat_pinch=pinch)
+                ax.plot_surface(hx, hy, hz_up, color='black', alpha=1.0, shade=False)
+                ax.plot_surface(hx, hy, hz_down, color='black', alpha=1.0, shade=False)
                 
-                # Lower universe
-                r_down = np.linspace(b0 * pinch, r_max, num_r)
-                R_down, Theta = np.meshgrid(r_down, theta)
-                X_down = R_down * np.cos(Theta)
-                Y_down = R_down * np.sin(Theta)
-                Z_down = -wormhole_embedding(R_down, b0, scale=scale, throat_pinch=pinch)
-                
-                # If it's the pinch-off stage, separate the two universes slightly
-                if not is_expansion and pinch <= 0.05:
-                    Z_up += 1.2
-                    Z_down -= 1.2
-                    
-                    # Draw event horizons (black spheres)
-                    u = np.linspace(0, 2 * np.pi, 20)
-                    v = np.linspace(0, np.pi, 20)
-                    hx = 0.3 * np.outer(np.cos(u), np.sin(v))
-                    hy = 0.3 * np.outer(np.sin(u), np.sin(v))
-                    hz_up = 0.3 * np.outer(np.ones(np.size(u)), np.cos(v)) + Z_up.min()
-                    hz_down = 0.3 * np.outer(np.ones(np.size(u)), np.cos(v)) + Z_down.max()
-                    
-                    ax.plot_surface(hx, hy, hz_up, color='black', alpha=1.0, shade=False)
-                    ax.plot_surface(hx, hy, hz_down, color='black', alpha=1.0, shade=False)
-                    
-                    # Add some gravitational wave ripples
+                if is_with_waves:
+                    # Add some gravitational wave ripples for the case with waves
                     r_waves = np.linspace(1.5, r_max, 5) # Reduced wave radial points
                     Rw, Tw = np.meshgrid(r_waves, theta)
                     Xw = Rw * np.cos(Tw)
@@ -145,20 +124,23 @@ def plot_wormhole_stages(output_dir):
                     # Plot the inner part without waves
                     ax.plot_surface(X_up, Y_up, Z_up, **surf_kwargs)
                     ax.plot_surface(X_down, Y_down, Z_down, **surf_kwargs)
-                    
                 else:
-                    # Plot continuous wormhole (both normal and expanding)
+                    # Spontaneous collapse (unperturbed) has no ripples
                     ax.plot_surface(X_up, Y_up, Z_up, **surf_kwargs)
                     ax.plot_surface(X_down, Y_down, Z_down, **surf_kwargs)
-                    
-                    # Draw throat indicator if it's not totally flattened
-                    if scale < 2.5:
-                        throat_theta = np.linspace(0, 2*np.pi, 20) # Match azimuthal frequency
-                        throat_x = b0 * pinch * np.cos(throat_theta)
-                        throat_y = b0 * pinch * np.sin(throat_theta)
-                        throat_z = np.zeros_like(throat_theta)
-                        # Use a dark gray/black dashed line instead of red for B&W format
-                        ax.plot(throat_x, throat_y, throat_z, color='black', linewidth=2, linestyle='--')
+                
+            else:
+                # Plot continuous wormhole (both normal and expanding)
+                ax.plot_surface(X_up, Y_up, Z_up, **surf_kwargs)
+                ax.plot_surface(X_down, Y_down, Z_down, **surf_kwargs)
+                
+                # Draw throat indicator if it's not totally flattened
+                throat_theta = np.linspace(0, 2*np.pi, 20) # Match azimuthal frequency
+                throat_x = b0 * pinch * np.cos(throat_theta)
+                throat_y = b0 * pinch * np.sin(throat_theta)
+                throat_z = np.zeros_like(throat_theta)
+                # Use a dark gray/black dashed line instead of red for B&W format
+                ax.plot(throat_x, throat_y, throat_z, color='black', linewidth=2, linestyle='--')
 
             ax.set_title(stage["title"], pad=15) # Increased pad
             

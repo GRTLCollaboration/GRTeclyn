@@ -503,9 +503,32 @@ def plot_collapse_diagnostics(
         ax_pi.grid(True, which="both", ls="--", alpha=0.6)
         ax_pi.tick_params(axis="both", which="major", direction="in")
 
-        # Panel 4c: (empty/placeholder or derived quantity if needed)
-        ax_empty = axes[row_idx, 2]
-        ax_empty.axis("off")
+        # Panel 4c: Instability Growth Rate (Lyapunov Exponent)
+        ax_lyap = axes[row_idx, 2]
+        if has_areal:
+            ta = areal_data["t"]
+            Ra = areal_data["R_areal_min"]
+            departure = np.abs(Ra - Ra[0])
+            departure = np.where(departure > 1e-15, departure, 1e-15)
+            
+            ax_lyap.semilogy(ta, departure, color="black", linewidth=1.5, label=r"$|\Delta R_{\mathrm{areal}}|$")
+            
+            lyap_result = _compute_lyapunov_exponent(ta, departure, t_start=0.0, t_end_frac=0.35)
+            if lyap_result is not None:
+                lam, t_fit_lyap, fit_line_lyap = lyap_result
+                ax_lyap.semilogy(t_fit_lyap, np.exp(fit_line_lyap), color="red", linewidth=1.5, linestyle="--",
+                                 label=rf"Fit: $\lambda={lam:.4f}$")
+                
+            ax_lyap.set_ylabel(r"$|\Delta R_{\mathrm{areal}}|$")
+            ax_lyap.set_title(r"Instability growth ($\lambda$)")
+            ax_lyap.legend(loc="best", frameon=True, framealpha=0.9, fontsize=9)
+        else:
+            ax_lyap.text(0.5, 0.5, "No areal_radius.dat", transform=ax_lyap.transAxes,
+                         ha="center", va="center", fontsize=11, color="gray")
+            ax_lyap.set_title(r"Instability growth ($\lambda$)")
+
+        ax_lyap.grid(True, which="both", ls="--", alpha=0.6)
+        ax_lyap.tick_params(axis="both", which="major", direction="in")
 
     # --- Black-hole remnant characterisation ---
     K_data = np.asarray(data["max_abs_K"], dtype=float)
