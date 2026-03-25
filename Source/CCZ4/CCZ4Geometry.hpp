@@ -693,7 +693,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE chris_array_t compute_christoffel_test(
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3>
 compute_phys_chris(
-    const Tensor<1, amrex::Real> &d1_chi, const CCZ4Vars &vars,
+    const amrex::Array1<amrex::Real, 0, 3> &d1_chi, const CCZ4Vars &vars,
     const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU,
     const amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> &chris_ULL)
 {
@@ -704,11 +704,11 @@ compute_phys_chris(
         chris_phys(i, j, k) =
             chris_ULL(i, j, k) -
             0.5 / vars.chi() *
-                (delta(i, k) * d1_chi[j] + delta(i, j) * d1_chi[k]);
+                (delta(i, k) * d1_chi(j) + delta(i, j) * d1_chi(k));
         FOR (m)
         {
             chris_phys(i, j, k) +=
-                0.5 / vars.chi() * vars.h(j, k) * h_UU(i, m) * d1_chi[m];
+                0.5 / vars.chi() * vars.h(j, k) * h_UU(i, m) * d1_chi(m);
         }
     }
     return chris_phys;
