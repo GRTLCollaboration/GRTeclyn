@@ -36,6 +36,8 @@ class SupportedWormholeInitialData
         // 0 = alpha = 1
         // 1 = alpha = sqrt(chi) (pre-collapsed)
         // 2 = alpha = 1 - 3*log(chi) (N=2, 1+log-inspired using gamma = chi^{-3})
+        // 3 = alpha = chi (strong origin damping)
+        // 4 = smooth inner-core damping with alpha ~ r^8 near the origin
         int initial_lapse_type;
 
         // Grid center used for index->physical coordinate mapping
@@ -149,6 +151,19 @@ class SupportedWormholeInitialData
             // compactified infinity.  At the throat alpha = chi(throat)
             // still drives the physical instability cleanly.
             lapse = chi;
+        }
+        else if (m_params.initial_lapse_type == 4)
+        {
+            // Smoothly freeze only the innermost core. Near r = 0 this behaves
+            // like alpha ~ r^8, so the first several derivatives also vanish.
+            // Far from the origin, and in particular at the throat r = b0/2,
+            // alpha is exponentially close to 1 on the initial slice.
+            const data_t core_radius = (data_t)(0.3 * b0);
+            const data_t scaled_r = rA / core_radius;
+            const data_t scaled_r2 = scaled_r * scaled_r;
+            const data_t scaled_r4 = scaled_r2 * scaled_r2;
+            const data_t scaled_r8 = scaled_r4 * scaled_r4;
+            lapse = 1.0 - exp(-scaled_r8);
         }
         if (lapse < (data_t)1.0e-10) lapse = (data_t)1.0e-10;
 

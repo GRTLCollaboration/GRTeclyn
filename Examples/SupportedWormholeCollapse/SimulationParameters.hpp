@@ -57,8 +57,8 @@ class SimulationParameters : public SimulationParametersBase
         check_parameter("wormhole_initial_lapse_type",
                         wormhole_params.initial_lapse_type,
                         (wormhole_params.initial_lapse_type >= 0) &&
-                            (wormhole_params.initial_lapse_type <= 2),
-                        "must be 0, 1, or 2");
+                            (wormhole_params.initial_lapse_type <= 4),
+                        "must be 0, 1, 2, 3, or 4");
 
         check_parameter("wormhole_throat_radius", wormhole_params.b0,
                         wormhole_params.b0 > 0.0,

@@ -86,6 +86,7 @@ src/visualisation/process_wave/psi4_extracted_simulation.pdf
 /Article.md
 /Article_supported.md
 /Report.md
+/Debug.md
 src/visualisation/constraines/constraints_plot.png
 src/visualisation/diagnostic/collapse_diagnostics_plot.png
 src/visualisation/final_panel.png

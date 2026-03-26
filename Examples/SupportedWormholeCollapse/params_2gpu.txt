@@ -22,8 +22,8 @@ print_progress_only_to_rank_0 = 1
 #################################################
 # Wormhole Initial Data parameters
 
-# Lapse type: 1 = sqrt(chi), 2 = 1-3*ln(chi), 3 = chi (origin-damped)
-wormhole_initial_lapse_type = 3
+# Lapse type: 0 = 1, 1 = sqrt(chi), 2 = 1-3*ln(chi), 3 = chi, 4 = origin-isolating
+wormhole_initial_lapse_type = 0
 
 wormhole_throat_radius = 0.5
 wormhole_centerA = 0.0 0.0 0.0
@@ -36,8 +36,8 @@ wormhole_centerA = 0.0 0.0 0.0
 # Scalar perturbation for clean branch selection (paper uses |A_phi|=0.01)
 # Negative A_phi -> compressive/collapse branch
 # Positive A_phi -> rarefactive/expansion branch
-wormhole_phi_monopole_amplitude     = 0.0
-wormhole_phi_perturbation_amplitude = 0.0
+wormhole_phi_monopole_amplitude     = 0.1
+wormhole_phi_perturbation_amplitude = 0.05
 wormhole_phi_perturbation_width     = 0.5
 
 # Phantom scalar field support
@@ -74,12 +74,13 @@ nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 #################################################
 # Evolution parameters
 
-dt_multiplier = 0.05
+dt_multiplier = 0.02
 stop_time = 30.0
 
 max_spatial_derivative_order = 4
 nan_check = 1
 
+# 4. Raise the floors slightly to prevent floating-point underflow (10^-10 squared is dangerous)
 min_chi = 1.0e-8
 min_lapse = 1.0e-10
 
@@ -97,9 +98,9 @@ formulation = 0
 kappa1 = 3.0
 kappa2 = 0.
 kappa3 = 1.
-covariantZ4 = 1
+covariantZ4 = 0
 
-sigma = 1.0
+sigma = 2.0
 
 puncture_tracking.enabled = 0
 calculate_constraint_norms = 1
