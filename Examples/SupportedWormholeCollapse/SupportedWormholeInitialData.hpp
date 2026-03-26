@@ -19,7 +19,9 @@
 //!
 //! Uses the conformally-flat isotropic form in Cartesian coordinates:
 //!
-//!   psi = 1 + b0^2 / (4 r^2),   chi = psi^{-4},   h_ij = delta_ij.
+//!   psi = sqrt(1 + b0^2 / (4 r^2)),   chi = psi^{-4},   h_ij = delta_ij.
+//!
+//! Equivalently: chi = (1 + b0^2/(4r^2))^{-2} = (4r^2/(4r^2 + b0^2))^2.
 //!
 //! The evolution system is the fully coupled Einstein-Klein-Gordon system
 //! with a phantom (ghost) scalar field. This initial slice (with Pi=0,
@@ -89,11 +91,10 @@ class SupportedWormholeInitialData
         data_t h11 = 1.0, h12 = 0.0, h13 = 0.0, h22 = 1.0, h23 = 0.0, h33 = 1.0;
 
         // Isotropic conformally-flat Ellis–Bronnikov form:
+        //   psi^2 = 1 + b0^2/(4r^2),  chi = psi^{-4} = (1 + b0^2/(4r^2))^{-2}
         const data_t termA = (data_t)b0_sq / (4.0 * rA2_reg);
-        const data_t psi   = 1.0 + termA;
-        const data_t psi2  = psi * psi;
-        const data_t psi4  = psi2 * psi2;
-        chi = 1.0 / psi4;
+        const data_t psi_sq = 1.0 + termA;
+        chi = 1.0 / (psi_sq * psi_sq);
 
         // Floors (avoid NaNs in evolution)
         if (chi < (data_t)1.0e-10) chi = (data_t)1.0e-10;
@@ -122,7 +123,8 @@ class SupportedWormholeInitialData
 
             const data_t rA2_safe = simd_max(rA2, eps2_ang);
             const data_t cos_theta_A_sq = dzA * dzA / rA2_safe;
-            const data_t Y20_A = 3.0 * cos_theta_A_sq - 1.0;
+            const data_t Y20_A = (data_t)sqrt(5.0 / (16.0 * M_PI))
+                               * (3.0 * cos_theta_A_sq - 1.0);
             const data_t dphi_A = ((data_t)phi_mono + (data_t)phi_amp * Y20_A)
                                   * exp(-rA2 / sig2);
 
