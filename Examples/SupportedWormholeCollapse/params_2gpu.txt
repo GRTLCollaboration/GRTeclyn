@@ -22,7 +22,8 @@ print_progress_only_to_rank_0 = 1
 #################################################
 # Wormhole Initial Data parameters
 
-wormhole_initial_lapse_type = 1
+# Lapse type: 1 = sqrt(chi), 2 = 1-3*ln(chi), 3 = chi (origin-damped)
+wormhole_initial_lapse_type = 3
 
 wormhole_throat_radius = 0.5
 wormhole_centerA = 0.0 0.0 0.0
@@ -73,7 +74,7 @@ nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 #################################################
 # Evolution parameters
 
-dt_multiplier = 0.02
+dt_multiplier = 0.05
 stop_time = 30.0
 
 max_spatial_derivative_order = 4

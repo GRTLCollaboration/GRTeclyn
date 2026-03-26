@@ -140,10 +140,15 @@ class SupportedWormholeInitialData
         }
         else if (m_params.initial_lapse_type == 2)
         {
-            // For conformal variables with det(h)=1, det(gamma)=chi^{-3}.
-            // Using alpha = 1 + ln(gamma^{N/2}) with N=2 gives:
-            // alpha = 1 + ln(gamma) = 1 - 3 ln(chi).
             lapse = 1.0 - (data_t)3.0 * log(chi);
+        }
+        else if (m_params.initial_lapse_type == 3)
+        {
+            // Origin-damped profile: alpha = chi ~ r^4 near r=0.
+            // Laplacian(r^4) = 20*r^2 -> 0, so no gauge shock at the
+            // compactified infinity.  At the throat alpha = chi(throat)
+            // still drives the physical instability cleanly.
+            lapse = chi;
         }
         if (lapse < (data_t)1.0e-10) lapse = (data_t)1.0e-10;
 
