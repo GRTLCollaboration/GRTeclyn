@@ -35,8 +35,8 @@ wormhole_centerA = 0.0 0.0 0.0
 # Scalar perturbation for clean branch selection (paper uses |A_phi|=0.01)
 # Negative A_phi -> compressive/collapse branch
 # Positive A_phi -> rarefactive/expansion branch
-wormhole_phi_monopole_amplitude     = 0.01
-wormhole_phi_perturbation_amplitude = 0.05
+wormhole_phi_monopole_amplitude     = 0.05
+wormhole_phi_perturbation_amplitude = 0.1
 wormhole_phi_perturbation_width     = 0.5
 
 # Phantom scalar field support
