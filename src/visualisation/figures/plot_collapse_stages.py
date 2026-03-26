@@ -8,18 +8,19 @@ def wormhole_embedding(r, b0, z_shift=0, scale=1.0, throat_pinch=1.0):
     Parametric embedding of a wormhole
     r: radial coordinate
     b0: throat radius
-    throat_pinch: factor to simulate throat collapse (1.0 = open, approaches 0 as it pinches off)
+    throat_pinch: factor to simulate throat collapse/expansion (1.0 = open, <1.0 = pinch, >1.0 = expansion)
     """
-    # z(r) for a standard Ellis-Bronnikov wormhole is +/- b0 * arccosh(r/b0)
-    # To avoid complex numbers, we ensure r >= b0 * throat_pinch
-    r_safe = np.maximum(r, b0 * throat_pinch + 1e-5)
-    
-    # Modify the embedding to show pinch-off
+    # Modify the embedding to show pinch-off or expansion
     if throat_pinch < 1.0:
         # As throat_pinch -> 0, the throat gets narrower and the funnels stretch
+        r_safe = np.maximum(r, b0 * throat_pinch + 1e-5)
         z = b0 * np.arccosh(r_safe / (b0 * throat_pinch)) / scale
     else:
-        z = b0 * np.arccosh(r_safe / b0) / scale
+        # For expansion, we effectively increase the throat radius to b0 * throat_pinch
+        B = b0 * throat_pinch
+        r_safe = np.maximum(r, B + 1e-5)
+        # To make the asymptotic regions move closer (flatten), we scale down z by throat_pinch
+        z = B * np.arccosh(r_safe / B) / scale / throat_pinch
         
     return z + z_shift
 
@@ -34,8 +35,8 @@ def plot_wormhole_stages(output_dir):
         "axes.titlesize": 22,   # Increased from 16
     })
     
-    # We will create one row for collapse stages
-    fig = plt.figure(figsize=(20, 6))  # Reduced height for one row
+    # We will create two rows: one for collapse, one for expansion
+    fig = plt.figure(figsize=(20, 12))  # Increased height for two rows
     
     # Parameters
     b0 = 1.0
@@ -49,16 +50,22 @@ def plot_wormhole_stages(output_dir):
     collapse_stages = [
         {"title": "(a) Initial Traversable Wormhole", "pinch": 1.0, "with_waves": False},
         {"title": "(b) Dynamical Constriction", "pinch": 0.4, "with_waves": False},
-        {"title": "(c) Pinch-off & Black Hole", "pinch": 0.05, "with_waves": True} 
+        {"title": "(c) Pinch-off & Black Holes", "pinch": 0.05, "with_waves": True} 
     ]
     
-    all_stages = [collapse_stages]
+    expansion_stages = [
+        {"title": "(d) Initial Traversable Wormhole", "pinch": 1.0, "with_waves": False},
+        {"title": "(e) Dynamical Expansion", "pinch": 1.5, "with_waves": False},
+        {"title": "(f) Expanded Wormhole", "pinch": 2.5, "with_waves": False} 
+    ]
+    
+    all_stages = [collapse_stages, expansion_stages]
     
     for row_idx, row_stages in enumerate(all_stages):
         
         for col_idx, stage in enumerate(row_stages):
-            # 1 row, 3 columns
-            ax = fig.add_subplot(1, 3, col_idx + 1, projection='3d')
+            # 2 rows, 3 columns
+            ax = fig.add_subplot(2, 3, row_idx * 3 + col_idx + 1, projection='3d')
             
             pinch = stage["pinch"]
             is_with_waves = stage.get("with_waves", False)

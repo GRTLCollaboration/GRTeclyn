@@ -24,16 +24,15 @@
 //!   Omega(r) = 1 + b^2 / (4 r^2),
 //!   chi = Omega^{-2},  h_ij = delta_ij.
 //!
-//! The two-mouth option below is a heuristic superposition of those isotropic
-//! scale factors. The evolution system is vacuum CCZ4, so this slice is not in
-//! general a vacuum-constraint solution and will emit an early transient as it
-//! relaxes.
+//! This class is kept for backward compatibility with legacy wormhole setups.
+//! For the supported single-throat phantom wormhole experiment, see
+//! SupportedWormholeInitialData.hpp instead. The evolution system is vacuum CCZ4.
 class WormholeInitialData
 {
   public:
     struct params_t
     {
-        // Metric realisation selector:
+        // Metric realisation selector (legacy):
         // 0 = two-mouth isotropic superposition (default, centers A/B)
         // 1 = single-throat Morris–Thorne / Ellis–Bronnikov (uses centerA only)
         int metric_type;
@@ -64,7 +63,7 @@ class WormholeInitialData
         //        + k_quadrupole_amplitude * (3 cos^2(theta) - 1)]
         //       * exp(-rA^2 / k_width^2)
         //
-        // For a two-mouth setup the same profile is applied around each mouth
+        // For a two-mouth setup (legacy) the same profile is applied around each mouth
         // and summed. The legacy k_amplitude parameter is retained as a
         // backward-compatible alias for the quadrupole amplitude.
         double k_amplitude;
@@ -158,7 +157,7 @@ class WormholeInitialData
         else
         {
             // Isotropic conformally-flat Ellis–Bronnikov form:
-            // - metric_type=0: two-mouth superposition
+            // - metric_type=0: two-mouth superposition (legacy)
             // - metric_type=1: single-throat Morris–Thorne / Ellis–Bronnikov
             const data_t termA = (data_t)bA_sq / (4.0 * rA2_reg);
             const data_t termB = (m_params.metric_type == 1)

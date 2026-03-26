@@ -15,17 +15,16 @@
 
 #include <cmath>
 
-//! Initial data for a self-consistent "supported wormhole" experiment.
+//! Initial data for a self-consistent single-throat Ellis-Bronnikov wormhole.
 //!
-//! This class provides a conformally-flat isotropic *two-mouth* ansatz via
-//! superposition of Ellis–Bronnikov potentials:
+//! Uses the conformally-flat isotropic form in Cartesian coordinates:
 //!
-//!   psi(x) = 1 + bA^2/(4|x-cA|^2) + bB^2/(4|x-cB|^2),
-//!   chi = psi^{-4},  h_ij = delta_ij.
+//!   psi = 1 + b0^2 / (4 r^2),   chi = psi^{-4},   h_ij = delta_ij.
 //!
 //! The evolution system is the fully coupled Einstein-Klein-Gordon system
-//! with a phantom (ghost) scalar field. This initial slice represents an
-//! exact solution to the constraints at t=0.
+//! with a phantom (ghost) scalar field. This initial slice (with Pi=0,
+//! K_ij=0) satisfies the momentum constraint exactly. The Hamiltonian
+//! constraint has only a small spin-0 residual from the scalar perturbation.
 class SupportedWormholeInitialData
 {
   public:
@@ -73,7 +72,7 @@ class SupportedWormholeInitialData
         const data_t y = coords.y;
         const data_t z = coords.z;
 
-        const double b0 = m_params.throat_radius_A;
+        const double b0 = m_params.b0;
         const double b0_sq = b0 * b0;
 
         // Distances to throat
