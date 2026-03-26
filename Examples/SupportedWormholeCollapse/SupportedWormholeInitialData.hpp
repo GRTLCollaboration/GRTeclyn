@@ -83,27 +83,29 @@ class SupportedWormholeInitialData
         const data_t dzA = z - (data_t)m_params.centerA[2];
         const data_t rA2 = dxA * dxA + dyA * dyA + dzA * dzA;
 
-        // Regularisation to avoid division by zero at origin
-        const data_t eps2 = (data_t)1.0e-24;
-        const data_t rA2_reg = simd_max(rA2, eps2);
-
         data_t chi = 1.0;
         data_t h11 = 1.0, h12 = 0.0, h13 = 0.0, h22 = 1.0, h23 = 0.0, h33 = 1.0;
 
-        // Isotropic conformally-flat Ellis–Bronnikov form:
-        //   psi^2 = 1 + b0^2/(4r^2),  chi = psi^{-4} = (1 + b0^2/(4r^2))^{-2}
-        const data_t termA = (data_t)b0_sq / (4.0 * rA2_reg);
-        const data_t psi_sq = 1.0 + termA;
-        chi = 1.0 / (psi_sq * psi_sq);
+        // Algebraically non-singular Ellis–Bronnikov conformal factor (Eq. 7):
+        //   chi = (4r^2 / (4r^2 + b0^2))^2
+        // Evaluates smoothly to 0 at r=0 without any floor or clamp.
+        const data_t r_sq_4 = 4.0 * rA2;
+        const data_t den    = r_sq_4 + (data_t)b0_sq;
+        const data_t frac   = r_sq_4 / den;
+        chi = frac * frac;
 
-        // Floors (avoid NaNs in evolution)
+        // Floor for evolution safety (CCZ4 terms involving 1/chi)
         if (chi < (data_t)1.0e-10) chi = (data_t)1.0e-10;
 
         // Initialize scalar field phi and Pi
         data_t phi = 0.0;
         data_t Pi = 0.0;
-        
+
         // phi(r) = (1/sqrt(4*pi)) * arctan( (r - b0^2/(4r)) / b0 )
+        // At r->0 the argument -> -inf, giving phi -> -1/(2*sqrt(pi)).
+        // Use a floor on r^2 only for the atan argument to avoid 0/0.
+        const data_t eps2 = (data_t)1.0e-24;
+        const data_t rA2_reg = simd_max(rA2, eps2);
         const data_t rA = sqrt(rA2_reg);
         const data_t argA = (rA - (data_t)b0_sq / (4.0 * rA)) / (data_t)b0;
         phi = (data_t)(1.0 / sqrt(4.0 * M_PI)) * atan(argA);
