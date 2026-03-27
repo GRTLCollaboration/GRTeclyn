@@ -35,7 +35,38 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 mpirun -n 8 ./main3d.gnu.MPI.CUDA.ex params
 mpirun -n 8 bash -c 'export CUDA_VISIBLE_DEVICES=$OMPI_COMM_WORLD_LOCAL_RANK; exec ./main3d.gnu.MPI.CUDA.ex params_2gpu.txt'
 ```
 
-## Plotting
+## Restart from Checkpoint
+
+To resume from a checkpoint (e.g. step 3000):
+
+1. **Rollback** the data directory (removes later plotfiles, truncates logs, cleans frames):
+   ```bash
+   cd /home/jovyan/nachevsky/test/simulation/GRTeclyn
+   ./src/scripts/rollback --step 3000 --data /home/jovyan/nachevsky/test/simulation/data_supported
+   ```
+
+2. **Start watcher** (in a second terminal):
+   ```bash
+   cd /home/jovyan/nachevsky/test/simulation/GRTeclyn
+   ./src/scripts/plot_run.sh --not-remove /home/jovyan/nachevsky/test/simulation/data_supported
+   ```
+
+3. **Restart simulation** using `amr.restart` (critical):
+   ```bash
+   cd /home/jovyan/nachevsky/test/simulation/GRTeclyn/Examples/SupportedWormholeCollapse
+
+   # 2 GPUs
+   CUDA_VISIBLE_DEVICES=0,1 mpirun -n 2 ./main3d.gnu.MPI.CUDA.ex params_2gpu.txt \
+     amr.restart=/home/jovyan/nachevsky/test/simulation/data_supported/SupportedWormholeChk03000
+   ```
+
+   **Single GPU:**
+   ```bash
+   CUDA_VISIBLE_DEVICES=0 ./main3d.gnu.CUDA.ex params_2gpu.txt \
+     amr.restart=/home/jovyan/nachevsky/test/simulation/data_supported/SupportedWormholeChk03000
+   ```
+
+## Plotting (normal run)
 
 ```bash
 # In a second terminal
