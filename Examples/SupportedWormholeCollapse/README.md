@@ -37,34 +37,37 @@ mpirun -n 8 bash -c 'export CUDA_VISIBLE_DEVICES=$OMPI_COMM_WORLD_LOCAL_RANK; ex
 
 ## Restart from Checkpoint
 
-To resume from a checkpoint (e.g. step 3000):
+To resume from any checkpoint (for example step **3000** or **4000**):
 
-1. **Rollback** the data directory (removes later plotfiles, truncates logs, cleans frames):
+1. **Rollback** the data directory to the desired checkpoint:
    ```bash
    cd /home/jovyan/nachevsky/test/simulation/GRTeclyn
    ./src/scripts/rollback --step 3000 --data /home/jovyan/nachevsky/test/simulation/data_supported
    ```
+   (Replace `3000` with the desired checkpoint number, e.g. `4000`.)
 
-2. **Start watcher** (in a second terminal):
+2. **Start the watcher** (in a second terminal — use `--not-remove`):
    ```bash
    cd /home/jovyan/nachevsky/test/simulation/GRTeclyn
    ./src/scripts/plot_run.sh --not-remove /home/jovyan/nachevsky/test/simulation/data_supported
    ```
 
-3. **Restart simulation** using `amr.restart` (critical):
+3. **Restart the simulation** using `amr.restart` (this is the correct flag):
    ```bash
    cd /home/jovyan/nachevsky/test/simulation/GRTeclyn/Examples/SupportedWormholeCollapse
 
-   # 2 GPUs
+   # 2 GPUs example
    CUDA_VISIBLE_DEVICES=0,1 mpirun -n 2 ./main3d.gnu.MPI.CUDA.ex params_2gpu.txt \
      amr.restart=/home/jovyan/nachevsky/test/simulation/data_supported/SupportedWormholeChk03000
    ```
 
-   **Single GPU:**
+   **Single GPU example:**
    ```bash
    CUDA_VISIBLE_DEVICES=0 ./main3d.gnu.CUDA.ex params_2gpu.txt \
      amr.restart=/home/jovyan/nachevsky/test/simulation/data_supported/SupportedWormholeChk03000
    ```
+
+> **Tip**: Always replace both the `--step N` in rollback **and** the `ChkN` number in the restart command with the same value (e.g. 4000).
 
 ## Plotting (normal run)
 
