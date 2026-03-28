@@ -6,6 +6,9 @@ dependencies = [
     "yt",
     "numpy",
     "matplotlib",
+    "scipy",
+    "pycbc",
+    "gwpy"
 ]
 requires-python = ">=3.10"
 
