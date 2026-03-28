@@ -48,7 +48,7 @@ phantom_mass = 0.0
 # Grid parameters
 
 L_full = 64.0
-N_full = 256
+N_full = 192
 
 center = 0.0 0.0 0.0
 
