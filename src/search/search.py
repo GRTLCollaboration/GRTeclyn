@@ -93,7 +93,6 @@ def _gwosc_fetch_worker_range(
     sample_rate: int,
     host: str,
     cache: bool,
-    gwosc_request_timeout_s: float | None,
     out_q: "mp.Queue",
 ) -> None:
     """Module-scope worker for multiprocessing 'spawn' (must be picklable)."""
@@ -105,7 +104,6 @@ def _gwosc_fetch_worker_range(
             sample_rate=float(sample_rate),
             host=host,
             cache=cache,
-            timeout=gwosc_request_timeout_s,
         )
         out_q.put(("ok", (np.asarray(gw.value, dtype=np.float64), float(gw.dt.value), float(gw.t0.value))))
     except Exception as e:
@@ -118,7 +116,6 @@ def _gwosc_fetch_worker(
     sample_rate: int,
     host: str,
     cache: bool,
-    gwosc_request_timeout_s: float | None,
     out_q: "mp.Queue",
 ) -> None:
     """Module-scope worker for multiprocessing 'spawn' (must be picklable)."""
@@ -131,7 +128,6 @@ def _gwosc_fetch_worker(
             sample_rate=sample_rate,
             host=host,
             cache=cache,
-            timeout=gwosc_request_timeout_s,
         )
         out_q.put(("ok", (np.asarray(gw.value, dtype=np.float64), float(gw.dt.value), float(gw.t0.value))))
     except Exception as e:
@@ -159,7 +155,7 @@ def _fetch_open_data_pycbc_with_timeout(
     q: mp.Queue = ctx.Queue(maxsize=1)
     p = ctx.Process(
         target=_gwosc_fetch_worker,
-        args=(event_dict, ifo, sample_rate, host, cache, gwosc_request_timeout_s, q),
+        args=(event_dict, ifo, sample_rate, host, cache, q),
         daemon=True,
     )
     p.start()
@@ -196,7 +192,7 @@ def _fetch_open_data_range_pycbc_with_timeout(
     q: mp.Queue = ctx.Queue(maxsize=1)
     p = ctx.Process(
         target=_gwosc_fetch_worker_range,
-        args=(ifo, float(start), float(end), int(sample_rate), host, cache, gwosc_request_timeout_s, q),
+        args=(ifo, float(start), float(end), int(sample_rate), host, cache, q),
         daemon=True,
     )
     p.start()
