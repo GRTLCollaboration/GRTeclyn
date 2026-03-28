@@ -11,6 +11,20 @@ set -euo pipefail
 #   psi4_analysis.*               — combined 3x2 panel: waveforms, PSD, propagation speed,
 #                                   strain PSD, and LIGO sensitivity overlay
 #
+# Notes:
+# - The ESD (energy spectral density) panel can be frequency-cut to hide the flat high-f tail.
+#   Default: cut at f=20 (code units M^-1). Override with env var:
+#     ESD_FMAX=30 ./src/scripts/plot_diagnostic.sh ...
+#   Disable passing the cutoff entirely with:
+#     ESD_FMAX=none ./src/scripts/plot_diagnostic.sh ...
+# - The strain vs Advanced LIGO panel is plotted in the paper-style ASD form by default
+#   (sqrt(S_h) and sqrt(S_n), units 1/sqrt(Hz), band 10–5000 Hz).
+#   By default we use a "detectable" scaling (M=1000 Msun, D=0.002 Mpc ~ 2 kpc)
+#   so the example signal appears in-band. Control scaling via:
+#     MASS_MSUN=30 DISTANCE_MPC=10 ./src/scripts/plot_diagnostic.sh ...
+#   Optional:
+#     LIGO_QUANTITY=hchar  # use characteristic strain instead of ASD
+#
 # Usage:
 #   ./src/scripts/plot_diagnostic.sh [RUN_DIR] [RADIUS ...]
 #
@@ -27,6 +41,17 @@ VIS_DIR="$(cd "${SCRIPT_DIR}/../visualisation" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 SIM_ROOT="$(cd "${REPO_ROOT}/.." && pwd)"
 PLOTS_DIR="${VIS_DIR}/plots"
+
+ESD_FMAX_DEFAULT="20"
+ESD_FMAX="${ESD_FMAX:-$ESD_FMAX_DEFAULT}"
+
+MASS_MSUN_DEFAULT="1000"
+DISTANCE_MPC_DEFAULT="0.002"
+LIGO_QUANTITY_DEFAULT="asd"
+
+MASS_MSUN="${MASS_MSUN:-$MASS_MSUN_DEFAULT}"
+DISTANCE_MPC="${DISTANCE_MPC:-$DISTANCE_MPC_DEFAULT}"
+LIGO_QUANTITY="${LIGO_QUANTITY:-$LIGO_QUANTITY_DEFAULT}"
 
 candidate_run_mtime() {
   local run_dir="$1"
@@ -110,6 +135,13 @@ if [[ $# -gt 0 ]]; then
   RADII_ARGS=(--radii "$@")
 fi
 
+ESD_ARGS=()
+if [[ -n "${ESD_FMAX}" && "${ESD_FMAX}" != "none" ]]; then
+  ESD_ARGS=(--esd-fmax "${ESD_FMAX}")
+fi
+
+LIGO_ARGS=(--ligo-quantity "${LIGO_QUANTITY}")
+
 echo "[1/3] Plotting constraint norms..."
 python3 -m src.visualisation.constraines \
   "${CONSTRAINT_FILE}" \
@@ -125,10 +157,12 @@ echo "[3/3] Plotting combined Psi4 analysis (waveforms + PSD + propagation + str
 python3 -m src.visualisation.process_wave.plot_extracted_psi4 \
   "${PSI4_FILE}" \
   "${RADII_ARGS[@]}" \
+  "${ESD_ARGS[@]}" \
+  "${LIGO_ARGS[@]}" \
   --out "${PLOTS_DIR}" \
   --name "psi4_analysis.eps" \
   --combined \
-  --strain --mass-msun 30 --distance-mpc 10
+  --strain --mass-msun "${MASS_MSUN}" --distance-mpc "${DISTANCE_MPC}"
 
 echo ""
 echo "All plots saved to: ${PLOTS_DIR}"

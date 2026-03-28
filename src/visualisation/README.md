@@ -110,6 +110,7 @@ Requires `ffmpeg` on `PATH` (uses `subprocess`, not `os.system`).
 Builds a horizontal panel (one column per timestep) from `frame_z_NNNN.png` or `frame_NNNN.png` in `--frame_dir`. Writes `.png` and `.pdf` under `src/visualisation/plots/` when `--out` is relative.
 
 ```bash
+# K_z frames (default mode: k_z)
 python src/visualisation/make_evolution_panel/make_evolution_panel.py \
   --frame_dir src/visualisation/visualize/K_z/frames \
   --out evolution_K_z_panel \
@@ -121,6 +122,30 @@ python src/visualisation/make_evolution_panel/make_evolution_panel.py \
   --frames 0 20 40 60 \
   --grayscale
 
+# Embedding frames (3D embedding snapshots): use --mode embedding
+# (expects frame_NNNN.png in the embedding frames folder)
+python src/visualisation/make_evolution_panel/make_evolution_panel.py \
+  --frame_dir src/visualisation/visualize/embedding/frames \
+  --mode embedding \
+  --out evolution_embedding_panel \
+  --frames 2 3001 4002
+
+# Keep the title area ("Embedding Diagram  t=...") in each panel
+python src/visualisation/make_evolution_panel/make_evolution_panel.py \
+  --frame_dir src/visualisation/visualize/embedding/frames \
+  --mode embedding \
+  --keep-title \
+  --out evolution_embedding_with_title \
+  --frames 2 3001 4002
+
+# 4 panels: just provide 4 frame indices
+python src/visualisation/make_evolution_panel/make_evolution_panel.py \
+  --frame_dir src/visualisation/visualize/embedding/frames \
+  --mode embedding \
+  --keep-title \
+  --out evolution_embedding_4panels \
+  --frames 2 1002 3001 4002
+
 # Absolute --out writes exactly there
 python src/visualisation/make_evolution_panel/make_evolution_panel.py \
   --frame_dir src/visualisation/visualize/K_z/frames \
@@ -131,10 +156,12 @@ python src/visualisation/make_evolution_panel/make_evolution_panel.py \
 | Option | Description |
 |--------|-------------|
 | `--frame_dir` | Folder with frame PNGs |
+| `--mode` | Frame type/layout: `k_z` (default) or `embedding` |
 | `--out` | Output stem (`.png`/`.pdf` added); relative → under `src/visualisation/plots/` |
 | `--frames` | Indices (default `0 20 40 60`) |
 | `--grayscale` | Grayscale panels |
-| `--no-grid` | Disable dashed overlay grid |
+| `--no-grid` | Disable dashed overlay grid (K_z mode only) |
+| `--keep-title` | Keep title area at the top (embedding mode only) |
 
 ---
 
