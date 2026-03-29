@@ -25,6 +25,7 @@ from gwpy.timeseries import TimeSeries as GwpyTimeSeries
 
 # Add the visualization path to import load_extracted
 project_root = Path(__file__).resolve().parent.parent.parent
+_DEFAULT_PSI4_DAT = project_root / "src/SimResults/Run_R0.5_A00.0_A20.02_sigma0.5_perturbed/psi4_mode_l2m0.dat"
 sys.path.append(str(project_root))
 from src.visualisation.process_wave.plot_extracted_psi4 import load_extracted, M_SUN_SEC, M_SUN_METER, MPC_METER
 
@@ -217,8 +218,8 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="Matched-filter search in GWOSC data")
     p.add_argument(
         "--data-path",
-        default="/home/jovyan/nachevsky/test/simulation/data_supported/small_data/psi4_mode_l2m0.dat",
-        help="Path to extracted psi4_mode_l2m0.dat",
+        default=str(_DEFAULT_PSI4_DAT),
+        help="Path to extracted psi4_mode_l2m0.dat (override with your simulation output)",
     )
     p.add_argument("--mass-msun", type=float, default=1000.0, help="Template mass in solar masses")
     p.add_argument("--distance-mpc", type=float, default=1.0, help="Template distance in Mpc")

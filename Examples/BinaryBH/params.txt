@@ -1,9 +1,10 @@
 #################################################
 # Filesystem parameters
+# Replace /path/to/your/simulation/data with your desired output directory.
 verbosity = 1
-output_path = "/home/jovyan/nachevsky/test/simulation/data"
-amr.check_file = "/home/jovyan/nachevsky/test/simulation/data/chk"
-amr.plot_file = "/home/jovyan/nachevsky/test/simulation/data/plt"
+output_path = "/path/to/your/simulation/data"
+amr.check_file = "/path/to/your/simulation/data/chk"
+amr.plot_file = "/path/to/your/simulation/data/plt"
 
 checkpoint_interval = 50
 plot_interval = 5

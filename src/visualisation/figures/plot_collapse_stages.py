@@ -177,5 +177,5 @@ def plot_wormhole_stages(output_dir):
     print(f"Saved figures to:\n- {png_path}\n- {pdf_path}")
 
 if __name__ == "__main__":
-    output_dir = "/home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/figures"
+    output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)))
     plot_wormhole_stages(output_dir)

@@ -35,8 +35,8 @@ set -euo pipefail
 #
 # Examples:
 #   ./src/scripts/plot_diagnostic.sh
-#   ./src/scripts/plot_diagnostic.sh "/home/jovyan/nachevsky/test/simulation/data_2gpu"
-#   ./src/scripts/plot_diagnostic.sh "/home/jovyan/nachevsky/test/simulation/data" 10 14
+#   ./src/scripts/plot_diagnostic.sh "/path/to/your/run/directory"
+#   ./src/scripts/plot_diagnostic.sh "/path/to/your/run/directory" 10 14
 #
 # If no radii are given, plot_extracted_psi4.py will plot all radii found in
 # psi4_mode_l2m0.dat.

@@ -3,9 +3,9 @@
 
 verbosity = 1
 
-output_path = "/home/jovyan/nachevsky/test/simulation/data_supported"
-amr.check_file = "/home/jovyan/nachevsky/test/simulation/data_supported/SupportedWormholeChk"
-amr.plot_file  = "/home/jovyan/nachevsky/test/simulation/data_supported/SupportedWormholePlt"
+output_path = "/path/to/your/simulation/output"
+amr.check_file = "/path/to/your/simulation/output/SupportedWormholeChk"
+amr.plot_file  = "/path/to/your/simulation/output/SupportedWormholePlt"
 
 checkpoint_interval = 1000
 plot_interval       = 1

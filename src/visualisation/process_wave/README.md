@@ -6,28 +6,28 @@ Extract \(\Psi_4\) from plotfiles, append to a small `.dat` file, optionally del
 
 ```bash
 python -m src.visualisation.process_wave.consume_plotfiles \
-  --data "/home/jovyan/nachevsky/test/simulation/data_2gpu" \
-  --out  "/home/jovyan/nachevsky/test/simulation/data_2gpu/small_data" \
+  --data "/path/to/your/simulation/run" \
+  --out  "/path/to/your/simulation/run/small_data" \
   --radii 10 14 \
   --n-points 64 \
   --frames-fields chi K Weyl4_Re Weyl4_Mag \
   --frames-axis z \
   --frames-corner \
-  --frames-out "/home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/visualize" \
+  --frames-out "/path/to/GRTeclyn/src/visualisation/visualize" \
   --watch --delete --keep-last 2 \
   --verbose
 ```
 
 ```bash
 python -m src.visualisation.process_wave.consume_plotfiles \
-  --data "/home/jovyan/nachevsky/test/simulation/data_2gpu" \
-  --out  "/home/jovyan/nachevsky/test/simulation/data_2gpu/small_data" \
+  --data "/path/to/your/simulation/run" \
+  --out  "/path/to/your/simulation/run/small_data" \
   --radii 8 12 16 \
   --n-points 64 \
   --frames-fields chi K Weyl4_Re Weyl4_Mag \
   --frames-axis z \
   --frames-corner \
-  --frames-out "/home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/visualize" \
+  --frames-out "/path/to/GRTeclyn/src/visualisation/visualize" \
   --watch --delete --keep-last 2 \
   --verbose
 ```
@@ -41,16 +41,16 @@ Plotfiles must contain `Weyl4_Re` and `Weyl4_Im` (in params: `amr.derive_plot_va
 **One-off (no delete):**
 ```bash
 python -m src.visualisation.process_wave.consume_plotfiles \
-  --data "/home/jovyan/nachevsky/test/simulation/data_2gpu" \
-  --out  "/home/jovyan/nachevsky/test/simulation/data_2gpu/small_data" \
+  --data "/path/to/your/simulation/run" \
+  --out  "/path/to/your/simulation/run/small_data" \
   --radii 10 15 --n-points 64 --stable-seconds 0 --keep-last 999999
 ```
 
 **Watch + delete (run while simulation runs):**
 ```bash
 python -m src.visualisation.process_wave.consume_plotfiles \
-  --data "/home/jovyan/nachevsky/test/simulation/data_2gpu" \
-  --out  "/home/jovyan/nachevsky/test/simulation/data_2gpu/small_data" \
+  --data "/path/to/your/simulation/run" \
+  --out  "/path/to/your/simulation/run/small_data" \
   --radii 10 14 \
   --n-points 64 \
   --verbose \
@@ -73,14 +73,14 @@ Frames are written under:
 
 ```bash
 python -m src.visualisation.process_wave.consume_plotfiles \
-  --data "/home/jovyan/nachevsky/test/simulation/data_2gpu" \
-  --out  "/home/jovyan/nachevsky/test/simulation/data_2gpu/small_data" \
+  --data "/path/to/your/simulation/run" \
+  --out  "/path/to/your/simulation/run/small_data" \
   --radii 10 14 \
   --n-points 64 \
   --frames-fields chi K Weyl4_Re Weyl4_Mag \
   --frames-axis z \
   --frames-corner \
-  --frames-out "/home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/visualize" \
+  --frames-out "/path/to/GRTeclyn/src/visualisation/visualize" \
   --watch --delete --keep-last 2 \
   --verbose
 ```
@@ -90,11 +90,11 @@ python -m src.visualisation.process_wave.consume_plotfiles \
 ```bash
 python -m src.visualisation.process_wave.consume_plotfiles \
   --no-psi4 \
-  --data "/home/jovyan/nachevsky/test/simulation/data_2gpu" \
+  --data "/path/to/your/simulation/run" \
   --frames-fields chi K Weyl4_Re Weyl4_Mag \
   --frames-axis z \
   --frames-corner \
-  --frames-out "/home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/visualize" \
+  --frames-out "/path/to/GRTeclyn/src/visualisation/visualize" \
   --watch --delete --keep-last 2 \
   --verbose
 ```
@@ -121,10 +121,10 @@ This prevents accidental “append to old run” when reusing the same output di
 
 ```bash
 python -m src.visualisation.process_wave.plot_extracted_psi4 \
-  "/home/jovyan/nachevsky/test/simulation/data_2gpu/small_data/psi4_mode_l2m0.dat" \
+  "/path/to/your/simulation/run/small_data/psi4_mode_l2m0.dat" \
   --radii 10 14 \
   --time-axis retarded \
-  --out "/home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/process_wave" \
+  --out "/path/to/GRTeclyn/src/visualisation/process_wave" \
   --plot-psd
 ```
 
@@ -134,10 +134,10 @@ To also save the same waveform against simulation time \(t\) in the same folder:
 
 ```bash
 python -m src.visualisation.process_wave.plot_extracted_psi4 \
-  "/home/jovyan/nachevsky/test/simulation/data_2gpu/small_data/psi4_mode_l2m0.dat" \
+  "/path/to/your/simulation/run/small_data/psi4_mode_l2m0.dat" \
   --radii 10 14 \
   --time-axis simulation \
-  --out "/home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/process_wave" \
+  --out "/path/to/GRTeclyn/src/visualisation/process_wave" \
   --name "psi4_extracted_simulation.png" \
   --plot-psd
 ```
@@ -146,9 +146,9 @@ If you omit `--radii`, the script plots **all radii present in the `.dat` file**
 
 ```bash
 python -m src.visualisation.process_wave.plot_extracted_psi4 \
-  "/home/jovyan/nachevsky/test/simulation/data_2gpu/small_data/psi4_mode_l2m0.dat" \
+  "/path/to/your/simulation/run/small_data/psi4_mode_l2m0.dat" \
   --time-axis retarded \
-  --out "/home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/process_wave" \
+  --out "/path/to/GRTeclyn/src/visualisation/process_wave" \
   --plot-psd
 ```
 
@@ -195,14 +195,14 @@ python -m src.visualisation.process_wave.plot_extracted_psi4 \
 
 ```bash
 python -m src.visualisation.process_wave.consume_plotfiles \
-  --data "/home/jovyan/nachevsky/test/simulation/data_2gpu" \
-  --out  "/home/jovyan/nachevsky/test/simulation/data_2gpu/small_data" \
+  --data "/path/to/your/simulation/run" \
+  --out  "/path/to/your/simulation/run/small_data" \
   --radii 10 14 \
   --n-points 64 \
   --frames-fields chi K Weyl4_Re Weyl4_Mag \
   --frames-axis z \
   --frames-corner \
-  --frames-out "/home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/visualize" \
+  --frames-out "/path/to/GRTeclyn/src/visualisation/visualize" \
   --watch --delete --keep-last 2 \
   --verbose
 ```
@@ -219,5 +219,5 @@ For octant/symmetry-reduced runs, add `--frames-corner` so the axes are drawn as
 
 for the last simulating setup for consistency 
 ```bash 
-python -m src.visualisation.process_wave.consume_plotfiles   --data "/home/jovyan/nachevsky/test/simulation/data_2gpu"   --out  "/home/jovyan/nachevsky/test/simulation/data_2gpu/small_data"   --radii 8 12 16   --n-points 32   --frames-fields chi K Weyl4_Re Weyl4_Mag   --frames-axis z   --frames-corner   --frames-out "/home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/visualize"   --watch --delete --keep-last 2   --verbose
+python -m src.visualisation.process_wave.consume_plotfiles   --data "/path/to/your/simulation/run"   --out  "/path/to/your/simulation/run/small_data"   --radii 8 12 16   --n-points 32   --frames-fields chi K Weyl4_Re Weyl4_Mag   --frames-axis z   --frames-corner   --frames-out "/path/to/GRTeclyn/src/visualisation/visualize"   --watch --delete --keep-last 2   --verbose
 ```

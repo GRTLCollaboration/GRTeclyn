@@ -37,8 +37,8 @@ What it does:
     - deleting generated movies under the visualize folder (so they regenerate)
 
 Examples:
-  ./src/scripts/rollback 3000 /home/jovyan/nachevsky/test/simulation/data_supported
-  ./src/scripts/rollback --step 3000 --data /home/jovyan/nachevsky/test/simulation/data_supported
+  ./src/scripts/rollback 3000 /path/to/your/simulation/output
+  ./src/scripts/rollback --step 3000 --data /path/to/your/simulation/output
   ./src/scripts/rollback --step 3000 --dry-run
 EOF
 }

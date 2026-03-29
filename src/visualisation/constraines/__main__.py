@@ -133,10 +133,8 @@ def plot_constraints(times, l2_ham, l2_mom, output_path):
 def main():
     parser = argparse.ArgumentParser(description="Plot constraint norms from simulation data.")
 
-    # Default path setup
-    # Default path:
-    # We assume we are in /home/jovyan/nachevsky/test/simulation/GRTeclyn
-    # and data is in ../data/data/constraint_norms.dat
+    # Default path: run from the repository root; data is expected under ../data/data/
+    # relative to the repo, or pass an explicit path. Override with positional arg.
     script_dir = Path(__file__).resolve().parent
 
     # script_dir is src/visualisation/constraines

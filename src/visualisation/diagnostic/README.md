@@ -1,5 +1,5 @@
 ```bash
 python -m src.visualisation.diagnostic.diagnostic \
-  "/home/jovyan/nachevsky/test/simulation/data_2gpu/data/collapse_diagnostics.dat" \
-  --out "/home/jovyan/nachevsky/test/simulation/GRTeclyn/src/visualisation/diagnostic"
+  "/path/to/your/simulation/run/data/collapse_diagnostics.dat" \
+  --out "/path/to/GRTeclyn/src/visualisation/diagnostic"
 ```

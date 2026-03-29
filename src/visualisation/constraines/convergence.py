@@ -94,8 +94,13 @@ def parse_constraint_file(filepath: Path) -> Tuple[np.ndarray, np.ndarray, np.nd
 def main():
     parser = argparse.ArgumentParser(description="Plot constraint convergence from simulation data.")
 
-    default_med_path = "/home/jovyan/nachevsky/test/simulation/data_supported/data/constraint_norms.dat"
-    default_high_path = "src/SimResults/Run_R0.5_A00.0_A20.02_sigma0.5_perturbed/constraint_norms.dat"
+    _repo_root = Path(__file__).resolve().parents[3]
+    default_med_path = str(
+        _repo_root / "src/SimResults/Run_R0.5_A00.0_A20.0_sigma0.5_unperturbed/constraint_norms.dat"
+    )
+    default_high_path = str(
+        _repo_root / "src/SimResults/Run_R0.5_A00.0_A20.02_sigma0.5_perturbed/constraint_norms.dat"
+    )
 
     parser.add_argument("--med", default=default_med_path,
                         help=f"Path to Medium resolution constraint_norms.dat (default: {default_med_path})")
