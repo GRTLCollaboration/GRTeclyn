@@ -5,11 +5,11 @@ This repository contains the numerical relativity C++ source code, simulation pa
 
 This project is built on top of **[GRTeclyn](https://github.com/GRTLCollaboration/GRTeclyn)**, a GPU-accelerated numerical relativity framework (a port of GRChombo to the AMReX library).
 
-## 🌌 About This Project
+## About This Project
 
 This repository provides the complete computational pipeline to simulate the 3D nonlinear dynamics of unstable Ellis–Bronnikov wormholes supported by a phantom scalar field. It includes the isotropic initial data setup, the forced quadrupolar collapse mechanism ($S_{\rm support}=0.5$, $A_\phi=+0.02$), and the extraction of the resulting gravitational-wave signals ($\Psi_4$).
 
-### 📂 Navigation for Reviewers & Researchers
+### Navigation for Reviewers & Researchers
 
 #### 1. C++ Simulation Code & Initial Data
 The exact 3D Adaptive Mesh Refinement (AMR) setup, the initial data formulation, and the coupled Einstein–phantom-scalar evolution routines are located in:
