@@ -57,7 +57,7 @@ src/visualisation/K_z
 #Running scripts
 script/
 
-src/SimResults/
+
 
 scr/visualisation/visualize
 src/visualisation/ArticleResults/
@@ -101,3 +101,14 @@ src/visualisation/process_wave/__pycache__
 # Python cache
 **/__pycache__/
 **/*.pyc
+
+# SimResults: archived run outputs (two reference runs); omit heavy frame trees
+src/SimResults/Run_R0.5_A00.0_A20.0_sigma0.5_unperturbed/embedding/
+src/SimResults/Run_R0.5_A00.0_A20.0_sigma0.5_unperturbed/K_z/
+src/SimResults/Run_R0.5_A00.0_A20.0_sigma0.5_unperturbed/Weyl4_Re_z/
+src/SimResults/Run_R0.5_A00.0_A20.02_sigma0.5_perturbed/embedding/
+src/SimResults/Run_R0.5_A00.0_A20.02_sigma0.5_perturbed/K_z/
+src/SimResults/Run_R0.5_A00.0_A20.02_sigma0.5_perturbed/Weyl4_Re_z/
+# Track ASCII *.dat in these runs only (overrides global *.dat above)
+!src/SimResults/Run_R0.5_A00.0_A20.0_sigma0.5_unperturbed/*.dat
+!src/SimResults/Run_R0.5_A00.0_A20.02_sigma0.5_perturbed/*.dat
