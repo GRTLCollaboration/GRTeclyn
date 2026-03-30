@@ -4,6 +4,10 @@ Search public LIGO data for a wormhole collapse transient.
 This script uses the simulated Psi4 waveform to build a template,
 downloads GW190521 data from GWOSC, and performs matched filtering.
 
+Run from the repository root (``-m`` takes a module name, not ``*.py``)::
+
+    python -m src.search.main
+
 Dependencies:
     pip install pycbc gwpy scipy numpy matplotlib
 """
@@ -89,21 +93,29 @@ def _gwosc_fetch_worker_range(
     sample_rate: int,
     host: str,
     cache: bool,
+    request_timeout_s: float | None,
     out_q: "mp.Queue",
+    tmp_file: str,
 ) -> None:
     """Module-scope worker for multiprocessing 'spawn' (must be picklable)."""
     try:
+        kw = {}
+        if request_timeout_s is not None:
+            kw["timeout"] = float(request_timeout_s)
         gw = GwpyTimeSeries.fetch_open_data(
             ifo,
             float(start),
             float(end),
-            sample_rate=float(sample_rate),
+            sample_rate=int(sample_rate),
             host=host,
             cache=cache,
+            **kw,
         )
-        out_q.put(("ok", (np.asarray(gw.value, dtype=np.float64), float(gw.dt.value), float(gw.t0.value))))
+        # Save to disk instead of pipe to avoid deadlocks with large arrays
+        np.savez(tmp_file, values=np.asarray(gw.value, dtype=np.float64), dt=float(gw.dt.value), epoch=float(gw.t0.value))
+        out_q.put("ok")
     except Exception as e:
-        out_q.put(("err", repr(e)))
+        out_q.put(repr(e))
 
 
 def _gwosc_fetch_worker(
@@ -112,22 +124,30 @@ def _gwosc_fetch_worker(
     sample_rate: int,
     host: str,
     cache: bool,
+    request_timeout_s: float | None,
     out_q: "mp.Queue",
+    tmp_file: str,
 ) -> None:
     """Module-scope worker for multiprocessing 'spawn' (must be picklable)."""
     try:
         start, end = _select_strain_segment(event_dict, ifo=ifo, sample_rate=sample_rate)
+        kw = {}
+        if request_timeout_s is not None:
+            kw["timeout"] = float(request_timeout_s)
         gw = GwpyTimeSeries.fetch_open_data(
             ifo,
             start,
             end,
-            sample_rate=sample_rate,
+            sample_rate=int(sample_rate),
             host=host,
             cache=cache,
+            **kw,
         )
-        out_q.put(("ok", (np.asarray(gw.value, dtype=np.float64), float(gw.dt.value), float(gw.t0.value))))
+        # Save to disk instead of pipe to avoid deadlocks with large arrays
+        np.savez(tmp_file, values=np.asarray(gw.value, dtype=np.float64), dt=float(gw.dt.value), epoch=float(gw.t0.value))
+        out_q.put("ok")
     except Exception as e:
-        out_q.put(("err", repr(e)))
+        out_q.put(repr(e))
 
 
 def _fetch_open_data_pycbc_with_timeout(
@@ -141,29 +161,61 @@ def _fetch_open_data_pycbc_with_timeout(
     gwosc_request_timeout_s: float | None = 20.0,
 ) -> TimeSeries:
     """GWOSC fetch with a hard wall-clock timeout (separate process)."""
+    import queue
+    import tempfile
+    import os
+
+    # Before spawning process, see if we already have the cached .npz
+    # (Optional explicit caching beyond what gwpy does)
+    start, end = _select_strain_segment(event_dict, ifo=ifo, sample_rate=sample_rate)
+    cache_dir = Path(__file__).parent / "data_cache"
+    cache_dir.mkdir(exist_ok=True)
+    cache_file = cache_dir / f"{ifo}_{start}_{end}_{sample_rate}.npz"
+    
+    if cache_file.exists():
+        print(f"Loading {ifo} data from local disk cache: {cache_file.name}")
+        data = np.load(str(cache_file))
+        return TimeSeries(data["values"], delta_t=float(data["dt"]), epoch=float(data["epoch"]))
 
     ctx = mp.get_context("spawn")
     q: mp.Queue = ctx.Queue(maxsize=1)
+    
+    # We will tell the worker to save directly to the cache_file
+    tmp_path = str(cache_file)
+    
     p = ctx.Process(
         target=_gwosc_fetch_worker,
-        args=(event_dict, ifo, sample_rate, host, cache, q),
+        args=(event_dict, ifo, sample_rate, host, cache, gwosc_request_timeout_s, q, tmp_path),
         daemon=True,
     )
     p.start()
-    p.join(timeout_s)
-    if p.is_alive():
+    
+    try:
+        status = q.get(timeout=float(timeout_s))
+    except queue.Empty:
         p.terminate()
         p.join(2.0)
+        if os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
         raise TimeoutError(f"Downloading data timed out after {timeout_s:.0f} seconds")
 
-    if q.empty():
-        raise RuntimeError("GWOSC fetch failed without returning an error message.")
+    p.join(2.0)
 
-    status, payload = q.get()
     if status != "ok":
-        raise RuntimeError(f"GWOSC fetch failed: {payload}")
+        if os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
+        raise RuntimeError(f"GWOSC fetch failed: {status}")
 
-    values, dt, epoch = payload
+    data = np.load(tmp_path)
+    values = data["values"]
+    dt = float(data["dt"])
+    epoch = float(data["epoch"])
     return TimeSeries(values, delta_t=dt, epoch=epoch)
 
 
@@ -179,28 +231,57 @@ def _fetch_open_data_range_pycbc_with_timeout(
     gwosc_request_timeout_s: float | None = 30.0,
 ) -> TimeSeries:
     """Fetch an explicit [start, end) GPS window with a hard wall-clock timeout."""
+    import queue
+    import tempfile
+    import os
+
+    cache_dir = Path(__file__).parent / "data_cache"
+    cache_dir.mkdir(exist_ok=True)
+    cache_file = cache_dir / f"{ifo}_{float(start)}_{float(end)}_{sample_rate}.npz"
+
+    if cache_file.exists():
+        print(f"Loading {ifo} data from local disk cache: {cache_file.name}")
+        data = np.load(str(cache_file))
+        return TimeSeries(data["values"], delta_t=float(data["dt"]), epoch=float(data["epoch"]))
+
     ctx = mp.get_context("spawn")
     q: mp.Queue = ctx.Queue(maxsize=1)
+    
+    tmp_path = str(cache_file)
+
     p = ctx.Process(
         target=_gwosc_fetch_worker_range,
-        args=(ifo, float(start), float(end), int(sample_rate), host, cache, q),
+        args=(ifo, float(start), float(end), int(sample_rate), host, cache, gwosc_request_timeout_s, q, tmp_path),
         daemon=True,
     )
     p.start()
-    p.join(float(timeout_s))
-    if p.is_alive():
+    
+    try:
+        status = q.get(timeout=float(timeout_s))
+    except queue.Empty:
         p.terminate()
         p.join(2.0)
+        if os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
         raise TimeoutError(f"Downloading data timed out after {timeout_s:.0f} seconds")
 
-    if q.empty():
-        raise RuntimeError("GWOSC fetch failed without returning an error message.")
+    p.join(2.0)
 
-    status, payload = q.get()
     if status != "ok":
-        raise RuntimeError(f"GWOSC fetch failed: {payload}")
+        if os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
+        raise RuntimeError(f"GWOSC fetch failed: {status}")
 
-    values, dt, epoch = payload
+    data = np.load(tmp_path)
+    values = data["values"]
+    dt = float(data["dt"])
+    epoch = float(data["epoch"])
     return TimeSeries(values, delta_t=dt, epoch=epoch)
 
 
@@ -212,7 +293,7 @@ def main(argv: list[str] | None = None) -> int:
         help="Path to extracted psi4_mode_l2m0.dat (override with your simulation output)",
     )
     p.add_argument("--mass-msun", type=float, default=1000.0, help="Template mass in solar masses")
-    p.add_argument("--distance-mpc", type=float, default=1.0, help="Template distance in Mpc")
+    p.add_argument("--distance-mpc", type=float, default=0.002, help="Template distance in Mpc (e.g. 0.002 for 2 kpc)")
     p.add_argument("--catalog", default="GWTC-2", help="PyCBC catalog name (e.g. GWTC-2)")
     p.add_argument(
         "--event",
