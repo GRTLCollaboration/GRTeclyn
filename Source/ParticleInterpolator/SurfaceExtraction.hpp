@@ -10,12 +10,12 @@
 #include <AMReX_GpuContainers.H>
 
 // Other includes
-#include "AMRInterpolator.hpp"
 #include "DimensionDefinitions.hpp"
 #include "FilesystemTools.hpp"
 #include "IntegrationMethod.hpp"
-#include "InterpolationQuery.hpp"
+#include "InterpolationQueryParticle.hpp"
 #include "Lagrange.hpp"
+#include "ParticleInterpolator.hpp"
 #include "SmallDataIO.hpp" // for writing data
 #include "StateVariables.hpp"
 
@@ -26,10 +26,12 @@
 #include <utility>
 #include <vector>
 
+// template <int num_components> class ParticleInterpolator;
+
 //! This class extracts grid variables on 2 dimensional surfaces each
 //! parameterised by u and v with different surfaces given by level sets of
 //! another parameter
-template <class SurfaceGeometry> class SurfaceExtraction
+template <class SurfaceGeometry, int num_components> class SurfaceExtraction
 {
   public:
     struct params_t
@@ -138,8 +140,11 @@ template <class SurfaceGeometry> class SurfaceExtraction
     // NOLINTEND(bugprone-easily-swappable-parameters)
 
     //! Do the extraction
-    template <typename InterpAlgo>
-    void extract(AMRInterpolator<InterpAlgo> *a_interpolator);
+    void extract(
+        ParticleInterpolator<2> *a_interpolator,
+        amrex::Vector<BCParity> parities,
+        const std::string &name_derived); // for now this is hard-coded for
+                                          // Weyl4 and so we use 2 components
 
     //! Add an integrand dependent on the interpolated data over the surface
     //! for integrate() to integrate over.

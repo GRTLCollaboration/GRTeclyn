@@ -35,6 +35,7 @@ class ParticleInterpolator
 
   private:
     GRAMR *m_gramr_ptr{nullptr};
+
     bool m_initialized{
         false}; // a guard to make sure we do not uninitialised GRAMR
 
@@ -137,7 +138,9 @@ class ParticleInterpolator
                                  const amrex::Geometry &geom);
 
     // final interpolation routine exposed to the users
-    void interp(InterpolationQueryParticle &query,
+    // NEW: I need to carry through a_state_index here, as otherwise there are
+    // now out of scope errors
+    void interp(InterpolationQueryParticle &query, int a_state_index,
                 const std::string &name_derived = "",
                 double time_derived             = 0.0);
 

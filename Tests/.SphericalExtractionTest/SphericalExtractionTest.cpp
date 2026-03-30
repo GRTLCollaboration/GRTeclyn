@@ -33,8 +33,8 @@ using std::endl;
 #include "SimulationParameters.hpp"
 
 // Problem specific includes:
-#include "AMRInterpolator.hpp"
 #include "Lagrange.hpp"
+#include "ParticleInterpolator.hpp"
 #include "SphericalExtraction.hpp"
 #include "SphericalExtractionTestLevel.hpp"
 
@@ -55,12 +55,12 @@ int runSphericalExtractionTest(int argc, char *argv[])
     GRParmParse pp(0, argv + argc, NULL, in_file);
     SimulationParameters sim_params(pp);
 
-    GRAMR gr_amr;
     DefaultLevelFactory<SphericalExtractionTestLevel>
-        surface_extraction_test_level_fact(gr_amr, sim_params);
+        surface_extraction_test_level_fact;
+    GRAMR gr_amr(&surface_extraction_test_level_fact);
     // the initial data for the two variables is the spherical harmonic
     // specified by params
-    setupAMRObject(gr_amr, surface_extraction_test_level_fact);
+    gr_amr.init(0., sim_params.stop_time);
 
     AMRInterpolator<Lagrange<4>> interpolator(
         gr_amr, sim_params.origin, sim_params.dx, sim_params.boundary_params);

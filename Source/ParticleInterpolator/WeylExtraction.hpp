@@ -15,25 +15,24 @@
    components over spherical shells at specified radii. The values may then be
    written to an output file, or integrated across the surfaces.
 */
-class WeylExtraction : public SphericalExtraction
+class WeylExtraction : public SphericalExtraction<2>
 {
   public:
+
     //! The constructor
-    WeylExtraction(SphericalExtraction::params_t &a_params, double a_dt,
-                   double a_time, bool a_first_step,
+    WeylExtraction(const SphericalExtraction<2>::params_t &a_params,
+                   double a_dt, double a_time, bool a_first_step,
                    double a_restart_time = 0.0)
-        : SphericalExtraction(a_params, a_dt, a_time, a_first_step,
-                              a_restart_time)
+        : SphericalExtraction<2>(a_params, a_dt, a_time, a_first_step,
+                                 a_restart_time)
     {
-#if 0
-        add_var(c_Weyl4_Re, VariableType::derived);
-        add_var(c_Weyl4_Im, VariableType::derived);
-#endif
+        this->add_var(0, VariableType::derived);
+        this->add_var(1, VariableType::derived);
     }
 
     //! The old constructor which assumes it is called in specificPostTimeStep
     //! so the first time step is when m_time == m_dt
-    WeylExtraction(SphericalExtraction::params_t a_params, double a_dt,
+    WeylExtraction(SphericalExtraction<2>::params_t a_params, double a_dt,
                    double a_time, double a_restart_time = 0.0)
         : WeylExtraction(a_params, a_dt, a_time, (a_dt == a_time),
                          a_restart_time)
@@ -41,19 +40,21 @@ class WeylExtraction : public SphericalExtraction
     }
 
     //! Execute the query
-    void execute_query(AMRInterpolator<Lagrange<4>> *a_interpolator)
+    void execute_query(ParticleInterpolator<2> *a_interpolator,
+                       const std::string &name_derived = "")
     {
+        amrex::Vector<BCParity> parities = {BCParity::even, BCParity::odd_xyz};
         // extract the values of the Weyl scalars on the spheres
-        extract(a_interpolator);
+        this->extract(a_interpolator, parities, name_derived);
 
-        if (m_params.write_extraction)
+        if (this->m_params.write_extraction)
         {
-            write_extraction(m_params.extraction_file_prefix);
+            this->write_extraction(this->m_params.extraction_file_prefix);
         }
 
         // now calculate and write the requested spherical harmonic modes
         std::vector<std::pair<std::vector<double>, std::vector<double>>>
-            mode_integrals(m_num_modes);
+            mode_integrals(this->m_num_modes);
 
         // note that this is normalised by multiplying by radius
         auto normalised_Weyl4_complex = [](std::vector<double> Weyl4_reim_parts,
@@ -68,29 +69,31 @@ class WeylExtraction : public SphericalExtraction
         };
 
         // add the modes that will be integrated
-        for (int imode = 0; imode < m_num_modes; ++imode)
+        for (int imode = 0; imode < this->m_num_modes; ++imode)
         {
-            const auto &mode                  = m_modes[imode];
+            const auto &mode                  = this->m_modes[imode];
             constexpr int spin_quantum_number = -2;
-            add_mode_integrand(spin_quantum_number, mode.first, mode.second,
-                               normalised_Weyl4_complex, mode_integrals[imode]);
+            this->add_mode_integrand(spin_quantum_number, mode.first,
+                                     mode.second, normalised_Weyl4_complex,
+                                     mode_integrals[imode]);
         }
 
         // do the integration over the surface
-        integrate();
+        this->integrate();
 
         // write the integrals
-        for (int imode = 0; imode < m_num_modes; ++imode)
+        for (int imode = 0; imode < this->m_num_modes; ++imode)
         {
-            const auto &mode               = m_modes[imode];
-            std::string integrals_filename = m_params.integral_file_prefix +
-                                             std::to_string(mode.first) +
-                                             std::to_string(mode.second);
+            const auto &mode = this->m_modes[imode];
+            std::string integrals_filename =
+                this->m_params.integral_file_prefix +
+                std::to_string(mode.first) + std::to_string(mode.second);
             std::vector<std::vector<double>> integrals_for_writing = {
                 std::move(mode_integrals[imode].first),
                 std::move(mode_integrals[imode].second)};
             std::vector<std::string> labels = {"integral Re", "integral Im"};
-            write_integrals(integrals_filename, integrals_for_writing, labels);
+            this->write_integrals(integrals_filename, integrals_for_writing,
+                                  labels);
         }
     }
 };
