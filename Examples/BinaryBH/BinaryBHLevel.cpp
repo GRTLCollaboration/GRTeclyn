@@ -8,6 +8,7 @@
 #include "CCZ4RHS.hpp"
 #include "ChiTagger.hpp"
 #include "Constraints.hpp"
+#include "CustomExtraction.hpp"
 #include "ExtractionTagger.hpp"
 #include "PositiveChiAndLapse.hpp"
 #include "PunctureTagger.hpp"
@@ -309,6 +310,32 @@ void BinaryBHLevel::specificPostTimeStep()
         amrex::Real dt           = get_gramr_ptr()->dtLevel(Level());
         get_puncture_tracker().track(current_time, dt, write_punctures);
     }
+
+    bool first_step = (parent->levelSteps(0) == 0);
+
+    // Custom extraction
+    if (Level() == 0)
+    {
+        // set up the query and execute it
+        std::array<double, AMREX_SPACEDIM> extraction_origin = {
+            0.2 * simParams().L, 0.5 * simParams().L,
+            0}; // amend appropriately depending on
+                // whether
+                // you used symmetric BCs or something
+                //  else
+
+        double m_time       = get_state_data(state_index).curTime();
+        double m_dt         = get_gramr_ptr()->dtLevel(Level());
+        double restart_time = get_gramr_ptr()->get_restart_time();
+
+        // a random chi lineout
+        CustomExtraction<BHAMR<num_punctures>::particle_num_components>
+            chi_extraction(c_chi, 1, 100, simParams().L / 4., extraction_origin,
+                           m_dt, m_time, restart_time, first_step);
+        chi_extraction.execute_query(get_bhamr_ptr()->m_interpolator,
+                                     "chi_new_lineout");
+    }
+
 #if 0
 //xxxxx specificPostTimeStep
     BL_PROFILE("BinaryBHLevel::specificPostTimeStep");
