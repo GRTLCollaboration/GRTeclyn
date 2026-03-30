@@ -26,7 +26,7 @@
 #include <utility>
 #include <vector>
 
-// template <int num_components> class ParticleInterpolator;
+template <int num_components> class ParticleInterpolator;
 
 //! This class extracts grid variables on 2 dimensional surfaces each
 //! parameterised by u and v with different surfaces given by level sets of
@@ -141,7 +141,7 @@ template <class SurfaceGeometry, int num_components> class SurfaceExtraction
 
     //! Do the extraction
     void extract(
-        ParticleInterpolator<2> *a_interpolator,
+        ParticleInterpolator<num_components> *a_interpolator,
         amrex::Vector<BCParity> parities,
         const std::string &name_derived); // for now this is hard-coded for
                                           // Weyl4 and so we use 2 components

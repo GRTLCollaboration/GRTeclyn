@@ -148,8 +148,8 @@ SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
 //! Do the extraction
 template <class SurfaceGeometry, int num_components>
 void SurfaceExtraction<SurfaceGeometry, num_components>::extract(
-    ParticleInterpolator<2> *a_interpolator, amrex::Vector<BCParity> parities,
-    const std::string &name_derived)
+    ParticleInterpolator<num_components> *a_interpolator,
+    amrex::Vector<BCParity> parities, const std::string &name_derived)
 {
     if (a_interpolator == nullptr)
     {
