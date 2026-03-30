@@ -19,7 +19,8 @@ class CCZ4D1Vars
                                 const amrex::Array4<const amrex::Real> &state,
                                 const FourthOrderDerivatives &a_deriv)
     {
-        m_d1_state = a_deriv.diff1_state<NUM_CCZ4_VARS>(ix, iy, iz, state);
+        m_d1_state =
+            a_deriv.diff1_state_array<NUM_CCZ4_VARS>(ix, iy, iz, state);
     }
 
     // empty constructor used for tests
@@ -29,84 +30,71 @@ class CCZ4D1Vars
         {
             FOR (i)
             {
-                m_d1_state[ivar][i] = 0.0;
+                m_d1_state(ivar, i) = 0.0;
             }
         }
     }
     // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
-    amrex::GpuArray<Tensor<1, amrex::Real>, NUM_CCZ4_VARS> m_d1_state;
+    //    amrex::GpuArray<Tensor<1, amrex::Real>, NUM_CCZ4_VARS> m_d1_state;
+    amrex::Array2D<amrex::Real, 0, NUM_CCZ4_VARS, 0, 3> m_d1_state{};
 
     [[nodiscard]]
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &chi(int i) const
     {
-        return m_d1_state[c_chi][i];
-    }
-
-    [[nodiscard]]
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const Tensor<1, amrex::Real> &
-    chi() const
-    {
-        return m_d1_state[c_chi];
+        return m_d1_state(c_chi, i);
     }
 
     [[nodiscard]]
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &h(int i, int j,
                                                              int k) const
     {
-        return m_d1_state[VAR_IDX(c_h11, i, j)][k];
+        return m_d1_state(VAR_IDX(c_h11, i, j), k);
     }
 
     [[nodiscard]]
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &K(int i) const
     {
-        return m_d1_state[c_K][i];
+        return m_d1_state(c_K, i);
     }
 
     [[nodiscard]]
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &A(int i, int j,
                                                              int k) const
     {
-        return m_d1_state[VAR_IDX(c_A11, i, j)][k];
+        return m_d1_state(VAR_IDX(c_A11, i, j), k);
     }
 
     [[nodiscard]]
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &Theta(int i) const
     {
-        return m_d1_state[c_Theta][i];
+        return m_d1_state(c_Theta, i);
     }
 
     [[nodiscard]]
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &Gamma(int i,
                                                                  int j) const
     {
-        return m_d1_state[c_Gamma1 + i][j];
+        return m_d1_state(c_Gamma1 + i, j);
     }
 
     [[nodiscard]]
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &lapse(int i) const
     {
-        return m_d1_state[c_lapse][i];
-    }
-
-    [[nodiscard]]
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const Tensor<1, amrex::Real> &
-    lapse() const
-    {
-        return m_d1_state[c_lapse];
+        return m_d1_state(c_lapse, i);
     }
 
     [[nodiscard]]
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &shift(int i,
                                                                  int j) const
     {
-        return m_d1_state[c_shift1 + i][j];
+        return m_d1_state(c_shift1 + i, j);
     }
 
     [[nodiscard]]
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &B(int i, int j) const
     {
-        return m_d1_state[c_B1 + i][j];
+        return m_d1_state(c_B1 + i, j);
     }
 };
 

@@ -25,17 +25,20 @@ class CCZ4D2Vars
     // default empty contructor - for tests
     AMREX_GPU_HOST_DEVICE CCZ4D2Vars()
     {
-        FOR (k, l)
+
+        for (int i = 0; i < TensorArray::Rank1Sym::len(); i++)
         {
-            chi[k][l]   = 0.0;
-            lapse[k][l] = 0.0;
-            FOR (i)
+            chi(i)   = 0.;
+            lapse(i) = 0.;
+
+            FOR (k)
             {
-                shift[i][k][l] = 0.0;
-                FOR (j)
-                {
-                    h[i][j][k][l] = 0.0;
-                }
+                shift(k, i) = 0.;
+            }
+
+            for (int j = 0; j < TensorArray::Rank2Sym::ylen(); j++)
+            {
+                h(i, j) = 0.;
             }
         }
     }
@@ -46,16 +49,16 @@ class CCZ4D2Vars
                         const FourthOrderDerivatives &a_deriv)
     {
         // Calculate the d2 quantities for all required vars to calculate rhs
-        chi   = a_deriv.diff2_scalar(ix, iy, iz, state, c_chi);
-        lapse = a_deriv.diff2_scalar(ix, iy, iz, state, c_lapse);
-        shift = a_deriv.diff2_vector(ix, iy, iz, state, c_shift1);
-        h     = a_deriv.diff2_tensor(ix, iy, iz, state, c_h11);
+        chi   = a_deriv.diff2_sym_scalar(ix, iy, iz, state, c_chi);
+        lapse = a_deriv.diff2_sym_scalar(ix, iy, iz, state, c_lapse);
+        shift = a_deriv.diff2_sym_vector(ix, iy, iz, state, c_shift1);
+        h     = a_deriv.diff2_sym_tensor_test_array(ix, iy, iz, state, c_h11);
     }
 
-    Tensor<4, amrex::Real> h;
-    Tensor<3, amrex::Real> shift;
-    Tensor<2, amrex::Real> chi;
-    Tensor<2, amrex::Real> lapse;
+    amrex::Array2D<amrex::Real, 0, 6, 0, 6> h;
+    amrex::Array2D<amrex::Real, 0, 3, 0, 6> shift;
+    amrex::Array1D<amrex::Real, 0, 6> chi;
+    amrex::Array1D<amrex::Real, 0, 6> lapse;
 };
 
 #endif /* CCZ4D2VARS_HPP */
