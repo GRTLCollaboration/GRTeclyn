@@ -27,6 +27,7 @@
 #include "Potential.hpp"
 #include "ScalarField.hpp"
 #include "RandomFieldInit.hpp"
+#include "InflationExtraction.hpp"
 
 void ScalarFieldLevel::variableSetUp()
 {
@@ -72,14 +73,15 @@ void ScalarFieldLevel::variableSetUp()
     derive_lst.addComponent("Weyl4", desc_lst, State_Type, 0, c_B1);
 
     // derive_lst.add(
-    //     "TensorPolarisations", amrex::IndexType::TheCellType(),
-    //     static_cast<int>(RandomField::var_names.size()), RandomField::var_names,
-    //     amrex::DeriveFuncFab(),
+    //     "InflationFields", amrex::IndexType::TheCellType(),
+    //     static_cast<int>(InflationExtraction::var_names.size()), 
+    //                      InflationExtraction::var_names,
+    //                      amrex::DeriveFuncFab(),
     //     [=](const amrex::Box &box) { return amrex::grow(box, nghost); },
     //     &amrex::cell_quartic_interp);
 
-    // We only need the spatial metric to find the polarisation fields
-    derive_lst.addComponent("TensorPolarisation", desc_lst, State_Type, 0, c_K);
+    // // We only need the spatial metric to find the polarisation fields
+    // derive_lst.addComponent("InflationFields", desc_lst, State_Type, 0, NUM_VARS);
 }
 
 // Things to do at each advance step, after the RK4 is calculated
@@ -400,10 +402,10 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
                                   src_arrays[box_no]);
                 });
         }
-        // else if (name=="TensorPolarisations")
+        // else if (name=="InflationFields")
         // {
-        //     RandomField random_field_derive(simParams().random_field_params);
-        //     random_field_derive.derive(src_mf, multifab, dcomp);
+        //     InflationExtraction inflation_derive_engine(simParams().inflt_params);
+        //     inflation_derive_engine.derive(src_mf, multifab, dcomp);
         // }
         else
         {
@@ -453,10 +455,12 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
     means_file.write_time_data_line({phi_avg, Pi_avg, scale_fact_avg, Hubble_fact_avg, lapse_avg});
 
     // Extract the spectra and field statistics
-    // RandomField random_field_extractor(simParams().random_field_params);
-    // random_field_extractor.extract(state_new, simParams().data_path, dt, cur_time, restart_time, first_step);
+    InflationExtraction inflation_extractor_engine(simParams().inflt_params);
+    inflation_extractor_engine.set_print_params(simParams().data_path, dt, cur_time, 
+                                                restart_time, first_step);
+    inflation_extractor_engine.extract(state_new);
 
-    // // Make a file object for constraint statistics
+    // Make a file object for constraint statistics
     // SmallDataIO constrs_file(simParams().data_path+"constraint-statistics", dt, cur_time, restart_time, SmallDataIO::APPEND, first_step, ".dat");
     // constrs_file.remove_duplicate_time_data();
     
@@ -475,5 +479,6 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
 
     // // Print statistics on the abs constraint terms
     // Vector<int> moments{1,2};
-    // random_field_extractor.print_moment(constr_alias, Constraints::var_names, moments, constrs_file, first_step);
+    // inflation_extractor_engine.print_moment(constr_alias, Constraints::var_names, 
+    //                                         moments, constrs_file, first_step);
 }
