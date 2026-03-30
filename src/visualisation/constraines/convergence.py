@@ -18,10 +18,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Use non-interactive backend by default
 matplotlib.use("Agg")
 
-# Set style to match scientific publication standards
 plt.rcParams.update({
     "font.family": "serif",
     "font.serif": ["DejaVu Serif", "Times New Roman", "serif"],
@@ -50,17 +48,13 @@ def parse_constraint_file(filepath: Path) -> Tuple[np.ndarray, np.ndarray, np.nd
     with open(filepath, "r") as f:
         for line_num, line in enumerate(f, 1):
             line = line.strip()
-            # Skip empty lines and comments
             if not line or line.startswith("#"):
                 continue
 
             parts = line.split()
-            # Header check: if line contains non-numeric characters, skip
             try:
-                # Try parsing the first token as float
                 float(parts[0])
             except ValueError:
-                # Likely a header line like "L2_Ham L2_Mom"
                 continue
 
             if len(parts) < 3:
@@ -80,12 +74,10 @@ def parse_constraint_file(filepath: Path) -> Tuple[np.ndarray, np.ndarray, np.nd
     if not times:
         raise ValueError(f"No valid data found in {filepath}")
 
-    # Convert to numpy arrays
     times = np.array(times)
     l2_ham = np.array(l2_ham)
     l2_mom = np.array(l2_mom)
 
-    # Sort by time
     sort_idx = np.argsort(times)
 
     return times[sort_idx], l2_ham[sort_idx], l2_mom[sort_idx]
@@ -120,7 +112,6 @@ def main():
 
     script_dir = Path(__file__).resolve().parent
 
-    # If output path is just a filename base, put it in the script directory
     if output_path.name == str(output_path):
         output_path = script_dir / output_path
 
@@ -152,8 +143,6 @@ def main():
             
             print(f"Filtered data to t <= {max_time}")
 
-        # Scale high resolution by 3.16 for 4th order ( (256/192)^4 )
-        # Scale by 1.77 for 2nd order ( (256/192)^2 )
         ham_high_scaled_4th = ham_high * 3.16
         mom_high_scaled_4th = mom_high * 3.16
         
@@ -162,7 +151,6 @@ def main():
 
         fig, axes = plt.subplots(2, 1, sharex=True, figsize=(10, 8))
 
-        # Hamiltonian Plot
         ax1 = axes[0]
         ax1.semilogy(t_med, ham_med, label=r'Medium ($N=192$)', color='black', linestyle='-', linewidth=1.5)
         ax1.semilogy(t_high, ham_high_scaled_4th, label=r'High ($N=256$) $\times 3.16$ (4th order)', color='black', linestyle='--', linewidth=1.5)
@@ -174,7 +162,6 @@ def main():
         ax1.legend(loc='best', frameon=True, framealpha=0.9)
         ax1.tick_params(axis='both', which='major', direction='in', top=True, right=True)
 
-        # Momentum Plot
         ax2 = axes[1]
         ax2.semilogy(t_med, mom_med, label=r'Medium ($N=192$)', color='black', linestyle='-', linewidth=1.5)
         ax2.semilogy(t_high, mom_high_scaled_4th, label=r'High ($N=256$) $\times 3.16$ (4th order)', color='black', linestyle='--', linewidth=1.5)

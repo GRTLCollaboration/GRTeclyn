@@ -21,7 +21,7 @@ void SupportedWormholeLevel::variableSetUp()
     BL_PROFILE("SupportedWormholeLevel::variableSetUp()");
     stateVariableSetUp();
     
-    PhantomDecayPotential potential; // Default construct for setup
+    PhantomDecayPotential potential;
     ExoticScalarField<PhantomDecayPotential> exotic_scalar(potential);
     ConstraintsWithMatter<ExoticScalarField<PhantomDecayPotential>>::set_up(state_index);
     Weyl4WithMatter<ExoticScalarField<PhantomDecayPotential>>::set_up(state_index);
@@ -35,7 +35,6 @@ void SupportedWormholeLevel::specificAdvance()
     PositiveChiAndLapse positive_chi_lapse(simParams().min_chi,
                                            simParams().min_lapse);
 
-    // Enforce algebraic constraints
     amrex::ParallelFor(S_new,
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
                        {
@@ -48,7 +47,6 @@ void SupportedWormholeLevel::initData()
 {
     BL_PROFILE("SupportedWormholeLevel::initData");
 
-    // Set up the compute class for the Wormhole initial data
     SupportedWormholeInitialData wormhole(simParams().wormhole_params,
                                  Geom().CellSize(0));
 
@@ -58,14 +56,12 @@ void SupportedWormholeLevel::initData()
     amrex::ParallelFor(state, state.nGrowVect(),
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
                        {
-                           // Initialize all to zero first
                            amrex::CellData<amrex::Real> cell =
                                arrs[box_no].cellData(i, j, k);
                            for (int n = 0; n < cell.nComp(); ++n)
                            {
                                cell[n] = 0.;
                            }
-                           // Calculate Wormhole metrics
                            wormhole.compute(i, j, k, arrs[box_no]);
                        });
 
@@ -80,8 +76,6 @@ void SupportedWormholeLevel::specificEvalRHS(amrex::MultiFab &a_soln,
     const int soln_ghosts = a_soln.nGrowVect()[0];
     if (soln_ghosts > 0)
     {
-        // Ensure ghost cells are valid before enforcing algebraic constraints
-        // and evaluating high-order derivatives in the RHS.
         FillPatch(*this, a_soln, soln_ghosts, a_time, state_index, 0,
                   a_soln.nComp());
     }
@@ -92,7 +86,6 @@ void SupportedWormholeLevel::specificEvalRHS(amrex::MultiFab &a_soln,
     PositiveChiAndLapse positive_chi_lapse(simParams().min_chi,
                                            simParams().min_lapse);
 
-    // Enforce algebraic constraints pre-RHS
     amrex::ParallelFor(a_soln, a_soln.nGrowVect(),
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
                        {
@@ -100,7 +93,6 @@ void SupportedWormholeLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                            positive_chi_lapse(i, j, k, soln_arrs[box_no]);
                        });
 
-    // Calculate CCZ4 Right Hand Side (Einstein Equations + Matter)
     PhantomDecayPotential potential(simParams().wormhole_params.phantom_mass);
     ExoticScalarField<PhantomDecayPotential> exotic_scalar(
         potential, simParams().wormhole_params.support_strength);
@@ -147,8 +139,6 @@ void SupportedWormholeLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
     const auto &tag_arrs       = a_tag_box_array.arrays();
     const auto &state_new_arrs = state_new.const_arrays();
 
-    // Tag based on gradients of Chi (Conformal factor)
-    // This will naturally tag the throat region where curvature is high
     ChiTagger chi_tagger(Geom().CellSize(0), a_regrid_threshold);
 
     amrex::ParallelFor(state_new, amrex::IntVect(0),
@@ -165,8 +155,6 @@ void SupportedWormholeLevel::specificPostTimeStep()
 {
     BL_PROFILE("SupportedWormholeLevel::specificPostTimeStep");
 
-    // --- Constraint norms (small-data output) ---
-    // Compute volume-weighted L2 norms of Ham and Mom on level 0.
     if (simParams().calculate_constraint_norms && Level() == 0)
     {
         const amrex::Real time         = get_state_data(state_index).curTime();
@@ -174,11 +162,9 @@ void SupportedWormholeLevel::specificPostTimeStep()
         const amrex::Real restart_time = get_gramr_ptr()->get_restart_time();
         const bool first_step          = (time == 0.0);
 
-        // Fill ghosts for constraint calculation
         amrex::MultiFab &state_new = get_new_data(state_index);
         FillPatch(*this, state_new, 2, time, state_index, 0, state_new.nComp());
 
-        // Compute constraints into a temporary MultiFab (Ham, Mom1, Mom2, Mom3)
         amrex::MultiFab cst(state_new.boxArray(), state_new.DistributionMap(), 4,
                             0);
         cst.setVal(0.0);
@@ -204,7 +190,6 @@ void SupportedWormholeLevel::specificPostTimeStep()
                 });
         }
 
-        // Volume-weighted reductions on this level (constant cell volume on a level)
         const amrex::Real cell_vol = dx[0] * dx[1] * dx[2];
 
         amrex::ReduceOps<amrex::ReduceOpSum, amrex::ReduceOpSum,
@@ -242,7 +227,6 @@ void SupportedWormholeLevel::specificPostTimeStep()
         const double L2_Mom =
             (sum_vol > 0.0) ? std::sqrt(sum_mom2 / sum_vol) : 0.0;
 
-        // Build output directory: output_path + data_subpath
         GRParmParse pp;
         std::string output_path = "./";
         pp.load("output_path", output_path, std::string("./"));
@@ -272,9 +256,6 @@ void SupportedWormholeLevel::specificPostTimeStep()
         constraints_file.write_time_data_line({L2_Ham, L2_Mom});
     }
 
-    // --- Collapse / strong-field diagnostics (small-data output) ---
-    // Sample from the finest AMR level so the throat region is fully resolved.
-    // Triggered once per coarse step (Level 0) but reads finest-level data.
     if (Level() == 0)
     {
         const amrex::Real time         = get_state_data(state_index).curTime();
@@ -342,7 +323,7 @@ void SupportedWormholeLevel::specificPostTimeStep()
                     
                     amrex::Real ah_radius = 0.0;
                     amrex::Real theta_plus_min_proxy = 1.0e30;
-                    if (r > 1e-6) // avoid division by zero
+                    if (r > 1e-6)
                     {
                         const amrex::Real A11 = arr(i, j, k, c_A11);
                         const amrex::Real A22 = arr(i, j, k, c_A22);
@@ -406,9 +387,6 @@ void SupportedWormholeLevel::specificPostTimeStep()
         amrex::ParallelDescriptor::ReduceRealMin(min_Pi);
         amrex::ParallelDescriptor::ReduceRealMax(max_Pi);
 
-        // Location of the global minimum lapse (average over ties).
-        // This helps confirm the collapse localizes at the throat/center rather
-        // than being a boundary artifact.
         const amrex::Real tol =
             amrex::max(amrex::Real(1.0e-14), amrex::Real(1.0e-12) * amrex::Math::abs(min_lapse));
 

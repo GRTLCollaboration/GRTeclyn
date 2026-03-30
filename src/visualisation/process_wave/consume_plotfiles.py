@@ -38,7 +38,6 @@ def _default_data_dir() -> str:
     return os.path.abspath(os.path.join(project_root, "..", "data"))
 
 def _default_frames_out_dir() -> str:
-    # .../src/visualisation/process_wave -> .../src/visualisation/visualize
     script_dir = os.path.dirname(os.path.abspath(__file__))
     visualisation_dir = os.path.dirname(script_dir)
     return os.path.join(visualisation_dir, "visualize")
@@ -747,7 +746,6 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
         result["t"] = t
         key = result["key"]
 
-        # --- Psi4 extraction (optional) ---
         if args_dict.get("psi4"):
             if ("boxlib", "Weyl4_Re") not in ds.field_list or ("boxlib", "Weyl4_Im") not in ds.field_list:
                 raise RuntimeError("Plotfile missing Weyl4_Re/Im. Set: amr.derive_plot_vars = Weyl4 and re-run.")
@@ -759,7 +757,6 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
             )
             result["psi4_line"] = f"{t:.16e}  " + "  ".join([f"{a.real:.16e}  {a.imag:.16e}" for a in amps])
 
-        # --- Frame rendering (optional) ---
         frame_fields = [_canonical_field_name(f) for f in args_dict.get("frames_fields", [])]
         if frame_fields:
             idx = _parse_plot_index(key)
@@ -778,7 +775,6 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
                     verbose=args_dict.get("verbose", False),
                 )
 
-        # --- Areal radius extraction (optional) ---
         if args_dict.get("areal_radius"):
             if ("boxlib", "chi") in ds.field_list:
                 R_min, r_min = _extract_areal_radius_min(ds, center=args_dict["center"])
@@ -787,7 +783,6 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
                 if args_dict.get("verbose", False):
                     print(f"WARNING: plotfile {key} missing chi field; skipping areal radius.")
 
-        # --- Embedding diagram frame (optional) ---
         if args_dict.get("embedding"):
             if ("boxlib", "chi") in ds.field_list:
                 e_idx = _parse_plot_index(key)
@@ -805,8 +800,7 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
                     print(f"WARNING: plotfile {key} missing chi field; skipping embedding.")
 
         result["success"] = True
-        
-        # --- Delete ---
+
         if args_dict.get("delete") and (p not in protected):
             shutil.rmtree(p)
             result["deleted"] = True

@@ -17,10 +17,8 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
 
     GRAMR::set_simulation_parameters(sim_params);
 
-    // Factory to build Wormhole Levels
     DefaultLevelFactory<SupportedWormholeLevel> wh_level_bld;
 
-    // Standard GRAMR container (No need for BHAMR/TPAMR)
     GRAMR wh_amr(&wh_level_bld);
 
     wh_amr.init(0., sim_params.stop_time);

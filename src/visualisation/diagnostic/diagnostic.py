@@ -28,8 +28,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 from scipy.signal import savgol_filter
 
-# Physical constants
-M_SUN_SEC = 4.9255e-6  # G*M_sun/c^3 in seconds
+M_SUN_SEC = 4.9255e-6
 
 
 def _default_run_dir() -> Path:
@@ -77,9 +76,6 @@ def _resolve_areal_path(data_dir: Path, explicit: str | None) -> Optional[Path]:
     return None
 
 
-# ---------------------------------------------------------------------------
-# Data loaders
-# ---------------------------------------------------------------------------
 def load_collapse_diagnostics(path: Path) -> Dict[str, np.ndarray]:
     rows = []
     with path.open("r", encoding="utf-8") as f:
@@ -172,9 +168,6 @@ def load_areal_radius(path: Path) -> Dict[str, np.ndarray]:
     }
 
 
-# ---------------------------------------------------------------------------
-# Analysis functions
-# ---------------------------------------------------------------------------
 def _compute_expansion_velocity(
     t: np.ndarray, R_areal: np.ndarray, smooth_window: int = 11
 ) -> np.ndarray:
@@ -318,9 +311,6 @@ def _fit_K_lifetime(
         return None
 
 
-# ---------------------------------------------------------------------------
-# Plotting
-# ---------------------------------------------------------------------------
 def _apply_scientific_style() -> None:
     plt.rcParams.update({
         "font.family": "serif",
@@ -362,7 +352,6 @@ def plot_collapse_diagnostics(
     if len(axes.shape) == 1:
         axes = np.expand_dims(axes, axis=0)
 
-    # -- Row 1 --
     top_specs: Tuple[Tuple[str, str, str], ...] = (
         ("min_lapse", r"$\min(\alpha)$", r"Minimum lapse: $\alpha$"),
         ("min_chi", r"$\min(\chi)$", r"Minimum conformal factor: $\chi$"),
@@ -379,7 +368,6 @@ def plot_collapse_diagnostics(
         ax.grid(True, which="both", ls="--", alpha=0.6)
         ax.tick_params(axis="both", which="major", direction="in")
 
-    # -- Row 2 --
     bottom_specs: Tuple[Tuple[str, str, str], ...] = (
         ("max_ah_r", r"$r_{\rm AH}$", r"Max trapped surface radius: $\theta_+ \leq 0$"),
         ("min_theta_plus", r"$\min(\theta_+)$", r"Minimum null expansion proxy: $\theta_+$"),
@@ -399,9 +387,7 @@ def plot_collapse_diagnostics(
         ax.grid(True, which="both", ls="--", alpha=0.6)
         ax.tick_params(axis="both", which="major", direction="in")
 
-    # -- Row 3: Areal radius, expansion velocity, K-decay lifetime --
     if n_rows >= 3:
-        # Panel 3a: R_areal_min vs t
         ax_areal = axes[2, 0]
         if has_areal:
             ta = areal_data["t"]
@@ -420,7 +406,6 @@ def plot_collapse_diagnostics(
         ax_areal.grid(True, which="both", ls="--", alpha=0.6)
         ax_areal.tick_params(axis="both", which="major", direction="in")
 
-        # Panel 3b: expansion velocity dR/dt
         ax_vel = axes[2, 1]
         if has_areal:
             ta = areal_data["t"]
@@ -448,7 +433,6 @@ def plot_collapse_diagnostics(
         ax_vel.grid(True, which="both", ls="--", alpha=0.6)
         ax_vel.tick_params(axis="both", which="major", direction="in")
 
-        # Panel 3c: K-decay lifetime fit
         ax_life = axes[2, 2]
         K_data = np.asarray(data["max_abs_K"], dtype=float)
         ax_life.semilogy(t, np.where(K_data > 0, K_data, np.nan), color="black", linewidth=1.5, label=r"$\max|K|$")
@@ -478,8 +462,7 @@ def plot_collapse_diagnostics(
 
     if has_phantom:
         row_idx = base_rows - 1
-        
-        # Panel 4a: min/max phi
+
         ax_phi = axes[row_idx, 0]
         y_min_phi = np.asarray(data["min_phi"], dtype=float)
         y_max_phi = np.asarray(data["max_phi"], dtype=float)
@@ -491,7 +474,6 @@ def plot_collapse_diagnostics(
         ax_phi.grid(True, which="both", ls="--", alpha=0.6)
         ax_phi.tick_params(axis="both", which="major", direction="in")
 
-        # Panel 4b: min/max Pi
         ax_pi = axes[row_idx, 1]
         y_min_pi = np.asarray(data["min_Pi"], dtype=float)
         y_max_pi = np.asarray(data["max_Pi"], dtype=float)
@@ -503,7 +485,6 @@ def plot_collapse_diagnostics(
         ax_pi.grid(True, which="both", ls="--", alpha=0.6)
         ax_pi.tick_params(axis="both", which="major", direction="in")
 
-        # Panel 4c: Instability Growth Rate (Lyapunov Exponent)
         ax_lyap = axes[row_idx, 2]
         if has_areal:
             ta = areal_data["t"]
@@ -530,7 +511,6 @@ def plot_collapse_diagnostics(
         ax_lyap.grid(True, which="both", ls="--", alpha=0.6)
         ax_lyap.tick_params(axis="both", which="major", direction="in")
 
-    # --- Black-hole remnant characterisation ---
     K_data = np.asarray(data["max_abs_K"], dtype=float)
     min_lapse = np.asarray(data["min_lapse"], dtype=float)
 
@@ -560,7 +540,6 @@ def plot_collapse_diagnostics(
             M_phys = M_from_R * mass_msun
             print(f"  At M_total = {mass_msun:g} M_sun: M_BH = {M_phys:.4f} M_sun")
 
-    # --- Lyapunov exponent from areal radius departure ---
     if has_areal:
         Ra = areal_data["R_areal_min"]
         ta = areal_data["t"]
@@ -579,13 +558,11 @@ def plot_collapse_diagnostics(
             else:
                 print(f"  (decay, not growth -- collapse too rapid for clear exponential phase)")
 
-    # Add letter labels to subplot titles
     for ax, letter in zip(axes.flatten(), string.ascii_lowercase):
         title = ax.get_title()
         if title:
             ax.set_title(f"({letter}) {title}")
 
-    # x-axis labels on bottom row
     for i in range(axes.shape[1]):
         axes[n_rows - 1, i].set_xlabel(r"$t$")
 

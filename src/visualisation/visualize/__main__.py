@@ -33,7 +33,6 @@ def create_visualizations():
     args = parser.parse_args()
 
     rank, size, comm = _get_mpi()
-    # Auto-detect MPI when launched via mpirun (size > 1), even without --mpi
     use_mpi = size > 1 or (args.mpi and size > 1)
 
     configs = {
@@ -146,7 +145,6 @@ def create_visualizations():
             if args.coord is not None: physics_center[0] = args.coord
 
         plot_center = ds.arr(physics_center, 'code_length')
-        # ----------------------------
 
         slc = yt.SlicePlot(ds, args.axis, ('boxlib', args.field), center=plot_center)
         # Use physical (native) dataset coordinates on axes (no auto-centering to [-L/2, L/2]).

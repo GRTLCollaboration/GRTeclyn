@@ -4,8 +4,6 @@
 #include "ArrayTools.hpp"
 #include "CCZ4StateVariables.hpp"
 
-// We use the standard CCZ4 variables (Chi, Metric, Gamma, K, A, Theta, Lapse,
-// Shift, B) plus the scalar field variables
 enum
 {
     c_phi = NUM_CCZ4_VARS,

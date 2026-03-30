@@ -19,10 +19,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Use non-interactive backend by default
 matplotlib.use("Agg")
 
-# Set style to match scientific publication standards (similar to hamiltonian/__main__.py)
 plt.rcParams.update({
     "font.family": "serif",
     "font.serif": ["DejaVu Serif", "Times New Roman", "serif"],
@@ -51,17 +49,13 @@ def parse_constraint_file(filepath: Path) -> Tuple[np.ndarray, np.ndarray, np.nd
     with open(filepath, "r") as f:
         for line_num, line in enumerate(f, 1):
             line = line.strip()
-            # Skip empty lines and comments
             if not line or line.startswith("#"):
                 continue
 
             parts = line.split()
-            # Header check: if line contains non-numeric characters, skip
             try:
-                # Try parsing the first token as float
                 float(parts[0])
             except ValueError:
-                # Likely a header line like "L2_Ham L2_Mom"
                 continue
 
             if len(parts) < 3:
@@ -83,16 +77,11 @@ def parse_constraint_file(filepath: Path) -> Tuple[np.ndarray, np.ndarray, np.nd
     if not times:
         raise ValueError(f"No valid data found in {filepath}")
 
-    # Convert to numpy arrays
     times = np.array(times)
     l2_ham = np.array(l2_ham)
     l2_mom = np.array(l2_mom)
 
-    # Sort by time (in case of restarts that appended out of order, though typically SmallDataIO appends correctly)
     sort_idx = np.argsort(times)
-
-    # Remove duplicates (if any) - simply keep unique times if exact duplicates exist
-    # For simplicity, just sorting here. A more robust approach might filter exact duplicates.
 
     return times[sort_idx], l2_ham[sort_idx], l2_mom[sort_idx]
 
@@ -103,7 +92,6 @@ def plot_constraints(times, l2_ham, l2_mom, output_path):
     """
     fig, axes = plt.subplots(2, 1, sharex=True)
 
-    # Hamiltonian Plot
     ax1 = axes[0]
     ax1.semilogy(times, l2_ham, label=r'$\|\mathcal{H}\|_{L^2}$', color='black', linestyle='-', linewidth=1.5)
     ax1.set_ylabel(r'$\|\mathcal{H}\|_{L^2}$')
@@ -112,7 +100,6 @@ def plot_constraints(times, l2_ham, l2_mom, output_path):
     ax1.legend(loc='upper right', frameon=True, framealpha=0.9)
     ax1.tick_params(axis='both', which='major', direction='in', top=True, right=True)
 
-    # Momentum Plot
     ax2 = axes[1]
     ax2.semilogy(times, l2_mom, label=r'$\|\mathcal{M}\|_{L^2}$', color='black', linestyle='-', linewidth=1.5)
     ax2.set_xlabel(r'$t$ $[M]$')
@@ -131,22 +118,12 @@ def plot_constraints(times, l2_ham, l2_mom, output_path):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Plot constraint norms from simulation data.")
-
-    # Default path: run from the repository root; data is expected under ../data/data/
-    # relative to the repo, or pass an explicit path. Override with positional arg.
     script_dir = Path(__file__).resolve().parent
 
-    # script_dir is src/visualisation/constraines
-    # .parent -> src/visualisation
-    # .parent.parent -> src
-    # .parent.parent.parent -> GRTeclyn (project root)
     project_root = script_dir.parent.parent.parent
 
-    # Path relative to project root (since user likely runs from project root)
     default_data_path = project_root.parent / "data" / "data" / "constraint_norms.dat"
 
-    # Fallback to current directory if default doesn't exist
     if not default_data_path.exists():
         default_data_path = Path("constraint_norms.dat")
 
@@ -161,7 +138,6 @@ def main():
     input_path = Path(args.input_file)
     output_path = Path(args.output)
 
-    # If output path is just a filename, put it in the script directory
     if output_path.name == str(output_path):
         output_path = script_dir / output_path
 

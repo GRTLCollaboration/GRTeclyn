@@ -1,10 +1,9 @@
 #ifndef SIMULATIONPARAMETERS_HPP
 #define SIMULATIONPARAMETERS_HPP
 
-// General includes
 #include "GRParmParse.hpp"
 #include "SimulationParametersBase.hpp"
-#include "SupportedWormholeInitialData.hpp" // Add this
+#include "SupportedWormholeInitialData.hpp"
 
 class SimulationParameters : public SimulationParametersBase
 {
@@ -18,21 +17,17 @@ class SimulationParameters : public SimulationParametersBase
 
     void read_shared_params(GRParmParse &pp)
     {
-        // Keep constraint calculation if needed
         pp.load("calculate_constraint_norms", calculate_constraint_norms,
                 false);
     }
 
     void read_wormhole_params(GRParmParse &pp)
     {
-        // Initial lapse selector
         pp.load("wormhole_initial_lapse_type", wormhole_params.initial_lapse_type,
                 0);
 
-        // Grid center for coordinate mapping
         pp.load("center", wormhole_params.grid_center, center);
 
-        // Single throat parameters
         double b0_single = 1.0;
         std::array<double, AMREX_SPACEDIM> c_single = {0.0, 0.0, 0.0};
         pp.load("wormhole_throat_radius", b0_single, 1.0);
@@ -74,7 +69,6 @@ class SimulationParameters : public SimulationParametersBase
 
     bool calculate_constraint_norms{};
 
-    // Store parameters for Initial Data
     SupportedWormholeInitialData::params_t wormhole_params{};
 };
 

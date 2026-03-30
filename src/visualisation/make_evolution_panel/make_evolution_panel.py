@@ -5,7 +5,6 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-# Default output directory: src/visualisation/plots (sibling of this package)
 PLOTS_DIR = Path(__file__).resolve().parent.parent / "plots"
 
 KZ_MODE = "k_z"
@@ -24,7 +23,6 @@ def to_grayscale_rgb(img_rgb: np.ndarray) -> np.ndarray:
     so downstream cropping/pasting logic remains unchanged.
     """
     img = img_rgb.astype(np.float32)
-    # ITU-R BT.601 luma transform (standard for sRGB-like imagery)
     y = 0.299 * img[:, :, 0] + 0.587 * img[:, :, 1] + 0.114 * img[:, :, 2]
     y8 = np.clip(y, 0, 255).astype(np.uint8)
     return np.stack([y8, y8, y8], axis=-1)
@@ -34,21 +32,16 @@ def draw_grid_lines(img_arr: np.ndarray, x_ticks, y_ticks):
     """Draw a dashed grid on the image array at given tick coordinates."""
     img = img_arr.copy()
     h, w = img.shape[:2]
-    # Very light gray, dashed pattern
     dash_len = 10
     space_len = 10
     color = np.array([180, 180, 180], dtype=img.dtype)
 
-    # Draw horizontal grid lines (for each y_tick)
     for y in y_ticks:
         if 0 <= y < h:
             for x in range(0, w):
-                # only draw inside the plot area, say after the y-axis
                 if (x % (dash_len + space_len)) < dash_len:
-                    # Blend with existing color (alpha = 0.5)
                     img[y, x] = img[y, x] * 0.5 + color * 0.5
 
-    # Draw vertical grid lines (for each x_tick)
     for x in x_ticks:
         if 0 <= x < w:
             for y in range(0, h):
@@ -67,7 +60,6 @@ def _rgb_to_hsv(rgb01: np.ndarray) -> np.ndarray:
 
     h = np.zeros_like(cmax)
     nz = delta > 1e-12
-    # Hue
     mask = nz & (cmax == r)
     h[mask] = ((g[mask] - b[mask]) / delta[mask]) % 6.0
     mask = nz & (cmax == g)
@@ -76,7 +68,6 @@ def _rgb_to_hsv(rgb01: np.ndarray) -> np.ndarray:
     h[mask] = ((r[mask] - g[mask]) / delta[mask]) + 4.0
     h = (h / 6.0) % 1.0
 
-    # Saturation
     s = np.zeros_like(cmax)
     s[cmax > 1e-12] = delta[cmax > 1e-12] / cmax[cmax > 1e-12]
 
@@ -148,11 +139,9 @@ def _apply_embedding_color_tweak(
     hsv = _rgb_to_hsv(rgb01)
     sat = hsv[..., 1]
     delta = np.max(rgb01, axis=2) - np.min(rgb01, axis=2)
-    # Protect near-neutral pixels (grid, axes, text) from getting tinted.
     non_neutral = (sat >= float(sat_min)) & (delta >= float(neutral_delta_max))
     apply_mask = fg & non_neutral
 
-    # HSV adjustments, applied only to sufficiently-saturated pixels.
     if abs(hue_shift_deg) > 1e-9 or abs(sat_scale - 1.0) > 1e-9 or abs(val_scale - 1.0) > 1e-9:
         hsv2 = hsv.copy()
         if abs(hue_shift_deg) > 1e-9:
@@ -165,7 +154,6 @@ def _apply_embedding_color_tweak(
         rgb8 = np.clip(np.round(rgb_new * 255.0), 0, 255).astype(np.uint8)
         out[apply_mask] = rgb8[apply_mask]
 
-    # Green-channel attenuation, applied selectively to green-dominant pixels.
     if abs(green_scale - 1.0) > 1e-9:
         r = out[:, :, 0].astype(np.float32)
         g = out[:, :, 1].astype(np.float32)
@@ -175,7 +163,6 @@ def _apply_embedding_color_tweak(
         g[m] = np.clip(g[m] * float(green_scale), 0, 255)
         out[:, :, 1] = g.astype(np.uint8)
 
-    # Gentle RGB-space contrast / gamma, applied only to the foreground.
     if abs(contrast - 1.0) > 1e-9 or abs(gamma - 1.0) > 1e-9:
         rgb01 = (out.astype(np.float32) / 255.0)
         if abs(contrast - 1.0) > 1e-9:
@@ -213,7 +200,6 @@ def _find_title_gap_end_y(img_rgb: np.ndarray, *, white_thr: int = 245, search_m
         if (i - cur_start) > (best_end - best_start):
             best_start, best_end = cur_start, i
 
-    # If we didn't find a meaningful gap, don't crop the top.
     if (best_end - best_start) < 10:
         return 0
     return int(best_end)
@@ -284,29 +270,23 @@ def create_panel(
         path_z = os.path.join(frame_dir, f"frame_z_{f_idx:04d}.png")
         path_std = os.path.join(frame_dir, f"frame_{f_idx:04d}.png")
 
-        # Prefer different filename conventions depending on the mode.
         candidates = [path_z, path_std] if mode == KZ_MODE else [path_std, path_z]
         chosen = next((p for p in candidates if os.path.exists(p)), None)
         if chosen is None:
             raise FileNotFoundError(f"Could not find frame {f_idx} in {frame_dir}")
         frames.append(np.array(Image.open(chosen).convert("RGB")))
 
-    # Layout bounds determined empirically
     if mode == KZ_MODE:
         Y_top = 10
         Y_bottom = 1354
-        X_plot_left = 130  # Increased from 103 to 130 to completely crop out the y-axis numbers
+        X_plot_left = 130
         X_plot_right = 1303
         X_cbar_right = 1502
 
-    # Y-axis ticks are around x=130-140, they are small black horizontal lines.
-    # X-axis ticks are around y=1250-1260, they are small black vertical lines.
-    
     processed_frames: list[np.ndarray] = []
     for frame in frames:
         f = frame.copy()
 
-        # --- Grid Extraction (K_z only) ---
         if mode == KZ_MODE and grid:
             plot_y_min = 40
             plot_y_max = 1255
@@ -337,7 +317,6 @@ def create_panel(
                         if (yt % (dash_len + space_len)) < dash_len:
                             if np.all(f[yt, xt] > 230):
                                 f[yt, xt] = grid_col
-        # --- End Grid ---
 
         if grayscale:
             f = to_grayscale_rgb(f)
@@ -346,7 +325,6 @@ def create_panel(
         f[bg_mask] = [255, 255, 255]
 
         if mode == EMBEDDING_MODE and not grayscale:
-            # Presets (can still be overridden by explicit numeric flags)
             if embedding_filter == "less-green":
                 embedding_green_scale = embedding_green_scale if embedding_green_scale != 1.0 else 0.85
                 embedding_sat_scale = embedding_sat_scale if embedding_sat_scale != 1.0 else 0.95
@@ -378,7 +356,6 @@ def create_panel(
     crops: list[Image.Image] = []
     if mode == KZ_MODE:
         for i, f in enumerate(processed_frames):
-            # Erase overlapping x-axis labels ('0' and '40' roughly)
             if i == 0:
                 f = erase_box(f, 1250, 1340, 1256, 1315)
                 crops.append(Image.fromarray(f).crop((15, Y_top, X_plot_right, Y_bottom)))

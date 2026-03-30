@@ -23,14 +23,12 @@ from pycbc.psd import interpolate as pycbc_interpolate, inverse_spectrum_truncat
 from pycbc.catalog import Catalog
 from gwpy.timeseries import TimeSeries as GwpyTimeSeries
 
-# Add the visualization path to import load_extracted
 project_root = Path(__file__).resolve().parent.parent.parent
 _DEFAULT_PSI4_DAT = project_root / "src/SimResults/Run_R0.5_A00.0_A20.02_sigma0.5_perturbed/psi4_mode_l2m0.dat"
 sys.path.append(str(project_root))
 from src.visualisation.process_wave.plot_extracted_psi4 import load_extracted, M_SUN_SEC, M_SUN_METER, MPC_METER
 
 def _resolve_event_key(cat: Catalog, event: str) -> str:
-    # PyCBC catalog keys are often full IDs like "GW190521_074359"
     if event in cat.data:
         return event
     keys = list(cat.data.keys())
@@ -51,7 +49,6 @@ def _select_strain_segment(event_dict: dict, ifo: str, sample_rate: int) -> tupl
     if not strain_entries:
         raise KeyError("No 'strain' entries found in event metadata.")
 
-    # Prefer short segments (32s) at the requested sample rate.
     candidates = [
         e for e in strain_entries
         if e.get("detector") == ifo and int(e.get("sampling_rate", -1)) == int(sample_rate)
@@ -61,7 +58,6 @@ def _select_strain_segment(event_dict: dict, ifo: str, sample_rate: int) -> tupl
         rates = sorted({e.get("sampling_rate") for e in strain_entries if e.get("sampling_rate")})
         raise KeyError(f"No strain entries for {ifo} at {sample_rate} Hz. Available detectors={dets}, rates={rates}")
 
-    # Prefer 32 s, else take the smallest available duration.
     candidates_sorted = sorted(candidates, key=lambda e: (abs(int(e.get("duration", 0)) - 32), int(e.get("duration", 0))))
     chosen = candidates_sorted[0]
     start = float(chosen["GPSstart"])
@@ -74,7 +70,6 @@ def _fetch_open_data_pycbc(event_dict: dict, ifo: str, sample_rate: int) -> Time
     start, end = _select_strain_segment(event_dict, ifo=ifo, sample_rate=sample_rate)
     print(f"Fetching GWOSC open data: {ifo}, [{start}, {end}) at {sample_rate} Hz")
     gw = GwpyTimeSeries.fetch_open_data(ifo, start, end, sample_rate=sample_rate)
-    # Convert to PyCBC TimeSeries (epoch in GPS seconds)
     return TimeSeries(gw.value, delta_t=float(gw.dt.value), epoch=float(gw.t0.value))
 
 def _event_gps(event_dict: dict) -> float | None:
@@ -145,12 +140,7 @@ def _fetch_open_data_pycbc_with_timeout(
     host: str = "https://gwosc.org",
     gwosc_request_timeout_s: float | None = 20.0,
 ) -> TimeSeries:
-    """
-    Robust GWOSC fetch with a hard wall-clock timeout.
-
-    Why: looping over a whole catalog can "hang" if a single GWOSC request stalls.
-    Threads can't reliably stop a stuck network call; a separate process can.
-    """
+    """GWOSC fetch with a hard wall-clock timeout (separate process)."""
 
     ctx = mp.get_context("spawn")
     q: mp.Queue = ctx.Queue(maxsize=1)
@@ -246,17 +236,14 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--window-s", type=float, default=16.0, help="Half-width of GPS window (seconds) when --fetch-strategy gps")
     args = p.parse_args(argv)
 
-    # --- 1. Load and scale NR data ---
     data_path = Path(args.data_path)
     if not data_path.exists():
-        # Fallback to current directory or fail
         print(f"Warning: {data_path} not found. Make sure the path is correct.")
         return 1
 
     print(f"Loading Psi4 data from {data_path}...")
     times, radii, data = load_extracted(data_path)
 
-    # Pick the outermost radius available for the best signal, e.g. R=24 if available
     if len(radii) > 0:
         R = max(radii)
         print(f"Using extraction radius R = {R}")
@@ -264,55 +251,40 @@ def main(argv: list[str] | None = None) -> int:
     else:
         raise ValueError("No extraction radii found.")
 
-    # Multiply by R to get the asymptotic waveform r*Psi4
     r_psi4 = R * psi4_complex
 
-    # Convert Psi4 to strain in frequency domain: h_tilde = - Psi4_tilde / (2 * pi * f)**2
-    # First, regularize and window the time domain signal
     dt_code = np.median(np.diff(times))
     N = len(times)
-    
-    # Tapering to avoid spectral leakage
+
     win = tukey(N, alpha=0.1)
     r_psi4_windowed = r_psi4 * win
 
-    # Extract the real part (h_+ polarization) before taking the Real-FFT
     psi4_tilde = np.fft.rfft(np.real(r_psi4_windowed))
     freqs = np.fft.rfftfreq(N, d=dt_code)
 
-    # Avoid division by zero at f=0
     omega = 2.0 * np.pi * freqs
-    omega[0] = 1e-15 # small number
+    omega[0] = 1e-15
 
-    # Frequency-domain integration
     h_tilde = -psi4_tilde / (omega**2)
 
-    # High-pass filter in frequency domain to avoid low-frequency amplification artifacts
-    # The signal is a short burst, so we can cut off frequencies below some f_min (in code units)
     f_max_code = freqs[-1]
     f_min_code = 0.05 * f_max_code
-    
-    # 4th-order Butterworth-like high-pass suppression for f < f_min
+
     hp_mask = 1.0 / (1.0 + (f_min_code / omega)**8)
     h_tilde *= hp_mask
 
-    # Inverse FFT to get strain in time domain (still in code units, scaled by R)
     h_strain_code = np.fft.irfft(h_tilde, n=N)
 
-    # Select real part (one polarization) for the template
     nr_strain = np.real(h_strain_code)
 
-    # --- Scale to physical units ---
-    M_wormhole = float(args.mass_msun)  # solar masses
+    M_wormhole = float(args.mass_msun)
     distance_mpc = float(args.distance_mpc)
     
     T_M = M_wormhole * M_SUN_SEC
     D_m = distance_mpc * MPC_METER
-    
-    # Physical time
+
     time_sec = times * T_M
-    
-    # Physical strain: h_phys = h_code * (M * M_sun_meter / D)
+
     amp_scale = (M_wormhole * M_SUN_METER) / D_m
     nr_strain_phys = nr_strain * amp_scale
 
@@ -320,8 +292,6 @@ def main(argv: list[str] | None = None) -> int:
     dt_ligo = 1.0 / sample_rate
     time_interp = np.arange(time_sec[0], time_sec[-1], dt_ligo)
 
-    # The extracted time array can contain duplicate timestamps; de-duplicate
-    # before interpolation to a uniform 4096 Hz grid.
     t_unique, unique_idx = np.unique(time_sec, return_index=True)
     h_unique = nr_strain_phys[unique_idx]
     if t_unique.size < 4:
@@ -337,14 +307,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     strain_interp = interpolator(time_interp)
 
-    # Taper in numpy to avoid chasing pycbc version imports
     N_interp = len(strain_interp)
     taper_win = tukey(N_interp, alpha=0.1)
     strain_interp *= taper_win
 
     template = TimeSeries(strain_interp, delta_t=dt_ligo)
 
-    # --- 2. LIGO strain search ---
     print(f"Loading LIGO Catalog '{args.catalog}'...")
     cat = Catalog(args.catalog)
 
@@ -398,23 +366,19 @@ def main(argv: list[str] | None = None) -> int:
             if data_h1 is None:
                 raise RuntimeError(f"All fetch attempts failed. Last error: {last_err}")
 
-            # Resize template and shift
             current_template = template.copy()
             current_template.resize(len(data_h1))
             current_template = current_template.cyclic_time_shift(current_template.start_time)
 
-            # Calculate PSD
             psd = data_h1.psd(4)
             psd = pycbc_interpolate(psd, data_h1.delta_f)
             psd = inverse_spectrum_truncation(
                 psd, int(4 * data_h1.sample_rate), low_frequency_cutoff=15.0
             )
 
-            # Matched filter
             snr = matched_filter(current_template, data_h1, psd=psd, low_frequency_cutoff=float(args.low_frequency_cutoff))
             snr_timeseries = abs(snr)
 
-            # Throw away the first and last 4 seconds of corrupted FFT data
             snr_timeseries = snr_timeseries.crop(4.0, 4.0)
 
             peak_snr = snr_timeseries.max()
@@ -428,7 +392,6 @@ def main(argv: list[str] | None = None) -> int:
         except Exception as e:
             print(f"Skipping {ev_name} due to error: {e}")
 
-    # After the loop finishes
     if args.event.lower() == "all":
         results.sort(key=lambda x: x[1], reverse=True)
         print("\n=== TOP 5 WORMHOLE CANDIDATES ===")
@@ -440,7 +403,6 @@ def main(argv: list[str] | None = None) -> int:
             return 1
             
         ev_name, peak_snr, peak_time, snr_timeseries = results[0]
-        # --- Plot ---
         plt.figure(figsize=(10, 5))
         plt.plot(snr_timeseries.sample_times, snr_timeseries, color="purple")
         plt.axhline(8.0, color="red", linestyle="--", label="Reference threshold (SNR = 8)")
@@ -450,8 +412,7 @@ def main(argv: list[str] | None = None) -> int:
             rf"Search for $1000\,M_\odot$ (D=1 Mpc) Wormhole Template in {ev_name} ({args.ifo})" + "\n" +
             f"Peak SNR = {peak_snr:.2f}"
         )
-        
-        # Try to use the event GPS time if possible, otherwise use peak time
+
         try:
             true_event_time = float(cat.data[ev_name].get("GPS"))
         except KeyError:
@@ -459,7 +420,6 @@ def main(argv: list[str] | None = None) -> int:
         except Exception:
             true_event_time = peak_time
 
-        # Zoom in 16 seconds around the actual event
         plt.xlim(true_event_time - 16.0, true_event_time + 16.0)
         plt.legend()
         plt.grid(True, alpha=0.3)

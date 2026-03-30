@@ -29,20 +29,14 @@ from scipy.signal.windows import tukey
 
 matplotlib.use("Agg")
 
-# ---------------------------------------------------------------------------
-# Physical constants (SI)
-# ---------------------------------------------------------------------------
 M_SUN_KG = 1.98892e30
 G_SI = 6.67430e-11
 C_SI = 2.99792458e8
-M_SUN_SEC = G_SI * M_SUN_KG / C_SI**3      # ~4.9255e-6 s
-M_SUN_METER = G_SI * M_SUN_KG / C_SI**2     # ~1476.6 m
+M_SUN_SEC = G_SI * M_SUN_KG / C_SI**3
+M_SUN_METER = G_SI * M_SUN_KG / C_SI**2
 MPC_METER = 3.08568e22
 
 
-# ---------------------------------------------------------------------------
-# Existing helpers
-# ---------------------------------------------------------------------------
 def _default_data_dir() -> Path:
     script_dir = Path(__file__).resolve().parent
     project_root = script_dir.parent.parent.parent
@@ -153,9 +147,6 @@ def load_extracted(path: Path) -> Tuple[np.ndarray, List[float], Dict[float, np.
     return t_arr, radii, out
 
 
-# ---------------------------------------------------------------------------
-# Burst energy spectral density (replaces Welch for short transients)
-# ---------------------------------------------------------------------------
 def _burst_esd(
     psi4_complex: np.ndarray, fs: float, tukey_alpha: float = 0.25
 ) -> Tuple[np.ndarray, np.ndarray]:
@@ -180,7 +171,6 @@ def _burst_esd(
     im_fft = np.fft.rfft(im_part)
     freqs = np.fft.rfftfreq(N, d=dt)
 
-    # |FFT|^2 for both polarisations, normalised to one-sided PSD units
     norm = dt**2 / T
     esd = (np.abs(re_fft) ** 2 + np.abs(im_fft) ** 2) * norm
     esd[1:-1] *= 2.0  # one-sided doubling (exclude DC and Nyquist)
@@ -188,9 +178,6 @@ def _burst_esd(
     return freqs, esd
 
 
-# ---------------------------------------------------------------------------
-# Strain conversion
-# ---------------------------------------------------------------------------
 def _psd_psi4_to_strain(
     freqs: np.ndarray,
     psd_psi4: np.ndarray,
@@ -210,7 +197,6 @@ def _psd_psi4_to_strain(
     omega4 = (2.0 * np.pi * freqs[nz]) ** 4
     strain_psd[nz] = psd_psi4[nz] / omega4
 
-    # Butterworth high-pass suppression (4th order) for f < f_low
     hp = 1.0 / (1.0 + (f_low / freqs[nz]) ** 8)
     strain_psd[nz] *= hp
 
@@ -287,9 +273,6 @@ def _frequency_band_label(f_peak_hz: float) -> str:
     return "above the LIGO band"
 
 
-# ---------------------------------------------------------------------------
-# QNM ringdown fitting
-# ---------------------------------------------------------------------------
 def _damped_sinusoid(t, A, tau, f0, phi):
     return A * np.exp(-t / tau) * np.sin(2.0 * np.pi * f0 * t + phi)
 
@@ -323,7 +306,6 @@ def _fit_qnm(
     if len(t_fit_raw) < 10:
         return None
 
-    # Shift fit time to start at 0 so the damped sinusoid decays from t=0
     t_fit = t_fit_raw - t_fit_raw[0]
 
     env_fit = np.abs(y_fit)
@@ -337,7 +319,6 @@ def _fit_qnm(
     else:
         f0_guess = 2.0
 
-    # Retarded-time coordinate where the fit window starts
     t_ret_fit_start = t_ret[i_peak] + t_fit_raw[0]
 
     try:
@@ -359,8 +340,8 @@ def _fit_qnm(
         return None
 
 
-_QNM_OMEGA_R_DIMLESS = 0.37367   # Re(ω·M) for Schwarzschild l=2 n=0 (Leaver 1985)
-_QNM_OMEGA_I_DIMLESS = 0.08896   # Im(ω·M)
+_QNM_OMEGA_R_DIMLESS = 0.37367
+_QNM_OMEGA_I_DIMLESS = 0.08896
 
 
 def _schwarzschild_qnm_l2(M_bh: float) -> Tuple[float, float]:
@@ -370,9 +351,6 @@ def _schwarzschild_qnm_l2(M_bh: float) -> Tuple[float, float]:
     return f_code, tau_code
 
 
-# ---------------------------------------------------------------------------
-# Total radiated energy
-# ---------------------------------------------------------------------------
 def _compute_radiated_energy(
     t: np.ndarray, psi4_complex: np.ndarray
 ) -> float:
@@ -381,9 +359,6 @@ def _compute_radiated_energy(
     return float(np.trapezoid(integrand, t) / (16.0 * np.pi))
 
 
-# ---------------------------------------------------------------------------
-# Propagation speed analysis
-# ---------------------------------------------------------------------------
 def _find_peak_times(
     t: np.ndarray,
     series: Dict[float, np.ndarray],
@@ -467,9 +442,6 @@ def _classify_signal(speed: float, tol: float = 0.15) -> str:
     return "subluminal -- likely gauge/constraint mode"
 
 
-# ---------------------------------------------------------------------------
-# Shared panel-drawing helpers
-# ---------------------------------------------------------------------------
 def _draw_waveform(
     ax, t, radii, series, linestyles, time_axis, t_min=None, t_max=None
 ):
@@ -545,7 +517,6 @@ def _draw_strain_ligo(ax, freqs, strain_psd_code, mass_msun, distance_mpc, R_ext
     if ligo_quantity not in {"asd", "hchar"}:
         ligo_quantity = "asd"
 
-    # Paper-like quantity: ASD = sqrt(S_h). Alternative: characteristic strain sqrt(f*S_h).
     y_sig = np.zeros_like(f_phys)
     if ligo_quantity == "asd":
         y_sig[valid_phys] = np.sqrt(S_h_phys[valid_phys])
@@ -575,7 +546,6 @@ def _draw_strain_ligo(ax, freqs, strain_psd_code, mass_msun, distance_mpc, R_ext
 
     S_n_signal = _aLIGO_noise_psd(f_phys)
     snr = _compute_snr(f_phys, S_h_phys, S_n_signal)
-    # Diagnostics: report peak frequency based on characteristic strain (common convention)
     h_char_diag = np.zeros_like(f_phys)
     h_char_diag[valid_phys] = np.sqrt(f_phys[valid_phys] * S_h_phys[valid_phys])
     peak_idx = np.argmax(h_char_diag[valid_phys]) if np.any(valid_phys) else 0
@@ -664,22 +634,17 @@ def _draw_spectrogram(ax, t, psi4, R, args, fs):
     
     y_re = np.real(psi4)
     dt = 1.0 / fs
-    
-    # Zoom in the Y-Axis (Frequency) to focus on the interesting physics
+
     f_max = 3.0
     if args.esd_fmax and float(args.esd_fmax) < f_max:
         f_max = float(args.esd_fmax)
-        
-    # Avoid f=0 (DC drift) and focus on the physically interesting band.
-    # For "LIGO style" we use log-spaced frequencies and a log y-axis.
+
     f_min = 0.1
     n_freq = 260
     freqs = np.logspace(np.log10(f_min), np.log10(f_max), n_freq)
     w = 8.0
-    
-    # Compute Continuous Wavelet Transform (Morlet) manually to avoid removed scipy.signal.cwt
+
     N_orig = len(y_re)
-    # Pad to avoid edge effects
     pad_len = N_orig // 2
     y_padded = np.pad(y_re, (pad_len, pad_len), 'constant')
     N_padded = len(y_padded)
@@ -694,7 +659,6 @@ def _draw_spectrogram(ax, t, psi4, R, args, fs):
         cwtmatr[i, :] = signal.fftconvolve(y_padded, wavelet, mode='same')
         
     amplitude = np.abs(cwtmatr)
-    # Crop the padded portion out of the power array to match the original t array
     amplitude = amplitude[:, pad_len:pad_len+N_orig]
     
     t_ret = t - R
@@ -704,13 +668,11 @@ def _draw_spectrogram(ax, t, psi4, R, args, fs):
         amp = amplitude / amp_max
         amp = np.nan_to_num(amp, nan=0.0, posinf=0.0, neginf=0.0)
 
-        # LIGO-style: viridis, linear amplitude (not power/log-power).
         cmap = plt.get_cmap("viridis").copy()
         cmap.set_bad(cmap(0.0))
 
         amp_m = np.ma.masked_invalid(amp)
 
-        # IMPORTANT: rasterize the mesh so PDFs render reliably when downloaded.
         pcm = ax.pcolormesh(
             t_ret,
             freqs,
@@ -734,16 +696,12 @@ def _draw_spectrogram(ax, t, psi4, R, args, fs):
     ax.set_yticks([0.1, 0.2, 0.5, 1.0, 2.0, 3.0])
     ax.yaxis.set_major_formatter(ScalarFormatter())
 
-    # Default view: match the retarded-time waveform panel.
-    # If the user provides --t-min/--t-max, respect those; otherwise show a standard window.
     if args.t_min is not None or args.t_max is not None:
         if args.t_min is not None:
             ax.set_xlim(left=args.t_min)
         if args.t_max is not None:
             ax.set_xlim(right=args.t_max)
     else:
-        # Don't show times earlier than the simulation provides (t starts at ~0),
-        # so for retarded time this typically starts near -R.
         x_left = float(np.nanmin(t_ret))
         x_right = min(15.0, float(np.nanmax(t_ret)))
         ax.set_xlim(x_left, x_right)
@@ -751,21 +709,16 @@ def _draw_spectrogram(ax, t, psi4, R, args, fs):
     ax.set_ylabel(r"$f\,(M^{-1})$")
     ax.set_xlabel(r"Retarded time $t - R_{\mathrm{ext}}$")
 
-    # LIGO-style visible white grid overlay.
     ax.set_axisbelow(False)
     ax.grid(True, which="major", color="white", alpha=0.4, linestyle="-", linewidth=0.8)
     ax.tick_params(axis="both", which="major", direction="in", top=True, right=True)
 
 
-# ---------------------------------------------------------------------------
-# Combined 3x2 publication figure
-# ---------------------------------------------------------------------------
 def _plot_combined(t, radii, series, stored_psd, args, linestyles, fs):
     import string
 
     fig, axes = plt.subplots(3, 2, figsize=(14, 14))
 
-    # (a) Waveform — simulation time + initial K perturbation profile
     _draw_waveform(axes[0, 0], t, radii, series, linestyles, "simulation",
                    t_min=args.t_min, t_max=args.t_max)
     if args.pert_sigma is not None and args.pert_sigma > 0:
@@ -781,7 +734,6 @@ def _plot_combined(t, radii, series, stored_psd, args, linestyles, fs):
         ax_k.tick_params(axis="y", colors="blue", labelsize=10)
         ax_k.legend(loc="center right", frameon=True, framealpha=0.8, fontsize=8)
 
-    # (b) Waveform — retarded time + QNM overlay
     _draw_waveform(axes[0, 1], t, radii, series, linestyles, "retarded",
                    t_min=args.t_min, t_max=args.t_max)
 
@@ -802,7 +754,6 @@ def _plot_combined(t, radii, series, stored_psd, args, linestyles, fs):
         )
         axes[0, 1].legend(loc="upper right", frameon=True, framealpha=0.9, fontsize=8)
 
-    # Radiated energy and QNM diagnostics
     E_rad = _compute_radiated_energy(t, series[R_inner])
     print(f"\n=== Radiated Energy (R={R_inner:g}) ===")
     print(f"  E_rad = {E_rad:.6e} M  (code units)")
@@ -835,21 +786,16 @@ def _plot_combined(t, radii, series, stored_psd, args, linestyles, fs):
             else:
                 print(f"  -> Frequencies differ significantly: signal is NOT dominated by initial perturbation shape")
 
-    # (c) ESD of Ψ4 + perturbation spectral content
     _draw_psd(axes[1, 0], radii, stored_psd, linestyles,
               args.psd_smooth_window, args.psd_smooth_polyorder,
               pert_sigma=args.pert_sigma, f_max=args.esd_fmax)
 
-    # (d) Propagation speed analysis
     if len(radii) >= 2:
         _draw_propagation(axes[1, 1], t, radii, series, linestyles)
     else:
         axes[1, 1].text(0.5, 0.5, "Need $\\geq 2$ radii", transform=axes[1, 1].transAxes,
                         ha="center", va="center", fontsize=12)
 
-    # (e) Time-frequency Spectrogram and (f) Strain vs LIGO
-    # Use an earlier extraction radius for the spectrogram by default so the
-    # retarded-time tail extends far enough to show ringdown.
     R_strain = radii[-1]
     R_spec = args.spectrogram_radius if (getattr(args, "spectrogram_radius", None) is not None) else radii[0]
     _draw_spectrogram(axes[2, 0], t, series[R_spec], R_spec, args, fs)
@@ -887,9 +833,6 @@ def _plot_combined(t, radii, series, stored_psd, args, linestyles, fs):
     _save_figure(fig, args, radii)
 
 
-# ---------------------------------------------------------------------------
-# Legacy stacked (single-column) figure
-# ---------------------------------------------------------------------------
 def _plot_stacked(t, radii, series, stored_psd, args, linestyles, fs):
 
     n_panels = 1
@@ -908,7 +851,6 @@ def _plot_stacked(t, radii, series, stored_psd, args, linestyles, fs):
 
     ax_idx = 0
 
-    # Waveform
     ax_wave = axes_arr[ax_idx]; ax_idx += 1
     _draw_waveform(ax_wave, t, radii, series, linestyles, args.time_axis,
                    t_min=args.t_min, t_max=args.t_max)
@@ -917,7 +859,6 @@ def _plot_stacked(t, radii, series, stored_psd, args, linestyles, fs):
              else r"Radius-scaled waveform $r\,\mathrm{Re}(\Psi_4^{2,0})$ (retarded)")
     ax_wave.set_title(label)
 
-    # PSD
     if args.plot_psd:
         ax_psd = axes_arr[ax_idx]; ax_idx += 1
         _draw_psd(ax_psd, radii, stored_psd, linestyles,
@@ -925,7 +866,6 @@ def _plot_stacked(t, radii, series, stored_psd, args, linestyles, fs):
                   pert_sigma=args.pert_sigma, f_max=args.esd_fmax)
         ax_psd.set_title(r"Power Spectral Density of $\Psi_4$")
 
-    # Strain and Spectrogram
     if args.strain:
         R_strain = radii[-1]
         
@@ -955,7 +895,6 @@ def _plot_stacked(t, radii, series, stored_psd, args, linestyles, fs):
             print("WARNING: No PSD data for strain conversion.")
             ax_idx += 1
 
-    # Propagation speed
     if args.propagation_speed and len(radii) >= 2:
         ax_prop = axes_arr[ax_idx]; ax_idx += 1
         _draw_propagation(ax_prop, t, radii, series, linestyles)
@@ -965,9 +904,6 @@ def _plot_stacked(t, radii, series, stored_psd, args, linestyles, fs):
     _save_figure(fig, args, radii)
 
 
-# ---------------------------------------------------------------------------
-# Save helper
-# ---------------------------------------------------------------------------
 def _save_figure(fig, args, radii):
     out_dir = Path(args.out).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -981,9 +917,6 @@ def _save_figure(fig, args, radii):
     plt.close(fig)
 
 
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
 def main() -> None:
     default_data = _default_data_dir() / "small_data" / "psi4_mode_l2m0.dat"
     script_dir = Path(__file__).resolve().parent
@@ -1063,9 +996,6 @@ def main() -> None:
         if not radii:
             raise SystemExit(f"No requested radii found in file. Available: {radii_all}")
 
-    # ------------------------------------------------------------------
-    # Common style
-    # ------------------------------------------------------------------
     plt.rcParams.update({
         "font.family": "serif",
         "font.serif": ["Computer Modern Roman", "DejaVu Serif", "Times New Roman", "serif"],
