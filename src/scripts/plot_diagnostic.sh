@@ -1,45 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
-# Plot all standard diagnostics for a run.
-# All output goes to a single folder: src/visualisation/plots/
-# The folder is wiped on each invocation so results are always fresh.
-#
-# Plots produced:
-#   constraints_plot.*              — constraint norms
-#   collapse_diagnostics_plot.*   — collapse diagnostics (+ areal radius + K-decay lifetime)
-#   psi4_analysis.*               — combined 3x2 panel: waveforms, PSD, propagation speed,
-#                                   strain PSD, and LIGO sensitivity overlay
-#   evolution_K_z_panel.*         — K_z frame strip (color, frames 2 1002 3001 4002 4050)
-#   evolution_embedding_4panels.* — embedding frame strip (--keep-title, frames 2 1002 3001 4002)
-#
-# Notes:
-# - The ESD (energy spectral density) panel can be frequency-cut to hide the flat high-f tail.
-#   Default: cut at f=20 (code units M^-1). Override with env var:
-#     ESD_FMAX=30 ./src/scripts/plot_diagnostic.sh ...
-#   Disable passing the cutoff entirely with:
-#     ESD_FMAX=none ./src/scripts/plot_diagnostic.sh ...
-# - The strain vs Advanced LIGO panel is plotted in the paper-style ASD form by default
-#   (sqrt(S_h) and sqrt(S_n), units 1/sqrt(Hz), band 10–5000 Hz).
-#   By default we use a "detectable" scaling (M=1000 Msun, D=0.002 Mpc ~ 2 kpc)
-#   so the example signal appears in-band. Control scaling via:
-#     MASS_MSUN=30 DISTANCE_MPC=10 ./src/scripts/plot_diagnostic.sh ...
-#   Optional:
-#     LIGO_QUANTITY=hchar  # use characteristic strain instead of ASD
-# - Evolution panels need PNG frames under src/visualisation/visualize/K_z/frames and
-#   src/visualisation/visualize/embedding/frames (e.g. from make_movies). Missing frame
-#   indices cause that step to be skipped with a warning.
-#
-# Usage:
-#   ./src/scripts/plot_diagnostic.sh [RUN_DIR] [RADIUS ...]
-#
-# Examples:
-#   ./src/scripts/plot_diagnostic.sh
-#   ./src/scripts/plot_diagnostic.sh "/path/to/your/run/directory"
-#   ./src/scripts/plot_diagnostic.sh "/path/to/your/run/directory" 10 14
-#
-# If no radii are given, plot_extracted_psi4.py will plot all radii found in
-# psi4_mode_l2m0.dat.
+# Writes to src/visualisation/plots/ (directory cleared each run).
+# Usage: ./src/scripts/plot_diagnostic.sh [RUN_DIR] [RADIUS ...]
+# Env: ESD_FMAX (default 20; "none" disables), MASS_MSUN, DISTANCE_MPC, LIGO_QUANTITY (asd|hchar).
+# Psi4: multiple M:D runs are generated from CONFIGS below; evolution panels need frames under visualize/K_z/frames and visualize/embedding/frames.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VIS_DIR="$(cd "${SCRIPT_DIR}/../visualisation" && pwd)"
@@ -160,23 +124,19 @@ python3 "${VIS_DIR}/diagnostic/diagnostic.py" \
 
 echo "[3/5] Plotting combined Psi4 analysis (waveforms + PSD + propagation + strain + LIGO)..."
 
-# Define multiple combinations of Mass (M_sun) and Distance (Mpc) as "MASS:DISTANCE"
-# You can add or modify the values in this array to plot different configurations!
 CONFIGS=(
-  "${MASS_MSUN}:${DISTANCE_MPC}"   # Keeps the default/env-variable configuration
-  "30:10"                          # 30 M_sun at 10 Mpc
-  "1000:0.002"                     # 1000 M_sun at 0.002 Mpc
-  "1000:1"                          # 100 M_sun at 1 Mpc
+  "${MASS_MSUN}:${DISTANCE_MPC}"
+  "30:10"
+  "1000:0.002"
+  "1000:1"
 )
 
-# Remove duplicates if any
 UNIQUE_CONFIGS=($(printf "%s\n" "${CONFIGS[@]}" | sort -u))
 
 for CONFIG in "${UNIQUE_CONFIGS[@]}"; do
   M_VAL="${CONFIG%%:*}"
   D_VAL="${CONFIG##*:}"
-  
-  # Format output filename so plots don't overwrite each other
+
   OUT_NAME="psi4_analysis_M${M_VAL}_D${D_VAL}.eps"
   echo "  -> Generating ${OUT_NAME} for Mass=${M_VAL} M_sun, Distance=${D_VAL} Mpc"
   

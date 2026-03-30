@@ -135,7 +135,6 @@ def find_checkpoint_dir(step: int) -> Path:
             if idx == step:
                 return p
             candidates.append(p)
-    # Try common zero-padding widths if exact name wasn't present in listing logic above.
     for prefix in ("SupportedWormholeChk", "WormholeChk", "chk"):
         for w in (5, 6, 7, 8):
             p = DATA_DIR / f"{prefix}{step:0{w}d}"
@@ -147,7 +146,6 @@ def read_checkpoint_time(chk_dir: Path) -> float:
     header = chk_dir / "Header"
     if not header.is_file():
         raise FileNotFoundError(f"Checkpoint Header not found: {header}")
-    # AMReX checkpoint header: time is typically on line 3.
     lines = header.read_text().splitlines()
     if len(lines) < 3:
         raise ValueError(f"Checkpoint Header too short: {header}")
@@ -210,14 +208,7 @@ def truncate_by_rows(
     keep_data_rows: int,
     keep_leading_hash_headers: bool,
 ) -> tuple[int, int]:
-    """
-    Truncate a time-series file by *row count* rather than time.
-
-    This is intentional: if someone accidentally starts a fresh run in the same
-    output directory, new rows with small times (e.g. t~0.005) can get appended
-    at the end. A naive time cutoff would incorrectly keep them because they
-    are still <= checkpoint_time.
-    """
+    """Truncate by data row count, not by time (avoids keeping appended rows after a restart in the same dir)."""
     if keep_data_rows < 0:
         raise ValueError("keep_data_rows must be non-negative")
     if not path.exists() or not path.is_file():
@@ -237,12 +228,10 @@ def truncate_by_rows(
         header_phase = False
 
         if not s:
-            # keep blank lines without counting them as data
             out_lines.append(ln)
             continue
 
         if keep_leading_hash_headers and s.startswith("#"):
-            # keep any mid-file comments (rare), but don't count as data
             out_lines.append(ln)
             continue
 
@@ -260,7 +249,7 @@ trunc_stats: dict[str, tuple[int, int]] = {}
 run_data = DATA_DIR / "data"
 small_data = DATA_DIR / "small_data"
 
-# These diagnostics are written once per coarse step, starting at step=1.
+# data/*.dat: one row per coarse step from step 1 (not indexed like small_data with t=0).
 trunc_stats["data/collapse_diagnostics.dat"] = truncate_by_rows(
     run_data / "collapse_diagnostics.dat",
     keep_data_rows=STEP,
@@ -274,7 +263,7 @@ trunc_stats["data/constraint_norms.dat"] = truncate_by_rows(
 
 if small_data.is_dir():
     for p in sorted(small_data.glob("*.dat")):
-        # small_data outputs are indexed from step=0 (time=0) -> keep STEP+1 rows
+        # +1 for the t=0 row; data/ diagnostics above use STEP rows only.
         trunc_stats[f"small_data/{p.name}"] = truncate_by_rows(
             p,
             keep_data_rows=STEP + 1,

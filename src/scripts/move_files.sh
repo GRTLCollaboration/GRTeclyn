@@ -1,18 +1,12 @@
 #!/bin/bash
 
-# This script is used to move the simulation files to the new folder so the simulation results are 
-# saved for future validation and verification.
-
-# Base directories
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 BASE_VISUALISATION_DIR="${REPO_ROOT}/src/visualisation"
 
-# Read run_type from argument or default to SupportedWormholeCollapse
 RUN_TYPE="${1:-SupportedWormholeCollapse}"
 
-# Automatically select the correct input directories based on the run type
 if [ "$RUN_TYPE" == "SupportedWormholeCollapse" ]; then
     DATA_DIR="$(cd "${REPO_ROOT}/.." && pwd)/data_supported"
     PARAMS_FILE="${REPO_ROOT}/Examples/SupportedWormholeCollapse/params_2gpu.txt"
@@ -28,19 +22,16 @@ if [ ! -f "$PARAMS_FILE" ]; then
     exit 1
 fi
 
-# Extract parameters using awk
 RADIUS=$(awk -F'=' '/^[ \t]*wormhole_throat_radius[ \t]*=/ {print $2}' "$PARAMS_FILE" | tr -d ' ' | tr -d '\r')
 A0=$(awk -F'=' '/^[ \t]*wormhole_k_monopole_amplitude[ \t]*=/ || /^[ \t]*wormhole_phi_monopole_amplitude[ \t]*=/ {print $2}' "$PARAMS_FILE" | tr -d ' ' | tr -d '\r')
 A2=$(awk -F'=' '/^[ \t]*wormhole_k_quadrupole_amplitude[ \t]*=/ || /^[ \t]*wormhole_phi_perturbation_amplitude[ \t]*=/ {print $2}' "$PARAMS_FILE" | tr -d ' ' | tr -d '\r')
 SIGMA=$(awk -F'=' '/^[ \t]*wormhole_k_width[ \t]*=/ || /^[ \t]*wormhole_phi_perturbation_width[ \t]*=/ {print $2}' "$PARAMS_FILE" | tr -d ' ' | tr -d '\r')
 
-# Fallback values if missing
 RADIUS=${RADIUS:-unknown}
 A0=${A0:-unknown}
 A2=${A2:-unknown}
 SIGMA=${SIGMA:-unknown}
 
-# Construct folder name automatically
 FOLDER_NAME="Run_R${RADIUS}_A0${A0}_A2${A2}_sigma${SIGMA}"
 TARGET_DIR="${REPO_ROOT}/src/SimResults/$FOLDER_NAME"
 
