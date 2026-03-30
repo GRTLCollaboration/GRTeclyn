@@ -128,11 +128,11 @@ class Weyl4
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t
     compute_EB_fields(
         const CCZ4Vars &vars, const CCZ4D1Vars &d1,
-        const Tensor<2, amrex::Real> &d2_chi,
-        const Tensor<4, amrex::Real> &d2_h,
+        const amrex::Array1D<amrex::Real, 0, 6> &d2_chi,
+        const amrex::Array2D<amrex::Real, 0, 6, 0, 6> &d2_h,
         const amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> &epsilon3_LUU,
         const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU,
-        const chris_array_t &chris) const;
+        const chris_t &chris) const;
 };
 
 #include "Weyl4.impl.hpp"

@@ -94,13 +94,13 @@ class Constraints
     Interval m_c_Moms_abs_terms;
     double m_cosmological_constant;
 
-
     [[nodiscard]]
-    AMREX_FORCE_INLINE AMREX_GPU_DEVICE constraints_t constraint_equations(
-        const CCZ4Vars &vars, const CCZ4D1Vars &d1,
-        const Tensor<2, amrex::Real> &d2_chi,
-        const Tensor<4, amrex::Real> &d2_h, const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU,
-        const chris_array_t &chris) const;
+    AMREX_FORCE_INLINE AMREX_GPU_DEVICE constraints_t
+    constraint_equations(const CCZ4Vars &vars, const CCZ4D1Vars &d1,
+                         const amrex::Array1D<amrex::Real, 0, 6> &d2_chi,
+                         const amrex::Array2D<amrex::Real, 0, 6, 0, 6> &d2_h,
+                         const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU,
+                         const chris_t &chris) const;
 
     AMREX_FORCE_INLINE AMREX_GPU_DEVICE void
     store_vars(const constraints_t &out,

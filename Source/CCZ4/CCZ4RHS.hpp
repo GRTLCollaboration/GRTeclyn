@@ -82,57 +82,21 @@ class CCZ4RHS
     /** This function orchestrates the calculation of the rhs for one specific
      * grid cell.
      */
+    /// Calculates the rhs for chi and h_ij
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    operator()(int ix, int iy, int iz,
-               const amrex::Array4<amrex::Real> &rhs_state,
-               const amrex::Array4<amrex::Real const> &state) const;
+    compute_chi_and_h_ij(int ix, int iy, int iz,
+                         const amrex::Array4<amrex::Real> &rhs_state,
+                         const amrex::Array4<amrex::Real const> &state) const;
 
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    calculate_rhs(int ix, int iy, int iz,
-                  const amrex::Array4<amrex::Real> &rhs_state,
-                  const amrex::Array4<amrex::Real const> &state) const;
-
-    /// Calculates the rhs for chi
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    calculate_chi_rhs(int ix, int iy, int iz,
-                      const amrex::Array4<amrex::Real> &rhs_state,
-                      const amrex::Array4<amrex::Real const> &state) const;
-    /// Calculates the rhs for h_ij
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    calculate_h_ij_rhs(int ix, int iy, int iz,
-                       const amrex::Array4<amrex::Real> &rhs_state,
-                       const amrex::Array4<amrex::Real const> &state) const;
-    // Calculates rhs for A_ij
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void calculate_A_ij_rhs_use_amrex_array(
+    // Calculates rhs for A_ij and Theta and Gamma
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void compute_A_ij_and_Theta_and_Gamma(
         int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs_state,
         const amrex::Array4<amrex::Real const> &state) const;
 
-    // Calculates rhs for A_ij
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void calculate_A_ij_rhs_no_amrex_array(
-        int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs_state,
-        const amrex::Array4<amrex::Real const> &state) const;
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    calculate_Theta_rhs(int ix, int iy, int iz,
-                        const amrex::Array4<amrex::Real> &rhs_state,
-                        const amrex::Array4<amrex::Real const> &state) const;
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    calculate_Gamma_rhs(int ix, int iy, int iz,
-                        const amrex::Array4<amrex::Real> &rhs_state,
-                        const amrex::Array4<amrex::Real const> &state) const;
-
+    // Apply gauge and dissipation (no derivatives needed here!)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void apply_gauge_and_dissipation(
         int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs_state,
         const amrex::Array4<amrex::Real const> &state) const;
-
-  protected:
-    /// Calculates the rhs for CCZ4
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    rhs_equation(const amrex::CellData<amrex::Real> &rhs, const CCZ4Vars &vars,
-                 const CCZ4D1Vars &d1, const CCZ4D2Vars &d2,
-                 const CCZ4AdvecVars &advec) const;
 };
 
 #include "CCZ4RHS.impl.hpp"

@@ -148,40 +148,21 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
             simParams().ccz4_params, Geom().CellSize(0), simParams().sigma,
             simParams().formulation);
 
-        // amrex::ParallelFor(
-        //     a_rhs,
-        //     [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
-        //     {
-        //         ccz4rhs(ix, iy, iz, rhs_arrays[box_no],
-        //                 const_soln_arrays[box_no]);
-        //     });
-
-        // amrex::ParallelFor(
-        //     a_rhs,
-        //     [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
-        //     {
-        //         ccz4rhs.calculate_chi_rhs(ix, iy, iz, rhs_arrays[box_no],
-        //                                   const_soln_arrays[box_no]);
-        //         ccz4rhs.calculate_A_ij_rhs_use_amrex_array(
-        //             ix, iy, iz, rhs_arrays[box_no],
-        //             const_soln_arrays[box_no]);
-        //         ccz4rhs.apply_gauge_and_dissipation(
-        //             ix, iy, iz, rhs_arrays[box_no],
-        //             const_soln_arrays[box_no]);
-        //     });
+        // NB: These are split up to avoid having to pre-compute all the
+        //  first and second derivatives in memory on the GPU at once.
 
         amrex::ParallelFor(
             a_rhs,
             [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
             {
-                ccz4rhs.calculate_chi_rhs(ix, iy, iz, rhs_arrays[box_no],
-                                          const_soln_arrays[box_no]);
+                ccz4rhs.compute_chi_and_h_ij(ix, iy, iz, rhs_arrays[box_no],
+                                             const_soln_arrays[box_no]);
             });
         amrex::ParallelFor(
             a_rhs,
             [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
             {
-                ccz4rhs.calculate_A_ij_rhs_use_amrex_array(
+                ccz4rhs.compute_A_ij_and_Theta_and_Gamma(
                     ix, iy, iz, rhs_arrays[box_no], const_soln_arrays[box_no]);
             });
         amrex::ParallelFor(

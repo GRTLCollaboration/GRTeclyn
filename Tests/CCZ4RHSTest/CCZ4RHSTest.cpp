@@ -110,7 +110,14 @@ void run_ccz4_rhs_test()
             [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
             {
                 old_ccz4_rhs.compute(ix, iy, iz, old_out_array, in_c_array);
-                current_ccz4_rhs(ix, iy, iz, current_out_array, in_c_array);
+
+                // The RHS is split into three different calculations
+                current_ccz4_rhs.compute_chi_and_h_ij(
+                    ix, iy, iz, current_out_array, in_c_array);
+                current_ccz4_rhs.compute_A_ij_and_Theta_and_Gamma(
+                    ix, iy, iz, current_out_array, in_c_array);
+                current_ccz4_rhs.apply_gauge_and_dissipation(
+                    ix, iy, iz, current_out_array, in_c_array);
 
                 for (int ivar = 0; ivar < NUM_CCZ4_VARS; ++ivar)
                 {
