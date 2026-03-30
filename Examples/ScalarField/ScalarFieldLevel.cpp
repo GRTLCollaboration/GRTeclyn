@@ -26,7 +26,7 @@
 #include "InitialScalarData.hpp"
 #include "Potential.hpp"
 #include "ScalarField.hpp"
-#include "RandomField.hpp"
+#include "RandomFieldInit.hpp"
 
 void ScalarFieldLevel::variableSetUp()
 {
@@ -71,12 +71,12 @@ void ScalarFieldLevel::variableSetUp()
     // We need all of the CCZ4 variables to calculate Weyl4 (except B)
     derive_lst.addComponent("Weyl4", desc_lst, State_Type, 0, c_B1);
 
-    derive_lst.add(
-        "TensorPolarisations", amrex::IndexType::TheCellType(),
-        static_cast<int>(RandomField::var_names.size()), RandomField::var_names,
-        amrex::DeriveFuncFab(),
-        [=](const amrex::Box &box) { return amrex::grow(box, nghost); },
-        &amrex::cell_quartic_interp);
+    // derive_lst.add(
+    //     "TensorPolarisations", amrex::IndexType::TheCellType(),
+    //     static_cast<int>(RandomField::var_names.size()), RandomField::var_names,
+    //     amrex::DeriveFuncFab(),
+    //     [=](const amrex::Box &box) { return amrex::grow(box, nghost); },
+    //     &amrex::cell_quartic_interp);
 
     // We only need the spatial metric to find the polarisation fields
     derive_lst.addComponent("TensorPolarisation", desc_lst, State_Type, 0, c_K);
@@ -139,7 +139,9 @@ void ScalarFieldLevel::initData()
             FLRW_background.compute(i, j, k, state_array[box_ind]);
         });
 
-    RandomField random_field_initialiser(simParams().random_field_params, simParams().background_params, simParams().potential_params);
+    RandomFieldInit random_field_initialiser(simParams().inflt_params, 
+                                             simParams().background_params, 
+                                             simParams().potential_params);
     random_field_initialiser.init(state);
 
     if (simParams().nan_check)
@@ -398,11 +400,11 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
                                   src_arrays[box_no]);
                 });
         }
-        else if (name=="TensorPolarisations")
-        {
-            RandomField random_field_derive(simParams().random_field_params);
-            random_field_derive.derive(src_mf, multifab, dcomp);
-        }
+        // else if (name=="TensorPolarisations")
+        // {
+        //     RandomField random_field_derive(simParams().random_field_params);
+        //     random_field_derive.derive(src_mf, multifab, dcomp);
+        // }
         else
         {
             amrex::Abort("Unknown derived variable");
@@ -423,7 +425,7 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
 	const auto cur_time        = get_state_data(State_Type).curTime();
 
 	auto first_step = (cur_time == 0);
-	const int vol = std::pow(simParams().random_field_params.N_readin, 3.); // (!!) unitless volume
+	const int vol = std::pow(simParams().inflt_params.N, 3.); // (!!) unitless volume
     const int nghost = simParams().num_ghosts;
 
 	const double phi_avg = state_new.sum(c_phi)/vol;
@@ -451,27 +453,27 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
     means_file.write_time_data_line({phi_avg, Pi_avg, scale_fact_avg, Hubble_fact_avg, lapse_avg});
 
     // Extract the spectra and field statistics
-    RandomField random_field_extractor(simParams().random_field_params);
-    random_field_extractor.extract(state_new, simParams().data_path, dt, cur_time, restart_time, first_step);
+    // RandomField random_field_extractor(simParams().random_field_params);
+    // random_field_extractor.extract(state_new, simParams().data_path, dt, cur_time, restart_time, first_step);
 
-    // Make a file object for constraint statistics
-    SmallDataIO constrs_file(simParams().data_path+"constraint-statistics", dt, cur_time, restart_time, SmallDataIO::APPEND, first_step, ".dat");
-    constrs_file.remove_duplicate_time_data();
+    // // Make a file object for constraint statistics
+    // SmallDataIO constrs_file(simParams().data_path+"constraint-statistics", dt, cur_time, restart_time, SmallDataIO::APPEND, first_step, ".dat");
+    // constrs_file.remove_duplicate_time_data();
     
-    // Find the constraints and put them in a MF
-    int num=0;
-    const std::list<DeriveRec>& dlist = derive_lst.dlist();
-    for (auto const& var: dlist)
-    {
-        if(var.name() == "constraints") { num = var.numDerive(); }
-    }
-    if(first_step) { std::cout << "Num derive vars: " << num << "\n"; }
+    // // Find the constraints and put them in a MF
+    // int num=0;
+    // const std::list<DeriveRec>& dlist = derive_lst.dlist();
+    // for (auto const& var: dlist)
+    // {
+    //     if(var.name() == "constraints") { num = var.numDerive(); }
+    // }
+    // if(first_step) { std::cout << "Num derive vars: " << num << "\n"; }
 
-    MultiFab constr_alias(ba, dm, num, ngrow, MFInfo(), Factory());
-    constr_alias.setVal(0.0);
-    derive("constraints", cur_time, constr_alias, 0);
+    // MultiFab constr_alias(ba, dm, num, ngrow, MFInfo(), Factory());
+    // constr_alias.setVal(0.0);
+    // derive("constraints", cur_time, constr_alias, 0);
 
-    // Print statistics on the abs constraint terms
-    Vector<int> moments{1,2};
-    random_field_extractor.print_moment(constr_alias, Constraints::var_names, moments, constrs_file, first_step);
+    // // Print statistics on the abs constraint terms
+    // Vector<int> moments{1,2};
+    // random_field_extractor.print_moment(constr_alias, Constraints::var_names, moments, constrs_file, first_step);
 }

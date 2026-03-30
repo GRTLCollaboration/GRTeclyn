@@ -23,10 +23,12 @@
 #include <AMReX_Vector.H>
 #include <AMReX_Array.H>
 
+#include "InflationUtils.hpp"
 using namespace amrex;
 
 struct InflationConfig
 {
+    /* Shared parameters */
     // Basic initialisation flags
     int read_from_stoiic = 0;   //!< Whether to read spectrum from stoiic dparams.txt input
     int tensor_init = 0;        //!< Determines whether tensor perturbations are calculated
@@ -62,6 +64,8 @@ struct InflationConfig
     Vector<Vector<Real>> scalar_ps;       //!< Structure: four fields * two components, power spec values
     Vector<Vector<Real>> tensor_ps;       //!< Structure: two fields * two components, power spec values
 
+    /* Shared functions */
+
     // Nyquist condition
     inline int flip_index(const int indx) 
     {
@@ -94,9 +98,18 @@ struct InflationConfig
         return std::sqrt(i*i + j*j + k*k) * 2. * M_PI / L;
     }
 
-    inline Vector<Real> InflationConfig::calculate_basis_vector(const IntVect iv, 
+    inline Vector<Real> calculate_basis_vector(const IntVect iv, 
                                                         const int which_vector);
 
     // Applies above Nyquist conditions to a given MF
-    inline void InflationConfig::apply_nyquist_conditions(cMultiFab &field);
-}
+    inline void apply_nyquist_conditions(cMultiFab &field);
+
+    /* Const parameters */
+
+    // CHANGE WITH CARE
+    const Real norm = std::pow(L, -3.);
+};
+
+#include "InflationConfig.impl.hpp"
+
+#endif /* INFLATIONCONFIG */

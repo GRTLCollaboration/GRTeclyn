@@ -3,3 +3,4 @@ dparams*.txt
 err/
 out/
 old-params/
+*.txt

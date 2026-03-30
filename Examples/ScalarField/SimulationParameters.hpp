@@ -28,6 +28,7 @@ class SimulationParameters : public SimulationParametersBase
 
     void read_params(GRParmParse &pp)
     {
+        // GR and default parameters
 	    initial_params.center =
             center; // already read in SimulationParametersBase
          pp.load("G_Newton", G_Newton,
@@ -35,37 +36,41 @@ class SimulationParameters : public SimulationParametersBase
         inflt_params.Mp = 1./std::sqrt(G_Newton);
         background_params.G_Newton = G_Newton;
 
+        // Potential parameters
         pp.load("potential_type", potential_params.type, 0);
         pp.load("potential_param_1", potential_params.param1, 0.1);
-        
-        // Check these
         pp.load("potential_param_2", potential_params.param2, 0.);
         pp.load("potential_param_3", potential_params.param3);
         pp.load("potential_param_4", potential_params.param4, 0.);
         pp.load("potential_param_5", potential_params.param5);
-
         pp.load("background_phi", background_params.phi0, 0.0);
         pp.load("background_dphi", background_params.Pi0, 0.0);	
 
+        // Initial data parameters
+        // Flags
         pp.load("read_from_STOIIC", inflt_params.read_from_stoiic, 0);
         pp.load("tensor_init", inflt_params.tensor_init, 0);
         pp.load("scalar_init", inflt_params.scalar_init, 0);
-        pp.load("L", inflt_params.L, 1.);
-        pp.load("A", inflt_params.A, 1.);
-        pp.load("N", inflt_params.N_readin, 32);
-        pp.load("N_fine", inflt_params.N_fine, inflt_params.N_readin);
         pp.load("use_rand", inflt_params.use_rand, 1);
+        pp.load("use_window", inflt_params.use_window, 0);
+        pp.load("calc_binned_power_spectrum", inflt_params.calc_binned_power_spectrum, 0);
+        pp.load("calc_higher_order_statistics", inflt_params.calc_higher_order_statistics, 0);
+
+        // Grid parameters
+        pp.load("L", inflt_params.L, 1.);
+        pp.load("N", inflt_params.N, 32);
+        pp.load("N_fine", inflt_params.N_fine, inflt_params.N);
+
+        // Field construction parameters
+        pp.load("A", inflt_params.A, 1.);
         pp.load("random_seed", inflt_params.random_seed, 3539263);
         pp.load("alpha", inflt_params.alpha, 0.);
-
-        pp.load("use_window", inflt_params.use_window, 0);
         pp.load("kstar", inflt_params.kstar, 0.);
         pp.load("Delta", inflt_params.Delta, 1.);
 
-        pp.load("calc_binned_power_spectrum", inflt_params.calc_binned_power_spectrum, 0);
-        pp.load("bin_number", inflt_params.bin_number, inflt_params.N_readin/2); 
+        // Extraction parameters
+        pp.load("bin_number", inflt_params.bin_number, inflt_params.N/2); 
 	    pp.load("spec_interval", inflt_params.plot_int, 100);
-        pp.load("calc_higher_order_statistics", inflt_params.calc_higher_order_statistics, 0);
         pp.load("num_moments", inflt_params.num_orders, 0);
         pp.getarr("moments_to_print", inflt_params.orders, 0, inflt_params.num_orders);
 
@@ -105,12 +110,6 @@ class SimulationParameters : public SimulationParametersBase
 
     void check_params()
     {
-        // warn_parameter("scalar_mass", background_params.m,
-        //                background_params.m <
-        //                    0.2 / coarsest_dx / dt_multiplier,
-        //                "oscillations of scalar field do not appear to be "
-        //                "resolved on coarsest level");
-
         warn_parameter("kstar", inflt_params.kstar,
                        inflt_params.kstar >= 0,
                        "cut-off frequency index must be positive");
@@ -131,7 +130,7 @@ class SimulationParameters : public SimulationParametersBase
     Potential::params_t potential_params;
     InitialBackgroundData::params_t background_params;
     InitialScalarData::params_t initial_params;
-    InflationConfig::InflationConfig inflt_params;
+    InflationConfig inflt_params;
 };
 
 #endif /* SIMULATIONPARAMETERS_HPP_ */

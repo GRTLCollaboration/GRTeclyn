@@ -6,12 +6,14 @@
 #ifndef TENSORTESTS_HPP_
 #define TENSORTESTS_HPP_
 
+#include "InflationUtils.hpp"
+
 using namespace amrex;
 
 namespace TensorTests 
 {
     // Test that the input tensor field (config space) is trace free (global)
-    inline void Test_is_trace_free(MultiFab &field)
+    void Test_is_trace_free(MultiFab &field)
     {
         if (field.nComp() != 6)
         {
@@ -19,19 +21,18 @@ namespace TensorTests
         }
 
         const auto &arrs = field.arrays();
-        Real sum = 0.;
         ParallelFor(field,
             [=] AMREX_GPU_DEVICE (int bx, int i, int j, int k)
             {
                 IntVect iv{i, j, k};
-                sum = 0.;
+                Real sum = 0.;
 
                 for(int l=0; l<3; l++)
                 {
-                    sum += arrs[bx](i, j, k, lut[l][l]);
+                    sum += arrs[bx](i, j, k, InflationUtils::lut[l][l]);
                 }
 
-                if(std::abs(sum) > tolerance)
+                if(std::abs(sum) > InflationUtils::tolerance)
                 {
                     Print() << iv << ": " << sum << "\n";
                     Error("RandomField::Test_is_trace_free Trace-free test failed here.");
@@ -41,7 +42,7 @@ namespace TensorTests
     }
 
     // Test that the input vectors are orthonormal (local)
-    inline void Test_vector_orthonorm(const IntVect iv, const Vector<Real> mhat, 
+    void Test_vector_orthonorm(const IntVect iv, const Vector<Real> mhat, 
                                             const Vector<Real> nhat)
     {
         // Confirm basis vectors are orthonormal
@@ -57,9 +58,9 @@ namespace TensorTests
                 cross1 += mhat[l] * nhat[l];
             }
 
-            if(std::abs(dot1 - 1.) > tolerance 
-              || std::abs(dot2 - 1.) > tolerance 
-              || cross1 > tolerance)
+            if(std::abs(dot1 - 1.) > InflationUtils::tolerance 
+              || std::abs(dot2 - 1.) > InflationUtils::tolerance 
+              || cross1 > InflationUtils::tolerance)
             {
                 Print() << "Location: " << iv << "\n";
                 Print() << "Dot products: " << dot1 << ", " << dot2 << "\n";
@@ -75,7 +76,7 @@ namespace TensorTests
     }
 
     // Test that the input basis tensors, and their rotated counterparts, are orthonormal
-    inline void Test_polarisation_tensor_orthonorm(const IntVect iv, const Tensor<2, Real> eplus,
+    void Test_polarisation_tensor_orthonorm(const IntVect iv, const Tensor<2, Real> eplus,
                                                                     const Tensor<2, Real> ecross)
     {
         Vector<Real> conds(3, 0.);
@@ -89,9 +90,9 @@ namespace TensorTests
 
         if(iv != IntVect{0, 0, 0})
         {
-            bool plc = (std::abs(conds[0] / 2. - 1.) > tolerance 
-                        || std::abs(conds[2] / 2. - 1.) > tolerance);
-            bool ppc = (std::abs(conds[1]) > tolerance);
+            bool plc = (std::abs(conds[0] / 2. - 1.) > InflationUtils::tolerance 
+                        || std::abs(conds[2] / 2. - 1.) > InflationUtils::tolerance);
+            bool ppc = (std::abs(conds[1]) > InflationUtils::tolerance);
             if (plc || ppc)
             {
                 Print() << "---------\nLocation: " << iv << "\n";

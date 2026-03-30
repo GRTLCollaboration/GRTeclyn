@@ -9,34 +9,15 @@
 #include "InflationConfig.hpp"
 using namespace amrex;
 
-class InflationExtraction : RandomFieldInit
+class InflationExtraction
 {
-    protected:
-        const Real tol;
-        const Real norm;
-
-        // Look-up table 
-        // Used to construct polarisation basis tensors
-        int temp_lut[3][3];
-        temp_lut[0][0] = 0;
-        temp_lut[0][1] = 1;
-        temp_lut[0][2] = 2;
-        temp_lut[1][0] = 1;
-        temp_lut[1][1] = 3;
-        temp_lut[1][2] = 4;
-        temp_ut[2][0] = 2;
-        temp_lut[2][1] = 4;
-        temp_lut[2][2] = 5;
-        const int lut[3][3] = temp_lut;
-
     public:
         // Names of diagnostic variables
         static inline const Vector<std::string> var_names = {"hplus", "hcross"};
 
         // Constructor used in extraction of diagnostics
         RandomField(InflationConfig::InflationConfig a_params)
-                : m_params(a_params), tol(1.e-12), 
-                  norm(pow(1./a_params.L, 3.))       
+                : m_params(a_params)      
         {}
 
         void derive(const MultiFab &source, MultiFab &out, int dcomp);

@@ -5,7 +5,7 @@
 
 
 #if !defined(INFLATIONCONFIG_HPP_)
-#error "This file should only be included via RandomField.hpp"
+#error "This file should only be included via InflationConfig.hpp"
 #endif
 
 #ifndef INFLATIONCONFIG_IMPL_HPP_
