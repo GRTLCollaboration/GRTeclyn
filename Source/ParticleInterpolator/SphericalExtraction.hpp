@@ -11,48 +11,56 @@
 #include "SurfaceExtraction.hpp"
 
 //! A child class of SurfaceExtraction for extraction on spherical shells
-class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
+template <int num_components>
+class SphericalExtraction
+    : public SurfaceExtraction<SphericalGeometry, num_components>
 {
   public:
-    struct params_t : SurfaceExtraction::params_t
+    using Base       = SurfaceExtraction<SphericalGeometry, num_components>;
+    using BaseParams = typename Base::params_t;
+    using vars_t     = typename Base::vars_t;
+
+    struct params_t : BaseParams
     {
-        int &num_extraction_radii() { return num_surfaces; }
+        int &num_extraction_radii() { return this->num_surfaces; }
 
         [[nodiscard]] const int &num_extraction_radii() const
         {
-            return num_surfaces;
+            return this->num_surfaces;
         }
 
-        auto &extraction_radii() { return surface_param_values; }
+        auto &extraction_radii() { return this->surface_param_values; }
 
         [[nodiscard]] const auto &extraction_radii() const
         {
-            return surface_param_values;
+            return this->surface_param_values;
         }
 
-        int &num_points_theta() { return num_points_u; }
+        int &num_points_theta() { return this->num_points_u; }
 
         [[nodiscard]] const int &num_points_theta() const
         {
-            return num_points_u;
+            return this->num_points_u;
         }
 
-        int &num_points_phi() { return num_points_v; }
+        int &num_points_phi() { return this->num_points_v; }
 
-        [[nodiscard]] const int &num_points_phi() const { return num_points_v; }
+        [[nodiscard]] const int &num_points_phi() const
+        {
+            return this->num_points_v;
+        }
 
         std::array<double, AMREX_SPACEDIM> center{}; //!< the center of the
                                                      //!< spherical shells
         std::array<double, AMREX_SPACEDIM> &extraction_center()
         {
-            return center;
+            return this->center;
         }
         int num_modes{}; //!< the number of modes to extract
         std::vector<std::pair<int, int>> modes; //!< the modes to extract
                                                 //!< l = first, m = second
 
-        [[nodiscard]] const SurfaceExtraction::params_t &
-        get_surface_extraction_params() const
+        [[nodiscard]] const BaseParams &get_surface_extraction_params() const
         {
             return *this;
         }
@@ -66,9 +74,8 @@ class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
   public:
     SphericalExtraction(const params_t &a_params, double a_dt, double a_time,
                         bool a_first_step, double a_restart_time = 0.0)
-        : SurfaceExtraction(a_params.center,
-                            a_params.get_surface_extraction_params(), a_dt,
-                            a_time, a_first_step, a_restart_time),
+        : Base(a_params.center, a_params.get_surface_extraction_params(), a_dt,
+               a_time, a_first_step, a_restart_time),
           m_center(a_params.center), m_num_modes(a_params.num_modes),
           m_modes(a_params.modes)
     {
@@ -81,7 +88,7 @@ class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
         : SphericalExtraction(a_params, a_dt, a_time, a_first_step,
                               a_restart_time)
     {
-        add_vars(a_vars);
+        this->add_vars(a_vars);
     }
 
     SphericalExtraction(const params_t &a_params,
@@ -91,7 +98,7 @@ class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
         : SphericalExtraction(a_params, a_dt, a_time, a_first_step,
                               a_restart_time)
     {
-        add_evolution_vars(a_evolution_vars);
+        this->add_evolution_vars(a_evolution_vars);
     }
 
     // alias this long type used for complex functions defined on the surface
@@ -110,9 +117,10 @@ class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
         const IntegrationMethod &a_method_phi   = IntegrationMethod::trapezium,
         const bool a_broadcast_integral         = false)
     {
-        auto integrand_re = [center = m_center, &geom = m_geom, es, el, em,
-                             &a_function](std::vector<double> &a_data_here,
-                                          double r, double theta, double phi)
+        auto integrand_re = [center = m_center, &geom = this->m_geom, es, el,
+                             em, &a_function](std::vector<double> &a_data_here,
+                                              double r, double theta,
+                                              double phi)
         {
             // note that spin_Y_lm requires the coordinates with the center
             // at the origin
@@ -126,12 +134,13 @@ class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
                     function_here.second * Y_lm.Im) /
                    (r * r);
         };
-        add_integrand(integrand_re, out_integrals.first, a_method_theta,
-                      a_method_phi, a_broadcast_integral);
+        this->add_integrand(integrand_re, out_integrals.first, a_method_theta,
+                            a_method_phi, a_broadcast_integral);
 
-        auto integrand_im = [center = m_center, &geom = m_geom, es, el, em,
-                             &a_function](std::vector<double> &a_data_here,
-                                          double r, double theta, double phi)
+        auto integrand_im = [center = m_center, &geom = this->m_geom, es, el,
+                             em, &a_function](std::vector<double> &a_data_here,
+                                              double r, double theta,
+                                              double phi)
         {
             // note that spin_Y_lm requires the coordinates with the center
             // at the origin
@@ -145,8 +154,8 @@ class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
                     function_here.first * Y_lm.Im) /
                    (r * r);
         };
-        add_integrand(integrand_im, out_integrals.second, a_method_theta,
-                      a_method_phi, a_broadcast_integral);
+        this->add_integrand(integrand_im, out_integrals.second, a_method_theta,
+                            a_method_phi, a_broadcast_integral);
     }
 
     //! If you only want to extract one mode, you can use this function which
@@ -156,14 +165,14 @@ class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
         const IntegrationMethod &a_method_theta = IntegrationMethod::simpson,
         const IntegrationMethod &a_method_phi   = IntegrationMethod::trapezium)
     {
-        m_integrands.clear();
-        m_integration_methods.clear();
-        m_integrals.clear();
+        this->m_integrands.clear();
+        this->m_integration_methods.clear();
+        this->m_integrals.clear();
 
         std::pair<std::vector<double>, std::vector<double>> integrals;
         add_mode_integrand(es, el, em, a_function, integrals, a_method_theta,
                            a_method_phi);
-        integrate();
+        this->integrate();
         return integrals;
     }
     // NOLINTEND(readability-identifier-length)

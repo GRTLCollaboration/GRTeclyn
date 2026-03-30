@@ -7,7 +7,16 @@ GRTECLYN_CEXE_headers += ParticleInterpolator.hpp \
                          MPILayoutParticle.hpp \
                          MPILayoutParticle.impl.hpp \
                          Derivative.hpp \
-                         DerivativeSetup.hpp
+                         DerivativeSetup.hpp \
+                         IntegrationMethod.hpp \
+                         IntegrationMethodSetup.hpp \
+                         SphericalExtraction.hpp \
+                         SphericalGeometry.hpp \
+                         SurfaceExtraction.hpp \
+                         SurfaceExtraction.impl.hpp \
+                         WeylExtraction.hpp \
+                         CustomExtraction.hpp
+
 
 
 

@@ -17,6 +17,6 @@ src_dirs := $(GRCHOMBO_SOURCE)/utils \
             $(GRCHOMBO_SOURCE)/BoxUtils  \
             $(GRCHOMBO_SOURCE)/CCZ4  \
             $(GRCHOMBO_SOURCE)/GRChomboCore  \
-            $(GRCHOMBO_SOURCE)/AMRInterpolator
+            $(GRCHOMBO_SOURCE)/ParticleInterpolator
 
 include $(CHOMBO_HOME)/mk/Make.test

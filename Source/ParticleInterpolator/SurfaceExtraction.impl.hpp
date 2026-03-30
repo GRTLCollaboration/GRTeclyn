@@ -15,8 +15,8 @@
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 //! Normal constructor which requires vars to be added after construction
 //! using add_var or add_vars
-template <class SurfaceGeometry>
-SurfaceExtraction<SurfaceGeometry>::SurfaceExtraction(
+template <class SurfaceGeometry, int num_components>
+SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
     const SurfaceGeometry &a_geom, params_t a_params, double a_dt,
     double a_time, bool a_first_step, double a_restart_time)
     : m_geom(a_geom), m_params(std::move(a_params)), m_dt(a_dt), m_time(a_time),
@@ -76,10 +76,9 @@ SurfaceExtraction<SurfaceGeometry>::SurfaceExtraction(
 }
 
 //! add a single variable or derivative of variable
-template <class SurfaceGeometry>
-void SurfaceExtraction<SurfaceGeometry>::add_var(int a_var,
-                                                 const VariableType a_var_type,
-                                                 const Derivative &a_deriv)
+template <class SurfaceGeometry, int num_components>
+void SurfaceExtraction<SurfaceGeometry, num_components>::add_var(
+    int a_var, const VariableType a_var_type, const Derivative &a_deriv)
 {
     AMREX_ASSERT(!m_done_extraction);
     m_vars.emplace_back(a_var, a_var_type, a_deriv);
@@ -88,8 +87,8 @@ void SurfaceExtraction<SurfaceGeometry>::add_var(int a_var,
 }
 
 //! add a vector of variables/derivatives of variables
-template <class SurfaceGeometry>
-void SurfaceExtraction<SurfaceGeometry>::add_vars(
+template <class SurfaceGeometry, int num_components>
+void SurfaceExtraction<SurfaceGeometry, num_components>::add_vars(
     const std::vector<std::tuple<int, VariableType, Derivative>> &a_vars)
 {
     for (auto var : a_vars)
@@ -99,8 +98,8 @@ void SurfaceExtraction<SurfaceGeometry>::add_vars(
 }
 
 //! add a vector of evolutionvariables (no derivatives)
-template <class SurfaceGeometry>
-void SurfaceExtraction<SurfaceGeometry>::add_evolution_vars(
+template <class SurfaceGeometry, int num_components>
+void SurfaceExtraction<SurfaceGeometry, num_components>::add_evolution_vars(
     const std::vector<int> &a_vars)
 {
     for (auto var : a_vars)
@@ -110,8 +109,8 @@ void SurfaceExtraction<SurfaceGeometry>::add_evolution_vars(
 }
 
 //! add a vector of evolutionvariables (no derivatives)
-template <class SurfaceGeometry>
-void SurfaceExtraction<SurfaceGeometry>::add_diagnostic_vars(
+template <class SurfaceGeometry, int num_components>
+void SurfaceExtraction<SurfaceGeometry, num_components>::add_diagnostic_vars(
     const std::vector<int> &a_vars)
 {
     for (auto var : a_vars)
@@ -122,64 +121,71 @@ void SurfaceExtraction<SurfaceGeometry>::add_diagnostic_vars(
 
 //! Alternative constructor with a predefined vector of variables and
 //! derivatives
-template <class SurfaceGeometry>
-SurfaceExtraction<SurfaceGeometry>::SurfaceExtraction(
+template <class SurfaceGeometry, int num_components>
+SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
     const SurfaceGeometry &a_geom, const params_t &a_params,
     const std::vector<std::tuple<int, VariableType, Derivative>> &a_vars,
     double a_dt, double a_time, bool a_first_step, double a_restart_time)
-    : SurfaceExtraction<SurfaceGeometry>(a_geom, a_params, a_dt, a_time,
-                                         a_first_step, a_restart_time)
+    : SurfaceExtraction<SurfaceGeometry, num_components>(
+          a_geom, a_params, a_dt, a_time, a_first_step, a_restart_time)
 {
     add_vars(a_vars);
 }
 
 //! Another alternative constructor with a predefined vector of variables
 //! no derivatives
-template <class SurfaceGeometry>
-SurfaceExtraction<SurfaceGeometry>::SurfaceExtraction(
+template <class SurfaceGeometry, int num_components>
+SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
     const SurfaceGeometry &a_geom, const params_t &a_params,
     const std::vector<int> &a_vars, double a_dt, double a_time,
     bool a_first_step, double a_restart_time)
-    : SurfaceExtraction<SurfaceExtraction>(a_geom, a_params, a_dt, a_time,
-                                           a_first_step, a_restart_time)
+    : SurfaceExtraction<SurfaceGeometry, num_components>(
+          a_geom, a_params, a_dt, a_time, a_first_step, a_restart_time)
 {
     add_evolution_vars(a_vars);
 }
 
 //! Do the extraction
-template <class SurfaceGeometry>
-template <typename InterpAlgo>
-void SurfaceExtraction<SurfaceGeometry>::extract(
-    AMRInterpolator<InterpAlgo> *a_interpolator)
+template <class SurfaceGeometry, int num_components>
+void SurfaceExtraction<SurfaceGeometry, num_components>::extract(
+    ParticleInterpolator<2> *a_interpolator, amrex::Vector<BCParity> parities,
+    const std::string &name_derived)
 {
     if (a_interpolator == nullptr)
     {
-        amrex::Abort("SurfaceExtraction: invalid AMRInterpolator pointer");
+        amrex::Abort("SurfaceExtraction: invalid ParticleInterpolator pointer");
     }
+
     // m_num_interp_points is 0 on ranks > 0
-    InterpolationQuery query(m_num_interp_points);
+    InterpolationQueryParticle query(m_num_interp_points);
+
+    amrex::Print() << "m_vars.size() = " << m_vars.size()
+                   << ", query.numComps() = " << query.numComps()
+                   << ", m_num_interp_points = " << m_num_interp_points << "\n";
+
     FOR (idir)
     {
         query.setCoords(idir, m_interp_coords[idir].data());
     }
+
     for (std::size_t ivar = 0; ivar < m_vars.size(); ++ivar)
     {
-        // note the difference in order between the m_vars tuple in this class
-        // and the InterpolationQuery::out_t type
         query.addComp(std::get<0>(m_vars[ivar]), m_interp_data[ivar].data(),
-                      std::get<2>(m_vars[ivar]), std::get<1>(m_vars[ivar]));
+                      std::get<1>(m_vars[ivar]), parities[ivar],
+                      std::get<2>(m_vars[ivar]));
     }
 
-    // submit the query
-    a_interpolator->interp(query);
+    // query not set?
+    a_interpolator->interp(query, 0, name_derived, m_time);
+
     m_done_extraction = true;
 }
 
 //! Add an integrand (which must of type integrand_t) for integrate() to
 //! integrate over. Note the area_element is already included from the
 //! SurfaceGeometry template class
-template <class SurfaceGeometry>
-void SurfaceExtraction<SurfaceGeometry>::add_integrand(
+template <class SurfaceGeometry, int num_components>
+void SurfaceExtraction<SurfaceGeometry, num_components>::add_integrand(
     const integrand_t &a_integrand, std::vector<double> &out_integrals,
     const IntegrationMethod &a_method_u, const IntegrationMethod &a_method_v,
     const bool a_broadcast_integral)
@@ -214,7 +220,8 @@ void SurfaceExtraction<SurfaceGeometry>::add_integrand(
         if (!valid_u)
         {
             amrex::Warning(
-                "SurfaceExtraction<SurfaceGeometry>::integrate: Provided "
+                "SurfaceExtraction<SurfaceGeometry, "
+                "num_components>::integrate: Provided "
                 "IntegrationMethod for u is not valid with\nthis num_points_u; "
                 "reverting to trapezium rule.");
         }
@@ -225,7 +232,8 @@ void SurfaceExtraction<SurfaceGeometry>::add_integrand(
         if (!valid_v)
         {
             amrex::Warning(
-                "SurfaceExtraction<SurfaceGeometry>::integrate: Provided "
+                "SurfaceExtraction<SurfaceGeometry, "
+                "num_components>::integrate: Provided "
                 "IntegrationMethod for v is not valid with\nthis num_points_v; "
                 "reverting to trapezium rule.");
         }
@@ -240,8 +248,8 @@ void SurfaceExtraction<SurfaceGeometry>::add_integrand(
 //! Add an integrand which is just a single var. The a_var argument should
 //! correspond to the order in which the desired var was added to this object
 //! with add_var
-template <class SurfaceGeometry>
-void SurfaceExtraction<SurfaceGeometry>::add_var_integrand(
+template <class SurfaceGeometry, int num_components>
+void SurfaceExtraction<SurfaceGeometry, num_components>::add_var_integrand(
     int a_var, std::vector<double> &out_integrals,
     const IntegrationMethod &a_method_u, const IntegrationMethod &a_method_v,
     const bool a_broadcast_integral)
@@ -256,8 +264,8 @@ void SurfaceExtraction<SurfaceGeometry>::add_var_integrand(
 }
 
 // NOLINTBEGIN(readability-function-cognitive-complexity)
-template <class SurfaceGeometry>
-void SurfaceExtraction<SurfaceGeometry>::integrate()
+template <class SurfaceGeometry, int num_components>
+void SurfaceExtraction<SurfaceGeometry, num_components>::integrate()
 {
     AMREX_ASSERT(m_done_extraction);
     if (amrex::ParallelDescriptor::MyProc() == 0)
@@ -336,8 +344,9 @@ void SurfaceExtraction<SurfaceGeometry>::integrate()
 //!     double a_surface_param_value, double a_u, double a_v)
 //! where data_here is a vector of all the interpolated variables at the
 //! point specified by the other arguments.
-template <class SurfaceGeometry>
-std::vector<double> SurfaceExtraction<SurfaceGeometry>::integrate(
+template <class SurfaceGeometry, int num_components>
+std::vector<double>
+SurfaceExtraction<SurfaceGeometry, num_components>::integrate(
     integrand_t a_integrand, const IntegrationMethod &a_method_u,
     const IntegrationMethod &a_method_v, const bool a_broadcast_integral)
 {
@@ -354,8 +363,8 @@ std::vector<double> SurfaceExtraction<SurfaceGeometry>::integrate(
 }
 
 //! Write the interpolated data to a file with a block for each surface
-template <class SurfaceGeometry>
-void SurfaceExtraction<SurfaceGeometry>::write_extraction(
+template <class SurfaceGeometry, int num_components>
+void SurfaceExtraction<SurfaceGeometry, num_components>::write_extraction(
     std::string a_file_prefix) const
 {
     AMREX_ASSERT(m_done_extraction);
@@ -423,8 +432,8 @@ void SurfaceExtraction<SurfaceGeometry>::write_extraction(
 }
 
 //! write some integrals to a file at this timestep
-template <class SurfaceGeometry>
-void SurfaceExtraction<SurfaceGeometry>::write_integrals(
+template <class SurfaceGeometry, int num_components>
+void SurfaceExtraction<SurfaceGeometry, num_components>::write_integrals(
     const std::string &a_filename,
     const std::vector<std::vector<double>> &a_integrals,
     const std::vector<std::string> &a_labels) const
@@ -509,8 +518,8 @@ void SurfaceExtraction<SurfaceGeometry>::write_integrals(
 
 //! convenience caller for write_integrals in the case of just one integral per
 //! surface
-template <class SurfaceGeometry>
-void SurfaceExtraction<SurfaceGeometry>::write_integral(
+template <class SurfaceGeometry, int num_components>
+void SurfaceExtraction<SurfaceGeometry, num_components>::write_integral(
     const std::string &a_filename, const std::vector<double> &a_integrals,
     const std::string &a_label) const
 {
