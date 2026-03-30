@@ -19,13 +19,15 @@ class RandomFieldInit
         {
             return sqrt((8. * M_PI * G / 3.)*(0.5*pow(Pi, 2.) + V));
         }
+        // CHANGE WITH CARE
+        const Real norm;
 
     public:
                 // Constructor used when initialising stochastic fields
         RandomFieldInit(const InflationConfig a_config, 
                         const InitialBackgroundData::params_t bkgd_params, 
                         const Potential::params_t potential_params)
-                        : m_params(a_config)
+                        : m_params(a_config), norm(std::pow(a_config.L, -3.))
         {
             // Compute background potential
             double V, dV;
@@ -34,12 +36,16 @@ class RandomFieldInit
             {
                 case 1:
                     potential.quadratic(V, dV, bkgd_params.phi0);
+                    break;
                 case 8:
                     potential.USR(V, dV, bkgd_params.phi0);
+                    break;
                 case 9:
                     potential.monodromy(V, dV, bkgd_params.phi0);
+                    break;
                 case 10:
                     potential.punctuated(V, dV, bkgd_params.phi0);
+                    break;
                 default:
                     Error("RandomFieldInit::RandomFieldInit, potential type not provided");
             }
@@ -52,10 +58,10 @@ class RandomFieldInit
 
     private:
         InflationConfig m_params;
-        void make_random_draws(MultiFab &rand_fab, Box &domain, const int seed);
+        void make_random_draws(MultiFab &rand_fab, const Box &domain, const int seed);
         GpuComplex<Real> calculate_mode_function(const double km, const int spec_indx);
         GpuComplex<Real> find_in_stoiic(const double km, const int field_indx, 
-                                        std::string field_type);
+                                        const std::string field_type);
         GpuComplex<Real> calculate_random_field(const IntVect iv, const int field_index, 
                                                 const Real rand_amp, const Real rand_phase, 
                                                 std::string field_type);

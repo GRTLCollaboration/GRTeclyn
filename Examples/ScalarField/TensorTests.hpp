@@ -13,7 +13,7 @@ using namespace amrex;
 namespace TensorTests 
 {
     // Test that the input tensor field (config space) is trace free (global)
-    void Test_is_trace_free(MultiFab &field)
+    inline void Test_is_trace_free(MultiFab &field)
     {
         if (field.nComp() != 6)
         {
@@ -42,7 +42,7 @@ namespace TensorTests
     }
 
     // Test that the input vectors are orthonormal (local)
-    void Test_vector_orthonorm(const IntVect iv, const Vector<Real> mhat, 
+    inline void Test_vector_orthonorm(const IntVect iv, const Vector<Real> mhat, 
                                             const Vector<Real> nhat)
     {
         // Confirm basis vectors are orthonormal
@@ -76,7 +76,7 @@ namespace TensorTests
     }
 
     // Test that the input basis tensors, and their rotated counterparts, are orthonormal
-    void Test_polarisation_tensor_orthonorm(const IntVect iv, const Tensor<2, Real> eplus,
+    inline void Test_polarisation_tensor_orthonorm(const IntVect iv, const Tensor<2, Real> eplus,
                                                                     const Tensor<2, Real> ecross)
     {
         Vector<Real> conds(3, 0.);

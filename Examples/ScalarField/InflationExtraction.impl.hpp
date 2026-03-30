@@ -1,4 +1,32 @@
+// Makes subdirectories in data/
+inline std::string InflationExtraction::make_subdirectory(const std::string base, const std::string dir, const int is_first_step)
+{
+    std::string new_path = base+"../"+dir+"/";
+    if(is_first_step)
+    {
+        if (FilesystemTools::directory_exists(base)) { FilesystemTools::mkdir_recursive(new_path); }
+        else 
+        { 
+            Print() << "Directory creation failed for " << new_path << "\n";
+            Error("RandomField::extract Data directory has not been created."); 
+        }
+    }
+    return new_path;
+}
 
+// Creates a custom data file layout 
+inline void InflationExtraction::assign_statistics_data(Vector<std::string> &header_storage, const std::string name, 
+                            Vector<Real> &data_storage, const Vector<Real> data, const int component, const int num_comps,
+                            const Vector<int>::const_iterator itr, const Vector<int>::const_iterator start, 
+                            const int is_first_step)
+{
+    int loc = component + num_comps*(itr - start);
+    if(is_first_step) 
+    { 
+        header_storage[loc] =  name; 
+    }
+    data_storage[loc] = data[component];
+}
 
 // Main extraction routine
 inline void InflationExtraction::extract(const MultiFab &state, const std::string data_path, const Real dt,  

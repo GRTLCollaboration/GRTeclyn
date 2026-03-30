@@ -24,6 +24,8 @@
 #include <AMReX_Array.H>
 
 #include "InflationUtils.hpp"
+#include "TensorTests.hpp"
+
 using namespace amrex;
 
 struct InflationConfig
@@ -99,15 +101,39 @@ struct InflationConfig
     }
 
     inline Vector<Real> calculate_basis_vector(const IntVect iv, 
-                                                        const int which_vector);
+                                               const int which_vector);
+
+    inline Tensor<2, Real> calculate_polarisation_tensor(const IntVect iv,
+                                                         const int which_pol)
+    {
+        // Find basis vectors
+        Vector<Real> mhat = calculate_basis_vector(iv, 0);
+        Vector<Real> nhat = calculate_basis_vector(iv, 1);
+        TensorTests::Test_vector_orthonorm(iv, mhat, nhat);
+
+        Tensor<2, Real> eplus, ecross; 
+        for (int l=0; l<3; l++) for (int p=0; p<3; p++)
+        {
+            // Assemble the polarisation tensors
+            eplus[l][p] = mhat[l]*mhat[p] - nhat[l]*nhat[p];
+            ecross[l][p] = mhat[l]*nhat[p] + nhat[l]*mhat[p];
+        }
+
+        TensorTests::Test_polarisation_tensor_orthonorm(iv, eplus, ecross);
+
+        if (which_pol == 0) { return eplus; }
+        else if (which_pol == 1) { return ecross; }
+        else 
+        {
+            Error("InflationConfig::calculate_polarisation_tensor, "
+                  "polarisation flag is not set correctly.");
+            return eplus;
+        }
+    }
 
     // Applies above Nyquist conditions to a given MF
     inline void apply_nyquist_conditions(cMultiFab &field);
 
-    /* Const parameters */
-
-    // CHANGE WITH CARE
-    const Real norm = std::pow(L, -3.);
 };
 
 #include "InflationConfig.impl.hpp"
