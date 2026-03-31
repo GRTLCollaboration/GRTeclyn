@@ -116,7 +116,9 @@ void run_ccz4_rhs_test()
                     ix, iy, iz, current_out_array, in_c_array);
                 current_ccz4_rhs.compute_A_ij_and_Theta_and_Gamma(
                     ix, iy, iz, current_out_array, in_c_array);
-                current_ccz4_rhs.apply_gauge_and_dissipation(
+                current_ccz4_rhs.apply_gauge(ix, iy, iz, current_out_array,
+                                             in_c_array);
+                current_ccz4_rhs.apply_dissipation(
                     ix, iy, iz, current_out_array, in_c_array);
 
                 for (int ivar = 0; ivar < NUM_CCZ4_VARS; ++ivar)

@@ -50,11 +50,11 @@ template <class potential_t = DefaultPotential> class ScalarField
     //! The function which calculates the EM Tensor, given the vars and
     //! derivatives, including the potential
     [[nodiscard]]
-    AMREX_GPU_DEVICE emtensor_t
-    compute_emtensor(const Vars &vars, const D1Vars &d1,
-                     const amrex::Array2D<amrex::Real, 0, 3, 0, 3>
-                         &h_UU, //!< the inverse metric (raised indices)
-                     const amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> &chris_ULL)
+    AMREX_GPU_DEVICE emtensor_t compute_emtensor(
+        const Vars &vars, const amrex::Array1D<amrex::Real, 0, 3> &d1_phi,
+        const amrex::Array2D<amrex::Real, 0, 3, 0, 3>
+            &h_UU, //!< the inverse metric (raised indices)
+        const amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> &chris_ULL)
         const; //!< the conformal christoffel symbol
 
     //! The function which adds in the RHS for the matter field vars,
@@ -62,7 +62,11 @@ template <class potential_t = DefaultPotential> class ScalarField
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     add_matter_rhs(const amrex::CellData<amrex::Real> &rhs, const Vars &vars,
-                   const D1Vars &d1, const D2Vars &d2,
+                   const amrex::Array1D<amrex::Real, 0, 3> &d1_chi,
+                   const amrex::Array1D<amrex::Real, 0, 3> &d1_lapse,
+                   const amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> &d1_h,
+                   const amrex::Array1D<amrex::Real, 0, 3> &d1_phi,
+                   const amrex::Array1D<amrex::Real, 0, 6> &d2_phi,
                    const AdvecVars &advec) const;
 };
 

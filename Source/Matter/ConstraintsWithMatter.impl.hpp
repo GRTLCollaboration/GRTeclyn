@@ -35,10 +35,10 @@ ConstraintsWithMatter<matter_t>::operator()(
         state.cellData(ix, iy, iz);
     typename matter_t::Vars vars(state_cell_data);
     const typename matter_t::D1Vars d1(ix, iy, iz, state, m_deriv);
-    const Tensor<2, amrex::Real> d2_chi =
-        m_deriv.diff2(ix, iy, iz, state, c_chi);
-    const Tensor<4, amrex::Real> d2_h =
-        m_deriv.diff2_tensor(ix, iy, iz, state, c_h11);
+    const amrex::Array1D<amrex::Real, 0, 6> d2_chi =
+        m_deriv.diff2_sym_scalar(ix, iy, iz, state, c_chi);
+    const amrex::Array2D<amrex::Real, 0, 6, 0, 6> d2_h =
+        m_deriv.diff2_sym_tensor_test_array(ix, iy, iz, state, c_h11);
 
     // Inverse metric and Christoffel symbol
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
@@ -49,7 +49,9 @@ ConstraintsWithMatter<matter_t>::operator()(
         constraint_equations(vars, d1, d2_chi, d2_h, h_UU, chris);
 
     // Energy Momentum Tensor
-    const auto emtensor = my_matter.compute_emtensor(vars, d1, h_UU, chris.ULL);
+    const auto d1_phi = m_deriv.diff1_array_scalar(ix, iy, iz, state, c_phi);
+    const auto emtensor =
+        my_matter.compute_emtensor(vars, d1_phi, h_UU, chris.ULL);
 
     // Hamiltonian constraint
     if (m_c_Ham >= 0 || m_c_Ham_abs_terms >= 0)
