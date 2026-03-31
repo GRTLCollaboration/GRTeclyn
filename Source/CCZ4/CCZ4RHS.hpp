@@ -93,10 +93,17 @@ class CCZ4RHS
         int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs_state,
         const amrex::Array4<amrex::Real const> &state) const;
 
-    // Apply gauge and dissipation (no derivatives needed here!)
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void apply_gauge_and_dissipation(
-        int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs_state,
-        const amrex::Array4<amrex::Real const> &state) const;
+    // Apply gauage (no derivatives needed here!)
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    apply_gauge(int ix, int iy, int iz,
+                const amrex::Array4<amrex::Real> &rhs_state,
+                const amrex::Array4<amrex::Real const> &state) const;
+
+    // Apply dissipation (split for matter classes)
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    apply_dissipation(int ix, int iy, int iz,
+                      const amrex::Array4<amrex::Real> &rhs_state,
+                      const amrex::Array4<amrex::Real const> &state) const;
 };
 
 #include "CCZ4RHS.impl.hpp"

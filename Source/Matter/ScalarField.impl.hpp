@@ -13,7 +13,7 @@
 // Calculate the stress energy tensor elements
 template <class potential_t>
 AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t>::compute_emtensor(
-    const Vars &vars, const D1Vars &d1,
+    const Vars &vars, const amrex::Array1D<amrex::Real, 0, 3> &d1_phi,
     const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU,
     const amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> &chris_ULL) const
 {
@@ -23,7 +23,7 @@ AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t>::compute_emtensor(
     amrex::Real Vt = -vars.Pi() * vars.Pi();
     FOR (i, j)
     {
-        Vt += vars.chi() * h_UU(i, j) * d1.phi(i) * d1.phi(j);
+        Vt += vars.chi() * h_UU(i, j) * d1_phi(i) * d1_phi(j);
     }
 
     // set the potential values
@@ -38,7 +38,7 @@ AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t>::compute_emtensor(
     FOR (i, j)
     {
         out.S(i, j) = -0.5 * vars.h(i, j) * Vt / vars.chi() +
-                      d1.phi(i) * d1.phi(j) -
+                      d1_phi(i) * d1_phi(j) -
                       vars.h(i, j) * V_of_phi / vars.chi();
     }
 
@@ -52,7 +52,7 @@ AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t>::compute_emtensor(
     //    j_i (note lower index) = - n^a T_ai
     FOR (i)
     {
-        out.j(i) = -d1.phi(i) * vars.Pi();
+        out.j(i) = -d1_phi(i) * vars.Pi();
     }
 
     return out;
@@ -62,12 +62,17 @@ AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t>::compute_emtensor(
 template <class potential_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 ScalarField<potential_t>::add_matter_rhs(
-    const amrex::CellData<amrex::Real> &rhs, const Vars &vars, const D1Vars &d1,
-    const D2Vars &d2, const AdvecVars &advec) const
+    const amrex::CellData<amrex::Real> &rhs, const Vars &vars,
+    const amrex::Array1D<amrex::Real, 0, 3> &d1_chi,
+    const amrex::Array1D<amrex::Real, 0, 3> &d1_lapse,
+    const amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> &d1_h,
+    const amrex::Array1D<amrex::Real, 0, 3> &d1_phi,
+    const amrex::Array1D<amrex::Real, 0, 6> &d2_phi,
+    const AdvecVars &advec) const
 {
     // call the function for the rhs excluding the potential
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
-    const auto chris = CCZ4Geometry::compute_christoffel(d1, h_UU);
+    const auto chris = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
 
     // set the potential values
     amrex::Real V_of_phi = 0.0;
@@ -83,13 +88,13 @@ ScalarField<potential_t>::add_matter_rhs(
     {
         // includes non conformal parts of chris not included in chris_ULL
         rhs[c_Pi] +=
-            h_UU(i, j) * (-0.5 * d1.chi(j) * vars.lapse() * d1.phi(i) +
-                          vars.chi() * vars.lapse() * d2.phi[i][j] +
-                          vars.chi() * d1.lapse(i) * d1.phi(j));
+            h_UU(i, j) * (-0.5 * d1_chi(j) * vars.lapse() * d1_phi(i) +
+                          vars.chi() * vars.lapse() * d2_phi(SYMM_IDX(i, j)) +
+                          vars.chi() * d1_lapse(i) * d1_phi(j));
         FOR (k)
         {
             rhs[c_Pi] += -vars.chi() * vars.lapse() * h_UU(i, j) *
-                            chris.ULL(k, i, j) * d1.phi(k);
+                         chris.ULL(k, i, j) * d1_phi(k);
         }
     }
 }

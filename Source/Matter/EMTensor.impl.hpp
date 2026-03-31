@@ -55,12 +55,14 @@ EMTensor<matter_t, em_tensor_options>::operator()(
     const amrex::CellData<const amrex::Real> &state_cell_data =
         state.cellData(ix, iy, iz);
     Vars vars(state_cell_data);
-    const typename matter_t::D1Vars d1(ix, iy, iz, state, m_deriv);
 
+    const auto d1_h  = m_deriv.diff1_array_tensor(ix, iy, iz, state, c_h11);
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
-    const auto chris = CCZ4Geometry::compute_christoffel(d1, h_UU);
+    const auto chris = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
 
-    const auto emtensor = m_matter.compute_emtensor(vars, d1, h_UU, chris.ULL);
+    const auto d1_phi = m_deriv.diff1_array_scalar(ix, iy, iz, state, c_phi);
+    const auto emtensor =
+        m_matter.compute_emtensor(vars, d1_phi, h_UU, chris.ULL);
 
     emtensor_out(ix, iy, iz, m_dcomp) = emtensor.rho;
 
@@ -79,12 +81,12 @@ EMTensor<matter_t, em_tensor_options>::operator()(
     if constexpr (em_tensor_options == EMTensorOptions::allDensities)
     {
 #if DEFAULT_TENSOR_DIM == 3
-      emtensor_out(ix, iy, iz, m_dcomp + 4) = emtensor.S(0, 0);
-      emtensor_out(ix, iy, iz, m_dcomp + 5) = emtensor.S(0, 1);
-      emtensor_out(ix, iy, iz, m_dcomp + 6) = emtensor.S(0, 2);
-      emtensor_out(ix, iy, iz, m_dcomp + 7) = emtensor.S(1, 1);
-      emtensor_out(ix, iy, iz, m_dcomp + 8) = emtensor.S(1, 2);
-      emtensor_out(ix, iy, iz, m_dcomp + 9) = emtensor.S(2, 2);
+        emtensor_out(ix, iy, iz, m_dcomp + 4) = emtensor.S(0, 0);
+        emtensor_out(ix, iy, iz, m_dcomp + 5) = emtensor.S(0, 1);
+        emtensor_out(ix, iy, iz, m_dcomp + 6) = emtensor.S(0, 2);
+        emtensor_out(ix, iy, iz, m_dcomp + 7) = emtensor.S(1, 1);
+        emtensor_out(ix, iy, iz, m_dcomp + 8) = emtensor.S(1, 2);
+        emtensor_out(ix, iy, iz, m_dcomp + 9) = emtensor.S(2, 2);
     }
 }
 #endif
