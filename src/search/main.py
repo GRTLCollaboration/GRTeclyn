@@ -294,12 +294,17 @@ def main(argv: list[str] | None = None) -> int:
     )
     p.add_argument("--mass-msun", type=float, default=1000.0, help="Template mass in solar masses")
     p.add_argument("--distance-mpc", type=float, default=0.002, help="Template distance in Mpc (e.g. 0.002 for 2 kpc)")
-    p.add_argument("--catalog", default="GWTC-2", help="PyCBC catalog name (e.g. GWTC-2)")
+    p.add_argument("--catalog", default="GWTC-2", help="PyCBC catalog name (e.g. GWTC-2). Used if --event is specified.")
     p.add_argument(
         "--event",
         default="GW190521",
-        help="Event key or prefix (e.g. GW190521 or GW190521_074359)",
+        help="Event key or prefix (e.g. GW190521), or 'all' for catalog search. If provided, overrides --run.",
     )
+    p.add_argument("--run", action="store_true", help="Search a continuous block of open data instead of catalog events.")
+    p.add_argument("--gps-start", type=float, help="GPS start time for continuous search (required if --run is used)")
+    p.add_argument("--gps-end", type=float, help="GPS end time for continuous search (required if --run is used)")
+    p.add_argument("--chunk-duration", type=float, default=512.0, help="Duration of chunks to split continuous data into (seconds)")
+    p.add_argument("--snr-threshold", type=float, default=8.0, help="SNR threshold to report triggers in continuous search")
     p.add_argument("--ifo", default="H1", help="Detector (H1 or L1)")
     p.add_argument("--sample-rate", type=int, default=4096, help="Template sample rate (Hz)")
     p.add_argument("--low-frequency-cutoff", type=float, default=20.0, help="Matched-filter low-f cutoff (Hz)")
@@ -394,6 +399,89 @@ def main(argv: list[str] | None = None) -> int:
 
     template = TimeSeries(strain_interp, delta_t=dt_ligo)
 
+    if args.run:
+        if args.gps_start is None or args.gps_end is None:
+            print("Error: --gps-start and --gps-end must be provided when using --run")
+            return 1
+        
+        print(f"\n=== Continuous Search Mode ===")
+        print(f"Detector: {args.ifo}")
+        print(f"Time: {args.gps_start} to {args.gps_end} ({args.gps_end - args.gps_start} seconds)")
+        print(f"Chunk Size: {args.chunk_duration} seconds")
+        print(f"SNR Threshold: {args.snr_threshold}\n")
+        
+        triggers = []
+        cache = not bool(args.no_cache)
+        chunk_start = float(args.gps_start)
+        
+        while chunk_start < float(args.gps_end):
+            chunk_end = min(chunk_start + float(args.chunk_duration), float(args.gps_end))
+            
+            # We need to fetch a slightly larger chunk of data to avoid edge effects in the filter
+            # PyCBC recommends padding the data by at least the maximum template length + some extra for corruption
+            pad = 16.0
+            fetch_start = chunk_start - pad
+            fetch_end = chunk_end + pad
+            
+            print(f"Processing chunk: {chunk_start} to {chunk_end} ...")
+            
+            try:
+                data_h1 = _fetch_open_data_range_pycbc_with_timeout(
+                    args.ifo,
+                    fetch_start,
+                    fetch_end,
+                    sample_rate,
+                    timeout_s=float(args.fetch_timeout_s),
+                    cache=cache,
+                    gwosc_request_timeout_s=float(args.gwosc_request_timeout_s),
+                )
+                
+                current_template = template.copy()
+                current_template.resize(len(data_h1))
+                current_template = current_template.cyclic_time_shift(current_template.start_time)
+
+                # Estimate PSD
+                psd = data_h1.psd(4)
+                psd = pycbc_interpolate(psd, data_h1.delta_f)
+                psd = inverse_spectrum_truncation(
+                    psd, int(4 * data_h1.sample_rate), low_frequency_cutoff=15.0
+                )
+
+                # Filter
+                snr = matched_filter(current_template, data_h1, psd=psd, low_frequency_cutoff=float(args.low_frequency_cutoff))
+                snr_timeseries = abs(snr)
+                
+                # Crop the padding off the SNR timeseries to remove edge corruption
+                snr_timeseries = snr_timeseries.crop(pad + 4.0, pad + 4.0)
+
+                # Find peaks above threshold using scipy.signal.find_peaks to avoid clustering
+                from scipy.signal import find_peaks
+                peaks, _ = find_peaks(snr_timeseries, height=float(args.snr_threshold), distance=int(0.5 * sample_rate))
+                
+                for i in peaks:
+                    t = snr_timeseries.sample_times[i]
+                    # Ensure we don't double count if a peak is right on the boundary
+                    if chunk_start <= t < chunk_end:
+                        s = snr_timeseries[i]
+                        triggers.append((t, s))
+                        print(f"  *** TRIGGER FOUND *** GPS: {t:.2f} | SNR: {s:.2f}")
+                            
+            except Exception as e:
+                print(f"  Skipping chunk due to error: {e}")
+                
+            chunk_start += float(args.chunk_duration)
+            
+        print("\n=== CONTINUOUS SEARCH RESULTS ===")
+        if not triggers:
+            print(f"No triggers found above SNR {args.snr_threshold}.")
+        else:
+            triggers.sort(key=lambda x: x[1], reverse=True)
+            print(f"Found {len(triggers)} triggers above threshold:")
+            for t, s in triggers[:20]:
+                print(f"  SNR = {s:.2f} at GPS {t:.2f}")
+        return 0
+
+    # --- Original Catalog Mode Below ---
     print(f"Loading LIGO Catalog '{args.catalog}'...")
     cat = Catalog(args.catalog)
 

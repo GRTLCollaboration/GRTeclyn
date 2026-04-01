@@ -9,29 +9,59 @@ This project is built on top of **[GRTeclyn](https://github.com/GRTLCollaboratio
 
 This repository provides the complete computational pipeline to simulate the 3D nonlinear dynamics of unstable Ellis–Bronnikov wormholes supported by a phantom scalar field. It includes the isotropic initial data setup, the forced quadrupolar collapse mechanism ($S_{\rm support}=0.5$, $A_\phi=+0.02$), and the extraction of the resulting gravitational-wave signals ($\Psi_4$).
 
-### Navigation for Reviewers & Researchers
+### Project layout
 
-#### 1. C++ Simulation Code & Initial Data
-The exact 3D Adaptive Mesh Refinement (AMR) setup, the initial data formulation, and the coupled Einstein–phantom-scalar evolution routines are located in:
-* `Examples/SupportedWormholeCollapse/SupportedWormholeInitialData.hpp` (Isotropic Ellis-Bronnikov setup & perturbations)
-* `Examples/SupportedWormholeCollapse/SupportedWormholeLevel.cpp` (CCZ4 evolution and diagnostic tracking)
-* `Examples/SupportedWormholeCollapse/params_2gpu.txt` (The exact parameters used for the high-resolution production runs)
+#### Modified simulation (C++ / parameters)
+The executable is built from **`Examples/SupportedWormholeCollapse/`** (`GNUmakefile`, `Make.package`). **Example-specific** sources include `SupportedWormholeInitialData.hpp`, `SupportedWormholeLevel.hpp` / `.cpp`, `Main_SupportedWormhole.cpp`, `SimulationParameters.hpp`, `StateVariables.hpp`, `PhantomDecayPotential.hpp`, and **`params_2gpu.txt`**.
 
-#### 2. Extracted Data (`.dat` files)
-**Note on Data Storage:** To adhere to best practices and save space, the massive 3D `.hdf5` plotfiles (often hundreds of gigabytes) were discarded on the fly. All relevant physical observables were extracted during the evolution and are provided as lightweight 1D `.dat` files.
-* Constraints, apparent horizon proxies, and collapse diagnostics can be found in `data_supported/data/` (or the equivalent extraction directories).
-* The primary extracted gravitational-wave template is located at: `data_supported/small_data/psi4_mode_l2m0.dat`.
+**Shared matter code** is compiled from **`Source/Matter/`** (declared in `Source/Matter/Make.package` and pulled in via `src_dirs` in the example `GNUmakefile`). Files there:
 
-#### 3. Python Analysis & Visualization
-The scripts used to generate the publication-ready figures (Richardson Convergence, Collapse Diagnostics, CWT Spectrograms) are modularized in the `src/visualisation/` directory.
-* `src/visualisation/constraines/`: Plots the Hamiltonian and Momentum constraint convergence.
-* `src/visualisation/extract_wave/`: Processes and plots the retarded-time $\Psi_4$ waveforms.
-* `src/visualisation/make_evolution_panel/`: Generates the 2D $K_z$ trace snapshots of the phantom bounce.
+| Role | Headers |
+|------|---------|
+| Scalar field (φ, derivatives, exotic branch) | `ScalarField.hpp`, `ScalarField.impl.hpp`, `ScalarFieldVars.hpp`, `ScalarFieldAdvecVars.hpp`, `ScalarFieldD1Vars.hpp`, `ScalarFieldD2Vars.hpp`, `ExoticScalarField.hpp`, `ExoticScalarField.impl.hpp` |
+| CCZ4 + matter (RHS, constraints, stress tensor, Weyl) | `CCZ4RHSWithMatter.hpp`, `CCZ4RHSWithMatter.impl.hpp`, `ConstraintsWithMatter.hpp`, `ConstraintsWithMatter.impl.hpp`, `EMTensor.hpp`, `EMTensor.impl.hpp`, `Weyl4WithMatter.hpp`, `Weyl4WithMatter.impl.hpp` |
+| Gauge & potential | `MovingPunctureGaugeWithMatter.hpp`, `DefaultPotential.hpp` |
 
-#### 4. LIGO / GWOSC Data Search
-If you are a gravitational-wave data analyst and wish to use this simulated wormhole collapse as a template in your own searches, we provide an automated search script:
-* `src/search/search.py`
-This script automatically downloads public LIGO data from the GWOSC API (e.g., GW190521), integrates $\Psi_4 \to h$, applies the correct physical scaling ($1000 M_\odot$ at $1$ Mpc), and executes a matched-filter search using `PyCBC`.
+The same `GNUmakefile` also pulls in other **`Source/`** trees (CCZ4, Wormholes, GRTeclynCore, …); initial data for *this* run is implemented in the example as **`SupportedWormholeInitialData.hpp`**, not `Source/Wormholes/WormholeInitialData.hpp` (that header serves other wormhole setups). The example evolution includes matter headers directly, e.g. `CCZ4RHSWithMatter.hpp`, `ConstraintsWithMatter.hpp`, `Weyl4WithMatter.hpp`, and `ExoticScalarField.hpp` from `SupportedWormholeLevel.cpp`, and `PhantomDecayPotential.hpp` uses `ScalarFieldVars.hpp` from **`Source/Matter/`**.
+
+#### Shell automation — `src/scripts/`
+| Script | Role |
+|--------|------|
+| `plot_run.sh` | While the run writes plotfolders: `consume_plotfiles` **extracts** the useful observables ($\Psi_4$, optional frames) into **`.dat`** files and **PNG** frames; processed plotfile trees can be **deleted** so raw simulation dumps are not kept—**disk optimisation**. |
+| `plot_diagnostic.sh` | After a run: constraint norms, collapse diagnostics, $\Psi_4$ panels into `src/visualisation/plots/`. |
+| `move_files.sh` | Copy key run data + figures into **`src/SimResults/<run_folder>/`**. |
+
+#### LIGO / GWOSC matched-filter search — `src/search/`
+Template-based search in public strain data (GWOSC via GWpy, matched filtering with PyCBC). Entry point:
+
+```bash
+python -m src.search.main
+```
+
+Defaults use an extracted waveform under `src/SimResults/…/psi4_mode_l2m0.dat`; override with `--data-path`. Methodology and options: **`src/search/README.md`**.
+
+#### Archived simulation outputs — `src/SimResults/`
+Packaged results per run (parameters, extracted `.dat` data, diagnostic plots, etc.), populated by `move_files.sh` and comparable archiving.
+
+#### Plotting & analysis — `src/visualisation/`
+Full usage, CLI flags, and workflows: **`src/visualisation/README.md`**. Subfolders at a glance:
+
+| Path | Purpose |
+|------|---------|
+| `visualize/` | 2D field slices from plotfiles; optional MP4 (`ffmpeg`). |
+| `visualize/make_movies.py` | Stitch existing PNG frame folders into MP4. |
+| `make_evolution_panel/` | Multi-panel strip figure from saved frame PNGs. |
+| `extract_wave/` | Extract $\Psi_4$ (mode $l{=}2$, $m{=}0$) from plotfiles; waveform + PSD. |
+| `process_wave/` | **`consume_plotfiles`** (stream plotfiles → `psi4_mode_l2m0.dat`, optional frames) and **`plot_extracted_psi4`** (plots from `.dat`, optional strain / LIGO-style overlays). |
+| `diagnostic/` | Collapse diagnostics from `collapse_diagnostics.dat` (optional `areal_radius.dat`). |
+| `constraines/` | $L_2$ norms of Hamiltonian and momentum constraints. |
+| `figures/` | Standalone schematic publication figures (not tied to one dump). |
+| `plots/` | Default output location for `plot_diagnostic.sh`. |
+
+#### Extracted data (`.dat` files)
+**Note on data storage:** Large 3D `.hdf5` plotfiles are often discarded; observables are extracted during the run as lightweight 1D `.dat` files.
+* Constraints, apparent horizon proxies, and collapse diagnostics: `data_supported/data/` (or the extraction directories for your run).
+* Primary gravitational-wave template example: `data_supported/small_data/psi4_mode_l2m0.dat` (paths may differ if you use another output directory).
 
 ---
 

@@ -4,7 +4,7 @@ Plot extracted Psi4 time-series produced by consume_plotfiles.py.
 
 Features:
   - Time-domain waveform r*Re(Psi4)
-  - Tukey-windowed FFT energy spectral density of Psi4 (both polarisations)
+  - Tukey-windowed FFT power spectral density of Psi4 (both polarisations)
   - Strain PSD conversion h_tilde(f) = Psi4_tilde(f)/(2*pi*f)^2 with high-pass cutoff
   - Physical scaling to Hz and LIGO noise overlay (--strain --mass-msun --distance-mpc)
   - Propagation speed measurement across extraction radii (--propagation-speed)
@@ -147,17 +147,16 @@ def load_extracted(path: Path) -> Tuple[np.ndarray, List[float], Dict[float, np.
     return t_arr, radii, out
 
 
-def _burst_esd(
+def _burst_psd(
     psi4_complex: np.ndarray, fs: float, tukey_alpha: float = 0.25
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Compute the one-sided energy spectral density of r*Psi4 for a burst.
+    """Compute the one-sided power spectral density of r*Psi4 for a burst.
 
     Uses a Tukey window (to taper edges) and a straight FFT rather than
     Welch's method, which is designed for stationary noise and destroys
     frequency resolution of short transients.  Both the + and x
-    polarizations are included: ESD = |FFT(Re)|^2 + |FFT(Im)|^2.
-    The result is normalised to a one-sided PSD-like quantity (units of
-    amplitude^2 / frequency) so downstream code is unchanged.
+    polarizations are included: PSD = (|FFT(Re)|^2 + |FFT(Im)|^2) * dt^2/T.
+    The 1/T normalization gives units of amplitude^2 / frequency.
     """
     N = len(psi4_complex)
     win = tukey(N, alpha=tukey_alpha)
@@ -495,7 +494,7 @@ def _draw_psd(ax, radii, stored_psd, linestyles, smooth_w, smooth_p,
         ax.set_xlim(0.0, float(f_max))
 
     ax.set_xlabel(r"$f\,(M^{-1})$")
-    ax.set_ylabel(r"$\mathrm{ESD}\left[r\,\Psi_4^{2,0}\right]$")
+    ax.set_ylabel(r"$\mathrm{PSD}\left[r\,\Psi_4^{2,0}\right]$")
     ax.legend(loc="upper right", frameon=True, framealpha=0.9, fontsize=9)
     ax.grid(True, which="major", ls="--", alpha=0.6)
     ax.tick_params(axis="both", which="major", direction="in", top=True, right=True)
@@ -821,7 +820,7 @@ def _plot_combined(t, radii, series, stored_psd, args, linestyles, fs):
     titles = [
         r"Waveform $r\,\mathrm{Re}(\Psi_4^{2,0})$",
         r"Waveform $r\,\mathrm{Re}(\Psi_4^{2,0})$ (retarded) + QNM fit",
-        r"Energy Spectral Density of $\Psi_4$",
+        r"Power Spectral Density of $\Psi_4$",
         "Propagation speed analysis",
         rf"Spectrogram (time-frequency, $R={R_spec:g}$)",
         r"Strain vs.\ Advanced LIGO sensitivity",
@@ -864,7 +863,7 @@ def _plot_stacked(t, radii, series, stored_psd, args, linestyles, fs):
         _draw_psd(ax_psd, radii, stored_psd, linestyles,
                   args.psd_smooth_window, args.psd_smooth_polyorder,
                   pert_sigma=args.pert_sigma, f_max=args.esd_fmax)
-        ax_psd.set_title(r"Power Spectral Density of $\Psi_4$")
+        ax_psd.set_title(r"PSD of $\Psi_4$")
 
     if args.strain:
         R_strain = radii[-1]
@@ -944,7 +943,7 @@ def main() -> None:
         "--esd-fmax",
         type=float,
         default=None,
-        help="Maximum frequency (in code units M^-1) to show on the ESD panel. "
+        help="Maximum frequency (in code units M^-1) to show on the PSD panel. "
              "Example: --esd-fmax 20 cuts off the flat high-frequency tail.",
     )
 
@@ -963,7 +962,7 @@ def main() -> None:
     parser.add_argument(
         "--pert-sigma", type=float, default=None,
         help="Width sigma_K of the initial Gaussian K perturbation (code units). "
-             "When set, overlays the perturbation's spectral content on the ESD panel "
+             "When set, overlays the perturbation's spectral content on the PSD panel "
              "to distinguish initial-data artifacts from genuine QNM ringdown.",
     )
     parser.add_argument("--pert-A0", type=float, default=0.0,
@@ -1018,7 +1017,7 @@ def main() -> None:
     for i, R in enumerate(radii):
         psi4 = series[R]
         if fs is not None and psi4.size >= 8:
-            freqs, psd = _burst_esd(psi4, fs)
+            freqs, psd = _burst_psd(psi4, fs)
             stored_psd[R] = (freqs, psd)
 
     if args.combined:
