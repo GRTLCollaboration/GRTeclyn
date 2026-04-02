@@ -27,18 +27,16 @@ static_assert(GR_SPACEDIM == 3, "GR_SPACEDIM must be 3");
 //! Struct for the E and B fields
 struct EBFields_t
 {
-    amrex::Array2D<amrex::Real, 0, 3, 0, 3>
-        E; //!< Electric component of Weyltensor
-    amrex::Array2D<amrex::Real, 0, 3, 0, 3>
-        B; //!< Magnetic component of Weyltensor
+    TensorArray::Rank2 E; //!< Electric component of Weyltensor
+    TensorArray::Rank2 B; //!< Magnetic component of Weyltensor
 };
 
 //! Struct for the null tetrad
 struct Tetrad_t
 {
-    amrex::Array1D<amrex::Real, 0, 3> u; //!< the vector u^i
-    amrex::Array1D<amrex::Real, 0, 3> v; //!< the vector v^i
-    amrex::Array1D<amrex::Real, 0, 3> w; //!< the vector w^i
+    TensorArray::Rank1 u; //!< the vector u^i
+    TensorArray::Rank1 v; //!< the vector v^i
+    TensorArray::Rank1 w; //!< the vector w^i
 };
 
 //! Struct for the Newman Penrose scalar
@@ -105,34 +103,30 @@ class Weyl4
 
     //! Compute spatial volume element
 
-    [[nodiscard]] AMREX_GPU_DEVICE
-        AMREX_FORCE_INLINE amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3>
-        compute_epsilon3_LUU(
-            const CCZ4Vars &vars,
-            const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU) const;
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE TensorArray::Rank3
+    compute_epsilon3_LUU(const CCZ4Vars &vars,
+                         const TensorArray::Rank2 &h_UU) const;
 
     //! Calculation of Weyl_4 scalar
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE weyl_scalar_t
     compute_Weyl4(const EBFields_t &ebfields, const CCZ4Vars &vars,
-                  const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU,
+                  const TensorArray::Rank2 &h_UU,
                   const Coordinates &coords) const;
 
     //! Calculation of the tetrads
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tetrad_t
-    compute_null_tetrad(const CCZ4Vars &vars,
-                        const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU,
+    compute_null_tetrad(const CCZ4Vars &vars, const TensorArray::Rank2 &h_UU,
                         const Coordinates &coords) const;
 
     //! Calulation of the decomposition of the Weyl tensor in Electric and
     //! Magnetic fields
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t
-    compute_EB_fields(
-        const CCZ4Vars &vars, const CCZ4D1Vars &d1,
-        const amrex::Array1D<amrex::Real, 0, 6> &d2_chi,
-        const amrex::Array2D<amrex::Real, 0, 6, 0, 6> &d2_h,
-        const amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> &epsilon3_LUU,
-        const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU,
-        const chris_t &chris) const;
+    compute_EB_fields(const CCZ4Vars &vars, const CCZ4D1Vars &d1,
+                      const TensorArray::Rank1Sym &d2_chi,
+                      const TensorArray::Rank2Sym &d2_h,
+                      const TensorArray::Rank3 &epsilon3_LUU,
+                      const TensorArray::Rank2 &h_UU,
+                      const chris_t &chris) const;
 };
 
 #include "Weyl4.impl.hpp"

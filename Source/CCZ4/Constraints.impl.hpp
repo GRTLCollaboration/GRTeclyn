@@ -56,9 +56,9 @@ Constraints::operator()(int ix, int iy, int iz,
     const CCZ4D1Vars d1(ix, iy, iz, state, m_deriv);
 
     // we only need d2 of chi and h
-    const amrex::Array1D<amrex::Real, 0, 6> d2_chi =
+    const TensorArray::Rank1Sym d2_chi =
         m_deriv.diff2_sym_scalar(ix, iy, iz, state, c_chi);
-    const amrex::Array2D<amrex::Real, 0, 6, 0, 6> d2_h =
+    const TensorArray::Rank2Sym d2_h =
         m_deriv.diff2_sym_tensor_test_array(ix, iy, iz, state, c_h11);
 
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
@@ -75,10 +75,8 @@ Constraints::operator()(int ix, int iy, int iz,
 AMREX_GPU_DEVICE
 Constraints::constraints_t Constraints::constraint_equations(
     const CCZ4Vars &vars, const CCZ4D1Vars &d1,
-    const amrex::Array1D<amrex::Real, 0, 6> &d2_chi,
-    const amrex::Array2D<amrex::Real, 0, 6, 0, 6> &d2_h,
-    const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU,
-    const chris_t &chris) const
+    const TensorArray::Rank1Sym &d2_chi, const TensorArray::Rank2Sym &d2_h,
+    const TensorArray::Rank2 &h_UU, const chris_t &chris) const
 {
     constraints_t out;
 
@@ -103,7 +101,7 @@ Constraints::constraints_t Constraints::constraint_equations(
     if (m_c_Moms.size() > 0 || m_c_Moms_abs_terms.size() > 0)
     {
         // Covariant derivative of \bar A_ij
-        amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> covd_A{};
+        TensorArray::Rank3 covd_A{};
         FOR (i, j, k)
         {
             covd_A(i, j, k) = d1.A(j, k, i);
@@ -118,8 +116,8 @@ Constraints::constraints_t Constraints::constraint_equations(
             out.Mom(i)           = -(GR_SPACEDIM - 1.) * d1.K(i) / GR_SPACEDIM;
             out.Mom_abs_terms(i) = std::abs(out.Mom(i));
         }
-        amrex::Array1D<amrex::Real, 0, 3> covd_A_term{};
-        amrex::Array1D<amrex::Real, 0, 3> d1_chi_term{};
+        TensorArray::Rank1 covd_A_term{};
+        TensorArray::Rank1 d1_chi_term{};
         FOR (i, j, k)
         {
             covd_A_term(i) += h_UU(j, k) * covd_A(k, j, i);

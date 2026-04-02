@@ -32,11 +32,11 @@ compute_ccz4_test_geometry(const amrex::Array4<amrex::Real> &a_array,
                            const amrex::Array4<amrex::Real> &a_geometry_array)
 {
     amrex::Real chi = 0.0;
-    amrex::Array1D<amrex::Real, 0, 3> Gamma;
-    amrex::Array2D<amrex::Real, 0, 3, 0, 3> h;
+    TensorArray::Rank1 Gamma{};
+    TensorArray::Rank2 h{};
     CCZ4D1Vars d1;
     CCZ4D2Vars d2;
-    amrex::Array1D<amrex::Real, 0, 3> Z_over_chi;
+    TensorArray::Rank1 Z_over_chi{};
 
 // Including the auto generated file with values
 #include "CCZ4GeometryMathematicaValues.hpp"
@@ -45,10 +45,10 @@ compute_ccz4_test_geometry(const amrex::Array4<amrex::Real> &a_array,
     FOR (i)
     {
 
-      a_array(a_iv, c_Gamma1 + i) = Gamma(i);
+        a_array(a_iv, c_Gamma1 + i) = Gamma(i);
         FOR (j)
         {
-	  a_array(a_iv, VAR_IDX(c_h11, i, j)) = h(i,j);
+            a_array(a_iv, VAR_IDX(c_h11, i, j)) = h(i, j);
         }
     }
 
@@ -64,26 +64,26 @@ compute_ccz4_test_geometry(const amrex::Array4<amrex::Real> &a_array,
     int vars_counter = 0;
     FOR (i, j)
     {
-      a_geometry_array(a_iv, vars_counter) = h_UU(i,j);
+        a_geometry_array(a_iv, vars_counter) = h_UU(i, j);
         ++vars_counter;
     }
     FOR (i, j, k)
     {
 
-      a_geometry_array(a_iv, vars_counter) = chris.ULL(i, j, k);
+        a_geometry_array(a_iv, vars_counter) = chris.ULL(i, j, k);
         ++vars_counter;
     }
 
     FOR (i)
     {
 
-      a_geometry_array(a_iv, vars_counter) = chris.contracted(i);
+        a_geometry_array(a_iv, vars_counter) = chris.contracted(i);
         ++vars_counter;
     }
 
     FOR (i, j)
     {
-      a_geometry_array(a_iv, vars_counter) = ricciZ.LL(i, j);
+        a_geometry_array(a_iv, vars_counter) = ricciZ.LL(i, j);
         ++vars_counter;
     }
 

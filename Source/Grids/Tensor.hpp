@@ -10,51 +10,19 @@
 #include "DimensionDefinitions.hpp"
 
 // AMReX includes
+#include "AMReX_Array.H"
 #include "AMReX_GpuQualifiers.H"
 
-/// This class implements a Tensor with given rank, element data type, and
-/// dimension.  By default the dimension is equal to DEFAULT_TENSOR_DIM.
-template <int rank, class data_t, int size = DEFAULT_TENSOR_DIM> class Tensor
+namespace TensorArray
 {
-    template <int, class, int> friend class Tensor;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
-    using arr_t = typename Tensor<rank - 1, data_t, size>::arr_t[size];
-    arr_t arr;
+using Rank1 = amrex::Array1D<amrex::Real, 0, 3>;
+using Rank2 = amrex::Array2D<amrex::Real, 0, 3, 0, 3>;
+using Rank3 = amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3>;
 
-  public:
-    // We don't want to initialize Tensor objects for performance
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr Tensor() = default;
+using Rank1Sym = amrex::Array1D<amrex::Real, 0, 6>;
+using Rank2Sym = amrex::Array2D<amrex::Real, 0, 6, 0, 6>;
 
-    //    ALWAYS_INLINE
-    //    Tensor(std::initializer_list<data_t> list) :
-    //        arr (list)
-    //    {}
-
-    template <typename... T>
-    AMREX_GPU_HOST_DEVICE Tensor(T... data) : arr{data...}
-    {
-    }
-
-    constexpr operator arr_t &() { return arr; }
-
-    constexpr operator const arr_t &() const { return arr; }
-};
-
-template <class data_t, int size> class Tensor<0, data_t, size>
-{
-    template <int, class, int> friend class Tensor;
-    using arr_t = data_t;
-    arr_t arr;
-
-  public:
-    constexpr Tensor() = default;
-
-    constexpr Tensor(data_t val) : arr(val) {}
-
-    constexpr operator arr_t &() { return arr; }
-
-    constexpr operator const arr_t &() const { return arr; }
-};
+using Rank4 = amrex::Array1D<amrex::Real, 0, 256>;
+} // namespace TensorArray
 
 #endif /* TENSOR_HPP_ */

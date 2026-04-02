@@ -36,11 +36,13 @@ template <class deriv_t> class DerivativeTestsCompute
     operator()(int ix, int iy, int iz, const amrex::Array4<amrex::Real> &out,
                const amrex::Array4<amrex::Real const> &in) const
     {
-        Tensor<1, amrex::Real> out_d1 = m_deriv.diff1(ix, iy, iz, in, c_d1);
-        Tensor<2, amrex::Real> out_d2 = m_deriv.diff2(ix, iy, iz, in, c_d2);
+        TensorArray::Rank1 out_d1 =
+            m_deriv.diff1_array_scalar(ix, iy, iz, in, c_d1);
+        TensorArray::Rank2 out_d2 =
+            m_deriv.diff2_array_scalar(ix, iy, iz, in, c_d2);
 
-        Tensor<1, amrex::Real> shift_up   = {2., 0., 3.};
-        Tensor<1, amrex::Real> shift_down = {-2., 0., -3.};
+        TensorArray::Rank1 shift_up   = {2., 0., 3.};
+        TensorArray::Rank1 shift_down = {-2., 0., -3.};
 
         const amrex::Real out_advec_down =
             m_deriv.advection(ix, iy, iz, in, shift_down, c_advec_down);
@@ -54,9 +56,9 @@ template <class deriv_t> class DerivativeTestsCompute
 
         const auto out_cell_data = out.cellData(ix, iy, iz);
 
-        out_cell_data[c_d1]         = out_d1[2];
-        out_cell_data[c_d2]         = out_d2[2][2];
-        out_cell_data[c_d2_mixed]   = out_d2[0][2];
+        out_cell_data[c_d1]         = out_d1(2);
+        out_cell_data[c_d2]         = out_d2(2, 2);
+        out_cell_data[c_d2_mixed]   = out_d2(0, 2);
         out_cell_data[c_diss]       = out_diss;
         out_cell_data[c_advec_down] = out_advec_down;
         out_cell_data[c_advec_up]   = out_advec_up;

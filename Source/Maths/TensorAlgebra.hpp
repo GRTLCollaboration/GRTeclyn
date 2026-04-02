@@ -32,19 +32,16 @@ constexpr int index4D(int i, int j, int k, int l)
 
 struct chris_t
 {
-    amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3>
-        ULL; //!< standard christoffel symbols
-    amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> LLL; //!< 3 lower indices
-    amrex::Array1D<amrex::Real, 0, 3> contracted; //!< contracted christoffel
+    TensorArray::Rank3 ULL{};
+    TensorArray::Rank3 LLL{};
+    TensorArray::Rank1 contracted{};
 };
 
 namespace TensorAlgebra
 {
-//  using Tensor<2, amrex::Real, 3> = amrex::Array2D<amrex::Real, 0, 3, 0, 3>
-
 /// Computes determinant of a symmetric 3x3 matrix
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-compute_determinant_sym(const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &matrix)
+compute_determinant_sym(const TensorArray::Rank2 &matrix)
 {
     amrex::Real det = matrix(0, 0) * matrix(1, 1) * matrix(2, 2) +
                       2 * matrix(0, 1) * matrix(0, 2) * matrix(1, 2) -
@@ -58,7 +55,7 @@ compute_determinant_sym(const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &matrix)
 /// Computes the determinant of a general 3x3 matrix.
 /// Note: for a symmetric matrix use the simplified function
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-compute_determinant(const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &matrix)
+compute_determinant(const TensorArray::Rank2 &matrix)
 {
     amrex::Real det =
         matrix(0, 0) *
@@ -71,13 +68,12 @@ compute_determinant(const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &matrix)
 }
 
 /// Computes the inverse of a symmetric 3x3 matrix directly.
-[[nodiscard]] AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE amrex::Array2D<amrex::Real, 0, 3, 0, 3>
-    compute_inverse_sym(const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &matrix)
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE TensorArray::Rank2
+compute_inverse_sym(const TensorArray::Rank2 &matrix)
 {
     amrex::Real deth         = compute_determinant_sym(matrix);
     amrex::Real deth_inverse = 1. / deth;
-    amrex::Array2D<amrex::Real, 0, 3, 0, 3> h_UU{};
+    TensorArray::Rank2 h_UU{};
     h_UU(0, 0) = (matrix(1, 1) * matrix(2, 2) - matrix(1, 2) * matrix(1, 2)) *
                  deth_inverse;
     h_UU(0, 1) = (matrix(0, 2) * matrix(1, 2) - matrix(0, 1) * matrix(2, 2)) *
@@ -99,13 +95,12 @@ compute_determinant(const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &matrix)
 
 /// Computes the inverse of a general 3x3 matrix.
 /// Note: for a symmetric matrix use the simplified function
-[[nodiscard]] AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE amrex::Array2D<amrex::Real, 0, 3, 0, 3>
-    compute_inverse(const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &matrix)
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE TensorArray::Rank2
+compute_inverse(const TensorArray::Rank2 &matrix)
 {
     amrex::Real deth         = compute_determinant(matrix);
     amrex::Real deth_inverse = 1. / deth;
-    amrex::Array2D<amrex::Real, 0, 3, 0, 3> h_UU{};
+    TensorArray::Rank2 h_UU{};
     h_UU(0, 0) = (matrix(1, 1) * matrix(2, 2) - matrix(1, 2) * matrix(2, 1)) *
                  deth_inverse;
     h_UU(1, 1) = (matrix(0, 0) * matrix(2, 2) - matrix(0, 2) * matrix(2, 0)) *
@@ -130,8 +125,8 @@ compute_determinant(const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &matrix)
 
 /// Computes the trace of a 2-Tensor with lower indices given an inverse metric.
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-compute_trace(const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &tensor_LL,
-              const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &inverse_metric)
+compute_trace(const TensorArray::Rank2 &tensor_LL,
+              const TensorArray::Rank2 &inverse_metric)
 {
     amrex::Real trace = 0.;
     FOR (i, j)
@@ -142,8 +137,8 @@ compute_trace(const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &tensor_LL,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-compute_trace(amrex::Array2D<amrex::Real, 0, 3, 0, 3> &tensor_LL,
-              const amrex::Array1D<amrex::Real, 0, 6> &inverse_metric_sym)
+compute_trace(const TensorArray::Rank2 &tensor_LL,
+              const TensorArray::Rank1Sym &inverse_metric_sym)
 {
     amrex::Real trace = 0.;
     FOR (i, j)
@@ -153,21 +148,9 @@ compute_trace(amrex::Array2D<amrex::Real, 0, 3, 0, 3> &tensor_LL,
     return trace;
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-compute_trace(amrex::Array2D<amrex::Real, 0, 3, 0, 3> &tensor_LL,
-              const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &inverse_metric)
-{
-    amrex::Real trace = 0.;
-    FOR (i, j)
-    {
-        trace += inverse_metric(i, j) * tensor_LL(i, j);
-    }
-    return trace;
-}
-
 /// Computes the trace of a 1,1 Tensor (a matrix) - no metric required.
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-compute_trace(const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &tensor_UL)
+compute_trace(const TensorArray::Rank2 &tensor_UL)
 {
     amrex::Real trace = 0.;
     FOR (i)
@@ -177,8 +160,8 @@ compute_trace(const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &tensor_UL)
 
 /// Computes dot product of a vector and a covector (no metric required)
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-compute_dot_product(const amrex::Array1D<amrex::Real, 0, 3> &vector_U,
-                    const amrex::Array1D<amrex::Real, 0, 3> &covector_L)
+compute_dot_product(const TensorArray::Rank1 &vector_U,
+                    const TensorArray::Rank1 &covector_L)
 {
     amrex::Real dot_product = 0.;
     FOR (i)
@@ -189,10 +172,9 @@ compute_dot_product(const amrex::Array1D<amrex::Real, 0, 3> &vector_U,
 /// Computes dot product of two covectors given an inverse metric or
 /// the dot product of two vectors given a metric.
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-compute_dot_product(
-    const amrex::Array1D<amrex::Real, 0, 3> &covector1_L,
-    const amrex::Array1D<amrex::Real, 0, 3> &covector2_L,
-    const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &inverse_metric)
+compute_dot_product(const TensorArray::Rank1 &covector1_L,
+                    const TensorArray::Rank1 &covector2_L,
+                    const TensorArray::Rank2 &inverse_metric)
 {
     amrex::Real dot_product = 0.;
     FOR (m, n)
@@ -205,9 +187,9 @@ compute_dot_product(
 /// Computes dot product of two covectors given an inverse metric or
 /// the dot product of two vectors given a (symmetric) metric.
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-compute_dot_product(const amrex::Array1D<amrex::Real, 0, 3> &covector1_L,
-                    const amrex::Array1D<amrex::Real, 0, 3> &covector2_L,
-                    const amrex::Array1D<amrex::Real, 0, 6> &inverse_metric_sym)
+compute_dot_product(const TensorArray::Rank1 &covector1_L,
+                    const TensorArray::Rank1 &covector2_L,
+                    const TensorArray::Rank1Sym &inverse_metric_sym)
 {
     amrex::Real dot_product = 0.;
     FOR (m, n)
@@ -224,9 +206,8 @@ compute_dot_product(const amrex::Array1D<amrex::Real, 0, 3> &covector1_L,
 /// a metric.
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-make_trace_free(amrex::Array2D<amrex::Real, 0, 3, 0, 3> &tensor_LL,
-                const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &metric,
-                const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &inverse_metric)
+make_trace_free(TensorArray::Rank2 &tensor_LL, const TensorArray::Rank2 &metric,
+                const TensorArray::Rank2 &inverse_metric)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
     auto trace                  = compute_trace(tensor_LL, inverse_metric);
@@ -253,12 +234,11 @@ make_symmetric(amrex::Array2D<amrex::Real, 0, size, 0, size> &tensor_LL)
 }
 
 /// Raises the index of a covector
-[[nodiscard]] AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE amrex::Array1D<amrex::Real, 0, 3>
-    raise_all(const amrex::Array1D<amrex::Real, 0, 3> &tensor_L,
-              const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &inverse_metric)
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE TensorArray::Rank1
+raise_all(const TensorArray::Rank1 &tensor_L,
+          const TensorArray::Rank2 &inverse_metric)
 {
-    amrex::Array1D<amrex::Real, 0, 3> tensor_U{};
+    TensorArray::Rank1 tensor_U{};
 
     FOR (i)
     {
@@ -273,12 +253,11 @@ make_symmetric(amrex::Array2D<amrex::Real, 0, size, 0, size> &tensor_LL)
 }
 
 /// Raises the indices of a 2-Tensor
-[[nodiscard]] AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE amrex::Array2D<amrex::Real, 0, 3, 0, 3>
-    raise_all(const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &tensor_LL,
-              const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &inverse_metric)
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE TensorArray::Rank2
+raise_all(const TensorArray::Rank2 &tensor_LL,
+          const TensorArray::Rank2 &inverse_metric)
 {
-    amrex::Array2D<amrex::Real, 0, 3, 0, 3> tensor_UU{};
+    TensorArray::Rank2 tensor_UU{};
 
     FOR (i, j)
     {
@@ -295,20 +274,16 @@ make_symmetric(amrex::Array2D<amrex::Real, 0, size, 0, size> &tensor_LL)
 
 /// Lowers the indices of a vector
 /// Note: same functionality as raise; included to improve readability
-[[nodiscard]] AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE amrex::Array1D<amrex::Real, 0, 3>
-    lower_all(const amrex::Array1D<amrex::Real, 0, 3> &tensor_U,
-              const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &metric)
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE TensorArray::Rank1
+lower_all(const TensorArray::Rank1 &tensor_U, const TensorArray::Rank2 &metric)
 { // The code for lowering is exactly the same as for raising
     return raise_all(tensor_U, metric);
 }
 
 /// Lowers the indices of a 2-Tensor
 /// Note: same functionality as raise; included to improve readability
-[[nodiscard]] AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE amrex::Array2D<amrex::Real, 0, 3, 0, 3>
-    lower_all(const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &tensor_UU,
-              const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &metric)
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE TensorArray::Rank2
+lower_all(const TensorArray::Rank2 &tensor_UU, const TensorArray::Rank2 &metric)
 { // The code for lowering is exactly the same as for raising
     return raise_all(tensor_UU, metric);
 }
@@ -317,11 +292,10 @@ make_symmetric(amrex::Array2D<amrex::Real, 0, size, 0, size> &tensor_LL)
 constexpr int delta(int i, int j) { return static_cast<int>(i == j); }
 
 /// Computes the levi-civita symbol (3D, NB, symbol, not the Tensor)
-[[nodiscard]] AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3>
-    epsilon_array()
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE TensorArray::Rank3
+epsilon()
 {
-    amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> epsilon{};
+    TensorArray::Rank3 epsilon{};
 
     FOR (i, j, k)
     {
@@ -338,63 +312,13 @@ constexpr int delta(int i, int j) { return static_cast<int>(i == j); }
     return epsilon;
 }
 
-/// Computes the levi-civita symbol (3D, NB, symbol, not the Tensor)
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<3, double> epsilon()
-{
-    Tensor<3, double> epsilon = {0.};
-    epsilon[0][1][2]          = 1.0;
-    epsilon[1][2][0]          = 1.0;
-    epsilon[2][0][1]          = 1.0;
-    epsilon[0][2][1]          = -1.0;
-    epsilon[2][1][0]          = -1.0;
-    epsilon[1][0][2]          = -1.0;
-
-    return epsilon;
-}
-
 /// Computes the levi-civita symbol (4D, NB, symbol, not the Tensor)
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<4, double, 4> epsilon4D()
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE TensorArray::Rank4
+epsilon4D()
 {
-    Tensor<4, double, 4> epsilon4D = {0.0};
-    epsilon4D[0][1][2][3]          = 1.0;
-    epsilon4D[0][1][3][2]          = -1.0;
-    epsilon4D[0][3][1][2]          = 1.0;
-    epsilon4D[0][3][2][1]          = -1.0;
-    epsilon4D[0][2][1][3]          = -1.0;
-    epsilon4D[0][2][3][1]          = 1.0;
+    TensorArray::Rank4 epsilon4D{};
 
-    epsilon4D[1][0][2][3] = -1.0;
-    epsilon4D[1][2][0][3] = 1.0;
-    epsilon4D[1][2][3][0] = -1.0;
-    epsilon4D[1][3][2][0] = 1.0;
-    epsilon4D[1][3][0][2] = -1.0;
-    epsilon4D[1][0][3][2] = 1.0;
-
-    epsilon4D[2][0][1][3] = 1.0;
-    epsilon4D[2][0][3][1] = -1.0;
-    epsilon4D[2][3][0][1] = 1.0;
-    epsilon4D[2][3][1][0] = -1.0;
-    epsilon4D[2][1][3][0] = 1.0;
-    epsilon4D[2][1][0][3] = -1.0;
-
-    epsilon4D[3][0][1][2] = -1.0;
-    epsilon4D[3][1][0][2] = 1.0;
-    epsilon4D[3][1][2][0] = -1.0;
-    epsilon4D[3][2][1][0] = 1.0;
-    epsilon4D[3][2][0][1] = -1.0;
-    epsilon4D[3][0][2][1] = 1.0;
-
-    return epsilon4D;
-}
-
-/// Computes the levi-civita symbol (4D, NB, symbol, not the Tensor)
-[[nodiscard]] AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE amrex::Array1D<amrex::Real, 0, 256>
-    epsilon4D_array()
-{
-    amrex::Array1D<amrex::Real, 0, 256> epsilon4D{};
-
-    for (unsigned int i = 0; i < 256; i++)
+    for (unsigned int i = 0; i < TensorArray::Rank4::len(); i++)
     {
         epsilon4D(i) = 0.0;
     }
@@ -433,16 +357,15 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor<4, double, 4> epsilon4D()
 
 /// Computes the conformal christoffel symbol
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE chris_t
-compute_christoffel(const amrex::Array2D<amrex::Array1D<amrex::Real, 0, 3>, 0,
-                                         3, 0, 3> &d1_metric,
-                    const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU)
+compute_christoffel(const TensorArray::Rank3 &d1_metric,
+                    const TensorArray::Rank2 &h_UU)
 {
     chris_t out{};
 
     FOR (i, j, k)
     {
-        out.LLL(i, j, k) = 0.5 * (d1_metric(j, i)(k) + d1_metric(k, i)(j) -
-                                  d1_metric(j, k)(i));
+        out.LLL(i, j, k) = 0.5 * (d1_metric(j, i, k) + d1_metric(k, i, j) -
+                                  d1_metric(j, k, i));
     }
     FOR (i, j, k)
     {

@@ -66,9 +66,8 @@ template <class matter_t, class gauge_t, class deriv_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
     const amrex::CellData<amrex::Real> &rhs,
-    const typename matter_t::Vars &vars,
-    const amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> &d1_h,
-    const amrex::Array1D<amrex::Real, 0, 3> &d1_phi) const
+    const typename matter_t::Vars &vars, const TensorArray::Rank3 &d1_h,
+    const TensorArray::Rank1 &d1_phi) const
 {
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
     const auto chris = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
@@ -92,7 +91,7 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
     }
 
     // Update RHS for other variables
-    amrex::Array2D<amrex::Real, 0, 3, 0, 3> S_TF = emtensor.S;
+    TensorArray::Rank2 S_TF = emtensor.S;
 
     CCZ4Geometry::make_trace_free(S_TF, vars, h_UU);
 

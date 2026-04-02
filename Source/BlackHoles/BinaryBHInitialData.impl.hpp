@@ -35,14 +35,13 @@ BinaryBHInitialData::compute_chi(Coordinates coords) const
     return pow(psi, -4);
 }
 
-[[nodiscard]] AMREX_FORCE_INLINE
-    AMREX_GPU_DEVICE amrex::Array2D<amrex::Real, 0, 3, 0, 3>
-    BinaryBHInitialData::compute_A(amrex::Real chi, Coordinates coords) const
+[[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE TensorArray::Rank2
+BinaryBHInitialData::compute_A(amrex::Real chi, Coordinates coords) const
 {
 
-    amrex::Array2D<amrex::Real, 0, 3, 0, 3> Aij1 = bh1.Aij(coords);
-    amrex::Array2D<amrex::Real, 0, 3, 0, 3> Aij2 = bh2.Aij(coords);
-    amrex::Array2D<amrex::Real, 0, 3, 0, 3> Aij_total;
+    TensorArray::Rank2 Aij1 = bh1.Aij(coords);
+    TensorArray::Rank2 Aij2 = bh2.Aij(coords);
+    TensorArray::Rank2 Aij_total;
 
     // Aij(CCZ4) = psi^(-6) * Aij(Baumgarte&Shapiro book)
     FOR (i, j)

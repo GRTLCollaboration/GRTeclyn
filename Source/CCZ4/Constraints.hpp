@@ -46,8 +46,8 @@ class Constraints
     {
         amrex::Real Ham{};
         amrex::Real Ham_abs_terms{};
-        amrex::Array1D<amrex::Real, 0, 3> Mom{};
-        amrex::Array1D<amrex::Real, 0, 3> Mom_abs_terms{};
+        TensorArray::Rank1 Mom{};
+        TensorArray::Rank1 Mom_abs_terms{};
     };
 
     // Constructor which allows specifying Ham and Mom vars
@@ -95,12 +95,10 @@ class Constraints
     double m_cosmological_constant;
 
     [[nodiscard]]
-    AMREX_FORCE_INLINE AMREX_GPU_DEVICE constraints_t
-    constraint_equations(const CCZ4Vars &vars, const CCZ4D1Vars &d1,
-                         const amrex::Array1D<amrex::Real, 0, 6> &d2_chi,
-                         const amrex::Array2D<amrex::Real, 0, 6, 0, 6> &d2_h,
-                         const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU,
-                         const chris_t &chris) const;
+    AMREX_FORCE_INLINE AMREX_GPU_DEVICE constraints_t constraint_equations(
+        const CCZ4Vars &vars, const CCZ4D1Vars &d1,
+        const TensorArray::Rank1Sym &d2_chi, const TensorArray::Rank2Sym &d2_h,
+        const TensorArray::Rank2 &h_UU, const chris_t &chris) const;
 
     AMREX_FORCE_INLINE AMREX_GPU_DEVICE void
     store_vars(const constraints_t &out,

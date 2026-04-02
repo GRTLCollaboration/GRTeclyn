@@ -12,13 +12,13 @@
 
 void TwoPuncturesInitialData::compute(Cell<double> current_cell) const
 {
-    Vars<double> vars;
+    Vars<amrex::Real> vars;
     // Set only the non-zero components explicitly below
     VarsTools::assign(vars, 0.);
 
-    Coordinates<double> coords(current_cell, m_dx, m_center);
-    amrex::Array2D<amrex::Real, 0, 3, 0, 3> h_phys, K_tensor;
-    amrex::Array1D<amrex::Real, 0, 3> shift, Z3;
+    Coordinates<amrex::Real> coords(current_cell, m_dx, m_center);
+    TensorArray::Rank2 h_phys, K_tensor;
+    TensorArray::Rank1 shift, Z3;
     double lapse, Theta;
 
     interpolate_tp_vars(coords, h_phys, K_tensor, lapse, shift, Theta, Z3);
@@ -50,19 +50,18 @@ void TwoPuncturesInitialData::compute(Cell<double> current_cell) const
 }
 
 void TwoPuncturesInitialData::interpolate_tp_vars(
-    const Coordinates<double> &coords,
-    amrex::Array2D<amrex::Real, 0, 3, 0, 3> &out_h_phys,
-    amrex::Array2D<amrex::Real, 0, 3, 0, 3> &out_K_tensor, double &out_lapse,
-    amrex::Array1D<amrex::Real, 0, 3> &out_shift, double &out_Theta,
-    amrex::Array1D<amrex::Real, 0, 3> &out_Z3) const
+    const Coordinates<amrex::Real> &coords, TensorArray::Rank2 &out_h_phys,
+    TensorArray::Rank2 &out_K_tensor, amrex::Real &out_lapse,
+    TensorArray::Rank1 &out_shift, amrex::Real &out_Theta,
+    TensorArray::Rank1 &out_Z3) const
 {
-    double coords_array[AMREX_SPACEDIM];
+    amrex::Real coords_array[AMREX_SPACEDIM];
     coords_array[0] = coords.x;
     coords_array[1] = coords.y;
     coords_array[2] = coords.z;
 
     using namespace TP::Z4VectorShortcuts;
-    double TP_state[Qlen];
+    amrex::Real TP_state[Qlen];
     m_two_punctures.Interpolate(coords_array, TP_state);
 
     // metric

@@ -35,9 +35,9 @@ ConstraintsWithMatter<matter_t>::operator()(
         state.cellData(ix, iy, iz);
     typename matter_t::Vars vars(state_cell_data);
     const typename matter_t::D1Vars d1(ix, iy, iz, state, m_deriv);
-    const amrex::Array1D<amrex::Real, 0, 6> d2_chi =
+    const TensorArray::Rank1Sym d2_chi =
         m_deriv.diff2_sym_scalar(ix, iy, iz, state, c_chi);
-    const amrex::Array2D<amrex::Real, 0, 6, 0, 6> d2_h =
+    const TensorArray::Rank2Sym d2_h =
         m_deriv.diff2_sym_tensor_test_array(ix, iy, iz, state, c_h11);
 
     // Inverse metric and Christoffel symbol

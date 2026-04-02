@@ -21,9 +21,9 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void Weyl4WithMatter<matter_t>::operator()(
 
     const typename matter_t::D1Vars d1(ix, iy, iz, state, m_deriv);
     // we only need d2 of chi and h
-    const amrex::Array1D<amrex::Real, 0, 6> d2_chi =
+    const TensorArray::Rank1Sym d2_chi =
         m_deriv.diff2_sym_scalar(ix, iy, iz, state, c_chi);
-    const amrex::Array2D<amrex::Real, 0, 6, 0, 6> d2_h =
+    const TensorArray::Rank2Sym d2_h =
         m_deriv.diff2_sym_tensor_test_array(ix, iy, iz, state, c_h11);
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
     const auto chris = CCZ4Geometry::compute_christoffel(d1, h_UU);
@@ -53,18 +53,18 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void Weyl4WithMatter<matter_t>::operator()(
 
 template <class matter_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-Weyl4WithMatter<matter_t>::add_matter_EB(
-    EBFields_t &ebfields, const typename matter_t::Vars &vars,
-    const amrex::Array1D<amrex::Real, 0, 3> &d1_phi,
-    const amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> &epsilon3_LUU,
-    const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU,
-    const chris_t &chris) const
+Weyl4WithMatter<matter_t>::add_matter_EB(EBFields_t &ebfields,
+                                         const typename matter_t::Vars &vars,
+                                         const TensorArray::Rank1 &d1_phi,
+                                         const TensorArray::Rank3 &epsilon3_LUU,
+                                         const TensorArray::Rank2 &h_UU,
+                                         const chris_t &chris) const
 {
     // Calculate decomposed energy momentum tensor components
     const auto emtensor =
         m_matter.compute_emtensor(vars, d1_phi, h_UU, chris.ULL);
 
-    amrex::Array2D<amrex::Real, 0, 3, 0, 3> S_TF = emtensor.S;
+    TensorArray::Rank2 S_TF = emtensor.S;
     CCZ4Geometry::make_trace_free(S_TF, vars, h_UU);
 
     // as we made the vacuum expression of Bij explictly symmetric and Eij
