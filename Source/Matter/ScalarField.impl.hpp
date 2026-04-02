@@ -13,9 +13,8 @@
 // Calculate the stress energy tensor elements
 template <class potential_t>
 AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t>::compute_emtensor(
-    const Vars &vars, const amrex::Array1D<amrex::Real, 0, 3> &d1_phi,
-    const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU,
-    const amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> &chris_ULL) const
+    const Vars &vars, const TensorArray::Rank1 &d1_phi,
+    const TensorArray::Rank2 &h_UU, const TensorArray::Rank3 &chris_ULL) const
 {
     emtensor_t out;
 
@@ -63,12 +62,9 @@ template <class potential_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 ScalarField<potential_t>::add_matter_rhs(
     const amrex::CellData<amrex::Real> &rhs, const Vars &vars,
-    const amrex::Array1D<amrex::Real, 0, 3> &d1_chi,
-    const amrex::Array1D<amrex::Real, 0, 3> &d1_lapse,
-    const amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> &d1_h,
-    const amrex::Array1D<amrex::Real, 0, 3> &d1_phi,
-    const amrex::Array1D<amrex::Real, 0, 6> &d2_phi,
-    const AdvecVars &advec) const
+    const TensorArray::Rank1 &d1_chi, const TensorArray::Rank1 &d1_lapse,
+    const TensorArray::Rank3 &d1_h, const TensorArray::Rank1 &d1_phi,
+    const TensorArray::Rank1Sym &d2_phi, const AdvecVars &advec) const
 {
     // call the function for the rhs excluding the potential
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
@@ -89,7 +85,7 @@ ScalarField<potential_t>::add_matter_rhs(
         // includes non conformal parts of chris not included in chris_ULL
         rhs[c_Pi] +=
             h_UU(i, j) * (-0.5 * d1_chi(j) * vars.lapse() * d1_phi(i) +
-                          vars.chi() * vars.lapse() * d2_phi(SYMM_IDX(i, j)) +
+                          vars.chi() * vars.lapse() * d2_phi(VAR_IDX0(i, j)) +
                           vars.chi() * d1_lapse(i) * d1_phi(j));
         FOR (k)
         {

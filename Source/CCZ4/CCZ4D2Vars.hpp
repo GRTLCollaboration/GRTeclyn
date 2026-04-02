@@ -36,6 +36,7 @@ class CCZ4D2Vars
                 shift(k, i) = 0.;
             }
 
+
             for (int j = 0; j < TensorArray::Rank2Sym::ylen(); j++)
             {
                 h(i, j) = 0.;
@@ -55,10 +56,10 @@ class CCZ4D2Vars
         h     = a_deriv.diff2_sym_tensor_test_array(ix, iy, iz, state, c_h11);
     }
 
-    amrex::Array2D<amrex::Real, 0, 6, 0, 6> h;
+    TensorArray::Rank2Sym h;
     amrex::Array2D<amrex::Real, 0, 3, 0, 6> shift;
-    amrex::Array1D<amrex::Real, 0, 6> chi;
-    amrex::Array1D<amrex::Real, 0, 6> lapse;
+    TensorArray::Rank1Sym chi;
+    TensorArray::Rank1Sym lapse;
 };
 
 #endif /* CCZ4D2VARS_HPP */

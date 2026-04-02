@@ -52,7 +52,7 @@ CCZ4RHS<gauge_t, deriv_t>::compute_chi_and_h_ij(
 
     CCZ4Vars vars(state_cell_data);
 
-    amrex::Array1D<amrex::Real, 0, 3> shift_vector;
+    TensorArray::Rank1 shift_vector;
     FOR (idir)
     {
         shift_vector(idir) = state(ix, iy, iz, c_shift1 + idir);
@@ -105,9 +105,8 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
 
     const auto chris = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
 
-    amrex::Array1D<amrex::Real, 0, 3> Z_over_chi;
-    amrex::Array1D<amrex::Real, 0, 3>
-        Z; // NOLINT(readability-identifier-length)
+    TensorArray::Rank1 Z_over_chi;
+    TensorArray::Rank1 Z; // NOLINT(readability-identifier-length)
 
     if (m_formulation == USE_BSSN)
     {
@@ -136,8 +135,8 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
     amrex::Real dlapse_dot_dchi =
         TensorAlgebra::compute_dot_product(d1_lapse, d1_chi, h_UU);
 
-    amrex::Array2D<amrex::Real, 0, 3, 0, 3> covdtilde2lapse;
-    amrex::Array2D<amrex::Real, 0, 3, 0, 3> covd2lapse;
+    TensorArray::Rank2 covdtilde2lapse{};
+    TensorArray::Rank2 covd2lapse{};
     auto d2_lapse = m_deriv.diff2_sym_scalar(ix, iy, iz, state, c_lapse);
 
     FOR (k, l)
@@ -156,7 +155,7 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
 
     auto A_UU = CCZ4Geometry::compute_A_UU(state_cell_data, h_UU);
 
-    amrex::Array2D<amrex::Real, 0, 3, 0, 3> Adot_TF;
+    TensorArray::Rank2 Adot_TF;
     FOR (i, j)
     {
         Adot_TF(i, j) =
@@ -164,7 +163,7 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
     }
     CCZ4Geometry::make_trace_free(Adot_TF, state_cell_data, h_UU);
 
-    amrex::Array1D<amrex::Real, 0, 3> shift_vector;
+    TensorArray::Rank1 shift_vector;
 
     FOR (idir)
     {
@@ -195,7 +194,7 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
     // Theta specific parts
 
     amrex::Real Aij_squared =
-        CCZ4Geometry::compute_Aij_squared(state_cell_data, A_UU);
+        CCZ4Geometry::compute_Aij_squared_with_A_UU(state_cell_data, A_UU);
 
     amrex::Real advec_K =
         m_deriv.advection(ix, iy, iz, state, shift_vector, c_K);
@@ -325,7 +324,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<gauge_t, deriv_t>::apply_gauge(
     const amrex::CellData<const amrex::Real> &state_cell_data =
         state.cellData(ix, iy, iz);
 
-    amrex::Array1D<amrex::Real, 0, 3> shift_vector;
+    TensorArray::Rank1 shift_vector;
     FOR (idir)
     {
         shift_vector(idir) = state(ix, iy, iz, c_shift1 + idir);

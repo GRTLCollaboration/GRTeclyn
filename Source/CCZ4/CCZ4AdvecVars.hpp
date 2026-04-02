@@ -22,7 +22,7 @@ class CCZ4AdvecVars
     {
         FOR (idir)
         {
-            m_shift_vector[idir] = state(ix, iy, iz, c_shift1 + idir);
+            m_shift_vector(idir) = state(ix, iy, iz, c_shift1 + idir);
         }
 
         // Calculate the advec quantities for all vars
@@ -32,7 +32,7 @@ class CCZ4AdvecVars
     // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
     amrex::GpuArray<amrex::Real, NUM_CCZ4_VARS> m_advec_state;
-    Tensor<1, amrex::Real> m_shift_vector;
+    TensorArray::Rank1 m_shift_vector;
 
     [[nodiscard]]
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &chi() const

@@ -25,7 +25,7 @@ class ScalarFieldD2Vars : public CCZ4D2Vars
         phi = a_deriv.diff2_sym_scalar(ix, iy, iz, state, c_phi);
     }
 
-    amrex::Array1D<amrex::Real, 0, 6> phi{};
+    TensorArray::Rank1Sym phi{};
 };
 
 #endif /* SCALARFIELDD2VARS_HPP */

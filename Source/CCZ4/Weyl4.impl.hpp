@@ -26,9 +26,9 @@ Weyl4::operator()(int ix, int iy, int iz,
     const auto chris = CCZ4Geometry::compute_christoffel(d1, h_UU);
 
     // we only need d2 of chi and h
-    const amrex::Array1D<amrex::Real, 0, 6> d2_chi =
+    const TensorArray::Rank1Sym d2_chi =
         m_deriv.diff2_sym_scalar(ix, iy, iz, state, c_chi);
-    const amrex::Array2D<amrex::Real, 0, 6, 0, 6> d2_h =
+    const TensorArray::Rank2Sym d2_h =
         m_deriv.diff2_sym_tensor_test_array(ix, iy, iz, state, c_h11);
 
     // Get the coordinates
@@ -50,13 +50,12 @@ Weyl4::operator()(int ix, int iy, int iz,
 }
 
 AMREX_GPU_DEVICE
-AMREX_FORCE_INLINE amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3>
-Weyl4::compute_epsilon3_LUU(
-    const CCZ4Vars &vars,
-    const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU) const
+AMREX_FORCE_INLINE TensorArray::Rank3
+Weyl4::compute_epsilon3_LUU(const CCZ4Vars &vars,
+                            const TensorArray::Rank2 &h_UU) const
 {
     // raised normal vector, NB index 3 is time
-    amrex::Array1D<amrex::Real, 0, 4> n_U;
+    amrex::Array1D<amrex::Real, 0, 4> n_U{};
     n_U(3) = 1. / vars.lapse();
     FOR (i)
     {
@@ -64,9 +63,9 @@ Weyl4::compute_epsilon3_LUU(
     }
 
     // 4D levi civita symbol and 3D levi civita tensor in LLL and LUU form
-    const auto epsilon4 = TensorAlgebra::epsilon4D_array();
-    amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> epsilon3_LLL;
-    amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> epsilon3_LUU;
+    const auto epsilon4 = TensorAlgebra::epsilon4D();
+    TensorArray::Rank3 epsilon3_LLL{};
+    TensorArray::Rank3 epsilon3_LUU{};
 
     // Projection of antisymmentric Tensor onto hypersurface - see 8.3.17,
     // Alcubierre
@@ -105,18 +104,16 @@ Weyl4::compute_epsilon3_LUU(
 // https://www.overleaf.com/read/tvqjbyhvqqtp
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t Weyl4::compute_EB_fields(
     const CCZ4Vars &vars, const CCZ4D1Vars &d1,
-    const amrex::Array1D<amrex::Real, 0, 6> &d2_chi,
-    const amrex::Array2D<amrex::Real, 0, 6, 0, 6> &d2_h,
-    const amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> &epsilon3_LUU,
-    const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU,
+    const TensorArray::Rank1Sym &d2_chi, const TensorArray::Rank2Sym &d2_h,
+    const TensorArray::Rank3 &epsilon3_LUU, const TensorArray::Rank2 &h_UU,
     const chris_t &chris) const
 {
     EBFields_t out;
 
     // Extrinsic curvature
-    amrex::Array2D<amrex::Real, 0, 3, 0, 3> K_tensor;
-    amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> d1_K_tensor;
-    amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> covariant_deriv_K_tensor;
+    TensorArray::Rank2 K_tensor;
+    TensorArray::Rank3 d1_K_tensor;
+    TensorArray::Rank3 covariant_deriv_K_tensor;
 
     // Compute inverse, Christoffel symbols, Ricci tensor and Z terms
     // Note that unlike in CCZ4 equations we want R_ij + 0.5(D_iZ_j + D_jZ_i)
@@ -128,7 +125,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t Weyl4::compute_EB_fields(
 
     // Compute full spatial Christoffel symbols
 
-    const amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> chris_phys =
+    const TensorArray::Rank3 chris_phys =
         CCZ4Geometry::compute_phys_chris(vars, d1, h_UU, chris.ULL);
 
     // Extrinsic curvature and corresponding covariant and partial derivatives
@@ -239,9 +236,9 @@ Weyl4::compute_Weyl4(const EBFields_t &ebfields, const CCZ4Vars &vars,
 // "The Lazarus project: A pragmatic approach to binary black hole evolutions",
 // Baker et al.
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tetrad_t Weyl4::compute_null_tetrad(
-    const CCZ4Vars &vars, const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU,
-    const Coordinates &coords) const
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tetrad_t
+Weyl4::compute_null_tetrad(const CCZ4Vars &vars, const TensorArray::Rank2 &h_UU,
+                           const Coordinates &coords) const
 {
     Tetrad_t out;
 
@@ -251,8 +248,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tetrad_t Weyl4::compute_null_tetrad(
     const amrex::Real z = coords.z;
 
     // the alternating levi civita symbol
-    const amrex::Array3D<amrex::Real, 0, 3, 0, 3, 0, 3> epsilon =
-        TensorAlgebra::epsilon_array();
+    const TensorArray::Rank3 epsilon = TensorAlgebra::epsilon();
     //    auto epsilon=TensorAlgebra::epsilon();
     // calculate the tetrad
     out.u(0) = x;

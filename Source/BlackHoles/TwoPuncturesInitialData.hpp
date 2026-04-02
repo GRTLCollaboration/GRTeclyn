@@ -23,29 +23,31 @@
 class TwoPuncturesInitialData
 {
   protected:
-    double m_dx;
-    std::array<double, AMREX_SPACEDIM> m_center;
+    amrex::Real m_dx;
+    std::array<amrex::Real, AMREX_SPACEDIM> m_center;
     const TP::TwoPunctures &m_two_punctures;
 
   public:
     template <class data_t> using Vars = CCZ4Vars::VarsWithGauge<data_t>;
 
-    TwoPuncturesInitialData(const double a_dx,
-                            const std::array<double, AMREX_SPACEDIM> a_center,
-                            const TP::TwoPunctures &a_two_punctures)
+    TwoPuncturesInitialData(
+        const amrex::Real a_dx,
+        const std::array<amrex::Real, AMREX_SPACEDIM> a_center,
+        const TP::TwoPunctures &a_two_punctures)
         : m_dx(a_dx), m_center(a_center), m_two_punctures(a_two_punctures)
     {
     }
 
-    void compute(Cell<double> current_cell) const;
+    void compute(Cell<amrex::Real> current_cell) const;
 
   protected:
-    void interpolate_tp_vars(
-        const Coordinates<double> &coords,
-        amrex::Array2D<amrex::Real, 0, 3, 0, 3> &out_h_phys,
-        amrex::Array2D<amrex::Real, 0, 3, 0, 3> &out_extrinsic_K,
-        double &out_lapse, amrex::Array1D<amrex::Real, 0, 3> &out_shift,
-        double &out_Theta, amrex::Array1D<amrex::Real, 0, 3> &out_Z3) const;
+    void interpolate_tp_vars(const Coordinates<amrex::Real> &coords,
+                             TensorArray::Rank2 &out_h_phys,
+                             TensorArray::Rank2 &out_extrinsic_K,
+                             amrex::Real &out_lapse,
+                             TensorArray::Rank1 &out_shift,
+                             amrex::Real &out_Theta,
+                             TensorArray::Rank1 &out_Z3) const;
 };
 
 #include "TwoPuncturesInitialData.impl.hpp"
