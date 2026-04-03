@@ -3,6 +3,8 @@
 This repository contains the numerical relativity C++ source code, simulation parameter files, extracted physical data, and Python analysis scripts for the paper:
 **"Wormhole Dynamics: Nonlinear Collapse and Gravitational-Wave Emission"** by N. M. Shirokov.
 
+Preprint available at [arXiv:2604.00071](https://arxiv.org/abs/2604.00071).
+
 This project is built on top of **[GRTeclyn](https://github.com/GRTLCollaboration/GRTeclyn)**, a GPU-accelerated numerical relativity framework (a port of GRChombo to the AMReX library).
 
 ## About This Project
