@@ -17,6 +17,7 @@
 #include "Lagrange.hpp"
 #include "ParticleInterpolator.hpp"
 #include "SmallDataIO.hpp" // for writing data
+#include "StateTypes.hpp"
 #include "StateVariables.hpp"
 
 #include <algorithm>
@@ -54,7 +55,7 @@ template <class SurfaceGeometry, int num_components> class SurfaceExtraction
         std::string data_path, integral_file_prefix;
         std::string extraction_path, extraction_file_prefix;
 
-        int min_extraction_level()
+        int min_extraction_level() const
         {
             return *(std::min_element(extraction_levels.begin(),
                                       extraction_levels.end()));
@@ -139,12 +140,13 @@ template <class SurfaceGeometry, int num_components> class SurfaceExtraction
                       double a_restart_time = 0.0);
     // NOLINTEND(bugprone-easily-swappable-parameters)
 
-    //! Do the extraction
-    void extract(
-        ParticleInterpolator<num_components> *a_interpolator,
-        amrex::Vector<BCParity> parities,
-        const std::string &name_derived); // for now this is hard-coded for
-                                          // Weyl4 and so we use 2 components
+    //! Do the extraction for derived
+    void extract(ParticleInterpolator<num_components> *a_interpolator,
+                 amrex::Vector<BCParity> parities,
+                 const std::string &name_derived);
+
+    //! Do the extraction for state variables
+    void extract(ParticleInterpolator<num_components> *a_interpolator);
 
     //! Add an integrand dependent on the interpolated data over the surface
     //! for integrate() to integrate over.

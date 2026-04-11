@@ -5,6 +5,7 @@
 
 #include "GRAMRLevel.hpp"
 #include "NullBCFill.hpp"
+#include "StateTypes.hpp"
 
 void GRAMRLevel::stateVariableSetUp()
 {

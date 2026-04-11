@@ -24,6 +24,7 @@
 #include "PositiveChiAndLapseUnitTest.hpp"
 #include "PunctureTrackerTest.hpp"
 #include "SmallDataIOTest.hpp"
+#include "SphericalExtractionTest.hpp"
 #include "SphericalHarmonicTest.hpp"
 #include "Weyl4Test.hpp"
 #include "Weyl4WithMatterTest.hpp"
@@ -73,6 +74,8 @@ TEST_CASE("PositiveChiAndLapse") { run_positive_chi_and_lapse_unit_test(); }
 TEST_CASE("PunctureTracker") { run_puncture_tracker_test(); }
 
 TEST_CASE("SmallDataIO") { run_small_data_io_test(); }
+
+TEST_CASE("SphericalExtractionTest") { run_spherical_extraction_test(); }
 
 TEST_CASE("SphericalHarmonics") { run_spherical_harmonic_test(); }
 
