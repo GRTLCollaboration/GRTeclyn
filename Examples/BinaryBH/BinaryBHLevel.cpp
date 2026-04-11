@@ -311,29 +311,24 @@ void BinaryBHLevel::specificPostTimeStep()
         get_puncture_tracker().track(current_time, dt, write_punctures);
     }
 
-    bool first_step = (parent->levelSteps(0) == 0);
-
-    // Custom extraction
-    if (Level() == 0)
+    // Weyl extraction
+    if (simParams().activate_extraction == 1)
     {
-        // set up the query and execute it
-        std::array<double, AMREX_SPACEDIM> extraction_origin = {
-            0.2 * simParams().L, 0.5 * simParams().L,
-            0}; // amend appropriately depending on
-                // whether
-                // you used symmetric BCs or something
-                //  else
+        int min_level = simParams().extraction_params.min_extraction_level();
+        bool calculate_weyl = at_level_timestep_multiple(min_level);
 
-        double m_time       = get_state_data(state_index).curTime();
-        double m_dt         = get_gramr_ptr()->dtLevel(Level());
-        double restart_time = get_gramr_ptr()->get_restart_time();
+        if (calculate_weyl && Level() == min_level)
+        {
+            amrex::Real m_time       = get_state_data(state_index).curTime();
+            amrex::Real m_dt         = get_gramr_ptr()->dtLevel(Level());
+            amrex::Real restart_time = get_gramr_ptr()->get_restart_time();
+            bool first_step          = (m_time <= m_dt);
 
-        // a random chi lineout
-        CustomExtraction<BHAMR<num_punctures>::particle_num_components>
-            chi_extraction(c_chi, 1, 100, simParams().L / 4., extraction_origin,
-                           m_dt, m_time, restart_time, first_step);
-        chi_extraction.execute_query(get_bhamr_ptr()->m_interpolator,
-                                     "chi_new_lineout");
+            WeylExtraction my_extraction(simParams().extraction_params, m_dt,
+                                         m_time, first_step, restart_time);
+            my_extraction.execute_query(get_bhamr_ptr()->m_interpolator,
+                                        "Weyl4");
+        }
     }
 
 #if 0

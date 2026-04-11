@@ -40,7 +40,17 @@ class Derivative : public std::array<int, AMREX_SPACEDIM>
         return true;
     }
 
-    bool operator!=(const Derivative &deriv) const { return (*this) != deriv; }
+    // bool operator!=(const Derivative &deriv) const { return (*this) != deriv;
+    // } // Why is this not like in GRChombo? This implementation results in an
+    // infinite loop.
+
+    bool operator!=(const Derivative &deriv) const
+    {
+        if ((*this) == deriv)
+            return false;
+        else
+            return true;
+    }
 
     bool operator<(const Derivative &rhs) const
     {

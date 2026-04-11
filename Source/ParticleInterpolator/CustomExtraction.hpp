@@ -23,7 +23,6 @@ template <int num_components> class CustomExtraction
 {
   private:
     const int m_start_comp; // first component
-    const int m_ncomp;      // number of components (<= AMREX_SPACEDIM)
     const int m_num_points; // number of points along the line
     const double m_L;       // length of the line
     const std::array<double, AMREX_SPACEDIM> m_origin; // line starts here
@@ -34,14 +33,14 @@ template <int num_components> class CustomExtraction
     const bool m_first_step;
 
   public:
-    CustomExtraction(int a_start_comp, int a_ncomp, int a_num_points,
-                     double a_L, std::array<double, AMREX_SPACEDIM> a_origin,
-                     double a_dt, double a_time, bool a_restart_time,
-                     bool a_first_step)
-        : m_start_comp(a_start_comp), m_ncomp(a_ncomp),
-          m_num_points(a_num_points), m_L(a_L), m_origin(a_origin), m_dt(a_dt),
-          m_time(a_time), m_restart_time(a_restart_time),
-          m_first_step(a_first_step)
+    CustomExtraction(int a_start_comp, int a_num_points, double a_L,
+                     std::array<double, AMREX_SPACEDIM> a_origin, double a_dt,
+                     double a_time, bool a_restart_time, bool a_first_step)
+        : m_start_comp(a_start_comp),
+          m_num_points(
+              (amrex::ParallelDescriptor::IOProcessor() ? a_num_points : 0)),
+          m_L(a_L), m_origin(a_origin), m_dt(a_dt), m_time(a_time),
+          m_restart_time(a_restart_time), m_first_step(a_first_step)
     {
     }
 
@@ -65,7 +64,7 @@ template <int num_components> class CustomExtraction
         }
 
         // set up InterpolationQuery
-        std::vector<double> interp_var_data(m_num_points * m_ncomp, 0.0);
+        std::vector<double> interp_var_data(m_num_points * num_components, 0.0);
 
         InterpolationQueryParticle query(m_num_points);
         query.setCoords(0, interp_x.data())
@@ -73,7 +72,7 @@ template <int num_components> class CustomExtraction
             .setCoords(2, interp_z.data());
 
         // register components individually
-        for (int k = 0; k < m_ncomp; ++k)
+        for (int k = 0; k < num_components; ++k)
         {
             // each component writes into its own stride
             double *out_k = interp_var_data.data() + k * m_num_points;

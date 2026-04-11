@@ -3,33 +3,29 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#ifndef PARTICLEINTERPOLATORLEVEL_HPP_
-#define PARTICLEINTERPOLATORLEVEL_HPP_
+#ifndef SPHERICALEXTRACTIONTESTLEVEL_HPP_
+#define SPHERICALEXTRACTIONTESTLEVEL_HPP_
 
 #include "DefaultLevelFactory.hpp"
 #include "FixedGridsTagger.hpp"
 #include "GRAMR.hpp"
 #include "GRAMRLevel.hpp"
-#include "PolynomialDerivedQuantity.hpp"
+#include "GRParmParse.hpp"
+#include "SimulationParameters.hpp"
+#include "SphericalHarmonics.hpp"
 #include "StateTypes.hpp"
+#include "StateVariables.hpp"
 
-// We basically need this to have a valid AMR hierarchy
-
-class ParticleInterpolatorLevel : public GRAMRLevel
+class SphericalExtractionTestLevel : public GRAMRLevel
 {
   public:
-    friend class DefaultLevelFactory<ParticleInterpolatorLevel>;
+    friend class DefaultLevelFactory<SphericalExtractionTestLevel>;
 
-    // Inherit the contructors from GRAMRLevel
     using GRAMRLevel::GRAMRLevel;
 
-    static void variableSetUp()
-    {
-        stateVariableSetUp();
-        PolynomialDerivedQuantity::set_up(state_index);
-    }
+    static void variableSetUp() { stateVariableSetUp(); }
 
-    // initialize data
+    // save data in state vars
     void initData() override
     {
         amrex::MultiFab &state = get_new_data(state_index);
@@ -37,11 +33,14 @@ class ParticleInterpolatorLevel : public GRAMRLevel
         auto const &geom       = Geom();
         auto const prob_lo     = geom.ProbLoArray();
         auto const dx          = geom.CellSizeArray();
-        const int c_polystate  = 0; // index
 
-        std::array<double, AMREX_SPACEDIM> center{AMREX_D_DECL(0., 0., 0.)};
         GRParmParse pp;
-        pp.query("center", center);
+        SimulationParameters sim_params(pp);
+
+        const int es      = sim_params.es;
+        const int el      = sim_params.el;
+        const int em      = sim_params.em;
+        const auto center = sim_params.center;
 
         // Fill the state
         amrex::ParallelFor(
@@ -51,14 +50,18 @@ class ParticleInterpolatorLevel : public GRAMRLevel
             {
                 const auto &array = arrs[box_no];
 
-                // compute coordinates
-                amrex::Real x = prob_lo[0] + (i + 0.5) * dx[0] - center[0];
+                const amrex::Real x =
+                    prob_lo[0] + (i + 0.5) * dx[0] - center[0];
+                const amrex::Real y =
+                    prob_lo[1] + (j + 0.5) * dx[1] - center[1];
+                const amrex::Real z =
+                    prob_lo[2] + (k + 0.5) * dx[2] - center[2];
 
-                // zero out everything first
-                array(i, j, k, c_polystate) = 0.0;
+                const auto Y_lm =
+                    SphericalHarmonics::spin_Y_lm(x, y, z, es, el, em);
 
-                // write in
-                array(i, j, k, c_polystate) = x * x * x;
+                array(i, j, k, c_phi) = Y_lm.Real;
+                array(i, j, k, c_Pi)  = Y_lm.Im;
             });
 
         amrex::Gpu::streamSynchronize();
@@ -81,6 +84,7 @@ class ParticleInterpolatorLevel : public GRAMRLevel
         const amrex::Real dx         = Geom().CellSize(0);
         const int current_level      = Level();
         const amrex::Real box_length = Geom().ProbLength(0);
+
         std::array<double, AMREX_SPACEDIM> center{AMREX_D_DECL(0., 0., 0.)};
         GRParmParse pp;
         pp.query("center", center);
@@ -93,8 +97,9 @@ class ParticleInterpolatorLevel : public GRAMRLevel
             a_tag_box_array,
             [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
             { my_tagging_criterion(i, j, k, tag_arrs[box_no]); });
+
         amrex::Gpu::streamSynchronize();
     }
 };
 
-#endif /* PARTICLEINTERPOLATORLEVEL_HPP_ */
+#endif /* SPHERICALEXTRACTIONTESTLEVEL_HPP_ */

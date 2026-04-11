@@ -10,6 +10,9 @@
 #include "GRParmParse.hpp"
 #include "SimulationParametersBase.hpp"
 
+// Problem specific includes
+#include "SphericalExtraction.hpp"
+
 class SimulationParameters : public SimulationParametersBase
 {
   public:
@@ -37,6 +40,37 @@ class SimulationParameters : public SimulationParametersBase
 
         pp.load("num_points", num_points, 2);
         pp.load("verbosity", verbosity, false);
+
+        // Extraction params
+        pp.load("num_extraction_radii",
+                extraction_params_lo.num_extraction_radii(), 1);
+
+        std::vector<double> extraction_radii_stdvect;
+        if (pp.contains("extraction_radii"))
+        {
+            pp.load("extraction_radii", extraction_radii_stdvect,
+                    extraction_params_lo.num_extraction_radii());
+        }
+        else
+        {
+            pp.load("extraction_radius", extraction_radii_stdvect, 1, 0.1);
+        }
+        extraction_params_lo.extraction_radii().resize(
+            extraction_params_lo.num_extraction_radii());
+        std::copy(extraction_radii_stdvect.begin(),
+                  extraction_radii_stdvect.end(),
+                  extraction_params_lo.extraction_radii().begin());
+
+        pp.load("num_points_phi_lo", extraction_params_lo.num_points_phi(), 8);
+        pp.load("num_points_theta_lo", extraction_params_lo.num_points_theta(),
+                17);
+        pp.load("extraction_center", extraction_params_lo.center, center);
+        pp.load("write_extraction", extraction_params_lo.write_extraction,
+                false);
+
+        pp.load("es", es, 0);
+        pp.load("el", el, 2);
+        pp.load("em", em, 0);
     }
 
     bool puncture_tracking_enabled{};
@@ -50,6 +84,10 @@ class SimulationParameters : public SimulationParametersBase
     // For ParticleInterpolator Test
     int num_points{};
     bool verbosity{};
+
+    // For SphericalExtraction Test
+    SphericalExtraction<2>::params_t extraction_params_lo;
+    int es, el, em; // spherical harmonic params
 };
 
 #endif /* SIMULATIONPARAMETERS_HPP */

@@ -25,7 +25,7 @@ template <int num_punctures> class BHAMR : public GRAMR
 
   public:
 
-    static constexpr int particle_num_components = 1;
+    static constexpr int particle_num_components = 2;
     ParticleInterpolator<particle_num_components> *m_interpolator =
         nullptr; // interpolator object
 

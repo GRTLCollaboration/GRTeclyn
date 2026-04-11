@@ -156,12 +156,14 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::extract(
         amrex::Abort("SurfaceExtraction: invalid ParticleInterpolator pointer");
     }
 
+    if (m_vars.size() != num_components)
+    {
+        amrex::Abort(
+            "SurfaceExtraction::extract: m_vars.size() != num_components");
+    }
+
     // m_num_interp_points is 0 on ranks > 0
     InterpolationQueryParticle query(m_num_interp_points);
-
-    amrex::Print() << "m_vars.size() = " << m_vars.size()
-                   << ", query.numComps() = " << query.numComps()
-                   << ", m_num_interp_points = " << m_num_interp_points << "\n";
 
     FOR (idir)
     {
@@ -177,6 +179,42 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::extract(
 
     // query not set?
     a_interpolator->interp(query, 0, name_derived, m_time);
+
+    m_done_extraction = true;
+}
+
+//! Do the extraction
+template <class SurfaceGeometry, int num_components>
+void SurfaceExtraction<SurfaceGeometry, num_components>::extract(
+    ParticleInterpolator<num_components> *a_interpolator)
+{
+    if (a_interpolator == nullptr)
+    {
+        amrex::Abort("SurfaceExtraction: invalid ParticleInterpolator pointer");
+    }
+
+    if (m_vars.size() != num_components)
+    {
+        amrex::Abort(
+            "SurfaceExtraction::extract: m_vars.size() != num_components");
+    }
+
+    // m_num_interp_points is 0 on ranks > 0
+    InterpolationQueryParticle query(m_num_interp_points);
+
+    FOR (idir)
+    {
+        query.setCoords(idir, m_interp_coords[idir].data());
+    }
+
+    for (std::size_t ivar = 0; ivar < m_vars.size(); ++ivar)
+    {
+        query.addComp(std::get<0>(m_vars[ivar]), m_interp_data[ivar].data(),
+                      std::get<1>(m_vars[ivar]));
+    }
+
+    // query not set?
+    a_interpolator->interp(query, state_index);
 
     m_done_extraction = true;
 }
@@ -383,6 +421,7 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::write_extraction(
                     std::to_string(m_params.surface_param_values[isurface])};
             extraction_file.write_header_line(header1_strings, "");
             std::vector<std::string> components(m_vars.size());
+
             for (std::size_t ivar = 0; ivar < m_vars.size(); ++ivar)
             {
                 if (std::get<2>(m_vars[ivar]) != Derivative::LOCAL)
@@ -401,10 +440,11 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::write_extraction(
                 }
                 else
                 {
-                    // components[ivar] +=
-                    //     DiagnosticVariables::names[std::get<0>(m_vars[ivar])];
+                    components[ivar] +=
+                        std::to_string(std::get<0>(m_vars[ivar]));
                 }
             }
+
             std::vector<std::string> coords = {m_geom.u_name(),
                                                m_geom.v_name()};
             extraction_file.write_header_line(components, coords);
