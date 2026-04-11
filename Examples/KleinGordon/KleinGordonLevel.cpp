@@ -7,6 +7,7 @@
 #include "FixedGridsTagger.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "KleinGordonRHS.hpp"
+#include "StateTypes.hpp"
 #include <numeric>
 
 void KleinGordonLevel::variableSetUp()

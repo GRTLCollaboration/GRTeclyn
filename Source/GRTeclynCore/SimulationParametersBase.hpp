@@ -15,9 +15,12 @@
 #include <limits>
 
 // add this type alias here for backwards compatibility
-static constexpr int extraction_num_components = 2;
-using extraction_params_t                      = typename SphericalExtraction<
-                         extraction_num_components>::params_t; // this is annoying!
+static constexpr int extraction_num_components =
+    2; // As SphericalExtraction is templated over the number of components we
+       // need to provide the number here. Unfortunately, with the current
+       // structure we cannot avoid using magic numbers such as 2 here.
+using extraction_params_t = typename SphericalExtraction<
+    extraction_num_components>::params_t; // this is annoying!
 
 class SimulationParametersBase : public AMReXParameters
 {

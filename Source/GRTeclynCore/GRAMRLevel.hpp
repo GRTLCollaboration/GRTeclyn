@@ -19,12 +19,6 @@
 #include <limits>
 #include <sys/time.h>
 
-enum StateType
-{
-    state_index = 0,
-    NUM_STATE_TYPE
-};
-
 // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 class GRAMRLevel : public amrex::AmrLevel
 {
