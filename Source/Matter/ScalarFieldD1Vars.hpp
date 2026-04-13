@@ -23,8 +23,8 @@ class ScalarFieldD1Vars : public CCZ4D1Vars
         : CCZ4D1Vars(ix, iy, iz, state, a_deriv)
     {
         // Calculate the d1 quantities for all vars
-        auto d1_phi = a_deriv.diff1_array_scalar(ix, iy, iz, state, c_phi);
-        auto d1_Pi  = a_deriv.diff1_array_scalar(ix, iy, iz, state, c_Pi);
+        auto d1_phi = a_deriv.diff1_scalar(ix, iy, iz, state, c_phi);
+        auto d1_Pi  = a_deriv.diff1_scalar(ix, iy, iz, state, c_Pi);
 
         FOR (idir)
         {
@@ -35,7 +35,7 @@ class ScalarFieldD1Vars : public CCZ4D1Vars
     // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
     // There are two scalar variables
-    amrex::Array2D<amrex::Real, 0, 2, 0, 3> m_scalar_d1_state;
+    amrex::Array2D<amrex::Real, 0, 2, 0, AMREX_SPACEDIM> m_scalar_d1_state;
 
     [[nodiscard]]
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &phi(int i) const

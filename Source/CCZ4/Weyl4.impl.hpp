@@ -27,9 +27,9 @@ Weyl4::operator()(int ix, int iy, int iz,
 
     // we only need d2 of chi and h
     const TensorArray::Rank1Sym d2_chi =
-        m_deriv.diff2_sym_scalar(ix, iy, iz, state, c_chi);
+        m_deriv.diff2_scalar(ix, iy, iz, state, c_chi);
     const TensorArray::Rank2Sym d2_h =
-        m_deriv.diff2_sym_tensor_test_array(ix, iy, iz, state, c_h11);
+        m_deriv.diff2_tensor(ix, iy, iz, state, c_h11);
 
     // Get the coordinates
     const Coordinates coords(amrex::IntVect(ix, iy, iz), m_dx, m_center);
@@ -205,10 +205,9 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t Weyl4::compute_EB_fields(
 
 // Calculation of the Weyl4 scalar
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE weyl_scalar_t
-Weyl4::compute_Weyl4(const EBFields_t &ebfields, const CCZ4Vars &vars,
-                     const amrex::Array2D<amrex::Real, 0, 3, 0, 3> &h_UU,
-                     const Coordinates &coords) const
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE weyl_scalar_t Weyl4::compute_Weyl4(
+    const EBFields_t &ebfields, const CCZ4Vars &vars,
+    const TensorArray::Rank2 &h_UU, const Coordinates &coords) const
 {
     weyl_scalar_t out;
 
