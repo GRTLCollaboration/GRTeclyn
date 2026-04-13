@@ -50,10 +50,10 @@ class CCZ4D2Vars
                         const FourthOrderDerivatives &a_deriv)
     {
         // Calculate the d2 quantities for all required vars to calculate rhs
-        chi   = a_deriv.diff2_sym_scalar(ix, iy, iz, state, c_chi);
-        lapse = a_deriv.diff2_sym_scalar(ix, iy, iz, state, c_lapse);
-        shift = a_deriv.diff2_sym_vector(ix, iy, iz, state, c_shift1);
-        h     = a_deriv.diff2_sym_tensor_test_array(ix, iy, iz, state, c_h11);
+        chi   = a_deriv.diff2_scalar(ix, iy, iz, state, c_chi);
+        lapse = a_deriv.diff2_scalar(ix, iy, iz, state, c_lapse);
+        shift = a_deriv.diff2_vector(ix, iy, iz, state, c_shift1);
+        h     = a_deriv.diff2_tensor(ix, iy, iz, state, c_h11);
     }
 
     TensorArray::Rank2Sym h;

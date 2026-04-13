@@ -41,16 +41,15 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::operator()(
 
     // add RHS matter terms from EM Tensor
     // Only calculate derivatives as needed
-    auto d1_h   = this->m_deriv.diff1_array_tensor(ix, iy, iz, state, c_h11);
-    auto d1_phi = this->m_deriv.diff1_array_scalar(ix, iy, iz, state, c_phi);
+    auto d1_h   = this->m_deriv.diff1_tensor(ix, iy, iz, state, c_h11);
+    auto d1_phi = this->m_deriv.diff1_scalar(ix, iy, iz, state, c_phi);
 
     add_emtensor_rhs(rhs_cell_data, vars, d1_h, d1_phi);
 
     // add evolution of matter fields themselves
-    auto d1_chi = this->m_deriv.diff1_array_scalar(ix, iy, iz, state, c_chi);
-    auto d1_lapse =
-        this->m_deriv.diff1_array_scalar(ix, iy, iz, state, c_lapse);
-    auto d2_phi = this->m_deriv.diff2_sym_scalar(ix, iy, iz, state, c_phi);
+    auto d1_chi   = this->m_deriv.diff1_scalar(ix, iy, iz, state, c_chi);
+    auto d1_lapse = this->m_deriv.diff1_scalar(ix, iy, iz, state, c_lapse);
+    auto d2_phi   = this->m_deriv.diff2_scalar(ix, iy, iz, state, c_phi);
 
     const typename matter_t::AdvecVars advec(ix, iy, iz, state, this->m_deriv);
     m_matter.add_matter_rhs(rhs_cell_data, vars, d1_chi, d1_lapse, d1_h, d1_phi,

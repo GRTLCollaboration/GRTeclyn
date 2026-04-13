@@ -58,7 +58,7 @@ CCZ4RHS<gauge_t, deriv_t>::compute_chi_and_h_ij(
         shift_vector(idir) = state(ix, iy, iz, c_shift1 + idir);
     }
 
-    auto d1_shift = m_deriv.diff1_array_vector(ix, iy, iz, state, c_shift1);
+    auto d1_shift        = m_deriv.diff1_vector(ix, iy, iz, state, c_shift1);
     amrex::Real divshift = CCZ4Geometry::compute_divshift(d1_shift);
     amrex::Real advec_chi =
         m_deriv.advection(ix, iy, iz, state, shift_vector, c_chi);
@@ -101,7 +101,7 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
         CCZ4Geometry::compute_inverse_metric_array(state_cell_data);
 
     // hij derivatives
-    auto d1_h = m_deriv.diff1_array_tensor(ix, iy, iz, state, c_h11);
+    auto d1_h = m_deriv.diff1_tensor(ix, iy, iz, state, c_h11);
 
     const auto chris = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
 
@@ -125,11 +125,11 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
     auto ricci = CCZ4Geometry::compute_ricci_Z(ix, iy, iz, state, h_UU, chris,
                                                Z_over_chi, m_deriv);
 
-    auto d1_shift = m_deriv.diff1_array_vector(ix, iy, iz, state, c_shift1);
+    auto d1_shift        = m_deriv.diff1_vector(ix, iy, iz, state, c_shift1);
     amrex::Real divshift = CCZ4Geometry::compute_divshift(d1_shift);
 
-    auto d1_lapse = m_deriv.diff1_array_scalar(ix, iy, iz, state, c_lapse);
-    auto d1_chi   = m_deriv.diff1_array_scalar(ix, iy, iz, state, c_chi);
+    auto d1_lapse = m_deriv.diff1_scalar(ix, iy, iz, state, c_lapse);
+    auto d1_chi   = m_deriv.diff1_scalar(ix, iy, iz, state, c_chi);
 
     amrex::Real Z_dot_d1lapse = TensorAlgebra::compute_dot_product(Z, d1_lapse);
     amrex::Real dlapse_dot_dchi =
@@ -137,7 +137,7 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
 
     TensorArray::Rank2 covdtilde2lapse{};
     TensorArray::Rank2 covd2lapse{};
-    auto d2_lapse = m_deriv.diff2_sym_scalar(ix, iy, iz, state, c_lapse);
+    auto d2_lapse = m_deriv.diff2_scalar(ix, iy, iz, state, c_lapse);
 
     FOR (k, l)
     {
@@ -263,10 +263,9 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
     }
 
     // Gamma specific parts:
-    //    Tensor<1, amrex::Real> Gammadot;
-    auto d2_shift = m_deriv.diff2_sym_vector(ix, iy, iz, state, c_shift1);
-    auto d1_K     = m_deriv.diff1_array_scalar(ix, iy, iz, state, c_K);
-    auto d1_Theta = m_deriv.diff1_array_scalar(ix, iy, iz, state, c_Theta);
+    auto d2_shift = m_deriv.diff2_vector(ix, iy, iz, state, c_shift1);
+    auto d1_K     = m_deriv.diff1_scalar(ix, iy, iz, state, c_K);
+    auto d1_Theta = m_deriv.diff1_scalar(ix, iy, iz, state, c_Theta);
 
     FOR (i)
     {

@@ -57,9 +57,9 @@ class ChiExtractionTagger
     {
         // first test the gradients for regions of high curvature
         const TensorArray::Rank1Sym d2_chi =
-            m_deriv.diff2_sym_scalar(ix, iy, iz, state, c_chi);
+            m_deriv.diff2_scalar(ix, iy, iz, state, c_chi);
         amrex::Real mod_d2_chi = 0;
-        for (int i = 0; i < d2_chi.len(); i++)
+        for (int i = 0; i < TensorArray::Rank1Sym::len(); i++)
         {
             mod_d2_chi += d2_chi(i) * d2_chi(i);
         }

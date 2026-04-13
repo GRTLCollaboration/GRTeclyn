@@ -22,7 +22,7 @@ class ScalarFieldD2Vars : public CCZ4D2Vars
         : CCZ4D2Vars(ix, iy, iz, state, a_deriv)
     {
         // Calculate the d2 quantities for all vars needed for RHS
-        phi = a_deriv.diff2_sym_scalar(ix, iy, iz, state, c_phi);
+        phi = a_deriv.diff2_scalar(ix, iy, iz, state, c_phi);
     }
 
     TensorArray::Rank1Sym phi{};

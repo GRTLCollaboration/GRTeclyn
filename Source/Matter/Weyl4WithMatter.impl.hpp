@@ -22,9 +22,9 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void Weyl4WithMatter<matter_t>::operator()(
     const typename matter_t::D1Vars d1(ix, iy, iz, state, m_deriv);
     // we only need d2 of chi and h
     const TensorArray::Rank1Sym d2_chi =
-        m_deriv.diff2_sym_scalar(ix, iy, iz, state, c_chi);
+        m_deriv.diff2_scalar(ix, iy, iz, state, c_chi);
     const TensorArray::Rank2Sym d2_h =
-        m_deriv.diff2_sym_tensor_test_array(ix, iy, iz, state, c_h11);
+        m_deriv.diff2_tensor(ix, iy, iz, state, c_h11);
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
     const auto chris = CCZ4Geometry::compute_christoffel(d1, h_UU);
 
@@ -40,7 +40,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void Weyl4WithMatter<matter_t>::operator()(
         compute_EB_fields(vars, d1, d2_chi, d2_h, epsilon3_LUU, h_UU, chris);
 
     // Add in matter terms to E and B fields
-    auto d1_phi = m_deriv.diff1_array_scalar(ix, iy, iz, state, c_phi);
+    auto d1_phi = m_deriv.diff1_scalar(ix, iy, iz, state, c_phi);
     add_matter_EB(ebfields, vars, d1_phi, epsilon3_LUU, h_UU, chris);
 
     // work out the Newman Penrose scalar

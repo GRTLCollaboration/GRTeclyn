@@ -36,9 +36,9 @@ ConstraintsWithMatter<matter_t>::operator()(
     typename matter_t::Vars vars(state_cell_data);
     const typename matter_t::D1Vars d1(ix, iy, iz, state, m_deriv);
     const TensorArray::Rank1Sym d2_chi =
-        m_deriv.diff2_sym_scalar(ix, iy, iz, state, c_chi);
+        m_deriv.diff2_scalar(ix, iy, iz, state, c_chi);
     const TensorArray::Rank2Sym d2_h =
-        m_deriv.diff2_sym_tensor_test_array(ix, iy, iz, state, c_h11);
+        m_deriv.diff2_tensor(ix, iy, iz, state, c_h11);
 
     // Inverse metric and Christoffel symbol
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
@@ -49,7 +49,7 @@ ConstraintsWithMatter<matter_t>::operator()(
         constraint_equations(vars, d1, d2_chi, d2_h, h_UU, chris);
 
     // Energy Momentum Tensor
-    const auto d1_phi = m_deriv.diff1_array_scalar(ix, iy, iz, state, c_phi);
+    const auto d1_phi = m_deriv.diff1_scalar(ix, iy, iz, state, c_phi);
     const auto emtensor =
         my_matter.compute_emtensor(vars, d1_phi, h_UU, chris.ULL);
 

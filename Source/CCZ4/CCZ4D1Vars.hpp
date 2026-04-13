@@ -19,8 +19,7 @@ class CCZ4D1Vars
                                 const amrex::Array4<const amrex::Real> &state,
                                 const FourthOrderDerivatives &a_deriv)
     {
-        m_d1_state =
-            a_deriv.diff1_state_array<NUM_CCZ4_VARS>(ix, iy, iz, state);
+        m_d1_state = a_deriv.diff1_state<NUM_CCZ4_VARS>(ix, iy, iz, state);
     }
 
     // empty constructor used for tests
@@ -36,8 +35,8 @@ class CCZ4D1Vars
     }
     // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
-    //    amrex::GpuArray<Tensor<1, amrex::Real>, NUM_CCZ4_VARS> m_d1_state;
-    amrex::Array2D<amrex::Real, 0, NUM_CCZ4_VARS, 0, 3> m_d1_state{};
+    amrex::Array2D<amrex::Real, 0, NUM_CCZ4_VARS, 0, AMREX_SPACEDIM>
+        m_d1_state{};
 
     [[nodiscard]]
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &chi(int i) const

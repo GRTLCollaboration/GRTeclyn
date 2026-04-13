@@ -57,9 +57,9 @@ Constraints::operator()(int ix, int iy, int iz,
 
     // we only need d2 of chi and h
     const TensorArray::Rank1Sym d2_chi =
-        m_deriv.diff2_sym_scalar(ix, iy, iz, state, c_chi);
+        m_deriv.diff2_scalar(ix, iy, iz, state, c_chi);
     const TensorArray::Rank2Sym d2_h =
-        m_deriv.diff2_sym_tensor_test_array(ix, iy, iz, state, c_h11);
+        m_deriv.diff2_tensor(ix, iy, iz, state, c_h11);
 
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
     const auto chris = CCZ4Geometry::compute_christoffel(d1, h_UU);
