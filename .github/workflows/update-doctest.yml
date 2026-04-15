@@ -1,0 +1,72 @@
+name: Update doctest
+
+on:
+    schedule:
+        - cron: "0 6 * * 1" # Every Monday at 06:00 UTC
+    workflow_dispatch:
+
+permissions:
+    contents: write
+    pull-requests: write
+
+jobs:
+    update-doctest:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout GRTeclyn
+              uses: actions/checkout@v6
+              with:
+                  ref: develop
+
+            - name: Get current doctest version
+              id: current
+              run: |
+                  MAJOR=$(grep -m1 '#define DOCTEST_VERSION_MAJOR' \
+                      external/doctest/doctest.h | awk '{print $3}')
+                  MINOR=$(grep -m1 '#define DOCTEST_VERSION_MINOR' \
+                      external/doctest/doctest.h | awk '{print $3}')
+                  PATCH=$(grep -m1 '#define DOCTEST_VERSION_PATCH' \
+                      external/doctest/doctest.h | awk '{print $3}')
+                  CURRENT_VER="${MAJOR}.${MINOR}.${PATCH}"
+                  echo "version=${CURRENT_VER}" >> "$GITHUB_OUTPUT"
+                  echo "CURRENT_VER=${CURRENT_VER}" >> "$GITHUB_ENV"
+
+            - name: Get latest doctest release
+              id: latest
+              run: |
+                  LATEST=$(curl -fsSL \
+                    -H "Accept: application/vnd.github+json" \
+                    -H "X-GitHub-Api-Version: 2022-11-28" \
+                    https://api.github.com/repos/doctest/doctest/releases/latest \
+                    | jq -r .tag_name | sed 's/^v//')
+                  echo "version=${LATEST}" >> "$GITHUB_OUTPUT"
+                  echo "LATEST_VER=${LATEST}" >> "$GITHUB_ENV"
+
+            - name: Download updated doctest header
+              if: steps.current.outputs.version != steps.latest.outputs.version
+              run: |
+                  BASE="https://raw.githubusercontent.com/doctest/doctest"
+                  curl -fsSL "${BASE}/v${LATEST_VER}/doctest/doctest.h" \
+                      -o external/doctest/doctest.h
+
+            - name: Open pull request
+              if: steps.current.outputs.version != steps.latest.outputs.version
+              uses: peter-evans/create-pull-request@v7
+              with:
+                  commit-message: "bump(doctest): update to v${{ env.LATEST_VER }}"
+                  title: "Update doctest from v${{ env.CURRENT_VER }} to v${{ env.LATEST_VER }}"
+                  body: |
+                      Updates the vendored [doctest](https://github.com/doctest/doctest)
+                      single-header from v${{ env.CURRENT_VER }}
+                      to v${{ env.LATEST_VER }}.
+
+                      See the release notes for details:
+                      https://github.com/doctest/doctest/releases/tag/v${{ env.LATEST_VER }}
+
+                      ---
+                      *This PR was opened automatically by the `update-doctest` workflow.*
+                  branch: update/doctest-v${{ env.LATEST_VER }}
+                  base: develop
+                  # TODO: switch to a fine-grained PAT
+                  token: ${{ secrets.REPO_GITHUB_TOKEN }}
+                  labels: dependencies
