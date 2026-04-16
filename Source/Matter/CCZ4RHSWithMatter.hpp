@@ -51,6 +51,7 @@ class CCZ4RHSWithMatter : public CCZ4RHS<gauge_t, deriv_t>
 
     //!  The compute member which calculates the RHS at each point in the box
     //!  \sa matter_rhs_equation()
+    template <int formulation, int use_covariant_Z4>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     operator()(int ix, int iy, int iz,
                const amrex::Array4<amrex::Real> &rhs_state,

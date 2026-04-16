@@ -159,13 +159,40 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                 ccz4rhs.compute_chi_and_h_ij(ix, iy, iz, rhs_arrays[box_no],
                                              const_soln_arrays[box_no]);
             });
-        amrex::ParallelFor(
-            a_rhs,
-            [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+
+        enum formulations : int
+        {
+            USE_CCZ4 = 0,
+            USE_BSSN = 1
+        };
+
+        enum covariantZ4 : int
+        {
+            YES,
+            NO
+        };
+
+        amrex::ParmParse pp;
+
+        int use_bssn{0};
+        int use_covariantZ4{1};
+        pp.query("formulation", use_bssn);
+        pp.query("covariantZ4", use_covariantZ4);
+
+        amrex::AnyCTO(
+            amrex::TypeList<
+                amrex::CompileTimeOptions<USE_CCZ4, USE_BSSN>,
+                amrex::CompileTimeOptions<covariantZ4::YES, covariantZ4::NO>>{},
+            {use_bssn, use_covariantZ4},
+            [&](auto cto_func) { amrex::ParallelFor(a_rhs, cto_func); },
+            [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz,
+                                 auto formulation, auto control)
             {
-                ccz4rhs.compute_A_ij_and_Theta_and_Gamma(
+                //
+                ccz4rhs.compute_A_ij_and_Theta_and_Gamma<formulation, control>(
                     ix, iy, iz, rhs_arrays[box_no], const_soln_arrays[box_no]);
             });
+
         amrex::ParallelFor(
             a_rhs,
             [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)

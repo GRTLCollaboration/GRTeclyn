@@ -89,6 +89,7 @@ class CCZ4RHS
                          const amrex::Array4<amrex::Real const> &state) const;
 
     // Calculates rhs for A_ij and Theta and Gamma
+    template <int formulation, int use_covariant_Z4>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void compute_A_ij_and_Theta_and_Gamma(
         int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs_state,
         const amrex::Array4<amrex::Real const> &state) const;
