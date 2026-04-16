@@ -22,6 +22,7 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::CCZ4RHSWithMatter(
 }
 
 template <class matter_t, class gauge_t, class deriv_t>
+template <int formulation, int use_covariant_Z4>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::operator()(
     int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs_state,
@@ -34,9 +35,11 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::operator()(
 
     const typename matter_t::Vars vars(state_cell_data);
 
-    // calculate the vaccuum solution
+    // calculate the vacuum solution
     this->compute_chi_and_h_ij(ix, iy, iz, rhs_state, state);
-    this->compute_A_ij_and_Theta_and_Gamma(ix, iy, iz, rhs_state, state);
+    this->template compute_A_ij_and_Theta_and_Gamma<formulation,
+                                                    use_covariant_Z4>(
+        ix, iy, iz, rhs_state, state);
     this->apply_gauge(ix, iy, iz, rhs_state, state);
 
     // add RHS matter terms from EM Tensor

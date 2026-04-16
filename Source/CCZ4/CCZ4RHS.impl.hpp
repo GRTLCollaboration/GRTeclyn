@@ -85,6 +85,7 @@ CCZ4RHS<gauge_t, deriv_t>::compute_chi_and_h_ij(
 }
 
 template <class gauge_t, class deriv_t>
+template <int formulation, int use_covariant_Z4>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
     int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs_state,
@@ -108,7 +109,7 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
     TensorArray::Rank1 Z_over_chi;
     TensorArray::Rank1 Z; // NOLINT(readability-identifier-length)
 
-    if (m_formulation == USE_BSSN)
+    if constexpr (formulation == USE_BSSN)
     {
         FOR (i)
             Z_over_chi(i) = 0.0;
@@ -141,7 +142,7 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
 
     FOR (k, l)
     {
-        int idx               = k + l + ((k * l != 0) ? 1 : 0);
+        int idx               = VAR_IDX0(k, l);
         covdtilde2lapse(k, l) = d2_lapse(idx);
         FOR (m)
         {
@@ -164,7 +165,6 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
     CCZ4Geometry::make_trace_free(Adot_TF, state_cell_data, h_UU);
 
     TensorArray::Rank1 shift_vector;
-
     FOR (idir)
     {
         shift_vector(idir) = state(ix, iy, iz, c_shift1 + idir);
@@ -212,7 +212,7 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
     }
 
     amrex::Real kappa1_times_lapse;
-    if (m_params.covariantZ4)
+    if constexpr (use_covariant_Z4)
     {
         kappa1_times_lapse = m_params.kappa1;
     }
@@ -221,7 +221,7 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
         kappa1_times_lapse = m_params.kappa1 * vars.lapse();
     }
 
-    if (m_formulation == USE_BSSN)
+    if constexpr (formulation == USE_BSSN)
     {
         // ensure the Theta of CCZ4 remains at zero
         rhs_cell_data[c_Theta] = 0.0;
