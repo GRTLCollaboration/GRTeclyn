@@ -205,9 +205,7 @@ template <int N> class Lagrange
   public:
     // where we store the weights for each dimension
     // NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
-    amrex::Real weights_local[AMREX_SPACEDIM][N]{};
-    amrex::Real weights_d1[AMREX_SPACEDIM][N]{};
-    amrex::Real weights_d2[AMREX_SPACEDIM][N]{};
+    amrex::Real weights[3][N]{};
     // NOLINTEND(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE Lagrange() = default;
