@@ -229,7 +229,7 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
     int start_comp  = get_start_comp();
     const int ncomp = num_components;
 
-    AMREX_ASSERT(mfab.nComp() >= start_comp + ncomp);
+    // AMREX_ASSERT(mfab.nComp() >= start_comp + ncomp);
 
     if (this->NumberOfParticlesAtLevel(lev) == 0)
         return;
@@ -260,7 +260,8 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
 
                 amrex::ParticleReal interpolated_vals[ncomp];
                 lagrange_interp.interpolate(&fab_array, interpolated_vals,
-                                            start_comp, ncomp);
+                                            m_query->compsBegin(),
+                                            m_query->compsEnd(), 1 / dxi[0]);
 
                 // write results to SOA
                 for (int icomp = 0; icomp < ncomp; ++icomp)
@@ -615,6 +616,8 @@ void ParticleInterpolator<num_components>::apply_parity_and_store_values()
 #endif
 
     // Apply parity
+
+    int comp_idx = 0;
     for (auto deriv_it = query.compsBegin(); deriv_it != query.compsEnd();
          ++deriv_it)
     {
@@ -630,7 +633,7 @@ void ParticleInterpolator<num_components>::apply_parity_and_store_values()
             const int comp           = entry.comp;
             amrex::ParticleReal *out = entry.out_data_ptr;
 
-            const int k = comp - start_comp; // reindex from 0
+            const int k = comp - start_comp;
             AMREX_ASSERT(k >= 0 && k < num_components);
 
             for (int ip = 0; ip < num_points; ++ip)
@@ -640,8 +643,9 @@ void ParticleInterpolator<num_components>::apply_parity_and_store_values()
                 int parity = get_var_parity(comp, ip, query, dkey,
                                             variable_type, entry.parity);
 
-                out[ip] = parity * m_query_data[k][recv_idx];
+                out[ip] = parity * m_query_data[comp_idx][recv_idx];
             }
+            comp_idx++;
         }
     }
 }

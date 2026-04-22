@@ -6,6 +6,8 @@
 #ifndef LAGRANGE_HPP_
 #define LAGRANGE_HPP_
 
+#include "FourthOrderDerivatives.hpp"
+#include "InterpolationQueryParticle.hpp"
 #include <AMReX_Array4.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_IntVect.H>
@@ -61,9 +63,7 @@ template <int N> class Lagrange
   public:
     // where we store the weights for each dimension
     // NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
-    amrex::Real weights_x[N]{};
-    amrex::Real weights_y[N]{};
-    amrex::Real weights_z[N]{};
+    amrex::Real weights[3][N]{};
     // NOLINTEND(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE Lagrange() = default;
@@ -88,52 +88,137 @@ template <int N> class Lagrange
                   (amrex::Real(par.pos(2)) - plo[2]) * dxi[2] -
                   static_cast<amrex::Real>(!is_nodal[2]) * amrex::Real(0.5););
 
-        build_stencil(xpos, i0, weights_x);
+        build_stencil(xpos, i0, weights[0]);
 #if AMREX_SPACEDIM >= 2
-        build_stencil(ypos, j0, weights_y);
+        build_stencil(ypos, j0, weights[1]);
 #endif
 #if AMREX_SPACEDIM == 3
-        build_stencil(zpos, k0, weights_z);
+        build_stencil(zpos, k0, weights[2]);
 #endif
     }
 
     // Function to perform the interpolation
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     interpolate(const amrex::Array4<amrex::Real const> *data_arr,
-                amrex::ParticleReal *val, int start_comp, int ncomp) const
+                amrex::ParticleReal *val,
+                InterpolationQueryParticle::iterator deriv_it_begin,
+                InterpolationQueryParticle::iterator deriv_it_end,
+                amrex::Real const dx) const
     {
         int counter      = 0;
         auto const &data = data_arr[0];
 
-        for (int comp = start_comp; comp < start_comp + ncomp; ++comp)
+        for (auto deriv_it = deriv_it_begin; deriv_it != deriv_it_end;
+             ++deriv_it)
         {
-            val[counter] = amrex::ParticleReal(0.0);
-#if AMREX_SPACEDIM == 3
-            for (int kk = 0; kk < N; ++kk)
+            using comps_t =
+                std::vector<typename InterpolationQueryParticle::out_t>;
+
+            const Derivative &deriv = deriv_it->first;
+
+            comps_t &comps = deriv_it->second;
+
+            for (auto &entry : comps)
             {
-#endif
-#if AMREX_SPACEDIM >= 2
-                for (int jj = 0; jj < N; ++jj)
+                const int comp = entry.comp;
+
+                val[counter] = amrex::ParticleReal(0.0);
+
+                if (deriv == Derivative::LOCAL)
                 {
-#endif
-                    for (int ii = 0; ii < N; ++ii)
+
+#if AMREX_SPACEDIM == 3
+                    for (int kk = 0; kk < N; ++kk)
                     {
-                        val[counter] +=
-                            data(amrex::IntVect(
-                                     AMREX_D_DECL(i0 + ii, j0 + jj, k0 + kk)),
-                                 comp) *
-                            AMREX_D_TERM(weights_x[ii], *weights_y[jj],
-                                         *weights_z[kk]);
-                    }
+#endif
 #if AMREX_SPACEDIM >= 2
-                }
+                        for (int jj = 0; jj < N; ++jj)
+                        {
+#endif
+                            for (int ii = 0; ii < N; ++ii)
+                            {
+                                val[counter] +=
+                                    data(amrex::IntVect(AMREX_D_DECL(
+                                             i0 + ii, j0 + jj, k0 + kk)),
+                                         comp) *
+                                    AMREX_D_TERM(weights[0][ii],
+                                                 *weights[1][jj],
+                                                 *weights[2][kk]);
+                            }
+#if AMREX_SPACEDIM >= 2
+                        }
 #endif
 #if AMREX_SPACEDIM == 3
-            }
+                    }
 #endif
+                }
+                else
+                {
+                    FourthOrderDerivatives a_deriv(dx);
+
+                    amrex::GpuArray<int, AMREX_SPACEDIM> strides{
+                        1, data.stride.a[0], data.stride.a[1]};
+
+                    int stride_dims[] = {0, 0};
+                    int deriv_dim     = 0;
+
+                    for (int dim = 0; dim < AMREX_SPACEDIM; ++dim)
+                    {
+                        if (deriv[dim] == 2)
+                        {
+                            for (int ii = 0; ii < N; ++ii)
+                            {
+                                val[counter] +=
+                                    a_deriv.diff2(data.ptr(i0, j0, k0) +
+                                                      comp * data.stride.a[2] +
+                                                      ii * strides[dim],
+                                                  strides[dim]) *
+                                    weights[dim][ii];
+                            }
+
+                            break;
+                        }
+                        else if (deriv[dim] == 1)
+                        {
+                            stride_dims[deriv_dim++] = dim;
+                        }
+                    }
+
+                    if (deriv_dim == 1)
+                    {
+                        for (int ii = 0; ii < N; ++ii)
+                        {
+                            val[counter] +=
+                                a_deriv.diff1(data.ptr(i0, j0, k0) +
+                                                  comp * data.stride.a[2] +
+                                                  ii * strides[stride_dims[0]],
+                                              strides[stride_dims[0]]) *
+                                weights[stride_dims[0]][ii];
+                        }
+                    }
+                    else if (deriv_dim == 2)
+                    {
+                        for (int ii = 0; ii < N; ++ii)
+                        {
+                            for (int jj = 0; jj < N; ++jj)
+                            {
+                                val[counter] +=
+                                    a_deriv.mixed_diff2(
+                                        data.ptr(i0, j0, k0) +
+                                            comp * data.stride.a[2] +
+                                            ii * strides[stride_dims[0]] +
+                                            jj * strides[stride_dims[1]],
+                                        strides[stride_dims[0]],
+                                        strides[stride_dims[1]]) *
+                                    weights[stride_dims[0]][ii] *
+                                    weights[stride_dims[1]][jj];
+                            }
+                        }
+                    }
+                }
+            }
             ++counter;
         } // end of for comp loop
     }
 };
-
 #endif /* LAGRANGE_HPP_ */
