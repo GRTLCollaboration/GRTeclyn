@@ -133,11 +133,11 @@ void run_particle_interpolator_test()
         query_derived.setCoords(0, interp_x_local.data())
             .setCoords(1, interp_y_local.data())
             .setCoords(2, interp_z_local.data())
-            .addComp(0, A_local.data(), VariableType::derived,
-                     BCParity::odd_xyz, Derivative::LOCAL)
-            .addComp(0, A_dx.data(), VariableType::derived, BCParity::odd_xyz,
+            .addComp(0, A_local.data(), VariableType::derived, BCParity::even,
+                     Derivative::LOCAL)
+            .addComp(0, A_dx.data(), VariableType::derived, BCParity::even,
                      Derivative::dx)
-            .addComp(0, A_dxdy.data(), VariableType::derived, BCParity::odd_xyz,
+            .addComp(0, A_dxdy.data(), VariableType::derived, BCParity::even,
                      Derivative::dxdy);
 
         // set-up query for state variable B

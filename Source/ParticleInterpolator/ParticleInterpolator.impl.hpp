@@ -298,8 +298,8 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
 
                 amrex::ParticleReal interpolated_vals[ncomp];
                 lagrange_interp.interpolate(&fab_array, interpolated_vals,
-                                            derivs, comps, comp_counts, ncomp,
-                                            1 / dxi[0]);
+                                            m_query->compsBegin(),
+                                            m_query->compsEnd(), 1 / dxi[0]);
 
                 // write results to SOA
                 for (int icomp = 0; icomp < ncomp; ++icomp)
