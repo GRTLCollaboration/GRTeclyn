@@ -36,7 +36,6 @@ class CCZ4D2Vars
                 shift(k, i) = 0.;
             }
 
-
             for (int j = 0; j < TensorArray::Rank2Sym::ylen(); j++)
             {
                 h(i, j) = 0.;
@@ -57,7 +56,7 @@ class CCZ4D2Vars
     }
 
     TensorArray::Rank2Sym h;
-    amrex::Array2D<amrex::Real, 0, 3, 0, 6> shift;
+    amrex::Array2D<amrex::Real, 0, AMREX_SPACEDIM, 0, UNIQUE_IDX> shift;
     TensorArray::Rank1Sym chi;
     TensorArray::Rank1Sym lapse;
 };

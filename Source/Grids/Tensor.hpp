@@ -20,6 +20,11 @@
 // A version for where the base reference for the tensor is 0
 #define VAR_IDX0(i, j) VAR_IDX(0, (i), (j))
 
+#define SPACETIME_DIM GR_SPACEDIM + 1
+
+// Number of unique indices after accounting for symmetry
+#define UNIQUE_IDX 6
+
 namespace TensorArray
 {
 using Rank1 = amrex::Array1D<amrex::Real, 0, AMREX_SPACEDIM>;
@@ -27,12 +32,21 @@ using Rank2 = amrex::Array2D<amrex::Real, 0, AMREX_SPACEDIM, 0, AMREX_SPACEDIM>;
 using Rank3 = amrex::Array3D<amrex::Real, 0, AMREX_SPACEDIM, 0, AMREX_SPACEDIM,
                              0, AMREX_SPACEDIM>;
 
-using Rank1Sym = amrex::Array1D<amrex::Real, 0, 6>;
-using Rank2Sym = amrex::Array2D<amrex::Real, 0, 6, 0, 6>;
+using Rank1Sym = amrex::Array1D<amrex::Real, 0, UNIQUE_IDX>;
+using Rank2Sym = amrex::Array2D<amrex::Real, 0, UNIQUE_IDX, 0, UNIQUE_IDX>;
 
 // Rank 4 tensors are actually a 1D array of length 4 * 4 * 4 * 4
 
 using Rank4 = amrex::Array1D<amrex::Real, 0, 256>;
 } // namespace TensorArray
+
+namespace SpaceTimeTensor
+{
+using Rank1 = amrex::Array1D<amrex::Real, 0, SPACETIME_DIM>;
+using Rank2 = amrex::Array2D<amrex::Real, 0, SPACETIME_DIM, 0, SPACETIME_DIM>;
+using Rank3 = amrex::Array3D<amrex::Real, 0, SPACETIME_DIM, 0, SPACETIME_DIM, 0,
+                             SPACETIME_DIM>;
+
+} // namespace SpaceTimeTensor
 
 #endif /* TENSOR_HPP_ */
