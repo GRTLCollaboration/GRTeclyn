@@ -88,20 +88,20 @@ class FourthOrderDerivatives
         return d1;
     }
 
-    [[nodiscard]] AMREX_GPU_DEVICE
-        AMREX_FORCE_INLINE amrex::Array2D<amrex::Real, 0, 6, 0, AMREX_SPACEDIM>
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+        amrex::Array2D<amrex::Real, 0, UNIQUE_IDX, 0, AMREX_SPACEDIM>
         diff1_sym_tensor(int ix, int iy, int iz,
                          const amrex::Array4<const amrex::Real> &state,
                          const int ivar_0) const
     {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-        amrex::Array2D<amrex::Real, 0, 6, 0, AMREX_SPACEDIM> d1;
+        amrex::Array2D<amrex::Real, 0, UNIQUE_IDX, 0, AMREX_SPACEDIM> d1;
         const auto *state_ptr_xyz = state.ptr(ix, iy, iz);
         amrex::GpuArray<int, AMREX_SPACEDIM> strides{
             1, static_cast<int>(state.stride.a[0]),
             static_cast<int>(state.stride.a[1])};
 
-        for (int ivar = 0; ivar < 6; ++ivar)
+        for (int ivar = 0; ivar < UNIQUE_IDX; ++ivar)
         {
             const auto *var_ptr =
                 state_ptr_xyz + (ivar_0 + ivar) * state.stride.a[2];
@@ -236,14 +236,14 @@ class FourthOrderDerivatives
         return d2;
     }
 
-    [[nodiscard]] AMREX_GPU_DEVICE
-        AMREX_FORCE_INLINE amrex::Array2D<amrex::Real, 0, AMREX_SPACEDIM, 0, 6>
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+        amrex::Array2D<amrex::Real, 0, AMREX_SPACEDIM, 0, UNIQUE_IDX>
         diff2_vector(int ix, int iy, int iz,
                      const amrex::Array4<amrex::Real const> &state,
                      const int ivar_0) const
     {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-        amrex::Array2D<amrex::Real, 0, AMREX_SPACEDIM, 0, 6> d2;
+        amrex::Array2D<amrex::Real, 0, AMREX_SPACEDIM, 0, UNIQUE_IDX> d2;
         const auto *state_ptr_xyz = state.ptr(ix, iy, iz);
         amrex::GpuArray<int, AMREX_SPACEDIM> strides{
             1, static_cast<int>(state.stride.a[0]),
@@ -278,7 +278,7 @@ class FourthOrderDerivatives
             static_cast<int>(state.stride.a[1])};
 
         //        FOR (icomp)
-        for (int icomp = 0; icomp < 6; ++icomp)
+        for (int icomp = 0; icomp < UNIQUE_IDX; ++icomp)
         {
             const int ivar      = ivar_0 + icomp;
             const auto *var_ptr = state_ptr_xyz + ivar * state.stride.a[2];
