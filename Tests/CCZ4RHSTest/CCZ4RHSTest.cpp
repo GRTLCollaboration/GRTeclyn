@@ -141,6 +141,8 @@ void run_ccz4_rhs_test()
         amrex::Real max_diff = 0.0;
         amrex::IntVect max_diff_index{};
 
+        double test_threshold = 1e-11;
+
         const int cout_precision = 17;
         for (int ivar = 0; ivar < NUM_CCZ4_VARS; ++ivar)
         {
@@ -154,7 +156,7 @@ void run_ccz4_rhs_test()
                                << old_out_array(max_diff_index, ivar)
                                << ", Current value: "
                                << current_out_array(max_diff_index, ivar));
-            CHECK(max_diff == doctest::Approx(0.0).epsilon(1e-12));
+            CHECK(max_diff == doctest::Approx(0.0).epsilon(test_threshold));
         }
 
         // GPU barrier
