@@ -37,10 +37,10 @@ jobs:
         USE_MPI=TRUE
         USE_CCACHE=TRUE
       CUDA_MAJOR_VERSION: 12
-      CUDA_MINOR_VERSION: 0
-      ROCM_VERSION: 6.2.2
-      ONEAPI_COMP_VERSION: 2024.2
-      ONEAPI_MPI_VERSION: 2021.13
+      CUDA_MINOR_VERSION: 9
+      ROCM_VERSION: 7.2.2
+      ONEAPI_COMP_VERSION: "2026.0"
+      ONEAPI_MPI_VERSION: 2021.18
 
     steps:
       - name: Checkout AMReX
@@ -161,6 +161,7 @@ jobs:
           elif [[ "${{ matrix.gpu-backend }}" == "SYCL" ]]; then
             source /opt/intel/oneapi/setvars.sh
             which icpx
+            which mpiicpc
             export I_MPI_CXX=icpx
           fi
           make tests -j 4 ${{ env.BUILD_ARGS }}
