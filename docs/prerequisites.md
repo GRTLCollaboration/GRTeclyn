@@ -6,13 +6,15 @@ To compile and run **GRTeclyn**, you will need the following software and tools:
 
 ## Required Software
 
-- **C++ compiler with C++17 support**
-  GRTeclyn uses modern C++17 features. Supported compilers include:
-  - GCC ≥ 8
-  - Clang ≥ 6
-  - Intel Classic ≥ 19.1.4
+- **C++ compiler with C++20 support**
+  GRTeclyn uses modern C++20 features. Supported compilers include:
+  - GCC ≥ 11
+  - LLVM Clang ≥ 14
+  - NVIDIA CUDA Toolkit ≥ 12.2 (for CUDA builds)
+  - AMD ROCm/HIP ≥ 6.0    (for HIP builds)
+  - Intel oneAPI ≥ 2025.2 (for SYCL builds)
 
-WARNING: The use of C++17 is stricter than GRChombo’s C++14 requirement. Older compilers that worked with GRChombo may not work here — but if you have a newer one available, and could build GRChombo, you can likely build GRTeclyn too.
+WARNING: The use of C++20 is stricter than GRChombo’s C++14 requirement. Older compilers that worked with GRChombo may not work here — but if you have a newer one available, and could build GRChombo, you can likely build GRTeclyn too.
 
 - **[MPI](https://www.mpi-forum.org/)** (optional but recommended)
   Required for running in parallel across nodes or cores.

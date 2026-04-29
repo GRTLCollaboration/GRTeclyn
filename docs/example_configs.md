@@ -159,7 +159,7 @@ Tursa is primarily a GPU system with Nvidia A100s as the GPU but there are CPU q
 No modules are loaded by default and you'll notice that the system wide modules available are a bit sparse. These are the modules that Juliana uses for GRTeclyn/AMReX workloads:
 
 ```
-module load gcc/9.3.0 ucx/1.15.0-cuda12.3 openmpi/4.1.5-gcc9-cuda12 ucx/1.15.0-gcc9-cuda12 cuda/12.3
+module load gcc/12.2.0 cuda/12.3 openmpi/4.1.5-cuda12.3 ucx/1.15.0-cuda12.3
 ```
 
 You can save these modules for later reuse with `module save <name of module environment>`
@@ -192,7 +192,27 @@ git clone https://github.com/COSMOS-CTC-Cambridge/swirles-training.git
 ```
 In it, you will find introductory notes on the system and most importantly example scripts to set up an environment for using the GPUs and for submitting to the Slurm queue.
 
-For example, to build GRTeclyn for the Intel GPUs: 
+
+NB: To install the pre-commit hook for GitHub, you will need to load the newer version of Python on the system: 
+```
+module load python/3.10.13/gcc/t6nyisbb
+```
+then setup a virtual environment
+```
+python -m venv .precommit
+source ~/.precommit/bin/activate
+```
+then `pip install` the package:
+```
+python -m pip install pre-commit
+```
+
+You can then move it to a more convenient location once installed e.g. `~/.local/bin`
+
+
+### Intel GPUs
+
+To build GRTeclyn for the Intel GPUs: 
 
 1. Start an interactive session from the head node:
 ```
@@ -220,22 +240,41 @@ Notice that I am only running with 2 MPI ranks even though I have access to 28 c
 
 Example Slurm submission scripts are also available in the `swirles-training` repository. 
 
-NB: To install the pre-commit hook for GitHub, you will need to load the newer version of Python on the system: 
+
+### Nvidia A100s
+Load the following modules:
 ```
-module load python/3.10.13/gcc/t6nyisbb
-```
-then setup a virtual environment
-```
-python -m venv .precommit
-source ~/.precommit/bin/activate
-```
-then `pip install` the package:
-```
-python -m pip install pre-commit
+module load gcc-runtime/11.4.0/gcc/s4m43s2g openmpi/5.0.3/gcc/2jvxbhe6 cuda/12.6.3/gcc/leehydd5
 ```
 
-You can then move it to a more convenient location once installed e.g. `~/.local/bin`
+## Polaris
+There are several programming environments on Polaris that will allow you to build and run AMReX/GRTeclyn. I prefer the GNU toolchain.
+
+Load the GNU programming environment and GCC: 
+```
+module load PrgEnv-gnu/8.6.0 gcc-native/14
+```
+
+Load CUDA Toolkit:
+```
+module load cudatoolkit-standalone/12.9.1
+```
+
+Then when compiling use:
+
+```
+make -j 8 COMP=gnu USE_CUDA=TRUE
+```
+
+NB: AMReX knows about Polaris so you don't have to specify the CUDA architecture. You do have to specify `COMP=gnu` because `cray` is also possible. 
 
 ## CSD3
 
+### Wilkes/Ampere partition
+
+NB: This is the same set of modules used in the GitLab pipeline
+
+```
+module load rhel8/ampere/base gcc/14.3.0/vlhhcp6m openmpi/4.1.8/gcc/hemliivg cuda/12.8.1/gcc/kdeps6ab
+```
 ...
