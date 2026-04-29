@@ -140,13 +140,15 @@
 <hr />
 <h2 id="required-software">Required Software</h2>
 <ul>
-<li><strong>C++ compiler with C++17 support</strong>
-  GRTeclyn uses modern C++17 features. Supported compilers include:</li>
-<li>GCC ≥ 8</li>
-<li>Clang ≥ 6</li>
-<li>Intel Classic ≥ 19.1.4</li>
+<li><strong>C++ compiler with C++20 support</strong>
+  GRTeclyn uses modern C++20 features. Supported compilers include:</li>
+<li>GCC ≥ 11</li>
+<li>LLVM Clang ≥ 14</li>
+<li>NVIDIA CUDA Toolkit ≥ 12.2 (for CUDA builds)</li>
+<li>AMD ROCm/HIP ≥ 6.0    (for HIP builds)</li>
+<li>Intel oneAPI ≥ 2025.2 (for SYCL builds)</li>
 </ul>
-<p>WARNING: The use of C++17 is stricter than GRChombo’s C++14 requirement. Older compilers that worked with GRChombo may not work here — but if you have a newer one available, and could build GRChombo, you can likely build GRTeclyn too.</p>
+<p>WARNING: The use of C++20 is stricter than GRChombo’s C++14 requirement. Older compilers that worked with GRChombo may not work here — but if you have a newer one available, and could build GRChombo, you can likely build GRTeclyn too.</p>
 <ul>
 <li><strong><a href="https://www.mpi-forum.org/">MPI</a></strong> (optional but recommended)
   Required for running in parallel across nodes or cores.
