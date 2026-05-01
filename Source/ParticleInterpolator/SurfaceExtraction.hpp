@@ -23,7 +23,6 @@
 #include <algorithm>
 #include <array>
 #include <functional>
-#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -62,15 +61,25 @@ template <class SurfaceGeometry, int num_components> class SurfaceExtraction
         }
     };
 
-    using vars_t = std::tuple<int, VariableType, Derivative>;
+    // I suggest using a struct here instead of the tuple-structure inherited
+    // from GRChombo here, as we need to add more features to the varibles used
+    struct var_t
+    {
+        int var;
+        VariableType type;
+        Derivative deriv;
+
+        amrex::Vector<BCParity> parities;
+        std::string derived_name;
+    };
+    using vars_t = var_t;
 
   protected:
     SurfaceGeometry m_geom; //!< the geometry class which knows about
                             //!< the particular surface
     params_t m_params;
-    std::vector<std::tuple<int, VariableType, Derivative>>
-        m_vars; //!< the vector of pairs of
-    //!< variables and derivatives to extract
+    std::vector<var_t>
+        m_vars; //!< the vector of of variables and their features to extract
     double m_dt{};
     double m_time{};
     bool m_first_step{};
@@ -112,25 +121,28 @@ template <class SurfaceGeometry, int num_components> class SurfaceExtraction
 
     //! add a single variable or derivative of variable
     void add_var(int a_var, const VariableType var_type = VariableType::state,
-                 const Derivative &a_deriv = Derivative::LOCAL);
+                 const Derivative &a_deriv                 = Derivative::LOCAL,
+                 const amrex::Vector<BCParity> &a_parities = {},
+                 const std::string &a_derived_name         = "");
 
     //! add a vector of variables/derivatives of variables
-    void add_vars(const std::vector<vars_t> &a_vars);
+    void add_vars(const std::vector<var_t> &a_vars);
 
-    //! add a vector of evolution variables (no derivatives)
-    void add_evolution_vars(const std::vector<int> &a_vars);
+    //! add a vector of state variables (no derivatives)
+    void add_state_vars(const std::vector<int> &a_vars);
 
-    //! add a vector of diagnostic variables (no derivatives)
-    void add_diagnostic_vars(const std::vector<int> &a_vars);
+    //! add a vector of derived variables (no derivatives)
+    void add_derived_vars(const std::vector<int> &a_vars,
+                          const amrex::Vector<BCParity> &a_parities,
+                          const std::string &a_name_derived);
 
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     //! Alternative constructor with a predefined vector of variables and
     //! derivatives
-    SurfaceExtraction(
-        const SurfaceGeometry &a_geom, const params_t &a_params,
-        const std::vector<std::tuple<int, VariableType, Derivative>> &a_vars,
-        double a_dt, double a_time, bool a_first_step,
-        double a_restart_time = 0.0);
+    SurfaceExtraction(const SurfaceGeometry &a_geom, const params_t &a_params,
+                      const std::vector<var_t> &a_vars, double a_dt,
+                      double a_time, bool a_first_step,
+                      double a_restart_time = 0.0);
 
     //! Another alternative constructor with a predefined vector of variables
     //! no derivatives
@@ -140,12 +152,7 @@ template <class SurfaceGeometry, int num_components> class SurfaceExtraction
                       double a_restart_time = 0.0);
     // NOLINTEND(bugprone-easily-swappable-parameters)
 
-    //! Do the extraction for derived
-    void extract(ParticleInterpolator<num_components> *a_interpolator,
-                 amrex::Vector<BCParity> parities,
-                 const std::string &name_derived);
-
-    //! Do the extraction for state variables
+    //! Do the extraction
     void extract(ParticleInterpolator<num_components> *a_interpolator);
 
     //! Add an integrand dependent on the interpolated data over the surface
