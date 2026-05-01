@@ -1,5 +1,5 @@
-#ifndef CUSTOMEXTRACTION_HPP_
-#define CUSTOMEXTRACTION_HPP_
+#ifndef LINEEXTRACTION_HPP_
+#define LINEEXTRACTION_HPP_
 
 #include "InterpolationQueryParticle.hpp"
 #include "ParticleInterpolator.hpp"
@@ -9,23 +9,18 @@
 #include <string>
 #include <vector>
 
-// function to convert double to string with precision
-inline std::string to_string_with_precision(double value, int precision)
-{
-    std::ostringstream out;
-    out << std::fixed << std::setprecision(precision) << value;
-    return out.str();
-}
-
-//! extract values of a (possibly multiple-component) variable along a line
-//! (x-axis)
-template <int num_components> class CustomExtraction
+//! extract values of a (possibly multiple-component) variable along a line.
+//! Line coords can be general and are provided by the user via start and end
+//! coords (see code below on how the points of the line are defined).
+template <int num_components> class LineExtraction
 {
   private:
     const int m_start_comp; // first component
     const int m_num_points; // number of points along the line
-    const double m_L;       // length of the line
-    const std::array<double, AMREX_SPACEDIM> m_origin; // line starts here
+    const std::array<double, AMREX_SPACEDIM>
+        m_start_coords; // starting coords of the line
+    const std::array<double, AMREX_SPACEDIM>
+        m_end_coords; // ending coords of the line
     // for data write-out
     const double m_dt;
     const double m_time;
@@ -33,34 +28,43 @@ template <int num_components> class CustomExtraction
     const bool m_first_step;
 
   public:
-    CustomExtraction(int a_start_comp, int a_num_points, double a_L,
-                     std::array<double, AMREX_SPACEDIM> a_origin, double a_dt,
-                     double a_time, bool a_restart_time, bool a_first_step)
+    LineExtraction(int a_start_comp, int a_num_points,
+                   std::array<double, AMREX_SPACEDIM> a_start_coords,
+                   std::array<double, AMREX_SPACEDIM> a_end_coords, double a_dt,
+                   double a_time, bool a_restart_time, bool a_first_step)
         : m_start_comp(a_start_comp),
           m_num_points(
               (amrex::ParallelDescriptor::IOProcessor() ? a_num_points : 0)),
-          m_L(a_L), m_origin(a_origin), m_dt(a_dt), m_time(a_time),
-          m_restart_time(a_restart_time), m_first_step(a_first_step)
+          m_start_coords(a_start_coords), m_end_coords(a_end_coords),
+          m_dt(a_dt), m_time(a_time), m_restart_time(a_restart_time),
+          m_first_step(a_first_step)
     {
     }
 
-    ~CustomExtraction() = default;
+    ~LineExtraction() = default;
 
     //! Execute using particle-based interpolation
     void execute_query(ParticleInterpolator<num_components> *interpolator,
                        std::string a_file_prefix) const
     {
-        BL_PROFILE("CustomExtraction::execute_query()");
+        BL_PROFILE("LineExtraction::execute_query()");
 
-        // build coordinates along x from origin to origin + L
+        // build coordinates along x from start to end
         std::vector<double> interp_x(m_num_points);
-        std::vector<double> interp_y(m_num_points, m_origin[1]);
-        std::vector<double> interp_z(m_num_points, m_origin[2]);
+        std::vector<double> interp_y(m_num_points);
+        std::vector<double> interp_z(m_num_points);
 
         for (int i = 0; i < m_num_points; ++i)
         {
             interp_x[i] =
-                m_origin[0] + (double(i) / double(m_num_points - 1)) * m_L;
+                m_start_coords[0] + (double(i) / double(m_num_points - 1)) *
+                                        (m_end_coords[0] - m_start_coords[0]);
+            interp_y[i] =
+                m_start_coords[1] + (double(i) / double(m_num_points - 1)) *
+                                        (m_end_coords[1] - m_start_coords[1]);
+            interp_z[i] =
+                m_start_coords[2] + (double(i) / double(m_num_points - 1)) *
+                                        (m_end_coords[2] - m_start_coords[2]);
         }
 
         // set up InterpolationQuery
@@ -96,7 +100,7 @@ template <int num_components> class CustomExtraction
             data_header_line[icomp] =
                 StateVariables::names[m_start_comp + icomp];
         }
-        output_file.write_header_line(data_header_line, "x");
+        output_file.write_header_line(data_header_line, {"x", "y", "z"});
 
         for (int ipoint = 0; ipoint < m_num_points; ++ipoint)
         {
@@ -106,9 +110,11 @@ template <int num_components> class CustomExtraction
                 data_line[icomp] =
                     interp_var_data[icomp * m_num_points + ipoint];
             }
-            output_file.write_data_line(data_line, interp_x[ipoint]);
+            output_file.write_data_line(
+                data_line,
+                {interp_x[ipoint], interp_y[ipoint], interp_z[ipoint]});
         }
     }
 };
 
-#endif /* CUSTOMEXTRACTION_HPP_ */
+#endif /* LINEEXTRACTION_HPP_ */
