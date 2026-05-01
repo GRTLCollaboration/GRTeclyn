@@ -26,9 +26,11 @@ class WeylExtraction : public SphericalExtraction<2>
         : SphericalExtraction<2>(a_params, a_dt, a_time, a_first_step,
                                  a_restart_time)
     {
-        this->add_var(0, VariableType::derived);
-        this->add_var(1, VariableType::derived);
+        amrex::Vector<BCParity> parities = {BCParity::even, BCParity::odd_xyz};
+        this->add_derived_vars({0, 1}, parities, "Weyl4");
     }
+
+    amrex::Vector<BCParity> parities = {BCParity::even, BCParity::odd_xyz};
 
     //! The old constructor which assumes it is called in specificPostTimeStep
     //! so the first time step is when m_time == m_dt
@@ -43,9 +45,8 @@ class WeylExtraction : public SphericalExtraction<2>
     void execute_query(ParticleInterpolator<2> *a_interpolator,
                        const std::string &name_derived = "")
     {
-        amrex::Vector<BCParity> parities = {BCParity::even, BCParity::odd_xyz};
         // extract the values of the Weyl scalars on the spheres
-        this->extract(a_interpolator, parities, name_derived);
+        this->extract(a_interpolator);
 
         if (this->m_params.write_extraction)
         {

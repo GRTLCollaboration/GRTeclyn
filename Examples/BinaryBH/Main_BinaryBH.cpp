@@ -51,10 +51,10 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
     bh_amr.init(0., sim_params.stop_time);
 
     ParticleInterpolator<
-        BHAMR<BinaryBHLevel::num_punctures>::particle_num_components>
+        BHAMR<BinaryBHLevel::num_punctures>::weyl_num_components>
         interpolator;
     interpolator.setup(&bh_amr, sim_params.boundary_params, true);
-    bh_amr.set_interpolator(&interpolator);
+    bh_amr.set_weyl_interpolator(&interpolator);
 
     while (
         (bh_amr.okToContinue() != 0) &&

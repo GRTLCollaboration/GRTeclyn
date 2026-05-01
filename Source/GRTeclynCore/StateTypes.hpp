@@ -6,8 +6,11 @@
 #ifndef STATE_TYPES_HPP_
 #define STATE_TYPES_HPP_
 
-#pragma once
-
+// We use this StateType to index various "groups" of state data. In our
+// applications however, we only have one type of state data for all evolution
+// vars. In general, amrex allows for multiple types of state data to be
+// defined. These data types can differ by e.g. numbers of components, ghost
+// cells, boundary conditions, and so on.
 enum StateType
 {
     state_index = 0,

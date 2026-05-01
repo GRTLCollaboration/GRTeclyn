@@ -15,7 +15,7 @@ GRTECLYN_CEXE_headers += ParticleInterpolator.hpp \
                          SurfaceExtraction.hpp \
                          SurfaceExtraction.impl.hpp \
                          WeylExtraction.hpp \
-                         CustomExtraction.hpp
+                         LineExtraction.hpp
 
 
 

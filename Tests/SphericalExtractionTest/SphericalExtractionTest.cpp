@@ -73,9 +73,9 @@ void run_spherical_extraction_test()
                               sim_params.verbosity);
 
         // Low resolution spherical extraction
-        std::vector<int> evolution_vars = {c_phi, c_Pi};
+        std::vector<int> state_vars = {c_phi, c_Pi};
         SphericalExtraction<2> spherical_extraction_lo(
-            sim_params.extraction_params_lo, evolution_vars,
+            sim_params.extraction_params_lo, state_vars,
             sim_params.coarsest_dx * sim_params.dt_multiplier, 0.0, true, 0.0);
 
         spherical_extraction_lo.extract(&interpolator);
@@ -92,7 +92,7 @@ void run_spherical_extraction_test()
         extraction_params_hi.num_points_theta() -= 1;
 
         SphericalExtraction<2> spherical_extraction_hi(
-            extraction_params_hi, evolution_vars,
+            extraction_params_hi, state_vars,
             sim_params.coarsest_dx * sim_params.dt_multiplier, 0.0, true, 0.0);
 
         spherical_extraction_hi.extract(&interpolator_hi);
@@ -184,21 +184,17 @@ void run_spherical_extraction_test()
                 std::log2(convergence_factor_boole);
 
             INFO("At r = " << r);
-            INFO("convergence_order_trapezium = "
-                 << convergence_order_trapezium);
-            INFO("convergence_order_simpson = " << convergence_order_simpson);
-            INFO("convergence_order_boole = " << convergence_order_boole);
 
             if (amrex::ParallelDescriptor::MyProc() == 0)
             {
                 // Trapezium rule should have second order convergence
-                CHECK(convergence_order_trapezium > 1.5);
+                CHECK_GT(convergence_order_trapezium, 1.5);
 
                 // Simpson's rule should have fourth order convergence
-                CHECK(convergence_order_simpson > 3.5);
+                CHECK_GT(convergence_order_simpson, 3.5);
 
                 // Boole's rule should have sixth order convergence
-                CHECK(convergence_order_boole > 5.5);
+                CHECK_GT(convergence_order_boole, 5.5);
             }
         }
     }

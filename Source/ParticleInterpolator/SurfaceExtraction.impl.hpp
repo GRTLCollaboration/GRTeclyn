@@ -78,44 +78,48 @@ SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
 //! add a single variable or derivative of variable
 template <class SurfaceGeometry, int num_components>
 void SurfaceExtraction<SurfaceGeometry, num_components>::add_var(
-    int a_var, const VariableType a_var_type, const Derivative &a_deriv)
+    int a_var, const VariableType a_var_type, const Derivative &a_deriv,
+    const amrex::Vector<BCParity> &a_parities,
+    const std::string &a_derived_name)
 {
     AMREX_ASSERT(!m_done_extraction);
-    m_vars.emplace_back(a_var, a_var_type, a_deriv);
     // m_num_interp_points is 0 on ranks > 0
+    m_vars.push_back({a_var, a_var_type, a_deriv, a_parities, a_derived_name});
     m_interp_data.emplace_back(m_num_interp_points);
 }
 
 //! add a vector of variables/derivatives of variables
 template <class SurfaceGeometry, int num_components>
 void SurfaceExtraction<SurfaceGeometry, num_components>::add_vars(
-    const std::vector<std::tuple<int, VariableType, Derivative>> &a_vars)
+    const std::vector<var_t> &a_vars)
 {
-    for (auto var : a_vars)
+    for (const auto &var : a_vars)
     {
-        add_var(std::get<0>(var), std::get<1>(var), std::get<2>(var));
+        add_var(var.var, var.type, var.deriv, var.parities, var.derived_name);
     }
 }
 
-//! add a vector of evolutionvariables (no derivatives)
+//! add a vector of state variables (no derivatives)
 template <class SurfaceGeometry, int num_components>
-void SurfaceExtraction<SurfaceGeometry, num_components>::add_evolution_vars(
+void SurfaceExtraction<SurfaceGeometry, num_components>::add_state_vars(
     const std::vector<int> &a_vars)
 {
-    for (auto var : a_vars)
+    for (const auto &var : a_vars)
     {
         add_var(var, VariableType::state);
     }
 }
 
-//! add a vector of evolutionvariables (no derivatives)
+//! add a vector of derived variables (no derivatives)
 template <class SurfaceGeometry, int num_components>
-void SurfaceExtraction<SurfaceGeometry, num_components>::add_diagnostic_vars(
-    const std::vector<int> &a_vars)
+void SurfaceExtraction<SurfaceGeometry, num_components>::add_derived_vars(
+    const std::vector<int> &a_vars, const amrex::Vector<BCParity> &a_parities,
+    const std::string &a_name_derived)
 {
     for (auto var : a_vars)
     {
-        add_var(var, VariableType::derived);
+        add_var(var, VariableType::derived, Derivative::LOCAL, a_parities,
+                a_name_derived);
     }
 }
 
@@ -124,8 +128,8 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::add_diagnostic_vars(
 template <class SurfaceGeometry, int num_components>
 SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
     const SurfaceGeometry &a_geom, const params_t &a_params,
-    const std::vector<std::tuple<int, VariableType, Derivative>> &a_vars,
-    double a_dt, double a_time, bool a_first_step, double a_restart_time)
+    const std::vector<var_t> &a_vars, double a_dt, double a_time,
+    bool a_first_step, double a_restart_time)
     : SurfaceExtraction<SurfaceGeometry, num_components>(
           a_geom, a_params, a_dt, a_time, a_first_step, a_restart_time)
 {
@@ -142,48 +146,11 @@ SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
     : SurfaceExtraction<SurfaceGeometry, num_components>(
           a_geom, a_params, a_dt, a_time, a_first_step, a_restart_time)
 {
-    add_evolution_vars(a_vars);
+    add_state_vars(a_vars);
 }
 
-//! Do the extraction
-template <class SurfaceGeometry, int num_components>
-void SurfaceExtraction<SurfaceGeometry, num_components>::extract(
-    ParticleInterpolator<num_components> *a_interpolator,
-    amrex::Vector<BCParity> parities, const std::string &name_derived)
-{
-    if (a_interpolator == nullptr)
-    {
-        amrex::Abort("SurfaceExtraction: invalid ParticleInterpolator pointer");
-    }
-
-    if (m_vars.size() != num_components)
-    {
-        amrex::Abort(
-            "SurfaceExtraction::extract: m_vars.size() != num_components");
-    }
-
-    // m_num_interp_points is 0 on ranks > 0
-    InterpolationQueryParticle query(m_num_interp_points);
-
-    FOR (idir)
-    {
-        query.setCoords(idir, m_interp_coords[idir].data());
-    }
-
-    for (std::size_t ivar = 0; ivar < m_vars.size(); ++ivar)
-    {
-        query.addComp(std::get<0>(m_vars[ivar]), m_interp_data[ivar].data(),
-                      std::get<1>(m_vars[ivar]), parities[ivar],
-                      std::get<2>(m_vars[ivar]));
-    }
-
-    // query not set?
-    a_interpolator->interp(query, 0, name_derived, m_time);
-
-    m_done_extraction = true;
-}
-
-//! Do the extraction
+//! Do the extraction: this only works if we add multiple components from the
+//! same derived quantity only!
 template <class SurfaceGeometry, int num_components>
 void SurfaceExtraction<SurfaceGeometry, num_components>::extract(
     ParticleInterpolator<num_components> *a_interpolator)
@@ -193,10 +160,10 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::extract(
         amrex::Abort("SurfaceExtraction: invalid ParticleInterpolator pointer");
     }
 
-    if (m_vars.size() != num_components)
+    if (m_vars.size() > num_components)
     {
         amrex::Abort(
-            "SurfaceExtraction::extract: m_vars.size() != num_components");
+            "SurfaceExtraction::extract: m_vars.size() > num_components");
     }
 
     // m_num_interp_points is 0 on ranks > 0
@@ -207,14 +174,48 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::extract(
         query.setCoords(idir, m_interp_coords[idir].data());
     }
 
+    BCParity parity =
+        BCParity::undefined; // use undefined parity, but overwrite for derived
+                             // vars in the 'if' block below
+
     for (std::size_t ivar = 0; ivar < m_vars.size(); ++ivar)
     {
-        query.addComp(std::get<0>(m_vars[ivar]), m_interp_data[ivar].data(),
-                      std::get<1>(m_vars[ivar]));
+        const auto &var = m_vars[ivar];
+
+        if (var.type == VariableType::derived)
+        {
+            AMREX_ALWAYS_ASSERT(static_cast<std::size_t>(var.var) <
+                                var.parities.size());
+            parity = var.parities[var.var];
+        }
+
+        query.addComp(var.var, m_interp_data[ivar].data(), var.type, parity,
+                      var.deriv);
     }
 
+    AMREX_ASSERT(!m_vars.empty());
+    const auto variable_type = m_vars.front().type;
+
     // query not set?
-    a_interpolator->interp(query, state_index);
+    if (variable_type == VariableType::derived)
+    {
+        const auto &derived_name = m_vars.front().derived_name;
+
+        for (const auto &var : m_vars)
+        {
+            if (variable_type == VariableType::derived &&
+                var.derived_name != derived_name)
+            {
+                amrex::Abort("SurfaceExtraction::extract: Cannot mix different "
+                             "derived groups!");
+            }
+        }
+        a_interpolator->interp(query, state_index, derived_name, m_time);
+    }
+    else
+    {
+        a_interpolator->interp(query, state_index);
+    }
 
     m_done_extraction = true;
 }
@@ -424,24 +425,23 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::write_extraction(
 
             for (std::size_t ivar = 0; ivar < m_vars.size(); ++ivar)
             {
-                if (std::get<2>(m_vars[ivar]) != Derivative::LOCAL)
+                const auto &var = m_vars[ivar];
+
+                if (var.deriv != Derivative::LOCAL)
                 {
-                    components[ivar] =
-                        Derivative::name(std::get<2>(m_vars[ivar])) + "_";
+                    components[ivar] = Derivative::name(var.deriv) + "_";
                 }
                 else
                 {
                     components[ivar] = "";
                 }
-                if (std::get<1>(m_vars[ivar]) == VariableType::state)
+                if (var.type == VariableType::state)
                 {
-                    components[ivar] +=
-                        StateVariables::names[std::get<0>(m_vars[ivar])];
+                    components[ivar] += StateVariables::names[var.var];
                 }
                 else
                 {
-                    components[ivar] +=
-                        std::to_string(std::get<0>(m_vars[ivar]));
+                    components[ivar] += std::to_string(var.var);
                 }
             }
 

@@ -25,8 +25,9 @@ template <int num_punctures> class BHAMR : public GRAMR
 
   public:
 
-    static constexpr int particle_num_components = 2;
-    ParticleInterpolator<particle_num_components> *m_interpolator =
+    // example for interpolator object for Psi4 extraction
+    static constexpr int weyl_num_components = 2;
+    ParticleInterpolator<weyl_num_components> *m_weyl_interpolator =
         nullptr; // interpolator object
 
     BHAMR(amrex::LevelBld *a_levelbld) : GRAMR(a_levelbld)
@@ -42,12 +43,12 @@ template <int num_punctures> class BHAMR : public GRAMR
     }
 
     // set interpolator
-    void set_interpolator(
-        ParticleInterpolator<particle_num_components> *a_interpolator)
+    void set_weyl_interpolator(
+        ParticleInterpolator<weyl_num_components> *a_weyl_interpolator)
     {
-        AMREX_ASSERT(a_interpolator != nullptr);
+        AMREX_ASSERT(a_weyl_interpolator != nullptr);
 
-        m_interpolator = a_interpolator;
+        m_weyl_interpolator = a_weyl_interpolator;
     }
 
     PunctureTracker<num_punctures> &get_puncture_tracker()
