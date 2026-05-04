@@ -86,7 +86,7 @@ template <int num_components> class LineExtraction
                                       // stuff into out_k array
         }
 
-        interpolator->interp(query, state_index);
+        interpolator->interp(query);
 
         const bool first_step =
             (std::abs(m_time) == m_dt); // random for now, needs a fix

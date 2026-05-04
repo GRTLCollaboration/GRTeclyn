@@ -14,14 +14,6 @@
 #include "SphericalExtraction.hpp"
 #include <limits>
 
-// add this type alias here for backwards compatibility
-static constexpr int extraction_num_components =
-    2; // As SphericalExtraction is templated over the number of components we
-       // need to provide the number here. Unfortunately, with the current
-       // structure we cannot avoid using magic numbers such as 2 here.
-using extraction_params_t = typename SphericalExtraction<
-    extraction_num_components>::params_t; // this is annoying!
-
 class SimulationParametersBase : public AMReXParameters
 {
   public:
@@ -344,7 +336,7 @@ class SimulationParametersBase : public AMReXParameters
     CCZ4_params_t<> ccz4_params;
 
     bool activate_extraction{};
-    SphericalExtraction<2>::params_t extraction_params;
+    spherical_extraction_params_t extraction_params;
 
     std::string data_path;
 };

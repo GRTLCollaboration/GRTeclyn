@@ -86,7 +86,7 @@ class SimulationParameters : public SimulationParametersBase
     bool verbosity{};
 
     // For SphericalExtraction Test
-    SphericalExtraction<2>::params_t extraction_params_lo;
+    spherical_extraction_params_t extraction_params_lo;
     int es, el, em; // spherical harmonic params
 };
 

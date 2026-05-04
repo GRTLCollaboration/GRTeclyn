@@ -138,9 +138,7 @@ class ParticleInterpolator
                                  const amrex::Geometry &geom);
 
     // final interpolation routine exposed to the users
-    // NEW: I need to carry through a_state_index here, as otherwise there are
-    // now out of scope errors
-    void interp(InterpolationQueryParticle &query, int a_state_index,
+    void interp(InterpolationQueryParticle &query,
                 const std::string &name_derived = "",
                 double time_derived             = 0.0);
 
