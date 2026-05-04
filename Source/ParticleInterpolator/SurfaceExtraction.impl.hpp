@@ -17,8 +17,8 @@
 //! using add_var or add_vars
 template <class SurfaceGeometry, int num_components>
 SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
-    const SurfaceGeometry &a_geom, params_t a_params, double a_dt,
-    double a_time, bool a_first_step, double a_restart_time)
+    const SurfaceGeometry &a_geom, surface_extraction_params_t a_params,
+    double a_dt, double a_time, bool a_first_step, double a_restart_time)
     : m_geom(a_geom), m_params(std::move(a_params)), m_dt(a_dt), m_time(a_time),
       m_first_step(a_first_step), m_restart_time(a_restart_time),
       m_num_interp_points((amrex::ParallelDescriptor::MyProc() == 0)
@@ -127,7 +127,7 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::add_derived_vars(
 //! derivatives
 template <class SurfaceGeometry, int num_components>
 SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
-    const SurfaceGeometry &a_geom, const params_t &a_params,
+    const SurfaceGeometry &a_geom, const surface_extraction_params_t &a_params,
     const std::vector<var_t> &a_vars, double a_dt, double a_time,
     bool a_first_step, double a_restart_time)
     : SurfaceExtraction<SurfaceGeometry, num_components>(
@@ -140,7 +140,7 @@ SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
 //! no derivatives
 template <class SurfaceGeometry, int num_components>
 SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
-    const SurfaceGeometry &a_geom, const params_t &a_params,
+    const SurfaceGeometry &a_geom, const surface_extraction_params_t &a_params,
     const std::vector<int> &a_vars, double a_dt, double a_time,
     bool a_first_step, double a_restart_time)
     : SurfaceExtraction<SurfaceGeometry, num_components>(
@@ -210,11 +210,11 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::extract(
                              "derived groups!");
             }
         }
-        a_interpolator->interp(query, state_index, derived_name, m_time);
+        a_interpolator->interp(query, derived_name, m_time);
     }
     else
     {
-        a_interpolator->interp(query, state_index);
+        a_interpolator->interp(query);
     }
 
     m_done_extraction = true;

@@ -155,14 +155,14 @@ void run_particle_interpolator_test()
 
         interpolator_derived.setup(&gr_amr, sim_params.boundary_params,
                                    verbosity);
-        interpolator_derived.interp(query_derived, state_index,
+        interpolator_derived.interp(query_derived,
                                     PolynomialDerivedQuantity::name, 0.0);
 
         // set up interpolation using Particles for state vars
         ParticleInterpolator<2> interpolator_state;
         interpolator_state.setup(&gr_amr, sim_params.boundary_params,
                                  verbosity);
-        interpolator_state.interp(query_state, state_index);
+        interpolator_state.interp(query_state);
 
         for (int ipoint = 0; ipoint < n_local; ++ipoint)
         {

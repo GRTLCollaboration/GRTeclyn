@@ -82,7 +82,7 @@ void run_spherical_extraction_test()
         spherical_extraction_lo.write_extraction("ExtractionOutLo_");
 
         // High resolution spherical extraction
-        SphericalExtraction<2>::params_t extraction_params_hi =
+        spherical_extraction_params_t extraction_params_hi =
             sim_params.extraction_params_lo;
 
         // We are only checking the convergence in theta integration
