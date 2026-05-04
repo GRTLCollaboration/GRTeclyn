@@ -26,7 +26,7 @@
 #include <utility>
 #include <vector>
 
-// template <int num_components> class ParticleInterpolator;
+template <int num_components> class ParticleInterpolator;
 
 struct surface_extraction_params_t
 {
