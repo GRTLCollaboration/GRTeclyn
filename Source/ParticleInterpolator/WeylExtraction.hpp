@@ -8,8 +8,6 @@
 
 #include "SphericalExtraction.hpp"
 
-//!  The class allows extraction of the values of the Weyl scalar components on
-//!  spherical shells at specified radii, and integration over those shells
 /*!
    The class allows the user to extract data from the grid for the Weyl
    components over spherical shells at specified radii. The values may then be
@@ -20,8 +18,8 @@ class WeylExtraction : public SphericalExtraction<2>
   public:
 
     //! The constructor
-    WeylExtraction(const SphericalExtraction<2>::params_t &a_params,
-                   double a_dt, double a_time, bool a_first_step,
+    WeylExtraction(const spherical_extraction_params_t &a_params, double a_dt,
+                   double a_time, bool a_first_step,
                    double a_restart_time = 0.0)
         : SphericalExtraction<2>(a_params, a_dt, a_time, a_first_step,
                                  a_restart_time)
@@ -34,7 +32,7 @@ class WeylExtraction : public SphericalExtraction<2>
 
     //! The old constructor which assumes it is called in specificPostTimeStep
     //! so the first time step is when m_time == m_dt
-    WeylExtraction(SphericalExtraction<2>::params_t a_params, double a_dt,
+    WeylExtraction(spherical_extraction_params_t a_params, double a_dt,
                    double a_time, double a_restart_time = 0.0)
         : WeylExtraction(a_params, a_dt, a_time, (a_dt == a_time),
                          a_restart_time)

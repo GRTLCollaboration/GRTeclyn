@@ -26,7 +26,34 @@
 #include <utility>
 #include <vector>
 
-template <int num_components> class ParticleInterpolator;
+// template <int num_components> class ParticleInterpolator;
+
+struct surface_extraction_params_t
+{
+    int num_surfaces{}; //!< number of surfaces over which to extraction
+    amrex::Gpu::ManagedVector<double>
+        surface_param_values; //!< the values of the
+                              //!< parameter that gives the required
+                              //!< surfaces with SurfaceGeom geometry (e.g.
+                              //!< radii for spherical shells)
+    int num_points_u{};       //!< the number of points for the first parameter
+                              //!< that parameterises each surface
+    int num_points_v{};       //!< the number of points for the second parameter
+                              //!< that parameterises each surfaces
+    amrex::Gpu::ManagedVector<int>
+        extraction_levels;   //!< the level on which to do the
+                             //!< extraction for each surface
+    bool write_extraction{}; //!< whether or not to write the extracted data
+
+    std::string data_path, integral_file_prefix;
+    std::string extraction_path, extraction_file_prefix;
+
+    int min_extraction_level() const
+    {
+        return *(std::min_element(extraction_levels.begin(),
+                                  extraction_levels.end()));
+    }
+};
 
 //! This class extracts grid variables on 2 dimensional surfaces each
 //! parameterised by u and v with different surfaces given by level sets of
@@ -34,33 +61,6 @@ template <int num_components> class ParticleInterpolator;
 template <class SurfaceGeometry, int num_components> class SurfaceExtraction
 {
   public:
-    struct params_t
-    {
-        int num_surfaces{}; //!< number of surfaces over which to extraction
-        amrex::Gpu::ManagedVector<double>
-            surface_param_values; //!< the values of the
-                                  //!< parameter that gives the required
-                                  //!< surfaces with SurfaceGeom geometry (e.g.
-                                  //!< radii for spherical shells)
-        int num_points_u{}; //!< the number of points for the first parameter
-                            //!< that parameterises each surface
-        int num_points_v{}; //!< the number of points for the second parameter
-                            //!< that parameterises each surfaces
-        amrex::Gpu::ManagedVector<int>
-            extraction_levels;   //!< the level on which to do the
-                                 //!< extraction for each surface
-        bool write_extraction{}; //!< whether or not to write the extracted data
-
-        std::string data_path, integral_file_prefix;
-        std::string extraction_path, extraction_file_prefix;
-
-        int min_extraction_level() const
-        {
-            return *(std::min_element(extraction_levels.begin(),
-                                      extraction_levels.end()));
-        }
-    };
-
     // I suggest using a struct here instead of the tuple-structure inherited
     // from GRChombo here, as we need to add more features to the varibles used
     struct var_t
@@ -77,7 +77,7 @@ template <class SurfaceGeometry, int num_components> class SurfaceExtraction
   protected:
     SurfaceGeometry m_geom; //!< the geometry class which knows about
                             //!< the particular surface
-    params_t m_params;
+    surface_extraction_params_t m_params;
     std::vector<var_t>
         m_vars; //!< the vector of of variables and their features to extract
     double m_dt{};
@@ -115,8 +115,9 @@ template <class SurfaceGeometry, int num_components> class SurfaceExtraction
   public:
     //! Normal constructor which requires vars to be added after construction
     //! using add_var or add_vars
-    SurfaceExtraction(const SurfaceGeometry &a_geom, params_t a_params,
-                      double a_dt, double a_time, bool a_first_step,
+    SurfaceExtraction(const SurfaceGeometry &a_geom,
+                      surface_extraction_params_t a_params, double a_dt,
+                      double a_time, bool a_first_step,
                       double a_restart_time = 0.0);
 
     //! add a single variable or derivative of variable
@@ -139,14 +140,16 @@ template <class SurfaceGeometry, int num_components> class SurfaceExtraction
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     //! Alternative constructor with a predefined vector of variables and
     //! derivatives
-    SurfaceExtraction(const SurfaceGeometry &a_geom, const params_t &a_params,
+    SurfaceExtraction(const SurfaceGeometry &a_geom,
+                      const surface_extraction_params_t &a_params,
                       const std::vector<var_t> &a_vars, double a_dt,
                       double a_time, bool a_first_step,
                       double a_restart_time = 0.0);
 
     //! Another alternative constructor with a predefined vector of variables
     //! no derivatives
-    SurfaceExtraction(const SurfaceGeometry &a_geom, const params_t &a_params,
+    SurfaceExtraction(const SurfaceGeometry &a_geom,
+                      const surface_extraction_params_t &a_params,
                       const std::vector<int> &a_vars, double a_dt,
                       double a_time, bool a_first_step,
                       double a_restart_time = 0.0);

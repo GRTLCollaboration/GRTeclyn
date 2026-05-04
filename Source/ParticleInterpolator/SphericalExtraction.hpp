@@ -10,61 +10,61 @@
 #include "SphericalHarmonics.hpp"
 #include "SurfaceExtraction.hpp"
 
+struct spherical_extraction_params_t : surface_extraction_params_t
+{
+    int &num_extraction_radii() { return this->num_surfaces; }
+
+    [[nodiscard]] const int &num_extraction_radii() const
+    {
+        return this->num_surfaces;
+    }
+
+    auto &extraction_radii() { return this->surface_param_values; }
+
+    [[nodiscard]] const auto &extraction_radii() const
+    {
+        return this->surface_param_values;
+    }
+
+    int &num_points_theta() { return this->num_points_u; }
+
+    [[nodiscard]] const int &num_points_theta() const
+    {
+        return this->num_points_u;
+    }
+
+    int &num_points_phi() { return this->num_points_v; }
+
+    [[nodiscard]] const int &num_points_phi() const
+    {
+        return this->num_points_v;
+    }
+
+    std::array<double, AMREX_SPACEDIM> center{}; //!< the center of the
+                                                 //!< spherical shells
+    std::array<double, AMREX_SPACEDIM> &extraction_center()
+    {
+        return this->center;
+    }
+    int num_modes{};                        //!< the number of modes to extract
+    std::vector<std::pair<int, int>> modes; //!< the modes to extract
+                                            //!< l = first, m = second
+
+    [[nodiscard]] const surface_extraction_params_t &
+    get_surface_extraction_params() const
+    {
+        return *this;
+    }
+};
+
 //! A child class of SurfaceExtraction for extraction on spherical shells
 template <int num_components>
 class SphericalExtraction
     : public SurfaceExtraction<SphericalGeometry, num_components>
 {
   public:
-    using Base       = SurfaceExtraction<SphericalGeometry, num_components>;
-    using BaseParams = typename Base::params_t;
-    using vars_t     = typename Base::vars_t;
-
-    struct params_t : BaseParams
-    {
-        int &num_extraction_radii() { return this->num_surfaces; }
-
-        [[nodiscard]] const int &num_extraction_radii() const
-        {
-            return this->num_surfaces;
-        }
-
-        auto &extraction_radii() { return this->surface_param_values; }
-
-        [[nodiscard]] const auto &extraction_radii() const
-        {
-            return this->surface_param_values;
-        }
-
-        int &num_points_theta() { return this->num_points_u; }
-
-        [[nodiscard]] const int &num_points_theta() const
-        {
-            return this->num_points_u;
-        }
-
-        int &num_points_phi() { return this->num_points_v; }
-
-        [[nodiscard]] const int &num_points_phi() const
-        {
-            return this->num_points_v;
-        }
-
-        std::array<double, AMREX_SPACEDIM> center{}; //!< the center of the
-                                                     //!< spherical shells
-        std::array<double, AMREX_SPACEDIM> &extraction_center()
-        {
-            return this->center;
-        }
-        int num_modes{}; //!< the number of modes to extract
-        std::vector<std::pair<int, int>> modes; //!< the modes to extract
-                                                //!< l = first, m = second
-
-        [[nodiscard]] const BaseParams &get_surface_extraction_params() const
-        {
-            return *this;
-        }
-    };
+    using Base   = SurfaceExtraction<SphericalGeometry, num_components>;
+    using vars_t = typename Base::vars_t;
 
   protected:
     std::array<double, AMREX_SPACEDIM> m_center;
@@ -72,8 +72,9 @@ class SphericalExtraction
     std::vector<std::pair<int, int>> m_modes;
 
   public:
-    SphericalExtraction(const params_t &a_params, double a_dt, double a_time,
-                        bool a_first_step, double a_restart_time = 0.0)
+    SphericalExtraction(const spherical_extraction_params_t &a_params,
+                        double a_dt, double a_time, bool a_first_step,
+                        double a_restart_time = 0.0)
         : Base(a_params.center, a_params.get_surface_extraction_params(), a_dt,
                a_time, a_first_step, a_restart_time),
           m_center(a_params.center), m_num_modes(a_params.num_modes),
@@ -81,7 +82,7 @@ class SphericalExtraction
     {
     }
 
-    SphericalExtraction(const params_t &a_params,
+    SphericalExtraction(const spherical_extraction_params_t &a_params,
                         const std::vector<vars_t> &a_vars, double a_dt,
                         double a_time, bool a_first_step,
                         double a_restart_time = 0.0)
@@ -91,7 +92,7 @@ class SphericalExtraction
         this->add_vars(a_vars);
     }
 
-    SphericalExtraction(const params_t &a_params,
+    SphericalExtraction(const spherical_extraction_params_t &a_params,
                         const std::vector<int> &a_state_vars, double a_dt,
                         double a_time, bool a_first_step,
                         double a_restart_time = 0.0)

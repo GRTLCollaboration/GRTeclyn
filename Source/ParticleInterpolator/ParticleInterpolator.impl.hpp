@@ -279,8 +279,8 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
 // It uses/collates together all the methods defined in this class
 template <int num_components>
 void ParticleInterpolator<num_components>::interp(
-    InterpolationQueryParticle &query, int a_state_index,
-    const std::string &name_derived, double time_derived /*=0.0*/)
+    InterpolationQueryParticle &query, const std::string &name_derived,
+    double time_derived /*=0.0*/)
 {
     // Populate particles
     if (!m_particles_populated)
@@ -314,10 +314,9 @@ void ParticleInterpolator<num_components>::interp(
                 continue;
 
             amrex::AmrLevel &level = m_gramr_ptr->getLevel(lev);
-            amrex::Real cur_time =
-                level.get_state_data(a_state_index).curTime();
+            amrex::Real cur_time = level.get_state_data(state_index).curTime();
             const amrex::Geometry &geom = level.Geom();
-            amrex::MultiFab &state      = level.get_new_data(a_state_index);
+            amrex::MultiFab &state      = level.get_new_data(state_index);
 
             // Fill ghost cells
             // So FillPatch and FillBoundary in amrex are different routines!
@@ -326,7 +325,7 @@ void ParticleInterpolator<num_components>::interp(
             // single-level operation only! There is a nice explanation on this
             // issue here: https://github.com/AMReX-Codes/amrex/issues/391
             amrex::AmrLevel::FillPatch(level, state, s_num_ghosts, cur_time,
-                                       a_state_index, start_comp, ncomp);
+                                       state_index, start_comp, ncomp);
 
             interpolate_to_particle(lev, state, geom);
         }
