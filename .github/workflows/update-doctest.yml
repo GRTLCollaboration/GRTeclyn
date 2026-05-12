@@ -51,7 +51,7 @@ jobs:
 
             - name: Open pull request
               if: steps.current.outputs.version != steps.latest.outputs.version
-              uses: peter-evans/create-pull-request@v7
+              uses: peter-evans/create-pull-request@v8
               with:
                   commit-message: "bump(doctest): update to v${{ env.LATEST_VER }}"
                   title: "Update doctest from v${{ env.CURRENT_VER }} to v${{ env.LATEST_VER }}"
