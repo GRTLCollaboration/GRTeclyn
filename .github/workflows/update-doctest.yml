@@ -54,6 +54,7 @@ jobs:
               uses: peter-evans/create-pull-request@v8
               with:
                   commit-message: "bump(doctest): update to v${{ env.LATEST_VER }}"
+                  author: GRTLBot <grchombo@gmail.com>
                   title: "Update doctest from v${{ env.CURRENT_VER }} to v${{ env.LATEST_VER }}"
                   body: |
                       Updates the vendored [doctest](https://github.com/doctest/doctest)
@@ -67,6 +68,4 @@ jobs:
                       *This PR was opened automatically by the `update-doctest` workflow.*
                   branch: update/doctest-v${{ env.LATEST_VER }}
                   base: develop
-                  # TODO: switch to a fine-grained PAT
-                  token: ${{ secrets.REPO_GITHUB_TOKEN }}
                   labels: dependencies
