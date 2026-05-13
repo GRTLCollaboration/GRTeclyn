@@ -221,7 +221,7 @@ make_trace_free(TensorArray::Rank2 &tensor_LL, const TensorArray::Rank2 &metric,
 /// Makes a 2-Tensor symmetric
 template <int size>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-make_symmetric(amrex::Array2D<amrex::Real, 0, size, 0, size> &tensor_LL)
+make_symmetric(amrex::Array2D<amrex::Real, 0, size - 1, 0, size - 1> &tensor_LL)
 {
     for (int i = 0; i < size; ++i)
     {

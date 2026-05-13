@@ -311,9 +311,10 @@ compute_christoffel(const CCZ4D1Vars &d1, const TensorArray::Rank2 &h_UU)
 
 /// Computes the conformal christoffel symbol - using AMReX Arrays
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE chris_t
-compute_christoffel(const amrex::Array2D<amrex::Real, 0, 6, 0, 3> &d1_h,
-                    const TensorArray::Rank1Sym &h_UU)
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE chris_t compute_christoffel(
+    const amrex::Array2D<amrex::Real, 0, UNIQUE_IDX - 1, 0, AMREX_SPACEDIM - 1>
+        &d1_h,
+    const TensorArray::Rank1Sym &h_UU)
 {
     chris_t out{};
 
@@ -602,12 +603,13 @@ compute_z_terms(const int i, const int j, const TensorArray::Rank1 &Z_over_chi,
 
     return out;
 }
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
-compute_ricci_hat(const int i, const int j, const TensorArray::Rank2 &d1_Gamma,
-                  const amrex::Array2D<amrex::Real, 0, 6, 0, 3> &d1_h,
-                  const TensorArray::Rank2Sym &d2_h,
-                  const amrex::CellData<const amrex::Real> &state_cell_data,
-                  const TensorArray::Rank2 &h_UU, const chris_t &chris)
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real compute_ricci_hat(
+    const int i, const int j, const TensorArray::Rank2 &d1_Gamma,
+    const amrex::Array2D<amrex::Real, 0, UNIQUE_IDX - 1, 0, AMREX_SPACEDIM - 1>
+        &d1_h,
+    const TensorArray::Rank2Sym &d2_h,
+    const amrex::CellData<const amrex::Real> &state_cell_data,
+    const TensorArray::Rank2 &h_UU, const chris_t &chris)
 {
 
     amrex::Real ricci_hat = 0;

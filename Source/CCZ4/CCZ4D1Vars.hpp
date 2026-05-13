@@ -35,7 +35,7 @@ class CCZ4D1Vars
     }
     // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
-    amrex::Array2D<amrex::Real, 0, NUM_CCZ4_VARS, 0, AMREX_SPACEDIM>
+    amrex::Array2D<amrex::Real, 0, NUM_CCZ4_VARS - 1, 0, AMREX_SPACEDIM - 1>
         m_d1_state{};
 
     [[nodiscard]]
