@@ -35,10 +35,9 @@ BoostedBHInitialData::psi_minus_one(Coordinates coords) const
 BoostedBHInitialData::Aij(Coordinates a_coords) const
 {
     const amrex::Real r = center_dist(a_coords);
-    const amrex::Array1D<amrex::Real, 0, 3> l{
-        (a_coords.x - m_params.center[0]) / r,
-        (a_coords.y - m_params.center[1]) / r,
-        (a_coords.z - m_params.center[2]) / r};
+    const TensorArray::Rank1 l{(a_coords.x - m_params.center[0]) / r,
+                               (a_coords.y - m_params.center[1]) / r,
+                               (a_coords.z - m_params.center[2]) / r};
     const amrex::Real l_dot_p = l(0) * m_params.momentum[0] +
                                 l(1) * m_params.momentum[1] +
                                 l(2) * m_params.momentum[2];

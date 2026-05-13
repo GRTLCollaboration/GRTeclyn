@@ -56,7 +56,7 @@ class CCZ4D2Vars
     }
 
     TensorArray::Rank2Sym h;
-    amrex::Array2D<amrex::Real, 0, AMREX_SPACEDIM, 0, UNIQUE_IDX> shift;
+    amrex::Array2D<amrex::Real, 0, AMREX_SPACEDIM - 1, 0, UNIQUE_IDX - 1> shift;
     TensorArray::Rank1Sym chi;
     TensorArray::Rank1Sym lapse;
 };

@@ -27,25 +27,28 @@
 
 namespace TensorArray
 {
-using Rank1 = amrex::Array1D<amrex::Real, 0, AMREX_SPACEDIM>;
-using Rank2 = amrex::Array2D<amrex::Real, 0, AMREX_SPACEDIM, 0, AMREX_SPACEDIM>;
-using Rank3 = amrex::Array3D<amrex::Real, 0, AMREX_SPACEDIM, 0, AMREX_SPACEDIM,
-                             0, AMREX_SPACEDIM>;
+using Rank1 = amrex::Array1D<amrex::Real, 0, AMREX_SPACEDIM - 1>;
+using Rank2 =
+    amrex::Array2D<amrex::Real, 0, AMREX_SPACEDIM - 1, 0, AMREX_SPACEDIM - 1>;
+using Rank3 = amrex::Array3D<amrex::Real, 0, AMREX_SPACEDIM - 1, 0,
+                             AMREX_SPACEDIM - 1, 0, AMREX_SPACEDIM - 1>;
 
-using Rank1Sym = amrex::Array1D<amrex::Real, 0, UNIQUE_IDX>;
-using Rank2Sym = amrex::Array2D<amrex::Real, 0, UNIQUE_IDX, 0, UNIQUE_IDX>;
+using Rank1Sym = amrex::Array1D<amrex::Real, 0, UNIQUE_IDX - 1>;
+using Rank2Sym =
+    amrex::Array2D<amrex::Real, 0, UNIQUE_IDX - 1, 0, UNIQUE_IDX - 1>;
 
 // Rank 4 tensors are actually a 1D array of length 4 * 4 * 4 * 4
 
-using Rank4 = amrex::Array1D<amrex::Real, 0, 256>;
+using Rank4 = amrex::Array1D<amrex::Real, 0, 255>;
 } // namespace TensorArray
 
 namespace SpaceTimeTensor
 {
-using Rank1 = amrex::Array1D<amrex::Real, 0, SPACETIME_DIM>;
-using Rank2 = amrex::Array2D<amrex::Real, 0, SPACETIME_DIM, 0, SPACETIME_DIM>;
-using Rank3 = amrex::Array3D<amrex::Real, 0, SPACETIME_DIM, 0, SPACETIME_DIM, 0,
-                             SPACETIME_DIM>;
+using Rank1 = amrex::Array1D<amrex::Real, 0, SPACETIME_DIM - 1>;
+using Rank2 =
+    amrex::Array2D<amrex::Real, 0, SPACETIME_DIM - 1, 0, SPACETIME_DIM - 1>;
+using Rank3 = amrex::Array3D<amrex::Real, 0, SPACETIME_DIM - 1, 0,
+                             SPACETIME_DIM - 1, 0, SPACETIME_DIM - 1>;
 
 } // namespace SpaceTimeTensor
 
