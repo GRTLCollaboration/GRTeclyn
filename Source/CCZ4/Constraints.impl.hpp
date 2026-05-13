@@ -53,7 +53,11 @@ Constraints::operator()(int ix, int iy, int iz,
     CCZ4Vars vars(state_cell_data);
 
     // we need d1 chi, K, h, A... this just gets all of them
-    const CCZ4D1Vars d1(ix, iy, iz, state, m_deriv);
+    auto d1_chi   = m_deriv.diff1_scalar(ix, iy, iz, state, c_chi);
+    auto d1_Gamma = m_deriv.diff1_vector(ix, iy, iz, state, c_Gamma1);
+    auto d1_K     = m_deriv.diff1_scalar(ix, iy, iz, state, c_K);
+    auto d1_A     = m_deriv.diff1_sym_tensor(ix, iy, iz, state, c_A11);
+    auto d1_h     = m_deriv.diff1_sym_tensor(ix, iy, iz, state, c_h11);
 
     // we only need d2 of chi and h
     const TensorArray::Rank1Sym d2_chi =
@@ -62,10 +66,10 @@ Constraints::operator()(int ix, int iy, int iz,
         m_deriv.diff2_tensor(ix, iy, iz, state, c_h11);
 
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
-    const auto chris = CCZ4Geometry::compute_christoffel(d1, h_UU);
+    const auto chris = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
 
-    constraints_t out =
-        constraint_equations(vars, d1, d2_chi, d2_h, h_UU, chris);
+    constraints_t out = constraint_equations(vars, d1_chi, d1_Gamma, d1_h, d1_K,
+                                             d1_A, d2_chi, d2_h, h_UU, chris);
 
     // TODO: Simplify this storing so less choice but more readable
     const auto constraint_cell_data = constraints.cellData(ix, iy, iz);
@@ -74,7 +78,13 @@ Constraints::operator()(int ix, int iy, int iz,
 
 AMREX_GPU_DEVICE
 Constraints::constraints_t Constraints::constraint_equations(
-    const CCZ4Vars &vars, const CCZ4D1Vars &d1,
+    const CCZ4Vars &vars, const TensorArray::Rank1 &d1_chi,
+    const TensorArray::Rank2 &d1_Gamma,
+    const amrex::Array2D<amrex::Real, 0, UNIQUE_IDX - 1, 0, AMREX_SPACEDIM - 1>
+        &d1_h,
+    const TensorArray::Rank1 &d1_K,
+    const amrex::Array2D<amrex::Real, 0, UNIQUE_IDX - 1, 0, AMREX_SPACEDIM - 1>
+        &d1_A,
     const TensorArray::Rank1Sym &d2_chi, const TensorArray::Rank2Sym &d2_h,
     const TensorArray::Rank2 &h_UU, const chris_t &chris) const
 {
@@ -82,8 +92,8 @@ Constraints::constraints_t Constraints::constraint_equations(
 
     if (m_c_Ham >= 0 || m_c_Ham_abs_terms >= 0)
     {
-        auto ricci =
-            CCZ4Geometry::compute_ricci(vars, d1, d2_chi, d2_h, h_UU, chris);
+        auto ricci = CCZ4Geometry::compute_ricci(vars, d1_chi, d1_Gamma, d1_h,
+                                                 d2_chi, d2_h, h_UU, chris);
 
         // This is A_ij A^ij
         amrex::Real Aij_squared = CCZ4Geometry::compute_Aij_squared(vars, h_UU);
@@ -104,7 +114,7 @@ Constraints::constraints_t Constraints::constraint_equations(
         TensorArray::Rank3 covd_A{};
         FOR (i, j, k)
         {
-            covd_A(i, j, k) = d1.A(j, k, i);
+            covd_A(i, j, k) = d1_A(VAR_IDX0(j, k), i);
             FOR (l)
             {
                 covd_A(i, j, k) += -chris.ULL(l, i, j) * vars.A(l, k) -
@@ -113,7 +123,7 @@ Constraints::constraints_t Constraints::constraint_equations(
         }
         FOR (i)
         {
-            out.Mom(i)           = -(GR_SPACEDIM - 1.) * d1.K(i) / GR_SPACEDIM;
+            out.Mom(i)           = -(GR_SPACEDIM - 1.) * d1_K(i) / GR_SPACEDIM;
             out.Mom_abs_terms(i) = std::abs(out.Mom(i));
         }
         TensorArray::Rank1 covd_A_term{};
@@ -122,7 +132,7 @@ Constraints::constraints_t Constraints::constraint_equations(
         {
             covd_A_term(i) += h_UU(j, k) * covd_A(k, j, i);
             d1_chi_term(i) += -GR_SPACEDIM * h_UU(j, k) * vars.A(i, j) *
-                              d1.chi(k) / (2.0 * vars.chi());
+                              d1_chi(k) / (2.0 * vars.chi());
         }
         FOR (i)
         {

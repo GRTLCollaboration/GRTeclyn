@@ -96,7 +96,13 @@ class Constraints
 
     [[nodiscard]]
     AMREX_FORCE_INLINE AMREX_GPU_DEVICE constraints_t constraint_equations(
-        const CCZ4Vars &vars, const CCZ4D1Vars &d1,
+        const CCZ4Vars &vars, const TensorArray::Rank1 &d1_chi,
+        const TensorArray::Rank2 &d1_Gamma,
+        const amrex::Array2D<amrex::Real, 0, UNIQUE_IDX - 1, 0,
+                             AMREX_SPACEDIM - 1> &d1_h,
+        const TensorArray::Rank1 &d1_K,
+        const amrex::Array2D<amrex::Real, 0, UNIQUE_IDX - 1, 0,
+                             AMREX_SPACEDIM - 1> &d1_A,
         const TensorArray::Rank1Sym &d2_chi, const TensorArray::Rank2Sym &d2_h,
         const TensorArray::Rank2 &h_UU, const chris_t &chris) const;
 

@@ -21,9 +21,9 @@ Weyl4::operator()(int ix, int iy, int iz,
     CCZ4Vars vars(state_cell_data);
 
     // we need d1 chi, K, h, A... this just gets all of them
-    const CCZ4D1Vars d1(ix, iy, iz, state, m_deriv);
+    auto d1_h        = m_deriv.diff1_sym_tensor(ix, iy, iz, state, c_h11);
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
-    const auto chris = CCZ4Geometry::compute_christoffel(d1, h_UU);
+    const auto chris = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
 
     // we only need d2 of chi and h
     const TensorArray::Rank1Sym d2_chi =
@@ -38,8 +38,15 @@ Weyl4::operator()(int ix, int iy, int iz,
     const auto epsilon3_LUU = compute_epsilon3_LUU(vars, h_UU);
 
     // Compute the E and B fields
+    // This needs d1 chi, K, h, A
+    auto d1_chi   = m_deriv.diff1_scalar(ix, iy, iz, state, c_chi);
+    auto d1_Gamma = m_deriv.diff1_vector(ix, iy, iz, state, c_Gamma1);
+    auto d1_K     = m_deriv.diff1_scalar(ix, iy, iz, state, c_K);
+    auto d1_A     = m_deriv.diff1_sym_tensor(ix, iy, iz, state, c_A11);
+
     EBFields_t ebfields =
-        compute_EB_fields(vars, d1, d2_chi, d2_h, epsilon3_LUU, h_UU, chris);
+        compute_EB_fields(vars, d1_chi, d1_Gamma, d1_h, d1_K, d1_A, d2_chi,
+                          d2_h, epsilon3_LUU, h_UU, chris);
 
     // work out the Newman Penrose scalar
     weyl_scalar_t out = compute_Weyl4(ebfields, vars, h_UU, coords);
@@ -103,7 +110,13 @@ Weyl4::compute_epsilon3_LUU(const CCZ4Vars &vars,
 // CCZ4 expressions calculated by MR and checked with TF see:
 // https://www.overleaf.com/read/tvqjbyhvqqtp
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t Weyl4::compute_EB_fields(
-    const CCZ4Vars &vars, const CCZ4D1Vars &d1,
+    const CCZ4Vars &vars, const TensorArray::Rank1 &d1_chi,
+    const TensorArray::Rank2 &d1_Gamma,
+    const amrex::Array2D<amrex::Real, 0, UNIQUE_IDX - 1, 0, AMREX_SPACEDIM - 1>
+        &d1_h,
+    const TensorArray::Rank1 &d1_K,
+    const amrex::Array2D<amrex::Real, 0, UNIQUE_IDX - 1, 0, AMREX_SPACEDIM - 1>
+        &d1_A,
     const TensorArray::Rank1Sym &d2_chi, const TensorArray::Rank2Sym &d2_h,
     const TensorArray::Rank3 &epsilon3_LUU, const TensorArray::Rank2 &h_UU,
     const chris_t &chris) const
@@ -121,12 +134,12 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t Weyl4::compute_EB_fields(
     double dZ_coeff = (m_formulation == CCZ4RHS<>::USE_CCZ4) ? 1. : 0.;
 
     auto ricci_and_Z_terms = CCZ4Geometry::compute_ricci_Z_general(
-        vars, d1, d2_chi, d2_h, h_UU, chris, dZ_coeff);
+        vars, d1_chi, d1_Gamma, d1_h, d2_chi, d2_h, h_UU, chris, dZ_coeff);
 
     // Compute full spatial Christoffel symbols
 
     const TensorArray::Rank3 chris_phys =
-        CCZ4Geometry::compute_phys_chris(vars, d1, h_UU, chris.ULL);
+        CCZ4Geometry::compute_phys_chris(vars, d1_chi, h_UU, chris.ULL);
 
     // Extrinsic curvature and corresponding covariant and partial derivatives
     FOR (i, j)
@@ -134,13 +147,14 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t Weyl4::compute_EB_fields(
         K_tensor(i, j) = vars.A(i, j) / vars.chi() +
                          1. / 3. * (vars.h(i, j) * vars.K()) / vars.chi();
 
+        int idx = VAR_IDX0(i, j);
         FOR (k)
         {
             d1_K_tensor(i, j, k) =
-                d1.A(i, j, k) / vars.chi() -
-                d1.chi(k) / vars.chi() * K_tensor(i, j) +
-                1. / 3. * d1.h(i, j, k) * vars.K() / vars.chi() +
-                1. / 3. * vars.h(i, j) * d1.K(k) / vars.chi();
+                d1_A(idx, k) / vars.chi() -
+                d1_chi(k) / vars.chi() * K_tensor(i, j) +
+                1. / 3. * d1_h(idx, k) * vars.K() / vars.chi() +
+                1. / 3. * vars.h(i, j) * d1_K(k) / vars.chi();
         }
     }
     // covariant derivative of K
@@ -191,7 +205,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t Weyl4::compute_EB_fields(
     // assuming the Momentum constraints are satisfied, we can make the
     // expression explicitly symmetric, which we enforce below
     // (see Alcubierre chapter 8.3, from eq. 8.3.15 onwards)
-    TensorAlgebra::make_symmetric(out.B);
+    TensorAlgebra::make_symmetric<out.B.xlen()>(out.B);
 
     // For CCZ4, Eij is explicitly trace-free;
     // For BSSN, only extra matter terms appear in the original expression, but
