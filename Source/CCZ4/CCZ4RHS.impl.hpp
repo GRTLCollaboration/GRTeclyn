@@ -330,6 +330,8 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<gauge_t, deriv_t>::apply_gauge(
     const amrex::CellData<const amrex::Real> &state_cell_data =
         state.cellData(ix, iy, iz);
 
+    CCZ4Vars vars(state_cell_data);
+
     TensorArray::Rank1 shift_vector;
     FOR (idir)
     {
@@ -347,8 +349,8 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<gauge_t, deriv_t>::apply_gauge(
     auto advec_Gamma =
         m_deriv.advec_vector(ix, iy, iz, state, shift_vector, c_Gamma1);
 
-    m_gauge.rhs_gauge(rhs_cell_data, state_cell_data, advec_lapse, advec_shift,
-                      advec_B, advec_Gamma);
+    m_gauge.rhs_gauge(rhs_cell_data, vars, advec_lapse, advec_shift, advec_B,
+                      advec_Gamma);
 
     // m_deriv.add_dissipation(ix, iy, iz, rhs_cell_data, state, m_sigma,
     //                         NUM_CCZ4_VARS);
