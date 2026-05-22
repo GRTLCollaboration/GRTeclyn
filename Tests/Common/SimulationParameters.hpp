@@ -11,7 +11,7 @@
 #include "SimulationParametersBase.hpp"
 
 // Problem specific includes
-#include "SphericalExtraction.hpp"
+#include "SphericalExtractionParameters.hpp"
 
 class SimulationParameters : public SimulationParametersBase
 {
