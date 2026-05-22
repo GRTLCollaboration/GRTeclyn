@@ -83,8 +83,15 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::add_var(
     const std::string &a_derived_name)
 {
     AMREX_ASSERT(!m_done_extraction);
+
     // m_num_interp_points is 0 on ranks > 0
     m_vars.push_back({a_var, a_var_type, a_deriv, a_parities, a_derived_name});
+    if (m_vars.size() > num_components)
+    {
+        amrex::Abort(
+            "SurfaceExtraction::add_var: m_vars.size() > num_components");
+    }
+
     m_interp_data.emplace_back(m_num_interp_points);
 }
 
@@ -158,12 +165,6 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::extract(
     if (a_interpolator == nullptr)
     {
         amrex::Abort("SurfaceExtraction: invalid ParticleInterpolator pointer");
-    }
-
-    if (m_vars.size() > num_components)
-    {
-        amrex::Abort(
-            "SurfaceExtraction::extract: m_vars.size() > num_components");
     }
 
     // m_num_interp_points is 0 on ranks > 0

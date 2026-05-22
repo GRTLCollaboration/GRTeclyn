@@ -11,7 +11,7 @@
 #include "BoundaryConditions.hpp"
 #include "CCZ4RHS.hpp"
 #include "GRParmParse.hpp"
-#include "SphericalExtraction.hpp"
+#include "SphericalExtractionParameters.hpp"
 #include <limits>
 
 class SimulationParametersBase : public AMReXParameters
