@@ -39,11 +39,11 @@ template <class SurfaceGeometry, int num_components> class SurfaceExtraction
     // from GRChombo here, as we need to add more features to the varibles used
     struct var_t
     {
-        int var;
-        VariableType type;
+        int var{};
+        VariableType type{};
         Derivative deriv;
 
-        amrex::Vector<BCParity> parities;
+        amrex::Vector<BCParity> parities{};
         std::string derived_name;
     };
     using vars_t = var_t;

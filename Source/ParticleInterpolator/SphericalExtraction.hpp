@@ -26,7 +26,7 @@ class SphericalExtraction
   protected:
     std::array<double, AMREX_SPACEDIM> m_center;
     int m_num_modes;
-    std::vector<std::pair<int, int>> m_modes;
+    std::vector<std::pair<int, int>> m_modes{};
 
   public:
     SphericalExtraction(const spherical_extraction_params_t &a_params,
@@ -39,6 +39,7 @@ class SphericalExtraction
     {
     }
 
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     SphericalExtraction(const spherical_extraction_params_t &a_params,
                         const std::vector<vars_t> &a_vars, double a_dt,
                         double a_time, bool a_first_step,
@@ -49,6 +50,7 @@ class SphericalExtraction
         this->add_vars(a_vars);
     }
 
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     SphericalExtraction(const spherical_extraction_params_t &a_params,
                         const std::vector<int> &a_state_vars, double a_dt,
                         double a_time, bool a_first_step,
@@ -62,7 +64,7 @@ class SphericalExtraction
     // alias this long type used for complex functions defined on the surface
     // and dependent on the interpolated data
     using complex_function_t = std::function<std::pair<double, double>(
-        std::vector<double> &, double, double, double)>;
+        std::vector<double> &a_data_here, double r, double theta, double phi)>;
 
     //! Add the integrand corresponding to the spin-weighted spherical harmonic
     //! decomposition of a complex-valued function, a_function

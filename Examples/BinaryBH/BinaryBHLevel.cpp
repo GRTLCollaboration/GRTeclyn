@@ -120,6 +120,7 @@ void BinaryBHLevel::initData()
 }
 
 // Calculate RHS during RK4 substeps
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                     amrex::MultiFab &a_rhs,
                                     const double /*a_time*/)
@@ -312,7 +313,7 @@ void BinaryBHLevel::specificPostTimeStep()
     }
 
     // Weyl extraction
-    if (simParams().activate_extraction == 1)
+    if (simParams().activate_extraction)
     {
         int min_level = simParams().extraction_params.min_extraction_level();
         bool calculate_weyl = at_level_timestep_multiple(min_level);
