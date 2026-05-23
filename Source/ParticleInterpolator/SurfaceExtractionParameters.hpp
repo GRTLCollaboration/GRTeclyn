@@ -29,6 +29,7 @@ struct surface_extraction_params_t
     std::string data_path, integral_file_prefix;
     std::string extraction_path, extraction_file_prefix;
 
+    [[nodiscard]]
     int min_extraction_level() const
     {
         return *(std::min_element(extraction_levels.begin(),
