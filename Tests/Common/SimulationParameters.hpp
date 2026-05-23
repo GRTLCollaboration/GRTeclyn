@@ -87,7 +87,7 @@ class SimulationParameters : public SimulationParametersBase
 
     // For SphericalExtraction Test
     spherical_extraction_params_t extraction_params_lo;
-    int es, el, em; // spherical harmonic params
+    int es{}, el{}, em{}; // spherical harmonic params
 };
 
 #endif /* SIMULATIONPARAMETERS_HPP */
