@@ -155,14 +155,16 @@ void run_spherical_extraction_test()
             double r =
                 sim_params.extraction_params_lo.extraction_radii()[iradius];
 
-            double integral_re_lo_trapezium{
-                integral_lo_trapezium.first[iradius]};
-            double integral_re_hi_trapezium{
-                integral_hi_trapezium.first[iradius]};
-            double integral_re_lo_simpson{integral_lo_simpson.first[iradius]};
-            double integral_re_hi_simpson{integral_hi_simpson.first[iradius]};
-            double integral_re_lo_boole{integral_lo_boole.first[iradius]};
-            double integral_re_hi_boole{integral_hi_boole.first[iradius]};
+            // NOLINTBEGIN(cppcoreguidelines-init-variables)
+            double integral_re_lo_trapezium =
+                integral_lo_trapezium.first[iradius];
+            double integral_re_hi_trapezium =
+                integral_hi_trapezium.first[iradius];
+            double integral_re_lo_simpson = integral_lo_simpson.first[iradius];
+            double integral_re_hi_simpson = integral_hi_simpson.first[iradius];
+            double integral_re_lo_boole   = integral_lo_boole.first[iradius];
+            double integral_re_hi_boole   = integral_hi_boole.first[iradius];
+            // NOLINTEND(cppcoreguidelines-init-variables)
 
             double analytic_integral = 1.0;
 
