@@ -7,7 +7,6 @@
 #ifndef CCZ4GEOMETRY_HPP_
 #define CCZ4GEOMETRY_HPP_
 
-#include "CCZ4D1Vars.hpp"
 #include "CCZ4Vars.hpp"
 #include "DimensionDefinitions.hpp"
 #include "FourthOrderDerivatives.hpp"
@@ -139,161 +138,99 @@ compute_Aij_squared_with_A_UU(const CCZ4Vars &vars,
     return Aij_squared;
 }
 
-/// Computes the conformal christoffel symbol
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE chris_t
-compute_christoffel(const CCZ4D1Vars &d1, const TensorArray::Rank2 &h_UU)
-{
-    chris_t out{};
-
-    FOR (i, j, k)
-    {
-        out.LLL(i, j, k) =
-            0.5 * (d1.h(j, i, k) + d1.h(k, i, j) - d1.h(j, k, i));
-    }
-    FOR (i, j, k)
-    {
-        out.ULL(i, j, k) = 0;
-        FOR (l)
-        {
-            out.ULL(i, j, k) += h_UU(i, l) * out.LLL(l, j, k);
-        }
-    }
-    FOR (i)
-    {
-        out.contracted(i) = 0;
-        FOR (j, k)
-        {
-            out.contracted(i) += h_UU(j, k) * out.ULL(i, j, k);
-        }
-    }
-
-    return out;
-}
-
 /// Computes the conformal christoffel symbol - using AMReX Arrays
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE chris_t compute_christoffel(
-    const amrex::Array2D<amrex::Real, 0, UNIQUE_IDX - 1, 0, AMREX_SPACEDIM - 1>
-        &d1_h,
-    const TensorArray::Rank1Sym &h_UU)
-{
-    chris_t out{};
+// AMREX_GPU_DEVICE AMREX_FORCE_INLINE chris_t compute_christoffel(
+//     const amrex::Array2D<amrex::Real, 0, UNIQUE_IDX - 1, 0, AMREX_SPACEDIM -
+//     1>
+//         &d1_h,
+//     const TensorArray::Rank1Sym &h_UU)
+// {
+//     chris_t out{};
 
-    FOR (i, j, k)
-    {
-        out.LLL(i, j, k) =
-            0.5 * (d1_h(VAR_IDX0(j, i), k) + d1_h(VAR_IDX0(k, i), j) -
-                   d1_h(VAR_IDX0(j, k), i));
-    }
+//     FOR (i, j, k)
+//     {
+//         out.LLL(i, j, k) =
+//             0.5 * (d1_h(VAR_IDX0(j, i), k) + d1_h(VAR_IDX0(k, i), j) -
+//                    d1_h(VAR_IDX0(j, k), i));
+//     }
 
-    // FOR (i)
-    // {
-    //     out.LLL(i, i, i) = 0.5 * d1_h(SYMM_IDX(i, i), i);
-    // }
+//     // FOR (i)
+//     // {
+//     //     out.LLL(i, i, i) = 0.5 * d1_h(SYMM_IDX(i, i), i);
+//     // }
 
-    // out.LLL(0, 0, 1) = 0.5 * d1_h(0, 1);
-    // out.LLL(0, 0, 2) = 0.5 * d1_h(0, 2);
+//     // out.LLL(0, 0, 1) = 0.5 * d1_h(0, 1);
+//     // out.LLL(0, 0, 2) = 0.5 * d1_h(0, 2);
 
-    // out.LLL(0, 1, 0) = 0.5 * d1_h(0, 1);
-    // out.LLL(0, 2, 0) = 0.5 * d1_h(0, 2);
+//     // out.LLL(0, 1, 0) = 0.5 * d1_h(0, 1);
+//     // out.LLL(0, 2, 0) = 0.5 * d1_h(0, 2);
 
-    // out.LLL(0, 1, 1) = d1_h(1, 1) - 0.5 * d1_h(4, 0);
-    // out.LLL(0, 2, 2) = d1_h(2, 2) - 0.5 * d1_h(5, 0);
+//     // out.LLL(0, 1, 1) = d1_h(1, 1) - 0.5 * d1_h(4, 0);
+//     // out.LLL(0, 2, 2) = d1_h(2, 2) - 0.5 * d1_h(5, 0);
 
-    // out.LLL(1, 0, 0) = d1_h(1, 0) - 0.5 * d1_h(0, 1);
-    // out.LLL(1, 2, 2) = d1_h(4, 2) - 0.5 * d1_h(5, 1);
+//     // out.LLL(1, 0, 0) = d1_h(1, 0) - 0.5 * d1_h(0, 1);
+//     // out.LLL(1, 2, 2) = d1_h(4, 2) - 0.5 * d1_h(5, 1);
 
-    // out.LLL(1, 0, 1) = 0.5 * d1_h(3, 0);
-    // out.LLL(1, 1, 0) = 0.5 * d1_h(3, 0);
+//     // out.LLL(1, 0, 1) = 0.5 * d1_h(3, 0);
+//     // out.LLL(1, 1, 0) = 0.5 * d1_h(3, 0);
 
-    // out.LLL(1, 1, 2) = 0.5 * d1_h(3, 2);
-    // out.LLL(1, 2, 1) = 0.5 * d1_h(3, 2);
+//     // out.LLL(1, 1, 2) = 0.5 * d1_h(3, 2);
+//     // out.LLL(1, 2, 1) = 0.5 * d1_h(3, 2);
 
-    // out.LLL(2, 0, 0) = d1_h(2, 0) - 0.5 * d1_h(0, 2);
-    // out.LLL(2, 1, 1) = d1_h(4, 1) - 0.5 * d1_h(3, 2);
+//     // out.LLL(2, 0, 0) = d1_h(2, 0) - 0.5 * d1_h(0, 2);
+//     // out.LLL(2, 1, 1) = d1_h(4, 1) - 0.5 * d1_h(3, 2);
 
-    // out.LLL(2, 1, 2) = 0.5 * d1_h(5, 1);
-    // out.LLL(2, 2, 1) = 0.5 * d1_h(5, 1);
+//     // out.LLL(2, 1, 2) = 0.5 * d1_h(5, 1);
+//     // out.LLL(2, 2, 1) = 0.5 * d1_h(5, 1);
 
-    // out.LLL(2, 2, 0) = 0.5 * d1_h(5, 0);
-    // out.LLL(2, 0, 2) = 0.5 * d1_h(5, 0);
+//     // out.LLL(2, 2, 0) = 0.5 * d1_h(5, 0);
+//     // out.LLL(2, 0, 2) = 0.5 * d1_h(5, 0);
 
-    // ////These have all different indices
+//     // ////These have all different indices
 
-    // out.LLL(0, 1, 2) = 0.5 * (d1_h(1, 2) + d1_h(2, 0) + d1_h(4, 0));
-    // out.LLL(0, 2, 1) = out.LLL(0, 1, 2);
+//     // out.LLL(0, 1, 2) = 0.5 * (d1_h(1, 2) + d1_h(2, 0) + d1_h(4, 0));
+//     // out.LLL(0, 2, 1) = out.LLL(0, 1, 2);
 
-    // out.LLL(1, 0, 2) = 0.5 * (d1_h(1, 2) + d1_h(4, 0) - d1_h(2, 0));
-    // out.LLL(1, 2, 0) = out.LLL(1, 0, 2);
+//     // out.LLL(1, 0, 2) = 0.5 * (d1_h(1, 2) + d1_h(4, 0) - d1_h(2, 0));
+//     // out.LLL(1, 2, 0) = out.LLL(1, 0, 2);
 
-    // out.LLL(2, 0, 1) = 0.5 * (d1_h(3, 1) + d1_h(4, 0) - d1_h(1, 2));
-    // out.LLL(2, 1, 0) = out.LLL(2, 0, 1);
+//     // out.LLL(2, 0, 1) = 0.5 * (d1_h(3, 1) + d1_h(4, 0) - d1_h(1, 2));
+//     // out.LLL(2, 1, 0) = out.LLL(2, 0, 1);
 
-    FOR (i, j)
-    {
-        out.ULL(0, i, j) = h_UU(0) * out.LLL(0, i, j) +
-                           h_UU(1) * out.LLL(1, i, j) +
-                           h_UU(2) * out.LLL(2, i, j);
-        out.ULL(1, i, j) = h_UU(1) * out.LLL(0, i, j) +
-                           h_UU(3) * out.LLL(1, i, j) +
-                           h_UU(4) * out.LLL(2, i, j);
-        out.ULL(2, i, j) = h_UU(2) * out.LLL(0, i, j) +
-                           h_UU(4) * out.LLL(1, i, j) +
-                           h_UU(5) * out.LLL(2, i, j);
-    }
+//     FOR (i, j)
+//     {
+//         out.ULL(0, i, j) = h_UU(0) * out.LLL(0, i, j) +
+//                            h_UU(1) * out.LLL(1, i, j) +
+//                            h_UU(2) * out.LLL(2, i, j);
+//         out.ULL(1, i, j) = h_UU(1) * out.LLL(0, i, j) +
+//                            h_UU(3) * out.LLL(1, i, j) +
+//                            h_UU(4) * out.LLL(2, i, j);
+//         out.ULL(2, i, j) = h_UU(2) * out.LLL(0, i, j) +
+//                            h_UU(4) * out.LLL(1, i, j) +
+//                            h_UU(5) * out.LLL(2, i, j);
+//     }
 
-    // FOR (i, j, k)
-    // {
-    //     out.ULL(i, j, k) = 0;
-    //     FOR (l)
-    //     {
-    //         out.ULL(i, j, k) += h_UU(SYMM_IDX(i, l)) * out.LLL(l, j, k);
-    //     }
-    // }
-    FOR (i)
-    {
-        out.contracted(i) =
-            h_UU(0) * out.ULL(i, 0, 0) + h_UU(1) * out.ULL(i, 0, 1) +
-            h_UU(2) * out.ULL(i, 0, 2) + h_UU(1) * out.ULL(i, 1, 0) +
-            h_UU(3) * out.ULL(i, 1, 1) + h_UU(4) * out.ULL(i, 1, 2) +
-            h_UU(2) * out.ULL(i, 2, 0) + h_UU(4) * out.ULL(i, 2, 1) +
-            h_UU(5) * out.ULL(i, 2, 2);
-    }
+//     // FOR (i, j, k)
+//     // {
+//     //     out.ULL(i, j, k) = 0;
+//     //     FOR (l)
+//     //     {
+//     //         out.ULL(i, j, k) += h_UU(SYMM_IDX(i, l)) * out.LLL(l, j, k);
+//     //     }
+//     // }
+//     FOR (i)
+//     {
+//         out.contracted(i) =
+//             h_UU(0) * out.ULL(i, 0, 0) + h_UU(1) * out.ULL(i, 0, 1) +
+//             h_UU(2) * out.ULL(i, 0, 2) + h_UU(1) * out.ULL(i, 1, 0) +
+//             h_UU(3) * out.ULL(i, 1, 1) + h_UU(4) * out.ULL(i, 1, 2) +
+//             h_UU(2) * out.ULL(i, 2, 0) + h_UU(4) * out.ULL(i, 2, 1) +
+//             h_UU(5) * out.ULL(i, 2, 2);
+//     }
 
-    return out;
-}
-
-/// Computes the conformal christoffel symbol - using tensors
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE chris_t compute_christoffel(
-    const TensorArray::Rank3 &d1_h, const TensorArray::Rank2 &h_UU)
-{
-    chris_t out{};
-
-    FOR (i, j, k)
-    {
-        out.LLL(i, j, k) =
-            0.5 * (d1_h(j, i, k) + d1_h(k, i, j) - d1_h(j, k, i));
-    }
-
-    FOR (i, j, k)
-    {
-        out.ULL(i, j, k) = 0;
-        FOR (l)
-        {
-            out.ULL(i, j, k) += h_UU(i, l) * out.LLL(l, j, k);
-        }
-    }
-    FOR (i)
-    {
-        out.contracted(i) = 0;
-        FOR (j, k)
-        {
-            out.contracted(i) += h_UU(j, k) * out.ULL(i, j, k);
-        }
-    }
-
-    return out;
-}
+//     return out;
+// }
 
 /// Computes the conformal christoffel symbol - using tensors
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE chris_t compute_christoffel(
@@ -330,38 +267,6 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE chris_t compute_christoffel(
     return out;
 }
 
-/// Computes the conformal christoffel symbol - using tensors
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE chris_t compute_christoffel(
-    const TensorArray::Rank3 &d1_h, const TensorArray::Rank1Sym &h_UU)
-{
-    chris_t out{};
-
-    FOR (i, j, k)
-    {
-        out.LLL(i, j, k) =
-            0.5 * (d1_h(j, i, k) + d1_h(k, i, j) - d1_h(j, k, i));
-    }
-
-    FOR (i, j, k)
-    {
-        out.ULL(i, j, k) = 0;
-        FOR (l)
-        {
-            out.ULL(i, j, k) += h_UU(VAR_IDX0(i, l)) * out.LLL(l, j, k);
-        }
-    }
-    FOR (i)
-    {
-        out.contracted(i) = 0;
-        FOR (j, k)
-        {
-            out.contracted(i) += h_UU(VAR_IDX0(j, k)) * out.ULL(i, j, k);
-        }
-    }
-
-    return out;
-}
-
 /// Computes the conformal christoffel symbol
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE TensorArray::Rank3
@@ -384,38 +289,6 @@ compute_phys_chris(const CCZ4Vars &vars, const TensorArray::Rank1 &d1_chi,
         }
     }
     return chris_phys;
-}
-
-AMREX_GPU_DEVICE
-AMREX_FORCE_INLINE TensorArray::Rank3
-compute_phys_chris(const CCZ4Vars &vars, const CCZ4D1Vars &d1,
-                   const TensorArray::Rank2 &h_UU,
-                   const TensorArray::Rank3 &chris_ULL)
-{
-    using namespace TensorAlgebra;
-    TensorArray::Rank3 chris_phys{};
-    FOR (i, j, k)
-    {
-        chris_phys(i, j, k) =
-            chris_ULL(i, j, k) -
-            0.5 / vars.chi() *
-                (delta(i, k) * d1.chi(j) + delta(i, j) * d1.chi(k));
-        FOR (m)
-        {
-            chris_phys(i, j, k) +=
-                0.5 / vars.chi() * vars.h(j, k) * h_UU(i, m) * d1.chi(m);
-        }
-    }
-    return chris_phys;
-}
-
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
-compute_divshift(const CCZ4D1Vars &d1)
-{
-    amrex::Real divshift = 0.;
-    FOR (i)
-        divshift += d1.shift(i, i);
-    return divshift;
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
@@ -452,20 +325,6 @@ compute_z_terms(const int i, const int j, const TensorArray::Rank1 &Z_over_chi,
         out += Z_over_chi(k) *
                (vars.h(i, k) * d1_chi(j) + vars.h(j, k) * d1_chi(i) -
                 vars.h(i, j) * d1_chi(k));
-    }
-    return out;
-}
-
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
-compute_z_terms(const int i, const int j, const TensorArray::Rank1 &Z_over_chi,
-                const CCZ4Vars &vars, const CCZ4D1Vars &d1)
-{
-    amrex::Real out = 0.;
-    FOR (k)
-    {
-        out += Z_over_chi(k) *
-               (vars.h(i, k) * d1.chi(j) + vars.h(j, k) * d1.chi(i) -
-                vars.h(i, j) * d1.chi(k));
     }
     return out;
 }

@@ -6,9 +6,6 @@
 #ifndef MOVINGPUNCTUREGAUGE_HPP_
 #define MOVINGPUNCTUREGAUGE_HPP_
 
-#include "CCZ4AdvecVars.hpp"
-#include "CCZ4D1Vars.hpp"
-#include "CCZ4D2Vars.hpp"
 #include "CCZ4Vars.hpp"
 #include "DimensionDefinitions.hpp"
 #include <AMReX_Array.H>

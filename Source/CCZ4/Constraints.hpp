@@ -9,7 +9,6 @@
 #define CONSTRAINTS_HPP_
 
 // GRTeclyn includes
-#include "CCZ4D1Vars.hpp"
 #include "CCZ4Geometry.hpp"
 #include "CCZ4Vars.hpp"
 #include "Cell.hpp"

@@ -64,9 +64,10 @@ class CCZ4RHSWithMatter : public CCZ4RHS<gauge_t, deriv_t>
     add_emtensor_rhs(const amrex::CellData<amrex::Real> &
                          rhs, //!< the RHS data for each variable at that point.
                      const typename matter_t::Vars
-                         &state, //!< the value of the variables at the point.
-                     const TensorArray::Rank3 &d1_h,
-                     const TensorArray::Rank1 &d1_phi) const;
+                         &vars, //!< the value of the variables at the point.
+                     const typename matter_t::D1Vars &d1_scalar,
+                     const amrex::Array2D<amrex::Real, 0, UNIQUE_IDX - 1, 0,
+                                          AMREX_SPACEDIM - 1> &d1_h) const;
 
     // Class members
     matter_t m_matter; //!< The matter object, e.g. a scalar field.

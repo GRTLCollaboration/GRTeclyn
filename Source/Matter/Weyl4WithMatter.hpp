@@ -53,7 +53,7 @@ template <class matter_t> class Weyl4WithMatter : public Weyl4
     //! Add matter terms to electric and magnetic parts
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     add_matter_EB(EBFields_t &eb_fields, const typename matter_t::Vars &vars,
-                  const TensorArray::Rank1 &d1_phi,
+                  const typename matter_t::D1Vars &d1_scalar,
                   const TensorArray::Rank3 &epsilon3_LUU,
                   const TensorArray::Rank2 &h_UU, const chris_t &chris) const;
 };
