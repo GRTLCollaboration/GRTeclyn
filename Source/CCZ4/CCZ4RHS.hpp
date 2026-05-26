@@ -6,9 +6,6 @@
 #ifndef CCZ4RHS_HPP_
 #define CCZ4RHS_HPP_
 
-#include "CCZ4AdvecVars.hpp"
-#include "CCZ4D1Vars.hpp"
-#include "CCZ4D2Vars.hpp"
 #include "CCZ4Geometry.hpp"
 #include "CCZ4Vars.hpp"
 #include "Cell.hpp"

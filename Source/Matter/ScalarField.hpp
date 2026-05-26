@@ -31,7 +31,9 @@
      It assumes minimal coupling of the field to gravity.
      \sa MatterCCZ4(), ConstraintsMatter()
 */
-template <class potential_t = DefaultPotential> class ScalarField
+template <class potential_t = DefaultPotential,
+          class deriv_t     = FourthOrderDerivatives>
+class ScalarField
 {
   protected:
     potential_t m_potential;
@@ -43,15 +45,15 @@ template <class potential_t = DefaultPotential> class ScalarField
     ScalarField() = default;
 
     using Vars      = ScalarFieldVars;
-    using D1Vars    = ScalarFieldD1Vars;
-    using D2Vars    = ScalarFieldD2Vars;
-    using AdvecVars = ScalarFieldAdvecVars;
+    using D1Vars    = ScalarFieldD1Vars<deriv_t>;
+    using D2Vars    = ScalarFieldD2Vars<deriv_t>;
+    using AdvecVars = ScalarFieldAdvecVars<deriv_t>;
 
     //! The function which calculates the EM Tensor, given the vars and
     //! derivatives, including the potential
     [[nodiscard]]
     AMREX_GPU_DEVICE emtensor_t compute_emtensor(
-        const Vars &vars, const TensorArray::Rank1 &d1_phi,
+        const Vars &vars, const D1Vars &d1_scalar,
         const TensorArray::Rank2 &h_UU, //!< the inverse metric (raised indices)
         const TensorArray::Rank3 &chris_ULL)
         const; //!< the conformal christoffel symbol
@@ -59,11 +61,14 @@ template <class potential_t = DefaultPotential> class ScalarField
     //! The function which adds in the RHS for the matter field vars,
     //! including the potential
 
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void add_matter_rhs(
-        const amrex::CellData<amrex::Real> &rhs, const Vars &vars,
-        const TensorArray::Rank1 &d1_chi, const TensorArray::Rank1 &d1_lapse,
-        const TensorArray::Rank3 &d1_h, const TensorArray::Rank1 &d1_phi,
-        const TensorArray::Rank1Sym &d2_phi, const AdvecVars &advec) const;
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    add_matter_rhs(const amrex::CellData<amrex::Real> &rhs, const Vars &vars,
+                   const TensorArray::Rank1 &d1_chi,
+                   const TensorArray::Rank1 &d1_lapse,
+                   const amrex::Array2D<amrex::Real, 0, UNIQUE_IDX - 1, 0,
+                                        AMREX_SPACEDIM - 1> &d1_h,
+                   const D1Vars &d1_scalar, const D2Vars &d2_scalar,
+                   const AdvecVars &advec) const;
 };
 
 #include "ScalarField.impl.hpp"

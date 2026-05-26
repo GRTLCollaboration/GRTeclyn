@@ -44,19 +44,22 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::operator()(
 
     // add RHS matter terms from EM Tensor
     // Only calculate derivatives as needed
-    auto d1_h   = this->m_deriv.diff1_tensor(ix, iy, iz, state, c_h11);
-    auto d1_phi = this->m_deriv.diff1_scalar(ix, iy, iz, state, c_phi);
-
-    add_emtensor_rhs(rhs_cell_data, vars, d1_h, d1_phi);
+    auto d1_h = this->m_deriv.diff1_sym_tensor(ix, iy, iz, state, c_h11);
+    const typename matter_t::D1Vars d1_scalar(ix, iy, iz, state, this->m_deriv);
+    add_emtensor_rhs(rhs_cell_data, vars, d1_scalar, d1_h);
 
     // add evolution of matter fields themselves
     auto d1_chi   = this->m_deriv.diff1_scalar(ix, iy, iz, state, c_chi);
     auto d1_lapse = this->m_deriv.diff1_scalar(ix, iy, iz, state, c_lapse);
-    auto d2_phi   = this->m_deriv.diff2_scalar(ix, iy, iz, state, c_phi);
 
-    const typename matter_t::AdvecVars advec(ix, iy, iz, state, this->m_deriv);
-    m_matter.add_matter_rhs(rhs_cell_data, vars, d1_chi, d1_lapse, d1_h, d1_phi,
-                            d2_phi, advec);
+    TensorArray::Rank1 shift_vector{vars.shift(0), vars.shift(1),
+                                    vars.shift(2)};
+
+    const typename matter_t::D2Vars d2_scalar(ix, iy, iz, state, this->m_deriv);
+    const typename matter_t::AdvecVars advec(ix, iy, iz, state, shift_vector,
+                                             this->m_deriv);
+    m_matter.add_matter_rhs(rhs_cell_data, vars, d1_chi, d1_lapse, d1_h,
+                            d1_scalar, d2_scalar, advec);
 
     // Add dissipation to all terms
     this->m_deriv.add_dissipation(ix, iy, iz, rhs_cell_data, state,
@@ -68,15 +71,18 @@ template <class matter_t, class gauge_t, class deriv_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
     const amrex::CellData<amrex::Real> &rhs,
-    const typename matter_t::Vars &vars, const TensorArray::Rank3 &d1_h,
-    const TensorArray::Rank1 &d1_phi) const
+    const typename matter_t::Vars &vars,
+    const typename matter_t::D1Vars &d1_scalar,
+    const amrex::Array2D<amrex::Real, 0, UNIQUE_IDX - 1, 0, AMREX_SPACEDIM - 1>
+        &d1_h) const
 {
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
     const auto chris = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
 
     // Calculate elements of the decomposed stress energy tensor
+
     const auto emtensor =
-        m_matter.compute_emtensor(vars, d1_phi, h_UU, chris.ULL);
+        m_matter.compute_emtensor(vars, d1_scalar, h_UU, chris.ULL);
 
     // Update RHS for K and Theta depending on formulation
     if (this->m_formulation == CCZ4RHS<>::USE_BSSN)

@@ -19,8 +19,6 @@
 #include <iostream>
 
 // Our includes
-#include "CCZ4D1Vars.hpp"
-#include "CCZ4D2Vars.hpp"
 #include "CCZ4Geometry.hpp"
 #include "CCZ4Vars.hpp"
 #include "DimensionDefinitions.hpp"
@@ -34,10 +32,12 @@ compute_ccz4_test_geometry(const amrex::Array4<amrex::Real> &a_array,
     amrex::Real chi = 0.0;
     TensorArray::Rank1 Gamma{};
     TensorArray::Rank2 h{};
-    CCZ4D1Vars d1;
-    CCZ4D2Vars d2;
     TensorArray::Rank1 Z_over_chi{};
-
+    TensorArray::Rank1 d1_chi{};
+    TensorArray::Rank2 d1_Gamma{};
+    amrex::Array2D<amrex::Real, 0, UNIQUE_IDX - 1, 0, AMREX_SPACEDIM - 1> d1_h;
+    TensorArray::Rank2Sym d2_h{};
+    TensorArray::Rank1Sym d2_chi{};
 // Including the auto generated file with values
 #include "CCZ4GeometryMathematicaValues.hpp"
 
@@ -57,9 +57,9 @@ compute_ccz4_test_geometry(const amrex::Array4<amrex::Real> &a_array,
     CCZ4Vars vars(cell_data);
 
     auto h_UU   = CCZ4Geometry::compute_inverse_metric(vars);
-    auto chris  = CCZ4Geometry::compute_christoffel(d1, h_UU);
-    auto ricciZ = CCZ4Geometry::compute_ricci_Z(vars, d1, d2.chi, d2.h, h_UU,
-                                                chris, Z_over_chi);
+    auto chris  = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
+    auto ricciZ = CCZ4Geometry::compute_ricci_Z(
+        vars, d1_chi, d1_Gamma, d1_h, d2_h, d2_chi, h_UU, chris, Z_over_chi);
 
     int vars_counter = 0;
     FOR (i, j)
