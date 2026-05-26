@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from .atlas import run_atlas
-from .config import DEFAULT_TEMPLATE, default_runs_dir, resolve_executable
+from .config import DEFAULT_RADIAL_RECIPE_TEMPLATE, DEFAULT_TEMPLATE, default_runs_dir, resolve_example, resolve_executable
 from .episode import create_episode, update_metadata, write_json
 from .metrics import dataclass_to_dict, read_episode_metrics
 from .params import write_params
@@ -63,16 +63,19 @@ def _finalize_score(episode_dir: Path, target_stop_time: float | None) -> int:
 
 
 def _run_single(args: argparse.Namespace, overrides: dict[str, Any]) -> int:
+    example = resolve_example(args.example)
     runs_dir = Path(args.runs_dir).expanduser().resolve()
     episode = create_episode(
         runs_dir,
         name=args.name,
-        metadata={"mode": args.command, "overrides": overrides},
+        metadata={"mode": args.command, "example": example.name, "overrides": overrides},
     )
+    template = Path(args.template).expanduser().resolve() if args.template else example.template
     write_params(
-        Path(args.template).expanduser().resolve(),
+        template,
         episode.params_path,
         episode_dir=episode.path,
+        example=example,
         overrides=overrides,
     )
 
@@ -83,6 +86,7 @@ def _run_single(args: argparse.Namespace, overrides: dict[str, Any]) -> int:
 
     executable = resolve_executable(
         args.executable,
+        example=example,
         mpi_ranks=args.mpi_ranks,
         comp=args.comp,
         cuda=not args.no_cuda,
@@ -125,23 +129,27 @@ def _run_sweep(args: argparse.Namespace, base_overrides: dict[str, Any]) -> int:
 
 
 def _run_atlas_command(args: argparse.Namespace, base_overrides: dict[str, Any]) -> int:
+    example = resolve_example(args.example)
     executable = None
     if not args.dry_run:
         executable = resolve_executable(
             args.executable,
+            example=example,
             mpi_ranks=args.mpi_ranks,
             comp=args.comp,
             cuda=not args.no_cuda,
             debug=args.debug,
         )
 
+    template = Path(args.template).expanduser().resolve() if args.template else example.template
     paths, records, summary = run_atlas(
         runs_dir=Path(args.runs_dir).expanduser().resolve(),
         executable=executable,
         count=args.count,
         seed=args.seed,
         base_overrides=base_overrides,
-        template=Path(args.template).expanduser().resolve(),
+        template=template,
+        example=example,
         name=args.name,
         dry_run=args.dry_run,
         stop_on_failure=args.stop_on_failure,
@@ -153,10 +161,20 @@ def _run_atlas_command(args: argparse.Namespace, base_overrides: dict[str, Any])
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Run isolated SupportedWormholeCollapse episodes.")
+    parser = argparse.ArgumentParser(description="Run isolated GRTeclyn example episodes.")
     parser.add_argument("--runs-dir", default=str(default_runs_dir()), help="Directory for episode folders.")
-    parser.add_argument("--template", default=str(DEFAULT_TEMPLATE), help="Source params template.")
-    parser.add_argument("--executable", default=None, help="Executable path. Defaults to SupportedWormholeCollapse binary name.")
+    parser.add_argument(
+        "--example",
+        default="SupportedWormholeCollapse",
+        choices=["SupportedWormholeCollapse", "RadialRecipe"],
+        help="GRTeclyn example to run.",
+    )
+    parser.add_argument(
+        "--template",
+        default=None,
+        help="Source params template. Defaults to the selected example template.",
+    )
+    parser.add_argument("--executable", default=None, help="Executable path. Defaults to the selected example binary name.")
     parser.add_argument("--mpi-ranks", type=int, default=1, help="MPI ranks; >1 selects the MPI executable name.")
     parser.add_argument("--comp", default="gnu", help="Compiler tag in the executable name.")
     parser.add_argument("--debug", action="store_true", help="Select DEBUG executable naming.")

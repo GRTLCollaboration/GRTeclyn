@@ -8,8 +8,22 @@ from pathlib import Path
 WRAPPER_ROOT = Path(__file__).resolve().parents[2]
 
 
+@dataclass(frozen=True)
+class ExampleConfig:
+    """GRTeclyn example directory and default params template."""
+
+    name: str
+    dir: Path
+    template: Path
+    check_prefix: str
+    plot_prefix: str
+
+
 def _looks_like_grteclyn(path: Path) -> bool:
-    return (path / "Examples" / "SupportedWormholeCollapse" / "params_2gpu.txt").exists()
+    return (
+        (path / "Examples" / "SupportedWormholeCollapse" / "params_2gpu.txt").exists()
+        or (path / "Examples" / "RadialRecipe" / "params.txt").exists()
+    )
 
 
 def resolve_repo_root(explicit: str | Path | None = None) -> Path:
@@ -39,14 +53,42 @@ def resolve_repo_root(explicit: str | Path | None = None) -> Path:
 
 REPO_ROOT = resolve_repo_root()
 SUPPORTED_WORMHOLE_DIR = REPO_ROOT / "Examples" / "SupportedWormholeCollapse"
+RADIAL_RECIPE_DIR = REPO_ROOT / "Examples" / "RadialRecipe"
 DEFAULT_TEMPLATE = SUPPORTED_WORMHOLE_DIR / "params_2gpu.txt"
+DEFAULT_RADIAL_RECIPE_TEMPLATE = RADIAL_RECIPE_DIR / "params.txt"
+
+EXAMPLES: dict[str, ExampleConfig] = {
+    "SupportedWormholeCollapse": ExampleConfig(
+        name="SupportedWormholeCollapse",
+        dir=SUPPORTED_WORMHOLE_DIR,
+        template=DEFAULT_TEMPLATE,
+        check_prefix="SupportedWormholeChk",
+        plot_prefix="SupportedWormholePlt",
+    ),
+    "RadialRecipe": ExampleConfig(
+        name="RadialRecipe",
+        dir=RADIAL_RECIPE_DIR,
+        template=DEFAULT_RADIAL_RECIPE_TEMPLATE,
+        check_prefix="RadialRecipeChk",
+        plot_prefix="RadialRecipePlt",
+    ),
+}
+
+
+def resolve_example(name: str = "SupportedWormholeCollapse") -> ExampleConfig:
+    try:
+        return EXAMPLES[name]
+    except KeyError as exc:
+        known = ", ".join(sorted(EXAMPLES))
+        raise ValueError(f"Unknown example {name!r}. Known examples: {known}") from exc
 
 
 @dataclass(frozen=True)
 class ExecutableConfig:
-    """Resolve the SupportedWormhole executable and launch mode."""
+    """Resolve a GRTeclyn example executable and launch mode."""
 
     path: Path
+    example: ExampleConfig
     mpi_ranks: int = 1
 
     @property
@@ -69,6 +111,7 @@ def default_executable_name(*, mpi_ranks: int = 1, comp: str = "gnu", cuda: bool
 def resolve_executable(
     executable: str | Path | None = None,
     *,
+    example: str | ExampleConfig = "SupportedWormholeCollapse",
     mpi_ranks: int = 1,
     comp: str = "gnu",
     cuda: bool = True,
@@ -76,8 +119,10 @@ def resolve_executable(
 ) -> ExecutableConfig:
     """Return an executable config without requiring the binary to exist yet."""
 
+    example_cfg = example if isinstance(example, ExampleConfig) else resolve_example(example)
+
     if executable is None:
-        path = SUPPORTED_WORMHOLE_DIR / default_executable_name(
+        path = example_cfg.dir / default_executable_name(
             mpi_ranks=mpi_ranks,
             comp=comp,
             cuda=cuda,
@@ -88,7 +133,7 @@ def resolve_executable(
         if not path.is_absolute():
             path = (REPO_ROOT / path).resolve()
 
-    return ExecutableConfig(path=path.resolve(), mpi_ranks=int(mpi_ranks))
+    return ExecutableConfig(path=path.resolve(), example=example_cfg, mpi_ranks=int(mpi_ranks))
 
 
 def default_runs_dir() -> Path:

@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping, Sequence
 
-from .config import ExecutableConfig, REPO_ROOT, SUPPORTED_WORMHOLE_DIR
+from .config import ExecutableConfig, ExampleConfig, REPO_ROOT, resolve_example
 from .episode import Episode, update_metadata
 
 
@@ -131,9 +131,10 @@ def run_episode(
     consumer_radii: Sequence[float] = (8.0, 16.0),
     consumer_delete: bool = False,
 ) -> RunResult:
+    example_dir = executable.example.dir
     if not executable.path.exists():
         raise FileNotFoundError(
-            f"Executable not found: {executable.path}. Build SupportedWormholeCollapse first."
+            f"Executable not found: {executable.path}. Build {executable.example.name} first."
         )
 
     env = _merged_env(cuda_devices=cuda_devices, extra_env=extra_env)
@@ -141,6 +142,7 @@ def run_episode(
         episode,
         {
             "executable": str(executable.path),
+            "example": executable.example.name,
             "mpi_ranks": executable.mpi_ranks,
             "cuda_devices": cuda_devices,
         },
@@ -148,7 +150,7 @@ def run_episode(
 
     if check_params:
         check_command = build_command(executable, episode.params_path, "check_params=1")
-        check_result = _run_and_tee(check_command, episode.log_path, cwd=SUPPORTED_WORMHOLE_DIR, env=env)
+        check_result = _run_and_tee(check_command, episode.log_path, cwd=example_dir, env=env)
         if check_result.returncode != 0:
             update_metadata(episode, {"check_params_exit_code": check_result.returncode})
             raise RuntimeError(f"check_params failed with exit code {check_result.returncode}")
@@ -163,7 +165,7 @@ def run_episode(
 
     try:
         command = build_command(executable, episode.params_path)
-        result = _run_and_tee(command, episode.log_path, cwd=SUPPORTED_WORMHOLE_DIR, env=env)
+        result = _run_and_tee(command, episode.log_path, cwd=example_dir, env=env)
     finally:
         if consumer is not None:
             stop_process(consumer)

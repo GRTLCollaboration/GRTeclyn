@@ -122,6 +122,46 @@ The first useful changes to \texttt{GRTeclyn} are small:
     \item \textbf{Optional grid-field loader.} Later, Python can write full grid fields to disk for neural-decoder candidates.
 \end{enumerate}
 
+\subsection{Anatomy of a GRTeclyn Example}
+
+Every runnable \texttt{GRTeclyn} problem is an \texttt{Examples/<Name>/} directory with roughly ten tightly coupled files. The Python wrapper can template \texttt{params.txt}, launch the binary, and parse diagnostics, but it cannot invent new physics without these C++ pieces.
+
+\begin{itemize}
+    \item \textbf{\texttt{GNUmakefile}.} Build entry point. Selects AMReX packages and the \texttt{Source/} modules (\texttt{CCZ4}, \texttt{Matter}, \texttt{GRTeclynCore}, \texttt{Tagging}, \texttt{AMRInterpolator}, etc.) that are compiled into the executable.
+    \item \textbf{\texttt{Make.package}.} Registers local \texttt{.cpp} sources and \texttt{.hpp} headers into \texttt{GRTECLYN\_CEXE\_*} variables consumed by the build system.
+    \item \textbf{\texttt{Main\_*.cpp}.} Standard \texttt{GRAMR} time loop: load parameters, construct a \texttt{DefaultLevelFactory<Level>}, initialize AMR, and advance until \texttt{stop\_time}.
+    \item \textbf{\texttt{*Level.hpp/.cpp}.} Extends \texttt{GRAMRLevel}. Wires initial data, RHS evolution, AMR tagging, and post-timestep diagnostics through virtual hooks such as \texttt{initData}, \texttt{specificEvalRHS}, and \texttt{specificPostTimeStep}.
+    \item \textbf{\texttt{SimulationParameters.hpp}.} Problem-specific parameter class. Must live in the example directory because \texttt{GRTeclynCore} includes it at compile time.
+    \item \textbf{\texttt{StateVariables.hpp}.} Defines \texttt{NUM\_VARS}, variable names, and boundary-condition parities. Matter examples append \texttt{c\_phi} and \texttt{c\_Pi} after the CCZ4 indices.
+    \item \textbf{\texttt{*InitialData.hpp}.} GPU initial-data functor. Writes all CCZ4 and matter components at $t=0$.
+    \item \textbf{Potential / matter header.} Example-local potential (e.g.\ \texttt{PhantomDecayPotential.hpp}) or a shared \texttt{DefaultPotential} from \texttt{Source/Matter/}.
+    \item \textbf{\texttt{params.txt}.} Runtime inputs: grid, BCs, evolution, output paths, and physics parameters read by \texttt{GRParmParse}.
+\end{itemize}
+
+\textbf{Compile-time header injection.} \texttt{SimulationParameters.hpp} and \texttt{StateVariables.hpp} are \emph{not} in \texttt{Source/}. The example directory is first on \texttt{INCLUDE\_LOCATIONS}, so each example supplies its own version. This is why copying an example is the standard way to start a new run.
+
+\textbf{Template type consistency.} If the example uses matter, the exact matter type (e.g.\ \texttt{ScalarField<DefaultPotential>} or \texttt{ExoticScalarField<PhantomDecayPotential>}) must match in \texttt{variableSetUp}, \texttt{specificEvalRHS}, constraint diagnostics, and Weyl4 setup. A mismatch often compiles in one place and fails elsewhere.
+
+\textbf{Parameter loading chain.} \texttt{AMReXParameters} reads grid, BC, and output settings. \texttt{SimulationParametersBase} reads CCZ4 gauge, floors, and optional extraction geometry. The derived \texttt{SimulationParameters} class reads problem-specific keys and validates them.
+
+\textbf{Wrapper vs C++ boundary.} The \texttt{grteclyn-wrapper} package automates episode directories, \texttt{params.txt} templating, \texttt{check\_params=1}, execution, log capture, diagnostic parsing, scoring, and atlas batching. C++ work is still required for new initial-data recipes, new matter models, new runtime diagnostics, and new extraction hooks.
+
+\textbf{Recommended starting point.} \texttt{Examples/RadialRecipe/} is a minimal CCZ4+matter template that reads Gaussian radial recipe coefficients from \texttt{params.txt}. It uses \texttt{ScalarField<DefaultPotential>} and the same collapse diagnostics as \texttt{SupportedWormholeCollapse}, but replaces the hand-written Ellis--Bronnikov ansatz with optimizer-friendly basis coefficients (\texttt{recipe\_chi\_coeff\_0}, \texttt{recipe\_phi\_coeff\_0}, etc.).
+
+\subsection{C++ Interpolation and Extraction Options}
+
+Several paths exist for turning evolved grid data into machine-readable observables:
+
+\begin{enumerate}
+    \item \textbf{Volume reductions (current baseline).} Implemented in \texttt{specificPostTimeStep} via \texttt{ParallelFor}, \texttt{ReduceOps}, and \texttt{SmallDataIO}. This is what \texttt{SupportedWormholeCollapse} and \texttt{RadialRecipe} use today for \texttt{collapse\_diagnostics.dat} and \texttt{constraint\_norms.dat}. It works now and is ideal for atlas scoring, but it only produces aggregate quantities (min/max/norms, horizon proxy, scalar extrema).
+    \item \textbf{Surface extraction via \texttt{SphericalExtraction}.} Samples variables on spherical shells and can project onto spin-weighted spherical harmonics (used by \texttt{WeylExtraction} for $\Psi_4$ modes). The API lives in \texttt{Source/AMRInterpolator/}, but the AMReX-ported \texttt{AMRInterpolator::refresh()} path is incomplete, so runtime GW extraction is not yet wired up in current examples.
+    \item \textbf{\texttt{CylindricalExtraction}.} Same surface-extraction framework on cylindrical shells. Useful for axial throat profiles and jet-like structures.
+    \item \textbf{\texttt{ParticleInterpolator}.} AMReX-native interpolation at arbitrary points. A lighter-weight option for probe lines or tracer particles without the full surface-extraction stack.
+    \item \textbf{Plotfile post-processing.} AMReX tools (\texttt{fextract}, \texttt{fcompare}) or Python (\texttt{yt}, AMReX bindings) can read plotfiles after the run. No C++ changes are needed, but this conflicts with long-run data retention unless plotfiles are kept for promoted candidates only.
+\end{enumerate}
+
+\noindent\textbf{Recommendation.} Use volume reductions for the immediate atlas pipeline; restore spherical extraction as a milestone for $\Psi_4$ regression against the previous wormhole paper; reserve plotfile post-processing for one-off analysis of promoted candidates.
+
 \section{Baseline Workflow}
 
 One search episode is:
@@ -209,6 +249,9 @@ Every run should create one episode folder containing input parameters, grid set
 
 Implement the first new C++ initial-data class. It reads radial coefficients and generates smooth profiles for $\chi$, $\alpha$, $\beta^i$, $K$, $\phi$, and $\Pi$. At this stage there is no optimization yet; hand-picked coefficients are enough.
 
+\noindent\textbf{Implemented status.}
+\texttt{Examples/RadialRecipe/} provides a buildable CCZ4+matter template with Gaussian radial basis functions. Coefficients are read from indexed \texttt{params.txt} keys such as \texttt{recipe\_chi\_coeff\_0}. The wrapper supports this example via \texttt{--example RadialRecipe}.
+
 \subsection{Step 4: Add the Python Wrapper}
 
 Write a Python script that creates input files, launches \texttt{GRTeclyn}, waits for completion, reads diagnostics, and computes a simple score. This creates the first complete episode loop.
@@ -267,7 +310,7 @@ The near-term milestones are:
 \begin{enumerate}
     \item one-command reproduction of the previous wormhole runs;
     \item machine-readable diagnostics from \texttt{GRTeclyn};
-    \item first radial recipe initial-data class in C++;
+    \item first radial recipe initial-data class in C++; \textbf{implemented as \texttt{Examples/RadialRecipe/}}
     \item Python wrapper for one episode; \textbf{implemented}
     \item random search over current wormhole parameters; \textbf{implemented as the first atlas mode}
     \item first failure-mode database; \textbf{implemented as \texttt{atlas.csv}/\texttt{atlas.jsonl}}
@@ -413,6 +456,44 @@ We need small, practical C++ additions.
     Later, allow Python to write full grid fields to disk and let \texttt{GRTeclyn} load them. This is useful for neural decoders.
 \end{enumerate}
 
+\section*{Anatomy of a GRTeclyn Example}
+
+Every runnable \texttt{GRTeclyn} problem is an \texttt{Examples/<Name>/} directory with roughly ten tightly coupled files. The Python wrapper can template \texttt{params.txt}, launch the binary, and parse diagnostics, but it cannot invent new physics without these C++ pieces.
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{\texttt{GNUmakefile}.} Build entry point. Selects AMReX packages and the \texttt{Source/} modules (\texttt{CCZ4}, \texttt{Matter}, \texttt{GRTeclynCore}, \texttt{Tagging}, \texttt{AMRInterpolator}, etc.).
+    \item \textbf{\texttt{Make.package}.} Registers local \texttt{.cpp} sources and \texttt{.hpp} headers for the build.
+    \item \textbf{\texttt{Main\_*.cpp}.} Standard \texttt{GRAMR} time loop.
+    \item \textbf{\texttt{*Level.hpp/.cpp}.} Extends \texttt{GRAMRLevel} and wires initial data, RHS evolution, tagging, and diagnostics.
+    \item \textbf{\texttt{SimulationParameters.hpp}.} Problem-specific parameters. Must live in the example directory because core headers include it at compile time.
+    \item \textbf{\texttt{StateVariables.hpp}.} Defines \texttt{NUM\_VARS}, names, and BC parities.
+    \item \textbf{\texttt{*InitialData.hpp}.} GPU functor that fills CCZ4 and matter fields at $t=0$.
+    \item \textbf{Potential / matter header.} Example-local or shared from \texttt{Source/Matter/}.
+    \item \textbf{\texttt{params.txt}.} Runtime inputs read by \texttt{GRParmParse}.
+\end{itemize}
+
+\textbf{Compile-time header injection.} \texttt{SimulationParameters.hpp} and \texttt{StateVariables.hpp} are resolved from the example directory, not from \texttt{Source/}. Copying an example is the standard way to start a new run.
+
+\textbf{Template type consistency.} The matter type must match everywhere: RHS, constraints, Weyl4, and derived variables.
+
+\textbf{Parameter loading chain.} \texttt{AMReXParameters} $\rightarrow$ \texttt{SimulationParametersBase} $\rightarrow$ derived \texttt{SimulationParameters}.
+
+\textbf{Wrapper vs C++ boundary.} \texttt{grteclyn-wrapper} automates params templating, execution, parsing, scoring, and atlas batches. C++ is still required for new initial data, matter models, diagnostics, and extraction hooks.
+
+\textbf{Recommended starting point.} \texttt{Examples/RadialRecipe/} reads Gaussian radial recipe coefficients from \texttt{params.txt} and is the template for optimizer-driven initial-data search.
+
+\section*{C++ Interpolation and Extraction Options}
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Volume reductions (current baseline).} \texttt{ParallelFor} + \texttt{ReduceOps} + \texttt{SmallDataIO} in \texttt{specificPostTimeStep}. Works today; good for atlas scoring; limited to aggregate diagnostics.
+    \item \textbf{\texttt{SphericalExtraction}.} Shell sampling and harmonic mode integration (GW / $\Psi_4$). API exists in \texttt{Source/AMRInterpolator/}, but runtime extraction is not fully wired in the current AMReX port.
+    \item \textbf{\texttt{CylindricalExtraction}.} Same framework on cylindrical shells; useful for axial profiles.
+    \item \textbf{\texttt{ParticleInterpolator}.} Point-wise GPU interpolation without the full surface stack.
+    \item \textbf{Plotfile post-processing.} \texttt{fextract}, \texttt{yt}, etc. No C++ changes, but heavy files must be retained.
+\end{enumerate}
+
+\textbf{Recommendation.} Use volume reductions for atlas runs now; restore spherical extraction for GW regression; keep plotfile analysis for promoted candidates.
+
 \section*{First Baseline Workflow}
 
 One search episode should look like this:
@@ -549,6 +630,9 @@ It should read simple radial coefficients and generate smooth profiles for $\chi
 
 Do not optimize yet. Just run hand-picked coefficients and check that the system works.
 
+\noindent\textbf{Implemented status.}
+\texttt{Examples/RadialRecipe/} provides a buildable CCZ4+matter template with Gaussian radial basis functions. Coefficients are read from indexed \texttt{params.txt} keys such as \texttt{recipe\_chi\_coeff\_0}. The wrapper supports this example via \texttt{--example RadialRecipe}.
+
 \subsection*{Step 4: Add Python Wrapper}
 
 Create a Python script that:
@@ -674,7 +758,7 @@ Then the neural model can search a much larger space, and \texttt{GRTeclyn} rema
 \begin{enumerate}[leftmargin=*]
     \item One-command reproduction of previous wormhole runs.
     \item Machine-readable diagnostics from \texttt{GRTeclyn}.
-    \item First radial recipe initial-data class in C++.
+    \item First radial recipe initial-data class in C++. \textbf{Implemented as \texttt{Examples/RadialRecipe/}.}
     \item Python wrapper for one episode. \textbf{Implemented.}
     \item Random search over current wormhole parameters. \textbf{Implemented as the first atlas mode.}
     \item First failure-mode database. \textbf{Implemented as \texttt{atlas.csv}/\texttt{atlas.jsonl}.}

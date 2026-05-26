@@ -61,12 +61,16 @@ class ParamsTemplate:
         return "\n".join(rendered) + "\n"
 
 
-def episode_path_overrides(episode_dir: Path) -> dict[str, object]:
+from .config import ExampleConfig, resolve_example
+
+
+def episode_path_overrides(episode_dir: Path, example: ExampleConfig | str = "SupportedWormholeCollapse") -> dict[str, object]:
+    example_cfg = example if isinstance(example, ExampleConfig) else resolve_example(example)
     episode_dir = episode_dir.expanduser().resolve()
     return {
         "output_path": episode_dir,
-        "amr.check_file": episode_dir / "SupportedWormholeChk",
-        "amr.plot_file": episode_dir / "SupportedWormholePlt",
+        "amr.check_file": episode_dir / example_cfg.check_prefix,
+        "amr.plot_file": episode_dir / example_cfg.plot_prefix,
     }
 
 
@@ -75,9 +79,10 @@ def write_params(
     output_path: Path,
     *,
     episode_dir: Path,
+    example: ExampleConfig | str = "SupportedWormholeCollapse",
     overrides: Mapping[str, object] | None = None,
 ) -> Path:
-    merged: dict[str, object] = episode_path_overrides(episode_dir)
+    merged: dict[str, object] = episode_path_overrides(episode_dir, example=example)
     if overrides:
         merged.update(overrides)
 

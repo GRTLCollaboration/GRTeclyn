@@ -1,0 +1,141 @@
+#################################################
+# Filesystem parameters
+
+verbosity = 1
+
+output_path = "/path/to/your/simulation/output"
+amr.check_file = "/path/to/your/simulation/output/RadialRecipeChk"
+amr.plot_file  = "/path/to/your/simulation/output/RadialRecipePlt"
+
+checkpoint_interval = 1000
+plot_interval       = 1
+
+amr.plot_vars = chi K lapse
+amr.derive_plot_vars = Weyl4
+
+hdf5_subpath = "hdf5"
+pout_subpath = "pout"
+data_subpath = "data"
+
+print_progress_only_to_rank_0 = 1
+
+#################################################
+# Radial recipe initial data
+
+recipe_num_bases = 4
+recipe_basis_width = 1.0
+recipe_basis_radius_max = 8.0
+
+recipe_chi_asymptotic = 1.0
+recipe_alpha_asymptotic = 1.0
+recipe_K_asymptotic = 0.0
+recipe_phi_asymptotic = 0.0
+recipe_Pi_asymptotic = 0.0
+
+# Gaussian basis coefficients for chi (throat-like dip at r=0)
+recipe_chi_coeff_0 = -0.3
+recipe_chi_coeff_1 = -0.1
+recipe_chi_coeff_2 = 0.0
+recipe_chi_coeff_3 = 0.0
+
+# Lapse coefficients (flat by default)
+recipe_alpha_coeff_0 = 0.0
+recipe_alpha_coeff_1 = 0.0
+recipe_alpha_coeff_2 = 0.0
+recipe_alpha_coeff_3 = 0.0
+
+# Trace K coefficients
+recipe_K_coeff_0 = 0.0
+recipe_K_coeff_1 = 0.0
+recipe_K_coeff_2 = 0.0
+recipe_K_coeff_3 = 0.0
+
+# Scalar field coefficients
+recipe_phi_coeff_0 = 0.05
+recipe_phi_coeff_1 = 0.0
+recipe_phi_coeff_2 = 0.0
+recipe_phi_coeff_3 = 0.0
+
+recipe_Pi_coeff_0 = 0.0
+recipe_Pi_coeff_1 = 0.0
+recipe_Pi_coeff_2 = 0.0
+recipe_Pi_coeff_3 = 0.0
+
+#################################################
+# Grid parameters
+
+L_full = 32.0
+N_full = 64
+
+center = 0.0 0.0 0.0
+
+max_level = 0
+
+regrid_interval = 32
+regrid_threshold = 0.01
+
+max_box_size = 32
+min_box_size = 16
+
+#################################################
+# Boundary Conditions parameters
+
+isPeriodic = 0 0 0
+hi_boundary = 1 1 1
+lo_boundary = 2 2 2
+
+nonzero_asymptotic_vars = chi h11 h22 h33 lapse
+nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
+
+#################################################
+# Evolution parameters
+
+dt_multiplier = 0.02
+stop_time = 5.0
+
+max_spatial_derivative_order = 4
+nan_check = 1
+
+min_chi = 1.0e-8
+min_lapse = 1.0e-10
+
+lapse_advec_coeff = 1.0
+lapse_coeff = 2.0
+lapse_power = 1.0
+
+shift_advec_coeff = 1.0
+shift_Gamma_coeff = 0.75
+eta = 1.0
+
+formulation = 0
+kappa1 = 3.0
+kappa2 = 0.
+kappa3 = 1.
+covariantZ4 = 0
+
+sigma = 2.0
+
+calculate_constraint_norms = 1
+
+#################################################
+# Extraction parameters (loaded but not used at runtime yet)
+
+extraction_center = 0.0 0.0 0.0
+activate_extraction = 0
+write_extraction = 0
+extraction_subpath = "data"
+
+num_extraction_radii = 2
+extraction_radii = 8.0 16.0
+extraction_levels = 0 0
+
+num_points_phi = 24
+num_points_theta = 37
+num_modes = 1
+modes = 2 0
+
+#################################################
+# GPU / MPI parameters
+
+amrex.the_arena_init_size = 1048576
+amrex.use_gpu_aware_mpi = 0

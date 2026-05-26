@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from .config import DEFAULT_TEMPLATE, ExecutableConfig
+from .config import DEFAULT_TEMPLATE, ExecutableConfig, ExampleConfig, resolve_example
 from .episode import Episode, create_episode, update_metadata, write_json
 from .metrics import EpisodeMetrics, dataclass_to_dict, read_episode_metrics
 from .params import write_params
@@ -23,6 +23,19 @@ DEFAULT_RANGES: dict[str, tuple[float, float]] = {
     "wormhole_phi_perturbation_width": (0.25, 1.0),
     "wormhole_phi_monopole_amplitude": (-0.02, 0.02),
 }
+
+DEFAULT_RECIPE_RANGES: dict[str, tuple[float, float]] = {
+    "recipe_chi_coeff_0": (-0.5, 0.1),
+    "recipe_chi_coeff_1": (-0.2, 0.2),
+    "recipe_phi_coeff_0": (-0.1, 0.1),
+    "recipe_basis_width": (0.5, 2.0),
+}
+
+
+def atlas_ranges_for_example(example: ExampleConfig) -> dict[str, tuple[float, float]]:
+    if example.name == "RadialRecipe":
+        return DEFAULT_RECIPE_RANGES
+    return DEFAULT_RANGES
 
 DEFAULT_LOW_RES_OVERRIDES: dict[str, Any] = {
     "N_full": 32,
@@ -255,12 +268,15 @@ def run_atlas(
     seed: int | None,
     base_overrides: Mapping[str, Any] | None = None,
     template: Path = DEFAULT_TEMPLATE,
+    example: ExampleConfig | str = "SupportedWormholeCollapse",
     name: str | None = None,
     dry_run: bool = False,
     stop_on_failure: bool = False,
     cuda_devices: str | None = None,
     check_params: bool = True,
 ) -> tuple[AtlasPaths, list[dict[str, Any]], dict[str, Any]]:
+    example_cfg = example if isinstance(example, ExampleConfig) else resolve_example(example)
+    ranges = atlas_ranges_for_example(example_cfg)
     paths = make_atlas_dir(runs_dir, name=name)
     rng = random.Random(seed)
     records: list[dict[str, Any]] = []
@@ -271,22 +287,23 @@ def run_atlas(
             "created_at": datetime.now(timezone.utc).isoformat(),
             "count": count,
             "seed": seed,
+            "example": example_cfg.name,
             "dry_run": dry_run,
             "base_overrides": dict(base_overrides or {}),
-            "ranges": DEFAULT_RANGES,
+            "ranges": ranges,
             "low_res_defaults": DEFAULT_LOW_RES_OVERRIDES,
         },
     )
 
     for index in range(1, count + 1):
-        overrides = sample_overrides(rng, base=base_overrides)
+        overrides = sample_overrides(rng, base=base_overrides, ranges=ranges)
         target_stop_time = float(overrides["stop_time"]) if "stop_time" in overrides else None
         episode = create_episode(
             paths.root,
             name=f"episode_{index:06d}",
-            metadata={"mode": "atlas", "atlas_index": index, "overrides": overrides},
+            metadata={"mode": "atlas", "example": example_cfg.name, "atlas_index": index, "overrides": overrides},
         )
-        write_params(template, episode.params_path, episode_dir=episode.path, overrides=overrides)
+        write_params(template, episode.params_path, episode_dir=episode.path, example=example_cfg, overrides=overrides)
 
         exit_code: int | None = None
         if dry_run:
