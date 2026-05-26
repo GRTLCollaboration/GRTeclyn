@@ -6,6 +6,8 @@
 #ifndef SPHERICALGEOMETRY_HPP_
 #define SPHERICALGEOMETRY_HPP_
 
+#include <AMReX.H>
+
 // Other includes
 #include <array>
 #include <cmath>
@@ -68,7 +70,6 @@ class SphericalGeometry
         case (2):
             return m_center[2] + a_radius * cos(a_theta);
         default:
-            // NOLINTNEXTLINE(clang-diagnostic-error)
             amrex::Abort("SphericalGeometry: Direction not supported");
             return 0.;
         }
