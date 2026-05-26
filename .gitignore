@@ -113,3 +113,5 @@ src/SimResults/Run_R0.5_A00.0_A20.02_sigma0.5_perturbed/Weyl4_Re_z/
 # Track ASCII *.dat in these runs only (overrides global *.dat above)
 !src/SimResults/Run_R0.5_A00.0_A20.0_sigma0.5_unperturbed/*.dat
 !src/SimResults/Run_R0.5_A00.0_A20.02_sigma0.5_perturbed/*.dat
+
+docs/
