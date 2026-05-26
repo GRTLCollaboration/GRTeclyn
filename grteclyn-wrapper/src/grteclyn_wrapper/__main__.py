@@ -6,6 +6,7 @@ import random
 from pathlib import Path
 from typing import Any
 
+from .atlas import run_atlas
 from .config import DEFAULT_TEMPLATE, default_runs_dir, resolve_executable
 from .episode import create_episode, update_metadata, write_json
 from .metrics import dataclass_to_dict, read_episode_metrics
@@ -123,6 +124,34 @@ def _run_sweep(args: argparse.Namespace, base_overrides: dict[str, Any]) -> int:
     return status
 
 
+def _run_atlas_command(args: argparse.Namespace, base_overrides: dict[str, Any]) -> int:
+    executable = None
+    if not args.dry_run:
+        executable = resolve_executable(
+            args.executable,
+            mpi_ranks=args.mpi_ranks,
+            comp=args.comp,
+            cuda=not args.no_cuda,
+            debug=args.debug,
+        )
+
+    paths, records, summary = run_atlas(
+        runs_dir=Path(args.runs_dir).expanduser().resolve(),
+        executable=executable,
+        count=args.count,
+        seed=args.seed,
+        base_overrides=base_overrides,
+        template=Path(args.template).expanduser().resolve(),
+        name=args.name,
+        dry_run=args.dry_run,
+        stop_on_failure=args.stop_on_failure,
+        cuda_devices=args.cuda_devices,
+        check_params=not args.skip_check_params,
+    )
+    print(json.dumps({"atlas": str(paths.root), "records": len(records), "summary": summary}, indent=2))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run isolated SupportedWormholeCollapse episodes.")
     parser.add_argument("--runs-dir", default=str(default_runs_dir()), help="Directory for episode folders.")
@@ -148,6 +177,11 @@ def build_parser() -> argparse.ArgumentParser:
     sweep.add_argument("--count", type=int, default=1, help="Number of random episodes.")
     sweep.add_argument("--seed", type=int, default=None, help="Random seed.")
     sweep.add_argument("--stop-on-failure", action="store_true", help="Stop sweep at first non-zero run.")
+
+    atlas = subparsers.add_parser("atlas", help="Run a low-resolution failure-atlas batch.")
+    atlas.add_argument("--count", type=int, default=10, help="Number of sampled episodes.")
+    atlas.add_argument("--seed", type=int, default=None, help="Random seed.")
+    atlas.add_argument("--stop-on-failure", action="store_true", help="Stop atlas at first solver failure.")
     return parser
 
 
@@ -155,6 +189,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     overrides = _collect_overrides(args.set)
+    if args.command == "atlas":
+        return _run_atlas_command(args, overrides)
     if args.command == "sweep":
         return _run_sweep(args, overrides)
     return _run_single(args, overrides)

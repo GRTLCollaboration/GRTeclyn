@@ -1,10 +1,43 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+WRAPPER_ROOT = Path(__file__).resolve().parents[2]
+
+
+def _looks_like_grteclyn(path: Path) -> bool:
+    return (path / "Examples" / "SupportedWormholeCollapse" / "params_2gpu.txt").exists()
+
+
+def resolve_repo_root(explicit: str | Path | None = None) -> Path:
+    """Resolve the GRTeclyn checkout root for a standalone wrapper install."""
+
+    candidates: list[Path] = []
+    if explicit is not None:
+        candidates.append(Path(explicit).expanduser())
+    if os.environ.get("GRTECLYN_ROOT"):
+        candidates.append(Path(os.environ["GRTECLYN_ROOT"]).expanduser())
+    candidates.extend([
+        Path.cwd(),
+        WRAPPER_ROOT.parent,
+        WRAPPER_ROOT.parent.parent,
+    ])
+
+    for candidate in candidates:
+        resolved = candidate.resolve()
+        if _looks_like_grteclyn(resolved):
+            return resolved
+
+    raise FileNotFoundError(
+        "Could not find a GRTeclyn checkout. Set GRTECLYN_ROOT=/path/to/GRTeclyn "
+        "or run from the GRTeclyn repository root."
+    )
+
+
+REPO_ROOT = resolve_repo_root()
 SUPPORTED_WORMHOLE_DIR = REPO_ROOT / "Examples" / "SupportedWormholeCollapse"
 DEFAULT_TEMPLATE = SUPPORTED_WORMHOLE_DIR / "params_2gpu.txt"
 

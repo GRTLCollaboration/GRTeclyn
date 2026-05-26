@@ -1,0 +1,12 @@
+[project]
+name = "grteclyn-wrapper"
+version = "0.1.0"
+description = "Python episode runner and failure-atlas tooling for GRTeclyn SupportedWormholeCollapse"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+grteclyn-wrapper = "grteclyn_wrapper.__main__:main"
+
+[tool.uv]
+managed = true
