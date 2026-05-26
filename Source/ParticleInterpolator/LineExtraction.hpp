@@ -20,23 +20,26 @@
 template <int num_components> class LineExtraction
 {
   private:
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     const int m_start_comp; // first component
     const int m_num_points; // number of points along the line
     const std::array<double, AMREX_SPACEDIM>
         m_start_coords; // starting coords of the line
     const std::array<double, AMREX_SPACEDIM>
         m_end_coords; // ending coords of the line
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
     // for data write-out
-    const double m_dt;
-    const double m_time;
-    const double m_restart_time;
-    const bool m_first_step;
+    double m_dt{};
+    double m_time{};
+    double m_restart_time{};
+    bool m_first_step{};
 
   public:
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     LineExtraction(int a_start_comp, int a_num_points,
                    std::array<double, AMREX_SPACEDIM> a_start_coords,
                    std::array<double, AMREX_SPACEDIM> a_end_coords, double a_dt,
-                   double a_time, bool a_restart_time, bool a_first_step)
+                   double a_time, double a_restart_time, bool a_first_step)
         : m_start_comp(a_start_comp),
           m_num_points(
               (amrex::ParallelDescriptor::IOProcessor() ? a_num_points : 0)),
@@ -45,12 +48,13 @@ template <int num_components> class LineExtraction
           m_first_step(a_first_step)
     {
     }
+    // NOLINTEND(bugprone-easily-swappable-parameters)
 
     ~LineExtraction() = default;
 
     //! Execute using particle-based interpolation
     void execute_query(ParticleInterpolator<num_components> *interpolator,
-                       std::string a_file_prefix) const
+                       const std::string &a_file_prefix) const
     {
         BL_PROFILE("LineExtraction::execute_query()");
 

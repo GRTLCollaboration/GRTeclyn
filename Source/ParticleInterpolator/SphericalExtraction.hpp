@@ -22,6 +22,8 @@ class SphericalExtraction
   public:
     using Base   = SurfaceExtraction<SphericalGeometry, num_components>;
     using vars_t = typename Base::vars_t;
+    using mode_integrals_t =
+        std::pair<std::vector<double>, std::vector<double>>;
 
   protected:
     std::array<double, AMREX_SPACEDIM> m_center;
@@ -39,7 +41,7 @@ class SphericalExtraction
     {
     }
 
-    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     SphericalExtraction(const spherical_extraction_params_t &a_params,
                         const std::vector<vars_t> &a_vars, double a_dt,
                         double a_time, bool a_first_step,
@@ -49,8 +51,9 @@ class SphericalExtraction
     {
         this->add_vars(a_vars);
     }
+    // NOLINTEND(bugprone-easily-swappable-parameters)
 
-    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     SphericalExtraction(const spherical_extraction_params_t &a_params,
                         const std::vector<int> &a_state_vars, double a_dt,
                         double a_time, bool a_first_step,
@@ -60,6 +63,7 @@ class SphericalExtraction
     {
         this->add_state_vars(a_state_vars);
     }
+    // NOLINTEND(bugprone-easily-swappable-parameters)
 
     // alias this long type used for complex functions defined on the surface
     // and dependent on the interpolated data
@@ -72,7 +76,7 @@ class SphericalExtraction
     // NOLINTBEGIN(readability-identifier-length)
     void add_mode_integrand(
         int es, int el, int em, const complex_function_t &a_function,
-        std::pair<std::vector<double>, std::vector<double>> &out_integrals,
+        mode_integrals_t &out_integrals,
         const IntegrationMethod &a_method_theta = IntegrationMethod::simpson,
         const IntegrationMethod &a_method_phi   = IntegrationMethod::trapezium,
         const bool a_broadcast_integral         = false)

@@ -35,8 +35,7 @@ class IntegrationMethod
 
     //! Checks that this integration method is suitable given the number of
     //! points and periodicity
-    [[nodiscard]] inline bool is_valid(int a_num_points,
-                                       bool a_is_periodic) const
+    [[nodiscard]] bool is_valid(int a_num_points, bool a_is_periodic) const
     {
         if (m_is_closed && !a_is_periodic)
         {
@@ -47,11 +46,11 @@ class IntegrationMethod
     }
 
     //! Returns whether this IntegrationMethod is closed or not
-    [[nodiscard]] inline bool is_closed() const { return m_is_closed; }
+    [[nodiscard]] bool is_closed() const { return m_is_closed; }
 
     //! Returns the weight for a point with given index
-    [[nodiscard]] inline double weight(int a_index, int a_num_points,
-                                       bool a_is_periodic) const
+    [[nodiscard]] double weight(int a_index, int a_num_points,
+                                bool a_is_periodic) const
     {
         const size_t weight_index = a_index % m_num_weights;
         const bool endpoint =
