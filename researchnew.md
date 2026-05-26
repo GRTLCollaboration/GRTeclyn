@@ -213,9 +213,28 @@ Implement the first new C++ initial-data class. It reads radial coefficients and
 
 Write a Python script that creates input files, launches \texttt{GRTeclyn}, waits for completion, reads diagnostics, and computes a simple score. This creates the first complete episode loop.
 
+\noindent\textbf{Implemented status.}
+A standalone wrapper repository now exists in \texttt{grteclyn-wrapper}. It creates isolated episode directories, templates \texttt{params\_2gpu.txt}, launches \texttt{SupportedWormholeCollapse}, runs the \texttt{check\_params=1} preflight, writes \texttt{metadata.json}, streams \texttt{run.log}, parses \texttt{collapse\_diagnostics.dat} and \texttt{constraint\_norms.dat}, and writes \texttt{score.json}. It also includes shell scripts for medium, big, full, and atlas runs on a selected GPU.
+
 \subsection{Step 5: Run Random Search}
 
 Sample many radial candidates at low resolution. The goal is not discovery yet. The goal is to build a failure atlas: which parameters crash, which become flat, which form horizons, which create throats, and which diagnostics are useful.
+
+\noindent\textbf{Implemented status.}
+The wrapper now includes an \texttt{atlas} mode. It samples existing wormhole parameters, runs one isolated episode per sample, classifies the outcome, and writes \texttt{atlas.csv}, \texttt{atlas.jsonl}, and \texttt{summary.json}. Initial labels include \texttt{completed}, \texttt{missing\_diagnostics}, \texttt{constraint\_blowup}, \texttt{lapse\_collapse}, \texttt{horizon\_formed}, \texttt{trivial\_geometry}, and \texttt{solver\_failed}. A single-GPU smoke atlas completed successfully, and a larger \texttt{N\_full=128}, \texttt{max\_level=4} atlas test confirmed that the data pipeline works even when sampled candidates fail early with horizon formation and NaNs.
+
+\subsection{Step 5b: Production Data Retention}
+
+Final production and atlas runs must not keep all raw AMReX output indefinitely. Each episode should extract the useful machine-readable information first, then delete heavy files that are not needed for scoring or later analysis. The default retained set should be:
+
+\begin{itemize}
+    \item \texttt{params.txt}, \texttt{metadata.json}, \texttt{run.log}, and \texttt{score.json};
+    \item \texttt{data/collapse\_diagnostics.dat} and \texttt{data/constraint\_norms.dat};
+    \item selected \texttt{small\_data/*.dat} products such as \texttt{psi4\_mode\_l2m0.dat} and \texttt{areal\_radius.dat};
+    \item the batch-level \texttt{atlas.csv}, \texttt{atlas.jsonl}, and \texttt{summary.json}.
+\end{itemize}
+
+After extraction, the wrapper should optionally delete heavy episode-local outputs such as \texttt{SupportedWormholePlt*}, \texttt{SupportedWormholeChk*}, \texttt{hdf5/}, \texttt{pout/}, and generated frame folders. This keeps long atlas runs from overwhelming disk storage while preserving the diagnostics needed for scoring, optimizer training, and failure analysis.
 
 \subsection{Step 6: Add a Simple Optimizer}
 
@@ -249,9 +268,10 @@ The near-term milestones are:
     \item one-command reproduction of the previous wormhole runs;
     \item machine-readable diagnostics from \texttt{GRTeclyn};
     \item first radial recipe initial-data class in C++;
-    \item Python wrapper for one episode;
-    \item random search over radial candidates;
-    \item first failure-mode database;
+    \item Python wrapper for one episode; \textbf{implemented}
+    \item random search over current wormhole parameters; \textbf{implemented as the first atlas mode}
+    \item first failure-mode database; \textbf{implemented as \texttt{atlas.csv}/\texttt{atlas.jsonl}}
+    \item production cleanup mode that extracts useful data and deletes heavy raw outputs;
     \item first optimizer-driven search;
     \item first null-ray or scalar-pulse validation.
 \end{enumerate}
@@ -543,6 +563,9 @@ Create a Python script that:
 
 At this stage, random sampling is enough.
 
+\noindent\textbf{Implemented status.}
+A standalone wrapper repository now exists in \texttt{grteclyn-wrapper}. It creates isolated episode directories, templates \texttt{params\_2gpu.txt}, launches \texttt{SupportedWormholeCollapse}, runs the \texttt{check\_params=1} preflight, writes \texttt{metadata.json}, streams \texttt{run.log}, parses \texttt{collapse\_diagnostics.dat} and \texttt{constraint\_norms.dat}, and writes \texttt{score.json}. It also includes shell scripts for medium, big, full, and atlas runs on a selected GPU.
+
 \subsection*{Step 5: Run Random Search}
 
 Sample many radial candidates at low resolution.
@@ -558,6 +581,22 @@ Questions to answer:
     \item Which ones form horizons?
     \item Which diagnostics are most useful?
 \end{itemize}
+
+\noindent\textbf{Implemented status.}
+The wrapper now includes an \texttt{atlas} mode. It samples existing wormhole parameters, runs one isolated episode per sample, classifies the outcome, and writes \texttt{atlas.csv}, \texttt{atlas.jsonl}, and \texttt{summary.json}. Initial labels include \texttt{completed}, \texttt{missing\_diagnostics}, \texttt{constraint\_blowup}, \texttt{lapse\_collapse}, \texttt{horizon\_formed}, \texttt{trivial\_geometry}, and \texttt{solver\_failed}. A single-GPU smoke atlas completed successfully, and a larger \texttt{N\_full=128}, \texttt{max\_level=4} atlas test confirmed that the data pipeline works even when sampled candidates fail early with horizon formation and NaNs.
+
+\subsection*{Step 5b: Production Data Retention}
+
+Final production and atlas runs must not keep all raw AMReX output indefinitely. Each episode should extract the useful machine-readable information first, then delete heavy files that are not needed for scoring or later analysis. The default retained set should be:
+
+\begin{itemize}[leftmargin=*]
+    \item \texttt{params.txt}, \texttt{metadata.json}, \texttt{run.log}, and \texttt{score.json};
+    \item \texttt{data/collapse\_diagnostics.dat} and \texttt{data/constraint\_norms.dat};
+    \item selected \texttt{small\_data/*.dat} products such as \texttt{psi4\_mode\_l2m0.dat} and \texttt{areal\_radius.dat};
+    \item the batch-level \texttt{atlas.csv}, \texttt{atlas.jsonl}, and \texttt{summary.json}.
+\end{itemize}
+
+After extraction, the wrapper should optionally delete heavy episode-local outputs such as \texttt{SupportedWormholePlt*}, \texttt{SupportedWormholeChk*}, \texttt{hdf5/}, \texttt{pout/}, and generated frame folders. This keeps long atlas runs from overwhelming disk storage while preserving the diagnostics needed for scoring, optimizer training, and failure analysis.
 
 \subsection*{Step 6: Add A Simple Optimizer}
 
@@ -636,9 +675,10 @@ Then the neural model can search a much larger space, and \texttt{GRTeclyn} rema
     \item One-command reproduction of previous wormhole runs.
     \item Machine-readable diagnostics from \texttt{GRTeclyn}.
     \item First radial recipe initial-data class in C++.
-    \item Python wrapper for one episode.
-    \item Random search over radial candidates.
-    \item First failure-mode database.
+    \item Python wrapper for one episode. \textbf{Implemented.}
+    \item Random search over current wormhole parameters. \textbf{Implemented as the first atlas mode.}
+    \item First failure-mode database. \textbf{Implemented as \texttt{atlas.csv}/\texttt{atlas.jsonl}.}
+    \item Production cleanup mode that extracts useful data and deletes heavy raw outputs.
     \item First optimizer-driven search.
     \item First null-ray or scalar-pulse validation.
 \end{enumerate}

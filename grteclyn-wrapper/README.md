@@ -154,6 +154,25 @@ This score is a starting point for sweeps and optimizer development, not a final
 
 The `atlas` command is the dataset-generating search mode. It samples existing wormhole parameters, runs one isolated episode per sample, classifies the result, and writes batch-level files under `runs/atlas_<timestamp>/`.
 
+In simple terms, atlas is a batch experiment runner:
+
+1. Pick random wormhole parameters.
+2. Create a separate episode folder.
+3. Write a custom `params.txt`.
+4. Run `GRTeclyn`.
+5. Read diagnostics such as constraints, lapse, `chi`, and horizon proxy.
+6. Compute a score.
+7. Add labels such as `completed`, `horizon_formed`, or `solver_failed`.
+8. Save the result to `atlas.csv` and `atlas.jsonl`.
+
+The CSV is the quick table:
+
+```text
+parameters -> what happened -> score -> success/failure labels
+```
+
+Failures are useful. If a candidate forms a horizon and crashes with NaNs, atlas records that parameter region as bad or unstable. Later optimizers can use this failure map instead of blindly trying the same bad regions again.
+
 ```text
 runs/atlas_YYYYMMDDTHHMMSSZ/
   metadata.json
