@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping
 
+from .config import ExampleConfig, resolve_example
+
 
 _ASSIGNMENT_RE = re.compile(r"^(?P<prefix>\s*(?P<key>[A-Za-z0-9_.]+)\s*=\s*)(?P<value>.*?)(?P<comment>\s+#.*)?$")
 
@@ -59,9 +61,6 @@ class ParamsTemplate:
                 rendered.append(f"{key} = {remaining[key]}")
 
         return "\n".join(rendered) + "\n"
-
-
-from .config import ExampleConfig, resolve_example
 
 
 def episode_path_overrides(episode_dir: Path, example: ExampleConfig | str = "SupportedWormholeCollapse") -> dict[str, object]:

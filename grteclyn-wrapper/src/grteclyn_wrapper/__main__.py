@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from .atlas import run_atlas
-from .config import DEFAULT_RADIAL_RECIPE_TEMPLATE, DEFAULT_TEMPLATE, default_runs_dir, resolve_example, resolve_executable
+from .config import default_runs_dir, resolve_example, resolve_executable
 from .episode import create_episode, update_metadata, write_json
 from .metrics import dataclass_to_dict, read_episode_metrics
 from .params import write_params
