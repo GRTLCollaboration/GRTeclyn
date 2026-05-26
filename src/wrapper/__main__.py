@@ -1,0 +1,164 @@
+from __future__ import annotations
+
+import argparse
+import json
+import random
+from pathlib import Path
+from typing import Any
+
+from .config import DEFAULT_TEMPLATE, default_runs_dir, resolve_executable
+from .episode import create_episode, update_metadata, write_json
+from .metrics import dataclass_to_dict, read_episode_metrics
+from .params import write_params
+from .runner import run_episode
+from .score import score_episode
+
+
+SWEEP_RANGES = {
+    "wormhole_phi_perturbation_amplitude": (-0.04, 0.04),
+    "wormhole_support_strength": (0.2, 1.0),
+    "wormhole_phi_perturbation_width": (0.25, 1.0),
+}
+
+
+def _parse_override(value: str) -> tuple[str, str]:
+    if "=" not in value:
+        raise argparse.ArgumentTypeError(f"Override must be key=value, got {value!r}")
+    key, raw = value.split("=", 1)
+    key = key.strip()
+    raw = raw.strip()
+    if not key:
+        raise argparse.ArgumentTypeError("Override key cannot be empty")
+    return key, raw
+
+
+def _coerce_value(raw: str) -> Any:
+    for caster in (int, float):
+        try:
+            return caster(raw)
+        except ValueError:
+            pass
+    if raw.lower() in {"true", "false"}:
+        return raw.lower() == "true"
+    return raw
+
+
+def _collect_overrides(pairs: list[tuple[str, str]]) -> dict[str, Any]:
+    return {key: _coerce_value(value) for key, value in pairs}
+
+
+def _finalize_score(episode_dir: Path, target_stop_time: float | None) -> int:
+    metrics = read_episode_metrics(episode_dir)
+    score = score_episode(metrics, target_stop_time=target_stop_time)
+    write_json(
+        episode_dir / "score.json",
+        {
+            "score": dataclass_to_dict(score),
+            "metrics": dataclass_to_dict(metrics),
+        },
+    )
+    print(json.dumps({"episode": str(episode_dir), "score": score.total}, indent=2))
+    return 0
+
+
+def _run_single(args: argparse.Namespace, overrides: dict[str, Any]) -> int:
+    runs_dir = Path(args.runs_dir).expanduser().resolve()
+    episode = create_episode(
+        runs_dir,
+        name=args.name,
+        metadata={"mode": args.command, "overrides": overrides},
+    )
+    write_params(
+        Path(args.template).expanduser().resolve(),
+        episode.params_path,
+        episode_dir=episode.path,
+        overrides=overrides,
+    )
+
+    if args.dry_run:
+        update_metadata(episode, {"dry_run": True})
+        print(f"Wrote dry-run episode: {episode.path}")
+        return 0
+
+    executable = resolve_executable(
+        args.executable,
+        mpi_ranks=args.mpi_ranks,
+        comp=args.comp,
+        cuda=not args.no_cuda,
+        debug=args.debug,
+    )
+    result = run_episode(
+        episode,
+        executable,
+        check_params=not args.skip_check_params,
+        cuda_devices=args.cuda_devices,
+        consume_plotfiles=args.consume_plotfiles,
+        consumer_radii=args.consumer_radii,
+        consumer_delete=args.consumer_delete,
+    )
+    _finalize_score(episode.path, target_stop_time=overrides.get("stop_time"))
+    return result.returncode
+
+
+def _sample_overrides(base: dict[str, Any], rng: random.Random) -> dict[str, Any]:
+    overrides = dict(base)
+    for key, (lo, hi) in SWEEP_RANGES.items():
+        overrides.setdefault(key, rng.uniform(lo, hi))
+    return overrides
+
+
+def _run_sweep(args: argparse.Namespace, base_overrides: dict[str, Any]) -> int:
+    rng = random.Random(args.seed)
+    status = 0
+    for index in range(args.count):
+        overrides = _sample_overrides(base_overrides, rng)
+        name = args.name or f"sweep_{index + 1:06d}"
+        per_args = argparse.Namespace(**vars(args))
+        per_args.name = name
+        per_args.command = "sweep"
+        rc = _run_single(per_args, overrides)
+        status = status or rc
+        if rc != 0 and args.stop_on_failure:
+            break
+    return status
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Run isolated SupportedWormholeCollapse episodes.")
+    parser.add_argument("--runs-dir", default=str(default_runs_dir()), help="Directory for episode folders.")
+    parser.add_argument("--template", default=str(DEFAULT_TEMPLATE), help="Source params template.")
+    parser.add_argument("--executable", default=None, help="Executable path. Defaults to SupportedWormholeCollapse binary name.")
+    parser.add_argument("--mpi-ranks", type=int, default=1, help="MPI ranks; >1 selects the MPI executable name.")
+    parser.add_argument("--comp", default="gnu", help="Compiler tag in the executable name.")
+    parser.add_argument("--debug", action="store_true", help="Select DEBUG executable naming.")
+    parser.add_argument("--no-cuda", action="store_true", help="Select non-CUDA executable naming.")
+    parser.add_argument("--cuda-devices", default=None, help="CUDA_VISIBLE_DEVICES value for the run.")
+    parser.add_argument("--skip-check-params", action="store_true", help="Skip the check_params=1 preflight.")
+    parser.add_argument("--consume-plotfiles", action="store_true", help="Run consume_plotfiles as a side process.")
+    parser.add_argument("--consumer-radii", nargs="+", type=float, default=[8.0, 16.0], help="Radii for consume_plotfiles.")
+    parser.add_argument("--consumer-delete", action="store_true", help="Let consume_plotfiles delete old plotfiles.")
+    parser.add_argument("--dry-run", action="store_true", help="Create episode files without launching GRTeclyn.")
+    parser.add_argument("--set", action="append", type=_parse_override, default=[], metavar="KEY=VALUE", help="Params override.")
+    parser.add_argument("--name", default=None, help="Episode folder name.")
+
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    subparsers.add_parser("reproduce", help="Run one episode from the template plus overrides.")
+
+    sweep = subparsers.add_parser("sweep", help="Run a random sweep over current wormhole parameters.")
+    sweep.add_argument("--count", type=int, default=1, help="Number of random episodes.")
+    sweep.add_argument("--seed", type=int, default=None, help="Random seed.")
+    sweep.add_argument("--stop-on-failure", action="store_true", help="Stop sweep at first non-zero run.")
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    overrides = _collect_overrides(args.set)
+    if args.command == "sweep":
+        return _run_sweep(args, overrides)
+    return _run_single(args, overrides)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

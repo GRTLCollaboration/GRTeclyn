@@ -17,6 +17,7 @@ ipo_out.optrpt
 # Example output
 chk*/
 plt*/
+runs/
 Backtrace.*
 pout.*
 *.out
