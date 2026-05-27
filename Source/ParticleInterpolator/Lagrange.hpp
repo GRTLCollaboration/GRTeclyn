@@ -93,57 +93,98 @@ template <int N> class Lagrange
     }
 
     amrex::ParticleReal
-    interp_deriv_1d(int comp, int dim, int stride,
-                    FourthOrderDerivatives a_deriv,
+    interp_deriv_1d(int comp, int stride, FourthOrderDerivatives a_deriv,
                     const amrex::Array4<amrex::Real const> data) const
     {
         amrex::ParticleReal val = amrex::ParticleReal(0.0);
-
-        for (int ii = 0; ii < N; ++ii)
+#if AMREX_SPACEDIM == 3
+        for (int kk = 0; kk < N; ++kk)
         {
-            val += a_deriv.diff1(data.ptr(i0, j0, k0) +
-                                     comp * data.stride.a[2] + ii * stride,
-                                 stride) *
-                   weights[dim][ii];
+#endif
+#if AMREX_SPACEDIM >= 2
+            for (int jj = 0; jj < N; ++jj)
+            {
+#endif
+                for (int ii = 0; ii < N; ++ii)
+                {
+                    val += a_deriv.diff1(
+                               data.ptr(AMREX_D_DECL(i0 + ii, j0 + jj, k0 + kk),
+                                        comp),
+                               stride) *
+                           AMREX_D_TERM(weights[0][ii], *weights[1][jj],
+                                        *weights[2][kk]);
+                }
+#if AMREX_SPACEDIM >= 2
+            }
+#endif
+#if AMREX_SPACEDIM == 3
         }
+#endif
         return val;
     }
 
     amrex::ParticleReal
-    interp_deriv_2d(int comp, int dim, int stride,
-                    FourthOrderDerivatives a_deriv,
+    interp_deriv_2d(int comp, int stride, FourthOrderDerivatives a_deriv,
                     const amrex::Array4<amrex::Real const> data) const
     {
         amrex::ParticleReal val = amrex::ParticleReal(0.0);
 
-        for (int ii = 0; ii < N; ++ii)
+#if AMREX_SPACEDIM == 3
+        for (int kk = 0; kk < N; ++kk)
         {
-            val += a_deriv.diff2(data.ptr(i0, j0, k0) +
-                                     comp * data.stride.a[2] + ii * stride,
-                                 stride) *
-                   weights[dim][ii];
+#endif
+#if AMREX_SPACEDIM >= 2
+            for (int jj = 0; jj < N; ++jj)
+            {
+#endif
+                for (int ii = 0; ii < N; ++ii)
+                {
+                    val += a_deriv.diff2(
+                               data.ptr(AMREX_D_DECL(i0 + ii, j0 + jj, k0 + kk),
+                                        comp),
+                               stride) *
+                           AMREX_D_TERM(weights[0][ii], *weights[1][jj],
+                                        *weights[2][kk]);
+                }
+#if AMREX_SPACEDIM >= 2
+            }
+#endif
+#if AMREX_SPACEDIM == 3
         }
+#endif
         return val;
     }
 
     amrex::ParticleReal
-    interp_deriv_2d_mixed(int comp, int dim1, int dim2, int stride1,
-                          int stride2, FourthOrderDerivatives a_deriv,
+    interp_deriv_2d_mixed(int comp, int stride1, int stride2,
+                          FourthOrderDerivatives a_deriv,
                           const amrex::Array4<amrex::Real const> data) const
     {
         amrex::ParticleReal val = amrex::ParticleReal(0.0);
 
-        for (int ii = 0; ii < N; ++ii)
+#if AMREX_SPACEDIM == 3
+        for (int kk = 0; kk < N; ++kk)
         {
+#endif
+#if AMREX_SPACEDIM >= 2
             for (int jj = 0; jj < N; ++jj)
             {
-                val += a_deriv.mixed_diff2(data.ptr(i0, j0, k0) +
-                                               comp * data.stride.a[2] +
-                                               ii * stride1 + jj * stride2,
-                                           stride1, stride2) *
-                       weights[dim1][ii] * weights[dim2][jj];
+#endif
+                for (int ii = 0; ii < N; ++ii)
+                {
+                    val += a_deriv.mixed_diff2(
+                               data.ptr(AMREX_D_DECL(i0 + ii, j0 + jj, k0 + kk),
+                                        comp),
+                               stride1, stride2) *
+                           AMREX_D_TERM(weights[0][ii], *weights[1][jj],
+                                        *weights[2][kk]);
+                }
+#if AMREX_SPACEDIM >= 2
             }
+#endif
+#if AMREX_SPACEDIM == 3
         }
+#endif
         return val;
     }
 
@@ -238,8 +279,7 @@ template <int N> class Lagrange
                     {
                         interp_deriv = [=](int comp) -> amrex::ParticleReal
                         {
-                            return interp_deriv_2d(comp, deriv_dims[0],
-                                                   strides[deriv_dims[0]],
+                            return interp_deriv_2d(comp, strides[deriv_dims[0]],
                                                    a_deriv, data);
                         };
                     }
@@ -248,8 +288,7 @@ template <int N> class Lagrange
                     {
                         interp_deriv = [=](int comp) -> amrex::ParticleReal
                         {
-                            return interp_deriv_1d(comp, deriv_dims[0],
-                                                   strides[deriv_dims[0]],
+                            return interp_deriv_1d(comp, strides[deriv_dims[0]],
                                                    a_deriv, data);
                         };
                     }
@@ -260,9 +299,8 @@ template <int N> class Lagrange
                     interp_deriv = [=](int comp) -> amrex::ParticleReal
                     {
                         return interp_deriv_2d_mixed(
-                            comp, deriv_dims[0], deriv_dims[1],
-                            strides[deriv_dims[0]], strides[deriv_dims[1]],
-                            a_deriv, data);
+                            comp, strides[deriv_dims[0]],
+                            strides[deriv_dims[1]], a_deriv, data);
                     };
                 }
             }
