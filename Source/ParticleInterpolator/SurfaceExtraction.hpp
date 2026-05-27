@@ -37,7 +37,7 @@ template <class SurfaceGeometry, int num_components> class SurfaceExtraction
   public:
     // I suggest using a struct here instead of the tuple-structure inherited
     // from GRChombo here, as we need to add more features to the varibles used
-    struct var_t
+    struct vars_t
     {
         int var{};
         VariableType type{};
@@ -46,13 +46,13 @@ template <class SurfaceGeometry, int num_components> class SurfaceExtraction
         amrex::Vector<BCParity> parities{};
         std::string derived_name;
     };
-    using vars_t = var_t;
+    using params_t = surface_extraction_params_t;
 
   protected:
     SurfaceGeometry m_geom; //!< the geometry class which knows about
                             //!< the particular surface
-    surface_extraction_params_t m_params;
-    std::vector<var_t>
+    params_t m_params;
+    std::vector<vars_t>
         m_vars; //!< the vector of of variables and their features to extract
     double m_dt{};
     double m_time{};
@@ -101,7 +101,7 @@ template <class SurfaceGeometry, int num_components> class SurfaceExtraction
                  const std::string &a_derived_name         = "");
 
     //! add a vector of variables/derivatives of variables
-    void add_vars(const std::vector<var_t> &a_vars);
+    void add_vars(const std::vector<vars_t> &a_vars);
 
     //! add a vector of state variables (no derivatives)
     void add_state_vars(const std::vector<int> &a_vars);
@@ -114,16 +114,14 @@ template <class SurfaceGeometry, int num_components> class SurfaceExtraction
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     //! Alternative constructor with a predefined vector of variables and
     //! derivatives
-    SurfaceExtraction(const SurfaceGeometry &a_geom,
-                      const surface_extraction_params_t &a_params,
-                      const std::vector<var_t> &a_vars, double a_dt,
+    SurfaceExtraction(const SurfaceGeometry &a_geom, const params_t &a_params,
+                      const std::vector<vars_t> &a_vars, double a_dt,
                       double a_time, bool a_first_step,
                       double a_restart_time = 0.0);
 
     //! Another alternative constructor with a predefined vector of variables
     //! no derivatives
-    SurfaceExtraction(const SurfaceGeometry &a_geom,
-                      const surface_extraction_params_t &a_params,
+    SurfaceExtraction(const SurfaceGeometry &a_geom, const params_t &a_params,
                       const std::vector<int> &a_vars, double a_dt,
                       double a_time, bool a_first_step,
                       double a_restart_time = 0.0);
