@@ -61,6 +61,21 @@ recipe_Pi_coeff_1 = 0.0
 recipe_Pi_coeff_2 = 0.0
 recipe_Pi_coeff_3 = 0.0
 
+# Non-spherical chi corrections (0 = pure radial recipe)
+# Axisymmetric: chi += amp * exp(-(r-rc)^2/(2*rw^2)) * P_l(cos theta)
+# recipe_num_chi_angular_modes = 0
+# recipe_chi_mode_ell_0 = 2
+# recipe_chi_mode_amp_0 = -0.1
+# recipe_chi_mode_rc_0 = 4.0
+# recipe_chi_mode_rw_0 = 1.0
+# General Y_lm (scalar): chi += amp * radial_gaussian * Y_l^m(theta, phi)
+# recipe_num_chi_Ylm_modes = 0
+# recipe_chi_Ylm_l_0 = 2
+# recipe_chi_Ylm_m_0 = 0
+# recipe_chi_Ylm_amp_0 = 0.0
+# recipe_chi_Ylm_rc_0 = 4.0
+# recipe_chi_Ylm_rw_0 = 1.0
+
 #################################################
 # Grid parameters
 

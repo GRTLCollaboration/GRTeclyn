@@ -41,6 +41,13 @@ class SimulationParameters : public SimulationParametersBase
         load_coeff_array(pp, "recipe_K_coeff", recipe_params.K_coeffs);
         load_coeff_array(pp, "recipe_phi_coeff", recipe_params.phi_coeffs);
         load_coeff_array(pp, "recipe_Pi_coeff", recipe_params.Pi_coeffs);
+
+        pp.load("recipe_num_chi_angular_modes",
+                recipe_params.num_chi_angular_modes, 0);
+        load_angular_modes(pp);
+
+        pp.load("recipe_num_chi_Ylm_modes", recipe_params.num_chi_Ylm_modes, 0);
+        load_Ylm_modes(pp);
     }
 
     void check_params()
@@ -58,6 +65,20 @@ class SimulationParameters : public SimulationParametersBase
                         recipe_params.basis_radius_max,
                         recipe_params.basis_radius_max > 0.0,
                         "must be positive");
+
+        check_parameter("recipe_num_chi_angular_modes",
+                        recipe_params.num_chi_angular_modes,
+                        recipe_params.num_chi_angular_modes >= 0 &&
+                            recipe_params.num_chi_angular_modes <=
+                                RadialRecipeInitialData::MAX_ANGULAR_MODES,
+                        "must be between 0 and MAX_ANGULAR_MODES");
+
+        check_parameter("recipe_num_chi_Ylm_modes",
+                        recipe_params.num_chi_Ylm_modes,
+                        recipe_params.num_chi_Ylm_modes >= 0 &&
+                            recipe_params.num_chi_Ylm_modes <=
+                                RadialRecipeInitialData::MAX_YLM_MODES,
+                        "must be between 0 and MAX_YLM_MODES");
     }
 
     bool calculate_constraint_norms{};
@@ -74,6 +95,42 @@ class SimulationParameters : public SimulationParametersBase
             std::ostringstream key;
             key << prefix << "_" << n;
             pp.load(key.str().c_str(), coeffs[n], 0.0);
+        }
+    }
+
+    void load_angular_modes(GRParmParse &pp)
+    {
+        for (int n = 0; n < recipe_params.num_chi_angular_modes; ++n)
+        {
+            auto &mode = recipe_params.chi_angular_modes[n];
+            std::ostringstream ell_key, amp_key, rc_key, rw_key;
+            ell_key << "recipe_chi_mode_ell_" << n;
+            amp_key << "recipe_chi_mode_amp_" << n;
+            rc_key << "recipe_chi_mode_rc_" << n;
+            rw_key << "recipe_chi_mode_rw_" << n;
+            pp.load(ell_key.str().c_str(), mode.ell, 0);
+            pp.load(amp_key.str().c_str(), mode.amplitude, 0.0);
+            pp.load(rc_key.str().c_str(), mode.radial_center, 0.0);
+            pp.load(rw_key.str().c_str(), mode.radial_width, 1.0);
+        }
+    }
+
+    void load_Ylm_modes(GRParmParse &pp)
+    {
+        for (int n = 0; n < recipe_params.num_chi_Ylm_modes; ++n)
+        {
+            auto &mode = recipe_params.chi_Ylm_modes[n];
+            std::ostringstream l_key, m_key, amp_key, rc_key, rw_key;
+            l_key << "recipe_chi_Ylm_l_" << n;
+            m_key << "recipe_chi_Ylm_m_" << n;
+            amp_key << "recipe_chi_Ylm_amp_" << n;
+            rc_key << "recipe_chi_Ylm_rc_" << n;
+            rw_key << "recipe_chi_Ylm_rw_" << n;
+            pp.load(l_key.str().c_str(), mode.ell, 0);
+            pp.load(m_key.str().c_str(), mode.em, 0);
+            pp.load(amp_key.str().c_str(), mode.amplitude, 0.0);
+            pp.load(rc_key.str().c_str(), mode.radial_center, 0.0);
+            pp.load(rw_key.str().c_str(), mode.radial_width, 1.0);
         }
     }
 };

@@ -16,6 +16,7 @@ from .params import write_params
 from .seeds import get_seed, list_seeds
 from .runner import run_episode
 from .score import score_episode
+from .candidates import resolve_initial_data_overrides
 from .validate_guesser import run_validation
 
 
@@ -68,13 +69,21 @@ def _finalize_score(episode_dir: Path, target_stop_time: float | None) -> int:
 
 def _run_single(args: argparse.Namespace, overrides: dict[str, Any]) -> int:
     example = resolve_example(args.example)
+    phantom = getattr(args, "phantom", False) or getattr(args, "phantom_default", False)
     if getattr(args, "constrained", False) and example.name == "RadialRecipe":
-        constrained_overrides(overrides, phantom=getattr(args, "phantom", False))
+        constrained_overrides(overrides, phantom=phantom)
     runs_dir = Path(args.runs_dir).expanduser().resolve()
+    metadata: dict[str, Any] = {
+        "mode": args.command,
+        "example": example.name,
+        "overrides": overrides,
+    }
+    if getattr(args, "initial_data_source", None):
+        metadata["initial_data_source"] = args.initial_data_source
     episode = create_episode(
         runs_dir,
         name=args.name,
-        metadata={"mode": args.command, "example": example.name, "overrides": overrides},
+        metadata=metadata,
     )
     template = Path(args.template).expanduser().resolve() if args.template else example.template
     write_params(
@@ -250,6 +259,22 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--phantom", action="store_true", help="Use phantom scalar field coupling (negative kinetic term) in constrained mode.")
     parser.add_argument("--preflight", action="store_true", help="Pre-flight constraint check; reject bad candidates before GPU launch (RadialRecipe only).")
     parser.add_argument("--seed-name", default=None, choices=list_seeds(), help="Start from a known-solution seed (RadialRecipe only).")
+    parser.add_argument(
+        "--candidate-id",
+        default=None,
+        help="Validation candidate ID from validate_guesser (e.g. random_000, bubble_wall_016).",
+    )
+    parser.add_argument(
+        "--nonspherical-id",
+        default=None,
+        help="Non-spherical ray-validation candidate (e.g. quadrupole_bubble_001).",
+    )
+    parser.add_argument(
+        "--validation-seed",
+        type=int,
+        default=42,
+        help="RNG seed for deterministic candidate lookup.",
+    )
     parser.add_argument("--set", action="append", type=_parse_override, default=[], metavar="KEY=VALUE", help="Params override.")
     parser.add_argument("--name", default=None, help="Episode folder name.")
 
@@ -290,12 +315,24 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    args.phantom_default = False
+    args.initial_data_source = None
     overrides = _collect_overrides(args.set)
-    if getattr(args, "seed_name", None):
-        seed = get_seed(args.seed_name)
-        seed_overrides = dict(seed.overrides)
-        seed_overrides.update(overrides)
-        overrides = seed_overrides
+    source = None
+    if (
+        getattr(args, "seed_name", None)
+        or getattr(args, "candidate_id", None)
+        or getattr(args, "nonspherical_id", None)
+    ):
+        base_overrides, phantom_default, source = resolve_initial_data_overrides(
+            seed_name=getattr(args, "seed_name", None),
+            candidate_id=getattr(args, "candidate_id", None),
+            nonspherical_id=getattr(args, "nonspherical_id", None),
+            validation_seed=getattr(args, "validation_seed", 42),
+        )
+        overrides = {**base_overrides, **overrides}
+        args.phantom_default = phantom_default
+        args.initial_data_source = source
     if args.command == "optimize":
         return _run_optimize_command(args, overrides)
     if args.command == "validate":

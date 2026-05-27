@@ -168,6 +168,16 @@ def _blank_recipe_coeffs(num_bases: int) -> dict[str, Any]:
     return overrides
 
 
+def lookup_candidate(candidate_id: str, *, seed: int = 42) -> CandidateSpec:
+    """Return a deterministic validation candidate by ID."""
+    for spec in generate_candidates(seed):
+        if spec.candidate_id == candidate_id:
+            return spec
+    raise KeyError(
+        f"Unknown candidate_id={candidate_id!r} (validation seed={seed})."
+    )
+
+
 def spec_to_overrides(spec: CandidateSpec) -> dict[str, Any]:
     """Convert a candidate spec to RadialRecipe params overrides."""
     overrides: dict[str, Any] = {

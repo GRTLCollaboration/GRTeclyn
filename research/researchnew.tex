@@ -243,7 +243,7 @@ Teo-like & Quadrupole dynamics & Non-spherical benchmark \\
 Establish a regression script that reproduces the unperturbed (expanding) and perturbed (collapsing) Ellis--Bronnikov wormhole. Configure the `grteclyn-wrapper` package to automatically extract the 1D diagnostics and programmatically delete the heavy 3D AMReX plotfiles (`Plt*`) to prevent storage exhaustion on the cluster.
 
 \subsection{Step 2: Custom C++ Initial Data}
-Implement the `Examples/RadialRecipe/` directory in C++. The initial data functor must read Gaussian basis coefficients directly from `params.txt` and map them onto the starting grid variables $\chi$, $\alpha$, $\beta^i$, $K$, $\phi$, and $\Pi$.
+\textit{Completed.} \texttt{Examples/RadialRecipe/} reads Gaussian basis coefficients and optional angular modes from \texttt{params.txt} and maps them onto $\chi$, $\alpha$, $\beta^i$, $K$, $\phi$, and $\Pi$ on the GPU initial-data functor. Short GPU smoke tests confirm the Python$\to$C++ handoff (Sec.~\ref{sec:gpu_radial_smoke}).
 
 \subsection{Step 3: Slurm-Based Random Search (The Atlas)}
 Write the Python scheduler to generate batches of randomized radial coefficients, write \texttt{params.txt} inputs, and dispatch them to the GPU cluster via Slurm. Parse the resulting \texttt{collapse\_diagnostics.dat} files and categorize the failure modes (black hole collapse, coordinate crash, or flat space dissipation) into an \texttt{atlas.csv} file.
@@ -344,7 +344,17 @@ Three analytically known spacetimes are provided as regression benchmarks and op
     \item \textbf{Schwarzschild puncture}: The Brill--Lindquist conformal factor $\psi = 1 + M/(2\bar{r})$ fitted to Gaussians. A vacuum solution that tests the recipe's ability to handle steep $\chi$ gradients near a singularity.
 \end{enumerate}
 
-These seeds are selected via \texttt{--seed-name} and can be combined with the optimizer to search for perturbations around known solutions.
+These seeds are selected via \texttt{--seed-name} and can be combined with the optimizer to search for perturbations around known solutions. Validation-batch IDs (\texttt{random\_000}, \texttt{bubble\_wall\_016}, \ldots) are selected via \texttt{--candidate-id}; non-spherical proposals via \texttt{--nonspherical-id} (see Sec.~\ref{sec:gpu_nonspherical}).
+
+\subsection{Component 7: GPU smoke and promotion scripts}
+
+Three bash entry points automate the Python$\to$C++$\to$GPU loop on the cluster:
+\begin{itemize}
+    \item \texttt{run\_radialrecipe\_gpu\_smoke.sh}: build (optional), dry-run, \texttt{check\_params}, and short evolution for one seed or candidate;
+    \item \texttt{run\_radialrecipe\_gpu\_promote.sh}: resolution ladder at $t=5$ for promoted radial survivors only;
+    \item \texttt{run\_nonspherical\_gpu\_batch.sh}: parallel batch over all ray-sane non-spherical IDs.
+\end{itemize}
+Episode outputs live under \texttt{runs/radialrecipe\_gpu\_smoke/}, \texttt{runs/radialrecipe\_gpu\_promote/}, and \texttt{runs/radialrecipe\_nonspherical/}, each with \texttt{params.txt}, \texttt{metadata.json}, \texttt{run.log}, and \texttt{data/constraint\_norms.dat}.
 
 \subsection{Verification Tests}
 
@@ -471,7 +481,7 @@ As a first implementation step toward symmetry breaking, the Python wrapper now 
     \exp\left[-\frac{(r-r_a)^2}{2w_a^2}\right]
     P_{\ell_a}(\cos\theta),
 \end{equation}
-where $P_\ell$ are Legendre polynomials. This is not yet the final 3D angular basis, but it is the simplest non-spherical extension that can be validated without adding new C++ infrastructure.
+where $P_\ell$ are Legendre polynomials. The same ansatz is now implemented in \texttt{RadialRecipeInitialData} (C++) via \texttt{recipe\_num\_chi\_angular\_modes} and per-mode keys \texttt{recipe\_chi\_mode\_ell\_*}, \texttt{recipe\_chi\_mode\_amp\_*}, \texttt{recipe\_chi\_mode\_rc\_*}, \texttt{recipe\_chi\_mode\_rw\_*}. A complementary path uses full scalar spherical harmonics $Y_{\ell m}(\theta,\varphi)$ through \texttt{recipe\_num\_chi\_Ylm\_modes} and \texttt{recipe\_chi\_Ylm\_l\_*}, \texttt{recipe\_chi\_Ylm\_m\_*}, etc., evaluated with the existing \texttt{SphericalHarmonics::spin\_Y\_lm} routine ($s=0$).
 
 The first validation is a one-step metric sanity check along several 1D radial rays ($\theta=0,\pi/4,\pi/2,3\pi/4,\pi$). For each candidate we measure:
 
@@ -495,7 +505,7 @@ The reference run (seed 42) produced 8 non-spherical candidates: 7 were classifi
     \item \texttt{nonspherical\_ray\_validation\_summary.json}
 \end{itemize}
 
-This ray validation only checks whether the non-spherical metric proposal remains positive and geometrically reasonable along sampled directions. It does \emph{not} solve the non-spherical Hamiltonian or momentum constraints. The next layer must evaluate these candidates on the full 3D AMReX grid or pass them through an elliptic constraint solver.
+This ray validation only checks whether the non-spherical metric proposal remains positive and geometrically reasonable along sampled directions. It does \emph{not} solve the non-spherical Hamiltonian or momentum constraints on its own. The GPU results in Sec.~\ref{sec:gpu_nonspherical} show that ray-sane candidates also survive short 3D \texttt{RadialRecipe} evolution once the constrained $\phi$ recipe and C++ angular initial data are enabled.
 
 \subsubsection{Profile visualisation}
 
@@ -629,24 +639,107 @@ Most random and shell profiles fail the normal-matter energy check even when pre
     \item \textbf{Regression tests} (\texttt{test\_constrained\_guesser.py}): fixed assertions on known seeds and edge cases; pass/fail for CI.
     \item \textbf{Validation harness} (\texttt{validate\_metric\_guesser.py}): dataset-style batch over synthetic proposals; explains \emph{why} each geometry is accepted or rejected.
     \item \textbf{Optimization} (\texttt{optimize} subcommand): feedback loop that adapts coefficients from scores. Not used here.
-    \item \textbf{Next step after validation}: take \texttt{accepted\_*} candidates and run short \texttt{RadialRecipe} C++ evolutions to obtain full 3D constraint and energy diagnostics.
+    \item \textbf{GPU bridge (completed May 2026)}: short \texttt{RadialRecipe} C++ evolutions now run from the wrapper for seeds, validation candidates, and non-spherical proposals; see Secs.~\ref{sec:gpu_radial_smoke}--\ref{sec:gpu_nonspherical}.
 \end{itemize}
+
+\subsection{GPU/C++ RadialRecipe smoke validation}
+\label{sec:gpu_radial_smoke}
+
+The Python wrapper and \texttt{Examples/RadialRecipe/} executable are now connected end-to-end on a single NVIDIA H100 GPU. The automated pipeline is implemented in \texttt{grteclyn-wrapper/scripts/run\_radialrecipe\_gpu\_smoke.sh} and invoked via \texttt{python -m grteclyn\_wrapper reproduce} with \texttt{--constrained}, \texttt{--preflight}, and \texttt{--phantom} as needed.
+
+\subsubsection{Build and launch conventions}
+
+Following the same pattern as \texttt{SupportedWormholeCollapse}, single-GPU smoke builds use
+\begin{verbatim}
+cd Examples/RadialRecipe
+make COMP=gnu USE_CUDA=TRUE USE_MPI=FALSE CUDA_ARCH=90 -j
+\end{verbatim}
+which produces \texttt{main3d.gnu.CUDA.ex} without requiring \texttt{mpicxx} on \texttt{PATH}. Multi-GPU production runs remain available via \texttt{USE\_MPI=TRUE} and the local OpenMPI install under \texttt{simulation/local/openmpi-5.0.8}. The wrapper selects \texttt{main3d.gnu.MPI.CUDA.ex} only when \texttt{--mpi-ranks}$>1$.
+
+Each episode performs: (i)~Python dry-run generation of \texttt{params.txt}; (ii)~C++ \texttt{check\_params=1}; (iii)~short GPU evolution; (iv)~parsing of \texttt{constraint\_norms.dat}, \texttt{collapse\_diagnostics.dat}, and \texttt{score.json}.
+
+\subsubsection{Initial-data sources}
+
+The CLI now accepts three equivalent entry points, resolved in \texttt{candidates.py}:
+\begin{itemize}
+    \item \texttt{--seed-name} (e.g.\ \texttt{ellis\_bronnikov}) from \texttt{seeds.py};
+    \item \texttt{--candidate-id} (e.g.\ \texttt{bubble\_wall\_016}, \texttt{random\_000}) from the deterministic validation set (\texttt{validate\_guesser}, seed 42);
+    \item \texttt{--nonspherical-id} (e.g.\ \texttt{quadrupole\_bubble\_001}) from \texttt{nonspherical\_guesser.py}, mapped to C++ angular-mode parameters by \texttt{nonspherical\_to\_overrides()}.
+\end{itemize}
+
+For every constrained run the wrapper zeros all \texttt{recipe\_K\_coeff\_*} and \texttt{recipe\_Pi\_coeff\_*}, derives \texttt{recipe\_phi\_coeff\_*} from $\chi$, writes the episode \texttt{params.txt}, and launches the CUDA binary with \texttt{CUDA\_VISIBLE\_DEVICES} set per job.
+
+\subsubsection{Radial smoke results ($t=2$, $N_{\rm full}=64$, $\Delta t = 0.02$)}
+
+Table~\ref{tab:gpu_radial_smoke} summarizes the first GPU handoff campaign on the reference phantom candidates. The rough acceptance target is $\|H\|_{L^2}<10^{-1}$ with no immediate lapse collapse.
+
+\begin{table}[h]
+\caption{Short GPU smoke results for spherically symmetric RadialRecipe candidates ($t=2$, $N_{\rm full}=64$). Python pre-flight uses a 1D radial grid; C++ values are from \texttt{constraint\_norms.dat} on the full 3D AMReX mesh.}
+\label{tab:gpu_radial_smoke}
+\begin{ruledtabular}
+\begin{tabular}{lcccccc}
+ID & Python $\|H\|_{L^2}$ & C++ max $\|H\|_{L^2}$ & C++ final $\|H\|_{L^2}$ & $\alpha_{\min}$ & $\chi_{\min}$ & Outcome \\
+\hline
+\texttt{ellis\_bronnikov} & 2.24 & 0.050 & 0.020 & 0.31 & 0.43 & Stable \\
+\texttt{bubble\_wall\_016} & 0.027 & 0.014 & 0.006 & 0.94 & 0.99 & Stable \\
+\texttt{random\_000} & 0.224 & 0.092 & 0.079 & 0.26 & 0.77 & Borderline \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+The Ellis--Bronnikov seed illustrates the expected mismatch between 1D pre-flight and 3D AMReX: the coarse radial fit can report a large 1D residual even when the 3D diagnostic remains $\mathcal{O}(10^{-2})$. For \texttt{bubble\_wall\_016}, the 3D residual is comparable to or below the Python estimate.
+
+Extended evolution to $t=5$ at $N_{\rm full}=64$ confirms \texttt{ellis\_bronnikov} and \texttt{bubble\_wall\_016} as \emph{promoted survivors} ($\|H\|_{L^2}$ remains $\lesssim 5\times 10^{-2}$, $\alpha_{\min}\gtrsim 0.3$--$0.4$). The same run rejects \texttt{random\_000} for long campaigns: although it completes without NaNs, $\alpha_{\min}$ drops to $\sim 0.08$ and a large horizon-radius proxy ($\sim 27$ in code units) appears, indicating coordinate/gauge stress. The promotion script \texttt{run\_radialrecipe\_gpu\_promote.sh} therefore sweeps only \texttt{ellis\_bronnikov} and \texttt{bubble\_wall\_016} over $N_{\rm full}\in\{64,96,128\}$ at $t=5$.
+
+\subsubsection{Resolution note (Ellis--Bronnikov)}
+
+At $t=2$, increasing $N_{\rm full}$ from 64 to 128 leaves $\|H\|_{L^2}$ near $5\times 10^{-2}$ but exposes sharper throat features ($\chi_{\min}$ falls from $0.43$ to $0.20$, $\alpha_{\min}$ from $0.31$ to $0.15$). Constraints remain controlled; the trend signals under-resolved geometry rather than exponential constraint blow-up.
+
+\subsection{Non-spherical 3D GPU batch}
+\label{sec:gpu_nonspherical}
+
+All seven \texttt{accepted\_ray\_sane} non-spherical candidates from the ray-validation set were evolved on GPU in parallel (\texttt{run\_nonspherical\_gpu\_batch.sh}, stamp \texttt{20260527\_161609}, output under \texttt{runs/radialrecipe\_nonspherical/}). Each run used the axisymmetric C++ deformation of $\chi$, constrained $\phi$, $K=0$, $\Pi=0$, $t=2$, and $N_{\rm full}=64$. The deliberate bad control \texttt{strong\_quadrupole\_bad\_003} was not evolved (negative $\chi$ on rays).
+
+\begin{table}[h]
+\caption{Non-spherical GPU smoke results ($t=2$, $N_{\rm full}=64$, constrained phantom recipe).}
+\label{tab:gpu_nonspherical}
+\begin{ruledtabular}
+\begin{tabular}{lcccc}
+Candidate & max $\|H\|_{L^2}$ & final $\|H\|_{L^2}$ & $\alpha_{\min}$ & $\chi_{\min}$ \\
+\hline
+\texttt{dipole\_lopsided\_000} & 0.0118 & 0.0071 & 0.90 & 0.88 \\
+\texttt{quadrupole\_bubble\_001} & 0.0125 & 0.0074 & 0.92 & 0.87 \\
+\texttt{mixed\_modes\_002} & 0.0118 & 0.0071 & 0.91 & 0.87 \\
+\texttt{random\_angular\_004} & 0.0064 & 0.0043 & 0.92 & 0.87 \\
+\texttt{random\_angular\_005} & 0.0122 & 0.0081 & 0.92 & 0.87 \\
+\texttt{random\_angular\_006} & 0.0132 & 0.0073 & 0.91 & 0.87 \\
+\texttt{random\_angular\_007} & 0.0135 & 0.0076 & 0.93 & 0.87 \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+Every accepted candidate satisfies $\|H\|_{L^2}<10^{-1}$, maintains $\alpha_{\min}\gtrsim 0.87$, and shows no NaN termination. This closes the loop begun in the ray-validation stage: non-spherical $\chi$ proposals that are positive along sampled rays also load correctly into C++ and remain dynamically tame over two code units of evolution at low resolution.
+
+Representative commands:
+\begin{verbatim}
+# One non-spherical candidate
+NONSPHERICAL_ID=quadrupole_bubble_001 BUILD=0 \
+  bash grteclyn-wrapper/scripts/run_radialrecipe_gpu_smoke.sh
+
+# Full accepted batch (7 jobs, one GPU each)
+bash grteclyn-wrapper/scripts/run_nonspherical_gpu_batch.sh
+\end{verbatim}
 
 \section{Recommended Next Steps for Testing}
 
-With the static ($t=0$) validation harness established, the next milestone is to bridge the gap from Python pre-flight checks to active 3D dynamics in \texttt{GRTeclyn}. The following short-term protocols should be run before large-scale optimization.
+With the static ($t=0$) validation harness and the first GPU smoke bridge in place, the remaining short-term protocols below focus on scaling and physics diagnostics rather than basic handoff.
 
 \subsection{C++ 3D Initial Data Discretization Test}
-
-The Python pre-flight solver computes derivatives on a 1D radial grid. The actual evolution code evaluates the same Gaussian coefficients on the 3D AMReX grid with finite-volume cell centering, ghost zones, refinement boundaries, and coordinate interpolation. These two discretizations will not agree exactly, so the first test should measure the mismatch.
+\textit{Status: completed for reference candidates.} Table~\ref{tab:gpu_radial_smoke} records the Python-vs-C++ Hamiltonian comparison for \texttt{ellis\_bronnikov}, \texttt{bubble\_wall\_016}, and \texttt{random\_000}. The acceptance target $\|H\|_{L^2}<10^{-1}$ on the 3D grid is met for the promoted survivors.
 
 \begin{itemize}
-    \item \textbf{Test}: take the accepted phantom candidate \texttt{bubble\_wall\_016} and launch a short $t=0$ diagnostic run in \texttt{GRTeclyn}.
-    \item \textbf{Measure}: compare the 3D Hamiltonian constraint $L^2$ norm computed by \texttt{GRTeclyn} against the 1D pre-flight prediction.
-    \item \textbf{Acceptance target}: the 3D residual may be slightly larger because of grid discretization, but it should remain bounded, e.g.\ $\|H\|_{L^2}<10^{-1}$, and should not trigger the early-stopping filter.
+    \item \textbf{Remaining work}: systematic sweeps over basis count $N$ and width $w$ to quantify how discretization error scales (see basis fit-residual study below).
 \end{itemize}
-
-This test answers whether the Python-derived coefficients survive the actual C++ initial-data loading path.
 
 \subsection{Basis Fit-Residual Sensitivity Study}
 
@@ -661,16 +754,11 @@ The constrained recipe derives a continuous scalar profile $\phi(r)$ and then co
 This study will set the minimum safe dimensionality for CMA-ES: small enough to optimize efficiently, but large enough to preserve constraint accuracy.
 
 \subsection{Dynamic Gauge Stability Test}
-
-Passing $t=0$ constraints is necessary but not sufficient. A candidate can still fail dynamically if the lapse collapses, the shift/gauge variables respond violently, or the geometry creates a coordinate crash.
+\textit{Status: partially completed.} \texttt{ellis\_bronnikov} and \texttt{bubble\_wall\_016} survive $t=5$ at $N_{\rm full}=64$ with controlled constraints and healthy lapse. \texttt{random\_000} fails this gate at $t=5$ ($\alpha_{\min}\sim 0.08$, large horizon proxy). All seven ray-sane non-spherical candidates pass the $t=2$ stability check (Table~\ref{tab:gpu_nonspherical}).
 
 \begin{itemize}
-    \item \textbf{Test}: evolve accepted candidates such as \texttt{bubble\_wall\_016} and \texttt{random\_000} up to $t=5M$ at low resolution, e.g.\ $N=64$.
-    \item \textbf{Measure}: track the minimum lapse $\alpha$, the maximum $|K|$, the constraint norms, and the radial stretch factor $a(r)=\chi^{-1/2}$ over time.
-    \item \textbf{Acceptance target}: the lapse should remain healthy, the moving-puncture gauge should not produce an immediate coordinate crash, and the constraint norms should not blow up during the short evolution.
+    \item \textbf{Remaining work}: extend non-spherical survivors to $t=5$ and the $N_{\rm full}=64,96,128$ promotion ladder; add FTL probe and Weyl extraction scoring once baselines are frozen.
 \end{itemize}
-
-This test separates static constructibility from dynamical usability.
 
 \section{Long-Term Production Roadmap}
 
