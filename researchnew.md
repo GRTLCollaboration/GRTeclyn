@@ -321,16 +321,144 @@ These seeds are selected via \texttt{--seed-name} and can be combined with the o
 
 \subsection{Verification Tests}
 
-All six components were verified via an automated Python test suite executed through \texttt{uv run}. The following checks confirm correctness of the pipeline before any GPU time is spent:
+All six components are verified by a saved Python test suite:
+
+\begin{verbatim}
+cd grteclyn-wrapper
+uv run python tests/test_constrained_guesser.py
+\end{verbatim}
+
+The script exercises five groups of checks (74 assertions total) before any GPU time is spent.
+
+\subsubsection{Test groups}
 
 \begin{enumerate}
-    \item \textbf{Constrained recipe self-consistency}: The Ellis--Bronnikov seed's $\chi$ profile is passed through \texttt{constrained\_overrides} with \texttt{phantom=True}. The derived $\phi$ coefficients match the analytical values to machine precision ($\max|\phi_{\rm orig} - \phi_{\rm derived}| = 0$), confirming the Hamiltonian constraint solver correctly recovers the exact phantom scalar field.
-    \item \textbf{Trivial solution}: Flat Minkowski ($\chi = 1$, all coefficients zero) passed through the constrained recipe produces identically zero $\phi$ coefficients, verifying no spurious matter content is introduced.
-    \item \textbf{Pre-flight acceptance}: The Ellis--Bronnikov seed passes the pre-flight filter with $\|H\|_{L^2} \sim 10^{-1}$, consistent with a near-constraint-satisfying configuration.
-    \item \textbf{Pre-flight rejection}: A deliberately pathological configuration ($\chi_0 = -5$) is correctly rejected: $\|H\|_{L^2} \approx 2.7 \times 10^3 \gg 10$ and $\chi < 0$ over $\sim20\%$ of the grid, triggering three independent rejection criteria.
-    \item \textbf{Seed catalogue}: All three seeds (flat Minkowski, Ellis--Bronnikov, Schwarzschild puncture) load and produce valid override dictionaries with physically correct coefficient structure.
-    \item \textbf{Optimizer readiness}: The CMA-ES driver imports successfully with \texttt{cma 4.4.4}, the 5-dimensional default search space is well-formed, and all scoring weights (including the new energy condition and initial constraint quality components) are registered.
+    \item \textbf{Known analytical seeds} (6 cases): flat Minkowski, Ellis--Bronnikov wormholes at $b_0 \in \{0.5, 1.0, 2.0\}$, and Schwarzschild punctures at $M \in \{0.5, 1.0\}$.
+    \item \textbf{Random $\chi$ profiles, normal field} (8 cases): $\chi$ coefficients drawn from $\mathcal{N}(0, 0.15^2)$ with $N \in [3,8]$, basis width $w \in [0.3, 2.5]$, and $K \in [-0.3, 0.3]$.
+    \item \textbf{Random $\chi$ profiles, phantom field} (8 cases): same layout with larger $\chi$ perturbations and $K \in [-0.5, 0.5]$.
+    \item \textbf{Edge cases} (7 cases): very narrow/wide basis, $N=1$ and $N=12$, nearly singular $\chi$, non-zero $K$, depressed asymptotic $\chi$.
+    \item \textbf{Constraint improvement} (5 paired trials): compare pre-flight Hamiltonian $L^2$ before and after \texttt{constrained\_overrides}, with random independent $\phi$, $K$, and $\Pi$.
 \end{enumerate}
+
+\subsubsection{Results summary}
+
+On the reference run (\texttt{numpy 2.4.6}, seed 42): \textbf{74/74 checks passed}.
+
+\begin{itemize}
+    \item \textbf{Robustness}: all 16 random profiles and all 7 edge cases produced finite $\phi$ coefficients with bounded Gaussian fit residuals ($< 1$). No NaNs or crashes.
+    \item \textbf{Flat Minkowski}: $\phi$ coefficients remain exactly zero; pre-flight passes with $\|H\|_{L^2} = 0$.
+    \item \textbf{Momentum constraint}: locking $K$ to a spatial constant and $\Pi = 0$ drives $\|M_i\|_{L^2} = 0$ in all five improvement trials.
+    \item \textbf{Hamiltonian improvement}: in 4/5 random trials, constrained overrides reduced $\|H\|_{L^2}$ (best case: $3.9 \times 10^{-1} \to 2.2 \times 10^{-1}$). One trial regressed slightly ($2.5 \times 10^{-1} \to 2.7 \times 10^{-1}$, $\sim 7\%$) due to Gaussian fit error in the derived $\phi$; the test suite allows up to 15\% regression to account for this discretisation noise.
+    \item \textbf{Pathological rejection}: deliberately bad inputs ($\chi_0 = -5$, spatially varying $K$) are rejected by pre-flight with multiple independent criteria.
+\end{itemize}
+
+\subsubsection{Known limitations (expected behaviour)}
+
+\begin{enumerate}
+    \item \textbf{EB $\phi$ recovery is approximate, not exact}: re-deriving $\phi$ from the Gaussian-fitted $\chi$ via finite-difference Ricci integration yields $\max|\phi_{\rm orig} - \phi_{\rm derived}| \approx 0.2$ for $b_0 = 0.5$. The seed's $\phi$ was fit analytically; the constraint solver recomputes from the discrete $\chi$ profile, so throat-resolution error is expected.
+    \item \textbf{Wide-throat wormholes fail pre-flight}: Ellis--Bronnikov seeds with $b_0 \ge 1.0$ report $\|H\|_{L^2} \sim 10^2$--$10^2$ on the coarse 1D grid. Steep throat curvature exceeds what 8--12 Gaussians can represent; more basis functions or narrower widths are needed.
+    \item \textbf{Vacuum Schwarzschild fails pre-flight without matter}: puncture $\chi$ alone cannot satisfy $H = 0$ with $\phi = 0$ on the recipe's conformally flat ansatz. Pre-flight correctly flags $\|H\|_{L^2} \sim 10^1$--$10^2$. Full 3D constraint solving (e.g.\ \texttt{GRTresna}) remains required for vacuum BH initial data.
+    \item \textbf{Pre-flight is a heuristic filter, not a proof}: the 1D radial check uses 512--2048 points and finite-difference derivatives. The definitive constraint evaluation happens in the C++ \texttt{RadialRecipeLevel} diagnostic loop on the full 3D grid.
+\end{enumerate}
+
+These limitations define the intended operating envelope: the constrained recipe is a fast \emph{first pass} that eliminates the worst violations and locks the momentum constraint, while the C++ evolution and scoring pipeline provide the authoritative physics verdict.
+
+\subsection{Guesser Validation Harness}
+
+The regression suite in \texttt{test\_constrained\_guesser.py} checks that known cases and edge cases do not crash. A separate batch harness validates the \emph{guesser itself} on synthetic geometries that are \textbf{not} exact known metrics, without any optimizer feedback loop.
+
+\subsubsection{How to run}
+
+\begin{verbatim}
+cd grteclyn-wrapper
+uv run python tests/validate_metric_guesser.py --output-dir validation_out
+# or via CLI:
+uv run python -m grteclyn_wrapper validate --output-dir validation_out
+\end{verbatim}
+
+\subsubsection{What it does}
+
+\begin{enumerate}
+    \item Generates a fixed deterministic candidate set (seed 42): 12 random Gaussian profiles, 3 shells, 3 Alcubierre-inspired bubble walls, 3 multi-shell profiles, 3 pathological cases, and 3 bad controls.
+    \item Validates each candidate \emph{raw} (random independent $\phi$, $K$, $\Pi$) and \emph{constrained} (derived $\phi$, locked $K$, $\Pi=0$).
+    \item Records diagnostics: $\chi$ range, $\phi$ fit residual, unsatisfiable-source fraction, required energy density, raw vs.\ constrained preflight residuals.
+    \item Classifies each outcome with an explicit label and reason.
+    \item Writes \texttt{guesser\_validation.csv} and \texttt{guesser\_validation\_summary.json}.
+\end{enumerate}
+
+\subsubsection{How the initial $\chi(r)$ profile is drawn}
+
+The metric guesser starts by proposing the conformal factor $\chi(r)$ on a radial grid. In the C++ recipe this is represented by a Gaussian radial basis:
+
+\begin{equation}
+    \chi(r) = \chi_\infty + \sum_{n=0}^{N-1} c_n
+    \exp\left[-\frac{(r-r_n)^2}{2w^2}\right],
+\end{equation}
+
+where $\chi_\infty$ is the asymptotic value (usually 1), $c_n$ are the guessed coefficients, $w$ is the shared basis width, and the nodes $r_n$ are uniformly spaced from $0$ to \texttt{recipe\_basis\_radius\_max}. This is the actual shape that \texttt{RadialRecipeInitialData} places on the AMReX grid.
+
+The validation harness draws several families of $\chi(r)$:
+
+\begin{itemize}
+    \item \textbf{Random Gaussian profiles}: directly sample the coefficients $c_n$ from a controlled normal distribution.
+    \item \textbf{Shells}: build a target radial shell, then fit it back into the Gaussian basis.
+    \item \textbf{Bubble walls}: use an Alcubierre-style top-hat shape function only as a radial wall proxy, then fit the wall into the Gaussian basis.
+    \item \textbf{Multi-shells}: combine two radial shells to test more complex geometries.
+    \item \textbf{Pathological/bad controls}: deliberately create steep gradients, narrow basis functions, negative $\chi$, spatially varying $K$, or random $\Pi$.
+\end{itemize}
+
+After $\chi(r)$ is drawn, the constrained recipe does \emph{not} guess $\phi(r)$ independently. Instead, it computes the Ricci scalar from $\chi$, solves the Hamiltonian constraint for $\partial_r\phi$, integrates to obtain $\phi(r)$, and fits that result back into the same Gaussian basis.
+
+\subsubsection{Profile visualisation}
+
+Representative profiles can be plotted with:
+
+\begin{verbatim}
+cd grteclyn-wrapper
+uv run --extra plots python tests/plot_metric_profiles.py --output-dir validation_out
+\end{verbatim}
+
+This writes one figure per showcase candidate (e.g.\ \texttt{random\_000.png}, \texttt{bubble\_wall\_015.png}). Each figure is a $2\times2$ panel that tells the full pipeline story for a single candidate:
+
+\begin{enumerate}
+    \item \textbf{Top-left --- Guessed geometry} $a(r) = \chi^{-1/2}$: the radial proper-distance stretch factor. Purple shading above $a=1$ means space is stretched; orange shading below $a=1$ means space is compressed. This is the intuitive ``shape of space'' the guesser proposes.
+    \item \textbf{Top-right --- Conformal factor} $\chi(r)$: the internal variable stored on the grid.  Red shading below $\chi=0$ means the metric is invalid.
+    \item \textbf{Bottom-left --- Derived scalar field} $\phi(r)$: derived from the Hamiltonian constraint so that matter is consistent with the geometry.
+    \item \textbf{Bottom-right --- Required energy density} $\rho_{\rm req}(r)$: \emph{the physics verdict}. Green shading above zero means normal matter can support the geometry. Red shading below zero means exotic (negative) energy is required there.
+\end{enumerate}
+
+A bold verdict banner at the bottom of each figure states \texttt{ACCEPTED} or \texttt{REJECTED} with the classification reason.
+
+\subsubsection{Classification labels}
+
+\begin{itemize}
+    \item \texttt{accepted\_normal}: normal scalar supports the geometry; preflight passes; no large negative energy.
+    \item \texttt{accepted\_phantom}: phantom scalar required; preflight passes (exotic matter allowed).
+    \item \texttt{rejected\_negative\_chi}: invalid metric positivity.
+    \item \texttt{rejected\_unsatisfiable\_source}: Hamiltonian source has wrong sign over most of the grid.
+    \item \texttt{rejected\_high\_constraint}: preflight Hamiltonian or momentum residual too large.
+    \item \texttt{rejected\_fit\_error}: derived $\phi$ cannot be represented by the Gaussian basis.
+    \item \texttt{rejected\_exotic\_energy}: negative required energy density too large for a normal-matter search.
+\end{itemize}
+
+\subsubsection{Reference run (seed 42, 27 candidates)}
+
+\begin{itemize}
+    \item \texttt{accepted\_phantom}: 7
+    \item \texttt{rejected\_exotic\_energy}: 19
+    \item \texttt{rejected\_negative\_chi}: 1 (bad-control with $\chi_0 = -1.2$)
+\end{itemize}
+
+Most random and shell profiles fail the normal-matter energy check even when preflight passes, because the required energy density $\rho_{\rm req}$ is negative over part of the grid. Phantom-field candidates can pass. This is the intended behaviour: the harness separates \emph{numerical constructibility} from \emph{physical viability under positive energy}.
+
+\subsubsection{Difference from regression tests and optimization}
+
+\begin{itemize}
+    \item \textbf{Regression tests} (\texttt{test\_constrained\_guesser.py}): fixed assertions on known seeds and edge cases; pass/fail for CI.
+    \item \textbf{Validation harness} (\texttt{validate\_metric\_guesser.py}): dataset-style batch over synthetic proposals; explains \emph{why} each geometry is accepted or rejected.
+    \item \textbf{Optimization} (\texttt{optimize} subcommand): feedback loop that adapts coefficients from scores. Not used here.
+    \item \textbf{Next step after validation}: take \texttt{accepted\_*} candidates and run short \texttt{RadialRecipe} C++ evolutions to obtain full 3D constraint and energy diagnostics.
+\end{itemize}
 
 \section{Conclusion}
 

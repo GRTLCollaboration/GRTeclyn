@@ -16,6 +16,7 @@ from .params import write_params
 from .seeds import get_seed, list_seeds
 from .runner import run_episode
 from .score import score_episode
+from .validate_guesser import run_validation
 
 
 SWEEP_RANGES = {
@@ -270,6 +271,19 @@ def build_parser() -> argparse.ArgumentParser:
     opt.add_argument("--population-size", type=int, default=None, help="CMA-ES population size (default: auto).")
     opt.add_argument("--sigma0", type=float, default=0.3, help="Initial CMA-ES step size.")
     opt.add_argument("--seed", type=int, default=None, help="Random seed for CMA-ES.")
+
+    validate = subparsers.add_parser(
+        "validate",
+        help="Batch-validate the metric guesser on synthetic candidates (no optimizer).",
+    )
+    validate.add_argument("--seed", type=int, default=42, help="Random seed for candidate generation.")
+    validate.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("validation_out"),
+        help="Directory for guesser_validation.csv and summary JSON.",
+    )
+    validate.add_argument("--no-write", action="store_true", help="Print summary only; skip file output.")
     return parser
 
 
@@ -284,6 +298,10 @@ def main(argv: list[str] | None = None) -> int:
         overrides = seed_overrides
     if args.command == "optimize":
         return _run_optimize_command(args, overrides)
+    if args.command == "validate":
+        output_dir = None if args.no_write else args.output_dir
+        run_validation(seed=args.seed, output_dir=output_dir)
+        return 0
     if args.command == "atlas":
         return _run_atlas_command(args, overrides)
     if args.command == "sweep":

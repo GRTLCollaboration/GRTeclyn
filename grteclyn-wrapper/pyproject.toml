@@ -8,6 +8,11 @@ dependencies = [
     "cma>=3.3",
 ]
 
+[project.optional-dependencies]
+plots = [
+    "matplotlib>=3.8",
+]
+
 [project.scripts]
 grteclyn-wrapper = "grteclyn_wrapper.__main__:main"
 

@@ -1,0 +1,45 @@
+{
+  "total": 27,
+  "by_classification": {
+    "accepted_phantom": 7,
+    "rejected_exotic_energy": 19,
+    "rejected_negative_chi": 1
+  },
+  "by_family": {
+    "random": 12,
+    "shell": 3,
+    "bubble_wall": 3,
+    "multi_shell": 3,
+    "pathological": 3,
+    "bad_control": 3
+  },
+  "by_family_and_classification": {
+    "random": {
+      "accepted_phantom": 4,
+      "rejected_exotic_energy": 8
+    },
+    "shell": {
+      "rejected_exotic_energy": 2,
+      "accepted_phantom": 1
+    },
+    "bubble_wall": {
+      "rejected_exotic_energy": 2,
+      "accepted_phantom": 1
+    },
+    "multi_shell": {
+      "rejected_exotic_energy": 3
+    },
+    "pathological": {
+      "rejected_exotic_energy": 2,
+      "accepted_phantom": 1
+    },
+    "bad_control": {
+      "rejected_negative_chi": 1,
+      "rejected_exotic_energy": 2
+    }
+  },
+  "seed": 42,
+  "timestamp": "2026-05-27T07:37:12.797264+00:00",
+  "output_csv": "/home/nik/Desktop/github/GRTeclyn/grteclyn-wrapper/validation_out/guesser_validation.csv",
+  "output_json": "/home/nik/Desktop/github/GRTeclyn/grteclyn-wrapper/validation_out/guesser_validation_summary.json"
+}
