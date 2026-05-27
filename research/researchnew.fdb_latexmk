@@ -1,13 +1,13 @@
 # Fdb version 4
-["bibtex researchnew"] 1779895665.97529 "researchnew.aux" "researchnew.bbl" "researchnew" 1779895778.49911 0
-  "./researchnewNotes.bib" 1779895778.3323 104 4d8bb863c86f3d7b03a471e9d4707f34 ""
+["bibtex researchnew"] 1779900123.81464 "researchnew.aux" "researchnew.bbl" "researchnew" 1779900126.26426 0
+  "./researchnewNotes.bib" 1779900126.07116 104 4d8bb863c86f3d7b03a471e9d4707f34 ""
   "/usr/share/texlive/texmf-dist/bibtex/bst/revtex/apsrev4-2.bst" 1601932770 69609 e9dea59f0e753ccda3ddc8f5806d846d ""
-  "researchnew.aux" 1779895778.33074 15775 925f83d40bead305a423c46677f566e7 "pdflatex"
+  "researchnew.aux" 1779900126.06874 15754 86d2dde034d0e7d91dfa21e514272750 "pdflatex"
   (generated)
   "researchnew.bbl"
   "researchnew.blg"
   (rewritten before read)
-["pdflatex"] 1779895775.4811 "researchnew.tex" "researchnew.pdf" "researchnew" 1779895778.49942 0
+["pdflatex"] 1779900123.84343 "researchnew.tex" "researchnew.pdf" "researchnew" 1779900126.26523 0
   "/etc/texmf/web2c/texmf.cnf" 1779888823.51351 475 c0e671620eb5563b2130f56340a5fde8 ""
   "/home/nik/.texlive2023/texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx0900.600pk" 1779888907.43483 22480 7e6fe99662077fe5e833779ec4af1ca2 ""
   "/home/nik/.texlive2023/texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx1000.600pk" 1779888906.09341 25396 e7972b567bef83f4eec2a758515e710b ""
@@ -78,6 +78,7 @@
   "/usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb" 1248133631 32587 1788b0c1c5b39540c96f5e42ccd6dae8 ""
   "/usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb" 1248133631 32716 08e384dc442464e7285e891af9f45947 ""
   "/usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb" 1248133631 32442 c975af247b6702f7ca0c299af3616b80 ""
+  "/usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb" 1248133631 31764 459c573c03a4949a528c2cc7f557e217 ""
   "/usr/share/texlive/texmf-dist/tex/context/base/mkii/supp-pdf.mkii" 1461363279 71627 94eb9990bed73c364d7f53f960cc8c5b ""
   "/usr/share/texlive/texmf-dist/tex/generic/atbegshi/atbegshi.sty" 1575674566 24708 5584a51a7101caf7e6bbf1fc27d8f7b1 ""
   "/usr/share/texlive/texmf-dist/tex/generic/bigintcalc/bigintcalc.sty" 1576625341 40635 c40361e206be584d448876bba8a64a3b ""
@@ -129,6 +130,12 @@
   "/usr/share/texlive/texmf-dist/tex/latex/kvsetkeys/kvsetkeys.sty" 1665067230 13815 760b0c02f691ea230f5359c4e1de23a7 ""
   "/usr/share/texlive/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def" 1704491087 30006 57b07afb710ee2f649c65cfbafda39c1 ""
   "/usr/share/texlive/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg" 1279039959 678 4792914a8f45be57bb98413425e4c7af ""
+  "/usr/share/texlive/texmf-dist/tex/latex/microtype/microtype-pdftex.def" 1678741534 48246 c3eed060aba663f58af3ff756e83f2bd ""
+  "/usr/share/texlive/texmf-dist/tex/latex/microtype/microtype.cfg" 1678741534 26842 05a01d67d23e805520393a049533b8c0 ""
+  "/usr/share/texlive/texmf-dist/tex/latex/microtype/microtype.sty" 1678741534 98531 f79ec363f3014ada2cb766715926ecc9 ""
+  "/usr/share/texlive/texmf-dist/tex/latex/microtype/mt-cmr.cfg" 1678741534 22906 7a8d9f8766e60f694cdde7648421c2ab ""
+  "/usr/share/texlive/texmf-dist/tex/latex/microtype/mt-msa.cfg" 1678741534 5929 0e1d31c98c10fece90f470d5746ecdd6 ""
+  "/usr/share/texlive/texmf-dist/tex/latex/microtype/mt-msb.cfg" 1678741534 5594 45ca1ba048c2fa6267d5419cc463d804 ""
   "/usr/share/texlive/texmf-dist/tex/latex/natbib/natbib.sty" 1707919699 45458 f1c6cb3edd91174e966cbbaf88993bcf ""
   "/usr/share/texlive/texmf-dist/tex/latex/placeins/placeins.sty" 1137110565 4087 636308456f60d2b31cbf97867db5708d ""
   "/usr/share/texlive/texmf-dist/tex/latex/refcount/refcount.sty" 1576624809 9878 9e94e8fa600d95f9c7731bb21dfb67a4 ""
@@ -145,17 +152,14 @@
   "/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map" 1779888830.9407 165012 f177baa1c39a3ebd62c3096a43521a0d ""
   "/var/lib/texmf/web2c/pdftex/pdflatex.fmt" 1779888869 6831103 56fee0e260d3ee8c18fdb902795657c7 ""
   "figures/bad_control_024.png" 1779871705.28354 184006 d0c0ffbee1ccd9d643f674103fcfdf3f ""
-  "figures/bubble_wall_015.png" 1779871704.61456 240189 7e2fde4c2cb2a895ef9f8a437e4cc198 ""
-  "figures/bubble_wall_016.png" 1779871703.09159 244843 d33af08c79f3a044ad16e851a836b9e7 ""
   "figures/dipole_lopsided_000.png" 1779895175.74274 302776 a5f1fe007f2a33d7ae79190c325b6845 ""
-  "figures/quadrupole_bubble_001.png" 1779895175.74501 314813 0e50ebe670a02615ea3ea9e49729dd4a ""
   "figures/random_000.png" 1779871702.3346 237318 2048f8ce4f373ad8890f93c6cdb61155 ""
   "figures/random_001.png" 1779871703.85857 244323 92beb13f21b3cfe6be915a742f5e88dc ""
   "figures/strong_quadrupole_bad_003.png" 1779895175.74775 289279 12ee9a5ba7534b5016694ec9d97d7002 ""
-  "researchnew.aux" 1779895778.33074 15775 925f83d40bead305a423c46677f566e7 "pdflatex"
-  "researchnew.bbl" 1779895665.99434 1982 35453d3875d823f0ec9445e740a573d9 "bibtex researchnew"
-  "researchnew.out" 1779895778.33174 13468 4958a4e946e98214ce77adc5e6953d29 "pdflatex"
-  "researchnew.tex" 1779895762.85271 52267 42f4b7e2a9501a3288b613009bfa2eb8 ""
+  "researchnew.aux" 1779900126.06874 15754 86d2dde034d0e7d91dfa21e514272750 "pdflatex"
+  "researchnew.bbl" 1779900123.83879 1982 35453d3875d823f0ec9445e740a573d9 "bibtex researchnew"
+  "researchnew.out" 1779900126.07074 15127 fd80c2c1cefce89d9f0ec92b3f2e8c62 "pdflatex"
+  "researchnew.tex" 1779900108.60911 58497 096c7d46e3da200684a002cc7716ca81 ""
   (generated)
   "researchnew.aux"
   "researchnew.log"

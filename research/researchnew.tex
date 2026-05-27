@@ -1,4 +1,4 @@
-\documentclass[twocolumn,aps,prd,nofootinbib,natbib]{revtex4-2}
+\documentclass[twocolumn,floatfix,aps,prd,nofootinbib,natbib]{revtex4-2}
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -10,6 +10,7 @@
 \usepackage{textcase}
 \usepackage{float}
 \usepackage{placeins}
+\usepackage[protrusion=true,expansion=false]{microtype}
 
 \hypersetup{
     colorlinks=true,
@@ -19,6 +20,7 @@
     citecolor=blue,
 }
 \urlstyle{same}
+\emergencystretch=2em
 
 \begin{document}
 
@@ -221,9 +223,10 @@ To eliminate coordinate artifacts, every high-scoring candidate must pass a phys
 
 To ensure the pipeline is robust, it must first reproduce known physical configurations prior to starting the open-ended search.
 
-\begin{table}[h]
+\begin{table*}[tbp]
 \caption{Initial benchmark suite for the search pipeline.}
 \label{tab:benchmarks}
+\small
 \begin{ruledtabular}
 \begin{tabular}{lll}
 Case & Expected result & Purpose \\
@@ -235,7 +238,7 @@ Alcubierre-like & High exoticity & Fake-FTL coordinate test \\
 Teo-like & Quadrupole dynamics & Non-spherical benchmark \\
 \end{tabular}
 \end{ruledtabular}
-\end{table}
+\end{table*}
 
 \section{Step-by-Step Implementation Plan}
 
@@ -328,7 +331,8 @@ All weights are configurable via a dictionary parameter, enabling task-specific 
 
 The random atlas search has been supplemented with a CMA-ES (Covariance Matrix Adaptation Evolution Strategy) optimizer (\texttt{optimize.py}). The default search space consists of the four $\chi$ Gaussian basis coefficients and the basis width (5 dimensions). Each evaluation runs a full \texttt{GRTeclyn} episode and returns the negative total score. The optimizer is invoked via:
 \begin{verbatim}
-python -m grteclyn_wrapper --example RadialRecipe \
+python -m grteclyn_wrapper \
+    --example RadialRecipe \
     --constrained --preflight optimize \
     --max-generations 50 --seed 42
 \end{verbatim}
@@ -408,9 +412,11 @@ The regression suite in \texttt{test\_constrained\_guesser.py} checks that known
 
 \begin{verbatim}
 cd grteclyn-wrapper
-uv run python tests/validate_metric_guesser.py --output-dir validation_out
+uv run python tests/validate_metric_guesser.py \
+    --output-dir validation_out
 # or via CLI:
-uv run python -m grteclyn_wrapper validate --output-dir validation_out
+uv run python -m grteclyn_wrapper validate \
+    --output-dir validation_out
 \end{verbatim}
 
 \subsubsection{What it does}
@@ -501,8 +507,8 @@ uv run python tests/validate_nonspherical_guesser.py \
 
 The reference run (seed 42) produced 8 non-spherical candidates: 7 were classified as \texttt{accepted\_ray\_sane}, and 1 deliberately strong quadrupole bad-control was rejected as \texttt{rejected\_negative\_chi}. The validation files are:
 \begin{itemize}
-    \item \texttt{nonspherical\_ray\_validation.csv}
-    \item \texttt{nonspherical\_ray\_validation\_summary.json}
+    \item \path|nonspherical_ray_validation.csv|
+    \item \path|nonspherical_ray_validation_summary.json|
 \end{itemize}
 
 This ray validation only checks whether the non-spherical metric proposal remains positive and geometrically reasonable along sampled directions. It does \emph{not} solve the non-spherical Hamiltonian or momentum constraints on its own. The GPU results in Sec.~\ref{sec:gpu_nonspherical} show that ray-sane candidates also survive short 3D \texttt{RadialRecipe} evolution once the constrained $\phi$ recipe and C++ angular initial data are enabled.
@@ -513,7 +519,9 @@ Representative profiles can be plotted with:
 
 \begin{verbatim}
 cd grteclyn-wrapper
-uv run --extra plots python tests/plot_metric_profiles.py --output-dir validation_out
+uv run --extra plots python \
+    tests/plot_metric_profiles.py \
+    --output-dir validation_out
 \end{verbatim}
 
 This writes one figure per showcase candidate (e.g.\ \texttt{random\_000.png}, \texttt{bubble\_wall\_015.png}). Each figure is a $2\times2$ panel that tells the full pipeline story for a single candidate:
@@ -529,7 +537,7 @@ A bold verdict banner at the bottom of each figure states \texttt{ACCEPTED} or \
 
 \subsubsection{Representative validation figures}
 
-Figures~\ref{fig:random000}, \ref{fig:bubblewall016}, \ref{fig:random001}, \ref{fig:bubblewall015}, and \ref{fig:badcontrol024} show the current validation outputs. Each figure follows the same four-panel format:
+Figures~\ref{fig:random000}, \ref{fig:random001}, and \ref{fig:badcontrol024} show the representative validation outputs. Each figure follows the same four-panel format:
 
 \begin{enumerate}
     \item the guessed radial geometry stretch $a(r)=\chi^{-1/2}$;
@@ -540,46 +548,30 @@ Figures~\ref{fig:random000}, \ref{fig:bubblewall016}, \ref{fig:random001}, \ref{
 
 The right-bottom panel is the main physics verdict. Green regions indicate $\rho_{\rm req}\ge0$ and are compatible with normal positive energy. Red regions indicate $\rho_{\rm req}<0$, meaning that the geometry requires exotic matter in that radial interval.
 
-\begin{figure}[t]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.98\columnwidth]{figures/random_000.png}
+    \includegraphics[width=0.85\columnwidth]{figures/random_000.png}
     \caption{\textbf{Accepted phantom random candidate.} The geometry is numerically constructible and the pre-flight constraints remain controlled. The required energy density contains negative regions, so it is accepted only in the phantom/exotic-matter class.}
     \label{fig:random000}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.98\columnwidth]{figures/bubble_wall_016.png}
-    \caption{\textbf{Accepted phantom bubble-wall candidate.} This is an Alcubierre-inspired radial wall proxy, not the full moving Alcubierre metric. It remains numerically constructible when phantom matter is explicitly allowed.}
-    \label{fig:bubblewall016}
-\end{figure}
-
-\begin{figure}[t]
-    \centering
-    \includegraphics[width=0.98\columnwidth]{figures/random_001.png}
+    \includegraphics[width=0.85\columnwidth]{figures/random_001.png}
     \caption{\textbf{Rejected normal-matter random candidate.} The guessed geometry and derived scalar field are well-defined, but $\rho_{\rm req}(r)$ becomes negative. Since this candidate is in the normal-matter class, it is rejected as \texttt{rejected\_exotic\_energy}.}
     \label{fig:random001}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.98\columnwidth]{figures/bubble_wall_015.png}
-    \caption{\textbf{Rejected normal-matter bubble-wall candidate.} The radial bubble-wall shape is small and smooth, but the required energy density still dips below zero. This illustrates why a visually mild deformation of $\chi(r)$ can still be physically exotic.}
-    \label{fig:bubblewall015}
-\end{figure}
-
-\begin{figure}[t]
-    \centering
-    \includegraphics[width=0.98\columnwidth]{figures/bad_control_024.png}
+    \includegraphics[width=0.85\columnwidth]{figures/bad_control_024.png}
     \caption{\textbf{Rejected bad-control candidate.} The conformal factor $\chi(r)$ becomes negative, so the spatial metric $\gamma_{ij}=\chi^{-1}\delta_{ij}$ is invalid before any matter reconstruction or evolution.}
     \label{fig:badcontrol024}
 \end{figure}
 
-\FloatBarrier
-
 \subsubsection{Representative non-spherical ray figures}
 
-Figures~\ref{fig:nonspherical_dipole}--\ref{fig:nonspherical_bad_control} show the first symmetry-breaking step. These come after the spherical/radial validation figures because the non-spherical ansatz is an extension of the already validated radial pipeline. Each figure should be read as follows:
+Figures~\ref{fig:nonspherical_dipole} and \ref{fig:nonspherical_bad_control} show the first symmetry-breaking step. These come after the spherical/radial validation figures because the non-spherical ansatz is an extension of the already validated radial pipeline. Each figure should be read as follows:
 
 \begin{enumerate}
     \item \textbf{Top-left}: a physical $(x,z)$ cross-section of $\chi(x,z)$. This is the easiest panel to read as the proposed non-spherical shape.
@@ -588,28 +580,19 @@ Figures~\ref{fig:nonspherical_dipole}--\ref{fig:nonspherical_bad_control} show t
     \item \textbf{Bottom-right}: the angular contrast $\max_\theta\chi-\min_\theta\chi$ as a function of radius. This shows where the non-spherical deformation is concentrated.
 \end{enumerate}
 
-\begin{figure}[t]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.98\columnwidth]{figures/dipole_lopsided_000.png}
+    \includegraphics[width=0.85\columnwidth]{figures/dipole_lopsided_000.png}
     \caption{\textbf{Accepted non-spherical dipole candidate.} The $l=1$ mode makes the geometry lopsided: one side of the cross-section is compressed/stretched differently from the other. The key result is that $\chi$ stays positive everywhere in the sampled section, so the metric is geometrically valid at this first ray-check level.}
     \label{fig:nonspherical_dipole}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.98\columnwidth]{figures/quadrupole_bubble_001.png}
-    \caption{\textbf{Accepted non-spherical quadrupole candidate.} The $l=2$ mode creates a prolate/oblate deformation: the shape is different along the poles than around the equator. The polar panel makes the broken spherical symmetry visible, while the contrast panel shows that the deformation is localized near one radial shell.}
-    \label{fig:nonspherical_quadrupole}
-\end{figure}
-
-\begin{figure}[t]
-    \centering
-    \includegraphics[width=0.98\columnwidth]{figures/strong_quadrupole_bad_003.png}
+    \includegraphics[width=0.85\columnwidth]{figures/strong_quadrupole_bad_003.png}
     \caption{\textbf{Rejected non-spherical bad control.} The same type of angular deformation is made too strong. The cross-section shows regions where $\chi<0$, which makes $\gamma_{ij}=\chi^{-1}\delta_{ij}$ invalid. This is rejected before any constraint solve or C++ evolution because the metric itself is not admissible.}
     \label{fig:nonspherical_bad_control}
 \end{figure}
-
-\FloatBarrier
 
 \subsubsection{Classification labels}
 
@@ -639,22 +622,23 @@ Most random and shell profiles fail the normal-matter energy check even when pre
     \item \textbf{Regression tests} (\texttt{test\_constrained\_guesser.py}): fixed assertions on known seeds and edge cases; pass/fail for CI.
     \item \textbf{Validation harness} (\texttt{validate\_metric\_guesser.py}): dataset-style batch over synthetic proposals; explains \emph{why} each geometry is accepted or rejected.
     \item \textbf{Optimization} (\texttt{optimize} subcommand): feedback loop that adapts coefficients from scores. Not used here.
-    \item \textbf{GPU bridge (completed May 2026)}: short \texttt{RadialRecipe} C++ evolutions now run from the wrapper for seeds, validation candidates, and non-spherical proposals; see Secs.~\ref{sec:gpu_radial_smoke}--\ref{sec:gpu_nonspherical}.
+    \item \textbf{GPU bridge (completed May 2026)}: short \texttt{RadialRecipe} C++ evolutions now run from the wrapper for seeds, validation candidates, and non-spherical proposals. See Secs.~\ref{sec:gpu_radial_smoke}--\ref{sec:gpu_nonspherical}.
 \end{itemize}
 
 \subsection{GPU/C++ RadialRecipe smoke validation}
 \label{sec:gpu_radial_smoke}
 
-The Python wrapper and \texttt{Examples/RadialRecipe/} executable are now connected end-to-end on a single NVIDIA H100 GPU. The automated pipeline is implemented in \texttt{grteclyn-wrapper/scripts/run\_radialrecipe\_gpu\_smoke.sh} and invoked via \texttt{python -m grteclyn\_wrapper reproduce} with \texttt{--constrained}, \texttt{--preflight}, and \texttt{--phantom} as needed.
+The Python wrapper and \path|Examples/RadialRecipe/| executable are now connected end-to-end on a single NVIDIA H100 GPU. The automated pipeline is implemented in \path|grteclyn-wrapper/scripts/run_radialrecipe_gpu_smoke.sh|. It invokes the wrapper's \texttt{reproduce} subcommand with \texttt{--constrained}, \texttt{--preflight}, and \texttt{--phantom} as needed.
 
 \subsubsection{Build and launch conventions}
 
 Following the same pattern as \texttt{SupportedWormholeCollapse}, single-GPU smoke builds use
 \begin{verbatim}
 cd Examples/RadialRecipe
-make COMP=gnu USE_CUDA=TRUE USE_MPI=FALSE CUDA_ARCH=90 -j
+make COMP=gnu USE_CUDA=TRUE USE_MPI=FALSE \
+    CUDA_ARCH=90 -j
 \end{verbatim}
-which produces \texttt{main3d.gnu.CUDA.ex} without requiring \texttt{mpicxx} on \texttt{PATH}. Multi-GPU production runs remain available via \texttt{USE\_MPI=TRUE} and the local OpenMPI install under \texttt{simulation/local/openmpi-5.0.8}. The wrapper selects \texttt{main3d.gnu.MPI.CUDA.ex} only when \texttt{--mpi-ranks}$>1$.
+This produces \texttt{main3d.gnu.CUDA.ex} without requiring \texttt{mpicxx} on \texttt{PATH}. Multi-GPU production runs remain available via \texttt{USE\_MPI=TRUE} and the local OpenMPI install under \path|simulation/local/openmpi-5.0.8|. The wrapper selects \texttt{main3d.gnu.MPI.CUDA.ex} only when \texttt{--mpi-ranks}$>1$.
 
 Each episode performs: (i)~Python dry-run generation of \texttt{params.txt}; (ii)~C++ \texttt{check\_params=1}; (iii)~short GPU evolution; (iv)~parsing of \texttt{constraint\_norms.dat}, \texttt{collapse\_diagnostics.dat}, and \texttt{score.json}.
 
@@ -673,9 +657,10 @@ For every constrained run the wrapper zeros all \texttt{recipe\_K\_coeff\_*} and
 
 Table~\ref{tab:gpu_radial_smoke} summarizes the first GPU handoff campaign on the reference phantom candidates. The rough acceptance target is $\|H\|_{L^2}<10^{-1}$ with no immediate lapse collapse.
 
-\begin{table}[h]
+\begin{table*}[t]
 \caption{Short GPU smoke results for spherically symmetric RadialRecipe candidates ($t=2$, $N_{\rm full}=64$). Python pre-flight uses a 1D radial grid; C++ values are from \texttt{constraint\_norms.dat} on the full 3D AMReX mesh.}
 \label{tab:gpu_radial_smoke}
+\small
 \begin{ruledtabular}
 \begin{tabular}{lcccccc}
 ID & Python $\|H\|_{L^2}$ & C++ max $\|H\|_{L^2}$ & C++ final $\|H\|_{L^2}$ & $\alpha_{\min}$ & $\chi_{\min}$ & Outcome \\
@@ -685,7 +670,7 @@ ID & Python $\|H\|_{L^2}$ & C++ max $\|H\|_{L^2}$ & C++ final $\|H\|_{L^2}$ & $\
 \texttt{random\_000} & 0.224 & 0.092 & 0.079 & 0.26 & 0.77 & Borderline \\
 \end{tabular}
 \end{ruledtabular}
-\end{table}
+\end{table*}
 
 The Ellis--Bronnikov seed illustrates the expected mismatch between 1D pre-flight and 3D AMReX: the coarse radial fit can report a large 1D residual even when the 3D diagnostic remains $\mathcal{O}(10^{-2})$. For \texttt{bubble\_wall\_016}, the 3D residual is comparable to or below the Python estimate.
 
@@ -700,9 +685,10 @@ At $t=2$, increasing $N_{\rm full}$ from 64 to 128 leaves $\|H\|_{L^2}$ near $5\
 
 All seven \texttt{accepted\_ray\_sane} non-spherical candidates from the ray-validation set were evolved on GPU in parallel (\texttt{run\_nonspherical\_gpu\_batch.sh}, stamp \texttt{20260527\_161609}, output under \texttt{runs/radialrecipe\_nonspherical/}). Each run used the axisymmetric C++ deformation of $\chi$, constrained $\phi$, $K=0$, $\Pi=0$, $t=2$, and $N_{\rm full}=64$. The deliberate bad control \texttt{strong\_quadrupole\_bad\_003} was not evolved (negative $\chi$ on rays).
 
-\begin{table}[h]
+\begin{table*}[t]
 \caption{Non-spherical GPU smoke results ($t=2$, $N_{\rm full}=64$, constrained phantom recipe).}
 \label{tab:gpu_nonspherical}
+\small
 \begin{ruledtabular}
 \begin{tabular}{lcccc}
 Candidate & max $\|H\|_{L^2}$ & final $\|H\|_{L^2}$ & $\alpha_{\min}$ & $\chi_{\min}$ \\
@@ -716,7 +702,7 @@ Candidate & max $\|H\|_{L^2}$ & final $\|H\|_{L^2}$ & $\alpha_{\min}$ & $\chi_{\
 \texttt{random\_angular\_007} & 0.0135 & 0.0076 & 0.93 & 0.87 \\
 \end{tabular}
 \end{ruledtabular}
-\end{table}
+\end{table*}
 
 Every accepted candidate satisfies $\|H\|_{L^2}<10^{-1}$, maintains $\alpha_{\min}\gtrsim 0.87$, and shows no NaN termination. This closes the loop begun in the ray-validation stage: non-spherical $\chi$ proposals that are positive along sampled rays also load correctly into C++ and remain dynamically tame over two code units of evolution at low resolution.
 
@@ -724,10 +710,12 @@ Representative commands:
 \begin{verbatim}
 # One non-spherical candidate
 NONSPHERICAL_ID=quadrupole_bubble_001 BUILD=0 \
-  bash grteclyn-wrapper/scripts/run_radialrecipe_gpu_smoke.sh
+  bash grteclyn-wrapper/scripts/\
+run_radialrecipe_gpu_smoke.sh
 
 # Full accepted batch (7 jobs, one GPU each)
-bash grteclyn-wrapper/scripts/run_nonspherical_gpu_batch.sh
+bash grteclyn-wrapper/scripts/\
+run_nonspherical_gpu_batch.sh
 \end{verbatim}
 
 \section{Recommended Next Steps for Testing}
