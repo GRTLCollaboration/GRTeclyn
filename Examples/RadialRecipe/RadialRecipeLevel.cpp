@@ -217,6 +217,57 @@ void RadialRecipeLevel::specificPostTimeStep()
         const double L2_Mom =
             (sum_vol > 0.0) ? std::sqrt(sum_mom2 / sum_vol) : 0.0;
 
+        amrex::MultiFab cst_vac(state_new.boxArray(),
+                                state_new.DistributionMap(), 4, 0);
+        cst_vac.setVal(0.0);
+        Constraints vacuum_constraints(dx[0], 0, Interval(1, 3));
+        for (amrex::MFIter mfi(cst_vac, amrex::TilingIfNotGPU());
+             mfi.isValid(); ++mfi)
+        {
+            const amrex::Box &bx = mfi.validbox();
+            const auto arr       = cst_vac.array(mfi);
+            const auto src_arr   = state_new.const_array(mfi);
+            amrex::ParallelFor(
+                bx, [=] AMREX_GPU_DEVICE(int ix, int iy, int iz) noexcept
+                { vacuum_constraints(ix, iy, iz, arr, src_arr); });
+        }
+
+        constexpr amrex::Real inv_16pi = 1.0 / (16.0 * M_PI);
+
+        amrex::ReduceOps<amrex::ReduceOpMin, amrex::ReduceOpMax,
+                         amrex::ReduceOpSum, amrex::ReduceOpSum>
+            rho_reduce_ops;
+        amrex::ReduceData<amrex::Real, amrex::Real, amrex::Real, amrex::Real>
+            rho_reduce_data(rho_reduce_ops);
+        using RhoReduceTuple = typename decltype(rho_reduce_data)::Type;
+
+        for (amrex::MFIter mfi(cst_vac, amrex::TilingIfNotGPU());
+             mfi.isValid(); ++mfi)
+        {
+            const amrex::Box &bx = mfi.validbox();
+            const auto arr       = cst_vac.const_array(mfi);
+            rho_reduce_ops.eval(
+                bx, rho_reduce_data,
+                [=] AMREX_GPU_DEVICE(int i, int j, int k) -> RhoReduceTuple
+                {
+                    const amrex::Real ham_vac = arr(i, j, k, 0);
+                    const amrex::Real rho_req = ham_vac * inv_16pi;
+                    const amrex::Real neg_rho =
+                        (rho_req < 0.0) ? (-rho_req * cell_vol) : 0.0;
+                    return {rho_req, rho_req, neg_rho, cell_vol};
+                });
+        }
+
+        auto rho_vals = rho_reduce_data.value();
+        amrex::Real min_rho_req     = amrex::get<0>(rho_vals);
+        amrex::Real max_rho_req     = amrex::get<1>(rho_vals);
+        amrex::Real sum_neg_rho     = amrex::get<2>(rho_vals);
+        amrex::Real sum_rho_vol     = amrex::get<3>(rho_vals);
+        amrex::ParallelDescriptor::ReduceRealMin(min_rho_req);
+        amrex::ParallelDescriptor::ReduceRealMax(max_rho_req);
+        amrex::ParallelDescriptor::ReduceRealSum(sum_neg_rho);
+        amrex::ParallelDescriptor::ReduceRealSum(sum_rho_vol);
+
         GRParmParse pp;
         std::string output_path = "./";
         pp.load("output_path", output_path, std::string("./"));
@@ -241,9 +292,14 @@ void RadialRecipeLevel::specificPostTimeStep()
         constraints_file.remove_duplicate_time_data();
         if (first_step)
         {
-            constraints_file.write_header_line({"L2_Ham", "L2_Mom"});
+            constraints_file.write_header_line(
+                {"L2_Ham", "L2_Mom", "min_rho_req", "max_rho_req",
+                 "integral_neg_rho"});
         }
-        constraints_file.write_time_data_line({L2_Ham, L2_Mom});
+        constraints_file.write_time_data_line(
+            {L2_Ham, L2_Mom, static_cast<double>(min_rho_req),
+             static_cast<double>(max_rho_req),
+             static_cast<double>(sum_neg_rho)});
     }
 
     if (Level() == 0)

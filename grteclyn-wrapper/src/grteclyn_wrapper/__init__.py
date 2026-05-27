@@ -3,9 +3,13 @@
 __all__ = [
     "atlas",
     "config",
+    "constrained_recipe",
     "episode",
     "metrics",
+    "optimize",
     "params",
+    "preflight",
     "runner",
     "score",
+    "seeds",
 ]

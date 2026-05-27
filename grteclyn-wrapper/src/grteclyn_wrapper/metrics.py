@@ -23,6 +23,9 @@ class ConstraintMetrics:
     max_momentum_l2: float | None
     final_hamiltonian_l2: float | None
     final_momentum_l2: float | None
+    min_rho_required: float | None
+    max_rho_required: float | None
+    integral_negative_rho: float | None
 
 
 @dataclass(frozen=True)
@@ -86,12 +89,19 @@ def read_constraint_metrics(path: Path) -> ConstraintMetrics | None:
     if not rows:
         return None
 
+    min_rho_req = min((row[3] for row in rows if len(row) >= 6), default=None)
+    max_rho_req = max((row[4] for row in rows if len(row) >= 6), default=None)
+    max_int_neg = max((row[5] for row in rows if len(row) >= 6), default=None)
+
     return ConstraintMetrics(
         final_time=rows[-1][0],
         max_hamiltonian_l2=max(row[1] for row in rows),
         max_momentum_l2=max(row[2] for row in rows),
         final_hamiltonian_l2=rows[-1][1],
         final_momentum_l2=rows[-1][2],
+        min_rho_required=min_rho_req,
+        max_rho_required=max_rho_req,
+        integral_negative_rho=max_int_neg,
     )
 
 

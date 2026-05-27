@@ -10,7 +10,9 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from .config import DEFAULT_TEMPLATE, ExecutableConfig, ExampleConfig, resolve_example
+from .constrained_recipe import constrained_overrides
 from .episode import Episode, create_episode, update_metadata, write_json
+from .preflight import PreflightResult, preflight_check
 from .metrics import EpisodeMetrics, dataclass_to_dict, read_episode_metrics
 from .params import write_params
 from .runner import run_episode
@@ -60,6 +62,8 @@ CSV_FIELDS = [
     "min_theta_plus",
     "max_hamiltonian_l2",
     "max_momentum_l2",
+    "min_rho_required",
+    "integral_negative_rho",
     "overrides_json",
 ]
 
@@ -221,6 +225,8 @@ def flatten_record(record: Mapping[str, Any]) -> dict[str, Any]:
         "min_theta_plus": collapse.get("min_theta_plus"),
         "max_hamiltonian_l2": constraints.get("max_hamiltonian_l2"),
         "max_momentum_l2": constraints.get("max_momentum_l2"),
+        "min_rho_required": constraints.get("min_rho_required"),
+        "integral_negative_rho": constraints.get("integral_negative_rho"),
         "overrides_json": json.dumps(record.get("overrides") or {}, sort_keys=True),
     }
 
@@ -274,6 +280,9 @@ def run_atlas(
     stop_on_failure: bool = False,
     cuda_devices: str | None = None,
     check_params: bool = True,
+    constrained: bool = False,
+    phantom: bool = False,
+    preflight: bool = False,
 ) -> tuple[AtlasPaths, list[dict[str, Any]], dict[str, Any]]:
     example_cfg = example if isinstance(example, ExampleConfig) else resolve_example(example)
     ranges = atlas_ranges_for_example(example_cfg)
@@ -297,6 +306,37 @@ def run_atlas(
 
     for index in range(1, count + 1):
         overrides = sample_overrides(rng, base=base_overrides, ranges=ranges)
+        if constrained and example_cfg.name == "RadialRecipe":
+            constrained_overrides(overrides, phantom=phantom)
+
+        if preflight and example_cfg.name == "RadialRecipe":
+            pf = preflight_check(overrides, phantom=phantom)
+            if not pf.passed:
+                target_stop_time = float(overrides["stop_time"]) if "stop_time" in overrides else None
+                episode = create_episode(
+                    paths.root,
+                    name=f"episode_{index:06d}",
+                    metadata={
+                        "mode": "atlas", "example": example_cfg.name,
+                        "atlas_index": index, "overrides": overrides,
+                        "preflight_rejected": True, "preflight_reason": pf.reason,
+                    },
+                )
+                write_params(template, episode.params_path, episode_dir=episode.path, example=example_cfg, overrides=overrides)
+                metrics = read_episode_metrics(episode.path)
+                score = score_episode(metrics, target_stop_time=target_stop_time)
+                labels = ["preflight_rejected"]
+                write_score(episode, metrics, score, labels)
+                record = build_record(
+                    index=index, episode=episode, overrides=overrides,
+                    exit_code=None, metrics=metrics, score=score,
+                    labels=labels, target_stop_time=target_stop_time,
+                )
+                append_jsonl(paths.jsonl, record)
+                append_csv(paths.csv, record)
+                records.append(record)
+                continue
+
         target_stop_time = float(overrides["stop_time"]) if "stop_time" in overrides else None
         episode = create_episode(
             paths.root,

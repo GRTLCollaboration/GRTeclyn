@@ -3,10 +3,20 @@ name = "grteclyn-wrapper"
 version = "0.1.0"
 description = "Python episode runner and failure-atlas tooling for GRTeclyn SupportedWormholeCollapse"
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    "numpy>=1.24",
+    "cma>=3.3",
+]
 
 [project.scripts]
 grteclyn-wrapper = "grteclyn_wrapper.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/grteclyn_wrapper"]
 
 [tool.uv]
 managed = true
