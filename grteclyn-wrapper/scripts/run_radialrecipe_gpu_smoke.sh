@@ -60,7 +60,14 @@ CUDA_DEVICE="${CUDA_VISIBLE_DEVICES_OVERRIDE:-0}"
 N_FULL="${N_FULL:-64}"
 MAX_LEVEL="${MAX_LEVEL:-0}"
 STOP_TIME="${STOP_TIME:-2.0}"
-PLOT_INTERVAL="${PLOT_INTERVAL:-1}"
+PLOT_INTERVAL="${PLOT_INTERVAL:-}"
+if [[ -z "${PLOT_INTERVAL}" ]]; then
+  if [[ "${CONSUME_PLOTFILES:-1}" == "1" ]]; then
+    PLOT_INTERVAL=10
+  else
+    PLOT_INTERVAL=1
+  fi
+fi
 CHECKPOINT_INTERVAL="${CHECKPOINT_INTERVAL:--1}"
 DT_MULTIPLIER="${DT_MULTIPLIER:-0.02}"
 
@@ -73,6 +80,16 @@ else
   WRAPPER_ID_ARGS=(--seed-name "${SEED_NAME}")
 fi
 
+CONSUMER_RADII="${CONSUMER_RADII:-4 8}"
+CONSUME_PLOTFILES="${CONSUME_PLOTFILES:-1}"
+CONSUMER_DELETE="${CONSUMER_DELETE:-1}"
+
+CONSUME_ARGS=()
+if [[ "${CONSUME_PLOTFILES}" == "1" ]]; then
+  # shellcheck disable=SC2206
+  CONSUME_ARGS=(--consume-plotfiles --consumer-delete --consumer-radii ${CONSUMER_RADII})
+fi
+
 echo "== RadialRecipe GPU smoke pipeline =="
 echo "GRTeclyn root : ${GRTECLYN_ROOT}"
 echo "Example       : ${EXAMPLE_DIR}"
@@ -80,6 +97,8 @@ echo "Executable    : ${EXECUTABLE}"
 echo "Source        : ${SOURCE_LABEL} ${FIELD_FLAG}"
 echo "Runs dir      : ${RUNS_DIR}"
 echo "CUDA device   : ${CUDA_DEVICE}"
+echo "Plot interval : ${PLOT_INTERVAL}  (auto=10 when consumer enabled)"
+echo "Plot consumer : CONSUME_PLOTFILES=${CONSUME_PLOTFILES} DELETE=${CONSUMER_DELETE} RADII=${CONSUMER_RADII}"
 echo
 
 if [[ "${BUILD:-1}" == "1" ]]; then
@@ -135,7 +154,8 @@ ${PYTHON_BIN} -m grteclyn_wrapper \
   --set N_full="${N_FULL}" \
   --set max_level="${MAX_LEVEL}" \
   --set dt_multiplier="${DT_MULTIPLIER}" \
-  reproduce
+  "${CONSUME_ARGS[@]}" \
+  -- reproduce
 
 EPISODE_DIR="${RUNS_DIR}/${GPU_NAME}"
 
@@ -152,10 +172,18 @@ print(json.dumps(dataclass_to_dict(metrics), indent=2))
 
 constraint_path = episode / "data" / "constraint_norms.dat"
 collapse_path = episode / "data" / "collapse_diagnostics.dat"
+shell_path = episode / "small_data" / "shell_profiles.dat"
+areal_path = episode / "small_data" / "areal_radius.dat"
 print()
 print(f"constraint_norms.dat: {constraint_path} exists={constraint_path.exists()}")
 print(f"collapse_diagnostics.dat: {collapse_path} exists={collapse_path.exists()}")
+print(f"shell_profiles.dat: {shell_path} exists={shell_path.exists()}")
+print(f"areal_radius.dat: {areal_path} exists={areal_path.exists()}")
 PY
+
+echo
+echo "Post-run plots (optional):"
+echo "  bash src/scripts/plot_diagnostic_radial.sh ${EPISODE_DIR}"
 
 echo
 echo "== Step 5/5: quick pass/fail hints =="

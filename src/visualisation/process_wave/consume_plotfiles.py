@@ -48,8 +48,14 @@ def _iter_plotfile_dirs(data_dir: str) -> List[str]:
     out: List[str] = []
     if not os.path.isdir(data_dir):
         return out
+    prefixes = (
+        "WormholePlt",
+        "SupportedWormholePlt",
+        "RadialRecipePlt",
+        "plt",
+    )
     for name in os.listdir(data_dir):
-        if not (name.startswith("WormholePlt") or name.startswith("SupportedWormholePlt") or name.startswith("plt")):
+        if not any(name.startswith(prefix) for prefix in prefixes):
             continue
         p = os.path.join(data_dir, name)
         if os.path.isdir(p):
@@ -475,6 +481,108 @@ def _extract_mode_amps_l2m0(
     return amps
 
 
+def _shell_stats_header(radii: Sequence[float], fields: Sequence[str]) -> str:
+    cols = ["time"]
+    for radius in radii:
+        tag = f"R{radius:g}"
+        for field in fields:
+            cols.extend(
+                [
+                    f"{field}_mean_{tag}",
+                    f"{field}_min_{tag}",
+                    f"{field}_max_{tag}",
+                ]
+            )
+    return "# " + "  ".join(cols)
+
+
+def _extract_shell_field_stats(
+    ds,
+    radii: Sequence[float],
+    n_points: int,
+    center: Sequence[float],
+    fields: Sequence[str],
+) -> Dict[str, Tuple[float, float, float]]:
+    """Sample mean/min/max of fields on spherical shells at given radii."""
+    if not radii or not fields:
+        return {}
+
+    left = np.asarray(ds.domain_left_edge, dtype=float)
+    right = np.asarray(ds.domain_right_edge, dtype=float)
+    center = np.asarray(center, dtype=float)
+
+    theta = np.linspace(0.0, np.pi, n_points)
+    phi = np.linspace(0.0, 2.0 * np.pi, n_points, endpoint=False)
+    THETA, PHI = np.meshgrid(theta, phi, indexing="ij")
+    sinT = np.sin(THETA)
+    X1 = sinT * np.cos(PHI)
+    Y1 = sinT * np.sin(PHI)
+    Z1 = np.cos(THETA)
+
+    yt_fields = []
+    for field in fields:
+        key = ("boxlib", field)
+        if key not in ds.field_list:
+            raise RuntimeError(f"Plotfile missing field {field!r} for shell extraction.")
+        yt_fields.append(key)
+
+    out: Dict[str, Tuple[float, float, float]] = {}
+    for radius in radii:
+        try:
+            sx = (float(radius) * X1).ravel() + center[0]
+            sy = (float(radius) * Y1).ravel() + center[1]
+            sz = (float(radius) * Z1).ravel() + center[2]
+            in_domain = (
+                (sx >= left[0])
+                & (sx <= right[0])
+                & (sy >= left[1])
+                & (sy <= right[1])
+                & (sz >= left[2])
+                & (sz <= right[2])
+            )
+            idxs = np.where(in_domain)[0]
+            if idxs.size < 4:
+                continue
+
+            pts = np.column_stack((sx[idxs], sy[idxs], sz[idxs]))
+            vals = ds.find_field_values_at_points(yt_fields, pts)
+            tag = f"R{radius:g}"
+            for field, samples in zip(fields, vals):
+                arr = np.asarray(samples, dtype=float).reshape(-1)
+                arr = arr[np.isfinite(arr)]
+                if arr.size < 4:
+                    continue
+                out[f"{field}_mean_{tag}"] = (
+                    float(np.mean(arr)),
+                    float(np.min(arr)),
+                    float(np.max(arr)),
+                )
+        except Exception:
+            continue
+    if not out:
+        raise RuntimeError("Shell extraction produced no valid samples at any radius.")
+    return out
+
+
+def _format_shell_stats_line(
+    t: float,
+    stats: Dict[str, Tuple[float, float, float]],
+    radii: Sequence[float],
+    fields: Sequence[str],
+) -> str:
+    parts = [f"{t:.16e}"]
+    for radius in radii:
+        tag = f"R{radius:g}"
+        for field in fields:
+            key = f"{field}_mean_{tag}"
+            if key not in stats:
+                parts.extend(["nan", "nan", "nan"])
+                continue
+            mean_v, min_v, max_v = stats[key]
+            parts.extend([f"{mean_v:.16e}", f"{min_v:.16e}", f"{max_v:.16e}"])
+    return "  ".join(parts)
+
+
 def _extract_areal_radius_min(
     ds,
     center: Sequence[float] = (0.0, 0.0, 0.0),
@@ -733,6 +841,7 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
         "t": 0.0,
         "psi4_line": None,
         "areal_line": None,
+        "shell_line": None,
         "success": False,
         "deleted": False,
         "status_str": "",
@@ -757,6 +866,26 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
             )
             result["psi4_line"] = f"{t:.16e}  " + "  ".join([f"{a.real:.16e}  {a.imag:.16e}" for a in amps])
 
+        shell_fields = list(args_dict.get("shell_fields") or [])
+        if shell_fields:
+            try:
+                stats = _extract_shell_field_stats(
+                    ds,
+                    radii=[float(r) for r in args_dict["radii"]],
+                    n_points=int(args_dict["n_points"]),
+                    center=args_dict["center"],
+                    fields=shell_fields,
+                )
+                result["shell_line"] = _format_shell_stats_line(
+                    t,
+                    stats,
+                    [float(r) for r in args_dict["radii"]],
+                    shell_fields,
+                )
+            except Exception as exc:
+                if args_dict.get("verbose", False):
+                    print(f"WARNING: shell extraction failed for {key}: {exc}")
+
         frame_fields = [_canonical_field_name(f) for f in args_dict.get("frames_fields", [])]
         if frame_fields:
             idx = _parse_plot_index(key)
@@ -777,11 +906,14 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
 
         if args_dict.get("areal_radius"):
             if ("boxlib", "chi") in ds.field_list:
-                R_min, r_min = _extract_areal_radius_min(ds, center=args_dict["center"])
-                result["areal_line"] = f"{t:.16e}  {R_min:.16e}  {r_min:.16e}"
-            else:
-                if args_dict.get("verbose", False):
-                    print(f"WARNING: plotfile {key} missing chi field; skipping areal radius.")
+                try:
+                    R_min, r_min = _extract_areal_radius_min(ds, center=args_dict["center"])
+                    result["areal_line"] = f"{t:.16e}  {R_min:.16e}  {r_min:.16e}"
+                except Exception as exc:
+                    if args_dict.get("verbose", False):
+                        print(f"WARNING: areal extraction failed for {key}: {exc}")
+            elif args_dict.get("verbose", False):
+                print(f"WARNING: plotfile {key} missing chi field; skipping areal radius.")
 
         if args_dict.get("embedding"):
             if ("boxlib", "chi") in ds.field_list:
@@ -799,7 +931,9 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
                 if args_dict.get("verbose", False):
                     print(f"WARNING: plotfile {key} missing chi field; skipping embedding.")
 
-        result["success"] = True
+        result["success"] = bool(
+            result["psi4_line"] or result["areal_line"] or result["shell_line"] or frame_fields
+        )
 
         if args_dict.get("delete") and (p not in protected):
             shutil.rmtree(p)
@@ -843,6 +977,12 @@ def main() -> None:
         action=argparse.BooleanOptionalAction,
         default=True,
         help="Enable/disable Psi4 mode extraction to .dat (default: enabled).",
+    )
+    parser.add_argument(
+        "--shell-fields",
+        nargs="+",
+        default=[],
+        help="Extract mean/min/max on spherical shells for these fields (e.g. chi lapse K).",
     )
     parser.add_argument(
         "--frames-fields",
@@ -908,8 +1048,10 @@ def main() -> None:
     state_path = out_dir / "consume_state.json"
     out_path = out_dir / "psi4_mode_l2m0.dat"
     areal_out_path = out_dir / "areal_radius.dat"
+    shell_out_path = out_dir / "shell_profiles.dat"
     header = "# time  " + "  ".join([f"Re(R={R:g})  Im(R={R:g})" for R in args.radii])
     areal_header = "# time  R_areal_min  r_at_R_areal_min"
+    shell_header = _shell_stats_header(args.radii, args.shell_fields)
 
     state = _load_state(state_path)
 
@@ -920,6 +1062,8 @@ def main() -> None:
         print(f"Resetting: {out_path} and {state_path}")
         _truncate_if_exists(out_path)
         _truncate_if_exists(areal_out_path)
+        if args.shell_fields:
+            _truncate_if_exists(shell_out_path)
         _save_state(state_path, {})
         state = {}
 
@@ -978,6 +1122,8 @@ def main() -> None:
                                 _append_line(out_path, header=header, line=res["psi4_line"])
                             if res["areal_line"]:
                                 _append_line(areal_out_path, header=areal_header, line=res["areal_line"])
+                            if res["shell_line"]:
+                                _append_line(shell_out_path, header=shell_header, line=res["shell_line"])
                             
                             state[res["key"]] = True
                             _save_state(state_path, state)
@@ -997,6 +1143,8 @@ def main() -> None:
                         _append_line(out_path, header=header, line=res["psi4_line"])
                     if res["areal_line"]:
                         _append_line(areal_out_path, header=areal_header, line=res["areal_line"])
+                    if res["shell_line"]:
+                        _append_line(shell_out_path, header=shell_header, line=res["shell_line"])
                     
                     state[res["key"]] = True
                     _save_state(state_path, state)

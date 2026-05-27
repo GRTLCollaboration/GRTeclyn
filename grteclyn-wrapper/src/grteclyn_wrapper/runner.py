@@ -10,6 +10,7 @@ from typing import Mapping, Sequence
 
 from .config import ExecutableConfig, ExampleConfig, REPO_ROOT, resolve_example
 from .episode import Episode, update_metadata
+from .plot_consumer import build_consume_command, default_radii_for_example
 
 
 @dataclass(frozen=True)
@@ -71,31 +72,28 @@ def _run_and_tee(
 def start_plotfile_consumer(
     episode: Episode,
     *,
-    radii: Sequence[float] = (8.0, 16.0),
+    example_name: str = "RadialRecipe",
+    radii: Sequence[float] | None = None,
     n_points: int = 64,
-    delete: bool = False,
-    keep_last: int = 2,
-    frames: bool = False,
+    delete: bool = True,
+    keep_last: int = 1,
+    frames: bool = True,
+    jobs: int = 4,
 ) -> subprocess.Popen[str]:
-    command = [
-        sys.executable,
-        "-m",
-        "src.visualisation.process_wave.consume_plotfiles",
-        "--data",
-        str(episode.path),
-        "--out",
-        str(episode.small_data_dir),
-        "--radii",
-        *[str(r) for r in radii],
-        "--n-points",
-        str(n_points),
-        "--areal-radius",
-        "--watch",
-    ]
-    if delete:
-        command.extend(["--delete", "--keep-last", str(keep_last)])
-    if frames:
-        command.extend(["--frames-out", str(episode.frames_dir)])
+    profile = "wormhole" if example_name == "SupportedWormholeCollapse" else "radial"
+    if radii is None:
+        radii = default_radii_for_example(example_name)
+    command = build_consume_command(
+        episode,
+        profile=profile,
+        radii=radii,
+        n_points=n_points,
+        delete=delete,
+        keep_last=keep_last,
+        watch=True,
+        jobs=jobs,
+        frames=frames,
+    )
 
     log = episode.log_path.open("a", encoding="utf-8")
     log.write(f"\n$ {' '.join(command)}\n")
@@ -118,6 +116,35 @@ def stop_process(process: subprocess.Popen[str], timeout: float = 10.0) -> None:
     except subprocess.TimeoutExpired:
         process.kill()
         process.wait(timeout=timeout)
+
+
+def drain_plotfile_backlog(
+    episode: Episode,
+    *,
+    example_name: str = "RadialRecipe",
+    radii: Sequence[float] | None = None,
+    n_points: int = 64,
+    delete: bool = True,
+    keep_last: int = 1,
+    frames: bool = True,
+    jobs: int = 4,
+) -> RunResult:
+    """Process any plotfiles left after the watch consumer stops."""
+    profile = "wormhole" if example_name == "SupportedWormholeCollapse" else "radial"
+    if radii is None:
+        radii = default_radii_for_example(example_name)
+    command = build_consume_command(
+        episode,
+        profile=profile,
+        radii=radii,
+        n_points=n_points,
+        delete=delete,
+        keep_last=keep_last,
+        watch=False,
+        jobs=jobs,
+        frames=frames,
+    )
+    return _run_and_tee(command, episode.log_path, cwd=REPO_ROOT)
 
 
 def run_episode(
@@ -159,8 +186,11 @@ def run_episode(
     if consume_plotfiles:
         consumer = start_plotfile_consumer(
             episode,
+            example_name=executable.example.name,
             radii=consumer_radii,
             delete=consumer_delete,
+            keep_last=1,
+            frames=False,
         )
 
     try:
@@ -168,7 +198,15 @@ def run_episode(
         result = _run_and_tee(command, episode.log_path, cwd=example_dir, env=env)
     finally:
         if consumer is not None:
-            stop_process(consumer)
+            stop_process(consumer, timeout=2.0)
+            drain_plotfile_backlog(
+                episode,
+                example_name=executable.example.name,
+                radii=consumer_radii,
+                delete=consumer_delete,
+                keep_last=1,
+                frames=True,
+            )
 
     update_metadata(
         episode,

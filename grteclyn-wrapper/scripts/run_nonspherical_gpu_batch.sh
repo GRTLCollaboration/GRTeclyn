@@ -12,6 +12,9 @@ STOP_TIME="${STOP_TIME:-2.0}"
 N_FULL="${N_FULL:-64}"
 BUILD="${BUILD:-0}"
 CUDA_START="${CUDA_START:-0}"
+CONSUME_PLOTFILES="${CONSUME_PLOTFILES:-1}"
+CONSUMER_DELETE="${CONSUMER_DELETE:-1}"
+CONSUMER_RADII="${CONSUMER_RADII:-4 8}"
 
 # Accepted from nonspherical_ray_validation.csv (skip rejected_negative_chi).
 CANDIDATES=(
@@ -33,6 +36,7 @@ echo "== Non-spherical GPU batch =="
 echo "candidates: ${#CANDIDATES[@]}"
 echo "runs_dir:   ${RUNS_DIR}"
 echo "stop_time:  ${STOP_TIME}  N_full: ${N_FULL}"
+echo "consumer:   CONSUME=${CONSUME_PLOTFILES} DELETE=${CONSUMER_DELETE} RADII=${CONSUMER_RADII}"
 echo
 
 mkdir -p "${RUNS_DIR}"
@@ -46,6 +50,9 @@ for cid in "${CANDIDATES[@]}"; do
     NONSPHERICAL_ID="${cid}" \
     SEED_NAME="" CANDIDATE_ID="" \
     BUILD=0 STOP_TIME="${STOP_TIME}" N_FULL="${N_FULL}" \
+    CONSUME_PLOTFILES="${CONSUME_PLOTFILES}" \
+    CONSUMER_DELETE="${CONSUMER_DELETE}" \
+    CONSUMER_RADII="${CONSUMER_RADII}" \
     RUN_STAMP="${RUN_STAMP}" RUNS_DIR="${RUNS_DIR}" \
     CUDA_VISIBLE_DEVICES_OVERRIDE="${GPU}" \
     bash "${SMOKE}" > "${log}" 2>&1
