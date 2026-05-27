@@ -458,6 +458,45 @@ This restriction is deliberate for the first validation stage: radial symmetry m
 \end{equation}
 This would allow lopsided bubbles, multi-mouth portal-like structures, and genuinely non-spherical warp geometries.
 
+\subsubsection{First non-spherical ray validation}
+
+As a first implementation step toward symmetry breaking, the Python wrapper now supports axisymmetric angular deformations of the radial conformal factor:
+\begin{equation}
+    \chi(r,\theta)
+    =
+    \chi_0(r)
+    +
+    \sum_a
+    A_a
+    \exp\left[-\frac{(r-r_a)^2}{2w_a^2}\right]
+    P_{\ell_a}(\cos\theta),
+\end{equation}
+where $P_\ell$ are Legendre polynomials. This is not yet the final 3D angular basis, but it is the simplest non-spherical extension that can be validated without adding new C++ infrastructure.
+
+The first validation is a one-step metric sanity check along several 1D radial rays ($\theta=0,\pi/4,\pi/2,3\pi/4,\pi$). For each candidate we measure:
+
+\begin{itemize}
+    \item the minimum and maximum $\chi$ across all sampled rays;
+    \item the fraction of ray samples with $\chi\le0$;
+    \item the maximum angular contrast $\max_\theta\chi(r,\theta)-\min_\theta\chi(r,\theta)$;
+    \item the corresponding radial stretch range $a(r,\theta)=\chi(r,\theta)^{-1/2}$.
+\end{itemize}
+
+The command is:
+\begin{verbatim}
+cd grteclyn-wrapper
+uv run python tests/validate_nonspherical_guesser.py \
+    --output-dir validation_out
+\end{verbatim}
+
+The reference run (seed 42) produced 8 non-spherical candidates: 7 were classified as \texttt{accepted\_ray\_sane}, and 1 deliberately strong quadrupole bad-control was rejected as \texttt{rejected\_negative\_chi}. The validation files are:
+\begin{itemize}
+    \item \texttt{nonspherical\_ray\_validation.csv}
+    \item \texttt{nonspherical\_ray\_validation\_summary.json}
+\end{itemize}
+
+This ray validation only checks whether the non-spherical metric proposal remains positive and geometrically reasonable along sampled directions. It does \emph{not} solve the non-spherical Hamiltonian or momentum constraints. The next layer must evaluate these candidates on the full 3D AMReX grid or pass them through an elliptic constraint solver.
+
 \subsubsection{Profile visualisation}
 
 Representative profiles can be plotted with:
@@ -491,40 +530,74 @@ Figures~\ref{fig:random000}, \ref{fig:bubblewall016}, \ref{fig:random001}, \ref{
 
 The right-bottom panel is the main physics verdict. Green regions indicate $\rho_{\rm req}\ge0$ and are compatible with normal positive energy. Red regions indicate $\rho_{\rm req}<0$, meaning that the geometry requires exotic matter in that radial interval.
 
-\begin{figure*}[t]
+\begin{figure}[t]
     \centering
-    \includegraphics[width=0.98\textwidth]{figures/random_000.png}
+    \includegraphics[width=0.98\columnwidth]{figures/random_000.png}
     \caption{\textbf{Accepted phantom random candidate.} The geometry is numerically constructible and the pre-flight constraints remain controlled. The required energy density contains negative regions, so it is accepted only in the phantom/exotic-matter class.}
     \label{fig:random000}
-\end{figure*}
+\end{figure}
 
-\begin{figure*}[t]
+\begin{figure}[t]
     \centering
-    \includegraphics[width=0.98\textwidth]{figures/bubble_wall_016.png}
+    \includegraphics[width=0.98\columnwidth]{figures/bubble_wall_016.png}
     \caption{\textbf{Accepted phantom bubble-wall candidate.} This is an Alcubierre-inspired radial wall proxy, not the full moving Alcubierre metric. It remains numerically constructible when phantom matter is explicitly allowed.}
     \label{fig:bubblewall016}
-\end{figure*}
+\end{figure}
 
-\begin{figure*}[t]
+\begin{figure}[t]
     \centering
-    \includegraphics[width=0.98\textwidth]{figures/random_001.png}
+    \includegraphics[width=0.98\columnwidth]{figures/random_001.png}
     \caption{\textbf{Rejected normal-matter random candidate.} The guessed geometry and derived scalar field are well-defined, but $\rho_{\rm req}(r)$ becomes negative. Since this candidate is in the normal-matter class, it is rejected as \texttt{rejected\_exotic\_energy}.}
     \label{fig:random001}
-\end{figure*}
+\end{figure}
 
-\begin{figure*}[t]
+\begin{figure}[t]
     \centering
-    \includegraphics[width=0.98\textwidth]{figures/bubble_wall_015.png}
+    \includegraphics[width=0.98\columnwidth]{figures/bubble_wall_015.png}
     \caption{\textbf{Rejected normal-matter bubble-wall candidate.} The radial bubble-wall shape is small and smooth, but the required energy density still dips below zero. This illustrates why a visually mild deformation of $\chi(r)$ can still be physically exotic.}
     \label{fig:bubblewall015}
-\end{figure*}
+\end{figure}
 
-\begin{figure*}[t]
+\begin{figure}[t]
     \centering
-    \includegraphics[width=0.98\textwidth]{figures/bad_control_024.png}
+    \includegraphics[width=0.98\columnwidth]{figures/bad_control_024.png}
     \caption{\textbf{Rejected bad-control candidate.} The conformal factor $\chi(r)$ becomes negative, so the spatial metric $\gamma_{ij}=\chi^{-1}\delta_{ij}$ is invalid before any matter reconstruction or evolution.}
     \label{fig:badcontrol024}
-\end{figure*}
+\end{figure}
+
+\FloatBarrier
+
+\subsubsection{Representative non-spherical ray figures}
+
+Figures~\ref{fig:nonspherical_dipole}--\ref{fig:nonspherical_bad_control} show the first symmetry-breaking step. These come after the spherical/radial validation figures because the non-spherical ansatz is an extension of the already validated radial pipeline. Each figure should be read as follows:
+
+\begin{enumerate}
+    \item \textbf{Top-left}: a physical $(x,z)$ cross-section of $\chi(x,z)$. This is the easiest panel to read as the proposed non-spherical shape.
+    \item \textbf{Top-right}: the corresponding spatial stretch $a(x,z)=\chi^{-1/2}$. Larger values mean more radial proper-distance stretching.
+    \item \textbf{Bottom-left}: the angular shape of $\chi$ at the radius where the deformation is strongest. A perfect circle would mean spherical symmetry; departures from a circle show the broken symmetry.
+    \item \textbf{Bottom-right}: the angular contrast $\max_\theta\chi-\min_\theta\chi$ as a function of radius. This shows where the non-spherical deformation is concentrated.
+\end{enumerate}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.98\columnwidth]{figures/dipole_lopsided_000.png}
+    \caption{\textbf{Accepted non-spherical dipole candidate.} The $l=1$ mode makes the geometry lopsided: one side of the cross-section is compressed/stretched differently from the other. The key result is that $\chi$ stays positive everywhere in the sampled section, so the metric is geometrically valid at this first ray-check level.}
+    \label{fig:nonspherical_dipole}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.98\columnwidth]{figures/quadrupole_bubble_001.png}
+    \caption{\textbf{Accepted non-spherical quadrupole candidate.} The $l=2$ mode creates a prolate/oblate deformation: the shape is different along the poles than around the equator. The polar panel makes the broken spherical symmetry visible, while the contrast panel shows that the deformation is localized near one radial shell.}
+    \label{fig:nonspherical_quadrupole}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.98\columnwidth]{figures/strong_quadrupole_bad_003.png}
+    \caption{\textbf{Rejected non-spherical bad control.} The same type of angular deformation is made too strong. The cross-section shows regions where $\chi<0$, which makes $\gamma_{ij}=\chi^{-1}\delta_{ij}$ invalid. This is rejected before any constraint solve or C++ evolution because the metric itself is not admissible.}
+    \label{fig:nonspherical_bad_control}
+\end{figure}
 
 \FloatBarrier
 

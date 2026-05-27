@@ -6,6 +6,7 @@ __all__ = [
     "constrained_recipe",
     "episode",
     "metrics",
+    "nonspherical_guesser",
     "optimize",
     "params",
     "preflight",
