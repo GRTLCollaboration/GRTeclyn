@@ -24,6 +24,7 @@ class SphericalExtraction
     using vars_t = typename Base::vars_t;
     using mode_integrals_t =
         std::pair<std::vector<double>, std::vector<double>>;
+    using params_t = spherical_extraction_params_t;
 
   protected:
     std::array<double, AMREX_SPACEDIM> m_center;
@@ -31,9 +32,8 @@ class SphericalExtraction
     std::vector<std::pair<int, int>> m_modes{};
 
   public:
-    SphericalExtraction(const spherical_extraction_params_t &a_params,
-                        double a_dt, double a_time, bool a_first_step,
-                        double a_restart_time = 0.0)
+    SphericalExtraction(const params_t &a_params, double a_dt, double a_time,
+                        bool a_first_step, double a_restart_time = 0.0)
         : Base(a_params.center, a_params.get_surface_extraction_params(), a_dt,
                a_time, a_first_step, a_restart_time),
           m_center(a_params.center), m_num_modes(a_params.num_modes),
@@ -42,7 +42,7 @@ class SphericalExtraction
     }
 
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-    SphericalExtraction(const spherical_extraction_params_t &a_params,
+    SphericalExtraction(const params_t &a_params,
                         const std::vector<vars_t> &a_vars, double a_dt,
                         double a_time, bool a_first_step,
                         double a_restart_time = 0.0)
@@ -54,7 +54,7 @@ class SphericalExtraction
     // NOLINTEND(bugprone-easily-swappable-parameters)
 
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-    SphericalExtraction(const spherical_extraction_params_t &a_params,
+    SphericalExtraction(const params_t &a_params,
                         const std::vector<int> &a_state_vars, double a_dt,
                         double a_time, bool a_first_step,
                         double a_restart_time = 0.0)
