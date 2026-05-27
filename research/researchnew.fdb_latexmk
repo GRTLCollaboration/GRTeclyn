@@ -1,13 +1,13 @@
 # Fdb version 4
-["bibtex researchnew"] 1779889033.11848 "researchnew.aux" "researchnew.bbl" "researchnew" 1779889035.12987 0
-  "./researchnewNotes.bib" 1779889034.97202 104 4d8bb863c86f3d7b03a471e9d4707f34 ""
+["bibtex researchnew"] 1779892403.25181 "researchnew.aux" "researchnew.bbl" "researchnew" 1779892405.27164 0
+  "./researchnewNotes.bib" 1779892405.11704 104 4d8bb863c86f3d7b03a471e9d4707f34 ""
   "/usr/share/texlive/texmf-dist/bibtex/bst/revtex/apsrev4-2.bst" 1601932770 69609 e9dea59f0e753ccda3ddc8f5806d846d ""
-  "researchnew.aux" 1779889034.96971 12915 7f39b37b25b39df57e2d16b5448ff1f1 "pdflatex"
+  "researchnew.aux" 1779892405.11502 13049 e011e5c03eb63723ec2158bd4a1164f0 "pdflatex"
   (generated)
   "researchnew.bbl"
   "researchnew.blg"
   (rewritten before read)
-["pdflatex"] 1779889033.14283 "researchnew.tex" "researchnew.pdf" "researchnew" 1779889035.13014 0
+["pdflatex"] 1779892403.27613 "researchnew.tex" "researchnew.pdf" "researchnew" 1779892405.27191 0
   "/etc/texmf/web2c/texmf.cnf" 1779888823.51351 475 c0e671620eb5563b2130f56340a5fde8 ""
   "/home/nik/.texlive2023/texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx0900.600pk" 1779888907.43483 22480 7e6fe99662077fe5e833779ec4af1ca2 ""
   "/home/nik/.texlive2023/texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx1000.600pk" 1779888906.09341 25396 e7972b567bef83f4eec2a758515e710b ""
@@ -148,10 +148,10 @@
   "figures/bubble_wall_016.png" 1779871703.09159 244843 d33af08c79f3a044ad16e851a836b9e7 ""
   "figures/random_000.png" 1779871702.3346 237318 2048f8ce4f373ad8890f93c6cdb61155 ""
   "figures/random_001.png" 1779871703.85857 244323 92beb13f21b3cfe6be915a742f5e88dc ""
-  "researchnew.aux" 1779889034.96971 12915 7f39b37b25b39df57e2d16b5448ff1f1 "pdflatex"
-  "researchnew.bbl" 1779889033.13776 1982 35453d3875d823f0ec9445e740a573d9 "bibtex researchnew"
-  "researchnew.out" 1779889034.97171 12768 faf8fd5c196afc07b9e08e2975187c33 "pdflatex"
-  "researchnew.tex" 1779889020.6654 46421 3427bf09ca92eb44c2bfe4df34cd35b3 ""
+  "researchnew.aux" 1779892405.11502 13049 e011e5c03eb63723ec2158bd4a1164f0 "pdflatex"
+  "researchnew.bbl" 1779892403.27003 1982 35453d3875d823f0ec9445e740a573d9 "bibtex researchnew"
+  "researchnew.out" 1779892405.11602 12966 37c292888203c6ff3ee944eb2e4e507b "pdflatex"
+  "researchnew.tex" 1779892386.63727 47727 083a3f20babcb0d7a4f53df8eae9b8c0 ""
   (generated)
   "researchnew.aux"
   "researchnew.log"

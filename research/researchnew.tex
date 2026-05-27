@@ -436,6 +436,28 @@ The validation harness draws several families of $\chi(r)$:
 
 After $\chi(r)$ is drawn, the constrained recipe does \emph{not} guess $\phi(r)$ independently. Instead, it computes the Ricci scalar from $\chi$, solves the Hamiltonian constraint for $\partial_r\phi$, integrates to obtain $\phi(r)$, and fits that result back into the same Gaussian basis.
 
+\subsubsection{Current symmetry limitation}
+
+The first-stage metric guesser is intentionally spherically symmetric. All guessed fields depend only on the radius,
+\begin{equation}
+    \chi=\chi(r), \qquad K=K(r), \qquad \phi=\phi(r), \qquad \Pi=\Pi(r),
+\end{equation}
+with $r=\sqrt{x^2+y^2+z^2}$. The spatial metric ansatz is therefore conformally flat and radial,
+\begin{equation}
+    \gamma_{ij} = \chi(r)^{-1}\delta_{ij}.
+\end{equation}
+This means the current search can draw smooth spherical blobs, shells, and radial bubble-wall proxies, but it cannot yet represent tilted bubbles, rotating structures, multiple separated mouths, or a true moving Alcubierre bubble.
+
+This restriction is deliberate for the first validation stage: radial symmetry makes it easier to test the constraint solver, energy diagnostics, Gaussian basis fitting, and the Python-to-C++ handoff. Once the present constrained radial solution is validated dynamically, the next symmetry-breaking extension should introduce angular modes, for example spherical harmonics,
+\begin{equation}
+    \chi(r,\theta,\varphi)
+    =
+    \chi_0(r)
+    +
+    \sum_{\ell,m} c_{\ell m}(r)Y_{\ell m}(\theta,\varphi).
+\end{equation}
+This would allow lopsided bubbles, multi-mouth portal-like structures, and genuinely non-spherical warp geometries.
+
 \subsubsection{Profile visualisation}
 
 Representative profiles can be plotted with:
