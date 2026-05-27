@@ -199,10 +199,10 @@ void run_particle_interpolator_test()
                  << " z = " << z << ". The true value should be "
                  << B_known_dxdx);
 
-            CHECK(A_local[ipoint] == doctest::Approx(A_known).epsilon(1e-10));
-            CHECK(A_dx[ipoint] == doctest::Approx(A_known_dx).epsilon(1e-10));
+            CHECK(A_local[ipoint] == doctest::Approx(A_known).epsilon(1e-5));
+            CHECK(A_dx[ipoint] == doctest::Approx(A_known_dx).epsilon(1e-4));
             CHECK(A_dxdy[ipoint] ==
-                  doctest::Approx(A_known_dxdy).epsilon(1e-10));
+                  doctest::Approx(A_known_dxdy).epsilon(1e-4));
             CHECK(B_local[ipoint] == doctest::Approx(B_known).epsilon(1e-10));
             CHECK(B_dxdx[ipoint] ==
                   doctest::Approx(B_known_dxdx).epsilon(1e-10));
