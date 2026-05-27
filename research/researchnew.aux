@@ -1,0 +1,84 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\newlabel{FirstPage}{{}{1}{}{section*.1}{}}
+\@writefile{toc}{\contentsline {title}{\MakeTextUppercase    []{Neural Spacetime Search with \texttt  {GRTeclyn}: A Practical Baseline for Dynamical Metric Discovery}}{1}{section*.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {abstract}{Abstract}{1}{section*.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {I}Introduction}{1}{section*.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {II}Goal}{1}{section*.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A}Optimization as the Engine of Discovery}{1}{section*.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {III}Initial Data and Matter Derivation}{2}{section*.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A}Path A: Algebraic Matter Reconstruction}{2}{section*.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {B}Path B: Elliptic Constraint Solving}{2}{section*.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {IV}Candidate Parameterization}{2}{section*.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A}Level 1: Radial Recipes}{2}{section*.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {B}Level 2: Angular Recipes}{2}{section*.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {C}Level 3: Neural Field Decoder}{2}{section*.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {D}Level 4: Hybrid Meta-Optimization via LLM Agents}{3}{section*.13}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {V}GPU Cluster Architecture and Program Boundary}{3}{section*.14}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A}The Execution Boundary}{3}{section*.15}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {B}Tiered GPU Execution}{3}{section*.16}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {VI}Scoring and Energy Conditions}{3}{section*.17}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Schematic diagram of the closed-loop classical spacetime optimization pipeline. Layer 1 handles initial spacetime metric data, boundary conditions, and spatial preprocessing. Layer 2 is the core iterative engine, pairing a numerical relativity solver (such as \texttt  {GRTeclyn}) with the parameter optimization loop to check physical constraints (including causality and curvature). Layer 3 computes the objective function (evaluating constraint violations, energy conditions, and FTL travel times) and visualizes the resulting 4D embedding structures, directing the overall feedback and metric refinement loop.}}{4}{figure.1}\protected@file@percent }
+\newlabel{fig:pipeline_diagram}{{1}{4}{Schematic diagram of the closed-loop classical spacetime optimization pipeline. Layer 1 handles initial spacetime metric data, boundary conditions, and spatial preprocessing. Layer 2 is the core iterative engine, pairing a numerical relativity solver (such as \texttt {GRTeclyn}) with the parameter optimization loop to check physical constraints (including causality and curvature). Layer 3 computes the objective function (evaluating constraint violations, energy conditions, and FTL travel times) and visualizes the resulting 4D embedding structures, directing the overall feedback and metric refinement loop}{figure.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {VII}Avoiding Fake FTL (Operational Probe Tests)}{4}{section*.18}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {VIII}Benchmarks}{4}{section*.19}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces Initial benchmark suite for the search pipeline.}}{4}{table.1}\protected@file@percent }
+\newlabel{tab:benchmarks}{{I}{4}{Initial benchmark suite for the search pipeline}{table.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {IX}Step-by-Step Implementation Plan}{4}{section*.20}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A}Step 1: Regression and Cleanup}{4}{section*.21}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {B}Step 2: Custom C++ Initial Data}{4}{section*.22}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {C}Step 3: Slurm-Based Random Search (The Atlas)}{5}{section*.23}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {D}Step 4: Integrate the Constraint Solver}{5}{section*.24}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {E}Step 5: Operational Probe Integration}{5}{section*.25}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {F}Step 6: Optimization and Scale-up}{5}{section*.26}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {X}Expected First Result}{5}{section*.27}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {XI}Implemented: Constraint-Satisfying Metric Guesser}{5}{section*.28}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A}Physics of the Constraint Gap}{5}{section*.29}\protected@file@percent }
+\newlabel{eq:ham_recipe}{{7}{5}{}{equation.11.7}{}}
+\newlabel{eq:mom_recipe}{{8}{5}{}{equation.11.8}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {B}Component 1: Constrained Recipe (Python Pre-Processing)}{5}{section*.30}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {C}Component 2: Pre-Flight Constraint Filter}{6}{section*.31}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {D}Component 3: Energy Density Diagnostic (C++)}{6}{section*.32}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {E}Component 4: Enhanced Scoring}{6}{section*.33}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {F}Component 5: CMA-ES Optimization Driver}{6}{section*.34}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {G}Component 6: Known-Solution Seeds}{6}{section*.35}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {H}Verification Tests}{6}{section*.36}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {1}Test groups}{7}{section*.37}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2}Results summary}{7}{section*.38}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3}Known limitations (expected behaviour)}{7}{section*.39}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {I}Guesser Validation Harness}{7}{section*.40}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {1}How to run}{7}{section*.41}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2}What it does}{7}{section*.42}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3}How the initial $\chi (r)$ profile is drawn}{8}{section*.43}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4}Profile visualisation}{8}{section*.44}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5}Representative validation figures}{8}{section*.45}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces \textbf  {Accepted phantom random candidate.} The geometry is numerically constructible and the pre-flight constraints remain controlled. The required energy density contains negative regions, so it is accepted only in the phantom/exotic-matter class.}}{9}{figure.2}\protected@file@percent }
+\newlabel{fig:random000}{{2}{9}{\textbf {Accepted phantom random candidate.} The geometry is numerically constructible and the pre-flight constraints remain controlled. The required energy density contains negative regions, so it is accepted only in the phantom/exotic-matter class}{figure.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces \textbf  {Accepted phantom bubble-wall candidate.} This is an Alcubierre-inspired radial wall proxy, not the full moving Alcubierre metric. It remains numerically constructible when phantom matter is explicitly allowed.}}{10}{figure.3}\protected@file@percent }
+\newlabel{fig:bubblewall016}{{3}{10}{\textbf {Accepted phantom bubble-wall candidate.} This is an Alcubierre-inspired radial wall proxy, not the full moving Alcubierre metric. It remains numerically constructible when phantom matter is explicitly allowed}{figure.3}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces \textbf  {Rejected normal-matter random candidate.} The guessed geometry and derived scalar field are well-defined, but $\rho _{\rm  req}(r)$ becomes negative. Since this candidate is in the normal-matter class, it is rejected as \texttt  {rejected\_exotic\_energy}.}}{11}{figure.4}\protected@file@percent }
+\newlabel{fig:random001}{{4}{11}{\textbf {Rejected normal-matter random candidate.} The guessed geometry and derived scalar field are well-defined, but $\rho _{\rm req}(r)$ becomes negative. Since this candidate is in the normal-matter class, it is rejected as \texttt {rejected\_exotic\_energy}}{figure.4}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces \textbf  {Rejected normal-matter bubble-wall candidate.} The radial bubble-wall shape is small and smooth, but the required energy density still dips below zero. This illustrates why a visually mild deformation of $\chi (r)$ can still be physically exotic.}}{12}{figure.5}\protected@file@percent }
+\newlabel{fig:bubblewall015}{{5}{12}{\textbf {Rejected normal-matter bubble-wall candidate.} The radial bubble-wall shape is small and smooth, but the required energy density still dips below zero. This illustrates why a visually mild deformation of $\chi (r)$ can still be physically exotic}{figure.5}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces \textbf  {Rejected bad-control candidate.} The conformal factor $\chi (r)$ becomes negative, so the spatial metric $\gamma _{ij}=\chi ^{-1}\delta _{ij}$ is invalid before any matter reconstruction or evolution.}}{13}{figure.6}\protected@file@percent }
+\newlabel{fig:badcontrol024}{{6}{13}{\textbf {Rejected bad-control candidate.} The conformal factor $\chi (r)$ becomes negative, so the spatial metric $\gamma _{ij}=\chi ^{-1}\delta _{ij}$ is invalid before any matter reconstruction or evolution}{figure.6}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {6}Classification labels}{14}{section*.46}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {7}Reference run (seed 42, 27 candidates)}{14}{section*.47}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {8}Difference from regression tests and optimization}{14}{section*.48}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {XII}Recommended Next Steps for Testing}{14}{section*.49}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A}C++ 3D Initial Data Discretization Test}{14}{section*.50}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {B}Basis Fit-Residual Sensitivity Study}{14}{section*.51}\protected@file@percent }
+\bibdata{researchnewNotes}
+\bibstyle{apsrev4-2}
+\citation{REVTEX42Control}
+\citation{apsrev42Control}
+\@writefile{toc}{\contentsline {subsection}{\numberline {C}Dynamic Gauge Stability Test}{15}{section*.52}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {XIII}Long-Term Production Roadmap}{15}{section*.53}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A}Integrate Multi-Observer Energy Conditions}{15}{section*.54}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {B}Run the Slurm-Managed Constraint Atlas}{15}{section*.55}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {C}Execute CMA-ES on the Constrained Subspace}{15}{section*.56}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {XIV}Conclusion}{15}{section*.57}\protected@file@percent }
+\newlabel{LastPage}{{}{15}{}{}{}}
+\gdef \@abspage@last{15}

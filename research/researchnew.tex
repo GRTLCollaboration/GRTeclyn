@@ -8,6 +8,8 @@
 \usepackage{xcolor}
 \usepackage{hyperref}
 \usepackage{textcase}
+\usepackage{float}
+\usepackage{placeins}
 
 \hypersetup{
     colorlinks=true,
@@ -137,7 +139,32 @@ To efficiently search the parameter space, the pipeline exploits a clean boundar
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.95\textwidth]{magicbook-artwork.jpg}
+\fbox{%
+\begin{minipage}{0.92\textwidth}
+\centering
+\vspace{0.5em}
+\textbf{Closed-Loop Classical Spacetime Optimization Pipeline}
+
+\vspace{0.8em}
+\begin{tabular}{c}
+\fbox{\parbox{0.78\textwidth}{\centering
+\textbf{Layer 1: Initial Data}\\
+Metric guesser, Gaussian basis coefficients, boundary conditions, and pre-flight constraint checks
+}}\\[1.0em]
+$\Downarrow$\\[0.5em]
+\fbox{\parbox{0.78\textwidth}{\centering
+\textbf{Layer 2: Numerical Relativity Loop}\\
+\texttt{GRTeclyn} evolution, constraint diagnostics, gauge stability, and failure classification
+}}\\[1.0em]
+$\Downarrow$\\[0.5em]
+\fbox{\parbox{0.78\textwidth}{\centering
+\textbf{Layer 3: Scoring and Search}\\
+Energy-condition penalties, FTL probe timing, survival score, visualization, and optimizer updates
+}}
+\end{tabular}
+\vspace{0.5em}
+\end{minipage}%
+}
 \caption{Schematic diagram of the closed-loop classical spacetime optimization pipeline. Layer 1 handles initial spacetime metric data, boundary conditions, and spatial preprocessing. Layer 2 is the core iterative engine, pairing a numerical relativity solver (such as \texttt{GRTeclyn}) with the parameter optimization loop to check physical constraints (including causality and curvature). Layer 3 computes the objective function (evaluating constraint violations, energy conditions, and FTL travel times) and visualizes the resulting 4D embedding structures, directing the overall feedback and metric refinement loop.}
 \label{fig:pipeline_diagram}
 \end{figure*}
@@ -429,6 +456,56 @@ This writes one figure per showcase candidate (e.g.\ \texttt{random\_000.png}, \
 
 A bold verdict banner at the bottom of each figure states \texttt{ACCEPTED} or \texttt{REJECTED} with the classification reason.
 
+\subsubsection{Representative validation figures}
+
+Figures~\ref{fig:random000}, \ref{fig:bubblewall016}, \ref{fig:random001}, \ref{fig:bubblewall015}, and \ref{fig:badcontrol024} show the current validation outputs. Each figure follows the same four-panel format:
+
+\begin{enumerate}
+    \item the guessed radial geometry stretch $a(r)=\chi^{-1/2}$;
+    \item the stored conformal factor $\chi(r)$;
+    \item the scalar field $\phi(r)$ derived from the Hamiltonian constraint;
+    \item the required energy density proxy $\rho_{\rm req}(r)$.
+\end{enumerate}
+
+The right-bottom panel is the main physics verdict. Green regions indicate $\rho_{\rm req}\ge0$ and are compatible with normal positive energy. Red regions indicate $\rho_{\rm req}<0$, meaning that the geometry requires exotic matter in that radial interval.
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=0.98\textwidth]{figures/random_000.png}
+    \caption{\textbf{Accepted phantom random candidate.} The geometry is numerically constructible and the pre-flight constraints remain controlled. The required energy density contains negative regions, so it is accepted only in the phantom/exotic-matter class.}
+    \label{fig:random000}
+\end{figure*}
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=0.98\textwidth]{figures/bubble_wall_016.png}
+    \caption{\textbf{Accepted phantom bubble-wall candidate.} This is an Alcubierre-inspired radial wall proxy, not the full moving Alcubierre metric. It remains numerically constructible when phantom matter is explicitly allowed.}
+    \label{fig:bubblewall016}
+\end{figure*}
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=0.98\textwidth]{figures/random_001.png}
+    \caption{\textbf{Rejected normal-matter random candidate.} The guessed geometry and derived scalar field are well-defined, but $\rho_{\rm req}(r)$ becomes negative. Since this candidate is in the normal-matter class, it is rejected as \texttt{rejected\_exotic\_energy}.}
+    \label{fig:random001}
+\end{figure*}
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=0.98\textwidth]{figures/bubble_wall_015.png}
+    \caption{\textbf{Rejected normal-matter bubble-wall candidate.} The radial bubble-wall shape is small and smooth, but the required energy density still dips below zero. This illustrates why a visually mild deformation of $\chi(r)$ can still be physically exotic.}
+    \label{fig:bubblewall015}
+\end{figure*}
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=0.98\textwidth]{figures/bad_control_024.png}
+    \caption{\textbf{Rejected bad-control candidate.} The conformal factor $\chi(r)$ becomes negative, so the spatial metric $\gamma_{ij}=\chi^{-1}\delta_{ij}$ is invalid before any matter reconstruction or evolution.}
+    \label{fig:badcontrol024}
+\end{figure*}
+
+\FloatBarrier
+
 \subsubsection{Classification labels}
 
 \begin{itemize}
@@ -458,6 +535,86 @@ Most random and shell profiles fail the normal-matter energy check even when pre
     \item \textbf{Validation harness} (\texttt{validate\_metric\_guesser.py}): dataset-style batch over synthetic proposals; explains \emph{why} each geometry is accepted or rejected.
     \item \textbf{Optimization} (\texttt{optimize} subcommand): feedback loop that adapts coefficients from scores. Not used here.
     \item \textbf{Next step after validation}: take \texttt{accepted\_*} candidates and run short \texttt{RadialRecipe} C++ evolutions to obtain full 3D constraint and energy diagnostics.
+\end{itemize}
+
+\section{Recommended Next Steps for Testing}
+
+With the static ($t=0$) validation harness established, the next milestone is to bridge the gap from Python pre-flight checks to active 3D dynamics in \texttt{GRTeclyn}. The following short-term protocols should be run before large-scale optimization.
+
+\subsection{C++ 3D Initial Data Discretization Test}
+
+The Python pre-flight solver computes derivatives on a 1D radial grid. The actual evolution code evaluates the same Gaussian coefficients on the 3D AMReX grid with finite-volume cell centering, ghost zones, refinement boundaries, and coordinate interpolation. These two discretizations will not agree exactly, so the first test should measure the mismatch.
+
+\begin{itemize}
+    \item \textbf{Test}: take the accepted phantom candidate \texttt{bubble\_wall\_016} and launch a short $t=0$ diagnostic run in \texttt{GRTeclyn}.
+    \item \textbf{Measure}: compare the 3D Hamiltonian constraint $L^2$ norm computed by \texttt{GRTeclyn} against the 1D pre-flight prediction.
+    \item \textbf{Acceptance target}: the 3D residual may be slightly larger because of grid discretization, but it should remain bounded, e.g.\ $\|H\|_{L^2}<10^{-1}$, and should not trigger the early-stopping filter.
+\end{itemize}
+
+This test answers whether the Python-derived coefficients survive the actual C++ initial-data loading path.
+
+\subsection{Basis Fit-Residual Sensitivity Study}
+
+The constrained recipe derives a continuous scalar profile $\phi(r)$ and then compresses it back into the finite Gaussian basis used by \texttt{RadialRecipe}. If the fit residual is too large, the C++ code will load an inaccurate representation of the matter required by the Hamiltonian constraint, which can cause large violations once the evolution begins.
+
+\begin{itemize}
+    \item \textbf{Test}: run the validation harness over a grid of basis counts $N\in[4,16]$ and widths $w\in[0.3,2.5]$ for random, shell, and bubble-wall candidate families.
+    \item \textbf{Measure}: map $N$ and $w$ against the scalar fit residual $\epsilon_{\rm fit}$ and the resulting pre-flight Hamiltonian residual.
+    \item \textbf{Acceptance target}: determine the smallest basis size that keeps $\epsilon_{\rm fit}<10^{-3}$ for non-trivial geometries.
+\end{itemize}
+
+This study will set the minimum safe dimensionality for CMA-ES: small enough to optimize efficiently, but large enough to preserve constraint accuracy.
+
+\subsection{Dynamic Gauge Stability Test}
+
+Passing $t=0$ constraints is necessary but not sufficient. A candidate can still fail dynamically if the lapse collapses, the shift/gauge variables respond violently, or the geometry creates a coordinate crash.
+
+\begin{itemize}
+    \item \textbf{Test}: evolve accepted candidates such as \texttt{bubble\_wall\_016} and \texttt{random\_000} up to $t=5M$ at low resolution, e.g.\ $N=64$.
+    \item \textbf{Measure}: track the minimum lapse $\alpha$, the maximum $|K|$, the constraint norms, and the radial stretch factor $a(r)=\chi^{-1/2}$ over time.
+    \item \textbf{Acceptance target}: the lapse should remain healthy, the moving-puncture gauge should not produce an immediate coordinate crash, and the constraint norms should not blow up during the short evolution.
+\end{itemize}
+
+This test separates static constructibility from dynamical usability.
+
+\section{Long-Term Production Roadmap}
+
+Once the short dynamic tests are verified, the pipeline can scale from single-candidate validation to production search.
+
+\subsection{Integrate Multi-Observer Energy Conditions}
+
+The current energy diagnostic evaluates the required density in a limited frame. As emphasized by the \emph{Warp Factory} approach, checking only one observer can miss violations seen by boosted timelike or null observers. The production diagnostic should evaluate the stress-energy tensor against a family of local observer vectors.
+
+\begin{equation}
+    \Xi_W(\mathbf{x}) =
+    T_{\hat{\mu}\hat{\nu}}
+    V^{\hat{\mu}}V^{\hat{\nu}} .
+\end{equation}
+
+\begin{itemize}
+    \item \textbf{Action}: extend the C++ diagnostics to sample multiple timelike and null vectors $V^{\hat{\mu}}$ at each grid point and record the minimum value of $\Xi_W(\mathbf{x})$ across observer directions.
+    \item \textbf{Scoring integration}: feed this multi-observer minimum into \texttt{score.py} so that ``normal matter'' candidates are required to satisfy energy conditions for all sampled observers, not just the Eulerian one.
+    \item \textbf{Purpose}: rule out hidden NEC/WEC violations, including cases that look acceptable in one frame but become exotic in another.
+\end{itemize}
+
+\subsection{Run the Slurm-Managed Constraint Atlas}
+
+After the C++ discretization and short-evolution tests pass, the next scale-up step is a constrained random atlas.
+
+\begin{itemize}
+    \item \textbf{Action}: launch a 1000-candidate random search on the GPU cluster using the new \texttt{--constrained} and \texttt{--preflight} CLI flags.
+    \item \textbf{Goal}: because the pre-flight filter rejects invalid geometries before GPU launch, the resulting \texttt{atlas.csv} should be a cleaner database of meaningful failures and survivals.
+    \item \textbf{Research value}: this ``Spacetime Failure Atlas'' can train downstream research agents by showing where physical constructibility boundaries occur in the parameter space.
+\end{itemize}
+
+\subsection{Execute CMA-ES on the Constrained Subspace}
+
+The final near-term production step is to replace random sampling with adaptive search.
+
+\begin{itemize}
+    \item \textbf{Action}: run a first 50-generation CMA-ES search using the \texttt{--constrained} pipeline.
+    \item \textbf{Goal}: the optimizer should no longer spend most of its effort rediscovering the constraint equations. The momentum constraint is handled by construction ($K=\mathrm{const}$, $\Pi=0$), and the Hamiltonian constraint is approximately handled by deriving $\phi$ from $\chi$.
+    \item \textbf{Optimization target}: let CMA-ES focus on shaping the geometry for survival, stability, non-triviality, and eventual FTL probe performance while the pre-flight and energy-condition filters enforce physical sanity.
 \end{itemize}
 
 \section{Conclusion}
