@@ -103,8 +103,10 @@ class PolynomialDerivedQuantity
 #endif
 
         // write via cell data
-        auto cell      = a_array.cellData(i, j, k);
-        cell[m_c_poly] = 42.0 + x * x + y * y * z * z;
+        auto cell = a_array.cellData(i, j, k);
+        double r  = x * x + y * y + z * z;
+
+        cell[m_c_poly] = sin(sqrt(r));
     }
 
     // Constructor

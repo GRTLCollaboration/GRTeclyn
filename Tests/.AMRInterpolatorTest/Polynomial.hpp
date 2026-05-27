@@ -28,7 +28,9 @@ class Polynomial
         data_t z = coords.z;
 
         // A is even in x and z, but in y it's even on the upper boundary
-        data_t poliA = 42. + x * x + y * y * z * z;
+        data_t r = x * x + y * y + z * z;
+
+        data_t poliA = sin(sqrt(r));
         // B is odd in x
         data_t poliB = pow(x, 3);
 
