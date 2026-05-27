@@ -17,8 +17,8 @@
 //! using add_var or add_vars
 template <class SurfaceGeometry, int num_components>
 SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
-    const SurfaceGeometry &a_geom, surface_extraction_params_t a_params,
-    double a_dt, double a_time, bool a_first_step, double a_restart_time)
+    const SurfaceGeometry &a_geom, params_t a_params, double a_dt,
+    double a_time, bool a_first_step, double a_restart_time)
     : m_geom(a_geom), m_params(std::move(a_params)), m_dt(a_dt), m_time(a_time),
       m_first_step(a_first_step), m_restart_time(a_restart_time),
       m_num_interp_points((amrex::ParallelDescriptor::MyProc() == 0)
@@ -92,13 +92,42 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::add_var(
             "SurfaceExtraction::add_var: m_vars.size() > num_components");
     }
 
+    const auto first_type = m_vars.front().type;
+
+    // First, check we do not mix evolution vars with derived ones
+    // We actually check this in the InterpolationQueryParticle as well, but it
+    // does not hurt checking again
+    for (const auto &var : m_vars)
+    {
+        if (var.type != first_type)
+        {
+            amrex::Abort(
+                "SurfaceExtraction::add_var: Cannot mix variable types!");
+        }
+    }
+
+    // Second, check that we do not mix different derived groups
+    if (first_type == VariableType::derived)
+    {
+        const auto &derived_name = m_vars.front().derived_name;
+
+        for (const auto &var : m_vars)
+        {
+            if (var.derived_name != derived_name)
+            {
+                amrex::Abort("SurfaceExtraction::add_var: Cannot mix different "
+                             "derived groups!");
+            }
+        }
+    }
+
     m_interp_data.emplace_back(m_num_interp_points);
 }
 
 //! add a vector of variables/derivatives of variables
 template <class SurfaceGeometry, int num_components>
 void SurfaceExtraction<SurfaceGeometry, num_components>::add_vars(
-    const std::vector<var_t> &a_vars)
+    const std::vector<vars_t> &a_vars)
 {
     for (const auto &var : a_vars)
     {
@@ -134,8 +163,8 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::add_derived_vars(
 //! derivatives
 template <class SurfaceGeometry, int num_components>
 SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
-    const SurfaceGeometry &a_geom, const surface_extraction_params_t &a_params,
-    const std::vector<var_t> &a_vars, double a_dt, double a_time,
+    const SurfaceGeometry &a_geom, const params_t &a_params,
+    const std::vector<vars_t> &a_vars, double a_dt, double a_time,
     bool a_first_step, double a_restart_time)
     : SurfaceExtraction<SurfaceGeometry, num_components>(
           a_geom, a_params, a_dt, a_time, a_first_step, a_restart_time)
@@ -147,7 +176,7 @@ SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
 //! no derivatives
 template <class SurfaceGeometry, int num_components>
 SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
-    const SurfaceGeometry &a_geom, const surface_extraction_params_t &a_params,
+    const SurfaceGeometry &a_geom, const params_t &a_params,
     const std::vector<int> &a_vars, double a_dt, double a_time,
     bool a_first_step, double a_restart_time)
     : SurfaceExtraction<SurfaceGeometry, num_components>(
@@ -442,7 +471,12 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::write_extraction(
                 }
                 else
                 {
-                    components[ivar] += std::to_string(var.var);
+                    auto *derive_rec =
+                        amrex::AmrLevel::get_derive_lst().get(var.derived_name);
+                    //  amrex::Print() << "derived_name = " << var.derived_name
+                    // << ", var.var = " << var.var << ", variableName = " <<
+                    // derive_rec->variableName(var.var) << "\n";
+                    components[ivar] += derive_rec->variableName(var.var);
                 }
             }
 

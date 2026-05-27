@@ -40,7 +40,7 @@ void ParticleInterpolator<num_components>::setup(
 
     // read in the physical bounds for reflective BC checks (it is sufficient to
     // do this on lev = 0)
-    const amrex::Geometry &geom0 = m_gramr_ptr->getLevel(state_index).Geom();
+    const amrex::Geometry &geom0 = m_gramr_ptr->getLevel(0).Geom();
     m_prob_lo                    = geom0.ProbLoArray();
     m_prob_hi                    = geom0.ProbHiArray();
 
