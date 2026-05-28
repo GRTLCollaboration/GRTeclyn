@@ -20,14 +20,35 @@ jobs:
         git ls-files $(cat .lint-ignore | sed '/^[[:blank:]]*#/d;s/#.*//;/^$/d;') > lint_ignore_expanded
         printf "lint_ignore_matches<<EOF\n%s\nEOF" "$(git diff --name-only HEAD^1 HEAD | grep -F -f lint_ignore_expanded)" >> "$GITHUB_OUTPUT"
 
-    - name: Post comment on PR if there are matches
+    - name: Find existing lint-ignore comment
       if: steps.modified-files.outputs.lint_ignore_matches != ''
-      uses: thollander/actions-comment-pull-request@v3
+      uses: peter-evans/find-comment@v3
+      id: fc
       with:
-        message: |
+        issue-number: ${{ github.event.pull_request.number }}
+        comment-author: 'github-actions[bot]'
+        body-includes: 'This PR modifies the following files which are ignored by [.lint-ignore](.lint-ignore):'
+
+    - name: Post comment on PR if there are matches
+      if: steps.modified-files.outputs.lint_ignore_matches != '' && steps.fc.outputs.comment-id == ''
+      uses: peter-evans/create-or-update-comment@v5
+      with:
+        issue-number: ${{ github.event.pull_request.number }}
+        body: |
           This PR modifies the following files which are ignored by [.lint-ignore](.lint-ignore):
           ```
           ${{ steps.modified-files.outputs.lint_ignore_matches }}
           ```
           Please consider removing the corresponding patterns from .lint-ignore so that these files can be linted.
-        comment_tag: lint_ignore
+
+    - name: Update comment on PR if there are matches
+      if: steps.modified-files.outputs.lint_ignore_matches != '' && steps.fc.outputs.comment-id != ''
+      uses: peter-evans/create-or-update-comment@v5
+      with:
+        comment-id: ${{ steps.fc.outputs.comment-id }}
+        body: |
+          This PR modifies the following files which are ignored by [.lint-ignore](.lint-ignore):
+          ```
+          ${{ steps.modified-files.outputs.lint_ignore_matches }}
+          ```
+          Please consider removing the corresponding patterns from .lint-ignore so that these files can be linted.
