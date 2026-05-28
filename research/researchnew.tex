@@ -804,26 +804,26 @@ For every constrained run the wrapper zeros all \texttt{recipe\_K\_coeff\_*} and
 
 \subsubsection{Radial smoke results ($t=2$, $N_{\rm full}=64$, $\Delta t = 0.02$)}
 
-Table~\ref{tab:gpu_radial_smoke} summarizes the first GPU handoff campaign on the reference phantom candidates. The rough acceptance target is $\|H\|_{L^2}<10^{-1}$ with no immediate lapse collapse.
+Table~\ref{tab:gpu_radial_smoke} summarizes the first GPU handoff campaign on the reference phantom candidates. The rough acceptance target is $\|H\|_{L^2}<10^{-1}$ with no immediate lapse collapse. These labels indicate only short-run numerical survival, not demonstrated dynamical stability.
 
 \begin{table*}[t]
-\caption{Short GPU smoke results for spherically symmetric RadialRecipe candidates ($t=2$, $N_{\rm full}=64$). Python pre-flight uses a 1D radial grid; C++ values are from \texttt{constraint\_norms.dat} on the full 3D AMReX mesh.}
+\caption{Short GPU smoke results for spherically symmetric RadialRecipe candidates ($t=2$, $N_{\rm full}=64$). Python pre-flight uses a 1D radial grid; C++ values are from \texttt{constraint\_norms.dat} on the full 3D AMReX mesh. ``Short-run survivor'' means the candidate completed this smoke test with controlled diagnostics; it is not evidence of long-time stability.}
 \label{tab:gpu_radial_smoke}
 \small
 \begin{ruledtabular}
 \begin{tabular}{lcccccc}
 ID & Python $\|H\|_{L^2}$ & C++ max $\|H\|_{L^2}$ & C++ final $\|H\|_{L^2}$ & $\alpha_{\min}$ & $\chi_{\min}$ & Outcome \\
 \hline
-\texttt{ellis\_bronnikov} & 2.24 & 0.050 & 0.020 & 0.31 & 0.43 & Stable \\
-\texttt{bubble\_wall\_016} & 0.027 & 0.014 & 0.006 & 0.94 & 0.99 & Stable \\
-\texttt{random\_000} & 0.224 & 0.092 & 0.079 & 0.26 & 0.77 & Borderline \\
+\texttt{ellis\_bronnikov} & 2.24 & 0.050 & 0.020 & 0.31 & 0.43 & Short-run survivor \\
+\texttt{bubble\_wall\_016} & 0.027 & 0.014 & 0.006 & 0.94 & 0.99 & Short-run survivor \\
+\texttt{random\_000} & 0.224 & 0.092 & 0.079 & 0.26 & 0.77 & Short-run borderline \\
 \end{tabular}
 \end{ruledtabular}
 \end{table*}
 
 The Ellis--Bronnikov seed illustrates the expected mismatch between 1D pre-flight and 3D AMReX: the coarse radial fit can report a large 1D residual even when the 3D diagnostic remains $\mathcal{O}(10^{-2})$. For \texttt{bubble\_wall\_016}, the 3D residual is comparable to or below the Python estimate.
 
-Extended evolution to $t=5$ at $N_{\rm full}=64$ confirms \texttt{ellis\_bronnikov} and \texttt{bubble\_wall\_016} as \emph{promoted survivors} ($\|H\|_{L^2}$ remains $\lesssim 5\times 10^{-2}$, $\alpha_{\min}\gtrsim 0.3$--$0.4$). The same run rejects \texttt{random\_000} for long campaigns: although it completes without NaNs, $\alpha_{\min}$ drops to $\sim 0.08$ and a large horizon-radius proxy ($\sim 27$ in code units) appears, indicating coordinate/gauge stress. The promotion script \texttt{run\_radialrecipe\_gpu\_promote.sh} therefore sweeps only \texttt{ellis\_bronnikov} and \texttt{bubble\_wall\_016} over $N_{\rm full}\in\{64,96,128\}$ at $t=5$.
+Extended evolution to $t=5$ at $N_{\rm full}=64$ classifies \texttt{ellis\_bronnikov} and \texttt{bubble\_wall\_016} as \emph{promotion candidates} rather than stable metrics ($\|H\|_{L^2}$ remains $\lesssim 5\times 10^{-2}$, $\alpha_{\min}\gtrsim 0.3$--$0.4$). This means they survive the next numerical gate and deserve higher-resolution study; it does not prove long-time stability. The same run rejects \texttt{random\_000} for long campaigns: although it completes without NaNs, $\alpha_{\min}$ drops to $\sim 0.08$ and a large horizon-radius proxy ($\sim 27$ in code units) appears, indicating coordinate/gauge stress. The promotion script \texttt{run\_radialrecipe\_gpu\_promote.sh} therefore sweeps only \texttt{ellis\_bronnikov} and \texttt{bubble\_wall\_016} over $N_{\rm full}\in\{64,96,128\}$ at $t=5$.
 
 \subsubsection{Resolution note (Ellis--Bronnikov)}
 
@@ -888,7 +888,7 @@ run_nonspherical_gpu_batch.sh
 With the static ($t=0$) validation harness and the first GPU smoke bridge in place, the remaining short-term protocols below focus on scaling and physics diagnostics rather than basic handoff.
 
 \subsection{C++ 3D Initial Data Discretization Test}
-\textit{Status: completed for reference candidates.} Table~\ref{tab:gpu_radial_smoke} records the Python-vs-C++ Hamiltonian comparison for \texttt{ellis\_bronnikov}, \texttt{bubble\_wall\_016}, and \texttt{random\_000}. The acceptance target $\|H\|_{L^2}<10^{-1}$ on the 3D grid is met for the promoted survivors.
+\textit{Status: completed for reference candidates.} Table~\ref{tab:gpu_radial_smoke} records the Python-vs-C++ Hamiltonian comparison for \texttt{ellis\_bronnikov}, \texttt{bubble\_wall\_016}, and \texttt{random\_000}. The acceptance target $\|H\|_{L^2}<10^{-1}$ on the 3D grid is met for the short-run promotion candidates, but the new stability score is required before calling any candidate a successful metric.
 
 \begin{itemize}
     \item \textbf{Remaining work}: systematic sweeps over basis count $N$ and width $w$ to quantify how discretization error scales (see basis fit-residual study below).
