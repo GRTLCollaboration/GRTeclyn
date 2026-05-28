@@ -112,7 +112,9 @@ ${PYTHON_BIN} -m grteclyn_wrapper \
   --set dt_multiplier=0.02 \
   --set max_level="${MAX_LEVEL}" \
   --score-weight ftl_shortcut=5.0 \
-  --score-weight nonflat_geometry=1.5 \
+  --score-weight expansion_asymmetry=2.0 \
+  --score-weight nonflat_geometry=1.0 \
+  --score-weight comoving_stability=2.5 \
   --ftl-L "${FTL_L:-${L_FULL}}" \
   "${GLOBAL_ARGS[@]}" \
   -- optimize \

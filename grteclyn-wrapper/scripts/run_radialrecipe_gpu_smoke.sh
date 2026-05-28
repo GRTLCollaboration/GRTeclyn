@@ -96,7 +96,7 @@ if [[ -n "${FTL_L}" ]]; then
   SCORE_ARGS+=(--ftl-L "${FTL_L}")
 fi
 if [[ "${ENABLE_FTL_SCORING:-1}" == "1" ]]; then
-  SCORE_ARGS+=(--score-weight ftl_shortcut=5.0 --score-weight nonflat_geometry=1.5)
+  SCORE_ARGS+=(--score-weight ftl_shortcut=5.0 --score-weight expansion_asymmetry=2.0 --score-weight nonflat_geometry=1.0 --score-weight comoving_stability=2.5)
 fi
 
 echo "== RadialRecipe GPU smoke pipeline =="

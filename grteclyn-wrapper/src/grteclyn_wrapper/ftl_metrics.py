@@ -29,6 +29,8 @@ class FtlMetrics:
     f_throat: float
     s_nonflat: float
     f_shortcut: float
+    f_asymmetry: float
+    f_log: float
     t_curved: float | None
     t_flat: float | None
     d_proper: float | None
@@ -117,6 +119,38 @@ def _axis_profiles(
     return x, r, chi, alpha, beta_x
 
 
+def calculate_expansion_asymmetry(x: NDArray[np.float64], theta: NDArray[np.float64]) -> float:
+    """Push-pull asymmetry: contraction in front ($x>0$), expansion behind ($x<0$)."""
+    front_mask = x > 0
+    back_mask = x < 0
+    front_contraction = -theta[front_mask]
+    back_expansion = theta[back_mask]
+    numerator = float(
+        np.sum(front_contraction[front_contraction > 0])
+        + np.sum(back_expansion[back_expansion > 0])
+    )
+    denominator = float(np.sum(np.abs(theta))) + 1.0e-8
+    return max(0.0, numerator / denominator)
+
+
+def calculate_log_ftl(f_raw: float, *, eta: float = 100.0) -> float:
+    """Log-amplify weak subluminal FTL signals for optimizer visibility."""
+    if f_raw <= 0.0:
+        return 0.0
+    return float(np.log1p(eta * f_raw) / np.log1p(eta))
+
+
+def _theta_axis_proxy(
+    x: NDArray[np.float64],
+    chi: NDArray[np.float64],
+    beta_x: NDArray[np.float64],
+) -> NDArray[np.float64]:
+    """1D axis proxy for the expansion scalar from shift divergence and conformal stretch."""
+    dbeta = np.gradient(beta_x, x)
+    dln_sqrt_g = -0.5 * np.gradient(np.log(chi), x)
+    return dbeta + dln_sqrt_g
+
+
 def compute_ftl_metrics(
     overrides: Mapping[str, Any],
     *,
@@ -197,12 +231,18 @@ def compute_ftl_metrics(
     if raw_shortcut > 0.0 and s_nonflat < 1.0e-6:
         notes.append("shortcut suppressed: geometry is effectively flat")
 
+    theta = _theta_axis_proxy(x, chi, beta_x)
+    f_asymmetry = calculate_expansion_asymmetry(x, theta) if asymptotic_ok else 0.0
+    f_log = calculate_log_ftl(f_shortcut)
+
     return FtlMetrics(
         f_null=f_null,
         f_portal=f_portal,
         f_throat=f_throat,
         s_nonflat=s_nonflat,
         f_shortcut=f_shortcut,
+        f_asymmetry=f_asymmetry,
+        f_log=f_log,
         t_curved=t_curved,
         t_flat=t_flat,
         d_proper=d_proper,

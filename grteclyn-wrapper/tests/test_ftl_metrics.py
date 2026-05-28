@@ -3,7 +3,11 @@ from __future__ import annotations
 import numpy as np
 
 from grteclyn_wrapper.constrained_recipe import RecipeBasis, fit_gaussian_basis
-from grteclyn_wrapper.ftl_metrics import compute_ftl_metrics
+from grteclyn_wrapper.ftl_metrics import (
+    calculate_expansion_asymmetry,
+    calculate_log_ftl,
+    compute_ftl_metrics,
+)
 from grteclyn_wrapper.seeds import get_seed
 
 
@@ -50,7 +54,24 @@ def test_alcubierre_warp_has_null_shortcut() -> None:
     assert metrics.s_nonflat > 0.05
     assert metrics.f_null > 0.0
     assert metrics.f_shortcut > 0.0
+    assert metrics.f_log > metrics.f_shortcut
+    assert metrics.f_asymmetry > 0.0
     assert metrics.path_valid
+
+
+def test_log_ftl_amplifies_weak_shortcuts() -> None:
+    assert calculate_log_ftl(0.0) == 0.0
+    assert calculate_log_ftl(0.063) > 0.3
+    assert calculate_log_ftl(0.094) > calculate_log_ftl(0.063)
+
+
+def test_expansion_asymmetry_detects_push_pull() -> None:
+    x = np.linspace(-8.0, 8.0, 256)
+    theta = np.where(x > 0, -0.2, 0.2)
+    score = calculate_expansion_asymmetry(x, theta)
+    assert score > 0.9
+    flat = calculate_expansion_asymmetry(x, np.zeros_like(x))
+    assert flat == 0.0
 
 
 def test_singular_lapse_invalidates_null_ray() -> None:
@@ -68,5 +89,7 @@ if __name__ == "__main__":
     test_chi_compression_bump_has_portal_shortcut()
     test_ellis_bronnikov_has_throat_pinch()
     test_alcubierre_warp_has_null_shortcut()
+    test_log_ftl_amplifies_weak_shortcuts()
+    test_expansion_asymmetry_detects_push_pull()
     test_singular_lapse_invalidates_null_ray()
     print("ftl metrics tests passed")

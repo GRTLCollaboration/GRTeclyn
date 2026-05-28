@@ -9,15 +9,17 @@ from .metrics import EpisodeMetrics
 
 DEFAULT_WEIGHTS: dict[str, float] = {
     "ftl_shortcut": 5.0,
-    "nonflat_geometry": 1.5,
-    "survival": 2.0,
+    "expansion_asymmetry": 2.0,
+    "nonflat_geometry": 1.0,
+    "comoving_stability": 2.5,
+    "survival": 1.5,
     "constraint_health": 2.0,
     "lapse_health": 1.0,
-    "horizon_penalty": 1.0,
-    "nontrivial_geometry": 0.5,
-    "energy_condition": 1.5,
-    "initial_constraint_quality": 1.0,
-    "stability": 2.0,
+    "horizon_penalty": 1.5,
+    "energy_condition": 2.0,
+    "stability": 0.5,
+    "nontrivial_geometry": 0.25,
+    "initial_constraint_quality": 0.5,
 }
 
 
@@ -118,13 +120,20 @@ def score_episode(
     if metrics.stability and metrics.stability.violation is not None:
         components["stability"] = _bounded_reward(metrics.stability.violation, 1.0)
         if components["stability"] < 0.25:
-            notes.append("geometry changes rapidly over the evolution window")
+            notes.append("geometry changes rapidly over the evolution window (Eulerian)")
     else:
         components["stability"] = 0.0
         notes.append("stability diagnostics not available")
 
+    if metrics.comoving and metrics.comoving.score is not None:
+        components["comoving_stability"] = metrics.comoving.score
+    else:
+        components["comoving_stability"] = 0.0
+        notes.append("co-moving stability diagnostics not available")
+
     if metrics.ftl is not None:
-        components["ftl_shortcut"] = metrics.ftl.f_shortcut
+        components["ftl_shortcut"] = metrics.ftl.f_log
+        components["expansion_asymmetry"] = metrics.ftl.f_asymmetry
         components["nonflat_geometry"] = metrics.ftl.s_nonflat
         if metrics.ftl.f_shortcut <= 0.0 and metrics.ftl.s_nonflat < 0.05:
             notes.append("no FTL shortcut detected in t=0 profile")
@@ -132,6 +141,7 @@ def score_episode(
             notes.append(note)
     else:
         components["ftl_shortcut"] = 0.0
+        components["expansion_asymmetry"] = 0.0
         components["nonflat_geometry"] = 0.0
         notes.append("FTL profile metrics not available")
 

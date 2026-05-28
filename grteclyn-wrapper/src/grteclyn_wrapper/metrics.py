@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+import numpy as np
+
 
 from .ftl_metrics import FtlMetrics, compute_ftl_metrics, load_overrides_from_episode
 
@@ -43,10 +45,18 @@ class StabilityMetrics:
 
 
 @dataclass(frozen=True)
+class ComovingMetrics:
+    beta_mean: float | None
+    delta_comoving: float | None
+    score: float | None
+
+
+@dataclass(frozen=True)
 class EpisodeMetrics:
     collapse: CollapseMetrics | None
     constraints: ConstraintMetrics | None
     stability: StabilityMetrics | None
+    comoving: ComovingMetrics | None
     ftl: FtlMetrics | None
     termination_reason: str
 
@@ -193,6 +203,97 @@ def read_stability_metrics(collapse_path: Path, areal_path: Path) -> StabilityMe
     )
 
 
+def _parse_shell_profiles(path: Path) -> tuple[list[float], dict[str, list[float]]] | None:
+    if not path.exists():
+        return None
+    lines = [ln.strip() for ln in path.read_text(encoding="utf-8").splitlines() if ln.strip()]
+    if not lines:
+        return None
+    header = lines[0].lstrip("#").split()
+    if not header or header[0] != "time":
+        return None
+    cols: dict[str, list[float]] = {name: [] for name in header[1:]}
+    times: list[float] = []
+    for line in lines[1:]:
+        parts = line.split()
+        if len(parts) != len(header):
+            continue
+        times.append(float(parts[0]))
+        for name, value in zip(header[1:], parts[1:]):
+            cols[name].append(float(value))
+    if not times:
+        return None
+    return times, cols
+
+
+def _mean_beta_in_bubble(
+    overrides: dict[str, object],
+    *,
+    ftl_L: float | None = None,
+) -> float | None:
+    from .ftl_metrics import _axis_profiles
+
+    L = ftl_L if ftl_L is not None else float(overrides.get("recipe_basis_radius_max", 8.0))
+    _x, _r, _chi, _alpha, beta_x = _axis_profiles(overrides, L=L, n_points=512)
+    beta_max = float(max(abs(float(v)) for v in beta_x))
+    if beta_max < 1.0e-8:
+        return 0.0
+    bubble_mask = abs(beta_x) >= 0.1 * beta_max
+    if not bubble_mask.any():
+        return float(beta_x.mean())
+    return float(beta_x[bubble_mask].mean())
+
+
+def read_comoving_metrics(
+    episode_dir: Path,
+    overrides: dict[str, object] | None,
+    *,
+    ftl_L: float | None = None,
+) -> ComovingMetrics | None:
+    """Estimate co-moving stability from shell chi time series and t=0 shift profile."""
+    if overrides is None:
+        return None
+
+    beta_mean = _mean_beta_in_bubble(overrides, ftl_L=ftl_L)
+    shell_path = episode_dir / "small_data" / "shell_profiles.dat"
+    if not shell_path.exists():
+        shell_path = episode_dir / "shell_profiles.dat"
+    parsed = _parse_shell_profiles(shell_path)
+
+    chi_series: list[float] | None = None
+    times: list[float] | None = None
+    if parsed is not None:
+        times, cols = parsed
+        chi_keys = sorted(key for key in cols if key.startswith("chi_mean_"))
+        if chi_keys:
+            chi_series = cols[chi_keys[0]]
+
+    if chi_series is None or times is None or len(chi_series) < 2:
+        collapse_path = episode_dir / "data" / "collapse_diagnostics.dat"
+        if not collapse_path.exists():
+            collapse_path = episode_dir / "collapse_diagnostics.dat"
+        rows = _numeric_rows(collapse_path, 3)
+        if len(rows) < 2:
+            return ComovingMetrics(beta_mean=beta_mean, delta_comoving=None, score=None)
+        times = [row[0] for row in rows]
+        chi_series = [row[2] for row in rows]
+
+    if beta_mean is None or len(chi_series) < 2 or len(times) < 2:
+        return ComovingMetrics(beta_mean=beta_mean, delta_comoving=None, score=None)
+
+    times_arr = np.asarray(times, dtype=float)
+    chi_arr = np.asarray(chi_series, dtype=float)
+    if times_arr[-1] <= times_arr[0]:
+        return ComovingMetrics(beta_mean=beta_mean, delta_comoving=None, score=None)
+
+    dchi_dt = np.gradient(chi_arr, times_arr)
+    eulerian_rate = float(np.max(np.abs(dchi_dt)))
+    shift_scale = max(abs(beta_mean), 1.0e-3)
+    delta_comoving = eulerian_rate / shift_scale
+    score = 1.0 / (1.0 + delta_comoving)
+    return ComovingMetrics(beta_mean=beta_mean, delta_comoving=delta_comoving, score=score)
+
+
 def read_episode_metrics(
     episode_dir: Path,
     *,
@@ -215,12 +316,17 @@ def read_episode_metrics(
     stability = read_stability_metrics(collapse_path, areal_path)
 
     ftl = None
+    comoving = None
     overrides = load_overrides_from_episode(episode_dir)
     if overrides:
         try:
             ftl = compute_ftl_metrics(overrides, L=ftl_L)
         except Exception:
             ftl = None
+        try:
+            comoving = read_comoving_metrics(episode_dir, overrides, ftl_L=ftl_L)
+        except Exception:
+            comoving = None
 
     if collapse is None and constraints is None:
         reason = "missing_diagnostics"
@@ -231,6 +337,7 @@ def read_episode_metrics(
         collapse=collapse,
         constraints=constraints,
         stability=stability,
+        comoving=comoving,
         ftl=ftl,
         termination_reason=reason,
     )
