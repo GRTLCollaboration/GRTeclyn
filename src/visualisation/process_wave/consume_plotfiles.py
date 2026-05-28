@@ -199,11 +199,42 @@ def _render_slice_frame(
       <frames_out_dir>/<field>_<axis>/frames/frame_<axis>_<idx>.png
     Returns the saved path.
     """
+    def _clean_zero(value: float, tol: float = 1.0e-10) -> float:
+        value = float(value)
+        return 0.0 if abs(value) < tol else value
+
+    def _format_tick(value: float, _pos=None) -> str:
+        value = _clean_zero(value)
+        return f"{value:g}"
+
+    def _auto_zlim(values: np.ndarray, field_name: str) -> tuple[float, float] | None:
+        finite = np.asarray(values, dtype=float)
+        finite = finite[np.isfinite(finite)]
+        if finite.size == 0:
+            return None
+
+        if field_name == "K":
+            max_abs = float(np.nanpercentile(np.abs(finite), 99.5))
+            # Do not let roundoff-level K noise produce a red/blue checkerboard.
+            max_abs = max(max_abs, 1.0e-4)
+            return (-max_abs, max_abs)
+
+        lo, hi = np.nanpercentile(finite, [1.0, 99.0])
+        lo = float(lo)
+        hi = float(hi)
+        span = hi - lo
+        min_span = 1.0e-3 if field_name in {"chi", "lapse"} else 1.0e-12
+        if span < min_span:
+            mid = 0.5 * (lo + hi)
+            half_span = 0.5 * min_span
+            return (mid - half_span, mid + half_span)
+        return (lo, hi)
+
     configs = {
-        "chi":   {"zlim": (0.0, 1.0),  "cmap": "magma", "label": r"Conformal Factor $\chi$"},
-        "K":     {"zlim": (-0.1, 0.1), "cmap": "RdBu",  "label": r"Trace of Extrinsic Curvature $K$"},
+        "chi":   {"zlim": (None, None),  "cmap": "magma", "label": r"Conformal Factor $\chi$"},
+        "K":     {"zlim": (None, None), "cmap": "RdBu",  "label": r"Trace of Extrinsic Curvature $K$"},
         "Theta": {"zlim": (-0.005, 0.005), "cmap": "RdBu", "label": r"Z4 Constraint $\Theta$"},
-        "lapse": {"zlim": (0.0, 1.0),  "cmap": "viridis", "label": r"Lapse $\alpha$"},
+        "lapse": {"zlim": (None, None),  "cmap": "viridis", "label": r"Lapse $\alpha$"},
         "Ham":   {"zlim": (-0.1, 0.1), "cmap": "RdBu", "label": r"Hamiltonian Constraint $\mathcal{H}$"},
         "A11":   {"zlim": (-0.05, 0.05), "cmap": "PuOr", "label": r"Extrinsic Curvature $\tilde{A}_{11}$"},
         "A12":   {"zlim": (-0.05, 0.05), "cmap": "PuOr", "label": r"Extrinsic Curvature $\tilde{A}_{12}$"},
@@ -286,12 +317,19 @@ def _render_slice_frame(
 
     if cfg["zlim"][0] is not None:
         slc.set_zlim(("boxlib", field), cfg["zlim"][0], cfg["zlim"][1])
+    else:
+        try:
+            zlim = _auto_zlim(np.asarray(slc.frb[("boxlib", field)]), field)
+            if zlim is not None:
+                slc.set_zlim(("boxlib", field), zlim[0], zlim[1])
+        except Exception:
+            pass
     slc.set_cmap(("boxlib", field), cfg["cmap"])
 
-    coord_val = physics_center[{"x": 0, "y": 1, "z": 2}[axis]]
+    coord_val = _clean_zero(physics_center[{"x": 0, "y": 1, "z": 2}[axis]])
 
     # Format title with LaTeX
-    slc.annotate_title(r"%s $\quad t=%.2f \quad %s=%.1f$" % (cfg['label'], float(ds.current_time), axis, coord_val))
+    title_text = r"%s $\quad t=%.2f \quad %s=%g$" % (cfg["label"], float(ds.current_time), axis, coord_val)
 
     # Force LaTeX labels for axes
     axis_map = {"x": ("y", "z"), "y": ("z", "x"), "z": ("x", "y")}
@@ -306,6 +344,29 @@ def _render_slice_frame(
     slc.render()
     plot = slc.plots[("boxlib", field)]
     ax = plot.axes
+    ax.set_title(title_text, pad=8)
+
+    for artist in ax.collections:
+        if hasattr(artist, "set_linewidth"):
+            artist.set_linewidth(0.0)
+        if hasattr(artist, "set_edgecolor"):
+            artist.set_edgecolor("none")
+        if hasattr(artist, "set_antialiased"):
+            artist.set_antialiased(False)
+
+    # For centered full-domain RadialRecipe runs, display coordinates relative
+    # to the physical object center instead of raw AMReX coordinates.
+    if not corner:
+        display_offsets = {
+            "x": (physics_center[1], physics_center[2]),
+            "y": (physics_center[2], physics_center[0]),
+            "z": (physics_center[0], physics_center[1]),
+        }[axis]
+        x_offset, y_offset = display_offsets
+        ax.xaxis.set_major_formatter(FuncFormatter(lambda val, pos: _format_tick(val - x_offset, pos)))
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda val, pos: _format_tick(val - y_offset, pos)))
+        ax.set_xlabel(r"$%s-%s_0$" % (xlabel_name, xlabel_name))
+        ax.set_ylabel(r"$%s-%s_0$" % (ylabel_name, ylabel_name))
 
     # Remove the duplicated "0" tick label at the symmetry origin corner.
     # Keep the x-axis "0" label, hide ONLY the y-axis tick label at y=0.
@@ -1089,8 +1150,9 @@ def main() -> None:
             return 0
         processed_count = 0
 
-        # Never delete newest keep_last plotfiles
-        protected = set(plot_dirs[-max(0, int(args.keep_last)) :])
+        # Never delete newest keep_last plotfiles. With keep_last=0, protect none.
+        keep_last = max(0, int(args.keep_last))
+        protected = set(plot_dirs[-keep_last:]) if keep_last > 0 else set()
 
         to_process = []
         for p in plot_dirs:

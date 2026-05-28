@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -104,17 +105,24 @@ def start_plotfile_consumer(
         stdout=log,
         stderr=subprocess.STDOUT,
         text=True,
+        start_new_session=True,
     )
 
 
 def stop_process(process: subprocess.Popen[str], timeout: float = 10.0) -> None:
     if process.poll() is not None:
         return
-    process.terminate()
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        return
     try:
         process.wait(timeout=timeout)
     except subprocess.TimeoutExpired:
-        process.kill()
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
         process.wait(timeout=timeout)
 
 
@@ -143,6 +151,8 @@ def drain_plotfile_backlog(
         watch=False,
         jobs=jobs,
         frames=frames,
+        keep_existing_frames=True,
+        stable_seconds=0.0,
     )
     return _run_and_tee(command, episode.log_path, cwd=REPO_ROOT)
 
@@ -190,7 +200,7 @@ def run_episode(
             radii=consumer_radii,
             delete=consumer_delete,
             keep_last=1,
-            frames=False,
+            frames=True,
         )
 
     try:
@@ -204,7 +214,7 @@ def run_episode(
                 example_name=executable.example.name,
                 radii=consumer_radii,
                 delete=consumer_delete,
-                keep_last=1,
+                keep_last=0,
                 frames=True,
             )
 

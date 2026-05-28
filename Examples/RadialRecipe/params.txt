@@ -79,14 +79,15 @@ recipe_Pi_coeff_3 = 0.0
 #################################################
 # Grid parameters
 
-L_full = 32.0
-N_full = 64
+L_full = 64.0
+N_full = 128
 
-center = 0.0 0.0 0.0
+center = 32.0 32.0 0.0
 
-max_level = 0
+max_level = 2
 
-regrid_interval = 32
+# Level:          0   1   2
+regrid_interval = 16  16   8
 regrid_threshold = 0.01
 
 max_box_size = 32
@@ -97,7 +98,7 @@ min_box_size = 16
 
 isPeriodic = 0 0 0
 hi_boundary = 1 1 1
-lo_boundary = 2 2 2
+lo_boundary = 1 1 2
 
 nonzero_asymptotic_vars = chi h11 h22 h33 lapse
 nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0

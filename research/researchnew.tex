@@ -190,21 +190,161 @@ To prevent a massive search from exhausting cluster node hours, we implement a t
     \item \textbf{Tier 2 (Deep Validation):} High-scoring candidates that survive Tier 1 are promoted to run on multi-GPU, multi-node configurations at high resolution ($N_{\text{full}} = 128 \to 256$, with up to 5 levels of AMR) to verify stability and convergence.
 \end{itemize}
 
-\section{Scoring and Energy Conditions}
+\section{The Closed-Loop: How Simulation Results Drive the Search}
+\label{sec:closed_loop}
 
-The objective function must reward desirable physical outcomes and heavily penalize non-physical behavior or numerical errors. The total score $S(\theta)$ for a candidate parameter set is defined as:
+A common question is: where exactly does the feedback happen?  The answer is that every candidate geometry completes a full cycle through three stages before the optimizer sees its score.  This section traces one iteration of the loop end-to-end.
 
+\subsection{One iteration, step by step}
+
+\begin{enumerate}
+    \item \textbf{Propose.}  The optimizer (CMA-ES or random sampler) emits a parameter vector $\theta = (c_0,c_1,\ldots,c_{N-1},w)$, where $c_n$ are Gaussian basis coefficients for $\chi(r)$ and $w$ is the shared basis width.
+
+    \item \textbf{Constrain.}  The Python wrapper derives $\phi(r)$ from $\chi(r)$ via the Hamiltonian constraint (Sec.~\ref{sec:constrained_recipe}), locks $K=\mathrm{const}$ and $\Pi=0$, and writes the complete \texttt{params.txt}.
+
+    \item \textbf{Pre-flight filter.}  A coarse 1D check evaluates $\|H\|_{L^2}$ and $\|M_i\|_{L^2}$. If the residuals exceed thresholds, the candidate is rejected \emph{without} launching a GPU job, saving node hours.
+
+    \item \textbf{Simulate.}  The C++ binary \texttt{main3d.gnu.CUDA.ex} loads \texttt{params.txt}, populates the 3D AMReX grid, and evolves the CCZ4+matter system on the GPU for a fixed wall time or simulation time $t_{\max}$.
+
+    \item \textbf{Diagnose.}  During evolution, \texttt{RadialRecipeLevel} writes two time-series files every $\Delta t_{\rm diag}$ steps:
+    \begin{itemize}
+        \item \texttt{constraint\_norms.dat}: $\|H\|_{L^2}$, $\|M_i\|_{L^2}$, $\min/\max(\rho_{\rm req})$, integrated negative-$\rho$ volume;
+        \item \texttt{collapse\_diagnostics.dat}: $\alpha_{\min}$, horizon-radius proxy, $|K|_{\max}$, scalar $\phi/\Pi$ ranges.
+    \end{itemize}
+
+    \item \textbf{Score.}  The Python scorer parses both files and computes a scalar reward $S(\theta)$ (Sec.~\ref{sec:scoring}).  This single number summarizes: did the geometry survive? were constraints controlled? is the lapse healthy? does it need exotic matter? is the geometry non-trivial?
+
+    \item \textbf{Update.}  The optimizer receives $S(\theta)$ (or $-S$ because CMA-ES minimizes).  After one full generation of $\lambda$ candidates, CMA-ES updates its internal mean and covariance matrix, shifting the search distribution toward higher-scoring regions.  The next generation's proposals $\theta'$ are drawn from this updated distribution.
+\end{enumerate}
+
+The loop repeats for $G$ generations (typically 50).  There is no gradient computation: the optimizer treats the entire simulate$\to$diagnose$\to$score chain as a black-box function $f(\theta) = -S(\theta)$.
+
+\subsection{What the optimizer ``sees''}
+
+From the optimizer's perspective, the physics engine is a noisy black box.  It sends in a vector of 5--20 real numbers and receives back one scalar.  It never sees the 3D grid, the constraint equations, or the matter fields directly.  All physical information is compressed into the score $S(\theta)$, which is why the scoring function design is critical (Sec.~\ref{sec:scoring}).
+
+\section{Scoring: The Loss Function and Its Weights}
+\label{sec:scoring}
+
+The objective function must reward desirable physical outcomes and heavily penalize non-physical behavior or numerical errors.
+
+\subsection{Conceptual form}
+
+At the highest level, the total score $S(\theta)$ for a candidate parameter set is:
 \begin{equation}
     S(\theta) = w_1 F_{\text{FTL}} - w_2 \mathcal{H}_{\text{violation}} - w_3 E_{\text{exotic}} - w_4 T_{\text{tidal}},
 \end{equation}
 
 where:
 \begin{itemize}
-    \item $F_{\text{FTL}}$ is the measured FTL shortcut benefit (determined via the operational probe test).
-    \item $\mathcal{H}_{\text{violation}}$ is the integrated volume norm of the Hamiltonian constraint violation. This ensures the optimizer is not rewarded for coordinate tricks that violate Einstein's equations.
-    \item $E_{\text{exotic}}$ is the integrated volume of negative energy density ($T_{00} < 0$). By setting the weight $w_3$ to a very high value, the optimizer is strictly forced to seek configurations supported by normal, positive-energy matter.
-    \item $T_{\text{tidal}}$ is the maximum tidal force felt by an observer in the passenger region.
+    \item $F_{\text{FTL}}$ is the measured FTL shortcut benefit (determined via the operational probe test, not yet implemented);
+    \item $\mathcal{H}_{\text{violation}}$ is the integrated volume norm of the Hamiltonian constraint violation;
+    \item $E_{\text{exotic}}$ is the integrated volume of negative energy density ($T_{00} < 0$);
+    \item $T_{\text{tidal}}$ is the maximum tidal force felt by an observer in the passenger region (future).
 \end{itemize}
+
+\subsection{Implemented score components}
+
+In the current codebase (\texttt{score.py}), every component $s_k$ is mapped through a bounded reward function:
+\begin{equation}
+    r(v;\,\sigma) = \frac{1}{1 + v/\sigma},
+\end{equation}
+where $v\ge 0$ is the measured violation magnitude and $\sigma$ is a scale that controls how sharply the reward decays.  The value $r=1$ means perfect, $r=0.5$ means $v=\sigma$, and $r\to 0$ for $v\gg\sigma$.
+
+The total score is a weighted sum over seven components:
+\begin{equation}
+    S(\theta) = \sum_{k=1}^{7} w_k\,s_k(\theta).
+\end{equation}
+
+\begin{table}[H]
+\caption{Default scoring weights and their physical meaning. Each component $s_k \in [-1, 1]$.}
+\label{tab:score_weights}
+\small
+\begin{ruledtabular}
+\begin{tabular}{lcp{0.45\columnwidth}}
+Component $s_k$ & $w_k$ & Meaning \\
+\hline
+Survival & 2.0 & $t_{\rm final}/t_{\rm target}$, capped at 1. Did the run complete? \\
+Constraint health & 2.0 & $\frac{1}{2}r(\|H\|;\,10^{-2})+\frac{1}{2}r(\|M\|;\,10^{-2})$. Are Einstein's equations satisfied? \\
+Lapse health & 1.0 & $\alpha_{\min}/10^{-3}$, capped at 1. Did the lapse collapse? \\
+Horizon penalty & 1.0 & $-\min(r_{\rm AH},1)$. Detected black hole formation. \\
+Nontrivial geometry & 0.5 & $\log(1+|K|+|\phi|+|\Pi|)$. Is the geometry doing something, or is it flat? \\
+Energy condition & 1.5 & $r(\int \rho_{\rm neg}\,dV;\,10^{-2})$. How much exotic matter is required? \\
+Initial constraint & 1.0 & $r(\|H\|_{t=0};\,10^{-3})$. Was the initial data clean? \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+\subsection{Why these weights matter}
+
+The weights $w_k$ define which physics the optimizer cares about.  For example:
+\begin{itemize}
+    \item Setting $w_{\rm energy}$ very high ($\gg 1$) forces the search toward normal-matter geometries. Lowering it allows phantom/exotic matter candidates to survive.
+    \item The FTL component ($w_1 F_{\rm FTL}$) is not yet active because the operational probe test is not implemented.  When it is enabled, it will dominate the score, and the optimizer will steer toward geometries that actually produce a measurable shortcut.
+    \item The weights are user-configurable via a dictionary parameter, so different research campaigns can target different physics (e.g., maximize stability vs.\ maximize FTL benefit).
+\end{itemize}
+
+All weights are \emph{hyperparameters}, not learned parameters.  They are fixed before a search campaign begins and are not updated during optimization.
+
+\subsection{Observed scoring gap: dynamical stability}
+
+The first AMR CMA-ES campaign shows that ``survival to the requested final time'' is not the same as a stable geometry.  Several candidates complete the short $t=2$ run and receive high survival, constraint, and nontrivial-geometry rewards, but the late-time $K$ frames show monotonic focusing/collapse rather than a persistent throat or stationary bubble.  For example, comparing \texttt{eval\_000013/frames/K\_z/frames/frame\_z\_0020.png} with \texttt{frame\_z\_0200.png} shows that the optimized geometry remains centered and resolved, but its extrinsic-curvature structure contracts and intensifies by the end of the run.
+
+The next score revision should therefore add an explicit \emph{stability margin}, separate from mere completion:
+\begin{equation}
+    s_{\rm stability}
+    =
+    r\!\left(\max_t |K|_{\max}(t) - |K|_{\max}(0);\,\sigma_K\right)
+    r\!\left(\max_t |\dot{R}_{\rm geom}(t)|;\,\sigma_R\right)
+    r\!\left(\max_t \left[-\dot{\alpha}_{\min}(t)\right]_+;\,\sigma_\alpha\right),
+\end{equation}
+where $R_{\rm geom}$ can be the areal-radius minimum, throat radius, or radius of peak curvature.  Operationally, a candidate should be promoted only if it (i) completes the run, (ii) keeps constraints controlled, and (iii) maintains a bounded geometry over a time window, rather than simply collapsing slowly enough to reach the stop time.
+
+\section{CMA-ES vs.\ Reinforcement Learning}
+\label{sec:cma_vs_rl}
+
+A natural question is: ``where is the RL?''  The short answer is that the current pipeline is \emph{not} reinforcement learning.  It is black-box evolutionary optimization.  The distinction matters.
+
+\subsection{What CMA-ES actually does}
+
+CMA-ES (Covariance Matrix Adaptation Evolution Strategy) maintains a multivariate Gaussian distribution $\mathcal{N}(\mathbf{m}, \sigma^2 \mathbf{C})$ over the parameter space $\theta$.  Each generation:
+\begin{enumerate}
+    \item Sample $\lambda$ candidates $\theta_1,\ldots,\theta_\lambda \sim \mathcal{N}(\mathbf{m}, \sigma^2 \mathbf{C})$.
+    \item Evaluate the black-box function $f(\theta_i) = -S(\theta_i)$ for each.
+    \item Rank the candidates by fitness.
+    \item Update the mean $\mathbf{m}$ toward the best candidates.
+    \item Update the covariance $\mathbf{C}$ to stretch along directions of improvement.
+    \item Adapt the step size $\sigma$.
+\end{enumerate}
+
+There are no gradients, no policy network, no value function, and no temporal-difference updates.  The ``weights'' in CMA-ES are the scoring weights $w_k$ in Table~\ref{tab:score_weights}, not neural-network parameters.
+
+\subsection{How this differs from RL}
+
+\begin{itemize}
+    \item \textbf{No sequential decision making.}  In RL, an agent takes a sequence of actions over time, receiving rewards at each step.  Here, the optimizer makes one decision (the parameter vector $\theta$), the physics engine runs to completion, and one scalar score comes back.  There is no notion of ``state at time step $t$'' or ``action at time step $t$'' from the optimizer's perspective.
+    \item \textbf{No learned policy or value network.}  CMA-ES stores only a mean vector ($\sim 5$--$20$ floats) and a covariance matrix ($\sim 25$--$400$ floats).  There is no neural network with millions of parameters.
+    \item \textbf{No backpropagation.}  The score function is not differentiable through the PDE solver.  CMA-ES does not need it to be.
+\end{itemize}
+
+\subsection{When RL would apply}
+
+RL becomes relevant if we reformulate the problem as a sequential decision process, for example:
+\begin{itemize}
+    \item An agent observes the constraint state at some intermediate time during evolution and decides whether to adjust gauge parameters, add matter, or terminate early.
+    \item An LLM-based meta-agent (Level~4) observes batch-level failure statistics and decides which region of the search space to explore next, which basis modes to enable, or which gauge parameters to tune.
+\end{itemize}
+These are future extensions.  The current pipeline is deliberately kept simple: one shot, one score, one update.
+
+\subsection{Summary of ``what are the weights''}
+
+There are three distinct sets of numbers one might call ``weights'':
+
+\begin{enumerate}
+    \item \textbf{Scoring weights} $w_k$ (Table~\ref{tab:score_weights}): user-chosen hyperparameters that define the physics objective.  Fixed before the search starts.
+    \item \textbf{CMA-ES internal parameters} ($\mathbf{m}$, $\mathbf{C}$, $\sigma$): updated every generation by the evolutionary algorithm.  These \emph{are} the learned search distribution, but they are not neural-network weights.
+    \item \textbf{Neural-network weights} (Level~3, future): if a neural field decoder is used to parameterize the initial data, those network weights would be optimized.  This is not yet implemented.
+\end{enumerate}
 
 \section{Avoiding Fake FTL (Operational Probe Tests)}
 
@@ -286,6 +426,7 @@ For the conformally flat recipe ($\tilde\gamma_{ij} = \delta_{ij}$, $A_{ij} = 0$
 For a scalar field with $\Pi = 0$ (momentarily static), the momentum density $j^i = -\Pi\,\partial^i\phi = 0$, so the momentum constraint requires $D^i K = 0$---that is, $K$ must be spatially constant. If the recipe generates spatially varying $K$ with $\Pi = 0$, the momentum constraint is violated. If $\chi$ and $\phi$ are independently random, the Hamiltonian constraint is violated.
 
 \subsection{Component 1: Constrained Recipe (Python Pre-Processing)}
+\label{sec:constrained_recipe}
 
 Rather than guessing $\phi$ independently, we derive it from $\chi$ so that the Hamiltonian constraint is approximately satisfied at $t=0$. The implementation (\texttt{constrained\_recipe.py}) performs the following steps:
 
@@ -350,13 +491,20 @@ Three analytically known spacetimes are provided as regression benchmarks and op
 
 These seeds are selected via \texttt{--seed-name} and can be combined with the optimizer to search for perturbations around known solutions. Validation-batch IDs (\texttt{random\_000}, \texttt{bubble\_wall\_016}, \ldots) are selected via \texttt{--candidate-id}; non-spherical proposals via \texttt{--nonspherical-id} (see Sec.~\ref{sec:gpu_nonspherical}).
 
-\subsection{Component 7: GPU smoke and promotion scripts}
+\subsection{Component 7: Plotfile extraction and frame cleanup}
+
+The runtime now treats AMReX plotfiles as transient data products rather than permanent artifacts.  During each GPU episode, \texttt{consume\_plotfiles.py} extracts shell profiles, areal-radius diagnostics, and centered PNG frames for \texttt{chi}, \texttt{lapse}, and \texttt{K}.  The heavy \texttt{RadialRecipePlt*} directories are deleted after successful extraction.
+
+Two implementation details are important for robust cluster operation.  First, the live plotfile consumer renders frames before deletion, while the post-run drain uses \texttt{--keep-existing-frames} and \texttt{--stable-seconds 0} so that late plotfiles are appended rather than clearing earlier frames.  Second, the wrapper launches the live consumer in its own process group and terminates that group after the C++ evolution finishes.  This prevents orphaned worker processes from holding deleted HDF5 files open as NFS \texttt{.nfs*} busy files.
+
+\subsection{Component 8: GPU smoke and promotion scripts}
 
 Three bash entry points automate the Python$\to$C++$\to$GPU loop on the cluster:
 \begin{itemize}
     \item \texttt{run\_radialrecipe\_gpu\_smoke.sh}: build (optional), dry-run, \texttt{check\_params}, and short evolution for one seed or candidate;
     \item \texttt{run\_radialrecipe\_gpu\_promote.sh}: resolution ladder at $t=5$ for promoted radial survivors only;
     \item \texttt{run\_nonspherical\_gpu\_batch.sh}: parallel batch over all ray-sane non-spherical IDs.
+    \item \texttt{run\_optimize\_loop.sh}: AMR-enabled CMA-ES loop using one candidate per GPU per generation.
 \end{itemize}
 Episode outputs live under \texttt{runs/radialrecipe\_gpu\_smoke/}, \texttt{runs/radialrecipe\_gpu\_promote/}, and \texttt{runs/radialrecipe\_nonspherical/}, each with \texttt{params.txt}, \texttt{metadata.json}, \texttt{run.log}, and \texttt{data/constraint\_norms.dat}.
 
@@ -680,6 +828,22 @@ Extended evolution to $t=5$ at $N_{\rm full}=64$ confirms \texttt{ellis\_bronnik
 
 At $t=2$, increasing $N_{\rm full}$ from 64 to 128 leaves $\|H\|_{L^2}$ near $5\times 10^{-2}$ but exposes sharper throat features ($\chi_{\min}$ falls from $0.43$ to $0.20$, $\alpha_{\min}$ from $0.31$ to $0.15$). Constraints remain controlled; the trend signals under-resolved geometry rather than exponential constraint blow-up.
 
+\subsubsection{AMR closed-loop test}
+
+The closed-loop optimizer has now been exercised on the GPU cluster with the corrected full-domain RadialRecipe geometry.  The run \texttt{runs/optimize\_amr/optimize\_20260528T055206Z} used \texttt{run\_optimize\_loop.sh} with $L_{\rm full}=64$, $N_{\rm full}=128$, \texttt{max\_level=2}, \texttt{plot\_interval=10}, two CMA-ES generations, and eight GPUs.  This produced 16 evaluated candidates, each with extracted diagnostics and 21 centered frames per plotted field.  The best short-run score was
+\begin{equation}
+    S_{\rm best} = 3.9471
+\end{equation}
+for \texttt{eval\_000013}, with
+\begin{align}
+    \texttt{recipe\_chi\_coeff\_0} &= -0.4907, &
+    \texttt{recipe\_chi\_coeff\_1} &= 0.0123, \nonumber\\
+    \texttt{recipe\_chi\_coeff\_2} &= -0.0176, &
+    \texttt{recipe\_chi\_coeff\_3} &= -0.0531, \nonumber\\
+    \texttt{recipe\_basis\_width} &= 0.8425. \nonumber
+\end{align}
+All heavy \texttt{RadialRecipePlt*} directories were removed after extraction.  The important physics lesson from this run is qualitative: even the best candidate appears to collapse or strongly focus by $t=2$ in the late-time $K$ slices.  The optimizer is therefore functioning as a search loop, but the objective is still incomplete until a stability metric is added to distinguish long-lived geometries from short-lived collapses.
+
 \subsection{Non-spherical 3D GPU batch}
 \label{sec:gpu_nonspherical}
 
@@ -787,6 +951,68 @@ The final near-term production step is to replace random sampling with adaptive 
     \item \textbf{Goal}: the optimizer should no longer spend most of its effort rediscovering the constraint equations. The momentum constraint is handled by construction ($K=\mathrm{const}$, $\Pi=0$), and the Hamiltonian constraint is approximately handled by deriving $\phi$ from $\chi$.
     \item \textbf{Optimization target}: let CMA-ES focus on shaping the geometry for survival, stability, non-triviality, and eventual FTL probe performance while the pre-flight and energy-condition filters enforce physical sanity.
 \end{itemize}
+
+\section{Analytical Back-Derivation of Discovered Metrics}
+\label{sec:back_derivation}
+
+A numerical optimizer can find a high-scoring geometry, but the result is a table of floating-point coefficients, not a closed-form metric.  This section outlines how to convert a numerical discovery into an analytical formula that can be studied with pen-and-paper general relativity.
+
+\subsection{Why back-derivation matters}
+
+A numerically discovered metric stored as $N$ Gaussian coefficients is a result, but not yet a contribution to theoretical physics.  An analytical closed-form expression:
+\begin{itemize}
+    \item can be verified independently by other groups without running the simulation;
+    \item reveals the underlying symmetry structure (is the throat exponential? power-law? compact-support?);
+    \item enables exact computation of geodesics, tidal tensors, and Penrose diagrams;
+    \item makes it possible to prove stability theorems or energy-condition bounds analytically.
+\end{itemize}
+
+\subsection{Step 1: Read off the numerical profile}
+
+After a successful optimization campaign, the best candidate is stored as a \texttt{params.txt} file containing the Gaussian basis coefficients $\{c_n, w, r_n\}$.  The first step is to reconstruct the continuous radial profiles:
+\begin{equation}
+    \chi_{\rm num}(r) = \chi_\infty + \sum_n c_n \exp\!\left[-\frac{(r-r_n)^2}{2w^2}\right].
+\end{equation}
+The same reconstruction applies to $\phi_{\rm num}(r)$, which was derived from the Hamiltonian constraint.
+
+\subsection{Step 2: Symbolic regression}
+
+The numerical profile $\chi_{\rm num}(r)$ is a smooth, well-behaved function on $[0, r_{\max}]$.  Symbolic regression algorithms (e.g., PySR, Eureqa, or genetic programming) can search for closed-form expressions that approximate it.  Typical target forms include:
+\begin{align}
+    \chi(r) &= 1 - \frac{a}{(r^2 + b^2)^{n/2}}, \label{eq:power_law} \\
+    \chi(r) &= 1 - a\,\mathrm{sech}^2\!\left(\frac{r-r_0}{d}\right), \label{eq:sech} \\
+    \chi(r) &= \frac{r^2 + a^2}{r^2 + b^2}. \label{eq:rational}
+\end{align}
+
+The fit quality is measured by the $L^2$ residual between the symbolic candidate and $\chi_{\rm num}(r)$.  A good fit ($\epsilon < 10^{-4}$) means the closed-form expression captures the essential geometry.
+
+\subsection{Step 3: Verify the closed-form solution}
+
+Once a symbolic $\chi(r)$ is found, the full pipeline is repeated with the analytical formula replacing the Gaussian basis:
+\begin{enumerate}
+    \item Compute $R[\chi]$ analytically from the closed-form expression.
+    \item Solve the Hamiltonian constraint for $\phi(r)$ in closed form (if possible) or semi-analytically.
+    \item Evaluate the required energy density $\rho_{\rm req}(r)$ symbolically.
+    \item Run a validation evolution in \texttt{GRTeclyn} with the analytical profile loaded via a custom initial-data functor, confirming that the closed-form solution matches the numerical one to within grid discretization error.
+\end{enumerate}
+
+If $\rho_{\rm req}(r) \ge 0$ everywhere in the closed-form version, the result is a new analytical positive-energy metric that was discovered computationally rather than guessed by hand.
+
+\subsection{Step 4: Classify the new metric}
+
+The final step is to determine what the new metric \emph{is}:
+\begin{itemize}
+    \item Compute the Kretschmer scalar $R_{\mu\nu\rho\sigma}R^{\mu\nu\rho\sigma}$ to identify curvature singularities.
+    \item Trace null geodesics to determine whether the geometry contains a wormhole throat, a shortcut, or a trapped region.
+    \item Compare asymptotic fall-off with known solution families (Schwarzschild, Ellis--Bronnikov, Morris--Thorne, Alcubierre).
+    \item Compute the ADM mass and angular momentum to characterize the spacetime globally.
+\end{itemize}
+
+If the metric does not match any known family, it is a genuinely new exact or approximate solution to the Einstein equations, discovered by numerical search and confirmed analytically.
+
+\subsection{Relation to the current pipeline}
+
+This back-derivation step is \emph{downstream} of the optimization loop.  It is performed only on the small number of promoted, high-scoring survivors---not on every candidate.  The current pipeline produces the numerical profiles that serve as input to symbolic regression.  Implementing the automated symbolic-regression step (e.g., integrating PySR into the post-processing scripts) is a near-term extension once the first production CMA-ES campaign completes.
 
 \section{Conclusion}
 

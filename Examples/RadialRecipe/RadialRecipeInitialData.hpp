@@ -73,12 +73,9 @@ class RadialRecipeInitialData
         amrex::IntVect grid_index(i, j, k);
         Coordinates coords(grid_index, m_dx, m_params.grid_center);
 
-        const data_t x = coords.x;
-        const data_t y = coords.y;
-        const data_t z = coords.z;
-        const data_t dx = x - (data_t)m_params.grid_center[0];
-        const data_t dy = y - (data_t)m_params.grid_center[1];
-        const data_t dz = z - (data_t)m_params.grid_center[2];
+        const data_t dx = coords.x;
+        const data_t dy = coords.y;
+        const data_t dz = coords.z;
         const data_t r = std::sqrt(dx * dx + dy * dy + dz * dz);
 
         data_t chi = radial_profile((data_t)m_params.chi_asymptotic,

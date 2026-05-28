@@ -164,7 +164,20 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
         from .optimize import DEFAULT_SEARCH_SPACE
         x0 = []
         for dim in DEFAULT_SEARCH_SPACE:
-            x0.append(float(seed_obj.overrides.get(dim.param_key, dim.center)))
+            seed_value = float(seed_obj.overrides.get(dim.param_key, dim.center))
+            x0.append(max(dim.lower, min(dim.upper, seed_value)))
+
+    gpu_ids = None
+    if getattr(args, "gpu_ids", None):
+        gpu_ids = args.gpu_ids
+
+    use_constrained = getattr(args, "constrained", False)
+    use_phantom = getattr(args, "phantom", False)
+    use_preflight = getattr(args, "preflight", False)
+    if args.command == "optimize":
+        use_constrained = True if not hasattr(args, "_no_constrained") else use_constrained
+        use_phantom = True if not hasattr(args, "_no_phantom") else use_phantom
+        use_preflight = True if not hasattr(args, "_no_preflight") else use_preflight
 
     result = run_optimize(
         runs_dir=Path(args.runs_dir).expanduser().resolve(),
@@ -178,12 +191,15 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
         example=example,
         name=args.name,
         dry_run=args.dry_run,
-        constrained=getattr(args, "constrained", False),
-        phantom=getattr(args, "phantom", False),
-        use_preflight=getattr(args, "preflight", False),
+        constrained=use_constrained,
+        phantom=use_phantom,
+        use_preflight=use_preflight,
         cuda_devices=args.cuda_devices,
+        gpu_ids=gpu_ids,
         check_params=not args.skip_check_params,
         x0=x0,
+        consume_plotfiles=getattr(args, "consume_plotfiles", True),
+        consumer_radii=getattr(args, "consumer_radii", [4.0, 8.0]),
     )
     print(json.dumps({
         "best_score": result.best_score,
@@ -293,9 +309,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     opt = subparsers.add_parser("optimize", help="CMA-ES optimization over RadialRecipe coefficients.")
     opt.add_argument("--max-generations", type=int, default=50, help="Maximum CMA-ES generations.")
-    opt.add_argument("--population-size", type=int, default=None, help="CMA-ES population size (default: auto).")
+    opt.add_argument("--population-size", type=int, default=None, help="CMA-ES population size (default: auto, or num GPUs).")
     opt.add_argument("--sigma0", type=float, default=0.3, help="Initial CMA-ES step size.")
     opt.add_argument("--seed", type=int, default=None, help="Random seed for CMA-ES.")
+    opt.add_argument("--gpu-ids", nargs="+", type=int, default=None, help="GPU indices for parallel eval (e.g. 0 1 2 3 4 5 6 7).")
 
     validate = subparsers.add_parser(
         "validate",
