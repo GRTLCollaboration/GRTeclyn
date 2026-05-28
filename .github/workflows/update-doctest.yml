@@ -56,6 +56,7 @@ jobs:
                   commit-message: "bump(doctest): update to v${{ env.LATEST_VER }}"
                   author: GRTLBot <grchombo@gmail.com>
                   title: "Update doctest from v${{ env.CURRENT_VER }} to v${{ env.LATEST_VER }}"
+                  token: ${{ secrets.GRTECLYN_UPDATE_DOCTEST_TOKEN }}
                   body: |
                       Updates the vendored [doctest](https://github.com/doctest/doctest)
                       single-header from v${{ env.CURRENT_VER }}
