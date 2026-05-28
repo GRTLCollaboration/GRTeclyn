@@ -251,9 +251,9 @@ In the current codebase (\texttt{score.py}), every component $s_k$ is mapped thr
 \end{equation}
 where $v\ge 0$ is the measured violation magnitude and $\sigma$ is a scale that controls how sharply the reward decays.  The value $r=1$ means perfect, $r=0.5$ means $v=\sigma$, and $r\to 0$ for $v\gg\sigma$.
 
-The total score is a weighted sum over seven components:
+The total score is a weighted sum over eight components:
 \begin{equation}
-    S(\theta) = \sum_{k=1}^{7} w_k\,s_k(\theta).
+    S(\theta) = \sum_{k=1}^{8} w_k\,s_k(\theta).
 \end{equation}
 
 \begin{table}[H]
@@ -271,6 +271,7 @@ Horizon penalty & 1.0 & $-\min(r_{\rm AH},1)$. Detected black hole formation. \\
 Nontrivial geometry & 0.5 & $\log(1+|K|+|\phi|+|\Pi|)$. Is the geometry doing something, or is it flat? \\
 Energy condition & 1.5 & $r(\int \rho_{\rm neg}\,dV;\,10^{-2})$. How much exotic matter is required? \\
 Initial constraint & 1.0 & $r(\|H\|_{t=0};\,10^{-3})$. Was the initial data clean? \\
+Stability & 2.0 & $r(\Delta_{\rm geom};\,1)$. Does the geometry remain bounded rather than collapsing slowly? \\
 \end{tabular}
 \end{ruledtabular}
 \end{table}

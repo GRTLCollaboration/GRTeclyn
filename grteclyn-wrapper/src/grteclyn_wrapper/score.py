@@ -15,6 +15,7 @@ DEFAULT_WEIGHTS: dict[str, float] = {
     "nontrivial_geometry": 0.5,
     "energy_condition": 1.5,
     "initial_constraint_quality": 1.0,
+    "stability": 2.0,
 }
 
 
@@ -111,6 +112,14 @@ def score_episode(
         components["horizon_penalty"] = 0.0
         components["nontrivial_geometry"] = 0.0
         notes.append("collapse_diagnostics.dat missing")
+
+    if metrics.stability and metrics.stability.violation is not None:
+        components["stability"] = _bounded_reward(metrics.stability.violation, 1.0)
+        if components["stability"] < 0.25:
+            notes.append("geometry changes rapidly over the evolution window")
+    else:
+        components["stability"] = 0.0
+        notes.append("stability diagnostics not available")
 
     total = sum(w.get(key, 0.0) * value for key, value in components.items())
     return Score(total=total, components=components, notes=notes)
