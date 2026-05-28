@@ -41,7 +41,7 @@ def test_chi_compression_bump_has_portal_shortcut() -> None:
 
 
 def test_ellis_bronnikov_has_throat_pinch() -> None:
-    seed = get_seed("ellis_bronnikov", b0=0.5, num_bases=16)
+    seed = get_seed("ellis_bronnikov", b0=0.5)
     metrics = compute_ftl_metrics(seed.overrides, L=8.0)
     assert metrics.s_nonflat > 0.1
     assert metrics.f_throat > 0.0

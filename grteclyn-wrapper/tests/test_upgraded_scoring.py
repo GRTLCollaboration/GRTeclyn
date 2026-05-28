@@ -63,15 +63,52 @@ def test_alcubierre_beats_flat_with_upgraded_scoring() -> None:
         assert score.total > 9.5
 
 
+def test_ellis_default_seed_has_throat_and_high_log() -> None:
+    seed = get_seed("ellis_bronnikov")
+    assert seed.overrides["recipe_num_bases"] == 16
+    metrics = compute_ftl_metrics(seed.overrides, L=8.0)
+    assert metrics.f_throat > 0.9
+    assert metrics.f_log > 0.95
+
+
 def test_ellis_has_high_asymmetry_without_null_shortcut() -> None:
-    seed = get_seed("ellis_bronnikov", num_bases=16)
+    seed = get_seed("ellis_bronnikov")
     metrics = compute_ftl_metrics(seed.overrides, L=8.0)
     assert metrics.f_null == 0.0
     assert metrics.f_asymmetry > 0.95
     assert metrics.f_log > 0.95
 
 
+def test_stationary_comoving_uses_eulerian_fallback() -> None:
+    seed = get_seed("ellis_bronnikov")
+    overrides = dict(seed.overrides)
+    constrained_overrides(overrides, phantom=True)
+    with TemporaryDirectory() as tmp:
+        episode = Path(tmp) / "ellis"
+        episode.mkdir()
+        import json
+
+        (episode / "metadata.json").write_text(json.dumps({"overrides": overrides}), encoding="utf-8")
+        data = episode / "data"
+        data.mkdir()
+        with (data / "collapse_diagnostics.dat").open("w", encoding="utf-8") as handle:
+            for t in (0.0, 1.0, 2.0):
+                handle.write(f"{t:g} 0.9 {0.88 - 0.01 * t:g} 0.05 0 0 0 0 0 0 0 0 0 0\n")
+        with (data / "constraint_norms.dat").open("w", encoding="utf-8") as handle:
+            for t in (0.0, 1.0, 2.0):
+                handle.write(f"{t:g} 1e-4 1e-4 0 0 0\n")
+        metrics = read_episode_metrics(episode, ftl_L=8.0)
+        score = score_episode(metrics, target_stop_time=2.0)
+        assert metrics.comoving is not None
+        assert metrics.comoving.stationary
+        assert score.components["comoving_stability"] == score.components["stability"]
+        assert score.components["ftl_shortcut"] > 0.95
+        assert score.total > 10.0
+
+
 if __name__ == "__main__":
     test_alcubierre_beats_flat_with_upgraded_scoring()
+    test_ellis_default_seed_has_throat_and_high_log()
     test_ellis_has_high_asymmetry_without_null_shortcut()
+    test_stationary_comoving_uses_eulerian_fallback()
     print("upgraded scoring tests passed")

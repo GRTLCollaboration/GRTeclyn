@@ -125,7 +125,10 @@ def score_episode(
         components["stability"] = 0.0
         notes.append("stability diagnostics not available")
 
-    if metrics.comoving and metrics.comoving.score is not None:
+    if metrics.comoving and metrics.comoving.stationary:
+        components["comoving_stability"] = components["stability"]
+        notes.append("co-moving stability uses Eulerian fallback (stationary geometry)")
+    elif metrics.comoving and metrics.comoving.score is not None:
         components["comoving_stability"] = metrics.comoving.score
     else:
         components["comoving_stability"] = 0.0

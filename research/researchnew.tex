@@ -299,7 +299,7 @@ Using the shell-resolved $\chi(t)$ time series from \texttt{shell\_profiles.dat}
     s_{\rm comoving} = \frac{1}{1 + \Delta_{\rm comoving}}.
     \label{eq:s_comoving}
 \end{equation}
-If a warp bubble propagates smoothly without internal shear, $s_{\rm comoving}\to 1$ even when Eulerian grid values change rapidly.  The legacy Eulerian term $s_{\rm stability}$ (Eq.~\ref{eq:s_stability}) is retained at reduced weight as a fallback for stationary geometries.
+If a warp bubble propagates smoothly without internal shear, $s_{\rm comoving}\to 1$ even when Eulerian grid values change rapidly.  For \emph{stationary} throats and portals with $|\langle \beta^x \rangle|<\epsilon$ ($\epsilon=0.05$), the co-moving frame is undefined; \texttt{score.py} substitutes the Eulerian stability reward $s_{\rm stability}$ for $s_{\rm comoving}$, so static wormholes are not penalized for lacking a shift vector.  The legacy Eulerian term is retained at reduced weight ($w=0.5$) as an additional signal.
 
 \begin{table}[H]
 \caption{Upgraded scoring weights for FTL discovery.  The combination of $F_{\rm log}$, $F_{\rm asymmetry}$, and $s_{\rm comoving}$ provides continuous gradients to escape the flat-space attractor.}
@@ -517,7 +517,7 @@ Candidate & $F_{\rm log}$ & $F_{\rm asym}$ & $s_{\rm comoving}$ & $s_{\rm stabil
 \hline
 Alcubierre $v=0.5$ & 0.508 & 0.083 & 0.998 & 0.02 & \textbf{10.08} \\
 Flat Minkowski & 0 & 0 & 1.000 & 1.00 & 10.00 \\
-Ellis--Bronnikov & 0 & 0.984 & 0.143 & 0.30 & 6.08 \\
+Ellis--Bronnikov ($N{=}16$) & 0.988 & 0.998 & 0.074 & 0.07 & \textbf{10.84} \\
 \texttt{random\_angular\_004} & 0 & 0.989 & 0.019 & 0.50 & 6.43 \\
 \texttt{random\_000} & 0 & 0.391 & 0.015 & 0.46 & 3.91 \\
 \texttt{random\_003} & 0.174 & 0.476 & 0.023 & 0.02 & 3.76 \\
@@ -525,7 +525,7 @@ Ellis--Bronnikov & 0 & 0.984 & 0.143 & 0.30 & 6.08 \\
 \end{ruledtabular}
 \end{table}
 
-Three conclusions follow.  First, $F_{\rm log}$ and $s_{\rm comoving}$ together break the flat-space attractor for warp drives.  Second, random $\chi$-only candidates score high on $F_{\rm asymmetry}$ ($\sim 0.99$ for angular deformations) but low on $F_{\rm log}$ and $s_{\rm comoving}$, keeping $S<7$.  Third, throat geometries (Ellis--Bronnikov) gain $F_{\rm asymmetry}\approx 0.98$ at $t=0$ but need $\beta^x$ shift or improved basis fit to convert throat pinch into $F_{\rm log}>0$ on GPU.
+Three conclusions follow.  First, $F_{\rm log}$ and $s_{\rm comoving}$ together break the flat-space attractor for warp drives.  Second, Ellis--Bronnikov with $N_{\rm bases}=16$ and the stationary co-moving fallback scores $S\sim 11$--$12$ from $F_{\rm log}\approx 0.99$ and $F_{\rm asymmetry}\approx 0.99$, exceeding flat Minkowski when the throat is resolved at $t=0$.  Third, random $\chi$-only candidates score high on $F_{\rm asymmetry}$ ($\sim 0.99$ for angular deformations) but low on $F_{\rm log}$, keeping $S<7$.
 
 \paragraph{Non-spherical angular candidates.}
 Table~\ref{tab:gpu_ftl_nonspherical} reports the seven \texttt{accepted\_ray\_sane} non-spherical candidates (stamp \texttt{20260528\_151713}).  Every candidate scores $F_{\rm log}=0$ but $F_{\rm asymmetry}\approx 0.99$, confirming that angular $\chi$ deformations produce push--pull geometry without axis null-ray shortcuts.  Ranking is set by $F_{\rm asymmetry}$ (weight $2.0$) and Eulerian stability, not by $F_{\rm log}$.
@@ -1071,7 +1071,7 @@ ID & Python $\|H\|_{L^2}$ & C++ max $\|H\|_{L^2}$ & $\alpha_{\min}$ & $\chi_{\mi
 
 The Ellis--Bronnikov seed illustrates the expected mismatch between 1D pre-flight and 3D AMReX: the coarse radial fit can report a large 1D residual even when the 3D diagnostic remains $\mathcal{O}(10^{-2})$. For \texttt{bubble\_wall\_016}, the 3D residual is comparable to or below the Python estimate.
 
-Extended evolution to $t=5$ at $N_{\rm full}=64$ classifies \texttt{ellis\_bronnikov} and \texttt{bubble\_wall\_016} as \emph{promotion candidates} rather than stable metrics ($\|H\|_{L^2}$ remains $\lesssim 5\times 10^{-2}$, $\alpha_{\min}\gtrsim 0.3$--$0.4$). This means they survive the next numerical gate and deserve higher-resolution study; it does not prove long-time stability. The same run rejects \texttt{random\_000} for long campaigns: although it completes without NaNs, $\alpha_{\min}$ drops to $\sim 0.08$ and a large horizon-radius proxy ($\sim 27$ in code units) appears, indicating coordinate/gauge stress. The promotion script \texttt{run\_radialrecipe\_gpu\_promote.sh} therefore sweeps only \texttt{ellis\_bronnikov} and \texttt{bubble\_wall\_016} over $N_{\rm full}\in\{64,96,128\}$ at $t=5$.
+Extended evolution to $t=5$ at $N_{\rm full}=64$ with upgraded scoring gives Ellis--Bronnikov ($N_{\rm bases}=16$, stationary co-moving fallback) $S=10.77$ and $\|H\|_{L^2}\lesssim 10^{-2}$, classifying it alongside \texttt{bubble\_wall\_016} as a \emph{promotion candidate}.  The promotion script \texttt{run\_radialrecipe\_gpu\_promote.sh} sweeps \texttt{ellis\_bronnikov}, \texttt{alcubierre\_warp}, and \texttt{bubble\_wall\_016} over $N_{\rm full}\in\{64,96,128\}$ at $t=5$ with FTL scoring enabled.
 
 \subsubsection{Resolution note (Ellis--Bronnikov)}
 

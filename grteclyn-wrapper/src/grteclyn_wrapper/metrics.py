@@ -44,11 +44,15 @@ class StabilityMetrics:
     violation: float | None
 
 
+STATIONARY_BETA_EPS: float = 0.05
+
+
 @dataclass(frozen=True)
 class ComovingMetrics:
     beta_mean: float | None
     delta_comoving: float | None
     score: float | None
+    stationary: bool = False
 
 
 @dataclass(frozen=True)
@@ -255,6 +259,14 @@ def read_comoving_metrics(
         return None
 
     beta_mean = _mean_beta_in_bubble(overrides, ftl_L=ftl_L)
+    if beta_mean is not None and abs(beta_mean) < STATIONARY_BETA_EPS:
+        return ComovingMetrics(
+            beta_mean=beta_mean,
+            delta_comoving=None,
+            score=None,
+            stationary=True,
+        )
+
     shell_path = episode_dir / "small_data" / "shell_profiles.dat"
     if not shell_path.exists():
         shell_path = episode_dir / "shell_profiles.dat"

@@ -72,7 +72,7 @@ def flat_minkowski(
 
 def ellis_bronnikov_wormhole(
     b0: float = 0.5,
-    num_bases: int = 8,
+    num_bases: int = 16,
     basis_width: float = 0.5,
     basis_radius_max: float = 8.0,
     n_fit_points: int = 2048,
@@ -87,6 +87,7 @@ def ellis_bronnikov_wormhole(
 
     These are fitted to the Gaussian basis for use in RadialRecipe.
     K = 0, Pi = 0, alpha = 1 (exact static solution).
+    Default num_bases=16 so the throat pinch is resolved for F_FTL scoring.
     """
     basis = RecipeBasis(
         num_bases=num_bases,
