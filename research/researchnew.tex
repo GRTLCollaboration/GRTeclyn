@@ -390,21 +390,36 @@ All $F$ components are rewards in $[0,1]$; \textbf{higher is better}.  The optim
 Table~\ref{tab:ftl_validation} presents the computed FTL metrics for every reference seed in the pipeline, evaluated at $L=8$ ($1024$ integration points).  The results confirm that the scoring function correctly resolves three qualitatively distinct FTL mechanisms while assigning exactly zero to trivial geometries.
 
 \begin{table}[H]
-\caption{FTL metric scores for reference spacetime seeds ($L=8$).  All values are dimensionless rewards in $[0,1]$.}
+\caption{FTL metric scores for reference spacetime seeds ($L=8$).  Raw $F_{\rm FTL}=\max(F_{\rm null},F_{\rm portal},F_{\rm throat})\cdot s_{\rm nonflat}$; $F_{\rm log}$ from Eq.~\ref{eq:f_log} with $\eta=100$.}
 \label{tab:ftl_validation}
 \small
 \begin{ruledtabular}
-\begin{tabular}{lccccc}
-Seed & $F_{\rm null}$ & $F_{\rm portal}$ & $F_{\rm throat}$ & $s_{\rm nonflat}$ & $F_{\rm FTL}$ \\
+\begin{tabular}{lcccccc}
+Seed & $F_{\rm null}$ & $F_{\rm FTL}$ & $F_{\rm log}$ & $F_{\rm asym}$ & $s_{\rm nonflat}$ \\
 \hline
-Flat Minkowski & 0 & 0 & 0 & 0 & \textbf{0} \\
-Alcubierre $v=0.3$ & 0.063 & 0 & 0 & 1.0 & \textbf{0.063} \\
-Alcubierre $v=0.5$ & 0.094 & 0 & 0 & 1.0 & \textbf{0.094} \\
-Alcubierre $v=0.8$ & 0.131 & 0 & 0 & 1.0 & \textbf{0.131} \\
-Alcubierre $v=0.95$ & 0.145 & 0 & 0 & 1.0 & \textbf{0.145} \\
-Alcubierre $v=2.0$ & 0.216 & 0 & 0 & 1.0 & \textbf{0.216} \\
-Ellis--Bronnikov & 0 & 0 & 0.945 & 1.0 & \textbf{0.945} \\
-Schwarzschild & 0 & 0 & 0.878 & 1.0 & \textbf{0.878} \\
+Flat Minkowski & 0 & 0 & 0 & 0 & 0 \\
+Alcubierre $v=0.3$ & 0.063 & 0.063 & 0.432 & 0.083 & 1.0 \\
+Alcubierre $v=0.5$ & 0.094 & 0.094 & 0.508 & 0.083 & 1.0 \\
+Alcubierre $v=0.8$ & 0.131 & 0.131 & 0.573 & 0.083 & 1.0 \\
+Ellis--Bronnikov (16 bases) & 0 & 0.945 & 0.988 & 0.998 & 1.0 \\
+Schwarzschild & 0 & 0.878 & 0.972 & 0.999 & 1.0 \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+Logarithmic amplification makes subluminal warp signals optimizer-visible: $F_{\rm null}=0.094$ at $v=0.5c$ maps to $F_{\rm log}=0.508$, an $\approx 5.4\times$ boost (Table~\ref{tab:ftl_log_amp}).  Throat and Schwarzschild geometries score high on $F_{\rm asymmetry}$ from strong $\chi$-gradient push--pull even when $F_{\rm null}=0$.
+
+\begin{table}[H]
+\caption{Logarithmic FTL amplification for Alcubierre warp ($\eta=100$, $L=8$).}
+\label{tab:ftl_log_amp}
+\small
+\begin{ruledtabular}
+\begin{tabular}{cccc}
+$v_s$ & $F_{\rm null}$ & $F_{\rm log}$ & $F_{\rm log}/F_{\rm null}$ \\
+\hline
+0.3 & 0.063 & 0.432 & 6.8 \\
+0.5 & 0.094 & 0.508 & 5.4 \\
+0.8 & 0.131 & 0.573 & 4.4 \\
 \end{tabular}
 \end{ruledtabular}
 \end{table}
@@ -442,11 +457,7 @@ The non-FTL scoring components---survival, constraint health, lapse health, stab
 Any deformation away from flatness introduces constraint violation ($-2.0\,w_{\rm constr}$) and possible instability ($-2.0\,w_{\rm stab}$), yielding $S<9.5$.  Thus, without FTL pressure the optimizer converges to the trivial fixed point.
 
 \paragraph{The solution: gradient toward structure.}
-With $F_{\rm log}$ active at weight $5.0$, flat space scores zero on all FTL scaffolding terms because $s_{\rm nonflat}=0$.  A candidate with modest warp structure gains substantially more than the raw linear term: for $v=0.5$, $F_{\rm null}=0.094$ maps to $F_{\rm log}\approx 0.58$, contributing $+2.9$ to $S$, plus $F_{\rm asymmetry}$ and $s_{\rm comoving}$ for propagating bubbles.  The Ellis--Bronnikov throat with $F_{\rm FTL}=0.945$ maps to $F_{\rm log}\approx 0.99$, contributing nearly $+5.0$.  Schematically:
-\begin{equation}
-    S_{\rm warp}(v{=}0.5) \approx 7.0 + 5.0\times0.58 + 2.0\,F_{\rm asymmetry} + 2.5\,s_{\rm comoving} \gg S_{\rm flat}^{\rm (FTL)} = 0.
-\end{equation}
-The optimizer now faces a \emph{positive gradient} pointing away from flatness toward FTL structure.  GPU smoke tests (Table~\ref{tab:gpu_ftl_reference}) confirm that the gradient is \emph{present}: the Alcubierre warp seed scores $F_{\rm null}=0.094$ and $F_{\rm log}>0.5$, with $F_{\rm asymmetry}>0$, yet its total score $S=7.13$ remained below flat Minkowski ($S=9.50$) under the \emph{previous} Eulerian-only stability weighting---motivating the co-moving upgrade in Sec.~\ref{sec:comoving_scoring}.
+The optimizer now faces a \emph{positive gradient} pointing away from flatness toward FTL structure.  GPU smoke tests with the upgraded scorer (Table~\ref{tab:gpu_ftl_upgraded}) confirm that the flat-space attractor is broken: Alcubierre $v=0.5$ achieves $S=10.08$, exceeding flat Minkowski ($S=10.00$), because $F_{\rm log}=0.508$ and $s_{\rm comoving}=0.998$ compensate for low Eulerian stability ($s_{\rm stability}=0.02$).  Under the previous linear FTL term and Eulerian-only stability, the same run scored only $S=7.13$.
 
 \paragraph{Three complementary channels prevent local minima.}
 Each metric component rewards a geometrically distinct mechanism:
@@ -488,58 +499,57 @@ Parameter & Lower & Upper & Initial \\
 \end{ruledtabular}
 \end{table}
 
-\subsubsection{GPU validation with FTL scoring enabled}
+\subsubsection{GPU validation with upgraded FTL scoring}
 \label{sec:gpu_ftl_validation}
 
-After implementing $F_{\rm FTL}$ in \texttt{score.py}, we re-ran the GPU smoke pipeline with \texttt{ENABLE\_FTL\_SCORING=1}, \texttt{FTL\_L=8}, and the default weights from Table~\ref{tab:score_weights}.  Each episode writes \texttt{score.json} with both the total objective $S$ and the decomposed FTL profile metrics from \texttt{ftl\_metrics.py}.
+We re-scored completed GPU smoke episodes with the upgraded objective (Table~\ref{tab:score_weights}): $F_{\rm log}$, $F_{\rm asymmetry}$, and $s_{\rm comoving}$.  All reference runs used constrained phantom initial data, $t=2$, $N_{\rm full}=64$, and $L=8$ on NVIDIA H100 GPUs.
 
-\paragraph{Reference seeds and spherical random candidates.}
-Table~\ref{tab:gpu_ftl_reference} compares three known seeds against four pre-flight-accepted random spherical candidates (\texttt{random\_000}, \texttt{random\_003}, \texttt{random\_006}, \texttt{random\_009}) from the deterministic validation set (seed 42).  All runs used constrained phantom initial data, $t=2$, and $N_{\rm full}=64$ on a single NVIDIA H100 GPU (stamp \texttt{20260528\_151920}).
+\paragraph{Reference seeds: flat-space attractor resolved.}
+Table~\ref{tab:gpu_ftl_upgraded} reports decomposed scores from \texttt{score.json}.  The key result is that Alcubierre $v=0.5$ now \emph{outranks} flat Minkowski ($S=10.08$ vs.\ $S=10.00$) despite $s_{\rm stability}=0.02$, because co-moving stability ($s_{\rm comoving}=0.998$) correctly identifies the propagating bubble as smooth rather than collapsing.  Flat space retains $s_{\rm comoving}=1.0$ but scores zero on all FTL scaffolding terms.
 
 \begin{table}[H]
-\caption{GPU smoke results with FTL scoring: reference seeds and accepted random spherical candidates ($t=2$, $N_{\rm full}=64$, $L=8$).  $S$ is the total episode score from \texttt{score.py}; higher is better.}
-\label{tab:gpu_ftl_reference}
+\caption{GPU smoke results with upgraded FTL scoring ($t=2$, $N_{\rm full}=64$, $L=8$).  Scores recomputed from archived episodes with \texttt{score.py} weights from Table~\ref{tab:score_weights}.}
+\label{tab:gpu_ftl_upgraded}
 \small
 \begin{ruledtabular}
 \begin{tabular}{lccccc}
-Candidate & $F_{\rm FTL}$ & $s_{\rm nonflat}$ & $s_{\rm stability}$ & $S$ & Notes \\
+Candidate & $F_{\rm log}$ & $F_{\rm asym}$ & $s_{\rm comoving}$ & $s_{\rm stability}$ & $S$ \\
 \hline
-Flat Minkowski & 0 & 0 & 1.00 & \textbf{9.50} & Trivial; no FTL \\
-Alcubierre $v=0.5$ & 0.094 & 1.0 & 0.02 & 7.13 & Warp detected; unstable \\
-Ellis--Bronnikov & 0 & 1.0 & 0.08 & 5.60 & 8-basis fit; no axis throat \\
-\texttt{random\_006} & 0 & 1.0 & 0.74 & 4.75 & Bumpy $\chi$; no shortcut \\
-\texttt{random\_000} & 0 & 1.0 & 0.59 & 4.33 & Bumpy $\chi$; no shortcut \\
-\texttt{random\_009} & 0 & 1.0 & 0.33 & 3.87 & Bumpy $\chi$; no shortcut \\
-\texttt{random\_003} & 0.012 & 1.0 & 0.02 & 3.26 & Weak portal hint; unstable \\
+Alcubierre $v=0.5$ & 0.508 & 0.083 & 0.998 & 0.02 & \textbf{10.08} \\
+Flat Minkowski & 0 & 0 & 1.000 & 1.00 & 10.00 \\
+Ellis--Bronnikov & 0 & 0.984 & 0.143 & 0.30 & 6.08 \\
+\texttt{random\_angular\_004} & 0 & 0.989 & 0.019 & 0.50 & 6.43 \\
+\texttt{random\_000} & 0 & 0.391 & 0.015 & 0.46 & 3.91 \\
+\texttt{random\_003} & 0.174 & 0.476 & 0.023 & 0.02 & 3.76 \\
 \end{tabular}
 \end{ruledtabular}
 \end{table}
 
-Three conclusions follow immediately.  First, FTL detection works on GPU: the Alcubierre seed is the only reference with $F_{\rm null}>0$, matching the analytic prediction in Table~\ref{tab:ftl_validation}.  Second, random $\chi$-only deformations from the validation harness almost never produce measurable shortcuts ($F_{\rm FTL}\approx 0$); they score on $s_{\rm nonflat}=1.0$ alone.  Third, flat Minkowski still wins the \emph{total} score because stability ($w_{\rm stab}=2.0$) dominates when warp geometries collapse dynamically---confirming that the next optimization campaigns must search $\beta^x$ and $\alpha$ coefficients (Table~\ref{tab:search_space}), not $\chi$ alone.
+Three conclusions follow.  First, $F_{\rm log}$ and $s_{\rm comoving}$ together break the flat-space attractor for warp drives.  Second, random $\chi$-only candidates score high on $F_{\rm asymmetry}$ ($\sim 0.99$ for angular deformations) but low on $F_{\rm log}$ and $s_{\rm comoving}$, keeping $S<7$.  Third, throat geometries (Ellis--Bronnikov) gain $F_{\rm asymmetry}\approx 0.98$ at $t=0$ but need $\beta^x$ shift or improved basis fit to convert throat pinch into $F_{\rm log}>0$ on GPU.
 
 \paragraph{Non-spherical angular candidates.}
-Table~\ref{tab:gpu_ftl_nonspherical} reports the seven \texttt{accepted\_ray\_sane} non-spherical candidates re-evolved with FTL scoring (\texttt{run\_nonspherical\_gpu\_batch.sh}, stamp \texttt{20260528\_151713}).  Every candidate completes with $s_{\rm nonflat}=1.0$ but $F_{\rm FTL}=0$: angular $\chi$ deformations mapped to the radial recipe do not produce null-ray, portal, or throat shortcuts on the $x$-axis profile.  Ranking within this batch is therefore driven entirely by $s_{\rm stability}$, not FTL structure.
+Table~\ref{tab:gpu_ftl_nonspherical} reports the seven \texttt{accepted\_ray\_sane} non-spherical candidates (stamp \texttt{20260528\_151713}).  Every candidate scores $F_{\rm log}=0$ but $F_{\rm asymmetry}\approx 0.99$, confirming that angular $\chi$ deformations produce push--pull geometry without axis null-ray shortcuts.  Ranking is set by $F_{\rm asymmetry}$ (weight $2.0$) and Eulerian stability, not by $F_{\rm log}$.
 
 \begin{table}[H]
-\caption{Non-spherical GPU batch with FTL scoring ($t=2$, $N_{\rm full}=64$, $L=8$, stamp \texttt{20260528\_151713}).}
+\caption{Non-spherical GPU batch with upgraded FTL scoring ($t=2$, $N_{\rm full}=64$, stamp \texttt{20260528\_151713}).}
 \label{tab:gpu_ftl_nonspherical}
 \small
 \begin{ruledtabular}
-\begin{tabular}{lcccc}
-Candidate & $F_{\rm FTL}$ & $s_{\rm nonflat}$ & $s_{\rm stability}$ & $S$ \\
+\begin{tabular}{lccccc}
+Candidate & $F_{\rm log}$ & $F_{\rm asym}$ & $s_{\rm comoving}$ & $s_{\rm stability}$ & $S$ \\
 \hline
-\texttt{random\_angular\_004} & 0 & 1.0 & 0.50 & 6.81 \\
-\texttt{random\_angular\_007} & 0 & 1.0 & 0.51 & 6.49 \\
-\texttt{quadrupole\_bubble\_001} & 0 & 1.0 & 0.50 & 6.48 \\
-\texttt{random\_angular\_005} & 0 & 1.0 & 0.49 & 6.48 \\
-\texttt{random\_angular\_006} & 0 & 1.0 & 0.49 & 6.47 \\
-\texttt{dipole\_lopsided\_000} & 0 & 1.0 & 0.44 & 6.43 \\
-\texttt{mixed\_modes\_002} & 0 & 1.0 & 0.44 & 6.39 \\
+\texttt{random\_angular\_004} & 0 & 0.989 & 0.019 & 0.50 & 6.43 \\
+\texttt{random\_angular\_007} & 0 & 0.989 & 0.020 & 0.51 & 6.13 \\
+\texttt{quadrupole\_bubble\_001} & 0 & 0.989 & 0.019 & 0.50 & 6.14 \\
+\texttt{random\_angular\_005} & 0 & 0.989 & 0.019 & 0.49 & 6.14 \\
+\texttt{random\_angular\_006} & 0 & 0.989 & 0.019 & 0.49 & 6.15 \\
+\texttt{dipole\_lopsided\_000} & 0 & 0.989 & 0.015 & 0.44 & 6.16 \\
+\texttt{mixed\_modes\_002} & 0 & 0.989 & 0.015 & 0.44 & 6.12 \\
 \end{tabular}
 \end{ruledtabular}
 \end{table}
 
-These GPU campaigns establish the baseline the CMA-ES optimizer must beat: any candidate with $F_{\rm FTL}>0$ and $s_{\rm stability}\gtrsim 0.5$ would outrank both the random batches ($S\sim 3$--$7$) and flat Minkowski ($S=9.5$ only when $F_{\rm FTL}=0$).  The expanded search space including $\beta^x$ shift coefficients is the mechanism designed to reach that regime.
+These campaigns establish the CMA-ES baseline: warp-capable metrics with $\beta^x\neq 0$ can exceed flat space ($S>10$), angular deformations plateau at $S\sim 6$--$6.4$ from asymmetry alone, and random spherical candidates remain below $S=4$ unless they develop both portal structure and stability.
 
 \subsection{Dynamical stability scoring (implemented)}
 \label{sec:stability_scoring}
@@ -1095,7 +1105,7 @@ Eval & $S$ & $s_{\rm stability}$ & $\alpha_{\min}$ & $\chi_{\min}$ & $|K|_{\max}
 \subsection{Non-spherical 3D GPU batch}
 \label{sec:gpu_nonspherical}
 
-All seven \texttt{accepted\_ray\_sane} non-spherical candidates were re-evolved on GPU (\texttt{run\_nonspherical\_gpu\_batch.sh}, stamp \texttt{20260528\_074501}, output under \texttt{runs/radialrecipe\_nonspherical/}).  Each run used constrained phantom initial data, $K=0$, $\Pi=0$, $t=2$, and $N_{\rm full}=64$.  A follow-up batch with FTL scoring enabled (Table~\ref{tab:gpu_ftl_nonspherical}) shows $F_{\rm FTL}=0$ for all angular candidates while total scores rise to $S\sim 6.4$--$6.8$ due to the $s_{\rm nonflat}$ reward.
+All seven \texttt{accepted\_ray\_sane} non-spherical candidates were re-evolved on GPU (\texttt{run\_nonspherical\_gpu\_batch.sh}, stamp \texttt{20260528\_074501}, output under \texttt{runs/radialrecipe\_nonspherical/}).  Each run used constrained phantom initial data, $K=0$, $\Pi=0$, $t=2$, and $N_{\rm full}=64$.  With upgraded scoring (Table~\ref{tab:gpu_ftl_nonspherical}), angular candidates score $F_{\rm asymmetry}\approx 0.99$ but $F_{\rm log}=0$, yielding $S\sim 6.1$--$6.4$.
 
 \begin{table*}[t]
 \caption{Non-spherical GPU smoke results ($t=2$, $N_{\rm full}=64$, stability-aware scoring).}
@@ -1127,7 +1137,7 @@ The closed-loop pipeline has executed its first optimization campaigns (Sec.~\re
 
 \begin{enumerate}
     \item \textbf{Tune stability scoring.}  The current $\Delta_{\rm geom}$ sum is live in \texttt{score.py} (weight 2.0).  Next: calibrate scales, extend stop times ($t=5$--$10$), and require $s_{\rm stability}>0.25$ for promotion.
-    \item \textbf{FTL profile scoring (upgraded).}  $F_{\rm log}$, $F_{\rm asymmetry}$, and $s_{\rm comoving}$ are active in \texttt{ftl\_metrics.py} and \texttt{score.py} (Secs.~\ref{sec:ftl_scaffolding}--\ref{sec:comoving_scoring}); GPU validation in Tables~\ref{tab:gpu_ftl_reference}--\ref{tab:gpu_ftl_nonspherical}.  Next tier: dynamic axis-probe confirmation after evolution.
+    \item \textbf{FTL profile scoring (upgraded).}  $F_{\rm log}$, $F_{\rm asymmetry}$, and $s_{\rm comoving}$ are active in \texttt{ftl\_metrics.py} and \texttt{score.py} (Secs.~\ref{sec:ftl_scaffolding}--\ref{sec:comoving_scoring}); GPU validation in Tables~\ref{tab:gpu_ftl_upgraded}--\ref{tab:gpu_ftl_nonspherical}.  Alcubierre warp now outranks flat Minkowski ($S=10.08$ vs.\ $10.00$).  Next tier: dynamic axis-probe confirmation after evolution.
     \item \textbf{Basis and width sweeps.}  Automated sweeps over $N\in[4,16]$ and $w\in[0.3,2.5]$ map the fit residual $\epsilon_{\rm fit}$ and set the minimum safe CMA-ES dimensionality.
     \item \textbf{Gauge stability to $t=5$.}  Extend the seven non-spherical survivors (Table~\ref{tab:gpu_nonspherical}) and promoted radial seeds through $t=5$ on the $N_{\rm full}=64,96,128$ ladder to verify $1+\log$ slicing and Gamma-driver shift under deformed geometry.
 \end{enumerate}

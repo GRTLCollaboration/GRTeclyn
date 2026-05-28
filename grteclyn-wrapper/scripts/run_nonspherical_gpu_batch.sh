@@ -109,7 +109,9 @@ for ep in sorted(runs.glob(f"*_gpu_t*_{stamp}")):
             "episode": ep.name,
             "total_score": round(total, 3),
             "ftl_shortcut": round(comps.get("ftl_shortcut", 0.0), 4),
+            "expansion_asymmetry": round(comps.get("expansion_asymmetry", 0.0), 4),
             "nonflat_geometry": round(comps.get("nonflat_geometry", 0.0), 4),
+            "comoving_stability": round(comps.get("comoving_stability", 0.0), 4),
             "stability": round(comps.get("stability", 0.0), 4),
             "survival": round(comps.get("survival", 0.0), 4),
             "ftl": ftl,
@@ -120,16 +122,16 @@ for ep in sorted(runs.glob(f"*_gpu_t*_{stamp}")):
 rows.sort(key=lambda r: r.get("total_score", -1e9), reverse=True)
 print(json.dumps(rows, indent=2))
 print()
-print(f"{'episode':<55} {'score':>7} {'F_FTL':>7} {'s_nf':>6} {'stab':>6}")
-print("-" * 85)
+print(f"{'episode':<55} {'score':>7} {'F_log':>7} {'F_asym':>7} {'s_com':>6} {'s_eul':>6}")
+print("-" * 92)
 for r in rows:
     if "error" in r:
         print(f"{r['episode']:<55} ERROR: {r['error']}")
         continue
-    ftl = r.get("ftl") or {}
     print(
         f"{r['episode']:<55} {r['total_score']:7.2f} "
-        f"{r['ftl_shortcut']:7.4f} {r['nonflat_geometry']:6.3f} {r['stability']:6.3f}"
+        f"{r['ftl_shortcut']:7.4f} {r['expansion_asymmetry']:7.4f} "
+        f"{r['comoving_stability']:6.3f} {r['stability']:6.3f}"
     )
 PY
 
