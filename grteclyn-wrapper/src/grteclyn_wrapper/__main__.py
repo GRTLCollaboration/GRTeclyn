@@ -220,6 +220,8 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
         consumer_radii=getattr(args, "consumer_radii", [4.0, 8.0]),
         score_weights=getattr(args, "score_weights", None),
         ftl_L=getattr(args, "ftl_L", None),
+        surrogate=getattr(args, "surrogate", False),
+        surrogate_keep_fraction=getattr(args, "surrogate_keep_fraction", 0.5),
     )
     print(json.dumps({
         "best_score": result.best_score,
@@ -228,6 +230,67 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
         "generations": result.generations,
         "evaluations": result.evaluations,
     }, indent=2))
+    return 0
+
+
+def _run_qd_command(args: argparse.Namespace, base_overrides: dict[str, Any]) -> int:
+    from .qd_search import run_qd_search
+
+    example = resolve_example(args.example)
+    executable = None
+    if not args.dry_run:
+        executable = resolve_executable(
+            args.executable,
+            example=example,
+            mpi_ranks=args.mpi_ranks,
+            comp=args.comp,
+            cuda=not args.no_cuda,
+            debug=args.debug,
+        )
+    template = Path(args.template).expanduser().resolve() if args.template else None
+    archive = run_qd_search(
+        runs_dir=Path(args.runs_dir).expanduser().resolve(),
+        executable=executable,
+        iterations=args.iterations,
+        batch_size=args.batch_size,
+        bins=args.bins,
+        init_random=args.init_random,
+        seed=args.seed,
+        base_overrides=base_overrides,
+        template=template,
+        example=example,
+        name=args.name,
+        dry_run=args.dry_run,
+        constrained=True,
+        phantom=getattr(args, "phantom", False) or getattr(args, "phantom_default", False),
+        use_preflight=getattr(args, "preflight", False),
+        cuda_devices=args.cuda_devices,
+        gpu_ids=getattr(args, "gpu_ids", None),
+        check_params=not args.skip_check_params,
+        score_weights=getattr(args, "score_weights", None),
+        ftl_L=getattr(args, "ftl_L", None),
+        consume_plotfiles=getattr(args, "consume_plotfiles", True),
+        consumer_radii=getattr(args, "consumer_radii", [4.0, 8.0]),
+    )
+    best = archive.best
+    print(json.dumps({
+        "num_elites": len(archive.cells),
+        "coverage": archive.coverage,
+        "best_score": best.score if best else None,
+        "best_episode": best.episode if best else None,
+    }, indent=2))
+    return 0
+
+
+def _run_pareto_command(args: argparse.Namespace) -> int:
+    from .pareto import front_to_dict, load_trajectory_points, pareto_front
+
+    points = load_trajectory_points(Path(args.trajectory).expanduser().resolve())
+    front = pareto_front(points)
+    payload = front_to_dict(front)
+    if args.output:
+        write_json(Path(args.output).expanduser().resolve(), payload)
+    print(json.dumps(payload, indent=2))
     return 0
 
 
@@ -348,6 +411,20 @@ def build_parser() -> argparse.ArgumentParser:
     opt.add_argument("--sigma0", type=float, default=0.3, help="Initial CMA-ES step size.")
     opt.add_argument("--seed", type=int, default=None, help="Random seed for CMA-ES.")
     opt.add_argument("--gpu-ids", nargs="+", type=int, default=None, help="GPU indices for parallel eval (e.g. 0 1 2 3 4 5 6 7).")
+    opt.add_argument("--surrogate", action="store_true", help="Enable RBF surrogate pre-screening to skip low-value GPU evaluations.")
+    opt.add_argument("--surrogate-keep-fraction", type=float, default=0.5, help="Fraction of each generation evaluated on GPU when surrogate is active.")
+
+    qd = subparsers.add_parser("qd", help="MAP-Elites quality-diversity search (Spacetime Failure Atlas).")
+    qd.add_argument("--iterations", type=int, default=10, help="Number of MAP-Elites batches after the initial fill.")
+    qd.add_argument("--batch-size", type=int, default=None, help="Candidates per batch (default: number of GPUs or 4).")
+    qd.add_argument("--bins", type=int, default=8, help="Behavior-descriptor grid resolution per axis.")
+    qd.add_argument("--init-random", type=int, default=None, help="Random candidates in the initial fill (default: batch size).")
+    qd.add_argument("--seed", type=int, default=None, help="Random seed.")
+    qd.add_argument("--gpu-ids", nargs="+", type=int, default=None, help="GPU indices for parallel eval.")
+
+    pareto = subparsers.add_parser("pareto", help="Extract the multi-objective Pareto front from a trajectory.jsonl.")
+    pareto.add_argument("--trajectory", required=True, help="Path to an optimizer trajectory.jsonl.")
+    pareto.add_argument("--output", default=None, help="Optional path to write the front JSON.")
 
     validate = subparsers.add_parser(
         "validate",
@@ -388,6 +465,10 @@ def main(argv: list[str] | None = None) -> int:
         args.initial_data_source = source
     if args.command == "optimize":
         return _run_optimize_command(args, overrides)
+    if args.command == "qd":
+        return _run_qd_command(args, overrides)
+    if args.command == "pareto":
+        return _run_pareto_command(args)
     if args.command == "validate":
         output_dir = None if args.no_write else args.output_dir
         run_validation(seed=args.seed, output_dir=output_dir)

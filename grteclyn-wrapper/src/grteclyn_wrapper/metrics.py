@@ -7,6 +7,7 @@ import numpy as np
 
 
 from .ftl_metrics import FtlMetrics, compute_ftl_metrics, load_overrides_from_episode
+from .physical_metrics import PhysicalMetrics, compute_physical_metrics
 
 
 @dataclass(frozen=True)
@@ -48,6 +49,24 @@ STATIONARY_BETA_EPS: float = 0.05
 
 
 @dataclass(frozen=True)
+class GrowthMetrics:
+    """Exponential growth rates of the constraint/collapse time series.
+
+    A geometry that merely collapses slowly enough to reach the stop time has
+    a positive effective growth rate lambda; a true equilibrium has
+    lambda ~ 0.  ``s_growth`` is a bounded reward (higher = closer to
+    equilibrium) that closes the dynamical stability gap without requiring
+    longer, more expensive runs.
+    """
+
+    lambda_hamiltonian: float | None
+    lambda_max_k: float | None
+    lambda_inv_chi: float | None
+    lambda_effective: float | None
+    s_growth: float | None
+
+
+@dataclass(frozen=True)
 class ComovingMetrics:
     beta_mean: float | None
     delta_comoving: float | None
@@ -63,6 +82,8 @@ class EpisodeMetrics:
     comoving: ComovingMetrics | None
     ftl: FtlMetrics | None
     termination_reason: str
+    growth: GrowthMetrics | None = None
+    physical: PhysicalMetrics | None = None
 
 
 def _numeric_rows(path: Path, min_columns: int) -> list[list[float]]:
@@ -306,6 +327,65 @@ def read_comoving_metrics(
     return ComovingMetrics(beta_mean=beta_mean, delta_comoving=delta_comoving, score=score)
 
 
+def _log_growth_rate(
+    times: list[float],
+    values: list[float],
+    *,
+    floor: float,
+) -> float | None:
+    """Least-squares exponential growth rate lambda from ln(value) vs time."""
+    t = np.asarray(times, dtype=float)
+    v = np.asarray(values, dtype=float)
+    if t.size < 2 or float(np.ptp(t)) <= 0.0:
+        return None
+    v = np.maximum(np.abs(v), floor)
+    finite = np.isfinite(v) & np.isfinite(t)
+    if int(np.count_nonzero(finite)) < 2:
+        return None
+    slope = float(np.polyfit(t[finite], np.log(v[finite]), 1)[0])
+    return slope
+
+
+def read_growth_metrics(
+    collapse_path: Path,
+    constraint_path: Path,
+    *,
+    sigma_lambda: float = 0.5,
+) -> GrowthMetrics | None:
+    collapse_rows = _numeric_rows(collapse_path, 4)
+    constraint_rows = _numeric_rows(constraint_path, 3)
+
+    lambda_k = lambda_inv_chi = lambda_ham = None
+
+    if len(collapse_rows) >= 2:
+        times = [row[0] for row in collapse_rows]
+        k_max = [abs(row[3]) for row in collapse_rows]
+        chi_min = [row[2] for row in collapse_rows]
+        lambda_k = _log_growth_rate(times, k_max, floor=1.0e-3)
+        inv_chi = [1.0 / max(abs(c), 1.0e-8) for c in chi_min]
+        lambda_inv_chi = _log_growth_rate(times, inv_chi, floor=1.0e-8)
+
+    if len(constraint_rows) >= 2:
+        times = [row[0] for row in constraint_rows]
+        ham = [row[1] for row in constraint_rows]
+        lambda_ham = _log_growth_rate(times, ham, floor=1.0e-12)
+
+    candidates = [v for v in (lambda_ham, lambda_k, lambda_inv_chi) if v is not None]
+    if not candidates:
+        return None
+
+    lambda_eff = max(candidates)
+    s_growth = 1.0 / (1.0 + max(0.0, lambda_eff) / max(sigma_lambda, 1.0e-12))
+
+    return GrowthMetrics(
+        lambda_hamiltonian=lambda_ham,
+        lambda_max_k=lambda_k,
+        lambda_inv_chi=lambda_inv_chi,
+        lambda_effective=lambda_eff,
+        s_growth=s_growth,
+    )
+
+
 def read_episode_metrics(
     episode_dir: Path,
     *,
@@ -326,9 +406,11 @@ def read_episode_metrics(
     collapse = read_collapse_metrics(collapse_path)
     constraints = read_constraint_metrics(constraint_path)
     stability = read_stability_metrics(collapse_path, areal_path)
+    growth = read_growth_metrics(collapse_path, constraint_path)
 
     ftl = None
     comoving = None
+    physical = None
     overrides = load_overrides_from_episode(episode_dir)
     if overrides:
         try:
@@ -339,6 +421,10 @@ def read_episode_metrics(
             comoving = read_comoving_metrics(episode_dir, overrides, ftl_L=ftl_L)
         except Exception:
             comoving = None
+        try:
+            physical = compute_physical_metrics(overrides, L=ftl_L)
+        except Exception:
+            physical = None
 
     if collapse is None and constraints is None:
         reason = "missing_diagnostics"
@@ -352,6 +438,8 @@ def read_episode_metrics(
         comoving=comoving,
         ftl=ftl,
         termination_reason=reason,
+        growth=growth,
+        physical=physical,
     )
 
 

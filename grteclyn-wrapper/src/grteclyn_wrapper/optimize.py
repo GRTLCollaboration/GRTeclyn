@@ -31,6 +31,7 @@ from .params import write_params
 from .preflight import preflight_check
 from .runner import run_episode
 from .score import Score, score_episode
+from .surrogate import RBFSurrogate, screen_candidates
 
 try:
     import cma
@@ -101,6 +102,30 @@ def _vector_to_overrides(
 def _assign_gpu(index: int, gpu_ids: Sequence[int]) -> str:
     """Round-robin GPU assignment for parallel evaluation."""
     return str(gpu_ids[index % len(gpu_ids)])
+
+
+def _collect_training(
+    trajectory: Sequence[Mapping[str, Any]],
+    dims: Sequence[SearchDimension],
+):
+    """Build (X, y) arrays of evaluated candidates for surrogate fitting."""
+    xs: list[list[float]] = []
+    ys: list[float] = []
+    for rec in trajectory:
+        if rec.get("preflight_rejected") or rec.get("surrogate_predicted"):
+            continue
+        overrides = rec.get("overrides")
+        score = rec.get("score")
+        if not isinstance(overrides, dict) or score is None:
+            continue
+        try:
+            xs.append([float(overrides[d.param_key]) for d in dims])
+            ys.append(float(score))
+        except (KeyError, TypeError, ValueError):
+            continue
+    if not xs:
+        return None, None
+    return np.asarray(xs, dtype=float), np.asarray(ys, dtype=float)
 
 
 def _objective(
@@ -233,6 +258,9 @@ def run_optimize(
     x0: Sequence[float] | None = None,
     consume_plotfiles: bool = True,
     consumer_radii: Sequence[float] = (4.0, 8.0),
+    surrogate: bool = False,
+    surrogate_keep_fraction: float = 0.5,
+    surrogate_warmup: int | None = None,
 ) -> OptimizeResult:
     """Run multi-GPU CMA-ES optimization loop.
 
@@ -330,14 +358,10 @@ def run_optimize(
     print(f"[optimize] Starting CMA-ES: {len(dims)}D, popsize={es.popsize}, "
           f"max_gen={max_generations}, GPUs={gpu_ids or cuda_devices}")
 
-    while not es.stop():
-        gen += 1
-        solutions = es.ask()
-        fitnesses = []
-
+    def _evaluate_subset(subset: list) -> list[float]:
         if gpu_ids is not None and len(gpu_ids) > 1 and not dry_run:
-            fitnesses = _evaluate_generation_parallel(
-                solutions,
+            return _evaluate_generation_parallel(
+                subset,
                 dims=dims,
                 base_overrides=base,
                 opt_dir=opt_dir,
@@ -357,39 +381,88 @@ def run_optimize(
                 consume_plotfiles=consume_plotfiles,
                 consumer_radii=consumer_radii,
             )
+        out: list[float] = []
+        for sol in subset:
+            out.append(_objective(
+                sol,
+                dims=dims,
+                base_overrides=base,
+                opt_dir=opt_dir,
+                example=example_cfg,
+                template=tpl,
+                executable=executable,
+                eval_counter=eval_counter,
+                constrained=constrained,
+                phantom=phantom,
+                use_preflight=use_preflight,
+                cuda_devices=cuda_devices,
+                check_params=check_params,
+                dry_run=dry_run,
+                trajectory=trajectory,
+                target_stop_time=target_stop_time,
+                score_weights=score_weights,
+                ftl_L=ftl_L,
+                consume_plotfiles=consume_plotfiles,
+                consumer_radii=consumer_radii,
+            ))
+        return out
+
+    warmup = surrogate_warmup if surrogate_warmup is not None else 2 * es.popsize
+
+    while not es.stop():
+        gen += 1
+        solutions = es.ask()
+        traj_before = len(trajectory)
+
+        x_train, y_train = _collect_training(trajectory, dims)
+        use_surrogate_now = (
+            surrogate
+            and x_train is not None
+            and x_train.shape[0] >= warmup
+        )
+
+        if use_surrogate_now:
+            model = RBFSurrogate(
+                lower=np.asarray([d.lower for d in dims], dtype=float),
+                upper=np.asarray([d.upper for d in dims], dtype=float),
+            ).fit(x_train, y_train)
+            sols_arr = np.asarray(solutions, dtype=float)
+            eval_idx, predicted = screen_candidates(
+                model, sols_arr,
+                keep_fraction=surrogate_keep_fraction,
+                min_eval=1,
+            )
+            subset = [solutions[i] for i in eval_idx]
+            sub_fit = _evaluate_subset(subset)
+            fitnesses = [-float(predicted[i]) for i in range(len(solutions))]
+            for k, i in enumerate(eval_idx):
+                fitnesses[i] = sub_fit[k]
+            n_skipped = len(solutions) - len(eval_idx)
+            for i in range(len(solutions)):
+                if i not in set(eval_idx):
+                    trajectory.append({
+                        "eval": None,
+                        "surrogate_predicted": True,
+                        "score": float(predicted[i]),
+                        "overrides": {d.param_key: float(solutions[i][j]) for j, d in enumerate(dims)},
+                    })
+            print(f"[optimize] gen {gen}: surrogate screened "
+                  f"{len(eval_idx)}/{len(solutions)} evaluated on GPU "
+                  f"({n_skipped} predicted)")
         else:
-            for sol in solutions:
-                f = _objective(
-                    sol,
-                    dims=dims,
-                    base_overrides=base,
-                    opt_dir=opt_dir,
-                    example=example_cfg,
-                    template=tpl,
-                    executable=executable,
-                    eval_counter=eval_counter,
-                    constrained=constrained,
-                    phantom=phantom,
-                    use_preflight=use_preflight,
-                    cuda_devices=cuda_devices,
-                    check_params=check_params,
-                    dry_run=dry_run,
-                    trajectory=trajectory,
-                    target_stop_time=target_stop_time,
-                    score_weights=score_weights,
-                    ftl_L=ftl_L,
-                    consume_plotfiles=consume_plotfiles,
-                    consumer_radii=consumer_radii,
-                )
-                fitnesses.append(f)
+            fitnesses = _evaluate_subset(list(solutions))
 
         es.tell(solutions, fitnesses)
 
-        gen_scores = [rec.get("score", -math.inf) for rec in trajectory[-len(solutions):]]
+        evaluated_records = [
+            rec for rec in trajectory[traj_before:]
+            if not rec.get("surrogate_predicted")
+        ]
+        gen_scores = [rec.get("score", -math.inf) for rec in evaluated_records]
         gen_best = max(gen_scores) if gen_scores else -math.inf
         gen_mean = sum(gen_scores) / len(gen_scores) if gen_scores else 0.0
 
-        for rec in trajectory[-len(solutions):]:
+        for rec in evaluated_records:
             sc = rec.get("score", -math.inf)
             if sc > best_score:
                 best_score = sc

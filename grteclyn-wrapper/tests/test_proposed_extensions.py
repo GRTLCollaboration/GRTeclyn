@@ -1,0 +1,188 @@
+"""Tests for the proposed-extension modules: growth metrics, ANEC/tidal
+proxies, the RBF surrogate, MAP-Elites archive, and Pareto fronts."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+import numpy as np
+
+from grteclyn_wrapper.metrics import read_episode_metrics, read_growth_metrics
+from grteclyn_wrapper.physical_metrics import compute_physical_metrics
+from grteclyn_wrapper.pareto import ParetoPoint, dominates, pareto_front
+from grteclyn_wrapper.qd_search import QDArchive, Elite, _bin_index, _descriptors
+from grteclyn_wrapper.score import score_episode
+from grteclyn_wrapper.seeds import get_seed
+from grteclyn_wrapper.surrogate import RBFSurrogate, screen_candidates
+
+
+# --------------------------------------------------------------------------
+# Growth-rate metric (closes the stability gap).
+# --------------------------------------------------------------------------
+
+def _write_series(root: Path, rows: list[tuple[float, float, float, float]], ham: list[float]) -> None:
+    data = root / "data"
+    data.mkdir(parents=True)
+    with (data / "collapse_diagnostics.dat").open("w", encoding="utf-8") as fh:
+        for t, lapse, chi, k in rows:
+            fh.write(f"{t:g} {lapse:g} {chi:g} {k:g} 0 0 0 0 0 0 0 0 0 0\n")
+    with (data / "constraint_norms.dat").open("w", encoding="utf-8") as fh:
+        for (t, *_), h in zip(rows, ham):
+            fh.write(f"{t:g} {h:g} 1e-4 0 0 0\n")
+
+
+def test_growth_rate_distinguishes_equilibrium_from_slow_collapse() -> None:
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        stable = root / "stable"
+        collapsing = root / "collapsing"
+        _write_series(
+            stable,
+            rows=[(0.0, 1.0, 0.90, 0.05), (1.0, 0.99, 0.899, 0.051), (2.0, 0.985, 0.898, 0.052)],
+            ham=[1e-4, 1.0e-4, 1.1e-4],
+        )
+        _write_series(
+            collapsing,
+            rows=[(0.0, 1.0, 0.90, 0.05), (1.0, 0.6, 0.55, 0.4), (2.0, 0.2, 0.25, 1.4)],
+            ham=[1e-4, 5e-3, 4e-2],
+        )
+        g_stable = read_growth_metrics(stable / "data" / "collapse_diagnostics.dat", stable / "data" / "constraint_norms.dat")
+        g_coll = read_growth_metrics(collapsing / "data" / "collapse_diagnostics.dat", collapsing / "data" / "constraint_norms.dat")
+        assert g_stable is not None and g_coll is not None
+        assert g_stable.s_growth > 0.7
+        assert g_coll.s_growth < 0.4
+        assert g_coll.lambda_effective > g_stable.lambda_effective
+
+
+# --------------------------------------------------------------------------
+# ANEC line proxy and tidal proxy.
+# --------------------------------------------------------------------------
+
+def test_flat_space_satisfies_anec_and_has_low_tidal() -> None:
+    seed = get_seed("flat_minkowski")
+    phys = compute_physical_metrics(seed.overrides, L=8.0)
+    assert abs(phys.anec_line) < 1e-6
+    assert phys.s_anec > 0.99
+    assert phys.s_tidal > 0.99
+    assert not phys.has_trapped_proxy
+
+
+def test_ellis_bronnikov_curvature_and_throat() -> None:
+    seed = get_seed("ellis_bronnikov", b0=0.5)
+    phys = compute_physical_metrics(seed.overrides, L=8.0)
+    # A throat has strong curvature -> lower tidal comfort than flat space.
+    assert phys.tidal_proxy > 0.0
+    assert phys.s_tidal < 1.0
+
+
+def test_physical_metrics_flow_into_score() -> None:
+    seed = get_seed("ellis_bronnikov")
+    with TemporaryDirectory() as tmp:
+        episode = Path(tmp) / "ep"
+        episode.mkdir()
+        (episode / "metadata.json").write_text(json.dumps({"overrides": dict(seed.overrides)}), encoding="utf-8")
+        data = episode / "data"
+        data.mkdir()
+        with (data / "collapse_diagnostics.dat").open("w", encoding="utf-8") as fh:
+            for t in (0.0, 1.0, 2.0):
+                fh.write(f"{t:g} 0.9 {0.88 - 0.005 * t:g} 0.05 0 0 0 0 0 0 0 0 0 0\n")
+        with (data / "constraint_norms.dat").open("w", encoding="utf-8") as fh:
+            for t in (0.0, 1.0, 2.0):
+                fh.write(f"{t:g} 1e-4 1e-4 0 0 0\n")
+        metrics = read_episode_metrics(episode, ftl_L=8.0)
+        assert metrics.growth is not None
+        assert metrics.physical is not None
+        score = score_episode(metrics, target_stop_time=2.0)
+        for key in ("constraint_growth", "anec_condition", "tidal_comfort"):
+            assert key in score.components
+
+
+# --------------------------------------------------------------------------
+# RBF surrogate.
+# --------------------------------------------------------------------------
+
+def test_surrogate_interpolates_and_screens() -> None:
+    rng = np.random.default_rng(0)
+    lower = np.array([-1.0, -1.0])
+    upper = np.array([1.0, 1.0])
+
+    def truth(x: np.ndarray) -> np.ndarray:
+        return -(x[:, 0] ** 2 + x[:, 1] ** 2)  # peak at origin
+
+    x_train = rng.uniform(-1, 1, size=(60, 2))
+    y_train = truth(x_train)
+    model = RBFSurrogate(lower=lower, upper=upper).fit(x_train, y_train)
+
+    # Prediction near origin should beat prediction near a corner.
+    near = model.predict(np.array([[0.05, -0.05]]))[0]
+    far = model.predict(np.array([[0.95, 0.95]]))[0]
+    assert near > far
+
+    candidates = rng.uniform(-1, 1, size=(8, 2))
+    eval_idx, predicted = screen_candidates(model, candidates, keep_fraction=0.5, min_eval=1)
+    assert len(eval_idx) >= 4
+    assert len(predicted) == 8
+    # The globally-best (closest to origin) candidate must be selected.
+    best = int(np.argmax(predicted))
+    assert best in eval_idx
+
+
+# --------------------------------------------------------------------------
+# MAP-Elites archive.
+# --------------------------------------------------------------------------
+
+def test_map_elites_archive_keeps_best_per_cell() -> None:
+    arch = QDArchive(bins=4)
+    a = Elite(cell=(1, 2), score=3.0, descriptors=(0.3, 0.6), params={}, episode=None)
+    b = Elite(cell=(1, 2), score=5.0, descriptors=(0.3, 0.6), params={}, episode=None)
+    c = Elite(cell=(0, 0), score=1.0, descriptors=(0.0, 0.0), params={}, episode=None)
+    assert arch.insert(a)
+    assert arch.insert(b)  # higher score replaces
+    assert not arch.insert(a)  # lower score rejected
+    assert arch.insert(c)
+    assert arch.cells[(1, 2)].score == 5.0
+    assert len(arch.cells) == 2
+    assert arch.best.score == 5.0
+
+
+def test_descriptors_and_bins() -> None:
+    d1, d2 = _descriptors({"ftl_shortcut": 0.5, "anec_condition": 0.25})
+    assert abs(d1 - 0.5) < 1e-9
+    assert abs(d2 - 0.75) < 1e-9
+    assert _bin_index(0.0, 8) == 0
+    assert _bin_index(0.999, 8) == 7
+    assert _bin_index(0.5, 8) == 4
+
+
+# --------------------------------------------------------------------------
+# Pareto front.
+# --------------------------------------------------------------------------
+
+def test_pareto_dominance_and_front() -> None:
+    keys = ("ftl_shortcut", "anec_condition")
+    assert dominates({"ftl_shortcut": 1.0, "anec_condition": 1.0}, {"ftl_shortcut": 0.5, "anec_condition": 0.5}, keys)
+    assert not dominates({"ftl_shortcut": 1.0, "anec_condition": 0.1}, {"ftl_shortcut": 0.5, "anec_condition": 0.9}, keys)
+
+    points = [
+        ParetoPoint("a", {"ftl_shortcut": 0.9, "anec_condition": 0.1, "constraint_growth": 0.0, "tidal_comfort": 0.0}, 1.0, None),
+        ParetoPoint("b", {"ftl_shortcut": 0.1, "anec_condition": 0.9, "constraint_growth": 0.0, "tidal_comfort": 0.0}, 1.0, None),
+        ParetoPoint("c", {"ftl_shortcut": 0.05, "anec_condition": 0.05, "constraint_growth": 0.0, "tidal_comfort": 0.0}, 0.1, None),
+    ]
+    front = pareto_front(points)
+    labels = {p.label for p in front}
+    assert "a" in labels and "b" in labels  # both trade-off extremes
+    assert "c" not in labels  # dominated by a and b
+
+
+if __name__ == "__main__":
+    test_growth_rate_distinguishes_equilibrium_from_slow_collapse()
+    test_flat_space_satisfies_anec_and_has_low_tidal()
+    test_ellis_bronnikov_curvature_and_throat()
+    test_physical_metrics_flow_into_score()
+    test_surrogate_interpolates_and_screens()
+    test_map_elites_archive_keeps_best_per_cell()
+    test_descriptors_and_bins()
+    test_pareto_dominance_and_front()
+    print("proposed-extension tests passed")

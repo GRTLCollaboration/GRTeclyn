@@ -297,9 +297,14 @@ Lapse health & 1.0 & $\alpha_{\min}/10^{-3}$, capped at 1. \\
 Horizon penalty & 1.5 & $-\min(r_{\rm AH},1)$. \\
 Energy condition & 2.0 & $r(\int \rho_{\rm neg}\,dV;\,10^{-2})$ (WEC/NEC compliance). \\
 Eulerian stability & 0.5 & $r(\Delta_{\rm geom};\,1)$; fallback for non-propagating geometries. \\
+\hline
+Constraint growth & 2.0 & $s_{\rm growth}$: penalizes exponential constraint/collapse growth (Eq.~\ref{eq:s_growth}). \\
+ANEC condition & 1.5 & $s_{\rm anec}$: directional energy-condition reward along the travel axis (Eq.~\ref{eq:anec_line}). \\
+Tidal comfort & 1.0 & $s_{\rm tidal}$: curvature/lapse-acceleration proxy for rider tidal force. \\
 \end{tabular}
 \end{ruledtabular}
 \end{table}
+The final three rows are the implemented proposed-extension components (Sec.~\ref{sec:proposed}); they are inactive (contribute $0$) when their diagnostics are unavailable, so legacy episodes re-score consistently.
 
 \subsection{Why these weights matter}
 
@@ -630,7 +635,7 @@ Teo-like & Quadrupole dynamics & Non-spherical benchmark \\
 
 \section{Implementation Status}
 
-The pipeline stages are now largely in place: regression and plotfile cleanup (\texttt{reproduce}), custom C++ RadialRecipe initial data (including $\beta^x$ shift recipe), constrained pre-flight filtering, energy-density diagnostics, upgraded scoring ($F_{\rm log}$, $F_{\rm asymmetry}$, $s_{\rm comoving}$, constraints), GPU smoke/promotion scripts, non-spherical batching, and a multi-GPU CMA-ES loop (\texttt{run\_optimize\_loop.sh}).  Remaining near-term items are the Slurm constraint atlas, dynamic operational FTL probes, multi-observer energy checks, and production-scale optimization campaigns (Sec.~\ref{sec:forward_path}).
+The pipeline stages are now largely in place: regression and plotfile cleanup (\texttt{reproduce}), custom C++ RadialRecipe initial data (including $\beta^x$ shift recipe), constrained pre-flight filtering, energy-density diagnostics, upgraded scoring ($F_{\rm log}$, $F_{\rm asymmetry}$, $s_{\rm comoving}$, constraints), GPU smoke/promotion scripts, non-spherical batching, and a multi-GPU CMA-ES loop (\texttt{run\_optimize\_loop.sh}).  A second wave of extensions (Sec.~\ref{sec:proposed}) is now implemented and GPU-validated: a constraint/collapse growth-rate metric ($s_{\rm growth}$, \texttt{metrics.py}), $t=0$ ANEC-line and curvature/tidal proxies (\texttt{physical\_metrics.py}), an RBF surrogate pre-screen for the optimizer (\texttt{surrogate.py}), a MAP-Elites quality-diversity driver (\texttt{qd\_search.py}, CLI \texttt{qd}), and multi-objective Pareto-front extraction (\texttt{pareto.py}, CLI \texttt{pareto}).  Remaining near-term items are the Slurm constraint atlas, dynamic operational FTL probes, a full tetrad/Weyl + apparent-horizon upgrade of the tidal/ANEC proxies, the elliptic (\texttt{GRTresna}) initial-data default, and production-scale optimization campaigns (Sec.~\ref{sec:forward_path}).
 
 \section{Expected First Result}
 
@@ -782,7 +787,7 @@ The closed-loop pipeline has executed its first optimization campaigns (Sec.~\re
 \subsection{Phase 1: Closing the stability gap (immediate software priority)}
 
 \begin{enumerate}
-    \item \textbf{Tune stability scoring.}  The current $\Delta_{\rm geom}$ sum is live in \texttt{score.py} (weight 2.0).  Next: calibrate scales, extend stop times ($t=5$--$10$), and require $s_{\rm stability}>0.25$ for promotion.
+    \item \textbf{Stability scoring (growth-rate metric implemented).}  Beyond the $\Delta_{\rm geom}$ sum (weight 2.0), the constraint/collapse growth-rate $s_{\rm growth}$ (Eq.~\ref{eq:s_growth}) is now live in \texttt{metrics.py}/\texttt{score.py} and GPU-validated (Table~\ref{tab:gpu_growth}): it already exposes positive $\lambda_{\rm eff}$ for every short-run survivor.  Next: calibrate $\sigma_\lambda$ against extended stop times ($t=5$--$10$) and require both $s_{\rm stability}>0.25$ and $\lambda_{\rm eff}\lesssim0$ for promotion.
     \item \textbf{FTL profile scoring (upgraded).}  $F_{\rm log}$, $F_{\rm asymmetry}$, and $s_{\rm comoving}$ are active in \texttt{ftl\_metrics.py} and \texttt{score.py} (Secs.~\ref{sec:ftl_scaffolding}--\ref{sec:comoving_scoring}); GPU validation in Tables~\ref{tab:gpu_ftl_upgraded}--\ref{tab:gpu_ftl_nonspherical}.  Alcubierre warp now outranks flat Minkowski ($S=10.08$ vs.\ $10.00$).  Next tier: dynamic axis-probe confirmation after evolution.
     \item \textbf{Basis and width sweeps.}  Automated sweeps over $N\in[4,16]$ and $w\in[0.3,2.5]$ map the fit residual $\epsilon_{\rm fit}$ and set the minimum safe CMA-ES dimensionality.
     \item \textbf{Gauge stability to $t=5$.}  Extend the seven non-spherical survivors (Table~\ref{tab:gpu_nonspherical}) and promoted radial seeds through $t=5$ on the $N_{\rm full}=64,96,128$ ladder to verify $1+\log$ slicing and Gamma-driver shift under deformed geometry.
@@ -790,17 +795,17 @@ The closed-loop pipeline has executed its first optimization campaigns (Sec.~\re
 
 \subsection{Phase 2: Multi-observer energy conditions}
 
-The pipeline currently tests $\rho_{\rm req}\ge 0$ in the Eulerian frame only---a coordinate loophole.  Extend \texttt{RadialRecipeLevel.cpp} to build a local tetrad and contract $T_{\hat\mu\hat\nu}$ against timelike and null observer velocities:
+A directional, axis-line ANEC proxy and a curvature/lapse tidal proxy are already implemented and scored (Eqs.~\ref{eq:s_growth}--\ref{eq:anec_line}, Table~\ref{tab:phys_t0}), but both are $t=0$ and $\chi$-sourced, so they are blind to pure-shift warps (Alcubierre row of Table~\ref{tab:phys_t0}).  The remaining work is to make them gauge-complete: extend \texttt{RadialRecipeLevel.cpp} to build a local tetrad and contract $T_{\hat\mu\hat\nu}$ against timelike and null observer velocities,
 \begin{equation}
-    \Xi_W(\mathbf{x}) = T_{\hat{\mu}\hat{\nu}}\,V^{\hat{\mu}}V^{\hat{\nu}}.
+    \Xi_W(\mathbf{x}) = T_{\hat{\mu}\hat{\nu}}\,V^{\hat{\mu}}V^{\hat{\nu}},
 \end{equation}
-Feed the minimum over sampled observers into \texttt{score.py} so candidates cannot look physical to a stationary observer but exotic to one moving with the bubble.
+feed the minimum over sampled observers into \texttt{score.py}, and combine with the evolved operational probe (Eq.~\ref{eq:f_op}) so candidates cannot look physical to a stationary observer but exotic to one moving with the bubble.
 
 \subsection{Phase 3: GPU-cluster production search}
 
-With physics and scoring locked down:
+The search machinery for this phase is now in place---surrogate pre-screening, MAP-Elites quality-diversity, and Pareto-front extraction are implemented and GPU-validated (Table~\ref{tab:qd_atlas}; Sec.~\ref{sec:proposed}).  With physics and scoring locked down:
 \begin{enumerate}
-    \item \textbf{1000-candidate constraint atlas.}  Batch Slurm job with \texttt{--constrained --preflight} to populate \texttt{atlas.csv}---a structured ``Spacetime Failure Atlas'' for training Level~4 research agents.
+    \item \textbf{1000-candidate constraint atlas.}  Scale the MAP-Elites driver (\texttt{qd}) and/or a batch Slurm job with \texttt{--constrained --preflight} to populate the ``Spacetime Failure Atlas'' for training Level~4 research agents; surrogate screening (\texttt{--surrogate}, $\sim$25--40\% fewer GPU evaluations) reduces the node-hour cost.
     \item \textbf{50-generation CMA-ES campaign.}
 \begin{verbatim}
 python -m grteclyn_wrapper --example RadialRecipe \
@@ -819,50 +824,113 @@ A numerical optimum is a coefficient list, not a paper-ready metric.  Once a sta
     \item Reload the analytic profile in \texttt{GRTeclyn} via a custom initial-data module and verify stability and energy conditions match the numerical discovery---completing the cycle from automated search to exact analytical solutions.
 \end{enumerate}
 
-\section{Proposed Extensions: Metrics, Search, and Robustness}
+\section{Extensions: Implemented Metrics, Search, and Robustness}
 \label{sec:proposed}
 
-The campaigns above expose three structural limitations.  First, the score is a mostly $t=0$ proxy that the optimizer can game---the dynamical stability gap.  Second, the energy and FTL verdicts are coordinate-frame dependent.  Third, every score evaluation costs a full GPU evolution.  We outline concrete extensions targeting each; all are compatible with the existing \texttt{score.py}/\texttt{ftl\_metrics.py} interfaces.
+The campaigns above expose three structural limitations.  First, the score is a mostly $t=0$ proxy that the optimizer can game---the dynamical stability gap.  Second, the energy and FTL verdicts are coordinate-frame dependent.  Third, every score evaluation costs a full GPU evolution.  We targeted each with concrete extensions, all compatible with the existing \texttt{score.py}/\texttt{metrics.py} interfaces.  Five of them are now implemented and GPU-validated (numpy-only, no new dependencies); the remainder require new C++ curvature diagnostics or an elliptic solver and stay as scoped future work.  A dedicated test module (\texttt{tests/test\_proposed\_extensions.py}) covers every new pure function.
 
 \subsection{New physical metrics}
 
-\begin{itemize}
-    \item \textbf{Operational probe FTL (gauge-robust).}  Augment the static $F_{\rm null}$ with a dynamically measured arrival-time advantage: emit a massless scalar pulse (or null-geodesic tracer bundle) at boundary $A$ and compare its first-arrival time at detector $B$ against an identical pulse on a flat-space control evolved on the \emph{same} grid, slicing seed, and probe data,
-    \begin{equation}
-        F_{\rm op} = \frac{t_B^{\rm flat} - t_B^{\rm curved}}{t_B^{\rm flat}},
-        \label{eq:f_op}
-    \end{equation}
-    accepted only if the path crosses no trapped surface and constraints stay bounded during transit.  Sharing the control grid cancels most coordinate ambiguity, making a positive $F_{\rm op}$ the strongest available FTL evidence.
-    \item \textbf{Constraint growth rate (closes the stability gap).}  Survival to $t_{\max}$ does not separate equilibrium from slow collapse.  Fit the late-time constraint norm to $\|H\|_{L^2}(t)\sim\|H\|_0\,e^{\lambda t}$ and penalize the rate directly,
-    \begin{equation}
-        s_{\rm growth} = r\!\left(\max(0,\lambda);\,\sigma_\lambda\right),
-        \qquad
-        \lambda = \frac{d}{dt}\ln\|H\|_{L^2},
-        \label{eq:s_growth}
-    \end{equation}
-    so a geometry that merely outlives a short window ($\lambda>0$) is penalized while a true equilibrium ($\lambda\approx0$) is not.  The same $\lambda$-fit on $\chi_{\min}(t)$ and $|K|_{\max}(t)$ gives extrapolative collapse indicators \emph{without} longer, costlier runs.
-    \item \textbf{Averaged Null Energy Condition along the probe.}  The Eulerian $\rho_{\rm req}\ge0$ test is a coordinate loophole.  The physically meaningful viability quantity is the ANEC integral along the probe null geodesic $\gamma$,
-    \begin{equation}
-        \mathcal{A} = \int_\gamma T_{\mu\nu}\,k^\mu k^\nu\,d\lambda,
-        \label{eq:anec}
-    \end{equation}
-    with the Ford--Roman quantum-inequality scale as the rejection threshold.  Scoring $\min(\mathcal{A},0)$ targets exactly the energy-condition violation warp/wormhole metrics are known to require, not a frame artifact.
-    \item \textbf{Coordinate-invariant tidal metric.}  Replace the Eulerian geometry-change proxies with curvature invariants: the Kretschmann scalar $\mathcal{K}=R_{abcd}R^{abcd}$ as a singularity proxy, and the electric Weyl eigenvalues $E_{ij}=C_{i0j0}$ contracted along the passenger worldline as the actual rider tidal force, $T_{\rm tidal}=\max_{\rm passenger}|\mathrm{eig}(E_{ij})|$.  Both are gauge-invariant survivability bounds.
-    \item \textbf{Apparent-horizon test.}  Upgrade the $r_H$ proxy to a genuine apparent-horizon finder; reject any candidate forming a marginally trapped surface enclosing the passenger region, the unambiguous collapse signal.
-\end{itemize}
+\paragraph{Constraint growth rate (implemented).}  Survival to $t_{\max}$ does not separate equilibrium from slow collapse.  We fit the late-time series to $q(t)\sim q_0\,e^{\lambda t}$ by log-linear regression and penalize the worst growth rate directly,
+\begin{equation}
+    s_{\rm growth} = r\!\left(\max(0,\lambda_{\rm eff});\,\sigma_\lambda\right),
+    \qquad
+    \lambda_{\rm eff} = \max\!\bigl(\lambda_{\|H\|},\,\lambda_{|K|_{\max}},\,\lambda_{1/\chi_{\min}}\bigr),
+    \label{eq:s_growth}
+\end{equation}
+with $\sigma_\lambda=0.5$ (\texttt{metrics.py}, \texttt{GrowthMetrics}).  A geometry that merely outlives a short window ($\lambda_{\rm eff}>0$) is penalized; a true equilibrium ($\lambda_{\rm eff}\approx0$) is not.  Using three channels (Hamiltonian norm, extrinsic-curvature focusing, conformal-factor collapse) makes the indicator robust when any single diagnostic is flat.
+
+\paragraph{ANEC line proxy (implemented).}  The Eulerian volume $\rho_{\rm req}\ge0$ test is a coordinate loophole.  As a directional, complementary indicator we integrate the required energy density along the travel axis,
+\begin{equation}
+    \mathcal{A}_{\rm line} = \int_{-L}^{L}\rho_{\rm req}(x)\,dx,
+    \qquad
+    s_{\rm anec} = r\!\left(\max(0,-\mathcal{A}_{\rm line});\,\sigma_{\mathcal A}\right),
+    \label{eq:anec_line}
+\end{equation}
+with $\rho_{\rm req}=(R+\tfrac{2}{3}K^2)/16\pi$ and $\sigma_{\mathcal A}=0.1$ (\texttt{physical\_metrics.py}).  This is the $t=0$, $\chi$-sourced stand-in for the full geodesic ANEC,
+\begin{equation}
+    \mathcal{A} = \int_\gamma T_{\mu\nu}\,k^\mu k^\nu\,d\lambda,
+    \label{eq:anec}
+\end{equation}
+which (with the Ford--Roman quantum-inequality scale as threshold) requires the evolved probe of Eq.~\eqref{eq:f_op} and a local tetrad and remains future work.
+
+\paragraph{Coordinate-invariant tidal proxy (implemented).}  In place of the Eulerian geometry-change terms we score a curvature/lapse-acceleration proxy
+$T_{\rm tidal}\!=\!\max_x|R(x)| + \max_x|\partial_x^2\alpha(x)|$, with reward $s_{\rm tidal}=r(T_{\rm tidal};1)$ and a companion $t=0$ trapped-surface flag (interior areal-radius minimum).  This is the gauge-rough precursor of the full invariants---the Kretschmann scalar $\mathcal{K}=R_{abcd}R^{abcd}$ and the electric Weyl eigenvalues $E_{ij}=C_{i0j0}$ contracted along the passenger worldline---which need the C++ 4-curvature diagnostics (future, Phase~2).
+
+\paragraph{Operational probe FTL (future).}  The strongest available FTL evidence augments the static $F_{\rm null}$ with a dynamically measured arrival-time advantage: emit a massless scalar pulse (or null-geodesic bundle) at boundary $A$ and compare its first-arrival time at $B$ against an identical pulse on a flat-space control evolved on the \emph{same} grid, slicing, and probe data,
+\begin{equation}
+    F_{\rm op} = \frac{t_B^{\rm flat} - t_B^{\rm curved}}{t_B^{\rm flat}},
+    \label{eq:f_op}
+\end{equation}
+accepted only if the path crosses no trapped surface and constraints stay bounded.  This is essential because the $t=0$ proxies above are $\chi$-sourced and therefore \emph{blind to pure-shift warps}: the Alcubierre seed ($\chi\equiv1$, warp carried by $\beta^x$) has $\mathcal{A}_{\rm line}=0$ and $T_{\rm tidal}=0$ in Table~\ref{tab:phys_t0}, so its exotic-energy content only appears under an evolved-probe or tetrad treatment.  A genuine apparent-horizon finder (replacing the $r_H$ proxy) accompanies this upgrade.
+
+\paragraph{Reference values.}  Table~\ref{tab:phys_t0} reports the $t=0$ proxies on the reference seeds.  Flat space and the (pure-shift) Alcubierre warp are energy-condition-clean and tidally flat at this level, while the Ellis--Bronnikov throat and the Schwarzschild puncture show strongly negative $\mathcal{A}_{\rm line}$, large curvature, and a trapped-surface flag---exactly the exotic/curved signatures expected.
+
+\begin{table}[H]
+\caption{Implemented $t=0$ gauge-robust proxies on reference seeds ($L=8$, 1024 points).  $\mathcal{A}_{\rm line}$ is the axis energy-density line integral (Eq.~\ref{eq:anec_line}); $\mathcal{K}^{1/2}_{\rm proxy}\equiv\max|R|$ is the spatial-curvature scale; ``trap'' is the $t=0$ trapped-surface flag.}
+\label{tab:phys_t0}
+\small
+\begin{ruledtabular}
+\begin{tabular}{lccccc}
+Seed & $\mathcal{A}_{\rm line}$ & $s_{\rm anec}$ & $\max|R|$ & $s_{\rm tidal}$ & trap \\
+\hline
+Flat Minkowski & $0$ & 1.000 & $0$ & 1.000 & no \\
+Alcubierre $v{=}0.5$ & $0$ & 1.000 & $0$ & 1.000 & no \\
+Ellis--Bronnikov & $-6.62$ & 0.015 & $2.0{\times}10^{4}$ & 0.000 & yes \\
+Schwarzschild & $-2.38$ & 0.040 & $6.0{\times}10^{3}$ & 0.000 & yes \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+\paragraph{GPU validation of the growth metric.}  Re-running the reference candidates at $t=2$, $N_{\rm full}=64$ on H100s populates $s_{\rm growth}$ from the real time series (Table~\ref{tab:gpu_growth}).  Crucially, every short-run ``survivor'' still has $\lambda_{\rm eff}>0$---the Ellis and Alcubierre seeds focus fastest ($\lambda_{\rm eff}\approx1.0$, $s_{\rm growth}\approx0.33$, driven by $|K|_{\max}$ growth) while \texttt{bubble\_wall\_016} is the tamest ($\lambda_{\rm eff}=0.41$).  This is precisely the dynamical-stability gap the metric was built to expose, now quantified from a single short run rather than requiring an expensive long evolution.
+
+\begin{table}[H]
+\caption{GPU growth-rate and new-component values ($t=2$, $N_{\rm full}=64$, \texttt{max\_level=0}).  $\lambda_{\rm eff}$ from Eq.~\eqref{eq:s_growth}; $S$ is the total under the extended 15-component scorer (adds $s_{\rm growth},s_{\rm anec},s_{\rm tidal}$ to Table~\ref{tab:score_weights}).}
+\label{tab:gpu_growth}
+\small
+\begin{ruledtabular}
+\begin{tabular}{lccccc}
+Candidate & $\lambda_{\rm eff}$ & $s_{\rm growth}$ & $s_{\rm anec}$ & $s_{\rm tidal}$ & $S$ \\
+\hline
+\texttt{alcubierre\_warp} & 0.99 & 0.335 & 1.000 & 1.000 & 13.25 \\
+\texttt{ellis\_bronnikov} & 1.02 & 0.329 & 0.015 & 0.000 & 12.18 \\
+\texttt{bubble\_wall\_016} & 0.41 & 0.550 & 0.987 & 0.524 & 10.76 \\
+\texttt{random\_000} & 0.29 & 0.633 & 0.682 & 0.161 & 7.57 \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
 
 \subsection{Optimizing the search}
 
-\begin{itemize}
-    \item \textbf{Constraint-solved initial data (largest single win).}  Promote Path~B (elliptic/\texttt{GRTresna}) from future work to default, so every proposal is \emph{exactly} constraint-satisfying before evolution.  This removes junk radiation, lets the optimizer attribute score changes to geometry rather than constraint noise, and makes $\lambda$ in Eq.~\eqref{eq:s_growth} interpretable.
-    \item \textbf{Surrogate-assisted, multi-fidelity search.}  Train a cheap regressor (Gaussian process or small MLP) on the growing $(\theta\to S)$ archive and reject low-predicted-score proposals before they reach the GPU; the analytic $t=0$ terms ($F_{\rm null},F_{\rm portal},F_{\rm asym}$, preflight) are a near-free lower-fidelity oracle.  Formalize the Tier-1/Tier-2 ladder as asynchronous successive halving (Hyperband/ASHA): evaluate a large population at $(N{=}64,t{=}2)$, promote the top fraction to $(96,5)$ then $(128,10)$, allocating node-hours logarithmically toward survivors.
-    \item \textbf{Multi-objective Pareto search.}  The scalarized $S=\sum_k w_k s_k$ forces hand-tuned trade-offs and is the root cause of the flat-space-attractor weighting hacks.  Replace it with NSGA-II or MO-CMA-ES over the conflicting axes $(F_{\rm FTL},\,-E_{\rm exotic},\,-\lambda,\,-T_{\rm tidal})$ and report the Pareto front, yielding the FTL-vs-exotic-energy trade surface without pre-committing to weights.
-    \item \textbf{Quality-Diversity for the Failure Atlas.}  The stated ``Spacetime Failure Atlas'' deliverable is a quality-diversity problem, not single-optimum search.  MAP-Elites (or CMA-ME) over behavior descriptors---e.g.\ (throat pinch $F_{\rm throat}$, warp velocity $\langle\beta^x\rangle$, exotic-energy fraction)---keeps the best candidate per behavior cell, illuminating the whole constructibility map in one campaign, resisting premature convergence, and directly supplying the diverse training set for the Level-4 agent.
-    \item \textbf{Hybrid gradient refinement and basis growth.}  The $t=0$ score is differentiable in $\theta$ (autodiff through recipe$+$preflight); use L-BFGS on this static surrogate to polish CMA-ES means cheaply, reserving dynamic evaluation for validation.  Grow the basis coarse-to-fine ($N{=}4\to16$ as the covariance contracts) to avoid wasting early evaluations in high dimensions, and add re-evaluation-based noise handling (UH-CMA-ES) for the stochastic score.
-\end{itemize}
+\paragraph{Surrogate-assisted screening (implemented).}  A numpy-only RBF kernel-ridge regressor (\texttt{surrogate.py}) is fit each generation on the growing $(\theta\to S)$ archive and used to pre-screen CMA-ES proposals: only the top fraction by predicted score (plus high-uncertainty candidates for exploration) are evaluated on the GPU, while the rest receive a surrogate-predicted fitness so the strategy still updates.  In an 8-GPU, 6-generation run ($\lambda{=}8$, warmup $2\lambda$), screening began at generation~3 and skipped $13$ of the $32$ post-warmup evaluations ($41\%$), cutting total GPU evaluations from $48$ to $35$ ($-27\%$) while still reaching the best score ($S=13.02$).  The next step formalizes the Tier-1/Tier-2 ladder as asynchronous successive halving (Hyperband/ASHA).
+
+\paragraph{Quality-Diversity for the Failure Atlas (implemented).}  The ``Spacetime Failure Atlas'' deliverable is a quality-diversity problem, not single-optimum search.  A MAP-Elites driver (\texttt{qd\_search.py}, CLI \texttt{qd}) keeps the best candidate per cell of a behavior grid spanned by (FTL benefit $F_{\rm log}$, exotic-energy fraction $1-s_{\rm anec}$); it evaluates batches in parallel across GPUs and resists premature convergence.  An 8-GPU campaign ($6{\times}6$ grid, $40$ evaluations) illuminated $7$ behavior cells (Table~\ref{tab:qd_atlas}) spanning FTL-clean static space, exotic throats, and intermediate warp precursors in one run---directly the diverse training set the Level-4 agent needs.  CMA-ME and richer descriptors (adding $F_{\rm throat}$, $\langle\beta^x\rangle$) are the natural extension.
+
+\begin{table}[H]
+\caption{MAP-Elites archive from one $40$-evaluation, 8-GPU campaign ($6{\times}6$ grid, coverage $0.19$).  Each row is the elite of a distinct behavior cell.}
+\label{tab:qd_atlas}
+\small
+\begin{ruledtabular}
+\begin{tabular}{cccc}
+Cell & FTL benefit & Exoticity & Elite $S$ \\
+\hline
+$(1,0)$ & 0.319 & 0.000 & 12.47 \\
+$(3,1)$ & 0.618 & 0.248 & 12.13 \\
+$(2,0)$ & 0.384 & 0.000 & 11.68 \\
+$(3,0)$ & 0.595 & 0.040 & 11.62 \\
+$(0,0)$ & 0.000 & 0.000 & 10.98 \\
+$(1,1)$ & 0.332 & 0.228 & 10.21 \\
+$(0,1)$ & 0.160 & 0.231 & 9.91 \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+\paragraph{Multi-objective Pareto front (implemented).}  The scalarized $S=\sum_k w_k s_k$ forces hand-tuned trade-offs and is the root cause of the flat-space-attractor weighting hacks.  A non-dominated-sorting utility (\texttt{pareto.py}, CLI \texttt{pareto}) post-processes any optimizer trajectory over the conflicting axes $(F_{\rm FTL},\,s_{\rm anec},\,s_{\rm growth},\,s_{\rm tidal})$ and reports the Pareto front, exposing the FTL-vs-exotic-energy trade surface without committing to weights.  Replacing the inner loop with NSGA-II / MO-CMA-ES is the follow-on.
+
+\paragraph{Constraint-solved initial data (future, largest single win).}  Promoting Path~B (elliptic/\texttt{GRTresna}) to default would make every proposal \emph{exactly} constraint-satisfying before evolution, removing junk radiation and making $\lambda_{\rm eff}$ in Eq.~\eqref{eq:s_growth} cleanly interpretable.  Likewise, hybrid gradient refinement (L-BFGS on the differentiable $t=0$ surrogate) and coarse-to-fine basis growth ($N{=}4\to16$) remain scoped but unimplemented.
 
 \section{Conclusion}
 
-This project moves interstellar metric search from static, hand-written ans\"atze toward dynamic, GPU-driven discovery.  The pipeline now closes the loop from Python parameter proposals through constrained C++ evolution, stability-aware scoring, and plotfile extraction.  Tables~\ref{tab:gpu_radial_smoke}--\ref{tab:amr_optimize} quantify the stability gap quantitatively: reference seeds score $s_{\rm stability}\sim 0.3$--$0.7$ over $t=2$, while AMR-optimized candidates remain below $0.09$.  Phase~1--4 above, together with the gauge-robust metrics and quality-diversity search proposed in Sec.~\ref{sec:proposed}, turn this working prototype into a rigorous map of physical constructibility boundaries and, ultimately, a path to new exact solutions in general relativity.
+This project moves interstellar metric search from static, hand-written ans\"atze toward dynamic, GPU-driven discovery.  The pipeline now closes the loop from Python parameter proposals through constrained C++ evolution, stability-aware scoring, and plotfile extraction.  Tables~\ref{tab:gpu_radial_smoke}--\ref{tab:amr_optimize} quantify the stability gap: reference seeds score $s_{\rm stability}\sim 0.3$--$0.7$ over $t=2$, while AMR-optimized candidates remain below $0.09$.  The extensions of Sec.~\ref{sec:proposed} are now partly realized: a constraint growth-rate metric (which exposes positive $\lambda_{\rm eff}$ even for short-run survivors, Table~\ref{tab:gpu_growth}), $t=0$ ANEC-line and tidal proxies (Table~\ref{tab:phys_t0}), surrogate-assisted screening ($\sim$25--40\% fewer GPU evaluations), MAP-Elites quality diversity (Table~\ref{tab:qd_atlas}), and Pareto-front extraction are all implemented and GPU-validated.  The remaining gauge-complete metrics (evolved operational probe, tetrad/Weyl ANEC, apparent-horizon finder) and the elliptic constraint-solved initial data, together with Phase~1--4 above, turn this working prototype into a rigorous map of physical constructibility boundaries and, ultimately, a path to new exact solutions in general relativity.
 
 \end{document}

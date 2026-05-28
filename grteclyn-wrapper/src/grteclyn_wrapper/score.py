@@ -20,6 +20,10 @@ DEFAULT_WEIGHTS: dict[str, float] = {
     "stability": 0.5,
     "nontrivial_geometry": 0.25,
     "initial_constraint_quality": 0.5,
+    # Proposed extensions (Sec. "Proposed Extensions").
+    "constraint_growth": 2.0,
+    "anec_condition": 1.5,
+    "tidal_comfort": 1.0,
 }
 
 
@@ -133,6 +137,31 @@ def score_episode(
     else:
         components["comoving_stability"] = 0.0
         notes.append("co-moving stability diagnostics not available")
+
+    if metrics.growth is not None and metrics.growth.s_growth is not None:
+        components["constraint_growth"] = metrics.growth.s_growth
+        if metrics.growth.lambda_effective is not None and metrics.growth.lambda_effective > 0.5:
+            notes.append(
+                "constraint/collapse series grow exponentially "
+                f"(lambda={metrics.growth.lambda_effective:.3f}); slow-collapse penalized"
+            )
+    else:
+        components["constraint_growth"] = 0.0
+
+    if metrics.physical is not None:
+        if metrics.physical.s_anec is not None:
+            components["anec_condition"] = metrics.physical.s_anec
+        else:
+            components["anec_condition"] = 0.0
+        if metrics.physical.s_tidal is not None:
+            components["tidal_comfort"] = metrics.physical.s_tidal
+        else:
+            components["tidal_comfort"] = 0.0
+        for note in metrics.physical.notes:
+            notes.append(note)
+    else:
+        components["anec_condition"] = 0.0
+        components["tidal_comfort"] = 0.0
 
     if metrics.ftl is not None:
         components["ftl_shortcut"] = metrics.ftl.f_log
