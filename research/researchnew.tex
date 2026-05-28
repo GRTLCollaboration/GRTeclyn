@@ -41,9 +41,7 @@ We outline a practical baseline for turning \texttt{GRTeclyn} into a closed-loop
 
 Most proposed interstellar metrics are designed by hand. One writes a static, highly symmetric metric ansatz, calculates the resulting stress-energy tensor using the Einstein field equations, and inspects whether it possesses FTL or shortcut properties. This traditional method is biased toward highly simplified, static geometries that humans know how to write down in closed form.
 
-By treating metric discovery as a closed-loop optimization problem, we can search a much wider, non-spherical, and dynamical space of initial data. The previous \texttt{GRTeclyn} wormhole study demonstrated that 3D numerical relativity is highly suited for tracking the nonlinear evolution, instability, and collapse of exotic geometries. 
-
-Rather than inspecting static equations, the proposed framework couples a Python-based optimization engine with the high-performance C++ GPU-accelerated AMR engine of \texttt{GRTeclyn}. This document outlines the physical, mathematical, and computational framework required to run this search engine across a GPU cluster, with a strict emphasis on deriving the matter sector and avoiding coordinate artifacts.
+By treating metric discovery as a closed-loop optimization problem, we can search a much wider, non-spherical, and dynamical space of initial data. The previous \texttt{GRTeclyn} wormhole study showed that 3D numerical relativity is well suited to tracking the nonlinear evolution, instability, and collapse of exotic geometries. Rather than inspecting static equations, the proposed framework couples a Python-based optimization engine with the high-performance C++ GPU-accelerated AMR engine of \texttt{GRTeclyn}, with a strict emphasis on deriving the matter sector and avoiding coordinate artifacts.
 
 Throughout this draft, ``FTL'' means effective faster-than-light propagation through a curved spacetime geometry compared with flat-spacetime light travel. It does not imply local superluminal motion relative to the local light cone.
 
@@ -62,13 +60,7 @@ To ensure physical viability, the ultimate success criterion is to find stable, 
 
 \subsection{Optimization as the Engine of Discovery}
 
-A foundational question is why a project aimed at the \emph{discovery} of novel, unclassified spacetimes relies so heavily on numerical \emph{optimization}. The answer lies in the dimensionality and physical constraints of the search space.
-
-The configuration space of all possible 3D initial geometries—defined by the spatial metric $\gamma_{ij}$ and the extrinsic curvature $K_{ij}$—is infinitely dimensional. If one conducts a blind, unguided search (i.e., random sampling), the probability of finding a viable candidate is vanishingly small. Virtually all randomly generated initial metrics fail immediately: they either violate the Einstein constraints, collapse into immediate singularity horizons, or disperse into trivial flat space. 
-
-Optimization provides the steering mechanism necessary to navigate this infinite space. By defining a strict objective scoring function—such as maximizing FTL signal arrival time while minimizing tidal forces and penalizing negative energy density—we establish a physics-guided fitness landscape. 
-
-The optimizer does not merely "tweak" a pre-existing geometry; instead, it acts as an evolutionary sculptor. Using a flexible basis of radial and angular functions (e.g., spherical harmonics) as its raw material, the optimizer dynamically combines these modes. Through this process, the system can discover highly non-trivial, asymmetric, or rotating geometries—such as multi-mouth portals or stabilized warp-like corridors—that have never been written down in closed-form by hand. In this framework, optimization is not merely parameter tuning; it is the mathematical mechanism of topological and geometric discovery.
+The configuration space of all 3D initial geometries---defined by $\gamma_{ij}$ and $K_{ij}$---is infinitely dimensional, and a blind random search almost never finds a viable candidate: nearly all random metrics violate the Einstein constraints, collapse into horizons, or disperse into trivial flat space. Optimization supplies the steering mechanism. By defining a strict objective (maximizing FTL benefit while penalizing tidal forces and negative energy), we establish a physics-guided fitness landscape, and the optimizer combines a flexible basis of radial and angular modes to discover non-trivial, asymmetric, or rotating geometries---multi-mouth portals or stabilized warp corridors---that have never been written in closed form by hand.
 
 \section{Initial Data and Matter Derivation}
 
@@ -117,23 +109,9 @@ To allow for non-spherical, asymmetric, or rotating geometries, we expand the pa
 \end{equation}
 This enables the search engine to discover rotating warp fields, quadrupolar configurations, and asymmetric wormhole mouths.
 
-\subsection{Level 3: Neural Field Decoder}
+\subsection{Levels 3--4: Neural and Meta-Optimization (future)}
 
-In the advanced phase, we can parameterize the initial fields using an implicit coordinate-based neural network (such as a SIREN network):
-\begin{equation}
-    (x,y,z) \xrightarrow{\text{NN}(\theta)} \{\chi,\alpha,\beta^i,K,\tilde A_{ij},\phi,\Pi\}.
-\end{equation}
-This is the most flexible option but requires a stable training loop and will be implemented only after the Level 1 and Level 2 pipelines are thoroughly validated.
-
-\subsection{Level 4: Hybrid Meta-Optimization via LLM Agents}
-
-While Level 1 and Level 2 parameter searches are managed by derivative-free numerical optimizers (such as CMA-ES), we introduce a high-level LLM-based research agent to manage the meta-optimization loop. The LLM agent does not propose raw floating-point coefficients. Instead, it operates on a feedback loop utilizing the diagnostic output of completed batches:
-
-\begin{enumerate}
-    \item \textbf{Automated Diagnostics and Debugging:} If a cluster of candidates terminates early with solver failures or constraint explosions, the LLM agent parses the raw compilation and execution logs. It diagnoses whether the failure is physical (e.g., a physical singularity) or numerical (e.g., coordinate shear, boundary reflection, or grid resolution exhaustion) and modifies the CCZ4 gauge parameters or grid settings accordingly.
-    \item \textbf{Dynamic Hypothesis and Basis Selection:} If the numerical optimizer plateaus in a local minimum, the LLM agent generates new physical hypotheses. It instructs the Python scheduler to modify the parameterization, such as enabling specific angular modes, changing the scalar-field potential $V(\phi)$, or altering the initialization of the shift vector $\beta^i$.
-    \item \textbf{Automated Code Adaptation:} For complex physical setups, the agent writes example-local C++ headers (e.g., custom potentials or initial-data functors), runs pre-flight compilation checks, and resolves compiler warnings before launching new search episodes.
-\end{enumerate}
+Two extensions are planned once Levels 1--2 are validated. \emph{Level 3} replaces the basis expansion with an implicit coordinate-based neural network (e.g.\ a SIREN), $(x,y,z)\xrightarrow{\text{NN}(\theta)}\{\chi,\alpha,\beta^i,K,\tilde A_{ij},\phi,\Pi\}$, for maximal flexibility at the cost of a stable training loop. \emph{Level 4} adds an LLM-based meta-agent that consumes batch diagnostics to classify failures (physical vs.\ numerical), retune CCZ4 gauge/grid settings, propose new angular modes or potentials when the optimizer plateaus, and auto-generate example-local C++ initial-data headers.
 
 \section{GPU Cluster Architecture and Program Boundary}
 
@@ -614,9 +592,7 @@ A candidate should be promoted only if it (i)~completes the requested run time, 
 \section{CMA-ES vs.\ Reinforcement Learning}
 \label{sec:cma_vs_rl}
 
-The current pipeline is black-box evolutionary optimization, not reinforcement learning.  CMA-ES maintains $\mathcal{N}(\mathbf{m}, \sigma^2 \mathbf{C})$, samples candidates each generation, ranks them by $f(\theta)=-S(\theta)$, and updates $(\mathbf{m}, \mathbf{C}, \sigma)$.  There are no policy networks, value functions, or gradients through the PDE solver.  The ``weights'' are the scoring weights $w_k$ in Table~\ref{tab:score_weights} (user hyperparameters), not neural parameters.
-
-RL would apply only if the problem becomes sequential---e.g., mid-evolution gauge adjustments or an LLM meta-agent choosing basis modes from batch failure statistics (Level~4).  Three distinct weight sets appear in this project: scoring weights $w_k$, CMA-ES search-state $(\mathbf{m}, \mathbf{C})$, and (future) neural-field decoder weights at Level~3.
+The current pipeline is black-box evolutionary optimization, not reinforcement learning.  CMA-ES maintains $\mathcal{N}(\mathbf{m}, \sigma^2 \mathbf{C})$, samples candidates each generation, ranks them by $f(\theta)=-S(\theta)$, and updates $(\mathbf{m}, \mathbf{C}, \sigma)$; there are no policy networks, value functions, or gradients through the PDE solver.  The ``weights'' are the scoring weights $w_k$ in Table~\ref{tab:score_weights} (user hyperparameters), not neural parameters.  RL would apply only if the problem became sequential---e.g.\ mid-evolution gauge adjustments or an LLM meta-agent choosing basis modes (Level~4).
 
 \section{Avoiding Fake FTL (Operational Probe Tests)}
 
@@ -670,385 +646,59 @@ The first paper will present:
 
 \section{Implemented: Constraint-Satisfying Metric Guesser}
 
-The core technical challenge for the automated search is that arbitrary initial data almost always violates the Einstein constraint equations, causing immediate junk radiation, gauge failure, and solver crashes. We have implemented a six-component pipeline that bridges the gap between random metric proposals and physically meaningful evolutions.
-
-\subsection{Physics of the Constraint Gap}
-
-For the conformally flat recipe ($\tilde\gamma_{ij} = \delta_{ij}$, $A_{ij} = 0$), the Einstein constraints reduce to:
+Arbitrary initial data almost always violates the Einstein constraints, causing junk radiation, gauge failure, and solver crashes. For the conformally flat recipe ($\tilde\gamma_{ij}=\delta_{ij}$, $A_{ij}=0$) the constraints reduce to
 \begin{align}
-    R[\chi] + \frac{2}{3}K^2 &= 16\pi\rho, \label{eq:ham_recipe} \\
-    -\frac{2}{3}D^i K &= 8\pi j^i. \label{eq:mom_recipe}
+    R[\chi] + \tfrac{2}{3}K^2 &= 16\pi\rho, \label{eq:ham_recipe} \\
+    -\tfrac{2}{3}D^i K &= 8\pi j^i. \label{eq:mom_recipe}
 \end{align}
-For a scalar field with $\Pi = 0$ (momentarily static), the momentum density $j^i = -\Pi\,\partial^i\phi = 0$, so the momentum constraint requires $D^i K = 0$---that is, $K$ must be spatially constant. If the recipe generates spatially varying $K$ with $\Pi = 0$, the momentum constraint is violated. If $\chi$ and $\phi$ are independently random, the Hamiltonian constraint is violated.
+With a scalar field at $\Pi=0$ (momentarily static), $j^i=0$, so the momentum constraint requires $K$ spatially constant; independently random $\chi$ and $\phi$ violate the Hamiltonian constraint. We bridge this gap with the implemented pipeline summarized below.
 
-\subsection{Component 1: Constrained Recipe (Python Pre-Processing)}
+\subsection{Pipeline components}
 \label{sec:constrained_recipe}
 
-Rather than guessing $\phi$ independently, we derive it from $\chi$ so that the Hamiltonian constraint is approximately satisfied at $t=0$. The implementation (\texttt{constrained\_recipe.py}) performs the following steps:
-
 \begin{enumerate}
-    \item Lock $K$ to a spatial constant (use \texttt{recipe\_K\_asymptotic}, zero out all $K$ Gaussian coefficients). This exactly satisfies the momentum constraint when $\Pi = 0$.
-    \item Lock $\Pi = 0$ (zero out all $\Pi$ coefficients).
-    \item Evaluate $\chi(r)$ on a fine 1D radial grid from the proposed Gaussian basis coefficients.
-    \item Compute the 3-Ricci scalar using $R = -8\psi^{-5}\nabla^2\psi$ where $\psi = \chi^{-1/4}$.
-    \item Solve for $\phi(r)$ via radial integration of
-    \begin{equation}
-        \left(\frac{d\phi}{dr}\right)^2 = s\,\chi\,\frac{R + \frac{2}{3}K^2}{8\pi},
-    \end{equation}
-    where $s = +1$ for a normal scalar field and $s = -1$ for a phantom field. Regions where the integrand is negative are flagged as unsatisfiable.
-    \item Fit the resulting $\phi(r)$ back to Gaussian basis coefficients via least-squares, and inject them into \texttt{params.txt}.
+    \item \textbf{Constrained recipe} (\texttt{constrained\_recipe.py}, flag \texttt{--constrained}): lock $K=\mathrm{const}$ and $\Pi=0$ (satisfying the momentum constraint), then \emph{derive} $\phi$ from the proposed $\chi$ rather than guessing it independently. We evaluate $\chi(r)$ on a fine radial grid, compute $R=-8\psi^{-5}\nabla^2\psi$ with $\psi=\chi^{-1/4}$, integrate $\left(d\phi/dr\right)^2 = s\,\chi(R+\tfrac{2}{3}K^2)/8\pi$ ($s=\pm1$ for normal/phantom matter), and fit $\phi(r)$ back to Gaussian coefficients. The optimizer then searches only over $\chi$; $\phi$ is always consistent.
+    \item \textbf{Pre-flight filter} (\texttt{preflight.py}, flag \texttt{--preflight}): reject candidates whose 1D $\|H\|_{L^2}$ or $\|M_i\|_{L^2}$ exceed thresholds, or with $\chi<0$ over $>10\%$ of the grid, without spending GPU time.
+    \item \textbf{Energy-density diagnostic} (\texttt{RadialRecipeLevel.cpp}): compute the required energy density $\rho_{\rm req}=\frac{1}{16\pi}(R+\tfrac{2}{3}K^2-A_{ij}A^{ij})$ at every grid point and write $\min$, $\max$, and integrated negative-$\rho_{\rm req}$ volume to \texttt{constraint\_norms.dat}.
+    \item \textbf{Scoring} (\texttt{score.py}): the multi-component objective of Table~\ref{tab:score_weights}.
+    \item \textbf{CMA-ES driver} (\texttt{optimize.py}): default 5--9D search over $\chi$ (and $\alpha,\beta^x$) coefficients and basis width; each evaluation runs a full episode and returns $-S$.
+    \item \textbf{Known-solution seeds} (\texttt{seeds.py}): flat Minkowski (exact, static to machine precision), Ellis--Bronnikov (exact isotropic $\chi,\phi$ fit to the basis), and a Schwarzschild puncture (Brill--Lindquist $\psi=1+M/2\bar r$). Selected via \texttt{--seed-name}; validation IDs via \texttt{--candidate-id}; non-spherical via \texttt{--nonspherical-id}.
+    \item \textbf{Plotfile extraction} (\texttt{consume\_plotfiles.py}): extract shell profiles, areal-radius, and \texttt{chi}/\texttt{lapse}/\texttt{K} frames, then delete the heavy \texttt{RadialRecipePlt*} directories.
+    \item \textbf{GPU scripts}: \texttt{run\_radialrecipe\_gpu\_smoke.sh} (single seed/candidate), \texttt{run\_radialrecipe\_gpu\_promote.sh} ($t=5$ resolution ladder), \texttt{run\_nonspherical\_gpu\_batch.sh} (ray-sane batch), and \texttt{run\_optimize\_loop.sh} (AMR CMA-ES, one candidate per GPU).
 \end{enumerate}
 
-This is activated by the \texttt{--constrained} flag in the CLI. The optimizer then searches only over $\chi$ coefficients and basis parameters; $\phi$ is always derived consistently.
+\subsection{Verification and validation}
 
-\subsection{Component 2: Pre-Flight Constraint Filter}
+A saved test suite (\texttt{tests/test\_constrained\_guesser.py}) exercises five groups---known seeds, random normal/phantom $\chi$ profiles, edge cases, and paired constraint-improvement trials---for \textbf{74/74 passing assertions} (\texttt{numpy 2.4.6}, seed 42). All random and edge cases yield finite $\phi$ with bounded fit residuals; flat Minkowski stays exact ($\|H\|_{L^2}=0$); locking $K=\mathrm{const}$, $\Pi=0$ drives $\|M_i\|_{L^2}=0$; constrained overrides reduce $\|H\|_{L^2}$ in 4/5 trials; and pathological inputs are rejected. The known operating envelope is that the constrained recipe is a fast \emph{first pass}: wide-throat ($b_0\ge1$) wormholes and vacuum Schwarzschild exceed what 8--12 Gaussians represent on the conformally flat ansatz and fail pre-flight (full 3D solving, e.g.\ \texttt{GRTresna}, remains required there), while the C++ 3D diagnostic loop provides the authoritative verdict.
 
-Before launching \texttt{GRTeclyn} on the GPU, the wrapper evaluates the Hamiltonian and momentum constraint residuals on a coarse 1D radial grid (\texttt{preflight.py}). Candidates with $\|H\|_{L^2}$ or $\|M_i\|_{L^2}$ exceeding configurable thresholds, or with $\chi < 0$ in more than 10\% of the grid, are rejected without spending GPU time. This is activated by the \texttt{--preflight} flag.
-
-\subsection{Component 3: Energy Density Diagnostic (C++)}
-
-We extended \texttt{RadialRecipeLevel.cpp} to compute the vacuum Hamiltonian constraint (without matter subtraction) at every grid point, giving the \emph{required} energy density:
-\begin{equation}
-    \rho_{\rm required}(\mathbf{x}) = \frac{1}{16\pi}\left(R + \frac{2}{3}K^2 - A_{ij}A^{ij}\right).
-\end{equation}
-Three new columns are written to \texttt{constraint\_norms.dat} at every diagnostic step: $\min(\rho_{\rm req})$, $\max(\rho_{\rm req})$, and the integrated volume of negative $\rho_{\rm req}$. These allow the Python scorer to evaluate energy-condition compliance without a separate post-processing pass.
-
-\subsection{Component 4: Enhanced Scoring}
-
-The episode scorer (\texttt{score.py}) combines log-amplified FTL shortcut, expansion asymmetry, non-flat geometry, co-moving and Eulerian stability, survival, constraint health, lapse health, horizon penalty, nontrivial geometry, energy condition, and initial constraint quality (Table~\ref{tab:score_weights}).
-
-\subsection{Component 5: CMA-ES Optimization Driver}
-
-The random atlas search has been supplemented with a CMA-ES (Covariance Matrix Adaptation Evolution Strategy) optimizer (\texttt{optimize.py}). The default search space consists of the four $\chi$ Gaussian basis coefficients and the basis width (5 dimensions). Each evaluation runs a full \texttt{GRTeclyn} episode and returns the negative total score. The optimizer is invoked via:
-\begin{verbatim}
-python -m grteclyn_wrapper \
-    --example RadialRecipe \
-    --constrained --preflight optimize \
-    --max-generations 50 --seed 42
-\end{verbatim}
-CMA-ES automatically adjusts the search distribution based on the fitness landscape, concentrating evaluations in promising regions of the coefficient space.
-
-\subsection{Component 6: Known-Solution Seeds}
-
-Three analytically known spacetimes are provided as regression benchmarks and optimizer warm-start points (\texttt{seeds.py}):
-
-\begin{enumerate}
-    \item \textbf{Flat Minkowski}: $\chi = 1$, all coefficients zero. All constraints are exactly satisfied; the evolution should remain static to machine precision.
-    \item \textbf{Ellis--Bronnikov wormhole}: The exact isotropic $\chi$ and $\phi$ profiles (Eqs.~7 and 11) are fitted to the Gaussian basis via least-squares. This verifies that the recipe basis can faithfully represent a known exotic geometry.
-    \item \textbf{Schwarzschild puncture}: The Brill--Lindquist conformal factor $\psi = 1 + M/(2\bar{r})$ fitted to Gaussians. A vacuum solution that tests the recipe's ability to handle steep $\chi$ gradients near a singularity.
-\end{enumerate}
-
-These seeds are selected via \texttt{--seed-name} and can be combined with the optimizer to search for perturbations around known solutions. Validation-batch IDs (\texttt{random\_000}, \texttt{bubble\_wall\_016}, \ldots) are selected via \texttt{--candidate-id}; non-spherical proposals via \texttt{--nonspherical-id} (see Sec.~\ref{sec:gpu_nonspherical}).
-
-\subsection{Component 7: Plotfile extraction and frame cleanup}
-
-The runtime now treats AMReX plotfiles as transient data products rather than permanent artifacts.  During each GPU episode, \texttt{consume\_plotfiles.py} extracts shell profiles, areal-radius diagnostics, and centered PNG frames for \texttt{chi}, \texttt{lapse}, and \texttt{K}.  The heavy \texttt{RadialRecipePlt*} directories are deleted after successful extraction.
-
-Two implementation details are important for robust cluster operation.  First, the live plotfile consumer renders frames before deletion, while the post-run drain uses \texttt{--keep-existing-frames} and \texttt{--stable-seconds 0} so that late plotfiles are appended rather than clearing earlier frames.  Second, the wrapper launches the live consumer in its own process group and terminates that group after the C++ evolution finishes.  This prevents orphaned worker processes from holding deleted HDF5 files open as NFS \texttt{.nfs*} busy files.
-
-\subsection{Component 8: GPU smoke and promotion scripts}
-
-Three bash entry points automate the Python$\to$C++$\to$GPU loop on the cluster:
-\begin{itemize}
-    \item \texttt{run\_radialrecipe\_gpu\_smoke.sh}: build (optional), dry-run, \texttt{check\_params}, and short evolution for one seed or candidate;
-    \item \texttt{run\_radialrecipe\_gpu\_promote.sh}: resolution ladder at $t=5$ for promoted radial survivors only;
-    \item \texttt{run\_nonspherical\_gpu\_batch.sh}: parallel batch over all ray-sane non-spherical IDs.
-    \item \texttt{run\_optimize\_loop.sh}: AMR-enabled CMA-ES loop using one candidate per GPU per generation.
-\end{itemize}
-Episode outputs live under \texttt{runs/radialrecipe\_gpu\_smoke/}, \texttt{runs/radialrecipe\_gpu\_promote/}, and \texttt{runs/radialrecipe\_nonspherical/}, each with \texttt{params.txt}, \texttt{metadata.json}, \texttt{run.log}, and \texttt{data/constraint\_norms.dat}.
-
-\subsection{Verification Tests}
-
-All six components are verified by a saved Python test suite:
-
-\begin{verbatim}
-cd grteclyn-wrapper
-uv run python tests/test_constrained_guesser.py
-\end{verbatim}
-
-The script exercises five groups of checks (74 assertions total) before any GPU time is spent.
-
-\subsubsection{Test groups}
-
-\begin{enumerate}
-    \item \textbf{Known analytical seeds} (6 cases): flat Minkowski, Ellis--Bronnikov wormholes at $b_0 \in \{0.5, 1.0, 2.0\}$, and Schwarzschild punctures at $M \in \{0.5, 1.0\}$.
-    \item \textbf{Random $\chi$ profiles, normal field} (8 cases): $\chi$ coefficients drawn from $\mathcal{N}(0, 0.15^2)$ with $N \in [3,8]$, basis width $w \in [0.3, 2.5]$, and $K \in [-0.3, 0.3]$.
-    \item \textbf{Random $\chi$ profiles, phantom field} (8 cases): same layout with larger $\chi$ perturbations and $K \in [-0.5, 0.5]$.
-    \item \textbf{Edge cases} (7 cases): very narrow/wide basis, $N=1$ and $N=12$, nearly singular $\chi$, non-zero $K$, depressed asymptotic $\chi$.
-    \item \textbf{Constraint improvement} (5 paired trials): compare pre-flight Hamiltonian $L^2$ before and after \texttt{constrained\_overrides}, with random independent $\phi$, $K$, and $\Pi$.
-\end{enumerate}
-
-\subsubsection{Results summary}
-
-On the reference run (\texttt{numpy 2.4.6}, seed 42): \textbf{74/74 checks passed}.
-
-\begin{itemize}
-    \item \textbf{Robustness}: all 16 random profiles and all 7 edge cases produced finite $\phi$ coefficients with bounded Gaussian fit residuals ($< 1$). No NaNs or crashes.
-    \item \textbf{Flat Minkowski}: $\phi$ coefficients remain exactly zero; pre-flight passes with $\|H\|_{L^2} = 0$.
-    \item \textbf{Momentum constraint}: locking $K$ to a spatial constant and $\Pi = 0$ drives $\|M_i\|_{L^2} = 0$ in all five improvement trials.
-    \item \textbf{Hamiltonian improvement}: in 4/5 random trials, constrained overrides reduced $\|H\|_{L^2}$ (best case: $3.9 \times 10^{-1} \to 2.2 \times 10^{-1}$). One trial regressed slightly ($2.5 \times 10^{-1} \to 2.7 \times 10^{-1}$, $\sim 7\%$) due to Gaussian fit error in the derived $\phi$; the test suite allows up to 15\% regression to account for this discretisation noise.
-    \item \textbf{Pathological rejection}: deliberately bad inputs ($\chi_0 = -5$, spatially varying $K$) are rejected by pre-flight with multiple independent criteria.
-\end{itemize}
-
-\subsubsection{Known limitations (expected behaviour)}
-
-\begin{enumerate}
-    \item \textbf{EB $\phi$ recovery is approximate, not exact}: re-deriving $\phi$ from the Gaussian-fitted $\chi$ via finite-difference Ricci integration yields $\max|\phi_{\rm orig} - \phi_{\rm derived}| \approx 0.2$ for $b_0 = 0.5$. The seed's $\phi$ was fit analytically; the constraint solver recomputes from the discrete $\chi$ profile, so throat-resolution error is expected.
-    \item \textbf{Wide-throat wormholes fail pre-flight}: Ellis--Bronnikov seeds with $b_0 \ge 1.0$ report $\|H\|_{L^2} \sim 10^2$--$10^2$ on the coarse 1D grid. Steep throat curvature exceeds what 8--12 Gaussians can represent; more basis functions or narrower widths are needed.
-    \item \textbf{Vacuum Schwarzschild fails pre-flight without matter}: puncture $\chi$ alone cannot satisfy $H = 0$ with $\phi = 0$ on the recipe's conformally flat ansatz. Pre-flight correctly flags $\|H\|_{L^2} \sim 10^1$--$10^2$. Full 3D constraint solving (e.g.\ \texttt{GRTresna}) remains required for vacuum BH initial data.
-    \item \textbf{Pre-flight is a heuristic filter, not a proof}: the 1D radial check uses 512--2048 points and finite-difference derivatives. The definitive constraint evaluation happens in the C++ \texttt{RadialRecipeLevel} diagnostic loop on the full 3D grid.
-\end{enumerate}
-
-These limitations define the intended operating envelope: the constrained recipe is a fast \emph{first pass} that eliminates the worst violations and locks the momentum constraint, while the C++ evolution and scoring pipeline provide the authoritative physics verdict.
-
-\subsection{Guesser Validation Harness}
-
-The regression suite in \texttt{test\_constrained\_guesser.py} checks that known cases and edge cases do not crash. A separate batch harness validates the \emph{guesser itself} on synthetic geometries that are \textbf{not} exact known metrics, without any optimizer feedback loop.
-
-\subsubsection{How to run}
-
-\begin{verbatim}
-cd grteclyn-wrapper
-uv run python tests/validate_metric_guesser.py \
-    --output-dir validation_out
-# or via CLI:
-uv run python -m grteclyn_wrapper validate \
-    --output-dir validation_out
-\end{verbatim}
-
-\subsubsection{What it does}
-
-\begin{enumerate}
-    \item Generates a fixed deterministic candidate set (seed 42): 12 random Gaussian profiles, 3 shells, 3 Alcubierre-inspired bubble walls, 3 multi-shell profiles, 3 pathological cases, and 3 bad controls.
-    \item Validates each candidate \emph{raw} (random independent $\phi$, $K$, $\Pi$) and \emph{constrained} (derived $\phi$, locked $K$, $\Pi=0$).
-    \item Records diagnostics: $\chi$ range, $\phi$ fit residual, unsatisfiable-source fraction, required energy density, raw vs.\ constrained preflight residuals.
-    \item Classifies each outcome with an explicit label and reason.
-    \item Writes \texttt{guesser\_validation.csv} and \texttt{guesser\_validation\_summary.json}.
-\end{enumerate}
-
-\subsubsection{How the initial $\chi(r)$ profile is drawn}
-
-The metric guesser starts by proposing the conformal factor $\chi(r)$ on a radial grid. In the C++ recipe this is represented by a Gaussian radial basis:
-
-\begin{equation}
-    \chi(r) = \chi_\infty + \sum_{n=0}^{N-1} c_n
-    \exp\left[-\frac{(r-r_n)^2}{2w^2}\right],
-\end{equation}
-
-where $\chi_\infty$ is the asymptotic value (usually 1), $c_n$ are the guessed coefficients, $w$ is the shared basis width, and the nodes $r_n$ are uniformly spaced from $0$ to \texttt{recipe\_basis\_radius\_max}. This is the actual shape that \texttt{RadialRecipeInitialData} places on the AMReX grid.
-
-The validation harness draws several families of $\chi(r)$:
-
-\begin{itemize}
-    \item \textbf{Random Gaussian profiles}: directly sample the coefficients $c_n$ from a controlled normal distribution.
-    \item \textbf{Shells}: build a target radial shell, then fit it back into the Gaussian basis.
-    \item \textbf{Bubble walls}: use an Alcubierre-style top-hat shape function only as a radial wall proxy, then fit the wall into the Gaussian basis.
-    \item \textbf{Multi-shells}: combine two radial shells to test more complex geometries.
-    \item \textbf{Pathological/bad controls}: deliberately create steep gradients, narrow basis functions, negative $\chi$, spatially varying $K$, or random $\Pi$.
-\end{itemize}
-
-After $\chi(r)$ is drawn, the constrained recipe does \emph{not} guess $\phi(r)$ independently. Instead, it computes the Ricci scalar from $\chi$, solves the Hamiltonian constraint for $\partial_r\phi$, integrates to obtain $\phi(r)$, and fits that result back into the same Gaussian basis.
-
-\subsubsection{Current symmetry limitation}
-
-The first-stage metric guesser is intentionally spherically symmetric. All guessed fields depend only on the radius,
-\begin{equation}
-    \chi=\chi(r), \qquad K=K(r), \qquad \phi=\phi(r), \qquad \Pi=\Pi(r),
-\end{equation}
-with $r=\sqrt{x^2+y^2+z^2}$. The spatial metric ansatz is therefore conformally flat and radial,
-\begin{equation}
-    \gamma_{ij} = \chi(r)^{-1}\delta_{ij}.
-\end{equation}
-This means the current search can draw smooth spherical blobs, shells, and radial bubble-wall proxies, but it cannot yet represent tilted bubbles, rotating structures, multiple separated mouths, or a true moving Alcubierre bubble.
-
-This restriction is deliberate for the first validation stage: radial symmetry makes it easier to test the constraint solver, energy diagnostics, Gaussian basis fitting, and the Python-to-C++ handoff. Once the present constrained radial solution is validated dynamically, the next symmetry-breaking extension should introduce angular modes, for example spherical harmonics,
-\begin{equation}
-    \chi(r,\theta,\varphi)
-    =
-    \chi_0(r)
-    +
-    \sum_{\ell,m} c_{\ell m}(r)Y_{\ell m}(\theta,\varphi).
-\end{equation}
-This would allow lopsided bubbles, multi-mouth portal-like structures, and genuinely non-spherical warp geometries.
-
-\subsubsection{First non-spherical ray validation}
-
-As a first implementation step toward symmetry breaking, the Python wrapper now supports axisymmetric angular deformations of the radial conformal factor:
-\begin{equation}
-    \chi(r,\theta)
-    =
-    \chi_0(r)
-    +
-    \sum_a
-    A_a
-    \exp\left[-\frac{(r-r_a)^2}{2w_a^2}\right]
-    P_{\ell_a}(\cos\theta),
-\end{equation}
-where $P_\ell$ are Legendre polynomials. The same ansatz is now implemented in \texttt{RadialRecipeInitialData} (C++) via \texttt{recipe\_num\_chi\_angular\_modes} and per-mode keys \texttt{recipe\_chi\_mode\_ell\_*}, \texttt{recipe\_chi\_mode\_amp\_*}, \texttt{recipe\_chi\_mode\_rc\_*}, \texttt{recipe\_chi\_mode\_rw\_*}. A complementary path uses full scalar spherical harmonics $Y_{\ell m}(\theta,\varphi)$ through \texttt{recipe\_num\_chi\_Ylm\_modes} and \texttt{recipe\_chi\_Ylm\_l\_*}, \texttt{recipe\_chi\_Ylm\_m\_*}, etc., evaluated with the existing \texttt{SphericalHarmonics::spin\_Y\_lm} routine ($s=0$).
-
-The first validation is a one-step metric sanity check along several 1D radial rays ($\theta=0,\pi/4,\pi/2,3\pi/4,\pi$). For each candidate we measure:
-
-\begin{itemize}
-    \item the minimum and maximum $\chi$ across all sampled rays;
-    \item the fraction of ray samples with $\chi\le0$;
-    \item the maximum angular contrast $\max_\theta\chi(r,\theta)-\min_\theta\chi(r,\theta)$;
-    \item the corresponding radial stretch range $a(r,\theta)=\chi(r,\theta)^{-1/2}$.
-\end{itemize}
-
-The command is:
-\begin{verbatim}
-cd grteclyn-wrapper
-uv run python tests/validate_nonspherical_guesser.py \
-    --output-dir validation_out
-\end{verbatim}
-
-The reference run (seed 42) produced 8 non-spherical candidates: 7 were classified as \texttt{accepted\_ray\_sane}, and 1 deliberately strong quadrupole bad-control was rejected as \texttt{rejected\_negative\_chi}. The validation files are:
-\begin{itemize}
-    \item \path|nonspherical_ray_validation.csv|
-    \item \path|nonspherical_ray_validation_summary.json|
-\end{itemize}
-
-This ray validation only checks whether the non-spherical metric proposal remains positive and geometrically reasonable along sampled directions. It does \emph{not} solve the non-spherical Hamiltonian or momentum constraints on its own. The GPU results in Sec.~\ref{sec:gpu_nonspherical} show that ray-sane candidates also survive short 3D \texttt{RadialRecipe} evolution once the constrained $\phi$ recipe and C++ angular initial data are enabled.
-
-\subsubsection{Profile visualisation}
-
-Representative profiles can be plotted with:
-
-\begin{verbatim}
-cd grteclyn-wrapper
-uv run --extra plots python \
-    tests/plot_metric_profiles.py \
-    --output-dir validation_out
-\end{verbatim}
-
-This writes one figure per showcase candidate (e.g.\ \texttt{random\_000.png}, \texttt{bubble\_wall\_015.png}). Each figure is a $2\times2$ panel that tells the full pipeline story for a single candidate:
-
-\begin{enumerate}
-    \item \textbf{Top-left --- Guessed geometry} $a(r) = \chi^{-1/2}$: the radial proper-distance stretch factor. Purple shading above $a=1$ means space is stretched; orange shading below $a=1$ means space is compressed. This is the intuitive ``shape of space'' the guesser proposes.
-    \item \textbf{Top-right --- Conformal factor} $\chi(r)$: the internal variable stored on the grid.  Red shading below $\chi=0$ means the metric is invalid.
-    \item \textbf{Bottom-left --- Derived scalar field} $\phi(r)$: derived from the Hamiltonian constraint so that matter is consistent with the geometry.
-    \item \textbf{Bottom-right --- Required energy density} $\rho_{\rm req}(r)$: \emph{the physics verdict}. Green shading above zero means normal matter can support the geometry. Red shading below zero means exotic (negative) energy is required there.
-\end{enumerate}
-
-A bold verdict banner at the bottom of each figure states \texttt{ACCEPTED} or \texttt{REJECTED} with the classification reason.
-
-\subsubsection{Representative validation figures}
-
-Figures~\ref{fig:random000}, \ref{fig:random001}, and \ref{fig:badcontrol024} show the representative validation outputs. Each figure follows the same four-panel format:
-
-\begin{enumerate}
-    \item the guessed radial geometry stretch $a(r)=\chi^{-1/2}$;
-    \item the stored conformal factor $\chi(r)$;
-    \item the scalar field $\phi(r)$ derived from the Hamiltonian constraint;
-    \item the required energy density proxy $\rho_{\rm req}(r)$.
-\end{enumerate}
-
-The right-bottom panel is the main physics verdict. Green regions indicate $\rho_{\rm req}\ge0$ and are compatible with normal positive energy. Red regions indicate $\rho_{\rm req}<0$, meaning that the geometry requires exotic matter in that radial interval.
+A separate batch harness (\texttt{validate\_metric\_guesser.py}) classifies synthetic proposals without any optimizer feedback. It draws families of $\chi(r)$ (random Gaussian, shells, Alcubierre-style bubble walls, multi-shells, and bad controls), derives $\phi$, and labels each outcome: \texttt{accepted\_normal}, \texttt{accepted\_phantom}, \texttt{rejected\_negative\_chi}, \texttt{rejected\_unsatisfiable\_source}, \texttt{rejected\_high\_constraint}, \texttt{rejected\_fit\_error}, or \texttt{rejected\_exotic\_energy}. On the seed-42 reference set (27 candidates): 7 \texttt{accepted\_phantom}, 19 \texttt{rejected\_exotic\_energy}, 1 \texttt{rejected\_negative\_chi}. Most random/shell profiles fail the normal-matter energy check because $\rho_{\rm req}<0$ over part of the grid; this is intended---the harness separates numerical constructibility from physical viability under positive energy (Fig.~\ref{fig:random000}).
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.85\columnwidth]{figures/random_000.png}
-    \caption{\textbf{Accepted phantom random candidate.} The geometry is numerically constructible and the pre-flight constraints remain controlled. The required energy density contains negative regions, so it is accepted only in the phantom/exotic-matter class.}
+    \caption{\textbf{Accepted phantom random candidate.} Four-panel verdict: guessed stretch $a(r)=\chi^{-1/2}$, stored $\chi(r)$, derived scalar $\phi(r)$, and required energy density $\rho_{\rm req}(r)$. The geometry is numerically constructible with controlled pre-flight constraints, but $\rho_{\rm req}<0$ in places (red), so it is accepted only in the phantom/exotic-matter class.}
     \label{fig:random000}
 \end{figure}
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.85\columnwidth]{figures/random_001.png}
-    \caption{\textbf{Rejected normal-matter random candidate.} The guessed geometry and derived scalar field are well-defined, but $\rho_{\rm req}(r)$ becomes negative. Since this candidate is in the normal-matter class, it is rejected as \texttt{rejected\_exotic\_energy}.}
-    \label{fig:random001}
-\end{figure}
+\subsection{First non-spherical (symmetry-breaking) step}
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.85\columnwidth]{figures/bad_control_024.png}
-    \caption{\textbf{Rejected bad-control candidate.} The conformal factor $\chi(r)$ becomes negative, so the spatial metric $\gamma_{ij}=\chi^{-1}\delta_{ij}$ is invalid before any matter reconstruction or evolution.}
-    \label{fig:badcontrol024}
-\end{figure}
-
-\subsubsection{Representative non-spherical ray figures}
-
-Figures~\ref{fig:nonspherical_dipole} and \ref{fig:nonspherical_bad_control} show the first symmetry-breaking step. These come after the spherical/radial validation figures because the non-spherical ansatz is an extension of the already validated radial pipeline. Each figure should be read as follows:
-
-\begin{enumerate}
-    \item \textbf{Top-left}: a physical $(x,z)$ cross-section of $\chi(x,z)$. This is the easiest panel to read as the proposed non-spherical shape.
-    \item \textbf{Top-right}: the corresponding spatial stretch $a(x,z)=\chi^{-1/2}$. Larger values mean more radial proper-distance stretching.
-    \item \textbf{Bottom-left}: the angular shape of $\chi$ at the radius where the deformation is strongest. A perfect circle would mean spherical symmetry; departures from a circle show the broken symmetry.
-    \item \textbf{Bottom-right}: the angular contrast $\max_\theta\chi-\min_\theta\chi$ as a function of radius. This shows where the non-spherical deformation is concentrated.
-\end{enumerate}
+The first guesser is intentionally spherically symmetric ($\gamma_{ij}=\chi(r)^{-1}\delta_{ij}$), which simplifies testing of the constraint solver and Python$\to$C++ handoff but cannot represent tilted, rotating, or multi-mouth structures. The first symmetry-breaking extension adds axisymmetric angular deformations,
+\begin{equation}
+    \chi(r,\theta) = \chi_0(r) + \sum_a A_a\,e^{-(r-r_a)^2/2w_a^2}\,P_{\ell_a}(\cos\theta),
+\end{equation}
+with $P_\ell$ Legendre polynomials, implemented in \texttt{RadialRecipeInitialData} via \texttt{recipe\_chi\_mode\_*} keys (and full $Y_{\ell m}$ via \texttt{recipe\_chi\_Ylm\_*}). A one-step ray check ($\theta=0,\tfrac{\pi}{4},\tfrac{\pi}{2},\tfrac{3\pi}{4},\pi$) verifies $\chi>0$ and measures angular contrast. The seed-42 run produced 8 candidates: 7 \texttt{accepted\_ray\_sane} (Fig.~\ref{fig:nonspherical_dipole}) and 1 strong-quadrupole bad-control rejected as \texttt{rejected\_negative\_chi}. This ray check does not solve the non-spherical constraints; the GPU results in Sec.~\ref{sec:gpu_nonspherical} confirm the ray-sane candidates also survive short 3D evolution.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.85\columnwidth]{figures/dipole_lopsided_000.png}
-    \caption{\textbf{Accepted non-spherical dipole candidate.} The $l=1$ mode makes the geometry lopsided: one side of the cross-section is compressed/stretched differently from the other. The key result is that $\chi$ stays positive everywhere in the sampled section, so the metric is geometrically valid at this first ray-check level.}
+    \caption{\textbf{Accepted non-spherical dipole candidate.} The $\ell=1$ mode makes the geometry lopsided. Panels show the $(x,z)$ cross-section of $\chi$, the stretch $a=\chi^{-1/2}$, the angular shape of $\chi$, and the radial angular contrast. $\chi$ stays positive throughout, so the metric is valid at this first ray-check level.}
     \label{fig:nonspherical_dipole}
 \end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.85\columnwidth]{figures/strong_quadrupole_bad_003.png}
-    \caption{\textbf{Rejected non-spherical bad control.} The same type of angular deformation is made too strong. The cross-section shows regions where $\chi<0$, which makes $\gamma_{ij}=\chi^{-1}\delta_{ij}$ invalid. This is rejected before any constraint solve or C++ evolution because the metric itself is not admissible.}
-    \label{fig:nonspherical_bad_control}
-\end{figure}
-
-\subsubsection{Classification labels}
-
-\begin{itemize}
-    \item \texttt{accepted\_normal}: normal scalar supports the geometry; preflight passes; no large negative energy.
-    \item \texttt{accepted\_phantom}: phantom scalar required; preflight passes (exotic matter allowed).
-    \item \texttt{rejected\_negative\_chi}: invalid metric positivity.
-    \item \texttt{rejected\_unsatisfiable\_source}: Hamiltonian source has wrong sign over most of the grid.
-    \item \texttt{rejected\_high\_constraint}: preflight Hamiltonian or momentum residual too large.
-    \item \texttt{rejected\_fit\_error}: derived $\phi$ cannot be represented by the Gaussian basis.
-    \item \texttt{rejected\_exotic\_energy}: negative required energy density too large for a normal-matter search.
-\end{itemize}
-
-\subsubsection{Reference run (seed 42, 27 candidates)}
-
-\begin{itemize}
-    \item \texttt{accepted\_phantom}: 7
-    \item \texttt{rejected\_exotic\_energy}: 19
-    \item \texttt{rejected\_negative\_chi}: 1 (bad-control with $\chi_0 = -1.2$)
-\end{itemize}
-
-Most random and shell profiles fail the normal-matter energy check even when preflight passes, because the required energy density $\rho_{\rm req}$ is negative over part of the grid. Phantom-field candidates can pass. This is the intended behaviour: the harness separates \emph{numerical constructibility} from \emph{physical viability under positive energy}.
-
-\subsubsection{Difference from regression tests and optimization}
-
-\begin{itemize}
-    \item \textbf{Regression tests} (\texttt{test\_constrained\_guesser.py}): fixed assertions on known seeds and edge cases; pass/fail for CI.
-    \item \textbf{Validation harness} (\texttt{validate\_metric\_guesser.py}): dataset-style batch over synthetic proposals; explains \emph{why} each geometry is accepted or rejected.
-    \item \textbf{Optimization} (\texttt{optimize} subcommand): feedback loop that adapts coefficients from scores. Not used here.
-    \item \textbf{GPU bridge (completed May 2026)}: short \texttt{RadialRecipe} C++ evolutions now run from the wrapper for seeds, validation candidates, and non-spherical proposals. See Secs.~\ref{sec:gpu_radial_smoke}--\ref{sec:gpu_nonspherical}.
-\end{itemize}
 
 \subsection{GPU/C++ RadialRecipe smoke validation}
 \label{sec:gpu_radial_smoke}
 
-The Python wrapper and \path|Examples/RadialRecipe/| executable are now connected end-to-end on a single NVIDIA H100 GPU. The automated pipeline is implemented in \path|grteclyn-wrapper/scripts/run_radialrecipe_gpu_smoke.sh|. It invokes the wrapper's \texttt{reproduce} subcommand with \texttt{--constrained}, \texttt{--preflight}, and \texttt{--phantom} as needed.
-
-\subsubsection{Build and launch conventions}
-
-Following the same pattern as \texttt{SupportedWormholeCollapse}, single-GPU smoke builds use
-\begin{verbatim}
-cd Examples/RadialRecipe
-make COMP=gnu USE_CUDA=TRUE USE_MPI=FALSE \
-    CUDA_ARCH=90 -j
-\end{verbatim}
-This produces \texttt{main3d.gnu.CUDA.ex} without requiring \texttt{mpicxx} on \texttt{PATH}. Multi-GPU production runs remain available via \texttt{USE\_MPI=TRUE} and the local OpenMPI install under \path|simulation/local/openmpi-5.0.8|. The wrapper selects \texttt{main3d.gnu.MPI.CUDA.ex} only when \texttt{--mpi-ranks}$>1$.
-
-Each episode performs: (i)~Python dry-run generation of \texttt{params.txt}; (ii)~C++ \texttt{check\_params=1}; (iii)~short GPU evolution; (iv)~parsing of \texttt{constraint\_norms.dat}, \texttt{collapse\_diagnostics.dat}, and \texttt{score.json}.
-
-\subsubsection{Initial-data sources}
-
-The CLI now accepts three equivalent entry points, resolved in \texttt{candidates.py}:
-\begin{itemize}
-    \item \texttt{--seed-name} (e.g.\ \texttt{ellis\_bronnikov}) from \texttt{seeds.py};
-    \item \texttt{--candidate-id} (e.g.\ \texttt{bubble\_wall\_016}, \texttt{random\_000}) from the deterministic validation set (\texttt{validate\_guesser}, seed 42);
-    \item \texttt{--nonspherical-id} (e.g.\ \texttt{quadrupole\_bubble\_001}) from \texttt{nonspherical\_guesser.py}, mapped to C++ angular-mode parameters by \texttt{nonspherical\_to\_overrides()}.
-\end{itemize}
-
-For every constrained run the wrapper zeros all \texttt{recipe\_K\_coeff\_*} and \texttt{recipe\_Pi\_coeff\_*}, derives \texttt{recipe\_phi\_coeff\_*} from $\chi$, writes the episode \texttt{params.txt}, and launches the CUDA binary with \texttt{CUDA\_VISIBLE\_DEVICES} set per job.
+The Python wrapper and \path|Examples/RadialRecipe/| executable are connected end-to-end on a single NVIDIA H100 GPU via \path|run_radialrecipe_gpu_smoke.sh|. Single-GPU builds use \texttt{make COMP=gnu USE\_CUDA=TRUE USE\_MPI=FALSE CUDA\_ARCH=90} (producing \texttt{main3d.gnu.CUDA.ex}); multi-GPU production runs use \texttt{USE\_MPI=TRUE} and \texttt{main3d.gnu.MPI.CUDA.ex}. Each episode performs (i)~Python dry-run \texttt{params.txt} generation, (ii)~C++ \texttt{check\_params}, (iii)~short GPU evolution, and (iv)~parsing of \texttt{constraint\_norms.dat}, \texttt{collapse\_diagnostics.dat}, and \texttt{score.json}. Initial data enters via three equivalent CLI entry points (\texttt{--seed-name}, \texttt{--candidate-id}, \texttt{--nonspherical-id}); every constrained run zeros all $K$ and $\Pi$ coefficients and derives $\phi$ from $\chi$.
 
 \subsubsection{Radial smoke results ($t=2$, $N_{\rm full}=64$, $\Delta t = 0.02$)}
 
@@ -1079,11 +729,7 @@ At $t=2$, increasing $N_{\rm full}$ from 64 to 128 leaves $\|H\|_{L^2}$ near $5\
 
 \subsubsection{AMR closed-loop test}
 
-The closed-loop optimizer has been exercised on the GPU cluster with corrected full-domain RadialRecipe geometry.  Run \texttt{optimize\_20260528T055206Z} used $L_{\rm full}=64$, $N_{\rm full}=128$, \texttt{max\_level=2}, two CMA-ES generations, and eight GPUs (16 evaluations).  With the stability-aware objective, the best candidate is \texttt{eval\_000013}:
-\begin{equation}
-    S_{\rm best} = 4.116,\qquad s_{\rm stability} = 0.085,
-\end{equation}
-with $\texttt{recipe\_chi\_coeff\_0}=-0.491$, $\texttt{recipe\_basis\_width}=0.843$.  Table~\ref{tab:amr_optimize} lists the top short-run scores.  Every AMR-optimized survivor has $s_{\rm stability}\lesssim 0.09$---well below the 0.25 promotion threshold---confirming that the optimizer was still exploiting the stop-time gap before stability weighting took effect.  Late-time $K$ slices show focusing/collapse even for the best candidate; stability scoring now penalizes this behavior directly.
+The closed-loop optimizer has been exercised on the cluster with full-domain geometry. Run \texttt{optimize\_20260528T055206Z} used $L_{\rm full}=64$, $N_{\rm full}=128$, \texttt{max\_level=2}, two CMA-ES generations, and eight GPUs (16 evaluations); the best candidate \texttt{eval\_000013} reached $S=4.12$ at $s_{\rm stability}=0.085$ (Table~\ref{tab:amr_optimize}). Every AMR-optimized survivor has $s_{\rm stability}\lesssim 0.09$---well below the 0.25 promotion threshold---confirming that the optimizer was still exploiting the stop-time gap, with late-time $K$ slices showing focusing/collapse even for the best candidate. Stability scoring now penalizes this directly.
 
 \begin{table*}[t]
 \caption{Top AMR CMA-ES candidates (\texttt{optimize\_20260528T055206Z}, $t=2$, stability-aware scoring).}
@@ -1173,8 +819,50 @@ A numerical optimum is a coefficient list, not a paper-ready metric.  Once a sta
     \item Reload the analytic profile in \texttt{GRTeclyn} via a custom initial-data module and verify stability and energy conditions match the numerical discovery---completing the cycle from automated search to exact analytical solutions.
 \end{enumerate}
 
+\section{Proposed Extensions: Metrics, Search, and Robustness}
+\label{sec:proposed}
+
+The campaigns above expose three structural limitations.  First, the score is a mostly $t=0$ proxy that the optimizer can game---the dynamical stability gap.  Second, the energy and FTL verdicts are coordinate-frame dependent.  Third, every score evaluation costs a full GPU evolution.  We outline concrete extensions targeting each; all are compatible with the existing \texttt{score.py}/\texttt{ftl\_metrics.py} interfaces.
+
+\subsection{New physical metrics}
+
+\begin{itemize}
+    \item \textbf{Operational probe FTL (gauge-robust).}  Augment the static $F_{\rm null}$ with a dynamically measured arrival-time advantage: emit a massless scalar pulse (or null-geodesic tracer bundle) at boundary $A$ and compare its first-arrival time at detector $B$ against an identical pulse on a flat-space control evolved on the \emph{same} grid, slicing seed, and probe data,
+    \begin{equation}
+        F_{\rm op} = \frac{t_B^{\rm flat} - t_B^{\rm curved}}{t_B^{\rm flat}},
+        \label{eq:f_op}
+    \end{equation}
+    accepted only if the path crosses no trapped surface and constraints stay bounded during transit.  Sharing the control grid cancels most coordinate ambiguity, making a positive $F_{\rm op}$ the strongest available FTL evidence.
+    \item \textbf{Constraint growth rate (closes the stability gap).}  Survival to $t_{\max}$ does not separate equilibrium from slow collapse.  Fit the late-time constraint norm to $\|H\|_{L^2}(t)\sim\|H\|_0\,e^{\lambda t}$ and penalize the rate directly,
+    \begin{equation}
+        s_{\rm growth} = r\!\left(\max(0,\lambda);\,\sigma_\lambda\right),
+        \qquad
+        \lambda = \frac{d}{dt}\ln\|H\|_{L^2},
+        \label{eq:s_growth}
+    \end{equation}
+    so a geometry that merely outlives a short window ($\lambda>0$) is penalized while a true equilibrium ($\lambda\approx0$) is not.  The same $\lambda$-fit on $\chi_{\min}(t)$ and $|K|_{\max}(t)$ gives extrapolative collapse indicators \emph{without} longer, costlier runs.
+    \item \textbf{Averaged Null Energy Condition along the probe.}  The Eulerian $\rho_{\rm req}\ge0$ test is a coordinate loophole.  The physically meaningful viability quantity is the ANEC integral along the probe null geodesic $\gamma$,
+    \begin{equation}
+        \mathcal{A} = \int_\gamma T_{\mu\nu}\,k^\mu k^\nu\,d\lambda,
+        \label{eq:anec}
+    \end{equation}
+    with the Ford--Roman quantum-inequality scale as the rejection threshold.  Scoring $\min(\mathcal{A},0)$ targets exactly the energy-condition violation warp/wormhole metrics are known to require, not a frame artifact.
+    \item \textbf{Coordinate-invariant tidal metric.}  Replace the Eulerian geometry-change proxies with curvature invariants: the Kretschmann scalar $\mathcal{K}=R_{abcd}R^{abcd}$ as a singularity proxy, and the electric Weyl eigenvalues $E_{ij}=C_{i0j0}$ contracted along the passenger worldline as the actual rider tidal force, $T_{\rm tidal}=\max_{\rm passenger}|\mathrm{eig}(E_{ij})|$.  Both are gauge-invariant survivability bounds.
+    \item \textbf{Apparent-horizon test.}  Upgrade the $r_H$ proxy to a genuine apparent-horizon finder; reject any candidate forming a marginally trapped surface enclosing the passenger region, the unambiguous collapse signal.
+\end{itemize}
+
+\subsection{Optimizing the search}
+
+\begin{itemize}
+    \item \textbf{Constraint-solved initial data (largest single win).}  Promote Path~B (elliptic/\texttt{GRTresna}) from future work to default, so every proposal is \emph{exactly} constraint-satisfying before evolution.  This removes junk radiation, lets the optimizer attribute score changes to geometry rather than constraint noise, and makes $\lambda$ in Eq.~\eqref{eq:s_growth} interpretable.
+    \item \textbf{Surrogate-assisted, multi-fidelity search.}  Train a cheap regressor (Gaussian process or small MLP) on the growing $(\theta\to S)$ archive and reject low-predicted-score proposals before they reach the GPU; the analytic $t=0$ terms ($F_{\rm null},F_{\rm portal},F_{\rm asym}$, preflight) are a near-free lower-fidelity oracle.  Formalize the Tier-1/Tier-2 ladder as asynchronous successive halving (Hyperband/ASHA): evaluate a large population at $(N{=}64,t{=}2)$, promote the top fraction to $(96,5)$ then $(128,10)$, allocating node-hours logarithmically toward survivors.
+    \item \textbf{Multi-objective Pareto search.}  The scalarized $S=\sum_k w_k s_k$ forces hand-tuned trade-offs and is the root cause of the flat-space-attractor weighting hacks.  Replace it with NSGA-II or MO-CMA-ES over the conflicting axes $(F_{\rm FTL},\,-E_{\rm exotic},\,-\lambda,\,-T_{\rm tidal})$ and report the Pareto front, yielding the FTL-vs-exotic-energy trade surface without pre-committing to weights.
+    \item \textbf{Quality-Diversity for the Failure Atlas.}  The stated ``Spacetime Failure Atlas'' deliverable is a quality-diversity problem, not single-optimum search.  MAP-Elites (or CMA-ME) over behavior descriptors---e.g.\ (throat pinch $F_{\rm throat}$, warp velocity $\langle\beta^x\rangle$, exotic-energy fraction)---keeps the best candidate per behavior cell, illuminating the whole constructibility map in one campaign, resisting premature convergence, and directly supplying the diverse training set for the Level-4 agent.
+    \item \textbf{Hybrid gradient refinement and basis growth.}  The $t=0$ score is differentiable in $\theta$ (autodiff through recipe$+$preflight); use L-BFGS on this static surrogate to polish CMA-ES means cheaply, reserving dynamic evaluation for validation.  Grow the basis coarse-to-fine ($N{=}4\to16$ as the covariance contracts) to avoid wasting early evaluations in high dimensions, and add re-evaluation-based noise handling (UH-CMA-ES) for the stochastic score.
+\end{itemize}
+
 \section{Conclusion}
 
-This project moves interstellar metric search from static, hand-written ans\"atze toward dynamic, GPU-driven discovery.  The pipeline now closes the loop from Python parameter proposals through constrained C++ evolution, stability-aware scoring, and plotfile extraction.  Tables~\ref{tab:gpu_radial_smoke}--\ref{tab:amr_optimize} quantify the stability gap quantitatively: reference seeds score $s_{\rm stability}\sim 0.3$--$0.7$ over $t=2$, while AMR-optimized candidates remain below $0.09$.  Phase~1--4 above turn this working prototype into a rigorous map of physical constructibility boundaries and, ultimately, a path to new exact solutions in general relativity.
+This project moves interstellar metric search from static, hand-written ans\"atze toward dynamic, GPU-driven discovery.  The pipeline now closes the loop from Python parameter proposals through constrained C++ evolution, stability-aware scoring, and plotfile extraction.  Tables~\ref{tab:gpu_radial_smoke}--\ref{tab:amr_optimize} quantify the stability gap quantitatively: reference seeds score $s_{\rm stability}\sim 0.3$--$0.7$ over $t=2$, while AMR-optimized candidates remain below $0.09$.  Phase~1--4 above, together with the gauge-robust metrics and quality-diversity search proposed in Sec.~\ref{sec:proposed}, turn this working prototype into a rigorous map of physical constructibility boundaries and, ultimately, a path to new exact solutions in general relativity.
 
 \end{document}
