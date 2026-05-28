@@ -237,7 +237,7 @@ At the highest level, the total score $S(\theta)$ for a candidate parameter set 
 
 where:
 \begin{itemize}
-    \item $F_{\text{FTL}}$ is the measured FTL shortcut benefit (determined via the operational probe test, not yet implemented);
+    \item $F_{\text{FTL}}$ is the measured FTL shortcut benefit from $t=0$ profile integrals (Sec.~\ref{sec:ftl_scoring}); dynamic operational probes remain a Tier-2 validation step.
     \item $\mathcal{H}_{\text{violation}}$ is the integrated volume norm of the Hamiltonian constraint violation;
     \item $E_{\text{exotic}}$ is the integrated volume of negative energy density ($T_{00} < 0$);
     \item $T_{\text{tidal}}$ is the maximum tidal force felt by an observer in the passenger region (future).
@@ -252,26 +252,28 @@ In the current codebase (\texttt{score.py}), every component $s_k$ is mapped thr
 \end{equation}
 where $v\ge 0$ is the measured violation magnitude and $\sigma$ is a scale that controls how sharply the reward decays.  The value $r=1$ means perfect, $r=0.5$ means $v=\sigma$, and $r\to 0$ for $v\gg\sigma$.
 
-The total score is a weighted sum over eight components:
+The total score is a weighted sum over ten components:
 \begin{equation}
-    S(\theta) = \sum_{k=1}^{8} w_k\,s_k(\theta).
+    S(\theta) = \sum_{k=1}^{10} w_k\,s_k(\theta).
 \end{equation}
 
 \begin{table}[H]
-\caption{Default scoring weights and their physical meaning. Each component $s_k \in [-1, 1]$.}
+\caption{Default scoring weights and their physical meaning. Each component $s_k \in [-1, 1]$ unless noted.}
 \label{tab:score_weights}
 \small
 \begin{ruledtabular}
-\begin{tabular}{lcp{0.45\columnwidth}}
+\begin{tabular}{lcp{0.42\columnwidth}}
 Component $s_k$ & $w_k$ & Meaning \\
 \hline
+FTL shortcut & 5.0 & $F_{\rm FTL}$ from $t=0$ profile integrals; see Sec.~\ref{sec:ftl_scoring}. \\
+Non-flat geometry & 1.5 & $s_{\rm nonflat}$: rewards spatial deformation of $\chi$ and $\beta^x$. \\
 Survival & 2.0 & $t_{\rm final}/t_{\rm target}$, capped at 1. Did the run complete? \\
-Constraint health & 2.0 & $\frac{1}{2}r(\|H\|;\,10^{-2})+\frac{1}{2}r(\|M\|;\,10^{-2})$. Are Einstein's equations satisfied? \\
-Lapse health & 1.0 & $\alpha_{\min}/10^{-3}$, capped at 1. Did the lapse collapse? \\
-Horizon penalty & 1.0 & $-\min(r_{\rm AH},1)$. Detected black hole formation. \\
-Nontrivial geometry & 0.5 & $\log(1+|K|+|\phi|+|\Pi|)$. Is the geometry doing something, or is it flat? \\
-Energy condition & 1.5 & $r(\int \rho_{\rm neg}\,dV;\,10^{-2})$. How much exotic matter is required? \\
-Initial constraint & 1.0 & $r(\|H\|_{t=0};\,10^{-3})$. Was the initial data clean? \\
+Constraint health & 2.0 & $\frac{1}{2}r(\|H\|;\,10^{-2})+\frac{1}{2}r(\|M\|;\,10^{-2})$. \\
+Lapse health & 1.0 & $\alpha_{\min}/10^{-3}$, capped at 1. \\
+Horizon penalty & 1.0 & $-\min(r_{\rm AH},1)$. \\
+Nontrivial geometry & 0.5 & $\log(1+|K|+|\phi|+|\Pi|)$. \\
+Energy condition & 1.5 & $r(\int \rho_{\rm neg}\,dV;\,10^{-2})$. \\
+Initial constraint & 1.0 & $r(\|H\|_{t=0};\,10^{-3})$. \\
 Stability & 2.0 & $r(\Delta_{\rm geom};\,1)$; see Sec.~\ref{sec:stability_scoring}. \\
 \end{tabular}
 \end{ruledtabular}
@@ -281,12 +283,165 @@ Stability & 2.0 & $r(\Delta_{\rm geom};\,1)$; see Sec.~\ref{sec:stability_scorin
 
 The weights $w_k$ define which physics the optimizer cares about.  For example:
 \begin{itemize}
+    \item The FTL shortcut weight ($w_{\rm FTL}=5.0$) is the largest, so candidates with measurable warp/portal/throat structure outrank flat Minkowski survivors that merely score well on stability and constraints.
     \item Setting $w_{\rm energy}$ very high ($\gg 1$) forces the search toward normal-matter geometries. Lowering it allows phantom/exotic matter candidates to survive.
-    \item The FTL component ($w_1 F_{\rm FTL}$) is not yet active because the operational probe test is not implemented.  When it is enabled, it will dominate the score, and the optimizer will steer toward geometries that actually produce a measurable shortcut.
-    \item The weights are user-configurable via a dictionary parameter, so different research campaigns can target different physics (e.g., maximize stability vs.\ maximize FTL benefit).
+    \item The weights are user-configurable via \texttt{--score-weight} and a dictionary parameter in \texttt{score.py}.
 \end{itemize}
 
 All weights are \emph{hyperparameters}, not learned parameters.  They are fixed before a search campaign begins and are not updated during optimization.
+
+\subsection{FTL shortcut metrics (implemented)}
+\label{sec:ftl_scoring}
+
+Without an active FTL term, CMA-ES can maximize score via flat, stable spacetimes.  \texttt{ftl\_metrics.py} reconstructs $t=0$ profiles from recipe coefficients and evaluates three complementary shortcut indicators on the $x$-axis (integration limits $\pm L$).
+
+\subsubsection{Warp null-ray shortcut}
+
+For conformally flat spatial slices ($\tilde\gamma_{xx}=\chi^{-1}$), a null ray along $x$ has coordinate velocity
+\begin{equation}
+    \frac{dx}{dt} = \alpha(x)\sqrt{\chi(x)} - \beta^x(x).
+\end{equation}
+The coordinate travel time is
+\begin{equation}
+    T_{\rm curved} = \int_{-L}^{L}\frac{dx}{\alpha\sqrt{\chi}-\beta^x}, \qquad
+    T_{\rm flat} = 2L,
+\end{equation}
+and the warp component is
+\begin{equation}
+    F_{\rm null} = \max\!\left(0,\,\frac{T_{\rm flat}-T_{\rm curved}}{T_{\rm flat}}\right).
+\end{equation}
+Paths with $\min(\alpha\sqrt{\chi}-\beta^x)$ below a floor are rejected (anti-fake-FTL guard).
+
+\subsubsection{Portal proper-distance shortcut}
+
+The proper distance along the axis is
+\begin{equation}
+    D_{\rm proper} = \int_{-L}^{L}\chi^{-1/2}(r)\,dr, \qquad
+    F_{\rm portal} = \max\!\left(0,\,\frac{2L-D_{\rm proper}}{2L}\right),
+\end{equation}
+targeting compression bubbles with $\chi>1$ in the interior.
+
+\subsubsection{Wormhole throat pinch}
+
+Using $R_{\rm areal}=r/\sqrt{\chi}$ on the radial half-line, detect an interior local minimum $R_{\rm min}$ and compare to the asymptotic radius $R_{\rm asymp}$:
+\begin{equation}
+    F_{\rm throat} = \max\!\left(0,\,1-\frac{R_{\rm min}}{R_{\rm asymp}}\right).
+\end{equation}
+
+\subsubsection{Anti-flatness and combined objective}
+
+Flat Minkowski must not win the search.  Define
+\begin{equation}
+    s_{\rm nonflat} = \min\!\left(1,\,\frac{\max|\chi-1|+\max|\beta^x|}{\tau}\right),
+\end{equation}
+with scale $\tau\sim 0.08$.  The optimizer-facing FTL reward is
+\begin{equation}
+    F_{\rm FTL} = \max(F_{\rm null},F_{\rm portal},F_{\rm throat})\cdot s_{\rm nonflat}.
+\end{equation}
+All $F$ components are rewards in $[0,1]$; \textbf{higher is better}.  CMA-ES adds $5.0\,F_{\rm FTL}+1.5\,s_{\rm nonflat}$ to the total score.  The C++ initial-data module now loads $\beta^x(r)$ via \texttt{recipe\_beta\_coeff\_*} (Gaussian basis), and the default search space includes $\alpha$ and $\beta$ coefficients alongside $\chi$.
+
+\subsubsection{Validation: FTL scoring across reference seeds}
+
+Table~\ref{tab:ftl_validation} presents the computed FTL metrics for every reference seed in the pipeline, evaluated at $L=8$ ($1024$ integration points).  The results confirm that the scoring function correctly resolves three qualitatively distinct FTL mechanisms while assigning exactly zero to trivial geometries.
+
+\begin{table}[H]
+\caption{FTL metric scores for reference spacetime seeds ($L=8$).  All values are dimensionless rewards in $[0,1]$.}
+\label{tab:ftl_validation}
+\small
+\begin{ruledtabular}
+\begin{tabular}{lccccc}
+Seed & $F_{\rm null}$ & $F_{\rm portal}$ & $F_{\rm throat}$ & $s_{\rm nonflat}$ & $F_{\rm FTL}$ \\
+\hline
+Flat Minkowski & 0 & 0 & 0 & 0 & \textbf{0} \\
+Alcubierre $v=0.3$ & 0.063 & 0 & 0 & 1.0 & \textbf{0.063} \\
+Alcubierre $v=0.5$ & 0.094 & 0 & 0 & 1.0 & \textbf{0.094} \\
+Alcubierre $v=0.8$ & 0.131 & 0 & 0 & 1.0 & \textbf{0.131} \\
+Alcubierre $v=0.95$ & 0.145 & 0 & 0 & 1.0 & \textbf{0.145} \\
+Alcubierre $v=2.0$ & 0.216 & 0 & 0 & 1.0 & \textbf{0.216} \\
+Ellis--Bronnikov & 0 & 0 & 0.945 & 1.0 & \textbf{0.945} \\
+Schwarzschild & 0 & 0 & 0.878 & 1.0 & \textbf{0.878} \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+Table~\ref{tab:ftl_warp_detail} provides a physical interpretation of the Alcubierre warp-drive null-ray timing as a function of bubble velocity $v_s$.
+
+\begin{table}[H]
+\caption{Null-ray timing decomposition for the Alcubierre warp seed (bubble radius $R=2$, $\sigma=1$, $L=8$).  $T_{\rm flat}=16$ for all entries.}
+\label{tab:ftl_warp_detail}
+\small
+\begin{ruledtabular}
+\begin{tabular}{ccccc}
+$v_s$ & $T_{\rm curved}$ & $\Delta T/T_{\rm flat}$ & $\max|dx/dt|$ & Regime \\
+\hline
+0.3 & 14.99 & $6.3\%$  & 1.30 & sub-luminal \\
+0.5 & 14.49 & $9.4\%$  & 1.50 & sub-luminal \\
+0.8 & 13.91 & $13.1\%$ & 1.80 & sub-luminal \\
+1.0 & 13.60 & $15.0\%$ & 2.00 & luminal \\
+2.0 & 12.54 & $21.6\%$ & 3.00 & super-luminal \\
+3.0 & 11.90 & $25.6\%$ & 4.00 & super-luminal \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+\subsubsection{Why FTL scoring resolves the flat-space attractor}
+\label{sec:ftl_attractor}
+
+Without an active FTL objective, the CMA-ES fitness landscape contains a degenerate global attractor at flat Minkowski space.  This section explains the mechanism, its severity, and why the three-component $F_{\rm FTL}$ score eliminates it.
+
+\paragraph{The problem: trivial geometry dominates.}
+The non-FTL scoring components---survival, constraint health, lapse health, stability---are all maximized simultaneously by the Minkowski metric ($\alpha=1$, $\chi=1$, $\beta^x=0$, $K=0$): it survives to any $t_{\rm target}$, has zero constraint violation, maintains perfect lapse, and has $s_{\rm stability}=1$.  Its total non-FTL score is
+\begin{equation}
+    S_{\rm flat}^{(\text{no-FTL})} = 2.0 + 2.0 + 1.0 + 0 + 0 + 1.5 + 1.0 + 2.0 = 9.5.
+\end{equation}
+Any deformation away from flatness introduces constraint violation ($-2.0\,w_{\rm constr}$) and possible instability ($-2.0\,w_{\rm stab}$), yielding $S<9.5$.  Thus, without FTL pressure the optimizer converges to the trivial fixed point.
+
+\paragraph{The solution: gradient toward structure.}
+With $F_{\rm FTL}$ active at weight $w_{\rm FTL}=5.0$, flat space scores $F_{\rm FTL}=0$ because $s_{\rm nonflat}=0$ (no deformation) and $T_{\rm curved}=T_{\rm flat}$ (no shortcut).  A candidate with even modest warp structure gains $+5\times 0.094 = +0.47$ (for $v=0.5$), offsetting small constraint penalties.  The Ellis--Bronnikov throat produces $+5\times 0.945 = +4.73$, dominating the entire fitness landscape.  Schematically:
+\begin{equation}
+    S_{\rm warp}(v{=}0.5) \approx 9.0 + 5.0\times0.094 + 1.5\times1.0 \approx 11.0 > S_{\rm flat} = 9.5.
+\end{equation}
+The optimizer now faces a \emph{positive gradient} pointing away from flatness toward FTL structure.
+
+\paragraph{Three complementary channels prevent local minima.}
+Each metric component rewards a geometrically distinct mechanism:
+\begin{enumerate}
+    \item \textbf{$F_{\rm null}$ (shift-driven warp):} Sensitive to $\beta^x$-shaped bubbles that accelerate null rays.  Activated by increasing $|\texttt{recipe\_beta\_coeff}|$.
+    \item \textbf{$F_{\rm portal}$ (spatial compression):} Sensitive to $\chi>1$ compression that shortens proper distance.  Activated by negative $\texttt{recipe\_chi\_coeff}$ (reducing conformal factor).
+    \item \textbf{$F_{\rm throat}$ (topological pinch):} Sensitive to local minima in $R_{\rm areal}=r/\sqrt{\chi}$.  Activated by sharp $\chi$ peaks.
+\end{enumerate}
+Because these channels are independent (warp uses $\beta^x$; portal uses $\chi$ compression; throat uses $\chi$ peaks), the CMA-ES covariance matrix learns to explore them in parallel.  If one channel stalls due to stability penalties, the optimizer can shift probability mass to another.
+
+\paragraph{The $s_{\rm nonflat}$ gate.}
+The multiplicative anti-flatness factor $s_{\rm nonflat}\in[0,1]$ closes a secondary exploit.  Without it, a near-flat metric with tiny numerical rounding could produce $F_{\rm null}>0$ from discretization noise.  Because $s_{\rm nonflat}=0$ whenever $\max|\chi-1|+\max|\beta^x|<\tau=0.08$, a near-flat candidate is silenced regardless of its raw shortcut value.
+
+\paragraph{Search-space coupling.}
+The expanded CMA-ES search vector now contains $\alpha$ and $\beta^x$ coefficients (Table~\ref{tab:search_space}).  The optimizer can simultaneously shape the conformal factor for stability/constraints \emph{and} the shift for warp drive acceleration:
+\begin{equation}
+    \theta = \bigl(\underbrace{c_0^\chi, c_1^\chi, c_2^\chi, c_3^\chi}_{\text{geometry/throat}},\;\underbrace{w}_{\text{basis width}},\;\underbrace{c_0^\alpha, c_1^\alpha}_{\text{lapse shaping}},\;\underbrace{c_0^\beta, c_1^\beta}_{\text{warp drive}}\bigr).
+\end{equation}
+This nine-dimensional search space is the minimal parameterization that simultaneously spans warp, portal, and throat geometries while remaining tractable for CMA-ES population sizes $\lambda\sim20$.
+
+\begin{table}[H]
+\caption{CMA-ES search dimensions with bounds.  All coefficients are dimensionless amplitudes for the Gaussian basis expansion.}
+\label{tab:search_space}
+\small
+\begin{ruledtabular}
+\begin{tabular}{lccc}
+Parameter & Lower & Upper & Initial \\
+\hline
+\texttt{recipe\_chi\_coeff\_0} & $-0.5$ & $0.1$ & $-0.1$ \\
+\texttt{recipe\_chi\_coeff\_1} & $-0.3$ & $0.3$ & $0$ \\
+\texttt{recipe\_chi\_coeff\_2} & $-0.2$ & $0.2$ & $0$ \\
+\texttt{recipe\_chi\_coeff\_3} & $-0.2$ & $0.2$ & $0$ \\
+\texttt{recipe\_basis\_width} & $0.3$ & $3.0$ & $1.0$ \\
+\texttt{recipe\_alpha\_coeff\_0} & $-0.3$ & $0.3$ & $0$ \\
+\texttt{recipe\_alpha\_coeff\_1} & $-0.3$ & $0.3$ & $0$ \\
+\texttt{recipe\_beta\_coeff\_0} & $-0.5$ & $0.5$ & $0$ \\
+\texttt{recipe\_beta\_coeff\_1} & $-0.5$ & $0.5$ & $0$ \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
 
 \subsection{Dynamical stability scoring (implemented)}
 \label{sec:stability_scoring}
@@ -391,7 +546,7 @@ Teo-like & Quadrupole dynamics & Non-spherical benchmark \\
 
 \section{Implementation Status}
 
-The pipeline stages are now largely in place: regression and plotfile cleanup (\texttt{reproduce}), custom C++ RadialRecipe initial data, constrained pre-flight filtering, energy-density diagnostics, eight-component scoring (including stability), GPU smoke/promotion scripts, non-spherical batching, and a multi-GPU CMA-ES loop (\texttt{run\_optimize\_loop.sh}).  Remaining near-term items are the Slurm constraint atlas, operational FTL probes, multi-observer energy checks, and production-scale optimization campaigns (Sec.~\ref{sec:forward_path}).
+The pipeline stages are now largely in place: regression and plotfile cleanup (\texttt{reproduce}), custom C++ RadialRecipe initial data (including $\beta^x$ shift recipe), constrained pre-flight filtering, energy-density diagnostics, ten-component scoring (FTL, stability, constraints), GPU smoke/promotion scripts, non-spherical batching, and a multi-GPU CMA-ES loop (\texttt{run\_optimize\_loop.sh}).  Remaining near-term items are the Slurm constraint atlas, dynamic operational FTL probes, multi-observer energy checks, and production-scale optimization campaigns (Sec.~\ref{sec:forward_path}).
 
 \section{Expected First Result}
 
@@ -452,7 +607,7 @@ Three new columns are written to \texttt{constraint\_norms.dat} at every diagnos
 
 \subsection{Component 4: Enhanced Scoring}
 
-The episode scorer (\texttt{score.py}) combines survival, constraint health, lapse health, horizon penalty, nontrivial geometry, energy condition, initial constraint quality, and dynamical stability (Table~\ref{tab:score_weights}).  All weights are configurable, enabling task-specific objectives (e.g., stability-first vs.\ FTL-first campaigns).
+The episode scorer (\texttt{score.py}) combines FTL shortcut, non-flat geometry, survival, constraint health, lapse health, horizon penalty, nontrivial geometry, energy condition, initial constraint quality, and dynamical stability (Table~\ref{tab:score_weights}).
 
 \subsection{Component 5: CMA-ES Optimization Driver}
 
@@ -874,6 +1029,7 @@ The closed-loop pipeline has executed its first optimization campaigns (Sec.~\re
 
 \begin{enumerate}
     \item \textbf{Tune stability scoring.}  The current $\Delta_{\rm geom}$ sum is live in \texttt{score.py} (weight 2.0).  Next: calibrate scales, extend stop times ($t=5$--$10$), and require $s_{\rm stability}>0.25$ for promotion.
+    \item \textbf{FTL profile scoring (done).}  $F_{\rm FTL}$ from \texttt{ftl\_metrics.py} is active with $w_{\rm FTL}=5.0$; next tier is dynamic axis-probe confirmation after evolution.
     \item \textbf{Basis and width sweeps.}  Automated sweeps over $N\in[4,16]$ and $w\in[0.3,2.5]$ map the fit residual $\epsilon_{\rm fit}$ and set the minimum safe CMA-ES dimensionality.
     \item \textbf{Gauge stability to $t=5$.}  Extend the seven non-spherical survivors (Table~\ref{tab:gpu_nonspherical}) and promoted radial seeds through $t=5$ on the $N_{\rm full}=64,96,128$ ladder to verify $1+\log$ slicing and Gamma-driver shift under deformed geometry.
 \end{enumerate}

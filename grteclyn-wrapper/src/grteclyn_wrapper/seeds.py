@@ -55,10 +55,12 @@ def flat_minkowski(
     for n in range(num_bases):
         overrides[f"recipe_chi_coeff_{n}"] = 0.0
         overrides[f"recipe_alpha_coeff_{n}"] = 0.0
+        overrides[f"recipe_beta_coeff_{n}"] = 0.0
         overrides[f"recipe_K_coeff_{n}"] = 0.0
         overrides[f"recipe_phi_coeff_{n}"] = 0.0
         overrides[f"recipe_Pi_coeff_{n}"] = 0.0
         chi_vec.append(0.0)
+    overrides["recipe_beta_asymptotic"] = 0.0
 
     return Seed(
         name="flat_minkowski",
@@ -119,9 +121,11 @@ def ellis_bronnikov_wormhole(
     for n in range(num_bases):
         overrides[f"recipe_chi_coeff_{n}"] = chi_coeffs[n]
         overrides[f"recipe_alpha_coeff_{n}"] = 0.0
+        overrides[f"recipe_beta_coeff_{n}"] = 0.0
         overrides[f"recipe_K_coeff_{n}"] = 0.0
         overrides[f"recipe_phi_coeff_{n}"] = phi_coeffs[n]
         overrides[f"recipe_Pi_coeff_{n}"] = 0.0
+    overrides["recipe_beta_asymptotic"] = 0.0
 
     return Seed(
         name="ellis_bronnikov",
@@ -175,9 +179,11 @@ def schwarzschild_puncture(
     for n in range(num_bases):
         overrides[f"recipe_chi_coeff_{n}"] = chi_coeffs[n]
         overrides[f"recipe_alpha_coeff_{n}"] = 0.0
+        overrides[f"recipe_beta_coeff_{n}"] = 0.0
         overrides[f"recipe_K_coeff_{n}"] = 0.0
         overrides[f"recipe_phi_coeff_{n}"] = 0.0
         overrides[f"recipe_Pi_coeff_{n}"] = 0.0
+    overrides["recipe_beta_asymptotic"] = 0.0
 
     return Seed(
         name="schwarzschild_puncture",
@@ -189,6 +195,76 @@ def schwarzschild_puncture(
         overrides=overrides,
         chi_vector=chi_coeffs,
     )
+
+
+def alcubierre_warp(
+    velocity: float = 0.5,
+    bubble_radius: float = 2.0,
+    sigma: float = 1.0,
+    num_bases: int = 8,
+    basis_width: float = 0.8,
+    basis_radius_max: float = 8.0,
+    n_fit_points: int = 2048,
+) -> Seed:
+    """Alcubierre-like warp bubble: flat chi/alpha with a radial shift profile.
+
+    beta^x(r) = -velocity * f(r) with the standard top-hat shape function f.
+    """
+    basis = RecipeBasis(
+        num_bases=num_bases,
+        basis_width=basis_width,
+        basis_radius_max=basis_radius_max,
+    )
+
+    r_min = basis_radius_max / n_fit_points
+    r = np.linspace(r_min, 2.0 * basis_radius_max, n_fit_points)
+    f_r = _alcubierre_shape(r, radius=bubble_radius, sigma=sigma)
+    beta_exact = -velocity * f_r
+    beta_coeffs, beta_residual = fit_gaussian_basis(
+        r, beta_exact, basis, asymptotic=0.0,
+    )
+
+    overrides: dict[str, Any] = {
+        "recipe_num_bases": num_bases,
+        "recipe_basis_width": basis_width,
+        "recipe_basis_radius_max": basis_radius_max,
+        "recipe_chi_asymptotic": 1.0,
+        "recipe_alpha_asymptotic": 1.0,
+        "recipe_beta_asymptotic": 0.0,
+        "recipe_K_asymptotic": 0.0,
+        "recipe_phi_asymptotic": 0.0,
+        "recipe_Pi_asymptotic": 0.0,
+    }
+    for n in range(num_bases):
+        overrides[f"recipe_chi_coeff_{n}"] = 0.0
+        overrides[f"recipe_alpha_coeff_{n}"] = 0.0
+        overrides[f"recipe_beta_coeff_{n}"] = beta_coeffs[n]
+        overrides[f"recipe_K_coeff_{n}"] = 0.0
+        overrides[f"recipe_phi_coeff_{n}"] = 0.0
+        overrides[f"recipe_Pi_coeff_{n}"] = 0.0
+
+    return Seed(
+        name="alcubierre_warp",
+        description=(
+            f"Alcubierre-like shift bubble (v={velocity}, R={bubble_radius}). "
+            f"Gaussian fit residual: beta={beta_residual:.2e}."
+        ),
+        overrides=overrides,
+        chi_vector=[0.0] * num_bases,
+    )
+
+
+def _alcubierre_shape(
+    r: np.ndarray,
+    *,
+    radius: float,
+    sigma: float,
+) -> np.ndarray:
+    normalizer = 2.0 * np.tanh(sigma * radius)
+    return (
+        np.tanh(sigma * (r + radius))
+        - np.tanh(sigma * (r - radius))
+    ) / normalizer
 
 
 ALL_SEEDS: dict[str, type[...] | None] = {
@@ -204,6 +280,7 @@ def get_seed(name: str, **kwargs: Any) -> Seed:
         "flat_minkowski": flat_minkowski,
         "ellis_bronnikov": ellis_bronnikov_wormhole,
         "schwarzschild_puncture": schwarzschild_puncture,
+        "alcubierre_warp": alcubierre_warp,
     }
     if name not in factories:
         known = ", ".join(sorted(factories))
@@ -213,4 +290,4 @@ def get_seed(name: str, **kwargs: Any) -> Seed:
 
 def list_seeds() -> list[str]:
     """Return names of all available seeds."""
-    return ["flat_minkowski", "ellis_bronnikov", "schwarzschild_puncture"]
+    return ["flat_minkowski", "ellis_bronnikov", "schwarzschild_puncture", "alcubierre_warp"]

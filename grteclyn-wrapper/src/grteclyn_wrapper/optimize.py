@@ -69,6 +69,10 @@ DEFAULT_SEARCH_SPACE: list[SearchDimension] = [
     SearchDimension("recipe_chi_coeff_2", -0.2, 0.2, 0.0),
     SearchDimension("recipe_chi_coeff_3", -0.2, 0.2, 0.0),
     SearchDimension("recipe_basis_width", 0.3, 3.0, 1.0),
+    SearchDimension("recipe_alpha_coeff_0", -0.3, 0.3, 0.0),
+    SearchDimension("recipe_alpha_coeff_1", -0.3, 0.3, 0.0),
+    SearchDimension("recipe_beta_coeff_0", -0.5, 0.5, 0.0),
+    SearchDimension("recipe_beta_coeff_1", -0.5, 0.5, 0.0),
 ]
 
 
@@ -118,6 +122,7 @@ def _objective(
     trajectory: list[dict[str, Any]],
     target_stop_time: float | None,
     score_weights: Mapping[str, float] | None,
+    ftl_L: float | None = None,
     consume_plotfiles: bool = True,
     consumer_radii: Sequence[float] = (4.0, 8.0),
 ) -> float:
@@ -181,7 +186,7 @@ def _objective(
                 "simulation_exit_code": exit_code,
             })
 
-    metrics = read_episode_metrics(episode.path)
+    metrics = read_episode_metrics(episode.path, ftl_L=ftl_L)
     score = score_episode(
         metrics, target_stop_time=target_stop_time, weights=score_weights,
     )
@@ -224,6 +229,7 @@ def run_optimize(
     gpu_ids: Sequence[int] | None = None,
     check_params: bool = True,
     score_weights: Mapping[str, float] | None = None,
+    ftl_L: float | None = None,
     x0: Sequence[float] | None = None,
     consume_plotfiles: bool = True,
     consumer_radii: Sequence[float] = (4.0, 8.0),
@@ -347,6 +353,7 @@ def run_optimize(
                 trajectory=trajectory,
                 target_stop_time=target_stop_time,
                 score_weights=score_weights,
+                ftl_L=ftl_L,
                 consume_plotfiles=consume_plotfiles,
                 consumer_radii=consumer_radii,
             )
@@ -370,6 +377,7 @@ def run_optimize(
                     trajectory=trajectory,
                     target_stop_time=target_stop_time,
                     score_weights=score_weights,
+                    ftl_L=ftl_L,
                     consume_plotfiles=consume_plotfiles,
                     consumer_radii=consumer_radii,
                 )
@@ -439,6 +447,7 @@ def _evaluate_generation_parallel(
     trajectory: list[dict[str, Any]],
     target_stop_time: float | None,
     score_weights: Mapping[str, float] | None,
+    ftl_L: float | None,
     consume_plotfiles: bool,
     consumer_radii: Sequence[float],
 ) -> list[float]:
@@ -472,6 +481,7 @@ def _evaluate_generation_parallel(
             trajectory=trajectory,
             target_stop_time=target_stop_time,
             score_weights=score_weights,
+            ftl_L=ftl_L,
             consume_plotfiles=consume_plotfiles,
             consumer_radii=consumer_radii,
         )

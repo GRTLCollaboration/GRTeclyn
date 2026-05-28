@@ -4,7 +4,7 @@ import argparse
 import json
 import random
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from .atlas import run_atlas
 from .config import default_runs_dir, resolve_example, resolve_executable
@@ -53,9 +53,22 @@ def _collect_overrides(pairs: list[tuple[str, str]]) -> dict[str, Any]:
     return {key: _coerce_value(value) for key, value in pairs}
 
 
-def _finalize_score(episode_dir: Path, target_stop_time: float | None) -> int:
-    metrics = read_episode_metrics(episode_dir)
-    score = score_episode(metrics, target_stop_time=target_stop_time)
+def _parse_score_weights(pairs: list[tuple[str, str]]) -> dict[str, float]:
+    weights: dict[str, float] = {}
+    for key, raw in pairs:
+        weights[key] = float(raw)
+    return weights
+
+
+def _finalize_score(
+    episode_dir: Path,
+    target_stop_time: float | None,
+    *,
+    score_weights: Mapping[str, float] | None = None,
+    ftl_L: float | None = None,
+) -> int:
+    metrics = read_episode_metrics(episode_dir, ftl_L=ftl_L)
+    score = score_episode(metrics, target_stop_time=target_stop_time, weights=score_weights)
     write_json(
         episode_dir / "score.json",
         {
@@ -116,7 +129,12 @@ def _run_single(args: argparse.Namespace, overrides: dict[str, Any]) -> int:
         consumer_radii=args.consumer_radii,
         consumer_delete=args.consumer_delete,
     )
-    _finalize_score(episode.path, target_stop_time=overrides.get("stop_time"))
+    _finalize_score(
+        episode.path,
+        target_stop_time=overrides.get("stop_time"),
+        score_weights=getattr(args, "score_weights", None),
+        ftl_L=getattr(args, "ftl_L", None),
+    )
     return result.returncode
 
 
@@ -200,6 +218,8 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
         x0=x0,
         consume_plotfiles=getattr(args, "consume_plotfiles", True),
         consumer_radii=getattr(args, "consumer_radii", [4.0, 8.0]),
+        score_weights=getattr(args, "score_weights", None),
+        ftl_L=getattr(args, "ftl_L", None),
     )
     print(json.dumps({
         "best_score": result.best_score,
@@ -292,6 +312,21 @@ def build_parser() -> argparse.ArgumentParser:
         help="RNG seed for deterministic candidate lookup.",
     )
     parser.add_argument("--set", action="append", type=_parse_override, default=[], metavar="KEY=VALUE", help="Params override.")
+    parser.add_argument(
+        "--score-weight",
+        action="append",
+        type=_parse_override,
+        default=[],
+        metavar="KEY=VALUE",
+        help="Override score component weight (e.g. ftl_shortcut=5.0).",
+    )
+    parser.add_argument(
+        "--ftl-L",
+        type=float,
+        default=None,
+        dest="ftl_L",
+        help="Half-axis length for t=0 FTL profile integration.",
+    )
     parser.add_argument("--name", default=None, help="Episode folder name.")
 
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -334,6 +369,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     args.phantom_default = False
     args.initial_data_source = None
+    args.score_weights = _parse_score_weights(args.score_weight) or None
     overrides = _collect_overrides(args.set)
     source = None
     if (

@@ -32,12 +32,14 @@ class SimulationParameters : public SimulationParametersBase
 
         pp.load("recipe_chi_asymptotic", recipe_params.chi_asymptotic, 1.0);
         pp.load("recipe_alpha_asymptotic", recipe_params.alpha_asymptotic, 1.0);
+        pp.load("recipe_beta_asymptotic", recipe_params.beta_asymptotic, 0.0);
         pp.load("recipe_K_asymptotic", recipe_params.K_asymptotic, 0.0);
         pp.load("recipe_phi_asymptotic", recipe_params.phi_asymptotic, 0.0);
         pp.load("recipe_Pi_asymptotic", recipe_params.Pi_asymptotic, 0.0);
 
         load_coeff_array(pp, "recipe_chi_coeff", recipe_params.chi_coeffs);
         load_coeff_array(pp, "recipe_alpha_coeff", recipe_params.alpha_coeffs);
+        load_coeff_array(pp, "recipe_beta_coeff", recipe_params.beta_coeffs);
         load_coeff_array(pp, "recipe_K_coeff", recipe_params.K_coeffs);
         load_coeff_array(pp, "recipe_phi_coeff", recipe_params.phi_coeffs);
         load_coeff_array(pp, "recipe_Pi_coeff", recipe_params.Pi_coeffs);

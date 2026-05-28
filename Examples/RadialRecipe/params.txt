@@ -28,6 +28,7 @@ recipe_basis_radius_max = 8.0
 
 recipe_chi_asymptotic = 1.0
 recipe_alpha_asymptotic = 1.0
+recipe_beta_asymptotic = 0.0
 recipe_K_asymptotic = 0.0
 recipe_phi_asymptotic = 0.0
 recipe_Pi_asymptotic = 0.0
@@ -43,6 +44,12 @@ recipe_alpha_coeff_0 = 0.0
 recipe_alpha_coeff_1 = 0.0
 recipe_alpha_coeff_2 = 0.0
 recipe_alpha_coeff_3 = 0.0
+
+# Shift beta^x coefficients (warp drive along x; flat by default)
+recipe_beta_coeff_0 = 0.0
+recipe_beta_coeff_1 = 0.0
+recipe_beta_coeff_2 = 0.0
+recipe_beta_coeff_3 = 0.0
 
 # Trace K coefficients
 recipe_K_coeff_0 = 0.0

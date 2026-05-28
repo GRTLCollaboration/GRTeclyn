@@ -111,6 +111,9 @@ ${PYTHON_BIN} -m grteclyn_wrapper \
   --set checkpoint_interval=-1 \
   --set dt_multiplier=0.02 \
   --set max_level="${MAX_LEVEL}" \
+  --score-weight ftl_shortcut=5.0 \
+  --score-weight nonflat_geometry=1.5 \
+  --ftl-L "${FTL_L:-${L_FULL}}" \
   "${GLOBAL_ARGS[@]}" \
   -- optimize \
   --max-generations "${MAX_GENERATIONS}" \

@@ -44,12 +44,14 @@ class RadialRecipeInitialData
 
         double chi_asymptotic{1.0};
         double alpha_asymptotic{1.0};
+        double beta_asymptotic{0.0};
         double K_asymptotic{0.0};
         double phi_asymptotic{0.0};
         double Pi_asymptotic{0.0};
 
         std::array<double, MAX_BASES> chi_coeffs{};
         std::array<double, MAX_BASES> alpha_coeffs{};
+        std::array<double, MAX_BASES> beta_coeffs{};
         std::array<double, MAX_BASES> K_coeffs{};
         std::array<double, MAX_BASES> phi_coeffs{};
         std::array<double, MAX_BASES> Pi_coeffs{};
@@ -83,6 +85,8 @@ class RadialRecipeInitialData
         chi += chi_angular_contribution(r, dx, dy, dz);
         data_t lapse = radial_profile((data_t)m_params.alpha_asymptotic,
                                       m_params.alpha_coeffs, r);
+        const data_t beta_x = radial_profile((data_t)m_params.beta_asymptotic,
+                                             m_params.beta_coeffs, r);
         const data_t K = radial_profile((data_t)m_params.K_asymptotic,
                                         m_params.K_coeffs, r);
         const data_t phi = radial_profile((data_t)m_params.phi_asymptotic,
@@ -117,7 +121,7 @@ class RadialRecipeInitialData
         cell(i, j, k, c_Gamma2) = (data_t)0.0;
         cell(i, j, k, c_Gamma3) = (data_t)0.0;
         cell(i, j, k, c_lapse) = lapse;
-        cell(i, j, k, c_shift1) = (data_t)0.0;
+        cell(i, j, k, c_shift1) = beta_x;
         cell(i, j, k, c_shift2) = (data_t)0.0;
         cell(i, j, k, c_shift3) = (data_t)0.0;
         cell(i, j, k, c_B1) = (data_t)0.0;

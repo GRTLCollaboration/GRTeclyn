@@ -8,6 +8,8 @@ from .metrics import EpisodeMetrics
 
 
 DEFAULT_WEIGHTS: dict[str, float] = {
+    "ftl_shortcut": 5.0,
+    "nonflat_geometry": 1.5,
     "survival": 2.0,
     "constraint_health": 2.0,
     "lapse_health": 1.0,
@@ -120,6 +122,18 @@ def score_episode(
     else:
         components["stability"] = 0.0
         notes.append("stability diagnostics not available")
+
+    if metrics.ftl is not None:
+        components["ftl_shortcut"] = metrics.ftl.f_shortcut
+        components["nonflat_geometry"] = metrics.ftl.s_nonflat
+        if metrics.ftl.f_shortcut <= 0.0 and metrics.ftl.s_nonflat < 0.05:
+            notes.append("no FTL shortcut detected in t=0 profile")
+        for note in metrics.ftl.notes:
+            notes.append(note)
+    else:
+        components["ftl_shortcut"] = 0.0
+        components["nonflat_geometry"] = 0.0
+        notes.append("FTL profile metrics not available")
 
     total = sum(w.get(key, 0.0) * value for key, value in components.items())
     return Score(total=total, components=components, notes=notes)

@@ -4,6 +4,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
+from .ftl_metrics import FtlMetrics, compute_ftl_metrics, load_overrides_from_episode
+
+
 @dataclass(frozen=True)
 class CollapseMetrics:
     final_time: float | None
@@ -44,6 +47,7 @@ class EpisodeMetrics:
     collapse: CollapseMetrics | None
     constraints: ConstraintMetrics | None
     stability: StabilityMetrics | None
+    ftl: FtlMetrics | None
     termination_reason: str
 
 
@@ -189,7 +193,11 @@ def read_stability_metrics(collapse_path: Path, areal_path: Path) -> StabilityMe
     )
 
 
-def read_episode_metrics(episode_dir: Path) -> EpisodeMetrics:
+def read_episode_metrics(
+    episode_dir: Path,
+    *,
+    ftl_L: float | None = None,
+) -> EpisodeMetrics:
     data_dir = episode_dir / "data"
     small_data_dir = episode_dir / "small_data"
     collapse_path = data_dir / "collapse_diagnostics.dat"
@@ -206,6 +214,14 @@ def read_episode_metrics(episode_dir: Path) -> EpisodeMetrics:
     constraints = read_constraint_metrics(constraint_path)
     stability = read_stability_metrics(collapse_path, areal_path)
 
+    ftl = None
+    overrides = load_overrides_from_episode(episode_dir)
+    if overrides:
+        try:
+            ftl = compute_ftl_metrics(overrides, L=ftl_L)
+        except Exception:
+            ftl = None
+
     if collapse is None and constraints is None:
         reason = "missing_diagnostics"
     else:
@@ -215,6 +231,7 @@ def read_episode_metrics(episode_dir: Path) -> EpisodeMetrics:
         collapse=collapse,
         constraints=constraints,
         stability=stability,
+        ftl=ftl,
         termination_reason=reason,
     )
 

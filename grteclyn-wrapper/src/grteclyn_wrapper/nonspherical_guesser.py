@@ -109,6 +109,7 @@ def nonspherical_to_overrides(candidate: NonSphericalCandidate) -> dict[str, Any
         "recipe_basis_radius_max": candidate.basis.basis_radius_max,
         "recipe_chi_asymptotic": candidate.chi_asymptotic,
         "recipe_alpha_asymptotic": 1.0,
+        "recipe_beta_asymptotic": 0.0,
         "recipe_K_asymptotic": 0.0,
         "recipe_phi_asymptotic": 0.0,
         "recipe_Pi_asymptotic": 0.0,
@@ -120,6 +121,7 @@ def nonspherical_to_overrides(candidate: NonSphericalCandidate) -> dict[str, Any
         overrides[f"recipe_phi_coeff_{n}"] = 0.0
         overrides[f"recipe_Pi_coeff_{n}"] = 0.0
         overrides[f"recipe_alpha_coeff_{n}"] = 0.0
+        overrides[f"recipe_beta_coeff_{n}"] = 0.0
     for idx, mode in enumerate(candidate.modes):
         overrides[f"recipe_chi_mode_ell_{idx}"] = mode.ell
         overrides[f"recipe_chi_mode_amp_{idx}"] = mode.amplitude
