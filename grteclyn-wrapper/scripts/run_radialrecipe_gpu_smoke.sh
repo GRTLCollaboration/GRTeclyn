@@ -90,6 +90,15 @@ if [[ "${CONSUME_PLOTFILES}" == "1" ]]; then
   CONSUME_ARGS=(--consume-plotfiles --consumer-delete --consumer-radii ${CONSUMER_RADII})
 fi
 
+FTL_L="${FTL_L:-}"
+SCORE_ARGS=()
+if [[ -n "${FTL_L}" ]]; then
+  SCORE_ARGS+=(--ftl-L "${FTL_L}")
+fi
+if [[ "${ENABLE_FTL_SCORING:-1}" == "1" ]]; then
+  SCORE_ARGS+=(--score-weight ftl_shortcut=5.0 --score-weight nonflat_geometry=1.5)
+fi
+
 echo "== RadialRecipe GPU smoke pipeline =="
 echo "GRTeclyn root : ${GRTECLYN_ROOT}"
 echo "Example       : ${EXAMPLE_DIR}"
@@ -129,6 +138,7 @@ ${PYTHON_BIN} -m grteclyn_wrapper \
   --set N_full="${N_FULL}" \
   --set max_level="${MAX_LEVEL}" \
   --set dt_multiplier="${DT_MULTIPLIER}" \
+  "${SCORE_ARGS[@]}" \
   reproduce
 
 echo
@@ -155,6 +165,7 @@ ${PYTHON_BIN} -m grteclyn_wrapper \
   --set max_level="${MAX_LEVEL}" \
   --set dt_multiplier="${DT_MULTIPLIER}" \
   "${CONSUME_ARGS[@]}" \
+  "${SCORE_ARGS[@]}" \
   -- reproduce
 
 EPISODE_DIR="${RUNS_DIR}/${GPU_NAME}"
