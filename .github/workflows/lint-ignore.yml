@@ -34,7 +34,7 @@ jobs:
       uses: peter-evans/create-or-update-comment@v5
       with:
         issue-number: ${{ github.event.pull_request.number }}
-        body: |
+        body: &lint_ignore_comment_body |
           This PR modifies the following files which are ignored by [.lint-ignore](.lint-ignore):
           ```
           ${{ steps.modified-files.outputs.lint_ignore_matches }}
@@ -46,9 +46,4 @@ jobs:
       uses: peter-evans/create-or-update-comment@v5
       with:
         comment-id: ${{ steps.fc.outputs.comment-id }}
-        body: |
-          This PR modifies the following files which are ignored by [.lint-ignore](.lint-ignore):
-          ```
-          ${{ steps.modified-files.outputs.lint_ignore_matches }}
-          ```
-          Please consider removing the corresponding patterns from .lint-ignore so that these files can be linted.
+        body: *lint_ignore_comment_body
