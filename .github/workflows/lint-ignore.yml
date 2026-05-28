@@ -43,16 +43,10 @@ jobs:
           echo EOF
         } >> "$GITHUB_OUTPUT"
 
-    - name: Post comment on PR if there are matches
-      if: steps.modified-files.outputs.lint_ignore_matches != '' && steps.fc.outputs.comment-id == ''
+    - name: Post or update comment on PR if there are matches
+      if: steps.modified-files.outputs.lint_ignore_matches != ''
       uses: peter-evans/create-or-update-comment@v5
       with:
         issue-number: ${{ github.event.pull_request.number }}
-        body: ${{ steps.comment-body.outputs.body }}
-
-    - name: Update comment on PR if there are matches
-      if: steps.modified-files.outputs.lint_ignore_matches != '' && steps.fc.outputs.comment-id != ''
-      uses: peter-evans/create-or-update-comment@v5
-      with:
         comment-id: ${{ steps.fc.outputs.comment-id }}
         body: ${{ steps.comment-body.outputs.body }}
