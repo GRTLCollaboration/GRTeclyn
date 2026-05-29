@@ -603,6 +603,40 @@ CMA-ES maximizes $S$ (equivalently, minimizes $-S$), so low stability directly r
 
 A candidate should be promoted only if it (i)~completes the requested run time, (ii)~keeps constraints controlled, and (iii)~maintains a bounded geometry.  Operationally we require $s_{\rm stability}>0.25$ as a minimum gate; a genuine dynamical equilibrium should approach $s_{\rm stability}\gtrsim 0.8$.  Tables~\ref{tab:gpu_radial_smoke}--\ref{tab:amr_optimize} show that reference seeds reach $s_{\rm stability}\sim 0.3$--$0.7$ over $t=2$, while AMR-optimized survivors remain below $0.09$, confirming that the optimizer was still exploiting the stop-time gap.
 
+\subsection{Longer-run validation: exotic matter, evolved-frame FTL, and a visualization caveat}
+\label{sec:longrun_validation}
+
+To test whether the matter sector and the new diagnostics behave correctly beyond the short smoke window, we evolved the reference seeds and a set of randomly generated non-spherical candidates to $t=16$ ($8\times$ the smoke window) at $N_{\rm full}=64$, $L=8$ on NVIDIA H100 GPUs, alongside a $t=2$ reproduction wave.  Two upgrades are exercised: (i)~phantom recipes now evolve an \emph{exotic} scalar field ($T_{\mu\nu}\to -\,T_{\mu\nu}^{\rm canonical}$) rather than a canonical one, so the simulation evolves the matter type for which the geometry was reconstructed; and (ii)~the operational FTL probe---a mechanism-agnostic arrival-time test on a coordinate-light-speed grid (Sec.~\ref{sec:proposed})---is evaluated both on the reconstructed $t=0$ slice and on the \emph{evolved} spacetime, sampled directly from plotfiles.
+
+\begin{table}[H]
+\caption{Longer-run validation ($t=16$, $N_{\rm full}=64$, $L=8$, H100).  $F_{\rm op}$ is the mechanism-agnostic operational FTL benefit (arrival-time advantage on a coordinate-light-speed grid); $F_{\rm op}^{0}$ uses the reconstructed $t=0$ slice and $F_{\rm op}^{\rm ev}$ the evolved plotfile.  ``$\min\mathrm{NEC}$'' is the minimum matter null-energy-condition margin over the run (negative $=$ genuine violation).  All reference runs use constrained phantom initial data.}
+\label{tab:longrun_validation}
+\small
+\begin{ruledtabular}
+\begin{tabular}{lcccccc}
+Example & survival & $s_{\rm stab}$ & $F_{\rm op}^{0}$ & $F_{\rm op}^{\rm ev}$ & $\min\mathrm{NEC}$ & $S$ \\
+\hline
+Flat Minkowski            & 1.00 & 1.00 & 0      & ---    & $0$      & 14.5 \\
+Alcubierre $v=0.5$        & 1.00 & 0.02 & 0.096  & 0.0005 & $0$      & 14.9 \\
+Ellis--Bronnikov ($N{=}16$) & 0.80 & 0.08 & 0      & 0.042  & $-0.62$  & 12.8 \\
+\texttt{quadrupole\_bubble\_001} & 1.00 & 0.18 & 0 & 0.0095 & $-0.013$ & 10.5 \\
+Schwarzschild puncture    & 0.29 & 0.00 & 0      & ---    & $-0.91$  & 9.7  \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+\paragraph{The matter fix produces genuine energy-condition violations.}
+With the exotic field active, the Ellis--Bronnikov wormhole evolves matter that genuinely violates the null energy condition ($\min\mathrm{NEC}=-0.62$, integrated violation $\approx3.5$, max spatial Ricci $\approx18$), and the random non-spherical phantoms violate it mildly ($\min\mathrm{NEC}\approx-0.013$).  Under the previous canonical-field evolution these margins were $\approx 0$ by construction, so the diagnostic now reflects the reconstructed matter rather than a fixed positive-energy proxy.  For shift-driven warps (Alcubierre) the scalar-matter NEC remains $\approx 0$: the exotic content there lives in the geometry ($T^{\rm eff}_{\mu\nu}=G_{\mu\nu}/8\pi$), which the matter-sector condition cannot see---hence the curvature invariants and the operational FTL probe, not the matter NEC, are the meaningful exoticity signals for that class.
+
+\paragraph{Evolved-frame FTL exposes dynamics the $t=0$ slice misses.}
+The operational probe is informative only once it is run on the \emph{evolved} geometry.  The Alcubierre bubble starts with a real coordinate shortcut ($F_{\rm op}^{0}=0.096$, peak coordinate light speed $1.50$) that decays to $F_{\rm op}^{\rm ev}=5\times10^{-4}$ by $t=16$ as the unsourced bubble disperses.  Conversely, the static Ellis--Bronnikov throat has \emph{no} shortcut at $t=0$ ($F_{\rm op}^{0}=0$) but \emph{develops} one under evolution ($F_{\rm op}^{\rm ev}=0.042$, peak coordinate speed $1.33$)---a genuinely dynamical superluminal channel invisible to any static analysis.
+
+\paragraph{Stability over the longer window is physically sensible.}
+Flat space stays exactly stationary ($s_{\rm stab}=1$); the Alcubierre warp and the random non-spherical candidates survive the full $t=16$; the phantom Ellis--Bronnikov wormhole partially collapses ($\mathrm{survival}=0.80$), as expected for a marginally unstable throat; and applying exotic matter to a near-vacuum Schwarzschild puncture drives a genuine collapse ($\mathrm{survival}=0.29$, max Ricci $\sim10^{5}$).  For the surviving Alcubierre run the in-situ diagnostics confirm bounded geometry over the entire window: $\alpha_{\min}=0.9993$, $\chi_{\min}=0.841$, and $|K|_{\max}=2.5\times10^{-3}$ (a true collapse would drive $\alpha_{\min}\to0$ and $|K|_{\max}\to\mathcal{O}(1)$).
+
+\paragraph{Caveat: autoscaled colorbars overstate sub-permille gauge dynamics.}
+The per-frame slice renders use an autoscaled colorbar with an additive offset, e.g.\ a lapse panel labeled ``$\times10^{-3}\!+\!1$'': a tick of $+0.4$ then denotes $\alpha=1+0.4\times10^{-3}=1.0004$.  Read naively this makes the lapse and $|K|$ panels of an entirely stable run look dramatic, when in fact they show outgoing gauge and constraint ripples at the $10^{-4}$--$10^{-3}$ level radiating from imperfect initial data.  The physically meaningful field for the Alcubierre warp is the conformal factor $\chi$, which holds a steady $\pm6\%$ compression-front/expansion-rear dipole essentially unchanged from $t\!\approx\!3$ to $t=16$.  The bounded in-situ time series (\texttt{collapse\_diagnostics.dat}), not the autoscaled frames, is the authoritative stability verdict.
+
 \section{CMA-ES vs.\ Reinforcement Learning}
 \label{sec:cma_vs_rl}
 
