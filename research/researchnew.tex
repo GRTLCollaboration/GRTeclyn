@@ -43,6 +43,8 @@ Most proposed interstellar metrics are designed by hand. One writes a static, hi
 
 By treating metric discovery as a closed-loop optimization problem, we can search a much wider, non-spherical, and dynamical space of initial data. The previous \texttt{GRTeclyn} wormhole study showed that 3D numerical relativity is well suited to tracking the nonlinear evolution, instability, and collapse of exotic geometries. Rather than inspecting static equations, the proposed framework couples a Python-based optimization engine with the high-performance C++ GPU-accelerated AMR engine of \texttt{GRTeclyn}, with a strict emphasis on deriving the matter sector and avoiding coordinate artifacts.
 
+This effort situates metric discovery within a broader movement toward automated theory exploration across physics. Neuro-symbolic and reinforcement-learning agents have begun to navigate otherwise intractable theory spaces: \textsc{Albert} rediscovers Standard-Model structure by generating Lagrangians under a rule-based grammar that enforces theoretical consistency \emph{before} expensive evaluation~\cite{alexander2026albert}; deep reinforcement learning explores the string landscape by treating discrete brane and flux configurations as actions rewarded for consistency and proximity to realistic vacua~\cite{halverson2019branes}; and large-language-model agents now drive end-to-end high-energy-physics toolchains autonomously~\cite{qiu2026collideragent} and orchestrate multi-agent discovery of physical laws from data~\cite{han2025physagent}. Within numerical relativity specifically, \textsc{Warp Factory} established that arbitrary warp geometries can be assessed numerically---evaluating the Einstein equations and the pointwise energy conditions rather than restricting attention to closed-form ans\"atze~\cite{helmerich2024warpfactory}. Our pipeline extends this numerical, energy-condition-first philosophy from the \emph{analysis} of prescribed metrics to a closed-loop \emph{search} over dynamical initial data, and imports three methodological lessons from the agentic-physics literature: enforce physical invariants symbolically before numerics (Sec.~\ref{sec:parameterization_levels}), separate discrete topological choices from continuous geometric tuning (Sec.~\ref{sec:cma_vs_rl}), and close the numerical-to-analytical loop with collaborating specialist agents (Sec.~\ref{sec:forward_path}).
+
 Throughout this draft, ``FTL'' means effective faster-than-light propagation through a curved spacetime geometry compared with flat-spacetime light travel. It does not imply local superluminal motion relative to the local light cone.
 
 \section{Goal}
@@ -81,7 +83,7 @@ Before the time evolution starts, \texttt{GRTeclyn} evaluates the Hamiltonian an
     j_i = \frac{1}{8\pi} D_j\left(K^j_i - \delta^j_i K\right).
 \end{equation}
 
-Here, $R$ is the 3D Ricci scalar and $D_j$ is the covariant derivative. The Python script reads this derived $\rho$ grid from the diagnostic files. If $\rho < 0$ in any region, the script flags that this geometry requires exotic matter and calculates the integrated volume of negative energy.
+Here, $R$ is the 3D Ricci scalar and $D_j$ is the covariant derivative. The Python script reads this derived $\rho$ grid from the diagnostic files. If $\rho < 0$ in any region, the script flags that this geometry requires exotic matter and calculates the integrated volume of negative energy. This algebraic reconstruction follows the analysis strategy of \textsc{Warp Factory}~\cite{helmerich2024warpfactory}, which computes $T_{\mu\nu}$ and the pointwise energy conditions for arbitrary warp metrics; the essential difference is that we feed the resulting exotic-energy diagnostics back into an optimization loop rather than reporting them for a single fixed metric.
 
 \subsection{Path B: Elliptic Constraint Solving}
 
@@ -110,8 +112,15 @@ To allow for non-spherical, asymmetric, or rotating geometries, we expand the pa
 This enables the search engine to discover rotating warp fields, quadrupolar configurations, and asymmetric wormhole mouths.
 
 \subsection{Levels 3--4: Neural and Meta-Optimization (future)}
+\label{sec:parameterization_levels}
 
-Two extensions are planned once Levels 1--2 are validated. \emph{Level 3} replaces the basis expansion with an implicit coordinate-based neural network (e.g.\ a SIREN), $(x,y,z)\xrightarrow{\text{NN}(\theta)}\{\chi,\alpha,\beta^i,K,\tilde A_{ij},\phi,\Pi\}$, for maximal flexibility at the cost of a stable training loop. \emph{Level 4} adds an LLM-based meta-agent that consumes batch diagnostics to classify failures (physical vs.\ numerical), retune CCZ4 gauge/grid settings, propose new angular modes or potentials when the optimizer plateaus, and auto-generate example-local C++ initial-data headers.
+Two extensions are planned once Levels 1--2 are validated. \emph{Level 3} replaces the basis expansion with an implicit coordinate-based neural network (e.g.\ a SIREN), $(x,y,z)\xrightarrow{\text{NN}(\theta)}\{\chi,\alpha,\beta^i,K,\tilde A_{ij},\phi,\Pi\}$, for maximal flexibility at the cost of a stable training loop.
+
+\paragraph{A symbolic ``spacetime grammar'' (neuro-symbolic constraint filtering).}
+A raw neural decoder can emit physically meaningless fields, wasting evaluations exactly as unconstrained Lagrangian generation does in particle physics.  \textsc{Albert} addresses this by generating theories under a rule-based grammar that guarantees first-principles consistency before any expensive likelihood evaluation~\cite{alexander2026albert}.  We propose the analogous construction for initial data: a \emph{spacetime grammar} that builds physical invariants into the generator by construction rather than filtering for them afterward.  Concretely, the decoder output is composed with hard structural maps that enforce asymptotic flatness ($\chi,\alpha\to1$, $\beta^i\to0$ as $r\to\infty$ via a fixed envelope), positivity ($\chi>0$ through a softplus reparameterization), the momentum-constraint gauge ($K=\mathrm{const}$, $\Pi=0$), and a chosen spatial topology (number and connectivity of throats/mouths).  Enforcing these invariants symbolically projects the infinite-dimensional metric space onto a concentrated, physically relevant search manifold, sharply reducing the node-hours otherwise spent rejecting inconsistent candidates at the pre-flight stage (Sec.~\ref{sec:constrained_recipe}).
+
+\paragraph{Level 4: a concrete LLM meta-agent.}
+\emph{Level 4} adds an LLM-based meta-agent that consumes batch diagnostics to classify failures (physical vs.\ numerical), retune CCZ4 gauge/grid settings, propose new angular modes or potentials when the optimizer plateaus, and auto-generate example-local C++ initial-data headers.  This is no longer speculative: \textsc{ColliderAgent} demonstrates that LLM-driven agents can autonomously run low-level physics toolchains end-to-end---compiling models, launching simulations, parsing tool output, and recovering from errors---purely from natural-language goals~\cite{qiu2026collideragent}.  We specify the tool boundary accordingly: the meta-agent parses \texttt{GRTeclyn} \texttt{stderr}/\texttt{run.log} from a crashed or diverging run, decides whether the failure was \emph{physical} (e.g.\ apparent-horizon formation, lapse collapse) or \emph{numerical} (e.g.\ AMR boundary reflections, $\|H\|$ blow-up from under-resolution), and responds by editing exposed gauge/grid parameters---most directly the Gamma-driver shift damping $\eta$, the $1+\log$ slicing coefficients, \texttt{regrid\_threshold}, and \texttt{max\_level}---before re-launching (and, where required, recompiling) the GPU executable.  Read-only physics tools (the scorer, pre-flight filter, and diagnostics parsers) bound its action space so that it tunes the \emph{search}, never the physics verdict.
 
 \section{GPU Cluster Architecture and Program Boundary}
 
@@ -599,6 +608,10 @@ A candidate should be promoted only if it (i)~completes the requested run time, 
 
 The current pipeline is black-box evolutionary optimization, not reinforcement learning.  CMA-ES maintains $\mathcal{N}(\mathbf{m}, \sigma^2 \mathbf{C})$, samples candidates each generation, ranks them by $f(\theta)=-S(\theta)$, and updates $(\mathbf{m}, \mathbf{C}, \sigma)$; there are no policy networks, value functions, or gradients through the PDE solver.  The ``weights'' are the scoring weights $w_k$ in Table~\ref{tab:score_weights} (user hyperparameters), not neural parameters.  RL would apply only if the problem became sequential---e.g.\ mid-evolution gauge adjustments or an LLM meta-agent choosing basis modes (Level~4).
 
+\subsection{Hierarchical search: topology vs.\ geometry}
+
+A structural limitation of CMA-ES (and of the MAP-Elites and Pareto drivers of Sec.~\ref{sec:proposed}) is that it searches a \emph{fixed-dimension continuous} space of basis coefficients $\theta$ (Table~\ref{tab:search_space}); it cannot alter the underlying topology---add or remove wormhole mouths, activate a new spherical-harmonic mode $(\ell,m)$, or transition a warp bubble into a ring.  This is precisely the discrete-versus-continuous tension addressed in string-landscape searches, where a reinforcement-learning agent selects discrete configurations (brane stacks, wrapping cycles, flux quanta) while consistency and target-proximity are scored over the attendant continuous parameters~\cite{halverson2019branes}.  We propose the same two-level decomposition: a \emph{discrete controller} (a deep-RL policy or genetic algorithm) chooses the topological skeleton---number of centers, active $(\ell,m)$ modes, boundary connectivity---and hands it to the continuous optimizer (CMA-ES/MAP-Elites), which refines the geometry within that skeleton.  Letting the upper level jump between discrete structures while the lower level polishes coordinate profiles is a principled escape route from the flat-space attractor (Sec.~\ref{sec:ftl_attractor}): the optimizer is no longer confined to deform a single fixed topology toward flatness.
+
 \section{Avoiding Fake FTL (Operational Probe Tests)}
 
 A major scientific risk in numerical relativity is "fake FTL," where a coordinate transformation (such as a massive shift vector $\beta^i$) makes it look like a region is moving superluminally when it is actually a coordinate effect. 
@@ -799,7 +812,7 @@ A directional, axis-line ANEC proxy and a curvature/lapse tidal proxy are alread
 \begin{equation}
     \Xi_W(\mathbf{x}) = T_{\hat{\mu}\hat{\nu}}\,V^{\hat{\mu}}V^{\hat{\nu}},
 \end{equation}
-feed the minimum over sampled observers into \texttt{score.py}, and combine with the evolved operational probe (Eq.~\ref{eq:f_op}) so candidates cannot look physical to a stationary observer but exotic to one moving with the bubble.
+feed the minimum over sampled observers into \texttt{score.py}, and combine with the evolved operational probe (Eq.~\ref{eq:f_op}) so candidates cannot look physical to a stationary observer but exotic to one moving with the bubble.  This multi-observer evaluation directly generalizes the energy-condition analysis of \textsc{Warp Factory}~\cite{helmerich2024warpfactory}, which showed for fixed warp metrics that Eulerian positivity can mask weak-energy-condition violations seen by boosted observers.
 
 \subsection{Phase 3: GPU-cluster production search}
 
@@ -823,6 +836,8 @@ A numerical optimum is a coefficient list, not a paper-ready metric.  Once a sta
     \item Solve the Hamiltonian constraint analytically for $\phi(r)$ from the closed-form $\chi(r)$.
     \item Reload the analytic profile in \texttt{GRTeclyn} via a custom initial-data module and verify stability and energy conditions match the numerical discovery---completing the cycle from automated search to exact analytical solutions.
 \end{enumerate}
+
+We propose to automate this numerical-to-analytical handoff as a collaborative multi-agent loop, following the mentor/student/leader decomposition that \textsc{PhysAgent} uses to derive closed-form physical laws end-to-end from data~\cite{han2025physagent}: \emph{Agent~A} (Geometric Explorer) runs the \texttt{GRTeclyn} search and curates the best numerical grids; \emph{Agent~B} (Symbolic Analyst) runs symbolic regression on those grids to propose closed-form $\chi(r)$ candidates; and \emph{Agent~C} (Mathematical Verifier) substitutes each proposal into the analytic Einstein tensor to check the energy conditions and asymptotic behavior exactly, returning failures to Agent~B for refinement.  This turns the coefficient array $\theta$ into a peer-review-ready metric while keeping every physical verdict on an auditable, symbolic footing.
 
 \section{Extensions: Implemented Metrics, Search, and Robustness}
 \label{sec:proposed}
@@ -931,6 +946,35 @@ $(0,1)$ & 0.160 & 0.231 & 9.91 \\
 
 \section{Conclusion}
 
-This project moves interstellar metric search from static, hand-written ans\"atze toward dynamic, GPU-driven discovery.  The pipeline now closes the loop from Python parameter proposals through constrained C++ evolution, stability-aware scoring, and plotfile extraction.  Tables~\ref{tab:gpu_radial_smoke}--\ref{tab:amr_optimize} quantify the stability gap: reference seeds score $s_{\rm stability}\sim 0.3$--$0.7$ over $t=2$, while AMR-optimized candidates remain below $0.09$.  The extensions of Sec.~\ref{sec:proposed} are now partly realized: a constraint growth-rate metric (which exposes positive $\lambda_{\rm eff}$ even for short-run survivors, Table~\ref{tab:gpu_growth}), $t=0$ ANEC-line and tidal proxies (Table~\ref{tab:phys_t0}), surrogate-assisted screening ($\sim$25--40\% fewer GPU evaluations), MAP-Elites quality diversity (Table~\ref{tab:qd_atlas}), and Pareto-front extraction are all implemented and GPU-validated.  The remaining gauge-complete metrics (evolved operational probe, tetrad/Weyl ANEC, apparent-horizon finder) and the elliptic constraint-solved initial data, together with Phase~1--4 above, turn this working prototype into a rigorous map of physical constructibility boundaries and, ultimately, a path to new exact solutions in general relativity.
+This project moves interstellar metric search from static, hand-written ans\"atze toward dynamic, GPU-driven discovery.  The pipeline now closes the loop from Python parameter proposals through constrained C++ evolution, stability-aware scoring, and plotfile extraction.  Tables~\ref{tab:gpu_radial_smoke}--\ref{tab:amr_optimize} quantify the stability gap: reference seeds score $s_{\rm stability}\sim 0.3$--$0.7$ over $t=2$, while AMR-optimized candidates remain below $0.09$.  The extensions of Sec.~\ref{sec:proposed} are now partly realized: a constraint growth-rate metric (which exposes positive $\lambda_{\rm eff}$ even for short-run survivors, Table~\ref{tab:gpu_growth}), $t=0$ ANEC-line and tidal proxies (Table~\ref{tab:phys_t0}), surrogate-assisted screening ($\sim$25--40\% fewer GPU evaluations), MAP-Elites quality diversity (Table~\ref{tab:qd_atlas}), and Pareto-front extraction are all implemented and GPU-validated.  The remaining gauge-complete metrics (evolved operational probe, tetrad/Weyl ANEC, apparent-horizon finder) and the elliptic constraint-solved initial data, together with Phase~1--4 above, turn this working prototype into a rigorous map of physical constructibility boundaries and, ultimately, a path to new exact solutions in general relativity.  Methodologically, the framework converges with a growing body of agentic-physics work---neuro-symbolic theory generation~\cite{alexander2026albert}, reinforcement-learning landscape search~\cite{halverson2019branes}, autonomous LLM toolchains~\cite{qiu2026collideragent}, and multi-agent law discovery~\cite{han2025physagent}---and extends the numerical warp-drive analysis of \textsc{Warp Factory}~\cite{helmerich2024warpfactory} from evaluation to closed-loop search.
+
+\begin{thebibliography}{9}
+
+\bibitem{alexander2026albert}
+S.~Alexander, B.~Bradley, L.~Gouskos, and C.~Niu,
+\newblock ``Autonomous Discovery of Particle Physics Theories from Experimental Data,''
+\newblock arXiv:2603.28935 [hep-ph] (2026).
+
+\bibitem{qiu2026collideragent}
+S.~Qiu, Z.~Cai, J.~Wei, Z.~Li, Y.~Yin, Q.-H.~Cao, C.~Liu, M.-x.~Luo, X.-B.~Yuan, and H.~X.~Zhu,
+\newblock ``An End-to-end Architecture for Collider Physics and Beyond,''
+\newblock arXiv:2603.14553 [hep-ph] (2026).
+
+\bibitem{halverson2019branes}
+J.~Halverson, B.~Nelson, and F.~Ruehle,
+\newblock ``Branes with Brains: Exploring String Vacua with Deep Reinforcement Learning,''
+\newblock JHEP \textbf{06}, 003 (2019), arXiv:1903.11616 [hep-th].
+
+\bibitem{han2025physagent}
+X.-Q.~Han, Z.-F.~Gao, P.-J.~Guo, and Z.-Y.~Lu,
+\newblock ``PhysAgent: A Multi-Agent Approach to Automated Discovery of Physical Laws,''
+\newblock arXiv preprint (2025).
+
+\bibitem{helmerich2024warpfactory}
+C.~Helmerich, J.~Fuchs, A.~Bobrick, L.~Sellers, B.~Melcher, and G.~Martire,
+\newblock ``Analyzing Warp Drive Spacetimes with Warp Factory,''
+\newblock Class.\ Quantum Grav.\ (2024), arXiv:2404.03095 [gr-qc].
+
+\end{thebibliography}
 
 \end{document}
