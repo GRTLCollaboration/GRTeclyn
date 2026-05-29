@@ -28,6 +28,7 @@ uv run python -m grteclyn_wrapper [GLOBAL OPTIONS] <command> [COMMAND OPTIONS]
 | `optimize` | CMA-ES search over RadialRecipe coefficients (multi-GPU). |
 | `qd` | **MAP-Elites quality-diversity** search (Spacetime Failure Atlas). |
 | `pareto` | **Multi-objective Pareto-front** extraction from a trajectory. |
+| `warpfactory` | **Multi-observer energy conditions** (NEC/WEC/SEC/DEC) of an analytic 4-metric. |
 | `validate` | Batch-validate the metric guesser on synthetic candidates. |
 
 Common global options: `--example {RadialRecipe,SupportedWormholeCollapse}`,
@@ -55,6 +56,10 @@ uv run python -m grteclyn_wrapper --example RadialRecipe \
 # Extract the Pareto front from a finished optimizer run
 uv run python -m grteclyn_wrapper pareto \
     --trajectory runs/optimize_.../trajectory.jsonl --output front.json
+
+# Warp Factory-style energy-condition report for an Alcubierre bubble
+uv run python -m grteclyn_wrapper warpfactory \
+    --metric alcubierre --velocity 0.5 --n-directions 60 --n-speeds 4
 ```
 
 ---
@@ -85,6 +90,7 @@ uv run python -m grteclyn_wrapper pareto \
 |--------|------|
 | `ftl_metrics.py` | t=0 FTL shortcut metrics: `F_null`, `F_portal`, `F_throat`, `F_asymmetry`, `F_log`, `s_nonflat`. |
 | `physical_metrics.py` | **NEW** — t=0 gauge-robust proxies: ANEC line integral, curvature/tidal proxy, trapped-surface flag. |
+| `warpfactory.py` | **NEW** — Warp Factory port: 4-metric → Einstein tensor → multi-observer NEC/WEC/SEC/DEC. |
 | `metrics.py` | Parse diagnostics into `EpisodeMetrics`; collapse/constraint/stability/comoving + **NEW** growth-rate (`GrowthMetrics`). |
 | `score.py` | Weighted multi-component scalar reward `score_episode()`. |
 
@@ -119,6 +125,23 @@ GPU-validated; unit tests live in `tests/test_proposed_extensions.py`.
 - **Tidal / curvature proxy** (`physical_metrics`, scored as `tidal_comfort`):
   `max|R| + max|∂²α|` with a companion t=0 trapped-surface flag. Precursor to
   the full Kretschmann / electric-Weyl invariants (future C++ work).
+- **Multi-observer energy conditions** (`warpfactory.py`, CLI `warpfactory`): a
+  numpy port of *Warp Factory* (Helmerich et al., arXiv:2404.03095) with the
+  *warpax* refinements (Le, arXiv:2602.18023). Builds the Einstein tensor of a
+  full 4-metric by **fourth-order** finite differences, forms `T_{μν}`, then
+  verifies the pointwise **NEC/WEC/SEC/DEC** via two pathways:
+  (a) **observer sampling** — contract `T` with a sphere of null/timelike
+  observers (lower bound); and (b) the **Hawking–Ellis eigenvalue test** — at
+  Type I points the conditions reduce to *exact, observer-independent*
+  inequalities in the eigenvalues `(-ρ, p_i)` of `T^a_b`. The score uses the
+  more-violating "hybrid margin" of the two, so a violation seen by either is
+  never falsely certified clean. Reproduces the canonical results (flat
+  Minkowski clean; Alcubierre violates NEC/WEC, deepening with velocity).
+  `convergence_order(...)` (CLI `warpfactory --convergence`) Richardson-checks
+  the finite-difference convergence order (Lousto, arXiv:gr-qc/0503001). Applies
+  to the analytic seeds now and to reassembled evolved plotfile metrics later
+  (feeding an `energy_conditions` score component). *A PINN constraint-solver
+  (Li et al., arXiv:2309.07397) is the planned mesh-free Path B / Level 3.*
 
 ### Search optimization
 - **Surrogate-assisted CMA-ES** (`surrogate.py` + `optimize --surrogate`):

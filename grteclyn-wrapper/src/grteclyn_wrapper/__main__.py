@@ -294,6 +294,46 @@ def _run_pareto_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_warpfactory_command(args: argparse.Namespace) -> int:
+    from . import warpfactory as wf
+
+    if getattr(args, "convergence", False):
+        result = wf.convergence_order(
+            velocity=args.velocity, half_width=args.half_width, dt=args.dt
+        )
+        print(json.dumps(result, indent=2))
+        return 0
+
+    if args.metric == "minkowski":
+        g, spacing = wf.minkowski_metric(
+            half_width=args.half_width, n_space=args.n_space, dt=args.dt
+        )
+    elif args.metric == "alcubierre":
+        g, spacing = wf.alcubierre_metric(
+            velocity=args.velocity,
+            bubble_radius=args.bubble_radius,
+            sigma=args.sigma,
+            half_width=args.half_width,
+            n_space=args.n_space,
+            dt=args.dt,
+        )
+    else:  # pragma: no cover - argparse choices guard this
+        raise ValueError(f"unknown metric {args.metric!r}")
+
+    report = wf.evaluate_four_metric(
+        g,
+        spacing,
+        n_directions=args.n_directions,
+        n_speeds=args.n_speeds,
+        max_speed=args.max_speed,
+    )
+    payload = dataclass_to_dict(report)
+    if args.output:
+        write_json(Path(args.output).expanduser().resolve(), payload)
+    print(json.dumps(payload, indent=2))
+    return 0
+
+
 def _run_atlas_command(args: argparse.Namespace, base_overrides: dict[str, Any]) -> int:
     example = resolve_example(args.example)
     executable = None
@@ -426,6 +466,23 @@ def build_parser() -> argparse.ArgumentParser:
     pareto.add_argument("--trajectory", required=True, help="Path to an optimizer trajectory.jsonl.")
     pareto.add_argument("--output", default=None, help="Optional path to write the front JSON.")
 
+    wfp = subparsers.add_parser(
+        "warpfactory",
+        help="Warp Factory-style multi-observer energy-condition evaluation of an analytic 4-metric.",
+    )
+    wfp.add_argument("--metric", choices=["minkowski", "alcubierre"], default="alcubierre", help="Analytic metric to evaluate.")
+    wfp.add_argument("--velocity", type=float, default=0.5, help="Bubble velocity (Alcubierre).")
+    wfp.add_argument("--bubble-radius", type=float, default=2.0, help="Bubble radius (Alcubierre).")
+    wfp.add_argument("--sigma", type=float, default=2.0, help="Wall steepness (Alcubierre).")
+    wfp.add_argument("--half-width", type=float, default=4.0, help="Spatial half-extent of the grid.")
+    wfp.add_argument("--n-space", type=int, default=22, help="Grid points per spatial axis.")
+    wfp.add_argument("--dt", type=float, default=0.2, help="Time spacing for d_t finite differences.")
+    wfp.add_argument("--n-directions", type=int, default=60, help="Sampled observer directions on the sphere.")
+    wfp.add_argument("--n-speeds", type=int, default=4, help="Sampled timelike observer speeds.")
+    wfp.add_argument("--max-speed", type=float, default=0.9, help="Maximum timelike observer speed (<1).")
+    wfp.add_argument("--convergence", action="store_true", help="Run the finite-difference convergence-order self-test instead of an EC report.")
+    wfp.add_argument("--output", default=None, help="Optional path to write the report JSON.")
+
     validate = subparsers.add_parser(
         "validate",
         help="Batch-validate the metric guesser on synthetic candidates (no optimizer).",
@@ -469,6 +526,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_qd_command(args, overrides)
     if args.command == "pareto":
         return _run_pareto_command(args)
+    if args.command == "warpfactory":
+        return _run_warpfactory_command(args)
     if args.command == "validate":
         output_dir = None if args.no_write else args.output_dir
         run_validation(seed=args.seed, output_dir=output_dir)
