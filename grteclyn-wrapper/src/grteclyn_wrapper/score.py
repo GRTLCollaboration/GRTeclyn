@@ -24,6 +24,11 @@ DEFAULT_WEIGHTS: dict[str, float] = {
     "constraint_growth": 2.0,
     "anec_condition": 1.5,
     "tidal_comfort": 1.0,
+    # Mechanism-agnostic operational FTL (Dijkstra arrival-time advantage on the
+    # slice; warp/wormhole/portal/unknown alike) and coordinate-invariant
+    # curvature activity (rewards genuinely non-trivial exotic geometry).
+    "operational_ftl": 3.0,
+    "curvature_activity": 0.5,
 }
 
 
@@ -176,6 +181,41 @@ def score_episode(
         components["expansion_asymmetry"] = 0.0
         components["nonflat_geometry"] = 0.0
         notes.append("FTL profile metrics not available")
+
+    # Mechanism-agnostic operational FTL: reward the larger arrival-time
+    # advantage from either the evolved-spacetime search (preferred, when a
+    # plotfile survived) or the t=0 reconstructed slice.  f_op is already in
+    # [0, 1] (fraction of the flat baseline saved).
+    f_op_t0 = (
+        metrics.general_ftl.f_op
+        if metrics.general_ftl is not None
+        else 0.0
+    )
+    f_op_ev = (
+        metrics.general_ftl_evolved.f_op
+        if metrics.general_ftl_evolved is not None
+        else 0.0
+    )
+    f_op = max(f_op_t0, f_op_ev)
+    components["operational_ftl"] = f_op if math.isfinite(f_op) and f_op > 0 else 0.0
+    if metrics.general_ftl_evolved is not None:
+        if metrics.general_ftl_evolved.max_local_speed > 1.0:
+            notes.append(
+                "evolved geometry has a superluminal coordinate channel "
+                f"(max c = {metrics.general_ftl_evolved.max_local_speed:.3f})"
+            )
+    elif metrics.general_ftl is not None and metrics.general_ftl.f_op <= 0.0:
+        notes.append("no operational FTL shortcut on the t=0 slice")
+
+    # Coordinate-invariant curvature activity: a saturating reward so flat space
+    # scores ~0 while a structured warp/wormhole throat scores up to 1, without
+    # letting a near-singular blow-up dominate the objective.
+    if metrics.curvature is not None and metrics.curvature.max_l2_ricci_scalar is not None:
+        components["curvature_activity"] = min(
+            math.log1p(max(0.0, metrics.curvature.max_l2_ricci_scalar)), 1.0
+        )
+    else:
+        components["curvature_activity"] = 0.0
 
     total = sum(w.get(key, 0.0) * value for key, value in components.items())
     return Score(total=total, components=components, notes=notes)

@@ -58,6 +58,13 @@ def evaluate_overrides(
     if constrained:
         constrained_overrides(overrides, phantom=phantom)
 
+    # The constrained recipe solves for phi assuming phantom (rho <= 0) coupling
+    # when phantom=True.  Tell the C++ level to evolve the matching exotic matter
+    # so the geometry is faithfully sourced (otherwise a canonical, rho >= 0
+    # field is evolved and the Hamiltonian constraint is violated at t=0).
+    if phantom:
+        overrides.setdefault("recipe_exotic_matter", 1)
+
     if use_preflight:
         pf = preflight_check(overrides, phantom=phantom)
         if not pf.passed:

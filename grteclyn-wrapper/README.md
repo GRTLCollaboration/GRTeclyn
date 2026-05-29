@@ -43,6 +43,52 @@ BUILD=0 NONSPHERICAL_ID=quadrupole_bubble_001 CUDA_VISIBLE_DEVICES_OVERRIDE=2 \
 
 Outputs go to `runs/radialrecipe_gpu_smoke/<name>_gpu_t<stop_time>_<stamp>/`.
 
+## In-situ diagnostics & matter sector
+
+Each RadialRecipe run now emits three diagnostic tables under `data/` (read back
+automatically by `grteclyn_wrapper.metrics.read_episode_metrics`):
+
+| File | Columns | Probes |
+|------|---------|--------|
+| `constraint_norms.dat` | `L2_Ham L2_Mom min_rho_req max_rho_req integral_neg_rho` | constraint satisfaction; `min_rho_req < 0` flags geometries needing exotic matter |
+| `energy_conditions.dat` | `matter_min_{NEC,WEC,SEC,DEC} matter_integral_NEC_violation` | observer-sampled energy conditions of the **evolved matter** |
+| `curvature_invariants.dat` | `max_abs_ricci_scalar max_ricci_tensor_sq max_Kij_sq L2_ricci_scalar` | coordinate-invariant geometry |
+
+A general, mechanism-agnostic operational-FTL measure (`ftl_general.py`,
+Dijkstra shortest-coordinate-time vs. flat baseline) is also computed per episode
+and exposed as `EpisodeMetrics.general_ftl`. It is not warp-specific: any
+geometry whose coordinate light cones open a faster channel scores `f_op > 0`.
+
+### Spacetime → matter: exotic matter is now evolved when needed
+
+A wormhole/warp geometry generally requires exotic (phantom, `rho <= 0`) matter
+to satisfy the Hamiltonian constraint. The constrained recipe (`--phantom`)
+already solves for the scalar profile under phantom coupling. The C++ level now
+evolves the **matching** matter: when `--phantom` is set the wrapper injects
+`recipe_exotic_matter = 1`, and `RadialRecipeLevel` evolves an `ExoticScalarField`
+(`T_munu = -recipe_support_strength * canonical`) in the RHS, the constraints,
+and the energy-condition diagnostic. With a canonical seed it falls back to the
+ordinary `ScalarField`. Verified on Ellis–Bronnikov: the evolved matter
+NEC/WEC/SEC/DEC go negative (NEC `-0.07`, integrated violation `~2.1`) exactly
+where the geometry demands it, instead of the `~0` null result a canonical field
+gives.
+
+### Two findings worth keeping in mind
+
+1. **Matter-sector EC is a null result *only* with a canonical field.** A canonical
+   `ScalarField` has `rho >= 0`, so its NEC/WEC are `~0` by construction; `--phantom`
+   used to shape only the initial data. With `recipe_exotic_matter = 1` the evolved
+   matter is genuinely exotic and the `matter_*` columns reveal the violation. The
+   curvature invariants and the general FTL measure read the geometry directly and
+   are meaningful regardless. The geometry-sourced effective stress energy
+   (`T^eff = G / 8pi`) is what the `matter_*` columns *cannot* see — that is
+   evaluated post-hoc from plotfiles by `warpfactory.py`.
+2. **Evolved-data FTL / effective-EC needs more plot vars.** Plotfiles currently
+   store `chi`, `K`, `lapse` — not the full `h_ij`/shift — so the general FTL runs
+   on the `t=0` reconstructed slice. To run it (and the effective EC) on evolved
+   spacetimes, add the metric components to `amr.plot_vars` and feed the plotfile
+   grid into `operational_ftl_on_grid` / `warpfactory.py`.
+
 ## Batch: 7 non-spherical shapes on GPUs 0–6
 
 ```bash

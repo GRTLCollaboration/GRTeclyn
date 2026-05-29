@@ -85,6 +85,10 @@ def _run_single(args: argparse.Namespace, overrides: dict[str, Any]) -> int:
     phantom = getattr(args, "phantom", False) or getattr(args, "phantom_default", False)
     if getattr(args, "constrained", False) and example.name == "RadialRecipe":
         constrained_overrides(overrides, phantom=phantom)
+    # Evolve exotic (phantom) matter when the recipe was solved for it, so the
+    # geometry is faithfully sourced instead of mismatched canonical matter.
+    if phantom and example.name == "RadialRecipe":
+        overrides.setdefault("recipe_exotic_matter", 1)
     runs_dir = Path(args.runs_dir).expanduser().resolve()
     metadata: dict[str, Any] = {
         "mode": args.command,

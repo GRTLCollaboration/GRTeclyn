@@ -10,7 +10,10 @@ amr.plot_file  = "/path/to/your/simulation/output/RadialRecipePlt"
 checkpoint_interval = 1000
 plot_interval       = 1
 
-amr.plot_vars = chi K lapse
+# Full 3+1 metric (chi, h_ij), lapse and shift are written so the Python
+# general-FTL / effective-EC tools can run on evolved plotfiles (not just the
+# t=0 reconstructed slice).  gamma_ij = h_ij / chi.
+amr.plot_vars = chi h11 h12 h13 h22 h23 h33 K lapse shift1 shift2 shift3 phi Pi
 amr.derive_plot_vars = Weyl4
 
 hdf5_subpath = "hdf5"
@@ -83,6 +86,26 @@ recipe_Pi_coeff_3 = 0.0
 # recipe_chi_Ylm_rc_0 = 4.0
 # recipe_chi_Ylm_rw_0 = 1.0
 
+# Axisymmetric (Legendre) angular deformations of the gauge/extrinsic fields,
+# field += amp * exp(-(r-rc)^2/(2 rw^2)) * P_l(cos theta).  These let the
+# search build non-spherical lapse/shift/K structure (general FTL geometries,
+# not just axial warp).  Defaults 0 = purely radial recipe.
+# recipe_num_lapse_angular_modes = 0
+# recipe_lapse_mode_ell_0 = 2
+# recipe_lapse_mode_amp_0 = 0.0
+# recipe_lapse_mode_rc_0  = 4.0
+# recipe_lapse_mode_rw_0  = 1.0
+# recipe_num_beta_angular_modes = 0
+# recipe_beta_mode_ell_0 = 1
+# recipe_beta_mode_amp_0 = 0.0
+# recipe_beta_mode_rc_0  = 4.0
+# recipe_beta_mode_rw_0  = 1.0
+# recipe_num_K_angular_modes = 0
+# recipe_K_mode_ell_0 = 2
+# recipe_K_mode_amp_0 = 0.0
+# recipe_K_mode_rc_0  = 4.0
+# recipe_K_mode_rw_0  = 1.0
+
 #################################################
 # Grid parameters
 
@@ -139,6 +162,24 @@ covariantZ4 = 0
 sigma = 2.0
 
 calculate_constraint_norms = 1
+
+# In-situ observer-sampled energy conditions (NEC/WEC/SEC/DEC) on the finest
+# level, written to data/energy_conditions.dat.
+calculate_energy_conditions = 1
+
+# In-situ coordinate-invariant curvature diagnostics (spatial Ricci scalar,
+# R_ij R^ij, K_ij K^ij), written to data/curvature_invariants.dat.
+calculate_curvature_invariants = 1
+
+# Matter sector.  A wormhole/warp geometry generally needs exotic (phantom,
+# rho <= 0) matter to satisfy the Hamiltonian constraint.  When the constrained
+# recipe is solved with phantom coupling, set recipe_exotic_matter = 1 so the
+# level evolves an ExoticScalarField (T_munu = -recipe_support_strength *
+# canonical) instead of the canonical rho >= 0 field.  Otherwise the evolved
+# matter mismatches the geometry it was reconstructed for.  The wrapper sets
+# this automatically when --phantom is used.
+recipe_exotic_matter = 0
+recipe_support_strength = 1.0
 
 #################################################
 # Extraction parameters (loaded but not used at runtime yet)

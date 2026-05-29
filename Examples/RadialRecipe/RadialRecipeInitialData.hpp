@@ -61,6 +61,18 @@ class RadialRecipeInitialData
 
         int num_chi_Ylm_modes{0};
         std::array<YlmMode, MAX_YLM_MODES> chi_Ylm_modes{};
+
+        // Axisymmetric (Legendre) angular deformations of the gauge/extrinsic
+        // fields, enabling non-spherical warp/wormhole candidates beyond the
+        // purely radial recipe.
+        int num_lapse_angular_modes{0};
+        std::array<AngularMode, MAX_ANGULAR_MODES> lapse_angular_modes{};
+
+        int num_beta_angular_modes{0};
+        std::array<AngularMode, MAX_ANGULAR_MODES> beta_angular_modes{};
+
+        int num_K_angular_modes{0};
+        std::array<AngularMode, MAX_ANGULAR_MODES> K_angular_modes{};
     };
 
     RadialRecipeInitialData(params_t a_params, double a_dx)
@@ -85,10 +97,16 @@ class RadialRecipeInitialData
         chi += chi_angular_contribution(r, dx, dy, dz);
         data_t lapse = radial_profile((data_t)m_params.alpha_asymptotic,
                                       m_params.alpha_coeffs, r);
-        const data_t beta_x = radial_profile((data_t)m_params.beta_asymptotic,
-                                             m_params.beta_coeffs, r);
-        const data_t K = radial_profile((data_t)m_params.K_asymptotic,
-                                        m_params.K_coeffs, r);
+        lapse += legendre_angular_sum(m_params.num_lapse_angular_modes,
+                                      m_params.lapse_angular_modes, r, dz);
+        data_t beta_x = radial_profile((data_t)m_params.beta_asymptotic,
+                                       m_params.beta_coeffs, r);
+        beta_x += legendre_angular_sum(m_params.num_beta_angular_modes,
+                                       m_params.beta_angular_modes, r, dz);
+        data_t K = radial_profile((data_t)m_params.K_asymptotic,
+                                  m_params.K_coeffs, r);
+        K += legendre_angular_sum(m_params.num_K_angular_modes,
+                                  m_params.K_angular_modes, r, dz);
         const data_t phi = radial_profile((data_t)m_params.phi_asymptotic,
                                           m_params.phi_coeffs, r);
         const data_t Pi = radial_profile((data_t)m_params.Pi_asymptotic,
@@ -169,22 +187,33 @@ class RadialRecipeInitialData
         return std::exp(-dr * dr / ((data_t)2.0 * width_sq));
     }
 
+    // Axisymmetric (Legendre) angular sum shared by chi, lapse, shift and K:
+    // sum_n amp_n * exp(-(r-rc_n)^2/(2 rw_n^2)) * P_{ell_n}(cos theta).
+    template <class data_t>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE data_t
+    legendre_angular_sum(int num_modes,
+                         const std::array<AngularMode, MAX_ANGULAR_MODES> &modes,
+                         data_t r, data_t dz) const
+    {
+        data_t delta        = (data_t)0.0;
+        const data_t r_safe = std::max(r, (data_t)1.0e-12);
+        const data_t mu     = dz / r_safe;
+        for (int n = 0; n < num_modes; ++n)
+        {
+            const auto &mode = modes[n];
+            const data_t radial = radial_gaussian_bump(
+                r, (data_t)mode.radial_center, (data_t)mode.radial_width);
+            delta += (data_t)mode.amplitude * radial * legendre_p(mode.ell, mu);
+        }
+        return delta;
+    }
+
     template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE data_t
     chi_angular_contribution(data_t r, data_t dx, data_t dy, data_t dz) const
     {
-        data_t delta = (data_t)0.0;
-        const data_t r_safe = std::max(r, (data_t)1.0e-12);
-        const data_t mu = dz / r_safe;
-
-        for (int n = 0; n < m_params.num_chi_angular_modes; ++n)
-        {
-            const auto &mode = m_params.chi_angular_modes[n];
-            const data_t radial = radial_gaussian_bump(
-                r, (data_t)mode.radial_center, (data_t)mode.radial_width);
-            delta += (data_t)mode.amplitude * radial *
-                     legendre_p(mode.ell, mu);
-        }
+        data_t delta = legendre_angular_sum(m_params.num_chi_angular_modes,
+                                            m_params.chi_angular_modes, r, dz);
 
         for (int n = 0; n < m_params.num_chi_Ylm_modes; ++n)
         {

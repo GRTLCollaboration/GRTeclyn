@@ -7,6 +7,12 @@ import numpy as np
 
 
 from .ftl_metrics import FtlMetrics, compute_ftl_metrics, load_overrides_from_episode
+from .ftl_general import (
+    GeneralFtlReport,
+    compute_general_ftl,
+    compute_general_ftl_from_plotfile,
+    find_latest_plotfile,
+)
 from .physical_metrics import PhysicalMetrics, compute_physical_metrics
 
 
@@ -75,6 +81,41 @@ class ComovingMetrics:
 
 
 @dataclass(frozen=True)
+class EnergyConditionMetrics:
+    """In-situ observer-sampled energy conditions of the evolved matter sector.
+
+    Written by the C++ ``RadialRecipeLevel`` (``calculate_energy_conditions``)
+    to ``data/energy_conditions.dat``.  These are the conditions of the matter
+    stress-energy ``T_munu`` itself; the geometry-sourced effective stress
+    energy ``T^eff = G/8pi`` (Warp Factory style) is evaluated post-hoc from
+    plotfiles by the ``warpfactory`` module.
+    """
+
+    final_time: float | None
+    min_nec: float | None
+    min_wec: float | None
+    min_sec: float | None
+    min_dec: float | None
+    max_integral_nec_violation: float | None
+
+
+@dataclass(frozen=True)
+class CurvatureInvariantMetrics:
+    """In-situ coordinate-invariant curvature diagnostics of the evolved
+    geometry, written by the C++ ``RadialRecipeLevel``
+    (``calculate_curvature_invariants``) to ``data/curvature_invariants.dat``.
+    Unlike the matter energy conditions these are sourced purely by the
+    geometry and so probe the exotic tidal structure directly.
+    """
+
+    final_time: float | None
+    max_abs_ricci_scalar: float | None
+    max_ricci_tensor_sq: float | None
+    max_kij_sq: float | None
+    max_l2_ricci_scalar: float | None
+
+
+@dataclass(frozen=True)
 class EpisodeMetrics:
     collapse: CollapseMetrics | None
     constraints: ConstraintMetrics | None
@@ -84,6 +125,10 @@ class EpisodeMetrics:
     termination_reason: str
     growth: GrowthMetrics | None = None
     physical: PhysicalMetrics | None = None
+    energy_conditions: EnergyConditionMetrics | None = None
+    curvature: CurvatureInvariantMetrics | None = None
+    general_ftl: GeneralFtlReport | None = None
+    general_ftl_evolved: GeneralFtlReport | None = None
 
 
 def _numeric_rows(path: Path, min_columns: int) -> list[list[float]]:
@@ -386,6 +431,33 @@ def read_growth_metrics(
     )
 
 
+def read_energy_condition_metrics(path: Path) -> EnergyConditionMetrics | None:
+    rows = _numeric_rows(path, 6)
+    if not rows:
+        return None
+    return EnergyConditionMetrics(
+        final_time=rows[-1][0],
+        min_nec=min(row[1] for row in rows),
+        min_wec=min(row[2] for row in rows),
+        min_sec=min(row[3] for row in rows),
+        min_dec=min(row[4] for row in rows),
+        max_integral_nec_violation=max(row[5] for row in rows),
+    )
+
+
+def read_curvature_invariant_metrics(path: Path) -> CurvatureInvariantMetrics | None:
+    rows = _numeric_rows(path, 5)
+    if not rows:
+        return None
+    return CurvatureInvariantMetrics(
+        final_time=rows[-1][0],
+        max_abs_ricci_scalar=max(row[1] for row in rows),
+        max_ricci_tensor_sq=max(row[2] for row in rows),
+        max_kij_sq=max(row[3] for row in rows),
+        max_l2_ricci_scalar=max(row[4] for row in rows),
+    )
+
+
 def read_episode_metrics(
     episode_dir: Path,
     *,
@@ -403,20 +475,47 @@ def read_episode_metrics(
     if not areal_path.exists():
         areal_path = episode_dir / "areal_radius.dat"
 
+    energy_conditions_path = data_dir / "energy_conditions.dat"
+    if not energy_conditions_path.exists():
+        energy_conditions_path = episode_dir / "energy_conditions.dat"
+    curvature_path = data_dir / "curvature_invariants.dat"
+    if not curvature_path.exists():
+        curvature_path = episode_dir / "curvature_invariants.dat"
+
     collapse = read_collapse_metrics(collapse_path)
     constraints = read_constraint_metrics(constraint_path)
     stability = read_stability_metrics(collapse_path, areal_path)
     growth = read_growth_metrics(collapse_path, constraint_path)
+    energy_conditions = read_energy_condition_metrics(energy_conditions_path)
+    curvature = read_curvature_invariant_metrics(curvature_path)
+
+    # Evolved-spacetime operational FTL: run the search on the latest plotfile
+    # if one survived (requires the full metric in amr.plot_vars).  Falls back
+    # silently to None when no plotfile is present (e.g. streamed + deleted).
+    general_ftl_evolved = None
+    try:
+        plotfile = find_latest_plotfile(episode_dir)
+        if plotfile is not None:
+            general_ftl_evolved = compute_general_ftl_from_plotfile(
+                plotfile, n=129, L=ftl_L
+            )
+    except Exception:
+        general_ftl_evolved = None
 
     ftl = None
     comoving = None
     physical = None
+    general_ftl = None
     overrides = load_overrides_from_episode(episode_dir)
     if overrides:
         try:
             ftl = compute_ftl_metrics(overrides, L=ftl_L)
         except Exception:
             ftl = None
+        try:
+            general_ftl = compute_general_ftl(overrides, L=ftl_L, n=97)
+        except Exception:
+            general_ftl = None
         try:
             comoving = read_comoving_metrics(episode_dir, overrides, ftl_L=ftl_L)
         except Exception:
@@ -440,6 +539,10 @@ def read_episode_metrics(
         termination_reason=reason,
         growth=growth,
         physical=physical,
+        energy_conditions=energy_conditions,
+        curvature=curvature,
+        general_ftl=general_ftl,
+        general_ftl_evolved=general_ftl_evolved,
     )
 
 

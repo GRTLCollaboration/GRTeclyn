@@ -21,6 +21,19 @@ class SimulationParameters : public SimulationParametersBase
     void read_shared_params(GRParmParse &pp)
     {
         pp.load("calculate_constraint_norms", calculate_constraint_norms, false);
+        pp.load("calculate_energy_conditions", calculate_energy_conditions,
+                false);
+        pp.load("calculate_curvature_invariants",
+                calculate_curvature_invariants, false);
+
+        // Matter sector selection.  The constrained initial-data recipe may
+        // require exotic (phantom, rho <= 0) matter to source a wormhole/warp
+        // geometry.  When recipe_exotic_matter is set the level evolves an
+        // ExoticScalarField whose stress-energy is the canonical one scaled by
+        // -recipe_support_strength, so the matter that is actually evolved
+        // matches the matter the geometry was reconstructed for.
+        pp.load("recipe_exotic_matter", recipe_exotic_matter, false);
+        pp.load("recipe_support_strength", recipe_support_strength, 1.0);
     }
 
     void read_recipe_params(GRParmParse &pp)
@@ -46,10 +59,30 @@ class SimulationParameters : public SimulationParametersBase
 
         pp.load("recipe_num_chi_angular_modes",
                 recipe_params.num_chi_angular_modes, 0);
-        load_angular_modes(pp);
+        load_angular_modes(pp, "recipe_chi_mode",
+                           recipe_params.num_chi_angular_modes,
+                           recipe_params.chi_angular_modes);
 
         pp.load("recipe_num_chi_Ylm_modes", recipe_params.num_chi_Ylm_modes, 0);
         load_Ylm_modes(pp);
+
+        pp.load("recipe_num_lapse_angular_modes",
+                recipe_params.num_lapse_angular_modes, 0);
+        load_angular_modes(pp, "recipe_lapse_mode",
+                           recipe_params.num_lapse_angular_modes,
+                           recipe_params.lapse_angular_modes);
+
+        pp.load("recipe_num_beta_angular_modes",
+                recipe_params.num_beta_angular_modes, 0);
+        load_angular_modes(pp, "recipe_beta_mode",
+                           recipe_params.num_beta_angular_modes,
+                           recipe_params.beta_angular_modes);
+
+        pp.load("recipe_num_K_angular_modes",
+                recipe_params.num_K_angular_modes, 0);
+        load_angular_modes(pp, "recipe_K_mode",
+                           recipe_params.num_K_angular_modes,
+                           recipe_params.K_angular_modes);
     }
 
     void check_params()
@@ -81,9 +114,28 @@ class SimulationParameters : public SimulationParametersBase
                             recipe_params.num_chi_Ylm_modes <=
                                 RadialRecipeInitialData::MAX_YLM_MODES,
                         "must be between 0 and MAX_YLM_MODES");
+
+        check_angular_mode_count("recipe_num_lapse_angular_modes",
+                                 recipe_params.num_lapse_angular_modes);
+        check_angular_mode_count("recipe_num_beta_angular_modes",
+                                 recipe_params.num_beta_angular_modes);
+        check_angular_mode_count("recipe_num_K_angular_modes",
+                                 recipe_params.num_K_angular_modes);
+    }
+
+    void check_angular_mode_count(const char *name, int count)
+    {
+        check_parameter(name, count,
+                        count >= 0 &&
+                            count <= RadialRecipeInitialData::MAX_ANGULAR_MODES,
+                        "must be between 0 and MAX_ANGULAR_MODES");
     }
 
     bool calculate_constraint_norms{};
+    bool calculate_energy_conditions{};
+    bool calculate_curvature_invariants{};
+    bool recipe_exotic_matter{};
+    double recipe_support_strength{1.0};
 
     RadialRecipeInitialData::params_t recipe_params{};
 
@@ -100,16 +152,19 @@ class SimulationParameters : public SimulationParametersBase
         }
     }
 
-    void load_angular_modes(GRParmParse &pp)
+    void load_angular_modes(
+        GRParmParse &pp, const char *prefix, int num_modes,
+        std::array<RadialRecipeInitialData::AngularMode,
+                   RadialRecipeInitialData::MAX_ANGULAR_MODES> &modes)
     {
-        for (int n = 0; n < recipe_params.num_chi_angular_modes; ++n)
+        for (int n = 0; n < num_modes; ++n)
         {
-            auto &mode = recipe_params.chi_angular_modes[n];
+            auto &mode = modes[n];
             std::ostringstream ell_key, amp_key, rc_key, rw_key;
-            ell_key << "recipe_chi_mode_ell_" << n;
-            amp_key << "recipe_chi_mode_amp_" << n;
-            rc_key << "recipe_chi_mode_rc_" << n;
-            rw_key << "recipe_chi_mode_rw_" << n;
+            ell_key << prefix << "_ell_" << n;
+            amp_key << prefix << "_amp_" << n;
+            rc_key << prefix << "_rc_" << n;
+            rw_key << prefix << "_rw_" << n;
             pp.load(ell_key.str().c_str(), mode.ell, 0);
             pp.load(amp_key.str().c_str(), mode.amplitude, 0.0);
             pp.load(rc_key.str().c_str(), mode.radial_center, 0.0);
