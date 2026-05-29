@@ -310,10 +310,30 @@ Eulerian stability & 0.5 & $r(\Delta_{\rm geom};\,1)$; fallback for non-propagat
 Constraint growth & 2.0 & $s_{\rm growth}$: penalizes exponential constraint/collapse growth (Eq.~\ref{eq:s_growth}). \\
 ANEC condition & 1.5 & $s_{\rm anec}$: directional energy-condition reward along the travel axis (Eq.~\ref{eq:anec_line}). \\
 Tidal comfort & 1.0 & $s_{\rm tidal}$: curvature/lapse-acceleration proxy for rider tidal force. \\
+\hline
+Operational FTL & 3.0 & $F_{\rm op}$: mechanism-agnostic arrival-time advantage on the evolved (or $t=0$) coordinate-light-speed grid (Sec.~\ref{sec:longrun_validation}). \\
+Curvature activity & 0.5 & $\min(\ln(1+\|R^{(3)}\|_{L^2}),1)$: coordinate-invariant exotic tidal structure. \\
+Effective exoticity & 1.5 & $\min(\ln(1-\mathrm{NEC}^{\rm eff}_{\min}),1)$: geometric exotic energy of the evolved metric, $T^{\rm eff}=G/8\pi$ (Sec.~\ref{sec:longrun_validation}). \\
 \end{tabular}
 \end{ruledtabular}
 \end{table}
-The final three rows are the implemented proposed-extension components (Sec.~\ref{sec:proposed}); they are inactive (contribute $0$) when their diagnostics are unavailable, so legacy episodes re-score consistently.
+The lower block lists the implemented proposed-extension and evolved-geometry components (Secs.~\ref{sec:proposed}, \ref{sec:longrun_validation}); they are inactive (contribute $0$) when their diagnostics are unavailable, so legacy episodes re-score consistently.
+
+\subsubsection{The non-triviality gate: defeating the flat-space attractor}
+\label{sec:nontriviality_gate}
+
+A naive weighted sum has a structural flaw: most of its weight sits on \emph{health} rewards---survival, constraint health, lapse health, stability, co-moving stability, constraint growth, energy condition, ANEC, tidal comfort---and a trivial flat Minkowski spacetime satisfies \emph{all} of them perfectly while scoring exactly zero on every exoticity term.  With the full component set, flat space banks $S\approx14.5$, out-ranking genuine warp and wormhole geometries (which pay survival, stability, and horizon penalties for being dynamical).  This is the flat-space attractor (Sec.~\ref{sec:ftl_attractor}) re-emerging through the back door of ``good behaviour'' rewards.
+
+We close it with a \emph{non-triviality gate}.  Let the exoticity signals be the (ungated) value components
+\begin{equation}
+    g_{\rm nt} = \min\!\Big(1,\ \max\big(s_{\rm nonflat},\,F_{\rm asymmetry},\,s_{\rm nontrivial},\,F_{\rm curv},\,F_{\rm op},\,F_{\rm log},\,s_{\rm exotic}^{\rm eff}\big)\Big)\in[0,1],
+\end{equation}
+which is $0$ only for a geometry with no structure of any kind and $\to1$ once real curvature, asymmetry, shortcut, or exotic energy is present.  The health rewards $\mathcal{H}$ are multiplied by this gate, while the exoticity/FTL terms are never gated (they supply the gradient out of flatness):
+\begin{equation}
+    S(\theta) = g_{\rm nt}(\theta)\!\!\sum_{k\in\mathcal{H}}\!\! w_k s_k(\theta)\ +\!\!\sum_{k\notin\mathcal{H}}\!\! w_k s_k(\theta).
+    \label{eq:gated_score}
+\end{equation}
+A spacetime is now rewarded for being well-behaved \emph{only once there is genuine structure to be well-behaved about}.  The gate is surgical: re-scoring the reference seeds, flat Minkowski drops from $S=14.5$ to $S=0.0$ ($g_{\rm nt}=0$), while every non-trivial geometry is unchanged ($g_{\rm nt}=1$), restoring the intended ranking (Sec.~\ref{sec:longrun_validation}).
 
 \subsection{Why these weights matter}
 
@@ -609,24 +629,30 @@ A candidate should be promoted only if it (i)~completes the requested run time, 
 To test whether the matter sector and the new diagnostics behave correctly beyond the short smoke window, we evolved the reference seeds and a set of randomly generated non-spherical candidates to $t=16$ ($8\times$ the smoke window) at $N_{\rm full}=64$, $L=8$ on NVIDIA H100 GPUs, alongside a $t=2$ reproduction wave.  Two upgrades are exercised: (i)~phantom recipes now evolve an \emph{exotic} scalar field ($T_{\mu\nu}\to -\,T_{\mu\nu}^{\rm canonical}$) rather than a canonical one, so the simulation evolves the matter type for which the geometry was reconstructed; and (ii)~the operational FTL probe---a mechanism-agnostic arrival-time test on a coordinate-light-speed grid (Sec.~\ref{sec:proposed})---is evaluated both on the reconstructed $t=0$ slice and on the \emph{evolved} spacetime, sampled directly from plotfiles.
 
 \begin{table}[H]
-\caption{Longer-run validation ($t=16$, $N_{\rm full}=64$, $L=8$, H100).  $F_{\rm op}$ is the mechanism-agnostic operational FTL benefit (arrival-time advantage on a coordinate-light-speed grid); $F_{\rm op}^{0}$ uses the reconstructed $t=0$ slice and $F_{\rm op}^{\rm ev}$ the evolved plotfile.  ``$\min\mathrm{NEC}$'' is the minimum matter null-energy-condition margin over the run (negative $=$ genuine violation).  All reference runs use constrained phantom initial data.}
+\caption{Longer-run validation ($t=16$, $N_{\rm full}=64$, $L=8$, H100) with the gated objective (Eq.~\ref{eq:gated_score}).  $F_{\rm op}^{0}$/$F_{\rm op}^{\rm ev}$ are the operational FTL benefits on the $t=0$ slice and the evolved plotfile; $\mathrm{NEC}^{\rm mat}$ is the minimum matter null-energy margin over the run (negative $=$ violation); $g_{\rm nt}$ is the non-triviality gate.  $S$ is the gated total: flat Minkowski collapses to $0$ while every non-trivial geometry is unchanged.  All reference runs use constrained phantom initial data.}
 \label{tab:longrun_validation}
 \small
 \begin{ruledtabular}
-\begin{tabular}{lcccccc}
-Example & survival & $s_{\rm stab}$ & $F_{\rm op}^{0}$ & $F_{\rm op}^{\rm ev}$ & $\min\mathrm{NEC}$ & $S$ \\
+\begin{tabular}{lccccccc}
+Example & survival & $s_{\rm stab}$ & $F_{\rm op}^{0}$ & $F_{\rm op}^{\rm ev}$ & $\mathrm{NEC}^{\rm mat}$ & $g_{\rm nt}$ & $S$ \\
 \hline
-Flat Minkowski            & 1.00 & 1.00 & 0      & ---    & $0$      & 14.5 \\
-Alcubierre $v=0.5$        & 1.00 & 0.02 & 0.096  & 0.0005 & $0$      & 14.9 \\
-Ellis--Bronnikov ($N{=}16$) & 0.80 & 0.08 & 0      & 0.042  & $-0.62$  & 12.8 \\
-\texttt{quadrupole\_bubble\_001} & 1.00 & 0.18 & 0 & 0.0095 & $-0.013$ & 10.5 \\
-Schwarzschild puncture    & 0.29 & 0.00 & 0      & ---    & $-0.91$  & 9.7  \\
+Flat Minkowski            & 1.00 & 1.00 & 0      & ---    & $0$      & 0.0 & \textbf{0.0} \\
+Alcubierre $v=0.5$        & 1.00 & 0.02 & 0.096  & 0.0005 & $0$      & 1.0 & \textbf{14.9} \\
+Ellis--Bronnikov ($N{=}16$) & 0.80 & 0.08 & 0    & 0.042  & $-0.62$  & 1.0 & 12.8 \\
+\texttt{quadrupole\_bubble\_001} & 1.00 & 0.18 & 0 & 0.0095 & $-0.013$ & 1.0 & 10.5 \\
+Schwarzschild puncture    & 0.29 & 0.00 & 0      & ---    & $-0.91$  & 1.0 & 9.7  \\
 \end{tabular}
 \end{ruledtabular}
 \end{table}
 
 \paragraph{The matter fix produces genuine energy-condition violations.}
 With the exotic field active, the Ellis--Bronnikov wormhole evolves matter that genuinely violates the null energy condition ($\min\mathrm{NEC}=-0.62$, integrated violation $\approx3.5$, max spatial Ricci $\approx18$), and the random non-spherical phantoms violate it mildly ($\min\mathrm{NEC}\approx-0.013$).  Under the previous canonical-field evolution these margins were $\approx 0$ by construction, so the diagnostic now reflects the reconstructed matter rather than a fixed positive-energy proxy.  For shift-driven warps (Alcubierre) the scalar-matter NEC remains $\approx 0$: the exotic content there lives in the geometry ($T^{\rm eff}_{\mu\nu}=G_{\mu\nu}/8\pi$), which the matter-sector condition cannot see---hence the curvature invariants and the operational FTL probe, not the matter NEC, are the meaningful exoticity signals for that class.
+
+\paragraph{Effective energy conditions recover the geometric exotic energy.}
+To make the geometric exotic energy of shift-driven warps explicit, we reassemble the covariant 4-metric $g_{\mu\nu}(t,x,y,z)$ from a stack of consecutive plotfiles and evaluate the effective stress-energy $T^{\rm eff}_{\mu\nu}=G_{\mu\nu}/8\pi$ with the Warp-Factory-style observer-sampling plus exact Hawking--Ellis evaluator (Sec.~\ref{sec:warp_factory_methods}).  On the evolved Alcubierre geometry this certifies a genuine violation, $\mathrm{NEC}^{\rm eff}_{\min}<0$ (Hawking--Ellis slack $\approx-9\times10^{-6}$, ``exotic matter required''; WEC violated over $97\%$ of sampled points), \emph{despite} the matter NEC being exactly zero---the diagnostic now sees what the matter sector is blind to.  The recovered magnitudes are resolution-limited (a coarse finite-difference $g_{\mu\nu}$ grid under-resolves the bubble wall and throat, so for Ellis--Bronnikov $\mathrm{NEC}^{\rm eff}_{\min}\approx-2\times10^{-4}$ understates the matter value $-0.62$); the \emph{sign} and detection are robust, the absolute value sharpens with finer, uniformly time-spaced plotfiles.  This effective margin enters the objective as the $s_{\rm exotic}^{\rm eff}$ component (weight $1.5$).
+
+\paragraph{The non-triviality gate eliminates the flat-space attractor.}
+Re-scoring with the gated objective (Eq.~\ref{eq:gated_score}, Table~\ref{tab:longrun_validation}) shows the intended ranking is restored: flat Minkowski drops from $S=14.5$ to $S=0.0$ because $g_{\rm nt}=0$ (it scores zero on every exoticity signal), while \emph{every} structured geometry keeps $g_{\rm nt}=1$ and an unchanged score---Alcubierre $14.9$, Ellis--Bronnikov $12.8$, the non-spherical phantoms $\sim10.5$, and even the collapsing Schwarzschild puncture $9.7$.  The gate is therefore surgical: it removes only the trivial vacuum solution from contention without perturbing the relative ordering of genuine warp, wormhole, and angular candidates.
 
 \paragraph{Evolved-frame FTL exposes dynamics the $t=0$ slice misses.}
 The operational probe is informative only once it is run on the \emph{evolved} geometry.  The Alcubierre bubble starts with a real coordinate shortcut ($F_{\rm op}^{0}=0.096$, peak coordinate light speed $1.50$) that decays to $F_{\rm op}^{\rm ev}=5\times10^{-4}$ by $t=16$ as the unsourced bubble disperses.  Conversely, the static Ellis--Bronnikov throat has \emph{no} shortcut at $t=0$ ($F_{\rm op}^{0}=0$) but \emph{develops} one under evolution ($F_{\rm op}^{\rm ev}=0.042$, peak coordinate speed $1.33$)---a genuinely dynamical superluminal channel invisible to any static analysis.
@@ -835,12 +861,13 @@ The closed-loop pipeline has executed its first optimization campaigns (Sec.~\re
 
 \begin{enumerate}
     \item \textbf{Stability scoring (growth-rate metric implemented).}  Beyond the $\Delta_{\rm geom}$ sum (weight 2.0), the constraint/collapse growth-rate $s_{\rm growth}$ (Eq.~\ref{eq:s_growth}) is now live in \texttt{metrics.py}/\texttt{score.py} and GPU-validated (Table~\ref{tab:gpu_growth}): it already exposes positive $\lambda_{\rm eff}$ for every short-run survivor.  Next: calibrate $\sigma_\lambda$ against extended stop times ($t=5$--$10$) and require both $s_{\rm stability}>0.25$ and $\lambda_{\rm eff}\lesssim0$ for promotion.
-    \item \textbf{FTL profile scoring (upgraded).}  $F_{\rm log}$, $F_{\rm asymmetry}$, and $s_{\rm comoving}$ are active in \texttt{ftl\_metrics.py} and \texttt{score.py} (Secs.~\ref{sec:ftl_scaffolding}--\ref{sec:comoving_scoring}); GPU validation in Tables~\ref{tab:gpu_ftl_upgraded}--\ref{tab:gpu_ftl_nonspherical}.  Alcubierre warp now outranks flat Minkowski ($S=10.08$ vs.\ $10.00$).  Next tier: dynamic axis-probe confirmation after evolution.
+    \item \textbf{FTL profile scoring (upgraded).}  $F_{\rm log}$, $F_{\rm asymmetry}$, and $s_{\rm comoving}$ are active in \texttt{ftl\_metrics.py} and \texttt{score.py} (Secs.~\ref{sec:ftl_scaffolding}--\ref{sec:comoving_scoring}); GPU validation in Tables~\ref{tab:gpu_ftl_upgraded}--\ref{tab:gpu_ftl_nonspherical}.  Under the FTL-scaffolding weights Alcubierre warp narrowly outranks flat Minkowski ($S=10.08$ vs.\ $10.00$); with the non-triviality gate (Sec.~\ref{sec:nontriviality_gate}) the margin becomes decisive (flat $\to0$, Alcubierre $14.9$).  The dynamic axis-probe confirmation is now implemented as the evolved operational FTL and effective-EC diagnostics (Sec.~\ref{sec:longrun_validation}).
     \item \textbf{Basis and width sweeps.}  Automated sweeps over $N\in[4,16]$ and $w\in[0.3,2.5]$ map the fit residual $\epsilon_{\rm fit}$ and set the minimum safe CMA-ES dimensionality.
     \item \textbf{Gauge stability to $t=5$.}  Extend the seven non-spherical survivors (Table~\ref{tab:gpu_nonspherical}) and promoted radial seeds through $t=5$ on the $N_{\rm full}=64,96,128$ ladder to verify $1+\log$ slicing and Gamma-driver shift under deformed geometry.
 \end{enumerate}
 
 \subsection{Phase 2: Multi-observer energy conditions}
+\label{sec:warp_factory_methods}
 
 A directional, axis-line ANEC proxy and a curvature/lapse tidal proxy are already implemented and scored (Eqs.~\ref{eq:s_growth}--\ref{eq:anec_line}, Table~\ref{tab:phys_t0}), but both are $t=0$ and $\chi$-sourced, so they are blind to pure-shift warps (Alcubierre row of Table~\ref{tab:phys_t0}).  To close this gap we have ported the multi-observer methodology of \textsc{Warp Factory}~\cite{helmerich2024warpfactory} into a standalone evaluator (\texttt{warpfactory.py}): given a full 4-metric $g_{\mu\nu}$ on a Cartesian grid, it forms the Einstein tensor by finite differences, hence $T_{\mu\nu}=G_{\mu\nu}/8\pi$, builds a local orthonormal frame from the $3{+}1$ split, and contracts $T$ against a sampled sphere of null and timelike observers to evaluate the pointwise conditions, e.g.\ the WEC
 \begin{equation}
@@ -852,7 +879,7 @@ Beyond discrete observer sampling, we adopt the \textsc{warpax} refinement~\cite
 \begin{equation}
     \text{NEC}:~\min_i(\rho+p_i)\ge0,\quad \text{WEC}:~\min\!\big(\rho,\min_i(\rho+p_i)\big)\ge0,\quad \text{DEC}:~\min_i(\rho-|p_i|)\ge0,
 \end{equation}
-with $\rho$ the frame-independent (invariant) energy density rather than the Eulerian projection.  Our \texttt{warpfactory.py} reports the algebraic slack at Type I points and falls back to the rapidity-capped observer minimum elsewhere, taking the more-violating of the two (a ``hybrid margin''); for the Alcubierre wall the exact NEC/WEC slack is negative and grows with velocity ($-7.1\times10^{-3}$ at $v=0.5$, $-2.4\times10^{-2}$ at $v=0.9$).  Because the eigenvalue test is sensitive to discretization noise near eigenvalue degeneracies, we use a fourth-order finite-difference stencil and verify the observed convergence order of the curvature chain by Richardson extrapolation (observed order $\gtrsim2$ on the smooth functional $\int|G_{\mu\nu}|\,dV$), following the high-order-convergence methodology of Lousto~\cite{lousto2006fourth}; automatic differentiation~\cite{le2026warpax,li2023pinn} would remove the truncation error entirely and is the natural upgrade.  The remaining work is to (i) reassemble $g_{\mu\nu}$ from evolved \texttt{GRTeclyn} plotfiles so the evaluator runs on dynamical (not merely analytic) candidates, and (ii) feed the per-candidate minimum into \texttt{score.py} as an \texttt{energy\_conditions} component, combined with the evolved operational probe (Eq.~\ref{eq:f_op}) so candidates cannot look physical to a stationary observer but exotic to one moving with the bubble.
+with $\rho$ the frame-independent (invariant) energy density rather than the Eulerian projection.  Our \texttt{warpfactory.py} reports the algebraic slack at Type I points and falls back to the rapidity-capped observer minimum elsewhere, taking the more-violating of the two (a ``hybrid margin''); for the Alcubierre wall the exact NEC/WEC slack is negative and grows with velocity ($-7.1\times10^{-3}$ at $v=0.5$, $-2.4\times10^{-2}$ at $v=0.9$).  Because the eigenvalue test is sensitive to discretization noise near eigenvalue degeneracies, we use a fourth-order finite-difference stencil and verify the observed convergence order of the curvature chain by Richardson extrapolation (observed order $\gtrsim2$ on the smooth functional $\int|G_{\mu\nu}|\,dV$), following the high-order-convergence methodology of Lousto~\cite{lousto2006fourth}; automatic differentiation~\cite{le2026warpax,li2023pinn} would remove the truncation error entirely and is the natural upgrade.  This evaluator is now wired onto the dynamical pipeline: we reassemble $g_{\mu\nu}$ from a stack of consecutive evolved \texttt{GRTeclyn} plotfiles (so the Einstein tensor carries genuine $\partial_t$ terms) and feed the per-candidate effective margin into \texttt{score.py} as the $s_{\rm exotic}^{\rm eff}$ component (weight $1.5$), combined with the evolved operational probe (Eq.~\ref{eq:f_op}) so candidates cannot look physical to a stationary observer but exotic to one moving with the bubble.  On the evolved Alcubierre geometry this certifies $\mathrm{NEC}^{\rm eff}_{\min}<0$ even though the matter NEC is zero (Sec.~\ref{sec:longrun_validation}); the absolute magnitude remains finite-difference-resolution limited and sharpens with closer-spaced plotfiles.
 
 \subsection{Phase 3: GPU-cluster production search}
 
