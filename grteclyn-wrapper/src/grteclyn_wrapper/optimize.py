@@ -150,6 +150,7 @@ def _objective(
     ftl_L: float | None = None,
     consume_plotfiles: bool = True,
     consumer_radii: Sequence[float] = (4.0, 8.0),
+    consumer_keep_last: int = 1,
 ) -> float:
     """Evaluate one candidate.  Returns negative score (CMA-ES minimizes)."""
     eval_counter[0] += 1
@@ -202,6 +203,7 @@ def _objective(
                 consume_plotfiles=consume_plotfiles,
                 consumer_radii=consumer_radii,
                 consumer_delete=True,
+                consumer_keep_last=consumer_keep_last,
             )
             exit_code = result.returncode
         except Exception as exc:
@@ -258,6 +260,7 @@ def run_optimize(
     x0: Sequence[float] | None = None,
     consume_plotfiles: bool = True,
     consumer_radii: Sequence[float] = (4.0, 8.0),
+    consumer_keep_last: int = 1,
     surrogate: bool = False,
     surrogate_keep_fraction: float = 0.5,
     surrogate_warmup: int | None = None,
@@ -380,6 +383,7 @@ def run_optimize(
                 ftl_L=ftl_L,
                 consume_plotfiles=consume_plotfiles,
                 consumer_radii=consumer_radii,
+                consumer_keep_last=consumer_keep_last,
             )
         out: list[float] = []
         for sol in subset:
@@ -404,6 +408,7 @@ def run_optimize(
                 ftl_L=ftl_L,
                 consume_plotfiles=consume_plotfiles,
                 consumer_radii=consumer_radii,
+                consumer_keep_last=consumer_keep_last,
             ))
         return out
 
@@ -523,6 +528,7 @@ def _evaluate_generation_parallel(
     ftl_L: float | None,
     consume_plotfiles: bool,
     consumer_radii: Sequence[float],
+    consumer_keep_last: int = 1,
 ) -> list[float]:
     """Evaluate an entire CMA-ES generation in parallel across GPUs.
 
@@ -557,6 +563,7 @@ def _evaluate_generation_parallel(
             ftl_L=ftl_L,
             consume_plotfiles=consume_plotfiles,
             consumer_radii=consumer_radii,
+            consumer_keep_last=consumer_keep_last,
         )
         with lock:
             fitnesses[idx_in_gen] = f

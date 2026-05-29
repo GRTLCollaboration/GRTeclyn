@@ -167,6 +167,7 @@ def run_episode(
     consume_plotfiles: bool = False,
     consumer_radii: Sequence[float] = (8.0, 16.0),
     consumer_delete: bool = False,
+    consumer_keep_last: int = 1,
 ) -> RunResult:
     example_dir = executable.example.dir
     if not executable.path.exists():
@@ -199,7 +200,7 @@ def run_episode(
             example_name=executable.example.name,
             radii=consumer_radii,
             delete=consumer_delete,
-            keep_last=1,
+            keep_last=consumer_keep_last,
             frames=True,
         )
 
@@ -214,7 +215,7 @@ def run_episode(
                 example_name=executable.example.name,
                 radii=consumer_radii,
                 delete=consumer_delete,
-                keep_last=0,
+                keep_last=consumer_keep_last,
                 frames=True,
             )
 

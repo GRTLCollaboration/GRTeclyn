@@ -132,6 +132,7 @@ def _run_single(args: argparse.Namespace, overrides: dict[str, Any]) -> int:
         consume_plotfiles=args.consume_plotfiles,
         consumer_radii=args.consumer_radii,
         consumer_delete=args.consumer_delete,
+        consumer_keep_last=getattr(args, "consumer_keep_last", 1),
     )
     _finalize_score(
         episode.path,
@@ -198,7 +199,13 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
     use_preflight = getattr(args, "preflight", False)
     if args.command == "optimize":
         use_constrained = True if not hasattr(args, "_no_constrained") else use_constrained
-        use_phantom = True if not hasattr(args, "_no_phantom") else use_phantom
+        # The search defaults to phantom-supported constrained data, but
+        # --no-phantom switches to a *normal-matter* (rho >= 0) constrained
+        # solve so the search targets FTL achievable WITHOUT exotic matter:
+        # geometries that demand negative energy then fail the Hamiltonian
+        # constraint and are pruned / penalized instead of being force-fed
+        # phantom support.
+        use_phantom = not getattr(args, "no_phantom", False)
         use_preflight = True if not hasattr(args, "_no_preflight") else use_preflight
 
     result = run_optimize(
@@ -222,6 +229,7 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
         x0=x0,
         consume_plotfiles=getattr(args, "consume_plotfiles", True),
         consumer_radii=getattr(args, "consumer_radii", [4.0, 8.0]),
+        consumer_keep_last=getattr(args, "consumer_keep_last", 1),
         score_weights=getattr(args, "score_weights", None),
         ftl_L=getattr(args, "ftl_L", None),
         surrogate=getattr(args, "surrogate", False),
@@ -397,9 +405,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--consume-plotfiles", action="store_true", help="Run consume_plotfiles as a side process.")
     parser.add_argument("--consumer-radii", nargs="+", type=float, default=[8.0, 16.0], help="Radii for consume_plotfiles.")
     parser.add_argument("--consumer-delete", action="store_true", help="Let consume_plotfiles delete old plotfiles.")
+    parser.add_argument(
+        "--consumer-keep-last",
+        type=int,
+        default=1,
+        help="Plotfiles to retain when consuming (>=3 lets evolved-FTL/effective-EC score the evolved geometry).",
+    )
     parser.add_argument("--dry-run", action="store_true", help="Create episode files without launching GRTeclyn.")
     parser.add_argument("--constrained", action="store_true", help="Derive phi from chi to satisfy Hamiltonian constraint (RadialRecipe only).")
     parser.add_argument("--phantom", action="store_true", help="Use phantom scalar field coupling (negative kinetic term) in constrained mode.")
+    parser.add_argument("--no-phantom", dest="no_phantom", action="store_true", help="Force the constrained solve to use NORMAL matter (rho>=0) during optimize: search for FTL without exotic matter.")
     parser.add_argument("--preflight", action="store_true", help="Pre-flight constraint check; reject bad candidates before GPU launch (RadialRecipe only).")
     parser.add_argument("--seed-name", default=None, choices=list_seeds(), help="Start from a known-solution seed (RadialRecipe only).")
     parser.add_argument(

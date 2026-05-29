@@ -351,6 +351,11 @@ dependencies = [
     { name = "cma" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "yt", version = "4.3.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10.3'" },
+    { name = "yt", version = "4.4.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10.3' and python_full_version < '3.10.4'" },
+    { name = "yt", version = "4.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10.4'" },
 ]
 
 [package.optional-dependencies]
@@ -375,7 +380,9 @@ requires-dist = [
     { name = "matplotlib", marker = "extra == 'visualization'", specifier = ">=3.8" },
     { name = "numpy", specifier = ">=1.24" },
     { name = "numpy", marker = "extra == 'visualization'", specifier = ">=1.24" },
+    { name = "scipy", specifier = ">=1.10" },
     { name = "scipy", marker = "extra == 'visualization'", specifier = ">=1.10" },
+    { name = "yt", specifier = ">=4.0" },
     { name = "yt", marker = "extra == 'visualization'", specifier = ">=4.0" },
 ]
 provides-extras = ["plots", "visualization"]

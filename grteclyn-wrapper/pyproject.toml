@@ -6,6 +6,12 @@ requires-python = ">=3.10"
 dependencies = [
     "numpy>=1.24",
     "cma>=3.3",
+    # Required by the scoring objective: evolved-frame operational FTL and
+    # effective energy conditions reconstruct the 4-metric from plotfiles via yt
+    # (scipy backs the finite-difference stencils).  These guide the CMA-ES
+    # search, so they are no longer optional.
+    "scipy>=1.10",
+    "yt>=4.0",
 ]
 
 [project.optional-dependencies]

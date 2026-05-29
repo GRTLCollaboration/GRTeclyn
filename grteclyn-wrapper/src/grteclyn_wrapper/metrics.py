@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -14,6 +15,12 @@ from .ftl_general import (
     find_latest_plotfile,
 )
 from .physical_metrics import PhysicalMetrics, compute_physical_metrics
+
+# yt is not thread-safe; the optimizer evaluates a generation across GPUs using
+# threads, so concurrent yt.load() calls in different threads race and the
+# evolved-FTL/effective-EC reads silently fail.  Serialize just the plotfile
+# (yt) reads with this lock so the GPU simulations still run fully in parallel.
+_PLOTFILE_READ_LOCK = threading.Lock()
 
 
 @dataclass(frozen=True)
@@ -513,13 +520,23 @@ def read_episode_metrics(
     # Evolved-spacetime operational FTL: run the search on the latest plotfile
     # if one survived (requires the full metric in amr.plot_vars).  Falls back
     # silently to None when no plotfile is present (e.g. streamed + deleted).
+    #
+    # Scoring can race the solver's final plotfile flush; wait briefly for the
+    # latest plotfile to finish writing so the evolved diagnostics are captured
+    # at run time (not only on a later manual re-score).
     general_ftl_evolved = None
     try:
+        from .ftl_general import wait_for_plotfile_complete
+
+        plotfile = find_latest_plotfile(episode_dir, complete_only=False)
+        if plotfile is not None:
+            wait_for_plotfile_complete(plotfile, timeout=30.0)
         plotfile = find_latest_plotfile(episode_dir)
         if plotfile is not None:
-            general_ftl_evolved = compute_general_ftl_from_plotfile(
-                plotfile, n=129, L=ftl_L
-            )
+            with _PLOTFILE_READ_LOCK:
+                general_ftl_evolved = compute_general_ftl_from_plotfile(
+                    plotfile, n=129, L=ftl_L
+                )
     except Exception:
         general_ftl_evolved = None
 
@@ -529,13 +546,15 @@ def read_episode_metrics(
     effective_ec = None
     try:
         from .ftl_general import find_recent_plotfiles
+
         from .warpfactory import effective_energy_conditions_from_plotfiles
 
         recent = find_recent_plotfiles(episode_dir, count=5)
         if len(recent) >= 3:
-            rep = effective_energy_conditions_from_plotfiles(
-                [str(p) for p in recent], n_space=32, half_width=ftl_L
-            )
+            with _PLOTFILE_READ_LOCK:
+                rep = effective_energy_conditions_from_plotfiles(
+                    [str(p) for p in recent], n_space=32, half_width=ftl_L
+                )
             effective_ec = EffectiveEnergyConditionMetrics(
                 nec_min=rep.nec_min,
                 wec_min=rep.wec_min,

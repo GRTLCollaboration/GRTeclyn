@@ -25,14 +25,17 @@ DEFAULT_WEIGHTS: dict[str, float] = {
     "anec_condition": 1.5,
     "tidal_comfort": 1.0,
     # Mechanism-agnostic operational FTL (Dijkstra arrival-time advantage on the
-    # slice; warp/wormhole/portal/unknown alike) and coordinate-invariant
-    # curvature activity (rewards genuinely non-trivial exotic geometry).
-    "operational_ftl": 3.0,
+    # slice; warp/wormhole/portal/unknown alike) -- this is the primary goal, so
+    # it dominates the reward budget.  Curvature activity rewards genuinely
+    # non-trivial geometry (and keeps flat space out of the running).
+    "operational_ftl": 6.0,
     "curvature_activity": 0.5,
-    # Effective exotic energy of the *evolved geometry* (T^eff = G/8pi): rewards
-    # warp/portal spacetimes whose exoticity is geometric and therefore invisible
-    # to the matter-sector energy condition.
-    "effective_exoticity": 1.5,
+    # Exotic-matter PENALTY.  The objective is FTL *without* exotic matter, so
+    # any negative-energy requirement is punished -- both the matter sourced at
+    # t=0 by the constrained solve and the geometric exotic energy of the
+    # evolved spacetime (effective NEC violation, T^eff = G/8pi).  The component
+    # is negative; this weight sets how hard exoticity is penalized.
+    "exotic_penalty": 8.0,
 }
 
 
@@ -218,7 +221,16 @@ def score_episode(
         else 0.0
     )
     f_op = max(f_op_t0, f_op_ev)
-    components["operational_ftl"] = f_op if math.isfinite(f_op) and f_op > 0 else 0.0
+    # Real arrival-time advantages are small (F_op ~ 1e-3); a raw [0,1] reward is
+    # dwarfed by the health basket, so FTL never actually drives the search.
+    # Log-amplify against OP_FTL_SCALE so a genuine (small) shortcut is a
+    # multi-point reward, while F_op == 0 (no shortcut) stays exactly 0.
+    OP_FTL_SCALE = 2.0e-3
+    components["operational_ftl"] = (
+        min(math.log1p(f_op / OP_FTL_SCALE), 1.0)
+        if math.isfinite(f_op) and f_op > 0
+        else 0.0
+    )
     if metrics.general_ftl_evolved is not None:
         if metrics.general_ftl_evolved.max_local_speed > 1.0:
             notes.append(
@@ -238,10 +250,38 @@ def score_episode(
     else:
         components["curvature_activity"] = 0.0
 
-    # Effective exotic energy of the evolved geometry (T^eff = G/8pi).  For a
-    # shift-driven warp the matter-sector NEC is ~0 by construction; the exotic
-    # energy is geometric and shows up here instead.  Saturating reward so a
-    # near-singular blow-up cannot dominate.
+    # Exotic-matter penalty.  The goal is FTL *without* exotic matter, so any
+    # negative-energy requirement is penalized.  Two independent probes feed it:
+    #   1. matter sector at t=0: the constrained solve back-solves the matter
+    #      from the proposed geometry; a non-zero integral of negative rho (or a
+    #      negative peak min_rho_required) means exotic matter is needed up front.
+    #   2. evolved geometry: the effective stress-energy T^eff = G/8pi of the
+    #      evolved spacetime violating the NEC (geometric exotic energy that the
+    #      matter-sector EC cannot see -- e.g. a shift-driven warp).
+    #
+    # Each probe is log-scaled against its own reference (the magnitudes differ
+    # by orders of magnitude: matter integral ~O(1), geometric NEC ~O(1e-4)) so
+    # the penalty is a *smooth gradient* across the observed range rather than a
+    # saturated constant.  Steepest near zero, so "almost no exotic" is clearly
+    # distinguished from "a little exotic"; heavy exotic saturates at -1.
+    def _graded(x: float, scale: float) -> float:
+        if not math.isfinite(x) or x <= 0.0:
+            return 0.0
+        return min(math.log1p(x / scale), 1.0)
+
+    MATTER_INT_SCALE = 0.5     # integral of negative rho (volume measure)
+    MATTER_PEAK_SCALE = 5.0e-2  # peak negative energy density
+    GEO_NEC_SCALE = 5.0e-4      # effective-NEC violation of evolved geometry
+
+    matter_exotic = 0.0
+    geo_exotic = 0.0
+    if metrics.constraints is not None:
+        int_neg = metrics.constraints.integral_negative_rho
+        min_rho = metrics.constraints.min_rho_required
+        if int_neg is not None and int_neg > 0.0:
+            matter_exotic = max(matter_exotic, _graded(int_neg, MATTER_INT_SCALE))
+        if min_rho is not None and min_rho < 0.0:
+            matter_exotic = max(matter_exotic, _graded(-min_rho, MATTER_PEAK_SCALE))
     if metrics.effective_ec is not None:
         eff = metrics.effective_ec
         eff_candidates = [
@@ -249,16 +289,15 @@ def score_episode(
             if v is not None
         ]
         eff_worst = min(eff_candidates) if eff_candidates else 0.0
-        components["effective_exoticity"] = min(
-            math.log1p(max(0.0, -eff_worst)), 1.0
+        geo_exotic = _graded(-eff_worst, GEO_NEC_SCALE)
+
+    exotic_term = max(matter_exotic, geo_exotic)
+    components["exotic_penalty"] = -exotic_term
+    if exotic_term > 0.05:
+        notes.append(
+            "exotic matter required "
+            f"(matter={matter_exotic:.2f}, geometric={geo_exotic:.2f} of full penalty)"
         )
-        if eff_worst < -1.0e-6:
-            notes.append(
-                "evolved geometry violates the effective NEC "
-                f"(T^eff=G/8pi, min margin={eff_worst:.3e}); geometric exotic energy"
-            )
-    else:
-        components["effective_exoticity"] = 0.0
 
     # Non-triviality gate: a trivial flat spacetime aces every "health" reward
     # (survival, stability, clean constraints, no exotic energy) while scoring
@@ -267,6 +306,9 @@ def score_episode(
     # rewards by how non-trivial the geometry actually is, so they only count
     # once there is real structure to be healthy about.  The exoticity/FTL terms
     # are never gated -- they supply the gradient out of flatness.
+    # Note: exotic energy is deliberately NOT a non-triviality signal anymore --
+    # we do not want negative-energy content to "earn" the health rewards.  FTL
+    # and curvature structure supply the gradient out of flatness instead.
     nontriviality = max(
         components.get("nonflat_geometry", 0.0),
         components.get("expansion_asymmetry", 0.0),
@@ -274,7 +316,6 @@ def score_episode(
         components.get("curvature_activity", 0.0),
         components.get("operational_ftl", 0.0),
         components.get("ftl_shortcut", 0.0),
-        components.get("effective_exoticity", 0.0),
     )
     nontriviality = float(min(max(nontriviality, 0.0), 1.0))
     components["nontriviality_gate"] = nontriviality

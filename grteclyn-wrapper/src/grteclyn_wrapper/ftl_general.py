@@ -31,6 +31,7 @@ from __future__ import annotations
 import heapq
 import math
 import re
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping, Sequence
@@ -359,17 +360,46 @@ def compute_general_ftl(
 _PLOTFILE_RE = re.compile(r"(\d+)$")
 
 
-def find_latest_plotfile(episode_dir: str | Path) -> Path | None:
-    """Return the highest-index AMReX plotfile directory under ``episode_dir``.
+def plotfile_is_complete(plotfile: str | Path, *, stable_seconds: float = 2.0) -> bool:
+    """Return ``True`` when an AMReX plotfile directory is fully written.
 
-    Plotfiles are named ``<Prefix>Plt<NNNNN>`` (or ``plt<NNNNN>``); they may live
-    directly in the episode or under an ``hdf5`` subdir.  Returns ``None`` when
-    no plotfile is present (e.g. the streaming consumer deleted them)."""
-    episode_dir = Path(episode_dir)
-    if not episode_dir.exists():
-        return None
-    best: Path | None = None
-    best_idx = -1
+    A plotfile that is still being flushed by the solver (the scoring step can
+    race the final write) has either no top-level ``Header`` yet or files whose
+    mtime is still advancing.  We require both: a present ``Header`` and no file
+    under the directory modified within the last ``stable_seconds``.
+    """
+    p = Path(plotfile)
+    if not (p / "Header").is_file():
+        return False
+    try:
+        newest = max(
+            (f.stat().st_mtime for f in p.rglob("*") if f.is_file()),
+            default=0.0,
+        )
+    except OSError:
+        return False
+    return (time.time() - newest) >= stable_seconds
+
+
+def wait_for_plotfile_complete(
+    plotfile: str | Path,
+    *,
+    timeout: float = 30.0,
+    stable_seconds: float = 2.0,
+    poll: float = 1.0,
+) -> bool:
+    """Block until ``plotfile`` looks complete, or ``timeout`` elapses."""
+    deadline = time.time() + max(0.0, timeout)
+    while True:
+        if plotfile_is_complete(plotfile, stable_seconds=stable_seconds):
+            return True
+        if time.time() >= deadline:
+            return plotfile_is_complete(plotfile, stable_seconds=stable_seconds)
+        time.sleep(poll)
+
+
+def _scan_plotfiles(episode_dir: Path, *, complete_only: bool) -> dict[int, Path]:
+    found: dict[int, Path] = {}
     for pattern in ("*Plt*", "plt*"):
         for p in episode_dir.rglob(pattern):
             if not p.is_dir():
@@ -377,31 +407,43 @@ def find_latest_plotfile(episode_dir: str | Path) -> Path | None:
             m = _PLOTFILE_RE.search(p.name)
             if not m:
                 continue
-            idx = int(m.group(1))
-            if idx > best_idx:
-                best_idx, best = idx, p
-    return best
+            if complete_only and not plotfile_is_complete(p):
+                continue
+            found[int(m.group(1))] = p
+    return found
+
+
+def find_latest_plotfile(
+    episode_dir: str | Path, *, complete_only: bool = True
+) -> Path | None:
+    """Return the highest-index AMReX plotfile directory under ``episode_dir``.
+
+    Plotfiles are named ``<Prefix>Plt<NNNNN>`` (or ``plt<NNNNN>``); they may live
+    directly in the episode or under an ``hdf5`` subdir.  Returns ``None`` when
+    no plotfile is present (e.g. the streaming consumer deleted them).  By
+    default only fully-written plotfiles are considered, so scoring never reads
+    a half-flushed final plotfile (the evolved-FTL/effective-EC race)."""
+    episode_dir = Path(episode_dir)
+    if not episode_dir.exists():
+        return None
+    found = _scan_plotfiles(episode_dir, complete_only=complete_only)
+    if not found:
+        return None
+    return found[max(found)]
 
 
 def find_recent_plotfiles(
-    episode_dir: str | Path, count: int = 5
+    episode_dir: str | Path, count: int = 5, *, complete_only: bool = True
 ) -> list[Path]:
     """Return up to ``count`` highest-index plotfiles, time-ordered ascending.
 
     Used to assemble a short time stack for finite-difference ``d_t`` of the
     evolved 4-metric (effective energy conditions).  Returns ``[]`` when fewer
-    than two plotfiles survive."""
+    than two plotfiles survive.  Skips half-written plotfiles by default."""
     episode_dir = Path(episode_dir)
     if not episode_dir.exists():
         return []
-    found: dict[int, Path] = {}
-    for pattern in ("*Plt*", "plt*"):
-        for p in episode_dir.rglob(pattern):
-            if not p.is_dir():
-                continue
-            m = _PLOTFILE_RE.search(p.name)
-            if m:
-                found[int(m.group(1))] = p
+    found = _scan_plotfiles(episode_dir, complete_only=complete_only)
     if not found:
         return []
     idx_sorted = sorted(found)[-count:]
