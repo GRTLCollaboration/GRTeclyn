@@ -116,6 +116,26 @@ class CurvatureInvariantMetrics:
 
 
 @dataclass(frozen=True)
+class EffectiveEnergyConditionMetrics:
+    """Effective energy conditions of the *evolved geometry*, computed from the
+    Einstein tensor ``T^eff = G/8 pi`` of the 4-metric reassembled from a stack
+    of plotfiles (Warp-Factory-style evaluator in :mod:`warpfactory`).
+
+    These see geometry-sourced exotic energy (warp bubbles, shift channels)
+    that the matter-sector scalar-field conditions are structurally blind to.
+    A negative ``nec_min`` / ``nec_slack_min`` certifies exotic energy.
+    """
+
+    nec_min: float | None
+    wec_min: float | None
+    nec_slack_min: float | None
+    rho_eulerian_min: float | None
+    wec_violation_fraction: float | None
+    s_energy_conditions: float | None
+    n_points: int | None
+
+
+@dataclass(frozen=True)
 class EpisodeMetrics:
     collapse: CollapseMetrics | None
     constraints: ConstraintMetrics | None
@@ -129,6 +149,7 @@ class EpisodeMetrics:
     curvature: CurvatureInvariantMetrics | None = None
     general_ftl: GeneralFtlReport | None = None
     general_ftl_evolved: GeneralFtlReport | None = None
+    effective_ec: EffectiveEnergyConditionMetrics | None = None
 
 
 def _numeric_rows(path: Path, min_columns: int) -> list[list[float]]:
@@ -502,6 +523,31 @@ def read_episode_metrics(
     except Exception:
         general_ftl_evolved = None
 
+    # Effective energy conditions T^eff = G/8pi of the evolved geometry: reveals
+    # geometry-sourced exotic energy (warp/portal) invisible to the matter
+    # sector.  Needs >= 3 time-ordered plotfiles for d_t; best-effort.
+    effective_ec = None
+    try:
+        from .ftl_general import find_recent_plotfiles
+        from .warpfactory import effective_energy_conditions_from_plotfiles
+
+        recent = find_recent_plotfiles(episode_dir, count=5)
+        if len(recent) >= 3:
+            rep = effective_energy_conditions_from_plotfiles(
+                [str(p) for p in recent], n_space=32, half_width=ftl_L
+            )
+            effective_ec = EffectiveEnergyConditionMetrics(
+                nec_min=rep.nec_min,
+                wec_min=rep.wec_min,
+                nec_slack_min=rep.nec_slack_min,
+                rho_eulerian_min=rep.rho_eulerian_min,
+                wec_violation_fraction=rep.wec_violation_fraction,
+                s_energy_conditions=rep.s_energy_conditions,
+                n_points=rep.n_points,
+            )
+    except Exception:
+        effective_ec = None
+
     ftl = None
     comoving = None
     physical = None
@@ -543,6 +589,7 @@ def read_episode_metrics(
         curvature=curvature,
         general_ftl=general_ftl,
         general_ftl_evolved=general_ftl_evolved,
+        effective_ec=effective_ec,
     )
 
 

@@ -29,7 +29,28 @@ DEFAULT_WEIGHTS: dict[str, float] = {
     # curvature activity (rewards genuinely non-trivial exotic geometry).
     "operational_ftl": 3.0,
     "curvature_activity": 0.5,
+    # Effective exotic energy of the *evolved geometry* (T^eff = G/8pi): rewards
+    # warp/portal spacetimes whose exoticity is geometric and therefore invisible
+    # to the matter-sector energy condition.
+    "effective_exoticity": 1.5,
 }
+
+
+# "Health/niceness" rewards that a trivial flat spacetime maximises by default.
+# They are gated by a non-triviality factor (see ``score_episode``) so flat
+# Minkowski cannot bank them and out-rank a genuinely exotic geometry.
+HEALTH_COMPONENTS: frozenset[str] = frozenset({
+    "survival",
+    "constraint_health",
+    "energy_condition",
+    "initial_constraint_quality",
+    "lapse_health",
+    "stability",
+    "comoving_stability",
+    "constraint_growth",
+    "anec_condition",
+    "tidal_comfort",
+})
 
 
 @dataclass(frozen=True)
@@ -217,5 +238,55 @@ def score_episode(
     else:
         components["curvature_activity"] = 0.0
 
-    total = sum(w.get(key, 0.0) * value for key, value in components.items())
+    # Effective exotic energy of the evolved geometry (T^eff = G/8pi).  For a
+    # shift-driven warp the matter-sector NEC is ~0 by construction; the exotic
+    # energy is geometric and shows up here instead.  Saturating reward so a
+    # near-singular blow-up cannot dominate.
+    if metrics.effective_ec is not None:
+        eff = metrics.effective_ec
+        eff_candidates = [
+            v for v in (eff.nec_slack_min, eff.nec_min, eff.rho_eulerian_min)
+            if v is not None
+        ]
+        eff_worst = min(eff_candidates) if eff_candidates else 0.0
+        components["effective_exoticity"] = min(
+            math.log1p(max(0.0, -eff_worst)), 1.0
+        )
+        if eff_worst < -1.0e-6:
+            notes.append(
+                "evolved geometry violates the effective NEC "
+                f"(T^eff=G/8pi, min margin={eff_worst:.3e}); geometric exotic energy"
+            )
+    else:
+        components["effective_exoticity"] = 0.0
+
+    # Non-triviality gate: a trivial flat spacetime aces every "health" reward
+    # (survival, stability, clean constraints, no exotic energy) while scoring
+    # zero on all exoticity terms, which previously let it out-rank genuine warp
+    # / wormhole geometries (the flat-space attractor).  We gate the health
+    # rewards by how non-trivial the geometry actually is, so they only count
+    # once there is real structure to be healthy about.  The exoticity/FTL terms
+    # are never gated -- they supply the gradient out of flatness.
+    nontriviality = max(
+        components.get("nonflat_geometry", 0.0),
+        components.get("expansion_asymmetry", 0.0),
+        components.get("nontrivial_geometry", 0.0),
+        components.get("curvature_activity", 0.0),
+        components.get("operational_ftl", 0.0),
+        components.get("ftl_shortcut", 0.0),
+        components.get("effective_exoticity", 0.0),
+    )
+    nontriviality = float(min(max(nontriviality, 0.0), 1.0))
+    components["nontriviality_gate"] = nontriviality
+    if nontriviality < 0.05:
+        notes.append(
+            "near-trivial geometry: health rewards gated out (flat-space attractor guard)"
+        )
+
+    total = 0.0
+    for key, value in components.items():
+        if key == "nontriviality_gate":
+            continue
+        gate = nontriviality if key in HEALTH_COMPONENTS else 1.0
+        total += w.get(key, 0.0) * value * gate
     return Score(total=total, components=components, notes=notes)

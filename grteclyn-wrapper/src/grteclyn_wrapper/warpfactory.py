@@ -532,6 +532,119 @@ def alcubierre_metric(
 
 
 # --------------------------------------------------------------------------
+# Evolved GRTeclyn plotfiles -> effective stress-energy T^eff = G/8pi.
+#
+# A warp/portal whose exoticity is *geometric* (sourced by the shift/extrinsic
+# curvature rather than a matter field) leaves the matter-sector energy
+# conditions clean: the negative energy lives in T^eff_{mu nu}=G_{mu nu}/8 pi,
+# which only the curvature of the evolved 4-metric reveals.  We reassemble the
+# covariant 4-metric from a *stack* of consecutive plotfiles (so the Einstein
+# tensor has genuine d_t terms) and run the same observer-robust + Hawking-Ellis
+# energy-condition evaluator used for the analytic seeds.
+# --------------------------------------------------------------------------
+
+def build_four_metric_stack_from_plotfiles(
+    plotfiles: Sequence[str],
+    *,
+    n_space: int = 32,
+    half_width: float = 8.0,
+) -> tuple[NDArray, tuple[float, float, float, float]]:
+    """Assemble ``g_{mu nu}(t,x,y,z)`` from time-ordered GRTeclyn plotfiles.
+
+    Each plotfile supplies one time slice of the ADM fields
+    (``gamma_ij = h_ij/chi``, lapse ``alpha``, shift ``beta^i``) sampled on a
+    common cubic box of ``n_space`` cells per axis centred on the domain.  The
+    covariant 4-metric is built per slice via
+    ``g_00 = beta_i beta^i - alpha^2``, ``g_0i = beta_i``, ``g_ij = gamma_ij``
+    and stacked along the time axis.  Returns ``(g, (dt,dx,dy,dz))`` with
+    ``g`` of shape ``(Nt, n_space, n_space, n_space, 4, 4)``.
+
+    Requires at least three plotfiles (for the central time derivative).
+    """
+    import yt  # local import: heavy optional dependency
+
+    paths = [str(p) for p in plotfiles]
+    if len(paths) < 3:
+        raise ValueError("need >= 3 consecutive plotfiles for d_t of the 4-metric")
+
+    slices: list[NDArray] = []
+    times: list[float] = []
+    spacing_xyz: tuple[float, float, float] | None = None
+
+    for path in paths:
+        ds = yt.load(path)
+        center = np.array([float(c.to_value()) for c in ds.domain_center])
+        dleft = np.array([float(c.to_value()) for c in ds.domain_left_edge])
+        dright = np.array([float(c.to_value()) for c in ds.domain_right_edge])
+        left = np.maximum(center - half_width, dleft)
+        right = np.minimum(center + half_width, dright)
+        dims = (n_space, n_space, n_space)
+        ag = ds.arbitrary_grid(left, right, dims)
+
+        def field(name: str) -> NDArray:
+            try:
+                return np.asarray(ag["boxlib", name], dtype=float)
+            except Exception:  # noqa: BLE001 - field-name fallback
+                return np.asarray(ag[name], dtype=float)
+
+        chi = np.clip(field("chi"), 1.0e-10, None)
+        inv_chi = 1.0 / chi
+        alpha = np.clip(field("lapse"), 1.0e-10, None)
+
+        beta_up = np.stack(
+            [field("shift1"), field("shift2"), field("shift3")], axis=-1
+        )  # (n,n,n,3)
+        gamma = np.zeros(chi.shape + (3, 3))
+        gamma[..., 0, 0] = field("h11") * inv_chi
+        gamma[..., 0, 1] = gamma[..., 1, 0] = field("h12") * inv_chi
+        gamma[..., 0, 2] = gamma[..., 2, 0] = field("h13") * inv_chi
+        gamma[..., 1, 1] = field("h22") * inv_chi
+        gamma[..., 1, 2] = gamma[..., 2, 1] = field("h23") * inv_chi
+        gamma[..., 2, 2] = field("h33") * inv_chi
+
+        beta_low = np.einsum("...ij,...j->...i", gamma, beta_up)
+        beta_sq = np.einsum("...i,...i->...", beta_low, beta_up)
+
+        g = np.zeros(chi.shape + (4, 4))
+        g[..., 0, 0] = beta_sq - alpha * alpha
+        g[..., 0, 1:] = beta_low
+        g[..., 1:, 0] = beta_low
+        g[..., 1:, 1:] = gamma
+        slices.append(g)
+        times.append(float(ds.current_time))
+        spacing_xyz = tuple((right - left) / (np.array(dims) - 1))
+
+    g_stack = np.stack(slices, axis=0)  # (Nt, n, n, n, 4, 4)
+    times_arr = np.asarray(times, dtype=float)
+    dt = float(np.mean(np.diff(times_arr))) if len(times_arr) > 1 else 1.0
+    if not math.isfinite(dt) or dt <= 0.0:
+        dt = 1.0
+    assert spacing_xyz is not None
+    return g_stack, (dt, spacing_xyz[0], spacing_xyz[1], spacing_xyz[2])
+
+
+def effective_energy_conditions_from_plotfiles(
+    plotfiles: Sequence[str],
+    *,
+    n_space: int = 32,
+    half_width: float = 8.0,
+    crop: int = 4,
+    **ec_kwargs,
+) -> EnergyConditionReport:
+    """Effective energy conditions ``T^eff=G/8pi`` of an evolved spacetime.
+
+    Convenience wrapper: assemble the 4-metric stack from plotfiles and run the
+    full Warp-Factory-style evaluator on the central time slice.  A negative
+    ``nec_min`` / ``nec_slack_min`` certifies geometry-sourced exotic energy
+    that the matter-sector conditions cannot see.
+    """
+    g, spacing = build_four_metric_stack_from_plotfiles(
+        plotfiles, n_space=n_space, half_width=half_width
+    )
+    return evaluate_four_metric(g, spacing, crop=crop, **ec_kwargs)
+
+
+# --------------------------------------------------------------------------
 # Convergence self-test (cf. Lousto, arXiv:gr-qc/0503001).
 # --------------------------------------------------------------------------
 

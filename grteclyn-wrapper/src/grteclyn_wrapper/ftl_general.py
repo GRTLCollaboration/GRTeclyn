@@ -383,6 +383,31 @@ def find_latest_plotfile(episode_dir: str | Path) -> Path | None:
     return best
 
 
+def find_recent_plotfiles(
+    episode_dir: str | Path, count: int = 5
+) -> list[Path]:
+    """Return up to ``count`` highest-index plotfiles, time-ordered ascending.
+
+    Used to assemble a short time stack for finite-difference ``d_t`` of the
+    evolved 4-metric (effective energy conditions).  Returns ``[]`` when fewer
+    than two plotfiles survive."""
+    episode_dir = Path(episode_dir)
+    if not episode_dir.exists():
+        return []
+    found: dict[int, Path] = {}
+    for pattern in ("*Plt*", "plt*"):
+        for p in episode_dir.rglob(pattern):
+            if not p.is_dir():
+                continue
+            m = _PLOTFILE_RE.search(p.name)
+            if m:
+                found[int(m.group(1))] = p
+    if not found:
+        return []
+    idx_sorted = sorted(found)[-count:]
+    return [found[i] for i in idx_sorted]
+
+
 def build_slice_fields_xz_from_plotfile(
     plotfile: str | Path,
     *,
