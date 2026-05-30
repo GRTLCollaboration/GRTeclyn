@@ -32,6 +32,7 @@ def create_visualizations():
     parser.add_argument("--autoscale", action="store_true", help="Ignore the preset color limits and autoscale to the per-frame data range (reveals small deviations).")
     parser.add_argument("--vmin", type=float, default=None, help="Explicit colorbar minimum (overrides preset and --autoscale).")
     parser.add_argument("--vmax", type=float, default=None, help="Explicit colorbar maximum (overrides preset and --autoscale).")
+    parser.add_argument("--uniform-level", type=int, default=None, help="Render from a UNIFORM covering grid at this AMR level instead of yt SlicePlot. Eliminates AMR patch-boundary artifacts (sharp rectangular blocks) in refined runs.")
 
     args = parser.parse_args()
 
@@ -148,6 +149,78 @@ def create_visualizations():
             if args.coord is not None: physics_center[0] = args.coord
 
         plot_center = ds.arr(physics_center, 'code_length')
+
+        # Uniform render: resample the slice onto a single FixedResolutionBuffer
+        # (yt stitches all AMR levels into one uniform array), then draw it with
+        # matplotlib.  This removes the sharp rectangular AMR patch-boundary
+        # artifacts that appear in refined runs.
+        if args.uniform_level is not None:
+            import matplotlib
+            matplotlib.use("Agg")
+            import matplotlib.pyplot as plt
+
+            ai = {'x': 0, 'y': 1, 'z': 2}[args.axis]
+            lvl = max(0, int(args.uniform_level))
+            ds.force_periodicity()
+            full_dims = [int(round(n * (2 ** lvl))) for n in ds.domain_dimensions]
+            cg = ds.covering_grid(level=lvl, left_edge=ds.domain_left_edge,
+                                  dims=full_dims)
+            data = np.array(cg[('boxlib', args.field)])  # [Nx, Ny, Nz]
+            le = np.array(ds.domain_left_edge.d, dtype=float)
+            re = np.array(ds.domain_right_edge.d, dtype=float)
+            cell = (re - le) / np.array(full_dims, dtype=float)
+            sidx = int(np.clip(round((float(physics_center[ai]) - le[ai]) / cell[ai] - 0.5),
+                               0, full_dims[ai] - 1))
+            slab = np.take(data, sidx, axis=ai)  # ascending remaining-axis order
+
+            # In-plane (horizontal, vertical) axis indices, matching axis_map.
+            h_ax, v_ax = {0: (1, 2), 1: (2, 0), 2: (0, 1)}[ai]
+            names = {0: "x", 1: "y", 2: "z"}
+            remaining = [a for a in (0, 1, 2) if a != ai]
+            # reorder slab axes to [vertical, horizontal] for imshow
+            arr = slab if remaining == [v_ax, h_ax] else slab.T
+            extent = [le[h_ax], re[h_ax], le[v_ax], re[v_ax]]
+
+            # Autoscale over the visible (zoom) window for good contrast.
+            if args.zoom is not None:
+                hh = args.zoom / 2.0
+                nh, nv = arr.shape[1], arr.shape[0]
+                hcoords = np.linspace(extent[0], extent[1], nh)
+                vcoords = np.linspace(extent[2], extent[3], nv)
+                hmask = (hcoords >= physics_center[h_ax] - hh) & (hcoords <= physics_center[h_ax] + hh)
+                vmask = (vcoords >= physics_center[v_ax] - hh) & (vcoords <= physics_center[v_ax] + hh)
+                win = arr[np.ix_(vmask, hmask)] if hmask.any() and vmask.any() else arr
+            else:
+                win = arr
+            mn, mx = float(np.nanmin(win)), float(np.nanmax(win))
+            if args.vmin is not None or args.vmax is not None:
+                lo = args.vmin if args.vmin is not None else mn
+                hi = args.vmax if args.vmax is not None else mx
+            elif args.autoscale or cfg["zlim"][0] is None:
+                lo, hi = mn, mx
+            else:
+                lo, hi = cfg["zlim"]
+            if not use_mpi or rank == 0:
+                print(f"Frame {frame_counter}: {args.field} min={mn:.2e}, max={mx:.2e} [uniform L{lvl}]")
+
+            fig, ax = plt.subplots(figsize=(8, 7))
+            im = ax.imshow(arr, origin="lower", extent=extent, aspect="equal",
+                           cmap=cfg["cmap"], vmin=lo, vmax=hi)
+            if args.zoom is not None:
+                ax.set_xlim(physics_center[h_ax] - args.zoom / 2, physics_center[h_ax] + args.zoom / 2)
+                ax.set_ylim(physics_center[v_ax] - args.zoom / 2, physics_center[v_ax] + args.zoom / 2)
+            ax.set_xlabel(r"$%s$" % names[h_ax])
+            ax.set_ylabel(r"$%s$" % names[v_ax])
+            ax.set_title(r"%s $\quad t=%.2f \quad %s=%.1f$" %
+                         (cfg["label"], float(ds.current_time), args.axis, float(physics_center[ai])))
+            cb = fig.colorbar(im, ax=ax)
+            cb.set_label(cfg["label"])
+            frame_idx = frame_counter if not use_mpi else i
+            fig.savefig(os.path.join(frames_dir, f"frame_{args.axis}_{frame_idx:04d}.png"),
+                        dpi=110, bbox_inches="tight")
+            plt.close(fig)
+            frame_counter += 1
+            continue
 
         slc = yt.SlicePlot(ds, args.axis, ('boxlib', args.field), center=plot_center)
         # Use physical (native) dataset coordinates on axes (no auto-centering to [-L/2, L/2]).

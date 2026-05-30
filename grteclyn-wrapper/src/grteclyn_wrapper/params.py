@@ -18,6 +18,19 @@ def format_value(value: object) -> str:
         stripped = value.strip()
         if stripped.startswith('"') and stripped.endswith('"'):
             return stripped
+        # A space-separated list of plain numbers is an array literal (e.g. a
+        # boundary spec "1 1 1" or a center "32 32 32") and must NOT be quoted,
+        # otherwise AMReX ParmParse fails to parse it.
+        tokens = stripped.split()
+        if len(tokens) > 1 and "/" not in stripped:
+            def _is_num(tok: str) -> bool:
+                try:
+                    float(tok)
+                    return True
+                except ValueError:
+                    return False
+            if all(_is_num(tok) for tok in tokens):
+                return stripped
         if any(ch.isspace() for ch in stripped) or "/" in stripped:
             return f'"{stripped}"'
         return stripped

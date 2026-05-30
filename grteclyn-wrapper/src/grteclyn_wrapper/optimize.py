@@ -99,29 +99,39 @@ DEFAULT_SEARCH_SPACE: list[SearchDimension] = [
 # and width are fixed constants (ANGULAR_BASE_OVERRIDES) to keep the dimension
 # count low.  ell=1 gives a fore/aft dipole (a genuine "direction"), ell=2 a
 # quadrupolar pinch.
+# Amplitude AND radial placement (center rc, width rw) of every angular mode
+# are searched, so the optimizer can decide not just how strong each lobe is
+# but *where along the radius* the directional deformation sits and how sharp
+# it is -- a much richer directional-channel family than fixed-placement modes.
 ANGULAR_SEARCH_SPACE: list[SearchDimension] = [
-    SearchDimension("recipe_lapse_mode_amp_0", -0.25, 0.25, 0.0),  # ell=1
-    SearchDimension("recipe_lapse_mode_amp_1", -0.25, 0.25, 0.0),  # ell=2
-    SearchDimension("recipe_beta_mode_amp_0", -0.6, 0.6, 0.0),     # ell=1
-    SearchDimension("recipe_beta_mode_amp_1", -0.6, 0.6, 0.0),     # ell=2
+    # lapse mode 0 (ell=1 dipole)
+    SearchDimension("recipe_lapse_mode_amp_0", -0.25, 0.25, 0.0),
+    SearchDimension("recipe_lapse_mode_rc_0", 0.5, 6.0, 2.5),
+    SearchDimension("recipe_lapse_mode_rw_0", 0.8, 4.0, 2.0),
+    # lapse mode 1 (ell=2 quadrupole)
+    SearchDimension("recipe_lapse_mode_amp_1", -0.25, 0.25, 0.0),
+    SearchDimension("recipe_lapse_mode_rc_1", 0.5, 6.0, 2.5),
+    SearchDimension("recipe_lapse_mode_rw_1", 0.8, 4.0, 2.0),
+    # shift mode 0 (ell=1 dipole)
+    SearchDimension("recipe_beta_mode_amp_0", -0.6, 0.6, 0.0),
+    SearchDimension("recipe_beta_mode_rc_0", 0.5, 6.0, 2.5),
+    SearchDimension("recipe_beta_mode_rw_0", 0.8, 4.0, 2.0),
+    # shift mode 1 (ell=2 quadrupole)
+    SearchDimension("recipe_beta_mode_amp_1", -0.6, 0.6, 0.0),
+    SearchDimension("recipe_beta_mode_rc_1", 0.5, 6.0, 2.5),
+    SearchDimension("recipe_beta_mode_rw_1", 0.8, 4.0, 2.0),
 ]
 
-# Fixed (non-searched) parameters that activate the angular modes above.
+# Fixed (non-searched) parameters that activate the angular modes above: the
+# mode counts and the angular order (ell).  Radial center/width are searched
+# (see ANGULAR_SEARCH_SPACE) and therefore intentionally NOT pinned here.
 ANGULAR_BASE_OVERRIDES: dict[str, Any] = {
     "recipe_num_lapse_angular_modes": 2,
     "recipe_lapse_mode_ell_0": 1,
-    "recipe_lapse_mode_rc_0": 2.5,
-    "recipe_lapse_mode_rw_0": 2.0,
     "recipe_lapse_mode_ell_1": 2,
-    "recipe_lapse_mode_rc_1": 2.5,
-    "recipe_lapse_mode_rw_1": 2.0,
     "recipe_num_beta_angular_modes": 2,
     "recipe_beta_mode_ell_0": 1,
-    "recipe_beta_mode_rc_0": 2.5,
-    "recipe_beta_mode_rw_0": 2.0,
     "recipe_beta_mode_ell_1": 2,
-    "recipe_beta_mode_rc_1": 2.5,
-    "recipe_beta_mode_rw_1": 2.0,
 }
 
 
