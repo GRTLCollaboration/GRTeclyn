@@ -29,6 +29,9 @@ def create_visualizations():
     parser.add_argument("--data", type=str, default=_DEFAULT_DATA)
     parser.add_argument("--out", type=str, default=_DEFAULT_OUT)
     parser.add_argument("--mpi", action="store_true")
+    parser.add_argument("--autoscale", action="store_true", help="Ignore the preset color limits and autoscale to the per-frame data range (reveals small deviations).")
+    parser.add_argument("--vmin", type=float, default=None, help="Explicit colorbar minimum (overrides preset and --autoscale).")
+    parser.add_argument("--vmax", type=float, default=None, help="Explicit colorbar maximum (overrides preset and --autoscale).")
 
     args = parser.parse_args()
 
@@ -166,7 +169,18 @@ def create_visualizations():
         if not use_mpi or rank == 0:
             print(f"Frame {frame_counter}: {args.field} min={min_val:.2e}, max={max_val:.2e}")
 
-        if cfg["zlim"][0] is not None:
+        if args.vmin is not None or args.vmax is not None:
+            lo = args.vmin if args.vmin is not None else min_val
+            hi = args.vmax if args.vmax is not None else max_val
+            slc.set_zlim(('boxlib', args.field), lo, hi)
+        elif args.autoscale:
+            # Pad a hair so a near-constant field still renders a usable range.
+            if max_val - min_val < 1.0e-12:
+                pad = max(abs(max_val), 1.0e-6) * 1.0e-3 + 1.0e-12
+                slc.set_zlim(('boxlib', args.field), min_val - pad, max_val + pad)
+            else:
+                slc.set_zlim(('boxlib', args.field), min_val, max_val)
+        elif cfg["zlim"][0] is not None:
             slc.set_zlim(('boxlib', args.field), cfg["zlim"][0], cfg["zlim"][1])
         slc.set_cmap(('boxlib', args.field), cfg["cmap"])
 

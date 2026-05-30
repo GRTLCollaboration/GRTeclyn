@@ -181,12 +181,19 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
 
     template = Path(args.template).expanduser().resolve() if args.template else None
 
+    # Non-spherical search: extend the radial space with gauge (lapse/shift)
+    # angular modes and activate them via the constant base overrides.
+    from .optimize import build_search_space, ANGULAR_BASE_OVERRIDES
+    nonspherical = getattr(args, "nonspherical", False)
+    search_space = build_search_space(nonspherical=nonspherical)
+    if nonspherical:
+        base_overrides = {**ANGULAR_BASE_OVERRIDES, **base_overrides}
+
     x0 = None
     if getattr(args, "seed_name", None):
         seed_obj = get_seed(args.seed_name)
-        from .optimize import DEFAULT_SEARCH_SPACE
         x0 = []
-        for dim in DEFAULT_SEARCH_SPACE:
+        for dim in search_space:
             seed_value = float(seed_obj.overrides.get(dim.param_key, dim.center))
             x0.append(max(dim.lower, min(dim.upper, seed_value)))
 
@@ -209,6 +216,7 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
         use_preflight = True if not hasattr(args, "_no_preflight") else use_preflight
 
     result = run_optimize(
+        search_space=search_space,
         runs_dir=Path(args.runs_dir).expanduser().resolve(),
         executable=executable,
         max_generations=args.max_generations,
@@ -472,6 +480,13 @@ def build_parser() -> argparse.ArgumentParser:
     opt.add_argument("--gpu-ids", nargs="+", type=int, default=None, help="GPU indices for parallel eval (e.g. 0 1 2 3 4 5 6 7).")
     opt.add_argument("--surrogate", action="store_true", help="Enable RBF surrogate pre-screening to skip low-value GPU evaluations.")
     opt.add_argument("--surrogate-keep-fraction", type=float, default=0.5, help="Fraction of each generation evaluated on GPU when surrogate is active.")
+    opt.add_argument(
+        "--nonspherical",
+        action="store_true",
+        help="Open up non-spherical geometries: add axisymmetric Legendre angular "
+             "modes on the lapse and shift (gauge sector, constraint-preserving, "
+             "no extra exotic matter) so the search can sculpt directional FTL channels.",
+    )
 
     qd = subparsers.add_parser("qd", help="MAP-Elites quality-diversity search (Spacetime Failure Atlas).")
     qd.add_argument("--iterations", type=int, default=10, help="Number of MAP-Elites batches after the initial fill.")

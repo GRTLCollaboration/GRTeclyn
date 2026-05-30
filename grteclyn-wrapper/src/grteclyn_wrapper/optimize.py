@@ -77,6 +77,69 @@ DEFAULT_SEARCH_SPACE: list[SearchDimension] = [
 ]
 
 
+# --- Non-spherical (angular) search ----------------------------------------
+#
+# The radial recipe above is spherically symmetric, so the optimizer can only
+# ever discover breathing shells / radial channels.  To open up *directional*
+# FTL geometries we add axisymmetric Legendre angular modes -- but ONLY on the
+# lapse (alpha) and shift (beta) fields.
+#
+# This is a deliberate, constraint-preserving choice:
+#   * alpha and beta are pure GAUGE: they do not appear in the t=0 Hamiltonian
+#     or momentum constraints, so making them aspherical adds NO exotic matter
+#     and does NOT break the 1D constrained (phi-from-chi) solve.
+#   * Angular structure on the shift tilts/reshapes the local light cones (the
+#     same mechanism Alcubierre uses), creating a *directional* operational-FTL
+#     channel that the search can sculpt.
+#   * Angular modes on chi or K, by contrast, WOULD violate the spherical 1D
+#     constraint solve and surface as constraint error / forced exotic content,
+#     so they are intentionally left out of this stage.
+#
+# Only the mode amplitudes are searched; the angular order (ell), radial center
+# and width are fixed constants (ANGULAR_BASE_OVERRIDES) to keep the dimension
+# count low.  ell=1 gives a fore/aft dipole (a genuine "direction"), ell=2 a
+# quadrupolar pinch.
+ANGULAR_SEARCH_SPACE: list[SearchDimension] = [
+    SearchDimension("recipe_lapse_mode_amp_0", -0.25, 0.25, 0.0),  # ell=1
+    SearchDimension("recipe_lapse_mode_amp_1", -0.25, 0.25, 0.0),  # ell=2
+    SearchDimension("recipe_beta_mode_amp_0", -0.6, 0.6, 0.0),     # ell=1
+    SearchDimension("recipe_beta_mode_amp_1", -0.6, 0.6, 0.0),     # ell=2
+]
+
+# Fixed (non-searched) parameters that activate the angular modes above.
+ANGULAR_BASE_OVERRIDES: dict[str, Any] = {
+    "recipe_num_lapse_angular_modes": 2,
+    "recipe_lapse_mode_ell_0": 1,
+    "recipe_lapse_mode_rc_0": 2.5,
+    "recipe_lapse_mode_rw_0": 2.0,
+    "recipe_lapse_mode_ell_1": 2,
+    "recipe_lapse_mode_rc_1": 2.5,
+    "recipe_lapse_mode_rw_1": 2.0,
+    "recipe_num_beta_angular_modes": 2,
+    "recipe_beta_mode_ell_0": 1,
+    "recipe_beta_mode_rc_0": 2.5,
+    "recipe_beta_mode_rw_0": 2.0,
+    "recipe_beta_mode_ell_1": 2,
+    "recipe_beta_mode_rc_1": 2.5,
+    "recipe_beta_mode_rw_1": 2.0,
+}
+
+
+def build_search_space(nonspherical: bool = False) -> list[SearchDimension]:
+    """Return the optimizer search space, optionally with angular (gauge) modes.
+
+    When ``nonspherical`` is True the spherically-symmetric radial space is
+    extended with axisymmetric Legendre angular modes on the lapse and shift
+    (see ANGULAR_SEARCH_SPACE).  The caller is responsible for also merging
+    ANGULAR_BASE_OVERRIDES into the simulation base overrides so the modes are
+    actually activated in params.txt.
+    """
+    space = list(DEFAULT_SEARCH_SPACE)
+    if nonspherical:
+        space += ANGULAR_SEARCH_SPACE
+    return space
+
+
 @dataclass(frozen=True)
 class OptimizeResult:
     best_params: dict[str, float]

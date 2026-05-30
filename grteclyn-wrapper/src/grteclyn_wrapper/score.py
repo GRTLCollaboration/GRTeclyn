@@ -8,8 +8,12 @@ from .metrics import EpisodeMetrics
 
 
 DEFAULT_WEIGHTS: dict[str, float] = {
-    "ftl_shortcut": 5.0,
-    "expansion_asymmetry": 2.0,
+    # t=0 FTL signals are now only faint "looked promising at t=0" hints -- they
+    # are downweighted hard because a t=0 shortcut that does not survive the
+    # evolution is a gauge/initial-data artifact (see operational_ftl, which
+    # rewards the *evolved* advantage instead).
+    "ftl_shortcut": 1.0,
+    "expansion_asymmetry": 0.75,
     "nonflat_geometry": 1.0,
     "comoving_stability": 2.5,
     "survival": 1.5,
@@ -24,11 +28,12 @@ DEFAULT_WEIGHTS: dict[str, float] = {
     "constraint_growth": 2.0,
     "anec_condition": 1.5,
     "tidal_comfort": 1.0,
-    # Mechanism-agnostic operational FTL (Dijkstra arrival-time advantage on the
-    # slice; warp/wormhole/portal/unknown alike) -- this is the primary goal, so
-    # it dominates the reward budget.  Curvature activity rewards genuinely
-    # non-trivial geometry (and keeps flat space out of the running).
-    "operational_ftl": 6.0,
+    # Mechanism-agnostic operational FTL, measured on the EVOLVED spacetime
+    # (Dijkstra arrival-time advantage that survives the dynamics) -- this is the
+    # primary goal and dominates the reward budget.  A t=0-only shortcut scores
+    # nothing here.  Curvature activity rewards genuinely non-trivial geometry
+    # (and keeps flat space out of the running).
+    "operational_ftl": 9.0,
     "curvature_activity": 0.5,
     # Exotic-matter PENALTY.  The objective is FTL *without* exotic matter, so
     # any negative-energy requirement is punished -- both the matter sourced at
@@ -206,10 +211,12 @@ def score_episode(
         components["nonflat_geometry"] = 0.0
         notes.append("FTL profile metrics not available")
 
-    # Mechanism-agnostic operational FTL: reward the larger arrival-time
-    # advantage from either the evolved-spacetime search (preferred, when a
-    # plotfile survived) or the t=0 reconstructed slice.  f_op is already in
-    # [0, 1] (fraction of the flat baseline saved).
+    # Mechanism-agnostic operational FTL.  CRITICAL: we reward the EVOLVED
+    # arrival-time advantage (F_op^ev), not the t=0 slice.  A large t=0 shortcut
+    # that the dynamics relax away (a gauge / initial-data artifact, max c -> 1)
+    # is worthless; only a channel that *survives* the evolution counts.  The
+    # t=0 value is kept solely as a diagnostic and as a faint "looked promising"
+    # hint (small ftl_shortcut weight), never as the main FTL reward.
     f_op_t0 = (
         metrics.general_ftl.f_op
         if metrics.general_ftl is not None
@@ -220,22 +227,32 @@ def score_episode(
         if metrics.general_ftl_evolved is not None
         else 0.0
     )
-    f_op = max(f_op_t0, f_op_ev)
-    # Real arrival-time advantages are small (F_op ~ 1e-3); a raw [0,1] reward is
-    # dwarfed by the health basket, so FTL never actually drives the search.
-    # Log-amplify against OP_FTL_SCALE so a genuine (small) shortcut is a
-    # multi-point reward, while F_op == 0 (no shortcut) stays exactly 0.
-    OP_FTL_SCALE = 2.0e-3
+    # Log-amplify against OP_FTL_SCALE so a genuine (small) *persistent* shortcut
+    # is a multi-point reward, while F_op^ev == 0 (the shortcut died, or no
+    # evolved plotfile survived to verify it) earns nothing.
+    OP_FTL_SCALE = 3.0e-3
     components["operational_ftl"] = (
-        min(math.log1p(f_op / OP_FTL_SCALE), 1.0)
-        if math.isfinite(f_op) and f_op > 0
+        min(math.log1p(f_op_ev / OP_FTL_SCALE), 1.0)
+        if math.isfinite(f_op_ev) and f_op_ev > 0
         else 0.0
     )
+    # Persistence diagnostic (not weighted): fraction of the t=0 arrival-time
+    # advantage that survived to the final evolved slice.  ~1 => dynamically
+    # sustained channel; ~0 => t=0 mirage.
+    components["ftl_persistence"] = (
+        float(min(max(f_op_ev / f_op_t0, 0.0), 1.0)) if f_op_t0 > 1.0e-9 else 0.0
+    )
     if metrics.general_ftl_evolved is not None:
-        if metrics.general_ftl_evolved.max_local_speed > 1.0:
+        c_ev = metrics.general_ftl_evolved.max_local_speed
+        if c_ev > 1.0 and f_op_ev > 0.0:
             notes.append(
-                "evolved geometry has a superluminal coordinate channel "
-                f"(max c = {metrics.general_ftl_evolved.max_local_speed:.3f})"
+                "evolved geometry sustains a superluminal channel "
+                f"(max c = {c_ev:.3f}, F_op^ev = {f_op_ev:.3e}); persistent FTL"
+            )
+        elif f_op_t0 > 0.0:
+            notes.append(
+                f"t=0 shortcut (F_op0={f_op_t0:.3e}, max c={metrics.general_ftl.max_local_speed:.3f}) "
+                f"did not persist (F_op^ev={f_op_ev:.3e}); likely gauge/initial-data artifact"
             )
     elif metrics.general_ftl is not None and metrics.general_ftl.f_op <= 0.0:
         notes.append("no operational FTL shortcut on the t=0 slice")
@@ -264,14 +281,20 @@ def score_episode(
     # the penalty is a *smooth gradient* across the observed range rather than a
     # saturated constant.  Steepest near zero, so "almost no exotic" is clearly
     # distinguished from "a little exotic"; heavy exotic saturates at -1.
-    def _graded(x: float, scale: float) -> float:
+    def _graded(x: float, scale: float, ceiling: float = 1.0) -> float:
         if not math.isfinite(x) or x <= 0.0:
             return 0.0
-        return min(math.log1p(x / scale), 1.0)
+        return min(math.log1p(x / scale), ceiling)
 
     MATTER_INT_SCALE = 0.5     # integral of negative rho (volume measure)
     MATTER_PEAK_SCALE = 5.0e-2  # peak negative energy density
     GEO_NEC_SCALE = 5.0e-4      # effective-NEC violation of evolved geometry
+    # The persistent-FTL winners all live in the int_neg ~ 0.5-2 band, where a
+    # ceiling of 1.0 saturates and can no longer tell "a bit exotic" from "very
+    # exotic".  Raise the matter ceiling so the penalty keeps a usable gradient
+    # right through that band -- this is what lets the search minimise exotic
+    # content *among* the geometries that actually sustain a channel.
+    MATTER_CEILING = 1.6
 
     matter_exotic = 0.0
     geo_exotic = 0.0
@@ -279,9 +302,13 @@ def score_episode(
         int_neg = metrics.constraints.integral_negative_rho
         min_rho = metrics.constraints.min_rho_required
         if int_neg is not None and int_neg > 0.0:
-            matter_exotic = max(matter_exotic, _graded(int_neg, MATTER_INT_SCALE))
+            matter_exotic = max(
+                matter_exotic, _graded(int_neg, MATTER_INT_SCALE, MATTER_CEILING)
+            )
         if min_rho is not None and min_rho < 0.0:
-            matter_exotic = max(matter_exotic, _graded(-min_rho, MATTER_PEAK_SCALE))
+            matter_exotic = max(
+                matter_exotic, _graded(-min_rho, MATTER_PEAK_SCALE, MATTER_CEILING)
+            )
     if metrics.effective_ec is not None:
         eff = metrics.effective_ec
         eff_candidates = [
