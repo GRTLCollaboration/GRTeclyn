@@ -43,6 +43,30 @@ BUILD=0 NONSPHERICAL_ID=quadrupole_bubble_001 CUDA_VISIBLE_DEVICES_OVERRIDE=2 \
 
 Outputs go to `runs/radialrecipe_gpu_smoke/<name>_gpu_t<stop_time>_<stamp>/`.
 
+## Scripts index
+
+All helper scripts live in [`scripts/`](scripts/README.md), which documents each
+one's purpose. The most important groups:
+
+- **Closed-loop FTL search (current):** `run_ftl_search_cmaes.sh` (9-D radial),
+  `run_ftl_search_nonspherical.sh` (13-D, gauge angular modes),
+  `run_ftl_search_directional.sh` (21-D, full-z). These launch the CMA-ES loop
+  across all GPUs and stream plotfiles (frames on the fly, heavy data deleted).
+- **Tier-2 validation:** `run_tier2_hq_188.sh` (high-res streaming validation of
+  the non-spherical winner).
+- **Smoke / batch infrastructure:** `run_radialrecipe_gpu_smoke.sh` (single
+  episode), `run_nonspherical_gpu_batch.sh`, `run_radialrecipe_gpu_promote.sh`,
+  `run_optimize_loop.sh`, `run_subset.sh`, `validate_campaign.sh`.
+- **Post-processing:** `make_movies.sh`, `summarize_scores.py`,
+  `plot_run_radial.sh`.
+
+```bash
+# Example: launch the non-spherical FTL campaign
+bash grteclyn-wrapper/scripts/run_ftl_search_nonspherical.sh
+# Validate the winner at high quality (streaming frames, plotfiles deleted)
+bash grteclyn-wrapper/scripts/run_tier2_hq_188.sh 0 val16hq_nonsph_eval188
+```
+
 ## In-situ diagnostics & matter sector
 
 Each RadialRecipe run now emits three diagnostic tables under `data/` (read back
