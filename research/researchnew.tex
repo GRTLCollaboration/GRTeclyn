@@ -43,7 +43,7 @@ Most proposed interstellar metrics are designed by hand. One writes a static, hi
 
 By treating metric discovery as a closed-loop optimization problem, we can search a much wider, non-spherical, and dynamical space of initial data. The previous \texttt{GRTeclyn} wormhole study showed that 3D numerical relativity is well suited to tracking the nonlinear evolution, instability, and collapse of exotic geometries. Rather than inspecting static equations, the proposed framework couples a Python-based optimization engine with the high-performance C++ GPU-accelerated AMR engine of \texttt{GRTeclyn}, with a strict emphasis on deriving the matter sector and avoiding coordinate artifacts.
 
-This effort situates metric discovery within a broader movement toward automated theory exploration across physics. Neuro-symbolic and reinforcement-learning agents have begun to navigate otherwise intractable theory spaces: \textsc{Albert} rediscovers Standard-Model structure by generating Lagrangians under a rule-based grammar that enforces theoretical consistency \emph{before} expensive evaluation~\cite{alexander2026albert}; deep reinforcement learning explores the string landscape by treating discrete brane and flux configurations as actions rewarded for consistency and proximity to realistic vacua~\cite{halverson2019branes}; and large-language-model agents now drive end-to-end high-energy-physics toolchains autonomously~\cite{qiu2026collideragent} and orchestrate multi-agent discovery of physical laws from data~\cite{han2025physagent}. Within numerical relativity specifically, \textsc{Warp Factory} established that arbitrary warp geometries can be assessed numerically---evaluating the Einstein equations and the pointwise energy conditions rather than restricting attention to closed-form ans\"atze~\cite{helmerich2024warpfactory}---and \textsc{warpax} sharpened this further, replacing discrete observer sampling with a Hawking--Ellis eigenvalue classification that certifies energy-condition satisfaction \emph{exactly} (observer-independently) at Type I stress-energy points and computing curvature by automatic differentiation~\cite{le2026warpax}. The same numerical-methods strand supplies two further lessons we adopt: the necessity of \emph{high-order convergent} discretizations even in the presence of sharp sources, as in Lousto's fourth-order time-domain perturbation integrator~\cite{lousto2006fourth}, and the use of \emph{physics-informed neural networks} that represent $g_{\mu\nu}$ directly and minimize the field-equation residual by automatic differentiation, which has recovered the Schwarzschild and charged-Schwarzschild metrics from a prescribed stress-energy tensor~\cite{li2023pinn}. Our pipeline extends this numerical, energy-condition-first philosophy from the \emph{analysis} of prescribed metrics to a closed-loop \emph{search} over dynamical initial data, and imports several methodological lessons: enforce physical invariants symbolically before numerics (Sec.~\ref{sec:parameterization_levels}), separate discrete topological choices from continuous geometric tuning (Sec.~\ref{sec:cma_vs_rl}), verify energy conditions observer-robustly via the eigenvalue test and confirm numerical convergence (Sec.~\ref{sec:forward_path}), and close the numerical-to-analytical loop with collaborating specialist agents (Sec.~\ref{sec:forward_path}).
+This effort situates metric discovery within a broader movement toward automated theory exploration: neuro-symbolic grammar-constrained theory generation~\cite{alexander2026albert}, reinforcement-learning search of the string landscape~\cite{halverson2019branes}, and LLM-driven physics toolchains and multi-agent law discovery~\cite{qiu2026collideragent,han2025physagent}.  Within numerical relativity, \textsc{Warp Factory} assesses arbitrary warp geometries by evaluating $T_{\mu\nu}$ and the pointwise energy conditions rather than restricting to closed-form ans\"atze~\cite{helmerich2024warpfactory}, and \textsc{warpax} sharpens this with an observer-independent Hawking--Ellis eigenvalue classification and automatic-differentiation curvature~\cite{le2026warpax}; we also adopt the lessons of high-order-convergent discretization~\cite{lousto2006fourth} and physics-informed networks that recover metrics from a prescribed stress-energy~\cite{li2023pinn}.  Our pipeline extends this energy-condition-first philosophy from the \emph{analysis} of prescribed metrics to a closed-loop \emph{search} over dynamical initial data, importing four methodological lessons: enforce invariants symbolically before numerics (Sec.~\ref{sec:parameterization_levels}), separate discrete topology from continuous geometry (Sec.~\ref{sec:cma_vs_rl}), verify energy conditions observer-robustly (Sec.~\ref{sec:forward_path}), and close the numerical-to-analytical loop with specialist agents (Sec.~\ref{sec:forward_path}).
 
 Throughout this draft, ``FTL'' means effective faster-than-light propagation through a curved spacetime geometry compared with flat-spacetime light travel. It does not imply local superluminal motion relative to the local light cone.
 
@@ -72,24 +72,16 @@ We propose two distinct pathways to handle the matter sector within the automate
 
 \subsection{Path A: Algebraic Matter Reconstruction}
 
-In this pathway, the optimizer is permitted to generate any arbitrary spatial geometry. We do not assume a specific matter model. Instead, we use the Einstein equations to algebraically derive the physical "cost" of the proposed geometry. 
-
-Before the time evolution starts, \texttt{GRTeclyn} evaluates the Hamiltonian and Momentum constraints at every point on the 3D grid. We algebraically reconstruct the required energy density $\rho$ and momentum density $j_i$ at $t=0$:
-
+The optimizer generates an arbitrary spatial geometry and we use the Einstein constraints to algebraically derive its matter ``cost'' at $t=0$, reconstructing the required energy and momentum density on the 3D grid,
 \begin{equation}
-    \rho = \frac{1}{16\pi} \left( R + K^2 - K_{ij}K^{ij} \right),
+    \rho = \frac{R + K^2 - K_{ij}K^{ij}}{16\pi},\qquad
+    j_i = \frac{1}{8\pi} D_j\!\left(K^j_i - \delta^j_i K\right),
 \end{equation}
-\begin{equation}
-    j_i = \frac{1}{8\pi} D_j\left(K^j_i - \delta^j_i K\right).
-\end{equation}
-
-Here, $R$ is the 3D Ricci scalar and $D_j$ is the covariant derivative. The Python script reads this derived $\rho$ grid from the diagnostic files. If $\rho < 0$ in any region, the script flags that this geometry requires exotic matter and calculates the integrated volume of negative energy. This algebraic reconstruction follows the analysis strategy of \textsc{Warp Factory}~\cite{helmerich2024warpfactory}, which computes $T_{\mu\nu}$ and the pointwise energy conditions for arbitrary warp metrics; the essential difference is that we feed the resulting exotic-energy diagnostics back into an optimization loop rather than reporting them for a single fixed metric.
+with $R$ the 3D Ricci scalar and $D_j$ the covariant derivative.  Where $\rho<0$ the geometry is flagged as requiring exotic matter and the integrated negative-energy volume is recorded.  This follows the \textsc{Warp Factory} analysis strategy~\cite{helmerich2024warpfactory}, except that the exotic-energy diagnostics are fed back into an optimization loop rather than reported for a single fixed metric.
 
 \subsection{Path B: Elliptic Constraint Solving}
 
-If we wish to strictly forbid exotic matter from the start, we cannot simply guess a geometry and reconstruct $\rho$. Instead, we fix the matter sector to a standard, positive-energy model (such as a standard scalar field with $\rho \ge 0$). 
-
-We then employ an elliptic initial-data constraint solver (such as \texttt{GRTresna}, designed to work with the AMReX grid). The optimizer proposes a "target" geometry, and the elliptic solver slightly deforms this target until it mathematically satisfies the constraints while coupled only to our positive-energy matter field. The resulting constraint-satisfying initial data is then passed to \texttt{GRTeclyn} for evolution.
+To strictly forbid exotic matter from the start, we instead fix the matter sector to a positive-energy model ($\rho\ge0$) and employ an elliptic initial-data solver (e.g.\ \texttt{GRTresna} on the AMReX grid): the optimizer proposes a target geometry, the solver minimally deforms it until it satisfies the constraints coupled only to that positive-energy field, and the result is evolved in \texttt{GRTeclyn}.
 
 \section{Candidate Parameterization}
 
@@ -160,55 +152,27 @@ Energy-condition penalties, FTL probe timing, survival score, visualization, and
 
 \subsection{The Execution Boundary}
 
-The division of labor is designed to eliminate compile-time overhead:
-
-\begin{itemize}
-    \item \textbf{Python Controller (CPU/Head Node):} Runs the optimization algorithm, prepares a batch of parameter vectors $\theta$, writes them to individual text-based \texttt{params.txt} inputs, and dispatches them as parallel tasks to the cluster's Slurm scheduler.
-    \item \textbf{C++ Initial Data (GPU/Compute Nodes):} At $t=0$, the compiled \texttt{GRTeclyn} binary starts up on the assigned GPU, reads the coefficients from \texttt{params.txt}, and executes a custom initial-data GPU functor to populate the 3D AMReX grid with smooth initial fields.
-    \item \textbf{C++ RHS Evolution (GPU/Compute Nodes):} At $t > 0$, the GPU runs the pre-compiled, highly optimized CCZ4 and matter RHS evolution routines (e.g. \texttt{CCZ4RHSWithMatter}). Because the general relativity and matter equations are pre-compiled, the search loop runs with zero compilation overhead.
-\end{itemize}
+The division of labor eliminates compile-time overhead.  The \textbf{Python controller} (head node) runs the optimizer, writes each parameter vector $\theta$ to a \texttt{params.txt}, and dispatches parallel Slurm tasks.  The \textbf{compiled \texttt{GRTeclyn} binary} (GPU nodes) reads those coefficients, populates the 3D AMReX grid via a custom initial-data functor at $t=0$, then evolves the pre-compiled CCZ4+matter RHS (\texttt{CCZ4RHSWithMatter}) for $t>0$---so the search loop never recompiles.
 
 \subsection{Tiered GPU Execution}
 
-To prevent a massive search from exhausting cluster node hours, we implement a tiered system:
-
-\begin{itemize}
-    \item \textbf{Tier 1 (Broad Exploration):} Each candidate is allocated to a single GPU and run at a low resolution (e.g. $N_{\text{full}} = 64$ with 2 levels of AMR) for a short duration. Early-stopping criteria instantly terminate a run if constraints explode, the lapse collapses everywhere, or the grid becomes unresolved.
-    \item \textbf{Tier 2 (Deep Validation):} High-scoring candidates that survive Tier 1 are promoted to run on multi-GPU, multi-node configurations at high resolution ($N_{\text{full}} = 128 \to 256$, with up to 5 levels of AMR) to verify stability and convergence.
-\end{itemize}
+To bound node-hours, \textbf{Tier 1} runs each candidate on one GPU at low resolution ($N_{\rm full}=64$, 2 AMR levels) for a short time, with early-stopping on constraint blow-up, lapse collapse, or under-resolution; \textbf{Tier 2} promotes survivors to multi-GPU high resolution ($N_{\rm full}=128\to256$, up to 5 AMR levels) to verify stability and convergence.
 
 \section{The Closed-Loop: How Simulation Results Drive the Search}
 \label{sec:closed_loop}
 
-A common question is: where exactly does the feedback happen?  The answer is that every candidate geometry completes a full cycle through three stages before the optimizer sees its score.  This section traces one iteration of the loop end-to-end.
-
-\subsection{One iteration, step by step}
+Every candidate completes a full cycle before the optimizer sees its score.  One iteration runs end-to-end as:
 
 \begin{enumerate}
-    \item \textbf{Propose.}  The optimizer (CMA-ES or random sampler) emits a parameter vector $\theta = (c_0,c_1,\ldots,c_{N-1},w)$, where $c_n$ are Gaussian basis coefficients for $\chi(r)$ and $w$ is the shared basis width.
-
-    \item \textbf{Constrain.}  The Python wrapper derives $\phi(r)$ from $\chi(r)$ via the Hamiltonian constraint (Sec.~\ref{sec:constrained_recipe}), locks $K=\mathrm{const}$ and $\Pi=0$, and writes the complete \texttt{params.txt}.
-
-    \item \textbf{Pre-flight filter.}  A coarse 1D check evaluates $\|H\|_{L^2}$ and $\|M_i\|_{L^2}$. If the residuals exceed thresholds, the candidate is rejected \emph{without} launching a GPU job, saving node hours.
-
-    \item \textbf{Simulate.}  The C++ binary \texttt{main3d.gnu.CUDA.ex} loads \texttt{params.txt}, populates the 3D AMReX grid, and evolves the CCZ4+matter system on the GPU for a fixed wall time or simulation time $t_{\max}$.
-
-    \item \textbf{Diagnose.}  During evolution, \texttt{RadialRecipeLevel} writes two time-series files every $\Delta t_{\rm diag}$ steps:
-    \begin{itemize}
-        \item \texttt{constraint\_norms.dat}: $\|H\|_{L^2}$, $\|M_i\|_{L^2}$, $\min/\max(\rho_{\rm req})$, integrated negative-$\rho$ volume;
-        \item \texttt{collapse\_diagnostics.dat}: $\alpha_{\min}$, horizon-radius proxy, $|K|_{\max}$, scalar $\phi/\Pi$ ranges.
-    \end{itemize}
-
-    \item \textbf{Score.}  The Python scorer parses both files and computes a scalar reward $S(\theta)$ (Sec.~\ref{sec:scoring}).  This single number summarizes: did the geometry survive? were constraints controlled? is the lapse healthy? does it need exotic matter? is the geometry non-trivial?
-
-    \item \textbf{Update.}  The optimizer receives $S(\theta)$ (or $-S$ because CMA-ES minimizes).  After one full generation of $\lambda$ candidates, CMA-ES updates its internal mean and covariance matrix, shifting the search distribution toward higher-scoring regions.  The next generation's proposals $\theta'$ are drawn from this updated distribution.
+    \item \textbf{Propose.}  The optimizer emits $\theta=(c_0,\ldots,c_{N-1},w)$: Gaussian basis coefficients for $\chi(r)$ and the shared width $w$.
+    \item \textbf{Constrain.}  The wrapper derives $\phi(r)$ from $\chi(r)$ via the Hamiltonian constraint (Sec.~\ref{sec:constrained_recipe}), locks $K=\mathrm{const}$, $\Pi=0$, and writes \texttt{params.txt}.
+    \item \textbf{Pre-flight.}  A coarse 1D check of $\|H\|_{L^2}$, $\|M_i\|_{L^2}$ rejects bad candidates \emph{without} a GPU job.
+    \item \textbf{Simulate.}  The C++ binary loads \texttt{params.txt}, populates the AMReX grid, and evolves CCZ4+matter on the GPU to $t_{\max}$.
+    \item \textbf{Diagnose.}  \texttt{RadialRecipeLevel} writes time series every $\Delta t_{\rm diag}$: \texttt{constraint\_norms.dat} ($\|H\|_{L^2}$, $\|M_i\|_{L^2}$, $\rho_{\rm req}$ range, negative-$\rho$ volume) and \texttt{collapse\_diagnostics.dat} ($\alpha_{\min}$, horizon proxy, $|K|_{\max}$, scalar ranges).
+    \item \textbf{Score \& update.}  The scorer parses both files into a scalar $S(\theta)$ (Sec.~\ref{sec:scoring}); after a generation of $\lambda$ candidates CMA-ES updates its mean/covariance toward higher scores.
 \end{enumerate}
 
-The loop repeats for $G$ generations (typically 50).  There is no gradient computation: the optimizer treats the entire simulate$\to$diagnose$\to$score chain as a black-box function $f(\theta) = -S(\theta)$.
-
-\subsection{What the optimizer ``sees''}
-
-From the optimizer's perspective, the physics engine is a noisy black box.  It sends in a vector of 5--20 real numbers and receives back one scalar.  It never sees the 3D grid, the constraint equations, or the matter fields directly.  All physical information is compressed into the score $S(\theta)$, which is why the scoring function design is critical (Sec.~\ref{sec:scoring}).
+The loop repeats for $G\sim50$ generations with no gradients: the optimizer treats the entire simulate$\to$diagnose$\to$score chain as a black-box $f(\theta)=-S(\theta)$, sending $5$--$20$ reals and receiving one scalar---never seeing the grid or fields directly, which is why the scoring design is critical.
 
 \section{Scoring: Overcoming the Flat-Space Attractor}
 \label{sec:scoring}
@@ -335,17 +299,7 @@ which is $0$ only for a geometry with no structure of any kind and $\to1$ once r
 \end{equation}
 A spacetime is now rewarded for being well-behaved \emph{only once there is genuine structure to be well-behaved about}.  The gate is surgical: re-scoring the reference seeds, flat Minkowski drops from $S=14.5$ to $S=0.0$ ($g_{\rm nt}=0$), while every non-trivial geometry is unchanged ($g_{\rm nt}=1$), restoring the intended ranking (Sec.~\ref{sec:longrun_validation}).
 
-\subsection{Why these weights matter}
-
-The weights $w_k$ define which physics the optimizer cares about.  For example:
-\begin{itemize}
-    \item $F_{\rm log}$ at weight $5.0$ amplifies even subluminal shortcuts so they compete with flat-space stability; without it, $F_{\rm null}=0.063$ contributes only $+0.32$ to $S$.
-    \item $F_{\rm asymmetry}$ at weight $2.0$ rewards warp \emph{precursors} before superluminal transit is achieved, closing the cold-start gap.
-    \item $s_{\rm comoving}$ at weight $2.5$ prevents propagating warp bubbles from being rejected by Eulerian stability alone (Sec.~\ref{sec:comoving_scoring}).
-    \item Weights are user-configurable via \texttt{--score-weight} and \texttt{score.py}.
-\end{itemize}
-
-All weights are \emph{hyperparameters}, not learned parameters.  They are fixed before a search campaign begins and are not updated during optimization.
+The weights $w_k$ define which physics the optimizer cares about: $F_{\rm log}$ (weight $5.0$) amplifies subluminal shortcuts so they compete with flat-space stability; $F_{\rm asymmetry}$ ($2.0$) rewards warp precursors before superluminal transit; and $s_{\rm comoving}$ ($2.5$) prevents propagating bubbles from being rejected by Eulerian stability alone (Sec.~\ref{sec:comoving_scoring}).  All weights are user-configurable hyperparameters (via \texttt{--score-weight}), fixed before a campaign and not learned.
 
 \subsection{FTL shortcut metrics (implemented)}
 \label{sec:ftl_scoring}
@@ -419,76 +373,14 @@ Schwarzschild & 0 & 0.878 & 0.972 & 0.999 & 1.0 \\
 \end{ruledtabular}
 \end{table}
 
-Logarithmic amplification makes subluminal warp signals optimizer-visible: $F_{\rm null}=0.094$ at $v=0.5c$ maps to $F_{\rm log}=0.508$, an $\approx 5.4\times$ boost (Table~\ref{tab:ftl_log_amp}).  Throat and Schwarzschild geometries score high on $F_{\rm asymmetry}$ from strong $\chi$-gradient push--pull even when $F_{\rm null}=0$.
-
-\begin{table}[H]
-\caption{Logarithmic FTL amplification for Alcubierre warp ($\eta=100$, $L=8$).}
-\label{tab:ftl_log_amp}
-\small
-\begin{ruledtabular}
-\begin{tabular}{cccc}
-$v_s$ & $F_{\rm null}$ & $F_{\rm log}$ & $F_{\rm log}/F_{\rm null}$ \\
-\hline
-0.3 & 0.063 & 0.432 & 6.8 \\
-0.5 & 0.094 & 0.508 & 5.4 \\
-0.8 & 0.131 & 0.573 & 4.4 \\
-\end{tabular}
-\end{ruledtabular}
-\end{table}
-
-Table~\ref{tab:ftl_warp_detail} provides a physical interpretation of the Alcubierre warp-drive null-ray timing as a function of bubble velocity $v_s$.
-
-\begin{table}[H]
-\caption{Null-ray timing decomposition for the Alcubierre warp seed (bubble radius $R=2$, $\sigma=1$, $L=8$).  $T_{\rm flat}=16$ for all entries.}
-\label{tab:ftl_warp_detail}
-\small
-\begin{ruledtabular}
-\begin{tabular}{ccccc}
-$v_s$ & $T_{\rm curved}$ & $\Delta T/T_{\rm flat}$ & $\max|dx/dt|$ & Regime \\
-\hline
-0.3 & 14.99 & $6.3\%$  & 1.30 & sub-luminal \\
-0.5 & 14.49 & $9.4\%$  & 1.50 & sub-luminal \\
-0.8 & 13.91 & $13.1\%$ & 1.80 & sub-luminal \\
-1.0 & 13.60 & $15.0\%$ & 2.00 & luminal \\
-2.0 & 12.54 & $21.6\%$ & 3.00 & super-luminal \\
-3.0 & 11.90 & $25.6\%$ & 4.00 & super-luminal \\
-\end{tabular}
-\end{ruledtabular}
-\end{table}
+Logarithmic amplification makes subluminal warp signals optimizer-visible: across the Alcubierre seed ($\eta=100$), $F_{\rm null}=0.063,0.094,0.131$ at $v_s=0.3,0.5,0.8c$ map to $F_{\rm log}=0.43,0.51,0.57$ (a $4$--$7\times$ boost).  The underlying null-ray timing scales smoothly with $v_s$: the coordinate transit advantage $\Delta T/T_{\rm flat}$ grows from $6.3\%$ ($v_s=0.3$, $\max|dx/dt|=1.30$, sub-luminal) through the luminal point at $v_s=1.0$ ($15\%$, $\max|dx/dt|=2.0$) to $25.6\%$ at $v_s=3.0$ (super-luminal).  Throat and Schwarzschild geometries instead score high on $F_{\rm asymmetry}$ from strong $\chi$-gradient push--pull even when $F_{\rm null}=0$.
 
 \subsubsection{Why FTL scoring resolves the flat-space attractor}
 \label{sec:ftl_attractor}
 
-Without an active FTL objective, the CMA-ES fitness landscape contains a degenerate global attractor at flat Minkowski space.  This section explains the mechanism, its severity, and why the three-component $F_{\rm FTL}$ score eliminates it.
+Without an active FTL objective the Minkowski metric ($\alpha=\chi=1$, $\beta^x=0$, $K=0$) maximizes every health reward simultaneously (survival, constraint/lapse health, stability $=1$) for a non-FTL total $S_{\rm flat}\approx9.5$, while any deformation only adds constraint and instability penalties---so the optimizer collapses to the trivial fixed point.  The FTL scaffolding supplies a positive gradient out of this valley: GPU smoke tests (Table~\ref{tab:gpu_ftl_upgraded}) confirm Alcubierre $v=0.5$ reaches $S=10.08$, exceeding flat Minkowski ($10.00$), because $F_{\rm log}=0.51$ and $s_{\rm comoving}=0.998$ offset its low Eulerian stability ($0.02$); the same run scored only $7.13$ under the previous linear/Eulerian-only scoring.
 
-\paragraph{The problem: trivial geometry dominates.}
-The non-FTL scoring components---survival, constraint health, lapse health, stability---are all maximized simultaneously by the Minkowski metric ($\alpha=1$, $\chi=1$, $\beta^x=0$, $K=0$): it survives to any $t_{\rm target}$, has zero constraint violation, maintains perfect lapse, and has $s_{\rm stability}=1$.  Its total non-FTL score is
-\begin{equation}
-    S_{\rm flat}^{(\text{no-FTL})} = 2.0 + 2.0 + 1.0 + 0 + 0 + 1.5 + 1.0 + 2.0 = 9.5.
-\end{equation}
-Any deformation away from flatness introduces constraint violation ($-2.0\,w_{\rm constr}$) and possible instability ($-2.0\,w_{\rm stab}$), yielding $S<9.5$.  Thus, without FTL pressure the optimizer converges to the trivial fixed point.
-
-\paragraph{The solution: gradient toward structure.}
-The optimizer now faces a \emph{positive gradient} pointing away from flatness toward FTL structure.  GPU smoke tests with the upgraded scorer (Table~\ref{tab:gpu_ftl_upgraded}) confirm that the flat-space attractor is broken: Alcubierre $v=0.5$ achieves $S=10.08$, exceeding flat Minkowski ($S=10.00$), because $F_{\rm log}=0.508$ and $s_{\rm comoving}=0.998$ compensate for low Eulerian stability ($s_{\rm stability}=0.02$).  Under the previous linear FTL term and Eulerian-only stability, the same run scored only $S=7.13$.
-
-\paragraph{Three complementary channels prevent local minima.}
-Each metric component rewards a geometrically distinct mechanism:
-\begin{enumerate}
-    \item \textbf{$F_{\rm null}$ (shift-driven warp):} Sensitive to $\beta^x$-shaped bubbles that accelerate null rays.  Activated by increasing $|\texttt{recipe\_beta\_coeff}|$.
-    \item \textbf{$F_{\rm portal}$ (spatial compression):} Sensitive to $\chi>1$ compression that shortens proper distance.  Activated by negative $\texttt{recipe\_chi\_coeff}$ (reducing conformal factor).
-    \item \textbf{$F_{\rm throat}$ (topological pinch):} Sensitive to local minima in $R_{\rm areal}=r/\sqrt{\chi}$.  Activated by sharp $\chi$ peaks.
-\end{enumerate}
-Because these channels are independent (warp uses $\beta^x$; portal uses $\chi$ compression; throat uses $\chi$ peaks), the CMA-ES covariance matrix learns to explore them in parallel.  If one channel stalls due to stability penalties, the optimizer can shift probability mass to another.
-
-\paragraph{The $s_{\rm nonflat}$ gate.}
-The multiplicative anti-flatness factor $s_{\rm nonflat}\in[0,1]$ closes a secondary exploit.  Without it, a near-flat metric with tiny numerical rounding could produce $F_{\rm null}>0$ from discretization noise.  Because $s_{\rm nonflat}=0$ whenever $\max|\chi-1|+\max|\beta^x|<\tau=0.08$, a near-flat candidate is silenced regardless of its raw shortcut value.
-
-\paragraph{Search-space coupling.}
-The expanded CMA-ES search vector now contains $\alpha$ and $\beta^x$ coefficients (Table~\ref{tab:search_space}).  The optimizer can simultaneously shape the conformal factor for stability/constraints \emph{and} the shift for warp drive acceleration:
-\begin{equation}
-    \theta = \bigl(\underbrace{c_0^\chi, c_1^\chi, c_2^\chi, c_3^\chi}_{\text{geometry/throat}},\;\underbrace{w}_{\text{basis width}},\;\underbrace{c_0^\alpha, c_1^\alpha}_{\text{lapse shaping}},\;\underbrace{c_0^\beta, c_1^\beta}_{\text{warp drive}}\bigr).
-\end{equation}
-This nine-dimensional search space is the minimal parameterization that simultaneously spans warp, portal, and throat geometries while remaining tractable for CMA-ES population sizes $\lambda\sim20$.
+The three shortcut channels are geometrically independent---$F_{\rm null}$ (shift-driven warp, activated by $\beta^x$), $F_{\rm portal}$ ($\chi>1$ compression), $F_{\rm throat}$ (local minima of $R_{\rm areal}=r/\sqrt\chi$)---so CMA-ES can explore them in parallel and shift weight when one stalls.  The multiplicative $s_{\rm nonflat}\in[0,1]$ gate ($=0$ when $\max|\chi-1|+\max|\beta^x|<\tau=0.08$) silences discretization-noise shortcuts on near-flat candidates.  The resulting nine-dimensional search vector $\theta=(c_{0\ldots3}^\chi,w,c_{0,1}^\alpha,c_{0,1}^\beta)$ (Table~\ref{tab:search_space}) is the minimal parameterization spanning warp, portal, and throat geometries while remaining tractable at $\lambda\sim20$.
 
 \begin{table}[H]
 \caption{CMA-ES search dimensions with bounds.  All coefficients are dimensionless amplitudes for the Gaussian basis expansion.}
@@ -646,22 +538,19 @@ Schwarzschild puncture    & 0.29 & 0.00 & 0      & ---    & $-0.91$  & 1.0 & 9.7
 \end{table}
 
 \paragraph{The matter fix produces genuine energy-condition violations.}
-With the exotic field active, the Ellis--Bronnikov wormhole evolves matter that genuinely violates the null energy condition ($\min\mathrm{NEC}=-0.62$, integrated violation $\approx3.5$, max spatial Ricci $\approx18$), and the random non-spherical phantoms violate it mildly ($\min\mathrm{NEC}\approx-0.013$).  Under the previous canonical-field evolution these margins were $\approx 0$ by construction, so the diagnostic now reflects the reconstructed matter rather than a fixed positive-energy proxy.  For shift-driven warps (Alcubierre) the scalar-matter NEC remains $\approx 0$: the exotic content there lives in the geometry ($T^{\rm eff}_{\mu\nu}=G_{\mu\nu}/8\pi$), which the matter-sector condition cannot see---hence the curvature invariants and the operational FTL probe, not the matter NEC, are the meaningful exoticity signals for that class.
+With the exotic field active, the Ellis--Bronnikov wormhole now genuinely violates the matter NEC ($\min\mathrm{NEC}=-0.62$, integrated $\approx3.5$, max Ricci $\approx18$) and the non-spherical phantoms violate it mildly ($\approx-0.013$), whereas under the previous canonical-field evolution these margins were $\approx0$ by construction.  For shift-driven warps (Alcubierre) the scalar-matter NEC stays $\approx0$ because the exotic content lives in the geometry ($T^{\rm eff}_{\mu\nu}=G_{\mu\nu}/8\pi$); there the curvature invariants and operational FTL probe, not the matter NEC, are the meaningful signals.
 
 \paragraph{Effective energy conditions recover the geometric exotic energy.}
-To make the geometric exotic energy of shift-driven warps explicit, we reassemble the covariant 4-metric $g_{\mu\nu}(t,x,y,z)$ from a stack of consecutive plotfiles and evaluate the effective stress-energy $T^{\rm eff}_{\mu\nu}=G_{\mu\nu}/8\pi$ with the Warp-Factory-style observer-sampling plus exact Hawking--Ellis evaluator (Sec.~\ref{sec:warp_factory_methods}).  On the evolved Alcubierre geometry this certifies a genuine violation, $\mathrm{NEC}^{\rm eff}_{\min}<0$ (Hawking--Ellis slack $\approx-9\times10^{-6}$, ``exotic matter required''; WEC violated over $97\%$ of sampled points), \emph{despite} the matter NEC being exactly zero---the diagnostic now sees what the matter sector is blind to.  The recovered magnitudes are resolution-limited (a coarse finite-difference $g_{\mu\nu}$ grid under-resolves the bubble wall and throat, so for Ellis--Bronnikov $\mathrm{NEC}^{\rm eff}_{\min}\approx-2\times10^{-4}$ understates the matter value $-0.62$); the \emph{sign} and detection are robust, the absolute value sharpens with finer, uniformly time-spaced plotfiles.  This effective margin enters the objective as the $s_{\rm exotic}^{\rm eff}$ component (weight $1.5$).
+Reassembling the 4-metric $g_{\mu\nu}$ from consecutive plotfiles and evaluating $T^{\rm eff}_{\mu\nu}=G_{\mu\nu}/8\pi$ with the Hawking--Ellis evaluator (Sec.~\ref{sec:warp_factory_methods}) certifies a genuine violation on the evolved Alcubierre geometry---$\mathrm{NEC}^{\rm eff}_{\min}<0$ (slack $\approx-9\times10^{-6}$, WEC violated over $97\%$ of points) despite a zero matter NEC.  Magnitudes are finite-difference-resolution limited (for Ellis--Bronnikov $\mathrm{NEC}^{\rm eff}_{\min}\approx-2\times10^{-4}$ understates the matter value $-0.62$), but the sign and detection are robust and sharpen with closer-spaced plotfiles.  This margin enters the objective as $s_{\rm exotic}^{\rm eff}$ (weight $1.5$).
 
 \paragraph{The non-triviality gate eliminates the flat-space attractor.}
-Re-scoring with the gated objective (Eq.~\ref{eq:gated_score}, Table~\ref{tab:longrun_validation}) shows the intended ranking is restored: flat Minkowski drops from $S=14.5$ to $S=0.0$ because $g_{\rm nt}=0$ (it scores zero on every exoticity signal), while \emph{every} structured geometry keeps $g_{\rm nt}=1$ and an unchanged score---Alcubierre $14.9$, Ellis--Bronnikov $12.8$, the non-spherical phantoms $\sim10.5$, and even the collapsing Schwarzschild puncture $9.7$.  The gate is therefore surgical: it removes only the trivial vacuum solution from contention without perturbing the relative ordering of genuine warp, wormhole, and angular candidates.
+Re-scoring with the gated objective (Eq.~\ref{eq:gated_score}, Table~\ref{tab:longrun_validation}) restores the intended ranking: flat Minkowski drops $S=14.5\to0.0$ ($g_{\rm nt}=0$) while every structured geometry keeps $g_{\rm nt}=1$ and an unchanged score (Alcubierre $14.9$, Ellis--Bronnikov $12.8$, non-spherical phantoms $\sim10.5$, Schwarzschild $9.7$)---surgically removing only the trivial vacuum (cf.\ Sec.~\ref{sec:nontriviality_gate}).
 
 \paragraph{Evolved-frame FTL exposes dynamics the $t=0$ slice misses.}
-The operational probe is informative only once it is run on the \emph{evolved} geometry.  The Alcubierre bubble starts with a real coordinate shortcut ($F_{\rm op}^{0}=0.096$, peak coordinate light speed $1.50$) that decays to $F_{\rm op}^{\rm ev}=5\times10^{-4}$ by $t=16$ as the unsourced bubble disperses.  Conversely, the static Ellis--Bronnikov throat has \emph{no} shortcut at $t=0$ ($F_{\rm op}^{0}=0$) but \emph{develops} one under evolution ($F_{\rm op}^{\rm ev}=0.042$, peak coordinate speed $1.33$)---a genuinely dynamical superluminal channel invisible to any static analysis.
+The operational probe is informative only on the \emph{evolved} geometry.  Alcubierre starts with a real shortcut ($F_{\rm op}^{0}=0.096$, peak coordinate speed $1.50$) that decays to $F_{\rm op}^{\rm ev}=5\times10^{-4}$ as the unsourced bubble disperses; conversely the static Ellis--Bronnikov throat has \emph{no} $t=0$ shortcut yet \emph{develops} one ($F_{\rm op}^{\rm ev}=0.042$, peak speed $1.33$)---a dynamical channel invisible to static analysis.
 
 \paragraph{Stability over the longer window is physically sensible.}
-Flat space stays exactly stationary ($s_{\rm stab}=1$); the Alcubierre warp and the random non-spherical candidates survive the full $t=16$; the phantom Ellis--Bronnikov wormhole partially collapses ($\mathrm{survival}=0.80$), as expected for a marginally unstable throat; and applying exotic matter to a near-vacuum Schwarzschild puncture drives a genuine collapse ($\mathrm{survival}=0.29$, max Ricci $\sim10^{5}$).  For the surviving Alcubierre run the in-situ diagnostics confirm bounded geometry over the entire window: $\alpha_{\min}=0.9993$, $\chi_{\min}=0.841$, and $|K|_{\max}=2.5\times10^{-3}$ (a true collapse would drive $\alpha_{\min}\to0$ and $|K|_{\max}\to\mathcal{O}(1)$).
-
-\paragraph{Caveat: autoscaled colorbars overstate sub-permille gauge dynamics.}
-The per-frame slice renders use an autoscaled colorbar with an additive offset, e.g.\ a lapse panel labeled ``$\times10^{-3}\!+\!1$'': a tick of $+0.4$ then denotes $\alpha=1+0.4\times10^{-3}=1.0004$.  Read naively this makes the lapse and $|K|$ panels of an entirely stable run look dramatic, when in fact they show outgoing gauge and constraint ripples at the $10^{-4}$--$10^{-3}$ level radiating from imperfect initial data.  The physically meaningful field for the Alcubierre warp is the conformal factor $\chi$, which holds a steady $\pm6\%$ compression-front/expansion-rear dipole essentially unchanged from $t\!\approx\!3$ to $t=16$.  The bounded in-situ time series (\texttt{collapse\_diagnostics.dat}), not the autoscaled frames, is the authoritative stability verdict.
+Flat space stays stationary ($s_{\rm stab}=1$); Alcubierre and the non-spherical candidates survive to $t=16$ (in-situ $\alpha_{\min}=0.9993$, $\chi_{\min}=0.841$, $|K|_{\max}=2.5\times10^{-3}$ for the bounded warp); the phantom Ellis--Bronnikov throat partially collapses ($\mathrm{survival}=0.80$); and exotic matter on a near-vacuum Schwarzschild puncture drives genuine collapse ($\mathrm{survival}=0.29$, max Ricci $\sim10^{5}$).  Note that autoscaled per-frame colorbars (additive offsets, e.g.\ ``$\times10^{-3}\!+\!1$'') can make $10^{-4}$-level gauge ripples look dramatic; the in-situ time series, not the frames, is the authoritative stability verdict.
 
 \section{CMA-ES vs.\ Reinforcement Learning}
 \label{sec:cma_vs_rl}
@@ -674,16 +563,7 @@ A structural limitation of CMA-ES (and of the MAP-Elites and Pareto drivers of S
 
 \section{Avoiding Fake FTL (Operational Probe Tests)}
 
-A major scientific risk in numerical relativity is "fake FTL," where a coordinate transformation (such as a massive shift vector $\beta^i$) makes it look like a region is moving superluminally when it is actually a coordinate effect. 
-
-To eliminate coordinate artifacts, every high-scoring candidate must pass a physical operational test:
-
-\begin{enumerate}
-    \item An active probe (either a massless scalar-field pulse or a set of null geodesic tracer particles) is emitted at a boundary $A$.
-    \item The pulse propagates through the dynamical spacetime to a detector at boundary $B$.
-    \item We compare the arrival time at $B$ with an identical simulation run in flat Minkowski space on the exact same grid.
-    \item If the signal arrives earlier, we verify that the signal path did not cross an apparent horizon (trapped surface), and that the constraint violations remained bounded during the entire transit time.
-\end{enumerate}
+A major risk is ``fake FTL,'' where a coordinate choice (e.g.\ a large shift $\beta^i$) mimics superluminal motion that is really a gauge effect.  Every high-scoring candidate must therefore pass the operational arrival-time test of Eq.~\eqref{eq:f_op}: a massless scalar pulse (or null-geodesic bundle) emitted at boundary $A$ must reach detector $B$ earlier than an identical pulse on a flat-space control run on the same grid, with the verified path crossing no apparent horizon and bounded constraints throughout transit.
 
 \section{Benchmarks}
 
@@ -705,22 +585,6 @@ Teo-like & Quadrupole dynamics & Non-spherical benchmark \\
 \end{tabular}
 \end{ruledtabular}
 \end{table*}
-
-\section{Implementation Status}
-
-The pipeline stages are now largely in place: regression and plotfile cleanup (\texttt{reproduce}), custom C++ RadialRecipe initial data (including $\beta^x$ shift recipe), constrained pre-flight filtering, energy-density diagnostics, upgraded scoring ($F_{\rm log}$, $F_{\rm asymmetry}$, $s_{\rm comoving}$, constraints), GPU smoke/promotion scripts, non-spherical batching, and a multi-GPU CMA-ES loop (\texttt{run\_optimize\_loop.sh}).  A second wave of extensions (Sec.~\ref{sec:proposed}) is now implemented and GPU-validated: a constraint/collapse growth-rate metric ($s_{\rm growth}$, \texttt{metrics.py}), $t=0$ ANEC-line and curvature/tidal proxies (\texttt{physical\_metrics.py}), an RBF surrogate pre-screen for the optimizer (\texttt{surrogate.py}), a MAP-Elites quality-diversity driver (\texttt{qd\_search.py}, CLI \texttt{qd}), and multi-objective Pareto-front extraction (\texttt{pareto.py}, CLI \texttt{pareto}).  Remaining near-term items are the Slurm constraint atlas, dynamic operational FTL probes, a full tetrad/Weyl + apparent-horizon upgrade of the tidal/ANEC proxies, the elliptic (\texttt{GRTresna}) initial-data default, and production-scale optimization campaigns (Sec.~\ref{sec:forward_path}).
-
-\section{Expected First Result}
-
-A successful first result is not a claimed working warp drive. The primary deliverable is an automated numerical-relativity classification laboratory. 
-
-The first paper will present:
-\begin{itemize}
-    \item The verified, open-source closed-loop search pipeline.
-    \item A comprehensive physical database ("The Spacetime Failure Atlas") showing how thousands of random geometries fail dynamically under Einstein's equations.
-    \item The automated discovery of known metric classes (like wormholes) without manual human tuning.
-    \item A rigorous evaluation of the physical viability of FTL metrics under the strict exclusion of negative energy density.
-\end{itemize}
 
 \section{Implemented: Constraint-Satisfying Metric Guesser}
 
@@ -747,9 +611,7 @@ With a scalar field at $\Pi=0$ (momentarily static), $j^i=0$, so the momentum co
 
 \subsection{Verification and validation}
 
-A saved test suite (\texttt{tests/test\_constrained\_guesser.py}) exercises five groups---known seeds, random normal/phantom $\chi$ profiles, edge cases, and paired constraint-improvement trials---for \textbf{74/74 passing assertions} (\texttt{numpy 2.4.6}, seed 42). All random and edge cases yield finite $\phi$ with bounded fit residuals; flat Minkowski stays exact ($\|H\|_{L^2}=0$); locking $K=\mathrm{const}$, $\Pi=0$ drives $\|M_i\|_{L^2}=0$; constrained overrides reduce $\|H\|_{L^2}$ in 4/5 trials; and pathological inputs are rejected. The known operating envelope is that the constrained recipe is a fast \emph{first pass}: wide-throat ($b_0\ge1$) wormholes and vacuum Schwarzschild exceed what 8--12 Gaussians represent on the conformally flat ansatz and fail pre-flight (full 3D solving, e.g.\ \texttt{GRTresna}, remains required there), while the C++ 3D diagnostic loop provides the authoritative verdict.
-
-A separate batch harness (\texttt{validate\_metric\_guesser.py}) classifies synthetic proposals without any optimizer feedback. It draws families of $\chi(r)$ (random Gaussian, shells, Alcubierre-style bubble walls, multi-shells, and bad controls), derives $\phi$, and labels each outcome: \texttt{accepted\_normal}, \texttt{accepted\_phantom}, \texttt{rejected\_negative\_chi}, \texttt{rejected\_unsatisfiable\_source}, \texttt{rejected\_high\_constraint}, \texttt{rejected\_fit\_error}, or \texttt{rejected\_exotic\_energy}. On the seed-42 reference set (27 candidates): 7 \texttt{accepted\_phantom}, 19 \texttt{rejected\_exotic\_energy}, 1 \texttt{rejected\_negative\_chi}. Most random/shell profiles fail the normal-matter energy check because $\rho_{\rm req}<0$ over part of the grid; this is intended---the harness separates numerical constructibility from physical viability under positive energy (Fig.~\ref{fig:random000}).
+A test suite (\texttt{tests/test\_constrained\_guesser.py}) passes \textbf{74/74 assertions} (\texttt{numpy 2.4.6}, seed 42): random/edge cases yield finite $\phi$ with bounded residuals, flat Minkowski stays exact ($\|H\|_{L^2}=0$), locking $K=\mathrm{const},\Pi=0$ drives $\|M_i\|_{L^2}=0$, constrained overrides reduce $\|H\|_{L^2}$ in 4/5 trials, and pathological inputs are rejected.  The constrained recipe is a fast \emph{first pass}---wide-throat wormholes and vacuum Schwarzschild exceed what 8--12 Gaussians span on the conformally flat ansatz and fail pre-flight (full 3D solving, e.g.\ \texttt{GRTresna}, is required there).  A batch harness (\texttt{validate\_metric\_guesser.py}) classifies synthetic $\chi(r)$ families without optimizer feedback; on the seed-42 set (27 candidates): 7 \texttt{accepted\_phantom}, 19 \texttt{rejected\_exotic\_energy}, 1 \texttt{rejected\_negative\_chi}.  Most random profiles fail the normal-matter check because $\rho_{\rm req}<0$ somewhere---by design, separating numerical constructibility from positive-energy viability (Fig.~\ref{fig:random000}).
 
 \begin{figure}[H]
     \centering
@@ -892,6 +754,8 @@ $S$ (gated total)                   & $16.75$ \\
     \label{fig:hq188}
 \end{figure}
 
+\paragraph{Why a warp dipole and not a wormhole or portal.}  The convergence to an Alcubierre-like warp rather than a throat or multi-mouth portal is a property of the search, not an accident.  Three factors compound.  (i)~\emph{The parameterization cannot represent the alternatives.}  A wormhole needs a throat and a portal needs two connected mouths---both \emph{topological} features unreachable by smoothly deforming the coefficients of a single simply-connected recipe; CMA-ES searches a fixed-dimension continuous space and cannot change topology (Sec.~\ref{sec:cma_vs_rl}).  (ii)~\emph{The non-spherical freedom lives in the gauge sector.}  Only $\alpha,\beta^i$ carry angular modes, and a shift dipole is exactly the Alcubierre ingredient, so the only directional structure expressible is warp-like by construction.  (iii)~\emph{The scoring gradient points at the cheapest FTL channel.}  A shift warp earns the operational-FTL reward at essentially zero matter cost, whereas a throat must sustain NEC violation (large $\int\rho_-$) \emph{and} typically collapses (low survival, horizon penalty); gradient flow therefore runs to the warp.  We observed this directly---when the compressed lobe sharpened it tripped a near-trapped flag ($\min\theta_+=-0.11$) and was penalized back out.  Reaching wormholes/portals thus requires changing the search itself (Sec.~\ref{sec:directional_next}), not merely running longer.
+
 \section{Forward Path: From Stability Gap to Analytic Discovery}
 \label{sec:forward_path}
 
@@ -921,6 +785,8 @@ The gauge-angular search (Sec.~\ref{sec:gauge_angular_search}) established that 
 
 \paragraph{The geometric sector (largest single win).}  All of the above remain in the gauge sector, where the directional structure is partly a coordinate effect and decays.  Carrying the dipole in the \emph{physical} spatial metric ($\chi$, $\tilde A_{ij}$) requires a 3D elliptic constraint solver: a 1D radial solve cannot make an angular $\chi$ consistent off-axis without re-introducing constraint violation or forcing exotic content.  Promoting Path~B to a genuine 3D solver (Sec.~\ref{sec:forward_path}, Phase~3) would let the real curvature carry the warp with controlled, minimal exotic matter---converting the gauge-driven shortcut into a true geometric channel.
 
+\paragraph{Reaching wormholes and portals (topology search).}  The warp-only convergence above is structural: the present search cannot change topology, so throats and multi-mouth portals are out of reach by construction.  Opening them requires a two-level search (Sec.~\ref{sec:cma_vs_rl}): a \emph{discrete controller} (RL policy or genetic algorithm) selects the topological skeleton---number of mouths/throats, active $(\ell,m)$ modes, boundary connectivity---and hands it to the continuous CMA-ES inner loop that polishes the geometry within that skeleton.  In practice this is bootstrapped by \emph{seeding} from known throat/portal topologies (Ellis--Bronnikov, multi-mouth) on top of the 3D constraint solver and letting the optimizer refine within each, rather than expecting a throat to nucleate from a single blob.  This is the concrete route from the cheap gauge warp found here to genuinely non-trivial-topology FTL candidates.
+
 \subsection{Phase 2: Multi-observer energy conditions}
 \label{sec:warp_factory_methods}
 
@@ -930,11 +796,7 @@ A directional, axis-line ANEC proxy and a curvature/lapse tidal proxy are alread
 \end{equation}
 taking the minimum over observers at each point.  On analytic seeds this reproduces the canonical results: flat Minkowski satisfies every condition to machine precision, whereas an Alcubierre bubble violates the NEC and WEC with the violation deepening in velocity ($\min_{\mathbf{x}}\Xi_N = -2.4\times10^{-2},\,-4.3\times10^{-2},\,-8.6\times10^{-2}$ at $v=0.3,0.5,0.9$), which the $t=0$ $\chi$-sourced proxies miss entirely.
 
-Beyond discrete observer sampling, we adopt the \textsc{warpax} refinement~\cite{le2026warpax}: at each grid point we diagonalize the mixed stress-energy tensor $T^{a}{}_{b}=g^{ac}T_{cb}$ and apply the Hawking--Ellis classification.  At Type I points---which dominate the well-resolved bubble wall---the eigenvalues are $(-\rho,p_1,p_2,p_3)$ and the energy conditions reduce to \emph{exact, observer-independent} algebraic inequalities,
-\begin{equation}
-    \text{NEC}:~\min_i(\rho+p_i)\ge0,\quad \text{WEC}:~\min\!\big(\rho,\min_i(\rho+p_i)\big)\ge0,\quad \text{DEC}:~\min_i(\rho-|p_i|)\ge0,
-\end{equation}
-with $\rho$ the frame-independent (invariant) energy density rather than the Eulerian projection.  Our \texttt{warpfactory.py} reports the algebraic slack at Type I points and falls back to the rapidity-capped observer minimum elsewhere, taking the more-violating of the two (a ``hybrid margin''); for the Alcubierre wall the exact NEC/WEC slack is negative and grows with velocity ($-7.1\times10^{-3}$ at $v=0.5$, $-2.4\times10^{-2}$ at $v=0.9$).  Because the eigenvalue test is sensitive to discretization noise near eigenvalue degeneracies, we use a fourth-order finite-difference stencil and verify the observed convergence order of the curvature chain by Richardson extrapolation (observed order $\gtrsim2$ on the smooth functional $\int|G_{\mu\nu}|\,dV$), following the high-order-convergence methodology of Lousto~\cite{lousto2006fourth}; automatic differentiation~\cite{le2026warpax,li2023pinn} would remove the truncation error entirely and is the natural upgrade.  This evaluator is now wired onto the dynamical pipeline: we reassemble $g_{\mu\nu}$ from a stack of consecutive evolved \texttt{GRTeclyn} plotfiles (so the Einstein tensor carries genuine $\partial_t$ terms) and feed the per-candidate effective margin into \texttt{score.py} as the $s_{\rm exotic}^{\rm eff}$ component (weight $1.5$), combined with the evolved operational probe (Eq.~\ref{eq:f_op}) so candidates cannot look physical to a stationary observer but exotic to one moving with the bubble.  On the evolved Alcubierre geometry this certifies $\mathrm{NEC}^{\rm eff}_{\min}<0$ even though the matter NEC is zero (Sec.~\ref{sec:longrun_validation}); the absolute magnitude remains finite-difference-resolution limited and sharpens with closer-spaced plotfiles.
+Beyond observer sampling, we adopt the \textsc{warpax} refinement~\cite{le2026warpax}: diagonalizing the mixed tensor $T^{a}{}_{b}=g^{ac}T_{cb}$ and applying the Hawking--Ellis classification, the Type I points that dominate a well-resolved bubble wall have eigenvalues $(-\rho,p_i)$ for which the conditions become \emph{exact, observer-independent} inequalities ($\mathrm{NEC}:\min_i(\rho+p_i)\ge0$; $\mathrm{WEC}$ adds $\rho\ge0$; $\mathrm{DEC}:\min_i(\rho-|p_i|)\ge0$), with $\rho$ the invariant energy density.  \texttt{warpfactory.py} takes the more-violating of the Type I slack and a rapidity-capped observer minimum (a ``hybrid margin''); for the Alcubierre wall this slack grows with velocity ($-7.1\times10^{-3}$ at $v=0.5$, $-2.4\times10^{-2}$ at $v=0.9$).  We use a fourth-order stencil with Richardson-verified convergence~\cite{lousto2006fourth} (automatic differentiation~\cite{le2026warpax,li2023pinn} is the natural upgrade), and wire the evaluator onto the dynamical pipeline---reassembling $g_{\mu\nu}$ from consecutive plotfiles (so $G_{\mu\nu}$ carries genuine $\partial_t$ terms) and feeding the effective margin into \texttt{score.py} as $s_{\rm exotic}^{\rm eff}$ (weight $1.5$) alongside the evolved probe of Eq.~\ref{eq:f_op}.  This certifies $\mathrm{NEC}^{\rm eff}_{\min}<0$ on the evolved Alcubierre geometry despite a zero matter NEC (Sec.~\ref{sec:longrun_validation}).
 
 \subsection{Phase 3: GPU-cluster production search}
 
