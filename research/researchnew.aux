@@ -2,99 +2,176 @@
 \providecommand\hyper@newdestlabel[2]{}
 \providecommand\HyField@AuxAddToFields[1]{}
 \providecommand\HyField@AuxAddToCoFields[2]{}
+\citation{alexander2026albert,halverson2019branes,qiu2026collideragent,han2025physagent}
+\citation{helmerich2024warpfactory,le2026warpax}
+\citation{lousto2006fourth,li2023pinn}
 \newlabel{FirstPage}{{}{1}{}{section*.1}{}}
 \@writefile{toc}{\contentsline {title}{\MakeTextUppercase    []{Neural Spacetime Search with \texttt  {GRTeclyn}: A Practical Baseline for Dynamical Metric Discovery}}{1}{section*.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {abstract}{Abstract}{1}{section*.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {I}Introduction}{1}{section*.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {II}Goal}{1}{section*.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A}Optimization as the Engine of Discovery}{1}{section*.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {III}Initial Data and Matter Derivation}{2}{section*.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A}Path A: Algebraic Matter Reconstruction}{2}{section*.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {B}Path B: Elliptic Constraint Solving}{2}{section*.8}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {IV}Candidate Parameterization}{2}{section*.9}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A}Level 1: Radial Recipes}{2}{section*.10}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {B}Level 2: Angular Recipes}{2}{section*.11}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {C}Level 3: Neural Field Decoder}{2}{section*.12}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {D}Level 4: Hybrid Meta-Optimization via LLM Agents}{3}{section*.13}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {V}GPU Cluster Architecture and Program Boundary}{3}{section*.14}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A}The Execution Boundary}{3}{section*.15}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {B}Tiered GPU Execution}{3}{section*.16}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {VI}Scoring and Energy Conditions}{3}{section*.17}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Schematic diagram of the closed-loop classical spacetime optimization pipeline. Layer 1 handles initial spacetime metric data, boundary conditions, and spatial preprocessing. Layer 2 is the core iterative engine, pairing a numerical relativity solver (such as \texttt  {GRTeclyn}) with the parameter optimization loop to check physical constraints (including causality and curvature). Layer 3 computes the objective function (evaluating constraint violations, energy conditions, and FTL travel times) and visualizes the resulting 4D embedding structures, directing the overall feedback and metric refinement loop.}}{4}{figure.1}\protected@file@percent }
-\newlabel{fig:pipeline_diagram}{{1}{4}{Schematic diagram of the closed-loop classical spacetime optimization pipeline. Layer 1 handles initial spacetime metric data, boundary conditions, and spatial preprocessing. Layer 2 is the core iterative engine, pairing a numerical relativity solver (such as \texttt {GRTeclyn}) with the parameter optimization loop to check physical constraints (including causality and curvature). Layer 3 computes the objective function (evaluating constraint violations, energy conditions, and FTL travel times) and visualizes the resulting 4D embedding structures, directing the overall feedback and metric refinement loop}{figure.1}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {VII}Avoiding Fake FTL (Operational Probe Tests)}{4}{section*.18}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {VIII}Benchmarks}{4}{section*.19}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {IX}Step-by-Step Implementation Plan}{4}{section*.20}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A}Step 1: Regression and Cleanup}{4}{section*.21}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {B}Step 2: Custom C++ Initial Data}{4}{section*.22}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {C}Step 3: Slurm-Based Random Search (The Atlas)}{4}{section*.23}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces Initial benchmark suite for the search pipeline.}}{5}{table.1}\protected@file@percent }
-\newlabel{tab:benchmarks}{{I}{5}{Initial benchmark suite for the search pipeline}{table.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {D}Step 4: Integrate the Constraint Solver}{5}{section*.24}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {E}Step 5: Operational Probe Integration}{5}{section*.25}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {F}Step 6: Optimization and Scale-up}{5}{section*.26}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {X}Expected First Result}{5}{section*.27}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {XI}Implemented: Constraint-Satisfying Metric Guesser}{5}{section*.28}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A}Physics of the Constraint Gap}{5}{section*.29}\protected@file@percent }
-\newlabel{eq:ham_recipe}{{7}{5}{}{equation.11.7}{}}
-\newlabel{eq:mom_recipe}{{8}{5}{}{equation.11.8}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {B}Component 1: Constrained Recipe (Python Pre-Processing)}{5}{section*.30}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {C}Component 2: Pre-Flight Constraint Filter}{6}{section*.31}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {D}Component 3: Energy Density Diagnostic (C++)}{6}{section*.32}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {E}Component 4: Enhanced Scoring}{6}{section*.33}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {F}Component 5: CMA-ES Optimization Driver}{6}{section*.34}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {G}Component 6: Known-Solution Seeds}{6}{section*.35}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {H}Component 7: GPU smoke and promotion scripts}{7}{section*.36}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {I}Verification Tests}{7}{section*.37}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {1}Test groups}{7}{section*.38}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {2}Results summary}{7}{section*.39}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {3}Known limitations (expected behaviour)}{7}{section*.40}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {J}Guesser Validation Harness}{8}{section*.41}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {1}How to run}{8}{section*.42}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {2}What it does}{8}{section*.43}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {3}How the initial $\chi (r)$ profile is drawn}{8}{section*.44}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {4}Current symmetry limitation}{8}{section*.45}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {5}First non-spherical ray validation}{9}{section*.46}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {6}Profile visualisation}{9}{section*.47}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {7}Representative validation figures}{9}{section*.48}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces \textbf  {Accepted phantom random candidate.} The geometry is numerically constructible and the pre-flight constraints remain controlled. The required energy density contains negative regions, so it is accepted only in the phantom/exotic-matter class.}}{10}{figure.2}\protected@file@percent }
-\newlabel{fig:random000}{{2}{10}{\textbf {Accepted phantom random candidate.} The geometry is numerically constructible and the pre-flight constraints remain controlled. The required energy density contains negative regions, so it is accepted only in the phantom/exotic-matter class}{figure.2}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces \textbf  {Rejected normal-matter random candidate.} The guessed geometry and derived scalar field are well-defined, but $\rho _{\rm  req}(r)$ becomes negative. Since this candidate is in the normal-matter class, it is rejected as \texttt  {rejected\_exotic\_energy}.}}{10}{figure.3}\protected@file@percent }
-\newlabel{fig:random001}{{3}{10}{\textbf {Rejected normal-matter random candidate.} The guessed geometry and derived scalar field are well-defined, but $\rho _{\rm req}(r)$ becomes negative. Since this candidate is in the normal-matter class, it is rejected as \texttt {rejected\_exotic\_energy}}{figure.3}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces \textbf  {Rejected bad-control candidate.} The conformal factor $\chi (r)$ becomes negative, so the spatial metric $\gamma _{ij}=\chi ^{-1}\delta _{ij}$ is invalid before any matter reconstruction or evolution.}}{10}{figure.4}\protected@file@percent }
-\newlabel{fig:badcontrol024}{{4}{10}{\textbf {Rejected bad-control candidate.} The conformal factor $\chi (r)$ becomes negative, so the spatial metric $\gamma _{ij}=\chi ^{-1}\delta _{ij}$ is invalid before any matter reconstruction or evolution}{figure.4}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {8}Representative non-spherical ray figures}{10}{section*.49}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces \textbf  {Accepted non-spherical dipole candidate.} The $l=1$ mode makes the geometry lopsided: one side of the cross-section is compressed/stretched differently from the other. The key result is that $\chi $ stays positive everywhere in the sampled section, so the metric is geometrically valid at this first ray-check level.}}{10}{figure.5}\protected@file@percent }
-\newlabel{fig:nonspherical_dipole}{{5}{10}{\textbf {Accepted non-spherical dipole candidate.} The $l=1$ mode makes the geometry lopsided: one side of the cross-section is compressed/stretched differently from the other. The key result is that $\chi $ stays positive everywhere in the sampled section, so the metric is geometrically valid at this first ray-check level}{figure.5}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces \textbf  {Rejected non-spherical bad control.} The same type of angular deformation is made too strong. The cross-section shows regions where $\chi <0$, which makes $\gamma _{ij}=\chi ^{-1}\delta _{ij}$ invalid. This is rejected before any constraint solve or C++ evolution because the metric itself is not admissible.}}{11}{figure.6}\protected@file@percent }
-\newlabel{fig:nonspherical_bad_control}{{6}{11}{\textbf {Rejected non-spherical bad control.} The same type of angular deformation is made too strong. The cross-section shows regions where $\chi <0$, which makes $\gamma _{ij}=\chi ^{-1}\delta _{ij}$ invalid. This is rejected before any constraint solve or C++ evolution because the metric itself is not admissible}{figure.6}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {9}Classification labels}{11}{section*.50}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {10}Reference run (seed 42, 27 candidates)}{11}{section*.51}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {11}Difference from regression tests and optimization}{11}{section*.52}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {K}GPU/C++ RadialRecipe smoke validation}{11}{section*.53}\protected@file@percent }
-\newlabel{sec:gpu_radial_smoke}{{XI\,K}{11}{}{section*.53}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {1}Build and launch conventions}{11}{section*.54}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {2}Initial-data sources}{11}{section*.55}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {3}Radial smoke results ($t=2$, $N_{\rm  full}=64$, $\Delta t = 0.02$)}{12}{section*.56}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {4}Resolution note (Ellis--Bronnikov)}{12}{section*.57}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {L}Non-spherical 3D GPU batch}{12}{section*.58}\protected@file@percent }
-\newlabel{sec:gpu_nonspherical}{{XI\,L}{12}{}{section*.58}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {XII}Recommended Next Steps for Testing}{12}{section*.59}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A}C++ 3D Initial Data Discretization Test}{12}{section*.60}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {B}Basis Fit-Residual Sensitivity Study}{12}{section*.61}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {II}{\ignorespaces Short GPU smoke results for spherically symmetric RadialRecipe candidates ($t=2$, $N_{\rm  full}=64$). Python pre-flight uses a 1D radial grid; C++ values are from \texttt  {constraint\_norms.dat} on the full 3D AMReX mesh.}}{13}{table.2}\protected@file@percent }
-\newlabel{tab:gpu_radial_smoke}{{II}{13}{Short GPU smoke results for spherically symmetric RadialRecipe candidates ($t=2$, $N_{\rm full}=64$). Python pre-flight uses a 1D radial grid; C++ values are from \texttt {constraint\_norms.dat} on the full 3D AMReX mesh}{table.2}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces Non-spherical GPU smoke results ($t=2$, $N_{\rm  full}=64$, constrained phantom recipe).}}{13}{table.3}\protected@file@percent }
-\newlabel{tab:gpu_nonspherical}{{III}{13}{Non-spherical GPU smoke results ($t=2$, $N_{\rm full}=64$, constrained phantom recipe)}{table.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {C}Dynamic Gauge Stability Test}{13}{section*.62}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {XIII}Long-Term Production Roadmap}{13}{section*.63}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A}Integrate Multi-Observer Energy Conditions}{13}{section*.64}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {B}Run the Slurm-Managed Constraint Atlas}{13}{section*.65}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {III}Initial Data and Matter Derivation}{1}{section*.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A}Path A: Algebraic Matter Reconstruction}{1}{section*.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {B}Path B: Elliptic Constraint Solving}{1}{section*.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {IV}Candidate Parameterization}{1}{section*.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A}Level 1: Radial Recipes}{1}{section*.10}\protected@file@percent }
+\citation{li2023pinn}
+\citation{alexander2026albert}
+\citation{qiu2026collideragent}
+\@writefile{toc}{\contentsline {subsection}{\numberline {B}Level 2: Angular Recipes (implemented)}{2}{section*.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {C}Levels 3--4: Neural and Meta-Optimization (future)}{2}{section*.12}\protected@file@percent }
+\newlabel{sec:parameterization_levels}{{IV\,C}{2}{}{section*.12}{}}
+\@writefile{toc}{\contentsline {paragraph}{\numberline {a}A symbolic ``spacetime grammar'' (neuro-symbolic constraint filtering).}{2}{section*.13}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {b}Level 4: a concrete LLM meta-agent.}{2}{section*.14}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {V}GPU Cluster Architecture and Program Boundary}{2}{section*.15}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A}The Execution Boundary}{2}{section*.16}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {B}Tiered GPU Execution}{2}{section*.17}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {VI}The Closed-Loop: How Simulation Results Drive the Search}{2}{section*.18}\protected@file@percent }
+\newlabel{sec:closed_loop}{{VI}{2}{}{section*.18}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {VII}Scoring: Overcoming the Flat-Space Attractor}{2}{section*.19}\protected@file@percent }
+\newlabel{sec:scoring}{{VII}{2}{}{section*.19}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A}Implemented score components}{2}{section*.20}\protected@file@percent }
+\newlabel{eq:bounded_reward}{{4}{2}{}{equation.7.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {B}Continuous FTL scaffolding metrics}{2}{section*.21}\protected@file@percent }
+\newlabel{sec:ftl_scaffolding}{{VII\,B}{2}{}{section*.21}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {1}Nat\'{a}rio--Alcubierre expansion asymmetry}{2}{section*.22}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2}Logarithmic FTL amplification}{3}{section*.23}\protected@file@percent }
+\newlabel{eq:f_log}{{7}{3}{}{equation.7.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {C}Co-moving stability scoring}{3}{section*.24}\protected@file@percent }
+\newlabel{sec:comoving_scoring}{{VII\,C}{3}{}{section*.24}{}}
+\newlabel{eq:s_comoving}{{9}{3}{}{equation.7.9}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {1}The non-triviality gate: defeating the flat-space attractor}{3}{section*.25}\protected@file@percent }
+\newlabel{sec:nontriviality_gate}{{VII\,C\,1}{3}{}{section*.25}{}}
+\newlabel{eq:gated_score}{{11}{3}{}{equation.7.11}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {D}FTL shortcut metrics (implemented)}{3}{section*.26}\protected@file@percent }
+\newlabel{sec:ftl_scoring}{{VII\,D}{3}{}{section*.26}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {1}Warp null-ray shortcut}{3}{section*.27}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2}Portal proper-distance shortcut}{3}{section*.28}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3}Wormhole throat pinch}{3}{section*.29}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4}Anti-flatness and combined objective}{3}{section*.30}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5}Validation: FTL scoring across reference seeds}{3}{section*.31}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces Compact score-weight summary. Components are inactive when their diagnostics are unavailable.}}{4}{table.1}\protected@file@percent }
+\newlabel{tab:score_weights}{{I}{4}{Compact score-weight summary. Components are inactive when their diagnostics are unavailable}{table.1}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {II}{\ignorespaces FTL metric scores for reference spacetime seeds ($L=8$). Raw $F_{\rm  FTL}=\max (F_{\rm  null},F_{\rm  portal},F_{\rm  throat})\cdot s_{\rm  nonflat}$; $F_{\rm  log}$ from Eq.~\ref {eq:f_log} with $\eta =100$.}}{4}{table.2}\protected@file@percent }
+\newlabel{tab:ftl_validation}{{II}{4}{FTL metric scores for reference spacetime seeds ($L=8$). Raw $F_{\rm FTL}=\max (F_{\rm null},F_{\rm portal},F_{\rm throat})\cdot s_{\rm nonflat}$; $F_{\rm log}$ from Eq.~\ref {eq:f_log} with $\eta =100$}{table.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces CMA-ES search dimensions with bounds. All coefficients are dimensionless amplitudes for the Gaussian basis expansion.}}{4}{table.3}\protected@file@percent }
+\newlabel{tab:search_space}{{III}{4}{CMA-ES search dimensions with bounds. All coefficients are dimensionless amplitudes for the Gaussian basis expansion}{table.3}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {6}Why FTL scoring resolves the flat-space attractor}{4}{section*.32}\protected@file@percent }
+\newlabel{sec:ftl_attractor}{{VII\,D\,6}{4}{}{section*.32}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {7}GPU validation with upgraded FTL scoring}{4}{section*.33}\protected@file@percent }
+\newlabel{sec:gpu_ftl_validation}{{VII\,D\,7}{4}{}{section*.33}{}}
+\@writefile{toc}{\contentsline {paragraph}{\numberline {a}Reference seeds: flat-space attractor resolved.}{4}{section*.34}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {b}Non-spherical angular candidates.}{4}{section*.35}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {E}Dynamical stability scoring (implemented)}{4}{section*.36}\protected@file@percent }
+\newlabel{sec:stability_scoring}{{VII\,E}{4}{}{section*.36}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {1}Data sources}{4}{section*.37}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2}Fractional violation terms}{4}{section*.38}\protected@file@percent }
+\newlabel{eq:delta_k}{{20}{4}{}{equation.7.20}{}}
+\newlabel{eq:delta_alpha}{{21}{4}{}{equation.7.21}{}}
+\newlabel{eq:delta_chi}{{22}{4}{}{equation.7.22}{}}
+\newlabel{eq:delta_rh}{{23}{4}{}{equation.7.23}{}}
+\newlabel{eq:delta_areal}{{24}{4}{}{equation.7.24}{}}
+\citation{halverson2019branes}
+\@writefile{lot}{\contentsline {table}{\numberline {IV}{\ignorespaces GPU smoke results with upgraded FTL scoring ($t=2$, $N_{\rm  full}=64$, $L=8$). Scores recomputed from archived episodes with \texttt  {score.py} weights from Table~\ref {tab:score_weights}.}}{5}{table.4}\protected@file@percent }
+\newlabel{tab:gpu_ftl_upgraded}{{IV}{5}{GPU smoke results with upgraded FTL scoring ($t=2$, $N_{\rm full}=64$, $L=8$). Scores recomputed from archived episodes with \texttt {score.py} weights from Table~\ref {tab:score_weights}}{table.4}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {V}{\ignorespaces Non-spherical GPU batch with upgraded FTL scoring ($t=2$, $N_{\rm  full}=64$, stamp \texttt  {20260528\_151713}).}}{5}{table.5}\protected@file@percent }
+\newlabel{tab:gpu_ftl_nonspherical}{{V}{5}{Non-spherical GPU batch with upgraded FTL scoring ($t=2$, $N_{\rm full}=64$, stamp \texttt {20260528\_151713})}{table.5}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3}Geometry-change budget and stability reward}{5}{section*.39}\protected@file@percent }
+\newlabel{eq:delta_geom}{{25}{5}{}{equation.7.25}{}}
+\newlabel{eq:s_stability}{{26}{5}{}{equation.7.26}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4}Promotion criteria}{5}{section*.40}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {F}Longer-run validation: exotic matter, evolved-frame FTL, and a visualization caveat}{5}{section*.41}\protected@file@percent }
+\newlabel{sec:longrun_validation}{{VII\,F}{5}{}{section*.41}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {VIII}CMA-ES vs.\ Reinforcement Learning}{5}{section*.42}\protected@file@percent }
+\newlabel{sec:cma_vs_rl}{{VIII}{5}{}{section*.42}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A}Hierarchical search: topology vs.\ geometry}{5}{section*.43}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {VI}{\ignorespaces Longer-run validation ($t=16$, $N_{\rm  full}=64$, $L=8$, H100) with the gated objective (Eq.~\ref {eq:gated_score}). $F_{\rm  op}^{0}$/$F_{\rm  op}^{\rm  ev}$ are the operational FTL benefits on the $t=0$ slice and the evolved plotfile; $\mathrm  {NEC}^{\rm  mat}$ is the minimum matter null-energy margin over the run (negative $=$ violation); $g_{\rm  nt}$ is the non-triviality gate. $S$ is the gated total: flat Minkowski collapses to $0$ while every non-trivial geometry is unchanged. All reference runs use constrained phantom initial data.}}{6}{table.6}\protected@file@percent }
+\newlabel{tab:longrun_validation}{{VI}{6}{Longer-run validation ($t=16$, $N_{\rm full}=64$, $L=8$, H100) with the gated objective (Eq.~\ref {eq:gated_score}). $F_{\rm op}^{0}$/$F_{\rm op}^{\rm ev}$ are the operational FTL benefits on the $t=0$ slice and the evolved plotfile; $\mathrm {NEC}^{\rm mat}$ is the minimum matter null-energy margin over the run (negative $=$ violation); $g_{\rm nt}$ is the non-triviality gate. $S$ is the gated total: flat Minkowski collapses to $0$ while every non-trivial geometry is unchanged. All reference runs use constrained phantom initial data}{table.6}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {IX}Avoiding Fake FTL (Operational Probe Tests)}{6}{section*.44}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {X}Implemented: Constraint-Satisfying Metric Guesser}{6}{section*.45}\protected@file@percent }
+\newlabel{eq:ham_recipe}{{27}{6}{}{equation.10.27}{}}
+\newlabel{eq:mom_recipe}{{28}{6}{}{equation.10.28}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A}Pipeline components}{6}{section*.46}\protected@file@percent }
+\newlabel{sec:constrained_recipe}{{X\,A}{6}{}{section*.46}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {B}Verification and validation}{6}{section*.47}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {C}First non-spherical (symmetry-breaking) step}{6}{section*.48}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {D}GPU/C++ RadialRecipe smoke validation}{6}{section*.49}\protected@file@percent }
+\newlabel{sec:gpu_radial_smoke}{{X\,D}{6}{}{section*.49}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {1}Radial smoke results at t=2}{6}{section*.50}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2}Resolution note (Ellis--Bronnikov)}{6}{section*.51}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3}AMR closed-loop test}{6}{section*.52}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Metric-guesser validation examples}}{7}{figure.1}\protected@file@percent }
+\newlabel{fig:random000}{{1}{7}{Metric-guesser validation examples}{figure.1}{}}
+\newlabel{fig:nonspherical_dipole}{{1}{7}{Metric-guesser validation examples}{figure.1}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {VII}{\ignorespaces Short GPU smoke results for spherically symmetric RadialRecipe candidates ($t=2$, $N_{\rm  full}=64$, \texttt  {max\_level=0}). $s_{\rm  stability}$ and $S$ are from the eight-component scorer (May 2026 rescoring). ``Short-run survivor'' means controlled diagnostics over this window, not long-time stability.}}{7}{table.7}\protected@file@percent }
+\newlabel{tab:gpu_radial_smoke}{{VII}{7}{Short GPU smoke results for spherically symmetric RadialRecipe candidates ($t=2$, $N_{\rm full}=64$, \texttt {max\_level=0}). $s_{\rm stability}$ and $S$ are from the eight-component scorer (May 2026 rescoring). ``Short-run survivor'' means controlled diagnostics over this window, not long-time stability}{table.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {E}Non-spherical 3D GPU batch}{7}{section*.53}\protected@file@percent }
+\newlabel{sec:gpu_nonspherical}{{X\,E}{7}{}{section*.53}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {F}Gauge-sector angular search and streaming HQ validation (implemented)}{7}{section*.54}\protected@file@percent }
+\newlabel{sec:gauge_angular_search}{{X\,F}{7}{}{section*.54}{}}
+\@writefile{toc}{\contentsline {paragraph}{\numberline {a}Search outcome.}{7}{section*.55}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {b}Streaming high-quality validation.}{7}{section*.56}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {c}Why not a wormhole or portal.}{7}{section*.57}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {XI}Forward Path: From Stability Gap to Analytic Discovery}{7}{section*.58}\protected@file@percent }
+\newlabel{sec:forward_path}{{XI}{7}{}{section*.58}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A}Phase 1: Closing the stability gap (immediate software priority)}{7}{section*.59}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {VIII}{\ignorespaces Top AMR CMA-ES candidates (\texttt  {optimize\_20260528T055206Z}, $t=2$, stability-aware scoring).}}{8}{table.8}\protected@file@percent }
+\newlabel{tab:amr_optimize}{{VIII}{8}{Top AMR CMA-ES candidates (\texttt {optimize\_20260528T055206Z}, $t=2$, stability-aware scoring)}{table.8}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {IX}{\ignorespaces Non-spherical GPU smoke results ($t=2$, $N_{\rm  full}=64$, stability-aware scoring).}}{8}{table.9}\protected@file@percent }
+\newlabel{tab:gpu_nonspherical}{{IX}{8}{Non-spherical GPU smoke results ($t=2$, $N_{\rm full}=64$, stability-aware scoring)}{table.9}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {X}{\ignorespaces High-quality streaming validation of the gauge-angular winner \texttt  {eval\_000188} ($N_{\rm  full}=192$, \texttt  {max\_level=2}, $t=16$, H100). Initial vs.\ evolved operational FTL, exotic matter, and constraint health.}}{8}{table.10}\protected@file@percent }
+\newlabel{tab:hq188}{{X}{8}{High-quality streaming validation of the gauge-angular winner \texttt {eval\_000188} ($N_{\rm full}=192$, \texttt {max\_level=2}, $t=16$, H100). Initial vs.\ evolved operational FTL, exotic matter, and constraint health}{table.10}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {B}Directional non-spherical search: next degrees of freedom}{8}{section*.60}\protected@file@percent }
+\newlabel{sec:directional_next}{{XI\,B}{8}{}{section*.60}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces \textbf  {Persistent directional channel of the gauge-angular winner \texttt  {eval\_000188}} (conformal factor $\chi $, $z=0$ slice, $t=16$, $N_{\rm  full}=192$). A standing front--back dipole compresses space on the $+x$ side ($\chi \approx 0.7$, dark) and expands it behind ($\chi \approx 1.45$, bright)---an Alcubierre-like contract-ahead/expand-behind polarity realized through the shift sector at low exotic-matter cost. The structure does not translate; it stands and slowly decays. Frames were extracted on the fly during evolution while plotfiles were deleted (keep-last-2).}}{8}{figure.2}\protected@file@percent }
+\newlabel{fig:hq188}{{2}{8}{\textbf {Persistent directional channel of the gauge-angular winner \texttt {eval\_000188}} (conformal factor $\chi $, $z=0$ slice, $t=16$, $N_{\rm full}=192$). A standing front--back dipole compresses space on the $+x$ side ($\chi \approx 0.7$, dark) and expands it behind ($\chi \approx 1.45$, bright)---an Alcubierre-like contract-ahead/expand-behind polarity realized through the shift sector at low exotic-matter cost. The structure does not translate; it stands and slowly decays. Frames were extracted on the fly during evolution while plotfiles were deleted (keep-last-2)}{figure.2}{}}
+\citation{le2026warpax}
+\citation{lousto2006fourth}
+\citation{han2025physagent}
+\@writefile{toc}{\contentsline {paragraph}{\numberline {a}The geometric sector.}{9}{section*.61}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {b}Topology search.}{9}{section*.62}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {C}Phase 2: Multi-observer energy conditions}{9}{section*.63}\protected@file@percent }
+\newlabel{sec:warp_factory_methods}{{XI\,C}{9}{}{section*.63}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {D}Phase 3: GPU-cluster production search}{9}{section*.64}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {E}Phase 4: Analytical back-derivation}{9}{section*.65}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {XII}Extensions: Implemented Metrics, Search, and Robustness}{9}{section*.66}\protected@file@percent }
+\newlabel{sec:proposed}{{XII}{9}{}{section*.66}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A}New physical metrics}{9}{section*.67}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {a}Constraint growth rate.}{9}{section*.68}\protected@file@percent }
+\newlabel{eq:s_growth}{{31}{9}{}{equation.12.31}{}}
+\@writefile{toc}{\contentsline {paragraph}{\numberline {b}ANEC line proxy.}{9}{section*.69}\protected@file@percent }
+\newlabel{eq:anec_line}{{32}{9}{}{equation.12.32}{}}
+\newlabel{eq:anec}{{33}{9}{}{equation.12.33}{}}
+\@writefile{toc}{\contentsline {paragraph}{\numberline {c}Tidal proxy.}{9}{section*.70}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {d}Operational probe FTL.}{9}{section*.71}\protected@file@percent }
+\newlabel{eq:f_op}{{34}{9}{}{equation.12.34}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {B}Optimizing the search}{9}{section*.72}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {a}Surrogate-assisted screening.}{9}{section*.73}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {b}Quality-Diversity.}{9}{section*.74}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {c}Pareto front.}{9}{section*.75}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {d}Constraint-solved initial data.}{9}{section*.76}\protected@file@percent }
+\bibcite{alexander2026albert}{{1}{}{{}}{{}}}
+\bibcite{qiu2026collideragent}{{2}{}{{}}{{}}}
+\bibcite{halverson2019branes}{{3}{}{{}}{{}}}
+\bibcite{han2025physagent}{{4}{}{{}}{{}}}
+\bibcite{helmerich2024warpfactory}{{5}{}{{}}{{}}}
+\bibcite{le2026warpax}{{6}{}{{}}{{}}}
+\bibcite{lousto2006fourth}{{7}{}{{}}{{}}}
+\bibcite{li2023pinn}{{8}{}{{}}{{}}}
 \bibdata{researchnewNotes}
 \bibstyle{apsrev4-2}
 \citation{REVTEX42Control}
 \citation{apsrev42Control}
-\@writefile{toc}{\contentsline {subsection}{\numberline {C}Execute CMA-ES on the Constrained Subspace}{14}{section*.66}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {XIV}Conclusion}{14}{section*.67}\protected@file@percent }
-\newlabel{LastPage}{{}{14}{}{}{}}
-\gdef \@abspage@last{14}
+\providecommand\NAT@force@numbers{}\NAT@force@numbers
+\@writefile{lot}{\contentsline {table}{\numberline {XI}{\ignorespaces Implemented $t=0$ gauge-robust proxies on reference seeds ($L=8$, 1024 points). $\mathcal  {A}_{\rm  line}$ is the axis energy-density line integral (Eq.~\ref {eq:anec_line}); $\mathcal  {K}^{1/2}_{\rm  proxy}\equiv \max |R|$ is the spatial-curvature scale; ``trap'' is the $t=0$ trapped-surface flag.}}{10}{table.11}\protected@file@percent }
+\newlabel{tab:phys_t0}{{XI}{10}{Implemented $t=0$ gauge-robust proxies on reference seeds ($L=8$, 1024 points). $\mathcal {A}_{\rm line}$ is the axis energy-density line integral (Eq.~\ref {eq:anec_line}); $\mathcal {K}^{1/2}_{\rm proxy}\equiv \max |R|$ is the spatial-curvature scale; ``trap'' is the $t=0$ trapped-surface flag}{table.11}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {XII}{\ignorespaces GPU growth-rate and new-component values ($t=2$, $N_{\rm  full}=64$, \texttt  {max\_level=0}). $\lambda _{\rm  eff}$ from Eq.~\eqref  {eq:s_growth}; $S$ is the total under the extended 15-component scorer (adds $s_{\rm  growth},s_{\rm  anec},s_{\rm  tidal}$ to Table~\ref {tab:score_weights}).}}{10}{table.12}\protected@file@percent }
+\newlabel{tab:gpu_growth}{{XII}{10}{GPU growth-rate and new-component values ($t=2$, $N_{\rm full}=64$, \texttt {max\_level=0}). $\lambda _{\rm eff}$ from Eq.~\eqref {eq:s_growth}; $S$ is the total under the extended 15-component scorer (adds $s_{\rm growth},s_{\rm anec},s_{\rm tidal}$ to Table~\ref {tab:score_weights})}{table.12}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {XIII}{\ignorespaces MAP-Elites archive from one $40$-evaluation, 8-GPU campaign ($6{\times }6$ grid, coverage $0.19$). Each row is the elite of a distinct behavior cell.}}{10}{table.13}\protected@file@percent }
+\newlabel{tab:qd_atlas}{{XIII}{10}{MAP-Elites archive from one $40$-evaluation, 8-GPU campaign ($6{\times }6$ grid, coverage $0.19$). Each row is the elite of a distinct behavior cell}{table.13}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {XIII}Conclusion}{10}{section*.77}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {}References}{10}{section*.78}\protected@file@percent }
+\newlabel{LastBibItem}{{8}{10}{}{section*.78}{}}
+\newlabel{LastPage}{{}{10}{}{}{}}
+\gdef \@abspage@last{10}
