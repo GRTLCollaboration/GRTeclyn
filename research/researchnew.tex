@@ -103,13 +103,13 @@ We define the initial fields at $t=0$ using spherically symmetric radial profile
 \end{equation}
 where $q$ represents the CCZ4 fields $\chi$, $\alpha$, $\beta^i$, or $K$. The coefficients $a_n$ are the parameters sampled by the optimizer, and $B_n(r)$ are smooth radial basis functions (such as Gaussians).
 
-\subsection{Level 2: Angular Recipes}
+\subsection{Level 2: Angular Recipes (implemented)}
 
 To allow for non-spherical, asymmetric, or rotating geometries, we expand the parameterization using spherical harmonics:
 \begin{equation}
     q(r,\theta,\varphi) = q_\infty + \sum_{n\ell m} a_{n\ell m}B_n(r)Y_{\ell m}(\theta,\varphi).
 \end{equation}
-This enables the search engine to discover rotating warp fields, quadrupolar configurations, and asymmetric wormhole mouths.
+This enables the search engine to discover rotating warp fields, quadrupolar configurations, and asymmetric wormhole mouths.  This level is now live in the CMA-ES driver for the \emph{gauge} fields (lapse $\alpha$, shift $\beta^i$), where angular modes carry no constraint or energy-condition cost; the resulting 21-parameter gauge-angular search and its high-quality GPU validation are reported in Sec.~\ref{sec:gauge_angular_search}.  Angular modes on the \emph{geometric} fields ($\chi$, $\tilde A_{ij}$) remain gated on the 3D constraint solver (Sec.~\ref{sec:forward_path}).
 
 \subsection{Levels 3--4: Neural and Meta-Optimization (future)}
 \label{sec:parameterization_levels}
@@ -852,6 +852,46 @@ Candidate & max $\|H\|_{L^2}$ & $\alpha_{\min}$ & $\chi_{\min}$ & $s_{\rm stabil
 
 Every accepted candidate satisfies $\|H\|_{L^2}<10^{-1}$, maintains $\alpha_{\min}\gtrsim 0.87$, and shows no NaN termination.  Stability scores ($s_{\rm stability}\approx 0.44$--$0.51$) exceed the AMR-optimized radial survivors, but still fall short of a true equilibrium ($s_{\rm stability}\to 1$).  This closes the ray-validation loop: non-spherical $\chi$ proposals that are positive along sampled rays also load into C++ and remain dynamically tame over two code units at low resolution.
 
+\subsection{Gauge-sector angular search and streaming HQ validation (implemented)}
+\label{sec:gauge_angular_search}
+
+The non-spherical batches above (Table~\ref{tab:gpu_nonspherical}) put angular structure into the \emph{geometric} field $\chi$, which a 1D radial constraint solve cannot make consistent off-axis without either re-introducing constraint violation or forcing exotic content.  We therefore opened the \emph{gauge} sector instead: the lapse $\alpha$ and shift $\beta^i$ are freely specifiable and carry no constraint or energy-condition cost, so adding angular modes there breaks spherical symmetry ``for free.''  Each gauge field now carries Legendre modes $q(r,\theta)=q_0(r)+\sum_a A_a\,e^{-(r-r_a)^2/2w_a^2}P_{\ell_a}(\cos\theta)$ with $\ell\in\{1,2\}$ (dipole, quadrupole).  These were wired into the CMA-ES driver behind a \texttt{--nonspherical} flag (\texttt{build\_search\_space} in \texttt{optimize.py}): the search dimension grows from the 9-parameter radial space to 13 (mode amplitudes), and then to \textbf{21} once the radial center $r_a$ and width $w_a$ of every mode are themselves made searchable, so the optimizer chooses not only how strong each lobe is but \emph{where along the radius} the directional wall sits and how sharp it is.
+
+\paragraph{Search outcome.}  An 8-GPU CMA-ES campaign in this gauge-angular space located geometries that sustain an evolved superluminal channel at substantially \emph{lower exotic-matter cost} than any spherical winner---$\int\!\rho_{-}\,dV\approx0.13$--$0.17$, a factor $2$--$5\times$ below the spherical persistent-FTL candidates---driven primarily by a dominant $\ell=2$ quadrupolar shift mode.  The top candidate (\texttt{eval\_000188}) was promoted to a high-quality validation.
+
+\paragraph{Streaming high-quality validation.}  We re-evolved \texttt{eval\_000188} at $N_{\rm full}=192$ (base $\Delta x\approx0.33$), \texttt{max\_level=2}, \texttt{regrid\_threshold}$=0.02$, to $t=16$ on an H100, using the \emph{same streaming approach as the search runs}: the plot consumer (\texttt{process\_wave.consume\_plotfiles}) extracts $\chi$, $\alpha$, $K$ slice frames \emph{on the fly} as each plotfile is written and then deletes the plotfile (keep-last-2), so the heavy multi-GB plotfile stack never accumulates---the entire validation, including 52 frames per field, occupies $\sim1.2$\,GB.  Resolution comes from the high base grid rather than deep refinement, which keeps the streamed slice renders free of the AMR-patch artifacts noted in Sec.~\ref{sec:longrun_validation}.  This validates the full closed-loop pipeline end-to-end at production quality with bounded disk.
+
+The converged numbers (Table~\ref{tab:hq188}, Fig.~\ref{fig:hq188}) sharpen---and partly deflate---the earlier aggressive-AMR estimate.  The geometry holds a strong front--back $\chi$ dipole, compressing space on the $+x$ side ($\chi\approx0.7$) and expanding it behind ($\chi\approx1.45$), with the deformation \emph{standing} in place (essentially unchanged from $t\approx10$ to $t=16$) rather than translating.  The coordinate channel starts at $\max c=2.67$ ($F_{\rm op}=0.35$) and \emph{persists}, decaying to $\max c=1.32$ ($F_{\rm op}^{\rm ev}=5.6\times10^{-3}$, superluminal over $51\%$ of the path) by $t=16$.  Constraints stay clean and decreasing ($\|H\|_{L^2}:1.1\times10^{-3}\!\to\!4.2\times10^{-4}$), and the required exotic matter is small and \emph{axial}---concentrated in the $\chi$-gradient wall between the two lobes (ANEC line integral $-6.6\times10^{-3}$).  This is an Alcubierre-like polarity (contract-ahead/expand-behind dipole, negative energy in the wall) realized cheaply through the gauge sector, but as a soft, non-translating, slowly decaying channel rather than a rigid persistent bubble; one warning sign is a near-trapped surface in the compressed lobe ($\min\theta_+=-0.11$), which the search must be steered away from (Sec.~\ref{sec:forward_path}).
+
+\begin{table}[H]
+\caption{High-quality streaming validation of the gauge-angular winner \texttt{eval\_000188} ($N_{\rm full}=192$, \texttt{max\_level=2}, $t=16$, H100).  Initial vs.\ evolved operational FTL, exotic matter, and constraint health.}
+\label{tab:hq188}
+\small
+\begin{ruledtabular}
+\begin{tabular}{lc}
+Quantity & Value \\
+\hline
+$\max c$ (initial slice)            & $2.67$ \\
+$\max c$ (evolved, $t=16$)          & $1.32$ \\
+$F_{\rm op}^{0}$ / $F_{\rm op}^{\rm ev}$ & $0.35$ / $5.6\times10^{-3}$ \\
+superluminal path fraction (evolved) & $0.51$ \\
+$\int\rho_{-}\,dV$ (exotic matter)  & $0.134$ \\
+ANEC line integral (axis)           & $-6.6\times10^{-3}$ \\
+$\|H\|_{L^2}$ (max / final)         & $1.1\times10^{-3}$ / $4.2\times10^{-4}$ \\
+$\|M\|_{L^2}$ (final)               & $3.6\times10^{-5}$ \\
+$\min\theta_+$ (near-trapped flag)  & $-0.11$ \\
+$S$ (gated total)                   & $16.75$ \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\columnwidth]{articlepictures/hq188_chi_t16.png}
+    \caption{\textbf{Persistent directional channel of the gauge-angular winner \texttt{eval\_000188}} (conformal factor $\chi$, $z=0$ slice, $t=16$, $N_{\rm full}=192$).  A standing front--back dipole compresses space on the $+x$ side ($\chi\approx0.7$, dark) and expands it behind ($\chi\approx1.45$, bright)---an Alcubierre-like contract-ahead/expand-behind polarity realized through the shift sector at low exotic-matter cost.  The structure does not translate; it stands and slowly decays.  Frames were extracted on the fly during evolution while plotfiles were deleted (keep-last-2).}
+    \label{fig:hq188}
+\end{figure}
+
 \section{Forward Path: From Stability Gap to Analytic Discovery}
 \label{sec:forward_path}
 
@@ -865,6 +905,21 @@ The closed-loop pipeline has executed its first optimization campaigns (Sec.~\re
     \item \textbf{Basis and width sweeps.}  Automated sweeps over $N\in[4,16]$ and $w\in[0.3,2.5]$ map the fit residual $\epsilon_{\rm fit}$ and set the minimum safe CMA-ES dimensionality.
     \item \textbf{Gauge stability to $t=5$.}  Extend the seven non-spherical survivors (Table~\ref{tab:gpu_nonspherical}) and promoted radial seeds through $t=5$ on the $N_{\rm full}=64,96,128$ ladder to verify $1+\log$ slicing and Gamma-driver shift under deformed geometry.
 \end{enumerate}
+
+\subsection{Directional non-spherical search: next degrees of freedom}
+\label{sec:directional_next}
+
+The gauge-angular search (Sec.~\ref{sec:gauge_angular_search}) established that breaking spherical symmetry in the lapse/shift buys a persistent, low-exotic directional channel.  The validated streaming pipeline now lets us push this systematically.  In rough order of expected payoff:
+
+\begin{enumerate}
+    \item \textbf{Searchable radial placement (implemented, 21-D).}  The center $r_a$ and width $w_a$ of every angular mode are now search dimensions, so the optimizer can localize and sharpen the directional wall rather than accept a fixed placement.
+    \item \textbf{Full-$z$ domain (no reflection).}  The default $z=0$ reflective boundary forces even-parity-in-$z$ data, admitting $x$- and $y$-dipoles but forbidding a true $z$-heading.  Running on the centered full domain (\texttt{lo\_boundary}$=$Sommerfeld, \texttt{center}$=L/2$) unlocks odd-parity $z$ modes and a genuinely 3D heading; the campaign script is staged.
+    \item \textbf{Reward persistence and co-motion explicitly.}  The winner's channel decays ($\max c:2.67\!\to\!1.32$) and its $s_{\rm comoving}$ is only $0.13$.  Adding a score term that maximizes the \emph{evolved} channel strength relative to its $t=0$ value would steer CMA-ES toward channels that do not fade---toward a standing-to-moving bubble rather than a relaxing one.
+    \item \textbf{Penalize near-trapped surfaces.}  The HQ run hit $\min\theta_+=-0.11$ (near-trapped in the compressed lobe, $\texttt{horizon\_penalty}=-1$).  A soft barrier on $\theta_+$ (or an amplitude cap) would keep the search from collapsing the $+x$ lobe into a horizon while still rewarding strong compression.
+    \item \textbf{Higher angular order ($\ell=3$ octupole) and a translation shift.}  Adding $\ell=3$ modes gives sharper, more localized lobes (steeper wall per unit exotic matter), and a dedicated translational shift profile would let the structure \emph{propagate} (a heading \emph{and} a speed) rather than merely orient---the closest initial-data analogue of a moving Alcubierre drive.
+\end{enumerate}
+
+\paragraph{The geometric sector (largest single win).}  All of the above remain in the gauge sector, where the directional structure is partly a coordinate effect and decays.  Carrying the dipole in the \emph{physical} spatial metric ($\chi$, $\tilde A_{ij}$) requires a 3D elliptic constraint solver: a 1D radial solve cannot make an angular $\chi$ consistent off-axis without re-introducing constraint violation or forcing exotic content.  Promoting Path~B to a genuine 3D solver (Sec.~\ref{sec:forward_path}, Phase~3) would let the real curvature carry the warp with controlled, minimal exotic matter---converting the gauge-driven shortcut into a true geometric channel.
 
 \subsection{Phase 2: Multi-observer energy conditions}
 \label{sec:warp_factory_methods}

@@ -33,6 +33,7 @@ def create_visualizations():
     parser.add_argument("--vmin", type=float, default=None, help="Explicit colorbar minimum (overrides preset and --autoscale).")
     parser.add_argument("--vmax", type=float, default=None, help="Explicit colorbar maximum (overrides preset and --autoscale).")
     parser.add_argument("--uniform-level", type=int, default=None, help="Render from a UNIFORM covering grid at this AMR level instead of yt SlicePlot. Eliminates AMR patch-boundary artifacts (sharp rectangular blocks) in refined runs.")
+    parser.add_argument("--mirror", type=str, default=None, choices=["x", "y", "z"], help="Mirror the rendered slice across the lower domain edge of this axis (use for reflection-symmetric runs, e.g. --mirror z, so the z<0 half is reconstructed instead of shown blank). Only applies to --uniform-level rendering.")
 
     args = parser.parse_args()
 
@@ -160,7 +161,10 @@ def create_visualizations():
             import matplotlib.pyplot as plt
 
             ai = {'x': 0, 'y': 1, 'z': 2}[args.axis]
-            lvl = max(0, int(args.uniform_level))
+            # Clamp to this plotfile's actual refinement depth: early plotfiles
+            # may have fewer levels (e.g. max_level=0 at t=0 before any regrid),
+            # and covering_grid at a level the plotfile lacks raises IndexError.
+            lvl = max(0, min(int(args.uniform_level), int(ds.index.max_level)))
             ds.force_periodicity()
             full_dims = [int(round(n * (2 ** lvl))) for n in ds.domain_dimensions]
             cg = ds.covering_grid(level=lvl, left_edge=ds.domain_left_edge,
@@ -180,6 +184,19 @@ def create_visualizations():
             # reorder slab axes to [vertical, horizontal] for imshow
             arr = slab if remaining == [v_ax, h_ax] else slab.T
             extent = [le[h_ax], re[h_ax], le[v_ax], re[v_ax]]
+
+            # Reflection symmetry: reconstruct the mirrored half so the frame is
+            # complete instead of blank on one side.  Mirror across the lower
+            # domain edge of the chosen axis (the reflection plane).
+            if args.mirror is not None:
+                m_ax = {'x': 0, 'y': 1, 'z': 2}[args.mirror]
+                span = re[m_ax] - le[m_ax]
+                if m_ax == h_ax:
+                    arr = np.concatenate([arr[:, ::-1], arr], axis=1)
+                    extent[0] = le[h_ax] - span
+                elif m_ax == v_ax:
+                    arr = np.concatenate([arr[::-1, :], arr], axis=0)
+                    extent[2] = le[v_ax] - span
 
             # Autoscale over the visible (zoom) window for good contrast.
             if args.zoom is not None:
