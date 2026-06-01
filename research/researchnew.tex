@@ -399,29 +399,33 @@ Beyond CMA-ES, two complementary strategies were tested.  A surrogate-assisted R
 
 Because angular $\chi$ deformations cannot be made constraint-consistent by a 1D solve, we opened the gauge sector: $\alpha$ and $\beta^i$ carry Legendre modes with $\ell\in\{1,2\}$ and searchable radial centers/widths, giving a 21-parameter gauge-angular space.  An 8-GPU campaign found evolved superluminal channels at $\int\!\rho_{-}\,dV\approx0.13$--$0.17$, a factor $2$--$5$ below spherical persistent-FTL candidates.
 
-The top candidate, \texttt{eval\_000188}, was promoted and re-evolved to $t=16$ at $N_{\rm full}=192$, \texttt{max\_level=2} (Table~\ref{tab:hq188}, Fig.~\ref{fig:hq188}).  The validated geometry is a standing Alcubierre-like $\chi$ dipole, not a translating bubble: the evolved channel persists weakly by $t=16$, constraints decrease, and exotic matter remains small and axial, but a near-trapped flag appears in the compressed lobe.
+The three top-ranked candidates of the campaign and the long-run validation of the best are compared against the reference solutions by gated score $S$ in Table~\ref{tab:score_comparison}.  The top candidate, \texttt{eval\_000188}, was promoted and re-evolved to $t=16$ at $N_{\rm full}=192$, \texttt{max\_level=2} (Fig.~\ref{fig:hq188}).  The validated geometry is a standing Alcubierre-like $\chi$ dipole, not a translating bubble: the evolved channel persists weakly ($\max c:2.67\!\to\!1.32$, $F_{\rm op}^{\rm ev}=5.6\times10^{-3}$, $51\%$ of the path superluminal), constraints stay clean and decreasing ($\|H\|_{L^2}:1.1\times10^{-3}\!\to\!4.2\times10^{-4}$, $\|M\|_{L^2}^{\rm fin}=3.6\times10^{-5}$), and the required exotic matter stays small and axial ($\int\rho_-\,dV=0.134$, ANEC line $-6.6\times10^{-3}$), though a near-trapped flag appears in the compressed lobe ($\min\theta_+=-0.11$).
 
-\begin{table}[tbp]
-\caption{High-quality streaming validation of the gauge-angular winner \texttt{eval\_000188} ($N_{\rm full}=192$, \texttt{max\_level=2}, $t=16$, H100).  Initial vs.\ evolved operational FTL, exotic matter, and constraint health.}
-\label{tab:hq188}
+\begin{table*}[t]
+\caption{Candidates ranked by the gated objective $S$ (Eq.~\ref{eq:gated_score}).  The three top gauge-angular search winners (Tier-1, $t=2$, $N_{\rm full}=64$) and the high-quality long-run validation of the best ($t=16$, $N_{\rm full}=192$) are compared to the reference seeds ($t=16$, $N_{\rm full}=64$).  $\int\rho_-\,dV$ is the integrated required negative-energy density (matter sector); $\max c$ is the peak coordinate light speed on the initial slice; $F_{\rm op}^{\rm ev}$ is the evolved (persistence) operational-FTL benefit.  The Tier-1 search $S$ is evaluated over a short window and is therefore optimistic relative to the long-time value---the validated $t=16$ row ($S=16.75$) is the fair comparison with the seeds, and it still outscores Alcubierre.  The non-spherical winners use \emph{normal} matter ($\rho\ge0$ constrained solve) with low residual exotic content; the reference wormhole/puncture seeds use phantom (exotic) initial data, and Alcubierre's matter sector is clean ($\int\rho_-\approx0$) with its exoticity living in the geometry (effective EC).}
+\label{tab:score_comparison}
 \small
 \begin{ruledtabular}
-\begin{tabular}{p{0.53\columnwidth}c}
-Quantity & Value \\
+\begin{tabular}{llccccc}
+Candidate & $t\,/\,N_{\rm full}$ & $\int\rho_-\,dV$ & $\max c$ & $F_{\rm op}^{\rm ev}$ & $S$ \\
 \hline
-$\max c$ (initial slice)            & $2.67$ \\
-$\max c$ (evolved, $t=16$)          & $1.32$ \\
-$F_{\rm op}^{0}$ / $F_{\rm op}^{\rm ev}$ & $0.35$ / $5.6\times10^{-3}$ \\
-superluminal path fraction (evolved) & $0.51$ \\
-$\int\rho_{-}\,dV$ (exotic matter)  & $0.134$ \\
-ANEC line integral (axis)           & $-6.6\times10^{-3}$ \\
-$\|H\|_{L^2}$ (max / final)         & $1.1\times10^{-3}$ / $4.2\times10^{-4}$ \\
-$\|M\|_{L^2}$ (final)               & $3.6\times10^{-5}$ \\
-$\min\theta_+$ (near-trapped flag)  & $-0.11$ \\
-$S$ (gated total)                   & $16.75$ \\
+\multicolumn{6}{l}{\textit{This work --- gauge-angular non-spherical search (Tier-1)}}\\
+\texttt{eval\_000188} & $2\,/\,64$ & $0.134$ & $2.67$ & $0.014$ & \textbf{18.30}\\
+\texttt{eval\_000183} & $2\,/\,64$ & $0.130$ & $2.53$ & $0.014$ & $17.59$\\
+\texttt{eval\_000170} & $2\,/\,64$ & $0.137$ & $2.28$ & $0.008$ & $17.47$\\
+\hline
+\multicolumn{6}{l}{\textit{This work --- long-run validation of the winner}}\\
+\texttt{eval\_000188} & $16\,/\,192$ & $0.134$ & $2.67\!\to\!1.32$ & $0.0056$ & $16.75$\\
+\hline
+\multicolumn{6}{l}{\textit{Reference solutions ($t=16$, constrained)}}\\
+Alcubierre $v=0.5$ & $16\,/\,64$ & $\approx0$ & $1.50$ & $5\times10^{-4}$ & $14.9$\\
+Ellis--Bronnikov & $16\,/\,64$ & phantom & $1.00$ & $0.042$ & $12.8$\\
+\texttt{quadrupole\_bubble\_001} & $16\,/\,64$ & phantom & $1.00$ & $0.0095$ & $10.5$\\
+Schwarzschild puncture & $16\,/\,64$ & phantom & $1.00$ & --- & $9.7$\\
+Flat Minkowski & $16\,/\,64$ & $0$ & $1.00$ & --- & \textbf{0.0}\\
 \end{tabular}
 \end{ruledtabular}
-\end{table}
+\end{table*}
 
 \begin{figure}[tbp]
     \centering
@@ -430,7 +434,16 @@ $S$ (gated total)                   & $16.75$ \\
     \label{fig:hq188}
 \end{figure}
 
-The dipole metric achieves a gated total score of $S=16.75$, outperforming both Alcubierre $v=0.5$ ($S=14.9$) and Ellis--Bronnikov ($S=12.8$) at $t=16$.  Crucially, it accomplishes this with an exotic-matter cost of $\int\rho_{-}\,dV=0.134$, substantially lower than spherical persistent-FTL candidates, while maintaining a superluminal path fraction of $0.51$ in the evolved frame.  This demonstrates that the automated search can discover geometries that outperform hand-designed warp metrics on the combined objective of FTL benefit, stability, and energy-condition cost.
+Even after honest long-time validation (Table~\ref{tab:score_comparison}), the dipole metric achieves a gated total $S=16.75$, outperforming both Alcubierre $v=0.5$ ($S=14.9$) and Ellis--Bronnikov ($S=12.8$) evaluated on the same $t=16$ window.  Crucially, it accomplishes this with an exotic-matter cost of $\int\rho_{-}\,dV=0.134$ on a \emph{normal}-matter solve---substantially lower than spherical persistent-FTL candidates, and without the phantom matter the reference wormhole seeds require---while maintaining a superluminal path fraction of $0.51$ in the evolved frame.  This demonstrates that the automated search can discover geometries that outperform hand-designed warp metrics on the combined objective of FTL benefit, stability, and energy-condition cost.
+
+Figure~\ref{fig:chi_tiles} shows the conformal factor $\chi$ for all four candidates in Table~\ref{tab:score_comparison} that have frames.  The conformal factor encodes the local stretching of space: the physical spatial metric is $\gamma_{ij}=\chi^{-1}\tilde\gamma_{ij}$, so regions with $\chi>1$ (bright) have \emph{expanded} proper distances---space is stretched---while regions with $\chi<1$ (dark) have \emph{compressed} proper distances---space is squeezed.  For a flat, undeformed geometry $\chi=1$ everywhere (uniform purple).  The Alcubierre warp mechanism requires exactly this polarity: compressed space ahead of the passenger region and expanded space behind it.
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\textwidth]{articlepictures/chi_tiles.png}
+    \caption{\textbf{Directional $\chi$ channels of the top gauge-angular candidates} (conformal factor, $z=0$ equatorial slice).  The conformal factor $\chi$ encodes how much space is locally stretched ($\chi>1$, bright/yellow $=$ expanded) or compressed ($\chi<1$, dark/black $=$ squeezed); flat space has $\chi=1$ (uniform purple).  The three top-ranked Tier-1 search winners (\texttt{eval\_000188}, \texttt{eval\_000183}, \texttt{eval\_000170} at $t=2$, $N_{\rm full}=64$) and the high-quality long-run validation of the best (\texttt{eval\_000188} at $t=16$, $N_{\rm full}=192$) all share the same Alcubierre-like fore/aft dipole: a bright high-$\chi$ expansion lobe on the $-x$ side trailing a dark low-$\chi$ compression crescent on the $+x$ side---the ``expand behind, compress ahead'' polarity that a warp channel requires.  The structure is reproducible across candidates and sharpens (rather than disperses) under long evolution at higher resolution.  Each panel is annotated with its gated score $S$ (cf.\ Table~\ref{tab:score_comparison}).}
+    \label{fig:chi_tiles}
+\end{figure*}
 
 %%====================================================================
 %%  SECTION 7 : DISCUSSION AND FUTURE WORK
