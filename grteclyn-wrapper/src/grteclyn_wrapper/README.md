@@ -66,16 +66,70 @@ uv run python -m grteclyn_wrapper warpfactory \
 
 ## Module map
 
-Package layout (each area lives in its own subfolder):
+Package layout (each area lives in its own subfolder under
+`grteclyn-wrapper/src/grteclyn_wrapper/`):
 
 ```
 grteclyn_wrapper/
-  core/           config, episode, params, runner, evaluation, plot_consumer
-  initial_data/   constrained_recipe, preflight, seeds, candidates, guessers
-  metrics/        episode_metrics, ftl_metrics, ftl_general, physical_metrics, score, warpfactory
-  search/         optimize, surrogate, qd_search, pareto, atlas
-  grtresna/       io, solver  (Chombo HDF5 → .gridinit bridge)
-  __main__.py     CLI entry point
+  __init__.py
+  __main__.py          CLI entry point
+  core/
+    config.py          repo paths, example/executable resolution
+    episode.py         per-run directory layout and metadata
+    params.py          render params.txt from template + overrides
+    runner.py          launch GRTeclyn binary; plotfile consumer
+    evaluation.py      shared candidate → episode → score helper
+    plot_consumer.py   sidecar plotfile extraction command builder
+  initial_data/
+    constrained_recipe.py
+    preflight.py
+    seeds.py
+    candidates.py
+    validate_guesser.py
+    nonspherical_guesser.py
+  metrics/
+    episode_metrics.py   parse diagnostics → EpisodeMetrics
+    ftl_metrics.py       t=0 FTL shortcut metrics
+    ftl_general.py       mechanism-agnostic operational FTL
+    physical_metrics.py  ANEC / tidal proxies
+    score.py             weighted scalar reward
+    warpfactory.py       analytic 4-metric energy conditions
+  search/
+    optimize.py          CMA-ES driver
+    surrogate.py         RBF surrogate screening
+    qd_search.py         MAP-Elites quality-diversity
+    pareto.py            Pareto-front extraction
+    atlas.py             random failure-atlas batch
+  grtresna/
+    io.py                Chombo HDF5 → .gridinit
+    solver.py            GRTresna orchestrator
+```
+
+### Import paths
+
+After the refactor, import from the subpackage that owns the module. A few
+symbols are re-exported from package `__init__` files for convenience.
+
+| What you need | Import |
+|---------------|--------|
+| Run/score an episode | `from grteclyn_wrapper.metrics import read_episode_metrics, score_episode` |
+| Repo / example config | `from grteclyn_wrapper.core.config import REPO_ROOT, resolve_example` |
+| Known seeds | `from grteclyn_wrapper.initial_data.seeds import get_seed` |
+| Constrained recipe | `from grteclyn_wrapper.initial_data.constrained_recipe import constrained_overrides` |
+| CMA-ES driver | `from grteclyn_wrapper.search.optimize import run_optimize` |
+| Warp Factory EC report | `from grteclyn_wrapper.metrics import warpfactory` or `from grteclyn_wrapper import warpfactory` |
+| GRTresna bridge | `from grteclyn_wrapper.grtresna import GRTresnaConfig, solve, convert_chombo_to_gridinit` |
+
+Example:
+
+```python
+from pathlib import Path
+
+from grteclyn_wrapper.core.config import resolve_example
+from grteclyn_wrapper.initial_data.seeds import get_seed
+from grteclyn_wrapper.metrics import read_episode_metrics, score_episode
+from grteclyn_wrapper.search.optimize import run_optimize
+from grteclyn_wrapper.grtresna import GRTresnaConfig, solve
 ```
 
 ### Pipeline core (`core/`)
@@ -87,6 +141,7 @@ grteclyn_wrapper/
 | `core/params.py` | Render a `params.txt` from a template + overrides. |
 | `core/runner.py` | Launch the GRTeclyn binary; optional plotfile consumer. |
 | `core/evaluation.py` | **Shared candidate→episode→score helper** used by all drivers. |
+| `core/plot_consumer.py` | Build the sidecar `consume_plotfiles` command for streaming extraction. |
 
 ### Initial data (`initial_data/`)
 | Module | Role |
@@ -95,16 +150,21 @@ grteclyn_wrapper/
 | `initial_data/preflight.py` | Cheap 1D constraint filter; reject bad candidates before the GPU. |
 | `initial_data/seeds.py` | Known-solution seeds: flat, Ellis–Bronnikov, Schwarzschild puncture, Alcubierre warp. |
 | `initial_data/candidates.py` | Resolve initial-data overrides from seed / candidate / non-spherical IDs. |
-| `initial_data/validate_guesser.py` | Batch validation of the guesser on synthetic proposals. |
+| `initial_data/validate_guesser.py` | Batch validation of the metric guesser on synthetic proposals. |
+| `initial_data/nonspherical_guesser.py` | Angular-mode non-spherical metric proposals and ray validation. |
 
 ### Metrics & scoring (`metrics/`)
 | Module | Role |
 |--------|------|
+| `metrics/episode_metrics.py` | Parse diagnostics into `EpisodeMetrics`; collapse/constraint/stability/comoving + growth-rate (`GrowthMetrics`). |
 | `metrics/ftl_metrics.py` | t=0 FTL shortcut metrics: `F_null`, `F_portal`, `F_throat`, `F_asymmetry`, `F_log`, `s_nonflat`. |
+| `metrics/ftl_general.py` | Mechanism-agnostic operational FTL on reconstructed or plotfile slices. |
 | `metrics/physical_metrics.py` | t=0 gauge-robust proxies: ANEC line integral, curvature/tidal proxy, trapped-surface flag. |
 | `metrics/warpfactory.py` | Warp Factory port: 4-metric → Einstein tensor → multi-observer NEC/WEC/SEC/DEC. |
-| `metrics/episode_metrics.py` | Parse diagnostics into `EpisodeMetrics`; collapse/constraint/stability/comoving + growth-rate (`GrowthMetrics`). |
 | `metrics/score.py` | Weighted multi-component scalar reward `score_episode()`. |
+
+The `metrics` package re-exports `read_episode_metrics`, `read_growth_metrics`,
+`dataclass_to_dict`, and `score_episode` from its `__init__.py`.
 
 ### Search drivers (`search/`)
 | Module | Role |
@@ -115,6 +175,12 @@ grteclyn_wrapper/
 | `search/pareto.py` | non-dominated sorting / Pareto-front extraction. |
 | `search/atlas.py` | Random failure-atlas batch runner. |
 
+### GRTresna bridge (`grtresna/`)
+| Module | Role |
+|--------|------|
+| `grtresna/io.py` | Read Chombo AMR checkpoint HDF5 (with ghost cells), flatten to uniform grid, write `.gridinit` binary. |
+| `grtresna/solver.py` | Orchestrator: write GRTresna `params.txt`, run via MPI, convert output. `GRTresnaConfig` dataclass holds all knobs. |
+
 ---
 
 ## New in this work (`feature/interstellar`)
@@ -124,20 +190,20 @@ Metrics, Search, and Robustness*). All are numpy-only (no new dependencies) and
 GPU-validated; unit tests live in `tests/test_proposed_extensions.py`.
 
 ### New physical metrics
-- **Constraint growth rate** (`metrics.GrowthMetrics`, scored as
+- **Constraint growth rate** (`metrics.episode_metrics.GrowthMetrics`, scored as
   `constraint_growth`): log-linear fit of the exponential rate `λ` on the
   `‖H‖`, `|K|_max`, and `1/χ_min` time series. `s_growth = 1/(1 + max(0,λ)/σ_λ)`
   penalizes geometries that merely collapse slowly enough to survive a short
   run — closing the dynamical-stability gap without longer evolutions.
-- **ANEC line proxy** (`physical_metrics`, scored as `anec_condition`): the
+- **ANEC line proxy** (`metrics.physical_metrics`, scored as `anec_condition`): the
   required energy density integrated along the travel axis,
   `A_line = ∫ ρ_req(x) dx`; a directional energy-condition indicator. *t=0,
   χ-sourced — blind to pure-shift warps; the full geodesic ANEC needs the
   evolved probe (future).*
-- **Tidal / curvature proxy** (`physical_metrics`, scored as `tidal_comfort`):
+- **Tidal / curvature proxy** (`metrics.physical_metrics`, scored as `tidal_comfort`):
   `max|R| + max|∂²α|` with a companion t=0 trapped-surface flag. Precursor to
   the full Kretschmann / electric-Weyl invariants (future C++ work).
-- **Multi-observer energy conditions** (`warpfactory.py`, CLI `warpfactory`): a
+- **Multi-observer energy conditions** (`metrics.warpfactory`, CLI `warpfactory`): a
   numpy port of *Warp Factory* (Helmerich et al., arXiv:2404.03095) with the
   *warpax* refinements (Le, arXiv:2602.18023). Builds the Einstein tensor of a
   full 4-metric by **fourth-order** finite differences, forms `T_{μν}`, then
@@ -156,40 +222,40 @@ GPU-validated; unit tests live in `tests/test_proposed_extensions.py`.
   (Li et al., arXiv:2309.07397) is the planned mesh-free Path B / Level 3.*
 
 ### Search optimization
-- **Surrogate-assisted CMA-ES** (`surrogate.py` + `optimize --surrogate`):
+- **Surrogate-assisted CMA-ES** (`search.surrogate` + `optimize --surrogate`):
   fits an RBF regressor on the `(θ→S)` archive each generation and evaluates
   only the top fraction (plus high-uncertainty points) on the GPU; the rest get
   a predicted fitness. ~25–40% fewer GPU evaluations in practice.
-- **MAP-Elites quality diversity** (`qd_search.py`, CLI `qd`): keeps the best
+- **MAP-Elites quality diversity** (`search.qd_search`, CLI `qd`): keeps the best
   elite per behavior cell over a `(FTL benefit, exoticity)` grid; multi-GPU
   parallel batches; writes `archive.json` + `trajectory.jsonl`.
-- **Multi-objective Pareto** (`pareto.py`, CLI `pareto`): non-dominated front
+- **Multi-objective Pareto** (`search.pareto`, CLI `pareto`): non-dominated front
   over `(F_FTL, s_anec, s_growth, s_tidal)` from any optimizer trajectory.
 
 ---
 
 ## Score components
 
-`score.py` maps each violation `v` through a bounded reward `r(v;σ)=1/(1+v/σ)`
+`metrics.score` maps each violation `v` through a bounded reward `r(v;σ)=1/(1+v/σ)`
 and sums weighted components. Defaults (`DEFAULT_WEIGHTS`):
 
 | Component | Weight | Source |
 |-----------|--------|--------|
-| `ftl_shortcut` (`F_log`) | 5.0 | `ftl_metrics` |
-| `expansion_asymmetry` | 2.0 | `ftl_metrics` |
-| `comoving_stability` | 2.5 | `metrics.comoving` |
-| `constraint_health` | 2.0 | `metrics.constraints` |
-| `energy_condition` | 2.0 | `metrics.constraints` |
+| `ftl_shortcut` (`F_log`) | 5.0 | `metrics.ftl_metrics` |
+| `expansion_asymmetry` | 2.0 | `metrics.ftl_metrics` |
+| `comoving_stability` | 2.5 | `metrics.episode_metrics` (comoving) |
+| `constraint_health` | 2.0 | `metrics.episode_metrics` (constraints) |
+| `energy_condition` | 2.0 | `metrics.episode_metrics` (constraints) |
 | `survival` | 1.5 | time series |
-| `horizon_penalty` | 1.5 | `metrics.collapse` |
-| `lapse_health` | 1.0 | `metrics.collapse` |
-| `nonflat_geometry` | 1.0 | `ftl_metrics` |
-| `stability` (Eulerian) | 0.5 | `metrics.stability` |
-| `initial_constraint_quality` | 0.5 | `metrics.constraints` |
-| `nontrivial_geometry` | 0.25 | `metrics.collapse` |
-| **`constraint_growth`** | 2.0 | `metrics.growth` (NEW) |
-| **`anec_condition`** | 1.5 | `physical_metrics` (NEW) |
-| **`tidal_comfort`** | 1.0 | `physical_metrics` (NEW) |
+| `horizon_penalty` | 1.5 | `metrics.episode_metrics` (collapse) |
+| `lapse_health` | 1.0 | `metrics.episode_metrics` (collapse) |
+| `nonflat_geometry` | 1.0 | `metrics.ftl_metrics` |
+| `stability` (Eulerian) | 0.5 | `metrics.episode_metrics` (stability) |
+| `initial_constraint_quality` | 0.5 | `metrics.episode_metrics` (constraints) |
+| `nontrivial_geometry` | 0.25 | `metrics.episode_metrics` (collapse) |
+| **`constraint_growth`** | 2.0 | `metrics.episode_metrics` (growth) |
+| **`anec_condition`** | 1.5 | `metrics.physical_metrics` |
+| **`tidal_comfort`** | 1.0 | `metrics.physical_metrics` |
 
 New components contribute `0` when their diagnostics are unavailable, so legacy
 episodes re-score consistently. Override any weight with `--score-weight key=val`.
@@ -226,10 +292,17 @@ RadialRecipeLevel::initData()  -->  evolution
 
 ### Python modules
 
-| Module | Role |
-|--------|------|
-| `grtresna/io.py` | Read Chombo AMR checkpoint HDF5 (with ghost cells), flatten to uniform grid, write `.gridinit` binary. |
-| `grtresna/solver.py` | Orchestrator: write GRTresna `params.txt`, run via MPI, convert output. `GRTresnaConfig` dataclass holds all knobs. |
+See **GRTresna bridge (`grtresna/`)** in the module map above. Public API:
+
+```python
+from grteclyn_wrapper.grtresna import GRTresnaConfig, solve, convert_chombo_to_gridinit
+# or, equivalently:
+from grteclyn_wrapper.grtresna.solver import GRTresnaConfig, solve
+from grteclyn_wrapper.grtresna.io import convert_chombo_to_gridinit
+```
+
+`grtresna.io` requires `h5py` (installed in the GRTresna micromamba env, not the
+main `uv` wrapper env).
 
 ### C++ side
 
@@ -438,10 +511,17 @@ field, spinning BH `a=0.5`):
 
 ## Tests
 
+Run from `grteclyn-wrapper/`:
+
 ```bash
+cd grteclyn-wrapper
+
 uv run python tests/test_proposed_extensions.py   # growth, ANEC/tidal, surrogate, MAP-Elites, Pareto
 uv run python tests/test_ftl_metrics.py
 uv run python tests/test_upgraded_scoring.py
 uv run python tests/test_stability_score.py
 uv run python tests/test_constrained_guesser.py
+uv run python tests/test_ftl_general.py           # metrics.ftl_general
+uv run python tests/test_warpfactory.py           # metrics.warpfactory
+uv run python tests/test_candidates.py            # initial_data.candidates (needs pytest)
 ```
