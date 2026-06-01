@@ -14,7 +14,7 @@ plot_interval       = 1
 # general-FTL / effective-EC tools can run on evolved plotfiles (not just the
 # t=0 reconstructed slice).  gamma_ij = h_ij / chi.
 amr.plot_vars = chi h11 h12 h13 h22 h23 h33 K lapse shift1 shift2 shift3 phi Pi
-amr.derive_plot_vars = Weyl4
+amr.derive_plot_vars = Weyl4 rho_req
 
 hdf5_subpath = "hdf5"
 pout_subpath = "pout"

@@ -249,6 +249,39 @@ reduce_ec_margins(const amrex::MultiFab &state_fine, const matter_t &matter,
     amrex::ParallelDescriptor::ReduceRealSum(integral_nec);
     return {min_nec, min_wec, min_sec, min_dec, integral_nec};
 }
+
+// Derived plot field: geometric required energy density
+//   rho_req = Ham_vac / (16 pi) = (R + (2/3) K^2 - A_ij A^ij) / (16 pi)
+// This is the Eulerian energy density that Einstein's equations demand to
+// source the *evolved geometry*, independent of whatever matter is actually
+// present.  Cells with rho_req < 0 are precisely the exotic-matter requirement
+// whose minimum/integral are logged as min_rho_req / integral_neg_rho in
+// constraint_norms.dat, so this field lets the same quantity be mapped and
+// plotted (it matches the scalar diagnostics by construction).
+void compute_rho_req_mf(amrex::MultiFab &out_mf, int dcomp, int /*ncomp*/,
+                        const amrex::MultiFab &src_mf,
+                        const amrex::Geometry &geomdata,
+                        amrex::Real /*time*/, const int * /*bcrec*/,
+                        int /*level*/)
+{
+    const auto &out_arrays         = out_mf.arrays();
+    const auto &src_arrays         = src_mf.const_arrays();
+    const amrex::Real dx           = geomdata.CellSize(0);
+    constexpr amrex::Real inv_16pi = 1.0 / (16.0 * M_PI);
+
+    // Vacuum (geometry-only) Hamiltonian written into component dcomp; the empty
+    // momentum interval means store_vars only fills Ham.
+    Constraints vacuum_constraints(dx, dcomp, Interval());
+
+    amrex::ParallelFor(
+        out_mf, out_mf.nGrowVect(),
+        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz) noexcept
+        {
+            vacuum_constraints(ix, iy, iz, out_arrays[box_no],
+                               src_arrays[box_no]);
+            out_arrays[box_no](ix, iy, iz, dcomp) *= inv_16pi;
+        });
+}
 } // namespace
 
 void RadialRecipeLevel::variableSetUp()
@@ -274,6 +307,21 @@ void RadialRecipeLevel::variableSetUp()
         ConstraintsWithMatter<ScalarField<DefaultPotential>>::set_up(
             state_index);
         Weyl4WithMatter<ScalarField<DefaultPotential>>::set_up(state_index);
+    }
+
+    // Geometry-only required energy density rho_req = Ham_vac / (16 pi), so the
+    // exotic-matter requirement (rho_req < 0) can be plotted as a field, not
+    // just integrated into constraint_norms.dat.
+    {
+        int num_ghosts       = 2;
+        auto &derive_lst     = amrex::AmrLevel::get_derive_lst();
+        const auto &desc_lst = amrex::AmrLevel::get_desc_lst();
+        derive_lst.add(
+            "rho_req", amrex::IndexType::TheCellType(), 1,
+            amrex::Vector<std::string>{"rho_req"}, compute_rho_req_mf,
+            [=](const amrex::Box &box) { return amrex::grow(box, num_ghosts); },
+            &amrex::cell_quartic_interp);
+        derive_lst.addComponent("rho_req", desc_lst, state_index, 0, NUM_VARS);
     }
 }
 
