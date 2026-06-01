@@ -7,13 +7,17 @@ the stored array per box is (sz+2*ghost)^3, not sz^3.  We strip
 ghosts, then flatten to a single uniform Cartesian grid by painting
 coarsest-to-finest so finer AMR data overwrites coarser.
 
-Output format (.gridinit):
+Supports non-cubic target grids: nx, ny, nz can differ, and per-axis
+domain lengths Lx, Ly, Lz can be specified independently.  The output
+.gridinit stores per-axis cell spacings (dx_x, dx_y, dx_z).
+
+Output format (.gridinit v2):
     Header (ASCII, newline-terminated lines):
-        GRTECLYN_GRID_INIT_V1
+        GRTECLYN_GRID_INIT_V2
         num_components <int>
         component_names <space-separated names>
         nx_ny_nz <int> <int> <int>
-        dx <float>
+        dx <float> <float> <float>
         origin <float> <float> <float>
         END_HEADER
     Body (binary, C-order float64):
@@ -22,12 +26,14 @@ Output format (.gridinit):
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
-from typing import Sequence
 
 import h5py
 import numpy as np
 from numpy.typing import NDArray
+
+logger = logging.getLogger(__name__)
 
 GRTECLYN_STATE_VARS = [
     "chi",
@@ -41,6 +47,11 @@ GRTECLYN_STATE_VARS = [
     "B1", "B2", "B3",
     "phi", "Pi",
 ]
+
+_Z_ODD_NAMES = frozenset({
+    "h13", "h23", "A13", "A23",
+    "Gamma3", "shift3", "B3",
+})
 
 
 def _infer_ghost_cells(
@@ -62,7 +73,7 @@ def _paint_level(
     f: h5py.File,
     level: int,
     n_comp: int,
-    dx_target: float,
+    dx_target: NDArray,
     nx: int,
     ny: int,
     nz: int,
@@ -74,7 +85,7 @@ def _paint_level(
     offsets = grp["data:offsets=0"][:]
     box_records = grp["boxes"][:]
 
-    ghost = None  # infer once from first box
+    ghost = None
 
     for bi in range(len(box_records)):
         rec = box_records[bi]
@@ -90,15 +101,11 @@ def _paint_level(
 
         padded = sz + 2 * ghost
         chunk = raw[start : start + int(np.prod(padded)) * n_comp]
-        # Chombo: [comp][z_padded][y_padded][x_padded]
         arr = chunk.reshape(n_comp, int(padded[2]), int(padded[1]), int(padded[0]))
 
-        # Strip ghost cells to get interior data only
         g = ghost
         interior = arr[:, g:g+int(sz[2]), g:g+int(sz[1]), g:g+int(sz[0])]
-        # interior shape: (n_comp, sz_z, sz_y, sz_x)
 
-        # Physical cell-center coordinates
         ix = np.arange(sz[0])
         iy = np.arange(sz[1])
         iz = np.arange(sz[2])
@@ -107,13 +114,30 @@ def _paint_level(
         phys_y = (lo[1] + iy + 0.5) * dx_lev
         phys_z = (lo[2] + iz + 0.5) * dx_lev
 
-        ti = np.clip((phys_x / dx_target).astype(np.int64), 0, nx - 1)
-        tj = np.clip((phys_y / dx_target).astype(np.int64), 0, ny - 1)
-        tk = np.clip((phys_z / dx_target).astype(np.int64), 0, nz - 1)
+        ti = np.clip((phys_x / dx_target[0]).astype(np.int64), 0, nx - 1)
+        tj = np.clip((phys_y / dx_target[1]).astype(np.int64), 0, ny - 1)
+        tk = np.clip((phys_z / dx_target[2]).astype(np.int64), 0, nz - 1)
 
         TK, TJ, TI = np.meshgrid(tk, tj, ti, indexing="ij")
         for c in range(n_comp):
             data[TK, TJ, TI, c] = interior[c]
+
+
+def read_chombo_domain(
+    chombo_path: str | Path,
+) -> tuple[tuple[int, int, int], float, tuple[float, float, float]]:
+    """Read the coarse-grid dimensions and domain size from a Chombo HDF5.
+
+    Returns (N_cells_xyz, dx_coarse, L_xyz) where N_cells is per-axis
+    cell count at level 0 and L_xyz is per-axis physical extent.
+    """
+    with h5py.File(str(chombo_path), "r") as f:
+        l0 = f["level_0"]
+        prob = l0.attrs["prob_domain"]
+        dx = float(l0.attrs["dx"])
+        ncells = (int(prob[3]) + 1, int(prob[4]) + 1, int(prob[5]) + 1)
+        lengths = (ncells[0] * dx, ncells[1] * dx, ncells[2] * dx)
+    return ncells, dx, lengths
 
 
 def chombo_to_uniform(
@@ -121,21 +145,25 @@ def chombo_to_uniform(
     nx: int,
     ny: int,
     nz: int,
-    L: float,
-) -> tuple[NDArray, list[str], float, NDArray]:
+    Lx: float | None = None,
+    Ly: float | None = None,
+    Lz: float | None = None,
+) -> tuple[NDArray, list[str], NDArray, NDArray]:
     """Read a Chombo HDF5 file and flatten to a uniform grid.
 
     Parameters
     ----------
     chombo_path : path to InitialDataFinal.3d.hdf5
-    nx, ny, nz : target uniform grid resolution
-    L : domain side length (must match the Chombo run)
+    nx, ny, nz : target uniform grid resolution per axis
+    Lx, Ly, Lz : domain extents per axis. If None, auto-detected from
+                  the Chombo header. For half-z domains with reflection,
+                  set Lz to the full (doubled) extent.
 
     Returns
     -------
-    data : (nz, ny, nx, n_comp) float64 array  [C-order: z outermost]
+    data : (nz, ny, nx, n_comp) float64 array
     comp_names : list of component names
-    dx : cell spacing
+    dx_xyz : (3,) array of per-axis cell spacings
     origin : (3,) array
     """
     chombo_path = Path(chombo_path)
@@ -153,54 +181,66 @@ def chombo_to_uniform(
         prob_domain = l0.attrs["prob_domain"]
         dx_coarse = float(l0.attrs["dx"])
 
-        chombo_nz_cells = int(prob_domain[5]) + 1
-        Lz_chombo = chombo_nz_cells * dx_coarse
+        chombo_ncells = np.array([
+            int(prob_domain[3]) + 1,
+            int(prob_domain[4]) + 1,
+            int(prob_domain[5]) + 1,
+        ])
+        chombo_L = chombo_ncells * dx_coarse
 
-        dx_target = L / nx
+        if Lx is None:
+            Lx = float(chombo_L[0])
+        if Ly is None:
+            Ly = float(chombo_L[1])
+        if Lz is None:
+            Lz = float(chombo_L[2])
+
+        dx_xyz = np.array([Lx / nx, Ly / ny, Lz / nz])
 
         data = np.zeros((nz, ny, nx, n_comp), dtype=np.float64)
 
-        # Paint coarsest first, then finer levels overwrite
         for lev in range(num_levels):
-            _paint_level(data, f, lev, n_comp, dx_target, nx, ny, nz)
+            _paint_level(data, f, lev, n_comp, dx_xyz, nx, ny, nz)
 
         # z-reflection: if Chombo used half-z (reflective BC at z=0)
-        if Lz_chombo < L * 0.75:
+        Lz_chombo = float(chombo_L[2])
+        if Lz_chombo < Lz * 0.75:
             mid_k = nz // 2
             reflected = data[:mid_k, :, :, :].copy()[::-1]
-
-            z_odd_names = {
-                "h13", "h23", "A13", "A23",
-                "Gamma3", "shift3", "B3",
-            }
             for i, name in enumerate(comp_names):
-                if name in z_odd_names:
+                if name in _Z_ODD_NAMES:
                     reflected[:, :, :, i] *= -1.0
-
             data[mid_k:, :, :, :] = reflected
 
     origin = np.array([0.0, 0.0, 0.0])
-    return data, comp_names, dx_target, origin
+    return data, comp_names, dx_xyz, origin
 
 
 def write_gridinit(
     data: NDArray,
     comp_names: list[str],
-    dx: float,
+    dx_xyz: NDArray,
     origin: NDArray,
     output_path: str | Path,
 ) -> Path:
-    """Write the uniform grid to a .gridinit binary file."""
+    """Write the uniform grid to a .gridinit binary file.
+
+    dx_xyz may be a scalar (isotropic) or a 3-element array (per-axis).
+    """
     output_path = Path(output_path)
     nz, ny, nx, n_comp = data.shape
 
+    dx_arr = np.atleast_1d(np.asarray(dx_xyz, dtype=np.float64))
+    if dx_arr.size == 1:
+        dx_arr = np.full(3, dx_arr[0])
+
     with open(output_path, "wb") as fout:
         header_lines = [
-            "GRTECLYN_GRID_INIT_V1",
+            "GRTECLYN_GRID_INIT_V2",
             f"num_components {n_comp}",
             f"component_names {' '.join(comp_names)}",
             f"nx_ny_nz {nx} {ny} {nz}",
-            f"dx {dx:.15e}",
+            f"dx {dx_arr[0]:.15e} {dx_arr[1]:.15e} {dx_arr[2]:.15e}",
             f"origin {origin[0]:.15e} {origin[1]:.15e} {origin[2]:.15e}",
             "END_HEADER",
         ]
@@ -214,26 +254,95 @@ def write_gridinit(
 def convert_chombo_to_gridinit(
     chombo_path: str | Path,
     output_path: str | Path,
-    N: int = 64,
-    L: float = 128.0,
+    *,
+    nx: int | None = None,
+    ny: int | None = None,
+    nz: int | None = None,
+    N: int | None = None,
+    Lx: float | None = None,
+    Ly: float | None = None,
+    Lz: float | None = None,
+    L: float | None = None,
+    delete_source: bool = False,
 ) -> Path:
     """One-shot: read Chombo HDF5, flatten, write .gridinit.
 
-    N is the number of cells per side (uniform cube N x N x N).
-    L is the domain side length.
+    Grid resolution: specify ``nx, ny, nz`` individually, or ``N`` for a
+    uniform cube.  If all are None, defaults to ``N=64``.
+
+    Domain size: specify ``Lx, Ly, Lz`` individually, or ``L`` for a
+    uniform cube.  If all are None, auto-detected from the Chombo header
+    (with Lz doubled if the source used half-z reflection).
+
+    If *delete_source* is True, the Chombo HDF5 file is deleted after a
+    successful conversion to reclaim disk space.
     """
-    data, comp_names, dx, origin = chombo_to_uniform(
-        chombo_path, nx=N, ny=N, nz=N, L=L,
+    if N is not None:
+        nx = nx or N
+        ny = ny or N
+        nz = nz or N
+    nx = nx or 64
+    ny = ny or 64
+    nz = nz or 64
+
+    if L is not None:
+        Lx = Lx or L
+        Ly = Ly or L
+        Lz = Lz or L
+
+    # Auto-detect domain and double Lz if Chombo used half-z
+    if Lx is None or Ly is None or Lz is None:
+        _, _, chombo_lengths = read_chombo_domain(chombo_path)
+        if Lx is None:
+            Lx = chombo_lengths[0]
+        if Ly is None:
+            Ly = chombo_lengths[1]
+        if Lz is None:
+            # If Chombo Lz is roughly half of Lx, assume half-z reflection
+            if chombo_lengths[2] < chombo_lengths[0] * 0.75:
+                Lz = chombo_lengths[0]  # full domain = Lx
+                logger.info(
+                    "Auto-detected half-z domain (Chombo Lz=%.1f < Lx=%.1f); "
+                    "setting Lz=%.1f with z-reflection",
+                    chombo_lengths[2], chombo_lengths[0], Lz,
+                )
+            else:
+                Lz = chombo_lengths[2]
+
+    data, comp_names, dx_xyz, origin = chombo_to_uniform(
+        chombo_path, nx=nx, ny=ny, nz=nz, Lx=Lx, Ly=Ly, Lz=Lz,
     )
-    return write_gridinit(data, comp_names, dx, origin, output_path)
+    result = write_gridinit(data, comp_names, dx_xyz, origin, output_path)
+
+    if delete_source:
+        src = Path(chombo_path)
+        if src.exists():
+            src.unlink()
+            logger.info("Deleted source HDF5: %s", src)
+
+    return result
 
 
 if __name__ == "__main__":
     import sys
+    logging.basicConfig(level=logging.INFO)
     if len(sys.argv) < 3:
-        print(f"Usage: {sys.argv[0]} <chombo.hdf5> <output.gridinit> [N] [L]")
+        print(
+            f"Usage: {sys.argv[0]} <chombo.hdf5> <output.gridinit> "
+            "[nx] [ny] [nz] [Lx] [Ly] [Lz]"
+        )
         sys.exit(1)
-    N = int(sys.argv[3]) if len(sys.argv) > 3 else 64
-    L = float(sys.argv[4]) if len(sys.argv) > 4 else 128.0
-    out = convert_chombo_to_gridinit(sys.argv[1], sys.argv[2], N=N, L=L)
+
+    args = sys.argv[3:]
+    kw: dict = {}
+    if len(args) >= 3:
+        kw["nx"], kw["ny"], kw["nz"] = int(args[0]), int(args[1]), int(args[2])
+    elif len(args) == 1:
+        kw["N"] = int(args[0])
+    if len(args) >= 6:
+        kw["Lx"], kw["Ly"], kw["Lz"] = float(args[3]), float(args[4]), float(args[5])
+
+    out = convert_chombo_to_gridinit(
+        sys.argv[1], sys.argv[2], delete_source=False, **kw,
+    )
     print(f"Wrote {out} ({out.stat().st_size / 1e6:.1f} MB)")

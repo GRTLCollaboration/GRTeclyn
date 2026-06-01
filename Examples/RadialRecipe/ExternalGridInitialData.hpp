@@ -2,9 +2,11 @@
  * Reads a .gridinit binary file produced by the GRTresna bridge
  * and trilinear-interpolates it onto the AMReX grid.
  *
- * File format:
- *   ASCII header lines terminated by "END_HEADER\n"
- *   Binary body: float64[nz][ny][nx][ncomp]   (C-order)
+ * Supports both V1 (isotropic dx) and V2 (per-axis dx) formats:
+ *   V1: "dx <scalar>"       → dx_x = dx_y = dx_z = scalar
+ *   V2: "dx <dx_x> <dx_y> <dx_z>"
+ *
+ * Binary body: float64[nz][ny][nx][ncomp]   (C-order)
  *
  * The heavy data lives in AMReX managed memory so that the compute()
  * kernel works on both CPU and GPU builds.
@@ -52,9 +54,9 @@ class ExternalGridInitialData
         const double py = (j + 0.5) * m_dx;
         const double pz = (k + 0.5) * m_dx;
 
-        const double fi = (px - m_origin[0]) / m_file_dx - 0.5;
-        const double fj = (py - m_origin[1]) / m_file_dx - 0.5;
-        const double fk = (pz - m_origin[2]) / m_file_dx - 0.5;
+        const double fi = (px - m_origin[0]) / m_file_dx[0] - 0.5;
+        const double fj = (py - m_origin[1]) / m_file_dx[1] - 0.5;
+        const double fk = (pz - m_origin[2]) / m_file_dx[2] - 0.5;
 
         const int i0 = amrex::max(0, amrex::min(int(fi), m_nx - 2));
         const int j0 = amrex::max(0, amrex::min(int(fj), m_ny - 2));
@@ -98,7 +100,7 @@ class ExternalGridInitialData
   private:
     double m_dx{1.0};
     int m_nx{0}, m_ny{0}, m_nz{0}, m_ncomp{0};
-    double m_file_dx{1.0};
+    double m_file_dx[3]{1.0, 1.0, 1.0};
     double m_origin[3]{};
 
     // Managed memory: accessible from both host and device
@@ -135,7 +137,14 @@ class ExternalGridInitialData
             else if (key == "nx_ny_nz")
                 iss >> m_nx >> m_ny >> m_nz;
             else if (key == "dx")
-                iss >> m_file_dx;
+            {
+                iss >> m_file_dx[0];
+                if (!(iss >> m_file_dx[1] >> m_file_dx[2]))
+                {
+                    // V1 format: single scalar dx
+                    m_file_dx[1] = m_file_dx[2] = m_file_dx[0];
+                }
+            }
             else if (key == "origin")
                 iss >> m_origin[0] >> m_origin[1] >> m_origin[2];
         }
