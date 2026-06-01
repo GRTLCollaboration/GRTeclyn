@@ -1,3 +1,4 @@
+#include "ExternalGridInitialData.hpp"
 #include "RadialRecipeInitialData.hpp"
 #include "RadialRecipeLevel.hpp"
 #include "CCZ4RHSWithMatter.hpp"
@@ -345,22 +346,43 @@ void RadialRecipeLevel::initData()
 {
     BL_PROFILE("RadialRecipeLevel::initData");
 
-    RadialRecipeInitialData recipe(simParams().recipe_params, Geom().CellSize(0));
-
     amrex::MultiFab &state = get_new_data(state_index);
     const auto &arrs       = state.arrays();
 
-    amrex::ParallelFor(state, state.nGrowVect(),
-                       [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
-                       {
-                           amrex::CellData<amrex::Real> cell =
-                               arrs[box_no].cellData(i, j, k);
-                           for (int n = 0; n < cell.nComp(); ++n)
-                           {
-                               cell[n] = 0.;
-                           }
-                           recipe.compute(i, j, k, arrs[box_no]);
-                       });
+    if (!simParams().recipe_initial_data_file.empty())
+    {
+        ExternalGridInitialData ext_data(simParams().external_grid_params,
+                                         Geom().CellSize(0));
+
+        amrex::ParallelFor(
+            state, state.nGrowVect(),
+            [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+            {
+                for (int n = 0; n < NUM_VARS; ++n)
+                {
+                    arrs[box_no](i, j, k, n) = 0.;
+                }
+                ext_data.compute(i, j, k, arrs[box_no]);
+            });
+    }
+    else
+    {
+        RadialRecipeInitialData recipe(simParams().recipe_params,
+                                       Geom().CellSize(0));
+
+        amrex::ParallelFor(
+            state, state.nGrowVect(),
+            [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+            {
+                amrex::CellData<amrex::Real> cell =
+                    arrs[box_no].cellData(i, j, k);
+                for (int n = 0; n < cell.nComp(); ++n)
+                {
+                    cell[n] = 0.;
+                }
+                recipe.compute(i, j, k, arrs[box_no]);
+            });
+    }
 
     amrex::Gpu::streamSynchronize();
 }

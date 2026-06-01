@@ -1,6 +1,7 @@
 #ifndef SIMULATIONPARAMETERS_HPP
 #define SIMULATIONPARAMETERS_HPP
 
+#include "ExternalGridInitialData.hpp"
 #include "GRParmParse.hpp"
 #include "RadialRecipeInitialData.hpp"
 #include "SimulationParametersBase.hpp"
@@ -34,6 +35,14 @@ class SimulationParameters : public SimulationParametersBase
         // matches the matter the geometry was reconstructed for.
         pp.load("recipe_exotic_matter", recipe_exotic_matter, false);
         pp.load("recipe_support_strength", recipe_support_strength, 1.0);
+
+        pp.load("recipe_initial_data_file", recipe_initial_data_file,
+                std::string(""));
+        if (!recipe_initial_data_file.empty())
+        {
+            external_grid_params.gridinit_file = recipe_initial_data_file;
+            external_grid_params.grid_center = center;
+        }
     }
 
     void read_recipe_params(GRParmParse &pp)
@@ -136,6 +145,9 @@ class SimulationParameters : public SimulationParametersBase
     bool calculate_curvature_invariants{};
     bool recipe_exotic_matter{};
     double recipe_support_strength{1.0};
+
+    std::string recipe_initial_data_file;
+    ExternalGridInitialData::params_t external_grid_params{};
 
     RadialRecipeInitialData::params_t recipe_params{};
 
