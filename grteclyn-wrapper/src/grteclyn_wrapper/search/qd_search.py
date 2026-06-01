@@ -27,9 +27,9 @@ from typing import Any, Mapping, Sequence
 
 import numpy as np
 
-from .config import ExampleConfig, ExecutableConfig, resolve_example
-from .episode import write_json
-from .evaluation import Evaluation, evaluate_overrides
+from ..core.config import ExampleConfig, ExecutableConfig, resolve_example
+from ..core.episode import write_json
+from ..core.evaluation import Evaluation, evaluate_overrides
 from .optimize import DEFAULT_SEARCH_SPACE, SearchDimension
 
 

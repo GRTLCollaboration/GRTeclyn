@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 
 from grteclyn_wrapper.metrics import read_episode_metrics
-from grteclyn_wrapper.score import score_episode
+from grteclyn_wrapper.metrics import score_episode
 
 runs = Path(sys.argv[1])
 target = float(sys.argv[2]) if len(sys.argv) > 2 else 16.0

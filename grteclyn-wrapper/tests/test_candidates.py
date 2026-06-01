@@ -4,16 +4,16 @@ from __future__ import annotations
 
 import pytest
 
-from grteclyn_wrapper.candidates import (
+from grteclyn_wrapper.initial_data.candidates import (
     PROMOTED_SURVIVORS,
     REJECTED_LONG_RUN,
     resolve_initial_data_overrides,
 )
-from grteclyn_wrapper.nonspherical_guesser import (
+from grteclyn_wrapper.initial_data.nonspherical_guesser import (
     generate_nonspherical_candidates,
     nonspherical_to_overrides,
 )
-from grteclyn_wrapper.validate_guesser import lookup_candidate, spec_to_overrides
+from grteclyn_wrapper.initial_data.validate_guesser import lookup_candidate, spec_to_overrides
 
 
 def test_lookup_bubble_wall_016():

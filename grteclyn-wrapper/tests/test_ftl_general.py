@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from grteclyn_wrapper.ftl_general import (
+from grteclyn_wrapper.metrics.ftl_general import (
     build_tslice_fields_xz,
     compute_general_ftl,
     coordinate_light_speed,

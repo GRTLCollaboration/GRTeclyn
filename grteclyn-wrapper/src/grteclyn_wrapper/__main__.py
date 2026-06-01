@@ -6,18 +6,18 @@ import random
 from pathlib import Path
 from typing import Any, Mapping
 
-from .atlas import run_atlas
-from .config import default_runs_dir, resolve_example, resolve_executable
-from .constrained_recipe import constrained_overrides
-from .episode import create_episode, update_metadata, write_json
-from .metrics import dataclass_to_dict, read_episode_metrics
-from .optimize import run_optimize
-from .params import write_params
-from .seeds import get_seed, list_seeds
-from .runner import run_episode
-from .score import score_episode
-from .candidates import resolve_initial_data_overrides
-from .validate_guesser import run_validation
+from .core.config import default_runs_dir, resolve_example, resolve_executable
+from .core.episode import create_episode, update_metadata, write_json
+from .core.params import write_params
+from .core.runner import run_episode
+from .initial_data.candidates import resolve_initial_data_overrides
+from .initial_data.constrained_recipe import constrained_overrides
+from .initial_data.seeds import get_seed, list_seeds
+from .initial_data.validate_guesser import run_validation
+from .metrics.episode_metrics import dataclass_to_dict, read_episode_metrics
+from .metrics.score import score_episode
+from .search.atlas import run_atlas
+from .search.optimize import run_optimize
 
 
 SWEEP_RANGES = {
@@ -254,7 +254,7 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
 
 
 def _run_qd_command(args: argparse.Namespace, base_overrides: dict[str, Any]) -> int:
-    from .qd_search import run_qd_search
+    from .search.qd_search import run_qd_search
 
     example = resolve_example(args.example)
     executable = None
@@ -303,7 +303,7 @@ def _run_qd_command(args: argparse.Namespace, base_overrides: dict[str, Any]) ->
 
 
 def _run_pareto_command(args: argparse.Namespace) -> int:
-    from .pareto import front_to_dict, load_trajectory_points, pareto_front
+    from .search.pareto import front_to_dict, load_trajectory_points, pareto_front
 
     points = load_trajectory_points(Path(args.trajectory).expanduser().resolve())
     front = pareto_front(points)
@@ -315,7 +315,7 @@ def _run_pareto_command(args: argparse.Namespace) -> int:
 
 
 def _run_warpfactory_command(args: argparse.Namespace) -> int:
-    from . import warpfactory as wf
+    from .metrics import warpfactory as wf
 
     if getattr(args, "convergence", False):
         result = wf.convergence_order(

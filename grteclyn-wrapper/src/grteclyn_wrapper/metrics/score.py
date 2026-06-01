@@ -4,7 +4,7 @@ import math
 from dataclasses import dataclass, field
 from typing import Mapping
 
-from .metrics import EpisodeMetrics
+from .episode_metrics import EpisodeMetrics
 
 
 DEFAULT_WEIGHTS: dict[str, float] = {

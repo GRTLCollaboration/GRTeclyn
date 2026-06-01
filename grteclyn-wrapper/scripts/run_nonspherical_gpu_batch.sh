@@ -79,7 +79,7 @@ python3 - <<PY
 import json
 from pathlib import Path
 from grteclyn_wrapper.metrics import read_episode_metrics
-from grteclyn_wrapper.score import score_episode
+from grteclyn_wrapper.metrics import score_episode
 
 runs = Path("${RUNS_DIR}")
 stamp = "${RUN_STAMP}"

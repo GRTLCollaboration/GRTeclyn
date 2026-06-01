@@ -66,42 +66,54 @@ uv run python -m grteclyn_wrapper warpfactory \
 
 ## Module map
 
-### Pipeline core
+Package layout (each area lives in its own subfolder):
+
+```
+grteclyn_wrapper/
+  core/           config, episode, params, runner, evaluation, plot_consumer
+  initial_data/   constrained_recipe, preflight, seeds, candidates, guessers
+  metrics/        episode_metrics, ftl_metrics, ftl_general, physical_metrics, score, warpfactory
+  search/         optimize, surrogate, qd_search, pareto, atlas
+  grtresna/       io, solver  (Chombo HDF5 → .gridinit bridge)
+  __main__.py     CLI entry point
+```
+
+### Pipeline core (`core/`)
 | Module | Role |
 |--------|------|
 | `__main__.py` | CLI: argument parsing and command dispatch. |
-| `config.py` | Example/executable resolution, repo paths, default run dir. |
-| `episode.py` | Per-run directory layout (`Episode`), metadata, JSON writers. |
-| `params.py` | Render a `params.txt` from a template + overrides. |
-| `runner.py` | Launch the GRTeclyn binary; optional plotfile consumer. |
-| `evaluation.py` | **Shared candidate→episode→score helper** used by all drivers. |
+| `core/config.py` | Example/executable resolution, repo paths, default run dir. |
+| `core/episode.py` | Per-run directory layout (`Episode`), metadata, JSON writers. |
+| `core/params.py` | Render a `params.txt` from a template + overrides. |
+| `core/runner.py` | Launch the GRTeclyn binary; optional plotfile consumer. |
+| `core/evaluation.py` | **Shared candidate→episode→score helper** used by all drivers. |
 
-### Initial data
+### Initial data (`initial_data/`)
 | Module | Role |
 |--------|------|
-| `constrained_recipe.py` | Derive `phi` from `chi` via the Hamiltonian constraint; Gaussian basis; Ricci scalar. |
-| `preflight.py` | Cheap 1D constraint filter; reject bad candidates before the GPU. |
-| `seeds.py` | Known-solution seeds: flat, Ellis–Bronnikov, Schwarzschild puncture, Alcubierre warp. |
-| `candidates.py` | Resolve initial-data overrides from seed / candidate / non-spherical IDs. |
-| `validate_guesser.py` | Batch validation of the guesser on synthetic proposals. |
+| `initial_data/constrained_recipe.py` | Derive `phi` from `chi` via the Hamiltonian constraint; Gaussian basis; Ricci scalar. |
+| `initial_data/preflight.py` | Cheap 1D constraint filter; reject bad candidates before the GPU. |
+| `initial_data/seeds.py` | Known-solution seeds: flat, Ellis–Bronnikov, Schwarzschild puncture, Alcubierre warp. |
+| `initial_data/candidates.py` | Resolve initial-data overrides from seed / candidate / non-spherical IDs. |
+| `initial_data/validate_guesser.py` | Batch validation of the guesser on synthetic proposals. |
 
-### Metrics & scoring
+### Metrics & scoring (`metrics/`)
 | Module | Role |
 |--------|------|
-| `ftl_metrics.py` | t=0 FTL shortcut metrics: `F_null`, `F_portal`, `F_throat`, `F_asymmetry`, `F_log`, `s_nonflat`. |
-| `physical_metrics.py` | **NEW** — t=0 gauge-robust proxies: ANEC line integral, curvature/tidal proxy, trapped-surface flag. |
-| `warpfactory.py` | **NEW** — Warp Factory port: 4-metric → Einstein tensor → multi-observer NEC/WEC/SEC/DEC. |
-| `metrics.py` | Parse diagnostics into `EpisodeMetrics`; collapse/constraint/stability/comoving + **NEW** growth-rate (`GrowthMetrics`). |
-| `score.py` | Weighted multi-component scalar reward `score_episode()`. |
+| `metrics/ftl_metrics.py` | t=0 FTL shortcut metrics: `F_null`, `F_portal`, `F_throat`, `F_asymmetry`, `F_log`, `s_nonflat`. |
+| `metrics/physical_metrics.py` | t=0 gauge-robust proxies: ANEC line integral, curvature/tidal proxy, trapped-surface flag. |
+| `metrics/warpfactory.py` | Warp Factory port: 4-metric → Einstein tensor → multi-observer NEC/WEC/SEC/DEC. |
+| `metrics/episode_metrics.py` | Parse diagnostics into `EpisodeMetrics`; collapse/constraint/stability/comoving + growth-rate (`GrowthMetrics`). |
+| `metrics/score.py` | Weighted multi-component scalar reward `score_episode()`. |
 
-### Search drivers
+### Search drivers (`search/`)
 | Module | Role |
 |--------|------|
-| `optimize.py` | CMA-ES loop, multi-GPU parallel generations; **NEW** optional surrogate screening. |
-| `surrogate.py` | **NEW** — numpy RBF kernel-ridge surrogate + candidate screening. |
-| `qd_search.py` | **NEW** — MAP-Elites quality-diversity driver and archive. |
-| `pareto.py` | **NEW** — non-dominated sorting / Pareto-front extraction. |
-| `atlas.py` | Random failure-atlas batch runner. |
+| `search/optimize.py` | CMA-ES loop, multi-GPU parallel generations; optional surrogate screening. |
+| `search/surrogate.py` | numpy RBF kernel-ridge surrogate + candidate screening. |
+| `search/qd_search.py` | MAP-Elites quality-diversity driver and archive. |
+| `search/pareto.py` | non-dominated sorting / Pareto-front extraction. |
+| `search/atlas.py` | Random failure-atlas batch runner. |
 
 ---
 
@@ -198,10 +210,10 @@ initial constraint violations.
 theta (BH mass/spin/scalar field params)
   |
   v
-grtresna_solver.py  -->  GRTresna (MPI, Chombo)  -->  InitialDataFinal.3d.hdf5
+grtresna/solver.py  -->  GRTresna (MPI, Chombo)  -->  InitialDataFinal.3d.hdf5
   |                                                          |
   v                                                          v
-grtresna_io.py  ----  Chombo HDF5 reader  ---->  initial_data.gridinit
+grtresna/io.py  ----  Chombo HDF5 reader  ---->  initial_data.gridinit
   |                   (strips ghost cells,
   |                    paints coarse-to-fine,
   |                    z-reflection with parity)
@@ -216,8 +228,8 @@ RadialRecipeLevel::initData()  -->  evolution
 
 | Module | Role |
 |--------|------|
-| `grtresna_io.py` | Read Chombo AMR checkpoint HDF5 (with ghost cells), flatten to uniform grid, write `.gridinit` binary. |
-| `grtresna_solver.py` | Orchestrator: write GRTresna `params.txt`, run via MPI, convert output. `GRTresnaConfig` dataclass holds all knobs. |
+| `grtresna/io.py` | Read Chombo AMR checkpoint HDF5 (with ghost cells), flatten to uniform grid, write `.gridinit` binary. |
+| `grtresna/solver.py` | Orchestrator: write GRTresna `params.txt`, run via MPI, convert output. `GRTresnaConfig` dataclass holds all knobs. |
 
 ### C++ side
 
@@ -238,7 +250,7 @@ recipe_initial_data_file = /path/to/initial_data.gridinit
 Or from the Python orchestrator:
 
 ```python
-from grteclyn_wrapper.grtresna_solver import GRTresnaConfig, solve
+from grteclyn_wrapper.grtresna import GRTresnaConfig, solve
 
 cfg = GRTresnaConfig(
     mpi_ranks=8,
@@ -374,7 +386,7 @@ cat Ham_and_Mom_errors.txt
 **10. Convert and use in GRTeclyn:**
 
 ```python
-from grteclyn_wrapper.grtresna_io import convert_chombo_to_gridinit
+from grteclyn_wrapper.grtresna import convert_chombo_to_gridinit
 
 convert_chombo_to_gridinit(
     "GRTresna/Examples/ScalarFieldBH/Outputs/InitialDataFinal.3d.hdf5",

@@ -20,8 +20,8 @@ from pathlib import Path
 
 import numpy as np
 
-from grteclyn_wrapper.constrained_recipe import RecipeBasis, constrained_phi
-from grteclyn_wrapper.validate_guesser import (
+from grteclyn_wrapper.initial_data.constrained_recipe import RecipeBasis, constrained_phi
+from grteclyn_wrapper.initial_data.validate_guesser import (
     CandidateSpec,
     generate_candidates,
     validate_candidate,

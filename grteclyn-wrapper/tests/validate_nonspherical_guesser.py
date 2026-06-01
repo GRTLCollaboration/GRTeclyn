@@ -12,7 +12,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from grteclyn_wrapper.nonspherical_guesser import run_nonspherical_validation
+from grteclyn_wrapper.initial_data.nonspherical_guesser import run_nonspherical_validation
 
 
 def main() -> int:

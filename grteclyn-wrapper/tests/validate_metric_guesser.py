@@ -13,7 +13,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from grteclyn_wrapper.validate_guesser import run_validation
+from grteclyn_wrapper.initial_data.validate_guesser import run_validation
 
 
 def main() -> int:

@@ -9,13 +9,12 @@ from tempfile import TemporaryDirectory
 
 import numpy as np
 
-from grteclyn_wrapper.metrics import read_episode_metrics, read_growth_metrics
-from grteclyn_wrapper.physical_metrics import compute_physical_metrics
-from grteclyn_wrapper.pareto import ParetoPoint, dominates, pareto_front
-from grteclyn_wrapper.qd_search import QDArchive, Elite, _bin_index, _descriptors
-from grteclyn_wrapper.score import score_episode
-from grteclyn_wrapper.seeds import get_seed
-from grteclyn_wrapper.surrogate import RBFSurrogate, screen_candidates
+from grteclyn_wrapper.metrics import read_episode_metrics, read_growth_metrics, score_episode
+from grteclyn_wrapper.metrics.physical_metrics import compute_physical_metrics
+from grteclyn_wrapper.search.pareto import ParetoPoint, dominates, pareto_front
+from grteclyn_wrapper.search.qd_search import QDArchive, Elite, _bin_index, _descriptors
+from grteclyn_wrapper.initial_data.seeds import get_seed
+from grteclyn_wrapper.search.surrogate import RBFSurrogate, screen_candidates
 
 
 # --------------------------------------------------------------------------

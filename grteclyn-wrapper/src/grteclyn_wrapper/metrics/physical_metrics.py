@@ -27,7 +27,7 @@ from typing import Any, Mapping
 import numpy as np
 from numpy.typing import NDArray
 
-from .constrained_recipe import RecipeBasis, compute_ricci_scalar
+from ..initial_data.constrained_recipe import RecipeBasis, compute_ricci_scalar
 
 
 @dataclass(frozen=True)

@@ -18,19 +18,19 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from .config import (
+from ..core.config import (
     DEFAULT_RADIAL_RECIPE_TEMPLATE,
     ExecutableConfig,
     ExampleConfig,
     resolve_example,
 )
-from .constrained_recipe import constrained_overrides
-from .episode import Episode, create_episode, update_metadata, write_json
-from .metrics import dataclass_to_dict, read_episode_metrics
-from .params import write_params
-from .preflight import preflight_check
-from .runner import run_episode
-from .score import Score, score_episode
+from ..core.episode import Episode, create_episode, update_metadata, write_json
+from ..core.params import write_params
+from ..core.runner import run_episode
+from ..initial_data.constrained_recipe import constrained_overrides
+from ..initial_data.preflight import preflight_check
+from ..metrics.episode_metrics import dataclass_to_dict, read_episode_metrics
+from ..metrics.score import Score, score_episode
 from .surrogate import RBFSurrogate, screen_candidates
 
 try:

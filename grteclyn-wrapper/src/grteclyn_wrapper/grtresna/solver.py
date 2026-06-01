@@ -21,14 +21,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Mapping
 
-from .grtresna_io import convert_chombo_to_gridinit
+from ..core.config import REPO_ROOT
+from .io import convert_chombo_to_gridinit
 
 # Paths auto-detected or overridden by environment variables
 _DEFAULT_GRTRESNA_ROOT = Path(
-    os.environ.get(
-        "GRTRESNA_ROOT",
-        str(Path(__file__).resolve().parents[4] / ".." / "GRTresna"),
-    )
+    os.environ.get("GRTRESNA_ROOT", str(REPO_ROOT.parent / "GRTresna"))
 )
 _DEFAULT_EXAMPLE = "ScalarFieldBH"
 

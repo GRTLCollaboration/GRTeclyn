@@ -3,8 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from grteclyn_wrapper.metrics import read_episode_metrics
-from grteclyn_wrapper.score import score_episode
+from grteclyn_wrapper.metrics import read_episode_metrics, score_episode
 
 
 def _write_episode(root: Path, rows: list[tuple[float, float, float, float]], areal: list[tuple[float, float]]) -> None:

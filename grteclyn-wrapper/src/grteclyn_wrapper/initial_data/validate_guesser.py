@@ -10,7 +10,7 @@ Run via CLI::
 
 Or programmatically::
 
-    from grteclyn_wrapper.validate_guesser import run_validation
+    from grteclyn_wrapper.initial_data.validate_guesser import run_validation
     summary = run_validation(output_dir=Path("validation_out"))
 """
 

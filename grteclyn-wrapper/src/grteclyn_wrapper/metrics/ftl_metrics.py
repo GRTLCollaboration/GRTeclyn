@@ -17,7 +17,7 @@ from typing import Any, Mapping
 import numpy as np
 from numpy.typing import NDArray
 
-from .constrained_recipe import RecipeBasis
+from ..initial_data.constrained_recipe import RecipeBasis
 
 _ASSIGNMENT_RE = re.compile(r"^\s*([A-Za-z0-9_.]+)\s*=\s*(.+?)(?:\s+#.*)?$")
 
