@@ -113,6 +113,137 @@ gives.
    spacetimes, add the metric components to `amr.plot_vars` and feed the plotfile
    grid into `operational_ftl_on_grid` / `warpfactory.py`.
 
+## GRTresna initial data & momentum-carrying matter
+
+GRTresna is a Chombo-based **elliptic constraint solver**. Instead of guessing a
+metric with the 1D radial recipe and tolerating the constraint violation,
+GRTresna *solves* the Hamiltonian **and momentum** constraints in full 3D, then
+hands GRTeclyn fully constraint-satisfying initial data. The bridge that wires
+the two codes together (Python orchestrator + C++ `.gridinit` reader) is
+documented in detail in the package README
+([`src/grteclyn_wrapper/README.md`](src/grteclyn_wrapper/README.md) →
+*GRTresna integration*); this section covers the **search-pipeline** usage and
+the **momentum-carrying matter** capability added on top of it.
+
+### What was done
+
+1. **GRTresna ↔ GRTeclyn bridge** (earlier work): run GRTresna via MPI, convert
+   its Chombo HDF5 output to a `.gridinit` binary, and load it on the GPU via the
+   new C++ `ExternalGridInitialData` (set `recipe_initial_data_file` in
+   `params.txt`). Round-trip validated at ~100× lower initial constraint error
+   than the radial recipe.
+2. **Momentum-carrying scalar "cloud"** (new): a localised scalar-field lump
+   whose conjugate momentum is built so the configuration carries **net linear
+   and/or angular momentum**, with the momentum constraint solved. Implemented in
+   the GRTresna `ScalarFieldBH` example (`MyMatterFunctions.cpp` +
+   `MatterParams.hpp`), all params default to off so legacy runs are unchanged.
+3. **GRTresna-in-the-loop search** (new): a `--grtresna` mode for the CMA-ES
+   optimizer that runs the elliptic solve *per candidate* and evolves the result
+   on GPU, searching over the momentum-cloud parameters.
+
+### Why this matters
+
+- **Less junk radiation, more trustworthy scores.** Evolving non-constraint-
+  satisfying data emits spurious "junk" gravitational radiation that contaminates
+  stability and growth-rate metrics. GRTresna data starts at L2 constraint
+  errors ~1e-3 to 1e-4 (vs ~1e-2 for the 1D recipe), so the dynamics you score
+  are physical, not numerical transients.
+- **A genuinely new FTL axis.** The 1D recipe cannot represent **moving matter**:
+  it has `S_i = 0` (no momentum density). GRTresna solves the momentum constraint
+  for `S_i = -Π ∂_i φ ≠ 0`, which is the source of **matter-momentum-driven frame
+  dragging** — a distinct, physically-grounded operational-FTL ingredient that
+  was simply not in the search space before.
+- **3D solve, not a 1D ODE.** Constraint-correct *non-spherical* structure in the
+  conformal factor becomes possible, instead of the spherically-symmetric radial
+  channel the recipe is limited to.
+
+### How to use it — closed-loop search
+
+```bash
+cd grteclyn-wrapper
+uv run python -m grteclyn_wrapper \
+  --runs-dir runs \
+  optimize --grtresna \
+  --gpu-ids 0 1 2 3 \
+  --max-generations 30 \
+  --grtresna-lumps 3 \        # scalar lumps in the matter basis (10 dims each)
+  --grtresna-ranks 8 \        # MPI ranks per GRTresna solve
+  --grtresna-iterations 50    # max non-linear iterations per solve
+```
+
+Per candidate the loop runs:
+
+```
+CMA-ES proposes grtresna_lump{k}_* → GRTresna 3D elliptic solve (momentum constraint)
+  → initial_data.gridinit (solved A_ij + φ + Π) → GRTeclyn loads it → GPU evolution
+  → score → back to CMA-ES
+```
+
+> **MPI environment.** The GRTresna solve shells out to `mpirun`. The solver
+> auto-resolves it from the conda/micromamba env that built GRTresna (it tries
+> `$GRTRESNA_MPIRUN`, then `$GRTRESNA_ENV`/`$CONDA_PREFIX`, then common env roots
+> for `$GRTRESNA_ENV_NAME` — default `grtresna` — then `PATH`), so no manual
+> `PATH=` prefix is needed. Override with `GRTRESNA_MPIRUN=/abs/path/to/mpirun`
+> if your `mpirun` lives elsewhere.
+
+`--grtresna` **replaces** the radial-recipe search space with a **K-lump scalar
+matter basis** (it is a separate mode from `--nonspherical`). Each lump `k`
+contributes the 10 dimensions below; a superposition paints an arbitrary
+energy/momentum distribution, which the solve maps to a rich family of
+constraint-satisfying geometries (`chi` wells + momentum-driven `A_ij`). Use
+`--dry-run` to exercise the plumbing without a solve or GPU.
+
+| Search dimension (per lump `k`) | Meaning |
+|---------------------------------|---------|
+| `grtresna_lump{k}_amp` | amplitude of the cloud (0 ⇒ disabled) |
+| `grtresna_lump{k}_width` | Gaussian width |
+| `grtresna_lump{k}_center_{x,y,z}` | cloud position ⇒ where mass/momentum sits |
+| `grtresna_lump{k}_velocity_{x,y,z}` | boost velocity ⇒ net **linear** momentum `P_i ~ v_i` |
+| `grtresna_lump{k}_omega` | rigid rotation rate about z ⇒ net **angular** momentum `L_z` |
+| `grtresna_lump{k}_mode` | azimuthal mode `m` (rounded to int; `m ≥ 1` required for `L_z`) |
+
+`--grtresna-lumps K` sets the basis size (default 3 ⇒ 30 search dims). Two
+counter-moving lumps, for example, give a strong momentum/shear field with no
+bulk translation. Defaults focus on **matter momentum**: black holes are off
+(`bh1_bare_mass = 0`) in the search config, so the optimizer explores pure
+moving/rotating scalar clouds. Each candidate's heavy HDF5 is deleted right
+after conversion to `.gridinit` (`cleanup=True`), so a long conveyor search
+stays disk-safe.
+
+For **finding new geometry families** (rather than one optimum), the MAP-Elites
+`qd` driver over this same matter basis is the better tool — it keeps a diverse
+archive across behavior descriptors instead of collapsing to a single best.
+
+### How to use it — one-off, from Python
+
+```python
+from pathlib import Path
+from grteclyn_wrapper.grtresna import GRTresnaConfig, solve
+
+cfg = GRTresnaConfig(
+    mpi_ranks=8,
+    bh1_bare_mass=0.0,            # pure matter-momentum case
+    lump_amp=0.1, lump_width=8.0,
+    lump_velocity=(0.2, 0.0, 0.0),  # boosted cloud → linear momentum
+    # or, for angular momentum:  lump_omega=0.1, lump_mode=1
+)
+gridinit = solve(cfg, work_dir=Path("/tmp/grtresna_run"))
+# then run GRTeclyn with  recipe_initial_data_file = <gridinit>
+```
+
+A fast standalone smoke test of the momentum solve lives at
+`GRTresna/Examples/ScalarFieldBH/params_momentum_test.txt` (a boosted lump: the
+momentum constraint starts at ~98% violation and is solved down to ~0.1%).
+
+### Will GRTeclyn evolve it?
+
+Yes. GRTeclyn's scalar-field matter computes the same momentum density
+(`j_i = -Π ∂_i φ`) and evolves the full CCZ4 + Klein–Gordon system; the loaded
+solved `A_ij` plus the Γ-driver shift gauge develop the frame-dragging shift
+dynamically. No GRTeclyn evolution code changes were needed — only the
+`ExternalGridInitialData` loader (already in place) and the upstream solver
+profiles.
+
 ## Batch: 7 non-spherical shapes on GPUs 0–6
 
 ```bash

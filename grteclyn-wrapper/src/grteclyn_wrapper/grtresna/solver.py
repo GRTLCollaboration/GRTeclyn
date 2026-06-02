@@ -45,6 +45,11 @@ class GRTresnaConfig:
     write_diagnostics: bool = False
     timeout: int = 3600
 
+    # Path to the ``mpirun`` that matches the GRTresna build environment. When
+    # None it is auto-resolved (see ``_resolve_mpirun``) so ``--grtresna`` works
+    # without the caller having to prefix PATH manually.
+    mpirun: str | None = None
+
     # Grid — GRTresna uses half-z by default (reflective lo_boundary z=1)
     N: tuple[int, int, int] = (64, 64, 32)
     L: float = 128.0
@@ -72,6 +77,28 @@ class GRTresnaConfig:
     dpi_length: float = 5.0
     scalar_mass: float = 0.1
 
+    # Momentum-carrying scalar "cloud" (a single localised lump). All default
+    # to off so a config that does not set them reproduces the legacy spherical
+    # data. The lump's conjugate momentum is built so the configuration carries
+    # net linear momentum (lump_velocity) and/or angular momentum (lump_omega
+    # with lump_mode >= 1); GRTresna then solves the momentum constraint for it.
+    # NOTE: this single-lump API is kept for convenience; for a richer matter
+    # distribution set ``lumps`` (a list of dicts) instead -- when non-empty it
+    # takes precedence and a num_lumps/indexed block is written.
+    lump_amp: float = 0.0
+    lump_width: float = 5.0
+    lump_center: tuple[float, float, float] = (0.0, 0.0, 0.0)
+    lump_velocity: tuple[float, float, float] = (0.0, 0.0, 0.0)
+    lump_omega: float = 0.0
+    lump_mode: int = 0
+
+    # Multi-lump scalar basis. Each entry is a dict with keys:
+    #   amp, width, center (3-tuple), velocity (3-tuple), omega, mode.
+    # A superposition of lumps paints an arbitrary energy/momentum distribution
+    # which GRTresna turns into constraint-satisfying initial data. When this is
+    # non-empty it overrides the single-lump fields above.
+    lumps: list[dict] = field(default_factory=list)
+
     # Conformal / K
     regularised_part_psi: float = 1.0
     sign_of_K: int = 1
@@ -86,6 +113,14 @@ class GRTresnaConfig:
     gridinit_ny: int = 64
     gridinit_nz: int = 64
 
+    # Centre of the GRTeclyn evolution box that will LOAD this gridinit. The
+    # GRTresna matter sits at the centre of the (large) solve domain; the
+    # gridinit ``origin`` is written so that this matter centre maps onto
+    # ``target_center`` in GRTeclyn coordinates (GRTeclyn then evolves the
+    # central window of the GRTresna domain at its own resolution). The default
+    # matches the RadialRecipe template (L_full=64, half-z => centre (32,32,0)).
+    target_center: tuple[float, float, float] = (32.0, 32.0, 0.0)
+
     # Cleanup: remove HDF5 / pout / intermediate files after conversion
     cleanup: bool = True
     # Remove the entire work_dir after producing the gridinit
@@ -97,6 +132,34 @@ def _fmt(v: Any) -> str:
     if isinstance(v, (tuple, list)):
         return " ".join(str(x) for x in v)
     return str(v)
+
+
+def _lump_lines(cfg: GRTresnaConfig) -> list[str]:
+    """Render the momentum-carrying matter block.
+
+    If ``cfg.lumps`` is non-empty, write a ``num_lumps`` + indexed
+    ``lump{k}_*`` basis; otherwise write the legacy single-lump keys.
+    """
+    if cfg.lumps:
+        lines = [f"num_lumps = {len(cfg.lumps)}"]
+        for k, lump in enumerate(cfg.lumps):
+            lines.extend([
+                f"lump{k}_amp = {lump.get('amp', 0.0)}",
+                f"lump{k}_width = {lump.get('width', 5.0)}",
+                f"lump{k}_center = {_fmt(tuple(lump.get('center', (0.0, 0.0, 0.0))))}",
+                f"lump{k}_velocity = {_fmt(tuple(lump.get('velocity', (0.0, 0.0, 0.0))))}",
+                f"lump{k}_omega = {lump.get('omega', 0.0)}",
+                f"lump{k}_mode = {int(lump.get('mode', 0))}",
+            ])
+        return lines
+    return [
+        f"lump_amp = {cfg.lump_amp}",
+        f"lump_width = {cfg.lump_width}",
+        f"lump_center = {_fmt(cfg.lump_center)}",
+        f"lump_velocity = {_fmt(cfg.lump_velocity)}",
+        f"lump_omega = {cfg.lump_omega}",
+        f"lump_mode = {cfg.lump_mode}",
+    ]
 
 
 def write_grtresna_params(cfg: GRTresnaConfig, path: Path) -> None:
@@ -127,6 +190,9 @@ def write_grtresna_params(cfg: GRTresnaConfig, path: Path) -> None:
         f"dpi = {cfg.dpi}",
         f"dpi_length = {cfg.dpi_length}",
         f"scalar_mass = {cfg.scalar_mass}",
+    ]
+    lines.extend(_lump_lines(cfg))
+    lines.extend([
         f"regularised_part_psi = {cfg.regularised_part_psi}",
         f"sign_of_K = {cfg.sign_of_K}",
         f"",
@@ -141,8 +207,76 @@ def write_grtresna_params(cfg: GRTresnaConfig, path: Path) -> None:
         f"",
         f"max_NL_iterations = {cfg.max_NL_iterations}",
         f"deactivate_zero_mode = 0",
-    ]
+    ])
     path.write_text("\n".join(lines) + "\n")
+
+
+def _candidate_env_prefixes() -> list[Path]:
+    """Ordered list of conda/micromamba env prefixes that may hold mpirun."""
+    name = os.environ.get("GRTRESNA_ENV_NAME", "grtresna")
+    prefixes: list[Path] = []
+    explicit = os.environ.get("GRTRESNA_ENV")
+    if explicit:
+        prefixes.append(Path(explicit))
+    conda_prefix = os.environ.get("CONDA_PREFIX")
+    if conda_prefix:
+        prefixes.append(Path(conda_prefix))
+    home = Path.home()
+    for root in (
+        home / ".mlspace" / "envs",
+        home / "micromamba" / "envs",
+        home / "miniconda3" / "envs",
+        home / "miniforge3" / "envs",
+        home / "anaconda3" / "envs",
+        Path("/opt/conda/envs"),
+    ):
+        prefixes.append(root / name)
+    return prefixes
+
+
+def _resolve_mpirun(cfg: GRTresnaConfig) -> tuple[str, dict[str, str]]:
+    """Resolve an ``mpirun`` and the environment to run GRTresna under.
+
+    Resolution order:
+      1. ``cfg.mpirun`` (explicit override)
+      2. ``$GRTRESNA_MPIRUN`` (explicit override)
+      3. ``bin/mpirun`` inside a candidate conda/micromamba env prefix
+         (``$GRTRESNA_ENV``, ``$CONDA_PREFIX``, common env roots for
+         ``$GRTRESNA_ENV_NAME`` which defaults to "grtresna")
+      4. ``mpirun`` already on PATH
+
+    Returns the mpirun path and a subprocess env with that mpirun's directory
+    prepended to PATH (so its helper binaries, e.g. prted/orted, resolve).
+    """
+    candidates: list[str] = []
+    if cfg.mpirun:
+        candidates.append(cfg.mpirun)
+    env_override = os.environ.get("GRTRESNA_MPIRUN")
+    if env_override:
+        candidates.append(env_override)
+    for prefix in _candidate_env_prefixes():
+        candidates.append(str(prefix / "bin" / "mpirun"))
+
+    mpirun_path: str | None = None
+    for cand in candidates:
+        if cand and Path(cand).is_file():
+            mpirun_path = cand
+            break
+    if mpirun_path is None:
+        which = shutil.which("mpirun")
+        if which:
+            mpirun_path = which
+    if mpirun_path is None:
+        raise FileNotFoundError(
+            "Could not locate 'mpirun' for GRTresna. Set $GRTRESNA_MPIRUN to its "
+            "absolute path, or $GRTRESNA_ENV / $GRTRESNA_ENV_NAME to the conda "
+            "environment that built GRTresna, or add mpirun to PATH."
+        )
+
+    env = dict(os.environ)
+    mpirun_dir = str(Path(mpirun_path).resolve().parent)
+    env["PATH"] = mpirun_dir + os.pathsep + env.get("PATH", "")
+    return mpirun_path, env
 
 
 def _find_executable(cfg: GRTresnaConfig) -> Path:
@@ -241,14 +375,15 @@ def solve(
     params_path = work_dir / "params.txt"
     write_grtresna_params(cfg, params_path)
 
-    cmd_parts = ["mpirun"]
+    mpirun_path, run_env = _resolve_mpirun(cfg)
+    cmd_parts = [mpirun_path]
     if cfg.mpi_ranks > 1:
         cmd_parts.append("--oversubscribe")
     cmd_parts.extend(["-np", str(cfg.mpi_ranks), str(exe), str(params_path)])
 
     logger.info(
-        "Running GRTresna: %d ranks, max %d iterations, grid %s, L=%.0f",
-        cfg.mpi_ranks, cfg.max_NL_iterations, cfg.N, cfg.L,
+        "Running GRTresna: %d ranks, max %d iterations, grid %s, L=%.0f (mpirun=%s)",
+        cfg.mpi_ranks, cfg.max_NL_iterations, cfg.N, cfg.L, mpirun_path,
     )
 
     result = subprocess.run(
@@ -257,6 +392,7 @@ def solve(
         capture_output=True,
         text=True,
         timeout=cfg.timeout,
+        env=run_env,
     )
     if result.returncode != 0:
         raise RuntimeError(
@@ -289,6 +425,7 @@ def solve(
         ny=cfg.gridinit_ny,
         nz=cfg.gridinit_nz,
         L=cfg.L,
+        target_center=cfg.target_center,
         delete_source=cfg.cleanup,
     )
 

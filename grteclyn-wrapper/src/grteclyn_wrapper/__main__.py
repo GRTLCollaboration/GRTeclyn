@@ -167,6 +167,13 @@ def _run_sweep(args: argparse.Namespace, base_overrides: dict[str, Any]) -> int:
 
 
 def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, Any]) -> int:
+    # The GRTresna gridinit loader (ExternalGridInitialData) only exists in the
+    # RadialRecipe example. If --grtresna is set but the example was left at the
+    # default, switch to RadialRecipe so the loaded initial data is actually used.
+    if getattr(args, "grtresna", False) and args.example == "SupportedWormholeCollapse":
+        print("[optimize] --grtresna requires the RadialRecipe example; "
+              "switching --example to RadialRecipe.")
+        args.example = "RadialRecipe"
     example = resolve_example(args.example)
     executable = None
     if not args.dry_run:
@@ -183,11 +190,31 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
 
     # Non-spherical search: extend the radial space with gauge (lapse/shift)
     # angular modes and activate them via the constant base overrides.
-    from .optimize import build_search_space, ANGULAR_BASE_OVERRIDES
+    from .search.optimize import build_search_space, ANGULAR_BASE_OVERRIDES
     nonspherical = getattr(args, "nonspherical", False)
-    search_space = build_search_space(nonspherical=nonspherical)
-    if nonspherical:
+    use_grtresna = getattr(args, "grtresna", False)
+    grtresna_lumps = getattr(args, "grtresna_lumps", 3)
+    search_space = build_search_space(
+        nonspherical=nonspherical, grtresna=use_grtresna,
+        grtresna_lumps=grtresna_lumps,
+    )
+    if nonspherical and not use_grtresna:
         base_overrides = {**ANGULAR_BASE_OVERRIDES, **base_overrides}
+
+    # GRTresna-in-the-loop: build the fixed solver config (grid / MPI / cleanup
+    # / BH content); the searched grtresna_lump_* dims are layered per-candidate.
+    grtresna_config = None
+    if use_grtresna:
+        from .grtresna.solver import GRTresnaConfig
+
+        grtresna_config = GRTresnaConfig(
+            mpi_ranks=getattr(args, "grtresna_ranks", 8),
+            max_NL_iterations=getattr(args, "grtresna_iterations", 50),
+            # focus on moving/rotating MATTER: no black holes by default
+            bh1_bare_mass=0.0,
+            bh1_spin=(0.0, 0.0, 0.0),
+            cleanup=True,
+        )
 
     x0 = None
     if getattr(args, "seed_name", None):
@@ -235,13 +262,15 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
         gpu_ids=gpu_ids,
         check_params=not args.skip_check_params,
         x0=x0,
-        consume_plotfiles=getattr(args, "consume_plotfiles", True),
+        consume_plotfiles=not getattr(args, "no_consume_plotfiles", False),
         consumer_radii=getattr(args, "consumer_radii", [4.0, 8.0]),
         consumer_keep_last=getattr(args, "consumer_keep_last", 1),
         score_weights=getattr(args, "score_weights", None),
         ftl_L=getattr(args, "ftl_L", None),
         surrogate=getattr(args, "surrogate", False),
         surrogate_keep_fraction=getattr(args, "surrogate_keep_fraction", 0.5),
+        grtresna=use_grtresna,
+        grtresna_config=grtresna_config,
     )
     print(json.dumps({
         "best_score": result.best_score,
@@ -481,11 +510,41 @@ def build_parser() -> argparse.ArgumentParser:
     opt.add_argument("--surrogate", action="store_true", help="Enable RBF surrogate pre-screening to skip low-value GPU evaluations.")
     opt.add_argument("--surrogate-keep-fraction", type=float, default=0.5, help="Fraction of each generation evaluated on GPU when surrogate is active.")
     opt.add_argument(
+        "--no-consume-plotfiles",
+        action="store_true",
+        help="Disable the plotfile consumer. By default optimize streams each "
+             "plotfile into radial/frame products and DELETES the raw plotfile, "
+             "so disk stays bounded and per-eval frames are produced. Pass this "
+             "to keep raw plotfiles instead (uses a lot of disk).",
+    )
+    opt.add_argument(
         "--nonspherical",
         action="store_true",
         help="Open up non-spherical geometries: add axisymmetric Legendre angular "
              "modes on the lapse and shift (gauge sector, constraint-preserving, "
              "no extra exotic matter) so the search can sculpt directional FTL channels.",
+    )
+    opt.add_argument(
+        "--grtresna",
+        action="store_true",
+        help="GRTresna-in-the-loop: produce constraint-satisfying, momentum-carrying "
+             "scalar-field initial data via the 3D elliptic solver each evaluation "
+             "(searches grtresna_lump_* dims), then evolve it on GPU. Replaces the 1D "
+             "radial recipe search space.",
+    )
+    opt.add_argument(
+        "--grtresna-ranks", type=int, default=8,
+        help="MPI ranks for each GRTresna solve (default: 8).",
+    )
+    opt.add_argument(
+        "--grtresna-lumps", type=int, default=3,
+        help="Number of scalar lumps in the GRTresna matter basis (default: 3). "
+             "Each lump adds 10 searched dimensions (amp/width/center/velocity/"
+             "omega/mode).",
+    )
+    opt.add_argument(
+        "--grtresna-iterations", type=int, default=50,
+        help="Max non-linear iterations per GRTresna solve (default: 50).",
     )
 
     qd = subparsers.add_parser("qd", help="MAP-Elites quality-diversity search (Spacetime Failure Atlas).")

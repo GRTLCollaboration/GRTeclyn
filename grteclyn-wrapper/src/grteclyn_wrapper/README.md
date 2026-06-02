@@ -301,8 +301,9 @@ from grteclyn_wrapper.grtresna.solver import GRTresnaConfig, solve
 from grteclyn_wrapper.grtresna.io import convert_chombo_to_gridinit
 ```
 
-`grtresna.io` requires `h5py` (installed in the GRTresna micromamba env, not the
-main `uv` wrapper env).
+`grtresna.io` requires `h5py` for the Chombo→`.gridinit` conversion. It is
+imported lazily (so constructing a `GRTresnaConfig`, dry-runs, etc. do not need
+it) and is installed in the wrapper env via `uv pip install h5py`.
 
 ### C++ side
 
@@ -330,11 +331,75 @@ cfg = GRTresnaConfig(
     bh1_bare_mass=1.0,
     bh1_spin=(0.0, 0.0, 0.5),
     dphi=0.1,
-    gridinit_N=64,
+    gridinit_nx=64, gridinit_ny=64, gridinit_nz=64,  # per-axis target resolution
 )
 gridinit_path = solve(cfg, work_dir=Path("/tmp/grtresna_run"))
 # gridinit_path is now ready to pass to GRTeclyn
 ```
+
+### Momentum-carrying matter (moving / rotating scalar cloud)
+
+The public GRTresna solver assumes conformal flatness, so it cannot represent
+arbitrary non-flat metric *shapes* — but it **does** solve the momentum
+constraint, which unlocks a real, distinct FTL ingredient the 1D radial recipe
+cannot represent: **matter that carries net momentum** (`S_i = -Π ∂_i φ ≠ 0`),
+the source of matter-momentum-driven frame dragging.
+
+A localised scalar "lump" is added on top of the legacy spherical profile and
+its conjugate momentum is built as the convective derivative of a boosted and/or
+rigidly rotating pattern, `Π = -(v · ∇φ) - Ω ∂_φ φ`, so the configuration
+carries net linear momentum `P_i ~ v_i` and/or angular momentum `L_z ~ Ω`.
+Implemented in the `ScalarFieldBH` example (`MyMatterFunctions.cpp`,
+`MatterParams.hpp`); all params default to off, so existing data is unchanged.
+
+| `GRTresnaConfig` field | params.txt key | Meaning |
+|------------------------|----------------|---------|
+| `lump_amp` | `lump_amp` | amplitude (0 ⇒ disabled) |
+| `lump_width` | `lump_width` | Gaussian width |
+| `lump_center` | `lump_center` | centre relative to grid centre |
+| `lump_velocity` | `lump_velocity` | boost `v` ⇒ linear momentum |
+| `lump_omega` | `lump_omega` | rotation rate about z ⇒ `L_z` |
+| `lump_mode` | `lump_mode` | azimuthal `m` (`≥ 1` required for `L_z`) |
+
+```python
+cfg = GRTresnaConfig(
+    mpi_ranks=8,
+    bh1_bare_mass=0.0,                # pure matter-momentum case
+    lump_amp=0.1, lump_width=8.0,
+    lump_velocity=(0.2, 0.0, 0.0),    # boosted cloud → linear momentum
+    # angular momentum instead:  lump_omega=0.1, lump_mode=1
+)
+```
+
+Validated with a boosted lump: the momentum constraint starts at ~98% violation
+(real injected momentum) and the solver drives it to ~0.1% by solving for the
+longitudinal vector potential `V_i`. A standalone smoke test lives at
+`GRTresna/Examples/ScalarFieldBH/params_momentum_test.txt`.
+
+### GRTresna-in-the-loop search (`--grtresna`)
+
+`search/optimize.py` can run the GRTresna solve **per CMA-ES candidate** and
+evolve the result on GPU, searching the momentum-cloud parameters:
+
+```bash
+uv run python -m grteclyn_wrapper --runs-dir runs \
+  optimize --grtresna --gpu-ids 0 1 2 3 \
+  --max-generations 30 --grtresna-ranks 8 --grtresna-iterations 50
+```
+
+- `grtresna_search_space(K)` defines a **K-lump scalar basis**: per lump `k`,
+  the dims `grtresna_lump{k}_{amp,width,center_{x,y,z},velocity_{x,y,z},omega,mode}`
+  (10 each; `--grtresna-lumps K`, default 3). `build_grtresna_config()` groups
+  the indexed keys into `GRTresnaConfig.lumps` (rounding `mode` to int) while
+  everything else flows to GRTeclyn's `params.txt` unchanged. A superposition of
+  lumps paints arbitrary `rho`/`S_i`; e.g. two counter-moving lumps give a
+  momentum/shear field with no bulk translation.
+- The `grtresna_*` keys are intentionally kept **out** of GRTeclyn's
+  `params.txt`; only the resulting `recipe_initial_data_file` is set.
+- A solver failure for a candidate is penalised (score 0) rather than crashing
+  the search; `cleanup=True` deletes the heavy HDF5 after each conversion.
+- This mode **replaces** the radial-recipe search space (the initial data comes
+  entirely from the solve); it is separate from `--nonspherical`.
 
 ### Installing GRTresna from scratch (no root)
 
@@ -464,8 +529,8 @@ from grteclyn_wrapper.grtresna import convert_chombo_to_gridinit
 convert_chombo_to_gridinit(
     "GRTresna/Examples/ScalarFieldBH/Outputs/InitialDataFinal.3d.hdf5",
     "initial_data.gridinit",
-    N=64,   # target uniform grid cells per side
-    L=128.0 # domain side length (must match GRTresna params)
+    nx=64, ny=64, nz=64,  # per-axis target uniform grid cells (non-cubic OK)
+    L=128.0               # domain side length (must match GRTresna params)
 )
 ```
 

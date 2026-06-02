@@ -29,9 +29,12 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-import h5py
 import numpy as np
 from numpy.typing import NDArray
+
+# h5py is imported lazily inside the functions that need it so that importing
+# this module (e.g. to construct a GRTresnaConfig or for a dry-run) does not
+# require h5py to be installed.
 
 logger = logging.getLogger(__name__)
 
@@ -131,6 +134,8 @@ def read_chombo_domain(
     Returns (N_cells_xyz, dx_coarse, L_xyz) where N_cells is per-axis
     cell count at level 0 and L_xyz is per-axis physical extent.
     """
+    import h5py
+
     with h5py.File(str(chombo_path), "r") as f:
         l0 = f["level_0"]
         prob = l0.attrs["prob_domain"]
@@ -166,6 +171,8 @@ def chombo_to_uniform(
     dx_xyz : (3,) array of per-axis cell spacings
     origin : (3,) array
     """
+    import h5py
+
     chombo_path = Path(chombo_path)
     with h5py.File(chombo_path, "r") as f:
         n_comp = int(f.attrs["num_components"])
@@ -263,6 +270,7 @@ def convert_chombo_to_gridinit(
     Ly: float | None = None,
     Lz: float | None = None,
     L: float | None = None,
+    target_center: tuple[float, float, float] | None = None,
     delete_source: bool = False,
 ) -> Path:
     """One-shot: read Chombo HDF5, flatten, write .gridinit.
@@ -312,6 +320,23 @@ def convert_chombo_to_gridinit(
     data, comp_names, dx_xyz, origin = chombo_to_uniform(
         chombo_path, nx=nx, ny=ny, nz=nz, Lx=Lx, Ly=Ly, Lz=Lz,
     )
+
+    # Coordinate alignment. The GRTresna matter sits at the centre of the solve
+    # domain (physical (Lx/2, Ly/2, Lz/2), stored at the centre of the gridinit
+    # array). GRTeclyn's loader samples absolute coordinates px=(i+0.5)*dx and
+    # indexes the gridinit via (px - origin)/file_dx. Setting
+    #   origin = target_center - L/2
+    # makes GRTeclyn's box centre (target_center) map onto the gridinit centre,
+    # so GRTeclyn evolves the central window of the GRTresna domain rather than
+    # an off-centre corner. For the half-z RadialRecipe box target_center_z = 0
+    # correctly maps the z=0 reflective plane onto the gridinit centre.
+    if target_center is not None:
+        origin = np.array([
+            float(target_center[0]) - 0.5 * float(Lx),
+            float(target_center[1]) - 0.5 * float(Ly),
+            float(target_center[2]) - 0.5 * float(Lz),
+        ])
+
     result = write_gridinit(data, comp_names, dx_xyz, origin, output_path)
 
     if delete_source:

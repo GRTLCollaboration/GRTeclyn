@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -132,12 +133,18 @@ def build_consume_command(
             ]
         )
         if frames:
+            # Which fields to render as slice-frame movies. Trace/gauge fields
+            # (chi/lapse/K) are near-trivial for weak, momentum-carrying scalar
+            # matter and look identical across candidates; the cloud and its
+            # momentum live in phi/Pi, the shift (frame dragging), the
+            # off-diagonal metric (shear) and rho_req. Override the default set
+            # via $GRTECLYN_FRAMES_FIELDS (space-separated).
+            env_fields = os.environ.get("GRTECLYN_FRAMES_FIELDS", "").split()
+            frame_fields = env_fields if env_fields else ["chi", "lapse", "K"]
             command.extend(
                 [
                     "--frames-fields",
-                    "chi",
-                    "lapse",
-                    "K",
+                    *frame_fields,
                     "--frames-axis",
                     "z",
                     "--frames-center",

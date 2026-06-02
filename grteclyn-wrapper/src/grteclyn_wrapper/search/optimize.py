@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import re
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -135,19 +136,150 @@ ANGULAR_BASE_OVERRIDES: dict[str, Any] = {
 }
 
 
-def build_search_space(nonspherical: bool = False) -> list[SearchDimension]:
-    """Return the optimizer search space, optionally with angular (gauge) modes.
+# --- GRTresna (constraint-satisfying, momentum-carrying matter) search -------
+#
+# When GRTresna is in the loop the initial data is produced by a full 3D
+# elliptic constraint solve rather than the 1D radial recipe.  This unlocks a
+# genuinely new FTL axis the recipe cannot represent: a scalar-field cloud that
+# carries net linear and/or angular MOMENTUM, with the momentum constraint
+# solved (S_i = -Pi d_i phi != 0 -> matter-momentum-driven frame dragging).
+#
+# These dimensions use the ``grtresna_`` prefix so the objective can route them
+# to a GRTresnaConfig (which writes GRTresna's params.txt and runs the solver)
+# instead of writing them into GRTeclyn's params.txt.  Everything downstream
+# (GPU evolution + scoring) is unchanged: GRTresna just supplies the .gridinit.
+#
+# The matter source is a basis of K scalar "lumps"; each lump k contributes 10
+# searched dimensions (grtresna_lump{k}_*).  A superposition paints an arbitrary
+# energy/momentum distribution, which the elliptic solve maps to a rich family
+# of constraint-satisfying geometries (chi wells + momentum-driven A_ij).
+GRTRESNA_DEFAULT_NUM_LUMPS = 3
+
+
+def grtresna_search_space(num_lumps: int = GRTRESNA_DEFAULT_NUM_LUMPS) -> list[SearchDimension]:
+    """Build the K-lump GRTresna matter search space.
+
+    Initial lump centres are staggered along x so the lumps start distinct
+    (rather than all degenerate at the origin); the optimizer is free to move
+    them anywhere in range.
+    """
+    dims: list[SearchDimension] = []
+    for k in range(num_lumps):
+        # staggered initial x-centre, symmetric about 0
+        cx0 = (k - (num_lumps - 1) / 2.0) * 10.0
+        dims += [
+            SearchDimension(f"grtresna_lump{k}_amp", 0.0, 0.3, 0.1),
+            SearchDimension(f"grtresna_lump{k}_width", 3.0, 15.0, 7.0),
+            SearchDimension(f"grtresna_lump{k}_center_x", -24.0, 24.0, cx0),
+            SearchDimension(f"grtresna_lump{k}_center_y", -24.0, 24.0, 0.0),
+            SearchDimension(f"grtresna_lump{k}_center_z", -16.0, 16.0, 0.0),
+            SearchDimension(f"grtresna_lump{k}_velocity_x", -0.4, 0.4, 0.0),
+            SearchDimension(f"grtresna_lump{k}_velocity_y", -0.4, 0.4, 0.0),
+            SearchDimension(f"grtresna_lump{k}_velocity_z", -0.4, 0.4, 0.0),
+            SearchDimension(f"grtresna_lump{k}_omega", -0.2, 0.2, 0.0),
+            # azimuthal mode m (rounded to int): 0 axisymmetric, >=1 enables L_z
+            SearchDimension(f"grtresna_lump{k}_mode", 0.0, 2.0, 1.0),
+        ]
+    return dims
+
+
+# Default GRTresna search space (used as a fallback when none is supplied).
+GRTRESNA_SEARCH_SPACE: list[SearchDimension] = grtresna_search_space()
+
+_LUMP_KEY_RE = re.compile(r"^grtresna_lump(\d+)_(\w+)$")
+
+
+def build_search_space(
+    nonspherical: bool = False,
+    grtresna: bool = False,
+    grtresna_lumps: int = GRTRESNA_DEFAULT_NUM_LUMPS,
+) -> list[SearchDimension]:
+    """Return the optimizer search space.
 
     When ``nonspherical`` is True the spherically-symmetric radial space is
     extended with axisymmetric Legendre angular modes on the lapse and shift
     (see ANGULAR_SEARCH_SPACE).  The caller is responsible for also merging
     ANGULAR_BASE_OVERRIDES into the simulation base overrides so the modes are
     actually activated in params.txt.
+
+    When ``grtresna`` is True the GRTresna momentum-carrying-matter dimensions
+    (a ``grtresna_lumps``-lump scalar basis) REPLACE the radial recipe space,
+    because the initial data is then produced entirely by the GRTresna solve.
     """
+    if grtresna:
+        return grtresna_search_space(grtresna_lumps)
     space = list(DEFAULT_SEARCH_SPACE)
     if nonspherical:
         space += ANGULAR_SEARCH_SPACE
     return space
+
+
+def build_grtresna_config(
+    overrides: Mapping[str, Any], base: "GRTresnaConfig | None" = None
+) -> "GRTresnaConfig":
+    """Build a GRTresnaConfig from a candidate's ``grtresna_*`` overrides.
+
+    ``base`` provides the fixed solver settings (grid, MPI ranks, BH content,
+    cleanup); the searched ``grtresna_lump{k}_*`` keys are assembled into the
+    ``lumps`` basis.  The legacy un-indexed ``grtresna_lump_*`` keys are also
+    honoured (assembled as a single lump) for backward compatibility.
+    """
+    import dataclasses
+
+    from ..grtresna.solver import GRTresnaConfig
+
+    cfg = dataclasses.replace(base) if base is not None else GRTresnaConfig()
+
+    # Group indexed lump keys by index.
+    by_index: dict[int, dict[str, float]] = {}
+    for key, val in overrides.items():
+        m = _LUMP_KEY_RE.match(str(key))
+        if m:
+            by_index.setdefault(int(m.group(1)), {})[m.group(2)] = float(val)
+
+    if by_index:
+        lumps: list[dict] = []
+        for k in sorted(by_index):
+            f = by_index[k]
+            lumps.append({
+                "amp": f.get("amp", 0.0),
+                "width": f.get("width", 5.0),
+                "center": (f.get("center_x", 0.0), f.get("center_y", 0.0),
+                           f.get("center_z", 0.0)),
+                "velocity": (f.get("velocity_x", 0.0), f.get("velocity_y", 0.0),
+                             f.get("velocity_z", 0.0)),
+                "omega": f.get("omega", 0.0),
+                "mode": int(round(f.get("mode", 0.0))),
+            })
+        cfg.lumps = lumps
+        return cfg
+
+    # Backward-compatible single (un-indexed) lump.
+    def _get(key: str, default: float) -> float:
+        return float(overrides.get(key, default))
+
+    if any(str(k).startswith("grtresna_lump_") for k in overrides):
+        cfg.lump_amp = _get("grtresna_lump_amp", cfg.lump_amp)
+        cfg.lump_width = _get("grtresna_lump_width", cfg.lump_width)
+        cfg.lump_velocity = (
+            _get("grtresna_lump_velocity_x", cfg.lump_velocity[0]),
+            _get("grtresna_lump_velocity_y", cfg.lump_velocity[1]),
+            _get("grtresna_lump_velocity_z", cfg.lump_velocity[2]),
+        )
+        cfg.lump_omega = _get("grtresna_lump_omega", cfg.lump_omega)
+        if "grtresna_lump_mode" in overrides:
+            cfg.lump_mode = int(round(float(overrides["grtresna_lump_mode"])))
+    return cfg
+
+
+def parse_convergence_safe(work_dir: Path) -> dict[str, float] | None:
+    """Best-effort read of GRTresna Ham/Mom convergence (never raises)."""
+    try:
+        from ..grtresna.solver import parse_convergence
+
+        return parse_convergence(work_dir)
+    except Exception:
+        return None
 
 
 @dataclass(frozen=True)
@@ -224,6 +356,8 @@ def _objective(
     consume_plotfiles: bool = True,
     consumer_radii: Sequence[float] = (4.0, 8.0),
     consumer_keep_last: int = 1,
+    grtresna: bool = False,
+    grtresna_base: "GRTresnaConfig | None" = None,
 ) -> float:
     """Evaluate one candidate.  Returns negative score (CMA-ES minimizes)."""
     eval_counter[0] += 1
@@ -231,10 +365,12 @@ def _objective(
 
     overrides = _vector_to_overrides(x, dims, base_overrides)
 
-    if constrained:
+    # In GRTresna mode the constraint solve replaces the 1D radial recipe, so
+    # the recipe-specific constrained/preflight steps are skipped.
+    if constrained and not grtresna:
         constrained_overrides(overrides, phantom=phantom)
 
-    if use_preflight:
+    if use_preflight and not grtresna:
         pf = preflight_check(overrides, phantom=phantom)
         if not pf.passed:
             record = {
@@ -257,9 +393,42 @@ def _objective(
             "overrides": overrides,
         },
     )
+
+    # GRTeclyn params get everything except the grtresna_* search keys (which
+    # drive the upstream solver, not GRTeclyn's params.txt).
+    gte_overrides = {
+        k: v for k, v in overrides.items() if not str(k).startswith("grtresna_")
+    }
+
+    if grtresna and not dry_run:
+        from ..grtresna.solver import solve as grtresna_solve
+
+        cfg = build_grtresna_config(overrides, grtresna_base)
+        try:
+            gridinit = grtresna_solve(
+                cfg,
+                work_dir=episode.path / "grtresna",
+                gridinit_path=episode.path / "initial_data.gridinit",
+            )
+            gte_overrides["recipe_initial_data_file"] = gridinit
+            convergence = parse_convergence_safe(episode.path / "grtresna")
+            update_metadata(episode, {"grtresna_convergence": convergence})
+        except Exception as exc:  # solver failure -> penalise, keep searching
+            update_metadata(episode, {"grtresna_error": repr(exc)})
+            record = {
+                "eval": idx,
+                "episode": str(episode.path),
+                "score": 0.0,
+                "grtresna_failed": True,
+                "reason": repr(exc),
+                "overrides": {d.param_key: overrides.get(d.param_key) for d in dims},
+            }
+            trajectory.append(record)
+            return 100.0
+
     write_params(
         template, episode.params_path,
-        episode_dir=episode.path, example=example, overrides=overrides,
+        episode_dir=episode.path, example=example, overrides=gte_overrides,
     )
 
     exit_code: int | None = None
@@ -337,6 +506,8 @@ def run_optimize(
     surrogate: bool = False,
     surrogate_keep_fraction: float = 0.5,
     surrogate_warmup: int | None = None,
+    grtresna: bool = False,
+    grtresna_config: "GRTresnaConfig | None" = None,
 ) -> OptimizeResult:
     """Run multi-GPU CMA-ES optimization loop.
 
@@ -356,7 +527,7 @@ def run_optimize(
         raise ImportError("numpy is required for optimization.")
 
     example_cfg = example if isinstance(example, ExampleConfig) else resolve_example(example)
-    dims = list(search_space or DEFAULT_SEARCH_SPACE)
+    dims = list(search_space or (GRTRESNA_SEARCH_SPACE if grtresna else DEFAULT_SEARCH_SPACE))
     tpl = template or example_cfg.template
     base = dict(base_overrides or {})
     base.setdefault("N_full", 64)
@@ -417,6 +588,7 @@ def run_optimize(
         "dry_run": dry_run,
         "gpu_ids": list(gpu_ids) if gpu_ids else None,
         "consume_plotfiles": consume_plotfiles,
+        "grtresna": grtresna,
         "base_overrides": base,
         "search_space": [
             {"key": d.param_key, "lower": d.lower, "upper": d.upper, "initial": d.center}
@@ -457,6 +629,8 @@ def run_optimize(
                 consume_plotfiles=consume_plotfiles,
                 consumer_radii=consumer_radii,
                 consumer_keep_last=consumer_keep_last,
+                grtresna=grtresna,
+                grtresna_config=grtresna_config,
             )
         out: list[float] = []
         for sol in subset:
@@ -482,6 +656,8 @@ def run_optimize(
                 consume_plotfiles=consume_plotfiles,
                 consumer_radii=consumer_radii,
                 consumer_keep_last=consumer_keep_last,
+                grtresna=grtresna,
+                grtresna_base=grtresna_config,
             ))
         return out
 
@@ -602,6 +778,8 @@ def _evaluate_generation_parallel(
     consume_plotfiles: bool,
     consumer_radii: Sequence[float],
     consumer_keep_last: int = 1,
+    grtresna: bool = False,
+    grtresna_config: "GRTresnaConfig | None" = None,
 ) -> list[float]:
     """Evaluate an entire CMA-ES generation in parallel across GPUs.
 
@@ -637,6 +815,8 @@ def _evaluate_generation_parallel(
             consume_plotfiles=consume_plotfiles,
             consumer_radii=consumer_radii,
             consumer_keep_last=consumer_keep_last,
+            grtresna=grtresna,
+            grtresna_base=grtresna_config,
         )
         with lock:
             fitnesses[idx_in_gen] = f
