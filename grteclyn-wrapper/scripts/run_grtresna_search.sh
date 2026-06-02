@@ -40,14 +40,23 @@ export GRTRESNA_ROOT="${GRTRESNA_ROOT:-$(cd -- "${GRTECLYN_ROOT}/.." && pwd)/GRT
 # ---- Search configuration (override via environment) -----------------------
 RUN_STAMP="${RUN_STAMP:-$(date +%Y%m%d_%H%M%S)}"
 RUNS_DIR="${RUNS_DIR:-${GRTECLYN_ROOT}/runs/grtresna_search}"
-LUMPS="${LUMPS:-3}"                       # scalar lumps in the matter basis (11 dims each)
+LUMPS="${LUMPS:-5}"                       # scalar lumps in the matter basis (11 dims each)
 RANKS="${RANKS:-8}"                       # MPI ranks per GRTresna solve
 ITERATIONS="${ITERATIONS:-30}"            # max non-linear iterations per solve
-MAX_GENERATIONS="${MAX_GENERATIONS:-10}"
-POPULATION="${POPULATION:-8}"
-GPU_IDS="${GPU_IDS:-0 1 2 3 4 5 6 7}"
+GRTRESNA_MAX_LEVEL="${GRTRESNA_MAX_LEVEL:-3}"
+GRTRESNA_REFINE_THRESHOLD="${GRTRESNA_REFINE_THRESHOLD:-0.5}"
+GRTRESNA_REGRID_RADIUS="${GRTRESNA_REGRID_RADIUS:-0}"
+GRTRESNA_JACOBIAN_CAP="${GRTRESNA_JACOBIAN_CAP:-25.0}"
+MAX_GENERATIONS="${MAX_GENERATIONS:-50}"
+GPU_IDS="${GPU_IDS:-0 1 2 3}"
+POPULATION="${POPULATION:-$(wc -w <<< "${GPU_IDS}")}"
 SEED="${SEED:-7}"
 SIGMA0="${SIGMA0:-0.3}"
+OBJECTIVE_MODE="${OBJECTIVE_MODE:-ftl_first}"
+RANDOM_INJECTION_FRACTION="${RANDOM_INJECTION_FRACTION:-0.25}"
+EXOTIC_INJECTION_FRACTION="${EXOTIC_INJECTION_FRACTION:-0.25}"
+WARM_START_TOP_K="${WARM_START_TOP_K:-8}"
+WARM_START_JITTER="${WARM_START_JITTER:-0.08}"
 
 # Evolution / scoring knobs.
 CONSUMER_RADII="${CONSUMER_RADII:-4 8}"
@@ -57,8 +66,12 @@ ENABLE_FTL_SCORING="${ENABLE_FTL_SCORING:-1}"
 # Slice-frame movie fields. chi/lapse/K are the trace/gauge quantities and stay
 # near-trivial (and look identical across candidates) for weak momentum-carrying
 # scalar matter; the cloud + momentum show up in phi/Pi (scalar field & its
-# conjugate momentum), shift1 (frame dragging) and rho_req (energy density).
-export GRTECLYN_FRAMES_FIELDS="${FRAMES_FIELDS:-phi Pi chi shift1 rho_req}"
+# conjugate momentum), scalar_activity, shift1 (frame dragging), rho_req
+# (energy density) and local_speed (FTL precursor map).
+export GRTECLYN_FRAMES_FIELDS="${FRAMES_FIELDS:-phi Pi scalar_activity chi chi_minus_1 local_speed shift1 rho_req}"
+export GRTECLYN_PROJECTION_FIELDS="${PROJECTION_FIELDS:-scalar_activity}"
+export GRTECLYN_PROJECTION_AXES="${PROJECTION_AXES:-x y z}"
+export GRTECLYN_PROJECTION_METHOD="${PROJECTION_METHOD:-mip}"
 
 CONSUME_ARGS=()
 if [[ "${NO_CONSUME:-0}" == "1" ]]; then
@@ -101,22 +114,44 @@ echo "GRTeclyn root : ${GRTECLYN_ROOT}"
 echo "GRTresna root : ${GRTRESNA_ROOT}"
 echo "Runs dir      : ${RUNS_DIR}"
 echo "Lumps         : ${LUMPS}  (=> $((LUMPS * 11)) search dims)"
-echo "Solve         : RANKS=${RANKS}  ITERATIONS=${ITERATIONS}"
+echo "Solve         : RANKS=${RANKS}  ITERATIONS=${ITERATIONS}  max_level=${GRTRESNA_MAX_LEVEL}"
+echo "AMR           : refine_threshold=${GRTRESNA_REFINE_THRESHOLD} regrid_radius=${GRTRESNA_REGRID_RADIUS}"
 echo "CMA-ES        : generations=${MAX_GENERATIONS} population=${POPULATION} sigma0=${SIGMA0} seed=${SEED}"
 echo "GPUs          : ${GPU_IDS}"
+echo "Objective     : ${OBJECTIVE_MODE}  random_injection=${RANDOM_INJECTION_FRACTION} exotic_injection=${EXOTIC_INJECTION_FRACTION}"
+echo "Warm start    : ${WARM_START_TRAJECTORY:-<none>}"
 echo "Consumer      : $([[ "${NO_CONSUME:-0}" == "1" ]] && echo DISABLED || echo "frames+delete radii=${CONSUMER_RADII}")"
 echo "Frame fields  : ${GRTECLYN_FRAMES_FIELDS}"
+echo "Projections   : ${GRTECLYN_PROJECTION_FIELDS} axes=${GRTECLYN_PROJECTION_AXES} method=${GRTECLYN_PROJECTION_METHOD}"
 echo "FTL scoring   : ENABLE_FTL_SCORING=${ENABLE_FTL_SCORING}  FTL_L=${FTL_L}"
 echo
+
+WARM_START_ARGS=()
+if [[ -n "${WARM_START_TRAJECTORY:-}" ]]; then
+  IFS=',' read -r -a WARM_START_PATHS <<< "${WARM_START_TRAJECTORY}"
+  for traj in "${WARM_START_PATHS[@]}"; do
+    WARM_START_ARGS+=(--warm-start-trajectory "${traj}")
+  done
+fi
 
 # shellcheck disable=SC2086
 exec ${PYTHON_BIN} -m grteclyn_wrapper \
   "${PRE_ARGS[@]}" \
   optimize \
+  --objective-mode "${OBJECTIVE_MODE}" \
+  --random-injection-fraction "${RANDOM_INJECTION_FRACTION}" \
+  --exotic-injection-fraction "${EXOTIC_INJECTION_FRACTION}" \
+  --warm-start-top-k "${WARM_START_TOP_K}" \
+  --warm-start-jitter "${WARM_START_JITTER}" \
+  "${WARM_START_ARGS[@]}" \
   --grtresna \
   --grtresna-lumps "${LUMPS}" \
   --grtresna-ranks "${RANKS}" \
   --grtresna-iterations "${ITERATIONS}" \
+  --grtresna-max-level "${GRTRESNA_MAX_LEVEL}" \
+  --grtresna-refine-threshold "${GRTRESNA_REFINE_THRESHOLD}" \
+  --grtresna-regrid-radius "${GRTRESNA_REGRID_RADIUS}" \
+  --grtresna-jacobian-cap "${GRTRESNA_JACOBIAN_CAP}" \
   --max-generations "${MAX_GENERATIONS}" \
   --population-size "${POPULATION}" \
   --sigma0 "${SIGMA0}" \

@@ -157,6 +157,56 @@ the **momentum-carrying matter** capability added on top of it.
   conformal factor becomes possible, instead of the spherically-symmetric radial
   channel the recipe is limited to.
 
+### Building the GRTresna solver (C++)
+
+The closed-loop search shells out to the compiled `ScalarFieldBH` executable, so
+build it once before running. GRTresna is a Chombo app: it needs `CHOMBO_HOME`
+plus the MPI/Fortran/HDF5 toolchain from the `grtresna` conda/micromamba env on
+`PATH`.
+
+```bash
+# Toolchain (mpicxx, gfortran, hdf5) lives in the grtresna env.
+GRTRESNA_ENV=/home/jovyan/.mlspace/envs/grtresna
+CHOMBO_HOME=/home/jovyan/nachevsky/test/simulation/Chombo/lib
+
+cd /home/jovyan/nachevsky/test/simulation/GRTresna/Examples/ScalarFieldBH
+PATH="${GRTRESNA_ENV}/bin:${PATH}" CONDA_PREFIX="${GRTRESNA_ENV}" \
+  make all -j4 CHOMBO_HOME="${CHOMBO_HOME}"
+```
+
+This produces `Main_ScalarFieldBH3d.Linux.64.mpicxx.gfortran.OPTHIGH.MPI.ex` in
+that directory, which `grtresna/solver.py` invokes via `mpirun`.
+
+> **Rebuilding after editing headers.** Chombo's makefile keys off `.cpp` files,
+> so edits to header-only templated code (e.g. `CTTKHybrid.impl.hpp`,
+> `MatterParams.hpp`, `RHSTagging.hpp`) can be reported as "up to date" and *not*
+> recompiled. Force a clean relink by removing the stale objects + executable
+> first, then rebuild:
+>
+> ```bash
+> rm -f Main_ScalarFieldBH3d.Linux.64.mpicxx.gfortran.OPTHIGH.MPI.ex \
+>       o/3d.Linux.64.mpicxx.gfortran.OPTHIGH.MPI/{Main_ScalarFieldBH,Grids,ScalarField,MyMatterFunctions}.o
+> PATH="${GRTRESNA_ENV}/bin:${PATH}" CONDA_PREFIX="${GRTRESNA_ENV}" \
+>   make all -j4 CHOMBO_HOME="${CHOMBO_HOME}"
+> ```
+
+### Solver-only AMR smoke tests
+
+Before launching a full search you can sanity-check the constraint solver on the
+three committed AMR fixtures (`max_level=3`), which converge to finite Ham/Mom
+residuals with no `NaN` (the Ham/Mom error file is always written; heavy
+per-iteration HDF5 is off by default):
+
+```bash
+cd /home/jovyan/nachevsky/test/simulation/GRTresna/Examples/ScalarFieldBH
+for case in canonical exotic mixed_exotic; do
+  PATH="${GRTRESNA_ENV}/bin:${PATH}" CONDA_PREFIX="${GRTRESNA_ENV}" \
+    mpirun --oversubscribe -np 4 \
+    ./Main_ScalarFieldBH3d.Linux.64.mpicxx.gfortran.OPTHIGH.MPI.ex \
+    params_${case}_amr_test.txt
+done
+```
+
 ### How to use it — closed-loop search
 
 ```bash
@@ -270,46 +320,62 @@ it. This is documented honestly here, including where it does **not** yet work.
    source makes the linear operator indefinite for `rho < 0`; under-relaxation of
    the Newton step plus a ψ-positivity floor keep it from overshooting into
    `psi <= 0` (where `psi^-7` is `NaN`).
-4. **Continuous FTL precursor score** (`ftl_precursor`, in `metrics/score.py`).
+4. **AMR-stable indefinite operator** (`maximal_jacobian_cap`, arithmetic
+   coefficient averaging, `|rho|` tagging). On AMR the indefinite K=0 operator
+   used to diverge to `NaN` at the coarse-fine boundaries. Three changes fix it:
+   (a) the Newton Jacobian contribution from the matter source is **capped**
+   (`maximal_jacobian_cap`) and `psi_0` is floored finite/positive in
+   `CTTKHybrid` so a single bad cell can no longer poison the multigrid V-cycle;
+   (b) coefficient coarsening switches from **harmonic to arithmetic** averaging
+   (`coefficient_average_type`), which stays well-defined when the sign-changing
+   `aCoef` straddles zero across a coarse-fine face; (c) refinement tagging keys
+   on `|rho|` (`RHSTagging`) so negative-energy regions are actually refined
+   instead of being cancelled by neighbouring positive matter.
+5. **Continuous FTL precursor score** (`ftl_precursor`, in `metrics/score.py`).
    `operational_ftl` is a hard end-to-end-channel gate that is flat-zero until a
    full superluminal channel forms, giving CMA-ES no gradient. `ftl_precursor`
    rewards *local* cone tilting (`max_local_speed > 1`, superluminal area
    fraction) so the optimizer has a slope to climb before the hard gate fires.
 
-**What works (validated, single grid level).**
+**What works (validated under AMR).**
 
-- Canonical matter on the K=0 path matches the standard path (Ham residual
-  `0.07%` vs `0.04%`) — the formulation is correct.
+- Canonical matter on the K=0 path matches the standard path — the formulation
+  is correct.
 - A single **isolated** exotic lump converges to clean, finite, constraint-
-  satisfying data (effective amp `0.05 -> 2.9%`, `0.10 -> 7.1%` Ham), where the
-  old solver only produced `NaN`.
-- There is a sharp **physical** ceiling: at effective amp `0.15` the residual
-  jumps to `~98%`. This is the Lichnerowicz/York **existence boundary** — beyond
-  a critical negative-energy density no asymptotically-flat constraint-satisfying
-  data exists. `EXOTIC_AMP_SCALE = 0.25` maps the search amplitude range into the
-  convergent regime so exotic candidates stay solvable.
+  satisfying data, where the old solver only produced `NaN`.
+- The maximal-slicing path is now **AMR-robust**. Three solver-only smoke
+  fixtures at `max_level=3` (in
+  `GRTresna/Examples/ScalarFieldBH/params_*_amr_test.txt`) converge cleanly with
+  no `NaN`:
+  - `params_canonical_amr_test.txt` (positive-energy control, 2 boosted lumps):
+    `Converged!` at Ham `0.0056%`, Mom `0.025%`.
+  - `params_exotic_amr_test.txt` (one isolated exotic lump, K=0 path):
+    `Converged!` at Ham `0.099%`, Mom `0.027%`.
+  - `params_mixed_exotic_amr_test.txt` (the production failure mode: 3 lumps,
+    mixed canonical/exotic, angular `mode=1`): `Converged!` at Ham `0.058%`,
+    Mom `0.029%`.
+- There is still a sharp **physical** ceiling at high negative-energy density —
+  the Lichnerowicz/York **existence boundary**, beyond which no asymptotically-
+  flat constraint-satisfying data exists. `EXOTIC_AMP_SCALE = 0.25` maps the
+  search amplitude range into the convergent regime so exotic candidates stay
+  solvable.
 
-**What does NOT work yet (honest negative result).**
+**How the search uses it.** `build_grtresna_config` auto-detects exotic lumps and
+switches that candidate onto the hardened K=0 path (maximal slicing,
+`psi_relaxation=0.6`, `psi_floor=0.1`, `maximal_jacobian_cap=25`, arithmetic
+coefficient averaging). **Purely-canonical** candidates are left on the standard
+CTTK ansatz, which remains the more robust choice for positive multi-lump matter.
+The lump-basis search also zeros the legacy radial background scalar
+(`dphi=dpi=0`) so the matter is exactly the searched lumps.
 
-- Under the **production** solve (AMR `max_level=3`, 3 overlapping lumps with
-  angular `mode=1`, plus a background scalar), the K=0 path **diverges to NaN**
-  even for *canonical* matter — so `maximal_slicing` is now gated to exotic-only
-  candidates (`build_grtresna_config`), and purely-canonical candidates keep the
-  robust standard path (which solves these configs to `~0.04%`).
-- A **mixed** config (one exotic lump) on the K=0 path also fails to converge
-  under that production setting (NaN under AMR; Ham stuck at `100%` even at
-  `max_level=0` once the background scalar + multiple lumps are present). The
-  maximal-slicing path is currently robust only for **isolated single lumps on a
-  single grid level**, not for the multi-lump/AMR configs the search actually
-  proposes. Making it AMR-robust (coarse-fine ψ interpolation, tagging, a
-  multilevel-stable indefinite operator) is the open follow-up.
-
-**Net status.** Exotic matter is implemented end-to-end and provably solvable in
-the simple regime, but not yet inside the full AMR search. The completed
-*pre-exotic* reweighted run (best gated `S = 8.25`) confirmed the other half of
-the problem: `operational_ftl` stayed `0` across all 80 candidates and the score
-gain came from curvature/health terms, not FTL — motivating both the precursor
-gradient and the exotic-matter work above.
+**Net status.** Exotic matter is implemented end-to-end and is now solvable
+**inside the full AMR multi-lump regime** the search actually proposes, validated
+by the three smoke fixtures above plus the wrapper integration tests
+(`tests/test_grtresna_integration.py`). The earlier *pre-exotic* reweighted run
+(best gated `S = 8.25`) confirmed the other half of the problem: `operational_ftl`
+stayed `0` across all 80 candidates and the score gain came from curvature/health
+terms, not FTL — motivating both the precursor gradient and the exotic-matter
+work above.
 
 ## Batch: 7 non-spherical shapes on GPUs 0–6
 

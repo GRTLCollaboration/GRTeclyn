@@ -89,6 +89,28 @@ def _canonical_field_name(name: str) -> str:
     return aliases.get(name, name)
 
 
+def _field_type_for(ds, *field_names: str) -> str:
+    """Prefer BoxLib fields, but support yt stream datasets for isolated tests."""
+    field_list = list(getattr(ds, "field_list", []))
+    derived_field_list = list(getattr(ds, "derived_field_list", []))
+    available = field_list + derived_field_list
+    for name in field_names:
+        if ("boxlib", name) in available:
+            return "boxlib"
+    for name in field_names:
+        if ("stream", name) in available:
+            return "stream"
+    for name in field_names:
+        for ftype, fname in available:
+            if fname == name:
+                return ftype
+    return "boxlib"
+
+
+def _field_key(ds, field_name: str) -> tuple[str, str]:
+    return (_field_type_for(ds, field_name), field_name)
+
+
 def _should_auto_reset(plot_dirs: List[str], state: Dict[str, bool]) -> bool:
     """
     Heuristic: if the output folder contains a "fresh" plot index (0) but the
@@ -161,21 +183,45 @@ def spin_weighted_sph_harm_s2_l2_m0(theta: np.ndarray) -> np.ndarray:
     return np.sqrt(15.0 / (32.0 * np.pi)) * (np.sin(theta) ** 2)
 
 def _register_derived_fields(ds, field: str) -> None:
+    base_ftype = _field_type_for(ds, "phi", "Pi", "chi")
+    if (base_ftype, field) in list(getattr(ds, "field_list", [])) + list(getattr(ds, "derived_field_list", [])):
+        return
+
     # GW proxy fields
     if field == "GW_Plus":
-        def _gw_plus(_field, data):
-            return data["boxlib", "A11"] - data["boxlib", "A22"]
-        ds.add_field(("boxlib", "GW_Plus"), function=_gw_plus, sampling_type="cell", units="")
+        def _gw_plus(field, data):
+            return data[base_ftype, "A11"] - data[base_ftype, "A22"]
+        ds.add_field((base_ftype, "GW_Plus"), function=_gw_plus, sampling_type="cell", units="")
     elif field == "GW_Cross":
-        def _gw_cross(_field, data):
-            return 2.0 * data["boxlib", "A12"]
-        ds.add_field(("boxlib", "GW_Cross"), function=_gw_cross, sampling_type="cell", units="")
+        def _gw_cross(field, data):
+            return 2.0 * data[base_ftype, "A12"]
+        ds.add_field((base_ftype, "GW_Cross"), function=_gw_cross, sampling_type="cell", units="")
     elif field == "Weyl4_Mag":
         def _weyl4_mag(field, data):
-            re_v = data["boxlib", "Weyl4_Re"]
-            im_v = data["boxlib", "Weyl4_Im"]
+            re_v = data[base_ftype, "Weyl4_Re"]
+            im_v = data[base_ftype, "Weyl4_Im"]
             return np.sqrt(re_v**2 + im_v**2)
-        ds.add_field(("boxlib", "Weyl4_Mag"), function=_weyl4_mag, sampling_type="cell", units="")
+        ds.add_field((base_ftype, "Weyl4_Mag"), function=_weyl4_mag, sampling_type="cell", units="")
+    elif field == "chi_minus_1":
+        def _chi_minus_1(field, data):
+            return data[base_ftype, "chi"] - 1.0
+        ds.add_field((base_ftype, "chi_minus_1"), function=_chi_minus_1, sampling_type="cell", units="")
+    elif field == "scalar_activity":
+        def _scalar_activity(field, data):
+            phi = data[base_ftype, "phi"]
+            pi = data[base_ftype, "Pi"]
+            return np.sqrt(phi**2 + pi**2)
+        ds.add_field((base_ftype, "scalar_activity"), function=_scalar_activity, sampling_type="cell", units="")
+    elif field == "local_speed":
+        def _local_speed(field, data):
+            eps = 1.0e-12
+            chi = data[base_ftype, "chi"]
+            lapse = data[base_ftype, "lapse"]
+            c1 = np.abs(data[base_ftype, "shift1"]) + lapse * np.sqrt(chi / np.maximum(data[base_ftype, "h11"], eps))
+            c2 = np.abs(data[base_ftype, "shift2"]) + lapse * np.sqrt(chi / np.maximum(data[base_ftype, "h22"], eps))
+            c3 = np.abs(data[base_ftype, "shift3"]) + lapse * np.sqrt(chi / np.maximum(data[base_ftype, "h33"], eps))
+            return np.maximum(np.maximum(c1, c2), c3)
+        ds.add_field((base_ftype, "local_speed"), function=_local_speed, sampling_type="cell", units="")
 
     elif field == "Weyl4_Re":
         # Ensure base fields are available if asked for explicitly?
@@ -232,6 +278,11 @@ def _render_slice_frame(
 
     configs = {
         "chi":   {"zlim": (None, None),  "cmap": "magma", "label": r"Conformal Factor $\chi$"},
+        "chi_minus_1": {"zlim": (-0.20, 0.20), "cmap": "RdBu", "label": r"$\chi - 1$"},
+        "phi": {"zlim": (-0.20, 0.20), "cmap": "RdBu", "label": r"$\phi$"},
+        "Pi": {"zlim": (-0.05, 0.05), "cmap": "RdBu", "label": r"$\Pi$"},
+        "scalar_activity": {"zlim": (0.0, 0.20), "cmap": "viridis", "label": r"$\sqrt{\phi^2+\Pi^2}$"},
+        "local_speed": {"zlim": (0.95, 1.10), "cmap": "magma", "label": r"Local Coordinate Speed"},
         "K":     {"zlim": (None, None), "cmap": "RdBu",  "label": r"Trace of Extrinsic Curvature $K$"},
         "Theta": {"zlim": (-0.005, 0.005), "cmap": "RdBu", "label": r"Z4 Constraint $\Theta$"},
         "lapse": {"zlim": (None, None),  "cmap": "viridis", "label": r"Lapse $\alpha$"},
@@ -280,6 +331,7 @@ def _render_slice_frame(
     plot_center = ds.arr(physics_center, "code_length")
 
     _register_derived_fields(ds, field)
+    plot_field = _field_key(ds, field)
 
     # Apply scientific style
     plt.rcParams.update({
@@ -293,13 +345,13 @@ def _render_slice_frame(
         "axes.linewidth": 1.2,
     })
 
-    slc = yt.SlicePlot(ds, axis, ("boxlib", field), center=plot_center)
+    slc = yt.SlicePlot(ds, axis, plot_field, center=plot_center)
     # Use dataset-native coordinates (e.g. [0,40]) on axes for symmetry-reduced domains.
     slc.set_origin("native")
     slc.set_axes_unit("code_length")
     if zoom is not None:
         slc.set_width((float(zoom), "code_length"))
-    slc.set_log(("boxlib", field), False)
+    slc.set_log(plot_field, False)
 
     # Force axis labels to be purely LaTeX (overriding yt's defaults)
     # The axes mapping depends on the slice axis.
@@ -316,15 +368,15 @@ def _render_slice_frame(
     # Let's assume standard behavior first.
 
     if cfg["zlim"][0] is not None:
-        slc.set_zlim(("boxlib", field), cfg["zlim"][0], cfg["zlim"][1])
+        slc.set_zlim(plot_field, cfg["zlim"][0], cfg["zlim"][1])
     else:
         try:
-            zlim = _auto_zlim(np.asarray(slc.frb[("boxlib", field)]), field)
+            zlim = _auto_zlim(np.asarray(slc.frb[plot_field]), field)
             if zlim is not None:
-                slc.set_zlim(("boxlib", field), zlim[0], zlim[1])
+                slc.set_zlim(plot_field, zlim[0], zlim[1])
         except Exception:
             pass
-    slc.set_cmap(("boxlib", field), cfg["cmap"])
+    slc.set_cmap(plot_field, cfg["cmap"])
 
     coord_val = _clean_zero(physics_center[{"x": 0, "y": 1, "z": 2}[axis]])
 
@@ -336,13 +388,13 @@ def _render_slice_frame(
     xlabel_name, ylabel_name = axis_map[axis]
     slc.set_xlabel(r"$%s$" % xlabel_name)
     slc.set_ylabel(r"$%s$" % ylabel_name)
-    slc.set_colorbar_label(("boxlib", field), cfg['label'])
+    slc.set_colorbar_label(plot_field, cfg['label'])
 
     # Render now so we can tweak tick labels on the matplotlib axes.
     # NOTE: yt may re-render inside slc.save(); to make tick tweaks stick we save
     # via matplotlib after rendering.
     slc.render()
-    plot = slc.plots[("boxlib", field)]
+    plot = slc.plots[plot_field]
     ax = plot.axes
     ax.set_title(title_text, pad=8)
 
@@ -396,6 +448,120 @@ def _render_slice_frame(
 
     return out_path
 
+
+def _render_projection_frame(
+    ds,
+    field: str,
+    axis: str,
+    method: str,
+    zoom: float | None,
+    center_xyz: Sequence[float] | None,
+    frames_out_dir: str,
+    frame_idx: int,
+    verbose: bool,
+) -> str:
+    """Render a line-of-sight projection frame for 3D matter placement."""
+    configs = {
+        "phi": {"zlim": (-0.20, 0.20), "cmap": "RdBu", "label": r"$\phi$"},
+        "Pi": {"zlim": (-0.05, 0.05), "cmap": "RdBu", "label": r"$\Pi$"},
+        "scalar_activity": {"zlim": (0.0, 0.20), "cmap": "viridis", "label": r"$\sqrt{\phi^2+\Pi^2}$"},
+        "chi_minus_1": {"zlim": (-0.20, 0.20), "cmap": "RdBu", "label": r"$\chi - 1$"},
+        "local_speed": {"zlim": (0.95, 1.10), "cmap": "magma", "label": r"Local Coordinate Speed"},
+    }
+    cfg = configs.get(field, {"zlim": (None, None), "cmap": "viridis", "label": field})
+
+    mid_x = float((ds.domain_right_edge[0] + ds.domain_left_edge[0]) / 2.0)
+    mid_y = float((ds.domain_right_edge[1] + ds.domain_left_edge[1]) / 2.0)
+    physics_center = [mid_x, mid_y, 0.0]
+    if center_xyz is not None:
+        physics_center = [float(center_xyz[0]), float(center_xyz[1]), float(center_xyz[2])]
+
+    _register_derived_fields(ds, field)
+    plot_field = _field_key(ds, field)
+
+    plt.rcParams.update({
+        "font.family": "serif",
+        "font.serif": ["Computer Modern Roman", "DejaVu Serif", "Times New Roman", "serif"],
+        "mathtext.fontset": "cm",
+        "axes.labelsize": 14,
+        "axes.titlesize": 16,
+        "xtick.labelsize": 12,
+        "ytick.labelsize": 12,
+        "axes.linewidth": 1.2,
+    })
+
+    plot_center = ds.arr(physics_center, "code_length")
+    proj = yt.ProjectionPlot(
+        ds,
+        axis,
+        plot_field,
+        center=plot_center,
+        method=method,
+    )
+    proj.set_origin("native")
+    proj.set_axes_unit("code_length")
+    if zoom is not None:
+        width = float(zoom)
+        z_left = float(ds.domain_left_edge[2])
+        z_right = float(ds.domain_right_edge[2])
+        # RadialRecipe/GRTresna evolves a half-z domain with reflective z=0.
+        # For x/y projections, a symmetric width around z0=0 asks yt to render
+        # z<0, which appears as a white cut-off band. Use the stored z extent
+        # instead, while preserving the requested transverse zoom.
+        if axis in {"x", "y"} and physics_center[2] <= z_left + 1.0e-12:
+            z_width = min(width, z_right - z_left)
+            if axis == "x":
+                proj.set_width((width, z_width))
+            else:
+                proj.set_width((z_width, width))
+        else:
+            proj.set_width((width, "code_length"))
+    proj.set_log(plot_field, False)
+    if cfg["zlim"][0] is not None:
+        proj.set_zlim(plot_field, cfg["zlim"][0], cfg["zlim"][1])
+    proj.set_cmap(plot_field, cfg["cmap"])
+    proj.set_colorbar_label(plot_field, cfg["label"])
+
+    axis_map = {"x": ("y", "z"), "y": ("z", "x"), "z": ("x", "y")}
+    xlabel_name, ylabel_name = axis_map[axis]
+    proj.set_xlabel(r"$%s$" % xlabel_name)
+    proj.set_ylabel(r"$%s$" % ylabel_name)
+    title_text = r"%s $\quad t=%.2f \quad \mathrm{%s\ projection\ along}\ %s$" % (
+        cfg["label"],
+        float(ds.current_time),
+        method,
+        axis,
+    )
+
+    proj.render()
+    plot = proj.plots[plot_field]
+    ax = plot.axes
+    ax.set_title(title_text, pad=8)
+
+    display_offsets = {
+        "x": (physics_center[1], physics_center[2]),
+        "y": (physics_center[2], physics_center[0]),
+        "z": (physics_center[0], physics_center[1]),
+    }[axis]
+    x_offset, y_offset = display_offsets
+    ax.xaxis.set_major_formatter(FuncFormatter(lambda val, pos: f"{float(val - x_offset):g}"))
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda val, pos: f"{float(val - y_offset):g}"))
+    ax.set_xlabel(r"$%s-%s_0$" % (xlabel_name, xlabel_name))
+    ax.set_ylabel(r"$%s-%s_0$" % (ylabel_name, ylabel_name))
+
+    output_dir = os.path.join(frames_out_dir, f"{field}_proj_{axis}")
+    frames_dir = os.path.join(output_dir, "frames")
+    os.makedirs(frames_dir, exist_ok=True)
+    frame_name = f"frame_proj_{axis}_{frame_idx:04d}.png"
+    out_path = os.path.join(frames_dir, frame_name)
+    plot.figure.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.close(plot.figure)
+
+    if verbose:
+        print(f"[projection] {field} -> {out_path}")
+
+    return out_path
+
 def _cleanup_existing_frames(frames_out_dir: str, fields: Sequence[str], axis: str, verbose: bool) -> None:
     """
     Remove existing PNG frames (and movie mp4) for the requested field+axis outputs.
@@ -425,6 +591,31 @@ def _cleanup_existing_frames(frames_out_dir: str, fields: Sequence[str], axis: s
                     print(f"[clean] removed {movie}")
             except FileNotFoundError:
                 pass
+
+
+def _cleanup_projection_frames(frames_out_dir: str, fields: Sequence[str], axes: Sequence[str], verbose: bool) -> None:
+    """Remove existing projection PNG frames for requested field+axis outputs."""
+    base = Path(frames_out_dir)
+    for fld in fields:
+        for axis in axes:
+            out_dir = base / f"{fld}_proj_{axis}"
+            frames_dir = out_dir / "frames"
+            if frames_dir.is_dir():
+                for p in frames_dir.glob("*.png"):
+                    try:
+                        p.unlink()
+                    except FileNotFoundError:
+                        pass
+                if verbose:
+                    print(f"[clean] cleared projection frames in {frames_dir}")
+            movie = out_dir / f"movie_{fld}_proj_{axis}.mp4"
+            if movie.exists():
+                try:
+                    movie.unlink()
+                    if verbose:
+                        print(f"[clean] removed {movie}")
+                except FileNotFoundError:
+                    pass
 
 
 def _extract_mode_amps_l2m0(
@@ -965,6 +1156,25 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
                     verbose=args_dict.get("verbose", False),
                 )
 
+        projection_fields = [_canonical_field_name(f) for f in args_dict.get("projection_fields", [])]
+        projection_axes = list(args_dict.get("projection_axes", []) or [])
+        if projection_fields and projection_axes:
+            idx = _parse_plot_index(key)
+            frame_idx = idx if idx is not None else fallback_frame_idx
+            for fld in projection_fields:
+                for axis in projection_axes:
+                    _render_projection_frame(
+                        ds,
+                        field=fld,
+                        axis=axis,
+                        method=args_dict.get("projection_method", "mip"),
+                        zoom=args_dict.get("frames_zoom"),
+                        center_xyz=args_dict.get("frames_center"),
+                        frames_out_dir=args_dict["frames_out"],
+                        frame_idx=int(frame_idx),
+                        verbose=args_dict.get("verbose", False),
+                    )
+
         if args_dict.get("areal_radius"):
             if ("boxlib", "chi") in ds.field_list:
                 try:
@@ -993,7 +1203,11 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
                     print(f"WARNING: plotfile {key} missing chi field; skipping embedding.")
 
         result["success"] = bool(
-            result["psi4_line"] or result["areal_line"] or result["shell_line"] or frame_fields
+            result["psi4_line"]
+            or result["areal_line"]
+            or result["shell_line"]
+            or frame_fields
+            or projection_fields
         )
 
         if args_dict.get("delete") and (p not in protected):
@@ -1057,6 +1271,25 @@ def main() -> None:
     parser.add_argument("--frames-center", type=float, nargs=3, default=None, help="Center (x y z) for frames.")
     parser.add_argument("--frames-corner", action="store_true", help="Corner mode for symmetry-reduced domains (frames).")
     parser.add_argument("--frames-out", default=_default_frames_out_dir(), help="Frames output base dir (default: src/visualisation/visualize).")
+    parser.add_argument(
+        "--projection-fields",
+        nargs="+",
+        default=[],
+        help="Render 3D line-of-sight projection frames for these fields.",
+    )
+    parser.add_argument(
+        "--projection-axes",
+        nargs="+",
+        choices=["x", "y", "z"],
+        default=[],
+        help="Axes to project along for --projection-fields.",
+    )
+    parser.add_argument(
+        "--projection-method",
+        choices=["mip", "integrate", "sum"],
+        default="mip",
+        help="Projection method. mip is best for locating compact blobs.",
+    )
     parser.add_argument(
         "--areal-radius",
         action="store_true",
@@ -1135,6 +1368,15 @@ def main() -> None:
             frames_out_dir=os.path.abspath(args.frames_out),
             fields=frame_fields_startup,
             axis=args.frames_axis,
+            verbose=args.verbose,
+        )
+
+    projection_fields_startup = [_canonical_field_name(f) for f in args.projection_fields]
+    if projection_fields_startup and args.projection_axes and not args.keep_existing_frames:
+        _cleanup_projection_frames(
+            frames_out_dir=os.path.abspath(args.frames_out),
+            fields=projection_fields_startup,
+            axes=args.projection_axes,
             verbose=args.verbose,
         )
 

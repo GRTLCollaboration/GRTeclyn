@@ -248,30 +248,37 @@ elliptically:
 \label{eq:maximal_slicing}
 \end{equation}
 solved by an under-relaxed Newton iteration with a $\psi>0$ floor for the
-resulting indefinite operator.  On a single grid level this is correct and
-useful: canonical matter reproduces the standard path ($\lVert H\rVert_{L^2}$
-residual $0.07\%$ vs.\ $0.04\%$), and a single isolated exotic lump now converges
-to finite constraint-satisfying data (effective amplitude $0.05\to2.9\%$,
-$0.10\to7.1\%$) where the old solver gave only \texttt{NaN}.  A sharp residual
-cliff at amplitude $\sim0.15$ ($\to98\%$) marks the Lichnerowicz/York
-\emph{existence boundary}: beyond a critical negative-energy density no
-asymptotically-flat constraint-satisfying solution exists, a physical rather than
-numerical limit.
+resulting indefinite operator.  To make this indefinite solve survive adaptive
+mesh refinement we add three multilevel safeguards: (i) the matter contribution
+to the Newton Jacobian is capped and $\psi$ is floored finite and positive, so a
+single bad cell cannot poison the multigrid $V$-cycle; (ii) coefficient
+coarsening switches from harmonic to \emph{arithmetic} averaging, which stays
+well defined where the sign-changing $a$-coefficient straddles zero across a
+coarse--fine face; and (iii) refinement tagging keys on $\lvert\rho\rvert$ so
+negative-energy regions are refined rather than cancelled by neighbouring
+positive matter.  The result is correct and robust \emph{under full AMR}:
+canonical matter reproduces the standard path, a single isolated exotic lump
+converges to finite constraint-satisfying data where the old solver gave only
+\texttt{NaN}, and---most importantly---the production failure mode (three
+overlapping lumps, mixed canonical/exotic, angular mode $m=1$, \texttt{max\_level}
+$=3$) now converges cleanly: across the canonical, isolated-exotic, and mixed
+\texttt{max\_level}$=3$ smoke solves the Hamiltonian/momentum residuals are
+$0.0056\%/0.025\%$, $0.099\%/0.027\%$, and $0.058\%/0.029\%$ respectively, with
+no \texttt{NaN}.  A sharp residual cliff at high exotic amplitude marks the
+Lichnerowicz/York \emph{existence boundary}: beyond a critical negative-energy
+density no asymptotically-flat constraint-satisfying solution exists, a physical
+rather than numerical limit.
 
 \subsection{Current blockers}
 \label{sec:grtresna_blockers}
 
-Three obstacles currently keep this path from being the search default.
-\emph{(1) AMR robustness.}  Under the production solve (adaptive mesh refinement
-with several overlapping lumps and a background scalar) the $K=0$ path diverges
-to \texttt{NaN} even for canonical matter, so it is presently gated to
-exotic-only candidates while purely canonical ones retain the stable
-trace-absorption path; making the indefinite multilevel solve robust (coarse--fine
-$\psi$ interpolation, refinement tagging, preconditioning) is the prerequisite
-for searching over AMR-resolved exotic data.  \emph{(2) Existence ceiling.}
+Two obstacles remain after the AMR-robust maximal-slicing solve.  Exotic
+candidates are still routed onto the $K=0$ path while purely canonical ones
+retain the (more robust for positive multi-lump matter) trace-absorption path.
+\emph{(1) Existence ceiling.}
 Eq.~\eqref{eq:maximal_slicing} only admits solutions below the exotic-amplitude
 cliff, bounding how much negative energy a single asymptotically-flat slice can
-carry.  \emph{(3) Throughput.}  Each candidate now embeds an MPI elliptic solve
+carry.  \emph{(2) Throughput.}  Each candidate now embeds an MPI elliptic solve
 ($\mathcal{O}(\text{minutes})$), reducing the number of geometries the optimizer
 can sample per unit wall-clock.  Finally, even with momentum and (simple) exotic
 matter available, no candidate has yet opened an end-to-end superluminal channel
@@ -642,11 +649,11 @@ The largest single improvement is making the constraint-satisfying path the defa
 The matter-first elliptic path of Sec.~\ref{sec:grtresna} already implements
 per-lump exotic (phantom) matter and a maximal-slicing ($K=0$) solve
 (Eq.~\ref{eq:maximal_slicing}) that handles $\rho<0$ where the trace-absorption
-ansatz returns \texttt{NaN}.  The open work is to lift its blockers
-(Sec.~\ref{sec:grtresna_blockers}): a multilevel-stable indefinite solve so
-exotic data survives AMR rather than being gated to single-level/isolated lumps,
-and a co-moving momentum source so the resulting lens can be \emph{translated}
-rather than merely held in place.
+ansatz returns \texttt{NaN}, and the multilevel safeguards of
+Sec.~\ref{sec:exotic_solver} make this indefinite solve robust under full AMR for
+the multi-lump mixed-matter configurations the search proposes.  The remaining
+open work (Sec.~\ref{sec:grtresna_blockers}) is a co-moving momentum source so
+the resulting lens can be \emph{translated} rather than merely held in place.
 
 \paragraph{Topology search.}
 The current parameterization cannot change topology: its non-spherical freedom lives in the gauge sector, where shift structure naturally favors warp-like channels.  Wormholes and portals require a discrete controller that selects mouths, throats, modes, and boundary connectivity before the continuous optimizer refines each topology, echoing discrete/continuous decompositions in string-landscape search~\cite{halverson2019branes}.

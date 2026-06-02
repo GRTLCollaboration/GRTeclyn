@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import random
 import re
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass, field
@@ -33,6 +34,9 @@ from ..initial_data.preflight import preflight_check
 from ..metrics.episode_metrics import dataclass_to_dict, read_episode_metrics
 from ..metrics.score import Score, score_episode
 from .surrogate import RBFSurrogate, screen_candidates
+
+
+ObjectiveMode = str
 
 try:
     import cma
@@ -149,24 +153,23 @@ ANGULAR_BASE_OVERRIDES: dict[str, Any] = {
 # instead of writing them into GRTeclyn's params.txt.  Everything downstream
 # (GPU evolution + scoring) is unchanged: GRTresna just supplies the .gridinit.
 #
-# The matter source is a basis of K scalar "lumps"; each lump k contributes 10
+# The matter source is a basis of K scalar "lumps"; each lump k contributes 11
 # searched dimensions (grtresna_lump{k}_*).  A superposition paints an arbitrary
 # energy/momentum distribution, which the elliptic solve maps to a rich family
 # of constraint-satisfying geometries (chi wells + momentum-driven A_ij).
-GRTRESNA_DEFAULT_NUM_LUMPS = 3
+GRTRESNA_DEFAULT_NUM_LUMPS = 5
 
 
 def grtresna_search_space(num_lumps: int = GRTRESNA_DEFAULT_NUM_LUMPS) -> list[SearchDimension]:
     """Build the K-lump GRTresna matter search space.
 
-    Initial lump centres are staggered along x so the lumps start distinct
-    (rather than all degenerate at the origin); the optimizer is free to move
-    them anywhere in range.
+    Initial lump centres are staggered near the origin so the lumps start
+    distinct without painting broad matter across the entire visual frame.
     """
     dims: list[SearchDimension] = []
     for k in range(num_lumps):
         # staggered initial x-centre, symmetric about 0
-        cx0 = (k - (num_lumps - 1) / 2.0) * 10.0
+        cx0 = (k - (num_lumps - 1) / 2.0) * 2.5
         dims += [
             # The FTL channel here is shift-driven frame dragging: lump
             # velocity/omega -> conjugate momentum Pi -> momentum density S_i ->
@@ -179,10 +182,10 @@ def grtresna_search_space(num_lumps: int = GRTRESNA_DEFAULT_NUM_LUMPS) -> list[S
             # unphysical initial data), so amplitude is kept close to that proven
             # range while the momentum knobs are opened up.
             SearchDimension(f"grtresna_lump{k}_amp", 0.0, 0.35, 0.15),
-            SearchDimension(f"grtresna_lump{k}_width", 2.0, 18.0, 7.0),
-            SearchDimension(f"grtresna_lump{k}_center_x", -24.0, 24.0, cx0),
-            SearchDimension(f"grtresna_lump{k}_center_y", -24.0, 24.0, 0.0),
-            SearchDimension(f"grtresna_lump{k}_center_z", -16.0, 16.0, 0.0),
+            SearchDimension(f"grtresna_lump{k}_width", 1.5, 4.5, 3.0),
+            SearchDimension(f"grtresna_lump{k}_center_x", -6.0, 6.0, cx0),
+            SearchDimension(f"grtresna_lump{k}_center_y", -6.0, 6.0, 0.0),
+            SearchDimension(f"grtresna_lump{k}_center_z", -3.0, 3.0, 0.0),
             SearchDimension(f"grtresna_lump{k}_velocity_x", -0.9, 0.9, 0.0),
             SearchDimension(f"grtresna_lump{k}_velocity_y", -0.9, 0.9, 0.0),
             SearchDimension(f"grtresna_lump{k}_velocity_z", -0.9, 0.9, 0.0),
@@ -203,6 +206,11 @@ def grtresna_search_space(num_lumps: int = GRTRESNA_DEFAULT_NUM_LUMPS) -> list[S
 GRTRESNA_SEARCH_SPACE: list[SearchDimension] = grtresna_search_space()
 
 _LUMP_KEY_RE = re.compile(r"^grtresna_lump(\d+)_(\w+)$")
+
+GRTRESNA_MAX_HAM_PCT = 5.0
+GRTRESNA_MAX_MOM_PCT = 5.0
+GRTRESNA_REJECTION_BASE_FITNESS = 100.0
+GRTRESNA_REJECTION_MAX_EXTRA_FITNESS = 250.0
 
 
 def build_search_space(
@@ -261,9 +269,13 @@ def build_grtresna_config(
         if not cfg.maximal_slicing:
             cfg.maximal_slicing = True
         if cfg.psi_relaxation == 1.0:
-            cfg.psi_relaxation = 0.8
+            cfg.psi_relaxation = 0.6
         if cfg.psi_floor <= 0.0:
             cfg.psi_floor = 0.1
+        if cfg.maximal_jacobian_cap <= 0.0:
+            cfg.maximal_jacobian_cap = 25.0
+        if cfg.coefficient_average_type == "harmonic":
+            cfg.coefficient_average_type = "arithmetic"
 
     # Group indexed lump keys by index.
     by_index: dict[int, dict[str, float]] = {}
@@ -324,6 +336,50 @@ def parse_convergence_safe(work_dir: Path) -> dict[str, float] | None:
         return None
 
 
+def _grtresna_convergence_rejection_reason(
+    convergence: Mapping[str, float] | None,
+    *,
+    max_ham_pct: float = GRTRESNA_MAX_HAM_PCT,
+    max_mom_pct: float = GRTRESNA_MAX_MOM_PCT,
+) -> str | None:
+    """Return a rejection reason for unusable GRTresna initial data."""
+    if not convergence:
+        return "missing GRTresna convergence diagnostics"
+    try:
+        ham = float(convergence["ham_pct"])
+        mom = float(convergence["mom_pct"])
+    except (KeyError, TypeError, ValueError):
+        return "invalid GRTresna convergence diagnostics"
+    if not math.isfinite(ham) or not math.isfinite(mom):
+        return f"nonfinite GRTresna convergence: Ham={ham}, Mom={mom}"
+    if ham > max_ham_pct or mom > max_mom_pct:
+        return (
+            f"GRTresna convergence too poor: Ham={ham:.6g}% "
+            f"Mom={mom:.6g}% thresholds=({max_ham_pct:g}%, {max_mom_pct:g}%)"
+        )
+    return None
+
+
+def _grtresna_rejection_fitness(
+    convergence: Mapping[str, float] | None,
+    *,
+    base: float = GRTRESNA_REJECTION_BASE_FITNESS,
+    max_extra: float = GRTRESNA_REJECTION_MAX_EXTRA_FITNESS,
+) -> float:
+    """Graded minimization penalty so CMA can rank bad GRTresna candidates."""
+    if not convergence:
+        return base + max_extra
+    try:
+        ham = float(convergence["ham_pct"])
+        mom = float(convergence["mom_pct"])
+    except (KeyError, TypeError, ValueError):
+        return base + max_extra
+    if not math.isfinite(ham) or not math.isfinite(mom):
+        return base + max_extra
+    residual_penalty = max(0.0, ham - GRTRESNA_MAX_HAM_PCT) + max(0.0, mom - GRTRESNA_MAX_MOM_PCT)
+    return base + min(max_extra, residual_penalty)
+
+
 @dataclass(frozen=True)
 class OptimizeResult:
     best_params: dict[str, float]
@@ -344,6 +400,138 @@ def _vector_to_overrides(
         clamped = max(dim.lower, min(dim.upper, xi))
         overrides[dim.param_key] = clamped
     return overrides
+
+
+def _clip_vector(x: Sequence[float], dims: Sequence[SearchDimension]) -> list[float]:
+    """Clamp an optimizer vector to the configured search bounds."""
+    return [
+        max(dim.lower, min(dim.upper, float(xi)))
+        for xi, dim in zip(x, dims)
+    ]
+
+
+def _overrides_to_vector(
+    overrides: Mapping[str, Any],
+    dims: Sequence[SearchDimension],
+) -> list[float]:
+    """Map a trajectory overrides dict back onto the current search vector."""
+    vals: list[float] = []
+    for dim in dims:
+        raw = overrides.get(dim.param_key, dim.center)
+        try:
+            value = float(raw)
+        except (TypeError, ValueError):
+            value = dim.center
+        vals.append(max(dim.lower, min(dim.upper, value)))
+    return vals
+
+
+def _load_warm_start_vectors(
+    trajectories: Sequence[Path],
+    dims: Sequence[SearchDimension],
+    top_k: int,
+) -> list[list[float]]:
+    """Load top-scoring vectors from one or more prior trajectory.jsonl files."""
+    records: list[tuple[float, Mapping[str, Any]]] = []
+    for path in trajectories:
+        path = path.expanduser().resolve()
+        if not path.exists():
+            continue
+        with path.open("r", encoding="utf-8") as fh:
+            for line in fh:
+                if not line.strip():
+                    continue
+                try:
+                    rec = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if rec.get("surrogate_predicted"):
+                    continue
+                score = rec.get("score")
+                overrides = rec.get("overrides")
+                if not isinstance(overrides, Mapping):
+                    continue
+                try:
+                    score_f = float(score)
+                except (TypeError, ValueError):
+                    continue
+                if math.isfinite(score_f):
+                    records.append((score_f, overrides))
+    records.sort(key=lambda item: item[0], reverse=True)
+    return [_overrides_to_vector(overrides, dims) for _, overrides in records[:top_k]]
+
+
+def _random_vector(
+    dims: Sequence[SearchDimension],
+    rng: random.Random,
+) -> list[float]:
+    return [rng.uniform(dim.lower, dim.upper) for dim in dims]
+
+
+def _jitter_vector(
+    x: Sequence[float],
+    dims: Sequence[SearchDimension],
+    rng: random.Random,
+    scale: float,
+) -> list[float]:
+    jittered = [
+        float(xi) + rng.gauss(0.0, scale * dim.range)
+        for xi, dim in zip(x, dims)
+    ]
+    return _clip_vector(jittered, dims)
+
+
+def _force_exotic_template(
+    x: Sequence[float],
+    dims: Sequence[SearchDimension],
+    rng: random.Random,
+    template_index: int,
+) -> list[float]:
+    """Impose a categorical exotic/multi-lump pattern on a continuous vector."""
+    vec = _clip_vector(x, dims)
+    index = {dim.param_key: i for i, dim in enumerate(dims)}
+    lump_ids = sorted({
+        int(m.group(1))
+        for dim in dims
+        if (m := _LUMP_KEY_RE.match(dim.param_key))
+    })
+    if not lump_ids:
+        return vec
+
+    n = len(lump_ids)
+    if template_index % 4 == 0:
+        exotic = {lump_ids[n // 2]}
+    elif template_index % 4 == 1:
+        exotic = {lump_ids[0], lump_ids[-1]}
+    elif template_index % 4 == 2:
+        exotic = {k for i, k in enumerate(lump_ids) if i % 2 == 0}
+    else:
+        exotic = set(lump_ids)
+
+    radius = rng.uniform(2.0, 5.0)
+    for pos, k in enumerate(lump_ids):
+        angle = 2.0 * math.pi * pos / max(n, 1)
+        tangential = 0.45 if k in exotic else 0.30
+        assignments = {
+            "amp": rng.uniform(0.12, 0.24),
+            "width": rng.uniform(1.5, 3.5),
+            "center_x": radius * math.cos(angle),
+            "center_y": radius * math.sin(angle),
+            "center_z": rng.uniform(-2.0, 2.0),
+            "velocity_x": -tangential * math.sin(angle),
+            "velocity_y": tangential * math.cos(angle),
+            "velocity_z": rng.uniform(-0.15, 0.15),
+            "omega": rng.uniform(-0.15, 0.15),
+            "mode": 1.0 if pos % 2 == 0 else 2.0,
+            "exotic": 1.0 if k in exotic else 0.0,
+        }
+        for suffix, value in assignments.items():
+            key = f"grtresna_lump{k}_{suffix}"
+            if key in index:
+                i = index[key]
+                dim = dims[i]
+                vec[i] = max(dim.lower, min(dim.upper, value))
+    return vec
 
 
 def _assign_gpu(index: int, gpu_ids: Sequence[int]) -> str:
@@ -394,6 +582,7 @@ def _objective(
     trajectory: list[dict[str, Any]],
     target_stop_time: float | None,
     score_weights: Mapping[str, float] | None,
+    objective_mode: ObjectiveMode = "weighted",
     ftl_L: float | None = None,
     consume_plotfiles: bool = True,
     consumer_radii: Sequence[float] = (4.0, 8.0),
@@ -455,6 +644,27 @@ def _objective(
             gte_overrides["recipe_initial_data_file"] = gridinit
             convergence = parse_convergence_safe(episode.path / "grtresna")
             update_metadata(episode, {"grtresna_convergence": convergence})
+            rejection_reason = _grtresna_convergence_rejection_reason(convergence)
+            if rejection_reason is not None:
+                fitness = _grtresna_rejection_fitness(convergence)
+                update_metadata(episode, {
+                    "grtresna_rejected": True,
+                    "grtresna_rejection_reason": rejection_reason,
+                    "grtresna_rejection_fitness": fitness,
+                    "simulation_exit_code": None,
+                })
+                record = {
+                    "eval": idx,
+                    "episode": str(episode.path),
+                    "score": -fitness,
+                    "fitness": fitness,
+                    "grtresna_rejected": True,
+                    "reason": rejection_reason,
+                    "components": {"grtresna_rejection": -fitness},
+                    "overrides": {d.param_key: overrides.get(d.param_key) for d in dims},
+                }
+                trajectory.append(record)
+                return fitness
         except Exception as exc:  # solver failure -> penalise, keep searching
             update_metadata(episode, {"grtresna_error": repr(exc)})
             record = {
@@ -499,7 +709,10 @@ def _objective(
 
     metrics = read_episode_metrics(episode.path, ftl_L=ftl_L)
     score = score_episode(
-        metrics, target_stop_time=target_stop_time, weights=score_weights,
+        metrics,
+        target_stop_time=target_stop_time,
+        weights=score_weights,
+        objective_mode=objective_mode,
     )
 
     write_json(episode.score_path, {
@@ -540,6 +753,7 @@ def run_optimize(
     gpu_ids: Sequence[int] | None = None,
     check_params: bool = True,
     score_weights: Mapping[str, float] | None = None,
+    objective_mode: ObjectiveMode = "weighted",
     ftl_L: float | None = None,
     x0: Sequence[float] | None = None,
     consume_plotfiles: bool = True,
@@ -550,6 +764,11 @@ def run_optimize(
     surrogate_warmup: int | None = None,
     grtresna: bool = False,
     grtresna_config: "GRTresnaConfig | None" = None,
+    warm_start_trajectories: Sequence[Path] = (),
+    warm_start_top_k: int = 8,
+    warm_start_jitter: float = 0.08,
+    random_injection_fraction: float = 0.0,
+    exotic_injection_fraction: float = 0.0,
 ) -> OptimizeResult:
     """Run multi-GPU CMA-ES optimization loop.
 
@@ -592,8 +811,14 @@ def run_optimize(
     opt_dir = (runs_dir / name).expanduser().resolve()
     opt_dir.mkdir(parents=True, exist_ok=False)
 
+    warm_vectors = _load_warm_start_vectors(
+        warm_start_trajectories, dims, max(0, warm_start_top_k)
+    )
+
     if x0 is not None:
         initial = list(x0)
+    elif warm_vectors:
+        initial = list(warm_vectors[0])
     else:
         initial = [d.center for d in dims]
 
@@ -631,6 +856,12 @@ def run_optimize(
         "gpu_ids": list(gpu_ids) if gpu_ids else None,
         "consume_plotfiles": consume_plotfiles,
         "grtresna": grtresna,
+        "objective_mode": objective_mode,
+        "warm_start_trajectories": [str(p) for p in warm_start_trajectories],
+        "warm_start_top_k": warm_start_top_k,
+        "warm_start_jitter": warm_start_jitter,
+        "random_injection_fraction": random_injection_fraction,
+        "exotic_injection_fraction": exotic_injection_fraction,
         "base_overrides": base,
         "search_space": [
             {"key": d.param_key, "lower": d.lower, "upper": d.upper, "initial": d.center}
@@ -639,6 +870,7 @@ def run_optimize(
     })
 
     es = cma.CMAEvolutionStrategy(initial, sigma0, opts)
+    rng = random.Random(seed)
 
     best_score = -math.inf
     best_params: dict[str, float] = {}
@@ -647,6 +879,8 @@ def run_optimize(
 
     print(f"[optimize] Starting CMA-ES: {len(dims)}D, popsize={es.popsize}, "
           f"max_gen={max_generations}, GPUs={gpu_ids or cuda_devices}")
+    if warm_vectors:
+        print(f"[optimize] loaded {len(warm_vectors)} warm-start vectors")
 
     def _evaluate_subset(subset: list) -> list[float]:
         if gpu_ids is not None and len(gpu_ids) > 1 and not dry_run:
@@ -667,6 +901,7 @@ def run_optimize(
                 trajectory=trajectory,
                 target_stop_time=target_stop_time,
                 score_weights=score_weights,
+                objective_mode=objective_mode,
                 ftl_L=ftl_L,
                 consume_plotfiles=consume_plotfiles,
                 consumer_radii=consumer_radii,
@@ -694,6 +929,7 @@ def run_optimize(
                 trajectory=trajectory,
                 target_stop_time=target_stop_time,
                 score_weights=score_weights,
+                objective_mode=objective_mode,
                 ftl_L=ftl_L,
                 consume_plotfiles=consume_plotfiles,
                 consumer_radii=consumer_radii,
@@ -707,7 +943,40 @@ def run_optimize(
 
     while not es.stop():
         gen += 1
-        solutions = es.ask()
+        solutions = [list(sol) for sol in es.ask()]
+        n_solutions = len(solutions)
+
+        if gen == 1 and warm_vectors:
+            n_warm = min(len(warm_vectors), n_solutions)
+            for i in range(n_warm):
+                source = warm_vectors[i]
+                if i == 0:
+                    solutions[i] = _clip_vector(source, dims)
+                else:
+                    solutions[i] = _jitter_vector(
+                        source, dims, rng, warm_start_jitter
+                    )
+
+        n_random = max(0, min(
+            n_solutions,
+            int(round(n_solutions * max(0.0, random_injection_fraction))),
+        ))
+        n_exotic = max(0, min(
+            n_solutions - n_random,
+            int(round(n_solutions * max(0.0, exotic_injection_fraction))),
+        ))
+        inject_pos = n_solutions - n_random - n_exotic
+        for j in range(n_exotic):
+            base_vec = (
+                _jitter_vector(warm_vectors[j % len(warm_vectors)], dims, rng, warm_start_jitter)
+                if warm_vectors else _random_vector(dims, rng)
+            )
+            solutions[inject_pos + j] = _force_exotic_template(
+                base_vec, dims, rng, template_index=gen + j
+            )
+        for j in range(n_random):
+            solutions[n_solutions - n_random + j] = _random_vector(dims, rng)
+
         traj_before = len(trajectory)
 
         x_train, y_train = _collect_training(trajectory, dims)
@@ -816,6 +1085,7 @@ def _evaluate_generation_parallel(
     trajectory: list[dict[str, Any]],
     target_stop_time: float | None,
     score_weights: Mapping[str, float] | None,
+    objective_mode: ObjectiveMode,
     ftl_L: float | None,
     consume_plotfiles: bool,
     consumer_radii: Sequence[float],
@@ -853,6 +1123,7 @@ def _evaluate_generation_parallel(
             trajectory=trajectory,
             target_stop_time=target_stop_time,
             score_weights=score_weights,
+            objective_mode=objective_mode,
             ftl_L=ftl_L,
             consume_plotfiles=consume_plotfiles,
             consumer_radii=consumer_radii,

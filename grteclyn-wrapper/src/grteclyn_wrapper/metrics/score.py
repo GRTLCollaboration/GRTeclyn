@@ -22,6 +22,7 @@ DEFAULT_WEIGHTS: dict[str, float] = {
     "horizon_penalty": 1.5,
     "energy_condition": 2.0,
     "stability": 0.5,
+    "instability_penalty": 8.0,
     "nontrivial_geometry": 0.25,
     "initial_constraint_quality": 0.5,
     # Proposed extensions (Sec. "Proposed Extensions").
@@ -89,6 +90,7 @@ def score_episode(
     *,
     target_stop_time: float | None = None,
     weights: Mapping[str, float] | None = None,
+    objective_mode: str = "weighted",
 ) -> Score:
     w = dict(DEFAULT_WEIGHTS)
     if weights:
@@ -167,10 +169,12 @@ def score_episode(
 
     if metrics.stability and metrics.stability.violation is not None:
         components["stability"] = _bounded_reward(metrics.stability.violation, 1.0)
+        components["instability_penalty"] = -(1.0 - components["stability"])
         if components["stability"] < 0.25:
             notes.append("geometry changes rapidly over the evolution window (Eulerian)")
     else:
         components["stability"] = 0.0
+        components["instability_penalty"] = 0.0
         notes.append("stability diagnostics not available")
 
     if metrics.comoving and metrics.comoving.stationary:
@@ -395,10 +399,29 @@ def score_episode(
             "near-trivial geometry: health rewards gated out (flat-space attractor guard)"
         )
 
-    total = 0.0
-    for key, value in components.items():
-        if key == "nontriviality_gate":
-            continue
-        gate = nontriviality if key in HEALTH_COMPONENTS else 1.0
-        total += w.get(key, 0.0) * value * gate
+    if objective_mode == "ftl_first":
+        # Lexicographic-style scalarization: FTL signals dominate the objective,
+        # health terms only order candidates that are equally non-FTL/promising.
+        total = (
+            1000.0 * components.get("operational_ftl", 0.0)
+            + 250.0 * components.get("ftl_precursor", 0.0)
+            + 100.0 * components.get("ftl_shortcut", 0.0)
+            + 20.0 * components.get("survival", 0.0)
+            + 10.0 * components.get("horizon_penalty", 0.0)
+            + 5.0 * components.get("nontrivial_geometry", 0.0)
+            + 3.0 * components.get("constraint_health", 0.0)
+            + 2.0 * components.get("stability", 0.0)
+            + 3.0 * components.get("instability_penalty", 0.0)
+            + 2.0 * components.get("comoving_stability", 0.0)
+            + 1.0 * components.get("energy_condition", 0.0)
+            + 1.0 * components.get("exotic_penalty", 0.0)
+        )
+        notes.append("objective_mode=ftl_first: FTL terms dominate health/stability")
+    else:
+        total = 0.0
+        for key, value in components.items():
+            if key == "nontriviality_gate":
+                continue
+            gate = nontriviality if key in HEALTH_COMPONENTS else 1.0
+            total += w.get(key, 0.0) * value * gate
     return Score(total=total, components=components, notes=notes)

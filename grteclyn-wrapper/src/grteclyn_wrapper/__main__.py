@@ -193,7 +193,7 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
     from .search.optimize import build_search_space, ANGULAR_BASE_OVERRIDES
     nonspherical = getattr(args, "nonspherical", False)
     use_grtresna = getattr(args, "grtresna", False)
-    grtresna_lumps = getattr(args, "grtresna_lumps", 3)
+    grtresna_lumps = getattr(args, "grtresna_lumps", 5)
     search_space = build_search_space(
         nonspherical=nonspherical, grtresna=use_grtresna,
         grtresna_lumps=grtresna_lumps,
@@ -210,6 +210,19 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
         grtresna_config = GRTresnaConfig(
             mpi_ranks=getattr(args, "grtresna_ranks", 8),
             max_NL_iterations=getattr(args, "grtresna_iterations", 50),
+            max_level=getattr(args, "grtresna_max_level", 3),
+            refine_threshold=getattr(args, "grtresna_refine_threshold", 0.5),
+            regrid_radius=getattr(args, "grtresna_regrid_radius", 0.0),
+            coefficient_average_type=getattr(
+                args, "grtresna_coefficient_average_type", "harmonic"
+            ),
+            psi_relaxation=getattr(args, "grtresna_psi_relaxation", 1.0),
+            psi_floor=getattr(args, "grtresna_psi_floor", -1.0),
+            maximal_jacobian_cap=getattr(args, "grtresna_jacobian_cap", -1.0),
+            # The searched lump basis is the matter source; leaving the legacy
+            # radial scalar profile on mixes in an unrelated canonical cloud.
+            dphi=0.0,
+            dpi=0.0,
             # focus on moving/rotating MATTER: no black holes by default
             bh1_bare_mass=0.0,
             bh1_spin=(0.0, 0.0, 0.0),
@@ -266,11 +279,20 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
         consumer_radii=getattr(args, "consumer_radii", [4.0, 8.0]),
         consumer_keep_last=getattr(args, "consumer_keep_last", 1),
         score_weights=getattr(args, "score_weights", None),
+        objective_mode=getattr(args, "objective_mode", "weighted"),
         ftl_L=getattr(args, "ftl_L", None),
         surrogate=getattr(args, "surrogate", False),
         surrogate_keep_fraction=getattr(args, "surrogate_keep_fraction", 0.5),
         grtresna=use_grtresna,
         grtresna_config=grtresna_config,
+        warm_start_trajectories=[
+            Path(p).expanduser().resolve()
+            for p in getattr(args, "warm_start_trajectory", [])
+        ],
+        warm_start_top_k=getattr(args, "warm_start_top_k", 8),
+        warm_start_jitter=getattr(args, "warm_start_jitter", 0.08),
+        random_injection_fraction=getattr(args, "random_injection_fraction", 0.0),
+        exotic_injection_fraction=getattr(args, "exotic_injection_fraction", 0.0),
     )
     print(json.dumps({
         "best_score": result.best_score,
@@ -507,6 +529,42 @@ def build_parser() -> argparse.ArgumentParser:
     opt.add_argument("--sigma0", type=float, default=0.3, help="Initial CMA-ES step size.")
     opt.add_argument("--seed", type=int, default=None, help="Random seed for CMA-ES.")
     opt.add_argument("--gpu-ids", nargs="+", type=int, default=None, help="GPU indices for parallel eval (e.g. 0 1 2 3 4 5 6 7).")
+    opt.add_argument(
+        "--objective-mode",
+        choices=["weighted", "ftl_first"],
+        default="weighted",
+        help="Scoring scalarization: weighted legacy score or FTL-first ordering.",
+    )
+    opt.add_argument(
+        "--warm-start-trajectory",
+        action="append",
+        default=[],
+        help="Previous trajectory.jsonl to seed the first generation; repeatable.",
+    )
+    opt.add_argument(
+        "--warm-start-top-k",
+        type=int,
+        default=8,
+        help="Top prior candidates loaded from warm-start trajectories.",
+    )
+    opt.add_argument(
+        "--warm-start-jitter",
+        type=float,
+        default=0.08,
+        help="Fraction of each parameter range used when jittering warm-starts.",
+    )
+    opt.add_argument(
+        "--random-injection-fraction",
+        type=float,
+        default=0.0,
+        help="Fraction of every generation replaced by random bounded candidates.",
+    )
+    opt.add_argument(
+        "--exotic-injection-fraction",
+        type=float,
+        default=0.0,
+        help="Fraction of every generation replaced by forced exotic templates.",
+    )
     opt.add_argument("--surrogate", action="store_true", help="Enable RBF surrogate pre-screening to skip low-value GPU evaluations.")
     opt.add_argument("--surrogate-keep-fraction", type=float, default=0.5, help="Fraction of each generation evaluated on GPU when surrogate is active.")
     opt.add_argument(
@@ -537,14 +595,44 @@ def build_parser() -> argparse.ArgumentParser:
         help="MPI ranks for each GRTresna solve (default: 8).",
     )
     opt.add_argument(
-        "--grtresna-lumps", type=int, default=3,
-        help="Number of scalar lumps in the GRTresna matter basis (default: 3). "
-             "Each lump adds 10 searched dimensions (amp/width/center/velocity/"
-             "omega/mode).",
+        "--grtresna-lumps", type=int, default=5,
+        help="Number of scalar lumps in the GRTresna matter basis (default: 5). "
+             "Each lump adds 11 searched dimensions (amp/width/center/velocity/"
+             "omega/mode/exotic).",
     )
     opt.add_argument(
         "--grtresna-iterations", type=int, default=50,
         help="Max non-linear iterations per GRTresna solve (default: 50).",
+    )
+    opt.add_argument(
+        "--grtresna-max-level", type=int, default=3,
+        help="Max AMR level for each GRTresna solve (default: 3).",
+    )
+    opt.add_argument(
+        "--grtresna-refine-threshold", type=float, default=0.5,
+        help="Refinement threshold for GRTresna AMR tagging (default: 0.5).",
+    )
+    opt.add_argument(
+        "--grtresna-regrid-radius", type=float, default=0.0,
+        help="Forced GRTresna regrid radius; 0 uses source-based tagging (default: 0).",
+    )
+    opt.add_argument(
+        "--grtresna-coefficient-average-type",
+        choices=["harmonic", "arithmetic"],
+        default="harmonic",
+        help="Coefficient averaging for GRTresna AMR multigrid; exotic candidates override harmonic to arithmetic.",
+    )
+    opt.add_argument(
+        "--grtresna-psi-relaxation", type=float, default=1.0,
+        help="Under-relaxation for GRTresna nonlinear psi updates; exotic candidates override 1.0 to a safer value.",
+    )
+    opt.add_argument(
+        "--grtresna-psi-floor", type=float, default=-1.0,
+        help="Positive psi floor for GRTresna nonlinear updates; exotic candidates override non-positive values.",
+    )
+    opt.add_argument(
+        "--grtresna-jacobian-cap", type=float, default=-1.0,
+        help="Optional absolute cap for the maximal-slicing psi Jacobian; exotic candidates set a safe default.",
     )
 
     qd = subparsers.add_parser("qd", help="MAP-Elites quality-diversity search (Spacetime Failure Atlas).")

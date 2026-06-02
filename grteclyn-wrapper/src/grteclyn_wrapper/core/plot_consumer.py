@@ -141,6 +141,8 @@ def build_consume_command(
             # via $GRTECLYN_FRAMES_FIELDS (space-separated).
             env_fields = os.environ.get("GRTECLYN_FRAMES_FIELDS", "").split()
             frame_fields = env_fields if env_fields else ["chi", "lapse", "K"]
+            projection_fields = os.environ.get("GRTECLYN_PROJECTION_FIELDS", "").split()
+            projection_axes = os.environ.get("GRTECLYN_PROJECTION_AXES", "").split()
             command.extend(
                 [
                     "--frames-fields",
@@ -155,6 +157,17 @@ def build_consume_command(
                     str(episode.frames_dir),
                 ]
             )
+            if projection_fields and projection_axes:
+                command.extend(
+                    [
+                        "--projection-fields",
+                        *projection_fields,
+                        "--projection-axes",
+                        *projection_axes,
+                        "--projection-method",
+                        os.environ.get("GRTECLYN_PROJECTION_METHOD", "mip"),
+                    ]
+                )
 
     return command
 

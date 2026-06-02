@@ -57,6 +57,18 @@ _Z_ODD_NAMES = frozenset({
 })
 
 
+def _reflect_half_z_to_full(data: NDArray, comp_names: list[str]) -> None:
+    """Move stored z>=0 data to the upper half and parity-reflect z<0 in place."""
+    mid_k = data.shape[0] // 2
+    positive_z = data[:mid_k, :, :, :].copy()
+    reflected = positive_z[::-1].copy()
+    for i, name in enumerate(comp_names):
+        if name in _Z_ODD_NAMES:
+            reflected[:, :, :, i] *= -1.0
+    data[:mid_k, :, :, :] = reflected
+    data[mid_k:mid_k + positive_z.shape[0], :, :, :] = positive_z
+
+
 def _infer_ghost_cells(
     n_doubles: int, box_size: NDArray, n_comp: int,
 ) -> int:
@@ -209,15 +221,19 @@ def chombo_to_uniform(
         for lev in range(num_levels):
             _paint_level(data, f, lev, n_comp, dx_xyz, nx, ny, nz)
 
-        # z-reflection: if Chombo used half-z (reflective BC at z=0)
+        # z-reflection: if Chombo used half-z (reflective BC at z=0).
+        #
+        # _paint_level places Chombo's stored half-domain (z >= 0) in the first
+        # half of `data` because Chombo physical coordinates start at zero.  The
+        # .gridinit file, however, is written with origin_z = target_center_z -
+        # Lz/2 so that GRTeclyn's z=0 reflective plane samples the middle of the
+        # file.  Therefore the positive-z Chombo data must occupy the upper half
+        # of the full reflected array, with the lower half filled by parity
+        # reflection.  Putting the stored half-domain in data[:mid_k] directly
+        # makes GRTeclyn's z=0 slice sample the far z-boundary tail.
         Lz_chombo = float(chombo_L[2])
         if Lz_chombo < Lz * 0.75:
-            mid_k = nz // 2
-            reflected = data[:mid_k, :, :, :].copy()[::-1]
-            for i, name in enumerate(comp_names):
-                if name in _Z_ODD_NAMES:
-                    reflected[:, :, :, i] *= -1.0
-            data[mid_k:, :, :, :] = reflected
+            _reflect_half_z_to_full(data, comp_names)
 
     origin = np.array([0.0, 0.0, 0.0])
     return data, comp_names, dx_xyz, origin

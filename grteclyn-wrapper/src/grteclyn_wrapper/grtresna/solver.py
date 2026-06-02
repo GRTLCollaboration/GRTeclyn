@@ -56,6 +56,9 @@ class GRTresnaConfig:
     max_level: int = 3
     block_factor: int = 16
     max_grid_size: int = 16
+    refine_threshold: float = 0.5
+    regrid_radius: float = 10.0
+    coefficient_average_type: str = "harmonic"
 
     # BH params
     bh1_bare_mass: float = 1.0
@@ -119,6 +122,7 @@ class GRTresnaConfig:
     maximal_slicing: bool = False
     psi_relaxation: float = 1.0
     psi_floor: float = -1.0
+    maximal_jacobian_cap: float = -1.0
 
     # Boundary conditions
     use_compact_Vi_ansatz: int = 1
@@ -192,9 +196,11 @@ def write_grtresna_params(cfg: GRTresnaConfig, path: Path) -> None:
         f"N = {_fmt(cfg.N)}",
         f"L = {cfg.L}",
         f"max_level = {cfg.max_level}",
+        f"refine_threshold = {cfg.refine_threshold}",
         f"block_factor = {cfg.block_factor}",
         f"max_grid_size = {cfg.max_grid_size}",
-        f"regrid_radius = 10",
+        f"regrid_radius = {cfg.regrid_radius}",
+        f"coefficient_average_type = {cfg.coefficient_average_type}",
         f"",
         f"is_periodic = 0 0 0",
         f"use_compact_Vi_ansatz = {cfg.use_compact_Vi_ansatz}",
@@ -229,6 +235,7 @@ def write_grtresna_params(cfg: GRTresnaConfig, path: Path) -> None:
         f"maximal_slicing = {1 if cfg.maximal_slicing else 0}",
         f"psi_relaxation = {cfg.psi_relaxation}",
         f"psi_floor = {cfg.psi_floor}",
+        f"maximal_jacobian_cap = {cfg.maximal_jacobian_cap}",
     ])
     path.write_text("\n".join(lines) + "\n")
 
