@@ -112,6 +112,175 @@ Tier~1 uses short low-resolution single-GPU runs with early stopping; Tier~2 pro
 The current pipeline uses CMA-ES, not reinforcement learning: it samples continuous coefficients, ranks them by $-S(\theta)$, and updates a Gaussian search distribution.  CMA-ES cannot add mouths, throats, or new mode families; RL becomes relevant only for sequential decisions such as choosing topology, modes, or mid-run gauge actions.  A future hierarchical search could let a discrete controller choose topology and active modes, then hand the resulting skeleton to CMA-ES/MAP-Elites for continuous refinement, echoing discrete/continuous decompositions in string-landscape search~\cite{halverson2019branes}.
 
 %%====================================================================
+%%  SECTION 4b : MATTER-FIRST INITIAL DATA (GRTRESNA)
+%%====================================================================
+\section{Matter-First Initial Data via an Elliptic Solver}
+\label{sec:grtresna}
+
+The recipes of Sec.~\ref{sec:search_loop} share a structural weakness that the
+results expose repeatedly: they manipulate the \emph{geometry} and tolerate the
+constraint error it implies.  This section describes an alternative path---an
+in-the-loop elliptic constraint solver (\texttt{GRTresna})---that inverts the
+map, the physical motivation for it, the matter basis it searches over, and the
+concrete blockers we hit.
+
+\subsection{Geometry-first versus matter-first}
+\label{sec:geom_vs_matter}
+
+The Level-1/2 recipes are \emph{geometry-first}: the optimizer proposes
+$\chi,\alpha,\beta^i,K$ directly and the constraints are read \emph{backwards}
+(Eq.~\ref{eq:ham_recipe}--\ref{eq:mom_recipe}) to report whatever energy density
+$\rho$ and momentum density $j_i$ that geometry would require.  This is cheap---
+it is algebraic and evaluated once at $t=0$---but it has two structural limits.
+First, a non-spherical \emph{geometric} deformation does not actually solve the
+Hamiltonian constraint; only the gauge sector $(\alpha,\beta^i)$ is free of
+constraint cost, which is precisely why the directional winner of
+Sec.~\ref{sec:results} lives entirely in the shift.  Second, the constrained
+radial recipe uses $K=\mathrm{const}$, $\Pi=0$, which forces the momentum
+density to vanish, $j_i=0$: the recipe \emph{cannot represent moving matter},
+and a translating warp needs exactly that momentum source (the ``motor'' the
+dipole winner was missing, Sec.~\ref{sec:results}).
+
+\texttt{GRTresna} is a Chombo/AMR multigrid solver that inverts the map.
+It is \emph{matter-first}: the optimizer proposes a \emph{matter} configuration---
+a scalar field $(\phi,\Pi)$---and the solver \emph{solves} the full elliptic
+Hamiltonian and momentum constraints in 3D for a constraint-satisfying geometry.
+In the conformal transverse-traceless decomposition $\gamma_{ij}=\psi^4\delta_{ij}$,
+$K_{ij}=\psi^{-2}\bar A_{ij}+\tfrac13\gamma_{ij}K$, with the scalar sources
+\begin{equation}
+\rho=\tfrac12\psi^{-4}\lvert\tilde\nabla\phi\rvert^2+\tfrac12\Pi^2+V(\phi),
+\qquad
+S_i=-\,\Pi\,\partial_i\phi,
+\label{eq:scalar_sources}
+\end{equation}
+the solver (in its \textsc{CTTKHybrid} variant) fixes the trace by
+$K^2=24\pi G\rho$ so the matter cancels in the Hamiltonian, then solves
+\begin{align}
+\tilde\nabla^2\psi &= -\tfrac18\,\bar A_{ij}\bar A^{ij}\,\psi^{-7},
+\label{eq:lichnerowicz}\\
+\bar A_{ij}=(\mathbb{L}V)_{ij},\quad
+\tilde\nabla^2 V_i+\tfrac13\partial_i(\tilde\nabla\!\cdot\!V)
+&=\psi^6\!\left(\tfrac23\partial_i K+8\pi G\,S_i\right),
+\label{eq:momentum_solve}
+\end{align}
+for the conformal factor $\psi$ and a vector potential $V_i$ whose longitudinal
+derivative $(\mathbb{L}V)_{ij}$ is the transverse-traceless $\bar A_{ij}$.  We
+\emph{modify the matter}; the solver returns the geometry.  The result is data
+that satisfies $\lVert H\rVert_{L^2},\lVert M_i\rVert_{L^2}\sim10^{-3}$--$10^{-4}$
+in full 3D---roughly $100\times$ tighter than the recipe---so the dynamics that
+are scored are physical rather than constraint-relaxation transients.
+
+\subsection{The \texttt{GRTresna}\,$\leftrightarrow$\,\texttt{GRTeclyn} bridge}
+
+Each optimizer evaluation now contains a nested elliptic solve.  A Python
+orchestrator writes the \texttt{GRTresna} parameter file, launches the MPI
+multigrid solve, and converts its Chombo HDF5 output into a compact binary
+(\texttt{.gridinit}) sampled on the target Cartesian grid; \texttt{GRTeclyn}
+ingests it through a new \texttt{ExternalGridInitialData} loader
+(\texttt{recipe\_initial\_data\_file}) and evolves it on the GPU.  No GRTeclyn
+evolution code is special-cased: it computes the same momentum density
+$j_i=-\Pi\,\partial_i\phi$ and evolves the full CCZ4\,+\,Klein--Gordon system, so
+the solved $\bar A_{ij}$ plus the $\Gamma$-driver shift develop the
+frame-dragging shift dynamically.  The heavy intermediate HDF5 is deleted after
+conversion, keeping a long conveyor search disk-bounded.
+
+\subsection{The scalar-lump matter basis}
+\label{sec:lumps}
+
+The matter configuration is a superposition of $K$ localized scalar-field
+\emph{lumps}.  Lump $k$ is a Gaussian-enveloped, optionally anisotropic profile
+\begin{equation}
+\phi_k(\vec x)=A_k\,a_{m_k}\!(\vec x)\,
+\exp\!\left[-\frac{\lvert\vec x-\vec c_k\rvert^2}{2w_k^2}\right],
+\label{eq:lump_phi}
+\end{equation}
+where $a_m$ is a Cartesian azimuthal factor ($a_0=1$; $a_1=\delta x/w$ dipole;
+$a_2=(\delta x^2-\delta y^2)/w^2$ quadrupole) chosen to avoid the $z$-axis
+coordinate singularity of $\cos m\varphi$.  The conjugate momentum is the
+convective derivative of a pattern boosted with velocity $\vec v_k$ and rigidly
+rotated about $z$ at rate $\omega_k$,
+\begin{equation}
+\Pi_k=-\,\vec v_k\!\cdot\!\tilde\nabla\phi_k\;-\;\omega_k\,\partial_\varphi\phi_k,
+\label{eq:lump_pi}
+\end{equation}
+so that via Eq.~\eqref{eq:scalar_sources} the configuration carries net linear
+momentum $P_i\sim v_i$ and (for $m\ge1$) net angular momentum $L_z\sim\omega$.
+Each lump therefore exposes eleven search dimensions---amplitude $A_k$, width
+$w_k$, center $\vec c_k$ (3), boost $\vec v_k$ (3), rotation $\omega_k$, integer
+azimuthal mode $m_k$, and an exotic flag (Sec.~\ref{sec:exotic_solver})---and the
+default $K=3$ basis spans a $33$-dimensional matter search.  A superposition of
+lumps paints an essentially arbitrary energy/momentum distribution that the
+elliptic solve maps to a rich family of constraint-satisfying geometries
+($\chi$ wells plus momentum-driven $\bar A_{ij}$); two counter-moving lumps, for
+example, give a strong momentum/shear field with no bulk translation.  Black
+holes are disabled in the search configuration so the optimizer explores pure
+moving/rotating scalar clouds.
+
+\subsection{What the elliptic solve adds to the search}
+
+Relative to the geometry-first recipes, the matter-first path contributes three
+genuinely new ingredients.  (i) \emph{Momentum density.}  The recipe has
+$S_i=0$; the momentum constraint Eq.~\eqref{eq:momentum_solve} solves for
+$S_i=-\Pi\,\partial_i\phi\neq0$, the source of matter-momentum-driven frame
+dragging---a distinct, physically grounded operational-FTL axis that was simply
+absent from the search space before.  (ii) \emph{Constraint-correct
+non-spherical structure.}  Because the Hamiltonian is solved in 3D rather than
+along a 1D ray, directional structure in $\chi$ and $\bar A_{ij}$ no longer
+reintroduces off-axis constraint error.  (iii) \emph{Trustworthy dynamics.}  The
+$\sim100\times$ lower initial constraint error suppresses the junk gravitational
+radiation that otherwise contaminates the stability and growth-rate metrics.
+
+\subsection{Exotic matter and the maximal-slicing solver}
+\label{sec:exotic_solver}
+
+A persistent FTL channel generically needs \emph{exotic} matter ($\rho<0$, an
+NEC violation), but the \textsc{CTTK} family is structurally positive-energy: the
+trace fix $K=\mathrm{sgn}\,\sqrt{24\pi G\rho+\dots}$ has a negative argument
+wherever $\rho<0$, so any non-trivial exotic source yields $K\in\mathbb C$ and
+the solve returns \texttt{NaN}.  We added (a) a per-lump phantom flag---an
+independent-field stress tensor in which an exotic lump's kinetic and momentum
+contributions enter Eq.~\eqref{eq:scalar_sources} with a flipped sign, so a
+configuration can mix normal and exotic lumps---and (b) a \emph{maximal-slicing}
+($K=0$) path that, instead of absorbing the matter into $K$, sources it
+elliptically:
+\begin{equation}
+\tilde\nabla^2\psi=-2\pi G\rho\,\psi^5-\tfrac18\bar A_{ij}\bar A^{ij}\,\psi^{-7},
+\label{eq:maximal_slicing}
+\end{equation}
+solved by an under-relaxed Newton iteration with a $\psi>0$ floor for the
+resulting indefinite operator.  On a single grid level this is correct and
+useful: canonical matter reproduces the standard path ($\lVert H\rVert_{L^2}$
+residual $0.07\%$ vs.\ $0.04\%$), and a single isolated exotic lump now converges
+to finite constraint-satisfying data (effective amplitude $0.05\to2.9\%$,
+$0.10\to7.1\%$) where the old solver gave only \texttt{NaN}.  A sharp residual
+cliff at amplitude $\sim0.15$ ($\to98\%$) marks the Lichnerowicz/York
+\emph{existence boundary}: beyond a critical negative-energy density no
+asymptotically-flat constraint-satisfying solution exists, a physical rather than
+numerical limit.
+
+\subsection{Current blockers}
+\label{sec:grtresna_blockers}
+
+Three obstacles currently keep this path from being the search default.
+\emph{(1) AMR robustness.}  Under the production solve (adaptive mesh refinement
+with several overlapping lumps and a background scalar) the $K=0$ path diverges
+to \texttt{NaN} even for canonical matter, so it is presently gated to
+exotic-only candidates while purely canonical ones retain the stable
+trace-absorption path; making the indefinite multilevel solve robust (coarse--fine
+$\psi$ interpolation, refinement tagging, preconditioning) is the prerequisite
+for searching over AMR-resolved exotic data.  \emph{(2) Existence ceiling.}
+Eq.~\eqref{eq:maximal_slicing} only admits solutions below the exotic-amplitude
+cliff, bounding how much negative energy a single asymptotically-flat slice can
+carry.  \emph{(3) Throughput.}  Each candidate now embeds an MPI elliptic solve
+($\mathcal{O}(\text{minutes})$), reducing the number of geometries the optimizer
+can sample per unit wall-clock.  Finally, even with momentum and (simple) exotic
+matter available, no candidate has yet opened an end-to-end superluminal channel
+($F_{\rm op}=0$ across the reweighted run); the score gains came from curvature
+and health terms, which motivated the continuous FTL \emph{precursor} reward of
+Sec.~\ref{sec:scoring} that rewards local cone tilting before the hard channel
+gate fires.
+
+%%====================================================================
 %%  SECTION 5 : SCORE COMPONENTS AND WHY THEY MATTER
 %%====================================================================
 \section{Score Components and Why They Matter}
@@ -470,7 +639,14 @@ Several extensions would substantially expand the search capabilities.
 The largest single improvement is making the constraint-satisfying path the default.  A positive-energy elliptic solver (e.g.\ \texttt{GRTresna}) would deform each proposed geometry until the Hamiltonian and momentum constraints are satisfied with $\rho\ge0$ before evolution, reducing junk radiation and making growth rates cleaner.  This would also allow directional structure in $\chi$ or $\tilde A_{ij}$ without reintroducing off-axis constraint error.
 
 \paragraph{Exotic matter and a maximal-slicing solver.}
-A persistent FTL channel generically requires \emph{exotic} matter ($\rho<0$, NEC violation), but the \textsc{CTTK}-family solver in \texttt{GRTresna} is structurally positive-energy: it fixes the trace $K$ by $K=\mathrm{sgn}\,\sqrt{24\pi G\rho+\dots}$, whose argument is negative wherever $\rho<0$, so any non-trivial exotic source yields $K\in\mathbb{C}$ and the solve returns \texttt{NaN}.  We added a per-lump phantom flag (an independent-field stress tensor with a sign-flipped kinetic/momentum contribution) and a \emph{maximal-slicing} ($K=0$) York/Lichnerowicz path that sources the matter energy elliptically instead of through $K$, i.e.\ $\nabla^2\psi_{\rm reg}=-2\pi G\rho\,\psi^5-\tfrac18 \bar A^2\psi^{-7}$, with Newton under-relaxation and a $\psi>0$ floor for the resulting indefinite operator.  On a single grid level this is correct and useful: canonical matter reproduces the standard path ($\|H\|_{L^2}$ residual $0.07\%$ vs.\ $0.04\%$), and a single isolated exotic lump now converges to finite constraint-satisfying data (effective amplitude $0.05\!\to\!2.9\%$, $0.10\!\to\!7.1\%$) where the old solver gave only \texttt{NaN}.  A sharp residual cliff at amplitude $\sim0.15$ ($\to98\%$) marks the Lichnerowicz/York \emph{existence boundary}---beyond a critical negative-energy density no asymptotically-flat solution exists---which is a physical, not numerical, limit.  The honest negative result is that this $K=0$ path is \emph{not yet robust under production conditions}: with adaptive mesh refinement, several overlapping lumps with angular modes, and a background scalar, it diverges to \texttt{NaN} even for canonical matter, so it is currently gated to exotic-only candidates while canonical ones retain the stable standard path.  Making the indefinite multilevel solve robust (coarse--fine $\psi$ interpolation, refinement tagging, and preconditioning) is the prerequisite for searching over genuinely exotic, AMR-resolved initial data.  In parallel, because the operational-FTL reward is a hard channel gate that is flat-zero until a full superluminal path forms, we added a continuous \emph{precursor} term rewarding local cone tilting ($\max c>1$ and superluminal area fraction) to supply the missing gradient.
+The matter-first elliptic path of Sec.~\ref{sec:grtresna} already implements
+per-lump exotic (phantom) matter and a maximal-slicing ($K=0$) solve
+(Eq.~\ref{eq:maximal_slicing}) that handles $\rho<0$ where the trace-absorption
+ansatz returns \texttt{NaN}.  The open work is to lift its blockers
+(Sec.~\ref{sec:grtresna_blockers}): a multilevel-stable indefinite solve so
+exotic data survives AMR rather than being gated to single-level/isolated lumps,
+and a co-moving momentum source so the resulting lens can be \emph{translated}
+rather than merely held in place.
 
 \paragraph{Topology search.}
 The current parameterization cannot change topology: its non-spherical freedom lives in the gauge sector, where shift structure naturally favors warp-like channels.  Wormholes and portals require a discrete controller that selects mouths, throats, modes, and boundary connectivity before the continuous optimizer refines each topology, echoing discrete/continuous decompositions in string-landscape search~\cite{halverson2019branes}.
