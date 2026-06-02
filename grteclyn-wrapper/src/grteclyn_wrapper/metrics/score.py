@@ -34,6 +34,16 @@ DEFAULT_WEIGHTS: dict[str, float] = {
     # nothing here.  Curvature activity rewards genuinely non-trivial geometry
     # (and keeps flat space out of the running).
     "operational_ftl": 9.0,
+    # Continuous FTL *precursor* (shaping gradient).  operational_ftl is a hard
+    # gate -- it stays exactly 0 until a connected superluminal channel beats
+    # the flat baseline end-to-end -- so an "almost there" geometry (light cones
+    # tilted, a few locally superluminal cells, but no through-channel yet) gets
+    # no signal and the optimizer cannot climb toward FTL.  The precursor rewards
+    # the cone-tilting itself (max local coordinate light speed past 1 + the
+    # superluminal-cell fraction), which rises smoothly *before* the gate fires.
+    # Flat space has max_local_speed == 1 exactly, so the precursor is 0 in
+    # flatness: it is a clean slope out of the flat-space basin toward FTL.
+    "ftl_precursor": 3.0,
     "curvature_activity": 0.5,
     # Exotic-matter PENALTY.  The objective is FTL *without* exotic matter, so
     # any negative-energy requirement is punished -- both the matter sourced at
@@ -257,6 +267,39 @@ def score_episode(
     elif metrics.general_ftl is not None and metrics.general_ftl.f_op <= 0.0:
         notes.append("no operational FTL shortcut on the t=0 slice")
 
+    # FTL PRECURSOR -- the continuous shaping gradient that operational_ftl
+    # lacks.  Two smooth signals, both 0 in flat space (max_local_speed == 1
+    # exactly there) and both rising *before* a connected channel forms:
+    #   * speed_term: how far the fastest local coordinate light speed exceeds 1
+    #     (cones already tilted superluminal somewhere on the slice), and
+    #   * frac_term: what fraction of the slice is locally superluminal (the
+    #     nascent channel growing toward an end-to-end shortcut).
+    # We prefer the EVOLVED slice (the tilt must survive the dynamics) but fall
+    # back to a half-credit t=0 reading so there is still a gradient before any
+    # plotfile is available.  This term is intentionally NOT gated, so it can
+    # pull a near-flat geometry up out of the flat-space basin.
+    PRECURSOR_SPEED_SCALE = 0.05  # (c - 1) reward saturation scale
+    PRECURSOR_FRAC_SCALE = 0.05   # superluminal area-fraction reference
+
+    def _precursor(report) -> float:
+        if report is None:
+            return 0.0
+        c = float(getattr(report, "max_local_speed", 0.0) or 0.0)
+        frac = float(getattr(report, "superluminal_fraction", 0.0) or 0.0)
+        over = max(0.0, c - 1.0)
+        speed_term = min(math.log1p(over / PRECURSOR_SPEED_SCALE), 1.0) if over > 0.0 else 0.0
+        frac_term = min(frac / PRECURSOR_FRAC_SCALE, 1.0) if frac > 0.0 else 0.0
+        return 0.7 * speed_term + 0.3 * frac_term
+
+    precursor_ev = _precursor(metrics.general_ftl_evolved)
+    precursor_t0 = _precursor(metrics.general_ftl)
+    components["ftl_precursor"] = max(precursor_ev, 0.5 * precursor_t0)
+    if components["ftl_precursor"] > 0.05 and components["operational_ftl"] <= 0.0:
+        notes.append(
+            "FTL precursor active (locally superluminal cones, no full channel yet): "
+            f"{components['ftl_precursor']:.3f}"
+        )
+
     # Coordinate-invariant curvature activity: a saturating reward so flat space
     # scores ~0 while a structured warp/wormhole throat scores up to 1, without
     # letting a near-singular blow-up dominate the objective.
@@ -342,6 +385,7 @@ def score_episode(
         components.get("nontrivial_geometry", 0.0),
         components.get("curvature_activity", 0.0),
         components.get("operational_ftl", 0.0),
+        components.get("ftl_precursor", 0.0),
         components.get("ftl_shortcut", 0.0),
     )
     nontriviality = float(min(max(nontriviality, 0.0), 1.0))

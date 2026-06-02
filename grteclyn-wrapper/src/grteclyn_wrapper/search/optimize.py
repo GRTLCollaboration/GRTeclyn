@@ -168,17 +168,33 @@ def grtresna_search_space(num_lumps: int = GRTRESNA_DEFAULT_NUM_LUMPS) -> list[S
         # staggered initial x-centre, symmetric about 0
         cx0 = (k - (num_lumps - 1) / 2.0) * 10.0
         dims += [
-            SearchDimension(f"grtresna_lump{k}_amp", 0.0, 0.3, 0.1),
-            SearchDimension(f"grtresna_lump{k}_width", 3.0, 15.0, 7.0),
+            # The FTL channel here is shift-driven frame dragging: lump
+            # velocity/omega -> conjugate momentum Pi -> momentum density S_i ->
+            # A_ij -> evolved shift, and the cones only tilt superluminal once
+            # the momentum density is strong.  The right lever for that is
+            # VELOCITY/OMEGA, which we widen aggressively -- NOT amplitude.  The
+            # elliptic Hamiltonian solve only converges for modest matter
+            # amplitude (the prior search lived at amp~0.1-0.15 with clean
+            # constraints; amp>~0.4 degrades to a ~99% Hamiltonian residual =
+            # unphysical initial data), so amplitude is kept close to that proven
+            # range while the momentum knobs are opened up.
+            SearchDimension(f"grtresna_lump{k}_amp", 0.0, 0.35, 0.15),
+            SearchDimension(f"grtresna_lump{k}_width", 2.0, 18.0, 7.0),
             SearchDimension(f"grtresna_lump{k}_center_x", -24.0, 24.0, cx0),
             SearchDimension(f"grtresna_lump{k}_center_y", -24.0, 24.0, 0.0),
             SearchDimension(f"grtresna_lump{k}_center_z", -16.0, 16.0, 0.0),
-            SearchDimension(f"grtresna_lump{k}_velocity_x", -0.4, 0.4, 0.0),
-            SearchDimension(f"grtresna_lump{k}_velocity_y", -0.4, 0.4, 0.0),
-            SearchDimension(f"grtresna_lump{k}_velocity_z", -0.4, 0.4, 0.0),
-            SearchDimension(f"grtresna_lump{k}_omega", -0.2, 0.2, 0.0),
+            SearchDimension(f"grtresna_lump{k}_velocity_x", -0.9, 0.9, 0.0),
+            SearchDimension(f"grtresna_lump{k}_velocity_y", -0.9, 0.9, 0.0),
+            SearchDimension(f"grtresna_lump{k}_velocity_z", -0.9, 0.9, 0.0),
+            SearchDimension(f"grtresna_lump{k}_omega", -0.6, 0.6, 0.0),
             # azimuthal mode m (rounded to int): 0 axisymmetric, >=1 enables L_z
             SearchDimension(f"grtresna_lump{k}_mode", 0.0, 2.0, 1.0),
+            # phantom/ghost flag (rounded to int): 0 canonical (+rho), 1 EXOTIC
+            # (-rho).  The search can flip individual lumps exotic to source the
+            # NEC violation a persistent FTL channel needs, while keeping others
+            # canonical.  Starts canonical (0.0) so the optimizer departs from
+            # known-good positive matter and discovers exotic mixes from there.
+            SearchDimension(f"grtresna_lump{k}_exotic", 0.0, 1.0, 0.0),
         ]
     return dims
 
@@ -230,6 +246,25 @@ def build_grtresna_config(
 
     cfg = dataclasses.replace(base) if base is not None else GRTresnaConfig()
 
+    def _enable_exotic_safe_solver() -> None:
+        """Switch to the K=0 maximal-slicing York/Lichnerowicz path.
+
+        Only used for candidates that contain at least one EXOTIC lump: the
+        default CTTKHybrid K = sign*sqrt(24 pi G rho) ansatz produces NaN for
+        rho < 0, so exotic configs need the maximal-slicing path (matter sourced
+        elliptically, with under-relaxation + a psi-positivity floor for the
+        indefinite operator). PURELY CANONICAL candidates keep the standard
+        ansatz, which is markedly more robust for multi-lump / angular-mode /
+        higher-amplitude positive matter (the maximal-slicing path can diverge
+        to NaN on those). ``base`` values, if explicitly set, win.
+        """
+        if not cfg.maximal_slicing:
+            cfg.maximal_slicing = True
+        if cfg.psi_relaxation == 1.0:
+            cfg.psi_relaxation = 0.8
+        if cfg.psi_floor <= 0.0:
+            cfg.psi_floor = 0.1
+
     # Group indexed lump keys by index.
     by_index: dict[int, dict[str, float]] = {}
     for key, val in overrides.items():
@@ -250,8 +285,11 @@ def build_grtresna_config(
                              f.get("velocity_z", 0.0)),
                 "omega": f.get("omega", 0.0),
                 "mode": int(round(f.get("mode", 0.0))),
+                "exotic": int(round(f.get("exotic", 0.0))),
             })
         cfg.lumps = lumps
+        if any(lump["exotic"] for lump in lumps):
+            _enable_exotic_safe_solver()
         return cfg
 
     # Backward-compatible single (un-indexed) lump.
@@ -269,6 +307,10 @@ def build_grtresna_config(
         cfg.lump_omega = _get("grtresna_lump_omega", cfg.lump_omega)
         if "grtresna_lump_mode" in overrides:
             cfg.lump_mode = int(round(float(overrides["grtresna_lump_mode"])))
+        if "grtresna_lump_exotic" in overrides:
+            cfg.lump_exotic = int(round(float(overrides["grtresna_lump_exotic"])))
+    if cfg.lump_exotic:
+        _enable_exotic_safe_solver()
     return cfg
 
 

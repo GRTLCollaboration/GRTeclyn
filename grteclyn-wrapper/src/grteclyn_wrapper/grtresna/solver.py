@@ -91,6 +91,10 @@ class GRTresnaConfig:
     lump_velocity: tuple[float, float, float] = (0.0, 0.0, 0.0)
     lump_omega: float = 0.0
     lump_mode: int = 0
+    # Phantom/ghost flag for the legacy single lump (0 => canonical positive
+    # energy, 1 => exotic negative-energy source). The multi-lump ``lumps``
+    # basis carries its own per-entry ``exotic`` key.
+    lump_exotic: int = 0
 
     # Multi-lump scalar basis. Each entry is a dict with keys:
     #   amp, width, center (3-tuple), velocity (3-tuple), omega, mode.
@@ -102,6 +106,19 @@ class GRTresnaConfig:
     # Conformal / K
     regularised_part_psi: float = 1.0
     sign_of_K: int = 1
+
+    # Slicing + nonlinear-solve robustness. The default CTTKHybrid ansatz
+    # K = sign*sqrt(24 pi G rho + ...) is imaginary wherever rho < 0, so it
+    # cannot solve EXOTIC (negative-energy) initial data. ``maximal_slicing``
+    # switches GRTresna to a K = 0 York/Lichnerowicz solve that sources the
+    # matter energy elliptically and handles either sign of rho. For the
+    # indefinite operators that strong exotic matter produces, ``psi_relaxation``
+    # under-relaxes the Newton step and ``psi_floor`` clamps psi > 0 so the
+    # solve does not diverge to NaN. Defaults below reproduce the original
+    # (canonical-only) behaviour; the search enables the exotic-safe path.
+    maximal_slicing: bool = False
+    psi_relaxation: float = 1.0
+    psi_floor: float = -1.0
 
     # Boundary conditions
     use_compact_Vi_ansatz: int = 1
@@ -150,6 +167,7 @@ def _lump_lines(cfg: GRTresnaConfig) -> list[str]:
                 f"lump{k}_velocity = {_fmt(tuple(lump.get('velocity', (0.0, 0.0, 0.0))))}",
                 f"lump{k}_omega = {lump.get('omega', 0.0)}",
                 f"lump{k}_mode = {int(lump.get('mode', 0))}",
+                f"lump{k}_exotic = {int(lump.get('exotic', 0))}",
             ])
         return lines
     return [
@@ -159,6 +177,7 @@ def _lump_lines(cfg: GRTresnaConfig) -> list[str]:
         f"lump_velocity = {_fmt(cfg.lump_velocity)}",
         f"lump_omega = {cfg.lump_omega}",
         f"lump_mode = {cfg.lump_mode}",
+        f"lump_exotic = {int(cfg.lump_exotic)}",
     ]
 
 
@@ -207,6 +226,9 @@ def write_grtresna_params(cfg: GRTresnaConfig, path: Path) -> None:
         f"",
         f"max_NL_iterations = {cfg.max_NL_iterations}",
         f"deactivate_zero_mode = 0",
+        f"maximal_slicing = {1 if cfg.maximal_slicing else 0}",
+        f"psi_relaxation = {cfg.psi_relaxation}",
+        f"psi_floor = {cfg.psi_floor}",
     ])
     path.write_text("\n".join(lines) + "\n")
 

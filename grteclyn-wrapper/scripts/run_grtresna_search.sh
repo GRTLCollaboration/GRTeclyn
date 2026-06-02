@@ -40,7 +40,7 @@ export GRTRESNA_ROOT="${GRTRESNA_ROOT:-$(cd -- "${GRTECLYN_ROOT}/.." && pwd)/GRT
 # ---- Search configuration (override via environment) -----------------------
 RUN_STAMP="${RUN_STAMP:-$(date +%Y%m%d_%H%M%S)}"
 RUNS_DIR="${RUNS_DIR:-${GRTECLYN_ROOT}/runs/grtresna_search}"
-LUMPS="${LUMPS:-3}"                       # scalar lumps in the matter basis (10 dims each)
+LUMPS="${LUMPS:-3}"                       # scalar lumps in the matter basis (11 dims each)
 RANKS="${RANKS:-8}"                       # MPI ranks per GRTresna solve
 ITERATIONS="${ITERATIONS:-30}"            # max non-linear iterations per solve
 MAX_GENERATIONS="${MAX_GENERATIONS:-10}"
@@ -73,11 +73,24 @@ PRE_ARGS=(--runs-dir "${RUNS_DIR}" --example RadialRecipe --consumer-radii ${CON
 if [[ "${DRY_RUN:-0}" == "1" ]]; then
   PRE_ARGS+=(--dry-run)
 fi
+# FTL-focused reweighting. Two deliberate changes make the FTL objective
+# actually reachable for this matter family:
+#   * ftl_precursor (5.0): a continuous shaping gradient that ramps up as the
+#     light cones tilt superluminal locally -- BEFORE operational_ftl's hard
+#     end-to-end-channel gate fires -- so CMA-ES has a slope to climb out of the
+#     flat-space basin instead of staring at a flat 0.
+#   * exotic_penalty (2.0, down from the 8.0 default): we now ALLOW exotic
+#     matter (per-lump phantom lumps source genuine negative energy) and accept
+#     the resulting NEC violation as the price of a persistent FTL channel, so
+#     the penalty must no longer dominate the budget and veto every exotic
+#     geometry. operational_ftl (9.0) still rules: exotic that buys no FTL loses.
 if [[ "${ENABLE_FTL_SCORING}" == "1" ]]; then
   PRE_ARGS+=(--score-weight ftl_shortcut=5.0 \
              --score-weight expansion_asymmetry=2.0 \
              --score-weight nonflat_geometry=1.0 \
-             --score-weight comoving_stability=2.5)
+             --score-weight comoving_stability=2.5 \
+             --score-weight ftl_precursor="${FTL_PRECURSOR_WEIGHT:-5.0}" \
+             --score-weight exotic_penalty="${EXOTIC_PENALTY_WEIGHT:-2.0}")
 fi
 PRE_ARGS+=(--ftl-L "${FTL_L:-8.0}")
 
@@ -87,7 +100,7 @@ echo "== GRTresna-in-the-loop search =="
 echo "GRTeclyn root : ${GRTECLYN_ROOT}"
 echo "GRTresna root : ${GRTRESNA_ROOT}"
 echo "Runs dir      : ${RUNS_DIR}"
-echo "Lumps         : ${LUMPS}  (=> $((LUMPS * 10)) search dims)"
+echo "Lumps         : ${LUMPS}  (=> $((LUMPS * 11)) search dims)"
 echo "Solve         : RANKS=${RANKS}  ITERATIONS=${ITERATIONS}"
 echo "CMA-ES        : generations=${MAX_GENERATIONS} population=${POPULATION} sigma0=${SIGMA0} seed=${SEED}"
 echo "GPUs          : ${GPU_IDS}"

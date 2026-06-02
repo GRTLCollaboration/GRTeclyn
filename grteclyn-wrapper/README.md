@@ -244,6 +244,73 @@ dynamically. No GRTeclyn evolution code changes were needed — only the
 `ExternalGridInitialData` loader (already in place) and the upstream solver
 profiles.
 
+### Exotic (phantom) matter and the maximal-slicing solver
+
+A genuine FTL channel generally needs **exotic matter** (negative energy density,
+`rho < 0`, an NEC violation). We added a per-lump *phantom* capability to the
+GRTresna `ScalarFieldBH` example and made the constraint solver able to handle
+it. This is documented honestly here, including where it does **not** yet work.
+
+**What was added.**
+
+1. **Per-lump exotic flag** (`lump{k}_exotic`). `ScalarField::compute_emtensor`
+   uses an independent-field model: each lump contributes its kinetic-energy and
+   momentum density with a sign set by its flag (`+1` canonical, `-1` phantom),
+   so a configuration can freely mix normal and exotic lumps. The search space
+   gained a per-lump `grtresna_lump{k}_exotic` dimension (rounded to a 0/1 flag).
+2. **Maximal-slicing (K=0) solve path** (`maximal_slicing` param). The default
+   CTTK(Hybrid) method sets `K = sign*sqrt(24 pi G rho + ...)`, which is the
+   square root of a **negative** number wherever `rho < 0` — so exotic matter
+   produced `NaN` immediately. This is structural, not a tuning bug. The new
+   path instead fixes `K = 0` and moves the matter energy into the elliptic
+   ψ-solve as a source (a standard York/Lichnerowicz CMC solve:
+   `rhs += -2 pi G rho psi^5`, `aCoef += 10 pi G rho psi^4`), which handles
+   either sign of `rho`.
+3. **Nonlinear-solve robustness** (`psi_relaxation`, `psi_floor`). The K=0 matter
+   source makes the linear operator indefinite for `rho < 0`; under-relaxation of
+   the Newton step plus a ψ-positivity floor keep it from overshooting into
+   `psi <= 0` (where `psi^-7` is `NaN`).
+4. **Continuous FTL precursor score** (`ftl_precursor`, in `metrics/score.py`).
+   `operational_ftl` is a hard end-to-end-channel gate that is flat-zero until a
+   full superluminal channel forms, giving CMA-ES no gradient. `ftl_precursor`
+   rewards *local* cone tilting (`max_local_speed > 1`, superluminal area
+   fraction) so the optimizer has a slope to climb before the hard gate fires.
+
+**What works (validated, single grid level).**
+
+- Canonical matter on the K=0 path matches the standard path (Ham residual
+  `0.07%` vs `0.04%`) — the formulation is correct.
+- A single **isolated** exotic lump converges to clean, finite, constraint-
+  satisfying data (effective amp `0.05 -> 2.9%`, `0.10 -> 7.1%` Ham), where the
+  old solver only produced `NaN`.
+- There is a sharp **physical** ceiling: at effective amp `0.15` the residual
+  jumps to `~98%`. This is the Lichnerowicz/York **existence boundary** — beyond
+  a critical negative-energy density no asymptotically-flat constraint-satisfying
+  data exists. `EXOTIC_AMP_SCALE = 0.25` maps the search amplitude range into the
+  convergent regime so exotic candidates stay solvable.
+
+**What does NOT work yet (honest negative result).**
+
+- Under the **production** solve (AMR `max_level=3`, 3 overlapping lumps with
+  angular `mode=1`, plus a background scalar), the K=0 path **diverges to NaN**
+  even for *canonical* matter — so `maximal_slicing` is now gated to exotic-only
+  candidates (`build_grtresna_config`), and purely-canonical candidates keep the
+  robust standard path (which solves these configs to `~0.04%`).
+- A **mixed** config (one exotic lump) on the K=0 path also fails to converge
+  under that production setting (NaN under AMR; Ham stuck at `100%` even at
+  `max_level=0` once the background scalar + multiple lumps are present). The
+  maximal-slicing path is currently robust only for **isolated single lumps on a
+  single grid level**, not for the multi-lump/AMR configs the search actually
+  proposes. Making it AMR-robust (coarse-fine ψ interpolation, tagging, a
+  multilevel-stable indefinite operator) is the open follow-up.
+
+**Net status.** Exotic matter is implemented end-to-end and provably solvable in
+the simple regime, but not yet inside the full AMR search. The completed
+*pre-exotic* reweighted run (best gated `S = 8.25`) confirmed the other half of
+the problem: `operational_ftl` stayed `0` across all 80 candidates and the score
+gain came from curvature/health terms, not FTL — motivating both the precursor
+gradient and the exotic-matter work above.
+
 ## Batch: 7 non-spherical shapes on GPUs 0–6
 
 ```bash
