@@ -11,6 +11,10 @@ import numpy as np
 
 from grteclyn_wrapper.grtresna.io import _reflect_half_z_to_full
 from grteclyn_wrapper.grtresna.solver import GRTresnaConfig, write_grtresna_params
+from grteclyn_wrapper.core.config import resolve_example
+from grteclyn_wrapper.core.episode import create_episode
+from grteclyn_wrapper.core.plot_consumer import build_consume_command
+from grteclyn_wrapper.core.params import write_params
 from grteclyn_wrapper.metrics.episode_metrics import EpisodeMetrics
 from grteclyn_wrapper.metrics.ftl_general import GeneralFtlReport
 from grteclyn_wrapper.metrics.score import score_episode
@@ -120,6 +124,68 @@ def test_write_grtresna_params_renders_exotic_amr_knobs() -> None:
     assert "psi_relaxation = 0.5" in text
     assert "psi_floor = 0.1" in text
     assert "maximal_jacobian_cap = 20.0" in text
+
+
+def test_rotating_wormhole_example_is_registered() -> None:
+    example = resolve_example("RotatingWormholeCollapse")
+
+    assert example.template.name == "params_rotating.txt"
+    assert example.check_prefix == "RotatingWormholeChk"
+    assert example.plot_prefix == "RotatingWormholePlt"
+
+
+def test_rotating_exotic_config_renders_no_kick_momentum_source() -> None:
+    cfg = GRTresnaConfig(
+        bh1_bare_mass=0.0,
+        dphi=0.0,
+        dpi=0.0,
+        scalar_mass=0.0,
+        lump_amp=0.08,
+        lump_width=4.0,
+        lump_omega=0.1,
+        lump_mode=2,
+        lump_exotic=1,
+        maximal_slicing=True,
+        psi_relaxation=0.6,
+        psi_floor=0.1,
+        maximal_jacobian_cap=25.0,
+        coefficient_average_type="arithmetic",
+    )
+
+    with TemporaryDirectory() as tmp:
+        path = Path(tmp) / "params.txt"
+        write_grtresna_params(cfg, path)
+        text = path.read_text(encoding="utf-8")
+
+    assert "dphi = 0.0" in text
+    assert "dpi = 0.0" in text
+    assert "lump_omega = 0.1" in text
+    assert "lump_mode = 2" in text
+    assert "lump_exotic = 1" in text
+    assert "maximal_slicing = 1" in text
+
+
+def test_rotating_wormhole_consumer_uses_psi4_profile() -> None:
+    example = resolve_example("RotatingWormholeCollapse")
+    with TemporaryDirectory() as tmp:
+        episode = create_episode(Path(tmp), name="rotating-consumer-test")
+        write_params(
+            example.template,
+            episode.params_path,
+            episode_dir=episode.path,
+            example=example,
+            overrides={"recipe_initial_data_file": "/tmp/initial_data.gridinit"},
+        )
+
+        command = build_consume_command(
+            episode,
+            profile="wormhole",
+            radii=(12.0, 16.0, 20.0, 24.0),
+        )
+
+    assert "--psi4" in command
+    assert "--embedding" in command
+    assert "--frames-fields" in command
 
 
 def test_half_z_reflection_places_positive_z_data_in_upper_half() -> None:

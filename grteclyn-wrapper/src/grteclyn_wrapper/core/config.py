@@ -54,8 +54,10 @@ def resolve_repo_root(explicit: str | Path | None = None) -> Path:
 REPO_ROOT = resolve_repo_root()
 SUPPORTED_WORMHOLE_DIR = REPO_ROOT / "Examples" / "SupportedWormholeCollapse"
 RADIAL_RECIPE_DIR = REPO_ROOT / "Examples" / "RadialRecipe"
+ROTATING_WORMHOLE_DIR = REPO_ROOT / "Examples" / "RotatingWormholeCollapse"
 DEFAULT_TEMPLATE = SUPPORTED_WORMHOLE_DIR / "params_2gpu.txt"
 DEFAULT_RADIAL_RECIPE_TEMPLATE = RADIAL_RECIPE_DIR / "params.txt"
+DEFAULT_ROTATING_WORMHOLE_TEMPLATE = ROTATING_WORMHOLE_DIR / "params_rotating.txt"
 
 EXAMPLES: dict[str, ExampleConfig] = {
     "SupportedWormholeCollapse": ExampleConfig(
@@ -71,6 +73,13 @@ EXAMPLES: dict[str, ExampleConfig] = {
         template=DEFAULT_RADIAL_RECIPE_TEMPLATE,
         check_prefix="RadialRecipeChk",
         plot_prefix="RadialRecipePlt",
+    ),
+    "RotatingWormholeCollapse": ExampleConfig(
+        name="RotatingWormholeCollapse",
+        dir=ROTATING_WORMHOLE_DIR,
+        template=DEFAULT_ROTATING_WORMHOLE_TEMPLATE,
+        check_prefix="RotatingWormholeChk",
+        plot_prefix="RotatingWormholePlt",
     ),
 }
 

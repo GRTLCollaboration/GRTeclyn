@@ -30,6 +30,23 @@ def build_command(executable: ExecutableConfig, params_path: Path, *extra_args: 
 
 def _merged_env(cuda_devices: str | None = None, extra_env: Mapping[str, str] | None = None) -> dict[str, str]:
     env = dict(os.environ)
+    sim_root = REPO_ROOT.parent
+    mpi_bin_dirs = [
+        sim_root / "local" / "openmpi-5.0.8" / "bin",
+        Path("/home/jovyan/.mlspace/envs/grtresna/bin"),
+    ]
+    mpi_lib_dirs = [
+        sim_root / "local" / "openmpi-5.0.8" / "lib",
+        Path("/home/jovyan/.mlspace/envs/grtresna/lib"),
+    ]
+    existing_path = env.get("PATH", "")
+    existing_ld = env.get("LD_LIBRARY_PATH", "")
+    env["PATH"] = os.pathsep.join(
+        [str(path) for path in mpi_bin_dirs if path.exists()] + [existing_path]
+    )
+    env["LD_LIBRARY_PATH"] = os.pathsep.join(
+        [str(path) for path in mpi_lib_dirs if path.exists()] + [existing_ld]
+    )
     if cuda_devices is not None:
         env["CUDA_VISIBLE_DEVICES"] = cuda_devices
     if extra_env:
@@ -81,7 +98,11 @@ def start_plotfile_consumer(
     frames: bool = True,
     jobs: int = 4,
 ) -> subprocess.Popen[str]:
-    profile = "wormhole" if example_name == "SupportedWormholeCollapse" else "radial"
+    profile = (
+        "wormhole"
+        if example_name in {"SupportedWormholeCollapse", "RotatingWormholeCollapse"}
+        else "radial"
+    )
     if radii is None:
         radii = default_radii_for_example(example_name)
     command = build_consume_command(
@@ -138,7 +159,11 @@ def drain_plotfile_backlog(
     jobs: int = 4,
 ) -> RunResult:
     """Process any plotfiles left after the watch consumer stops."""
-    profile = "wormhole" if example_name == "SupportedWormholeCollapse" else "radial"
+    profile = (
+        "wormhole"
+        if example_name in {"SupportedWormholeCollapse", "RotatingWormholeCollapse"}
+        else "radial"
+    )
     if radii is None:
         radii = default_radii_for_example(example_name)
     command = build_consume_command(

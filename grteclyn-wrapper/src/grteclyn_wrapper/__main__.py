@@ -446,7 +446,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--example",
         default="SupportedWormholeCollapse",
-        choices=["SupportedWormholeCollapse", "RadialRecipe"],
+        choices=["SupportedWormholeCollapse", "RadialRecipe", "RotatingWormholeCollapse"],
         help="GRTeclyn example to run.",
     )
     parser.add_argument(

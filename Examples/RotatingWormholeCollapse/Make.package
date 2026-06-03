@@ -1,0 +1,2 @@
+GRTECLYN_CEXE_sources += SupportedWormholeLevel.cpp Main_SupportedWormhole.cpp
+GRTECLYN_CEXE_headers += SupportedWormholeLevel.hpp SimulationParameters.hpp StateVariables.hpp SupportedWormholeInitialData.hpp PhantomDecayPotential.hpp ExternalGridInitialData.hpp

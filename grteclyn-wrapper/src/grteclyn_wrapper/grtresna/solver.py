@@ -220,6 +220,10 @@ def write_grtresna_params(cfg: GRTresnaConfig, path: Path) -> None:
     lines.extend([
         f"regularised_part_psi = {cfg.regularised_part_psi}",
         f"sign_of_K = {cfg.sign_of_K}",
+        f"maximal_slicing = {1 if cfg.maximal_slicing else 0}",
+        f"psi_relaxation = {cfg.psi_relaxation}",
+        f"psi_floor = {cfg.psi_floor}",
+        f"maximal_jacobian_cap = {cfg.maximal_jacobian_cap}",
         f"",
         f"bh1_bare_mass = {cfg.bh1_bare_mass}",
         f"bh1_spin = {_fmt(cfg.bh1_spin)}",
@@ -232,10 +236,6 @@ def write_grtresna_params(cfg: GRTresnaConfig, path: Path) -> None:
         f"",
         f"max_NL_iterations = {cfg.max_NL_iterations}",
         f"deactivate_zero_mode = 0",
-        f"maximal_slicing = {1 if cfg.maximal_slicing else 0}",
-        f"psi_relaxation = {cfg.psi_relaxation}",
-        f"psi_floor = {cfg.psi_floor}",
-        f"maximal_jacobian_cap = {cfg.maximal_jacobian_cap}",
     ])
     path.write_text("\n".join(lines) + "\n")
 
@@ -287,9 +287,13 @@ def _resolve_mpirun(cfg: GRTresnaConfig) -> tuple[str, dict[str, str]]:
         candidates.append(str(prefix / "bin" / "mpirun"))
 
     mpirun_path: str | None = None
+    mpirun_prefix: Path | None = None
     for cand in candidates:
         if cand and Path(cand).is_file():
             mpirun_path = cand
+            cand_path = Path(cand).resolve()
+            if cand_path.parent.name == "bin":
+                mpirun_prefix = cand_path.parent.parent
             break
     if mpirun_path is None:
         which = shutil.which("mpirun")
@@ -305,6 +309,13 @@ def _resolve_mpirun(cfg: GRTresnaConfig) -> tuple[str, dict[str, str]]:
     env = dict(os.environ)
     mpirun_dir = str(Path(mpirun_path).resolve().parent)
     env["PATH"] = mpirun_dir + os.pathsep + env.get("PATH", "")
+    if mpirun_prefix is not None:
+        env.setdefault("CONDA_PREFIX", str(mpirun_prefix))
+        lib_dir = mpirun_prefix / "lib"
+        if lib_dir.exists():
+            env["LD_LIBRARY_PATH"] = (
+                str(lib_dir) + os.pathsep + env.get("LD_LIBRARY_PATH", "")
+            )
     return mpirun_path, env
 
 
