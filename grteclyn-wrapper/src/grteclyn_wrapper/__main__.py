@@ -206,6 +206,11 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
             **base_overrides,
             "grtresna_ring_lumps": grtresna_lumps,
         }
+    if use_grtresna and grtresna_ansatz == "shell":
+        base_overrides = {
+            **base_overrides,
+            "grtresna_shell_lumps": grtresna_lumps,
+        }
     if nonspherical and not use_grtresna:
         base_overrides = {**ANGULAR_BASE_OVERRIDES, **base_overrides}
 
@@ -631,11 +636,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     opt.add_argument(
         "--grtresna-ansatz",
-        choices=["free", "ring"],
+        choices=["free", "ring", "shell"],
         default="free",
         help="GRTresna matter parameterization. 'free' searches every lump "
              "independently (11*K dimensions). 'ring' searches a reduced rotating "
-             "counterflow/exotic ring template and expands it into K lumps.",
+             "counterflow/exotic ring template (14D, planar/equatorial) and "
+             "expands it into K lumps. 'shell' is the full-sphere discovery "
+             "ansatz (16D): lumps cover the whole 2-sphere with an arbitrary "
+             "orientation axis and poloidal+toroidal currents, reaching 3D "
+             "configurations the planar ring cannot.",
     )
     opt.add_argument(
         "--grtresna-iterations", type=int, default=50,

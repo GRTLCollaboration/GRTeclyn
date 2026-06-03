@@ -279,6 +279,43 @@ blobs.  This keeps the downstream physics unchanged (the expanded
 \texttt{cfg.lumps} are passed through the same elliptic solve and GPU evolution)
 while giving CMA-ES a far lower-dimensional landscape to learn.
 
+\subsection{From a planar ring to a full-sphere discovery ansatz}
+\label{sec:shell_ansatz}
+
+The ring of Eq.~\eqref{eq:ring_centres} is a strong, deliberately chosen prior:
+its centres lie on a single equatorial circle (plus a small $z_0$ wobble), so it
+is efficient \emph{refinement} for one physically motivated family---a rotating
+matter-current loop, whose tangential flow sources the angular momentum and
+frame-dragging ``motor'' that the dipole winner of Sec.~\ref{sec:results} was
+missing.  But because we do not know \emph{a priori} what an FTL configuration
+looks like, a prior that cannot leave one plane is a poor \emph{discovery} tool:
+it structurally excludes matter or currents distributed elsewhere on the
+$2$-sphere (axial dipoles, shells, obliquely oriented loops).
+
+We therefore add a complementary \texttt{shell} ansatz that retains the same
+low-dimensional, current-based philosophy but covers the full sphere.  The $K$
+lumps are placed on a deterministic Fibonacci lattice and rigidly rotated to a
+searched orientation axis $\hat a(\theta_a,\varphi_a)$, and the matter current is
+decomposed into the two families a sphere supports---a \emph{toroidal} component
+circulating about $\hat a$ (net angular momentum $L_{\hat a}$) and a
+\emph{poloidal} component flowing over the poles:
+\begin{equation}
+    \vec v_k = v_r\,\hat r_k + v_t\,\frac{\hat a\times\hat r_k}{\lvert\hat a\times\hat r_k\rvert}
+    + v_p\,\bigl(\hat t_k\times\hat r_k\bigr),
+    \label{eq:shell_velocity}
+\end{equation}
+with amplitude and width modulated along the axis by low Legendre orders
+$P_1,P_2$ and a longitudinal exotic wedge.  This adds only two coordinates over
+the ring ($16$ versus $14$) while making the planar ring a strict
+thin-equatorial-band limit ($v_p\!\to\!0$, $\hat a\!=\!\hat z$).  The intended
+workflow is hierarchical and matches the discrete/continuous decomposition of
+Sec.~\ref{sec:search_loop}: the broad \texttt{shell}/\texttt{free} bases (and the
+MAP-Elites driver) \emph{discover} candidate families across the sphere, and the
+reduced \texttt{ring} then \emph{refines} a chosen family cheaply.  Crucially the
+expensive part is unchanged---every ansatz expands to the same \texttt{cfg.lumps}
+consumed by the identical elliptic solve and GPU evolution---so broadening
+coverage costs optimizer dimensions, not solver complexity.
+
 \subsection{What the elliptic solve adds to the search}
 
 Relative to the geometry-first recipes, the matter-first path contributes three
@@ -342,8 +379,10 @@ Each candidate follows
 \texttt{.gridinit}\rightarrow\texttt{GRTeclyn}\rightarrow S(\theta),
 \end{equation}
 where the optimizer sees eleven variables per lump and a five-lump basis by
-default in the fully free mode, or the fourteen ring-template variables of
-Sec.~\ref{sec:ring_ansatz} in the reduced mode.  Exotic candidates are routed
+default in the fully free mode, the fourteen ring-template variables of
+Sec.~\ref{sec:ring_ansatz} in the reduced refinement mode, or the sixteen
+full-sphere \texttt{shell} variables of Sec.~\ref{sec:shell_ansatz} in the
+discovery mode.  Exotic candidates are routed
 onto the hardened $K=0$ path, while purely
 canonical candidates may retain the trace-absorption path.  The search objective
 is FTL-first: evolved operational FTL and the local cone-tilting precursor are

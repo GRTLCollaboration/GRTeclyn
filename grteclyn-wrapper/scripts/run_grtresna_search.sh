@@ -125,7 +125,9 @@ echo "GRTeclyn root : ${GRTECLYN_ROOT}"
 echo "GRTresna root : ${GRTRESNA_ROOT}"
 echo "Runs dir      : ${RUNS_DIR}"
 if [[ "${GRTRESNA_ANSATZ}" == "ring" ]]; then
-  echo "Lumps/ansatz  : ${LUMPS} generated from ring template (=> 14 search dims)"
+  echo "Lumps/ansatz  : ${LUMPS} generated from ring template (=> 14 search dims, planar)"
+elif [[ "${GRTRESNA_ANSATZ}" == "shell" ]]; then
+  echo "Lumps/ansatz  : ${LUMPS} generated from full-sphere shell template (=> 16 search dims, 3D discovery)"
 else
   echo "Lumps/ansatz  : ${LUMPS} free lumps (=> $((LUMPS * 11)) search dims)"
 fi

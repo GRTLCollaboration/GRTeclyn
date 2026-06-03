@@ -42,6 +42,12 @@ Run these from `GRTeclyn/grteclyn-wrapper` unless noted otherwise.
 GPU_IDS="0 1 2 3 4 5 6 7" GRTRESNA_ANSATZ=ring \
   bash scripts/run_grtresna_search.sh
 
+# Discovery: 16D full-sphere shell ansatz. Lumps cover the whole 2-sphere with
+# an arbitrary orientation axis and poloidal+toroidal currents (reaches 3D
+# configurations the planar ring cannot). Use to find new families.
+GPU_IDS="0 1 2 3 4 5 6 7" GRTRESNA_ANSATZ=shell \
+  bash scripts/run_grtresna_search.sh
+
 # Broader but much harder 55D search: every lump independent.
 GPU_IDS="0 1 2 3 4 5 6 7" GRTRESNA_ANSATZ=free LUMPS=5 \
   bash scripts/run_grtresna_search.sh
@@ -81,13 +87,31 @@ The wrapper expands that template into `LUMPS` scalar clouds before calling
 GRTresna. Use this mode for efficient refinement of momentum-driven FTL
 candidates.
 
+`GRTRESNA_ANSATZ=shell` is the **full-sphere discovery** ansatz. CMA-ES sees a
+16D vector and the wrapper expands it into `LUMPS` clouds distributed over the
+*entire* 2-sphere (a Fibonacci lattice) rather than on one equatorial circle.
+It adds an arbitrary orientation axis `(theta, phi)` and decomposes the matter
+current into **toroidal** flow (net angular momentum about the axis -- the warp
+"motor") and **poloidal** flow (over-the-pole circulation, a current topology
+the planar ring cannot represent). The ring is the thin-equatorial-band limit,
+so `shell` is a strict superset for breadth. Use it for *discovery* of new FTL
+families; use `ring` for cheap *refinement* once a family is found.
+
 `GRTRESNA_ANSATZ=free` exposes the older independent lump basis:
 `11 * LUMPS` searched dimensions (`55D` for `LUMPS=5`). Use it for broader atlas
-searches when you can afford many more evaluations.
+searches, or as a periodic audit: if `free` random injections keep beating the
+`ring`/`shell` elites, the reduced ansatz is leaving value on the table.
 
-Both modes end at the same GRTresna data structure (`cfg.lumps`) and the same
+All modes end at the same GRTresna data structure (`cfg.lumps`) and the same
 GRTeclyn evolution path. The difference is only how the optimizer's vector is
 decoded into matter.
+
+> **When to use which.** `ring` (14D, planar) and `shell` (16D, full-sphere) are
+> reduced *priors*; they make CMA-ES tractable but bias the search toward their
+> respective geometries. `ring` cannot leave the equatorial plane, so it is a
+> refinement tool for the momentum-loop family. `shell` covers the full sphere
+> in 3D and is the right default for *discovery*. `free` (55D) is unbiased but
+> expensive -- keep it as an audit/atlas tool, not the workhorse.
 
 ### Stop And Verify Runs
 
@@ -148,6 +172,41 @@ weighted score components:
 Treat `F_op ~ 1` or `max_local_speed` near the degeneracy ceiling as suspicious
 until inspected; mild values like `F_op=0.01..0.05` are more plausible first
 survivors and should be replayed at higher resolution before any physics claim.
+
+### Falsification tiers: "did we actually find the solution?"
+
+A high score is only a proxy; it never proves a candidate is *the* FTL geometry.
+The validation-tier layer (`src/grteclyn_wrapper/search/validation_tiers.py`)
+answers the question honestly by recording, for every candidate, **how far up an
+increasingly demanding falsification ladder it survived**:
+
+| Tier | Name | Gate (needs all lower tiers too) |
+|------|------|----------------------------------|
+| T0 | `constructed` | constraint-satisfying data exists (not rejected) |
+| T1 | `nontrivial` | carries some FTL / non-flat signal (not Minkowski) |
+| T2 | `operational` | evolved shortcut beats the flat control, constraints bounded, no trapped surface |
+| T3 | `persistent` | survives long evolution: stable, non-growing, channel persists |
+| T4 | `observer_ec` | observer-robust energy-condition margin available, exotic cost bounded |
+| T5 | `converged` | resolution-ladder replay agrees (external evidence) |
+| T6 | `analytic` | closed-form back-derivation reproduced the geometry |
+
+Gates whose diagnostics are absent are reported `unavailable` (not silently
+passed), so one short episode climbs only as far as its evidence allows; T5/T6
+require promotion runs and are injected via `extra={"resolution_converged":...,
+"analytic_form":...}`. The MAP-Elites driver annotates each elite with its tier,
+writes a per-iteration `validation.json` (tier histogram + the Pareto
+**survivor front** = the candidate solutions), and prints an
+**archive-convergence** signal: the search has stopped finding new kinds when
+coverage stalls, the best score stalls, and the survivor front is stable across
+a window. That is the closest thing to "we are done" the search itself can say.
+
+Assess any existing campaign (CMA-ES or QD) offline, no rerun needed:
+
+```bash
+# Writes validation.json into the campaign dir and prints the survivor front.
+uv run python scripts/validate_tiers.py runs/grtresna_search/optimize_20260602T181607Z
+uv run python scripts/validate_tiers.py runs/grtresna_search/<campaign> --min-tier 3
+```
 
 ## Single GPU run (one guessed shape)
 
@@ -385,7 +444,7 @@ Default production knobs in the launcher:
 
 | Knob | Default | Meaning |
 |------|---------|---------|
-| `GRTRESNA_ANSATZ` | `ring` | reduced matter parameterization: `ring` searches 14 global template parameters and expands them to `LUMPS` scalar clouds; `free` searches every lump independently |
+| `GRTRESNA_ANSATZ` | `ring` | matter parameterization: `ring` (14D, planar refinement) and `shell` (16D, full-sphere discovery) search global template parameters and expand them to `LUMPS` scalar clouds; `free` (55D) searches every lump independently |
 | `LUMPS` | `5` | scalar clouds generated/evolved by GRTresna (`55` searched dimensions only when `GRTRESNA_ANSATZ=free`) |
 | `GPU_IDS` | `0 1 2 3` in the script, often overridden to all available GPUs | also sets default CMA-ES population |
 | `MAX_GENERATIONS` | `50` | CMA-ES generations |
@@ -425,10 +484,23 @@ parameterizations:
   quadrupole asymmetry, and mode — then deterministically expands them into
   `K` scalar lumps. This keeps the physically useful structure (counterflow,
   angular momentum, exotic support, shear) while reducing the optimizer from
-  55D to 14D for `K=5`.
+  55D to 14D for `K=5`. **Limitation:** the lumps live on one equatorial circle
+  (plus a small `z` wobble), so the ring cannot place matter or currents
+  anywhere on the 2-sphere. Treat it as a *refinement* prior for the
+  momentum-loop family, not a discovery tool.
+- `--grtresna-ansatz shell` (`GRTRESNA_ANSATZ=shell`): the **full-sphere
+  discovery** ansatz. CMA-ES searches **16 global parameters** — amplitude,
+  width, radius, shell thickness, orientation axis `(theta, phi)`,
+  toroidal/poloidal/radial flow, internal rotation, dipole/quadrupole asymmetry
+  (Legendre orders along the axis), exotic fraction/phase, mode, and a radial
+  jitter — then expands them into `K` lumps spread over the *whole* sphere via a
+  Fibonacci lattice. Toroidal flow circulates about the axis (net `L`,
+  gravitomagnetic dipole); poloidal flow goes over the poles. This reaches 3D
+  configurations the planar ring structurally cannot, at only +2 dimensions.
 - `--grtresna-ansatz free`: the older unconstrained `K`-lump basis. Each lump
   `k` contributes the 11 dimensions below, so `K=5` gives 55 searched
-  dimensions. This is maximally expressive but harder for CMA-ES to learn.
+  dimensions. This is maximally expressive but harder for CMA-ES to learn; use
+  it as a periodic audit of the reduced ansätze.
 
 Both modes produce the same downstream `cfg.lumps` representation; GRTresna
 still solves the full 3D constraints, writes `.gridinit`, and GRTeclyn evolves

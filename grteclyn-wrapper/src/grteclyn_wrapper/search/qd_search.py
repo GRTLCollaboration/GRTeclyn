@@ -32,6 +32,15 @@ from ..core.config import ExampleConfig, ExecutableConfig, resolve_example
 from ..core.episode import write_json
 from ..core.evaluation import Evaluation, evaluate_overrides
 from .optimize import DEFAULT_SEARCH_SPACE, SearchDimension
+from .validation_tiers import (
+    DEFAULT_TIER_CONFIG,
+    Tier,
+    TierConfig,
+    build_survivors,
+    convergence_signals,
+    evaluate_tiers,
+    survivor_front,
+)
 
 
 def _descriptors(components: Mapping[str, float]) -> tuple[float, float]:
@@ -64,6 +73,9 @@ class Elite:
     descriptors: tuple[float, float]
     params: dict[str, float]
     episode: str | None
+    tier: int = int(Tier.REJECTED)
+    tier_name: str = "rejected"
+    objectives: dict[str, float] = field(default_factory=dict)
 
 
 @dataclass
@@ -88,21 +100,33 @@ class QDArchive:
             return None
         return max(self.cells.values(), key=lambda e: e.score)
 
+    def tier_histogram(self) -> dict[str, int]:
+        from .validation_tiers import TIER_NAMES
+
+        hist: dict[str, int] = {name: 0 for name in TIER_NAMES.values()}
+        for e in self.cells.values():
+            hist[e.tier_name] = hist.get(e.tier_name, 0) + 1
+        return hist
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "bins": self.bins,
             "coverage": self.coverage,
             "num_elites": len(self.cells),
             "best_score": self.best.score if self.best else None,
+            "tier_histogram": self.tier_histogram(),
             "cells": [
                 {
                     "cell": list(e.cell),
                     "score": e.score,
                     "descriptors": list(e.descriptors),
+                    "tier": e.tier,
+                    "tier_name": e.tier_name,
+                    "objectives": e.objectives,
                     "params": e.params,
                     "episode": e.episode,
                 }
-                for e in sorted(self.cells.values(), key=lambda e: -e.score)
+                for e in sorted(self.cells.values(), key=lambda e: (-e.tier, -e.score))
             ],
         }
 
@@ -162,6 +186,8 @@ def run_qd_search(
     ftl_L: float | None = None,
     consume_plotfiles: bool = True,
     consumer_radii: Sequence[float] = (4.0, 8.0),
+    tier_config: TierConfig = DEFAULT_TIER_CONFIG,
+    survivor_min_tier: int = int(Tier.OPERATIONAL),
 ) -> QDArchive:
     example_cfg = example if isinstance(example, ExampleConfig) else resolve_example(example)
     dims = list(search_space or DEFAULT_SEARCH_SPACE)
@@ -253,16 +279,77 @@ def run_qd_search(
             d1, d2 = _descriptors(res.components)
             cell = (_bin_index(d1, bins), _bin_index(d2, bins))
             params = {d.param_key: float(_vector_to_overrides(x, dims, base)[d.param_key]) for d in dims}
-            elite = Elite(cell=cell, score=res.score, descriptors=(d1, d2), params=params, episode=res.episode_path)
+            assessment = evaluate_tiers(res.components, metrics=res.metrics, config=tier_config)
+            elite = Elite(
+                cell=cell,
+                score=res.score,
+                descriptors=(d1, d2),
+                params=params,
+                episode=res.episode_path,
+                tier=assessment.tier,
+                tier_name=assessment.tier_name,
+                objectives=assessment.objectives,
+            )
             improved = archive.insert(elite)
             trajectory.append({
                 "eval": eval_counter[0],
                 "score": res.score,
                 "cell": list(cell),
                 "descriptors": [d1, d2],
+                "tier": assessment.tier,
+                "tier_name": assessment.tier_name,
                 "improved": improved,
                 "episode": res.episode_path,
             })
+
+    conv_history: list[dict[str, Any]] = []
+
+    def _write_validation() -> dict[str, Any]:
+        """Assess the archive's survivor front and archive-convergence signal."""
+        items = [
+            {
+                "label": f"cell_{e.cell[0]}_{e.cell[1]}",
+                "tier": e.tier,
+                "score": e.score,
+                "objectives": e.objectives,
+                "episode": e.episode,
+            }
+            for e in archive.cells.values()
+        ]
+        survivors = build_survivors(items, min_tier=survivor_min_tier)
+        front = survivor_front(survivors)
+        best = archive.best
+        snapshot = {
+            "iteration": len(conv_history),
+            "coverage": archive.coverage,
+            "best_score": best.score if best else 0.0,
+            "front_labels": [s.label for s in front],
+        }
+        conv_history.append(snapshot)
+        signals = convergence_signals(conv_history)
+        write_json(qd_dir / "validation.json", {
+            "tier_histogram": archive.tier_histogram(),
+            "survivor_min_tier": survivor_min_tier,
+            "num_survivors": len(survivors),
+            "survivor_front": [
+                {
+                    "label": s.label,
+                    "tier": s.tier,
+                    "tier_name": next(
+                        (e.tier_name for e in archive.cells.values()
+                         if f"cell_{e.cell[0]}_{e.cell[1]}" == s.label),
+                        "",
+                    ),
+                    "score": s.score,
+                    "objectives": s.objectives,
+                    "episode": s.episode,
+                }
+                for s in front
+            ],
+            "convergence": signals,
+            "history": conv_history,
+        })
+        return signals
 
     print(f"[qd] MAP-Elites: {len(dims)}D, bins={bins}x{bins}, batch={batch}, "
           f"iters={iterations}, GPUs={gpu_ids or cuda_devices}")
@@ -286,11 +373,21 @@ def run_qd_search(
         with (qd_dir / "trajectory.jsonl").open("w", encoding="utf-8") as fh:
             for rec in trajectory:
                 fh.write(json.dumps(rec, sort_keys=True) + "\n")
+        signals = _write_validation()
         best = archive.best
+        n_front = len(conv_history[-1]["front_labels"])
         print(f"[qd] iter {it}/{iterations}: elites={len(archive.cells)} "
               f"coverage={archive.coverage:.2f} best={best.score if best else float('nan'):.4f} "
-              f"evals={eval_counter[0]}")
+              f"front(T>={survivor_min_tier})={n_front} "
+              f"converged={signals.get('converged')} evals={eval_counter[0]}")
+        if signals.get("converged"):
+            print(f"[qd] archive converged at iter {it}: "
+                  f"coverage_delta={signals.get('coverage_delta'):.3f} "
+                  f"best_delta={signals.get('best_score_delta'):.4f} "
+                  f"front_stable={signals.get('front_stable')}")
 
     write_json(qd_dir / "archive.json", archive.to_dict())
-    print(f"[qd] Done. elites={len(archive.cells)} coverage={archive.coverage:.2f} dir={qd_dir}")
+    final_hist = archive.tier_histogram()
+    print(f"[qd] Done. elites={len(archive.cells)} coverage={archive.coverage:.2f} "
+          f"tiers={final_hist} dir={qd_dir}")
     return archive

@@ -229,6 +229,94 @@ def grtresna_ring_search_space() -> list[SearchDimension]:
     ]
 
 
+def grtresna_shell_search_space() -> list[SearchDimension]:
+    """Full-sphere ``shell`` GRTresna matter search space (discovery ansatz).
+
+    The ``ring`` ansatz is a planar (equatorial) loop: it cannot place matter
+    or currents anywhere on the 2-sphere, only on one circle plus a small
+    out-of-plane wobble.  This ``shell`` ansatz lifts that restriction.  It
+    distributes the ``K`` lumps over the *whole* unit sphere (a deterministic
+    Fibonacci lattice), gives the configuration an arbitrary orientation axis
+    ``(theta, phi)``, and decomposes the matter current into the two physically
+    distinct families a sphere supports:
+
+    * a *toroidal* current circulating about the axis (net angular momentum /
+      gravitomagnetic dipole along the axis -- the warp "motor"), and
+    * a *poloidal* current flowing over the poles (a current topology the
+      equatorial ring simply does not contain).
+
+    Amplitude/width are modulated by low Legendre orders along the axis
+    (``dipole`` = ell=1 hemisphere asymmetry, ``quadrupole`` = ell=2), and the
+    exotic sector is a longitudinal wedge selected about the axis.  The ring is
+    recovered as the thin-equatorial-band limit, so this is a strict superset
+    used for *discovery* (broad coverage) rather than *refinement* (the ring).
+
+    16 searched dimensions for any ``K``: like the ring, the lump count is a
+    mesh-resolution knob, not an optimizer dimension.
+    """
+    return [
+        SearchDimension("grtresna_shell_amp", 0.04, 0.30, 0.15),
+        SearchDimension("grtresna_shell_width", 1.5, 4.5, 3.0),
+        SearchDimension("grtresna_shell_radius", 1.5, 6.0, 3.5),
+        SearchDimension("grtresna_shell_thickness", 0.0, 2.5, 0.5),
+        SearchDimension("grtresna_shell_axis_theta", 0.0, math.pi, 0.5 * math.pi),
+        SearchDimension("grtresna_shell_axis_phi", 0.0, 2.0 * math.pi, 0.0),
+        SearchDimension("grtresna_shell_toroidal_velocity", -0.9, 0.9, 0.35),
+        SearchDimension("grtresna_shell_poloidal_velocity", -0.6, 0.6, 0.0),
+        SearchDimension("grtresna_shell_radial_velocity", -0.5, 0.5, 0.0),
+        SearchDimension("grtresna_shell_omega", -0.5, 0.5, 0.0),
+        SearchDimension("grtresna_shell_dipole_amp", -0.6, 0.6, 0.0),
+        SearchDimension("grtresna_shell_quadrupole_amp", -0.5, 0.5, 0.0),
+        SearchDimension("grtresna_shell_exotic_fraction", 0.0, 1.0, 0.4),
+        SearchDimension("grtresna_shell_exotic_phase", 0.0, 2.0 * math.pi, 0.0),
+        SearchDimension("grtresna_shell_mode", 0.0, 2.0, 1.0),
+        SearchDimension("grtresna_shell_radial_jitter", 0.0, 1.0, 0.0),
+    ]
+
+
+def _vec_add(a: tuple[float, float, float], b: tuple[float, float, float]) -> tuple[float, float, float]:
+    return (a[0] + b[0], a[1] + b[1], a[2] + b[2])
+
+
+def _vec_scale(a: tuple[float, float, float], s: float) -> tuple[float, float, float]:
+    return (a[0] * s, a[1] * s, a[2] * s)
+
+
+def _vec_cross(a: tuple[float, float, float], b: tuple[float, float, float]) -> tuple[float, float, float]:
+    return (
+        a[1] * b[2] - a[2] * b[1],
+        a[2] * b[0] - a[0] * b[2],
+        a[0] * b[1] - a[1] * b[0],
+    )
+
+
+def _vec_norm(a: tuple[float, float, float]) -> tuple[float, float, float]:
+    mag = math.sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2])
+    if mag < 1e-12:
+        return (0.0, 0.0, 0.0)
+    return (a[0] / mag, a[1] / mag, a[2] / mag)
+
+
+def _orthonormal_frame(
+    axis_theta: float, axis_phi: float
+) -> tuple[tuple[float, float, float], tuple[float, float, float], tuple[float, float, float]]:
+    """Return an orthonormal frame ``(a, e1, e2)`` with ``a`` the polar axis.
+
+    ``a`` points along ``(theta, phi)``; ``e1, e2`` span the plane orthogonal
+    to it.  Placing canonical Fibonacci points in this frame rotates the whole
+    sphere to the searched orientation for free.
+    """
+    sa = math.sin(axis_theta)
+    a = (sa * math.cos(axis_phi), sa * math.sin(axis_phi), math.cos(axis_theta))
+    # Reference axis least parallel to a, to keep the cross product well-conditioned.
+    ref = (0.0, 0.0, 1.0) if abs(a[2]) < 0.9 else (1.0, 0.0, 0.0)
+    e1 = _vec_norm(_vec_cross(ref, a))
+    if e1 == (0.0, 0.0, 0.0):
+        e1 = _vec_norm(_vec_cross((0.0, 1.0, 0.0), a))
+    e2 = _vec_cross(a, e1)
+    return a, e1, e2
+
+
 # Default GRTresna search space (used as a fallback when none is supplied).
 GRTRESNA_SEARCH_SPACE: list[SearchDimension] = grtresna_search_space()
 
@@ -263,6 +351,8 @@ def build_search_space(
     if grtresna:
         if grtresna_ansatz == "ring":
             return grtresna_ring_search_space()
+        if grtresna_ansatz == "shell":
+            return grtresna_shell_search_space()
         if grtresna_ansatz != "free":
             raise ValueError(f"unknown GRTresna ansatz: {grtresna_ansatz}")
         return grtresna_search_space(grtresna_lumps)
@@ -358,6 +448,88 @@ def build_grtresna_config(
                 v_rad * r_hat[0] + v_tan * t_hat[0],
                 v_rad * r_hat[1] + v_tan * t_hat[1],
                 v_z * math.cos(theta - phase),
+            )
+            lumps.append({
+                "amp": amp,
+                "width": width,
+                "center": center,
+                "velocity": velocity,
+                "omega": omega,
+                "mode": max(0, mode),
+                "exotic": 1 if k in exotic_ids else 0,
+            })
+        cfg.lumps = lumps
+        if any(lump["exotic"] for lump in lumps):
+            _enable_exotic_safe_solver()
+        return cfg
+
+    if any(str(k).startswith("grtresna_shell_") for k in overrides):
+        num_lumps = max(3, int(round(_get_float("grtresna_shell_lumps", GRTRESNA_DEFAULT_NUM_LUMPS))))
+        amp0 = _get_float("grtresna_shell_amp", 0.15)
+        width0 = _get_float("grtresna_shell_width", 3.0)
+        radius = _get_float("grtresna_shell_radius", 3.5)
+        thickness = _get_float("grtresna_shell_thickness", 0.5)
+        axis_theta = _get_float("grtresna_shell_axis_theta", 0.5 * math.pi)
+        axis_phi = _get_float("grtresna_shell_axis_phi", 0.0)
+        v_tor = _get_float("grtresna_shell_toroidal_velocity", 0.35)
+        v_pol = _get_float("grtresna_shell_poloidal_velocity", 0.0)
+        v_rad = _get_float("grtresna_shell_radial_velocity", 0.0)
+        omega = _get_float("grtresna_shell_omega", 0.0)
+        dipole = _get_float("grtresna_shell_dipole_amp", 0.0)
+        quadrupole = _get_float("grtresna_shell_quadrupole_amp", 0.0)
+        exotic_fraction = min(1.0, max(0.0, _get_float("grtresna_shell_exotic_fraction", 0.4)))
+        exotic_phase = _get_float("grtresna_shell_exotic_phase", 0.0)
+        mode = int(round(_get_float("grtresna_shell_mode", 1.0)))
+        radial_jitter = min(1.0, max(0.0, _get_float("grtresna_shell_radial_jitter", 0.0)))
+
+        axis, e1, e2 = _orthonormal_frame(axis_theta, axis_phi)
+        golden = math.pi * (3.0 - math.sqrt(5.0))
+
+        # First pass: canonical Fibonacci directions, axis-relative angles.
+        dirs: list[tuple[float, float, float]] = []
+        mus: list[float] = []
+        azimuths: list[float] = []
+        for k in range(num_lumps):
+            uz = 1.0 - 2.0 * (k + 0.5) / num_lumps  # cos(polar) about axis
+            rho = math.sqrt(max(0.0, 1.0 - uz * uz))
+            phi_k = golden * k
+            ux = rho * math.cos(phi_k)
+            uy = rho * math.sin(phi_k)
+            # World direction: rotate canonical (ux, uy, uz) into (e1, e2, axis).
+            world = _vec_add(
+                _vec_add(_vec_scale(e1, ux), _vec_scale(e2, uy)),
+                _vec_scale(axis, uz),
+            )
+            world = _vec_norm(world)
+            dirs.append(world)
+            mus.append(uz)
+            azimuths.append(math.atan2(uy, ux))
+
+        exotic_count = int(round(exotic_fraction * num_lumps))
+        ranked = sorted(
+            range(num_lumps),
+            key=lambda k: math.cos(azimuths[k] - exotic_phase),
+            reverse=True,
+        )
+        exotic_ids = set(ranked[:exotic_count])
+
+        lumps: list[dict] = []
+        for k in range(num_lumps):
+            world = dirs[k]
+            mu = mus[k]
+            legendre = 1.0 + dipole * mu + quadrupole * (1.5 * mu * mu - 0.5)
+            amp = max(0.0, min(0.35, amp0 * max(0.15, legendre)))
+            width = max(1.0, min(6.0, width0 * max(0.5, 1.0 + 0.25 * quadrupole * mu)))
+            r_k = radius + thickness * mu + radial_jitter * radius * 0.3 * math.sin(golden * k)
+            center = _vec_scale(world, r_k)
+            # Local frame on the sphere: radial (world), toroidal (about axis),
+            # poloidal (meridional). Toroidal feeds L about the axis; poloidal is
+            # the over-the-pole current the equatorial ring cannot produce.
+            tor = _vec_norm(_vec_cross(axis, world))
+            pol = _vec_cross(tor, world)
+            velocity = _vec_add(
+                _vec_add(_vec_scale(world, v_rad), _vec_scale(tor, v_tor)),
+                _vec_scale(pol, v_pol),
             )
             lumps.append({
                 "amp": amp,
@@ -586,10 +758,15 @@ def _force_exotic_template(
     """Impose a categorical exotic/multi-lump pattern on a continuous vector."""
     vec = _clip_vector(x, dims)
     index = {dim.param_key: i for i, dim in enumerate(dims)}
-    if "grtresna_ring_exotic_fraction" in index:
-        frac_i = index["grtresna_ring_exotic_fraction"]
+    exotic_frac_key = next(
+        (k for k in ("grtresna_ring_exotic_fraction", "grtresna_shell_exotic_fraction") if k in index),
+        None,
+    )
+    if exotic_frac_key is not None:
+        frac_i = index[exotic_frac_key]
         frac_dim = dims[frac_i]
-        phase_i = index.get("grtresna_ring_exotic_phase")
+        phase_key = exotic_frac_key.replace("_fraction", "_phase")
+        phase_i = index.get(phase_key)
         patterns = (0.25, 0.40, 0.60, 1.0)
         vec[frac_i] = max(
             frac_dim.lower,
