@@ -219,6 +219,66 @@ example, give a strong momentum/shear field with no bulk translation.  Black
 holes are disabled in the search configuration so the optimizer explores pure
 moving/rotating scalar clouds.
 
+\subsection{Parameter reduction by a structured ring ansatz}
+\label{sec:ring_ansatz}
+
+The fully free five-lump basis is expressive but expensive for CMA-ES.  With
+$K=5$ it exposes $55$ continuous/categorical coordinates, while each evaluation
+requires a full MPI elliptic solve and, for survivors, a GPU evolution.  In this
+regime CMA-ES can learn broad facts---for example that non-convergent exotic
+configurations are bad---but it wastes many samples distinguishing arbitrary
+translations, rotations, and permutations of essentially the same matter pattern.
+The optimization problem is therefore better posed in terms of coherent
+\emph{matter currents} than independent blobs.
+
+We introduced a reduced \texttt{ring} parameterization that searches a small set
+of global template variables and then deterministically expands them back into
+the same lump representation consumed by \texttt{GRTresna}.  For $K$ generated
+lumps, their angular positions are
+\begin{equation}
+    \vartheta_k=\Phi+\frac{2\pi k}{K},\qquad
+    \vec c_k =
+    R(\cos\vartheta_k,\sin\vartheta_k,0)
+    + z_0\sin(\vartheta_k-\Phi)\,\hat z ,
+    \label{eq:ring_centres}
+\end{equation}
+and their velocity is decomposed into radial, tangential, and vertical pieces,
+\begin{equation}
+    \vec v_k =
+    v_r\,\hat r_k + v_\varphi\,\hat\varphi_k
+    + v_z\cos(\vartheta_k-\Phi)\,\hat z .
+    \label{eq:ring_velocity}
+\end{equation}
+The amplitude and width are modulated by low Fourier modes,
+\begin{equation}
+    A_k=A_0\!\left[1+d\cos\vartheta_k+q\cos(2\vartheta_k)\right]_+,
+    \qquad
+    w_k=w_0\!\left[1+\tfrac14 q\sin(2\vartheta_k)\right]_+ ,
+    \label{eq:ring_modulation}
+\end{equation}
+with clipping to the same safe bounds as the free-lump search.  A separate
+exotic fraction and exotic phase choose which sector of the ring is phantom:
+the $N_{\rm exotic}\simeq f_{\rm ex}K$ lumps with largest
+$\cos(\vartheta_k-\Phi_{\rm ex})$ are assigned the exotic sign.  The remaining
+searched variables are the shared internal rotation $\omega$ and azimuthal mode
+$m$.
+
+Thus the default matter-first search now uses fourteen parameters:
+\[
+\{A_0,w_0,R,z_0,\Phi,v_\varphi,v_r,v_z,\omega,
+f_{\rm ex},\Phi_{\rm ex},d,q,m\},
+\]
+instead of the $11K=55$ free-lump coordinates.  The reduction is not a loss of
+the physical ingredients we need: the ansatz still contains compact scalar
+matter, angular momentum, counterflow/shear, localized exotic support, and
+dipole/quadrupole asymmetry.  It merely ties together degrees of freedom that
+are related by an approximate rotating-ring symmetry.  In physical terms, the
+optimizer searches for a rotating or shearing scalar-current loop---possibly
+with an exotic sector on one side---rather than a cloud of unrelated matter
+blobs.  This keeps the downstream physics unchanged (the expanded
+\texttt{cfg.lumps} are passed through the same elliptic solve and GPU evolution)
+while giving CMA-ES a far lower-dimensional landscape to learn.
+
 \subsection{What the elliptic solve adds to the search}
 
 Relative to the geometry-first recipes, the matter-first path contributes three
@@ -282,7 +342,9 @@ Each candidate follows
 \texttt{.gridinit}\rightarrow\texttt{GRTeclyn}\rightarrow S(\theta),
 \end{equation}
 where the optimizer sees eleven variables per lump and a five-lump basis by
-default.  Exotic candidates are routed onto the hardened $K=0$ path, while purely
+default in the fully free mode, or the fourteen ring-template variables of
+Sec.~\ref{sec:ring_ansatz} in the reduced mode.  Exotic candidates are routed
+onto the hardened $K=0$ path, while purely
 canonical candidates may retain the trace-absorption path.  The search objective
 is FTL-first: evolved operational FTL and the local cone-tilting precursor are
 ranked ahead of health terms, while random and forced-exotic injections prevent

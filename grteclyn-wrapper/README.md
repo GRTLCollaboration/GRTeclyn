@@ -301,6 +301,50 @@ Both modes produce the same downstream `cfg.lumps` representation; GRTresna
 still solves the full 3D constraints, writes `.gridinit`, and GRTeclyn evolves
 the result. Use `--dry-run` to exercise the plumbing without a solve or GPU.
 
+#### Why the `ring` ansatz reduces the search space
+
+The original `free` GRTresna search gives CMA-ES every lump coordinate
+independently: `amp`, `width`, `center_{x,y,z}`, `velocity_{x,y,z}`, `omega`,
+`mode`, and `exotic`. With `LUMPS=5` that is `5 * 11 = 55` searched dimensions.
+It can represent almost any compact scalar-matter cloud, but many dimensions are
+symmetry/noise for the physics we are trying to learn: rotating the whole cloud,
+permuting equivalent lumps, or nudging one lump independently often describes
+nearly the same matter-current pattern while costing CMA-ES extra samples.
+
+The `ring` ansatz searches coherent matter-flow parameters instead, then expands
+them into the same five lump dictionaries before calling GRTresna. The searched
+14D vector is:
+
+| Ring parameter | Physical role |
+|----------------|---------------|
+| `grtresna_ring_amp` | common scalar-field amplitude scale |
+| `grtresna_ring_width` | common Gaussian cloud width |
+| `grtresna_ring_radius` | radius of the generated matter ring |
+| `grtresna_ring_z_scale` | sinusoidal out-of-plane thickness/tilt |
+| `grtresna_ring_phase` | global rotation angle of the ring |
+| `grtresna_ring_tangential_velocity` | circulating matter current / angular momentum source |
+| `grtresna_ring_radial_velocity` | inward/outward compression flow |
+| `grtresna_ring_vertical_velocity` | alternating vertical motion |
+| `grtresna_ring_omega` | shared internal lump rotation |
+| `grtresna_ring_exotic_fraction` | fraction of generated lumps that are phantom/exotic |
+| `grtresna_ring_exotic_phase` | where the exotic sector sits on the ring |
+| `grtresna_ring_dipole_amp` | one-sided asymmetry |
+| `grtresna_ring_quadrupole_amp` | two-lobed squeeze/shear asymmetry |
+| `grtresna_ring_mode` | shared azimuthal lump mode |
+
+Internally, lump `k` is placed at angle
+`theta_k = phase + 2*pi*k/LUMPS`. Its center is on a ring of radius
+`grtresna_ring_radius`, with optional sinusoidal `z` displacement; its velocity
+is the sum of radial, tangential, and vertical components. Dipole/quadrupole
+terms modulate amplitude and width around the ring. The exotic fraction and
+phase choose a contiguous sector of the ring to flip to phantom sign. In other
+words, CMA-ES searches a **rotating/shearing scalar-current loop** with
+localized exotic support, rather than five unrelated blobs.
+
+Use `GRTRESNA_ANSATZ=ring` when you want efficient discovery/refinement of
+momentum-driven FTL candidates. Use `GRTRESNA_ANSATZ=free` when you deliberately
+want the broader 55D atlas search and can afford many more evaluations.
+
 | Search dimension (per lump `k`) | Meaning |
 |---------------------------------|---------|
 | `grtresna_lump{k}_amp` | amplitude of the cloud (0 ⇒ disabled) |
