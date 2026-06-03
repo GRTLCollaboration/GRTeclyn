@@ -17,6 +17,138 @@ First build (single GPU, no MPI):
 BUILD=1 bash grteclyn-wrapper/scripts/run_radialrecipe_gpu_smoke.sh
 ```
 
+## Read This First: What To Edit, Build, And Run
+
+This repository has three cooperating layers. Most mistakes come from editing the
+right idea in the wrong layer, or from launching a long search before rebuilding
+the C++ side that changed.
+
+| Goal | Edit here | Rebuild needed? | Validate with |
+|------|-----------|-----------------|---------------|
+| Change CMA-ES search dimensions, the `ring`/`free` ansatz, warm starts, random/exotic injection, or pre-GPU rejection behavior | `grteclyn-wrapper/src/grteclyn_wrapper/search/optimize.py` and CLI wiring in `grteclyn-wrapper/src/grteclyn_wrapper/__main__.py` | No C++ rebuild; Python code is picked up by the wrapper venv | `cd grteclyn-wrapper && uv run pytest tests/test_grtresna_ring_ansatz.py tests/test_solved_geometry_ftl.py -q` |
+| Change launcher defaults or add environment knobs for searches | `grteclyn-wrapper/scripts/run_grtresna_search.sh` | No | `DRY_RUN=1 MAX_GENERATIONS=1 GPU_IDS="0 1" bash scripts/run_grtresna_search.sh` |
+| Change how GRTresna is invoked, configured, parsed, or converted to `.gridinit` | `grteclyn-wrapper/src/grteclyn_wrapper/grtresna/solver.py` and `grteclyn-wrapper/src/grteclyn_wrapper/grtresna/io.py` | Usually no C++ rebuild if only wrapper Python changed | `uv run pytest tests/test_grtresna_integration.py tests/test_grtresna_ring_ansatz.py -q` |
+| Change the pre-evolution solved-geometry FTL filter or mechanism descriptors | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/ftl_solved_geometry.py` | No | `uv run pytest tests/test_solved_geometry_ftl.py tests/test_ftl_general.py -q` |
+| Change scoring weights/components read from episodes | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/score.py`, `episode_metrics.py` | No | Re-score a campaign or run focused metric tests |
+| Change GRTeclyn evolution, fields written to plotfiles, external `.gridinit` loading, matter evolution, or diagnostics | `Examples/RadialRecipe/*`, especially `RadialRecipeLevel.cpp`, `SimulationParameters.hpp`, `ExternalGridInitialData.hpp`; shared matter in `Source/Matter/*` | Yes, rebuild GRTeclyn executable | `BUILD=1 bash grteclyn-wrapper/scripts/run_radialrecipe_gpu_smoke.sh` |
+| Change the upstream GRTresna elliptic solver, scalar source, AMR tagging, or maximal-slicing solve | `../GRTresna/Examples/ScalarFieldBH/*` and shared Chombo/GRTresna headers | Yes, rebuild `Main_ScalarFieldBH3d...MPI.ex` manually | Solver-only AMR smoke tests below |
+
+### Launch Cookbook
+
+Run these from `GRTeclyn/grteclyn-wrapper` unless noted otherwise.
+
+```bash
+# Current recommended matter-first search: 14D reduced ring ansatz, 8 GPUs.
+GPU_IDS="0 1 2 3 4 5 6 7" GRTRESNA_ANSATZ=ring \
+  bash scripts/run_grtresna_search.sh
+
+# Broader but much harder 55D search: every lump independent.
+GPU_IDS="0 1 2 3 4 5 6 7" GRTRESNA_ANSATZ=free LUMPS=5 \
+  bash scripts/run_grtresna_search.sh
+
+# Cheap launcher/CLI smoke test: no GRTresna MPI solve and no GPU evolution.
+DRY_RUN=1 MAX_GENERATIONS=1 GPU_IDS="0 1" GRTRESNA_ANSATZ=ring \
+  bash scripts/run_grtresna_search.sh
+
+# Keep raw plotfiles for manual debugging (normally they are consumed/deleted).
+NO_CONSUME=1 MAX_GENERATIONS=1 GPU_IDS="0 1" \
+  bash scripts/run_grtresna_search.sh
+
+# Single-GPU RadialRecipe smoke/build run, useful after C++ edits.
+cd /path/to/GRTeclyn
+BUILD=1 CUDA_VISIBLE_DEVICES_OVERRIDE=0 \
+  bash grteclyn-wrapper/scripts/run_radialrecipe_gpu_smoke.sh
+```
+
+Search outputs go to `runs/grtresna_search/optimize_<timestamp>/`. Important
+files inside a campaign:
+
+| Path | Meaning |
+|------|---------|
+| `trajectory.jsonl` | One JSON record per CMA-ES evaluation; rejected candidates are included and still teach CMA-ES through their fitness. |
+| `eval_XXXXXX/metadata.json` | GRTresna convergence, solved-geometry FTL, rejection reasons, simulation exit code. |
+| `eval_XXXXXX/score.json` | Parsed metrics and score components after GPU evolution. |
+| `eval_XXXXXX/initial_data.gridinit` | Constraint-satisfying GRTresna data loaded by GRTeclyn. |
+| `eval_XXXXXX/frames/**/frame_*.png` | Consumed plotfile frames (if the candidate reached GPU and frames were enabled). |
+| `eval_XXXXXX/data/*.dat` | In-situ GRTeclyn diagnostics. |
+
+### Current Search Modes
+
+`GRTRESNA_ANSATZ=ring` is the default launcher mode. CMA-ES sees a 14D vector:
+amplitude, width, radius, phase, tangential/radial/vertical flow, internal
+rotation, exotic fraction/phase, dipole/quadrupole asymmetry, and scalar mode.
+The wrapper expands that template into `LUMPS` scalar clouds before calling
+GRTresna. Use this mode for efficient refinement of momentum-driven FTL
+candidates.
+
+`GRTRESNA_ANSATZ=free` exposes the older independent lump basis:
+`11 * LUMPS` searched dimensions (`55D` for `LUMPS=5`). Use it for broader atlas
+searches when you can afford many more evaluations.
+
+Both modes end at the same GRTresna data structure (`cfg.lumps`) and the same
+GRTeclyn evolution path. The difference is only how the optimizer's vector is
+decoded into matter.
+
+### Stop And Verify Runs
+
+Searches launch MPI ranks, GPU processes, and plotfile consumers. When stopping a
+run, kill the whole campaign process tree and verify both CPU and GPU state:
+
+```bash
+# Graceful first pass for all wrapper-started GRTresna searches.
+pkill -TERM -f 'runs/grtresna_search'
+pkill -TERM -f 'run_grtresna_search.sh'
+sleep 5
+
+# Force any stubborn MPI / consumer leftovers.
+pkill -KILL -f 'runs/grtresna_search'
+pkill -KILL -f 'run_grtresna_search.sh'
+
+# Verify no search CPU processes remain.
+ps -eo pid,ppid,pgid,pcpu,pmem,etime,args \
+  | awk '/run_grtresna_search|grteclyn_wrapper|Main_ScalarFieldBH3d|main3d.gnu.CUDA.ex|consume_plotfiles|prterun|mpirun|orterun/ && !/awk/ {print}'
+
+# Verify GPUs are free.
+nvidia-smi
+```
+
+The GPU table should show `0MiB` usage and `No running processes found`. A high
+load average immediately after killing MPI ranks can be stale decay; rely on the
+process scan and `nvidia-smi`.
+
+### How To Validate A Campaign
+
+Start with the trajectory:
+
+```bash
+cd runs/grtresna_search/optimize_<timestamp>
+python3 - <<'PY'
+import json, os
+rows=[json.loads(l) for l in open("trajectory.jsonl") if l.strip()]
+gr=[r for r in rows if r.get("grtresna_rejected")]
+sf=[r for r in rows if r.get("solved_ftl_rejected")]
+ev=[r for r in rows if not r.get("grtresna_rejected") and not r.get("solved_ftl_rejected") and not r.get("grtresna_failed")]
+print("records", len(rows), "grtresna_rej", len(gr), "solved_ftl_rej", len(sf), "gpu/evolved", len(ev))
+for r in ev:
+    e=f"eval_{r['eval']:06d}"
+    print(e, "score", r.get("score"), "exit", r.get("exit_code"), "score.json", os.path.exists(f"{e}/score.json"))
+PY
+```
+
+For any GPU survivor, inspect the raw metrics in `score.json`, not just the
+weighted score components:
+
+- `metrics.general_ftl_solved.f_op`: operational FTL on the GRTresna `.gridinit`
+  before GPU evolution.
+- `metrics.general_ftl_evolved.f_op`: operational FTL from evolved plotfile
+  fields.
+- `metrics.general_ftl_evolved.max_local_speed`: local coordinate cone opening.
+- `metadata.json.grtresna_convergence`: Ham/Mom residuals from the elliptic solve.
+
+Treat `F_op ~ 1` or `max_local_speed` near the degeneracy ceiling as suspicious
+until inspected; mild values like `F_op=0.01..0.05` are more plausible first
+survivors and should be replayed at higher resolution before any physics claim.
+
 ## Single GPU run (one guessed shape)
 
 Pick **one** initial-data source:
@@ -45,21 +177,22 @@ Outputs go to `runs/radialrecipe_gpu_smoke/<name>_gpu_t<stop_time>_<stamp>/`.
 
 ## Scripts index
 
-All helper scripts live in [`scripts/`](scripts/README.md), which documents each
-one's purpose. The most important groups:
+All helper scripts live in [`scripts/`](scripts/README.md). The table below is
+the practical launch map; prefer these wrappers over calling Python modules by
+hand because they set paths, frame fields, plotfile consumers, and GPU lists
+consistently.
 
-- **Closed-loop FTL search (current):** `run_grtresna_search.sh`
-  (matter-first GRTresna solve per candidate), `run_ftl_search_cmaes.sh`
-  (9-D radial), `run_ftl_search_nonspherical.sh` (13-D, gauge angular modes),
-  `run_ftl_search_directional.sh` (21-D, full-z). These launch CMA-ES loops
-  across GPUs and stream plotfiles (frames on the fly, heavy data deleted).
-- **Tier-2 validation:** `run_tier2_hq_188.sh` (high-res streaming validation of
-  the non-spherical winner).
-- **Smoke / batch infrastructure:** `run_radialrecipe_gpu_smoke.sh` (single
-  episode), `run_nonspherical_gpu_batch.sh`, `run_radialrecipe_gpu_promote.sh`,
-  `run_optimize_loop.sh`, `run_subset.sh`, `validate_campaign.sh`.
-- **Post-processing:** `make_movies.sh`, `summarize_scores.py`,
-  `plot_run_radial.sh`.
+| Script | Use for | Key env vars |
+|--------|---------|--------------|
+| `run_grtresna_search.sh` | **Current matter-first production search**. Runs GRTresna per candidate, writes `.gridinit`, evolves survivors in GRTeclyn, streams/deletes plotfiles. | `GRTRESNA_ANSATZ`, `GPU_IDS`, `LUMPS`, `RANKS`, `MAX_GENERATIONS`, `NO_CONSUME`, `WARM_START_TRAJECTORY` |
+| `run_radialrecipe_gpu_smoke.sh` | Single GPU smoke/build run for RadialRecipe seeds/candidates. Use after C++ changes. | `BUILD`, `CUDA_VISIBLE_DEVICES_OVERRIDE`, `SEED_NAME`, `CANDIDATE_ID`, `NONSPHERICAL_ID` |
+| `run_ftl_search_cmaes.sh` | Older 9D radial CMA-ES geometry-first search. | `GPU_IDS`, `MAX_GENERATIONS` |
+| `run_ftl_search_nonspherical.sh` | Gauge-angular non-spherical search. | `GPU_IDS`, `MAX_GENERATIONS` |
+| `run_ftl_search_directional.sh` | Full-z directional search variant. | `GPU_IDS`, `MAX_GENERATIONS` |
+| `run_tier2_hq_188.sh` / `run_tier2_validation_long16.sh` | Higher-quality replay/validation of selected candidates. | GPU id / candidate-specific args |
+| `run_subset.sh`, `run_nonspherical_gpu_batch.sh`, `run_radialrecipe_gpu_promote.sh` | Batch and promotion helpers for fixed candidate lists. | See script headers |
+| `validate_campaign.sh` | Post-run campaign validation. | Campaign path |
+| `make_movies.sh`, `plot_run_radial.sh` | Post-processing frames/plots. | Episode path / field choices |
 
 ```bash
 # Example: launch the non-spherical FTL campaign
