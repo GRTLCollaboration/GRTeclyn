@@ -701,6 +701,7 @@ def _objective(
     grtresna: bool = False,
     grtresna_base: "GRTresnaConfig | None" = None,
     grtresna_solved_ftl_gate: bool = False,
+    solved_ftl_gate_config: Any | None = None,
 ) -> float:
     """Evaluate one candidate.  Returns negative score (CMA-ES minimizes)."""
     eval_counter[0] += 1
@@ -780,6 +781,8 @@ def _objective(
 
             from ..metrics.ftl_solved_geometry import (
                 compute_solved_geometry_ftl,
+            )
+            from .solved_ftl_gate import (
                 solved_ftl_has_signal,
                 solved_geometry_ftl_to_dict,
                 solved_geometry_rejection_fitness,
@@ -791,11 +794,20 @@ def _objective(
             if solved_ftl is not None:
                 update_metadata(
                     episode,
-                    {"solved_geometry_ftl": solved_geometry_ftl_to_dict(solved_ftl)},
+                    {
+                        "solved_geometry_ftl": solved_geometry_ftl_to_dict(
+                            solved_ftl,
+                            config=solved_ftl_gate_config,
+                        )
+                    },
                 )
-            if grtresna_solved_ftl_gate and not solved_ftl_has_signal(solved_ftl):
+            if (
+                grtresna_solved_ftl_gate
+                and not solved_ftl_has_signal(solved_ftl, config=solved_ftl_gate_config)
+            ):
                 fitness = solved_geometry_rejection_fitness(
                     solved_ftl,
+                    config=solved_ftl_gate_config,
                     base=SOLVED_FTL_REJECTION_BASE_FITNESS,
                     max_extra=SOLVED_FTL_REJECTION_MAX_EXTRA_FITNESS,
                 )
@@ -811,7 +823,10 @@ def _objective(
                     "fitness": fitness,
                     "solved_ftl_rejected": True,
                     "solved_geometry_ftl": (
-                        solved_geometry_ftl_to_dict(solved_ftl)
+                        solved_geometry_ftl_to_dict(
+                            solved_ftl,
+                            config=solved_ftl_gate_config,
+                        )
                         if solved_ftl is not None
                         else None
                     ),
@@ -920,6 +935,7 @@ def run_optimize(
     grtresna: bool = False,
     grtresna_config: "GRTresnaConfig | None" = None,
     grtresna_solved_ftl_gate: bool | None = None,
+    solved_ftl_gate_config: Any | None = None,
     warm_start_trajectories: Sequence[Path] = (),
     warm_start_top_k: int = 8,
     warm_start_jitter: float = 0.08,
@@ -1067,6 +1083,7 @@ def run_optimize(
                 grtresna=grtresna,
                 grtresna_config=grtresna_config,
                 grtresna_solved_ftl_gate=solved_ftl_gate,
+                solved_ftl_gate_config=solved_ftl_gate_config,
             )
         out: list[float] = []
         for sol in subset:
@@ -1096,6 +1113,7 @@ def run_optimize(
                 grtresna=grtresna,
                 grtresna_base=grtresna_config,
                 grtresna_solved_ftl_gate=solved_ftl_gate,
+                solved_ftl_gate_config=solved_ftl_gate_config,
             ))
         return out
 
@@ -1253,6 +1271,7 @@ def _evaluate_generation_parallel(
     grtresna: bool = False,
     grtresna_config: "GRTresnaConfig | None" = None,
     grtresna_solved_ftl_gate: bool = False,
+    solved_ftl_gate_config: Any | None = None,
 ) -> list[float]:
     """Evaluate an entire CMA-ES generation in parallel across GPUs.
 
@@ -1292,6 +1311,7 @@ def _evaluate_generation_parallel(
             grtresna=grtresna,
             grtresna_base=grtresna_config,
             grtresna_solved_ftl_gate=grtresna_solved_ftl_gate,
+            solved_ftl_gate_config=solved_ftl_gate_config,
         )
         with lock:
             fitnesses[idx_in_gen] = f

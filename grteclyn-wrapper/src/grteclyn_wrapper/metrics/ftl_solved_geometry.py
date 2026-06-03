@@ -7,7 +7,6 @@ classifiers for how the shortcut is produced (shift-warp vs throat vs portal).
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Sequence
@@ -18,17 +17,6 @@ from numpy.typing import NDArray
 from ..grtresna.io import GridinitData, read_gridinit
 from .ftl_general import GeneralFtlReport, operational_ftl_on_grid
 
-# Physical-plausibility ceilings.  Solves near the Lichnerowicz/York existence
-# boundary (heavy exotic matter) produce isolated near-degenerate metric cells
-# (gamma -> 0), where coordinate_light_speed blows up and the Dijkstra path
-# finds a near-zero-cost edge.  These are numerical artifacts, not channels:
-#   * max_local_speed ~ 1e2 (gamma eigenvalue collapse), and/or
-#   * F_op ~ 1 (t_min ~ 0, instantaneous crossing).
-# A genuine constraint-satisfying shortcut on a compact box is mild
-# (max_c <~ a few, F_op <~ a few tenths), so we treat anything past these
-# ceilings as degenerate and refuse to count it as an FTL signal.
-MAX_PHYSICAL_COORD_SPEED: float = 8.0
-MAX_PHYSICAL_F_OP: float = 0.85
 MECHANISM_MIN_SCORE: float = 0.05
 
 
@@ -73,23 +61,6 @@ class SolvedGeometryFtl:
     operational: GeneralFtlReport
     mechanisms: MechanismScores
     integration_L: float
-
-    @property
-    def degenerate(self) -> bool:
-        """True when the operational signal is a near-degenerate-cell artifact."""
-        op = self.operational
-        if not math.isfinite(op.max_local_speed):
-            return True
-        if op.max_local_speed > MAX_PHYSICAL_COORD_SPEED:
-            return True
-        if op.f_op > MAX_PHYSICAL_F_OP:
-            return True
-        return False
-
-    @property
-    def f_op_physical(self) -> float:
-        """Operational FTL benefit, zeroed when the slice is degenerate."""
-        return 0.0 if self.degenerate else float(self.operational.f_op)
 
 
 def _comp_index(names: Sequence[str], key: str) -> int | None:
@@ -248,70 +219,3 @@ def compute_solved_geometry_ftl(
         integration_L=integration_L,
     )
 
-
-def solved_ftl_has_signal(
-    solved: SolvedGeometryFtl | None,
-    *,
-    f_op_floor: float = 1.0e-4,
-    precursor_speed_floor: float = 1.01,
-    precursor_frac_floor: float = 0.02,
-) -> bool:
-    """True if the solved geometry shows a *physical* operational FTL signal.
-
-    Near-degenerate-cell artifacts (max_c blow-up, F_op ~ 1) are rejected via
-    ``solved.degenerate`` so the gate does not pass numerical garbage from
-    exotic solves near the existence boundary."""
-    if solved is None:
-        return False
-    if solved.degenerate:
-        return False
-    op = solved.operational
-    if op.f_op > f_op_floor:
-        return True
-    if precursor_speed_floor <= op.max_local_speed <= MAX_PHYSICAL_COORD_SPEED:
-        return True
-    if op.superluminal_fraction >= precursor_frac_floor:
-        return True
-    return False
-
-
-def solved_geometry_ftl_to_dict(solved: SolvedGeometryFtl) -> dict[str, float]:
-    """JSON-serializable summary for episode metadata / trajectory."""
-    op = solved.operational
-    mech = solved.mechanisms
-    return {
-        "f_op": float(op.f_op),
-        "f_op_physical": solved.f_op_physical,
-        "degenerate": float(solved.degenerate),
-        "t_min": float(op.t_min) if op.t_min is not None else float("nan"),
-        "t_flat": float(op.t_flat),
-        "max_local_speed": float(op.max_local_speed),
-        "superluminal_fraction": float(op.superluminal_fraction),
-        "path_offaxis": float(op.path_offaxis),
-        "reachable": float(op.reachable),
-        "shift_warp": mech.shift_warp,
-        "throat_pinch": mech.throat_pinch,
-        "portal_compression": mech.portal_compression,
-        "mechanism_descriptor": mech.mechanism_descriptor,
-        "integration_L": solved.integration_L,
-    }
-
-
-def solved_geometry_rejection_fitness(
-    solved: SolvedGeometryFtl | None,
-    *,
-    base: float = 75.0,
-    max_extra: float = 20.0,
-) -> float:
-    """Graded penalty when solved geometry shows no FTL signal (for CMA-ES).
-
-    A degenerate slice carries no usable gradient, so it gets the full penalty;
-    a clean-but-subluminal slice is graded by how far it is from a signal."""
-    if solved is None or solved.degenerate:
-        return base + max_extra
-    op = solved.operational
-    f_op_deficit = max(0.0, (1.0e-4 - op.f_op) / 1.0e-4)
-    speed_deficit = max(0.0, (1.01 - op.max_local_speed) / 0.25)
-    frac_deficit = max(0.0, (0.02 - op.superluminal_fraction) / 0.02)
-    deficit = min(1.0, 0.15 * f_op_deficit + 0.70 * speed_deficit + 0.15 * frac_deficit)
-    return base + max_extra * deficit

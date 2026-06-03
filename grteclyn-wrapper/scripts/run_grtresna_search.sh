@@ -59,6 +59,16 @@ EXOTIC_INJECTION_FRACTION="${EXOTIC_INJECTION_FRACTION:-0.25}"
 WARM_START_TOP_K="${WARM_START_TOP_K:-8}"
 WARM_START_JITTER="${WARM_START_JITTER:-0.08}"
 
+# Pre-GPU solved-geometry FTL gate policy.  These are intentionally centralized
+# here so exploratory/strict runs do not require code edits.
+SOLVED_FTL_F_OP_FLOOR="${SOLVED_FTL_F_OP_FLOOR:-1.0e-4}"
+SOLVED_FTL_NEAR_LUMINAL_SPEED_FLOOR="${SOLVED_FTL_NEAR_LUMINAL_SPEED_FLOOR:-0.99}"
+SOLVED_FTL_SUPERLUMINAL_SPEED_FLOOR="${SOLVED_FTL_SUPERLUMINAL_SPEED_FLOOR:-1.01}"
+SOLVED_FTL_SUPERLUMINAL_FRACTION_FLOOR="${SOLVED_FTL_SUPERLUMINAL_FRACTION_FLOOR:-0.02}"
+SOLVED_FTL_MAX_PHYSICAL_COORD_SPEED="${SOLVED_FTL_MAX_PHYSICAL_COORD_SPEED:-8.0}"
+SOLVED_FTL_MAX_PHYSICAL_F_OP="${SOLVED_FTL_MAX_PHYSICAL_F_OP:-0.85}"
+SOLVED_FTL_REJECTION_SPEED_TARGET="${SOLVED_FTL_REJECTION_SPEED_TARGET:-1.01}"
+
 # Evolution / scoring knobs.
 CONSUMER_RADII="${CONSUMER_RADII:-4 8}"
 FTL_L="${FTL_L:-8.0}"
@@ -129,6 +139,8 @@ echo "Consumer      : $([[ "${NO_CONSUME:-0}" == "1" ]] && echo DISABLED || echo
 echo "Frame fields  : ${GRTECLYN_FRAMES_FIELDS}"
 echo "Projections   : ${GRTECLYN_PROJECTION_FIELDS} axes=${GRTECLYN_PROJECTION_AXES} method=${GRTECLYN_PROJECTION_METHOD}"
 echo "FTL scoring   : ENABLE_FTL_SCORING=${ENABLE_FTL_SCORING}  FTL_L=${FTL_L}"
+echo "Solved gate   : F_op>${SOLVED_FTL_F_OP_FLOOR} near_max_c>=${SOLVED_FTL_NEAR_LUMINAL_SPEED_FLOOR}(<1) super_max_c>=${SOLVED_FTL_SUPERLUMINAL_SPEED_FLOOR} frac>=${SOLVED_FTL_SUPERLUMINAL_FRACTION_FLOOR}"
+echo "Degenerate    : max_c>${SOLVED_FTL_MAX_PHYSICAL_COORD_SPEED} or F_op>${SOLVED_FTL_MAX_PHYSICAL_F_OP}"
 echo
 
 WARM_START_ARGS=()
@@ -158,6 +170,13 @@ exec ${PYTHON_BIN} -m grteclyn_wrapper \
   --grtresna-refine-threshold "${GRTRESNA_REFINE_THRESHOLD}" \
   --grtresna-regrid-radius "${GRTRESNA_REGRID_RADIUS}" \
   --grtresna-jacobian-cap "${GRTRESNA_JACOBIAN_CAP}" \
+  --solved-ftl-f-op-floor "${SOLVED_FTL_F_OP_FLOOR}" \
+  --solved-ftl-near-luminal-speed-floor "${SOLVED_FTL_NEAR_LUMINAL_SPEED_FLOOR}" \
+  --solved-ftl-superluminal-speed-floor "${SOLVED_FTL_SUPERLUMINAL_SPEED_FLOOR}" \
+  --solved-ftl-superluminal-fraction-floor "${SOLVED_FTL_SUPERLUMINAL_FRACTION_FLOOR}" \
+  --solved-ftl-max-physical-coord-speed "${SOLVED_FTL_MAX_PHYSICAL_COORD_SPEED}" \
+  --solved-ftl-max-physical-f-op "${SOLVED_FTL_MAX_PHYSICAL_F_OP}" \
+  --solved-ftl-rejection-speed-target "${SOLVED_FTL_REJECTION_SPEED_TARGET}" \
   --max-generations "${MAX_GENERATIONS}" \
   --population-size "${POPULATION}" \
   --sigma0 "${SIGMA0}" \

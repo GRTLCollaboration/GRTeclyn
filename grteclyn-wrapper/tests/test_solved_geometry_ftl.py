@@ -12,6 +12,8 @@ from grteclyn_wrapper.metrics.ftl_general import operational_ftl_on_grid
 from grteclyn_wrapper.metrics.ftl_solved_geometry import (
     build_xz_slice_from_gridinit,
     compute_solved_geometry_ftl,
+)
+from grteclyn_wrapper.search.solved_ftl_gate import (
     solved_ftl_has_signal,
     solved_geometry_rejection_fitness,
 )

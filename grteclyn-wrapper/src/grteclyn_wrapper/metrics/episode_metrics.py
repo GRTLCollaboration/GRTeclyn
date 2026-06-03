@@ -598,9 +598,10 @@ def read_episode_metrics(
     if gridinit_path.is_file():
         try:
             from .ftl_solved_geometry import compute_solved_geometry_ftl
+            from ..search.solved_ftl_gate import DEFAULT_SOLVED_FTL_GATE_POLICY
 
             solved = compute_solved_geometry_ftl(gridinit_path, L=ftl_L)
-            if solved is not None and not solved.degenerate:
+            if solved is not None and not DEFAULT_SOLVED_FTL_GATE_POLICY.is_degenerate(solved):
                 general_ftl_solved = solved.operational
                 mechanism_descriptor = solved.mechanisms.mechanism_descriptor
         except Exception:

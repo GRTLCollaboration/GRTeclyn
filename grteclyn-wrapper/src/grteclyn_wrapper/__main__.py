@@ -18,6 +18,7 @@ from .metrics.episode_metrics import dataclass_to_dict, read_episode_metrics
 from .metrics.score import score_episode
 from .search.atlas import run_atlas
 from .search.optimize import run_optimize
+from .search.solved_ftl_gate import SolvedFtlGateConfig
 
 
 SWEEP_RANGES = {
@@ -262,6 +263,26 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
         use_phantom = not getattr(args, "no_phantom", False)
         use_preflight = True if not hasattr(args, "_no_preflight") else use_preflight
 
+    solved_ftl_gate_config = SolvedFtlGateConfig(
+        f_op_floor=getattr(args, "solved_ftl_f_op_floor", 1.0e-4),
+        near_luminal_speed_floor=getattr(
+            args, "solved_ftl_near_luminal_speed_floor", 0.99
+        ),
+        superluminal_speed_floor=getattr(
+            args, "solved_ftl_superluminal_speed_floor", 1.01
+        ),
+        superluminal_fraction_floor=getattr(
+            args, "solved_ftl_superluminal_fraction_floor", 0.02
+        ),
+        max_physical_coord_speed=getattr(
+            args, "solved_ftl_max_physical_coord_speed", 8.0
+        ),
+        max_physical_f_op=getattr(args, "solved_ftl_max_physical_f_op", 0.85),
+        rejection_speed_target=getattr(
+            args, "solved_ftl_rejection_speed_target", 1.01
+        ),
+    )
+
     result = run_optimize(
         search_space=search_space,
         runs_dir=Path(args.runs_dir).expanduser().resolve(),
@@ -292,6 +313,7 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
         surrogate_keep_fraction=getattr(args, "surrogate_keep_fraction", 0.5),
         grtresna=use_grtresna,
         grtresna_config=grtresna_config,
+        solved_ftl_gate_config=solved_ftl_gate_config,
         warm_start_trajectories=[
             Path(p).expanduser().resolve()
             for p in getattr(args, "warm_start_trajectory", [])
@@ -648,6 +670,34 @@ def build_parser() -> argparse.ArgumentParser:
     opt.add_argument(
         "--grtresna-jacobian-cap", type=float, default=-1.0,
         help="Optional absolute cap for the maximal-slicing psi Jacobian; exotic candidates set a safe default.",
+    )
+    opt.add_argument(
+        "--solved-ftl-f-op-floor", type=float, default=1.0e-4,
+        help="Solved-geometry F_op threshold that passes a candidate to GPU.",
+    )
+    opt.add_argument(
+        "--solved-ftl-near-luminal-speed-floor", type=float, default=0.99,
+        help="Exploratory solved-geometry max_c floor for subluminal near misses (requires max_c < 1).",
+    )
+    opt.add_argument(
+        "--solved-ftl-superluminal-speed-floor", type=float, default=1.01,
+        help="Solved-geometry max_c floor for genuine superluminal local-speed precursors.",
+    )
+    opt.add_argument(
+        "--solved-ftl-superluminal-fraction-floor", type=float, default=0.02,
+        help="Minimum solved-geometry superluminal area fraction for speed-precursor passes.",
+    )
+    opt.add_argument(
+        "--solved-ftl-max-physical-coord-speed", type=float, default=8.0,
+        help="Reject solved slices above this max_c as near-degenerate numerical artifacts.",
+    )
+    opt.add_argument(
+        "--solved-ftl-max-physical-f-op", type=float, default=0.85,
+        help="Reject solved slices above this F_op as near-degenerate numerical artifacts.",
+    )
+    opt.add_argument(
+        "--solved-ftl-rejection-speed-target", type=float, default=1.01,
+        help="max_c target used to grade solved-FTL rejection fitness.",
     )
 
     qd = subparsers.add_parser("qd", help="MAP-Elites quality-diversity search (Spacetime Failure Atlas).")

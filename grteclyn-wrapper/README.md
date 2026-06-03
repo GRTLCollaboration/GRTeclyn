@@ -632,12 +632,34 @@ geometry has any FTL potential at all.
 operational-FTL probe used on evolved data
 (`metrics/ftl_solved_geometry.py::compute_solved_geometry_ftl`). The result is a
 cheap (~1 s/candidate, vectorised x–z slice extraction) signal that the gate
-uses to reject candidates with no FTL potential *before* evolving them
-(`solved_ftl_has_signal` in `search/optimize.py::_objective`). The rejection
-fitness is graded by how far the slice is from a signal, so CMA-ES still gets a
-gradient toward FTL-promising matter. This gate is **on by default** in
+uses to reject candidates with no FTL potential *before* evolving them. The
+decision policy lives in `search/solved_ftl_gate.py`; `search/optimize.py` only
+applies that policy inside `_objective`. The rejection fitness is graded by how
+far the slice is from a signal, so CMA-ES still gets a gradient toward
+FTL-promising matter. This gate is **on by default** in
 `--grtresna` mode (no flag required); it is what would have pruned the smooth
 `eval_000067` blob without spending a GPU evolution on it.
+
+**Gate policy is configurable.** The solved-FTL gate thresholds live in one
+policy module (`search/solved_ftl_gate.py`, `SolvedFtlGateConfig`) and are
+exposed by the `optimize` CLI plus `scripts/run_grtresna_search.sh`; do **not**
+edit `metrics/ftl_solved_geometry.py` just to make a run stricter or more
+exploratory. The launcher knobs are:
+`SOLVED_FTL_F_OP_FLOOR`, `SOLVED_FTL_NEAR_LUMINAL_SPEED_FLOOR`,
+`SOLVED_FTL_SUPERLUMINAL_SPEED_FLOOR`,
+`SOLVED_FTL_SUPERLUMINAL_FRACTION_FLOOR`,
+`SOLVED_FTL_MAX_PHYSICAL_COORD_SPEED`, `SOLVED_FTL_MAX_PHYSICAL_F_OP`, and
+`SOLVED_FTL_REJECTION_SPEED_TARGET`.
+
+**Exploration threshold.** In production discovery runs the default gate is
+deliberately permissive but not flat-space accepting: a clean, non-degenerate
+slice passes if it has `F_op > 1e-4`, if it is a subluminal near miss
+(`0.99 <= max_local_speed < 1`), or if it has enough superluminal-area precursor.
+This lets near-threshold ring candidates reach a short GPU evolution, where the
+Gamma-driver shift can amplify a matter-momentum precursor into an evolved
+channel. Exactly-flat data (`max_local_speed ~= 1`, `F_op = 0`, no superluminal
+area) is still rejected. Candidates far below threshold receive a graded
+rejection fitness instead of spending GPU time.
 
 **Degeneracy guard (the subtle part).** Solves near the Lichnerowicz/York
 **existence boundary** (heavy exotic matter) produce isolated near-degenerate
@@ -647,8 +669,9 @@ like a spectacular shortcut (`max_local_speed ~ 100`, `F_op ~ 0.99`,
 i.e. crossing the whole domain in ~1 % of flat-light time). Letting these pass
 would defeat the filter — it would keep garbage and starve the genuinely mild,
 physical channels. We therefore flag a slice as `degenerate` and refuse to count
-it as a signal when it exceeds physical-plausibility ceilings
-(`MAX_PHYSICAL_COORD_SPEED = 8`, `MAX_PHYSICAL_F_OP = 0.85`) or is non-finite. A
+it as a signal when it exceeds configurable physical-plausibility ceilings
+(defaults: `SOLVED_FTL_MAX_PHYSICAL_COORD_SPEED=8`,
+`SOLVED_FTL_MAX_PHYSICAL_F_OP=0.85`) or is non-finite. A
 real constraint-satisfying shortcut on a compact box is mild (`max_c` of order a
 few, `F_op` of a few tenths), like `eval_000063` (`F_op = 0.13`,
 `max_c = 1.16`), which the filter keeps.
