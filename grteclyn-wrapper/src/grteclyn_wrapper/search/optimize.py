@@ -202,6 +202,33 @@ def grtresna_search_space(num_lumps: int = GRTRESNA_DEFAULT_NUM_LUMPS) -> list[S
     return dims
 
 
+def grtresna_ring_search_space() -> list[SearchDimension]:
+    """Reduced rotating-ring GRTresna matter search space.
+
+    This is a low-dimensional template for the same lump backend.  CMA-ES
+    chooses global ring/momentum/exotic-pattern knobs; build_grtresna_config()
+    expands them into K concrete ``cfg.lumps`` entries.  It keeps the physically
+    relevant levers (exotic support, angular momentum, counterflow/shear) while
+    reducing the optimizer from 5 * 11 = 55 dimensions to 14.
+    """
+    return [
+        SearchDimension("grtresna_ring_amp", 0.04, 0.30, 0.15),
+        SearchDimension("grtresna_ring_width", 1.5, 4.5, 3.0),
+        SearchDimension("grtresna_ring_radius", 1.5, 6.0, 3.5),
+        SearchDimension("grtresna_ring_z_scale", 0.0, 2.5, 0.4),
+        SearchDimension("grtresna_ring_phase", 0.0, 2.0 * math.pi, 0.0),
+        SearchDimension("grtresna_ring_tangential_velocity", -0.9, 0.9, 0.35),
+        SearchDimension("grtresna_ring_radial_velocity", -0.5, 0.5, 0.0),
+        SearchDimension("grtresna_ring_vertical_velocity", -0.3, 0.3, 0.0),
+        SearchDimension("grtresna_ring_omega", -0.5, 0.5, 0.0),
+        SearchDimension("grtresna_ring_exotic_fraction", 0.0, 1.0, 0.4),
+        SearchDimension("grtresna_ring_exotic_phase", 0.0, 2.0 * math.pi, 0.0),
+        SearchDimension("grtresna_ring_dipole_amp", -0.6, 0.6, 0.0),
+        SearchDimension("grtresna_ring_quadrupole_amp", -0.5, 0.5, 0.0),
+        SearchDimension("grtresna_ring_mode", 0.0, 2.0, 1.0),
+    ]
+
+
 # Default GRTresna search space (used as a fallback when none is supplied).
 GRTRESNA_SEARCH_SPACE: list[SearchDimension] = grtresna_search_space()
 
@@ -211,12 +238,15 @@ GRTRESNA_MAX_HAM_PCT = 5.0
 GRTRESNA_MAX_MOM_PCT = 5.0
 GRTRESNA_REJECTION_BASE_FITNESS = 100.0
 GRTRESNA_REJECTION_MAX_EXTRA_FITNESS = 250.0
+SOLVED_FTL_REJECTION_BASE_FITNESS = 75.0
+SOLVED_FTL_REJECTION_MAX_EXTRA_FITNESS = 20.0
 
 
 def build_search_space(
     nonspherical: bool = False,
     grtresna: bool = False,
     grtresna_lumps: int = GRTRESNA_DEFAULT_NUM_LUMPS,
+    grtresna_ansatz: str = "free",
 ) -> list[SearchDimension]:
     """Return the optimizer search space.
 
@@ -231,6 +261,10 @@ def build_search_space(
     because the initial data is then produced entirely by the GRTresna solve.
     """
     if grtresna:
+        if grtresna_ansatz == "ring":
+            return grtresna_ring_search_space()
+        if grtresna_ansatz != "free":
+            raise ValueError(f"unknown GRTresna ansatz: {grtresna_ansatz}")
         return grtresna_search_space(grtresna_lumps)
     space = list(DEFAULT_SEARCH_SPACE)
     if nonspherical:
@@ -276,6 +310,68 @@ def build_grtresna_config(
             cfg.maximal_jacobian_cap = 25.0
         if cfg.coefficient_average_type == "harmonic":
             cfg.coefficient_average_type = "arithmetic"
+
+    def _get_float(key: str, default: float) -> float:
+        try:
+            return float(overrides.get(key, default))
+        except (TypeError, ValueError):
+            return default
+
+    if any(str(k).startswith("grtresna_ring_") for k in overrides):
+        num_lumps = max(3, int(round(_get_float("grtresna_ring_lumps", GRTRESNA_DEFAULT_NUM_LUMPS))))
+        amp0 = _get_float("grtresna_ring_amp", 0.15)
+        width0 = _get_float("grtresna_ring_width", 3.0)
+        radius = _get_float("grtresna_ring_radius", 3.5)
+        z_scale = _get_float("grtresna_ring_z_scale", 0.4)
+        phase = _get_float("grtresna_ring_phase", 0.0)
+        v_tan = _get_float("grtresna_ring_tangential_velocity", 0.35)
+        v_rad = _get_float("grtresna_ring_radial_velocity", 0.0)
+        v_z = _get_float("grtresna_ring_vertical_velocity", 0.0)
+        omega = _get_float("grtresna_ring_omega", 0.0)
+        exotic_fraction = min(1.0, max(0.0, _get_float("grtresna_ring_exotic_fraction", 0.4)))
+        exotic_phase = _get_float("grtresna_ring_exotic_phase", 0.0)
+        dipole = _get_float("grtresna_ring_dipole_amp", 0.0)
+        quadrupole = _get_float("grtresna_ring_quadrupole_amp", 0.0)
+        mode = int(round(_get_float("grtresna_ring_mode", 1.0)))
+
+        angles = [phase + 2.0 * math.pi * k / num_lumps for k in range(num_lumps)]
+        exotic_count = int(round(exotic_fraction * num_lumps))
+        ranked = sorted(
+            range(num_lumps),
+            key=lambda k: math.cos(angles[k] - exotic_phase),
+            reverse=True,
+        )
+        exotic_ids = set(ranked[:exotic_count])
+
+        lumps: list[dict] = []
+        for k, theta in enumerate(angles):
+            c = math.cos(theta)
+            s = math.sin(theta)
+            amp_mod = 1.0 + dipole * c + quadrupole * math.cos(2.0 * theta)
+            width_mod = 1.0 + 0.25 * quadrupole * math.sin(2.0 * theta)
+            amp = max(0.0, min(0.35, amp0 * max(0.15, amp_mod)))
+            width = max(1.0, min(6.0, width0 * max(0.5, width_mod)))
+            center = (radius * c, radius * s, z_scale * math.sin(theta - phase))
+            r_hat = (c, s)
+            t_hat = (-s, c)
+            velocity = (
+                v_rad * r_hat[0] + v_tan * t_hat[0],
+                v_rad * r_hat[1] + v_tan * t_hat[1],
+                v_z * math.cos(theta - phase),
+            )
+            lumps.append({
+                "amp": amp,
+                "width": width,
+                "center": center,
+                "velocity": velocity,
+                "omega": omega,
+                "mode": max(0, mode),
+                "exotic": 1 if k in exotic_ids else 0,
+            })
+        cfg.lumps = lumps
+        if any(lump["exotic"] for lump in lumps):
+            _enable_exotic_safe_solver()
+        return cfg
 
     # Group indexed lump keys by index.
     by_index: dict[int, dict[str, float]] = {}
@@ -490,6 +586,21 @@ def _force_exotic_template(
     """Impose a categorical exotic/multi-lump pattern on a continuous vector."""
     vec = _clip_vector(x, dims)
     index = {dim.param_key: i for i, dim in enumerate(dims)}
+    if "grtresna_ring_exotic_fraction" in index:
+        frac_i = index["grtresna_ring_exotic_fraction"]
+        frac_dim = dims[frac_i]
+        phase_i = index.get("grtresna_ring_exotic_phase")
+        patterns = (0.25, 0.40, 0.60, 1.0)
+        vec[frac_i] = max(
+            frac_dim.lower,
+            min(frac_dim.upper, patterns[template_index % len(patterns)]),
+        )
+        if phase_i is not None:
+            phase_dim = dims[phase_i]
+            phase = (template_index % 8) * (2.0 * math.pi / 8.0)
+            vec[phase_i] = max(phase_dim.lower, min(phase_dim.upper, phase))
+        return vec
+
     lump_ids = sorted({
         int(m.group(1))
         for dim in dims
@@ -589,6 +700,7 @@ def _objective(
     consumer_keep_last: int = 1,
     grtresna: bool = False,
     grtresna_base: "GRTresnaConfig | None" = None,
+    grtresna_solved_ftl_gate: bool = False,
 ) -> float:
     """Evaluate one candidate.  Returns negative score (CMA-ES minimizes)."""
     eval_counter[0] += 1
@@ -661,6 +773,49 @@ def _objective(
                     "grtresna_rejected": True,
                     "reason": rejection_reason,
                     "components": {"grtresna_rejection": -fitness},
+                    "overrides": {d.param_key: overrides.get(d.param_key) for d in dims},
+                }
+                trajectory.append(record)
+                return fitness
+
+            from ..metrics.ftl_solved_geometry import (
+                compute_solved_geometry_ftl,
+                solved_ftl_has_signal,
+                solved_geometry_ftl_to_dict,
+                solved_geometry_rejection_fitness,
+            )
+
+            solved_ftl = compute_solved_geometry_ftl(
+                episode.path / "initial_data.gridinit", L=ftl_L,
+            )
+            if solved_ftl is not None:
+                update_metadata(
+                    episode,
+                    {"solved_geometry_ftl": solved_geometry_ftl_to_dict(solved_ftl)},
+                )
+            if grtresna_solved_ftl_gate and not solved_ftl_has_signal(solved_ftl):
+                fitness = solved_geometry_rejection_fitness(
+                    solved_ftl,
+                    base=SOLVED_FTL_REJECTION_BASE_FITNESS,
+                    max_extra=SOLVED_FTL_REJECTION_MAX_EXTRA_FITNESS,
+                )
+                update_metadata(episode, {
+                    "solved_ftl_rejected": True,
+                    "solved_ftl_rejection_fitness": fitness,
+                    "simulation_exit_code": None,
+                })
+                record = {
+                    "eval": idx,
+                    "episode": str(episode.path),
+                    "score": -fitness,
+                    "fitness": fitness,
+                    "solved_ftl_rejected": True,
+                    "solved_geometry_ftl": (
+                        solved_geometry_ftl_to_dict(solved_ftl)
+                        if solved_ftl is not None
+                        else None
+                    ),
+                    "components": {"solved_ftl_rejection": -fitness},
                     "overrides": {d.param_key: overrides.get(d.param_key) for d in dims},
                 }
                 trajectory.append(record)
@@ -764,6 +919,7 @@ def run_optimize(
     surrogate_warmup: int | None = None,
     grtresna: bool = False,
     grtresna_config: "GRTresnaConfig | None" = None,
+    grtresna_solved_ftl_gate: bool | None = None,
     warm_start_trajectories: Sequence[Path] = (),
     warm_start_top_k: int = 8,
     warm_start_jitter: float = 0.08,
@@ -804,6 +960,7 @@ def run_optimize(
         base["regrid_interval"] = intervals
 
     target_stop_time = float(base["stop_time"])
+    solved_ftl_gate = grtresna if grtresna_solved_ftl_gate is None else grtresna_solved_ftl_gate
 
     if name is None:
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -856,6 +1013,7 @@ def run_optimize(
         "gpu_ids": list(gpu_ids) if gpu_ids else None,
         "consume_plotfiles": consume_plotfiles,
         "grtresna": grtresna,
+        "grtresna_solved_ftl_gate": solved_ftl_gate,
         "objective_mode": objective_mode,
         "warm_start_trajectories": [str(p) for p in warm_start_trajectories],
         "warm_start_top_k": warm_start_top_k,
@@ -908,6 +1066,7 @@ def run_optimize(
                 consumer_keep_last=consumer_keep_last,
                 grtresna=grtresna,
                 grtresna_config=grtresna_config,
+                grtresna_solved_ftl_gate=solved_ftl_gate,
             )
         out: list[float] = []
         for sol in subset:
@@ -936,6 +1095,7 @@ def run_optimize(
                 consumer_keep_last=consumer_keep_last,
                 grtresna=grtresna,
                 grtresna_base=grtresna_config,
+                grtresna_solved_ftl_gate=solved_ftl_gate,
             ))
         return out
 
@@ -1092,6 +1252,7 @@ def _evaluate_generation_parallel(
     consumer_keep_last: int = 1,
     grtresna: bool = False,
     grtresna_config: "GRTresnaConfig | None" = None,
+    grtresna_solved_ftl_gate: bool = False,
 ) -> list[float]:
     """Evaluate an entire CMA-ES generation in parallel across GPUs.
 
@@ -1130,6 +1291,7 @@ def _evaluate_generation_parallel(
             consumer_keep_last=consumer_keep_last,
             grtresna=grtresna,
             grtresna_base=grtresna_config,
+            grtresna_solved_ftl_gate=grtresna_solved_ftl_gate,
         )
         with lock:
             fitnesses[idx_in_gen] = f

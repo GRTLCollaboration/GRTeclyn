@@ -45,6 +45,9 @@ DEFAULT_WEIGHTS: dict[str, float] = {
     # Flat space has max_local_speed == 1 exactly, so the precursor is 0 in
     # flatness: it is a clean slope out of the flat-space basin toward FTL.
     "ftl_precursor": 3.0,
+    # Constraint-satisfying GRTresna geometry at t=0 (mechanism-agnostic Dijkstra).
+    # Shaping gradient before GPU evolution; evolved operational_ftl remains primary.
+    "operational_ftl_solved": 4.0,
     "curvature_activity": 0.5,
     # Exotic-matter PENALTY.  The objective is FTL *without* exotic matter, so
     # any negative-energy requirement is punished -- both the matter sourced at
@@ -241,6 +244,21 @@ def score_episode(
         if metrics.general_ftl_evolved is not None
         else 0.0
     )
+    f_op_solved = (
+        metrics.general_ftl_solved.f_op
+        if metrics.general_ftl_solved is not None
+        else 0.0
+    )
+    SOLVED_FTL_SCALE = 3.0e-3
+    components["operational_ftl_solved"] = (
+        min(math.log1p(f_op_solved / SOLVED_FTL_SCALE), 1.0)
+        if math.isfinite(f_op_solved) and f_op_solved > 0
+        else 0.0
+    )
+    if metrics.mechanism_descriptor is not None:
+        components["mechanism_descriptor"] = float(
+            min(max(metrics.mechanism_descriptor, 0.0), 1.0)
+        )
     # Log-amplify against OP_FTL_SCALE so a genuine (small) *persistent* shortcut
     # is a multi-point reward, while F_op^ev == 0 (the shortcut died, or no
     # evolved plotfile survived to verify it) earns nothing.
@@ -297,7 +315,10 @@ def score_episode(
 
     precursor_ev = _precursor(metrics.general_ftl_evolved)
     precursor_t0 = _precursor(metrics.general_ftl)
-    components["ftl_precursor"] = max(precursor_ev, 0.5 * precursor_t0)
+    precursor_solved = _precursor(metrics.general_ftl_solved)
+    components["ftl_precursor"] = max(
+        precursor_ev, 0.5 * precursor_t0, 0.5 * precursor_solved
+    )
     if components["ftl_precursor"] > 0.05 and components["operational_ftl"] <= 0.0:
         notes.append(
             "FTL precursor active (locally superluminal cones, no full channel yet): "
@@ -390,6 +411,7 @@ def score_episode(
         components.get("curvature_activity", 0.0),
         components.get("operational_ftl", 0.0),
         components.get("ftl_precursor", 0.0),
+        components.get("operational_ftl_solved", 0.0),
         components.get("ftl_shortcut", 0.0),
     )
     nontriviality = float(min(max(nontriviality, 0.0), 1.0))
@@ -405,6 +427,7 @@ def score_episode(
         total = (
             1000.0 * components.get("operational_ftl", 0.0)
             + 250.0 * components.get("ftl_precursor", 0.0)
+            + 150.0 * components.get("operational_ftl_solved", 0.0)
             + 100.0 * components.get("ftl_shortcut", 0.0)
             + 20.0 * components.get("survival", 0.0)
             + 10.0 * components.get("horizon_penalty", 0.0)

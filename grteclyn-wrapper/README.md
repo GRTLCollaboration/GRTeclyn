@@ -150,6 +150,11 @@ the **momentum-carrying matter** capability added on top of it.
 5. **Search hardening:** non-converged GRTresna candidates are rejected before
    GPU evolution. The rejection is graded by Ham/Mom residuals, so CMA-ES learns
    that mildly bad initial data is less bad than `NaN` or `Ham=100%`.
+6. **Solved-geometry FTL pre-filter:** the *constraint-satisfying* `.gridinit`
+   is scored for operational FTL at `t = 0` (before any GPU evolution) and
+   candidates with no **physical** FTL signal are rejected. A degeneracy guard
+   discards numerical artifacts (see *Pre-evolution solved-geometry FTL filter*
+   below).
 
 ### Why this matters
 
@@ -247,7 +252,8 @@ Default production knobs in the launcher:
 
 | Knob | Default | Meaning |
 |------|---------|---------|
-| `LUMPS` | `5` | scalar lumps in the matter basis (`55` searched dimensions) |
+| `GRTRESNA_ANSATZ` | `ring` | reduced matter parameterization: `ring` searches 14 global template parameters and expands them to `LUMPS` scalar clouds; `free` searches every lump independently |
+| `LUMPS` | `5` | scalar clouds generated/evolved by GRTresna (`55` searched dimensions only when `GRTRESNA_ANSATZ=free`) |
 | `GPU_IDS` | `0 1 2 3` in the script, often overridden to all available GPUs | also sets default CMA-ES population |
 | `MAX_GENERATIONS` | `50` | CMA-ES generations |
 | `OBJECTIVE_MODE` | `ftl_first` | FTL terms dominate health/stability terms |
@@ -276,12 +282,24 @@ CMA-ES proposes grtresna_lump{k}_*
 > `PATH=` prefix is needed. Override with `GRTRESNA_MPIRUN=/abs/path/to/mpirun`
 > if your `mpirun` lives elsewhere.
 
-`--grtresna` **replaces** the radial-recipe search space with a **K-lump scalar
-matter basis** (it is a separate mode from `--nonspherical`). Each lump `k`
-contributes the 11 dimensions below; a superposition paints an arbitrary
-energy/momentum distribution, which the solve maps to a rich family of
-constraint-satisfying geometries (`chi` wells + momentum-driven `A_ij`). Use
-`--dry-run` to exercise the plumbing without a solve or GPU.
+`--grtresna` **replaces** the radial-recipe search space with a scalar-matter
+basis (it is a separate mode from `--nonspherical`). There are two
+parameterizations:
+
+- `--grtresna-ansatz ring` (launcher default via `GRTRESNA_ANSATZ=ring`): CMA-ES
+  searches **14 global parameters** — ring amplitude/width/radius, phase,
+  tangential/radial/vertical flow, rotation, exotic fraction/phase, dipole and
+  quadrupole asymmetry, and mode — then deterministically expands them into
+  `K` scalar lumps. This keeps the physically useful structure (counterflow,
+  angular momentum, exotic support, shear) while reducing the optimizer from
+  55D to 14D for `K=5`.
+- `--grtresna-ansatz free`: the older unconstrained `K`-lump basis. Each lump
+  `k` contributes the 11 dimensions below, so `K=5` gives 55 searched
+  dimensions. This is maximally expressive but harder for CMA-ES to learn.
+
+Both modes produce the same downstream `cfg.lumps` representation; GRTresna
+still solves the full 3D constraints, writes `.gridinit`, and GRTeclyn evolves
+the result. Use `--dry-run` to exercise the plumbing without a solve or GPU.
 
 | Search dimension (per lump `k`) | Meaning |
 |---------------------------------|---------|
@@ -293,9 +311,10 @@ constraint-satisfying geometries (`chi` wells + momentum-driven `A_ij`). Use
 | `grtresna_lump{k}_mode` | azimuthal mode `m` (rounded to int; `m ≥ 1` required for `L_z`) |
 | `grtresna_lump{k}_exotic` | phantom/exotic flag (rounded to 0/1) |
 
-`--grtresna-lumps K` sets the basis size (default `5` ⇒ `55` search dims). Two
-counter-moving lumps, for example, give a strong momentum/shear field with no
-bulk translation. Defaults focus on **matter momentum**: black holes are off
+`--grtresna-lumps K` sets how many scalar clouds are emitted into GRTresna. In
+`ring` mode it changes the generated polygon/ring resolution but not the CMA-ES
+dimension count; in `free` mode it changes the optimization dimension
+(`11 * K`). Defaults focus on **matter momentum**: black holes are off
 (`bh1_bare_mass = 0`) in the search config, so the optimizer explores pure
 moving/rotating scalar clouds. Each candidate's heavy HDF5 is deleted right
 after conversion to `.gridinit` (`cleanup=True`), so a long conveyor search
@@ -419,6 +438,57 @@ Ham/Mom residuals is not safe to evolve. The wrapper therefore rejects such
 candidates immediately after the GRTresna solve, before launching GRTeclyn. The
 fitness penalty is graded by residual size, so CMA-ES can distinguish mildly bad
 initial data from `NaN` or `Ham=100%` junk and move away from those regions.
+
+### Pre-evolution solved-geometry FTL filter
+
+**The problem.** The matter-first loop was effectively *blind to FTL* until a
+full, expensive GPU evolution finished: the matter ansatz is proposed, GRTresna
+solves the constraints, and only the *evolved* spacetime was ever scored for an
+operational shortcut. A converged-but-uninteresting solve (a smooth scalar blob
+that produces no channel) cost a whole GPU evolution to discover, so the search
+wasted most of its budget on candidates that were never going to show FTL. The
+quality gate above only checks *constraint residuals*, not whether the resulting
+geometry has any FTL potential at all.
+
+**How we solved it.** We now score the constraint-satisfying `.gridinit`
+**at `t = 0`**, before the GPU step, using the same mechanism-agnostic Dijkstra
+operational-FTL probe used on evolved data
+(`metrics/ftl_solved_geometry.py::compute_solved_geometry_ftl`). The result is a
+cheap (~1 s/candidate, vectorised x–z slice extraction) signal that the gate
+uses to reject candidates with no FTL potential *before* evolving them
+(`solved_ftl_has_signal` in `search/optimize.py::_objective`). The rejection
+fitness is graded by how far the slice is from a signal, so CMA-ES still gets a
+gradient toward FTL-promising matter. This gate is **on by default** in
+`--grtresna` mode (no flag required); it is what would have pruned the smooth
+`eval_000067` blob without spending a GPU evolution on it.
+
+**Degeneracy guard (the subtle part).** Solves near the Lichnerowicz/York
+**existence boundary** (heavy exotic matter) produce isolated near-degenerate
+metric cells where `gamma -> 0`. There the coordinate light speed blows up and
+the Dijkstra path finds a near-zero-cost edge, so a *numerical artifact* looks
+like a spectacular shortcut (`max_local_speed ~ 100`, `F_op ~ 0.99`,
+i.e. crossing the whole domain in ~1 % of flat-light time). Letting these pass
+would defeat the filter — it would keep garbage and starve the genuinely mild,
+physical channels. We therefore flag a slice as `degenerate` and refuse to count
+it as a signal when it exceeds physical-plausibility ceilings
+(`MAX_PHYSICAL_COORD_SPEED = 8`, `MAX_PHYSICAL_F_OP = 0.85`) or is non-finite. A
+real constraint-satisfying shortcut on a compact box is mild (`max_c` of order a
+few, `F_op` of a few tenths), like `eval_000063` (`F_op = 0.13`,
+`max_c = 1.16`), which the filter keeps.
+
+**Mechanism descriptor (for diversity).** Each surviving slice is also tagged
+with a continuous `[0, 1]` mechanism axis — shift-warp (`0`), throat-pinch
+(`0.5`), portal-compression (`1`) — blended by which proxy is strongest rather
+than a hard `argmax` (which collapsed every candidate onto one value). MAP-Elites
+(`qd_search.py`) uses this as a behavior descriptor so the archive spreads across
+*distinct FTL families* instead of clustering on a single mechanism.
+
+**Validation (offline rescore).** Re-scoring the prior
+`runs/grtresna_search/optimize_20260602T181607Z` campaign with the filter cut
+the survivors from **20 → 8** of 80 solved candidates: the ~12 dropped were all
+degenerate `max_c=100` / `F_op≈0.99` artifacts, while the physically-plausible
+candidates (including `eval_000063`) were kept. Replay the rescore with
+`scripts/rescore_grtresna_solved_ftl.py <campaign_dir>`.
 
 **Net status and current finding.** Exotic matter is implemented end-to-end and
 is solvable **inside the full AMR multi-lump regime** the search actually

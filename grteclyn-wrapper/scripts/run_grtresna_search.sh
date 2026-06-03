@@ -41,6 +41,7 @@ export GRTRESNA_ROOT="${GRTRESNA_ROOT:-$(cd -- "${GRTECLYN_ROOT}/.." && pwd)/GRT
 RUN_STAMP="${RUN_STAMP:-$(date +%Y%m%d_%H%M%S)}"
 RUNS_DIR="${RUNS_DIR:-${GRTECLYN_ROOT}/runs/grtresna_search}"
 LUMPS="${LUMPS:-5}"                       # scalar lumps in the matter basis (11 dims each)
+GRTRESNA_ANSATZ="${GRTRESNA_ANSATZ:-ring}" # free=11*LUMPS dims, ring=14 template dims
 RANKS="${RANKS:-8}"                       # MPI ranks per GRTresna solve
 ITERATIONS="${ITERATIONS:-30}"            # max non-linear iterations per solve
 GRTRESNA_MAX_LEVEL="${GRTRESNA_MAX_LEVEL:-3}"
@@ -113,7 +114,11 @@ echo "== GRTresna-in-the-loop search =="
 echo "GRTeclyn root : ${GRTECLYN_ROOT}"
 echo "GRTresna root : ${GRTRESNA_ROOT}"
 echo "Runs dir      : ${RUNS_DIR}"
-echo "Lumps         : ${LUMPS}  (=> $((LUMPS * 11)) search dims)"
+if [[ "${GRTRESNA_ANSATZ}" == "ring" ]]; then
+  echo "Lumps/ansatz  : ${LUMPS} generated from ring template (=> 14 search dims)"
+else
+  echo "Lumps/ansatz  : ${LUMPS} free lumps (=> $((LUMPS * 11)) search dims)"
+fi
 echo "Solve         : RANKS=${RANKS}  ITERATIONS=${ITERATIONS}  max_level=${GRTRESNA_MAX_LEVEL}"
 echo "AMR           : refine_threshold=${GRTRESNA_REFINE_THRESHOLD} regrid_radius=${GRTRESNA_REGRID_RADIUS}"
 echo "CMA-ES        : generations=${MAX_GENERATIONS} population=${POPULATION} sigma0=${SIGMA0} seed=${SEED}"
@@ -145,6 +150,7 @@ exec ${PYTHON_BIN} -m grteclyn_wrapper \
   --warm-start-jitter "${WARM_START_JITTER}" \
   "${WARM_START_ARGS[@]}" \
   --grtresna \
+  --grtresna-ansatz "${GRTRESNA_ANSATZ}" \
   --grtresna-lumps "${LUMPS}" \
   --grtresna-ranks "${RANKS}" \
   --grtresna-iterations "${ITERATIONS}" \

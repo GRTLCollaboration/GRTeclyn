@@ -156,6 +156,8 @@ class EpisodeMetrics:
     curvature: CurvatureInvariantMetrics | None = None
     general_ftl: GeneralFtlReport | None = None
     general_ftl_evolved: GeneralFtlReport | None = None
+    general_ftl_solved: GeneralFtlReport | None = None
+    mechanism_descriptor: float | None = None
     effective_ec: EffectiveEnergyConditionMetrics | None = None
 
 
@@ -590,6 +592,20 @@ def read_episode_metrics(
         except Exception:
             physical = None
 
+    general_ftl_solved = None
+    mechanism_descriptor = None
+    gridinit_path = episode_dir / "initial_data.gridinit"
+    if gridinit_path.is_file():
+        try:
+            from .ftl_solved_geometry import compute_solved_geometry_ftl
+
+            solved = compute_solved_geometry_ftl(gridinit_path, L=ftl_L)
+            if solved is not None and not solved.degenerate:
+                general_ftl_solved = solved.operational
+                mechanism_descriptor = solved.mechanisms.mechanism_descriptor
+        except Exception:
+            pass
+
     if collapse is None and constraints is None:
         reason = "missing_diagnostics"
     else:
@@ -608,6 +624,8 @@ def read_episode_metrics(
         curvature=curvature,
         general_ftl=general_ftl,
         general_ftl_evolved=general_ftl_evolved,
+        general_ftl_solved=general_ftl_solved,
+        mechanism_descriptor=mechanism_descriptor,
         effective_ec=effective_ec,
     )
 

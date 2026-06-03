@@ -194,10 +194,17 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
     nonspherical = getattr(args, "nonspherical", False)
     use_grtresna = getattr(args, "grtresna", False)
     grtresna_lumps = getattr(args, "grtresna_lumps", 5)
+    grtresna_ansatz = getattr(args, "grtresna_ansatz", "free")
     search_space = build_search_space(
         nonspherical=nonspherical, grtresna=use_grtresna,
         grtresna_lumps=grtresna_lumps,
+        grtresna_ansatz=grtresna_ansatz,
     )
+    if use_grtresna and grtresna_ansatz == "ring":
+        base_overrides = {
+            **base_overrides,
+            "grtresna_ring_lumps": grtresna_lumps,
+        }
     if nonspherical and not use_grtresna:
         base_overrides = {**ANGULAR_BASE_OVERRIDES, **base_overrides}
 
@@ -599,6 +606,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Number of scalar lumps in the GRTresna matter basis (default: 5). "
              "Each lump adds 11 searched dimensions (amp/width/center/velocity/"
              "omega/mode/exotic).",
+    )
+    opt.add_argument(
+        "--grtresna-ansatz",
+        choices=["free", "ring"],
+        default="free",
+        help="GRTresna matter parameterization. 'free' searches every lump "
+             "independently (11*K dimensions). 'ring' searches a reduced rotating "
+             "counterflow/exotic ring template and expands it into K lumps.",
     )
     opt.add_argument(
         "--grtresna-iterations", type=int, default=50,

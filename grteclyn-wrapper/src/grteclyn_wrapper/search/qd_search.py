@@ -7,9 +7,10 @@ whole constructibility map in one campaign while resisting premature
 convergence.
 
 Behavior descriptors (both in [0, 1]):
-  * ``ftl_benefit``  -- the log-amplified FTL shortcut (``ftl_shortcut``).
-  * ``exoticity``    -- ``1 - anec_condition`` (how much exotic energy the
-    geometry needs along the travel axis).
+  * ``ftl_benefit``  -- operational FTL on constraint-satisfying initial data
+    (``operational_ftl_solved``), else evolved/t=0 shortcuts.
+  * ``mechanism``    -- how the shortcut is produced (0 shift-warp .. 1 portal);
+    separates warp / throat / portal families in the archive.
 
 Elite quality is the full episode score.  The archive directly supplies the
 diverse training set for a future Level-4 agent.
@@ -34,9 +35,22 @@ from .optimize import DEFAULT_SEARCH_SPACE, SearchDimension
 
 
 def _descriptors(components: Mapping[str, float]) -> tuple[float, float]:
-    ftl_benefit = float(np.clip(components.get("ftl_shortcut", 0.0), 0.0, 1.0))
-    exoticity = float(np.clip(1.0 - components.get("anec_condition", 1.0), 0.0, 1.0))
-    return ftl_benefit, exoticity
+    ftl_benefit = float(
+        np.clip(
+            max(
+                components.get("operational_ftl_solved", 0.0),
+                components.get("operational_ftl", 0.0),
+                components.get("ftl_precursor", 0.0),
+                components.get("ftl_shortcut", 0.0),
+            ),
+            0.0,
+            1.0,
+        )
+    )
+    mechanism = float(np.clip(components.get("mechanism_descriptor", 0.0), 0.0, 1.0))
+    if mechanism <= 0.0:
+        mechanism = float(np.clip(1.0 - components.get("anec_condition", 1.0), 0.0, 1.0))
+    return ftl_benefit, mechanism
 
 
 def _bin_index(value: float, bins: int) -> int:

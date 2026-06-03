@@ -27,6 +27,7 @@ Output format (.gridinit v2):
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -362,6 +363,74 @@ def convert_chombo_to_gridinit(
             logger.info("Deleted source HDF5: %s", src)
 
     return result
+
+
+@dataclass(frozen=True)
+class GridinitData:
+    """Uniform grid from a .gridinit v2 file."""
+
+    data: NDArray  # shape (nz, ny, nx, n_comp)
+    comp_names: list[str]
+    dx_xyz: NDArray  # (3,)
+    origin: NDArray  # (3,)
+
+
+def read_gridinit(path: str | Path) -> GridinitData:
+    """Read a GRTECLYN_GRID_INIT_V2 binary written by :func:`write_gridinit`."""
+    path = Path(path)
+    with open(path, "rb") as fin:
+        lines: list[str] = []
+        while True:
+            raw = fin.readline()
+            if not raw:
+                raise ValueError(f"Unexpected EOF before END_HEADER in {path}")
+            line = raw.decode("ascii").strip()
+            lines.append(line)
+            if line == "END_HEADER":
+                break
+
+        if not lines or lines[0] != "GRTECLYN_GRID_INIT_V2":
+            raise ValueError(f"Not a GRTECLYN_GRID_INIT_V2 file: {path}")
+
+        num_components = 0
+        comp_names: list[str] = []
+        nx = ny = nz = 0
+        dx_xyz = np.zeros(3, dtype=np.float64)
+        origin = np.zeros(3, dtype=np.float64)
+
+        for line in lines[1:-1]:
+            parts = line.split()
+            if not parts:
+                continue
+            key = parts[0]
+            if key == "num_components":
+                num_components = int(parts[1])
+            elif key == "component_names":
+                comp_names = parts[1:]
+            elif key == "nx_ny_nz":
+                nx, ny, nz = int(parts[1]), int(parts[2]), int(parts[3])
+            elif key == "dx":
+                dx_xyz = np.array([float(parts[1]), float(parts[2]), float(parts[3])])
+            elif key == "origin":
+                origin = np.array([float(parts[1]), float(parts[2]), float(parts[3])])
+
+        if num_components <= 0 or not comp_names or nx <= 0 or ny <= 0 or nz <= 0:
+            raise ValueError(f"Incomplete gridinit header in {path}")
+
+        body = fin.read()
+    expected = nz * ny * nx * num_components * 8
+    if len(body) != expected:
+        raise ValueError(
+            f"gridinit body size mismatch in {path}: got {len(body)} bytes, "
+            f"expected {expected}"
+        )
+    data = np.frombuffer(body, dtype=np.float64).reshape(nz, ny, nx, num_components)
+    return GridinitData(
+        data=data.copy(),
+        comp_names=comp_names,
+        dx_xyz=dx_xyz,
+        origin=origin,
+    )
 
 
 if __name__ == "__main__":
