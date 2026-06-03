@@ -48,10 +48,11 @@ Outputs go to `runs/radialrecipe_gpu_smoke/<name>_gpu_t<stop_time>_<stamp>/`.
 All helper scripts live in [`scripts/`](scripts/README.md), which documents each
 one's purpose. The most important groups:
 
-- **Closed-loop FTL search (current):** `run_ftl_search_cmaes.sh` (9-D radial),
-  `run_ftl_search_nonspherical.sh` (13-D, gauge angular modes),
-  `run_ftl_search_directional.sh` (21-D, full-z). These launch the CMA-ES loop
-  across all GPUs and stream plotfiles (frames on the fly, heavy data deleted).
+- **Closed-loop FTL search (current):** `run_grtresna_search.sh`
+  (matter-first GRTresna solve per candidate), `run_ftl_search_cmaes.sh`
+  (9-D radial), `run_ftl_search_nonspherical.sh` (13-D, gauge angular modes),
+  `run_ftl_search_directional.sh` (21-D, full-z). These launch CMA-ES loops
+  across GPUs and stream plotfiles (frames on the fly, heavy data deleted).
 - **Tier-2 validation:** `run_tier2_hq_188.sh` (high-res streaming validation of
   the non-spherical winner).
 - **Smoke / batch infrastructure:** `run_radialrecipe_gpu_smoke.sh` (single
@@ -107,11 +108,12 @@ gives.
    are meaningful regardless. The geometry-sourced effective stress energy
    (`T^eff = G / 8pi`) is what the `matter_*` columns *cannot* see — that is
    evaluated post-hoc from plotfiles by `warpfactory.py`.
-2. **Evolved-data FTL / effective-EC needs more plot vars.** Plotfiles currently
-   store `chi`, `K`, `lapse` — not the full `h_ij`/shift — so the general FTL runs
-   on the `t=0` reconstructed slice. To run it (and the effective EC) on evolved
-   spacetimes, add the metric components to `amr.plot_vars` and feed the plotfile
-   grid into `operational_ftl_on_grid` / `warpfactory.py`.
+2. **Evolved-data FTL now uses plotfile metric fields.** The RadialRecipe
+   plotfiles used by the wrapper include the metric, shift, scalar, and derived
+   fields needed for the evolved operational-FTL probe. The current diagnostics
+   distinguish the initial reconstructed channel from the evolved one
+   (`general_ftl` vs `general_ftl_evolved`) so short-lived gauge artifacts are
+   visible instead of being hidden in the total score.
 
 ## GRTresna initial data & momentum-carrying matter
 
@@ -127,19 +129,27 @@ the **momentum-carrying matter** capability added on top of it.
 
 ### What was done
 
-1. **GRTresna ↔ GRTeclyn bridge** (earlier work): run GRTresna via MPI, convert
-   its Chombo HDF5 output to a `.gridinit` binary, and load it on the GPU via the
-   new C++ `ExternalGridInitialData` (set `recipe_initial_data_file` in
-   `params.txt`). Round-trip validated at ~100× lower initial constraint error
-   than the radial recipe.
-2. **Momentum-carrying scalar "cloud"** (new): a localised scalar-field lump
-   whose conjugate momentum is built so the configuration carries **net linear
-   and/or angular momentum**, with the momentum constraint solved. Implemented in
-   the GRTresna `ScalarFieldBH` example (`MyMatterFunctions.cpp` +
-   `MatterParams.hpp`), all params default to off so legacy runs are unchanged.
-3. **GRTresna-in-the-loop search** (new): a `--grtresna` mode for the CMA-ES
-   optimizer that runs the elliptic solve *per candidate* and evolves the result
-   on GPU, searching over the momentum-cloud parameters.
+1. **GRTresna ↔ GRTeclyn bridge:** run GRTresna via MPI, convert its Chombo HDF5
+   output to a `.gridinit` binary, and load it on the GPU via
+   `ExternalGridInitialData` (`recipe_initial_data_file` in `params.txt`).
+   Round-trip validation shows roughly two orders of magnitude lower initial
+   constraint error than the radial recipe.
+2. **Momentum-carrying scalar "clouds":** each localized scalar lump carries
+   searchable amplitude, width, 3D center, velocity, rotation, azimuthal mode,
+   and exotic flag. The conjugate momentum is constructed so the matter has
+   net linear and/or angular momentum, then GRTresna solves the momentum
+   constraint for the associated geometry.
+3. **Exotic-matter AMR robustness:** exotic lumps switch GRTresna onto the
+   hardened maximal-slicing (`K=0`) solver with under-relaxed Newton updates,
+   a positive `psi` floor, capped matter Jacobian, arithmetic coefficient
+   averaging, and `|rho|` refinement tagging. This removes the old AMR `NaN`
+   failure for mixed canonical/exotic multi-lump data.
+4. **GRTresna-in-the-loop search:** `--grtresna` mode runs the elliptic solve per
+   CMA-ES candidate, converts the result, evolves it in GRTeclyn, streams frames
+   and metrics, and feeds a score back to CMA-ES.
+5. **Search hardening:** non-converged GRTresna candidates are rejected before
+   GPU evolution. The rejection is graded by Ham/Mom residuals, so CMA-ES learns
+   that mildly bad initial data is less bad than `NaN` or `Ham=100%`.
 
 ### Why this matters
 
@@ -209,24 +219,54 @@ done
 
 ### How to use it — closed-loop search
 
+The recommended launcher is:
+
 ```bash
-cd grteclyn-wrapper
-uv run python -m grteclyn_wrapper \
-  --runs-dir runs \
-  optimize --grtresna \
-  --gpu-ids 0 1 2 3 \
-  --max-generations 30 \
-  --grtresna-lumps 3 \        # scalar lumps in the matter basis (10 dims each)
-  --grtresna-ranks 8 \        # MPI ranks per GRTresna solve
-  --grtresna-iterations 50    # max non-linear iterations per solve
+cd /path/to/GRTeclyn/grteclyn-wrapper
+GPU_IDS="0 1 2 3 4 5 6 7" \
+  bash scripts/run_grtresna_search.sh
 ```
+
+Useful overrides:
+
+```bash
+# Fewer GPUs/candidates per generation.
+GPU_IDS="0 1 2 3" bash scripts/run_grtresna_search.sh
+
+# Continue from selected prior good candidates.
+WARM_START_TRAJECTORY=/path/to/trajectory.jsonl \
+  GPU_IDS="0 1 2 3 4 5 6 7" \
+  bash scripts/run_grtresna_search.sh
+
+# Keep raw plotfiles for manual re-rendering/debugging.
+NO_CONSUME=1 GPU_IDS="0 1" MAX_GENERATIONS=1 \
+  bash scripts/run_grtresna_search.sh
+```
+
+Default production knobs in the launcher:
+
+| Knob | Default | Meaning |
+|------|---------|---------|
+| `LUMPS` | `5` | scalar lumps in the matter basis (`55` searched dimensions) |
+| `GPU_IDS` | `0 1 2 3` in the script, often overridden to all available GPUs | also sets default CMA-ES population |
+| `MAX_GENERATIONS` | `50` | CMA-ES generations |
+| `OBJECTIVE_MODE` | `ftl_first` | FTL terms dominate health/stability terms |
+| `RANDOM_INJECTION_FRACTION` | `0.25` | per-generation random candidates |
+| `EXOTIC_INJECTION_FRACTION` | `0.25` | forced exotic-pattern candidates |
+| `WARM_START_TRAJECTORY` | unset | comma-separated prior `trajectory.jsonl` files |
+| `PROJECTION_FIELDS` | `scalar_activity` | 3D placement diagnostics |
+| `PROJECTION_AXES` | `x y z` | max-intensity projections through the 3D cloud |
 
 Per candidate the loop runs:
 
 ```
-CMA-ES proposes grtresna_lump{k}_* → GRTresna 3D elliptic solve (momentum constraint)
-  → initial_data.gridinit (solved A_ij + φ + Π) → GRTeclyn loads it → GPU evolution
-  → score → back to CMA-ES
+CMA-ES proposes grtresna_lump{k}_*
+  → GRTresna 3D elliptic solve (Hamiltonian + momentum constraints)
+  → reject candidate if Ham/Mom convergence is missing, NaN, or above threshold
+  → initial_data.gridinit (solved A_ij + phi + Pi)
+  → GRTeclyn loads it and evolves on GPU
+  → consume plotfiles into metrics, slice frames, and 3D projections
+  → ftl_first score → back to CMA-ES
 ```
 
 > **MPI environment.** The GRTresna solve shells out to `mpirun`. The solver
@@ -238,7 +278,7 @@ CMA-ES proposes grtresna_lump{k}_* → GRTresna 3D elliptic solve (momentum cons
 
 `--grtresna` **replaces** the radial-recipe search space with a **K-lump scalar
 matter basis** (it is a separate mode from `--nonspherical`). Each lump `k`
-contributes the 10 dimensions below; a superposition paints an arbitrary
+contributes the 11 dimensions below; a superposition paints an arbitrary
 energy/momentum distribution, which the solve maps to a rich family of
 constraint-satisfying geometries (`chi` wells + momentum-driven `A_ij`). Use
 `--dry-run` to exercise the plumbing without a solve or GPU.
@@ -251,14 +291,20 @@ constraint-satisfying geometries (`chi` wells + momentum-driven `A_ij`). Use
 | `grtresna_lump{k}_velocity_{x,y,z}` | boost velocity ⇒ net **linear** momentum `P_i ~ v_i` |
 | `grtresna_lump{k}_omega` | rigid rotation rate about z ⇒ net **angular** momentum `L_z` |
 | `grtresna_lump{k}_mode` | azimuthal mode `m` (rounded to int; `m ≥ 1` required for `L_z`) |
+| `grtresna_lump{k}_exotic` | phantom/exotic flag (rounded to 0/1) |
 
-`--grtresna-lumps K` sets the basis size (default 3 ⇒ 30 search dims). Two
+`--grtresna-lumps K` sets the basis size (default `5` ⇒ `55` search dims). Two
 counter-moving lumps, for example, give a strong momentum/shear field with no
 bulk translation. Defaults focus on **matter momentum**: black holes are off
 (`bh1_bare_mass = 0`) in the search config, so the optimizer explores pure
 moving/rotating scalar clouds. Each candidate's heavy HDF5 is deleted right
 after conversion to `.gridinit` (`cleanup=True`), so a long conveyor search
 stays disk-safe.
+
+The default search bounds are deliberately compact so clouds do not smear across
+the whole frame: widths are limited to `1.5..4.5`, centers to `x,y=-6..6` and
+`z=-3..3` around the physical center. Wider/off-center runs should be treated as
+a separate experiment.
 
 For **finding new geometry families** (rather than one optimum), the MAP-Elites
 `qd` driver over this same matter basis is the better tool — it keeps a diverse
@@ -299,7 +345,7 @@ profiles.
 A genuine FTL channel generally needs **exotic matter** (negative energy density,
 `rho < 0`, an NEC violation). We added a per-lump *phantom* capability to the
 GRTresna `ScalarFieldBH` example and made the constraint solver able to handle
-it. This is documented honestly here, including where it does **not** yet work.
+it robustly in the AMR multi-lump search regime.
 
 **What was added.**
 
@@ -368,14 +414,25 @@ CTTK ansatz, which remains the more robust choice for positive multi-lump matter
 The lump-basis search also zeros the legacy radial background scalar
 (`dphi=dpi=0`) so the matter is exactly the searched lumps.
 
-**Net status.** Exotic matter is implemented end-to-end and is now solvable
-**inside the full AMR multi-lump regime** the search actually proposes, validated
-by the three smoke fixtures above plus the wrapper integration tests
-(`tests/test_grtresna_integration.py`). The earlier *pre-exotic* reweighted run
-(best gated `S = 8.25`) confirmed the other half of the problem: `operational_ftl`
-stayed `0` across all 80 candidates and the score gain came from curvature/health
-terms, not FTL — motivating both the precursor gradient and the exotic-matter
-work above.
+**GRTresna quality gate.** A solve that returns missing, non-finite, or large
+Ham/Mom residuals is not safe to evolve. The wrapper therefore rejects such
+candidates immediately after the GRTresna solve, before launching GRTeclyn. The
+fitness penalty is graded by residual size, so CMA-ES can distinguish mildly bad
+initial data from `NaN` or `Ham=100%` junk and move away from those regions.
+
+**Net status and current finding.** Exotic matter is implemented end-to-end and
+is solvable **inside the full AMR multi-lump regime** the search actually
+proposes, validated by the three smoke fixtures above plus
+`tests/test_grtresna_integration.py`. A clean gated 8-GPU search
+(`runs/grtresna_search/optimize_20260602T181607Z`) produced 54 successful
+evolutions and rejected 26 bad GRTresna candidates before GPU evolution. Its best
+candidate, `eval_000063`, used three exotic lumps out of five and had clean
+GRTresna convergence (`Ham=0.1676%`, `Mom=0.0048%`). It did **not** show an
+initial/static shortcut (`ftl_shortcut=0`), but after evolution it produced a
+coordinate superluminal channel (`F_op^ev=0.0461`, max local coordinate speed
+`1.0888`). This is a promising evolved FTL precursor, not yet a validated
+physical warp drive: the next step is deterministic replay, longer evolution,
+and resolution convergence.
 
 ## Batch: 7 non-spherical shapes on GPUs 0–6
 

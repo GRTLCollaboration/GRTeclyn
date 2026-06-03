@@ -31,7 +31,7 @@
 \date{\today}
 
 \begin{abstract}
-We outline a practical baseline for turning \texttt{GRTeclyn} into a closed-loop GPU search engine for exotic spacetime metrics. A Python scheduler proposes compact initial-data parameters, a C++/AMReX executable evolves each candidate, and scoring diagnostics promote only geometries that survive, show operational faster-than-light (FTL) benefit, and avoid coordinate artifacts. Matter is handled either by algebraic reconstruction from the Einstein constraints at $t=0$ or, in the long-term path, by an elliptic positive-energy initial-data solve.
+We outline a practical baseline for turning \texttt{GRTeclyn} into a closed-loop GPU search engine for exotic spacetime metrics. A Python scheduler proposes compact initial-data parameters, a C++/AMReX executable evolves each candidate, and scoring diagnostics promote only geometries that survive, show operational faster-than-light (FTL) benefit, and avoid coordinate artifacts. Matter is handled either by algebraic reconstruction from the Einstein constraints at $t=0$ or by a matter-first elliptic loop in which \texttt{GRTresna} solves the Hamiltonian and momentum constraints before \texttt{GRTeclyn} evolves the data.
 \end{abstract}
 
 \maketitle
@@ -61,7 +61,7 @@ The optimizer proposes the spatial metric $\gamma_{ij}$ and extrinsic curvature 
     \rho = \frac{R + K^2 - K_{ij}K^{ij}}{16\pi},\qquad
     j_i = \frac{1}{8\pi} D_j\!\left(K^j_i - \delta^j_i K\right).
 \end{equation}
-Regions with $\rho<0$ are recorded as exotic-matter cost and fed back into the objective.  A future positive-energy path using an elliptic constraint solver is discussed in Sec.~\ref{sec:discussion}.
+Regions with $\rho<0$ are recorded as exotic-matter cost and fed back into the objective.  The implemented matter-first path using an elliptic constraint solver is described in Sec.~\ref{sec:grtresna}.
 
 %%====================================================================
 %%  SECTION 3 : CANDIDATE PARAMETERIZATION
@@ -114,7 +114,7 @@ The current pipeline uses CMA-ES, not reinforcement learning: it samples continu
 %%====================================================================
 %%  SECTION 4b : MATTER-FIRST INITIAL DATA (GRTRESNA)
 %%====================================================================
-\section{Matter-First Initial Data via an Elliptic Solver}
+\section{The Inverted Loop: Matter-First Initial Data via \texttt{GRTresna}}
 \label{sec:grtresna}
 
 The recipes of Sec.~\ref{sec:search_loop} share a structural weakness that the
@@ -122,7 +122,7 @@ results expose repeatedly: they manipulate the \emph{geometry} and tolerate the
 constraint error it implies.  This section describes an alternative path---an
 in-the-loop elliptic constraint solver (\texttt{GRTresna})---that inverts the
 map, the physical motivation for it, the matter basis it searches over, and the
-concrete blockers we hit.
+current clean-search findings.
 
 \subsection{Geometry-first versus matter-first}
 \label{sec:geom_vs_matter}
@@ -208,7 +208,10 @@ momentum $P_i\sim v_i$ and (for $m\ge1$) net angular momentum $L_z\sim\omega$.
 Each lump therefore exposes eleven search dimensions---amplitude $A_k$, width
 $w_k$, center $\vec c_k$ (3), boost $\vec v_k$ (3), rotation $\omega_k$, integer
 azimuthal mode $m_k$, and an exotic flag (Sec.~\ref{sec:exotic_solver})---and the
-default $K=3$ basis spans a $33$-dimensional matter search.  A superposition of
+default $K=5$ basis spans a $55$-dimensional matter search.  The production
+search keeps the clouds compact (widths $1.5$--$4.5$ and centers within a small
+central box) so the optimizer learns localized matter configurations rather than
+painting the whole frame.  A superposition of
 lumps paints an essentially arbitrary energy/momentum distribution that the
 elliptic solve maps to a rich family of constraint-satisfying geometries
 ($\chi$ wells plus momentum-driven $\bar A_{ij}$); two counter-moving lumps, for
@@ -269,23 +272,49 @@ Lichnerowicz/York \emph{existence boundary}: beyond a critical negative-energy
 density no asymptotically-flat constraint-satisfying solution exists, a physical
 rather than numerical limit.
 
-\subsection{Current blockers}
-\label{sec:grtresna_blockers}
+\subsection{Closed-loop controls and clean-search result}
+\label{sec:grtresna_loop_result}
 
-Two obstacles remain after the AMR-robust maximal-slicing solve.  Exotic
-candidates are still routed onto the $K=0$ path while purely canonical ones
-retain the (more robust for positive multi-lump matter) trace-absorption path.
-\emph{(1) Existence ceiling.}
-Eq.~\eqref{eq:maximal_slicing} only admits solutions below the exotic-amplitude
-cliff, bounding how much negative energy a single asymptotically-flat slice can
-carry.  \emph{(2) Throughput.}  Each candidate now embeds an MPI elliptic solve
-($\mathcal{O}(\text{minutes})$), reducing the number of geometries the optimizer
-can sample per unit wall-clock.  Finally, even with momentum and (simple) exotic
-matter available, no candidate has yet opened an end-to-end superluminal channel
-($F_{\rm op}=0$ across the reweighted run); the score gains came from curvature
-and health terms, which motivated the continuous FTL \emph{precursor} reward of
-Sec.~\ref{sec:scoring} that rewards local cone tilting before the hard channel
-gate fires.
+The matter-first loop is now the production path rather than a deferred item.
+Each candidate follows
+\begin{equation}
+\theta_{\rm matter}\rightarrow\texttt{GRTresna}\rightarrow
+\texttt{.gridinit}\rightarrow\texttt{GRTeclyn}\rightarrow S(\theta),
+\end{equation}
+where the optimizer sees eleven variables per lump and a five-lump basis by
+default.  Exotic candidates are routed onto the hardened $K=0$ path, while purely
+canonical candidates may retain the trace-absorption path.  The search objective
+is FTL-first: evolved operational FTL and the local cone-tilting precursor are
+ranked ahead of health terms, while random and forced-exotic injections prevent
+CMA-ES from collapsing too early to one matter pattern.
+
+The essential numerical control is a \emph{GRTresna quality gate}.  If the
+elliptic solve returns missing, non-finite, or large Hamiltonian/momentum
+residuals, the candidate is rejected before the GPU evolution.  The rejection is
+not a flat score: its fitness penalty grows with the Ham/Mom residuals, so CMA-ES
+can learn that a marginally nonconverged solve is less bad than a \texttt{NaN} or
+\texttt{Ham}=100\% candidate.  This removed the earlier failure mode in which
+nonconverged initial data could still produce a misleading high FTL score after
+\texttt{GRTeclyn} crashed at the first step.
+
+A clean gated 8-GPU search
+(\texttt{runs/grtresna\_search/optimize\_20260602T181607Z}) produced 88 proposed
+candidates before being stopped for inspection: 54 completed GPU evolutions and
+26 bad \texttt{GRTresna} solves were rejected before evolution.  The best
+candidate, \texttt{eval\_000063}, used three exotic lumps out of five and
+converged in \texttt{GRTresna} with Ham/Mom residuals
+$0.1676\%/0.0048\%$.  It showed no initial/static shortcut
+($F_{\rm shortcut}=0$), but after evolution the operational probe found
+\[
+F_{\rm op}^{\rm ev}=0.0461,\qquad
+\max c_{\rm coord}=1.0888,\qquad
+t_{\min}=15.024<t_{\rm flat}=15.75 .
+\]
+Thus the current matter-first search has found a compact exotic-matter
+configuration with a genuine evolved coordinate-superluminal channel.  This is a
+promising FTL precursor, not yet a claimed physical warp drive: the candidate
+still requires deterministic replay, longer evolution, and resolution
+convergence before promotion.
 
 %%====================================================================
 %%  SECTION 5 : SCORE COMPONENTS AND WHY THEY MATTER
@@ -642,18 +671,18 @@ This work turns exotic-metric study into a closed-loop GPU search over dynamical
 
 Several extensions would substantially expand the search capabilities.
 
-\paragraph{Elliptic constraint solver.}
-The largest single improvement is making the constraint-satisfying path the default.  A positive-energy elliptic solver (e.g.\ \texttt{GRTresna}) would deform each proposed geometry until the Hamiltonian and momentum constraints are satisfied with $\rho\ge0$ before evolution, reducing junk radiation and making growth rates cleaner.  This would also allow directional structure in $\chi$ or $\tilde A_{ij}$ without reintroducing off-axis constraint error.
-
-\paragraph{Exotic matter and a maximal-slicing solver.}
-The matter-first elliptic path of Sec.~\ref{sec:grtresna} already implements
-per-lump exotic (phantom) matter and a maximal-slicing ($K=0$) solve
-(Eq.~\ref{eq:maximal_slicing}) that handles $\rho<0$ where the trace-absorption
-ansatz returns \texttt{NaN}, and the multilevel safeguards of
-Sec.~\ref{sec:exotic_solver} make this indefinite solve robust under full AMR for
-the multi-lump mixed-matter configurations the search proposes.  The remaining
-open work (Sec.~\ref{sec:grtresna_blockers}) is a co-moving momentum source so
-the resulting lens can be \emph{translated} rather than merely held in place.
+\paragraph{Matter-first elliptic search.}
+The largest recent improvement is making the constraint-satisfying path concrete:
+\texttt{GRTresna} now sits inside the optimizer loop and solves the Hamiltonian
+and momentum constraints for each proposed scalar-matter configuration before
+\texttt{GRTeclyn} evolves it.  Per-lump exotic (phantom) matter and the
+maximal-slicing ($K=0$) solve of Eq.~\eqref{eq:maximal_slicing} handle
+$\rho<0$, and the multilevel safeguards of Sec.~\ref{sec:exotic_solver} make the
+indefinite solve robust under full AMR for the mixed-matter configurations the
+search proposes.  The current open work is no longer ``make the solver run'' but
+``validate and improve the candidates it discovers'': replay the best evolved
+FTL precursor, extend its lifetime, test convergence, and add objectives that
+distinguish a stationary exotic lens from a co-moving transport bubble.
 
 \paragraph{Topology search.}
 The current parameterization cannot change topology: its non-spherical freedom lives in the gauge sector, where shift structure naturally favors warp-like channels.  Wormholes and portals require a discrete controller that selects mouths, throats, modes, and boundary connectivity before the continuous optimizer refines each topology, echoing discrete/continuous decompositions in string-landscape search~\cite{halverson2019branes}.
