@@ -8,9 +8,11 @@
 #include "TraceARemoval.hpp"
 #include "Weyl4WithMatter.hpp"
 #include "WeylExtraction.hpp"
+#include "EffectiveTeoMatter.hpp"
 #include "ExternalGridInitialData.hpp"
 #include "SupportedWormholeInitialData.hpp"
 #include "ExoticScalarField.hpp"
+#include "NoMatter.hpp"
 #include "PhantomDecayPotential.hpp"
 
 #include <AMReX_Reduce.H>
@@ -21,11 +23,31 @@ void SupportedWormholeLevel::variableSetUp()
 {
     BL_PROFILE("SupportedWormholeLevel::variableSetUp()");
     stateVariableSetUp();
-    
-    PhantomDecayPotential potential;
-    ExoticScalarField<PhantomDecayPotential> exotic_scalar(potential);
-    ConstraintsWithMatter<ExoticScalarField<PhantomDecayPotential>>::set_up(state_index);
-    Weyl4WithMatter<ExoticScalarField<PhantomDecayPotential>>::set_up(state_index);
+
+    std::string matter_model = "exotic_scalar";
+    {
+        GRParmParse pp;
+        pp.load("wormhole_matter_model", matter_model,
+                std::string("exotic_scalar"));
+    }
+
+    if (matter_model == "no_matter")
+    {
+        ConstraintsWithMatter<NoMatter>::set_up(state_index);
+        Weyl4WithMatter<NoMatter>::set_up(state_index);
+    }
+    else if (matter_model == "effective_teo")
+    {
+        ConstraintsWithMatter<EffectiveTeoMatter>::set_up(state_index);
+        Weyl4WithMatter<EffectiveTeoMatter>::set_up(state_index);
+    }
+    else
+    {
+        ConstraintsWithMatter<ExoticScalarField<PhantomDecayPotential>>::set_up(
+            state_index);
+        Weyl4WithMatter<ExoticScalarField<PhantomDecayPotential>>::set_up(
+            state_index);
+    }
 }
 
 void SupportedWormholeLevel::specificAdvance()
@@ -114,17 +136,47 @@ void SupportedWormholeLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                            positive_chi_lapse(i, j, k, soln_arrs[box_no]);
                        });
 
-    PhantomDecayPotential potential(simParams().wormhole_params.phantom_mass);
-    ExoticScalarField<PhantomDecayPotential> exotic_scalar(
-        potential, simParams().wormhole_params.support_strength);
-    CCZ4RHSWithMatter<ExoticScalarField<PhantomDecayPotential>, MovingPunctureGaugeWithMatter, FourthOrderDerivatives> ccz4rhs(
-        exotic_scalar, simParams().ccz4_params, Geom().CellSize(0),
-        simParams().sigma, simParams().formulation, 1.0,
-        simParams().wormhole_params.grid_center, a_time);
+    if (simParams().wormhole_matter_model == "no_matter")
+    {
+        NoMatter no_matter;
+        CCZ4RHSWithMatter<NoMatter, MovingPunctureGaugeWithMatter,
+                          FourthOrderDerivatives>
+            ccz4rhs(no_matter, simParams().ccz4_params, Geom().CellSize(0),
+                    simParams().sigma, simParams().formulation, 1.0,
+                    simParams().wormhole_params.grid_center, a_time);
 
-    amrex::ParallelFor(
-        a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
-        { ccz4rhs(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]); });
+        amrex::ParallelFor(
+            a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+            { ccz4rhs(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]); });
+    }
+    else if (simParams().wormhole_matter_model == "effective_teo")
+    {
+        EffectiveTeoMatter teo_matter;
+        CCZ4RHSWithMatter<EffectiveTeoMatter, MovingPunctureGaugeWithMatter,
+                          FourthOrderDerivatives>
+            ccz4rhs(teo_matter, simParams().ccz4_params, Geom().CellSize(0),
+                    simParams().sigma, simParams().formulation, 1.0,
+                    simParams().wormhole_params.grid_center, a_time);
+
+        amrex::ParallelFor(
+            a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+            { ccz4rhs(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]); });
+    }
+    else
+    {
+        PhantomDecayPotential potential(simParams().wormhole_params.phantom_mass);
+        ExoticScalarField<PhantomDecayPotential> exotic_scalar(
+            potential, simParams().wormhole_params.support_strength);
+        CCZ4RHSWithMatter<ExoticScalarField<PhantomDecayPotential>,
+                          MovingPunctureGaugeWithMatter, FourthOrderDerivatives>
+            ccz4rhs(exotic_scalar, simParams().ccz4_params, Geom().CellSize(0),
+                    simParams().sigma, simParams().formulation, 1.0,
+                    simParams().wormhole_params.grid_center, a_time);
+
+        amrex::ParallelFor(
+            a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+            { ccz4rhs(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]); });
+    }
 
     amrex::Gpu::streamSynchronize();
 }
@@ -189,26 +241,65 @@ void SupportedWormholeLevel::specificPostTimeStep()
         amrex::MultiFab cst(state_new.boxArray(), state_new.DistributionMap(), 4,
                             0);
         cst.setVal(0.0);
-        PhantomDecayPotential potential(simParams().wormhole_params.phantom_mass);
-        ExoticScalarField<PhantomDecayPotential> exotic_scalar(
-            potential, simParams().wormhole_params.support_strength);
         const auto dx = Geom().CellSizeArray();
-        ConstraintsWithMatter<ExoticScalarField<PhantomDecayPotential>> my_constraints(
-            exotic_scalar, dx[0], 1.0, 0, Interval(1, 3),
-            simParams().wormhole_params.grid_center, time);
-
-        for (amrex::MFIter mfi(cst, amrex::TilingIfNotGPU()); mfi.isValid();
-             ++mfi)
+        if (simParams().wormhole_matter_model == "no_matter")
         {
-            const amrex::Box &bx = mfi.validbox();
-            const auto arr       = cst.array(mfi);
-            const auto src_arr   = state_new.const_array(mfi);
-            
-            amrex::ParallelFor(
-                bx, [=] AMREX_GPU_DEVICE(int ix, int iy, int iz) noexcept
+            NoMatter no_matter;
+            ConstraintsWithMatter<NoMatter> my_constraints(
+                no_matter, dx[0], 1.0, 0, Interval(1, 3),
+                simParams().wormhole_params.grid_center, time);
+            for (amrex::MFIter mfi(cst, amrex::TilingIfNotGPU());
+                 mfi.isValid(); ++mfi)
+            {
+                const amrex::Box &bx = mfi.validbox();
+                const auto arr       = cst.array(mfi);
+                const auto src_arr   = state_new.const_array(mfi);
+
+                amrex::ParallelFor(
+                    bx, [=] AMREX_GPU_DEVICE(int ix, int iy, int iz) noexcept
+                    { my_constraints(ix, iy, iz, arr, src_arr); });
+            }
+        }
+        else if (simParams().wormhole_matter_model == "effective_teo")
+        {
+            EffectiveTeoMatter teo_matter;
+            ConstraintsWithMatter<EffectiveTeoMatter> my_constraints(
+                teo_matter, dx[0], 1.0, 0, Interval(1, 3),
+                simParams().wormhole_params.grid_center, time);
+            for (amrex::MFIter mfi(cst, amrex::TilingIfNotGPU());
+                 mfi.isValid(); ++mfi)
+            {
+                const amrex::Box &bx = mfi.validbox();
+                const auto arr       = cst.array(mfi);
+                const auto src_arr   = state_new.const_array(mfi);
+
+                amrex::ParallelFor(
+                    bx, [=] AMREX_GPU_DEVICE(int ix, int iy, int iz) noexcept
+                    { my_constraints(ix, iy, iz, arr, src_arr); });
+            }
+        }
+        else
+        {
+            PhantomDecayPotential potential(
+                simParams().wormhole_params.phantom_mass);
+            ExoticScalarField<PhantomDecayPotential> exotic_scalar(
+                potential, simParams().wormhole_params.support_strength);
+            ConstraintsWithMatter<ExoticScalarField<PhantomDecayPotential>>
+                my_constraints(exotic_scalar, dx[0], 1.0, 0, Interval(1, 3),
+                               simParams().wormhole_params.grid_center, time);
+            for (amrex::MFIter mfi(cst, amrex::TilingIfNotGPU());
+                 mfi.isValid(); ++mfi)
+            {
+                const amrex::Box &bx = mfi.validbox();
+                const auto arr       = cst.array(mfi);
+                const auto src_arr   = state_new.const_array(mfi);
+
+                amrex::ParallelFor(
+                    bx, [=] AMREX_GPU_DEVICE(int ix, int iy, int iz) noexcept
                 {
                     my_constraints(ix, iy, iz, arr, src_arr);
                 });
+            }
         }
 
         const amrex::Real cell_vol = dx[0] * dx[1] * dx[2];

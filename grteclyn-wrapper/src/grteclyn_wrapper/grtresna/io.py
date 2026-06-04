@@ -50,11 +50,14 @@ GRTECLYN_STATE_VARS = [
     "shift1", "shift2", "shift3",
     "B1", "B2", "B3",
     "phi", "Pi",
+    "teo_rho", "teo_j1", "teo_j2", "teo_j3",
+    "teo_S11", "teo_S12", "teo_S13", "teo_S22", "teo_S23", "teo_S33",
 ]
 
 _Z_ODD_NAMES = frozenset({
     "h13", "h23", "A13", "A23",
     "Gamma3", "shift3", "B3",
+    "teo_j3", "teo_S13", "teo_S23",
 })
 
 

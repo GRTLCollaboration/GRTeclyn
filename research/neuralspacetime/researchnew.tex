@@ -807,6 +807,105 @@ With surrogate screening, MAP-Elites, and Pareto extraction in place, production
 \paragraph{Analytical back-derivation.}
 A numerical optimum is only a coefficient list.  The final handoff reconstructs $\chi_{\rm num}$, fits a closed form by symbolic regression, solves the Hamiltonian constraint for $\phi(r)$, and reloads the analytic profile for verification.  This can be automated as a multi-agent loop inspired by \textsc{PhysAgent}~\cite{han2025physagent}.
 
+%%====================================================================
+%%  SECTION 8 : WHAT IS STILL MISSING
+%%====================================================================
+\section{What Is Still Missing to Discover a New FTL Metric}
+\label{sec:missing}
+
+The pipeline above is, in our assessment, a working \emph{engine} rather than a
+finished \emph{discovery}.  The candidates it has produced are promising
+precursors---a localized exotic lens with a weak evolved coordinate-superluminal
+channel (Sec.~\ref{sec:results}, Sec.~\ref{sec:grtresna_loop_result})---but none
+yet qualifies as a new, validated, physically realizable faster-than-light
+geometry.  This section consolidates, in priority order, the gaps that separate
+the present state from that goal.  We group them into three classes: the
+objective rewards the wrong quantity, parts of the configuration space are
+unreachable, and discovered candidates cannot yet be trusted or extracted.
+
+\subsection{The objective rewards a static lens, not transport}
+\label{sec:missing_transport}
+
+The recurring empirical outcome is that every high-scoring geometry is a
+\emph{standing} structure.  The validated dipole winner is a static exotic lens
+that bends proper distance but does not translate (Sec.~\ref{sec:results}), and
+the matter-first winner \texttt{eval\_000063} shows a shortcut without bulk
+motion.  This is not a bug in the optimizer; it is the optimizer faithfully
+maximizing what we ask for.  The operational measure $F_{\rm op}$
+(Eq.~\eqref{eq:f_op}) rewards the \emph{existence} of a faster coordinate channel
+on a slice, which a stationary lens already provides at minimal exotic cost.  A
+genuine warp metric instead requires \emph{transport}: a passenger region
+carried across a finite distance while the surrounding geometry remains
+quasi-stationary in its co-moving frame.  Two coupled ingredients are missing.
+
+\paragraph{A co-motion transport objective.}
+We need a score term that tracks a co-moving worldtube and rewards a localized
+region traversing a baseline distance $L$ in less proper (or coordinate) time
+than the flat control, \emph{conditioned} on the local geometry being
+approximately stationary in the bubble frame.  Without this conditioning the
+search will always prefer the cheaper static lens over a translating bubble.
+
+\paragraph{A \emph{sustained} momentum driver---the ``motor.''}
+A translating bubble needs a sustained momentum density $j_i$, since
+$G_{0i}=8\pi j_i$ ties the off-diagonal Einstein equations to the time-dependence
+of the shift.  The matter-first \texttt{GRTresna} path already supplies
+searchable momentum-carrying matter and solves the momentum constraint for the
+associated frame-dragging shift (Sec.~\ref{sec:grtresna}); what is missing is
+\emph{sustaining} it.  Free evolution lets the seeded momentum disperse---our best
+candidate ends with a near-vacuum momentum constraint
+($\lVert M\rVert_{L^2}^{\rm fin}=3.6\times10^{-5}$) and no driven shift.  A
+sustained momentum source or a translation $\Gamma$-driver target is the
+remaining degree of freedom that converts ``a shortcut existed at $t=0$'' into
+``a bubble moved,'' and together with the transport objective above we regard it
+as the single highest-leverage missing element.
+
+\subsection{Unreachable regions of configuration space}
+\label{sec:missing_reach}
+
+\paragraph{Topology is frozen.}
+All current freedom---gauge, conformal, and matter---lives on a fixed
+$\mathbb{R}^3$ slice topology.  Traversable wormholes, portals, and handle/throat
+connectivities are therefore \emph{not representable by any continuous parameter}
+the search exposes; an entire FTL class is excluded a priori.  Reaching it
+requires the discrete topology controller of Sec.~\ref{sec:discussion} that
+selects mouths, throats, and boundary connectivity before continuous refinement.
+
+\subsection{Trust, realism, and extraction}
+\label{sec:missing_trust}
+
+A high score is only a proxy; the search alone can never certify that a candidate
+is the sought solution.  Confidence must come from survival under an increasingly
+demanding falsification ladder---constructed, non-trivial, operational,
+persistent, observer-robust, resolution-converged, and finally analytically
+reconstructed---of which the last stages are not yet automated.
+
+\paragraph{Automated resolution convergence.}
+Until $F_{\rm op}$, the constraint norms, and the exotic-energy integral are shown
+to be grid-independent, any candidate may be a discretization artifact---we have
+already observed near-degenerate metric cells masquerading as spectacular
+shortcuts.  A standard multi-resolution auto-replay (rather than a manual check)
+is a prerequisite for any physical claim.
+
+\paragraph{Quantum-inequality realism.}
+The ANEC line proxy (Eq.~\eqref{eq:anec_line}) penalizes the \emph{amount} of
+negative energy but not its \emph{physical attainability}.  A geometry whose
+required exotic matter violates quantum-inequality (Ford--Roman) bounds is not a
+useful discovery; a quantum-inequality penalty would steer the search toward
+physically plausible exotic budgets.
+
+\paragraph{Analytical back-derivation.}
+As noted in Sec.~\ref{sec:discussion}, a numerical optimum is a coefficient list,
+not a metric.  Closing the loop with symbolic regression to a closed form,
+re-solving the constraints from that form, and reloading it for verification is
+what turns a high-scoring grid into a communicable, checkable spacetime.
+
+In summary, the missing pieces are, in rough priority order: (i) a
+transport/co-motion objective coupled to a \emph{sustained} momentum driver
+(\texttt{GRTresna} already supplies the momentum-carrying matter, but not a
+sustained driver); (ii) automated resolution-convergence validation; (iii)
+analytical back-derivation together with quantum-inequality realism; and (iv) a
+discrete topology controller to open the wormhole/portal class.
+
 \begin{thebibliography}{9}
 
 \bibitem{alexander2026albert}

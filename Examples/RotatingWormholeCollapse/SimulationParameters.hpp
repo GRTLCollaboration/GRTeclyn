@@ -20,6 +20,8 @@ class SimulationParameters : public SimulationParametersBase
     {
         pp.load("calculate_constraint_norms", calculate_constraint_norms,
                 false);
+        pp.load("wormhole_matter_model", wormhole_matter_model,
+                std::string("exotic_scalar"));
     }
 
     void read_wormhole_params(GRParmParse &pp)
@@ -74,9 +76,16 @@ class SimulationParameters : public SimulationParametersBase
                          wormhole_params.phi_monopole_amplitude == 0.0) ||
                             (wormhole_params.phi_perturbation_width > 0.0),
                         "must be > 0 when any phi perturbation amplitude is nonzero");
+
+        check_parameter("wormhole_matter_model", wormhole_matter_model,
+                        wormhole_matter_model == "exotic_scalar" ||
+                            wormhole_matter_model == "no_matter" ||
+                            wormhole_matter_model == "effective_teo",
+                        "must be exotic_scalar, no_matter, or effective_teo");
     }
 
     bool calculate_constraint_norms{};
+    std::string wormhole_matter_model;
 
     std::string recipe_initial_data_file;
     ExternalGridInitialData::params_t external_grid_params{};
