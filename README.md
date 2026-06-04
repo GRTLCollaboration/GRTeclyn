@@ -27,11 +27,14 @@ The executable is built from **`Examples/SupportedWormholeCollapse/`** (`GNUmake
 The same `GNUmakefile` also pulls in other **`Source/`** trees (CCZ4, Wormholes, GRTeclynCore, …); initial data for *this* run is implemented in the example as **`SupportedWormholeInitialData.hpp`**, not `Source/Wormholes/WormholeInitialData.hpp` (that header serves other wormhole setups). The example evolution includes matter headers directly, e.g. `CCZ4RHSWithMatter.hpp`, `ConstraintsWithMatter.hpp`, `Weyl4WithMatter.hpp`, and `ExoticScalarField.hpp` from `SupportedWormholeLevel.cpp`, and `PhantomDecayPotential.hpp` uses `ScalarFieldVars.hpp` from **`Source/Matter/`**.
 
 #### Shell automation — `grteclyn-wrapper/scripts/`
+
+Scripts are grouped by role; see [`grteclyn-wrapper/scripts/README.md`](grteclyn-wrapper/scripts/README.md).
+
 | Script | Role |
 |--------|------|
-| `plot_run.sh` | While the run writes plotfolders: `consume_plotfiles` **extracts** the useful observables ($\Psi_4$, optional frames) into **`.dat`** files and **PNG** frames; processed plotfile trees can be **deleted** so raw simulation dumps are not kept—**disk optimisation**. |
-| `plot_diagnostic.sh` | After a run: constraint norms, collapse diagnostics, $\Psi_4$ panels into `grteclyn-wrapper/src/grteclyn_wrapper/visualisation/plots/`. |
-| `move_files.sh` | Copy key run data + figures into **`grteclyn-wrapper/output/SimResults/<run_folder>/`**. |
+| `plot/plot_run.sh` | While the run writes plotfolders: `consume_plotfiles` **extracts** the useful observables ($\Psi_4$, optional frames) into **`.dat`** files and **PNG** frames; processed plotfile trees can be **deleted** so raw simulation dumps are not kept—**disk optimisation**. |
+| `plot/plot_diagnostic.sh` | After a run: constraint norms, collapse diagnostics, $\Psi_4$ panels into `grteclyn-wrapper/src/grteclyn_wrapper/visualisation/plots/`. |
+| `wormhole/move_files.sh` | Copy key run data + figures into **`grteclyn-wrapper/output/SimResults/<run_folder>/`**. |
 
 Legacy shims under `src/scripts/` forward to the paths above.
 

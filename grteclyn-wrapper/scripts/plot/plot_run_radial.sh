@@ -2,15 +2,14 @@
 # Stream RadialRecipe plotfiles during a run: extract small-data, optional PNG frames, delete HDF5 plot dirs.
 #
 # Usage (sidecar while simulation runs):
-#   ./grteclyn-wrapper/scripts/plot_run_radial.sh /path/to/episode_dir
+#   ./grteclyn-wrapper/scripts/plot/plot_run_radial.sh /path/to/episode_dir
 #
 # Or let grteclyn-wrapper start the same consumer automatically via --consume-plotfiles.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=env.sh
-source "${SCRIPT_DIR}/env.sh"
-WRAPPER_ROOT="${SCRIPT_DIR}/.."
+# shellcheck source=../lib/env.sh
+source "${SCRIPT_DIR}/../lib/env.sh"
 
 RUN_DIR=""
 EXTRA_ARGS=()

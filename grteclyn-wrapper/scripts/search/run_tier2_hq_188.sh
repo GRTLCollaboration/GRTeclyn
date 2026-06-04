@@ -17,11 +17,14 @@
 # Output kept: runs/<name>/{frames, small_data, score.json, params.txt, run.log}.
 # Plotfiles are streamed through the consumer and removed (keep-last-2).
 set -u
-cd /home/jovyan/nachevsky/test/simulation/GRTeclyn/grteclyn-wrapper || exit 1
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../lib/env.sh
+source "${SCRIPT_DIR}/../lib/env.sh"
+cd "${WRAPPER_ROOT}" || exit 1
 
 GPU="${1:-0}"
 NAME="${2:-val16hq_nonsph_eval188}"
-RUNS=/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs
+RUNS="${GRTECLYN_ROOT}/runs"
 
 WINNER="--set recipe_chi_coeff_0=0.08289991897087551 \
  --set recipe_chi_coeff_1=0.0009085209432527861 \

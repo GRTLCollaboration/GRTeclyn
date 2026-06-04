@@ -11,7 +11,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Iterable
 
-WRAPPER_ROOT = Path(__file__).resolve().parents[1]
+WRAPPER_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(WRAPPER_ROOT / "src"))
 
 from grteclyn_wrapper.grtresna.solver import (

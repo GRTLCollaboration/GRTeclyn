@@ -22,7 +22,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/env.sh"
+source "${SCRIPT_DIR}/../lib/env.sh"
 
 PYTHON_BIN="${PYTHON_BIN:-python}"
 if command -v uv >/dev/null 2>&1 && [[ "${USE_UV:-1}" == "1" ]]; then
@@ -131,6 +131,6 @@ echo
 echo "Next steps:"
 echo "  1. Inspect trajectory.jsonl for score progression"
 echo "  2. Run diagnostics on best episode:"
-echo "     bash grteclyn-wrapper/scripts/plot_diagnostic_radial.sh <best_episode_dir>"
+echo "     bash grteclyn-wrapper/scripts/plot/plot_diagnostic_radial.sh <best_episode_dir>"
 echo "  3. Promote best candidate to higher resolution (t=5, N=128):"
-echo "     STOP_TIME=5 N_FULL=128 CANDIDATE_DIR=<best_episode> bash grteclyn-wrapper/scripts/run_radialrecipe_gpu_smoke.sh"
+echo "     STOP_TIME=5 N_FULL=128 CANDIDATE_DIR=<best_episode> bash grteclyn-wrapper/scripts/radial/run_radialrecipe_gpu_smoke.sh"

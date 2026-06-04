@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -uo pipefail
-ROOT="/home/jovyan/nachevsky/test/simulation/GRTeclyn"
-SMOKE="${ROOT}/grteclyn-wrapper/scripts/run_radialrecipe_gpu_smoke.sh"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../lib/env.sh
+source "${SCRIPT_DIR}/../lib/env.sh"
+SMOKE="${SCRIPT_DIR}/run_radialrecipe_gpu_smoke.sh"
 STOP_TIME="${STOP_TIME:-2.0}"
 N_FULL="${N_FULL:-64}"
 RUN_STAMP="${RUN_STAMP:-$(date +%Y%m%d_%H%M%S)}"

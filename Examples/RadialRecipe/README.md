@@ -91,5 +91,5 @@ make COMP=gnu USE_CUDA=TRUE USE_MPI=FALSE CUDA_ARCH=90 -j
 
 # Or via the closed-loop wrapper (auto-sets exotic matter for phantom seeds)
 BUILD=0 SEED_NAME=ellis_bronnikov \
-  bash ../../grteclyn-wrapper/scripts/run_radialrecipe_gpu_smoke.sh
+  bash ../../grteclyn-wrapper/scripts/radial/run_radialrecipe_gpu_smoke.sh
 ```

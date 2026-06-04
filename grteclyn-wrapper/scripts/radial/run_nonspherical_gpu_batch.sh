@@ -3,7 +3,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/env.sh"
+source "${SCRIPT_DIR}/../lib/env.sh"
 SMOKE="${SCRIPT_DIR}/run_radialrecipe_gpu_smoke.sh"
 
 RUN_STAMP="${RUN_STAMP:-$(date +%Y%m%d_%H%M%S)}"
@@ -74,7 +74,7 @@ done
 
 echo
 echo "== Batch summary (with FTL scores) =="
-export PYTHONPATH="${SCRIPT_DIR}/../src:${PYTHONPATH:-}"
+export PYTHONPATH="${WRAPPER_ROOT}/src:${PYTHONPATH:-}"
 python3 - <<PY
 import json
 from pathlib import Path

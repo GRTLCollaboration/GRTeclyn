@@ -10,7 +10,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-WRAPPER_ROOT = Path(__file__).resolve().parents[1]
+WRAPPER_ROOT = Path(__file__).resolve().parents[2]
 SIM_ROOT = WRAPPER_ROOT.parent.parent
 LOCAL_OPENMPI = SIM_ROOT / "local" / "openmpi-5.0.8"
 GRTRESNA_ENV = Path("/home/jovyan/.mlspace/envs/grtresna")

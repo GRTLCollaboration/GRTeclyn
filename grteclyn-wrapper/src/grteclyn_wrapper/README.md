@@ -35,7 +35,7 @@ Common global options: `--example {RadialRecipe,SupportedWormholeCollapse}`,
 `--constrained`, `--phantom`, `--preflight`, `--cuda-devices`, `--runs-dir`,
 `--set KEY=VALUE` (params override), `--score-weight KEY=VALUE`, `--ftl-L`.
 
-> **Gotcha:** do **not** `source scripts/env.sh` before `optimize`/`qd`. It sets
+> **Gotcha:** do **not** `source scripts/lib/env.sh` before `optimize`/`qd`. It sets
 > `PYTHONPATH` that shadows `uv`'s resolution of the `cma` package. Single-GPU
 > per-process runs use the non-MPI binary and don't need `env.sh`.
 

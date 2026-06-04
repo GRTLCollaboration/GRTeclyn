@@ -1,9 +1,8 @@
 #!/bin/bash
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=env.sh
-source "${SCRIPT_DIR}/env.sh"
-WRAPPER_ROOT="${SCRIPT_DIR}/.."
+# shellcheck source=../lib/env.sh
+source "${SCRIPT_DIR}/../lib/env.sh"
 
 BASE_VISUALISATION_DIR="${WRAPPER_ROOT}/src/grteclyn_wrapper/visualisation"
 SIM_RESULTS_DIR="${WRAPPER_ROOT}/output/SimResults"
@@ -61,7 +60,7 @@ echo "Copying plot files from ${PLOTS_DIR} ..."
 if [ -d "$PLOTS_DIR" ]; then
   cp -u "$PLOTS_DIR"/* "$TARGET_DIR/" 2>/dev/null || true
 else
-  echo "  Warning: plots directory not found at $PLOTS_DIR — run plot_diagnostic.sh first"
+  echo "  Warning: plots directory not found at $PLOTS_DIR — run scripts/plot/plot_diagnostic.sh first"
 fi
 
 echo "Copying data files from $DATA_DIR..."

@@ -3,9 +3,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=env.sh
-source "${SCRIPT_DIR}/env.sh"
-WRAPPER_ROOT="${SCRIPT_DIR}/.."
+# shellcheck source=../lib/env.sh
+source "${SCRIPT_DIR}/../lib/env.sh"
 SIM_ROOT="$(cd "${GRTECLYN_ROOT}/.." && pwd)"
 VIS_ROOT="${WRAPPER_ROOT}/src/grteclyn_wrapper/visualisation"
 

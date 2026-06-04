@@ -2,7 +2,9 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-WRAPPER_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+SCRIPTS_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+export WRAPPER_ROOT="$(cd -- "${SCRIPTS_ROOT}/.." && pwd)"
+export SCRIPTS_ROOT
 
 if [[ -z "${GRTECLYN_ROOT:-}" ]]; then
   if [[ -f "${WRAPPER_ROOT}/../Examples/SupportedWormholeCollapse/params_2gpu.txt" ]]; then

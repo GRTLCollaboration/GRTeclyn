@@ -3,12 +3,14 @@
 # launched in parallel across GPUs 0-7 via the RadialRecipe smoke pipeline.
 set -uo pipefail
 
-ROOT="/home/jovyan/nachevsky/test/simulation/GRTeclyn"
-SMOKE="${ROOT}/grteclyn-wrapper/scripts/run_radialrecipe_gpu_smoke.sh"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../lib/env.sh
+source "${SCRIPT_DIR}/../lib/env.sh"
+SMOKE="${SCRIPT_DIR}/run_radialrecipe_gpu_smoke.sh"
 STOP_TIME="${STOP_TIME:-16.0}"
 N_FULL="${N_FULL:-64}"
 RUN_STAMP="${RUN_STAMP:-$(date +%Y%m%d_%H%M%S)}"
-RUNS_DIR="${RUNS_DIR:-${ROOT}/runs/validation_${RUN_STAMP}}"
+RUNS_DIR="${RUNS_DIR:-${GRTECLYN_ROOT}/runs/validation_${RUN_STAMP}}"
 mkdir -p "${RUNS_DIR}"
 
 # label : kind(seed|nonsph) : id

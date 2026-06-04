@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 # Writes to grteclyn-wrapper/src/grteclyn_wrapper/visualisation/plots/ (directory cleared each run).
-# Usage: ./grteclyn-wrapper/scripts/plot_diagnostic.sh [RUN_DIR] [RADIUS ...]
+# Usage: ./grteclyn-wrapper/scripts/plot/plot_diagnostic.sh [RUN_DIR] [RADIUS ...]
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=env.sh
-source "${SCRIPT_DIR}/env.sh"
-WRAPPER_ROOT="${SCRIPT_DIR}/.."
+# shellcheck source=../lib/env.sh
+source "${SCRIPT_DIR}/../lib/env.sh"
 VIS_DIR="${WRAPPER_ROOT}/src/grteclyn_wrapper/visualisation"
 SIM_ROOT="$(cd "${GRTECLYN_ROOT}/.." && pwd)"
 

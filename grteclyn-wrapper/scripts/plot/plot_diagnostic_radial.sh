@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 # Post-run RadialRecipe diagnostics (no gravitational-wave extraction).
 #
-# Usage: ./grteclyn-wrapper/scripts/plot_diagnostic_radial.sh [EPISODE_DIR]
+# Usage: ./grteclyn-wrapper/scripts/plot/plot_diagnostic_radial.sh [EPISODE_DIR]
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=env.sh
-source "${SCRIPT_DIR}/env.sh"
-WRAPPER_ROOT="${SCRIPT_DIR}/.."
+# shellcheck source=../lib/env.sh
+source "${SCRIPT_DIR}/../lib/env.sh"
 VIS_DIR="${WRAPPER_ROOT}/src/grteclyn_wrapper/visualisation"
 PLOTS_DIR="${VIS_DIR}/plots/radial"
 

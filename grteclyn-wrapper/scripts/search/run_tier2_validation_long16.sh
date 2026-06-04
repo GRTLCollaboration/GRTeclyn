@@ -2,7 +2,10 @@
 # Tier-2 extended validation of the top warp candidates from ftl_search_cmaes_01.
 # N=96 (higher precision), t=16 (longer), plotfiles retained for evolved FTL + effective EC.
 set -u
-cd /home/jovyan/nachevsky/test/simulation/GRTeclyn/grteclyn-wrapper
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../lib/env.sh
+source "${SCRIPT_DIR}/../lib/env.sh"
+cd "${WRAPPER_ROOT}"
 
 COMMON="--example RadialRecipe --constrained --phantom --runs-dir ../runs --ftl-L 8.0 \
  --set recipe_exotic_matter=1 --set N_full=96 --set max_level=2 --set stop_time=16 \

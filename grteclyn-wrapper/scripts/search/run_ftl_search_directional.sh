@@ -24,7 +24,7 @@
 #
 # NOTE: the full z-domain roughly doubles cost vs the reflective runs.
 set -u
-cd "$(dirname "$0")/.." || exit 1
+cd "$(dirname "$0")/../.." || exit 1
 
 NAME="${1:-ftl_search_directional_01}"
 MAXGEN="${2:-20}"

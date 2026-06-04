@@ -9,8 +9,8 @@ histogram plus the Pareto front of survivors -- the candidate solutions. Writes
 
 Examples
 --------
-    uv run python scripts/validate_tiers.py runs/grtresna_search/optimize_20260602T181607Z
-    uv run python scripts/validate_tiers.py runs/qd/qd_2026... --min-tier 3
+    uv run python scripts/search/validate_tiers.py runs/grtresna_search/optimize_20260602T181607Z
+    uv run python scripts/search/validate_tiers.py runs/qd/qd_2026... --min-tier 3
 """
 
 from __future__ import annotations

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/env.sh"
+source "${SCRIPT_DIR}/../lib/env.sh"
 
 PYTHON_BIN="${PYTHON_BIN:-python}"
 if command -v uv >/dev/null 2>&1 && [[ "${USE_UV:-1}" == "1" ]]; then
@@ -194,7 +194,7 @@ PY
 
 echo
 echo "Post-run plots (optional):"
-echo "  bash grteclyn-wrapper/scripts/plot_diagnostic_radial.sh ${EPISODE_DIR}"
+echo "  bash grteclyn-wrapper/scripts/plot/plot_diagnostic_radial.sh ${EPISODE_DIR}"
 
 echo
 echo "== Step 5/5: quick pass/fail hints =="

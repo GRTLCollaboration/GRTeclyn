@@ -27,7 +27,7 @@ do the 3+1 (ADM) decomposition in Python:
     numerically from the 4-metric. Teo specifies a *geometry* and infers its
     matter content, so the source is stored as data, not derived from a
     fundamental field.
-- `grteclyn-wrapper/scripts/make_teo_wormhole_gridinit.py` is a thin CLI that
+- `grteclyn-wrapper/scripts/wormhole/make_teo_wormhole_gridinit.py` is a thin CLI that
   builds a config, calls the module, and writes the `.gridinit` plus a
   `.manifest.json` of diagnostics.
 
@@ -108,19 +108,19 @@ From the repo root:
 
 ```bash
 # Weak-spin effective-source data (the params_rotating.txt default)
-uv run python grteclyn-wrapper/scripts/make_teo_wormhole_gridinit.py \
+uv run python grteclyn-wrapper/scripts/wormhole/make_teo_wormhole_gridinit.py \
   --output runs/teo_wormhole/teo_weak_spin.gridinit \
   --nx 128 --ny 128 --nz 64 --lx 64 --ly 64 --lz 32 \
   --center 32 32 0 --spin 0.05
 
 # Matched non-spinning baseline
-uv run python grteclyn-wrapper/scripts/make_teo_wormhole_gridinit.py \
+uv run python grteclyn-wrapper/scripts/wormhole/make_teo_wormhole_gridinit.py \
   --output runs/teo_wormhole/teo_a0.gridinit \
   --nx 128 --ny 128 --nz 64 --lx 64 --ly 64 --lz 32 \
   --center 32 32 0 --spin 0.0
 
 # Same geometry but zeroed source (pair with wormhole_matter_model=no_matter)
-uv run python grteclyn-wrapper/scripts/make_teo_wormhole_gridinit.py \
+uv run python grteclyn-wrapper/scripts/wormhole/make_teo_wormhole_gridinit.py \
   --output runs/teo_wormhole/teo_weak_spin_zero_source.gridinit \
   --nx 128 --ny 128 --nz 64 --lx 64 --ly 64 --lz 32 \
   --center 32 32 0 --spin 0.05 --source zero
@@ -136,7 +136,7 @@ Pass `--check` to also evaluate the full 3D ADM constraint residuals from the
 generated fields before trusting the data:
 
 ```bash
-uv run python grteclyn-wrapper/scripts/make_teo_wormhole_gridinit.py \
+uv run python grteclyn-wrapper/scripts/wormhole/make_teo_wormhole_gridinit.py \
   --output runs/teo_wormhole/teo_weak_spin.gridinit \
   --nx 128 --ny 128 --nz 64 --lx 64 --ly 64 --lz 32 \
   --center 32 32 0 --spin 0.05 --check
@@ -197,14 +197,14 @@ To resume from any checkpoint (for example step **3000** or **4000**):
 1. **Rollback** the data directory to the desired checkpoint (use paths matching your clone of this repo and the `output_path` set in `params_rotating.txt`):
    ```bash
    cd /path/to/GRTeclyn
-   ./grteclyn-wrapper/scripts/rollback --step 3000 --data /path/to/your/simulation/output
+   ./grteclyn-wrapper/scripts/wormhole/rollback --step 3000 --data /path/to/your/simulation/output
    ```
    (Replace `3000` with the desired checkpoint number, e.g. `4000`.)
 
 2. **Start the watcher** (in a second terminal — use `--not-remove`):
    ```bash
    cd /path/to/GRTeclyn
-   ./grteclyn-wrapper/scripts/plot_run.sh --not-remove /path/to/your/simulation/output
+   ./grteclyn-wrapper/scripts/plot/plot_run.sh --not-remove /path/to/your/simulation/output
    ```
 
 3. **Restart the simulation** using `amr.restart` (this is the correct flag):
@@ -222,7 +222,7 @@ To resume from any checkpoint (for example step **3000** or **4000**):
 
 ```bash
 # In a second terminal (from the GRTeclyn root; set RUN_DIR to your simulation output)
-./grteclyn-wrapper/scripts/plot_run.sh /path/to/your/simulation/output
+./grteclyn-wrapper/scripts/plot/plot_run.sh /path/to/your/simulation/output
 ```
 
 ## Quick MPI Setup (if needed)

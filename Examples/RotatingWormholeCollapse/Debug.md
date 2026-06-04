@@ -72,19 +72,94 @@ are tiny (~20 MB).
   `output/RotatingWormholePlt*` at any time; keep `frames/`, `small_data/`, `data/`,
   and checkpoints.
 
-### Next steps (priority order)
+### Fixed-gauge diagnostic (`params_rotating_fixedgauge_dx025.txt`)
+
+To separate the gauge from the source as the blow-up driver, the unigrid weak-spin
+run was repeated with moving-puncture driving **disabled** (`lapse_coeff = 0`,
+`shift_Gamma_coeff = 0`, `lapse_advec_coeff = 0`, `shift_advec_coeff = 0`), so
+lapse/shift stay at their stationary Teo values. Same data, same frozen source.
+
+| t | Ham (moving puncture) | Ham (fixed gauge) |
+|------|-----------------------|-------------------|
+| 0.005 | 5.3e-3 | 5.3e-3 |
+| 0.05  | 0.386  | 0.194 |
+| 0.10  | 0.853  | 0.422 |
+| 0.20  | **1.786** | **0.719** |
+| 0.50  | (NaN earlier) | 2.21 |
+
+**Conclusion:** the gauge accounts for ~half the growth, but the constraint still
+diverges with a frozen gauge. The Teo data + frozen source is **not a discrete
+equilibrium**, so no gauge choice rescues it. This rules out the
+prescribed-frozen-source design as a route to a stable evolution, and confirms the
+real fix must make the source consistent / co-evolving. Output cleaned (kept
+`data/constraint_norms.dat`).
+
+### Root-cause summary (after the 4 Jun diagnostics)
+
+Two independent problems, established by the controls + fixed-gauge tests:
+
+- **P1 — AMR cross-level kinks.** `ExternalGridInitialData` trilinearly interpolates
+  the `dx=0.25` file onto finer levels → C0 kinks → NaN. Only active with AMR.
+- **P2 — frozen prescribed source (the unigrid killer).** `EffectiveTeoMatter`
+  reads `teo_rho/j/S` from the state and has an **empty `add_matter_rhs`**, so the
+  source is frozen at t=0 while the geometry evolves. `G_ab ≠ 8πT_ab` grows →
+  constraints diverge. Independent of spin (`weak_spin ≡ a0`) and of interpolation
+  (it blows up on the AMR-free unigrid). The fixed-gauge test (above) confirms no
+  gauge choice fixes it: the data + frozen source is not a discrete equilibrium.
+
+**Therefore: analytic-ID and gauge tweaks address only P1 / part of the symptom.
+The decisive fix is to make the source consistent / co-evolving (attacks P2).**
+
+### Next steps (superseded order — do not chase the prescribed-source run)
 
 1. **Do not pursue physics from the unigrid weak-spin run as-is** — signal is at the
    0.08% noise floor and the run is constraint-violating by `t = 0.2`.
-2. **Smooth initial data is the real fix** (see Future work): analytic C++ Teo
-   `initData` (per-level, no interpolation) or higher-order interpolation in
-   `ExternalGridInitialData`. Only this will lift a spin signal above the baseline.
-3. If staying on the unigrid track, the correct observable is the **difference**
-   `weak_spin − a0` (and `− no_matter`), plotted as a difference movie; today it is
-   indistinguishable from noise, so stabilising the evolution must come first.
-4. Optional evolution tuning (untested): smaller `dt_multiplier`, larger `sigma`
-   (Kreiss–Oliger), tighter Z4 damping `kappa1` — may delay the blow-up enough to
-   expose the spin term.
+2. ~~Smooth initial data is the real fix~~ — **disproved** by the fixed-gauge test.
+   Analytic ID fixes P1 (AMR smoothness) but the unigrid run still diverges from P2.
+   Pursue analytic ID only as a *layer on top of* a consistent source, for AMR.
+3. The correct observable remains the **difference** `weak_spin − a0` (and
+   `− no_matter`), but only once the evolution is stable — today it is noise.
+
+### Recommended path to a stable run (future work — the real fix for P2)
+
+Goal: a stable evolution where a spin signal can rise above the `a0` baseline.
+Reuse the machinery that already works (the non-rotating phantom-scalar wormhole is
+stable *because* its matter co-evolves), in this order:
+
+1. **Constraint-satisfying rotating initial data via the GRTresna elliptic solver.**
+   - Driver: `grteclyn-wrapper/scripts/.../make_rotating_wormhole_id.py` (elliptic
+     route — distinct from the pure-Python `make_teo_wormhole_gridinit.py`, which
+     only FD-samples the analytic metric and produces the frozen source).
+   - Solve the Hamiltonian **and** momentum constraints for the rotational `K_ij`
+     (the current `.gridinit` route never solves the momentum constraint — that is
+     why even fixed-gauge drifts).
+   - Prereq: GRTresna MPI libs were rebuilt with consistent Chombo MPI
+     (`grteclyn-wrapper/scripts/rebuild_grtresna_mpi.sh`) after a SIGILL from
+     mismatched `-march=native` objects. Verify it builds/runs first.
+2. **Evolve with a co-evolving matter model**, not the frozen tensor.
+   - Use the proven `ExoticScalarField<PhantomDecayPotential>` path (the
+     `wormhole_matter_model = exotic_scalar` branch in `SupportedWormholeLevel.cpp`),
+     which has a non-empty `add_matter_rhs` and self-consistently supports the throat.
+   - Introduce spin as genuine initial angular momentum (odd-parity `K_ij` / shift)
+     from the elliptic solve, rather than `EffectiveTeoMatter`'s frozen `teo_*`.
+   - Retire `EffectiveTeoMatter` for production, or keep it only for the static-ID
+     regression test.
+3. **Analytic C++ Teo `initData` (per-level, no interpolation)** — only now worth
+   building, as the AMR-smoothness layer on top of constraint-satisfying co-evolving
+   data. Mirror `SupportedWormholeInitialData` (closed-form `chi, h_ij, lapse,
+   shift`); compute `K_ij, A_ij, Gamma^i` by FD over analytically-filled ghost cells
+   so every level is smooth at its own `dx`.
+4. **Fix the `Gamma^i` / constraint-order mismatch.** The Python ID reports
+   `ham_l2 ≈ 1e-6` (interior, masked) but C++ level-0 sees `~5e-3` at t=0.005 and
+   growing; the FD-computed `Gamma^i` is not consistent with GRTeclyn's BSSN
+   definition / stencil. Recompute `Gamma^i` from `h_ij` with the evolution's own
+   derivative order, or enforce it at init.
+
+**Interim option (stepping stone, not physics):** make `EffectiveTeoMatter`
+recompute `G_ab/8π` from the *current* evolving metric each step instead of reading
+frozen `teo_*`. This keeps constraints satisfied by construction and bounds the
+unigrid run, but the resulting "dynamics" are gauge/numerical, not matter response —
+use only to validate the evolution pipeline, not for a spin claim.
 
 ### Retained / removed outputs (cleanup 4 June 2026)
 
@@ -123,7 +198,7 @@ per level**, not interpolated from a coarse file.
 Generated from repo root:
 
 ```bash
-uv run python grteclyn-wrapper/scripts/make_teo_wormhole_gridinit.py \
+uv run python grteclyn-wrapper/scripts/wormhole/make_teo_wormhole_gridinit.py \
   --output runs/teo_wormhole/teo_weak_spin_dx025.gridinit \
   --nx 256 --ny 256 --nz 128 --lx 64 --ly 64 --lz 32 \
   --center 32 32 0 --spin 0.05 --check
@@ -139,7 +214,7 @@ Artifacts:
 Spin-0 baseline for junk subtraction:
 
 ```bash
-uv run python grteclyn-wrapper/scripts/make_teo_wormhole_gridinit.py \
+uv run python grteclyn-wrapper/scripts/wormhole/make_teo_wormhole_gridinit.py \
   --output runs/teo_wormhole/teo_a0_dx025.gridinit \
   --nx 256 --ny 256 --nz 128 --lx 64 --ly 64 --lz 32 \
   --center 32 32 0 --spin 0.0 --check
@@ -190,7 +265,7 @@ Use two terminals from repo root.
 **Terminal 1 — live frames, small-data extraction, plotfile deletion:**
 
 ```bash
-./grteclyn-wrapper/scripts/plot_run.sh \
+./grteclyn-wrapper/scripts/plot/plot_run.sh \
   /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/teo_wormhole/weak_spin_unigrid_dx025/output
 ```
 
@@ -242,10 +317,10 @@ After extending `stop_time`, resume from e.g. step 40:
 
 ```bash
 cd /path/to/GRTeclyn
-./grteclyn-wrapper/scripts/rollback --step 40 \
+./grteclyn-wrapper/scripts/wormhole/rollback --step 40 \
   --data runs/teo_wormhole/weak_spin_unigrid_dx025/output
 
-./grteclyn-wrapper/scripts/plot_run.sh --not-remove \
+./grteclyn-wrapper/scripts/plot/plot_run.sh --not-remove \
   runs/teo_wormhole/weak_spin_unigrid_dx025/output
 
 cd Examples/RotatingWormholeCollapse
@@ -299,17 +374,27 @@ to the refined-level instability.
 
 ## Future work (not done)
 
-| Approach | Benefit |
-|----------|---------|
-| C++ analytic Teo `initData` (like `SupportedWormholeInitialData`) | Smooth on every AMR level; best long-term |
-| Tricubic (or higher) interpolation in `ExternalGridInitialData` | Reduces kinks without huge files |
-| `dx = 0.125` file + `max_level = 2` with `N1 = 128` | More AMR depth if evolution stabilizes |
-| Tune `sigma`, `dt_multiplier`, `regrid_threshold` | May help `max_level = 1` — not validated here |
+> See **"Recommended path to a stable run"** above for the ordered plan. The table
+> below classifies each candidate by which problem it actually addresses. Note:
+> the items that only address **P1** will **not** stabilise the unigrid run on
+> their own — **P2 (consistent/co-evolving source) is the prerequisite.**
 
-**GRTresna:** elliptic ID is a separate legacy route (`make_rotating_wormhole_id.py`).
-Teo gridinit generation does not use it. GRTresna MPI on this machine was rebuilt
-with consistent Chombo MPI libs (`grteclyn-wrapper/scripts/rebuild_grtresna_mpi.sh`)
-after SIGILL from mismatched `-march=native` objects.
+| Approach | Addresses | Benefit / caveat |
+|----------|-----------|------------------|
+| **GRTresna elliptic rotating ID** (`make_rotating_wormhole_id.py`) + co-evolving `ExoticScalarField` matter | **P2** | The real fix: constraint-satisfying data + a source that evolves. Highest priority. |
+| Consistent source: recompute `G_ab/8π` from the evolving metric in `EffectiveTeoMatter` each step | **P2** (partial) | Bounds the unigrid run, but "dynamics" are gauge/numerical — stepping stone only, not a spin claim. |
+| C++ analytic Teo `initData` (like `SupportedWormholeInitialData`) | P1 | Smooth on every AMR level. Only useful *after* P2 is solved. |
+| Fix FD `Gamma^i` to match GRTeclyn's BSSN stencil at init | P1/P2 | Removes the `~5e-3 → ` growing level-0 residual seen with the FD gridinit. |
+| Tricubic (or higher) interpolation in `ExternalGridInitialData` | P1 | Reduces kinks without huge files. |
+| `dx = 0.125` file + `max_level = 2` with `N1 = 128` | P1 | More AMR depth — only if evolution stabilises (i.e. after P2). |
+| Tune `sigma`, `dt_multiplier`, `regrid_threshold` | symptom | Fixed-gauge test showed gauge ~halves growth but does not stop it; tuning alone is insufficient. |
+
+**GRTresna:** elliptic ID is a separate route (`make_rotating_wormhole_id.py`); the
+pure-Python `make_teo_wormhole_gridinit.py` does **not** use it and only FD-samples
+the analytic metric (producing the frozen source). GRTresna MPI on this machine was
+rebuilt with consistent Chombo MPI libs
+(`grteclyn-wrapper/scripts/rebuild_grtresna_mpi.sh`) after SIGILL from mismatched
+`-march=native` objects — verify it builds/runs before relying on it.
 
 ---
 
@@ -317,7 +402,7 @@ after SIGILL from mismatched `-march=native` objects.
 
 **Python / ID**
 
-- `grteclyn-wrapper/scripts/make_teo_wormhole_gridinit.py`
+- `grteclyn-wrapper/scripts/wormhole/make_teo_wormhole_gridinit.py`
 - `grteclyn-wrapper/src/grteclyn_wrapper/initial_data/teo.py`
 
 **C++**

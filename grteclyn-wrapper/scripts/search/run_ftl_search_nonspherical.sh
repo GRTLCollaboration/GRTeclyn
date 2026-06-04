@@ -25,7 +25,7 @@
 #
 # Output: runs/<name>/{trajectory.jsonl, metadata.json, result.json, eval_*/}
 set -u
-cd "$(dirname "$0")/.." || exit 1
+cd "$(dirname "$0")/../.." || exit 1
 
 NAME="${1:-ftl_search_nonspherical_01}"
 MAXGEN="${2:-25}"

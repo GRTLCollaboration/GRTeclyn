@@ -18,7 +18,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/env.sh"
+source "${SCRIPT_DIR}/../lib/env.sh"
 
 # Resolve a Python that has the wrapper's deps (cma, h5py). env.sh cd's to
 # GRTECLYN_ROOT, so a bare `uv run` would miss the grteclyn-wrapper project;

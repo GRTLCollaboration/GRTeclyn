@@ -3,8 +3,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=env.sh
-source "${SCRIPT_DIR}/env.sh"
+# shellcheck source=../lib/env.sh
+source "${SCRIPT_DIR}/../lib/env.sh"
 
 GRTRESNA_ENV="${GRTRESNA_ENV:-${HOME}/.mlspace/envs/grtresna}"
 CHOMBO_HOME="${CHOMBO_HOME:-${GRTECLYN_ROOT}/../Chombo/lib}"

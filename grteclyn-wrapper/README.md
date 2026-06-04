@@ -14,7 +14,7 @@ uv sync   # Python deps including yt for plotfile extraction
 First build (single GPU, no MPI):
 
 ```bash
-BUILD=1 bash grteclyn-wrapper/scripts/run_radialrecipe_gpu_smoke.sh
+BUILD=1 bash grteclyn-wrapper/scripts/radial/run_radialrecipe_gpu_smoke.sh
 ```
 
 ## Read This First: What To Edit, Build, And Run
@@ -26,11 +26,11 @@ the C++ side that changed.
 | Goal | Edit here | Rebuild needed? | Validate with |
 |------|-----------|-----------------|---------------|
 | Change CMA-ES search dimensions, the `ring`/`free` ansatz, warm starts, random/exotic injection, or pre-GPU rejection behavior | `grteclyn-wrapper/src/grteclyn_wrapper/search/optimize.py` and CLI wiring in `grteclyn-wrapper/src/grteclyn_wrapper/__main__.py` | No C++ rebuild; Python code is picked up by the wrapper venv | `cd grteclyn-wrapper && uv run pytest tests/test_grtresna_ring_ansatz.py tests/test_solved_geometry_ftl.py -q` |
-| Change launcher defaults or add environment knobs for searches | `grteclyn-wrapper/scripts/run_grtresna_search.sh` | No | `DRY_RUN=1 MAX_GENERATIONS=1 GPU_IDS="0 1" bash scripts/run_grtresna_search.sh` |
+| Change launcher defaults or add environment knobs for searches | `grteclyn-wrapper/scripts/search/run_grtresna_search.sh` | No | `DRY_RUN=1 MAX_GENERATIONS=1 GPU_IDS="0 1" bash scripts/search/run_grtresna_search.sh` |
 | Change how GRTresna is invoked, configured, parsed, or converted to `.gridinit` | `grteclyn-wrapper/src/grteclyn_wrapper/grtresna/solver.py` and `grteclyn-wrapper/src/grteclyn_wrapper/grtresna/io.py` | Usually no C++ rebuild if only wrapper Python changed | `uv run pytest tests/test_grtresna_integration.py tests/test_grtresna_ring_ansatz.py -q` |
 | Change the pre-evolution solved-geometry FTL filter or mechanism descriptors | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/ftl_solved_geometry.py` | No | `uv run pytest tests/test_solved_geometry_ftl.py tests/test_ftl_general.py -q` |
 | Change scoring weights/components read from episodes | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/score.py`, `episode_metrics.py` | No | Re-score a campaign or run focused metric tests |
-| Change GRTeclyn evolution, fields written to plotfiles, external `.gridinit` loading, matter evolution, or diagnostics | `Examples/RadialRecipe/*`, especially `RadialRecipeLevel.cpp`, `SimulationParameters.hpp`, `ExternalGridInitialData.hpp`; shared matter in `Source/Matter/*` | Yes, rebuild GRTeclyn executable | `BUILD=1 bash grteclyn-wrapper/scripts/run_radialrecipe_gpu_smoke.sh` |
+| Change GRTeclyn evolution, fields written to plotfiles, external `.gridinit` loading, matter evolution, or diagnostics | `Examples/RadialRecipe/*`, especially `RadialRecipeLevel.cpp`, `SimulationParameters.hpp`, `ExternalGridInitialData.hpp`; shared matter in `Source/Matter/*` | Yes, rebuild GRTeclyn executable | `BUILD=1 bash grteclyn-wrapper/scripts/radial/run_radialrecipe_gpu_smoke.sh` |
 | Change the upstream GRTresna elliptic solver, scalar source, AMR tagging, or maximal-slicing solve | `../GRTresna/Examples/ScalarFieldBH/*` and shared Chombo/GRTresna headers | Yes, rebuild the serial `Main_ScalarFieldBH3d...g++.gfortran...ex` used by `RANKS=1` searches; MPI builds are optional | Solver-only smoke tests below |
 
 ### Launch Cookbook
@@ -40,31 +40,31 @@ Run these from `GRTeclyn/grteclyn-wrapper` unless noted otherwise.
 ```bash
 # Refinement search: 14D reduced ring ansatz, half-z by default.
 GPU_IDS="0 1 2 3 4 5 6 7" GRTRESNA_ANSATZ=ring \
-  bash scripts/run_grtresna_search.sh
+  bash scripts/search/run_grtresna_search.sh
 
 # Discovery: 16D full-sphere shell ansatz. Lumps cover the whole 2-sphere with
 # an arbitrary orientation axis and poloidal+toroidal currents (reaches 3D
 # configurations the planar ring cannot). Defaults to full-z, no reflective
 # z=0 plane, and serial GRTresna (`RANKS=1`). Use to find new families.
 GPU_IDS="0 1 2 3 4 5 6 7" GRTRESNA_ANSATZ=shell RANKS=1 \
-  bash scripts/run_grtresna_search.sh
+  bash scripts/search/run_grtresna_search.sh
 
 # Broader but much harder 55D search: every lump independent.
 GPU_IDS="0 1 2 3 4 5 6 7" GRTRESNA_ANSATZ=free LUMPS=5 \
-  bash scripts/run_grtresna_search.sh
+  bash scripts/search/run_grtresna_search.sh
 
 # Cheap launcher/CLI smoke test: no GRTresna solve and no GPU evolution.
 DRY_RUN=1 MAX_GENERATIONS=1 GPU_IDS="0 1" GRTRESNA_ANSATZ=ring \
-  bash scripts/run_grtresna_search.sh
+  bash scripts/search/run_grtresna_search.sh
 
 # Keep raw plotfiles for manual debugging (normally they are consumed/deleted).
 NO_CONSUME=1 MAX_GENERATIONS=1 GPU_IDS="0 1" \
-  bash scripts/run_grtresna_search.sh
+  bash scripts/search/run_grtresna_search.sh
 
 # Single-GPU RadialRecipe smoke/build run, useful after C++ edits.
 cd /path/to/GRTeclyn
 BUILD=1 CUDA_VISIBLE_DEVICES_OVERRIDE=0 \
-  bash grteclyn-wrapper/scripts/run_radialrecipe_gpu_smoke.sh
+  bash grteclyn-wrapper/scripts/radial/run_radialrecipe_gpu_smoke.sh
 ```
 
 Search outputs go to `runs/grtresna_search/optimize_<timestamp>/`. Important
@@ -206,8 +206,8 @@ Assess any existing campaign (CMA-ES or QD) offline, no rerun needed:
 
 ```bash
 # Writes validation.json into the campaign dir and prints the survivor front.
-uv run python scripts/validate_tiers.py runs/grtresna_search/optimize_20260602T181607Z
-uv run python scripts/validate_tiers.py runs/grtresna_search/<campaign> --min-tier 3
+uv run python scripts/search/validate_tiers.py runs/grtresna_search/optimize_20260602T181607Z
+uv run python scripts/search/validate_tiers.py runs/grtresna_search/<campaign> --min-tier 3
 ```
 
 ## Single GPU run (one guessed shape)
@@ -223,15 +223,15 @@ Pick **one** initial-data source:
 ```bash
 # Known seed
 BUILD=0 SEED_NAME=ellis_bronnikov CUDA_VISIBLE_DEVICES_OVERRIDE=0 \
-  bash grteclyn-wrapper/scripts/run_radialrecipe_gpu_smoke.sh
+  bash grteclyn-wrapper/scripts/radial/run_radialrecipe_gpu_smoke.sh
 
 # Spherical guesser candidate
 BUILD=0 CANDIDATE_ID=bubble_wall_016 CUDA_VISIBLE_DEVICES_OVERRIDE=1 \
-  bash grteclyn-wrapper/scripts/run_radialrecipe_gpu_smoke.sh
+  bash grteclyn-wrapper/scripts/radial/run_radialrecipe_gpu_smoke.sh
 
 # Non-spherical guessed shape
 BUILD=0 NONSPHERICAL_ID=quadrupole_bubble_001 CUDA_VISIBLE_DEVICES_OVERRIDE=2 \
-  bash grteclyn-wrapper/scripts/run_radialrecipe_gpu_smoke.sh
+  bash grteclyn-wrapper/scripts/radial/run_radialrecipe_gpu_smoke.sh
 ```
 
 Outputs go to `runs/radialrecipe_gpu_smoke/<name>_gpu_t<stop_time>_<stamp>/`.
@@ -253,13 +253,13 @@ consistently.
 | `run_tier2_hq_188.sh` / `run_tier2_validation_long16.sh` | Higher-quality replay/validation of selected candidates. | GPU id / candidate-specific args |
 | `run_subset.sh`, `run_nonspherical_gpu_batch.sh`, `run_radialrecipe_gpu_promote.sh` | Batch and promotion helpers for fixed candidate lists. | See script headers |
 | `validate_campaign.sh` | Post-run campaign validation. | Campaign path |
-| `make_movies.sh`, `plot_run_radial.sh` | Post-processing frames/plots. | Episode path / field choices |
+| `plot/make_movies.sh`, `plot/plot_run_radial.sh` | Post-processing frames/plots (see [`scripts/plot/`](scripts/README.md#plot--visualization-any-example)). | Episode path / field choices |
 
 ```bash
 # Example: launch the non-spherical FTL campaign
-bash grteclyn-wrapper/scripts/run_ftl_search_nonspherical.sh
+bash grteclyn-wrapper/scripts/search/run_ftl_search_nonspherical.sh
 # Validate the winner at high quality (streaming frames, plotfiles deleted)
-bash grteclyn-wrapper/scripts/run_tier2_hq_188.sh 0 val16hq_nonsph_eval188
+bash grteclyn-wrapper/scripts/search/run_tier2_hq_188.sh 0 val16hq_nonsph_eval188
 ```
 
 ## In-situ diagnostics & matter sector
@@ -425,23 +425,23 @@ The recommended launcher is:
 ```bash
 cd /path/to/GRTeclyn/grteclyn-wrapper
 GPU_IDS="0 1 2 3 4 5 6 7" \
-  bash scripts/run_grtresna_search.sh
+  bash scripts/search/run_grtresna_search.sh
 ```
 
 Useful overrides:
 
 ```bash
 # Fewer GPUs/candidates per generation.
-GPU_IDS="0 1 2 3" bash scripts/run_grtresna_search.sh
+GPU_IDS="0 1 2 3" bash scripts/search/run_grtresna_search.sh
 
 # Continue from selected prior good candidates.
 WARM_START_TRAJECTORY=/path/to/trajectory.jsonl \
   GPU_IDS="0 1 2 3 4 5 6 7" \
-  bash scripts/run_grtresna_search.sh
+  bash scripts/search/run_grtresna_search.sh
 
 # Keep raw plotfiles for manual re-rendering/debugging.
 NO_CONSUME=1 GPU_IDS="0 1" MAX_GENERATIONS=1 \
-  bash scripts/run_grtresna_search.sh
+  bash scripts/search/run_grtresna_search.sh
 ```
 
 Default production knobs in the launcher:
@@ -766,7 +766,7 @@ than a hard `argmax` (which collapsed every candidate onto one value). MAP-Elite
 the survivors from **20 → 8** of 80 solved candidates: the ~12 dropped were all
 degenerate `max_c=100` / `F_op≈0.99` artifacts, while the physically-plausible
 candidates (including `eval_000063`) were kept. Replay the rescore with
-`scripts/rescore_grtresna_solved_ftl.py <campaign_dir>`.
+`scripts/search/rescore_grtresna_solved_ftl.py <campaign_dir>`.
 
 **Net status and current finding.** Exotic matter is implemented end-to-end and
 is solvable **inside the full AMR multi-lump regime** the search actually
@@ -785,7 +785,7 @@ and resolution convergence.
 ## Batch: 7 non-spherical shapes on GPUs 0–6
 
 ```bash
-BUILD=0 bash grteclyn-wrapper/scripts/run_nonspherical_gpu_batch.sh
+BUILD=0 bash grteclyn-wrapper/scripts/radial/run_nonspherical_gpu_batch.sh
 ```
 
 Outputs: `runs/radialrecipe_nonspherical/`. One log per candidate: `<id>_<stamp>.log`.
@@ -814,13 +814,13 @@ Useful env vars:
 Disable consumer (keep all plotfiles):
 
 ```bash
-CONSUME_PLOTFILES=0 bash grteclyn-wrapper/scripts/run_radialrecipe_gpu_smoke.sh
+CONSUME_PLOTFILES=0 bash grteclyn-wrapper/scripts/radial/run_radialrecipe_gpu_smoke.sh
 ```
 
 ## Post-run plots (no GW / Psi4)
 
 ```bash
-bash grteclyn-wrapper/scripts/plot_diagnostic_radial.sh runs/radialrecipe_nonspherical/<episode_dir>
+bash grteclyn-wrapper/scripts/plot/plot_diagnostic_radial.sh runs/radialrecipe_nonspherical/<episode_dir>
 ```
 
 Writes EPS/PNG to `grteclyn-wrapper/src/grteclyn_wrapper/visualisation/plots/radial/` (constraints, collapse, shell profiles).
@@ -830,7 +830,7 @@ Writes EPS/PNG to `grteclyn-wrapper/src/grteclyn_wrapper/visualisation/plots/rad
 If a run finished before extraction completed:
 
 ```bash
-bash grteclyn-wrapper/scripts/plot_run_radial.sh runs/radialrecipe_nonspherical/<episode_dir> --no-delete
+bash grteclyn-wrapper/scripts/plot/plot_run_radial.sh runs/radialrecipe_nonspherical/<episode_dir> --no-delete
 # or one-shot batch consume (no watch):
 uv run python -m grteclyn_wrapper.visualisation.process_wave.consume_plotfiles \
   --data runs/radialrecipe_nonspherical/<episode_dir> \

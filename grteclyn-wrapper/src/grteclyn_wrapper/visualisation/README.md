@@ -358,18 +358,18 @@ Watches the run directory for new plotfiles, runs `consume_plotfiles` to extract
 
 ```bash
 # Default data dir (auto-detect) and default 64 jobs
-./grteclyn-wrapper/scripts/plot_run.sh
+./grteclyn-wrapper/scripts/plot/plot_run.sh
 
 # Explicit run/output folder
-./grteclyn-wrapper/scripts/plot_run.sh /path/to/data_2gpu
+./grteclyn-wrapper/scripts/plot/plot_run.sh /path/to/data_2gpu
 
 # Keep existing plotfiles and frames (e.g. resume processing)
-./grteclyn-wrapper/scripts/plot_run.sh --not-remove /path/to/data_2gpu
+./grteclyn-wrapper/scripts/plot/plot_run.sh --not-remove /path/to/data_2gpu
 
 # Fewer parallel workers
-./grteclyn-wrapper/scripts/plot_run.sh -j 16 /path/to/data_2gpu
+./grteclyn-wrapper/scripts/plot/plot_run.sh -j 16 /path/to/data_2gpu
 
-./grteclyn-wrapper/scripts/plot_run.sh --not-remove -j 16
+./grteclyn-wrapper/scripts/plot/plot_run.sh --not-remove -j 16
 ```
 
 **What `plot_run` passes to `consume_plotfiles`** (fixed in the script): extraction radii `12 16 20 24`, `--n-points 64`, `--areal-radius`, `--embedding --embedding-rmax 5.0`, `--frames-fields K Weyl4_Re`, `--frames-axis z`, `--frames-corner`, `--frames-out` → `grteclyn-wrapper/src/grteclyn_wrapper/visualisation/visualize`, `--watch --delete --keep-last 2`, `--verbose`.
@@ -399,11 +399,11 @@ After the run has written `data/constraint_norms.dat`, `data/collapse_diagnostic
 | `psi4_analysis.*` | Combined panel (`--combined`): waveforms, PSD, propagation, strain, LIGO overlay (`--strain`, 30 M⊙ at 10 Mpc) |
 
 ```bash
-./grteclyn-wrapper/scripts/plot_diagnostic.sh
+./grteclyn-wrapper/scripts/plot/plot_diagnostic.sh
 
-./grteclyn-wrapper/scripts/plot_diagnostic.sh /path/to/data_2gpu
+./grteclyn-wrapper/scripts/plot/plot_diagnostic.sh /path/to/data_2gpu
 
-./grteclyn-wrapper/scripts/plot_diagnostic.sh /path/to/data_2gpu 12 16 20 24
+./grteclyn-wrapper/scripts/plot/plot_diagnostic.sh /path/to/data_2gpu 12 16 20 24
 ```
 
 ---
@@ -421,11 +421,11 @@ Copies visualization frames (`chi*`, `K*`, `Weyl4_Mag*`, `Weyl4_Re*`, `embedding
 
 ```bash
 # Supported wormhole run + data_supported
-./grteclyn-wrapper/scripts/move_files.sh
-./grteclyn-wrapper/scripts/move_files.sh SupportedWormholeCollapse
+./grteclyn-wrapper/scripts/wormhole/move_files.sh
+./grteclyn-wrapper/scripts/wormhole/move_files.sh SupportedWormholeCollapse
 
 # Other run type (uses data_2gpu and WormholeCollapse params)
-./grteclyn-wrapper/scripts/move_files.sh WormholeCollapse
+./grteclyn-wrapper/scripts/wormhole/move_files.sh WormholeCollapse
 ```
 
 If `grteclyn-wrapper/src/grteclyn_wrapper/visualisation/plots/` is missing, the script warns to run `plot_diagnostic.sh` first.
@@ -436,16 +436,16 @@ If `grteclyn-wrapper/src/grteclyn_wrapper/visualisation/plots/` is missing, the 
 
 ```bash
 # Terminal 1 — while the simulation runs
-./grteclyn-wrapper/scripts/plot_run.sh /path/to/your_run_output
+./grteclyn-wrapper/scripts/plot/plot_run.sh /path/to/your_run_output
 
 # After the run — refresh diagnostic figures
-./grteclyn-wrapper/scripts/plot_diagnostic.sh /path/to/your_run_output
+./grteclyn-wrapper/scripts/plot/plot_diagnostic.sh /path/to/your_run_output
 
 # Optional — stitch frame folders to MP4
 uv run python -m grteclyn_wrapper.visualisation.visualize.make_movies --root grteclyn-wrapper/src/grteclyn_wrapper/visualisation/visualize
 
 # Archive
-./grteclyn-wrapper/scripts/move_files.sh SupportedWormholeCollapse
+./grteclyn-wrapper/scripts/wormhole/move_files.sh SupportedWormholeCollapse
 ```
 
 ---
