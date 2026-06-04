@@ -117,6 +117,8 @@ def build_consume_command(
                 "--frames-axis",
                 "z",
                 "--frames-corner",
+                "--frames-out",
+                str(episode.frames_dir),
                 "--embedding",
                 "--embedding-rmax",
                 "5.0",

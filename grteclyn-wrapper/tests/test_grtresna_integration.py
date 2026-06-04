@@ -10,6 +10,7 @@ from tempfile import TemporaryDirectory
 import numpy as np
 
 from grteclyn_wrapper.grtresna.io import _reflect_half_z_to_full
+from grteclyn_wrapper.grtresna.domain import GRTresnaDomainConfig
 from grteclyn_wrapper.grtresna.solver import GRTresnaConfig, write_grtresna_params
 from grteclyn_wrapper.core.config import resolve_example
 from grteclyn_wrapper.core.episode import create_episode
@@ -63,6 +64,49 @@ def test_exotic_indexed_lump_enables_amr_safe_maximal_slicing() -> None:
     assert cfg.lumps[0]["center"] == (-5.0, 0.0, 0.0)
     assert cfg.lumps[0]["velocity"] == (0.3, 0.0, 0.0)
     assert cfg.lumps[1]["exotic"] == 0
+
+
+def test_grtresna_domain_policy_half_z_defaults() -> None:
+    domain = GRTresnaDomainConfig(full_z=False, l_full=80.0, n_full=96, grtresna_nx=48)
+    cfg = domain.apply_to_solver(GRTresnaConfig())
+
+    assert cfg.N == (48, 64, 24)
+    assert cfg.lo_boundary == (0, 0, 1)
+    assert cfg.target_center == (40.0, 40.0, 0.0)
+    assert domain.evolution_overrides() == {
+        "L_full": 80.0,
+        "N_full": 96,
+        "center": "40 40 0",
+        "lo_boundary": "1 1 2",
+    }
+
+
+def test_grtresna_domain_policy_full_z_is_configurable() -> None:
+    domain = GRTresnaDomainConfig(
+        full_z=True,
+        l_full=96.0,
+        n_full=128,
+        grtresna_l=192.0,
+        grtresna_nx=80,
+        grtresna_ny=72,
+        grtresna_nz=64,
+        gridinit_nx=96,
+        gridinit_ny=96,
+        gridinit_nz=128,
+    )
+    cfg = domain.apply_to_solver(GRTresnaConfig())
+
+    assert cfg.N == (80, 72, 64)
+    assert cfg.L == 192.0
+    assert cfg.lo_boundary == (0, 0, 0)
+    assert cfg.target_center == (48.0, 48.0, 48.0)
+    assert (cfg.gridinit_nx, cfg.gridinit_ny, cfg.gridinit_nz) == (96, 96, 128)
+    assert domain.evolution_overrides() == {
+        "L_full": 96.0,
+        "N_full": 128,
+        "center": "48 48 48",
+        "lo_boundary": "1 1 1",
+    }
 
 
 def test_canonical_lump_keeps_standard_solver_path() -> None:
@@ -186,6 +230,8 @@ def test_rotating_wormhole_consumer_uses_psi4_profile() -> None:
     assert "--psi4" in command
     assert "--embedding" in command
     assert "--frames-fields" in command
+    frames_out_idx = command.index("--frames-out")
+    assert command[frames_out_idx + 1] == str(episode.frames_dir)
 
 
 def test_half_z_reflection_places_positive_z_data_in_upper_half() -> None:

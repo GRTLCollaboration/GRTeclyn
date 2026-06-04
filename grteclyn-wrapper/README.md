@@ -31,28 +31,29 @@ the C++ side that changed.
 | Change the pre-evolution solved-geometry FTL filter or mechanism descriptors | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/ftl_solved_geometry.py` | No | `uv run pytest tests/test_solved_geometry_ftl.py tests/test_ftl_general.py -q` |
 | Change scoring weights/components read from episodes | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/score.py`, `episode_metrics.py` | No | Re-score a campaign or run focused metric tests |
 | Change GRTeclyn evolution, fields written to plotfiles, external `.gridinit` loading, matter evolution, or diagnostics | `Examples/RadialRecipe/*`, especially `RadialRecipeLevel.cpp`, `SimulationParameters.hpp`, `ExternalGridInitialData.hpp`; shared matter in `Source/Matter/*` | Yes, rebuild GRTeclyn executable | `BUILD=1 bash grteclyn-wrapper/scripts/run_radialrecipe_gpu_smoke.sh` |
-| Change the upstream GRTresna elliptic solver, scalar source, AMR tagging, or maximal-slicing solve | `../GRTresna/Examples/ScalarFieldBH/*` and shared Chombo/GRTresna headers | Yes, rebuild `Main_ScalarFieldBH3d...MPI.ex` manually | Solver-only AMR smoke tests below |
+| Change the upstream GRTresna elliptic solver, scalar source, AMR tagging, or maximal-slicing solve | `../GRTresna/Examples/ScalarFieldBH/*` and shared Chombo/GRTresna headers | Yes, rebuild the serial `Main_ScalarFieldBH3d...g++.gfortran...ex` used by `RANKS=1` searches; MPI builds are optional | Solver-only smoke tests below |
 
 ### Launch Cookbook
 
 Run these from `GRTeclyn/grteclyn-wrapper` unless noted otherwise.
 
 ```bash
-# Current recommended matter-first search: 14D reduced ring ansatz, 8 GPUs.
+# Refinement search: 14D reduced ring ansatz, half-z by default.
 GPU_IDS="0 1 2 3 4 5 6 7" GRTRESNA_ANSATZ=ring \
   bash scripts/run_grtresna_search.sh
 
 # Discovery: 16D full-sphere shell ansatz. Lumps cover the whole 2-sphere with
 # an arbitrary orientation axis and poloidal+toroidal currents (reaches 3D
-# configurations the planar ring cannot). Use to find new families.
-GPU_IDS="0 1 2 3 4 5 6 7" GRTRESNA_ANSATZ=shell \
+# configurations the planar ring cannot). Defaults to full-z, no reflective
+# z=0 plane, and serial GRTresna (`RANKS=1`). Use to find new families.
+GPU_IDS="0 1 2 3 4 5 6 7" GRTRESNA_ANSATZ=shell RANKS=1 \
   bash scripts/run_grtresna_search.sh
 
 # Broader but much harder 55D search: every lump independent.
 GPU_IDS="0 1 2 3 4 5 6 7" GRTRESNA_ANSATZ=free LUMPS=5 \
   bash scripts/run_grtresna_search.sh
 
-# Cheap launcher/CLI smoke test: no GRTresna MPI solve and no GPU evolution.
+# Cheap launcher/CLI smoke test: no GRTresna solve and no GPU evolution.
 DRY_RUN=1 MAX_GENERATIONS=1 GPU_IDS="0 1" GRTRESNA_ANSATZ=ring \
   bash scripts/run_grtresna_search.sh
 
@@ -115,8 +116,9 @@ decoded into matter.
 
 ### Stop And Verify Runs
 
-Searches launch MPI ranks, GPU processes, and plotfile consumers. When stopping a
-run, kill the whole campaign process tree and verify both CPU and GPU state:
+Searches launch GRTresna solver processes, GPU processes, and plotfile
+consumers. When stopping a run, kill the whole campaign process tree and verify
+both CPU and GPU state:
 
 ```bash
 # Graceful first pass for all wrapper-started GRTresna searches.
@@ -124,7 +126,7 @@ pkill -TERM -f 'runs/grtresna_search'
 pkill -TERM -f 'run_grtresna_search.sh'
 sleep 5
 
-# Force any stubborn MPI / consumer leftovers.
+# Force any stubborn solver / consumer leftovers.
 pkill -KILL -f 'runs/grtresna_search'
 pkill -KILL -f 'run_grtresna_search.sh'
 
@@ -137,8 +139,8 @@ nvidia-smi
 ```
 
 The GPU table should show `0MiB` usage and `No running processes found`. A high
-load average immediately after killing MPI ranks can be stale decay; rely on the
-process scan and `nvidia-smi`.
+load average immediately after killing solver processes can be stale decay; rely
+on the process scan and `nvidia-smi`.
 
 ### How To Validate A Campaign
 
@@ -321,7 +323,7 @@ the **momentum-carrying matter** capability added on top of it.
 
 ### What was done
 
-1. **GRTresna ↔ GRTeclyn bridge:** run GRTresna via MPI, convert its Chombo HDF5
+1. **GRTresna ↔ GRTeclyn bridge:** run GRTresna, convert its Chombo HDF5
    output to a `.gridinit` binary, and load it on the GPU via
    `ExternalGridInitialData` (`recipe_initial_data_file` in `params.txt`).
    Round-trip validation shows roughly two orders of magnitude lower initial
@@ -367,22 +369,25 @@ the **momentum-carrying matter** capability added on top of it.
 ### Building the GRTresna solver (C++)
 
 The closed-loop search shells out to the compiled `ScalarFieldBH` executable, so
-build it once before running. GRTresna is a Chombo app: it needs `CHOMBO_HOME`
-plus the MPI/Fortran/HDF5 toolchain from the `grtresna` conda/micromamba env on
-`PATH`.
+build it once before running. Current production searches use the **serial**
+`g++.gfortran` executable with `RANKS=1`; MPI builds are optional and only used
+when `RANKS>1`. GRTresna is a Chombo app: it needs `CHOMBO_HOME` plus the
+Fortran/HDF5 toolchain from the `grtresna` conda/micromamba env on `PATH`.
 
 ```bash
-# Toolchain (mpicxx, gfortran, hdf5) lives in the grtresna env.
+# Toolchain (g++, gfortran, hdf5) lives in the grtresna env.
 GRTRESNA_ENV=/home/jovyan/.mlspace/envs/grtresna
 CHOMBO_HOME=/home/jovyan/nachevsky/test/simulation/Chombo/lib
 
 cd /home/jovyan/nachevsky/test/simulation/GRTresna/Examples/ScalarFieldBH
-PATH="${GRTRESNA_ENV}/bin:${PATH}" CONDA_PREFIX="${GRTRESNA_ENV}" \
-  make all -j4 CHOMBO_HOME="${CHOMBO_HOME}"
+PATH="${GRTRESNA_ENV}/bin:${PATH}" CONDA_PREFIX="${GRTRESNA_ENV}" CXX=g++ \
+  make all -j4 CHOMBO_HOME="${CHOMBO_HOME}" MPI=FALSE
 ```
 
-This produces `Main_ScalarFieldBH3d.Linux.64.mpicxx.gfortran.OPTHIGH.MPI.ex` in
-that directory, which `grtresna/solver.py` invokes via `mpirun`.
+This produces `Main_ScalarFieldBH3d.Linux.64.g++.gfortran.OPTHIGH.ex` in that
+directory. With `RANKS=1`, `grtresna/solver.py` prefers this serial executable
+and launches it directly, avoiding the incompatible MPI binary path on current
+nodes.
 
 > **Rebuilding after editing headers.** Chombo's makefile keys off `.cpp` files,
 > so edits to header-only templated code (e.g. `CTTKHybrid.impl.hpp`,
@@ -391,10 +396,10 @@ that directory, which `grtresna/solver.py` invokes via `mpirun`.
 > first, then rebuild:
 >
 > ```bash
-> rm -f Main_ScalarFieldBH3d.Linux.64.mpicxx.gfortran.OPTHIGH.MPI.ex \
->       o/3d.Linux.64.mpicxx.gfortran.OPTHIGH.MPI/{Main_ScalarFieldBH,Grids,ScalarField,MyMatterFunctions}.o
-> PATH="${GRTRESNA_ENV}/bin:${PATH}" CONDA_PREFIX="${GRTRESNA_ENV}" \
->   make all -j4 CHOMBO_HOME="${CHOMBO_HOME}"
+> rm -f Main_ScalarFieldBH3d.Linux.64.g++.gfortran.OPTHIGH.ex \
+>       o/3d.Linux.64.g++.gfortran.OPTHIGH/{Main_ScalarFieldBH,Grids,ScalarField,MyMatterFunctions}.o
+> PATH="${GRTRESNA_ENV}/bin:${PATH}" CONDA_PREFIX="${GRTRESNA_ENV}" CXX=g++ \
+>   make all -j4 CHOMBO_HOME="${CHOMBO_HOME}" MPI=FALSE
 > ```
 
 ### Solver-only AMR smoke tests
@@ -408,8 +413,7 @@ per-iteration HDF5 is off by default):
 cd /home/jovyan/nachevsky/test/simulation/GRTresna/Examples/ScalarFieldBH
 for case in canonical exotic mixed_exotic; do
   PATH="${GRTRESNA_ENV}/bin:${PATH}" CONDA_PREFIX="${GRTRESNA_ENV}" \
-    mpirun --oversubscribe -np 4 \
-    ./Main_ScalarFieldBH3d.Linux.64.mpicxx.gfortran.OPTHIGH.MPI.ex \
+    ./Main_ScalarFieldBH3d.Linux.64.g++.gfortran.OPTHIGH.ex \
     params_${case}_amr_test.txt
 done
 ```
@@ -445,6 +449,7 @@ Default production knobs in the launcher:
 | Knob | Default | Meaning |
 |------|---------|---------|
 | `GRTRESNA_ANSATZ` | `ring` | matter parameterization: `ring` (14D, planar refinement) and `shell` (16D, full-sphere discovery) search global template parameters and expand them to `LUMPS` scalar clouds; `free` (55D) searches every lump independently |
+| `GRTRESNA_FULL_Z` | `1` for `shell`, `0` otherwise | full-z GRTresna solve and GRTeclyn evolution box (`center=32 32 32`, no reflective `z=0` plane); shell discovery should normally keep this on |
 | `LUMPS` | `5` | scalar clouds generated/evolved by GRTresna (`55` searched dimensions only when `GRTRESNA_ANSATZ=free`) |
 | `GPU_IDS` | `0 1 2 3` in the script, often overridden to all available GPUs | also sets default CMA-ES population |
 | `MAX_GENERATIONS` | `50` | CMA-ES generations |
@@ -467,12 +472,11 @@ CMA-ES proposes grtresna_lump{k}_*
   → ftl_first score → back to CMA-ES
 ```
 
-> **MPI environment.** The GRTresna solve shells out to `mpirun`. The solver
-> auto-resolves it from the conda/micromamba env that built GRTresna (it tries
-> `$GRTRESNA_MPIRUN`, then `$GRTRESNA_ENV`/`$CONDA_PREFIX`, then common env roots
-> for `$GRTRESNA_ENV_NAME` — default `grtresna` — then `PATH`), so no manual
-> `PATH=` prefix is needed. Override with `GRTRESNA_MPIRUN=/abs/path/to/mpirun`
-> if your `mpirun` lives elsewhere.
+> **Serial vs. MPI.** With `RANKS=1`, the solver launches the serial
+> `Main_ScalarFieldBH3d.Linux.64.g++.gfortran.OPTHIGH.ex` directly. If you set
+> `RANKS>1`, it switches to an MPI executable and resolves `mpirun` from
+> `$GRTRESNA_MPIRUN`, `$GRTRESNA_ENV`/`$CONDA_PREFIX`, common env roots for
+> `$GRTRESNA_ENV_NAME` (default `grtresna`), then `PATH`.
 
 `--grtresna` **replaces** the radial-recipe search space with a scalar-matter
 basis (it is a separate mode from `--nonspherical`). There are two
@@ -497,6 +501,8 @@ parameterizations:
   Fibonacci lattice. Toroidal flow circulates about the axis (net `L`,
   gravitomagnetic dipole); poloidal flow goes over the poles. This reaches 3D
   configurations the planar ring structurally cannot, at only +2 dimensions.
+  For this mode the launcher defaults to `GRTRESNA_FULL_Z=1`, which disables the
+  old reflective `z=0` half-domain and evolves the shell in a full 3D box.
 - `--grtresna-ansatz free`: the older unconstrained `K`-lump basis. Each lump
   `k` contributes the 11 dimensions below, so `K=5` gives 55 searched
   dimensions. This is maximally expressive but harder for CMA-ES to learn; use
@@ -585,7 +591,7 @@ from pathlib import Path
 from grteclyn_wrapper.grtresna import GRTresnaConfig, solve
 
 cfg = GRTresnaConfig(
-    mpi_ranks=8,
+    mpi_ranks=1,
     bh1_bare_mass=0.0,            # pure matter-momentum case
     lump_amp=0.1, lump_width=8.0,
     lump_velocity=(0.2, 0.0, 0.0),  # boosted cloud → linear momentum

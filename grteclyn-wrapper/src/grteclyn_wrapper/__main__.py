@@ -211,6 +211,24 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
             **base_overrides,
             "grtresna_shell_lumps": grtresna_lumps,
         }
+    grtresna_full_z = bool(getattr(args, "grtresna_full_z", False))
+    grtresna_domain = None
+    if use_grtresna:
+        from .grtresna.domain import GRTresnaDomainConfig
+
+        grtresna_domain = GRTresnaDomainConfig(
+            full_z=grtresna_full_z,
+            l_full=getattr(args, "grtresna_evolution_l_full", 64.0),
+            n_full=getattr(args, "grtresna_evolution_n_full", 64),
+            grtresna_l=getattr(args, "grtresna_domain_l", 128.0),
+            grtresna_nx=getattr(args, "grtresna_domain_nx", 64),
+            grtresna_ny=getattr(args, "grtresna_domain_ny", 64),
+            grtresna_nz=getattr(args, "grtresna_domain_nz", None),
+            gridinit_nx=getattr(args, "grtresna_gridinit_nx", 64),
+            gridinit_ny=getattr(args, "grtresna_gridinit_ny", 64),
+            gridinit_nz=getattr(args, "grtresna_gridinit_nz", 64),
+        )
+        base_overrides = {**base_overrides, **grtresna_domain.evolution_overrides()}
     if nonspherical and not use_grtresna:
         base_overrides = {**ANGULAR_BASE_OVERRIDES, **base_overrides}
 
@@ -241,6 +259,8 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
             bh1_spin=(0.0, 0.0, 0.0),
             cleanup=True,
         )
+        if grtresna_domain is not None:
+            grtresna_config = grtresna_domain.apply_to_solver(grtresna_config)
 
     x0 = None
     if getattr(args, "seed_name", None):
@@ -646,6 +666,41 @@ def build_parser() -> argparse.ArgumentParser:
              "orientation axis and poloidal+toroidal currents, reaching 3D "
              "configurations the planar ring cannot.",
     )
+    opt.add_argument(
+        "--grtresna-full-z",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Use a full-z GRTresna/GRTeclyn domain instead of the legacy reflective z=0 half-domain.",
+    )
+    opt.add_argument(
+        "--grtresna-evolution-l-full",
+        type=float,
+        default=64.0,
+        help="GRTeclyn evolution box length used for grtresna domain mapping.",
+    )
+    opt.add_argument(
+        "--grtresna-evolution-n-full",
+        type=int,
+        default=64,
+        help="GRTeclyn evolution grid size override for grtresna search episodes.",
+    )
+    opt.add_argument(
+        "--grtresna-domain-l",
+        type=float,
+        default=128.0,
+        help="Physical side length of the GRTresna solve domain.",
+    )
+    opt.add_argument("--grtresna-domain-nx", type=int, default=64)
+    opt.add_argument("--grtresna-domain-ny", type=int, default=64)
+    opt.add_argument(
+        "--grtresna-domain-nz",
+        type=int,
+        default=None,
+        help="GRTresna solve z cells; default is nx for full-z and nx/2 for half-z.",
+    )
+    opt.add_argument("--grtresna-gridinit-nx", type=int, default=64)
+    opt.add_argument("--grtresna-gridinit-ny", type=int, default=64)
+    opt.add_argument("--grtresna-gridinit-nz", type=int, default=64)
     opt.add_argument(
         "--grtresna-iterations", type=int, default=50,
         help="Max non-linear iterations per GRTresna solve (default: 50).",

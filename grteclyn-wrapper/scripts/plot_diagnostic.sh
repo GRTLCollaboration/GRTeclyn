@@ -9,7 +9,6 @@ source "${SCRIPT_DIR}/env.sh"
 WRAPPER_ROOT="${SCRIPT_DIR}/.."
 VIS_DIR="${WRAPPER_ROOT}/src/grteclyn_wrapper/visualisation"
 SIM_ROOT="$(cd "${GRTECLYN_ROOT}/.." && pwd)"
-PLOTS_DIR="${VIS_DIR}/plots"
 
 ESD_FMAX_DEFAULT="20"
 ESD_FMAX="${ESD_FMAX:-$ESD_FMAX_DEFAULT}"
@@ -75,6 +74,9 @@ RUN_DIR="${1:-$DEFAULT_RUN_DIR}"
 if [[ $# -gt 0 ]]; then
   shift
 fi
+
+PLOTS_DIR="${RUN_DIR}/plots"
+FRAMES_DIR="${RUN_DIR}/frames"
 
 CONSTRAINT_FILE="${RUN_DIR}/data/constraint_norms.dat"
 COLLAPSE_FILE="${RUN_DIR}/data/collapse_diagnostics.dat"
@@ -158,19 +160,19 @@ done
 
 echo "[4/5] Plotting K_z evolution panel (color)..."
 "${PYTHON[@]}" "${VIS_DIR}/make_evolution_panel/make_evolution_panel.py" \
-  --frame_dir "${VIS_DIR}/visualize/K_z/frames" \
+  --frame_dir "${FRAMES_DIR}/K_z/frames" \
   --out evolution_K_z_panel \
   --frames 20 1002 2001 3002 4500 \
-  || echo "Warning: K_z evolution panel failed (missing frames under visualize/K_z/frames?)." >&2
+  || echo "Warning: K_z evolution panel failed (missing frames under ${FRAMES_DIR}/K_z/frames?)." >&2
 
 echo "[5/5] Plotting embedding evolution panel..."
 "${PYTHON[@]}" "${VIS_DIR}/make_evolution_panel/make_evolution_panel.py" \
-  --frame_dir "${VIS_DIR}/visualize/embedding/frames" \
+  --frame_dir "${FRAMES_DIR}/embedding/frames" \
   --mode embedding \
   --keep-title \
   --out evolution_embedding_4panels \
   --frames 20 1002 2001 3002 4500 \
-  || echo "Warning: embedding evolution panel failed (missing frames under visualize/embedding/frames?)." >&2
+  || echo "Warning: embedding evolution panel failed (missing frames under ${FRAMES_DIR}/embedding/frames?)." >&2
 
 echo ""
 echo "All plots saved to: ${PLOTS_DIR}"

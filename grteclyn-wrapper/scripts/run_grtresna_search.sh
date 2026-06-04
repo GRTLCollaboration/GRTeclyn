@@ -42,12 +42,28 @@ RUN_STAMP="${RUN_STAMP:-$(date +%Y%m%d_%H%M%S)}"
 RUNS_DIR="${RUNS_DIR:-${GRTECLYN_ROOT}/runs/grtresna_search}"
 LUMPS="${LUMPS:-5}"                       # scalar lumps in the matter basis (11 dims each)
 GRTRESNA_ANSATZ="${GRTRESNA_ANSATZ:-ring}" # free=11*LUMPS dims, ring=14 template dims
-RANKS="${RANKS:-8}"                       # MPI ranks per GRTresna solve
+RANKS="${RANKS:-1}"                       # 1 uses serial GRTresna; >1 uses MPI
 ITERATIONS="${ITERATIONS:-30}"            # max non-linear iterations per solve
+if [[ -z "${GRTRESNA_FULL_Z+x}" ]]; then
+  if [[ "${GRTRESNA_ANSATZ}" == "shell" ]]; then
+    GRTRESNA_FULL_Z=1
+  else
+    GRTRESNA_FULL_Z=0
+  fi
+fi
 GRTRESNA_MAX_LEVEL="${GRTRESNA_MAX_LEVEL:-3}"
 GRTRESNA_REFINE_THRESHOLD="${GRTRESNA_REFINE_THRESHOLD:-0.5}"
 GRTRESNA_REGRID_RADIUS="${GRTRESNA_REGRID_RADIUS:-0}"
 GRTRESNA_JACOBIAN_CAP="${GRTRESNA_JACOBIAN_CAP:-25.0}"
+GRTRESNA_EVOLUTION_L_FULL="${GRTRESNA_EVOLUTION_L_FULL:-64.0}"
+GRTRESNA_EVOLUTION_N_FULL="${GRTRESNA_EVOLUTION_N_FULL:-64}"
+GRTRESNA_DOMAIN_L="${GRTRESNA_DOMAIN_L:-128.0}"
+GRTRESNA_DOMAIN_NX="${GRTRESNA_DOMAIN_NX:-64}"
+GRTRESNA_DOMAIN_NY="${GRTRESNA_DOMAIN_NY:-64}"
+GRTRESNA_DOMAIN_NZ="${GRTRESNA_DOMAIN_NZ:-}"
+GRTRESNA_GRIDINIT_NX="${GRTRESNA_GRIDINIT_NX:-64}"
+GRTRESNA_GRIDINIT_NY="${GRTRESNA_GRIDINIT_NY:-64}"
+GRTRESNA_GRIDINIT_NZ="${GRTRESNA_GRIDINIT_NZ:-64}"
 MAX_GENERATIONS="${MAX_GENERATIONS:-50}"
 GPU_IDS="${GPU_IDS:-0 1 2 3}"
 POPULATION="${POPULATION:-$(wc -w <<< "${GPU_IDS}")}"
@@ -132,6 +148,8 @@ else
   echo "Lumps/ansatz  : ${LUMPS} free lumps (=> $((LUMPS * 11)) search dims)"
 fi
 echo "Solve         : RANKS=${RANKS}  ITERATIONS=${ITERATIONS}  max_level=${GRTRESNA_MAX_LEVEL}"
+echo "Domain        : $([[ "${GRTRESNA_FULL_Z}" == "1" ]] && echo "full-z (no reflective z=0 plane)" || echo "half-z reflective")"
+echo "Domain sizes  : evolution L=${GRTRESNA_EVOLUTION_L_FULL} N=${GRTRESNA_EVOLUTION_N_FULL}; GRTresna L=${GRTRESNA_DOMAIN_L} N=${GRTRESNA_DOMAIN_NX},${GRTRESNA_DOMAIN_NY},${GRTRESNA_DOMAIN_NZ:-auto}; gridinit=${GRTRESNA_GRIDINIT_NX},${GRTRESNA_GRIDINIT_NY},${GRTRESNA_GRIDINIT_NZ}"
 echo "AMR           : refine_threshold=${GRTRESNA_REFINE_THRESHOLD} regrid_radius=${GRTRESNA_REGRID_RADIUS}"
 echo "CMA-ES        : generations=${MAX_GENERATIONS} population=${POPULATION} sigma0=${SIGMA0} seed=${SEED}"
 echo "GPUs          : ${GPU_IDS}"
@@ -153,6 +171,20 @@ if [[ -n "${WARM_START_TRAJECTORY:-}" ]]; then
   done
 fi
 
+DOMAIN_ARGS=(
+  --grtresna-evolution-l-full "${GRTRESNA_EVOLUTION_L_FULL}"
+  --grtresna-evolution-n-full "${GRTRESNA_EVOLUTION_N_FULL}"
+  --grtresna-domain-l "${GRTRESNA_DOMAIN_L}"
+  --grtresna-domain-nx "${GRTRESNA_DOMAIN_NX}"
+  --grtresna-domain-ny "${GRTRESNA_DOMAIN_NY}"
+  --grtresna-gridinit-nx "${GRTRESNA_GRIDINIT_NX}"
+  --grtresna-gridinit-ny "${GRTRESNA_GRIDINIT_NY}"
+  --grtresna-gridinit-nz "${GRTRESNA_GRIDINIT_NZ}"
+)
+if [[ -n "${GRTRESNA_DOMAIN_NZ}" ]]; then
+  DOMAIN_ARGS+=(--grtresna-domain-nz "${GRTRESNA_DOMAIN_NZ}")
+fi
+
 # shellcheck disable=SC2086
 exec ${PYTHON_BIN} -m grteclyn_wrapper \
   "${PRE_ARGS[@]}" \
@@ -166,6 +198,8 @@ exec ${PYTHON_BIN} -m grteclyn_wrapper \
   --grtresna \
   --grtresna-ansatz "${GRTRESNA_ANSATZ}" \
   --grtresna-lumps "${LUMPS}" \
+  "$([[ "${GRTRESNA_FULL_Z}" == "1" ]] && echo --grtresna-full-z || echo --no-grtresna-full-z)" \
+  "${DOMAIN_ARGS[@]}" \
   --grtresna-ranks "${RANKS}" \
   --grtresna-iterations "${ITERATIONS}" \
   --grtresna-max-level "${GRTRESNA_MAX_LEVEL}" \

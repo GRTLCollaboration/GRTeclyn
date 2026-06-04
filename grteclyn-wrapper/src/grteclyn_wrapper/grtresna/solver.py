@@ -328,7 +328,13 @@ def _find_executable(cfg: GRTresnaConfig) -> Path:
             f"No GRTresna executable found in {example_dir}. "
             "Build it first with `make all`."
         )
-    return candidates[0]
+    serial = sorted(path for path in candidates if ".MPI." not in path.name)
+    mpi = sorted(path for path in candidates if ".MPI." in path.name)
+    if cfg.mpi_ranks <= 1 and serial:
+        return serial[0]
+    if cfg.mpi_ranks > 1 and mpi:
+        return mpi[0]
+    return sorted(candidates)[0]
 
 
 def _cleanup_workdir(work_dir: Path, keep_gridinit: Path | None) -> None:
@@ -415,15 +421,20 @@ def solve(
     params_path = work_dir / "params.txt"
     write_grtresna_params(cfg, params_path)
 
-    mpirun_path, run_env = _resolve_mpirun(cfg)
-    cmd_parts = [mpirun_path]
-    if cfg.mpi_ranks > 1:
+    run_env = dict(os.environ)
+    if cfg.mpi_ranks <= 1 and ".MPI." not in exe.name:
+        cmd_parts = [str(exe), str(params_path)]
+        launch_desc = "serial"
+    else:
+        mpirun_path, run_env = _resolve_mpirun(cfg)
+        cmd_parts = [mpirun_path]
+        launch_desc = mpirun_path
         cmd_parts.append("--oversubscribe")
-    cmd_parts.extend(["-np", str(cfg.mpi_ranks), str(exe), str(params_path)])
+        cmd_parts.extend(["-np", str(cfg.mpi_ranks), str(exe), str(params_path)])
 
     logger.info(
-        "Running GRTresna: %d ranks, max %d iterations, grid %s, L=%.0f (mpirun=%s)",
-        cfg.mpi_ranks, cfg.max_NL_iterations, cfg.N, cfg.L, mpirun_path,
+        "Running GRTresna: %d ranks, max %d iterations, grid %s, L=%.0f (launcher=%s)",
+        cfg.mpi_ranks, cfg.max_NL_iterations, cfg.N, cfg.L, launch_desc,
     )
 
     result = subprocess.run(

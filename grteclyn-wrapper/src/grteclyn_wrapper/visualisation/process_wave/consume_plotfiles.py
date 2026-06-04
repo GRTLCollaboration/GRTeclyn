@@ -50,6 +50,7 @@ def _iter_plotfile_dirs(data_dir: str) -> List[str]:
     prefixes = (
         "WormholePlt",
         "SupportedWormholePlt",
+        "RotatingWormholePlt",
         "RadialRecipePlt",
         "plt",
     )
@@ -1407,17 +1408,31 @@ def main() -> None:
         if not to_process:
             return 0
 
+        print(
+            f"Processing {len(to_process)} plotfile(s) "
+            f"(~1–5 min each on large AMR; use -j 1 for reliability)...",
+            flush=True,
+        )
+
         args_dict = vars(args)
         args_dict["frames_out"] = os.path.abspath(args.frames_out)
         
         if args.jobs > 1:
-            from concurrent.futures import ProcessPoolExecutor
+            from concurrent.futures import ProcessPoolExecutor, as_completed
+
             with ProcessPoolExecutor(max_workers=args.jobs) as executor:
-                futures = []
-                for i, p in enumerate(to_process):
-                    futures.append(executor.submit(_process_single_plotfile, p, args_dict, protected, processed_count + i))
-                
-                for p, f in zip(to_process, futures):
+                futures = {
+                    executor.submit(
+                        _process_single_plotfile, p, args_dict, protected, processed_count + i
+                    ): p
+                    for i, p in enumerate(to_process)
+                }
+                done = 0
+                for f in as_completed(futures):
+                    p = futures[f]
+                    done += 1
+                    key = os.path.basename(p)
+                    print(f"[{done}/{len(to_process)}] finished {key}", flush=True)
                     try:
                         res = f.result()
                         if res["success"]:
@@ -1440,6 +1455,8 @@ def main() -> None:
                         print(f"WARNING: worker failed for {p}: {e}")
         else:
             for i, p in enumerate(to_process):
+                key = os.path.basename(p)
+                print(f"[{i + 1}/{len(to_process)}] loading {key} ...", flush=True)
                 res = _process_single_plotfile(p, args_dict, protected, processed_count + i)
                 if res["success"]:
                     if res["psi4_line"]:

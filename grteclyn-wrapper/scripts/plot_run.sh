@@ -55,6 +55,7 @@ if [[ -z "$DATA_DIR" ]]; then
 fi
 RUN_DATA_DIR="${DATA_DIR}/data"
 SMALL_DATA_DIR="${DATA_DIR}/small_data"
+FRAMES_DIR="${DATA_DIR}/frames"
 
 if [[ ! -d "${DATA_DIR}" ]]; then
   echo "Run directory does not exist: ${DATA_DIR}" >&2
@@ -68,6 +69,7 @@ if [ "$REMOVE_STALE" = true ]; then
   STALE_PLOTS=(
     "${DATA_DIR}"/WormholePlt*
     "${DATA_DIR}"/SupportedWormholePlt*
+    "${DATA_DIR}"/RotatingWormholePlt*
     "${DATA_DIR}"/plt*
   )
   if (( ${#STALE_PLOTS[@]} > 0 )); then
@@ -109,16 +111,21 @@ if [ "$REMOVE_STALE" = true ]; then
         "${VIS_ROOT}/process_wave/psi4_propagation_speed.png" \
         "${VIS_ROOT}/process_wave/psi4_propagation_speed.eps" \
         "${VIS_ROOT}/process_wave/psi4_propagation_speed.pdf"
-  rm -rf "${VIS_ROOT}/visualize/embedding"
+  if [[ -d "${FRAMES_DIR}" ]]; then
+    rm -rf "${FRAMES_DIR}"
+    echo "Reset frames in: ${FRAMES_DIR}"
+  fi
   echo "Removed shared generated plot images"
 else
   echo "=========================================="
   echo "Keeping existing plotfiles and data in: ${DATA_DIR}"
 fi
 
+mkdir -p "${FRAMES_DIR}"
 echo "=========================================="
 echo "Watching plotfiles in: ${DATA_DIR}"
-echo "Writing small-data to: ${DATA_DIR}/small_data"
+echo "Writing small-data to: ${SMALL_DATA_DIR}"
+echo "Writing frames to:     ${FRAMES_DIR}"
 echo "=========================================="
 
 PYTHON=(python)
@@ -136,6 +143,6 @@ fi
   --frames-fields K Weyl4_Re \
   --frames-axis z \
   --frames-corner \
-  --frames-out "${VIS_ROOT}/visualize" \
+  --frames-out "${FRAMES_DIR}" \
   --watch --delete --keep-last 2 \
   --verbose -j "${JOBS}" ${EXTRA_ARGS}
