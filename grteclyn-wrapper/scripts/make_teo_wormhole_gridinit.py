@@ -66,6 +66,10 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _log(msg: str) -> None:
+    print(msg, flush=True)
+
+
 def main() -> int:
     args = parse_args()
     cfg = TeoWormholeConfig(
@@ -82,7 +86,12 @@ def main() -> int:
         source=args.source,
     )
 
+    _log(
+        f"Building Teo grid ({cfg.nx}x{cfg.ny}x{cfg.nz}, spin={cfg.spin}, "
+        f"dx={cfg.dx[0]:.4f}) ..."
+    )
     grid = build_grid(cfg)
+    _log("Writing .gridinit ...")
     args.output.parent.mkdir(parents=True, exist_ok=True)
     write_gridinit(grid.data, grid.comp_names, grid.dx_xyz, grid.origin, args.output)
 
@@ -95,6 +104,7 @@ def main() -> int:
         "metrics": grid.metrics,
     }
     if args.check:
+        _log("Evaluating ADM constraint residuals (--check) ...")
         manifest["constraint_residuals"] = constraint_residuals(cfg).as_dict()
 
     manifest_path = args.output.with_suffix(".manifest.json")

@@ -22,4 +22,13 @@ if [[ -d "${OPENMPI_ROOT}/bin" ]]; then
   export LD_LIBRARY_PATH="${OPENMPI_ROOT}/lib:${LD_LIBRARY_PATH:-}"
 fi
 
+# GRTresna elliptic solves: conda env holds matching OpenMPI (see grteclyn_wrapper.grtresna.solver).
+if [[ -z "${GRTRESNA_ENV:-}" ]] && [[ -d "${HOME}/.mlspace/envs/grtresna" ]]; then
+  export GRTRESNA_ENV="${HOME}/.mlspace/envs/grtresna"
+fi
+if [[ -n "${GRTRESNA_ENV:-}" ]] && [[ -d "${GRTRESNA_ENV}/bin" ]]; then
+  export PATH="${GRTRESNA_ENV}/bin:${PATH}"
+  export LD_LIBRARY_PATH="${GRTRESNA_ENV}/lib:${LD_LIBRARY_PATH:-}"
+fi
+
 cd "${GRTECLYN_ROOT}"
