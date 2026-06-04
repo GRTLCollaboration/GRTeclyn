@@ -241,6 +241,152 @@ for episode in sorted(root.glob("eval_*")):
 PY
 ```
 
+### Campaign results: `optimize_20260604T170329Z` (shell, middle bounds)
+
+First full **16D shell** campaign after the objective/bounds fixes documented
+above (`shift_drive`, unsaturated `ftl_precursor`, middle shell bounds,
+GRTresna crash penalty `fitness=350`). Path:
+
+`runs/grtresna_search/optimize_20260604T170329Z/`
+
+#### Launch configuration
+
+| Setting | Value |
+|---------|-------|
+| Ansatz | `GRTRESNA_ANSATZ=shell`, `LUMPS=5` |
+| GPUs / MPI | 8 GPUs, `RANKS=8` GRTresna |
+| Objective | `objective_mode=ftl_first` |
+| Pre-GPU gate | `SOLVED_FTL_NEAR_LUMINAL_SPEED_FLOOR=0.9` |
+| Generations | 50 planned, population 8 (`sigma0=0.3`) |
+| Shell bounds | amp `0.08–0.28` (init `0.18`), width `1.8–4.0`, toroidal v `±2.0` |
+
+Command used:
+
+```bash
+cd grteclyn-wrapper
+GPU_IDS="0 1 2 3 4 5 6 7" RANKS=8 GRTRESNA_ANSATZ=shell LUMPS=5 \
+  SOLVED_FTL_NEAR_LUMINAL_SPEED_FLOOR=0.9 \
+  bash scripts/search/run_grtresna_search.sh \
+  >> ../runs/grtresna_search/search.log 2>&1
+```
+
+#### Outcome
+
+| | |
+|--|--|
+| **Status** | Stopped externally mid–gen 20 (no `result.json`; last log write `2026-06-04T18:19:43Z`) |
+| **Evals logged** | **152 / 400** (38%) |
+| **GPU survivors** | **78 / 152** (51%) |
+| **All-time best** | **eval 128 → score 214.72** |
+| **Operational FTL** | **0** on every survivor (`operational_ftl=0`, `f_op=0`) |
+
+Compared with earlier campaigns on the same machine:
+
+| Campaign | Bounds | GPU pass rate | Best score | Notes |
+|----------|--------|---------------|------------|-------|
+| `optimize_20260604T161509Z` | old diffuse | ~12 GPU survivors / 24 evals | ~57 (old objective) | Weak similar blobs; saturated plateau |
+| `optimize_20260604T164550Z` | too aggressive | **0 / 16** | — | All GRTresna reject/NaN |
+| **`optimize_20260604T170329Z`** | **middle** | **51%** | **214.72** | Pipeline alive; two distinct leader regimes |
+
+#### Score progression (gen-best GPU survivor)
+
+| Gen | GPU OK | Gen-best score | Notes |
+|-----|--------|---------------:|-------|
+| 0 | 1/8 | 19.4 | First survivor after bounds fix |
+| 1 | 4/8 | 36.1 | Pass rate jumps |
+| 3 | 5/8 | 51.2 | |
+| 4 | 3/8 | 58.2 | eval 33 |
+| 7 | 6/8 | 70.2 | eval 57 (shift leader) |
+| 9 | 0/8 | — | Hard batch (exploration) |
+| 15 | **8/8** | **214.7** | eval 128 (precursor leader) |
+| 16–18 | 4–5/8 | 25–57 | Orbit eval-128 basin, no new best |
+
+The objective fixes worked as intended: CMA-ES no longer converges on identical
+weak static blobs. Scores are **not comparable** to the pre-fix ~57 scale because
+`shift_drive`, unsaturated precursor, and nontriviality-gated health bonuses
+changed the scoring landscape.
+
+#### Two leader regimes (inspect both)
+
+**eval 128 — score 214.72 (overall best)** — superluminal *precursor*, weak shift:
+
+| Metric | Value |
+|--------|------:|
+| `ftl_precursor` | **0.753** |
+| `shift_drive` | 0.079 |
+| evolved `max_local_speed` | **1.043** |
+| `superluminal_fraction` | **0.56** |
+| evolved `max_shift` | 0.020 |
+| `operational_ftl` | 0 |
+
+Frames (`eval_000128/frames/`): coherent scalar lobes; **`local_speed_z` shows a
+persistent orange patch above `c=1`** aligned with a conformal-factor (`chi`)
+deformation; **`shift1_z` stays `O(10⁻²)`**. Score is driven by cone opening, not
+frame drag. `t_min > t_flat` — no end-to-end shortcut yet.
+
+Representative shell params: amp `0.18`, width `3.9`, radius `5.6`, toroidal v
+`-1.74`, exotic fraction `0.82`.
+
+**eval 57 — score 70.21 (shift leader)** — strong shift, subluminal evolved speed:
+
+| Metric | Value |
+|--------|------:|
+| `shift_drive` | **0.461** |
+| `ftl_precursor` | 0.054 |
+| evolved `max_local_speed` | 0.933 |
+| evolved `max_shift` | **0.147** |
+| `operational_ftl` | 0 |
+
+Frames: same family of two-lobe scalar shells as eval 33, but with **~3× higher
+realized shift** and stronger `rho_req` / `Pi` structure. This is the regime the
+`shift_drive` term was added to reach.
+
+Representative shell params: amp `0.15`, width `2.4`, radius `1.7`, toroidal v
+`0.36`, exotic fraction `0.43`.
+
+#### Rejection breakdown (152 evals)
+
+| Status | Count |
+|--------|------:|
+| `gpu_ok` | 78 |
+| `grtresna_rejected` | 66 |
+| `solved_ftl_rejected` | 5 |
+| `grtresna_failed` | 3 |
+
+GRTresna rejection rate (~46%) is still heavy but far from the 100% failure of
+the overly aggressive bounds run. Crash penalty (`fitness=350`) prevents NaN/MPI
+abort candidates from ranking as winners.
+
+#### Frame checklist for this campaign
+
+| Frame | eval 128 (precursor) | eval 57 (shift) |
+|-------|---------------------|-----------------|
+| `local_speed_z` | **Superluminal patch** (`~1.04`) | Sub-luminal well (`~0.93`) |
+| `shift1_z` | Weak (`~10⁻²`) | Stronger localized drive |
+| `scalar_activity_*` | Compact two-lobe shell | Similar morphology, higher `Pi` |
+| `rho_req_z` | Modest dipole (`~10⁻⁴`) | Stronger concentration |
+| `chi_z` | Asymmetric conformal well | Broad smooth well |
+
+Neither leader is “meaningless blob collapse.” They are **physically distinct
+local optima** under the new objective: eval 128 optimizes cone opening; eval 57
+optimizes shift sourcing.
+
+#### Continuing this search
+
+Warm-start from this campaign’s trajectory to resume near the eval-128 / eval-57
+basin:
+
+```bash
+WARM_START_TRAJECTORY=../runs/grtresna_search/optimize_20260604T170329Z/trajectory.jsonl \
+  WARM_START_TOP_K=8 \
+  GPU_IDS="0 1 2 3 4 5 6 7" RANKS=8 GRTRESNA_ANSATZ=shell LUMPS=5 \
+  SOLVED_FTL_NEAR_LUMINAL_SPEED_FLOOR=0.9 \
+  bash scripts/search/run_grtresna_search.sh
+```
+
+Replay eval 128 at higher resolution before any physics claim (`run_tier2_*`
+scripts or longer `stop_time`).
+
 ### Falsification tiers: "did we actually find the solution?"
 
 A high score is only a proxy; it never proves a candidate is *the* FTL geometry.

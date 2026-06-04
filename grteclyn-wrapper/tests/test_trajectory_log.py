@@ -35,8 +35,9 @@ def test_infer_solved_ftl_rejected() -> None:
     assert '"eval": 22' in line.split(",")[0]
 
 
-def test_eval_log_line_leads_with_eval_number() -> None:
+def test_eval_log_line_order_eval_score_status() -> None:
     line = format_eval_log_line(
         {"eval": 19, "score": 10.47, "exit_code": 0, "episode": "/e"},
     )
-    assert line.startswith("[optimize] eval 19 ")
+    assert line == "[optimize] eval 19 score=10.4700 status=gpu_ok"
+    assert "episode=" not in line

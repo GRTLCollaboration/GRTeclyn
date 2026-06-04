@@ -30,8 +30,8 @@ def infer_trajectory_status(record: Mapping[str, Any]) -> str:
 _TRAJECTORY_HEAD_KEYS = (
     "eval",
     "status",
-    "episode",
     "score",
+    "episode",
     "fitness",
     "exit_code",
     "solved_ftl_rejected",
@@ -74,17 +74,16 @@ def format_eval_log_prefix(record: Mapping[str, Any], *, tag: str = "optimize") 
 
 
 def format_eval_log_line(record: Mapping[str, Any], *, tag: str = "optimize") -> str:
-    """One-line summary for stdout (eval number first)."""
+    """One-line summary for stdout: eval, score, status (no episode path)."""
     status = record.get("status") or infer_trajectory_status(record)
-    parts = [format_eval_log_prefix(record, tag=tag).rstrip(":"), f"status={status}"]
+    parts = [format_eval_log_prefix(record, tag=tag).rstrip(":")]
     score = record.get("score")
     if score is not None:
         try:
             parts.append(f"score={float(score):.4f}")
         except (TypeError, ValueError):
             parts.append(f"score={score}")
-    if record.get("episode"):
-        parts.append(f"episode={record['episode']}")
+    parts.append(f"status={status}")
     reason = record.get("reason")
     if reason:
         text = str(reason)
