@@ -45,6 +45,10 @@ DEFAULT_WEIGHTS: dict[str, float] = {
     # Flat space has max_local_speed == 1 exactly, so the precursor is 0 in
     # flatness: it is a clean slope out of the flat-space basin toward FTL.
     "ftl_precursor": 3.0,
+    # Direct frame-dragging / light-cone-tilt drive.  This gives the optimizer a
+    # signal before the end-to-end FTL path exists, but unlike stability terms it
+    # points at the mechanism we actually need.
+    "shift_drive": 2.0,
     # Constraint-satisfying GRTresna geometry at t=0 (mechanism-agnostic Dijkstra).
     # Shaping gradient before GPU evolution; evolved operational_ftl remains primary.
     "operational_ftl_solved": 4.0,
@@ -289,27 +293,57 @@ def score_episode(
     elif metrics.general_ftl is not None and metrics.general_ftl.f_op <= 0.0:
         notes.append("no operational FTL shortcut on the t=0 slice")
 
+    # Coordinate-invariant curvature activity: a bounded reward so flat space
+    # scores ~0 while a structured warp/wormhole throat earns credit.  Keep the
+    # scale deliberately broad; the previous log1p(x)->cap at 1.0 saturated the
+    # whole GRTresna shell population and erased the precursor gradient.
+    if metrics.curvature is not None and metrics.curvature.max_l2_ricci_scalar is not None:
+        curvature = max(0.0, metrics.curvature.max_l2_ricci_scalar)
+        CURVATURE_ACTIVITY_SCALE = 5.0
+        components["curvature_activity"] = curvature / (curvature + CURVATURE_ACTIVITY_SCALE)
+    else:
+        components["curvature_activity"] = 0.0
+
     # FTL PRECURSOR -- the continuous shaping gradient that operational_ftl
-    # lacks.  Two smooth signals, both 0 in flat space (max_local_speed == 1
-    # exactly there) and both rising *before* a connected channel forms:
-    #   * speed_term: how far the fastest local coordinate light speed exceeds 1
-    #     (cones already tilted superluminal somewhere on the slice), and
+    # lacks.  Two smooth signals that rise *before* a connected channel forms:
+    #   * speed_term: how the fastest local coordinate light speed climbs toward
+    #     and past the c=1 threshold (cones tilting superluminal), and
     #   * frac_term: what fraction of the slice is locally superluminal (the
     #     nascent channel growing toward an end-to-end shortcut).
     # We prefer the EVOLVED slice (the tilt must survive the dynamics) but fall
     # back to a half-credit t=0 reading so there is still a gradient before any
-    # plotfile is available.  This term is intentionally NOT gated, so it can
-    # pull a near-flat geometry up out of the flat-space basin.
+    # plotfile is available.
+    #
+    # Sub-luminal approach: the solved throats sit just *below* c=1 (they slow
+    # light rather than speed it), so the old "only reward c>1" precursor was
+    # dead-flat zero across the whole population -- leaving the search no FTL
+    # direction and collapsing it onto stability.  Below the threshold we add a
+    # structure-gated ramp toward c=1, multiplied by curvature activity so flat
+    # space (c==1 trivially, zero curvature) earns nothing, and constructed so
+    # the reward stays continuous and monotonic as a structured geometry crosses
+    # into the genuinely superluminal (c>1) regime.
     PRECURSOR_SPEED_SCALE = 0.05  # (c - 1) reward saturation scale
     PRECURSOR_FRAC_SCALE = 0.05   # superluminal area-fraction reference
+    PRECURSOR_SUBLUMINAL_FLOOR = 0.9   # below this c the geometry is too slow to count
+    PRECURSOR_SUBLUMINAL_WEIGHT = 0.5  # max sub-luminal credit reached at the c=1 threshold
+
+    structure = components["curvature_activity"]
 
     def _precursor(report) -> float:
         if report is None:
             return 0.0
         c = float(getattr(report, "max_local_speed", 0.0) or 0.0)
         frac = float(getattr(report, "superluminal_fraction", 0.0) or 0.0)
-        over = max(0.0, c - 1.0)
-        speed_term = min(math.log1p(over / PRECURSOR_SPEED_SCALE), 1.0) if over > 0.0 else 0.0
+        sub_credit = PRECURSOR_SUBLUMINAL_WEIGHT * structure
+        if c >= 1.0:
+            over = c - 1.0
+            superluminal = min(math.log1p(over / PRECURSOR_SPEED_SCALE), 1.0)
+            speed_term = sub_credit + (1.0 - sub_credit) * superluminal
+        elif c > PRECURSOR_SUBLUMINAL_FLOOR:
+            ramp = (c - PRECURSOR_SUBLUMINAL_FLOOR) / (1.0 - PRECURSOR_SUBLUMINAL_FLOOR)
+            speed_term = sub_credit * ramp
+        else:
+            speed_term = 0.0
         frac_term = min(frac / PRECURSOR_FRAC_SCALE, 1.0) if frac > 0.0 else 0.0
         return 0.7 * speed_term + 0.3 * frac_term
 
@@ -319,21 +353,26 @@ def score_episode(
     components["ftl_precursor"] = max(
         precursor_ev, 0.5 * precursor_t0, 0.5 * precursor_solved
     )
+
+    def _shift_drive(report) -> float:
+        if report is None:
+            return 0.0
+        max_shift = float(getattr(report, "max_shift", 0.0) or 0.0)
+        if not math.isfinite(max_shift) or max_shift <= 0.0:
+            return 0.0
+        SHIFT_DRIVE_SCALE = 0.25
+        return min(math.log1p(max_shift / SHIFT_DRIVE_SCALE), 1.0)
+
+    components["shift_drive"] = max(
+        _shift_drive(metrics.general_ftl_evolved),
+        0.5 * _shift_drive(metrics.general_ftl),
+        0.5 * _shift_drive(metrics.general_ftl_solved),
+    )
     if components["ftl_precursor"] > 0.05 and components["operational_ftl"] <= 0.0:
         notes.append(
-            "FTL precursor active (locally superluminal cones, no full channel yet): "
+            "FTL precursor active (cones climbing toward the c=1 threshold): "
             f"{components['ftl_precursor']:.3f}"
         )
-
-    # Coordinate-invariant curvature activity: a saturating reward so flat space
-    # scores ~0 while a structured warp/wormhole throat scores up to 1, without
-    # letting a near-singular blow-up dominate the objective.
-    if metrics.curvature is not None and metrics.curvature.max_l2_ricci_scalar is not None:
-        components["curvature_activity"] = min(
-            math.log1p(max(0.0, metrics.curvature.max_l2_ricci_scalar)), 1.0
-        )
-    else:
-        components["curvature_activity"] = 0.0
 
     # Exotic-matter penalty.  The goal is FTL *without* exotic matter, so any
     # negative-energy requirement is penalized.  Two independent probes feed it:
@@ -409,6 +448,7 @@ def score_episode(
         components.get("expansion_asymmetry", 0.0),
         components.get("nontrivial_geometry", 0.0),
         components.get("curvature_activity", 0.0),
+        components.get("shift_drive", 0.0),
         components.get("operational_ftl", 0.0),
         components.get("ftl_precursor", 0.0),
         components.get("operational_ftl_solved", 0.0),
@@ -424,22 +464,26 @@ def score_episode(
     if objective_mode == "ftl_first":
         # Lexicographic-style scalarization: FTL signals dominate the objective,
         # health terms only order candidates that are equally non-FTL/promising.
+        health_gate = components.get("nontriviality_gate", 0.0)
         total = (
             1000.0 * components.get("operational_ftl", 0.0)
             + 250.0 * components.get("ftl_precursor", 0.0)
+            + 120.0 * components.get("shift_drive", 0.0)
             + 150.0 * components.get("operational_ftl_solved", 0.0)
             + 100.0 * components.get("ftl_shortcut", 0.0)
-            + 20.0 * components.get("survival", 0.0)
             + 10.0 * components.get("horizon_penalty", 0.0)
             + 5.0 * components.get("nontrivial_geometry", 0.0)
-            + 3.0 * components.get("constraint_health", 0.0)
-            + 2.0 * components.get("stability", 0.0)
-            + 3.0 * components.get("instability_penalty", 0.0)
-            + 2.0 * components.get("comoving_stability", 0.0)
-            + 1.0 * components.get("energy_condition", 0.0)
+            + health_gate * (
+                20.0 * components.get("survival", 0.0)
+                + 3.0 * components.get("constraint_health", 0.0)
+                + 2.0 * components.get("stability", 0.0)
+                + 3.0 * components.get("instability_penalty", 0.0)
+                + 2.0 * components.get("comoving_stability", 0.0)
+                + 1.0 * components.get("energy_condition", 0.0)
+            )
             + 1.0 * components.get("exotic_penalty", 0.0)
         )
-        notes.append("objective_mode=ftl_first: FTL terms dominate health/stability")
+        notes.append("objective_mode=ftl_first: FTL/shift terms dominate health/stability")
     else:
         total = 0.0
         for key, value in components.items():

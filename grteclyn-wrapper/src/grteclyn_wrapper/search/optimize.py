@@ -34,6 +34,11 @@ from ..initial_data.preflight import preflight_check
 from ..metrics.episode_metrics import dataclass_to_dict, read_episode_metrics
 from ..metrics.score import Score, score_episode
 from .surrogate import RBFSurrogate, screen_candidates
+from .trajectory_log import (
+    format_eval_log_line,
+    format_trajectory_line,
+    infer_trajectory_status,
+)
 
 
 ObjectiveMode = str
@@ -255,16 +260,19 @@ def grtresna_shell_search_space() -> list[SearchDimension]:
     mesh-resolution knob, not an optimizer dimension.
     """
     return [
-        SearchDimension("grtresna_shell_amp", 0.04, 0.30, 0.15),
-        SearchDimension("grtresna_shell_width", 1.5, 4.5, 3.0),
+        # Scalar momentum source ~ amp^2 * velocity / width.  Diffuse amp~0.15
+        # shells converged but shift~3e-2; amp~0.25 width~1.5 v~3 blew up GRTresna.
+        # These bounds sit between those regimes.
+        SearchDimension("grtresna_shell_amp", 0.08, 0.28, 0.18),
+        SearchDimension("grtresna_shell_width", 1.8, 4.0, 2.4),
         SearchDimension("grtresna_shell_radius", 1.5, 6.0, 3.5),
         SearchDimension("grtresna_shell_thickness", 0.0, 2.5, 0.5),
         SearchDimension("grtresna_shell_axis_theta", 0.0, math.pi, 0.5 * math.pi),
         SearchDimension("grtresna_shell_axis_phi", 0.0, 2.0 * math.pi, 0.0),
-        SearchDimension("grtresna_shell_toroidal_velocity", -0.9, 0.9, 0.35),
-        SearchDimension("grtresna_shell_poloidal_velocity", -0.6, 0.6, 0.0),
-        SearchDimension("grtresna_shell_radial_velocity", -0.5, 0.5, 0.0),
-        SearchDimension("grtresna_shell_omega", -0.5, 0.5, 0.0),
+        SearchDimension("grtresna_shell_toroidal_velocity", -2.0, 2.0, 0.9),
+        SearchDimension("grtresna_shell_poloidal_velocity", -1.5, 1.5, 0.0),
+        SearchDimension("grtresna_shell_radial_velocity", -0.8, 0.8, 0.0),
+        SearchDimension("grtresna_shell_omega", -0.8, 0.8, 0.2),
         SearchDimension("grtresna_shell_dipole_amp", -0.6, 0.6, 0.0),
         SearchDimension("grtresna_shell_quadrupole_amp", -0.5, 0.5, 0.0),
         SearchDimension("grtresna_shell_exotic_fraction", 0.0, 1.0, 0.4),
@@ -851,6 +859,15 @@ def _collect_training(
     return np.asarray(xs, dtype=float), np.asarray(ys, dtype=float)
 
 
+def _track_trajectory(
+    trajectory: list[dict[str, Any]],
+    record: dict[str, Any],
+) -> None:
+    record.setdefault("status", infer_trajectory_status(record))
+    trajectory.append(record)
+    print(format_eval_log_line(record), flush=True)
+
+
 def _objective(
     x: Sequence[float],
     *,
@@ -901,7 +918,7 @@ def _objective(
                 "reason": pf.reason,
                 "overrides": {d.param_key: overrides.get(d.param_key) for d in dims},
             }
-            trajectory.append(record)
+            _track_trajectory(trajectory, record)
             return 100.0
 
     episode = create_episode(
@@ -953,7 +970,7 @@ def _objective(
                     "components": {"grtresna_rejection": -fitness},
                     "overrides": {d.param_key: overrides.get(d.param_key) for d in dims},
                 }
-                trajectory.append(record)
+                _track_trajectory(trajectory, record)
                 return fitness
 
             from ..metrics.ftl_solved_geometry import (
@@ -1010,20 +1027,23 @@ def _objective(
                     "components": {"solved_ftl_rejection": -fitness},
                     "overrides": {d.param_key: overrides.get(d.param_key) for d in dims},
                 }
-                trajectory.append(record)
+                _track_trajectory(trajectory, record)
                 return fitness
         except Exception as exc:  # solver failure -> penalise, keep searching
+            fitness = GRTRESNA_REJECTION_BASE_FITNESS + GRTRESNA_REJECTION_MAX_EXTRA_FITNESS
             update_metadata(episode, {"grtresna_error": repr(exc)})
             record = {
                 "eval": idx,
                 "episode": str(episode.path),
-                "score": 0.0,
+                "score": -fitness,
+                "fitness": fitness,
                 "grtresna_failed": True,
                 "reason": repr(exc),
+                "components": {"grtresna_rejection": -fitness},
                 "overrides": {d.param_key: overrides.get(d.param_key) for d in dims},
             }
-            trajectory.append(record)
-            return 100.0
+            _track_trajectory(trajectory, record)
+            return fitness
 
     write_params(
         template, episode.params_path,
@@ -1075,7 +1095,7 @@ def _objective(
         "components": score.components,
         "overrides": {d.param_key: overrides.get(d.param_key) for d in dims},
     }
-    trajectory.append(record)
+    _track_trajectory(trajectory, record)
     return -score.total
 
 
@@ -1360,7 +1380,7 @@ def run_optimize(
             n_skipped = len(solutions) - len(eval_idx)
             for i in range(len(solutions)):
                 if i not in set(eval_idx):
-                    trajectory.append({
+                    _track_trajectory(trajectory, {
                         "eval": None,
                         "surrogate_predicted": True,
                         "score": float(predicted[i]),
@@ -1395,7 +1415,7 @@ def run_optimize(
 
         with (opt_dir / "trajectory.jsonl").open("w", encoding="utf-8") as fh:
             for rec in trajectory:
-                fh.write(json.dumps(rec, sort_keys=True) + "\n")
+                fh.write(format_trajectory_line(rec))
 
     result = OptimizeResult(
         best_params=best_params,

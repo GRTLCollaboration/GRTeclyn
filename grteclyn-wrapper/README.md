@@ -31,7 +31,7 @@ the C++ side that changed.
 | Change the pre-evolution solved-geometry FTL filter or mechanism descriptors | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/ftl_solved_geometry.py` | No | `uv run pytest tests/test_solved_geometry_ftl.py tests/test_ftl_general.py -q` |
 | Change scoring weights/components read from episodes | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/score.py`, `episode_metrics.py` | No | Re-score a campaign or run focused metric tests |
 | Change GRTeclyn evolution, fields written to plotfiles, external `.gridinit` loading, matter evolution, or diagnostics | `Examples/RadialRecipe/*`, especially `RadialRecipeLevel.cpp`, `SimulationParameters.hpp`, `ExternalGridInitialData.hpp`; shared matter in `Source/Matter/*` | Yes, rebuild GRTeclyn executable | `BUILD=1 bash grteclyn-wrapper/scripts/radial/run_radialrecipe_gpu_smoke.sh` |
-| Change the upstream GRTresna elliptic solver, scalar source, AMR tagging, or maximal-slicing solve | `../GRTresna/Examples/ScalarFieldBH/*` and shared Chombo/GRTresna headers | Yes, rebuild the serial `Main_ScalarFieldBH3d...g++.gfortran...ex` used by `RANKS=1` searches; MPI builds are optional | Solver-only smoke tests below |
+| Change the upstream GRTresna elliptic solver, scalar source, AMR tagging, or maximal-slicing solve | `../GRTresna/Examples/ScalarFieldBH/*` and shared Chombo/GRTresna headers | Yes, rebuild the MPI `Main_ScalarFieldBH3d...mpicxx...MPI.ex` used by production searches (`RANKS=8` default); serial build only if you set `RANKS=1` | MPI solver smoke tests below |
 
 ### Launch Cookbook
 
@@ -44,9 +44,9 @@ GPU_IDS="0 1 2 3 4 5 6 7" GRTRESNA_ANSATZ=ring \
 
 # Discovery: 16D full-sphere shell ansatz. Lumps cover the whole 2-sphere with
 # an arbitrary orientation axis and poloidal+toroidal currents (reaches 3D
-# configurations the planar ring cannot). Defaults to full-z, no reflective
-# z=0 plane, and serial GRTresna (`RANKS=1`). Use to find new families.
-GPU_IDS="0 1 2 3 4 5 6 7" GRTRESNA_ANSATZ=shell RANKS=1 \
+# configurations the planar ring cannot). Defaults to full-z (no reflective
+# z=0 plane) and MPI GRTresna (`RANKS=8`). Use to find new families.
+GPU_IDS="0 1 2 3 4 5 6 7" GRTRESNA_ANSATZ=shell \
   bash scripts/search/run_grtresna_search.sh
 
 # Broader but much harder 55D search: every lump independent.
@@ -72,7 +72,7 @@ files inside a campaign:
 
 | Path | Meaning |
 |------|---------|
-| `trajectory.jsonl` | One JSON record per CMA-ES evaluation; rejected candidates are included and still teach CMA-ES through their fitness. |
+| `trajectory.jsonl` | One JSON record per CMA-ES evaluation; rejected candidates are included and still teach CMA-ES through their fitness. Lines are in completion order, not sorted by eval id, and begin with `eval` + `status` for quick scanning. |
 | `eval_XXXXXX/metadata.json` | GRTresna convergence, solved-geometry FTL, rejection reasons, simulation exit code. |
 | `eval_XXXXXX/score.json` | Parsed metrics and score components after GPU evolution. |
 | `eval_XXXXXX/initial_data.gridinit` | Constraint-satisfying GRTresna data loaded by GRTeclyn. |
@@ -94,9 +94,12 @@ candidates.
 It adds an arbitrary orientation axis `(theta, phi)` and decomposes the matter
 current into **toroidal** flow (net angular momentum about the axis -- the warp
 "motor") and **poloidal** flow (over-the-pole circulation, a current topology
-the planar ring cannot represent). The ring is the thin-equatorial-band limit,
-so `shell` is a strict superset for breadth. Use it for *discovery* of new FTL
-families; use `ring` for cheap *refinement* once a family is found.
+the planar ring cannot represent). Its current bounds are intentionally more
+aggressive than the older diffuse shells: compact, higher-amplitude clouds plus
+wider toroidal/poloidal velocities are needed because the realized shift scales
+through the scalar momentum source, not directly with the requested velocity.
+Use it for *discovery* of new FTL families; use `ring` for cheap *refinement*
+once a family is found.
 
 `GRTRESNA_ANSATZ=free` exposes the older independent lump basis:
 `11 * LUMPS` searched dimensions (`55D` for `LUMPS=5`). Use it for broader atlas
@@ -169,11 +172,74 @@ weighted score components:
 - `metrics.general_ftl_evolved.f_op`: operational FTL from evolved plotfile
   fields.
 - `metrics.general_ftl_evolved.max_local_speed`: local coordinate cone opening.
+- `metrics.general_ftl_evolved.max_shift`: maximum sampled shift-vector
+  magnitude; this is the direct frame-dragging / light-cone-tilt drive.
+- `components.operational_ftl`, `components.ftl_precursor`,
+  `components.shift_drive`, and `components.curvature_activity`: whether the
+  score is rewarding FTL-like structure or just generic survival/cleanliness.
 - `metadata.json.grtresna_convergence`: Ham/Mom residuals from the elliptic solve.
 
 Treat `F_op ~ 1` or `max_local_speed` near the degeneracy ceiling as suspicious
 until inspected; mild values like `F_op=0.01..0.05` are more plausible first
 survivors and should be replayed at higher resolution before any physics claim.
+
+### Diagnosing "all the top frames look the same"
+
+If several high-scoring runs visually collapse to the same weak blob, treat that
+as an optimizer failure mode, not as evidence of a discovered geometry. Inspect
+these frames first:
+
+| Frame / metric | What a useful candidate should show | Blob-collapse red flag |
+|----------------|-------------------------------------|-------------------------|
+| `local_speed_z` | A localized region climbing toward or above `c=1`; eventually a connected faster path. | Entire slice stays sub-luminal and nearly identical across evals. |
+| `shift1_z` / shift fields | Shift magnitude growing enough to tilt light cones. | Colorbar is `x10^-2` and max shift is only `~0.03`. |
+| `Pi_z` and `scalar_activity_*` | Momentum-carrying, asymmetric, coherent current structure. | Smooth two-lobe scalar cloud with little directional structure. |
+| `score.json` / `trajectory.jsonl` | Variation in `shift_drive`, `ftl_precursor`, `curvature_activity`, and ideally `operational_ftl`. | `operational_ftl=0`, `ftl_shortcut=0`, identical `ftl_precursor`, default `mechanism_descriptor=0.5`; score differences come from stability/constraint health. |
+
+The physical reason is simple: GRTresna builds the scalar conjugate momentum as
+`Pi = -v . grad(phi)`, and the momentum density is `S_i = -Pi d_i phi`, so the
+useful source scales roughly like `amp^2 * velocity / width`. Diffuse
+`amp ~ 0.15`, `width ~ 3` shells can converge cleanly but only source a tiny
+shift. In that regime CMA-ES sees no FTL gradient and learns to optimize a clean,
+still scalar blob.
+
+The current shell search is tuned away from that failure mode:
+
+- `grtresna_shell_amp` and velocity bounds are higher, while
+  `grtresna_shell_width` is more compact, so the reachable set includes stronger
+  matter currents.
+- `metrics/ftl_general.py` reports `max_shift`, and `metrics/score.py` rewards
+  it through `shift_drive`.
+- `curvature_activity` no longer hard-saturates at `1.0` for ordinary shell
+  survivors, so `ftl_precursor` has a real gradient instead of a plateau.
+- In `objective_mode=ftl_first`, survival/stability/constraint-health bonuses
+  are gated by nontriviality, so "healthy but not warping" candidates cannot win
+  by cleanliness alone.
+
+Quick triage command for a campaign:
+
+```bash
+cd /path/to/GRTeclyn/grteclyn-wrapper
+uv run python3 - <<'PY'
+from pathlib import Path
+from grteclyn_wrapper.metrics import read_episode_metrics, score_episode
+
+root = Path("../runs/grtresna_search/optimize_<timestamp>")
+for episode in sorted(root.glob("eval_*")):
+    if not (episode / "score.json").exists():
+        continue
+    score = score_episode(read_episode_metrics(episode, ftl_L=8.0), target_stop_time=2.0, objective_mode="ftl_first")
+    c = score.components
+    print(
+        episode.name,
+        f"score={score.total:.2f}",
+        f"op={c.get('operational_ftl', 0):.3f}",
+        f"prec={c.get('ftl_precursor', 0):.3f}",
+        f"shift={c.get('shift_drive', 0):.3f}",
+        f"curv={c.get('curvature_activity', 0):.3f}",
+    )
+PY
+```
 
 ### Falsification tiers: "did we actually find the solution?"
 
@@ -245,7 +311,7 @@ consistently.
 
 | Script | Use for | Key env vars |
 |--------|---------|--------------|
-| `run_grtresna_search.sh` | **Current matter-first production search**. Runs GRTresna per candidate, writes `.gridinit`, evolves survivors in GRTeclyn, streams/deletes plotfiles. | `GRTRESNA_ANSATZ`, `GPU_IDS`, `LUMPS`, `RANKS`, `MAX_GENERATIONS`, `NO_CONSUME`, `WARM_START_TRAJECTORY` |
+| `run_grtresna_search.sh` | **Current matter-first production search**. Each candidate: MPI GRTresna solve (`RANKS=8` default) → `.gridinit` → GRTeclyn GPU evolution for survivors; plotfiles streamed/deleted. | `GRTRESNA_ANSATZ`, `GPU_IDS`, `LUMPS`, `RANKS` (MPI ranks per solve), `MAX_GENERATIONS`, `NO_CONSUME`, `WARM_START_TRAJECTORY` |
 | `run_radialrecipe_gpu_smoke.sh` | Single GPU smoke/build run for RadialRecipe seeds/candidates. Use after C++ changes. | `BUILD`, `CUDA_VISIBLE_DEVICES_OVERRIDE`, `SEED_NAME`, `CANDIDATE_ID`, `NONSPHERICAL_ID` |
 | `run_ftl_search_cmaes.sh` | Older 9D radial CMA-ES geometry-first search. | `GPU_IDS`, `MAX_GENERATIONS` |
 | `run_ftl_search_nonspherical.sh` | Gauge-angular non-spherical search. | `GPU_IDS`, `MAX_GENERATIONS` |
@@ -369,25 +435,30 @@ the **momentum-carrying matter** capability added on top of it.
 ### Building the GRTresna solver (C++)
 
 The closed-loop search shells out to the compiled `ScalarFieldBH` executable, so
-build it once before running. Current production searches use the **serial**
-`g++.gfortran` executable with `RANKS=1`; MPI builds are optional and only used
-when `RANKS>1`. GRTresna is a Chombo app: it needs `CHOMBO_HOME` plus the
-Fortran/HDF5 toolchain from the `grtresna` conda/micromamba env on `PATH`.
+build it once before running. Production searches use the **MPI**
+`mpicxx.gfortran` binary (`RANKS=8` by default in `run_grtresna_search.sh`);
+`grtresna/solver.py` launches it via `mpirun`/`prterun` from the same
+`grtresna` conda/micromamba env. GRTresna is a Chombo app: it needs `CHOMBO_HOME`
+plus the Fortran/HDF5/MPI toolchain from that env on `PATH`.
 
 ```bash
-# Toolchain (g++, gfortran, hdf5) lives in the grtresna env.
+# Toolchain (mpicxx, gfortran, hdf5, OpenMPI) lives in the grtresna env.
 GRTRESNA_ENV=/home/jovyan/.mlspace/envs/grtresna
 CHOMBO_HOME=/home/jovyan/nachevsky/test/simulation/Chombo/lib
 
 cd /home/jovyan/nachevsky/test/simulation/GRTresna/Examples/ScalarFieldBH
-PATH="${GRTRESNA_ENV}/bin:${PATH}" CONDA_PREFIX="${GRTRESNA_ENV}" CXX=g++ \
-  make all -j4 CHOMBO_HOME="${CHOMBO_HOME}" MPI=FALSE
+PATH="${GRTRESNA_ENV}/bin:${PATH}" CONDA_PREFIX="${GRTRESNA_ENV}" \
+  make all -j4 CHOMBO_HOME="${CHOMBO_HOME}" MPI=TRUE
 ```
 
-This produces `Main_ScalarFieldBH3d.Linux.64.g++.gfortran.OPTHIGH.ex` in that
-directory. With `RANKS=1`, `grtresna/solver.py` prefers this serial executable
-and launches it directly, avoiding the incompatible MPI binary path on current
-nodes.
+This produces `Main_ScalarFieldBH3d.Linux.64.mpicxx.gfortran.OPTHIGH.MPI.ex` in
+that directory. The launcher passes `--grtresna-ranks "${RANKS}"` (default `8`);
+override with `RANKS=16` etc. if you want more MPI parallelism per solve.
+
+> **Serial fallback (`RANKS=1`).** For debugging only, build with `MPI=FALSE`
+> (produces `Main_ScalarFieldBH3d...g++.gfortran...ex` without `.MPI.` in the
+> name) and run `RANKS=1 bash scripts/search/run_grtresna_search.sh`. The wrapper
+> then launches the serial binary directly with no `mpirun`.
 
 > **Rebuilding after editing headers.** Chombo's makefile keys off `.cpp` files,
 > so edits to header-only templated code (e.g. `CTTKHybrid.impl.hpp`,
@@ -396,10 +467,10 @@ nodes.
 > first, then rebuild:
 >
 > ```bash
-> rm -f Main_ScalarFieldBH3d.Linux.64.g++.gfortran.OPTHIGH.ex \
->       o/3d.Linux.64.g++.gfortran.OPTHIGH/{Main_ScalarFieldBH,Grids,ScalarField,MyMatterFunctions}.o
-> PATH="${GRTRESNA_ENV}/bin:${PATH}" CONDA_PREFIX="${GRTRESNA_ENV}" CXX=g++ \
->   make all -j4 CHOMBO_HOME="${CHOMBO_HOME}" MPI=FALSE
+> rm -f Main_ScalarFieldBH3d.Linux.64.mpicxx.gfortran.OPTHIGH.MPI.ex \
+>       o/3d.Linux.64.mpicxx.gfortran.OPTHIGH.MPI/{Main_ScalarFieldBH,Grids,ScalarField,MyMatterFunctions}.o
+> PATH="${GRTRESNA_ENV}/bin:${PATH}" CONDA_PREFIX="${GRTRESNA_ENV}" \
+>   make all -j4 CHOMBO_HOME="${CHOMBO_HOME}" MPI=TRUE
 > ```
 
 ### Solver-only AMR smoke tests
@@ -411,10 +482,10 @@ per-iteration HDF5 is off by default):
 
 ```bash
 cd /home/jovyan/nachevsky/test/simulation/GRTresna/Examples/ScalarFieldBH
+EXE=Main_ScalarFieldBH3d.Linux.64.mpicxx.gfortran.OPTHIGH.MPI.ex
 for case in canonical exotic mixed_exotic; do
   PATH="${GRTRESNA_ENV}/bin:${PATH}" CONDA_PREFIX="${GRTRESNA_ENV}" \
-    ./Main_ScalarFieldBH3d.Linux.64.g++.gfortran.OPTHIGH.ex \
-    params_${case}_amr_test.txt
+    mpirun --oversubscribe -np 8 ./"${EXE}" params_${case}_amr_test.txt
 done
 ```
 
@@ -424,6 +495,7 @@ The recommended launcher is:
 
 ```bash
 cd /path/to/GRTeclyn/grteclyn-wrapper
+# GRTresna: MPI solve with RANKS=8 (default); GRTeclyn: one GPU per population slot.
 GPU_IDS="0 1 2 3 4 5 6 7" \
   bash scripts/search/run_grtresna_search.sh
 ```
@@ -442,6 +514,9 @@ WARM_START_TRAJECTORY=/path/to/trajectory.jsonl \
 # Keep raw plotfiles for manual re-rendering/debugging.
 NO_CONSUME=1 GPU_IDS="0 1" MAX_GENERATIONS=1 \
   bash scripts/search/run_grtresna_search.sh
+
+# Serial GRTresna only (requires MPI=FALSE build above).
+RANKS=1 bash scripts/search/run_grtresna_search.sh
 ```
 
 Default production knobs in the launcher:
@@ -451,6 +526,7 @@ Default production knobs in the launcher:
 | `GRTRESNA_ANSATZ` | `ring` | matter parameterization: `ring` (14D, planar refinement) and `shell` (16D, full-sphere discovery) search global template parameters and expand them to `LUMPS` scalar clouds; `free` (55D) searches every lump independently |
 | `GRTRESNA_FULL_Z` | `1` for `shell`, `0` otherwise | full-z GRTresna solve and GRTeclyn evolution box (`center=32 32 32`, no reflective `z=0` plane); shell discovery should normally keep this on |
 | `LUMPS` | `5` | scalar clouds generated/evolved by GRTresna (`55` searched dimensions only when `GRTRESNA_ANSATZ=free`) |
+| `RANKS` | `8` | MPI ranks per GRTresna elliptic solve (`mpirun -np RANKS` on the `.MPI.ex` binary) |
 | `GPU_IDS` | `0 1 2 3` in the script, often overridden to all available GPUs | also sets default CMA-ES population |
 | `MAX_GENERATIONS` | `50` | CMA-ES generations |
 | `OBJECTIVE_MODE` | `ftl_first` | FTL terms dominate health/stability terms |
@@ -464,7 +540,7 @@ Per candidate the loop runs:
 
 ```
 CMA-ES proposes grtresna_lump{k}_*
-  → GRTresna 3D elliptic solve (Hamiltonian + momentum constraints)
+  → GRTresna 3D elliptic solve under MPI (Hamiltonian + momentum constraints)
   → reject candidate if Ham/Mom convergence is missing, NaN, or above threshold
   → initial_data.gridinit (solved A_ij + phi + Pi)
   → GRTeclyn loads it and evolves on GPU
@@ -472,11 +548,13 @@ CMA-ES proposes grtresna_lump{k}_*
   → ftl_first score → back to CMA-ES
 ```
 
-> **Serial vs. MPI.** With `RANKS=1`, the solver launches the serial
-> `Main_ScalarFieldBH3d.Linux.64.g++.gfortran.OPTHIGH.ex` directly. If you set
-> `RANKS>1`, it switches to an MPI executable and resolves `mpirun` from
-> `$GRTRESNA_MPIRUN`, `$GRTRESNA_ENV`/`$CONDA_PREFIX`, common env roots for
-> `$GRTRESNA_ENV_NAME` (default `grtresna`), then `PATH`.
+> **MPI vs. serial.** Default `RANKS=8`: the wrapper selects
+> `Main_ScalarFieldBH3d...mpicxx...MPI.ex` and runs
+> `mpirun --oversubscribe -np RANKS ...` (or `prterun` from `$GRTRESNA_ENV`).
+> `mpirun` is resolved from `$GRTRESNA_MPIRUN`, then `$GRTRESNA_ENV` /
+> `$CONDA_PREFIX`, env roots for `$GRTRESNA_ENV_NAME` (default `grtresna`),
+> then `PATH` — see `grtresna/solver.py::_resolve_mpirun`. With `RANKS=1` and a
+> serial build present, the non-MPI `g++.gfortran` executable is launched directly.
 
 `--grtresna` **replaces** the radial-recipe search space with a scalar-matter
 basis (it is a separate mode from `--nonspherical`). There are two
@@ -501,8 +579,10 @@ parameterizations:
   Fibonacci lattice. Toroidal flow circulates about the axis (net `L`,
   gravitomagnetic dipole); poloidal flow goes over the poles. This reaches 3D
   configurations the planar ring structurally cannot, at only +2 dimensions.
-  For this mode the launcher defaults to `GRTRESNA_FULL_Z=1`, which disables the
-  old reflective `z=0` half-domain and evolves the shell in a full 3D box.
+  The default shell ranges sit between the old diffuse blobs and the too-strong
+  compact regime (`amp=0.08..0.28`, `width=1.8..4.0`, toroidal velocity `-2..2`)
+  because GRTresna must converge before GPU evolution can score shift/FTL. For
+  this mode the launcher defaults to `GRTRESNA_FULL_Z=1`,
 - `--grtresna-ansatz free`: the older unconstrained `K`-lump basis. Each lump
   `k` contributes the 11 dimensions below, so `K=5` gives 55 searched
   dimensions. This is maximally expressive but harder for CMA-ES to learn; use
@@ -575,10 +655,11 @@ moving/rotating scalar clouds. Each candidate's heavy HDF5 is deleted right
 after conversion to `.gridinit` (`cleanup=True`), so a long conveyor search
 stays disk-safe.
 
-The default search bounds are deliberately compact so clouds do not smear across
-the whole frame: widths are limited to `1.5..4.5`, centers to `x,y=-6..6` and
-`z=-3..3` around the physical center. Wider/off-center runs should be treated as
-a separate experiment.
+The default `free` search bounds are deliberately compact so clouds do not smear
+across the whole frame: centers stay near the physical center and width is
+bounded. The reduced `shell` ansatz is now compact for a different reason: it
+needs enough `amp^2 * velocity / width` to source a visible shift before the
+score can climb toward FTL.
 
 For **finding new geometry families** (rather than one optimum), the MAP-Elites
 `qd` driver over this same matter basis is the better tool — it keeps a diverse
@@ -651,11 +732,14 @@ it robustly in the AMR multi-lump search regime.
    `aCoef` straddles zero across a coarse-fine face; (c) refinement tagging keys
    on `|rho|` (`RHSTagging`) so negative-energy regions are actually refined
    instead of being cancelled by neighbouring positive matter.
-5. **Continuous FTL precursor score** (`ftl_precursor`, in `metrics/score.py`).
-   `operational_ftl` is a hard end-to-end-channel gate that is flat-zero until a
-   full superluminal channel forms, giving CMA-ES no gradient. `ftl_precursor`
-   rewards *local* cone tilting (`max_local_speed > 1`, superluminal area
-   fraction) so the optimizer has a slope to climb before the hard gate fires.
+5. **Continuous pre-FTL shaping scores** (`ftl_precursor` and `shift_drive`, in
+   `metrics/score.py`). `operational_ftl` is a hard end-to-end-channel gate that
+   is flat-zero until a full superluminal channel forms, giving CMA-ES no
+   gradient. `ftl_precursor` rewards structured light-cone opening as
+   `max_local_speed` climbs toward and beyond `1`; `shift_drive` rewards the
+   realized shift magnitude directly, which is the mechanism the scalar-current
+   shell is trying to source. Health/stability terms are gated by nontriviality
+   in `ftl_first`, so clean static blobs do not dominate.
 
 **What works (validated under AMR).**
 
@@ -738,6 +822,19 @@ Gamma-driver shift can amplify a matter-momentum precursor into an evolved
 channel. Exactly-flat data (`max_local_speed ~= 1`, `F_op = 0`, no superluminal
 area) is still rejected. Candidates far below threshold receive a graded
 rejection fitness instead of spending GPU time.
+
+For exploratory `shell` campaigns that otherwise reject nearly everything before
+GPU evolution, temporarily lower the near-luminal floor:
+
+```bash
+SOLVED_FTL_NEAR_LUMINAL_SPEED_FLOOR=0.9 \
+  GPU_IDS="0 1 2 3 4 5 6 7" GRTRESNA_ANSATZ=shell \
+  bash scripts/search/run_grtresna_search.sh
+```
+
+This is not a physics claim; it is an exploration setting that lets sub-luminal
+but structured candidates reach the GPU long enough for `shift_drive` and the
+evolved FTL metrics to sort them.
 
 **Degeneracy guard (the subtle part).** Solves near the Lichnerowicz/York
 **existence boundary** (heavy exotic matter) produce isolated near-degenerate

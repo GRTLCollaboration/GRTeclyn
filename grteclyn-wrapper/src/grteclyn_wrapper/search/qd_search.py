@@ -32,6 +32,7 @@ from ..core.config import ExampleConfig, ExecutableConfig, resolve_example
 from ..core.episode import write_json
 from ..core.evaluation import Evaluation, evaluate_overrides
 from .optimize import DEFAULT_SEARCH_SPACE, SearchDimension
+from .trajectory_log import format_trajectory_line
 from .validation_tiers import (
     DEFAULT_TIER_CONFIG,
     Tier,
@@ -274,7 +275,10 @@ def run_qd_search(
     def _ingest(vectors: list[list[float]], results: list[Evaluation | None]) -> None:
         for x, res in zip(vectors, results):
             if res is None or res.preflight_rejected:
-                trajectory.append({"preflight_rejected": True})
+                trajectory.append({
+                    "eval": eval_counter[0],
+                    "preflight_rejected": True,
+                })
                 continue
             d1, d2 = _descriptors(res.components)
             cell = (_bin_index(d1, bins), _bin_index(d2, bins))
@@ -372,7 +376,7 @@ def run_qd_search(
         write_json(qd_dir / "archive.json", archive.to_dict())
         with (qd_dir / "trajectory.jsonl").open("w", encoding="utf-8") as fh:
             for rec in trajectory:
-                fh.write(json.dumps(rec, sort_keys=True) + "\n")
+                fh.write(format_trajectory_line(rec))
         signals = _write_validation()
         best = archive.best
         n_front = len(conv_history[-1]["front_labels"])

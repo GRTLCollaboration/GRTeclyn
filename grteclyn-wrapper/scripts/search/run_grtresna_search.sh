@@ -12,9 +12,10 @@
 # plotfiles are deleted as they are consumed), so disk stays bounded across a
 # long conveyor search. Pass NO_CONSUME=1 to keep raw plotfiles instead.
 #
-# mpirun for the GRTresna solve is auto-resolved from the conda/micromamba env
-# that built GRTresna (see grtresna/solver.py::_resolve_mpirun); override with
-# GRTRESNA_MPIRUN / GRTRESNA_ENV / GRTRESNA_ENV_NAME if needed.
+# Each evaluation runs GRTresna under MPI (default RANKS=8). mpirun is resolved
+# from the conda/micromamba env that built the .MPI. executable
+# (grtresna/solver.py::_resolve_mpirun). Override with GRTRESNA_MPIRUN /
+# GRTRESNA_ENV / GRTRESNA_ENV_NAME, or set RANKS=1 for the serial binary only.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -42,7 +43,7 @@ RUN_STAMP="${RUN_STAMP:-$(date +%Y%m%d_%H%M%S)}"
 RUNS_DIR="${RUNS_DIR:-${GRTECLYN_ROOT}/runs/grtresna_search}"
 LUMPS="${LUMPS:-5}"                       # scalar lumps in the matter basis (11 dims each)
 GRTRESNA_ANSATZ="${GRTRESNA_ANSATZ:-ring}" # free=11*LUMPS dims, ring=14 template dims
-RANKS="${RANKS:-1}"                       # 1 uses serial GRTresna; >1 uses MPI
+RANKS="${RANKS:-8}"                       # MPI ranks per GRTresna solve (>1 => .MPI. executable)
 ITERATIONS="${ITERATIONS:-30}"            # max non-linear iterations per solve
 if [[ -z "${GRTRESNA_FULL_Z+x}" ]]; then
   if [[ "${GRTRESNA_ANSATZ}" == "shell" ]]; then

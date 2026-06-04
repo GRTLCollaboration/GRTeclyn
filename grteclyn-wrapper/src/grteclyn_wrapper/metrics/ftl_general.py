@@ -54,6 +54,7 @@ class GeneralFtlReport:
     path_offaxis: bool  #: whether the fastest path leaves the straight axis
     reachable: bool  #: whether the target was reachable from the source
     notes: tuple[str, ...]
+    max_shift: float = 0.0  #: max shift-vector magnitude on the sampled slice
 
 
 def coordinate_light_speed(
@@ -172,6 +173,7 @@ def operational_ftl_on_grid(
     local_max = _local_max_speed_grid(alpha, beta, gamma, spacing)
     max_local_speed = float(local_max.max())
     superluminal_fraction = float(np.mean(local_max > 1.0))
+    max_shift = float(np.linalg.norm(beta, axis=-1).max())
 
     dist = np.full((ni, nj), np.inf, dtype=float)
     prev = np.full((ni, nj, 2), -1, dtype=int)
@@ -249,6 +251,7 @@ def operational_ftl_on_grid(
         path_offaxis=path_offaxis,
         reachable=reachable,
         notes=tuple(notes),
+        max_shift=max_shift,
     )
 
 

@@ -16,7 +16,10 @@ from grteclyn_wrapper.core.config import resolve_example
 from grteclyn_wrapper.core.episode import create_episode
 from grteclyn_wrapper.core.plot_consumer import build_consume_command
 from grteclyn_wrapper.core.params import write_params
-from grteclyn_wrapper.metrics.episode_metrics import EpisodeMetrics
+from grteclyn_wrapper.metrics.episode_metrics import (
+    CurvatureInvariantMetrics,
+    EpisodeMetrics,
+)
 from grteclyn_wrapper.metrics.ftl_general import GeneralFtlReport
 from grteclyn_wrapper.metrics.score import score_episode
 from grteclyn_wrapper.search.optimize import (
@@ -26,6 +29,8 @@ from grteclyn_wrapper.search.optimize import (
     _load_warm_start_vectors,
     build_search_space,
     build_grtresna_config,
+    GRTRESNA_REJECTION_BASE_FITNESS,
+    GRTRESNA_REJECTION_MAX_EXTRA_FITNESS,
 )
 
 
@@ -329,6 +334,73 @@ def test_ftl_first_score_prioritizes_ftl_precursor_over_health() -> None:
     assert some_ftl.components["ftl_precursor"] > 0.0
 
 
+def test_sub_luminal_precursor_keeps_curvature_gradient() -> None:
+    report = GeneralFtlReport(
+        f_op=0.0,
+        t_min=None,
+        t_flat=1.0,
+        max_local_speed=0.95,
+        superluminal_fraction=0.0,
+        path_offaxis=False,
+        reachable=True,
+        notes=(),
+    )
+
+    def metrics_with_curvature(max_l2: float) -> EpisodeMetrics:
+        return EpisodeMetrics(
+            collapse=None,
+            constraints=None,
+            stability=None,
+            comoving=None,
+            ftl=None,
+            termination_reason="test",
+            curvature=CurvatureInvariantMetrics(
+                final_time=2.0,
+                max_abs_ricci_scalar=0.0,
+                max_ricci_tensor_sq=0.0,
+                max_kij_sq=0.0,
+                max_l2_ricci_scalar=max_l2,
+            ),
+            general_ftl_evolved=report,
+        )
+
+    weak = score_episode(metrics_with_curvature(1.0), objective_mode="ftl_first")
+    stronger = score_episode(metrics_with_curvature(4.0), objective_mode="ftl_first")
+
+    assert 0.0 < weak.components["curvature_activity"] < stronger.components["curvature_activity"] < 1.0
+    assert 0.0 < weak.components["ftl_precursor"] < stronger.components["ftl_precursor"]
+
+
+def test_ftl_first_rewards_shift_drive_before_shortcut_exists() -> None:
+    def metrics_with_shift(max_shift: float) -> EpisodeMetrics:
+        report = GeneralFtlReport(
+            f_op=0.0,
+            t_min=None,
+            t_flat=1.0,
+            max_local_speed=0.96,
+            superluminal_fraction=0.0,
+            path_offaxis=False,
+            reachable=True,
+            notes=(),
+            max_shift=max_shift,
+        )
+        return EpisodeMetrics(
+            collapse=None,
+            constraints=None,
+            stability=None,
+            comoving=None,
+            ftl=None,
+            termination_reason="test",
+            general_ftl_evolved=report,
+        )
+
+    weak = score_episode(metrics_with_shift(0.03), objective_mode="ftl_first")
+    stronger = score_episode(metrics_with_shift(0.30), objective_mode="ftl_first")
+
+    assert 0.0 < weak.components["shift_drive"] < stronger.components["shift_drive"]
+    assert stronger.total > weak.total
+
+
 def test_bad_grtresna_convergence_is_rejected_before_evolution() -> None:
     assert _grtresna_convergence_rejection_reason(None) is not None
     assert _grtresna_convergence_rejection_reason({
@@ -357,6 +429,8 @@ def test_bad_grtresna_convergence_is_rejected_before_evolution() -> None:
         "ham_pct": 100.0,
         "mom_pct": 79.0,
     })
+    crash_fitness = GRTRESNA_REJECTION_BASE_FITNESS + GRTRESNA_REJECTION_MAX_EXTRA_FITNESS
+    assert crash_fitness >= very_bad
     nonfinite = _grtresna_rejection_fitness({
         "iteration": 29,
         "ham_pct": float("nan"),
