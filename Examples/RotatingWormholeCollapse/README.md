@@ -197,14 +197,14 @@ To resume from any checkpoint (for example step **3000** or **4000**):
 1. **Rollback** the data directory to the desired checkpoint (use paths matching your clone of this repo and the `output_path` set in `params_rotating.txt`):
    ```bash
    cd /path/to/GRTeclyn
-   ./src/scripts/rollback --step 3000 --data /path/to/your/simulation/output
+   ./grteclyn-wrapper/scripts/rollback --step 3000 --data /path/to/your/simulation/output
    ```
    (Replace `3000` with the desired checkpoint number, e.g. `4000`.)
 
 2. **Start the watcher** (in a second terminal — use `--not-remove`):
    ```bash
    cd /path/to/GRTeclyn
-   ./src/scripts/plot_run.sh --not-remove /path/to/your/simulation/output
+   ./grteclyn-wrapper/scripts/plot_run.sh --not-remove /path/to/your/simulation/output
    ```
 
 3. **Restart the simulation** using `amr.restart` (this is the correct flag):
@@ -222,7 +222,7 @@ To resume from any checkpoint (for example step **3000** or **4000**):
 
 ```bash
 # In a second terminal (from the GRTeclyn root; set RUN_DIR to your simulation output)
-./src/scripts/plot_run.sh /path/to/your/simulation/output
+./grteclyn-wrapper/scripts/plot_run.sh /path/to/your/simulation/output
 ```
 
 ## Quick MPI Setup (if needed)

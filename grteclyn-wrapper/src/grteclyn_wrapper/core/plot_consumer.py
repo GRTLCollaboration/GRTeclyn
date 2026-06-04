@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 from typing import Literal, Sequence
 
-from .config import REPO_ROOT
+from .config import REPO_ROOT, WRAPPER_ROOT
 from .episode import Episode
 
 ConsumerProfile = Literal["wormhole", "radial"]
@@ -52,7 +52,7 @@ def _read_vector_param(params_path: Path, key: str, default: Sequence[float]) ->
 
 def resolve_consume_python() -> list[str]:
     """Return argv prefix for Python with visualization deps (yt)."""
-    if shutil.which("uv") is not None and (REPO_ROOT / "pyproject.toml").exists():
+    if shutil.which("uv") is not None and (WRAPPER_ROOT / "pyproject.toml").exists():
         return ["uv", "run", "python"]
     return [sys.executable]
 
@@ -81,7 +81,7 @@ def build_consume_command(
     command = [
         *resolve_consume_python(),
         "-m",
-        "src.visualisation.process_wave.consume_plotfiles",
+        "grteclyn_wrapper.visualisation.process_wave.consume_plotfiles",
         "--data",
         str(episode.path),
         "--out",

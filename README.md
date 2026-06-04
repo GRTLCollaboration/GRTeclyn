@@ -26,27 +26,29 @@ The executable is built from **`Examples/SupportedWormholeCollapse/`** (`GNUmake
 
 The same `GNUmakefile` also pulls in other **`Source/`** trees (CCZ4, Wormholes, GRTeclynCore, …); initial data for *this* run is implemented in the example as **`SupportedWormholeInitialData.hpp`**, not `Source/Wormholes/WormholeInitialData.hpp` (that header serves other wormhole setups). The example evolution includes matter headers directly, e.g. `CCZ4RHSWithMatter.hpp`, `ConstraintsWithMatter.hpp`, `Weyl4WithMatter.hpp`, and `ExoticScalarField.hpp` from `SupportedWormholeLevel.cpp`, and `PhantomDecayPotential.hpp` uses `ScalarFieldVars.hpp` from **`Source/Matter/`**.
 
-#### Shell automation — `src/scripts/`
+#### Shell automation — `grteclyn-wrapper/scripts/`
 | Script | Role |
 |--------|------|
 | `plot_run.sh` | While the run writes plotfolders: `consume_plotfiles` **extracts** the useful observables ($\Psi_4$, optional frames) into **`.dat`** files and **PNG** frames; processed plotfile trees can be **deleted** so raw simulation dumps are not kept—**disk optimisation**. |
-| `plot_diagnostic.sh` | After a run: constraint norms, collapse diagnostics, $\Psi_4$ panels into `src/visualisation/plots/`. |
-| `move_files.sh` | Copy key run data + figures into **`src/SimResults/<run_folder>/`**. |
+| `plot_diagnostic.sh` | After a run: constraint norms, collapse diagnostics, $\Psi_4$ panels into `grteclyn-wrapper/src/grteclyn_wrapper/visualisation/plots/`. |
+| `move_files.sh` | Copy key run data + figures into **`grteclyn-wrapper/output/SimResults/<run_folder>/`**. |
 
-#### LIGO / GWOSC matched-filter search — `src/search/`
+Legacy shims under `src/scripts/` forward to the paths above.
+
+#### LIGO / GWOSC matched-filter search — `grteclyn_wrapper.gw_search`
 Template-based search in public strain data (GWOSC via GWpy, matched filtering with PyCBC). Entry point:
 
 ```bash
-python -m src.search.main
+cd grteclyn-wrapper && uv run python -m grteclyn_wrapper.gw_search.main
 ```
 
-Defaults use an extracted waveform under `src/SimResults/…/psi4_mode_l2m0.dat`; override with `--data-path`. Methodology and options: **`src/search/README.md`**.
+Defaults use an extracted waveform under `grteclyn-wrapper/output/SimResults/…/psi4_mode_l2m0.dat`; override with `--data-path`. Methodology and options: **`grteclyn-wrapper/src/grteclyn_wrapper/gw_search/README.md`**.
 
-#### Archived simulation outputs — `src/SimResults/`
+#### Archived simulation outputs — `grteclyn-wrapper/output/SimResults/`
 Packaged results per run (parameters, extracted `.dat` data, diagnostic plots, etc.), populated by `move_files.sh` and comparable archiving.
 
-#### Plotting & analysis — `src/visualisation/`
-Full usage, CLI flags, and workflows: **`src/visualisation/README.md`**. Subfolders at a glance:
+#### Plotting & analysis — `grteclyn_wrapper.visualisation`
+Full usage, CLI flags, and workflows: **`grteclyn-wrapper/src/grteclyn_wrapper/visualisation/README.md`**. Subfolders at a glance:
 
 | Path | Purpose |
 |------|---------|

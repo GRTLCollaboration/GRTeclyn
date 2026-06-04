@@ -194,7 +194,7 @@ PY
 
 echo
 echo "Post-run plots (optional):"
-echo "  bash src/scripts/plot_diagnostic_radial.sh ${EPISODE_DIR}"
+echo "  bash grteclyn-wrapper/scripts/plot_diagnostic_radial.sh ${EPISODE_DIR}"
 
 echo
 echo "== Step 5/5: quick pass/fail hints =="

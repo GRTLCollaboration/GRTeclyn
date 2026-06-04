@@ -42,17 +42,17 @@ log*
 *.patch
 *.log
 
-# Visualization output (frames, movies) - scripts in src/visualisation/ are kept
-src/visualisation/K/
-src/visualisation/lapse/
-src/visualisation/Theta/
-src/visualisation/chi/
-src/visualisation/binary_bh/
-src/visualisation/waves/
-src/visualisation/chi_y
-src/visualisation/chi_z
-src/visualisation/chi_x
-src/visualisation/K_z
+# Visualization output (frames, movies) - package sources are kept
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/K/
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/lapse/
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/Theta/
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/chi/
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/binary_bh/
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/waves/
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/chi_y
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/chi_z
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/chi_x
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/K_z
 
 
 #Running scripts
@@ -61,59 +61,57 @@ script/
 
 
 scr/visualisation/visualize
-src/visualisation/ArticleResults/
-src/visualisation/visualize/
-src/visualisation/visualize_zoom/
-src/visualisation/process_wave/__pycache__/
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/ArticleResults/
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/visualize/
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/visualize_zoom/
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/process_wave/__pycache__/
 #cach
 cache/
 __pycache__/
 .pytest_cache/
 
-src/visualisation/visualize_supported
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/visualize_supported
 
 
-src/visualisation/plots/
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/plots/
 
-src/visualisation/constraines/constraints_plot.eps
-src/visualisation/constraines/constraints_plot.pdf
-src/visualisation/diagnostic/collapse_diagnostics_plot.eps
-src/visualisation/diagnostic/collapse_diagnostics_plot.pdf
-src/visualisation/process_wave/psi4_extracted_R8_R12_R16.eps
-src/visualisation/process_wave/psi4_extracted_R8_R12_R16.pdf
-src/visualisation/process_wave/psi4_extracted_simulation.eps
-src/visualisation/process_wave/psi4_extracted_simulation.pdf
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/constraines/constraints_plot.eps
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/constraines/constraints_plot.pdf
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/diagnostic/collapse_diagnostics_plot.eps
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/diagnostic/collapse_diagnostics_plot.pdf
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/process_wave/psi4_extracted_R8_R12_R16.eps
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/process_wave/psi4_extracted_R8_R12_R16.pdf
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/process_wave/psi4_extracted_simulation.eps
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/process_wave/psi4_extracted_simulation.pdf
 
 /Article.md
 /Article_supported.md
 /Report.md
 /Debug.md
 /Fond_report.md
-src/visualisation/constraines/constraints_plot.png
-src/visualisation/diagnostic/collapse_diagnostics_plot.png
-src/visualisation/final_panel.png
-src/visualisation/process_wave/__pycache__/plot_extracted_psi4.cpython-310.pyc
-src/visualisation/process_wave/__pycache__/plot_extracted_psi4.cpython-312.pyc
-src/visualisation/process_wave/psi4_extracted_R8_R12_R16.png
-src/search/data_cache
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/constraines/constraints_plot.png
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/diagnostic/collapse_diagnostics_plot.png
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/final_panel.png
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/process_wave/__pycache__/plot_extracted_psi4.cpython-310.pyc
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/process_wave/__pycache__/plot_extracted_psi4.cpython-312.pyc
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/process_wave/psi4_extracted_R8_R12_R16.png
+grteclyn-wrapper/src/grteclyn_wrapper/gw_search/data_cache
 
 Examples/SupportedWormholeCollapse/.nfs80946b2f00c7b5ee000009fe
-src/visualisation/process_wave/__pycache__
-src/visualisation/process_wave/__pycache__
 # Python cache
 **/__pycache__/
 **/*.pyc
 
 # SimResults: archived run outputs (two reference runs); omit heavy frame trees
-src/SimResults/Run_R0.5_A00.0_A20.0_sigma0.5_unperturbed/embedding/
-src/SimResults/Run_R0.5_A00.0_A20.0_sigma0.5_unperturbed/K_z/
-src/SimResults/Run_R0.5_A00.0_A20.0_sigma0.5_unperturbed/Weyl4_Re_z/
-src/SimResults/Run_R0.5_A00.0_A20.02_sigma0.5_perturbed/embedding/
-src/SimResults/Run_R0.5_A00.0_A20.02_sigma0.5_perturbed/K_z/
-src/SimResults/Run_R0.5_A00.0_A20.02_sigma0.5_perturbed/Weyl4_Re_z/
+grteclyn-wrapper/output/SimResults/Run_R0.5_A00.0_A20.0_sigma0.5_unperturbed/embedding/
+grteclyn-wrapper/output/SimResults/Run_R0.5_A00.0_A20.0_sigma0.5_unperturbed/K_z/
+grteclyn-wrapper/output/SimResults/Run_R0.5_A00.0_A20.0_sigma0.5_unperturbed/Weyl4_Re_z/
+grteclyn-wrapper/output/SimResults/Run_R0.5_A00.0_A20.02_sigma0.5_perturbed/embedding/
+grteclyn-wrapper/output/SimResults/Run_R0.5_A00.0_A20.02_sigma0.5_perturbed/K_z/
+grteclyn-wrapper/output/SimResults/Run_R0.5_A00.0_A20.02_sigma0.5_perturbed/Weyl4_Re_z/
 # Track ASCII *.dat in these runs only (overrides global *.dat above)
-!src/SimResults/Run_R0.5_A00.0_A20.0_sigma0.5_unperturbed/*.dat
-!src/SimResults/Run_R0.5_A00.0_A20.02_sigma0.5_perturbed/*.dat
+!grteclyn-wrapper/output/SimResults/Run_R0.5_A00.0_A20.0_sigma0.5_unperturbed/*.dat
+!grteclyn-wrapper/output/SimResults/Run_R0.5_A00.0_A20.02_sigma0.5_perturbed/*.dat
 
 docs/
 

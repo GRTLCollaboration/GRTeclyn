@@ -147,3 +147,17 @@ def resolve_executable(
 
 def default_runs_dir() -> Path:
     return REPO_ROOT / "runs"
+
+
+VISUALISATION_DIR = WRAPPER_ROOT / "src" / "grteclyn_wrapper" / "visualisation"
+SIM_RESULTS_DIR = WRAPPER_ROOT / "output" / "SimResults"
+SIM_ROOT = REPO_ROOT.parent
+
+
+def default_sim_data_dir() -> Path:
+    """Return the newest sibling data directory next to the GRTeclyn checkout."""
+    for name in ("data_2gpu", "data_supported", "data"):
+        candidate = SIM_ROOT / name
+        if candidate.is_dir():
+            return candidate
+    return SIM_ROOT / "data"

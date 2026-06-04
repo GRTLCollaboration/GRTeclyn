@@ -58,7 +58,12 @@ These are env-var driven (see the top-level `README.md`).
 |--------|---------|
 | `make_movies.sh` | Stitch pre-rendered PNG frames into mp4 movies (`ffmpeg` glob demuxer, robust to gapped/step-numbered frame names). `make_movies.sh EPISODE_DIR [...] [--framerate N] [--only chi_z K_z]`. |
 | `summarize_scores.py` | Re-score every episode under a runs dir and print a per-candidate diagnostics table (score, gate, survival, FTL, energy conditions, curvature). `python scripts/summarize_scores.py RUNS_DIR [target_stop_time]`. |
-| `plot_run_radial.sh` | Thin sidecar that execs `src/scripts/plot_run_radial.sh` (plotfile drain / diagnostic plots) on a wrapper episode dir. |
+| `plot_run_radial.sh` | Plotfile drain / diagnostic plots on a wrapper episode dir (streams plotfiles, optional frames). |
+| `plot_diagnostic_radial.sh` | Post-run RadialRecipe diagnostics (constraints, collapse, shell profiles). |
+| `plot_run.sh` | Wormhole-collapse sidecar: stream plotfiles, extract $\Psi_4$, render frames. |
+| `plot_diagnostic.sh` | Post-run wormhole figures (constraints, collapse, $\Psi_4$ panels, evolution strips). |
+| `move_files.sh` | Archive run outputs + figures into `grteclyn-wrapper/output/SimResults/`. |
+| `rollback` | Roll back a run directory to a checkpoint/plot index. |
 
 ---
 

@@ -26,6 +26,13 @@ visualization = [
     "yt>=4.0",
 ]
 
+gw-search = [
+    "pycbc",
+    "gwpy",
+    "matplotlib>=3.8",
+    "scipy>=1.10",
+]
+
 [project.scripts]
 grteclyn-wrapper = "grteclyn_wrapper.__main__:main"
 

@@ -814,19 +814,19 @@ CONSUME_PLOTFILES=0 bash grteclyn-wrapper/scripts/run_radialrecipe_gpu_smoke.sh
 ## Post-run plots (no GW / Psi4)
 
 ```bash
-bash src/scripts/plot_diagnostic_radial.sh runs/radialrecipe_nonspherical/<episode_dir>
+bash grteclyn-wrapper/scripts/plot_diagnostic_radial.sh runs/radialrecipe_nonspherical/<episode_dir>
 ```
 
-Writes EPS/PNG to `src/visualisation/plots/radial/` (constraints, collapse, shell profiles).
+Writes EPS/PNG to `grteclyn-wrapper/src/grteclyn_wrapper/visualisation/plots/radial/` (constraints, collapse, shell profiles).
 
 ## Manual plotfile drain (if needed)
 
 If a run finished before extraction completed:
 
 ```bash
-bash src/scripts/plot_run_radial.sh runs/radialrecipe_nonspherical/<episode_dir> --no-delete
+bash grteclyn-wrapper/scripts/plot_run_radial.sh runs/radialrecipe_nonspherical/<episode_dir> --no-delete
 # or one-shot batch consume (no watch):
-uv run python -m src.visualisation.process_wave.consume_plotfiles \
+uv run python -m grteclyn_wrapper.visualisation.process_wave.consume_plotfiles \
   --data runs/radialrecipe_nonspherical/<episode_dir> \
   --out runs/radialrecipe_nonspherical/<episode_dir>/small_data \
   --radii 4 8 --no-psi4 --shell-fields chi lapse K --areal-radius \
