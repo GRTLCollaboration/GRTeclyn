@@ -183,6 +183,7 @@ consistently.
 | `run_grtresna_qd_search.sh` | **MAP-Elites quality-diversity** over the GRTresna shell space (archive of diverse FTL families). | `QD_ITERATIONS`, `BINS`, `GPU_IDS`, `SHELL_PROFILE`, `LUMPS`, `STOP_TIME`, `GRTRESNA_TIMEOUT` |
 | `run_grtresna_search.sh` (with `WARM_START_TRAJECTORY`) | **Post-QD neighborhood refinement**: CMA-ES warm-started from QD elites with small `sigma0` / jitter. | `WARM_START_TRAJECTORY`, `WARM_START_TOP_K`, `WARM_START_JITTER`, `SIGMA0`, `RUNS_DIR` |
 | `run_tier2_grtresna_qd_eval057.sh` | **HQ promotion** of QD winner `eval_000057`: GRTresna+GPU or GPU-only (`GRIDINIT_SOURCE`). | `N_FULL`, `MAX_LEVEL`, `STOP_TIME`, `GRIDINIT_SOURCE`, `SOURCE_EVAL` |
+| `run_promote_qd_operational_batch.sh` | **Batch HQ promotion** of operational-FTL QD elites (`operational_ftl >= 0.03`). Fresh GRTresna per candidate. | `QD_RUN`, `L_FULL`, `N_FULL`, `STOP_TIME`, `GRTRESNA_MAX_HAM_PCT`, `FRAMES_ZOOM` |
 | `replay_grtresna_eval.py` | Python entry for single promotion replays (`--gridinit` skips GRTresna). | CLI flags mirror the shell script |
 | `run_radialrecipe_gpu_smoke.sh` | Single GPU smoke/build run for RadialRecipe seeds/candidates. Use after C++ changes. | `BUILD`, `CUDA_VISIBLE_DEVICES_OVERRIDE`, `SEED_NAME`, `CANDIDATE_ID`, `NONSPHERICAL_ID` |
 | `run_ftl_search_cmaes.sh` | Older 9D radial CMA-ES geometry-first search. | `GPU_IDS`, `MAX_GENERATIONS` |
@@ -1073,22 +1074,57 @@ GPU-only continuations — see [Promotion ladder](#promotion-ladder-results)).
 
 #### Current production batch
 
-Campaign `qd_20260605T155951Z` (`STOP_TIME=8`, `BINS=10`, 16 iterations) found
-multiple operational elites. Stage 3 is running via
+**Discovery campaign:** `runs/grtresna_qd/qd_20260605T155951Z/` — first MAP-Elites run
+to populate the archive with **multiple operational FTL shell elites** at search
+resolution (`L=64 N=64`, `t=8`, `BINS=10`, 16 QD iterations, 135 ingested evals).
+See [MAP-Elites: `qd_20260605T155951Z`](#completed-map-elites-run-qd_20260605t155951z-operational-shell-family)
+for score weights, top candidates, and why this run superseded the earlier
+`eval_000057`-only breakthrough.
+
+**Stage 3 promotion** (in progress) replays those elites via
 `run_promote_qd_operational_batch.sh`:
 
-| eval | promotion dir | GPU |
-|------|---------------|-----|
-| 011 | `l128n256_qd_eval011` | 0 |
-| 121 | `l128n256_qd_eval121` | 1 |
-| 106 | `l128n256_qd_eval106` | 2 |
-| 077 | `l128n256_qd_eval077` | 3 |
-| 117 | `l128n256_qd_eval117` | 4 |
-| 094 | `l128n256_qd_eval094` | 5 |
-| 058 | `l128n256_qd_eval058` | 6 |
-| 016 | `l128n256_qd_eval016` | 7 |
+```bash
+# Defaults: L=128 N=256 (dx=0.5), t=50, fresh GRTresna, Ham/Mom gate 10%
+bash scripts/search/run_promote_qd_operational_batch.sh
+```
 
-Defaults: `L_FULL=128`, `N_FULL=256`, `STOP_TIME=50`, `operational_ftl >= 0.03`.
+| Setting | Search (QD) | Promotion (HQ) |
+|---------|-------------|----------------|
+| `L_full` | 64 | **128** |
+| `N_full` | 64 | **256** |
+| `dx = L/N` | 1.0 | **0.5** (real resolution upgrade) |
+| `stop_time` | 8 | **50** |
+| `max_level` | 2 | **3** |
+| GRTresna box | `L=128 N=64` (dx=2) | `L=128 N=256` (dx=0.5, unified with GPU) |
+
+> **Resolution rule:** promotion must use **`N > L`** (or same `L` with larger
+> `N`) to refine the grid. Setting `L=N` (e.g. the aborted `val256hq` batch)
+> only enlarges the domain at **dx=1** — no fidelity gain over search.
+
+| eval | QD score | `op_ftl` | `channel` | `shift` | promotion dir | GPU |
+|------|--------:|---------:|----------:|--------:|---------------|-----|
+| **011** | **1158** | **0.752** | 0.32 | 0.10 | `l128n256_qd_eval011` | 0 |
+| **121** | **926** | **0.491** | **0.42** | 0.18 | `l128n256_qd_eval121` | 1 |
+| **106** | **827** | 0.394 | **0.46** | **0.21** | `l128n256_qd_eval106` | 2 |
+| **077** | **637** | 0.233 | 0.31 | 0.09 | `l128n256_qd_eval077` | 3 |
+| **117** | **628** | 0.204 | 0.43 | 0.19 | `l128n256_qd_eval117` | 4 |
+| **094** | **602** | 0.177 | 0.43 | 0.19 | `l128n256_qd_eval094` | 5 |
+| **058** | **425** | 0.069 | 0.19 | 0.04 | `l128n256_qd_eval058` | 6 |
+| **016** | **415** | 0.036 | 0.25 | 0.07 | `l128n256_qd_eval016` | 7 |
+
+Promotion filter: `operational_ftl >= 0.03`. Frame consumer:
+`GRTECLYN_FRAMES_ZOOM=none` (full plotfile extent; center tracks `L/2`).
+
+**GRTresna phase (HQ):** all eight fresh solves passed the 10% Ham/Mom gate at
+iter ~11; NL iterations continue toward `max_NL_iterations=30` (Ham plateau
+~0.65–1.5%, Mom `<0.002%`). GPU `t=50` starts after `.gridinit` is written.
+
+Monitor:
+
+```bash
+tail -f runs/grtresna_promote/l128n256_qd_eval*.log
+```
 
 ---
 
@@ -1161,6 +1197,103 @@ Campaign outputs live under `runs/grtresna_qd/qd_<timestamp>/`:
 `score.json` and optional frames.
 
 ### Previous Runs
+
+#### Completed MAP-Elites run: `qd_20260605T155951Z` (operational shell family)
+
+`qd_20260605T155951Z`
+
+Campaign path: `runs/grtresna_qd/qd_20260605T155951Z/`
+
+**Current winner campaign** for stage-3 promotion. First MAP-Elites archive that
+holds a **diverse set of true operational FTL geometries** (not just precursor
+artifacts), discovered after the scoring and gating updates below.
+
+| Stat | Value |
+|------|------:|
+| QD iterations | 16 |
+| Ingested evals | 135 |
+| GPU survivors (approx.) | 37 |
+| `operational_ftl > 0` | **8** |
+| Archive elites | 6 cells filled |
+| Best score | **1158.1** (`eval_000011`) |
+
+#### Launch configuration
+
+| Setting | Value |
+|---------|-------|
+| Ansatz | `GRTRESNA_ANSATZ=shell`, `SHELL_PROFILE=compact`, `LUMPS=5` |
+| Search box | `L=64 N=64`, `max_level=2`, `stop_time=8`, `plot_interval=24` |
+| GRTresna solve | `L=128 N=64` (dx=2), 8 MPI ranks, `max_NL_iterations=30` |
+| Descriptor grid | `BINS=10`, `descriptor_mode=channel` |
+| GRTresna gate | `grtresna_max_ham_pct=10`, `grtresna_max_mom_pct=10` |
+| Solved-FTL gate | `grtresna_solved_ftl_gate=true` (cheap gridinit FTL before GPU) |
+| GPUs | 8-way parallel (`batch_size=8`) |
+
+Typical launch (this run used `STOP_TIME=8`, `QD_ITERATIONS=16`):
+
+```bash
+QD_ITERATIONS=16 BINS=10 STOP_TIME=8 GPU_IDS="0 1 2 3 4 5 6 7" RANKS=8 \
+  LUMPS=5 SHELL_PROFILE=compact \
+  GRTRESNA_MAX_HAM_PCT=10 GRTRESNA_MAX_MOM_PCT=10 \
+  bash scripts/search/run_grtresna_qd_search.sh
+```
+
+#### Score parameters that drove discovery
+
+Same `objective_mode=ftl_first` lexicographic weights as the CMA-ES
+[`channel_progress`](#channel_progress-scoring-component) campaign:
+
+| Component | Weight | Role in this run |
+|-----------|-------:|------------------|
+| `operational_ftl` | **1000** | Hard success gate — only end-to-end shortcuts win the archive |
+| `channel_progress` | **200** | `path_closeness × √(precursor × shift)` — keeps coupled path+mechanism elites |
+| `ftl_precursor` | 160 | Cone opening (down-weighted vs old 250 — cannot dominate alone) |
+| `shift_drive` | 100 | Frame-drag motor |
+| `operational_ftl_solved` | 150 | Solved-geometry FTL on `.gridinit` |
+
+**Effect:** the archive retained both high-`operational_ftl` winners (`eval_011`
+at `op=0.75`) and strong channel/shift backups (`eval_121`, `eval_106`) that a
+scalar-only optimizer would have discarded once `eval_011` dominated. Relaxed
+GRTresna Ham/Mom gate (10% vs the older 5% default) kept more marginal solves
+in play while GPU evolution separated real shortcuts from precursor noise.
+
+#### Top operational candidates (search scale)
+
+Scores and components from `trajectory.jsonl` at `N=64`, `t=8`:
+
+| eval | score | `op_ftl` | `prec` | `channel` | `shift` | tier | Notes |
+|------|------:|---------:|-------:|----------:|--------:|------|-------|
+| **011** | **1158** | **0.752** | 1.00 | 0.32 | 0.10 | operational | Best headline shortcut |
+| **121** | **926** | **0.491** | 1.00 | **0.42** | 0.18 | operational | Best score backup + channel |
+| **106** | **827** | 0.394 | 1.00 | **0.46** | **0.21** | nontrivial | Best channel geometry |
+| **077** | **637** | 0.233 | 1.00 | 0.31 | 0.09 | operational | Solid mid-tier op |
+| **117** | **628** | 0.204 | 1.00 | 0.43 | 0.19 | nontrivial | Channel-leaning |
+| **094** | **602** | 0.177 | 1.00 | 0.43 | 0.19 | nontrivial | Cleanest GRTresna at search (Ham 4.2%) |
+| **058** | **425** | 0.069 | 0.86 | 0.19 | 0.04 | operational | Weaker op, still real |
+| **016** | **415** | 0.036 | 0.92 | 0.25 | 0.07 | operational | Lowest promoted op |
+
+Inspect search-scale frames: `eval_000011/frames/{phi,shift1,scalar_activity}_z/`.
+
+#### vs. `qd_20260605T062448Z` (`eval_000057`)
+
+| | `062448Z` | **`155951Z`** |
+|--|-----------|---------------|
+| Best `operational_ftl` | 1.0 (`eval_057`) | **0.75** (`eval_011`) |
+| Operational elites | 1 breakthrough | **8** diverse family |
+| `stop_time` | 2 | **8** |
+| Archive character | single dominant winner + precursors | **operational cluster** ready for HQ batch |
+
+`eval_000057` remains the tier-5 ladder reference for falsification; the
+`155951Z` family is the current production path for multi-candidate HQ validation
+at `L=128 N=256`.
+
+#### Promotion path
+
+All eight rows above are replayed by `run_promote_qd_operational_batch.sh` into
+`runs/grtresna_promote/l128n256_qd_eval*/` (see
+[Current production batch](#current-production-batch)).
+
+---
 
 #### Probe: `qd_20260605T060902Z` (stopped and restarted)
 
