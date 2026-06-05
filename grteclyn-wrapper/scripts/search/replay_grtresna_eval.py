@@ -15,6 +15,7 @@ from grteclyn_wrapper.core.evaluation import evaluate_overrides
 from grteclyn_wrapper.grtresna.domain import GRTresnaDomainConfig
 from grteclyn_wrapper.grtresna.io import read_gridinit
 from grteclyn_wrapper.grtresna.solver import GRTresnaConfig
+from grteclyn_wrapper.search.grtresna_convergence_gate import GRTresnaConvergenceConfig
 
 
 def _load_overrides(source_eval: Path) -> dict:
@@ -135,7 +136,15 @@ def main() -> int:
     parser.add_argument("--grtresna-refine-threshold", type=float, default=0.5)
     parser.add_argument("--grtresna-regrid-radius", type=float, default=0.0)
     parser.add_argument("--grtresna-jacobian-cap", type=float, default=25.0)
-    parser.add_argument("--grtresna-domain-l", type=float, default=128.0)
+    parser.add_argument(
+        "--grtresna-domain-l",
+        type=float,
+        default=None,
+        help="GRTresna solve box width (default: same as --l-full)",
+    )
+    parser.add_argument("--grtresna-timeout", type=int, default=3600)
+    parser.add_argument("--grtresna-max-ham-pct", type=float, default=5.0)
+    parser.add_argument("--grtresna-max-mom-pct", type=float, default=5.0)
     parser.add_argument("--consumer-keep-last", type=int, default=2)
     parser.add_argument(
         "--gridinit",
@@ -166,6 +175,9 @@ def main() -> int:
     base_overrides = _load_overrides(source_eval)
     n = int(args.n_full)
     l_full = float(args.l_full) if args.l_full is not None else float(n)
+    grtresna_domain_l = (
+        float(args.grtresna_domain_l) if args.grtresna_domain_l is not None else l_full
+    )
     overrides = _promotion_overrides(
         base_overrides,
         n_full=n,
@@ -180,7 +192,7 @@ def main() -> int:
         full_z=True,
         l_full=l_full,
         n_full=n,
-        grtresna_l=float(args.grtresna_domain_l),
+        grtresna_l=grtresna_domain_l,
         grtresna_nx=n,
         grtresna_ny=n,
         grtresna_nz=n,
@@ -192,10 +204,15 @@ def main() -> int:
 
     use_grtresna = args.gridinit is None
     grtresna_config = None
+    grtresna_convergence_config = GRTresnaConvergenceConfig(
+        max_ham_pct=args.grtresna_max_ham_pct,
+        max_mom_pct=args.grtresna_max_mom_pct,
+    )
     if use_grtresna:
         grtresna_config = GRTresnaConfig(
             mpi_ranks=args.grtresna_ranks,
             max_NL_iterations=args.grtresna_iterations,
+            timeout=args.grtresna_timeout,
             max_level=args.grtresna_max_level,
             refine_threshold=args.grtresna_refine_threshold,
             regrid_radius=args.grtresna_regrid_radius,
@@ -263,6 +280,7 @@ def main() -> int:
         grtresna=use_grtresna,
         grtresna_base=grtresna_config,
         grtresna_solved_ftl_gate=False,
+        grtresna_convergence_config=grtresna_convergence_config,
     )
     print(
         json.dumps(

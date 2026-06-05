@@ -21,6 +21,7 @@ BUILD=1 bash grteclyn-wrapper/scripts/radial/run_radialrecipe_gpu_smoke.sh
 
 - [General Commands](#general-commands)
 - [CMA-ES Search](#cma-es-search)
+- [Shell 16D pipeline](#shell-16d-pipeline)
 - [MAP-Elites](#map-elites)
 - [Post-QD neighborhood refinement](#post-qd-neighborhood-refinement)
 - [Reference](#reference)
@@ -945,11 +946,157 @@ dominance, but still cannot win on the coupled term.
 
 ---
 
+## Shell 16D pipeline
+
+Production **full-sphere discovery** uses the `shell` ansatz: CMA-ES or MAP-Elites
+search **16 global parameters**, the wrapper expands them into `LUMPS` scalar clouds
+on a Fibonacci lattice over the whole 2-sphere, then every candidate follows the
+same GRTresna → GRTeclyn loop. Use this section as the map; [MAP-Elites](#map-elites),
+[Post-QD neighborhood refinement](#post-qd-neighborhood-refinement), and
+[Promotion](#promotion-eval_000057) sections hold launch commands and run history.
+
+### End-to-end stages
+
+```mermaid
+flowchart LR
+    subgraph shell["16D shell ansatz"]
+        V["16D vector"]
+        L["LUMPS=5 Fibonacci sites<br/>SHELL_PROFILE=compact"]
+        V --> L
+    end
+
+    subgraph s1["Stage 1 — Discovery"]
+        QD["MAP-Elites QD<br/>run_grtresna_qd_search.sh"]
+        A["archive.json<br/>path_closeness x mechanism"]
+    end
+
+    subgraph s2["Stage 2 — Refine optional"]
+        RF["CMA-ES warm start<br/>run_grtresna_search.sh<br/>runs/grtresna_refine/"]
+    end
+
+    subgraph s3["Stage 3 — Promote"]
+        PR["replay_grtresna_eval.py<br/>runs/grtresna_promote/"]
+        T["validate_tiers.py"]
+    end
+
+    L --> QD --> A
+    A -->|"trajectory.jsonl<br/>precursors only"| RF
+    A -->|"operational_ftl winners"| PR
+    RF -->|"op_ftl breakthrough"| PR
+    PR --> T
+```
+
+| Stage | Tool | Runs dir | Typical settings |
+|-------|------|----------|------------------|
+| 1 — discovery | MAP-Elites | `runs/grtresna_qd/qd_<ts>/` | `L=64 N=64`, `t=8–16`, `BINS=8–10` |
+| 2 — refine (optional) | CMA-ES warm start | `runs/grtresna_refine/optimize_<ts>/` | same shell 16D, `sigma0=0.10`, `t=16` |
+| 3 — promote | replay / batch | `runs/grtresna_promote/` | higher `N`, longer `t`, fresh GRTresna |
+
+Skip stage 2 when QD already yields **`operational_ftl > 0`** elites and go straight
+to stage 3 (`run_promote_qd_operational_batch.sh`).
+
+### Per-eval loop
+
+Every QD iteration and every CMA-ES generation member runs this pipeline:
+
+```mermaid
+flowchart TB
+    S["Sample 16D shell params"]
+    G["GRTresna MPI solve<br/>Ham + Mom constraints"]
+    G1{"Converged?"}
+    F["Solved-geometry FTL gate<br/>score gridinit at t=0"]
+    G2{"Pass gate?"}
+    I["initial_data.gridinit"]
+    U["GRTeclyn GPU evolve<br/>full-z box"]
+    C["consume_plotfiles<br/>frames + metrics"]
+    SC["ftl_first score"]
+    N["Next: archive cell or CMA-ES fitness"]
+
+    S --> G --> G1
+    G1 -->|reject| S
+    G1 -->|ok| F --> G2
+    G2 -->|reject| S
+    G2 -->|ok| I --> U --> C --> SC --> N
+```
+
+Rejections still teach the optimizer: GRTresna failures get graded Ham/Mom
+penalties; solved-FTL rejects get a cheap fitness gradient without spending GPU
+time.
+
+### 16D vector to matter
+
+```mermaid
+flowchart LR
+    V["16D shell vector"]
+    F["Fibonacci lattice<br/>5 lump sites on S²"]
+    M["Matter clouds<br/>toroidal + poloidal currents<br/>exotic sector on shell"]
+    G["GRTresna 3D solve"]
+    E["GPU evolution<br/>shift drive + FTL metrics"]
+
+    V --> F --> M --> G --> E
+```
+
+The 16 searched dimensions (bounds from `SHELL_PROFILE`):
+
+| Parameter | Role |
+|-----------|------|
+| `grtresna_shell_amp`, `width`, `radius`, `thickness` | cloud size and shell geometry |
+| `grtresna_shell_axis_theta`, `axis_phi` | orientation axis (full sphere, not equatorial ring) |
+| `grtresna_shell_toroidal_velocity` | circulation about axis — net angular momentum / warp motor |
+| `grtresna_shell_poloidal_velocity` | over-the-pole flow — topology ring ansatz cannot reach |
+| `grtresna_shell_radial_velocity`, `omega` | radial compression and internal rotation |
+| `grtresna_shell_dipole_amp`, `quadrupole_amp` | Legendre asymmetry along the axis |
+| `grtresna_shell_exotic_fraction`, `exotic_phase` | phantom sector placement |
+| `grtresna_shell_mode`, `radial_jitter` | azimuthal mode and radial placement noise |
+
+`LUMPS` sets Fibonacci placement resolution only; it does **not** add optimizer
+dimensions.
+
+### Resolution ladder
+
+```mermaid
+flowchart LR
+    D["QD search<br/>L=64 N=64 t=8<br/>max_level=2"]
+    R["Refine optional<br/>same L,N longer t=16"]
+    P["Promotion HQ<br/>L=128 N=256 t=50<br/>max_level=3"]
+    V["Falsification tiers<br/>T0 to T5"]
+
+    D --> R
+    D -->|"operational winners"| P
+    R -->|"op_ftl breakthrough"| P
+    P --> V
+```
+
+Promotion replays copy shell params from the source `eval_XXXXXX/`, run a **fresh
+GRTresna solve** at the new box width and resolution (or reuse `.gridinit` on
+GPU-only continuations — see [Promotion ladder](#promotion-ladder-results)).
+
+#### Current production batch
+
+Campaign `qd_20260605T155951Z` (`STOP_TIME=8`, `BINS=10`, 16 iterations) found
+multiple operational elites. Stage 3 is running via
+`run_promote_qd_operational_batch.sh`:
+
+| eval | promotion dir | GPU |
+|------|---------------|-----|
+| 011 | `l128n256_qd_eval011` | 0 |
+| 121 | `l128n256_qd_eval121` | 1 |
+| 106 | `l128n256_qd_eval106` | 2 |
+| 077 | `l128n256_qd_eval077` | 3 |
+| 117 | `l128n256_qd_eval117` | 4 |
+| 094 | `l128n256_qd_eval094` | 5 |
+| 058 | `l128n256_qd_eval058` | 6 |
+| 016 | `l128n256_qd_eval016` | 7 |
+
+Defaults: `L_FULL=128`, `N_FULL=256`, `STOP_TIME=50`, `operational_ftl >= 0.03`.
+
+---
+
 ## MAP-Elites
 
 Quality-diversity search via `run_grtresna_qd_search.sh`. Maintains an archive of
 elites indexed by behavior descriptors so multiple geometry families survive even
-when their scalar scores differ.
+when their scalar scores differ. Pipeline diagrams: [Shell 16D pipeline](#shell-16d-pipeline).
 
 ### Overview
 
@@ -1084,7 +1231,8 @@ no operational FTL) that a scalar-only optimizer would have discarded once
 
 ### Promotion: eval_000057
 
-After the QD breakthrough, the winner was promoted through a resolution/time ladder
+Stage 3 in the [Shell 16D pipeline](#shell-16d-pipeline) diagrams. After the QD
+breakthrough, the winner was promoted through a resolution/time ladder
 using `scripts/search/replay_grtresna_eval.py` and
 `scripts/search/run_tier2_grtresna_qd_eval057.sh`. Outputs live under
 `runs/grtresna_promote/`. This is the **T5 resolution-converged** evidence path
@@ -1307,7 +1455,8 @@ or loads a pre-solved `.gridinit` via `recipe_initial_data_file`.
 
 ## Post-QD neighborhood refinement
 
-After a MAP-Elites QD campaign finds diverse **precursor** elites (high
+Stage 2 in the [Shell 16D pipeline](#shell-16d-pipeline) diagrams. After a
+MAP-Elites QD campaign finds diverse **precursor** elites (high
 `ftl_precursor`, `channel_progress`, path closeness) but still no true evolved
 shortcut (`operational_ftl = 0`), run a **second stage**: CMA-ES warm-started
 from the QD `trajectory.jsonl` with **small step sizes** so the optimizer

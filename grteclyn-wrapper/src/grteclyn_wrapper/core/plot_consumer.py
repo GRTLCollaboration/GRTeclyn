@@ -77,8 +77,12 @@ def build_consume_command(
         center = (*center, *([0.0] * (3 - len(center))))
     center = center[:3]
     l_full = _read_float_param(episode.params_path, "L_full", 40.0)
-    zoom_env = os.environ.get("GRTECLYN_FRAMES_ZOOM", "").strip()
-    frame_zoom = float(zoom_env) if zoom_env else l_full
+    zoom_env = os.environ.get("GRTECLYN_FRAMES_ZOOM", "").strip().lower()
+    frame_zoom: float | None
+    if zoom_env in {"", "none", "off", "full", "no", "0"}:
+        frame_zoom = None
+    else:
+        frame_zoom = float(zoom_env)
 
     command = [
         *resolve_consume_python(),
@@ -155,12 +159,12 @@ def build_consume_command(
                     "z",
                     "--frames-center",
                     *[f"{value:g}" for value in center],
-                    "--frames-zoom",
-                    f"{frame_zoom:g}",
                     "--frames-out",
                     str(episode.frames_dir),
                 ]
             )
+            if frame_zoom is not None:
+                command.extend(["--frames-zoom", f"{frame_zoom:g}"])
             if projection_fields and projection_axes:
                 command.extend(
                     [
