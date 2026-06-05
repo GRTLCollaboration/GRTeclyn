@@ -755,6 +755,9 @@ def _load_warm_start_vectors(
                     continue
                 if rec.get("surrogate_predicted"):
                     continue
+                status = rec.get("status")
+                if isinstance(status, str) and status != "gpu_ok":
+                    continue
                 score = rec.get("score")
                 overrides = rec.get("overrides")
                 if not isinstance(overrides, Mapping):

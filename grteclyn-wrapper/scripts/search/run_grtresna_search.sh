@@ -57,6 +57,7 @@ GRTRESNA_MAX_LEVEL="${GRTRESNA_MAX_LEVEL:-3}"
 GRTRESNA_REFINE_THRESHOLD="${GRTRESNA_REFINE_THRESHOLD:-0.5}"
 GRTRESNA_REGRID_RADIUS="${GRTRESNA_REGRID_RADIUS:-0}"
 GRTRESNA_JACOBIAN_CAP="${GRTRESNA_JACOBIAN_CAP:-25.0}"
+GRTRESNA_TIMEOUT="${GRTRESNA_TIMEOUT:-900}"
 GRTRESNA_EVOLUTION_L_FULL="${GRTRESNA_EVOLUTION_L_FULL:-64.0}"
 GRTRESNA_EVOLUTION_N_FULL="${GRTRESNA_EVOLUTION_N_FULL:-64}"
 GRTRESNA_DOMAIN_L="${GRTRESNA_DOMAIN_L:-128.0}"
@@ -71,6 +72,8 @@ GPU_IDS="${GPU_IDS:-0 1 2 3}"
 POPULATION="${POPULATION:-$(wc -w <<< "${GPU_IDS}")}"
 SEED="${SEED:-7}"
 SIGMA0="${SIGMA0:-0.3}"
+STOP_TIME="${STOP_TIME:-2.0}"
+PLOT_INTERVAL="${PLOT_INTERVAL:-10}"
 OBJECTIVE_MODE="${OBJECTIVE_MODE:-ftl_first}"
 RANDOM_INJECTION_FRACTION="${RANDOM_INJECTION_FRACTION:-0.25}"
 EXOTIC_INJECTION_FRACTION="${EXOTIC_INJECTION_FRACTION:-0.25}"
@@ -111,7 +114,7 @@ fi
 # (nargs="+"), so it must not be the last global arg or it would swallow the
 # "optimize" subcommand token. We always terminate the global section with the
 # single-valued --ftl-L so the subcommand boundary is unambiguous.
-PRE_ARGS=(--runs-dir "${RUNS_DIR}" --example RadialRecipe --consumer-radii ${CONSUMER_RADII})
+PRE_ARGS=(--runs-dir "${RUNS_DIR}" --example RadialRecipe --set stop_time="${STOP_TIME}" --set plot_interval="${PLOT_INTERVAL}" --consumer-radii ${CONSUMER_RADII})
 if [[ "${DRY_RUN:-0}" == "1" ]]; then
   PRE_ARGS+=(--dry-run)
 fi
@@ -205,6 +208,7 @@ exec ${PYTHON_BIN} -m grteclyn_wrapper \
   "${DOMAIN_ARGS[@]}" \
   --grtresna-ranks "${RANKS}" \
   --grtresna-iterations "${ITERATIONS}" \
+  --grtresna-timeout "${GRTRESNA_TIMEOUT}" \
   --grtresna-max-level "${GRTRESNA_MAX_LEVEL}" \
   --grtresna-refine-threshold "${GRTRESNA_REFINE_THRESHOLD}" \
   --grtresna-regrid-radius "${GRTRESNA_REGRID_RADIUS}" \

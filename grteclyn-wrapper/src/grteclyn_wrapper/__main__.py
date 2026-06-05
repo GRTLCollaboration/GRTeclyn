@@ -243,6 +243,7 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
         grtresna_config = GRTresnaConfig(
             mpi_ranks=getattr(args, "grtresna_ranks", 8),
             max_NL_iterations=getattr(args, "grtresna_iterations", 50),
+            timeout=getattr(args, "grtresna_timeout", 3600),
             max_level=getattr(args, "grtresna_max_level", 3),
             refine_threshold=getattr(args, "grtresna_refine_threshold", 0.5),
             regrid_radius=getattr(args, "grtresna_regrid_radius", 0.0),
@@ -417,6 +418,7 @@ def _run_qd_command(args: argparse.Namespace, base_overrides: dict[str, Any]) ->
         grtresna_config = GRTresnaConfig(
             mpi_ranks=getattr(args, "grtresna_ranks", 8),
             max_NL_iterations=getattr(args, "grtresna_iterations", 50),
+            timeout=getattr(args, "grtresna_timeout", 3600),
             max_level=getattr(args, "grtresna_max_level", 3),
             refine_threshold=getattr(args, "grtresna_refine_threshold", 0.5),
             regrid_radius=getattr(args, "grtresna_regrid_radius", 0.0),
@@ -791,6 +793,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Max non-linear iterations per GRTresna solve (default: 50).",
     )
     opt.add_argument(
+        "--grtresna-timeout", type=int, default=3600,
+        help="Wall-clock timeout in seconds for each GRTresna solve.",
+    )
+    opt.add_argument(
         "--grtresna-max-level", type=int, default=3,
         help="Max AMR level for each GRTresna solve (default: 3).",
     )
@@ -898,6 +904,7 @@ def build_parser() -> argparse.ArgumentParser:
     qd.add_argument("--grtresna-gridinit-ny", type=int, default=64)
     qd.add_argument("--grtresna-gridinit-nz", type=int, default=64)
     qd.add_argument("--grtresna-iterations", type=int, default=50)
+    qd.add_argument("--grtresna-timeout", type=int, default=3600, help="Wall-clock timeout in seconds for each GRTresna solve.")
     qd.add_argument("--grtresna-max-level", type=int, default=3)
     qd.add_argument("--grtresna-refine-threshold", type=float, default=0.5)
     qd.add_argument("--grtresna-regrid-radius", type=float, default=0.0)

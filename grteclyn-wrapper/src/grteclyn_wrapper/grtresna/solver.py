@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import os
+import signal
 import shutil
 import subprocess
 import tempfile
@@ -437,14 +438,37 @@ def solve(
         cfg.mpi_ranks, cfg.max_NL_iterations, cfg.N, cfg.L, launch_desc,
     )
 
-    result = subprocess.run(
+    proc = subprocess.Popen(
         cmd_parts,
         cwd=str(work_dir),
-        capture_output=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         text=True,
-        timeout=cfg.timeout,
         env=run_env,
+        start_new_session=True,
     )
+    try:
+        stdout, stderr = proc.communicate(timeout=cfg.timeout)
+    except subprocess.TimeoutExpired as exc:
+        try:
+            os.killpg(proc.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        try:
+            stdout, stderr = proc.communicate(timeout=10)
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            stdout, stderr = proc.communicate()
+        raise RuntimeError(
+            f"GRTresna timed out after {cfg.timeout}s:\n"
+            f"stdout: {stdout[-2000:]}\n"
+            f"stderr: {stderr[-2000:]}"
+        ) from exc
+
+    result = subprocess.CompletedProcess(cmd_parts, proc.returncode, stdout, stderr)
     if result.returncode != 0:
         raise RuntimeError(
             f"GRTresna failed (rc={result.returncode}):\n"

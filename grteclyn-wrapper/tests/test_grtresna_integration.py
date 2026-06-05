@@ -17,6 +17,7 @@ from grteclyn_wrapper.core.episode import create_episode
 from grteclyn_wrapper.core.plot_consumer import build_consume_command
 from grteclyn_wrapper.core.params import write_params
 from grteclyn_wrapper.metrics.episode_metrics import (
+    ComovingMetrics,
     CurvatureInvariantMetrics,
     EpisodeMetrics,
 )
@@ -409,9 +410,11 @@ def _metrics_with_general_ftl(
     superluminal_fraction: float,
     max_shift: float,
     max_l2_ricci: float = 2.0,
+    f_op: float = 0.0,
+    stationary: bool = False,
 ) -> EpisodeMetrics:
     report = GeneralFtlReport(
-        f_op=0.0,
+        f_op=f_op,
         t_min=t_min,
         t_flat=t_flat,
         max_local_speed=max_local_speed,
@@ -425,9 +428,14 @@ def _metrics_with_general_ftl(
         collapse=None,
         constraints=None,
         stability=None,
-        comoving=None,
         ftl=None,
         termination_reason="test",
+        comoving=ComovingMetrics(
+            beta_mean=0.0,
+            delta_comoving=None,
+            score=None,
+            stationary=True,
+        ) if stationary else None,
         curvature=CurvatureInvariantMetrics(
             final_time=2.0,
             max_abs_ricci_scalar=0.0,
@@ -508,6 +516,42 @@ def test_channel_progress_ranks_eval128_style_below_coupled_but_above_shift_only
     assert s128.components["channel_progress"] > s57.components["channel_progress"]
     assert s128.components["ftl_precursor"] > s57.components["ftl_precursor"]
     assert s57.components["shift_drive"] > s128.components["shift_drive"]
+
+
+def test_weak_stationary_shortcut_is_not_scored_as_operational_ftl() -> None:
+    weak_lens = _metrics_with_general_ftl(
+        t_min=15.55,
+        t_flat=15.75,
+        max_local_speed=1.196,
+        superluminal_fraction=1.0,
+        max_shift=0.038,
+        f_op=0.0127,
+        stationary=True,
+    )
+
+    score = score_episode(weak_lens, objective_mode="ftl_first")
+
+    assert score.components["operational_ftl"] == 0.0
+    assert score.components["channel_progress"] > 0.0
+    assert score.components["stationary_artifact_penalty"] < 0.0
+    assert score.total < 1000.0
+
+
+def test_strong_evolved_shortcut_gets_operational_ftl_reward() -> None:
+    strong = _metrics_with_general_ftl(
+        t_min=14.8,
+        t_flat=15.75,
+        max_local_speed=1.25,
+        superluminal_fraction=0.2,
+        max_shift=0.12,
+        f_op=0.060,
+    )
+
+    score = score_episode(strong, objective_mode="ftl_first")
+
+    assert score.components["operational_ftl"] > 0.0
+    assert score.components["stationary_artifact_penalty"] == 0.0
+    assert score.total > 500.0
 
 
 def test_bad_grtresna_convergence_is_rejected_before_evolution() -> None:

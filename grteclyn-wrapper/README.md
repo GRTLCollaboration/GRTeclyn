@@ -22,6 +22,7 @@ BUILD=1 bash grteclyn-wrapper/scripts/radial/run_radialrecipe_gpu_smoke.sh
 - [General Commands](#general-commands)
 - [CMA-ES Search](#cma-es-search)
 - [MAP-Elites](#map-elites)
+- [Post-QD neighborhood refinement](#post-qd-neighborhood-refinement)
 - [Reference](#reference)
 
 ---
@@ -66,18 +67,24 @@ consumers. When stopping a run, kill the whole campaign process tree and verify
 both CPU and GPU state:
 
 ```bash
-# Graceful first pass for all wrapper-started GRTresna searches.
+# Graceful first pass for all wrapper-started GRTresna searches (CMA-ES, QD, refine).
 pkill -TERM -f 'runs/grtresna_search'
+pkill -TERM -f 'runs/grtresna_qd'
+pkill -TERM -f 'runs/grtresna_refine'
 pkill -TERM -f 'run_grtresna_search.sh'
+pkill -TERM -f 'run_grtresna_qd_search.sh'
 sleep 5
 
 # Force any stubborn solver / consumer leftovers.
 pkill -KILL -f 'runs/grtresna_search'
+pkill -KILL -f 'runs/grtresna_qd'
+pkill -KILL -f 'runs/grtresna_refine'
 pkill -KILL -f 'run_grtresna_search.sh'
+pkill -KILL -f 'run_grtresna_qd_search.sh'
 
 # Verify no search CPU processes remain.
 ps -eo pid,ppid,pgid,pcpu,pmem,etime,args \
-  | awk '/run_grtresna_search|grteclyn_wrapper|Main_ScalarFieldBH3d|main3d.gnu.CUDA.ex|consume_plotfiles|prterun|mpirun|orterun/ && !/awk/ {print}'
+  | awk '/run_grtresna_search|run_grtresna_qd_search|grteclyn_wrapper|Main_ScalarFieldBH3d|main3d.gnu.CUDA.ex|consume_plotfiles|prterun|mpirun|orterun/ && !/awk/ {print}'
 
 # Verify GPUs are free.
 nvidia-smi
@@ -172,7 +179,8 @@ consistently.
 | Script | Use for | Key env vars |
 |--------|---------|--------------|
 | `run_grtresna_search.sh` | **Current matter-first production search**. Each candidate: MPI GRTresna solve (`RANKS=8` default) → `.gridinit` → GRTeclyn GPU evolution for survivors; plotfiles streamed/deleted. | `GRTRESNA_ANSATZ`, `GPU_IDS`, `LUMPS`, `RANKS` (MPI ranks per solve), `MAX_GENERATIONS`, `NO_CONSUME`, `WARM_START_TRAJECTORY` |
-| `run_grtresna_qd_search.sh` | **MAP-Elites quality-diversity** over the GRTresna shell space (archive of diverse FTL families). | `QD_ITERATIONS`, `BINS`, `GPU_IDS`, `SHELL_PROFILE`, `LUMPS` |
+| `run_grtresna_qd_search.sh` | **MAP-Elites quality-diversity** over the GRTresna shell space (archive of diverse FTL families). | `QD_ITERATIONS`, `BINS`, `GPU_IDS`, `SHELL_PROFILE`, `LUMPS`, `STOP_TIME`, `GRTRESNA_TIMEOUT` |
+| `run_grtresna_search.sh` (with `WARM_START_TRAJECTORY`) | **Post-QD neighborhood refinement**: CMA-ES warm-started from QD elites with small `sigma0` / jitter. | `WARM_START_TRAJECTORY`, `WARM_START_TOP_K`, `WARM_START_JITTER`, `SIGMA0`, `RUNS_DIR` |
 | `run_tier2_grtresna_qd_eval057.sh` | **HQ promotion** of QD winner `eval_000057`: GRTresna+GPU or GPU-only (`GRIDINIT_SOURCE`). | `N_FULL`, `MAX_LEVEL`, `STOP_TIME`, `GRIDINIT_SOURCE`, `SOURCE_EVAL` |
 | `replay_grtresna_eval.py` | Python entry for single promotion replays (`--gridinit` skips GRTresna). | CLI flags mirror the shell script |
 | `run_radialrecipe_gpu_smoke.sh` | Single GPU smoke/build run for RadialRecipe seeds/candidates. Use after C++ changes. | `BUILD`, `CUDA_VISIBLE_DEVICES_OVERRIDE`, `SEED_NAME`, `CANDIDATE_ID`, `NONSPHERICAL_ID` |
@@ -544,6 +552,11 @@ Default production knobs in the launcher:
 | `RANDOM_INJECTION_FRACTION` | `0.25` | per-generation random candidates |
 | `EXOTIC_INJECTION_FRACTION` | `0.25` | forced exotic-pattern candidates |
 | `WARM_START_TRAJECTORY` | unset | comma-separated prior `trajectory.jsonl` files |
+| `WARM_START_TOP_K` | `8` | top `gpu_ok` rows loaded from each warm-start trajectory |
+| `WARM_START_JITTER` | `0.08` | fraction of each parameter range used to jitter warm-start seeds |
+| `GRTRESNA_TIMEOUT` | `900` | wall-clock seconds per GRTresna solve before skip (`--grtresna-timeout`) |
+| `STOP_TIME` | `2.0` | GPU evolution stop time (override to `16` for long QD/refine runs) |
+| `PLOT_INTERVAL` | `10` | plotfile cadence (e.g. `48` at `t=16`) |
 | `PROJECTION_FIELDS` | `scalar_activity` | 3D placement diagnostics |
 | `PROJECTION_AXES` | `x y z` | max-intensity projections through the 3D cloud |
 
@@ -973,6 +986,10 @@ Campaign outputs live under `runs/grtresna_qd/qd_<timestamp>/`:
 `trajectory.jsonl` (per-eval scores), `archive.json`, `eval_XXXXXX/` dirs with
 `score.json` and optional frames.
 
+After QD finds strong precursor elites, continue with
+[Post-QD neighborhood refinement](#post-qd-neighborhood-refinement) (CMA-ES
+warm-started from `trajectory.jsonl`).
+
 ### Run MAP-Elites
 
 ```bash
@@ -988,6 +1005,9 @@ QD_ITERATIONS=8 BINS=8 GPU_IDS="0 1 2 3 4 5 6 7" RANKS=8 \
 | `GPU_IDS` | script default | GPUs for parallel evals |
 | `SHELL_PROFILE` | `compact` | Shell bounds preset (same as CMA-ES) |
 | `LUMPS` | `5` | Fibonacci placement sites on the sphere |
+| `STOP_TIME` | `2.0` | GPU evolution stop time (use `16` for long discovery runs) |
+| `PLOT_INTERVAL` | `10` | plotfile cadence |
+| `GRTRESNA_TIMEOUT` | `900` | wall-clock seconds per GRTresna solve before skip |
 
 Campaign outputs live under `runs/grtresna_qd/qd_<timestamp>/`:
 `trajectory.jsonl` (per-eval scores), `archive.json`, `eval_XXXXXX/` dirs with
@@ -1282,6 +1302,171 @@ Key env knobs on `run_tier2_grtresna_qd_eval057.sh`:
 
 Unlike `reproduce` (recipe-coeff replays), this path runs **GRTresna shell matter**
 or loads a pre-solved `.gridinit` via `recipe_initial_data_file`.
+
+---
+
+## Post-QD neighborhood refinement
+
+After a MAP-Elites QD campaign finds diverse **precursor** elites (high
+`ftl_precursor`, `channel_progress`, path closeness) but still no true evolved
+shortcut (`operational_ftl = 0`), run a **second stage**: CMA-ES warm-started
+from the QD `trajectory.jsonl` with **small step sizes** so the optimizer
+explores a tight neighborhood around the best cells instead of the full shell
+box again.
+
+### Why two stages?
+
+| Stage | Tool | What it optimizes | Strength | Weakness |
+|-------|------|-------------------|----------|----------|
+| 1 — discovery | MAP-Elites (`run_grtresna_qd_search.sh`) | Fill a behavior grid (`path_closeness` × `mechanism_balance`) with diverse elites | Keeps multiple geometry families alive; finds strong precursors CMA-ES would discard | Slow; can reward stationary lens artifacts unless scoring is strict |
+| 2 — refinement | CMA-ES (`run_grtresna_search.sh` + warm start) | Maximize scalar score near known good seeds | Efficient local climb; reuses QD winners as generation 0 | Collapses to one basin if `sigma0` is too large |
+
+The refinement stage does **not** replace QD. It assumes QD already mapped where
+the interesting precursors live, then asks: *can a small parameter nudge turn that
+precursor into a real shortcut?*
+
+### Scoring during refinement
+
+Use the same **`objective_mode=ftl_first`** objective and stricter
+`operational_ftl` floor documented in `metrics/score.py` (2026-06-05). A higher
+scalar score during refinement is only meaningful if it comes with:
+
+- lower `t_min` relative to `t_flat` (path getting faster),
+- higher `channel_progress` (coupled path + precursor + shift),
+- eventually `operational_ftl > 0` (`F_op^ev ≥ 0.03` under the current floor).
+
+Candidates that only raise `ftl_precursor` without shift or path progress are the
+same failure mode as the old QD “stationary lens” winners. The warm-start loader
+only seeds from rows with `status=gpu_ok` (rejected or killed GPU runs are
+skipped).
+
+### Stage 1 — MAP-Elites QD (broad search)
+
+Longer GPU evolution (`t=16`) with channel descriptors and GRTresna timeout so
+one bad elliptic solve does not hang the batch:
+
+```bash
+cd grteclyn-wrapper/scripts/search
+
+STOP_TIME=16 PLOT_INTERVAL=48 \
+QD_ITERATIONS=16 BINS=10 \
+GPU_IDS="0 1 2 3 4 5 6 7" BATCH_SIZE=8 \
+RANKS=8 LUMPS=5 SHELL_PROFILE=compact SEED=13 \
+GRTRESNA_TIMEOUT=900 \
+SOLVED_FTL_NEAR_LUMINAL_SPEED_FLOOR=0.98 \
+SOLVED_FTL_SUPERLUMINAL_SPEED_FLOOR=1.02 \
+SOLVED_FTL_SUPERLUMINAL_FRACTION_FLOOR=0.03 \
+bash run_grtresna_qd_search.sh
+```
+
+Outputs: `runs/grtresna_qd/qd_<timestamp>/` with live `trajectory.jsonl`
+(per-eval append), `archive.json`, and `eval_XXXXXX/` dirs.
+
+Example completed campaign: `runs/grtresna_qd/qd_20260605T133932Z/` (121 evals).
+Best `gpu_ok` precursor: **`eval_000058`**, score **233.8**,
+`ftl_precursor≈0.96`, `channel_progress≈0.30`, **`operational_ftl=0`**.
+
+Monitor live:
+
+```bash
+watch -n 5 'wc -l runs/grtresna_qd/qd_<timestamp>/trajectory.jsonl; tail -1 runs/grtresna_qd/qd_<timestamp>/trajectory.jsonl | python3 -m json.tool | head -25'
+```
+
+### Stage 2 — CMA-ES neighborhood refinement (warm start)
+
+Point `WARM_START_TRAJECTORY` at the QD `trajectory.jsonl`, use a **separate**
+runs directory, and tighten exploration:
+
+```bash
+cd grteclyn-wrapper/scripts/search
+
+RUNS_DIR=../../runs/grtresna_refine \
+WARM_START_TRAJECTORY=../../runs/grtresna_qd/qd_20260605T133932Z/trajectory.jsonl \
+WARM_START_TOP_K=10 \
+WARM_START_JITTER=0.05 \
+SIGMA0=0.10 \
+MAX_GENERATIONS=12 \
+POPULATION=8 \
+SEED=17 \
+STOP_TIME=16 \
+PLOT_INTERVAL=48 \
+GRTRESNA_ANSATZ=shell \
+SHELL_PROFILE=compact \
+GRTRESNA_FULL_Z=1 \
+GRTRESNA_TIMEOUT=900 \
+RANDOM_INJECTION_FRACTION=0.10 \
+EXOTIC_INJECTION_FRACTION=0.10 \
+GPU_IDS="0 1 2 3 4 5 6 7" \
+RANKS=8 ITERATIONS=30 \
+SOLVED_FTL_NEAR_LUMINAL_SPEED_FLOOR=0.98 \
+SOLVED_FTL_SUPERLUMINAL_SPEED_FLOOR=1.02 \
+SOLVED_FTL_SUPERLUMINAL_FRACTION_FLOOR=0.03 \
+bash run_grtresna_search.sh
+```
+
+Outputs: `runs/grtresna_refine/optimize_<timestamp>/`. Unlike QD, CMA-ES writes
+`trajectory.jsonl` **once per generation** (after all 8 batch members finish),
+so an empty file during gen 1 GRTresna is normal.
+
+| Knob | Refine value | Role |
+|------|-------------|------|
+| `WARM_START_TOP_K` | `10` | seed from top 10 QD `gpu_ok` elites, not only the single best |
+| `WARM_START_JITTER` | `0.05` | small random nudge on seeds 2…K in generation 0 |
+| `SIGMA0` | `0.10` | tight CMA-ES step (default `0.3` is for fresh discovery) |
+| `RANDOM_INJECTION_FRACTION` | `0.10` | keep a little global exploration (default `0.25`) |
+| `GRTRESNA_TIMEOUT` | `900` | skip hung GRTresna solves after 15 min |
+| `STOP_TIME` | `16` | match QD evolution length for comparable scores |
+
+Monitor:
+
+```bash
+watch -n 10 'wc -l runs/grtresna_refine/optimize_<timestamp>/trajectory.jsonl 2>/dev/null; ls -d runs/grtresna_refine/optimize_<timestamp>/eval_* 2>/dev/null | wc -l'
+```
+
+Quick score triage after a generation lands:
+
+```bash
+cd runs/grtresna_refine/optimize_<timestamp>
+python3 - <<'PY'
+import json
+rows = [json.loads(l) for l in open("trajectory.jsonl") if l.strip()]
+for r in sorted(rows, key=lambda x: -x.get("score", 0))[:8]:
+    c = r.get("components") or {}
+    print(f"eval_{r['eval']:06d} score={r['score']:.1f} status={r['status']} "
+          f"prec={c.get('ftl_precursor',0):.3f} ch={c.get('channel_progress',0):.3f} "
+          f"shift={c.get('shift_drive',0):.3f} op={c.get('operational_ftl',0):.3f}")
+PY
+```
+
+### Example refine run (in progress)
+
+Campaign: `runs/grtresna_refine/optimize_20260605T150015Z/`
+
+Early read after generation 1–2:
+
+| Eval | Score | Notes |
+|------|------:|-------|
+| `eval_000012` | 233.9 | marginal new best (+0.05 vs QD `eval_058`) |
+| `eval_000001` | 233.8 | exact warm-start copy of QD `eval_058` |
+| `eval_000009`–`011` | 226–228 | tight cluster around the leader |
+
+All survivors still **`operational_ftl=0`**. The optimizer is orbiting the same
+precursor basin; gen 3+ may escape if shift/path terms improve together.
+
+### When refinement is not enough
+
+If several CMA-ES generations stay pinned near the QD best with `op_ftl=0`:
+
+1. **Widen slightly** — `SIGMA0=0.15`, `WARM_START_JITTER=0.08`, or raise
+   `RANDOM_INJECTION_FRACTION` to `0.20`.
+2. **Bias a different QD family** — warm-start from shift-heavy elites
+   (`eval_062`, `eval_086`) instead of only path/precursor leaders.
+3. **Return to QD** with warm-start flags (future: `qd --warm-start-trajectory`)
+   if you need diversity *and* local search in one archive.
+
+Promote any refine winner that gains **`operational_ftl > 0`** through the same
+[Promotion ladder](#promotion-eval_000057) used for QD elites (`replay_grtresna_eval.py`,
+longer `stop_time`, higher `N_full`).
 
 #### Frames, movies, and visualization fixes
 

@@ -31,6 +31,7 @@ GRTRESNA_MAX_LEVEL="${GRTRESNA_MAX_LEVEL:-3}"
 GRTRESNA_REFINE_THRESHOLD="${GRTRESNA_REFINE_THRESHOLD:-0.5}"
 GRTRESNA_REGRID_RADIUS="${GRTRESNA_REGRID_RADIUS:-0}"
 GRTRESNA_JACOBIAN_CAP="${GRTRESNA_JACOBIAN_CAP:-25.0}"
+GRTRESNA_TIMEOUT="${GRTRESNA_TIMEOUT:-900}"
 GRTRESNA_EVOLUTION_L_FULL="${GRTRESNA_EVOLUTION_L_FULL:-64.0}"
 GRTRESNA_EVOLUTION_N_FULL="${GRTRESNA_EVOLUTION_N_FULL:-64}"
 GRTRESNA_DOMAIN_L="${GRTRESNA_DOMAIN_L:-128.0}"
@@ -45,6 +46,8 @@ BINS="${BINS:-8}"
 GPU_IDS="${GPU_IDS:-0 1 2 3}"
 BATCH_SIZE="${BATCH_SIZE:-$(wc -w <<< "${GPU_IDS}")}"
 SEED="${SEED:-7}"
+STOP_TIME="${STOP_TIME:-2.0}"
+PLOT_INTERVAL="${PLOT_INTERVAL:-10}"
 
 SOLVED_FTL_F_OP_FLOOR="${SOLVED_FTL_F_OP_FLOOR:-1.0e-4}"
 SOLVED_FTL_NEAR_LUMINAL_SPEED_FLOOR="${SOLVED_FTL_NEAR_LUMINAL_SPEED_FLOOR:-0.95}"
@@ -87,6 +90,8 @@ fi
 exec ${PYTHON_BIN} -m grteclyn_wrapper \
   --runs-dir "${RUNS_DIR}" \
   --example RadialRecipe \
+  --set stop_time="${STOP_TIME}" \
+  --set plot_interval="${PLOT_INTERVAL}" \
   "${DRY_RUN_ARGS[@]}" \
   --consume-plotfiles \
   --consumer-delete \
@@ -108,6 +113,7 @@ exec ${PYTHON_BIN} -m grteclyn_wrapper \
   "${DOMAIN_ARGS[@]}" \
   --grtresna-ranks "${RANKS}" \
   --grtresna-iterations "${ITERATIONS}" \
+  --grtresna-timeout "${GRTRESNA_TIMEOUT}" \
   --grtresna-max-level "${GRTRESNA_MAX_LEVEL}" \
   --grtresna-refine-threshold "${GRTRESNA_REFINE_THRESHOLD}" \
   --grtresna-regrid-radius "${GRTRESNA_REGRID_RADIUS}" \

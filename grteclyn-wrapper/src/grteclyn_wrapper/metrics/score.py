@@ -267,27 +267,44 @@ def score_episode(
         components["mechanism_descriptor"] = float(
             min(max(metrics.mechanism_descriptor, 0.0), 1.0)
         )
-    # Log-amplify against OP_FTL_SCALE so a genuine (small) *persistent* shortcut
-    # is a multi-point reward, while F_op^ev == 0 (the shortcut died, or no
-    # evolved plotfile survived to verify it) earns nothing.
-    OP_FTL_SCALE = 3.0e-3
-    components["operational_ftl"] = (
-        min(math.log1p(f_op_ev / OP_FTL_SCALE), 1.0)
-        if math.isfinite(f_op_ev) and f_op_ev > 0
-        else 0.0
-    )
+    # A tiny coordinate-time win is useful as a shaping signal, but it should not
+    # dominate the search.  The previous log scale saturated at F_op~0.01 and let
+    # quasi-stationary "warp lens" artifacts score as solved FTL.  Reserve the
+    # hard operational reward for a materially stronger evolved shortcut.
+    OP_FTL_FLOOR = 3.0e-2
+    OP_FTL_TARGET = 1.0e-1
+    if math.isfinite(f_op_ev) and f_op_ev > OP_FTL_FLOOR:
+        components["operational_ftl"] = min(
+            (f_op_ev - OP_FTL_FLOOR) / (OP_FTL_TARGET - OP_FTL_FLOOR),
+            1.0,
+        )
+    else:
+        components["operational_ftl"] = 0.0
     # Persistence diagnostic (not weighted): fraction of the t=0 arrival-time
     # advantage that survived to the final evolved slice.  ~1 => dynamically
     # sustained channel; ~0 => t=0 mirage.
     components["ftl_persistence"] = (
         float(min(max(f_op_ev / f_op_t0, 0.0), 1.0)) if f_op_t0 > 1.0e-9 else 0.0
     )
+    stationary_geometry = bool(metrics.comoving and metrics.comoving.stationary)
+    components["stationary_artifact_penalty"] = (
+        -1.0
+        if stationary_geometry
+        and f_op_ev > 0.0
+        and components["operational_ftl"] <= 0.0
+        else 0.0
+    )
     if metrics.general_ftl_evolved is not None:
         c_ev = metrics.general_ftl_evolved.max_local_speed
-        if c_ev > 1.0 and f_op_ev > 0.0:
+        if c_ev > 1.0 and components["operational_ftl"] > 0.0:
             notes.append(
-                "evolved geometry sustains a superluminal channel "
-                f"(max c = {c_ev:.3f}, F_op^ev = {f_op_ev:.3e}); persistent FTL"
+                "evolved geometry sustains a strong superluminal channel "
+                f"(max c = {c_ev:.3f}, F_op^ev = {f_op_ev:.3e}); operational FTL"
+            )
+        elif c_ev > 1.0 and f_op_ev > 0.0:
+            notes.append(
+                "weak evolved coordinate shortcut treated as channel progress, "
+                f"not solved FTL (max c = {c_ev:.3f}, F_op^ev = {f_op_ev:.3e})"
             )
         elif f_op_t0 > 0.0:
             notes.append(
@@ -531,6 +548,7 @@ def score_episode(
                 + 1.0 * components.get("energy_condition", 0.0)
             )
             + 1.0 * components.get("exotic_penalty", 0.0)
+            + 250.0 * components.get("stationary_artifact_penalty", 0.0)
         )
         notes.append("objective_mode=ftl_first: FTL/shift terms dominate health/stability")
     else:
