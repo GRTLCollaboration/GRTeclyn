@@ -415,8 +415,23 @@ def _render_slice_frame(
             "z": (physics_center[0], physics_center[1]),
         }[axis]
         x_offset, y_offset = display_offsets
-        ax.xaxis.set_major_formatter(FuncFormatter(lambda val, pos: _format_tick(val - x_offset, pos)))
-        ax.yaxis.set_major_formatter(FuncFormatter(lambda val, pos: _format_tick(val - y_offset, pos)))
+        x_ticks = ax.get_xticks()
+        left_x_native = float(x_ticks[0]) if len(x_ticks) else None
+
+        def _fmt_x(val, pos):
+            return _format_tick(val - x_offset, pos)
+
+        def _fmt_y(val, pos):
+            display = _format_tick(val - y_offset, pos)
+            # Bottom-left corner: x- and y-axis min ticks overlap (e.g. "-48 -48").
+            if pos == 0 and left_x_native is not None:
+                left_x_display = _format_tick(left_x_native - x_offset)
+                if display == left_x_display:
+                    return ""
+            return display
+
+        ax.xaxis.set_major_formatter(FuncFormatter(_fmt_x))
+        ax.yaxis.set_major_formatter(FuncFormatter(_fmt_y))
         ax.set_xlabel(r"$%s-%s_0$" % (xlabel_name, xlabel_name))
         ax.set_ylabel(r"$%s-%s_0$" % (ylabel_name, ylabel_name))
 
@@ -544,8 +559,22 @@ def _render_projection_frame(
         "z": (physics_center[0], physics_center[1]),
     }[axis]
     x_offset, y_offset = display_offsets
-    ax.xaxis.set_major_formatter(FuncFormatter(lambda val, pos: f"{float(val - x_offset):g}"))
-    ax.yaxis.set_major_formatter(FuncFormatter(lambda val, pos: f"{float(val - y_offset):g}"))
+    x_ticks = ax.get_xticks()
+    left_x_native = float(x_ticks[0]) if len(x_ticks) else None
+
+    def _proj_fmt_x(val, pos):
+        return f"{float(val - x_offset):g}"
+
+    def _proj_fmt_y(val, pos):
+        display = f"{float(val - y_offset):g}"
+        if pos == 0 and left_x_native is not None:
+            left_x_display = f"{float(left_x_native - x_offset):g}"
+            if display == left_x_display:
+                return ""
+        return display
+
+    ax.xaxis.set_major_formatter(FuncFormatter(_proj_fmt_x))
+    ax.yaxis.set_major_formatter(FuncFormatter(_proj_fmt_y))
     ax.set_xlabel(r"$%s-%s_0$" % (xlabel_name, xlabel_name))
     ax.set_ylabel(r"$%s-%s_0$" % (ylabel_name, ylabel_name))
 

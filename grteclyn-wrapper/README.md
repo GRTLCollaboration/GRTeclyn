@@ -602,6 +602,147 @@ Use this run for live monitoring. Its `trajectory.jsonl` should appear as soon a
 the first evaluation finishes scoring, and new rows should have distinct `eval`
 ids matching their `eval_XXXXXX` directories.
 
+#### Completed MAP-Elites run: `qd_20260605T062448Z`
+
+Campaign path: `runs/grtresna_qd/qd_20260605T062448Z/`
+
+| Stat | Value |
+|------|------:|
+| Iterations / ingested evals | 8 / 72 |
+| GPU survivors | 33 (46%) |
+| Archive elites | 12 (18.8% coverage) |
+| Best score | **1342.5** (`eval_000057`) |
+
+**Winner — `eval_000057`:** first operational superluminal shell elite in this
+campaign. At the search resolution (N=64, t=2) it reached `operational_ftl=1.0`,
+`path_closeness=1.0`, `ftl_precursor=0.89`, evolved **max c = 1.065**,
+`channel_progress=0.18`, score **1342.5**. Runner-up for path quality:
+`eval_000025` (`channel_progress=0.28`, no operational FTL). Inspect frames under
+`eval_000057/frames/{local_speed,shift1,rho_req,scalar_activity}_z/`.
+
+Compared with the contemporary CMA-ES baseline (`runs/grtresna_search/`), MAP-Elites
+found an **operational** FTL survivor where CMA-ES had not; the archive also kept
+diverse precursors (`eval_000025`, etc.) that a scalar optimizer would have
+discarded.
+
+### High-performance promotion: `eval_000057` → `runs/grtresna_promote/`
+
+After the QD breakthrough, the winner was promoted through a resolution/time ladder
+using `scripts/search/replay_grtresna_eval.py` and
+`scripts/search/run_tier2_grtresna_qd_eval057.sh`. Outputs live under
+`runs/grtresna_promote/`. This is the **T5 resolution-converged** evidence path
+for falsification tier `converged` (see tiers below).
+
+#### Promotion ladder (results)
+
+| Run | GRTresna | N | max_level | t | max c (evolved) | F_op ev | channel_prog | score | Notes |
+|-----|----------|--:|----------:|--:|----------------:|--------:|-------------:|------:|-------|
+| `eval_000057` (search) | yes | 64 | 2 | 2 | 1.065 | 0.009 | 0.18 | 1342 | QD winner |
+| `val16hq_qd_eval057` | yes | 96 | 2 | 16 | 1.181 | 0.072 | 0.52 | 1450 | first HQ replay |
+| `val16hq2_qd_eval057` | yes | 128 | 3 | 16 | 1.192 | 0.073 | 0.53 | **1457** | best t=16 HQ |
+| `val30hq_qd_eval057` | **no** (reused gridinit) | 128 | 3 | **30** | **1.276** | **0.126** | 0.47 | 1289 | long GPU-only |
+
+**Read on the ladder:** channel **persists and strengthens** at higher resolution
+and longer time — `max c` rises from 1.065 → 1.276 and `F_op` from 0.009 → 0.126.
+`operational_ftl` stays 1.0 through t=30. The lower scalar score on `val30hq` is
+mostly bookkeeping (`operational_ftl_solved=0` because no GRTresna rescore was run,
+higher `exotic_penalty` over a longer window), not loss of the superluminal signal.
+
+#### How to launch promotion replays
+
+Full replay (GRTresna solve + GPU), from the QD winner:
+
+```bash
+cd grteclyn-wrapper/scripts/search
+
+# Defaults: N=128, max_level=3, t=16, frames_zoom=L_full
+GPU=0 NAME=val16hq2_qd_eval057 \
+  bash run_tier2_grtresna_qd_eval057.sh
+```
+
+GPU-only continuation (reuse an existing `.gridinit`, skip GRTresna):
+
+```bash
+SOURCE_EVAL=../../runs/grtresna_promote/val16hq2_qd_eval057 \
+GRIDINIT_SOURCE=../../runs/grtresna_promote/val16hq2_qd_eval057/initial_data.gridinit \
+N_FULL=128 MAX_LEVEL=3 STOP_TIME=30 \
+GPU=0 NAME=val30hq_qd_eval057 \
+  bash run_tier2_grtresna_qd_eval057.sh
+```
+
+Direct Python API (same logic):
+
+```bash
+uv run python scripts/search/replay_grtresna_eval.py \
+  runs/grtresna_qd/qd_20260605T062448Z/eval_000057 \
+  --name val16hq2_qd_eval057 --runs-dir ../runs/grtresna_promote \
+  --gpu 0 --n-full 128 --max-level 3 --stop-time 16
+
+# GPU-only long run:
+uv run python scripts/search/replay_grtresna_eval.py \
+  runs/grtresna_promote/val16hq2_qd_eval057 \
+  --name val30hq_qd_eval057 --runs-dir ../runs/grtresna_promote \
+  --gpu 0 --n-full 128 --max-level 3 --stop-time 30 \
+  --gridinit runs/grtresna_promote/val16hq2_qd_eval057/initial_data.gridinit
+```
+
+Key env knobs on `run_tier2_grtresna_qd_eval057.sh`:
+
+| Env var | Default | Meaning |
+|---------|---------|---------|
+| `N_FULL` | 128 | Base grid resolution (`L_full` scales with N) |
+| `MAX_LEVEL` | 3 | GPU AMR depth |
+| `STOP_TIME` | 16 | Evolution stop time |
+| `PLOT_INTERVAL` | 48 | Plotfile cadence (~33 frames at t=16) |
+| `GRIDINIT_SOURCE` | (unset) | If set, skip GRTresna and load this `.gridinit` |
+| `SOURCE_EVAL` | `eval_000057` | Metadata/overrides source directory |
+| `GRTECLYN_FRAMES_ZOOM` | `N_FULL` | Slice-frame width in code units (full domain) |
+
+Unlike `reproduce` (recipe-coeff replays), this path runs **GRTresna shell matter**
+or loads a pre-solved `.gridinit` via `recipe_initial_data_file`.
+
+#### Frames, movies, and visualization fixes
+
+Promotion runs stream frames on the fly (`GRTECLYN_FRAMES_FIELDS` includes
+`local_speed`, `shift1`, `rho_req`, `scalar_activity`, etc.). Plotfiles are
+consumed and deleted (`keep-last=2`); a few final plotfile dirs may remain until
+the consumer's GC pass.
+
+Two frame bugs were fixed during this campaign:
+
+1. **Zoom** — `plot_consumer.py` used to cap slice width at 40 code units, so
+   frames looked zoomed in even when `L_full=96/128`. It now defaults to `L_full`
+   (override with `GRTECLYN_FRAMES_ZOOM`).
+2. **Corner tick labels** — centered coordinates showed duplicate labels like
+   `-48 -48` at the bottom-left corner; the y-axis corner label is now suppressed
+   when it matches the x-axis minimum.
+
+Stitch PNG sequences into mp4 movies (handles gapped frame indices like
+`frame_z_0096.png`, `frame_z_0480.png`, …):
+
+```bash
+bash scripts/plot/make_movies.sh \
+  runs/grtresna_promote/val30hq_qd_eval057 --framerate 8
+
+# Or selected fields only:
+bash scripts/plot/make_movies.sh \
+  runs/grtresna_promote/val30hq_qd_eval057 \
+  --only shift1_z local_speed_z scalar_activity_z
+```
+
+Movies are written next to the frames, e.g.
+`frames/shift1_z/movie_shift1_z.mp4`.
+
+#### Key artifact paths (`val30hq_qd_eval057`)
+
+| Path | Content |
+|------|---------|
+| `score.json` | Final metrics: t=30.02, max c=1.276, operational_ftl=1.0 |
+| `metadata.json` | Grid settings + `recipe_initial_data_file` pointer |
+| `frames/*/movie_*.mp4` | Animated field movies (33 frames, t=0…30) |
+| `frames/shift1_z/frames/frame_z_1501.png` | Final-time shift slice |
+| `small_data/shell_profiles.dat` | Radial shell time series |
+
 ### Falsification tiers: "did we actually find the solution?"
 
 A high score is only a proxy; it never proves a candidate is *the* FTL geometry.
@@ -673,6 +814,9 @@ consistently.
 | Script | Use for | Key env vars |
 |--------|---------|--------------|
 | `run_grtresna_search.sh` | **Current matter-first production search**. Each candidate: MPI GRTresna solve (`RANKS=8` default) → `.gridinit` → GRTeclyn GPU evolution for survivors; plotfiles streamed/deleted. | `GRTRESNA_ANSATZ`, `GPU_IDS`, `LUMPS`, `RANKS` (MPI ranks per solve), `MAX_GENERATIONS`, `NO_CONSUME`, `WARM_START_TRAJECTORY` |
+| `run_grtresna_qd_search.sh` | **MAP-Elites quality-diversity** over the GRTresna shell space (archive of diverse FTL families). | `QD_ITERATIONS`, `BINS`, `GPU_IDS`, `SHELL_PROFILE`, `LUMPS` |
+| `run_tier2_grtresna_qd_eval057.sh` | **HQ promotion** of QD winner `eval_000057`: GRTresna+GPU or GPU-only (`GRIDINIT_SOURCE`). | `N_FULL`, `MAX_LEVEL`, `STOP_TIME`, `GRIDINIT_SOURCE`, `SOURCE_EVAL` |
+| `replay_grtresna_eval.py` | Python entry for single promotion replays (`--gridinit` skips GRTresna). | CLI flags mirror the shell script |
 | `run_radialrecipe_gpu_smoke.sh` | Single GPU smoke/build run for RadialRecipe seeds/candidates. Use after C++ changes. | `BUILD`, `CUDA_VISIBLE_DEVICES_OVERRIDE`, `SEED_NAME`, `CANDIDATE_ID`, `NONSPHERICAL_ID` |
 | `run_ftl_search_cmaes.sh` | Older 9D radial CMA-ES geometry-first search. | `GPU_IDS`, `MAX_GENERATIONS` |
 | `run_ftl_search_nonspherical.sh` | Gauge-angular non-spherical search. | `GPU_IDS`, `MAX_GENERATIONS` |
@@ -680,7 +824,7 @@ consistently.
 | `run_tier2_hq_188.sh` / `run_tier2_validation_long16.sh` | Higher-quality replay/validation of selected candidates. | GPU id / candidate-specific args |
 | `run_subset.sh`, `run_nonspherical_gpu_batch.sh`, `run_radialrecipe_gpu_promote.sh` | Batch and promotion helpers for fixed candidate lists. | See script headers |
 | `validate_campaign.sh` | Post-run campaign validation. | Campaign path |
-| `plot/make_movies.sh`, `plot/plot_run_radial.sh` | Post-processing frames/plots (see [`scripts/plot/`](scripts/README.md#plot--visualization-any-example)). | Episode path / field choices |
+| `plot/make_movies.sh`, `plot/plot_run_radial.sh` | Stitch `frames/<field>_<axis>/frames/*.png` → `movie_<field>_<axis>.mp4` (glob-safe for gapped indices). | `EPISODE_DIR`, `--framerate`, `--only` |
 
 ```bash
 # Example: launch the non-spherical FTL campaign

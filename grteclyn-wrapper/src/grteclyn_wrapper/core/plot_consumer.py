@@ -76,7 +76,9 @@ def build_consume_command(
     if len(center) < 3:
         center = (*center, *([0.0] * (3 - len(center))))
     center = center[:3]
-    frame_zoom = min(40.0, _read_float_param(episode.params_path, "L_full", 40.0))
+    l_full = _read_float_param(episode.params_path, "L_full", 40.0)
+    zoom_env = os.environ.get("GRTECLYN_FRAMES_ZOOM", "").strip()
+    frame_zoom = float(zoom_env) if zoom_env else l_full
 
     command = [
         *resolve_consume_python(),
