@@ -112,3 +112,19 @@ def test_shell_poloidal_current_is_not_reachable_by_planar_ring() -> None:
 def test_ring_ansatz_is_unchanged() -> None:
     # Regression guard: adding 'shell' must not perturb the established ring.
     assert len(grtresna_ring_search_space()) == 14
+
+
+def test_shell_compact_profile_caps_width() -> None:
+    compact = build_search_space(
+        grtresna=True, grtresna_lumps=5, grtresna_ansatz="shell",
+        grtresna_shell_profile="compact",
+    )
+    middle = build_search_space(
+        grtresna=True, grtresna_lumps=5, grtresna_ansatz="shell",
+        grtresna_shell_profile="middle",
+    )
+    compact_width = next(d for d in compact if d.param_key == "grtresna_shell_width")
+    middle_width = next(d for d in middle if d.param_key == "grtresna_shell_width")
+
+    assert compact_width.upper == 3.0
+    assert middle_width.upper == 4.0

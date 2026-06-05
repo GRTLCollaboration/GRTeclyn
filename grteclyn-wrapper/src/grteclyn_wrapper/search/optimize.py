@@ -234,7 +234,10 @@ def grtresna_ring_search_space() -> list[SearchDimension]:
     ]
 
 
-def grtresna_shell_search_space() -> list[SearchDimension]:
+SHELL_PROFILE_CHOICES = ("middle", "compact", "outer_precursor", "inner_shift")
+
+
+def grtresna_shell_search_space(profile: str = "compact") -> list[SearchDimension]:
     """Full-sphere ``shell`` GRTresna matter search space (discovery ansatz).
 
     The ``ring`` ansatz is a planar (equatorial) loop: it cannot place matter
@@ -258,24 +261,52 @@ def grtresna_shell_search_space() -> list[SearchDimension]:
 
     16 searched dimensions for any ``K``: like the ring, the lump count is a
     mesh-resolution knob, not an optimizer dimension.
+
+    ``profile`` selects preset bounds.  ``compact`` caps lump width to reduce
+    diffuse-blob basins (optimize_20260604T170329Z eval 128 sat at width~3.9).
     """
+    if profile not in SHELL_PROFILE_CHOICES:
+        raise ValueError(
+            f"unknown shell profile: {profile!r} "
+            f"(choices: {', '.join(SHELL_PROFILE_CHOICES)})"
+        )
+
+    # Scalar momentum source ~ amp^2 * velocity / width.  Diffuse amp~0.15
+    # shells converged but shift~3e-2; amp~0.25 width~1.5 v~3 blew up GRTresna.
+    amp = (0.08, 0.28, 0.18)
+    width = (1.8, 4.0, 2.4)
+    radius = (1.5, 6.0, 3.5)
+    thickness = (0.0, 2.5, 0.5)
+    toroidal_v = (-2.0, 2.0, 0.9)
+    exotic_frac = (0.0, 1.0, 0.4)
+
+    if profile == "compact":
+        width = (1.8, 3.0, 2.4)
+    elif profile == "outer_precursor":
+        width = (2.8, 4.0, 3.5)
+        radius = (4.0, 6.0, 5.0)
+        toroidal_v = (-2.0, 2.0, -1.2)
+        exotic_frac = (0.6, 1.0, 0.8)
+    elif profile == "inner_shift":
+        width = (1.8, 3.0, 2.4)
+        radius = (1.5, 3.0, 2.0)
+        toroidal_v = (-1.0, 1.0, 0.4)
+        exotic_frac = (0.0, 0.6, 0.4)
+
     return [
-        # Scalar momentum source ~ amp^2 * velocity / width.  Diffuse amp~0.15
-        # shells converged but shift~3e-2; amp~0.25 width~1.5 v~3 blew up GRTresna.
-        # These bounds sit between those regimes.
-        SearchDimension("grtresna_shell_amp", 0.08, 0.28, 0.18),
-        SearchDimension("grtresna_shell_width", 1.8, 4.0, 2.4),
-        SearchDimension("grtresna_shell_radius", 1.5, 6.0, 3.5),
-        SearchDimension("grtresna_shell_thickness", 0.0, 2.5, 0.5),
+        SearchDimension("grtresna_shell_amp", *amp),
+        SearchDimension("grtresna_shell_width", *width),
+        SearchDimension("grtresna_shell_radius", *radius),
+        SearchDimension("grtresna_shell_thickness", *thickness),
         SearchDimension("grtresna_shell_axis_theta", 0.0, math.pi, 0.5 * math.pi),
         SearchDimension("grtresna_shell_axis_phi", 0.0, 2.0 * math.pi, 0.0),
-        SearchDimension("grtresna_shell_toroidal_velocity", -2.0, 2.0, 0.9),
+        SearchDimension("grtresna_shell_toroidal_velocity", *toroidal_v),
         SearchDimension("grtresna_shell_poloidal_velocity", -1.5, 1.5, 0.0),
         SearchDimension("grtresna_shell_radial_velocity", -0.8, 0.8, 0.0),
         SearchDimension("grtresna_shell_omega", -0.8, 0.8, 0.2),
         SearchDimension("grtresna_shell_dipole_amp", -0.6, 0.6, 0.0),
         SearchDimension("grtresna_shell_quadrupole_amp", -0.5, 0.5, 0.0),
-        SearchDimension("grtresna_shell_exotic_fraction", 0.0, 1.0, 0.4),
+        SearchDimension("grtresna_shell_exotic_fraction", *exotic_frac),
         SearchDimension("grtresna_shell_exotic_phase", 0.0, 2.0 * math.pi, 0.0),
         SearchDimension("grtresna_shell_mode", 0.0, 2.0, 1.0),
         SearchDimension("grtresna_shell_radial_jitter", 0.0, 1.0, 0.0),
@@ -343,6 +374,7 @@ def build_search_space(
     grtresna: bool = False,
     grtresna_lumps: int = GRTRESNA_DEFAULT_NUM_LUMPS,
     grtresna_ansatz: str = "free",
+    grtresna_shell_profile: str = "compact",
 ) -> list[SearchDimension]:
     """Return the optimizer search space.
 
@@ -360,7 +392,7 @@ def build_search_space(
         if grtresna_ansatz == "ring":
             return grtresna_ring_search_space()
         if grtresna_ansatz == "shell":
-            return grtresna_shell_search_space()
+            return grtresna_shell_search_space(profile=grtresna_shell_profile)
         if grtresna_ansatz != "free":
             raise ValueError(f"unknown GRTresna ansatz: {grtresna_ansatz}")
         return grtresna_search_space(grtresna_lumps)

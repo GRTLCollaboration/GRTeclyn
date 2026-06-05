@@ -373,14 +373,50 @@ optimizes shift sourcing.
 
 #### Continuing this search
 
-Warm-start from this campaign’s trajectory to resume near the eval-128 / eval-57
-basin:
+Warm-start from this campaign’s trajectory with the **compact shell profile**
+(`SHELL_PROFILE=compact`, width capped at 3.0) and the coupled `channel_progress`
+objective (rewards path closeness + precursor + shift together):
 
 ```bash
 WARM_START_TRAJECTORY=../runs/grtresna_search/optimize_20260604T170329Z/trajectory.jsonl \
   WARM_START_TOP_K=8 \
   GPU_IDS="0 1 2 3 4 5 6 7" RANKS=8 GRTRESNA_ANSATZ=shell LUMPS=5 \
+  SHELL_PROFILE=compact \
   SOLVED_FTL_NEAR_LUMINAL_SPEED_FLOOR=0.9 \
+  bash scripts/search/run_grtresna_search.sh
+```
+
+Reproduce the previous middle bounds (width up to 4.0) for comparison:
+
+```bash
+SHELL_PROFILE=middle WARM_START_TRAJECTORY=../runs/grtresna_search/optimize_20260604T170329Z/trajectory.jsonl \
+  GPU_IDS="0 1 2 3 4 5 6 7" RANKS=8 GRTRESNA_ANSATZ=shell LUMPS=5 \
+  SOLVED_FTL_NEAR_LUMINAL_SPEED_FLOOR=0.9 \
+  bash scripts/search/run_grtresna_search.sh
+```
+
+If compact `LUMPS=5` improves signal but path connectivity is still missing,
+test shell placement resolution (same compact profile, more Fibonacci sites):
+
+```bash
+WARM_START_TRAJECTORY=../runs/grtresna_search/optimize_20260604T170329Z/trajectory.jsonl \
+  GPU_IDS="0 1 2 3 4 5 6 7" RANKS=8 GRTRESNA_ANSATZ=shell LUMPS=8 \
+  SHELL_PROFILE=compact \
+  SOLVED_FTL_NEAR_LUMINAL_SPEED_FLOOR=0.9 \
+  bash scripts/search/run_grtresna_search.sh
+```
+
+Bias toward one leader regime without changing the optimizer:
+
+```bash
+# eval-128 outer/wide precursor basin
+SHELL_PROFILE=outer_precursor WARM_START_TRAJECTORY=../runs/grtresna_search/optimize_20260604T170329Z/trajectory.jsonl \
+  GPU_IDS="0 1 2 3 4 5 6 7" RANKS=8 GRTRESNA_ANSATZ=shell LUMPS=5 \
+  bash scripts/search/run_grtresna_search.sh
+
+# eval-57 compact inner shift basin
+SHELL_PROFILE=inner_shift WARM_START_TRAJECTORY=../runs/grtresna_search/optimize_20260604T170329Z/trajectory.jsonl \
+  GPU_IDS="0 1 2 3 4 5 6 7" RANKS=8 GRTRESNA_ANSATZ=shell LUMPS=5 \
   bash scripts/search/run_grtresna_search.sh
 ```
 
@@ -670,6 +706,7 @@ Default production knobs in the launcher:
 | Knob | Default | Meaning |
 |------|---------|---------|
 | `GRTRESNA_ANSATZ` | `ring` | matter parameterization: `ring` (14D, planar refinement) and `shell` (16D, full-sphere discovery) search global template parameters and expand them to `LUMPS` scalar clouds; `free` (55D) searches every lump independently |
+| `SHELL_PROFILE` | `compact` | shell bounds preset: `compact` (width `1.8..3.0`), `middle` (width `1.8..4.0`), `outer_precursor`, `inner_shift` |
 | `GRTRESNA_FULL_Z` | `1` for `shell`, `0` otherwise | full-z GRTresna solve and GRTeclyn evolution box (`center=32 32 32`, no reflective `z=0` plane); shell discovery should normally keep this on |
 | `LUMPS` | `5` | scalar clouds generated/evolved by GRTresna (`55` searched dimensions only when `GRTRESNA_ANSATZ=free`) |
 | `RANKS` | `8` | MPI ranks per GRTresna elliptic solve (`mpirun -np RANKS` on the `.MPI.ex` binary) |

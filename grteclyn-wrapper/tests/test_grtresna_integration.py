@@ -401,6 +401,115 @@ def test_ftl_first_rewards_shift_drive_before_shortcut_exists() -> None:
     assert stronger.total > weak.total
 
 
+def _metrics_with_general_ftl(
+    *,
+    t_min: float | None,
+    t_flat: float,
+    max_local_speed: float,
+    superluminal_fraction: float,
+    max_shift: float,
+    max_l2_ricci: float = 2.0,
+) -> EpisodeMetrics:
+    report = GeneralFtlReport(
+        f_op=0.0,
+        t_min=t_min,
+        t_flat=t_flat,
+        max_local_speed=max_local_speed,
+        superluminal_fraction=superluminal_fraction,
+        path_offaxis=False,
+        reachable=t_min is not None,
+        notes=(),
+        max_shift=max_shift,
+    )
+    return EpisodeMetrics(
+        collapse=None,
+        constraints=None,
+        stability=None,
+        comoving=None,
+        ftl=None,
+        termination_reason="test",
+        curvature=CurvatureInvariantMetrics(
+            final_time=2.0,
+            max_abs_ricci_scalar=0.0,
+            max_ricci_tensor_sq=0.0,
+            max_kij_sq=0.0,
+            max_l2_ricci_scalar=max_l2_ricci,
+        ),
+        general_ftl_evolved=report,
+    )
+
+
+def test_channel_progress_zero_on_flat_space() -> None:
+    flat = _metrics_with_general_ftl(
+        t_min=15.75,
+        t_flat=15.75,
+        max_local_speed=1.0,
+        superluminal_fraction=0.0,
+        max_shift=0.0,
+        max_l2_ricci=0.0,
+    )
+    score = score_episode(flat, objective_mode="ftl_first")
+    assert score.components["channel_progress"] == 0.0
+
+
+def test_channel_progress_prefers_coupled_candidates_over_single_mechanism() -> None:
+    t_flat = 15.75
+    precursor_only = _metrics_with_general_ftl(
+        t_min=15.87,
+        t_flat=t_flat,
+        max_local_speed=1.043,
+        superluminal_fraction=0.56,
+        max_shift=0.02,
+    )
+    shift_only = _metrics_with_general_ftl(
+        t_min=21.87,
+        t_flat=t_flat,
+        max_local_speed=0.933,
+        superluminal_fraction=0.0,
+        max_shift=0.147,
+    )
+    coupled = _metrics_with_general_ftl(
+        t_min=15.80,
+        t_flat=t_flat,
+        max_local_speed=1.02,
+        superluminal_fraction=0.20,
+        max_shift=0.10,
+    )
+
+    prec_score = score_episode(precursor_only, objective_mode="ftl_first")
+    shift_score = score_episode(shift_only, objective_mode="ftl_first")
+    coupled_score = score_episode(coupled, objective_mode="ftl_first")
+
+    assert coupled_score.components["channel_progress"] > prec_score.components["channel_progress"]
+    assert coupled_score.components["channel_progress"] > shift_score.components["channel_progress"]
+    assert coupled_score.total > shift_score.total
+
+
+def test_channel_progress_ranks_eval128_style_below_coupled_but_above_shift_only() -> None:
+    t_flat = 15.75
+    eval128_style = _metrics_with_general_ftl(
+        t_min=15.87016792210433,
+        t_flat=t_flat,
+        max_local_speed=1.0432600860953292,
+        superluminal_fraction=0.5585601826813292,
+        max_shift=0.02041905875701828,
+    )
+    eval57_style = _metrics_with_general_ftl(
+        t_min=21.869045287604937,
+        t_flat=t_flat,
+        max_local_speed=0.932994638314321,
+        superluminal_fraction=0.0,
+        max_shift=0.14652009373502575,
+    )
+
+    s128 = score_episode(eval128_style, objective_mode="ftl_first")
+    s57 = score_episode(eval57_style, objective_mode="ftl_first")
+
+    assert s128.components["channel_progress"] > s57.components["channel_progress"]
+    assert s128.components["ftl_precursor"] > s57.components["ftl_precursor"]
+    assert s57.components["shift_drive"] > s128.components["shift_drive"]
+
+
 def test_bad_grtresna_convergence_is_rejected_before_evolution() -> None:
     assert _grtresna_convergence_rejection_reason(None) is not None
     assert _grtresna_convergence_rejection_reason({

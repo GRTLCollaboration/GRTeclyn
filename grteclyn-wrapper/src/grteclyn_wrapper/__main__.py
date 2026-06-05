@@ -196,10 +196,12 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
     use_grtresna = getattr(args, "grtresna", False)
     grtresna_lumps = getattr(args, "grtresna_lumps", 5)
     grtresna_ansatz = getattr(args, "grtresna_ansatz", "free")
+    grtresna_shell_profile = getattr(args, "grtresna_shell_profile", "compact")
     search_space = build_search_space(
         nonspherical=nonspherical, grtresna=use_grtresna,
         grtresna_lumps=grtresna_lumps,
         grtresna_ansatz=grtresna_ansatz,
+        grtresna_shell_profile=grtresna_shell_profile,
     )
     if use_grtresna and grtresna_ansatz == "ring":
         base_overrides = {
@@ -665,6 +667,14 @@ def build_parser() -> argparse.ArgumentParser:
              "ansatz (16D): lumps cover the whole 2-sphere with an arbitrary "
              "orientation axis and poloidal+toroidal currents, reaching 3D "
              "configurations the planar ring cannot.",
+    )
+    opt.add_argument(
+        "--grtresna-shell-profile",
+        choices=["middle", "compact", "outer_precursor", "inner_shift"],
+        default="compact",
+        help="Shell ansatz bounds preset. 'compact' caps lump width (default); "
+             "'middle' restores the pre-170329Z bounds; 'outer_precursor' and "
+             "'inner_shift' bias toward the eval-128 / eval-57 leader regimes.",
     )
     opt.add_argument(
         "--grtresna-full-z",

@@ -43,6 +43,7 @@ RUN_STAMP="${RUN_STAMP:-$(date +%Y%m%d_%H%M%S)}"
 RUNS_DIR="${RUNS_DIR:-${GRTECLYN_ROOT}/runs/grtresna_search}"
 LUMPS="${LUMPS:-5}"                       # scalar lumps in the matter basis (11 dims each)
 GRTRESNA_ANSATZ="${GRTRESNA_ANSATZ:-ring}" # free=11*LUMPS dims, ring=14 template dims
+SHELL_PROFILE="${SHELL_PROFILE:-compact}"   # shell width/radius bounds preset
 RANKS="${RANKS:-8}"                       # MPI ranks per GRTresna solve (>1 => .MPI. executable)
 ITERATIONS="${ITERATIONS:-30}"            # max non-linear iterations per solve
 if [[ -z "${GRTRESNA_FULL_Z+x}" ]]; then
@@ -144,7 +145,7 @@ echo "Runs dir      : ${RUNS_DIR}"
 if [[ "${GRTRESNA_ANSATZ}" == "ring" ]]; then
   echo "Lumps/ansatz  : ${LUMPS} generated from ring template (=> 14 search dims, planar)"
 elif [[ "${GRTRESNA_ANSATZ}" == "shell" ]]; then
-  echo "Lumps/ansatz  : ${LUMPS} generated from full-sphere shell template (=> 16 search dims, 3D discovery)"
+  echo "Lumps/ansatz  : ${LUMPS} generated from full-sphere shell template (=> 16 search dims, profile=${SHELL_PROFILE})"
 else
   echo "Lumps/ansatz  : ${LUMPS} free lumps (=> $((LUMPS * 11)) search dims)"
 fi
@@ -198,6 +199,7 @@ exec ${PYTHON_BIN} -m grteclyn_wrapper \
   "${WARM_START_ARGS[@]}" \
   --grtresna \
   --grtresna-ansatz "${GRTRESNA_ANSATZ}" \
+  --grtresna-shell-profile "${SHELL_PROFILE}" \
   --grtresna-lumps "${LUMPS}" \
   "$([[ "${GRTRESNA_FULL_Z}" == "1" ]] && echo --grtresna-full-z || echo --no-grtresna-full-z)" \
   "${DOMAIN_ARGS[@]}" \

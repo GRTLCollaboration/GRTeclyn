@@ -49,6 +49,10 @@ DEFAULT_WEIGHTS: dict[str, float] = {
     # signal before the end-to-end FTL path exists, but unlike stability terms it
     # points at the mechanism we actually need.
     "shift_drive": 2.0,
+    # Coupled path-progress shaping: rewards evolved geometries whose fastest
+    # causal path is close to beating the flat baseline *and* carry both cone
+    # opening (precursor) and frame-drag (shift) together -- not either alone.
+    "channel_progress": 2.5,
     # Constraint-satisfying GRTresna geometry at t=0 (mechanism-agnostic Dijkstra).
     # Shaping gradient before GPU evolution; evolved operational_ftl remains primary.
     "operational_ftl_solved": 4.0,
@@ -368,6 +372,49 @@ def score_episode(
         0.5 * _shift_drive(metrics.general_ftl),
         0.5 * _shift_drive(metrics.general_ftl_solved),
     )
+
+    # CHANNEL PROGRESS -- coupled shaping gradient that pushes the search away
+    # from isolated precursor-only (eval 128) or shift-only (eval 57) basins.
+    # Path closeness uses relative excess (t_min - t_flat) / t_flat so flat
+    # space (t_min == t_flat) earns nothing unless precursor/shift are nonzero.
+    CHANNEL_PATH_EXCESS_SCALE = 0.12
+
+    def _path_closeness(report) -> float:
+        if report is None or not getattr(report, "reachable", False):
+            return 0.0
+        t_min = getattr(report, "t_min", None)
+        t_flat = float(getattr(report, "t_flat", 0.0) or 0.0)
+        if t_min is None or not math.isfinite(t_min) or t_flat <= 0.0:
+            return 0.0
+        if t_min <= t_flat:
+            return 1.0
+        excess = (t_min - t_flat) / t_flat
+        return max(0.0, 1.0 - excess / CHANNEL_PATH_EXCESS_SCALE)
+
+    def _channel_progress(report) -> float:
+        path = _path_closeness(report)
+        if path <= 0.0:
+            return 0.0
+        prec = _precursor(report)
+        shift = _shift_drive(report)
+        mechanism = math.sqrt(max(prec, 0.0) * max(shift, 0.0))
+        return path * mechanism
+
+    channel_ev = _channel_progress(metrics.general_ftl_evolved)
+    channel_t0 = _channel_progress(metrics.general_ftl)
+    channel_solved = _channel_progress(metrics.general_ftl_solved)
+    components["channel_progress"] = max(
+        channel_ev, 0.5 * channel_t0, 0.5 * channel_solved
+    )
+    if (
+        components["channel_progress"] > 0.05
+        and components["operational_ftl"] <= 0.0
+    ):
+        notes.append(
+            "coupled channel progress (path + precursor + shift): "
+            f"{components['channel_progress']:.3f}"
+        )
+
     if components["ftl_precursor"] > 0.05 and components["operational_ftl"] <= 0.0:
         notes.append(
             "FTL precursor active (cones climbing toward the c=1 threshold): "
@@ -449,6 +496,7 @@ def score_episode(
         components.get("nontrivial_geometry", 0.0),
         components.get("curvature_activity", 0.0),
         components.get("shift_drive", 0.0),
+        components.get("channel_progress", 0.0),
         components.get("operational_ftl", 0.0),
         components.get("ftl_precursor", 0.0),
         components.get("operational_ftl_solved", 0.0),
@@ -467,8 +515,9 @@ def score_episode(
         health_gate = components.get("nontriviality_gate", 0.0)
         total = (
             1000.0 * components.get("operational_ftl", 0.0)
-            + 250.0 * components.get("ftl_precursor", 0.0)
-            + 120.0 * components.get("shift_drive", 0.0)
+            + 200.0 * components.get("channel_progress", 0.0)
+            + 160.0 * components.get("ftl_precursor", 0.0)
+            + 100.0 * components.get("shift_drive", 0.0)
             + 150.0 * components.get("operational_ftl_solved", 0.0)
             + 100.0 * components.get("ftl_shortcut", 0.0)
             + 10.0 * components.get("horizon_penalty", 0.0)
