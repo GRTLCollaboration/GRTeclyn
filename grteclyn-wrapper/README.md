@@ -1081,12 +1081,31 @@ See [MAP-Elites: `qd_20260605T155951Z`](#completed-map-elites-run-qd_20260605t15
 for score weights, top candidates, and why this run superseded the earlier
 `eval_000057`-only breakthrough.
 
-**Stage 3 promotion** (in progress) replays those elites via
+**Stage 3 promotion** (completed) replayed those elites via
 `run_promote_qd_operational_batch.sh`:
 
 ```bash
 # Defaults: L=128 N=256 (dx=0.5), t=50, fresh GRTresna, Ham/Mom gate 10%
 bash scripts/search/run_promote_qd_operational_batch.sh
+```
+
+```mermaid
+flowchart LR
+    subgraph search["Stage 1: MAP-Elites search"]
+        P["16D shell params"]
+        QD["MAP-Elites archive"]
+        G1["GRTresna gate"]
+        GPU1["GPU t=8 N=64"]
+        P --> QD --> G1 --> GPU1
+    end
+    subgraph promote["Stage 3: HQ promotion"]
+        R["replay shell params"]
+        G2["fresh GRTresna L=128 N=256"]
+        GPU2["GPU t=50 dx=0.5"]
+        SC["score.json ranking"]
+        R --> G2 --> GPU2 --> SC
+    end
+    QD -->|"8 operational elites"| R
 ```
 
 | Setting | Search (QD) | Promotion (HQ) |
@@ -1102,28 +1121,42 @@ bash scripts/search/run_promote_qd_operational_batch.sh
 > `N`) to refine the grid. Setting `L=N` (e.g. the aborted `val256hq` batch)
 > only enlarges the domain at **dx=1** — no fidelity gain over search.
 
-| eval | QD score | `op_ftl` | `channel` | `shift` | promotion dir | GPU |
-|------|--------:|---------:|----------:|--------:|---------------|-----|
-| **011** | **1158** | **0.752** | 0.32 | 0.10 | `l128n256_qd_eval011` | 0 |
-| **121** | **926** | **0.491** | **0.42** | 0.18 | `l128n256_qd_eval121` | 1 |
-| **106** | **827** | 0.394 | **0.46** | **0.21** | `l128n256_qd_eval106` | 2 |
-| **077** | **637** | 0.233 | 0.31 | 0.09 | `l128n256_qd_eval077` | 3 |
-| **117** | **628** | 0.204 | 0.43 | 0.19 | `l128n256_qd_eval117` | 4 |
-| **094** | **602** | 0.177 | 0.43 | 0.19 | `l128n256_qd_eval094` | 5 |
-| **058** | **425** | 0.069 | 0.19 | 0.04 | `l128n256_qd_eval058` | 6 |
-| **016** | **415** | 0.036 | 0.25 | 0.07 | `l128n256_qd_eval016` | 7 |
+**Final HQ leaderboard** (`t=50.01`, all `score.json` written):
+
+| Rank | eval | HQ score | `op_ftl` | `channel` | `shift` | search `op` | Role |
+|------|------|--------:|---------:|----------:|--------:|------------:|------|
+| 1 | **106** | **1423** | **1.000** | 0.423 | 0.179 | 0.394 | HQ winner |
+| 2 | **117** | **1346** | **0.920** | **0.436** | **0.190** | 0.204 | channel backup |
+| 3 | **011** | **1274** | **0.885** | 0.302 | 0.091 | **0.752** | search leader |
+| 4 | **094** | **1089** | 0.658 | **0.454** | **0.206** | 0.177 | best channel/shift |
+| 5 | **121** | **951** | 0.538 | 0.391 | 0.153 | 0.491 | mid-tier |
+| 6 | **077** | **812** | 0.426 | 0.289 | 0.083 | 0.233 | partial op |
+| 7 | **058** | **734** | 0.332 | 0.292 | 0.085 | 0.069 | weak but real |
+| 8 | **016** | **390** | 0.032 | 0.226 | 0.055 | 0.036 | marginal |
+
+**What was discovered:** not new metric definitions, but a new **metric regime**
+under the existing FTL-first scorer. MAP-Elites found an operational shell
+family at search scale; HQ promotion confirmed that several candidates retain
+strong evolved `operational_ftl` through `t=50` at `dx=0.5`, and the ranking
+reordered: `106` saturates operational FTL, `117` has the best channel backup,
+`094` has the best coupled channel/shift, while search-winner `011` remains a
+real shortcut but looks more precursor-dominated at HQ.
 
 Promotion filter: `operational_ftl >= 0.03`. Frame consumer:
 `GRTECLYN_FRAMES_ZOOM=none` (full plotfile extent; center tracks `L/2`).
 
-**GRTresna phase (HQ):** all eight fresh solves passed the 10% Ham/Mom gate at
-iter ~11; NL iterations continue toward `max_NL_iterations=30` (Ham plateau
-~0.65–1.5%, Mom `<0.002%`). GPU `t=50` starts after `.gridinit` is written.
+**Outputs:**
+- Scores: `runs/grtresna_promote/l128n256_qd_eval*/score.json`
+- Interim extract: `runs/grtresna_promote/l128n256_interim_scores.json`
+- Movies: `runs/grtresna_promote/l128n256_qd_eval*/frames/*/movie_*.mp4`
+- Article montage: `research/neuralspacetime/articlepictures/shell_hq_promotion_tiles.png`
 
-Monitor:
+Refresh movies after more frames land:
 
 ```bash
-tail -f runs/grtresna_promote/l128n256_qd_eval*.log
+bash grteclyn-wrapper/scripts/plot/make_movies.sh \
+  runs/grtresna_promote/l128n256_qd_eval{011,016,058,077,094,106,117,121} \
+  --framerate 8
 ```
 
 ---
@@ -1289,9 +1322,21 @@ at `L=128 N=256`.
 
 #### Promotion path
 
-All eight rows above are replayed by `run_promote_qd_operational_batch.sh` into
+All eight rows above were replayed by `run_promote_qd_operational_batch.sh` into
 `runs/grtresna_promote/l128n256_qd_eval*/` (see
-[Current production batch](#current-production-batch)).
+[Current production batch](#current-production-batch)).  Final HQ results:
+
+| eval | HQ score | `op_ftl` | `channel` | `shift` |
+|------|--------:|---------:|----------:|--------:|
+| **106** | **1423** | **1.000** | 0.423 | 0.179 |
+| **117** | **1346** | **0.920** | **0.436** | **0.190** |
+| **011** | **1274** | **0.885** | 0.302 | 0.091 |
+| **094** | **1089** | 0.658 | **0.454** | **0.206** |
+
+**Interpretation:** `106` is the only saturated operational winner at `t=50`.
+`117` is the strongest falsification backup. `094` has the best coupled
+channel/shift but weaker final `op_ftl`. `011` was the search-scale headline but
+is more precursor-dominated at HQ.
 
 ---
 

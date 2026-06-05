@@ -762,6 +762,128 @@ Figure~\ref{fig:chi_tiles} shows the conformal factor $\chi$ for all four candid
     \label{fig:chi_tiles}
 \end{figure*}
 
+\subsection{MAP-Elites shell discovery and high-resolution promotion}
+\label{sec:shell_qd_hq}
+
+The matter-first pipeline of Sec.~\ref{sec:grtresna} was extended from scalar
+CMA-ES to a full-sphere \texttt{shell} ansatz (Sec.~\ref{sec:shell_ansatz})
+searched by MAP-Elites.  The campaign
+\texttt{qd\_20260605T155951Z} used the existing FTL-first objective---not new
+metric definitions---but with a \emph{channel-progress} shaping term that rewards
+coupled path closeness and mechanism balance alongside evolved operational FTL.
+At search resolution ($L=64$, $N_{\rm full}=64$, $t=8$, $B_{\rm bins}=10$, 16 QD
+iterations, 135 ingested evaluations) the archive retained eight operational
+elites with $F_{\rm op}^{\rm ev}>0.03$, led at search scale by
+\texttt{eval\_000011} ($S=1158$, $F_{\rm op}^{\rm ev}=0.75$) but also preserving
+channel-leaning backups such as \texttt{eval\_000106} and
+\texttt{eval\_000117}.  This is the first MAP-Elites run to populate a
+\emph{family} of operational shell geometries rather than a single breakthrough
+plus discarded precursors.
+
+The eight elites were then promoted in parallel to higher resolution and longer
+time.  Each promotion replayed the same shell parameters with a fresh
+\texttt{GRTresna} solve and GPU evolution at $L=128$, $N_{\rm full}=256$
+($\Delta x=0.5$), $\texttt{max\_level}=3$, and $t=50$.  Crucially, promotion
+requires $N_{\rm full}>L$: setting $L=N_{\rm full}$ only enlarges the domain at
+unchanged cell size and provides no fidelity gain.  All eight fresh elliptic
+solves passed a $10\%$ Ham/Mom gate (final residuals $0.65$--$1.53\%$ Ham,
+$<0.002\%$ Mom) before evolution.
+
+\begin{figure*}[t]
+\centering
+\fbox{\begin{minipage}{0.96\textwidth}
+\small
+\textbf{Shell 16D MAP-Elites $\rightarrow$ HQ promotion pipeline}\\[0.4em]
+\begin{tabular}{@{}c@{\ $\rightarrow$\ }c@{\ $\rightarrow$\ }c@{\ $\rightarrow$\ }c@{\ $\rightarrow$\ }c@{\ $\rightarrow$\ }c@{\ $\rightarrow$\ }c@{}}
+16D shell params &
+MAP-Elites archive &
+\texttt{GRTresna} gate &
+\texttt{.gridinit} &
+GPU $t=50$ &
+consume/score &
+HQ ranking
+\end{tabular}\\[0.5em]
+Search: $L{=}64$, $N{=}64$, $t{=}8$, $\Delta x{=}1$ \quad
+$\longrightarrow$ \quad
+Promotion: $L{=}128$, $N{=}256$, $t{=}50$, $\Delta x{=}0.5$
+\end{minipage}}
+\caption{\textbf{Matter-first MAP-Elites discovery and high-resolution promotion.}
+The optimizer searches sixteen global shell parameters expanded to five Fibonacci
+lumps; MAP-Elites preserves diverse operational elites; each HQ candidate is
+re-solved in \texttt{GRTresna} and evolved on GPU at finer resolution before the
+existing FTL-first scorer ranks the result.}
+\label{fig:shell_pipeline}
+\end{figure*}
+
+Table~\ref{tab:shell_hq_promotion} reports the final $t=50$ scores.  The
+headline outcome is not the invention of new diagnostics but a new \emph{metric
+regime}: five of eight promoted candidates retain strong evolved operational FTL
+through the full run, and the ranking \emph{reorders} relative to search scale.
+\texttt{eval\_000106} is the only saturated operational winner
+($F_{\rm op}^{\rm ev}=1.00$); \texttt{eval\_000117} is the strongest backup
+($F_{\rm op}^{\rm ev}=0.92$, highest channel progress); \texttt{eval\_000094}
+has the best coupled channel/shift balance but its operational signal erodes to
+$0.66$ by $t=50$; and the search-scale leader \texttt{eval\_000011} remains a
+real shortcut ($F_{\rm op}^{\rm ev}=0.89$) but looks more precursor-dominated at
+HQ (weaker channel and shift).  We therefore interpret the discovery as a
+persistent operational \emph{shell family} validated at $\Delta x=0.5$, not yet
+as a final physically realizable warp drive: transport, observer-robust energy
+conditions, and analytic extraction remain open (Sec.~\ref{sec:missing}).
+
+\begin{table*}[t]
+\caption{Final high-resolution promotion of the eight operational MAP-Elites
+shell elites (\texttt{l128n256\_qd\_eval*}, $L=128$, $N_{\rm full}=256$,
+$t=50.01$, fresh \texttt{GRTresna} per candidate).  $S$ is the FTL-first total;
+$F_{\rm op}^{\rm ev}$ is the evolved operational-FTL component; $C_{\rm ch}$ is
+channel progress; $S_{\rm sh}$ is shift drive; Ham is the final \texttt{GRTresna}
+Hamiltonian residual; $F_{\rm op}^{\rm search}$ is the search-scale evolved
+operational FTL at $N_{\rm full}=64$, $t=8$.}
+\label{tab:shell_hq_promotion}
+\small
+\begin{ruledtabular}
+\begin{tabular}{lccccccc}
+Eval & $S$ & $F_{\rm op}^{\rm ev}$ & $C_{\rm ch}$ & $S_{\rm sh}$ & Ham [\%] & $F_{\rm op}^{\rm search}$ & Role \\
+\hline
+\texttt{106} & \textbf{1422.5} & \textbf{1.000} & 0.423 & 0.179 & 0.96 & 0.394 & HQ winner; saturated op \\
+\texttt{117} & 1346.0 & 0.920 & \textbf{0.436} & \textbf{0.190} & 0.93 & 0.204 & Best channel backup \\
+\texttt{011} & 1273.8 & 0.885 & 0.302 & 0.091 & 1.44 & \textbf{0.752} & Search leader; weaker channel \\
+\texttt{094} & 1089.0 & 0.658 & 0.454 & 0.206 & \textbf{0.65} & 0.177 & Best channel/shift; op erodes \\
+\texttt{121} & 950.9 & 0.538 & 0.391 & 0.153 & 1.30 & 0.491 & Solid mid-tier \\
+\texttt{077} & 811.6 & 0.426 & 0.289 & 0.083 & 1.24 & 0.233 & Partial op \\
+\texttt{058} & 734.2 & 0.332 & 0.292 & 0.085 & 1.25 & 0.069 & Weak but real \\
+\texttt{016} & 389.5 & 0.032 & 0.226 & 0.055 & 1.53 & 0.036 & Marginal \\
+\end{tabular}
+\end{ruledtabular}
+\end{table*}
+
+Figure~\ref{fig:shell_hq_frames} shows the evolved $z$-slices at $t\approx50$
+for the four headline candidates.  The local coordinate light speed
+(\texttt{local\_speed}) reveals sustained superluminal patches; the shift
+(\texttt{shift1}) and scalar activity show that the channel-leaning winners carry
+stronger frame-drag and matter-current structure than the search-scale leader;
+and the geometric required energy density $\rho_{\rm req}$ remains localized
+rather than diffuse.  Together with the operational probe, this supports the
+interpretation that MAP-Elites found a family of constraint-satisfying exotic
+shells whose \emph{end-to-end} shortcut signal survives a fifty-code-time
+high-resolution evolution for multiple candidates, while the best coupled
+channel geometry and the best headline operational FTL are not the same
+candidate.
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\textwidth]{articlepictures/shell_hq_promotion_tiles.png}
+    \caption{\textbf{High-resolution shell promotion at $t\approx50$} ($L=128$,
+    $N_{\rm full}=256$, $z$-slices).  Rows: \texttt{eval\_000106} (HQ winner),
+    \texttt{eval\_000117} (channel backup), \texttt{eval\_000094} (best coupled
+    channel), \texttt{eval\_000011} (search leader).  Columns (left to right):
+    local coordinate light speed, shift component $\beta^x$, geometric required
+    energy density $\rho_{\rm req}$, and scalar-field activity.  The winners share
+    localized superluminal structure and exotic support, but the channel-leaning
+    candidates (\texttt{106}, \texttt{117}, \texttt{094}) show stronger shift and
+    matter-current organization than \texttt{011}.}
+    \label{fig:shell_hq_frames}
+\end{figure*}
+
 %%====================================================================
 %%  SECTION 7 : DISCUSSION AND FUTURE WORK
 %%====================================================================
@@ -814,11 +936,13 @@ A numerical optimum is only a coefficient list.  The final handoff reconstructs 
 \label{sec:missing}
 
 The pipeline above is, in our assessment, a working \emph{engine} rather than a
-finished \emph{discovery}.  The candidates it has produced are promising
-precursors---a localized exotic lens with a weak evolved coordinate-superluminal
-channel (Sec.~\ref{sec:results}, Sec.~\ref{sec:grtresna_loop_result})---but none
-yet qualifies as a new, validated, physically realizable faster-than-light
-geometry.  This section consolidates, in priority order, the gaps that separate
+finished \emph{discovery}.  Early campaigns produced promising precursors---a
+localized exotic lens with a weak evolved coordinate-superluminal channel
+(Sec.~\ref{sec:results}, Sec.~\ref{sec:grtresna_loop_result})---while the
+recent MAP-Elites shell promotion (Sec.~\ref{sec:shell_qd_hq}) has advanced the
+state to a \emph{family} of high-resolution operational shortcut candidates.
+None of these yet qualifies as a new, validated, physically realizable
+faster-than-light geometry.  This section consolidates, in priority order, the gaps that separate
 the present state from that goal.  We group them into three classes: the
 objective rewards the wrong quantity, parts of the configuration space are
 unreachable, and discovered candidates cannot yet be trusted or extracted.
@@ -828,9 +952,11 @@ unreachable, and discovered candidates cannot yet be trusted or extracted.
 
 The recurring empirical outcome is that every high-scoring geometry is a
 \emph{standing} structure.  The validated dipole winner is a static exotic lens
-that bends proper distance but does not translate (Sec.~\ref{sec:results}), and
-the matter-first winner \texttt{eval\_000063} shows a shortcut without bulk
-motion.  This is not a bug in the optimizer; it is the optimizer faithfully
+that bends proper distance but does not translate (Sec.~\ref{sec:results}), the
+matter-first winner \texttt{eval\_000063} shows a shortcut without bulk motion,
+and the promoted shell family of Sec.~\ref{sec:shell_qd_hq}---despite saturated
+or near-saturated evolved operational FTL at $t=50$---still lacks a sustained
+co-moving transport motor.  This is not a bug in the optimizer; it is the optimizer faithfully
 maximizing what we ask for.  The operational measure $F_{\rm op}$
 (Eq.~\eqref{eq:f_op}) rewards the \emph{existence} of a faster coordinate channel
 on a slice, which a stationary lens already provides at minimal exotic cost.  A
@@ -880,11 +1006,13 @@ persistent, observer-robust, resolution-converged, and finally analytically
 reconstructed---of which the last stages are not yet automated.
 
 \paragraph{Automated resolution convergence.}
-Until $F_{\rm op}$, the constraint norms, and the exotic-energy integral are shown
-to be grid-independent, any candidate may be a discretization artifact---we have
-already observed near-degenerate metric cells masquerading as spectacular
-shortcuts.  A standard multi-resolution auto-replay (rather than a manual check)
-is a prerequisite for any physical claim.
+The first manual HQ promotion ladder (Sec.~\ref{sec:shell_qd_hq}) moved from
+search-scale $N_{\rm full}=64$ to promotion at $N_{\rm full}=256$, $L=128$ with
+unchanged shell parameters and confirmed that several operational signals
+strengthen rather than collapse.  This is encouraging but not yet an automated
+convergence proof: until $F_{\rm op}$, the constraint norms, and the exotic-energy
+integral are shown to be grid-independent across a standard replay ladder, any
+candidate may still be a discretization artifact.
 
 \paragraph{Quantum-inequality realism.}
 The ANEC line proxy (Eq.~\eqref{eq:anec_line}) penalizes the \emph{amount} of
