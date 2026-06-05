@@ -18,6 +18,7 @@ from .metrics.episode_metrics import dataclass_to_dict, read_episode_metrics
 from .metrics.score import score_episode
 from .search.atlas import run_atlas
 from .search.optimize import run_optimize
+from .search.grtresna_convergence_gate import GRTresnaConvergenceConfig
 from .search.solved_ftl_gate import SolvedFtlGateConfig
 
 
@@ -310,6 +311,14 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
             args, "solved_ftl_rejection_speed_target", 1.01
         ),
     )
+    grtresna_convergence_config = (
+        GRTresnaConvergenceConfig(
+            max_ham_pct=getattr(args, "grtresna_max_ham_pct", 5.0),
+            max_mom_pct=getattr(args, "grtresna_max_mom_pct", 5.0),
+        )
+        if use_grtresna
+        else None
+    )
 
     result = run_optimize(
         search_space=search_space,
@@ -342,6 +351,7 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
         grtresna=use_grtresna,
         grtresna_config=grtresna_config,
         solved_ftl_gate_config=solved_ftl_gate_config,
+        grtresna_convergence_config=grtresna_convergence_config,
         warm_start_trajectories=[
             Path(p).expanduser().resolve()
             for p in getattr(args, "warm_start_trajectory", [])
@@ -443,6 +453,12 @@ def _run_qd_command(args: argparse.Namespace, base_overrides: dict[str, Any]) ->
             max_physical_f_op=getattr(args, "solved_ftl_max_physical_f_op", 0.85),
             rejection_speed_target=getattr(args, "solved_ftl_rejection_speed_target", 1.01),
         )
+        grtresna_convergence_config = GRTresnaConvergenceConfig(
+            max_ham_pct=getattr(args, "grtresna_max_ham_pct", 5.0),
+            max_mom_pct=getattr(args, "grtresna_max_mom_pct", 5.0),
+        )
+    else:
+        grtresna_convergence_config = None
 
     archive = run_qd_search(
         runs_dir=Path(args.runs_dir).expanduser().resolve(),
@@ -475,6 +491,7 @@ def _run_qd_command(args: argparse.Namespace, base_overrides: dict[str, Any]) ->
         grtresna_config=grtresna_config,
         grtresna_solved_ftl_gate=use_grtresna,
         solved_ftl_gate_config=solved_ftl_gate_config,
+        grtresna_convergence_config=grtresna_convergence_config,
     )
     best = archive.best
     print(json.dumps({
@@ -827,6 +844,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional absolute cap for the maximal-slicing psi Jacobian; exotic candidates set a safe default.",
     )
     opt.add_argument(
+        "--grtresna-max-ham-pct", type=float, default=5.0,
+        help="Reject GRTresna solves above this Hamiltonian residual (%%).",
+    )
+    opt.add_argument(
+        "--grtresna-max-mom-pct", type=float, default=5.0,
+        help="Reject GRTresna solves above this momentum residual (%%).",
+    )
+    opt.add_argument(
         "--solved-ftl-f-op-floor", type=float, default=1.0e-4,
         help="Solved-geometry F_op threshold that passes a candidate to GPU.",
     )
@@ -916,6 +941,14 @@ def build_parser() -> argparse.ArgumentParser:
     qd.add_argument("--grtresna-psi-relaxation", type=float, default=1.0)
     qd.add_argument("--grtresna-psi-floor", type=float, default=-1.0)
     qd.add_argument("--grtresna-jacobian-cap", type=float, default=-1.0)
+    qd.add_argument(
+        "--grtresna-max-ham-pct", type=float, default=5.0,
+        help="Reject GRTresna solves above this Hamiltonian residual (%%).",
+    )
+    qd.add_argument(
+        "--grtresna-max-mom-pct", type=float, default=5.0,
+        help="Reject GRTresna solves above this momentum residual (%%).",
+    )
     qd.add_argument("--solved-ftl-f-op-floor", type=float, default=1.0e-4)
     qd.add_argument("--solved-ftl-near-luminal-speed-floor", type=float, default=0.99)
     qd.add_argument("--solved-ftl-superluminal-speed-floor", type=float, default=1.01)

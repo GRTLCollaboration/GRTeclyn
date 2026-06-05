@@ -361,10 +361,17 @@ GRTRESNA_SEARCH_SPACE: list[SearchDimension] = grtresna_search_space()
 
 _LUMP_KEY_RE = re.compile(r"^grtresna_lump(\d+)_(\w+)$")
 
-GRTRESNA_MAX_HAM_PCT = 5.0
-GRTRESNA_MAX_MOM_PCT = 5.0
-GRTRESNA_REJECTION_BASE_FITNESS = 100.0
-GRTRESNA_REJECTION_MAX_EXTRA_FITNESS = 250.0
+from .grtresna_convergence_gate import (
+    DEFAULT_GRTRESNA_CONVERGENCE_CONFIG,
+    GRTRESNA_REJECTION_BASE_FITNESS,
+    GRTRESNA_REJECTION_MAX_EXTRA_FITNESS,
+    GRTresnaConvergenceConfig,
+    convergence_rejection_fitness as _grtresna_rejection_fitness,
+    convergence_rejection_reason as _grtresna_convergence_rejection_reason,
+)
+
+GRTRESNA_MAX_HAM_PCT = DEFAULT_GRTRESNA_CONVERGENCE_CONFIG.max_ham_pct
+GRTRESNA_MAX_MOM_PCT = DEFAULT_GRTRESNA_CONVERGENCE_CONFIG.max_mom_pct
 SOLVED_FTL_REJECTION_BASE_FITNESS = 75.0
 SOLVED_FTL_REJECTION_MAX_EXTRA_FITNESS = 20.0
 
@@ -644,50 +651,6 @@ def parse_convergence_safe(work_dir: Path) -> dict[str, float] | None:
         return None
 
 
-def _grtresna_convergence_rejection_reason(
-    convergence: Mapping[str, float] | None,
-    *,
-    max_ham_pct: float = GRTRESNA_MAX_HAM_PCT,
-    max_mom_pct: float = GRTRESNA_MAX_MOM_PCT,
-) -> str | None:
-    """Return a rejection reason for unusable GRTresna initial data."""
-    if not convergence:
-        return "missing GRTresna convergence diagnostics"
-    try:
-        ham = float(convergence["ham_pct"])
-        mom = float(convergence["mom_pct"])
-    except (KeyError, TypeError, ValueError):
-        return "invalid GRTresna convergence diagnostics"
-    if not math.isfinite(ham) or not math.isfinite(mom):
-        return f"nonfinite GRTresna convergence: Ham={ham}, Mom={mom}"
-    if ham > max_ham_pct or mom > max_mom_pct:
-        return (
-            f"GRTresna convergence too poor: Ham={ham:.6g}% "
-            f"Mom={mom:.6g}% thresholds=({max_ham_pct:g}%, {max_mom_pct:g}%)"
-        )
-    return None
-
-
-def _grtresna_rejection_fitness(
-    convergence: Mapping[str, float] | None,
-    *,
-    base: float = GRTRESNA_REJECTION_BASE_FITNESS,
-    max_extra: float = GRTRESNA_REJECTION_MAX_EXTRA_FITNESS,
-) -> float:
-    """Graded minimization penalty so CMA can rank bad GRTresna candidates."""
-    if not convergence:
-        return base + max_extra
-    try:
-        ham = float(convergence["ham_pct"])
-        mom = float(convergence["mom_pct"])
-    except (KeyError, TypeError, ValueError):
-        return base + max_extra
-    if not math.isfinite(ham) or not math.isfinite(mom):
-        return base + max_extra
-    residual_penalty = max(0.0, ham - GRTRESNA_MAX_HAM_PCT) + max(0.0, mom - GRTRESNA_MAX_MOM_PCT)
-    return base + min(max_extra, residual_penalty)
-
-
 @dataclass(frozen=True)
 class OptimizeResult:
     best_params: dict[str, float]
@@ -931,6 +894,7 @@ def _objective(
     grtresna_base: "GRTresnaConfig | None" = None,
     grtresna_solved_ftl_gate: bool = False,
     solved_ftl_gate_config: Any | None = None,
+    grtresna_convergence_config: GRTresnaConvergenceConfig | None = None,
 ) -> float:
     """Evaluate one candidate.  Returns negative score (CMA-ES minimizes)."""
     eval_counter[0] += 1
@@ -986,9 +950,13 @@ def _objective(
             gte_overrides["recipe_initial_data_file"] = gridinit
             convergence = parse_convergence_safe(episode.path / "grtresna")
             update_metadata(episode, {"grtresna_convergence": convergence})
-            rejection_reason = _grtresna_convergence_rejection_reason(convergence)
+            rejection_reason = _grtresna_convergence_rejection_reason(
+                convergence, config=grtresna_convergence_config,
+            )
             if rejection_reason is not None:
-                fitness = _grtresna_rejection_fitness(convergence)
+                fitness = _grtresna_rejection_fitness(
+                    convergence, config=grtresna_convergence_config,
+                )
                 update_metadata(episode, {
                     "grtresna_rejected": True,
                     "grtresna_rejection_reason": rejection_reason,
@@ -1168,6 +1136,7 @@ def run_optimize(
     grtresna_config: "GRTresnaConfig | None" = None,
     grtresna_solved_ftl_gate: bool | None = None,
     solved_ftl_gate_config: Any | None = None,
+    grtresna_convergence_config: GRTresnaConvergenceConfig | None = None,
     warm_start_trajectories: Sequence[Path] = (),
     warm_start_top_k: int = 8,
     warm_start_jitter: float = 0.08,
@@ -1262,6 +1231,16 @@ def run_optimize(
         "consume_plotfiles": consume_plotfiles,
         "grtresna": grtresna,
         "grtresna_solved_ftl_gate": solved_ftl_gate,
+        "grtresna_max_ham_pct": (
+            grtresna_convergence_config.max_ham_pct
+            if grtresna_convergence_config is not None
+            else DEFAULT_GRTRESNA_CONVERGENCE_CONFIG.max_ham_pct
+        ),
+        "grtresna_max_mom_pct": (
+            grtresna_convergence_config.max_mom_pct
+            if grtresna_convergence_config is not None
+            else DEFAULT_GRTRESNA_CONVERGENCE_CONFIG.max_mom_pct
+        ),
         "objective_mode": objective_mode,
         "warm_start_trajectories": [str(p) for p in warm_start_trajectories],
         "warm_start_top_k": warm_start_top_k,
@@ -1316,6 +1295,7 @@ def run_optimize(
                 grtresna_config=grtresna_config,
                 grtresna_solved_ftl_gate=solved_ftl_gate,
                 solved_ftl_gate_config=solved_ftl_gate_config,
+                grtresna_convergence_config=grtresna_convergence_config,
             )
         out: list[float] = []
         for sol in subset:
@@ -1346,6 +1326,7 @@ def run_optimize(
                 grtresna_base=grtresna_config,
                 grtresna_solved_ftl_gate=solved_ftl_gate,
                 solved_ftl_gate_config=solved_ftl_gate_config,
+                grtresna_convergence_config=grtresna_convergence_config,
             ))
         return out
 
@@ -1504,6 +1485,7 @@ def _evaluate_generation_parallel(
     grtresna_config: "GRTresnaConfig | None" = None,
     grtresna_solved_ftl_gate: bool = False,
     solved_ftl_gate_config: Any | None = None,
+    grtresna_convergence_config: GRTresnaConvergenceConfig | None = None,
 ) -> list[float]:
     """Evaluate an entire CMA-ES generation in parallel across GPUs.
 
@@ -1544,6 +1526,7 @@ def _evaluate_generation_parallel(
             grtresna_base=grtresna_config,
             grtresna_solved_ftl_gate=grtresna_solved_ftl_gate,
             solved_ftl_gate_config=solved_ftl_gate_config,
+            grtresna_convergence_config=grtresna_convergence_config,
         )
         with lock:
             fitnesses[idx_in_gen] = f

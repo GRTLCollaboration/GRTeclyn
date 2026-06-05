@@ -58,6 +58,7 @@ def evaluate_overrides(
     grtresna_base: Any | None = None,
     grtresna_solved_ftl_gate: bool = False,
     solved_ftl_gate_config: Any | None = None,
+    grtresna_convergence_config: Any | None = None,
 ) -> Evaluation:
     overrides = dict(overrides)
 
@@ -124,9 +125,13 @@ def evaluate_overrides(
             convergence = parse_convergence_safe(episode.path / "grtresna")
             update_metadata(episode, {"grtresna_convergence": convergence})
 
-            rejection_reason = _grtresna_convergence_rejection_reason(convergence)
+            rejection_reason = _grtresna_convergence_rejection_reason(
+                convergence, config=grtresna_convergence_config,
+            )
             if rejection_reason is not None:
-                fitness = _grtresna_rejection_fitness(convergence)
+                fitness = _grtresna_rejection_fitness(
+                    convergence, config=grtresna_convergence_config,
+                )
                 update_metadata(episode, {
                     "grtresna_rejected": True,
                     "grtresna_rejection_reason": rejection_reason,

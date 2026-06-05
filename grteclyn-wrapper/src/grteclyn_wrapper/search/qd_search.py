@@ -262,6 +262,7 @@ def run_qd_search(
     grtresna_config: Any | None = None,
     grtresna_solved_ftl_gate: bool = False,
     solved_ftl_gate_config: Any | None = None,
+    grtresna_convergence_config: Any | None = None,
 ) -> QDArchive:
     example_cfg = example if isinstance(example, ExampleConfig) else resolve_example(example)
     dims = list(search_space or DEFAULT_SEARCH_SPACE)
@@ -308,6 +309,12 @@ def run_qd_search(
         ],
         "grtresna": grtresna,
         "grtresna_solved_ftl_gate": grtresna_solved_ftl_gate,
+        "grtresna_max_ham_pct": getattr(
+            grtresna_convergence_config, "max_ham_pct", 5.0,
+        ),
+        "grtresna_max_mom_pct": getattr(
+            grtresna_convergence_config, "max_mom_pct", 5.0,
+        ),
     })
 
     def _append_live_trajectory(record: Mapping[str, Any]) -> None:
@@ -411,6 +418,7 @@ def run_qd_search(
                 grtresna_base=grtresna_config,
                 grtresna_solved_ftl_gate=grtresna_solved_ftl_gate,
                 solved_ftl_gate_config=solved_ftl_gate_config,
+                grtresna_convergence_config=grtresna_convergence_config,
             )
             results[i] = (idx, x, res)
             _append_live_trajectory(
