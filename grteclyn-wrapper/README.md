@@ -557,12 +557,30 @@ dominance, but still cannot win on the coupled term.
 - Best shift so far (~0.29 drive) is below eval 57 (~0.46) but above eval 128;
   the search is exploring the shift basin under tighter geometry.
 
-### MAP-Elites probe: `qd_20260605T060902Z` (stopped and restarted)
+### MAP-Elites quality-diversity campaign (GRTresna shell)
 
-The first GRTresna shell MAP-Elites probe used the same compact 5-lump shell
-space as the CMA-ES run, but searched for diversity across the `channel`
-descriptors (`path_closeness`, `mechanism_balance`) instead of collapsing to one
-scalar optimum:
+**What MAP-Elites does here.** CMA-ES (`run_grtresna_search.sh`) optimizes one
+scalar score and tends to collapse onto a single basin (e.g. eval-128:
+high `ftl_precursor`, weak shift; or eval-57: strong shift, subluminal path).
+MAP-Elites (`run_grtresna_qd_search.sh`, driver `scripts/search/qd_search.py`)
+instead maintains an **archive of elites** indexed by **behavior descriptors**
+so multiple geometry *families* survive even when their scalar scores differ.
+
+| | CMA-ES | MAP-Elites (this campaign) |
+|--|--------|----------------------------|
+| Goal | maximize one score | fill a behavior grid with diverse high performers |
+| Output | one best candidate | archive of elites across descriptor cells |
+| Descriptors | (none — score only) | `path_closeness`, `mechanism_balance`, plus tier tags |
+| Matter basis | same GRTresna shell / ring ansatz | same shell space (`SHELL_PROFILE=compact`, 5 lumps) |
+| Resolution | N=64, t=2, max_level=2 | same short GPU eval per candidate |
+| Why run it | fast scalar climb | find **operational** FTL *and* keep path-quality precursors CMA-ES would discard |
+
+Each QD iteration: sample shell parameters → GRTresna solve → GPU evolve → score →
+insert into archive if the candidate is elite for its descriptor cell. The
+**scalar score still ranks candidates within a cell**, but the archive preserves
+`eval_000025`-style path precursors alongside the eventual operational winner.
+
+Launch:
 
 ```bash
 QD_ITERATIONS=8 BINS=8 GPU_IDS="0 1 2 3 4 5 6 7" RANKS=8 \
@@ -570,7 +588,13 @@ QD_ITERATIONS=8 BINS=8 GPU_IDS="0 1 2 3 4 5 6 7" RANKS=8 \
   bash scripts/search/run_grtresna_qd_search.sh
 ```
 
-Stopped run:
+Campaign outputs live under `runs/grtresna_qd/qd_<timestamp>/`:
+`trajectory.jsonl` (per-eval scores), `archive.json`, `eval_XXXXXX/` dirs with
+`score.json` and optional frames.
+
+#### Probe: `qd_20260605T060902Z` (stopped and restarted)
+
+First probe on the patched logger (same launch command as above). Stopped run:
 
 `runs/grtresna_qd/qd_20260605T060902Z/`
 
@@ -620,10 +644,16 @@ campaign. At the search resolution (N=64, t=2) it reached `operational_ftl=1.0`,
 `eval_000025` (`channel_progress=0.28`, no operational FTL). Inspect frames under
 `eval_000057/frames/{local_speed,shift1,rho_req,scalar_activity}_z/`.
 
-Compared with the contemporary CMA-ES baseline (`runs/grtresna_search/`), MAP-Elites
-found an **operational** FTL survivor where CMA-ES had not; the archive also kept
-diverse precursors (`eval_000025`, etc.) that a scalar optimizer would have
-discarded.
+**CMA-ES vs MAP-Elites outcome:** the contemporary CMA-ES baseline
+(`runs/grtresna_search/`) had strong precursors and shift leaders but **no**
+candidate with `operational_ftl=1.0` at search resolution. MAP-Elites found
+`eval_000057` — the first operational superluminal shell elite — while the
+archive still retained diverse precursors (`eval_000025`, `channel_progress=0.28`,
+no operational FTL) that a scalar-only optimizer would have discarded once
+`eval_000057`'s score dominated.
+
+**Promotion path:** `eval_000057` was then replayed at higher N, longer t, and
+(optionally) larger L through `replay_grtresna_eval.py` (see ladder below).
 
 ### High-performance promotion: `eval_000057` → `runs/grtresna_promote/`
 
@@ -635,18 +665,87 @@ for falsification tier `converged` (see tiers below).
 
 #### Promotion ladder (results)
 
-| Run | GRTresna | N | max_level | t | max c (evolved) | F_op ev | channel_prog | score | Notes |
-|-----|----------|--:|----------:|--:|----------------:|--------:|-------------:|------:|-------|
-| `eval_000057` (search) | yes | 64 | 2 | 2 | 1.065 | 0.009 | 0.18 | 1342 | QD winner |
-| `val16hq_qd_eval057` | yes | 96 | 2 | 16 | 1.181 | 0.072 | 0.52 | 1450 | first HQ replay |
-| `val16hq2_qd_eval057` | yes | 128 | 3 | 16 | 1.192 | 0.073 | 0.53 | **1457** | best t=16 HQ |
-| `val30hq_qd_eval057` | **no** (reused gridinit) | 128 | 3 | **30** | **1.276** | **0.126** | 0.47 | 1289 | long GPU-only |
+| Run | GRTresna | L | N | max_level | t | max c (evolved) | F_op ev | channel_prog | score | Notes |
+|-----|----------|--:|--:|----------:|--:|----------------:|--------:|-------------:|------:|-------|
+| `eval_000057` (search) | yes | 64 | 64 | 2 | 2 | 1.065 | 0.009 | 0.18 | 1342 | QD winner |
+| `val16hq_qd_eval057` | yes | 96 | 96 | 2 | 16 | 1.181 | 0.072 | 0.52 | 1450 | first HQ replay |
+| `val16hq2_qd_eval057` | yes | 128 | 128 | 3 | 16 | 1.192 | 0.073 | 0.53 | **1457** | best t=16 HQ; gridinit reused later |
+| `val30hq_qd_eval057` | **no** (reused gridinit) | 128 | 128 | 3 | **30** | **1.276** | **0.126** | 0.47 | 1289 | long GPU-only |
+| `val100hq_qd_eval057` | **no** (reused gridinit) | 128 | 128 | 3 | **100** | 1.205 | 0.018 | 0.37 | 1261 | long GPU-only; movies in `frames/` |
+| `val256hq_qd_eval057` | yes (in progress) | **256** | **256** | 3 | 100 | — | — | — | — | 2× domain repeat; fresh GRTresna |
 
-**Read on the ladder:** channel **persists and strengthens** at higher resolution
-and longer time — `max c` rises from 1.065 → 1.276 and `F_op` from 0.009 → 0.126.
-`operational_ftl` stays 1.0 through t=30. The lower scalar score on `val30hq` is
-mostly bookkeeping (`operational_ftl_solved=0` because no GRTresna rescore was run,
-higher `exotic_penalty` over a longer window), not loss of the superluminal signal.
+**Score vs physics (why the scalar drops on long GPU-only runs):**
+
+| Transition | score Δ | max c | F_op ev | What changed in bookkeeping |
+|------------|--------:|------:|--------:|----------------------------|
+| QD → `val16hq2` (t=16, HQ) | +115 | 1.065 → 1.192 | 0.009 → 0.073 | resolution up; `channel_progress` 0.18 → 0.53 |
+| `val16hq2` → `val30hq` (t=30) | −168 | **1.276** ↑ | **0.126** ↑ | `operational_ftl_solved` 1 → 0; `exotic_penalty` −1.38 → −1.59 |
+| `val30hq` → `val100hq` (t=100) | −28 | 1.276 → 1.205 ↓ | 0.126 → 0.018 ↓ | `instability_penalty` −0.59; exotic capped at −1.60 |
+
+**Read on the ladder:** `operational_ftl` stays **1.0** through t=100 — the
+superluminal channel persists. Peak `max c` **rises to 1.276 at t=30** then eases
+to 1.205 at t=100 (channel weakens but does not vanish). The **scalar score is not
+a monotonic physics gauge** on GPU-only continuations: missing `operational_ftl_solved`,
+growing `exotic_penalty`, and `instability_penalty` dominate the drop even when
+`max c` and `F_op` improve mid-ladder.
+
+#### `val100hq` visual analytics (frame inspection, t=100)
+
+Manual review of `runs/grtresna_promote/val100hq_qd_eval057/frames/` (106 PNGs per
+field, `frame_z_0000` … `frame_z_5001`, all movies stitched). Fields of interest:
+`rho_req_z` (exotic matter proxy), `phi_z`, `shift1_z` — the movies with the most
+visible dynamics.
+
+**Frame integrity:** all 11 field folders have 106 PNGs, start + final frames
+present, 0 corrupt images, 11 mp4 movies written.
+
+**Visual caveat — colorbars are not comparable across fields or times.** Each
+frame auto-scales from the 1st–99th percentile of that slice (`consume_plotfiles.py`);
+`shift1` late frames use a ±10⁻² scale while early frames use ±10⁻¹³. Comparing
+brightness between fields or between t=0 and t=100 is misleading without reading
+the colorbar. **However**, the late central pattern is not a colorbar artifact:
+the same two-lobed / dipole-like structure appears independently in `shift1`,
+`rho_req`, `chi`, and `local_speed`, and the scorer measured **max c = 1.205**
+from plotfile data in `score.json`, not from the PNGs.
+
+**`local_speed` saturation.** Plot config fixes `local_speed` color limits at
+**0.95–1.10** (`consume_plotfiles.py`). The white core in the final
+`local_speed_z` frame is **saturated**; the actual evolved peak from metrics is
+**1.205**. The channel is real in the data even though the frame under-displays
+the peak.
+
+| Field (z-slice, t≈100) | What the frames show |
+|------------------------|----------------------|
+| `shift1_z` | Coherent **two-lobed** central structure, magnitude ~10⁻²; not blank noise |
+| `rho_req_z` | Clear **+/- paired / crescent** structure, qualitatively warp-bubble-like |
+| `local_speed_z` | Structure aligned with above; saturated high-speed core |
+| `chi_z` | Matching central dipole-like conformal deformation |
+| `phi_z`, `Pi_z`, `scalar_activity_z` | **Decayed to background** by t=100 at plotted scale |
+
+**Mid-run boundary contamination (t≈50):** `phi_z` shows an outgoing **ring wave**
+near the domain edge; `rho_req` and `shift1` develop faint **edge stripes** and
+diamond interference patterns. By t=100 the outer-domain ripples are likely
+**wall-reflected junk radiation**, not clean asymptotic physics. Do **not** treat
+the t=100 outer-ring pattern as a trustworthy warp-bubble signal on L=128.
+
+**Interpretation (best read as of t=100 on L=128):**
+
+1. The **central** final structure is probably **not** a rendering bug — it is
+   consistent across multiple derived fields and the scorer reports persistent
+   evolved FTL (`operational_ftl=1.0`, max c=1.205).
+2. The late-time object is mostly a **residual evolved metric/geometry feature**
+   (shift, exotic density, conformal factor), not an active scalar blob — scalars
+   have radiated away.
+3. Calling it a **clean warp-bubble evolution** is too strong: boundary reflections
+   likely contaminate the late-time outer domain. That motivated the **`val256hq`**
+   repeat (L=N=256, fresh GRTresna) so waves at t=100 stay ~28 code units from
+   the walls instead of reflecting.
+
+**Gridinit pitfall (`val256L128`, aborted):** reusing `val16hq2`'s gridinit
+(`origin=0`, baked for `center=64`, `L=128`) inside `L=256`, `center=128` without
+a fresh GRTresna solve **misplaces the shell** (~64 units off-center) and produces
+bogus frame geometry. `replay_grtresna_eval.py` now rejects misaligned gridinits;
+larger boxes require a new GRTresna solve (`val256hq`).
 
 #### How to launch promotion replays
 
@@ -684,19 +783,33 @@ uv run python scripts/search/replay_grtresna_eval.py \
   --name val30hq_qd_eval057 --runs-dir ../runs/grtresna_promote \
   --gpu 0 --n-full 128 --max-level 3 --stop-time 30 \
   --gridinit runs/grtresna_promote/val16hq2_qd_eval057/initial_data.gridinit
+
+# GPU-only t=100 continuation (same L=128 gridinit):
+SOURCE_EVAL=../../runs/grtresna_promote/val16hq2_qd_eval057 \
+GRIDINIT_SOURCE=../../runs/grtresna_promote/val16hq2_qd_eval057/initial_data.gridinit \
+N_FULL=128 MAX_LEVEL=3 STOP_TIME=100 \
+GPU=0 NAME=val100hq_qd_eval057 \
+  bash run_tier2_grtresna_qd_eval057.sh
+
+# 2× domain, same dx=1 — requires fresh GRTresna (no GRIDINIT_SOURCE):
+N_FULL=256 L_FULL=256 MAX_LEVEL=3 STOP_TIME=100 \
+GPU=0 NAME=val256hq_qd_eval057 \
+  bash run_tier2_grtresna_qd_eval057.sh
 ```
 
 Key env knobs on `run_tier2_grtresna_qd_eval057.sh`:
 
 | Env var | Default | Meaning |
 |---------|---------|---------|
-| `N_FULL` | 128 | Base grid resolution (`L_full` scales with N) |
+| `N_FULL` | 128 | Base grid resolution |
+| `L_FULL` | `N_FULL` | Evolution box width in code units (set > `N_FULL` only with a fresh GRTresna solve) |
 | `MAX_LEVEL` | 3 | GPU AMR depth |
 | `STOP_TIME` | 16 | Evolution stop time |
 | `PLOT_INTERVAL` | 48 | Plotfile cadence (~33 frames at t=16) |
-| `GRIDINIT_SOURCE` | (unset) | If set, skip GRTresna and load this `.gridinit` |
+| `GRIDINIT_SOURCE` | (unset) | If set, skip GRTresna and load this `.gridinit` (must match evolution `center`) |
 | `SOURCE_EVAL` | `eval_000057` | Metadata/overrides source directory |
-| `GRTECLYN_FRAMES_ZOOM` | `N_FULL` | Slice-frame width in code units (full domain) |
+| `GRTECLYN_FRAMES_ZOOM` | `L_FULL` | Slice-frame width in code units (full domain) |
+| `GRTRESNA_DOMAIN_L` | `L_FULL` | GRTresna solve box width when re-solving |
 
 Unlike `reproduce` (recipe-coeff replays), this path runs **GRTresna shell matter**
 or loads a pre-solved `.gridinit` via `recipe_initial_data_file`.
@@ -717,6 +830,10 @@ Two frame bugs were fixed during this campaign:
    `-48 -48` at the bottom-left corner; the y-axis corner label is now suppressed
    when it matches the x-axis minimum.
 
+**Known plot limits (not bugs):** per-field auto color scaling and the fixed
+`local_speed` window (0.95–1.10) can hide peak amplitudes; trust `score.json`
+and multi-field consistency for amplitude claims, not a single saturated PNG.
+
 Stitch PNG sequences into mp4 movies (handles gapped frame indices like
 `frame_z_0096.png`, `frame_z_0480.png`, …):
 
@@ -733,15 +850,17 @@ bash scripts/plot/make_movies.sh \
 Movies are written next to the frames, e.g.
 `frames/shift1_z/movie_shift1_z.mp4`.
 
-#### Key artifact paths (`val30hq_qd_eval057`)
+#### Key artifact paths
 
-| Path | Content |
-|------|---------|
-| `score.json` | Final metrics: t=30.02, max c=1.276, operational_ftl=1.0 |
-| `metadata.json` | Grid settings + `recipe_initial_data_file` pointer |
-| `frames/*/movie_*.mp4` | Animated field movies (33 frames, t=0…30) |
-| `frames/shift1_z/frames/frame_z_1501.png` | Final-time shift slice |
-| `small_data/shell_profiles.dat` | Radial shell time series |
+| Run | Path | Content |
+|-----|------|---------|
+| `val30hq` | `score.json` | t=30.02, max c=1.276, score=1289, operational_ftl=1.0 |
+| `val30hq` | `frames/*/movie_*.mp4` | 33-frame movies (t=0…30) |
+| `val100hq` | `score.json` | t=100.02, max c=1.205, score=1261, operational_ftl=1.0 |
+| `val100hq` | `frames/*/movie_*.mp4` | 106-frame movies (t=0…100) |
+| `val100hq` | `frames/shift1_z/frames/frame_z_5001.png` | Final-time shift slice |
+| any promote | `metadata.json` | Grid settings + `recipe_initial_data_file` pointer |
+| any promote | `small_data/shell_profiles.dat` | Radial shell time series |
 
 ### Falsification tiers: "did we actually find the solution?"
 
