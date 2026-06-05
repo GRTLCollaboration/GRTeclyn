@@ -194,7 +194,7 @@ these frames first:
 | `local_speed_z` | A localized region climbing toward or above `c=1`; eventually a connected faster path. | Entire slice stays sub-luminal and nearly identical across evals. |
 | `shift1_z` / shift fields | Shift magnitude growing enough to tilt light cones. | Colorbar is `x10^-2` and max shift is only `~0.03`. |
 | `Pi_z` and `scalar_activity_*` | Momentum-carrying, asymmetric, coherent current structure. | Smooth two-lobe scalar cloud with little directional structure. |
-| `score.json` / `trajectory.jsonl` | Variation in `shift_drive`, `ftl_precursor`, `curvature_activity`, and ideally `operational_ftl`. | `operational_ftl=0`, `ftl_shortcut=0`, identical `ftl_precursor`, default `mechanism_descriptor=0.5`; score differences come from stability/constraint health. |
+| `score.json` / `trajectory.jsonl` | Variation in `shift_drive`, `ftl_precursor`, `channel_progress`, `curvature_activity`, and ideally `operational_ftl`. | `operational_ftl=0`, `channel_progress=0`, `ftl_shortcut=0`, identical `ftl_precursor`, default `mechanism_descriptor=0.5`; score differences come from stability/constraint health. |
 
 The physical reason is simple: GRTresna builds the scalar conjugate momentum as
 `Pi = -v . grad(phi)`, and the momentum density is `S_i = -Pi d_i phi`, so the
@@ -215,6 +215,17 @@ The current shell search is tuned away from that failure mode:
 - In `objective_mode=ftl_first`, survival/stability/constraint-health bonuses
   are gated by nontriviality, so "healthy but not warping" candidates cannot win
   by cleanliness alone.
+- **`channel_progress`** (added 2026-06-05) couples three signals the optimizer
+  previously rewarded independently: how close the evolved fastest path is to
+  beating the flat baseline (`t_min` vs `t_flat`), cone opening (`ftl_precursor`),
+  and frame drag (`shift_drive`). It is
+  `path_closeness × √(precursor × shift)`, so isolated precursor-only or
+  shift-only basins score less than candidates that move on all three axes.
+- **`SHELL_PROFILE`** (launcher env / `--grtresna-shell-profile`) selects preset
+  shell bounds without editing Python. Default is **`compact`** (width capped at
+  `3.0`); use **`middle`** to reproduce the `170329Z` bounds (`width` up to
+  `4.0`). Profiles `outer_precursor` and `inner_shift` bias toward the eval-128
+  / eval-57 leader regimes from the prior campaign.
 
 Quick triage command for a campaign:
 
@@ -234,12 +245,70 @@ for episode in sorted(root.glob("eval_*")):
         episode.name,
         f"score={score.total:.2f}",
         f"op={c.get('operational_ftl', 0):.3f}",
+        f"ch={c.get('channel_progress', 0):.3f}",
         f"prec={c.get('ftl_precursor', 0):.3f}",
         f"shift={c.get('shift_drive', 0):.3f}",
         f"curv={c.get('curvature_activity', 0):.3f}",
     )
 PY
 ```
+
+### Search objective & geometry updates (2026-06-05)
+
+After `optimize_20260604T170329Z` found two distinct local optima — eval 128
+(precursor/cone opening, weak shift) and eval 57 (strong shift, subluminal speed)
+— the wrapper gained two coordinated changes to push the search toward *coupled*
+mechanisms rather than either isolated basin.
+
+#### `channel_progress` scoring component
+
+Implemented in `metrics/score.py`. Uses existing `GeneralFtlReport` fields from
+`metrics/ftl_general.py` (no new physics diagnostics).
+
+| Piece | Definition | Why |
+|-------|------------|-----|
+| `path_closeness` | `1 − (t_min − t_flat) / t_flat` (saturated at 0 when path is >~12% slower than flat) | Rewards geometries whose Dijkstra fastest path is *approaching* a shortcut, not just locally superluminal cells. |
+| `mechanism` | `√(ftl_precursor × shift_drive)` | Requires both cone opening and frame drag; eval-128-like (high precursor, tiny shift) and eval-57-like (high shift, bad path) both score low here. |
+| `channel_progress` | `path_closeness × mechanism` | Shaping gradient only; `operational_ftl` remains the hard success gate. |
+
+Under `objective_mode=ftl_first` the lexicographic weights are now:
+
+| Component | Weight | Notes |
+|-----------|-------:|-------|
+| `operational_ftl` | 1000 | unchanged — only true end-to-end shortcut wins |
+| `channel_progress` | **200** | **new** |
+| `ftl_precursor` | **160** | down from 250 — pure cone opening cannot dominate alone |
+| `shift_drive` | **100** | down from 120 — shift still rewarded, but coupled term carries more |
+| `operational_ftl_solved` | 150 | unchanged |
+
+**Effect on search:** CMA-ES still explores, but the scalar objective no longer
+lets eval-128-style diffuse superluminal patches outscore everything by
+`ftl_precursor` alone. Candidates need path progress *and* both mechanism signals
+to climb the new coupled term. Scores are **not comparable** across campaigns
+that predate `channel_progress`.
+
+#### `SHELL_PROFILE` bounds presets
+
+Implemented in `search/optimize.py` (`grtresna_shell_search_space(profile=...)`) and
+wired through `run_grtresna_search.sh` (`SHELL_PROFILE`, default `compact`) and
+`--grtresna-shell-profile`.
+
+| Profile | Width | Radius | Typical use |
+|---------|-------|--------|-------------|
+| `compact` (default) | `1.8–3.0` | `1.5–6.0` | Sharper lumps; matter current scales as `amp² v / width`; reduces diffuse-blob basin |
+| `middle` | `1.8–4.0` | `1.5–6.0` | Reproduce `optimize_20260604T170329Z` bounds |
+| `outer_precursor` | `2.8–4.0` | `4.0–6.0` | Bias toward eval-128 outer/wide/exotic regime |
+| `inner_shift` | `1.8–3.0` | `1.5–3.0` | Bias toward eval-57 compact inner shift regime |
+
+`LUMPS` remains a placement-resolution knob (Fibonacci sites on the sphere), not
+an optimizer dimension increase. Capping width does **not** shrink the GRTresna or
+GRTeclyn grid; it changes which matter configurations are reachable and how
+strong their currents are.
+
+**Effect on search:** Tighter width excludes the eval-128 optimum at `width≈3.9`
+unless CMA-ES finds a compact alternative with similar cone opening. Warm-starting
+`170329Z` vectors into `compact` can spike GRTresna rejections because those
+leaders were tuned for wider shells.
 
 ### Campaign results: `optimize_20260604T170329Z` (shell, middle bounds)
 
@@ -422,6 +491,116 @@ SHELL_PROFILE=inner_shift WARM_START_TRAJECTORY=../runs/grtresna_search/optimize
 
 Replay eval 128 at higher resolution before any physics claim (`run_tier2_*`
 scripts or longer `stop_time`).
+
+### Campaign results: `optimize_20260605T051320Z` (compact, warm-started)
+
+First campaign with **`channel_progress`** scoring and **`SHELL_PROFILE=compact`**,
+warm-started from `optimize_20260604T170329Z` (`WARM_START_TOP_K=8`). Path:
+
+`runs/grtresna_search/optimize_20260605T051320Z/`
+
+#### Launch configuration
+
+| Setting | Value |
+|---------|-------|
+| Ansatz | `GRTRESNA_ANSATZ=shell`, `LUMPS=5` |
+| Shell profile | `SHELL_PROFILE=compact` (width `1.8–3.0`) |
+| Warm start | `optimize_20260604T170329Z/trajectory.jsonl`, top 8 |
+| Objective | `ftl_first` + `channel_progress` |
+| Pre-GPU gate | `SOLVED_FTL_NEAR_LUMINAL_SPEED_FLOOR=0.9` |
+
+#### Outcome (in progress — gen 4/50, 32 evals logged)
+
+| | |
+|--|--|
+| **Status** | Running |
+| **Evals logged** | **32 / 400** (8%) |
+| **GPU survivors** | **12 / 32** (38%) |
+| **All-time best** | **eval 32 → score 38.13** |
+| **Operational FTL** | **0** on every survivor so far |
+
+Compared with the warm-start source campaign:
+
+| Campaign | Profile | GPU pass rate | Best score | Leader character |
+|----------|---------|---------------|------------|------------------|
+| `optimize_20260604T170329Z` | middle | 51% | 214.72 (eval 128) | Precursor/cone opening |
+| **`optimize_20260605T051320Z`** | **compact** | **38%** (early) | **38.13** (eval 32) | Shift-leaning, no coupled progress yet |
+
+Gen 0 was harsh (1/8 GPU OK) because `170329Z` leaders — especially eval 128 at
+`width≈3.9` — do not all survive under the compact width cap. Pass rate recovered
+as CMA-ES explored jittered/random candidates.
+
+#### Current best — eval 32 (shift-leaning, not a breakthrough)
+
+| Metric | eval 32 | eval 128 (`170329Z`) | eval 57 (`170329Z`) |
+|--------|--------:|---------------------:|--------------------:|
+| `shift_drive` | **0.293** | 0.079 | **0.461** |
+| `ftl_precursor` | 0.059 | **0.753** | 0.054 |
+| `channel_progress` | **0** | ~0 (weak shift) | **0** (bad path) |
+| `operational_ftl` | 0 | 0 | 0 |
+| evolved `max_shift` | 0.085 | 0.020 | 0.147 |
+| evolved `max_local_speed` | 0.934 | **1.043** | 0.933 |
+| `t_min` / `t_flat` | 21.31 / 15.75 | 15.87 / 15.75 | 21.87 / 15.75 |
+
+Frames (`eval_000032/frames/`): localized `shift1_z` and `rho_req_z` structure
+(similar family to eval 57), but **no superluminal patch** and **no path
+progress** — so `channel_progress` correctly stays at 0. The new objective is
+working as designed: this candidate scores via `shift_drive`, not precursor
+dominance, but still cannot win on the coupled term.
+
+#### Early read
+
+- **`channel_progress` is live** but no survivor has nonzero coupled progress yet.
+- **Compact bounds + warm start** is a stiff combination; consider a fresh
+  `SHELL_PROFILE=compact` run (no warm start) or `SHELL_PROFILE=middle` if pass
+  rate stays below ~25% through gen 10.
+- Best shift so far (~0.29 drive) is below eval 57 (~0.46) but above eval 128;
+  the search is exploring the shift basin under tighter geometry.
+
+### MAP-Elites probe: `qd_20260605T060902Z` (stopped and restarted)
+
+The first GRTresna shell MAP-Elites probe used the same compact 5-lump shell
+space as the CMA-ES run, but searched for diversity across the `channel`
+descriptors (`path_closeness`, `mechanism_balance`) instead of collapsing to one
+scalar optimum:
+
+```bash
+QD_ITERATIONS=8 BINS=8 GPU_IDS="0 1 2 3 4 5 6 7" RANKS=8 \
+  LUMPS=5 SHELL_PROFILE=compact \
+  bash scripts/search/run_grtresna_qd_search.sh
+```
+
+Stopped run:
+
+`runs/grtresna_qd/qd_20260605T060902Z/`
+
+What it produced before termination:
+
+- 32 eval directories were started; 24 rows were ingested into
+  `trajectory.jsonl`; 15 `score.json` files had completed.
+- Archive coverage reached `0.09375` (`6 / 64` cells), all archived elites were
+  tier `nontrivial`; no `operational` survivor yet.
+- Best archived candidate was `eval_000023`: score `77.88`,
+  `channel_progress=0.0653`, `path_closeness=0.9163`,
+  `ftl_precursor=0.3394`, `shift_drive=0.0150`, `t_min/t_flat=15.908/15.75`.
+- `operational_ftl` remained `0.0`; this is a strong precursor/path-closeness
+  probe result, not an FTL solution.
+
+This probe exposed a monitoring bug in the QD logger: the old
+`trajectory.jsonl` wrote the current batch counter into `eval`, so rows from the
+same batch all appeared as `eval=8`, `eval=16`, or `eval=24`. The true eval id
+was still recoverable from the `episode` path (`eval_000017`, etc.), but this was
+confusing for live monitoring. The QD logger now records the per-evaluation id
+and appends completed evaluations to `trajectory.jsonl` immediately, before
+batch-level archive ingestion.
+
+Restarted patched run:
+
+`runs/grtresna_qd/qd_20260605T062448Z/`
+
+Use this run for live monitoring. Its `trajectory.jsonl` should appear as soon as
+the first evaluation finishes scoring, and new rows should have distinct `eval`
+ids matching their `eval_XXXXXX` directories.
 
 ### Falsification tiers: "did we actually find the solution?"
 
@@ -762,10 +941,11 @@ parameterizations:
   Fibonacci lattice. Toroidal flow circulates about the axis (net `L`,
   gravitomagnetic dipole); poloidal flow goes over the poles. This reaches 3D
   configurations the planar ring structurally cannot, at only +2 dimensions.
-  The default shell ranges sit between the old diffuse blobs and the too-strong
-  compact regime (`amp=0.08..0.28`, `width=1.8..4.0`, toroidal velocity `-2..2`)
-  because GRTresna must converge before GPU evolution can score shift/FTL. For
-  this mode the launcher defaults to `GRTRESNA_FULL_Z=1`,
+  Shell bounds are selected by `SHELL_PROFILE` (default `compact`: `width=1.8..3.0`;
+  `middle` restores `width=1.8..4.0` as in `optimize_20260604T170329Z`). Amplitude
+  and velocity ranges are shared across profiles (`amp=0.08..0.28`, toroidal
+  velocity `-2..2`) because GRTresna must converge before GPU evolution can score
+  shift/FTL. For this mode the launcher defaults to `GRTRESNA_FULL_Z=1`,
 - `--grtresna-ansatz free`: the older unconstrained `K`-lump basis. Each lump
   `k` contributes the 11 dimensions below, so `K=5` gives 55 searched
   dimensions. This is maximally expressive but harder for CMA-ES to learn; use

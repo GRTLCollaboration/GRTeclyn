@@ -3,7 +3,42 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Mapping
+from typing import TYPE_CHECKING, Any, Mapping
+
+if TYPE_CHECKING:
+    from ..core.evaluation import Evaluation
+
+
+def _looks_like_exception_reason(reason: str) -> bool:
+    """True when ``reason`` looks like ``repr(exc)`` rather than prose."""
+    if "(" not in reason or not reason.endswith(")"):
+        return False
+    head = reason.split("(", 1)[0].strip()
+    return bool(head) and head[0].isupper() and " " not in head
+
+
+def trajectory_flags_from_evaluation(res: Evaluation) -> dict[str, Any]:
+    """Top-level trajectory flags shared by optimize and QD drivers."""
+    flags: dict[str, Any] = {}
+    if res.reason:
+        flags["reason"] = res.reason
+    if res.preflight_rejected:
+        flags["preflight_rejected"] = True
+        return flags
+    components = res.components
+    if "solved_ftl_rejection" in components:
+        flags["solved_ftl_rejected"] = True
+        return flags
+    if "grtresna_rejection" in components:
+        reason = res.reason or ""
+        if _looks_like_exception_reason(reason):
+            flags["grtresna_failed"] = True
+        else:
+            flags["grtresna_rejected"] = True
+        return flags
+    if res.exit_code is not None:
+        flags["exit_code"] = res.exit_code
+    return flags
 
 
 def infer_trajectory_status(record: Mapping[str, Any]) -> str:
@@ -23,6 +58,14 @@ def infer_trajectory_status(record: Mapping[str, Any]) -> str:
         return "gpu_ok" if exit_code == 0 else "gpu_failed"
     if record.get("dry_run"):
         return "dry_run"
+    components = record.get("components") or {}
+    if "solved_ftl_rejection" in components:
+        return "solved_ftl_rejected"
+    if "grtresna_rejection" in components:
+        reason = str(record.get("reason") or "")
+        if _looks_like_exception_reason(reason):
+            return "grtresna_failed"
+        return "grtresna_rejected"
     return "unknown"
 
 

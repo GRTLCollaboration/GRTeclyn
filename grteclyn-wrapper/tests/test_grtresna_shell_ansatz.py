@@ -1,5 +1,6 @@
 import math
 
+from grteclyn_wrapper.__main__ import build_parser
 from grteclyn_wrapper.search.optimize import (
     build_grtresna_config,
     build_search_space,
@@ -128,3 +129,29 @@ def test_shell_compact_profile_caps_width() -> None:
 
     assert compact_width.upper == 3.0
     assert middle_width.upper == 4.0
+
+
+def test_qd_cli_accepts_grtresna_shell_channel_options() -> None:
+    parser = build_parser()
+    args = parser.parse_args([
+        "--consume-plotfiles",
+        "qd",
+        "--descriptor-mode",
+        "channel",
+        "--objective-mode",
+        "ftl_first",
+        "--grtresna",
+        "--grtresna-ansatz",
+        "shell",
+        "--grtresna-shell-profile",
+        "compact",
+        "--grtresna-full-z",
+    ])
+
+    assert args.command == "qd"
+    assert args.descriptor_mode == "channel"
+    assert args.objective_mode == "ftl_first"
+    assert args.grtresna is True
+    assert args.grtresna_ansatz == "shell"
+    assert args.grtresna_shell_profile == "compact"
+    assert args.grtresna_full_z is True

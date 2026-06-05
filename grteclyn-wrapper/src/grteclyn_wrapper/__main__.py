@@ -363,6 +363,9 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
 def _run_qd_command(args: argparse.Namespace, base_overrides: dict[str, Any]) -> int:
     from .search.qd_search import run_qd_search
 
+    if getattr(args, "grtresna", False) and args.example == "SupportedWormholeCollapse":
+        print("[qd] --grtresna requires the RadialRecipe example; switching --example to RadialRecipe.")
+        args.example = "RadialRecipe"
     example = resolve_example(args.example)
     executable = None
     if not args.dry_run:
@@ -375,6 +378,70 @@ def _run_qd_command(args: argparse.Namespace, base_overrides: dict[str, Any]) ->
             debug=args.debug,
         )
     template = Path(args.template).expanduser().resolve() if args.template else None
+
+    from .search.optimize import build_search_space
+    use_grtresna = getattr(args, "grtresna", False)
+    grtresna_lumps = getattr(args, "grtresna_lumps", 5)
+    grtresna_ansatz = getattr(args, "grtresna_ansatz", "free")
+    grtresna_shell_profile = getattr(args, "grtresna_shell_profile", "compact")
+    search_space = build_search_space(
+        grtresna=use_grtresna,
+        grtresna_lumps=grtresna_lumps,
+        grtresna_ansatz=grtresna_ansatz,
+        grtresna_shell_profile=grtresna_shell_profile,
+    )
+    if use_grtresna and grtresna_ansatz == "ring":
+        base_overrides = {**base_overrides, "grtresna_ring_lumps": grtresna_lumps}
+    if use_grtresna and grtresna_ansatz == "shell":
+        base_overrides = {**base_overrides, "grtresna_shell_lumps": grtresna_lumps}
+
+    grtresna_config = None
+    solved_ftl_gate_config = None
+    if use_grtresna:
+        from .grtresna.domain import GRTresnaDomainConfig
+        from .grtresna.solver import GRTresnaConfig
+
+        grtresna_domain = GRTresnaDomainConfig(
+            full_z=bool(getattr(args, "grtresna_full_z", False)),
+            l_full=getattr(args, "grtresna_evolution_l_full", 64.0),
+            n_full=getattr(args, "grtresna_evolution_n_full", 64),
+            grtresna_l=getattr(args, "grtresna_domain_l", 128.0),
+            grtresna_nx=getattr(args, "grtresna_domain_nx", 64),
+            grtresna_ny=getattr(args, "grtresna_domain_ny", 64),
+            grtresna_nz=getattr(args, "grtresna_domain_nz", None),
+            gridinit_nx=getattr(args, "grtresna_gridinit_nx", 64),
+            gridinit_ny=getattr(args, "grtresna_gridinit_ny", 64),
+            gridinit_nz=getattr(args, "grtresna_gridinit_nz", 64),
+        )
+        base_overrides = {**base_overrides, **grtresna_domain.evolution_overrides()}
+        grtresna_config = GRTresnaConfig(
+            mpi_ranks=getattr(args, "grtresna_ranks", 8),
+            max_NL_iterations=getattr(args, "grtresna_iterations", 50),
+            max_level=getattr(args, "grtresna_max_level", 3),
+            refine_threshold=getattr(args, "grtresna_refine_threshold", 0.5),
+            regrid_radius=getattr(args, "grtresna_regrid_radius", 0.0),
+            coefficient_average_type=getattr(args, "grtresna_coefficient_average_type", "harmonic"),
+            psi_relaxation=getattr(args, "grtresna_psi_relaxation", 1.0),
+            psi_floor=getattr(args, "grtresna_psi_floor", -1.0),
+            maximal_jacobian_cap=getattr(args, "grtresna_jacobian_cap", -1.0),
+            bh1_bare_mass=0.0,
+            bh1_spin=(0.0, 0.0, 0.0),
+            bh2_bare_mass=0.0,
+            dphi=0.0,
+            dpi=0.0,
+            cleanup=True,
+        )
+        grtresna_config = grtresna_domain.apply_to_solver(grtresna_config)
+        solved_ftl_gate_config = SolvedFtlGateConfig(
+            f_op_floor=getattr(args, "solved_ftl_f_op_floor", 1.0e-4),
+            near_luminal_speed_floor=getattr(args, "solved_ftl_near_luminal_speed_floor", 0.99),
+            superluminal_speed_floor=getattr(args, "solved_ftl_superluminal_speed_floor", 1.01),
+            superluminal_fraction_floor=getattr(args, "solved_ftl_superluminal_fraction_floor", 0.02),
+            max_physical_coord_speed=getattr(args, "solved_ftl_max_physical_coord_speed", 8.0),
+            max_physical_f_op=getattr(args, "solved_ftl_max_physical_f_op", 0.85),
+            rejection_speed_target=getattr(args, "solved_ftl_rejection_speed_target", 1.01),
+        )
+
     archive = run_qd_search(
         runs_dir=Path(args.runs_dir).expanduser().resolve(),
         executable=executable,
@@ -384,20 +451,28 @@ def _run_qd_command(args: argparse.Namespace, base_overrides: dict[str, Any]) ->
         init_random=args.init_random,
         seed=args.seed,
         base_overrides=base_overrides,
+        search_space=search_space,
         template=template,
         example=example,
         name=args.name,
         dry_run=args.dry_run,
-        constrained=True,
+        constrained=not use_grtresna,
         phantom=getattr(args, "phantom", False) or getattr(args, "phantom_default", False),
-        use_preflight=getattr(args, "preflight", False),
+        use_preflight=(False if use_grtresna else getattr(args, "preflight", False)),
         cuda_devices=args.cuda_devices,
         gpu_ids=getattr(args, "gpu_ids", None),
         check_params=not args.skip_check_params,
         score_weights=getattr(args, "score_weights", None),
+        objective_mode=getattr(args, "objective_mode", "weighted"),
         ftl_L=getattr(args, "ftl_L", None),
         consume_plotfiles=getattr(args, "consume_plotfiles", True),
         consumer_radii=getattr(args, "consumer_radii", [4.0, 8.0]),
+        consumer_keep_last=getattr(args, "consumer_keep_last", 1),
+        descriptor_mode=getattr(args, "descriptor_mode", "legacy"),
+        grtresna=use_grtresna,
+        grtresna_config=grtresna_config,
+        grtresna_solved_ftl_gate=use_grtresna,
+        solved_ftl_gate_config=solved_ftl_gate_config,
     )
     best = archive.best
     print(json.dumps({
@@ -781,6 +856,66 @@ def build_parser() -> argparse.ArgumentParser:
     qd.add_argument("--init-random", type=int, default=None, help="Random candidates in the initial fill (default: batch size).")
     qd.add_argument("--seed", type=int, default=None, help="Random seed.")
     qd.add_argument("--gpu-ids", nargs="+", type=int, default=None, help="GPU indices for parallel eval.")
+    qd.add_argument(
+        "--descriptor-mode",
+        choices=["legacy", "channel"],
+        default="legacy",
+        help="MAP-Elites descriptors: legacy FTL/mechanism grid, or channel path-closeness/mechanism-balance grid.",
+    )
+    qd.add_argument(
+        "--objective-mode",
+        choices=["weighted", "ftl_first"],
+        default="weighted",
+        help="Scoring scalarization used as elite quality.",
+    )
+    qd.add_argument(
+        "--grtresna",
+        action="store_true",
+        help="Evaluate MAP-Elites candidates through the GRTresna constraint solve before GPU evolution.",
+    )
+    qd.add_argument("--grtresna-ranks", type=int, default=8)
+    qd.add_argument("--grtresna-lumps", type=int, default=5)
+    qd.add_argument(
+        "--grtresna-ansatz",
+        choices=["free", "ring", "shell"],
+        default="free",
+        help="GRTresna matter parameterization for QD candidates.",
+    )
+    qd.add_argument(
+        "--grtresna-shell-profile",
+        choices=["middle", "compact", "outer_precursor", "inner_shift"],
+        default="compact",
+        help="Shell ansatz bounds preset when --grtresna-ansatz=shell.",
+    )
+    qd.add_argument("--grtresna-full-z", action=argparse.BooleanOptionalAction, default=False)
+    qd.add_argument("--grtresna-evolution-l-full", type=float, default=64.0)
+    qd.add_argument("--grtresna-evolution-n-full", type=int, default=64)
+    qd.add_argument("--grtresna-domain-l", type=float, default=128.0)
+    qd.add_argument("--grtresna-domain-nx", type=int, default=64)
+    qd.add_argument("--grtresna-domain-ny", type=int, default=64)
+    qd.add_argument("--grtresna-domain-nz", type=int, default=None)
+    qd.add_argument("--grtresna-gridinit-nx", type=int, default=64)
+    qd.add_argument("--grtresna-gridinit-ny", type=int, default=64)
+    qd.add_argument("--grtresna-gridinit-nz", type=int, default=64)
+    qd.add_argument("--grtresna-iterations", type=int, default=50)
+    qd.add_argument("--grtresna-max-level", type=int, default=3)
+    qd.add_argument("--grtresna-refine-threshold", type=float, default=0.5)
+    qd.add_argument("--grtresna-regrid-radius", type=float, default=0.0)
+    qd.add_argument(
+        "--grtresna-coefficient-average-type",
+        choices=["harmonic", "arithmetic"],
+        default="harmonic",
+    )
+    qd.add_argument("--grtresna-psi-relaxation", type=float, default=1.0)
+    qd.add_argument("--grtresna-psi-floor", type=float, default=-1.0)
+    qd.add_argument("--grtresna-jacobian-cap", type=float, default=-1.0)
+    qd.add_argument("--solved-ftl-f-op-floor", type=float, default=1.0e-4)
+    qd.add_argument("--solved-ftl-near-luminal-speed-floor", type=float, default=0.99)
+    qd.add_argument("--solved-ftl-superluminal-speed-floor", type=float, default=1.01)
+    qd.add_argument("--solved-ftl-superluminal-fraction-floor", type=float, default=0.02)
+    qd.add_argument("--solved-ftl-max-physical-coord-speed", type=float, default=8.0)
+    qd.add_argument("--solved-ftl-max-physical-f-op", type=float, default=0.85)
+    qd.add_argument("--solved-ftl-rejection-speed-target", type=float, default=1.01)
 
     pareto = subparsers.add_parser("pareto", help="Extract the multi-objective Pareto front from a trajectory.jsonl.")
     pareto.add_argument("--trajectory", required=True, help="Path to an optimizer trajectory.jsonl.")

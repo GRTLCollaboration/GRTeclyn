@@ -12,8 +12,18 @@ import numpy as np
 from grteclyn_wrapper.metrics import read_episode_metrics, read_growth_metrics, score_episode
 from grteclyn_wrapper.metrics.physical_metrics import compute_physical_metrics
 from grteclyn_wrapper.search.pareto import ParetoPoint, dominates, pareto_front
-from grteclyn_wrapper.search.qd_search import QDArchive, Elite, _bin_index, _descriptors
+from grteclyn_wrapper.search.qd_search import (
+    QDArchive,
+    Elite,
+    _bin_index,
+    _descriptor_details,
+    _descriptors,
+    run_qd_search,
+)
+from grteclyn_wrapper.core.evaluation import Evaluation
 from grteclyn_wrapper.initial_data.seeds import get_seed
+from grteclyn_wrapper.search import qd_search as qd_module
+from grteclyn_wrapper.search.optimize import SearchDimension
 from grteclyn_wrapper.search.surrogate import RBFSurrogate, screen_candidates
 
 
@@ -153,6 +163,93 @@ def test_descriptors_and_bins() -> None:
     assert _bin_index(0.0, 8) == 0
     assert _bin_index(0.999, 8) == 7
     assert _bin_index(0.5, 8) == 4
+
+
+def test_channel_descriptors_separate_path_from_shift_blob() -> None:
+    components = {
+        "ftl_precursor": 0.25,
+        "shift_drive": 0.36,
+        "channel_progress": 0.12,
+        "operational_ftl": 0.0,
+    }
+    metrics = {
+        "general_ftl_evolved": {
+            "reachable": True,
+            "t_min": 16.38,
+            "t_flat": 15.75,
+        }
+    }
+
+    details = _descriptor_details(components, metrics, mode="channel")
+    d1, d2 = _descriptors(components, metrics, mode="channel")
+
+    assert details["path_closeness"] > 0.6
+    assert abs(details["mechanism_balance"] - 0.3) < 1e-9
+    assert d1 == details["path_closeness"]
+    assert d2 == details["mechanism_balance"]
+
+    slow = {
+        "general_ftl_evolved": {
+            "reachable": True,
+            "t_min": 25.52,
+            "t_flat": 15.75,
+        }
+    }
+    assert _descriptor_details(components, slow, mode="channel")["path_closeness"] == 0.0
+
+
+def test_qd_search_flushes_initial_trajectory(tmp_path, monkeypatch) -> None:
+    def fake_evaluate_overrides(overrides, *, out_dir, name, **_kwargs):
+        idx = int(name.rsplit("_", 1)[1])
+        episode = out_dir / name
+        episode.mkdir()
+        return Evaluation(
+            score=float(idx),
+            components={
+                "constraint_growth": 1.0,
+                "ftl_precursor": 0.05 * idx,
+                "shift_drive": 0.2,
+                "channel_progress": 0.01 * idx,
+                "operational_ftl": 0.0,
+                "anec_condition": 1.0,
+                "tidal_comfort": 1.0,
+            },
+            notes=[],
+            episode_path=str(episode),
+            exit_code=0,
+            preflight_rejected=False,
+            reason=None,
+            metrics={
+                "general_ftl_evolved": {
+                    "reachable": True,
+                    "t_flat": 10.0,
+                    "t_min": 10.0 + 0.1 * idx,
+                },
+            },
+        )
+
+    monkeypatch.setattr(qd_module, "evaluate_overrides", fake_evaluate_overrides)
+
+    run_qd_search(
+        runs_dir=tmp_path,
+        name="qd_live",
+        iterations=0,
+        init_random=2,
+        batch_size=1,
+        bins=4,
+        seed=7,
+        search_space=[SearchDimension("toy_param", 0.0, 1.0)],
+        consume_plotfiles=False,
+        check_params=False,
+    )
+
+    lines = (tmp_path / "qd_live" / "trajectory.jsonl").read_text(encoding="utf-8").splitlines()
+    rows = [json.loads(line) for line in lines]
+
+    assert [row["eval"] for row in rows] == [1, 2]
+    assert all(row["episode"].endswith(f"eval_{row['eval']:06d}") for row in rows)
+    assert all(row["status"] == "gpu_ok" for row in rows)
+    assert (tmp_path / "qd_live" / "archive.json").exists()
 
 
 # --------------------------------------------------------------------------

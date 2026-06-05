@@ -32,7 +32,11 @@ from ..core.config import ExampleConfig, ExecutableConfig, resolve_example
 from ..core.episode import write_json
 from ..core.evaluation import Evaluation, evaluate_overrides
 from .optimize import DEFAULT_SEARCH_SPACE, SearchDimension
-from .trajectory_log import format_trajectory_line
+from .trajectory_log import (
+    format_trajectory_line,
+    infer_trajectory_status,
+    trajectory_flags_from_evaluation,
+)
 from .validation_tiers import (
     DEFAULT_TIER_CONFIG,
     Tier,
@@ -44,7 +48,52 @@ from .validation_tiers import (
 )
 
 
-def _descriptors(components: Mapping[str, float]) -> tuple[float, float]:
+def _path_closeness_from_report(report: Mapping[str, Any] | None) -> float:
+    if not report or not bool(report.get("reachable", False)):
+        return 0.0
+    t_min = report.get("t_min")
+    t_flat = float(report.get("t_flat") or 0.0)
+    if t_min is None or not math.isfinite(float(t_min)) or t_flat <= 0.0:
+        return 0.0
+    t_min_f = float(t_min)
+    if t_min_f <= t_flat:
+        return 1.0
+    excess = (t_min_f - t_flat) / t_flat
+    return max(0.0, 1.0 - excess / 0.12)
+
+
+def _descriptor_details(
+    components: Mapping[str, float],
+    metrics: Mapping[str, Any] | None = None,
+    *,
+    mode: str = "legacy",
+) -> dict[str, float]:
+    if mode == "channel":
+        metrics = metrics or {}
+        report = (
+            metrics.get("general_ftl_evolved")
+            or metrics.get("general_ftl_solved")
+            or metrics.get("general_ftl")
+        )
+        path_closeness = _path_closeness_from_report(report)
+        precursor = float(np.clip(components.get("ftl_precursor", 0.0), 0.0, 1.0))
+        shift = float(np.clip(components.get("shift_drive", 0.0), 0.0, 1.0))
+        mechanism_balance = float(math.sqrt(max(precursor, 0.0) * max(shift, 0.0)))
+        t_min = float(report.get("t_min")) if report and report.get("t_min") is not None else float("nan")
+        t_flat = float(report.get("t_flat")) if report and report.get("t_flat") is not None else float("nan")
+        return {
+            "x": path_closeness,
+            "y": mechanism_balance,
+            "path_closeness": path_closeness,
+            "mechanism_balance": mechanism_balance,
+            "shift_drive": shift,
+            "ftl_precursor": precursor,
+            "channel_progress": float(components.get("channel_progress", 0.0)),
+            "operational_ftl": float(components.get("operational_ftl", 0.0)),
+            "t_min": t_min,
+            "t_flat": t_flat,
+        }
+
     ftl_benefit = float(
         np.clip(
             max(
@@ -60,7 +109,22 @@ def _descriptors(components: Mapping[str, float]) -> tuple[float, float]:
     mechanism = float(np.clip(components.get("mechanism_descriptor", 0.0), 0.0, 1.0))
     if mechanism <= 0.0:
         mechanism = float(np.clip(1.0 - components.get("anec_condition", 1.0), 0.0, 1.0))
-    return ftl_benefit, mechanism
+    return {
+        "x": ftl_benefit,
+        "y": mechanism,
+        "ftl_benefit": ftl_benefit,
+        "mechanism": mechanism,
+    }
+
+
+def _descriptors(
+    components: Mapping[str, float],
+    metrics: Mapping[str, Any] | None = None,
+    *,
+    mode: str = "legacy",
+) -> tuple[float, float]:
+    details = _descriptor_details(components, metrics, mode=mode)
+    return details["x"], details["y"]
 
 
 def _bin_index(value: float, bins: int) -> int:
@@ -77,6 +141,7 @@ class Elite:
     tier: int = int(Tier.REJECTED)
     tier_name: str = "rejected"
     objectives: dict[str, float] = field(default_factory=dict)
+    descriptor_details: dict[str, float] = field(default_factory=dict)
 
 
 @dataclass
@@ -121,6 +186,7 @@ class QDArchive:
                     "cell": list(e.cell),
                     "score": e.score,
                     "descriptors": list(e.descriptors),
+                    "descriptor_details": e.descriptor_details,
                     "tier": e.tier,
                     "tier_name": e.tier_name,
                     "objectives": e.objectives,
@@ -187,8 +253,15 @@ def run_qd_search(
     ftl_L: float | None = None,
     consume_plotfiles: bool = True,
     consumer_radii: Sequence[float] = (4.0, 8.0),
+    consumer_keep_last: int = 1,
     tier_config: TierConfig = DEFAULT_TIER_CONFIG,
     survivor_min_tier: int = int(Tier.OPERATIONAL),
+    descriptor_mode: str = "legacy",
+    objective_mode: str = "weighted",
+    grtresna: bool = False,
+    grtresna_config: Any | None = None,
+    grtresna_solved_ftl_gate: bool = False,
+    solved_ftl_gate_config: Any | None = None,
 ) -> QDArchive:
     example_cfg = example if isinstance(example, ExampleConfig) else resolve_example(example)
     dims = list(search_space or DEFAULT_SEARCH_SPACE)
@@ -214,6 +287,9 @@ def run_qd_search(
 
     archive = QDArchive(bins=bins)
     eval_counter = [0]
+    counter_lock = threading.Lock()
+    trajectory_lock = threading.Lock()
+    trajectory_path = qd_dir / "trajectory.jsonl"
     trajectory: list[dict[str, Any]] = []
 
     write_json(qd_dir / "metadata.json", {
@@ -225,20 +301,93 @@ def run_qd_search(
         "bins": bins,
         "seed": seed,
         "gpu_ids": list(gpu_ids) if gpu_ids else None,
+        "descriptor_mode": descriptor_mode,
         "base_overrides": base,
         "search_space": [
             {"key": d.param_key, "lower": d.lower, "upper": d.upper} for d in dims
         ],
+        "grtresna": grtresna,
+        "grtresna_solved_ftl_gate": grtresna_solved_ftl_gate,
     })
 
-    def _evaluate_batch(vectors: list[list[float]]) -> list[Evaluation | None]:
-        results: list[Evaluation | None] = [None] * len(vectors)
+    def _append_live_trajectory(record: Mapping[str, Any]) -> None:
+        with trajectory_lock:
+            with trajectory_path.open("a", encoding="utf-8") as fh:
+                fh.write(format_trajectory_line(record))
+
+    def _write_trajectory() -> None:
+        with trajectory_lock:
+            with trajectory_path.open("w", encoding="utf-8") as fh:
+                for rec in trajectory:
+                    fh.write(format_trajectory_line(rec))
+
+    def _record_result(
+        *,
+        idx: int,
+        x: list[float],
+        res: Evaluation | None,
+        insert_archive: bool,
+    ) -> dict[str, Any]:
+        overrides = _vector_to_overrides(x, dims, base)
+        if res is None or res.preflight_rejected:
+            record: dict[str, Any] = {
+                "eval": idx,
+                "preflight_rejected": True,
+                "overrides": {d.param_key: overrides.get(d.param_key) for d in dims},
+            }
+            if res is not None:
+                record.update(trajectory_flags_from_evaluation(res))
+            record["status"] = infer_trajectory_status(record)
+            return record
+
+        descriptor_details = _descriptor_details(
+            res.components, res.metrics, mode=descriptor_mode,
+        )
+        d1, d2 = descriptor_details["x"], descriptor_details["y"]
+        cell = (_bin_index(d1, bins), _bin_index(d2, bins))
+        params = {d.param_key: float(overrides[d.param_key]) for d in dims}
+        assessment = evaluate_tiers(res.components, metrics=res.metrics, config=tier_config)
+        improved = None
+        if insert_archive:
+            elite = Elite(
+                cell=cell,
+                score=res.score,
+                descriptors=(d1, d2),
+                params=params,
+                episode=res.episode_path,
+                tier=assessment.tier,
+                tier_name=assessment.tier_name,
+                objectives=assessment.objectives,
+                descriptor_details=descriptor_details,
+            )
+            improved = archive.insert(elite)
+
+        record = {
+            "eval": idx,
+            "score": res.score,
+            "cell": list(cell),
+            "descriptors": [d1, d2],
+            "descriptor_details": descriptor_details,
+            "tier": assessment.tier,
+            "tier_name": assessment.tier_name,
+            "improved": improved,
+            "episode": res.episode_path,
+            "components": res.components,
+            "overrides": {d.param_key: overrides.get(d.param_key) for d in dims},
+        }
+        record.update(trajectory_flags_from_evaluation(res))
+        record["status"] = infer_trajectory_status(record)
+        return record
+
+    def _evaluate_batch(vectors: list[list[float]]) -> list[tuple[int, list[float], Evaluation | None] | None]:
+        results: list[tuple[int, list[float], Evaluation | None] | None] = [None] * len(vectors)
 
         def _eval_one(i: int, x: list[float], gpu: str | None) -> None:
-            eval_counter[0] += 1
-            idx = eval_counter[0]
+            with counter_lock:
+                eval_counter[0] += 1
+                idx = eval_counter[0]
             overrides = _vector_to_overrides(x, dims, base)
-            results[i] = evaluate_overrides(
+            res = evaluate_overrides(
                 overrides,
                 out_dir=qd_dir,
                 name=f"eval_{idx:06d}",
@@ -253,9 +402,19 @@ def run_qd_search(
                 dry_run=dry_run,
                 target_stop_time=target_stop_time,
                 score_weights=score_weights,
+                objective_mode=objective_mode,
                 ftl_L=ftl_L,
                 consume_plotfiles=consume_plotfiles,
                 consumer_radii=consumer_radii,
+                consumer_keep_last=consumer_keep_last,
+                grtresna=grtresna,
+                grtresna_base=grtresna_config,
+                grtresna_solved_ftl_gate=grtresna_solved_ftl_gate,
+                solved_ftl_gate_config=solved_ftl_gate_config,
+            )
+            results[i] = (idx, x, res)
+            _append_live_trajectory(
+                _record_result(idx=idx, x=x, res=res, insert_archive=False)
             )
 
         if gpu_ids and len(gpu_ids) > 1 and not dry_run:
@@ -272,39 +431,15 @@ def run_qd_search(
                 _eval_one(i, x, cuda_devices)
         return results
 
-    def _ingest(vectors: list[list[float]], results: list[Evaluation | None]) -> None:
-        for x, res in zip(vectors, results):
-            if res is None or res.preflight_rejected:
-                trajectory.append({
-                    "eval": eval_counter[0],
-                    "preflight_rejected": True,
-                })
+    def _ingest(results: list[tuple[int, list[float], Evaluation | None] | None]) -> None:
+        for item in results:
+            if item is None:
                 continue
-            d1, d2 = _descriptors(res.components)
-            cell = (_bin_index(d1, bins), _bin_index(d2, bins))
-            params = {d.param_key: float(_vector_to_overrides(x, dims, base)[d.param_key]) for d in dims}
-            assessment = evaluate_tiers(res.components, metrics=res.metrics, config=tier_config)
-            elite = Elite(
-                cell=cell,
-                score=res.score,
-                descriptors=(d1, d2),
-                params=params,
-                episode=res.episode_path,
-                tier=assessment.tier,
-                tier_name=assessment.tier_name,
-                objectives=assessment.objectives,
+            idx, x, res = item
+            trajectory.append(
+                _record_result(idx=idx, x=x, res=res, insert_archive=True)
             )
-            improved = archive.insert(elite)
-            trajectory.append({
-                "eval": eval_counter[0],
-                "score": res.score,
-                "cell": list(cell),
-                "descriptors": [d1, d2],
-                "tier": assessment.tier,
-                "tier_name": assessment.tier_name,
-                "improved": improved,
-                "episode": res.episode_path,
-            })
+        _write_trajectory()
 
     conv_history: list[dict[str, Any]] = []
 
@@ -360,7 +495,9 @@ def run_qd_search(
 
     # Initial random fill.
     init_vectors = [_sample_random(dims, rng) for _ in range(n_init)]
-    _ingest(init_vectors, _evaluate_batch(init_vectors))
+    _ingest(_evaluate_batch(init_vectors))
+    write_json(qd_dir / "archive.json", archive.to_dict())
+    _write_validation()
 
     for it in range(1, iterations + 1):
         vectors: list[list[float]] = []
@@ -371,12 +508,9 @@ def run_qd_search(
                 vectors.append(_mutate_elite(parent, dims, rng))
             else:
                 vectors.append(_sample_random(dims, rng))
-        _ingest(vectors, _evaluate_batch(vectors))
+        _ingest(_evaluate_batch(vectors))
 
         write_json(qd_dir / "archive.json", archive.to_dict())
-        with (qd_dir / "trajectory.jsonl").open("w", encoding="utf-8") as fh:
-            for rec in trajectory:
-                fh.write(format_trajectory_line(rec))
         signals = _write_validation()
         best = archive.best
         n_front = len(conv_history[-1]["front_labels"])
