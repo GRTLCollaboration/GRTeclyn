@@ -1079,7 +1079,7 @@ for falsification tier `converged` (see [Scoring and falsification](#scoring-and
 | `val16hq2_qd_eval057` | yes | 128 | 128 | 3 | 16 | 1.192 | 0.073 | 0.53 | **1457** | best t=16 HQ; gridinit reused later |
 | `val30hq_qd_eval057` | **no** (reused gridinit) | 128 | 128 | 3 | **30** | **1.276** | **0.126** | 0.47 | 1289 | long GPU-only |
 | `val100hq_qd_eval057` | **no** (reused gridinit) | 128 | 128 | 3 | **100** | 1.205 | 0.018 | 0.37 | 1261 | long GPU-only; movies in `frames/` |
-| `val256hq_qd_eval057` | yes (in progress) | **256** | **256** | 3 | 100 | — | — | — | — | 2× domain repeat; fresh GRTresna |
+| `val256hq_qd_eval057` | yes → **no** (sidecar gridinit) | **256** | **256** | 3 | **100** | 1.196 | 0.013 | 0.37 | **1261** | 2× domain; fresh GRTresna solve, GPU-only finish |
 
 **Score vs physics (why the scalar drops on long GPU-only runs):**
 
@@ -1088,10 +1088,12 @@ for falsification tier `converged` (see [Scoring and falsification](#scoring-and
 | QD → `val16hq2` (t=16, HQ) | +115 | 1.065 → 1.192 | 0.009 → 0.073 | resolution up; `channel_progress` 0.18 → 0.53 |
 | `val16hq2` → `val30hq` (t=30) | −168 | **1.276** ↑ | **0.126** ↑ | `operational_ftl_solved` 1 → 0; `exotic_penalty` −1.38 → −1.59 |
 | `val30hq` → `val100hq` (t=100) | −28 | 1.276 → 1.205 ↓ | 0.126 → 0.018 ↓ | `instability_penalty` −0.59; exotic capped at −1.60 |
+| `val100hq` → `val256hq` (L×2, t=100) | 0 | 1.205 → 1.196 ↓ | 0.018 → 0.013 ↓ | same score bookkeeping; **constraints ~3× tighter** on Ham/Mom |
 
-**Read on the ladder:** `operational_ftl` stays **1.0** through t=100 — the
-superluminal channel persists. Peak `max c` **rises to 1.276 at t=30** then eases
-to 1.205 at t=100 (channel weakens but does not vanish). The **scalar score is not
+**Read on the ladder:** `operational_ftl` stays **1.0** through t=100 on both
+L=128 and L=256 — the superluminal channel persists. Peak `max c` **rises to
+1.276 at t=30** then eases to ~1.20 at t=100 (1.205 on L=128, 1.196 on L=256;
+channel weakens but does not vanish). The **scalar score is not
 a monotonic physics gauge** on GPU-only continuations: missing `operational_ftl_solved`,
 growing `exotic_penalty`, and `instability_penalty` dominate the drop even when
 `max c` and `F_op` improve mid-ladder.
@@ -1144,15 +1146,75 @@ the t=100 outer-ring pattern as a trustworthy warp-bubble signal on L=128.
    (shift, exotic density, conformal factor), not an active scalar blob — scalars
    have radiated away.
 3. Calling it a **clean warp-bubble evolution** is too strong: boundary reflections
-   likely contaminate the late-time outer domain. That motivated the **`val256hq`**
-   repeat (L=N=256, fresh GRTresna) so waves at t=100 stay ~28 code units from
-   the walls instead of reflecting.
+   likely contaminate the late-time outer domain. That motivated **`val256hq`**
+   (L=N=256, fresh GRTresna, completed — see [val256hq results](#val256hq-results-2-domain-t100))
+   so waves at t=100 stay ~28 code units from the walls instead of reflecting.
 
 **Gridinit pitfall (`val256L128`, aborted):** reusing `val16hq2`'s gridinit
 (`origin=0`, baked for `center=64`, `L=128`) inside `L=256`, `center=128` without
 a fresh GRTresna solve **misplaces the shell** (~64 units off-center) and produces
 bogus frame geometry. `replay_grtresna_eval.py` now rejects misaligned gridinits;
 larger boxes require a new GRTresna solve (`val256hq`).
+
+#### `val256hq` results (2× domain, t=100)
+
+Completed run: `runs/grtresna_promote/val256hq_qd_eval057/` (`score.json`,
+`data/constraint_norms.dat`, 11×106-frame movies with fixed colorbars).
+
+**Launch history:** first attempt ran full GRTresna + GPU on L=N=256; GRTresna
+converged (29 NL iterations, Ham/Mom residuals ~3×10⁻⁶ %), then GPU evolution
+stopped early (~t≈17). The solved state was preserved as
+`val256hq_initial_data.gridinit` (sidecar, ~3.4 GB). Episode dir was wiped and
+restarted **GPU-only** from that gridinit to t=100 (~70 min on one GPU).
+
+**Headline metrics (t=100.02):**
+
+| Metric | `val256hq` (L=256) | `val100hq` (L=128) |
+|--------|-------------------:|-------------------:|
+| Score | 1261.3 | 1261.3 |
+| `operational_ftl` | 1.0 | 1.0 |
+| max c (evolved) | 1.196 | 1.205 |
+| F_op ev | 0.013 | 0.018 |
+| `channel_progress` | 0.37 | 0.37 |
+| Ham L2 final / max | 2.40×10⁻⁴ / 3.29×10⁻⁴ | 6.88×10⁻⁴ / 9.30×10⁻⁴ |
+| Mom L2 final / max | 2.14×10⁻⁵ / 1.24×10⁻⁴ | 6.47×10⁻⁵ / 3.51×10⁻⁴ |
+| ∫ neg ρ | 3.70 | 3.86 |
+
+**Constraint read:** Ham bumps briefly at t≈2 then sits flat ~2.1×10⁻⁴; Mom
+decays monotonically from gridinit level (~1.2×10⁻⁴) to ~2×10⁻⁵. Both stay
+**~50× below** the 10⁻² score penalty floor. On the 2× box, Hamiltonian and
+momentum norms stay ~3× lower than `val100hq` through t=100; integrated negative
+energy grows slower (∫ neg ρ 3.70 vs 3.86). Constraints are **not** the limiting
+factor on this ladder — exotic and instability penalties still dominate the scalar
+score on long GPU-only runs.
+
+Constraint plots (generated from `data/constraint_norms.dat`):
+
+- `constraints_plot.png` — Ham + Mom for `val256hq`
+- `constraints_compare_val100hq.png` — overlay vs `val100hq`
+
+```bash
+uv run python -m grteclyn_wrapper.visualisation.constraines \
+  runs/grtresna_promote/val256hq_qd_eval057/data/constraint_norms.dat \
+  -o runs/grtresna_promote/val256hq_qd_eval057/constraints_plot.eps
+```
+
+**Physics read vs `val100hq`:** same scalar score and persistent operational FTL,
+slightly lower peak c (1.196 vs 1.205). The 2× domain was meant to push boundary
+reflections farther from the shell at t=100 (~28 code units to walls vs ~14 on
+L=128). Central structure in `shift1`, `rho_req`, `chi`, and `local_speed` movies
+is qualitatively similar to `val100hq`; outer-ring boundary junk should be less
+entangled with the channel but was not re-audited frame-by-frame here.
+
+GPU-only restart recipe (after a GRTresna solve has written a sidecar gridinit):
+
+```bash
+SOURCE_EVAL=../../runs/grtresna_qd/qd_20260605T062448Z/eval_000057 \
+GRIDINIT_SOURCE=../../runs/grtresna_promote/val256hq_initial_data.gridinit \
+N_FULL=256 L_FULL=256 MAX_LEVEL=3 STOP_TIME=100 \
+GPU=0 NAME=val256hq_qd_eval057 \
+  bash run_tier2_grtresna_qd_eval057.sh
+```
 
 #### How to launch promotion replays
 
@@ -1237,9 +1299,13 @@ Two frame bugs were fixed during this campaign:
    `-48 -48` at the bottom-left corner; the y-axis corner label is now suppressed
    when it matches the x-axis minimum.
 
-**Known plot limits (not bugs):** per-field auto color scaling and the fixed
-`local_speed` window (0.95–1.10) can hide peak amplitudes; trust `score.json`
-and multi-field consistency for amplitude claims, not a single saturated PNG.
+**Fixed movie colorbars (default):** slice frames use **stable per-field color
+limits** so mp4 colorbars do not jump frame-to-frame (`shift1` ±0.05,
+`rho_req` ±3×10⁻³, `chi` 0.90–1.10, `local_speed` 0.90–1.30, etc. in
+`consume_plotfiles.py`). Override one field:
+`GRTECLYN_FRAMES_ZLIM_SHIFT1=-0.05,0.05`. Restore old per-frame auto-scaling:
+`GRTECLYN_FRAMES_AUTO_ZLIM=1`. Re-stitch movies after re-rendering frames if you
+change limits mid-run.
 
 Stitch PNG sequences into mp4 movies (handles gapped frame indices like
 `frame_z_0096.png`, `frame_z_0480.png`, …):
@@ -1266,6 +1332,11 @@ Movies are written next to the frames, e.g.
 | `val100hq` | `score.json` | t=100.02, max c=1.205, score=1261, operational_ftl=1.0 |
 | `val100hq` | `frames/*/movie_*.mp4` | 106-frame movies (t=0…100) |
 | `val100hq` | `frames/shift1_z/frames/frame_z_5001.png` | Final-time shift slice |
+| `val256hq` | `score.json` | t=100.02, max c=1.196, score=1261, operational_ftl=1.0 |
+| `val256hq` | `val256hq_initial_data.gridinit` | Sidecar GRTresna solve (~3.4 GB); reuse for GPU-only restarts |
+| `val256hq` | `data/constraint_norms.dat` | Ham/Mom L2 time series (every dt) |
+| `val256hq` | `constraints_plot.png`, `constraints_compare_val100hq.png` | Constraint diagnostic figures |
+| `val256hq` | `frames/*/movie_*.mp4` | 106-frame movies (t=0…100, fixed colorbars) |
 | any promote | `metadata.json` | Grid settings + `recipe_initial_data_file` pointer |
 | any promote | `small_data/shell_profiles.dat` | Radial shell time series |
 
