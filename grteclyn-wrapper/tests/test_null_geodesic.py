@@ -22,6 +22,7 @@ def test_flat_metric_null_projection():
     ginv = inverse_metric_4d(g)
     k = project_null(g[0, 0, 0], ginv[0, 0, 0], g[0, 0, 0] @ np.array([1.0, 1.0, 0.0, 0.0]))
     assert abs(null_hamiltonian(ginv[0, 0, 0], k)) < 1e-10
+    assert (ginv[0, 0, 0] @ k)[0] > 0.0
 
 
 def test_integrate_null_ray_flat_space():
@@ -45,4 +46,4 @@ def test_integrate_null_ray_flat_space():
     )
     assert res.reached
     assert res.t_coord is not None
-    assert abs(res.t_coord - res.t_flat) / res.t_flat < 0.35
+    assert abs(res.t_coord - res.t_flat) / res.t_flat < 0.05

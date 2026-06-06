@@ -173,13 +173,13 @@ def _trilinear(
 
 def _sample_metric(
     g: NDArray[np.float64],
+    ginv: NDArray[np.float64],
     dg_inv: NDArray[np.float64],
     x: NDArray[np.float64],
     origin: NDArray[np.float64],
     spacing: Sequence[float],
 ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
     i0, frac = _clamp_index(x, origin, spacing, g.shape[:3])
-    ginv = inverse_metric_4d(g)
     g_pt = _trilinear(g, i0, frac)
     ginv_pt = _trilinear(ginv, i0, frac)
     dg_pt = _trilinear(dg_inv, i0, frac)
@@ -198,7 +198,6 @@ def project_null(
 ) -> NDArray[np.float64]:
     """Rescale spatial covariant components to restore ``H = 0``."""
     k = k_cov.copy()
-    g_spatial = g[1:, 1:]
     ginv_spatial = ginv[1:, 1:]
     k_sp = k[1:]
     a = float(k_sp @ ginv_spatial @ k_sp)
@@ -207,11 +206,20 @@ def project_null(
     disc = b * b - 4.0 * a * c
     if a <= 0.0 or disc < 0.0:
         return k
-    # Choose root that keeps k^0 > 0 (future directed).
-    k0_new = (-b + math.sqrt(disc)) / (2.0 * a)
-    if k0_new <= 0.0:
-        k0_new = (-b - math.sqrt(disc)) / (2.0 * a)
-    k[0] = k0_new
+    # The quadratic solves for a scale factor on k_i with fixed k_0.
+    roots = (
+        (-b + math.sqrt(disc)) / (2.0 * a),
+        (-b - math.sqrt(disc)) / (2.0 * a),
+    )
+    candidates: list[NDArray[np.float64]] = []
+    for scale in roots:
+        kk = k.copy()
+        kk[1:] = scale * k_sp
+        if np.isfinite(scale) and (ginv @ kk)[0] > 0.0:
+            candidates.append(kk)
+    if candidates:
+        # Prefer the smallest positive correction to preserve ray direction.
+        k = min(candidates, key=lambda kk: abs(np.linalg.norm(kk[1:]) - np.linalg.norm(k_sp)))
     return k
 
 
@@ -245,8 +253,9 @@ def integrate_null_ray(
     """Trace one null ray from ``x_start`` to ``x_end`` at fixed ``(y,z)``."""
     x = np.array([t0, x_start, y0, z0], dtype=float)
     t_flat = abs(x_end - x_start)
+    ginv = inverse_metric_4d(g)
 
-    g_pt, ginv0, _ = _sample_metric(g, dg_inv, x, origin, spacing)
+    g_pt, ginv0, _ = _sample_metric(g, ginv, dg_inv, x, origin, spacing)
     k_up = np.array([1.0, 1.0, 0.0, 0.0])
     k = g_pt @ k_up
     k = project_null(g_pt, ginv0, k)
@@ -265,14 +274,14 @@ def integrate_null_ray(
                 max_h_drift=max_h,
             )
 
-        g_pt, ginv_pt, dg_pt = _sample_metric(g, dg_inv, x, origin, spacing)
+        g_pt, ginv_pt, dg_pt = _sample_metric(g, ginv, dg_inv, x, origin, spacing)
         h = abs(null_hamiltonian(ginv_pt, k))
         max_h = max(max_h, h)
         if h > h_tol:
             k = project_null(g_pt, ginv_pt, k)
 
         def rhs(xp: NDArray[np.float64], kp: NDArray[np.float64]) -> tuple[NDArray, NDArray]:
-            gp, ginvp, dgp = _sample_metric(g, dg_inv, xp, origin, spacing)
+            gp, ginvp, dgp = _sample_metric(g, ginv, dg_inv, xp, origin, spacing)
             return _hamiltonian_rhs(ginvp, dgp, kp)
 
         k1x, k1k = rhs(x, k)
@@ -391,8 +400,9 @@ def integrate_null_energy_along_ray(
 ) -> float | None:
     """Integrate ``T_{mu nu} k^mu k^nu`` along a null ray (QEI trajectory check)."""
     x = np.array([0.0, x_start, y0, z0], dtype=float)
-    _, ginv0, _ = _sample_metric(g, dg_inv, x, origin, spacing)
-    k = project_null(_sample_metric(g, dg_inv, x, origin, spacing)[0], ginv0, np.array([-1.0, 1.0, 0.0, 0.0]))
+    ginv = inverse_metric_4d(g)
+    g0, ginv0, _ = _sample_metric(g, ginv, dg_inv, x, origin, spacing)
+    k = project_null(g0, ginv0, np.array([-1.0, 1.0, 0.0, 0.0]))
 
     integral = 0.0
     ds = 0.05
@@ -402,7 +412,7 @@ def integrate_null_energy_along_ray(
         if x[1] >= x_end:
             return integral
 
-        g_pt, ginv_pt, dg_pt = _sample_metric(g, dg_inv, x, origin, spacing)
+        g_pt, ginv_pt, dg_pt = _sample_metric(g, ginv, dg_inv, x, origin, spacing)
         T_pt = _trilinear(T, *_clamp_index(x, origin, spacing, g.shape[:3]))
         ginv_pt = ginv_pt
         k_contra = ginv_pt @ k
