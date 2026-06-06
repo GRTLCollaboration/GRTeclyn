@@ -2,18 +2,21 @@
 
 Investigation and fix for the crashing Teo weak-spin run (`weak_spin_effective`).
 **Status: Teo failure root cause confirmed; GRTresna + co-evolving scalar
-production path now smoke-validated.**
+production path now validated to `t = 4.0`.**
 
 ## TL;DR
 
+- The working production solution is now **GRTresna solved ID + co-evolving
+  `exotic_scalar` matter**, validated to `t = 4.0` with no NaN.
 - The original crash is **not** bad Teo physics in the `.gridinit`. The file is
   constraint-satisfying at its native resolution.
 - It fails when AMR refines **below** the file resolution: `ExternalGridInitialData`
   fills every level by **trilinear** interpolation, so fine levels get C0 kinks and
   CCZ4 blows up at the throat (checkerboard → NaN in `h11`).
-- **Fix in practice:** use a `dx = 0.25` gridinit and evolve on a grid that does
-  **not** go finer than the file. The validated setup is **unigrid**
-  `N1=N2=256`, `N3=128`, `max_level=0` (`params_rotating_unigrid_dx025.txt`).
+- **Teo diagnostic fix in practice:** use a `dx = 0.25` gridinit and evolve on a
+  grid that does **not** go finer than the file. This addresses the AMR
+  interpolation failure only; it does not make the frozen Teo source a production
+  physics run.
 - **`max_level=1` with `N1=128` still NaNs** at t ≈ 0.17 on level 1 (past the old
   t = 0.13 crash). Do not use that AMR config until evolution/interpolation is
   improved.
@@ -29,6 +32,13 @@ The production path now uses GRTresna rotating exotic-scalar initial data loaded
 through `.gridinit`, then evolves with `wormhole_matter_model = exotic_scalar`.
 This attacks the frozen-source problem directly: scalar fields `phi` and `Pi`
 co-evolve, instead of freezing a prescribed `teo_*` tensor.
+
+The working solution is one rotating exotic scalar lump (`omega = 0.05`,
+amplitude `0.2`, width `8`, mode `m = 2`). GRTresna solves the elliptic
+constraints for this lump, converts the Chombo output to `.gridinit`, and
+GRTeclyn evolves that solved geometry plus the scalar fields. This is the
+production route; the analytic Teo + `effective_teo` route is kept only as a
+diagnostic/regression case.
 
 ### Fixes made
 
@@ -49,6 +59,17 @@ co-evolve, instead of freezing a prescribed `teo_*` tensor.
     uninitialized RHS values in `exotic_scalar` / `no_matter` runs.
 - `grteclyn-wrapper/scripts/wormhole/rollback`
   - Recognizes `RotatingWormholeChk*` and `RotatingWormholePlt*` prefixes.
+- `grteclyn-wrapper/scripts/plot/plot_run.sh`
+  - Resolves the run directory to an absolute path before invoking the Python
+    consumer. This avoids `uv run --directory grteclyn-wrapper` interpreting a
+    relative `runs/...` path under the wrapper directory.
+  - Uses `--n-points 128` and renders `chi`, `chi_minus_1`, `K`, `lapse`, `phi`,
+    `Pi`, `scalar_activity`, `Weyl4_Re`, `Weyl4_Im`, and `Weyl4_Mag` frames by
+    default while deleting processed plotfiles.
+- `grteclyn-wrapper/src/grteclyn_wrapper/visualisation/process_wave/consume_plotfiles.py`
+  - Tightened the default `K` frame scale from `[-5e-2, 5e-2]` to
+    `[-5e-4, 5e-4]`. The old scale hid the evolved signal, whose magnitude is
+    O(`1e-4`), making `K_z` appear blank even though the data was present.
 
 ### Generated ID
 
@@ -90,6 +111,33 @@ mpirun -n 2 bash -c 'export CUDA_VISIBLE_DEVICES=$OMPI_COMM_WORLD_LOCAL_RANK; ex
 
 This is the current recommended path. The old Teo `effective_teo` route remains
 diagnostic/regression-only.
+
+### Longer validation with live frames
+
+Production weak-spin was rerun to `t = 4.0` using the GRTresna `.gridinit` and
+`params_rotating_grtresna_exotic.txt` physics settings. The run used the CUDA MPI
+binary with rank-local GPU binding:
+
+```bash
+mpirun -n 2 bash -c 'export CUDA_VISIBLE_DEVICES=$OMPI_COMM_WORLD_LOCAL_RANK; exec ./main3d.gnu.MPI.CUDA.ex ../../runs/rotating_wormhole/grtresna_spin_exotic/params_long_quality.txt'
+```
+
+Validation result:
+
+| Run | End time | Ham L2 | Mom L2 | Verdict |
+|-----|----------|--------|--------|---------|
+| `grtresna_spin_exotic` | `t = 4.0` | `1.27e-4` | `7.44e-6` | clean |
+
+The run reached `STEP = 200 TIME = 4`, wrote `RotatingWormholeChk00200` and
+`RotatingWormholePlt00200`, and AMReX finalized normally. The live consumer
+generated 21 frames per field under
+`runs/rotating_wormhole/grtresna_spin_exotic/output/frames/` for:
+
+`chi`, `chi_minus_1`, `K`, `lapse`, `phi`, `Pi`, `scalar_activity`, `Weyl4_Re`,
+`Weyl4_Im`, `Weyl4_Mag`, and `embedding`.
+
+Plotfile deletion worked as intended: only `RotatingWormholePlt00190` and
+`RotatingWormholePlt00200` remained after processing (`--keep-last 2`).
 
 ---
 
@@ -191,21 +239,22 @@ The decisive fix is to make the source consistent / co-evolving (attacks P2).**
 3. The correct observable remains the **difference** `weak_spin − a0` (and
    `− no_matter`), but only once the evolution is stable — today it is noise.
 
-### Recommended path to a stable run (future work — the real fix for P2)
+### Recommended path to a stable run (completed on 6 June 2026)
 
 Goal: a stable evolution where a spin signal can rise above the `a0` baseline.
 Reuse the machinery that already works (the non-rotating phantom-scalar wormhole is
-stable *because* its matter co-evolves), in this order:
+stable *because* its matter co-evolves). This plan is now implemented by the
+GRTresna + `exotic_scalar` route described above:
 
 1. **Constraint-satisfying rotating initial data via the GRTresna elliptic solver.**
    - Driver: `grteclyn-wrapper/scripts/.../make_rotating_wormhole_id.py` (elliptic
      route — distinct from the pure-Python `make_teo_wormhole_gridinit.py`, which
      only FD-samples the analytic metric and produces the frozen source).
-   - Solve the Hamiltonian **and** momentum constraints for the rotational `K_ij`
-     (the current `.gridinit` route never solves the momentum constraint — that is
-     why even fixed-gauge drifts).
+   - Solve the Hamiltonian **and** momentum constraints for the rotating scalar
+     source. The accepted `omega=0.05` ID converged to Ham `0.7427%`, Mom
+     `0.0115%`.
    - Prereq: GRTresna MPI libs were rebuilt with consistent Chombo MPI
-     (`grteclyn-wrapper/scripts/rebuild_grtresna_mpi.sh`) after a SIGILL from
+     (`grteclyn-wrapper/scripts/build/rebuild_grtresna_mpi.sh`) after a SIGILL from
      mismatched `-march=native` objects. Verify it builds/runs first.
 2. **Evolve with a co-evolving matter model**, not the frozen tensor.
    - Use the proven `ExoticScalarField<PhantomDecayPotential>` path (the
@@ -215,9 +264,10 @@ stable *because* its matter co-evolves), in this order:
      from the elliptic solve, rather than `EffectiveTeoMatter`'s frozen `teo_*`.
    - Retire `EffectiveTeoMatter` for production, or keep it only for the static-ID
      regression test.
-3. **Analytic C++ Teo `initData` (per-level, no interpolation)** — only now worth
-   building, as the AMR-smoothness layer on top of constraint-satisfying co-evolving
-   data. Mirror `SupportedWormholeInitialData` (closed-form `chi, h_ij, lapse,
+3. **Analytic C++ Teo `initData` (per-level, no interpolation)** — still optional
+   future work, and only useful as an AMR-smoothness layer after the source is
+   made consistent / co-evolving.
+   Mirror `SupportedWormholeInitialData` (closed-form `chi, h_ij, lapse,
    shift`); compute `K_ij, A_ij, Gamma^i` by FD over analytically-filled ghost cells
    so every level is smooth at its own `dx`.
 4. **Fix the `Gamma^i` / constraint-order mismatch.** The Python ID reports
@@ -294,11 +344,11 @@ uv run python grteclyn-wrapper/scripts/wormhole/make_teo_wormhole_gridinit.py \
 The CLI prints progress lines (`Building…`, `Writing…`, `Evaluating…`). This path
 is **pure Python** (not GRTresna).
 
-### 2. New params files (recommended runs)
+### 2. Historical Teo params files (diagnostic, superseded)
 
 | Params file | Purpose | `max_level` | Grid / file match |
 |-------------|---------|-------------|-------------------|
-| `params_rotating_unigrid_dx025.txt` | **Production** weak spin | 0 | `N=256³/2`, `dx=0.25` = file |
+| `params_rotating_unigrid_dx025.txt` | Teo weak-spin diagnostic | 0 | `N=256³/2`, `dx=0.25` = file |
 | `params_rotating_a0_unigrid_dx025.txt` | Spin-0 control | 0 | same |
 | `params_rotating_no_matter_unigrid_dx025.txt` | Vacuum control (`no_matter`) | 0 | same ID, source off |
 | `params_rotating_ml0_control.txt` | Sanity: old `dx=0.5` file, no AMR | 0 | `N=128`, unigrid |
@@ -337,47 +387,49 @@ Use two terminals from repo root.
 
 ```bash
 ./grteclyn-wrapper/scripts/plot/plot_run.sh \
-  /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/teo_wormhole/weak_spin_unigrid_dx025/output
+  /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/rotating_wormhole/grtresna_spin_exotic/output
 ```
 
 `plot_run.sh` watches `RotatingWormholePlt*`, writes frames under `output/frames/`,
 extracts Psi4/areal-radius to `output/small_data/`, and deletes processed HDF5
-plot dirs (`--delete --keep-last 2`).
+plot dirs (`--delete --keep-last 2`). It renders `chi`, `chi_minus_1`, `K`,
+`lapse`, `phi`, `Pi`, `scalar_activity`, `Weyl4_Re`, `Weyl4_Im`, and
+`Weyl4_Mag` frames by default.
 
 **Terminal 2 — simulation:**
 
 ```bash
 cd Examples/RotatingWormholeCollapse
-CUDA_VISIBLE_DEVICES=0,1 mpirun -n 2 ./main3d.gnu.MPI.CUDA.ex \
-  params_rotating_unigrid_dx025.txt \
-  2>&1 | tee ../../runs/teo_wormhole/weak_spin_unigrid_dx025/run.log
+mpirun -n 2 bash -c 'export CUDA_VISIBLE_DEVICES=$OMPI_COMM_WORLD_LOCAL_RANK; exec ./main3d.gnu.MPI.CUDA.ex params_rotating_grtresna_exotic.txt' \
+  2>&1 | tee ../../runs/rotating_wormhole/grtresna_spin_exotic/run.log
 ```
 
 For a longer run, increase `stop_time` in the params file (or override on the
-command line). Finer timestep: with `N=256`, coarse `dt ≈ 0.005` (40 steps to
-t = 0.2).
+command line). The validated long check used `stop_time = 4.0`, `plot_interval = 10`,
+and `checkpoint_interval = 50`.
 
 **If the watcher was not started:** batch-drain plotfiles after the run:
 
 ```bash
 cd grteclyn-wrapper
 uv run python -m grteclyn_wrapper.visualisation.process_wave.consume_plotfiles \
-  --data ../runs/teo_wormhole/weak_spin_unigrid_dx025/output \
-  --out ../runs/teo_wormhole/weak_spin_unigrid_dx025/output/small_data \
+  --data ../runs/rotating_wormhole/grtresna_spin_exotic/output \
+  --out ../runs/rotating_wormhole/grtresna_spin_exotic/output/small_data \
   --radii 12 16 20 24 --areal-radius --embedding --embedding-rmax 5.0 \
-  --frames-fields K Weyl4_Re --frames-axis z --frames-corner \
-  --frames-out ../runs/teo_wormhole/weak_spin_unigrid_dx025/output/frames \
+  --frames-fields chi chi_minus_1 K lapse phi Pi scalar_activity Weyl4_Re Weyl4_Im Weyl4_Mag \
+  --frames-axis z --frames-corner \
+  --frames-out ../runs/rotating_wormhole/grtresna_spin_exotic/output/frames \
   --delete --keep-last 2 -j 8
 ```
 
 ### Comparison controls
 
 ```bash
-# Spin-0 baseline (same grid, teo_a0_dx025.gridinit)
-mpirun -n 2 ./main3d.gnu.MPI.CUDA.ex params_rotating_a0_unigrid_dx025.txt
+# Spin-0 baseline (same GRTresna scalar-lump setup with omega=0)
+mpirun -n 2 bash -c 'export CUDA_VISIBLE_DEVICES=$OMPI_COMM_WORLD_LOCAL_RANK; exec ./main3d.gnu.MPI.CUDA.ex params_rotating_grtresna_a0_exotic.txt'
 
-# Vacuum relaxation (wormhole_matter_model=no_matter)
-mpirun -n 2 ./main3d.gnu.MPI.CUDA.ex params_rotating_no_matter_unigrid_dx025.txt
+# Vacuum relaxation control
+mpirun -n 2 bash -c 'export CUDA_VISIBLE_DEVICES=$OMPI_COMM_WORLD_LOCAL_RANK; exec ./main3d.gnu.MPI.CUDA.ex params_rotating_grtresna_no_matter.txt'
 ```
 
 Point `plot_run.sh` at each run’s `output/` directory the same way.

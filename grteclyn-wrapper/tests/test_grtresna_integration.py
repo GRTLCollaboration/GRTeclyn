@@ -195,7 +195,7 @@ def test_write_grtresna_params_renders_exotic_amr_knobs() -> None:
 def test_rotating_wormhole_example_is_registered() -> None:
     example = resolve_example("RotatingWormholeCollapse")
 
-    assert example.template.name == "params_rotating.txt"
+    assert example.template.name == "params_rotating_grtresna_exotic.txt"
     assert example.check_prefix == "RotatingWormholeChk"
     assert example.plot_prefix == "RotatingWormholePlt"
 

@@ -57,7 +57,7 @@ RADIAL_RECIPE_DIR = REPO_ROOT / "Examples" / "RadialRecipe"
 ROTATING_WORMHOLE_DIR = REPO_ROOT / "Examples" / "RotatingWormholeCollapse"
 DEFAULT_TEMPLATE = SUPPORTED_WORMHOLE_DIR / "params_2gpu.txt"
 DEFAULT_RADIAL_RECIPE_TEMPLATE = RADIAL_RECIPE_DIR / "params.txt"
-DEFAULT_ROTATING_WORMHOLE_TEMPLATE = ROTATING_WORMHOLE_DIR / "params_rotating.txt"
+DEFAULT_ROTATING_WORMHOLE_TEMPLATE = ROTATING_WORMHOLE_DIR / "params_rotating_grtresna_exotic.txt"
 
 EXAMPLES: dict[str, ExampleConfig] = {
     "SupportedWormholeCollapse": ExampleConfig(

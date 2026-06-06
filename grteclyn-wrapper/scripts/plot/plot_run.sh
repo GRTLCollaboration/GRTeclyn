@@ -23,6 +23,11 @@ REMOVE_STALE=true
 DATA_DIR=""
 EXTRA_ARGS=""
 JOBS=64
+N_POINTS="${GRTECLYN_PLOT_N_POINTS:-128}"
+FRAME_FIELDS="${GRTECLYN_PLOT_FRAME_FIELDS:-chi chi_minus_1 K lapse phi Pi scalar_activity Weyl4_Re Weyl4_Im Weyl4_Mag}"
+FRAME_ZOOM="${GRTECLYN_FRAMES_ZOOM:-48}"
+FRAME_CENTER="${GRTECLYN_FRAMES_CENTER:-8 8 0}"
+FRAME_AUTO_ZLIM="${GRTECLYN_FRAMES_AUTO_ZLIM:-1}"
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -51,6 +56,9 @@ done
 
 if [[ -z "$DATA_DIR" ]]; then
   DATA_DIR="${DEFAULT_DATA_DIR}"
+fi
+if [[ -d "${DATA_DIR}" ]]; then
+  DATA_DIR="$(cd "${DATA_DIR}" && pwd)"
 fi
 RUN_DATA_DIR="${DATA_DIR}/data"
 SMALL_DATA_DIR="${DATA_DIR}/small_data"
@@ -125,7 +133,17 @@ echo "=========================================="
 echo "Watching plotfiles in: ${DATA_DIR}"
 echo "Writing small-data to: ${SMALL_DATA_DIR}"
 echo "Writing frames to:     ${FRAMES_DIR}"
+echo "Frame fields:          ${FRAME_FIELDS}"
+echo "Frame sample points:   ${N_POINTS}"
+echo "Frame zoom:            ${FRAME_ZOOM}"
+echo "Frame corner origin:   ${FRAME_CENTER}"
+echo "Frame auto colorbar:   ${FRAME_AUTO_ZLIM}"
 echo "=========================================="
+
+AUTO_ZLIM_ARGS=()
+if [[ "${FRAME_AUTO_ZLIM}" == "1" ]]; then
+  AUTO_ZLIM_ARGS=(--frames-auto-zlim)
+fi
 
 PYTHON=(python)
 if command -v uv >/dev/null 2>&1 && [[ -f "${WRAPPER_ROOT}/pyproject.toml" ]]; then
@@ -136,12 +154,15 @@ fi
   --data "${DATA_DIR}" \
   --out "${DATA_DIR}/small_data" \
   --radii 12 16 20 24 \
-  --n-points 64 \
+  --n-points "${N_POINTS}" \
   --areal-radius \
   --embedding --embedding-rmax 5.0 \
-  --frames-fields K Weyl4_Re \
+  --frames-fields ${FRAME_FIELDS} \
   --frames-axis z \
+  --frames-zoom "${FRAME_ZOOM}" \
+  --frames-center ${FRAME_CENTER} \
   --frames-corner \
+  "${AUTO_ZLIM_ARGS[@]}" \
   --frames-out "${FRAMES_DIR}" \
   --watch --delete --keep-last 2 \
   --verbose -j "${JOBS}" ${EXTRA_ARGS}

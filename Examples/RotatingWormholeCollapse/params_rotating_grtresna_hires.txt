@@ -1,16 +1,16 @@
-# Plan step 1: unigrid control (max_level=0) with existing dx=0.5 Teo ID.
-# Verifies instability was AMR/sub-file interpolation, not bad ID.
+# Higher-resolution GRTresna rotating exotic scalar run.
+# L=128, N=256 (dx=0.5). Weaker lump: amp=0.1, width=12 to reduce quadrupole strength.
 
 verbosity = 1
 
-output_path = "../../runs/teo_wormhole/weak_spin_ml0_control/output"
-amr.check_file = "../../runs/teo_wormhole/weak_spin_ml0_control/output/RotatingWormholeChk"
-amr.plot_file  = "../../runs/teo_wormhole/weak_spin_ml0_control/output/RotatingWormholePlt"
+output_path = "../../runs/rotating_wormhole/grtresna_spin_hires/output"
+amr.check_file = "../../runs/rotating_wormhole/grtresna_spin_hires/output/RotatingWormholeChk"
+amr.plot_file  = "../../runs/rotating_wormhole/grtresna_spin_hires/output/RotatingWormholePlt"
 
-checkpoint_interval = 1000
-plot_interval       = 1
+checkpoint_interval = 50
+plot_interval       = 10
 
-amr.plot_vars = chi K lapse shift1 shift2 shift3 teo_rho teo_j1 teo_j2
+amr.plot_vars = chi K lapse shift1 shift2 shift3 phi Pi
 amr.derive_plot_vars = Weyl4
 
 hdf5_subpath = "hdf5"
@@ -19,9 +19,8 @@ data_subpath = "data"
 
 print_progress_only_to_rank_0 = 1
 
-recipe_initial_data_file = "../../runs/teo_wormhole/teo_weak_spin.gridinit"
-wormhole_matter_model = "effective_teo"
-teo_source_strength = 1.0
+recipe_initial_data_file = "../../runs/rotating_wormhole_id/rotwh_omega_p0p05_amp_0p1_w_12/initial_data.gridinit"
+wormhole_matter_model = "exotic_scalar"
 
 wormhole_initial_lapse_type = 0
 wormhole_throat_radius = 0.5
@@ -32,12 +31,12 @@ wormhole_phi_perturbation_width     = 0.5
 wormhole_support_strength = 1.0
 phantom_mass = 0.0
 
-L = 64.0
-N1 = 128
-N2 = 128
-N3 = 64
+L = 128.0
+N1 = 256
+N2 = 256
+N3 = 256
 
-center = 32.0 32.0 0.0
+center = 64.0 64.0 0.0
 
 max_level = 0
 regrid_interval = 32
@@ -54,7 +53,7 @@ nonzero_asymptotic_vars = chi h11 h22 h33 lapse
 nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 
 dt_multiplier = 0.02
-stop_time = 0.2
+stop_time = 4.0
 
 max_spatial_derivative_order = 4
 nan_check = 1
@@ -81,14 +80,14 @@ sigma = 2.0
 puncture_tracking.enabled = 0
 calculate_constraint_norms = 1
 
-extraction_center = 32.0 32.0 0.0
+extraction_center = 64.0 64.0 0.0
 activate_extraction = 1
 write_extraction = 1
 extraction_subpath = "data"
 
 num_extraction_radii = 4
-extraction_radii = 12.0 16.0 20.0 24.0
-extraction_levels = 1 1 0 0
+extraction_radii = 24.0 32.0 40.0 48.0
+extraction_levels = 0 0 0 0
 
 num_points_phi = 24
 num_points_theta = 37

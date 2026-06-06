@@ -42,8 +42,10 @@ def _default_frames_out_dir() -> str:
     return str(VISUALISATION_DIR / "visualize")
 
 
-def _frames_auto_zlim_enabled() -> bool:
+def _frames_auto_zlim_enabled(explicit: bool | None = None) -> bool:
     """Per-frame percentile scaling (colorbar jumps). Default: fixed limits for movies."""
+    if explicit is not None:
+        return explicit
     return os.environ.get("GRTECLYN_FRAMES_AUTO_ZLIM", "").strip().lower() in {
         "1",
         "true",
@@ -55,19 +57,19 @@ def _frames_auto_zlim_enabled() -> bool:
 # Fixed color limits keep movie colorbars stable across time steps.
 # Override any field via GRTECLYN_FRAMES_ZLIM_<FIELD>=lo,hi (e.g. shift1=-0.05,0.05).
 _FIELD_FRAME_CONFIGS: Dict[str, dict] = {
-    "chi": {"zlim": (0.90, 1.10), "cmap": "magma", "label": r"Conformal Factor $\chi$"},
-    "chi_minus_1": {"zlim": (-0.20, 0.20), "cmap": "RdBu", "label": r"$\chi - 1$"},
-    "phi": {"zlim": (-0.20, 0.20), "cmap": "RdBu", "label": r"$\phi$"},
-    "Pi": {"zlim": (-0.05, 0.05), "cmap": "RdBu", "label": r"$\Pi$"},
+    "chi": {"zlim": (0.98, 1.04), "cmap": "magma", "label": r"Conformal Factor $\chi$"},
+    "chi_minus_1": {"zlim": (-0.03, 0.03), "cmap": "RdBu", "label": r"$\chi - 1$"},
+    "phi": {"zlim": (-0.05, 0.05), "cmap": "RdBu", "label": r"$\phi$"},
+    "Pi": {"zlim": (-0.01, 0.01), "cmap": "RdBu", "label": r"$\Pi$"},
     "scalar_activity": {"zlim": (0.0, 0.20), "cmap": "viridis", "label": r"$\sqrt{\phi^2+\Pi^2}$"},
     "local_speed": {"zlim": (0.90, 1.30), "cmap": "magma", "label": r"Local Coordinate Speed"},
     "shift1": {"zlim": (-0.05, 0.05), "cmap": "RdBu", "label": r"shift1"},
     "shift2": {"zlim": (-0.05, 0.05), "cmap": "RdBu", "label": r"shift2"},
     "shift3": {"zlim": (-0.05, 0.05), "cmap": "RdBu", "label": r"shift3"},
     "rho_req": {"zlim": (-3.0e-3, 3.0e-3), "cmap": "RdBu", "label": r"$\rho_{\mathrm{req}}$"},
-    "K": {"zlim": (-0.05, 0.05), "cmap": "RdBu", "label": r"Trace of Extrinsic Curvature $K$"},
+    "K": {"zlim": (-5.0e-4, 5.0e-4), "cmap": "RdBu", "label": r"Trace of Extrinsic Curvature $K$"},
     "Theta": {"zlim": (-0.005, 0.005), "cmap": "RdBu", "label": r"Z4 Constraint $\Theta$"},
-    "lapse": {"zlim": (0.80, 1.20), "cmap": "viridis", "label": r"Lapse $\alpha$"},
+    "lapse": {"zlim": (0.995, 1.005), "cmap": "viridis", "label": r"Lapse $\alpha$"},
     "Ham": {"zlim": (-0.1, 0.1), "cmap": "RdBu", "label": r"Hamiltonian Constraint $\mathcal{H}$"},
     "A11": {"zlim": (-0.05, 0.05), "cmap": "PuOr", "label": r"Extrinsic Curvature $\tilde{A}_{11}$"},
     "A12": {"zlim": (-0.05, 0.05), "cmap": "PuOr", "label": r"Extrinsic Curvature $\tilde{A}_{12}$"},
@@ -289,6 +291,7 @@ def _render_slice_frame(
     frames_out_dir: str,
     frame_idx: int,
     verbose: bool,
+    auto_zlim: bool | None = None,
 ) -> str:
     """
     Render a SlicePlot frame and save it under:
@@ -311,20 +314,30 @@ def _render_slice_frame(
 
         if field_name == "K":
             max_abs = float(np.nanpercentile(np.abs(finite), 99.5))
-            # Do not let roundoff-level K noise produce a red/blue checkerboard.
-            max_abs = max(max_abs, 1.0e-4)
+            max_abs = max(max_abs, 5.0e-6)
+            return (-max_abs, max_abs)
+
+        if field_name == "Weyl4_Mag":
+            hi = float(np.nanpercentile(finite, 99.5))
+            hi = max(hi, 1.0e-8)
+            return (0.0, hi)
+
+        if field_name in {"Weyl4_Re", "Weyl4_Im", "phi", "Pi", "chi_minus_1"}:
+            max_abs = float(np.nanpercentile(np.abs(finite), 99.5))
+            max_abs = max(max_abs, 1.0e-8)
             return (-max_abs, max_abs)
 
         lo, hi = np.nanpercentile(finite, [1.0, 99.0])
         lo = float(lo)
         hi = float(hi)
         span = hi - lo
-        min_span = 1.0e-3 if field_name in {"chi", "lapse"} else 1.0e-12
+        min_span = 1.0e-4 if field_name in {"chi", "lapse"} else 1.0e-12
         if span < min_span:
             mid = 0.5 * (lo + hi)
             half_span = 0.5 * min_span
             return (mid - half_span, mid + half_span)
-        return (lo, hi)
+        pad = 0.05 * span if span > 0.0 else min_span
+        return (lo - pad, hi + pad)
 
     cfg = _field_frame_config(field)
 
@@ -397,7 +410,7 @@ def _render_slice_frame(
     # Let's assume standard behavior first.
 
     zlim = cfg["zlim"]
-    if zlim[0] is None or _frames_auto_zlim_enabled():
+    if zlim[0] is None or _frames_auto_zlim_enabled(auto_zlim):
         try:
             auto = _auto_zlim(np.asarray(slc.frb[plot_field]), field)
             if auto is not None:
@@ -1220,6 +1233,7 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
                     frames_out_dir=args_dict["frames_out"],
                     frame_idx=int(frame_idx),
                     verbose=args_dict.get("verbose", False),
+                    auto_zlim=args_dict.get("frames_auto_zlim"),
                 )
 
         projection_fields = [_canonical_field_name(f) for f in args_dict.get("projection_fields", [])]
@@ -1336,6 +1350,11 @@ def main() -> None:
     parser.add_argument("--frames-zoom", type=float, default=None, help="Zoom width in code units for frames.")
     parser.add_argument("--frames-center", type=float, nargs=3, default=None, help="Center (x y z) for frames.")
     parser.add_argument("--frames-corner", action="store_true", help="Corner mode for symmetry-reduced domains (frames).")
+    parser.add_argument(
+        "--frames-auto-zlim",
+        action="store_true",
+        help="Scale each frame colorbar from the slice data (recommended for faint fields).",
+    )
     parser.add_argument("--frames-out", default=_default_frames_out_dir(), help="Frames output base dir (default: grteclyn_wrapper/visualisation/visualize).")
     parser.add_argument(
         "--projection-fields",
