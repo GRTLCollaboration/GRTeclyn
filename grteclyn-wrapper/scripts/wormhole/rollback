@@ -120,7 +120,12 @@ STEP     = int(${STEP@Q})
 DRY_RUN  = bool(${DRY_RUN@Q} == "true")
 
 def find_checkpoint_dir(step: int) -> Path:
-    patterns = [r"^SupportedWormholeChk(\d+)$", r"^WormholeChk(\d+)$", r"^chk(\d+)$"]
+    patterns = [
+        r"^SupportedWormholeChk(\d+)$",
+        r"^RotatingWormholeChk(\d+)$",
+        r"^WormholeChk(\d+)$",
+        r"^chk(\d+)$",
+    ]
     candidates: list[Path] = []
     for p in DATA_DIR.iterdir():
         if not p.is_dir():
@@ -136,7 +141,7 @@ def find_checkpoint_dir(step: int) -> Path:
             if idx == step:
                 return p
             candidates.append(p)
-    for prefix in ("SupportedWormholeChk", "WormholeChk", "chk"):
+    for prefix in ("SupportedWormholeChk", "RotatingWormholeChk", "WormholeChk", "chk"):
         for w in (5, 6, 7, 8):
             p = DATA_DIR / f"{prefix}{step:0{w}d}"
             if p.is_dir():
@@ -178,9 +183,11 @@ def iter_dirs_matching(patterns: list[re.Pattern[str]]):
             break
 
 plot_pats = [re.compile(r"^(SupportedWormholePlt)(\d+)$"),
+            re.compile(r"^(RotatingWormholePlt)(\d+)$"),
             re.compile(r"^(WormholePlt)(\d+)$"),
             re.compile(r"^(plt)(\d+)$")]
 chk_pats  = [re.compile(r"^(SupportedWormholeChk)(\d+)$"),
+            re.compile(r"^(RotatingWormholeChk)(\d+)$"),
             re.compile(r"^(WormholeChk)(\d+)$"),
             re.compile(r"^(chk)(\d+)$")]
 
@@ -278,7 +285,7 @@ if state_path.exists() and state_path.is_file():
     state = json.loads(state_path.read_text())
     kept = {}
     for k, v in state.items():
-        m = re.fullmatch(r"(?:SupportedWormholePlt|WormholePlt|plt)(\d+)", k)
+        m = re.fullmatch(r"(?:SupportedWormholePlt|RotatingWormholePlt|WormholePlt|plt)(\d+)", k)
         if not m:
             kept[k] = v
             continue

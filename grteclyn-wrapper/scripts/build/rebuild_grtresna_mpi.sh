@@ -31,9 +31,10 @@ make lib DIM=3 MPI=TRUE OPT=HIGH DEBUG=FALSE -j"${JOBS}"
 
 echo "=== Rebuilding GRTresna ScalarFieldBH MPI executable ==="
 cd "${GRTRESNA_ROOT}/Examples/ScalarFieldBH"
+OBJ_DIR="o/3d.Linux.64.mpicxx.gfortran.OPTHIGH.MPI"
 make realclean MPI=TRUE DIM=3 OPT=HIGH DEBUG=FALSE 2>/dev/null || true
 rm -f Main_ScalarFieldBH3d.Linux.64.mpicxx.gfortran.OPTHIGH.MPI.ex
-rm -rf o/3d.Linux.64.mpicxx.gfortran.OPTHIGH.MPI
+mkdir -p "${OBJ_DIR}"
 PATH="${GRTRESNA_ENV}/bin:${PATH}" CONDA_PREFIX="${GRTRESNA_ENV}" \
   make all -j"${JOBS}" CHOMBO_HOME="${CHOMBO_HOME}" MPI=TRUE DIM=3 OPT=HIGH DEBUG=FALSE
 

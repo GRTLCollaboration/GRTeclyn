@@ -311,7 +311,7 @@ def _resolve_mpirun(cfg: GRTresnaConfig) -> tuple[str, dict[str, str]]:
     mpirun_dir = str(Path(mpirun_path).resolve().parent)
     env["PATH"] = mpirun_dir + os.pathsep + env.get("PATH", "")
     if mpirun_prefix is not None:
-        env.setdefault("CONDA_PREFIX", str(mpirun_prefix))
+        env["CONDA_PREFIX"] = str(mpirun_prefix)
         lib_dir = mpirun_prefix / "lib"
         if lib_dir.exists():
             env["LD_LIBRARY_PATH"] = (
@@ -409,8 +409,14 @@ def solve(
     -------
     Path to the .gridinit file
     """
+    caller_cwd = Path.cwd()
     if work_dir is None:
         work_dir = Path(tempfile.mkdtemp(prefix="grtresna_"))
+    else:
+        work_dir = Path(work_dir).expanduser()
+        if not work_dir.is_absolute():
+            work_dir = caller_cwd / work_dir
+        work_dir = work_dir.resolve()
     work_dir.mkdir(parents=True, exist_ok=True)
 
     exe = _find_executable(cfg)
@@ -492,6 +498,11 @@ def solve(
 
     if gridinit_path is None:
         gridinit_path = work_dir / "initial_data.gridinit"
+    else:
+        gridinit_path = Path(gridinit_path).expanduser()
+        if not gridinit_path.is_absolute():
+            gridinit_path = caller_cwd / gridinit_path
+        gridinit_path = gridinit_path.resolve()
 
     convert_chombo_to_gridinit(
         chombo_hdf5,

@@ -1,7 +1,8 @@
 # RotatingWormholeCollapse — Debug notes
 
 Investigation and fix for the crashing Teo weak-spin run (`weak_spin_effective`).
-**Status: root cause confirmed; stable production path validated (config only, no C++ changes).**
+**Status: Teo failure root cause confirmed; GRTresna + co-evolving scalar
+production path now smoke-validated.**
 
 ## TL;DR
 
@@ -19,6 +20,76 @@ Investigation and fix for the crashing Teo weak-spin run (`weak_spin_effective`)
 
 **Governing rule:** finest evolved `dx` must be **≥** file `dx` (no sub-file
 interpolation on refined levels).
+
+---
+
+## Update (6 June 2026): GRTresna production path validated
+
+The production path now uses GRTresna rotating exotic-scalar initial data loaded
+through `.gridinit`, then evolves with `wormhole_matter_model = exotic_scalar`.
+This attacks the frozen-source problem directly: scalar fields `phi` and `Pi`
+co-evolve, instead of freezing a prescribed `teo_*` tensor.
+
+### Fixes made
+
+- `grteclyn-wrapper/src/grteclyn_wrapper/grtresna/solver.py`
+  - Resolves relative `work_dir` / `gridinit_path` to absolute paths before
+    launching GRTresna. Without this, Chombo `ParmParse` was launched from the
+    case directory with a now-invalid relative params path and aborted before
+    the solver loop.
+  - Forces `CONDA_PREFIX` to the resolved `grtresna` env when using that env's
+    `mpirun`, matching the wrapper README's build/run assumptions.
+- `grteclyn-wrapper/src/grteclyn_wrapper/grtresna/io.py`
+  - Fixed the Chombo-to-`.gridinit` converter to fill every target cell covered
+    by a Chombo source cell. The old one-cell paint left most of a finer
+    `.gridinit` as zeros (`chi/lapse/h_ij = 0`), causing immediate `h11` NaNs.
+- `Source/Matter/CCZ4RHSWithMatter.impl.hpp`
+  - Zero-initializes each RHS cell before CCZ4, matter, and dissipation `+=`
+    operations. This prevents passive fields such as `teo_*` from carrying
+    uninitialized RHS values in `exotic_scalar` / `no_matter` runs.
+- `grteclyn-wrapper/scripts/wormhole/rollback`
+  - Recognizes `RotatingWormholeChk*` and `RotatingWormholePlt*` prefixes.
+
+### Generated ID
+
+Command:
+
+```bash
+uv run python grteclyn-wrapper/scripts/wormhole/make_rotating_wormhole_id.py \
+  --out-dir runs/rotating_wormhole_id \
+  --omegas 0.0,0.05 \
+  --ranks 2 \
+  --nx 64 --ny 64 --nz 32 \
+  --gridinit-nx 256 --gridinit-ny 256 --gridinit-nz 128 \
+  --target-center-x 32 --target-center-y 32 --target-center-z 0 \
+  --iterations 30 --timeout 1800
+```
+
+Results:
+
+| Case | GRTresna convergence | Output |
+|------|----------------------|--------|
+| `omega=0.05` | Ham `0.7427%`, Mom `0.0115%` | `runs/rotating_wormhole_id/rotwh_omega_p0p05_amp_0p2_w_8/initial_data.gridinit` |
+| `omega=0` | Ham `0.5761%`, Mom `NaN` because zero momentum gives an undefined relative norm | `runs/rotating_wormhole_id/rotwh_omega_p0_amp_0p2_w_8/initial_data.gridinit` |
+
+### Short evolution validation
+
+All three short unigrid checks run to `t = 0.22` with no NaN:
+
+| Run | Params | Ham L2 at `t=0.22` | Mom L2 at `t=0.22` | Verdict |
+|-----|--------|--------------------|--------------------|---------|
+| weak spin | `params_rotating_grtresna_smoke.txt` | `3.49e-4` | `1.02e-5` | clean |
+| omega=0 | `params_rotating_grtresna_a0_exotic.txt` | `2.88e-4` | `8.11e-6` | clean |
+| no matter | `params_rotating_grtresna_no_matter.txt` | `3.62e-4` | `3.89e-5` | clean |
+
+Run with rank-local GPU binding to avoid multi-rank GPU mapping stalls:
+
+```bash
+mpirun -n 2 bash -c 'export CUDA_VISIBLE_DEVICES=$OMPI_COMM_WORLD_LOCAL_RANK; exec ./main3d.gnu.MPI.CUDA.ex params_rotating_grtresna_smoke.txt'
+```
+
+This is the current recommended path. The old Teo `effective_teo` route remains
+diagnostic/regression-only.
 
 ---
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import importlib.util
 import random
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -34,6 +35,20 @@ from grteclyn_wrapper.search.optimize import (
     GRTRESNA_REJECTION_BASE_FITNESS,
     GRTRESNA_REJECTION_MAX_EXTRA_FITNESS,
 )
+
+_ROTATING_ID_SCRIPT = (
+    Path(__file__).resolve().parents[1]
+    / "scripts"
+    / "wormhole"
+    / "make_rotating_wormhole_id.py"
+)
+_ROTATING_ID_SPEC = importlib.util.spec_from_file_location(
+    "make_rotating_wormhole_id", _ROTATING_ID_SCRIPT
+)
+assert _ROTATING_ID_SPEC is not None and _ROTATING_ID_SPEC.loader is not None
+_ROTATING_ID_MODULE = importlib.util.module_from_spec(_ROTATING_ID_SPEC)
+_ROTATING_ID_SPEC.loader.exec_module(_ROTATING_ID_MODULE)
+build_config = _ROTATING_ID_MODULE.build_config
 
 
 def test_exotic_indexed_lump_enables_amr_safe_maximal_slicing() -> None:
@@ -214,6 +229,48 @@ def test_rotating_exotic_config_renders_no_kick_momentum_source() -> None:
     assert "lump_mode = 2" in text
     assert "lump_exotic = 1" in text
     assert "maximal_slicing = 1" in text
+
+
+def test_rotating_wormhole_id_full_z_config() -> None:
+    class Args:
+        ranks = 2
+        iterations = 30
+        timeout = 1800
+        nx = 64
+        ny = 64
+        nz = 64
+        length = 128.0
+        max_level = 2
+        block_factor = 16
+        max_grid_size = 16
+        refine_threshold = 0.5
+        regrid_radius = 0.0
+        bh_mass = 0.0
+        scalar_mass = 0.1
+        amp = 0.2
+        width = 8.0
+        velocity_x = 0.0
+        velocity_y = 0.0
+        velocity_z = 0.0
+        mode = 2
+        psi_relaxation = 0.6
+        psi_floor = 0.1
+        maximal_jacobian_cap = 25.0
+        gridinit_nx = 128
+        gridinit_ny = 128
+        gridinit_nz = 128
+        full_z = True
+        target_center_x = 32.0
+        target_center_y = 32.0
+        target_center_z = None
+        keep_hdf5 = False
+
+    cfg = build_config(Args, omega=0.05)
+
+    assert cfg.N == (64, 64, 64)
+    assert cfg.lo_boundary == (0, 0, 0)
+    assert cfg.target_center == (32.0, 32.0, 64.0)
+    assert cfg.lumps[0]["omega"] == 0.05
 
 
 def test_rotating_wormhole_consumer_uses_psi4_profile() -> None:

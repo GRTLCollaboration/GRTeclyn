@@ -54,6 +54,10 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::operator()(
 
     const amrex::CellData<amrex::Real> &rhs_cell_data =
         rhs_state.cellData(ix, iy, iz);
+    for (int n = 0; n < rhs_cell_data.nComp(); ++n)
+    {
+        rhs_cell_data[n] = 0.0;
+    }
 
     this->rhs_equation(rhs_cell_data, vars, d1, d2, advec);
 

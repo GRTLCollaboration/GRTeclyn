@@ -1,16 +1,48 @@
 # RotatingWormholeCollapse
 
 This example evolves a **rotating traversable wormhole** with the CCZ4 + matter
-machinery shared with `SupportedWormholeCollapse`. The default, recommended path
-uses **analytic Teo initial data** (Teo 1998, gr-qc/9803098) loaded from a
-`.gridinit` file, which starts the run close to a constraint-satisfying state and
-minimises the junk radiation seen with constraint-violating seeds.
+machinery shared with `SupportedWormholeCollapse`. The recommended production
+path now uses **GRTresna elliptic initial data** plus the co-evolving
+`exotic_scalar` matter model. The older analytic Teo `.gridinit` +
+`effective_teo` path remains useful as a diagnostic/regression route, but its
+frozen source is not a stable physics run.
 
 ## How it works
 
-The pipeline has three stages: generate initial data, load it, evolve it.
+The pipeline has three stages: generate initial data, load it, evolve it. For
+production runs, use the GRTresna path first.
 
-### 1. Analytic initial data (Python)
+### 1. Production initial data (GRTresna)
+
+`grteclyn-wrapper/scripts/wormhole/make_rotating_wormhole_id.py` writes GRTresna
+params, runs the `ScalarFieldBH` elliptic solver, converts the Chombo HDF5 output
+to `.gridinit`, and records a manifest with Hamiltonian/momentum convergence.
+The generated data contains the CCZ4 geometry plus scalar fields `phi` and `Pi`;
+the evolution then uses `wormhole_matter_model = "exotic_scalar"` so the matter
+source co-evolves.
+
+From the repo root:
+
+```bash
+uv run python grteclyn-wrapper/scripts/wormhole/make_rotating_wormhole_id.py \
+  --out-dir runs/rotating_wormhole_id \
+  --omegas 0.0,0.05 \
+  --ranks 2 \
+  --nx 64 --ny 64 --nz 32 \
+  --gridinit-nx 256 --gridinit-ny 256 --gridinit-nz 128 \
+  --target-center-x 32 --target-center-y 32 --target-center-z 0 \
+  --iterations 30 --timeout 1800
+```
+
+Validated short-run data:
+
+- `runs/rotating_wormhole_id/rotwh_omega_p0p05_amp_0p2_w_8/initial_data.gridinit`
+  (`Ham=0.7427%`, `Mom=0.0115%`)
+- `runs/rotating_wormhole_id/rotwh_omega_p0_amp_0p2_w_8/initial_data.gridinit`
+  (`Ham=0.5761%`; momentum residual is `NaN` because the control has zero
+  momentum source, so the relative momentum norm is undefined)
+
+### 2. Analytic Teo initial data (diagnostic)
 
 The Teo geometry is a stationary, axisymmetric wormhole. Rather than solving an
 elliptic problem, we sample the *known* metric on a uniform Cartesian grid and
@@ -34,7 +66,7 @@ do the 3+1 (ADM) decomposition in Python:
 The throat is regularised at the puncture; the generator asserts finite values
 and positive `chi`/`lapse` before writing.
 
-### 2. Loading into GRTeclyn (C++)
+### 3. Loading into GRTeclyn (C++)
 
 `params_rotating.txt` sets `recipe_initial_data_file` to the generated
 `.gridinit`. In `SupportedWormholeLevel::initData`, when that key is non-empty,
@@ -43,7 +75,7 @@ and positive `chi`/`lapse` before writing.
 If the key is empty, it falls back to the analytic `SupportedWormholeInitialData`
 (the phantom-scalar wormhole).
 
-### 3. Matter model and evolution (C++)
+### 4. Matter model and evolution (C++)
 
 The `wormhole_matter_model` parameter selects how the matter source enters the
 CCZ4 right-hand side and the constraints. It is wired in `variableSetUp`,
@@ -81,11 +113,42 @@ hi_boundary = 1 1 1
 The generated `.gridinit` `center`/`origin` must match the simulation `center`
 so the throat lands on the same coordinate.
 
-## Run variants (no extra params files)
+## Run variants
 
-There is a single `params_rotating.txt`. The scenario is chosen when generating
-the `.gridinit` (`--spin`, `--source`); the matter behaviour is an AMReX
-ParmParse command-line override. Examples:
+### Production GRTresna runs
+
+Use the dedicated GRTresna params files for the co-evolving scalar path:
+
+```bash
+cd Examples/RotatingWormholeCollapse
+
+# Short smoke run, validated to t = 0.22
+mpirun -n 2 bash -c 'export CUDA_VISIBLE_DEVICES=$OMPI_COMM_WORLD_LOCAL_RANK; exec ./main3d.gnu.MPI.CUDA.ex params_rotating_grtresna_smoke.txt'
+
+# Production weak-spin run
+mpirun -n 2 bash -c 'export CUDA_VISIBLE_DEVICES=$OMPI_COMM_WORLD_LOCAL_RANK; exec ./main3d.gnu.MPI.CUDA.ex params_rotating_grtresna_exotic.txt'
+
+# Matched omega=0 control
+mpirun -n 2 bash -c 'export CUDA_VISIBLE_DEVICES=$OMPI_COMM_WORLD_LOCAL_RANK; exec ./main3d.gnu.MPI.CUDA.ex params_rotating_grtresna_a0_exotic.txt'
+
+# Vacuum control
+mpirun -n 2 bash -c 'export CUDA_VISIBLE_DEVICES=$OMPI_COMM_WORLD_LOCAL_RANK; exec ./main3d.gnu.MPI.CUDA.ex params_rotating_grtresna_no_matter.txt'
+```
+
+Short-run validation at `t = 0.22`:
+
+| Run | Ham L2 | Mom L2 | Verdict |
+| --- | --- | --- | --- |
+| `grtresna_spin_smoke` | `3.49e-4` | `1.02e-5` | clean |
+| `grtresna_a0_exotic` | `2.88e-4` | `8.11e-6` | clean |
+| `grtresna_spin_no_matter` | `3.62e-4` | `3.89e-5` | clean |
+
+### Diagnostic Teo runs
+
+The legacy `params_rotating.txt` path is retained for reproducing the
+`effective_teo` diagnostics. The scenario is chosen when generating the Teo
+`.gridinit` (`--spin`, `--source`); the matter behaviour is an AMReX ParmParse
+command-line override. Examples:
 
 ```bash
 # Default effective-source Teo run

@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import math
 import sys
 from dataclasses import asdict
 from pathlib import Path
@@ -44,6 +45,12 @@ def _case_name(omega: float, amp: float, width: float) -> str:
 
 def build_config(args: argparse.Namespace, omega: float) -> GRTresnaConfig:
     """Build one exotic rotating GRTresna configuration."""
+    lo_boundary = (0, 0, 0) if args.full_z else (0, 0, 1)
+    target_center_z = (
+        args.target_center_z
+        if args.target_center_z is not None
+        else (0.5 * args.length if args.full_z else 0.0)
+    )
     return GRTresnaConfig(
         mpi_ranks=args.ranks,
         max_NL_iterations=args.iterations,
@@ -77,10 +84,12 @@ def build_config(args: argparse.Namespace, omega: float) -> GRTresnaConfig:
         psi_relaxation=args.psi_relaxation,
         psi_floor=args.psi_floor,
         maximal_jacobian_cap=args.maximal_jacobian_cap,
+        lo_boundary=lo_boundary,
+        hi_boundary=(0, 0, 0),
         gridinit_nx=args.gridinit_nx,
         gridinit_ny=args.gridinit_ny,
         gridinit_nz=args.gridinit_nz,
-        target_center=(args.target_center_x, args.target_center_y, args.target_center_z),
+        target_center=(args.target_center_x, args.target_center_y, target_center_z),
         cleanup=not args.keep_hdf5,
     )
 
@@ -106,14 +115,23 @@ def _write_case_manifest(
 
 
 def _within_thresholds(
-    convergence: dict[str, float] | None, max_ham_pct: float, max_mom_pct: float
+    convergence: dict[str, float] | None,
+    max_ham_pct: float,
+    max_mom_pct: float,
+    *,
+    allow_nan_mom: bool = False,
 ) -> bool:
     if convergence is None:
         return False
-    return (
-        convergence["ham_pct"] <= max_ham_pct
-        and convergence["mom_pct"] <= max_mom_pct
-    )
+    ham_pct = convergence["ham_pct"]
+    mom_pct = convergence["mom_pct"]
+    mom_ok = mom_pct <= max_mom_pct
+    if allow_nan_mom and math.isnan(mom_pct):
+        # For the omega=0 control the momentum source is exactly zero, so the
+        # relative momentum residual can be 0/0 even though the solve wrote valid
+        # data. The Hamiltonian threshold remains the acceptance criterion.
+        mom_ok = True
+    return ham_pct <= max_ham_pct and mom_ok
 
 
 def generate_cases(args: argparse.Namespace, omegas: Iterable[float]) -> int:
@@ -143,7 +161,10 @@ def generate_cases(args: argparse.Namespace, omegas: Iterable[float]) -> int:
         gridinit = solve(cfg, work_dir=case_dir, gridinit_path=gridinit_path)
         convergence = parse_convergence(case_dir)
         accepted = _within_thresholds(
-            convergence, args.max_ham_pct, args.max_mom_pct
+            convergence,
+            args.max_ham_pct,
+            args.max_mom_pct,
+            allow_nan_mom=(omega == 0.0),
         )
         _write_case_manifest(
             case_dir,
@@ -215,9 +236,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--gridinit-nx", type=int, default=64)
     parser.add_argument("--gridinit-ny", type=int, default=64)
     parser.add_argument("--gridinit-nz", type=int, default=64)
+    parser.add_argument(
+        "--full-z",
+        action="store_true",
+        help="Solve a full z-domain instead of using GRTresna's z-reflecting half-domain.",
+    )
     parser.add_argument("--target-center-x", type=float, default=32.0)
     parser.add_argument("--target-center-y", type=float, default=32.0)
-    parser.add_argument("--target-center-z", type=float, default=0.0)
+    parser.add_argument(
+        "--target-center-z",
+        type=float,
+        default=None,
+        help="Target z center in GRTeclyn coordinates. Defaults to 0 for half-z and L/2 for --full-z.",
+    )
     parser.add_argument("--max-ham-pct", type=float, default=1.0)
     parser.add_argument("--max-mom-pct", type=float, default=1.0)
     parser.add_argument("--dry-run", action="store_true", help="Only write GRTresna params.")

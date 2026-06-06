@@ -1,0 +1,100 @@
+# Production: GRTresna rotating exotic scalar initial data + co-evolving matter.
+# Unigrid at file resolution (dx=0.25) to avoid AMR interpolation kinks.
+
+verbosity = 1
+
+output_path = "../../runs/rotating_wormhole/grtresna_spin_exotic/output"
+amr.check_file = "../../runs/rotating_wormhole/grtresna_spin_exotic/output/RotatingWormholeChk"
+amr.plot_file  = "../../runs/rotating_wormhole/grtresna_spin_exotic/output/RotatingWormholePlt"
+
+checkpoint_interval = 1000
+plot_interval       = 10
+
+amr.plot_vars = chi K lapse shift1 shift2 shift3 phi Pi
+amr.derive_plot_vars = Weyl4
+
+hdf5_subpath = "hdf5"
+pout_subpath = "pout"
+data_subpath = "data"
+
+print_progress_only_to_rank_0 = 1
+
+recipe_initial_data_file = "../../runs/rotating_wormhole_id/rotwh_omega_p0p05_amp_0p2_w_8/initial_data.gridinit"
+wormhole_matter_model = "exotic_scalar"
+
+wormhole_initial_lapse_type = 0
+wormhole_throat_radius = 0.5
+wormhole_centerA = 0.0 0.0 0.0
+wormhole_phi_monopole_amplitude     = 0.0
+wormhole_phi_perturbation_amplitude = 0.0
+wormhole_phi_perturbation_width     = 0.5
+wormhole_support_strength = 1.0
+phantom_mass = 0.0
+
+L = 64.0
+N1 = 64
+N2 = 64
+N3 = 64
+
+center = 32.0 32.0 0.0
+
+max_level = 0
+regrid_interval = 32
+regrid_threshold = 0.01
+
+max_box_size = 32
+min_box_size = 16
+
+isPeriodic = 0 0 0
+hi_boundary = 1 1 1
+lo_boundary = 1 1 2
+
+nonzero_asymptotic_vars = chi h11 h22 h33 lapse
+nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
+
+dt_multiplier = 0.02
+stop_time = 1.0
+
+max_spatial_derivative_order = 4
+nan_check = 1
+
+min_chi = 1.0e-8
+min_lapse = 1.0e-10
+
+lapse_advec_coeff = 1.0
+lapse_coeff = 2.0
+lapse_power = 1.0
+
+shift_advec_coeff = 1.0
+shift_Gamma_coeff = 0.75
+eta = 1.0
+
+formulation = 0
+kappa1 = 3.0
+kappa2 = 0.
+kappa3 = 1.
+covariantZ4 = 0
+
+sigma = 2.0
+
+puncture_tracking.enabled = 0
+calculate_constraint_norms = 1
+
+extraction_center = 32.0 32.0 0.0
+activate_extraction = 1
+write_extraction = 1
+extraction_subpath = "data"
+
+num_extraction_radii = 4
+extraction_radii = 12.0 16.0 20.0 24.0
+extraction_levels = 0 0 0 0
+
+num_points_phi = 24
+num_points_theta = 37
+num_modes = 3
+modes = 2 0 \
+        2 1 \
+        2 2
+
+amrex.the_arena_init_size = 1048576
+amrex.use_gpu_aware_mpi = 0

@@ -125,21 +125,30 @@ def _paint_level(
         g = ghost
         interior = arr[:, g:g+int(sz[2]), g:g+int(sz[1]), g:g+int(sz[0])]
 
-        ix = np.arange(sz[0])
-        iy = np.arange(sz[1])
-        iz = np.arange(sz[2])
+        def target_span(src_index: int, axis: int, n_target: int) -> slice:
+            """Target cell-center indices covered by one Chombo source cell."""
+            left = src_index * dx_lev
+            right = (src_index + 1) * dx_lev
+            dx = dx_target[axis]
+            start = int(np.ceil(left / dx - 0.5 - 1.0e-12))
+            stop = int(np.floor(right / dx - 0.5 + 1.0e-12)) + 1
+            start = max(0, min(start, n_target))
+            stop = max(start, min(stop, n_target))
+            if start == stop:
+                nearest = int(np.clip(((left + right) * 0.5 / dx) - 0.5, 0, n_target - 1))
+                return slice(nearest, nearest + 1)
+            return slice(start, stop)
 
-        phys_x = (lo[0] + ix + 0.5) * dx_lev
-        phys_y = (lo[1] + iy + 0.5) * dx_lev
-        phys_z = (lo[2] + iz + 0.5) * dx_lev
-
-        ti = np.clip((phys_x / dx_target[0]).astype(np.int64), 0, nx - 1)
-        tj = np.clip((phys_y / dx_target[1]).astype(np.int64), 0, ny - 1)
-        tk = np.clip((phys_z / dx_target[2]).astype(np.int64), 0, nz - 1)
-
-        TK, TJ, TI = np.meshgrid(tk, tj, ti, indexing="ij")
-        for c in range(n_comp):
-            data[TK, TJ, TI, c] = interior[c]
+        # Paint each Chombo cell as piecewise constant over the target cell
+        # centers it covers. This avoids leaving holes when the requested
+        # `.gridinit` resolution is finer than the Chombo output level.
+        for kk in range(int(sz[2])):
+            tk = target_span(int(lo[2] + kk), 2, nz)
+            for jj in range(int(sz[1])):
+                tj = target_span(int(lo[1] + jj), 1, ny)
+                for ii in range(int(sz[0])):
+                    ti = target_span(int(lo[0] + ii), 0, nx)
+                    data[tk, tj, ti, :] = interior[:, kk, jj, ii]
 
 
 def read_chombo_domain(
