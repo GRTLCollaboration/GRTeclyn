@@ -26,8 +26,10 @@ JOBS=64
 N_POINTS="${GRTECLYN_PLOT_N_POINTS:-128}"
 FRAME_FIELDS="${GRTECLYN_PLOT_FRAME_FIELDS:-chi chi_minus_1 K lapse phi Pi scalar_activity Weyl4_Re Weyl4_Im Weyl4_Mag}"
 FRAME_ZOOM="${GRTECLYN_FRAMES_ZOOM:-48}"
-FRAME_CENTER="${GRTECLYN_FRAMES_CENTER:-8 8 0}"
-FRAME_AUTO_ZLIM="${GRTECLYN_FRAMES_AUTO_ZLIM:-1}"
+FRAME_CENTER="${GRTECLYN_FRAMES_CENTER:-}"
+EXTRACTION_CENTER="${GRTECLYN_EXTRACTION_CENTER:-}"
+FRAME_AUTO_ZLIM="${GRTECLYN_FRAMES_AUTO_ZLIM:-0}"
+FRAME_GLOBAL_ZLIM="${GRTECLYN_FRAMES_GLOBAL_ZLIM:-1}"
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -129,6 +131,57 @@ else
 fi
 
 mkdir -p "${FRAMES_DIR}"
+
+PYTHON=(python)
+if command -v uv >/dev/null 2>&1 && [[ -f "${WRAPPER_ROOT}/pyproject.toml" ]]; then
+  PYTHON=(uv run --directory "${WRAPPER_ROOT}" python)
+fi
+
+if [[ -z "${FRAME_CENTER}" || -z "${EXTRACTION_CENTER}" ]]; then
+  read -r AUTO_FRAME_CORNER AUTO_EXTRACTION_CENTER < <(
+    "${PYTHON[@]}" - "${DATA_DIR}" "${FRAME_ZOOM}" <<'PY'
+import glob
+import os
+import sys
+
+data_dir = sys.argv[1]
+zoom = float(sys.argv[2])
+fallback_corner = "8 8 0"
+fallback_extract = "32 32 0"
+try:
+    import yt
+except ImportError:
+    print(fallback_corner, fallback_extract)
+    raise SystemExit(0)
+
+plotfiles = sorted(
+    f
+    for pattern in ("RotatingWormholePlt*", "WormholePlt*", "*Plt*")
+    for f in glob.glob(os.path.join(data_dir, pattern))
+    if os.path.isdir(f) and os.path.isfile(os.path.join(f, "Header"))
+)
+if not plotfiles:
+    print(fallback_corner, fallback_extract)
+    raise SystemExit(0)
+
+ds = yt.load(plotfiles[-1])
+lx = float(ds.domain_right_edge[0] - ds.domain_left_edge[0])
+ly = float(ds.domain_right_edge[1] - ds.domain_left_edge[1])
+throat_x = 0.5 * lx
+throat_y = 0.5 * ly
+corner_x = throat_x - 0.5 * zoom
+corner_y = throat_y - 0.5 * zoom
+print(f"{corner_x:g} {corner_y:g} 0", f"{throat_x:g} {throat_y:g} 0")
+PY
+  )
+  if [[ -z "${FRAME_CENTER}" ]]; then
+    FRAME_CENTER="${AUTO_FRAME_CORNER}"
+  fi
+  if [[ -z "${EXTRACTION_CENTER}" ]]; then
+    EXTRACTION_CENTER="${AUTO_EXTRACTION_CENTER}"
+  fi
+fi
+
 echo "=========================================="
 echo "Watching plotfiles in: ${DATA_DIR}"
 echo "Writing small-data to: ${SMALL_DATA_DIR}"
@@ -137,22 +190,24 @@ echo "Frame fields:          ${FRAME_FIELDS}"
 echo "Frame sample points:   ${N_POINTS}"
 echo "Frame zoom:            ${FRAME_ZOOM}"
 echo "Frame corner origin:   ${FRAME_CENTER}"
+echo "Extraction center:     ${EXTRACTION_CENTER}"
 echo "Frame auto colorbar:   ${FRAME_AUTO_ZLIM}"
+echo "Frame global colorbar: ${FRAME_GLOBAL_ZLIM}"
 echo "=========================================="
 
 AUTO_ZLIM_ARGS=()
 if [[ "${FRAME_AUTO_ZLIM}" == "1" ]]; then
   AUTO_ZLIM_ARGS=(--frames-auto-zlim)
 fi
-
-PYTHON=(python)
-if command -v uv >/dev/null 2>&1 && [[ -f "${WRAPPER_ROOT}/pyproject.toml" ]]; then
-  PYTHON=(uv run --directory "${WRAPPER_ROOT}" python)
+GLOBAL_ZLIM_ARGS=(--frames-global-zlim)
+if [[ "${FRAME_GLOBAL_ZLIM}" == "0" ]]; then
+  GLOBAL_ZLIM_ARGS=(--no-frames-global-zlim)
 fi
 
 "${PYTHON[@]}" -m grteclyn_wrapper.visualisation.process_wave.consume_plotfiles \
   --data "${DATA_DIR}" \
   --out "${DATA_DIR}/small_data" \
+  --center ${EXTRACTION_CENTER} \
   --radii 12 16 20 24 \
   --n-points "${N_POINTS}" \
   --areal-radius \
@@ -163,6 +218,7 @@ fi
   --frames-center ${FRAME_CENTER} \
   --frames-corner \
   "${AUTO_ZLIM_ARGS[@]}" \
+  "${GLOBAL_ZLIM_ARGS[@]}" \
   --frames-out "${FRAMES_DIR}" \
   --watch --delete --keep-last 2 \
   --verbose -j "${JOBS}" ${EXTRA_ARGS}

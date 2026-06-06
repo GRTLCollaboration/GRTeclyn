@@ -7,7 +7,7 @@ output_path = "../../runs/rotating_wormhole/grtresna_spin_hires/output"
 amr.check_file = "../../runs/rotating_wormhole/grtresna_spin_hires/output/RotatingWormholeChk"
 amr.plot_file  = "../../runs/rotating_wormhole/grtresna_spin_hires/output/RotatingWormholePlt"
 
-checkpoint_interval = 50
+checkpoint_interval = 1000
 plot_interval       = 10
 
 amr.plot_vars = chi K lapse shift1 shift2 shift3 phi Pi
@@ -53,7 +53,7 @@ nonzero_asymptotic_vars = chi h11 h22 h33 lapse
 nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 
 dt_multiplier = 0.02
-stop_time = 4.0
+stop_time = 20.0
 
 max_spatial_derivative_order = 4
 nan_check = 1

@@ -280,6 +280,313 @@ def _register_derived_fields(ds, field: str) -> None:
         # Usually they are just read from disk.
         pass
 
+
+def _resolve_frame_physics_center(
+    ds,
+    axis: str,
+    coord: float | None,
+    zoom: float | None,
+    center_xyz: Sequence[float] | None,
+    corner: bool,
+) -> list[float]:
+    """Match visualize/__main__.py center logic; auto throat corner when unset."""
+    mid_x = float((ds.domain_right_edge[0] + ds.domain_left_edge[0]) / 2.0)
+    mid_y = float((ds.domain_right_edge[1] + ds.domain_left_edge[1]) / 2.0)
+    physics_center = [mid_x, mid_y, 0.0]
+
+    if corner and zoom is not None:
+        slice_plane_val = 0.0 if coord is None else float(coord)
+        if center_xyz is not None:
+            origin = np.array(center_xyz, dtype=float)
+        else:
+            origin = np.array(
+                [mid_x - float(zoom) / 2.0, mid_y - float(zoom) / 2.0, slice_plane_val],
+                dtype=float,
+            )
+        w = float(zoom)
+        if axis == "z":
+            physics_center = [origin[0] + w / 2.0, origin[1] + w / 2.0, slice_plane_val]
+        elif axis == "y":
+            physics_center = [origin[0] + w / 2.0, slice_plane_val, origin[2] + w / 2.0]
+        elif axis == "x":
+            physics_center = [slice_plane_val, origin[1] + w / 2.0, origin[2] + w / 2.0]
+    elif center_xyz is not None:
+        physics_center = [float(center_xyz[0]), float(center_xyz[1]), float(center_xyz[2])]
+
+    if coord is not None:
+        if axis == "z":
+            physics_center[2] = float(coord)
+        elif axis == "y":
+            physics_center[1] = float(coord)
+        elif axis == "x":
+            physics_center[0] = float(coord)
+
+    return physics_center
+
+
+def _frame_buff_size(ds, zoom: float | None) -> int:
+    """Pixels across the FRB: ~4 samples per simulation cell in the zoom window."""
+    if zoom is None:
+        zoom = float(ds.domain_width[0])
+    le = np.array(ds.domain_left_edge.d, dtype=float)
+    re = np.array(ds.domain_right_edge.d, dtype=float)
+    dims = np.array(ds.domain_dimensions, dtype=float) * (2 ** int(ds.index.max_level))
+    dx = (re - le) / np.maximum(dims, 1.0)
+    cells = max(int(round(float(zoom) / min(dx[0], dx[1]))), 64)
+    return int(min(max(cells * 4, 256), 1600))
+
+
+def _auto_zlim_from_array(values: np.ndarray, field_name: str) -> tuple[float, float] | None:
+    finite = np.asarray(values, dtype=float)
+    finite = finite[np.isfinite(finite)]
+    if finite.size == 0:
+        return None
+
+    if field_name == "K":
+        max_abs = float(np.nanpercentile(np.abs(finite), 99.5))
+        max_abs = max(max_abs, 5.0e-6)
+        return (-max_abs, max_abs)
+
+    if field_name == "Weyl4_Mag":
+        hi = float(np.nanpercentile(finite, 99.5))
+        hi = max(hi, 1.0e-8)
+        return (0.0, hi)
+
+    if field_name in {"Weyl4_Re", "Weyl4_Im", "phi", "Pi", "chi_minus_1"}:
+        max_abs = float(np.nanpercentile(np.abs(finite), 99.5))
+        max_abs = max(max_abs, 1.0e-8)
+        return (-max_abs, max_abs)
+
+    lo, hi = np.nanpercentile(finite, [1.0, 99.0])
+    lo = float(lo)
+    hi = float(hi)
+    span = hi - lo
+    min_span = 1.0e-4 if field_name in {"chi", "lapse"} else 1.0e-12
+    if span < min_span:
+        mid = 0.5 * (lo + hi)
+        half_span = 0.5 * min_span
+        return (mid - half_span, mid + half_span)
+    pad = 0.05 * span if span > 0.0 else min_span
+    return (lo - pad, hi + pad)
+
+
+def _resolve_plot_zlim(
+    field: str,
+    win: np.ndarray,
+    cfg: dict,
+    *,
+    auto_zlim: bool | None,
+    frame_zlims: dict[str, list[float]] | None,
+    use_global_zlim: bool,
+) -> tuple[float, float]:
+    if _frames_auto_zlim_enabled(auto_zlim):
+        auto = _auto_zlim_from_array(win, field)
+        if auto is not None:
+            return auto
+
+    if use_global_zlim and frame_zlims is not None:
+        stored = frame_zlims.get(field)
+        if stored is not None:
+            return (float(stored[0]), float(stored[1]))
+
+    preset = cfg["zlim"]
+    if preset[0] is not None:
+        return preset
+
+    auto = _auto_zlim_from_array(win, field)
+    return auto if auto is not None else (0.0, 1.0)
+
+
+def _extract_native_slice_window(
+    ds,
+    field: str,
+    axis: str,
+    coord: float | None,
+    zoom: float | None,
+    center_xyz: Sequence[float] | None,
+    corner: bool,
+) -> np.ndarray:
+    physics_center = _resolve_frame_physics_center(ds, axis, coord, zoom, center_xyz, corner)
+    _register_derived_fields(ds, field)
+    plot_field = _field_key(ds, field)
+
+    lvl = int(ds.index.max_level)
+    ds.force_periodicity()
+    full_dims = [int(round(n * (2 ** lvl))) for n in ds.domain_dimensions]
+    cg = ds.covering_grid(level=lvl, left_edge=ds.domain_left_edge, dims=full_dims)
+    data = np.array(cg[plot_field])
+    le = np.array(ds.domain_left_edge.d, dtype=float)
+    re = np.array(ds.domain_right_edge.d, dtype=float)
+    cell = (re - le) / np.array(full_dims, dtype=float)
+
+    ai = {"x": 0, "y": 1, "z": 2}[axis]
+    sidx = int(
+        np.clip(round((float(physics_center[ai]) - le[ai]) / cell[ai] - 0.5), 0, full_dims[ai] - 1)
+    )
+    slab = np.take(data, sidx, axis=ai)
+    h_ax, v_ax = {0: (1, 2), 1: (2, 0), 2: (0, 1)}[ai]
+    remaining = [a for a in (0, 1, 2) if a != ai]
+    arr = slab if remaining == [v_ax, h_ax] else slab.T
+    extent = [le[h_ax], re[h_ax], le[v_ax], re[v_ax]]
+
+    if zoom is not None:
+        hh = float(zoom) / 2.0
+        hcoords = np.linspace(extent[0], extent[1], arr.shape[1])
+        vcoords = np.linspace(extent[2], extent[3], arr.shape[0])
+        hmask = (hcoords >= physics_center[h_ax] - hh) & (hcoords <= physics_center[h_ax] + hh)
+        vmask = (vcoords >= physics_center[v_ax] - hh) & (vcoords <= physics_center[v_ax] + hh)
+        if hmask.any() and vmask.any():
+            return arr[np.ix_(vmask, hmask)]
+    return arr
+
+
+def _lock_frame_zlims_from_plotfile(plot_path: str, args_dict: dict) -> dict[str, list[float]]:
+    ds = yt.load(plot_path)
+    frame_fields = [_canonical_field_name(f) for f in args_dict.get("frames_fields", [])]
+    zlims: dict[str, list[float]] = {}
+    for fld in frame_fields:
+        win = _extract_native_slice_window(
+            ds,
+            fld,
+            args_dict.get("frames_axis", "z"),
+            args_dict.get("frames_coord"),
+            args_dict.get("frames_zoom"),
+            args_dict.get("frames_center"),
+            bool(args_dict.get("frames_corner")),
+        )
+        auto = _auto_zlim_from_array(win, fld)
+        if auto is not None:
+            zlims[fld] = [auto[0], auto[1]]
+            if args_dict.get("verbose", False):
+                print(f"[zlim-lock] {fld}: {auto[0]:.6g} .. {auto[1]:.6g}")
+    return zlims
+
+
+def _render_native_slice_frame(
+    ds,
+    field: str,
+    axis: str,
+    coord: float | None,
+    zoom: float | None,
+    center_xyz: Sequence[float] | None,
+    corner: bool,
+    frames_out_dir: str,
+    frame_idx: int,
+    verbose: bool,
+    auto_zlim: bool | None = None,
+    frame_zlims: dict[str, list[float]] | None = None,
+    use_global_zlim: bool = True,
+) -> str:
+    """Render from a uniform covering grid (native cell resolution, no FRB blocks)."""
+    def _clean_zero(value: float, tol: float = 1.0e-10) -> float:
+        value = float(value)
+        return 0.0 if abs(value) < tol else value
+
+    cfg = _field_frame_config(field)
+    physics_center = _resolve_frame_physics_center(ds, axis, coord, zoom, center_xyz, corner)
+    _register_derived_fields(ds, field)
+    plot_field = _field_key(ds, field)
+
+    lvl = int(ds.index.max_level)
+    ds.force_periodicity()
+    full_dims = [int(round(n * (2 ** lvl))) for n in ds.domain_dimensions]
+    cg = ds.covering_grid(level=lvl, left_edge=ds.domain_left_edge, dims=full_dims)
+    data = np.array(cg[plot_field])
+    le = np.array(ds.domain_left_edge.d, dtype=float)
+    re = np.array(ds.domain_right_edge.d, dtype=float)
+    cell = (re - le) / np.array(full_dims, dtype=float)
+
+    ai = {"x": 0, "y": 1, "z": 2}[axis]
+    sidx = int(
+        np.clip(round((float(physics_center[ai]) - le[ai]) / cell[ai] - 0.5), 0, full_dims[ai] - 1)
+    )
+    slab = np.take(data, sidx, axis=ai)
+    h_ax, v_ax = {0: (1, 2), 1: (2, 0), 2: (0, 1)}[ai]
+    remaining = [a for a in (0, 1, 2) if a != ai]
+    arr = slab if remaining == [v_ax, h_ax] else slab.T
+    extent = [le[h_ax], re[h_ax], le[v_ax], re[v_ax]]
+
+    if zoom is not None:
+        hh = float(zoom) / 2.0
+        hcoords = np.linspace(extent[0], extent[1], arr.shape[1])
+        vcoords = np.linspace(extent[2], extent[3], arr.shape[0])
+        hmask = (hcoords >= physics_center[h_ax] - hh) & (hcoords <= physics_center[h_ax] + hh)
+        vmask = (vcoords >= physics_center[v_ax] - hh) & (vcoords <= physics_center[v_ax] + hh)
+        win = arr[np.ix_(vmask, hmask)] if hmask.any() and vmask.any() else arr
+    else:
+        win = arr
+
+    zlim = _resolve_plot_zlim(
+        field,
+        win,
+        cfg,
+        auto_zlim=auto_zlim,
+        frame_zlims=frame_zlims,
+        use_global_zlim=use_global_zlim,
+    )
+
+    plt.rcParams.update({
+        "font.family": "serif",
+        "font.serif": ["Computer Modern Roman", "DejaVu Serif", "Times New Roman", "serif"],
+        "mathtext.fontset": "cm",
+        "axes.labelsize": 14,
+        "axes.titlesize": 16,
+        "xtick.labelsize": 12,
+        "ytick.labelsize": 12,
+        "axes.linewidth": 1.2,
+    })
+
+    xlabel_name, ylabel_name = {"x": ("y", "z"), "y": ("z", "x"), "z": ("x", "y")}[axis]
+    coord_val = _clean_zero(physics_center[ai])
+    title_text = r"%s $\quad t=%.2f \quad %s=%g$" % (
+        cfg["label"],
+        float(ds.current_time),
+        axis,
+        coord_val,
+    )
+
+    fig, ax = plt.subplots(figsize=(8, 7))
+    im = ax.imshow(
+        arr,
+        origin="lower",
+        extent=extent,
+        aspect="equal",
+        cmap=cfg["cmap"],
+        vmin=zlim[0],
+        vmax=zlim[1],
+        interpolation="nearest",
+    )
+    if zoom is not None:
+        ax.set_xlim(physics_center[h_ax] - float(zoom) / 2.0, physics_center[h_ax] + float(zoom) / 2.0)
+        ax.set_ylim(physics_center[v_ax] - float(zoom) / 2.0, physics_center[v_ax] + float(zoom) / 2.0)
+    ax.set_xlabel(r"$%s$" % xlabel_name)
+    ax.set_ylabel(r"$%s$" % ylabel_name)
+    ax.set_title(title_text, pad=8)
+    cb = fig.colorbar(im, ax=ax)
+    cb.set_label(cfg["label"])
+
+    if corner:
+        def _fmt_y(val, _pos):
+            if abs(float(val)) < 1.0e-12:
+                return ""
+            return f"{val:g}"
+
+        ax.yaxis.set_major_formatter(FuncFormatter(_fmt_y))
+
+    output_dir = os.path.join(frames_out_dir, f"{field}_{axis}")
+    frames_dir = os.path.join(output_dir, "frames")
+    os.makedirs(frames_dir, exist_ok=True)
+    frame_name = f"frame_{axis}_{frame_idx:04d}.png"
+    out_path = os.path.join(frames_dir, frame_name)
+    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+    if verbose:
+        print(f"[frame-native] {field} {full_dims} -> {out_path}")
+
+    return out_path
+
+
 def _render_slice_frame(
     ds,
     field: str,
@@ -292,6 +599,8 @@ def _render_slice_frame(
     frame_idx: int,
     verbose: bool,
     auto_zlim: bool | None = None,
+    frame_zlims: dict[str, list[float]] | None = None,
+    use_global_zlim: bool = True,
 ) -> str:
     """
     Render a SlicePlot frame and save it under:
@@ -306,70 +615,25 @@ def _render_slice_frame(
         value = _clean_zero(value)
         return f"{value:g}"
 
-    def _auto_zlim(values: np.ndarray, field_name: str) -> tuple[float, float] | None:
-        finite = np.asarray(values, dtype=float)
-        finite = finite[np.isfinite(finite)]
-        if finite.size == 0:
-            return None
-
-        if field_name == "K":
-            max_abs = float(np.nanpercentile(np.abs(finite), 99.5))
-            max_abs = max(max_abs, 5.0e-6)
-            return (-max_abs, max_abs)
-
-        if field_name == "Weyl4_Mag":
-            hi = float(np.nanpercentile(finite, 99.5))
-            hi = max(hi, 1.0e-8)
-            return (0.0, hi)
-
-        if field_name in {"Weyl4_Re", "Weyl4_Im", "phi", "Pi", "chi_minus_1"}:
-            max_abs = float(np.nanpercentile(np.abs(finite), 99.5))
-            max_abs = max(max_abs, 1.0e-8)
-            return (-max_abs, max_abs)
-
-        lo, hi = np.nanpercentile(finite, [1.0, 99.0])
-        lo = float(lo)
-        hi = float(hi)
-        span = hi - lo
-        min_span = 1.0e-4 if field_name in {"chi", "lapse"} else 1.0e-12
-        if span < min_span:
-            mid = 0.5 * (lo + hi)
-            half_span = 0.5 * min_span
-            return (mid - half_span, mid + half_span)
-        pad = 0.05 * span if span > 0.0 else min_span
-        return (lo - pad, hi + pad)
+    if int(ds.index.max_level) == 0:
+        return _render_native_slice_frame(
+            ds,
+            field,
+            axis,
+            coord,
+            zoom,
+            center_xyz,
+            corner,
+            frames_out_dir,
+            frame_idx,
+            verbose,
+            auto_zlim=auto_zlim,
+            frame_zlims=frame_zlims,
+            use_global_zlim=use_global_zlim,
+        )
 
     cfg = _field_frame_config(field)
-
-    # Center logic matches visualize/__main__.py
-    mid_x = float((ds.domain_right_edge[0] + ds.domain_left_edge[0]) / 2.0)
-    mid_y = float((ds.domain_right_edge[1] + ds.domain_left_edge[1]) / 2.0)
-    physics_center = [mid_x, mid_y, 0.0]
-
-    # Corner mode: treat `center_xyz` as the symmetry origin (corner) and set
-    # plot center to origin + zoom/2 in the slice plane.
-    if corner and zoom is not None:
-        slice_plane_val = 0.0 if coord is None else float(coord)
-        origin = np.array(center_xyz, dtype=float) if center_xyz is not None else np.array(ds.domain_left_edge, dtype=float)
-        w = float(zoom)
-        if axis == "z":
-            physics_center = [origin[0] + w / 2.0, origin[1] + w / 2.0, slice_plane_val]
-        elif axis == "y":
-            physics_center = [origin[0] + w / 2.0, slice_plane_val, origin[2] + w / 2.0]
-        elif axis == "x":
-            physics_center = [slice_plane_val, origin[1] + w / 2.0, origin[2] + w / 2.0]
-    elif center_xyz is not None:
-        physics_center = [float(center_xyz[0]), float(center_xyz[1]), float(center_xyz[2])]
-
-    # Apply coord override
-    if coord is not None:
-        if axis == "z":
-            physics_center[2] = float(coord)
-        elif axis == "y":
-            physics_center[1] = float(coord)
-        elif axis == "x":
-            physics_center[0] = float(coord)
-
+    physics_center = _resolve_frame_physics_center(ds, axis, coord, zoom, center_xyz, corner)
     plot_center = ds.arr(physics_center, "code_length")
 
     _register_derived_fields(ds, field)
@@ -387,7 +651,8 @@ def _render_slice_frame(
         "axes.linewidth": 1.2,
     })
 
-    slc = yt.SlicePlot(ds, axis, plot_field, center=plot_center)
+    buff = _frame_buff_size(ds, zoom)
+    slc = yt.SlicePlot(ds, axis, plot_field, center=plot_center, buff_size=(buff, buff))
     # Use dataset-native coordinates (e.g. [0,40]) on axes for symmetry-reduced domains.
     slc.set_origin("native")
     slc.set_axes_unit("code_length")
@@ -409,14 +674,17 @@ def _render_slice_frame(
     #   z-axis normal -> x horizontal, y vertical
     # Let's assume standard behavior first.
 
-    zlim = cfg["zlim"]
-    if zlim[0] is None or _frames_auto_zlim_enabled(auto_zlim):
-        try:
-            auto = _auto_zlim(np.asarray(slc.frb[plot_field]), field)
-            if auto is not None:
-                zlim = auto
-        except Exception:
-            pass
+    try:
+        zlim = _resolve_plot_zlim(
+            field,
+            np.asarray(slc.frb[plot_field]),
+            cfg,
+            auto_zlim=auto_zlim,
+            frame_zlims=frame_zlims,
+            use_global_zlim=use_global_zlim,
+        )
+    except Exception:
+        zlim = cfg["zlim"]
     if zlim[0] is not None:
         slc.set_zlim(plot_field, zlim[0], zlim[1])
     slc.set_cmap(plot_field, cfg["cmap"])
@@ -1129,6 +1397,7 @@ def _load_state(state_path: Path) -> Dict[str, bool]:
 
 
 def _save_state(state_path: Path, state: Dict[str, bool]) -> None:
+    state_path.parent.mkdir(parents=True, exist_ok=True)
     tmp = state_path.with_suffix(state_path.suffix + ".tmp")
     tmp.write_text(json.dumps(state, indent=2, sort_keys=True))
     tmp.replace(state_path)
@@ -1234,6 +1503,8 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
                     frame_idx=int(frame_idx),
                     verbose=args_dict.get("verbose", False),
                     auto_zlim=args_dict.get("frames_auto_zlim"),
+                    frame_zlims=args_dict.get("frame_zlims"),
+                    use_global_zlim=args_dict.get("frames_global_zlim", True),
                 )
 
         projection_fields = [_canonical_field_name(f) for f in args_dict.get("projection_fields", [])]
@@ -1353,7 +1624,13 @@ def main() -> None:
     parser.add_argument(
         "--frames-auto-zlim",
         action="store_true",
-        help="Scale each frame colorbar from the slice data (recommended for faint fields).",
+        help="Per-frame colorbar from slice percentiles (faint fields only; causes movie flicker).",
+    )
+    parser.add_argument(
+        "--frames-global-zlim",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Lock per-field colorbar limits from the first plotfile (stable movies, visible faint fields).",
     )
     parser.add_argument("--frames-out", default=_default_frames_out_dir(), help="Frames output base dir (default: grteclyn_wrapper/visualisation/visualize).")
     parser.add_argument(
@@ -1502,7 +1779,21 @@ def main() -> None:
 
         args_dict = vars(args)
         args_dict["frames_out"] = os.path.abspath(args.frames_out)
-        
+        frame_zlims = state.get("frame_zlims", {})
+        use_global_zlim = bool(
+            args.frames_global_zlim and not _frames_auto_zlim_enabled(args.frames_auto_zlim)
+        )
+        if frame_fields_startup and use_global_zlim and not frame_zlims and to_process:
+            first = min(
+                to_process,
+                key=lambda p: _parse_plot_index(os.path.basename(p)) if _parse_plot_index(os.path.basename(p)) is not None else 10**12,
+            )
+            frame_zlims = _lock_frame_zlims_from_plotfile(first, args_dict)
+            state["frame_zlims"] = frame_zlims
+            _save_state(state_path, state)
+        args_dict["frame_zlims"] = frame_zlims
+        args_dict["frames_global_zlim"] = use_global_zlim
+
         if args.jobs > 1:
             from concurrent.futures import ProcessPoolExecutor, as_completed
 
