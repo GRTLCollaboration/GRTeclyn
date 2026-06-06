@@ -18,58 +18,20 @@ froze a prescribed `teo_*` source at `t=0` and is not a stable physics run (see
 ### End-to-end stages
 
 ```mermaid
-%%{init: {
-  "themeVariables": {
-    "fontSize": "18px",
-    "fontFamily": "arial"
-  },
-  "flowchart": {
-    "nodeSpacing": 70,
-    "rankSpacing": 90,
-    "padding": 24,
-    "htmlLabels": true
-  }
-}}%%
-flowchart LR
-    subgraph cfg["Configure lump"]
-        direction TB
-        P1["omega, amp, width"]
-        P2["mode m = 2"]
-        P3["exotic = 1"]
-        P1 --> P2 --> P3
-    end
+flowchart TB
+    P["Configure lump<br/>omega, amp, width, m=2, exotic=1"]
 
-    subgraph s1["Stage 1 — Initial data"]
-        direction TB
-        ID["make_rotating_wormhole_id.py"]
-        GR["GRTresna MPI solve"]
-        HM["Ham + Mom constraints"]
-        GI["initial_data.gridinit"]
-        GF["chi, h_ij, phi, Pi, ..."]
-        ID --> GR --> HM --> GI --> GF
-    end
+    ID["Stage 1 — make_rotating_wormhole_id.py"]
+    GR["GRTresna MPI solve<br/>Ham + Mom constraints"]
+    GI["initial_data.gridinit<br/>chi, h_ij, phi, Pi, ..."]
 
-    subgraph s2["Stage 2 — Evolution"]
-        direction TB
-        PR["params_rotating_grtresna_*.txt"]
-        GT["GRTeclyn CUDA MPI"]
-        EM["wormhole_matter_model"]
-        ES["exotic_scalar"]
-        PR --> GT --> EM --> ES
-    end
+    PR["Stage 2 — params_rotating_grtresna_*.txt"]
+    GT["GRTeclyn CUDA MPI<br/>wormhole_matter_model = exotic_scalar"]
 
-    subgraph s3["Stage 3 — Diagnostics"]
-        direction TB
-        PL["plot_run.sh"]
-        CF["consume_plotfiles"]
-        FR["frames + Psi4"]
-        EM2["embedding 3D"]
-        PL --> CF --> FR --> EM2
-    end
+    PL["Stage 3 — plot_run.sh"]
+    CF["consume_plotfiles<br/>frames + Psi4 + embedding"]
 
-    P1 --> ID
-    GF --> GT
-    ES --> PL
+    P --> ID --> GR --> GI --> PR --> GT --> PL --> CF
 ```
 
 | Stage | Tool | Typical output |
