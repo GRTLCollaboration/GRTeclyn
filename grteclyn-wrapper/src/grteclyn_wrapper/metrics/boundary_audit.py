@@ -48,32 +48,52 @@ def extract_scalar_boundary_flux(
 
     pts = np.stack([x.ravel(), y.ravel(), z.ravel()], axis=1)
 
-    def sample(name: str) -> np.ndarray:
-        try:
-            return np.asarray(ds.sample(name, pts)["boxlib", name], dtype=float)
-        except Exception:  # noqa: BLE001
-            return np.asarray(ds.sample(name, pts)[name], dtype=float)
+    def _coerce_scalar_samples(values) -> np.ndarray:
+        arr = np.asarray(values)
+        if arr.dtype != object and arr.ndim == 1:
+            return arr.astype(float, copy=False)
+        out = np.empty(len(values), dtype=float)
+        for jj, v in enumerate(values):
+            vv = np.asarray(v, dtype=float).reshape(-1)
+            out[jj] = vv[0] if vv.size else np.nan
+        return out
 
-    try:
-        phi_f = sample("phi").reshape(x.shape)
-        pi_f = sample("Pi").reshape(x.shape)
-        alpha = np.clip(sample("lapse").reshape(x.shape), 1.0e-10, None)
-        shift1 = sample("shift1").reshape(x.shape)
-        shift2 = sample("shift2").reshape(x.shape)
-        shift3 = sample("shift3").reshape(x.shape)
-    except Exception:
+    def sample_at(names: list[str], points: np.ndarray) -> dict[str, np.ndarray] | None:
+        """Robustly sample fields at points using the yt point API.
+
+        ``ds.sample`` does not exist; ``find_field_values_at_points`` is fast but
+        can choke on AMR points, so fall back to per-point ``ds.point``.
+        """
+        try:
+            vals = ds.find_field_values_at_points(
+                [("boxlib", n) for n in names], points
+            )
+            return {n: _coerce_scalar_samples(vals[i]) for i, n in enumerate(names)}
+        except Exception:  # noqa: BLE001
+            out = {n: np.full(len(points), np.nan, dtype=float) for n in names}
+            for ii in range(len(points)):
+                pt = ds.point([points[ii, 0], points[ii, 1], points[ii, 2]])
+                for n in names:
+                    v = np.asarray(pt[("boxlib", n)], dtype=float).reshape(-1)
+                    out[n][ii] = float(v[0]) if v.size else np.nan
+            return out
+
+    fields = sample_at(["phi", "Pi", "lapse", "shift1", "shift2", "shift3"], pts)
+    if fields is None:
+        return None
+    phi_f = fields["phi"].reshape(x.shape)
+    pi_f = fields["Pi"].reshape(x.shape)
+    alpha = np.clip(fields["lapse"].reshape(x.shape), 1.0e-10, None)
+    shift1 = fields["shift1"].reshape(x.shape)
+    shift2 = fields["shift2"].reshape(x.shape)
+    shift3 = fields["shift3"].reshape(x.shape)
+    if not np.any(np.isfinite(phi_f)):
         return None
 
     dx = float(ds.index.grids[0].dds[0].to_value())
     dr = max(dx, 1.0e-6)
-    phi_rp = np.asarray(
-        ds.sample("phi", pts + np.array([dr, 0.0, 0.0]))["boxlib", "phi"],
-        dtype=float,
-    ).reshape(x.shape)
-    phi_rm = np.asarray(
-        ds.sample("phi", pts - np.array([dr, 0.0, 0.0]))["boxlib", "phi"],
-        dtype=float,
-    ).reshape(x.shape)
+    phi_rp = sample_at(["phi"], pts + np.array([dr, 0.0, 0.0]))["phi"].reshape(x.shape)
+    phi_rm = sample_at(["phi"], pts - np.array([dr, 0.0, 0.0]))["phi"].reshape(x.shape)
     dphi_dr = (phi_rp - phi_rm) / (2.0 * dr)
 
     nx = (x - center[0]) / np.maximum(r_shell, 1.0e-12)
@@ -86,13 +106,18 @@ def extract_scalar_boundary_flux(
     dtheta = theta[1] - theta[0] if n_theta > 1 else math.pi
     dphi = 2.0 * math.pi / n_phi
     weights = (r_shell ** 2) * np.sin(TH) * dtheta * dphi
-    net = float(np.sum(flux * weights))
+    net = float(np.nansum(flux * weights))
 
     psi4_amp = None
     try:
-        w_re = sample("Weyl4_Re")
-        w_im = sample("Weyl4_Im")
-        psi4_amp = float(np.sqrt(np.mean(w_re ** 2 + w_im ** 2)))
+        weyl = sample_at(["Weyl4_Re", "Weyl4_Im"], pts)
+        w_re = weyl["Weyl4_Re"]
+        w_im = weyl["Weyl4_Im"]
+        finite = np.isfinite(w_re) & np.isfinite(w_im)
+        if np.any(finite):
+            psi4_amp = float(
+                np.sqrt(np.mean(w_re[finite] ** 2 + w_im[finite] ** 2))
+            )
     except Exception:
         psi4_amp = None
 
