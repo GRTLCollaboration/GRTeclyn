@@ -1146,18 +1146,32 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
         "psi4_line": None,
         "areal_line": None,
         "shell_line": None,
+        "boundary_flux_line": None,
         "success": False,
         "deleted": False,
         "status_str": "",
         "dt_s": 0.0,
-        "error": None
+        "error": None,
     }
-    
+
     try:
         ds = yt.load(p)
         t = float(ds.current_time)
         result["t"] = t
         key = result["key"]
+
+        if args_dict.get("boundary_flux", True):
+            try:
+                from grteclyn_wrapper.metrics.boundary_audit import extract_scalar_boundary_flux
+
+                flux = extract_scalar_boundary_flux(p)
+                if flux is not None:
+                    net, psi4_amp = flux
+                    psi4_val = psi4_amp if psi4_amp is not None else 0.0
+                    result["boundary_flux_line"] = f"{t:.16e}  {net:.16e}  {psi4_val:.16e}"
+            except Exception as exc:
+                if args_dict.get("verbose", False):
+                    print(f"WARNING: boundary flux extraction failed for {key}: {exc}")
 
         if args_dict.get("psi4"):
             if ("boxlib", "Weyl4_Re") not in ds.field_list or ("boxlib", "Weyl4_Im") not in ds.field_list:
@@ -1395,6 +1409,7 @@ def main() -> None:
     out_path = out_dir / "psi4_mode_l2m0.dat"
     areal_out_path = out_dir / "areal_radius.dat"
     shell_out_path = out_dir / "shell_profiles.dat"
+    boundary_flux_out_path = out_dir / "boundary_flux.dat"
     header = "# time  " + "  ".join([f"Re(R={R:g})  Im(R={R:g})" for R in args.radii])
     areal_header = "# time  R_areal_min  r_at_R_areal_min"
     shell_header = _shell_stats_header(args.radii, args.shell_fields)
@@ -1494,6 +1509,12 @@ def main() -> None:
                                 _append_line(areal_out_path, header=areal_header, line=res["areal_line"])
                             if res["shell_line"]:
                                 _append_line(shell_out_path, header=shell_header, line=res["shell_line"])
+                            if res.get("boundary_flux_line"):
+                                _append_line(
+                                    boundary_flux_out_path,
+                                    header="time  net_outward_flux  psi4_boundary_amp",
+                                    line=res["boundary_flux_line"],
+                                )
                             
                             state[res["key"]] = True
                             _save_state(state_path, state)

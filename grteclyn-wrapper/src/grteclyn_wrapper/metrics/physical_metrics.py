@@ -42,6 +42,7 @@ class PhysicalMetrics:
     has_trapped_proxy: bool
     s_anec: float | None
     s_tidal: float | None
+    qei_spatial_proxy: float | None = None
     notes: tuple[str, ...] = ()
 
 
@@ -135,6 +136,15 @@ def compute_physical_metrics(
     s_anec = _bounded_reward(max(0.0, -anec_line), anec_scale)
     s_tidal = _bounded_reward(tidal_proxy, tidal_scale)
 
+    rho_minus = np.minimum(rho_req, 0.0)
+    if np.any(rho_minus < 0.0):
+        mask = rho_minus < 0.0
+        extent = float(np.max(r[mask]) - np.min(r[mask])) if mask.any() else 1.0
+        extent = max(extent, 1.0e-3)
+        qei_spatial = float(np.trapezoid(np.abs(rho_minus) * extent ** -4, r))
+    else:
+        qei_spatial = 0.0
+
     if anec_line < 0.0:
         notes.append("ANEC line integral negative (exotic matter along axis)")
     if has_trapped:
@@ -149,5 +159,6 @@ def compute_physical_metrics(
         has_trapped_proxy=has_trapped,
         s_anec=s_anec,
         s_tidal=s_tidal,
+        qei_spatial_proxy=qei_spatial,
         notes=tuple(notes),
     )

@@ -14,6 +14,8 @@ from .ftl_general import (
     compute_general_ftl_from_plotfile,
     find_latest_plotfile,
 )
+from .null_geodesic import GeodesicFtlReport, compute_geodesic_ftl_from_plotfile
+from .boundary_audit import BoundaryFluxMetrics, read_boundary_flux_metrics
 from .physical_metrics import PhysicalMetrics, compute_physical_metrics
 
 # yt is not thread-safe; the optimizer evaluates a generation across GPUs using
@@ -33,6 +35,10 @@ class CollapseMetrics:
     min_theta_plus: float | None
     scalar_phi_range: float | None
     scalar_pi_range: float | None
+    barycenter_x: float | None = None
+    barycenter_y: float | None = None
+    barycenter_z: float | None = None
+    rho_sum: float | None = None
 
 
 @dataclass(frozen=True)
@@ -143,6 +149,24 @@ class EffectiveEnergyConditionMetrics:
 
 
 @dataclass(frozen=True)
+class TransportMetrics:
+    """Co-moving transport objective from energy-density barycenter tracking."""
+
+    initial_barycenter_x: float | None
+    final_barycenter_x: float | None
+    translation: float | None
+    deformation: float | None
+    score: float | None
+
+
+@dataclass(frozen=True)
+class QeiMetrics:
+    spatial_proxy: float | None
+    trajectory_violation: float | None
+    s_qei: float | None
+
+
+@dataclass(frozen=True)
 class EpisodeMetrics:
     collapse: CollapseMetrics | None
     constraints: ConstraintMetrics | None
@@ -157,8 +181,12 @@ class EpisodeMetrics:
     general_ftl: GeneralFtlReport | None = None
     general_ftl_evolved: GeneralFtlReport | None = None
     general_ftl_solved: GeneralFtlReport | None = None
+    geodesic_ftl: GeodesicFtlReport | None = None
     mechanism_descriptor: float | None = None
     effective_ec: EffectiveEnergyConditionMetrics | None = None
+    boundary_flux: BoundaryFluxMetrics | None = None
+    qei: QeiMetrics | None = None
+    transport: TransportMetrics | None = None
 
 
 def _numeric_rows(path: Path, min_columns: int) -> list[list[float]]:
@@ -197,6 +225,10 @@ def read_collapse_metrics(path: Path) -> CollapseMetrics | None:
     phi_max = max((row[11] for row in rows if len(row) >= 14), default=None)
     pi_min = min((row[12] for row in rows if len(row) >= 14), default=None)
     pi_max = max((row[13] for row in rows if len(row) >= 14), default=None)
+    bary_x = rows[-1][14] if len(rows[-1]) >= 15 else None
+    bary_y = rows[-1][15] if len(rows[-1]) >= 16 else None
+    bary_z = rows[-1][16] if len(rows[-1]) >= 17 else None
+    rho_sum = rows[-1][17] if len(rows[-1]) >= 18 else None
 
     return CollapseMetrics(
         final_time=final_time,
@@ -207,6 +239,10 @@ def read_collapse_metrics(path: Path) -> CollapseMetrics | None:
         min_theta_plus=min_theta_plus,
         scalar_phi_range=(phi_max - phi_min) if phi_min is not None and phi_max is not None else None,
         scalar_pi_range=(pi_max - pi_min) if pi_min is not None and pi_max is not None else None,
+        barycenter_x=bary_x,
+        barycenter_y=bary_y,
+        barycenter_z=bary_z,
+        rho_sum=rho_sum,
     )
 
 
@@ -421,6 +457,44 @@ def _log_growth_rate(
     return slope
 
 
+def read_transport_metrics(collapse_path: Path) -> TransportMetrics | None:
+    rows = _numeric_rows(collapse_path, 15)
+    if len(rows) < 2:
+        return None
+    x0 = rows[0][14] if len(rows[0]) >= 15 else None
+    xf = rows[-1][14] if len(rows[-1]) >= 15 else None
+    if x0 is None or xf is None:
+        return None
+    translation = float(xf - x0)
+    xs = [row[14] for row in rows if len(row) >= 15]
+    deformation = float(np.std(xs)) if len(xs) >= 2 else 0.0
+    score = max(0.0, translation) / (1.0 + deformation)
+    return TransportMetrics(
+        initial_barycenter_x=x0,
+        final_barycenter_x=xf,
+        translation=translation,
+        deformation=deformation,
+        score=min(score, 1.0),
+    )
+
+
+def read_qei_metrics(
+    physical: PhysicalMetrics | None,
+    *,
+    trajectory_violation: float | None = None,
+) -> QeiMetrics | None:
+    spatial = getattr(physical, "qei_spatial_proxy", None) if physical else None
+    if spatial is None and trajectory_violation is None:
+        return None
+    violation = trajectory_violation if trajectory_violation is not None else spatial
+    s_qei = 1.0 / (1.0 + max(0.0, violation or 0.0)) if violation is not None else None
+    return QeiMetrics(
+        spatial_proxy=spatial,
+        trajectory_violation=trajectory_violation,
+        s_qei=s_qei,
+    )
+
+
 def read_growth_metrics(
     collapse_path: Path,
     constraint_path: Path,
@@ -542,6 +616,27 @@ def read_episode_metrics(
     except Exception:
         general_ftl_evolved = None
 
+    geodesic_ftl = None
+    try:
+        plotfile = find_latest_plotfile(episode_dir)
+        if plotfile is not None and general_ftl_evolved is not None:
+            if (
+                general_ftl_evolved.f_op > 1.0e-3
+                or general_ftl_evolved.max_local_speed > 1.0
+            ):
+                with _PLOTFILE_READ_LOCK:
+                    geodesic_ftl = compute_geodesic_ftl_from_plotfile(
+                        plotfile, n=65, half_width=ftl_L
+                    )
+    except Exception:
+        geodesic_ftl = None
+
+    boundary_flux = read_boundary_flux_metrics(
+        data_dir / "boundary_flux.dat"
+    )
+    if boundary_flux is None:
+        boundary_flux = read_boundary_flux_metrics(episode_dir / "boundary_flux.dat")
+
     # Effective energy conditions T^eff = G/8pi of the evolved geometry: reveals
     # geometry-sourced exotic energy (warp/portal) invisible to the matter
     # sector.  Needs >= 3 time-ordered plotfiles for d_t; best-effort.
@@ -607,6 +702,22 @@ def read_episode_metrics(
         except Exception:
             pass
 
+    trajectory_qei = None
+    try:
+        from .null_geodesic import compute_trajectory_qei_from_plotfile
+
+        plotfile = find_latest_plotfile(episode_dir)
+        if plotfile is not None:
+            with _PLOTFILE_READ_LOCK:
+                trajectory_qei = compute_trajectory_qei_from_plotfile(
+                    plotfile, n=49, half_width=ftl_L
+                )
+    except Exception:
+        trajectory_qei = None
+
+    qei = read_qei_metrics(physical, trajectory_violation=trajectory_qei)
+    transport = read_transport_metrics(collapse_path)
+
     if collapse is None and constraints is None:
         reason = "missing_diagnostics"
     else:
@@ -628,6 +739,10 @@ def read_episode_metrics(
         general_ftl_solved=general_ftl_solved,
         mechanism_descriptor=mechanism_descriptor,
         effective_ec=effective_ec,
+        geodesic_ftl=geodesic_ftl,
+        boundary_flux=boundary_flux,
+        qei=qei,
+        transport=transport,
     )
 
 

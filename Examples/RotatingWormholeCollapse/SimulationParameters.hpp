@@ -80,8 +80,10 @@ class SimulationParameters : public SimulationParametersBase
         check_parameter("wormhole_matter_model", wormhole_matter_model,
                         wormhole_matter_model == "exotic_scalar" ||
                             wormhole_matter_model == "no_matter" ||
-                            wormhole_matter_model == "effective_teo",
-                        "must be exotic_scalar, no_matter, or effective_teo");
+                            wormhole_matter_model == "effective_teo" ||
+                            wormhole_matter_model == "dust" ||
+                            wormhole_matter_model == "oscillon_scalar",
+                        "must be exotic_scalar, no_matter, effective_teo, dust, or oscillon_scalar");
     }
 
     bool calculate_constraint_norms{};

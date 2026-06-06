@@ -15,6 +15,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+symbolic = [
+    "pysr>=0.18",
+]
 plots = [
     "matplotlib>=3.8",
 ]

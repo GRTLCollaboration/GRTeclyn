@@ -22,6 +22,7 @@ from grteclyn_wrapper.metrics.episode_metrics import (
     EpisodeMetrics,
 )
 from grteclyn_wrapper.metrics.ftl_general import GeneralFtlReport
+from grteclyn_wrapper.metrics.null_geodesic import GeodesicFtlReport
 from grteclyn_wrapper.metrics.score import score_episode
 from grteclyn_wrapper.search.optimize import (
     _force_exotic_template,
@@ -551,7 +552,78 @@ def test_strong_evolved_shortcut_gets_operational_ftl_reward() -> None:
 
     assert score.components["operational_ftl"] > 0.0
     assert score.components["stationary_artifact_penalty"] == 0.0
-    assert score.total > 500.0
+    # Coordinate FTL alone (no gauge-invariant geodesic confirmation) is
+    # deliberately demoted: the dominant FTL budget now sits on
+    # operational_ftl_geodesic, which is unset here.  A strong coordinate
+    # shortcut still earns a large positive score, just below the old
+    # coordinate-only weighting.
+    assert score.total > 400.0
+
+
+def _geodesic_report(f_geo: float) -> GeodesicFtlReport:
+    return GeodesicFtlReport(
+        f_geo=f_geo,
+        t_min=15.0 if f_geo > 0 else 15.75,
+        t_flat=15.75,
+        n_rays=5,
+        n_reached=5,
+        max_h_drift=1.0e-8,
+        h_quality_ok=True,
+    )
+
+
+def test_geodesic_confirmation_dominates_coordinate_shortcut() -> None:
+    base = _metrics_with_general_ftl(
+        t_min=14.8,
+        t_flat=15.75,
+        max_local_speed=1.25,
+        superluminal_fraction=0.2,
+        max_shift=0.12,
+        f_op=0.060,
+    )
+    coord_only = score_episode(base, objective_mode="ftl_first")
+
+    confirmed = EpisodeMetrics(
+        collapse=base.collapse,
+        constraints=base.constraints,
+        stability=base.stability,
+        comoving=base.comoving,
+        ftl=base.ftl,
+        termination_reason=base.termination_reason,
+        curvature=base.curvature,
+        general_ftl_evolved=base.general_ftl_evolved,
+        geodesic_ftl=_geodesic_report(0.05),
+    )
+    geodesic_score = score_episode(confirmed, objective_mode="ftl_first")
+
+    assert geodesic_score.components["operational_ftl_geodesic"] > 0.0
+    assert geodesic_score.total > coord_only.total + 500.0
+
+
+def test_geodesic_zero_flags_gauge_artifact() -> None:
+    artifact = EpisodeMetrics(
+        collapse=None,
+        constraints=None,
+        stability=None,
+        comoving=None,
+        ftl=None,
+        termination_reason="test",
+        general_ftl_evolved=GeneralFtlReport(
+            f_op=0.060,
+            t_min=14.8,
+            t_flat=15.75,
+            max_local_speed=1.25,
+            superluminal_fraction=0.2,
+            path_offaxis=False,
+            reachable=True,
+            notes=(),
+            max_shift=0.12,
+        ),
+        geodesic_ftl=_geodesic_report(0.0),
+    )
+    score = score_episode(artifact, objective_mode="weighted")
+    assert score.components["operational_ftl_geodesic"] == 0.0
+    assert any("gauge artifact" in note for note in score.notes)
 
 
 def test_bad_grtresna_convergence_is_rejected_before_evolution() -> None:

@@ -92,6 +92,7 @@ class TierConfig:
     constructed_floor: float = 0.05   # min constraint-quality reward to count as built
     nontrivial_floor: float = 1.0e-3  # min FTL/non-flat signal
     operational_floor: float = 1.0e-3 # min evolved operational FTL benefit
+    geodesic_floor: float = 1.0e-3    # min gauge-invariant f_geo at T2
     constraint_floor: float = 0.20    # min constraint-health reward at T2
     max_trapped: float = -0.5         # horizon_penalty must be >= this (no trapped crossing)
     survival_floor: float = 0.99      # full-run survival
@@ -100,6 +101,7 @@ class TierConfig:
     persistence_floor: float = 1.0e-4 # evolved channel must persist
     ec_floor: float = 1.0e-3          # min observer energy-condition margin
     exotic_cap: float = 6.0           # |exotic_penalty| ceiling at T4
+    qei_cap: float = 1.0              # |qei_penalty| ceiling at T4
 
 
 DEFAULT_TIER_CONFIG = TierConfig()
@@ -212,7 +214,30 @@ def evaluate_tiers(
         elif constr < config.constraint_floor:
             add(Tier.OPERATIONAL, FAIL, f"constraint_health={constr:.3g} < {config.constraint_floor}")
         else:
-            add(Tier.OPERATIONAL, PASS, f"evolved F_op={op:.3g}, horizon={horizon:.3g}")
+            geo = _f(components, "operational_ftl_geodesic")
+            if "operational_ftl_geodesic" not in components:
+                add(
+                    Tier.OPERATIONAL,
+                    PASS,
+                    f"evolved F_op={op:.3g}, geodesic unchecked, horizon={horizon:.3g}",
+                )
+            elif op < config.operational_floor:
+                add(Tier.OPERATIONAL, FAIL, f"evolved F_op={op:.3g} < {config.operational_floor}")
+            elif geo < config.geodesic_floor and op >= config.operational_floor:
+                add(
+                    Tier.OPERATIONAL,
+                    FAIL,
+                    f"coordinate FTL without gauge-invariant shortcut "
+                    f"(F_op={op:.3g}, f_geo={geo:.3g})",
+                )
+            elif geo < config.geodesic_floor:
+                add(Tier.OPERATIONAL, FAIL, f"f_geo={geo:.3g} < {config.geodesic_floor}")
+            else:
+                add(
+                    Tier.OPERATIONAL,
+                    PASS,
+                    f"evolved F_op={op:.3g}, f_geo={geo:.3g}, horizon={horizon:.3g}",
+                )
 
     # --- T3 PERSISTENT --------------------------------------------------
     surv = _f(components, "survival")
@@ -236,12 +261,19 @@ def evaluate_tiers(
     else:
         ec = _f(components, "energy_condition")
         exotic = _f(components, "exotic_penalty")  # <= 0
+        qei = _f(components, "qei_penalty")  # <= 0
         if ec < config.ec_floor:
             add(Tier.OBSERVER_EC, FAIL, f"energy_condition={ec:.3g} < {config.ec_floor}")
         elif exotic < -config.exotic_cap:
             add(Tier.OBSERVER_EC, FAIL, f"exotic cost too large (penalty={exotic:.3g})")
+        elif qei < -config.qei_cap:
+            add(Tier.OBSERVER_EC, FAIL, f"QEI violation too large (penalty={qei:.3g})")
         else:
-            add(Tier.OBSERVER_EC, PASS, f"energy_condition={ec:.3g}, exotic_penalty={exotic:.3g}")
+            add(
+                Tier.OBSERVER_EC,
+                PASS,
+                f"energy_condition={ec:.3g}, exotic_penalty={exotic:.3g}, qei_penalty={qei:.3g}",
+            )
 
     # --- T5 CONVERGED (external) ---------------------------------------
     rc = extra.get("resolution_converged")

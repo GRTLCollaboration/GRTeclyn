@@ -14,6 +14,8 @@
 #include "ExoticScalarField.hpp"
 #include "NoMatter.hpp"
 #include "PhantomDecayPotential.hpp"
+#include "OscillonPotential.hpp"
+#include "DustMatter.hpp"
 
 #include <AMReX_Reduce.H>
 #include <AMReX_Utility.H>
@@ -40,6 +42,18 @@ void SupportedWormholeLevel::variableSetUp()
     {
         ConstraintsWithMatter<EffectiveTeoMatter>::set_up(state_index);
         Weyl4WithMatter<EffectiveTeoMatter>::set_up(state_index);
+    }
+    else if (matter_model == "dust")
+    {
+        ConstraintsWithMatter<DustMatter>::set_up(state_index);
+        Weyl4WithMatter<DustMatter>::set_up(state_index);
+    }
+    else if (matter_model == "oscillon_scalar")
+    {
+        ConstraintsWithMatter<ExoticScalarField<OscillonPotential>>::set_up(
+            state_index);
+        Weyl4WithMatter<ExoticScalarField<OscillonPotential>>::set_up(
+            state_index);
     }
     else
     {
@@ -155,6 +169,34 @@ void SupportedWormholeLevel::specificEvalRHS(amrex::MultiFab &a_soln,
         CCZ4RHSWithMatter<EffectiveTeoMatter, MovingPunctureGaugeWithMatter,
                           FourthOrderDerivatives>
             ccz4rhs(teo_matter, simParams().ccz4_params, Geom().CellSize(0),
+                    simParams().sigma, simParams().formulation, 1.0,
+                    simParams().wormhole_params.grid_center, a_time);
+
+        amrex::ParallelFor(
+            a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+            { ccz4rhs(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]); });
+    }
+    else if (simParams().wormhole_matter_model == "dust")
+    {
+        DustMatter dust_matter;
+        CCZ4RHSWithMatter<DustMatter, MovingPunctureGaugeWithMatter,
+                          FourthOrderDerivatives>
+            ccz4rhs(dust_matter, simParams().ccz4_params, Geom().CellSize(0),
+                    simParams().sigma, simParams().formulation, 1.0,
+                    simParams().wormhole_params.grid_center, a_time);
+
+        amrex::ParallelFor(
+            a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+            { ccz4rhs(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]); });
+    }
+    else if (simParams().wormhole_matter_model == "oscillon_scalar")
+    {
+        OscillonPotential potential;
+        ExoticScalarField<OscillonPotential> oscillon_scalar(
+            potential, simParams().wormhole_params.support_strength);
+        CCZ4RHSWithMatter<ExoticScalarField<OscillonPotential>,
+                          MovingPunctureGaugeWithMatter, FourthOrderDerivatives>
+            ccz4rhs(oscillon_scalar, simParams().ccz4_params, Geom().CellSize(0),
                     simParams().sigma, simParams().formulation, 1.0,
                     simParams().wormhole_params.grid_center, a_time);
 
@@ -628,6 +670,52 @@ void SupportedWormholeLevel::specificPostTimeStep()
         const amrex::Real r_at_min_theta_plus =
             (count_r_theta > 0.0) ? (sum_r_theta / count_r_theta) : 0.0;
 
+        amrex::ReduceOps<amrex::ReduceOpSum, amrex::ReduceOpSum,
+                         amrex::ReduceOpSum, amrex::ReduceOpSum>
+            reduce_ops_bary;
+        amrex::ReduceData<amrex::Real, amrex::Real, amrex::Real, amrex::Real>
+            reduce_data_bary(reduce_ops_bary);
+        using ReduceTupleBary = typename decltype(reduce_data_bary)::Type;
+
+        for (amrex::MFIter mfi(state_fine, amrex::TilingIfNotGPU());
+             mfi.isValid(); ++mfi)
+        {
+            const amrex::Box &bx = mfi.validbox();
+            const auto arr       = state_fine.const_array(mfi);
+            reduce_ops_bary.eval(
+                bx, reduce_data_bary,
+                [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTupleBary
+                {
+                    const amrex::Real x =
+                        prob_lo[0] + (amrex::Real(i) + 0.5) * dx_arr[0];
+                    const amrex::Real y =
+                        prob_lo[1] + (amrex::Real(j) + 0.5) * dx_arr[1];
+                    const amrex::Real z =
+                        prob_lo[2] + (amrex::Real(k) + 0.5) * dx_arr[2];
+                    const amrex::Real phi = arr(i, j, k, c_phi);
+                    const amrex::Real pi  = arr(i, j, k, c_Pi);
+                    const amrex::Real rho_scalar =
+                        pi * pi + amrex::Real(0.5) * phi * phi;
+                    const amrex::Real rho = amrex::max(
+                        rho_scalar,
+                        amrex::max(arr(i, j, k, c_teo_rho),
+                                   arr(i, j, k, c_dust_rho)));
+                    return {rho * x, rho * y, rho * z, rho};
+                });
+        }
+
+        auto [sum_rx, sum_ry, sum_rz, sum_rho] = reduce_data_bary.value();
+        amrex::ParallelDescriptor::ReduceRealSum(sum_rx);
+        amrex::ParallelDescriptor::ReduceRealSum(sum_ry);
+        amrex::ParallelDescriptor::ReduceRealSum(sum_rz);
+        amrex::ParallelDescriptor::ReduceRealSum(sum_rho);
+        const amrex::Real bary_x =
+            (sum_rho > 0.0) ? (sum_rx / sum_rho) : 0.0;
+        const amrex::Real bary_y =
+            (sum_rho > 0.0) ? (sum_ry / sum_rho) : 0.0;
+        const amrex::Real bary_z =
+            (sum_rho > 0.0) ? (sum_rz / sum_rho) : 0.0;
+
         GRParmParse pp;
         std::string output_path = "./";
         pp.load("output_path", output_path, std::string("./"));
@@ -655,7 +743,8 @@ void SupportedWormholeLevel::specificPostTimeStep()
                 {"min_lapse", "min_chi", "max_abs_K", "min_lapse_x",
                  "min_lapse_y", "min_lapse_z", "max_ah_r", "min_theta_plus",
                  "r_at_min_theta_plus",
-                 "min_phi", "max_phi", "min_Pi", "max_Pi"});
+                 "min_phi", "max_phi", "min_Pi", "max_Pi",
+                 "barycenter_x", "barycenter_y", "barycenter_z", "rho_sum"});
         }
         diag_file.write_time_data_line({static_cast<double>(min_lapse),
                                         static_cast<double>(min_chi),
@@ -669,6 +758,10 @@ void SupportedWormholeLevel::specificPostTimeStep()
                                         static_cast<double>(min_phi),
                                         static_cast<double>(max_phi),
                                         static_cast<double>(min_Pi),
-                                        static_cast<double>(max_Pi)});
+                                        static_cast<double>(max_Pi),
+                                        static_cast<double>(bary_x),
+                                        static_cast<double>(bary_y),
+                                        static_cast<double>(bary_z),
+                                        static_cast<double>(sum_rho)});
     }
 }

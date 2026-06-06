@@ -34,7 +34,8 @@ DEFAULT_WEIGHTS: dict[str, float] = {
     # primary goal and dominates the reward budget.  A t=0-only shortcut scores
     # nothing here.  Curvature activity rewards genuinely non-trivial geometry
     # (and keeps flat space out of the running).
-    "operational_ftl": 9.0,
+    "operational_ftl": 3.0,
+    "operational_ftl_geodesic": 12.0,
     # Continuous FTL *precursor* (shaping gradient).  operational_ftl is a hard
     # gate -- it stays exactly 0 until a connected superluminal channel beats
     # the flat baseline end-to-end -- so an "almost there" geometry (light cones
@@ -63,6 +64,9 @@ DEFAULT_WEIGHTS: dict[str, float] = {
     # evolved spacetime (effective NEC violation, T^eff = G/8pi).  The component
     # is negative; this weight sets how hard exoticity is penalized.
     "exotic_penalty": 8.0,
+    "qei_penalty": 4.0,
+    "boundary_penalty": 6.0,
+    "transport_objective": 2.0,
 }
 
 
@@ -280,6 +284,31 @@ def score_episode(
         )
     else:
         components["operational_ftl"] = 0.0
+
+    GEO_FTL_FLOOR = 1.0e-3
+    GEO_FTL_TARGET = 5.0e-2
+    f_geo = (
+        metrics.geodesic_ftl.f_geo
+        if metrics.geodesic_ftl is not None
+        else 0.0
+    )
+    if math.isfinite(f_geo) and f_geo > GEO_FTL_FLOOR:
+        components["operational_ftl_geodesic"] = min(
+            (f_geo - GEO_FTL_FLOOR) / (GEO_FTL_TARGET - GEO_FTL_FLOOR),
+            1.0,
+        )
+    else:
+        components["operational_ftl_geodesic"] = 0.0
+    if metrics.geodesic_ftl is not None:
+        if f_geo <= 0.0 and f_op_ev > OP_FTL_FLOOR:
+            notes.append(
+                "coordinate FTL channel is a gauge artifact "
+                f"(F_op^ev={f_op_ev:.3e}, f_geo={f_geo:.3e})"
+            )
+        elif f_geo > GEO_FTL_FLOOR:
+            notes.append(
+                f"gauge-invariant null-geodesic shortcut confirmed (f_geo={f_geo:.3e})"
+            )
     # Persistence diagnostic (not weighted): fraction of the t=0 arrival-time
     # advantage that survived to the final evolved slice.  ~1 => dynamically
     # sustained channel; ~0 => t=0 mirage.
@@ -497,6 +526,27 @@ def score_episode(
             f"(matter={matter_exotic:.2f}, geometric={geo_exotic:.2f} of full penalty)"
         )
 
+    qei_violation = 0.0
+    if metrics.qei is not None:
+        if metrics.qei.trajectory_violation is not None and metrics.qei.trajectory_violation > 0:
+            qei_violation = max(qei_violation, metrics.qei.trajectory_violation)
+        if metrics.qei.spatial_proxy is not None and metrics.qei.spatial_proxy > 0:
+            qei_violation = max(qei_violation, metrics.qei.spatial_proxy)
+    elif metrics.physical is not None and metrics.physical.qei_spatial_proxy is not None:
+        qei_violation = max(0.0, metrics.physical.qei_spatial_proxy)
+    components["qei_penalty"] = -min(math.log1p(qei_violation / 1.0e-2), 1.0) if qei_violation > 0 else 0.0
+
+    if metrics.boundary_flux is not None and metrics.boundary_flux.reflection_contaminated:
+        components["boundary_penalty"] = -1.0
+        notes.append("late-time inward scalar flux at boundary (reflection contamination)")
+    else:
+        components["boundary_penalty"] = 0.0
+
+    if metrics.transport is not None and metrics.transport.score is not None:
+        components["transport_objective"] = metrics.transport.score
+    else:
+        components["transport_objective"] = 0.0
+
     # Non-triviality gate: a trivial flat spacetime aces every "health" reward
     # (survival, stability, clean constraints, no exotic energy) while scoring
     # zero on all exoticity terms, which previously let it out-rank genuine warp
@@ -515,6 +565,7 @@ def score_episode(
         components.get("shift_drive", 0.0),
         components.get("channel_progress", 0.0),
         components.get("operational_ftl", 0.0),
+        components.get("operational_ftl_geodesic", 0.0),
         components.get("ftl_precursor", 0.0),
         components.get("operational_ftl_solved", 0.0),
         components.get("ftl_shortcut", 0.0),
@@ -531,7 +582,8 @@ def score_episode(
         # health terms only order candidates that are equally non-FTL/promising.
         health_gate = components.get("nontriviality_gate", 0.0)
         total = (
-            1000.0 * components.get("operational_ftl", 0.0)
+            1200.0 * components.get("operational_ftl_geodesic", 0.0)
+            + 300.0 * components.get("operational_ftl", 0.0)
             + 200.0 * components.get("channel_progress", 0.0)
             + 160.0 * components.get("ftl_precursor", 0.0)
             + 100.0 * components.get("shift_drive", 0.0)
