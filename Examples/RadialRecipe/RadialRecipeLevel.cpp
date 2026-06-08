@@ -1,6 +1,8 @@
 #include "ExternalGridInitialData.hpp"
 #include "RadialRecipeInitialData.hpp"
 #include "RadialRecipeLevel.hpp"
+#include "RadialRecipeMatterDispatch.hpp"
+#include "GRTresnaIndependentScalars.hpp"
 #include "CCZ4RHSWithMatter.hpp"
 #include "ChiTagger.hpp"
 #include "ConstraintsWithMatter.hpp"
@@ -290,25 +292,7 @@ void RadialRecipeLevel::variableSetUp()
     BL_PROFILE("RadialRecipeLevel::variableSetUp()");
     stateVariableSetUp();
 
-    bool exotic_matter = false;
-    {
-        GRParmParse pp;
-        pp.load("recipe_exotic_matter", exotic_matter, false);
-    }
-
-    if (exotic_matter)
-    {
-        ConstraintsWithMatter<ExoticScalarField<DefaultPotential>>::set_up(
-            state_index);
-        Weyl4WithMatter<ExoticScalarField<DefaultPotential>>::set_up(
-            state_index);
-    }
-    else
-    {
-        ConstraintsWithMatter<ScalarField<DefaultPotential>>::set_up(
-            state_index);
-        Weyl4WithMatter<ScalarField<DefaultPotential>>::set_up(state_index);
-    }
+    RadialRecipeMatter::setup_derived_quantities(state_index, simParams());
 
     // Geometry-only required energy density rho_req = Ham_vac / (16 pi), so the
     // exotic-matter requirement (rho_req < 0) can be plotted as a field, not
@@ -398,9 +382,7 @@ void RadialRecipeLevel::specificEvalRHS(amrex::MultiFab &a_soln,
         FillPatch(*this, a_soln, soln_ghosts, a_time, state_index, 0,
                   a_soln.nComp());
     }
-    const auto &soln_arrs   = a_soln.arrays();
-    const auto &soln_c_arrs = a_soln.const_arrays();
-    const auto &rhs_arrs    = a_rhs.arrays();
+    const auto &soln_arrs = a_soln.arrays();
     TraceARemoval trace_A_removal;
     PositiveChiAndLapse positive_chi_lapse(simParams().min_chi,
                                            simParams().min_lapse);
@@ -412,35 +394,9 @@ void RadialRecipeLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                            positive_chi_lapse(i, j, k, soln_arrs[box_no]);
                        });
 
-    if (simParams().recipe_exotic_matter)
-    {
-        // Phantom matter: T_munu = -support_strength * canonical, giving the
-        // negative energy density the wormhole/warp geometry was solved for.
-        ExoticScalarField<DefaultPotential> exotic_scalar(
-            DefaultPotential(), simParams().recipe_support_strength);
-        CCZ4RHSWithMatter<ExoticScalarField<DefaultPotential>,
-                          MovingPunctureGaugeWithMatter, FourthOrderDerivatives>
-            ccz4rhs(exotic_scalar, simParams().ccz4_params, Geom().CellSize(0),
-                    simParams().sigma, simParams().formulation, 1.0,
-                    simParams().recipe_params.grid_center, a_time);
-
-        amrex::ParallelFor(
-            a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
-            { ccz4rhs(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]); });
-    }
-    else
-    {
-        ScalarField<DefaultPotential> scalar_field;
-        CCZ4RHSWithMatter<ScalarField<DefaultPotential>,
-                          MovingPunctureGaugeWithMatter, FourthOrderDerivatives>
-            ccz4rhs(scalar_field, simParams().ccz4_params, Geom().CellSize(0),
-                    simParams().sigma, simParams().formulation, 1.0,
-                    simParams().recipe_params.grid_center, a_time);
-
-        amrex::ParallelFor(
-            a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
-            { ccz4rhs(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]); });
-    }
+    RadialRecipeMatter::eval_rhs(
+        a_soln, a_rhs, simParams(), Geom().CellSize(0),
+        simParams().recipe_params.grid_center, a_time);
 
     amrex::Gpu::streamSynchronize();
 }
@@ -506,7 +462,17 @@ void RadialRecipeLevel::specificPostTimeStep()
                             0);
         cst.setVal(0.0);
         const auto dx = Geom().CellSizeArray();
-        if (simParams().recipe_exotic_matter)
+        if (RadialRecipeMatter::uses_independent_scalars(simParams()))
+        {
+            GRTresnaIndependentScalars matter(
+                simParams().recipe_num_scalar_fields,
+                simParams().recipe_scalar_field_signs,
+                simParams().recipe_scalar_mass);
+            fill_matter_constraints(cst, state_new, matter, dx[0],
+                                    simParams().recipe_params.grid_center,
+                                    time);
+        }
+        else if (simParams().recipe_exotic_matter)
         {
             ExoticScalarField<DefaultPotential> exotic_scalar(
                 DefaultPotential(), simParams().recipe_support_strength);
@@ -965,7 +931,16 @@ void RadialRecipeLevel::specificPostTimeStep()
             // reflect the negative-energy phantom sector (rho <= 0) rather
             // than a canonical field that is never evolved.
             std::array<amrex::Real, 5> ec_res;
-            if (simParams().recipe_exotic_matter)
+            if (RadialRecipeMatter::uses_independent_scalars(simParams()))
+            {
+                GRTresnaIndependentScalars matter(
+                    simParams().recipe_num_scalar_fields,
+                    simParams().recipe_scalar_field_signs,
+                    simParams().recipe_scalar_mass);
+                ec_res = reduce_ec_margins(state_fine, matter, ec_dx,
+                                           ec_cell_vol);
+            }
+            else if (simParams().recipe_exotic_matter)
             {
                 ExoticScalarField<DefaultPotential> exotic_scalar(
                     DefaultPotential(), simParams().recipe_support_strength);

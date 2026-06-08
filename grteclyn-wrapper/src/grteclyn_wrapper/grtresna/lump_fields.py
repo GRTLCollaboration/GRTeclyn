@@ -1,0 +1,135 @@
+"""Analytic GRTresna scalar-lump profiles (shared by motif fit and gridinit export).
+
+Mirrors ``MatterParams.hpp`` in GRTresna so painted per-lump ``phi``/``Pi``
+fields match the independent-field stress tensor used in the constraint solve.
+"""
+
+from __future__ import annotations
+
+import math
+from typing import Any, Mapping, Sequence
+
+import numpy as np
+from numpy.typing import NDArray
+
+EXOTIC_AMP_SCALE = 0.25
+MAX_INDEPENDENT_LUMPS = 5
+
+
+def effective_amp(lump: Mapping[str, Any]) -> float:
+    amp = float(lump.get("amp", 0.0))
+    if amp == 0.0:
+        return 0.0
+    return EXOTIC_AMP_SCALE * amp if int(lump.get("exotic", 0)) else amp
+
+
+def angular_factor(mode: int, dx: float, dy: float, width: float) -> float:
+    if mode == 1:
+        return dx / width
+    if mode == 2:
+        return (dx * dx - dy * dy) / (width * width)
+    return 1.0
+
+
+def lump_phi_at(
+    lump: Mapping[str, Any],
+    point: Sequence[float],
+) -> float:
+    amp = float(lump.get("amp", 0.0))
+    if amp == 0.0:
+        return 0.0
+    width = float(lump.get("width", 5.0))
+    center = np.asarray(lump.get("center", (0.0, 0.0, 0.0)), dtype=float)
+    loc = np.asarray(point, dtype=float)
+    dx = loc - center
+    r2 = float(np.dot(dx, dx))
+    env = math.exp(-r2 / (2.0 * width * width))
+    mode = int(lump.get("mode", 0))
+    return effective_amp(lump) * angular_factor(mode, dx[0], dx[1], width) * env
+
+
+def lump_grad_at(
+    lump: Mapping[str, Any],
+    point: Sequence[float],
+) -> np.ndarray:
+    amp = float(lump.get("amp", 0.0))
+    width = float(lump.get("width", 5.0))
+    if amp == 0.0:
+        return np.zeros(3, dtype=float)
+    center = np.asarray(lump.get("center", (0.0, 0.0, 0.0)), dtype=float)
+    loc = np.asarray(point, dtype=float)
+    eps = 1.0e-3 * width
+    grad = np.zeros(3, dtype=float)
+    for axis in range(3):
+        lp = loc.copy()
+        lm = loc.copy()
+        lp[axis] += eps
+        lm[axis] -= eps
+        grad[axis] = (lump_phi_at(lump, lp) - lump_phi_at(lump, lm)) / (2.0 * eps)
+    return grad
+
+
+def lump_pi_at(
+    lump: Mapping[str, Any],
+    point: Sequence[float],
+) -> float:
+    amp = float(lump.get("amp", 0.0))
+    velocity = tuple(float(v) for v in lump.get("velocity", (0.0, 0.0, 0.0)))
+    omega = float(lump.get("omega", 0.0))
+    if amp == 0.0:
+        return 0.0
+    if not any(abs(v) > 0.0 for v in velocity) and abs(omega) < 1.0e-12:
+        return 0.0
+
+    center = np.asarray(lump.get("center", (0.0, 0.0, 0.0)), dtype=float)
+    loc = np.asarray(point, dtype=float)
+    grad = lump_grad_at(lump, point)
+    boost = -float(np.dot(velocity, grad))
+    dx = loc - center
+    rot = -omega * (dx[0] * grad[1] - dx[1] * grad[0])
+    return boost + rot
+
+
+def lump_sign(lump: Mapping[str, Any]) -> int:
+    return -1 if int(lump.get("exotic", 0)) else 1
+
+
+def paint_lump_fields_on_grid(
+    data: NDArray,
+    comp_names: list[str],
+    dx_xyz: NDArray,
+    origin: NDArray,
+    lumps: Sequence[Mapping[str, Any]],
+    *,
+    max_lumps: int = MAX_INDEPENDENT_LUMPS,
+) -> tuple[NDArray, list[str]]:
+    """Append per-lump ``phi_lumpK`` / ``Pi_lumpK`` channels to a uniform grid."""
+    if not lumps:
+        return data, comp_names
+
+    nz, ny, nx, _ = data.shape
+    selected = list(lumps[:max_lumps])
+    new_names = list(comp_names)
+    lump_arrays: list[tuple[NDArray, NDArray]] = []
+
+    for idx, lump in enumerate(selected):
+        phi_plane = np.zeros((nz, ny, nx), dtype=np.float64)
+        pi_plane = np.zeros((nz, ny, nx), dtype=np.float64)
+        for k in range(nz):
+            pz = float(origin[2]) + (k + 0.5) * float(dx_xyz[2])
+            for j in range(ny):
+                py = float(origin[1]) + (j + 0.5) * float(dx_xyz[1])
+                for i in range(nx):
+                    px = float(origin[0]) + (i + 0.5) * float(dx_xyz[0])
+                    point = (px, py, pz)
+                    phi_plane[k, j, i] = lump_phi_at(lump, point)
+                    pi_plane[k, j, i] = lump_pi_at(lump, point)
+        lump_arrays.append((phi_plane, pi_plane))
+        new_names.extend([f"phi_lump{idx}", f"Pi_lump{idx}"])
+
+    extra = np.zeros((nz, ny, nx, len(lump_arrays) * 2), dtype=np.float64)
+    for idx, (phi_plane, pi_plane) in enumerate(lump_arrays):
+        extra[:, :, :, 2 * idx] = phi_plane
+        extra[:, :, :, 2 * idx + 1] = pi_plane
+
+    return np.concatenate([data, extra], axis=3), new_names

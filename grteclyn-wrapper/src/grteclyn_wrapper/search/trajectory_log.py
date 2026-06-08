@@ -29,6 +29,9 @@ def trajectory_flags_from_evaluation(res: Evaluation) -> dict[str, Any]:
     if "solved_ftl_rejection" in components:
         flags["solved_ftl_rejected"] = True
         return flags
+    if "postload_rejection" in components:
+        flags["postload_rejected"] = True
+        return flags
     if "grtresna_rejection" in components:
         reason = res.reason or ""
         if _looks_like_exception_reason(reason):
@@ -53,6 +56,8 @@ def infer_trajectory_status(record: Mapping[str, Any]) -> str:
         return "grtresna_rejected"
     if record.get("solved_ftl_rejected"):
         return "solved_ftl_rejected"
+    if record.get("postload_rejected"):
+        return "postload_rejected"
     exit_code = record.get("exit_code")
     if exit_code is not None:
         return "gpu_ok" if exit_code == 0 else "gpu_failed"
@@ -61,6 +66,8 @@ def infer_trajectory_status(record: Mapping[str, Any]) -> str:
     components = record.get("components") or {}
     if "solved_ftl_rejection" in components:
         return "solved_ftl_rejected"
+    if "postload_rejection" in components:
+        return "postload_rejected"
     if "grtresna_rejection" in components:
         reason = str(record.get("reason") or "")
         if _looks_like_exception_reason(reason):

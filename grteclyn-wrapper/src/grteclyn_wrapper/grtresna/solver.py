@@ -26,6 +26,7 @@ from typing import Any, Mapping
 
 from ..core.config import REPO_ROOT
 from .io import convert_chombo_to_gridinit
+from .matter_wiring import write_matter_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -147,6 +148,40 @@ class GRTresnaConfig:
     cleanup: bool = True
     # Remove the entire work_dir after producing the gridinit
     cleanup_workdir: bool = False
+
+
+def apply_exotic_safe_solver(cfg: GRTresnaConfig) -> GRTresnaConfig:
+    """Switch ``cfg`` to the K=0 maximal-slicing York/Lichnerowicz path in place.
+
+    The default CTTKHybrid ansatz K = sign*sqrt(24 pi G rho + ...) is imaginary
+    wherever rho < 0, so any configuration containing an EXOTIC (negative-energy)
+    lump produces NaN residuals unless it is solved on the maximal-slicing path
+    (matter sourced elliptically, with Newton under-relaxation and a psi-floor
+    for the indefinite operator). Purely canonical configs must NOT use this --
+    the standard ansatz is markedly more robust for positive multi-lump matter.
+
+    Only fills values the caller left at their canonical defaults, so explicit
+    overrides win. This is the single source of truth shared by the search
+    driver (``build_grtresna_config``) and standalone solves/smokes.
+    """
+    if not cfg.maximal_slicing:
+        cfg.maximal_slicing = True
+    if cfg.psi_relaxation == 1.0:
+        cfg.psi_relaxation = 0.6
+    if cfg.psi_floor <= 0.0:
+        cfg.psi_floor = 0.1
+    if cfg.maximal_jacobian_cap <= 0.0:
+        cfg.maximal_jacobian_cap = 25.0
+    if cfg.coefficient_average_type == "harmonic":
+        cfg.coefficient_average_type = "arithmetic"
+    return cfg
+
+
+def config_has_exotic_lump(cfg: GRTresnaConfig) -> bool:
+    """True when any configured lump is flagged exotic (negative energy)."""
+    if cfg.lumps:
+        return any(int(lump.get("exotic", 0)) for lump in cfg.lumps)
+    return bool(cfg.lump_exotic)
 
 
 def _fmt(v: Any) -> str:
@@ -513,7 +548,11 @@ def solve(
         L=cfg.L,
         target_center=cfg.target_center,
         delete_source=cfg.cleanup,
+        lumps=cfg.lumps or None,
     )
+
+    if cfg.lumps:
+        write_matter_metadata(gridinit_path.with_suffix(".matter.json"), cfg)
 
     if cfg.cleanup:
         _cleanup_workdir(work_dir, keep_gridinit=gridinit_path)

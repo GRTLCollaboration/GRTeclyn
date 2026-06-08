@@ -3,9 +3,11 @@
 
 #include "ExternalGridInitialData.hpp"
 #include "GRParmParse.hpp"
+#include "GRTresnaScalarLayout.hpp"
 #include "RadialRecipeInitialData.hpp"
 #include "SimulationParametersBase.hpp"
 
+#include <array>
 #include <sstream>
 #include <string>
 
@@ -35,6 +37,11 @@ class SimulationParameters : public SimulationParametersBase
         // matches the matter the geometry was reconstructed for.
         pp.load("recipe_exotic_matter", recipe_exotic_matter, false);
         pp.load("recipe_support_strength", recipe_support_strength, 1.0);
+
+        pp.load("recipe_matter_model", recipe_matter_model, std::string(""));
+        pp.load("recipe_num_scalar_fields", recipe_num_scalar_fields, 0);
+        pp.load("recipe_scalar_mass", recipe_scalar_mass, 0.0);
+        load_scalar_field_signs(pp);
 
         pp.load("recipe_initial_data_file", recipe_initial_data_file,
                 std::string(""));
@@ -146,12 +153,40 @@ class SimulationParameters : public SimulationParametersBase
     bool recipe_exotic_matter{};
     double recipe_support_strength{1.0};
 
+    std::string recipe_matter_model;
+    int recipe_num_scalar_fields{};
+    std::array<int, GRTRESNA_MAX_INDEPENDENT_SCALARS> recipe_scalar_field_signs{};
+    double recipe_scalar_mass{};
+
     std::string recipe_initial_data_file;
     ExternalGridInitialData::params_t external_grid_params{};
 
     RadialRecipeInitialData::params_t recipe_params{};
 
   private:
+    void load_scalar_field_signs(GRParmParse &pp)
+    {
+        std::string signs_line;
+        pp.load("recipe_scalar_field_signs", signs_line, std::string(""));
+        if (!signs_line.empty())
+        {
+            std::istringstream iss(signs_line);
+            int sign = 0;
+            int idx  = 0;
+            while (iss >> sign && idx < GRTRESNA_MAX_INDEPENDENT_SCALARS)
+            {
+                recipe_scalar_field_signs[idx++] = sign;
+            }
+            return;
+        }
+        for (int k = 0; k < GRTRESNA_MAX_INDEPENDENT_SCALARS; ++k)
+        {
+            std::ostringstream key;
+            key << "recipe_scalar_field_sign_" << k;
+            pp.load(key.str().c_str(), recipe_scalar_field_signs[k], 1);
+        }
+    }
+
     void load_coeff_array(GRParmParse &pp, const char *prefix,
                           std::array<double, RadialRecipeInitialData::MAX_BASES>
                               &coeffs)

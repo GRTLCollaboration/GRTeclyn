@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-import shutil
 import sys
 from pathlib import Path
 from typing import Literal, Sequence
@@ -52,8 +51,6 @@ def _read_vector_param(params_path: Path, key: str, default: Sequence[float]) ->
 
 def resolve_consume_python() -> list[str]:
     """Return argv prefix for Python with visualization deps (yt)."""
-    if shutil.which("uv") is not None and (WRAPPER_ROOT / "pyproject.toml").exists():
-        return ["uv", "run", "python"]
     return [sys.executable]
 
 

@@ -128,7 +128,7 @@ def run_postload_gate(
             notes=("dry_run: GRTeclyn not launched",),
         )
 
-    executable = resolve_executable(example)
+    executable = resolve_executable(example=example)
     result = run_episode(
         episode,
         executable,

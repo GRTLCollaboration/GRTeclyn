@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import random
 from pathlib import Path
 from typing import Any, Mapping
@@ -18,8 +19,24 @@ from .metrics.episode_metrics import dataclass_to_dict, read_episode_metrics
 from .metrics.score import score_episode
 from .search.atlas import run_atlas
 from .search.optimize import run_optimize
+from .projection.postload_gate import PostLoadGateConfig
 from .search.grtresna_convergence_gate import GRTresnaConvergenceConfig
 from .search.solved_ftl_gate import SolvedFtlGateConfig
+
+
+def _grtresna_postload_gate_enabled(args: argparse.Namespace, *, use_grtresna: bool) -> bool:
+    if not use_grtresna:
+        return False
+    if getattr(args, "grtresna_postload_gate", False):
+        return True
+    return os.environ.get("POSTLOAD_GATE", "0") == "1"
+
+
+def _postload_gate_config_from_args(args: argparse.Namespace) -> PostLoadGateConfig:
+    return PostLoadGateConfig(
+        max_hamiltonian_l2=getattr(args, "postload_max_ham_l2", 1.0e-2),
+        max_momentum_l2=getattr(args, "postload_max_mom_l2", 1.0e-2),
+    )
 
 
 SWEEP_RANGES = {
@@ -352,6 +369,10 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
         grtresna_config=grtresna_config,
         solved_ftl_gate_config=solved_ftl_gate_config,
         grtresna_convergence_config=grtresna_convergence_config,
+        grtresna_postload_gate=_grtresna_postload_gate_enabled(args, use_grtresna=use_grtresna),
+        postload_gate_config=(
+            _postload_gate_config_from_args(args) if use_grtresna else None
+        ),
         warm_start_trajectories=[
             Path(p).expanduser().resolve()
             for p in getattr(args, "warm_start_trajectory", [])
@@ -390,12 +411,14 @@ def _run_qd_command(args: argparse.Namespace, base_overrides: dict[str, Any]) ->
         )
     template = Path(args.template).expanduser().resolve() if args.template else None
 
-    from .search.optimize import build_search_space
+    from .search.optimize import ANGULAR_BASE_OVERRIDES, build_search_space
+    nonspherical = getattr(args, "nonspherical", False)
     use_grtresna = getattr(args, "grtresna", False)
     grtresna_lumps = getattr(args, "grtresna_lumps", 5)
     grtresna_ansatz = getattr(args, "grtresna_ansatz", "free")
     grtresna_shell_profile = getattr(args, "grtresna_shell_profile", "compact")
     search_space = build_search_space(
+        nonspherical=nonspherical,
         grtresna=use_grtresna,
         grtresna_lumps=grtresna_lumps,
         grtresna_ansatz=grtresna_ansatz,
@@ -405,6 +428,8 @@ def _run_qd_command(args: argparse.Namespace, base_overrides: dict[str, Any]) ->
         base_overrides = {**base_overrides, "grtresna_ring_lumps": grtresna_lumps}
     if use_grtresna and grtresna_ansatz == "shell":
         base_overrides = {**base_overrides, "grtresna_shell_lumps": grtresna_lumps}
+    if nonspherical and not use_grtresna:
+        base_overrides = {**ANGULAR_BASE_OVERRIDES, **base_overrides}
 
     grtresna_config = None
     solved_ftl_gate_config = None
@@ -492,6 +517,10 @@ def _run_qd_command(args: argparse.Namespace, base_overrides: dict[str, Any]) ->
         grtresna_solved_ftl_gate=use_grtresna,
         solved_ftl_gate_config=solved_ftl_gate_config,
         grtresna_convergence_config=grtresna_convergence_config,
+        grtresna_postload_gate=_grtresna_postload_gate_enabled(args, use_grtresna=use_grtresna),
+        postload_gate_config=(
+            _postload_gate_config_from_args(args) if use_grtresna else None
+        ),
     )
     best = archive.best
     print(json.dumps({
@@ -879,6 +908,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--solved-ftl-rejection-speed-target", type=float, default=1.01,
         help="max_c target used to grade solved-FTL rejection fitness.",
     )
+    opt.add_argument(
+        "--grtresna-postload-gate",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Run a short GRTeclyn post-load Ham/Mom check before full evolution.",
+    )
+    opt.add_argument("--postload-max-ham-l2", type=float, default=1.0e-2)
+    opt.add_argument("--postload-max-mom-l2", type=float, default=1.0e-2)
 
     qd = subparsers.add_parser("qd", help="MAP-Elites quality-diversity search (Spacetime Failure Atlas).")
     qd.add_argument("--iterations", type=int, default=10, help="Number of MAP-Elites batches after the initial fill.")
@@ -887,6 +924,11 @@ def build_parser() -> argparse.ArgumentParser:
     qd.add_argument("--init-random", type=int, default=None, help="Random candidates in the initial fill (default: batch size).")
     qd.add_argument("--seed", type=int, default=None, help="Random seed.")
     qd.add_argument("--gpu-ids", nargs="+", type=int, default=None, help="GPU indices for parallel eval.")
+    qd.add_argument(
+        "--nonspherical",
+        action="store_true",
+        help="Use the geometry-first nonspherical lapse/shift angular search space.",
+    )
     qd.add_argument(
         "--descriptor-mode",
         choices=["legacy", "channel"],
@@ -956,6 +998,14 @@ def build_parser() -> argparse.ArgumentParser:
     qd.add_argument("--solved-ftl-max-physical-coord-speed", type=float, default=8.0)
     qd.add_argument("--solved-ftl-max-physical-f-op", type=float, default=0.85)
     qd.add_argument("--solved-ftl-rejection-speed-target", type=float, default=1.01)
+    qd.add_argument(
+        "--grtresna-postload-gate",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Run a short GRTeclyn post-load Ham/Mom check before full evolution.",
+    )
+    qd.add_argument("--postload-max-ham-l2", type=float, default=1.0e-2)
+    qd.add_argument("--postload-max-mom-l2", type=float, default=1.0e-2)
 
     pareto = subparsers.add_parser("pareto", help="Extract the multi-objective Pareto front from a trajectory.jsonl.")
     pareto.add_argument("--trajectory", required=True, help="Path to an optimizer trajectory.jsonl.")

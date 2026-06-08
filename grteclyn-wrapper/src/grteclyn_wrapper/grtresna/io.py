@@ -29,6 +29,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, Mapping, Sequence
 
 import numpy as np
 from numpy.typing import NDArray
@@ -301,6 +302,7 @@ def convert_chombo_to_gridinit(
     L: float | None = None,
     target_center: tuple[float, float, float] | None = None,
     delete_source: bool = False,
+    lumps: Sequence[Mapping[str, Any]] | None = None,
 ) -> Path:
     """One-shot: read Chombo HDF5, flatten, write .gridinit.
 
@@ -365,6 +367,13 @@ def convert_chombo_to_gridinit(
             float(target_center[1]) - 0.5 * float(Ly),
             float(target_center[2]) - 0.5 * float(Lz),
         ])
+
+    if lumps:
+        from .lump_fields import paint_lump_fields_on_grid
+
+        data, comp_names = paint_lump_fields_on_grid(
+            data, comp_names, dx_xyz, origin, lumps,
+        )
 
     result = write_gridinit(data, comp_names, dx_xyz, origin, output_path)
 

@@ -59,6 +59,11 @@ SOLVED_FTL_REJECTION_SPEED_TARGET="${SOLVED_FTL_REJECTION_SPEED_TARGET:-1.01}"
 GRTRESNA_MAX_HAM_PCT="${GRTRESNA_MAX_HAM_PCT:-5.0}"
 GRTRESNA_MAX_MOM_PCT="${GRTRESNA_MAX_MOM_PCT:-5.0}"
 
+POSTLOAD_GATE="${POSTLOAD_GATE:-1}"
+POSTLOAD_MAX_HAM_L2="${POSTLOAD_MAX_HAM_L2:-1e-2}"
+POSTLOAD_MAX_MOM_L2="${POSTLOAD_MAX_MOM_L2:-1e-2}"
+export POSTLOAD_GATE
+
 CONSUMER_RADII="${CONSUMER_RADII:-4 8}"
 FTL_L="${FTL_L:-8.0}"
 
@@ -128,4 +133,7 @@ exec ${PYTHON_BIN} -m grteclyn_wrapper \
   --solved-ftl-superluminal-fraction-floor "${SOLVED_FTL_SUPERLUMINAL_FRACTION_FLOOR}" \
   --solved-ftl-max-physical-coord-speed "${SOLVED_FTL_MAX_PHYSICAL_COORD_SPEED}" \
   --solved-ftl-max-physical-f-op "${SOLVED_FTL_MAX_PHYSICAL_F_OP}" \
-  --solved-ftl-rejection-speed-target "${SOLVED_FTL_REJECTION_SPEED_TARGET}"
+  --solved-ftl-rejection-speed-target "${SOLVED_FTL_REJECTION_SPEED_TARGET}" \
+  --grtresna-postload-gate \
+  --postload-max-ham-l2 "${POSTLOAD_MAX_HAM_L2}" \
+  --postload-max-mom-l2 "${POSTLOAD_MAX_MOM_L2}"

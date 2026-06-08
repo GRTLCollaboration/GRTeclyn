@@ -78,6 +78,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--gridinit-n", type=int, default=64)
     parser.add_argument("--cuda-device", type=str, default=None)
     parser.add_argument("--stop-time", type=float, default=2.0)
+    parser.add_argument("--plot-interval", type=int, default=10)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument(
         "--motif-json",
@@ -248,9 +249,13 @@ def run_projection(args: argparse.Namespace) -> int:
 
     if args.mode == "solve-and-evolve":
         example = resolve_example("RadialRecipe")
-        executable = resolve_executable(example)
+        executable = resolve_executable(example=example)
         evaluation = evaluate_overrides(
-            {"recipe_initial_data_file": str(gridinit_path), "stop_time": args.stop_time},
+            {
+                "recipe_initial_data_file": str(gridinit_path),
+                "stop_time": args.stop_time,
+                "plot_interval": args.plot_interval,
+            },
             out_dir=out_dir,
             name="projection_evolve",
             example=example,

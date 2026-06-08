@@ -59,6 +59,8 @@ def evaluate_overrides(
     grtresna_solved_ftl_gate: bool = False,
     solved_ftl_gate_config: Any | None = None,
     grtresna_convergence_config: Any | None = None,
+    grtresna_postload_gate: bool = False,
+    postload_gate_config: Any | None = None,
 ) -> Evaluation:
     overrides = dict(overrides)
 
@@ -95,106 +97,67 @@ def evaluate_overrides(
         metadata={"mode": "evaluate", "example": example.name, "overrides": overrides},
     )
 
-    if grtresna and not dry_run:
+    if grtresna:
+        from ..grtresna.matter_wiring import merge_evolution_overrides
         from ..grtresna.solver import solve as grtresna_solve
-        from ..metrics.ftl_solved_geometry import compute_solved_geometry_ftl
-        from ..search.optimize import (
+        from ..search.grtresna_convergence_gate import (
             GRTRESNA_REJECTION_BASE_FITNESS,
             GRTRESNA_REJECTION_MAX_EXTRA_FITNESS,
-            SOLVED_FTL_REJECTION_BASE_FITNESS,
-            SOLVED_FTL_REJECTION_MAX_EXTRA_FITNESS,
-            _grtresna_convergence_rejection_reason,
-            _grtresna_rejection_fitness,
-            build_grtresna_config,
-            parse_convergence_safe,
         )
-        from ..search.solved_ftl_gate import (
-            solved_ftl_has_signal,
-            solved_geometry_ftl_to_dict,
-            solved_geometry_rejection_fitness,
+        from ..search.grtresna_evaluation_gates import (
+            GRTresnaPreEvolutionGateConfig,
+            apply_grtresna_pre_evolution_gates,
         )
+        from ..search.optimize import build_grtresna_config, parse_convergence_safe
 
         try:
             cfg = build_grtresna_config(overrides, grtresna_base)
-            gridinit = grtresna_solve(
-                cfg,
-                work_dir=episode.path / "grtresna",
-                gridinit_path=episode.path / "initial_data.gridinit",
-            )
-            gte_overrides["recipe_initial_data_file"] = gridinit
-            convergence = parse_convergence_safe(episode.path / "grtresna")
-            update_metadata(episode, {"grtresna_convergence": convergence})
+            if not dry_run:
+                gridinit = grtresna_solve(
+                    cfg,
+                    work_dir=episode.path / "grtresna",
+                    gridinit_path=episode.path / "initial_data.gridinit",
+                )
+                gte_overrides["recipe_initial_data_file"] = str(gridinit)
+                gte_overrides.update(merge_evolution_overrides(gte_overrides, cfg))
+                convergence = parse_convergence_safe(episode.path / "grtresna")
+                update_metadata(episode, {"grtresna_convergence": convergence})
 
-            rejection_reason = _grtresna_convergence_rejection_reason(
-                convergence, config=grtresna_convergence_config,
-            )
-            if rejection_reason is not None:
-                fitness = _grtresna_rejection_fitness(
-                    convergence, config=grtresna_convergence_config,
+                gate_rejection = apply_grtresna_pre_evolution_gates(
+                    episode=episode,
+                    convergence=convergence,
+                    gridinit_path=Path(gridinit),
+                    gte_overrides=gte_overrides,
+                    cuda_devices=cuda_devices,
+                    config=GRTresnaPreEvolutionGateConfig(
+                        convergence_config=grtresna_convergence_config,
+                        solved_ftl_enabled=grtresna_solved_ftl_gate,
+                        solved_ftl_config=solved_ftl_gate_config,
+                        postload_enabled=grtresna_postload_gate,
+                        postload_config=postload_gate_config,
+                        ftl_L=ftl_L,
+                    ),
                 )
-                update_metadata(episode, {
-                    "grtresna_rejected": True,
-                    "grtresna_rejection_reason": rejection_reason,
-                    "grtresna_rejection_fitness": fitness,
-                    "simulation_exit_code": None,
-                })
-                return Evaluation(
-                    score=-fitness,
-                    components={"grtresna_rejection": -fitness},
-                    notes=[rejection_reason],
-                    episode_path=str(episode.path),
-                    exit_code=None,
-                    preflight_rejected=False,
-                    reason=rejection_reason,
-                    metrics={},
-                )
-
-            solved_ftl = compute_solved_geometry_ftl(
-                episode.path / "initial_data.gridinit", L=ftl_L,
-            )
-            if solved_ftl is not None:
-                update_metadata(
-                    episode,
-                    {
-                        "solved_geometry_ftl": solved_geometry_ftl_to_dict(
-                            solved_ftl,
-                            config=solved_ftl_gate_config,
-                        )
-                    },
-                )
-            if (
-                grtresna_solved_ftl_gate
-                and not solved_ftl_has_signal(solved_ftl, config=solved_ftl_gate_config)
-            ):
-                fitness = solved_geometry_rejection_fitness(
-                    solved_ftl,
-                    config=solved_ftl_gate_config,
-                    base=SOLVED_FTL_REJECTION_BASE_FITNESS,
-                    max_extra=SOLVED_FTL_REJECTION_MAX_EXTRA_FITNESS,
-                )
-                solved_dict = (
-                    solved_geometry_ftl_to_dict(
-                        solved_ftl,
-                        config=solved_ftl_gate_config,
+                if gate_rejection is not None:
+                    update_metadata(
+                        episode,
+                        {
+                            **gate_rejection.metadata,
+                            "simulation_exit_code": None,
+                        },
                     )
-                    if solved_ftl is not None
-                    else None
-                )
-                update_metadata(episode, {
-                    "solved_ftl_rejected": True,
-                    "solved_ftl_rejection_fitness": fitness,
-                    "simulation_exit_code": None,
-                })
-                return Evaluation(
-                    score=-fitness,
-                    components={"solved_ftl_rejection": -fitness},
-                    notes=["solved geometry has no FTL/precursor signal"],
-                    episode_path=str(episode.path),
-                    exit_code=None,
-                    preflight_rejected=False,
-                    reason="solved_ftl_rejected",
-                    metrics={"solved_geometry_ftl": solved_dict},
-                )
+                    return Evaluation(
+                        score=-gate_rejection.fitness,
+                        components={
+                            gate_rejection.component_key: -gate_rejection.fitness
+                        },
+                        notes=list(gate_rejection.notes) or [gate_rejection.reason],
+                        episode_path=str(episode.path),
+                        exit_code=None,
+                        preflight_rejected=False,
+                        reason=gate_rejection.reason,
+                        metrics=gate_rejection.metrics or {},
+                    )
         except Exception as exc:  # noqa: BLE001 - record and continue
             fitness = GRTRESNA_REJECTION_BASE_FITNESS + GRTRESNA_REJECTION_MAX_EXTRA_FITNESS
             update_metadata(episode, {

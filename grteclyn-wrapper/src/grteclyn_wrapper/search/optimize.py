@@ -421,32 +421,12 @@ def build_grtresna_config(
     """
     import dataclasses
 
-    from ..grtresna.solver import GRTresnaConfig
+    from ..grtresna.solver import GRTresnaConfig, apply_exotic_safe_solver
 
     cfg = dataclasses.replace(base) if base is not None else GRTresnaConfig()
 
     def _enable_exotic_safe_solver() -> None:
-        """Switch to the K=0 maximal-slicing York/Lichnerowicz path.
-
-        Only used for candidates that contain at least one EXOTIC lump: the
-        default CTTKHybrid K = sign*sqrt(24 pi G rho) ansatz produces NaN for
-        rho < 0, so exotic configs need the maximal-slicing path (matter sourced
-        elliptically, with under-relaxation + a psi-positivity floor for the
-        indefinite operator). PURELY CANONICAL candidates keep the standard
-        ansatz, which is markedly more robust for multi-lump / angular-mode /
-        higher-amplitude positive matter (the maximal-slicing path can diverge
-        to NaN on those). ``base`` values, if explicitly set, win.
-        """
-        if not cfg.maximal_slicing:
-            cfg.maximal_slicing = True
-        if cfg.psi_relaxation == 1.0:
-            cfg.psi_relaxation = 0.6
-        if cfg.psi_floor <= 0.0:
-            cfg.psi_floor = 0.1
-        if cfg.maximal_jacobian_cap <= 0.0:
-            cfg.maximal_jacobian_cap = 25.0
-        if cfg.coefficient_average_type == "harmonic":
-            cfg.coefficient_average_type = "arithmetic"
+        apply_exotic_safe_solver(cfg)
 
     def _get_float(key: str, default: float) -> float:
         try:
@@ -895,6 +875,8 @@ def _objective(
     grtresna_solved_ftl_gate: bool = False,
     solved_ftl_gate_config: Any | None = None,
     grtresna_convergence_config: GRTresnaConvergenceConfig | None = None,
+    grtresna_postload_gate: bool = False,
+    postload_gate_config: Any | None = None,
 ) -> float:
     """Evaluate one candidate.  Returns negative score (CMA-ES minimizes)."""
     eval_counter[0] += 1
@@ -938,7 +920,12 @@ def _objective(
     }
 
     if grtresna and not dry_run:
+        from ..grtresna.matter_wiring import merge_evolution_overrides
         from ..grtresna.solver import solve as grtresna_solve
+        from .grtresna_evaluation_gates import (
+            GRTresnaPreEvolutionGateConfig,
+            apply_grtresna_pre_evolution_gates,
+        )
 
         cfg = build_grtresna_config(overrides, grtresna_base)
         try:
@@ -947,91 +934,50 @@ def _objective(
                 work_dir=episode.path / "grtresna",
                 gridinit_path=episode.path / "initial_data.gridinit",
             )
-            gte_overrides["recipe_initial_data_file"] = gridinit
+            gte_overrides["recipe_initial_data_file"] = str(gridinit)
+            gte_overrides.update(merge_evolution_overrides(gte_overrides, cfg))
             convergence = parse_convergence_safe(episode.path / "grtresna")
             update_metadata(episode, {"grtresna_convergence": convergence})
-            rejection_reason = _grtresna_convergence_rejection_reason(
-                convergence, config=grtresna_convergence_config,
-            )
-            if rejection_reason is not None:
-                fitness = _grtresna_rejection_fitness(
-                    convergence, config=grtresna_convergence_config,
-                )
-                update_metadata(episode, {
-                    "grtresna_rejected": True,
-                    "grtresna_rejection_reason": rejection_reason,
-                    "grtresna_rejection_fitness": fitness,
-                    "simulation_exit_code": None,
-                })
-                record = {
-                    "eval": idx,
-                    "episode": str(episode.path),
-                    "score": -fitness,
-                    "fitness": fitness,
-                    "grtresna_rejected": True,
-                    "reason": rejection_reason,
-                    "components": {"grtresna_rejection": -fitness},
-                    "overrides": {d.param_key: overrides.get(d.param_key) for d in dims},
-                }
-                _track_trajectory(trajectory, record)
-                return fitness
 
-            from ..metrics.ftl_solved_geometry import (
-                compute_solved_geometry_ftl,
+            gate_rejection = apply_grtresna_pre_evolution_gates(
+                episode=episode,
+                convergence=convergence,
+                gridinit_path=Path(gridinit),
+                gte_overrides=gte_overrides,
+                cuda_devices=cuda_devices,
+                config=GRTresnaPreEvolutionGateConfig(
+                    convergence_config=grtresna_convergence_config,
+                    solved_ftl_enabled=grtresna_solved_ftl_gate,
+                    solved_ftl_config=solved_ftl_gate_config,
+                    postload_enabled=grtresna_postload_gate,
+                    postload_config=postload_gate_config,
+                    ftl_L=ftl_L,
+                ),
             )
-            from .solved_ftl_gate import (
-                solved_ftl_has_signal,
-                solved_geometry_ftl_to_dict,
-                solved_geometry_rejection_fitness,
-            )
-
-            solved_ftl = compute_solved_geometry_ftl(
-                episode.path / "initial_data.gridinit", L=ftl_L,
-            )
-            if solved_ftl is not None:
+            if gate_rejection is not None:
                 update_metadata(
                     episode,
                     {
-                        "solved_geometry_ftl": solved_geometry_ftl_to_dict(
-                            solved_ftl,
-                            config=solved_ftl_gate_config,
-                        )
+                        **gate_rejection.metadata,
+                        "simulation_exit_code": None,
                     },
                 )
-            if (
-                grtresna_solved_ftl_gate
-                and not solved_ftl_has_signal(solved_ftl, config=solved_ftl_gate_config)
-            ):
-                fitness = solved_geometry_rejection_fitness(
-                    solved_ftl,
-                    config=solved_ftl_gate_config,
-                    base=SOLVED_FTL_REJECTION_BASE_FITNESS,
-                    max_extra=SOLVED_FTL_REJECTION_MAX_EXTRA_FITNESS,
-                )
-                update_metadata(episode, {
-                    "solved_ftl_rejected": True,
-                    "solved_ftl_rejection_fitness": fitness,
-                    "simulation_exit_code": None,
-                })
                 record = {
                     "eval": idx,
                     "episode": str(episode.path),
-                    "score": -fitness,
-                    "fitness": fitness,
-                    "solved_ftl_rejected": True,
-                    "solved_geometry_ftl": (
-                        solved_geometry_ftl_to_dict(
-                            solved_ftl,
-                            config=solved_ftl_gate_config,
-                        )
-                        if solved_ftl is not None
-                        else None
-                    ),
-                    "components": {"solved_ftl_rejection": -fitness},
+                    "score": -gate_rejection.fitness,
+                    "fitness": gate_rejection.fitness,
+                    "reason": gate_rejection.reason,
+                    "components": {
+                        gate_rejection.component_key: -gate_rejection.fitness
+                    },
                     "overrides": {d.param_key: overrides.get(d.param_key) for d in dims},
+                    **gate_rejection.metadata,
                 }
+                if gate_rejection.metrics:
+                    record.update(gate_rejection.metrics)
                 _track_trajectory(trajectory, record)
-                return fitness
+                return gate_rejection.fitness
         except Exception as exc:  # solver failure -> penalise, keep searching
             fitness = GRTRESNA_REJECTION_BASE_FITNESS + GRTRESNA_REJECTION_MAX_EXTRA_FITNESS
             update_metadata(episode, {"grtresna_error": repr(exc)})
@@ -1137,6 +1083,8 @@ def run_optimize(
     grtresna_solved_ftl_gate: bool | None = None,
     solved_ftl_gate_config: Any | None = None,
     grtresna_convergence_config: GRTresnaConvergenceConfig | None = None,
+    grtresna_postload_gate: bool = False,
+    postload_gate_config: Any | None = None,
     warm_start_trajectories: Sequence[Path] = (),
     warm_start_top_k: int = 8,
     warm_start_jitter: float = 0.08,
@@ -1296,6 +1244,8 @@ def run_optimize(
                 grtresna_solved_ftl_gate=solved_ftl_gate,
                 solved_ftl_gate_config=solved_ftl_gate_config,
                 grtresna_convergence_config=grtresna_convergence_config,
+                grtresna_postload_gate=grtresna_postload_gate,
+                postload_gate_config=postload_gate_config,
             )
         out: list[float] = []
         for sol in subset:
@@ -1327,6 +1277,8 @@ def run_optimize(
                 grtresna_solved_ftl_gate=solved_ftl_gate,
                 solved_ftl_gate_config=solved_ftl_gate_config,
                 grtresna_convergence_config=grtresna_convergence_config,
+                grtresna_postload_gate=grtresna_postload_gate,
+                postload_gate_config=postload_gate_config,
             ))
         return out
 
@@ -1486,6 +1438,8 @@ def _evaluate_generation_parallel(
     grtresna_solved_ftl_gate: bool = False,
     solved_ftl_gate_config: Any | None = None,
     grtresna_convergence_config: GRTresnaConvergenceConfig | None = None,
+    grtresna_postload_gate: bool = False,
+    postload_gate_config: Any | None = None,
 ) -> list[float]:
     """Evaluate an entire CMA-ES generation in parallel across GPUs.
 
@@ -1527,6 +1481,8 @@ def _evaluate_generation_parallel(
             grtresna_solved_ftl_gate=grtresna_solved_ftl_gate,
             solved_ftl_gate_config=solved_ftl_gate_config,
             grtresna_convergence_config=grtresna_convergence_config,
+            grtresna_postload_gate=grtresna_postload_gate,
+            postload_gate_config=postload_gate_config,
         )
         with lock:
             fitnesses[idx_in_gen] = f
