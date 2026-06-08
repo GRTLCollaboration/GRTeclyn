@@ -473,9 +473,6 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::write_extraction(
                 {
                     auto *derive_rec =
                         amrex::AmrLevel::get_derive_lst().get(var.derived_name);
-                    //  amrex::Print() << "derived_name = " << var.derived_name
-                    // << ", var.var = " << var.var << ", variableName = " <<
-                    // derive_rec->variableName(var.var) << "\n";
                     components[ivar] += derive_rec->variableName(var.var);
                 }
             }

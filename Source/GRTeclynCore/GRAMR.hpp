@@ -36,7 +36,7 @@ class GRAMR : public amrex::Amr
     GRAMR(amrex::LevelBld *a_levelbld);
     ~GRAMR() override;
 
-    void init(amrex::Real a_strt_time, amrex::Real a_stop_time) override;
+    virtual void init(amrex::Real a_strt_time, amrex::Real a_stop_time);
 
     static void
     set_simulation_parameters(const SimulationParameters &a_sim_params);
