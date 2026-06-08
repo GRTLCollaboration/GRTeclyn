@@ -42,9 +42,9 @@ class GRAMR : public amrex::Amr
     set_simulation_parameters(const SimulationParameters &a_sim_params);
     static const SimulationParameters &get_simulation_parameters();
 
-    double get_walltime_since_start() const;
+    [[nodiscard]] double get_walltime_since_start() const;
 
-    double get_restart_time() const;
+    [[nodiscard]] double get_restart_time() const;
 
   private:
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
