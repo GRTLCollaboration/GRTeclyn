@@ -337,8 +337,20 @@ void ParticleInterpolator<num_components>::interp(
             // boundaries of fine and coarse levels, whilst FillBoundary is
             // single-level operation only! There is a nice explanation on this
             // issue here: https://github.com/AMReX-Codes/amrex/issues/391
+            amrex::Print() << "Level " << lev
+                           << " state.nComp() = " << state.nComp()
+                           << " nGrow = " << state.nGrowVect() << "\n";
+            amrex::Print() << "Before FillPatch, free GPU memory = "
+                           << amrex::Gpu::Device::freeMemAvailable() /
+                                  (1024.0 * 1024.0)
+                           << " MB\n";
             amrex::AmrLevel::FillPatch(level, state, s_num_ghosts, cur_time,
                                        state_index, start_comp, ncomp);
+
+            amrex::Print() << "After FillPatch, free GPU memory = "
+                           << amrex::Gpu::Device::freeMemAvailable() /
+                                  (1024.0 * 1024.0)
+                           << " MB\n";
 
             interpolate_to_particle(lev, state, geom);
         }

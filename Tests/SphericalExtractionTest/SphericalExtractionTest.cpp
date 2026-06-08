@@ -63,40 +63,16 @@ void run_spherical_extraction_test()
 
         gr_amr.init(0., sim_params.stop_time);
 
-        // Initiate ParticleInterpolator
-        ParticleInterpolator<2> interpolator;
-        interpolator.setup(&gr_amr, sim_params.boundary_params,
-                           sim_params.verbosity);
+        bool broadcast_integral = true;
 
-        ParticleInterpolator<2> interpolator_hi;
-        interpolator_hi.setup(&gr_amr, sim_params.boundary_params,
-                              sim_params.verbosity);
+        std::pair<std::vector<double>, std::vector<double>>
+            integral_lo_trapezium, integral_hi_trapezium;
+        std::pair<std::vector<double>, std::vector<double>> integral_lo_simpson,
+            integral_hi_simpson;
+        std::pair<std::vector<double>, std::vector<double>> integral_lo_boole,
+            integral_hi_boole;
 
-        // Low resolution spherical extraction
         std::vector<int> state_vars = {c_phi, c_Pi};
-        SphericalExtraction<2> spherical_extraction_lo(
-            sim_params.extraction_params_lo, state_vars,
-            sim_params.coarsest_dx * sim_params.dt_multiplier, 0.0, true, 0.0);
-
-        spherical_extraction_lo.extract(&interpolator);
-        spherical_extraction_lo.write_extraction("ExtractionOutLo_");
-
-        // High resolution spherical extraction
-        spherical_extraction_params_t extraction_params_hi =
-            sim_params.extraction_params_lo;
-
-        // We are only checking the convergence in theta integration
-        extraction_params_hi.num_points_theta() *= 2;
-        // Need to subtract a point as it's the number of subintervals we want
-        // to double for theta
-        extraction_params_hi.num_points_theta() -= 1;
-
-        SphericalExtraction<2> spherical_extraction_hi(
-            extraction_params_hi, state_vars,
-            sim_params.coarsest_dx * sim_params.dt_multiplier, 0.0, true, 0.0);
-
-        spherical_extraction_hi.extract(&interpolator_hi);
-        spherical_extraction_hi.write_extraction("ExtractionOutHi_");
 
         // Real part is the zeroth component and imaginary part is the first
         // component
@@ -104,47 +80,76 @@ void run_spherical_extraction_test()
             [](std::vector<double> &data, double, double, double)
         { return std::make_pair(data[0], data[1]); };
 
-        // Add the spherical harmonic mode integrands for each resolution and
-        // for the trapezium rule, Simpson's rule and Boole's rule
-        // Always use trapezium rule in phi as this is periodic
-        bool broadcast_integral = true;
+        {
+            // Initiate ParticleInterpolator
+            ParticleInterpolator<2> interpolator;
+            interpolator.setup(&gr_amr, sim_params.boundary_params,
+                               sim_params.verbosity);
+            // Low resolution spherical extraction
+            SphericalExtraction<2> spherical_extraction_lo(
+                sim_params.extraction_params_lo, state_vars,
+                sim_params.coarsest_dx * sim_params.dt_multiplier, 0.0, true,
+                0.0);
 
-        std::pair<std::vector<double>, std::vector<double>>
-            integral_lo_trapezium, integral_hi_trapezium;
-        spherical_extraction_lo.add_mode_integrand(
-            sim_params.es, sim_params.el, sim_params.em, extracted_harmonic,
-            integral_lo_trapezium, IntegrationMethod::trapezium,
-            IntegrationMethod::trapezium, broadcast_integral);
-        spherical_extraction_hi.add_mode_integrand(
-            sim_params.es, sim_params.el, sim_params.em, extracted_harmonic,
-            integral_hi_trapezium, IntegrationMethod::trapezium,
-            IntegrationMethod::trapezium, broadcast_integral);
+            spherical_extraction_lo.extract(&interpolator);
+            spherical_extraction_lo.write_extraction("ExtractionOutLo_");
 
-        std::pair<std::vector<double>, std::vector<double>> integral_lo_simpson,
-            integral_hi_simpson;
-        spherical_extraction_lo.add_mode_integrand(
-            sim_params.es, sim_params.el, sim_params.em, extracted_harmonic,
-            integral_lo_simpson, IntegrationMethod::simpson,
-            IntegrationMethod::trapezium, broadcast_integral);
-        spherical_extraction_hi.add_mode_integrand(
-            sim_params.es, sim_params.el, sim_params.em, extracted_harmonic,
-            integral_hi_simpson, IntegrationMethod::simpson,
-            IntegrationMethod::trapezium, broadcast_integral);
+            // Add the spherical harmonic mode integrands for each resolution
+            // and for the trapezium rule, Simpson's rule and Boole's rule
+            // Always use trapezium rule in phi as this is periodic
+            spherical_extraction_lo.add_mode_integrand(
+                sim_params.es, sim_params.el, sim_params.em, extracted_harmonic,
+                integral_lo_trapezium, IntegrationMethod::trapezium,
+                IntegrationMethod::trapezium, broadcast_integral);
+            spherical_extraction_lo.add_mode_integrand(
+                sim_params.es, sim_params.el, sim_params.em, extracted_harmonic,
+                integral_lo_simpson, IntegrationMethod::simpson,
+                IntegrationMethod::trapezium, broadcast_integral);
+            spherical_extraction_lo.add_mode_integrand(
+                sim_params.es, sim_params.el, sim_params.em, extracted_harmonic,
+                integral_lo_boole, IntegrationMethod::boole,
+                IntegrationMethod::trapezium, broadcast_integral);
 
-        std::pair<std::vector<double>, std::vector<double>> integral_lo_boole,
-            integral_hi_boole;
-        spherical_extraction_lo.add_mode_integrand(
-            sim_params.es, sim_params.el, sim_params.em, extracted_harmonic,
-            integral_lo_boole, IntegrationMethod::boole,
-            IntegrationMethod::trapezium, broadcast_integral);
-        spherical_extraction_hi.add_mode_integrand(
-            sim_params.es, sim_params.el, sim_params.em, extracted_harmonic,
-            integral_hi_boole, IntegrationMethod::boole,
-            IntegrationMethod::trapezium, broadcast_integral);
+            // Do the surface integration
+            spherical_extraction_lo.integrate();
+        }
 
-        // Do the surface integration
-        spherical_extraction_lo.integrate();
-        spherical_extraction_hi.integrate();
+        {
+            ParticleInterpolator<2> interpolator_hi;
+            interpolator_hi.setup(&gr_amr, sim_params.boundary_params,
+                                  sim_params.verbosity);
+
+            // High resolution spherical extraction
+            spherical_extraction_params_t extraction_params_hi =
+                sim_params.extraction_params_lo;
+
+            // We are only checking the convergence in theta integration
+            extraction_params_hi.num_points_theta() *= 2;
+            // Need to subtract a point as it's the number of subintervals we
+            // want to double for theta
+            extraction_params_hi.num_points_theta() -= 1;
+
+            SphericalExtraction<2> spherical_extraction_hi(
+                extraction_params_hi, state_vars,
+                sim_params.coarsest_dx * sim_params.dt_multiplier, 0.0, true,
+                0.0);
+
+            spherical_extraction_hi.extract(&interpolator_hi);
+            spherical_extraction_hi.write_extraction("ExtractionOutHi_");
+            spherical_extraction_hi.add_mode_integrand(
+                sim_params.es, sim_params.el, sim_params.em, extracted_harmonic,
+                integral_hi_trapezium, IntegrationMethod::trapezium,
+                IntegrationMethod::trapezium, broadcast_integral);
+            spherical_extraction_hi.add_mode_integrand(
+                sim_params.es, sim_params.el, sim_params.em, extracted_harmonic,
+                integral_hi_simpson, IntegrationMethod::simpson,
+                IntegrationMethod::trapezium, broadcast_integral);
+            spherical_extraction_hi.add_mode_integrand(
+                sim_params.es, sim_params.el, sim_params.em, extracted_harmonic,
+                integral_hi_boole, IntegrationMethod::boole,
+                IntegrationMethod::trapezium, broadcast_integral);
+            spherical_extraction_hi.integrate();
+        }
 
         amrex::Print() << std::setprecision(10);
 
