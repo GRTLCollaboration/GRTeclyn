@@ -49,6 +49,14 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("wormhole_phi_perturbation_width",
                 wormhole_params.phi_perturbation_width, 0.0);
 
+        // Spinning complex phantom scalar initial data. Enabled automatically
+        // when the matter model is complex_scalar; m and omega set the phase
+        // winding and rotation rate.
+        wormhole_params.complex_scalar_init =
+            (wormhole_matter_model == "complex_scalar") ? 1 : 0;
+        pp.load("wormhole_azimuthal_m", wormhole_params.azimuthal_m, 1);
+        pp.load("wormhole_rotation_omega", wormhole_params.rotation_omega, 0.0);
+
         pp.load("recipe_initial_data_file", recipe_initial_data_file,
                 std::string(""));
         if (!recipe_initial_data_file.empty())
@@ -82,8 +90,10 @@ class SimulationParameters : public SimulationParametersBase
                             wormhole_matter_model == "no_matter" ||
                             wormhole_matter_model == "effective_teo" ||
                             wormhole_matter_model == "dust" ||
-                            wormhole_matter_model == "oscillon_scalar",
-                        "must be exotic_scalar, no_matter, effective_teo, dust, or oscillon_scalar");
+                            wormhole_matter_model == "oscillon_scalar" ||
+                            wormhole_matter_model == "complex_scalar",
+                        "must be exotic_scalar, no_matter, effective_teo, dust, "
+                        "oscillon_scalar, or complex_scalar");
     }
 
     bool calculate_constraint_norms{};

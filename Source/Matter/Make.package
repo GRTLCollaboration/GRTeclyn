@@ -15,4 +15,10 @@ GRTECLYN_CEXE_headers += ConstraintsWithMatter.hpp \
                          ScalarFieldD1Vars.hpp \
                          ScalarFieldD2Vars.hpp \
                          ExoticScalarField.hpp \
-                         ExoticScalarField.impl.hpp
+                         ExoticScalarField.impl.hpp \
+                         ComplexScalarFieldVars.hpp \
+                         ComplexScalarFieldAdvecVars.hpp \
+                         ComplexScalarFieldD1Vars.hpp \
+                         ComplexScalarFieldD2Vars.hpp \
+                         ComplexExoticScalarField.hpp \
+                         ComplexExoticScalarField.impl.hpp

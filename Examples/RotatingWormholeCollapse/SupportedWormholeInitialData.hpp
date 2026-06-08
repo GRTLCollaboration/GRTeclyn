@@ -33,6 +33,14 @@ class SupportedWormholeInitialData
 
         double phantom_mass;
         double support_strength;
+
+        // Spinning complex phantom scalar: Phi = f(r,theta) e^{i(m phi_az)}.
+        // When complex_scalar_init != 0, the matter is initialised as two real
+        // components (phi1,Pi1)=(c_phi,c_Pi) and (phi2,Pi2)=(c_phi2,c_Pi2)
+        // carrying angular momentum through the phase winding.
+        int complex_scalar_init;
+        int azimuthal_m;
+        double rotation_omega;
     };
 
     SupportedWormholeInitialData(params_t a_params, double a_dx)
@@ -145,9 +153,43 @@ class SupportedWormholeInitialData
         cell(i, j, k, c_B3)     = 0.0;
 
         cell(i, j, k, c_Theta) = 0.0;
-        
-        cell(i, j, k, c_phi) = phi;
-        cell(i, j, k, c_Pi) = Pi;
+
+        if (m_params.complex_scalar_init != 0)
+        {
+            // Spinning complex phantom scalar. The toroidal modulus
+            // f = phi_EB(r) * (sin theta)^m vanishes on the rotation (z) axis
+            // so the phase winding e^{i m phi_az} is smooth there. The conjugate
+            // momenta follow from the stationary ansatz Phi ~ e^{-i omega t}:
+            //   Pi1 = d_t phi1 = +omega phi2,  Pi2 = d_t phi2 = -omega phi1.
+            const int mmode      = m_params.azimuthal_m;
+            const double omega   = m_params.rotation_omega;
+            const data_t rho_cyl = sqrt(dxA * dxA + dyA * dyA);
+            const data_t sin_theta = rho_cyl / simd_max(rA, (data_t)1.0e-12);
+
+            data_t ang_env = (data_t)1.0;
+            for (int p = 0; p < mmode; ++p)
+                ang_env *= sin_theta;
+
+            const data_t f      = phi * ang_env;
+            const data_t phi_az = atan2(dyA, dxA);
+            const data_t cma    = cos((data_t)mmode * phi_az);
+            const data_t sma    = sin((data_t)mmode * phi_az);
+
+            const data_t phi1 = f * cma;
+            const data_t phi2 = f * sma;
+
+            cell(i, j, k, c_phi)  = phi1;
+            cell(i, j, k, c_phi2) = phi2;
+            cell(i, j, k, c_Pi)   = (data_t)omega * phi2;
+            cell(i, j, k, c_Pi2)  = -(data_t)omega * phi1;
+        }
+        else
+        {
+            cell(i, j, k, c_phi)  = phi;
+            cell(i, j, k, c_Pi)   = Pi;
+            cell(i, j, k, c_phi2) = 0.0;
+            cell(i, j, k, c_Pi2)  = 0.0;
+        }
     }
 
   protected:

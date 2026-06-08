@@ -12,6 +12,7 @@
 #include "ExternalGridInitialData.hpp"
 #include "SupportedWormholeInitialData.hpp"
 #include "ExoticScalarField.hpp"
+#include "ComplexExoticScalarField.hpp"
 #include "NoMatter.hpp"
 #include "PhantomDecayPotential.hpp"
 #include "OscillonPotential.hpp"
@@ -53,6 +54,15 @@ void SupportedWormholeLevel::variableSetUp()
         ConstraintsWithMatter<ExoticScalarField<OscillonPotential>>::set_up(
             state_index);
         Weyl4WithMatter<ExoticScalarField<OscillonPotential>>::set_up(
+            state_index);
+    }
+    else if (matter_model == "complex_scalar")
+    {
+        ConstraintsWithMatter<
+            ComplexExoticScalarField<PhantomDecayPotential>>::set_up(
+            state_index);
+        Weyl4WithMatter<
+            ComplexExoticScalarField<PhantomDecayPotential>>::set_up(
             state_index);
     }
     else
@@ -204,6 +214,21 @@ void SupportedWormholeLevel::specificEvalRHS(amrex::MultiFab &a_soln,
             a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
             { ccz4rhs(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]); });
     }
+    else if (simParams().wormhole_matter_model == "complex_scalar")
+    {
+        PhantomDecayPotential potential(simParams().wormhole_params.phantom_mass);
+        ComplexExoticScalarField<PhantomDecayPotential> complex_scalar(
+            potential, simParams().wormhole_params.support_strength);
+        CCZ4RHSWithMatter<ComplexExoticScalarField<PhantomDecayPotential>,
+                          MovingPunctureGaugeWithMatter, FourthOrderDerivatives>
+            ccz4rhs(complex_scalar, simParams().ccz4_params, Geom().CellSize(0),
+                    simParams().sigma, simParams().formulation, 1.0,
+                    simParams().wormhole_params.grid_center, a_time);
+
+        amrex::ParallelFor(
+            a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+            { ccz4rhs(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]); });
+    }
     else
     {
         PhantomDecayPotential potential(simParams().wormhole_params.phantom_mass);
@@ -318,6 +343,27 @@ void SupportedWormholeLevel::specificPostTimeStep()
                 amrex::ParallelFor(
                     bx, [=] AMREX_GPU_DEVICE(int ix, int iy, int iz) noexcept
                     { my_constraints(ix, iy, iz, arr, src_arr); });
+            }
+        }
+        else if (simParams().wormhole_matter_model == "complex_scalar")
+        {
+            PhantomDecayPotential potential(
+                simParams().wormhole_params.phantom_mass);
+            ComplexExoticScalarField<PhantomDecayPotential> complex_scalar(
+                potential, simParams().wormhole_params.support_strength);
+            ConstraintsWithMatter<ComplexExoticScalarField<PhantomDecayPotential>>
+                my_constraints(complex_scalar, dx[0], 1.0, 0, Interval(1, 3),
+                               simParams().wormhole_params.grid_center, time);
+            for (amrex::MFIter mfi(cst, amrex::TilingIfNotGPU());
+                 mfi.isValid(); ++mfi)
+            {
+                const amrex::Box &bx = mfi.validbox();
+                const auto arr       = cst.array(mfi);
+                const auto src_arr   = state_new.const_array(mfi);
+
+                amrex::ParallelFor(
+                    bx, [=] AMREX_GPU_DEVICE(int ix, int iy, int iz) noexcept
+                { my_constraints(ix, iy, iz, arr, src_arr); });
             }
         }
         else
@@ -716,6 +762,59 @@ void SupportedWormholeLevel::specificPostTimeStep()
         const amrex::Real bary_z =
             (sum_rho > 0.0) ? (sum_rz / sum_rho) : 0.0;
 
+        // Coordinate angular momentum about the z-axis through the throat,
+        // J_z = sum (x p_y - y p_x) dV, with scalar momentum density
+        // p_i = Pi1 d_i phi1 + Pi2 d_i phi2. Tracks the spin carried by the
+        // complex phantom field (zero for the non-rotating real-scalar runs).
+        const amrex::Real center_x = simParams().wormhole_params.grid_center[0];
+        const amrex::Real center_y = simParams().wormhole_params.grid_center[1];
+        const amrex::Real cell_vol_fine = dx_arr[0] * dx_arr[1] * dx_arr[2];
+
+        amrex::ReduceOps<amrex::ReduceOpSum> reduce_ops_jz;
+        amrex::ReduceData<amrex::Real> reduce_data_jz(reduce_ops_jz);
+        using ReduceTupleJz = typename decltype(reduce_data_jz)::Type;
+
+        for (amrex::MFIter mfi(state_fine, amrex::TilingIfNotGPU());
+             mfi.isValid(); ++mfi)
+        {
+            const amrex::Box &bx = mfi.validbox();
+            const auto arr       = state_fine.const_array(mfi);
+            reduce_ops_jz.eval(
+                bx, reduce_data_jz,
+                [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTupleJz
+                {
+                    const amrex::Real Pi1 = arr(i, j, k, c_Pi);
+                    const amrex::Real Pi2 = arr(i, j, k, c_Pi2);
+
+                    const amrex::Real dx_phi1 =
+                        (arr(i + 1, j, k, c_phi) - arr(i - 1, j, k, c_phi)) /
+                        (2.0 * dx_arr[0]);
+                    const amrex::Real dy_phi1 =
+                        (arr(i, j + 1, k, c_phi) - arr(i, j - 1, k, c_phi)) /
+                        (2.0 * dx_arr[1]);
+                    const amrex::Real dx_phi2 =
+                        (arr(i + 1, j, k, c_phi2) - arr(i - 1, j, k, c_phi2)) /
+                        (2.0 * dx_arr[0]);
+                    const amrex::Real dy_phi2 =
+                        (arr(i, j + 1, k, c_phi2) - arr(i, j - 1, k, c_phi2)) /
+                        (2.0 * dx_arr[1]);
+
+                    const amrex::Real p_x = Pi1 * dx_phi1 + Pi2 * dx_phi2;
+                    const amrex::Real p_y = Pi1 * dy_phi1 + Pi2 * dy_phi2;
+
+                    const amrex::Real xr =
+                        prob_lo[0] + (amrex::Real(i) + 0.5) * dx_arr[0] -
+                        center_x;
+                    const amrex::Real yr =
+                        prob_lo[1] + (amrex::Real(j) + 0.5) * dx_arr[1] -
+                        center_y;
+
+                    return {(xr * p_y - yr * p_x) * cell_vol_fine};
+                });
+        }
+        amrex::Real J_z = amrex::get<0>(reduce_data_jz.value());
+        amrex::ParallelDescriptor::ReduceRealSum(J_z);
+
         GRParmParse pp;
         std::string output_path = "./";
         pp.load("output_path", output_path, std::string("./"));
@@ -744,7 +843,8 @@ void SupportedWormholeLevel::specificPostTimeStep()
                  "min_lapse_y", "min_lapse_z", "max_ah_r", "min_theta_plus",
                  "r_at_min_theta_plus",
                  "min_phi", "max_phi", "min_Pi", "max_Pi",
-                 "barycenter_x", "barycenter_y", "barycenter_z", "rho_sum"});
+                 "barycenter_x", "barycenter_y", "barycenter_z", "rho_sum",
+                 "J_z"});
         }
         diag_file.write_time_data_line({static_cast<double>(min_lapse),
                                         static_cast<double>(min_chi),
@@ -762,6 +862,7 @@ void SupportedWormholeLevel::specificPostTimeStep()
                                         static_cast<double>(bary_x),
                                         static_cast<double>(bary_y),
                                         static_cast<double>(bary_z),
-                                        static_cast<double>(sum_rho)});
+                                        static_cast<double>(sum_rho),
+                                        static_cast<double>(J_z)});
     }
 }

@@ -1,5 +1,163 @@
 # RotatingWormholeCollapse — Debug notes
 
+## Update (8 June 2026): Route B — spinning complex phantom-scalar wormhole
+
+This is the new modelling route for the **rotating** wormhole collapse paper. It
+replaces the failed single-real-scalar GRTresna run (which produced a four-lobed
+pattern, dispersing matter, and a frozen embedding) with a self-consistent,
+co-evolving **complex** phantom scalar that rotates smoothly.
+
+### Why the previous rotating run failed
+
+- The GRTresna `exotic_scalar` config solved a weak Gaussian lump (`amp=0.1`,
+  `width=12`, `bh_mass=0`) with no throat-forming term, so `chi ≈ 1` everywhere
+  → the embedding never changed.
+- A *real* scalar carries angular momentum only through an azimuthal `cos(mφ)`
+  density modulation. That modulation **is** the four-lobed pattern, and being
+  non-stationary it radiates/disperses outward ("matter flying away"). The 4-leaf
+  and the dispersal share this one root cause.
+
+### What was implemented
+
+A complex phantom scalar `Φ = f(r,θ) e^{i(m φ_az − ω t)}` stored as two real
+components `(φ₁,Π₁)` and `(φ₂,Π₂)`. Its modulus `|Φ|² = φ₁²+φ₂²` is axisymmetric
+(no lobes) and it carries `J_z` through the phase winding (stationary → no
+dispersal). Collapse is triggered exactly as in the Ellis–Bronnikov paper by
+reducing the phantom support `S_support < 1`; the inherent rotational quadrupole
+seeds `ℓ=2` GW with no artificial `A_φ`.
+
+Files added/changed:
+
+| File | Change |
+|------|--------|
+| `Source/Matter/ComplexScalarFieldVars.hpp` | New: `φ₁/Π₁/φ₂/Π₂` state accessors |
+| `Source/Matter/ComplexScalarFieldD1Vars.hpp` | New: first derivatives of `φ₁,φ₂` |
+| `Source/Matter/ComplexScalarFieldD2Vars.hpp` | New: second derivatives of `φ₁,φ₂` |
+| `Source/Matter/ComplexScalarFieldAdvecVars.hpp` | New: advection terms for `φ₁,Π₁,φ₂,Π₂` |
+| `Source/Matter/ComplexExoticScalarField.hpp/.impl.hpp` | New: phantom complex matter model (summed EM tensor with `−S_support` flip; two KG RHSs) |
+| `Source/Matter/Make.package` | Registers the new headers |
+| `StateVariables.hpp` | Adds `c_phi2`, `c_Pi2` (even parity) |
+| `SupportedWormholeInitialData.hpp` | `complex_scalar` toroidal spinning ansatz |
+| `SimulationParameters.hpp` | `complex_scalar` model + `wormhole_azimuthal_m`, `wormhole_rotation_omega` |
+| `SupportedWormholeLevel.cpp` | `complex_scalar` branches in `variableSetUp` / `specificEvalRHS` / constraints; new `J_z` diagnostic column |
+| `PhantomDecayPotential.hpp` | `compute_potential_value(V,dV,φ)` value overload (per-component, exact for the separable quadratic potential) |
+| `params_rotating_complex_equilibrium.txt` | `S_support=1` equilibrium test |
+| `params_rotating_complex_collapse.txt` | `S_support=0.5` collapse run |
+
+The initial data is **analytic per-level** (no `.gridinit`), mirroring what made
+the EB collapse stable: per-cell `chi` throat, flat lapse `α=1`, toroidal
+`f = φ_EB(r) (sinθ)^m`, `φ₁=f cos(mφ_az)`, `φ₂=f sin(mφ_az)`, `Π₁=ω φ₂`,
+`Π₂=−ω φ₁`, with `K_ij=0` (accept the small `O(ω)` momentum defect at `t=0`, as
+the EB paper accepts an `O(A_φ)` Hamiltonian defect). The optional fully
+constraint-satisfying route (elliptic solve of the winding scalar via GRTresna)
+is future work.
+
+### Build (NOTE: not buildable on the current machine)
+
+```bash
+cd Examples/RotatingWormholeCollapse
+make -j 8 USE_CUDA=TRUE USE_MPI=TRUE COMP=gnu CUDA_ARCH=90
+```
+
+A CPU build (no GPU) for a quick compile check:
+
+```bash
+make -j 8 USE_CUDA=FALSE USE_MPI=FALSE COMP=gnu DIM=3
+```
+
+The code in this update was written without an available build/CI on this
+machine; it was reviewed for interface consistency against the existing
+`ExoticScalarField` / `ScalarField*Vars` matter machinery (same `emtensor_t`,
+`CCZ4Vars`/`CCZ4D1Vars`/`CCZ4D2Vars` bases, and `FourthOrderDerivatives`
+`diff1_scalar`/`diff2_scalar`/`advec_scalar` calls). Compile before any
+production run.
+
+### How to test
+
+**1. Equilibrium (validates the rotating data is self-consistent).**
+
+```bash
+# Terminal 1 — live frames (start before evolution)
+GRTECLYN_FRAMES_ZOOM="48" GRTECLYN_FRAMES_CENTER="8 8 0" \
+GRTECLYN_EXTRACTION_CENTER="32 32 0" \
+./grteclyn-wrapper/scripts/plot/plot_run.sh \
+  runs/rotating_wormhole/complex_equilibrium/output
+
+# Terminal 2 — evolution
+source grteclyn-wrapper/scripts/lib/env.sh
+cd Examples/RotatingWormholeCollapse
+mpirun -n 2 bash -c \
+  'export CUDA_VISIBLE_DEVICES=$OMPI_COMM_WORLD_LOCAL_RANK; \
+   exec ./main3d.gnu.MPI.CUDA.ex params_rotating_complex_equilibrium.txt'
+```
+
+Pass criteria:
+- `phi`, `Pi`, `phi2`, `Pi2` frames each show a single rotating lobe pair, but
+  the **modulus** `phi^2+phi2^2` (and `chi`, the embedding) is **axisymmetric** —
+  no four-leaf clover.
+- `data/collapse_diagnostics.dat`: `min_chi`, `max_ah_r`, and the throat stay
+  ~stationary for several `M`; `J_z` is **nonzero and roughly constant** (the
+  spin is held), unlike the old run where matter dispersed.
+- `data/constraint_norms.dat`: `L2_Ham`, `L2_Mom` stay bounded (small `O(ω)`
+  initial momentum defect that does not blow up).
+
+**2. Collapse (the physics run for the paper).**
+
+```bash
+cd Examples/RotatingWormholeCollapse
+mpirun -n 2 bash -c \
+  'export CUDA_VISIBLE_DEVICES=$OMPI_COMM_WORLD_LOCAL_RANK; \
+   exec ./main3d.gnu.MPI.CUDA.ex params_rotating_complex_collapse.txt'
+```
+
+Pass criteria:
+- `min_chi` and `min_lapse` drop, `max_ah_r > 0` and `min_theta_plus ≤ 0`
+  (trapped surface forms) — throat collapse.
+- `Weyl4` extraction (`data/`) shows an `ℓ=2` signal; check propagation speed
+  `v ≈ c` across `extraction_radii = 12 16 20 24` (same analysis as the EB
+  paper). A dynamically-grown `m=2` bar mode may appear for larger `omega`.
+- `J_z` is carried through the collapse rather than radiated to zero immediately.
+
+**3. Parameter sweeps.** Vary `wormhole_rotation_omega` (e.g. 0.0, 0.05, 0.1,
+0.2) and `wormhole_azimuthal_m` (1, 2). `omega=0` is the non-rotating control
+(should reduce to a real-scalar-like wormhole with `J_z≈0`).
+
+**4. Loader-fix regression.** The `.gridinit` loader now maps columns by name.
+Verify with any existing `effective_teo` `.gridinit`: on load it prints how many
+columns were skipped, and `teo_rho`/`teo_S*` now populate the correct
+`c_teo_*` slots (previously `teo_S11` landed in `c_teo_rho`). The GRTresna
+`exotic_scalar` path is unchanged (its `chi…Pi` columns are name-matched too).
+
+### Known limitations / next steps
+
+- Initial data carries an `O(ω)` momentum-constraint defect (`K_ij=0`). For
+  publishable, fully constraint-satisfying rotating data, solve the momentum
+  (and Hamiltonian) constraints elliptically for the winding scalar (extend the
+  GRTresna lump ansatz to a complex/phase-winding field) and load via the
+  name-mapped `.gridinit`.
+- `max_level=0` (unigrid) in the provided params to avoid the documented AMR
+  cross-level interpolation kinks; enable AMR only after confirming stability.
+
+---
+
+## Update (8 June 2026): loader alignment bug + real-scalar rotation limit
+
+- **Gridinit loader misalignment (fixed).** The `dust_*` state variables were
+  inserted into `StateVariables.hpp` *after* the Teo `.gridinit` writer
+  (`GRTECLYN_STATE_VARS` in `grtresna/io.py`) was built. The C++ loader copied
+  file column `c` to state slot `c` by index, so the Teo effective source loaded
+  into the wrong slots (`teo_S11 → c_teo_rho`, …) and `EffectiveTeoMatter`
+  sourced a scrambled stress tensor. `ExternalGridInitialData` now maps columns
+  to state slots **by name** via the `component_names` header (identity fallback
+  for legacy V1 files). The GRTresna `chi…Pi` block is index-0-aligned, so the
+  `exotic_scalar` path was unaffected.
+- **A single real scalar cannot rotate smoothly.** A real field carries angular
+  momentum only through an azimuthal `cos(mφ)` density modulation — that *is* the
+  four-lobed pattern, and being non-stationary it radiates/disperses outward
+  ("matter flying away"). The fix (Route B) uses a **complex** phantom scalar
+  whose `|Φ|²` is axisymmetric and carries `J` through phase winding.
+
+
 Investigation and fix for the crashing Teo weak-spin run (`weak_spin_effective`).
 **Status: Teo failure root cause confirmed; GRTresna + co-evolving scalar
 production path now validated to `t = 4.0`.**
