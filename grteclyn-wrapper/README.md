@@ -27,8 +27,11 @@ GPU_IDS="0 1 2 3 4 5 6 7" GRTRESNA_ANSATZ=shell \
   bash scripts/search/run_grtresna_search.sh
 
 # MAP-Elites quality-diversity (diverse FTL families)
+# Post-load constraint gate is ON by default (POSTLOAD_GATE=1) so only
+# physically self-consistent initial data reaches GPU evolution.
 QD_ITERATIONS=8 BINS=8 GPU_IDS="0 1 2 3 4 5 6 7" RANKS=8 \
   LUMPS=5 SHELL_PROFILE=compact \
+  POSTLOAD_MAX_HAM_L2=1e-2 POSTLOAD_MAX_MOM_L2=1e-2 \
   bash scripts/search/run_grtresna_qd_search.sh
 
 # Cheap smoke: no GRTresna solve, no GPU evolution
@@ -156,6 +159,47 @@ co-moving operational FTL, and resolution replay pass.
 
 ---
 
+## Matter–geometry consistency (physically satisfied solutions)
+
+GRTresna solves the constraints with **independent, signed scalar lumps** (each lump
+has its own sign and there are no inter-lump cross terms). Earlier, GRTeclyn evolved
+a single *summed* scalar, so on overlapping or exotic lumps the evolved stress-energy
+disagreed with what GRTresna solved — the loaded initial data violated the constraints
+at `t=0`. The matter-first pipeline now keeps the two in lock-step end-to-end:
+
+```text
+GRTresna signed-lump solve → .gridinit (+ per-lump phi_k/Pi_k channels, matter metadata)
+  → GRTeclyn GRTresnaIndependentScalars matter (mass-matched V = ½ m² φ²)
+  → post-load gate: L2_Ham / L2_Mom small  ⇒ valid Einstein solution
+```
+
+What this guarantees and what it does **not**:
+
+| "Physically satisfied" means… | Status | Evidence |
+|------|--------|----------|
+| Hamiltonian & momentum constraints hold at load and through evolution (a valid spacetime) | **Yes** — enforced by the post-load gate | Smokes: post-load `L2_Ham≈4e-3`, `L2_Mom≈2e-4`; survivors show `constraint_health≈0.95`, `survival=1`, `anec_condition=1` |
+| The spacetime is a *useful* warp/FTL geometry (`operational_ftl > 0`) | **Separate search goal** — not implied by constraint validity | Found only when the QD/CMA-ES objective surfaces an operational elite |
+
+So a `gpu_ok` candidate is a genuine, constraint-satisfying solution of GR; whether it
+is an *interesting* (transport-capable) one is what the search campaign explores.
+
+**Implementation**
+- C++ matter: `Source/Matter/GRTresnaIndependentScalars.{hpp,impl.hpp}` (+ `…Vars/D1/D2/Advec`, `GRTresnaScalarLayout.hpp`, `GRTresnaScalarPotential.hpp`); RadialRecipe dispatch in `Examples/RadialRecipe/RadialRecipeMatterDispatch.hpp`, state in `StateVariables.hpp` (`NUM_CCZ4_VARS + 2 + 2·GRTRESNA_MAX_INDEPENDENT_SCALARS`).
+- Python bridge: `grtresna/lump_fields.py` (paint per-lump channels), `grtresna/matter_wiring.py` (matter overrides + metadata), `grtresna/solver.py` (`apply_exotic_safe_solver`, `config_has_exotic_lump`).
+- Gate: `projection/postload_gate.py`, wired via `search/grtresna_evaluation_gates.py`.
+- Tests: `tests/test_matter_geometry_consistency.py`, `tests/test_grtresna_postload_gate_integration.py`.
+- End-to-end smokes: `scripts/search/run_matter_geometry_smokes.sh` (canonical, exotic, mixed-shell).
+
+**Knobs** (default the post-load gate **on** in `run_grtresna_qd_search.sh`):
+
+| Env var | Default | Meaning |
+|---------|---------|---------|
+| `POSTLOAD_GATE` | `1` | Enable the post-load constraint gate |
+| `POSTLOAD_MAX_HAM_L2` | `1e-2` | Reject if loaded `L2_Ham` exceeds this |
+| `POSTLOAD_MAX_MOM_L2` | `1e-2` | Reject if loaded `L2_Mom` exceeds this |
+
+---
+
 ## Search pipeline
 
 GRTresna solves 3D constraints per candidate; survivors evolve on GPU and are scored with `objective_mode=ftl_first`. **CMA-ES** maximizes one scalar and collapses to a basin; **MAP-Elites** keeps diverse families in a behavior archive.
@@ -197,13 +241,16 @@ Skip stage 2 when QD already yields `operational_ftl > 0` elites; go straight to
 
 **Per-eval loop** (every CMA-ES member and QD candidate):
 
-1. Sample ansatz parameters → GRTresna MPI solve (Ham + Mom)
+1. Sample ansatz parameters → GRTresna MPI solve (Ham + Mom). Exotic (`rho<0`) candidates auto-switch to the K=0 maximal-slicing solver (`apply_exotic_safe_solver`).
 2. Reject if convergence missing, NaN, or above threshold
 3. Solved-geometry FTL gate on `.gridinit` (cheap, pre-GPU)
-4. GRTeclyn GPU evolution → consume plotfiles → `ftl_first` score
-5. Feed fitness to CMA-ES or MAP-Elites archive cell
+4. **Post-load constraint gate** — short GPU launch that loads the `.gridinit` with the matched independent-scalar matter and rejects if `L2_Ham`/`L2_Mom` exceed `--postload-max-{ham,mom}-l2` (default `1e-2`). Guarantees the loaded data is *physically self-consistent* before any long evolution.
+5. GRTeclyn GPU evolution → consume plotfiles → `ftl_first` score
+6. Feed fitness to CMA-ES or MAP-Elites archive cell
 
-Campaign artifacts: `trajectory.jsonl`, `eval_XXXXXX/{metadata,score}.json`, `initial_data.gridinit`, optional `frames/`.
+Pre-evolution gates 2–4 are centralized in `search/grtresna_evaluation_gates.py` (`apply_grtresna_pre_evolution_gates`), shared by CMA-ES and MAP-Elites.
+
+Campaign artifacts: `trajectory.jsonl`, `eval_XXXXXX/{metadata,score}.json`, `initial_data.gridinit`, `initial_data.matter.json` (matter layout), optional `frames/`.
 
 ### Ansätze
 

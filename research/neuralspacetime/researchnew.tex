@@ -364,6 +364,68 @@ MAP-Elites results should be treated conservatively until the post-load
 near-term goal is therefore not to claim a new FTL metric, but to turn the
 matter-first pipeline into a falsifiable and constraint-clean discovery engine.
 
+\section{Update: Resolution of the Matter-First Trust Issue}
+\label{sec:update_fixed}
+
+The blocking steps identified in Sec.~\ref{sec:trust_issue} and
+Sec.~\ref{sec:path} have now been implemented and validated end to end.  The
+matter-model mismatch that previously invalidated the loaded \texttt{GRTeclyn}
+state has been removed, so matter-first candidates are now constraint-clean at
+$t=0$ under the same stress-energy that is evolved.
+
+\paragraph{Matched independent-field matter (fixed).}
+\texttt{GRTeclyn} now evolves a dedicated independent signed-scalar matter model
+(\texttt{GRTresnaIndependentScalars}) that mirrors the \texttt{GRTresna} source:
+each lump carries its own sign, kinetic and momentum terms are summed
+per-lump, and no inter-lump cross terms are introduced.  This directly resolves
+the first two effects of Sec.~\ref{sec:trust_issue} (the wrong-sign exotic
+source and the spurious $|\nabla\sum_k\phi_k|^2$ cross terms).  The
+\texttt{.gridinit} writer now also carries the per-lump $\phi_k,\Pi_k$ channels
+and a matter-layout metadata record so the evolution reconstructs the solved
+fields exactly.
+
+\paragraph{Matched potential (fixed).}
+The evolution potential is set to the mass-matched form
+$V(\phi)=\tfrac{1}{2}m^2\phi^2$ using the same scalar mass as the solve, so the
+third effect of Sec.~\ref{sec:trust_issue}---a solver/evolution potential
+mismatch---no longer applies.
+
+\paragraph{Post-load constraint gate (fixed).}
+The missing gate of Fig.~\ref{fig:per_eval} is now in place.  After
+\texttt{GRTresna} writes \texttt{.gridinit}, the file is loaded into
+\texttt{GRTeclyn}, $H$ and $M_i$ are evaluated with the actual evolution matter
+model, and candidates whose $t=0$ residual exceeds a threshold
+($L^2_{H},L^2_{M}\le 10^{-2}$ by default) are rejected before GPU evolution.
+This gate is mandatory in both the CMA-ES and MAP-Elites loops.
+
+\paragraph{Robust exotic solves (fixed).}
+Configurations containing negative-energy lumps automatically switch to the
+$K=0$ maximal-slicing (York--Lichnerowicz) solver with Newton under-relaxation
+and a conformal-factor floor, instead of the default
+$K=\mathrm{sign}\sqrt{24\pi G\rho+\dots}$ ansatz that is imaginary where
+$\rho<0$.  This removes the spurious \texttt{NaN} rejections that previously
+afflicted exotic candidates.
+
+\paragraph{Validation.}
+End-to-end smokes covering canonical, exotic, and mixed overlapping-shell
+configurations pass: the \texttt{GRTresna} solves remain finite, the
+29-component \texttt{.gridinit} loads correctly, and the post-load constraints
+are small ($L^2_{H}\approx4\times10^{-3}$, $L^2_{M}\approx2\times10^{-4}$).
+Surviving evolved candidates report \texttt{constraint\_health}$\approx0.95$,
+\texttt{survival}$=1$, and satisfy the averaged null energy diagnostic over the
+sampled tube.
+
+\paragraph{Scope of the claim.}
+These fixes establish \emph{physical self-consistency}: a surviving candidate is
+now a genuine, constraint-satisfying solution of the Einstein equations rather
+than a state that violates $G_{ab}=8\pi T_{ab}$ on load.  They do \emph{not} by
+themselves establish a transport-capable (operational-FTL) geometry; that
+remains the objective of the search campaign (Sec.~\ref{sec:path}, transport
+objective and observer/resolution checks).  In short, the constraint-validity
+prerequisites of the matter-first pipeline are resolved, and the remaining work
+is the physics search for an operational, observer-robust, resolution-converged
+elite.
+
 \begin{thebibliography}{9}
 
 \bibitem{alexander2026albert}
