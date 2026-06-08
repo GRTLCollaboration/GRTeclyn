@@ -23,7 +23,7 @@
 
 \begin{document}
 
-\title{\texorpdfstring{\MakeTextUppercase{Neural Spacetime Search with \texttt{GRTeclyn}: A Practical Baseline for Dynamical Metric Discovery}}{Neural Spacetime Search with GRTeclyn: A Practical Baseline for Dynamical Metric Discovery}}
+\title{\texorpdfstring{\MakeTextUppercase{Neural Spacetime Search with \texttt{GRTeclyn}: Geometry-First and Matter-First Baselines}}{Neural Spacetime Search with GRTeclyn: Geometry-First and Matter-First Baselines}}
 
 \author{\MakeTextUppercase{Nikita M. Shirokov}}
 \email{shirokov.nm@phystech.edu}
@@ -31,1010 +31,338 @@
 \date{\today}
 
 \begin{abstract}
-We outline a practical baseline for turning \texttt{GRTeclyn} into a closed-loop GPU search engine for exotic spacetime metrics. A Python scheduler proposes compact initial-data parameters, a C++/AMReX executable evolves each candidate, and scoring diagnostics promote only geometries that survive, show operational faster-than-light (FTL) benefit, and avoid coordinate artifacts. Matter is handled either by algebraic reconstruction from the Einstein constraints at $t=0$ or by a matter-first elliptic loop in which \texttt{GRTresna} solves the Hamiltonian and momentum constraints before \texttt{GRTeclyn} evolves the data.
+We present a compact baseline for automated searches over dynamical spacetime
+initial data.  A Python optimizer proposes low-dimensional parameters,
+\texttt{GRTeclyn} evolves each candidate on GPU, and diagnostics score
+constraint health, operational faster-than-light (FTL) benefit, stability, and
+energy-condition cost.  The paper separates two regimes.  In the
+\emph{geometry-first} regime the optimizer deforms the metric directly and uses
+the constraints to infer the required matter.  This is cheap and has already
+found a standing directional shortcut, but it does not supply the momentum
+source needed for transport.  In the \emph{matter-first} regime the optimizer
+proposes scalar-matter configurations and \texttt{GRTresna} solves the elliptic
+constraints before \texttt{GRTeclyn} evolves the result.  This is the right path
+toward physical searches, but current mixed exotic-lump MAP-Elites results
+require a stricter post-load constraint gate because the matter stress tensor
+solved by \texttt{GRTresna} need not equal the stress tensor evolved by
+\texttt{GRTeclyn}.  We therefore treat the matter-first campaign as a promising
+engineering milestone, not yet as a validated FTL metric discovery.
 \end{abstract}
 
 \maketitle
 
-%%====================================================================
-%%  SECTION 1 : INTRODUCTION  (merged with former "Goal" section)
-%%====================================================================
-\section{Introduction}
+\section{Goal and Search Loop}
+\label{sec:goal}
 
-Most proposed interstellar metrics are hand-designed static ans\"atze.  That approach is analytically clean but strongly biased toward highly symmetric geometries.
+Most warp and wormhole metrics are hand-designed static ans\"atze.  Here the
+metric is instead treated as the output of a black-box search over dynamical
+3D initial data.  Throughout this paper ``FTL'' means an effective shortcut
+through curved spacetime relative to a flat-spacetime control; it does not imply
+local superluminal motion outside the local light cone.
 
-Here we treat metric discovery as black-box optimization over dynamical 3D initial data, searching for novel faster-than-light spacetime geometries---encompassing FTL transport, FTL communication, portal-like shortcuts, and wormhole throats---rather than restricting attention to any single warp ansatz.  The framework couples a Python optimizer to the GPU AMR evolution engine in \texttt{GRTeclyn}, with explicit checks for matter consistency, stability, and fake-FTL gauge effects.  A successful candidate must survive dynamical evolution, show an operational shortcut relative to a flat-spacetime control, keep tidal forces bounded, and minimize violations of the standard energy conditions.
-
-Blind random 3D initial data almost always violates constraints, collapses, or relaxes to flat space.  Optimization supplies the steering: maximize FTL benefit while penalizing constraint error, negative energy, tidal force, and instability.
-
-This fits a broader shift toward automated theory exploration~\cite{alexander2026albert,halverson2019branes,qiu2026collideragent,han2025physagent}.  For warp geometries, \textsc{Warp Factory} and \textsc{warpax} emphasize observer-robust energy-condition evaluation~\cite{helmerich2024warpfactory,le2026warpax}; we extend that philosophy from analysis of prescribed metrics to search over evolved initial data, while keeping numerical convergence and constraint satisfaction central~\cite{lousto2006fourth,li2023pinn}.
-
-Throughout this paper, ``FTL'' means effective faster-than-light propagation through a curved spacetime geometry compared with flat-spacetime light travel.  It does not imply local superluminal motion relative to the local light cone.
-
-%%====================================================================
-%%  SECTION 2 : INITIAL DATA  (drastically shortened)
-%%====================================================================
-\section{Initial Data}
-
-The optimizer proposes the spatial metric $\gamma_{ij}$ and extrinsic curvature $K_{ij}$; the Hamiltonian and momentum constraints then determine the compatible energy density $\rho$ and momentum density $j_i$:
-\begin{equation}
-    \rho = \frac{R + K^2 - K_{ij}K^{ij}}{16\pi},\qquad
-    j_i = \frac{1}{8\pi} D_j\!\left(K^j_i - \delta^j_i K\right).
-\end{equation}
-Regions with $\rho<0$ are recorded as exotic-matter cost and fed back into the objective.  The implemented matter-first path using an elliptic constraint solver is described in Sec.~\ref{sec:grtresna}.
-
-%%====================================================================
-%%  SECTION 3 : CANDIDATE PARAMETERIZATION
-%%====================================================================
-\section{Candidate Parameterization}
-
-The optimizer emits a compact vector $\theta$; a decoder maps it to smooth AMReX initial fields.
-
-\subsection{Level 1: Radial Recipes}
-
-The initial fields at $t=0$ are built from spherically symmetric radial profiles:
-\begin{equation}
-    q(r) = q_\infty + \sum_n a_n B_n(r),
-\end{equation}
-where $q$ denotes $\chi$, $\alpha$, $\beta^i$, or $K$, and $B_n$ are smooth radial basis functions.
-
-\subsection{Level 2: Angular Recipes (implemented)}
-
-Angular modes add non-spherical structure:
-\begin{equation}
-    q(r,\theta,\varphi) = q_\infty + \sum_{n\ell m} a_{n\ell m}B_n(r)Y_{\ell m}(\theta,\varphi).
-\end{equation}
-This is implemented for gauge fields ($\alpha,\beta^i$), where angular modes carry no constraint cost; geometric angular modes require the future 3D constraint solver.
-
-\subsection{Search space}
-
-The three FTL shortcut channels (shift-driven warp, $\chi>1$ compression, areal-radius throat pinching) are independent.  The default search vector is nine-dimensional: four $\chi$ coefficients, a shared basis width, two lapse coefficients, and two shift coefficients---all dimensionless amplitudes for the Gaussian basis expansion.  This spans all three mechanisms while remaining tractable for CMA-ES.  Higher-level parameterizations (neural decoders, LLM meta-agents) are deferred to Sec.~\ref{sec:discussion}.
-
-%%====================================================================
-%%  SECTION 4 : THE SEARCH LOOP
-%%====================================================================
-\section{The Search Loop}
-\label{sec:search_loop}
-
-The pipeline keeps Python orchestration separate from precompiled GPU evolution.  The Python controller writes \texttt{params.txt} and dispatches Slurm tasks; GPU nodes run the same \texttt{GRTeclyn} binary for every candidate, avoiding recompilation inside the search loop.
-
-Each optimizer evaluation follows:
-\begin{enumerate}
-    \item propose basis coefficients $\theta$;
-    \item derive constrained fields, write \texttt{params.txt}, and reject bad pre-flight residuals;
-    \item evolve on GPU and write constraint, collapse, matter, and plotfile diagnostics;
-    \item parse diagnostics into $S(\theta)$ and update CMA-ES after each generation.
-\end{enumerate}
-The optimizer sees only the scalar black-box objective $f(\theta)=-S(\theta)$, making the score design the central physics interface.
-
-Tier~1 uses short low-resolution single-GPU runs with early stopping; Tier~2 promotes survivors to multi-GPU resolution ladders for stability and convergence.
-
-The current pipeline uses CMA-ES, not reinforcement learning: it samples continuous coefficients, ranks them by $-S(\theta)$, and updates a Gaussian search distribution.  CMA-ES cannot add mouths, throats, or new mode families; RL becomes relevant only for sequential decisions such as choosing topology, modes, or mid-run gauge actions.  A future hierarchical search could let a discrete controller choose topology and active modes, then hand the resulting skeleton to CMA-ES/MAP-Elites for continuous refinement, echoing discrete/continuous decompositions in string-landscape search~\cite{halverson2019branes}.
-
-%%====================================================================
-%%  SECTION 4b : MATTER-FIRST INITIAL DATA (GRTRESNA)
-%%====================================================================
-\section{The Inverted Loop: Matter-First Initial Data via \texttt{GRTresna}}
-\label{sec:grtresna}
-
-The recipes of Sec.~\ref{sec:search_loop} share a structural weakness that the
-results expose repeatedly: they manipulate the \emph{geometry} and tolerate the
-constraint error it implies.  This section describes an alternative path---an
-in-the-loop elliptic constraint solver (\texttt{GRTresna})---that inverts the
-map, the physical motivation for it, the matter basis it searches over, and the
-current clean-search findings.
-
-\subsection{Geometry-first versus matter-first}
-\label{sec:geom_vs_matter}
-
-The Level-1/2 recipes are \emph{geometry-first}: the optimizer proposes
-$\chi,\alpha,\beta^i,K$ directly and the constraints are read \emph{backwards}
-(Eq.~\ref{eq:ham_recipe}--\ref{eq:mom_recipe}) to report whatever energy density
-$\rho$ and momentum density $j_i$ that geometry would require.  This is cheap---
-it is algebraic and evaluated once at $t=0$---but it has two structural limits.
-First, a non-spherical \emph{geometric} deformation does not actually solve the
-Hamiltonian constraint; only the gauge sector $(\alpha,\beta^i)$ is free of
-constraint cost, which is precisely why the directional winner of
-Sec.~\ref{sec:results} lives entirely in the shift.  Second, the constrained
-radial recipe uses $K=\mathrm{const}$, $\Pi=0$, which forces the momentum
-density to vanish, $j_i=0$: the recipe \emph{cannot represent moving matter},
-and a translating warp needs exactly that momentum source (the ``motor'' the
-dipole winner was missing, Sec.~\ref{sec:results}).
-
-\texttt{GRTresna} is a Chombo/AMR multigrid solver that inverts the map.
-It is \emph{matter-first}: the optimizer proposes a \emph{matter} configuration---
-a scalar field $(\phi,\Pi)$---and the solver \emph{solves} the full elliptic
-Hamiltonian and momentum constraints in 3D for a constraint-satisfying geometry.
-In the conformal transverse-traceless decomposition $\gamma_{ij}=\psi^4\delta_{ij}$,
-$K_{ij}=\psi^{-2}\bar A_{ij}+\tfrac13\gamma_{ij}K$, with the scalar sources
-\begin{equation}
-\rho=\tfrac12\psi^{-4}\lvert\tilde\nabla\phi\rvert^2+\tfrac12\Pi^2+V(\phi),
-\qquad
-S_i=-\,\Pi\,\partial_i\phi,
-\label{eq:scalar_sources}
-\end{equation}
-the solver (in its \textsc{CTTKHybrid} variant) fixes the trace by
-$K^2=24\pi G\rho$ so the matter cancels in the Hamiltonian, then solves
-\begin{align}
-\tilde\nabla^2\psi &= -\tfrac18\,\bar A_{ij}\bar A^{ij}\,\psi^{-7},
-\label{eq:lichnerowicz}\\
-\bar A_{ij}=(\mathbb{L}V)_{ij},\quad
-\tilde\nabla^2 V_i+\tfrac13\partial_i(\tilde\nabla\!\cdot\!V)
-&=\psi^6\!\left(\tfrac23\partial_i K+8\pi G\,S_i\right),
-\label{eq:momentum_solve}
-\end{align}
-for the conformal factor $\psi$ and a vector potential $V_i$ whose longitudinal
-derivative $(\mathbb{L}V)_{ij}$ is the transverse-traceless $\bar A_{ij}$.  We
-\emph{modify the matter}; the solver returns the geometry.  The result is data
-that satisfies $\lVert H\rVert_{L^2},\lVert M_i\rVert_{L^2}\sim10^{-3}$--$10^{-4}$
-in full 3D---roughly $100\times$ tighter than the recipe---so the dynamics that
-are scored are physical rather than constraint-relaxation transients.
-
-\subsection{The \texttt{GRTresna}\,$\leftrightarrow$\,\texttt{GRTeclyn} bridge}
-
-Each optimizer evaluation now contains a nested elliptic solve.  A Python
-orchestrator writes the \texttt{GRTresna} parameter file, launches the MPI
-multigrid solve, and converts its Chombo HDF5 output into a compact binary
-(\texttt{.gridinit}) sampled on the target Cartesian grid; \texttt{GRTeclyn}
-ingests it through a new \texttt{ExternalGridInitialData} loader
-(\texttt{recipe\_initial\_data\_file}) and evolves it on the GPU.  No GRTeclyn
-evolution code is special-cased: it computes the same momentum density
-$j_i=-\Pi\,\partial_i\phi$ and evolves the full CCZ4\,+\,Klein--Gordon system, so
-the solved $\bar A_{ij}$ plus the $\Gamma$-driver shift develop the
-frame-dragging shift dynamically.  The heavy intermediate HDF5 is deleted after
-conversion, keeping a long conveyor search disk-bounded.
-
-\subsection{The scalar-lump matter basis}
-\label{sec:lumps}
-
-The matter configuration is a superposition of $K$ localized scalar-field
-\emph{lumps}.  Lump $k$ is a Gaussian-enveloped, optionally anisotropic profile
-\begin{equation}
-\phi_k(\vec x)=A_k\,a_{m_k}\!(\vec x)\,
-\exp\!\left[-\frac{\lvert\vec x-\vec c_k\rvert^2}{2w_k^2}\right],
-\label{eq:lump_phi}
-\end{equation}
-where $a_m$ is a Cartesian azimuthal factor ($a_0=1$; $a_1=\delta x/w$ dipole;
-$a_2=(\delta x^2-\delta y^2)/w^2$ quadrupole) chosen to avoid the $z$-axis
-coordinate singularity of $\cos m\varphi$.  The conjugate momentum is the
-convective derivative of a pattern boosted with velocity $\vec v_k$ and rigidly
-rotated about $z$ at rate $\omega_k$,
-\begin{equation}
-\Pi_k=-\,\vec v_k\!\cdot\!\tilde\nabla\phi_k\;-\;\omega_k\,\partial_\varphi\phi_k,
-\label{eq:lump_pi}
-\end{equation}
-so that via Eq.~\eqref{eq:scalar_sources} the configuration carries net linear
-momentum $P_i\sim v_i$ and (for $m\ge1$) net angular momentum $L_z\sim\omega$.
-Each lump therefore exposes eleven search dimensions---amplitude $A_k$, width
-$w_k$, center $\vec c_k$ (3), boost $\vec v_k$ (3), rotation $\omega_k$, integer
-azimuthal mode $m_k$, and an exotic flag (Sec.~\ref{sec:exotic_solver})---and the
-default $K=5$ basis spans a $55$-dimensional matter search.  The production
-search keeps the clouds compact (widths $1.5$--$4.5$ and centers within a small
-central box) so the optimizer learns localized matter configurations rather than
-painting the whole frame.  A superposition of
-lumps paints an essentially arbitrary energy/momentum distribution that the
-elliptic solve maps to a rich family of constraint-satisfying geometries
-($\chi$ wells plus momentum-driven $\bar A_{ij}$); two counter-moving lumps, for
-example, give a strong momentum/shear field with no bulk translation.  Black
-holes are disabled in the search configuration so the optimizer explores pure
-moving/rotating scalar clouds.
-
-\subsection{Parameter reduction by a structured ring ansatz}
-\label{sec:ring_ansatz}
-
-The fully free five-lump basis is expressive but expensive for CMA-ES.  With
-$K=5$ it exposes $55$ continuous/categorical coordinates, while each evaluation
-requires a full MPI elliptic solve and, for survivors, a GPU evolution.  In this
-regime CMA-ES can learn broad facts---for example that non-convergent exotic
-configurations are bad---but it wastes many samples distinguishing arbitrary
-translations, rotations, and permutations of essentially the same matter pattern.
-The optimization problem is therefore better posed in terms of coherent
-\emph{matter currents} than independent blobs.
-
-We introduced a reduced \texttt{ring} parameterization that searches a small set
-of global template variables and then deterministically expands them back into
-the same lump representation consumed by \texttt{GRTresna}.  For $K$ generated
-lumps, their angular positions are
-\begin{equation}
-    \vartheta_k=\Phi+\frac{2\pi k}{K},\qquad
-    \vec c_k =
-    R(\cos\vartheta_k,\sin\vartheta_k,0)
-    + z_0\sin(\vartheta_k-\Phi)\,\hat z ,
-    \label{eq:ring_centres}
-\end{equation}
-and their velocity is decomposed into radial, tangential, and vertical pieces,
-\begin{equation}
-    \vec v_k =
-    v_r\,\hat r_k + v_\varphi\,\hat\varphi_k
-    + v_z\cos(\vartheta_k-\Phi)\,\hat z .
-    \label{eq:ring_velocity}
-\end{equation}
-The amplitude and width are modulated by low Fourier modes,
-\begin{equation}
-    A_k=A_0\!\left[1+d\cos\vartheta_k+q\cos(2\vartheta_k)\right]_+,
-    \qquad
-    w_k=w_0\!\left[1+\tfrac14 q\sin(2\vartheta_k)\right]_+ ,
-    \label{eq:ring_modulation}
-\end{equation}
-with clipping to the same safe bounds as the free-lump search.  A separate
-exotic fraction and exotic phase choose which sector of the ring is phantom:
-the $N_{\rm exotic}\simeq f_{\rm ex}K$ lumps with largest
-$\cos(\vartheta_k-\Phi_{\rm ex})$ are assigned the exotic sign.  The remaining
-searched variables are the shared internal rotation $\omega$ and azimuthal mode
-$m$.
-
-Thus the default matter-first search now uses fourteen parameters:
+The search problem is deliberately operational.  A useful candidate must be
+non-trivial, approximately constraint-satisfying, dynamically stable for more
+than a short smoke window, and faster than a flat control according to a probe
+that is not merely reading off a gauge artifact.  The loop is
 \[
-\{A_0,w_0,R,z_0,\Phi,v_\varphi,v_r,v_z,\omega,
-f_{\rm ex},\Phi_{\rm ex},d,q,m\},
+\theta \rightarrow \hbox{initial data}
+\rightarrow \texttt{GRTeclyn}
+\rightarrow \hbox{diagnostics}
+\rightarrow S(\theta),
 \]
-instead of the $11K=55$ free-lump coordinates.  The reduction is not a loss of
-the physical ingredients we need: the ansatz still contains compact scalar
-matter, angular momentum, counterflow/shear, localized exotic support, and
-dipole/quadrupole asymmetry.  It merely ties together degrees of freedom that
-are related by an approximate rotating-ring symmetry.  In physical terms, the
-optimizer searches for a rotating or shearing scalar-current loop---possibly
-with an exotic sector on one side---rather than a cloud of unrelated matter
-blobs.  This keeps the downstream physics unchanged (the expanded
-\texttt{cfg.lumps} are passed through the same elliptic solve and GPU evolution)
-while giving CMA-ES a far lower-dimensional landscape to learn.
-
-\subsection{From a planar ring to a full-sphere discovery ansatz}
-\label{sec:shell_ansatz}
-
-The ring of Eq.~\eqref{eq:ring_centres} is a strong, deliberately chosen prior:
-its centres lie on a single equatorial circle (plus a small $z_0$ wobble), so it
-is efficient \emph{refinement} for one physically motivated family---a rotating
-matter-current loop, whose tangential flow sources the angular momentum and
-frame-dragging ``motor'' that the dipole winner of Sec.~\ref{sec:results} was
-missing.  But because we do not know \emph{a priori} what an FTL configuration
-looks like, a prior that cannot leave one plane is a poor \emph{discovery} tool:
-it structurally excludes matter or currents distributed elsewhere on the
-$2$-sphere (axial dipoles, shells, obliquely oriented loops).
-
-We therefore add a complementary \texttt{shell} ansatz that retains the same
-low-dimensional, current-based philosophy but covers the full sphere.  The $K$
-lumps are placed on a deterministic Fibonacci lattice and rigidly rotated to a
-searched orientation axis $\hat a(\theta_a,\varphi_a)$, and the matter current is
-decomposed into the two families a sphere supports---a \emph{toroidal} component
-circulating about $\hat a$ (net angular momentum $L_{\hat a}$) and a
-\emph{poloidal} component flowing over the poles:
-\begin{equation}
-    \vec v_k = v_r\,\hat r_k + v_t\,\frac{\hat a\times\hat r_k}{\lvert\hat a\times\hat r_k\rvert}
-    + v_p\,\bigl(\hat t_k\times\hat r_k\bigr),
-    \label{eq:shell_velocity}
-\end{equation}
-with amplitude and width modulated along the axis by low Legendre orders
-$P_1,P_2$ and a longitudinal exotic wedge.  This adds only two coordinates over
-the ring ($16$ versus $14$) while making the planar ring a strict
-thin-equatorial-band limit ($v_p\!\to\!0$, $\hat a\!=\!\hat z$).  The intended
-workflow is hierarchical and matches the discrete/continuous decomposition of
-Sec.~\ref{sec:search_loop}: the broad \texttt{shell}/\texttt{free} bases (and the
-MAP-Elites driver) \emph{discover} candidate families across the sphere, and the
-reduced \texttt{ring} then \emph{refines} a chosen family cheaply.  Crucially the
-expensive part is unchanged---every ansatz expands to the same \texttt{cfg.lumps}
-consumed by the identical elliptic solve and GPU evolution---so broadening
-coverage costs optimizer dimensions, not solver complexity.
-
-\subsection{What the elliptic solve adds to the search}
-
-Relative to the geometry-first recipes, the matter-first path contributes three
-genuinely new ingredients.  (i) \emph{Momentum density.}  The recipe has
-$S_i=0$; the momentum constraint Eq.~\eqref{eq:momentum_solve} solves for
-$S_i=-\Pi\,\partial_i\phi\neq0$, the source of matter-momentum-driven frame
-dragging---a distinct, physically grounded operational-FTL axis that was simply
-absent from the search space before.  (ii) \emph{Constraint-correct
-non-spherical structure.}  Because the Hamiltonian is solved in 3D rather than
-along a 1D ray, directional structure in $\chi$ and $\bar A_{ij}$ no longer
-reintroduces off-axis constraint error.  (iii) \emph{Trustworthy dynamics.}  The
-$\sim100\times$ lower initial constraint error suppresses the junk gravitational
-radiation that otherwise contaminates the stability and growth-rate metrics.
-
-\subsection{Exotic matter and the maximal-slicing solver}
-\label{sec:exotic_solver}
-
-A persistent FTL channel generically needs \emph{exotic} matter ($\rho<0$, an
-NEC violation), but the \textsc{CTTK} family is structurally positive-energy: the
-trace fix $K=\mathrm{sgn}\,\sqrt{24\pi G\rho+\dots}$ has a negative argument
-wherever $\rho<0$, so any non-trivial exotic source yields $K\in\mathbb C$ and
-the solve returns \texttt{NaN}.  We added (a) a per-lump phantom flag---an
-independent-field stress tensor in which an exotic lump's kinetic and momentum
-contributions enter Eq.~\eqref{eq:scalar_sources} with a flipped sign, so a
-configuration can mix normal and exotic lumps---and (b) a \emph{maximal-slicing}
-($K=0$) path that, instead of absorbing the matter into $K$, sources it
-elliptically:
-\begin{equation}
-\tilde\nabla^2\psi=-2\pi G\rho\,\psi^5-\tfrac18\bar A_{ij}\bar A^{ij}\,\psi^{-7},
-\label{eq:maximal_slicing}
-\end{equation}
-solved by an under-relaxed Newton iteration with a $\psi>0$ floor for the
-resulting indefinite operator.  To make this indefinite solve survive adaptive
-mesh refinement we add three multilevel safeguards: (i) the matter contribution
-to the Newton Jacobian is capped and $\psi$ is floored finite and positive, so a
-single bad cell cannot poison the multigrid $V$-cycle; (ii) coefficient
-coarsening switches from harmonic to \emph{arithmetic} averaging, which stays
-well defined where the sign-changing $a$-coefficient straddles zero across a
-coarse--fine face; and (iii) refinement tagging keys on $\lvert\rho\rvert$ so
-negative-energy regions are refined rather than cancelled by neighbouring
-positive matter.  The result is correct and robust \emph{under full AMR}:
-canonical matter reproduces the standard path, a single isolated exotic lump
-converges to finite constraint-satisfying data where the old solver gave only
-\texttt{NaN}, and---most importantly---the production failure mode (three
-overlapping lumps, mixed canonical/exotic, angular mode $m=1$, \texttt{max\_level}
-$=3$) now converges cleanly: across the canonical, isolated-exotic, and mixed
-\texttt{max\_level}$=3$ smoke solves the Hamiltonian/momentum residuals are
-$0.0056\%/0.025\%$, $0.099\%/0.027\%$, and $0.058\%/0.029\%$ respectively, with
-no \texttt{NaN}.  A sharp residual cliff at high exotic amplitude marks the
-Lichnerowicz/York \emph{existence boundary}: beyond a critical negative-energy
-density no asymptotically-flat constraint-satisfying solution exists, a physical
-rather than numerical limit.
-
-\subsection{Closed-loop controls and clean-search result}
-\label{sec:grtresna_loop_result}
-
-The matter-first loop is now the production path rather than a deferred item.
-Each candidate follows
-\begin{equation}
-\theta_{\rm matter}\rightarrow\texttt{GRTresna}\rightarrow
-\texttt{.gridinit}\rightarrow\texttt{GRTeclyn}\rightarrow S(\theta),
-\end{equation}
-where the optimizer sees eleven variables per lump and a five-lump basis by
-default in the fully free mode, the fourteen ring-template variables of
-Sec.~\ref{sec:ring_ansatz} in the reduced refinement mode, or the sixteen
-full-sphere \texttt{shell} variables of Sec.~\ref{sec:shell_ansatz} in the
-discovery mode.  Exotic candidates are routed
-onto the hardened $K=0$ path, while purely
-canonical candidates may retain the trace-absorption path.  The search objective
-is FTL-first: evolved operational FTL and the local cone-tilting precursor are
-ranked ahead of health terms, while random and forced-exotic injections prevent
-CMA-ES from collapsing too early to one matter pattern.
-
-The essential numerical control is a \emph{GRTresna quality gate}.  If the
-elliptic solve returns missing, non-finite, or large Hamiltonian/momentum
-residuals, the candidate is rejected before the GPU evolution.  The rejection is
-not a flat score: its fitness penalty grows with the Ham/Mom residuals, so CMA-ES
-can learn that a marginally nonconverged solve is less bad than a \texttt{NaN} or
-\texttt{Ham}=100\% candidate.  This removed the earlier failure mode in which
-nonconverged initial data could still produce a misleading high FTL score after
-\texttt{GRTeclyn} crashed at the first step.
-
-A clean gated 8-GPU search
-(\texttt{runs/grtresna\_search/optimize\_20260602T181607Z}) produced 88 proposed
-candidates before being stopped for inspection: 54 completed GPU evolutions and
-26 bad \texttt{GRTresna} solves were rejected before evolution.  The best
-candidate, \texttt{eval\_000063}, used three exotic lumps out of five and
-converged in \texttt{GRTresna} with Ham/Mom residuals
-$0.1676\%/0.0048\%$.  It showed no initial/static shortcut
-($F_{\rm shortcut}=0$), but after evolution the operational probe found
-\[
-F_{\rm op}^{\rm ev}=0.0461,\qquad
-\max c_{\rm coord}=1.0888,\qquad
-t_{\min}=15.024<t_{\rm flat}=15.75 .
-\]
-Thus the current matter-first search has found a compact exotic-matter
-configuration with a genuine evolved coordinate-superluminal channel.  This is a
-promising FTL precursor, not yet a claimed physical warp drive: the candidate
-still requires deterministic replay, longer evolution, and resolution
-convergence before promotion.
-
-%%====================================================================
-%%  SECTION 5 : SCORE COMPONENTS AND WHY THEY MATTER
-%%====================================================================
-\section{Score Components and Why They Matter}
-\label{sec:scoring}
-
-The central challenge is to discover spacetime metrics that exhibit specific physical qualities: effective FTL shortcuts, dynamical stability, bounded tidal forces, and minimal exotic matter.  The score function must reward these qualities while ensuring that trivial Minkowski spacetime---which is perfectly stable and constraint-clean---does not dominate the search.  This section defines every component of the scoring objective in one place.
-
-\subsection{Bounded reward and total score}
-
-Each raw diagnostic value $v_k$ (such as a constraint norm, a growth rate, or an exotic-matter integral) is mapped to a bounded reward $s_k \in [0,1]$ via
-\begin{equation}
-    s_k = r(v_k;\,\sigma_k) = \frac{1}{1 + v_k/\sigma_k},
-    \label{eq:bounded_reward}
-\end{equation}
-where $v_k \ge 0$ is the diagnostic value (lower is better for penalties) and $\sigma_k$ is a characteristic scale that controls sensitivity---when $v_k = \sigma_k$, the reward is exactly $\tfrac{1}{2}$.  The total score is the weighted sum
-\begin{equation}
-    S(\theta) = \sum_{k} w_k\,s_k(\theta).
-\end{equation}
-This mapping keeps every component in $[0,1]$ regardless of physical units, while the weights $w_k$ (Table~\ref{tab:score_weights}) set the relative importance.
-
-\subsection{FTL shortcut metrics}
-
-Three independent shortcut indicators are evaluated on the $x$-axis from the $t=0$ profiles.
-
-\paragraph{Warp null-ray shortcut.}
-For conformally flat slices, an axial null ray has coordinate speed $dx/dt = \alpha(x)\sqrt{\chi(x)} - \beta^x(x)$, giving travel time
-\begin{equation}
-    T_{\rm curved} = \int_{-L}^{L}\frac{dx}{\alpha\sqrt{\chi}-\beta^x}, \qquad
-    T_{\rm flat} = 2L,
-\end{equation}
-and reward
-\begin{equation}
-    F_{\rm null} = \max\!\left(0,\,\frac{T_{\rm flat}-T_{\rm curved}}{T_{\rm flat}}\right).
-\end{equation}
-Paths below a coordinate-speed floor are rejected.
-
-\paragraph{Portal proper-distance shortcut.}
-The portal-like compression reward is
-\begin{align}
-    D_{\rm proper}
-    &= \int_{-L}^{L}\chi^{-1/2}(r)\,dr, \notag\\
-    F_{\rm portal}
-    &= \max\!\left(0,\,\frac{2L-D_{\rm proper}}{2L}\right).
-\end{align}
-
-\paragraph{Wormhole throat pinch.}
-The throat reward compares an interior areal-radius minimum to the asymptotic radius:
-\begin{equation}
-    F_{\rm throat} = \max\!\left(0,\,1-\frac{R_{\rm min}}{R_{\rm asymp}}\right).
-\end{equation}
-
-\paragraph{Anti-flatness gate and combined FTL objective.}
-The anti-flat gate ensures only non-trivial geometries score:
-\begin{equation}
-    s_{\rm nonflat} = \min\!\left(1,\,\frac{\max|\chi-1|+\max|\beta^x|}{\tau}\right),
-\end{equation}
-with scale $\tau\sim0.08$, giving
-\begin{equation}
-    F_{\rm FTL} = \max(F_{\rm null},F_{\rm portal},F_{\rm throat})\cdot s_{\rm nonflat}.
-\end{equation}
-
-\paragraph{Nat\'{a}rio--Alcubierre expansion asymmetry.}
-For a warp-like contraction-ahead/expansion-behind pattern:
-\begin{equation}
-    F_{\rm asymmetry} = \max\!\left(0,\, \frac{\int_{x > 0} -\theta(\mathbf{x})\,d^3x + \int_{x < 0} \theta(\mathbf{x})\,d^3x}{\int |\theta(\mathbf{x})|\,d^3x + \epsilon_{\theta}} \right).
-\end{equation}
-The implemented 1D evaluator reduces these integrals to trapezoidal sums along the travel axis.
-
-\paragraph{Logarithmic FTL amplification.}
-Weak shortcuts are log-amplified so even a few-percent shortcut becomes optimizer-visible:
-\begin{equation}
-    F_{\rm log} = \frac{\ln(1 + \eta F_{\rm FTL})}{\ln(1 + \eta)},
-    \label{eq:f_log}
-\end{equation}
-with $\eta\approx100$.  The optimizer uses $F_{\rm log}$ rather than raw $F_{\rm FTL}$.
-
-\paragraph{Operational probe FTL.}
-A major risk is gauge-driven fake FTL.  High-scoring candidates must therefore pass an operational arrival-time test against a flat control on the same grid, with no trapped-surface crossing and bounded constraints:
-\begin{equation}
-    F_{\rm op} = \frac{t_B^{\rm flat} - t_B^{\rm curved}}{t_B^{\rm flat}},
-    \label{eq:f_op}
-\end{equation}
-accepted only when constraints remain bounded and no trapped surface is crossed.
-
-\subsection{Health and stability metrics}
-
-\paragraph{Co-moving stability.}
-Eulerian stability penalizes moving bubbles, so stability is estimated in a co-moving frame.  The average axial shift is
-\begin{equation}
-    \langle \beta^x \rangle = \frac{1}{V_{\rm bubble}} \int_{\rm bubble} \beta^x(\mathbf{x})\,d^3x,
-\end{equation}
-and the co-moving budget is
-\begin{align}
-    \Delta_{\rm comoving}
-    &= \frac{\max_t \left| \partial \chi / \partial t \right|}
-            {\max(|\langle \beta^x \rangle|,\,10^{-3})}, \notag\\
-    s_{\rm comoving}
-    &= \frac{1}{1 + \Delta_{\rm comoving}}.
-    \label{eq:s_comoving}
-\end{align}
-For stationary throats or portals with negligible shift, the scorer falls back to Eulerian stability.
-
-\paragraph{Dynamical stability and geometry growth.}
-Short runs can survive while already focusing toward collapse.  We therefore score geometry growth explicitly.  For each diagnostic $q$ (from $\alpha_{\min}$, $\chi_{\min}$, $|K|_{\max}$, $r_H$, $R_{\rm areal}$), fractional violation terms are
-\begin{align}
-    \Delta q_{\rm grow}
-    &\equiv \frac{\max_t q(t) - q(0)}
-            {\max\!\bigl(|q(0)|,\,q_{\rm floor}\bigr)}, \notag\\
-    \Delta q_{\rm drop}
-    &\equiv \frac{q(0) - \min_t q(t)}
-            {\max\!\bigl(|q(0)|,\,q_{\rm floor}\bigr)},
-\end{align}
-with terms clipped to $\ge0$.  The implemented indicators are:
-\begin{align}
-    \Delta_K &\equiv \Delta\bigl(|K|_{\max}\bigr)_{\rm grow}
-    \quad\text{with } q_{\rm floor} = 10^{-1}, \label{eq:delta_k}\\
-    \Delta_\alpha &\equiv \Delta\bigl(\alpha_{\min}\bigr)_{\rm drop}
-    \quad\text{with } q_{\rm floor} = 10^{-6}, \label{eq:delta_alpha}\\
-    \Delta_\chi &\equiv \Delta\bigl(\chi_{\min}\bigr)_{\rm drop}
-    \quad\text{with } q_{\rm floor} = 10^{-8}, \label{eq:delta_chi}\\
-    \Delta_{r_H} &\equiv \Delta\bigl(r_H\bigr)_{\rm grow}
-    \quad\text{with } q_{\rm floor} = 1, \label{eq:delta_rh}\\
-    \Delta_{R_{\rm areal}} &\equiv \max_t \frac{\bigl|R_{\rm areal}(t) - R_{\rm areal}(0)\bigr|}{\max\!\bigl(|R_{\rm areal}(0)|,\,10^{-8}\bigr)}. \label{eq:delta_areal}
-\end{align}
-The geometry-change budget $\Delta_{\rm geom} = \Delta_K + \Delta_\alpha + \Delta_\chi + \Delta_{r_H} + \Delta_{R_{\rm areal}}$ gives the stability reward
-\begin{equation}
-    s_{\rm stability} = r(\Delta_{\rm geom};\,1) = \frac{1}{1 + \Delta_{\rm geom}}.
-    \label{eq:s_stability}
-\end{equation}
-Higher is better; $s_{\rm stability}<0.25$ is treated as a promotion failure.  A good equilibrium should approach $s_{\rm stability}\gtrsim0.8$.
-
-\paragraph{Constraint growth rate.}
-Late-time diagnostics are fit to $q(t)\sim q_0 e^{\lambda t}$ and the worst growth is penalized:
-\begin{equation}
-    \begin{aligned}
-    s_{\rm growth}
-    &= r\!\left(\max(0,\lambda_{\rm eff});\,\sigma_\lambda\right),\\
-    \lambda_{\rm eff}
-    &= \max\!\bigl(\lambda_{\|H\|},\,\lambda_{|K|_{\max}},\,\lambda_{1/\chi_{\min}}\bigr),
-    \end{aligned}
-    \label{eq:s_growth}
-\end{equation}
-with $\sigma_\lambda=0.5$.
-
-\subsection{Risk penalties}
-
-\paragraph{ANEC line proxy.}
-The required energy is integrated along the travel axis:
-\begin{equation}
-    \begin{aligned}
-    \mathcal{A}_{\rm line}
-    &= \int_{-L}^{L}\rho_{\rm req}(x)\,dx,\\
-    s_{\rm anec}
-    &= r\!\left(\max(0,-\mathcal{A}_{\rm line});\,\sigma_{\mathcal A}\right),
-    \end{aligned}
-    \label{eq:anec_line}
-\end{equation}
-with $\rho_{\rm req}=(R+\tfrac{2}{3}K^2)/16\pi$ and $\sigma_{\mathcal A}=0.1$.  The full averaged null energy condition target is
-\begin{equation}
-    \mathcal{A} = \int_\gamma T_{\mu\nu}\,k^\mu k^\nu\,d\lambda,
-    \label{eq:anec}
-\end{equation}
-which requires the evolved probe and a local tetrad.
-
-\paragraph{Tidal proxy.}
-$T_{\rm tidal}=\max_x|R(x)|+\max_x|\partial_x^2\alpha(x)|$, combined with a $t=0$ trapped-surface flag until full 4-curvature diagnostics are available.
-
-\paragraph{Other risk terms.}
-The score also includes $s_{\rm horizon}$ (penalizing trapped-surface formation), $s_{\rm EC}$ (penalizing energy-condition violations from the evolved stress-energy), and $s_{\rm exotic}^{\rm eff}$ (a Hawking--Ellis/Type-I hybrid margin from the evolved 4-metric following \textsc{warpax}~\cite{le2026warpax}, computed with fourth-order finite differences~\cite{lousto2006fourth}).
-
-\subsection{The non-triviality gate}
-
-Flat Minkowski spacetime scores perfectly on every health metric.  To prevent it from dominating, health rewards are multiplied by a non-triviality gate:
-\begin{equation}
-    \begin{aligned}
-    g_{\rm nt} = \min\!\Bigl(1,\ \max\bigl(&s_{\rm nonflat},\,F_{\rm asymmetry},\,s_{\rm nontrivial},\\
-    &F_{\rm curv},\,F_{\rm op},\,F_{\rm log},\,s_{\rm exotic}^{\rm eff}\bigr)\Bigr)\in[0,1].
-    \end{aligned}
-\end{equation}
-The health rewards $\mathcal{H}$ are gated, while FTL/exoticity terms remain ungated:
-\begin{equation}
-    S(\theta) = g_{\rm nt}(\theta)\!\!\sum_{k\in\mathcal{H}}\!\! w_k s_k(\theta)\ +\!\!\sum_{k\notin\mathcal{H}}\!\! w_k s_k(\theta).
-    \label{eq:gated_score}
-\end{equation}
-With this gate, flat Minkowski drops to $S=0$ while structured reference geometries keep their original scores.  Unavailable diagnostics contribute zero, so legacy episodes re-score consistently.
-
-\begin{table*}[t]
-\caption{Compact score-weight summary.  Components are inactive when their diagnostics are unavailable.}
-\label{tab:score_weights}
-\small
-\begin{ruledtabular}
-\begin{tabular}{lp{0.72\textwidth}}
-Group & Weights \\
-\hline
-FTL value & $5F_{\rm log}+2F_{\rm asymmetry}+s_{\rm nonflat}+3F_{\rm op}$ \\
-Health & $1.5s_{\rm survival}+2s_{\rm constraints}+s_{\rm lapse}+2.5s_{\rm comoving}+0.5s_{\rm stability}$ \\
-Risk penalties & $1.5s_{\rm horizon}+2s_{\rm EC}+2s_{\rm growth}+1.5s_{\rm anec}+s_{\rm tidal}$ \\
-Evolved geometry & $0.5F_{\rm curv}+1.5s_{\rm exotic}^{\rm eff}$ \\
-\end{tabular}
-\end{ruledtabular}
-\end{table*}
-
-\subsection{Constraint-satisfying recipe}
-
-For the conformally flat recipe ($\tilde\gamma_{ij}=\delta_{ij}$, $A_{ij}=0$), the constraints reduce to
-\begin{align}
-    R[\chi] + \tfrac{2}{3}K^2 &= 16\pi\rho, \label{eq:ham_recipe} \\
-    -\tfrac{2}{3}D^i K &= 8\pi j^i. \label{eq:mom_recipe}
-\end{align}
-With $\Pi=0$, the momentum constraint requires spatially constant $K$; the scalar field $\phi$ is then derived from $\chi$ to reduce Hamiltonian violation.  The pipeline consists of \texttt{constrained\_recipe.py} (derive $\phi$ from $\chi$ with $K=\mathrm{const}$, $\Pi=0$), \texttt{preflight.py} (reject large residuals or negative $\chi$ before GPU launch), and \texttt{RadialRecipeLevel.cpp} (write $\rho_{\rm req}$ and constraint diagnostics).
-
-A test suite passes \textbf{74/74 assertions}: flat space remains exact, $K=\mathrm{const},\Pi=0$ drives $\|M_i\|_{L^2}=0$, pathological inputs are rejected, and constrained overrides usually reduce $\|H\|_{L^2}$.  On 27 synthetic profiles, the batch harness finds 7 \texttt{accepted\_phantom}, 19 \texttt{rejected\_exotic\_energy}, and 1 \texttt{rejected\_negative\_chi}.
-
-The first symmetry-breaking extension adds axisymmetric deformations,
-\begin{equation}
-    \chi(r,\theta) = \chi_0(r) + \sum_a A_a\,e^{-(r-r_a)^2/2w_a^2}\,P_{\ell_a}(\cos\theta),
-\end{equation}
-with a ray check to ensure $\chi>0$.
-
-%%====================================================================
-%%  SECTION 6 : RESULTS
-%%====================================================================
-\section{Results}
-\label{sec:results}
-
-\subsection{Reference seed validation}
-
-The FTL scoring formulas were validated on analytical reference seeds at $L=8$.  Flat Minkowski scores $F_{\rm FTL}=0$ across all channels.  The logarithmic amplification makes subluminal Alcubierre signals optimizer-visible ($F_{\rm log}=0.43$--$0.57$ for $v=0.3$--$0.8$), while Ellis--Bronnikov and Schwarzschild score through the throat and proper-distance channels ($F_{\rm FTL}>0.87$) even with $F_{\rm null}=0$.  On the risk side, Alcubierre seeds have zero ANEC violation and zero tidal curvature at $t=0$ (pure-shift warp), whereas Ellis--Bronnikov and Schwarzschild carry large axis exotic-energy integrals ($\mathcal{A}_{\rm line}=-6.6$ and $-2.4$) and trapped-surface flags.
-
-\subsection{GPU smoke validation}
-
-Short $t=2$ GPU runs at $N_{\rm full}=64$ validated the end-to-end pipeline.  Three spherical candidates survived with controlled 3D constraint norms ($\|H\|_{L^2}\le 0.042$), confirming that the 1D pre-flight is conservative.  Stability scores ranged from $s_{\rm stability}=0.30$ (Ellis--Bronnikov) to $0.68$ (bubble-wall profile).  Extended $t=5$ tests promoted Ellis--Bronnikov and the bubble-wall seed to the resolution ladder.
-
-\subsection{Non-spherical candidates}
-
-All seven ray-sane non-spherical candidates (dipole, quadrupole, mixed-mode, and random angular deformations) survived short GPU evolution with controlled constraints ($\|H\|_{L^2}\le 0.014$, $s_{\rm stability}\approx 0.44$--$0.51$).  However, these $\chi$-only angular deformations produce strong expansion asymmetry ($F_{\rm asym}\approx 0.99$) but zero axial null shortcut ($F_{\rm log}=0$).  Angular $\chi$ deformations plateau on asymmetry alone; shift-enabled warps are needed to exceed flat space.
-
-\begin{figure*}[t]
-    \centering
-    \begin{minipage}{0.48\textwidth}
-        \centering
-        \includegraphics[width=\linewidth,height=0.32\textheight,keepaspectratio]{figures/random_000.png}
-    \end{minipage}\hfill
-    \begin{minipage}{0.48\textwidth}
-        \centering
-        \includegraphics[width=\linewidth,height=0.32\textheight,keepaspectratio]{figures/dipole_lopsided_000.png}
-    \end{minipage}
-    \caption[Metric-guesser validation examples]{\textbf{Metric-guesser validation examples.} Left: accepted phantom random candidate, showing guessed stretch $a(r)=\chi^{-1/2}$, stored $\chi(r)$, derived scalar $\phi(r)$, and required energy density $\rho_{\rm req}(r)$; it is numerically constructible but accepted only in the phantom/exotic-matter class because $\rho_{\rm req}<0$ in places. Right: accepted non-spherical dipole candidate; the $\ell=1$ mode makes the geometry lopsided while $\chi$ stays positive throughout the ray check.}
-    \label{fig:random000}
-    \label{fig:nonspherical_dipole}
-\end{figure*}
-
-\subsection{Stability and growth analysis}
-
-At $t=2$, the upgraded FTL scoring resolves the flat-space attractor: Alcubierre $v=0.5$ ($S=10.08$) narrowly outranks flat Minkowski ($S=10.00$) because $F_{\rm log}$ and $s_{\rm comoving}$ offset the Eulerian stability penalty, while Ellis--Bronnikov scores highest ($S=10.84$) through its throat channel.
-
-However, every short-run survivor still has positive exponential growth rate $\lambda_{\rm eff}$, ranging from $0.29$ (random seeds) to $1.02$ (Ellis--Bronnikov), exposing the central stability gap: short-run survival does not imply long-term equilibrium.  The first full-domain AMR CMA-ES campaign confirmed this---all top candidates had $s_{\rm stability}<0.09$, showing that the optimizer exploits the short stop time rather than finding genuinely stable geometries.  This motivates the $s_{\rm growth}$ penalty and longer-run validation below.
-
-\subsection{Longer-run validation}
-
-Longer $t=16$ runs (Table~\ref{tab:longrun_validation}) test the exotic scalar matter fix and evolved operational FTL probe beyond the smoke window.  Three main implications emerge.  First, the exotic field produces the expected matter NEC violations for Ellis--Bronnikov and mild non-spherical phantom candidates.  Second, effective energy-condition evaluation of $T^{\rm eff}_{\mu\nu}=G_{\mu\nu}/8\pi$ recovers the geometric exotic energy of shift-driven Alcubierre data even when scalar-matter NEC is zero.  Third, evolved-frame FTL is essential: Alcubierre's initial shortcut decays, while Ellis--Bronnikov develops an evolved shortcut absent on the $t=0$ slice.  The gated objective removes flat Minkowski ($S=0$) without changing structured candidates.
-
-\begin{table*}[t]
-\caption{Longer-run validation ($t=16$, $N_{\rm full}=64$, $L=8$, H100) with the gated objective (Eq.~\ref{eq:gated_score}).  $F_{\rm op}^{0}$/$F_{\rm op}^{\rm ev}$ are the operational FTL benefits on the $t=0$ slice and the evolved plotfile; $\mathrm{NEC}^{\rm mat}$ is the minimum matter null-energy margin over the run (negative $=$ violation); $g_{\rm nt}$ is the non-triviality gate.  $S$ is the gated total: flat Minkowski collapses to $0$ while every non-trivial geometry is unchanged.  All reference runs use constrained phantom initial data.}
-\label{tab:longrun_validation}
-\small
-\begin{ruledtabular}
-\begin{tabular}{lccccccc}
-Example & survival & $s_{\rm stab}$ & $F_{\rm op}^{0}$ & $F_{\rm op}^{\rm ev}$ & $\mathrm{NEC}^{\rm mat}$ & $g_{\rm nt}$ & $S$ \\
-\hline
-Flat Minkowski            & 1.00 & 1.00 & 0      & ---    & $0$      & 0.0 & \textbf{0.0} \\
-Alcubierre $v=0.5$        & 1.00 & 0.02 & 0.096  & 0.0005 & $0$      & 1.0 & \textbf{14.9} \\
-Ellis--Bronnikov ($N{=}16$) & 0.80 & 0.08 & 0    & 0.042  & $-0.62$  & 1.0 & 12.8 \\
-\texttt{quadrupole\_bubble\_001} & 1.00 & 0.18 & 0 & 0.0095 & $-0.013$ & 1.0 & 10.5 \\
-Schwarzschild puncture    & 0.29 & 0.00 & 0      & ---    & $-0.91$  & 1.0 & 9.7  \\
-\end{tabular}
-\end{ruledtabular}
-\end{table*}
-
-\subsection{Search optimization}
-
-Beyond CMA-ES, two complementary strategies were tested.  A surrogate-assisted RBF kernel-ridge model pre-screens proposals, skipping 27\% of GPU evaluations in one 8-GPU run while retaining the best score.  MAP-Elites over FTL benefit and exoticity produces a diverse failure atlas (7 distinct elites from 40 evaluations on a $6{\times}6$ grid, scores $S=9.9$--$12.5$) rather than a single optimum.  Pareto extraction over $(F_{\rm FTL},s_{\rm anec},s_{\rm growth},s_{\rm tidal})$ exposes trade-offs hidden by scalar weights.
-
-\subsection{The dipole metric: gauge-angular search winner}
-
-Because angular $\chi$ deformations cannot be made constraint-consistent by a 1D solve, we opened the gauge sector: $\alpha$ and $\beta^i$ carry Legendre modes with $\ell\in\{1,2\}$ and searchable radial centers/widths, giving a 21-parameter gauge-angular space.  An 8-GPU campaign found evolved superluminal channels at $\int\!\rho_{-}\,dV\approx0.13$--$0.17$, a factor $2$--$5$ below spherical persistent-FTL candidates.
-
-The three top-ranked candidates of the campaign and the long-run validation of the best are compared against the reference solutions by gated score $S$ in Table~\ref{tab:score_comparison}.  The top candidate, \texttt{eval\_000188}, was promoted and re-evolved to $t=16$ at $N_{\rm full}=192$, \texttt{max\_level=2} (Fig.~\ref{fig:rho_req}).  The validated geometry is a standing Alcubierre-like $\chi$ dipole, not a translating bubble: the evolved channel persists weakly ($\max c:2.67\!\to\!1.32$, $F_{\rm op}^{\rm ev}=5.6\times10^{-3}$, $51\%$ of the path superluminal), constraints stay clean and decreasing ($\|H\|_{L^2}:1.1\times10^{-3}\!\to\!4.2\times10^{-4}$, $\|M\|_{L^2}^{\rm fin}=3.6\times10^{-5}$), and the required exotic matter stays small and concentrated in a single localized core at the compression lobe ($\int\rho_-\,dV=0.13$, $\min\rho_{\rm req}\approx-1.0\times10^{-3}$, ANEC line $-6.6\times10^{-3}$; Fig.~\ref{fig:rho_req}), though a near-trapped flag appears in the compressed lobe ($\min\theta_+=-0.11$).
-
-\begin{table*}[t]
-\caption{Candidates ranked by the gated objective $S$ (Eq.~\ref{eq:gated_score}).  The three top gauge-angular search winners (Tier-1, $t=2$, $N_{\rm full}=64$) and the high-quality long-run validation of the best ($t=16$, $N_{\rm full}=192$) are compared to the reference seeds ($t=16$, $N_{\rm full}=64$).  $\int\rho_-\,dV$ is the integrated required negative-energy density (geometric requirement from the vacuum Hamiltonian, Eq.~\ref{eq:rho_req}; for the dipole winner it is a single localized core, Fig.~\ref{fig:rho_req}); $\max c$ is the peak coordinate light speed on the initial slice; $F_{\rm op}^{\rm ev}$ is the evolved (persistence) operational-FTL benefit.  The Tier-1 search $S$ is evaluated over a short window and is therefore optimistic relative to the long-time value---the validated $t=16$ row ($S=16.75$) is the fair comparison with the seeds, and it still outscores Alcubierre.  The non-spherical winners use \emph{normal} matter ($\rho\ge0$ constrained solve) with low residual exotic content; the reference wormhole/puncture seeds use phantom (exotic) initial data, and Alcubierre's matter sector is clean ($\int\rho_-\approx0$) with its exoticity living in the geometry (effective EC).}
-\label{tab:score_comparison}
-\small
-\begin{ruledtabular}
-\begin{tabular}{llccccc}
-Candidate & $t\,/\,N_{\rm full}$ & $\int\rho_-\,dV$ & $\max c$ & $F_{\rm op}^{\rm ev}$ & $S$ \\
-\hline
-\multicolumn{6}{l}{\textit{This work --- gauge-angular non-spherical search (Tier-1)}}\\
-\texttt{eval\_000188} & $2\,/\,64$ & $0.134$ & $2.67$ & $0.014$ & \textbf{18.30}\\
-\texttt{eval\_000183} & $2\,/\,64$ & $0.130$ & $2.53$ & $0.014$ & $17.59$\\
-\texttt{eval\_000170} & $2\,/\,64$ & $0.137$ & $2.28$ & $0.008$ & $17.47$\\
-\hline
-\multicolumn{6}{l}{\textit{This work --- long-run validation of the winner}}\\
-\texttt{eval\_000188} & $16\,/\,192$ & $0.134$ & $2.67\!\to\!1.32$ & $0.0056$ & $16.75$\\
-\hline
-\multicolumn{6}{l}{\textit{Reference solutions ($t=16$, constrained)}}\\
-Alcubierre $v=0.5$ & $16\,/\,64$ & $\approx0$ & $1.50$ & $5\times10^{-4}$ & $14.9$\\
-Ellis--Bronnikov & $16\,/\,64$ & phantom & $1.00$ & $0.042$ & $12.8$\\
-\texttt{quadrupole\_bubble\_001} & $16\,/\,64$ & phantom & $1.00$ & $0.0095$ & $10.5$\\
-Schwarzschild puncture & $16\,/\,64$ & phantom & $1.00$ & --- & $9.7$\\
-Flat Minkowski & $16\,/\,64$ & $0$ & $1.00$ & --- & \textbf{0.0}\\
-\end{tabular}
-\end{ruledtabular}
-\end{table*}
-
-Even after honest long-time validation (Table~\ref{tab:score_comparison}), the dipole metric achieves a gated total $S=16.75$, outperforming both Alcubierre $v=0.5$ ($S=14.9$) and Ellis--Bronnikov ($S=12.8$) evaluated on the same $t=16$ window.  Crucially, it accomplishes this with an exotic-matter cost of $\int\rho_{-}\,dV=0.13$ on a \emph{normal}-matter solve---substantially lower than spherical persistent-FTL candidates, and without the phantom matter the reference wormhole seeds require---while maintaining a superluminal path fraction of $0.51$ in the evolved frame.  This demonstrates that the automated search can discover geometries that outperform hand-designed warp metrics on the combined objective of FTL benefit, stability, and energy-condition cost.
-
-\paragraph{Where the exotic matter actually lives.}
-The integrated cost $\int\rho_-\,dV$ is a single scalar; to see \emph{where} energy-condition violation is required we now emit the geometric required energy density as a per-cell plot field,
-\begin{equation}
-\rho_{\rm req}=\frac{R+\tfrac{2}{3}K^2-A_{ij}A^{ij}}{16\pi}=\frac{H_{\rm vac}}{16\pi},
-\label{eq:rho_req}
-\end{equation}
-i.e.\ the Eulerian energy density that the Einstein constraints demand to source the \emph{evolved} geometry, computed from the same vacuum Hamiltonian operator used for the constraint diagnostics (so the field integrates exactly to the tabulated $\int\rho_-\,dV$).  Figure~\ref{fig:rho_req} maps it on the $z=0$ slice of the validated winner.  The result is unambiguous and somewhat surprising: the requirement is a \emph{single, spatially localized exotic core} ($\rho_{\rm req}\approx-1.0\times10^{-3}$) sitting exactly on the dark compression crescent of $\chi$, while the rest of the domain is essentially matter-free ($\rho_{\rm req}\approx0$).  The faint residual ring co-located with the outgoing $K$-wave is propagating gauge/constraint radiation, roughly $20$--$150\times$ weaker than the core (its $\tfrac{2}{3}K^2$ piece is only $\sim3\%$ of the local value; the rest is the $R$ oscillation of the same outgoing pulse), and it leaves the grid rather than supporting the structure.  Notably there is \emph{no} comparable region of required ordinary matter: this is not a balanced positive/negative Alcubierre shell but a one-sided exotic lens.
-
-\begin{figure}[tbp]
-    \centering
-    \includegraphics[width=\columnwidth]{articlepictures/chi_vs_rho_req.png}
-    \caption{\textbf{The warp dipole is held by a localized exotic core, with negligible ordinary matter.}  Left: conformal factor $\chi$ at $z=0$, $t=16$ (bright $=$ expanded, dark $=$ compressed).  Right: the geometric required energy density $\rho_{\rm req}$ of Eq.~\eqref{eq:rho_req} on the same slice (red $<0$ exotic, blue $>0$ ordinary, shared symmetric scale).  The energy-condition violation needed to sustain the geometry is concentrated in one compact core ($\min\rho_{\rm req}\approx-1.0\times10^{-3}$) coincident with the compression crescent; the surrounding domain is near-vacuum and the faint outer ring is the weak outgoing $K$-wave (junk radiation), not localized matter.}
-    \label{fig:rho_req}
-\end{figure}
-
-\paragraph{How can it ``move'' with only an exotic component?}
-It largely does \emph{not} translate, and Fig.~\ref{fig:rho_req} explains why.  The localized exotic core acts as a static spatial \emph{lens}: its negative energy is what bends proper distance into the compress-ahead/expand-behind $\chi$ dipole, which is the geometric ingredient that opens a faster coordinate channel and produces the operational-FTL benefit (a signal crosses the lens in less coordinate time than the flat control).  But a benefit on the initial slice is not propulsion.  Translating that lens---carrying a passenger region along with it---requires a sustained \emph{momentum} density $j_i$, since the off-diagonal Einstein equations set $G_{0i}=8\pi j_i$ and the momentum constraint relates $j_i$ to the time-dependence of the shift (the warp ``motor'').  Our candidate has a near-clean momentum constraint ($\|M\|^{\rm fin}_{L^2}=3.6\times10^{-5}$) and no driven shift, so there is no motor: the exotic core can hold the lens in place but cannot pump it across the grid.  Consistently, the evolved channel coasts rather than propagates---peak coordinate speed decays ($2.67\!\to\!1.32$) and the structure stands and slowly relaxes rather than moving.  In short, the exotic core is \emph{necessary} to curve space into a shortcut, but \emph{motion} additionally needs a co-moving momentum source; supplying that (a searchable translation shift / sustained $j_i$) is exactly the next degree of freedom identified in Sec.~\ref{sec:discussion}.
-
-Figure~\ref{fig:chi_tiles} shows the conformal factor $\chi$ for all four candidates in Table~\ref{tab:score_comparison} that have frames.  The conformal factor encodes the local stretching of space: the physical spatial metric is $\gamma_{ij}=\chi^{-1}\tilde\gamma_{ij}$, so regions with $\chi>1$ (bright) have \emph{expanded} proper distances---space is stretched---while regions with $\chi<1$ (dark) have \emph{compressed} proper distances---space is squeezed.  For a flat, undeformed geometry $\chi=1$ everywhere (uniform purple).  The Alcubierre warp mechanism requires exactly this polarity: compressed space ahead of the passenger region and expanded space behind it.
-
-\begin{figure*}[t]
-    \centering
-    \includegraphics[width=\textwidth]{articlepictures/chi_tiles.png}
-    \caption{\textbf{Directional $\chi$ channels of the top gauge-angular candidates} (conformal factor, $z=0$ equatorial slice).  The conformal factor $\chi$ encodes how much space is locally stretched ($\chi>1$, bright/yellow $=$ expanded) or compressed ($\chi<1$, dark/black $=$ squeezed); flat space has $\chi=1$ (uniform purple).  The three top-ranked Tier-1 search winners (\texttt{eval\_000188}, \texttt{eval\_000183}, \texttt{eval\_000170} at $t=2$, $N_{\rm full}=64$) and the high-quality long-run validation of the best (\texttt{eval\_000188} at $t=16$, $N_{\rm full}=192$) all share the same Alcubierre-like fore/aft dipole: a bright high-$\chi$ expansion lobe on the $-x$ side trailing a dark low-$\chi$ compression crescent on the $+x$ side---the ``expand behind, compress ahead'' polarity that a warp channel requires.  The structure is reproducible across candidates and sharpens (rather than disperses) under long evolution at higher resolution.  Each panel is annotated with its gated score $S$ (cf.\ Table~\ref{tab:score_comparison}).}
-    \label{fig:chi_tiles}
-\end{figure*}
-
-\subsection{MAP-Elites shell discovery and high-resolution promotion}
-\label{sec:shell_qd_hq}
-
-The matter-first pipeline of Sec.~\ref{sec:grtresna} was extended from scalar
-CMA-ES to a full-sphere \texttt{shell} ansatz (Sec.~\ref{sec:shell_ansatz})
-searched by MAP-Elites.  The campaign
-\texttt{qd\_20260605T155951Z} used the existing FTL-first objective---not new
-metric definitions---but with a \emph{channel-progress} shaping term that rewards
-coupled path closeness and mechanism balance alongside evolved operational FTL.
-At search resolution ($L=64$, $N_{\rm full}=64$, $t=8$, $B_{\rm bins}=10$, 16 QD
-iterations, 135 ingested evaluations) the archive retained eight operational
-elites with $F_{\rm op}^{\rm ev}>0.03$, led at search scale by
-\texttt{eval\_000011} ($S=1158$, $F_{\rm op}^{\rm ev}=0.75$) but also preserving
-channel-leaning backups such as \texttt{eval\_000106} and
-\texttt{eval\_000117}.  This is the first MAP-Elites run to populate a
-\emph{family} of operational shell geometries rather than a single breakthrough
-plus discarded precursors.
-
-The eight elites were then promoted in parallel to higher resolution and longer
-time.  Each promotion replayed the same shell parameters with a fresh
-\texttt{GRTresna} solve and GPU evolution at $L=128$, $N_{\rm full}=256$
-($\Delta x=0.5$), $\texttt{max\_level}=3$, and $t=50$.  Crucially, promotion
-requires $N_{\rm full}>L$: setting $L=N_{\rm full}$ only enlarges the domain at
-unchanged cell size and provides no fidelity gain.  All eight fresh elliptic
-solves passed a $10\%$ Ham/Mom gate (final residuals $0.65$--$1.53\%$ Ham,
-$<0.002\%$ Mom) before evolution.
+where $S$ is a bounded scalar score used by CMA-ES or MAP-Elites.  Health terms
+are multiplied by a non-triviality gate so flat space cannot win simply because
+it is stable.
 
 \begin{figure*}[t]
 \centering
-\fbox{\begin{minipage}{0.96\textwidth}
-\small
-\textbf{Shell 16D MAP-Elites $\rightarrow$ HQ promotion pipeline}\\[0.4em]
-\begin{tabular}{@{}c@{\ $\rightarrow$\ }c@{\ $\rightarrow$\ }c@{\ $\rightarrow$\ }c@{\ $\rightarrow$\ }c@{\ $\rightarrow$\ }c@{\ $\rightarrow$\ }c@{}}
-16D shell params &
-MAP-Elites archive &
-\texttt{GRTresna} gate &
-\texttt{.gridinit} &
-GPU $t=50$ &
-consume/score &
-HQ ranking
-\end{tabular}\\[0.5em]
-Search: $L{=}64$, $N{=}64$, $t{=}8$, $\Delta x{=}1$ \quad
-$\longrightarrow$ \quad
-Promotion: $L{=}128$, $N{=}256$, $t{=}50$, $\Delta x{=}0.5$
+\fbox{\begin{minipage}{0.94\textwidth}
+\scriptsize
+\textbf{Closed-loop evaluation}\\[0.35em]
+\begin{tabular}{@{}c@{\ $\rightarrow$\ }c@{\ $\rightarrow$\ }c@{\ $\rightarrow$\ }c@{\ $\rightarrow$\ }c@{}}
+\shortstack{candidate\\parameters} &
+\shortstack{initial-data\\decoder} &
+\shortstack{\texttt{GRTeclyn}\\GPU evolution} &
+\shortstack{plotfile / small-data\\diagnostics} &
+\shortstack{score and\\optimizer update}
+\end{tabular}\\[0.35em]
+The two decoders studied here are geometry-first recipes and matter-first
+\texttt{GRTresna} elliptic solves.
 \end{minipage}}
-\caption{\textbf{Matter-first MAP-Elites discovery and high-resolution promotion.}
-The optimizer searches sixteen global shell parameters expanded to five Fibonacci
-lumps; MAP-Elites preserves diverse operational elites; each HQ candidate is
-re-solved in \texttt{GRTresna} and evolved on GPU at finer resolution before the
-existing FTL-first scorer ranks the result.}
-\label{fig:shell_pipeline}
+\caption{\textbf{Search loop.}  The optimizer sees only the scalar objective;
+physics enters through the initial-data map and through post-evolution
+diagnostics.}
+\label{fig:closed_loop}
 \end{figure*}
 
-Table~\ref{tab:shell_hq_promotion} reports the final $t=50$ scores.  The
-headline outcome is not the invention of new diagnostics but a new \emph{metric
-regime}: five of eight promoted candidates retain strong evolved operational FTL
-through the full run, and the ranking \emph{reorders} relative to search scale.
-\texttt{eval\_000106} is the only saturated operational winner
-($F_{\rm op}^{\rm ev}=1.00$); \texttt{eval\_000117} is the strongest backup
-($F_{\rm op}^{\rm ev}=0.92$, highest channel progress); \texttt{eval\_000094}
-has the best coupled channel/shift balance but its operational signal erodes to
-$0.66$ by $t=50$; and the search-scale leader \texttt{eval\_000011} remains a
-real shortcut ($F_{\rm op}^{\rm ev}=0.89$) but looks more precursor-dominated at
-HQ (weaker channel and shift).  We therefore interpret the discovery as a
-persistent operational \emph{shell family} validated at $\Delta x=0.5$, not yet
-as a final physically realizable warp drive: transport, observer-robust energy
-conditions, and analytic extraction remain open (Sec.~\ref{sec:missing}).
+The score is not a single visual heuristic.  It combines four classes of
+diagnostics.  First are shortcut indicators: axial null travel time
+$F_{\rm null}$, proper-distance compression, throat pinching, and
+Nat\'ario--Alcubierre expansion asymmetry.  Second is the operational probe
+$F_{\rm op}$, an arrival-time comparison against a flat control on the same
+grid.  Third are health terms: survival, Hamiltonian/momentum constraints,
+lapse collapse, trapped-surface flags, and growth of $\chi$, $K$, and constraint
+norms.  Fourth are risk terms: required negative energy, matter/effective energy
+conditions, and tidal/curvature proxies.  The exact weights are not essential
+for this paper; the key point is that a candidate must be both a shortcut and a
+healthy evolved spacetime.
 
-\begin{table*}[t]
-\caption{Final high-resolution promotion of the eight operational MAP-Elites
-shell elites (\texttt{l128n256\_qd\_eval*}, $L=128$, $N_{\rm full}=256$,
-$t=50.01$, fresh \texttt{GRTresna} per candidate).  $S$ is the FTL-first total;
-$F_{\rm op}^{\rm ev}$ is the evolved operational-FTL component; $C_{\rm ch}$ is
-channel progress; $S_{\rm sh}$ is shift drive; Ham is the final \texttt{GRTresna}
-Hamiltonian residual; $F_{\rm op}^{\rm search}$ is the search-scale evolved
-operational FTL at $N_{\rm full}=64$, $t=8$.}
-\label{tab:shell_hq_promotion}
-\small
-\begin{ruledtabular}
-\begin{tabular}{lccccccc}
-Eval & $S$ & $F_{\rm op}^{\rm ev}$ & $C_{\rm ch}$ & $S_{\rm sh}$ & Ham [\%] & $F_{\rm op}^{\rm search}$ & Role \\
-\hline
-\texttt{106} & \textbf{1422.5} & \textbf{1.000} & 0.423 & 0.179 & 0.96 & 0.394 & HQ winner; saturated op \\
-\texttt{117} & 1346.0 & 0.920 & \textbf{0.436} & \textbf{0.190} & 0.93 & 0.204 & Best channel backup \\
-\texttt{011} & 1273.8 & 0.885 & 0.302 & 0.091 & 1.44 & \textbf{0.752} & Search leader; weaker channel \\
-\texttt{094} & 1089.0 & 0.658 & 0.454 & 0.206 & \textbf{0.65} & 0.177 & Best channel/shift; op erodes \\
-\texttt{121} & 950.9 & 0.538 & 0.391 & 0.153 & 1.30 & 0.491 & Solid mid-tier \\
-\texttt{077} & 811.6 & 0.426 & 0.289 & 0.083 & 1.24 & 0.233 & Partial op \\
-\texttt{058} & 734.2 & 0.332 & 0.292 & 0.085 & 1.25 & 0.069 & Weak but real \\
-\texttt{016} & 389.5 & 0.032 & 0.226 & 0.055 & 1.53 & 0.036 & Marginal \\
-\end{tabular}
-\end{ruledtabular}
-\end{table*}
+For an axial null probe on a conformally flat slice,
+\begin{equation}
+\begin{aligned}
+T_{\rm curved} &=
+\int_{-L}^{L}\frac{dx}{\alpha(x)\sqrt{\chi(x)}-\beta^x(x)},\\
+F_{\rm null}&=\max\left(0,\frac{2L-T_{\rm curved}}{2L}\right).
+\end{aligned}
+\label{eq:null_shortcut}
+\end{equation}
+The final operational test compares arrival time to a flat control,
+\begin{equation}
+F_{\rm op}=\frac{t_B^{\rm flat}-t_B^{\rm curved}}{t_B^{\rm flat}},
+\label{eq:f_op}
+\end{equation}
+and is accepted only with bounded constraints and no trapped-surface crossing.
+The risk side tracks Hamiltonian/momentum norms, collapse indicators, geometry
+growth, energy-condition margins, and required exotic energy
+\begin{equation}
+\rho_{\rm req}=
+\frac{R+K^2-K_{ij}K^{ij}}{16\pi}.
+\label{eq:rho_req}
+\end{equation}
+A non-triviality gate suppresses flat Minkowski space: health rewards are counted
+only when the geometry has a real shortcut, curvature signal, asymmetry, or
+exotic content.  This prevents the optimizer from selecting ``nothing happens''
+as the most stable solution.
 
-Figure~\ref{fig:shell_hq_frames} shows the evolved $z$-slices at $t\approx50$
-for the four headline candidates.  The local coordinate light speed
-(\texttt{local\_speed}) reveals sustained superluminal patches; the shift
-(\texttt{shift1}) and scalar activity show that the channel-leaning winners carry
-stronger frame-drag and matter-current structure than the search-scale leader;
-and the geometric required energy density $\rho_{\rm req}$ remains localized
-rather than diffuse.  Together with the operational probe, this supports the
-interpretation that MAP-Elites found a family of constraint-satisfying exotic
-shells whose \emph{end-to-end} shortcut signal survives a fifty-code-time
-high-resolution evolution for multiple candidates, while the best coupled
-channel geometry and the best headline operational FTL are not the same
-candidate.
+\section{Geometry-First Search}
+\label{sec:geometry_first}
+
+The first baseline asks the optimizer to propose geometric and gauge fields
+directly.  For the conformally flat recipe, the Hamiltonian and momentum
+constraints are read backwards:
+\begin{equation}
+\rho = \frac{R + K^2 - K_{ij}K^{ij}}{16\pi},\qquad
+j_i = \frac{1}{8\pi}D_j(K^j_i-\delta^j_iK).
+\label{eq:constraint_sources}
+\end{equation}
+Regions with $\rho<0$ become an exotic-matter cost.  In the simplest radial
+recipe,
+\begin{equation}
+q(r)=q_\infty+\sum_n a_n B_n(r),
+\end{equation}
+where $q$ denotes $\chi$, lapse, shift, or $K$.  Angular modes are then added in
+the gauge sector.  This is computationally cheap because it avoids a 3D
+elliptic solve, but it has a hard limitation: with $K=\mathrm{const}$ and
+$\Pi=0$ the momentum density vanishes.  The recipe can bend space into a lens,
+but it cannot provide a co-moving matter current.
+
+\subsection{Validated Baseline Result}
+
+The best geometry-first outcome is a standing Alcubierre-like dipole.  The
+search found non-spherical gauge/geometric structure with a localized exotic
+core rather than a translating bubble.  A representative promoted candidate,
+\texttt{eval\_000188}, was replayed to $t=16$ at $N_{\rm full}=192$.  It retained
+a weak evolved operational shortcut,
+\[
+F_{\rm op}^{\rm ev}=5.6\times10^{-3},
+\]
+with decreasing constraint norms
+$\|H\|_{L^2}:1.1\times10^{-3}\rightarrow4.2\times10^{-4}$ and final
+$\|M\|_{L^2}=3.6\times10^{-5}$.  The required negative energy stayed localized,
+\[
+\int \rho_-\,dV\simeq0.13,\qquad
+\min\rho_{\rm req}\simeq -10^{-3}.
+\]
+This is a useful automated-discovery baseline: the search can identify a
+structured, low-exotic shortcut geometry that survives longer than the smoke
+window.  It is not a transport metric.  The structure stands and relaxes rather
+than carrying a passenger region across the grid.
+
+\begin{figure}[tbp]
+\centering
+\includegraphics[width=\columnwidth]{articlepictures/chi_vs_rho_req.png}
+\caption{\textbf{Geometry-first dipole.}  The validated candidate is a static
+exotic lens: the compression lobe in $\chi$ is supported by a localized negative
+required energy density.}
+\label{fig:rho_req}
+\end{figure}
+
+\begin{figure}[tbp]
+\centering
+\includegraphics[width=\columnwidth]{articlepictures/chi_tiles.png}
+\caption{\textbf{Directional geometry-first candidates.}  The top candidates
+share the same standing expand-behind/compress-ahead polarity.  This is the
+geometry a warp channel needs, but not the matter current needed to move it.}
+\label{fig:chi_tiles}
+\end{figure}
+
+The lesson is clear.  Geometry-first search is a fast way to discover useful
+geometric motifs and to test scoring diagnostics, but the optimizer naturally
+prefers a cheap stationary lens over a harder translating bubble.  A transport
+metric needs a sustained momentum density $j_i$, because $G_{0i}=8\pi j_i$ ties
+matter current to the frame-dragging shift.
+
+\section{Matter-First Search}
+\label{sec:matter_first}
+
+The matter-first route inverts the map.  The optimizer proposes matter; an
+elliptic solver returns the compatible geometry.  For scalar matter,
+\begin{equation}
+\rho=\frac12\psi^{-4}|\tilde\nabla\phi|^2+\frac12\Pi^2+V(\phi),
+\qquad
+S_i=-\Pi\,\partial_i\phi .
+\label{eq:scalar_sources}
+\end{equation}
+\texttt{GRTresna} solves the Hamiltonian and momentum constraints for the
+conformal factor and longitudinal extrinsic curvature, writes a
+\texttt{.gridinit} file, and \texttt{GRTeclyn} evolves it.  This adds the missing
+ingredient from Sec.~\ref{sec:geometry_first}: searchable momentum-carrying
+matter.
 
 \begin{figure*}[t]
-    \centering
-    \includegraphics[width=\textwidth]{articlepictures/shell_hq_promotion_tiles.png}
-    \caption{\textbf{High-resolution shell promotion, zoomed diagnostic slices}
-    ($L=128$, $N_{\rm full}=256$).  Rows show (a) \texttt{eval\_000106}, the
-    final HQ winner; (b) \texttt{eval\_000117}, the strongest backup; (c)
-    \texttt{eval\_000094}, the best channel/shift geometry; and (d)
-    \texttt{eval\_000011}, the search-scale leader.  Columns show local
-    coordinate light speed, shift component $\beta^x$, scalar momentum $\Pi$,
-    and scalar activity.  These frames are taken from the visually diagnostic
-    mid-run slice ($t\simeq12.5$) rather than the final score slice, where the
-    scalar matter has largely dispersed; the final quantitative verdict is the
-    $t=50.01$ table.  The channel-leaning candidates show stronger organized
-    shift and matter-current structure than \texttt{eval\_000011}.}
-    \label{fig:shell_hq_frames}
+\centering
+\fbox{\begin{minipage}{0.94\textwidth}
+\small
+\textbf{Matter-first discovery stages}\\[0.35em]
+\begin{tabular}{@{}c@{\ $\rightarrow$\ }c@{\ $\rightarrow$\ }c@{\ $\rightarrow$\ }c@{}}
+16D shell vector &
+MAP-Elites archive &
+optional CMA-ES refinement &
+high-resolution promotion / validation
+\end{tabular}\\[0.35em]
+The shell vector expands to five Fibonacci-distributed scalar clouds.  MAP-Elites
+keeps diverse families by descriptor cell instead of collapsing to one scalar
+optimum.
+\end{minipage}}
+\caption{\textbf{Shell discovery workflow.}  This is the compact form of the
+README pipeline: broad quality-diversity search, optional local refinement, and
+fresh high-resolution replay.}
+\label{fig:shell_workflow}
 \end{figure*}
 
-%%====================================================================
-%%  SECTION 7 : DISCUSSION AND FUTURE WORK
-%%====================================================================
-\section{Discussion and Future Work}
-\label{sec:discussion}
+\begin{figure*}[t]
+\centering
+\fbox{\begin{minipage}{0.94\textwidth}
+\small
+\textbf{Per-candidate matter-first loop}\\[0.35em]
+\begin{tabular}{@{}c@{\ $\rightarrow$\ }c@{\ $\rightarrow$\ }c@{\ $\rightarrow$\ }c@{\ $\rightarrow$\ }c@{\ $\rightarrow$\ }c@{}}
+sample shell params &
+\texttt{GRTresna} solve &
+Ham/Mom gate &
+\texttt{.gridinit} &
+\texttt{GRTeclyn} evolve &
+score/archive
+\end{tabular}\\[0.35em]
+The missing production gate is a post-load \texttt{GRTeclyn} constraint check
+using the matter model that is actually evolved.
+\end{minipage}}
+\caption{\textbf{Matter-first evaluation.}  GRTresna convergence is necessary
+but not sufficient: the loaded state must also satisfy the constraints under the
+GRTeclyn evolution stress tensor.}
+\label{fig:per_eval}
+\end{figure*}
 
-This work turns exotic-metric study into a closed-loop GPU search over dynamical initial data.  The current pipeline proposes constrained recipes, evolves them in \texttt{GRTeclyn}, scores stability/FTL/energy diagnostics, and validates promising candidates on longer runs.  The first campaigns expose the central stability gap---optimizers can still favor geometries that merely outlive a short stop time---but also show that FTL scaffolding, non-triviality gating, growth metrics, evolved energy-condition checks, surrogate screening, and MAP-Elites can steer the search away from trivial flat space toward genuinely structured geometries like the dipole metric.
+\subsection{Shell Parameterization and MAP-Elites}
 
-Several extensions would substantially expand the search capabilities.
+The current discovery ansatz uses a 16-dimensional shell vector.  It places a
+small number of scalar clouds on a Fibonacci lattice over the sphere, rotates
+the lattice by a searched orientation axis, and assigns toroidal, poloidal, and
+radial velocity components.  Low-order dipole/quadrupole modulations control
+matter asymmetry, while an exotic wedge selects where negative-energy support is
+attempted.  MAP-Elites is used because preserving diverse mechanism families is
+more valuable here than only optimizing a single scalar score.
 
-\paragraph{Matter-first elliptic search.}
-The largest recent improvement is making the constraint-satisfying path concrete:
-\texttt{GRTresna} now sits inside the optimizer loop and solves the Hamiltonian
-and momentum constraints for each proposed scalar-matter configuration before
-\texttt{GRTeclyn} evolves it.  Per-lump exotic (phantom) matter and the
-maximal-slicing ($K=0$) solve of Eq.~\eqref{eq:maximal_slicing} handle
-$\rho<0$, and the multilevel safeguards of Sec.~\ref{sec:exotic_solver} make the
-indefinite solve robust under full AMR for the mixed-matter configurations the
-search proposes.  The current open work is no longer ``make the solver run'' but
-``validate and improve the candidates it discovers'': replay the best evolved
-FTL precursor, extend its lifetime, test convergence, and add objectives that
-distinguish a stationary exotic lens from a co-moving transport bubble.
+The recent shell campaign produced strong operational signals in the search
+logs, including promoted candidates with large $F_{\rm op}^{\rm ev}$ after
+longer replay.  These are important engineering signals: the optimizer,
+elliptic solver, GPU evolution, plotfile consumption, and archive machinery can
+all run at scale.  They are not yet a validated physical result for the mixed
+exotic-lump search space.
 
-\paragraph{Topology search.}
-The current parameterization cannot change topology: its non-spherical freedom lives in the gauge sector, where shift structure naturally favors warp-like channels.  Wormholes and portals require a discrete controller that selects mouths, throats, modes, and boundary connectivity before the continuous optimizer refines each topology, echoing discrete/continuous decompositions in string-landscape search~\cite{halverson2019branes}.
+\subsection{Current Trust Issue}
+\label{sec:trust_issue}
 
-\paragraph{Additional degrees of freedom.}
-Gauge-angular search produced a low-exotic directional channel.  Next degrees of freedom include searchable radial placement of angular modes, full-$z$ domains without reflective parity, persistence/co-motion rewards, soft barriers on near-trapped surfaces, and higher angular order with a dedicated translation shift.
+The reason is a matter-model mismatch.  \texttt{GRTresna} may solve a source
+that is not the same stress-energy \texttt{GRTeclyn} evolves after loading
+\texttt{.gridinit}.  Three effects matter.
 
-\paragraph{Advanced parameterization.}
-Future Level~3 replaces basis functions with an implicit neural decoder, optionally trained with Hamiltonian and momentum residuals as PINN losses~\cite{li2023pinn}.  A rule-based spacetime grammar can enforce asymptotic flatness, positivity, $K=\mathrm{const}$, $\Pi=0$, and chosen topology before evaluation, reducing wasted GPU jobs in the spirit of grammar-constrained theory generation~\cite{alexander2026albert}.  Level~4 is an LLM meta-agent that classifies failed runs, retunes exposed gauge/grid parameters, and proposes new modes while leaving the physics verdict to read-only diagnostics~\cite{qiu2026collideragent}.
+First, exotic lumps in \texttt{GRTresna} enter the source as independent phantom
+components, with their kinetic and momentum terms multiplied by a negative sign.
+The written \texttt{phi} and \texttt{Pi} fields do not carry that sign.  If
+\texttt{GRTeclyn} evolves the combined field as a canonical scalar, the local
+Hamiltonian source has the wrong sign in exotic regions.
 
-\paragraph{Multi-observer energy conditions.}
-The $t=0$ ANEC and tidal proxies are blind to pure-shift warps.  Evaluating energy conditions from the evolved 4-metric via $T_{\mu\nu}=G_{\mu\nu}/8\pi$, e.g.\
-\begin{equation}
-    \Xi_W(\mathbf{x}) = \min_{V}\,T_{\mu\nu}\,V^{\mu}V^{\nu},\qquad g_{\mu\nu}V^\mu V^\nu=-1,
-\end{equation}
-recovers Alcubierre NEC/WEC violations missed by $\chi$-sourced proxies.  A Hawking--Ellis/Type-I hybrid margin following \textsc{warpax}~\cite{le2026warpax} with fourth-order finite differences~\cite{lousto2006fourth} feeds the score as $s_{\rm exotic}^{\rm eff}$.
+Second, the solved source treats lumps as independent fields and drops
+inter-lump cross terms.  The evolved single scalar contains the combined field,
+so $|\nabla\sum_k\phi_k|^2$ includes cross terms wherever clouds overlap.
 
-\paragraph{Production-scale search.}
-With surrogate screening, MAP-Elites, and Pareto extraction in place, production runs target a 1000-candidate constraint atlas plus a 50-generation CMA-ES campaign.
+Third, the solver source can include a mass potential while the current
+\texttt{GRTeclyn} default potential is zero.  Thus a small
+\texttt{GRTresna} Hamiltonian residual certifies the elliptic solve, not
+necessarily the state that is actually evolved.
 
-\paragraph{Analytical back-derivation.}
-A numerical optimum is only a coefficient list.  The final handoff reconstructs $\chi_{\rm num}$, fits a closed form by symbolic regression, solves the Hamiltonian constraint for $\phi(r)$, and reloads the analytic profile for verification.  This can be automated as a multi-agent loop inspired by \textsc{PhysAgent}~\cite{han2025physagent}.
+The practical criterion is therefore stricter:
+\begin{quote}
+A matter-first candidate is trusted only if the loaded \texttt{GRTeclyn} state
+passes the Hamiltonian and momentum constraints at $t=0$ using the same matter
+model that will be evolved, and then remains bounded under replay.
+\end{quote}
+Until that gate is added and applied to the shell archive, the MAP-Elites
+numbers should be reported as promising search signals rather than as evidence
+for a validated FTL geometry.
 
-%%====================================================================
-%%  SECTION 8 : WHAT IS STILL MISSING
-%%====================================================================
-\section{What Is Still Missing to Discover a New FTL Metric}
-\label{sec:missing}
+\section{Path to a Trustworthy Matter-First Campaign}
+\label{sec:path}
 
-The pipeline above is, in our assessment, a working \emph{engine} rather than a
-finished \emph{discovery}.  Early campaigns produced promising precursors---a
-localized exotic lens with a weak evolved coordinate-superluminal channel
-(Sec.~\ref{sec:results}, Sec.~\ref{sec:grtresna_loop_result})---while the
-recent MAP-Elites shell promotion (Sec.~\ref{sec:shell_qd_hq}) has advanced the
-state to a \emph{family} of high-resolution operational shortcut candidates.
-None of these yet qualifies as a new, validated, physically realizable
-faster-than-light geometry.  This section consolidates, in priority order, the gaps that separate
-the present state from that goal.  We group them into three classes: the
-objective rewards the wrong quantity, parts of the configuration space are
-unreachable, and discovered candidates cannot yet be trusted or extracted.
+The next campaign should be organized around falsification rather than score
+maximization.  The required steps are short and concrete.
 
-\subsection{The objective rewards a static lens, not transport}
-\label{sec:missing_transport}
+\paragraph{Post-load constraint gate.}
+After \texttt{GRTresna} writes \texttt{.gridinit}, load the file into
+\texttt{GRTeclyn}, compute $H$ and $M_i$ with the actual evolution matter model,
+and reject candidates before GPU evolution if the $t=0$ residual is large.  This
+is the missing gate in Fig.~\ref{fig:per_eval}.
 
-The recurring empirical outcome is that every high-scoring geometry is a
-\emph{standing} structure.  The validated dipole winner is a static exotic lens
-that bends proper distance but does not translate (Sec.~\ref{sec:results}), the
-matter-first winner \texttt{eval\_000063} shows a shortcut without bulk motion,
-and the promoted shell family of Sec.~\ref{sec:shell_qd_hq}---despite saturated
-or near-saturated evolved operational FTL at $t=50$---still lacks a sustained
-co-moving transport motor.  This is not a bug in the optimizer; it is the optimizer faithfully
-maximizing what we ask for.  The operational measure $F_{\rm op}$
-(Eq.~\eqref{eq:f_op}) rewards the \emph{existence} of a faster coordinate channel
-on a slice, which a stationary lens already provides at minimal exotic cost.  A
-genuine warp metric instead requires \emph{transport}: a passenger region
-carried across a finite distance while the surrounding geometry remains
-quasi-stationary in its co-moving frame.  Two coupled ingredients are missing.
+\paragraph{Representable matter.}
+Either restrict the search to matter that a single evolved scalar can represent
+(for example all-canonical or all-phantom, matched potential, limited overlap),
+or promote the evolution model to the same independent-field stress tensor that
+\texttt{GRTresna} solved.  A frozen prescribed source should not be used for
+physics claims, because it repeats the known failure mode $G_{ab}\neq8\pi T_{ab}$
+as soon as the geometry evolves.
 
-\paragraph{A co-motion transport objective.}
-We need a score term that tracks a co-moving worldtube and rewards a localized
-region traversing a baseline distance $L$ in less proper (or coordinate) time
-than the flat control, \emph{conditioned} on the local geometry being
-approximately stationary in the bubble frame.  Without this conditioning the
-search will always prefer the cheaper static lens over a translating bubble.
+\paragraph{Transport objective.}
+The current objective rewards the existence of a shortcut on a slice.  A warp
+metric needs a co-moving worldtube: a localized passenger region moving a finite
+distance while the surrounding geometry is approximately stationary in its own
+frame.  The score should require this condition, otherwise the optimizer will
+continue to prefer static lenses.
 
-\paragraph{A \emph{sustained} momentum driver---the ``motor.''}
-A translating bubble needs a sustained momentum density $j_i$, since
-$G_{0i}=8\pi j_i$ ties the off-diagonal Einstein equations to the time-dependence
-of the shift.  The matter-first \texttt{GRTresna} path already supplies
-searchable momentum-carrying matter and solves the momentum constraint for the
-associated frame-dragging shift (Sec.~\ref{sec:grtresna}); what is missing is
-\emph{sustaining} it.  Free evolution lets the seeded momentum disperse---our best
-candidate ends with a near-vacuum momentum constraint
-($\lVert M\rVert_{L^2}^{\rm fin}=3.6\times10^{-5}$) and no driven shift.  A
-sustained momentum source or a translation $\Gamma$-driver target is the
-remaining degree of freedom that converts ``a shortcut existed at $t=0$'' into
-``a bubble moved,'' and together with the transport objective above we regard it
-as the single highest-leverage missing element.
+\paragraph{Resolution and observer checks.}
+Any surviving candidate must be replayed on a resolution ladder and evaluated
+with observer-robust energy conditions, not only matter-sector diagnostics.
+The target validation ladder is: constructed, non-trivial, post-load
+constraint-clean, operational, persistent, observer-robust, resolution-converged,
+and analytically extractable.
 
-\subsection{Unreachable regions of configuration space}
-\label{sec:missing_reach}
+\paragraph{Analytical extraction.}
+A numerical elite is only a coefficient vector.  The final step is fitting a
+closed-form metric or matter profile, re-solving the constraints from that form,
+and replaying it.  This is what turns the search result into a checkable
+spacetime rather than an isolated grid artifact.
 
-\paragraph{Topology is frozen.}
-All current freedom---gauge, conformal, and matter---lives on a fixed
-$\mathbb{R}^3$ slice topology.  Traversable wormholes, portals, and handle/throat
-connectivities are therefore \emph{not representable by any continuous parameter}
-the search exposes; an entire FTL class is excluded a priori.  Reaching it
-requires the discrete topology controller of Sec.~\ref{sec:discussion} that
-selects mouths, throats, and boundary connectivity before continuous refinement.
+\section{Conclusion}
 
-\subsection{Trust, realism, and extraction}
-\label{sec:missing_trust}
-
-A high score is only a proxy; the search alone can never certify that a candidate
-is the sought solution.  Confidence must come from survival under an increasingly
-demanding falsification ladder---constructed, non-trivial, operational,
-persistent, observer-robust, resolution-converged, and finally analytically
-reconstructed---of which the last stages are not yet automated.
-
-\paragraph{Automated resolution convergence.}
-The first manual HQ promotion ladder (Sec.~\ref{sec:shell_qd_hq}) moved from
-search-scale $N_{\rm full}=64$ to promotion at $N_{\rm full}=256$, $L=128$ with
-unchanged shell parameters and confirmed that several operational signals
-strengthen rather than collapse.  This is encouraging but not yet an automated
-convergence proof: until $F_{\rm op}$, the constraint norms, and the exotic-energy
-integral are shown to be grid-independent across a standard replay ladder, any
-candidate may still be a discretization artifact.
-
-\paragraph{Quantum-inequality realism.}
-The ANEC line proxy (Eq.~\eqref{eq:anec_line}) penalizes the \emph{amount} of
-negative energy but not its \emph{physical attainability}.  A geometry whose
-required exotic matter violates quantum-inequality (Ford--Roman) bounds is not a
-useful discovery; a quantum-inequality penalty would steer the search toward
-physically plausible exotic budgets.
-
-\paragraph{Analytical back-derivation.}
-As noted in Sec.~\ref{sec:discussion}, a numerical optimum is a coefficient list,
-not a metric.  Closing the loop with symbolic regression to a closed form,
-re-solving the constraints from that form, and reloading it for verification is
-what turns a high-scoring grid into a communicable, checkable spacetime.
-
-In summary, the missing pieces are, in rough priority order: (i) a
-transport/co-motion objective coupled to a \emph{sustained} momentum driver
-(\texttt{GRTresna} already supplies the momentum-carrying matter, but not a
-sustained driver); (ii) automated resolution-convergence validation; (iii)
-analytical back-derivation together with quantum-inequality realism; and (iv) a
-discrete topology controller to open the wormhole/portal class.
+The geometry-first search is a useful baseline: it is fast, debugs the scoring
+pipeline, and has found a clean standing shortcut supported by a localized
+exotic core.  Its limitation is also decisive: it does not supply the sustained
+momentum source needed for transport.  Matter-first search with \texttt{GRTresna}
+is the better route because it exposes momentum-carrying matter and solves the
+constraints before evolution.  However, the current mixed exotic-lump
+MAP-Elites results should be treated conservatively until the post-load
+\texttt{GRTeclyn} constraint gate and matched matter model are in place.  The
+near-term goal is therefore not to claim a new FTL metric, but to turn the
+matter-first pipeline into a falsifiable and constraint-clean discovery engine.
 
 \begin{thebibliography}{9}
 
