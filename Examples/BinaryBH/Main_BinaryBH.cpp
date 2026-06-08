@@ -47,7 +47,6 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
 #endif
 
     bh_amr.init(0., sim_params.stop_time);
-    bh_amr.set_weyl_interpolator();
 
     while (
         (bh_amr.okToContinue() != 0) &&
