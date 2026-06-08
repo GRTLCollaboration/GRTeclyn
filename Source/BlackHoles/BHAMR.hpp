@@ -42,10 +42,10 @@ template <int num_punctures> class BHAMR : public GRAMR
         }
     }
 
-    // Need a separate function for this as the interpolator needs to be set up
-    // after init when the levels are defined
-    void set_weyl_interpolator()
+    void init(amrex::Real a_strt_time, amrex::Real a_stop_time) override
     {
+        GRAMR::init(a_strt_time, a_stop_time);
+
         const auto &params = get_simulation_parameters();
         m_weyl_interpolator.setup(this, params.boundary_params, true);
     }
