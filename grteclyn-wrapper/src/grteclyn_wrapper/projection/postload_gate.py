@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Mapping
@@ -15,6 +16,18 @@ from ..metrics.episode_metrics import read_constraint_metrics
 
 DEFAULT_MAX_HAM_L2 = 1.0e-2
 DEFAULT_MAX_MOM_L2 = 1.0e-2
+_HEAVY_ARTIFACT_PREFIXES = ("RadialRecipePlt", "RadialRecipeChk")
+
+
+def _cleanup_heavy_artifacts(episode_dir: Path) -> None:
+    """Drop AMReX plot/checkpoint trees once constraint metrics are extracted."""
+    if not episode_dir.is_dir():
+        return
+    for child in episode_dir.iterdir():
+        if not child.is_dir():
+            continue
+        if any(child.name.startswith(prefix) for prefix in _HEAVY_ARTIFACT_PREFIXES):
+            shutil.rmtree(child, ignore_errors=True)
 
 
 @dataclass(frozen=True)
@@ -107,7 +120,7 @@ def run_postload_gate(
             "recipe_initial_data_file": str(gridinit_path),
             "stop_time": cfg.stop_time,
             "plot_interval": 1000,
-            "checkpoint_interval": 1000,
+            "checkpoint_interval": -1,
         }
     )
     write_params(
@@ -143,6 +156,7 @@ def run_postload_gate(
 
     constraint_path = episode.path / "data" / "constraint_norms.dat"
     gate = evaluate_constraint_gate(constraint_path, config=cfg)
+    _cleanup_heavy_artifacts(episode.path)
     return PostLoadGateResult(
         passed=gate.passed and result.returncode == 0,
         max_hamiltonian_l2=gate.max_hamiltonian_l2,

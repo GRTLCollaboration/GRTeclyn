@@ -18,6 +18,7 @@ from grteclyn_wrapper.search.qd_search import (
     _bin_index,
     _descriptor_details,
     _descriptors,
+    _iterations_for_target_evals,
     run_qd_search,
 )
 from grteclyn_wrapper.core.evaluation import Evaluation
@@ -250,6 +251,81 @@ def test_qd_search_flushes_initial_trajectory(tmp_path, monkeypatch) -> None:
     assert all(row["episode"].endswith(f"eval_{row['eval']:06d}") for row in rows)
     assert all(row["status"] == "gpu_ok" for row in rows)
     assert (tmp_path / "qd_live" / "archive.json").exists()
+
+
+def test_iterations_for_target_evals() -> None:
+    assert _iterations_for_target_evals(target_evals=88, batch=8) == 10
+    assert _iterations_for_target_evals(target_evals=400, batch=8) == 49
+    assert _iterations_for_target_evals(
+        target_evals=400, batch=8, completed_evals=88,
+    ) == 39
+
+
+def test_qd_search_resume_continues_eval_counter(tmp_path, monkeypatch) -> None:
+    def fake_evaluate_overrides(overrides, *, out_dir, name, **_kwargs):
+        idx = int(name.rsplit("_", 1)[1])
+        episode = out_dir / name
+        episode.mkdir()
+        return Evaluation(
+            score=float(idx),
+            components={
+                "constraint_growth": 1.0,
+                "ftl_precursor": 0.05,
+                "shift_drive": 0.2,
+                "channel_progress": 0.01,
+                "operational_ftl": 0.0,
+                "anec_condition": 1.0,
+                "tidal_comfort": 1.0,
+            },
+            notes=[],
+            episode_path=str(episode),
+            exit_code=0,
+            preflight_rejected=False,
+            reason=None,
+            metrics={
+                "general_ftl_evolved": {
+                    "reachable": True,
+                    "t_flat": 10.0,
+                    "t_min": 10.2,
+                },
+            },
+        )
+
+    monkeypatch.setattr(qd_module, "evaluate_overrides", fake_evaluate_overrides)
+
+    run_qd_search(
+        runs_dir=tmp_path,
+        name="qd_resume",
+        iterations=1,
+        init_random=2,
+        batch_size=1,
+        bins=4,
+        seed=7,
+        search_space=[SearchDimension("toy_param", 0.0, 1.0)],
+        consume_plotfiles=False,
+        check_params=False,
+    )
+
+    run_qd_search(
+        runs_dir=tmp_path,
+        name="qd_resume",
+        resume=True,
+        target_evals=4,
+        batch_size=1,
+        bins=4,
+        seed=7,
+        search_space=[SearchDimension("toy_param", 0.0, 1.0)],
+        consume_plotfiles=False,
+        check_params=False,
+    )
+
+    lines = (tmp_path / "qd_resume" / "trajectory.jsonl").read_text(encoding="utf-8").splitlines()
+    evals = [json.loads(line)["eval"] for line in lines]
+    assert evals == [1, 2, 3, 4]
+    archive = QDArchive.from_dict(
+        json.loads((tmp_path / "qd_resume" / "archive.json").read_text(encoding="utf-8"))
+    )
+    assert len(archive.cells) >= 1
 
 
 # --------------------------------------------------------------------------

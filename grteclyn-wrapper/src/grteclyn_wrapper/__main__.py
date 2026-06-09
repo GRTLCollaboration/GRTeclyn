@@ -562,6 +562,8 @@ def _run_qd_command(args: argparse.Namespace, base_overrides: dict[str, Any]) ->
         postload_gate_config=(
             _postload_gate_config_from_args(args) if use_grtresna else None
         ),
+        resume=getattr(args, "resume", False),
+        target_evals=getattr(args, "target_evals", None),
     )
     best = archive.best
     print(json.dumps({
@@ -1049,6 +1051,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     qd.add_argument("--postload-max-ham-l2", type=float, default=1.0e-2)
     qd.add_argument("--postload-max-mom-l2", type=float, default=1.0e-2)
+    qd.add_argument(
+        "--resume",
+        action="store_true",
+        help="Continue an existing MAP-Elites campaign in --name (loads archive + trajectory).",
+    )
+    qd.add_argument(
+        "--target-evals",
+        type=int,
+        default=None,
+        help="Total evaluations to reach (sets batch count from remaining evals on resume).",
+    )
 
     pareto = subparsers.add_parser("pareto", help="Extract the multi-objective Pareto front from a trajectory.jsonl.")
     pareto.add_argument("--trajectory", required=True, help="Path to an optimizer trajectory.jsonl.")

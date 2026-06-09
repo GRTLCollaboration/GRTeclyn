@@ -11,13 +11,13 @@ This is **not optional**. A run without the sidecar consumer is incomplete for p
 | Requirement | How |
 |-------------|-----|
 | Sidecar consumer ON | `consume_plotfiles=True` in Python (`evaluate_overrides` / `run_episode`) or `CONSUME_PLOTFILES=1` in shell launchers |
-| Delete heavy HDF5 | `consumer_delete=True` / `CONSUMER_DELETE=1` with `--keep-last 2` (promotion: `--consumer-keep-last 2`) |
+| Delete heavy HDF5 | `consumer_delete=True` / `CONSUMER_DELETE=1` with `--keep-last 0` or `2` (current HQ script: `--consumer-keep-last 0`) |
 | PNG frames written | Set `GRTECLYN_FRAMES_FIELDS` (see `run_promote_qd_operational_batch.sh`) — outputs land in `eval_*/frames/` |
 | Verify consumer alive | `ps aux \| grep consume_plotfiles` while GPU is busy; `frames/` should grow during evolution |
 
 **Wrong:** launching replay/promotion without frame env vars, or inspecting only `data/plt*` after a long `t=50` run (disk explosion, no reviewable movies).
 
-**Right:** use `run_promote_qd_operational_batch.sh` or `replay_grtresna_eval.py` with `--consumer-keep-last 2` and the `GRTECLYN_FRAMES_*` exports below.
+**Right:** use `run_center_fixed_top8_hq.sh`, `run_promote_qd_operational_batch.sh`, or `replay_grtresna_eval.py` with `--consumer-keep-last 0`/`2` and the `GRTECLYN_FRAMES_*` exports below.
 
 ### Post-load gate vs main evolution (do not confuse them)
 
@@ -26,7 +26,7 @@ HQ promotion has **two** GPU phases. Only the second one produces frames:
 | Phase | Dir | `stop_time` | `consume_plotfiles` | Frames? |
 |-------|-----|-------------|---------------------|---------|
 | **Post-load gate** | `eval_*/postload_gate/postload_gate/` | **`0.01`** (short) | **OFF** | **No** |
-| **Main evolution** | `eval_*/` (root `params.txt`) | **`50`** (HQ) | **ON** | **Yes** → `eval_*/frames/` |
+| **Main evolution** | `eval_*/` (root `params.txt`) | **`30` or `50`** (HQ script dependent) | **ON** | **Yes** → `eval_*/frames/` |
 
 The post-load gate (`projection/postload_gate.py`) is a **constraint sanity check** after GRTresna — it loads the `.gridinit`, advances a few steps, and reads `L2_Ham` / `L2_Mom`. It must **never** inherit promotion `stop_time=50`; gate-specific params always win over search/promotion overrides.
 
@@ -44,7 +44,7 @@ The post-load gate (`projection/postload_gate.py`) is a **constraint sanity chec
 # Consumer must be alive during main evolution
 ps aux | grep 'consume_plotfiles.*l128n256_qd_eval'
 
-# Main evolution uses episode-root params (stop_time=50), not postload_gate/
+# Main evolution uses episode-root params (HQ stop_time), not postload_gate/
 grep stop_time runs/grtresna_promote/l128n256_qd_eval074/params.txt
 grep stop_time runs/grtresna_promote/l128n256_qd_eval074/postload_gate/postload_gate/params.txt  # only if gate ran
 ```
@@ -513,7 +513,17 @@ CMA-ES writes `trajectory.jsonl` once per generation (empty file during gen-1 GR
 
 > **Resolution rule:** promotion must use **`N > L`** (or same `L` with larger `N`) to refine the grid. `L=N` only enlarges the domain at `dx=1` — no fidelity gain.
 
-**Batch HQ** (current production path):
+**Center-fixed top-8 HQ** (current production path for `qd_20260609T094634Z`):
+
+```bash
+# Defaults: L=128 N=256 (dx=0.5), t=30, fresh GRTresna, Ham/Mom gate 10%
+# Frames are extracted on the fly; processed plotfiles are deleted with keep-last 0.
+bash scripts/search/run_center_fixed_top8_hq.sh
+```
+
+Candidates: `eval_000324`, `eval_000114`, `eval_000146`, `eval_000169`, `eval_000358`, `eval_000314`, `eval_000136`, `eval_000228`. Outputs: `runs/grtresna_promote/l128n256t30_center_fixed_qd_eval*/`.
+
+**Batch HQ** (older operational-elites batch):
 
 ```bash
 # Defaults: L=128 N=256 (dx=0.5), t=50, fresh GRTresna, Ham/Mom gate 10%

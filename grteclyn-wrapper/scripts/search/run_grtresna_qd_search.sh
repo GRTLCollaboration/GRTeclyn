@@ -47,6 +47,9 @@ GRTRESNA_GRIDINIT_NX="${GRTRESNA_GRIDINIT_NX:-64}"
 GRTRESNA_GRIDINIT_NY="${GRTRESNA_GRIDINIT_NY:-64}"
 GRTRESNA_GRIDINIT_NZ="${GRTRESNA_GRIDINIT_NZ:-64}"
 QD_ITERATIONS="${QD_ITERATIONS:-10}"
+QD_TARGET_EVALS="${QD_TARGET_EVALS:-}"
+QD_RESUME="${QD_RESUME:-0}"
+QD_NAME="${QD_NAME:-}"
 BINS="${BINS:-8}"
 GPU_IDS="${GPU_IDS:-0 1 2 3}"
 BATCH_SIZE="${BATCH_SIZE:-$(wc -w <<< "${GPU_IDS}")}"
@@ -70,6 +73,7 @@ POSTLOAD_MAX_MOM_L2="${POSTLOAD_MAX_MOM_L2:-1e-2}"
 export POSTLOAD_GATE
 
 CONSUMER_RADII="${CONSUMER_RADII:-4 8}"
+CONSUMER_KEEP_LAST="${CONSUMER_KEEP_LAST:-0}"
 FTL_L="${FTL_L:-8.0}"
 
 export GRTECLYN_FRAMES_FIELDS="${FRAMES_FIELDS:-lump_activity scalar_activity phi Pi chi chi_minus_1 local_speed shift1 rho_req}"
@@ -78,6 +82,19 @@ export GRTECLYN_PROJECTION_AXES="${PROJECTION_AXES:-x y z}"
 export GRTECLYN_PROJECTION_METHOD="${GRTECLYN_PROJECTION_METHOD:-mip}"
 
 mkdir -p "${RUNS_DIR}"
+
+NAME_ARGS=()
+if [[ -n "${QD_NAME}" ]]; then
+  NAME_ARGS+=(--name "${QD_NAME}")
+fi
+RESUME_ARGS=()
+if [[ "${QD_RESUME}" == "1" ]]; then
+  RESUME_ARGS+=(--resume)
+fi
+TARGET_EVALS_ARGS=()
+if [[ -n "${QD_TARGET_EVALS}" ]]; then
+  TARGET_EVALS_ARGS+=(--target-evals "${QD_TARGET_EVALS}")
+fi
 
 DRY_RUN_ARGS=()
 if [[ "${DRY_RUN:-0}" == "1" ]]; then
@@ -101,18 +118,22 @@ fi
 # shellcheck disable=SC2086
 exec ${PYTHON_BIN} -m grteclyn_wrapper \
   --runs-dir "${RUNS_DIR}" \
+  "${NAME_ARGS[@]}" \
   --example RadialRecipe \
   --set stop_time="${STOP_TIME}" \
   --set plot_interval="${PLOT_INTERVAL}" \
   "${DRY_RUN_ARGS[@]}" \
   --consume-plotfiles \
   --consumer-delete \
+  --consumer-keep-last "${CONSUMER_KEEP_LAST}" \
   --consumer-radii ${CONSUMER_RADII} \
   --ftl-L "${FTL_L}" \
   qd \
   --descriptor-mode channel \
   --objective-mode ftl_first \
   --iterations "${QD_ITERATIONS}" \
+  "${TARGET_EVALS_ARGS[@]}" \
+  "${RESUME_ARGS[@]}" \
   --batch-size "${BATCH_SIZE}" \
   --bins "${BINS}" \
   --seed "${SEED}" \

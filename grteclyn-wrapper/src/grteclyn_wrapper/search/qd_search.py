@@ -197,6 +197,57 @@ class QDArchive:
             ],
         }
 
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> QDArchive:
+        archive = cls(bins=int(data["bins"]))
+        for cell_data in data.get("cells", []):
+            cell = tuple(cell_data["cell"])
+            archive.cells[cell] = Elite(
+                cell=cell,
+                score=float(cell_data["score"]),
+                descriptors=tuple(cell_data["descriptors"]),
+                params=dict(cell_data["params"]),
+                episode=cell_data.get("episode"),
+                tier=int(cell_data.get("tier", int(Tier.REJECTED))),
+                tier_name=str(cell_data.get("tier_name", "rejected")),
+                objectives=dict(cell_data.get("objectives", {})),
+                descriptor_details=dict(cell_data.get("descriptor_details", {})),
+            )
+        return archive
+
+
+def _load_trajectory_records(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    records: list[dict[str, Any]] = []
+    with path.open("r", encoding="utf-8") as fh:
+        for line in fh:
+            if not line.strip():
+                continue
+            records.append(json.loads(line))
+    return records
+
+
+def _iterations_for_target_evals(
+    *,
+    target_evals: int,
+    batch: int,
+    completed_evals: int = 0,
+    include_init: bool = True,
+) -> int:
+    """Return MAP-Elites batch count needed to reach ``target_evals``."""
+    if target_evals <= 0:
+        return 0
+    if completed_evals > 0:
+        remaining = target_evals - completed_evals
+        if remaining <= 0:
+            return 0
+        return int(math.ceil(remaining / batch))
+    init = batch if include_init else 0
+    if target_evals <= init:
+        return 0
+    return int(math.ceil((target_evals - init) / batch))
+
 
 def _sample_random(dims: Sequence[SearchDimension], rng: np.random.Generator) -> list[float]:
     return [float(rng.uniform(d.lower, d.upper)) for d in dims]
@@ -265,6 +316,8 @@ def run_qd_search(
     grtresna_convergence_config: Any | None = None,
     grtresna_postload_gate: bool = False,
     postload_gate_config: Any | None = None,
+    resume: bool = False,
+    target_evals: int | None = None,
 ) -> QDArchive:
     example_cfg = example if isinstance(example, ExampleConfig) else resolve_example(example)
     dims = list(search_space or DEFAULT_SEARCH_SPACE)
@@ -283,20 +336,67 @@ def run_qd_search(
     n_init = init_random if init_random is not None else batch
 
     if name is None:
+        if resume:
+            raise ValueError("resume requires --name pointing at an existing qd_<timestamp> directory")
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         name = f"qd_{timestamp}"
     qd_dir = (runs_dir / name).expanduser().resolve()
-    qd_dir.mkdir(parents=True, exist_ok=False)
 
-    archive = QDArchive(bins=bins)
-    eval_counter = [0]
+    trajectory_path = qd_dir / "trajectory.jsonl"
+    conv_history: list[dict[str, Any]] = []
+    completed_evals = 0
+
+    if resume:
+        if not qd_dir.is_dir():
+            raise FileNotFoundError(f"resume directory not found: {qd_dir}")
+        archive_path = qd_dir / "archive.json"
+        if not archive_path.exists():
+            raise FileNotFoundError(f"resume requires archive.json in {qd_dir}")
+        archive = QDArchive.from_dict(json.loads(archive_path.read_text(encoding="utf-8")))
+        if archive.bins != bins:
+            raise ValueError(
+                f"resume bins mismatch: archive has {archive.bins}, requested {bins}"
+            )
+        trajectory = _load_trajectory_records(trajectory_path)
+        if trajectory:
+            completed_evals = max(int(rec["eval"]) for rec in trajectory if "eval" in rec)
+        validation_path = qd_dir / "validation.json"
+        if validation_path.exists():
+            validation = json.loads(validation_path.read_text(encoding="utf-8"))
+            conv_history = list(validation.get("history", []))
+        metadata_path = qd_dir / "metadata.json"
+        if metadata_path.exists() and seed is None:
+            meta = json.loads(metadata_path.read_text(encoding="utf-8"))
+            seed = meta.get("seed")
+        if target_evals is not None:
+            iterations = _iterations_for_target_evals(
+                target_evals=target_evals,
+                batch=batch,
+                completed_evals=completed_evals,
+            )
+        print(
+            f"[qd] resume {qd_dir.name}: completed={completed_evals} "
+            f"elites={len(archive.cells)} planned_batches={iterations}"
+            + (f" target_evals={target_evals}" if target_evals is not None else "")
+        )
+        if target_evals is not None and iterations == 0:
+            print(f"[qd] target_evals={target_evals} already reached; nothing to do.")
+            return archive
+    else:
+        qd_dir.mkdir(parents=True, exist_ok=False)
+        archive = QDArchive(bins=bins)
+        trajectory = []
+        if target_evals is not None:
+            iterations = _iterations_for_target_evals(
+                target_evals=target_evals,
+                batch=batch,
+            )
+
+    eval_counter = [completed_evals]
     counter_lock = threading.Lock()
     trajectory_lock = threading.Lock()
-    trajectory_path = qd_dir / "trajectory.jsonl"
-    trajectory: list[dict[str, Any]] = []
 
-    write_json(qd_dir / "metadata.json", {
-        "created_at": datetime.now(timezone.utc).isoformat(),
+    metadata = {
         "mode": "qd_map_elites",
         "example": example_cfg.name,
         "iterations": iterations,
@@ -317,7 +417,24 @@ def run_qd_search(
         "grtresna_max_mom_pct": getattr(
             grtresna_convergence_config, "max_mom_pct", 5.0,
         ),
-    })
+    }
+    if target_evals is not None:
+        metadata["target_evals"] = target_evals
+    if resume:
+        metadata["resumed_at"] = datetime.now(timezone.utc).isoformat()
+        metadata["resume_from_evals"] = completed_evals
+        metadata["resume_planned_batches"] = iterations
+        existing_meta_path = qd_dir / "metadata.json"
+        if existing_meta_path.exists():
+            existing = json.loads(existing_meta_path.read_text(encoding="utf-8"))
+            metadata["created_at"] = existing.get(
+                "created_at", datetime.now(timezone.utc).isoformat()
+            )
+        else:
+            metadata["created_at"] = datetime.now(timezone.utc).isoformat()
+    else:
+        metadata["created_at"] = datetime.now(timezone.utc).isoformat()
+    write_json(qd_dir / "metadata.json", metadata)
 
     def _append_live_trajectory(record: Mapping[str, Any]) -> None:
         with trajectory_lock:
@@ -453,8 +570,6 @@ def run_qd_search(
             )
         _write_trajectory()
 
-    conv_history: list[dict[str, Any]] = []
-
     def _write_validation() -> dict[str, Any]:
         """Assess the archive's survivor front and archive-convergence signal."""
         items = [
@@ -502,14 +617,23 @@ def run_qd_search(
         })
         return signals
 
-    print(f"[qd] MAP-Elites: {len(dims)}D, bins={bins}x{bins}, batch={batch}, "
-          f"iters={iterations}, GPUs={gpu_ids or cuda_devices}")
+    start_iter = len(conv_history)
+    total_target = (
+        target_evals
+        if target_evals is not None
+        else completed_evals + (0 if resume else n_init) + iterations * batch
+    )
+    print(
+        f"[qd] MAP-Elites: {len(dims)}D, bins={bins}x{bins}, batch={batch}, "
+        f"iters={iterations}, GPUs={gpu_ids or cuda_devices}, "
+        f"evals={completed_evals}->{total_target}"
+    )
 
-    # Initial random fill.
-    init_vectors = [_sample_random(dims, rng) for _ in range(n_init)]
-    _ingest(_evaluate_batch(init_vectors))
-    write_json(qd_dir / "archive.json", archive.to_dict())
-    _write_validation()
+    if not resume:
+        init_vectors = [_sample_random(dims, rng) for _ in range(n_init)]
+        _ingest(_evaluate_batch(init_vectors))
+        write_json(qd_dir / "archive.json", archive.to_dict())
+        _write_validation()
 
     for it in range(1, iterations + 1):
         vectors: list[list[float]] = []
@@ -526,10 +650,14 @@ def run_qd_search(
         signals = _write_validation()
         best = archive.best
         n_front = len(conv_history[-1]["front_labels"])
-        print(f"[qd] iter {it}/{iterations}: elites={len(archive.cells)} "
-              f"coverage={archive.coverage:.2f} best={best.score if best else float('nan'):.4f} "
-              f"front(T>={survivor_min_tier})={n_front} "
-              f"converged={signals.get('converged')} evals={eval_counter[0]}")
+        global_iter = start_iter + it
+        print(
+            f"[qd] iter {it}/{iterations} (total {global_iter}): "
+            f"elites={len(archive.cells)} coverage={archive.coverage:.2f} "
+            f"best={best.score if best else float('nan'):.4f} "
+            f"front(T>={survivor_min_tier})={n_front} "
+            f"converged={signals.get('converged')} evals={eval_counter[0]}/{total_target}"
+        )
         if signals.get("converged"):
             print(f"[qd] archive converged at iter {it}: "
                   f"coverage_delta={signals.get('coverage_delta'):.3f} "
