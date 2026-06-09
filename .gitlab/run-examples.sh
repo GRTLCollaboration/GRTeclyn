@@ -14,6 +14,8 @@
 #Pass environment variables as
 #sbatch --export=MODULEPATHS=${MODULEPATHS_A100},MODULES=${MODULES_A100} jobs.sb
 
+set -euo pipefail
+
 cd ${HOME}/${CI_PROJECT_DIR}/Tests
 make run ${BUILD_CONFIG}
 
