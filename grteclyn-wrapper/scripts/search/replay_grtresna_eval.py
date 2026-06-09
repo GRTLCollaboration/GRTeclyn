@@ -13,9 +13,21 @@ import numpy as np
 from grteclyn_wrapper.core.config import resolve_example, resolve_executable
 from grteclyn_wrapper.core.evaluation import evaluate_overrides
 from grteclyn_wrapper.grtresna.domain import GRTresnaDomainConfig
+from grteclyn_wrapper.grtresna.matter_wiring import plot_vars_for_independent_scalars
 from grteclyn_wrapper.grtresna.io import read_gridinit
 from grteclyn_wrapper.grtresna.solver import GRTresnaConfig
 from grteclyn_wrapper.search.grtresna_convergence_gate import GRTresnaConvergenceConfig
+
+
+_MATTER_REPLAY_KEYS = {
+    "recipe_matter_model",
+    "recipe_num_scalar_fields",
+    "recipe_scalar_field_signs",
+    "recipe_scalar_mass",
+    "recipe_exotic_matter",
+    "recipe_support_strength",
+    "amr.plot_vars",
+}
 
 
 def _load_overrides(source_eval: Path) -> dict:
@@ -26,6 +38,38 @@ def _load_overrides(source_eval: Path) -> dict:
     overrides = dict(meta.get("overrides") or {})
     if not overrides:
         raise ValueError(f"no overrides in {meta_path}")
+    return overrides
+
+
+def _parse_params_value(raw: str) -> int | float | str:
+    value = raw.strip()
+    if len(value) >= 2 and value[0] == value[-1] == '"':
+        return value[1:-1]
+    if " " in value:
+        return value
+    try:
+        return int(value)
+    except ValueError:
+        pass
+    try:
+        return float(value)
+    except ValueError:
+        return value
+
+
+def _load_matter_replay_overrides(source_eval: Path) -> dict[str, int | float | str]:
+    params_path = source_eval / "params.txt"
+    if not params_path.is_file():
+        return {}
+
+    overrides: dict[str, int | float | str] = {}
+    for line in params_path.read_text(encoding="utf-8").splitlines():
+        body = line.split("#", 1)[0].strip()
+        if "=" not in body:
+            continue
+        key, raw_value = (part.strip() for part in body.split("=", 1))
+        if key in _MATTER_REPLAY_KEYS:
+            overrides[key] = _parse_params_value(raw_value)
     return overrides
 
 
@@ -237,6 +281,10 @@ def main() -> int:
             gridinit,
             evolution_center=evolution_center,
         )
+        overrides.update(_load_matter_replay_overrides(source_eval))
+        num_fields = overrides.get("recipe_num_scalar_fields")
+        if num_fields and "amr.plot_vars" not in overrides:
+            overrides["amr.plot_vars"] = plot_vars_for_independent_scalars(int(num_fields))
         overrides["recipe_initial_data_file"] = str(gridinit)
 
     example = resolve_example("RadialRecipe")

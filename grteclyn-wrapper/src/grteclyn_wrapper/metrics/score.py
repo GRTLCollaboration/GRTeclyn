@@ -578,18 +578,20 @@ def score_episode(
         )
 
     if objective_mode == "ftl_first":
-        # Lexicographic-style scalarization: FTL signals dominate the objective,
-        # health terms only order candidates that are equally non-FTL/promising.
+        # Lexicographic-style scalarization: path-level FTL dominates; precursor
+        # and shift are shaping only.  Trapped-surface proxies (horizon_penalty
+        # < 0) veto high local-speed artifacts that are not traversable channels.
         health_gate = components.get("nontriviality_gate", 0.0)
+        horizon = components.get("horizon_penalty", 0.0)
+        trapped_surface = horizon < -0.05
         total = (
-            1200.0 * components.get("operational_ftl_geodesic", 0.0)
-            + 300.0 * components.get("operational_ftl", 0.0)
-            + 200.0 * components.get("channel_progress", 0.0)
-            + 160.0 * components.get("ftl_precursor", 0.0)
-            + 100.0 * components.get("shift_drive", 0.0)
-            + 150.0 * components.get("operational_ftl_solved", 0.0)
-            + 100.0 * components.get("ftl_shortcut", 0.0)
-            + 10.0 * components.get("horizon_penalty", 0.0)
+            1500.0 * components.get("operational_ftl_geodesic", 0.0)
+            + 400.0 * components.get("operational_ftl", 0.0)
+            + 350.0 * components.get("channel_progress", 0.0)
+            + 180.0 * components.get("operational_ftl_solved", 0.0)
+            + 60.0 * components.get("ftl_precursor", 0.0)
+            + 40.0 * components.get("shift_drive", 0.0)
+            + 50.0 * components.get("ftl_shortcut", 0.0)
             + 5.0 * components.get("nontrivial_geometry", 0.0)
             + health_gate * (
                 20.0 * components.get("survival", 0.0)
@@ -601,8 +603,16 @@ def score_episode(
             )
             + 1.0 * components.get("exotic_penalty", 0.0)
             + 250.0 * components.get("stationary_artifact_penalty", 0.0)
+            + 500.0 * horizon
         )
-        notes.append("objective_mode=ftl_first: FTL/shift terms dominate health/stability")
+        if trapped_surface:
+            notes.append(
+                f"trapped-surface proxy active (horizon_penalty={horizon:.3f}); "
+                "local precursor/shift alone cannot rank this candidate highly"
+            )
+        notes.append(
+            "objective_mode=ftl_first: channel/operational FTL dominate precursor/shift"
+        )
     else:
         total = 0.0
         for key, value in components.items():

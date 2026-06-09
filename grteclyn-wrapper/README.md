@@ -507,6 +507,26 @@ nohup .venv/bin/python scripts/search/replay_grtresna_eval.py \
   > ../runs/grtresna_promote/l128n256_qd_eval074.log 2>&1 &
 ```
 
+**Matter-binding check is mandatory for every GPU-only `.gridinit` replay.** GRTresna
+solves the geometry together with a matched scalar-matter layout. A replay that
+loads the `.gridinit` but drops the matched matter params can still show low
+Ham/Mom constraints, but it is not a valid physics validation because GRTeclyn
+will evolve the wrong matter model. `replay_grtresna_eval.py` now copies these
+keys from the source eval `params.txt` when `--gridinit` is used:
+
+```text
+recipe_matter_model = grtresna_independent_scalars
+recipe_num_scalar_fields = 5
+recipe_scalar_field_signs = ...
+recipe_scalar_mass = 0.1
+```
+
+Before trusting frames or `score.json`, verify the promoted run root
+`params.txt` contains `recipe_initial_data_file = "...gridinit"` **and** the
+matched `recipe_matter_model`/scalar-sign lines. If those lines are missing,
+stop the run and relaunch after fixing the replay script; do not interpret the
+movies as a bound geometry-matter result.
+
 **Top-3 replay** (full path: GRTresna + postload + framed evolution):
 
 ```bash

@@ -10,6 +10,21 @@ from .config import ExampleConfig, resolve_example
 
 _ASSIGNMENT_RE = re.compile(r"^(?P<prefix>\s*(?P<key>[A-Za-z0-9_.]+)\s*=\s*)(?P<value>.*?)(?P<comment>\s+#.*)?$")
 
+# AMReX ParmParse expects space-separated tokens, not one quoted string.
+_PARM_PARSE_TOKEN_LIST_KEYS = frozenset(
+    {"amr.plot_vars", "amr.derive_plot_vars"},
+)
+
+
+def format_param_value(key: str, value: object) -> str:
+    """Format a params.txt assignment value, honoring ParmParse list keys."""
+    if key in _PARM_PARSE_TOKEN_LIST_KEYS:
+        if isinstance(value, str):
+            return value.strip().strip('"')
+        if isinstance(value, (list, tuple)):
+            return " ".join(str(item) for item in value)
+    return format_value(value)
+
 
 def format_value(value: object) -> str:
     if isinstance(value, Path):
@@ -50,7 +65,9 @@ class ParamsTemplate:
         return cls(path.read_text(encoding="utf-8").splitlines())
 
     def render(self, overrides: Mapping[str, object]) -> str:
-        remaining = {str(key): format_value(value) for key, value in overrides.items()}
+        remaining = {
+            str(key): format_param_value(str(key), value) for key, value in overrides.items()
+        }
         rendered: list[str] = []
 
         for line in self.lines:

@@ -67,7 +67,7 @@ export POSTLOAD_GATE
 CONSUMER_RADII="${CONSUMER_RADII:-4 8}"
 FTL_L="${FTL_L:-8.0}"
 
-export GRTECLYN_FRAMES_FIELDS="${FRAMES_FIELDS:-phi Pi scalar_activity chi chi_minus_1 local_speed shift1 rho_req}"
+export GRTECLYN_FRAMES_FIELDS="${FRAMES_FIELDS:-lump_activity scalar_activity phi Pi chi chi_minus_1 local_speed shift1 rho_req}"
 export GRTECLYN_PROJECTION_FIELDS="${PROJECTION_FIELDS:-scalar_activity}"
 export GRTECLYN_PROJECTION_AXES="${PROJECTION_AXES:-x y z}"
 export GRTECLYN_PROJECTION_METHOD="${GRTECLYN_PROJECTION_METHOD:-mip}"

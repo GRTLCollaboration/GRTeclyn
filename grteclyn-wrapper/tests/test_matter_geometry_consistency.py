@@ -15,9 +15,12 @@ from grteclyn_wrapper.grtresna.lump_fields import (
     lump_sign,
     paint_lump_fields_on_grid,
 )
+from grteclyn_wrapper.core.params import format_param_value, write_params
+from grteclyn_wrapper.core.config import resolve_example
 from grteclyn_wrapper.grtresna.matter_wiring import (
     GRTRESNA_INDEPENDENT_MATTER_MODEL,
     evolution_overrides_from_config,
+    plot_vars_for_independent_scalars,
     write_matter_metadata,
 )
 from grteclyn_wrapper.grtresna.solver import GRTresnaConfig
@@ -116,6 +119,29 @@ def test_matter_wiring_selects_independent_scalar_model() -> None:
     assert overrides["recipe_num_scalar_fields"] == 2
     assert overrides["recipe_scalar_field_signs"] == "1 -1"
     assert overrides["recipe_scalar_mass"] == pytest.approx(0.1)
+    plot_vars = overrides["amr.plot_vars"]
+    assert "phi_lump0" in plot_vars
+    assert "Pi_lump1" in plot_vars
+
+
+def test_plot_vars_render_unquoted_for_parmparse(tmp_path: Path) -> None:
+    example = resolve_example("RadialRecipe")
+    out = tmp_path / "params.txt"
+    write_params(
+        example.template,
+        out,
+        episode_dir=tmp_path / "episode",
+        example=example,
+        overrides={"amr.plot_vars": plot_vars_for_independent_scalars(2)},
+    )
+    line = next(l for l in out.read_text(encoding="utf-8").splitlines() if "amr.plot_vars" in l)
+    assert 'amr.plot_vars = "' not in line
+    assert "phi_lump0" in line
+    assert "Pi_lump1" in line
+    assert format_param_value("amr.plot_vars", plot_vars_for_independent_scalars(2)) == (
+        "chi h11 h12 h13 h22 h23 h33 K lapse shift1 shift2 shift3 phi Pi "
+        "phi_lump0 Pi_lump0 phi_lump1 Pi_lump1"
+    )
 
 
 def test_matter_metadata_round_trip(tmp_path: Path) -> None:

@@ -16,6 +16,21 @@ if TYPE_CHECKING:
 
 GRTRESNA_INDEPENDENT_MATTER_MODEL = "grtresna_independent_scalars"
 
+# Full metric in plotfiles for evolved FTL/EC scoring plus per-lump scalars.
+_BASE_PLOT_VARS = (
+    "chi h11 h12 h13 h22 h23 h33 K lapse shift1 shift2 shift3 phi Pi"
+)
+
+
+def plot_vars_for_independent_scalars(num_fields: int) -> tuple[str, ...]:
+    """amr.plot_vars including per-lump scalar channels for frame extraction."""
+    base = tuple(_BASE_PLOT_VARS.split())
+    n = max(0, min(int(num_fields), MAX_INDEPENDENT_LUMPS))
+    lump_names: list[str] = []
+    for k in range(n):
+        lump_names.extend([f"phi_lump{k}", f"Pi_lump{k}"])
+    return (*base, *lump_names) if lump_names else base
+
 
 @dataclass(frozen=True)
 class GRTresnaMatterMetadata:
@@ -55,6 +70,7 @@ def evolution_overrides_from_config(cfg: GRTresnaConfig) -> dict[str, Any]:  # n
         "recipe_scalar_field_signs": " ".join(str(s) for s in meta.scalar_field_signs),
         "recipe_scalar_mass": meta.scalar_mass,
         "calculate_constraint_norms": 1,
+        "amr.plot_vars": plot_vars_for_independent_scalars(meta.num_scalar_fields),
     }
 
 

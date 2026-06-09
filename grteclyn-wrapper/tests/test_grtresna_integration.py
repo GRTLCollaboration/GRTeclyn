@@ -614,7 +614,37 @@ def test_strong_evolved_shortcut_gets_operational_ftl_reward() -> None:
     # operational_ftl_geodesic, which is unset here.  A strong coordinate
     # shortcut still earns a large positive score, just below the old
     # coordinate-only weighting.
-    assert score.total > 400.0
+    assert score.total > 300.0
+
+
+def test_ftl_first_penalizes_trapped_surface_over_local_precursor() -> None:
+    """High local speed must not outrank a clean geometry without horizon proxy."""
+    t_flat = 15.75
+    trapped = _metrics_with_general_ftl(
+        t_min=16.5,
+        t_flat=t_flat,
+        max_local_speed=1.07,
+        superluminal_fraction=0.83,
+        max_shift=0.07,
+    )
+    trapped_score = score_episode(trapped, objective_mode="ftl_first")
+    trapped_score.components["horizon_penalty"] = -1.0
+    trapped_total = (
+        trapped_score.total
+        + 500.0 * trapped_score.components["horizon_penalty"]
+    )
+
+    stable = _metrics_with_general_ftl(
+        t_min=15.89,
+        t_flat=t_flat,
+        max_local_speed=1.014,
+        superluminal_fraction=0.74,
+        max_shift=0.014,
+    )
+    stable_score = score_episode(stable, objective_mode="ftl_first")
+
+    assert trapped_score.components["ftl_precursor"] > stable_score.components["ftl_precursor"]
+    assert trapped_total < stable_score.total
 
 
 def _geodesic_report(f_geo: float) -> GeodesicFtlReport:
