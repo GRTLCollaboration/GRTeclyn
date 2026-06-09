@@ -11,13 +11,13 @@ This is **not optional**. A run without the sidecar consumer is incomplete for p
 | Requirement | How |
 |-------------|-----|
 | Sidecar consumer ON | `consume_plotfiles=True` in Python (`evaluate_overrides` / `run_episode`) or `CONSUME_PLOTFILES=1` in shell launchers |
-| Delete heavy HDF5 | `consumer_delete=True` / `CONSUMER_DELETE=1` with `--keep-last 0` or `2` (current HQ script: `--consumer-keep-last 0`) |
-| PNG frames written | Set `GRTECLYN_FRAMES_FIELDS` (see `run_promote_qd_operational_batch.sh`) — outputs land in `eval_*/frames/` |
+| Delete heavy HDF5 | `consumer_delete=True` / `CONSUMER_DELETE=1` with `--keep-last 3` (HQ default in `run_promote_qd_batch.sh`) |
+| PNG frames written | Set `GRTECLYN_FRAMES_FIELDS` (see `run_promote_qd_batch.sh` / `scripts/lib/promote_common.sh`) — outputs land in `eval_*/frames/` |
 | Verify consumer alive | `ps aux \| grep consume_plotfiles` while GPU is busy; `frames/` should grow during evolution |
 
 **Wrong:** launching replay/promotion without frame env vars, or inspecting only `data/plt*` after a long `t=50` run (disk explosion, no reviewable movies).
 
-**Right:** use `run_center_fixed_top8_hq.sh`, `run_promote_qd_operational_batch.sh`, or `replay_grtresna_eval.py` with `--consumer-keep-last 0`/`2` and the `GRTECLYN_FRAMES_*` exports below.
+**Right:** use `run_promote_qd_batch.sh`, or `replay_grtresna_eval.py` with `--consumer-keep-last 3` and the `GRTECLYN_FRAMES_*` exports below.
 
 ### Post-load gate vs main evolution (do not confuse them)
 
@@ -50,9 +50,9 @@ grep stop_time runs/grtresna_promote/l128n256_qd_eval074/postload_gate/postload_
 ```
 
 ```bash
-export GRTECLYN_FRAMES_FIELDS="phi Pi scalar_activity chi chi_minus_1 local_speed shift1 rho_req"
+export GRTECLYN_FRAMES_FIELDS="lump_activity scalar_activity phi_lump_sum Pi_lump_sum chi chi_minus_1 local_speed shift1 rho_req"
 export GRTECLYN_FRAMES_ZOOM=none   # full-domain slices for HQ
-export GRTECLYN_PROJECTION_FIELDS=scalar_activity
+export GRTECLYN_PROJECTION_FIELDS="lump_activity scalar_activity"
 export GRTECLYN_PROJECTION_AXES="x y z"
 export GRTECLYN_PROJECTION_METHOD=mip
 ```
@@ -137,8 +137,8 @@ uv run python scripts/search/validate_tiers.py runs/grtresna_search/<campaign> -
 |--------|---------|
 | `run_grtresna_search.sh` | CMA-ES: GRTresna → `.gridinit` → GPU evolution |
 | `run_grtresna_qd_search.sh` | MAP-Elites archive over shell space |
-| `run_promote_qd_operational_batch.sh` | Batch HQ promotion of operational QD elites |
-| `run_tier2_grtresna_qd_eval057.sh` | Single-eval HQ promotion / GPU-only continuation |
+| `run_promote_qd_batch.sh` | Batch HQ promotion of QD elites (env-driven candidate list) |
+| `replay_grtresna_eval.py` | Single-eval HQ promotion / GPU-only continuation |
 | `run_radialrecipe_gpu_smoke.sh` | Single-GPU smoke/build after C++ edits |
 | `project_geometry_motif.py` | Geometry-first scout → GRTresna projection → post-load gate |
 
@@ -484,6 +484,16 @@ QD_ITERATIONS=16 BINS=10 STOP_TIME=8 GPU_IDS="0 1 2 3 4 5 6 7" RANKS=8 \
 
 Outputs: `runs/grtresna_qd/qd_<timestamp>/` with `trajectory.jsonl`, `archive.json`, `eval_XXXXXX/`.
 
+Resume a campaign toward a larger eval budget (replaces the old `continue_center_fixed_qd.sh` wrapper):
+
+```bash
+RUNS_DIR=runs/grtresna_qd/ftl_discovery \
+QD_NAME=qd_ftl_discovery_20260609T162553Z \
+QD_RESUME=1 QD_TARGET_EVALS=400 \
+DESCRIPTOR_MODE=speed_horizon \
+bash scripts/search/run_grtresna_qd_search.sh
+```
+
 | | CMA-ES | MAP-Elites |
 |--|--------|------------|
 | Goal | One best score | Diverse elites across descriptor cells |
@@ -513,27 +523,52 @@ CMA-ES writes `trajectory.jsonl` once per generation (empty file during gen-1 GR
 
 > **Resolution rule:** promotion must use **`N > L`** (or same `L` with larger `N`) to refine the grid. `L=N` only enlarges the domain at `dx=1` — no fidelity gain.
 
-**Center-fixed top-8 HQ** (current production path for `qd_20260609T094634Z`):
+**FTL discovery HQ batch** (current production path):
 
 ```bash
-# Defaults: L=128 N=256 (dx=0.5), t=30, fresh GRTresna, Ham/Mom gate 10%
-# Frames are extracted on the fly; processed plotfiles are deleted with keep-last 0.
-bash scripts/search/run_center_fixed_top8_hq.sh
+# Defaults: QD source ftl_discovery campaign, L=128 N=256, t=30, keep-last=3
+# Promote specific evals (024, 055, 025 from MapElites.md):
+QD_RUN=../runs/grtresna_qd/ftl_discovery/qd_ftl_discovery_20260609T162553Z \
+CANDIDATES="024 0 055 1 025 2" \
+NAME_PREFIX=ftl_discovery STOP_TIME=30 \
+bash scripts/search/run_promote_qd_batch.sh
 ```
 
-Candidates: `eval_000324`, `eval_000114`, `eval_000146`, `eval_000169`, `eval_000358`, `eval_000314`, `eval_000136`, `eval_000228`. Outputs: `runs/grtresna_promote/l128n256t30_center_fixed_qd_eval*/`.
+Outputs: `runs/grtresna_promote/l128n256t30_ftl_discovery_qd_eval*/` with **`frames/`** populated during **main** GPU evolution, not during post-load gate.
 
-**Batch HQ** (older operational-elites batch):
+**Auto-pick top operational elites** from `trajectory.jsonl`:
 
 ```bash
-# Defaults: L=128 N=256 (dx=0.5), t=50, fresh GRTresna, Ham/Mom gate 10%
-# ALWAYS sets GRTECLYN_FRAMES_* + consume_plotfiles sidecar (see header callout)
-bash scripts/search/run_promote_qd_operational_batch.sh
+QD_RUN=../runs/grtresna_qd/qd_20260605T155951Z \
+TOP_K=8 MIN_OPERATIONAL_FTL=0.03 NAME_PREFIX=qd STOP_TIME=50 \
+bash scripts/search/run_promote_qd_batch.sh
 ```
 
-Filter: `operational_ftl >= 0.03`. Outputs: `runs/grtresna_promote/l128n256_qd_eval*/` with **`frames/`** populated during **main** GPU evolution (step 5 above), not during post-load gate.
+**Center-fixed top-8** (explicit candidate list):
 
-**GPU-only continuation** (reuse solved `.gridinit`, skip GRTresna + postload — goes straight to framed `t=50` evolution):
+```bash
+QD_RUN=../runs/grtresna_qd/center_fixed_search/qd_20260609T094634Z \
+CANDIDATES="324 0 114 1 146 2 169 3 358 4 314 5 136 6 228 7" \
+NAME_PREFIX=center_fixed STOP_TIME=30 \
+bash scripts/search/run_promote_qd_batch.sh
+```
+
+**Safe anchor revalidation** (`000114` from MapElites.md):
+
+```bash
+QD_RUN=../runs/grtresna_qd/center_fixed_search/qd_20260609T094634Z \
+CANDIDATES="114 0" NAME_PREFIX=revalidate STOP_TIME=30 \
+bash scripts/search/run_promote_qd_batch.sh
+```
+
+Dry-run (print launches without starting GPUs):
+
+```bash
+DRY_RUN=1 CANDIDATES="024 0" NAME_PREFIX=ftl_discovery \
+bash scripts/search/run_promote_qd_batch.sh
+```
+
+**GPU-only continuation** (reuse solved `.gridinit`, skip GRTresna + postload — goes straight to framed evolution):
 
 ```bash
 cd grteclyn-wrapper
@@ -616,16 +651,32 @@ done
 **Single-eval replay** (`eval_000057` T5 ladder reference):
 
 ```bash
-cd grteclyn-wrapper/scripts/search
+cd grteclyn-wrapper
+export GRTECLYN_FRAMES_FIELDS="lump_activity scalar_activity phi_lump_sum Pi_lump_sum chi chi_minus_1 local_speed shift1 rho_req"
+export GRTECLYN_FRAMES_ZOOM=none
+export GRTECLYN_PROJECTION_FIELDS="lump_activity scalar_activity"
+export GRTECLYN_PROJECTION_AXES="x y z"
+export GRTECLYN_PROJECTION_METHOD=mip
 
 # Full replay (GRTresna + GPU)
-GPU=0 NAME=val16hq2_qd_eval057 bash run_tier2_grtresna_qd_eval057.sh
+nohup .venv/bin/python scripts/search/replay_grtresna_eval.py \
+  ../runs/grtresna_qd/qd_20260605T062448Z/eval_000057 \
+  --name val16hq2_qd_eval057 --runs-dir ../runs/grtresna_promote --gpu 0 \
+  --n-full 128 --l-full 128 --grtresna-domain-l 128 \
+  --max-level 3 --stop-time 16 --plot-interval 48 \
+  --grtresna-ranks 8 --grtresna-timeout 7200 \
+  --grtresna-max-ham-pct 10 --grtresna-max-mom-pct 10 \
+  --consumer-keep-last 3 \
+  > ../runs/grtresna_promote/val16hq2_qd_eval057.log 2>&1 &
 
 # GPU-only continuation (reuse gridinit)
-SOURCE_EVAL=../../runs/grtresna_promote/val16hq2_qd_eval057 \
-GRIDINIT_SOURCE=../../runs/grtresna_promote/val16hq2_qd_eval057/initial_data.gridinit \
-N_FULL=128 MAX_LEVEL=3 STOP_TIME=30 GPU=0 NAME=val30hq_qd_eval057 \
-  bash run_tier2_grtresna_qd_eval057.sh
+nohup .venv/bin/python scripts/search/replay_grtresna_eval.py \
+  ../runs/grtresna_qd/qd_20260605T062448Z/eval_000057 \
+  --name val30hq_qd_eval057 --runs-dir ../runs/grtresna_promote --gpu 0 \
+  --gridinit ../runs/grtresna_promote/val16hq2_qd_eval057/initial_data.gridinit \
+  --n-full 128 --l-full 128 --max-level 3 --stop-time 30 --plot-interval 48 \
+  --consumer-keep-last 3 \
+  > ../runs/grtresna_promote/val30hq_qd_eval057.log 2>&1 &
 ```
 
 | Run | L | N | t | max c | `op_ftl` | Notes |

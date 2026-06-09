@@ -7,7 +7,7 @@ Paths below are relative to that root unless noted.
 
 | Folder | What lives here |
 |--------|-----------------|
-| [`lib/`](lib/env.sh) | Shared `env.sh` (sets `GRTECLYN_ROOT`, `PYTHONPATH`, optional OpenMPI/GRTresna env). Sourced by other scripts; do not run directly. |
+| [`lib/`](lib/env.sh) | Shared `env.sh` (sets `GRTECLYN_ROOT`, `PYTHONPATH`, optional OpenMPI/GRTresna env) and `promote_common.sh` (HQ promotion defaults). Sourced by other scripts; do not run directly. |
 | [`plot/`](plot/) | **Plotfile streaming and post-run figures** — shared across examples (wormhole collapse, RadialRecipe episodes, Teo runs, etc.). |
 | [`radial/`](radial/) | RadialRecipe smoke tests, batch runs, promotion, validation campaigns. |
 | [`search/`](search/) | FTL / GRTresna CMA-ES search campaigns, tier-2 replay, offline scoring. |
@@ -44,16 +44,23 @@ There are **no** duplicate scripts at the `scripts/` root — only `README.md`, 
 
 | Script | Purpose |
 |--------|---------|
-| `run_grtresna_search.sh` | **Production** matter-first search (GRTresna → `.gridinit` → GPU). |
-| `run_ftl_search_cmaes.sh` | 9-D radial CMA-ES (geometry-first). |
-| `run_ftl_search_nonspherical.sh` | 13-D gauge-angular search. |
-| `run_ftl_search_directional.sh` | 21-D full-z directional search. |
-| `run_optimize_loop.sh` | Generic env-driven CMA-ES loop. |
-| `run_tier2_hq_188.sh` | HQ replay of non-spherical winner `eval_000188`. |
-| `run_tier2_validation_long16.sh` | Legacy long validation (four spherical candidates). |
+| `run_grtresna_search.sh` | **Production** matter-first CMA-ES (GRTresna → `.gridinit` → GPU). |
+| `run_grtresna_qd_search.sh` | **Production** MAP-Elites QD over shell space (`QD_RESUME`, `QD_TARGET_EVALS`). |
+| `run_promote_qd_batch.sh` | Batch HQ promotion via `replay_grtresna_eval.py` (`CANDIDATES`, `TOP_K`, `NAME_PREFIX`). |
+| `replay_grtresna_eval.py` | Single-eval HQ replay / GPU-only `.gridinit` continuation. |
+| `run_ftl_search_cmaes.sh` | 9-D geometry-first CMA-ES scout. |
+| `run_ftl_search_nonspherical.sh` | 13-D gauge-angular scout. |
+| `run_ftl_search_directional.sh` | 21-D full-z directional scout. |
+| `project_geometry_motif.py` | Scout → GRTresna projection → post-load gate → optional evolve. |
+| `run_geometry_projection_batch.sh` | Full geometry-first projection campaign orchestrator. |
+| `run_geometry_projection_eval.sh` | Thin wrapper calling `project_geometry_motif.py`. |
+| `run_geometry_projection_replay_gridinit.sh` | GPU evolve from projected `.gridinit`. |
+| `run_matter_geometry_smokes.sh` | End-to-end matter–geometry consistency smokes. |
 | `validate_tiers.py` | Offline falsification-tier assessment. |
 | `rescore_grtresna_solved_ftl.py` | Re-score solved-geometry FTL on a campaign. |
-| `summarize_scores.py` | Per-episode diagnostics table for a `runs/` tree. |
+| `cleanup_heavy_sim_artifacts.sh` | Delete heavy plotfile/checkpoint trees under a QD campaign. |
+
+Shared promotion defaults live in [`lib/promote_common.sh`](lib/promote_common.sh).
 
 ---
 
