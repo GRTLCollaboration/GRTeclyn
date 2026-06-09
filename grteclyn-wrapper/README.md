@@ -17,7 +17,37 @@ This is **not optional**. A run without the sidecar consumer is incomplete for p
 
 **Wrong:** launching replay/promotion without frame env vars, or inspecting only `data/plt*` after a long `t=50` run (disk explosion, no reviewable movies).
 
-**Right:** use `run_promote_qd_operational_batch.sh` or `replay_grtresna_eval.py` with `--consumer-keep-last 2` and the `GRTECLYN_FRAMES_*` exports below. Post-load gate (`postload_gate/`) is a short constraint check — it does **not** produce frames; frames come from the main `t=50` evolution step.
+**Right:** use `run_promote_qd_operational_batch.sh` or `replay_grtresna_eval.py` with `--consumer-keep-last 2` and the `GRTECLYN_FRAMES_*` exports below.
+
+### Post-load gate vs main evolution (do not confuse them)
+
+HQ promotion has **two** GPU phases. Only the second one produces frames:
+
+| Phase | Dir | `stop_time` | `consume_plotfiles` | Frames? |
+|-------|-----|-------------|---------------------|---------|
+| **Post-load gate** | `eval_*/postload_gate/postload_gate/` | **`0.01`** (short) | **OFF** | **No** |
+| **Main evolution** | `eval_*/` (root `params.txt`) | **`50`** (HQ) | **ON** | **Yes** → `eval_*/frames/` |
+
+The post-load gate (`projection/postload_gate.py`) is a **constraint sanity check** after GRTresna — it loads the `.gridinit`, advances a few steps, and reads `L2_Ham` / `L2_Mom`. It must **never** inherit promotion `stop_time=50`; gate-specific params always win over search/promotion overrides.
+
+**Corrupted run symptoms** (GPU busy, zero frames):
+
+- `postload_gate/postload_gate/params.txt` shows `stop_time = 50.0` instead of `0.01`
+- `ps aux | grep consume_plotfiles` returns nothing while a GPU is at 100%
+- `eval_*/frames/` empty but `postload_gate/postload_gate/run.log` shows hundreds of steps
+
+**Recovery:** stop the run, save `initial_data.gridinit`, wipe the episode dir, relaunch with `--gridinit` (GPU-only, skips GRTresna + postload) or fresh `replay_grtresna_eval.py` after pulling the `postload_gate.py` fix.
+
+**Healthy run check:**
+
+```bash
+# Consumer must be alive during main evolution
+ps aux | grep 'consume_plotfiles.*l128n256_qd_eval'
+
+# Main evolution uses episode-root params (stop_time=50), not postload_gate/
+grep stop_time runs/grtresna_promote/l128n256_qd_eval074/params.txt
+grep stop_time runs/grtresna_promote/l128n256_qd_eval074/postload_gate/postload_gate/params.txt  # only if gate ran
+```
 
 ```bash
 export GRTECLYN_FRAMES_FIELDS="phi Pi scalar_activity chi chi_minus_1 local_speed shift1 rho_req"
@@ -269,8 +299,8 @@ Skip stage 2 when QD already yields `operational_ftl > 0` elites; go straight to
 1. Sample ansatz parameters → GRTresna MPI solve (Ham + Mom). Exotic (`rho<0`) candidates auto-switch to the K=0 maximal-slicing solver (`apply_exotic_safe_solver`).
 2. Reject if convergence missing, NaN, or above threshold
 3. Solved-geometry FTL gate on `.gridinit` (cheap, pre-GPU)
-4. **Post-load constraint gate** — short GPU launch that loads the `.gridinit` with the matched independent-scalar matter and rejects if `L2_Ham`/`L2_Mom` exceed `--postload-max-{ham,mom}-l2` (default `1e-2`). Guarantees the loaded data is *physically self-consistent* before any long evolution.
-5. GRTeclyn GPU evolution → consume plotfiles → `ftl_first` score
+4. **Post-load constraint gate** — **short** GPU launch (`stop_time=0.01`, **no** `consume_plotfiles`) that loads the `.gridinit` and rejects if `L2_Ham`/`L2_Mom` exceed `--postload-max-{ham,mom}-l2` (default `1e-2`). Writes to `postload_gate/` only — **no frames here**.
+5. **Main** GRTeclyn GPU evolution (`stop_time=50` for HQ) → `consume_plotfiles` sidecar → PNG frames in `frames/` → `ftl_first` score
 6. Feed fitness to CMA-ES or MAP-Elites archive cell
 
 Pre-evolution gates 2–4 are centralized in `search/grtresna_evaluation_gates.py` (`apply_grtresna_pre_evolution_gates`), shared by CMA-ES and MAP-Elites.
@@ -457,9 +487,27 @@ CMA-ES writes `trajectory.jsonl` once per generation (empty file during gen-1 GR
 bash scripts/search/run_promote_qd_operational_batch.sh
 ```
 
-Filter: `operational_ftl >= 0.03`. Outputs: `runs/grtresna_promote/l128n256_qd_eval*/` with **`frames/`** populated during GPU evolution.
+Filter: `operational_ftl >= 0.03`. Outputs: `runs/grtresna_promote/l128n256_qd_eval*/` with **`frames/`** populated during **main** GPU evolution (step 5 above), not during post-load gate.
 
-**Top-3 replay** (manual, same frame policy):
+**GPU-only continuation** (reuse solved `.gridinit`, skip GRTresna + postload — goes straight to framed `t=50` evolution):
+
+```bash
+cd grteclyn-wrapper
+export GRTECLYN_FRAMES_FIELDS="phi Pi scalar_activity chi chi_minus_1 local_speed shift1 rho_req"
+export GRTECLYN_FRAMES_ZOOM=none
+export GRTECLYN_PROJECTION_FIELDS=scalar_activity
+export GRTECLYN_PROJECTION_AXES="x y z"
+export GRTECLYN_PROJECTION_METHOD=mip
+nohup .venv/bin/python scripts/search/replay_grtresna_eval.py \
+  ../runs/grtresna_qd/qd_<ts>/eval_000074 \
+  --name l128n256_qd_eval074 --runs-dir ../runs/grtresna_promote --gpu 0 \
+  --gridinit /path/to/initial_data.gridinit \
+  --n-full 256 --l-full 128 --max-level 3 --stop-time 50 --plot-interval 24 \
+  --consumer-keep-last 2 \
+  > ../runs/grtresna_promote/l128n256_qd_eval074.log 2>&1 &
+```
+
+**Top-3 replay** (full path: GRTresna + postload + framed evolution):
 
 ```bash
 cd grteclyn-wrapper
@@ -590,6 +638,8 @@ Outputs: `runs/radialrecipe_gpu_smoke/<name>_gpu_t<stop_time>_<stamp>/`.
 ### Plotfile consumer (required — default on)
 
 With `CONSUME_PLOTFILES=1`: sidecar `consume_plotfiles` streams `small_data/`, **PNG frames to `frames/`**, deletes processed HDF5 in flight (`--keep-last N`), post-sim drain. **Never disable for production search or promotion runs.**
+
+Runs **without** the sidecar: `postload_gate` (`consume_plotfiles=False` by design — see header callout). Do not mistake a long postload run for main evolution.
 
 | Variable | Default | Meaning |
 |----------|---------|---------|

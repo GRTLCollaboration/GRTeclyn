@@ -99,14 +99,17 @@ def run_postload_gate(
         metadata={"mode": "postload_gate", "gridinit": str(gridinit_path)},
     )
 
-    gate_overrides: dict[str, Any] = {
-        "recipe_initial_data_file": str(gridinit_path),
-        "stop_time": cfg.stop_time,
-        "plot_interval": 1000,
-        "checkpoint_interval": 1000,
-    }
-    if overrides:
-        gate_overrides.update(dict(overrides))
+    # Promotion/search overrides carry stop_time=50 etc.; gate-specific keys must
+    # win so this stays a short constraint check, not a full evolution.
+    gate_overrides: dict[str, Any] = dict(overrides) if overrides else {}
+    gate_overrides.update(
+        {
+            "recipe_initial_data_file": str(gridinit_path),
+            "stop_time": cfg.stop_time,
+            "plot_interval": 1000,
+            "checkpoint_interval": 1000,
+        }
+    )
     write_params(
         template,
         episode.params_path,
