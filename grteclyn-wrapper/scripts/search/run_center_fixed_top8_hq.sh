@@ -7,9 +7,9 @@
 #   - time:   t=30
 #   - output: runs/grtresna_promote/l128n256t30_center_fixed_qd_eval*/
 #
-# Frame extraction is on during the main GPU evolution. Processed plotfiles are
-# deleted by the consumer (`--consumer-keep-last 0`) so only frames/small_data
-# and compact metadata are retained.
+# Frame extraction is on during the main GPU evolution. The consumer keeps only
+# the last few plotfiles (`--consumer-keep-last 3`, enough for evolved/geodesic
+# FTL + effective EC scoring) and deletes the rest so disk stays bounded.
 set -euo pipefail
 
 SEARCH_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -29,11 +29,13 @@ GRTRESNA_MAX_HAM_PCT="${GRTRESNA_MAX_HAM_PCT:-10}"
 GRTRESNA_MAX_MOM_PCT="${GRTRESNA_MAX_MOM_PCT:-10}"
 GRTRESNA_TIMEOUT="${GRTRESNA_TIMEOUT:-7200}"
 GRTRESNA_ITERATIONS="${GRTRESNA_ITERATIONS:-30}"
-CONSUMER_KEEP_LAST="${CONSUMER_KEEP_LAST:-0}"
+# Keep the last few plotfiles so evolved/geodesic FTL + effective EC are scored
+# (>=3 required); remaining plotfiles are still consumed and deleted.
+CONSUMER_KEEP_LAST="${CONSUMER_KEEP_LAST:-3}"
 FORCE="${FORCE:-0}"
 
 export GRTRESNA_ROOT="${GRTRESNA_ROOT:-$(cd -- "${GRTECLYN_ROOT}/.." && pwd)/GRTresna}"
-export GRTECLYN_FRAMES_FIELDS="${FRAMES_FIELDS:-lump_activity scalar_activity phi Pi chi chi_minus_1 local_speed shift1 rho_req}"
+export GRTECLYN_FRAMES_FIELDS="${FRAMES_FIELDS:-lump_activity scalar_activity phi_lump_sum Pi_lump_sum chi chi_minus_1 local_speed shift1 rho_req}"
 export GRTECLYN_FRAMES_ZOOM="${FRAMES_ZOOM:-none}"
 export GRTECLYN_PROJECTION_FIELDS="${PROJECTION_FIELDS:-lump_activity scalar_activity}"
 export GRTECLYN_PROJECTION_AXES="${PROJECTION_AXES:-x y z}"

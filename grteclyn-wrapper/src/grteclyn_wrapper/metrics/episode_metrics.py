@@ -167,6 +167,25 @@ class QeiMetrics:
 
 
 @dataclass(frozen=True)
+class FtlPersistenceMetrics:
+    """Sustained evolved operational FTL across the last retained plotfiles.
+
+    A genuine traversable channel keeps a positive arrival-time advantage over
+    several evolved slices, whereas a gauge transient or a half-flushed final
+    plotfile spikes on a single frame.  ``f_op_min`` is the worst-case shortcut
+    over the window (used for scoring so a one-frame spike cannot win),
+    ``f_op_median`` the typical one.  Requires ``consumer_keep_last >= 2``.
+    """
+
+    n_samples: int
+    f_op_min: float | None
+    f_op_median: float | None
+    f_op_last: float | None
+    max_local_speed_min: float | None
+    max_shift_max: float | None
+
+
+@dataclass(frozen=True)
 class EpisodeMetrics:
     collapse: CollapseMetrics | None
     constraints: ConstraintMetrics | None
@@ -187,6 +206,7 @@ class EpisodeMetrics:
     boundary_flux: BoundaryFluxMetrics | None = None
     qei: QeiMetrics | None = None
     transport: TransportMetrics | None = None
+    ftl_persistence: FtlPersistenceMetrics | None = None
 
 
 def _numeric_rows(path: Path, min_columns: int) -> list[list[float]]:
@@ -616,6 +636,41 @@ def read_episode_metrics(
     except Exception:
         general_ftl_evolved = None
 
+    # Evolved-FTL persistence: the operational shortcut must survive across the
+    # last few retained plotfiles, not just spike on the final frame.  Needs
+    # >= 2 retained plotfiles (consumer_keep_last >= 2); best-effort otherwise.
+    ftl_persistence = None
+    try:
+        from .ftl_general import find_recent_plotfiles
+
+        recent = find_recent_plotfiles(episode_dir, count=5)
+        if len(recent) >= 2:
+            f_ops: list[float] = []
+            speeds: list[float] = []
+            shifts: list[float] = []
+            for plotfile in recent:
+                try:
+                    with _PLOTFILE_READ_LOCK:
+                        rep = compute_general_ftl_from_plotfile(
+                            plotfile, n=97, L=ftl_L
+                        )
+                except Exception:
+                    continue
+                f_ops.append(float(rep.f_op))
+                speeds.append(float(rep.max_local_speed))
+                shifts.append(float(rep.max_shift))
+            if len(f_ops) >= 2:
+                ftl_persistence = FtlPersistenceMetrics(
+                    n_samples=len(f_ops),
+                    f_op_min=float(min(f_ops)),
+                    f_op_median=float(np.median(f_ops)),
+                    f_op_last=float(f_ops[-1]),
+                    max_local_speed_min=float(min(speeds)),
+                    max_shift_max=float(max(shifts)),
+                )
+    except Exception:
+        ftl_persistence = None
+
     geodesic_ftl = None
     try:
         plotfile = find_latest_plotfile(episode_dir)
@@ -743,6 +798,7 @@ def read_episode_metrics(
         boundary_flux=boundary_flux,
         qei=qei,
         transport=transport,
+        ftl_persistence=ftl_persistence,
     )
 
 

@@ -310,6 +310,10 @@ def grtresna_shell_search_space(profile: str = "compact") -> list[SearchDimensio
         SearchDimension("grtresna_shell_exotic_phase", 0.0, 2.0 * math.pi, 0.0),
         SearchDimension("grtresna_shell_mode", 0.0, 2.0, 1.0),
         SearchDimension("grtresna_shell_radial_jitter", 0.0, 1.0, 0.0),
+        # Initial-shift seed (peak |beta| along the matter momentum flux). This
+        # unlocks the warp/channel mechanism that a zero-shift gauge cannot
+        # reach; sign selects the drive direction. Default 0 = native gauge.
+        SearchDimension("grtresna_shift_seed", -0.6, 0.6, 0.0),
     ]
 
 
@@ -433,6 +437,10 @@ def build_grtresna_config(
             return float(overrides.get(key, default))
         except (TypeError, ValueError):
             return default
+
+    # Global (ansatz-independent) initial-shift seed: aligns a non-zero beta^i
+    # with the matter momentum flux so the warp/channel mechanism is reachable.
+    cfg.shift_seed = _get_float("grtresna_shift_seed", cfg.shift_seed)
 
     if any(str(k).startswith("grtresna_ring_") for k in overrides):
         num_lumps = max(3, int(round(_get_float("grtresna_ring_lumps", GRTRESNA_DEFAULT_NUM_LUMPS))))

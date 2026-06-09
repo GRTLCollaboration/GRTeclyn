@@ -50,6 +50,14 @@ QD_ITERATIONS="${QD_ITERATIONS:-10}"
 QD_TARGET_EVALS="${QD_TARGET_EVALS:-}"
 QD_RESUME="${QD_RESUME:-0}"
 QD_NAME="${QD_NAME:-}"
+# MAP-Elites behaviour grid: channel (path x mechanism, needs shift>0),
+# speed_horizon (cone-tilt x horizon-free, the fast-but-not-trapped niche), legacy.
+DESCRIPTOR_MODE="${DESCRIPTOR_MODE:-channel}"
+# Optional: warm-start the initial population from prior eval dirs (survivors).
+SEED_EVAL_DIRS="${SEED_EVAL_DIRS:-}"
+# Keep disk bounded: retain only the top-N scored eval_* directories plus the
+# current in-flight batch; trajectory/archive metadata stay intact.
+QD_KEEP_TOP_EVAL_DIRS="${QD_KEEP_TOP_EVAL_DIRS:-10}"
 BINS="${BINS:-8}"
 GPU_IDS="${GPU_IDS:-0 1 2 3}"
 BATCH_SIZE="${BATCH_SIZE:-$(wc -w <<< "${GPU_IDS}")}"
@@ -73,10 +81,12 @@ POSTLOAD_MAX_MOM_L2="${POSTLOAD_MAX_MOM_L2:-1e-2}"
 export POSTLOAD_GATE
 
 CONSUMER_RADII="${CONSUMER_RADII:-4 8}"
-CONSUMER_KEEP_LAST="${CONSUMER_KEEP_LAST:-0}"
+# Retain the last few plotfiles so evolved/geodesic FTL and effective energy
+# conditions can be scored (>=3 required); the rest are still consumed+deleted.
+CONSUMER_KEEP_LAST="${CONSUMER_KEEP_LAST:-3}"
 FTL_L="${FTL_L:-8.0}"
 
-export GRTECLYN_FRAMES_FIELDS="${FRAMES_FIELDS:-lump_activity scalar_activity phi Pi chi chi_minus_1 local_speed shift1 rho_req}"
+export GRTECLYN_FRAMES_FIELDS="${FRAMES_FIELDS:-lump_activity scalar_activity phi_lump_sum Pi_lump_sum chi chi_minus_1 local_speed shift1 rho_req}"
 export GRTECLYN_PROJECTION_FIELDS="${PROJECTION_FIELDS:-scalar_activity}"
 export GRTECLYN_PROJECTION_AXES="${PROJECTION_AXES:-x y z}"
 export GRTECLYN_PROJECTION_METHOD="${GRTECLYN_PROJECTION_METHOD:-mip}"
@@ -94,6 +104,11 @@ fi
 TARGET_EVALS_ARGS=()
 if [[ -n "${QD_TARGET_EVALS}" ]]; then
   TARGET_EVALS_ARGS+=(--target-evals "${QD_TARGET_EVALS}")
+fi
+SEED_ARGS=()
+if [[ -n "${SEED_EVAL_DIRS}" ]]; then
+  # shellcheck disable=SC2206
+  SEED_ARGS+=(--seed-eval-dirs ${SEED_EVAL_DIRS})
 fi
 
 DRY_RUN_ARGS=()
@@ -129,11 +144,13 @@ exec ${PYTHON_BIN} -m grteclyn_wrapper \
   --consumer-radii ${CONSUMER_RADII} \
   --ftl-L "${FTL_L}" \
   qd \
-  --descriptor-mode channel \
+  --descriptor-mode "${DESCRIPTOR_MODE}" \
   --objective-mode ftl_first \
   --iterations "${QD_ITERATIONS}" \
+  --keep-top-eval-dirs "${QD_KEEP_TOP_EVAL_DIRS}" \
   "${TARGET_EVALS_ARGS[@]}" \
   "${RESUME_ARGS[@]}" \
+  "${SEED_ARGS[@]}" \
   --batch-size "${BATCH_SIZE}" \
   --bins "${BINS}" \
   --seed "${SEED}" \

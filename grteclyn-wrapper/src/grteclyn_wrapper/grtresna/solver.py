@@ -115,6 +115,13 @@ class GRTresnaConfig:
     # non-empty it overrides the single-lump fields above.
     lumps: list[dict] = field(default_factory=list)
 
+    # Seed an initial coordinate shift in the exported gridinit, aligned with the
+    # matter momentum density (beta^i = shift_seed * S_i / max|S|, peak |beta| =
+    # |shift_seed|). GRTresna emits zero initial shift, so this is what makes the
+    # warp/channel mechanism (shift_drive, channel_progress) reachable from t=0.
+    # 0 disables the seed (GRTresna's native zero-shift gauge).
+    shift_seed: float = 0.0
+
     # Conformal / K
     regularised_part_psi: float = 1.0
     sign_of_K: int = 1
@@ -560,6 +567,7 @@ def solve(
         target_center=cfg.target_center,
         delete_source=cfg.cleanup,
         lumps=cfg.lumps or None,
+        shift_seed=cfg.shift_seed,
         num_workers=cfg.gridinit_workers,
     )
 

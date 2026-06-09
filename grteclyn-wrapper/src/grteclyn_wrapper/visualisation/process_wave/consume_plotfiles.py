@@ -61,7 +61,9 @@ _FIELD_FRAME_CONFIGS: Dict[str, dict] = {
     "chi_minus_1": {"zlim": (-0.03, 0.03), "cmap": "RdBu", "label": r"$\chi - 1$"},
     "phi": {"zlim": (-0.05, 0.05), "cmap": "RdBu", "label": r"$\phi$"},
     "Pi": {"zlim": (-0.01, 0.01), "cmap": "RdBu", "label": r"$\Pi$"},
-    "scalar_activity": {"zlim": (0.0, 0.20), "cmap": "viridis", "label": r"$\sqrt{\phi^2+\Pi^2}$"},
+    "phi_lump_sum": {"zlim": (-0.05, 0.05), "cmap": "RdBu", "label": r"$\sum_k\phi_k$"},
+    "Pi_lump_sum": {"zlim": (-0.01, 0.01), "cmap": "RdBu", "label": r"$\sum_k\Pi_k$"},
+    "scalar_activity": {"zlim": (0.0, 0.20), "cmap": "viridis", "label": r"$\sum_k\sqrt{\phi_k^2+\Pi_k^2}$"},
     "lump_activity": {"zlim": (0.0, 0.20), "cmap": "viridis", "label": r"$\sum_k\sqrt{\phi_k^2+\Pi_k^2}$"},
     "local_speed": {"zlim": (0.90, 1.30), "cmap": "magma", "label": r"Local Coordinate Speed"},
     "shift1": {"zlim": (-0.05, 0.05), "cmap": "RdBu", "label": r"shift1"},
@@ -240,6 +242,26 @@ def _register_derived_fields(ds, field: str) -> None:
     if (base_ftype, field) in list(getattr(ds, "field_list", [])) + list(getattr(ds, "derived_field_list", [])):
         return
 
+    available_names = {
+        name for (_ftype, name) in list(getattr(ds, "field_list", []))
+        + list(getattr(ds, "derived_field_list", []))
+    }
+    lump_pairs = [
+        (f"phi_lump{k}", f"Pi_lump{k}")
+        for k in range(5)
+        if f"phi_lump{k}" in available_names and f"Pi_lump{k}" in available_names
+    ]
+
+    def _sum_lump_component(data, component: str):
+        total = None
+        for k in range(5):
+            name = f"{component}_lump{k}"
+            if name not in available_names:
+                continue
+            term = data[base_ftype, name]
+            total = term if total is None else total + term
+        return total
+
     # GW proxy fields
     if field == "GW_Plus":
         def _gw_plus(field, data):
@@ -259,22 +281,35 @@ def _register_derived_fields(ds, field: str) -> None:
         def _chi_minus_1(field, data):
             return data[base_ftype, "chi"] - 1.0
         ds.add_field((base_ftype, "chi_minus_1"), function=_chi_minus_1, sampling_type="cell", units="")
+    elif field == "phi_lump_sum":
+        def _phi_lump_sum(field, data):
+            total = _sum_lump_component(data, "phi")
+            if total is not None:
+                return total
+            return data[base_ftype, "phi"]
+        ds.add_field((base_ftype, "phi_lump_sum"), function=_phi_lump_sum, sampling_type="cell", units="")
+    elif field == "Pi_lump_sum":
+        def _pi_lump_sum(field, data):
+            total = _sum_lump_component(data, "Pi")
+            if total is not None:
+                return total
+            return data[base_ftype, "Pi"]
+        ds.add_field((base_ftype, "Pi_lump_sum"), function=_pi_lump_sum, sampling_type="cell", units="")
     elif field == "scalar_activity":
         def _scalar_activity(field, data):
+            if lump_pairs:
+                total = None
+                for phi_name, pi_name in lump_pairs:
+                    term = np.sqrt(
+                        data[base_ftype, phi_name] ** 2 + data[base_ftype, pi_name] ** 2
+                    )
+                    total = term if total is None else total + term
+                return total
             phi = data[base_ftype, "phi"]
             pi = data[base_ftype, "Pi"]
             return np.sqrt(phi**2 + pi**2)
         ds.add_field((base_ftype, "scalar_activity"), function=_scalar_activity, sampling_type="cell", units="")
     elif field == "lump_activity":
-        available_names = {
-            name for (_ftype, name) in list(getattr(ds, "field_list", []))
-            + list(getattr(ds, "derived_field_list", []))
-        }
-        lump_pairs = [
-            (f"phi_lump{k}", f"Pi_lump{k}")
-            for k in range(5)
-            if f"phi_lump{k}" in available_names and f"Pi_lump{k}" in available_names
-        ]
         has_combined_scalar = "phi" in available_names and "Pi" in available_names
         ref_field = next(
             (name for name in ("rho_req", "chi", "K", "Weyl4_Re") if name in available_names),

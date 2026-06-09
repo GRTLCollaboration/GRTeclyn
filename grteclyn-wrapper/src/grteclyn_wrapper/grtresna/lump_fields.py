@@ -190,6 +190,82 @@ def _coordinate_grids(
     return px_grid, py_grid, pz_grid
 
 
+def _lump_momentum_density_grid(
+    lump: Mapping[str, Any],
+    px: NDArray,
+    py: NDArray,
+    pz: NDArray,
+) -> tuple[NDArray, NDArray, NDArray]:
+    """Scalar momentum density ``S_i = sign * Pi * d_i phi`` of one lump.
+
+    This is the matter momentum flux that sources a coordinate shift: a moving
+    or rotating lump (non-zero ``velocity`` / ``omega`` -> non-zero ``Pi``)
+    carries a directed ``S_i`` that a warp-style shift should follow.
+    """
+    zero = np.zeros_like(px, dtype=np.float64)
+    pi = _lump_pi_grid(lump, px, py, pz)
+    if not np.any(pi):
+        return zero, zero.copy(), zero.copy()
+    width = float(lump.get("width", 5.0))
+    eps = 1.0e-3 * width
+    grad_x = (_lump_phi_grid(lump, px + eps, py, pz) - _lump_phi_grid(lump, px - eps, py, pz)) / (2.0 * eps)
+    grad_y = (_lump_phi_grid(lump, px, py + eps, pz) - _lump_phi_grid(lump, px, py - eps, pz)) / (2.0 * eps)
+    grad_z = (_lump_phi_grid(lump, px, py, pz + eps) - _lump_phi_grid(lump, px, py, pz - eps)) / (2.0 * eps)
+    sign = float(lump_sign(lump))
+    return sign * pi * grad_x, sign * pi * grad_y, sign * pi * grad_z
+
+
+def paint_shift_seed_on_grid(
+    data: NDArray,
+    comp_names: list[str],
+    dx_xyz: NDArray,
+    origin: NDArray,
+    lumps: Sequence[Mapping[str, Any]],
+    *,
+    shift_seed: float,
+    max_lumps: int = MAX_INDEPENDENT_LUMPS,
+) -> NDArray:
+    """Seed an initial shift ``beta^i`` aligned with the matter momentum density.
+
+    GRTresna writes a zero initial shift (a valid gauge choice), so the warp /
+    channel mechanism that needs ``beta != 0`` is structurally unreachable at
+    t=0.  The shift is a free, constraint-independent kinematic field, so we may
+    seed it directly into the gridinit: ``beta^i = shift_seed * S_i / max|S|``,
+    giving a peak shift magnitude of ``|shift_seed|`` pointed along (sign of
+    ``shift_seed``) the matter momentum flux.  Returns ``data`` unchanged when
+    ``shift_seed == 0``, there is no momentum flux, or the gridinit lacks shift
+    channels.
+    """
+    if not lumps or not math.isfinite(shift_seed) or shift_seed == 0.0:
+        return data
+    name_to_idx = {name: i for i, name in enumerate(comp_names)}
+    shift_cols = [name_to_idx.get(n) for n in ("shift1", "shift2", "shift3")]
+    if any(col is None for col in shift_cols):
+        return data
+
+    nz, ny, nx, _ = data.shape
+    px_grid, py_grid, pz_grid = _coordinate_grids(nx, ny, nz, dx_xyz, origin)
+    s_x = np.zeros((nz, ny, nx), dtype=np.float64)
+    s_y = np.zeros((nz, ny, nx), dtype=np.float64)
+    s_z = np.zeros((nz, ny, nx), dtype=np.float64)
+    for lump in list(lumps[:max_lumps]):
+        lx, ly, lz = _lump_momentum_density_grid(lump, px_grid, py_grid, pz_grid)
+        s_x += lx
+        s_y += ly
+        s_z += lz
+
+    peak = float(np.sqrt(s_x * s_x + s_y * s_y + s_z * s_z).max())
+    if peak <= 0.0:
+        return data
+    scale = float(shift_seed) / peak
+
+    data = np.array(data, dtype=np.float64, copy=True)
+    data[:, :, :, shift_cols[0]] = scale * s_x
+    data[:, :, :, shift_cols[1]] = scale * s_y
+    data[:, :, :, shift_cols[2]] = scale * s_z
+    return data
+
+
 def paint_lump_fields_on_grid(
     data: NDArray,
     comp_names: list[str],

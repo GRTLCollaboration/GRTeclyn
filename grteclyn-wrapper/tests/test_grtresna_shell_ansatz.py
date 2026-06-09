@@ -11,7 +11,7 @@ from grteclyn_wrapper.search.optimize import (
 def test_shell_ansatz_search_space_is_low_dimensional() -> None:
     space = build_search_space(grtresna=True, grtresna_lumps=5, grtresna_ansatz="shell")
 
-    assert len(space) == 16
+    assert len(space) == 17
     assert {dim.param_key for dim in space} >= {
         "grtresna_shell_amp",
         "grtresna_shell_radius",
@@ -20,6 +20,7 @@ def test_shell_ansatz_search_space_is_low_dimensional() -> None:
         "grtresna_shell_toroidal_velocity",
         "grtresna_shell_poloidal_velocity",
         "grtresna_shell_exotic_fraction",
+        "grtresna_shift_seed",
     }
 
 
@@ -66,6 +67,19 @@ def test_shell_ansatz_expands_to_lumps_on_full_sphere() -> None:
         cx, cy, cz = lump["center"]
         r = math.sqrt(cx * cx + cy * cy + cz * cz)
         assert abs(r - 4.0) < 1e-6
+
+
+def test_shift_seed_flows_into_grtresna_config() -> None:
+    base_overrides = {
+        "grtresna_shell_lumps": 5,
+        "grtresna_shell_radius": 4.0,
+        "grtresna_shell_toroidal_velocity": 0.4,
+    }
+    cfg_default = build_grtresna_config(dict(base_overrides))
+    assert cfg_default.shift_seed == 0.0
+
+    cfg_seeded = build_grtresna_config({**base_overrides, "grtresna_shift_seed": 0.3})
+    assert cfg_seeded.shift_seed == 0.3
 
 
 def test_shell_toroidal_current_carries_angular_momentum_about_axis() -> None:

@@ -432,6 +432,22 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
     return 0
 
 
+def _load_seed_overrides(eval_dirs: list[str] | None) -> list[dict[str, Any]]:
+    """Read ``metadata.json`` overrides from prior eval dirs to warm-start QD."""
+    seeds: list[dict[str, Any]] = []
+    for raw in eval_dirs or []:
+        meta_path = Path(raw).expanduser() / "metadata.json"
+        if not meta_path.is_file():
+            print(f"[qd] seed skip (no metadata.json): {raw}")
+            continue
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        overrides = dict(meta.get("overrides") or {})
+        if overrides:
+            seeds.append(overrides)
+            print(f"[qd] seed loaded: {raw} ({len(overrides)} overrides)")
+    return seeds
+
+
 def _run_qd_command(args: argparse.Namespace, base_overrides: dict[str, Any]) -> int:
     from .search.qd_search import run_qd_search
 
@@ -564,6 +580,8 @@ def _run_qd_command(args: argparse.Namespace, base_overrides: dict[str, Any]) ->
         ),
         resume=getattr(args, "resume", False),
         target_evals=getattr(args, "target_evals", None),
+        seed_overrides=_load_seed_overrides(getattr(args, "seed_eval_dirs", None)),
+        keep_top_eval_dirs=getattr(args, "keep_top_eval_dirs", 0),
     )
     best = archive.best
     print(json.dumps({
@@ -974,10 +992,29 @@ def build_parser() -> argparse.ArgumentParser:
         help="Use the geometry-first nonspherical lapse/shift angular search space.",
     )
     qd.add_argument(
+        "--seed-eval-dirs",
+        nargs="+",
+        default=None,
+        metavar="EVAL_DIR",
+        help="Warm-start the initial MAP-Elites population from these prior eval "
+        "directories (reads each metadata.json 'overrides'). Use to seed a fresh "
+        "campaign from promoted survivors.",
+    )
+    qd.add_argument(
+        "--keep-top-eval-dirs",
+        type=int,
+        default=0,
+        help="After each batch, delete completed eval_* directories outside the "
+        "top N scored records. trajectory.jsonl/archive.json stay intact; 0 disables.",
+    )
+    qd.add_argument(
         "--descriptor-mode",
-        choices=["legacy", "channel"],
+        choices=["legacy", "channel", "speed_horizon"],
         default="legacy",
-        help="MAP-Elites descriptors: legacy FTL/mechanism grid, or channel path-closeness/mechanism-balance grid.",
+        help="MAP-Elites descriptors: legacy FTL/mechanism grid, channel "
+        "path-closeness/mechanism-balance grid (needs shift>0), or speed_horizon "
+        "cone-tilt(max_local_speed) vs horizon-free(min_theta_plus) grid that "
+        "illuminates the fast-but-not-trapped niche without needing shift.",
     )
     qd.add_argument(
         "--objective-mode",

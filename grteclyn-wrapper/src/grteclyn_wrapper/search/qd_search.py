@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import math
+import shutil
 import threading
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -62,19 +63,71 @@ def _path_closeness_from_report(report: Mapping[str, Any] | None) -> float:
     return max(0.0, 1.0 - excess / 0.12)
 
 
+def _best_ftl_report(metrics: Mapping[str, Any] | None) -> Mapping[str, Any] | None:
+    metrics = metrics or {}
+    return (
+        metrics.get("general_ftl_evolved")
+        or metrics.get("general_ftl_solved")
+        or metrics.get("general_ftl")
+    )
+
+
+# speed_horizon descriptor axes.  ``x`` maps the fastest evolved coordinate light
+# speed across the c=1 threshold (cone-tilt strength); ``y`` maps the minimum
+# null expansion so a horizon-free slice (min_theta_plus > 0) lands above 0.5 and
+# a trapped surface (<= 0) below it.  This explicitly fills the "fast but no
+# trapped surface" niche without needing a non-zero shift (unlike ``channel``).
+_SPEED_HORIZON_C_FLOOR = 0.9
+_SPEED_HORIZON_C_TARGET = 1.3
+_SPEED_HORIZON_THETA_SCALE = 0.5
+
+
+def _speed_axis_from_report(report: Mapping[str, Any] | None) -> float:
+    if not report:
+        return 0.0
+    c = float(report.get("max_local_speed") or 0.0)
+    if not math.isfinite(c) or c <= _SPEED_HORIZON_C_FLOOR:
+        return 0.0
+    span = _SPEED_HORIZON_C_TARGET - _SPEED_HORIZON_C_FLOOR
+    return float(np.clip((c - _SPEED_HORIZON_C_FLOOR) / span, 0.0, 1.0))
+
+
+def _horizon_free_axis(metrics: Mapping[str, Any] | None) -> float:
+    metrics = metrics or {}
+    collapse = metrics.get("collapse") or {}
+    theta = collapse.get("min_theta_plus")
+    if theta is None or not math.isfinite(float(theta)):
+        return 0.5  # unknown -> neutral cell, neither flagged safe nor trapped
+    scaled = 0.5 + float(theta) / (2.0 * _SPEED_HORIZON_THETA_SCALE)
+    return float(np.clip(scaled, 0.0, 1.0))
+
+
 def _descriptor_details(
     components: Mapping[str, float],
     metrics: Mapping[str, Any] | None = None,
     *,
     mode: str = "legacy",
 ) -> dict[str, float]:
+    if mode == "speed_horizon":
+        report = _best_ftl_report(metrics)
+        speed = _speed_axis_from_report(report)
+        horizon_free = _horizon_free_axis(metrics)
+        c = float(report.get("max_local_speed")) if report and report.get("max_local_speed") is not None else float("nan")
+        collapse = (metrics or {}).get("collapse") or {}
+        theta = float(collapse.get("min_theta_plus")) if collapse.get("min_theta_plus") is not None else float("nan")
+        return {
+            "x": speed,
+            "y": horizon_free,
+            "speed_tilt": speed,
+            "horizon_free": horizon_free,
+            "max_local_speed": c,
+            "min_theta_plus": theta,
+            "ftl_persistence": float(components.get("ftl_persistence", 0.0)),
+            "operational_ftl": float(components.get("operational_ftl", 0.0)),
+        }
+
     if mode == "channel":
-        metrics = metrics or {}
-        report = (
-            metrics.get("general_ftl_evolved")
-            or metrics.get("general_ftl_solved")
-            or metrics.get("general_ftl")
-        )
+        report = _best_ftl_report(metrics)
         path_closeness = _path_closeness_from_report(report)
         precursor = float(np.clip(components.get("ftl_precursor", 0.0), 0.0, 1.0))
         shift = float(np.clip(components.get("shift_drive", 0.0), 0.0, 1.0))
@@ -228,6 +281,61 @@ def _load_trajectory_records(path: Path) -> list[dict[str, Any]]:
     return records
 
 
+def _prune_eval_dirs(
+    qd_dir: Path,
+    records: Sequence[Mapping[str, Any]],
+    *,
+    keep_top: int,
+    protect_eval_ids: set[int] | None = None,
+) -> int:
+    """Delete completed eval dirs outside the top-scoring ``keep_top`` records.
+
+    ``trajectory.jsonl`` remains the source of truth; this only reclaims bulky
+    per-eval folders after their score/metrics have been recorded.  Current
+    batch ids are protected so live consumers/writers are not raced.
+    """
+    if keep_top <= 0:
+        return 0
+
+    scored: list[tuple[float, int]] = []
+    for rec in records:
+        score = rec.get("score")
+        eval_id = rec.get("eval")
+        if not isinstance(score, (int, float)) or eval_id is None:
+            continue
+        try:
+            scored.append((float(score), int(eval_id)))
+        except (TypeError, ValueError):
+            continue
+
+    keep_ids = {eval_id for _score, eval_id in sorted(scored, reverse=True)[:keep_top]}
+    protected = set(protect_eval_ids or set())
+    scored_ids = {eval_id for _score, eval_id in scored}
+    deleted = 0
+
+    for eval_dir in qd_dir.glob("eval_*"):
+        if not eval_dir.is_dir():
+            continue
+        suffix = eval_dir.name.removeprefix("eval_")
+        if not suffix.isdigit():
+            continue
+        eval_id = int(suffix)
+        if eval_id in keep_ids or eval_id in protected:
+            continue
+        if eval_id not in scored_ids:
+            continue
+        shutil.rmtree(eval_dir, ignore_errors=True)
+        deleted += 1
+
+    if deleted:
+        print(
+            f"[qd] pruned {deleted} eval dirs; kept top {keep_top} scored "
+            f"+ protected {sorted(protected)}",
+            flush=True,
+        )
+    return deleted
+
+
 def _iterations_for_target_evals(
     *,
     target_evals: int,
@@ -318,6 +426,8 @@ def run_qd_search(
     postload_gate_config: Any | None = None,
     resume: bool = False,
     target_evals: int | None = None,
+    seed_overrides: Sequence[Mapping[str, Any]] | None = None,
+    keep_top_eval_dirs: int = 0,
 ) -> QDArchive:
     example_cfg = example if isinstance(example, ExampleConfig) else resolve_example(example)
     dims = list(search_space or DEFAULT_SEARCH_SPACE)
@@ -411,6 +521,7 @@ def run_qd_search(
         ],
         "grtresna": grtresna,
         "grtresna_solved_ftl_gate": grtresna_solved_ftl_gate,
+        "keep_top_eval_dirs": keep_top_eval_dirs,
         "grtresna_max_ham_pct": getattr(
             grtresna_convergence_config, "max_ham_pct", 5.0,
         ),
@@ -561,14 +672,22 @@ def run_qd_search(
         return results
 
     def _ingest(results: list[tuple[int, list[float], Evaluation | None] | None]) -> None:
+        protected_eval_ids: set[int] = set()
         for item in results:
             if item is None:
                 continue
             idx, x, res = item
+            protected_eval_ids.add(idx)
             trajectory.append(
                 _record_result(idx=idx, x=x, res=res, insert_archive=True)
             )
         _write_trajectory()
+        _prune_eval_dirs(
+            qd_dir,
+            trajectory,
+            keep_top=int(keep_top_eval_dirs),
+            protect_eval_ids=protected_eval_ids,
+        )
 
     def _write_validation() -> dict[str, Any]:
         """Assess the archive's survivor front and archive-convergence signal."""
@@ -618,10 +737,11 @@ def run_qd_search(
         return signals
 
     start_iter = len(conv_history)
+    n_seed = 0 if resume else len(seed_overrides or [])
     total_target = (
         target_evals
         if target_evals is not None
-        else completed_evals + (0 if resume else n_init) + iterations * batch
+        else completed_evals + (0 if resume else n_init) + n_seed + iterations * batch
     )
     print(
         f"[qd] MAP-Elites: {len(dims)}D, bins={bins}x{bins}, batch={batch}, "
@@ -630,7 +750,18 @@ def run_qd_search(
     )
 
     if not resume:
-        init_vectors = [_sample_random(dims, rng) for _ in range(n_init)]
+        # Warm-start: evaluate provided seed parameter sets (e.g. promoted
+        # survivors) first so MAP-Elites mutates around known-good basins
+        # instead of starting purely random.  Missing dims fall back to the
+        # dimension centre (so search-space additions like grtresna_shift_seed
+        # start neutral and are then explored by mutation).
+        seed_vectors = [
+            [float(s.get(d.param_key, d.center)) for d in dims]
+            for s in (seed_overrides or [])
+        ]
+        init_vectors = seed_vectors + [
+            _sample_random(dims, rng) for _ in range(n_init)
+        ]
         _ingest(_evaluate_batch(init_vectors))
         write_json(qd_dir / "archive.json", archive.to_dict())
         _write_validation()

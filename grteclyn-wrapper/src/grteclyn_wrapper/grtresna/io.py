@@ -382,6 +382,7 @@ def convert_chombo_to_gridinit(
     target_center: tuple[float, float, float] | None = None,
     delete_source: bool = False,
     lumps: Sequence[Mapping[str, Any]] | None = None,
+    shift_seed: float = 0.0,
     num_workers: int = 0,
 ) -> Path:
     """One-shot: read Chombo HDF5, flatten, write .gridinit.
@@ -456,7 +457,11 @@ def convert_chombo_to_gridinit(
         ])
 
     if lumps:
-        from .lump_fields import paint_lump_fields_on_grid, shift_lump_centers_for_gridinit
+        from .lump_fields import (
+            paint_lump_fields_on_grid,
+            paint_shift_seed_on_grid,
+            shift_lump_centers_for_gridinit,
+        )
 
         shifted_lumps = shift_lump_centers_for_gridinit(
             lumps,
@@ -466,6 +471,13 @@ def convert_chombo_to_gridinit(
                 float(origin[2]) + 0.5 * float(Lz),
             ),
         )
+        # Seed the initial shift before appending the diagnostic phi_lump
+        # channels so the shift columns line up with GRTeclyn's state vars.
+        if shift_seed:
+            data = paint_shift_seed_on_grid(
+                data, comp_names, dx_xyz, origin, shifted_lumps,
+                shift_seed=float(shift_seed),
+            )
         data, comp_names = paint_lump_fields_on_grid(
             data, comp_names, dx_xyz, origin, shifted_lumps,
         )

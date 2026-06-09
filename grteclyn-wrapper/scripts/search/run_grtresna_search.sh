@@ -107,7 +107,7 @@ ENABLE_FTL_SCORING="${ENABLE_FTL_SCORING:-1}"
 # scalar matter; the cloud + momentum show up in phi/Pi (scalar field & its
 # conjugate momentum), scalar_activity, shift1 (frame dragging), rho_req
 # (energy density) and local_speed (FTL precursor map).
-export GRTECLYN_FRAMES_FIELDS="${FRAMES_FIELDS:-lump_activity scalar_activity phi Pi chi chi_minus_1 local_speed shift1 rho_req}"
+export GRTECLYN_FRAMES_FIELDS="${FRAMES_FIELDS:-lump_activity scalar_activity phi_lump_sum Pi_lump_sum chi chi_minus_1 local_speed shift1 rho_req}"
 export GRTECLYN_PROJECTION_FIELDS="${PROJECTION_FIELDS:-scalar_activity}"
 export GRTECLYN_PROJECTION_AXES="${PROJECTION_AXES:-x y z}"
 export GRTECLYN_PROJECTION_METHOD="${PROJECTION_METHOD:-mip}"

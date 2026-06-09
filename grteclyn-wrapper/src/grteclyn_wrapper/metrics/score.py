@@ -309,12 +309,25 @@ def score_episode(
             notes.append(
                 f"gauge-invariant null-geodesic shortcut confirmed (f_geo={f_geo:.3e})"
             )
-    # Persistence diagnostic (not weighted): fraction of the t=0 arrival-time
-    # advantage that survived to the final evolved slice.  ~1 => dynamically
-    # sustained channel; ~0 => t=0 mirage.
-    components["ftl_persistence"] = (
-        float(min(max(f_op_ev / f_op_t0, 0.0), 1.0)) if f_op_t0 > 1.0e-9 else 0.0
-    )
+    # Sustained evolved FTL.  Preferred signal: the worst-case operational
+    # shortcut across the last few retained plotfiles (needs consumer_keep_last
+    # >= 2), normalized like operational_ftl.  This rewards a channel that holds
+    # over the window and structurally rejects a one-frame gauge spike (whose
+    # window minimum collapses to ~0).  Falls back to the old ratio diagnostic
+    # (evolved/t=0) when no multi-frame window survived.
+    if metrics.ftl_persistence is not None and metrics.ftl_persistence.f_op_min is not None:
+        f_op_sustained = float(metrics.ftl_persistence.f_op_min)
+        if math.isfinite(f_op_sustained) and f_op_sustained > OP_FTL_FLOOR:
+            components["ftl_persistence"] = min(
+                (f_op_sustained - OP_FTL_FLOOR) / (OP_FTL_TARGET - OP_FTL_FLOOR),
+                1.0,
+            )
+        else:
+            components["ftl_persistence"] = 0.0
+    else:
+        components["ftl_persistence"] = (
+            float(min(max(f_op_ev / f_op_t0, 0.0), 1.0)) if f_op_t0 > 1.0e-9 else 0.0
+        )
     stationary_geometry = bool(metrics.comoving and metrics.comoving.stationary)
     components["stationary_artifact_penalty"] = (
         -1.0
@@ -566,6 +579,7 @@ def score_episode(
         components.get("channel_progress", 0.0),
         components.get("operational_ftl", 0.0),
         components.get("operational_ftl_geodesic", 0.0),
+        components.get("ftl_persistence", 0.0),
         components.get("ftl_precursor", 0.0),
         components.get("operational_ftl_solved", 0.0),
         components.get("ftl_shortcut", 0.0),
@@ -587,6 +601,7 @@ def score_episode(
         total = (
             1500.0 * components.get("operational_ftl_geodesic", 0.0)
             + 400.0 * components.get("operational_ftl", 0.0)
+            + 300.0 * components.get("ftl_persistence", 0.0)
             + 350.0 * components.get("channel_progress", 0.0)
             + 180.0 * components.get("operational_ftl_solved", 0.0)
             + 60.0 * components.get("ftl_precursor", 0.0)
