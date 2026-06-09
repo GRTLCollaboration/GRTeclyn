@@ -49,7 +49,7 @@ class GRTresnaConfig:
     # errors drops below it (residual at its floor) without losing solution
     # quality; nl_exit_tolerance stops once both relative errors (in %) are below
     # it. 0 disables a check.
-    nl_exit_tolerance: float = 0.0
+    nl_exit_tolerance: float = 1.0
     nl_stall_tolerance: float = 0.02
     write_diagnostics: bool = False
     timeout: int = 3600

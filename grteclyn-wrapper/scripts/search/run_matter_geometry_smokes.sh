@@ -85,7 +85,7 @@ cfg = GRTresnaConfig(
         {
             "amp": 0.15,
             "width": 4.0,
-            "center": (32.0, 32.0, 32.0),
+            "center": (0.0, 0.0, 0.0),
             "velocity": (0.12, 0.0, 0.0),
             "omega": 0.0,
             "mode": 0,
@@ -153,7 +153,7 @@ cfg = GRTresnaConfig(
         {
             "amp": 0.14,
             "width": 4.0,
-            "center": (30.0, 32.0, 32.0),
+            "center": (-2.0, 0.0, 0.0),
             "velocity": (0.10, 0.0, 0.0),
             "omega": 0.0,
             "mode": 0,
@@ -162,7 +162,7 @@ cfg = GRTresnaConfig(
         {
             "amp": 0.12,
             "width": 4.0,
-            "center": (34.0, 32.0, 32.0),
+            "center": (2.0, 0.0, 0.0),
             "velocity": (0.08, 0.0, 0.0),
             "omega": 0.0,
             "mode": 0,

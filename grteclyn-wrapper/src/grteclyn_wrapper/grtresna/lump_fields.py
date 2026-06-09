@@ -16,6 +16,32 @@ EXOTIC_AMP_SCALE = 0.25
 MAX_INDEPENDENT_LUMPS = 5
 
 
+def shift_lump_centers_for_gridinit(
+    lumps: Sequence[Mapping[str, Any]],
+    *,
+    grid_center: Sequence[float],
+) -> list[dict[str, Any]]:
+    """Translate shell-ansatz lump centres into gridinit coordinates.
+
+    GRTresna shell lumps are specified as offsets from the throat.  The
+    ``.gridinit`` header shifts the file origin so that the throat maps to
+    ``grid_center`` in GRTeclyn coordinates, so per-lump scalar channels must be
+    painted around that same center.
+    """
+    cx, cy, cz = (float(grid_center[0]), float(grid_center[1]), float(grid_center[2]))
+    shifted: list[dict[str, Any]] = []
+    for lump in lumps:
+        center = lump.get("center", (0.0, 0.0, 0.0))
+        new_lump = dict(lump)
+        new_lump["center"] = (
+            float(center[0]) + cx,
+            float(center[1]) + cy,
+            float(center[2]) + cz,
+        )
+        shifted.append(new_lump)
+    return shifted
+
+
 def effective_amp(lump: Mapping[str, Any]) -> float:
     amp = float(lump.get("amp", 0.0))
     if amp == 0.0:

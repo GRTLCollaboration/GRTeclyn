@@ -14,6 +14,7 @@ from grteclyn_wrapper.grtresna.lump_fields import (
     lump_pi_at,
     lump_sign,
     paint_lump_fields_on_grid,
+    shift_lump_centers_for_gridinit,
 )
 from grteclyn_wrapper.core.params import format_param_value, write_params
 from grteclyn_wrapper.core.config import resolve_example
@@ -32,7 +33,7 @@ def _canonical_lump(**kwargs) -> dict:
     base = {
         "amp": 0.2,
         "width": 4.0,
-        "center": (32.0, 32.0, 32.0),
+        "center": (0.0, 0.0, 0.0),
         "velocity": (0.1, 0.0, 0.0),
         "omega": 0.0,
         "mode": 0,
@@ -76,10 +77,10 @@ def test_paint_lump_fields_appends_named_channels() -> None:
 def test_independent_vs_summed_kinetic_differs_on_overlap() -> None:
     """Freeze the legacy mismatch: summed |∇(φ1+φ2)|² ≠ Σ|∇φk|²."""
     lumps = [
-        _canonical_lump(center=(30.0, 32.0, 32.0)),
-        _canonical_lump(center=(34.0, 32.0, 32.0), amp=0.18),
+        _canonical_lump(center=(-2.0, 0.0, 0.0)),
+        _canonical_lump(center=(2.0, 0.0, 0.0), amp=0.18),
     ]
-    point = (32.0, 32.0, 32.0)
+    point = (0.0, 0.0, 0.0)
     phi_sum = sum(lump_phi_at(lump, point) for lump in lumps)
     grad_sum_sq = 0.0
     for axis in range(3):
@@ -177,14 +178,35 @@ def test_smoke_canonical_exotic_and_mixed_shell_wiring() -> None:
     mixed = evolution_overrides_from_config(
         GRTresnaConfig(
             lumps=[
-                _canonical_lump(center=(30.0, 32.0, 32.0)),
-                _canonical_lump(exotic=1, amp=0.12, center=(34.0, 32.0, 32.0)),
+                _canonical_lump(center=(-2.0, 0.0, 0.0)),
+                _canonical_lump(exotic=1, amp=0.12, center=(2.0, 0.0, 0.0)),
             ],
             scalar_mass=0.1,
         )
     )
     assert mixed["recipe_num_scalar_fields"] == 2
     assert mixed["recipe_scalar_field_signs"] == "1 -1"
+
+
+def test_shift_lump_centers_aligns_shell_ansatz_with_grid_center() -> None:
+    lumps = [_canonical_lump(center=(3.0, 1.0, 2.0))]
+    shifted = shift_lump_centers_for_gridinit(
+        lumps,
+        grid_center=(32.0, 32.0, 0.0),
+    )
+    assert shifted[0]["center"] == pytest.approx((35.0, 33.0, 2.0))
+
+    nz, ny, nx = 64, 64, 64
+    dx = np.array([2.0, 2.0, 2.0])
+    origin = np.array([-32.0, -32.0, -64.0])
+    data = np.zeros((nz, ny, nx, 2), dtype=np.float64)
+    names = ["chi", "lapse"]
+    painted, new_names = paint_lump_fields_on_grid(
+        data, names, dx, origin, shifted,
+    )
+    phi0 = painted[:, :, :, new_names.index("phi_lump0")]
+    peak = np.unravel_index(int(np.argmax(phi0)), phi0.shape)
+    assert all(26 <= coord <= 38 for coord in peak)
 
 
 def test_gridinit_v2_round_trip_with_lump_channels(tmp_path: Path) -> None:

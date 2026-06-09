@@ -39,6 +39,45 @@ def _postload_gate_config_from_args(args: argparse.Namespace) -> PostLoadGateCon
     )
 
 
+def _add_grtresna_speed_args(parser: argparse.ArgumentParser) -> None:
+    """CLI knobs for GRTresna early exit and parallel gridinit conversion."""
+    parser.add_argument(
+        "--grtresna-nl-exit-tolerance",
+        type=float,
+        default=1.0,
+        help=(
+            "Stop GRTresna when both Ham and Mom residuals fall below this %% "
+            "(0 disables absolute early exit)."
+        ),
+    )
+    parser.add_argument(
+        "--grtresna-nl-stall-tolerance",
+        type=float,
+        default=0.02,
+        help=(
+            "Stop when per-iteration Ham/Mom relative improvement drops below "
+            "this fraction (0 disables stall early exit)."
+        ),
+    )
+    parser.add_argument(
+        "--grtresna-gridinit-workers",
+        type=int,
+        default=0,
+        help=(
+            "Threads for parallel Chombo→gridinit box painting "
+            "(0 = auto, min(32, cpu_count))."
+        ),
+    )
+
+
+def _grtresna_speed_kwargs(args: argparse.Namespace) -> dict[str, float | int]:
+    return {
+        "nl_exit_tolerance": getattr(args, "grtresna_nl_exit_tolerance", 1.0),
+        "nl_stall_tolerance": getattr(args, "grtresna_nl_stall_tolerance", 0.02),
+        "gridinit_workers": getattr(args, "grtresna_gridinit_workers", 0),
+    }
+
+
 SWEEP_RANGES = {
     "wormhole_phi_perturbation_amplitude": (-0.04, 0.04),
     "wormhole_support_strength": (0.2, 1.0),
@@ -279,6 +318,7 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
             bh1_bare_mass=0.0,
             bh1_spin=(0.0, 0.0, 0.0),
             cleanup=True,
+            **_grtresna_speed_kwargs(args),
         )
         if grtresna_domain is not None:
             grtresna_config = grtresna_domain.apply_to_solver(grtresna_config)
@@ -467,6 +507,7 @@ def _run_qd_command(args: argparse.Namespace, base_overrides: dict[str, Any]) ->
             dphi=0.0,
             dpi=0.0,
             cleanup=True,
+            **_grtresna_speed_kwargs(args),
         )
         grtresna_config = grtresna_domain.apply_to_solver(grtresna_config)
         solved_ftl_gate_config = SolvedFtlGateConfig(
@@ -838,6 +879,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--grtresna-iterations", type=int, default=50,
         help="Max non-linear iterations per GRTresna solve (default: 50).",
     )
+    _add_grtresna_speed_args(opt)
     opt.add_argument(
         "--grtresna-timeout", type=int, default=3600,
         help="Wall-clock timeout in seconds for each GRTresna solve.",
@@ -971,6 +1013,7 @@ def build_parser() -> argparse.ArgumentParser:
     qd.add_argument("--grtresna-gridinit-ny", type=int, default=64)
     qd.add_argument("--grtresna-gridinit-nz", type=int, default=64)
     qd.add_argument("--grtresna-iterations", type=int, default=50)
+    _add_grtresna_speed_args(qd)
     qd.add_argument("--grtresna-timeout", type=int, default=3600, help="Wall-clock timeout in seconds for each GRTresna solve.")
     qd.add_argument("--grtresna-max-level", type=int, default=3)
     qd.add_argument("--grtresna-refine-threshold", type=float, default=0.5)

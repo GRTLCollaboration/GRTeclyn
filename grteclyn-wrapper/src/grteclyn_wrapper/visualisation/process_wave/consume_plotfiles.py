@@ -394,6 +394,11 @@ def _auto_zlim_from_array(values: np.ndarray, field_name: str) -> tuple[float, f
         max_abs = max(max_abs, 1.0e-8)
         return (-max_abs, max_abs)
 
+    if field_name in {"lump_activity", "scalar_activity"}:
+        hi = float(np.nanpercentile(finite, 99.5))
+        hi = max(hi, 1.0e-6)
+        return (0.0, hi)
+
     lo, hi = np.nanpercentile(finite, [1.0, 99.0])
     lo = float(lo)
     hi = float(hi)
@@ -423,6 +428,12 @@ def _resolve_plot_zlim(
 
     preset = cfg["zlim"]
     if preset[0] is not None:
+        auto = _auto_zlim_from_array(win, field)
+        if auto is not None and field in {"lump_activity", "scalar_activity"}:
+            signal_span = auto[1] - auto[0]
+            preset_span = preset[1] - preset[0]
+            if signal_span > 0.0 and signal_span < 0.25 * preset_span:
+                return auto
         return preset
 
     if use_global_zlim and frame_zlims is not None:
@@ -582,33 +593,55 @@ def _render_native_slice_frame(
         coord_val,
     )
 
+    plot_arr = win
+    plot_extent = list(extent)
+    if zoom is not None and win.shape != arr.shape:
+        hh = float(zoom) / 2.0
+        hcoords = np.linspace(extent[0], extent[1], arr.shape[1])
+        vcoords = np.linspace(extent[2], extent[3], arr.shape[0])
+        hmask = (hcoords >= physics_center[h_ax] - hh) & (hcoords <= physics_center[h_ax] + hh)
+        vmask = (vcoords >= physics_center[v_ax] - hh) & (vcoords <= physics_center[v_ax] + hh)
+        if hmask.any() and vmask.any():
+            plot_extent = [
+                float(hcoords[hmask][0]),
+                float(hcoords[hmask][-1]),
+                float(vcoords[vmask][0]),
+                float(vcoords[vmask][-1]),
+            ]
+
     fig, ax = plt.subplots(figsize=(8, 7))
     im = ax.imshow(
-        arr,
+        plot_arr,
         origin="lower",
-        extent=extent,
+        extent=plot_extent,
         aspect="equal",
         cmap=cfg["cmap"],
         vmin=zlim[0],
         vmax=zlim[1],
         interpolation="nearest",
     )
-    if zoom is not None:
-        ax.set_xlim(physics_center[h_ax] - float(zoom) / 2.0, physics_center[h_ax] + float(zoom) / 2.0)
-        ax.set_ylim(physics_center[v_ax] - float(zoom) / 2.0, physics_center[v_ax] + float(zoom) / 2.0)
     ax.set_xlabel(r"$%s$" % xlabel_name)
     ax.set_ylabel(r"$%s$" % ylabel_name)
     ax.set_title(title_text, pad=8)
     cb = fig.colorbar(im, ax=ax)
     cb.set_label(cfg["label"])
 
-    if corner:
-        def _fmt_y(val, _pos):
-            if abs(float(val)) < 1.0e-12:
-                return ""
-            return f"{val:g}"
+    x_ticks = ax.get_xticks()
+    left_x_native = float(x_ticks[0]) if len(x_ticks) else None
 
-        ax.yaxis.set_major_formatter(FuncFormatter(_fmt_y))
+    def _fmt_x(val, _pos):
+        return f"{float(val):g}"
+
+    def _fmt_y(val, pos):
+        if corner and abs(float(val)) < 1.0e-12:
+            return ""
+        display = f"{float(val):g}"
+        if pos == 0 and left_x_native is not None and display == f"{left_x_native:g}":
+            return ""
+        return display
+
+    ax.xaxis.set_major_formatter(FuncFormatter(_fmt_x))
+    ax.yaxis.set_major_formatter(FuncFormatter(_fmt_y))
 
     output_dir = os.path.join(frames_out_dir, f"{field}_{axis}")
     frames_dir = os.path.join(output_dir, "frames")

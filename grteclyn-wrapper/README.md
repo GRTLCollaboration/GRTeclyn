@@ -408,6 +408,10 @@ RANKS=1 bash scripts/search/run_grtresna_search.sh             # serial GRTresna
 | `WARM_START_TRAJECTORY` | unset | Prior `trajectory.jsonl` for warm start |
 | `WARM_START_TOP_K` / `JITTER` | `8` / `0.08` | Seeds and jitter fraction |
 | `GRTRESNA_TIMEOUT` | `900` | Wall-clock seconds per GRTresna solve |
+| `ITERATIONS` | `30` | Max NL iterations per solve (ceiling; early exit usually stops sooner) |
+| `GRTRESNA_NL_EXIT_TOLERANCE` | `1.0` | Stop when both Ham and Mom fall below this `%` (`0` disables) |
+| `GRTRESNA_NL_STALL_TOLERANCE` | `0.02` | Stop when per-iter Ham/Mom improvement stalls below this fraction (`0` disables) |
+| `GRTRESNA_GRIDINIT_WORKERS` | `0` | Parallel Chombo→`.gridinit` threads (`0` = auto, `min(32, cpu_count)`) |
 | `STOP_TIME` | `2.0` | GPU evolution stop time |
 | `RANDOM_INJECTION_FRACTION` | `0.25` | Per-generation random candidates |
 
@@ -422,6 +426,32 @@ WARM_START_TRAJECTORY=../runs/grtresna_search/optimize_20260604T170329Z/trajecto
 ```
 
 Outputs: `runs/grtresna_search/optimize_<timestamp>/`.
+
+### GRTresna solve speed (on by default)
+
+Both `run_grtresna_search.sh` and `run_grtresna_qd_search.sh` enable two complementary
+short-cuts so candidates rarely burn the full `ITERATIONS=30` NL loop:
+
+1. **Early NL exit** — `NL_exit_tolerance` stops once Ham **and** Mom are below
+   `GRTRESNA_NL_EXIT_TOLERANCE` percent (default `1.0`, well inside the
+   post-solve `GRTRESNA_MAX_HAM_PCT=5` gate). `NL_stall_tolerance` (default
+   `0.02`) stops diverging or plateaued solves even earlier.
+2. **Parallel gridinit conversion** — after each solve, `grtresna/io.py` paints AMR
+   boxes with NumPy vectorization plus a `ThreadPoolExecutor`
+   (`GRTRESNA_GRIDINIT_WORKERS`, default `0` = auto). Per-lump `phi_lumpK` /
+   `Pi_lumpK` channels use vectorized `meshgrid` painting.
+
+Typical converged candidates finish in **~13–19** NL iterations instead of 30.
+Disable absolute early exit for debugging: `GRTRESNA_NL_EXIT_TOLERANCE=0`.
+Force serial conversion: `GRTRESNA_GRIDINIT_WORKERS=1`.
+
+CLI equivalents (also on `optimize` / `qd`):
+
+```bash
+--grtresna-nl-exit-tolerance 1.0 \
+--grtresna-nl-stall-tolerance 0.02 \
+--grtresna-gridinit-workers 0
+```
 
 ### MAP-Elites
 
@@ -447,6 +477,10 @@ QD_ITERATIONS=16 BINS=10 STOP_TIME=8 GPU_IDS="0 1 2 3 4 5 6 7" RANKS=8 \
 | `SHELL_PROFILE` | `compact` | Same presets as CMA-ES |
 | `STOP_TIME` | `2.0` | GPU stop time (use `16` for long runs) |
 | `GRTRESNA_TIMEOUT` | `900` | Per-solve wall clock |
+| `ITERATIONS` | `30` | Max NL iterations per solve (ceiling; early exit usually stops sooner) |
+| `GRTRESNA_NL_EXIT_TOLERANCE` | `1.0` | Stop when both Ham and Mom fall below this `%` (`0` disables) |
+| `GRTRESNA_NL_STALL_TOLERANCE` | `0.02` | Stop when per-iter Ham/Mom improvement stalls (`0` disables) |
+| `GRTRESNA_GRIDINIT_WORKERS` | `0` | Parallel Chombo→`.gridinit` threads (`0` = auto) |
 
 Outputs: `runs/grtresna_qd/qd_<timestamp>/` with `trajectory.jsonl`, `archive.json`, `eval_XXXXXX/`.
 
@@ -725,6 +759,8 @@ GRTresna solves Hamiltonian + momentum constraints in 3D and hands GRTeclyn cons
 - GRTresna-in-the-loop CMA-ES/QD with graded Ham/Mom rejection before GPU
 - Pre-evolution solved-geometry FTL gate (`search/solved_ftl_gate.py`) — cheap filter on `.gridinit` at t=0
 - `channel_progress` + `SHELL_PROFILE` presets (2026-06-05)
+- GRTresna NL early exit (`NL_exit_tolerance` + `NL_stall_tolerance`) and parallel
+  Chombo→`.gridinit` conversion exposed via launcher env vars / CLI (2026-06-09)
 
 ### One-off GRTresna solve
 

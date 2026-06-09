@@ -46,6 +46,11 @@ GRTRESNA_ANSATZ="${GRTRESNA_ANSATZ:-ring}" # free=11*LUMPS dims, ring=14 templat
 SHELL_PROFILE="${SHELL_PROFILE:-compact}"   # shell width/radius bounds preset
 RANKS="${RANKS:-8}"                       # MPI ranks per GRTresna solve (>1 => .MPI. executable)
 ITERATIONS="${ITERATIONS:-30}"            # max non-linear iterations per solve
+# GRTresna early-exit: stop once Ham/Mom are good (%%) or improvement stalls.
+GRTRESNA_NL_EXIT_TOLERANCE="${GRTRESNA_NL_EXIT_TOLERANCE:-1.0}"
+GRTRESNA_NL_STALL_TOLERANCE="${GRTRESNA_NL_STALL_TOLERANCE:-0.02}"
+# Parallel Chombo→gridinit conversion (0 = auto, min(32, cpu_count)).
+GRTRESNA_GRIDINIT_WORKERS="${GRTRESNA_GRIDINIT_WORKERS:-0}"
 if [[ -z "${GRTRESNA_FULL_Z+x}" ]]; then
   if [[ "${GRTRESNA_ANSATZ}" == "shell" ]]; then
     GRTRESNA_FULL_Z=1
@@ -155,6 +160,7 @@ else
   echo "Lumps/ansatz  : ${LUMPS} free lumps (=> $((LUMPS * 11)) search dims)"
 fi
 echo "Solve         : RANKS=${RANKS}  ITERATIONS=${ITERATIONS}  max_level=${GRTRESNA_MAX_LEVEL}"
+echo "GRTresna exit : NL_exit=${GRTRESNA_NL_EXIT_TOLERANCE}%  NL_stall=${GRTRESNA_NL_STALL_TOLERANCE}  gridinit_workers=${GRTRESNA_GRIDINIT_WORKERS:-auto}"
 echo "Domain        : $([[ "${GRTRESNA_FULL_Z}" == "1" ]] && echo "full-z (no reflective z=0 plane)" || echo "half-z reflective")"
 echo "Domain sizes  : evolution L=${GRTRESNA_EVOLUTION_L_FULL} N=${GRTRESNA_EVOLUTION_N_FULL}; GRTresna L=${GRTRESNA_DOMAIN_L} N=${GRTRESNA_DOMAIN_NX},${GRTRESNA_DOMAIN_NY},${GRTRESNA_DOMAIN_NZ:-auto}; gridinit=${GRTRESNA_GRIDINIT_NX},${GRTRESNA_GRIDINIT_NY},${GRTRESNA_GRIDINIT_NZ}"
 echo "AMR           : refine_threshold=${GRTRESNA_REFINE_THRESHOLD} regrid_radius=${GRTRESNA_REGRID_RADIUS}"
@@ -210,6 +216,9 @@ exec ${PYTHON_BIN} -m grteclyn_wrapper \
   "${DOMAIN_ARGS[@]}" \
   --grtresna-ranks "${RANKS}" \
   --grtresna-iterations "${ITERATIONS}" \
+  --grtresna-nl-exit-tolerance "${GRTRESNA_NL_EXIT_TOLERANCE}" \
+  --grtresna-nl-stall-tolerance "${GRTRESNA_NL_STALL_TOLERANCE}" \
+  --grtresna-gridinit-workers "${GRTRESNA_GRIDINIT_WORKERS}" \
   --grtresna-timeout "${GRTRESNA_TIMEOUT}" \
   --grtresna-max-level "${GRTRESNA_MAX_LEVEL}" \
   --grtresna-refine-threshold "${GRTRESNA_REFINE_THRESHOLD}" \

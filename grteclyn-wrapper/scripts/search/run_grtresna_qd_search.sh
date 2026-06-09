@@ -27,6 +27,11 @@ LUMPS="${LUMPS:-5}"
 SHELL_PROFILE="${SHELL_PROFILE:-compact}"
 RANKS="${RANKS:-8}"
 ITERATIONS="${ITERATIONS:-30}"
+# GRTresna early-exit: stop once Ham/Mom are good (%%) or improvement stalls.
+GRTRESNA_NL_EXIT_TOLERANCE="${GRTRESNA_NL_EXIT_TOLERANCE:-1.0}"
+GRTRESNA_NL_STALL_TOLERANCE="${GRTRESNA_NL_STALL_TOLERANCE:-0.02}"
+# Parallel Chombo→gridinit conversion (0 = auto, min(32, cpu_count)).
+GRTRESNA_GRIDINIT_WORKERS="${GRTRESNA_GRIDINIT_WORKERS:-0}"
 GRTRESNA_MAX_LEVEL="${GRTRESNA_MAX_LEVEL:-3}"
 GRTRESNA_REFINE_THRESHOLD="${GRTRESNA_REFINE_THRESHOLD:-0.5}"
 GRTRESNA_REGRID_RADIUS="${GRTRESNA_REGRID_RADIUS:-0}"
@@ -120,6 +125,9 @@ exec ${PYTHON_BIN} -m grteclyn_wrapper \
   "${DOMAIN_ARGS[@]}" \
   --grtresna-ranks "${RANKS}" \
   --grtresna-iterations "${ITERATIONS}" \
+  --grtresna-nl-exit-tolerance "${GRTRESNA_NL_EXIT_TOLERANCE}" \
+  --grtresna-nl-stall-tolerance "${GRTRESNA_NL_STALL_TOLERANCE}" \
+  --grtresna-gridinit-workers "${GRTRESNA_GRIDINIT_WORKERS}" \
   --grtresna-timeout "${GRTRESNA_TIMEOUT}" \
   --grtresna-max-level "${GRTRESNA_MAX_LEVEL}" \
   --grtresna-refine-threshold "${GRTRESNA_REFINE_THRESHOLD}" \

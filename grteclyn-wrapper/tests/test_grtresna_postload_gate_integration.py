@@ -24,7 +24,7 @@ def test_apply_pre_evolution_gates_accepts_good_convergence_and_dry_postload(
     gridinit.write_bytes(b"placeholder")
 
     cfg = GRTresnaConfig(
-        lumps=[{"amp": 0.1, "width": 4.0, "center": (32.0, 32.0, 32.0), "exotic": 0}],
+        lumps=[{"amp": 0.1, "width": 4.0, "center": (0.0, 0.0, 0.0), "exotic": 0}],
         scalar_mass=0.1,
     )
     gte_overrides = {

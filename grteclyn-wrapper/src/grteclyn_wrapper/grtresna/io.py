@@ -456,10 +456,18 @@ def convert_chombo_to_gridinit(
         ])
 
     if lumps:
-        from .lump_fields import paint_lump_fields_on_grid
+        from .lump_fields import paint_lump_fields_on_grid, shift_lump_centers_for_gridinit
 
+        shifted_lumps = shift_lump_centers_for_gridinit(
+            lumps,
+            grid_center=(
+                float(origin[0]) + 0.5 * float(Lx),
+                float(origin[1]) + 0.5 * float(Ly),
+                float(origin[2]) + 0.5 * float(Lz),
+            ),
+        )
         data, comp_names = paint_lump_fields_on_grid(
-            data, comp_names, dx_xyz, origin, lumps,
+            data, comp_names, dx_xyz, origin, shifted_lumps,
         )
 
     result = write_gridinit(data, comp_names, dx_xyz, origin, output_path)

@@ -179,7 +179,7 @@ The `metrics` package re-exports `read_episode_metrics`, `read_growth_metrics`,
 | Module | Role |
 |--------|------|
 | `grtresna/io.py` | Read Chombo AMR checkpoint HDF5 (with ghost cells), flatten to uniform grid, write `.gridinit` binary. |
-| `grtresna/solver.py` | Orchestrator: write GRTresna `params.txt`, run via MPI, convert output. `GRTresnaConfig` dataclass holds all knobs. |
+| `grtresna/solver.py` | Orchestrator: write GRTresna `params.txt`, run via MPI, convert output. `GRTresnaConfig` holds NL early-exit (`nl_exit_tolerance`, `nl_stall_tolerance`) and `gridinit_workers` for parallel conversion. |
 
 ---
 
