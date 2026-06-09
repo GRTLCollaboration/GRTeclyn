@@ -44,6 +44,13 @@ class GRTresnaConfig:
     example: str = _DEFAULT_EXAMPLE
     mpi_ranks: int = 8
     max_NL_iterations: int = 50
+    # Adaptive early-exit for the outer nonlinear solve. nl_stall_tolerance stops
+    # the solve once the per-iteration relative improvement of both Ham and Mom
+    # errors drops below it (residual at its floor) without losing solution
+    # quality; nl_exit_tolerance stops once both relative errors (in %) are below
+    # it. 0 disables a check.
+    nl_exit_tolerance: float = 0.0
+    nl_stall_tolerance: float = 0.02
     write_diagnostics: bool = False
     timeout: int = 3600
 
@@ -135,6 +142,8 @@ class GRTresnaConfig:
     gridinit_nx: int = 64
     gridinit_ny: int = 64
     gridinit_nz: int = 64
+    # Parallel AMR box painting during Chombo→gridinit conversion (0 = auto).
+    gridinit_workers: int = 0
 
     # Centre of the GRTeclyn evolution box that will LOAD this gridinit. The
     # GRTresna matter sits at the centre of the (large) solve domain; the
@@ -271,6 +280,8 @@ def write_grtresna_params(cfg: GRTresnaConfig, path: Path) -> None:
         f"bh2_offset = {_fmt(cfg.bh2_offset)}",
         f"",
         f"max_NL_iterations = {cfg.max_NL_iterations}",
+        f"NL_exit_tolerance = {cfg.nl_exit_tolerance}",
+        f"NL_stall_tolerance = {cfg.nl_stall_tolerance}",
         f"deactivate_zero_mode = 0",
     ])
     path.write_text("\n".join(lines) + "\n")
@@ -549,6 +560,7 @@ def solve(
         target_center=cfg.target_center,
         delete_source=cfg.cleanup,
         lumps=cfg.lumps or None,
+        num_workers=cfg.gridinit_workers,
     )
 
     if cfg.lumps:

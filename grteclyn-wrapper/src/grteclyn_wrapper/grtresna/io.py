@@ -27,6 +27,8 @@ Output format (.gridinit v2):
 from __future__ import annotations
 
 import logging
+import os
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -88,24 +90,76 @@ def _infer_ghost_cells(
     )
 
 
-def _paint_level(
+def _default_gridinit_workers() -> int:
+    """Thread count for AMR box painting (I/O-bound slice writes release the GIL)."""
+    return min(32, os.cpu_count() or 1)
+
+
+def _target_span_slice(
+    src_index: int,
+    axis: int,
+    dx_lev: float,
+    dx_target: NDArray,
+    n_target: int,
+) -> slice:
+    """Target cell-center indices covered by one Chombo source cell."""
+    dx = float(dx_target[axis])
+    left = src_index * dx_lev
+    right = (src_index + 1) * dx_lev
+    start = int(np.ceil(left / dx - 0.5 - 1.0e-12))
+    stop = int(np.floor(right / dx - 0.5 + 1.0e-12)) + 1
+    start = max(0, min(start, n_target))
+    stop = max(start, min(stop, n_target))
+    if start == stop:
+        nearest = int(np.clip(((left + right) * 0.5 / dx) - 0.5, 0, n_target - 1))
+        return slice(nearest, nearest + 1)
+    return slice(start, stop)
+
+
+def _is_aligned_1to1(dx_lev: float, dx_target: NDArray) -> bool:
+    return all(
+        abs(dx_lev - float(dx_target[axis])) < 1.0e-12 * max(dx_lev, 1.0e-15)
+        for axis in range(3)
+    )
+
+
+def _paint_box(
     data: NDArray,
-    f: h5py.File,
-    level: int,
-    n_comp: int,
+    interior: NDArray,
+    lo: NDArray,
+    sz: NDArray,
+    dx_lev: float,
     dx_target: NDArray,
     nx: int,
     ny: int,
     nz: int,
 ) -> None:
-    """Paint one AMR level onto the uniform target grid (vectorized)."""
-    grp = f[f"level_{level}"]
-    dx_lev = float(grp.attrs["dx"])
-    raw = grp["data:datatype=0"][:]
-    offsets = grp["data:offsets=0"][:]
-    box_records = grp["boxes"][:]
+    """Paint one AMR box interior onto the uniform target grid."""
+    if _is_aligned_1to1(dx_lev, dx_target):
+        ti = slice(int(lo[0]), int(lo[0]) + int(sz[0]))
+        tj = slice(int(lo[1]), int(lo[1]) + int(sz[1]))
+        tk = slice(int(lo[2]), int(lo[2]) + int(sz[2]))
+        data[tk, tj, ti, :] = np.moveaxis(interior, 0, -1)
+        return
 
-    ghost = None
+    for kk in range(int(sz[2])):
+        tk = _target_span_slice(int(lo[2] + kk), 2, dx_lev, dx_target, nz)
+        for jj in range(int(sz[1])):
+            tj = _target_span_slice(int(lo[1] + jj), 1, dx_lev, dx_target, ny)
+            for ii in range(int(sz[0])):
+                ti = _target_span_slice(int(lo[0] + ii), 0, dx_lev, dx_target, nx)
+                data[tk, tj, ti, :] = interior[:, kk, jj, ii]
+
+
+def _extract_level_boxes(
+    raw: NDArray,
+    offsets: NDArray,
+    box_records: NDArray,
+    n_comp: int,
+) -> list[tuple[NDArray, NDArray, NDArray]]:
+    """Unpack all AMR boxes at one level from the flat Chombo buffer."""
+    boxes: list[tuple[NDArray, NDArray, NDArray]] = []
+    ghost: int | None = None
 
     for bi in range(len(box_records)):
         rec = box_records[bi]
@@ -122,34 +176,54 @@ def _paint_level(
         padded = sz + 2 * ghost
         chunk = raw[start : start + int(np.prod(padded)) * n_comp]
         arr = chunk.reshape(n_comp, int(padded[2]), int(padded[1]), int(padded[0]))
+        interior = arr[
+            :,
+            ghost : ghost + int(sz[2]),
+            ghost : ghost + int(sz[1]),
+            ghost : ghost + int(sz[0]),
+        ]
+        boxes.append((lo, sz, interior))
 
-        g = ghost
-        interior = arr[:, g:g+int(sz[2]), g:g+int(sz[1]), g:g+int(sz[0])]
+    return boxes
 
-        def target_span(src_index: int, axis: int, n_target: int) -> slice:
-            """Target cell-center indices covered by one Chombo source cell."""
-            left = src_index * dx_lev
-            right = (src_index + 1) * dx_lev
-            dx = dx_target[axis]
-            start = int(np.ceil(left / dx - 0.5 - 1.0e-12))
-            stop = int(np.floor(right / dx - 0.5 + 1.0e-12)) + 1
-            start = max(0, min(start, n_target))
-            stop = max(start, min(stop, n_target))
-            if start == stop:
-                nearest = int(np.clip(((left + right) * 0.5 / dx) - 0.5, 0, n_target - 1))
-                return slice(nearest, nearest + 1)
-            return slice(start, stop)
 
-        # Paint each Chombo cell as piecewise constant over the target cell
-        # centers it covers. This avoids leaving holes when the requested
-        # `.gridinit` resolution is finer than the Chombo output level.
-        for kk in range(int(sz[2])):
-            tk = target_span(int(lo[2] + kk), 2, nz)
-            for jj in range(int(sz[1])):
-                tj = target_span(int(lo[1] + jj), 1, ny)
-                for ii in range(int(sz[0])):
-                    ti = target_span(int(lo[0] + ii), 0, nx)
-                    data[tk, tj, ti, :] = interior[:, kk, jj, ii]
+def _paint_level(
+    data: NDArray,
+    f: h5py.File,
+    level: int,
+    n_comp: int,
+    dx_target: NDArray,
+    nx: int,
+    ny: int,
+    nz: int,
+    *,
+    num_workers: int = 1,
+) -> None:
+    """Paint one AMR level onto the uniform target grid."""
+    grp = f[f"level_{level}"]
+    dx_lev = float(grp.attrs["dx"])
+    raw = grp["data:datatype=0"][:]
+    offsets = grp["data:offsets=0"][:]
+    box_records = grp["boxes"][:]
+    boxes = _extract_level_boxes(raw, offsets, box_records, n_comp)
+
+    def _paint_one(box: tuple[NDArray, NDArray, NDArray]) -> None:
+        lo, sz, interior = box
+        _paint_box(data, interior, lo, sz, dx_lev, dx_target, nx, ny, nz)
+
+    # Parallel box painting is only safe when each source cell maps to a
+    # disjoint target region (1:1 aligned spacing). Finer AMR levels use
+    # nearest-cell fallback where adjacent boxes can contend for the same
+    # target index; those levels must paint sequentially to preserve the
+    # coarse-to-fine overwrite order.
+    can_parallel = _is_aligned_1to1(dx_lev, dx_target)
+    if num_workers <= 1 or len(boxes) <= 1 or not can_parallel:
+        for box in boxes:
+            _paint_one(box)
+        return
+
+    with ThreadPoolExecutor(max_workers=num_workers) as pool:
+        list(pool.map(_paint_one, boxes))
 
 
 def read_chombo_domain(
@@ -179,6 +253,8 @@ def chombo_to_uniform(
     Lx: float | None = None,
     Ly: float | None = None,
     Lz: float | None = None,
+    *,
+    num_workers: int = 0,
 ) -> tuple[NDArray, list[str], NDArray, NDArray]:
     """Read a Chombo HDF5 file and flatten to a uniform grid.
 
@@ -231,9 +307,12 @@ def chombo_to_uniform(
         dx_xyz = np.array([Lx / nx, Ly / ny, Lz / nz])
 
         data = np.zeros((nz, ny, nx, n_comp), dtype=np.float64)
+        workers = num_workers if num_workers > 0 else _default_gridinit_workers()
 
         for lev in range(num_levels):
-            _paint_level(data, f, lev, n_comp, dx_xyz, nx, ny, nz)
+            _paint_level(
+                data, f, lev, n_comp, dx_xyz, nx, ny, nz, num_workers=workers,
+            )
 
         # z-reflection: if Chombo used half-z (reflective BC at z=0).
         #
@@ -303,6 +382,7 @@ def convert_chombo_to_gridinit(
     target_center: tuple[float, float, float] | None = None,
     delete_source: bool = False,
     lumps: Sequence[Mapping[str, Any]] | None = None,
+    num_workers: int = 0,
 ) -> Path:
     """One-shot: read Chombo HDF5, flatten, write .gridinit.
 
@@ -349,7 +429,14 @@ def convert_chombo_to_gridinit(
                 Lz = chombo_lengths[2]
 
     data, comp_names, dx_xyz, origin = chombo_to_uniform(
-        chombo_path, nx=nx, ny=ny, nz=nz, Lx=Lx, Ly=Ly, Lz=Lz,
+        chombo_path,
+        nx=nx,
+        ny=ny,
+        nz=nz,
+        Lx=Lx,
+        Ly=Ly,
+        Lz=Lz,
+        num_workers=num_workers,
     )
 
     # Coordinate alignment. The GRTresna matter sits at the centre of the solve

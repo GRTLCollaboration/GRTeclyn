@@ -94,6 +94,76 @@ def lump_sign(lump: Mapping[str, Any]) -> int:
     return -1 if int(lump.get("exotic", 0)) else 1
 
 
+def _lump_phi_grid(
+    lump: Mapping[str, Any],
+    px: NDArray,
+    py: NDArray,
+    pz: NDArray,
+) -> NDArray:
+    amp = float(lump.get("amp", 0.0))
+    if amp == 0.0:
+        return np.zeros_like(px, dtype=np.float64)
+    width = float(lump.get("width", 5.0))
+    center = np.asarray(lump.get("center", (0.0, 0.0, 0.0)), dtype=np.float64)
+    dx = px - center[0]
+    dy = py - center[1]
+    dz = pz - center[2]
+    r2 = dx * dx + dy * dy + dz * dz
+    env = np.exp(-r2 / (2.0 * width * width))
+    mode = int(lump.get("mode", 0))
+    angular = angular_factor(mode, dx, dy, width)
+    return effective_amp(lump) * angular * env
+
+
+def _lump_pi_grid(
+    lump: Mapping[str, Any],
+    px: NDArray,
+    py: NDArray,
+    pz: NDArray,
+) -> NDArray:
+    amp = float(lump.get("amp", 0.0))
+    velocity = tuple(float(v) for v in lump.get("velocity", (0.0, 0.0, 0.0)))
+    omega = float(lump.get("omega", 0.0))
+    if amp == 0.0:
+        return np.zeros_like(px, dtype=np.float64)
+    if not any(abs(v) > 0.0 for v in velocity) and abs(omega) < 1.0e-12:
+        return np.zeros_like(px, dtype=np.float64)
+
+    width = float(lump.get("width", 5.0))
+    center = np.asarray(lump.get("center", (0.0, 0.0, 0.0)), dtype=np.float64)
+    eps = 1.0e-3 * width
+
+    phi_xp = _lump_phi_grid(lump, px + eps, py, pz)
+    phi_xm = _lump_phi_grid(lump, px - eps, py, pz)
+    phi_yp = _lump_phi_grid(lump, px, py + eps, pz)
+    phi_ym = _lump_phi_grid(lump, px, py - eps, pz)
+    phi_zp = _lump_phi_grid(lump, px, py, pz + eps)
+    phi_zm = _lump_phi_grid(lump, px, py, pz - eps)
+    grad_x = (phi_xp - phi_xm) / (2.0 * eps)
+    grad_y = (phi_yp - phi_ym) / (2.0 * eps)
+    grad_z = (phi_zp - phi_zm) / (2.0 * eps)
+
+    boost = -(velocity[0] * grad_x + velocity[1] * grad_y + velocity[2] * grad_z)
+    dx = px - center[0]
+    dy = py - center[1]
+    rot = -omega * (dx * grad_y - dy * grad_x)
+    return boost + rot
+
+
+def _coordinate_grids(
+    nx: int,
+    ny: int,
+    nz: int,
+    dx_xyz: NDArray,
+    origin: NDArray,
+) -> tuple[NDArray, NDArray, NDArray]:
+    px = origin[0] + (np.arange(nx, dtype=np.float64) + 0.5) * float(dx_xyz[0])
+    py = origin[1] + (np.arange(ny, dtype=np.float64) + 0.5) * float(dx_xyz[1])
+    pz = origin[2] + (np.arange(nz, dtype=np.float64) + 0.5) * float(dx_xyz[2])
+    pz_grid, py_grid, px_grid = np.meshgrid(pz, py, px, indexing="ij")
+    return px_grid, py_grid, pz_grid
+
+
 def paint_lump_fields_on_grid(
     data: NDArray,
     comp_names: list[str],
@@ -111,19 +181,11 @@ def paint_lump_fields_on_grid(
     selected = list(lumps[:max_lumps])
     new_names = list(comp_names)
     lump_arrays: list[tuple[NDArray, NDArray]] = []
+    px_grid, py_grid, pz_grid = _coordinate_grids(nx, ny, nz, dx_xyz, origin)
 
     for idx, lump in enumerate(selected):
-        phi_plane = np.zeros((nz, ny, nx), dtype=np.float64)
-        pi_plane = np.zeros((nz, ny, nx), dtype=np.float64)
-        for k in range(nz):
-            pz = float(origin[2]) + (k + 0.5) * float(dx_xyz[2])
-            for j in range(ny):
-                py = float(origin[1]) + (j + 0.5) * float(dx_xyz[1])
-                for i in range(nx):
-                    px = float(origin[0]) + (i + 0.5) * float(dx_xyz[0])
-                    point = (px, py, pz)
-                    phi_plane[k, j, i] = lump_phi_at(lump, point)
-                    pi_plane[k, j, i] = lump_pi_at(lump, point)
+        phi_plane = _lump_phi_grid(lump, px_grid, py_grid, pz_grid)
+        pi_plane = _lump_pi_grid(lump, px_grid, py_grid, pz_grid)
         lump_arrays.append((phi_plane, pi_plane))
         new_names.extend([f"phi_lump{idx}", f"Pi_lump{idx}"])
 

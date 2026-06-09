@@ -2,6 +2,31 @@
 
 Run isolated GRTeclyn episodes from the repo root (`GRTeclyn/`). The wrapper can stream plotfiles into `small_data/` during GPU runs and delete heavy HDF5 dirs afterward.
 
+## ALWAYS extract frames on the fly (required)
+
+**Every GPU evolution run — QD, CMA-ES, HQ promotion, replay — MUST stream plotfiles through `consume_plotfiles` during the simulation.** Do not let heavy `data/plt*` HDF5 directories accumulate; extract PNG frames + `small_data/` metrics in flight and delete processed plotfiles immediately.
+
+This is **not optional**. A run without the sidecar consumer is incomplete for physics review.
+
+| Requirement | How |
+|-------------|-----|
+| Sidecar consumer ON | `consume_plotfiles=True` in Python (`evaluate_overrides` / `run_episode`) or `CONSUME_PLOTFILES=1` in shell launchers |
+| Delete heavy HDF5 | `consumer_delete=True` / `CONSUMER_DELETE=1` with `--keep-last 2` (promotion: `--consumer-keep-last 2`) |
+| PNG frames written | Set `GRTECLYN_FRAMES_FIELDS` (see `run_promote_qd_operational_batch.sh`) — outputs land in `eval_*/frames/` |
+| Verify consumer alive | `ps aux \| grep consume_plotfiles` while GPU is busy; `frames/` should grow during evolution |
+
+**Wrong:** launching replay/promotion without frame env vars, or inspecting only `data/plt*` after a long `t=50` run (disk explosion, no reviewable movies).
+
+**Right:** use `run_promote_qd_operational_batch.sh` or `replay_grtresna_eval.py` with `--consumer-keep-last 2` and the `GRTECLYN_FRAMES_*` exports below. Post-load gate (`postload_gate/`) is a short constraint check — it does **not** produce frames; frames come from the main `t=50` evolution step.
+
+```bash
+export GRTECLYN_FRAMES_FIELDS="phi Pi scalar_activity chi chi_minus_1 local_speed shift1 rho_req"
+export GRTECLYN_FRAMES_ZOOM=none   # full-domain slices for HQ
+export GRTECLYN_PROJECTION_FIELDS=scalar_activity
+export GRTECLYN_PROJECTION_AXES="x y z"
+export GRTECLYN_PROJECTION_METHOD=mip
+```
+
 ## Prerequisites
 
 From the GRTeclyn repo root:
@@ -250,7 +275,7 @@ Skip stage 2 when QD already yields `operational_ftl > 0` elites; go straight to
 
 Pre-evolution gates 2–4 are centralized in `search/grtresna_evaluation_gates.py` (`apply_grtresna_pre_evolution_gates`), shared by CMA-ES and MAP-Elites.
 
-Campaign artifacts: `trajectory.jsonl`, `eval_XXXXXX/{metadata,score}.json`, `initial_data.gridinit`, `initial_data.matter.json` (matter layout), optional `frames/`.
+Campaign artifacts: `trajectory.jsonl`, `eval_XXXXXX/{metadata,score}.json`, `initial_data.gridinit`, `initial_data.matter.json` (matter layout), **`frames/`** (required — streamed on the fly by `consume_plotfiles`, not optional).
 
 ### Ansätze
 
@@ -428,10 +453,36 @@ CMA-ES writes `trajectory.jsonl` once per generation (empty file during gen-1 GR
 
 ```bash
 # Defaults: L=128 N=256 (dx=0.5), t=50, fresh GRTresna, Ham/Mom gate 10%
+# ALWAYS sets GRTECLYN_FRAMES_* + consume_plotfiles sidecar (see header callout)
 bash scripts/search/run_promote_qd_operational_batch.sh
 ```
 
-Filter: `operational_ftl >= 0.03`. Outputs: `runs/grtresna_promote/l128n256_qd_eval*/`.
+Filter: `operational_ftl >= 0.03`. Outputs: `runs/grtresna_promote/l128n256_qd_eval*/` with **`frames/`** populated during GPU evolution.
+
+**Top-3 replay** (manual, same frame policy):
+
+```bash
+cd grteclyn-wrapper
+export GRTECLYN_FRAMES_FIELDS="phi Pi scalar_activity chi chi_minus_1 local_speed shift1 rho_req"
+export GRTECLYN_FRAMES_ZOOM=none
+export GRTECLYN_PROJECTION_FIELDS=scalar_activity
+export GRTECLYN_PROJECTION_AXES="x y z"
+export GRTECLYN_PROJECTION_METHOD=mip
+QD=../runs/grtresna_qd/qd_20260608T175934Z
+for pair in "074 0" "030 1" "023 2"; do
+  read -r EVAL GPU <<< "$pair"
+  nohup .venv/bin/python scripts/search/replay_grtresna_eval.py \
+    "$QD/eval_$(printf '%06d' $((10#${EVAL})))" \
+    --name "l128n256_qd_eval${EVAL}" \
+    --runs-dir ../runs/grtresna_promote --gpu "$GPU" \
+    --n-full 256 --l-full 128 --grtresna-domain-l 128 \
+    --max-level 3 --regrid-threshold 0.02 --stop-time 50 --plot-interval 24 \
+    --grtresna-ranks 8 --grtresna-timeout 7200 \
+    --grtresna-max-ham-pct 10 --grtresna-max-mom-pct 10 \
+    --consumer-keep-last 2 \
+    > "../runs/grtresna_promote/l128n256_qd_eval${EVAL}.log" 2>&1 &
+done
+```
 
 | Setting | QD search | HQ promotion |
 |---------|-----------|----------------|
@@ -536,9 +587,9 @@ BUILD=0 SEED_NAME=ellis_bronnikov CUDA_VISIBLE_DEVICES_OVERRIDE=0 \
 
 Outputs: `runs/radialrecipe_gpu_smoke/<name>_gpu_t<stop_time>_<stamp>/`.
 
-### Plotfile consumer (default on)
+### Plotfile consumer (required — default on)
 
-With `CONSUME_PLOTFILES=1`: sidecar `consume_plotfiles` streams `small_data/`, optional PNG frames, deletes processed HDF5 (`--keep-last 1`), post-sim drain.
+With `CONSUME_PLOTFILES=1`: sidecar `consume_plotfiles` streams `small_data/`, **PNG frames to `frames/`**, deletes processed HDF5 in flight (`--keep-last N`), post-sim drain. **Never disable for production search or promotion runs.**
 
 | Variable | Default | Meaning |
 |----------|---------|---------|

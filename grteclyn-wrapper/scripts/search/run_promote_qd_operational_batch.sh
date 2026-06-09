@@ -2,6 +2,10 @@
 # Parallel high-res promotion of operational-FTL QD elites.
 # Fresh GRTresna solve per candidate at N>L (finer dx = L/N), one GPU each.
 #
+# REQUIRED: in-flight frame extraction + plotfile deletion (see README.md
+# "ALWAYS extract frames on the fly"). replay_grtresna_eval.py enables
+# consume_plotfiles; GRTECLYN_FRAMES_* below must stay set.
+#
 # Usage:
 #   bash run_promote_qd_operational_batch.sh
 #
