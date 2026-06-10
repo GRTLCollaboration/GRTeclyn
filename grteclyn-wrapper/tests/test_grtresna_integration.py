@@ -470,6 +470,7 @@ def _metrics_with_general_ftl(
     max_l2_ricci: float = 2.0,
     f_op: float = 0.0,
     stationary: bool = False,
+    beta_mean: float = 0.0,
 ) -> EpisodeMetrics:
     report = GeneralFtlReport(
         f_op=f_op,
@@ -489,7 +490,7 @@ def _metrics_with_general_ftl(
         ftl=None,
         termination_reason="test",
         comoving=ComovingMetrics(
-            beta_mean=0.0,
+            beta_mean=beta_mean,
             delta_comoving=None,
             score=None,
             stationary=True,
@@ -599,6 +600,35 @@ def test_weak_stationary_shortcut_is_not_scored_as_operational_ftl() -> None:
     assert score.components["operational_ftl_solved"] == 0.0
     assert score.components["stationary_artifact_penalty"] < 0.0
     assert score.total < 0.0
+
+
+def test_stationary_penalty_relaxes_with_net_shift_so_map_can_climb_out() -> None:
+    """The stationary penalty must be a *gradient*, not a flat floor: a static
+    zero-net-shift lens earns the full -1.0, but a still-stationary geometry
+    that has developed coherent net axial shift toward the threshold sees the
+    penalty smoothly relax, giving the QD map a downhill slope out of the
+    zero-shift basin toward genuine shift-driven FTL."""
+
+    def stationary_with_beta(beta_mean: float) -> EpisodeMetrics:
+        return _metrics_with_general_ftl(
+            t_min=15.55,
+            t_flat=15.75,
+            max_local_speed=1.196,
+            superluminal_fraction=1.0,
+            max_shift=0.038,
+            f_op=0.0127,
+            stationary=True,
+            beta_mean=beta_mean,
+        )
+
+    static = score_episode(stationary_with_beta(0.0), objective_mode="ftl_first")
+    drifting = score_episode(stationary_with_beta(0.04), objective_mode="ftl_first")
+
+    # Fully static lens still earns the maximal penalty (artifact fix preserved).
+    assert static.components["stationary_artifact_penalty"] == -1.0
+    # Net shift toward the threshold relaxes the penalty, lifting the score.
+    assert -1.0 < drifting.components["stationary_artifact_penalty"] < 0.0
+    assert drifting.total > static.total
 
 
 def test_strong_evolved_shortcut_gets_operational_ftl_reward() -> None:

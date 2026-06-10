@@ -4,7 +4,7 @@ import math
 from dataclasses import dataclass, field
 from typing import Mapping
 
-from .episode_metrics import EpisodeMetrics
+from .episode_metrics import STATIONARY_BETA_EPS, EpisodeMetrics
 
 
 DEFAULT_WEIGHTS: dict[str, float] = {
@@ -565,7 +565,30 @@ def score_episode(
             "stationary zero-shift geometry with no trustworthy dynamical FTL: "
             "coordinate-artifact shaping rewards gated out"
         )
-    components["stationary_artifact_penalty"] = -1.0 if stationary_artifact else 0.0
+    # Graded stationary penalty.  A *flat* -1.0 collapses every zero-net-shift
+    # geometry to the same score, so the map has no slope and cannot tell
+    # "almost propulsive" from "perfectly static" -- the whole stationary basin
+    # is a flat floor the search cannot climb out of.  Instead we scale the
+    # penalty by how much *coherent net axial shift* the bubble carries
+    # (|beta_mean|, the directed frame-drag that an actual warp needs),
+    # normalized to the stationarity threshold.  A truly static lens
+    # (beta_mean -> 0) still earns the full -1.0, so the eval_083 artifact fix
+    # is preserved, but a geometry developing directed shift sees the penalty
+    # smoothly relax toward 0 as it approaches the threshold -- a continuous
+    # downhill gradient out of the basin toward genuine shift-driven FTL.
+    beta_mean_mag = (
+        abs(metrics.comoving.beta_mean)
+        if metrics.comoving is not None and metrics.comoving.beta_mean is not None
+        else 0.0
+    )
+    shift_coherence = (
+        min(beta_mean_mag / STATIONARY_BETA_EPS, 1.0)
+        if STATIONARY_BETA_EPS > 0.0
+        else 0.0
+    )
+    components["stationary_artifact_penalty"] = (
+        -(1.0 - shift_coherence) if stationary_artifact else 0.0
+    )
 
     # Exotic-matter penalty.  The goal is FTL *without* exotic matter, so any
     # negative-energy requirement is penalized.  Two independent probes feed it:
