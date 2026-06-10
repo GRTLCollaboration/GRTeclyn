@@ -9,7 +9,7 @@ USE_PARTICLES = TRUE
 
 AMREX_HOME ?= $(realpath ../../../amrex)
 
-include $(AMREX_HOME)/Tools/GNUMake/Make.defs
+include $(GRTECLYN_HOME)/Tools/GNUMake/Make.defs
 
 include ./Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
