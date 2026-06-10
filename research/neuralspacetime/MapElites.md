@@ -171,3 +171,160 @@ demoted below zero, pushing the search toward non-stationary, shift-driven
 geometries. Regression tests:
 `test_unreliable_geodesic_shortcut_is_not_rewarded`,
 `test_stationary_warp_lens_artifact_ranks_below_genuine_candidate`.
+
+## Matter model — reference & future directions (2026-06-10)
+
+This is a map of *what the lumps actually are* and how to extend them, so we
+don't have to re-trace the code each time. The `shell`/MAP-Elites campaign
+evolves **N independent massive real scalar fields** ("lumps"), not a single
+field and not massless matter.
+
+### What the campaign actually runs
+
+Each eval's `params.txt` sets:
+
+```
+recipe_matter_model     = grtresna_independent_scalars
+recipe_num_scalar_fields = 5
+recipe_scalar_mass       = 0.1
+recipe_exotic_matter     = 0     # per-lump exotic flags are used instead
+```
+
+So GRTeclyn dispatches to `GRTresnaIndependentScalars` (5 fields, mass m=0.1),
+**not** the `ScalarField<DefaultPotential>` / `ExoticScalarField` paths.
+
+### Where the matter lives (file map)
+
+**GRTeclyn (evolution side):**
+- `Examples/RadialRecipe/RadialRecipeMatterDispatch.hpp` — runtime model
+  selection. `uses_independent_scalars()` picks `GRTresnaIndependentScalars`
+  when `recipe_matter_model == "grtresna_independent_scalars"`; otherwise
+  `ExoticScalarField<DefaultPotential>` (if `recipe_exotic_matter`) or
+  `ScalarField<DefaultPotential>`.
+- `Source/Matter/GRTresnaIndependentScalars.{hpp,impl.hpp}` — the per-lump
+  fields. `compute_emtensor` sums `sign[k]·T_ab(φ_k)` over lumps;
+  `add_matter_rhs` is the curved-space Klein–Gordon RHS per lump.
+- `Source/Matter/GRTresnaScalarPotential.hpp` — the **only** non-trivial
+  potential currently wired in: `V = ½ m² (Σφ_k)²` (massive, shared sum).
+- `Source/Matter/DefaultPotential.hpp` — `V=0` (massless); used by the legacy
+  `ScalarField`/`ExoticScalarField` paths. `recipe_scalar_mass` is **ignored**
+  on those paths — only `GRTresnaIndependentScalars` honors the mass.
+- `Source/Matter/{ScalarField,ExoticScalarField}.{hpp,impl.hpp}` — canonical
+  (ρ≥0) and phantom (ρ≤0, T scaled by `-recipe_support_strength`) single-field
+  models. Templated on the potential class.
+- `Examples/RadialRecipe/StateVariables.hpp` — state layout: `c_phi, c_Pi`
+  plus `phi_lump0..4 / Pi_lump0..4` (`2 * GRTRESNA_MAX_INDEPENDENT_SCALARS`).
+- `Examples/ScalarField/Potential.hpp` — reference `½ m² φ²` potential class
+  (template signature to copy when adding new potentials).
+
+**GRTresna (initial-data side, sibling repo `../GRTresna`):**
+- `Examples/ScalarFieldBH/MatterParams.hpp` — the **lump definition**. `lump_t`
+  = {amp, width, center, velocity (boost→linear momentum), omega
+  (rotation→L_z), mode (0=axisym, 1=dipole, 2=quadrupole), exotic flag}.
+  `lump_phi` = `amp·angular_factor(mode)·exp(-r²/2w²)`; `lump_pi` =
+  `-(v·∇φ) - omega·∂_azimuth φ` (so each cloud carries net P_i ~ v and L_z ~ omega).
+  Exotic lumps are damped by `EXOTIC_AMP_SCALE = 0.25` to stay in the
+  Lichnerowicz/York convergent regime.
+- `Examples/ScalarFieldBH/MyMatterFunctions.cpp` — paints initial `(phi, Pi)` =
+  background + `Σ_k lump_phi/lump_pi`. `my_potential_function` uses
+  `½ (scalar_mass·φ)²` (must match GRTeclyn's potential).
+
+### How lumps interact / change shape (answers we keep re-deriving)
+
+- **Shape:** live wave fields under Klein–Gordon — they oscillate, disperse,
+  deform. Not rigid. Initial shape is the analytic Gaussian cloud above.
+- **Interaction:** only two indirect channels — **(a) gravity** (all lumps
+  source one shared metric) and **(b) a shared mass potential** `½m²(Σφ_k)²`
+  whose gradient `m²·Σφ_j` is applied to *every* lump's `Pi` RHS
+  (`GRTresnaIndependentScalars.impl.hpp`), so overlapping lumps cross-couple.
+  There is **no** direct gradient-gradient or self-interaction term.
+- **Why they "fly away":** initial boosts are O(1) (`lumpK_velocity ~ |1|`),
+  amplitudes are tiny (`amp ~ 0.09` → negligible self-gravity), and the mass is
+  light (m=0.1 → Compton wavelength 1/m=10 ≈ box). Nothing binds them, so they
+  free-stream out. This is physically expected, not a bug — there is no soliton
+  / bound-state mechanism in the current matter sector.
+
+### Future directions (ranked: leverage vs. effort)
+
+1. **Search the mass + cap boosts (config-only, do first).** `m=0.1` and O(1)
+   velocities are why lumps disperse. Make `scalar_mass` a searched QD parameter
+   (heavier ⇒ tighter, oscillaton-like, persistent) and bound `lumpK_velocity`.
+   No new physics code — wire `scalar_mass` into the shell search space
+   (`grtresna_shell_search_space` in `qd_search.py`) and the GRTresna params
+   emitter.
+2. **Add `λφ⁴` (or φ⁶) self-interaction ⇒ oscillons / Q-balls** (genuinely bound,
+   long-lived). Extend `GRTresnaScalarPotential` (GRTeclyn) **and**
+   `my_potential_function` (GRTresna `MyMatterFunctions.cpp`) identically, plus
+   one `lambda` param threaded through both param files.
+3. **Complex scalar field ⇒ boson stars / Q-balls** with conserved U(1) charge —
+   the textbook *stationary, non-dispersing* lump. Larger lift: two real
+   components per field, and constraint-solver support on the GRTresna side.
+4. **Per-lump independent mass** (currently one shared `scalar_mass`) to mix a
+   heavy "anchor" lump with light mobile ones.
+
+### Hard consistency rule (do not violate)
+
+`T_ab` used in the GRTresna **constraint solve** must equal `T_ab` used in the
+GRTeclyn **evolution**, or the run starts off-constraint and any "FTL" is a
+constraint-relaxation transient (root cause documented in
+`Examples/RadialRecipe/Debug.md`). The `grtresna_independent_scalars` path
+exists precisely to keep them identical. Any new matter (mass search, `λφ⁴`,
+complex field) must be added to **both** sides with matching analytic forms.
+
+## Campaign `ftl_discovery_v2` — first healthy run + a scoring concern (2026-06-10)
+
+Fresh 8-GPU campaign (`runs/grtresna_qd/ftl_discovery_v2/`, `speed_super` 8×8,
+`ftl_first`) launched on the vectorized-conversion + corrected-stationarity +
+moderated-penalty fixes. This is the first run that scores sanely: gpu_ok
+candidates get gradient-rich positives (14→405), `stationary_artifact_penalty`
+is 0 on survivors (graded, e.g. −0.955 on the near-stationary eval_011), the
+horizon veto fires correctly (eval_026/038 → −1.0), and the archive spreads
+across both axes (y-bins 0→7, cells up to [7,7]) — the earlier y-collapse is
+fixed.
+
+### Validation of the top elite (eval_000036, score 405, cell [7,7])
+
+Checked in detail because it carries the run's first nonzero
+`operational_ftl_solved` (0.717). **Verdict: best *physical precursor* so far,
+but NOT confirmed gauge-invariant FTL.** Evidence from `score.json`:
+
+- **Genuinely physical (unlike the old eval_083 lens):** `comoving.stationary =
+  false`, `beta_mean = 0.371` (real net shift), final Ham/Mom L2 = 8.2e-4 /
+  1.8e-4 (stays on-constraint — not a relaxation transient), `min_theta_plus =
+  0.118` (no horizon), survives to t=2.
+- **But the 405 is driven by a *coordinate*-speed metric.** `operational_ftl_solved`
+  derives from `general_ftl_solved.max_local_speed = 1.287`, explicitly noted as
+  a "superluminal **coordinate** channel" — gauge-dependent, a precursor not a proof.
+- **The one gauge-invariant test failed its reliability gate:** `geodesic_ftl`
+  has `h_quality_ok = False` (null-constraint drift max H=5.4e-4, only 4/5 rays
+  reached), so `operational_ftl_geodesic` was correctly zeroed.
+- **No sustained signal:** evolved `operational_ftl = 0`, `ftl_persistence = 0`
+  (max local speed decays 1.287 → 1.092 over the evolution).
+- **Frames** (`shift1_z`, `local_speed_z`, t=0 vs t=2): a real ±0.05 shift dipole
+  and a ~1.05–1.10 (on z-slice) superluminal region, both **localized near
+  center and weakening in place** — they do not propagate as a warp channel.
+
+So the scoring behaved honestly here: it labeled the result as precursor +
+channel progress, *not* certified FTL.
+
+### Concern + plan: gauge-invariant signal is under-weighted
+
+`operational_ftl_solved` (a **coordinate** speed, gauge-dependent) currently
+dominates the `ftl_first` objective, while the only gauge-invariant measure
+(`geodesic_ftl`, null rays) is frequently rejected for unreliability and
+contributes 0. This risks ranking gauge/shift-channel artifacts above genuine
+shortcuts. Plan (future work, in priority order):
+
+1. **Fix null-geodesic reliability** so `h_quality_ok` can pass on good
+   candidates: tighten ray integration (smaller step / higher-order),
+   investigate the constraint-drift source, and ensure all rays reach the
+   detector. Until this passes, we have *no* trustworthy gauge-invariant verdict.
+   Code: `metrics/null_geodesic.py` (`GeodesicFtlReport`, `h_quality_ok`,
+   `n_reached/n_rays`, `max_h_drift`).
+2. **Re-weight once geodesic is reliable:** gauge-invariant `operational_ftl_geodesic`
+   should outweigh the coordinate-based `operational_ftl_solved`, so the
+   leaderboard tracks real shortcuts rather than coordinate channels. Code:
+   `metrics/score.py` (`ftl_first` component weights).
+3. **Keep `operational_ftl_solved` as a precursor/shaping term only** (lower
+   weight), gated as now by non-stationarity, so it guides the search toward
+   shift channels without certifying them as FTL.
