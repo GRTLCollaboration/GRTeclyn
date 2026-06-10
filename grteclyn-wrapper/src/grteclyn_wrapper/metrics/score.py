@@ -330,25 +330,41 @@ def score_episode(
 
     GEO_FTL_FLOOR = 1.0e-3
     GEO_FTL_TARGET = 5.0e-2
-    f_geo = (
-        metrics.geodesic_ftl.f_geo
-        if metrics.geodesic_ftl is not None
-        else 0.0
+    geo_report = metrics.geodesic_ftl
+    f_geo = geo_report.f_geo if geo_report is not None else 0.0
+    # A gauge-invariant shortcut is only trustworthy when the null-ray
+    # integration stayed on the constraint surface (``h_quality_ok``) AND the
+    # whole ray bundle reached the detector.  A high Hamiltonian-constraint
+    # drift or a partial bundle means ``f_geo`` is integration noise / a caustic
+    # rather than a certified shortcut, so it must never earn the dominant FTL
+    # reward (this is what let a stationary warp-lens artifact top the ranking).
+    geo_trustworthy = bool(
+        geo_report is not None
+        and geo_report.h_quality_ok
+        and geo_report.n_rays > 0
+        and geo_report.n_reached == geo_report.n_rays
     )
-    if math.isfinite(f_geo) and f_geo > GEO_FTL_FLOOR:
+    if geo_trustworthy and math.isfinite(f_geo) and f_geo > GEO_FTL_FLOOR:
         components["operational_ftl_geodesic"] = min(
             (f_geo - GEO_FTL_FLOOR) / (GEO_FTL_TARGET - GEO_FTL_FLOOR),
             1.0,
         )
     else:
         components["operational_ftl_geodesic"] = 0.0
-    if metrics.geodesic_ftl is not None:
-        if f_geo <= 0.0 and f_op_ev > OP_FTL_FLOOR:
+    if geo_report is not None:
+        if f_geo > GEO_FTL_FLOOR and not geo_trustworthy:
+            notes.append(
+                "geodesic shortcut rejected as unreliable "
+                f"(h_quality_ok={geo_report.h_quality_ok}, "
+                f"rays {geo_report.n_reached}/{geo_report.n_rays}, "
+                f"max H={geo_report.max_h_drift:.2e}, f_geo={f_geo:.3e})"
+            )
+        elif f_geo <= 0.0 and f_op_ev > OP_FTL_FLOOR:
             notes.append(
                 "coordinate FTL channel is a gauge artifact "
                 f"(F_op^ev={f_op_ev:.3e}, f_geo={f_geo:.3e})"
             )
-        elif f_geo > GEO_FTL_FLOOR:
+        elif geo_trustworthy and f_geo > GEO_FTL_FLOOR:
             notes.append(
                 f"gauge-invariant null-geodesic shortcut confirmed (f_geo={f_geo:.3e})"
             )
@@ -372,13 +388,9 @@ def score_episode(
             float(min(max(f_op_ev / f_op_t0, 0.0), 1.0)) if f_op_t0 > 1.0e-9 else 0.0
         )
     stationary_geometry = bool(metrics.comoving and metrics.comoving.stationary)
-    components["stationary_artifact_penalty"] = (
-        -1.0
-        if stationary_geometry
-        and f_op_ev > 0.0
-        and components["operational_ftl"] <= 0.0
-        else 0.0
-    )
+    # The stationary-artifact verdict (and the gating of frozen-coordinate
+    # shaping rewards) is deferred until ftl_precursor / channel_progress /
+    # shift_drive have been computed below; see the "Stationary-artifact gate".
     if metrics.general_ftl_evolved is not None:
         c_ev = metrics.general_ftl_evolved.max_local_speed
         if c_ev > 1.0 and components["operational_ftl"] > 0.0:
@@ -522,6 +534,38 @@ def score_episode(
             "FTL precursor active (cones climbing toward the c=1 threshold): "
             f"{components['ftl_precursor']:.3f}"
         )
+
+    # Stationary-artifact gate.  A geometry with no mean shift in the bubble
+    # (``comoving.stationary``) has no frame-dragging mechanism, so any
+    # superluminal coordinate speed is a static "warp-lens" / gauge artifact,
+    # not a propagating channel.  Unless such a geometry shows a *dynamical* FTL
+    # signal we trust -- an evolved coordinate shortcut, a sustained channel, or
+    # a reliability-gated gauge-invariant geodesic shortcut -- its FTL "signals"
+    # (t=0 solved Dijkstra, cone-tilt precursor, channel progress, shift drive)
+    # are frozen coordinate features rather than progress toward FTL.  Zeroing
+    # those shaping rewards (instead of relying on a beatable additive penalty)
+    # is what stops a static artifact from climbing the ranking; genuine
+    # shift-driven candidates have ``beta_mean != 0`` and are never flagged
+    # stationary, so their gradient is untouched.
+    trustworthy_dynamical_ftl = (
+        components["operational_ftl"] > 0.0
+        or components["operational_ftl_geodesic"] > 0.0
+        or components["ftl_persistence"] > 0.0
+    )
+    stationary_artifact = stationary_geometry and not trustworthy_dynamical_ftl
+    if stationary_artifact:
+        for key in (
+            "operational_ftl_solved",
+            "ftl_precursor",
+            "channel_progress",
+            "shift_drive",
+        ):
+            components[key] = 0.0
+        notes.append(
+            "stationary zero-shift geometry with no trustworthy dynamical FTL: "
+            "coordinate-artifact shaping rewards gated out"
+        )
+    components["stationary_artifact_penalty"] = -1.0 if stationary_artifact else 0.0
 
     # Exotic-matter penalty.  The goal is FTL *without* exotic matter, so any
     # negative-energy requirement is penalized.  Two independent probes feed it:

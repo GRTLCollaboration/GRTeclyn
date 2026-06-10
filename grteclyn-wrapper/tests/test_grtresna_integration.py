@@ -590,9 +590,15 @@ def test_weak_stationary_shortcut_is_not_scored_as_operational_ftl() -> None:
     score = score_episode(weak_lens, objective_mode="ftl_first")
 
     assert score.components["operational_ftl"] == 0.0
-    assert score.components["channel_progress"] > 0.0
+    # A stationary zero-shift geometry has no warp mechanism, so its
+    # superluminal speed is a static coordinate lens: the shaping rewards are
+    # gated out rather than merely penalized, so a static artifact cannot climb.
+    assert score.components["channel_progress"] == 0.0
+    assert score.components["ftl_precursor"] == 0.0
+    assert score.components["shift_drive"] == 0.0
+    assert score.components["operational_ftl_solved"] == 0.0
     assert score.components["stationary_artifact_penalty"] < 0.0
-    assert score.total < 1000.0
+    assert score.total < 0.0
 
 
 def test_strong_evolved_shortcut_gets_operational_ftl_reward() -> None:
@@ -711,6 +717,105 @@ def test_geodesic_zero_flags_gauge_artifact() -> None:
     score = score_episode(artifact, objective_mode="weighted")
     assert score.components["operational_ftl_geodesic"] == 0.0
     assert any("gauge artifact" in note for note in score.notes)
+
+
+def _unreliable_geodesic_report(f_geo: float) -> GeodesicFtlReport:
+    """A geodesic shortcut whose null-ray integration drifted off the
+    constraint surface (and only part of the bundle reached the detector)."""
+    return GeodesicFtlReport(
+        f_geo=f_geo,
+        t_min=15.0,
+        t_flat=15.75,
+        n_rays=5,
+        n_reached=4,
+        max_h_drift=3.9e-4,
+        h_quality_ok=False,
+    )
+
+
+def test_unreliable_geodesic_shortcut_is_not_rewarded() -> None:
+    """A high f_geo with h_quality_ok=False (or a partial ray bundle) is
+    integration noise, not a certified shortcut: it must not earn the dominant
+    geodesic reward.  Regression for eval_083 (970/1164 points from an
+    h_quality_ok=False, 4/5-ray geodesic measurement)."""
+    base = _metrics_with_general_ftl(
+        t_min=15.6,
+        t_flat=15.75,
+        max_local_speed=1.117,
+        superluminal_fraction=0.94,
+        max_shift=0.12,
+        f_op=0.0022,
+    )
+    unreliable = EpisodeMetrics(
+        collapse=base.collapse,
+        constraints=base.constraints,
+        stability=base.stability,
+        comoving=base.comoving,
+        ftl=base.ftl,
+        termination_reason=base.termination_reason,
+        curvature=base.curvature,
+        general_ftl_evolved=base.general_ftl_evolved,
+        geodesic_ftl=_unreliable_geodesic_report(0.033),
+    )
+    score = score_episode(unreliable, objective_mode="ftl_first")
+    assert score.components["operational_ftl_geodesic"] == 0.0
+    assert any("rejected as unreliable" in note for note in score.notes)
+
+
+def test_stationary_warp_lens_artifact_ranks_below_genuine_candidate() -> None:
+    """Full eval_083 regression: a stationary zero-shift geometry with a
+    saturated superluminal fraction and an *unreliable* geodesic shortcut must
+    score far below a genuine, non-stationary candidate with a trustworthy
+    gauge-invariant shortcut."""
+    artifact_base = _metrics_with_general_ftl(
+        t_min=15.6,
+        t_flat=15.75,
+        max_local_speed=1.117,
+        superluminal_fraction=1.0,
+        max_shift=0.12,
+        f_op=0.0022,
+        stationary=True,
+    )
+    artifact = EpisodeMetrics(
+        collapse=artifact_base.collapse,
+        constraints=artifact_base.constraints,
+        stability=artifact_base.stability,
+        comoving=artifact_base.comoving,
+        ftl=artifact_base.ftl,
+        termination_reason=artifact_base.termination_reason,
+        curvature=artifact_base.curvature,
+        general_ftl_evolved=artifact_base.general_ftl_evolved,
+        geodesic_ftl=_unreliable_geodesic_report(0.033),
+    )
+    artifact_score = score_episode(artifact, objective_mode="ftl_first")
+
+    genuine_base = _metrics_with_general_ftl(
+        t_min=14.8,
+        t_flat=15.75,
+        max_local_speed=1.25,
+        superluminal_fraction=0.2,
+        max_shift=0.12,
+        f_op=0.060,
+    )
+    genuine = EpisodeMetrics(
+        collapse=genuine_base.collapse,
+        constraints=genuine_base.constraints,
+        stability=genuine_base.stability,
+        comoving=genuine_base.comoving,
+        ftl=genuine_base.ftl,
+        termination_reason=genuine_base.termination_reason,
+        curvature=genuine_base.curvature,
+        general_ftl_evolved=genuine_base.general_ftl_evolved,
+        geodesic_ftl=_geodesic_report(0.05),
+    )
+    genuine_score = score_episode(genuine, objective_mode="ftl_first")
+
+    assert artifact_score.components["operational_ftl_geodesic"] == 0.0
+    assert artifact_score.components["channel_progress"] == 0.0
+    assert artifact_score.components["operational_ftl_solved"] == 0.0
+    assert artifact_score.components["stationary_artifact_penalty"] < 0.0
+    assert genuine_score.components["operational_ftl_geodesic"] > 0.0
+    assert genuine_score.total > artifact_score.total + 1000.0
 
 
 def test_bad_grtresna_convergence_is_rejected_before_evolution() -> None:

@@ -130,3 +130,44 @@ the x-axis spread, but exposed two issues that were fixed before relaunch:
   auto-scaling (`auto_zlim`) with widened presets as fallback, so the well is
   visible regardless of depth. The FTL-relevant `local_speed` / `rho_req` frames
   were already correct.
+
+### Scoring fix: stationary warp-lens artifacts (2026-06-10, after ~90 evals)
+
+Validating the leaderboard exposed a hard scoring bug: the run had converged
+into a degenerate basin. **All 15 retained elites were stationary, zero-shift
+geometries** — static "warp-lens" coordinate artifacts, not propagating warps.
+The top candidate (`eval_000083`, score 1164) was a worked example:
+
+- Geometry **stationary** (`comoving.stationary=True`, `beta_mean≈0`): no
+  frame-dragging mechanism, so its `superluminal_fraction=1.0` is a frozen
+  coordinate-speed lens (`local_speed` frames disperse in place, never propagate).
+- `operational_ftl=0`, `ftl_persistence=0`: zero evolved/sustained FTL.
+- Its 1164 was **83% (970 pts) from `operational_ftl_geodesic`** computed off a
+  geodesic report explicitly flagged `h_quality_ok=False` (null-constraint drift
+  `max H=3.9e-4`, only 4/5 rays reached) — i.e. integration noise trusted at full
+  weight. The remainder came from saturated `operational_ftl_solved` + cone-tilt
+  `ftl_precursor` + `channel_progress`, which out-ran the old additive
+  `stationary_artifact_penalty` (it only fired when `f_op_ev>0`, so it missed the
+  zero-shift artifacts entirely).
+
+Two fixes in `metrics/score.py`:
+
+1. **Reliability-gate `operational_ftl_geodesic`.** A gauge-invariant shortcut is
+   only certified when the null-ray integration stayed on the constraint surface
+   (`h_quality_ok`) **and** the full ray bundle reached the detector
+   (`n_reached == n_rays`). Otherwise `f_geo` is noise/caustic → reward 0 + a
+   `"geodesic shortcut rejected as unreliable"` note.
+2. **Stationary-artifact gate.** When a geometry is stationary (zero net shift)
+   **and** has no trustworthy *dynamical* FTL (no `operational_ftl`, no
+   persistence, no reliable geodesic), its FTL signals are frozen coordinate
+   features: the shaping rewards (`operational_ftl_solved`, `ftl_precursor`,
+   `channel_progress`, `shift_drive`) are **zeroed** (not merely penalized) so a
+   static artifact cannot climb. Genuine shift-driven candidates have
+   `beta_mean≠0`, are never flagged stationary, and keep their full gradient.
+
+Effect (re-scored on real episodes): `eval_000083` 1164 → **−247**;
+`eval_000065` 270 → −246; `eval_000094` 194 → −247. The whole stationary basin is
+demoted below zero, pushing the search toward non-stationary, shift-driven
+geometries. Regression tests:
+`test_unreliable_geodesic_shortcut_is_not_rewarded`,
+`test_stationary_warp_lens_artifact_ranks_below_genuine_candidate`.
