@@ -204,17 +204,18 @@ def test_speed_super_y_axis_tracks_superluminal_fraction() -> None:
 
     # Same cone-tilt (max_local_speed) but different superluminal_fraction must
     # land in different y-bins, so the new axis carries diversity signal even
-    # when the horizon-free axis would not.
+    # when the horizon-free axis would not.  The descriptor reads the *solved*
+    # report (general_ftl_solved), where the superluminal region survives.
     localized = {
-        "general_ftl_evolved": {
+        "general_ftl_solved": {
             "max_local_speed": 1.05,
-            "superluminal_fraction": 0.02,
+            "superluminal_fraction": 0.06,
         }
     }
     widespread = {
-        "general_ftl_evolved": {
+        "general_ftl_solved": {
             "max_local_speed": 1.05,
-            "superluminal_fraction": 0.40,
+            "superluminal_fraction": 0.30,
         }
     }
 
@@ -225,21 +226,34 @@ def test_speed_super_y_axis_tracks_superluminal_fraction() -> None:
     assert abs(d_loc["x"] - d_wide["x"]) < 1e-9
     assert d_loc["speed_tilt"] == d_loc["x"]
     # ...but y-axis separates localized from widespread superluminal regions.
+    # y is rescaled by the observed solved ceiling (~0.30): 0.06 -> 0.20, 0.30 -> 1.0,
+    # so the realistic 0-0.30 range fills the grid instead of clustering in bin 0.
     assert d_wide["y"] > d_loc["y"]
-    assert abs(d_loc["y"] - 0.02) < 1e-9
-    assert abs(d_wide["y"] - 0.40) < 1e-9
+    assert abs(d_loc["y"] - 0.20) < 1e-9
+    assert abs(d_wide["y"] - 1.0) < 1e-9
     assert _bin_index(d_loc["y"], 8) < _bin_index(d_wide["y"], 8)
+    # Raw (un-rescaled) fraction is preserved for diagnostics.
+    assert abs(d_loc["superluminal_fraction_raw"] - 0.06) < 1e-9
+
+    # The solved report is preferred over the (collapsed) evolved report.
+    mixed = {
+        "general_ftl_evolved": {"max_local_speed": 0.96, "superluminal_fraction": 0.0},
+        "general_ftl_solved": {"max_local_speed": 1.15, "superluminal_fraction": 0.30},
+    }
+    d_mixed = _descriptor_details(components, mixed, mode="speed_super")
+    assert abs(d_mixed["max_local_speed"] - 1.15) < 1e-9
+    assert abs(d_mixed["y"] - 1.0) < 1e-9
 
     # Recalibrated x-axis spreads realistic speeds across the grid instead of
     # saturating: 0.95 -> bin 0, 1.20 -> top bins.
     floor = _descriptor_details(
         components,
-        {"general_ftl_evolved": {"max_local_speed": 0.95, "superluminal_fraction": 0.0}},
+        {"general_ftl_solved": {"max_local_speed": 0.95, "superluminal_fraction": 0.0}},
         mode="speed_super",
     )
     target = _descriptor_details(
         components,
-        {"general_ftl_evolved": {"max_local_speed": 1.20, "superluminal_fraction": 1.0}},
+        {"general_ftl_solved": {"max_local_speed": 1.20, "superluminal_fraction": 0.30}},
         mode="speed_super",
     )
     assert floor["x"] == 0.0

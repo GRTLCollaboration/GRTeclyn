@@ -109,3 +109,24 @@ Success criteria: archive spans ≥3 y-bins and coverage climbs past ~0.20 withi
 the first ~100 evals; pre-GPU rejection rate drops from ~82% toward <50%; tier
 distribution reaches ≥ operational (not just nontrivial). Results recorded here
 as the archive fills.
+
+### Follow-up fixes (2026-06-10, after first 16 evals of `ftl_discovery_nav`)
+
+The first run confirmed feasibility improved (gpu-reach ~40% vs ~18% before) and
+the x-axis spread, but exposed two issues that were fixed before relaunch:
+
+- **`speed_super` y-axis collapsed again.** The descriptor read
+  `superluminal_fraction` from the *evolved* report, where the GRTresna-built
+  superluminal region has decayed to ~0 for almost every candidate (solved 0.065
+  → evolved 0.010), and used a raw [0, 1] scale on which even 0.065 stays in bin 0.
+  Fix: read the **solved** report (`_solved_ftl_report`, observed
+  superluminal_fraction 0–0.30, max_local_speed 0.95–1.32) for both axes, and
+  rescale y by the observed ceiling `_SPEED_SUPER_FRACTION_TARGET = 0.30` so the
+  realistic range fills the grid. Raw fraction kept as `superluminal_fraction_raw`.
+- **`chi` / `chi_minus_1` frames rendered blank.** The conformal well reaches
+  `min_chi ~0.4` against a ~1.0 far field, but the fixed color windows
+  (`chi` [0.98, 1.04], `chi-1` ±0.03) clamped the whole well to the colormap
+  floor. Fix (`consume_plotfiles.py`): both fields opt into per-frame percentile
+  auto-scaling (`auto_zlim`) with widened presets as fallback, so the well is
+  visible regardless of depth. The FTL-relevant `local_speed` / `rho_req` frames
+  were already correct.

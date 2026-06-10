@@ -72,6 +72,22 @@ def _best_ftl_report(metrics: Mapping[str, Any] | None) -> Mapping[str, Any] | N
     )
 
 
+def _solved_ftl_report(metrics: Mapping[str, Any] | None) -> Mapping[str, Any] | None:
+    """Report from the constructed (solved) initial data.
+
+    The superluminal region built by GRTresna largely decays under evolution, so
+    ``general_ftl_evolved`` reads ~0 for almost every candidate.  The solved data
+    retains the discriminating signal (observed superluminal_fraction 0 - 0.30 and
+    max_local_speed ~0.95 - 1.32), so behaviour descriptors read it instead.
+    """
+    metrics = metrics or {}
+    return (
+        metrics.get("general_ftl_solved")
+        or metrics.get("general_ftl_evolved")
+        or metrics.get("general_ftl")
+    )
+
+
 # speed_horizon descriptor axes.  ``x`` maps the fastest evolved coordinate light
 # speed across the c=1 threshold (cone-tilt strength); ``y`` maps the minimum
 # null expansion so a horizon-free slice (min_theta_plus > 0) lands above 0.5 and
@@ -81,15 +97,17 @@ _SPEED_HORIZON_C_FLOOR = 0.9
 _SPEED_HORIZON_C_TARGET = 1.3
 _SPEED_HORIZON_THETA_SCALE = 0.5
 
-# speed_super descriptor axes.  ``x`` reuses the cone-tilt strength but with a
-# tighter calibration matched to the realistic operational regime (observed
-# max_local_speed ~0.97-1.11), so the x-axis spreads across most bins instead
-# of saturating bin 4.  ``y`` is the superluminal_fraction (share of the slice
-# whose local light speed exceeds c=1): it varies naturally in [0, 1] and stays
-# discriminating regardless of the horizon diagnostic, separating a localized
-# cone-tilt from a widespread superluminal region.
+# speed_super descriptor axes, both read from the solved (constructed) initial
+# data where the signal lives (the evolved report collapses to ~0).  ``x`` is the
+# cone-tilt strength calibrated to the observed solved range (max_local_speed
+# ~0.95-1.32) so it spreads across the bins instead of saturating.  ``y`` is the
+# superluminal_fraction (share of the slice whose local light speed exceeds c=1),
+# rescaled to its observed solved ceiling (~0.30) so the realistic range fills the
+# grid instead of clustering in bin 0 on a raw [0, 1] scale.  Together they
+# separate a localized cone-tilt from a widespread superluminal region.
 _SPEED_SUPER_C_FLOOR = 0.95
 _SPEED_SUPER_C_TARGET = 1.20
+_SPEED_SUPER_FRACTION_TARGET = 0.30
 
 
 def _speed_tilt_axis(
@@ -113,13 +131,18 @@ def _speed_axis_from_report(report: Mapping[str, Any] | None) -> float:
     )
 
 
-def _superluminal_axis(report: Mapping[str, Any] | None) -> float:
+def _superluminal_axis(
+    report: Mapping[str, Any] | None,
+    *,
+    target: float = 1.0,
+) -> float:
     if not report:
         return 0.0
     frac = report.get("superluminal_fraction")
     if frac is None or not math.isfinite(float(frac)):
         return 0.0
-    return float(np.clip(float(frac), 0.0, 1.0))
+    span = target if target > 0.0 else 1.0
+    return float(np.clip(float(frac) / span, 0.0, 1.0))
 
 
 def _horizon_free_axis(metrics: Mapping[str, Any] | None) -> float:
@@ -157,17 +180,25 @@ def _descriptor_details(
         }
 
     if mode == "speed_super":
-        report = _best_ftl_report(metrics)
+        report = _solved_ftl_report(metrics)
         speed = _speed_tilt_axis(
             report, floor=_SPEED_SUPER_C_FLOOR, target=_SPEED_SUPER_C_TARGET
         )
-        super_frac = _superluminal_axis(report)
+        super_frac = _superluminal_axis(
+            report, target=_SPEED_SUPER_FRACTION_TARGET
+        )
+        raw_frac = (
+            float(report.get("superluminal_fraction"))
+            if report and report.get("superluminal_fraction") is not None
+            else float("nan")
+        )
         c = float(report.get("max_local_speed")) if report and report.get("max_local_speed") is not None else float("nan")
         return {
             "x": speed,
             "y": super_frac,
             "speed_tilt": speed,
             "superluminal_fraction": super_frac,
+            "superluminal_fraction_raw": raw_frac,
             "max_local_speed": c,
             "ftl_persistence": float(components.get("ftl_persistence", 0.0)),
             "operational_ftl": float(components.get("operational_ftl", 0.0)),
