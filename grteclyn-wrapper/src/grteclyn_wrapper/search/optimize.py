@@ -273,11 +273,15 @@ def grtresna_shell_search_space(profile: str = "compact") -> list[SearchDimensio
 
     # Scalar momentum source ~ amp^2 * velocity / width.  Diffuse amp~0.15
     # shells converged but shift~3e-2; amp~0.25 width~1.5 v~3 blew up GRTresna.
-    amp = (0.08, 0.28, 0.18)
+    # Bounds tightened to the basin where the elliptic solve actually converges
+    # (every prior success had amp<=0.145, thickness>0, |toroidal|<=~1.2,
+    # |omega|<=~0.5); the old wide extremes accounted for the bulk of the ~82%
+    # pre-GPU rejections.
+    amp = (0.08, 0.16, 0.13)
     width = (1.8, 4.0, 2.4)
     radius = (1.5, 6.0, 3.5)
-    thickness = (0.0, 2.5, 0.5)
-    toroidal_v = (-2.0, 2.0, 0.9)
+    thickness = (0.1, 2.5, 0.6)
+    toroidal_v = (-1.2, 1.2, 0.6)
     exotic_frac = (0.0, 1.0, 0.4)
 
     if profile == "compact":
@@ -303,7 +307,7 @@ def grtresna_shell_search_space(profile: str = "compact") -> list[SearchDimensio
         SearchDimension("grtresna_shell_toroidal_velocity", *toroidal_v),
         SearchDimension("grtresna_shell_poloidal_velocity", -1.5, 1.5, 0.0),
         SearchDimension("grtresna_shell_radial_velocity", -0.8, 0.8, 0.0),
-        SearchDimension("grtresna_shell_omega", -0.8, 0.8, 0.2),
+        SearchDimension("grtresna_shell_omega", -0.5, 0.5, 0.2),
         SearchDimension("grtresna_shell_dipole_amp", -0.6, 0.6, 0.0),
         SearchDimension("grtresna_shell_quadrupole_amp", -0.5, 0.5, 0.0),
         SearchDimension("grtresna_shell_exotic_fraction", *exotic_frac),

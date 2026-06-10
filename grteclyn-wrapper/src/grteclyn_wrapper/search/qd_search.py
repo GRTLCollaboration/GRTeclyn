@@ -81,15 +81,45 @@ _SPEED_HORIZON_C_FLOOR = 0.9
 _SPEED_HORIZON_C_TARGET = 1.3
 _SPEED_HORIZON_THETA_SCALE = 0.5
 
+# speed_super descriptor axes.  ``x`` reuses the cone-tilt strength but with a
+# tighter calibration matched to the realistic operational regime (observed
+# max_local_speed ~0.97-1.11), so the x-axis spreads across most bins instead
+# of saturating bin 4.  ``y`` is the superluminal_fraction (share of the slice
+# whose local light speed exceeds c=1): it varies naturally in [0, 1] and stays
+# discriminating regardless of the horizon diagnostic, separating a localized
+# cone-tilt from a widespread superluminal region.
+_SPEED_SUPER_C_FLOOR = 0.95
+_SPEED_SUPER_C_TARGET = 1.20
 
-def _speed_axis_from_report(report: Mapping[str, Any] | None) -> float:
+
+def _speed_tilt_axis(
+    report: Mapping[str, Any] | None,
+    *,
+    floor: float,
+    target: float,
+) -> float:
     if not report:
         return 0.0
     c = float(report.get("max_local_speed") or 0.0)
-    if not math.isfinite(c) or c <= _SPEED_HORIZON_C_FLOOR:
+    if not math.isfinite(c) or c <= floor:
         return 0.0
-    span = _SPEED_HORIZON_C_TARGET - _SPEED_HORIZON_C_FLOOR
-    return float(np.clip((c - _SPEED_HORIZON_C_FLOOR) / span, 0.0, 1.0))
+    span = target - floor
+    return float(np.clip((c - floor) / span, 0.0, 1.0))
+
+
+def _speed_axis_from_report(report: Mapping[str, Any] | None) -> float:
+    return _speed_tilt_axis(
+        report, floor=_SPEED_HORIZON_C_FLOOR, target=_SPEED_HORIZON_C_TARGET
+    )
+
+
+def _superluminal_axis(report: Mapping[str, Any] | None) -> float:
+    if not report:
+        return 0.0
+    frac = report.get("superluminal_fraction")
+    if frac is None or not math.isfinite(float(frac)):
+        return 0.0
+    return float(np.clip(float(frac), 0.0, 1.0))
 
 
 def _horizon_free_axis(metrics: Mapping[str, Any] | None) -> float:
@@ -122,6 +152,23 @@ def _descriptor_details(
             "horizon_free": horizon_free,
             "max_local_speed": c,
             "min_theta_plus": theta,
+            "ftl_persistence": float(components.get("ftl_persistence", 0.0)),
+            "operational_ftl": float(components.get("operational_ftl", 0.0)),
+        }
+
+    if mode == "speed_super":
+        report = _best_ftl_report(metrics)
+        speed = _speed_tilt_axis(
+            report, floor=_SPEED_SUPER_C_FLOOR, target=_SPEED_SUPER_C_TARGET
+        )
+        super_frac = _superluminal_axis(report)
+        c = float(report.get("max_local_speed")) if report and report.get("max_local_speed") is not None else float("nan")
+        return {
+            "x": speed,
+            "y": super_frac,
+            "speed_tilt": speed,
+            "superluminal_fraction": super_frac,
+            "max_local_speed": c,
             "ftl_persistence": float(components.get("ftl_persistence", 0.0)),
             "operational_ftl": float(components.get("operational_ftl", 0.0)),
         }
@@ -357,8 +404,65 @@ def _iterations_for_target_evals(
     return int(math.ceil((target_evals - init) / batch))
 
 
+# Fraction of each batch drawn by mutating an existing elite (vs. random
+# exploration).  Raised from the original 0.7 so the search exploits the
+# narrow feasible basin once it is seeded instead of repeatedly re-sampling
+# pathological corners.
+_ELITE_FRACTION = 0.85
+
+
+def _reflect(value: float, lower: float, upper: float) -> float:
+    """Fold ``value`` back into ``[lower, upper]`` by boundary reflection.
+
+    Unlike hard clipping (which piles probability mass exactly on the bounds,
+    where the GRTresna solve tends to diverge), reflection keeps the mutated
+    value in the interior, preserving a smooth proposal density.
+    """
+    span = upper - lower
+    if span <= 0.0:
+        return lower
+    t = (value - lower) % (2.0 * span)
+    if t < 0.0:
+        t += 2.0 * span
+    if t > span:
+        t = 2.0 * span - t
+    return lower + t
+
+
+def _feasible_bounds(
+    dims: Sequence[SearchDimension],
+    elites: Sequence[Elite],
+) -> list[tuple[float, float]]:
+    """Per-dimension (min, max) over the current elite params.
+
+    Falls back to the full search bound for any dimension with no spread, so a
+    single (or empty) elite set degrades gracefully to the full space.
+    """
+    bounds: list[tuple[float, float]] = []
+    for d in dims:
+        vals = [
+            float(e.params[d.param_key])
+            for e in elites
+            if d.param_key in e.params
+        ]
+        if len(vals) >= 2 and max(vals) > min(vals):
+            bounds.append((min(vals), max(vals)))
+        else:
+            bounds.append((d.lower, d.upper))
+    return bounds
+
+
 def _sample_random(dims: Sequence[SearchDimension], rng: np.random.Generator) -> list[float]:
     return [float(rng.uniform(d.lower, d.upper)) for d in dims]
+
+
+def _sample_feasible_box(
+    dims: Sequence[SearchDimension],
+    bounds: Sequence[tuple[float, float]],
+    rng: np.random.Generator,
+) -> list[float]:
+    """Uniform sample inside the bounding box of the feasible elites."""
+    return [float(rng.uniform(lo, hi)) for (lo, hi) in bounds]
 
 
 def _mutate_elite(
@@ -372,7 +476,7 @@ def _mutate_elite(
     for d in dims:
         base = float(elite.params.get(d.param_key, d.center))
         step = rng.normal(0.0, sigma * max(d.range, 1.0e-9))
-        x.append(float(min(d.upper, max(d.lower, base + step))))
+        x.append(_reflect(base + step, d.lower, d.upper))
     return x
 
 
@@ -584,8 +688,16 @@ def run_qd_search(
         cell = (_bin_index(d1, bins), _bin_index(d2, bins))
         params = {d.param_key: float(overrides[d.param_key]) for d in dims}
         assessment = evaluate_tiers(res.components, metrics=res.metrics, config=tier_config)
+
+        flags = trajectory_flags_from_evaluation(res)
+        status = infer_trajectory_status({**flags, "components": res.components})
+
+        # Only GPU-evolved candidates carry meaningful behavior descriptors;
+        # constraint-rejected / failed candidates all collapse onto the same
+        # degenerate cell and would pollute coverage, so they are logged to the
+        # trajectory but kept out of the archive grid.
         improved = None
-        if insert_archive:
+        if insert_archive and status == "gpu_ok":
             elite = Elite(
                 cell=cell,
                 score=res.score,
@@ -612,8 +724,8 @@ def run_qd_search(
             "components": res.components,
             "overrides": {d.param_key: overrides.get(d.param_key) for d in dims},
         }
-        record.update(trajectory_flags_from_evaluation(res))
-        record["status"] = infer_trajectory_status(record)
+        record.update(flags)
+        record["status"] = status
         return record
 
     def _evaluate_batch(vectors: list[list[float]]) -> list[tuple[int, list[float], Evaluation | None] | None]:
@@ -769,10 +881,15 @@ def run_qd_search(
     for it in range(1, iterations + 1):
         vectors: list[list[float]] = []
         elites = list(archive.cells.values())
+        feasible_bounds = _feasible_bounds(dims, elites) if elites else None
         for _ in range(batch):
-            if elites and rng.random() < 0.7:
+            if elites and rng.random() < _ELITE_FRACTION:
                 parent = elites[int(rng.integers(len(elites)))]
                 vectors.append(_mutate_elite(parent, dims, rng))
+            elif feasible_bounds is not None:
+                # Bias exploration toward the box that already produced feasible
+                # elites instead of the full (mostly pathological) search space.
+                vectors.append(_sample_feasible_box(dims, feasible_bounds, rng))
             else:
                 vectors.append(_sample_random(dims, rng))
         _ingest(_evaluate_batch(vectors))

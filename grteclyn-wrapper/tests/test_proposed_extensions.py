@@ -199,6 +199,53 @@ def test_channel_descriptors_separate_path_from_shift_blob() -> None:
     assert _descriptor_details(components, slow, mode="channel")["path_closeness"] == 0.0
 
 
+def test_speed_super_y_axis_tracks_superluminal_fraction() -> None:
+    components = {"operational_ftl": 0.0, "ftl_persistence": 0.0}
+
+    # Same cone-tilt (max_local_speed) but different superluminal_fraction must
+    # land in different y-bins, so the new axis carries diversity signal even
+    # when the horizon-free axis would not.
+    localized = {
+        "general_ftl_evolved": {
+            "max_local_speed": 1.05,
+            "superluminal_fraction": 0.02,
+        }
+    }
+    widespread = {
+        "general_ftl_evolved": {
+            "max_local_speed": 1.05,
+            "superluminal_fraction": 0.40,
+        }
+    }
+
+    d_loc = _descriptor_details(components, localized, mode="speed_super")
+    d_wide = _descriptor_details(components, widespread, mode="speed_super")
+
+    # x-axis (recalibrated cone-tilt) identical for equal speeds...
+    assert abs(d_loc["x"] - d_wide["x"]) < 1e-9
+    assert d_loc["speed_tilt"] == d_loc["x"]
+    # ...but y-axis separates localized from widespread superluminal regions.
+    assert d_wide["y"] > d_loc["y"]
+    assert abs(d_loc["y"] - 0.02) < 1e-9
+    assert abs(d_wide["y"] - 0.40) < 1e-9
+    assert _bin_index(d_loc["y"], 8) < _bin_index(d_wide["y"], 8)
+
+    # Recalibrated x-axis spreads realistic speeds across the grid instead of
+    # saturating: 0.95 -> bin 0, 1.20 -> top bins.
+    floor = _descriptor_details(
+        components,
+        {"general_ftl_evolved": {"max_local_speed": 0.95, "superluminal_fraction": 0.0}},
+        mode="speed_super",
+    )
+    target = _descriptor_details(
+        components,
+        {"general_ftl_evolved": {"max_local_speed": 1.20, "superluminal_fraction": 1.0}},
+        mode="speed_super",
+    )
+    assert floor["x"] == 0.0
+    assert target["x"] == 1.0
+
+
 def test_qd_search_flushes_initial_trajectory(tmp_path, monkeypatch) -> None:
     def fake_evaluate_overrides(overrides, *, out_dir, name, **_kwargs):
         idx = int(name.rsplit("_", 1)[1])

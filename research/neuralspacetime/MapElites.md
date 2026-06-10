@@ -26,7 +26,86 @@ therefore unreliable, so all of its runs were deleted.
 
 The `RadialRecipe` binary was rebuilt with the fix.
 
-### Next
+### Campaign (2026-06-10)
 
-A fresh QD FTL-discovery campaign starts from scratch (no resume, no seed
-trajectory) on the corrected binary. Results will be recorded here.
+Fresh MAP-Elites QD launched on the corrected binary:
+
+- **Name**: `ftl_discovery_postfix`
+- **Dir**: `runs/grtresna_qd/ftl_discovery/ftl_discovery_postfix/`
+- **Descriptor**: `speed_horizon` (8×8 bins)
+- **Target evals**: 400
+- **GPUs**: 0–7 (batch 8)
+- **Launch log**: `runs/qd_ftl_discovery_postfix.launch.log`
+
+No resume, no seed trajectory. Results will be recorded here as the archive fills.
+
+### Validation (in-flight, ~28/400 evals)
+
+The fix is confirmed working on the live campaign:
+
+- `theta_plus` stays **strictly positive** over the full evolution (t=0→2.0) in
+  every scored run (`min_theta_plus = +0.037` for eval_022, `+0.10` for eval_023),
+  so there are **no false trapped-surface detections**.
+- `horizon_penalty = -0.0` on all scored candidates (previously the bug forced
+  a spurious `-1.0` veto with `min_theta_plus < 0` at `r ~ |grid_center|`).
+- Barycenter diagnostics sit at `~(33, 28, 29) ≈ grid_center (32)`, confirming
+  the diagnostic is now centered correctly.
+
+Best elite so far: eval_022, score 598.5 (`operational_ftl_solved=1.0`,
+`max_local_speed ≈ 1.083`). Note: ~93% of candidates are rejected at the
+GRTresna constraint-solve stage (convergence too poor / MPI failures) before
+reaching the GPU evolution — a sampling/tuning issue, not a physics bug.
+
+## Navigation Overhaul (2026-06-10)
+
+The corrected-physics campaign above (`ftl_discovery_postfix`, now archived as
+`ftl_discovery_postfix_degenerate_navigation`) exposed two *navigation* defects
+(distinct from the earlier physics bug):
+
+1. **Behavior-space collapse.** After the `theta_plus` centering fix,
+   `min_theta_plus` is always a small positive (~0.036–0.10), so the
+   `speed_horizon` y-axis (`horizon_free = 0.5 + theta/...`) always landed in
+   bin 4. The archive degenerated to a single row (coverage ~0.078, 5/64 cells).
+2. **~82% pre-GPU rejection waste.** Most candidates never reached the GPU
+   because the GRTresna constraint solve stalled/oscillated, and the 30% blind
+   uniform sampling kept re-hitting pathological corners of the shell bounds.
+
+### Fixes applied
+
+- **New `speed_super` descriptor** (`qd_search.py`, registered in the CLI):
+  x = recalibrated cone-tilt (`max_local_speed`, floor 0.95 / target 1.20 so
+  realistic speeds spread across the bins instead of saturating), y =
+  `superluminal_fraction` (share of the slice with local speed > c). The y-axis
+  now carries real signal — localized vs widespread superluminal region —
+  regardless of the horizon diagnostic. `speed_horizon` is kept for back-compat.
+- **Infeasible candidates no longer occupy archive cells.** `_record_result`
+  inserts into the behavior grid only when `status == gpu_ok`; rejected/failed
+  solves are still logged to `trajectory.jsonl` but stop polluting coverage.
+- **Shell bounds tightened to the feasible basin** (`grtresna_shell_search_space`,
+  compact): `amp 0.08–0.28 → 0.08–0.16`, `thickness 0.0–2.5 → 0.1–2.5`,
+  `toroidal_velocity ±2.0 → ±1.2`, `omega ±0.8 → ±0.5`.
+- **Boundary reflection instead of hard clipping** in `_mutate_elite`, so
+  mutation no longer piles probability mass on the (pathological) bounds.
+- **Smarter exploration:** elite-mutation fraction raised 0.70 → 0.85, and the
+  remaining random draws are taken inside the bounding box of feasible elites
+  (`_sample_feasible_box`) rather than the full space.
+- **Harder GRTresna solve:** `--grtresna-iterations 30 → 50`,
+  `--grtresna-nl-stall-tolerance 0.02 → 0.005` (script defaults) so oscillating
+  near-misses get more iterations to settle below the 5% Ham/Mom gate.
+- The graded feasibility penalty for rejected solves (`convergence_rejection_fitness`)
+  already exists; it is not surfaced into QD sampling because the loop now
+  mutates only archive elites and samples the feasible box, so no extra
+  gradient code was added.
+
+### Campaign (2026-06-10, overhaul)
+
+- **Name**: `ftl_discovery_nav`
+- **Dir**: `runs/grtresna_qd/ftl_discovery/ftl_discovery_nav/`
+- **Descriptor**: `speed_super` (8×8 bins)
+- **Target evals**: 400, GPUs 0–7 (batch 8)
+- **Launch log**: `runs/qd_ftl_discovery_nav.launch.log`
+
+Success criteria: archive spans ≥3 y-bins and coverage climbs past ~0.20 within
+the first ~100 evals; pre-GPU rejection rate drops from ~82% toward <50%; tier
+distribution reaches ≥ operational (not just nontrivial). Results recorded here
+as the archive fills.

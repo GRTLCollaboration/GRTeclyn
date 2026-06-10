@@ -26,10 +26,14 @@ RUNS_DIR="${RUNS_DIR:-${GRTECLYN_ROOT}/runs/grtresna_qd}"
 LUMPS="${LUMPS:-5}"
 SHELL_PROFILE="${SHELL_PROFILE:-compact}"
 RANKS="${RANKS:-8}"
-ITERATIONS="${ITERATIONS:-30}"
+# Raised from 30: oscillating near-misses (Ham~7%/Mom~15%) need more iterations
+# to settle below the 5% gate instead of being cut off early.
+ITERATIONS="${ITERATIONS:-50}"
 # GRTresna early-exit: stop once Ham/Mom are good (%%) or improvement stalls.
+# Stall tolerance tightened from 0.02 so near-converging solves are not
+# abandoned prematurely on a small residual plateau.
 GRTRESNA_NL_EXIT_TOLERANCE="${GRTRESNA_NL_EXIT_TOLERANCE:-1.0}"
-GRTRESNA_NL_STALL_TOLERANCE="${GRTRESNA_NL_STALL_TOLERANCE:-0.02}"
+GRTRESNA_NL_STALL_TOLERANCE="${GRTRESNA_NL_STALL_TOLERANCE:-0.005}"
 # Parallel Chombo→gridinit conversion (0 = auto, min(32, cpu_count)).
 GRTRESNA_GRIDINIT_WORKERS="${GRTRESNA_GRIDINIT_WORKERS:-0}"
 GRTRESNA_MAX_LEVEL="${GRTRESNA_MAX_LEVEL:-3}"
@@ -51,8 +55,10 @@ QD_TARGET_EVALS="${QD_TARGET_EVALS:-}"
 QD_RESUME="${QD_RESUME:-0}"
 QD_NAME="${QD_NAME:-}"
 # MAP-Elites behaviour grid: channel (path x mechanism, needs shift>0),
-# speed_horizon (cone-tilt x horizon-free, the fast-but-not-trapped niche), legacy.
-DESCRIPTOR_MODE="${DESCRIPTOR_MODE:-channel}"
+# speed_horizon (cone-tilt x horizon-free, the fast-but-not-trapped niche),
+# speed_super (recalibrated cone-tilt x superluminal_fraction, stays
+# discriminating in the nontrivial regime), legacy.
+DESCRIPTOR_MODE="${DESCRIPTOR_MODE:-speed_super}"
 # Optional: warm-start the initial population from prior eval dirs (survivors).
 SEED_EVAL_DIRS="${SEED_EVAL_DIRS:-}"
 # Keep disk bounded: retain only the top-N scored eval_* directories plus the
