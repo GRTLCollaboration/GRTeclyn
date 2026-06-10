@@ -1,0 +1,9 @@
+GRTECLYN_HOME ?= $(realpath ../..)
+AMREX_HOME ?= $(realpath ../../../amrex)
+
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
+
+ifeq ($(USE_TWOPUNCTURES),TRUE)
+  $(info Loading $(GRTECLYN_HOME)/Tools/GNUMake/packages/Make.twopunctures...)
+  include        $(GRTECLYN_HOME)/Tools/GNUMake/packages/Make.twopunctures
+endif

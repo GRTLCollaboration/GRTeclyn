@@ -1,0 +1,19 @@
+CPPFLAGS += -DUSE_TWOPUNCTURES
+
+ifdef GRTECLYN_HOME
+  TWOPUNCTURES_HOME ?= $(realpath $(GRTECLYN_HOME)/../TwoPunctures)
+endif
+
+LIBRARIES += -lgsl -lgslcblas
+
+ifdef TWOPUNCTURES_HOME
+  TWOPUNCTURES_SOURCE = $(TWOPUNCTURES_HOME)/Source
+else
+  $(error TWOPUNCTURES_HOME is not set. Please set it to the location of the
+    TwoPunctures code.)
+endif
+
+include $(TWOPUNCTURES_SOURCE)/Make.package
+
+VPATH_LOCATIONS += $(TWOPUNCTURES_SOURCE)
+INCLUDE_LOCATIONS += $(TWOPUNCTURES_SOURCE)
