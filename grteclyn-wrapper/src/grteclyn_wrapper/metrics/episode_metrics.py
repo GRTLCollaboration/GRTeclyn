@@ -410,6 +410,59 @@ def _mean_beta_in_bubble(
     return float(beta_x[bubble_mask].mean())
 
 
+def _peak_shift_in_bubble_from_gridinit(
+    episode_dir: Path,
+    *,
+    ftl_L: float | None = None,
+) -> float | None:
+    """Peak shift magnitude ``|beta|`` of the seeded gridinit, in the central bubble.
+
+    GRTresna shell candidates carry no analytic ``recipe_beta_*`` profile, so the
+    recipe read (:func:`_mean_beta_in_bubble`) is identically zero and would flag
+    every candidate stationary.  The real frame-drag the candidate carries lives
+    in the ``shift{1,2,3}`` channels painted into ``initial_data.gridinit`` (peak
+    ``|beta| == |shift_seed|`` by construction).  We measure the *magnitude* of
+    that drive -- the strength of the shift mechanism -- rather than its net mean
+    (~0 for the internal-circulation seed), so a strongly-sheared geometry is not
+    mislabeled as a static coordinate lens.
+    """
+    gridinit_path = episode_dir / "initial_data.gridinit"
+    if not gridinit_path.exists():
+        return None
+    try:
+        from ..grtresna.io import read_gridinit
+
+        grid = read_gridinit(gridinit_path)
+    except Exception:
+        return None
+
+    try:
+        i1 = grid.comp_names.index("shift1")
+        i2 = grid.comp_names.index("shift2")
+        i3 = grid.comp_names.index("shift3")
+    except ValueError:
+        return None
+
+    data = grid.data
+    beta_mag = np.sqrt(
+        data[..., i1] ** 2 + data[..., i2] ** 2 + data[..., i3] ** 2
+    )
+
+    if ftl_L is not None and ftl_L > 0.0:
+        nz, ny, nx, _ = data.shape
+        dx_x, dx_y, dx_z = (float(v) for v in grid.dx_xyz)
+        ox, oy, oz = (float(v) for v in grid.origin)
+        xs = ox + (np.arange(nx) + 0.5) * dx_x - (ox + 0.5 * nx * dx_x)
+        ys = oy + (np.arange(ny) + 0.5) * dx_y - (oy + 0.5 * ny * dx_y)
+        zs = oz + (np.arange(nz) + 0.5) * dx_z - (oz + 0.5 * nz * dx_z)
+        zz, yy, xx = np.meshgrid(zs, ys, xs, indexing="ij")
+        bubble = (xx * xx + yy * yy + zz * zz) <= ftl_L * ftl_L
+        if bubble.any():
+            beta_mag = beta_mag[bubble]
+
+    return float(beta_mag.max()) if beta_mag.size else 0.0
+
+
 def read_comoving_metrics(
     episode_dir: Path,
     overrides: dict[str, object] | None,
@@ -421,6 +474,13 @@ def read_comoving_metrics(
         return None
 
     beta_mean = _mean_beta_in_bubble(overrides, ftl_L=ftl_L)
+    # GRTresna candidates set no recipe_beta_* profile, so the recipe read above
+    # is ~0; fall back to the *real* seeded shift magnitude in the gridinit so
+    # the stationarity verdict reflects the candidate's actual frame-drag.
+    if beta_mean is None or abs(beta_mean) < 1.0e-8:
+        peak_shift = _peak_shift_in_bubble_from_gridinit(episode_dir, ftl_L=ftl_L)
+        if peak_shift is not None:
+            beta_mean = peak_shift
     if beta_mean is not None and abs(beta_mean) < STATIONARY_BETA_EPS:
         return ComovingMetrics(
             beta_mean=beta_mean,

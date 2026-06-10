@@ -317,7 +317,7 @@ def _run_optimize_command(args: argparse.Namespace, base_overrides: dict[str, An
             # focus on moving/rotating MATTER: no black holes by default
             bh1_bare_mass=0.0,
             bh1_spin=(0.0, 0.0, 0.0),
-            cleanup=True,
+            cleanup=not getattr(args, "grtresna_keep_source", False),
             **_grtresna_speed_kwargs(args),
         )
         if grtresna_domain is not None:
@@ -522,7 +522,7 @@ def _run_qd_command(args: argparse.Namespace, base_overrides: dict[str, Any]) ->
             bh2_bare_mass=0.0,
             dphi=0.0,
             dpi=0.0,
-            cleanup=True,
+            cleanup=not getattr(args, "grtresna_keep_source", False),
             **_grtresna_speed_kwargs(args),
         )
         grtresna_config = grtresna_domain.apply_to_solver(grtresna_config)
@@ -935,6 +935,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional absolute cap for the maximal-slicing psi Jacobian; exotic candidates set a safe default.",
     )
     opt.add_argument(
+        "--grtresna-keep-source", action="store_true", default=False,
+        help="Keep the GRTresna Chombo HDF5 + workdir per eval (disables cleanup). "
+             "Use for conversion validation/debugging; consumes much more disk.",
+    )
+    opt.add_argument(
         "--grtresna-max-ham-pct", type=float, default=5.0,
         help="Reject GRTresna solves above this Hamiltonian residual (%%).",
     )
@@ -1068,6 +1073,11 @@ def build_parser() -> argparse.ArgumentParser:
     qd.add_argument("--grtresna-psi-relaxation", type=float, default=1.0)
     qd.add_argument("--grtresna-psi-floor", type=float, default=-1.0)
     qd.add_argument("--grtresna-jacobian-cap", type=float, default=-1.0)
+    qd.add_argument(
+        "--grtresna-keep-source", action="store_true", default=False,
+        help="Keep the GRTresna Chombo HDF5 + workdir per eval (disables cleanup). "
+             "Use for conversion validation/debugging; consumes much more disk.",
+    )
     qd.add_argument(
         "--grtresna-max-ham-pct", type=float, default=5.0,
         help="Reject GRTresna solves above this Hamiltonian residual (%%).",

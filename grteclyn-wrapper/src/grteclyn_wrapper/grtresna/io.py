@@ -123,6 +123,31 @@ def _is_aligned_1to1(dx_lev: float, dx_target: NDArray) -> bool:
     )
 
 
+def _axis_source_map(
+    lo: int,
+    sz: int,
+    axis: int,
+    dx_lev: float,
+    dx_target: NDArray,
+    n_target: int,
+) -> NDArray:
+    """Map every target cell index on one axis to the local source-cell index
+    that the piecewise-constant paint assigns it (``-1`` where untouched).
+
+    The 3-D scatter is separable: a target voxel is painted by source cell
+    ``(kk, jj, ii)`` iff its three axis indices each land in the corresponding
+    1-D source span, and the coarse-to-fine loop lets the highest-index source
+    win each contested cell.  Building the per-axis winner map in O(sz) and
+    taking the tensor product reproduces the old per-cell loop exactly, without
+    its O(sz^3) Python cost.
+    """
+    src_of_target = np.full(int(n_target), -1, dtype=np.int64)
+    for local in range(int(sz)):
+        span = _target_span_slice(int(lo + local), axis, dx_lev, dx_target, n_target)
+        src_of_target[span] = local
+    return src_of_target
+
+
 def _paint_box(
     data: NDArray,
     interior: NDArray,
@@ -142,13 +167,26 @@ def _paint_box(
         data[tk, tj, ti, :] = np.moveaxis(interior, 0, -1)
         return
 
-    for kk in range(int(sz[2])):
-        tk = _target_span_slice(int(lo[2] + kk), 2, dx_lev, dx_target, nz)
-        for jj in range(int(sz[1])):
-            tj = _target_span_slice(int(lo[1] + jj), 1, dx_lev, dx_target, ny)
-            for ii in range(int(sz[0])):
-                ti = _target_span_slice(int(lo[0] + ii), 0, dx_lev, dx_target, nx)
-                data[tk, tj, ti, :] = interior[:, kk, jj, ii]
+    # Non-aligned (finer/coarser) level: resolve the source->target mapping once
+    # per axis, then gather in a single vectorized assignment.  Equivalent to the
+    # old triple Python loop but ~3 orders of magnitude faster on refined boxes.
+    map_i = _axis_source_map(int(lo[0]), int(sz[0]), 0, dx_lev, dx_target, nx)
+    map_j = _axis_source_map(int(lo[1]), int(sz[1]), 1, dx_lev, dx_target, ny)
+    map_k = _axis_source_map(int(lo[2]), int(sz[2]), 2, dx_lev, dx_target, nz)
+
+    tk = np.nonzero(map_k >= 0)[0]
+    tj = np.nonzero(map_j >= 0)[0]
+    ti = np.nonzero(map_i >= 0)[0]
+    if tk.size == 0 or tj.size == 0 or ti.size == 0:
+        return
+
+    gathered = interior[
+        :,
+        map_k[tk][:, None, None],
+        map_j[tj][None, :, None],
+        map_i[ti][None, None, :],
+    ]
+    data[np.ix_(tk, tj, ti)] = np.moveaxis(gathered, 0, -1)
 
 
 def _extract_level_boxes(

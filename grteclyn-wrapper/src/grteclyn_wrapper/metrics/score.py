@@ -727,7 +727,16 @@ def score_episode(
                 + 1.0 * components.get("energy_condition", 0.0)
             )
             + 1.0 * components.get("exotic_penalty", 0.0)
-            + 250.0 * components.get("stationary_artifact_penalty", 0.0)
+            # Moderate stationary penalty: the FTL shaping rewards are already
+            # zeroed for a stationary artifact (see the stationary-artifact gate)
+            # and the geodesic shortcut is reliability-gated, so a static lens
+            # can no longer masquerade as FTL.  The penalty therefore only needs
+            # to keep a shift-free geometry ranked below a genuine shift-driven
+            # one -- a catastrophic weight (it used to be 250) instead floored the
+            # entire population negative and erased the QD gradient.  At this
+            # weight a healthy static structure still scores mildly positive
+            # while any real shift (graded by |beta|) lifts it further.
+            + 8.0 * components.get("stationary_artifact_penalty", 0.0)
             + 500.0 * horizon
         )
         if trapped_surface:

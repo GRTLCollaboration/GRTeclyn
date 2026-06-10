@@ -86,6 +86,13 @@ POSTLOAD_MAX_HAM_L2="${POSTLOAD_MAX_HAM_L2:-1e-2}"
 POSTLOAD_MAX_MOM_L2="${POSTLOAD_MAX_MOM_L2:-1e-2}"
 export POSTLOAD_GATE
 
+# Keep the GRTresna Chombo HDF5 + workdir per eval (conversion validation/debug).
+GRTRESNA_KEEP_SOURCE="${GRTRESNA_KEEP_SOURCE:-0}"
+KEEP_SOURCE_ARGS=()
+if [[ "${GRTRESNA_KEEP_SOURCE}" == "1" ]]; then
+  KEEP_SOURCE_ARGS+=(--grtresna-keep-source)
+fi
+
 CONSUMER_RADII="${CONSUMER_RADII:-4 8}"
 # Retain the last few plotfiles so evolved/geodesic FTL and effective energy
 # conditions can be scored (>=3 required); the rest are still consumed+deleted.
@@ -188,4 +195,5 @@ exec ${PYTHON_BIN} -m grteclyn_wrapper \
   --solved-ftl-rejection-speed-target "${SOLVED_FTL_REJECTION_SPEED_TARGET}" \
   --grtresna-postload-gate \
   --postload-max-ham-l2 "${POSTLOAD_MAX_HAM_L2}" \
-  --postload-max-mom-l2 "${POSTLOAD_MAX_MOM_L2}"
+  --postload-max-mom-l2 "${POSTLOAD_MAX_MOM_L2}" \
+  "${KEEP_SOURCE_ARGS[@]}"
