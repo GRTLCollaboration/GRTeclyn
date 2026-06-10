@@ -18,7 +18,7 @@ from .runner import run_episode
 from ..initial_data.constrained_recipe import constrained_overrides
 from ..initial_data.preflight import preflight_check
 from ..metrics.episode_metrics import dataclass_to_dict, read_episode_metrics
-from ..metrics.score import score_episode
+from ..metrics.score import domain_half_width_from_overrides, score_episode
 
 
 @dataclass
@@ -207,6 +207,7 @@ def evaluate_overrides(
         target_stop_time=target_stop_time,
         weights=score_weights,
         objective_mode=objective_mode,
+        domain_half_width=domain_half_width_from_overrides(gte_overrides),
     )
 
     write_json(episode.score_path, {

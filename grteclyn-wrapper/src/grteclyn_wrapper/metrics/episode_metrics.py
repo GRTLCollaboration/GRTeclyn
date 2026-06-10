@@ -35,6 +35,7 @@ class CollapseMetrics:
     min_theta_plus: float | None
     scalar_phi_range: float | None
     scalar_pi_range: float | None
+    r_at_min_theta_plus: float | None = None
     barycenter_x: float | None = None
     barycenter_y: float | None = None
     barycenter_z: float | None = None
@@ -239,7 +240,15 @@ def read_collapse_metrics(path: Path) -> CollapseMetrics | None:
     min_chi = min(row[2] for row in rows)
     max_abs_k = max(row[3] for row in rows)
     max_horizon_radius = max((row[7] for row in rows if len(row) >= 8), default=None)
-    min_theta_plus = min((row[8] for row in rows if len(row) >= 10), default=None)
+    theta_rows = [row for row in rows if len(row) >= 10]
+    min_theta_plus = min((row[8] for row in theta_rows), default=None)
+    # Radius (about grid center) at which the minimum expansion occurs.  Used to
+    # detect a miscentered horizon finder: a genuine trapped surface is interior
+    # (small r), whereas a corner-origin/boundary artifact sits at r ~ domain scale.
+    r_at_min_theta_plus = None
+    if theta_rows:
+        row_at_min = min(theta_rows, key=lambda row: row[8])
+        r_at_min_theta_plus = row_at_min[9]
 
     phi_min = min((row[10] for row in rows if len(row) >= 14), default=None)
     phi_max = max((row[11] for row in rows if len(row) >= 14), default=None)
@@ -257,6 +266,7 @@ def read_collapse_metrics(path: Path) -> CollapseMetrics | None:
         max_abs_k=max_abs_k,
         max_horizon_radius=max_horizon_radius,
         min_theta_plus=min_theta_plus,
+        r_at_min_theta_plus=r_at_min_theta_plus,
         scalar_phi_range=(phi_max - phi_min) if phi_min is not None and phi_max is not None else None,
         scalar_pi_range=(pi_max - pi_min) if pi_min is not None and pi_max is not None else None,
         barycenter_x=bary_x,

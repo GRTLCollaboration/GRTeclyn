@@ -100,12 +100,37 @@ def _bounded_reward(value: float, scale: float) -> float:
     return 1.0 / (1.0 + value / scale)
 
 
+def domain_half_width_from_overrides(
+    overrides: Mapping[str, object] | None,
+) -> float | None:
+    """Half-width of the cubic domain (``L_full / 2``) for the horizon-finder
+    sanity guard.  The domain is ``[0, L_full]`` with the geometry centered at
+    ``L_full / 2``, so a genuine interior trapped surface must satisfy
+    ``r << L_full / 2``."""
+    if not overrides:
+        return None
+    try:
+        l_full = float(overrides.get("L_full"))  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+    return 0.5 * l_full if l_full > 0.0 else None
+
+
+# A trapped surface is interior, so the minimum-expansion radius must sit well
+# inside the domain.  If it lands beyond this fraction of the domain half-width
+# the apparent-horizon proxy is miscentered (corner origin) or reading boundary
+# noise, and its trapped verdict is rejected rather than silently vetoing the
+# candidate.
+HORIZON_OFFCENTER_FRACTION: float = 0.5
+
+
 def score_episode(
     metrics: EpisodeMetrics,
     *,
     target_stop_time: float | None = None,
     weights: Mapping[str, float] | None = None,
     objective_mode: str = "weighted",
+    domain_half_width: float | None = None,
 ) -> Score:
     w = dict(DEFAULT_WEIGHTS)
     if weights:
@@ -172,7 +197,25 @@ def score_episode(
         )
 
         components["lapse_health"] = min(max(lapse / 1.0e-3, 0.0), 1.0)
-        components["horizon_penalty"] = -min(horizon, 1.0)
+
+        r_at_min_theta = metrics.collapse.r_at_min_theta_plus
+        horizon_offcenter = (
+            horizon > 0.0
+            and domain_half_width is not None
+            and domain_half_width > 0.0
+            and r_at_min_theta is not None
+            and r_at_min_theta > HORIZON_OFFCENTER_FRACTION * domain_half_width
+        )
+        if horizon_offcenter:
+            components["horizon_penalty"] = 0.0
+            notes.append(
+                "horizon proxy located at r="
+                f"{r_at_min_theta:.1f} > {HORIZON_OFFCENTER_FRACTION:g}*half-width "
+                f"({domain_half_width:.1f}); rejected as miscentered/boundary "
+                "artifact (no interior trapped surface), horizon penalty suppressed"
+            )
+        else:
+            components["horizon_penalty"] = -min(horizon, 1.0)
         components["nontrivial_geometry"] = min(
             math.log1p(k_activity + scalar_activity), 1.0
         )

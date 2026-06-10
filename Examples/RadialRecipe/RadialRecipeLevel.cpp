@@ -656,6 +656,16 @@ void RadialRecipeLevel::specificPostTimeStep()
         const auto prob_lo = fine_geom.ProbLoArray();
         const auto dx_arr = fine_geom.CellSizeArray();
 
+        // The apparent-horizon / expansion proxy must be measured about the
+        // physics center (where the initial data is centered), not the
+        // coordinate origin at the domain corner.  Using the corner makes
+        // r ~ |grid_center| at the actual center, which collapses the
+        // 2*sqrt(chi)/r regularizing term and produces spurious theta_plus<0
+        // (false trapped surfaces) offset to r ~ |grid_center|.
+        const amrex::Real cx = simParams().recipe_params.grid_center[0];
+        const amrex::Real cy = simParams().recipe_params.grid_center[1];
+        const amrex::Real cz = simParams().recipe_params.grid_center[2];
+
         for (amrex::MFIter mfi(state_fine, amrex::TilingIfNotGPU());
              mfi.isValid(); ++mfi)
         {
@@ -669,9 +679,9 @@ void RadialRecipeLevel::specificPostTimeStep()
                     const amrex::Real chi   = arr(i, j, k, c_chi);
                     const amrex::Real K     = arr(i, j, k, c_K);
 
-                    const amrex::Real x = prob_lo[0] + (amrex::Real(i) + 0.5) * dx_arr[0];
-                    const amrex::Real y = prob_lo[1] + (amrex::Real(j) + 0.5) * dx_arr[1];
-                    const amrex::Real z = prob_lo[2] + (amrex::Real(k) + 0.5) * dx_arr[2];
+                    const amrex::Real x = prob_lo[0] + (amrex::Real(i) + 0.5) * dx_arr[0] - cx;
+                    const amrex::Real y = prob_lo[1] + (amrex::Real(j) + 0.5) * dx_arr[1] - cy;
+                    const amrex::Real z = prob_lo[2] + (amrex::Real(k) + 0.5) * dx_arr[2] - cz;
                     const amrex::Real r2 = x*x + y*y + z*z;
                     const amrex::Real r = std::sqrt(r2);
 
@@ -809,11 +819,11 @@ void RadialRecipeLevel::specificPostTimeStep()
                     const amrex::Real K   = arr(i, j, k, c_K);
 
                     const amrex::Real x =
-                        prob_lo[0] + (amrex::Real(i) + 0.5) * dx_arr[0];
+                        prob_lo[0] + (amrex::Real(i) + 0.5) * dx_arr[0] - cx;
                     const amrex::Real y =
-                        prob_lo[1] + (amrex::Real(j) + 0.5) * dx_arr[1];
+                        prob_lo[1] + (amrex::Real(j) + 0.5) * dx_arr[1] - cy;
                     const amrex::Real z =
-                        prob_lo[2] + (amrex::Real(k) + 0.5) * dx_arr[2];
+                        prob_lo[2] + (amrex::Real(k) + 0.5) * dx_arr[2] - cz;
                     const amrex::Real r2 = x * x + y * y + z * z;
                     const amrex::Real r  = std::sqrt(r2);
 
