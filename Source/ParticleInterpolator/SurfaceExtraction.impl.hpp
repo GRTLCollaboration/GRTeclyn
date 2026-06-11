@@ -76,11 +76,13 @@ SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
 }
 
 //! add a single variable or derivative of variable
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 template <class SurfaceGeometry, int num_components>
 void SurfaceExtraction<SurfaceGeometry, num_components>::add_var(
     int a_var, const VariableType a_var_type, const Derivative &a_deriv,
     const amrex::Vector<BCParity> &a_parities,
     const std::string &a_derived_name)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     AMREX_ASSERT(!m_done_extraction);
 

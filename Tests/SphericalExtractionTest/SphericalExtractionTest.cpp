@@ -51,6 +51,10 @@ void run_spherical_extraction_test()
     // NOLINTNEXTLINE(bugprone-casting-through-void) // Open MPI triggers this
     amrex::Initialize(new_argc, new_argv);
     {
+        amrex::AllPrint() << "rank " << amrex::ParallelDescriptor::MyProc()
+                          << " GPU device " << amrex::Gpu::Device::deviceId()
+                          << "\n";
+
         // Load the parameter file and construct SimulationParameters
         GRParmParse pp;
         SimulationParameters sim_params(pp);
@@ -205,5 +209,6 @@ void run_spherical_extraction_test()
             }
         }
     }
+    amrex::Print() << "Before Finalize\n";
     amrex::Finalize();
 }

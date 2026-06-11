@@ -198,6 +198,7 @@ class SimulationParametersBase : public AMReXParameters
                         (formulation == CCZ4RHS<>::USE_CCZ4) ||
                             (formulation == CCZ4RHS<>::USE_BSSN),
                         "must be 0 or 1");
+        // NOLINTBEGIN(bugprone-branch-clone)
         if (formulation == CCZ4RHS<>::USE_CCZ4)
         {
             warn_parameter(
@@ -209,6 +210,7 @@ class SimulationParametersBase : public AMReXParameters
                            "should be greater than -1.0 to damp constraints "
                            "(see arXiv:1106.2254)");
         }
+        // NOLINTEND(bugprone-branch-clone)
         else if (formulation == CCZ4RHS<>::USE_BSSN)
         {
             // maybe we should just set these to zero and print a warning
@@ -269,6 +271,7 @@ class SimulationParametersBase : public AMReXParameters
             {
                 std::string center_name =
                     "extraction_center[" + std::to_string(idir) + "]";
+                // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
                 double center_in_dir = extraction_params.center[idir];
                 check_parameter(
                     center_name, center_in_dir,
@@ -282,6 +285,7 @@ class SimulationParametersBase : public AMReXParameters
                 {
                     std::string radius_name =
                         "extraction_radii[" + std::to_string(iradius) + "]";
+                    // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
                     double radius =
                         extraction_params.extraction_radii()[iradius];
                     if (idir == 0)
@@ -333,10 +337,10 @@ class SimulationParametersBase : public AMReXParameters
     // Note the gauge parameters are specific to MovingPunctureGauge
     // If you are using a different gauge, you need to load your parameters
     // in your own SimulationParameters class.
-    CCZ4_params_t<> ccz4_params;
+    CCZ4_params_t<> ccz4_params{};
 
     bool activate_extraction{};
-    spherical_extraction_params_t extraction_params;
+    spherical_extraction_params_t extraction_params{};
 
     std::string data_path;
 };
