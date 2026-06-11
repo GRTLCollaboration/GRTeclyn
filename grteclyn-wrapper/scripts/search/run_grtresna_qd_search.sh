@@ -68,8 +68,16 @@ BINS="${BINS:-8}"
 GPU_IDS="${GPU_IDS:-0 1 2 3}"
 BATCH_SIZE="${BATCH_SIZE:-$(wc -w <<< "${GPU_IDS}")}"
 SEED="${SEED:-7}"
-STOP_TIME="${STOP_TIME:-2.0}"
-PLOT_INTERVAL="${PLOT_INTERVAL:-10}"
+# Long enough for structural dissipation to show: at t=2 a dissipating
+# configuration is indistinguishable from a persistent one (both retain ~90% of
+# peak energy density), so the persistence-gated survival metric cannot bite.
+# By t=8 a genuine survivor has plateaued (~0.7) while dissipators keep falling
+# (<0.55), which is the smallest window that cleanly separates them (~4x the
+# t=2 GPU cost).
+STOP_TIME="${STOP_TIME:-8.0}"
+# Scaled with STOP_TIME (4x) so the number of consumed plotfiles -- and hence
+# the FTL-probe/plotting cost per eval -- stays roughly constant.
+PLOT_INTERVAL="${PLOT_INTERVAL:-40}"
 
 SOLVED_FTL_F_OP_FLOOR="${SOLVED_FTL_F_OP_FLOOR:-1.0e-4}"
 SOLVED_FTL_NEAR_LUMINAL_SPEED_FLOOR="${SOLVED_FTL_NEAR_LUMINAL_SPEED_FLOOR:-0.95}"

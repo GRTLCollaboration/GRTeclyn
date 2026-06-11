@@ -19,8 +19,8 @@ Measurement and scoring for GRTeclyn simulation episodes. Only code that feeds `
 
 | Group | Module | Source | Score components |
 |-------|--------|--------|------------------|
-| collapse | `diagnostics/collapse.py` | `collapse_diagnostics.dat` | survival, lapse_health, horizon_penalty |
-| constraints | `diagnostics/constraints.py` | `constraint_norms.dat` | constraint_health, initial_constraint_quality |
+| collapse | `diagnostics/collapse.py` | `collapse_diagnostics.dat` | numerical_survival (completion gate), lapse_health, horizon_penalty |
+| constraints | `diagnostics/constraints.py` | `constraint_norms.dat` | constraint_health, initial_constraint_quality, structural_persistence → survival |
 | stability | `diagnostics/stability.py` | collapse + `areal_radius.dat` | stability, instability_penalty |
 | growth | `diagnostics/growth.py` | derived time series | constraint_growth |
 | comoving | `diagnostics/comoving.py` | shell profiles + shift | comoving_stability |
