@@ -89,6 +89,7 @@ void KleinGordonLevel::initData()
 
     // NB: the analytic solutions are defined in InitialConditions.cpp
     // The functions below are defined in DerivedVariables.cpp
+    // NOLINTBEGIN(bugprone-branch-clone)
     if (model == "Wave")
     {
         calc_analytic_mf_3d<Wave>(state_new, dcomp, geom, current_time);
@@ -101,6 +102,7 @@ void KleinGordonLevel::initData()
     {
         calc_analytic_mf_3d<SineGordon>(state_new, dcomp, geom, current_time);
     }
+    // NOLINTEND(bugprone-branch-clone)
 }
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
