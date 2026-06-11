@@ -61,64 +61,11 @@ iteratively hardened so the leaderboard cannot be gamed by coordinate artifacts
 The closed loop: search proposes matter → physics builds and evolves a real
 spacetime → metrics discover FTL signatures → archive feeds the next proposal.
 
-```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'darkMode':false,'background':'#ffffff','mainBkg':'#ffffff','clusterBkg':'#ffffff','clusterBorder':'#333333','lineColor':'#333333','arrowheadColor':'#333333','primaryColor':'#ffffff','primaryBorderColor':'#333333','secondaryColor':'#ffffff','secondaryBorderColor':'#333333','tertiaryColor':'#ffffff','tertiaryBorderColor':'#333333','primaryTextColor':'#000000','secondaryTextColor':'#000000','tertiaryTextColor':'#000000','edgeLabelBackground':'#ffffff','edgeLabelTextColor':'#000000','titleColor':'#000000'}}}%%
-flowchart TB
-    subgraph SEARCH["Quality-Diversity loop"]
-        direction TB
-        ARCHIVE["MAP-Elites archive<br/>8×8 cells · best score per bin"]
-        PROPOSE["Proposer<br/>mutate elite · sample feasible box"]
-        ARCHIVE --> PROPOSE
-    end
-
-    subgraph PHYSICS["Matter-first physics"]
-        direction LR
-        GRTRESNA["GRTresna<br/>paint lumps · York solve<br/>CPU · MPI"]
-        GRTECLYN["GRTeclyn<br/>BSSN/CCZ4 + matter<br/>GPU evolution"]
-        GRTRESNA -->|"on-constraint<br/>(χ, β, φ, Π)"| GRTECLYN
-    end
-
-    subgraph DISCOVERY["Metric discovery"]
-        direction TB
-        PLOTS["Plotfiles + constraint logs"]
-        PROBES["Probes<br/>FTL · persistence · coherence · geodesic"]
-        FITNESS["score.py<br/>ftl_first scalar fitness"]
-        PLOTS --> PROBES --> FITNESS
-    end
-
-    LOG["trajectory.jsonl<br/>all evals logged"]
-
-    PROPOSE -->|"18-D shell params<br/>params.txt"| GRTRESNA
-    GRTRESNA -.->|"rejected solve<br/>Ham/Mom > gate"| LOG
-    GRTECLYN -->|"every PLOT_INTERVAL"| PLOTS
-    FITNESS -->|"descriptor → bin"| ARCHIVE
-    FITNESS -->|"score · status"| LOG
-    PROPOSE -.-> ARCHIVE
-```
+![MAP-Elites end-to-end overview](mapelites-end-to-end.svg)
 
 ### Diagram — matter-first vs metric-first
 
-```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'darkMode':false,'background':'#ffffff','mainBkg':'#ffffff','clusterBkg':'#ffffff','clusterBorder':'#333333','lineColor':'#333333','arrowheadColor':'#333333','primaryColor':'#ffffff','primaryBorderColor':'#333333','secondaryColor':'#ffffff','secondaryBorderColor':'#333333','tertiaryColor':'#ffffff','tertiaryBorderColor':'#333333','primaryTextColor':'#000000','secondaryTextColor':'#000000','tertiaryTextColor':'#000000','edgeLabelBackground':'#ffffff','edgeLabelTextColor':'#000000','titleColor':'#000000'}}}%%
-flowchart LR
-    subgraph CLASSIC["Metric-first (classic warp literature)"]
-        direction TB
-        C1["1. Choose target metric<br/>Alcubierre · Natário · …"]
-        C2["2. Compute T_μν = G_μν / 8π<br/>always exotic · often singular"]
-        C3["3. Ask whether any real matter<br/>can source this T_μν"]
-        C4["FTL baked into coordinates<br/>no guaranteed evolution"]
-        C1 --> C2 --> C3 --> C4
-    end
-
-    subgraph OURS["Matter-first (this pipeline)"]
-        direction TB
-        M1["1. Propose matter lumps<br/>φ_k · Π_k · boosts · mass"]
-        M2["2. Solve Einstein constraints<br/>geometry the matter actually sources"]
-        M3["3. Evolve spacetime forward<br/>t = 0 → STOP_TIME"]
-        M4["4. Measure FTL in the evolved field<br/>coordinate · sustained · geodesic"]
-        M1 --> M2 --> M3 --> M4
-    end
-```
+![Matter-first vs metric-first diagram](mapelites-matter-first.svg)
 
 ---
 
