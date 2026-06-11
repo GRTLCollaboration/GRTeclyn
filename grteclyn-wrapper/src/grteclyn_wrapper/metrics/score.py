@@ -474,6 +474,23 @@ def score_episode(
             notes.append(
                 f"gauge-invariant null-geodesic shortcut confirmed (f_geo={f_geo:.3e})"
             )
+    # An evolved coordinate light-speed shortcut that the *trustworthy*
+    # gauge-invariant geodesic probe contradicts (reliable ray bundle, yet
+    # f_geo <= floor) is a coordinate/gauge artifact, not operational FTL.  The
+    # gauge-invariant probe is the arbiter, so the coordinate signal must not
+    # claim the primary operational-FTL reward -- otherwise a cone-tilt artifact
+    # banks ~400 points and ranks beside a genuine gauge-invariant shortcut.
+    if (
+        geo_trustworthy
+        and (not math.isfinite(f_geo) or f_geo <= GEO_FTL_FLOOR)
+        and components["operational_ftl"] > 0.0
+    ):
+        notes.append(
+            "operational_ftl zeroed: trustworthy geodesic probe found no "
+            f"gauge-invariant shortcut (f_geo={f_geo:.3e}); coordinate channel "
+            "is a gauge artifact"
+        )
+        components["operational_ftl"] = 0.0
     # Sustained evolved FTL.  Preferred signal: the worst-case operational
     # shortcut across the last few retained plotfiles (needs consumer_keep_last
     # >= 2), normalized like operational_ftl.  This rewards a channel that holds
@@ -855,12 +872,22 @@ def score_episode(
         # strong shaping signal.  Survival already folds in density retention
         # *and* morphological coherence (see structural_persistence), so a
         # fragmenting end-state cannot bank the larger survival weight.
+        # SHAPING-vs-VALIDATED balance.  The honest geodesic recalibration
+        # (GEO_FTL_TARGET=2e-1) deliberately makes a realistic few-percent
+        # gauge-invariant shortcut score modestly (~160 pts for 3%).  The
+        # coordinate-cone shaping rewards (channel_progress + operational_ftl_solved
+        # + precursor + shift) must therefore stay *below* that, or a t=0
+        # coordinate precursor that yields no gauge-invariant shortcut outranks a
+        # validated one (observed in v9: coord-only candidates took #2/#3 over a
+        # genuine 3.3% shortcut).  operational_ftl_solved is a *t=0* constraint-
+        # solved coordinate signal -- pure shaping -- so it is the most strongly
+        # capped; channel_progress is trimmed to keep total shaping subordinate.
         total = (
             1000.0 * components.get("operational_ftl_geodesic", 0.0)
             + 400.0 * components.get("operational_ftl", 0.0)
             + 300.0 * components.get("ftl_persistence", 0.0)
-            + 150.0 * components.get("channel_progress", 0.0)
-            + 180.0 * components.get("operational_ftl_solved", 0.0)
+            + 100.0 * components.get("channel_progress", 0.0)
+            + 50.0 * components.get("operational_ftl_solved", 0.0)
             + 30.0 * components.get("ftl_precursor", 0.0)
             + 20.0 * components.get("shift_drive", 0.0)
             + 50.0 * components.get("ftl_shortcut", 0.0)

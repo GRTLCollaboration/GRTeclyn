@@ -143,7 +143,10 @@ Fitness is the `ftl_first` objective in `metrics/score.py`. Headline structure:
   detector). Otherwise it scores 0 — integration noise is never trusted.
 - **Dynamical, sustained signal next.** Evolved `operational_ftl` + `ftl_persistence`
   outweigh the one-shot coordinate-speed `operational_ftl_solved`, which is
-  treated as a *precursor/shaping* term (localization-gated).
+  treated as a *precursor/shaping* term (localization-gated). `operational_ftl`
+  is itself **zeroed when a trustworthy geodesic probe finds no shortcut** — the
+  gauge-invariant arbiter wins, so a coordinate cone-tilt artifact cannot bank
+  the evolved-FTL reward (see the [`v9` review](#ftl_discovery_v9-review--shaping-rebalance--hq-promotion-2026-06-11)).
 - **Persistence-honest health block.** `survival = numerical_survival ×
   structural_persistence`, where `structural_persistence = density_retention ×
   morphological_coherence`. A configuration that dissipates or fragments can no
@@ -153,7 +156,9 @@ Fitness is the `ftl_first` objective in `metrics/score.py`. Headline structure:
   zeroed so the leaderboard tracks genuine, evolving, bound geometries.
 
 Weight hierarchy (approximate): `operational_ftl_geodesic` ×1000 ≫
-`operational_ftl` ×400 ≫ `ftl_persistence` ×300 ≫ `operational_ftl_solved` ×180 ≫
+`operational_ftl` ×400 (geodesic-gated) ≫ `ftl_persistence` ×300 ≫
+`channel_progress` ×100 > `operational_ftl_solved` ×50 (coordinate shaping, kept
+below a realistic geodesic shortcut so it cannot out-vote a validated one) ≫
 health block ×(survival 70 + stability 10 + …).
 
 The geodesic component is a linear ramp `(f_geo − 1e-3)/(2e-1 − 1e-3)` clamped to
@@ -201,6 +206,7 @@ happened. Quick index (most consequential first):
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
+| [`v9` review + shaping rebalance → HQ promotion](#ftl_discovery_v9-review--shaping-rebalance--hq-promotion-2026-06-11) | 06-11 | Geodesic gate fires for all evals (5 real shortcuts found); coordinate precursor out-voted validated ones → rebalanced; top 3 promoted HQ |
 | [Geodesic-reward recalibration → `v9`](#geodesic-reward-recalibration--ftl_discovery_v9-2026-06-11) | 06-11 | `v8` eval 11 scored 1066 off a real but *modest* 3.3% shortcut; rescaled so the scalar reflects magnitude |
 | [Null-geodesic reliability fix → `v8`](#null-geodesic-reliability-fix-2026-06-11-post-v7) | 06-11 | Forward-launch rays + relative-drift gate; gauge-invariant term finally fires |
 | [`ftl_discovery_v7` review](#campaign-ftl_discovery_v7--finished-run--critical-leaderboard-review-2026-06-11) | 06-11 | Persistence/coherence honest; geodesic still blind (the bottleneck) |
@@ -803,3 +809,90 @@ Relaunched on the recalibrated scoring (same search space / descriptor / 8 GPUs,
 `STOP_TIME=8`, `PLOT_INTERVAL=80`). Success criterion: the leaderboard now ranks by
 shortcut *magnitude* — watch whether the search pushes `f_geo` upward (toward the new
 `2e-1` target) rather than parking on the first modest near-flat shortcut.
+
+## `ftl_discovery_v9` review + shaping rebalance → HQ promotion (2026-06-11)
+
+`v9` finished (54/88 evals `gpu_ok`). The headline is **the measurement metrics now
+work**, but a *scoring-balance* regression introduced by the geodesic recalibration
+let coordinate artifacts out-rank validated shortcuts. Fixed, then the genuine top 3
+were promoted to HQ.
+
+### What works (validated in production)
+
+- **The null-geodesic reliability gate fires for every eval.** `h_quality_ok=True`,
+  **5/5 rays reach** the detector on all 54 successes — the [`v7` blindness](#null-geodesic-reliability-fix-2026-06-11-post-v7)
+  is gone, confirmed at scale (not just on replayed elites).
+- **Honest magnitude scaling holds.** `f_geo = 0.033 → 0.16`, `0.026 → 0.12`,
+  `0.012 → 0.055` — linear, faithful, no saturation.
+- **Five genuine, reliability-certified gauge-invariant shortcuts** were discovered:
+  eval 11 (`f_geo=3.3%`), 40 (2.6%), 80 (2.3%), 25 (1.7%), 57 (1.2%). The
+  persistence/coherence and gate-notes are all accurate.
+
+### The bug — coordinate precursor out-voted validated FTL
+
+The [`v9` recalibration](#geodesic-reward-recalibration--ftl_discovery_v9-2026-06-11)
+deliberately shrank the genuine-FTL reward (a real 3% shortcut → ~160 pts) **but the
+coordinate-shaping weights were never trimmed to match**. Net result: the *t=0
+coordinate precursor* `operational_ftl_solved` (×180, a "shaping gradient" by design)
+out-scored validated shortcuts. The strongest real shortcut ranked **#8**:
+
+| eval | old score | gauge-invariant geodesic | driver |
+|------|-----------|--------------------------|--------|
+| 40 | 326 | **2.6% (real)** | geodesic + healthy structure |
+| 72 | 315 | none (`f_geo=0`) | t=0 coordinate precursor |
+| 74 | 312 | none (`f_geo=0`) | t=0 coordinate precursor |
+| 13 | 296 | none (flagged *gauge artifact*) | evolved coordinate channel |
+| … | | | |
+| 80 | 222 | **2.3% (real)** | geodesic |
+| 11 | 203 | **3.3% (strongest!)** | geodesic |
+
+Separately, eval 13 was *flagged* `coordinate FTL channel is a gauge artifact
+(f_geo=0)` yet still banked `operational_ftl` points — the diagnostic was right but
+the score ignored it.
+
+### Fix (`metrics/score.py`, `ftl_first`)
+
+- `channel_progress` **×150 → ×100**, `operational_ftl_solved` **×180 → ×50** —
+  coordinate-cone shaping is now clearly subordinate to a realistic gauge-invariant
+  shortcut (~160 pts), so a t=0 precursor can no longer out-vote a validated one.
+- `operational_ftl` is **zeroed when a *trustworthy* geodesic probe finds no shortcut**
+  (`geo_trustworthy and f_geo ≤ GEO_FTL_FLOOR`). The gauge-invariant probe is the
+  arbiter; a contradicted coordinate channel is the artifact the note already names.
+
+### Effect (re-scored offline; simulator matches the live scorer to 0.000)
+
+The leaderboard inverts to the physically correct order — **the top 3 are all genuine
+gauge-invariant shortcuts**:
+
+| rank | eval | new score | geodesic |
+|------|------|-----------|----------|
+| 1 | 40 | 266 | **2.6%** |
+| 2 | 11 | 200 | **3.3%** |
+| 3 | 80 | 185 | **2.3%** |
+| 4–7 | 74 / 72 / 15 / 13 | 174–178 | coordinate-only |
+
+Tests: **64/64 pass**. `test_strong_evolved_shortcut_gets_operational_ftl_reward`
+threshold `300 → 250` (coordinate-only is *intentionally* worth less now);
+`test_geodesic_zero_flags_gauge_artifact` strengthened to assert `operational_ftl == 0`
+(locks in the eval-13 demotion).
+
+> The descriptors (BD axes: `speed_tilt`, `superluminal_fraction`) are unchanged, so
+> the fix only affects which candidate wins per archive cell and the search gradient —
+> meaning a future re-run steers toward genuine shortcuts instead of coordinate tilt.
+
+### HQ promotion of the genuine top 3
+
+With the corrected ranking, the three real shortcuts (eval 40, 11, 80) were promoted
+via fresh GRTresna solve + framed GPU evolution at HQ resolution:
+
+```bash
+QD_RUN=runs/grtresna_qd/ftl_discovery_v9 NAME_PREFIX=ftl_discovery_v9 \
+  CANDIDATES="40 0 11 1 80 2" \
+  bash scripts/search/run_promote_qd_batch.sh
+# L=128 N=256 max_level=3 t=30, Ham/Mom ≤ 10%, frames on the fly
+```
+
+Outputs in `runs/grtresna_promote/l128n256t30_ftl_discovery_v9_qd_eval0000{40,11,80}/`.
+Success criterion: at HQ resolution and longer evolution (t=30), the gauge-invariant
+`f_geo` survives and ideally *grows* — confirming the 2–3% shortcuts are physical, not
+discretization-limited.

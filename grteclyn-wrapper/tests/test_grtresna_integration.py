@@ -649,8 +649,10 @@ def test_strong_evolved_shortcut_gets_operational_ftl_reward() -> None:
     # deliberately demoted: the dominant FTL budget now sits on
     # operational_ftl_geodesic, which is unset here.  A strong coordinate
     # shortcut still earns a large positive score, just below the old
-    # coordinate-only weighting.
-    assert score.total > 300.0
+    # coordinate-only weighting (the channel/solved shaping weights were trimmed
+    # so a t=0/coordinate signal cannot outrank a validated gauge-invariant
+    # shortcut -- see the shaping-vs-validated balance in score.py).
+    assert score.total > 250.0
 
 
 def test_ftl_first_penalizes_trapped_surface_over_local_precursor() -> None:
@@ -747,6 +749,11 @@ def test_geodesic_zero_flags_gauge_artifact() -> None:
     score = score_episode(artifact, objective_mode="weighted")
     assert score.components["operational_ftl_geodesic"] == 0.0
     assert any("gauge artifact" in note for note in score.notes)
+    # A *trustworthy* geodesic probe that finds no shortcut is the arbiter: the
+    # evolved coordinate light-speed channel is a gauge artifact and must not
+    # bank the primary operational-FTL reward (regression for v9 eval 13, which
+    # was flagged a gauge artifact yet still scored operational_ftl points).
+    assert score.components["operational_ftl"] == 0.0
 
 
 def _unreliable_geodesic_report(f_geo: float) -> GeodesicFtlReport:
