@@ -66,6 +66,7 @@ The closed loop: search proposes matter → physics builds and evolves a real
 spacetime → metrics discover FTL signatures → archive feeds the next proposal.
 
 ```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryTextColor':'#000','secondaryTextColor':'#000','tertiaryTextColor':'#000','lineColor':'#000','actorTextColor':'#000','signalTextColor':'#000','noteTextColor':'#000','labelTextColor':'#000'}}}%%
 flowchart TB
     subgraph SEARCH["Quality-Diversity loop"]
         direction TB
@@ -98,10 +99,10 @@ flowchart TB
     FITNESS -->|"score · status"| LOG
     PROPOSE -.-> ARCHIVE
 
-    classDef search fill:#e8f4fc,stroke:#2980b9,stroke-width:2px
-    classDef physics fill:#eafaf1,stroke:#27ae60,stroke-width:2px
-    classDef metrics fill:#fef9e7,stroke:#d68910,stroke-width:2px
-    classDef store fill:#f4ecf7,stroke:#8e44ad,stroke-width:2px
+    classDef search fill:#e8f4fc,stroke:#2980b9,stroke-width:2px,color:#000
+    classDef physics fill:#eafaf1,stroke:#27ae60,stroke-width:2px,color:#000
+    classDef metrics fill:#fef9e7,stroke:#d68910,stroke-width:2px,color:#000
+    classDef store fill:#f4ecf7,stroke:#8e44ad,stroke-width:2px,color:#000
 
     class ARCHIVE,PROPOSE search
     class GRTRESNA,GRTECLYN physics
@@ -112,6 +113,7 @@ flowchart TB
 ### Diagram — matter-first vs metric-first
 
 ```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryTextColor':'#000','secondaryTextColor':'#000','tertiaryTextColor':'#000','lineColor':'#000','actorTextColor':'#000','signalTextColor':'#000','noteTextColor':'#000','labelTextColor':'#000'}}}%%
 flowchart LR
     subgraph CLASSIC["Metric-first (classic warp literature)"]
         direction TB
@@ -131,8 +133,8 @@ flowchart LR
         M1 --> M2 --> M3 --> M4
     end
 
-    classDef classic fill:#fdedec,stroke:#c0392b,stroke-width:2px
-    classDef ours fill:#eafaf1,stroke:#1e8449,stroke-width:2px
+    classDef classic fill:#fdedec,stroke:#c0392b,stroke-width:2px,color:#000
+    classDef ours fill:#eafaf1,stroke:#1e8449,stroke-width:2px,color:#000
     class C1,C2,C3,C4 classic
     class M1,M2,M3,M4 ours
 ```
@@ -142,6 +144,7 @@ flowchart LR
 What happens inside a single `eval_NNNNNN` folder:
 
 ```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryTextColor':'#000','secondaryTextColor':'#000','tertiaryTextColor':'#000','lineColor':'#000','actorTextColor':'#000','signalTextColor':'#000','noteTextColor':'#000','labelTextColor':'#000'}}}%%
 sequenceDiagram
     autonumber
     participant QD as MAP-Elites proposer
@@ -174,6 +177,7 @@ the scalar fitness. The gauge-invariant geodesic term sits at the top; coordinat
 artifacts are demoted or zeroed.
 
 ```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryTextColor':'#000','secondaryTextColor':'#000','tertiaryTextColor':'#000','lineColor':'#000','actorTextColor':'#000','signalTextColor':'#000','noteTextColor':'#000','labelTextColor':'#000'}}}%%
 flowchart TB
     IN["Plotfiles + constraint_norms.dat<br/>comoving stats · horizon diagnostics"]
 
@@ -220,10 +224,10 @@ flowchart TB
     DYN --> OUT
     GEO --> OUT
 
-    classDef top fill:#d5f5e3,stroke:#1e8449,stroke-width:3px
-    classDef mid fill:#fef9e7,stroke:#d68910,stroke-width:2px
-    classDef gate fill:#ebf5fb,stroke:#2874a6,stroke-width:1px
-    classDef health fill:#f8f9f9,stroke:#566573,stroke-width:1px
+    classDef top fill:#d5f5e3,stroke:#1e8449,stroke-width:3px,color:#000
+    classDef mid fill:#fef9e7,stroke:#d68910,stroke-width:2px,color:#000
+    classDef gate fill:#ebf5fb,stroke:#2874a6,stroke-width:1px,color:#000
+    classDef health fill:#f8f9f9,stroke:#566573,stroke-width:1px,color:#000
 
     class GEO top
     class DYN,SOLVED mid
@@ -241,6 +245,7 @@ Diversity is enforced by the behavior grid; quality is the scalar score within e
 cell.
 
 ```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryTextColor':'#000','secondaryTextColor':'#000','tertiaryTextColor':'#000','lineColor':'#000','actorTextColor':'#000','signalTextColor':'#000','noteTextColor':'#000','labelTextColor':'#000'}}}%%
 flowchart TB
     subgraph DESCRIPTOR["speed_super descriptor → 8×8 bin"]
         direction TB
@@ -272,8 +277,8 @@ flowchart TB
     MUTATE --> NEW
     REPLACE -.-> CELL
 
-    classDef grid fill:#ebf5fb,stroke:#2874a6
-    classDef action fill:#eafaf1,stroke:#1e8449
+    classDef grid fill:#ebf5fb,stroke:#2874a6,color:#000
+    classDef action fill:#eafaf1,stroke:#1e8449,color:#000
     class NEW,CELL,DECIDE,REPLACE,DISCARD,MUTATE action
 ```
 
@@ -286,6 +291,7 @@ The single most important invariant: the same stress-energy enters the constrain
 solve and the time evolution.
 
 ```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryTextColor':'#000','secondaryTextColor':'#000','tertiaryTextColor':'#000','lineColor':'#000','actorTextColor':'#000','signalTextColor':'#000','noteTextColor':'#000','labelTextColor':'#000'}}}%%
 flowchart LR
     MATTER["Matter ansatz<br/>N independent scalar lumps φ_k<br/>shared potential V = ½m²(Σφ_k)²"]
 
@@ -306,8 +312,8 @@ flowchart LR
     BAD["Off-constraint start<br/>apparent FTL = relaxation transient"]
     T1 -.->|"T_μν mismatch"| BAD
 
-    classDef good fill:#eafaf1,stroke:#1e8449,stroke-width:2px
-    classDef bad fill:#fdedec,stroke:#c0392b,stroke-width:2px
+    classDef good fill:#eafaf1,stroke:#1e8449,stroke-width:2px,color:#000
+    classDef bad fill:#fdedec,stroke:#c0392b,stroke-width:2px,color:#000
     class T1,T2,SOLVE,EVOLVE,MATTER good
     class BAD bad
 ```
