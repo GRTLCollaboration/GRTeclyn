@@ -62,28 +62,16 @@
 
   <!-- pipeline arrows (straight, centered) -->
   <path class="edge" d="M480 180 L480 222" />
-  <rect class="lblbg" x="487" y="192" width="92" height="22" />
-  <text class="lbl" x="533" y="208">params.txt</text>
 
   <path class="edge" d="M480 338 L480 376" />
-  <rect class="lblbg" x="487" y="340" width="132" height="22" />
-  <text class="lbl" x="535" y="356">geometry + matter</text>
 
   <path class="edge" d="M480 476 L480 524" />
-  <rect class="lblbg" x="487" y="488" width="74" height="22" />
-  <text class="lbl" x="524" y="504">dumps</text>
 
   <path class="edge" d="M480 624 L480 672" />
-  <rect class="lblbg" x="487" y="636" width="74" height="22" />
-  <text class="lbl" x="524" y="652">frames</text>
 
   <path class="edge" d="M480 772 L480 820" />
-  <rect class="lblbg" x="487" y="784" width="74" height="22" />
-  <text class="lbl" x="524" y="800">metrics</text>
 
   <path class="edge" d="M480 920 L480 968" />
-  <rect class="lblbg" x="487" y="932" width="150" height="22" />
-  <text class="lbl" x="562" y="948">score + descriptor</text>
 
   <!-- trajectory log on the left -->
   <rect class="box" x="40" y="820" width="240" height="100" rx="6" />
@@ -92,14 +80,12 @@
   <text class="desc" x="160" y="902">evaluation run</text>
 
   <!-- score.py logs every eval to trajectory -->
-  <path class="edge" d="M360 870 L280 870" />
-  <rect class="lblbg" x="286" y="849" width="74" height="22" />
-  <text class="lbl" x="323" y="865">log eval</text>
+  <path class="edge" d="M360 900 L280 900" />
+  <text class="lbl" x="320" y="932">log eval</text>
 
   <!-- rejected GRTresna solve is logged only -->
   <path class="edge dash" d="M360 278 L160 278 L160 820" />
-  <rect class="lblbg" x="65" y="262" width="190" height="22" />
-  <text class="lbl" x="160" y="278">rejected: log only</text>
+  <text class="lbl" x="250" y="254">rejected: log only</text>
 
   <!-- archive feedback to proposer on the right -->
   <path class="edge" d="M600 1018 L820 1018 L820 130 L600 130" />
