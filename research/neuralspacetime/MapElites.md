@@ -152,9 +152,14 @@ Fitness is the `ftl_first` objective in `metrics/score.py`. Headline structure:
   instability, and stationary "warp-lens" coordinate artifacts are penalized or
   zeroed so the leaderboard tracks genuine, evolving, bound geometries.
 
-Weight hierarchy (approximate): `operational_ftl_geodesic` ×1500 ≫
+Weight hierarchy (approximate): `operational_ftl_geodesic` ×1000 ≫
 `operational_ftl` ×400 ≫ `ftl_persistence` ×300 ≫ `operational_ftl_solved` ×180 ≫
 health block ×(survival 70 + stability 10 + …).
+
+The geodesic component is a linear ramp `(f_geo − 1e-3)/(2e-1 − 1e-3)` clamped to
+`[0, 1]`: full marks require a **dramatic ~20% null arrival-time shortcut**, so the
+scalar tracks shortcut *magnitude* rather than saturating the moment the floor is
+crossed (see the [geodesic-reward recalibration](#geodesic-reward-recalibration--ftl_discovery_v9-2026-06-11)).
 
 The full per-component table lives in
 `grteclyn-wrapper/src/grteclyn_wrapper/metrics/README.md`.
@@ -196,6 +201,7 @@ happened. Quick index (most consequential first):
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
+| [Geodesic-reward recalibration → `v9`](#geodesic-reward-recalibration--ftl_discovery_v9-2026-06-11) | 06-11 | `v8` eval 11 scored 1066 off a real but *modest* 3.3% shortcut; rescaled so the scalar reflects magnitude |
 | [Null-geodesic reliability fix → `v8`](#null-geodesic-reliability-fix-2026-06-11-post-v7) | 06-11 | Forward-launch rays + relative-drift gate; gauge-invariant term finally fires |
 | [`ftl_discovery_v7` review](#campaign-ftl_discovery_v7--finished-run--critical-leaderboard-review-2026-06-11) | 06-11 | Persistence/coherence honest; geodesic still blind (the bottleneck) |
 | [`ftl_discovery_v4`](#campaign-ftl_discovery_v4--persistence-honest-scoring--bound-matter-2026-06-11) | 06-11 | Persistence-gated `survival`; searched `scalar_mass`; capped boosts |
@@ -737,3 +743,63 @@ Relaunched on the geodesic fix (same search space / descriptor / 8 GPUs,
 the **`operational` tier** (certified gauge-invariant shortcut), which `v7` could
 never do. Watch whether the search now climbs `f_geo` toward the `5e-2` target
 instead of plateauing on the coordinate-speed channel.
+
+## Geodesic-reward recalibration → `ftl_discovery_v9` (2026-06-11)
+
+`v8` worked as intended — the reliability gate fired and **eval 11 reached the
+`operational` tier**, the first stable, certified, multi-probe-corroborated
+candidate. But it scored **1066**, ~5–18× the rest of the board, which read as a
+"breakthrough" when the underlying physics was modest.
+
+### Validation of `v8` eval 11 (score 1066, cell [2,0])
+
+The candidate is genuinely good *and* genuinely small:
+
+- **Real, reliability-gated shortcut.** `f_geo = 0.033`, `h_quality_ok=True`,
+  `max_h_rel_drift = 3.2e-4` (≪ `1e-2` tol), **5/5 rays reached** the detector.
+- **Corroborated by three independent probes.** geodesic `f_geo = 0.033`, evolved
+  coordinate `f_op = 0.032` (`max c = 1.044`), `t=0` solved `f_op = 0.013`,
+  persistence `f_op_median = 0.032` sustained across plotfiles — not a single-probe
+  artifact.
+- **Stable & coherent.** `stability = 0.944`, `structure_coherence = 1.0`; `chi`
+  stays a single connected blob from t=0→8 (does not fly away or fragment). The
+  local-speed map shows a coherent, localized bump — the persistence/coherence
+  fixes are working.
+- **But near-flat and modest.** `chi` within 2–3% of 1, `curvature_activity = 0.032`,
+  `nontrivial_geometry = 0.040`; the shortcut is a physically small ~3.3%.
+
+### Diagnosis — the reward saturated, so magnitude was lost
+
+The geodesic component is `(f_geo − GEO_FTL_FLOOR)/(GEO_FTL_TARGET − GEO_FTL_FLOOR)`
+clamped to 1. With `GEO_FTL_TARGET = 5e-2`, a marginal 3.3% shortcut already mapped
+to **0.654**, and at weight ×1500 that is **981 pts (92% of the total)**. A genuinely
+dramatic 30% shortcut would have scored *the same*: the scale was saturated and blind
+to magnitude.
+
+### Fix
+
+In `metrics/score.py`:
+
+- `GEO_FTL_TARGET`: **`5e-2 → 2e-1`** — full marks now require a dramatic ~20%
+  null arrival-time shortcut; the component ramps linearly with magnitude. (This
+  corrects the component value itself, so *every* objective mode benefits.)
+- `ftl_first` geodesic weight: **×1500 → ×1000** — keeps the trusted gauge-invariant
+  term the dominant FTL signal (2.5× the coordinate `operational_ftl` ×400) without
+  inflating the scalar.
+
+Effect on eval 11: component `0.654 → 0.161`, geodesic reward `981 → ~161 pts`,
+total **`1066 → ~250`** — still clearly #1 over the ~60-pt field, but now reads as
+"modest, stable, real" rather than "breakthrough." A future genuine 20% shortcut
+lands at ~1000+, reserving big numbers for big physics.
+
+Regression tests updated (`test_geodesic_confirmation_dominates_coordinate_shortcut`,
+`test_stationary_warp_lens_artifact_ranks_below_genuine_candidate`) to use a *strong*
+`f_geo = 0.2` so "a dramatic shortcut dominates" still holds while a marginal one
+intentionally no longer does. 40/40 scoring + geodesic tests pass.
+
+### Campaign `ftl_discovery_v9`
+
+Relaunched on the recalibrated scoring (same search space / descriptor / 8 GPUs,
+`STOP_TIME=8`, `PLOT_INTERVAL=80`). Success criterion: the leaderboard now ranks by
+shortcut *magnitude* — watch whether the search pushes `f_geo` upward (toward the new
+`2e-1` target) rather than parking on the first modest near-flat shortcut.

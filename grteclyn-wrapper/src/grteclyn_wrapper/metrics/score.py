@@ -429,7 +429,13 @@ def score_episode(
         components["operational_ftl"] = 0.0
 
     GEO_FTL_FLOOR = 1.0e-3
-    GEO_FTL_TARGET = 5.0e-2
+    # Full marks require a genuinely dramatic gauge-invariant shortcut (~20% null
+    # arrival-time advantage over flat space).  A marginal few-percent shortcut --
+    # real and reliability-gated, but physically modest in a near-flat geometry --
+    # therefore earns only a small fraction here, so the scalar score tracks the
+    # *magnitude* of the shortcut instead of saturating the moment the floor is
+    # crossed.
+    GEO_FTL_TARGET = 2.0e-1
     geo_report = metrics.geodesic_ftl
     f_geo = geo_report.f_geo if geo_report is not None else 0.0
     # A gauge-invariant shortcut is only trustworthy when the null-ray
@@ -850,7 +856,7 @@ def score_episode(
         # *and* morphological coherence (see structural_persistence), so a
         # fragmenting end-state cannot bank the larger survival weight.
         total = (
-            1500.0 * components.get("operational_ftl_geodesic", 0.0)
+            1000.0 * components.get("operational_ftl_geodesic", 0.0)
             + 400.0 * components.get("operational_ftl", 0.0)
             + 300.0 * components.get("ftl_persistence", 0.0)
             + 150.0 * components.get("channel_progress", 0.0)

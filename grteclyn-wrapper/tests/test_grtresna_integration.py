@@ -715,7 +715,7 @@ def test_geodesic_confirmation_dominates_coordinate_shortcut() -> None:
         termination_reason=base.termination_reason,
         curvature=base.curvature,
         general_ftl_evolved=base.general_ftl_evolved,
-        geodesic_ftl=_geodesic_report(0.05),
+        geodesic_ftl=_geodesic_report(0.2),
     )
     geodesic_score = score_episode(confirmed, objective_mode="ftl_first")
 
@@ -836,7 +836,7 @@ def test_stationary_warp_lens_artifact_ranks_below_genuine_candidate() -> None:
         termination_reason=genuine_base.termination_reason,
         curvature=genuine_base.curvature,
         general_ftl_evolved=genuine_base.general_ftl_evolved,
-        geodesic_ftl=_geodesic_report(0.05),
+        geodesic_ftl=_geodesic_report(0.2),
     )
     genuine_score = score_episode(genuine, objective_mode="ftl_first")
 
