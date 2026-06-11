@@ -36,6 +36,7 @@ class GRAMR : public amrex::Amr
     GRAMR(amrex::LevelBld *a_levelbld);
     ~GRAMR() override;
 
+    // NOLINTNEXTLINE(cppcoreguidelines-explicit-virtual-functions)
     virtual void init(amrex::Real a_strt_time, amrex::Real a_stop_time);
 
     static void
