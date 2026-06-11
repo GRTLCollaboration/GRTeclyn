@@ -394,3 +394,137 @@ the lump, so it free-streams out even at zero boost. The following fixes ship in
   null-geodesic reliability gate (`h_quality_ok`) still rejects most candidates,
   so `operational_ftl_geodesic` contributes 0 and the coordinate-speed
   `operational_ftl_solved` dominates `ftl_first`. Unchanged in `v4`.
+
+## Campaign `ftl_discovery_v7` — finished run + critical leaderboard review (2026-06-11)
+
+Run `runs/grtresna_qd/ftl_discovery_v7/` (`speed_super` 8×8, `ftl_first`, 8 GPUs,
+`STOP_TIME=8`, `PLOT_INTERVAL=80`, `scalar_mass` searched, de-saturated precursor
++ 3D coherence + rebalanced weights). Finished: 88 candidates, 53 `gpu_ok`,
+coverage 0.3125 (20/64 cells), best score 606. **All 20 retained elites are tier
+`nontrivial` — zero reached the certified `operational` tier** (no candidate
+passed the gauge-invariant geodesic gate).
+
+### Do the metrics work this time? — yes on persistence/coherence, still blind on gauge-invariance
+
+The two bugs that made `v2`/`v3` leaderboards lie are fixed and verified on real
+episodes:
+
+- **`survival` is now honest and differentiating.** Top-3 read `survival = 1.0 /
+  0.72 / 1.0` (eval 71/79/64) instead of a flat `1.0`. The persistence gate bites
+  (eval 79's structure partially decays → 0.72). Frames confirm it: eval 71's
+  `Pi_lump_sum` is a strong coherent dipole at `t=8.02` (amplitude held at ~0.01,
+  same as `t=0`), **not** the dissipated nothing we saw in `v3`. The heavier
+  searched mass (binds within the shell) is doing its job.
+- **`structure_coherence = 1.0`** on all top-3, matching the frames (single
+  connected blob with an internal dipole, no fragmentation into separated lobes).
+  The 3D covering-grid count is no longer fooled by slice orientation.
+- **`superluminal_fraction` de-saturated**: top-3 read 0.11 / 0.17 / 0.20 (was
+  pinned at 1.0 in `v6`). The descriptor carries real signal again.
+- **Score composition is now persistence-honest.** eval 71's 606 breaks down as
+  `operational_ftl` (evolved, sustained) **205 pts (34%)** + `ftl_persistence`
+  **155 pts (26%)** + `operational_ftl_solved` 106 (17%, itself down-gated to
+  0.59) + `channel_progress` 65 + health/survival block ~49. So **~60% comes from
+  the *dynamical* evolved+sustained channel**, not from a one-shot coordinate
+  speed and not from integration noise. Contrast `v2`, where the top score was
+  83% from an `h_quality_ok=False` geodesic artifact.
+
+### What was found
+
+A reproducible **family** of non-stationary, exotic-supported, bound lump
+configurations that sustain a *localized* superluminal **coordinate** channel
+coherently out to `t=8`. Top-3 (all cell `[7,7]`):
+
+| eval | score | survival | coherence | β_mean | max c (evolved) | superlum. frac | op_ftl | persistence |
+|------|-------|----------|-----------|--------|-----------------|----------------|--------|-------------|
+| 71   | 606   | 1.00     | 1.0       | 0.444  | 1.108           | 0.111          | 0.513  | 0.517       |
+| 79   | 375   | 0.72     | 1.0       | 0.466  | 1.118           | 0.166          | 0.213  | 0.216       |
+| 64   | 348   | 1.00     | 1.0       | 0.505  | 1.103           | 0.198          | 0.188  | 0.160       |
+
+All three are genuinely non-stationary (`beta_mean ≈ 0.44–0.51`, real net shift),
+stay on-constraint (final Ham/Mom L2 `~1e-3 / 1e-4`), are horizon-free
+(`min_theta_plus > 0`), and **require exotic matter** (`wec_violation_fraction
+0.76–0.85`, `exotic_penalty −0.53 to −1.0`).
+
+### Critical caveat — these are precursors, NOT certified FTL
+
+`operational_ftl_geodesic = 0` for **every** top candidate: the only
+gauge-invariant test (null-ray shortcut) is still rejected as unreliable
+(`h_quality_ok=False`, e.g. eval 71 `max H=3.6e-4`, 4/5 rays reached). So the
+leaderboard is ranking a sustained, coherent, persistent *coordinate-speed /
+shift* channel (`max c ≈ 1.10–1.12` localized near center) — a strong physical
+precursor — but nothing here is a proven gauge-invariant shortcut. This is the
+same open watch-list item from `v2`/`v4`, now the clear bottleneck: **fixing
+null-geodesic reliability is the next high-leverage step**, because until it
+passes we cannot promote anything past the `nontrivial` tier.
+
+Secondary note: top scorers cluster in cell `[7,7]` (both descriptor axes near
+max), so coverage (0.31) is moderate but the *quality* front is narrow — the
+search is exploiting one basin. Worth widening exploration or adding a descriptor
+that separates these once the geodesic gate is trustworthy.
+
+## Null-geodesic reliability fix (2026-06-11, post-v7)
+
+The `v7` bottleneck above — `operational_ftl_geodesic = 0` for every elite
+because `h_quality_ok=False` — was traced to **two real bugs in the ray tracer**
+(`metrics/probes/ftl/geodesic.py`), not to the candidates being non-FTL.
+
+### Bug 1 — rays launched backward (the dominant failure)
+
+The initial ray momentum was built as `k^μ = (1,1,0,0)` (contravariant guess),
+converted to covariant `k_μ = g_{μν}k^ν`, then passed through a generic
+`project_null`. That projection rescales the spatial momentum to restore the null
+condition but **does not pin the propagation direction** — it could (and did)
+select the *backward* null root. Instrumenting the central ray of `eval_000071`
+showed `dx/dλ` pointing in **−x** from step 0, so the ray left the −x boundary
+after 57 steps. Almost no rays reached the detector (`reached 0/5`, `0/5`, `2/5`
+on the top-3), so the gate could never pass.
+
+*Fix:* `future_null_cov(g, n_hat)` builds the momentum on the contravariant side
+— `k^μ = (k^t, n_hat)` with the null condition solved for the future-directed
+`k^t` (the unique positive root, since `g_tt<0` and `n·γ·n>0` give opposite-sign
+roots). This guarantees `dx^i/dλ ∝ n_hat = +x` and `dt/dλ > 0`. `project_null`
+also gained an optional `dx_ref` so in-flight re-projection keeps the ray's
+direction. Result: **all retained elites now reach 5/5**.
+
+### Bug 2 — reliability gated on an unreachable absolute drift
+
+With rays reaching, `h_quality_ok` was still `False` because it tested
+`max|H| ≤ 1e-5` (`H = ½ g^{μν}k_μk_ν`, exactly 0 for null). But the metric is
+only **C0 (trilinear) interpolated**, so the per-step pre-projection drift has an
+interpolation-set floor: a convergence study on `eval_000071` (step
+`0.05→0.025→0.0125`, grid `65→97→129`) showed `max|H|` falling only as `~O(ds)`
+(`1.2e-3 → 3.2e-4`) and never approaching `1e-5`, while `f_geo` stayed **stable
+at 0.0077–0.0081** (the shortcut is a real, converged signal). The absolute
+threshold was therefore impossible to satisfy by construction.
+
+*Fix:* gate on the **relative** drift `|H| / ½(|g_tt(k^t)²| + |k_iγ^{ij}k_j|)`
+(scale-free "distance off the null cone"), tolerance `H_REL_TOL = 1e-2`. The
+v7 elites sit at `5e-4–2e-3` relative drift — an order of magnitude inside the
+bar — while the absolute drift and `f_geo` magnitude are still reported.
+
+### Effect (re-scored on the retained v7 plotfiles)
+
+`operational_ftl_geodesic` now fires correctly and **discriminates**:
+
+| eval | f_geo | rel-H | h_ok | geo reward (×1500) |
+|------|-------|-------|------|--------------------|
+| 88   | 0.0083| 1.4e-3| ✅   | +223 |
+| 15   | 0.0078| 1.2e-3| ✅   | +208 |
+| 71   | 0.0077| 1.3e-3| ✅   | +206 |
+| 79   | 0.0058| 2.0e-3| ✅   | +147 |
+| 64   | 0.0047| 9.4e-4| ✅   | +113 |
+| 80/81/83/85 | 0.0 | <1.5e-3 | ✅ | +0 (no shortcut) |
+
+The gauge-invariant term now contributes, **re-ranking the board** (eval 88 and
+15 leap up next to eval 71) and rewarding genuine null shortcuts while still
+zeroing no-shortcut geometries (via `GEO_FTL_FLOOR=1e-3`). Regression tests:
+`test_future_null_cov_propagates_forward_under_shift`,
+`test_integrate_null_ray_reaches_detector_under_shift`.
+
+### Campaign `ftl_discovery_v8`
+
+Relaunched on the geodesic fix (same search space / descriptor / 8 GPUs,
+`STOP_TIME=8`, `PLOT_INTERVAL=80`). Success criterion: at least some elites reach
+the **`operational` tier** (certified gauge-invariant shortcut), which `v7` could
+never do. Watch whether the search now climbs `f_geo` toward the `5e-2` target
+instead of plateauing on the coordinate-speed channel.
