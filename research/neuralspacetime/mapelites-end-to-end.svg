@@ -29,10 +29,11 @@
   <text class="desc" x="480" y="140">MAP-Elites suggests the</text>
   <text class="desc" x="480" y="162">next matter parameters</text>
 
-  <rect class="box" x="360" y="228" width="240" height="100" rx="6" />
-  <text class="name" x="480" y="262">GRTresna</text>
-  <text class="desc" x="480" y="288">solves the constraints</text>
-  <text class="desc" x="480" y="310">for valid initial data</text>
+  <rect class="box" x="360" y="222" width="240" height="116" rx="6" />
+  <text class="name" x="480" y="256">GRTresna</text>
+  <text class="desc" x="480" y="286">RHS: painted matter</text>
+  <text class="desc" x="480" y="307">LHS: solved geometry</text>
+  <text class="desc" x="480" y="325">chi and beta^i</text>
 
   <rect class="box" x="360" y="376" width="240" height="100" rx="6" />
   <text class="name" x="480" y="410">GRTeclyn</text>
@@ -60,13 +61,13 @@
   <text class="desc" x="480" y="1050">in each behavior bin</text>
 
   <!-- pipeline arrows (straight, centered) -->
-  <path class="edge" d="M480 180 L480 228" />
+  <path class="edge" d="M480 180 L480 222" />
   <rect class="lblbg" x="487" y="192" width="92" height="22" />
   <text class="lbl" x="533" y="208">params.txt</text>
 
-  <path class="edge" d="M480 328 L480 376" />
-  <rect class="lblbg" x="487" y="340" width="96" height="22" />
-  <text class="lbl" x="535" y="356">initial data</text>
+  <path class="edge" d="M480 338 L480 376" />
+  <rect class="lblbg" x="487" y="340" width="132" height="22" />
+  <text class="lbl" x="535" y="356">geometry + matter</text>
 
   <path class="edge" d="M480 476 L480 524" />
   <rect class="lblbg" x="487" y="488" width="74" height="22" />
