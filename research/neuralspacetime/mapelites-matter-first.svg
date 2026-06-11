@@ -1,76 +1,69 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="520" viewBox="0 0 1100 520" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="560" viewBox="0 0 1040 560" role="img" aria-labelledby="title desc">
   <title id="title">Matter-first versus metric-first discovery</title>
-  <desc id="desc">Metric-first starts from a target metric and derives stress energy. Matter-first proposes matter, solves constraints, evolves spacetime, and measures FTL in the evolved field.</desc>
+  <desc id="desc">Metric-first starts from a chosen metric and derives the required stress energy. Matter-first proposes matter, solves the constraints, evolves the spacetime, and measures FTL in the evolved field.</desc>
   <defs>
-    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L0,6 L9,3 z" fill="#111111" />
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="7.5" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L8,3 z" fill="#000000" />
     </marker>
   </defs>
 
-  <rect x="0" y="0" width="1100" height="520" fill="#ffffff" />
+  <rect x="0" y="0" width="1040" height="560" fill="#ffffff" />
 
   <style>
-    .panel { fill: #ffffff; stroke: #555555; stroke-width: 2; }
-    .box { fill: #ffffff; stroke: #111111; stroke-width: 2; }
-    .text { font-family: Arial, Helvetica, sans-serif; font-size: 17px; fill: #000000; text-anchor: middle; }
-    .small { font-size: 15px; }
-    .title { font-size: 18px; font-weight: 700; }
-    .arrow { fill: none; stroke: #111111; stroke-width: 2.5; marker-end: url(#arrow); }
+    text { font-family: "Times New Roman", Times, Georgia, serif; fill: #000000; }
+    .box { fill: #ffffff; stroke: #000000; stroke-width: 1.6; }
+    .step { font-size: 18px; text-anchor: middle; }
+    .sub { font-size: 15px; font-style: italic; text-anchor: middle; }
+    .edge { fill: none; stroke: #000000; stroke-width: 1.8; marker-end: url(#arrow); }
+    .head { font-size: 21px; font-weight: 700; text-anchor: middle; }
+    .panel { fill: none; stroke: #000000; stroke-width: 1.2; stroke-dasharray: 4 4; }
   </style>
 
-  <rect class="panel" x="45" y="40" width="465" height="430" rx="8" />
-  <text class="text title" x="277" y="75">Metric-first (classic warp literature)</text>
+  <!-- left column: metric-first -->
+  <rect class="panel" x="40" y="70" width="420" height="450" rx="8" />
+  <text class="head" x="250" y="50">Metric-first (classic)</text>
 
-  <rect class="box" x="135" y="105" width="285" height="65" rx="6" />
-  <text class="text small" x="277" y="132">
-    <tspan x="277" dy="0">1. Choose target metric</tspan>
-    <tspan x="277" dy="20">Alcubierre / Natario / ...</tspan>
-  </text>
+  <rect class="box" x="100" y="95"  width="300" height="62" rx="6" />
+  <text class="step" x="250" y="122">1. Choose target metric</text>
+  <text class="sub"  x="250" y="144">Alcubierre / Natario</text>
 
-  <rect class="box" x="135" y="205" width="285" height="65" rx="6" />
-  <text class="text small" x="277" y="232">
-    <tspan x="277" dy="0">2. Compute T_ab = G_ab / 8pi</tspan>
-    <tspan x="277" dy="20">always exotic / often singular</tspan>
-  </text>
+  <rect class="box" x="100" y="205" width="300" height="62" rx="6" />
+  <text class="step" x="250" y="232">2. Read off stress energy</text>
+  <text class="sub"  x="250" y="254">exotic, often singular</text>
 
-  <rect class="box" x="135" y="305" width="285" height="65" rx="6" />
-  <text class="text small" x="277" y="332">
-    <tspan x="277" dy="0">3. Ask whether real matter</tspan>
-    <tspan x="277" dy="20">can source this T_ab</tspan>
-  </text>
+  <rect class="box" x="100" y="315" width="300" height="62" rx="6" />
+  <text class="step" x="250" y="342">3. Hope matter exists</text>
+  <text class="sub"  x="250" y="364">to source this metric</text>
 
-  <rect class="box" x="135" y="405" width="285" height="45" rx="6" />
-  <text class="text small" x="277" y="433">FTL baked into coordinates</text>
+  <rect class="box" x="100" y="425" width="300" height="62" rx="6" />
+  <text class="step" x="250" y="452">FTL baked into</text>
+  <text class="sub"  x="250" y="474">coordinates</text>
 
-  <path class="arrow" d="M277 170 L277 205" />
-  <path class="arrow" d="M277 270 L277 305" />
-  <path class="arrow" d="M277 370 L277 405" />
+  <path class="edge" d="M250 157 L250 205" />
+  <path class="edge" d="M250 267 L250 315" />
+  <path class="edge" d="M250 377 L250 425" />
 
-  <rect class="panel" x="590" y="40" width="465" height="430" rx="8" />
-  <text class="text title" x="822" y="75">Matter-first (this pipeline)</text>
+  <!-- right column: matter-first -->
+  <rect class="panel" x="580" y="70" width="420" height="450" rx="8" />
+  <text class="head" x="790" y="50">Matter-first (this work)</text>
 
-  <rect class="box" x="680" y="105" width="285" height="65" rx="6" />
-  <text class="text small" x="822" y="132">
-    <tspan x="822" dy="0">1. Propose matter lumps</tspan>
-    <tspan x="822" dy="20">fields / boosts / mass</tspan>
-  </text>
+  <rect class="box" x="640" y="95"  width="300" height="62" rx="6" />
+  <text class="step" x="790" y="122">1. Propose matter lumps</text>
+  <text class="sub"  x="790" y="144">fields, boosts, mass</text>
 
-  <rect class="box" x="680" y="205" width="285" height="65" rx="6" />
-  <text class="text small" x="822" y="232">
-    <tspan x="822" dy="0">2. Solve Einstein constraints</tspan>
-    <tspan x="822" dy="20">geometry the matter sources</tspan>
-  </text>
+  <rect class="box" x="640" y="205" width="300" height="62" rx="6" />
+  <text class="step" x="790" y="232">2. Solve constraints</text>
+  <text class="sub"  x="790" y="254">geometry the matter sources</text>
 
-  <rect class="box" x="680" y="305" width="285" height="65" rx="6" />
-  <text class="text small" x="822" y="332">
-    <tspan x="822" dy="0">3. Evolve spacetime forward</tspan>
-    <tspan x="822" dy="20">t = 0 to STOP_TIME</tspan>
-  </text>
+  <rect class="box" x="640" y="315" width="300" height="62" rx="6" />
+  <text class="step" x="790" y="342">3. Evolve spacetime</text>
+  <text class="sub"  x="790" y="364">t = 0 to stop time</text>
 
-  <rect class="box" x="680" y="405" width="285" height="45" rx="6" />
-  <text class="text small" x="822" y="433">4. Measure FTL in evolved field</text>
+  <rect class="box" x="640" y="425" width="300" height="62" rx="6" />
+  <text class="step" x="790" y="452">4. Measure FTL</text>
+  <text class="sub"  x="790" y="474">in the evolved field</text>
 
-  <path class="arrow" d="M822 170 L822 205" />
-  <path class="arrow" d="M822 270 L822 305" />
-  <path class="arrow" d="M822 370 L822 405" />
+  <path class="edge" d="M790 157 L790 205" />
+  <path class="edge" d="M790 267 L790 315" />
+  <path class="edge" d="M790 377 L790 425" />
 </svg>

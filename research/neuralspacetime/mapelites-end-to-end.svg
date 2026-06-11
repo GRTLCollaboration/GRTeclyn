@@ -1,100 +1,98 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="940" viewBox="0 0 960 940" role="img" aria-labelledby="title desc">
   <title id="title">MAP-Elites end-to-end overview</title>
-  <desc id="desc">Search proposes matter, GRTresna solves constraints, GRTeclyn evolves the spacetime, probes score it, and the archive feeds the next proposal.</desc>
+  <desc id="desc">A proposer suggests matter parameters, GRTresna solves the constraints, GRTeclyn evolves the spacetime, plotfiles are probed and scored, the archive stores the best per behavior bin and feeds the next proposal, and every evaluation is logged.</desc>
   <defs>
-    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L0,6 L9,3 z" fill="#111111" />
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="7.5" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L8,3 z" fill="#000000" />
     </marker>
   </defs>
 
-  <rect x="0" y="0" width="1200" height="620" fill="#ffffff" />
+  <rect x="0" y="0" width="960" height="940" fill="#ffffff" />
 
   <style>
-    .panel { fill: #ffffff; stroke: #777777; stroke-width: 2; }
-    .box { fill: #ffffff; stroke: #111111; stroke-width: 2; }
-    .text { font-family: Arial, Helvetica, sans-serif; font-size: 17px; fill: #000000; text-anchor: middle; }
-    .small { font-size: 15px; }
-    .title { font-size: 18px; font-weight: 700; }
-    .arrow { fill: none; stroke: #111111; stroke-width: 2.5; marker-end: url(#arrow); }
-    .dash { stroke-dasharray: 7 6; }
-    .label-bg { fill: #ffffff; stroke: none; }
+    text { font-family: "Times New Roman", Times, Georgia, serif; fill: #000000; }
+    .box { fill: #ffffff; stroke: #000000; stroke-width: 1.6; }
+    .name { font-size: 22px; text-anchor: middle; }
+    .sub { font-size: 17px; font-style: italic; text-anchor: middle; }
+    .edge { fill: none; stroke: #000000; stroke-width: 1.8; marker-end: url(#arrow); }
+    .dash { stroke-dasharray: 6 5; }
+    .lbl { font-size: 16px; text-anchor: middle; }
+    .lblbg { fill: #ffffff; }
+    .title { font-size: 26px; font-weight: 700; text-anchor: middle; }
   </style>
 
-  <text class="text title" x="600" y="42">MAP-Elites FTL Discovery Loop</text>
+  <text class="title" x="480" y="44">MAP-Elites FTL discovery loop</text>
 
-  <rect class="panel" x="35" y="75" width="1130" height="195" rx="8" />
-  <text class="text title" x="600" y="105">Main simulation pipeline</text>
+  <!-- main pipeline column, centered at x=480 -->
+  <rect class="box" x="360" y="80"  width="240" height="68" rx="6" />
+  <text class="name" x="480" y="111">Proposer</text>
+  <text class="sub"  x="480" y="134">matter parameters</text>
 
-  <rect class="box" x="70" y="145" width="150" height="70" rx="6" />
-  <text class="text small" x="145" y="172">
-    <tspan x="145" dy="0">Proposer</tspan>
-    <tspan x="145" dy="20">matter params</tspan>
-  </text>
+  <rect class="box" x="360" y="210" width="240" height="68" rx="6" />
+  <text class="name" x="480" y="241">GRTresna</text>
+  <text class="sub"  x="480" y="264">constraint solve</text>
 
-  <rect class="box" x="280" y="145" width="170" height="70" rx="6" />
-  <text class="text small" x="365" y="172">
-    <tspan x="365" dy="0">GRTresna</tspan>
-    <tspan x="365" dy="20">constraint solve</tspan>
-  </text>
+  <rect class="box" x="360" y="340" width="240" height="68" rx="6" />
+  <text class="name" x="480" y="371">GRTeclyn</text>
+  <text class="sub"  x="480" y="394">GPU evolution</text>
 
-  <rect class="box" x="510" y="145" width="170" height="70" rx="6" />
-  <text class="text small" x="595" y="172">
-    <tspan x="595" dy="0">GRTeclyn</tspan>
-    <tspan x="595" dy="20">GPU evolution</tspan>
-  </text>
+  <rect class="box" x="360" y="470" width="240" height="68" rx="6" />
+  <text class="name" x="480" y="501">Plotfiles</text>
+  <text class="sub"  x="480" y="524">constraint logs</text>
 
-  <rect class="box" x="740" y="145" width="150" height="70" rx="6" />
-  <text class="text small" x="815" y="172">
-    <tspan x="815" dy="0">Plotfiles</tspan>
-    <tspan x="815" dy="20">constraint logs</tspan>
-  </text>
+  <rect class="box" x="360" y="600" width="240" height="68" rx="6" />
+  <text class="name" x="480" y="631">Probes</text>
+  <text class="sub"  x="480" y="654">FTL and geodesics</text>
 
-  <rect class="box" x="950" y="145" width="150" height="70" rx="6" />
-  <text class="text small" x="1025" y="172">
-    <tspan x="1025" dy="0">Probes</tspan>
-    <tspan x="1025" dy="20">FTL + geodesics</tspan>
-  </text>
+  <rect class="box" x="360" y="730" width="240" height="68" rx="6" />
+  <text class="name" x="480" y="761">score.py</text>
+  <text class="sub"  x="480" y="784">fitness</text>
 
-  <path class="arrow" d="M220 180 L280 180" />
-  <text class="text small" x="250" y="165">params.txt</text>
-  <path class="arrow" d="M450 180 L510 180" />
-  <text class="text small" x="480" y="165">initial data</text>
-  <path class="arrow" d="M680 180 L740 180" />
-  <text class="text small" x="710" y="165">dumps</text>
-  <path class="arrow" d="M890 180 L950 180" />
-  <text class="text small" x="920" y="165">frames</text>
+  <rect class="box" x="360" y="845" width="240" height="68" rx="6" />
+  <text class="name" x="480" y="876">MAP-Elites archive</text>
+  <text class="sub"  x="480" y="899">best per behavior bin</text>
 
-  <rect class="panel" x="185" y="340" width="830" height="200" rx="8" />
-  <text class="text title" x="600" y="370">Scoring and archive update</text>
+  <!-- pipeline arrows (straight, centered) -->
+  <path class="edge" d="M480 148 L480 210" />
+  <rect class="lblbg" x="487" y="167" width="92" height="22" />
+  <text class="lbl" x="533" y="183">params.txt</text>
 
-  <rect class="box" x="265" y="425" width="150" height="70" rx="6" />
-  <text class="text small" x="340" y="452">
-    <tspan x="340" dy="0">score.py</tspan>
-    <tspan x="340" dy="20">fitness</tspan>
-  </text>
+  <path class="edge" d="M480 278 L480 340" />
+  <rect class="lblbg" x="487" y="297" width="96" height="22" />
+  <text class="lbl" x="535" y="313">initial data</text>
 
-  <rect class="box" x="525" y="425" width="190" height="70" rx="6" />
-  <text class="text small" x="620" y="452">
-    <tspan x="620" dy="0">MAP-Elites archive</tspan>
-    <tspan x="620" dy="20">best per behavior bin</tspan>
-  </text>
+  <path class="edge" d="M480 408 L480 470" />
+  <rect class="lblbg" x="487" y="427" width="74" height="22" />
+  <text class="lbl" x="524" y="443">dumps</text>
 
-  <rect class="box" x="815" y="425" width="145" height="70" rx="6" />
-  <text class="text small" x="887" y="452">
-    <tspan x="887" dy="0">trajectory.jsonl</tspan>
-    <tspan x="887" dy="20">all evals logged</tspan>
-  </text>
+  <path class="edge" d="M480 538 L480 600" />
+  <rect class="lblbg" x="487" y="557" width="74" height="22" />
+  <text class="lbl" x="524" y="573">frames</text>
 
-  <path class="arrow" d="M1025 215 L1025 300 L340 300 L340 425" />
-  <text class="text small" x="695" y="292">episode metrics</text>
-  <path class="arrow" d="M415 460 L525 460" />
-  <text class="text small" x="470" y="445">score + descriptor</text>
-  <path class="arrow" d="M715 460 L815 460" />
-  <text class="text small" x="765" y="445">log result</text>
+  <path class="edge" d="M480 668 L480 730" />
+  <rect class="lblbg" x="487" y="687" width="74" height="22" />
+  <text class="lbl" x="524" y="703">metrics</text>
 
-  <path class="arrow dash" d="M620 425 L620 325 L145 325 L145 215" />
-  <text class="text small" x="375" y="318">mutate elite / sample feasible box</text>
+  <path class="edge" d="M480 798 L480 845" />
+  <rect class="lblbg" x="487" y="810" width="150" height="22" />
+  <text class="lbl" x="562" y="826">score + descriptor</text>
 
-  <path class="arrow dash" d="M365 215 L365 575 L887 575 L887 495" />
-  <text class="text small" x="485" y="592">rejected solve: log only, no archive cell</text>
+  <!-- trajectory log on the left -->
+  <rect class="box" x="40" y="730" width="220" height="68" rx="6" />
+  <text class="name" x="150" y="761">trajectory.jsonl</text>
+  <text class="sub"  x="150" y="784">all evaluations logged</text>
+
+  <!-- score.py logs every eval to trajectory -->
+  <path class="edge" d="M360 764 L260 764" />
+  <rect class="lblbg" x="268" y="743" width="82" height="22" />
+  <text class="lbl" x="309" y="759">log eval</text>
+
+  <!-- rejected GRTresna solve is logged only -->
+  <path class="edge dash" d="M360 244 L150 244 L150 730" />
+  <rect class="lblbg" x="55" y="233" width="180" height="22" />
+  <text class="lbl" x="145" y="249">rejected: log only</text>
+
+  <!-- archive feedback to proposer on the right -->
+  <path class="edge" d="M600 879 L800 879 L800 114 L600 114" />
+  <text class="lbl" x="838" y="500" transform="rotate(90 838 500)">mutate elite / sample feasible box</text>
 </svg>
