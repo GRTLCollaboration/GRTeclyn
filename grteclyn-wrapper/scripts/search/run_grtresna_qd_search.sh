@@ -75,9 +75,13 @@ SEED="${SEED:-7}"
 # (<0.55), which is the smallest window that cleanly separates them (~4x the
 # t=2 GPU cost).
 STOP_TIME="${STOP_TIME:-8.0}"
-# Scaled with STOP_TIME (4x) so the number of consumed plotfiles -- and hence
-# the FTL-probe/plotting cost per eval -- stays roughly constant.
-PLOT_INTERVAL="${PLOT_INTERVAL:-40}"
+# Plotfile cadence in coarse steps.  At STOP_TIME=8 / dt=0.02 there are 400
+# coarse steps, so PLOT_INTERVAL=80 yields ~6 plotfiles (t=0,1.6,..,8) -> ~6
+# frames/field instead of 12.  Late-time AMR refinement makes each yt slice
+# frame expensive, and they render in a serial burst at the batch boundary with
+# the GPUs idle, so halving the frame count roughly halves that post-processing
+# gap.  Still >= the 3 plotfiles the evolved/geodesic FTL probes need.
+PLOT_INTERVAL="${PLOT_INTERVAL:-80}"
 
 SOLVED_FTL_F_OP_FLOOR="${SOLVED_FTL_F_OP_FLOOR:-1.0e-4}"
 SOLVED_FTL_NEAR_LUMINAL_SPEED_FLOOR="${SOLVED_FTL_NEAR_LUMINAL_SPEED_FLOOR:-0.95}"
