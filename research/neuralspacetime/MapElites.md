@@ -246,12 +246,18 @@ So GRTeclyn dispatches to `GRTresnaIndependentScalars` (5 fields, mass m=0.1),
 
 ### Future directions (ranked: leverage vs. effort)
 
-1. **Search the mass + cap boosts (config-only, do first).** `m=0.1` and O(1)
-   velocities are why lumps disperse. Make `scalar_mass` a searched QD parameter
-   (heavier ⇒ tighter, oscillaton-like, persistent) and bound `lumpK_velocity`.
-   No new physics code — wire `scalar_mass` into the shell search space
-   (`grtresna_shell_search_space` in `qd_search.py`) and the GRTresna params
-   emitter.
+1. **Search the mass + cap boosts (config-only, do first).** *Done
+   (2026-06-11).* `m=0.1` and O(1) velocities were why lumps dispersed/flew
+   away. `grtresna_scalar_mass` is now a searched QD dimension (range
+   `0.3–1.5`, default `0.6`) wired into `grtresna_shell_search_space` and
+   applied to `cfg.scalar_mass` in `_apply_grtresna_overrides`
+   (`search/optimize.py`); it already propagated to both the GRTresna solve
+   (`solver.py`) and the GRTeclyn evolution (`matter_wiring.py`), so the
+   consistency rule holds with no new physics code. The toroidal current (warp
+   motor) keeps its full range, while the net-outflow velocities are capped
+   (`poloidal ±1.5→±0.8`, `radial ±0.8→±0.3`) so matter stays bound. Heavier
+   mass binds within the shell width (Compton wavelength `1/m`), letting the
+   search settle on persistent, near-static matter.
 2. **Add `λφ⁴` (or φ⁶) self-interaction ⇒ oscillons / Q-balls** (genuinely bound,
    long-lived). Extend `GRTresnaScalarPotential` (GRTeclyn) **and**
    `my_potential_function` (GRTresna `MyMatterFunctions.cpp`) identically, plus

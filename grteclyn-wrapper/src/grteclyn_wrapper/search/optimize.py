@@ -259,7 +259,7 @@ def grtresna_shell_search_space(profile: str = "compact") -> list[SearchDimensio
     recovered as the thin-equatorial-band limit, so this is a strict superset
     used for *discovery* (broad coverage) rather than *refinement* (the ring).
 
-    16 searched dimensions for any ``K``: like the ring, the lump count is a
+    18 searched dimensions for any ``K``: like the ring, the lump count is a
     mesh-resolution knob, not an optimizer dimension.
 
     ``profile`` selects preset bounds.  ``compact`` caps lump width to reduce
@@ -283,6 +283,13 @@ def grtresna_shell_search_space(profile: str = "compact") -> list[SearchDimensio
     thickness = (0.1, 2.5, 0.6)
     toroidal_v = (-1.2, 1.2, 0.6)
     exotic_frac = (0.0, 1.0, 0.4)
+    # Scalar mass = matter "weight".  At m=0.1 the Compton wavelength 1/m=10 is
+    # the box size, so a lump disperses (free-streams) even at zero velocity --
+    # the "fly away" the campaign keeps hitting.  Searching m in [0.3, 1.5]
+    # (1/m in [3.3, 0.67]) keeps the field bound within the shell width (~2.4)
+    # so the search can settle on persistent, near-static matter.  Honoured
+    # identically by the GRTresna solve and the GRTeclyn evolution.
+    scalar_mass = (0.3, 1.5, 0.6)
 
     if profile == "compact":
         width = (1.8, 3.0, 2.4)
@@ -304,9 +311,14 @@ def grtresna_shell_search_space(profile: str = "compact") -> list[SearchDimensio
         SearchDimension("grtresna_shell_thickness", *thickness),
         SearchDimension("grtresna_shell_axis_theta", 0.0, math.pi, 0.5 * math.pi),
         SearchDimension("grtresna_shell_axis_phi", 0.0, 2.0 * math.pi, 0.0),
+        SearchDimension("grtresna_scalar_mass", *scalar_mass),
+        # Toroidal current is the warp/frame-drag motor -- kept at full range.
         SearchDimension("grtresna_shell_toroidal_velocity", *toroidal_v),
-        SearchDimension("grtresna_shell_poloidal_velocity", -1.5, 1.5, 0.0),
-        SearchDimension("grtresna_shell_radial_velocity", -0.8, 0.8, 0.0),
+        # Poloidal/radial currents carry the lumps' net outflow (the "fly away"),
+        # not the warp drive, so they are capped tighter than before
+        # (poloidal +-1.5 -> +-0.8, radial +-0.8 -> +-0.3) to keep matter bound.
+        SearchDimension("grtresna_shell_poloidal_velocity", -0.8, 0.8, 0.0),
+        SearchDimension("grtresna_shell_radial_velocity", -0.3, 0.3, 0.0),
         SearchDimension("grtresna_shell_omega", -0.5, 0.5, 0.2),
         SearchDimension("grtresna_shell_dipole_amp", -0.6, 0.6, 0.0),
         SearchDimension("grtresna_shell_quadrupole_amp", -0.5, 0.5, 0.0),
@@ -445,6 +457,12 @@ def build_grtresna_config(
     # Global (ansatz-independent) initial-shift seed: aligns a non-zero beta^i
     # with the matter momentum flux so the warp/channel mechanism is reachable.
     cfg.shift_seed = _get_float("grtresna_shift_seed", cfg.shift_seed)
+
+    # Scalar field mass (matter "weight"), ansatz-independent. Heavier mass
+    # binds the lumps (smaller Compton wavelength 1/m) so they persist instead
+    # of dispersing/flying away. Propagated to both the GRTresna constraint
+    # solve and the GRTeclyn evolution, keeping the two T_ab identical.
+    cfg.scalar_mass = _get_float("grtresna_scalar_mass", cfg.scalar_mass)
 
     if any(str(k).startswith("grtresna_ring_") for k in overrides):
         num_lumps = max(3, int(round(_get_float("grtresna_ring_lumps", GRTRESNA_DEFAULT_NUM_LUMPS))))

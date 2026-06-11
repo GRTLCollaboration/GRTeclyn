@@ -11,7 +11,7 @@ from grteclyn_wrapper.search.optimize import (
 def test_shell_ansatz_search_space_is_low_dimensional() -> None:
     space = build_search_space(grtresna=True, grtresna_lumps=5, grtresna_ansatz="shell")
 
-    assert len(space) == 17
+    assert len(space) == 18
     assert {dim.param_key for dim in space} >= {
         "grtresna_shell_amp",
         "grtresna_shell_radius",
@@ -21,6 +21,7 @@ def test_shell_ansatz_search_space_is_low_dimensional() -> None:
         "grtresna_shell_poloidal_velocity",
         "grtresna_shell_exotic_fraction",
         "grtresna_shift_seed",
+        "grtresna_scalar_mass",
     }
 
 
@@ -80,6 +81,31 @@ def test_shift_seed_flows_into_grtresna_config() -> None:
 
     cfg_seeded = build_grtresna_config({**base_overrides, "grtresna_shift_seed": 0.3})
     assert cfg_seeded.shift_seed == 0.3
+
+
+def test_scalar_mass_flows_into_grtresna_config() -> None:
+    base_overrides = {
+        "grtresna_shell_lumps": 5,
+        "grtresna_shell_radius": 4.0,
+        "grtresna_shell_toroidal_velocity": 0.4,
+    }
+    cfg_default = build_grtresna_config(dict(base_overrides))
+    assert cfg_default.scalar_mass == 0.1  # GRTresnaConfig default, untouched
+
+    cfg_heavy = build_grtresna_config({**base_overrides, "grtresna_scalar_mass": 1.2})
+    assert cfg_heavy.scalar_mass == 1.2
+
+
+def test_shell_fly_away_velocities_are_capped() -> None:
+    space = build_search_space(grtresna=True, grtresna_lumps=5, grtresna_ansatz="shell")
+    by_key = {dim.param_key: dim for dim in space}
+    # Toroidal (warp motor) keeps its full range; radial/poloidal (net outflow,
+    # the "fly away") are capped tighter so matter stays bound.
+    assert by_key["grtresna_shell_radial_velocity"].upper == 0.3
+    assert by_key["grtresna_shell_poloidal_velocity"].upper == 0.8
+    assert by_key["grtresna_shell_toroidal_velocity"].upper == 1.2
+    mass = by_key["grtresna_scalar_mass"]
+    assert (mass.lower, mass.upper) == (0.3, 1.5)
 
 
 def test_shell_toroidal_current_carries_angular_momentum_about_axis() -> None:
