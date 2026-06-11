@@ -62,11 +62,11 @@ The closed loop: search proposes matter → physics builds and evolves a real
 spacetime → metrics discover FTL signatures → archive feeds the next proposal.
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'darkMode':false,'background':'#ffffff','mainBkg':'#ffffff','secondBkg':'#f8f9fa','tertiaryBkg':'#ffffff','clusterBkg':'#eef4fb','clusterBorder':'#5d6d7e','lineColor':'#2c3e50','arrowheadColor':'#2c3e50','primaryTextColor':'#111111','secondaryTextColor':'#111111','tertiaryTextColor':'#111111','primaryColor':'#e8f4fc','primaryBorderColor':'#2980b9','secondaryColor':'#eafaf1','secondaryBorderColor':'#27ae60','tertiaryColor':'#fef9e7','tertiaryBorderColor':'#d68910','edgeLabelBackground':'#ffffff','edgeLabelTextColor':'#111111','titleColor':'#111111','nodeBorder':'#5d6d7e'}}}%%
+%%{init: {'theme':'base', 'themeVariables': {'darkMode':false,'background':'#ffffff','mainBkg':'#ffffff','clusterBkg':'#ffffff','clusterBorder':'#333333','lineColor':'#333333','arrowheadColor':'#333333','primaryColor':'#ffffff','primaryBorderColor':'#333333','secondaryColor':'#ffffff','secondaryBorderColor':'#333333','tertiaryColor':'#ffffff','tertiaryBorderColor':'#333333','primaryTextColor':'#000000','secondaryTextColor':'#000000','tertiaryTextColor':'#000000','edgeLabelBackground':'#ffffff','edgeLabelTextColor':'#000000','titleColor':'#000000'}}}%%
 flowchart TB
     subgraph SEARCH["Quality-Diversity loop"]
         direction TB
-        ARCHIVE[("MAP-Elites archive<br/>8×8 cells · best score per bin")]
+        ARCHIVE["MAP-Elites archive<br/>8×8 cells · best score per bin"]
         PROPOSE["Proposer<br/>mutate elite · sample feasible box"]
         ARCHIVE --> PROPOSE
     end
@@ -86,7 +86,7 @@ flowchart TB
         PLOTS --> PROBES --> FITNESS
     end
 
-    LOG[("trajectory.jsonl<br/>all evals logged")]
+    LOG["trajectory.jsonl<br/>all evals logged"]
 
     PROPOSE -->|"18-D shell params<br/>params.txt"| GRTRESNA
     GRTRESNA -.->|"rejected solve<br/>Ham/Mom > gate"| LOG
@@ -94,22 +94,12 @@ flowchart TB
     FITNESS -->|"descriptor → bin"| ARCHIVE
     FITNESS -->|"score · status"| LOG
     PROPOSE -.-> ARCHIVE
-
-    classDef search fill:#e8f4fc,stroke:#2980b9,stroke-width:2px,color:#000
-    classDef physics fill:#eafaf1,stroke:#27ae60,stroke-width:2px,color:#000
-    classDef metrics fill:#fef9e7,stroke:#d68910,stroke-width:2px,color:#000
-    classDef store fill:#f4ecf7,stroke:#8e44ad,stroke-width:2px,color:#000
-
-    class ARCHIVE,PROPOSE search
-    class GRTRESNA,GRTECLYN physics
-    class PLOTS,PROBES,FITNESS metrics
-    class LOG store
 ```
 
 ### Diagram — matter-first vs metric-first
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'darkMode':false,'background':'#ffffff','mainBkg':'#ffffff','secondBkg':'#f8f9fa','tertiaryBkg':'#ffffff','clusterBkg':'#eef4fb','clusterBorder':'#5d6d7e','lineColor':'#2c3e50','arrowheadColor':'#2c3e50','primaryTextColor':'#111111','secondaryTextColor':'#111111','tertiaryTextColor':'#111111','primaryColor':'#e8f4fc','primaryBorderColor':'#2980b9','secondaryColor':'#eafaf1','secondaryBorderColor':'#27ae60','tertiaryColor':'#fef9e7','tertiaryBorderColor':'#d68910','edgeLabelBackground':'#ffffff','edgeLabelTextColor':'#111111','titleColor':'#111111','nodeBorder':'#5d6d7e'}}}%%
+%%{init: {'theme':'base', 'themeVariables': {'darkMode':false,'background':'#ffffff','mainBkg':'#ffffff','clusterBkg':'#ffffff','clusterBorder':'#333333','lineColor':'#333333','arrowheadColor':'#333333','primaryColor':'#ffffff','primaryBorderColor':'#333333','secondaryColor':'#ffffff','secondaryBorderColor':'#333333','tertiaryColor':'#ffffff','tertiaryBorderColor':'#333333','primaryTextColor':'#000000','secondaryTextColor':'#000000','tertiaryTextColor':'#000000','edgeLabelBackground':'#ffffff','edgeLabelTextColor':'#000000','titleColor':'#000000'}}}%%
 flowchart LR
     subgraph CLASSIC["Metric-first (classic warp literature)"]
         direction TB
@@ -128,11 +118,6 @@ flowchart LR
         M4["4. Measure FTL in the evolved field<br/>coordinate · sustained · geodesic"]
         M1 --> M2 --> M3 --> M4
     end
-
-    classDef classic fill:#fdedec,stroke:#c0392b,stroke-width:2px,color:#000
-    classDef ours fill:#eafaf1,stroke:#1e8449,stroke-width:2px,color:#000
-    class C1,C2,C3,C4 classic
-    class M1,M2,M3,M4 ours
 ```
 
 ---
