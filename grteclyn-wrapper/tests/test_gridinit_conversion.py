@@ -91,10 +91,8 @@ def test_stationarity_reads_seeded_gridinit_shift_magnitude(
     be read from the *real* seeded shift magnitude in the gridinit: a strongly
     sheared geometry is non-stationary, a near-zero one is stationary."""
     from grteclyn_wrapper.grtresna.io import write_gridinit
-    from grteclyn_wrapper.metrics.episode_metrics import (
-        STATIONARY_BETA_EPS,
-        read_comoving_metrics,
-    )
+    from grteclyn_wrapper.metrics import STATIONARY_BETA_EPS
+    from grteclyn_wrapper.metrics.diagnostics.comoving import read_comoving_metrics
 
     n = 16
     comp_names = ["chi", "shift1", "shift2", "shift3"]

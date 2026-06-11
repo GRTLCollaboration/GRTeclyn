@@ -8,7 +8,7 @@ from typing import Any, Mapping
 
 from ..core.episode import Episode, update_metadata
 from ..projection.postload_gate import PostLoadGateConfig, run_postload_gate
-from ..metrics.ftl_solved_geometry import compute_solved_geometry_ftl
+from ..metrics.probes.ftl.solved import compute_solved_geometry_ftl
 from .grtresna_convergence_gate import (
     GRTRESNA_REJECTION_BASE_FITNESS,
     GRTRESNA_REJECTION_MAX_EXTRA_FITNESS,

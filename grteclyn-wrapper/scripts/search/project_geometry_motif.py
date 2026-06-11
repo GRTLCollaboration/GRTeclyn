@@ -39,7 +39,7 @@ from grteclyn_wrapper.initial_data.motif import (
     read_motif_json,
     write_motif_json,
 )
-from grteclyn_wrapper.metrics.motif_preservation import (
+from grteclyn_wrapper.projection.motif_preservation import (
     compare_motif_preservation,
     write_preservation_report,
 )

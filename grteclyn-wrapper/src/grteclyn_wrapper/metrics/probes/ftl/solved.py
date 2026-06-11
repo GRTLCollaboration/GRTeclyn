@@ -14,8 +14,8 @@ from typing import Sequence
 import numpy as np
 from numpy.typing import NDArray
 
-from ..grtresna.io import GridinitData, read_gridinit
-from .ftl_general import GeneralFtlReport, operational_ftl_on_grid
+from ....grtresna.io import GridinitData, read_gridinit
+from .general import GeneralFtlReport, operational_ftl_on_grid
 
 MECHANISM_MIN_SCORE: float = 0.05
 

@@ -15,7 +15,7 @@ from ..core.params import write_params
 from ..core.runner import run_episode
 from ..initial_data.constrained_recipe import constrained_overrides
 from ..initial_data.preflight import PreflightResult, preflight_check
-from ..metrics.episode_metrics import EpisodeMetrics, dataclass_to_dict, read_episode_metrics
+from ..metrics import EpisodeMetrics, dataclass_to_dict, read_episode_metrics
 from ..metrics.score import Score, score_episode
 
 

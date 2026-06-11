@@ -9,12 +9,11 @@ from typing import Any
 
 import numpy as np
 
+from ..grtresna.io import read_gridinit
 from ..grtresna.motif_fit import estimate_momentum_source, read_fitted_matter_json
 from ..initial_data.motif import GeometryMotif, read_motif_json
-from .ftl_solved_geometry import build_xz_slice_from_gridinit, compute_solved_geometry_ftl
-from .ftl_metrics import calculate_expansion_asymmetry
-from ..grtresna.io import read_gridinit
-
+from ..metrics.probes.ftl.analytic import calculate_expansion_asymmetry
+from ..metrics.probes.ftl.solved import build_xz_slice_from_gridinit, compute_solved_geometry_ftl
 
 POLARITY_TOLERANCE = 0.35
 LOCALIZATION_TOLERANCE = 0.5

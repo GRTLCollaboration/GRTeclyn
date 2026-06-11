@@ -5,7 +5,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from grteclyn_wrapper.initial_data.constrained_recipe import constrained_overrides
-from grteclyn_wrapper.metrics.ftl_metrics import compute_ftl_metrics
+from grteclyn_wrapper.metrics.probes.ftl.analytic import compute_ftl_metrics
 from grteclyn_wrapper.metrics import read_episode_metrics, score_episode
 from grteclyn_wrapper.initial_data.seeds import get_seed
 

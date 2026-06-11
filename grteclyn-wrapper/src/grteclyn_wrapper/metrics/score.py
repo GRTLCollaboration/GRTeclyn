@@ -4,7 +4,7 @@ import math
 from dataclasses import dataclass, field
 from typing import Mapping
 
-from .episode_metrics import STATIONARY_BETA_EPS, EpisodeMetrics
+from .types import STATIONARY_BETA_EPS, EpisodeMetrics
 
 
 DEFAULT_WEIGHTS: dict[str, float] = {
@@ -123,6 +123,11 @@ def domain_half_width_from_overrides(
 # candidate.
 HORIZON_OFFCENTER_FRACTION: float = 0.5
 
+# Below this peak matter energy density there is effectively no structure to
+# persist, so the structural-persistence ratio is left undefined (survival is
+# not persistence-gated) rather than dividing by numerical noise.
+_RHO_PERSISTENCE_FLOOR: float = 1.0e-8
+
 
 def score_episode(
     metrics: EpisodeMetrics,
@@ -145,13 +150,41 @@ def score_episode(
     elif metrics.constraints and metrics.constraints.final_time is not None:
         final_time = metrics.constraints.final_time
 
+    # Numerical survival: did the integrator reach the configured stop time
+    # without crashing?  This is a *necessary* condition but NOT sufficient --
+    # empty/dissipated space is the easiest thing to march to the end, so on its
+    # own this perversely rewards junk (a candidate whose matter completely
+    # disperses still scores 1.0).  We therefore gate it by structural
+    # persistence below.
     if target_stop_time and target_stop_time > 0 and final_time is not None:
-        components["survival"] = min(final_time / target_stop_time, 1.0)
+        numerical_survival = min(final_time / target_stop_time, 1.0)
     elif final_time is not None:
-        components["survival"] = 1.0
+        numerical_survival = 1.0
     else:
-        components["survival"] = 0.0
+        numerical_survival = 0.0
         notes.append("no time-series diagnostics were found")
+
+    # Structural persistence: fraction of the peak matter energy density that is
+    # still present at the final step.  ``max_rho_required`` is the peak over the
+    # whole run, ``final_peak_rho_required`` is the value at the stop time.  A
+    # configuration that holds (or concentrates) its structure keeps this near
+    # 1.0; one that dissipates/disperses sees its peak rho collapse toward 0.
+    structural_persistence = 1.0
+    if metrics.constraints is not None:
+        peak_rho = metrics.constraints.max_rho_required
+        final_rho = metrics.constraints.final_peak_rho_required
+        if peak_rho is not None and final_rho is not None and peak_rho > _RHO_PERSISTENCE_FLOOR:
+            structural_persistence = float(min(max(final_rho / peak_rho, 0.0), 1.0))
+        else:
+            notes.append("matter-density time series unavailable; survival not persistence-gated")
+
+    components["numerical_survival"] = numerical_survival
+    components["structural_persistence"] = structural_persistence
+    components["survival"] = numerical_survival * structural_persistence
+    if structural_persistence < 0.5:
+        notes.append(
+            f"matter structure dissipated (retained {structural_persistence:.0%} of peak energy density)"
+        )
 
     if metrics.constraints:
         ham = metrics.constraints.max_hamiltonian_l2 or 0.0

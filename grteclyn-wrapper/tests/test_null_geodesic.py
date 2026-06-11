@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from grteclyn_wrapper.metrics.null_geodesic import (
+from grteclyn_wrapper.metrics.probes.ftl.geodesic import (
     build_metric_3d_from_plotfile,
     integrate_null_ray,
     inverse_metric_4d,

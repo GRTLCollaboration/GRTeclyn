@@ -17,8 +17,8 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 
 from ..initial_data.constrained_recipe import RecipeBasis, constrained_phi
-from ..metrics.episode_metrics import read_constraint_metrics
-from ..metrics.ftl_metrics import compute_ftl_metrics, load_overrides_from_episode
+from ..metrics.diagnostics.constraints import read_constraint_metrics
+from ..metrics.probes.ftl.analytic import compute_ftl_metrics, load_overrides_from_episode
 
 MOTOR_BETA_EPS = 0.05
 RHO_SUPPORT_FRAC = 0.15
@@ -83,7 +83,7 @@ def _unit(vec: Sequence[float]) -> tuple[float, float, float]:
 
 
 def _beta_profile(overrides: Mapping[str, Any], *, L: float) -> tuple[np.ndarray, np.ndarray]:
-    from ..metrics.ftl_metrics import _axis_profiles
+    from ..metrics.probes.ftl.analytic import _axis_profiles
 
     x, _r, _chi, _alpha, beta_x = _axis_profiles(overrides, L=L, n_points=512)
     return x, beta_x

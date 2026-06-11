@@ -17,7 +17,7 @@ from .params import write_params
 from .runner import run_episode
 from ..initial_data.constrained_recipe import constrained_overrides
 from ..initial_data.preflight import preflight_check
-from ..metrics.episode_metrics import dataclass_to_dict, read_episode_metrics
+from ..metrics import dataclass_to_dict, read_episode_metrics
 from ..metrics.score import domain_half_width_from_overrides, score_episode
 
 

@@ -17,13 +17,13 @@ from grteclyn_wrapper.core.config import resolve_example
 from grteclyn_wrapper.core.episode import create_episode
 from grteclyn_wrapper.core.plot_consumer import build_consume_command
 from grteclyn_wrapper.core.params import write_params
-from grteclyn_wrapper.metrics.episode_metrics import (
+from grteclyn_wrapper.metrics import (
     ComovingMetrics,
     CurvatureInvariantMetrics,
     EpisodeMetrics,
 )
-from grteclyn_wrapper.metrics.ftl_general import GeneralFtlReport
-from grteclyn_wrapper.metrics.null_geodesic import GeodesicFtlReport
+from grteclyn_wrapper.metrics.probes.ftl.general import GeneralFtlReport
+from grteclyn_wrapper.metrics.probes.ftl.geodesic import GeodesicFtlReport
 from grteclyn_wrapper.metrics.score import score_episode
 from grteclyn_wrapper.search.optimize import (
     _force_exotic_template,

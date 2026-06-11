@@ -15,7 +15,7 @@ from .initial_data.candidates import resolve_initial_data_overrides
 from .initial_data.constrained_recipe import constrained_overrides
 from .initial_data.seeds import get_seed, list_seeds
 from .initial_data.validate_guesser import run_validation
-from .metrics.episode_metrics import dataclass_to_dict, read_episode_metrics
+from .metrics import dataclass_to_dict, read_episode_metrics
 from .metrics.score import score_episode
 from .search.atlas import run_atlas
 from .search.optimize import run_optimize
@@ -606,7 +606,7 @@ def _run_pareto_command(args: argparse.Namespace) -> int:
 
 
 def _run_warpfactory_command(args: argparse.Namespace) -> int:
-    from .metrics import warpfactory as wf
+    from .metrics.probes import warpfactory as wf
 
     if getattr(args, "convergence", False):
         result = wf.convergence_order(

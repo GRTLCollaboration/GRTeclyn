@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 
 from grteclyn_wrapper.initial_data.constrained_recipe import RecipeBasis, fit_gaussian_basis
-from grteclyn_wrapper.metrics.ftl_metrics import (
+from grteclyn_wrapper.metrics.probes.ftl.analytic import (
     calculate_expansion_asymmetry,
     calculate_log_ftl,
     compute_ftl_metrics,

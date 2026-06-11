@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from grteclyn_wrapper.metrics.symbolic_extract import (
+from grteclyn_wrapper.analysis.symbolic_extract import (
     SymbolicMetricForm,
     verify_analytic_form,
 )

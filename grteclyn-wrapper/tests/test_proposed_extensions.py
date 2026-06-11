@@ -10,7 +10,7 @@ from tempfile import TemporaryDirectory
 import numpy as np
 
 from grteclyn_wrapper.metrics import read_episode_metrics, read_growth_metrics, score_episode
-from grteclyn_wrapper.metrics.physical_metrics import compute_physical_metrics
+from grteclyn_wrapper.metrics.probes.physical import compute_physical_metrics
 from grteclyn_wrapper.search.pareto import ParetoPoint, dominates, pareto_front
 from grteclyn_wrapper.search.qd_search import (
     QDArchive,

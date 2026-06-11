@@ -1,6 +1,6 @@
 """Episode runner utilities for orchestrating GRTeclyn simulations."""
 
-from .metrics import warpfactory
+from .metrics.probes import warpfactory
 
 __all__ = [
     "core",

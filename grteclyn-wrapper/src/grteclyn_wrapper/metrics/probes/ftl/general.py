@@ -39,7 +39,7 @@ from typing import Mapping, Sequence
 import numpy as np
 from numpy.typing import NDArray
 
-from ..initial_data.constrained_recipe import RecipeBasis
+from ....initial_data.constrained_recipe import RecipeBasis
 
 
 @dataclass(frozen=True)

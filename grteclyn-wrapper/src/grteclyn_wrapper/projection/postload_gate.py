@@ -12,7 +12,7 @@ from ..core.config import DEFAULT_RADIAL_RECIPE_TEMPLATE, resolve_example, resol
 from ..core.episode import create_episode, update_metadata
 from ..core.params import write_params
 from ..core.runner import run_episode
-from ..metrics.episode_metrics import read_constraint_metrics
+from ..metrics.diagnostics.constraints import read_constraint_metrics
 
 DEFAULT_MAX_HAM_L2 = 1.0e-2
 DEFAULT_MAX_MOM_L2 = 1.0e-2

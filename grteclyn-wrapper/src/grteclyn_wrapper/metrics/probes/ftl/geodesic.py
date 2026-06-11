@@ -24,7 +24,7 @@ from typing import Sequence
 import numpy as np
 from numpy.typing import NDArray
 
-from .warpfactory import _d_dx, stress_energy
+from ..warpfactory import _d_dx, stress_energy
 
 
 @dataclass(frozen=True)

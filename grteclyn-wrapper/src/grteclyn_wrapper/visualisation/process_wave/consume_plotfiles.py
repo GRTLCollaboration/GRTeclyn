@@ -1553,7 +1553,7 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
 
         if args_dict.get("boundary_flux", True):
             try:
-                from grteclyn_wrapper.metrics.boundary_audit import extract_scalar_boundary_flux
+                from grteclyn_wrapper.metrics.probes.boundary import extract_scalar_boundary_flux
 
                 flux = extract_scalar_boundary_flux(p)
                 if flux is not None:

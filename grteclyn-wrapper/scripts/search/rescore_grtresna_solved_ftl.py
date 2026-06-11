@@ -7,7 +7,7 @@ import argparse
 import json
 from pathlib import Path
 
-from grteclyn_wrapper.metrics.ftl_solved_geometry import (
+from grteclyn_wrapper.metrics.probes.ftl.solved import (
     compute_solved_geometry_ftl,
 )
 from grteclyn_wrapper.search.solved_ftl_gate import (

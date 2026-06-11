@@ -9,7 +9,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, replace
 
-from ..metrics.ftl_solved_geometry import SolvedGeometryFtl
+from ..metrics.probes.ftl.solved import SolvedGeometryFtl
 
 
 @dataclass(frozen=True)

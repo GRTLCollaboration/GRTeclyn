@@ -8,8 +8,8 @@ from pathlib import Path
 import numpy as np
 
 from grteclyn_wrapper.grtresna.io import GridinitData, read_gridinit, write_gridinit
-from grteclyn_wrapper.metrics.ftl_general import operational_ftl_on_grid
-from grteclyn_wrapper.metrics.ftl_solved_geometry import (
+from grteclyn_wrapper.metrics.probes.ftl.general import operational_ftl_on_grid
+from grteclyn_wrapper.metrics.probes.ftl.solved import (
     build_xz_slice_from_gridinit,
     compute_solved_geometry_ftl,
 )
