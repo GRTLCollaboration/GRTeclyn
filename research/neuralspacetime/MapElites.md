@@ -72,11 +72,20 @@ spacetime → metrics discover FTL signatures → archive feeds the next proposa
 ### Stage 0 — Quality-Diversity proposer (MAP-Elites)
 
 MAP-Elites maintains an 8×8 behavior archive keyed by a 2-D descriptor. Each
-iteration it either **mutates an existing elite** (boundary-reflected Gaussian
-perturbation, ~85% of draws) or **samples inside the feasible box** of known
-elites. Proposals are points in the `grtresna_shell` search space — an 18-D
+batch it either **mutates an existing elite** (boundary-reflected Gaussian
+perturbation, σ=0.15, ~85% of draws) or **samples inside the feasible box** of
+known elites (falling back to uniform sampling of the full space before any
+elites exist). Proposals are points in the `grtresna_shell` search space — a 19-D
 parameterization of the lump field (amplitudes, mode, thickness, toroidal /
-poloidal / radial velocities, shift seed, exotic phase, **scalar mass**, …).
+poloidal / radial velocities, shift seed, exotic phase, **scalar mass**,
+**static toggle**, …).
+
+> **Not CMA-ES.** The QD campaign is pure MAP-Elites: it illuminates the whole
+> behavior grid via elite-mutation + feasible-box sampling and never runs a
+> CMA-ES generation. The CMA-ES driver (`run_optimize` in `optimize.py`) is a
+> *separate*, single-objective optimizer used by the non-QD `run_grtresna_search.sh`;
+> the `qd` command never calls it. The two only share the `SearchDimension`
+> search-space definitions, which happen to live in `optimize.py` (see Code map).
 
 ### Stage 1 — Initial data (GRTresna, CPU/MPI)
 
@@ -173,8 +182,8 @@ The full per-component table lives in
 
 | Concern | Path |
 |---------|------|
-| QD loop, archive, descriptors | `grteclyn-wrapper/src/grteclyn_wrapper/search/qd_search.py` |
-| Search space + param overrides | `grteclyn-wrapper/src/grteclyn_wrapper/search/optimize.py` |
+| **MAP-Elites** QD loop, archive, elite-mutation, descriptors | `grteclyn-wrapper/src/grteclyn_wrapper/search/qd_search.py` |
+| Search-space (`SearchDimension`) defs + param overrides — *also* hosts the separate, unused-by-QD CMA-ES `run_optimize` | `grteclyn-wrapper/src/grteclyn_wrapper/search/optimize.py` |
 | Scoring / fitness | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/score.py` |
 | Metric aggregation | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/aggregation/collector.py` |
 | FTL probes (general / geodesic) | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/probes/ftl/` |
@@ -206,6 +215,7 @@ happened. Quick index (most consequential first):
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
+| [HQ verdict: shortcuts did not survive refinement → `v10`](#hq-verdict-shortcuts-did-not-survive-refinement--ftl_discovery_v10-2026-06-11) | 06-11 | All 3 promoted shortcuts collapsed at HQ (`f_geo` 2–3% → 0 / 0.29%); pipeline honestly rejected its own elites. Extend QD to t=16 + add static-matter toggle |
 | [`v9` review + shaping rebalance → HQ promotion](#ftl_discovery_v9-review--shaping-rebalance--hq-promotion-2026-06-11) | 06-11 | Geodesic gate fires for all evals (5 real shortcuts found); coordinate precursor out-voted validated ones → rebalanced; top 3 promoted HQ |
 | [Geodesic-reward recalibration → `v9`](#geodesic-reward-recalibration--ftl_discovery_v9-2026-06-11) | 06-11 | `v8` eval 11 scored 1066 off a real but *modest* 3.3% shortcut; rescaled so the scalar reflects magnitude |
 | [Null-geodesic reliability fix → `v8`](#null-geodesic-reliability-fix-2026-06-11-post-v7) | 06-11 | Forward-launch rays + relative-drift gate; gauge-invariant term finally fires |
@@ -896,3 +906,54 @@ Outputs in `runs/grtresna_promote/l128n256t30_ftl_discovery_v9_qd_eval0000{40,11
 Success criterion: at HQ resolution and longer evolution (t=30), the gauge-invariant
 `f_geo` survives and ideally *grows* — confirming the 2–3% shortcuts are physical, not
 discretization-limited.
+
+## HQ verdict: shortcuts did not survive refinement → `ftl_discovery_v10` (2026-06-11)
+
+All three HQ promotions completed (L=128, N=256, max_level=3, t=30). The success
+criterion above was **not met**: the gauge-invariant shortcut collapsed under
+continuum refinement in every case.
+
+| eval | QD `f_geo` | **HQ `f_geo`** | geodesic reliable? (HQ) | QD survival | HQ survival | HQ exotic penalty |
+|------|-----------|----------------|--------------------------|-------------|-------------|-------------------|
+| 11   | 3.30%     | **0.0%**       | ✅ 5/5, h_rel≈3e-4        | 1.00        | 0.64        | −0.83             |
+| 40   | 2.58%     | **0.0%**       | ✅ 5/5, h_rel≈7e-4        | 0.99        | 0.61        | −0.92             |
+| 80   | 2.33%     | **0.29%**      | ✅ 5/5, h_rel≈1e-3        | 0.56        | **0.18**    | −0.39             |
+
+**Did we discover FTL? No.** The 2–3% shortcuts that topped the `v9` leaderboard
+were resolution/gauge artifacts. At the correct resolution they vanish (evals 11,
+40) or shrink to a near-noise 0.29% on a *dissipating* structure (eval 80, survival
+0.56 → 0.18). Every candidate also still **requires exotic matter** (negative energy
+density). The coordinate-channel signals (`operational_ftl_solved`, precursor, shift)
+remained non-zero at HQ and were **correctly gated out** by the `v9` rebalance — e.g.
+eval 11's `operational_ftl` was zeroed with the note *"trustworthy geodesic probe
+found no gauge-invariant shortcut … coordinate channel is a gauge artifact."*
+
+**Why this is the pipeline working, not failing.** The point of the HQ promotion +
+reliable geodesic probe is to be a *rejection filter*. It did its job: it killed our
+own best candidates under refinement rather than rubber-stamping them. A trustworthy
+"no" on a coarse near-miss is the prerequisite for ever trusting a future "yes".
+
+### Two diagnoses → two `v10` changes
+
+1. **The QD window was too short.** Several QD "survivors" (evals 11, 40 at survival
+   ≈ 1.0 by t=8) went on to lose geometry and drift at HQ (survival 0.6, large
+   areal-radius drift over t=30). The QD loop never saw the second half of the
+   evolution, so it promoted late-unstable candidates. **Fix:** extend QD
+   `STOP_TIME` from 8 → **16** so the persistence/stability metrics observe the
+   later instability and reject it *inside the QD loop* (`PLOT_INTERVAL` scaled
+   80 → 160 to hold the ~6-frame post-processing budget).
+
+2. **Only momentum-carrying matter was ever tested.** Every shell candidate carried
+   toroidal/poloidal/radial currents + spin; we never sampled purely *static* matter,
+   where the only FTL channel is the gauge/shift seed and the geometry itself rather
+   than frame-dragging. **Fix:** add a searched `grtresna_shell_static` toggle
+   (rounded to int, starts 0 = moving matter). When set, all lump velocities and
+   `omega` are forced to zero, so the search explores static lumps alongside the
+   moving-matter family.
+
+Code: `grteclyn-wrapper/src/grteclyn_wrapper/search/optimize.py`
+(`grtresna_shell_search_space` + `build_grtresna_config` shell branch);
+`scripts/search/run_grtresna_qd_search.sh` (`STOP_TIME`, `PLOT_INTERVAL`);
+tests in `tests/test_grtresna_shell_ansatz.py` (19-dim space + static-toggle test).
+
+`ftl_discovery_v10` launched with these two changes.

@@ -330,6 +330,14 @@ def grtresna_shell_search_space(profile: str = "compact") -> list[SearchDimensio
         # unlocks the warp/channel mechanism that a zero-shift gauge cannot
         # reach; sign selects the drive direction. Default 0 = native gauge.
         SearchDimension("grtresna_shift_seed", -0.6, 0.6, 0.0),
+        # STATIC-matter toggle (rounded to int): 0 = momentum-carrying matter
+        # (toroidal/poloidal/radial currents + spin as searched above), 1 =
+        # fully static matter (all lump velocities and omega forced to zero).
+        # Lets the search test purely static lumps -- where the only available
+        # FTL channel is the gauge/shift seed and the geometry itself, not
+        # frame-dragging -- alongside the moving-matter family. Starts at 0 so
+        # the optimizer departs from the established moving-matter behaviour.
+        SearchDimension("grtresna_shell_static", 0.0, 1.0, 0.0),
     ]
 
 
@@ -532,6 +540,10 @@ def build_grtresna_config(
         v_pol = _get_float("grtresna_shell_poloidal_velocity", 0.0)
         v_rad = _get_float("grtresna_shell_radial_velocity", 0.0)
         omega = _get_float("grtresna_shell_omega", 0.0)
+        # Static-matter toggle: zero every matter current so the lumps carry no
+        # momentum (the moving-matter family is recovered when this is off).
+        if int(round(_get_float("grtresna_shell_static", 0.0))) >= 1:
+            v_tor = v_pol = v_rad = omega = 0.0
         dipole = _get_float("grtresna_shell_dipole_amp", 0.0)
         quadrupole = _get_float("grtresna_shell_quadrupole_amp", 0.0)
         exotic_fraction = min(1.0, max(0.0, _get_float("grtresna_shell_exotic_fraction", 0.4)))

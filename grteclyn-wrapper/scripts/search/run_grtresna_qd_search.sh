@@ -68,20 +68,22 @@ BINS="${BINS:-8}"
 GPU_IDS="${GPU_IDS:-0 1 2 3}"
 BATCH_SIZE="${BATCH_SIZE:-$(wc -w <<< "${GPU_IDS}")}"
 SEED="${SEED:-7}"
-# Long enough for structural dissipation to show: at t=2 a dissipating
-# configuration is indistinguishable from a persistent one (both retain ~90% of
-# peak energy density), so the persistence-gated survival metric cannot bite.
-# By t=8 a genuine survivor has plateaued (~0.7) while dissipators keep falling
-# (<0.55), which is the smallest window that cleanly separates them (~4x the
-# t=2 GPU cost).
-STOP_TIME="${STOP_TIME:-8.0}"
-# Plotfile cadence in coarse steps.  At STOP_TIME=8 / dt=0.02 there are 400
-# coarse steps, so PLOT_INTERVAL=80 yields ~6 plotfiles (t=0,1.6,..,8) -> ~6
-# frames/field instead of 12.  Late-time AMR refinement makes each yt slice
-# frame expensive, and they render in a serial burst at the batch boundary with
-# the GPUs idle, so halving the frame count roughly halves that post-processing
-# gap.  Still >= the 3 plotfiles the evolved/geodesic FTL probes need.
-PLOT_INTERVAL="${PLOT_INTERVAL:-80}"
+# Long enough for structural dissipation AND late-time instability to show: at
+# t=8 a survivor has plateaued vs a dissipator, but the HQ campaign revealed
+# QD-resolution "survivors" that still go unstable later (areal-radius drift,
+# chi drop) -- the QD window was too short to catch them, so they were promoted
+# only to fail at HQ.  Extending to t=16 lets the persistence/stability metrics
+# observe the second half of the evolution and reject those late-unstable
+# candidates *in the QD loop* instead of wasting an HQ promotion on them.
+STOP_TIME="${STOP_TIME:-16.0}"
+# Plotfile cadence in coarse steps.  At STOP_TIME=16 / dt=0.02 there are 800
+# coarse steps, so PLOT_INTERVAL=160 yields ~6 plotfiles (t=0,3.2,..,16) -> ~6
+# frames/field -- the same post-processing budget as the t=8 / interval=80 run
+# (late-time AMR refinement makes each yt slice frame expensive and they render
+# in a serial burst at the batch boundary with the GPUs idle, so frame *count*,
+# not stop_time, sets that gap).  Still >= the 3 plotfiles the evolved/geodesic
+# FTL probes need.
+PLOT_INTERVAL="${PLOT_INTERVAL:-160}"
 
 SOLVED_FTL_F_OP_FLOOR="${SOLVED_FTL_F_OP_FLOOR:-1.0e-4}"
 SOLVED_FTL_NEAR_LUMINAL_SPEED_FLOOR="${SOLVED_FTL_NEAR_LUMINAL_SPEED_FLOOR:-0.95}"

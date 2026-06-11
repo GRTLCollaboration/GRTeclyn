@@ -11,7 +11,7 @@ from grteclyn_wrapper.search.optimize import (
 def test_shell_ansatz_search_space_is_low_dimensional() -> None:
     space = build_search_space(grtresna=True, grtresna_lumps=5, grtresna_ansatz="shell")
 
-    assert len(space) == 18
+    assert len(space) == 19
     assert {dim.param_key for dim in space} >= {
         "grtresna_shell_amp",
         "grtresna_shell_radius",
@@ -22,6 +22,7 @@ def test_shell_ansatz_search_space_is_low_dimensional() -> None:
         "grtresna_shell_exotic_fraction",
         "grtresna_shift_seed",
         "grtresna_scalar_mass",
+        "grtresna_shell_static",
     }
 
 
@@ -148,6 +149,29 @@ def test_shell_poloidal_current_is_not_reachable_by_planar_ring() -> None:
     cfg = build_grtresna_config(overrides)
     max_vz = max(abs(lump["velocity"][2]) for lump in cfg.lumps)
     assert max_vz > 0.1, "poloidal current produced no vertical (over-pole) flow"
+
+
+def test_shell_static_toggle_zeroes_all_matter_currents() -> None:
+    # With the static flag set, every lump must be momentum-free regardless of
+    # the (otherwise active) toroidal/poloidal/radial velocity knobs.
+    overrides = {
+        "grtresna_shell_lumps": 6,
+        "grtresna_shell_radius": 4.0,
+        "grtresna_shell_axis_theta": 0.0,
+        "grtresna_shell_toroidal_velocity": 0.8,
+        "grtresna_shell_poloidal_velocity": 0.5,
+        "grtresna_shell_radial_velocity": 0.3,
+        "grtresna_shell_omega": 0.4,
+        "grtresna_shell_static": 1.0,
+    }
+    cfg = build_grtresna_config(overrides)
+    for lump in cfg.lumps:
+        assert lump["velocity"] == (0.0, 0.0, 0.0)
+        assert lump["omega"] == 0.0
+
+    # Same knobs with the flag off keep the moving-matter behaviour.
+    moving = build_grtresna_config({**overrides, "grtresna_shell_static": 0.0})
+    assert max(abs(v) for lump in moving.lumps for v in lump["velocity"]) > 0.1
 
 
 def test_ring_ansatz_is_unchanged() -> None:

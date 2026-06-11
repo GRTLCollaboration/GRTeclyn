@@ -15,6 +15,7 @@ constraint-satisfied initial state.
 from __future__ import annotations
 
 import logging
+import math
 import os
 import signal
 import shutil
@@ -436,13 +437,24 @@ def parse_convergence(work_dir: Path) -> dict[str, float] | None:
     if len(last) < 3:
         return None
     try:
-        return {
-            "iteration": int(last[0]),
-            "ham_pct": float(last[1]),
-            "mom_pct": float(last[2]),
-        }
+        ham_pct = float(last[1])
+        mom_pct = float(last[2])
     except (ValueError, IndexError):
         return None
+    # Static (momentum-free) matter has an identically zero momentum source, so
+    # GRTresna's *relative* momentum error is 0/0 = NaN even when the solve is
+    # perfectly converged.  A finite Hamiltonian residual proves the fields are
+    # finite, so a NaN momentum error in that case means "no momentum to
+    # violate" -> the momentum constraint is trivially satisfied (0%).  Without
+    # this, every static-matter candidate is falsely rejected as "nonfinite
+    # convergence" (a genuine divergence shows up as NaN in *both* Ham and Mom).
+    if math.isfinite(ham_pct) and not math.isfinite(mom_pct):
+        mom_pct = 0.0
+    return {
+        "iteration": int(last[0]),
+        "ham_pct": ham_pct,
+        "mom_pct": mom_pct,
+    }
 
 
 def solve(
