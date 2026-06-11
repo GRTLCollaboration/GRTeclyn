@@ -166,8 +166,75 @@ def test_ftl_shaping_rewards_scale_with_persistence() -> None:
     assert half.total < full.total
 
 
+def _episode_with_solved_ftl(max_local_speed: float, superluminal_fraction: float):
+    from grteclyn_wrapper.metrics.probes.ftl.general import GeneralFtlReport
+    from grteclyn_wrapper.metrics.types.diagnostics import ConstraintMetrics
+    from grteclyn_wrapper.metrics.types.episode import EpisodeMetrics
+
+    # Strong solved-FTL signal (f_op saturates the raw reward to 1.0); the gate
+    # must then key off the geometry of the superluminal region, not f_op alone.
+    solved = GeneralFtlReport(
+        f_op=0.05,
+        t_min=0.95,
+        t_flat=1.0,
+        max_local_speed=max_local_speed,
+        superluminal_fraction=superluminal_fraction,
+        path_offaxis=False,
+        reachable=True,
+        notes=(),
+        max_shift=0.5,
+    )
+    constraints = ConstraintMetrics(
+        final_time=2.0,
+        max_hamiltonian_l2=1.0e-4,
+        max_momentum_l2=1.0e-4,
+        final_hamiltonian_l2=1.0e-4,
+        final_momentum_l2=1.0e-4,
+        min_rho_required=0.0,
+        max_rho_required=1.0,
+        integral_negative_rho=0.0,
+        final_peak_rho_required=1.0,
+    )
+    return EpisodeMetrics(
+        collapse=None,
+        constraints=constraints,
+        stability=None,
+        comoving=None,
+        ftl=None,
+        termination_reason="",
+        general_ftl_solved=solved,
+    )
+
+
+def test_solved_ftl_gated_against_uniform_coordinate_offset() -> None:
+    """A near-uniform, marginally-superluminal field must not bank solved FTL.
+
+    A genuine warp channel is localized (small superluminal fraction) with a
+    real peak above c; a global lapse/coordinate offset has the whole slice at
+    ~1.0x and trivially saturates superluminal_fraction. The localization +
+    peak-margin gate must collapse the former and keep the latter.
+    """
+    artifact = score_episode(
+        _episode_with_solved_ftl(max_local_speed=1.017, superluminal_fraction=1.0),
+        target_stop_time=2.0,
+        objective_mode="ftl_first",
+    )
+    channel = score_episode(
+        _episode_with_solved_ftl(max_local_speed=1.20, superluminal_fraction=0.1),
+        target_stop_time=2.0,
+        objective_mode="ftl_first",
+    )
+
+    # The uniform offset is gated essentially to zero; the localized bubble keeps
+    # most of its credit.
+    assert artifact.components["operational_ftl_solved"] < 1e-6
+    assert channel.components["operational_ftl_solved"] > 0.5
+    assert channel.total > artifact.total
+
+
 if __name__ == "__main__":
     test_stability_score_distinguishes_static_from_collapsing()
     test_survival_penalises_dissipated_structure()
     test_ftl_shaping_rewards_scale_with_persistence()
+    test_solved_ftl_gated_against_uniform_coordinate_offset()
     print("stability score test passed")

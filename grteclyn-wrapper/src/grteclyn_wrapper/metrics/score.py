@@ -338,11 +338,49 @@ def score_episode(
         else 0.0
     )
     SOLVED_FTL_SCALE = 3.0e-3
-    components["operational_ftl_solved"] = (
+    # Peak must clear c by >SOLVED_PEAK_FLOOR to earn any solved-FTL credit,
+    # full credit by SOLVED_PEAK_TARGET.
+    SOLVED_PEAK_FLOOR = 0.03
+    SOLVED_PEAK_TARGET = 0.20
+    # A superluminal region covering more than this fraction of the slice reads
+    # as a global coordinate/lapse offset, not a localized channel.
+    SOLVED_LOCALITY_CEILING = 0.5
+    solved_ftl_raw = (
         min(math.log1p(f_op_solved / SOLVED_FTL_SCALE), 1.0)
         if math.isfinite(f_op_solved) and f_op_solved > 0
         else 0.0
     )
+    # Localization + peak-margin gate.  A near-uniform, marginally-superluminal
+    # coordinate field (every cell at ~1.01, max c barely > 1) trivially fills
+    # superluminal_fraction -> 1.0 and saturates this reward, yet it is a global
+    # gauge/lapse offset, not a traversable warp channel.  A genuine channel is
+    # *localized* (small superluminal fraction) and has a real peak above c, so
+    # scale the reward by how far the peak clears c AND by how localized the
+    # superluminal region is.  A sub-floor peak or a fraction >= the ceiling
+    # collapses the reward to ~0; a tight high-speed bubble keeps it.
+    solved_report = metrics.general_ftl_solved
+    if solved_ftl_raw > 0.0 and solved_report is not None:
+        peak = float(getattr(solved_report, "max_local_speed", 0.0) or 0.0)
+        frac = float(getattr(solved_report, "superluminal_fraction", 0.0) or 0.0)
+        peak_margin = max(
+            0.0,
+            min((peak - 1.0 - SOLVED_PEAK_FLOOR)
+                / (SOLVED_PEAK_TARGET - SOLVED_PEAK_FLOOR), 1.0),
+        )
+        locality = max(
+            0.0,
+            min((SOLVED_LOCALITY_CEILING - frac) / SOLVED_LOCALITY_CEILING, 1.0),
+        )
+        solved_gate = peak_margin * locality
+        components["operational_ftl_solved"] = solved_ftl_raw * solved_gate
+        if solved_gate < 1.0 and solved_ftl_raw > 0.05:
+            notes.append(
+                "operational_ftl_solved down-gated as delocalized coordinate "
+                f"offset (max c={peak:.3f}, superluminal_fraction={frac:.2f}, "
+                f"gate={solved_gate:.2f})"
+            )
+    else:
+        components["operational_ftl_solved"] = solved_ftl_raw
     if metrics.mechanism_descriptor is not None:
         components["mechanism_descriptor"] = float(
             min(max(metrics.mechanism_descriptor, 0.0), 1.0)
