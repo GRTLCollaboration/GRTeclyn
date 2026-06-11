@@ -13,10 +13,6 @@
 - [The pipeline](#the-pipeline)
   - [Diagram — end-to-end overview](#diagram--end-to-end-overview)
   - [Diagram — matter-first vs metric-first](#diagram--matter-first-vs-metric-first)
-  - [Diagram — one evaluation (sequence)](#diagram--one-evaluation-sequence)
-  - [Diagram — scoring funnel](#diagram--scoring-funnel)
-  - [Diagram — MAP-Elites archive loop](#diagram--map-elites-archive-loop)
-  - [Diagram — T_ab consistency](#diagram--t_ab-consistency)
   - [Stage 0 — Quality-Diversity proposer (MAP-Elites)](#stage-0--quality-diversity-proposer-map-elites)
   - [Stage 1 — Initial data (GRTresna, CPU/MPI)](#stage-1--initial-data-grtresna-cpumpi)
   - [Stage 2 — Evolution (GRTeclyn, GPU)](#stage-2--evolution-grteclyn-gpu)
@@ -139,185 +135,6 @@ flowchart LR
     class M1,M2,M3,M4 ours
 ```
 
-### Diagram — one evaluation (sequence)
-
-What happens inside a single `eval_NNNNNN` folder:
-
-```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryTextColor':'#000','secondaryTextColor':'#000','tertiaryTextColor':'#000','lineColor':'#000','actorTextColor':'#000','signalTextColor':'#000','noteTextColor':'#000','labelTextColor':'#000'}}}%%
-sequenceDiagram
-    autonumber
-    participant QD as MAP-Elites proposer
-    participant GR as GRTresna (CPU/MPI)
-    participant GT as GRTeclyn (GPU)
-    participant PP as Post-process (yt)
-    participant SC as score.py
-    participant AR as Archive
-
-    QD->>GR: params.txt — 18-D shell ansatz
-    Note over GR: paint N lumps → (φ, Π)<br/>Lichnerowicz/York elliptic solve
-
-    alt constraint solve converges
-        GR->>GT: initial data (χ, β, φ, Π) on grid
-        Note over GT: evolve BSSN + Klein–Gordon<br/>dump plotfiles every PLOT_INTERVAL
-        GT->>PP: plt00000 … pltNNNNN
-        PP->>PP: frames · FTL probes · geodesic rays
-        PP->>SC: EpisodeMetrics + score.json
-        SC->>AR: fitness + speed_super descriptor
-        Note over AR: replace cell incumbent<br/>only if gpu_ok and score higher
-    else solve stalls / Ham·Mom gate fails
-        GR->>QD: status rejected — logged, no archive cell
-    end
-```
-
-### Diagram — scoring funnel
-
-Raw simulation output is filtered through reliability gates before contributing to
-the scalar fitness. The gauge-invariant geodesic term sits at the top; coordinate
-artifacts are demoted or zeroed.
-
-```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryTextColor':'#000','secondaryTextColor':'#000','tertiaryTextColor':'#000','lineColor':'#000','actorTextColor':'#000','signalTextColor':'#000','noteTextColor':'#000','labelTextColor':'#000'}}}%%
-flowchart TB
-    IN["Plotfiles + constraint_norms.dat<br/>comoving stats · horizon diagnostics"]
-
-    subgraph STRUCTURE["Structure & health"]
-        NS["numerical_survival<br/>integrator reached stop time"]
-        DR["density_retention<br/>final ρ / peak ρ"]
-        MC["morphological_coherence<br/>3-D connected components"]
-        SP["structural_persistence<br/>= density_retention × coherence"]
-        SURV["survival = numerical × structural"]
-        NS --> SURV
-        DR --> SP --> SURV
-        MC --> SP
-    end
-
-    subgraph FTLSIG["FTL signal family"]
-        PREC["ftl_precursor · channel_progress · shift_drive<br/>shaping rewards × persistence"]
-        SOLVED["operational_ftl_solved<br/>coordinate-speed precursor"]
-        DYN["operational_ftl + ftl_persistence<br/>sustained evolved channel"]
-        GEO["operational_ftl_geodesic<br/>null-ray shortcut f_geo"]
-    end
-
-    subgraph GATES["Reliability gates"]
-        G_GEO["h_quality_ok<br/>relative H drift ≤ 1e-2<br/>5/5 rays reach detector"]
-        G_SOL["localized peak<br/>margin above c"]
-        G_STA["not stationary warp-lens<br/>β_mean ≠ 0 or dynamical FTL"]
-        G_PERS["structural_persistence > 0"]
-    end
-
-    IN --> STRUCTURE
-    IN --> FTLSIG
-
-    G_GEO --> GEO
-    G_SOL --> SOLVED
-    G_STA --> SOLVED
-    G_STA --> PREC
-    G_PERS --> PREC
-    G_PERS --> SP
-
-    OUT["ftl_first fitness<br/>weighted sum + vetoes"]
-
-    SURV --> OUT
-    PREC --> OUT
-    SOLVED --> OUT
-    DYN --> OUT
-    GEO --> OUT
-
-    classDef top fill:#d5f5e3,stroke:#1e8449,stroke-width:3px,color:#000
-    classDef mid fill:#fef9e7,stroke:#d68910,stroke-width:2px,color:#000
-    classDef gate fill:#ebf5fb,stroke:#2874a6,stroke-width:1px,color:#000
-    classDef health fill:#f8f9f9,stroke:#566573,stroke-width:1px,color:#000
-
-    class GEO top
-    class DYN,SOLVED mid
-    class G_GEO,G_SOL,G_STA,G_PERS gate
-    class SURV,SP,MC,DR,NS health
-```
-
-Weight hierarchy (approximate): `operational_ftl_geodesic` ×1500 ≫
-`operational_ftl` ×400 ≫ `ftl_persistence` ×300 ≫ `operational_ftl_solved` ×180 ≫
-health block ×(survival 70 + stability 10 + …).
-
-### Diagram — MAP-Elites archive loop
-
-Diversity is enforced by the behavior grid; quality is the scalar score within each
-cell.
-
-```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryTextColor':'#000','secondaryTextColor':'#000','tertiaryTextColor':'#000','lineColor':'#000','actorTextColor':'#000','signalTextColor':'#000','noteTextColor':'#000','labelTextColor':'#000'}}}%%
-flowchart TB
-    subgraph DESCRIPTOR["speed_super descriptor → 8×8 bin"]
-        direction TB
-        subgraph YAXIS["y-axis: superluminal_fraction"]
-            YH["bin 7 — widespread superluminal region"]
-            YM["bins 2–6 — partial coverage"]
-            YL["bin 0 — localized / rare superluminal patches"]
-        end
-        subgraph XAXIS["x-axis: max_local_speed (cone-tilt)"]
-            XL["bin 0 — sub-threshold tilt"]
-            XM["bins 2–6 — moderate tilt"]
-            XH["bin 7 — strong tilt"]
-        end
-    end
-
-    NEW["New candidate<br/>descriptor → cell [i, j]"]
-    CELL["Cell [i, j]<br/>incumbent elite"]
-    DECIDE{score ><br/>incumbent?}
-    REPLACE["Replace incumbent<br/>archive improves"]
-    DISCARD["Discard candidate<br/>cell unchanged"]
-    MUTATE["Next iteration:<br/>mutate elite or sample feasible box"]
-
-    NEW --> DECIDE
-    CELL --> DECIDE
-    DECIDE -->|yes · gpu_ok| REPLACE
-    DECIDE -->|no| DISCARD
-    REPLACE --> MUTATE
-    DISCARD --> MUTATE
-    MUTATE --> NEW
-    REPLACE -.-> CELL
-
-    classDef grid fill:#ebf5fb,stroke:#2874a6,color:#000
-    classDef action fill:#eafaf1,stroke:#1e8449,color:#000
-    class NEW,CELL,DECIDE,REPLACE,DISCARD,MUTATE action
-```
-
-Only `gpu_ok` candidates may occupy archive cells. Rejected GRTresna solves are
-still written to `trajectory.jsonl` but never pollute the grid.
-
-### Diagram — T_ab consistency
-
-The single most important invariant: the same stress-energy enters the constraint
-solve and the time evolution.
-
-```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryTextColor':'#000','secondaryTextColor':'#000','tertiaryTextColor':'#000','lineColor':'#000','actorTextColor':'#000','signalTextColor':'#000','noteTextColor':'#000','labelTextColor':'#000'}}}%%
-flowchart LR
-    MATTER["Matter ansatz<br/>N independent scalar lumps φ_k<br/>shared potential V = ½m²(Σφ_k)²"]
-
-    subgraph GRT["GRTresna — initial data"]
-        T1["T_μν from (φ, Π)<br/>GRTresnaIndependentScalars"]
-        SOLVE["York / Lichnerowicz solve<br/>χ · β^i"]
-    end
-
-    subgraph GTE["GRTeclyn — evolution"]
-        T2["T_μν from (φ, Π)<br/>same GRTresnaIndependentScalars"]
-        EVOLVE["BSSN/CCZ4 RHS<br/>matter Klein–Gordon RHS"]
-    end
-
-    MATTER --> T1 --> SOLVE
-    SOLVE -->|"consistent ID"| EVOLVE
-    MATTER --> T2 --> EVOLVE
-
-    BAD["Off-constraint start<br/>apparent FTL = relaxation transient"]
-    T1 -.->|"T_μν mismatch"| BAD
-
-    classDef good fill:#eafaf1,stroke:#1e8449,stroke-width:2px,color:#000
-    classDef bad fill:#fdedec,stroke:#c0392b,stroke-width:2px,color:#000
-    class T1,T2,SOLVE,EVOLVE,MATTER good
-    class BAD bad
-```
-
 ---
 
 ### Stage 0 — Quality-Diversity proposer (MAP-Elites)
@@ -355,14 +172,15 @@ and the gauge-invariant **null-geodesic shortcut** (`operational_ftl_geodesic`).
 
 `score.py` collapses the diagnostics into a single `ftl_first` fitness. Only
 `gpu_ok` candidates compete for a behavior cell; the new candidate replaces the
-incumbent if it scores higher. The updated archive feeds the next proposer step.
+incumbent if it scores higher. Rejected GRTresna solves are still written to
+`trajectory.jsonl` but never pollute the archive grid. The updated archive feeds
+the next proposer step.
 
 ## The hard consistency rule
 
 `T_ab` used in the GRTresna **constraint solve** must equal `T_ab` used in the
 GRTeclyn **evolution**. Otherwise the run starts off-constraint and any apparent
-"FTL" is a constraint-relaxation transient, not physics. See
-[Diagram — T_ab consistency](#diagram--t_ab-consistency) above.
+"FTL" is a constraint-relaxation transient, not physics.
 
 The `grtresna_independent_scalars` matter path exists precisely to keep both
 sides identical; any new matter sector (mass search, `λφ⁴`, complex field) must be
@@ -401,6 +219,10 @@ Fitness is the `ftl_first` objective in `metrics/score.py`. Headline structure:
 - **Vetoes / penalties.** Horizon formation, energy-condition / exotic use,
   instability, and stationary "warp-lens" coordinate artifacts are penalized or
   zeroed so the leaderboard tracks genuine, evolving, bound geometries.
+
+Weight hierarchy (approximate): `operational_ftl_geodesic` ×1500 ≫
+`operational_ftl` ×400 ≫ `ftl_persistence` ×300 ≫ `operational_ftl_solved` ×180 ≫
+health block ×(survival 70 + stability 10 + …).
 
 The full per-component table lives in
 `grteclyn-wrapper/src/grteclyn_wrapper/metrics/README.md`.
