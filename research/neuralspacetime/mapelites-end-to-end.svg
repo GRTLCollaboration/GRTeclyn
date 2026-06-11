@@ -103,5 +103,6 @@
 
   <!-- archive feedback to proposer on the right -->
   <path class="edge" d="M600 1018 L820 1018 L820 130 L600 130" />
-  <text class="lbl" x="856" y="574" transform="rotate(90 856 574)">mutate elite / sample feasible box</text>
+  <rect class="lblbg" x="616" y="1027" width="284" height="22" />
+  <text class="lbl" x="758" y="1043">mutate elite / sample feasible box</text>
 </svg>
