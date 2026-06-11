@@ -56,13 +56,10 @@ EMTensor<matter_t, em_tensor_options>::operator()(
         state.cellData(ix, iy, iz);
     Vars vars(state_cell_data);
 
-    const auto d1_h  = m_deriv.diff1_sym_tensor(ix, iy, iz, state, c_h11);
-    const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
-    const auto chris = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
+    const auto h_UU = CCZ4Geometry::compute_inverse_metric(vars);
 
-    const typename matter_t::D1Vars d1_scalar(ix, iy, iz, state, m_deriv);
     const auto emtensor =
-        m_matter.compute_emtensor(vars, d1_scalar, h_UU, chris.ULL);
+        m_matter.compute_emtensor(ix, iy, iz, state, m_deriv, h_UU);
 
     emtensor_out(ix, iy, iz, m_dcomp) = emtensor.rho;
 

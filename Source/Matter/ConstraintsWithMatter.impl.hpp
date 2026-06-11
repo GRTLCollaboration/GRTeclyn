@@ -56,9 +56,8 @@ ConstraintsWithMatter<matter_t>::operator()(
                                              d1_A, d2_chi, d2_h, h_UU, chris);
 
     // Energy Momentum Tensor
-    const typename matter_t::D1Vars d1_scalar(ix, iy, iz, state, m_deriv);
     const auto emtensor =
-        my_matter.compute_emtensor(vars, d1_scalar, h_UU, chris.ULL);
+        my_matter.compute_emtensor(ix, iy, iz, state, m_deriv, h_UU);
 
     // Hamiltonian constraint
     if (m_c_Ham >= 0 || m_c_Ham_abs_terms >= 0)

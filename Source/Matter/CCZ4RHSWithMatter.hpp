@@ -53,21 +53,20 @@ class CCZ4RHSWithMatter : public CCZ4RHS<gauge_t, deriv_t>
     //!  \sa matter_rhs_equation()
     template <int formulation, int use_covariant_Z4>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    operator()(int ix, int iy, int iz,
+    operator()(const int ix, const int iy, const int iz,
                const amrex::Array4<amrex::Real> &rhs_state,
                const amrex::Array4<amrex::Real const> &state) const;
 
   protected:
     //! The function which adds in the EM Tensor terms to the CCZ4 rhs \sa
     //! compute()
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    add_emtensor_rhs(const amrex::CellData<amrex::Real> &
-                         rhs, //!< the RHS data for each variable at that point.
-                     const typename matter_t::Vars
-                         &vars, //!< the value of the variables at the point.
-                     const typename matter_t::D1Vars &d1_scalar,
-                     const amrex::Array2D<amrex::Real, 0, UNIQUE_IDX - 1, 0,
-                                          AMREX_SPACEDIM - 1> &d1_h) const;
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void add_emtensor_rhs(
+        const int ix, const int iy, const int iz,
+        const amrex::Array4<amrex::Real>
+            &rhs_state, //!< the RHS data for each variable at that point.
+        const amrex::Array4<const amrex::Real>
+            &state) //!< the current value of the variables at the point.
+        const;
 
     // Class members
     matter_t m_matter; //!< The matter object, e.g. a scalar field.
