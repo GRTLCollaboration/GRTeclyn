@@ -107,7 +107,14 @@ _SPEED_HORIZON_THETA_SCALE = 0.5
 # separate a localized cone-tilt from a widespread superluminal region.
 _SPEED_SUPER_C_FLOOR = 0.95
 _SPEED_SUPER_C_TARGET = 1.20
-_SPEED_SUPER_FRACTION_TARGET = 0.30
+# ``superluminal_fraction`` is now measured with a 0.05 margin above c=1 (see
+# ``SUPERLUMINAL_MARGIN`` in the general FTL probe), so it tracks the genuinely
+# superluminal *area* (cone-tilted lobes at c ~ 1.08-1.18) rather than the broad
+# gauge-shift background (~1.03) that previously saturated it to 1.0.  The
+# noise-free fraction spreads over ~0.04-0.17 for the observed candidates, so
+# the descriptor target is lowered to keep that range across the grid instead of
+# clustering in the top bin.
+_SPEED_SUPER_FRACTION_TARGET = 0.15
 
 
 def _speed_tilt_axis(

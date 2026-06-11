@@ -226,10 +226,11 @@ def test_speed_super_y_axis_tracks_superluminal_fraction() -> None:
     assert abs(d_loc["x"] - d_wide["x"]) < 1e-9
     assert d_loc["speed_tilt"] == d_loc["x"]
     # ...but y-axis separates localized from widespread superluminal regions.
-    # y is rescaled by the observed solved ceiling (~0.30): 0.06 -> 0.20, 0.30 -> 1.0,
-    # so the realistic 0-0.30 range fills the grid instead of clustering in bin 0.
+    # y is rescaled by the noise-free solved ceiling (~0.15, after the c=1 margin
+    # removed the saturated-to-1.0 gauge-shift background): 0.06 -> 0.40,
+    # 0.30 -> 1.0, so the realistic range fills the grid instead of clustering.
     assert d_wide["y"] > d_loc["y"]
-    assert abs(d_loc["y"] - 0.20) < 1e-9
+    assert abs(d_loc["y"] - 0.40) < 1e-9
     assert abs(d_wide["y"] - 1.0) < 1e-9
     assert _bin_index(d_loc["y"], 8) < _bin_index(d_wide["y"], 8)
     # Raw (un-rescaled) fraction is preserved for diagnostics.

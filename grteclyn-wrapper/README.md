@@ -321,15 +321,79 @@ Shell 16D parameters: `amp`, `width`, `radius`, `thickness`, orientation axis `(
 
 ### Scoring
 
-**`channel_progress`** (2026-06-05): `path_closeness × √(ftl_precursor × shift_drive)`. Rewards coupled path + cone opening + frame drag; `operational_ftl` remains the hard success gate. Scores are **not comparable** across campaigns that predate this component.
+QD/CMA-ES campaigns score with `objective_mode="ftl_first"` (`metrics/score.py`,
+`score_episode`). The total is a weighted sum split into three roles. Scores are
+**not comparable** across campaigns with different weights/components — always
+re-score with the current code before ranking historical runs.
 
-| Component | Weight | Notes |
-|-----------|-------:|-------|
-| `operational_ftl` | 1000 | End-to-end shortcut gate |
-| `channel_progress` | 200 | Coupled mechanism shaping |
-| `ftl_precursor` | 160 | Cone opening (down from 250) |
-| `shift_drive` | 100 | Frame-drag motor |
-| `operational_ftl_solved` | 150 | Pre-evolution FTL on `.gridinit` |
+**Tier 1 — validated FTL** (the actual goal; kept dominant so a real result always wins):
+
+| Component | Weight | Meaning |
+|-----------|-------:|---------|
+| `operational_ftl_geodesic` | 1500 | Gauge-invariant geodesic shortcut (reliability-gated) |
+| `operational_ftl` | 400 | Evolved coordinate-time shortcut vs flat baseline (Dijkstra) |
+| `ftl_persistence` | 300 | Shortcut sustained across the last retained plotfiles |
+| `operational_ftl_solved` | 180 | Constraint-solved t=0 shortcut, localization + peak-margin gated |
+
+**Tier 2 — shaping gradients** (coordinate cone-tilt heuristics that only *point* toward FTL; cut to ~40% so they guide without out-voting health):
+
+| Component | Weight | Meaning |
+|-----------|-------:|---------|
+| `channel_progress` | 150 | `path_closeness × √(ftl_precursor × shift_drive)` |
+| `ftl_precursor` | 30 | Local cone-tilt past `c=1` + superluminal area (graded, not binary) |
+| `shift_drive` | 20 | Frame-drag motor (`max_shift`) |
+
+**Tier 3 — health/survival** (gated by a non-triviality factor so flat Minkowski cannot bank them; boosted so a coherent, persistent, stable structure ranks on par with a strong shaping signal):
+
+| Component | Weight | Meaning |
+|-----------|-------:|---------|
+| `survival` | 70 | `numerical_survival × structural_persistence` (see below) |
+| `instability_penalty` | 15 | Geometric drift penalty |
+| `stability` | 10 | Bounded stability reward |
+| `comoving_stability` | 8 | Co-moving-frame drift |
+| `constraint_health` | 6 | Evolved Ham/Mom constraint quality |
+
+`exotic_penalty` (NEC-violating matter) and a graded `stationary_artifact_penalty` subtract; a trapped-surface `horizon_penalty` (−500 weight) vetoes high-local-speed artifacts that are not traversable.
+
+#### Survival = numerical_survival × structural_persistence
+
+`numerical_survival` alone (did the integrator reach `stop_time`?) perversely
+rewards junk — empty/dissipated space is the easiest thing to march to the end.
+It is therefore gated by **structural persistence**, itself the product of two
+independent failure modes:
+
+- **Density retention** — fraction of the peak matter energy density still
+  present at `stop_time` (`final_peak_rho_required / max_rho_required` from
+  `constraint_norms.dat`). A configuration that dissipates sees its peak rho
+  collapse toward 0.
+- **Morphological coherence** — whether the surviving matter is still a single
+  connected structure or has fragmented into disconnected pieces. Density
+  retention is blind to this (a bubble that splits into two equally-dense lobes
+  keeps its peak). `structure_coherence` (in `metrics/probes/ftl/general.py`)
+  samples the 3D scalar activity `√(φ² + Π²)` on a level-0 covering grid, labels
+  the connected components, and returns `~1/k` for `k` comparable pieces. It is
+  measured in **3D** (a single 2D slice is orientation-dependent), so a
+  connected dumbbell/ring reads as coherent (1.0) while genuinely dispersed
+  matter is penalised. It rides on `general_ftl_evolved` and defaults to 1.0
+  when the plotfile is unavailable.
+
+`structural_persistence` also gates the Tier-2 shaping rewards
+(`ftl_precursor`, `channel_progress`, `shift_drive`) — a structure that
+dissipates or fragments cannot bank "promising precursor" credit for cones
+tilting in matter that no longer holds together.
+
+#### Superluminal-fraction margin (de-saturation)
+
+The coordinate light speed exceeds `c=1` wherever there is *any* appreciable
+shift, so a broad frame-drag background sits at `c ~ 1.03` across most of the
+slice — a gauge feature, not a channel. A bare `> 1.0` test marked ~75% of the
+slice superluminal, saturating both the QD `superluminal_fraction` descriptor
+(everything piled into one bin) and the precursor area term. `SUPERLUMINAL_MARGIN
+= 0.05` (in `metrics/probes/ftl/general.py`) counts only cells genuinely past
+`c=1.05`, separating the cone-tilted lobes (`c ~ 1.08–1.18`) from the shift
+background. The precursor speed/area scales (`0.15`) and the `speed_super`
+descriptor target (`0.15`, in `search/qd_search.py`) are calibrated to the
+resulting noise-free range (~`0.04–0.17`).
 
 **`SHELL_PROFILE`** bounds presets (`search/optimize.py`, `SHELL_PROFILE` env):
 
@@ -822,6 +886,13 @@ GRTresna solves Hamiltonian + momentum constraints in 3D and hands GRTeclyn cons
 - `channel_progress` + `SHELL_PROFILE` presets (2026-06-05)
 - GRTresna NL early exit (`NL_exit_tolerance` + `NL_stall_tolerance`) and parallel
   Chombo→`.gridinit` conversion exposed via launcher env vars / CLI (2026-06-09)
+- Survival hardened (2026-06-11): `survival = numerical_survival × structural_persistence`,
+  with `structural_persistence = density_retention × morphological_coherence` (3D
+  connected-component count of the matter activity). Persistence also gates the
+  cone-tilt shaping rewards. `ftl_first` weights rebalanced so survival/stability
+  matter on par with the (cut) shaping gradients; `ftl_precursor` de-saturated into
+  a gradient; `SUPERLUMINAL_MARGIN=0.05` de-saturates the QD superluminal-fraction
+  descriptor
 
 ### One-off GRTresna solve
 

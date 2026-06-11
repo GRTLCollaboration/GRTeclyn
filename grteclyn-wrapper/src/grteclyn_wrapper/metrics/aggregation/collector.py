@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -25,6 +26,7 @@ from ..probes.ftl.general import (
     compute_general_ftl_from_plotfile,
     find_latest_plotfile,
     find_recent_plotfiles,
+    matter_coherence_from_plotfile,
     wait_for_plotfile_complete,
 )
 from ..probes.ftl.geodesic import (
@@ -63,6 +65,10 @@ def read_episode_metrics(
                 general_ftl_evolved = compute_general_ftl_from_plotfile(
                     plotfile, n=129, L=ctx.ftl_L
                 )
+                coherence = matter_coherence_from_plotfile(plotfile, n=64)
+            general_ftl_evolved = replace(
+                general_ftl_evolved, structure_coherence=coherence
+            )
     except Exception:
         general_ftl_evolved = None
 

@@ -41,6 +41,19 @@ from numpy.typing import NDArray
 
 from ....initial_data.constrained_recipe import RecipeBasis
 
+# Margin above the asymptotic light speed (c = 1) that a cell must clear to be
+# counted as genuinely superluminal.  A bare ``> 1.0`` test marks almost the
+# whole slice superluminal (fraction saturates at 1.0): the coordinate light
+# speed exceeds 1 wherever there is *any* appreciable shift, so a broad
+# frame-drag background sits at c ~ 1.03 across most of the slice (median
+# observed ~1.026-1.029) -- a gauge feature, not a genuine channel.  This both
+# collapses the QD ``superluminal_fraction`` descriptor into one bin and
+# saturates the precursor area term.  Empirically the genuine cone-tilted lobes
+# reach c ~ 1.08-1.18 while the shift background stays below ~1.05, so a 0.05
+# margin cleanly separates them: the resulting fraction spreads across the
+# observed candidates (~0.04-0.17) instead of saturating.
+SUPERLUMINAL_MARGIN: float = 0.05
+
 
 @dataclass(frozen=True)
 class GeneralFtlReport:
@@ -50,11 +63,12 @@ class GeneralFtlReport:
     t_min: float | None  #: fastest causal coordinate-time from source to target
     t_flat: float  #: flat-space baseline coordinate-time (Euclidean distance)
     max_local_speed: float  #: max one-way coordinate light speed on the slice
-    superluminal_fraction: float  #: fraction of cells with local speed > 1
+    superluminal_fraction: float  #: fraction of cells with local speed > 1 + margin
     path_offaxis: bool  #: whether the fastest path leaves the straight axis
     reachable: bool  #: whether the target was reachable from the source
     notes: tuple[str, ...]
     max_shift: float = 0.0  #: max shift-vector magnitude on the sampled slice
+    structure_coherence: float | None = None  #: matter-morphology coherence in (0, 1]
 
 
 def coordinate_light_speed(
@@ -172,7 +186,7 @@ def operational_ftl_on_grid(
     # for the superluminal-fraction diagnostic.  Vectorised over the grid.
     local_max = _local_max_speed_grid(alpha, beta, gamma, spacing)
     max_local_speed = float(local_max.max())
-    superluminal_fraction = float(np.mean(local_max > 1.0))
+    superluminal_fraction = float(np.mean(local_max > 1.0 + SUPERLUMINAL_MARGIN))
     max_shift = float(np.linalg.norm(beta, axis=-1).max())
 
     dist = np.full((ni, nj), np.inf, dtype=float)
@@ -528,3 +542,87 @@ def compute_general_ftl_from_plotfile(
     return operational_ftl_on_grid(
         alpha, beta, gamma, spacing=spacing, source=(1, mid), target=(n - 2, mid)
     )
+
+
+def structure_coherence(activity: NDArray[np.float64]) -> float:
+    """Morphological coherence of a positive matter-activity slice, in (0, 1].
+
+    ``1.0`` for a single connected lump; ``~1/k`` for a structure that has
+    fragmented into ``k`` comparable pieces (e.g. a coherent bubble that
+    shatters into two counter-rotating lobes scores ~0.5).  A near-empty slice
+    returns ``1.0`` so that *dissipation* is governed by the density-retention
+    term (``structural_persistence``) rather than double-counted here -- this
+    factor only penalises *fragmentation* of whatever structure remains.
+
+    Implementation: smooth to suppress single-cell speckle, threshold at a
+    fraction of the peak so only genuine matter concentrations count as
+    structure, label the connected regions, and count those holding a
+    meaningful share of the dominant region's mass.
+    """
+    from scipy import ndimage  # local import: heavy optional dependency
+
+    a = np.asarray(activity, dtype=float)
+    a = np.where(np.isfinite(a), a, 0.0)
+    peak = float(a.max()) if a.size else 0.0
+    if peak <= 0.0:
+        return 1.0
+
+    smoothed = ndimage.gaussian_filter(a, sigma=1.0)
+    smax = float(smoothed.max())
+    if smax <= 0.0:
+        return 1.0
+    mask = smoothed >= 0.25 * smax
+    if not mask.any():
+        return 1.0
+
+    labels, n_comp = ndimage.label(mask)
+    if n_comp <= 1:
+        return 1.0
+
+    masses = np.asarray(
+        ndimage.sum(smoothed, labels, index=range(1, n_comp + 1)), dtype=float
+    )
+    dominant = float(masses.max())
+    if dominant <= 0.0:
+        return 1.0
+    significant = int(np.count_nonzero(masses >= 0.15 * dominant))
+    return 1.0 / float(max(significant, 1))
+
+
+def matter_coherence_from_plotfile(
+    plotfile: str | Path,
+    *,
+    n: int = 64,
+    L: float | None = None,
+) -> float:
+    """Sample the 3D scalar matter activity ``sqrt(phi^2 + Pi^2)`` of the
+    evolved plotfile and return its :func:`structure_coherence`.
+
+    A single 2D slice is orientation-dependent (a structure that splits into
+    two lobes off the slice plane would read as coherent), so the matter field
+    is sampled on a full 3D covering grid and the connected-component count is
+    taken in 3D.  ``n`` sets the cube resolution; the base evolution grid is
+    64^3, which resolves the lumps shown in the frames without needing AMR
+    levels for a morphology count.
+    """
+    import yt  # local import: heavy optional dependency
+
+    ds = yt.load(str(plotfile))
+    dims = (n, n, n)
+    grid = ds.covering_grid(
+        level=0,
+        left_edge=ds.domain_left_edge,
+        dims=dims,
+    )
+
+    def field(name: str) -> NDArray[np.float64]:
+        try:
+            arr = np.asarray(grid["boxlib", name], dtype=float)
+        except Exception:  # noqa: BLE001 - field-name fallback
+            arr = np.asarray(grid[name], dtype=float)
+        return arr
+
+    phi = field("phi")
+    pi = field("Pi")
+    activity = np.sqrt(phi * phi + pi * pi)
+    return structure_coherence(activity)

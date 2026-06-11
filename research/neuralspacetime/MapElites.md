@@ -334,3 +334,63 @@ shortcuts. Plan (future work, in priority order):
 3. **Keep `operational_ftl_solved` as a precursor/shaping term only** (lower
    weight), gated as now by non-stationarity, so it guides the search toward
    shift channels without certifying them as FTL.
+
+## Campaign `ftl_discovery_v4` — persistence-honest scoring + bound matter (2026-06-11)
+
+`v2`/`v3` exposed that the leaderboard rewarded structures that *dissipate or
+fly apart*: `survival` was `1.0` for HQ elites whose frames showed the lump
+gone by the stop time, and the FTL shaping rewards banked cone-tilt off a
+structure that no longer existed. Root cause on the matter side: with
+`scalar_mass` pinned at `0.1` (Compton wavelength `1/m=10 ≈ box`) nothing binds
+the lump, so it free-streams out even at zero boost. The following fixes ship in
+`v4` (`runs/grtresna_qd/ftl_discovery_v4/`, `speed_super` 8×8, `ftl_first`,
+8 GPUs, `STOP_TIME=8`, `PLOT_INTERVAL=40`).
+
+### Scoring fixes
+
+- **Done — `survival` is now persistence-gated.** Split the old single metric
+  into `numerical_survival` (did the integrator reach the stop time — a
+  completion gate, weighted lightly) and `structural_persistence` (fraction of
+  peak matter energy density retained at the final step,
+  `final_peak_rho_required / max_rho_required`). `survival = numerical_survival ×
+  structural_persistence`, so a configuration that dissipates can no longer
+  score as "stable". Code: `metrics/score.py`, `metrics/types/diagnostics.py`
+  (`final_peak_rho_required`), `metrics/diagnostics/constraints.py` (reads it
+  from `constraint_norms.dat`).
+- **Done — FTL shaping rewards gated by persistence** (commit `be93469`).
+  `ftl_precursor` / `channel_progress` / `shift_drive` are multiplied by
+  `structural_persistence`, so a fragmented end-state can no longer out-rank a
+  coherent survivor by banking cone-tilt/frame-drag credit off a structure that
+  has shattered. Persistence defaults to `1.0` when the matter-density series is
+  unavailable, leaving the rewards untouched. Regression test:
+  `test_ftl_shaping_rewards_scale_with_persistence`.
+
+### Search-parameter fixes
+
+- **Done — `STOP_TIME 2 → 8`, `PLOT_INTERVAL 10 → 40`** (commit `be44e02`). At
+  `t=2` a dissipating configuration is indistinguishable from a persistent one
+  (both retain ~90% of peak ρ), so the persistence gate could not bite; by `t=8`
+  a genuine survivor plateaus (~0.7) while dissipators keep falling (<0.55).
+  Plot interval scaled with stop time so the FTL-probe/plotting cost per eval
+  stays ~constant.
+- **Done — `scalar_mass` is a searched dimension; fly-away velocities capped**
+  (commit `e9c193d`, also recorded in *Future directions* #1 above).
+  `grtresna_scalar_mass ∈ [0.3, 1.5]` (default `0.6`) lets the search pick heavy,
+  bound matter (binds within the shell width). Toroidal current (warp motor)
+  keeps its full `±1.2` range; the net-outflow components are tightened
+  (`poloidal ±1.5→±0.8`, `radial ±0.8→±0.3`) so heavy matter stays put. Propagated
+  consistently to both the GRTresna solve and the GRTeclyn evolution. Tests:
+  `test_scalar_mass_flows_into_grtresna_config`,
+  `test_shell_fly_away_velocities_are_capped` (search space now 18D).
+
+### Watch-list (open, not yet verified on `v4`)
+
+- **Heavy-mass convergence.** Larger `m` raises the shared potential
+  `½m²(Σφ)²` in the GRTresna elliptic solve, which may shift the convergent
+  basin. Watch the pre-GPU rejection rate over the first ~20 evals; if it spikes
+  at the high-mass end, narrow the top of the mass range or raise solver
+  iterations.
+- **Gauge-invariant signal still under-weighted** (carried over from `v2`): the
+  null-geodesic reliability gate (`h_quality_ok`) still rejects most candidates,
+  so `operational_ftl_geodesic` contributes 0 and the coordinate-speed
+  `operational_ftl_solved` dominates `ftl_first`. Unchanged in `v4`.

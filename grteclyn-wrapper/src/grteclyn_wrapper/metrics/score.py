@@ -164,19 +164,48 @@ def score_episode(
         numerical_survival = 0.0
         notes.append("no time-series diagnostics were found")
 
-    # Structural persistence: fraction of the peak matter energy density that is
-    # still present at the final step.  ``max_rho_required`` is the peak over the
-    # whole run, ``final_peak_rho_required`` is the value at the stop time.  A
-    # configuration that holds (or concentrates) its structure keeps this near
-    # 1.0; one that dissipates/disperses sees its peak rho collapse toward 0.
-    structural_persistence = 1.0
+    # Structural persistence has two independent failure modes, both of which
+    # must cost the candidate its "survived" credit:
+    #
+    #   1. DENSITY RETENTION -- fraction of the peak matter energy density still
+    #      present at the final step.  ``max_rho_required`` is the peak over the
+    #      whole run, ``final_peak_rho_required`` is the value at the stop time.
+    #      A configuration that dissipates/disperses sees its peak rho collapse
+    #      toward 0; one that holds (or concentrates) keeps this near 1.0.
+    #
+    #   2. MORPHOLOGICAL COHERENCE -- whether the matter that *is* still dense
+    #      remains a single coherent structure or has fragmented into several
+    #      lobes.  Density retention alone is blind to this: a coherent bubble
+    #      that shatters into two equally-dense counter-rotating lobes keeps its
+    #      peak density (retention ~1.0) yet is no longer the localized warp
+    #      structure we are searching for.  ``structure_coherence`` (computed on
+    #      the evolved matter slice) is ~1/k for a structure split into k
+    #      comparable pieces, so it gates the survived-credit accordingly.
+    #
+    # Persistence is the product of the two and defaults to 1.0 when the
+    # underlying series/slice is unavailable, leaving survival un-gated.
+    density_retention = 1.0
     if metrics.constraints is not None:
         peak_rho = metrics.constraints.max_rho_required
         final_rho = metrics.constraints.final_peak_rho_required
         if peak_rho is not None and final_rho is not None and peak_rho > _RHO_PERSISTENCE_FLOOR:
-            structural_persistence = float(min(max(final_rho / peak_rho, 0.0), 1.0))
+            density_retention = float(min(max(final_rho / peak_rho, 0.0), 1.0))
         else:
-            notes.append("matter-density time series unavailable; survival not persistence-gated")
+            notes.append("matter-density time series unavailable; survival not density-gated")
+
+    coherence = 1.0
+    if (
+        metrics.general_ftl_evolved is not None
+        and metrics.general_ftl_evolved.structure_coherence is not None
+    ):
+        coherence = float(min(max(metrics.general_ftl_evolved.structure_coherence, 0.0), 1.0))
+        if coherence < 0.95:
+            notes.append(
+                f"matter fragmented into ~{round(1.0 / max(coherence, 1e-6))} lobes "
+                f"(coherence={coherence:.2f}); survival/shaping rewards gated down"
+            )
+
+    structural_persistence = density_retention * coherence
 
     components["numerical_survival"] = numerical_survival
     components["structural_persistence"] = structural_persistence
@@ -511,8 +540,16 @@ def score_episode(
     # space (c==1 trivially, zero curvature) earns nothing, and constructed so
     # the reward stays continuous and monotonic as a structured geometry crosses
     # into the genuinely superluminal (c>1) regime.
-    PRECURSOR_SPEED_SCALE = 0.05  # (c - 1) reward saturation scale
-    PRECURSOR_FRAC_SCALE = 0.05   # superluminal area-fraction reference
+    # Saturation scales.  These were previously so tight (0.05) that the
+    # precursor became a near-binary 1.0 flag: any ``max_local_speed`` past
+    # ~1.05 maxed the speed term and any superluminal area past ~5% maxed the
+    # fraction term, so genuinely different geometries (c = 1.05 vs 1.47, 5% vs
+    # 30% area) all scored ~1.0 and the reward carried no gradient.  Widening
+    # them to span the observed evolved range (max_local_speed ~1.0-1.47,
+    # superluminal area now noise-free after the margin fix) restores a smooth
+    # slope the optimizer can climb instead of a cliff it instantly tops out on.
+    PRECURSOR_SPEED_SCALE = 0.15  # (c - 1) reward saturation scale
+    PRECURSOR_FRAC_SCALE = 0.15   # superluminal area-fraction reference
     PRECURSOR_SUBLUMINAL_FLOOR = 0.9   # below this c the geometry is too slow to count
     PRECURSOR_SUBLUMINAL_WEIGHT = 0.5  # max sub-luminal credit reached at the c=1 threshold
 
@@ -795,23 +832,40 @@ def score_episode(
         health_gate = components.get("nontriviality_gate", 0.0)
         horizon = components.get("horizon_penalty", 0.0)
         trapped_surface = horizon < -0.05
+        # Two tiers of FTL signal:
+        #   * VALIDATED FTL (geodesic shortcut, evolved operational advantage,
+        #     sustained persistence, constraint-solved t=0 shortcut) -- the
+        #     actual goal, kept dominant so a real result always wins.
+        #   * SHAPING GRADIENTS (channel_progress, ftl_precursor, shift_drive) --
+        #     coordinate cone-tilt heuristics that merely point toward FTL.  At
+        #     the old weights (channel 350, precursor 60) they dwarfed survival
+        #     (20), so a marginally-stable geometry that fragments but tilts its
+        #     light cones out-ranked a coherent, persistent survivor -- the
+        #     opposite of the stated priority.  They are cut to ~40% so they
+        #     still guide the search out of flat space without out-voting the
+        #     health terms.
+        # HEALTH terms (survival/stability) are correspondingly boosted so a
+        # coherent, persistent, stable structure is rewarded on par with a
+        # strong shaping signal.  Survival already folds in density retention
+        # *and* morphological coherence (see structural_persistence), so a
+        # fragmenting end-state cannot bank the larger survival weight.
         total = (
             1500.0 * components.get("operational_ftl_geodesic", 0.0)
             + 400.0 * components.get("operational_ftl", 0.0)
             + 300.0 * components.get("ftl_persistence", 0.0)
-            + 350.0 * components.get("channel_progress", 0.0)
+            + 150.0 * components.get("channel_progress", 0.0)
             + 180.0 * components.get("operational_ftl_solved", 0.0)
-            + 60.0 * components.get("ftl_precursor", 0.0)
-            + 40.0 * components.get("shift_drive", 0.0)
+            + 30.0 * components.get("ftl_precursor", 0.0)
+            + 20.0 * components.get("shift_drive", 0.0)
             + 50.0 * components.get("ftl_shortcut", 0.0)
             + 5.0 * components.get("nontrivial_geometry", 0.0)
             + health_gate * (
-                20.0 * components.get("survival", 0.0)
-                + 3.0 * components.get("constraint_health", 0.0)
-                + 2.0 * components.get("stability", 0.0)
-                + 3.0 * components.get("instability_penalty", 0.0)
-                + 2.0 * components.get("comoving_stability", 0.0)
-                + 1.0 * components.get("energy_condition", 0.0)
+                70.0 * components.get("survival", 0.0)
+                + 6.0 * components.get("constraint_health", 0.0)
+                + 10.0 * components.get("stability", 0.0)
+                + 15.0 * components.get("instability_penalty", 0.0)
+                + 8.0 * components.get("comoving_stability", 0.0)
+                + 2.0 * components.get("energy_condition", 0.0)
             )
             + 1.0 * components.get("exotic_penalty", 0.0)
             # Moderate stationary penalty: the FTL shaping rewards are already

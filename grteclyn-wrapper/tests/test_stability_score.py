@@ -232,9 +232,181 @@ def test_solved_ftl_gated_against_uniform_coordinate_offset() -> None:
     assert channel.total > artifact.total
 
 
+def _episode_with_coherence(structure_coherence: float | None):
+    from grteclyn_wrapper.metrics.probes.ftl.general import GeneralFtlReport
+    from grteclyn_wrapper.metrics.types.diagnostics import ConstraintMetrics
+    from grteclyn_wrapper.metrics.types.episode import EpisodeMetrics
+
+    report = GeneralFtlReport(
+        f_op=0.0,
+        t_min=1.0,
+        t_flat=1.0,
+        max_local_speed=1.2,
+        superluminal_fraction=0.1,
+        path_offaxis=False,
+        reachable=True,
+        notes=(),
+        max_shift=0.5,
+        structure_coherence=structure_coherence,
+    )
+    constraints = ConstraintMetrics(
+        final_time=2.0,
+        max_hamiltonian_l2=1.0e-4,
+        max_momentum_l2=1.0e-4,
+        final_hamiltonian_l2=1.0e-4,
+        final_momentum_l2=1.0e-4,
+        min_rho_required=0.0,
+        max_rho_required=1.0,
+        integral_negative_rho=0.0,
+        final_peak_rho_required=1.0,  # full density retention; only coherence varies
+    )
+    return EpisodeMetrics(
+        collapse=None,
+        constraints=constraints,
+        stability=None,
+        comoving=None,
+        ftl=None,
+        termination_reason="",
+        general_ftl_evolved=report,
+    )
+
+
+def test_fragmentation_gates_survival_despite_full_density_retention() -> None:
+    """A fragmented end-state keeps its peak density but must lose survival credit.
+
+    Density retention alone reads 1.0 for a bubble that shatters into two equally
+    dense lobes (peak rho is unchanged).  Folding morphological coherence into
+    ``structural_persistence`` must drop survival/shaping for the fragmented case
+    while leaving the single-lump case untouched.
+    """
+    coherent = score_episode(
+        _episode_with_coherence(1.0), target_stop_time=2.0, objective_mode="ftl_first"
+    )
+    fragmented = score_episode(
+        _episode_with_coherence(0.5), target_stop_time=2.0, objective_mode="ftl_first"
+    )
+
+    assert coherent.components["structural_persistence"] == 1.0
+    assert fragmented.components["structural_persistence"] == 0.5
+    assert fragmented.components["survival"] == 0.5
+    # Shaping rewards are persistence-gated too, so the fragmented candidate ranks
+    # strictly lower overall.
+    assert fragmented.total < coherent.total
+
+
+def test_structure_coherence_counts_comparable_lobes() -> None:
+    """One blob -> 1.0; two comparable lobes -> ~0.5; faint debris ignored."""
+    import numpy as np
+
+    from grteclyn_wrapper.metrics.probes.ftl.general import structure_coherence
+
+    n = 64
+    yy, xx = np.mgrid[0:n, 0:n]
+
+    def blob(cx: float, cy: float, amp: float, w: float = 4.0):
+        return amp * np.exp(-((xx - cx) ** 2 + (yy - cy) ** 2) / (2.0 * w * w))
+
+    single = blob(32, 32, 1.0)
+    assert structure_coherence(single) == 1.0
+
+    two_lobes = blob(20, 32, 1.0) + blob(44, 32, 1.0)
+    assert abs(structure_coherence(two_lobes) - 0.5) < 1e-9
+
+    # A dominant lump with only faint debris is still a single coherent structure.
+    lump_plus_debris = blob(32, 32, 1.0) + blob(8, 8, 0.05)
+    assert structure_coherence(lump_plus_debris) == 1.0
+
+
+def test_precursor_is_graded_not_binary() -> None:
+    """ftl_precursor must rise smoothly with cone-tilt, not snap to 1.0.
+
+    With the old tight saturation scales, max_local_speed 1.05 and 1.30 both
+    scored ~1.0.  After widening the scales the stronger tilt must score
+    materially higher than the weak one (a usable gradient).
+    """
+    from grteclyn_wrapper.metrics.probes.ftl.general import GeneralFtlReport
+    from grteclyn_wrapper.metrics.types.diagnostics import ConstraintMetrics
+    from grteclyn_wrapper.metrics.types.episode import EpisodeMetrics
+
+    def episode(speed: float, frac: float):
+        report = GeneralFtlReport(
+            f_op=0.0,
+            t_min=1.0,
+            t_flat=1.0,
+            max_local_speed=speed,
+            superluminal_fraction=frac,
+            path_offaxis=False,
+            reachable=True,
+            notes=(),
+            max_shift=0.5,
+        )
+        constraints = ConstraintMetrics(
+            final_time=2.0,
+            max_hamiltonian_l2=1.0e-4,
+            max_momentum_l2=1.0e-4,
+            final_hamiltonian_l2=1.0e-4,
+            final_momentum_l2=1.0e-4,
+            min_rho_required=0.0,
+            max_rho_required=1.0,
+            integral_negative_rho=0.0,
+            final_peak_rho_required=1.0,
+        )
+        return EpisodeMetrics(
+            collapse=None,
+            constraints=constraints,
+            stability=None,
+            comoving=None,
+            ftl=None,
+            termination_reason="",
+            general_ftl_evolved=report,
+        )
+
+    weak = score_episode(episode(1.05, 0.02), target_stop_time=2.0).components["ftl_precursor"]
+    strong = score_episode(episode(1.30, 0.10), target_stop_time=2.0).components["ftl_precursor"]
+
+    assert 0.0 < weak < 0.9, weak
+    assert strong > weak + 0.15, (weak, strong)
+
+
+def test_superluminal_fraction_ignores_sub_margin_noise() -> None:
+    """A field only marginally over c=1 must not saturate the fraction.
+
+    The whole evolved slice sits at c~1 with O(1e-3) noise; a bare ``> 1.0``
+    test marked nearly every cell superluminal.  The margin must reject a
+    uniform 1.01x field (fraction 0) while still counting a genuine 1.05x one.
+    """
+    import numpy as np
+
+    from grteclyn_wrapper.metrics.probes.ftl.general import operational_ftl_on_grid
+
+    n = 9
+
+    def report_for(eps: float):
+        alpha = np.ones((n, n))
+        gamma = np.zeros((n, n, 2, 2))
+        gamma[:, :, 0, 0] = 1.0
+        gamma[:, :, 1, 1] = 1.0
+        beta = np.zeros((n, n, 2))
+        beta[:, :, 0] = eps  # uniform shift -> max local speed ~ 1 + eps
+        mid = n // 2
+        return operational_ftl_on_grid(
+            alpha, beta, gamma, spacing=(1.0, 1.0), source=(1, mid), target=(n - 2, mid)
+        )
+
+    sub_margin = report_for(0.02)  # speed ~1.02, below the 0.05 margin -> noise
+    supra_margin = report_for(0.10)  # speed ~1.10, genuinely superluminal
+
+    assert sub_margin.superluminal_fraction == 0.0
+    assert supra_margin.superluminal_fraction > 0.5
+
+
 if __name__ == "__main__":
     test_stability_score_distinguishes_static_from_collapsing()
     test_survival_penalises_dissipated_structure()
     test_ftl_shaping_rewards_scale_with_persistence()
     test_solved_ftl_gated_against_uniform_coordinate_offset()
+    test_fragmentation_gates_survival_despite_full_density_retention()
+    test_structure_coherence_counts_comparable_lobes()
+    test_precursor_is_graded_not_binary()
+    test_superluminal_fraction_ignores_sub_margin_noise()
     print("stability score test passed")
