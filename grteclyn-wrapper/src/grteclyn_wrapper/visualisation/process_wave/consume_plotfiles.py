@@ -33,6 +33,16 @@ from scipy.integrate import cumulative_trapezoid
 
 from grteclyn_wrapper.core.config import VISUALISATION_DIR, default_sim_data_dir
 
+# Frame-rendering cost knobs.  These diagnostic frames (inspected, not
+# publication figures) dominate the per-batch CPU post-processing that leaves
+# the GPUs idle, so they are tuned for throughput: 110 dpi keeps an 8x7 figure
+# legible (~880px) at ~2x fewer pixels than the old 150, and 2 FRB samples per
+# simulation cell (down from 4) quarters the yt fixed-resolution-buffer fill
+# while still over-resolving the native grid.
+_FRAME_DPI = 110
+_FRAME_SAMPLES_PER_CELL = 2
+_FRAME_BUFF_CAP = 1024
+
 
 def _default_data_dir() -> str:
     return str(default_sim_data_dir())
@@ -401,7 +411,8 @@ def _resolve_frame_physics_center(
 
 
 def _frame_buff_size(ds, zoom: float | None) -> int:
-    """Pixels across the FRB: ~4 samples per simulation cell in the zoom window."""
+    """Pixels across the FRB: ``_FRAME_SAMPLES_PER_CELL`` samples per simulation
+    cell in the zoom window (capped at ``_FRAME_BUFF_CAP``)."""
     if zoom is None:
         zoom = float(ds.domain_width[0])
     le = np.array(ds.domain_left_edge.d, dtype=float)
@@ -409,7 +420,7 @@ def _frame_buff_size(ds, zoom: float | None) -> int:
     dims = np.array(ds.domain_dimensions, dtype=float) * (2 ** int(ds.index.max_level))
     dx = (re - le) / np.maximum(dims, 1.0)
     cells = max(int(round(float(zoom) / min(dx[0], dx[1]))), 64)
-    return int(min(max(cells * 4, 256), 1600))
+    return int(min(max(cells * _FRAME_SAMPLES_PER_CELL, 256), _FRAME_BUFF_CAP))
 
 
 def _auto_zlim_from_array(values: np.ndarray, field_name: str) -> tuple[float, float] | None:
@@ -687,7 +698,7 @@ def _render_native_slice_frame(
     os.makedirs(frames_dir, exist_ok=True)
     frame_name = f"frame_{axis}_{frame_idx:04d}.png"
     out_path = os.path.join(frames_dir, frame_name)
-    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    fig.savefig(out_path, dpi=_FRAME_DPI, bbox_inches="tight")
     plt.close(fig)
 
     if verbose:
@@ -875,7 +886,7 @@ def _render_slice_frame(
     os.makedirs(frames_dir, exist_ok=True)
     frame_name = f"frame_{axis}_{frame_idx:04d}.png"
     out_path = os.path.join(frames_dir, frame_name)
-    plot.figure.savefig(out_path, dpi=150, bbox_inches="tight")
+    plot.figure.savefig(out_path, dpi=_FRAME_DPI, bbox_inches="tight")
     plt.close(plot.figure)
 
     if verbose:
@@ -996,7 +1007,7 @@ def _render_projection_frame(
     os.makedirs(frames_dir, exist_ok=True)
     frame_name = f"frame_proj_{axis}_{frame_idx:04d}.png"
     out_path = os.path.join(frames_dir, frame_name)
-    plot.figure.savefig(out_path, dpi=150, bbox_inches="tight")
+    plot.figure.savefig(out_path, dpi=_FRAME_DPI, bbox_inches="tight")
     plt.close(plot.figure)
 
     if verbose:
@@ -1468,7 +1479,7 @@ def _render_embedding_frame(
     os.makedirs(frames_dir, exist_ok=True)
     frame_name = f"frame_{frame_idx:04d}.png"
     out_path = os.path.join(frames_dir, frame_name)
-    fig.savefig(out_path, dpi=150, bbox_inches="tight", pad_inches=0.3)
+    fig.savefig(out_path, dpi=_FRAME_DPI, bbox_inches="tight", pad_inches=0.3)
     plt.close(fig)
 
     if verbose:
