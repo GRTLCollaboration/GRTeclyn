@@ -1,3 +1,452 @@
+# MAP-Elites FTL Discovery — Matter-First Metric Discovery
+
+> Quality-Diversity (MAP-Elites) search over **matter configurations** that, once
+> turned into a self-consistent spacetime and evolved, exhibit faster-than-light
+> (FTL) precursors. We do **not** hand-design a warp metric and ask "what matter
+> supports it?" — we propose matter, solve Einstein's constraints for the
+> geometry it actually produces, evolve that geometry, and let the search
+> *discover* which matter distributions yield FTL signatures.
+
+## Table of contents
+
+- [The idea: matter-first, not metric-first](#the-idea-matter-first-not-metric-first)
+- [The pipeline](#the-pipeline)
+  - [Diagram — end-to-end overview](#diagram--end-to-end-overview)
+  - [Diagram — matter-first vs metric-first](#diagram--matter-first-vs-metric-first)
+  - [Diagram — one evaluation (sequence)](#diagram--one-evaluation-sequence)
+  - [Diagram — scoring funnel](#diagram--scoring-funnel)
+  - [Diagram — MAP-Elites archive loop](#diagram--map-elites-archive-loop)
+  - [Diagram — T_ab consistency](#diagram--t_ab-consistency)
+  - [Stage 0 — Quality-Diversity proposer (MAP-Elites)](#stage-0--quality-diversity-proposer-map-elites)
+  - [Stage 1 — Initial data (GRTresna, CPU/MPI)](#stage-1--initial-data-grtresna-cpumpi)
+  - [Stage 2 — Evolution (GRTeclyn, GPU)](#stage-2--evolution-grteclyn-gpu)
+  - [Stage 3 — Metrics & probes (scoring)](#stage-3--metrics--probes-scoring)
+  - [Stage 4 — Archive update & feedback](#stage-4--archive-update--feedback)
+- [The hard consistency rule](#the-hard-consistency-rule)
+- [Behavior descriptors (the "diversity" axes)](#behavior-descriptors-the-diversity-axes)
+- [Scoring model (the "quality" axis)](#scoring-model-the-quality-axis)
+- [Code map (where everything lives)](#code-map-where-everything-lives)
+- [How to run a campaign](#how-to-run-a-campaign)
+- [Campaign log / runs analysis](#campaign-log--runs-analysis)
+
+## The idea: matter-first, not metric-first
+
+Classic warp-drive analysis is **metric-first**: write down a target metric
+(Alcubierre, Natário, …), then read off the stress-energy `T_ab = G_ab/8π` it
+requires — which is always exotic, often pathological, and never solved as a
+*consistent initial-value problem*. The "FTL" in those constructions is baked
+into the chosen coordinates and need not survive a real evolution.
+
+This project inverts that. The pipeline is **matter-first**:
+
+1. The search proposes a **matter configuration** (a set of massive scalar-field
+   "lumps" with positions, boosts, rotations, mass, and exotic flags).
+2. GRTresna **solves the Einstein constraint equations** for the conformal factor
+   and shift that this matter actually sources — a genuine, on-constraint initial
+   data set, not a coordinate guess.
+3. GRTeclyn **evolves** that spacetime forward in time on GPU.
+4. Probes measure whether an FTL signature (coordinate-speed channel, sustained
+   superluminal region, and ultimately a **gauge-invariant null-geodesic
+   shortcut**) emerges and *persists*.
+5. MAP-Elites stores the best candidate per behavior cell and mutates elites to
+   explore the space.
+
+The payoff: any FTL signal that survives this loop is a property of a
+**self-consistent, evolved spacetime**, not of a hand-picked metric. The
+open scientific question the campaign attacks is *which matter distributions, if
+any, produce a real (gauge-invariant) shortcut* — and the metrics themselves are
+iteratively hardened so the leaderboard cannot be gamed by coordinate artifacts
+(see the campaign log for the bug-fix history that got us here).
+
+## The pipeline
+
+### Diagram — end-to-end overview
+
+The closed loop: search proposes matter → physics builds and evolves a real
+spacetime → metrics discover FTL signatures → archive feeds the next proposal.
+
+```mermaid
+flowchart TB
+    subgraph SEARCH["Quality-Diversity loop"]
+        direction TB
+        ARCHIVE[("MAP-Elites archive<br/>8×8 cells · best score per bin")]
+        PROPOSE["Proposer<br/>mutate elite · sample feasible box"]
+        ARCHIVE --> PROPOSE
+    end
+
+    subgraph PHYSICS["Matter-first physics"]
+        direction LR
+        GRTRESNA["GRTresna<br/>paint lumps · York solve<br/>CPU · MPI"]
+        GRTECLYN["GRTeclyn<br/>BSSN/CCZ4 + matter<br/>GPU evolution"]
+        GRTRESNA -->|"on-constraint<br/>(χ, β, φ, Π)"| GRTECLYN
+    end
+
+    subgraph DISCOVERY["Metric discovery"]
+        direction TB
+        PLOTS["Plotfiles + constraint logs"]
+        PROBES["Probes<br/>FTL · persistence · coherence · geodesic"]
+        FITNESS["score.py<br/>ftl_first scalar fitness"]
+        PLOTS --> PROBES --> FITNESS
+    end
+
+    LOG[("trajectory.jsonl<br/>all evals logged")]
+
+    PROPOSE -->|"18-D shell params<br/>params.txt"| GRTRESNA
+    GRTRESNA -.->|"rejected solve<br/>Ham/Mom > gate"| LOG
+    GRTECLYN -->|"every PLOT_INTERVAL"| PLOTS
+    FITNESS -->|"descriptor → bin"| ARCHIVE
+    FITNESS -->|"score · status"| LOG
+    PROPOSE -.-> ARCHIVE
+
+    classDef search fill:#e8f4fc,stroke:#2980b9,stroke-width:2px
+    classDef physics fill:#eafaf1,stroke:#27ae60,stroke-width:2px
+    classDef metrics fill:#fef9e7,stroke:#d68910,stroke-width:2px
+    classDef store fill:#f4ecf7,stroke:#8e44ad,stroke-width:2px
+
+    class ARCHIVE,PROPOSE search
+    class GRTRESNA,GRTECLYN physics
+    class PLOTS,PROBES,FITNESS metrics
+    class LOG store
+```
+
+### Diagram — matter-first vs metric-first
+
+```mermaid
+flowchart LR
+    subgraph CLASSIC["Metric-first (classic warp literature)"]
+        direction TB
+        C1["1. Choose target metric<br/>Alcubierre · Natário · …"]
+        C2["2. Compute T_μν = G_μν / 8π<br/>always exotic · often singular"]
+        C3["3. Ask whether any real matter<br/>can source this T_μν"]
+        C4["FTL baked into coordinates<br/>no guaranteed evolution"]
+        C1 --> C2 --> C3 --> C4
+    end
+
+    subgraph OURS["Matter-first (this pipeline)"]
+        direction TB
+        M1["1. Propose matter lumps<br/>φ_k · Π_k · boosts · mass"]
+        M2["2. Solve Einstein constraints<br/>geometry the matter actually sources"]
+        M3["3. Evolve spacetime forward<br/>t = 0 → STOP_TIME"]
+        M4["4. Measure FTL in the evolved field<br/>coordinate · sustained · geodesic"]
+        M1 --> M2 --> M3 --> M4
+    end
+
+    classDef classic fill:#fdedec,stroke:#c0392b,stroke-width:2px
+    classDef ours fill:#eafaf1,stroke:#1e8449,stroke-width:2px
+    class C1,C2,C3,C4 classic
+    class M1,M2,M3,M4 ours
+```
+
+### Diagram — one evaluation (sequence)
+
+What happens inside a single `eval_NNNNNN` folder:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant QD as MAP-Elites proposer
+    participant GR as GRTresna (CPU/MPI)
+    participant GT as GRTeclyn (GPU)
+    participant PP as Post-process (yt)
+    participant SC as score.py
+    participant AR as Archive
+
+    QD->>GR: params.txt — 18-D shell ansatz
+    Note over GR: paint N lumps → (φ, Π)<br/>Lichnerowicz/York elliptic solve
+
+    alt constraint solve converges
+        GR->>GT: initial data (χ, β, φ, Π) on grid
+        Note over GT: evolve BSSN + Klein–Gordon<br/>dump plotfiles every PLOT_INTERVAL
+        GT->>PP: plt00000 … pltNNNNN
+        PP->>PP: frames · FTL probes · geodesic rays
+        PP->>SC: EpisodeMetrics + score.json
+        SC->>AR: fitness + speed_super descriptor
+        Note over AR: replace cell incumbent<br/>only if gpu_ok and score higher
+    else solve stalls / Ham·Mom gate fails
+        GR->>QD: status rejected — logged, no archive cell
+    end
+```
+
+### Diagram — scoring funnel
+
+Raw simulation output is filtered through reliability gates before contributing to
+the scalar fitness. The gauge-invariant geodesic term sits at the top; coordinate
+artifacts are demoted or zeroed.
+
+```mermaid
+flowchart TB
+    IN["Plotfiles + constraint_norms.dat<br/>comoving stats · horizon diagnostics"]
+
+    subgraph STRUCTURE["Structure & health"]
+        NS["numerical_survival<br/>integrator reached stop time"]
+        DR["density_retention<br/>final ρ / peak ρ"]
+        MC["morphological_coherence<br/>3-D connected components"]
+        SP["structural_persistence<br/>= density_retention × coherence"]
+        SURV["survival = numerical × structural"]
+        NS --> SURV
+        DR --> SP --> SURV
+        MC --> SP
+    end
+
+    subgraph FTLSIG["FTL signal family"]
+        PREC["ftl_precursor · channel_progress · shift_drive<br/>shaping rewards × persistence"]
+        SOLVED["operational_ftl_solved<br/>coordinate-speed precursor"]
+        DYN["operational_ftl + ftl_persistence<br/>sustained evolved channel"]
+        GEO["operational_ftl_geodesic<br/>null-ray shortcut f_geo"]
+    end
+
+    subgraph GATES["Reliability gates"]
+        G_GEO["h_quality_ok<br/>relative H drift ≤ 1e-2<br/>5/5 rays reach detector"]
+        G_SOL["localized peak<br/>margin above c"]
+        G_STA["not stationary warp-lens<br/>β_mean ≠ 0 or dynamical FTL"]
+        G_PERS["structural_persistence > 0"]
+    end
+
+    IN --> STRUCTURE
+    IN --> FTLSIG
+
+    G_GEO --> GEO
+    G_SOL --> SOLVED
+    G_STA --> SOLVED
+    G_STA --> PREC
+    G_PERS --> PREC
+    G_PERS --> SP
+
+    OUT["ftl_first fitness<br/>weighted sum + vetoes"]
+
+    SURV --> OUT
+    PREC --> OUT
+    SOLVED --> OUT
+    DYN --> OUT
+    GEO --> OUT
+
+    classDef top fill:#d5f5e3,stroke:#1e8449,stroke-width:3px
+    classDef mid fill:#fef9e7,stroke:#d68910,stroke-width:2px
+    classDef gate fill:#ebf5fb,stroke:#2874a6,stroke-width:1px
+    classDef health fill:#f8f9f9,stroke:#566573,stroke-width:1px
+
+    class GEO top
+    class DYN,SOLVED mid
+    class G_GEO,G_SOL,G_STA,G_PERS gate
+    class SURV,SP,MC,DR,NS health
+```
+
+Weight hierarchy (approximate): `operational_ftl_geodesic` ×1500 ≫
+`operational_ftl` ×400 ≫ `ftl_persistence` ×300 ≫ `operational_ftl_solved` ×180 ≫
+health block ×(survival 70 + stability 10 + …).
+
+### Diagram — MAP-Elites archive loop
+
+Diversity is enforced by the behavior grid; quality is the scalar score within each
+cell.
+
+```mermaid
+flowchart TB
+    subgraph DESCRIPTOR["speed_super descriptor → 8×8 bin"]
+        direction TB
+        subgraph YAXIS["y-axis: superluminal_fraction"]
+            YH["bin 7 — widespread superluminal region"]
+            YM["bins 2–6 — partial coverage"]
+            YL["bin 0 — localized / rare superluminal patches"]
+        end
+        subgraph XAXIS["x-axis: max_local_speed (cone-tilt)"]
+            XL["bin 0 — sub-threshold tilt"]
+            XM["bins 2–6 — moderate tilt"]
+            XH["bin 7 — strong tilt"]
+        end
+    end
+
+    NEW["New candidate<br/>descriptor → cell [i, j]"]
+    CELL["Cell [i, j]<br/>incumbent elite"]
+    DECIDE{score ><br/>incumbent?}
+    REPLACE["Replace incumbent<br/>archive improves"]
+    DISCARD["Discard candidate<br/>cell unchanged"]
+    MUTATE["Next iteration:<br/>mutate elite or sample feasible box"]
+
+    NEW --> DECIDE
+    CELL --> DECIDE
+    DECIDE -->|yes · gpu_ok| REPLACE
+    DECIDE -->|no| DISCARD
+    REPLACE --> MUTATE
+    DISCARD --> MUTATE
+    MUTATE --> NEW
+    REPLACE -.-> CELL
+
+    classDef grid fill:#ebf5fb,stroke:#2874a6
+    classDef action fill:#eafaf1,stroke:#1e8449
+    class NEW,CELL,DECIDE,REPLACE,DISCARD,MUTATE action
+```
+
+Only `gpu_ok` candidates may occupy archive cells. Rejected GRTresna solves are
+still written to `trajectory.jsonl` but never pollute the grid.
+
+### Diagram — T_ab consistency
+
+The single most important invariant: the same stress-energy enters the constraint
+solve and the time evolution.
+
+```mermaid
+flowchart LR
+    MATTER["Matter ansatz<br/>N independent scalar lumps φ_k<br/>shared potential V = ½m²(Σφ_k)²"]
+
+    subgraph GRT["GRTresna — initial data"]
+        T1["T_μν from (φ, Π)<br/>GRTresnaIndependentScalars"]
+        SOLVE["York / Lichnerowicz solve<br/>χ · β^i"]
+    end
+
+    subgraph GTE["GRTeclyn — evolution"]
+        T2["T_μν from (φ, Π)<br/>same GRTresnaIndependentScalars"]
+        EVOLVE["BSSN/CCZ4 RHS<br/>matter Klein–Gordon RHS"]
+    end
+
+    MATTER --> T1 --> SOLVE
+    SOLVE -->|"consistent ID"| EVOLVE
+    MATTER --> T2 --> EVOLVE
+
+    BAD["Off-constraint start<br/>apparent FTL = relaxation transient"]
+    T1 -.->|"T_μν mismatch"| BAD
+
+    classDef good fill:#eafaf1,stroke:#1e8449,stroke-width:2px
+    classDef bad fill:#fdedec,stroke:#c0392b,stroke-width:2px
+    class T1,T2,SOLVE,EVOLVE,MATTER good
+    class BAD bad
+```
+
+---
+
+### Stage 0 — Quality-Diversity proposer (MAP-Elites)
+
+MAP-Elites maintains an 8×8 behavior archive keyed by a 2-D descriptor. Each
+iteration it either **mutates an existing elite** (boundary-reflected Gaussian
+perturbation, ~85% of draws) or **samples inside the feasible box** of known
+elites. Proposals are points in the `grtresna_shell` search space — an 18-D
+parameterization of the lump field (amplitudes, mode, thickness, toroidal /
+poloidal / radial velocities, shift seed, exotic phase, **scalar mass**, …).
+
+### Stage 1 — Initial data (GRTresna, CPU/MPI)
+
+The sibling repo `../GRTresna` paints the proposed lumps into `(φ, Π)` and runs a
+Lichnerowicz/York elliptic **constraint solve** for the conformal factor and
+vector potential. This is CPU/MPI-bound and is the main throughput bottleneck:
+poorly-conditioned proposals fail to converge below the Ham/Mom gate and are
+**rejected before reaching the GPU** (logged but not inserted into the archive).
+
+### Stage 2 — Evolution (GRTeclyn, GPU)
+
+Converged initial data is handed to GRTeclyn (`RadialRecipe` example), which
+evolves the BSSN/CCZ4 system + matter forward to `STOP_TIME` on GPU, dumping
+plotfiles every `PLOT_INTERVAL` steps.
+
+### Stage 3 — Metrics & probes (scoring)
+
+Plotfiles are post-processed (`yt`) into diagnostics: constraint norms,
+apparent-horizon `theta_plus`, comoving / shift statistics, matter energy density,
+and the FTL probe family — coordinate-speed (`operational_ftl_solved`), sustained
+evolved speed (`operational_ftl`, `ftl_persistence`), 3-D morphological coherence,
+and the gauge-invariant **null-geodesic shortcut** (`operational_ftl_geodesic`).
+
+### Stage 4 — Archive update & feedback
+
+`score.py` collapses the diagnostics into a single `ftl_first` fitness. Only
+`gpu_ok` candidates compete for a behavior cell; the new candidate replaces the
+incumbent if it scores higher. The updated archive feeds the next proposer step.
+
+## The hard consistency rule
+
+`T_ab` used in the GRTresna **constraint solve** must equal `T_ab` used in the
+GRTeclyn **evolution**. Otherwise the run starts off-constraint and any apparent
+"FTL" is a constraint-relaxation transient, not physics. See
+[Diagram — T_ab consistency](#diagram--t_ab-consistency) above.
+
+The `grtresna_independent_scalars` matter path exists precisely to keep both
+sides identical; any new matter sector (mass search, `λφ⁴`, complex field) must be
+added to **both** sides with matching analytic forms. (Root cause documented in
+`Examples/RadialRecipe/Debug.md`; see also
+[Matter model — reference & future directions](#matter-model--reference--future-directions-2026-06-10).)
+
+## Behavior descriptors (the "diversity" axes)
+
+The current descriptor is **`speed_super`** (`qd_search.py`):
+
+- **x** — recalibrated cone-tilt from `max_local_speed` (floor 0.95, target 1.20)
+  so realistic coordinate speeds spread across bins instead of saturating.
+- **y** — `superluminal_fraction`: the share of the domain whose local speed
+  exceeds `c` by a margin (`SUPERLUMINAL_MARGIN`), rescaled by an observed
+  ceiling so localized-vs-widespread superluminal regions separate.
+
+Older `speed_horizon` is kept for back-compat but was retired after the
+`theta_plus` centering bug made its y-axis degenerate (see campaign log).
+
+## Scoring model (the "quality" axis)
+
+Fitness is the `ftl_first` objective in `metrics/score.py`. Headline structure:
+
+- **Gauge-invariant FTL is king.** `operational_ftl_geodesic` (null-ray shortcut)
+  carries the largest weight, but only when its reliability gate passes
+  (`h_quality_ok` via relative Hamiltonian drift, and all rays reach the
+  detector). Otherwise it scores 0 — integration noise is never trusted.
+- **Dynamical, sustained signal next.** Evolved `operational_ftl` + `ftl_persistence`
+  outweigh the one-shot coordinate-speed `operational_ftl_solved`, which is
+  treated as a *precursor/shaping* term (localization-gated).
+- **Persistence-honest health block.** `survival = numerical_survival ×
+  structural_persistence`, where `structural_persistence = density_retention ×
+  morphological_coherence`. A configuration that dissipates or fragments can no
+  longer bank FTL credit — the shaping rewards are multiplied by persistence.
+- **Vetoes / penalties.** Horizon formation, energy-condition / exotic use,
+  instability, and stationary "warp-lens" coordinate artifacts are penalized or
+  zeroed so the leaderboard tracks genuine, evolving, bound geometries.
+
+The full per-component table lives in
+`grteclyn-wrapper/src/grteclyn_wrapper/metrics/README.md`.
+
+## Code map (where everything lives)
+
+| Concern | Path |
+|---------|------|
+| QD loop, archive, descriptors | `grteclyn-wrapper/src/grteclyn_wrapper/search/qd_search.py` |
+| Search space + param overrides | `grteclyn-wrapper/src/grteclyn_wrapper/search/optimize.py` |
+| Scoring / fitness | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/score.py` |
+| Metric aggregation | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/aggregation/collector.py` |
+| FTL probes (general / geodesic) | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/probes/ftl/` |
+| Diagnostic dataclasses | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/types/diagnostics.py` |
+| Plotfile → frames | `grteclyn-wrapper/src/grteclyn_wrapper/visualisation/process_wave/consume_plotfiles.py` |
+| Matter (evolution side) | `Source/Matter/GRTresnaIndependentScalars.{hpp,impl.hpp}`, `Examples/RadialRecipe/` |
+| Matter (initial-data side) | `../GRTresna/Examples/ScalarFieldBH/` |
+| Campaign launcher | `grteclyn-wrapper/scripts/search/run_grtresna_qd_search.sh` |
+
+## How to run a campaign
+
+```bash
+cd grteclyn-wrapper
+QD_NAME=ftl_discovery_vN QD_ITERATIONS=10 BINS=8 STOP_TIME=8.0 \
+  GPU_IDS="0 1 2 3 4 5 6 7" RANKS=8 LUMPS=5 SHELL_PROFILE=compact \
+  GRTRESNA_MAX_HAM_PCT=5.0 GRTRESNA_MAX_MOM_PCT=5.0 \
+  nohup bash scripts/search/run_grtresna_qd_search.sh \
+  > ../runs/qd_ftl_discovery_vN.launch.log 2>&1 &
+```
+
+Results land in `runs/grtresna_qd/ftl_discovery_vN/` (`trajectory.jsonl`, per-eval
+`score.json`, `frames/`). The campaign log below records what each `vN` changed
+and what it found.
+
+## Campaign log / runs analysis
+
+Reverse-chronological isn't enforced below; entries were appended as work
+happened. Quick index (most consequential first):
+
+| Campaign / section | Date | Headline |
+|--------------------|------|----------|
+| [Null-geodesic reliability fix → `v8`](#null-geodesic-reliability-fix-2026-06-11-post-v7) | 06-11 | Forward-launch rays + relative-drift gate; gauge-invariant term finally fires |
+| [`ftl_discovery_v7` review](#campaign-ftl_discovery_v7--finished-run--critical-leaderboard-review-2026-06-11) | 06-11 | Persistence/coherence honest; geodesic still blind (the bottleneck) |
+| [`ftl_discovery_v4`](#campaign-ftl_discovery_v4--persistence-honest-scoring--bound-matter-2026-06-11) | 06-11 | Persistence-gated `survival`; searched `scalar_mass`; capped boosts |
+| [Matter model reference & future directions](#matter-model--reference--future-directions-2026-06-10) | 06-10 | What the lumps are; how they interact; roadmap |
+| [`ftl_discovery_v2`](#campaign-ftl_discovery_v2--first-healthy-run--a-scoring-concern-2026-06-10) | 06-10 | First sane scoring run; gauge-invariance under-weighted |
+| [Scoring fix: stationary warp-lens artifacts](#scoring-fix-stationary-warp-lens-artifacts-2026-06-10-after-90-evals) | 06-10 | Reliability-gate + stationary-artifact gate |
+| [Navigation overhaul](#navigation-overhaul-2026-06-10) | 06-10 | `speed_super` descriptor; feasible-box sampling |
+| [Status / reset (theta_plus bug)](#map-elites-ftl-discovery-status) | 06-10 | `theta_plus` re-centered on `grid_center` |
+
+---
+
 ## MAP-Elites FTL Discovery Status
 
 Status: **reset**. The previous QD/HQ campaign results were discarded.
