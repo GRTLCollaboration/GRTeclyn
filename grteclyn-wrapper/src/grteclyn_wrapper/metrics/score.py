@@ -598,6 +598,22 @@ def score_episode(
             "stationary zero-shift geometry with no trustworthy dynamical FTL: "
             "coordinate-artifact shaping rewards gated out"
         )
+
+    # Persistence gate on the FTL-shaping rewards.  ftl_precursor /
+    # channel_progress / shift_drive credit a geometry for tilted light cones and
+    # frame-drag, but a configuration that dissipates or fragments by the stop
+    # time has not earned that "promising precursor" credit -- its cones tilt in
+    # a structure that no longer exists (e.g. a coherent bubble that shatters
+    # into turbulent lobes still shows local cone-tilt yet is not a propagating
+    # channel).  Scaling these shaping rewards by the fraction of peak matter
+    # energy density retained (structural_persistence) means only a structure
+    # that actually holds together banks them, so a broken end-state can no
+    # longer out-rank a coherent survivor.  Persistence defaults to 1.0 when the
+    # matter-density series is unavailable, leaving the rewards untouched.
+    persistence_gate = components.get("structural_persistence", 1.0)
+    for key in ("ftl_precursor", "channel_progress", "shift_drive"):
+        components[key] *= persistence_gate
+
     # Graded stationary penalty.  A *flat* -1.0 collapses every zero-net-shift
     # geometry to the same score, so the map has no slope and cannot tell
     # "almost propulsive" from "perfectly static" -- the whole stationary basin

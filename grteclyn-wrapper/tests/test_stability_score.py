@@ -100,7 +100,74 @@ def test_survival_penalises_dissipated_structure() -> None:
         assert dissipated_score.components["structural_persistence"] == 0.1
 
 
+def _episode_with_ftl(final_peak_rho: float):
+    from grteclyn_wrapper.metrics.probes.ftl.general import GeneralFtlReport
+    from grteclyn_wrapper.metrics.types.diagnostics import ConstraintMetrics
+    from grteclyn_wrapper.metrics.types.episode import EpisodeMetrics
+
+    # Tilted cones + frame-drag but no genuine shortcut (t_min == t_flat, f_op=0),
+    # so operational_ftl stays 0 and the persistence gate is what we exercise.
+    report = GeneralFtlReport(
+        f_op=0.0,
+        t_min=1.0,
+        t_flat=1.0,
+        max_local_speed=1.2,
+        superluminal_fraction=0.3,
+        path_offaxis=False,
+        reachable=True,
+        notes=(),
+        max_shift=0.5,
+    )
+    constraints = ConstraintMetrics(
+        final_time=2.0,
+        max_hamiltonian_l2=1.0e-4,
+        max_momentum_l2=1.0e-4,
+        final_hamiltonian_l2=1.0e-4,
+        final_momentum_l2=1.0e-4,
+        min_rho_required=0.0,
+        max_rho_required=1.0,
+        integral_negative_rho=0.0,
+        final_peak_rho_required=final_peak_rho,
+    )
+    return EpisodeMetrics(
+        collapse=None,
+        constraints=constraints,
+        stability=None,
+        comoving=None,
+        ftl=None,
+        termination_reason="",
+        general_ftl_evolved=report,
+    )
+
+
+def test_ftl_shaping_rewards_scale_with_persistence() -> None:
+    """A geometry that fragments/dissipates must not bank full cone-tilt credit.
+
+    The shaping rewards (ftl_precursor / channel_progress / shift_drive) are
+    gated by structural persistence, so halving the retained peak energy density
+    must halve each of them relative to the fully-persistent case.
+    """
+    full = score_episode(
+        _episode_with_ftl(1.0), target_stop_time=2.0, objective_mode="ftl_first"
+    )
+    half = score_episode(
+        _episode_with_ftl(0.5), target_stop_time=2.0, objective_mode="ftl_first"
+    )
+
+    assert full.components["structural_persistence"] == 1.0
+    assert half.components["structural_persistence"] == 0.5
+
+    for key in ("ftl_precursor", "channel_progress", "shift_drive"):
+        assert full.components[key] > 0.0, key
+        assert abs(half.components[key] - 0.5 * full.components[key]) < 1e-9, key
+
+    # The fragmented (half-persistence) candidate must rank strictly below the
+    # coherent one once the shaping credit is discounted.
+    assert half.total < full.total
+
+
 if __name__ == "__main__":
     test_stability_score_distinguishes_static_from_collapsing()
     test_survival_penalises_dissipated_structure()
+    test_ftl_shaping_rewards_scale_with_persistence()
     print("stability score test passed")
