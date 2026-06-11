@@ -50,8 +50,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void Weyl4WithMatter<matter_t>::operator()(
 
     // Add in matter terms to E and B fields
 
-    const typename matter_t::D1Vars d1_scalar(ix, iy, iz, state, m_deriv);
-    add_matter_EB(ebfields, vars, d1_scalar, epsilon3_LUU, h_UU, chris);
+    add_matter_EB(ebfields, ix, iy, iz, state, epsilon3_LUU, h_UU, chris);
 
     // work out the Newman Penrose scalar
     weyl_scalar_t out = compute_Weyl4(ebfields, vars, h_UU, coords);
@@ -64,14 +63,19 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void Weyl4WithMatter<matter_t>::operator()(
 template <class matter_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 Weyl4WithMatter<matter_t>::add_matter_EB(
-    EBFields_t &ebfields, const typename matter_t::Vars &vars,
-    const typename matter_t::D1Vars &d1_scalar,
+    EBFields_t &ebfields, const int ix, const int iy, const int iz,
+    const amrex::Array4<const amrex::Real> &state,
     const TensorArray::Rank3 &epsilon3_LUU, const TensorArray::Rank2 &h_UU,
     const chris_t &chris) const
 {
+    const amrex::CellData<const amrex::Real> &state_cell_data =
+        state.cellData(ix, iy, iz);
+
+    const typename matter_t::Vars vars(state_cell_data);
+
     // Calculate decomposed energy momentum tensor components
     const auto emtensor =
-        m_matter.compute_emtensor(vars, d1_scalar, h_UU, chris.ULL);
+        m_matter.compute_emtensor(ix, iy, iz, state, m_deriv, h_UU);
 
     TensorArray::Rank2 S_TF = emtensor.S;
     CCZ4Geometry::make_trace_free(S_TF, vars, h_UU);

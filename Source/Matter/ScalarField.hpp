@@ -44,31 +44,30 @@ class ScalarField
     //!  Constructor of class ScalarField, inputs are the matter parameters.
     ScalarField() = default;
 
-    using Vars      = ScalarFieldVars;
-    using D1Vars    = ScalarFieldD1Vars<deriv_t>;
-    using D2Vars    = ScalarFieldD2Vars<deriv_t>;
-    using AdvecVars = ScalarFieldAdvecVars<deriv_t>;
+    using Vars = ScalarFieldVars;
 
     //! The function which calculates the EM Tensor, given the vars and
     //! derivatives, including the potential
     [[nodiscard]]
     AMREX_GPU_DEVICE emtensor_t compute_emtensor(
-        const Vars &vars, const D1Vars &d1_scalar,
-        const TensorArray::Rank2 &h_UU, //!< the inverse metric (raised indices)
-        const TensorArray::Rank3 &chris_ULL)
-        const; //!< the conformal christoffel symbol
+        const int ix, const int iy, const int iz, //!< grid indicies
+        const amrex::Array4<const amrex::Real>
+            &state,             //!< the current value of state variables
+        const deriv_t &a_deriv, //!< the object that calculates the derivative
+        const TensorArray::Rank2 &h_UU) //!< the inverse metric (raised indices)
+        const;
 
     //! The function which adds in the RHS for the matter field vars,
     //! including the potential
 
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    add_matter_rhs(const amrex::CellData<amrex::Real> &rhs, const Vars &vars,
-                   const TensorArray::Rank1 &d1_chi,
-                   const TensorArray::Rank1 &d1_lapse,
-                   const amrex::Array2D<amrex::Real, 0, UNIQUE_IDX - 1, 0,
-                                        AMREX_SPACEDIM - 1> &d1_h,
-                   const D1Vars &d1_scalar, const D2Vars &d2_scalar,
-                   const AdvecVars &advec) const;
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void add_matter_rhs(
+        const int ix, const int iy, const int iz, //!< grid indicies
+        const amrex::Array4<amrex::Real>
+            &rhs_state, //!< the next value of state variables (rhs update)
+        const amrex::Array4<const amrex::Real>
+            &state, //!< the current value of state variables
+        const deriv_t &a_deriv)
+        const; //!< the object for calculating derivatives
 };
 
 #include "ScalarField.impl.hpp"
