@@ -4,8 +4,12 @@ from __future__ import annotations
 
 import numpy as np
 
+from grteclyn_wrapper.metrics.probes.ftl import geodesic as geo
 from grteclyn_wrapper.metrics.probes.ftl.geodesic import (
+    GEO_REFINE_N,
+    GeodesicFtlReport,
     build_metric_3d_from_plotfile,
+    compute_geodesic_ftl_from_plotfile,
     future_null_cov,
     integrate_null_ray,
     inverse_metric_4d,
@@ -88,3 +92,70 @@ def test_integrate_null_ray_reaches_detector_under_shift():
     )
     assert res.reached
     assert res.max_h_rel < 1e-6  # constant metric: stays exactly null
+
+
+def _stub_report(*, f_geo: float, h_ok: float, rel_drift: float) -> GeodesicFtlReport:
+    return GeodesicFtlReport(
+        f_geo=f_geo,
+        t_min=1.0,
+        t_flat=2.0,
+        n_rays=5,
+        n_reached=5,
+        max_h_drift=1.0e-3,
+        h_quality_ok=h_ok,
+        max_h_rel_drift=rel_drift,
+    )
+
+
+def test_reliability_reprobe_certifies_shortcut_rejected_at_qd_resolution(monkeypatch):
+    """A real shortcut that fails the H gate only because of QD-resolution
+    discretization (Alcubierre: 65^3 rel-H 2.2e-2 FAIL, 129^3 5e-3 PASS) must be
+    re-traced at >96^3 and certified, not silently zeroed."""
+    calls: list[int] = []
+
+    def fake(plotfile, *, n, half_width, n_rays, h_tol):
+        calls.append(n)
+        if n <= 65:
+            return _stub_report(f_geo=0.31, h_ok=False, rel_drift=2.2e-2)
+        return _stub_report(f_geo=0.31, h_ok=True, rel_drift=5.0e-3)
+
+    monkeypatch.setattr(geo, "_geodesic_report_at_resolution", fake)
+    report = compute_geodesic_ftl_from_plotfile("dummy", n=65)
+
+    assert report is not None
+    assert report.h_quality_ok  # certified after the re-probe
+    assert calls == [65, GEO_REFINE_N]  # escalated exactly once, to >96
+    assert GEO_REFINE_N > 96
+    assert any("reliability re-probe" in note for note in report.notes)
+
+
+def test_no_reprobe_when_base_resolution_is_already_reliable(monkeypatch):
+    """A shortcut that already passes the gate at QD resolution is returned as-is;
+    the expensive re-probe must not fire."""
+    calls: list[int] = []
+
+    def fake(plotfile, *, n, half_width, n_rays, h_tol):
+        calls.append(n)
+        return _stub_report(f_geo=0.05, h_ok=True, rel_drift=4.0e-3)
+
+    monkeypatch.setattr(geo, "_geodesic_report_at_resolution", fake)
+    report = compute_geodesic_ftl_from_plotfile("dummy", n=65)
+
+    assert report is not None and report.h_quality_ok
+    assert calls == [65]  # no escalation
+
+
+def test_no_reprobe_without_a_shortcut(monkeypatch):
+    """No coordinate shortcut (f_geo below floor) means there is nothing to
+    certify, so a failed gate must not trigger a re-probe."""
+    calls: list[int] = []
+
+    def fake(plotfile, *, n, half_width, n_rays, h_tol):
+        calls.append(n)
+        return _stub_report(f_geo=0.0, h_ok=False, rel_drift=3.0e-2)
+
+    monkeypatch.setattr(geo, "_geodesic_report_at_resolution", fake)
+    report = compute_geodesic_ftl_from_plotfile("dummy", n=65)
+
+    assert report is not None and not report.h_quality_ok
+    assert calls == [65]  # no escalation: nothing to refine

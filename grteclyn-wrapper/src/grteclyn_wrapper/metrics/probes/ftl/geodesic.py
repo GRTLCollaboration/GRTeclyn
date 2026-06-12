@@ -17,7 +17,7 @@ detector planes at ``x = ±L_boundary``.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Sequence
 
@@ -37,6 +37,23 @@ from ..warpfactory import _d_dx, stress_energy
 # a conservative "integration stayed on the null cone" bar that the old absolute
 # 1e-5 bound could never satisfy.
 H_REL_TOL: float = 1.0e-2
+
+
+# Resolution for the reliability re-probe.  At QD resolution (65^3) the relative
+# H-drift gate is dominated by a C0 (trilinear) interpolation discretization
+# artifact, not real null-cone error: an Alcubierre convergence study showed the
+# drift halving per refinement (65^3: 2.2e-2 FAIL, 97^3: 1.1e-2 borderline,
+# 129^3: 5e-3 PASS) while ``f_geo`` stayed at ~0.315.  A genuine sharp-walled
+# shortcut would therefore be silently zeroed at QD resolution.  129^3 is the
+# first grid that reliably certifies even a sharp (sigma=2) wall, so when the
+# base probe finds a shortcut but fails the gate we re-trace the rays here before
+# discarding a possibly-real warp.
+GEO_REFINE_N: int = 129
+
+# Minimum coordinate shortcut worth paying for a higher-resolution re-probe
+# (matches the scoring floor ``GEO_FTL_FLOOR``): below this there is nothing to
+# certify, so the expensive re-trace is skipped.
+GEO_REFINE_FLOOR: float = 1.0e-3
 
 
 @dataclass(frozen=True)
@@ -391,13 +408,13 @@ def integrate_null_ray(
     )
 
 
-def compute_geodesic_ftl_from_plotfile(
+def _geodesic_report_at_resolution(
     plotfile: str | Path,
     *,
-    n: int = 65,
-    half_width: float | None = None,
-    n_rays: int = 5,
-    h_tol: float = 1.0e-6,
+    n: int,
+    half_width: float | None,
+    n_rays: int,
+    h_tol: float,
 ) -> GeodesicFtlReport | None:
     """Run a fan of null rays across the x-z midplane and return ``f_geo``."""
     try:
@@ -471,6 +488,57 @@ def compute_geodesic_ftl_from_plotfile(
         max_h_rel_drift=max_h_rel,
         notes=tuple(notes),
     )
+
+
+def compute_geodesic_ftl_from_plotfile(
+    plotfile: str | Path,
+    *,
+    n: int = 65,
+    half_width: float | None = None,
+    n_rays: int = 5,
+    h_tol: float = 1.0e-6,
+    refine_n: int | None = GEO_REFINE_N,
+) -> GeodesicFtlReport | None:
+    """Gauge-invariant null-geodesic shortcut with a reliability re-probe.
+
+    Traces the ray fan at the (cheap) base resolution ``n``.  If that finds a
+    coordinate shortcut (``f_geo > GEO_REFINE_FLOOR``) but the reliability gate
+    fails -- the classic C0-interpolation discretization artifact, where the
+    relative H drift is set by the grid spacing, not real null-cone error -- the
+    fan is re-traced once at ``refine_n`` (> base ``n``, default 129^3) before the
+    shortcut is discarded.  This stops a genuine sharp-walled warp from being
+    silently zeroed at QD resolution while leaving already-reliable or
+    no-shortcut measurements untouched (the re-probe never fires for them).
+    """
+    base = _geodesic_report_at_resolution(
+        plotfile, n=n, half_width=half_width, n_rays=n_rays, h_tol=h_tol
+    )
+    if base is None:
+        return None
+
+    needs_refine = (
+        refine_n is not None
+        and refine_n > n
+        and math.isfinite(base.f_geo)
+        and base.f_geo > GEO_REFINE_FLOOR
+        and not base.h_quality_ok
+    )
+    if not needs_refine:
+        return base
+
+    refined = _geodesic_report_at_resolution(
+        plotfile, n=refine_n, half_width=half_width, n_rays=n_rays, h_tol=h_tol
+    )
+    if refined is None:
+        return base
+
+    note = (
+        f"reliability re-probe at n={refine_n} "
+        f"(base n={n} f_geo={base.f_geo:.3e}, rel-H={base.max_h_rel_drift:.2e} "
+        f"-> refined f_geo={refined.f_geo:.3e}, rel-H={refined.max_h_rel_drift:.2e}, "
+        f"h_quality_ok={refined.h_quality_ok})"
+    )
+    return replace(refined, notes=refined.notes + (note,))
 
 
 def integrate_null_energy_along_ray(

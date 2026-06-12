@@ -287,7 +287,7 @@ happened. Quick index (most consequential first):
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
-| [Alcubierre positive control → metric-first vs matter-first verdict](#alcubierre-positive-control--metric-first-vs-matter-first-verdict-2026-06-12) | 06-12 | Prescribed Alcubierre metric → our probes detect a 32% shortcut + flag exotic matter (probes validated). Metric-first is fine for *analysis*, impossible for *dynamics*; matter-first is correct. QD-res H-gate rejects even textbook Alcubierre → add mid-res re-probe |
+| [Alcubierre positive control → metric-first vs matter-first verdict](#alcubierre-positive-control--metric-first-vs-matter-first-verdict-2026-06-12) | 06-12 | Prescribed Alcubierre metric → our probes detect a 32% shortcut + flag exotic matter (probes validated). Metric-first is fine for *analysis*, impossible for *dynamics*; matter-first is correct. QD-res H-gate rejects even textbook Alcubierre → added 129³ mid-res re-probe |
 | [`v10` review → persistence-gate + physicality pressure → `v11`](#ftl_discovery_v10-review--persistence-gate--physicality-pressure--ftl_discovery_v11-2026-06-12) | 06-12 | 400 evals, top-5 all dynamic exotic bubbles with transient 2–3% shortcuts (same HQ-death band); #1 fragmented (persistence 0.46) yet ranked top. Persistence-gate the geodesic reward + raise exotic/energy weights |
 | [HQ verdict: shortcuts did not survive refinement → `v10`](#hq-verdict-shortcuts-did-not-survive-refinement--ftl_discovery_v10-2026-06-11) | 06-11 | All 3 promoted shortcuts collapsed at HQ (`f_geo` 2–3% → 0 / 0.29%); pipeline honestly rejected its own elites. Extend QD to t=16 + add static-matter toggle |
 | [`v9` review + shaping rebalance → HQ promotion](#ftl_discovery_v9-review--shaping-rebalance--hq-promotion-2026-06-11) | 06-11 | Geodesic gate fires for all evals (5 real shortcuts found); coordinate precursor out-voted validated ones → rebalanced; top 3 promoted HQ |
@@ -1133,9 +1133,17 @@ Alcubierre bubble and only passes near HQ resolution (129³). The drift is a pur
 discretization artifact (halves per refinement) while `f_geo` is unchanged — i.e.
 a *genuine* sharp-walled shortcut found by the QD search would have its geodesic
 reward **zeroed at QD resolution** and only certified after HQ refinement. This is
-exactly the `h_quality_ok=False` we kept hitting in v7–v9. **Action:** add a
-mid-resolution (≥97³) geodesic re-probe for candidates that show a coordinate
-shortcut but fail the QD-res H gate, so a real warp is not silently discarded.
+exactly the `h_quality_ok=False` we kept hitting in v7–v9.
+
+**Fixed (2026-06-12):** `compute_geodesic_ftl_from_plotfile` now does a
+**reliability re-probe**. It traces the ray fan at the cheap base resolution
+(65³); if that finds a coordinate shortcut (`f_geo > GEO_REFINE_FLOOR = 1e-3`) but
+the H gate fails, it re-traces *once* at `GEO_REFINE_N = 129³` (> 96, the first
+grid that reliably certifies even a sharp `σ=2` Alcubierre wall) and returns that
+report. The re-probe never fires for no-shortcut or already-reliable candidates,
+so the extra cost is paid only on the rare warp-candidate that would otherwise be
+silently discarded. Regression tests live in `tests/test_null_geodesic.py`
+(`test_reliability_reprobe_*`).
 
 ### Verdict: is metric-first (geometry-first) a bad idea, or are we doing matter-first wrong?
 
@@ -1162,9 +1170,9 @@ already using both correctly. The distinction is *analysis* vs *dynamics*:**
   self-consistent, evolvable spacetime. The campaign's failure to find a surviving
   shortcut from physical matter is an **honest physics result** — consistent with
   the NEC / Ford–Roman quantum-inequality no-go theorems — not a pipeline bug.
-- **The one genuine gap is instrumentation, not philosophy:** the QD-resolution
-  geodesic reliability gate is too strict for sharp walls (shown above). Fix with a
-  mid-res re-probe; do **not** loosen the matter-first design.
+- **The one genuine gap was instrumentation, not philosophy:** the QD-resolution
+  geodesic reliability gate was too strict for sharp walls (shown above). Fixed
+  with a 129³ mid-res re-probe (see above); the matter-first design is unchanged.
 
 **Bottom line:** the search "can't find Alcubierre" for three correct reasons —
 (1) physical scalar matter cannot source its exotic `T`, (2) the moving-puncture
