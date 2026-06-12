@@ -11,7 +11,7 @@ from grteclyn_wrapper.search.optimize import (
 def test_shell_ansatz_search_space_is_low_dimensional() -> None:
     space = build_search_space(grtresna=True, grtresna_lumps=5, grtresna_ansatz="shell")
 
-    assert len(space) == 21
+    assert len(space) == 23
     assert {dim.param_key for dim in space} >= {
         "grtresna_shell_amp",
         "grtresna_shell_radius",
@@ -25,6 +25,8 @@ def test_shell_ansatz_search_space_is_low_dimensional() -> None:
         "grtresna_scalar_lambda",
         "grtresna_matter_layout",
         "grtresna_shell_static",
+        "grtresna_shell_profile_fraction",
+        "grtresna_shell_profile_phase",
     }
 
 
@@ -288,3 +290,70 @@ def test_qd_cli_accepts_grtresna_shell_channel_options() -> None:
     assert args.grtresna_ansatz == "shell"
     assert args.grtresna_shell_profile == "compact"
     assert args.grtresna_full_z is True
+
+
+def test_matter_layout_cloud_is_bounded_and_volumetric() -> None:
+    # The cloud scatters lumps irregularly inside a ball -- unlike the sphere/
+    # ring layouts it does NOT pin every lump to a single radius shell.
+    overrides = {**_shell_base_overrides(), "grtresna_matter_layout": 4.0}
+    cfg = build_grtresna_config(overrides)
+    centers = [tuple(lump["center"]) for lump in cfg.lumps]
+    span = 4.0 + 0.5  # radius + thickness from _shell_base_overrides
+    radii = [math.sqrt(c[0] ** 2 + c[1] ** 2 + c[2] ** 2) for c in centers]
+    # Bounded inside the ball.
+    for r in radii:
+        assert r <= span + 1e-9
+    # Volumetric: the lumps span a range of radii (not a thin shell).
+    assert max(radii) - min(radii) > 0.5
+    # Still genuinely 3D (every axis populated).
+    for axis in range(3):
+        assert max(abs(c[axis]) for c in centers) > 0.3
+
+
+def test_matter_layout_cloud_is_deterministic() -> None:
+    overrides = {**_shell_base_overrides(), "grtresna_matter_layout": 4.0}
+    a = build_grtresna_config(dict(overrides))
+    b = build_grtresna_config(dict(overrides))
+    assert [tuple(l["center"]) for l in a.lumps] == [tuple(l["center"]) for l in b.lumps]
+
+
+def test_profile_fraction_assigns_top_hat_to_subset() -> None:
+    base = {**_shell_base_overrides(), "grtresna_shell_lumps": 6}
+    # Default (no profile fraction) keeps every lump Gaussian -- v13 behaviour.
+    cfg0 = build_grtresna_config(dict(base))
+    assert all(int(l.get("profile", 0)) == 0 for l in cfg0.lumps)
+    # Half the lumps switch to the smoothed top-hat profile.
+    cfg_half = build_grtresna_config({**base, "grtresna_shell_profile_fraction": 0.5})
+    assert sum(int(l["profile"]) for l in cfg_half.lumps) == 3
+    # All lumps switch.
+    cfg_all = build_grtresna_config({**base, "grtresna_shell_profile_fraction": 1.0})
+    assert all(int(l["profile"]) == 1 for l in cfg_all.lumps)
+
+
+def test_top_hat_envelope_has_flatter_core_than_gaussian() -> None:
+    from grteclyn_wrapper.grtresna.lump_fields import lump_phi_at
+
+    width = 3.0
+    gauss = {"amp": 0.2, "width": width, "center": (0.0, 0.0, 0.0), "mode": 0, "profile": 0}
+    ball = {**gauss, "profile": 1}
+    mid = (0.5 * width, 0.0, 0.0)
+    g_ratio = lump_phi_at(gauss, mid) / lump_phi_at(gauss, (0.0, 0.0, 0.0))
+    b_ratio = lump_phi_at(ball, mid) / lump_phi_at(ball, (0.0, 0.0, 0.0))
+    # The top-hat holds near-peak density across the core; the Gaussian has
+    # already decayed, so the top-hat is flatter (closer to 1) at mid-core.
+    assert b_ratio > g_ratio
+
+
+def test_solver_serializes_lump_profile() -> None:
+    from grteclyn_wrapper.grtresna.solver import GRTresnaConfig, _lump_lines
+
+    cfg = GRTresnaConfig()
+    cfg.lumps = [
+        {"amp": 0.1, "width": 3.0, "center": (0.0, 0.0, 0.0), "velocity": (0.0, 0.0, 0.0),
+         "omega": 0.0, "mode": 0, "exotic": 0, "profile": 1},
+        {"amp": 0.1, "width": 3.0, "center": (1.0, 0.0, 0.0), "velocity": (0.0, 0.0, 0.0),
+         "omega": 0.0, "mode": 0, "exotic": 0, "profile": 0},
+    ]
+    text = "\n".join(_lump_lines(cfg))
+    assert "lump0_profile = 1" in text
+    assert "lump1_profile = 0" in text

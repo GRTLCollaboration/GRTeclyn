@@ -315,8 +315,9 @@ def grtresna_shell_search_space(profile: str = "compact") -> list[SearchDimensio
         # Self-interaction on the shared field sum: V = 1/2(m s)^2 - (lambda/4)s^4.
         # lambda=0 recovers the mass-only potential (v12 behaviour).
         SearchDimension("grtresna_scalar_lambda", 0.0, 0.1, 0.0),
-        # Matter placement topology: 0=sphere, 1=channel, 2=bipolar, 3=ring.
-        SearchDimension("grtresna_matter_layout", 0.0, 3.0, 0.0),
+        # Matter placement topology: 0=sphere, 1=channel, 2=bipolar, 3=ring,
+        # 4=quasi-random cloud (deterministic asymmetric scatter).
+        SearchDimension("grtresna_matter_layout", 0.0, 4.0, 0.0),
         # Toroidal current is the warp/frame-drag motor -- kept at full range.
         SearchDimension("grtresna_shell_toroidal_velocity", *toroidal_v),
         # Poloidal/radial currents carry the lumps' net outflow (the "fly away"),
@@ -329,6 +330,13 @@ def grtresna_shell_search_space(profile: str = "compact") -> list[SearchDimensio
         SearchDimension("grtresna_shell_quadrupole_amp", -0.5, 0.5, 0.0),
         SearchDimension("grtresna_shell_exotic_fraction", *exotic_frac),
         SearchDimension("grtresna_shell_exotic_phase", 0.0, 2.0 * math.pi, 0.0),
+        # Per-lump matter PROFILE: a searchable fraction of the lumps get the
+        # smoothed top-hat ("ball") profile (profile=1); the rest stay Gaussian
+        # (profile=0). fraction=0 (default) keeps every lump Gaussian (v13).
+        # The phase selects WHICH lumps (by azimuth) become top-hat, mirroring
+        # the exotic_fraction/exotic_phase idiom.
+        SearchDimension("grtresna_shell_profile_fraction", 0.0, 1.0, 0.0),
+        SearchDimension("grtresna_shell_profile_phase", 0.0, 2.0 * math.pi, 0.0),
         SearchDimension("grtresna_shell_mode", 0.0, 2.0, 1.0),
         SearchDimension("grtresna_shell_radial_jitter", 0.0, 1.0, 0.0),
         # Initial-shift seed (peak |beta| along the matter momentum flux). This
@@ -420,6 +428,7 @@ def _expand_shell_sphere(
     omega: float,
     mode: int,
     exotic_ids: set[int],
+    profile_ids: set[int],
 ) -> list[dict]:
     golden = math.pi * (3.0 - math.sqrt(5.0))
     lumps: list[dict] = []
@@ -449,6 +458,7 @@ def _expand_shell_sphere(
             "omega": omega,
             "mode": max(0, mode),
             "exotic": 1 if k in exotic_ids else 0,
+            "profile": 1 if k in profile_ids else 0,
         })
     return lumps
 
@@ -471,6 +481,7 @@ def _expand_shell_channel(
     omega: float,
     mode: int,
     exotic_ids: set[int],
+    profile_ids: set[int],
     azimuths: list[float],
 ) -> list[dict]:
     """Place lumps along the polar axis -- a directed corridor for null rays."""
@@ -498,6 +509,7 @@ def _expand_shell_channel(
             "omega": omega,
             "mode": max(0, mode),
             "exotic": 1 if k in exotic_ids else 0,
+            "profile": 1 if k in profile_ids else 0,
         })
     return lumps
 
@@ -521,6 +533,7 @@ def _expand_shell_bipolar(
     omega: float,
     mode: int,
     exotic_ids: set[int],
+    profile_ids: set[int],
     azimuths: list[float],
 ) -> list[dict]:
     """Two matter clusters on opposite sides of the origin along the axis."""
@@ -549,6 +562,7 @@ def _expand_shell_bipolar(
             "omega": omega,
             "mode": max(0, mode),
             "exotic": 1 if k in exotic_ids else 0,
+            "profile": 1 if k in profile_ids else 0,
         })
     return lumps
 
@@ -571,6 +585,7 @@ def _expand_shell_ring(
     omega: float,
     mode: int,
     exotic_ids: set[int],
+    profile_ids: set[int],
     azimuths: list[float],
 ) -> list[dict]:
     """Planar ring in the plane orthogonal to the polar axis."""
@@ -601,6 +616,86 @@ def _expand_shell_ring(
             "omega": omega,
             "mode": max(0, mode),
             "exotic": 1 if k in exotic_ids else 0,
+            "profile": 1 if k in profile_ids else 0,
+        })
+    return lumps
+
+
+# Low-discrepancy R3 (Roberts 2018) additive-recurrence basis: deterministic,
+# parameter-free quasi-random offsets in [0,1)^3. The 'cloud' layout uses it to
+# scatter lumps irregularly (asymmetrically) yet reproducibly -- the same
+# searched params always yield the same cloud, so the optimizer sees a smooth,
+# learnable knob rather than per-candidate noise.
+_R3_ALPHA = (0.8191725133961644, 0.6710436067037892, 0.5497004779019703)
+
+
+def _r3_point(k: int) -> tuple[float, float, float]:
+    return (
+        (0.5 + _R3_ALPHA[0] * (k + 1)) % 1.0,
+        (0.5 + _R3_ALPHA[1] * (k + 1)) % 1.0,
+        (0.5 + _R3_ALPHA[2] * (k + 1)) % 1.0,
+    )
+
+
+def _expand_shell_cloud(
+    *,
+    num_lumps: int,
+    amp0: float,
+    width0: float,
+    radius: float,
+    thickness: float,
+    axis: tuple[float, float, float],
+    e1: tuple[float, float, float],
+    e2: tuple[float, float, float],
+    dipole: float,
+    quadrupole: float,
+    radial_jitter: float,
+    v_rad: float,
+    v_tor: float,
+    v_pol: float,
+    omega: float,
+    mode: int,
+    exotic_ids: set[int],
+    profile_ids: set[int],
+) -> list[dict]:
+    """Deterministic quasi-random cloud: lumps scattered irregularly in a ball.
+
+    Unlike the symmetric sphere/ring/bipolar layouts, the cloud breaks all
+    spatial symmetry while staying bounded and reproducible (fixed R3 sequence),
+    letting the optimizer explore fully asymmetric matter configurations.
+    """
+    span = max(radius + thickness, 1.0)
+    lumps: list[dict] = []
+    for k in range(num_lumps):
+        u1, u2, u3 = _r3_point(k)
+        mu = 2.0 * u2 - 1.0  # cos(theta)
+        sin_theta = math.sqrt(max(0.0, 1.0 - mu * mu))
+        azimuth = 2.0 * math.pi * u3
+        world = _vec_norm(
+            _vec_add(
+                _vec_add(
+                    _vec_scale(e1, sin_theta * math.cos(azimuth)),
+                    _vec_scale(e2, sin_theta * math.sin(azimuth)),
+                ),
+                _vec_scale(axis, mu),
+            )
+        )
+        if world == (0.0, 0.0, 0.0):
+            world = axis
+        r_k = span * (u1 ** (1.0 / 3.0)) * (1.0 + radial_jitter * 0.3 * (u3 - 0.5))
+        center = _vec_scale(world, r_k)
+        legendre = 1.0 + dipole * mu + quadrupole * (1.5 * mu * mu - 0.5)
+        amp = max(0.0, min(0.35, amp0 * max(0.15, legendre)))
+        width = max(1.0, min(6.0, width0 * max(0.5, 1.0 + 0.25 * quadrupole * mu)))
+        lumps.append({
+            "amp": amp,
+            "width": width,
+            "center": center,
+            "velocity": _shell_lump_velocity(axis, world, v_rad=v_rad, v_tor=v_tor, v_pol=v_pol),
+            "omega": omega,
+            "mode": max(0, mode),
+            "exotic": 1 if k in exotic_ids else 0,
+            "profile": 1 if k in profile_ids else 0,
         })
     return lumps
 
@@ -790,15 +885,19 @@ def build_grtresna_config(
         quadrupole = _get_float("grtresna_shell_quadrupole_amp", 0.0)
         exotic_fraction = min(1.0, max(0.0, _get_float("grtresna_shell_exotic_fraction", 0.4)))
         exotic_phase = _get_float("grtresna_shell_exotic_phase", 0.0)
+        profile_fraction = min(1.0, max(0.0, _get_float("grtresna_shell_profile_fraction", 0.0)))
+        profile_phase = _get_float("grtresna_shell_profile_phase", 0.0)
         mode = int(round(_get_float("grtresna_shell_mode", 1.0)))
         radial_jitter = min(1.0, max(0.0, _get_float("grtresna_shell_radial_jitter", 0.0)))
 
         layout = int(round(_get_float("grtresna_matter_layout", 0.0)))
-        layout = max(0, min(3, layout))
+        layout = max(0, min(4, layout))
         axis, e1, e2 = _orthonormal_frame(axis_theta, axis_phi)
         golden = math.pi * (3.0 - math.sqrt(5.0))
         azimuths = [golden * k for k in range(num_lumps)]
         exotic_ids = _shell_exotic_ids(num_lumps, exotic_fraction, exotic_phase, azimuths)
+        # Per-lump profile assignment reuses the same azimuth-ranking selector.
+        profile_ids = _shell_exotic_ids(num_lumps, profile_fraction, profile_phase, azimuths)
 
         common = dict(
             num_lumps=num_lumps,
@@ -817,6 +916,7 @@ def build_grtresna_config(
             omega=omega,
             mode=mode,
             exotic_ids=exotic_ids,
+            profile_ids=profile_ids,
             azimuths=azimuths,
         )
         if layout == 1:
@@ -827,6 +927,9 @@ def build_grtresna_config(
             ring_az = [2.0 * math.pi * k / num_lumps for k in range(num_lumps)]
             ring_common = {k: v for k, v in common.items() if k != "azimuths"}
             lumps = _expand_shell_ring(**ring_common, azimuths=ring_az)
+        elif layout == 4:
+            cloud_common = {k: v for k, v in common.items() if k != "azimuths"}
+            lumps = _expand_shell_cloud(**cloud_common, radial_jitter=radial_jitter)
         else:
             sphere_common = {k: v for k, v in common.items() if k != "azimuths"}
             lumps = _expand_shell_sphere(**sphere_common, radial_jitter=radial_jitter)
@@ -856,6 +959,7 @@ def build_grtresna_config(
                 "omega": f.get("omega", 0.0),
                 "mode": int(round(f.get("mode", 0.0))),
                 "exotic": int(round(f.get("exotic", 0.0))),
+                "profile": int(round(f.get("profile", 0.0))),
             })
         cfg.lumps = lumps
         if any(lump["exotic"] for lump in lumps):

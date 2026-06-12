@@ -69,7 +69,13 @@ def lump_phi_at(
     loc = np.asarray(point, dtype=float)
     dx = loc - center
     r2 = float(np.dot(dx, dx))
-    env = math.exp(-r2 / (2.0 * width * width))
+    profile = int(lump.get("profile", 0))
+    if profile == 1:
+        r = math.sqrt(r2)
+        soft = 0.25 * width
+        env = 0.5 * (1.0 - math.tanh((r - width) / soft))
+    else:
+        env = math.exp(-r2 / (2.0 * width * width))
     mode = int(lump.get("mode", 0))
     return effective_amp(lump) * angular_factor(mode, dx[0], dx[1], width) * env
 
@@ -135,7 +141,13 @@ def _lump_phi_grid(
     dy = py - center[1]
     dz = pz - center[2]
     r2 = dx * dx + dy * dy + dz * dz
-    env = np.exp(-r2 / (2.0 * width * width))
+    profile = int(lump.get("profile", 0))
+    if profile == 1:
+        r = np.sqrt(r2)
+        soft = 0.25 * width
+        env = 0.5 * (1.0 - np.tanh((r - width) / soft))
+    else:
+        env = np.exp(-r2 / (2.0 * width * width))
     mode = int(lump.get("mode", 0))
     angular = angular_factor(mode, dx, dy, width)
     return effective_amp(lump) * angular * env

@@ -23,6 +23,7 @@
 - [Scoring model (the "quality" axis)](#scoring-model-the-quality-axis)
   - [Plain-English glossary: every metric & penalty](#plain-english-glossary-every-metric--penalty)
 - [Code map (where everything lives)](#code-map-where-everything-lives)
+- [Building the binaries (GRTresna + GRTeclyn)](#building-the-binaries-grtresna--grteclyn)
 - [How to run a campaign](#how-to-run-a-campaign)
 - [Campaign log / runs analysis](#campaign-log--runs-analysis)
 
@@ -264,6 +265,86 @@ genuinely warped geometry.
 | Matter (evolution side) | `Source/Matter/GRTresnaIndependentScalars.{hpp,impl.hpp}`, `Examples/RadialRecipe/` |
 | Matter (initial-data side) | `../GRTresna/Examples/ScalarFieldBH/` |
 | Campaign launcher | `grteclyn-wrapper/scripts/search/run_grtresna_qd_search.sh` |
+
+## Building the binaries (GRTresna + GRTeclyn)
+
+Two separate toolchains. **GRTresna** (initial data) is **Chombo + conda-OpenMPI,
+CPU/MPI**; **GRTeclyn** (evolution) is **AMReX + CUDA, GPU**. The recurring pain is
+the GRTresna MPI/HDF5 toolchain: its Chombo `Make.defs.local` resolves
+`mpicxx`/`gfortran`/`g++` and `$CONDA_PREFIX` from the **conda env**, so the build
+(and link, and run) fail unless that env is on `PATH`/`LD_LIBRARY_PATH` and
+`CONDA_PREFIX` points at it.
+
+### One env to set first (every shell)
+
+```bash
+# Adjust these two paths to your machine; everything below is derived.
+export GRTRESNA_ENV=/home/jovyan/.mlspace/envs/grtresna
+export SIM_ROOT=/home/jovyan/nachevsky/test/simulation
+
+export CHOMBO_HOME="${SIM_ROOT}/Chombo/lib"
+export CONDA_PREFIX="${GRTRESNA_ENV}"
+export PATH="${GRTRESNA_ENV}/bin:${PATH}"
+export LD_LIBRARY_PATH="${GRTRESNA_ENV}/lib:${LD_LIBRARY_PATH:-}"
+```
+
+Shortcut: `source grteclyn-wrapper/scripts/lib/env.sh` sets the same vars
+(`GRTRESNA_ENV`, `PATH`, `LD_LIBRARY_PATH`, `CONDA_PREFIX`). The conda env must
+already contain `openmpi openmpi-mpicxx "hdf5=*=mpi_openmpi*" gcc/gxx/gfortran_linux-64`
+plus the `mpicxx`/`g++`/`gcc`/`gfortran` symlinks in `$CONDA_PREFIX/bin` — see
+`grteclyn-wrapper/src/grteclyn_wrapper/README.md` ("Installing GRTresna from
+scratch") for the full micromamba recipe.
+
+### Build GRTresna (initial-data solver, MPI)
+
+```bash
+cd "${SIM_ROOT}/GRTresna/Examples/ScalarFieldBH"
+PATH="${GRTRESNA_ENV}/bin:${PATH}" CONDA_PREFIX="${GRTRESNA_ENV}" \
+  make all -j4 CHOMBO_HOME="${CHOMBO_HOME}" MPI=TRUE
+# -> Main_ScalarFieldBH3d.Linux.64.mpicxx.gfortran.OPTHIGH.MPI.ex
+```
+
+First time only, build Chombo once: `cd "${CHOMBO_HOME}" && make lib -j"$(nproc)"`.
+
+**Header-only edits** (e.g. `MatterParams.hpp`, `ScalarField.hpp`) often don't
+trigger a recompile — force the relink:
+
+```bash
+cd "${SIM_ROOT}/GRTresna/Examples/ScalarFieldBH"
+EXE=Main_ScalarFieldBH3d.Linux.64.mpicxx.gfortran.OPTHIGH.MPI.ex
+rm -f "${EXE}" \
+  o/3d.Linux.64.mpicxx.gfortran.OPTHIGH.MPI/{Main_ScalarFieldBH,Grids,ScalarField,MyMatterFunctions}.o
+PATH="${GRTRESNA_ENV}/bin:${PATH}" CONDA_PREFIX="${GRTRESNA_ENV}" \
+  make all -j4 CHOMBO_HOME="${CHOMBO_HOME}" MPI=TRUE
+```
+
+### Build GRTeclyn (evolution, GPU)
+
+`AMREX_HOME` defaults to `${SIM_ROOT}/amrex` (sibling of GRTeclyn), so no extra env
+is needed beyond a CUDA toolchain and `COMP=gnu`.
+
+```bash
+cd "${SIM_ROOT}/GRTeclyn/Examples/RadialRecipe"
+# Single-GPU (what the smoke pipeline builds):
+make COMP=gnu USE_CUDA=TRUE USE_MPI=FALSE CUDA_ARCH=90 -j"$(nproc)"
+#   -> main3d.gnu.CUDA.ex
+# Multi-GPU (mpirun comes from the conda/local OpenMPI on PATH):
+make COMP=gnu USE_CUDA=TRUE USE_MPI=TRUE  CUDA_ARCH=90 -j"$(nproc)"
+#   -> main3d.gnu.MPI.CUDA.ex
+```
+
+Set `CUDA_ARCH` to your GPU: `90` = Hopper/H100, `80` = A100, `70` = V100.
+
+### Common failures → fixes (the MPI/conda gotcha)
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `mpicxx: command not found` / `gfortran: command not found` during GRTresna build | conda env not on `PATH` | `export PATH="${GRTRESNA_ENV}/bin:${PATH}"` (or `source .../scripts/lib/env.sh`) |
+| `cannot find -lhdf5` / HDF5 headers missing | `CONDA_PREFIX` unset, so Chombo `HDF*FLAGS` point nowhere | `export CONDA_PREFIX="${GRTRESNA_ENV}"` before `make` |
+| Builds, but `mpirun ./...ex` fails with `libmpi.so`/`libhdf5.so not found` | runtime loader can't see the conda libs | `export LD_LIBRARY_PATH="${GRTRESNA_ENV}/lib:${LD_LIBRARY_PATH}"` |
+| `CHOMBO_HOME` undefined / Chombo libs not found | env not exported | `export CHOMBO_HOME="${SIM_ROOT}/Chombo/lib"` (and build Chombo once) |
+| A C++ header edit "did nothing" | Chombo make skips header-only deps | force-relink (rm the `.ex` + the listed `.o` files) |
+| `/bin/csh: No such file` during Chombo/GRTresna make | Chombo hardcodes `/bin/csh` | point it at conda `tcsh` (README "Installing GRTresna from scratch", step 6) |
 
 ## How to run a campaign
 
@@ -1134,6 +1215,35 @@ Set `SKIP_QD_PREFLIGHT_TESTS=1` to bypass (not recommended).
 `MyMatterFunctions.cpp` need GRTeclyn + GRTresna recompiled before v13 evals.
 
 Search space: **21 dimensions** (was 19).
+
+### Matter-distribution enrichment → per-lump profile + cloud layout
+
+Two follow-on changes broaden the *matter* the search can place. These are
+richer initial data only — not warp-bubble mimicry and not tuned to the FTL
+score:
+
+4. **Per-lump matter profile.** Each lump carries a `profile` selector:
+   `0` = Gaussian envelope `exp(−r²/2w²)` (default, recovers v13), `1` = smoothed
+   top-hat "ball" `½(1 − tanh((r − w)/0.25w))` — a near-uniform, more volumetric
+   blob with a soft edge. In the shell ansatz it is driven by
+   `grtresna_shell_profile_fraction ∈ [0,1]` (+ `grtresna_shell_profile_phase`),
+   which assigns the top-hat to a searchable subset of lumps (mirrors the
+   `exotic_fraction` idiom); fraction `0` keeps every lump Gaussian. The envelope
+   is byte-identical in GRTresna `MatterParams.hpp::lump_phi` (constraint solve +
+   painter) and the Python gridinit painter `lump_fields.py`, so the solved
+   metric and the evolved φ/Π stay mutually consistent. Gradients and Π adapt
+   automatically (finite differences of `lump_phi`).
+
+5. **Quasi-random cloud layout** (`grtresna_matter_layout = 4`). A deterministic
+   low-discrepancy (R3) scatter of the ≤5 lumps inside a bounded ball, oriented
+   by the searched axis frame — a reproducible, fully asymmetric distribution the
+   symmetric sphere/channel/bipolar/ring layouts cannot represent.
+
+**Rebuild required:** GRTresna `ScalarFieldBH` must be recompiled (new `profile`
+field in `lump_t`); a stale binary silently ignores it. No GRTeclyn `Source/`
+change is needed — the evolution loads φ/Π from the gridinit.
+
+Search space: **23 dimensions** (was 21).
 
 ---
 
