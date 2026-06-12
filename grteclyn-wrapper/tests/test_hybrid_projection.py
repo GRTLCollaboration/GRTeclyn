@@ -101,6 +101,7 @@ def test_fit_matter_serializes_to_grtresna_config() -> None:
         write_grtresna_params(cfg, Path(tmp) / "grtresna_params.txt")
         text = (Path(tmp) / "grtresna_params.txt").read_text(encoding="utf-8")
         assert "scalar_mass = 0.0" in text
+        assert "scalar_lambda = 0.0" in text
         assert "num_lumps" in text
 
 

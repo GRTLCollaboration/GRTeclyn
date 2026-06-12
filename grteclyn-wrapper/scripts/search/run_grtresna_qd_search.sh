@@ -157,6 +157,17 @@ if [[ -n "${GRTRESNA_DOMAIN_NZ}" ]]; then
   DOMAIN_ARGS+=(--grtresna-domain-nz "${GRTRESNA_DOMAIN_NZ}")
 fi
 
+# Fail fast -- do not burn cluster GPUs on untested v13 matter/geometry code.
+if [[ "${SKIP_QD_PREFLIGHT_TESTS:-0}" != "1" ]]; then
+  echo "Running QD preflight pytest gate..."
+  ${PYTHON_BIN} -m pytest \
+    "${WRAPPER_ROOT}/tests/test_scalar_lambda_potential.py" \
+    "${WRAPPER_ROOT}/tests/test_grtresna_shell_ansatz.py" \
+    "${WRAPPER_ROOT}/tests/test_matter_geometry_consistency.py" \
+    "${WRAPPER_ROOT}/tests/test_grtresna_integration.py" \
+    -q --tb=short
+fi
+
 # shellcheck disable=SC2086
 exec ${PYTHON_BIN} -m grteclyn_wrapper \
   --runs-dir "${RUNS_DIR}" \

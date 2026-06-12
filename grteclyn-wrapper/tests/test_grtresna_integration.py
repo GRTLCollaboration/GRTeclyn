@@ -802,6 +802,49 @@ def test_geodesic_zero_flags_gauge_artifact() -> None:
     assert score.components["operational_ftl"] == 0.0
 
 
+def test_geodesic_zero_zeros_ftl_shaping_in_ftl_first_mode() -> None:
+    """v12 eval 197 scored 130 from shaping alone with f_geo=0; v13 gates that."""
+    artifact = EpisodeMetrics(
+        collapse=None,
+        constraints=None,
+        stability=None,
+        comoving=None,
+        ftl=None,
+        termination_reason="test",
+        general_ftl_evolved=GeneralFtlReport(
+            f_op=0.060,
+            t_min=14.8,
+            t_flat=15.75,
+            max_local_speed=1.25,
+            superluminal_fraction=0.2,
+            path_offaxis=False,
+            reachable=True,
+            notes=(),
+            max_shift=0.12,
+        ),
+        general_ftl_solved=GeneralFtlReport(
+            f_op=0.01,
+            t_min=15.6,
+            t_flat=15.75,
+            max_local_speed=1.26,
+            superluminal_fraction=0.06,
+            path_offaxis=False,
+            reachable=True,
+            notes=(),
+            max_shift=0.31,
+        ),
+        geodesic_ftl=_geodesic_report(0.0),
+    )
+    score = score_episode(artifact, objective_mode="ftl_first")
+    assert score.components["operational_ftl_geodesic"] == 0.0
+    assert score.components["operational_ftl"] == 0.0
+    assert score.components["ftl_precursor"] == 0.0
+    assert score.components["channel_progress"] == 0.0
+    assert score.components["shift_drive"] == 0.0
+    assert score.components["operational_ftl_solved"] == 0.0
+    assert any("FTL shaping zeroed" in note for note in score.notes)
+
+
 def _unreliable_geodesic_report(f_geo: float) -> GeodesicFtlReport:
     """A geodesic shortcut whose null-ray integration drifted off the
     constraint surface (and only part of the bundle reached the detector)."""

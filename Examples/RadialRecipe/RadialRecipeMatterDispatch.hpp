@@ -53,7 +53,7 @@ inline void eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
     {
         GRTresnaIndependentScalars matter(
             params.recipe_num_scalar_fields, params.recipe_scalar_field_signs,
-            params.recipe_scalar_mass);
+            params.recipe_scalar_mass, params.recipe_scalar_lambda);
         CCZ4RHSWithMatter<GRTresnaIndependentScalars,
                           MovingPunctureGaugeWithMatter, FourthOrderDerivatives>
             ccz4rhs(matter, params.ccz4_params, dx, params.sigma,

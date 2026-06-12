@@ -467,7 +467,8 @@ void RadialRecipeLevel::specificPostTimeStep()
             GRTresnaIndependentScalars matter(
                 simParams().recipe_num_scalar_fields,
                 simParams().recipe_scalar_field_signs,
-                simParams().recipe_scalar_mass);
+                simParams().recipe_scalar_mass,
+                simParams().recipe_scalar_lambda);
             fill_matter_constraints(cst, state_new, matter, dx[0],
                                     simParams().recipe_params.grid_center,
                                     time);
@@ -946,7 +947,8 @@ void RadialRecipeLevel::specificPostTimeStep()
                 GRTresnaIndependentScalars matter(
                     simParams().recipe_num_scalar_fields,
                     simParams().recipe_scalar_field_signs,
-                    simParams().recipe_scalar_mass);
+                    simParams().recipe_scalar_mass,
+                    simParams().recipe_scalar_lambda);
                 ec_res = reduce_ec_margins(state_fine, matter, ec_dx,
                                            ec_cell_vol);
             }

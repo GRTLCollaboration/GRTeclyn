@@ -287,6 +287,7 @@ happened. Quick index (most consequential first):
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
+| [`v12` review → λφ⁴ + FTL geometry layouts → `v13`](#ftl_discovery_v12-review--lambda-phi4--ftl-geometry-layouts--ftl_discovery_v13-2026-06-12) | 06-12 | 278 evals, zero geodesic FTL; top scores were coordinate-shaping artifacts (eval 197 scored 130 with f_geo=0). Adds searchable `grtresna_scalar_lambda` + `grtresna_matter_layout` (sphere/channel/bipolar/ring), zeros shaping when geodesic contradicts, pytest gate before QD launch |
 | [Alcubierre positive control → metric-first vs matter-first verdict](#alcubierre-positive-control--metric-first-vs-matter-first-verdict-2026-06-12) | 06-12 | Prescribed Alcubierre metric → our probes detect a 32% shortcut + flag exotic matter (probes validated). Metric-first is fine for *analysis*, impossible for *dynamics*; matter-first is correct. QD-res H-gate rejects even textbook Alcubierre → added 129³ mid-res re-probe |
 | [`v10` review → persistence-gate + physicality pressure → `v11`](#ftl_discovery_v10-review--persistence-gate--physicality-pressure--ftl_discovery_v11-2026-06-12) | 06-12 | 400 evals, top-5 all dynamic exotic bubbles with transient 2–3% shortcuts (same HQ-death band); #1 fragmented (persistence 0.46) yet ranked top. Persistence-gate the geodesic reward + raise exotic/energy weights |
 | [HQ verdict: shortcuts did not survive refinement → `v10`](#hq-verdict-shortcuts-did-not-survive-refinement--ftl_discovery_v10-2026-06-11) | 06-11 | All 3 promoted shortcuts collapsed at HQ (`f_geo` 2–3% → 0 / 0.29%); pipeline honestly rejected its own elites. Extend QD to t=16 + add static-matter toggle |
@@ -1091,6 +1092,50 @@ Tests: `tests/test_grtresna_integration.py::test_geodesic_reward_gated_by_struct
 (geodesic reward scales linearly with persistence; fragmenting end-state ranks lower).
 
 `ftl_discovery_v11` launched with these two changes (400 evals, t=16, static toggle).
+
+## `ftl_discovery_v12` review → λφ⁴ + FTL geometry layouts → `ftl_discovery_v13` (2026-06-12)
+
+**v12 verdict (278 evals):** metrics honest, zero `operational_ftl_geodesic` across all
+survivors. Top score 130 (eval 197) came entirely from coordinate shaping
+(`channel_progress`, `ftl_precursor`, gated `operational_ftl_solved`) with
+`f_geo=0` — the geodesic probe correctly rejected every coordinate superluminal
+bubble. Archive stuck in descriptor column 7 (max cone tilt). Not promotable.
+
+**Root cause:** matter disperses (no self-binding) and the Fibonacci-sphere layout
+only explores one topology. The search was gaming coordinate precursors, not
+discovering gauge-invariant shortcuts.
+
+### Three changes → `v13`
+
+1. **Searchable λφ⁴ self-interaction** (`grtresna_scalar_lambda ∈ [0, 0.1]`,
+   default 0). Potential on the shared field sum:
+   `V = ½(m·Σφ)² − (λ/4)(Σφ)⁴`. Wired identically in GRTresna
+   (`scalar_lambda`) and GRTeclyn (`recipe_scalar_lambda`). λ=0 recovers v12.
+
+2. **Searchable matter layout** (`grtresna_matter_layout` 0–3):
+   - 0 = sphere (Fibonacci shell, v12 baseline)
+   - 1 = channel (directed corridor along the polar axis)
+   - 2 = bipolar (two clusters on opposite sides)
+   - 3 = ring (planar loop orthogonal to the axis)
+
+   Not Alcubierre/warp-bubble mimicry — diverse FTL-oriented initial geometries.
+
+3. **Geodesic contradiction gate on shaping.** When a trustworthy geodesic probe
+   finds `f_geo=0`, all FTL shaping terms (`channel_progress`, `ftl_precursor`,
+   `shift_drive`, `operational_ftl_solved`) are zeroed — stops v12-style
+   leaderboard inflation.
+
+**Cluster safety:** `run_grtresna_qd_search.sh` runs a pytest preflight gate
+(`test_scalar_lambda_potential`, `test_grtresna_shell_ansatz`,
+`test_matter_geometry_consistency`, `test_grtresna_integration`) before launch.
+Set `SKIP_QD_PREFLIGHT_TESTS=1` to bypass (not recommended).
+
+**Rebuild required:** C++ changes to `GRTresnaScalarPotential.hpp` and GRTresna
+`MyMatterFunctions.cpp` need GRTeclyn + GRTresna recompiled before v13 evals.
+
+Search space: **21 dimensions** (was 19).
+
+---
 
 ## Alcubierre positive control → metric-first vs matter-first verdict (2026-06-12)
 

@@ -40,6 +40,7 @@ class GRTresnaMatterMetadata:
     num_scalar_fields: int
     scalar_field_signs: tuple[int, ...]
     scalar_mass: float
+    scalar_lambda: float
     lump_count: int
 
     def to_dict(self) -> dict[str, Any]:
@@ -54,6 +55,7 @@ class GRTresnaMatterMetadata:
             num_scalar_fields=len(signs),
             scalar_field_signs=signs,
             scalar_mass=float(cfg.scalar_mass),
+            scalar_lambda=float(cfg.scalar_lambda),
             lump_count=len(lumps),
         )
 
@@ -69,6 +71,7 @@ def evolution_overrides_from_config(cfg: GRTresnaConfig) -> dict[str, Any]:  # n
         "recipe_num_scalar_fields": meta.num_scalar_fields,
         "recipe_scalar_field_signs": " ".join(str(s) for s in meta.scalar_field_signs),
         "recipe_scalar_mass": meta.scalar_mass,
+        "recipe_scalar_lambda": meta.scalar_lambda,
         "calculate_constraint_norms": 1,
         "amr.plot_vars": plot_vars_for_independent_scalars(meta.num_scalar_fields),
     }

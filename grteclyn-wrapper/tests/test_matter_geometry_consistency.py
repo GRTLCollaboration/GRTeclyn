@@ -120,6 +120,7 @@ def test_matter_wiring_selects_independent_scalar_model() -> None:
     assert overrides["recipe_num_scalar_fields"] == 2
     assert overrides["recipe_scalar_field_signs"] == "1 -1"
     assert overrides["recipe_scalar_mass"] == pytest.approx(0.1)
+    assert overrides["recipe_scalar_lambda"] == pytest.approx(0.0)
     plot_vars = overrides["amr.plot_vars"]
     assert "phi_lump0" in plot_vars
     assert "Pi_lump1" in plot_vars
@@ -146,11 +147,12 @@ def test_plot_vars_render_unquoted_for_parmparse(tmp_path: Path) -> None:
 
 
 def test_matter_metadata_round_trip(tmp_path: Path) -> None:
-    cfg = GRTresnaConfig(lumps=[_canonical_lump()], scalar_mass=0.05)
+    cfg = GRTresnaConfig(lumps=[_canonical_lump()], scalar_mass=0.05, scalar_lambda=0.04)
     meta_path = write_matter_metadata(tmp_path / "episode.matter.json", cfg)
     payload = json.loads(meta_path.read_text(encoding="utf-8"))
     assert payload["matter_model"] == GRTRESNA_INDEPENDENT_MATTER_MODEL
     assert payload["num_scalar_fields"] == 1
+    assert payload["scalar_lambda"] == pytest.approx(0.04)
 
 
 def test_postload_gate_rejects_poor_constraints(tmp_path: Path) -> None:

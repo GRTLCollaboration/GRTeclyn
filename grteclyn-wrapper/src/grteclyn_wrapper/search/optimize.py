@@ -312,6 +312,11 @@ def grtresna_shell_search_space(profile: str = "compact") -> list[SearchDimensio
         SearchDimension("grtresna_shell_axis_theta", 0.0, math.pi, 0.5 * math.pi),
         SearchDimension("grtresna_shell_axis_phi", 0.0, 2.0 * math.pi, 0.0),
         SearchDimension("grtresna_scalar_mass", *scalar_mass),
+        # Self-interaction on the shared field sum: V = 1/2(m s)^2 - (lambda/4)s^4.
+        # lambda=0 recovers the mass-only potential (v12 behaviour).
+        SearchDimension("grtresna_scalar_lambda", 0.0, 0.1, 0.0),
+        # Matter placement topology: 0=sphere, 1=channel, 2=bipolar, 3=ring.
+        SearchDimension("grtresna_matter_layout", 0.0, 3.0, 0.0),
         # Toroidal current is the warp/frame-drag motor -- kept at full range.
         SearchDimension("grtresna_shell_toroidal_velocity", *toroidal_v),
         # Poloidal/radial currents carry the lumps' net outflow (the "fly away"),
@@ -362,6 +367,242 @@ def _vec_norm(a: tuple[float, float, float]) -> tuple[float, float, float]:
     if mag < 1e-12:
         return (0.0, 0.0, 0.0)
     return (a[0] / mag, a[1] / mag, a[2] / mag)
+
+
+def _shell_lump_velocity(
+    axis: tuple[float, float, float],
+    world: tuple[float, float, float],
+    *,
+    v_rad: float,
+    v_tor: float,
+    v_pol: float,
+) -> tuple[float, float, float]:
+    """Decompose shell currents into radial / toroidal / poloidal components."""
+    tor = _vec_norm(_vec_cross(axis, world))
+    pol = _vec_cross(tor, world)
+    return _vec_add(
+        _vec_add(_vec_scale(world, v_rad), _vec_scale(tor, v_tor)),
+        _vec_scale(pol, v_pol),
+    )
+
+
+def _shell_exotic_ids(
+    num_lumps: int,
+    exotic_fraction: float,
+    exotic_phase: float,
+    azimuths: list[float],
+) -> set[int]:
+    exotic_count = int(round(exotic_fraction * num_lumps))
+    ranked = sorted(
+        range(num_lumps),
+        key=lambda k: math.cos(azimuths[k] - exotic_phase),
+        reverse=True,
+    )
+    return set(ranked[:exotic_count])
+
+
+def _expand_shell_sphere(
+    *,
+    num_lumps: int,
+    amp0: float,
+    width0: float,
+    radius: float,
+    thickness: float,
+    axis: tuple[float, float, float],
+    e1: tuple[float, float, float],
+    e2: tuple[float, float, float],
+    dipole: float,
+    quadrupole: float,
+    radial_jitter: float,
+    v_rad: float,
+    v_tor: float,
+    v_pol: float,
+    omega: float,
+    mode: int,
+    exotic_ids: set[int],
+) -> list[dict]:
+    golden = math.pi * (3.0 - math.sqrt(5.0))
+    lumps: list[dict] = []
+    for k in range(num_lumps):
+        uz = 1.0 - 2.0 * (k + 0.5) / num_lumps
+        rho = math.sqrt(max(0.0, 1.0 - uz * uz))
+        phi_k = golden * k
+        ux = rho * math.cos(phi_k)
+        uy = rho * math.sin(phi_k)
+        world = _vec_norm(
+            _vec_add(
+                _vec_add(_vec_scale(e1, ux), _vec_scale(e2, uy)),
+                _vec_scale(axis, uz),
+            )
+        )
+        mu = uz
+        legendre = 1.0 + dipole * mu + quadrupole * (1.5 * mu * mu - 0.5)
+        amp = max(0.0, min(0.35, amp0 * max(0.15, legendre)))
+        width = max(1.0, min(6.0, width0 * max(0.5, 1.0 + 0.25 * quadrupole * mu)))
+        r_k = radius + thickness * mu + radial_jitter * radius * 0.3 * math.sin(golden * k)
+        center = _vec_scale(world, r_k)
+        lumps.append({
+            "amp": amp,
+            "width": width,
+            "center": center,
+            "velocity": _shell_lump_velocity(axis, world, v_rad=v_rad, v_tor=v_tor, v_pol=v_pol),
+            "omega": omega,
+            "mode": max(0, mode),
+            "exotic": 1 if k in exotic_ids else 0,
+        })
+    return lumps
+
+
+def _expand_shell_channel(
+    *,
+    num_lumps: int,
+    amp0: float,
+    width0: float,
+    radius: float,
+    thickness: float,
+    axis: tuple[float, float, float],
+    e1: tuple[float, float, float],
+    e2: tuple[float, float, float],
+    dipole: float,
+    quadrupole: float,
+    v_rad: float,
+    v_tor: float,
+    v_pol: float,
+    omega: float,
+    mode: int,
+    exotic_ids: set[int],
+    azimuths: list[float],
+) -> list[dict]:
+    """Place lumps along the polar axis -- a directed corridor for null rays."""
+    span = max(radius, thickness, 1.0)
+    lumps: list[dict] = []
+    for k in range(num_lumps):
+        t = (k + 0.5) / num_lumps - 0.5
+        along = span * t * 2.0
+        transverse = thickness * math.sin(azimuths[k])
+        offset = _vec_add(
+            _vec_scale(axis, along),
+            _vec_add(_vec_scale(e1, transverse), _vec_scale(e2, 0.5 * thickness * math.cos(azimuths[k]))),
+        )
+        center = offset
+        world = _vec_norm(center) if _vec_norm(center) != (0.0, 0.0, 0.0) else axis
+        mu = along / span if span > 0 else 0.0
+        legendre = 1.0 + dipole * mu + quadrupole * (1.5 * mu * mu - 0.5)
+        amp = max(0.0, min(0.35, amp0 * max(0.15, legendre)))
+        width = max(1.0, min(6.0, width0 * max(0.5, 1.0 + 0.25 * quadrupole * mu)))
+        lumps.append({
+            "amp": amp,
+            "width": width,
+            "center": center,
+            "velocity": _vec_add(_vec_scale(axis, v_rad), _vec_scale(e1, v_tor)),
+            "omega": omega,
+            "mode": max(0, mode),
+            "exotic": 1 if k in exotic_ids else 0,
+        })
+    return lumps
+
+
+def _expand_shell_bipolar(
+    *,
+    num_lumps: int,
+    amp0: float,
+    width0: float,
+    radius: float,
+    thickness: float,
+    axis: tuple[float, float, float],
+    e1: tuple[float, float, float],
+    e2: tuple[float, float, float],
+    dipole: float,
+    quadrupole: float,
+    radial_jitter: float,
+    v_rad: float,
+    v_tor: float,
+    v_pol: float,
+    omega: float,
+    mode: int,
+    exotic_ids: set[int],
+    azimuths: list[float],
+) -> list[dict]:
+    """Two matter clusters on opposite sides of the origin along the axis."""
+    half = max(1, num_lumps // 2)
+    lumps: list[dict] = []
+    for k in range(num_lumps):
+        sign = 1.0 if k < half else -1.0
+        mu = 1.0 - 2.0 * abs((k % half) + 0.5) / half
+        r_k = radius + thickness * abs(mu) + radial_jitter * radius * 0.2 * math.sin(azimuths[k])
+        offset = _vec_add(
+            _vec_scale(axis, sign * r_k),
+            _vec_add(
+                _vec_scale(e1, 0.3 * thickness * math.cos(azimuths[k])),
+                _vec_scale(e2, 0.3 * thickness * math.sin(azimuths[k])),
+            ),
+        )
+        world = _vec_norm(_vec_scale(axis, sign)) if sign != 0 else axis
+        legendre = 1.0 + dipole * sign * mu + quadrupole * (1.5 * mu * mu - 0.5)
+        amp = max(0.0, min(0.35, amp0 * max(0.15, legendre)))
+        width = max(1.0, min(6.0, width0 * max(0.5, 1.0 + 0.25 * quadrupole * mu)))
+        lumps.append({
+            "amp": amp,
+            "width": width,
+            "center": offset,
+            "velocity": _shell_lump_velocity(axis, world, v_rad=v_rad * sign, v_tor=v_tor, v_pol=v_pol),
+            "omega": omega,
+            "mode": max(0, mode),
+            "exotic": 1 if k in exotic_ids else 0,
+        })
+    return lumps
+
+
+def _expand_shell_ring(
+    *,
+    num_lumps: int,
+    amp0: float,
+    width0: float,
+    radius: float,
+    thickness: float,
+    axis: tuple[float, float, float],
+    e1: tuple[float, float, float],
+    e2: tuple[float, float, float],
+    dipole: float,
+    quadrupole: float,
+    v_rad: float,
+    v_tor: float,
+    v_pol: float,
+    omega: float,
+    mode: int,
+    exotic_ids: set[int],
+    azimuths: list[float],
+) -> list[dict]:
+    """Planar ring in the plane orthogonal to the polar axis."""
+    lumps: list[dict] = []
+    for k, theta in enumerate(azimuths):
+        c = math.cos(theta)
+        s = math.sin(theta)
+        amp_mod = 1.0 + dipole * c + quadrupole * math.cos(2.0 * theta)
+        width_mod = 1.0 + 0.25 * quadrupole * math.sin(2.0 * theta)
+        amp = max(0.0, min(0.35, amp0 * max(0.15, amp_mod)))
+        width = max(1.0, min(6.0, width0 * max(0.5, width_mod)))
+        center = _vec_add(
+            _vec_add(_vec_scale(e1, radius * c), _vec_scale(e2, radius * s)),
+            _vec_scale(axis, thickness * math.sin(theta)),
+        )
+        world = _vec_norm(center) if _vec_norm(center) != (0.0, 0.0, 0.0) else e1
+        tor = _vec_norm(_vec_cross(axis, world))
+        pol = _vec_cross(tor, world)
+        velocity = _vec_add(
+            _vec_add(_vec_scale(world, v_rad), _vec_scale(tor, v_tor)),
+            _vec_scale(pol, v_pol),
+        )
+        lumps.append({
+            "amp": amp,
+            "width": width,
+            "center": center,
+            "velocity": velocity,
+            "omega": omega,
+            "mode": max(0, mode),
+            "exotic": 1 if k in exotic_ids else 0,
+        })
+    return lumps
 
 
 def _orthonormal_frame(
@@ -471,6 +712,7 @@ def build_grtresna_config(
     # of dispersing/flying away. Propagated to both the GRTresna constraint
     # solve and the GRTeclyn evolution, keeping the two T_ab identical.
     cfg.scalar_mass = _get_float("grtresna_scalar_mass", cfg.scalar_mass)
+    cfg.scalar_lambda = _get_float("grtresna_scalar_lambda", cfg.scalar_lambda)
 
     if any(str(k).startswith("grtresna_ring_") for k in overrides):
         num_lumps = max(3, int(round(_get_float("grtresna_ring_lumps", GRTRESNA_DEFAULT_NUM_LUMPS))))
@@ -551,64 +793,43 @@ def build_grtresna_config(
         mode = int(round(_get_float("grtresna_shell_mode", 1.0)))
         radial_jitter = min(1.0, max(0.0, _get_float("grtresna_shell_radial_jitter", 0.0)))
 
+        layout = int(round(_get_float("grtresna_matter_layout", 0.0)))
+        layout = max(0, min(3, layout))
         axis, e1, e2 = _orthonormal_frame(axis_theta, axis_phi)
         golden = math.pi * (3.0 - math.sqrt(5.0))
+        azimuths = [golden * k for k in range(num_lumps)]
+        exotic_ids = _shell_exotic_ids(num_lumps, exotic_fraction, exotic_phase, azimuths)
 
-        # First pass: canonical Fibonacci directions, axis-relative angles.
-        dirs: list[tuple[float, float, float]] = []
-        mus: list[float] = []
-        azimuths: list[float] = []
-        for k in range(num_lumps):
-            uz = 1.0 - 2.0 * (k + 0.5) / num_lumps  # cos(polar) about axis
-            rho = math.sqrt(max(0.0, 1.0 - uz * uz))
-            phi_k = golden * k
-            ux = rho * math.cos(phi_k)
-            uy = rho * math.sin(phi_k)
-            # World direction: rotate canonical (ux, uy, uz) into (e1, e2, axis).
-            world = _vec_add(
-                _vec_add(_vec_scale(e1, ux), _vec_scale(e2, uy)),
-                _vec_scale(axis, uz),
-            )
-            world = _vec_norm(world)
-            dirs.append(world)
-            mus.append(uz)
-            azimuths.append(math.atan2(uy, ux))
-
-        exotic_count = int(round(exotic_fraction * num_lumps))
-        ranked = sorted(
-            range(num_lumps),
-            key=lambda k: math.cos(azimuths[k] - exotic_phase),
-            reverse=True,
+        common = dict(
+            num_lumps=num_lumps,
+            amp0=amp0,
+            width0=width0,
+            radius=radius,
+            thickness=thickness,
+            axis=axis,
+            e1=e1,
+            e2=e2,
+            dipole=dipole,
+            quadrupole=quadrupole,
+            v_rad=v_rad,
+            v_tor=v_tor,
+            v_pol=v_pol,
+            omega=omega,
+            mode=mode,
+            exotic_ids=exotic_ids,
+            azimuths=azimuths,
         )
-        exotic_ids = set(ranked[:exotic_count])
-
-        lumps: list[dict] = []
-        for k in range(num_lumps):
-            world = dirs[k]
-            mu = mus[k]
-            legendre = 1.0 + dipole * mu + quadrupole * (1.5 * mu * mu - 0.5)
-            amp = max(0.0, min(0.35, amp0 * max(0.15, legendre)))
-            width = max(1.0, min(6.0, width0 * max(0.5, 1.0 + 0.25 * quadrupole * mu)))
-            r_k = radius + thickness * mu + radial_jitter * radius * 0.3 * math.sin(golden * k)
-            center = _vec_scale(world, r_k)
-            # Local frame on the sphere: radial (world), toroidal (about axis),
-            # poloidal (meridional). Toroidal feeds L about the axis; poloidal is
-            # the over-the-pole current the equatorial ring cannot produce.
-            tor = _vec_norm(_vec_cross(axis, world))
-            pol = _vec_cross(tor, world)
-            velocity = _vec_add(
-                _vec_add(_vec_scale(world, v_rad), _vec_scale(tor, v_tor)),
-                _vec_scale(pol, v_pol),
-            )
-            lumps.append({
-                "amp": amp,
-                "width": width,
-                "center": center,
-                "velocity": velocity,
-                "omega": omega,
-                "mode": max(0, mode),
-                "exotic": 1 if k in exotic_ids else 0,
-            })
+        if layout == 1:
+            lumps = _expand_shell_channel(**common)
+        elif layout == 2:
+            lumps = _expand_shell_bipolar(**common, radial_jitter=radial_jitter)
+        elif layout == 3:
+            ring_az = [2.0 * math.pi * k / num_lumps for k in range(num_lumps)]
+            ring_common = {k: v for k, v in common.items() if k != "azimuths"}
+            lumps = _expand_shell_ring(**ring_common, azimuths=ring_az)
+        else:
+            sphere_common = {k: v for k, v in common.items() if k != "azimuths"}
+            lumps = _expand_shell_sphere(**sphere_common, radial_jitter=radial_jitter)
         cfg.lumps = lumps
         if any(lump["exotic"] for lump in lumps):
             _enable_exotic_safe_solver()

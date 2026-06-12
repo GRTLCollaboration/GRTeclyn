@@ -89,6 +89,7 @@ class GRTresnaConfig:
     dpi: float = 0.1
     dpi_length: float = 5.0
     scalar_mass: float = 0.1
+    scalar_lambda: float = 0.0
 
     # Momentum-carrying scalar "cloud" (a single localised lump). All default
     # to off so a config that does not set them reproduces the legacy spherical
@@ -268,6 +269,7 @@ def write_grtresna_params(cfg: GRTresnaConfig, path: Path) -> None:
         f"dpi = {cfg.dpi}",
         f"dpi_length = {cfg.dpi_length}",
         f"scalar_mass = {cfg.scalar_mass}",
+        f"scalar_lambda = {cfg.scalar_lambda}",
     ]
     lines.extend(_lump_lines(cfg))
     lines.extend([

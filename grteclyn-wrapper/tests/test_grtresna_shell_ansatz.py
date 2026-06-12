@@ -11,7 +11,7 @@ from grteclyn_wrapper.search.optimize import (
 def test_shell_ansatz_search_space_is_low_dimensional() -> None:
     space = build_search_space(grtresna=True, grtresna_lumps=5, grtresna_ansatz="shell")
 
-    assert len(space) == 19
+    assert len(space) == 21
     assert {dim.param_key for dim in space} >= {
         "grtresna_shell_amp",
         "grtresna_shell_radius",
@@ -22,6 +22,8 @@ def test_shell_ansatz_search_space_is_low_dimensional() -> None:
         "grtresna_shell_exotic_fraction",
         "grtresna_shift_seed",
         "grtresna_scalar_mass",
+        "grtresna_scalar_lambda",
+        "grtresna_matter_layout",
         "grtresna_shell_static",
     }
 
@@ -82,6 +84,31 @@ def test_shift_seed_flows_into_grtresna_config() -> None:
 
     cfg_seeded = build_grtresna_config({**base_overrides, "grtresna_shift_seed": 0.3})
     assert cfg_seeded.shift_seed == 0.3
+
+
+def _shell_base_overrides() -> dict:
+    return {
+        "grtresna_shell_lumps": 8,
+        "grtresna_shell_amp": 0.13,
+        "grtresna_shell_width": 2.4,
+        "grtresna_shell_radius": 4.0,
+        "grtresna_shell_thickness": 0.5,
+        "grtresna_shell_axis_theta": 0.5 * math.pi,
+        "grtresna_shell_axis_phi": 0.0,
+        "grtresna_shell_toroidal_velocity": 0.2,
+        "grtresna_shell_poloidal_velocity": 0.0,
+        "grtresna_shell_radial_velocity": 0.0,
+        "grtresna_shell_exotic_fraction": 0.0,
+    }
+
+
+def test_scalar_lambda_flows_into_grtresna_config() -> None:
+    base = _shell_base_overrides()
+    cfg_default = build_grtresna_config(dict(base))
+    assert cfg_default.scalar_lambda == 0.0
+
+    cfg_lam = build_grtresna_config({**base, "grtresna_scalar_lambda": 0.05})
+    assert cfg_lam.scalar_lambda == 0.05
 
 
 def test_scalar_mass_flows_into_grtresna_config() -> None:
@@ -172,6 +199,48 @@ def test_shell_static_toggle_zeroes_all_matter_currents() -> None:
     # Same knobs with the flag off keep the moving-matter behaviour.
     moving = build_grtresna_config({**overrides, "grtresna_shell_static": 0.0})
     assert max(abs(v) for lump in moving.lumps for v in lump["velocity"]) > 0.1
+
+
+def _axis_projection(centers: list[tuple[float, float, float]], axis_idx: int = 2) -> float:
+    return max(c[axis_idx] for c in centers) - min(c[axis_idx] for c in centers)
+
+
+def test_matter_layout_channel_is_elongated_along_axis() -> None:
+    overrides = {**_shell_base_overrides(), "grtresna_matter_layout": 1.0}
+    cfg = build_grtresna_config(overrides)
+    centers = [tuple(lump["center"]) for lump in cfg.lumps]
+    # axis_theta=pi/2, axis_phi=0 => polar axis is +x
+    assert _axis_projection(centers, 0) > 5.0
+
+
+def test_matter_layout_bipolar_splits_along_axis() -> None:
+    overrides = {**_shell_base_overrides(), "grtresna_matter_layout": 2.0}
+    cfg = build_grtresna_config(overrides)
+    # axis_theta=pi/2, axis_phi=0 => polar axis is +x
+    projections = [lump["center"][0] for lump in cfg.lumps]
+    assert max(projections) > 0.5 and min(projections) < -0.5
+
+
+def test_matter_layout_ring_is_planar() -> None:
+    overrides = {**_shell_base_overrides(), "grtresna_matter_layout": 3.0}
+    cfg = build_grtresna_config(overrides)
+    centers = [tuple(lump["center"]) for lump in cfg.lumps]
+    # Ring lies in the plane orthogonal to the polar axis (+x).
+    x_spread = _axis_projection(centers, 0)
+    yz_radii = [math.hypot(c[1], c[2]) for c in centers]
+    assert x_spread < 1.5
+    assert min(yz_radii) > 3.0
+    assert max(yz_radii) < 5.0
+    assert _axis_projection(centers, 1) > 2.0
+    assert _axis_projection(centers, 2) > 2.0
+
+
+def test_matter_layout_sphere_covers_all_axes() -> None:
+    overrides = {**_shell_base_overrides(), "grtresna_matter_layout": 0.0}
+    cfg = build_grtresna_config(overrides)
+    for axis in range(3):
+        spread = max(abs(lump["center"][axis]) for lump in cfg.lumps)
+        assert spread > 0.5
 
 
 def test_ring_ansatz_is_unchanged() -> None:

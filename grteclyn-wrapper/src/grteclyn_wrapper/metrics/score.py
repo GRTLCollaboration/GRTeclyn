@@ -725,6 +725,31 @@ def score_episode(
     for key in ("ftl_precursor", "channel_progress", "shift_drive"):
         components[key] *= persistence_gate
 
+    # Geodesic contradiction gate.  When a trustworthy null-ray probe ran and
+    # found no gauge-invariant shortcut, coordinate shaping rewards are gauge
+    # artifacts and must not inflate the archive (v12 eval 197 scored 130 from
+    # shaping alone with f_geo=0).
+    if (
+        geo_trustworthy
+        and (not math.isfinite(f_geo) or f_geo <= GEO_FTL_FLOOR)
+    ):
+        shaped_zeroed = False
+        for key in (
+            "operational_ftl_solved",
+            "ftl_precursor",
+            "channel_progress",
+            "shift_drive",
+        ):
+            if components.get(key, 0.0) > 0.0:
+                shaped_zeroed = True
+            components[key] = 0.0
+        if shaped_zeroed:
+            notes.append(
+                "FTL shaping zeroed: trustworthy geodesic probe found no "
+                f"gauge-invariant shortcut (f_geo={f_geo:.3e}); coordinate "
+                "precursor/channel rewards are artifacts"
+            )
+
     # Graded stationary penalty.  A *flat* -1.0 collapses every zero-net-shift
     # geometry to the same score, so the map has no slope and cannot tell
     # "almost propulsive" from "perfectly static" -- the whole stationary basin
