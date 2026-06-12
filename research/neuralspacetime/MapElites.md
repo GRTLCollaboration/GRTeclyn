@@ -368,6 +368,7 @@ happened. Quick index (most consequential first):
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
+| [`v14` launch setup → matter profile + cloud layout](#v14-launch-setup-matter-profile-and-cloud-layout-2026-06-12) | 06-12 | Adds per-lump matter profile (Gaussian / smoothed top-hat "ball") + quasi-random cloud layout (`matter_layout=4`) on top of the v13 λ/layouts/gate stack; search space 21→23 dims. GRTresna rebuilt; 182 tests pass. Launch as `ftl_discovery_v14` |
 | [`v12` review → λφ⁴ + FTL geometry layouts → `v13`](#ftl_discovery_v12-review--lambda-phi4--ftl-geometry-layouts--ftl_discovery_v13-2026-06-12) | 06-12 | 278 evals, zero geodesic FTL; top scores were coordinate-shaping artifacts (eval 197 scored 130 with f_geo=0). Adds searchable `grtresna_scalar_lambda` + `grtresna_matter_layout` (sphere/channel/bipolar/ring), zeros shaping when geodesic contradicts, pytest gate before QD launch |
 | [Alcubierre positive control → metric-first vs matter-first verdict](#alcubierre-positive-control--metric-first-vs-matter-first-verdict-2026-06-12) | 06-12 | Prescribed Alcubierre metric → our probes detect a 32% shortcut + flag exotic matter (probes validated). Metric-first is fine for *analysis*, impossible for *dynamics*; matter-first is correct. QD-res H-gate rejects even textbook Alcubierre → added 129³ mid-res re-probe |
 | [`v10` review → persistence-gate + physicality pressure → `v11`](#ftl_discovery_v10-review--persistence-gate--physicality-pressure--ftl_discovery_v11-2026-06-12) | 06-12 | 400 evals, top-5 all dynamic exotic bubbles with transient 2–3% shortcuts (same HQ-death band); #1 fragmented (persistence 0.46) yet ranked top. Persistence-gate the geodesic reward + raise exotic/energy weights |
@@ -384,6 +385,76 @@ happened. Quick index (most consequential first):
 | [Status / reset (theta_plus bug)](#map-elites-ftl-discovery-status) | 06-10 | `theta_plus` re-centered on `grid_center` |
 
 ---
+
+## v14 launch setup: matter profile and cloud layout (2026-06-12)
+
+`v14` keeps the entire v13 stack intact and adds two matter-distribution knobs.
+Nothing here is tuned to the FTL score or shaped toward a warp metric — the goal
+is to let MAP-Elites explore a broader, more physical matter palette.
+
+### New in v14 (matter distribution)
+
+1. **Per-lump matter profile.** Each lump carries a `profile` selector: `0` =
+   Gaussian envelope `exp(−r²/2w²)` (default → v13 unchanged), `1` = smoothed
+   top-hat "ball" `½(1 − tanh((r − w)/0.25w))` (near-uniform, more volumetric,
+   soft edge). In the shell ansatz it is driven by
+   `grtresna_shell_profile_fraction ∈ [0,1]` (+ `grtresna_shell_profile_phase`),
+   assigning the top-hat to a searchable subset of lumps (mirrors the
+   `exotic_fraction` idiom); fraction `0` keeps every lump Gaussian. The envelope
+   is **byte-identical** in GRTresna `MatterParams.hpp::lump_phi` (constraint
+   solve + painter) and the Python gridinit painter `lump_fields.py`, so the
+   solved metric and the evolved φ/Π stay consistent. Gradients/Π adapt
+   automatically (finite differences). The free/indexed ansatz honours a per-lump
+   `grtresna_lump{k}_profile`.
+
+2. **Quasi-random cloud layout** (`grtresna_matter_layout = 4`). Deterministic
+   low-discrepancy (R3) scatter of the ≤5 lumps inside a bounded ball, oriented by
+   the searched axis frame — a reproducible, fully asymmetric distribution the
+   symmetric sphere/channel/bipolar/ring layouts cannot represent.
+
+Search space: **23 dimensions** (was 21).
+
+### Carried over from v13 (independently reviewed, sound)
+
+3. **λφ⁴ self-interaction** (`grtresna_scalar_lambda ∈ [0, 0.1]`, default 0):
+   `V = ½(m·Σφ)² − (λ/4)(Σφ)⁴`, `dV/dφ = m²Σφ − λ(Σφ)³`. Threaded identically
+   through GRTresna (`scalar_lambda`) and GRTeclyn (`recipe_scalar_lambda`,
+   `GRTresnaScalarPotential.hpp`); λ=0 recovers v12.
+4. **Matter layout topologies** `grtresna_matter_layout`: `0`=sphere (v12
+   Fibonacci shell, bit-for-bit preserved), `1`=channel, `2`=bipolar, `3`=ring —
+   now extended with `4`=cloud (above).
+5. **Geodesic contradiction gate**: when a trustworthy geodesic probe reports
+   `f_geo ≤ floor`, the FTL shaping terms (`operational_ftl_solved`,
+   `ftl_precursor`, `channel_progress`, `shift_drive`) are zeroed, stopping
+   coordinate-artifact leaderboard inflation.
+
+### Build / rebuild status
+
+- **GRTresna `ScalarFieldBH` recompiled** with the new `profile` field (verified
+  clean build + relink; `MatterParams.hpp`, `ScalarField.cpp`,
+  `MyMatterFunctions.cpp` all rebuilt). A stale binary silently ignores `profile`.
+- **No GRTeclyn `Source/` change** for v14 — the evolution loads φ/Π from the
+  gridinit, so the existing `main3d.gnu.CUDA.ex` is current for this change.
+- Preflight: `uv run pytest` → 182 passed; C++/Python envelope agreement verified
+  to 1e-9.
+
+### Launch command
+
+```bash
+cd grteclyn-wrapper
+QD_NAME=ftl_discovery_v14 QD_ITERATIONS=10 BINS=8 STOP_TIME=16.0 \
+  GPU_IDS="0 1 2 3 4 5 6 7" RANKS=8 LUMPS=5 SHELL_PROFILE=compact \
+  GRTRESNA_MAX_HAM_PCT=5.0 GRTRESNA_MAX_MOM_PCT=5.0 \
+  nohup bash scripts/search/run_grtresna_qd_search.sh \
+  > ../runs/qd_ftl_discovery_v14.launch.log 2>&1 &
+```
+
+The launcher runs the pytest preflight gate (`SKIP_QD_PREFLIGHT_TESTS=1` bypasses)
+before allocating GPUs.
+
+**Open gap:** the end-to-end smoke (λ + a non-sphere layout + top-hat profile →
+solve → evolve → gate firing on real data) is still unconfirmed; the unit tests
+verify config/scoring wiring, not a live solve + evolution.
 
 ## MAP-Elites FTL Discovery Status
 
