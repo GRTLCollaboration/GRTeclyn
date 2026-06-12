@@ -6,10 +6,9 @@
 #ifndef BINARYBHLEVEL_HPP_
 #define BINARYBHLEVEL_HPP_
 
+#include "BHAMR.hpp"
 #include "DefaultLevelFactory.hpp"
 #include "GRAMRLevel.hpp"
-// TPAMR.hpp includes BHAMR.hpp
-#include "TPAMR.hpp"
 
 class BinaryBHLevel : public GRAMRLevel
 {
