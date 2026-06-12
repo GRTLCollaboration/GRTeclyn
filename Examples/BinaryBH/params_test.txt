@@ -18,6 +18,46 @@ plot_interval = 8
 amr.derive_plot_vars = ALL
 
 #################################################
+# TwoPunctures initial data parameters
+
+two_punctures.verbose = true
+
+# two_punctures.calculate_target_masses = true
+# two_punctures.target_mass_plus  = 0.5
+# two_punctures.target_mass_minus = 0.5
+# two_punctures.adm_tol           = 1.0e-10
+
+two_punctures.mass_plus  = 0.47008673687400732
+two_punctures.mass_minus = 0.47008673687400732
+
+two_punctures.offset_plus  = +2.0
+two_punctures.offset_minus = -2.0
+
+two_punctures.momentum_plus  = 0.0 +0.1 0.0
+two_punctures.momentum_minus = 0.0 -0.1 0.0
+
+two_punctures.spin_plus      = 0.0 0.0 0.0
+two_punctures.spin_minus     = 0.0 0.0 0.0
+
+# two_punctures.use_spectral_interpolation = false
+# two_punctures.initial_lapse = "psi^n"
+# two_punctures.initial_lapse_psi_exponent = -2.0
+
+# two_punctures.num_points_A   = 30
+# two_punctures.num_points_B   = 30
+# two_punctures.num_points_phi = 16
+
+# two_punctures.solver_tol    = 1.0e-10
+# two_punctures.solver_maxit  = 5
+# two_punctures.epsilon       = 1.0e-6
+# two_punctures.tiny          = 0.0
+# two_punctures.extend_radius = 0.0
+
+# two_punctures.swap_xz = false
+# two_punctures.do_residuum_debug_output = false
+# two_punctures.do_initial_debug_output = false
+
+#################################################
 # BH Initial Data parameters
 
 massA = 0.5
