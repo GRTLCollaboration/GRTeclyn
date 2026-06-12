@@ -451,10 +451,23 @@ def score_episode(
         and geo_report.n_reached == geo_report.n_rays
     )
     if geo_trustworthy and math.isfinite(f_geo) and f_geo > GEO_FTL_FLOOR:
-        components["operational_ftl_geodesic"] = min(
+        geo_magnitude = min(
             (f_geo - GEO_FTL_FLOOR) / (GEO_FTL_TARGET - GEO_FTL_FLOOR),
             1.0,
         )
+        # Persistence gate on the dominant (1000-weight) FTL reward.  A
+        # gauge-invariant shortcut only counts if the matter structure that
+        # produces it actually holds together to the stop time.  v10's top elite
+        # (eval 258) banked a ~3% shortcut while its lump fragmented into
+        # turbulent lobes (structural_persistence=0.46) and visibly broke up by
+        # t=16 -- a transient shortcut on a disintegrating structure, exactly the
+        # class that collapsed under HQ refinement in v9.  Scaling by
+        # structural_persistence (the same gate already applied to the shaping
+        # rewards below) means a fragmenting end-state can no longer out-rank a
+        # coherent survivor that carries a comparable shortcut.  Persistence
+        # defaults to 1.0 when the matter series/slice is unavailable, leaving the
+        # reward untouched.
+        components["operational_ftl_geodesic"] = geo_magnitude * structural_persistence
     else:
         components["operational_ftl_geodesic"] = 0.0
     if geo_report is not None:
@@ -898,9 +911,24 @@ def score_episode(
                 + 10.0 * components.get("stability", 0.0)
                 + 15.0 * components.get("instability_penalty", 0.0)
                 + 8.0 * components.get("comoving_stability", 0.0)
-                + 2.0 * components.get("energy_condition", 0.0)
+                + 40.0 * components.get("energy_condition", 0.0)
             )
-            + 1.0 * components.get("exotic_penalty", 0.0)
+            # Physicality pressure.  Every v10 top-5 elite was a maximally-exotic
+            # warp bubble (energy_condition ~0.05, near-floor exotic_penalty):
+            # at the old weights (exotic 1, energy 2) the exotic cost was ~-0.5
+            # against a ~150-point shortcut, so the search had *no* incentive to
+            # leave the easy exotic corner.  energy_condition is boosted (2 -> 40)
+            # to materially reward a genuinely NEC-respecting geometry, and the
+            # graded exotic penalty is boosted (1 -> 40): a fully-exotic geometry
+            # now costs ~-64 pts (typical ~-20), a real ~20-30% dent against a
+            # realistic ~150-250-pt shortcut -- enough that a cleaner candidate of
+            # comparable magnitude wins, but NOT enough to swamp the FTL reward.
+            # (A first cut at weight 100 floored the whole population negative
+            # before any shortcut appeared -- a -160 full-exotic penalty made
+            # "minimise exotic" dominate "find FTL", inverting the FTL-first
+            # priority.)  The penalty stays graded (0..-1.6), so the QD gradient
+            # is preserved.
+            + 40.0 * components.get("exotic_penalty", 0.0)
             # Moderate stationary penalty: the FTL shaping rewards are already
             # zeroed for a stationary artifact (see the stationary-artifact gate)
             # and the geodesic shortcut is reliability-gated, so a static lens

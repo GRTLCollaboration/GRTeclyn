@@ -9,6 +9,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import numpy as np
+import pytest
 
 from grteclyn_wrapper.grtresna.io import _reflect_half_z_to_full
 from grteclyn_wrapper.grtresna.domain import GRTresnaDomainConfig
@@ -471,6 +472,7 @@ def _metrics_with_general_ftl(
     f_op: float = 0.0,
     stationary: bool = False,
     beta_mean: float = 0.0,
+    structure_coherence: float | None = None,
 ) -> EpisodeMetrics:
     report = GeneralFtlReport(
         f_op=f_op,
@@ -482,6 +484,7 @@ def _metrics_with_general_ftl(
         reachable=t_min is not None,
         notes=(),
         max_shift=max_shift,
+        structure_coherence=structure_coherence,
     )
     return EpisodeMetrics(
         collapse=None,
@@ -723,6 +726,49 @@ def test_geodesic_confirmation_dominates_coordinate_shortcut() -> None:
 
     assert geodesic_score.components["operational_ftl_geodesic"] > 0.0
     assert geodesic_score.total > coord_only.total + 500.0
+
+
+def test_geodesic_reward_gated_by_structural_persistence() -> None:
+    """A reliable gauge-invariant shortcut on a *fragmenting* structure must
+    score below the same shortcut on a coherent survivor.  Regression for v10
+    eval 258, which banked a ~3% geodesic shortcut while its lump shattered into
+    turbulent lobes (structural_persistence~0.46) and broke up by t=16 -- the
+    transient-on-disintegrating class that collapsed under HQ refinement in v9.
+    With no matter-density series the coherence factor *is* structural
+    persistence, so the geodesic reward must scale linearly with it."""
+    def _scored(coherence: float):
+        base = _metrics_with_general_ftl(
+            t_min=14.8,
+            t_flat=15.75,
+            max_local_speed=1.25,
+            superluminal_fraction=0.2,
+            max_shift=0.12,
+            f_op=0.060,
+            structure_coherence=coherence,
+        )
+        confirmed = EpisodeMetrics(
+            collapse=base.collapse,
+            constraints=base.constraints,
+            stability=base.stability,
+            comoving=base.comoving,
+            ftl=base.ftl,
+            termination_reason=base.termination_reason,
+            curvature=base.curvature,
+            general_ftl_evolved=base.general_ftl_evolved,
+            geodesic_ftl=_geodesic_report(0.1),
+        )
+        return score_episode(confirmed, objective_mode="ftl_first")
+
+    fragmented = _scored(0.5)
+    coherent = _scored(1.0)
+
+    geo_frag = fragmented.components["operational_ftl_geodesic"]
+    geo_coh = coherent.components["operational_ftl_geodesic"]
+    assert 0.0 < geo_frag < geo_coh
+    # Coherence (0.5) is the only persistence factor here, so the gate halves it.
+    assert geo_frag == pytest.approx(0.5 * geo_coh, rel=1e-6)
+    # The fragmenting end-state must also rank lower overall.
+    assert fragmented.total < coherent.total
 
 
 def test_geodesic_zero_flags_gauge_artifact() -> None:

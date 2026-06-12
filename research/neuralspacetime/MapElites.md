@@ -21,6 +21,7 @@
 - [The hard consistency rule](#the-hard-consistency-rule)
 - [Behavior descriptors (the "diversity" axes)](#behavior-descriptors-the-diversity-axes)
 - [Scoring model (the "quality" axis)](#scoring-model-the-quality-axis)
+  - [Plain-English glossary: every metric & penalty](#plain-english-glossary-every-metric--penalty)
 - [Code map (where everything lives)](#code-map-where-everything-lives)
 - [How to run a campaign](#how-to-run-a-campaign)
 - [Campaign log / runs analysis](#campaign-log--runs-analysis)
@@ -178,6 +179,77 @@ crossed (see the [geodesic-reward recalibration](#geodesic-reward-recalibration-
 The full per-component table lives in
 `grteclyn-wrapper/src/grteclyn_wrapper/metrics/README.md`.
 
+### Plain-English glossary: every metric & penalty
+
+What each score component actually means, in three buckets: **did it make FTL?**,
+**is it a real, healthy structure?**, and **penalties for cheating or breaking
+physics**. (Two scoring modes exist: `weighted` is a plain weighted sum;
+`ftl_first` — what every campaign uses — makes the validated FTL evidence dominate
+and keeps the shaping hints subordinate.)
+
+**1. The goal — did it make a faster-than-light shortcut?**
+
+- **`operational_ftl_geodesic`** — *the gold standard.* Fires a real light ray
+  through the evolved spacetime and checks whether it genuinely arrives earlier
+  than it could through empty flat space. Gauge-invariant (can't be faked by a
+  coordinate trick), so it carries the largest weight. Only counts when its
+  reliability gate passes (rays stay on the constraint surface and all reach the
+  detector) **and** the matter structure producing it persists (persistence-gated).
+- **`operational_ftl`** — a shortcut measured on the evolved geometry via
+  coordinate light-speed. Weaker evidence; it is **zeroed when a trustworthy
+  geodesic probe finds no shortcut** (then it's just a coordinate illusion).
+- **`ftl_persistence`** — rewards a shortcut that *lasts* across the final frames,
+  not a one-frame flicker.
+- **`operational_ftl_solved`** — a shortcut seen in the initial (t=0)
+  constraint-solved data, before evolution. A hint, not proof (localization-gated).
+- **`ftl_precursor`, `channel_progress`, `shift_drive`** — "you're getting warmer"
+  gradients: light cones starting to tilt and frame-dragging starting to appear
+  *before* a full shortcut exists, so the search has a slope to climb out of flat
+  space. Gated down if the matter fragments.
+- **`ftl_shortcut`** — a faint t=0 hint, barely weighted.
+
+**2. Is it a real, healthy structure? (rewards)**
+
+- **`numerical_survival`** — did the simulation run to the end without crashing?
+  (Necessary but not sufficient — empty space also "survives".)
+- **`structural_persistence`** — the honest survival measure, a product of two
+  things: *density retention* (did the matter keep its energy density or fizzle
+  out?) × *morphological coherence* (did it stay one blob or shatter into lobes?).
+- **`survival`** = `numerical_survival × structural_persistence` — "it actually
+  lasted as a coherent thing".
+- **`stability` / `comoving_stability`** — how little the geometry drifts/wobbles.
+- **`constraint_health`, `constraint_growth`, `initial_constraint_quality`** — is
+  it actually solving Einstein's equations well, or accumulating numerical error?
+- **`lapse_health`** — is the time-slicing well-behaved?
+- **`energy_condition` / `anec_condition`** — rewards for respecting physical
+  energy rules (positive energy). Weighted heavily so physical solutions are favored.
+- **`tidal_comfort`** — would a passenger survive the tidal forces?
+- **`curvature_activity`, `nontrivial_geometry`, `nonflat_geometry`,
+  `expansion_asymmetry`** — rewards for the geometry being genuinely *warped*, so
+  flat empty space can't win by default.
+
+**3. Penalties — for cheating or breaking physics (negative)**
+
+- **`exotic_penalty`** — the big one. We want FTL *without* exotic (negative-energy)
+  matter; the more negative energy the solution needs, the larger the penalty.
+  Graded (0..−1.6) and calibrated so it's a real ~20–30% dent against a shortcut
+  without swamping it (a too-hot weight floors the whole population negative).
+- **`horizon_penalty`** — it collapsed into a black hole / trapped surface. Heavily
+  punished.
+- **`instability_penalty`** — it blew up or went numerically wild.
+- **`qei_penalty`** — violates the quantum energy inequality (a deeper limit on
+  negative energy).
+- **`boundary_penalty`** — junk reflecting off the edges of the box contaminated the
+  result.
+- **`stationary_artifact_penalty`** — catches a *static* lens pretending to be FTL
+  (a frozen geometry that bends light but transports nothing). Graded so
+  "almost moving" is penalized less than "perfectly frozen".
+
+**The non-triviality gate** wraps the whole thing: the health/niceness rewards
+(survival, stability, …) are switched off for flat empty space, so Minkowski
+vacuum — which is maximally healthy and stable — can't farm points and beat a
+genuinely warped geometry.
+
 ## Code map (where everything lives)
 
 | Concern | Path |
@@ -215,6 +287,7 @@ happened. Quick index (most consequential first):
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
+| [`v10` review → persistence-gate + physicality pressure → `v11`](#ftl_discovery_v10-review--persistence-gate--physicality-pressure--ftl_discovery_v11-2026-06-12) | 06-12 | 400 evals, top-5 all dynamic exotic bubbles with transient 2–3% shortcuts (same HQ-death band); #1 fragmented (persistence 0.46) yet ranked top. Persistence-gate the geodesic reward + raise exotic/energy weights |
 | [HQ verdict: shortcuts did not survive refinement → `v10`](#hq-verdict-shortcuts-did-not-survive-refinement--ftl_discovery_v10-2026-06-11) | 06-11 | All 3 promoted shortcuts collapsed at HQ (`f_geo` 2–3% → 0 / 0.29%); pipeline honestly rejected its own elites. Extend QD to t=16 + add static-matter toggle |
 | [`v9` review + shaping rebalance → HQ promotion](#ftl_discovery_v9-review--shaping-rebalance--hq-promotion-2026-06-11) | 06-11 | Geodesic gate fires for all evals (5 real shortcuts found); coordinate precursor out-voted validated ones → rebalanced; top 3 promoted HQ |
 | [Geodesic-reward recalibration → `v9`](#geodesic-reward-recalibration--ftl_discovery_v9-2026-06-11) | 06-11 | `v8` eval 11 scored 1066 off a real but *modest* 3.3% shortcut; rescaled so the scalar reflects magnitude |
@@ -957,3 +1030,63 @@ Code: `grteclyn-wrapper/src/grteclyn_wrapper/search/optimize.py`
 tests in `tests/test_grtresna_shell_ansatz.py` (19-dim space + static-toggle test).
 
 `ftl_discovery_v10` launched with these two changes.
+
+## `ftl_discovery_v10` review → persistence-gate + physicality pressure → `ftl_discovery_v11` (2026-06-12)
+
+`v10` ran the full **400 evals** (240 `gpu_ok` = 60%; the `Mom=nan` static-matter
+convergence fix held — static/dynamic split ~40/60, both families evaluating
+cleanly). The run converged/stalled: behavior-grid coverage plateaued at 37.5%
+and best score froze at 332 for the last 3 windows.
+
+**Top 5 (all dynamic):**
+
+| # | eval | score | `f_geo` | structural_persistence | exotic_fraction | energy_condition |
+|---|------|-------|---------|------------------------|-----------------|------------------|
+| 1 | 258 | 332 | ~3.3% | **0.46** ⚠ | 0.99 | 0.05 |
+| 2 | 283 | 304 | ~2.2% | 0.77 | 0.94 | 0.03 |
+| 3 | 335 | 301 | ~1.7% | 0.70 | 0.97 | 0.06 |
+| 4 | 356 | 291 | ~2.0% | 0.58 | 1.00 | 0.03 |
+| 5 | 301 | 254 | ~3.1% | 0.84 | 0.91 | 0.02 |
+
+**Metrics health:** no bugs. The geodesic recalibration is honest (3% → ~160 pts,
+not the old inflated ~1000); gating fires correctly (geodesic-driven #1 has
+`operational_ftl_solved=0`; #5's non-persistent shortcut yields `ftl_persistence=0`);
+the t=16 window catches late collapse (eval 88 scored **−432** on a horizon +
+instability penalty). The static toggle is explored and correctly scores ~0 on
+every FTL channel (no currents → no frame-drag → no shift).
+
+**Three problems the elites expose:**
+
+1. **Shortcuts sit in the HQ-death band.** Every top-5 `f_geo` is 1.7–3.3% — the
+   exact magnitude that collapsed to ~0 under continuum refinement in the `v9` HQ
+   promotions. At QD resolution (N=128) this is where gauge/discretization
+   artifacts live.
+2. **Transient shortcut on a fragmenting structure ranks #1.** eval 258 banked the
+   strongest shortcut while its lump shattered into turbulent lobes
+   (`structural_persistence=0.46`, visibly broken by t=16). The geodesic reward was
+   *not* persistence-gated, so a disintegrating end-state out-ranked the more
+   coherent candidates.
+3. **All elites are maximally-exotic warp bubbles.** `exotic_fraction` 0.91–1.00,
+   `energy_condition` ~0.02–0.06 across the whole top 5. At the old weights
+   (`exotic` 1, `energy` 2) the exotic cost was ~−0.5 against a ~150-pt shortcut, so
+   the search had no incentive to leave the easy exotic corner.
+
+### Two metric changes → `v11`
+
+1. **Persistence-gate the geodesic reward.** `operational_ftl_geodesic` is now
+   multiplied by `structural_persistence` (the same gate already applied to the
+   shaping rewards), so a gauge-invariant shortcut only counts if the structure
+   producing it actually holds together. Demotes eval-258-style transients below
+   coherent survivors of comparable magnitude.
+   (`score.py`, geodesic block.)
+2. **Raise physicality pressure.** `energy_condition` weight 2 → **40** and the
+   graded `exotic_penalty` weight 1 → **100** in the `ftl_first` objective, so a
+   fully-exotic shortcut (~−30..−60 pts) is selected against relative to a cleaner
+   one — forcing a real trade between shortcut strength and exotic content. The
+   penalty stays graded (0..−1.6), preserving the QD gradient.
+   (`score.py`, `ftl_first` weight block.)
+
+Tests: `tests/test_grtresna_integration.py::test_geodesic_reward_gated_by_structural_persistence`
+(geodesic reward scales linearly with persistence; fragmenting end-state ranks lower).
+
+`ftl_discovery_v11` launched with these two changes (400 evals, t=16, static toggle).
