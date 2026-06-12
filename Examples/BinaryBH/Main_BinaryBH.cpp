@@ -4,13 +4,12 @@
  */
 
 // Our includes
+#include "BHAMR.hpp"
 #include "DefaultLevelFactory.hpp"
 #include "GRParmParse.hpp"
 #include "MultiLevelTask.hpp"
 #include "SetupFunctions.hpp"
 #include "SimulationParameters.hpp"
-// TPAMR.hpp includes BHAMR.hpp
-#include "TPAMR.hpp" // TPAMR code conditional compiled on USE_TWOPUNCTURES
 
 // Problem specific includes:
 #include "BinaryBHLevel.hpp"
@@ -37,14 +36,7 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
     GRAMR::set_simulation_parameters(sim_params);
     DefaultLevelFactory<BinaryBHLevel> bh_level_bld;
 
-#ifdef USE_TWOPUNCTURES
-    TPAMR bh_amr;
-    bh_amr.set_two_punctures_parameters(sim_params.tp_params);
-    // Run TwoPunctures solver
-    bh_amr.m_two_punctures.Run();
-#else
     BHAMR<BinaryBHLevel::num_punctures> bh_amr(&bh_level_bld);
-#endif
 
     bh_amr.init(0., sim_params.stop_time);
 
