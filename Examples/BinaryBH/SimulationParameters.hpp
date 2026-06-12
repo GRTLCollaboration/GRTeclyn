@@ -13,7 +13,7 @@
 // Problem specific includes:
 #include "ArrayTools.hpp"
 #include "BoostedBHInitialData.hpp"
-#ifdef USE_TWOPUNCTURES
+#if 0
 #include "TP_Parameters.hpp"
 #endif
 
@@ -24,11 +24,12 @@ class SimulationParameters : public SimulationParametersBase
     SimulationParameters(GRParmParse &pp) : SimulationParametersBase(pp)
     {
         read_shared_params(pp);
-#ifdef USE_TWOPUNCTURES
+#if 0
         read_tp_params(pp);
-#else
-        read_bh_params(pp);
 #endif
+
+        read_bh_params(pp);
+
         check_params();
     }
 
@@ -45,7 +46,7 @@ class SimulationParameters : public SimulationParametersBase
                 false);
     }
 
-#ifdef USE_TWOPUNCTURES
+#if 0
     void read_tp_params(GRParmParse &pp)
     {
         tp_params.verbose = (verbosity > 0);
@@ -196,7 +197,9 @@ class SimulationParameters : public SimulationParametersBase
         tp_params.mp_adm                          = 0;
         tp_params.mm_adm                          = 0;
     }
-#else
+#endif
+
+    // #ifndef USE_TWOPUNCTURES
     /// Read BH parameters if not using two punctures
     // NOLINTNEXTLINE(readability-identifier-length)
     void read_bh_params(GRParmParse &pp)
@@ -224,11 +227,10 @@ class SimulationParameters : public SimulationParametersBase
             bh2_params.center[idir] = centerB[idir] + offsetB[idir];
         }
     }
-#endif /* USE_TWOPUNCTURES */
 
     void check_params()
     {
-#ifdef USE_TWOPUNCTURES
+#if 0
         // These checks are mostly taken from the Einstein Toolkit thorn
         // documentation:
         // https://einsteintoolkit.org/thornguide/EinsteinInitialData/TwoPunctures/documentation.html
@@ -277,7 +279,8 @@ class SimulationParameters : public SimulationParametersBase
                         "must be >= 0.0");
         check_parameter("TP_Extend_Radius", tp_params.TP_Extend_Radius,
                         tp_params.TP_Extend_Radius >= 0., "must be >= 0.0");
-#else
+#endif
+
         warn_parameter("massA", bh1_params.mass, bh1_params.mass >= 0,
                        "should be >= 0");
         warn_parameter("massB", bh2_params.mass, bh2_params.mass >= 0,
@@ -307,7 +310,6 @@ class SimulationParameters : public SimulationParametersBase
                                (center_B_dir <= (ivN[idir] + 1) * coarsest_dx),
                            "should be within the computational domain");
         }
-#endif /* USE_TWOPUNCTURES */
         check_parameter("puncture_tracking_level", puncture_tracking_level,
                         (puncture_tracking_level >= 0) &&
                             (puncture_tracking_level <= max_level),
@@ -325,7 +327,7 @@ class SimulationParameters : public SimulationParametersBase
     BoostedBHInitialData::params_t bh2_params{};
     BoostedBHInitialData::params_t bh1_params{};
 
-#ifdef USE_TWOPUNCTURES
+#if 0
     double tp_offset_plus, tp_offset_minus;
     TP::Parameters tp_params;
 #endif
