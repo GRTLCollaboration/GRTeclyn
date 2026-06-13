@@ -76,6 +76,14 @@ def build_consume_command(
         center = (*center, *([0.0] * (3 - len(center))))
     center = center[:3]
     l_full = _read_float_param(episode.params_path, "L_full", 40.0)
+    # Frame/projection rendering is the dominant per-plotfile cost (12 yt renders
+    # on a refined AMR grid, 10-70s each at max_level=3) and is *not* needed for
+    # QD scoring -- only the FTL time-series + scalar metrics are.  Per-eval movies
+    # are an inspection tool for promoted candidates, so the QD loop sets
+    # GRTECLYN_FRAMES=0 to keep the consumer fast and stop the post-processing
+    # backlog from starving the search.  Promote/inspection paths leave it unset.
+    if os.environ.get("GRTECLYN_FRAMES", "").strip().lower() in {"0", "off", "no", "none", "false"}:
+        frames = False
     zoom_env = os.environ.get("GRTECLYN_FRAMES_ZOOM", "").strip().lower()
     frame_zoom: float | None
     if zoom_env in {"", "none", "off", "full", "no", "0"}:

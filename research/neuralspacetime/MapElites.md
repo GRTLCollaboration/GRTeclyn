@@ -377,7 +377,7 @@ happened. Quick index (most consequential first):
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
-| [**v15: time-resolved FTL scoring**](#v15-time-resolved-intermediate-ftl-scoring-2026-06-13) | 06-13 | Final-frame scoring was half-blind: the gauge-invariant shortcut **peaks mid-run and diffuses**, so the last frame both under-credits a real transient and can't tell a sustained warp from an Alcubierre-like collapse. Adds an in-flight per-plotfile FTL stream (`ftl_timeseries.dat`, process+delete), retargets the headline `operational_ftl_geodesic` to the **time-average** over the run, and adds an `ftl_lifetime` MAP-Elites axis. Validated on eval 231: f_geo rises 2.7%→**7.43% peak at t=9.6**→5.24% (t=16); the old final frame saw only 5.24%. QD now runs at HQ refinement (ml=3, dx=0.5) |
+| [**v15: time-resolved FTL scoring**](#v15-time-resolved-intermediate-ftl-scoring-2026-06-13) | 06-13 | Final-frame scoring was half-blind: the gauge-invariant shortcut **peaks mid-run and diffuses**, so the last frame both under-credits a real transient and can't tell a sustained warp from an Alcubierre-like collapse. Adds an in-flight per-plotfile FTL stream (`ftl_timeseries.dat`, process+delete), retargets the headline `operational_ftl_geodesic` to the **time-average** over the run, and adds an `ftl_lifetime` MAP-Elites axis. Validated on eval 231: f_geo rises 2.7%→**7.43% peak at t=9.6**→5.24% (t=16); the old final frame saw only 5.24%. QD runs at dx=0.5, ml=2 (controls show ml=3 changes nothing — the real variable is time, not refinement) |
 | [**v14 results & analytics**](#v14-campaign-results--analytics-2026-06-12-completed) | 06-12 | 504 evals, 351 gpu_ok, 51.6% archive coverage. Top: Eval 231 (f_geo=5.30%, ring+top-hat, score 551). 5 operational, 3 observer_ec. Ring layout dominates top-5; exotic fraction 90–99% universal. Full Alcubierre comparison — our best is 17% of Alcubierre's shortcut but is self-consistent & evolvable |
 | [`v14` launch setup → matter profile + cloud layout](#v14-launch-setup-matter-profile-and-cloud-layout-2026-06-12) | 06-12 | Adds per-lump matter profile (Gaussian / smoothed top-hat "ball") + quasi-random cloud layout (`matter_layout=4`); search space 21→23 dims. GRTresna rebuilt; 182 tests pass |
 | [`v12` review → λφ⁴ + FTL geometry layouts → `v13`](#ftl_discovery_v12-review--lambda-phi4--ftl-geometry-layouts--ftl_discovery_v13-2026-06-12) | 06-12 | 278 evals, zero geodesic FTL; top scores were coordinate-shaping artifacts (eval 197 scored 130 with f_geo=0). Adds searchable `grtresna_scalar_lambda` + `grtresna_matter_layout` (sphere/channel/bipolar/ring), zeros shaping when geodesic contradicts, pytest gate before QD launch |
@@ -447,12 +447,14 @@ shortcut is alive). The archive now explicitly separates *transient* shortcuts
 from *sustained* ones at the same strength — the transient/stable distinction is
 a first-class diversity dimension instead of being invisible.
 
-**QD now runs at HQ refinement.** Resolution gap was the last suspect behind the
-QD→HQ collapse, so the QD loop itself now evolves at **`max_level=3`, `dx=0.5`**
-(`N_full=128`, `L_full=64`), `t=16` — the same grid an elite is promoted at. The
-control experiments (dx=0.5 alone, ml=3 alone) had already shown resolution does
-*not* kill the shortcut at t=16; the real killer is **time** (diffusion by t≈30),
-which the time-average now captures directly.
+**QD grid: `dx=0.5`, `max_level=2`, `t=16`** (`N_full=128`, `L_full=64`). The
+control experiments settled the resolution question: `dx=0.5` *alone* and `ml=3`
+*alone* both leave the shortcut intact at t=16 (eval 231: `f_geo` 4.01% vs 4.02%),
+so refinement is **not** the killer — **time is** (diffusion by t≈30), which the
+time-average now captures directly. `ml=2` is therefore the right call: same
+physics as `ml=3` for a fraction of the compute, and lighter plotfiles mean far
+less NFS I/O for the in-flight FTL probe. (`dx` was still raised from the v14
+`dx=1.0` base, which *was* an under-resolution artifact source.)
 
 ### Validation (eval 231 replay, gridinit reused, GRTresna skipped)
 

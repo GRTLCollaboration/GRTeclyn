@@ -49,12 +49,15 @@ GRTRESNA_TIMEOUT="${GRTRESNA_TIMEOUT:-900}"
 # dx=0.5 stops the search from banking those artifacts, at ~16x compute/eval
 # (8x cells + 2x timesteps from CFL).  Domain L=64 is kept so the box boundary
 # stays at r=32, far from the r=8 FTL probe (shrinking L would risk boundary
-# contamination).  max_level raised 2->3 (finest dx 0.0625) to match the HQ
-# promotion grid, so a QD elite is scored on the same refinement it is promoted
-# at -- removing the last resolution gap behind the QD->HQ f_geo collapse.
+# contamination).  max_level stays 2 (finest dx 0.125): the control experiments
+# showed ml=3 vs ml=2 does NOT change the shortcut (eval 231: f_geo 4.02% vs
+# 4.01% at t=16) -- the real variable behind the QD->HQ collapse is *time*
+# (diffusion by t~30), which the time-averaged scoring now captures directly.
+# ml=2 is therefore the right call: same physics, far cheaper compute, and
+# lighter plotfiles -> much less NFS I/O for the in-flight FTL probe.
 GRTRESNA_EVOLUTION_L_FULL="${GRTRESNA_EVOLUTION_L_FULL:-64.0}"
 GRTRESNA_EVOLUTION_N_FULL="${GRTRESNA_EVOLUTION_N_FULL:-128}"
-GRTRESNA_EVOLUTION_MAX_LEVEL="${GRTRESNA_EVOLUTION_MAX_LEVEL:-3}"
+GRTRESNA_EVOLUTION_MAX_LEVEL="${GRTRESNA_EVOLUTION_MAX_LEVEL:-2}"
 GRTRESNA_DOMAIN_L="${GRTRESNA_DOMAIN_L:-128.0}"
 GRTRESNA_DOMAIN_NX="${GRTRESNA_DOMAIN_NX:-64}"
 GRTRESNA_DOMAIN_NY="${GRTRESNA_DOMAIN_NY:-64}"
@@ -131,6 +134,15 @@ CONSUMER_RADII="${CONSUMER_RADII:-4 8}"
 CONSUMER_KEEP_LAST="${CONSUMER_KEEP_LAST:-3}"
 FTL_L="${FTL_L:-8.0}"
 
+# Frame/movie rendering OFF in the QD loop.  At max_level=3 each plotfile needs
+# ~12 yt renders (9 slices + 3 MIP projections integrating the full refined 3D
+# volume) at 10-70s each; with 8 evals consuming concurrently the render backlog
+# cannot keep up during evolution and the per-eval consumers stall (observed:
+# only the first finished eval ever produced frames).  QD scoring needs only the
+# FTL time-series + scalar metrics (~6.5s/plotfile), so we skip frames here and
+# render movies only for promoted candidates (run_promote_qd_batch.sh / manual
+# make_movies.sh).  Set GRTECLYN_FRAMES=1 to re-enable for debugging.
+export GRTECLYN_FRAMES="${GRTECLYN_FRAMES:-0}"
 export GRTECLYN_FRAMES_FIELDS="${FRAMES_FIELDS:-lump_activity scalar_activity phi_lump_sum Pi_lump_sum chi chi_minus_1 local_speed shift1 rho_req}"
 export GRTECLYN_PROJECTION_FIELDS="${PROJECTION_FIELDS:-scalar_activity}"
 export GRTECLYN_PROJECTION_AXES="${PROJECTION_AXES:-x y z}"
