@@ -368,7 +368,8 @@ happened. Quick index (most consequential first):
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
-| [`v14` launch setup → matter profile + cloud layout](#v14-launch-setup-matter-profile-and-cloud-layout-2026-06-12) | 06-12 | Adds per-lump matter profile (Gaussian / smoothed top-hat "ball") + quasi-random cloud layout (`matter_layout=4`) on top of the v13 λ/layouts/gate stack; search space 21→23 dims. GRTresna rebuilt; 182 tests pass. Launch as `ftl_discovery_v14` |
+| [**v14 results & analytics**](#v14-campaign-results--analytics-2026-06-12-completed) | 06-12 | 504 evals, 351 gpu_ok, 51.6% archive coverage. Top: Eval 231 (f_geo=5.30%, ring+top-hat, score 551). 5 operational, 3 observer_ec. Ring layout dominates top-5; exotic fraction 90–99% universal. Full Alcubierre comparison — our best is 17% of Alcubierre's shortcut but is self-consistent & evolvable |
+| [`v14` launch setup → matter profile + cloud layout](#v14-launch-setup-matter-profile-and-cloud-layout-2026-06-12) | 06-12 | Adds per-lump matter profile (Gaussian / smoothed top-hat "ball") + quasi-random cloud layout (`matter_layout=4`); search space 21→23 dims. GRTresna rebuilt; 182 tests pass |
 | [`v12` review → λφ⁴ + FTL geometry layouts → `v13`](#ftl_discovery_v12-review--lambda-phi4--ftl-geometry-layouts--ftl_discovery_v13-2026-06-12) | 06-12 | 278 evals, zero geodesic FTL; top scores were coordinate-shaping artifacts (eval 197 scored 130 with f_geo=0). Adds searchable `grtresna_scalar_lambda` + `grtresna_matter_layout` (sphere/channel/bipolar/ring), zeros shaping when geodesic contradicts, pytest gate before QD launch |
 | [Alcubierre positive control → metric-first vs matter-first verdict](#alcubierre-positive-control--metric-first-vs-matter-first-verdict-2026-06-12) | 06-12 | Prescribed Alcubierre metric → our probes detect a 32% shortcut + flag exotic matter (probes validated). Metric-first is fine for *analysis*, impossible for *dynamics*; matter-first is correct. QD-res H-gate rejects even textbook Alcubierre → added 129³ mid-res re-probe |
 | [`v10` review → persistence-gate + physicality pressure → `v11`](#ftl_discovery_v10-review--persistence-gate--physicality-pressure--ftl_discovery_v11-2026-06-12) | 06-12 | 400 evals, top-5 all dynamic exotic bubbles with transient 2–3% shortcuts (same HQ-death band); #1 fragmented (persistence 0.46) yet ranked top. Persistence-gate the geodesic reward + raise exotic/energy weights |
@@ -452,9 +453,115 @@ QD_NAME=ftl_discovery_v14 QD_ITERATIONS=10 BINS=8 STOP_TIME=16.0 \
 The launcher runs the pytest preflight gate (`SKIP_QD_PREFLIGHT_TESTS=1` bypasses)
 before allocating GPUs.
 
-**Open gap:** the end-to-end smoke (λ + a non-sphere layout + top-hat profile →
-solve → evolve → gate firing on real data) is still unconfirmed; the unit tests
-verify config/scoring wiring, not a live solve + evolution.
+**Open gap:** resolved — the live 500-eval campaign below confirmed the full pipeline
+end-to-end (λ + all layouts + top-hat → solve → evolve → geodesic gate firing).
+
+### v14 campaign results & analytics (2026-06-12, completed)
+
+504 evaluations (target 500), 351 completed on GPU. The pre-GPU rejection rate fell
+to **30.4%** (v13 was ~82%), confirming the navigation-overhaul sampling fixes.
+Archive: 33 elites across the 8×8 grid (**51.6% coverage**).
+
+| Stat | Value |
+|------|-------|
+| Total evals | 504 |
+| gpu_ok | 351 (69.6%) |
+| solved_ftl_rejected | 92 (18.3%) |
+| grtresna_rejected | 43 (8.5%) |
+| grtresna_failed | 18 (3.6%) |
+| f_geo > 0 | 55 (15.7% of gpu_ok) |
+| f_geo ≥ 5% | 1 |
+| operational tier | 5 |
+| observer_ec tier | 3 |
+| nontrivial tier | 130 |
+| constructed tier | 213 |
+| Median score | −18.8 |
+| Archive coverage | 33/64 cells (51.6%) |
+
+#### Top 5 candidates (ranked by `ftl_first` score)
+
+Raw `f_geo` is the actual gauge-invariant null-geodesic arrival-time shortcut
+(vs flat-space expectation); `f_op_ev` is the sustained evolved coordinate-speed
+superluminal fraction. The `operational_ftl_geodesic` score component is the
+ramped `[0,1]` scalar `(f_geo − 1e-3)/(0.2 − 1e-3)`.
+
+| # | Eval | Score | Tier | f_geo (raw) | f_op_ev | Layout | Profile | λ | Exotic frac |
+|---|------|-------|------|-------------|---------|--------|---------|---|-------------|
+| 1 | 231 | 551.0 | observer_ec | **5.30%** | 5.30% | ring | top-hat (0.66) | 0.066 | 90.6% |
+| 2 | 369 | 513.4 | observer_ec | 2.40% | **5.76%** | ring | Gaussian (0.24) | 0.054 | 91.9% |
+| 3 | 483 | 441.2 | operational | 3.42% | 5.18% | bipolar | mixed (0.45) | 0.088 | 91.6% |
+| 4 | 489 | 340.6 | operational | 3.57% | 4.26% | ring | Gaussian (0.15) | 0.056 | 98.4% |
+| 5 | 91 | 276.6 | operational | 4.22% | 3.11% | sphere | top-hat (0.79) | 0.081 | 98.9% |
+
+**Eval 231** (top): ring layout, moderate top-hat fraction, mid-range λ. Generates
+the campaign's largest geodesic shortcut (5.30%) alongside a 5.30% sustained
+coordinate-speed channel. Scored `observer_ec` — the energy-condition violation is
+detected (NEC_min = −1.5e-4, WEC_min = −8.5e-4) but the FTL signal dominates.
+Described in cell [2,0] (low cone-tilt 0.36, zero superluminal fraction), meaning
+its FTL is localized rather than domain-filling.
+
+**Eval 369** (2nd): ring layout, Gaussian-dominant profile. Highest evolved FTL
+fraction in the campaign (f_op_ev = 5.76%) with strong persistence (39.8% scaled).
+Cell [7,7] — saturates both descriptor axes, indicating domain-wide superluminal
+structure. The geodesic shortcut is more modest (2.40%) but the coordinate-speed
+channel is the strongest found.
+
+**Eval 483** (3rd): only bipolar-layout candidate in the top 5. Mixed profile
+(neither strongly Gaussian nor top-hat). Highest λ (0.088) among top candidates,
+suggesting scalar self-interaction helps sustain the channel. Cell [4,3] —
+moderate cone-tilt, moderate superluminal fraction.
+
+**Eval 489** (4th): ring layout, strongly Gaussian. Highest exotic fraction
+(98.4%). Cell [2,0] — like eval 231, FTL is localized. Survival is slightly
+degraded (0.95).
+
+**Eval 91** (5th): the only sphere-layout candidate in the top 5. Strongly
+top-hat (0.79) with high λ (0.081) and near-total exotic fraction (98.9%).
+Highest raw f_geo among operational-tier candidates (4.22%), but its coordinate
+FTL fraction is the lowest (3.11%) and persistence is weak (1.9%), producing a
+lower total score despite the stronger geodesic signal.
+
+#### Comparison to Alcubierre (positive control)
+
+| Metric | Alcubierre (129³) | v14 best (Eval 231) | Ratio |
+|--------|-------------------|---------------------|-------|
+| f_geo (raw shortcut) | **31.5%** | 5.30% | 16.8% |
+| f_op_ev | N/A (prescribed metric) | 5.30% | — |
+| Exotic matter | Yes (NEC < 0) | Yes (90.6% exotic frac) | — |
+| Evolvable | No (frozen background) | **Yes** (scalar fields) | — |
+| Self-consistent ID | No (metric-first) | **Yes** (constraint-solved) | — |
+
+The v14 best achieves only ~17% of Alcubierre's shortcut magnitude, but it does
+so as a **self-consistent, evolvable, constraint-solved scalar-field spacetime**
+— not a prescribed kinematic background. The three reasons the search cannot
+reach full Alcubierre-level shortcuts are the same features documented in the
+[Alcubierre verdict](#alcubierre-positive-control--metric-first-vs-matter-first-verdict-2026-06-12):
+(1) physical scalar matter cannot source the extreme exotic `T`, (2) the
+moving-puncture gauge damps seeded warp shift, and (3) exotic matter is penalized.
+
+#### Patterns & takeaways
+
+- **Ring layout dominates.** 3 of the top 5 use the ring layout (v13's layout=3),
+  and layout=3 also dominates the archive (109 of 351 completed evals). The ring
+  appears to be the most productive topology for seeding FTL channels.
+- **Exotic matter is universal.** Every top candidate requires 90–99% exotic
+  fraction. The exotic penalty floors many candidates negative (median score −18.8)
+  but the top performers overcome it with genuine geodesic shortcuts.
+- **Top-hat vs Gaussian is mixed.** Both profiles appear in the top 5; the
+  search did not converge on one as clearly superior.
+- **λφ⁴ is actively used.** All top candidates have λ > 0 (0.054–0.088), and
+  eval 483's high λ (0.088) correlates with strong channel persistence. The search
+  is genuinely exploring the self-interaction dimension.
+- **observer_ec vs operational.** The top 2 candidates are `observer_ec` (energy
+  condition violation detected but FTL dominates); the next 3 are `operational`
+  (genuine dynamical FTL). The tier distinction is primarily about whether the
+  energy-condition penalty exceeds the FTL reward.
+- **No cloud-layout (layout=4) breakthrough.** Despite being a new v14 feature,
+  the quasi-random cloud layout did not produce any top-10 candidate. The
+  structured layouts (ring, bipolar, sphere) were more productive.
+- **Archive diversity is healthy.** 33 of 64 cells filled, spanning all tier
+  levels from constructed through observer_ec. The 51.6% coverage with only
+  351 gpu_ok evals confirms the descriptor axes are well-calibrated.
 
 ## MAP-Elites FTL Discovery Status
 
@@ -462,172 +569,51 @@ Status: **reset**. The previous QD/HQ campaign results were discarded.
 
 ### Why the reset
 
-The apparent-horizon / expansion (`theta_plus`) diagnostic in the GRTeclyn
-example levels measured the radius and radial direction from the coordinate
-origin (the domain corner) instead of the physics `grid_center`. With the
-domain at `[0, L]` and `grid_center = (L/2, L/2, L/2)`, the regularizing
-`2*sqrt(chi)/r` term was evaluated at `r ~ |grid_center|` instead of `r ~ 0`,
-so it collapsed near the center and drove `theta_plus` spuriously negative.
-This produced false trapped-surface detections (`max_horizon_radius ~ |grid_center|`,
-`min_theta_plus < 0` located at `r ~ |grid_center|`) and a `-1.0` horizon
-penalty that vetoed otherwise-viable candidates and inflated the stability
-violation. The whole "horizon-safe vs trapped" ranking from that campaign was
-therefore unreliable, so all of its runs were deleted.
-
-### Fix applied
-
-`theta_plus` is now measured about `grid_center` in:
-
-- `Examples/RadialRecipe/RadialRecipeLevel.cpp`
-- `Examples/RotatingWormholeCollapse/SupportedWormholeLevel.cpp`
-- `Examples/SupportedWormholeCollapse/SupportedWormholeLevel.cpp`
-
-The `RadialRecipe` binary was rebuilt with the fix.
-
-### Campaign (2026-06-10)
-
-Fresh MAP-Elites QD launched on the corrected binary:
-
-- **Name**: `ftl_discovery_postfix`
-- **Dir**: `runs/grtresna_qd/ftl_discovery/ftl_discovery_postfix/`
-- **Descriptor**: `speed_horizon` (8×8 bins)
-- **Target evals**: 400
-- **GPUs**: 0–7 (batch 8)
-- **Launch log**: `runs/qd_ftl_discovery_postfix.launch.log`
-
-No resume, no seed trajectory. Results will be recorded here as the archive fills.
-
-### Validation (in-flight, ~28/400 evals)
-
-The fix is confirmed working on the live campaign:
-
-- `theta_plus` stays **strictly positive** over the full evolution (t=0→2.0) in
-  every scored run (`min_theta_plus = +0.037` for eval_022, `+0.10` for eval_023),
-  so there are **no false trapped-surface detections**.
-- `horizon_penalty = -0.0` on all scored candidates (previously the bug forced
-  a spurious `-1.0` veto with `min_theta_plus < 0` at `r ~ |grid_center|`).
-- Barycenter diagnostics sit at `~(33, 28, 29) ≈ grid_center (32)`, confirming
-  the diagnostic is now centered correctly.
-
-Best elite so far: eval_022, score 598.5 (`operational_ftl_solved=1.0`,
-`max_local_speed ≈ 1.083`). Note: ~93% of candidates are rejected at the
-GRTresna constraint-solve stage (convergence too poor / MPI failures) before
-reaching the GPU evolution — a sampling/tuning issue, not a physics bug.
+The `theta_plus` diagnostic measured radius from the coordinate origin instead of
+`grid_center`, producing false trapped-surface detections and a spurious −1.0
+horizon penalty. Fixed by re-centering on `grid_center` in `RadialRecipeLevel.cpp`
+and related files; binary rebuilt. Fresh campaign `ftl_discovery_postfix` (8×8
+`speed_horizon`, target 400) confirmed the fix — `theta_plus` strictly positive,
+`horizon_penalty = 0` on all scored candidates. But ~93% pre-GPU rejection exposed
+the navigation defects fixed next.
 
 ## Navigation Overhaul (2026-06-10)
 
-The corrected-physics campaign above (`ftl_discovery_postfix`, now archived as
-`ftl_discovery_postfix_degenerate_navigation`) exposed two *navigation* defects
-(distinct from the earlier physics bug):
+Two navigation defects (distinct from the `theta_plus` physics bug) were fixed:
 
-1. **Behavior-space collapse.** After the `theta_plus` centering fix,
-   `min_theta_plus` is always a small positive (~0.036–0.10), so the
-   `speed_horizon` y-axis (`horizon_free = 0.5 + theta/...`) always landed in
-   bin 4. The archive degenerated to a single row (coverage ~0.078, 5/64 cells).
-2. **~82% pre-GPU rejection waste.** Most candidates never reached the GPU
-   because the GRTresna constraint solve stalled/oscillated, and the 30% blind
-   uniform sampling kept re-hitting pathological corners of the shell bounds.
+1. **Behavior-space collapse** — `speed_horizon` y-axis degenerated to a single row
+   after the centering fix (coverage ~0.078). Replaced with **`speed_super`**
+   descriptor: x = recalibrated cone-tilt (`max_local_speed`, floor 0.95 / target
+   1.20), y = `superluminal_fraction` (share of domain with local speed > c).
+   `speed_horizon` kept for back-compat.
+2. **~82% pre-GPU rejection** — GRTresna solve stalled on pathological corners of
+   the shell bounds. Fixes: tightened shell bounds to feasible basin, boundary
+   reflection instead of hard clipping in mutation, elite-mutation fraction 0.70→0.85,
+   feasible-box sampling (`_sample_feasible_box`) for random draws, harder
+   GRTresna solve (50 iterations, stall tolerance 0.005).
 
-### Fixes applied
-
-- **New `speed_super` descriptor** (`qd_search.py`, registered in the CLI):
-  x = recalibrated cone-tilt (`max_local_speed`, floor 0.95 / target 1.20 so
-  realistic speeds spread across the bins instead of saturating), y =
-  `superluminal_fraction` (share of the slice with local speed > c). The y-axis
-  now carries real signal — localized vs widespread superluminal region —
-  regardless of the horizon diagnostic. `speed_horizon` is kept for back-compat.
-- **Infeasible candidates no longer occupy archive cells.** `_record_result`
-  inserts into the behavior grid only when `status == gpu_ok`; rejected/failed
-  solves are still logged to `trajectory.jsonl` but stop polluting coverage.
-- **Shell bounds tightened to the feasible basin** (`grtresna_shell_search_space`,
-  compact): `amp 0.08–0.28 → 0.08–0.16`, `thickness 0.0–2.5 → 0.1–2.5`,
-  `toroidal_velocity ±2.0 → ±1.2`, `omega ±0.8 → ±0.5`.
-- **Boundary reflection instead of hard clipping** in `_mutate_elite`, so
-  mutation no longer piles probability mass on the (pathological) bounds.
-- **Smarter exploration:** elite-mutation fraction raised 0.70 → 0.85, and the
-  remaining random draws are taken inside the bounding box of feasible elites
-  (`_sample_feasible_box`) rather than the full space.
-- **Harder GRTresna solve:** `--grtresna-iterations 30 → 50`,
-  `--grtresna-nl-stall-tolerance 0.02 → 0.005` (script defaults) so oscillating
-  near-misses get more iterations to settle below the 5% Ham/Mom gate.
-- The graded feasibility penalty for rejected solves (`convergence_rejection_fitness`)
-  already exists; it is not surfaced into QD sampling because the loop now
-  mutates only archive elites and samples the feasible box, so no extra
-  gradient code was added.
-
-### Campaign (2026-06-10, overhaul)
-
-- **Name**: `ftl_discovery_nav`
-- **Dir**: `runs/grtresna_qd/ftl_discovery/ftl_discovery_nav/`
-- **Descriptor**: `speed_super` (8×8 bins)
-- **Target evals**: 400, GPUs 0–7 (batch 8)
-- **Launch log**: `runs/qd_ftl_discovery_nav.launch.log`
-
-Success criteria: archive spans ≥3 y-bins and coverage climbs past ~0.20 within
-the first ~100 evals; pre-GPU rejection rate drops from ~82% toward <50%; tier
-distribution reaches ≥ operational (not just nontrivial). Results recorded here
-as the archive fills.
-
-### Follow-up fixes (2026-06-10, after first 16 evals of `ftl_discovery_nav`)
-
-The first run confirmed feasibility improved (gpu-reach ~40% vs ~18% before) and
-the x-axis spread, but exposed two issues that were fixed before relaunch:
-
-- **`speed_super` y-axis collapsed again.** The descriptor read
-  `superluminal_fraction` from the *evolved* report, where the GRTresna-built
-  superluminal region has decayed to ~0 for almost every candidate (solved 0.065
-  → evolved 0.010), and used a raw [0, 1] scale on which even 0.065 stays in bin 0.
-  Fix: read the **solved** report (`_solved_ftl_report`, observed
-  superluminal_fraction 0–0.30, max_local_speed 0.95–1.32) for both axes, and
-  rescale y by the observed ceiling `_SPEED_SUPER_FRACTION_TARGET = 0.30` so the
-  realistic range fills the grid. Raw fraction kept as `superluminal_fraction_raw`.
-- **`chi` / `chi_minus_1` frames rendered blank.** The conformal well reaches
-  `min_chi ~0.4` against a ~1.0 far field, but the fixed color windows
-  (`chi` [0.98, 1.04], `chi-1` ±0.03) clamped the whole well to the colormap
-  floor. Fix (`consume_plotfiles.py`): both fields opt into per-frame percentile
-  auto-scaling (`auto_zlim`) with widened presets as fallback, so the well is
-  visible regardless of depth. The FTL-relevant `local_speed` / `rho_req` frames
-  were already correct.
+Launched as `ftl_discovery_nav` (8×8 `speed_super`, target 400 evals). First 16
+evals confirmed GPU-reach ~40% (vs ~18%) and x-axis spread. Two follow-up fixes:
+y-axis reads *solved* report (not evolved, which decays to ~0) and rescaled by
+observed ceiling 0.30; `chi`/`chi-1` frames fixed with per-frame percentile
+auto-scaling.
 
 ### Scoring fix: stationary warp-lens artifacts (2026-06-10, after ~90 evals)
 
-Validating the leaderboard exposed a hard scoring bug: the run had converged
-into a degenerate basin. **All 15 retained elites were stationary, zero-shift
-geometries** — static "warp-lens" coordinate artifacts, not propagating warps.
-The top candidate (`eval_000083`, score 1164) was a worked example:
+The run converged into a degenerate basin — all 15 retained elites were stationary
+zero-shift geometries (static "warp-lens" artifacts). Top candidate eval_000083
+scored 1164 from `operational_ftl_geodesic` computed on a geodesic report flagged
+`h_quality_ok=False` (integration noise at full weight). Two fixes in
+`metrics/score.py`:
 
-- Geometry **stationary** (`comoving.stationary=True`, `beta_mean≈0`): no
-  frame-dragging mechanism, so its `superluminal_fraction=1.0` is a frozen
-  coordinate-speed lens (`local_speed` frames disperse in place, never propagate).
-- `operational_ftl=0`, `ftl_persistence=0`: zero evolved/sustained FTL.
-- Its 1164 was **83% (970 pts) from `operational_ftl_geodesic`** computed off a
-  geodesic report explicitly flagged `h_quality_ok=False` (null-constraint drift
-  `max H=3.9e-4`, only 4/5 rays reached) — i.e. integration noise trusted at full
-  weight. The remainder came from saturated `operational_ftl_solved` + cone-tilt
-  `ftl_precursor` + `channel_progress`, which out-ran the old additive
-  `stationary_artifact_penalty` (it only fired when `f_op_ev>0`, so it missed the
-  zero-shift artifacts entirely).
+1. **Reliability-gate `operational_ftl_geodesic`** — only certified when
+   `h_quality_ok` AND `n_reached == n_rays`; otherwise reward 0.
+2. **Stationary-artifact gate** — when stationary AND no dynamical FTL, all
+   shaping rewards (`operational_ftl_solved`, `ftl_precursor`, `channel_progress`,
+   `shift_drive`) are zeroed.
 
-Two fixes in `metrics/score.py`:
-
-1. **Reliability-gate `operational_ftl_geodesic`.** A gauge-invariant shortcut is
-   only certified when the null-ray integration stayed on the constraint surface
-   (`h_quality_ok`) **and** the full ray bundle reached the detector
-   (`n_reached == n_rays`). Otherwise `f_geo` is noise/caustic → reward 0 + a
-   `"geodesic shortcut rejected as unreliable"` note.
-2. **Stationary-artifact gate.** When a geometry is stationary (zero net shift)
-   **and** has no trustworthy *dynamical* FTL (no `operational_ftl`, no
-   persistence, no reliable geodesic), its FTL signals are frozen coordinate
-   features: the shaping rewards (`operational_ftl_solved`, `ftl_precursor`,
-   `channel_progress`, `shift_drive`) are **zeroed** (not merely penalized) so a
-   static artifact cannot climb. Genuine shift-driven candidates have
-   `beta_mean≠0`, are never flagged stationary, and keep their full gradient.
-
-Effect (re-scored on real episodes): `eval_000083` 1164 → **−247**;
-`eval_000065` 270 → −246; `eval_000094` 194 → −247. The whole stationary basin is
-demoted below zero, pushing the search toward non-stationary, shift-driven
-geometries. Regression tests:
-`test_unreliable_geodesic_shortcut_is_not_rewarded`,
+Effect: eval_000083 1164→−247, eval_000065 270→−246, eval_000094 194→−247.
+Regression tests: `test_unreliable_geodesic_shortcut_is_not_rewarded`,
 `test_stationary_warp_lens_artifact_ranks_below_genuine_candidate`.
 
 ## Matter model — reference & future directions (2026-06-10)
