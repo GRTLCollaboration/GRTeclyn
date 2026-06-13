@@ -72,7 +72,11 @@ Package layout (each area lives in its own subfolder under
 ```
 grteclyn_wrapper/
   __init__.py
-  __main__.py          CLI entry point
+  __main__.py          CLI entry point (facade → cli/)
+  cli/
+    parser.py          argparse definitions
+    main.py            command dispatch
+    commands/          optimize, qd, atlas, … handlers
   core/
     config.py          repo paths, example/executable resolution
     episode.py         per-run directory layout and metadata
@@ -95,11 +99,12 @@ grteclyn_wrapper/
     score.py             weighted scalar reward
     warpfactory.py       analytic 4-metric energy conditions
   search/
-    optimize.py          CMA-ES driver
-    surrogate.py         RBF surrogate screening
-    qd_search.py         MAP-Elites quality-diversity
-    pareto.py            Pareto-front extraction
-    atlas.py             random failure-atlas batch
+    optimize/          CMA-ES driver
+    qd_search/         MAP-Elites quality-diversity
+    validation_tiers/  falsification tier ladder
+    atlas/             random failure-atlas batch
+    surrogate.py       RBF surrogate screening
+    pareto.py          Pareto-front extraction
   grtresna/
     io.py                Chombo HDF5 → .gridinit
     solver.py            GRTresna orchestrator
