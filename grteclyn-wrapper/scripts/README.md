@@ -57,6 +57,7 @@ There are **no** duplicate scripts at the `scripts/` root — only `README.md`, 
 | `run_geometry_projection_replay_gridinit.sh` | GPU evolve from projected `.gridinit`. |
 | `run_matter_geometry_smokes.sh` | End-to-end matter–geometry consistency smokes. |
 | `validate_tiers.py` | Offline falsification-tier assessment. |
+| `report_campaign_ftl.py` | Rank evals by per-frame FTL peaks (`f_geo`, speed, lifetime) from `ftl_timeseries.dat`. |
 | `rescore_grtresna_solved_ftl.py` | Re-score solved-geometry FTL on a campaign. |
 | `cleanup_heavy_sim_artifacts.sh` | Delete heavy plotfile/checkpoint trees under a QD campaign. |
 

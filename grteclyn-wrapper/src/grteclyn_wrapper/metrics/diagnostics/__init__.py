@@ -5,7 +5,7 @@ from .comoving import read_comoving_metrics
 from .constraints import read_constraint_metrics
 from .curvature import read_curvature_invariant_metrics
 from .energy_conditions import read_energy_condition_metrics
-from .ftl_timeseries import read_ftl_timeseries_metrics
+from .ftl_timeseries import read_ftl_timeseries_metrics, reaggregate_ftl_timeseries
 from .growth import read_growth_metrics
 from .qei import read_qei_metrics
 from .stability import read_stability_metrics
@@ -18,6 +18,7 @@ __all__ = [
     "read_curvature_invariant_metrics",
     "read_energy_condition_metrics",
     "read_ftl_timeseries_metrics",
+    "reaggregate_ftl_timeseries",
     "read_growth_metrics",
     "read_qei_metrics",
     "read_stability_metrics",

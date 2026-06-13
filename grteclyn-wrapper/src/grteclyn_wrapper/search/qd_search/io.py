@@ -25,29 +25,42 @@ def _prune_eval_dirs(
     qd_dir: Path,
     records: Sequence[Mapping[str, Any]],
     *,
-    keep_top: int,
+    keep_eval_ids: set[int] | None = None,
+    keep_top: int | None = None,
     protect_eval_ids: set[int] | None = None,
 ) -> int:
-    """Delete completed eval dirs outside the top-scoring ``keep_top`` records."""
-    if keep_top <= 0:
-        return 0
+    """Delete completed eval dirs outside ``keep_eval_ids``.
 
-    scored: list[tuple[float, int]] = []
+    When ``keep_eval_ids`` is ``None``, falls back to legacy top-N-by-score if
+    ``keep_top > 0``. When both are unset/non-positive, pruning is disabled.
+    """
+    if keep_eval_ids is None:
+        if keep_top is None or keep_top <= 0:
+            return 0
+        scored: list[tuple[float, int]] = []
+        for rec in records:
+            score = rec.get("score")
+            eval_id = rec.get("eval")
+            if not isinstance(score, (int, float)) or eval_id is None:
+                continue
+            try:
+                scored.append((float(score), int(eval_id)))
+            except (TypeError, ValueError):
+                continue
+        keep_eval_ids = {eval_id for _score, eval_id in sorted(scored, reverse=True)[:keep_top]}
+
+    protected = set(protect_eval_ids or set())
+    scored_ids: set[int] = set()
     for rec in records:
         score = rec.get("score")
         eval_id = rec.get("eval")
-        if not isinstance(score, (int, float)) or eval_id is None:
-            continue
-        try:
-            scored.append((float(score), int(eval_id)))
-        except (TypeError, ValueError):
-            continue
+        if isinstance(score, (int, float)) and eval_id is not None:
+            try:
+                scored_ids.add(int(eval_id))
+            except (TypeError, ValueError):
+                continue
 
-    keep_ids = {eval_id for _score, eval_id in sorted(scored, reverse=True)[:keep_top]}
-    protected = set(protect_eval_ids or set())
-    scored_ids = {eval_id for _score, eval_id in scored}
     deleted = 0
-
     for eval_dir in qd_dir.glob("eval_*"):
         if not eval_dir.is_dir():
             continue
@@ -55,7 +68,7 @@ def _prune_eval_dirs(
         if not suffix.isdigit():
             continue
         eval_id = int(suffix)
-        if eval_id in keep_ids or eval_id in protected:
+        if eval_id in keep_eval_ids or eval_id in protected:
             continue
         if eval_id not in scored_ids:
             continue
@@ -64,7 +77,7 @@ def _prune_eval_dirs(
 
     if deleted:
         print(
-            f"[qd] pruned {deleted} eval dirs; kept top {keep_top} scored "
+            f"[qd] pruned {deleted} eval dirs; kept {len(keep_eval_ids)} scored "
             f"+ protected {sorted(protected)}",
             flush=True,
         )

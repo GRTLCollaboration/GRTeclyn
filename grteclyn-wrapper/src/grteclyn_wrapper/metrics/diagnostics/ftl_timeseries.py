@@ -20,22 +20,37 @@ from ..types.diagnostics import FtlTimeSeriesMetrics
 FTL_LIFETIME_FLOOR: float = 1.0e-3
 
 
-def read_ftl_timeseries_metrics(path: Path) -> FtlTimeSeriesMetrics | None:
-    rows = numeric_rows(path, 12)
-    if not rows:
-        return None
+def _peak_with_time(
+    values: tuple[float, ...],
+    times: tuple[float, ...],
+) -> tuple[float, float | None]:
+    peak = float("-inf")
+    t_peak: float | None = None
+    for value, time in zip(values, times):
+        if not math.isfinite(value):
+            continue
+        if value > peak:
+            peak = value
+            t_peak = time
+    if peak == float("-inf"):
+        return 0.0, None
+    return peak, t_peak
 
-    t = tuple(float(r[0]) for r in rows)
-    f_op = tuple(float(r[1]) for r in rows)
-    f_geo = tuple(float(r[2]) for r in rows)
-    geo_trustworthy = tuple(bool(round(r[3])) for r in rows)
-    max_local_speed = tuple(float(r[4]) for r in rows)
-    superluminal_fraction = tuple(float(r[5]) for r in rows)
-    structure_coherence = tuple(float(r[7]) for r in rows)
-    max_h_rel_drift = tuple(float(r[11]) for r in rows)
-    n = len(rows)
 
-    # Peak trustworthy gauge-invariant shortcut + when it occurred.
+def _aggregate_ftl_frames(
+    *,
+    t: tuple[float, ...],
+    f_op: tuple[float, ...],
+    f_geo: tuple[float, ...],
+    geo_trustworthy: tuple[bool, ...],
+    max_local_speed: tuple[float, ...],
+    superluminal_fraction: tuple[float, ...],
+    structure_coherence: tuple[float, ...],
+    max_h_rel_drift: tuple[float, ...],
+) -> FtlTimeSeriesMetrics:
+    """Build metrics by scanning every per-frame sample (peaks are mid-run aware)."""
+    n = len(t)
+
     f_geo_peak = 0.0
     t_at_f_geo_peak: float | None = None
     for ti, fg, trust in zip(t, f_geo, geo_trustworthy):
@@ -57,6 +72,9 @@ def read_ftl_timeseries_metrics(path: Path) -> FtlTimeSeriesMetrics | None:
     )
     op_alive = sum(1 for fo in f_op if math.isfinite(fo) and fo > FTL_LIFETIME_FLOOR)
 
+    speed_peak, t_speed = _peak_with_time(max_local_speed, t)
+    sup_peak, t_sup = _peak_with_time(superluminal_fraction, t)
+
     return FtlTimeSeriesMetrics(
         n_frames=n,
         t=t,
@@ -71,6 +89,41 @@ def read_ftl_timeseries_metrics(path: Path) -> FtlTimeSeriesMetrics | None:
         t_at_f_geo_peak=t_at_f_geo_peak,
         f_op_peak=f_op_peak,
         t_at_f_op_peak=t_at_f_op_peak,
+        max_local_speed_peak=speed_peak,
+        t_at_max_speed=t_speed,
+        superluminal_fraction_peak=sup_peak,
+        t_at_superluminal_peak=t_sup,
         ftl_lifetime_fraction=(geo_alive / n) if n else 0.0,
         op_lifetime_fraction=(op_alive / n) if n else 0.0,
+    )
+
+
+def reaggregate_ftl_timeseries(ts: FtlTimeSeriesMetrics) -> FtlTimeSeriesMetrics:
+    """Recompute peak/lifetime fields from per-frame arrays (never final-frame only)."""
+    return _aggregate_ftl_frames(
+        t=ts.t,
+        f_op=ts.f_op,
+        f_geo=ts.f_geo,
+        geo_trustworthy=ts.geo_trustworthy,
+        max_local_speed=ts.max_local_speed,
+        superluminal_fraction=ts.superluminal_fraction,
+        structure_coherence=ts.structure_coherence,
+        max_h_rel_drift=ts.max_h_rel_drift,
+    )
+
+
+def read_ftl_timeseries_metrics(path: Path) -> FtlTimeSeriesMetrics | None:
+    rows = numeric_rows(path, 12)
+    if not rows:
+        return None
+
+    return _aggregate_ftl_frames(
+        t=tuple(float(r[0]) for r in rows),
+        f_op=tuple(float(r[1]) for r in rows),
+        f_geo=tuple(float(r[2]) for r in rows),
+        geo_trustworthy=tuple(bool(round(r[3])) for r in rows),
+        max_local_speed=tuple(float(r[4]) for r in rows),
+        superluminal_fraction=tuple(float(r[5]) for r in rows),
+        structure_coherence=tuple(float(r[7]) for r in rows),
+        max_h_rel_drift=tuple(float(r[11]) for r in rows),
     )

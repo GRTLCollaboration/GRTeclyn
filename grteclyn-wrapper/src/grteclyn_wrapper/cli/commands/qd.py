@@ -89,6 +89,7 @@ def run_qd_command(args: argparse.Namespace, base_overrides: dict) -> int:
         target_evals=getattr(args, "target_evals", None),
         seed_overrides=load_seed_overrides(getattr(args, "seed_eval_dirs", None)),
         keep_top_eval_dirs=getattr(args, "keep_top_eval_dirs", 0),
+        ftl_retention_enabled=getattr(args, "ftl_retention", True),
     )
     best = archive.best
     print(json.dumps({

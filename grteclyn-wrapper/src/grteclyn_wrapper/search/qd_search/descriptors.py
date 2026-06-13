@@ -7,6 +7,8 @@ from typing import Any, Mapping
 
 import numpy as np
 
+from ..ftl_peak_metrics import peak_fields_for_descriptor_details
+
 _SPEED_HORIZON_C_FLOOR = 0.9
 _SPEED_HORIZON_C_TARGET = 1.3
 _SPEED_HORIZON_THETA_SCALE = 0.5
@@ -193,19 +195,15 @@ def _descriptor_details(
             if ts
             else 0.0
         )
-        peak = float(ts.get("f_geo_peak")) if ts and ts.get("f_geo_peak") is not None else float("nan")
-        t_peak = float(ts.get("t_at_f_geo_peak")) if ts and ts.get("t_at_f_geo_peak") is not None else float("nan")
-        n_frames = int(ts.get("n_frames")) if ts and ts.get("n_frames") is not None else 0
+        peak_fields = peak_fields_for_descriptor_details(ts, components=components)
         return {
             "x": strength,
             "y": lifetime,
             "ftl_peak_strength": strength,
             "ftl_lifetime": lifetime,
-            "f_geo_peak": peak,
-            "t_at_f_geo_peak": t_peak,
-            "n_frames": float(n_frames),
+            "ftl_lifetime_fraction": lifetime,
+            **peak_fields,
             "operational_ftl_geodesic": float(components.get("operational_ftl_geodesic", 0.0)),
-            "ftl_geo_timeavg": float(components.get("ftl_geo_timeavg", 0.0)),
         }
 
     ftl_benefit = float(

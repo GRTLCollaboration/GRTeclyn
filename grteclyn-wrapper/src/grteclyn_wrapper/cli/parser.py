@@ -344,6 +344,13 @@ def build_parser() -> argparse.ArgumentParser:
         "top N scored records. trajectory.jsonl/archive.json stay intact; 0 disables.",
     )
     qd.add_argument(
+        "--ftl-retention",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Also retain eval dirs that hold the campaign-best FTL peak per metric "
+        "(f_geo, speed, lifetime, etc.); writes ftl_retention.jsonl + ftl_champions.json.",
+    )
+    qd.add_argument(
         "--descriptor-mode",
         choices=["legacy", "channel", "speed_horizon", "speed_super", "ftl_lifetime"],
         default="legacy",

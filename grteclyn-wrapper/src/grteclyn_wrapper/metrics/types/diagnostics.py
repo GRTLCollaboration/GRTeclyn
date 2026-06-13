@@ -159,5 +159,9 @@ class FtlTimeSeriesMetrics:
     t_at_f_geo_peak: float | None
     f_op_peak: float
     t_at_f_op_peak: float | None
+    max_local_speed_peak: float
+    t_at_max_speed: float | None
+    superluminal_fraction_peak: float
+    t_at_superluminal_peak: float | None
     ftl_lifetime_fraction: float  # frames with trustworthy f_geo>floor / n_frames
     op_lifetime_fraction: float  # frames with f_op>floor / n_frames

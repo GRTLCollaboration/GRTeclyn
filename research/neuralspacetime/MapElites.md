@@ -377,6 +377,7 @@ happened. Quick index (most consequential first):
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
+| [**v16: FTL champion retention**](#v16-ftl-champion-retention-2026-06-13) | 06-13 | Disk pruning kept only top-10 by total score, so high **mid-run FTL peaks** (e.g. eval 146 @ 5.6% `f_geo`) lost their eval dirs. v16 adds **one on-disk champion per FTL peak metric** (f_geo, f_op, max speed, superluminal, lifetime, timeavg) union top-10 score; audit in `ftl_retention.jsonl`, snapshot in `ftl_champions.json`. Campaign: `ftl_discovery_v16` |
 | [**v15: time-resolved FTL scoring**](#v15-time-resolved-intermediate-ftl-scoring-2026-06-13) | 06-13 | Final-frame scoring was half-blind: the gauge-invariant shortcut **peaks mid-run and diffuses**, so the last frame both under-credits a real transient and can't tell a sustained warp from an Alcubierre-like collapse. Adds an in-flight per-plotfile FTL stream (`ftl_timeseries.dat`, process+delete), retargets the headline `operational_ftl_geodesic` to the **time-average** over the run, and adds an `ftl_lifetime` MAP-Elites axis. Validated on eval 231: f_geo rises 2.7%→**7.43% peak at t=9.6**→5.24% (t=16); the old final frame saw only 5.24%. QD runs at dx=0.5, ml=2 (controls show ml=3 changes nothing — the real variable is time, not refinement) |
 | [**v14 results & analytics**](#v14-campaign-results--analytics-2026-06-12-completed) | 06-12 | 504 evals, 351 gpu_ok, 51.6% archive coverage. Top: Eval 231 (f_geo=5.30%, ring+top-hat, score 551). 5 operational, 3 observer_ec. Ring layout dominates top-5; exotic fraction 90–99% universal. Full Alcubierre comparison — our best is 17% of Alcubierre's shortcut but is self-consistent & evolvable |
 | [`v14` launch setup → matter profile + cloud layout](#v14-launch-setup-matter-profile-and-cloud-layout-2026-06-12) | 06-12 | Adds per-lump matter profile (Gaussian / smoothed top-hat "ball") + quasi-random cloud layout (`matter_layout=4`); search space 21→23 dims. GRTresna rebuilt; 182 tests pass |
@@ -394,6 +395,69 @@ happened. Quick index (most consequential first):
 | [Scoring fix: stationary warp-lens artifacts](#scoring-fix-stationary-warp-lens-artifacts-2026-06-10-after-90-evals) | 06-10 | Reliability-gate + stationary-artifact gate |
 | [Navigation overhaul](#navigation-overhaul-2026-06-10) | 06-10 | `speed_super` descriptor; feasible-box sampling |
 | [Status / reset (theta_plus bug)](#map-elites-ftl-discovery-status) | 06-10 | `theta_plus` re-centered on `grid_center` |
+
+---
+
+## v16: FTL champion retention (2026-06-13)
+
+**The problem.** v15 measures FTL on every intermediate frame, but disk pruning still kept
+only the **top 10 eval dirs by total score**. A run could set a campaign-best
+`f_geo` peak mid-run (eval 146 @ 5.61%) yet be pruned because exotic/stability
+penalties drove total score negative. Peak scalars survived in `trajectory.jsonl`,
+but **`ftl_timeseries.dat`, frames, and full score.json arrays were lost**.
+
+**The fix — FTL hall of fame + union retention.** After each batch the driver now
+keeps the **union** of:
+
+1. Top `QD_KEEP_TOP_EVAL_DIRS` (default 10) by total score — unchanged.
+2. **One champion eval dir per FTL peak metric** (replace-on-beat):
+   `f_geo_peak`, `f_op_peak`, `max_local_speed`, `superluminal_fraction`,
+   `ftl_lifetime_fraction`, `ftl_geo_timeavg`.
+
+When a new eval beats the incumbent on a metric, the old champion dir becomes
+deletable unless it is still in the score top-10 or holds another metric slot.
+
+**New campaign files**
+
+| File | Role |
+|------|------|
+| `ftl_retention.jsonl` | Append-only audit: each crown/dethrone event |
+| `ftl_champions.json` | Current champion snapshot (fast resume) |
+
+Watch crown events during a run:
+
+```bash
+tail -f runs/grtresna_qd/ftl_discovery_v16/ftl_retention.jsonl
+cat runs/grtresna_qd/ftl_discovery_v16/ftl_champions.json
+```
+
+**Trajectory enrichment.** `descriptor_details` on each `gpu_ok` record now stores
+the full peak set from `metrics.ftl_timeseries` (not just `f_geo_peak`), so
+`report_campaign_ftl.py` can rank pruned evals with max-speed/superluminal fields.
+
+**Config**
+
+| Knob | Default | Effect |
+|------|---------|--------|
+| `QD_FTL_RETENTION=1` | on in launch script | Enable FTL champion retention |
+| `--no-ftl-retention` | — | Score top-N only (v15 behaviour) |
+| `QD_KEEP_TOP_EVAL_DIRS=10` | 10 | Score-based retention |
+
+**Code:** `search/ftl_retention.py`, `search/ftl_peak_metrics.py`; wired in
+`qd_search/driver.py` `_ingest()`.
+
+**Launch (v16):**
+
+```bash
+cd grteclyn-wrapper
+QD_NAME=ftl_discovery_v16 QD_TARGET_EVALS=400 QD_FTL_RETENTION=1 \
+  GRTRESNA_EVOLUTION_MAX_LEVEL=1 GRTECLYN_FRAMES=1 STOP_TIME=16.0 \
+  GPU_IDS="0 1 2 3 4 5 6 7" \
+  nohup bash scripts/search/run_grtresna_qd_search.sh \
+  > ../runs/qd_ftl_discovery_v16.launch.log 2>&1 &
+```
+
+Disk budget: up to ~16 eval dirs (10 score + up to 6 FTL champions, minus overlaps).
 
 ---
 
@@ -488,6 +552,59 @@ time-averaged scoring → lifetime descriptor.
 - **Scoring:** `metrics/score.py` (time-averaged `operational_ftl_geodesic`).
 - **Descriptor:** `search/qd_search/descriptors.py` (`ftl_lifetime` mode);
   CLI choice in `cli/parser.py`.
+
+### Per-frame FTL trace (not just the final snapshot)
+
+Each plotfile processed in flight appends **one row** to
+`eval_XXXXXX/small_data/ftl_timeseries.dat`.  While a GPU eval is still running you
+can watch the curve grow:
+
+```bash
+tail -f runs/grtresna_qd/ftl_discovery_v15/eval_000127/small_data/ftl_timeseries.dat
+```
+
+Columns (all per frame):
+
+| Column | Meaning |
+|--------|---------|
+| `time` | simulation time of the plotfile |
+| `f_op` | operational / coordinate shortcut |
+| `f_geo` | gauge-invariant geodesic shortcut (0 if probe skipped or none) |
+| `geo_trustworthy` | 1 when null-ray bundle passed reliability gates |
+| `max_local_speed` | peak coordinate light speed on the probe grid |
+| `superluminal_fraction` | volume fraction with speed > 1 |
+| `max_shift` | peak shift magnitude |
+| `structure_coherence` | matter-lump coherence (when computed) |
+| `n_rays` / `n_reached` / `max_h_rel_drift` | geodesic probe diagnostics |
+
+**Peaks vs end state.**  The parser keeps both:
+
+- **`f_geo_peak` + `t_at_f_geo_peak`** — best trustworthy geodesic shortcut and when
+  it occurred (the headline FTL signal).
+- **`f_op_peak` + `t_at_f_op_peak`** — same for operational FTL.
+- **`max_local_speed` peak + time** — max coordinate speed over the run (can stay
+  high after `f_geo` has diffused to 0; not a substitute for `f_geo`).
+- **`ftl_lifetime_fraction`** — share of frames with trustworthy `f_geo > 0.1%`.
+
+After scoring, the full arrays also land in `eval_XXXXXX/score.json` →
+`metrics.ftl_timeseries` (same information, JSON-serialized).
+
+**Campaign leaderboard script** — ranks completed evals by peak FTL, max speed,
+lifetime, time-average, or total score:
+
+```bash
+cd grteclyn-wrapper
+uv run python scripts/search/report_campaign_ftl.py ../runs/grtresna_qd/ftl_discovery_v15
+uv run python scripts/search/report_campaign_ftl.py ../runs/grtresna_qd/ftl_discovery_v15 \
+  --sort max_speed --status gpu_ok --top 30
+```
+
+Library entry point: `grteclyn_wrapper.search.ftl_campaign_report`.
+
+**Other in-flight streams** (same consumer, not FTL-specific): `areal_radius.dat`,
+`shell_profiles.dat` (chi/lapse/K on shells), `boundary_flux.dat`.  Continuous
+GRTeclyn diagnostics in `eval_*/data/*.dat` (constraints, collapse, energy
+conditions, curvature) update every coarse step — see `metrics/README.md`.
 
 ---
 

@@ -81,9 +81,10 @@ QD_NAME="${QD_NAME:-}"
 DESCRIPTOR_MODE="${DESCRIPTOR_MODE:-ftl_lifetime}"
 # Optional: warm-start the initial population from prior eval dirs (survivors).
 SEED_EVAL_DIRS="${SEED_EVAL_DIRS:-}"
-# Keep disk bounded: retain only the top-N scored eval_* directories plus the
-# current in-flight batch; trajectory/archive metadata stay intact.
+# Keep disk bounded: retain top-N by total score plus one champion dir per FTL
+# peak metric (f_geo, speed, lifetime, ...); see ftl_retention.jsonl.
 QD_KEEP_TOP_EVAL_DIRS="${QD_KEEP_TOP_EVAL_DIRS:-10}"
+QD_FTL_RETENTION="${QD_FTL_RETENTION:-1}"
 BINS="${BINS:-8}"
 GPU_IDS="${GPU_IDS:-0 1 2 3}"
 BATCH_SIZE="${BATCH_SIZE:-$(wc -w <<< "${GPU_IDS}")}"
@@ -168,6 +169,11 @@ if [[ -n "${SEED_EVAL_DIRS}" ]]; then
   SEED_ARGS+=(--seed-eval-dirs ${SEED_EVAL_DIRS})
 fi
 
+FTL_RETENTION_ARGS=(--ftl-retention)
+if [[ "${QD_FTL_RETENTION}" == "0" ]]; then
+  FTL_RETENTION_ARGS=(--no-ftl-retention)
+fi
+
 DRY_RUN_ARGS=()
 if [[ "${DRY_RUN:-0}" == "1" ]]; then
   DRY_RUN_ARGS=(--dry-run)
@@ -194,7 +200,9 @@ if [[ "${SKIP_QD_PREFLIGHT_TESTS:-0}" != "1" ]]; then
     "${WRAPPER_ROOT}/tests/test_scalar_lambda_potential.py" \
     "${WRAPPER_ROOT}/tests/test_grtresna_shell_ansatz.py" \
     "${WRAPPER_ROOT}/tests/test_matter_geometry_consistency.py" \
-    "${WRAPPER_ROOT}/tests/test_grtresna_integration.py" \
+    "${WRAPPER_ROOT}/tests/test_ftl_retention.py" \
+    "${WRAPPER_ROOT}/tests/test_ftl_peak_metrics.py" \
+    "${WRAPPER_ROOT}/tests/test_ftl_campaign_report.py" \
     -q --tb=short
 fi
 
@@ -217,6 +225,7 @@ exec ${PYTHON_BIN} -m grteclyn_wrapper \
   --objective-mode ftl_first \
   --iterations "${QD_ITERATIONS}" \
   --keep-top-eval-dirs "${QD_KEEP_TOP_EVAL_DIRS}" \
+  "${FTL_RETENTION_ARGS[@]}" \
   "${TARGET_EVALS_ARGS[@]}" \
   "${RESUME_ARGS[@]}" \
   "${SEED_ARGS[@]}" \

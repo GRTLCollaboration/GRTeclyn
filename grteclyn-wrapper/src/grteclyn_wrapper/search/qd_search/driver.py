@@ -32,6 +32,14 @@ from ..validation_tiers import (
 from .. import qd_search
 from .archive import Elite, QDArchive
 from .descriptors import _bin_index, _descriptor_details
+from ..ftl_retention import (
+    FTL_CHAMPIONS_FILE,
+    FTL_RETENTION_LOG,
+    FtlChampionBoard,
+    append_ftl_retention_events,
+    compute_keep_eval_ids,
+    save_ftl_champions,
+)
 from .io import _iterations_for_target_evals, _load_trajectory_records, _prune_eval_dirs
 from .sampling import (
     _ELITE_FRACTION,
@@ -83,6 +91,7 @@ def run_qd_search(
     target_evals: int | None = None,
     seed_overrides: Sequence[Mapping[str, Any]] | None = None,
     keep_top_eval_dirs: int = 0,
+    ftl_retention_enabled: bool = True,
 ) -> QDArchive:
     example_cfg = example if isinstance(example, ExampleConfig) else resolve_example(example)
     dims = list(search_space or DEFAULT_SEARCH_SPACE)
@@ -160,6 +169,11 @@ def run_qd_search(
     eval_counter = [completed_evals]
     counter_lock = threading.Lock()
     trajectory_lock = threading.Lock()
+    ftl_retention_path = qd_dir / FTL_RETENTION_LOG
+    ftl_champions_path = qd_dir / FTL_CHAMPIONS_FILE
+    ftl_board = (
+        FtlChampionBoard.rebuild(trajectory) if ftl_retention_enabled else FtlChampionBoard()
+    )
 
     metadata = {
         "mode": "qd_map_elites",
@@ -177,6 +191,7 @@ def run_qd_search(
         "grtresna": grtresna,
         "grtresna_solved_ftl_gate": grtresna_solved_ftl_gate,
         "keep_top_eval_dirs": keep_top_eval_dirs,
+        "ftl_retention_enabled": ftl_retention_enabled,
         "grtresna_max_ham_pct": getattr(
             grtresna_convergence_config, "max_ham_pct", 5.0,
         ),
@@ -332,19 +347,33 @@ def run_qd_search(
 
     def _ingest(results: list[tuple[int, list[float], Evaluation | None] | None]) -> None:
         protected_eval_ids: set[int] = set()
+        new_records: list[dict[str, Any]] = []
+        retention_events = []
         for item in results:
             if item is None:
                 continue
             idx, x, res = item
             protected_eval_ids.add(idx)
-            trajectory.append(
-                _record_result(idx=idx, x=x, res=res, insert_archive=True)
-            )
+            record = _record_result(idx=idx, x=x, res=res, insert_archive=True)
+            trajectory.append(record)
+            new_records.append(record)
+            if ftl_retention_enabled and record.get("status") == "gpu_ok":
+                retention_events.extend(ftl_board.consider(record))
         _write_trajectory()
+        if ftl_retention_enabled:
+            append_ftl_retention_events(ftl_retention_path, retention_events)
+            save_ftl_champions(ftl_champions_path, ftl_board)
+        keep_ids = compute_keep_eval_ids(
+            trajectory,
+            keep_top_score=int(keep_top_eval_dirs),
+            board=ftl_board if ftl_retention_enabled else None,
+            ftl_retention_enabled=ftl_retention_enabled,
+            protect_eval_ids=protected_eval_ids,
+        )
         _prune_eval_dirs(
             qd_dir,
             trajectory,
-            keep_top=int(keep_top_eval_dirs),
+            keep_eval_ids=keep_ids,
             protect_eval_ids=protected_eval_ids,
         )
 
