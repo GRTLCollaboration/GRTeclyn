@@ -131,3 +131,33 @@ class FtlPersistenceMetrics:
     f_op_last: float | None
     max_local_speed_min: float | None
     max_shift_max: float | None
+
+
+@dataclass(frozen=True)
+class FtlTimeSeriesMetrics:
+    """Time-resolved FTL features over the WHOLE run (one sample per plotfile).
+
+    The gauge-invariant shortcut peaks mid-run and diffuses, so the final frame
+    is half-blind.  This holds the per-frame arrays (so the scorer can average a
+    composite FTL x stability score over time, per the avg/sum/divide design)
+    plus convenience aggregates (peak + time-of-peak + FTL lifetime fraction)
+    used for diagnostics and the MAP-Elites lifetime descriptor.
+    """
+
+    n_frames: int
+    # Per-frame arrays, ordered by time.
+    t: tuple[float, ...]
+    f_op: tuple[float, ...]
+    f_geo: tuple[float, ...]
+    geo_trustworthy: tuple[bool, ...]
+    max_local_speed: tuple[float, ...]
+    superluminal_fraction: tuple[float, ...]
+    structure_coherence: tuple[float, ...]  # nan where the probe omitted it
+    max_h_rel_drift: tuple[float, ...]
+    # Convenience aggregates.
+    f_geo_peak: float  # max trustworthy f_geo over the run
+    t_at_f_geo_peak: float | None
+    f_op_peak: float
+    t_at_f_op_peak: float | None
+    ftl_lifetime_fraction: float  # frames with trustworthy f_geo>floor / n_frames
+    op_lifetime_fraction: float  # frames with f_op>floor / n_frames

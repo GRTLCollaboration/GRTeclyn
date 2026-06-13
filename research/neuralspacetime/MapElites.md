@@ -133,25 +133,34 @@ added to **both** sides with matching analytic forms. (Root cause documented in
 
 ## Behavior descriptors (the "diversity" axes)
 
-The current descriptor is **`speed_super`** (`qd_search.py`):
+The current descriptor is **`ftl_lifetime`** (`qd_search/descriptors.py`), added
+in [v15](#v15-time-resolved-intermediate-ftl-scoring-2026-06-13):
 
-- **x** — recalibrated cone-tilt from `max_local_speed` (floor 0.95, target 1.20)
-  so realistic coordinate speeds spread across bins instead of saturating.
-- **y** — `superluminal_fraction`: the share of the domain whose local speed
-  exceeds `c` by a margin (`SUPERLUMINAL_MARGIN`), rescaled by an observed
-  ceiling so localized-vs-widespread superluminal regions separate.
+- **x** — peak gauge-invariant strength: the run's maximum trustworthy `f_geo`,
+  ramped `(f_geo − 1e-3)/(2e-1 − 1e-3)`.
+- **y** — **FTL-lifetime fraction**: the share of plotfile frames in which a
+  trustworthy shortcut is alive. This is the transient-vs-sustained axis — a
+  one-frame Alcubierre-like spike and a stable warp of equal peak strength land
+  in different cells.
 
-Older `speed_horizon` is kept for back-compat but was retired after the
-`theta_plus` centering bug made its y-axis degenerate (see campaign log).
+Earlier descriptors are kept for back-compat: **`speed_super`** (x = recalibrated
+cone-tilt from `max_local_speed`, y = `superluminal_fraction`) was the v14
+default; `speed_horizon` was retired after the `theta_plus` centering bug made
+its y-axis degenerate (see campaign log).
 
 ## Scoring model (the "quality" axis)
 
 Fitness is the `ftl_first` objective in `metrics/score.py`. Headline structure:
 
-- **Gauge-invariant FTL is king.** `operational_ftl_geodesic` (null-ray shortcut)
-  carries the largest weight, but only when its reliability gate passes
-  (`h_quality_ok` via relative Hamiltonian drift, and all rays reach the
-  detector). Otherwise it scores 0 — integration noise is never trusted.
+- **Gauge-invariant FTL is king — now time-averaged.** `operational_ftl_geodesic`
+  (null-ray shortcut) carries the largest weight, but only when its reliability
+  gate passes (`h_quality_ok` via relative Hamiltonian drift, and all rays reach
+  the detector). Otherwise it scores 0 — integration noise is never trusted.
+  Since [v15](#v15-time-resolved-intermediate-ftl-scoring-2026-06-13) this term is
+  the **mean over the whole run** of the per-frame magnitude (each frame gated on
+  its own reliability), not a single final-frame reading — the shortcut peaks
+  mid-run and diffuses, so the average is what separates a sustained warp from a
+  transient collapse.
 - **Dynamical, sustained signal next.** Evolved `operational_ftl` + `ftl_persistence`
   outweigh the one-shot coordinate-speed `operational_ftl_solved`, which is
   treated as a *precursor/shaping* term (localization-gated). `operational_ftl`
@@ -368,6 +377,7 @@ happened. Quick index (most consequential first):
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
+| [**v15: time-resolved FTL scoring**](#v15-time-resolved-intermediate-ftl-scoring-2026-06-13) | 06-13 | Final-frame scoring was half-blind: the gauge-invariant shortcut **peaks mid-run and diffuses**, so the last frame both under-credits a real transient and can't tell a sustained warp from an Alcubierre-like collapse. Adds an in-flight per-plotfile FTL stream (`ftl_timeseries.dat`, process+delete), retargets the headline `operational_ftl_geodesic` to the **time-average** over the run, and adds an `ftl_lifetime` MAP-Elites axis. Validated on eval 231: f_geo rises 2.7%→**7.43% peak at t=9.6**→5.24% (t=16); the old final frame saw only 5.24%. QD now runs at HQ refinement (ml=3, dx=0.5) |
 | [**v14 results & analytics**](#v14-campaign-results--analytics-2026-06-12-completed) | 06-12 | 504 evals, 351 gpu_ok, 51.6% archive coverage. Top: Eval 231 (f_geo=5.30%, ring+top-hat, score 551). 5 operational, 3 observer_ec. Ring layout dominates top-5; exotic fraction 90–99% universal. Full Alcubierre comparison — our best is 17% of Alcubierre's shortcut but is self-consistent & evolvable |
 | [`v14` launch setup → matter profile + cloud layout](#v14-launch-setup-matter-profile-and-cloud-layout-2026-06-12) | 06-12 | Adds per-lump matter profile (Gaussian / smoothed top-hat "ball") + quasi-random cloud layout (`matter_layout=4`); search space 21→23 dims. GRTresna rebuilt; 182 tests pass |
 | [`v12` review → λφ⁴ + FTL geometry layouts → `v13`](#ftl_discovery_v12-review--lambda-phi4--ftl-geometry-layouts--ftl_discovery_v13-2026-06-12) | 06-12 | 278 evals, zero geodesic FTL; top scores were coordinate-shaping artifacts (eval 197 scored 130 with f_geo=0). Adds searchable `grtresna_scalar_lambda` + `grtresna_matter_layout` (sphere/channel/bipolar/ring), zeros shaping when geodesic contradicts, pytest gate before QD launch |
@@ -384,6 +394,98 @@ happened. Quick index (most consequential first):
 | [Scoring fix: stationary warp-lens artifacts](#scoring-fix-stationary-warp-lens-artifacts-2026-06-10-after-90-evals) | 06-10 | Reliability-gate + stationary-artifact gate |
 | [Navigation overhaul](#navigation-overhaul-2026-06-10) | 06-10 | `speed_super` descriptor; feasible-box sampling |
 | [Status / reset (theta_plus bug)](#map-elites-ftl-discovery-status) | 06-10 | `theta_plus` re-centered on `grid_center` |
+
+---
+
+## v15: time-resolved (intermediate) FTL scoring (2026-06-13)
+
+**The problem.** Every campaign through v14 scored a candidate from a **single
+plotfile — the last one**. The geodesic probe samples one static slice (time
+derivatives zeroed) and reports `f_geo` there. But the HQ-promotion forensics on
+the v14 top-5 showed the gauge-invariant shortcut is a **transient**: it forms,
+**peaks mid-run, and diffuses**. Reading only the final frame is therefore
+half-blind in two ways:
+
+1. It **under-credits** a genuine channel whose peak already passed (eval 231:
+   `f_geo` peaks at **7.43% near t=9.6** but is **5.24%** by t=16 — and was ~0 by
+   the t=30 HQ frame).
+2. It **cannot distinguish a sustained warp from a collapsing one.** A single
+   snapshot of Alcubierre looks stable and interstellar; a single snapshot of an
+   unstable bubble at its peak looks identical. Only the *time history* tells
+   them apart. (This is exactly why the v10–v14 "winners" died at HQ.)
+
+**The fix — measure the whole curve, in flight.** As the plotfile consumer
+streams and **deletes** each plotfile (no hoarding — disk stays bounded), it now
+also runs the FTL probes on that frame and appends one row to
+`small_data/ftl_timeseries.dat`, alongside the other per-plotfile diagnostics:
+
+```
+# time  f_op  f_geo  geo_trustworthy  max_local_speed  superluminal_fraction  max_shift  structure_coherence  reachable  n_rays  n_reached  max_h_rel_drift
+```
+
+The cheap operational-FTL probe runs on every frame; the expensive
+gauge-invariant geodesic probe is **gated** (only fires when the cheap probe sees
+a coordinate channel), so per-frame cost stays ~3–7 s. The collector parses this
+into `FtlTimeSeriesMetrics` (per-frame arrays + peak, time-of-peak, FTL-lifetime
+fraction).
+
+**The new headline score (avg / sum / divide).** `operational_ftl_geodesic` — the
+×1000 dominant term — is now the **mean over all frames** of the per-frame
+trustworthy gauge-invariant magnitude `(f_geo − 1e-3)/(2e-1 − 1e-3)`, still scaled
+by end-state `structural_persistence`. Each frame is gated on its *own*
+reliability (`h_quality_ok`, full ray bundle). This is the persistence-honest
+average: a channel that is FTL for most of the run scores high; a one-frame
+Alcubierre-like spike averages toward zero; a diffused final frame no longer
+zeroes a genuinely sustained shortcut. Falls back to the single final-frame value
+when no per-frame stream exists (backward-compatible). Worked example (identical
+peak, different lifetime): persistent 10/10 frames → **296**, transient 5/10 →
+148, one-frame spike → **30**.
+
+**New MAP-Elites axis — `ftl_lifetime`** (now the campaign default): **x** = peak
+gauge-invariant strength, **y** = FTL-lifetime fraction (share of frames the
+shortcut is alive). The archive now explicitly separates *transient* shortcuts
+from *sustained* ones at the same strength — the transient/stable distinction is
+a first-class diversity dimension instead of being invisible.
+
+**QD now runs at HQ refinement.** Resolution gap was the last suspect behind the
+QD→HQ collapse, so the QD loop itself now evolves at **`max_level=3`, `dx=0.5`**
+(`N_full=128`, `L_full=64`), `t=16` — the same grid an elite is promoted at. The
+control experiments (dx=0.5 alone, ml=3 alone) had already shown resolution does
+*not* kill the shortcut at t=16; the real killer is **time** (diffusion by t≈30),
+which the time-average now captures directly.
+
+### Validation (eval 231 replay, gridinit reused, GRTresna skipped)
+
+Re-evolving eval 231 at the new QD grid (dx=0.5, ml=3, t=16) with the per-frame
+stream on, processing + deleting plotfiles:
+
+| t | `f_geo` | trustworthy |
+|------|---------|-------------|
+| 0.0  | 2.70%   | yes (5/5) |
+| 3.2  | 4.86%   | yes |
+| 6.4  | 7.18%   | yes |
+| 9.6  | **7.43% (peak)** | yes |
+| 12.8 | 6.34%   | yes |
+| 16.0 | 5.24%   | yes |
+
+Time-averaged magnitude = **0.275** vs the single final frame's 0.258 — the
+mid-run insight *raises* the score, as it should. `ftl_lifetime = 100%`
+(FTL in every frame → sustained, top lifetime cell). Confirms the mechanism
+end-to-end: in-flight extraction → bounded disk → time-resolved aggregation →
+time-averaged scoring → lifetime descriptor.
+
+### Where it lives
+
+- **In-flight extraction:** `visualisation/process_wave/consume_plotfiles/extraction/ftl.py`
+  (`_extract_ftl_timeseries_line`); wired via `--ftl-timeseries`/`--ftl-l` through
+  `core/plot_consumer.py` → `core/runner.py` → `core/evaluation.py` (auto-on
+  whenever plotfiles are consumed).
+- **Aggregation:** `metrics/diagnostics/ftl_timeseries.py`
+  (`read_ftl_timeseries_metrics` → `FtlTimeSeriesMetrics`); collected in
+  `metrics/aggregation/collector.py`.
+- **Scoring:** `metrics/score.py` (time-averaged `operational_ftl_geodesic`).
+- **Descriptor:** `search/qd_search/descriptors.py` (`ftl_lifetime` mode);
+  CLI choice in `cli/parser.py`.
 
 ---
 

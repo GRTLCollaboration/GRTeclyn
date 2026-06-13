@@ -41,24 +41,41 @@ GRTRESNA_REFINE_THRESHOLD="${GRTRESNA_REFINE_THRESHOLD:-0.5}"
 GRTRESNA_REGRID_RADIUS="${GRTRESNA_REGRID_RADIUS:-0}"
 GRTRESNA_JACOBIAN_CAP="${GRTRESNA_JACOBIAN_CAP:-25.0}"
 GRTRESNA_TIMEOUT="${GRTRESNA_TIMEOUT:-900}"
+# Evolution base resolution: dx = L_full / N_full = 64 / 128 = 0.5.  Raised from
+# N_full=64 (dx=1.0): the HQ-promotion campaign repeatedly showed QD "winners"
+# whose superluminal coordinate channel is an *under-resolved* artifact of the
+# dx=1.0 base grid -- it evaporates the moment the same data is evolved at dx=0.5
+# (eval 231 f_geo 5.30%->0, eval 489 3.57%->0).  Evolving the QD loop itself at
+# dx=0.5 stops the search from banking those artifacts, at ~16x compute/eval
+# (8x cells + 2x timesteps from CFL).  Domain L=64 is kept so the box boundary
+# stays at r=32, far from the r=8 FTL probe (shrinking L would risk boundary
+# contamination).  max_level raised 2->3 (finest dx 0.0625) to match the HQ
+# promotion grid, so a QD elite is scored on the same refinement it is promoted
+# at -- removing the last resolution gap behind the QD->HQ f_geo collapse.
 GRTRESNA_EVOLUTION_L_FULL="${GRTRESNA_EVOLUTION_L_FULL:-64.0}"
-GRTRESNA_EVOLUTION_N_FULL="${GRTRESNA_EVOLUTION_N_FULL:-64}"
+GRTRESNA_EVOLUTION_N_FULL="${GRTRESNA_EVOLUTION_N_FULL:-128}"
+GRTRESNA_EVOLUTION_MAX_LEVEL="${GRTRESNA_EVOLUTION_MAX_LEVEL:-3}"
 GRTRESNA_DOMAIN_L="${GRTRESNA_DOMAIN_L:-128.0}"
 GRTRESNA_DOMAIN_NX="${GRTRESNA_DOMAIN_NX:-64}"
 GRTRESNA_DOMAIN_NY="${GRTRESNA_DOMAIN_NY:-64}"
 GRTRESNA_DOMAIN_NZ="${GRTRESNA_DOMAIN_NZ:-}"
-GRTRESNA_GRIDINIT_NX="${GRTRESNA_GRIDINIT_NX:-64}"
-GRTRESNA_GRIDINIT_NY="${GRTRESNA_GRIDINIT_NY:-64}"
-GRTRESNA_GRIDINIT_NZ="${GRTRESNA_GRIDINIT_NZ:-64}"
+# Gridinit (initial-data) grid bumped 64->128 to match the dx=0.5 evolution base
+# grid; otherwise the solved (phi, Pi) would be loaded at dx=1.0 and interpolated
+# up, throwing away the fidelity the finer evolution is meant to provide.
+GRTRESNA_GRIDINIT_NX="${GRTRESNA_GRIDINIT_NX:-128}"
+GRTRESNA_GRIDINIT_NY="${GRTRESNA_GRIDINIT_NY:-128}"
+GRTRESNA_GRIDINIT_NZ="${GRTRESNA_GRIDINIT_NZ:-128}"
 QD_ITERATIONS="${QD_ITERATIONS:-10}"
 QD_TARGET_EVALS="${QD_TARGET_EVALS:-}"
 QD_RESUME="${QD_RESUME:-0}"
 QD_NAME="${QD_NAME:-}"
-# MAP-Elites behaviour grid: channel (path x mechanism, needs shift>0),
-# speed_horizon (cone-tilt x horizon-free, the fast-but-not-trapped niche),
-# speed_super (recalibrated cone-tilt x superluminal_fraction, stays
-# discriminating in the nontrivial regime), legacy.
-DESCRIPTOR_MODE="${DESCRIPTOR_MODE:-speed_super}"
+# MAP-Elites behaviour grid: ftl_lifetime (peak gauge-invariant strength x
+# FTL-lifetime fraction -- the time-resolved grid that separates a transient,
+# Alcubierre-like shortcut from a sustained one, now that the per-frame FTL
+# stream is scored), channel (path x mechanism, needs shift>0), speed_horizon
+# (cone-tilt x horizon-free), speed_super (cone-tilt x superluminal_fraction),
+# legacy.
+DESCRIPTOR_MODE="${DESCRIPTOR_MODE:-ftl_lifetime}"
 # Optional: warm-start the initial population from prior eval dirs (survivors).
 SEED_EVAL_DIRS="${SEED_EVAL_DIRS:-}"
 # Keep disk bounded: retain only the top-N scored eval_* directories plus the
@@ -76,14 +93,15 @@ SEED="${SEED:-7}"
 # observe the second half of the evolution and reject those late-unstable
 # candidates *in the QD loop* instead of wasting an HQ promotion on them.
 STOP_TIME="${STOP_TIME:-16.0}"
-# Plotfile cadence in coarse steps.  At STOP_TIME=16 / dt=0.02 there are 800
-# coarse steps, so PLOT_INTERVAL=160 yields ~6 plotfiles (t=0,3.2,..,16) -> ~6
-# frames/field -- the same post-processing budget as the t=8 / interval=80 run
-# (late-time AMR refinement makes each yt slice frame expensive and they render
-# in a serial burst at the batch boundary with the GPUs idle, so frame *count*,
-# not stop_time, sets that gap).  Still >= the 3 plotfiles the evolved/geodesic
-# FTL probes need.
-PLOT_INTERVAL="${PLOT_INTERVAL:-160}"
+# Plotfile cadence in coarse steps.  dt = dt_multiplier * dx = 0.02 * 0.5 = 0.01
+# at the dx=0.5 base grid, so STOP_TIME=16 is now ~1600 coarse steps (was 800 at
+# dx=1.0).  PLOT_INTERVAL bumped 160->320 to keep ~6 plotfiles (t=0,3.2,..,16) ->
+# ~6 frames/field, the same post-processing budget as before (late-time AMR
+# refinement makes each yt slice frame expensive and they render in a serial
+# burst at the batch boundary with the GPUs idle, so frame *count*, not
+# stop_time, sets that gap).  Still >= the 3 plotfiles the evolved/geodesic FTL
+# probes need.
+PLOT_INTERVAL="${PLOT_INTERVAL:-320}"
 
 SOLVED_FTL_F_OP_FLOOR="${SOLVED_FTL_F_OP_FLOOR:-1.0e-4}"
 SOLVED_FTL_NEAR_LUMINAL_SPEED_FLOOR="${SOLVED_FTL_NEAR_LUMINAL_SPEED_FLOOR:-0.95}"
@@ -175,6 +193,7 @@ exec ${PYTHON_BIN} -m grteclyn_wrapper \
   --example RadialRecipe \
   --set stop_time="${STOP_TIME}" \
   --set plot_interval="${PLOT_INTERVAL}" \
+  --set max_level="${GRTRESNA_EVOLUTION_MAX_LEVEL}" \
   "${DRY_RUN_ARGS[@]}" \
   --consume-plotfiles \
   --consumer-delete \

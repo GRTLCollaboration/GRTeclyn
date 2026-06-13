@@ -67,6 +67,8 @@ def build_consume_command(
     frames: bool = True,
     keep_existing_frames: bool = False,
     stable_seconds: float | None = None,
+    ftl_timeseries: bool = False,
+    ftl_L: float | None = None,
 ) -> list[str]:
     """Return argv for streaming plotfile extraction into episode/small_data."""
     center = _read_vector_param(episode.params_path, "center", (0.0, 0.0, 0.0))
@@ -109,6 +111,10 @@ def build_consume_command(
         command.append("--keep-existing-frames")
     if stable_seconds is not None:
         command.extend(["--stable-seconds", f"{float(stable_seconds):g}"])
+    if ftl_timeseries:
+        command.append("--ftl-timeseries")
+        if ftl_L is not None:
+            command.extend(["--ftl-l", f"{float(ftl_L):g}"])
 
     if profile == "wormhole":
         command.extend(

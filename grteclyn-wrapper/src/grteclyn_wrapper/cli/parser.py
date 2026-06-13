@@ -345,15 +345,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     qd.add_argument(
         "--descriptor-mode",
-        choices=["legacy", "channel", "speed_horizon", "speed_super"],
+        choices=["legacy", "channel", "speed_horizon", "speed_super", "ftl_lifetime"],
         default="legacy",
         help="MAP-Elites descriptors: legacy FTL/mechanism grid, channel "
         "path-closeness/mechanism-balance grid (needs shift>0), speed_horizon "
         "cone-tilt(max_local_speed) vs horizon-free(min_theta_plus) grid that "
-        "illuminates the fast-but-not-trapped niche without needing shift, or "
+        "illuminates the fast-but-not-trapped niche without needing shift, "
         "speed_super recalibrated cone-tilt vs superluminal_fraction grid "
         "(localized vs widespread superluminal region) that stays discriminating "
-        "in the nontrivial-but-not-operational regime.",
+        "in the nontrivial-but-not-operational regime, or ftl_lifetime "
+        "peak gauge-invariant strength vs FTL-lifetime fraction (time-resolved) "
+        "grid that separates transient shortcuts from sustained ones.",
     )
     qd.add_argument(
         "--objective-mode",

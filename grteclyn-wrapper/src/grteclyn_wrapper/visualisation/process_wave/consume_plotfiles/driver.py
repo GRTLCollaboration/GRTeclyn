@@ -9,6 +9,7 @@ from pathlib import Path
 import yt
 
 from .config import _default_data_dir, _default_frames_out_dir, _frames_auto_zlim_enabled
+from .extraction.ftl import FTL_TIMESERIES_HEADER
 from .extraction.shell import _shell_stats_header
 from .fields import _canonical_field_name
 from .frames.cleanup import (
@@ -292,7 +293,13 @@ def main() -> None:
                                     header="time  net_outward_flux  psi4_boundary_amp",
                                     line=res["boundary_flux_line"],
                                 )
-                            
+                            if res.get("ftl_line"):
+                                _append_line(
+                                    ftl_out_path,
+                                    header=FTL_TIMESERIES_HEADER,
+                                    line=res["ftl_line"],
+                                )
+
                             state[res["key"]] = True
                             _save_state(state_path, state)
                             processed_count += 1
@@ -315,7 +322,19 @@ def main() -> None:
                         _append_line(areal_out_path, header=areal_header, line=res["areal_line"])
                     if res["shell_line"]:
                         _append_line(shell_out_path, header=shell_header, line=res["shell_line"])
-                    
+                    if res.get("boundary_flux_line"):
+                        _append_line(
+                            boundary_flux_out_path,
+                            header="time  net_outward_flux  psi4_boundary_amp",
+                            line=res["boundary_flux_line"],
+                        )
+                    if res.get("ftl_line"):
+                        _append_line(
+                            ftl_out_path,
+                            header=FTL_TIMESERIES_HEADER,
+                            line=res["ftl_line"],
+                        )
+
                     state[res["key"]] = True
                     _save_state(state_path, state)
                     processed_count += 1

@@ -13,6 +13,7 @@ from ..diagnostics import (
     read_constraint_metrics,
     read_curvature_invariant_metrics,
     read_energy_condition_metrics,
+    read_ftl_timeseries_metrics,
     read_growth_metrics,
     read_qei_metrics,
     read_stability_metrics,
@@ -121,6 +122,16 @@ def read_episode_metrics(
     if boundary_flux is None:
         boundary_flux = read_boundary_flux_metrics(ctx.boundary_flux_fallback_path)
 
+    # Time-resolved FTL: the gauge-invariant shortcut peaks mid-run and diffuses,
+    # so the final frame is half-blind.  This stream (written in-flight by the
+    # consumer as it processes+deletes each plotfile) lets the scorer average a
+    # composite FTL x stability score over the whole run.
+    ftl_timeseries = None
+    try:
+        ftl_timeseries = read_ftl_timeseries_metrics(ctx.ftl_timeseries_path)
+    except Exception:
+        ftl_timeseries = None
+
     effective_ec = None
     try:
         recent = find_recent_plotfiles(ctx.episode_dir, count=5)
@@ -218,4 +229,5 @@ def read_episode_metrics(
         qei=qei,
         transport=transport,
         ftl_persistence=ftl_persistence,
+        ftl_timeseries=ftl_timeseries,
     )

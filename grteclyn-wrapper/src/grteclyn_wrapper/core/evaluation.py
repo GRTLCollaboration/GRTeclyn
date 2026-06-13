@@ -54,6 +54,7 @@ def evaluate_overrides(
     consume_plotfiles: bool = True,
     consumer_radii: Sequence[float] = (4.0, 8.0),
     consumer_keep_last: int = 1,
+    consumer_ftl_timeseries: bool = True,
     grtresna: bool = False,
     grtresna_base: Any | None = None,
     grtresna_solved_ftl_gate: bool = False,
@@ -195,6 +196,8 @@ def evaluate_overrides(
                 consumer_radii=consumer_radii,
                 consumer_delete=True,
                 consumer_keep_last=consumer_keep_last,
+                consumer_ftl_timeseries=consumer_ftl_timeseries,
+                consumer_ftl_L=ftl_L,
             )
             exit_code = result.returncode
         except Exception as exc:  # noqa: BLE001 - record and continue

@@ -17,6 +17,7 @@ from .diagnostics import (
     EffectiveEnergyConditionMetrics,
     EnergyConditionMetrics,
     FtlPersistenceMetrics,
+    FtlTimeSeriesMetrics,
     GrowthMetrics,
     QeiMetrics,
     StabilityMetrics,
@@ -46,3 +47,4 @@ class EpisodeMetrics:
     qei: QeiMetrics | None = None
     transport: TransportMetrics | None = None
     ftl_persistence: FtlPersistenceMetrics | None = None
+    ftl_timeseries: FtlTimeSeriesMetrics | None = None

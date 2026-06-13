@@ -15,6 +15,28 @@ _SPEED_SUPER_C_FLOOR = 0.95
 _SPEED_SUPER_C_TARGET = 1.20
 _SPEED_SUPER_FRACTION_TARGET = 0.15
 
+# FTL-lifetime descriptor: separate transient shortcuts from sustained ones.
+# x-axis = peak gauge-invariant strength (same floor/target as the scorer),
+# y-axis = fraction of the run the shortcut is alive.  An Alcubierre-like
+# one-frame spike lands in a low-lifetime cell; a stable warp in a high one.
+_GEO_PEAK_FLOOR = 1.0e-3
+_GEO_PEAK_TARGET = 2.0e-1
+
+
+def _ftl_timeseries(metrics: Mapping[str, Any] | None) -> Mapping[str, Any] | None:
+    ts = (metrics or {}).get("ftl_timeseries")
+    return ts if isinstance(ts, Mapping) else None
+
+
+def _geo_peak_axis(ts: Mapping[str, Any] | None) -> float:
+    if not ts:
+        return 0.0
+    peak = ts.get("f_geo_peak")
+    if peak is None or not math.isfinite(float(peak)) or float(peak) <= _GEO_PEAK_FLOOR:
+        return 0.0
+    span = _GEO_PEAK_TARGET - _GEO_PEAK_FLOOR
+    return float(np.clip((float(peak) - _GEO_PEAK_FLOOR) / span, 0.0, 1.0))
+
 
 def _path_closeness_from_report(report: Mapping[str, Any] | None) -> float:
     if not report or not bool(report.get("reachable", False)):
@@ -161,6 +183,29 @@ def _descriptor_details(
             "operational_ftl": float(components.get("operational_ftl", 0.0)),
             "t_min": t_min,
             "t_flat": t_flat,
+        }
+
+    if mode == "ftl_lifetime":
+        ts = _ftl_timeseries(metrics)
+        strength = _geo_peak_axis(ts)
+        lifetime = (
+            float(np.clip(float(ts.get("ftl_lifetime_fraction") or 0.0), 0.0, 1.0))
+            if ts
+            else 0.0
+        )
+        peak = float(ts.get("f_geo_peak")) if ts and ts.get("f_geo_peak") is not None else float("nan")
+        t_peak = float(ts.get("t_at_f_geo_peak")) if ts and ts.get("t_at_f_geo_peak") is not None else float("nan")
+        n_frames = int(ts.get("n_frames")) if ts and ts.get("n_frames") is not None else 0
+        return {
+            "x": strength,
+            "y": lifetime,
+            "ftl_peak_strength": strength,
+            "ftl_lifetime": lifetime,
+            "f_geo_peak": peak,
+            "t_at_f_geo_peak": t_peak,
+            "n_frames": float(n_frames),
+            "operational_ftl_geodesic": float(components.get("operational_ftl_geodesic", 0.0)),
+            "ftl_geo_timeavg": float(components.get("ftl_geo_timeavg", 0.0)),
         }
 
     ftl_benefit = float(

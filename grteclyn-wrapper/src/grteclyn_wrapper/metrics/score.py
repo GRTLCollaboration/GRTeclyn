@@ -450,24 +450,55 @@ def score_episode(
         and geo_report.n_rays > 0
         and geo_report.n_reached == geo_report.n_rays
     )
-    if geo_trustworthy and math.isfinite(f_geo) and f_geo > GEO_FTL_FLOOR:
-        geo_magnitude = min(
-            (f_geo - GEO_FTL_FLOOR) / (GEO_FTL_TARGET - GEO_FTL_FLOOR),
+    def _geo_magnitude(value: float) -> float:
+        return min(
+            (value - GEO_FTL_FLOOR) / (GEO_FTL_TARGET - GEO_FTL_FLOOR),
             1.0,
         )
-        # Persistence gate on the dominant (1000-weight) FTL reward.  A
-        # gauge-invariant shortcut only counts if the matter structure that
-        # produces it actually holds together to the stop time.  v10's top elite
-        # (eval 258) banked a ~3% shortcut while its lump fragmented into
-        # turbulent lobes (structural_persistence=0.46) and visibly broke up by
-        # t=16 -- a transient shortcut on a disintegrating structure, exactly the
-        # class that collapsed under HQ refinement in v9.  Scaling by
-        # structural_persistence (the same gate already applied to the shaping
-        # rewards below) means a fragmenting end-state can no longer out-rank a
-        # coherent survivor that carries a comparable shortcut.  Persistence
-        # defaults to 1.0 when the matter series/slice is unavailable, leaving the
-        # reward untouched.
-        components["operational_ftl_geodesic"] = geo_magnitude * structural_persistence
+
+    # Time-resolved headline.  The gauge-invariant shortcut peaks mid-run and
+    # diffuses, so scoring only the final frame (``geo_report``) is half-blind:
+    # it systematically under-credits a real-but-transient channel (f_geo>0 at
+    # t=16 but ~0 by t=30) and would over-credit a late-blooming gauge artifact.
+    # When the per-frame FTL stream is available we instead reward the MEAN over
+    # the whole run of a per-frame gauge-invariant magnitude (each frame gated on
+    # its own trustworthiness).  This is the avg/sum/divide design: a channel
+    # that is FTL for most of the evolution scores high, a one-frame
+    # Alcubierre-like transient averages down toward zero, and a diffused final
+    # frame no longer zeroes a genuinely sustained shortcut.  The end-state
+    # ``structural_persistence`` multiplier is kept so a fragmenting structure is
+    # still discounted, consistent with the shaping rewards below.
+    ts = metrics.ftl_timeseries
+    geo_timeavg: float | None = None
+    if ts is not None and ts.n_frames >= 2:
+        per_frame = [
+            _geo_magnitude(fg)
+            if (trust and math.isfinite(fg) and fg > GEO_FTL_FLOOR)
+            else 0.0
+            for fg, trust in zip(ts.f_geo, ts.geo_trustworthy)
+        ]
+        geo_timeavg = sum(per_frame) / len(per_frame)
+        components["ftl_geo_timeavg"] = geo_timeavg
+        components["ftl_geo_peak"] = _geo_magnitude(ts.f_geo_peak) if ts.f_geo_peak > GEO_FTL_FLOOR else 0.0
+        components["ftl_lifetime"] = ts.ftl_lifetime_fraction
+
+    if geo_timeavg is not None:
+        components["operational_ftl_geodesic"] = geo_timeavg * structural_persistence
+        if geo_timeavg > 0.0:
+            peak_at = (
+                f" at t={ts.t_at_f_geo_peak:.2f}"
+                if ts.t_at_f_geo_peak is not None
+                else ""
+            )
+            notes.append(
+                f"time-averaged gauge-invariant FTL over {ts.n_frames} frames: "
+                f"mean_magnitude={geo_timeavg:.3e}, peak f_geo={ts.f_geo_peak:.3e}{peak_at}, "
+                f"FTL-lifetime={ts.ftl_lifetime_fraction:.0%}"
+            )
+    elif geo_trustworthy and math.isfinite(f_geo) and f_geo > GEO_FTL_FLOOR:
+        # Fallback: no per-frame stream -> single final-frame magnitude, scaled
+        # by structural_persistence (defaults to 1.0 when matter slice missing).
+        components["operational_ftl_geodesic"] = _geo_magnitude(f_geo) * structural_persistence
     else:
         components["operational_ftl_geodesic"] = 0.0
     if geo_report is not None:

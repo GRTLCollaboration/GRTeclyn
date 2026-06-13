@@ -97,6 +97,8 @@ def start_plotfile_consumer(
     keep_last: int = 1,
     frames: bool = True,
     jobs: int = 4,
+    ftl_timeseries: bool = False,
+    ftl_L: float | None = None,
 ) -> subprocess.Popen[str]:
     profile = (
         "wormhole"
@@ -115,6 +117,8 @@ def start_plotfile_consumer(
         watch=True,
         jobs=jobs,
         frames=frames,
+        ftl_timeseries=ftl_timeseries,
+        ftl_L=ftl_L,
     )
 
     log = episode.log_path.open("a", encoding="utf-8")
@@ -157,6 +161,8 @@ def drain_plotfile_backlog(
     keep_last: int = 1,
     frames: bool = True,
     jobs: int = 4,
+    ftl_timeseries: bool = False,
+    ftl_L: float | None = None,
 ) -> RunResult:
     """Process any plotfiles left after the watch consumer stops."""
     profile = (
@@ -178,6 +184,8 @@ def drain_plotfile_backlog(
         frames=frames,
         keep_existing_frames=True,
         stable_seconds=0.0,
+        ftl_timeseries=ftl_timeseries,
+        ftl_L=ftl_L,
     )
     return _run_and_tee(command, episode.log_path, cwd=REPO_ROOT)
 
@@ -193,6 +201,8 @@ def run_episode(
     consumer_radii: Sequence[float] = (8.0, 16.0),
     consumer_delete: bool = False,
     consumer_keep_last: int = 1,
+    consumer_ftl_timeseries: bool = False,
+    consumer_ftl_L: float | None = None,
 ) -> RunResult:
     example_dir = executable.example.dir
     if not executable.path.exists():
@@ -227,6 +237,8 @@ def run_episode(
             delete=consumer_delete,
             keep_last=consumer_keep_last,
             frames=True,
+            ftl_timeseries=consumer_ftl_timeseries,
+            ftl_L=consumer_ftl_L,
         )
 
     try:
@@ -242,6 +254,8 @@ def run_episode(
                 delete=consumer_delete,
                 keep_last=consumer_keep_last,
                 frames=True,
+                ftl_timeseries=consumer_ftl_timeseries,
+                ftl_L=consumer_ftl_L,
             )
 
     update_metadata(
