@@ -1,3 +1,4 @@
 1. Done: refactor src/grteclyn_wrapper/search/optimize.py → search/optimize/ package
 1. Done: refactor __main__.py → cli/ package
-2. refactor other heavy python files (consume_plotfiles.py, …)
+2. Done: refactor consume_plotfiles.py → consume_plotfiles/ package
+3. refactor other heavy python files (…)
