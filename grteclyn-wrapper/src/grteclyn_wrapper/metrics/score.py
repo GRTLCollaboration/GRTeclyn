@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Mapping
 
-from .types import STATIONARY_BETA_EPS, EpisodeMetrics
+from .types import STATIONARY_BETA_EPS, CollapseMetrics, EpisodeMetrics
 
 
 DEFAULT_WEIGHTS: dict[str, float] = {
@@ -116,12 +117,95 @@ def domain_half_width_from_overrides(
     return 0.5 * l_full if l_full > 0.0 else None
 
 
+def domain_half_width_from_params(params_path: Path) -> float | None:
+    """Read ``L_full`` from a written ``params.txt`` when overrides omit it."""
+    if not params_path.is_file():
+        return None
+    for line in params_path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("L_full"):
+            continue
+        if "=" not in stripped:
+            continue
+        try:
+            l_full = float(stripped.split("=", 1)[1].strip())
+        except ValueError:
+            return None
+        return 0.5 * l_full if l_full > 0.0 else None
+    return None
+
+
+def domain_half_width_for_episode(
+    episode_dir: Path,
+    overrides: Mapping[str, object] | None = None,
+) -> float | None:
+    """Resolve domain half-width from overrides or the episode ``params.txt``."""
+    half_width = domain_half_width_from_overrides(overrides)
+    if half_width is not None:
+        return half_width
+    return domain_half_width_from_params(episode_dir / "params.txt")
+
+
+def _horizon_penalty_from_collapse(
+    collapse: CollapseMetrics,
+    *,
+    domain_half_width: float | None,
+) -> tuple[float, list[str]]:
+    """Score-side trapped-surface proxy with corroboration and off-center guards."""
+    notes: list[str] = []
+    horizon = collapse.max_horizon_radius or 0.0
+    r_at_min_theta = collapse.r_at_min_theta_plus
+    horizon_offcenter = (
+        horizon > 0.0
+        and domain_half_width is not None
+        and domain_half_width > 0.0
+        and r_at_min_theta is not None
+        and r_at_min_theta > HORIZON_OFFCENTER_FRACTION * domain_half_width
+    )
+    if horizon_offcenter:
+        notes.append(
+            "horizon proxy located at r="
+            f"{r_at_min_theta:.1f} > {HORIZON_OFFCENTER_FRACTION:g}*half-width "
+            f"({domain_half_width:.1f}); rejected as miscentered/boundary "
+            "artifact (no interior trapped surface), horizon penalty suppressed"
+        )
+        return 0.0, notes
+
+    if not collapse.corroborated_trapped:
+        if horizon > 0.0:
+            notes.append(
+                "theta+<=0 without lapse-collapse corroboration at the same "
+                "timestep; trapped-surface proxy suppressed"
+            )
+        return 0.0, notes
+
+    final_time = collapse.final_time or 0.0
+    first_time = collapse.first_corroborated_time or 0.0
+    if (
+        final_time > 0.0
+        and first_time > LATE_COLLAPSE_TIME_FRACTION * final_time
+    ):
+        notes.append(
+            "corroborated trapped surface only in the trailing "
+            f"{100.0 * (1.0 - LATE_COLLAPSE_TIME_FRACTION):.0f}% of the run "
+            f"(first at t={first_time:.2f} / {final_time:.2f}); "
+            "late collapse penalty suppressed"
+        )
+        return 0.0, notes
+
+    return -min(horizon, 1.0), notes
+
+
 # A trapped surface is interior, so the minimum-expansion radius must sit well
 # inside the domain.  If it lands beyond this fraction of the domain half-width
 # the apparent-horizon proxy is miscentered (corner origin) or reading boundary
 # noise, and its trapped verdict is rejected rather than silently vetoing the
 # candidate.
 HORIZON_OFFCENTER_FRACTION: float = 0.5
+# Corroborated trapped surfaces that appear only in the trailing portion of a
+# run (after the FTL measurement window) should not veto the candidate with the
+# full binary penalty — the early-time theta+ blips are uncorroborated artifacts.
+LATE_COLLAPSE_TIME_FRACTION: float = 0.75
 
 # Below this peak matter energy density there is effectively no structure to
 # persist, so the structural-persistence ratio is left undefined (survival is
@@ -251,7 +335,6 @@ def score_episode(
 
     if metrics.collapse:
         lapse = metrics.collapse.min_lapse or 0.0
-        horizon = metrics.collapse.max_horizon_radius or 0.0
         k_activity = metrics.collapse.max_abs_k or 0.0
         scalar_activity = max(
             metrics.collapse.scalar_phi_range or 0.0,
@@ -260,24 +343,12 @@ def score_episode(
 
         components["lapse_health"] = min(max(lapse / 1.0e-3, 0.0), 1.0)
 
-        r_at_min_theta = metrics.collapse.r_at_min_theta_plus
-        horizon_offcenter = (
-            horizon > 0.0
-            and domain_half_width is not None
-            and domain_half_width > 0.0
-            and r_at_min_theta is not None
-            and r_at_min_theta > HORIZON_OFFCENTER_FRACTION * domain_half_width
+        horizon_penalty, horizon_notes = _horizon_penalty_from_collapse(
+            metrics.collapse,
+            domain_half_width=domain_half_width,
         )
-        if horizon_offcenter:
-            components["horizon_penalty"] = 0.0
-            notes.append(
-                "horizon proxy located at r="
-                f"{r_at_min_theta:.1f} > {HORIZON_OFFCENTER_FRACTION:g}*half-width "
-                f"({domain_half_width:.1f}); rejected as miscentered/boundary "
-                "artifact (no interior trapped surface), horizon penalty suppressed"
-            )
-        else:
-            components["horizon_penalty"] = -min(horizon, 1.0)
+        components["horizon_penalty"] = horizon_penalty
+        notes.extend(horizon_notes)
         components["nontrivial_geometry"] = min(
             math.log1p(k_activity + scalar_activity), 1.0
         )

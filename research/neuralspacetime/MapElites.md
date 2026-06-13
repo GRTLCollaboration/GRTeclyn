@@ -244,8 +244,10 @@ and keeps the shaping hints subordinate.)
   matter; the more negative energy the solution needs, the larger the penalty.
   Graded (0..−1.6) and calibrated so it's a real ~20–30% dent against a shortcut
   without swamping it (a too-hot weight floors the whole population negative).
-- **`horizon_penalty`** — it collapsed into a black hole / trapped surface. Heavily
-  punished.
+- **`horizon_penalty`** — trapped-surface proxy from `theta_plus` in
+  `collapse_diagnostics.dat`. In `ftl_first` mode this is a **−500 veto** when
+  fully corroborated (see v16 fix below). Uncorroborated `theta+≤0` with a healthy
+  lapse — common in exotic warp channels — is **not** penalized.
 - **`instability_penalty`** — it blew up or went numerically wild.
 - **`qei_penalty`** — violates the quantum energy inequality (a deeper limit on
   negative energy).
@@ -377,7 +379,7 @@ happened. Quick index (most consequential first):
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
-| [**v16: FTL champion retention**](#v16-ftl-champion-retention-2026-06-13) | 06-13 | Disk pruning kept only top-10 by total score, so high **mid-run FTL peaks** (e.g. eval 146 @ 5.6% `f_geo`) lost their eval dirs. v16 adds **one on-disk champion per FTL peak metric** (f_geo, f_op, max speed, superluminal, lifetime, timeavg) union top-10 score; audit in `ftl_retention.jsonl`, snapshot in `ftl_champions.json`. Campaign: `ftl_discovery_v16` |
+| [**v16: FTL champion retention + horizon fix**](#v16-ftl-champion-retention-2026-06-13) | 06-13 | Disk pruning kept only top-10 by total score, so high **mid-run FTL peaks** lost eval dirs → **FTL hall of fame** (`ftl_retention.jsonl`, `ftl_champions.json`). Separately, **`horizon_penalty` was a binary −500 veto** on any `theta+≤0` even when lapse stayed healthy (false positive on exotic warp channels; eval 6 scored −559 with valid FTL frames). Fixed: require **same-timestep lapse collapse** to corroborate trapped surface; suppress **late-only** collapse in the trailing 25% of the run. Campaign resumed: `ftl_discovery_v16` |
 | [**v15: time-resolved FTL scoring**](#v15-time-resolved-intermediate-ftl-scoring-2026-06-13) | 06-13 | Final-frame scoring was half-blind: the gauge-invariant shortcut **peaks mid-run and diffuses**, so the last frame both under-credits a real transient and can't tell a sustained warp from an Alcubierre-like collapse. Adds an in-flight per-plotfile FTL stream (`ftl_timeseries.dat`, process+delete), retargets the headline `operational_ftl_geodesic` to the **time-average** over the run, and adds an `ftl_lifetime` MAP-Elites axis. Validated on eval 231: f_geo rises 2.7%→**7.43% peak at t=9.6**→5.24% (t=16); the old final frame saw only 5.24%. QD runs at dx=0.5, ml=2 (controls show ml=3 changes nothing — the real variable is time, not refinement) |
 | [**v14 results & analytics**](#v14-campaign-results--analytics-2026-06-12-completed) | 06-12 | 504 evals, 351 gpu_ok, 51.6% archive coverage. Top: Eval 231 (f_geo=5.30%, ring+top-hat, score 551). 5 operational, 3 observer_ec. Ring layout dominates top-5; exotic fraction 90–99% universal. Full Alcubierre comparison — our best is 17% of Alcubierre's shortcut but is self-consistent & evolvable |
 | [`v14` launch setup → matter profile + cloud layout](#v14-launch-setup-matter-profile-and-cloud-layout-2026-06-12) | 06-12 | Adds per-lump matter profile (Gaussian / smoothed top-hat "ball") + quasi-random cloud layout (`matter_layout=4`); search space 21→23 dims. GRTresna rebuilt; 182 tests pass |
@@ -458,6 +460,35 @@ QD_NAME=ftl_discovery_v16 QD_TARGET_EVALS=400 QD_FTL_RETENTION=1 \
 ```
 
 Disk budget: up to ~16 eval dirs (10 score + up to 6 FTL champions, minus overlaps).
+
+### Horizon penalty corroboration fix (2026-06-13, mid-v16)
+
+**The problem.** `horizon_penalty` fired whenever `max_ah_r > 0` at *any* timestep —
+i.e. any cell with `theta+ ≤ 0` anywhere in the run triggered a binary
+`horizon_penalty = −1.0` → **−500** in `ftl_first` mode. On eval 6 this vetoed a
+geometry whose FTL-window frames looked healthy: during t≈6–10 (max speed 1.53×c,
+87% superluminal cells) every `theta+ < 0` timestep had **lapse ≥ 0.2** — an
+uncorroborated coordinate artifact, not a lapse-collapsed horizon. Genuine lapse
+collapse only appeared after t≈13 (trailing ~19% of the run). Eval 27 (`f_geo`
+champion) was hit the same way.
+
+**The fix** (`metrics/diagnostics/collapse.py`, `metrics/score.py`):
+
+1. **Corroboration** — penalize only if some row has `theta+ < −0.05` **and**
+   `lapse < 0.2` at the **same** timestep. `theta+≤0` with healthy lapse → suppressed.
+2. **Late-only collapse** — if the first corroborated trapped signal appears after
+   75% of `final_time`, suppress the penalty (trailing collapse after the FTL
+   measurement window).
+3. **Domain guard** — read `L_full` from `params.txt` when overrides omit it, so the
+   miscentered-horizon off-center guard works in QD runs.
+
+**Effect on `ftl_discovery_v16` (rescored):** eval 6 −559→**−42**; eval 27
+−446→**−5**; eval 51 (scored by stale in-flight process before restart) −385→**+80**.
+`ftl_champions.json` scores updated; campaign **resumed** with `QD_RESUME=1` so
+new evals load the fixed scorer.
+
+**Tests:** `tests/test_horizon_finder_guard.py` (uncorroborated suppressed, late-only
+suppressed, genuine interior collapse still −1.0).
 
 ---
 

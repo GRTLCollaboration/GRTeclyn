@@ -1,4 +1,8 @@
-1. Done: refactor src/grteclyn_wrapper/search/optimize.py → search/optimize/ package
-1. Done: refactor __main__.py → cli/ package
-2. Done: refactor consume_plotfiles.py → consume_plotfiles/ package
-3. refactor other heavy python files (…)
+Eval 6 is like a spacetime that locally looks fast (light cones tilted, many cells > c), but:
+
+it forms something horizon-like (big −500 hit),
+
+1.is it 
+it forms something horizon-like (big −500 hit),
+how is this computed? 
+need to validate 

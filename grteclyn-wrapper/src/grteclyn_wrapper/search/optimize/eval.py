@@ -13,7 +13,7 @@ from ...core.runner import run_episode
 from ...initial_data.constrained_recipe import constrained_overrides
 from ...initial_data.preflight import preflight_check
 from ...metrics import dataclass_to_dict, read_episode_metrics
-from ...metrics.score import domain_half_width_from_overrides, score_episode
+from ...metrics.score import domain_half_width_for_episode, score_episode
 from ..grtresna_convergence_gate import (
     GRTRESNA_REJECTION_BASE_FITNESS,
     GRTRESNA_REJECTION_MAX_EXTRA_FITNESS,
@@ -257,7 +257,7 @@ def _objective(
         target_stop_time=target_stop_time,
         weights=score_weights,
         objective_mode=objective_mode,
-        domain_half_width=domain_half_width_from_overrides(gte_overrides),
+        domain_half_width=domain_half_width_for_episode(episode.path, gte_overrides),
     )
 
     write_json(episode.score_path, {

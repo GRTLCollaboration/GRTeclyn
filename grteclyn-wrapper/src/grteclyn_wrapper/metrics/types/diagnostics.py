@@ -18,6 +18,8 @@ class CollapseMetrics:
     scalar_phi_range: float | None
     scalar_pi_range: float | None
     r_at_min_theta_plus: float | None = None
+    corroborated_trapped: bool = False
+    first_corroborated_time: float | None = None
     barycenter_x: float | None = None
     barycenter_y: float | None = None
     barycenter_z: float | None = None
