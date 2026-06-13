@@ -1,0 +1,245 @@
+"""Build GRTresnaConfig from optimizer override dicts."""
+
+from __future__ import annotations
+
+import math
+import re
+from pathlib import Path
+from typing import Any, Mapping
+
+from .geometry import (
+    _expand_shell_bipolar,
+    _expand_shell_channel,
+    _expand_shell_cloud,
+    _expand_shell_ring,
+    _expand_shell_sphere,
+    _orthonormal_frame,
+    _shell_exotic_ids,
+)
+from .spaces import GRTRESNA_DEFAULT_NUM_LUMPS
+
+_LUMP_KEY_RE = re.compile(r"^grtresna_lump(\d+)_(\w+)$")
+
+def build_grtresna_config(
+    overrides: Mapping[str, Any], base: "GRTresnaConfig | None" = None
+) -> "GRTresnaConfig":
+    """Build a GRTresnaConfig from a candidate's ``grtresna_*`` overrides.
+
+    ``base`` provides the fixed solver settings (grid, MPI ranks, BH content,
+    cleanup); the searched ``grtresna_lump{k}_*`` keys are assembled into the
+    ``lumps`` basis.  The legacy un-indexed ``grtresna_lump_*`` keys are also
+    honoured (assembled as a single lump) for backward compatibility.
+    """
+    import dataclasses
+
+    from ...grtresna.solver import GRTresnaConfig, apply_exotic_safe_solver
+
+    cfg = dataclasses.replace(base) if base is not None else GRTresnaConfig()
+
+    def _enable_exotic_safe_solver() -> None:
+        apply_exotic_safe_solver(cfg)
+
+    def _get_float(key: str, default: float) -> float:
+        try:
+            return float(overrides.get(key, default))
+        except (TypeError, ValueError):
+            return default
+
+    # Global (ansatz-independent) initial-shift seed: aligns a non-zero beta^i
+    # with the matter momentum flux so the warp/channel mechanism is reachable.
+    cfg.shift_seed = _get_float("grtresna_shift_seed", cfg.shift_seed)
+
+    # Scalar field mass (matter "weight"), ansatz-independent. Heavier mass
+    # binds the lumps (smaller Compton wavelength 1/m) so they persist instead
+    # of dispersing/flying away. Propagated to both the GRTresna constraint
+    # solve and the GRTeclyn evolution, keeping the two T_ab identical.
+    cfg.scalar_mass = _get_float("grtresna_scalar_mass", cfg.scalar_mass)
+    cfg.scalar_lambda = _get_float("grtresna_scalar_lambda", cfg.scalar_lambda)
+
+    if any(str(k).startswith("grtresna_ring_") for k in overrides):
+        num_lumps = max(3, int(round(_get_float("grtresna_ring_lumps", GRTRESNA_DEFAULT_NUM_LUMPS))))
+        amp0 = _get_float("grtresna_ring_amp", 0.15)
+        width0 = _get_float("grtresna_ring_width", 3.0)
+        radius = _get_float("grtresna_ring_radius", 3.5)
+        z_scale = _get_float("grtresna_ring_z_scale", 0.4)
+        phase = _get_float("grtresna_ring_phase", 0.0)
+        v_tan = _get_float("grtresna_ring_tangential_velocity", 0.35)
+        v_rad = _get_float("grtresna_ring_radial_velocity", 0.0)
+        v_z = _get_float("grtresna_ring_vertical_velocity", 0.0)
+        omega = _get_float("grtresna_ring_omega", 0.0)
+        exotic_fraction = min(1.0, max(0.0, _get_float("grtresna_ring_exotic_fraction", 0.4)))
+        exotic_phase = _get_float("grtresna_ring_exotic_phase", 0.0)
+        dipole = _get_float("grtresna_ring_dipole_amp", 0.0)
+        quadrupole = _get_float("grtresna_ring_quadrupole_amp", 0.0)
+        mode = int(round(_get_float("grtresna_ring_mode", 1.0)))
+
+        angles = [phase + 2.0 * math.pi * k / num_lumps for k in range(num_lumps)]
+        exotic_count = int(round(exotic_fraction * num_lumps))
+        ranked = sorted(
+            range(num_lumps),
+            key=lambda k: math.cos(angles[k] - exotic_phase),
+            reverse=True,
+        )
+        exotic_ids = set(ranked[:exotic_count])
+
+        lumps: list[dict] = []
+        for k, theta in enumerate(angles):
+            c = math.cos(theta)
+            s = math.sin(theta)
+            amp_mod = 1.0 + dipole * c + quadrupole * math.cos(2.0 * theta)
+            width_mod = 1.0 + 0.25 * quadrupole * math.sin(2.0 * theta)
+            amp = max(0.0, min(0.35, amp0 * max(0.15, amp_mod)))
+            width = max(1.0, min(6.0, width0 * max(0.5, width_mod)))
+            center = (radius * c, radius * s, z_scale * math.sin(theta - phase))
+            r_hat = (c, s)
+            t_hat = (-s, c)
+            velocity = (
+                v_rad * r_hat[0] + v_tan * t_hat[0],
+                v_rad * r_hat[1] + v_tan * t_hat[1],
+                v_z * math.cos(theta - phase),
+            )
+            lumps.append({
+                "amp": amp,
+                "width": width,
+                "center": center,
+                "velocity": velocity,
+                "omega": omega,
+                "mode": max(0, mode),
+                "exotic": 1 if k in exotic_ids else 0,
+            })
+        cfg.lumps = lumps
+        if any(lump["exotic"] for lump in lumps):
+            _enable_exotic_safe_solver()
+        return cfg
+
+    if any(str(k).startswith("grtresna_shell_") for k in overrides):
+        num_lumps = max(3, int(round(_get_float("grtresna_shell_lumps", GRTRESNA_DEFAULT_NUM_LUMPS))))
+        amp0 = _get_float("grtresna_shell_amp", 0.15)
+        width0 = _get_float("grtresna_shell_width", 3.0)
+        radius = _get_float("grtresna_shell_radius", 3.5)
+        thickness = _get_float("grtresna_shell_thickness", 0.5)
+        axis_theta = _get_float("grtresna_shell_axis_theta", 0.5 * math.pi)
+        axis_phi = _get_float("grtresna_shell_axis_phi", 0.0)
+        v_tor = _get_float("grtresna_shell_toroidal_velocity", 0.35)
+        v_pol = _get_float("grtresna_shell_poloidal_velocity", 0.0)
+        v_rad = _get_float("grtresna_shell_radial_velocity", 0.0)
+        omega = _get_float("grtresna_shell_omega", 0.0)
+        # Static-matter toggle: zero every matter current so the lumps carry no
+        # momentum (the moving-matter family is recovered when this is off).
+        if int(round(_get_float("grtresna_shell_static", 0.0))) >= 1:
+            v_tor = v_pol = v_rad = omega = 0.0
+        dipole = _get_float("grtresna_shell_dipole_amp", 0.0)
+        quadrupole = _get_float("grtresna_shell_quadrupole_amp", 0.0)
+        exotic_fraction = min(1.0, max(0.0, _get_float("grtresna_shell_exotic_fraction", 0.4)))
+        exotic_phase = _get_float("grtresna_shell_exotic_phase", 0.0)
+        profile_fraction = min(1.0, max(0.0, _get_float("grtresna_shell_profile_fraction", 0.0)))
+        profile_phase = _get_float("grtresna_shell_profile_phase", 0.0)
+        mode = int(round(_get_float("grtresna_shell_mode", 1.0)))
+        radial_jitter = min(1.0, max(0.0, _get_float("grtresna_shell_radial_jitter", 0.0)))
+
+        layout = int(round(_get_float("grtresna_matter_layout", 0.0)))
+        layout = max(0, min(4, layout))
+        axis, e1, e2 = _orthonormal_frame(axis_theta, axis_phi)
+        golden = math.pi * (3.0 - math.sqrt(5.0))
+        azimuths = [golden * k for k in range(num_lumps)]
+        exotic_ids = _shell_exotic_ids(num_lumps, exotic_fraction, exotic_phase, azimuths)
+        # Per-lump profile assignment reuses the same azimuth-ranking selector.
+        profile_ids = _shell_exotic_ids(num_lumps, profile_fraction, profile_phase, azimuths)
+
+        common = dict(
+            num_lumps=num_lumps,
+            amp0=amp0,
+            width0=width0,
+            radius=radius,
+            thickness=thickness,
+            axis=axis,
+            e1=e1,
+            e2=e2,
+            dipole=dipole,
+            quadrupole=quadrupole,
+            v_rad=v_rad,
+            v_tor=v_tor,
+            v_pol=v_pol,
+            omega=omega,
+            mode=mode,
+            exotic_ids=exotic_ids,
+            profile_ids=profile_ids,
+            azimuths=azimuths,
+        )
+        if layout == 1:
+            lumps = _expand_shell_channel(**common)
+        elif layout == 2:
+            lumps = _expand_shell_bipolar(**common, radial_jitter=radial_jitter)
+        elif layout == 3:
+            ring_az = [2.0 * math.pi * k / num_lumps for k in range(num_lumps)]
+            ring_common = {k: v for k, v in common.items() if k != "azimuths"}
+            lumps = _expand_shell_ring(**ring_common, azimuths=ring_az)
+        elif layout == 4:
+            cloud_common = {k: v for k, v in common.items() if k != "azimuths"}
+            lumps = _expand_shell_cloud(**cloud_common, radial_jitter=radial_jitter)
+        else:
+            sphere_common = {k: v for k, v in common.items() if k != "azimuths"}
+            lumps = _expand_shell_sphere(**sphere_common, radial_jitter=radial_jitter)
+        cfg.lumps = lumps
+        if any(lump["exotic"] for lump in lumps):
+            _enable_exotic_safe_solver()
+        return cfg
+
+    # Group indexed lump keys by index.
+    by_index: dict[int, dict[str, float]] = {}
+    for key, val in overrides.items():
+        m = _LUMP_KEY_RE.match(str(key))
+        if m:
+            by_index.setdefault(int(m.group(1)), {})[m.group(2)] = float(val)
+
+    if by_index:
+        lumps: list[dict] = []
+        for k in sorted(by_index):
+            f = by_index[k]
+            lumps.append({
+                "amp": f.get("amp", 0.0),
+                "width": f.get("width", 5.0),
+                "center": (f.get("center_x", 0.0), f.get("center_y", 0.0),
+                           f.get("center_z", 0.0)),
+                "velocity": (f.get("velocity_x", 0.0), f.get("velocity_y", 0.0),
+                             f.get("velocity_z", 0.0)),
+                "omega": f.get("omega", 0.0),
+                "mode": int(round(f.get("mode", 0.0))),
+                "exotic": int(round(f.get("exotic", 0.0))),
+                "profile": int(round(f.get("profile", 0.0))),
+            })
+        cfg.lumps = lumps
+        if any(lump["exotic"] for lump in lumps):
+            _enable_exotic_safe_solver()
+        return cfg
+
+    # Backward-compatible single (un-indexed) lump.
+    def _get(key: str, default: float) -> float:
+        return float(overrides.get(key, default))
+
+    if any(str(k).startswith("grtresna_lump_") for k in overrides):
+        cfg.lump_amp = _get("grtresna_lump_amp", cfg.lump_amp)
+        cfg.lump_width = _get("grtresna_lump_width", cfg.lump_width)
+        cfg.lump_velocity = (
+            _get("grtresna_lump_velocity_x", cfg.lump_velocity[0]),
+            _get("grtresna_lump_velocity_y", cfg.lump_velocity[1]),
+            _get("grtresna_lump_velocity_z", cfg.lump_velocity[2]),
+        )
+        cfg.lump_omega = _get("grtresna_lump_omega", cfg.lump_omega)
+        if "grtresna_lump_mode" in overrides:
+            cfg.lump_mode = int(round(float(overrides["grtresna_lump_mode"])))
+        if "grtresna_lump_exotic" in overrides:
+            cfg.lump_exotic = int(round(float(overrides["grtresna_lump_exotic"])))
+    if cfg.lump_exotic:
+        _enable_exotic_safe_solver()
+    return cfg
+
+
+def parse_convergence_safe(work_dir: Path) -> dict[str, float] | None:
+    """Best-effort read of GRTresna Ham/Mom convergence (never raises)."""
+    try:
+        from ...grtresna.solver import parse_convergence
+
+        return parse_convergence(work_dir)
+    except Exception:
+        return None

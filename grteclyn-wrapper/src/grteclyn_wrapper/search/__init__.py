@@ -1,1 +1,1 @@
-"""Search drivers: CMA-ES, surrogate, MAP-Elites, Pareto, atlas."""
+"""Search drivers: optimize/, qd_search/, validation_tiers/, atlas/, surrogate, Pareto."""
