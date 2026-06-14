@@ -97,6 +97,8 @@ def run_optimize_command(args: argparse.Namespace, base_overrides: dict) -> int:
         warm_start_jitter=getattr(args, "warm_start_jitter", 0.08),
         random_injection_fraction=getattr(args, "random_injection_fraction", 0.0),
         exotic_injection_fraction=getattr(args, "exotic_injection_fraction", 0.0),
+        keep_top_eval_dirs=getattr(args, "keep_top_eval_dirs", 0),
+        ftl_retention_enabled=getattr(args, "ftl_retention", False),
     )
     print(json.dumps({
         "best_score": result.best_score,

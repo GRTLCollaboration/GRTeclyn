@@ -21,6 +21,7 @@ from ..grtresna_convergence_gate import (
     convergence_rejection_fitness as _grtresna_rejection_fitness,
     convergence_rejection_reason as _grtresna_convergence_rejection_reason,
 )
+from ..ftl_peak_metrics import peak_fields_for_descriptor_details
 from ..trajectory_log import format_eval_log_line, infer_trajectory_status
 from .candidates import _vector_to_overrides
 from .config import build_grtresna_config, parse_convergence_safe
@@ -242,6 +243,8 @@ def _objective(
                 consumer_radii=consumer_radii,
                 consumer_delete=True,
                 consumer_keep_last=consumer_keep_last,
+                consumer_ftl_timeseries=consume_plotfiles,
+                consumer_ftl_L=ftl_L,
             )
             exit_code = result.returncode
         except Exception as exc:
@@ -260,17 +263,25 @@ def _objective(
         domain_half_width=domain_half_width_for_episode(episode.path, gte_overrides),
     )
 
+    metrics_dict = dataclass_to_dict(metrics)
     write_json(episode.score_path, {
         "score": dataclass_to_dict(score),
-        "metrics": dataclass_to_dict(metrics),
+        "metrics": metrics_dict,
     })
 
+    # Time-resolved FTL peak fields (f_geo/f_op/speed/superluminal/lifetime).
+    # Mirrors the QD trajectory enrichment so the CMA-ES path can rank pruned
+    # evals and feed the FTL champion board (ftl_retention).
     record = {
         "eval": idx,
         "episode": str(episode.path),
         "exit_code": exit_code,
         "score": score.total,
         "components": score.components,
+        "descriptor_details": peak_fields_for_descriptor_details(
+            metrics_dict.get("ftl_timeseries") if isinstance(metrics_dict, dict) else None,
+            components=score.components,
+        ),
         "overrides": {d.param_key: overrides.get(d.param_key) for d in dims},
     }
     _track_trajectory(trajectory, record)

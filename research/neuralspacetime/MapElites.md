@@ -1,11 +1,12 @@
-# MAP-Elites FTL Discovery — Matter-First Metric Discovery
+# MAP-Elites + CMA-ES FTL Discovery — Matter-First Metric Discovery
 
-> Quality-Diversity (MAP-Elites) search over **matter configurations** that, once
-> turned into a self-consistent spacetime and evolved, exhibit faster-than-light
-> (FTL) precursors. We do **not** hand-design a warp metric and ask "what matter
-> supports it?" — we propose matter, solve Einstein's constraints for the
-> geometry it actually produces, evolve that geometry, and let the search
-> *discover* which matter distributions yield FTL signatures.
+> Two-stage pipeline: **MAP-Elites** (wide survey) finds where good warps live in
+> the 23-D shell search space; **CMA-ES** (local refinement) hill-climbs around
+> the best *healthy* survivors to push shortcut size, persistence, and lower
+> exotic cost. Both stages share the same matter-first loop — propose lumps →
+> GRTresna constraint solve → GRTeclyn GPU evolution → time-resolved FTL probes →
+> score — but differ in how they propose the next candidate (diversity archive vs
+> covariance-matrix adaptation).
 
 ## Table of contents
 
@@ -25,6 +26,8 @@
 - [Code map (where everything lives)](#code-map-where-everything-lives)
 - [Building the binaries (GRTresna + GRTeclyn)](#building-the-binaries-grtresna--grteclyn)
 - [How to run a campaign](#how-to-run-a-campaign)
+  - [MAP-Elites (QD)](#map-elites-q-d)
+  - [CMA-ES refinement after MAP-Elites](#cma-es-refinement-after-map-elites)
 - [Campaign log / runs analysis](#campaign-log--runs-analysis)
 
 ## The idea: matter-first, not metric-first
@@ -82,12 +85,14 @@ parameterization of the lump field (amplitudes, mode, thickness, toroidal /
 poloidal / radial velocities, shift seed, exotic phase, **scalar mass**,
 **static toggle**, …).
 
-> **Not CMA-ES.** The QD campaign is pure MAP-Elites: it illuminates the whole
-> behavior grid via elite-mutation + feasible-box sampling and never runs a
-> CMA-ES generation. The CMA-ES driver (`run_optimize` in `optimize.py`) is a
-> *separate*, single-objective optimizer used by the non-QD `run_grtresna_search.sh`;
-> the `qd` command never calls it. The two only share the `SearchDimension`
-> search-space definitions, which happen to live in `optimize.py` (see Code map).
+> **QD vs CMA-ES.** The QD campaign (`run_grtresna_qd_search.sh`) is pure
+> MAP-Elites: it illuminates the 8×8 behavior grid via elite-mutation +
+> feasible-box sampling. The **second stage** uses CMA-ES via
+> `run_grtresna_search.sh` → `optimize` command (`search/optimize/driver.py`):
+> single-objective hill-climbing with a warm start from QD survivors. Both share
+> the same 23-D `grtresna_shell` search space (`search/optimize/spaces.py`) and
+> the same per-eval physics loop; only the proposer differs. See
+> [CMA-ES refinement after MAP-Elites](#cma-es-refinement-after-map-elites).
 
 ### Stage 1 — Initial data (GRTresna, CPU/MPI)
 
@@ -266,16 +271,19 @@ genuinely warped geometry.
 
 | Concern | Path |
 |---------|------|
-| **MAP-Elites** QD loop, archive, elite-mutation, descriptors | `grteclyn-wrapper/src/grteclyn_wrapper/search/qd_search.py` |
-| Search-space (`SearchDimension`) defs + param overrides — *also* hosts the separate, unused-by-QD CMA-ES `run_optimize` | `grteclyn-wrapper/src/grteclyn_wrapper/search/optimize.py` |
-| Scoring / fitness | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/score.py` |
+| **MAP-Elites** QD loop, archive, elite-mutation, descriptors | `grteclyn-wrapper/src/grteclyn_wrapper/search/qd_search/` |
+| **CMA-ES** optimize loop, warm-start, parallel eval | `grteclyn-wrapper/src/grteclyn_wrapper/search/optimize/` |
+| Search-space (`SearchDimension`) defs (shared QD + CMA-ES) | `search/optimize/spaces.py` |
+| FTL champion retention (QD + CMA-ES) | `search/ftl_retention.py` |
+| Scoring / fitness (`ftl_first`, `robust_ftl`) | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/score.py` |
 | Metric aggregation | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/aggregation/collector.py` |
 | FTL probes (general / geodesic) | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/probes/ftl/` |
 | Diagnostic dataclasses | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/types/diagnostics.py` |
 | Plotfile → frames | `grteclyn-wrapper/src/grteclyn_wrapper/visualisation/process_wave/consume_plotfiles.py` |
 | Matter (evolution side) | `Source/Matter/GRTresnaIndependentScalars.{hpp,impl.hpp}`, `Examples/RadialRecipe/` |
 | Matter (initial-data side) | `../GRTresna/Examples/ScalarFieldBH/` |
-| Campaign launcher | `grteclyn-wrapper/scripts/search/run_grtresna_qd_search.sh` |
+| Campaign launcher (QD) | `grteclyn-wrapper/scripts/search/run_grtresna_qd_search.sh` |
+| Campaign launcher (CMA-ES) | `grteclyn-wrapper/scripts/search/run_grtresna_search.sh` |
 
 ## Building the binaries (GRTresna + GRTeclyn)
 
@@ -359,9 +367,11 @@ Set `CUDA_ARCH` to your GPU: `90` = Hopper/H100, `80` = A100, `70` = V100.
 
 ## How to run a campaign
 
+### MAP-Elites (QD)
+
 ```bash
 cd grteclyn-wrapper
-QD_NAME=ftl_discovery_vN QD_ITERATIONS=10 BINS=8 STOP_TIME=8.0 \
+QD_NAME=ftl_discovery_vN QD_ITERATIONS=10 BINS=8 STOP_TIME=16.0 \
   GPU_IDS="0 1 2 3 4 5 6 7" RANKS=8 LUMPS=5 SHELL_PROFILE=compact \
   GRTRESNA_MAX_HAM_PCT=5.0 GRTRESNA_MAX_MOM_PCT=5.0 \
   nohup bash scripts/search/run_grtresna_qd_search.sh \
@@ -372,6 +382,62 @@ Results land in `runs/grtresna_qd/ftl_discovery_vN/` (`trajectory.jsonl`, per-ev
 `score.json`, `frames/`). The campaign log below records what each `vN` changed
 and what it found.
 
+### CMA-ES refinement after MAP-Elites
+
+**Plain English:** MAP-Elites was the wide survey (~970 configurations) — it
+mapped which matter shapes produce real FTL shortcuts, which collapse, which
+fizzle. A handful stood out as **healthy**: evals **739, 655, 256, 389** — real
+~5–6% gauge-invariant shortcuts, structural persistence 1.0, horizon-free,
+`observer_ec` tier. CMA-ES now **turns the dials in small steps** (shell size,
+thickness, spin, exotic fraction, scalar mass, …) starting from those survivors
+to find a **stronger, longer-lasting, cleaner** warp — not another random corner
+of the 23-D box.
+
+**Why not warm-start from eval 233?** Eval 233 still tops the *raw* `ftl_first`
+score (652) but is exotic-heavy and more transient. The v17 seed file deliberately
+uses **OBSERVER_EC survivors** — geometries that already balance shortcut size
+with survival and horizon health — and `robust_ftl` reweights scoring toward
+persistence and lower exotic penalty (see glossary).
+
+**Launch (`ftl_cmaes_v17_robust`, 2026-06-14):**
+
+```bash
+cd grteclyn-wrapper
+: > ../runs/cmaes_ftl_v17_robust.launch.log
+RUNS_DIR=/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_cmaes \
+RUN_NAME=ftl_cmaes_v17_robust \
+WARM_START_TRAJECTORY=/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_cmaes_v17_seed_survivors.jsonl \
+WARM_START_TOP_K=8 WARM_START_JITTER=0.05 SIGMA0=0.08 MAX_GENERATIONS=25 \
+KEEP_TOP_EVAL_DIRS=10 FTL_RETENTION=1 \
+GRTRESNA_ANSATZ=shell SHELL_PROFILE=compact LUMPS=5 RANKS=8 GPU_IDS="0 1 2 3 4 5 6 7" \
+STOP_TIME=16.0 PLOT_INTERVAL=320 GRTRESNA_EVOLUTION_N_FULL=128 GRTRESNA_EVOLUTION_L_FULL=64.0 \
+OBJECTIVE_MODE=robust_ftl GRTRESNA_MAX_HAM_PCT=5.0 GRTRESNA_MAX_MOM_PCT=5.0 \
+SOLVED_FTL_NEAR_LUMINAL_SPEED_FLOOR=0.95 \
+RANDOM_INJECTION_FRACTION=0.1 EXOTIC_INJECTION_FRACTION=0.1 \
+nohup bash scripts/search/run_grtresna_search.sh \
+  >> ../runs/cmaes_ftl_v17_robust.launch.log 2>&1 &
+```
+
+| Knob | v17 value | Effect |
+|------|-----------|--------|
+| `WARM_START_TRAJECTORY` | `grtresna_cmaes_v17_seed_survivors.jsonl` | 4 QD survivors (739, 655, 389, 256); x0 = best (739) |
+| `SIGMA0=0.08` | 8% of box | Local refinement, not global survey |
+| `OBJECTIVE_MODE=robust_ftl` | — | FTL-first but persistence/survival/exotic rebalanced |
+| `FTL_RETENTION=1` | on | Same champion retention as v16 QD |
+| `MAX_GENERATIONS=25` × pop 8 | ~200 evals | Expected wall time ~30–40 GPU-hours |
+
+**Monitor:**
+
+```bash
+L=../runs/cmaes_ftl_v17_robust.launch.log
+D=../runs/grtresna_cmaes/ftl_cmaes_v17_robust
+grep -a "\[optimize\]" "$L" | tail
+cat "$D/ftl_champions.json"    # after gen 1
+wc -l "$D/trajectory.jsonl"
+```
+
+Results: `runs/grtresna_cmaes/ftl_cmaes_v17_robust/`.
+
 ## Campaign log / runs analysis
 
 Reverse-chronological isn't enforced below; entries were appended as work
@@ -379,7 +445,8 @@ happened. Quick index (most consequential first):
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
-| [**v16: FTL champion retention + horizon fix**](#v16-ftl-champion-retention-2026-06-13) | 06-13 | Disk pruning kept only top-10 by total score, so high **mid-run FTL peaks** lost eval dirs → **FTL hall of fame** (`ftl_retention.jsonl`, `ftl_champions.json`). Separately, **`horizon_penalty` was a binary −500 veto** on any `theta+≤0` even when lapse stayed healthy (false positive on exotic warp channels; eval 6 scored −559 with valid FTL frames). Fixed: require **same-timestep lapse collapse** to corroborate trapped surface; suppress **late-only** collapse in the trailing 25% of the run. Campaign resumed: `ftl_discovery_v16` |
+| [**v17: CMA-ES robust refinement**](#v17-cma-es-robust-refinement-after-v16-2026-06-14) | 06-14 | After v16 plateau (~971 evals), **CMA-ES** warm-starts from 4 **OBSERVER_EC** survivors (739, 655, 389, 256) with `robust_ftl` objective — hill-climb for bigger **persistent** gauge-invariant shortcuts with lower exotic cost, not the flashiest raw score (233). Run: `ftl_cmaes_v17_robust` |
+| [**v16: FTL champion retention + horizon fix**](#v16-ftl-champion-retention-2026-06-13) | 06-13 | Disk pruning kept only top-10 by total score, so high **mid-run FTL peaks** lost eval dirs → **FTL hall of fame** (`ftl_retention.jsonl`, `ftl_champions.json`). Separately, **`horizon_penalty` was a binary −500 veto** on any `theta+≤0` even when lapse stayed healthy (false positive on exotic warp channels; eval 6 scored −559 with valid FTL frames). Fixed: require **same-timestep lapse collapse** to corroborate trapped surface; suppress **late-only** collapse in the trailing 25% of the run. Campaign resumed to ~971 evals |
 | [**v15: time-resolved FTL scoring**](#v15-time-resolved-intermediate-ftl-scoring-2026-06-13) | 06-13 | Final-frame scoring was half-blind: the gauge-invariant shortcut **peaks mid-run and diffuses**, so the last frame both under-credits a real transient and can't tell a sustained warp from an Alcubierre-like collapse. Adds an in-flight per-plotfile FTL stream (`ftl_timeseries.dat`, process+delete), retargets the headline `operational_ftl_geodesic` to the **time-average** over the run, and adds an `ftl_lifetime` MAP-Elites axis. Validated on eval 231: f_geo rises 2.7%→**7.43% peak at t=9.6**→5.24% (t=16); the old final frame saw only 5.24%. QD runs at dx=0.5, ml=2 (controls show ml=3 changes nothing — the real variable is time, not refinement) |
 | [**v14 results & analytics**](#v14-campaign-results--analytics-2026-06-12-completed) | 06-12 | 504 evals, 351 gpu_ok, 51.6% archive coverage. Top: Eval 231 (f_geo=5.30%, ring+top-hat, score 551). 5 operational, 3 observer_ec. Ring layout dominates top-5; exotic fraction 90–99% universal. Full Alcubierre comparison — our best is 17% of Alcubierre's shortcut but is self-consistent & evolvable |
 | [`v14` launch setup → matter profile + cloud layout](#v14-launch-setup-matter-profile-and-cloud-layout-2026-06-12) | 06-12 | Adds per-lump matter profile (Gaussian / smoothed top-hat "ball") + quasi-random cloud layout (`matter_layout=4`); search space 21→23 dims. GRTresna rebuilt; 182 tests pass |
@@ -489,6 +556,66 @@ new evals load the fixed scorer.
 
 **Tests:** `tests/test_horizon_finder_guard.py` (uncorroborated suppressed, late-only
 suppressed, genuine interior collapse still −1.0).
+
+---
+
+## v17: CMA-ES robust refinement after v16 (2026-06-14)
+
+**Why a second stage.** v16 MAP-Elites ran ~971 evals and **plateaued**: best raw
+score stayed eval **233** (652, exotic-heavy); peak-metric crowns stopped updating
+after eval **643** (~330 evals with zero new FTL records). MAP-Elites did its job
+— it mapped the landscape. The next step is **not** another blind +1000 QD evals
+but **local refinement** around geometries that are already healthy.
+
+**Seed selection — OBSERVER_EC survivors, not raw score kings.**
+
+| Eval | QD score | Tier | f_geo peak | Why seeded |
+|------|----------|------|------------|------------|
+| **739** | 280.6 | observer_ec | 5.39% | Best of clean basin → CMA-ES x0 |
+| **655** | 257.3 | observer_ec | 4.37% | ftl_lifetime=100%, horizon-free |
+| **389** | 196.8 | observer_ec | 3.47% | Stable, lower exotic than 233 |
+| **256** | 206.5 | observer_ec | 3.38% | High lifetime fraction (86%) |
+
+Seed file: `runs/grtresna_cmaes_v17_seed_survivors.jsonl` (4 lines, copied from
+v16 `trajectory.jsonl` with full `overrides`).
+
+**What CMA-ES optimizes.** Same 23-D shell parameters as QD (amp, width, radius,
+thickness, axis angles, toroidal/poloidal/radial velocity, exotic fraction, scalar
+mass, static toggle, …). Each generation: 8 candidates in parallel on 8 GPUs,
+GRTresna solve → GRTeclyn t=16 evolution → time-resolved FTL stream → scalar
+fitness. CMA-ES **minimizes negative score**; covariance matrix adapts step
+directions toward better persistent shortcuts.
+
+**`robust_ftl` objective (option B).** Same FTL-first spine as `ftl_first`
+(`operational_ftl_geodesic` still **1000×**) but rebalanced so hill-climbing
+prefers **persistent, healthy, lower-exotic** warps over flashiest transient peaks:
+
+| Weight change | ftl_first → robust_ftl | Intent |
+|---------------|------------------------|--------|
+| `operational_ftl_geodesic` | 1000× (unchanged) | Gauge-invariant shortcut still dominates |
+| `operational_ftl` | 400 → **200×** | Trim coordinate-only flash |
+| `ftl_persistence` | 300 → **500×** | Reward lasting FTL window |
+| `survival` | 70 → **150×** | Structure must stay intact |
+| `comoving_stability` | 8 → **20×** | Less Eulerian churn |
+| `energy_condition` | 40 → **60×** | Prefer NEC-respecting geometry |
+| `exotic_penalty` | 40 → **70×** | Heavier cost for negative-energy matter |
+
+**Run:** `ftl_cmaes_v17_robust` in `runs/grtresna_cmaes/` (~25 gens × 8 ≈ 200
+evals). Retention: top-10 + FTL champions (wired into CMA-ES path this session).
+Frames created/deleted on the fly like QD.
+
+**Code added (2026-06-14, uncommitted):** CMA-ES `keep_top_eval_dirs` +
+`ftl_retention`; FTL peak `descriptor_details` + `ftl_timeseries` on optimize
+path; `robust_ftl` in `score.py` + CLI; `RUN_NAME` / retention env hooks in
+`run_grtresna_search.sh`; tests `test_optimize_retention.py`,
+`test_robust_ftl_objective.py`.
+
+**Monitor:**
+
+```bash
+grep -a "\[optimize\]" runs/cmaes_ftl_v17_robust.launch.log | tail
+cat runs/grtresna_cmaes/ftl_cmaes_v17_robust/ftl_champions.json
+```
 
 ---
 

@@ -1076,6 +1076,54 @@ def score_episode(
         notes.append(
             "objective_mode=ftl_first: channel/operational FTL dominate precursor/shift"
         )
+    elif objective_mode == "robust_ftl":
+        # Robustness-tilted FTL scalarization (option B).  Same FTL-first priority
+        # as ``ftl_first`` -- the gauge-invariant geodesic shortcut
+        # (operational_ftl_geodesic, 1000x) stays dominant so a genuine result
+        # still wins -- but the rest of the budget is rebalanced toward
+        # *persistent, healthy, low-exotic* geometries (the OBSERVER_EC survivors)
+        # rather than the highest-magnitude-but-exotic/transient peak:
+        #   * coordinate-only signals trimmed (operational_ftl 400->200, shaping cut),
+        #   * lasting FTL rewarded (ftl_persistence 300->500),
+        #   * health boosted (survival 70->150, comoving 8->20, stability 10->25,
+        #     energy_condition 40->60),
+        #   * exotic penalty hardened 40->70 (a fully-exotic geometry now costs
+        #     ~-112 pts, a real ~20-30% dent, kept below the ~100 weight that the
+        #     ftl_first comments note floored the whole population negative).
+        health_gate = components.get("nontriviality_gate", 0.0)
+        horizon = components.get("horizon_penalty", 0.0)
+        trapped_surface = horizon < -0.05
+        total = (
+            1000.0 * components.get("operational_ftl_geodesic", 0.0)
+            + 200.0 * components.get("operational_ftl", 0.0)
+            + 500.0 * components.get("ftl_persistence", 0.0)
+            + 60.0 * components.get("channel_progress", 0.0)
+            + 30.0 * components.get("operational_ftl_solved", 0.0)
+            + 20.0 * components.get("ftl_precursor", 0.0)
+            + 15.0 * components.get("shift_drive", 0.0)
+            + 30.0 * components.get("ftl_shortcut", 0.0)
+            + 5.0 * components.get("nontrivial_geometry", 0.0)
+            + health_gate * (
+                150.0 * components.get("survival", 0.0)
+                + 10.0 * components.get("constraint_health", 0.0)
+                + 25.0 * components.get("stability", 0.0)
+                + 15.0 * components.get("instability_penalty", 0.0)
+                + 20.0 * components.get("comoving_stability", 0.0)
+                + 60.0 * components.get("energy_condition", 0.0)
+            )
+            + 70.0 * components.get("exotic_penalty", 0.0)
+            + 8.0 * components.get("stationary_artifact_penalty", 0.0)
+            + 500.0 * horizon
+        )
+        if trapped_surface:
+            notes.append(
+                f"trapped-surface proxy active (horizon_penalty={horizon:.3f}); "
+                "local precursor/shift alone cannot rank this candidate highly"
+            )
+        notes.append(
+            "objective_mode=robust_ftl: persistent/healthy/low-exotic geometry "
+            "prioritized; gauge-invariant shortcut stays dominant"
+        )
     else:
         total = 0.0
         for key, value in components.items():

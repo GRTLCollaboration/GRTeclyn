@@ -15,6 +15,14 @@ from ..grtresna_convergence_gate import (
     DEFAULT_GRTRESNA_CONVERGENCE_CONFIG,
     GRTresnaConvergenceConfig,
 )
+from ..ftl_retention import (
+    FTL_CHAMPIONS_FILE,
+    FTL_RETENTION_LOG,
+    FtlChampionBoard,
+    append_ftl_retention_events,
+    compute_keep_eval_ids,
+    save_ftl_champions,
+)
 from ..surrogate import RBFSurrogate, screen_candidates
 from ..trajectory_log import format_trajectory_line
 from .candidates import (
@@ -52,6 +60,54 @@ class OptimizeResult:
     generations: int
     evaluations: int
     trajectory: list[dict[str, Any]]
+
+
+def _apply_optimize_retention(
+    *,
+    opt_dir: Path,
+    trajectory: Sequence[Mapping[str, Any]],
+    new_records: Sequence[Mapping[str, Any]],
+    board: "FtlChampionBoard | None",
+    keep_top_eval_dirs: int,
+    ftl_retention_enabled: bool,
+    champions_path: Path,
+    retention_path: Path,
+) -> None:
+    """Keep top-N-by-score eval dirs (union FTL champions); prune the rest.
+
+    Mirrors the QD ``_ingest`` retention so a CMA-ES run also saves only the
+    best eval dirs on disk plus one champion dir per FTL peak metric
+    (``ftl_champions.json`` / ``ftl_retention.jsonl``), deleting everything
+    else as the conveyor advances.
+    """
+    # Lazy import: qd_search.io <-> optimize would otherwise form an import cycle
+    # (qd_search/__init__ imports optimize's search-space defs).
+    from ..qd_search.io import _prune_eval_dirs
+
+    protect_eval_ids: set[int] = set()
+    events = []
+    for rec in new_records:
+        eval_id = rec.get("eval")
+        if isinstance(eval_id, int):
+            protect_eval_ids.add(eval_id)
+        if ftl_retention_enabled and board is not None and rec.get("status") == "gpu_ok":
+            events.extend(board.consider(rec))
+    if ftl_retention_enabled and board is not None:
+        append_ftl_retention_events(retention_path, events)
+        save_ftl_champions(champions_path, board)
+    keep_ids = compute_keep_eval_ids(
+        trajectory,
+        keep_top_score=int(keep_top_eval_dirs),
+        board=board if ftl_retention_enabled else None,
+        ftl_retention_enabled=ftl_retention_enabled,
+        protect_eval_ids=protect_eval_ids,
+    )
+    _prune_eval_dirs(
+        opt_dir,
+        trajectory,
+        keep_eval_ids=keep_ids,
+        protect_eval_ids=protect_eval_ids,
+    )
 
 
 def run_optimize(
@@ -96,6 +152,8 @@ def run_optimize(
     warm_start_jitter: float = 0.08,
     random_injection_fraction: float = 0.0,
     exotic_injection_fraction: float = 0.0,
+    keep_top_eval_dirs: int = 0,
+    ftl_retention_enabled: bool = False,
 ) -> OptimizeResult:
     """Run multi-GPU CMA-ES optimization loop.
 
@@ -138,6 +196,13 @@ def run_optimize(
         name = f"optimize_{timestamp}"
     opt_dir = (runs_dir / name).expanduser().resolve()
     opt_dir.mkdir(parents=True, exist_ok=False)
+
+    # FTL champion retention + top-N disk pruning (same logic as the QD loop):
+    # keep only the best eval dirs on disk plus one champion dir per FTL peak.
+    ftl_board = FtlChampionBoard() if ftl_retention_enabled else None
+    ftl_champions_path = opt_dir / FTL_CHAMPIONS_FILE
+    ftl_retention_path = opt_dir / FTL_RETENTION_LOG
+    retention_active = bool(ftl_retention_enabled or keep_top_eval_dirs > 0)
 
     warm_vectors = _load_warm_start_vectors(
         warm_start_trajectories, dims, max(0, warm_start_top_k)
@@ -201,6 +266,8 @@ def run_optimize(
         "warm_start_jitter": warm_start_jitter,
         "random_injection_fraction": random_injection_fraction,
         "exotic_injection_fraction": exotic_injection_fraction,
+        "keep_top_eval_dirs": keep_top_eval_dirs,
+        "ftl_retention_enabled": ftl_retention_enabled,
         "base_overrides": base,
         "search_space": [
             {"key": d.param_key, "lower": d.lower, "upper": d.upper, "initial": d.center}
@@ -390,6 +457,18 @@ def run_optimize(
         with (opt_dir / "trajectory.jsonl").open("w", encoding="utf-8") as fh:
             for rec in trajectory:
                 fh.write(format_trajectory_line(rec))
+
+        if retention_active and not dry_run:
+            _apply_optimize_retention(
+                opt_dir=opt_dir,
+                trajectory=trajectory,
+                new_records=evaluated_records,
+                board=ftl_board,
+                keep_top_eval_dirs=keep_top_eval_dirs,
+                ftl_retention_enabled=ftl_retention_enabled,
+                champions_path=ftl_champions_path,
+                retention_path=ftl_retention_path,
+            )
 
     result = OptimizeResult(
         best_params=best_params,

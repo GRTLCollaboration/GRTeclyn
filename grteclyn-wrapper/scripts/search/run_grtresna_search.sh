@@ -84,6 +84,10 @@ RANDOM_INJECTION_FRACTION="${RANDOM_INJECTION_FRACTION:-0.25}"
 EXOTIC_INJECTION_FRACTION="${EXOTIC_INJECTION_FRACTION:-0.25}"
 WARM_START_TOP_K="${WARM_START_TOP_K:-8}"
 WARM_START_JITTER="${WARM_START_JITTER:-0.08}"
+# Disk retention (same logic as the QD loop): keep only the top-N scored eval
+# dirs on disk plus one champion dir per FTL peak metric; prune the rest.
+KEEP_TOP_EVAL_DIRS="${KEEP_TOP_EVAL_DIRS:-10}"
+FTL_RETENTION="${FTL_RETENTION:-1}"
 
 # Pre-GPU solved-geometry FTL gate policy.  These are intentionally centralized
 # here so exploratory/strict runs do not require code edits.
@@ -122,6 +126,11 @@ fi
 # "optimize" subcommand token. We always terminate the global section with the
 # single-valued --ftl-L so the subcommand boundary is unambiguous.
 PRE_ARGS=(--runs-dir "${RUNS_DIR}" --example RadialRecipe --set stop_time="${STOP_TIME}" --set plot_interval="${PLOT_INTERVAL}" --consumer-radii ${CONSUMER_RADII})
+# Stable episode-folder name (default: timestamped optimize_<UTC>). Set RUN_NAME
+# to land in a predictable dir, e.g. runs/grtresna_search/ftl_cmaes_v17.
+if [[ -n "${RUN_NAME:-}" ]]; then
+  PRE_ARGS+=(--name "${RUN_NAME}")
+fi
 if [[ "${DRY_RUN:-0}" == "1" ]]; then
   PRE_ARGS+=(--dry-run)
 fi
@@ -168,6 +177,7 @@ echo "CMA-ES        : generations=${MAX_GENERATIONS} population=${POPULATION} si
 echo "GPUs          : ${GPU_IDS}"
 echo "Objective     : ${OBJECTIVE_MODE}  random_injection=${RANDOM_INJECTION_FRACTION} exotic_injection=${EXOTIC_INJECTION_FRACTION}"
 echo "Warm start    : ${WARM_START_TRAJECTORY:-<none>}"
+echo "Retention     : keep_top=${KEEP_TOP_EVAL_DIRS} ftl_retention=$([[ "${FTL_RETENTION}" == "1" ]] && echo on || echo off)"
 echo "Consumer      : $([[ "${NO_CONSUME:-0}" == "1" ]] && echo DISABLED || echo "frames+delete radii=${CONSUMER_RADII}")"
 echo "Frame fields  : ${GRTECLYN_FRAMES_FIELDS}"
 echo "Projections   : ${GRTECLYN_PROJECTION_FIELDS} axes=${GRTECLYN_PROJECTION_AXES} method=${GRTECLYN_PROJECTION_METHOD}"
@@ -207,6 +217,8 @@ exec ${PYTHON_BIN} -m grteclyn_wrapper \
   --exotic-injection-fraction "${EXOTIC_INJECTION_FRACTION}" \
   --warm-start-top-k "${WARM_START_TOP_K}" \
   --warm-start-jitter "${WARM_START_JITTER}" \
+  --keep-top-eval-dirs "${KEEP_TOP_EVAL_DIRS}" \
+  "$([[ "${FTL_RETENTION}" == "1" ]] && echo --ftl-retention || echo --no-ftl-retention)" \
   "${WARM_START_ARGS[@]}" \
   --grtresna \
   --grtresna-ansatz "${GRTRESNA_ANSATZ}" \

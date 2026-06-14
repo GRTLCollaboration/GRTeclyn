@@ -102,9 +102,10 @@ def build_parser() -> argparse.ArgumentParser:
     opt.add_argument("--gpu-ids", nargs="+", type=int, default=None, help="GPU indices for parallel eval (e.g. 0 1 2 3 4 5 6 7).")
     opt.add_argument(
         "--objective-mode",
-        choices=["weighted", "ftl_first"],
+        choices=["weighted", "ftl_first", "robust_ftl"],
         default="weighted",
-        help="Scoring scalarization: weighted legacy score or FTL-first ordering.",
+        help="Scoring scalarization: weighted legacy score, FTL-first ordering, "
+        "or robust_ftl (FTL-first tilted toward persistent/healthy/low-exotic).",
     )
     opt.add_argument(
         "--warm-start-trajectory",
@@ -123,6 +124,20 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=0.08,
         help="Fraction of each parameter range used when jittering warm-starts.",
+    )
+    opt.add_argument(
+        "--keep-top-eval-dirs",
+        type=int,
+        default=0,
+        help="After each generation, delete completed eval_* dirs outside the top N "
+        "scored records. trajectory.jsonl stays intact; 0 disables.",
+    )
+    opt.add_argument(
+        "--ftl-retention",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Also retain eval dirs that hold the run-best FTL peak per metric "
+        "(f_geo, speed, lifetime, ...); writes ftl_retention.jsonl + ftl_champions.json.",
     )
     opt.add_argument(
         "--random-injection-fraction",
@@ -366,9 +381,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     qd.add_argument(
         "--objective-mode",
-        choices=["weighted", "ftl_first"],
+        choices=["weighted", "ftl_first", "robust_ftl"],
         default="weighted",
-        help="Scoring scalarization used as elite quality.",
+        help="Scoring scalarization used as elite quality. robust_ftl tilts "
+        "ftl_first toward persistent/healthy/low-exotic geometries.",
     )
     qd.add_argument(
         "--grtresna",
