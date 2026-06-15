@@ -65,12 +65,12 @@ def _resolve_plot_zlim(
 
     preset = cfg["zlim"]
     if preset[0] is not None:
-        auto = _auto_zlim_from_array(win, field)
-        if auto is not None and field in {"lump_activity", "scalar_activity"}:
-            signal_span = auto[1] - auto[0]
-            preset_span = preset[1] - preset[0]
-            if signal_span > 0.0 and signal_span < 0.25 * preset_span:
-                return auto
+        # Fixed preset wins unconditionally: a per-frame fallback (previously used
+        # for lump_activity/scalar_activity when the signal looked weak) makes the
+        # colorbar limits change frame-to-frame, so the same color means a
+        # different value in every frame and the movie "bounces".  For stable
+        # movies the scale must be held fixed; opt into per-frame scaling via
+        # GRTECLYN_FRAMES_AUTO_ZLIM or a per-field ``auto_zlim`` flag instead.
         return preset
 
     if use_global_zlim and frame_zlims is not None:

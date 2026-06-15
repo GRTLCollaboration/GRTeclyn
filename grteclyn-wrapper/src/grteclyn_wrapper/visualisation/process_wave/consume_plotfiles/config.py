@@ -33,12 +33,13 @@ def _frames_auto_zlim_enabled(explicit: bool | None = None) -> bool:
 # Fixed color limits keep movie colorbars stable across time steps.
 # Override any field via GRTECLYN_FRAMES_ZLIM_<FIELD>=lo,hi (e.g. shift1=-0.05,0.05).
 _FIELD_FRAME_CONFIGS: Dict[str, dict] = {
-    # chi develops a deep, localised conformal well (min_chi can reach ~0.4 while
-    # the far field stays ~1.0).  A narrow fixed window clamps the whole well to
-    # the colormap floor and renders the frame blank, so both chi fields use
-    # per-frame percentile scaling; the wide preset is only a fallback.
-    "chi": {"zlim": (0.3, 1.05), "cmap": "magma", "label": r"Conformal Factor $\chi$", "auto_zlim": True},
-    "chi_minus_1": {"zlim": (-0.6, 0.6), "cmap": "RdBu", "label": r"$\chi - 1$", "auto_zlim": True},
+    # chi develops a deep, localised conformal well (min_chi can reach ~0.4, and
+    # deeper near strong fields) while the far field stays ~1.0.  The window is
+    # widened to (0.1, 1.05) so the well is resolved without per-frame rescaling:
+    # a fixed scale keeps the movie colorbar stable (no "bouncing").  Re-enable
+    # per-frame scaling explicitly via GRTECLYN_FRAMES_AUTO_ZLIM if needed.
+    "chi": {"zlim": (0.1, 1.05), "cmap": "magma", "label": r"Conformal Factor $\chi$"},
+    "chi_minus_1": {"zlim": (-0.9, 0.9), "cmap": "RdBu", "label": r"$\chi - 1$"},
     "phi": {"zlim": (-0.05, 0.05), "cmap": "RdBu", "label": r"$\phi$"},
     "Pi": {"zlim": (-0.01, 0.01), "cmap": "RdBu", "label": r"$\Pi$"},
     "phi_lump_sum": {"zlim": (-0.05, 0.05), "cmap": "RdBu", "label": r"$\sum_k\phi_k$"},

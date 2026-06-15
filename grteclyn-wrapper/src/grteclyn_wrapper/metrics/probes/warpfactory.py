@@ -441,6 +441,98 @@ def energy_conditions(
     )
 
 
+@dataclass(frozen=True)
+class ExoticEnergyBudget:
+    """Negative-energy ("exotic matter") content of a 4-metric, on one measure.
+
+    All energies are proper-volume integrals of the Eulerian energy density
+    ``rho = T_{mu nu} n^mu n^nu`` (``n`` = future unit normal to the ``t=const``
+    slice) over the central time slice, in geometric units (G=c=1)::
+
+        total_negative_energy = int_{rho<0} rho sqrt(det gamma) d^3x   (<= 0)
+
+    ``exotic_energy`` (its magnitude) is the headline "how much exotic matter"
+    number.  Because both an analytic Alcubierre bubble and an evolved candidate
+    (via :func:`build_four_metric_stack_from_plotfiles`) reach this through the
+    same :func:`stress_energy` + :func:`decompose_adm`, the measure is identical
+    on both sides and the comparison is apples-to-apples.
+    """
+
+    total_negative_energy: float
+    total_positive_energy: float
+    min_rho: float
+    max_rho: float
+    negative_fraction: float
+    n_points: int
+
+    @property
+    def exotic_energy(self) -> float:
+        """Magnitude of the negative-energy integral (>= 0)."""
+        return abs(self.total_negative_energy)
+
+    @property
+    def net_energy(self) -> float:
+        return self.total_negative_energy + self.total_positive_energy
+
+
+def eulerian_energy_density(g: NDArray, spacing: Sequence[float]) -> NDArray:
+    """Eulerian energy density ``rho = T_{mu nu} n^mu n^nu`` on every grid point.
+
+    ``n^mu = (1, -beta^i) / alpha`` is the future-pointing unit normal to the
+    ``t=const`` slices, taken from the ADM split of ``g`` (:func:`decompose_adm`).
+    Returns an array of shape ``g.shape[:-2]`` (the spacetime grid).
+    """
+    T = stress_energy(g, spacing)
+    alpha, beta_up, _gamma = decompose_adm(g)
+    n = np.zeros(g.shape[:-1], dtype=float)  # grid + (4,)
+    n[..., 0] = 1.0 / alpha
+    n[..., 1:] = -beta_up / alpha[..., None]
+    return np.einsum("...ab,...a,...b->...", T, n, n)
+
+
+def exotic_energy_budget(
+    g: NDArray,
+    spacing: Sequence[float],
+    *,
+    crop: int = 4,
+    time_index: int | None = None,
+) -> ExoticEnergyBudget:
+    """Negative-energy ("exotic matter") budget of a 4-metric grid.
+
+    Mirrors :func:`evaluate_four_metric`: evaluates the central time slice (or
+    ``time_index`` if given) and drops ``crop`` finite-difference boundary cells
+    on every spatial axis.  The Eulerian energy density is integrated against the
+    proper volume element ``sqrt(det gamma) d^3x``.
+    """
+    rho_all = eulerian_energy_density(g, spacing)
+    _alpha, _beta, gamma = decompose_adm(g)
+    sqrt_gamma = np.sqrt(np.clip(np.linalg.det(gamma), 0.0, None))
+
+    nt = g.shape[0]
+    tc = nt // 2 if time_index is None else int(time_index)
+    spatial = tuple(slice(crop, dim - crop) for dim in g.shape[1:4])
+    sl = (tc,) + spatial
+    rho = rho_all[sl]
+    sg = sqrt_gamma[sl]
+    if rho.size == 0:
+        raise ValueError("grid too small after cropping; increase resolution or lower crop")
+
+    spatial_spacing = np.asarray(spacing, dtype=float)[-3:]
+    dV = float(np.prod(spatial_spacing))
+    cell = sg * dV
+
+    neg = rho < 0.0
+    pos = rho > 0.0
+    return ExoticEnergyBudget(
+        total_negative_energy=float(np.sum(rho[neg] * cell[neg])),
+        total_positive_energy=float(np.sum(rho[pos] * cell[pos])),
+        min_rho=float(rho.min()),
+        max_rho=float(rho.max()),
+        negative_fraction=float(neg.mean()),
+        n_points=int(rho.size),
+    )
+
+
 def evaluate_four_metric(
     g: NDArray,
     spacing: Sequence[float],

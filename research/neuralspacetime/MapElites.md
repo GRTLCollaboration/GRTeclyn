@@ -376,6 +376,7 @@ Reverse-chronological journal below. Quick index:
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
 | [**HQ promotion: v16 + v17 CMA-ES**](#hq-promotion-after-v16-qd--v17-cma-es-2026-06-15) | **06-15 done** | 4/4 complete. **Incr. peak eval 233 score 749** @ t≈12; only **eval 177** finishes positive (+67). Horizon kills 3/4 by t=30 |
+| [**Eval 177 physics + exotic vs Alcubierre + next directions**](#eval-177-what-is-actually-moving-faster-than-light-2026-06-15) | 06-15 | What's FTL: end-to-end **null transit ~1.06c**, not matter (matter sub-luminal). Exotic **~5–24× < Alcubierre**, **~100–200× milder NEC** (per-shortcut comparable). Reframe → persistence/transport + exotic-energy frontier |
 | [**v17: CMA-ES robust refinement**](#v17-cma-es-robust-refinement-after-v16-2026-06-14) | 06-14 → **06-15 done** | **200 evals.** Winner eval **177**: f_geo **5.65%**, timeavg **16.3%**, exotic **−1.17**. Peak f_geo **eval 78** at **5.68%** |
 | [**v16: FTL champion retention + horizon fix**](#v16-ftl-champion-retention-2026-06-13) | 06-13 | FTL hall of fame (`ftl_retention.jsonl`). Horizon penalty needs lapse corroboration. ~971 evals |
 | [**v15: time-resolved FTL scoring**](#v15-time-resolved-intermediate-ftl-scoring-2026-06-13) | 06-13 | Per-frame `ftl_timeseries.dat`; time-averaged geodesic score; `ftl_lifetime` axis. Eval 231 peak **7.43%** at t=9.6 |
@@ -648,6 +649,124 @@ runs/grtresna_promote/
    CMA-ES refined) is the only candidate that survives t=30 without −500 veto.
 4. **Next experiments:** HQ stop at t≈16 for apples-to-apples QD comparison; promote
    CMA-ES-only line; try `robust_ftl` incremental objective to match CMA-ES training.
+
+## Eval 177: what is actually moving faster than light (2026-06-15)
+
+Deep-dive on the HQ-promoted CMA-ES winner
+(`l128n256t30_ftl_cmaes_v17_robust_qd_eval000177`), reconciling "is this a real FTL
+candidate?" with the physics. Probe definition: `f_geo = (t_flat − t_min)/t_flat`, the
+fractional travel-time saving of a **null geodesic** between two asymptotic static
+observers in the flat far-field (gauge-invariant — the endpoints are Minkowski). Code:
+`metrics/probes/ftl/geodesic.py`.
+
+**What is — and isn't — moving FTL.** Nothing material, and no local light ray, breaks `c`.
+
+| Quantity (HQ N=256, t=30 run) | Value | Reading |
+|---|---|---|
+| `f_geo` peak | **5.88%** @ t≈8.4 | gauge-invariant null shortcut |
+| effective signal speed | **≈ 1.063 c** | `c/(1−f_geo)`, between distant static observers |
+| `f_op` peak (coordinate Dijkstra) | 5.80% | **agrees with f_geo ⇒ not a gauge artifact** |
+| max coordinate light speed | 1.16 c (1.32 c t=0 transient) | tilted cones (gauge quantity) |
+| superluminal area fraction | up to **78%** | cone-tilt is **broad, not a thin tube** |
+| scalar-lump coordinate speed | 0.2–0.8 c | **matter is sub-luminal** (it is only the source) |
+| reliability | `geo_trustworthy`=1 all frames; rel-H ≈ 1.5e-4 ≪ 1e-2 | certified on the null cone |
+
+The FTL signature is a **transient warp-channel for light**: a light pulse routed through
+the region arrives ~5.9% early relative to the asymptotic rest frame. The matter only
+*sources* the geometry; the tilted/flowing cones carry the signal — the same mechanism as
+an Alcubierre bubble, but grown self-consistently from sub-luminal matter instead of
+prescribed. The "v_s"-type coordinate over-speed (and even the supporting matter's
+coordinate velocity) is a tilted-cone/pattern effect, not local superluminal motion.
+
+**Three readings that prevent over- or under-claiming:**
+
+- **`Pi_lump_sum` oscillation is real physics, not the colorbar bug.** The massive scalar
+  (m=1.245) rings at its Compton period 2π/m ≈ **5.05** (~6 cycles over t=0–30): the global
+  Π amplitude is constant (≈0.0139) while the slice pattern flips sign. The actual shortcut
+  `f_geo` is a single hump, not oscillatory.
+- **`ftl_geo_timeavg = 0.163` is a normalized reward, not a 16% shortcut** — it is the mean
+  of `(f_geo − 1e-3)/(0.20 − 1e-3)`, i.e. 16% of the "dramatic 20% shortcut" full mark. The
+  real shortcut is ~6% peak, ~2–4% time-mean.
+- **`integral_negative_rho` grows monotonically** (0.15 → 0.78 → 3.04) *after* the warp dies
+  at t≈19 — late-time numerical/constraint accumulation, **not** warp-supporting matter. Use
+  the t=0 (0.15) → peak (0.78) range; never the run-max 3.04.
+
+**Persistence (the notable part).** The gauge-invariant shortcut is present **t≈1.9–18.0
+(~16 code units, 54% of the run)** in a constraint-clean (Ham/Mom L2 ≈ 3.8e-3 / 4e-4),
+**non-collapsing** evolution (lapse floor 0.49, χ_min 0.30, no corroborated trapped
+surface). It is a *dynamically sustained* channel, not a t=0 initial-data artifact — and the
+only promoted candidate to finish t=30 without the horizon −500 veto.
+
+**Caveat — frozen-snapshot probe.** `f_geo(t)` ray-traces each *static* snapshot. The
+geometry evolves on ~10M, comparable to the ~16M light-crossing time, so the true
+end-to-end shortcut for a ray threading the *evolving* tunnel needs a 4D trace (stretch item
+below) and may be smaller than the snapshot peak.
+
+### Exotic-matter cost: eval 177 vs an Alcubierre bubble
+
+Computed on the **identical measure** `|∫_{ρ<0} ρ dV|` with
+`ρ = T_{ab} n^a n^b = (R + K² − K_ijK^ij)/16π` (geometric units), via the reusable
+`warpfactory.exotic_energy_budget()` + driver
+`scripts/validation/exotic_energy_compare.py` (Alcubierre side uses
+`warpfactory.alcubierre_metric`; candidate side reads `constraint_norms.dat`). Reproduce:
+
+```bash
+uv run python scripts/validation/exotic_energy_compare.py --v-s 2.0 --radius 4.0 \
+  --candidate-eval runs/grtresna_promote/l128n256t30_ftl_cmaes_v17_robust_qd_eval000177
+```
+
+| Measure (same definition) | Alcubierre v_s=2 | Eval 177 | 177 |
+|---|---|---|---|
+| Total exotic energy, build (t=0) | 3.57 | **0.15** | **~24× less** |
+| Total exotic energy, warp peak | 3.57 | **0.78** | **~4.6× less** |
+| Pointwise NEC (min NEC, probe-dependent) | −0.24 to −0.47 | **−0.0024** | **~100–200× milder** |
+| min energy density (min ρ) | −0.038 | −0.016 | ~2.4× milder |
+| shortcut delivered (`f_geo`) | 31.5% | 5.9% | (context) |
+| **exotic energy per unit shortcut** | **11.3** | **13.1 (peak)** | **≈ comparable** |
+
+**Honest reading:** 177 needs **~5–24× less total exotic matter** and is **~100–200× gentler
+pointwise** (the NEC magnitude is probe/resolution-dependent; the *energy integral* is the
+robust measure) — but largely because it is a *milder, smaller* warp; **per unit of shortcut
+delivered the two are on par** (177 slightly worse at peak; ~4× better counting only the t=0
+assembled matter). The decisive edge over Alcubierre is not efficiency but that 177 is a
+**self-consistent, evolved** solution from sub-luminal matter, not a hand-built metric.
+(Comparison is vs the specific v_s=2 control; Alcubierre's exotic energy scales ~v_s².)
+
+**Movie colorbar fix (2026-06-15).** Frame colorbars rescaled per-frame (the "histogram
+bounce"): `scalar_activity`/`lump_activity` fell back to per-frame auto when the signal was
+weak, and `chi`/`chi_minus_1` had `auto_zlim:True`. Fixed to stable presets in
+`consume_plotfiles/config.py` + `frames/zlim.py` (per-frame still available via
+`GRTECLYN_FRAMES_AUTO_ZLIM`). Existing 177 movies predate the fix.
+
+## Future directions: persistence, transport, and the exotic-energy frontier (2026-06-15)
+
+The pipeline is now constraint-clean and self-consistent (paper §7), and 177 is the first
+*analyzed* FTL candidate. What it is **not**: transport. It is a pulsing lens — light
+crosses faster, but nothing is carried. The reframe:
+
+1. **Score the object, not a slice.** Replace per-slice `f_geo` with a trajectory/worldtube
+   functional, split into two well-posed targets:
+   - **Persistent standing channel** (achievable now): reward `f_geo` *sustained above
+     threshold while the comoving metric is ~stationary* (small ∂ₜ). Turns 177's decaying
+     pulse into a traversable standing shortcut.
+   - **Transport worldtube** (paper §6 goal): reward a localized, ~flat passenger region
+     that *moves a finite proper distance* with bounded tides — the only thing that earns
+     "warp drive".
+2. **Map the exotic-energy frontier.** Multi-objective Pareto (shortcut × persistence vs
+   `∫ρ₋`) instead of a weighted sum — a publishable result tied to Ford–Roman quantum
+   inequalities / ANEC / Olum bounds even if no "drive" appears.
+3. **Better matter model.** Scalar lumps disperse — that is *why* the shortcut decays. A
+   complex-scalar / **boson-star** source (conserved U(1) charge) is stationary and
+   non-dispersing, attacking persistence directly.
+4. **Search machinery.** CMA-ME / CMA-MAE (CMA dynamics driving archive illumination); train
+   `search/surrogate.py` as a feasibility pre-filter to cut the ~30% GRTresna rejections;
+   re-pick MAP-Elites descriptors around comoving-stationarity / exotic fraction /
+   localization.
+5. **Verification ladder** (paper §6): a **4D null-ray trace through the evolving metric**
+   (true end-to-end shortcut vs the frozen-snapshot `f_geo`); resolution ladder +
+   observer-robust energy conditions; **analytic extraction** — fit a closed-form
+   metric/matter profile, re-solve the constraints, replay → turns a coefficient vector into
+   a citable spacetime.
 
 ## v16: FTL champion retention (2026-06-13)
 

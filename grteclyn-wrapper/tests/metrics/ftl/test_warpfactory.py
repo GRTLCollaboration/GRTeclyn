@@ -102,3 +102,51 @@ def test_convergence_order_is_better_than_second_order():
     # Fourth-order stencils should push the observed order well above 2.
     assert result["order_estimate"] > 2.0
     assert len(result["functional"]) == 4
+
+
+# ---------------------------------------------------------------------------
+# Exotic-energy budget: total negative ("exotic matter") content of a metric.
+# ---------------------------------------------------------------------------
+
+def test_flat_minkowski_has_no_exotic_energy():
+    g, spacing = wf.minkowski_metric(half_width=4.0, n_space=12, dt=0.25)
+    budget = wf.exotic_energy_budget(g, spacing, crop=3)
+    # Vacuum carries no negative (nor positive) energy to numerical precision.
+    assert budget.exotic_energy < 1e-8
+    assert abs(budget.total_negative_energy) < 1e-8
+    assert abs(budget.min_rho) < 1e-8
+    assert budget.negative_fraction == 0.0
+
+
+def test_alcubierre_has_negative_energy_budget():
+    g, spacing = wf.alcubierre_metric(
+        velocity=0.9, bubble_radius=2.0, sigma=2.0, half_width=4.0, n_space=28, dt=0.2
+    )
+    budget = wf.exotic_energy_budget(g, spacing, crop=3)
+    # A warp bubble is supported by a net pool of negative energy.
+    assert budget.total_negative_energy < 0.0
+    assert budget.exotic_energy > 0.0
+    assert budget.min_rho < 0.0
+    assert 0.0 < budget.negative_fraction <= 1.0
+
+
+def test_exotic_budget_min_rho_matches_eulerian_density():
+    # budget.min_rho is the Eulerian energy density minimum -> must agree with
+    # the energy-condition report's rho_eulerian_min computed independently.
+    g, spacing = wf.alcubierre_metric(
+        velocity=0.7, bubble_radius=2.0, sigma=2.0, half_width=4.0, n_space=28, dt=0.2
+    )
+    budget = wf.exotic_energy_budget(g, spacing, crop=4)
+    report = wf.evaluate_four_metric(g, spacing, crop=4, n_directions=20, n_speeds=2)
+    assert np.isclose(budget.min_rho, report.rho_eulerian_min, rtol=0.05, atol=1e-6)
+
+
+def test_exotic_energy_grows_with_velocity():
+    def exotic(v: float) -> float:
+        g, spacing = wf.alcubierre_metric(
+            velocity=v, bubble_radius=2.0, sigma=2.0, half_width=4.0, n_space=24, dt=0.2
+        )
+        return wf.exotic_energy_budget(g, spacing, crop=3).exotic_energy
+
+    # A faster bubble demands a larger pool of exotic matter.
+    assert exotic(0.9) > exotic(0.3) > 0.0
