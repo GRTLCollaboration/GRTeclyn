@@ -103,6 +103,7 @@ def start_plotfile_consumer(
     objective_mode: str = "weighted",
     target_stop_time: float | None = None,
     score_weights: Mapping[str, float] | None = None,
+    evolving_geodesic: bool = False,
 ) -> subprocess.Popen[str]:
     profile = (
         "wormhole"
@@ -127,8 +128,12 @@ def start_plotfile_consumer(
         objective_mode=objective_mode,
         target_stop_time=target_stop_time,
         score_weights=score_weights,
+        evolving_geodesic=evolving_geodesic,
     )
 
+    env = _merged_env(
+        extra_env={"GRTECLYN_EVOLVING_GEODESIC": "1"} if evolving_geodesic else None
+    )
     log = episode.log_path.open("a", encoding="utf-8")
     log.write(f"\n$ {' '.join(command)}\n")
     log.flush()
@@ -139,6 +144,7 @@ def start_plotfile_consumer(
         stderr=subprocess.STDOUT,
         text=True,
         start_new_session=True,
+        env=env,
     )
 
 
@@ -223,6 +229,7 @@ def run_episode(
     consumer_objective_mode: str = "weighted",
     consumer_target_stop_time: float | None = None,
     consumer_score_weights: Mapping[str, float] | None = None,
+    consumer_evolving_geodesic: bool = False,
 ) -> RunResult:
     example_dir = executable.example.dir
     if not executable.path.exists():
@@ -231,6 +238,8 @@ def run_episode(
         )
 
     env = _merged_env(cuda_devices=cuda_devices, extra_env=extra_env)
+    if consumer_evolving_geodesic:
+        env["GRTECLYN_EVOLVING_GEODESIC"] = "1"
     update_metadata(
         episode,
         {
@@ -263,6 +272,7 @@ def run_episode(
             objective_mode=consumer_objective_mode,
             target_stop_time=consumer_target_stop_time,
             score_weights=consumer_score_weights,
+            evolving_geodesic=consumer_evolving_geodesic,
         )
 
     try:

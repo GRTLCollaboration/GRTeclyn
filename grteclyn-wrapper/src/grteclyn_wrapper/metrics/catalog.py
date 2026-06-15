@@ -185,6 +185,17 @@ METRIC_REGISTRY: dict[str, MetricSpec] = {
         score_components=("operational_ftl_geodesic",),
         summary="Gauge-invariant null-geodesic arrival-time advantage.",
     ),
+    "evolving_geodesic": MetricSpec(
+        group="evolving_geodesic",
+        model="EvolvingGeodesicMetrics",
+        module="grteclyn_wrapper.metrics.probes.ftl.evolving_geodesic",
+        source_type="plotfile",
+        source_detail=">=3 plotfile stack, 4D time-interpolated null-ray trace",
+        compute_fn="compute_evolving_geodesic_ftl_from_plotfiles",
+        in_episode=True,
+        score_components=("ftl_geo_evolving",),
+        summary="End-to-end gauge-invariant shortcut through evolving geometry (opt-in).",
+    ),
     "physical": MetricSpec(
         group="physical",
         model="PhysicalMetrics",

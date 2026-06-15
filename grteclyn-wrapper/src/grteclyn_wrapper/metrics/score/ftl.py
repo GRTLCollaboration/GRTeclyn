@@ -229,6 +229,26 @@ def compute_ftl_components(ctx: ScoringContext) -> None:
         components["operational_ftl_geodesic"] = _geo_magnitude(f_geo) * structural_persistence
     else:
         components["operational_ftl_geodesic"] = 0.0
+
+    evo_geo = metrics.evolving_geodesic
+    evo_trustworthy = bool(
+        evo_geo is not None
+        and evo_geo.h_quality_ok
+        and evo_geo.n_rays > 0
+        and evo_geo.n_reached == evo_geo.n_rays
+    )
+    if (
+        evo_trustworthy
+        and math.isfinite(evo_geo.f_geo)
+        and evo_geo.f_geo > GEO_FTL_FLOOR
+    ):
+        components["ftl_geo_evolving"] = _geo_magnitude(evo_geo.f_geo)
+        notes.append(
+            f"4D evolving null-geodesic shortcut (f_geo_evol={evo_geo.f_geo:.3e})"
+        )
+    else:
+        components["ftl_geo_evolving"] = 0.0
+
     if geo_report is not None:
         if f_geo > GEO_FTL_FLOOR and not geo_trustworthy:
             notes.append(

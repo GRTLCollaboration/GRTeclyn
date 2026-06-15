@@ -117,7 +117,15 @@ def read_ftl_timeseries_metrics(path: Path) -> FtlTimeSeriesMetrics | None:
     if not rows:
         return None
 
-    return _aggregate_ftl_frames(
+    f_geo_evol: float | None = None
+    f_geo_evol_ok: bool | None = None
+    for row in reversed(rows):
+        if len(row) >= 14:
+            f_geo_evol = float(row[12])
+            f_geo_evol_ok = bool(round(row[13]))
+            break
+
+    metrics = _aggregate_ftl_frames(
         t=tuple(float(r[0]) for r in rows),
         f_op=tuple(float(r[1]) for r in rows),
         f_geo=tuple(float(r[2]) for r in rows),
@@ -126,4 +134,15 @@ def read_ftl_timeseries_metrics(path: Path) -> FtlTimeSeriesMetrics | None:
         superluminal_fraction=tuple(float(r[5]) for r in rows),
         structure_coherence=tuple(float(r[7]) for r in rows),
         max_h_rel_drift=tuple(float(r[11]) for r in rows),
+    )
+    if f_geo_evol is None:
+        return metrics
+    return FtlTimeSeriesMetrics(
+        **{
+            field.name: getattr(metrics, field.name)
+            for field in FtlTimeSeriesMetrics.__dataclass_fields__.values()
+            if field.name not in {"f_geo_evol", "f_geo_evol_ok"}
+        },
+        f_geo_evol=f_geo_evol,
+        f_geo_evol_ok=f_geo_evol_ok,
     )

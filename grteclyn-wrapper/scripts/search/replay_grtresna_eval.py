@@ -196,6 +196,11 @@ def main() -> int:
     parser.add_argument("--grtresna-max-mom-pct", type=float, default=5.0)
     parser.add_argument("--consumer-keep-last", type=int, default=2)
     parser.add_argument(
+        "--evolving-geodesic",
+        action="store_true",
+        help="Enable end-of-run 4D evolving null-geodesic trace in scoring.",
+    )
+    parser.add_argument(
         "--gridinit",
         type=Path,
         default=None,
@@ -330,6 +335,7 @@ def main() -> int:
         consume_plotfiles=True,
         consumer_radii=(4.0, 8.0),
         consumer_keep_last=args.consumer_keep_last,
+        consumer_evolving_geodesic=args.evolving_geodesic,
         grtresna=use_grtresna,
         grtresna_base=grtresna_config,
         grtresna_solved_ftl_gate=False,

@@ -83,3 +83,32 @@ def test_incremental_score_writer_appends_jsonl(tmp_path: Path) -> None:
     assert "score" in payload
     assert "components" in payload
     assert payload["f_geo_peak"] > 0.0
+
+
+def test_ftl_timeseries_parser_backward_compatible_12_and_14_columns(tmp_path: Path) -> None:
+    from grteclyn_wrapper.metrics.diagnostics.ftl_timeseries import read_ftl_timeseries_metrics
+
+    path12 = tmp_path / "ftl12.dat"
+    path12.write_text(
+        HEADER + "\n"
+        "8.0 0.05 0.04 1 1.10 0.10 0.01 nan 1 5 5 0.001\n"
+        "16.0 0.04 0.03 1 1.08 0.08 0.01 nan 1 5 5 0.001\n",
+        encoding="utf-8",
+    )
+    ts12 = read_ftl_timeseries_metrics(path12)
+    assert ts12 is not None
+    assert ts12.n_frames == 2
+    assert ts12.f_geo_evol is None
+    assert ts12.f_geo_evol_ok is None
+
+    path14 = tmp_path / "ftl14.dat"
+    path14.write_text(
+        HEADER + "  f_geo_evol  f_geo_evol_ok\n"
+        "8.0 0.05 0.04 1 1.10 0.10 0.01 nan 1 5 5 0.001 0.0 0\n"
+        "16.0 0.04 0.03 1 1.08 0.08 0.01 nan 1 5 5 0.001 0.18 1\n",
+        encoding="utf-8",
+    )
+    ts14 = read_ftl_timeseries_metrics(path14)
+    assert ts14 is not None
+    assert ts14.f_geo_evol == 0.18
+    assert ts14.f_geo_evol_ok is True

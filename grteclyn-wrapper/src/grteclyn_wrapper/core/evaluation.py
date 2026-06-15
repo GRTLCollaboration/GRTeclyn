@@ -55,6 +55,7 @@ def evaluate_overrides(
     consumer_radii: Sequence[float] = (4.0, 8.0),
     consumer_keep_last: int = 1,
     consumer_ftl_timeseries: bool = True,
+    consumer_evolving_geodesic: bool = False,
     grtresna: bool = False,
     grtresna_base: Any | None = None,
     grtresna_solved_ftl_gate: bool = False,
@@ -188,10 +189,14 @@ def evaluate_overrides(
         if executable is None:
             raise ValueError("executable is required unless dry_run=True")
         try:
+            extra_env = None
+            if consumer_evolving_geodesic:
+                extra_env = {"GRTECLYN_EVOLVING_GEODESIC": "1"}
             result = run_episode(
                 episode, executable,
                 check_params=check_params,
                 cuda_devices=cuda_devices,
+                extra_env=extra_env,
                 consume_plotfiles=consume_plotfiles,
                 consumer_radii=consumer_radii,
                 consumer_delete=True,
@@ -202,13 +207,18 @@ def evaluate_overrides(
                 consumer_objective_mode=objective_mode,
                 consumer_target_stop_time=target_stop_time,
                 consumer_score_weights=score_weights,
+                consumer_evolving_geodesic=consumer_evolving_geodesic,
             )
             exit_code = result.returncode
         except Exception as exc:  # noqa: BLE001 - record and continue
             exit_code = 1
             update_metadata(episode, {"simulation_error": repr(exc), "simulation_exit_code": exit_code})
 
-    metrics = read_episode_metrics(episode.path, ftl_L=ftl_L)
+    metrics = read_episode_metrics(
+        episode.path,
+        ftl_L=ftl_L,
+        evolving_geodesic=consumer_evolving_geodesic,
+    )
     score = score_episode(
         metrics,
         target_stop_time=target_stop_time,

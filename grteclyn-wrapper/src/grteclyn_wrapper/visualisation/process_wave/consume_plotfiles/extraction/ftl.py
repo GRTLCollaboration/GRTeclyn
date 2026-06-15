@@ -10,7 +10,7 @@ import os
 FTL_TIMESERIES_HEADER = (
     "# time  f_op  f_geo  geo_trustworthy  max_local_speed  "
     "superluminal_fraction  max_shift  structure_coherence  reachable  "
-    "n_rays  n_reached  max_h_rel_drift"
+    "n_rays  n_reached  max_h_rel_drift  f_geo_evol  f_geo_evol_ok"
 )
 
 
@@ -81,5 +81,6 @@ def _extract_ftl_timeseries_line(
     return (
         f"{t:.16e}  {f_op:.16e}  {f_geo:.16e}  {geo_trustworthy:d}  "
         f"{max_speed:.16e}  {superlum:.16e}  {max_shift:.16e}  {coherence_str}  "
-        f"{reachable:d}  {n_rays:d}  {n_reached:d}  {max_h_rel:.16e}"
+        f"{reachable:d}  {n_rays:d}  {n_reached:d}  {max_h_rel:.16e}  "
+        f"{0.0:.16e}  0"
     )

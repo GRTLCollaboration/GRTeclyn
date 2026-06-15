@@ -73,6 +73,7 @@ def build_consume_command(
     objective_mode: str = "weighted",
     target_stop_time: float | None = None,
     score_weights: Mapping[str, float] | None = None,
+    evolving_geodesic: bool = False,
 ) -> list[str]:
     """Return argv for streaming plotfile extraction into episode/small_data."""
     center = _read_vector_param(episode.params_path, "center", (0.0, 0.0, 0.0))
@@ -127,6 +128,8 @@ def build_consume_command(
         command.append("--ftl-timeseries")
         if ftl_L is not None:
             command.extend(["--ftl-l", f"{float(ftl_L):g}"])
+        if evolving_geodesic:
+            command.append("--evolving-geodesic")
         if incremental_score:
             stop_time = target_stop_time
             if stop_time is None:

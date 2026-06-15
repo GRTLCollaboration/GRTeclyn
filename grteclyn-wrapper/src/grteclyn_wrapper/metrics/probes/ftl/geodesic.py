@@ -24,7 +24,14 @@ from typing import Sequence
 import numpy as np
 from numpy.typing import NDArray
 
-from ..warpfactory import _d_dx, stress_energy
+from ..warpfactory import stress_energy
+from .geodesic_interp import (
+    clamp_index as _clamp_index,
+    inverse_metric_4d,
+    partial_inverse_metric,
+    trilinear as _trilinear,
+)
+from .metric_field import StaticMetricField
 
 
 # Reliability gate on the null constraint ``H = ½ g^{μν} k_μ k_ν`` (exactly 0 for
@@ -139,67 +146,6 @@ def build_metric_3d_from_plotfile(
 
     spacing = tuple((right - left) / (np.array(dims) - 1))
     return g, left.astype(float), spacing
-
-
-def inverse_metric_4d(g: NDArray[np.float64]) -> NDArray[np.float64]:
-    """Invert a batch of 4x4 metrics.  Shape ``(..., 4, 4)`` -> same."""
-    return np.linalg.inv(g)
-
-
-def partial_inverse_metric(
-    g: NDArray[np.float64],
-    spacing: Sequence[float],
-) -> NDArray[np.float64]:
-    """``partial_mu g^{ab}`` for a static spatial grid.
-
-    Returns array of shape ``(..., 4, 4, 4)`` where the last index is ``mu``.
-    Time derivatives are zero (single Cauchy slice).
-    """
-    ginv = inverse_metric_4d(g)
-    out = np.zeros(g.shape[:-2] + (4, 4, 4), dtype=float)
-    for mu in range(1, 4):
-        out[..., :, :, mu] = _d_dx(ginv, float(spacing[mu - 1]), axis=mu - 1)
-    return out
-
-
-def _clamp_index(
-    x: NDArray[np.float64],
-    origin: NDArray[np.float64],
-    spacing: Sequence[float],
-    shape: Sequence[int],
-) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
-    """Continuous grid coordinates and fractional cell position."""
-    rel = (x[1:] - origin[:3]) / np.asarray(spacing, dtype=float)
-    n = np.array(shape, dtype=float)
-    rel_clamped = np.clip(rel, 0.0, n - 1.001)
-    i0 = np.floor(rel_clamped).astype(int)
-    frac = rel_clamped - i0
-    return i0, frac
-
-
-def _trilinear(
-    field: NDArray[np.float64],
-    i0: NDArray[np.int64],
-    frac: NDArray[np.float64],
-) -> NDArray[np.float64]:
-    """Trilinear interpolation on a 3D field with trailing dimensions."""
-    i0 = np.clip(i0, 0, np.array(field.shape[:3]) - 2)
-    fx, fy, fz = frac[0], frac[1], frac[2]
-    c000 = field[i0[0], i0[1], i0[2]]
-    c100 = field[i0[0] + 1, i0[1], i0[2]]
-    c010 = field[i0[0], i0[1] + 1, i0[2]]
-    c110 = field[i0[0] + 1, i0[1] + 1, i0[2]]
-    c001 = field[i0[0], i0[1], i0[2] + 1]
-    c101 = field[i0[0] + 1, i0[1], i0[2] + 1]
-    c011 = field[i0[0], i0[1] + 1, i0[2] + 1]
-    c111 = field[i0[0] + 1, i0[1] + 1, i0[2] + 1]
-    c00 = c000 * (1 - fx) + c100 * fx
-    c10 = c010 * (1 - fx) + c110 * fx
-    c01 = c001 * (1 - fx) + c101 * fx
-    c11 = c011 * (1 - fx) + c111 * fx
-    c0 = c00 * (1 - fy) + c10 * fy
-    c1 = c01 * (1 - fy) + c11 * fy
-    return c0 * (1 - fz) + c1 * fz
 
 
 def _sample_metric(
@@ -343,68 +289,19 @@ def integrate_null_ray(
     h_tol: float = 1.0e-6,
 ) -> NullRayResult:
     """Trace one null ray from ``x_start`` to ``x_end`` at fixed ``(y,z)``."""
-    x = np.array([t0, x_start, y0, z0], dtype=float)
-    t_flat = abs(x_end - x_start)
-    ginv = inverse_metric_4d(g)
+    from .evolving_geodesic import integrate_null_ray_on_field
 
-    g_pt, ginv0, _ = _sample_metric(g, ginv, dg_inv, x, origin, spacing)
-    # Launch a future-directed null ray whose coordinate velocity points toward
-    # the detector (+x); see ``future_null_cov``.
-    n_hat = np.array([1.0, 0.0, 0.0])
-    k = future_null_cov(g_pt, n_hat)
-
-    max_h = 0.0
-    max_h_rel = 0.0
-    lam = 0.0
-    ds = ds_init
-
-    for _ in range(max_steps):
-        if x[1] >= x_end:
-            t_coord = abs(float(x[0] - t0))
-            return NullRayResult(
-                reached=True,
-                t_coord=t_coord,
-                t_flat=t_flat,
-                max_h_drift=max_h,
-                max_h_rel=max_h_rel,
-            )
-
-        g_pt, ginv_pt, dg_pt = _sample_metric(g, ginv, dg_inv, x, origin, spacing)
-        h = abs(null_hamiltonian(ginv_pt, k))
-        max_h = max(max_h, h)
-        max_h_rel = max(max_h_rel, _null_relative_drift(ginv_pt, k))
-        if h > h_tol:
-            k = project_null(g_pt, ginv_pt, k, dx_ref=(ginv_pt @ k)[1:])
-
-        def rhs(xp: NDArray[np.float64], kp: NDArray[np.float64]) -> tuple[NDArray, NDArray]:
-            gp, ginvp, dgp = _sample_metric(g, ginv, dg_inv, xp, origin, spacing)
-            return _hamiltonian_rhs(ginvp, dgp, kp)
-
-        k1x, k1k = rhs(x, k)
-        k2x, k2k = rhs(x + 0.5 * ds * k1x, k + 0.5 * ds * k1k)
-        k3x, k3k = rhs(x + 0.5 * ds * k2x, k + 0.5 * ds * k2k)
-        k4x, k4k = rhs(x + ds * k3x, k + ds * k3k)
-        x = x + (ds / 6.0) * (k1x + 2 * k2x + 2 * k3x + k4x)
-        k = k + (ds / 6.0) * (k1k + 2 * k2k + 2 * k3k + k4k)
-        lam += ds
-
-        if x[1] < origin[0] or x[1] > origin[0] + (g.shape[0] - 1) * spacing[0]:
-            return NullRayResult(
-                reached=False,
-                t_coord=None,
-                t_flat=t_flat,
-                max_h_drift=max_h,
-                max_h_rel=max_h_rel,
-                notes=("ray left grid",),
-            )
-
-    return NullRayResult(
-        reached=False,
-        t_coord=None,
-        t_flat=t_flat,
-        max_h_drift=max_h,
-        max_h_rel=max_h_rel,
-        notes=("max_steps exceeded",),
+    field = StaticMetricField(g=g, origin=origin, spatial_spacing=tuple(spacing))
+    return integrate_null_ray_on_field(
+        field,
+        x_start=x_start,
+        x_end=x_end,
+        y0=y0,
+        z0=z0,
+        t0=t0,
+        max_steps=max_steps,
+        ds_init=ds_init,
+        h_tol=h_tol,
     )
 
 

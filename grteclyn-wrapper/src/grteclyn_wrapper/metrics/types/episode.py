@@ -16,6 +16,7 @@ from .diagnostics import (
     CurvatureInvariantMetrics,
     EffectiveEnergyConditionMetrics,
     EnergyConditionMetrics,
+    EvolvingGeodesicMetrics,
     FtlPersistenceMetrics,
     FtlTimeSeriesMetrics,
     GrowthMetrics,
@@ -41,6 +42,7 @@ class EpisodeMetrics:
     general_ftl_evolved: GeneralFtlReport | None = None
     general_ftl_solved: GeneralFtlReport | None = None
     geodesic_ftl: GeodesicFtlReport | None = None
+    evolving_geodesic: EvolvingGeodesicMetrics | None = None
     mechanism_descriptor: float | None = None
     effective_ec: EffectiveEnergyConditionMetrics | None = None
     boundary_flux: BoundaryFluxMetrics | None = None

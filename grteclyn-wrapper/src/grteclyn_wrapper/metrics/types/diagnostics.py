@@ -136,6 +136,21 @@ class FtlPersistenceMetrics:
 
 
 @dataclass(frozen=True)
+class EvolvingGeodesicMetrics:
+    """End-to-end null-geodesic shortcut through an evolving metric stack."""
+
+    f_geo: float
+    f_geo_frozen_peak: float | None
+    t_emit: float
+    t_arrival: float | None
+    t_flat: float
+    n_rays: int
+    n_reached: int
+    h_quality_ok: bool
+    max_h_rel_drift: float
+
+
+@dataclass(frozen=True)
 class FtlTimeSeriesMetrics:
     """Time-resolved FTL features over the WHOLE run (one sample per plotfile).
 
@@ -167,3 +182,6 @@ class FtlTimeSeriesMetrics:
     t_at_superluminal_peak: float | None
     ftl_lifetime_fraction: float  # frames with trustworthy f_geo>floor / n_frames
     op_lifetime_fraction: float  # frames with f_op>floor / n_frames
+    # End-to-end evolving probe (populated on the final timeseries row when enabled).
+    f_geo_evol: float | None = None
+    f_geo_evol_ok: bool | None = None

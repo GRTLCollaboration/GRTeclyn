@@ -170,6 +170,7 @@ for entry in "${CANDIDATE_ENTRIES[@]}"; do
     --grtresna-max-ham-pct "${GRTRESNA_MAX_HAM_PCT}" \
     --grtresna-max-mom-pct "${GRTRESNA_MAX_MOM_PCT}" \
     --consumer-keep-last "${CONSUMER_KEEP_LAST}" \
+    --evolving-geodesic \
     > "${log}" 2>&1 &
   echo "  pid=$!"
   launched=$((launched + 1))

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import replace
 from pathlib import Path
 
@@ -34,17 +35,38 @@ from ..probes.ftl.geodesic import (
     compute_geodesic_ftl_from_plotfile,
     compute_trajectory_qei_from_plotfile,
 )
+from ..probes.ftl.evolving_geodesic import (
+    compute_evolving_geodesic_ftl_from_plotfiles,
+    patch_ftl_timeseries_evolving,
+    write_evolving_geodesic_json,
+)
 from ..probes.physical import compute_physical_metrics
 from ..probes.warpfactory import effective_energy_conditions_from_plotfiles
-from ..types.diagnostics import EffectiveEnergyConditionMetrics, FtlPersistenceMetrics
+from ..types.diagnostics import (
+    EffectiveEnergyConditionMetrics,
+    EvolvingGeodesicMetrics,
+    FtlPersistenceMetrics,
+)
 from ..types.episode import EpisodeMetrics
 from .context import EpisodeContext, build_episode_context
+
+
+def _evolving_geodesic_enabled(evolving_geodesic: bool | None) -> bool:
+    if evolving_geodesic is not None:
+        return evolving_geodesic
+    return os.environ.get("GRTECLYN_EVOLVING_GEODESIC", "").strip().lower() in {
+        "1",
+        "on",
+        "yes",
+        "true",
+    }
 
 
 def read_episode_metrics(
     episode_dir: Path,
     *,
     ftl_L: float | None = None,
+    evolving_geodesic: bool | None = None,
 ) -> EpisodeMetrics:
     ctx = build_episode_context(episode_dir, ftl_L=ftl_L)
 
@@ -117,6 +139,47 @@ def read_episode_metrics(
                     )
     except Exception:
         geodesic_ftl = None
+
+    evolving_geo = None
+    if _evolving_geodesic_enabled(evolving_geodesic):
+        try:
+            if general_ftl_evolved is not None and (
+                general_ftl_evolved.f_op > 1.0e-3
+                or general_ftl_evolved.max_local_speed > 1.0
+            ):
+                stack = find_recent_plotfiles(ctx.episode_dir, count=5)
+                if len(stack) >= 3:
+                    with PLOTFILE_READ_LOCK:
+                        evo_report = compute_evolving_geodesic_ftl_from_plotfiles(
+                            [str(p) for p in stack],
+                            n_space=65,
+                            half_width=ctx.ftl_L,
+                        )
+                    if evo_report is not None:
+                        evolving_geo = EvolvingGeodesicMetrics(
+                            f_geo=evo_report.f_geo,
+                            f_geo_frozen_peak=evo_report.f_geo_frozen_peak,
+                            t_emit=evo_report.t_emit,
+                            t_arrival=evo_report.t_arrival,
+                            t_flat=evo_report.t_flat,
+                            n_rays=evo_report.n_rays,
+                            n_reached=evo_report.n_reached,
+                            h_quality_ok=evo_report.h_quality_ok,
+                            max_h_rel_drift=evo_report.max_h_rel_drift,
+                        )
+                        json_path = ctx.episode_dir / "small_data" / "evolving_geodesic.json"
+                        write_evolving_geodesic_json(json_path, evo_report)
+                        patch_ftl_timeseries_evolving(
+                            ctx.ftl_timeseries_path,
+                            f_geo_evol=evo_report.f_geo,
+                            f_geo_evol_ok=(
+                                evo_report.h_quality_ok
+                                and evo_report.n_rays > 0
+                                and evo_report.n_reached == evo_report.n_rays
+                            ),
+                        )
+        except Exception:
+            evolving_geo = None
 
     boundary_flux = read_boundary_flux_metrics(ctx.boundary_flux_path)
     if boundary_flux is None:
@@ -225,6 +288,7 @@ def read_episode_metrics(
         mechanism_descriptor=mechanism_descriptor,
         effective_ec=effective_ec,
         geodesic_ftl=geodesic_ftl,
+        evolving_geodesic=evolving_geo,
         boundary_flux=boundary_flux,
         qei=qei,
         transport=transport,

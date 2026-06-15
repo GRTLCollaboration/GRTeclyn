@@ -125,6 +125,11 @@ def main() -> None:
         help="FTL probe half-width / corridor extent (matches collector ftl_L).",
     )
     parser.add_argument(
+        "--evolving-geodesic",
+        action="store_true",
+        help="Set GRTECLYN_EVOLVING_GEODESIC=1 for end-of-run 4D null trace scoring.",
+    )
+    parser.add_argument(
         "--incremental-score",
         action="store_true",
         help="After each FTL timeseries row, append prefix score to score_timeseries.jsonl.",
@@ -182,6 +187,8 @@ def main() -> None:
         help="Do not delete existing frames at startup.",
     )
     args = parser.parse_args()
+    if args.evolving_geodesic:
+        os.environ["GRTECLYN_EVOLVING_GEODESIC"] = "1"
 
     # Reduce yt logging overhead/spam (can be noisy in watch mode).
     try:
