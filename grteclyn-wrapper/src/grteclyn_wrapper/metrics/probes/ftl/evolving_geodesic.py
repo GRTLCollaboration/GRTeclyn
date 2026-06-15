@@ -328,10 +328,21 @@ def compute_evolving_geodesic_ftl_from_analytic(
     return compute_evolving_geodesic_ftl(field, n_rays=n_rays, h_tol=h_tol)
 
 
+def _json_safe(value: object) -> object:
+    """Coerce numpy scalars so ``json.dumps`` accepts probe reports."""
+    if isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, dict):
+        return {k: _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(v) for v in value]
+    return value
+
+
 def write_evolving_geodesic_json(path: Path, report: EvolvingGeodesicFtlReport) -> None:
     """Persist evolving geodesic report for scoring / inspection."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    payload = asdict(report)
+    payload = _json_safe(asdict(report))
     payload["notes"] = list(report.notes)
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 

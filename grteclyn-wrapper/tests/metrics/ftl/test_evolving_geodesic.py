@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+import json
+
 import numpy as np
 
 from grteclyn_wrapper.metrics.probes import warpfactory as wf
 from grteclyn_wrapper.metrics.probes.ftl.evolving_geodesic import (
+    EvolvingGeodesicFtlReport,
     compute_evolving_geodesic_ftl,
     compute_evolving_geodesic_ftl_from_analytic,
     compute_evolving_geodesic_ftl_from_plotfiles,
     integrate_null_ray_on_field,
+    write_evolving_geodesic_json,
 )
 from grteclyn_wrapper.metrics.probes.ftl.geodesic import (
     integrate_null_ray,
@@ -73,6 +77,27 @@ def test_alcubierre_evolving_finds_shortcut():
 
 def test_too_few_plotfiles_returns_none():
     assert compute_evolving_geodesic_ftl_from_plotfiles(["a", "b"]) is None
+
+
+def test_write_evolving_geodesic_json_handles_numpy_scalars(tmp_path):
+    report = EvolvingGeodesicFtlReport(
+        f_geo=np.float64(0.014),
+        f_geo_frozen_peak=np.float64(0.058),
+        t_emit=np.float64(0.0),
+        t_arrival=np.float64(14.2),
+        t_flat=np.float64(14.4),
+        n_rays=5,
+        n_reached=5,
+        max_h_drift=np.float64(0.002),
+        h_quality_ok=np.bool_(True),
+        max_h_rel_drift=np.float64(0.002),
+        notes=("numpy scalars",),
+    )
+    path = tmp_path / "evolving_geodesic.json"
+    write_evolving_geodesic_json(path, report)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert payload["f_geo"] == 0.014
+    assert payload["h_quality_ok"] is True
 
 
 def test_patch_ftl_timeseries_evolving_columns(tmp_path):

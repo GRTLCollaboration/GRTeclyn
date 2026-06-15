@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 from ..diagnostics import (
     read_collapse_metrics,
@@ -62,6 +65,142 @@ def _evolving_geodesic_enabled(evolving_geodesic: bool | None) -> bool:
         "yes",
         "true",
     }
+
+
+def _compute_evolving_geodesic_metrics(
+    ctx: EpisodeContext,
+    *,
+    general_ftl_evolved,
+    evolving_geodesic: bool | None,
+) -> EvolvingGeodesicMetrics | None:
+    """Run the opt-in 4D null trace and persist ``evolving_geodesic.json``."""
+    if not _evolving_geodesic_enabled(evolving_geodesic):
+        logger.debug("evolving geodesic disabled for %s", ctx.episode_dir)
+        return None
+
+    if general_ftl_evolved is None:
+        logger.info(
+            "evolving geodesic skipped for %s: no evolved FTL report",
+            ctx.episode_dir,
+        )
+        return None
+
+    if not (
+        general_ftl_evolved.f_op > 1.0e-3
+        or general_ftl_evolved.max_local_speed > 1.0
+    ):
+        logger.info(
+            "evolving geodesic skipped for %s: FTL gate not met "
+            "(f_op=%.3e, max_local_speed=%.3f)",
+            ctx.episode_dir,
+            general_ftl_evolved.f_op,
+            general_ftl_evolved.max_local_speed,
+        )
+        return None
+
+    cache_dir = metric_stack_dir(ctx.episode_dir / "small_data")
+    n_cached = slice_count(cache_dir)
+    logger.info(
+        "evolving geodesic start for %s (metric_stack slices=%d)",
+        ctx.episode_dir,
+        n_cached,
+    )
+
+    try:
+        evo_report = None
+        if n_cached >= 3:
+            logger.info(
+                "evolving geodesic using metric_stack cache at %s", cache_dir
+            )
+            evo_report = compute_evolving_geodesic_ftl_from_metric_stack_cache(
+                cache_dir,
+            )
+            if evo_report is None:
+                logger.warning(
+                    "metric_stack cache at %s had %d slices but returned no report",
+                    cache_dir,
+                    n_cached,
+                )
+
+        if evo_report is None:
+            stack = find_recent_plotfiles(ctx.episode_dir, count=5)
+            logger.info(
+                "evolving geodesic falling back to %d recent plotfiles",
+                len(stack),
+            )
+            if len(stack) >= 3:
+                with PLOTFILE_READ_LOCK:
+                    evo_report = compute_evolving_geodesic_ftl_from_plotfiles(
+                        [str(p) for p in stack],
+                        n_space=65,
+                        half_width=ctx.ftl_L,
+                    )
+            else:
+                logger.warning(
+                    "evolving geodesic skipped for %s: only %d plotfiles available",
+                    ctx.episode_dir,
+                    len(stack),
+                )
+
+        if evo_report is None:
+            logger.warning(
+                "evolving geodesic produced no report for %s", ctx.episode_dir
+            )
+            return None
+
+        logger.info(
+            "evolving geodesic done for %s: f_geo=%.4e frozen_peak=%s "
+            "t_emit=%.3f t_arrival=%s h_quality_ok=%s",
+            ctx.episode_dir,
+            float(evo_report.f_geo),
+            evo_report.f_geo_frozen_peak,
+            float(evo_report.t_emit),
+            evo_report.t_arrival,
+            bool(evo_report.h_quality_ok),
+        )
+
+        evolving_geo = EvolvingGeodesicMetrics(
+            f_geo=float(evo_report.f_geo),
+            f_geo_frozen_peak=(
+                float(evo_report.f_geo_frozen_peak)
+                if evo_report.f_geo_frozen_peak is not None
+                else None
+            ),
+            t_emit=float(evo_report.t_emit),
+            t_arrival=(
+                float(evo_report.t_arrival)
+                if evo_report.t_arrival is not None
+                else None
+            ),
+            t_flat=float(evo_report.t_flat),
+            n_rays=int(evo_report.n_rays),
+            n_reached=int(evo_report.n_reached),
+            h_quality_ok=bool(evo_report.h_quality_ok),
+            max_h_rel_drift=float(evo_report.max_h_rel_drift),
+        )
+        json_path = ctx.episode_dir / "small_data" / "evolving_geodesic.json"
+        write_evolving_geodesic_json(json_path, evo_report)
+        logger.info("wrote evolving geodesic report to %s", json_path)
+        patch_ftl_timeseries_evolving(
+            ctx.ftl_timeseries_path,
+            f_geo_evol=float(evo_report.f_geo),
+            f_geo_evol_ok=(
+                bool(evo_report.h_quality_ok)
+                and evo_report.n_rays > 0
+                and evo_report.n_reached == evo_report.n_rays
+            ),
+        )
+        logger.info(
+            "patched ftl_timeseries at %s with f_geo_evol=%.4e",
+            ctx.ftl_timeseries_path,
+            float(evo_report.f_geo),
+        )
+        return evolving_geo
+    except Exception:
+        logger.exception(
+            "evolving geodesic failed for %s", ctx.episode_dir
+        )
+        return None
 
 
 def read_episode_metrics(
@@ -142,53 +281,11 @@ def read_episode_metrics(
     except Exception:
         geodesic_ftl = None
 
-    evolving_geo = None
-    if _evolving_geodesic_enabled(evolving_geodesic):
-        try:
-            if general_ftl_evolved is not None and (
-                general_ftl_evolved.f_op > 1.0e-3
-                or general_ftl_evolved.max_local_speed > 1.0
-            ):
-                cache_dir = metric_stack_dir(ctx.episode_dir / "small_data")
-                evo_report = None
-                if slice_count(cache_dir) >= 3:
-                    evo_report = compute_evolving_geodesic_ftl_from_metric_stack_cache(
-                        cache_dir,
-                    )
-                if evo_report is None:
-                    stack = find_recent_plotfiles(ctx.episode_dir, count=5)
-                    if len(stack) >= 3:
-                        with PLOTFILE_READ_LOCK:
-                            evo_report = compute_evolving_geodesic_ftl_from_plotfiles(
-                                [str(p) for p in stack],
-                                n_space=65,
-                                half_width=ctx.ftl_L,
-                            )
-                if evo_report is not None:
-                    evolving_geo = EvolvingGeodesicMetrics(
-                        f_geo=evo_report.f_geo,
-                        f_geo_frozen_peak=evo_report.f_geo_frozen_peak,
-                        t_emit=evo_report.t_emit,
-                        t_arrival=evo_report.t_arrival,
-                        t_flat=evo_report.t_flat,
-                        n_rays=evo_report.n_rays,
-                        n_reached=evo_report.n_reached,
-                        h_quality_ok=evo_report.h_quality_ok,
-                        max_h_rel_drift=evo_report.max_h_rel_drift,
-                    )
-                    json_path = ctx.episode_dir / "small_data" / "evolving_geodesic.json"
-                    write_evolving_geodesic_json(json_path, evo_report)
-                    patch_ftl_timeseries_evolving(
-                        ctx.ftl_timeseries_path,
-                        f_geo_evol=evo_report.f_geo,
-                        f_geo_evol_ok=(
-                            evo_report.h_quality_ok
-                            and evo_report.n_rays > 0
-                            and evo_report.n_reached == evo_report.n_rays
-                        ),
-                    )
-        except Exception:
-            evolving_geo = None
+    evolving_geo = _compute_evolving_geodesic_metrics(
+        ctx,
+        general_ftl_evolved=general_ftl_evolved,
+        evolving_geodesic=evolving_geodesic,
+    )
 
     boundary_flux = read_boundary_flux_metrics(ctx.boundary_flux_path)
     if boundary_flux is None:
