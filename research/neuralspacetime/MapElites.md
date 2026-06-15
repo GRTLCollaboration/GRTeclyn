@@ -1,12 +1,12 @@
 # MAP-Elites + CMA-ES FTL Discovery — Matter-First Metric Discovery
 
-> Two-stage pipeline: **MAP-Elites** (wide survey) finds where good warps live in
+> Three-stage pipeline: **MAP-Elites** (wide survey) finds where good warps live in
 > the 23-D shell search space; **CMA-ES** (local refinement) hill-climbs around
-> the best *healthy* survivors to push shortcut size, persistence, and lower
-> exotic cost. Both stages share the same matter-first loop — propose lumps →
-> GRTresna constraint solve → GRTeclyn GPU evolution → time-resolved FTL probes →
-> score — but differ in how they propose the next candidate (diversity archive vs
-> covariance-matrix adaptation).
+> the best *healthy* survivors; **HQ promotion** re-runs the top QD + CMA-ES elites
+> at full resolution and extended time with incremental scoring. All stages share
+> the same matter-first loop — propose lumps → GRTresna constraint solve → GRTeclyn
+> GPU evolution → time-resolved FTL probes → score — but differ in proposer,
+> resolution, and stop time.
 
 ## Table of contents
 
@@ -28,6 +28,7 @@
 - [How to run a campaign](#how-to-run-a-campaign)
   - [MAP-Elites (QD)](#map-elites-q-d)
   - [CMA-ES refinement after MAP-Elites](#cma-es-refinement-after-map-elites)
+  - [HQ promotion (full resolution)](#hq-promotion-full-resolution)
 - [Campaign log / runs analysis](#campaign-log--runs-analysis) — quick index + reverse-chronological journal below
 
 ## The idea: matter-first, not metric-first
@@ -192,7 +193,10 @@ Two modes: `weighted` (plain sum) and `ftl_first` (validated FTL dominates).
 | Scoring (`ftl_first`, `robust_ftl`) | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/score/` |
 | Metric aggregation | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/aggregation/collector.py` |
 | FTL probes | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/probes/ftl/` |
-| Plotfile → frames + `ftl_timeseries.dat` | `grteclyn-wrapper/src/grteclyn_wrapper/visualisation/process_wave/consume_plotfiles.py` |
+| Plotfile → frames + `ftl_timeseries.dat` | `grteclyn-wrapper/src/grteclyn_wrapper/visualisation/process_wave/consume_plotfiles/` |
+| **Incremental HQ scoring** (`score_timeseries.jsonl`) | `metrics/aggregation/incremental.py`, wired in `consume_plotfiles/driver.py` |
+| HQ promotion launcher | `grteclyn-wrapper/scripts/search/run_promote_qd_batch.sh`, `replay_grtresna_eval.py` |
+| Frame → movie stitching | `grteclyn-wrapper/scripts/plot/make_movies.sh` |
 | Matter (evolution) | `Source/Matter/GRTresnaIndependentScalars.{hpp,impl.hpp}`, `Examples/RadialRecipe/` |
 | Matter (initial data) | `../GRTresna/Examples/ScalarFieldBH/` |
 | Campaign launcher (QD) | `grteclyn-wrapper/scripts/search/run_grtresna_qd_search.sh` |
@@ -301,12 +305,77 @@ nohup bash scripts/search/run_grtresna_search.sh \
 **Monitor:** `grep -a "\[optimize\]" ../runs/cmaes_ftl_v17_robust.launch.log | tail`;
 `cat runs/grtresna_cmaes/ftl_cmaes_v17_robust/ftl_champions.json`.
 
+### HQ promotion (full resolution)
+
+After QD + CMA-ES identify elites at **low resolution** (`N=128`, `L=64`, `max_level=2`,
+`t=16`), **HQ promotion** replays the same geometry genome with a fresh GRTresna solve
+and a long GPU evolution at **full resolution** (`N=256`, `L=128`, `max_level=3`, `t=30`).
+This is the stress test: does the shortcut survive finer grids and longer time?
+
+```mermaid
+flowchart LR
+  subgraph stage0 [Stage 0 — MAP-Elites QD]
+    QD[8×8 archive\n23-D shell space\nN=128 L=64 ml=2 t=16]
+  end
+  subgraph stage1 [Stage 1 — CMA-ES refine]
+    CMA[robust_ftl hill-climb\nwarm-start survivors\nsame grid as QD]
+  end
+  subgraph stage2 [Stage 2 — HQ promote]
+    HQ[Fresh GRTresna + GPU<br/>N=256 L=128 ml=3 t=30<br/>frames + incr. score]
+  end
+  QD -->|top f_geo / healthy| CMA
+  QD -->|top 3 MAP-Elites| HQ
+  CMA -->|winner eval 177| HQ
+  HQ --> OUT[score.json\nscore_timeseries.jsonl\nframes/movies]
+```
+
+| Stage | Script | Resolution | Stop time | Objective | Output dir |
+|-------|--------|------------|-----------|-----------|------------|
+| MAP-Elites | `run_grtresna_qd_search.sh` | 128³, L=64, ml=2 | 16 | `ftl_first` | `runs/grtresna_qd/ftl_discovery_v16/` |
+| CMA-ES | `run_grtresna_search.sh` | 128³, L=64, ml=2 | 16 | `robust_ftl` | `runs/grtresna_cmaes/ftl_cmaes_v17_robust/` |
+| HQ promote | `run_promote_qd_batch.sh` → `replay_grtresna_eval.py` | **256³, L=128, ml=3** | **30** | `ftl_first` | `runs/grtresna_promote/l128n256t30_*/` |
+
+**Candidate pick (this batch):** CMA-ES winner **eval 177** plus MAP-Elites v16 top 3 by
+`ftl_first` score — evals **233**, **446**, **676** (not the raw-speed outlier eval 643).
+
+**Launch (2026-06-15):**
+
+```bash
+cd grteclyn-wrapper
+CANDIDATES="177 3 233 0 446 1 676 2" \
+  QD_RUN=/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/ftl_discovery_v16 \
+  NAME_PREFIX=l128n256t30 \
+  RUNS_DIR=/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_promote \
+  N_FULL=256 L_FULL=128 STOP_TIME=30 PLOT_INTERVAL=24 MAX_LEVEL=3 \
+  bash scripts/search/run_promote_qd_batch.sh
+# eval 177 sourced from runs/grtresna_cmaes/ftl_cmaes_v17_robust/eval_000177
+```
+
+**Incremental scoring (new in this HQ batch).** The plotfile consumer appends one JSON
+line per plotfile to `small_data/score_timeseries.jsonl` by re-scoring the prefix of
+`ftl_timeseries.dat`, `collapse_diagnostics.dat`, and `constraint_norms.dat` with the
+same `ftl_first` objective as the final `score.json`. Monitor mid-run score drift:
+
+```bash
+tail -f runs/grtresna_promote/l128n256t30_*/small_data/score_timeseries.jsonl
+```
+
+**Movies from in-flight frames:**
+
+```bash
+bash scripts/plot/make_movies.sh runs/grtresna_promote/l128n256t30_* --framerate 10
+```
+
+See [HQ promotion results (2026-06-15)](#hq-promotion-after-v16-qd--v17-cma-es-2026-06-15)
+for analytics.
+
 ## Campaign log / runs analysis
 
 Reverse-chronological journal below. Quick index:
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
+| [**HQ promotion: v16 + v17 CMA-ES**](#hq-promotion-after-v16-qd--v17-cma-es-2026-06-15) | **06-15 done** | 4/4 complete. **Incr. peak eval 233 score 749** @ t≈12; only **eval 177** finishes positive (+67). Horizon kills 3/4 by t=30 |
 | [**v17: CMA-ES robust refinement**](#v17-cma-es-robust-refinement-after-v16-2026-06-14) | 06-14 → **06-15 done** | **200 evals.** Winner eval **177**: f_geo **5.65%**, timeavg **16.3%**, exotic **−1.17**. Peak f_geo **eval 78** at **5.68%** |
 | [**v16: FTL champion retention + horizon fix**](#v16-ftl-champion-retention-2026-06-13) | 06-13 | FTL hall of fame (`ftl_retention.jsonl`). Horizon penalty needs lapse corroboration. ~971 evals |
 | [**v15: time-resolved FTL scoring**](#v15-time-resolved-intermediate-ftl-scoring-2026-06-13) | 06-13 | Per-frame `ftl_timeseries.dat`; time-averaged geodesic score; `ftl_lifetime` axis. Eval 231 peak **7.43%** at t=9.6 |
@@ -361,6 +430,133 @@ Score progression: gen 1 → 227, gen 23 → **312.2** (plateau). Same basin as 
 
 **Takeaway:** CMA-ES (~20% of v16 eval count) delivered +0.26 pp f_geo, +2.3 pp
 timeavg, −11% exotic vs seed 739.
+
+**Next step:** [HQ promotion](#hq-promotion-after-v16-qd--v17-cma-es-2026-06-15) of eval
+**177** (CMA-ES) + v16 top 3 (**233**, **446**, **676**) at N=256, t=30 — completed same day.
+
+## HQ promotion after v16 QD + v17 CMA-ES (2026-06-15)
+
+**Context.** First HQ batch since [v9](#hq-verdict-shortcuts-did-not-survive-refinement--ftl_discovery_v10-2026-06-11)
+with working geodesic probes and time-averaged scoring. Promotes the **best FTL geometry**
+from each search line: MAP-Elites v16 (`ftl_first`, ~971 evals) and CMA-ES v17
+(`robust_ftl`, 200 evals). Adds **incremental scoring** so mid-run score peaks are
+recorded before final `score.json`.
+
+**HQ configuration**
+
+| Knob | QD / CMA-ES | HQ promotion |
+|------|-------------|--------------|
+| `N_full` / `L_full` | 128 / 64 | **256 / 128** |
+| `max_level` | 2 | **3** |
+| `stop_time` | 16 | **30** |
+| `plot_interval` | 320 (→ ~3.2 code units) | **24** (→ ~0.24 code units) |
+| Objective | QD: `ftl_first`; CMA-ES: `robust_ftl` | **`ftl_first`** (all four) |
+| Frames | QD: off; HQ: **on** | PNG slices + mp4 movies |
+| Incremental score | — | **`score_timeseries.jsonl`** per plotfile |
+
+**Candidates**
+
+| HQ dir | Source campaign | QD/CMA-ES score | Lumps @ t=0 | Notes |
+|--------|-----------------|-----------------|-------------|-------|
+| `…_eval000177` | CMA-ES v17 | 312 (`robust_ftl`) | **Dynamic** (moving) | Only HQ finish without horizon |
+| `…_eval000233` | MAP-Elites v16 | 652 (`ftl_first`) | **Static** (`shell_static→1`) | Best incremental peak |
+| `…_eval000446` | MAP-Elites v16 | 540 | **Static** | Strong mid-run f_geo |
+| `…_eval000676` | MAP-Elites v16 | 393 | **Static** | FTL faded earliest |
+
+Static lumps: `grtresna_shell_static` rounds to 1 → all lump velocities/ω zeroed in
+GRTresna; FTL channel is geometry + `shift_seed`, not matter currents. Eval 177 is the
+only **dynamic** (momentum-carrying) candidate.
+
+### Results — QD vs incremental peak vs final
+
+| Eval | QD score | **Incr. peak** (t) | f_geo @ peak | **Final** (t=30) | Horizon |
+|------|----------|-------------------|--------------|------------------|---------|
+| **233** | 652 | **749** (t≈11.8) | 6.33% | **−378** | −500 @ t≈20.6 |
+| **446** | 540 | **701** (t≈11.8) | 5.45% | **−481** | −500 @ t≈29.3 |
+| **676** | 393 | **658** (t≈10.6) | 2.88% | **−533** | −500 @ t≈19.0 |
+| **177** | 312 | **301** (t≈9.1) | 5.72% | **+67** | **none** |
+
+**Best HQ FTL (incremental peak):** eval **233** — score **749**, raw `f_geo_peak` **6.85%**
+@ t≈9.4 (above its QD score 652). **Best final score:** eval **177** (+67) — only run
+without corroborated horizon; final `f_geo` ≈ 0 but survival/health intact.
+
+**vs v9 HQ ([2026-06-11](#hq-verdict-shortcuts-did-not-survive-refinement--ftl_discovery_v10-2026-06-11)):**
+v9 shortcuts died completely at HQ (f_geo→0, low survival). This batch **does** produce
+real mid-run geodesic shortcuts at HQ resolution (5–7% f_geo, scores 300–750) — they
+**do not persist** to t=30 on the v16 static-lump elites because of horizon formation +
+FTL fade.
+
+### Incremental score analytics
+
+All four jobs wrote `small_data/score_timeseries.jsonl` (111–126 rows). Typical **four
+phases** (same pattern as [v15 time-resolved scoring](#v15-time-resolved-intermediate-ftl-scoring-2026-06-13)):
+
+1. **Negative plateau** (t≈0–2): `f_geo=0` → geodesic contradiction gate zeros FTL
+   shaping; only `exotic_penalty` bites (score ≈ −16 to −25).
+2. **Rise** (t≈2–6): trustworthy geodesic shortcut appears → score jumps positive.
+3. **Peak** (t≈9–12): best FTL + survival; **trust these scores**, not the final.
+4. **Decline** (t≈12–30): `f_geo→0`, structure dissipates; v16 jobs hit **horizon_penalty
+   −500** (corroborated trapped surface); final scores floor near −400 to −530.
+
+**Per-eval timeline**
+
+| Eval | Score flips + | Peak score @ t | f_geo→0 after peak @ t | Horizon @ t |
+|------|---------------|----------------|------------------------|-------------|
+| 177 | t≈1.9 | 301 @ 9.1 | t≈18.2 | — |
+| 233 | t≈5.0 | 749 @ 11.8 | t≈21.8 | 20.6 |
+| 446 | t≈0 (solved f_geo) | 701 @ 11.8 | t≈19.9 | 29.3 |
+| 676 | t≈5.3 | 658 @ 10.6 | t≈11.8 | 19.0 |
+
+**Why early incremental scores look negative vs QD/CMA-ES.** Incremental rows use
+prefix survival (`t/30`), prefix constraints, and the geodesic gate at each frame — a
+t=0.5 snapshot is not comparable to a t=16 final score. Compare like with like: peak
+incremental row vs QD final, or wait for t≈16 rows.
+
+**Example monitor commands**
+
+```bash
+# live incremental scores
+tail -f runs/grtresna_promote/l128n256t30_ftl_discovery_v16_qd_eval000233/small_data/score_timeseries.jsonl
+
+# per-frame FTL (same times as score rows)
+column -t runs/grtresna_promote/l128n256t30_*/small_data/ftl_timeseries.dat | less
+```
+
+### Code fixes shipped for this HQ batch
+
+1. **`regrid_interval` vs `max_level`** — HQ `max_level=3` requires three `regrid_interval`
+   entries; promotion now generates them via `regrid_intervals_for_max_level()` in
+   `replay_grtresna_eval.py` (fixed eval 177 GRTresna abort on first attempt).
+2. **`IncrementalScoreWriter`** — `metrics/aggregation/incremental.py`; wired through
+   `plot_consumer.py` → `consume_plotfiles/driver.py` with `--incremental-score`,
+   `--objective-mode ftl_first`, `--target-stop-time 30`.
+
+Tests: `tests/metrics/aggregation/test_incremental_score.py`.
+
+### Artifacts
+
+```
+runs/grtresna_promote/
+  l128n256t30_ftl_cmaes_v17_robust_qd_eval000177/   # dynamic lumps, final +67
+  l128n256t30_ftl_discovery_v16_qd_eval000233/       # peak incr. 749
+  l128n256t30_ftl_discovery_v16_qd_eval000446/
+  l128n256t30_ftl_discovery_v16_qd_eval000676/
+    score.json                          # final aggregate
+    small_data/score_timeseries.jsonl   # incremental score trace
+    small_data/ftl_timeseries.dat       # per-frame FTL probes
+    frames/*/movie_*.mp4                # from make_movies.sh
+```
+
+### Takeaways
+
+1. **HQ resolution confirms real shortcuts** — peak f_geo **6.85%** (eval 233) exceeds
+   QD t=16 peaks; the v16 search found genuine geometry, not a grid artifact.
+2. **Final t=30 score is the wrong metric for these elites** — horizon + FTL fade dominate;
+   use **`score_timeseries.jsonl` peak** or stop HQ earlier (~t≈12) for ranking.
+3. **Static-lump v16 winners are horizon-prone** at long times; eval **177** (dynamic +
+   CMA-ES refined) is the only candidate that survives t=30 without −500 veto.
+4. **Next experiments:** HQ stop at t≈16 for apples-to-apples QD comparison; promote
+   CMA-ES-only line; try `robust_ftl` incremental objective to match CMA-ES training.
 
 ## v16: FTL champion retention (2026-06-13)
 
