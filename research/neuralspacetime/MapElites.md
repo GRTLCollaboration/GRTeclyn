@@ -422,6 +422,50 @@ Local refinement around **OBSERVER_EC** survivors, not raw-score king eval 233.
 | Exotic penalty | −1.32 | −1.60 | **−1.17** |
 | Comoving stability | 0.53 | 0.05 | **0.75** |
 
+### Eval 177 — FTL vs time and score breakdown (CMA-ES winner)
+
+Source: `runs/grtresna_cmaes/ftl_cmaes_v17_robust/eval_000177/` (`ftl_timeseries.dat`,
+`score.json`). QD grid N=128, L=64, ml=2, t=16; **7 plotfile frames**; objective
+`robust_ftl` → **total 312.2**.
+
+**Per-frame FTL** — gauge-invariant shortcut absent at t=0, peaks mid-run, diffuses by t=16:
+
+| t | f_geo | f_op | max c | superlum. frac | geo trustworthy | geodesic ramp† |
+|---|-------|------|-------|----------------|-----------------|----------------|
+| 0.0 | 0.00% | 2.93% | 1.22 | 21.3% | yes (5/5) | 0.000 |
+| 3.2 | 3.05% | 4.44% | 1.18 | 35.0% | yes | 0.148 |
+| 6.4 | 5.45% | 4.75% | 1.18 | 55.1% | yes | 0.269 |
+| **9.6** | **5.65%** | 4.69% | 1.20 | **63.8%** | yes | **0.279** |
+| 12.8 | 4.34% | 3.65% | 1.19 | 63.1% | yes | 0.213 |
+| 16.0 | 2.38% | 2.20% | 1.19 | 61.2% | yes | 0.115 |
+
+† Per-frame ramp `(f_geo − 1e-3)/(0.2 − 1e-3)` when trustworthy; headline
+`operational_ftl_geodesic` = **mean** of these × `structural_persistence` → **0.163**
+(16.3% timeavg). `ftl_lifetime` = **86%** (6/7 frames with f_geo &gt; 0.1%). Peak
+f_geo at **t≈9.6**; coordinate f_op peaks earlier at **t≈6.4** (4.75%).
+
+**`robust_ftl` score components** — how FTL-related terms add up to 312.2:
+
+| Component | Value | Weight | Points | Role |
+|-----------|-------|--------|--------|------|
+| `operational_ftl_geodesic` | 0.163 | ×1000 | **+163** | Time-averaged gauge-invariant shortcut (dominant) |
+| `survival` | 1.00 | ×150‡ | **+133** | Full structural persistence (gate ×0.888) |
+| `exotic_penalty` | −1.17 | ×70 | **−82** | Negative-energy matter cost |
+| `channel_progress` | 0.46 | ×60 | +28 | Evolved coordinate channel (weak; not certified FTL) |
+| `operational_ftl_solved` | 0.77 | ×30 | +23 | t=0 coordinate hint (down-gated, delocalized) |
+| `ftl_precursor` | 0.89 | ×20 | +18 | Cone-tilt shaping gradient |
+| `comoving_stability` | 0.75 | ×20‡ | +13 | Warp holds shape (β_mean≈0.52) |
+| `operational_ftl` | 0.00 | ×200 | 0 | Zeroed — no strong evolved end-to-end shortcut |
+| `ftl_persistence` | 0.00 | ×500 | 0 | Final-frame persistence gate did not fire |
+
+‡ Health block multiplied by `nontriviality_gate` (0.888). Other health/penalty terms
+(stability, instability, constraint_health, shift_drive, …) sum the remaining ~+25 pts.
+
+**Readout:** ~52% of the score is time-averaged geodesic FTL; ~43% is health/survival;
+exotic penalty is the main drag (−26%). Coordinate metrics (`f_op`, max c, superluminal
+fraction) stay high through t=16 even as **f_geo** falls — the scorer weights only the
+gauge-invariant time-mean, not the late coordinate channel.
+
 FTL champions: peak f_geo **eval 78** (5.68%); best `robust_ftl` **eval 177**.
 Score progression: gen 1 → 227, gen 23 → **312.2** (plateau). Same basin as 739
 (Δparams &lt;0.15); exotic_penalty fell despite knob nudge up.
