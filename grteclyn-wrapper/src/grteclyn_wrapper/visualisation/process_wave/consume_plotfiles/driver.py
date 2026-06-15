@@ -28,6 +28,8 @@ from .plotfiles import (
 from .state import _append_line, _load_state, _save_state
 from .worker import _process_single_plotfile
 
+from grteclyn_wrapper.metrics.aggregation.incremental import IncrementalScoreWriter
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(
@@ -123,6 +125,30 @@ def main() -> None:
         help="FTL probe half-width / corridor extent (matches collector ftl_L).",
     )
     parser.add_argument(
+        "--incremental-score",
+        action="store_true",
+        help="After each FTL timeseries row, append prefix score to score_timeseries.jsonl.",
+    )
+    parser.add_argument(
+        "--objective-mode",
+        default="weighted",
+        choices=["weighted", "ftl_first", "robust_ftl"],
+        help="Objective mode for incremental scoring (matches final score_episode).",
+    )
+    parser.add_argument(
+        "--target-stop-time",
+        type=float,
+        default=None,
+        help="Configured stop time for survival fraction in incremental scores.",
+    )
+    parser.add_argument(
+        "--score-weight",
+        action="append",
+        default=[],
+        metavar="KEY=VALUE",
+        help="Score weight override for incremental scoring (repeatable).",
+    )
+    parser.add_argument(
         "--embedding",
         action="store_true",
         help="Render 3D embedding-diagram frames (surface of revolution from chi profile).",
@@ -172,6 +198,7 @@ def main() -> None:
     shell_out_path = out_dir / "shell_profiles.dat"
     boundary_flux_out_path = out_dir / "boundary_flux.dat"
     ftl_out_path = out_dir / "ftl_timeseries.dat"
+    score_ts_path = out_dir / "score_timeseries.jsonl"
     header = "# time  " + "  ".join([f"Re(R={R:g})  Im(R={R:g})" for R in args.radii])
     areal_header = "# time  R_areal_min  r_at_R_areal_min"
     shell_header = _shell_stats_header(args.radii, args.shell_fields)
@@ -189,8 +216,41 @@ def main() -> None:
             _truncate_if_exists(shell_out_path)
         if args.ftl_timeseries:
             _truncate_if_exists(ftl_out_path)
+        if args.incremental_score:
+            _truncate_if_exists(score_ts_path)
         _save_state(state_path, {})
         state = {}
+
+    score_weights = {}
+    for pair in args.score_weight:
+        if "=" in pair:
+            key, value = pair.split("=", 1)
+            score_weights[key.strip()] = float(value.strip())
+
+    incremental_writer: IncrementalScoreWriter | None = None
+    if args.incremental_score and args.ftl_timeseries:
+        incremental_writer = IncrementalScoreWriter(
+            Path(data_dir),
+            objective_mode=args.objective_mode,
+            target_stop_time=args.target_stop_time,
+            ftl_L=args.ftl_l,
+            score_weights=score_weights or None,
+            out_path=score_ts_path,
+        )
+
+    def _append_incremental_score(t: float) -> None:
+        if incremental_writer is None:
+            return
+        try:
+            record = incremental_writer.append(t)
+            if record is not None and args.verbose:
+                print(
+                    f"[score] t={record['t']:.3g} total={record['score']:.2f} "
+                    f"f_geo={record['f_geo'] * 100:.2f}% horizon={record['horizon_penalty']:.2f}",
+                    flush=True,
+                )
+        except Exception as exc:  # noqa: BLE001 - scoring must not stop the consumer
+            print(f"WARNING: incremental score at t={t:.6g} failed: {exc}")
 
     # If rendering frames, clear existing frames for the requested fields/axis at startup.
     frame_fields_startup = [_canonical_field_name(f) for f in args.frames_fields]
@@ -299,6 +359,7 @@ def main() -> None:
                                     header=FTL_TIMESERIES_HEADER,
                                     line=res["ftl_line"],
                                 )
+                                _append_incremental_score(float(res["t"]))
 
                             state[res["key"]] = True
                             _save_state(state_path, state)
@@ -334,6 +395,7 @@ def main() -> None:
                             header=FTL_TIMESERIES_HEADER,
                             line=res["ftl_line"],
                         )
+                        _append_incremental_score(float(res["t"]))
 
                     state[res["key"]] = True
                     _save_state(state_path, state)

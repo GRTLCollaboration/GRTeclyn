@@ -198,6 +198,10 @@ def evaluate_overrides(
                 consumer_keep_last=consumer_keep_last,
                 consumer_ftl_timeseries=consumer_ftl_timeseries,
                 consumer_ftl_L=ftl_L,
+                consumer_incremental_score=consumer_ftl_timeseries,
+                consumer_objective_mode=objective_mode,
+                consumer_target_stop_time=target_stop_time,
+                consumer_score_weights=score_weights,
             )
             exit_code = result.returncode
         except Exception as exc:  # noqa: BLE001 - record and continue

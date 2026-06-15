@@ -245,6 +245,10 @@ def _objective(
                 consumer_keep_last=consumer_keep_last,
                 consumer_ftl_timeseries=consume_plotfiles,
                 consumer_ftl_L=ftl_L,
+                consumer_incremental_score=consume_plotfiles,
+                consumer_objective_mode=objective_mode,
+                consumer_target_stop_time=target_stop_time,
+                consumer_score_weights=score_weights,
             )
             exit_code = result.returncode
         except Exception as exc:

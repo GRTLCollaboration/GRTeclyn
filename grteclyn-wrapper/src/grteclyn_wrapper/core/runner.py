@@ -99,6 +99,10 @@ def start_plotfile_consumer(
     jobs: int = 4,
     ftl_timeseries: bool = False,
     ftl_L: float | None = None,
+    incremental_score: bool = True,
+    objective_mode: str = "weighted",
+    target_stop_time: float | None = None,
+    score_weights: Mapping[str, float] | None = None,
 ) -> subprocess.Popen[str]:
     profile = (
         "wormhole"
@@ -119,6 +123,10 @@ def start_plotfile_consumer(
         frames=frames,
         ftl_timeseries=ftl_timeseries,
         ftl_L=ftl_L,
+        incremental_score=incremental_score,
+        objective_mode=objective_mode,
+        target_stop_time=target_stop_time,
+        score_weights=score_weights,
     )
 
     log = episode.log_path.open("a", encoding="utf-8")
@@ -163,6 +171,10 @@ def drain_plotfile_backlog(
     jobs: int = 4,
     ftl_timeseries: bool = False,
     ftl_L: float | None = None,
+    incremental_score: bool = True,
+    objective_mode: str = "weighted",
+    target_stop_time: float | None = None,
+    score_weights: Mapping[str, float] | None = None,
 ) -> RunResult:
     """Process any plotfiles left after the watch consumer stops."""
     profile = (
@@ -186,6 +198,10 @@ def drain_plotfile_backlog(
         stable_seconds=0.0,
         ftl_timeseries=ftl_timeseries,
         ftl_L=ftl_L,
+        incremental_score=incremental_score,
+        objective_mode=objective_mode,
+        target_stop_time=target_stop_time,
+        score_weights=score_weights,
     )
     return _run_and_tee(command, episode.log_path, cwd=REPO_ROOT)
 
@@ -203,6 +219,10 @@ def run_episode(
     consumer_keep_last: int = 1,
     consumer_ftl_timeseries: bool = False,
     consumer_ftl_L: float | None = None,
+    consumer_incremental_score: bool = True,
+    consumer_objective_mode: str = "weighted",
+    consumer_target_stop_time: float | None = None,
+    consumer_score_weights: Mapping[str, float] | None = None,
 ) -> RunResult:
     example_dir = executable.example.dir
     if not executable.path.exists():
@@ -239,6 +259,10 @@ def run_episode(
             frames=True,
             ftl_timeseries=consumer_ftl_timeseries,
             ftl_L=consumer_ftl_L,
+            incremental_score=consumer_incremental_score,
+            objective_mode=consumer_objective_mode,
+            target_stop_time=consumer_target_stop_time,
+            score_weights=consumer_score_weights,
         )
 
     try:

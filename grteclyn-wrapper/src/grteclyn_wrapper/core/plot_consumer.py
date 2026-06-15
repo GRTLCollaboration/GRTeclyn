@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
-from typing import Literal, Sequence
+from typing import Literal, Mapping, Sequence
 
 from .config import REPO_ROOT, WRAPPER_ROOT
 from .episode import Episode
@@ -69,6 +69,10 @@ def build_consume_command(
     stable_seconds: float | None = None,
     ftl_timeseries: bool = False,
     ftl_L: float | None = None,
+    incremental_score: bool = True,
+    objective_mode: str = "weighted",
+    target_stop_time: float | None = None,
+    score_weights: Mapping[str, float] | None = None,
 ) -> list[str]:
     """Return argv for streaming plotfile extraction into episode/small_data."""
     center = _read_vector_param(episode.params_path, "center", (0.0, 0.0, 0.0))
@@ -123,6 +127,22 @@ def build_consume_command(
         command.append("--ftl-timeseries")
         if ftl_L is not None:
             command.extend(["--ftl-l", f"{float(ftl_L):g}"])
+        if incremental_score:
+            stop_time = target_stop_time
+            if stop_time is None:
+                stop_time = _read_float_param(episode.params_path, "stop_time", 16.0)
+            command.extend(
+                [
+                    "--incremental-score",
+                    "--objective-mode",
+                    str(objective_mode),
+                    "--target-stop-time",
+                    f"{float(stop_time):g}",
+                ]
+            )
+            if score_weights:
+                for key, value in score_weights.items():
+                    command.extend(["--score-weight", f"{key}={value:g}"])
 
     if profile == "wormhole":
         command.extend(

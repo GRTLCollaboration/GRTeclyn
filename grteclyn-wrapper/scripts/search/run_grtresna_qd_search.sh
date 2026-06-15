@@ -179,6 +179,15 @@ if [[ "${DRY_RUN:-0}" == "1" ]]; then
   DRY_RUN_ARGS=(--dry-run)
 fi
 
+OBJECTIVE_MODE="${OBJECTIVE_MODE:-ftl_first}"
+SCORE_WEIGHT_ARGS=()
+if [[ -n "${SCORE_WEIGHTS:-}" ]]; then
+  # shellcheck disable=SC2206
+  for pair in ${SCORE_WEIGHTS}; do
+    SCORE_WEIGHT_ARGS+=(--score-weight "${pair}")
+  done
+fi
+
 DOMAIN_ARGS=(
   --grtresna-evolution-l-full "${GRTRESNA_EVOLUTION_L_FULL}"
   --grtresna-evolution-n-full "${GRTRESNA_EVOLUTION_N_FULL}"
@@ -220,9 +229,10 @@ exec ${PYTHON_BIN} -m grteclyn_wrapper \
   --consumer-keep-last "${CONSUMER_KEEP_LAST}" \
   --consumer-radii ${CONSUMER_RADII} \
   --ftl-L "${FTL_L}" \
+  "${SCORE_WEIGHT_ARGS[@]}" \
   qd \
   --descriptor-mode "${DESCRIPTOR_MODE}" \
-  --objective-mode ftl_first \
+  --objective-mode "${OBJECTIVE_MODE}" \
   --iterations "${QD_ITERATIONS}" \
   --keep-top-eval-dirs "${QD_KEEP_TOP_EVAL_DIRS}" \
   "${FTL_RETENTION_ARGS[@]}" \
