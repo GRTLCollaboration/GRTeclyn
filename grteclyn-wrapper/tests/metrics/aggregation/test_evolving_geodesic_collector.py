@@ -86,11 +86,20 @@ def test_collector_writes_evolving_geodesic_when_flag_on(tmp_path: Path) -> None
             return_value=None,
         ),
         patch(
-            "grteclyn_wrapper.metrics.aggregation.collector.compute_evolving_geodesic_ftl_from_plotfiles",
+            "grteclyn_wrapper.metrics.aggregation.collector.compute_evolving_geodesic_ftl_from_metric_stack_cache",
             return_value=fake_report,
         ),
+        patch(
+            "grteclyn_wrapper.metrics.aggregation.collector.slice_count",
+            return_value=3,
+        ),
+        patch(
+            "grteclyn_wrapper.metrics.aggregation.collector.compute_evolving_geodesic_ftl_from_plotfiles",
+        ) as plotfiles_mock,
     ):
         metrics = read_episode_metrics(episode, ftl_L=8.0, evolving_geodesic=True)
+
+    plotfiles_mock.assert_not_called()
 
     assert metrics.evolving_geodesic is not None
     assert metrics.evolving_geodesic.f_geo == 0.22

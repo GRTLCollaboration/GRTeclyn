@@ -166,6 +166,28 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
                 verbose=args_dict.get("verbose", False),
             )
 
+        if args_dict.get("metric_stack_cache"):
+            try:
+                from grteclyn_wrapper.metrics.probes.ftl.metric_stack_cache import (
+                    DEFAULT_N_SPACE,
+                    append_slice_from_plotfile,
+                    metric_stack_dir,
+                )
+
+                cache_dir = metric_stack_dir(Path(args_dict["out"]))
+                append_slice_from_plotfile(
+                    p,
+                    cache_dir,
+                    t=t,
+                    n_space=int(args_dict.get("metric_stack_n_space", DEFAULT_N_SPACE)),
+                    half_width=args_dict.get("ftl_l"),
+                )
+                result["metric_stack_cached"] = True
+            except Exception as exc:
+                result["metric_stack_cached"] = False
+                if args_dict.get("verbose", False):
+                    print(f"WARNING: metric stack cache failed for {key}: {exc}")
+
         result["success"] = bool(
             result["psi4_line"]
             or result["areal_line"]

@@ -305,22 +305,15 @@ def integrate_null_ray(
     )
 
 
-def _geodesic_report_at_resolution(
-    plotfile: str | Path,
+def geodesic_report_from_metric_g(
+    g: NDArray[np.float64],
+    origin: NDArray[np.float64],
+    spacing: Sequence[float],
     *,
-    n: int,
-    half_width: float | None,
     n_rays: int,
     h_tol: float,
-) -> GeodesicFtlReport | None:
-    """Run a fan of null rays across the x-z midplane and return ``f_geo``."""
-    try:
-        g, origin, spacing = build_metric_3d_from_plotfile(
-            plotfile, n=n, half_width=half_width
-        )
-    except Exception:
-        return None
-
+) -> GeodesicFtlReport:
+    """Run a fan of null rays on a pre-sampled static 4-metric grid."""
     dg_inv = partial_inverse_metric(g, spacing)
     shape = g.shape[:3]
     cy = origin[1] + 0.5 * (shape[1] - 1) * spacing[1]
@@ -384,6 +377,26 @@ def _geodesic_report_at_resolution(
         h_quality_ok=h_ok,
         max_h_rel_drift=max_h_rel,
         notes=tuple(notes),
+    )
+
+
+def _geodesic_report_at_resolution(
+    plotfile: str | Path,
+    *,
+    n: int,
+    half_width: float | None,
+    n_rays: int,
+    h_tol: float,
+) -> GeodesicFtlReport | None:
+    """Run a fan of null rays across the x-z midplane and return ``f_geo``."""
+    try:
+        g, origin, spacing = build_metric_3d_from_plotfile(
+            plotfile, n=n, half_width=half_width
+        )
+    except Exception:
+        return None
+    return geodesic_report_from_metric_g(
+        g, origin, spacing, n_rays=n_rays, h_tol=h_tol
     )
 
 

@@ -36,10 +36,12 @@ from ..probes.ftl.geodesic import (
     compute_trajectory_qei_from_plotfile,
 )
 from ..probes.ftl.evolving_geodesic import (
+    compute_evolving_geodesic_ftl_from_metric_stack_cache,
     compute_evolving_geodesic_ftl_from_plotfiles,
     patch_ftl_timeseries_evolving,
     write_evolving_geodesic_json,
 )
+from ..probes.ftl.metric_stack_cache import metric_stack_dir, slice_count
 from ..probes.physical import compute_physical_metrics
 from ..probes.warpfactory import effective_energy_conditions_from_plotfiles
 from ..types.diagnostics import (
@@ -147,37 +149,44 @@ def read_episode_metrics(
                 general_ftl_evolved.f_op > 1.0e-3
                 or general_ftl_evolved.max_local_speed > 1.0
             ):
-                stack = find_recent_plotfiles(ctx.episode_dir, count=5)
-                if len(stack) >= 3:
-                    with PLOTFILE_READ_LOCK:
-                        evo_report = compute_evolving_geodesic_ftl_from_plotfiles(
-                            [str(p) for p in stack],
-                            n_space=65,
-                            half_width=ctx.ftl_L,
-                        )
-                    if evo_report is not None:
-                        evolving_geo = EvolvingGeodesicMetrics(
-                            f_geo=evo_report.f_geo,
-                            f_geo_frozen_peak=evo_report.f_geo_frozen_peak,
-                            t_emit=evo_report.t_emit,
-                            t_arrival=evo_report.t_arrival,
-                            t_flat=evo_report.t_flat,
-                            n_rays=evo_report.n_rays,
-                            n_reached=evo_report.n_reached,
-                            h_quality_ok=evo_report.h_quality_ok,
-                            max_h_rel_drift=evo_report.max_h_rel_drift,
-                        )
-                        json_path = ctx.episode_dir / "small_data" / "evolving_geodesic.json"
-                        write_evolving_geodesic_json(json_path, evo_report)
-                        patch_ftl_timeseries_evolving(
-                            ctx.ftl_timeseries_path,
-                            f_geo_evol=evo_report.f_geo,
-                            f_geo_evol_ok=(
-                                evo_report.h_quality_ok
-                                and evo_report.n_rays > 0
-                                and evo_report.n_reached == evo_report.n_rays
-                            ),
-                        )
+                cache_dir = metric_stack_dir(ctx.episode_dir / "small_data")
+                evo_report = None
+                if slice_count(cache_dir) >= 3:
+                    evo_report = compute_evolving_geodesic_ftl_from_metric_stack_cache(
+                        cache_dir,
+                    )
+                if evo_report is None:
+                    stack = find_recent_plotfiles(ctx.episode_dir, count=5)
+                    if len(stack) >= 3:
+                        with PLOTFILE_READ_LOCK:
+                            evo_report = compute_evolving_geodesic_ftl_from_plotfiles(
+                                [str(p) for p in stack],
+                                n_space=65,
+                                half_width=ctx.ftl_L,
+                            )
+                if evo_report is not None:
+                    evolving_geo = EvolvingGeodesicMetrics(
+                        f_geo=evo_report.f_geo,
+                        f_geo_frozen_peak=evo_report.f_geo_frozen_peak,
+                        t_emit=evo_report.t_emit,
+                        t_arrival=evo_report.t_arrival,
+                        t_flat=evo_report.t_flat,
+                        n_rays=evo_report.n_rays,
+                        n_reached=evo_report.n_reached,
+                        h_quality_ok=evo_report.h_quality_ok,
+                        max_h_rel_drift=evo_report.max_h_rel_drift,
+                    )
+                    json_path = ctx.episode_dir / "small_data" / "evolving_geodesic.json"
+                    write_evolving_geodesic_json(json_path, evo_report)
+                    patch_ftl_timeseries_evolving(
+                        ctx.ftl_timeseries_path,
+                        f_geo_evol=evo_report.f_geo,
+                        f_geo_evol_ok=(
+                            evo_report.h_quality_ok
+                            and evo_report.n_rays > 0
+                            and evo_report.n_reached == evo_report.n_rays
+                        ),
+                    )
         except Exception:
             evolving_geo = None
 

@@ -29,6 +29,7 @@ from .geodesic import (
     GeodesicFtlReport,
     NullRayResult,
     _geodesic_report_at_resolution,
+    geodesic_report_from_metric_g,
     _hamiltonian_rhs,
     _null_relative_drift,
     compute_geodesic_ftl_from_plotfile,
@@ -42,6 +43,10 @@ from .metric_field import (
     StaticMetricField,
     evolving_field_from_analytic_stack,
     evolving_field_from_plotfiles,
+)
+from .metric_stack_cache import (
+    evolving_field_from_metric_stack_cache,
+    list_slice_files,
 )
 
 
@@ -222,6 +227,24 @@ def compute_evolving_geodesic_ftl(
     )
 
 
+def _frozen_peak_from_g_slices(
+    slices: Sequence[NDArray[np.float64]],
+    origin: NDArray[np.float64],
+    spacing: tuple[float, float, float],
+    *,
+    n_rays: int,
+    h_tol: float,
+) -> float | None:
+    peak = 0.0
+    for g in slices:
+        rep = geodesic_report_from_metric_g(
+            g, origin, spacing, n_rays=n_rays, h_tol=h_tol
+        )
+        if rep.h_quality_ok and rep.f_geo > peak:
+            peak = rep.f_geo
+    return peak if peak > 0.0 else None
+
+
 def _frozen_peak_from_plotfiles(
     plotfiles: Sequence[str | Path],
     *,
@@ -238,6 +261,33 @@ def _frozen_peak_from_plotfiles(
         if rep is not None and rep.h_quality_ok and rep.f_geo > peak:
             peak = rep.f_geo
     return peak if peak > 0.0 else None
+
+
+def compute_evolving_geodesic_ftl_from_metric_stack_cache(
+    cache_dir: Path,
+    *,
+    n_rays: int = 5,
+    h_tol: float = 1.0e-6,
+) -> EvolvingGeodesicFtlReport | None:
+    """End-to-end evolving trace from cached per-plotfile metric slices."""
+    field = evolving_field_from_metric_stack_cache(cache_dir)
+    if field is None:
+        return None
+    files = list_slice_files(cache_dir)
+    slices: list[NDArray[np.float64]] = []
+    for path in files:
+        slices.append(np.asarray(np.load(path)["g"], dtype=np.float64))
+    spacing = field.spatial_spacing
+    frozen_peak = _frozen_peak_from_g_slices(
+        slices,
+        field.origin,
+        spacing,
+        n_rays=n_rays,
+        h_tol=h_tol,
+    )
+    return compute_evolving_geodesic_ftl(
+        field, n_rays=n_rays, h_tol=h_tol, frozen_peak=frozen_peak
+    )
 
 
 def compute_evolving_geodesic_ftl_from_plotfiles(

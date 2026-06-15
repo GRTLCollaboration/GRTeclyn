@@ -189,6 +189,8 @@ def main() -> None:
     args = parser.parse_args()
     if args.evolving_geodesic:
         os.environ["GRTECLYN_EVOLVING_GEODESIC"] = "1"
+    args.metric_stack_cache = bool(args.evolving_geodesic)
+    args.metric_stack_n_space = 65
 
     # Reduce yt logging overhead/spam (can be noisy in watch mode).
     try:
