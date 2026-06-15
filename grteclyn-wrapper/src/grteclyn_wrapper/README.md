@@ -192,7 +192,7 @@ The `metrics` package re-exports `read_episode_metrics`, `read_growth_metrics`,
 
 These implement the paper's "Proposed Extensions" (Sec. *Extensions: Implemented
 Metrics, Search, and Robustness*). All are numpy-only (no new dependencies) and
-GPU-validated; unit tests live in `tests/test_proposed_extensions.py`.
+GPU-validated; unit tests live in `tests/search/test_proposed_extensions.py`.
 
 ### New physical metrics
 - **Constraint growth rate** (`metrics.episode_metrics.GrowthMetrics`, scored as
@@ -586,12 +586,12 @@ Run from `grteclyn-wrapper/`:
 ```bash
 cd grteclyn-wrapper
 
-uv run python tests/test_proposed_extensions.py   # growth, ANEC/tidal, surrogate, MAP-Elites, Pareto
-uv run python tests/test_ftl_metrics.py
-uv run python tests/test_upgraded_scoring.py
-uv run python tests/test_stability_score.py
-uv run python tests/test_constrained_guesser.py
-uv run python tests/test_ftl_general.py           # metrics.ftl_general
-uv run python tests/test_warpfactory.py           # metrics.warpfactory
-uv run python tests/test_candidates.py            # initial_data.candidates (needs pytest)
+uv run python tests/search/test_proposed_extensions.py   # growth, ANEC/tidal, surrogate, MAP-Elites, Pareto
+uv run python tests/metrics/ftl/test_ftl_metrics.py
+uv run python tests/metrics/scoring/test_upgraded_scoring.py
+uv run python tests/metrics/scoring/test_stability_score.py
+uv run python tests/initial_data/test_constrained_guesser.py
+uv run python tests/metrics/ftl/test_ftl_general.py           # metrics.ftl_general
+uv run python tests/metrics/ftl/test_warpfactory.py           # metrics.warpfactory
+uv run python tests/initial_data/test_candidates.py            # initial_data.candidates (needs pytest)
 ```

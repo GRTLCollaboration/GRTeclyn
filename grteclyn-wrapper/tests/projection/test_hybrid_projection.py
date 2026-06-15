@@ -137,7 +137,7 @@ def test_static_lens_skips_momentum_fit() -> None:
 
 def test_project_geometry_motif_fit_only() -> None:
     script = (
-        Path(__file__).resolve().parents[1]
+        Path(__file__).resolve().parents[2]
         / "scripts"
         / "search"
         / "project_geometry_motif.py"

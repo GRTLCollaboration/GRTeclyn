@@ -210,7 +210,7 @@ co-moving operational FTL, and resolution replay pass.
 
 **Modules:** `initial_data/motif.py`, `grtresna/motif_fit.py`,
 `metrics/motif_preservation.py`, `projection/postload_gate.py`.
-**Tests:** `tests/test_hybrid_projection.py`.
+**Tests:** `tests/projection/test_hybrid_projection.py`.
 
 ---
 
@@ -242,7 +242,7 @@ is an *interesting* (transport-capable) one is what the search campaign explores
 - C++ matter: `Source/Matter/GRTresnaIndependentScalars.{hpp,impl.hpp}` (+ `…Vars/D1/D2/Advec`, `GRTresnaScalarLayout.hpp`, `GRTresnaScalarPotential.hpp`); RadialRecipe dispatch in `Examples/RadialRecipe/RadialRecipeMatterDispatch.hpp`, state in `StateVariables.hpp` (`NUM_CCZ4_VARS + 2 + 2·GRTRESNA_MAX_INDEPENDENT_SCALARS`).
 - Python bridge: `grtresna/lump_fields.py` (paint per-lump channels), `grtresna/matter_wiring.py` (matter overrides + metadata), `grtresna/solver.py` (`apply_exotic_safe_solver`, `config_has_exotic_lump`).
 - Gate: `projection/postload_gate.py`, wired via `search/grtresna_evaluation_gates.py`.
-- Tests: `tests/test_matter_geometry_consistency.py`, `tests/test_grtresna_postload_gate_integration.py`.
+- Tests: `tests/grtresna/test_matter_geometry_consistency.py`, `tests/grtresna/test_grtresna_postload_gate_integration.py`.
 - End-to-end smokes: `scripts/search/run_matter_geometry_smokes.sh` (canonical, exotic, mixed-shell).
 
 **Knobs** (default the post-load gate **on** in `run_grtresna_qd_search.sh`):
@@ -315,7 +315,7 @@ Campaign artifacts: `trajectory.jsonl`, `eval_XXXXXX/{metadata,score}.json`, `in
 | `shell` | 16D | Full-sphere discovery (default); Fibonacci lattice + toroidal/poloidal flow |
 | `free` | 11×`LUMPS` | Unbiased atlas / audit (`55D` for `LUMPS=5`) |
 
-All modes decode into the same `cfg.lumps` and GRTeclyn path. `LUMPS` sets placement resolution in `ring`/`shell` (not optimizer dims); in `free` it scales search dimension. Ring parameter details: `search/optimize.py`, `tests/test_grtresna_ring_ansatz.py`.
+All modes decode into the same `cfg.lumps` and GRTeclyn path. `LUMPS` sets placement resolution in `ring`/`shell` (not optimizer dims); in `free` it scales search dimension. Ring parameter details: `search/optimize.py`, `tests/grtresna/test_grtresna_ring_ansatz.py`.
 
 Shell 16D parameters: `amp`, `width`, `radius`, `thickness`, orientation axis `(theta, phi)`, toroidal/poloidal/radial velocities, `omega`, dipole/quadrupole asymmetry, exotic fraction/phase, `mode`, `radial_jitter`.
 
@@ -864,10 +864,10 @@ Absent diagnostics report `unavailable`. T5/T6 need promotion runs (`extra={"res
 
 | Goal | Edit here | Rebuild? | Validate with |
 |------|-----------|----------|---------------|
-| CMA-ES dimensions, ansätze, warm starts | `search/optimize.py`, `__main__.py` | No | `uv run pytest tests/test_grtresna_ring_ansatz.py tests/test_solved_geometry_ftl.py -q` |
+| CMA-ES dimensions, ansätze, warm starts | `search/optimize.py`, `__main__.py` | No | `uv run pytest tests/grtresna/test_grtresna_ring_ansatz.py tests/metrics/ftl/test_solved_geometry_ftl.py -q` |
 | Launcher defaults / env knobs | `scripts/search/run_grtresna_search.sh` | No | `DRY_RUN=1 MAX_GENERATIONS=1 GPU_IDS="0 1" bash scripts/search/run_grtresna_search.sh` |
-| GRTresna invoke / `.gridinit` conversion | `grtresna/solver.py`, `grtresna/io.py` | Usually no | `uv run pytest tests/test_grtresna_integration.py -q` |
-| Solved-geometry FTL filter | `metrics/ftl_solved_geometry.py`, `search/solved_ftl_gate.py` | No | `uv run pytest tests/test_solved_geometry_ftl.py -q` |
+| GRTresna invoke / `.gridinit` conversion | `grtresna/solver.py`, `grtresna/io.py` | Usually no | `uv run pytest tests/grtresna/test_grtresna_integration.py -q` |
+| Solved-geometry FTL filter | `metrics/ftl_solved_geometry.py`, `search/solved_ftl_gate.py` | No | `uv run pytest tests/metrics/ftl/test_solved_geometry_ftl.py -q` |
 | Scoring weights | `metrics/score/`, `episode_metrics.py` | No | Re-score campaign or metric tests |
 | GRTeclyn evolution, plotfiles, gridinit load | `Examples/RadialRecipe/*`, `Source/Matter/*` | Yes (GRTeclyn) | `BUILD=1 bash scripts/radial/run_radialrecipe_gpu_smoke.sh` |
 | GRTresna elliptic solver | `../GRTresna/Examples/ScalarFieldBH/*` | Yes (MPI binary) | AMR smoke tests above |

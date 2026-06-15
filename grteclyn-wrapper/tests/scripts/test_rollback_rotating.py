@@ -9,7 +9,7 @@ from pathlib import Path
 
 def _rollback_script() -> Path:
     return (
-        Path(__file__).resolve().parents[1]
+        Path(__file__).resolve().parents[2]
         / "scripts"
         / "wormhole"
         / "rollback"

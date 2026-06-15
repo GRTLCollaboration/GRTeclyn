@@ -197,12 +197,12 @@ fi
 if [[ "${SKIP_QD_PREFLIGHT_TESTS:-0}" != "1" ]]; then
   echo "Running QD preflight pytest gate..."
   ${PYTHON_BIN} -m pytest \
-    "${WRAPPER_ROOT}/tests/test_scalar_lambda_potential.py" \
-    "${WRAPPER_ROOT}/tests/test_grtresna_shell_ansatz.py" \
-    "${WRAPPER_ROOT}/tests/test_matter_geometry_consistency.py" \
-    "${WRAPPER_ROOT}/tests/test_ftl_retention.py" \
-    "${WRAPPER_ROOT}/tests/test_ftl_peak_metrics.py" \
-    "${WRAPPER_ROOT}/tests/test_ftl_campaign_report.py" \
+    "${WRAPPER_ROOT}/tests/grtresna/test_scalar_lambda_potential.py" \
+    "${WRAPPER_ROOT}/tests/grtresna/test_grtresna_shell_ansatz.py" \
+    "${WRAPPER_ROOT}/tests/grtresna/test_matter_geometry_consistency.py" \
+    "${WRAPPER_ROOT}/tests/search/test_ftl_retention.py" \
+    "${WRAPPER_ROOT}/tests/metrics/ftl/test_ftl_peak_metrics.py" \
+    "${WRAPPER_ROOT}/tests/metrics/ftl/test_ftl_campaign_report.py" \
     -q --tb=short
 fi
 

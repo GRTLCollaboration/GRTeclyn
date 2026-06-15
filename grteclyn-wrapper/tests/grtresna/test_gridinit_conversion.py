@@ -63,7 +63,7 @@ def test_vectorized_paint_box_matches_per_cell_loop(dx_lev, dx_target, grid, lo,
 
     np.testing.assert_array_equal(actual, expected)
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 HDF5_CANDIDATES = [
     REPO_ROOT / "runs/grtresna_promote/fixture_hdf5/InitialDataFinal.3d.hdf5",
     REPO_ROOT

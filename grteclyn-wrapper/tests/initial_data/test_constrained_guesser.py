@@ -2,7 +2,7 @@
 
 Run from the grteclyn-wrapper directory:
 
-    uv run python tests/test_constrained_guesser.py
+    uv run python tests/initial_data/test_constrained_guesser.py
 
 Exit code is 0 if all checks pass, 1 otherwise.
 """

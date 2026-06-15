@@ -38,7 +38,7 @@ from grteclyn_wrapper.search.optimize import (
 )
 
 _ROTATING_ID_SCRIPT = (
-    Path(__file__).resolve().parents[1]
+    Path(__file__).resolve().parents[2]
     / "scripts"
     / "wormhole"
     / "make_rotating_wormhole_id.py"

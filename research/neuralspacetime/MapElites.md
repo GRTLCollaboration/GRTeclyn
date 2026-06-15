@@ -556,7 +556,7 @@ champion) was hit the same way.
 `ftl_champions.json` scores updated; campaign **resumed** with `QD_RESUME=1` so
 new evals load the fixed scorer.
 
-**Tests:** `tests/test_horizon_finder_guard.py` (uncorroborated suppressed, late-only
+**Tests:** `tests/metrics/scoring/test_horizon_finder_guard.py` (uncorroborated suppressed, late-only
 suppressed, genuine interior collapse still −1.0).
 
 ---
@@ -1658,7 +1658,7 @@ own best candidates under refinement rather than rubber-stamping them. A trustwo
 Code: `grteclyn-wrapper/src/grteclyn_wrapper/search/optimize.py`
 (`grtresna_shell_search_space` + `build_grtresna_config` shell branch);
 `scripts/search/run_grtresna_qd_search.sh` (`STOP_TIME`, `PLOT_INTERVAL`);
-tests in `tests/test_grtresna_shell_ansatz.py` (19-dim space + static-toggle test).
+tests in `tests/grtresna/test_grtresna_shell_ansatz.py` (19-dim space + static-toggle test).
 
 `ftl_discovery_v10` launched with these two changes.
 
@@ -1717,7 +1717,7 @@ every FTL channel (no currents → no frame-drag → no shift).
    penalty stays graded (0..−1.6), preserving the QD gradient.
    (`metrics/score/objectives.py`, `ftl_first` weight block.)
 
-Tests: `tests/test_grtresna_integration.py::test_geodesic_reward_gated_by_structural_persistence`
+Tests: `tests/grtresna/test_grtresna_integration.py::test_geodesic_reward_gated_by_structural_persistence`
 (geodesic reward scales linearly with persistence; fragmenting end-state ranks lower).
 
 `ftl_discovery_v11` launched with these two changes (400 evals, t=16, static toggle).
@@ -1804,7 +1804,7 @@ Alcubierre metric analytically and run the *exact same probes* the QD campaign
 uses on it.
 
 - Builder + report: `grteclyn-wrapper/scripts/validation/alcubierre_metric_validation.py`
-- Permanent regression tests: `grteclyn-wrapper/tests/test_alcubierre_validation.py`
+- Permanent regression tests: `grteclyn-wrapper/tests/metrics/ftl/test_alcubierre_validation.py`
 
 Alcubierre (bubble at origin, moving +x): `α=1`, `γ_ij=δ_ij`,
 `β^x = -v_s f(r_s)` with the top-hat shape `f`. A +x null ray then has coordinate
@@ -1845,7 +1845,7 @@ the H gate fails, it re-traces *once* at `GEO_REFINE_N = 129³` (> 96, the first
 grid that reliably certifies even a sharp `σ=2` Alcubierre wall) and returns that
 report. The re-probe never fires for no-shortcut or already-reliable candidates,
 so the extra cost is paid only on the rare warp-candidate that would otherwise be
-silently discarded. Regression tests live in `tests/test_null_geodesic.py`
+silently discarded. Regression tests live in `tests/metrics/ftl/test_null_geodesic.py`
 (`test_reliability_reprobe_*`).
 
 ### Verdict: is metric-first (geometry-first) a bad idea, or are we doing matter-first wrong?
