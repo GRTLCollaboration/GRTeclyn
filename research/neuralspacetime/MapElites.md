@@ -375,6 +375,7 @@ Reverse-chronological journal below. Quick index:
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
+| [**ftl_max_speed_no_penalty_v1**](#ftl_max_speed_no_penalty_v1-max-speed-qd-survey-2026-06-15) | **06-15 done** | **200 evals**, 100 gpu_ok. Max speed **1.58 c** (eval 70); best score **eval 86** (+27.5); best geodesic **eval 92** (27.5% timeavg). Plateau; scores not comparable to v16 |
 | [**HQ promotion: v16 + v17 CMA-ES**](#hq-promotion-after-v16-qd--v17-cma-es-2026-06-15) | **06-15 done** | 4/4 complete. **Incr. peak eval 233 score 749** @ t≈12; only **eval 177** finishes positive (+67). Horizon kills 3/4 by t=30 |
 | [**Eval 177 physics + exotic vs Alcubierre + next directions**](#eval-177-what-is-actually-moving-faster-than-light-2026-06-15) | 06-15 | What's FTL: end-to-end **null transit ~1.06c**, not matter (matter sub-luminal). Exotic **~5–24× < Alcubierre**, **~100–200× milder NEC** (per-shortcut comparable). Reframe → persistence/transport + exotic-energy frontier |
 | [**v17: CMA-ES robust refinement**](#v17-cma-es-robust-refinement-after-v16-2026-06-14) | 06-14 → **06-15 done** | **200 evals.** Winner eval **177**: f_geo **5.65%**, timeavg **16.3%**, exotic **−1.17**. Peak f_geo **eval 78** at **5.68%** |
@@ -396,6 +397,78 @@ Reverse-chronological journal below. Quick index:
 | [Stationary warp-lens fix](#scoring-fix-stationary-warp-lens-artifacts-2026-06-10-after-90-evals) | 06-10 | Reliability + stationary gates |
 | [Navigation overhaul](#navigation-overhaul-2026-06-10) | 06-10 | `speed_super` descriptor; feasible-box sampling |
 | [Status / reset](#map-elites-ftl-discovery-status) | 06-10 | `theta_plus` re-centered on `grid_center` |
+
+---
+
+## ftl_max_speed_no_penalty_v1: max-speed QD survey (2026-06-15)
+
+**Context.** Side MAP-Elites campaign after [v16](#v16-ftl-champion-retention-2026-06-13) /
+[v17 CMA-ES](#v17-cma-es-robust-refinement-after-v16-2026-06-14) to stress-test **maximum
+superluminal coordinate speed** without exotic/horizon score vetoes. Hypothesis: relaxing
+penalties would let QD climb to higher `max_local_speed` basins and reveal whether strong
+geodesic FTL can coexist with extreme superluminal volume.
+
+**Change**
+- Run: `ftl_max_speed_no_penalty_v1` under `runs/grtresna_qd/ftl_max_speed/`.
+- Descriptor **`speed_super`** (cone-tilt × superluminal fraction) — not `ftl_lifetime`.
+- Objective **`weighted`** with **`exotic_penalty=0`**, **`horizon_penalty=0`**; geodesic
+  weight ×15 vs default weighted stack.
+- Grid: N=128, L=64, `max_level=1`, `stop_time=16` (lighter AMR than v16 ml=2).
+- **200 evals**, batch 4, GPUs 4–7, `ftl_retention` on. Launch log:
+  `runs/grtresna_qd/ftl_max_speed/launch_ftl_max_speed_no_penalty_v1_ml1.log`.
+
+**Result:** **200/200** evals, **100 gpu_ok** (50%), 43 solved-FTL rejected, 32 GRTresna
+rejected, 23 failed, 2 postload. Archive **26/64 cells (41%)**; best score plateaued at
+**+27.5** from iter ~21. **Scores are not comparable** to v16 `ftl_first` (652-scale).
+
+| Leaderboard | Eval | Value | Notes |
+|-------------|------|-------|-------|
+| Best score | **86** | **+27.5** | operational tier; f_geo timeavg 3.6% |
+| Best geodesic FTL | **92** | **27.5%** timeavg | observer_ec; gauge-invariant shortcut; FTL retention champion |
+| Max `max_local_speed` (admitted) | **70** | **1.577 c** | 100% superluminal bin; score −1.7; dir pruned |
+| Best retained mid-run speed | **149** | **1.370 c** @ t≈9.6 | score +18.7; f_geo = 0 throughout |
+| Archive front | 86, 92, 109, 160, 25 | — | 5 cells; coverage stalled |
+
+**Speed vs score.** Speeds **>1.4 c** (evals 70, 161, 75, 174) score poorly and lack
+operational/geodesic backing. Nothing broke **1.6 c**. High `f_geo_peak` on penalty-free
+runs (eval **161** 65%) correlates with coordinate artifacts, not leaderboard rank.
+
+### Eval 92 — best sustained geodesic (score +27.0)
+
+| t | max_c | super% | f_geo% | f_op% |
+|---|-------|--------|--------|-------|
+| 0.0 | 1.208 | 21.9 | 4.5 | 7.6 |
+| 6.4 | 1.175 | 72.4 | 8.2 | 7.5 |
+| 9.6 | 1.158 | 93.4 | 7.4 | 7.7 |
+| 16.0 | 1.117 | 70.9 | 3.6 | 5.9 |
+
+`ftl_lifetime` = 100%; scorer notes gauge-invariant null-geodesic shortcut confirmed.
+
+### Eval 149 — best retained mid-run speed peak (score +18.7)
+
+| t | max_c | super% | f_geo% |
+|---|-------|--------|--------|
+| 0.0 | 1.101 | 4.5 | 0.0 |
+| 6.4 | 1.273 | 74.5 | 0.0 |
+| **9.6** | **1.370** | **87.8** | 0.0 |
+| 16.0 | 1.313 | 80.9 | 0.0 |
+
+Pure coordinate superluminal channel; speed builds 0→9.6 then eases.
+
+**vs v16 QD.** v16 peak healthy geodesic ~5% timeavg at QD resolution; eval **92** here
+shows **27.5%** timeavg — much stronger geodesic signal, but under penalty-free scoring
+and unvalidated at HQ. v16 best raw score (eval 233, 652) remains the production leaderboard.
+
+**Artifacts:** `runs/grtresna_qd/ftl_max_speed/ftl_max_speed_no_penalty_v1/`
+(`trajectory.jsonl`, `ftl_champions.json`, `validation.json`, retained `eval_000086/`,
+`eval_000092/`, …).
+
+**Takeaway.** Penalty-free `speed_super` QD finds **higher coordinate speeds** (to 1.58 c)
+and one **strong geodesic survivor** (eval 92), but the search **plateaued early** and
+did not beat v16 on physically weighted objectives. High-speed basins are coordinate-heavy.
+
+**Next step (open):** HQ-promote **eval 92** (and/or **86**) at N=256, t=30 with
+`ftl_first` / restored penalties — test whether the geodesic signal survives refinement.
 
 ---
 
