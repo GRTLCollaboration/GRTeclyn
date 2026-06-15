@@ -422,11 +422,12 @@ Local refinement around **OBSERVER_EC** survivors, not raw-score king eval 233.
 | Exotic penalty | −1.32 | −1.60 | **−1.17** |
 | Comoving stability | 0.53 | 0.05 | **0.75** |
 
-### Eval 177 — FTL vs time and score breakdown (CMA-ES winner)
+### Eval 177 — FTL vs time and score breakdown (CMA-ES / **QD resolution**)
 
 Source: `runs/grtresna_cmaes/ftl_cmaes_v17_robust/eval_000177/` (`ftl_timeseries.dat`,
-`score.json`). QD grid N=128, L=64, ml=2, t=16; **7 plotfile frames**; objective
-`robust_ftl` → **total 312.2**.
+`score.json`). **QD grid** N=128, L=64, ml=2, t=16; **7 plotfile frames**; objective
+`robust_ftl` → **total 312.2**. HQ promotion trace for the same geometry →
+[below](#eval-177--hq-time-evolution-n256-t30).
 
 **Per-frame FTL** — gauge-invariant shortcut absent at t=0, peaks mid-run, diffuses by t=16:
 
@@ -550,6 +551,52 @@ phases** (same pattern as [v15 time-resolved scoring](#v15-time-resolved-interme
 | 233 | t≈5.0 | 749 @ 11.8 | t≈21.8 | 20.6 |
 | 446 | t≈0 (solved f_geo) | 701 @ 11.8 | t≈19.9 | 29.3 |
 | 676 | t≈5.3 | 658 @ 10.6 | t≈11.8 | 19.0 |
+
+### Eval 177 — HQ time evolution (N=256, t=30)
+
+Source: `runs/grtresna_promote/l128n256t30_ftl_cmaes_v17_robust_qd_eval000177/`
+(`ftl_timeseries.dat`, `score_timeseries.jsonl`, `score.json`). **HQ grid** N=256,
+L=128, ml=3, t=30; **126 plotfile frames** (Δt≈0.24); scored with **`ftl_first`**
+(incremental rows use prefix survival `t/30` and per-frame geodesic gates).
+
+**FTL + incremental score vs time** — same transient arc as QD, but finer sampling and
+longer evolution; shortcut **does not survive** to t=30:
+
+| t | f_geo | f_op | max c | superlum. | incr. score | geodesic† | horizon |
+|---|-------|------|-------|-----------|-------------|-----------|---------|
+| 0.0 | 0.00% | 1.34% | 1.32 | 4.1% | 0 | 0 | 0 |
+| 1.9 | 0.38% | 2.12% | 1.14 | 15.3% | +1 | +1 | 0 |
+| 4.1 | 3.04% | 3.53% | 1.14 | 23.6% | +36 | +9 | 0 |
+| 6.0 | 5.11% | 4.92% | 1.15 | 49.7% | +173 | +24 | 0 |
+| 7.9 | 5.77% | 5.74% | 1.16 | 64.8% | +281 | +33 | 0 |
+| **9.1** | **5.72%** | 5.79% | 1.17 | 72.7% | **+301** | +38 | 0 |
+| 10.1 | 5.58% | 5.64% | 1.17 | 77.6% | +288 | +42 | 0 |
+| 12.0 | 4.71% | 5.01% | 1.16 | 76.9% | +231 | +51 | 0 |
+| 16.1 | 2.02% | 2.89% | 1.15 | 60.6% | +58 | +75 | 0 |
+| 18.2 | 0.26% | 1.60% | 1.15 | 51.7% | +75 | +85 | 0 |
+| 19.9 | 0.00% | 0.11% | 1.14 | 43.1% | +40 | +97 | 0 |
+| 24.0 | 0.00% | 0.00% | 1.12 | 28.6% | +72 | +123 | 0 |
+| **30.0** | **0.00%** | 0.00% | 1.12 | 20.6% | **−10** | +99 | 0 |
+
+† `operational_ftl_geodesic` component ×1000 at that prefix (time-average of frames
+seen so far). Peak raw **f_geo = 5.88%** @ t≈8.4; peak **incremental score = +301**
+@ t≈9.1. **f_geo → 0** after t≈18; coordinate **max c** and superluminal fraction
+stay elevated while the gauge-invariant shortcut is gone.
+
+**Final score @ t=30 = +67** (`ftl_first`, no horizon veto — unlike evals 233/446/676):
+
+| Component | Value | Points | Notes |
+|-----------|-------|--------|-------|
+| `operational_ftl_geodesic` | 0.099 | **+99** | Time-mean over 126 frames (faded) |
+| `survival` | 1.00 | +34 | Structure intact at stop |
+| `exotic_penalty` | −1.60 | −64 | Full exotic cost |
+| `instability_penalty` | −0.95 | −14 | Geometry churn |
+| `horizon_penalty` | 0 | 0 | No corroborated trapped surface |
+
+**Readout vs QD:** HQ confirms a **real ~5.7% geodesic shortcut** at refinement (similar
+magnitude to QD 5.65%), but the longer t=30 window shows **diffusion after t≈18** —
+the only promoted candidate that finishes **positive** because it never hits the
+horizon −500 veto. Trust the **incremental peak (+301 @ t≈9)**, not the final +67.
 
 **Why early incremental scores look negative vs QD/CMA-ES.** Incremental rows use
 prefix survival (`t/30`), prefix constraints, and the geodesic gate at each frame — a
