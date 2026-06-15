@@ -16,6 +16,14 @@ _PARM_PARSE_TOKEN_LIST_KEYS = frozenset(
 )
 
 
+def regrid_intervals_for_max_level(max_level: int) -> list[int]:
+    """AMR regrid cadence per level; length must match ``max_level + 1`` entries."""
+    max_lvl = int(max_level)
+    if max_lvl <= 0:
+        return []
+    return [16] * min(max_lvl, 2) + [8] * max(0, max_lvl - 2)
+
+
 def format_param_value(key: str, value: object) -> str:
     """Format a params.txt assignment value, honoring ParmParse list keys."""
     if key in _PARM_PARSE_TOKEN_LIST_KEYS:

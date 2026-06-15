@@ -12,6 +12,7 @@ import numpy as np
 
 from grteclyn_wrapper.core.config import resolve_example, resolve_executable
 from grteclyn_wrapper.core.evaluation import evaluate_overrides
+from grteclyn_wrapper.core.params import regrid_intervals_for_max_level
 from grteclyn_wrapper.grtresna.domain import GRTresnaDomainConfig
 from grteclyn_wrapper.grtresna.matter_wiring import plot_vars_for_independent_scalars
 from grteclyn_wrapper.grtresna.io import read_gridinit
@@ -83,6 +84,7 @@ def _promotion_overrides(
     max_level: int,
     regrid_threshold: float,
 ) -> dict:
+    promoted_max_level = int(max_level)
     overrides = dict(base)
     half = 0.5 * l_full
     overrides.update(
@@ -93,7 +95,10 @@ def _promotion_overrides(
             "stop_time": float(stop_time),
             "plot_interval": int(plot_interval),
             "checkpoint_interval": -1,
-            "max_level": int(max_level),
+            "max_level": promoted_max_level,
+            # CMA-ES/QD metadata may carry a shorter list from a lower max_level;
+            # AMReX aborts if regrid_interval has fewer entries than max_level+1.
+            "regrid_interval": regrid_intervals_for_max_level(promoted_max_level),
             "regrid_threshold": float(regrid_threshold),
             "max_box_size": 32,
             "min_box_size": 16,
