@@ -51,7 +51,7 @@
   <text class="desc" x="480" y="754">and stability</text>
 
   <rect class="box" x="360" y="820" width="240" height="100" rx="6" />
-  <text class="name" x="480" y="854">score.py</text>
+  <text class="name" x="480" y="854">score/</text>
   <text class="desc" x="480" y="880">diagnostics combined</text>
   <text class="desc" x="480" y="902">into one fitness value</text>
 
@@ -79,7 +79,7 @@
   <text class="desc" x="160" y="880">records every</text>
   <text class="desc" x="160" y="902">evaluation run</text>
 
-  <!-- score.py logs every eval to trajectory -->
+  <!-- score/ logs every eval to trajectory -->
   <path class="edge" d="M360 900 L280 900" />
   <text class="lbl" x="320" y="932">log eval</text>
 

@@ -321,7 +321,7 @@ Shell 16D parameters: `amp`, `width`, `radius`, `thickness`, orientation axis `(
 
 ### Scoring
 
-QD/CMA-ES campaigns score with `objective_mode="ftl_first"` (`metrics/score.py`,
+QD/CMA-ES campaigns score with `objective_mode="ftl_first"` (`metrics/score/`,
 `score_episode`). The total is a weighted sum split into three roles. Scores are
 **not comparable** across campaigns with different weights/components — always
 re-score with the current code before ranking historical runs.
@@ -868,7 +868,7 @@ Absent diagnostics report `unavailable`. T5/T6 need promotion runs (`extra={"res
 | Launcher defaults / env knobs | `scripts/search/run_grtresna_search.sh` | No | `DRY_RUN=1 MAX_GENERATIONS=1 GPU_IDS="0 1" bash scripts/search/run_grtresna_search.sh` |
 | GRTresna invoke / `.gridinit` conversion | `grtresna/solver.py`, `grtresna/io.py` | Usually no | `uv run pytest tests/test_grtresna_integration.py -q` |
 | Solved-geometry FTL filter | `metrics/ftl_solved_geometry.py`, `search/solved_ftl_gate.py` | No | `uv run pytest tests/test_solved_geometry_ftl.py -q` |
-| Scoring weights | `metrics/score.py`, `episode_metrics.py` | No | Re-score campaign or metric tests |
+| Scoring weights | `metrics/score/`, `episode_metrics.py` | No | Re-score campaign or metric tests |
 | GRTeclyn evolution, plotfiles, gridinit load | `Examples/RadialRecipe/*`, `Source/Matter/*` | Yes (GRTeclyn) | `BUILD=1 bash scripts/radial/run_radialrecipe_gpu_smoke.sh` |
 | GRTresna elliptic solver | `../GRTresna/Examples/ScalarFieldBH/*` | Yes (MPI binary) | AMR smoke tests above |
 

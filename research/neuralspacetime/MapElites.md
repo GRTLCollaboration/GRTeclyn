@@ -118,7 +118,7 @@ and the gauge-invariant **null-geodesic shortcut** (`operational_ftl_geodesic`).
 
 ### Stage 4 — Archive update & feedback
 
-`score.py` collapses the diagnostics into a single `ftl_first` fitness. Only
+`metrics/score/` collapses the diagnostics into a single `ftl_first` fitness. Only
 `gpu_ok` candidates compete for a behavior cell; the new candidate replaces the
 incumbent if it scores higher. Rejected GRTresna solves are still written to
 `trajectory.jsonl` but never pollute the archive grid. The updated archive feeds
@@ -155,7 +155,7 @@ its y-axis degenerate (see campaign log).
 
 ## Scoring model (the "quality" axis)
 
-Fitness is the `ftl_first` objective in `metrics/score.py`. Headline structure:
+Fitness is the `ftl_first` objective in `metrics/score/`. Headline structure:
 
 - **Gauge-invariant FTL is king — now time-averaged.** `operational_ftl_geodesic`
   (null-ray shortcut) carries the largest weight, but only when its reliability
@@ -275,7 +275,7 @@ genuinely warped geometry.
 | **CMA-ES** optimize loop, warm-start, parallel eval | `grteclyn-wrapper/src/grteclyn_wrapper/search/optimize/` |
 | Search-space (`SearchDimension`) defs (shared QD + CMA-ES) | `search/optimize/spaces.py` |
 | FTL champion retention (QD + CMA-ES) | `search/ftl_retention.py` |
-| Scoring / fitness (`ftl_first`, `robust_ftl`) | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/score.py` |
+| Scoring / fitness (`ftl_first`, `robust_ftl`) | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/score/` |
 | Metric aggregation | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/aggregation/collector.py` |
 | FTL probes (general / geodesic) | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/probes/ftl/` |
 | Diagnostic dataclasses | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/types/diagnostics.py` |
@@ -436,7 +436,9 @@ cat "$D/ftl_champions.json"    # after gen 1
 wc -l "$D/trajectory.jsonl"
 ```
 
-Results: `runs/grtresna_cmaes/ftl_cmaes_v17_robust/`.
+Results: `runs/grtresna_cmaes/ftl_cmaes_v17_robust/`. **Completed 2026-06-15**
+(200 evals) — full write-up in
+[v17 results](#v17-cma-es-robust-refinement-after-v16-2026-06-14).
 
 ## Campaign log / runs analysis
 
@@ -445,7 +447,7 @@ happened. Quick index (most consequential first):
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
-| [**v17: CMA-ES robust refinement**](#v17-cma-es-robust-refinement-after-v16-2026-06-14) | 06-14 | After v16 plateau (~971 evals), **CMA-ES** warm-starts from 4 **OBSERVER_EC** survivors (739, 655, 389, 256) with `robust_ftl` objective — hill-climb for bigger **persistent** gauge-invariant shortcuts with lower exotic cost, not the flashiest raw score (233). Run: `ftl_cmaes_v17_robust` |
+| [**v17: CMA-ES robust refinement**](#v17-cma-es-robust-refinement-after-v16-2026-06-14) | 06-14 → **06-15 done** | **200 evals complete.** Warm-start from **OBSERVER_EC** survivors (739, …) + `robust_ftl`. **Winner eval 177**: f_geo **5.65%**, timeavg **16.3%**, exotic **−1.17** — beats seed 739 on shortcut size, persistence, and exotic cost; near eval 233 FTL without its health penalty. Peak f_geo champion **eval 78** at **5.68%** |
 | [**v16: FTL champion retention + horizon fix**](#v16-ftl-champion-retention-2026-06-13) | 06-13 | Disk pruning kept only top-10 by total score, so high **mid-run FTL peaks** lost eval dirs → **FTL hall of fame** (`ftl_retention.jsonl`, `ftl_champions.json`). Separately, **`horizon_penalty` was a binary −500 veto** on any `theta+≤0` even when lapse stayed healthy (false positive on exotic warp channels; eval 6 scored −559 with valid FTL frames). Fixed: require **same-timestep lapse collapse** to corroborate trapped surface; suppress **late-only** collapse in the trailing 25% of the run. Campaign resumed to ~971 evals |
 | [**v15: time-resolved FTL scoring**](#v15-time-resolved-intermediate-ftl-scoring-2026-06-13) | 06-13 | Final-frame scoring was half-blind: the gauge-invariant shortcut **peaks mid-run and diffuses**, so the last frame both under-credits a real transient and can't tell a sustained warp from an Alcubierre-like collapse. Adds an in-flight per-plotfile FTL stream (`ftl_timeseries.dat`, process+delete), retargets the headline `operational_ftl_geodesic` to the **time-average** over the run, and adds an `ftl_lifetime` MAP-Elites axis. Validated on eval 231: f_geo rises 2.7%→**7.43% peak at t=9.6**→5.24% (t=16); the old final frame saw only 5.24%. QD runs at dx=0.5, ml=2 (controls show ml=3 changes nothing — the real variable is time, not refinement) |
 | [**v14 results & analytics**](#v14-campaign-results--analytics-2026-06-12-completed) | 06-12 | 504 evals, 351 gpu_ok, 51.6% archive coverage. Top: Eval 231 (f_geo=5.30%, ring+top-hat, score 551). 5 operational, 3 observer_ec. Ring layout dominates top-5; exotic fraction 90–99% universal. Full Alcubierre comparison — our best is 17% of Alcubierre's shortcut but is self-consistent & evolvable |
@@ -539,7 +541,7 @@ uncorroborated coordinate artifact, not a lapse-collapsed horizon. Genuine lapse
 collapse only appeared after t≈13 (trailing ~19% of the run). Eval 27 (`f_geo`
 champion) was hit the same way.
 
-**The fix** (`metrics/diagnostics/collapse.py`, `metrics/score.py`):
+**The fix** (`metrics/diagnostics/collapse.py`, `metrics/score/`):
 
 1. **Corroboration** — penalize only if some row has `theta+ < −0.05` **and**
    `lapse < 0.2` at the **same** timestep. `theta+≤0` with healthy lapse → suppressed.
@@ -600,21 +602,131 @@ prefers **persistent, healthy, lower-exotic** warps over flashiest transient pea
 | `energy_condition` | 40 → **60×** | Prefer NEC-respecting geometry |
 | `exotic_penalty` | 40 → **70×** | Heavier cost for negative-energy matter |
 
-**Run:** `ftl_cmaes_v17_robust` in `runs/grtresna_cmaes/` (~25 gens × 8 ≈ 200
-evals). Retention: top-10 + FTL champions (wired into CMA-ES path this session).
-Frames created/deleted on the fly like QD.
+**Run:** `ftl_cmaes_v17_robust` in `runs/grtresna_cmaes/`. Retention: top-10 +
+FTL champions (wired into CMA-ES path). Frames created/deleted on the fly like QD.
 
-**Code added (2026-06-14, uncommitted):** CMA-ES `keep_top_eval_dirs` +
-`ftl_retention`; FTL peak `descriptor_details` + `ftl_timeseries` on optimize
-path; `robust_ftl` in `score.py` + CLI; `RUN_NAME` / retention env hooks in
-`run_grtresna_search.sh`; tests `test_optimize_retention.py`,
-`test_robust_ftl_objective.py`.
+**Code added (2026-06-14):** CMA-ES `keep_top_eval_dirs` + `ftl_retention`; FTL
+peak `descriptor_details` + `ftl_timeseries` on optimize path; `robust_ftl` in
+`metrics/score/` + CLI; `RUN_NAME` / retention env hooks in `run_grtresna_search.sh`;
+tests `test_optimize_retention.py`, `test_robust_ftl_objective.py`.
 
-**Monitor:**
+### MAP-Elites → CMA-ES: what improved (v17 completed, 2026-06-15)
+
+**Status: COMPLETE** — 25 generations, **200 / 200** evals, **163 gpu_ok**, 37
+rejected (18% GRTresna / gate failures). Artifacts: `trajectory.jsonl`,
+`result.json`, `ftl_champions.json`; **17** eval dirs on disk after pruning
+(top-10 + FTL champions).
+
+**Plain English:** MAP-Elites found the healthy warp basin around eval **739**
+(~5.4% geodesic shortcut, full survival, horizon-free). CMA-ES did not discover a
+new family of warps — it **micro-tuned the same thick-shell + high-scalar-mass
+geometry** (parameter shifts mostly &lt;0.15 from 739) and traded a little
+coordinate speed for **better stability and less exotic matter in the evolved
+spacetime**. The result is a warp that **beats the QD seed on every robustness
+axis** and **nearly matches the raw-score king eval 233** on FTL magnitude without
+233's exotic/transient tradeoffs.
+
+#### Final winner — eval **177** (`robust_ftl` score **312.2**)
+
+| Metric | v16 seed **739** | v16 king **233** | **v17 eval 177** |
+|--------|------------------|------------------|------------------|
+| Objective score | 280.6 (`ftl_first`) | 652.2 (`ftl_first`) | **312.2** (`robust_ftl`) |
+| Tier | observer_ec | operational | — |
+| **f_geo peak** | 5.39% | 5.88% | **5.65%** ✓ vs 739 |
+| **ftl_geo timeavg** | 14.0% | 17.7% | **16.3%** ✓ vs 739 |
+| Speed peak | **1.28c** | 1.14c | 1.22c |
+| Superluminal fraction | 70% | 100% | 64% |
+| Survival | 1.0 | 0.99 | **1.0** |
+| Horizon penalty | 0 | 0 | **0** |
+| **Exotic penalty** | −1.32 | −1.60 | **−1.17** ✓ (least exotic) |
+| Comoving stability | 0.53 | 0.05 | **0.75** |
+
+Scores are **not directly comparable** across objectives (`ftl_first` vs
+`robust_ftl`); the table compares **raw FTL physics** and health gates.
+
+#### FTL champion board (peak metrics across all 200 evals)
+
+| Metric | Eval | Value | Notes |
+|--------|------|-------|-------|
+| **f_geo peak** | **78** | **5.68%** | Best raw geodesic shortcut in campaign |
+| f_op peak | 119 | 5.67% | Score 310.1 at gen 15 |
+| max_local_speed | **52** | **1.28c** | Matched seed 739 speed |
+| superluminal_fraction | 149 | 64.5% | |
+| ftl_geo_timeavg | **177** | **16.3%** | Same eval as overall winner |
+
+Overall best for balanced `robust_ftl` fitness = **177**; absolute peak f_geo =
+**78** (5.68%, +0.29 pp over 739).
+
+#### Score progression (all-time best by generation)
+
+CMA-ES was flat for two generations, jumped at gen 3, then climbed in steps:
+
+```
+gen  1: 227.4  (gen-0 warm-start basin, eval 6)
+gen  3: 268.0  (+41, eval 18 — first real hill-climb)
+gen  6: 278.0  (eval 42 — passed 739 on f_geo)
+gen 10: 301.7  (eval 78 — f_geo champion 5.68%)
+gen 15: 310.1  (eval 119)
+gen 23: 312.2  (eval 177 — FINAL, +85 over gen 0)
+gen 25: 312.2  (plateau; last gens 299–303)
+```
+
+~half the total gain came in the first third of the run (gens 0–10); the second
+half squeezed +10 points and pushed **timeavg** from ~14% toward **16.3%**.
+
+#### Why f_geo grew with less exotic cost
+
+739 and 177 live in the **same parameter basin** — CMA-ES `sigma0=0.08` makes
+only small moves. Largest shifts **739 → 177**:
+
+| Parameter | 739 | 177 | Δ |
+|-----------|-----|-----|---|
+| shell_radius | 5.39 | 5.53 | +0.14 |
+| shell_thickness | 2.45 | 2.35 | −0.10 |
+| scalar_mass | 1.23 | 1.25 | +0.02 |
+| shell_poloidal_velocity | 0.78 | 0.79 | +0.01 |
+| shell_exotic_fraction (knob) | 0.941 | 0.953 | +0.012 |
+
+The **exotic_fraction knob** nudged up slightly, but the **scored exotic_penalty**
+fell (−1.32 → **−1.17**, ~11% less negative-energy matter in the evolved
+geometry). Under `robust_ftl` the exotic term is weighted **70×**, so CMA-ES was
+paid to **re-arrange** negative-energy matter (axis, profile phase, poloidal flow)
+for a slightly shorter null-geodesic path — not to pile on more exotic fuel.
+
+**Comoving stability** rose 0.53 → **0.75**: the warp holds its shape better over
+16 s, so the shortcut is more consistent frame-to-frame (`robust_ftl` comoving
+weight 20× vs 8× in `ftl_first`).
+
+Contrast with eval **233** (not seeded): thin shell (~1.4), light scalar (~0.68),
+**99% exotic knob**, mostly static matter, high toroidal spin — a different,
+flashier basin that scores high under `ftl_first` but fails the robustness profile
+CMA-ES was asked to optimize.
+
+#### Pruning & retention
+
+Same policy as v16 QD: keep **top-10 by score** ∪ **FTL metric champions**.
+After each generation, losers are deleted; current batch is protected until the
+next `tell`. Final disk footprint: **17 dirs** (10 score + champion overlap).
+`ftl_retention.jsonl` records 19 crown/dethrone events across the run.
+
+#### Takeaway for the two-stage pipeline
+
+| Stage | Role | v17 outcome |
+|-------|------|-------------|
+| **MAP-Elites (v16)** | Wide survey (~971 evals) | Found basins 739 (healthy) and 233 (flashy) |
+| **CMA-ES (v17)** | Local refinement (~200 evals) | **+0.26 pp f_geo**, **+2.3 pp timeavg**, **−11% exotic** vs 739; near-233 FTL with full survival |
+
+CMA-ES justified its cost: **~20% of v16 eval count** for a measurable upgrade on
+the seed the QD stage had already identified as the clean basin. A second CMA-ES
+run warm-started from **233** under `ftl_first` remains an open experiment if the
+goal is to chase 233's 17.7% timeavg peak directly.
+
+**Inspect results:**
 
 ```bash
-grep -a "\[optimize\]" runs/cmaes_ftl_v17_robust.launch.log | tail
+cat runs/grtresna_cmaes/ftl_cmaes_v17_robust/result.json
 cat runs/grtresna_cmaes/ftl_cmaes_v17_robust/ftl_champions.json
+# frames: eval_000177 (winner), eval_000078 (f_geo peak)
 ```
 
 ---
@@ -707,7 +819,7 @@ time-averaged scoring → lifetime descriptor.
 - **Aggregation:** `metrics/diagnostics/ftl_timeseries.py`
   (`read_ftl_timeseries_metrics` → `FtlTimeSeriesMetrics`); collected in
   `metrics/aggregation/collector.py`.
-- **Scoring:** `metrics/score.py` (time-averaged `operational_ftl_geodesic`).
+- **Scoring:** `metrics/score/` (time-averaged `operational_ftl_geodesic`).
 - **Descriptor:** `search/qd_search/descriptors.py` (`ftl_lifetime` mode);
   CLI choice in `cli/parser.py`.
 
@@ -983,7 +1095,7 @@ The run converged into a degenerate basin — all 15 retained elites were statio
 zero-shift geometries (static "warp-lens" artifacts). Top candidate eval_000083
 scored 1164 from `operational_ftl_geodesic` computed on a geodesic report flagged
 `h_quality_ok=False` (integration noise at full weight). Two fixes in
-`metrics/score.py`:
+`metrics/score/`:
 
 1. **Reliability-gate `operational_ftl_geodesic`** — only certified when
    `h_quality_ok` AND `n_reached == n_rays`; otherwise reward 0.
@@ -1153,7 +1265,7 @@ shortcuts. Plan (future work, in priority order):
 2. **Re-weight once geodesic is reliable:** gauge-invariant `operational_ftl_geodesic`
    should outweigh the coordinate-based `operational_ftl_solved`, so the
    leaderboard tracks real shortcuts rather than coordinate channels. Code:
-   `metrics/score.py` (`ftl_first` component weights).
+   `metrics/score/` (`ftl_first` component weights).
 3. **Keep `operational_ftl_solved` as a precursor/shaping term only** (lower
    weight), gated as now by non-stationarity, so it guides the search toward
    shift channels without certifying them as FTL.
@@ -1177,7 +1289,7 @@ the lump, so it free-streams out even at zero boost. The following fixes ship in
   peak matter energy density retained at the final step,
   `final_peak_rho_required / max_rho_required`). `survival = numerical_survival ×
   structural_persistence`, so a configuration that dissipates can no longer
-  score as "stable". Code: `metrics/score.py`, `metrics/types/diagnostics.py`
+  score as "stable". Code: `metrics/score/`, `metrics/types/diagnostics.py`
   (`final_peak_rho_required`), `metrics/diagnostics/constraints.py` (reads it
   from `constraint_norms.dat`).
 - **Done — FTL shaping rewards gated by persistence** (commit `be93469`).
@@ -1386,7 +1498,7 @@ to magnitude.
 
 ### Fix
 
-In `metrics/score.py`:
+In `metrics/score/`:
 
 - `GEO_FTL_TARGET`: **`5e-2 → 2e-1`** — full marks now require a dramatic ~20%
   null arrival-time shortcut; the component ramps linearly with magnitude. (This
@@ -1452,7 +1564,7 @@ Separately, eval 13 was *flagged* `coordinate FTL channel is a gauge artifact
 (f_geo=0)` yet still banked `operational_ftl` points — the diagnostic was right but
 the score ignored it.
 
-### Fix (`metrics/score.py`, `ftl_first`)
+### Fix (`metrics/score/`, `ftl_first`)
 
 - `channel_progress` **×150 → ×100**, `operational_ftl_solved` **×180 → ×50** —
   coordinate-cone shaping is now clearly subordinate to a realistic gauge-invariant
@@ -1597,13 +1709,13 @@ every FTL channel (no currents → no frame-drag → no shift).
    shaping rewards), so a gauge-invariant shortcut only counts if the structure
    producing it actually holds together. Demotes eval-258-style transients below
    coherent survivors of comparable magnitude.
-   (`score.py`, geodesic block.)
+   (`metrics/score/ftl.py`, geodesic block.)
 2. **Raise physicality pressure.** `energy_condition` weight 2 → **40** and the
    graded `exotic_penalty` weight 1 → **100** in the `ftl_first` objective, so a
    fully-exotic shortcut (~−30..−60 pts) is selected against relative to a cleaner
    one — forcing a real trade between shortcut strength and exotic content. The
    penalty stays graded (0..−1.6), preserving the QD gradient.
-   (`score.py`, `ftl_first` weight block.)
+   (`metrics/score/objectives.py`, `ftl_first` weight block.)
 
 Tests: `tests/test_grtresna_integration.py::test_geodesic_reward_gated_by_structural_persistence`
 (geodesic reward scales linearly with persistence; fragmenting end-state ranks lower).

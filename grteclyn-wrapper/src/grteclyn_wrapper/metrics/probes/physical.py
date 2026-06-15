@@ -5,7 +5,7 @@ Extensions"):
 
 * An *ANEC line proxy*: the energy density integrated along the FTL travel
   axis, a directional energy-condition indicator complementary to the
-  Eulerian volume integral already used by ``score.py``.
+  Eulerian volume integral already used by ``metrics.score``.
 * A *coordinate-invariant tidal/curvature proxy*: the spatial Ricci-scalar
   magnitude plus lapse acceleration-gradient along the axis, a proxy for the
   rider tidal force / structural-integrity bound.

@@ -1,1 +1,1 @@
-score.py need refactoring
+score/ refactored into metrics/score/ package

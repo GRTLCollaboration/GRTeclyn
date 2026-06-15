@@ -654,7 +654,7 @@ def test_strong_evolved_shortcut_gets_operational_ftl_reward() -> None:
     # shortcut still earns a large positive score, just below the old
     # coordinate-only weighting (the channel/solved shaping weights were trimmed
     # so a t=0/coordinate signal cannot outrank a validated gauge-invariant
-    # shortcut -- see the shaping-vs-validated balance in score.py).
+    # shortcut -- see the shaping-vs-validated balance in metrics/score/objectives.py).
     assert score.total > 250.0
 
 

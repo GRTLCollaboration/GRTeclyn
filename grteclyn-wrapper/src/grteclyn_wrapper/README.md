@@ -96,7 +96,7 @@ grteclyn_wrapper/
     ftl_metrics.py       t=0 FTL shortcut metrics
     ftl_general.py       mechanism-agnostic operational FTL
     physical_metrics.py  ANEC / tidal proxies
-    score.py             weighted scalar reward
+    score/               weighted scalar reward (scorer.py, objectives.py, …)
     warpfactory.py       analytic 4-metric energy conditions
   search/
     optimize/          CMA-ES driver
@@ -166,7 +166,7 @@ from grteclyn_wrapper.grtresna import GRTresnaConfig, solve
 | `metrics/ftl_general.py` | Mechanism-agnostic operational FTL on reconstructed or plotfile slices. |
 | `metrics/physical_metrics.py` | t=0 gauge-robust proxies: ANEC line integral, curvature/tidal proxy, trapped-surface flag. |
 | `metrics/warpfactory.py` | Warp Factory port: 4-metric → Einstein tensor → multi-observer NEC/WEC/SEC/DEC. |
-| `metrics/score.py` | Weighted multi-component scalar reward `score_episode()`. |
+| `metrics/score/` | Weighted multi-component scalar reward `score_episode()`. |
 
 The `metrics` package re-exports `read_episode_metrics`, `read_growth_metrics`,
 `dataclass_to_dict`, and `score_episode` from its `__init__.py`.

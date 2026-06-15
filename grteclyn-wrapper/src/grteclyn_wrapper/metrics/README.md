@@ -13,7 +13,13 @@ Measurement and scoring for GRTeclyn simulation episodes. Only code that feeds `
 | `aggregation/` | `read_episode_metrics()` orchestration |
 | `io/` | `.dat` parsing, serialization, plotfile thread lock |
 | `catalog.py` | `METRIC_REGISTRY` — single source of truth for metric groups |
-| `score.py` | `score_episode()` reward engineering |
+| `score/` | `score_episode()` reward engineering (phased component calculators) |
+| `score/scorer.py` | `score_episode()` orchestrator |
+| `score/survival.py` | numerical_survival, structural_persistence, survival |
+| `score/health.py` | constraint, lapse, stability, comoving, growth, physical, t=0 FTL profile |
+| `score/ftl.py` | operational/geodesic FTL, precursor, channel, shaping gates |
+| `score/penalties.py` | exotic, qei, boundary, transport, stationary penalties |
+| `score/objectives.py` | `weighted`, `ftl_first`, `robust_ftl` scalarization |
 
 ## Metric groups (in `EpisodeMetrics`)
 
