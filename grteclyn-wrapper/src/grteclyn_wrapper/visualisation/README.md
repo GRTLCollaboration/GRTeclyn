@@ -14,6 +14,7 @@ Scripts for visualizing GRTeclyn simulation results (plotfiles in BoxLib/AMReX f
 | **`diagnostic/`** | Collapse diagnostics multi-panel plot (`collapse_diagnostics.dat`, optional `areal_radius.dat`). |
 | **`constraines/`** | Constraint norms \(L_2\) of Hamiltonian and momentum (`constraint_norms.dat`). |
 | **`figures/`** | Standalone publication-style schematic figures (not driven by simulation dumps). |
+| **`search/`** | QD / search campaign analytics from `trajectory.jsonl` (batch improvement, saturation). |
 | **`src/scripts/`** | Shell automation: live plotfile processing (`plot_run.sh`), post-run figures (`plot_diagnostic.sh`), archive to `SimResults/` (`move_files.sh`). |
 
 More detail for live processing and `consume_plotfiles` options: [`process_wave/README.md`](process_wave/README.md).
@@ -292,6 +293,24 @@ The script’s `__main__` block sets the output directory; edit that path if you
 
 ---
 
+## 7a. `search/` — QD campaign batch progress
+
+Marginal archive score gain per GPU batch (bar) plus cumulative best (saturation curve). Reads `trajectory.jsonl` from a finished or in-progress MAP-Elites run.
+
+```bash
+uv run python -m grteclyn_wrapper.visualisation.search \
+  runs/grtresna_qd/ftl_4d/ftl_4d_v1
+
+uv run python -m grteclyn_wrapper.visualisation.search \
+  runs/grtresna_qd/ftl_4d/ftl_4d_v1 \
+  --batch-size 8 --rolling 3 \
+  --out /tmp/qd_saturation.png
+```
+
+Default output: `grteclyn-wrapper/src/grteclyn_wrapper/visualisation/plots/qd_batch_progress_<campaign>.png`.
+
+---
+
 ## 8. GW proxies without Weyl4
 
 From extrinsic curvature on a slice (approximate \(h_+\), \(h_\times\) for propagation along \(z\)):
@@ -322,12 +341,13 @@ grteclyn-wrapper/src/grteclyn_wrapper/visualisation/
 │   │   ├── frames/
 │   │   └── movie_<field>_<axis>.mp4
 │   └── embedding/frames/     # from consume_plotfiles --embedding
-├── plots/                    # diagnostic.sh outputs; evolution panels (default relative out)
+├── plots/                    # diagnostic, evolution panels, QD batch-progress figures
 ├── extract_wave/             # default --out for plot_psi4
 ├── process_wave/             # plots from plot_extracted_psi4
 ├── diagnostic/               # optional direct output from diagnostic.py
 ├── constraines/              # default location for relative -o
 ├── figures/                  # schematic figure outputs
+├── search/                   # QD trajectory analytics (library + CLI)
 └── README.md
 
 <run_dir>/small_data/

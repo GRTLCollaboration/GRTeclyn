@@ -1,1 +1,2 @@
-score/ refactored into metrics/score/ package
+1. Add to article plot that shows how the scores impove with new batches of map elite run 
+so we can have plot showing saturation of the improvement. 
