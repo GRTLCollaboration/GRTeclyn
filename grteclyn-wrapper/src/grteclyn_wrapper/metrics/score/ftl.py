@@ -211,7 +211,6 @@ def compute_ftl_components(ctx: ScoringContext) -> None:
         components["ftl_lifetime"] = ts.ftl_lifetime_fraction
 
     if geo_timeavg is not None:
-        components["operational_ftl_geodesic"] = geo_timeavg * structural_persistence
         if geo_timeavg > 0.0:
             peak_at = (
                 f" at t={ts.t_at_f_geo_peak:.2f}"
@@ -219,16 +218,14 @@ def compute_ftl_components(ctx: ScoringContext) -> None:
                 else ""
             )
             notes.append(
-                f"time-averaged gauge-invariant FTL over {ts.n_frames} frames: "
+                f"time-averaged frozen gauge-invariant FTL over {ts.n_frames} frames: "
                 f"mean_magnitude={geo_timeavg:.3e}, peak f_geo={ts.f_geo_peak:.3e}{peak_at}, "
                 f"FTL-lifetime={ts.ftl_lifetime_fraction:.0%}"
             )
     elif geo_trustworthy and math.isfinite(f_geo) and f_geo > GEO_FTL_FLOOR:
-        # Fallback: no per-frame stream -> single final-frame magnitude, scaled
-        # by structural_persistence (defaults to 1.0 when matter slice missing).
-        components["operational_ftl_geodesic"] = _geo_magnitude(f_geo) * structural_persistence
-    else:
-        components["operational_ftl_geodesic"] = 0.0
+        notes.append(
+            f"frozen final-frame gauge-invariant shortcut (f_geo={f_geo:.3e})"
+        )
 
     evo_geo = metrics.evolving_geodesic
     evo_trustworthy = bool(
@@ -237,16 +234,56 @@ def compute_ftl_components(ctx: ScoringContext) -> None:
         and evo_geo.n_rays > 0
         and evo_geo.n_reached == evo_geo.n_rays
     )
-    if (
-        evo_trustworthy
-        and math.isfinite(evo_geo.f_geo)
-        and evo_geo.f_geo > GEO_FTL_FLOOR
-    ):
-        components["ftl_geo_evolving"] = _geo_magnitude(evo_geo.f_geo)
-        notes.append(
-            f"4D evolving null-geodesic shortcut (f_geo_evol={evo_geo.f_geo:.3e})"
-        )
+    if evo_geo is not None:
+        # 4D evolving trace ran -- it is authoritative for geodesic FTL ranking.
+        frozen_timeavg = geo_timeavg
+        frozen_peak = components.get("ftl_geo_peak", 0.0)
+        if evo_trustworthy and math.isfinite(evo_geo.f_geo) and evo_geo.f_geo > GEO_FTL_FLOOR:
+            evo_mag = _geo_magnitude(evo_geo.f_geo)
+            components["ftl_geo_evolving"] = evo_mag * structural_persistence
+            components["operational_ftl_geodesic"] = 0.0
+            notes.append(
+                f"4D evolving null-geodesic shortcut (f_geo_evol={evo_geo.f_geo:.3e})"
+            )
+        else:
+            components["ftl_geo_evolving"] = 0.0
+            components["operational_ftl_geodesic"] = 0.0
+            if evo_geo.n_reached == 0:
+                notes.append(
+                    "4D evolving trace: no rays reached detector; "
+                    "frozen geodesic credit zeroed"
+                )
+            elif not evo_geo.h_quality_ok:
+                notes.append(
+                    "4D evolving trace unreliable "
+                    f"(h_rel={evo_geo.max_h_rel_drift:.2e}); "
+                    "frozen geodesic credit zeroed"
+                )
+            else:
+                notes.append(
+                    "4D evolving trace found no shortcut; "
+                    "frozen geodesic credit zeroed"
+                )
+        components["ftl_geo_timeavg"] = 0.0
+        components["ftl_geo_peak"] = 0.0
+        if frozen_timeavg is not None and frozen_timeavg > 0.0:
+            notes.append(
+                f"frozen f_geo timeavg ({frozen_timeavg:.3e}) ignored: "
+                "4D evolving trace is authoritative"
+            )
+        elif frozen_peak > 0.0:
+            notes.append(
+                f"frozen f_geo peak ({frozen_peak:.3e}) ignored: "
+                "4D evolving trace is authoritative"
+            )
+    elif geo_timeavg is not None:
+        components["operational_ftl_geodesic"] = geo_timeavg * structural_persistence
+        components["ftl_geo_evolving"] = 0.0
+    elif geo_trustworthy and math.isfinite(f_geo) and f_geo > GEO_FTL_FLOOR:
+        components["operational_ftl_geodesic"] = _geo_magnitude(f_geo) * structural_persistence
+        components["ftl_geo_evolving"] = 0.0
     else:
+        components["operational_ftl_geodesic"] = 0.0
         components["ftl_geo_evolving"] = 0.0
 
     if geo_report is not None:

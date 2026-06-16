@@ -29,8 +29,9 @@ DEFAULT_WEIGHTS: dict[str, float] = {
     # (and keeps flat space out of the running).
     "operational_ftl": 3.0,
     "operational_ftl_geodesic": 12.0,
-    # Diagnostic-only until QD explicitly reweights (weight 0).
-    "ftl_geo_evolving": 0.0,
+    # Populated from the 4D evolving trace when it runs; mirrors
+    # ``operational_ftl_geodesic`` for weighted-mode clarity.
+    "ftl_geo_evolving": 12.0,
     # Continuous FTL *precursor* (shaping gradient).  operational_ftl is a hard
     # gate -- it stays exactly 0 until a connected superluminal channel beats
     # the flat baseline end-to-end -- so an "almost there" geometry (light cones

@@ -7,6 +7,7 @@ candidates identically.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -33,6 +34,17 @@ class Evaluation:
     metrics: dict[str, Any]
 
 
+def _resolve_consumer_evolving_geodesic(value: bool | None) -> bool:
+    if value is not None:
+        return value
+    return os.environ.get("GRTECLYN_EVOLVING_GEODESIC", "").strip().lower() in {
+        "1",
+        "on",
+        "yes",
+        "true",
+    }
+
+
 def evaluate_overrides(
     overrides: Mapping[str, Any],
     *,
@@ -55,7 +67,7 @@ def evaluate_overrides(
     consumer_radii: Sequence[float] = (4.0, 8.0),
     consumer_keep_last: int = 1,
     consumer_ftl_timeseries: bool = True,
-    consumer_evolving_geodesic: bool = False,
+    consumer_evolving_geodesic: bool | None = None,
     grtresna: bool = False,
     grtresna_base: Any | None = None,
     grtresna_solved_ftl_gate: bool = False,
@@ -93,6 +105,7 @@ def evaluate_overrides(
     gte_overrides = {
         k: v for k, v in overrides.items() if not str(k).startswith("grtresna_")
     }
+    evolving_enabled = _resolve_consumer_evolving_geodesic(consumer_evolving_geodesic)
     episode = create_episode(
         out_dir,
         name=name,
@@ -190,7 +203,7 @@ def evaluate_overrides(
             raise ValueError("executable is required unless dry_run=True")
         try:
             extra_env = None
-            if consumer_evolving_geodesic:
+            if evolving_enabled:
                 extra_env = {"GRTECLYN_EVOLVING_GEODESIC": "1"}
             result = run_episode(
                 episode, executable,
@@ -207,7 +220,7 @@ def evaluate_overrides(
                 consumer_objective_mode=objective_mode,
                 consumer_target_stop_time=target_stop_time,
                 consumer_score_weights=score_weights,
-                consumer_evolving_geodesic=consumer_evolving_geodesic,
+                consumer_evolving_geodesic=evolving_enabled,
             )
             exit_code = result.returncode
         except Exception as exc:  # noqa: BLE001 - record and continue
@@ -217,7 +230,7 @@ def evaluate_overrides(
     metrics = read_episode_metrics(
         episode.path,
         ftl_L=ftl_L,
-        evolving_geodesic=consumer_evolving_geodesic,
+        evolving_geodesic=evolving_enabled,
     )
     score = score_episode(
         metrics,

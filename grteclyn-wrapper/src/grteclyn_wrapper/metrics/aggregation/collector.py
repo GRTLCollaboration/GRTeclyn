@@ -45,6 +45,7 @@ from ..probes.ftl.evolving_geodesic import (
     write_evolving_geodesic_json,
 )
 from ..probes.ftl.metric_stack_cache import metric_stack_dir, slice_count
+from ..probes.ftl.evolving_geodesic_options import evolving_geodesic_options_from_env
 from ..probes.physical import compute_physical_metrics
 from ..probes.warpfactory import effective_energy_conditions_from_plotfiles
 from ..types.diagnostics import (
@@ -114,6 +115,7 @@ def _compute_evolving_geodesic_metrics(
             )
             evo_report = compute_evolving_geodesic_ftl_from_metric_stack_cache(
                 cache_dir,
+                options=evolving_geodesic_options_from_env(),
             )
             if evo_report is None:
                 logger.warning(

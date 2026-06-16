@@ -51,7 +51,8 @@ def _ftl_first_total(components: dict[str, float], notes: list[str]) -> float:
     # solved coordinate signal -- pure shaping -- so it is the most strongly
     # capped; channel_progress is trimmed to keep total shaping subordinate.
     total = (
-        1000.0 * components.get("operational_ftl_geodesic", 0.0)
+        1000.0 * components.get("ftl_geo_evolving", 0.0)
+        + 1000.0 * components.get("operational_ftl_geodesic", 0.0)
         + 400.0 * components.get("operational_ftl", 0.0)
         + 300.0 * components.get("ftl_persistence", 0.0)
         + 100.0 * components.get("channel_progress", 0.0)
@@ -125,7 +126,8 @@ def _robust_ftl_total(components: dict[str, float], notes: list[str]) -> float:
     horizon = components.get("horizon_penalty", 0.0)
     trapped_surface = horizon < -0.05
     total = (
-        1000.0 * components.get("operational_ftl_geodesic", 0.0)
+        1000.0 * components.get("ftl_geo_evolving", 0.0)
+        + 1000.0 * components.get("operational_ftl_geodesic", 0.0)
         + 200.0 * components.get("operational_ftl", 0.0)
         + 500.0 * components.get("ftl_persistence", 0.0)
         + 60.0 * components.get("channel_progress", 0.0)

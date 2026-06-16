@@ -11,6 +11,10 @@ from grteclyn_wrapper.metrics.probes.ftl.evolving_geodesic import (
     compute_evolving_geodesic_ftl,
     compute_evolving_geodesic_ftl_from_metric_stack_cache,
 )
+from grteclyn_wrapper.metrics.probes.ftl.evolving_geodesic_options import (
+    HQ_OPTIONS,
+    SEARCH_OPTIONS,
+)
 from grteclyn_wrapper.metrics.probes.ftl.metric_field import evolving_field_from_analytic_stack
 from grteclyn_wrapper.metrics.probes.ftl.metric_stack_cache import (
     evolving_field_from_metric_stack_cache,
@@ -53,7 +57,10 @@ def test_metric_stack_cache_round_trip(tmp_path: Path) -> None:
 def test_evolving_trace_from_metric_stack_cache(tmp_path: Path) -> None:
     cache_dir = metric_stack_dir(tmp_path)
     _write_alcubierre_slices(cache_dir)
-    report = compute_evolving_geodesic_ftl_from_metric_stack_cache(cache_dir)
+    report = compute_evolving_geodesic_ftl_from_metric_stack_cache(
+        cache_dir,
+        options=HQ_OPTIONS,
+    )
     assert report is not None
     assert report.h_quality_ok
     assert report.f_geo > 0.1

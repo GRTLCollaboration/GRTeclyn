@@ -144,6 +144,10 @@ FTL_L="${FTL_L:-8.0}"
 # render movies only for promoted candidates (run_promote_qd_batch.sh / manual
 # make_movies.sh).  Set GRTECLYN_FRAMES=1 to re-enable for debugging.
 export GRTECLYN_FRAMES="${GRTECLYN_FRAMES:-0}"
+# 4D evolving null-geodesic trace in the QD loop (fast search profile).
+export GRTECLYN_EVOLVING_GEODESIC="${GRTECLYN_EVOLVING_GEODESIC:-1}"
+export GRTECLYN_EVOLVING_GEODESIC_MODE="${GRTECLYN_EVOLVING_GEODESIC_MODE:-search}"
+export GRTECLYN_METRIC_STACK_N_SPACE="${GRTECLYN_METRIC_STACK_N_SPACE:-33}"
 export GRTECLYN_FRAMES_FIELDS="${FRAMES_FIELDS:-lump_activity scalar_activity phi_lump_sum Pi_lump_sum chi chi_minus_1 local_speed shift1 rho_req}"
 export GRTECLYN_PROJECTION_FIELDS="${PROJECTION_FIELDS:-scalar_activity}"
 export GRTECLYN_PROJECTION_AXES="${PROJECTION_AXES:-x y z}"
@@ -211,7 +215,8 @@ if [[ "${SKIP_QD_PREFLIGHT_TESTS:-0}" != "1" ]]; then
     "${WRAPPER_ROOT}/tests/grtresna/test_matter_geometry_consistency.py" \
     "${WRAPPER_ROOT}/tests/search/test_ftl_retention.py" \
     "${WRAPPER_ROOT}/tests/metrics/ftl/test_ftl_peak_metrics.py" \
-    "${WRAPPER_ROOT}/tests/metrics/ftl/test_ftl_campaign_report.py" \
+    "${WRAPPER_ROOT}/tests/metrics/ftl/test_evolving_geodesic_search_mode.py" \
+    "${WRAPPER_ROOT}/tests/metrics/score/test_ftl_4d_gate.py" \
     -q --tb=short
 fi
 

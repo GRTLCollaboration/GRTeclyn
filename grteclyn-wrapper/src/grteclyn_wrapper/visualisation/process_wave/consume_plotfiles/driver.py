@@ -190,7 +190,14 @@ def main() -> None:
     if args.evolving_geodesic:
         os.environ["GRTECLYN_EVOLVING_GEODESIC"] = "1"
     args.metric_stack_cache = bool(args.evolving_geodesic)
-    args.metric_stack_n_space = 65
+    if args.evolving_geodesic:
+        from grteclyn_wrapper.metrics.probes.ftl.evolving_geodesic_options import (
+            metric_stack_n_space_from_env,
+        )
+
+        args.metric_stack_n_space = metric_stack_n_space_from_env()
+    else:
+        args.metric_stack_n_space = 65
 
     # Reduce yt logging overhead/spam (can be noisy in watch mode).
     try:

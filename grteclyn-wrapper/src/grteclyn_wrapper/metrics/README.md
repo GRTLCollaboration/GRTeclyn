@@ -56,15 +56,15 @@ Scoring rewards **evolved** operational FTL (`general_ftl_evolved`) over t=0 sli
 
 | Probe | Metric field | When | Primary score use |
 |-------|--------------|------|-------------------|
-| `geodesic_ftl` | Single Cauchy slice (∂g/∂t = 0) | Per-frame in consumer + final collector | `operational_ftl_geodesic` (time-averaged over `ftl_timeseries`) |
-| `evolving_geodesic` | Time-interpolated stack from ≥3 plotfiles | End-of-run only, **opt-in** | `ftl_geo_evolving` (weight **0** until reweighted) |
+| `geodesic_ftl` | Single Cauchy slice (∂g/∂t = 0) | Per-frame in consumer + final collector | Diagnostic only when 4D ran; else `operational_ftl_geodesic` (frozen timeavg) |
+| `evolving_geodesic` | Time-interpolated stack from ≥3 plotfiles | End-of-run when enabled | **`ftl_geo_evolving`** (headline in QD; frozen credit zeroed) |
 
 The evolving probe traces null rays through `EvolvingMetricField` (temporal linear interpolation between plotfile slices at the ray's coordinate time). It answers whether a pulse emitted at `t_emit = times[0]` beats flat-space transit through the **full evolved geometry**, not a frozen mid-run snapshot. Outputs land in `small_data/evolving_geodesic.json` and the last row of `ftl_timeseries.dat` (`f_geo_evol`, `f_geo_evol_ok`).
 
-**Enable** (expensive, ~seconds/eval):
+**Enable:**
 
-- HQ promotion: `GRTECLYN_EVOLVING_GEODESIC=1` (set in `scripts/lib/promote_common.sh`) or `--evolving-geodesic` on `replay_grtresna_eval.py`
-- QD search: off by default (`consumer_evolving_geodesic=False` in `evaluate_overrides`)
+- QD search: `GRTECLYN_EVOLVING_GEODESIC=1` + `GRTECLYN_EVOLVING_GEODESIC_MODE=search` (set in `run_grtresna_qd_search.sh`; fast profile)
+- HQ promotion: `GRTECLYN_EVOLVING_GEODESIC_MODE=hq` (set in `promote_common.sh`) or `--evolving-geodesic` on `replay_grtresna_eval.py`
 - Collector: `read_episode_metrics(..., evolving_geodesic=True)` or env `GRTECLYN_EVOLVING_GEODESIC=1`
 
 Same gate as frozen geodesic (`f_op > 1e-3` or `max_local_speed > 1`) plus `len(plotfiles) >= 3`. Validation: `scripts/validation/run_evolving_geodesic_smoke.sh`.

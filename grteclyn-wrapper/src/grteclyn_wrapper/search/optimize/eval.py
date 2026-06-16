@@ -9,6 +9,7 @@ from typing import Any, Mapping, Sequence
 from ...core.config import ExecutableConfig, ExampleConfig
 from ...core.episode import create_episode, update_metadata, write_json
 from ...core.params import write_params
+from ...core.evaluation import _resolve_consumer_evolving_geodesic
 from ...core.runner import run_episode
 from ...initial_data.constrained_recipe import constrained_overrides
 from ...initial_data.preflight import preflight_check
@@ -229,16 +230,19 @@ def _objective(
     )
 
     exit_code: int | None = None
+    evolving_enabled = _resolve_consumer_evolving_geodesic(None)
     if dry_run:
         update_metadata(episode, {"dry_run": True})
     else:
         if executable is None:
             raise ValueError("executable is required unless dry_run=True")
         try:
+            extra_env = {"GRTECLYN_EVOLVING_GEODESIC": "1"} if evolving_enabled else None
             result = run_episode(
                 episode, executable,
                 check_params=check_params,
                 cuda_devices=cuda_devices,
+                extra_env=extra_env,
                 consume_plotfiles=consume_plotfiles,
                 consumer_radii=consumer_radii,
                 consumer_delete=True,
@@ -249,6 +253,7 @@ def _objective(
                 consumer_objective_mode=objective_mode,
                 consumer_target_stop_time=target_stop_time,
                 consumer_score_weights=score_weights,
+                consumer_evolving_geodesic=evolving_enabled,
             )
             exit_code = result.returncode
         except Exception as exc:
@@ -258,7 +263,11 @@ def _objective(
                 "simulation_exit_code": exit_code,
             })
 
-    metrics = read_episode_metrics(episode.path, ftl_L=ftl_L)
+    metrics = read_episode_metrics(
+        episode.path,
+        ftl_L=ftl_L,
+        evolving_geodesic=evolving_enabled,
+    )
     score = score_episode(
         metrics,
         target_stop_time=target_stop_time,

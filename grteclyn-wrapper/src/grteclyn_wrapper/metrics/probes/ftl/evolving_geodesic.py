@@ -47,6 +47,13 @@ from .metric_field import (
 from .metric_stack_cache import (
     evolving_field_from_metric_stack_cache,
     list_slice_files,
+    subsample_slice_files,
+)
+from .evolving_geodesic_options import (
+    EvolvingGeodesicOptions,
+    HQ_OPTIONS,
+    SEARCH_OPTIONS,
+    evolving_geodesic_options_from_env,
 )
 
 
@@ -78,6 +85,7 @@ def integrate_null_ray_on_field(
     max_steps: int = 50_000,
     ds_init: float = 0.05,
     h_tol: float = 1.0e-6,
+    h_rel_abort: float | None = None,
 ) -> NullRayResult:
     """Trace one null ray through a possibly time-dependent metric field."""
     x = np.array([t0, x_start, y0, z0], dtype=float)
@@ -106,6 +114,15 @@ def integrate_null_ray_on_field(
         h = abs(null_hamiltonian(ginv_pt, k))
         max_h = max(max_h, h)
         max_h_rel = max(max_h_rel, _null_relative_drift(ginv_pt, k))
+        if h_rel_abort is not None and max_h_rel > h_rel_abort:
+            return NullRayResult(
+                reached=False,
+                t_coord=None,
+                t_flat=t_flat,
+                max_h_drift=max_h,
+                max_h_rel=max_h_rel,
+                notes=(f"h_rel abort ({max_h_rel:.2e}>{h_rel_abort:.2e})",),
+            )
         if h > h_tol:
             k = project_null(g_pt, ginv_pt, k, dx_ref=(ginv_pt @ k)[1:])
 
@@ -155,7 +172,10 @@ def compute_evolving_geodesic_ftl(
     *,
     t_emit: float | None = None,
     n_rays: int = 5,
+    max_steps: int = 50_000,
+    ds_init: float = 0.05,
     h_tol: float = 1.0e-6,
+    h_rel_abort: float | None = None,
     frozen_peak: float | None = None,
 ) -> EvolvingGeodesicFtlReport:
     """Run a fan of evolving null rays and return end-to-end ``f_geo``."""
@@ -178,7 +198,10 @@ def compute_evolving_geodesic_ftl(
                 y0=cy,
                 z0=cz + float(dz),
                 t0=t_emit_val,
+                max_steps=max_steps,
+                ds_init=ds_init,
                 h_tol=h_tol,
+                h_rel_abort=h_rel_abort,
             )
         )
 
@@ -266,27 +289,46 @@ def _frozen_peak_from_plotfiles(
 def compute_evolving_geodesic_ftl_from_metric_stack_cache(
     cache_dir: Path,
     *,
-    n_rays: int = 5,
+    options: EvolvingGeodesicOptions | None = None,
+    n_rays: int | None = None,
     h_tol: float = 1.0e-6,
 ) -> EvolvingGeodesicFtlReport | None:
     """End-to-end evolving trace from cached per-plotfile metric slices."""
-    field = evolving_field_from_metric_stack_cache(cache_dir)
+    opts = options or evolving_geodesic_options_from_env()
+    ray_count = opts.n_rays if n_rays is None else n_rays
+    field = evolving_field_from_metric_stack_cache(
+        cache_dir,
+        slice_stride=opts.slice_stride,
+        max_slices=opts.max_slices,
+    )
     if field is None:
         return None
-    files = list_slice_files(cache_dir)
-    slices: list[NDArray[np.float64]] = []
-    for path in files:
-        slices.append(np.asarray(np.load(path)["g"], dtype=np.float64))
-    spacing = field.spatial_spacing
-    frozen_peak = _frozen_peak_from_g_slices(
-        slices,
-        field.origin,
-        spacing,
-        n_rays=n_rays,
-        h_tol=h_tol,
-    )
+    frozen_peak = None
+    if opts.compute_frozen_peak:
+        files = subsample_slice_files(
+            list_slice_files(cache_dir),
+            stride=opts.slice_stride,
+            max_slices=opts.max_slices,
+        )
+        slices: list[NDArray[np.float64]] = []
+        for path in files:
+            slices.append(np.asarray(np.load(path)["g"], dtype=np.float64))
+        spacing = field.spatial_spacing
+        frozen_peak = _frozen_peak_from_g_slices(
+            slices,
+            field.origin,
+            spacing,
+            n_rays=ray_count,
+            h_tol=h_tol,
+        )
     return compute_evolving_geodesic_ftl(
-        field, n_rays=n_rays, h_tol=h_tol, frozen_peak=frozen_peak
+        field,
+        n_rays=ray_count,
+        max_steps=opts.max_steps,
+        ds_init=opts.ds_init,
+        h_tol=h_tol,
+        h_rel_abort=opts.h_rel_abort,
+        frozen_peak=frozen_peak,
     )
 
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import Sequence
 
 import numpy as np
 from numpy.typing import NDArray
@@ -60,9 +61,35 @@ def slice_count(cache_dir: Path) -> int:
     return len(list_slice_files(cache_dir))
 
 
-def evolving_field_from_metric_stack_cache(cache_dir: Path) -> EvolvingMetricField | None:
+def subsample_slice_files(
+    files: Sequence[Path],
+    *,
+    stride: int = 1,
+    max_slices: int | None = None,
+) -> list[Path]:
+    """Reduce temporal resolution for fast in-loop 4D scoring."""
+    if not files:
+        return []
+    stride = max(1, int(stride))
+    picked = list(files[::stride]) if stride > 1 else list(files)
+    if max_slices is not None and len(picked) > max_slices:
+        idx = np.linspace(0, len(picked) - 1, int(max_slices), dtype=int)
+        picked = [picked[int(i)] for i in idx]
+    return picked
+
+
+def evolving_field_from_metric_stack_cache(
+    cache_dir: Path,
+    *,
+    slice_stride: int = 1,
+    max_slices: int | None = None,
+) -> EvolvingMetricField | None:
     """Rebuild ``EvolvingMetricField`` from cached per-plotfile slices."""
-    files = list_slice_files(cache_dir)
+    files = subsample_slice_files(
+        list_slice_files(cache_dir),
+        stride=slice_stride,
+        max_slices=max_slices,
+    )
     if len(files) < 3:
         return None
 

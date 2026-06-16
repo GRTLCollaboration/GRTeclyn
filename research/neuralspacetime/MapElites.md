@@ -433,8 +433,8 @@ experience through the actual history?"*
    linearly interpolate in simulation time, finite-difference `∂_μ g^{ab}`, integrate null rays
    with `t_emit = times[0]` (`evolving_geodesic.py`).
 3. **Outputs:** `small_data/evolving_geodesic.json`; last row of `ftl_timeseries.dat` patched
-   with `f_geo_evol` / `f_geo_evol_ok`. Score component `ftl_geo_evolving` exists but
-   **weight = 0** (diagnostic until validated on HQ runs).
+   with `f_geo_evol` / `f_geo_evol_ok`. Score component `ftl_geo_evolving` is the **headline
+   geodesic reward in the QD loop** when the probe runs; frozen timeavg is zeroed.
 
 **Smoke run** — validate cache + 4D integration on a real evolved spacetime without a full
 t=30 HQ bill:
@@ -553,6 +553,26 @@ non-trivial HQ run.
 many running to the step cap) is the cost driver. Before enabling a nonzero `ftl_geo_evolving`
 weight in a search loop, cap the frozen-peak slice count or step budget so finalization stays
 sub-minute on long t=30 stacks.
+
+### 4D in the QD search loop (2026-06-16)
+
+The HQ t=30 falsification of eval 086 showed frozen per-frame / time-averaged geodesic scoring
+was **optimistically ranking strobing coordinate warps**. The search loop now measures **4D
+end-to-end transport** instead:
+
+| Layer | Change |
+|-------|--------|
+| **Enable in QD** | `run_grtresna_qd_search.sh` exports `GRTECLYN_EVOLVING_GEODESIC=1` |
+| **Fast profile** | `GRTECLYN_EVOLVING_GEODESIC_MODE=search`: skip frozen-peak scan, stride-2 temporal subsample (max 40 slices), 33³ metric cache, 3 rays, 15k step cap, `h_rel` early abort |
+| **HQ verify** | Promotes use `GRTECLYN_EVOLVING_GEODESIC_MODE=hq` (full stack, frozen peak, 65³, 5 rays) |
+| **Scoring** | When 4D runs, `ftl_geo_evolving` is the headline geodesic reward (1000× in `ftl_first`); frozen `ftl_geo_timeavg` / `ftl_geo_peak` are zeroed; if 4D finds no reliable shortcut, frozen credit is also zero |
+| **Fallback** | When the FTL gate skips 4D (no superluminal signal), frozen timeavg still applies |
+
+Code: `evolving_geodesic_options.py` (`SEARCH_OPTIONS` / `HQ_OPTIONS`), collector passes profile
+from env, `ftl.py` authoritative gate.
+
+**Next.** Re-run a short QD pilot (~50 evals) and compare archive coverage vs the frozen-only
+campaign; expect most prior frozen elites to collapse under 4D scoring.
 
 ---
 
