@@ -7,7 +7,12 @@ from typing import Any, Mapping
 
 import numpy as np
 
-from ..ftl_peak_metrics import peak_fields_for_descriptor_details
+from ..ftl_peak_metrics import (
+    authoritative_geo_lifetime,
+    authoritative_geo_strength,
+    four_d_geodesic_ran,
+    peak_fields_for_descriptor_details,
+)
 
 _SPEED_HORIZON_C_FLOOR = 0.9
 _SPEED_HORIZON_C_TARGET = 1.3
@@ -18,11 +23,7 @@ _SPEED_SUPER_C_TARGET = 1.20
 _SPEED_SUPER_FRACTION_TARGET = 0.15
 
 # FTL-lifetime descriptor: separate transient shortcuts from sustained ones.
-# x-axis = peak gauge-invariant strength (same floor/target as the scorer),
-# y-axis = fraction of the run the shortcut is alive.  An Alcubierre-like
-# one-frame spike lands in a low-lifetime cell; a stable warp in a high one.
-_GEO_PEAK_FLOOR = 1.0e-3
-_GEO_PEAK_TARGET = 2.0e-1
+# x-axis = 4D end-to-end geodesic strength; y-axis = 4D shortcut present (1/0).
 
 
 def _ftl_timeseries(metrics: Mapping[str, Any] | None) -> Mapping[str, Any] | None:
@@ -30,14 +31,12 @@ def _ftl_timeseries(metrics: Mapping[str, Any] | None) -> Mapping[str, Any] | No
     return ts if isinstance(ts, Mapping) else None
 
 
-def _geo_peak_axis(ts: Mapping[str, Any] | None) -> float:
-    if not ts:
-        return 0.0
-    peak = ts.get("f_geo_peak")
-    if peak is None or not math.isfinite(float(peak)) or float(peak) <= _GEO_PEAK_FLOOR:
-        return 0.0
-    span = _GEO_PEAK_TARGET - _GEO_PEAK_FLOOR
-    return float(np.clip((float(peak) - _GEO_PEAK_FLOOR) / span, 0.0, 1.0))
+def _geo_strength_axis(
+    metrics: Mapping[str, Any] | None,
+    components: Mapping[str, float],
+) -> float:
+    """MAP-Elites x-axis: 4D evolving ``f_geo`` only (never frozen Cauchy peaks)."""
+    return authoritative_geo_strength(metrics, components)
 
 
 def _path_closeness_from_report(report: Mapping[str, Any] | None) -> float:
@@ -189,13 +188,16 @@ def _descriptor_details(
 
     if mode == "ftl_lifetime":
         ts = _ftl_timeseries(metrics)
-        strength = _geo_peak_axis(ts)
-        lifetime = (
-            float(np.clip(float(ts.get("ftl_lifetime_fraction") or 0.0), 0.0, 1.0))
-            if ts
-            else 0.0
+        strength = _geo_strength_axis(metrics, components)
+        if four_d_geodesic_ran(metrics):
+            lifetime = authoritative_geo_lifetime(metrics, components)
+        elif ts:
+            lifetime = float(np.clip(float(ts.get("ftl_lifetime_fraction") or 0.0), 0.0, 1.0))
+        else:
+            lifetime = 0.0
+        peak_fields = peak_fields_for_descriptor_details(
+            ts, components=components, metrics=metrics
         )
-        peak_fields = peak_fields_for_descriptor_details(ts, components=components)
         return {
             "x": strength,
             "y": lifetime,
@@ -203,7 +205,7 @@ def _descriptor_details(
             "ftl_lifetime": lifetime,
             "ftl_lifetime_fraction": lifetime,
             **peak_fields,
-            "operational_ftl_geodesic": float(components.get("operational_ftl_geodesic", 0.0)),
+            "ftl_geo_evolving": float(components.get("ftl_geo_evolving", 0.0)),
         }
 
     ftl_benefit = float(
@@ -213,6 +215,7 @@ def _descriptor_details(
                 components.get("operational_ftl", 0.0),
                 components.get("ftl_precursor", 0.0),
                 components.get("ftl_shortcut", 0.0),
+                components.get("ftl_geo_evolving", 0.0),
             ),
             0.0,
             1.0,

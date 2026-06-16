@@ -18,7 +18,7 @@ def _gpu_ok_record(
     eval_id: int,
     *,
     score: float,
-    f_geo_peak: float = 0.0,
+    f_geo_evol: float = 0.0,
     max_speed: float = 0.0,
     lifetime: float = 0.0,
     campaign: Path,
@@ -31,7 +31,8 @@ def _gpu_ok_record(
         "score": score,
         "episode": str(eval_dir),
         "descriptor_details": {
-            "f_geo_peak": f_geo_peak,
+            "f_geo_evol": f_geo_evol,
+            "f_geo_peak": f_geo_evol,
             "t_at_f_geo_peak": 6.4,
             "f_op_peak": 0.0,
             "max_local_speed_peak": max_speed,
@@ -40,9 +41,8 @@ def _gpu_ok_record(
             "ftl_lifetime": lifetime,
             "ftl_lifetime_fraction": lifetime,
             "n_frames": 7.0,
-            "ftl_geo_timeavg": 0.01,
         },
-        "components": {"ftl_geo_timeavg": 0.01},
+        "components": {"ftl_geo_evolving": f_geo_evol},
     }
 
 
@@ -53,33 +53,33 @@ def test_champion_board_crowns_and_replaces() -> None:
         "status": "gpu_ok",
         "score": -10.0,
         "episode": "/tmp/e1",
-        "descriptor_details": {"f_geo_peak": 0.02, "t_at_f_geo_peak": 6.4, "n_frames": 7.0},
+        "descriptor_details": {"f_geo_evol": 0.02, "n_frames": 7.0},
         "components": {},
     }
     events = board.consider(r1)
     assert len(events) == 1
-    assert events[0].metric == "f_geo_peak"
-    assert board.champions["f_geo_peak"].eval_id == 1
+    assert events[0].metric == "f_geo_evol"
+    assert board.champions["f_geo_evol"].eval_id == 1
 
     r2 = {
         "eval": 2,
         "status": "gpu_ok",
         "score": -20.0,
         "episode": "/tmp/e2",
-        "descriptor_details": {"f_geo_peak": 0.05, "t_at_f_geo_peak": 9.6, "n_frames": 7.0},
+        "descriptor_details": {"f_geo_evol": 0.05, "n_frames": 7.0},
         "components": {},
     }
     events = board.consider(r2)
     assert events[0].replaced_eval == 1
-    assert board.champions["f_geo_peak"].eval_id == 2
+    assert board.champions["f_geo_evol"].eval_id == 2
 
 
 def test_compute_keep_eval_ids_unions_score_and_champions(tmp_path: Path) -> None:
     campaign = tmp_path / "campaign"
     campaign.mkdir()
     records = [
-        _gpu_ok_record(1, score=100.0, f_geo_peak=0.01, campaign=campaign),
-        _gpu_ok_record(2, score=-50.0, f_geo_peak=0.05, campaign=campaign),
+        _gpu_ok_record(1, score=100.0, f_geo_evol=0.01, campaign=campaign),
+        _gpu_ok_record(2, score=-50.0, f_geo_evol=0.05, campaign=campaign),
         _gpu_ok_record(3, score=-40.0, max_speed=1.12, campaign=campaign),
     ]
     board = FtlChampionBoard.rebuild(records)
@@ -100,8 +100,8 @@ def test_prune_keeps_ftl_champion_outside_top_score(tmp_path: Path) -> None:
     campaign = tmp_path / "campaign"
     campaign.mkdir()
     records = [
-        _gpu_ok_record(1, score=100.0, f_geo_peak=0.01, campaign=campaign),
-        _gpu_ok_record(2, score=-50.0, f_geo_peak=0.05, campaign=campaign),
+        _gpu_ok_record(1, score=100.0, f_geo_evol=0.01, campaign=campaign),
+        _gpu_ok_record(2, score=-50.0, f_geo_evol=0.05, campaign=campaign),
     ]
     board = FtlChampionBoard.rebuild(records)
     keep = compute_keep_eval_ids(
@@ -129,8 +129,8 @@ def test_retention_log_and_champions_snapshot(tmp_path: Path) -> None:
         "status": "gpu_ok",
         "score": 3.0,
         "episode": "/tmp/e7",
-        "descriptor_details": {"f_geo_peak": 0.04, "t_at_f_geo_peak": 6.4, "n_frames": 7.0},
-        "components": {"ftl_geo_timeavg": 0.02},
+        "descriptor_details": {"f_geo_evol": 0.04, "n_frames": 7.0},
+        "components": {"ftl_geo_evolving": 0.04},
     }
     events = board.consider(record)
     log_path = tmp_path / FTL_RETENTION_LOG
@@ -141,7 +141,7 @@ def test_retention_log_and_champions_snapshot(tmp_path: Path) -> None:
     lines = log_path.read_text(encoding="utf-8").strip().splitlines()
     assert len(lines) >= 1
     metrics = {json.loads(line)["metric"] for line in lines}
-    assert "f_geo_peak" in metrics
+    assert "f_geo_evol" in metrics
 
     snap = json.loads(champions_path.read_text(encoding="utf-8"))
-    assert snap["f_geo_peak"]["eval"] == 7
+    assert snap["f_geo_evol"]["eval"] == 7

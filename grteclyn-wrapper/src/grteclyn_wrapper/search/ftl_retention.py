@@ -56,7 +56,8 @@ class FtlRetentionEvent:
 
 
 DEFAULT_FTL_METRIC_SPECS: tuple[FtlMetricSpec, ...] = (
-    FtlMetricSpec("f_geo_peak", lambda p: p.f_geo_peak, GEO_FTL_FLOOR, "t_at_f_geo_peak"),
+    FtlMetricSpec("f_geo_evol", lambda p: p.f_geo_evol, GEO_FTL_FLOOR),
+    FtlMetricSpec("ftl_geo_evolving", lambda p: p.ftl_geo_evolving, 0.0),
     FtlMetricSpec("f_op_peak", lambda p: p.f_op_peak, GEO_FTL_FLOOR, "t_at_f_op_peak"),
     FtlMetricSpec("max_local_speed", lambda p: p.max_local_speed_peak, 1.0, "t_at_max_speed"),
     FtlMetricSpec(
@@ -66,7 +67,6 @@ DEFAULT_FTL_METRIC_SPECS: tuple[FtlMetricSpec, ...] = (
         "t_at_superluminal_peak",
     ),
     FtlMetricSpec("ftl_lifetime_fraction", lambda p: p.ftl_lifetime_fraction, 0.0),
-    FtlMetricSpec("ftl_geo_timeavg", lambda p: p.ftl_geo_timeavg, 0.0),
 )
 
 

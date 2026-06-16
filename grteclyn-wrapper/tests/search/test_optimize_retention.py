@@ -22,7 +22,7 @@ def _gpu_ok_record(
     eval_id: int,
     *,
     score: float,
-    f_geo_peak: float = 0.0,
+    f_geo_evol: float = 0.0,
     max_speed: float = 0.0,
     opt_dir: Path,
 ) -> dict:
@@ -34,7 +34,8 @@ def _gpu_ok_record(
         "score": score,
         "episode": str(eval_dir),
         "descriptor_details": {
-            "f_geo_peak": f_geo_peak,
+            "f_geo_evol": f_geo_evol,
+            "f_geo_peak": f_geo_evol,
             "t_at_f_geo_peak": 6.4,
             "f_op_peak": 0.0,
             "max_local_speed_peak": max_speed,
@@ -43,9 +44,8 @@ def _gpu_ok_record(
             "ftl_lifetime": 0.0,
             "ftl_lifetime_fraction": 0.0,
             "n_frames": 7.0,
-            "ftl_geo_timeavg": 0.01,
         },
-        "components": {"ftl_geo_timeavg": 0.01},
+        "components": {"ftl_geo_evolving": f_geo_evol},
     }
 
 
@@ -55,13 +55,13 @@ def test_optimize_retention_keeps_top_and_ftl_champion(tmp_path: Path) -> None:
     # Prior generations (not protected): a top scorer, an FTL champion with a low
     # score, and a candidate that is neither.
     prior = [
-        _gpu_ok_record(1, score=100.0, f_geo_peak=0.01, opt_dir=opt_dir),  # top score
-        _gpu_ok_record(2, score=-50.0, f_geo_peak=0.09, opt_dir=opt_dir),  # f_geo champ
-        _gpu_ok_record(3, score=10.0, f_geo_peak=0.0, opt_dir=opt_dir),    # prunable
+        _gpu_ok_record(1, score=100.0, f_geo_evol=0.01, opt_dir=opt_dir),  # top score
+        _gpu_ok_record(2, score=-50.0, f_geo_evol=0.09, opt_dir=opt_dir),  # f_geo champ
+        _gpu_ok_record(3, score=10.0, f_geo_evol=0.0, opt_dir=opt_dir),    # prunable
     ]
     board = FtlChampionBoard.rebuild(prior)
     # Current generation crowns a new speed record -> exercises the audit log.
-    current = [_gpu_ok_record(4, score=5.0, f_geo_peak=0.0, max_speed=1.5, opt_dir=opt_dir)]
+    current = [_gpu_ok_record(4, score=5.0, f_geo_evol=0.0, max_speed=1.5, opt_dir=opt_dir)]
     trajectory = [*prior, *current]
 
     _apply_optimize_retention(
@@ -83,7 +83,7 @@ def test_optimize_retention_keeps_top_and_ftl_champion(tmp_path: Path) -> None:
     assert not (opt_dir / "eval_000003").is_dir()
 
     champs = json.loads((opt_dir / FTL_CHAMPIONS_FILE).read_text(encoding="utf-8"))
-    assert champs["f_geo_peak"]["eval"] == 2
+    assert champs["f_geo_evol"]["eval"] == 2
     assert (opt_dir / FTL_RETENTION_LOG).exists()
 
 
@@ -92,10 +92,10 @@ def test_optimize_retention_top_only_prunes_ftl_peak(tmp_path: Path) -> None:
     opt_dir = tmp_path / "optimize_run"
     opt_dir.mkdir()
     prior = [
-        _gpu_ok_record(1, score=100.0, f_geo_peak=0.01, opt_dir=opt_dir),
-        _gpu_ok_record(2, score=-50.0, f_geo_peak=0.09, opt_dir=opt_dir),
+        _gpu_ok_record(1, score=100.0, f_geo_evol=0.01, opt_dir=opt_dir),
+        _gpu_ok_record(2, score=-50.0, f_geo_evol=0.09, opt_dir=opt_dir),
     ]
-    current = [_gpu_ok_record(3, score=5.0, f_geo_peak=0.0, opt_dir=opt_dir)]
+    current = [_gpu_ok_record(3, score=5.0, f_geo_evol=0.0, opt_dir=opt_dir)]
     trajectory = [*prior, *current]
 
     _apply_optimize_retention(

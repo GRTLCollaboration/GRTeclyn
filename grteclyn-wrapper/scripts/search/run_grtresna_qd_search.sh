@@ -86,7 +86,7 @@ SEED_EVAL_DIRS="${SEED_EVAL_DIRS:-}"
 QD_KEEP_TOP_EVAL_DIRS="${QD_KEEP_TOP_EVAL_DIRS:-10}"
 QD_FTL_RETENTION="${QD_FTL_RETENTION:-1}"
 BINS="${BINS:-8}"
-GPU_IDS="${GPU_IDS:-0 1 2 3}"
+GPU_IDS="${GPU_IDS:-0 1 2 3 4 5 6 7}"
 BATCH_SIZE="${BATCH_SIZE:-$(wc -w <<< "${GPU_IDS}")}"
 SEED="${SEED:-7}"
 # Long enough for structural dissipation AND late-time instability to show: at
@@ -214,7 +214,10 @@ if [[ "${SKIP_QD_PREFLIGHT_TESTS:-0}" != "1" ]]; then
     "${WRAPPER_ROOT}/tests/grtresna/test_grtresna_shell_ansatz.py" \
     "${WRAPPER_ROOT}/tests/grtresna/test_matter_geometry_consistency.py" \
     "${WRAPPER_ROOT}/tests/search/test_ftl_retention.py" \
+    "${WRAPPER_ROOT}/tests/search/test_descriptors_4d.py" \
+    "${WRAPPER_ROOT}/tests/search/test_qd_4d_smoke.py" \
     "${WRAPPER_ROOT}/tests/metrics/ftl/test_ftl_peak_metrics.py" \
+    "${WRAPPER_ROOT}/tests/metrics/ftl/test_ftl_peak_metrics_4d.py" \
     "${WRAPPER_ROOT}/tests/metrics/ftl/test_evolving_geodesic_search_mode.py" \
     "${WRAPPER_ROOT}/tests/metrics/score/test_ftl_4d_gate.py" \
     -q --tb=short

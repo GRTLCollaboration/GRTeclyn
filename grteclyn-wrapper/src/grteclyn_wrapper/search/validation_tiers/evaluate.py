@@ -90,8 +90,16 @@ def evaluate_tiers(
         elif constr < config.constraint_floor:
             add(Tier.OPERATIONAL, FAIL, f"constraint_health={constr:.3g} < {config.constraint_floor}")
         else:
-            geo = _f(components, "operational_ftl_geodesic")
-            if "operational_ftl_geodesic" not in components:
+            if "ftl_geo_evolving" in components:
+                geo = _f(components, "ftl_geo_evolving")
+                geo_label = "f_geo_evolving"
+            else:
+                geo = _f(components, "operational_ftl_geodesic")
+                geo_label = "f_geo"
+            if (
+                "ftl_geo_evolving" not in components
+                and "operational_ftl_geodesic" not in components
+            ):
                 add(
                     Tier.OPERATIONAL,
                     PASS,
@@ -104,15 +112,19 @@ def evaluate_tiers(
                     Tier.OPERATIONAL,
                     FAIL,
                     f"coordinate FTL without gauge-invariant shortcut "
-                    f"(F_op={op:.3g}, f_geo={geo:.3g})",
+                    f"(F_op={op:.3g}, {geo_label}={geo:.3g})",
                 )
             elif geo < config.geodesic_floor:
-                add(Tier.OPERATIONAL, FAIL, f"f_geo={geo:.3g} < {config.geodesic_floor}")
+                add(
+                    Tier.OPERATIONAL,
+                    FAIL,
+                    f"{geo_label}={geo:.3g} < {config.geodesic_floor}",
+                )
             else:
                 add(
                     Tier.OPERATIONAL,
                     PASS,
-                    f"evolved F_op={op:.3g}, f_geo={geo:.3g}, horizon={horizon:.3g}",
+                    f"evolved F_op={op:.3g}, {geo_label}={geo:.3g}, horizon={horizon:.3g}",
                 )
 
     surv = _f(components, "survival")
