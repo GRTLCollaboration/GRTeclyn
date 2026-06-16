@@ -294,6 +294,7 @@ def _objective(
         "descriptor_details": peak_fields_for_descriptor_details(
             metrics_dict.get("ftl_timeseries") if isinstance(metrics_dict, dict) else None,
             components=score.components,
+            metrics=metrics_dict if isinstance(metrics_dict, dict) else None,
         ),
         "overrides": {d.param_key: overrides.get(d.param_key) for d in dims},
     }

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from grteclyn_wrapper.search.ftl_peak_metrics import (
     authoritative_geo_strength,
     from_timeseries_mapping,
@@ -60,3 +62,28 @@ def test_authoritative_geo_strength_ignores_frozen_component() -> None:
         {"operational_ftl_geodesic": 0.5},
     )
     assert strength == 0.0
+
+
+def test_peak_fields_need_metrics_for_f_geo_evol_champion() -> None:
+    """CMA-ES trajectory rows must pass full metrics, not only timeseries."""
+    ts = {"n_frames": 7, "f_geo_peak": 0.098, "ftl_lifetime_fraction": 0.5}
+    metrics = {
+        "evolving_geodesic": {
+            "f_geo": 0.07,
+            "h_quality_ok": True,
+            "n_rays": 3,
+            "n_reached": 3,
+        }
+    }
+    components = {"ftl_geo_evolving": 0.35, "ftl_geo_timeavg": 0.0}
+
+    without_metrics = peak_fields_for_descriptor_details(ts, components=components)
+    with_metrics = peak_fields_for_descriptor_details(
+        ts, components=components, metrics=metrics
+    )
+
+    assert without_metrics["f_geo_evol"] == 0.0
+    assert without_metrics["f_geo_peak"] == pytest.approx(0.098)
+    assert with_metrics["f_geo_evol"] == pytest.approx(0.07)
+    assert with_metrics["f_geo_peak"] == pytest.approx(0.07)
+    assert with_metrics["ftl_geo_timeavg"] == 0.0

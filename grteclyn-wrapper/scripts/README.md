@@ -7,10 +7,11 @@ Paths below are relative to that root unless noted.
 
 | Folder | What lives here |
 |--------|-----------------|
-| [`lib/`](lib/env.sh) | Shared `env.sh` (sets `GRTECLYN_ROOT`, `PYTHONPATH`, optional OpenMPI/GRTresna env) and `promote_common.sh` (HQ promotion defaults). Sourced by other scripts; do not run directly. |
+| [`campaigns/`](campaigns/README.md) | **Three-stage FTL pipeline** — QD, CMA-ES, HQ promotion launchers + shared config. Start here for production searches. |
+| [`lib/`](lib/env.sh) | Shared `env.sh` (sets `GRTECLYN_ROOT`, `PYTHONPATH`, optional OpenMPI/GRTresna env). Thin redirects to `campaigns/lib/` for search/promote defaults. |
 | [`plot/`](plot/) | **Plotfile streaming and post-run figures** — shared across examples (wormhole collapse, RadialRecipe episodes, Teo runs, etc.). |
 | [`radial/`](radial/) | RadialRecipe smoke tests, batch runs, promotion, validation campaigns. |
-| [`search/`](search/) | FTL / GRTresna CMA-ES search campaigns, tier-2 replay, offline scoring. |
+| [`search/`](search/) | FTL offline analysis (tier validation, campaign reports, artifact cleanup). |
 | [`wormhole/`](wormhole/) | Wormhole-collapse helpers: `.gridinit` generators, rollback, archive to `SimResults/`. |
 | [`build/`](build/) | Rebuild GRTresna MPI binary. |
 
@@ -40,28 +41,35 @@ There are **no** duplicate scripts at the `scripts/` root — only `README.md`, 
 
 ---
 
-## `search/` — FTL campaigns
+## `campaigns/` — three-stage FTL pipeline
+
+See **[`campaigns/README.md`](campaigns/README.md)** for the full guide.
+
+| Stage | Script | Purpose |
+|-------|--------|---------|
+| 0 — QD | `campaigns/qd/run.sh` | MAP-Elites survey (N=128, t=16, 4D search profile) |
+| 1 — CMA-ES | `campaigns/cmaes/run.sh` | Local refine from QD trajectory (same grid as stage 0) |
+| 2 — HQ | `campaigns/hq/run_batch.sh` | Full-res promotion (N=256, t=30, frames, 4D HQ verify) |
+| HQ single | `campaigns/hq/replay_eval.py` | One eval replay |
+
+Plotfile **consume + on-the-fly delete** (`--consumer-delete`, keep last 3) is default for all stages. PNG **frame rendering** is off for QD/CMA-ES (`GRTECLYN_FRAMES=0`) and on for HQ (`GRTECLYN_FRAMES=1` in `promote_common.sh`).
+
+---
+
+## `search/` — FTL analysis utilities
+
+Launchers live under `campaigns/` only. This folder keeps offline helpers:
 
 | Script | Purpose |
 |--------|---------|
-| `run_grtresna_search.sh` | **Production** matter-first CMA-ES (GRTresna → `.gridinit` → GPU). |
-| `run_grtresna_qd_search.sh` | **Production** MAP-Elites QD over shell space (`QD_RESUME`, `QD_TARGET_EVALS`). |
-| `run_promote_qd_batch.sh` | Batch HQ promotion via `replay_grtresna_eval.py` (`CANDIDATES`, `TOP_K`, `NAME_PREFIX`). |
-| `replay_grtresna_eval.py` | Single-eval HQ replay / GPU-only `.gridinit` continuation. |
-| `run_ftl_search_cmaes.sh` | 9-D geometry-first CMA-ES scout. |
-| `run_ftl_search_nonspherical.sh` | 13-D gauge-angular scout. |
-| `run_ftl_search_directional.sh` | 21-D full-z directional scout. |
 | `project_geometry_motif.py` | Scout → GRTresna projection → post-load gate → optional evolve. |
-| `run_geometry_projection_batch.sh` | Full geometry-first projection campaign orchestrator. |
-| `run_geometry_projection_eval.sh` | Thin wrapper calling `project_geometry_motif.py`. |
-| `run_geometry_projection_replay_gridinit.sh` | GPU evolve from projected `.gridinit`. |
 | `run_matter_geometry_smokes.sh` | End-to-end matter–geometry consistency smokes. |
 | `validate_tiers.py` | Offline falsification-tier assessment. |
 | `report_campaign_ftl.py` | Rank evals by per-frame FTL peaks (`f_geo`, speed, lifetime) from `ftl_timeseries.dat`. |
 | `rescore_grtresna_solved_ftl.py` | Re-score solved-geometry FTL on a campaign. |
 | `cleanup_heavy_sim_artifacts.sh` | Delete heavy plotfile/checkpoint trees under a QD campaign. |
 
-Shared promotion defaults live in [`lib/promote_common.sh`](lib/promote_common.sh).
+HQ promotion defaults: [`campaigns/lib/promote_common.sh`](campaigns/lib/promote_common.sh).
 
 ---
 

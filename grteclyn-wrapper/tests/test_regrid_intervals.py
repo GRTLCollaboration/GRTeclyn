@@ -12,8 +12,8 @@ def test_promotion_overrides_replaces_stale_cmaes_intervals() -> None:
     import importlib.util
     from pathlib import Path
 
-    script = Path(__file__).resolve().parents[1] / "scripts/search/replay_grtresna_eval.py"
-    spec = importlib.util.spec_from_file_location("replay_grtresna_eval", script)
+    script = Path(__file__).resolve().parents[1] / "scripts/campaigns/hq/replay_eval.py"
+    spec = importlib.util.spec_from_file_location("replay_eval", script)
     assert spec and spec.loader
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)

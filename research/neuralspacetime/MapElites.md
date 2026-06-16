@@ -75,8 +75,8 @@ batch it either **mutates an existing elite** (boundary-reflected Gaussian
 perturbation, σ=0.15, ~85% of draws) or **samples inside the feasible box** of
 known elites. Proposals are points in the 23-D `grtresna_shell` search space.
 
-> **QD vs CMA-ES.** QD (`run_grtresna_qd_search.sh`) illuminates the 8×8 grid.
-> CMA-ES (`run_grtresna_search.sh` → `optimize`) hill-climbs from QD survivors.
+> **QD vs CMA-ES.** QD (`campaigns/qd/run.sh`) illuminates the 8×8 grid.
+> CMA-ES (`campaigns/cmaes/run.sh` → `optimize`) hill-climbs from QD survivors.
 > Same search space (`search/optimize/spaces.py`); only the proposer differs.
 > See [CMA-ES refinement](#cma-es-refinement-after-map-elites).
 
@@ -202,12 +202,12 @@ Two modes: `weighted` (plain sum) and `ftl_first` (validated FTL dominates).
 | **4D evolving geodesic** + metric-stack cache | `metrics/probes/ftl/evolving_geodesic.py`, `metric_field.py`, `metric_stack_cache.py`; collector hook in `collector.py` |
 | Plotfile → frames + `ftl_timeseries.dat` | `grteclyn-wrapper/src/grteclyn_wrapper/visualisation/process_wave/consume_plotfiles/` |
 | **Incremental HQ scoring** (`score_timeseries.jsonl`) | `metrics/aggregation/incremental.py`, wired in `consume_plotfiles/driver.py` |
-| HQ promotion launcher | `grteclyn-wrapper/scripts/search/run_promote_qd_batch.sh`, `replay_grtresna_eval.py` |
+| HQ promotion launcher | `grteclyn-wrapper/scripts/campaigns/hq/run_batch.sh`, `campaigns/hq/replay_eval.py` |
 | Frame → movie stitching | `grteclyn-wrapper/scripts/plot/make_movies.sh` |
 | Matter (evolution) | `Source/Matter/GRTresnaIndependentScalars.{hpp,impl.hpp}`, `Examples/RadialRecipe/` |
 | Matter (initial data) | `../GRTresna/Examples/ScalarFieldBH/` |
-| Campaign launcher (QD) | `grteclyn-wrapper/scripts/search/run_grtresna_qd_search.sh` |
-| Campaign launcher (CMA-ES) | `grteclyn-wrapper/scripts/search/run_grtresna_search.sh` |
+| Campaign launcher (QD) | `grteclyn-wrapper/scripts/campaigns/qd/run.sh` |
+| Campaign launcher (CMA-ES) | `grteclyn-wrapper/scripts/campaigns/cmaes/run.sh` |
 
 ## Building the binaries (GRTresna + GRTeclyn)
 
@@ -270,7 +270,7 @@ cd grteclyn-wrapper
 QD_NAME=ftl_discovery_vN QD_ITERATIONS=10 BINS=8 STOP_TIME=16.0 \
   GPU_IDS="0 1 2 3 4 5 6 7" RANKS=8 LUMPS=5 SHELL_PROFILE=compact \
   GRTRESNA_MAX_HAM_PCT=5.0 GRTRESNA_MAX_MOM_PCT=5.0 \
-  nohup bash scripts/search/run_grtresna_qd_search.sh \
+  nohup bash scripts/campaigns/qd/run.sh \
   > ../runs/qd_ftl_discovery_vN.launch.log 2>&1 &
 ```
 
@@ -298,7 +298,7 @@ STOP_TIME=16.0 PLOT_INTERVAL=320 GRTRESNA_EVOLUTION_N_FULL=128 GRTRESNA_EVOLUTIO
 OBJECTIVE_MODE=robust_ftl GRTRESNA_MAX_HAM_PCT=5.0 GRTRESNA_MAX_MOM_PCT=5.0 \
 SOLVED_FTL_NEAR_LUMINAL_SPEED_FLOOR=0.95 \
 RANDOM_INJECTION_FRACTION=0.1 EXOTIC_INJECTION_FRACTION=0.1 \
-nohup bash scripts/search/run_grtresna_search.sh \
+nohup bash scripts/campaigns/cmaes/run.sh \
   >> ../runs/cmaes_ftl_v17_robust.launch.log 2>&1 &
 ```
 
@@ -338,9 +338,9 @@ flowchart LR
 
 | Stage | Script | Resolution | Stop time | Objective | Output dir |
 |-------|--------|------------|-----------|-----------|------------|
-| MAP-Elites | `run_grtresna_qd_search.sh` | 128³, L=64, ml=2 | 16 | `ftl_first` | `runs/grtresna_qd/ftl_discovery_v16/` |
-| CMA-ES | `run_grtresna_search.sh` | 128³, L=64, ml=2 | 16 | `robust_ftl` | `runs/grtresna_cmaes/ftl_cmaes_v17_robust/` |
-| HQ promote | `run_promote_qd_batch.sh` → `replay_grtresna_eval.py` | **256³, L=128, ml=3** | **30** | `ftl_first` | `runs/grtresna_promote/l128n256t30_*/` |
+| MAP-Elites | `campaigns/qd/run.sh` | 128³, L=64, ml=2 | 16 | `ftl_first` | `runs/grtresna_qd/ftl_discovery_v16/` |
+| CMA-ES | `campaigns/cmaes/run.sh` | 128³, L=64, ml=2 | 16 | `robust_ftl` | `runs/grtresna_cmaes/ftl_cmaes_v17_robust/` |
+| HQ promote | `campaigns/hq/run_batch.sh` → `campaigns/hq/replay_eval.py` | **256³, L=128, ml=3** | **30** | `ftl_first` | `runs/grtresna_promote/l128n256t30_*/` |
 
 **Candidate pick (this batch):** CMA-ES winner **eval 177** plus MAP-Elites v16 top 3 by
 `ftl_first` score — evals **233**, **446**, **676** (not the raw-speed outlier eval 643).
@@ -354,7 +354,7 @@ CANDIDATES="177 3 233 0 446 1 676 2" \
   NAME_PREFIX=l128n256t30 \
   RUNS_DIR=/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_promote \
   N_FULL=256 L_FULL=128 STOP_TIME=30 PLOT_INTERVAL=24 MAX_LEVEL=3 \
-  bash scripts/search/run_promote_qd_batch.sh
+  bash scripts/campaigns/hq/run_batch.sh
 # eval 177 sourced from runs/grtresna_cmaes/ftl_cmaes_v17_robust/eval_000177
 ```
 
@@ -455,7 +455,7 @@ GRIDINIT=runs/grtresna_promote/l128n256t30_ftl_max_speed_qd_eval000086/initial_d
 QD_RUN=runs/grtresna_qd/ftl_max_speed/ftl_max_speed_no_penalty_v1 \
 STOP_TIME=8 N_FULL=256 L_FULL=128 NAME_PREFIX=evol_cache_smoke \
 CANDIDATES="086 0" FORCE=1 GRTECLYN_FRAMES=0 \
-bash scripts/search/run_promote_qd_batch.sh
+bash scripts/campaigns/hq/run_batch.sh
 ```
 
 ### Frozen vs 4D — same candidate, same physics
@@ -562,7 +562,7 @@ end-to-end transport** instead:
 
 | Layer | Change |
 |-------|--------|
-| **Enable in QD** | `run_grtresna_qd_search.sh` exports `GRTECLYN_EVOLVING_GEODESIC=1` |
+| **Enable in QD** | `campaigns/qd/run.sh` exports `GRTECLYN_EVOLVING_GEODESIC=1` |
 | **Fast profile** | `GRTECLYN_EVOLVING_GEODESIC_MODE=search`: skip frozen-peak scan, stride-2 temporal subsample (max 40 slices), 33³ metric cache, 3 rays, 15k step cap, `h_rel` early abort |
 | **HQ verify** | Promotes use `GRTECLYN_EVOLVING_GEODESIC_MODE=hq` (full stack, frozen peak, 65³, 5 rays) |
 | **Scoring** | When 4D runs, `ftl_geo_evolving` is the headline geodesic reward (1000× in `ftl_first`); frozen `ftl_geo_timeavg` / `ftl_geo_peak` are zeroed; if 4D finds no reliable shortcut, frozen credit is also zero |
@@ -659,7 +659,7 @@ Local refinement around **OBSERVER_EC** survivors, not raw-score king eval 233.
 - Seeds: evals **739** (x0), **655**, **389**, **256** — `v17_seed_survivors.jsonl`.
 - `OBJECTIVE_MODE=robust_ftl` — geodesic ×1000 unchanged; persistence/survival/exotic reweighted (see launch table above).
 - CMA-ES retention + `ftl_timeseries` on optimize path. Code: `search/optimize/`,
-  `metrics/score/`, `run_grtresna_search.sh`. Tests: `test_optimize_retention.py`,
+  `metrics/score/`, `campaigns/cmaes/run.sh`. Tests: `test_optimize_retention.py`,
   `test_robust_ftl_objective.py`.
 
 ### MAP-Elites → CMA-ES: what improved (v17 completed, 2026-06-15)
@@ -869,7 +869,7 @@ column -t runs/grtresna_promote/l128n256t30_*/small_data/ftl_timeseries.dat | le
 
 1. **`regrid_interval` vs `max_level`** — HQ `max_level=3` requires three `regrid_interval`
    entries; promotion now generates them via `regrid_intervals_for_max_level()` in
-   `replay_grtresna_eval.py` (fixed eval 177 GRTresna abort on first attempt).
+   `campaigns/hq/replay_eval.py` (fixed eval 177 GRTresna abort on first attempt).
 2. **`IncrementalScoreWriter`** — `metrics/aggregation/incremental.py`; wired through
    `plot_consumer.py` → `consume_plotfiles/driver.py` with `--incremental-score`,
    `--objective-mode ftl_first`, `--target-stop-time 30`.
@@ -1125,7 +1125,7 @@ cd grteclyn-wrapper
 QD_NAME=ftl_discovery_v14 QD_ITERATIONS=10 BINS=8 STOP_TIME=16.0 \
   GPU_IDS="0 1 2 3 4 5 6 7" RANKS=8 LUMPS=5 SHELL_PROFILE=compact \
   GRTRESNA_MAX_HAM_PCT=5.0 GRTRESNA_MAX_MOM_PCT=5.0 \
-  nohup bash scripts/search/run_grtresna_qd_search.sh \
+  nohup bash scripts/campaigns/qd/run.sh \
   > ../runs/qd_ftl_discovery_v14.launch.log 2>&1 &
 ```
 
@@ -1228,7 +1228,7 @@ Test: `test_geodesic_reward_gated_by_structural_persistence`.
 1. **QD window too short** — `STOP_TIME` 8→**16**, `PLOT_INTERVAL` 80→160.
 2. **Only moving matter tested** — searchable `grtresna_shell_static` toggle (0=moving).
 
-Code: `search/optimize.py`, `run_grtresna_qd_search.sh`. Tests: `test_grtresna_shell_ansatz.py`.
+Code: `search/optimize.py`, `campaigns/qd/run.sh`. Tests: `test_grtresna_shell_ansatz.py`.
 
 ## `ftl_discovery_v9` review + shaping rebalance → HQ promotion (2026-06-11)
 
@@ -1260,7 +1260,7 @@ Top 3: eval 40 (266), 11 (200), 80 (185) — all genuine geodesic shortcuts. 64/
 
 ```bash
 QD_RUN=runs/grtresna_qd/ftl_discovery_v9 NAME_PREFIX=ftl_discovery_v9 \
-  CANDIDATES="40 0 11 1 80 2" bash scripts/search/run_promote_qd_batch.sh
+  CANDIDATES="40 0 11 1 80 2" bash scripts/campaigns/hq/run_batch.sh
 # L=128 N=256 max_level=3 t=30
 ```
 

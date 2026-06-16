@@ -56,7 +56,7 @@ structural, not just a missing flag.
 `recipe_exotic_matter` defaults to `false`
 (`Examples/RadialRecipe/SimulationParameters.hpp:36`) and is **never set on the
 grtresna path** (`core/evaluation.py:72-73` guards it with `and not grtresna`;
-the QD launcher `scripts/search/run_grtresna_qd_search.sh` does not set it). The
+the QD launcher `scripts/campaigns/qd/run.sh` does not set it). The
 search gates only on:
 - GRTresna's **own** internal Ham/Mom residual (`parse_convergence`), and
 - a **geometry-only** FTL probe on the `.gridinit`
@@ -118,4 +118,4 @@ Recommended order: (A) immediately to quantify/quarantine existing results, then
 - Search wiring (no GRTeclyn constraint gate, exotic flag unset):
   `grteclyn-wrapper/src/grteclyn_wrapper/core/evaluation.py`,
   `grteclyn-wrapper/src/grteclyn_wrapper/search/optimize.py` (`build_grtresna_config`),
-  `grteclyn-wrapper/scripts/search/run_grtresna_qd_search.sh`
+  `grteclyn-wrapper/scripts/campaigns/qd/run.sh`

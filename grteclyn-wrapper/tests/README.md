@@ -69,4 +69,4 @@ cd grteclyn-wrapper
 uv run pytest tests/ -q
 ```
 
-QD preflight gate (`scripts/search/run_grtresna_qd_search.sh`) runs a subset under `grtresna/`, `search/`, and `metrics/ftl/` before launching cluster jobs.
+QD preflight gate (`scripts/campaigns/qd/run.sh` via `search_common.sh`) runs a subset under `grtresna/`, `search/`, and `metrics/ftl/` before launching cluster jobs.

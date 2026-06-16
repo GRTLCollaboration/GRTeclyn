@@ -11,13 +11,13 @@ This is **not optional**. A run without the sidecar consumer is incomplete for p
 | Requirement | How |
 |-------------|-----|
 | Sidecar consumer ON | `consume_plotfiles=True` in Python (`evaluate_overrides` / `run_episode`) or `CONSUME_PLOTFILES=1` in shell launchers |
-| Delete heavy HDF5 | `consumer_delete=True` / `CONSUMER_DELETE=1` with `--keep-last 3` (HQ default in `run_promote_qd_batch.sh`) |
-| PNG frames written | Set `GRTECLYN_FRAMES_FIELDS` (see `run_promote_qd_batch.sh` / `scripts/lib/promote_common.sh`) — outputs land in `eval_*/frames/` |
+| Delete heavy HDF5 | `consumer_delete=True` / `CONSUMER_DELETE=1` with `--keep-last 3` (HQ default in `campaigns/hq/run_batch.sh`) |
+| PNG frames written | Set `GRTECLYN_FRAMES_FIELDS` (see `campaigns/hq/run_batch.sh` / `scripts/lib/promote_common.sh`) — outputs land in `eval_*/frames/` |
 | Verify consumer alive | `ps aux \| grep consume_plotfiles` while GPU is busy; `frames/` should grow during evolution |
 
 **Wrong:** launching replay/promotion without frame env vars, or inspecting only `data/plt*` after a long `t=50` run (disk explosion, no reviewable movies).
 
-**Right:** use `run_promote_qd_batch.sh`, or `replay_grtresna_eval.py` with `--consumer-keep-last 3` and the `GRTECLYN_FRAMES_*` exports below.
+**Right:** use `campaigns/hq/run_batch.sh`, or `campaigns/hq/replay_eval.py` with `--consumer-keep-last 3` and the `GRTECLYN_FRAMES_*` exports below.
 
 ### Post-load gate vs main evolution (do not confuse them)
 
@@ -36,7 +36,7 @@ The post-load gate (`projection/postload_gate.py`) is a **constraint sanity chec
 - `ps aux | grep consume_plotfiles` returns nothing while a GPU is at 100%
 - `eval_*/frames/` empty but `postload_gate/postload_gate/run.log` shows hundreds of steps
 
-**Recovery:** stop the run, save `initial_data.gridinit`, wipe the episode dir, relaunch with `--gridinit` (GPU-only, skips GRTresna + postload) or fresh `replay_grtresna_eval.py` after pulling the `postload_gate.py` fix.
+**Recovery:** stop the run, save `initial_data.gridinit`, wipe the episode dir, relaunch with `--gridinit` (GPU-only, skips GRTresna + postload) or fresh `campaigns/hq/replay_eval.py` after pulling the `postload_gate.py` fix.
 
 **Healthy run check:**
 
@@ -79,7 +79,7 @@ Run from `GRTeclyn/grteclyn-wrapper` unless noted.
 ```bash
 # CMA-ES scalar search (see Search pipeline for ansätze and knobs)
 GPU_IDS="0 1 2 3 4 5 6 7" GRTRESNA_ANSATZ=shell \
-  bash scripts/search/run_grtresna_search.sh
+  bash scripts/campaigns/cmaes/run.sh
 
 # MAP-Elites quality-diversity (diverse FTL families)
 # Post-load constraint gate is ON by default (POSTLOAD_GATE=1) so only
@@ -87,21 +87,21 @@ GPU_IDS="0 1 2 3 4 5 6 7" GRTRESNA_ANSATZ=shell \
 QD_ITERATIONS=8 BINS=8 GPU_IDS="0 1 2 3 4 5 6 7" RANKS=8 \
   LUMPS=5 SHELL_PROFILE=compact \
   POSTLOAD_MAX_HAM_L2=1e-2 POSTLOAD_MAX_MOM_L2=1e-2 \
-  bash scripts/search/run_grtresna_qd_search.sh
+  bash scripts/campaigns/qd/run.sh
 
 # Cheap smoke: no GRTresna solve, no GPU evolution
 DRY_RUN=1 MAX_GENERATIONS=1 GPU_IDS="0 1" GRTRESNA_ANSATZ=ring \
-  bash scripts/search/run_grtresna_search.sh
+  bash scripts/campaigns/cmaes/run.sh
 ```
 
 **Stop and verify** — kill the whole campaign tree, then check CPU and GPU:
 
 ```bash
-pkill -TERM -f 'runs/grtresna_search|runs/grtresna_qd|runs/grtresna_refine|run_grtresna_search|run_grtresna_qd_search'
+pkill -TERM -f 'runs/grtresna_search|runs/grtresna_qd|runs/grtresna_refine|campaigns/qd/run.sh|campaigns/cmaes/run.sh'
 sleep 5
-pkill -KILL -f 'runs/grtresna_search|runs/grtresna_qd|runs/grtresna_refine|run_grtresna_search|run_grtresna_qd_search'
+pkill -KILL -f 'runs/grtresna_search|runs/grtresna_qd|runs/grtresna_refine|campaigns/qd/run.sh|campaigns/cmaes/run.sh'
 ps -eo pid,ppid,pgid,pcpu,pmem,etime,args \
-  | awk '/run_grtresna_search|run_grtresna_qd_search|grteclyn_wrapper|Main_ScalarFieldBH3d|main3d.gnu.CUDA.ex|consume_plotfiles|prterun|mpirun|orterun/ && !/awk/ {print}'
+  | awk '/campaigns\/(qd|cmaes)\/run\.sh|grteclyn_wrapper|Main_ScalarFieldBH3d|main3d.gnu.CUDA.ex|consume_plotfiles|prterun|mpirun|orterun/ && !/awk/ {print}'
 nvidia-smi   # expect 0MiB usage, no running processes
 ```
 
@@ -135,10 +135,10 @@ uv run python scripts/search/validate_tiers.py runs/grtresna_search/<campaign> -
 
 | Script | Use for |
 |--------|---------|
-| `run_grtresna_search.sh` | CMA-ES: GRTresna → `.gridinit` → GPU evolution |
-| `run_grtresna_qd_search.sh` | MAP-Elites archive over shell space |
-| `run_promote_qd_batch.sh` | Batch HQ promotion of QD elites (env-driven candidate list) |
-| `replay_grtresna_eval.py` | Single-eval HQ promotion / GPU-only continuation |
+| `campaigns/cmaes/run.sh` | CMA-ES: GRTresna → `.gridinit` → GPU evolution |
+| `campaigns/qd/run.sh` | MAP-Elites archive over shell space |
+| `campaigns/hq/run_batch.sh` | Batch HQ promotion of QD elites (env-driven candidate list) |
+| `campaigns/hq/replay_eval.py` | Single-eval HQ promotion / GPU-only continuation |
 | `run_radialrecipe_gpu_smoke.sh` | Single-GPU smoke/build after C++ edits |
 | `project_geometry_motif.py` | Geometry-first scout → GRTresna projection → post-load gate |
 
@@ -146,11 +146,10 @@ uv run python scripts/search/validate_tiers.py runs/grtresna_search/<campaign> -
 
 ## Geometry-first projection
 
-Geometry-first RadialRecipe searches (`run_ftl_search_cmaes.sh`,
-`run_ftl_search_nonspherical.sh`, `run_ftl_search_directional.sh`) are efficient
-**scouts**: they find FTL-relevant geometric motifs without solving the full 3D
-momentum constraint.  The 1D Hamiltonian reconstruction sets `Pi = 0`, so scouts
-find lenses and dipoles, not transport motors by themselves.
+Geometry-first RadialRecipe scouts (9-D / 13-D / 21-D parameterizations) are efficient
+**motif finders**: they rank FTL-relevant geometric shapes without solving the full 3D
+momentum constraint. Use `scripts/search/project_geometry_motif.py` to promote winners;
+dedicated scout launchers were removed in favor of the matter-first `campaigns/` pipeline.
 
 The hybrid projection path promotes scout winners to constraint-satisfying initial
 data:
@@ -245,7 +244,7 @@ is an *interesting* (transport-capable) one is what the search campaign explores
 - Tests: `tests/grtresna/test_matter_geometry_consistency.py`, `tests/grtresna/test_grtresna_postload_gate_integration.py`.
 - End-to-end smokes: `scripts/search/run_matter_geometry_smokes.sh` (canonical, exotic, mixed-shell).
 
-**Knobs** (default the post-load gate **on** in `run_grtresna_qd_search.sh`):
+**Knobs** (default the post-load gate **on** in `campaigns/qd/run.sh`):
 
 | Env var | Default | Meaning |
 |---------|---------|---------|
@@ -269,11 +268,11 @@ flowchart LR
         V --> L
     end
     subgraph s1["Stage 1 — Discovery"]
-        QD["MAP-Elites<br/>run_grtresna_qd_search.sh"]
+        QD["MAP-Elites<br/>campaigns/qd/run.sh"]
         A["archive.json"]
     end
     subgraph s2["Stage 2 — Refine optional"]
-        RF["CMA-ES warm start<br/>run_grtresna_search.sh"]
+        RF["CMA-ES warm start<br/>campaigns/cmaes/run.sh"]
     end
     subgraph s3["Stage 3 — Promote"]
         PR["replay / batch promote"]
@@ -437,26 +436,26 @@ cd /path/to/GRTeclyn/grteclyn-wrapper
 
 # Refinement: 14D ring
 GPU_IDS="0 1 2 3 4 5 6 7" GRTRESNA_ANSATZ=ring \
-  bash scripts/search/run_grtresna_search.sh
+  bash scripts/campaigns/cmaes/run.sh
 
 # Discovery: 16D shell (default for new families)
 GPU_IDS="0 1 2 3 4 5 6 7" GRTRESNA_ANSATZ=shell \
-  bash scripts/search/run_grtresna_search.sh
+  bash scripts/campaigns/cmaes/run.sh
 
 # Audit: 55D free
 GPU_IDS="0 1 2 3 4 5 6 7" GRTRESNA_ANSATZ=free LUMPS=5 \
-  bash scripts/search/run_grtresna_search.sh
+  bash scripts/campaigns/cmaes/run.sh
 ```
 
 Useful overrides:
 
 ```bash
-GPU_IDS="0 1 2 3" bash scripts/search/run_grtresna_search.sh   # fewer GPUs
+GPU_IDS="0 1 2 3" bash scripts/campaigns/cmaes/run.sh   # fewer GPUs
 WARM_START_TRAJECTORY=/path/to/trajectory.jsonl GPU_IDS="0 1 2 3 4 5 6 7" \
-  bash scripts/search/run_grtresna_search.sh                   # continue prior run
+  bash scripts/campaigns/cmaes/run.sh                   # continue prior run
 NO_CONSUME=1 GPU_IDS="0 1" MAX_GENERATIONS=1 \
-  bash scripts/search/run_grtresna_search.sh                   # keep plotfiles
-RANKS=1 bash scripts/search/run_grtresna_search.sh             # serial GRTresna (MPI=FALSE build)
+  bash scripts/campaigns/cmaes/run.sh                   # keep plotfiles
+RANKS=1 bash scripts/campaigns/cmaes/run.sh             # serial GRTresna (MPI=FALSE build)
 ```
 
 | Knob | Default | Meaning |
@@ -486,14 +485,14 @@ WARM_START_TRAJECTORY=../runs/grtresna_search/optimize_20260604T170329Z/trajecto
   WARM_START_TOP_K=8 GPU_IDS="0 1 2 3 4 5 6 7" RANKS=8 \
   GRTRESNA_ANSATZ=shell LUMPS=5 SHELL_PROFILE=compact \
   SOLVED_FTL_NEAR_LUMINAL_SPEED_FLOOR=0.9 \
-  bash scripts/search/run_grtresna_search.sh
+  bash scripts/campaigns/cmaes/run.sh
 ```
 
 Outputs: `runs/grtresna_search/optimize_<timestamp>/`.
 
 ### GRTresna solve speed (on by default)
 
-Both `run_grtresna_search.sh` and `run_grtresna_qd_search.sh` enable two complementary
+Both `campaigns/cmaes/run.sh` and `campaigns/qd/run.sh` enable two complementary
 short-cuts so candidates rarely burn the full `ITERATIONS=30` NL loop:
 
 1. **Early NL exit** — `NL_exit_tolerance` stops once Ham **and** Mom are below
@@ -522,7 +521,7 @@ CLI equivalents (also on `optimize` / `qd`):
 ```bash
 QD_ITERATIONS=8 BINS=8 GPU_IDS="0 1 2 3 4 5 6 7" RANKS=8 \
   LUMPS=5 SHELL_PROFILE=compact \
-  bash scripts/search/run_grtresna_qd_search.sh
+  bash scripts/campaigns/qd/run.sh
 ```
 
 Long discovery run:
@@ -531,7 +530,7 @@ Long discovery run:
 QD_ITERATIONS=16 BINS=10 STOP_TIME=8 GPU_IDS="0 1 2 3 4 5 6 7" RANKS=8 \
   LUMPS=5 SHELL_PROFILE=compact \
   GRTRESNA_MAX_HAM_PCT=10 GRTRESNA_MAX_MOM_PCT=10 \
-  bash scripts/search/run_grtresna_qd_search.sh
+  bash scripts/campaigns/qd/run.sh
 ```
 
 | Env var | Default | Meaning |
@@ -555,7 +554,7 @@ RUNS_DIR=runs/grtresna_qd/ftl_discovery \
 QD_NAME=qd_ftl_discovery_20260609T162553Z \
 QD_RESUME=1 QD_TARGET_EVALS=400 \
 DESCRIPTOR_MODE=speed_horizon \
-bash scripts/search/run_grtresna_qd_search.sh
+bash scripts/campaigns/qd/run.sh
 ```
 
 | | CMA-ES | MAP-Elites |
@@ -578,7 +577,7 @@ MAX_GENERATIONS=12 POPULATION=8 STOP_TIME=16 PLOT_INTERVAL=48 \
 GRTRESNA_ANSATZ=shell SHELL_PROFILE=compact GRTRESNA_FULL_Z=1 \
 GRTRESNA_TIMEOUT=900 RANDOM_INJECTION_FRACTION=0.10 \
 GPU_IDS="0 1 2 3 4 5 6 7" RANKS=8 \
-bash run_grtresna_search.sh
+bash campaigns/cmaes/run.sh
 ```
 
 CMA-ES writes `trajectory.jsonl` once per generation (empty file during gen-1 GRTresna is normal). If pinned at `op_ftl=0` for several gens: raise `SIGMA0` to `0.15` or return to QD.
@@ -595,7 +594,7 @@ CMA-ES writes `trajectory.jsonl` once per generation (empty file during gen-1 GR
 QD_RUN=../runs/grtresna_qd/ftl_discovery/qd_ftl_discovery_20260609T162553Z \
 CANDIDATES="024 0 055 1 025 2" \
 NAME_PREFIX=ftl_discovery STOP_TIME=30 \
-bash scripts/search/run_promote_qd_batch.sh
+bash scripts/campaigns/hq/run_batch.sh
 ```
 
 Outputs: `runs/grtresna_promote/l128n256t30_ftl_discovery_qd_eval*/` with **`frames/`** populated during **main** GPU evolution, not during post-load gate.
@@ -605,7 +604,7 @@ Outputs: `runs/grtresna_promote/l128n256t30_ftl_discovery_qd_eval*/` with **`fra
 ```bash
 QD_RUN=../runs/grtresna_qd/qd_20260605T155951Z \
 TOP_K=8 MIN_OPERATIONAL_FTL=0.03 NAME_PREFIX=qd STOP_TIME=50 \
-bash scripts/search/run_promote_qd_batch.sh
+bash scripts/campaigns/hq/run_batch.sh
 ```
 
 **Center-fixed top-8** (explicit candidate list):
@@ -614,7 +613,7 @@ bash scripts/search/run_promote_qd_batch.sh
 QD_RUN=../runs/grtresna_qd/center_fixed_search/qd_20260609T094634Z \
 CANDIDATES="324 0 114 1 146 2 169 3 358 4 314 5 136 6 228 7" \
 NAME_PREFIX=center_fixed STOP_TIME=30 \
-bash scripts/search/run_promote_qd_batch.sh
+bash scripts/campaigns/hq/run_batch.sh
 ```
 
 **Safe anchor revalidation** (`000114` from MapElites.md):
@@ -622,14 +621,14 @@ bash scripts/search/run_promote_qd_batch.sh
 ```bash
 QD_RUN=../runs/grtresna_qd/center_fixed_search/qd_20260609T094634Z \
 CANDIDATES="114 0" NAME_PREFIX=revalidate STOP_TIME=30 \
-bash scripts/search/run_promote_qd_batch.sh
+bash scripts/campaigns/hq/run_batch.sh
 ```
 
 Dry-run (print launches without starting GPUs):
 
 ```bash
 DRY_RUN=1 CANDIDATES="024 0" NAME_PREFIX=ftl_discovery \
-bash scripts/search/run_promote_qd_batch.sh
+bash scripts/campaigns/hq/run_batch.sh
 ```
 
 **GPU-only continuation** (reuse solved `.gridinit`, skip GRTresna + postload — goes straight to framed evolution):
@@ -641,7 +640,7 @@ export GRTECLYN_FRAMES_ZOOM=none
 export GRTECLYN_PROJECTION_FIELDS=scalar_activity
 export GRTECLYN_PROJECTION_AXES="x y z"
 export GRTECLYN_PROJECTION_METHOD=mip
-nohup .venv/bin/python scripts/search/replay_grtresna_eval.py \
+nohup .venv/bin/python scripts/campaigns/hq/replay_eval.py \
   ../runs/grtresna_qd/qd_<ts>/eval_000074 \
   --name l128n256_qd_eval074 --runs-dir ../runs/grtresna_promote --gpu 0 \
   --gridinit /path/to/initial_data.gridinit \
@@ -654,7 +653,7 @@ nohup .venv/bin/python scripts/search/replay_grtresna_eval.py \
 solves the geometry together with a matched scalar-matter layout. A replay that
 loads the `.gridinit` but drops the matched matter params can still show low
 Ham/Mom constraints, but it is not a valid physics validation because GRTeclyn
-will evolve the wrong matter model. `replay_grtresna_eval.py` now copies these
+will evolve the wrong matter model. `campaigns/hq/replay_eval.py` now copies these
 keys from the source eval `params.txt` when `--gridinit` is used:
 
 ```text
@@ -682,7 +681,7 @@ export GRTECLYN_PROJECTION_METHOD=mip
 QD=../runs/grtresna_qd/qd_20260608T175934Z
 for pair in "074 0" "030 1" "023 2"; do
   read -r EVAL GPU <<< "$pair"
-  nohup .venv/bin/python scripts/search/replay_grtresna_eval.py \
+  nohup .venv/bin/python scripts/campaigns/hq/replay_eval.py \
     "$QD/eval_$(printf '%06d' $((10#${EVAL})))" \
     --name "l128n256_qd_eval${EVAL}" \
     --runs-dir ../runs/grtresna_promote --gpu "$GPU" \
@@ -723,7 +722,7 @@ export GRTECLYN_PROJECTION_AXES="x y z"
 export GRTECLYN_PROJECTION_METHOD=mip
 
 # Full replay (GRTresna + GPU)
-nohup .venv/bin/python scripts/search/replay_grtresna_eval.py \
+nohup .venv/bin/python scripts/campaigns/hq/replay_eval.py \
   ../runs/grtresna_qd/qd_20260605T062448Z/eval_000057 \
   --name val16hq2_qd_eval057 --runs-dir ../runs/grtresna_promote --gpu 0 \
   --n-full 128 --l-full 128 --grtresna-domain-l 128 \
@@ -734,7 +733,7 @@ nohup .venv/bin/python scripts/search/replay_grtresna_eval.py \
   > ../runs/grtresna_promote/val16hq2_qd_eval057.log 2>&1 &
 
 # GPU-only continuation (reuse gridinit)
-nohup .venv/bin/python scripts/search/replay_grtresna_eval.py \
+nohup .venv/bin/python scripts/campaigns/hq/replay_eval.py \
   ../runs/grtresna_qd/qd_20260605T062448Z/eval_000057 \
   --name val30hq_qd_eval057 --runs-dir ../runs/grtresna_promote --gpu 0 \
   --gridinit ../runs/grtresna_promote/val16hq2_qd_eval057/initial_data.gridinit \
@@ -865,7 +864,7 @@ Absent diagnostics report `unavailable`. T5/T6 need promotion runs (`extra={"res
 | Goal | Edit here | Rebuild? | Validate with |
 |------|-----------|----------|---------------|
 | CMA-ES dimensions, ansätze, warm starts | `search/optimize.py`, `__main__.py` | No | `uv run pytest tests/grtresna/test_grtresna_ring_ansatz.py tests/metrics/ftl/test_solved_geometry_ftl.py -q` |
-| Launcher defaults / env knobs | `scripts/search/run_grtresna_search.sh` | No | `DRY_RUN=1 MAX_GENERATIONS=1 GPU_IDS="0 1" bash scripts/search/run_grtresna_search.sh` |
+| Launcher defaults / env knobs | `scripts/campaigns/cmaes/run.sh` | No | `DRY_RUN=1 MAX_GENERATIONS=1 GPU_IDS="0 1" bash scripts/campaigns/cmaes/run.sh` |
 | GRTresna invoke / `.gridinit` conversion | `grtresna/solver.py`, `grtresna/io.py` | Usually no | `uv run pytest tests/grtresna/test_grtresna_integration.py -q` |
 | Solved-geometry FTL filter | `metrics/ftl_solved_geometry.py`, `search/solved_ftl_gate.py` | No | `uv run pytest tests/metrics/ftl/test_solved_geometry_ftl.py -q` |
 | Scoring weights | `metrics/score/`, `episode_metrics.py` | No | Re-score campaign or metric tests |

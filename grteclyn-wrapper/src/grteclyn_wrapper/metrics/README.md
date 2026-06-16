@@ -63,8 +63,8 @@ The evolving probe traces null rays through `EvolvingMetricField` (temporal line
 
 **Enable:**
 
-- QD search: `GRTECLYN_EVOLVING_GEODESIC=1` + `GRTECLYN_EVOLVING_GEODESIC_MODE=search` (set in `run_grtresna_qd_search.sh`; fast profile)
-- HQ promotion: `GRTECLYN_EVOLVING_GEODESIC_MODE=hq` (set in `promote_common.sh`) or `--evolving-geodesic` on `replay_grtresna_eval.py`
+- QD search: `GRTECLYN_EVOLVING_GEODESIC=1` + `GRTECLYN_EVOLVING_GEODESIC_MODE=search` (set in `campaigns/lib/search_common.sh`; fast profile)
+- HQ promotion: `GRTECLYN_EVOLVING_GEODESIC_MODE=hq` (set in `promote_common.sh`) or `--evolving-geodesic` on `campaigns/hq/replay_eval.py`
 - Collector: `read_episode_metrics(..., evolving_geodesic=True)` or env `GRTECLYN_EVOLVING_GEODESIC=1`
 
 Same gate as frozen geodesic (`f_op > 1e-3` or `max_local_speed > 1`) plus `len(plotfiles) >= 3`. Validation: `scripts/validation/run_evolving_geodesic_smoke.sh`.
