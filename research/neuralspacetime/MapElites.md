@@ -495,6 +495,65 @@ on the same stack matches the timeseries). Implications:
 `ftl_geo_evolving` weight only after 4D/frozen ratios are catalogued across elites. Longer smoke
 or HQ replay of eval **092** (stronger frozen geodesic) to see whether the ~4× gap persists.
 
+### HQ t=30 confirmation — full history collapses the shortcut to zero (2026-06-16)
+
+First **full HQ promote** with `--evolving-geodesic` on (frames enabled): a from-scratch GRTresna
+solve + GPU evolution to **t=30**, not a truncated GPU-only replay.
+
+| | |
+|--|--|
+| **Run** | `runs/grtresna_promote/l128n256t30_ftl_max_speed_4d_qd_eval000086` |
+| **Source** | QD [eval 086](#ftl_max_speed_no_penalty_v1-max-speed-qd-survey-2026-06-15) (`ftl_max_speed_no_penalty_v1`) |
+| **Grid / time** | L=128, N=256, `max_level=3`, **t=30** (full evolution) |
+| **Mode** | GRTresna initial-data solve → GPU evolution (not a `--gridinit` replay) |
+| **Flags** | `--evolving-geodesic`, frames on, `consumer_keep_last=3`, `ftl_first` |
+| **Metric stack / frames** | **124** cached slices, **126** frames (lockstep, one per plotfile) |
+| **Finalization cost** | ~**14 min** CPU (frozen-peak scan over 124 slices + evolving trace; many late-time rays burn toward the 50k-step cap) |
+
+**Bubble lifecycle (per-frame `ftl_timeseries.dat`).** The coordinate warp **rises, peaks ~t≈4–8,
+then fully dissipates** by t=30:
+
+| metric | t≈1.9 | t≈7.9 (peak) | t≈11.8 | t≈30 (end) |
+|--------|-------|--------------|--------|------------|
+| `f_op` (coord FTL) | 0.026 | **0.166** | 0.136 | **0.000** |
+| `max_local_speed` | 1.12 | **1.33** | 1.28 | 1.07 |
+| `superluminal_fraction` | 0.11 | **0.91** | 0.84 | 0.01 |
+| `n_reached` / 5 (frozen) | 5 | 5 | 2–3 | **0** |
+
+**Frozen vs 4D — full t=30 history:**
+
+| Probe | Result (eval 086 HQ t=30) | Notes |
+|-------|---------------------------|-------|
+| **Frozen peak on stack** `f_geo_frozen_peak` | **5.75%** @ t≈4.08 | Same peak as the t=8 smoke — stack rebuild consistent |
+| **Frozen per-frame** scorer channels | `ftl_geo_peak=0.284`, `ftl_geo_timeavg=0.032` | Still credit the transient |
+| **4D evolving** `f_geo` | **0.0** — **0/5** rays reached detector | `t_emit=0`, `t_arrival=null`, `max_h_rel_drift=3.72` (≫ tol), `h_quality_ok=False` |
+
+Artifact: `small_data/evolving_geodesic.json`.
+
+**Readout — the honest answer flips with a complete history.** The t=8 smoke reported a small but
+**positive** 4D shortcut (1.42%, 5/5 rays reached) because its truncated stack held the faded last
+slice as a near-flat tail the ray could coast through. With the **full t=30 history**, the ray
+emitted at `t_emit=0` must thread the geometry *while it is violently forming and collapsing*: it
+accumulates enormous Hamiltonian drift (`h_rel=3.72`) and **never reaches the detector**. So:
+
+- **Frozen peak 5.75% is not realized end-to-end.** The 4D trace returns **`f_geo=0` and flags
+  itself untrustworthy** (`h_quality_ok=False`) — no reliable gauge-invariant shortcut exists for a
+  real pulse traversing this dynamic channel.
+- This is the strongest demonstration yet of the frozen-snapshot caveat: a candidate that looks
+  like a ~5.75% mid-run shortcut delivers **zero** honest transport once time-evolution is
+  integrated. `ftl_geo_evolving = 0.0` in the score, as it should be.
+
+**Score verdict — not a breakthrough.** Total **−492.6**, dominated by `horizon_penalty=−1.0`
+(trapped-surface proxy fires), `exotic_penalty=−1.6` (exotic matter required), and
+`instability_penalty=−0.96`. eval 086 is a strong-looking *transient coordinate* warp with **no
+real 4D FTL**, a horizon, and exotic-matter dependence. The probe validated cleanly on a realistic,
+non-trivial HQ run.
+
+**Caveat for weighting.** The 14-min finalization (frozen-peak scan re-tracing 5 rays × 124 slices,
+many running to the step cap) is the cost driver. Before enabling a nonzero `ftl_geo_evolving`
+weight in a search loop, cap the frozen-peak slice count or step budget so finalization stays
+sub-minute on long t=30 stacks.
+
 ---
 
 ## ftl_max_speed_no_penalty_v1: max-speed QD survey (2026-06-15)
