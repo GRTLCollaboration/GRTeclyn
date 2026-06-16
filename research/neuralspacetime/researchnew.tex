@@ -31,34 +31,7 @@
 \date{\today}
 
 \begin{abstract}
-We present an automated, \emph{matter-first} search for faster-than-light (FTL)
-precursor spacetimes that are genuine solutions of the Einstein equations rather
-than hand-designed metrics.  A quality-diversity optimizer proposes
-configurations of \emph{sub-luminal} scalar matter; \texttt{GRTresna} solves the
-elliptic Hamiltonian and momentum constraints for the geometry that matter
-actually sources; \texttt{GRTeclyn} evolves the result in full $3{+}1$ general
-relativity on GPU; and gauge-invariant null-geodesic, operational, and
-energy-condition probes score each candidate.  The search runs in three stages:
-broad MAP-Elites illumination, CMA-ES refinement under a robustness objective,
-and high-resolution replay for validation.  The pipeline is constraint-clean by
-construction---each surviving candidate passes a post-load constraint gate under
-the same stress-energy that is evolved---so a candidate is a self-consistent
-spacetime, not a state that violates $G_{ab}=8\pi T_{ab}$ on load.  Our headline
-result, candidate \texttt{eval\,177}, is a constraint-satisfying, non-collapsing
-spacetime, sourced by five sub-luminal scalar clouds, that develops a
-reliability-gated, gauge-invariant null-geodesic shortcut of
-$f_{\rm geo}\!\approx\!5.9\%$ ($\approx\!1.06c$ effective relative to the
-asymptotic rest frame), \emph{sustained for $\sim\!16\,M$} before relaxing,
-with a total exotic-matter content roughly an order of magnitude below a
-comparable Alcubierre bubble evaluated on the identical measure.  We stress what
-the result is \emph{not}: the shortcut is transient and exotic-matter supported,
-and no passenger region is transported---it is a warp \emph{precursor}, not a
-drive.  We validate the probes against a prescribed Alcubierre metric (recovered
-$\sim\!32\%$ shortcut, flagged exotic matter) and a flat control, and we outline
-the concrete path---a persistence/transport objective, an exotic-energy
-feasibility frontier, non-dispersing (boson-star) matter, and a full
-observer-robust, resolution-converged, analytically-extracted validation
-ladder---that turns the discovery engine into a falsifiable physics program.
+We present an automated, \emph{matter-first} search for faster-than-light (FTL) warp precursor spacetimes that are genuine solutions to the Einstein equations. Using a multi-stage pipeline, quality-diversity optimization (MAP-Elites) and CMA-ES propose sub-luminal scalar matter configurations, \texttt{GRTresna} solves the initial-data constraint equations, and \texttt{GRTeclyn} evolves the resulting spacetimes in full $3{+}1$ General Relativity on GPUs. A post-load constraint gate guarantees that all evolved candidates are self-consistent. Our primary result, candidate \texttt{eval\,177}, is a stable, non-collapsing spacetime sourced by five sub-luminal scalar clouds that exhibits a dynamically sustained, gauge-invariant null-geodesic shortcut of $f_{\rm geo} \approx 5.9\%$ (effective speed $\approx 1.06\,c$) lasting for $\sim 16\,M$, with an order of magnitude lower exotic-energy budget than a comparable Alcubierre bubble. We emphasize that this transient shortcut is a warp precursor rather than a passenger transport drive. Finally, we outline a concrete roadmap toward persistent and transport-capable warp systems.
 \end{abstract}
 
 \maketitle
