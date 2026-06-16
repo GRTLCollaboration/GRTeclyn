@@ -89,3 +89,47 @@ def test_conserved_charge_nonzero_with_phase_velocity() -> None:
 def test_conserved_charge_zero_without_phase_velocity() -> None:
     q = conserved_charge_density(0.1, 0.0, 0.0, 0.0)
     assert q == 0.0
+
+
+# --- Phantom sign tests ---------------------------------------------------
+
+
+def test_phantom_rho_negative(rng: np.random.Generator) -> None:
+    """sign=-1 must flip rho: phantom boson star has negative energy density."""
+    state = random_test_state(rng)
+    mass = 0.2
+    em_canonical = compute_emtensor(state, mass=mass, lam=0.0, sign=1.0)
+    em_phantom = compute_emtensor(state, mass=mass, lam=0.0, sign=-1.0)
+    assert abs(em_phantom.rho + em_canonical.rho) < 1.0e-12
+
+
+def test_phantom_j_flipped(rng: np.random.Generator) -> None:
+    """Momentum density reverses sign under phantom flip."""
+    state = random_test_state(rng)
+    em_can = compute_emtensor(state, mass=0.1, lam=0.0, sign=1.0)
+    em_ph = compute_emtensor(state, mass=0.1, lam=0.0, sign=-1.0)
+    np.testing.assert_allclose(em_ph.j, -em_can.j, atol=1.0e-12)
+
+
+def test_phantom_S_flipped(rng: np.random.Generator) -> None:
+    """Spatial stress tensor reverses sign under phantom flip."""
+    state = random_test_state(rng)
+    em_can = compute_emtensor(state, mass=0.1, lam=0.0, sign=1.0)
+    em_ph = compute_emtensor(state, mass=0.1, lam=0.0, sign=-1.0)
+    np.testing.assert_allclose(em_ph.S, -em_can.S, atol=1.0e-12)
+
+
+def test_phantom_trS_flipped(rng: np.random.Generator) -> None:
+    """trS reverses sign under phantom flip."""
+    state = random_test_state(rng)
+    em_can = compute_emtensor(state, mass=0.15, lam=0.01, sign=1.0)
+    em_ph = compute_emtensor(state, mass=0.15, lam=0.01, sign=-1.0)
+    assert abs(em_ph.trS + em_can.trS) < 1.0e-12
+
+
+def test_phantom_sign_default_is_canonical(rng: np.random.Generator) -> None:
+    """Omitting sign (default=1.0) must match explicit sign=1.0."""
+    state = random_test_state(rng)
+    em_default = compute_emtensor(state, mass=0.1, lam=0.0)
+    em_explicit = compute_emtensor(state, mass=0.1, lam=0.0, sign=1.0)
+    assert abs(em_default.rho - em_explicit.rho) < 1.0e-15

@@ -79,7 +79,8 @@ inline void eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
     if (uses_complex_scalar(params))
     {
         ComplexScalarField matter(params.recipe_scalar_mass,
-                                  params.recipe_scalar_lambda);
+                                  params.recipe_scalar_lambda,
+                                  params.recipe_scalar_sign);
         CCZ4RHSWithMatter<ComplexScalarField,
                           MovingPunctureGaugeWithMatter, FourthOrderDerivatives>
             ccz4rhs(matter, params.ccz4_params, dx, params.sigma,

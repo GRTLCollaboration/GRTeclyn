@@ -477,7 +477,8 @@ void RadialRecipeLevel::specificPostTimeStep()
         else if (RadialRecipeMatter::uses_complex_scalar(simParams()))
         {
             ComplexScalarField matter(simParams().recipe_scalar_mass,
-                                      simParams().recipe_scalar_lambda);
+                                      simParams().recipe_scalar_lambda,
+                                      simParams().recipe_scalar_sign);
             fill_matter_constraints(cst, state_new, matter, dx[0],
                                     simParams().recipe_params.grid_center,
                                     time);
@@ -964,7 +965,8 @@ void RadialRecipeLevel::specificPostTimeStep()
             else if (RadialRecipeMatter::uses_complex_scalar(simParams()))
             {
                 ComplexScalarField matter(simParams().recipe_scalar_mass,
-                                            simParams().recipe_scalar_lambda);
+                                            simParams().recipe_scalar_lambda,
+                                            simParams().recipe_scalar_sign);
                 ec_res = reduce_ec_margins(state_fine, matter, ec_dx,
                                            ec_cell_vol);
             }

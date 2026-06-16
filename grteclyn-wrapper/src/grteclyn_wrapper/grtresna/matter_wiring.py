@@ -42,15 +42,19 @@ def plot_vars_for_independent_scalars(num_fields: int) -> tuple[str, ...]:
 def evolution_overrides_from_complex_scalar(
     mass: float,
     lam: float = 0.0,
+    sign: float = 1.0,
 ) -> dict[str, Any]:
     """GRTeclyn params for grtresna_complex_scalar matter model."""
-    return {
+    overrides: dict[str, Any] = {
         "recipe_matter_model": GRTRESNA_COMPLEX_SCALAR_MODEL,
         "recipe_scalar_mass": float(mass),
         "recipe_scalar_lambda": float(lam),
         "calculate_constraint_norms": 1,
         "amr.plot_vars": plot_vars_for_complex_scalar(),
     }
+    if sign != 1.0:
+        overrides["recipe_scalar_sign"] = float(sign)
+    return overrides
 
 
 @dataclass(frozen=True)
@@ -87,6 +91,7 @@ def evolution_overrides_from_config(cfg: GRTresnaConfig) -> dict[str, Any]:  # n
         return evolution_overrides_from_complex_scalar(
             mass=float(cfg.scalar_mass),
             lam=float(cfg.scalar_lambda),
+            sign=float(getattr(cfg, "scalar_sign", 1)),
         )
 
     meta = GRTresnaMatterMetadata.from_config(cfg)

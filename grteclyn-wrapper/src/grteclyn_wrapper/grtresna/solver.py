@@ -98,6 +98,10 @@ class GRTresnaConfig:
     bs_phi_c: float = 0.08
     bs_profile_width: float = 8.0
     bs_omega: float = 0.0
+    # Phantom sign for the complex scalar: +1 canonical (WEC-satisfying),
+    # -1 phantom (flips entire T_ab, giving negative energy density while
+    # preserving U(1) charge conservation).
+    scalar_sign: int = 1
 
     # Momentum-carrying scalar "cloud" (a single localised lump). All default
     # to off so a config that does not set them reproduces the legacy spherical
@@ -204,7 +208,12 @@ def apply_exotic_safe_solver(cfg: GRTresnaConfig) -> GRTresnaConfig:
 
 
 def config_has_exotic_lump(cfg: GRTresnaConfig) -> bool:
-    """True when any configured lump is flagged exotic (negative energy)."""
+    """True when any configured matter is flagged exotic (negative energy).
+
+    Covers independent-scalar exotic lumps and phantom complex scalars.
+    """
+    if cfg.matter_model == "grtresna_complex_scalar" and cfg.scalar_sign < 0:
+        return True
     if cfg.lumps:
         return any(int(lump.get("exotic", 0)) for lump in cfg.lumps)
     return bool(cfg.lump_exotic)
@@ -282,6 +291,7 @@ def write_grtresna_params(cfg: GRTresnaConfig, path: Path) -> None:
     ]
     if cfg.matter_model == "grtresna_complex_scalar":
         lines.extend([
+            f"scalar_sign = {cfg.scalar_sign}",
             f"bs_phi_c = {cfg.bs_phi_c}",
             f"bs_profile_width = {cfg.bs_profile_width}",
             f"bs_omega = {cfg.bs_omega}",

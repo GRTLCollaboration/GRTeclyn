@@ -51,3 +51,13 @@ def test_plot_vars_for_complex_scalar() -> None:
         "lapse", "shift1", "shift2", "shift3",
         "phi", "Pi", "phi2", "Pi2",
     )
+
+
+def test_evolution_overrides_phantom_sign() -> None:
+    overrides = evolution_overrides_from_complex_scalar(mass=0.1, lam=0.0, sign=-1.0)
+    assert overrides["recipe_scalar_sign"] == -1.0
+
+
+def test_evolution_overrides_canonical_omits_sign() -> None:
+    overrides = evolution_overrides_from_complex_scalar(mass=0.1, lam=0.0, sign=1.0)
+    assert "recipe_scalar_sign" not in overrides

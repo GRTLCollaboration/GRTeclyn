@@ -1,7 +1,10 @@
-"""Reference physics for canonical complex scalar matter (boson-star path).
+"""Reference physics for canonical/phantom complex scalar matter (boson-star path).
 
 Formulas match GRTeclyn ScalarField 1/2 convention extended to two real
-components with a shared potential V(|Phi|^2).
+components with a shared potential V(|Phi|^2).  An optional ``sign``
+parameter (default +1) flips the entire T_ab for phantom coupling
+(sign = -1), giving negative energy density while preserving U(1)
+charge conservation and unchanged field dynamics (Klein-Gordon RHS).
 """
 
 from __future__ import annotations
@@ -83,8 +86,14 @@ def compute_emtensor(
     state: ComplexScalarState,
     mass: float = 0.0,
     lam: float = 0.0,
+    sign: float = 1.0,
 ) -> EMTensor:
-    """Sum two ScalarField blocks + one shared V(|Phi|^2)."""
+    """Sum two ScalarField blocks + one shared V(|Phi|^2).
+
+    ``sign`` multiplies the entire T_ab: +1 canonical, -1 phantom.
+    The field EOM (Klein-Gordon RHS) is unchanged; only the
+    gravitational coupling is reversed.
+    """
     v, _, _ = potential_and_derivatives(state.phi1, state.phi2, mass, lam)
 
     rho1, j1, s1 = _component_emtensor(
@@ -94,14 +103,13 @@ def compute_emtensor(
         state.pi2, state.dphi2, state.chi, state.h_uu, state.h_ll
     )
 
-    rho = rho1 + rho2 + v
-    j = j1 + j2
-    s = s1 + s2
-    h_ll = state.h_ll
-    for i in range(3):
-        s[i, i] -= h_ll[i, i] * v / state.chi
+    rho = sign * (rho1 + rho2 + v)
+    j = sign * (j1 + j2)
+    s = sign * (s1 + s2)
+    s -= sign * state.h_ll * v / state.chi
 
-    tr_s = state.chi * float(np.trace(state.h_uu @ s)) - 3.0 * v
+    # S already carries the sign; only the explicit -3V needs it.
+    tr_s = state.chi * float(np.trace(state.h_uu @ s)) - sign * 3.0 * v
     return EMTensor(rho=rho, j=j, S=s, trS=tr_s)
 
 

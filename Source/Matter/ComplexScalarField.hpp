@@ -22,8 +22,9 @@ class ComplexScalarField
   public:
     ComplexScalarField() { load_from_inputs(); }
 
-    explicit ComplexScalarField(double a_mass, double a_lambda)
-        : m_potential(a_mass, a_lambda)
+    explicit ComplexScalarField(double a_mass, double a_lambda,
+                                double a_sign = 1.0)
+        : m_potential(a_mass, a_lambda), m_sign(a_sign)
     {
     }
 
@@ -38,9 +39,12 @@ class ComplexScalarField
         }
         double mass = 0.0;
         double lam  = 0.0;
+        double sign = 1.0;
         pp.load("recipe_scalar_mass", mass, 0.0);
         pp.load("recipe_scalar_lambda", lam, 0.0);
+        pp.load("recipe_scalar_sign", sign, 1.0);
         m_potential = ComplexScalarPotential(mass, lam);
+        m_sign = sign;
     }
 
     using Vars      = ComplexScalarFieldVars;
@@ -68,6 +72,7 @@ class ComplexScalarField
 
   private:
     ComplexScalarPotential m_potential;
+    double m_sign{1.0}; // +1 canonical, -1 phantom (flips T_ab)
 };
 
 #include "ComplexScalarField.impl.hpp"

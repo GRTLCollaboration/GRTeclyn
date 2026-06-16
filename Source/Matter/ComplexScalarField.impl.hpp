@@ -10,6 +10,7 @@ AMREX_GPU_DEVICE emtensor_t ComplexScalarField::compute_emtensor(
     const Tensor<3, amrex::Real> &chris_ULL) const
 {
     (void)chris_ULL;
+    const amrex::Real sign = m_sign;
     emtensor_t out;
     out.rho = 0.0;
     out.trS = 0.0;
@@ -65,8 +66,24 @@ AMREX_GPU_DEVICE emtensor_t ComplexScalarField::compute_emtensor(
     {
         out.S[i][j] -= vars.h(i, j) * V_of_phi / vars.chi();
     }
+
+    // Phantom sign: flip entire T_ab for sign == -1. The field EOM (RHS) is
+    // unchanged -- only the gravitational coupling is reversed, giving
+    // negative energy density while preserving U(1) charge conservation.
+    out.rho *= sign;
+    FOR (i)
+    {
+        out.j[i] *= sign;
+    }
+    FOR (i, j)
+    {
+        out.S[i][j] *= sign;
+    }
+    // S is already sign-flipped, so trace(S) carries the sign; only the
+    // explicit -3V term needs the extra factor.
     out.trS =
-        vars.chi() * TensorAlgebra::compute_trace(out.S, h_UU) - 3.0 * V_of_phi;
+        vars.chi() * TensorAlgebra::compute_trace(out.S, h_UU) -
+        sign * 3.0 * V_of_phi;
 
     return out;
 }

@@ -42,6 +42,7 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("recipe_num_scalar_fields", recipe_num_scalar_fields, 0);
         pp.load("recipe_scalar_mass", recipe_scalar_mass, 0.0);
         pp.load("recipe_scalar_lambda", recipe_scalar_lambda, 0.0);
+        pp.load("recipe_scalar_sign", recipe_scalar_sign, 1.0);
         load_scalar_field_signs(pp);
 
         pp.load("recipe_initial_data_file", recipe_initial_data_file,
@@ -159,6 +160,7 @@ class SimulationParameters : public SimulationParametersBase
     std::array<int, GRTRESNA_MAX_INDEPENDENT_SCALARS> recipe_scalar_field_signs{};
     double recipe_scalar_mass{};
     double recipe_scalar_lambda{};
+    double recipe_scalar_sign{1.0};
 
     std::string recipe_initial_data_file;
     ExternalGridInitialData::params_t external_grid_params{};
