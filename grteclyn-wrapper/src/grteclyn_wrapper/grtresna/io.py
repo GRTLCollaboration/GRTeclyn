@@ -520,6 +520,18 @@ def convert_chombo_to_gridinit(
             data, comp_names, dx_xyz, origin, shifted_lumps,
         )
 
+    complex_scalar_names = ("phi_re", "phi_im", "Pi_re", "Pi_im", "phi2", "Pi2")
+    if any(name in comp_names for name in complex_scalar_names):
+        from .boson_star_fields import (
+            apply_post_solve_lapse_correction,
+            rename_complex_scalar_components,
+        )
+
+        # GRTresna emits phi/Pi/phi2/Pi2 already; the rename is a no-op for that
+        # layout but also accepts the phi_re/phi_im legacy naming.
+        comp_names = rename_complex_scalar_components(comp_names)
+        data = apply_post_solve_lapse_correction(data, comp_names)
+
     result = write_gridinit(data, comp_names, dx_xyz, origin, output_path)
 
     if delete_source:

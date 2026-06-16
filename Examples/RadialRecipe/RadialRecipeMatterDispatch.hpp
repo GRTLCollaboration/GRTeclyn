@@ -2,6 +2,7 @@
 #define RADIALRECIPE_MATTER_DISPATCH_HPP_
 
 #include "CCZ4RHSWithMatter.hpp"
+#include "ComplexScalarField.hpp"
 #include "ConstraintsWithMatter.hpp"
 #include "ExoticScalarField.hpp"
 #include "GRTresnaIndependentScalars.hpp"
@@ -21,6 +22,11 @@ inline bool uses_independent_scalars(const SimulationParameters &params)
            params.recipe_num_scalar_fields > 0;
 }
 
+inline bool uses_complex_scalar(const SimulationParameters &params)
+{
+    return params.recipe_matter_model == "grtresna_complex_scalar";
+}
+
 inline void setup_derived_quantities(int state_index,
                                      const SimulationParameters &params)
 {
@@ -28,6 +34,12 @@ inline void setup_derived_quantities(int state_index,
     {
         ConstraintsWithMatter<GRTresnaIndependentScalars>::set_up(state_index);
         Weyl4WithMatter<GRTresnaIndependentScalars>::set_up(state_index);
+        return;
+    }
+    if (uses_complex_scalar(params))
+    {
+        ConstraintsWithMatter<ComplexScalarField>::set_up(state_index);
+        Weyl4WithMatter<ComplexScalarField>::set_up(state_index);
         return;
     }
     if (params.recipe_exotic_matter)
@@ -55,6 +67,20 @@ inline void eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
             params.recipe_num_scalar_fields, params.recipe_scalar_field_signs,
             params.recipe_scalar_mass, params.recipe_scalar_lambda);
         CCZ4RHSWithMatter<GRTresnaIndependentScalars,
+                          MovingPunctureGaugeWithMatter, FourthOrderDerivatives>
+            ccz4rhs(matter, params.ccz4_params, dx, params.sigma,
+                    params.formulation, 1.0, center, time);
+        amrex::ParallelFor(
+            a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+            { ccz4rhs(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]); });
+        return;
+    }
+
+    if (uses_complex_scalar(params))
+    {
+        ComplexScalarField matter(params.recipe_scalar_mass,
+                                  params.recipe_scalar_lambda);
+        CCZ4RHSWithMatter<ComplexScalarField,
                           MovingPunctureGaugeWithMatter, FourthOrderDerivatives>
             ccz4rhs(matter, params.ccz4_params, dx, params.sigma,
                     params.formulation, 1.0, center, time);

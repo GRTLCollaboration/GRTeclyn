@@ -1,0 +1,53 @@
+"""Tests for complex scalar matter wiring."""
+
+from __future__ import annotations
+
+import json
+
+from grteclyn_wrapper.grtresna.boson_star_fields import rename_complex_scalar_components
+from grteclyn_wrapper.grtresna.matter_wiring import (
+    GRTRESNA_COMPLEX_SCALAR_MODEL,
+    evolution_overrides_from_complex_scalar,
+    plot_vars_for_complex_scalar,
+    read_matter_metadata,
+)
+
+
+def test_rename_complex_scalar_components() -> None:
+    renamed = rename_complex_scalar_components(
+        ["chi", "phi_re", "Pi_re", "phi_im", "Pi_im"]
+    )
+    assert renamed == ["chi", "phi", "Pi", "phi2", "Pi2"]
+
+
+def test_evolution_overrides_for_complex_scalar() -> None:
+    overrides = evolution_overrides_from_complex_scalar(mass=0.1, lam=0.0)
+    assert overrides["recipe_matter_model"] == GRTRESNA_COMPLEX_SCALAR_MODEL
+    assert overrides["recipe_scalar_mass"] == 0.1
+    assert overrides["recipe_scalar_lambda"] == 0.0
+    assert "phi2" in overrides["amr.plot_vars"]
+
+
+def test_read_matter_metadata_includes_scalar_lambda(tmp_path) -> None:
+    payload = {
+        "matter_model": "grtresna_independent_scalars",
+        "num_scalar_fields": 1,
+        "scalar_field_signs": [1],
+        "scalar_mass": 0.1,
+        "scalar_lambda": 0.02,
+        "lump_count": 1,
+    }
+    path = tmp_path / "matter.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    meta = read_matter_metadata(path)
+    assert meta.scalar_lambda == 0.02
+    assert meta.scalar_mass == 0.1
+
+
+def test_plot_vars_for_complex_scalar() -> None:
+    names = plot_vars_for_complex_scalar()
+    assert names == (
+        "chi", "h11", "h12", "h13", "h22", "h23", "h33", "K",
+        "lapse", "shift1", "shift2", "shift3",
+        "phi", "Pi", "phi2", "Pi2",
+    )

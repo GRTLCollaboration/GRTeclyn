@@ -91,6 +91,14 @@ class GRTresnaConfig:
     scalar_mass: float = 0.1
     scalar_lambda: float = 0.0
 
+    # Matter model selection (empty => legacy independent real scalars via ScalarFieldBH)
+    matter_model: str = ""
+
+    # Boson-star parameters (BosonStarBH example)
+    bs_phi_c: float = 0.08
+    bs_profile_width: float = 8.0
+    bs_omega: float = 0.0
+
     # Momentum-carrying scalar "cloud" (a single localised lump). All default
     # to off so a config that does not set them reproduces the legacy spherical
     # data. The lump's conjugate momentum is built so the configuration carries
@@ -272,6 +280,12 @@ def write_grtresna_params(cfg: GRTresnaConfig, path: Path) -> None:
         f"scalar_mass = {cfg.scalar_mass}",
         f"scalar_lambda = {cfg.scalar_lambda}",
     ]
+    if cfg.matter_model == "grtresna_complex_scalar":
+        lines.extend([
+            f"bs_phi_c = {cfg.bs_phi_c}",
+            f"bs_profile_width = {cfg.bs_profile_width}",
+            f"bs_omega = {cfg.bs_omega}",
+        ])
     lines.extend(_lump_lines(cfg))
     lines.extend([
         f"regularised_part_psi = {cfg.regularised_part_psi}",
@@ -588,6 +602,20 @@ def solve(
 
     if cfg.lumps:
         write_matter_metadata(gridinit_path.with_suffix(".matter.json"), cfg)
+    elif cfg.matter_model == "grtresna_complex_scalar":
+        from .matter_wiring import GRTRESNA_COMPLEX_SCALAR_MODEL
+
+        payload = {
+            "matter_model": GRTRESNA_COMPLEX_SCALAR_MODEL,
+            "scalar_mass": cfg.scalar_mass,
+            "scalar_lambda": cfg.scalar_lambda,
+            "bs_phi_c": cfg.bs_phi_c,
+            "bs_omega": cfg.bs_omega,
+        }
+        gridinit_path.with_suffix(".matter.json").write_text(
+            __import__("json").dumps(payload, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
 
     if cfg.cleanup:
         _cleanup_workdir(work_dir, keep_gridinit=gridinit_path)

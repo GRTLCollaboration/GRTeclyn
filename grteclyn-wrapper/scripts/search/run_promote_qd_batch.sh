@@ -151,6 +151,11 @@ for entry in "${CANDIDATE_ENTRIES[@]}"; do
     continue
   fi
 
+  gridinit_args=()
+  if [[ -n "${GRIDINIT:-}" ]]; then
+    gridinit_args=(--gridinit "${GRIDINIT}")
+  fi
+
   # shellcheck disable=SC2086
   nohup ${PYTHON_BIN} "${SEARCH_DIR}/replay_grtresna_eval.py" \
     "${source}" \
@@ -171,6 +176,7 @@ for entry in "${CANDIDATE_ENTRIES[@]}"; do
     --grtresna-max-mom-pct "${GRTRESNA_MAX_MOM_PCT}" \
     --consumer-keep-last "${CONSUMER_KEEP_LAST}" \
     --evolving-geodesic \
+    "${gridinit_args[@]}" \
     > "${log}" 2>&1 &
   echo "  pid=$!"
   launched=$((launched + 1))

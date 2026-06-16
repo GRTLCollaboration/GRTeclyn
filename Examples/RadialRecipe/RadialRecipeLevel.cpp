@@ -3,6 +3,7 @@
 #include "RadialRecipeLevel.hpp"
 #include "RadialRecipeMatterDispatch.hpp"
 #include "GRTresnaIndependentScalars.hpp"
+#include "ComplexScalarField.hpp"
 #include "CCZ4RHSWithMatter.hpp"
 #include "ChiTagger.hpp"
 #include "ConstraintsWithMatter.hpp"
@@ -469,6 +470,14 @@ void RadialRecipeLevel::specificPostTimeStep()
                 simParams().recipe_scalar_field_signs,
                 simParams().recipe_scalar_mass,
                 simParams().recipe_scalar_lambda);
+            fill_matter_constraints(cst, state_new, matter, dx[0],
+                                    simParams().recipe_params.grid_center,
+                                    time);
+        }
+        else if (RadialRecipeMatter::uses_complex_scalar(simParams()))
+        {
+            ComplexScalarField matter(simParams().recipe_scalar_mass,
+                                      simParams().recipe_scalar_lambda);
             fill_matter_constraints(cst, state_new, matter, dx[0],
                                     simParams().recipe_params.grid_center,
                                     time);
@@ -949,6 +958,13 @@ void RadialRecipeLevel::specificPostTimeStep()
                     simParams().recipe_scalar_field_signs,
                     simParams().recipe_scalar_mass,
                     simParams().recipe_scalar_lambda);
+                ec_res = reduce_ec_margins(state_fine, matter, ec_dx,
+                                           ec_cell_vol);
+            }
+            else if (RadialRecipeMatter::uses_complex_scalar(simParams()))
+            {
+                ComplexScalarField matter(simParams().recipe_scalar_mass,
+                                            simParams().recipe_scalar_lambda);
                 ec_res = reduce_ec_margins(state_fine, matter, ec_dx,
                                            ec_cell_vol);
             }

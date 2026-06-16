@@ -19,6 +19,7 @@
   - [Stage 2 — Evolution (GRTeclyn, GPU)](#stage-2--evolution-grteclyn-gpu)
   - [Stage 3 — Metrics & probes (scoring)](#stage-3--metrics--probes-scoring)
   - [Stage 4 — Archive update & feedback](#stage-4--archive-update--feedback)
+- [4D evolving null-geodesic trace (smoke test)](#4d-evolving-null-geodesic-trace-smoke-test-2026-06-15)
 - [The hard consistency rule](#the-hard-consistency-rule)
 - [Behavior descriptors (the "diversity" axes)](#behavior-descriptors-the-diversity-axes)
 - [Scoring model (the "quality" axis)](#scoring-model-the-quality-axis)
@@ -94,8 +95,9 @@ every `PLOT_INTERVAL` steps.
 
 Plotfiles → diagnostics: constraints, `theta_plus`, comoving/shift stats, matter
 density, and FTL probes — coordinate (`operational_ftl_solved`), evolved
-(`operational_ftl`, `ftl_persistence`), and gauge-invariant geodesic shortcut
-(`operational_ftl_geodesic`).
+(`operational_ftl`, `ftl_persistence`), gauge-invariant geodesic shortcut
+(`operational_ftl_geodesic`), and (opt-in) **4D evolving** end-to-end null trace
+(`ftl_geo_evolving`, weight 0 by default — diagnostic only).
 
 ### Stage 4 — Archive update & feedback
 
@@ -154,7 +156,11 @@ Two modes: `weighted` (plain sum) and `ftl_first` (validated FTL dominates).
 **1. FTL signals**
 
 - **`operational_ftl_geodesic`** — null-ray shortcut; gauge-invariant; largest weight;
-  reliability-gated; persistence-gated.
+  reliability-gated; persistence-gated. **Frozen-snapshot:** per-frame static metric.
+- **`ftl_geo_evolving`** — same shortcut measured by a **4D evolving** null trace through
+  the full metric-stack history (`f_geo_evol` in timeseries); diagnostic only (weight 0).
+  Typically **smaller** than frozen peak for dynamic lumps — see
+  [smoke test](#4d-evolving-null-geodesic-trace-smoke-test-2026-06-15).
 - **`operational_ftl`** — evolved coordinate shortcut; zeroed when trustworthy geodesic finds none.
 - **`ftl_persistence`** — shortcut lasts across final frames.
 - **`operational_ftl_solved`** — t=0 constraint-solved hint (localization-gated).
@@ -193,6 +199,7 @@ Two modes: `weighted` (plain sum) and `ftl_first` (validated FTL dominates).
 | Scoring (`ftl_first`, `robust_ftl`) | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/score/` |
 | Metric aggregation | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/aggregation/collector.py` |
 | FTL probes | `grteclyn-wrapper/src/grteclyn_wrapper/metrics/probes/ftl/` |
+| **4D evolving geodesic** + metric-stack cache | `metrics/probes/ftl/evolving_geodesic.py`, `metric_field.py`, `metric_stack_cache.py`; collector hook in `collector.py` |
 | Plotfile → frames + `ftl_timeseries.dat` | `grteclyn-wrapper/src/grteclyn_wrapper/visualisation/process_wave/consume_plotfiles/` |
 | **Incremental HQ scoring** (`score_timeseries.jsonl`) | `metrics/aggregation/incremental.py`, wired in `consume_plotfiles/driver.py` |
 | HQ promotion launcher | `grteclyn-wrapper/scripts/search/run_promote_qd_batch.sh`, `replay_grtresna_eval.py` |
@@ -375,6 +382,7 @@ Reverse-chronological journal below. Quick index:
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
+| [**4D evolving geodesic smoke test**](#4d-evolving-null-geodesic-trace-smoke-test-2026-06-15) | **06-15 done** | Eval **086** @ N=256, t=8. **4D `f_geo` = 1.42%** vs frozen peak **5.75%** (~4× smaller); metric_stack cache (34 slices) works |
 | [**ftl_max_speed_no_penalty_v1**](#ftl_max_speed_no_penalty_v1-max-speed-qd-survey-2026-06-15) | **06-15 done** | **200 evals**, 100 gpu_ok. Max speed **1.58 c** (eval 70); best score **eval 86** (+27.5); best geodesic **eval 92** (27.5% timeavg). Plateau; scores not comparable to v16 |
 | [**HQ promotion: v16 + v17 CMA-ES**](#hq-promotion-after-v16-qd--v17-cma-es-2026-06-15) | **06-15 done** | 4/4 complete. **Incr. peak eval 233 score 749** @ t≈12; only **eval 177** finishes positive (+67). Horizon kills 3/4 by t=30 |
 | [**Eval 177 physics + exotic vs Alcubierre + next directions**](#eval-177-what-is-actually-moving-faster-than-light-2026-06-15) | 06-15 | What's FTL: end-to-end **null transit ~1.06c**, not matter (matter sub-luminal). Exotic **~5–24× < Alcubierre**, **~100–200× milder NEC** (per-shortcut comparable). Reframe → persistence/transport + exotic-energy frontier |
@@ -397,6 +405,95 @@ Reverse-chronological journal below. Quick index:
 | [Stationary warp-lens fix](#scoring-fix-stationary-warp-lens-artifacts-2026-06-10-after-90-evals) | 06-10 | Reliability + stationary gates |
 | [Navigation overhaul](#navigation-overhaul-2026-06-10) | 06-10 | `speed_super` descriptor; feasible-box sampling |
 | [Status / reset](#map-elites-ftl-discovery-status) | 06-10 | `theta_plus` re-centered on `grid_center` |
+
+---
+
+## 4D evolving null-geodesic trace (smoke test, 2026-06-15)
+
+**Context.** Since [v8](#null-geodesic-reliability-fix-2026-06-11-post-v7), gauge-invariant FTL
+has been measured by **frozen-snapshot** null-ray tracing: for each plotfile time `t`, build a
+static 3D metric `g_{μν}(x,y,z)` from that Cauchy slice and integrate null geodesics with the
+same RK4 Hamiltonian integrator (`metrics/probes/ftl/geodesic.py`). Per-frame `f_geo(t)` feeds
+`ftl_timeseries.dat`; the scorer time-averages trustworthy magnitudes into
+`operational_ftl_geodesic` / `ftl_geo_timeavg`.
+
+**The gap (already flagged for eval 177).** Matter lumps move at **0.2–0.8 c**; the metric
+evolves on **~10M**, comparable to the **~16M** light-crossing time. A photon threading the
+channel in real time sees a **changing** geometry. The frozen probe answers: *"if I froze the
+spacetime at t, what shortcut would a null ray see?"* — not *"what shortcut does a ray
+experience through the actual history?"*
+
+**New probe — 4D evolving trace.** Opt-in end-of-run integration through a time-interpolated
+4-metric stack (`EvolvingMetricField` in `metric_field.py`):
+
+1. **During consume** (`--evolving-geodesic`): each plotfile is sampled to `g_{μν}` on a 65³
+   grid and written to `small_data/metric_stack/*.npz` **before** HDF5 plotfiles are deleted
+   (`metric_stack_cache.py`; enabled automatically with the flag).
+2. **At episode end** (`collector.py`): rebuild `g(t,x,y,z)` from the cache (≥3 slices),
+   linearly interpolate in simulation time, finite-difference `∂_μ g^{ab}`, integrate null rays
+   with `t_emit = times[0]` (`evolving_geodesic.py`).
+3. **Outputs:** `small_data/evolving_geodesic.json`; last row of `ftl_timeseries.dat` patched
+   with `f_geo_evol` / `f_geo_evol_ok`. Score component `ftl_geo_evolving` exists but
+   **weight = 0** (diagnostic until validated on HQ runs).
+
+**Smoke run** — validate cache + 4D integration on a real evolved spacetime without a full
+t=30 HQ bill:
+
+| | |
+|--|--|
+| **Run** | `runs/grtresna_promote/l128n256t8_evol_cache_smoke_qd_eval000086` |
+| **Source** | QD [eval 086](#ftl_max_speed_no_penalty_v1-max-speed-qd-survey-2026-06-15) (`ftl_max_speed_no_penalty_v1`) |
+| **Grid / time** | L=128, N=256, `max_level=3`, **t=8** (not 30) |
+| **Mode** | GPU-only replay from HQ-promote `initial_data.gridinit` (`GRIDINIT=…`, `--gridinit`) |
+| **Flags** | `--evolving-geodesic`, `consumer_keep_last=3`, `ftl_first` incremental scoring |
+| **Metric stack** | **34** cached slices (`small_data/metric_stack/`) |
+
+Launch (from `grteclyn-wrapper/`):
+
+```bash
+GRIDINIT=runs/grtresna_promote/l128n256t30_ftl_max_speed_qd_eval000086/initial_data.gridinit \
+QD_RUN=runs/grtresna_qd/ftl_max_speed/ftl_max_speed_no_penalty_v1 \
+STOP_TIME=8 N_FULL=256 L_FULL=128 NAME_PREFIX=evol_cache_smoke \
+CANDIDATES="086 0" FORCE=1 GRTECLYN_FRAMES=0 \
+bash scripts/search/run_promote_qd_batch.sh
+```
+
+### Frozen vs 4D — same candidate, same physics
+
+| Probe | What it measures | Result (eval 086 smoke) | Notes |
+|-------|------------------|-------------------------|-------|
+| **Frozen per-frame** `f_geo(t)` | Static null ray on each snapshot | **Peak 5.75%** @ t≈4.08; time-mean mag **11.5%** of scorer scale (`ftl_geo_timeavg=0.115`) | Existing pipeline; 35 frames in `ftl_timeseries.dat` |
+| **Frozen peak on stack** `f_geo_frozen_peak` | Max frozen `f_geo` over the same cached slices (sanity check) | **5.75%** | Matches timeseries peak — stack rebuild is consistent |
+| **4D evolving** `f_geo` | Single end-to-end null ray through interpolated `g(t,x,y,z)` | **1.42%** | `t_emit=0`, `t_arrival≈14.2`, `t_flat=14.4`; **5/5** rays, `h_quality_ok=True` |
+| **Ratio** | Evolving / frozen peak | **≈ 0.25×** (~**4× smaller**) | Dynamic geometry erodes most of the snapshot shortcut |
+
+Artifact: `small_data/evolving_geodesic.json` (recomputed post-run after JSON-serialization fix).
+
+**Readout.** The smoke test **confirms the frozen-snapshot caveat** from
+[eval 177](#eval-177--hq-time-evolution-n256-t30): the mid-run frozen peak (**5.75%**) **overstates**
+the gauge-invariant shortcut seen by a ray that actually traverses the **evolving** channel
+(**1.42%**). This is the expected direction — not a failure of the 4D integrator (frozen peak
+on the same stack matches the timeseries). Implications:
+
+- **`operational_ftl_geodesic` / `ftl_geo_timeavg` are optimistic** for dynamic lumps; ranking
+  by frozen time-average may prefer geometries whose shortcut is partly a "strobe" artifact.
+- **4D `f_geo` is the honest end-to-end gauge-invariant number** for transport questions; keep
+  frozen traces for cheap per-frame monitoring, use evolving trace for verification / paper claims.
+- At **t=8** the final frozen slice has `f_geo=0` (channel already faded) while the 4D trace
+  still integrates over the full history including the t≈4 peak — another reason snapshot-only
+  scoring can mis-rank decaying pulses.
+
+**Implementation notes (bugs found in smoke).**
+
+1. **Metric-stack cache silently failed** on first attempt: `worker.py` used `Path` without
+   importing it — fixed in `700d958`.
+2. **`evolving_geodesic.json` not written** on the first successful GPU run: `json.dumps`
+   cannot serialize `numpy.bool_` / `numpy.float64` from the report dataclass — fixed with
+   `_json_safe()`; collector now logs each step (`logger.exception` on failure).
+
+**Next.** Enable `--evolving-geodesic` on full HQ promotes (t=30); consider nonzero
+`ftl_geo_evolving` weight only after 4D/frozen ratios are catalogued across elites. Longer smoke
+or HQ replay of eval **092** (stronger frozen geodesic) to see whether the ~4× gap persists.
 
 ---
 
@@ -469,6 +566,8 @@ did not beat v16 on physically weighted objectives. High-speed basins are coordi
 
 **Next step (open):** HQ-promote **eval 92** (and/or **86**) at N=256, t=30 with
 `ftl_first` / restored penalties — test whether the geodesic signal survives refinement.
+Run with `--evolving-geodesic` to measure frozen-vs-4D gap at full duration (see
+[4D smoke test](#4d-evolving-null-geodesic-trace-smoke-test-2026-06-15)).
 
 ---
 
@@ -772,8 +871,9 @@ only promoted candidate to finish t=30 without the horizon −500 veto.
 
 **Caveat — frozen-snapshot probe.** `f_geo(t)` ray-traces each *static* snapshot. The
 geometry evolves on ~10M, comparable to the ~16M light-crossing time, so the true
-end-to-end shortcut for a ray threading the *evolving* tunnel needs a 4D trace (stretch item
-below) and may be smaller than the snapshot peak.
+end-to-end shortcut for a ray threading the *evolving* tunnel needs a 4D trace — now
+implemented ([smoke test on eval 086](#4d-evolving-null-geodesic-trace-smoke-test-2026-06-15):
+**1.42% evolving vs 5.75% frozen peak**, ~4× reduction).
 
 ### Exotic-matter cost: eval 177 vs an Alcubierre bubble
 
@@ -835,11 +935,11 @@ crosses faster, but nothing is carried. The reframe:
    `search/surrogate.py` as a feasibility pre-filter to cut the ~30% GRTresna rejections;
    re-pick MAP-Elites descriptors around comoving-stationarity / exotic fraction /
    localization.
-5. **Verification ladder** (paper §6): a **4D null-ray trace through the evolving metric**
-   (true end-to-end shortcut vs the frozen-snapshot `f_geo`); resolution ladder +
-   observer-robust energy conditions; **analytic extraction** — fit a closed-form
-   metric/matter profile, re-solve the constraints, replay → turns a coefficient vector into
-   a citable spacetime.
+5. **Verification ladder** (paper §6): **4D null-ray trace through the evolving metric**
+   — first smoke on eval 086 ([results](#4d-evolving-null-geodesic-trace-smoke-test-2026-06-15));
+   extend to HQ t=30 promotes. Remaining: resolution ladder + observer-robust energy
+   conditions; **analytic extraction** — fit a closed-form metric/matter profile, re-solve
+   the constraints, replay → turns a coefficient vector into a citable spacetime.
 
 ## v16: FTL champion retention (2026-06-13)
 

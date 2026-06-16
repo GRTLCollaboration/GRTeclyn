@@ -7,8 +7,11 @@
 
 enum
 {
-    c_phi = NUM_CCZ4_VARS,
+    c_phi  = NUM_CCZ4_VARS,
     c_Pi,
+    // Complex scalar reuses the first lump slots (phi_lump0 / Pi_lump0).
+    c_phi2 = NUM_CCZ4_VARS + 2,
+    c_Pi2  = NUM_CCZ4_VARS + 3,
 
     NUM_VARS = NUM_CCZ4_VARS + 2 +
                2 * GRTRESNA_MAX_INDEPENDENT_SCALARS

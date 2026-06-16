@@ -15,11 +15,18 @@ if TYPE_CHECKING:
     from .solver import GRTresnaConfig
 
 GRTRESNA_INDEPENDENT_MATTER_MODEL = "grtresna_independent_scalars"
+GRTRESNA_COMPLEX_SCALAR_MODEL = "grtresna_complex_scalar"
 
 # Full metric in plotfiles for evolved FTL/EC scoring plus per-lump scalars.
 _BASE_PLOT_VARS = (
     "chi h11 h12 h13 h22 h23 h33 K lapse shift1 shift2 shift3 phi Pi"
 )
+
+
+def plot_vars_for_complex_scalar() -> tuple[str, ...]:
+    """amr.plot_vars for canonical complex scalar (boson star) evolution."""
+    base = tuple(_BASE_PLOT_VARS.split())
+    return (*base, "phi2", "Pi2")
 
 
 def plot_vars_for_independent_scalars(num_fields: int) -> tuple[str, ...]:
@@ -30,6 +37,20 @@ def plot_vars_for_independent_scalars(num_fields: int) -> tuple[str, ...]:
     for k in range(n):
         lump_names.extend([f"phi_lump{k}", f"Pi_lump{k}"])
     return (*base, *lump_names) if lump_names else base
+
+
+def evolution_overrides_from_complex_scalar(
+    mass: float,
+    lam: float = 0.0,
+) -> dict[str, Any]:
+    """GRTeclyn params for grtresna_complex_scalar matter model."""
+    return {
+        "recipe_matter_model": GRTRESNA_COMPLEX_SCALAR_MODEL,
+        "recipe_scalar_mass": float(mass),
+        "recipe_scalar_lambda": float(lam),
+        "calculate_constraint_norms": 1,
+        "amr.plot_vars": plot_vars_for_complex_scalar(),
+    }
 
 
 @dataclass(frozen=True)
@@ -61,7 +82,13 @@ class GRTresnaMatterMetadata:
 
 
 def evolution_overrides_from_config(cfg: GRTresnaConfig) -> dict[str, Any]:  # noqa: F821
-    """GRTeclyn params that select the matched independent-scalar matter model."""
+    """GRTeclyn params that select the matched matter model."""
+    if getattr(cfg, "matter_model", "") == GRTRESNA_COMPLEX_SCALAR_MODEL:
+        return evolution_overrides_from_complex_scalar(
+            mass=float(cfg.scalar_mass),
+            lam=float(cfg.scalar_lambda),
+        )
+
     meta = GRTresnaMatterMetadata.from_config(cfg)
     if meta.num_scalar_fields == 0:
         return {"calculate_constraint_norms": 1}
@@ -92,6 +119,7 @@ def read_matter_metadata(path: str | Path) -> GRTresnaMatterMetadata:
         num_scalar_fields=int(payload.get("num_scalar_fields", len(signs))),
         scalar_field_signs=signs,
         scalar_mass=float(payload.get("scalar_mass", 0.0)),
+        scalar_lambda=float(payload.get("scalar_lambda", 0.0)),
         lump_count=int(payload.get("lump_count", len(signs))),
     )
 
