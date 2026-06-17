@@ -29,8 +29,10 @@
 - [How to run a campaign](#how-to-run-a-campaign)
   - [MAP-Elites (QD)](#map-elites-q-d)
   - [CMA-ES refinement after MAP-Elites](#cma-es-refinement-after-map-elites)
+  - [ftl_4d_v1 → CMA-ES refinement proposal](#ftl_4d_v1--cma-es-refinement-proposal-2026-06-16)
   - [HQ promotion (full resolution)](#hq-promotion-full-resolution)
 - [Campaign log / runs analysis](#campaign-log--runs-analysis) — quick index + reverse-chronological journal below
+  - [v18: 4D QD + CMA-ES + HQ (ftl_4d line)](#v18-4d-qd--cma-es--hq-ftl_4d-line-2026-06-16)
 
 ## The idea: matter-first, not metric-first
 
@@ -278,10 +280,19 @@ Results: `runs/grtresna_qd/ftl_discovery_vN/` (`trajectory.jsonl`, `score.json`,
 
 ### CMA-ES refinement after MAP-Elites
 
-MAP-Elites surveys the 23-D box; CMA-ES locally refines around **healthy** QD
-survivors (e.g. evals 739, 655, 256, 389 — `observer_ec` tier, not raw-score
-king eval 233 which is exotic-heavy). Uses `robust_ftl` objective; see
-[v17](#v17-cma-es-robust-refinement-after-v16-2026-06-14) for weight table and results.
+MAP-Elites surveys the 23-D shell box; CMA-ES locally refines around QD elites.
+Two production lines:
+
+| Line | QD source | Objective | Warm-start centre | Doc |
+|------|-----------|-----------|-------------------|-----|
+| **v17 (frozen geodesic era)** | `ftl_discovery_v16` | `robust_ftl` | Healthy survivors (eval 739), not raw king 233 | [v17](#v17-cma-es-robust-refinement-after-v16-2026-06-14) |
+| **v18 / ftl_4d (4D search era)** | `ftl_4d_v1` | **`ftl_first`** (must match QD) | QD **156** → CMA-ES **144** | [v18](#v18-4d-qd--cma-es--hq-ftl_4d-line-2026-06-16) |
+
+**Rule:** warm-started CMA-ES must use the **same** `OBJECTIVE_MODE`, grid, stop time,
+and 4D geodesic profile as the QD run that produced the trajectory (`campaigns/lib/search_common.sh`).
+Do **not** switch to `robust_ftl` on an `ftl_first` QD trajectory — scores will not compare.
+
+**Legacy v17 launch** (`robust_ftl`, frozen-geodesic QD survivors):
 
 **Launch (`ftl_cmaes_v17_robust`):**
 
@@ -382,6 +393,8 @@ Reverse-chronological journal below. Quick index:
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
+| [**v18: 4D QD + CMA-ES + HQ**](#v18-4d-qd--cma-es--hq-ftl_4d-line-2026-06-16) | **06-16 → 06-17** | QD **192 evals** → CMA-ES **144 evals** winner **596** (+88); HQ **eval 144 in flight** @ t≈7.7, incr. peak **1156**, frozen f_geo **11.5%** |
+| [**ftl_4d_v1 → CMA-ES proposal**](#ftl_4d_v1--cma-es-refinement-proposal-2026-06-16) | 06-16 executed | Planning doc for phase-1 CMA-ES knobs; **results → [v18](#v18-4d-qd--cma-es--hq-ftl_4d-line-2026-06-16)** |
 | [**4D evolving geodesic smoke test**](#4d-evolving-null-geodesic-trace-smoke-test-2026-06-15) | **06-15 done** | Eval **086** @ N=256, t=8. **4D `f_geo` = 1.42%** vs frozen peak **5.75%** (~4× smaller); metric_stack cache (34 slices) works |
 | [**ftl_max_speed_no_penalty_v1**](#ftl_max_speed_no_penalty_v1-max-speed-qd-survey-2026-06-15) | **06-15 done** | **200 evals**, 100 gpu_ok. Max speed **1.58 c** (eval 70); best score **eval 86** (+27.5); best geodesic **eval 92** (27.5% timeavg). Plateau; scores not comparable to v16 |
 | [**HQ promotion: v16 + v17 CMA-ES**](#hq-promotion-after-v16-qd--v17-cma-es-2026-06-15) | **06-15 done** | 4/4 complete. **Incr. peak eval 233 score 749** @ t≈12; only **eval 177** finishes positive (+67). Horizon kills 3/4 by t=30 |
@@ -405,6 +418,313 @@ Reverse-chronological journal below. Quick index:
 | [Stationary warp-lens fix](#scoring-fix-stationary-warp-lens-artifacts-2026-06-10-after-90-evals) | 06-10 | Reliability + stationary gates |
 | [Navigation overhaul](#navigation-overhaul-2026-06-10) | 06-10 | `speed_super` descriptor; feasible-box sampling |
 | [Status / reset](#map-elites-ftl-discovery-status) | 06-10 | `theta_plus` re-centered on `grid_center` |
+
+---
+
+## v18: 4D QD + CMA-ES + HQ (ftl_4d line) (2026-06-16)
+
+**Context.** First **end-to-end production pipeline** with **4D evolving null-geodesic**
+scoring in the search loop (`ftl_geo_evolving` headline in `ftl_first`), the same objective
+through QD and CMA-ES, and HQ falsification with full **4D HQ verify** + frames +
+incremental scoring. Supersedes the frozen-geodesic [v17](#v17-cma-es-robust-refinement-after-v16-2026-06-14)
+line (`robust_ftl` on `ftl_discovery_v16`).
+
+```mermaid
+flowchart LR
+  subgraph s0 [Stage 0 — MAP-Elites ftl_4d_v1]
+    QD["8×8 archive\nftl_lifetime descriptor\nN=128 L=64 ml=2 t=16\n4D search geodesic"]
+  end
+  subgraph s1 [Stage 1 — CMA-ES ftl_4d_cmaes_v1]
+    CMA["ftl_first hill-climb\nwarm-start QD top-5\nσ=0.05, 18 gens"]
+  end
+  subgraph s2 [Stage 2 — HQ promote]
+    HQ["Fresh GRTresna + GPU\nN=256 L=128 ml=3 t=30\n4D HQ + frames + incr. score"]
+  end
+  QD -->|"eval 156 score 508"| CMA
+  CMA -->|"eval 144 score 596"| HQ
+  HQ --> OUT["score.json\nevolve_geodesic.json\nframes/movies"]
+```
+
+| Stage | Run dir | Script | Resolution | t | Objective | 4D mode | Status |
+|-------|---------|--------|------------|---|-----------|---------|--------|
+| MAP-Elites | `runs/grtresna_qd/ftl_4d/ftl_4d_v1/` | `campaigns/qd/run.sh` | 128³, L=64, ml=2 | 16 | `ftl_first` | **search** | **done** (192 evals, stopped early) |
+| CMA-ES | `runs/grtresna_cmaes/ftl_4d_cmaes_v1/` | `campaigns/cmaes/run.sh` | 128³, L=64, ml=2 | 16 | `ftl_first` | **search** | **done** (144 evals) |
+| HQ | `runs/grtresna_promote/l128n256t30_ftl_4d_cmaes_qd_eval000144/` | `campaigns/hq/run_batch.sh` | **256³, L=128, ml=3** | **30** | `ftl_first` | **hq** | **in progress** (~26% t) |
+
+---
+
+### Stage 0 — MAP-Elites QD (`ftl_4d_v1`)
+
+**Launch (2026-06-16):**
+
+```bash
+cd grteclyn-wrapper
+RUNS_DIR="${GRTECLYN_ROOT}/runs/grtresna_qd/ftl_4d" \
+QD_NAME=ftl_4d_v1 QD_TARGET_EVALS=200 BATCH_SIZE=8 \
+GPU_IDS="0 1 2 3 4 5 6 7" \
+  bash scripts/campaigns/qd/run.sh
+```
+
+**Configuration:** `campaigns/lib/search_common.sh` — `OBJECTIVE_MODE=ftl_first`,
+`DESCRIPTOR_MODE=ftl_lifetime`, `GRTECLYN_EVOLVING_GEODESIC=1`,
+`GRTECLYN_EVOLVING_GEODESIC_MODE=search`, plotfile consume + delete, `consumer_keep_last=3`.
+
+**Result:** **192** trajectory records (**105** `gpu_ok`), stopped at target 200 to hand off
+to CMA-ES. Archive saturated late (only **4/40** recent evals improved) but a large final
+jump at eval **156**.
+
+| Leaderboard | Eval | Score | `ftl_geo_evolving` | Cell | Notes |
+|-------------|------|-------|---------------------|------|-------|
+| Best score | **156** | **508.5** | **0.346** | [2,7] | FTL champions: `superluminal_fraction=1.0`, exotic −1.6 |
+| #2 | 142 | 382.6 | 0.275 | [2,7] | Same lifetime column |
+| #3 | 145 | 368.6 | 0.287 | [2,7] | Neighbour in parameter space |
+
+**Artifacts:** `trajectory.jsonl`, `archive.json`, `ftl_champions.json`, 15 retained
+`eval_*/` (heavy plotfiles/gridinit stripped post-run → ~106 MB).
+
+**Saturation plot:** `grteclyn-wrapper/src/grteclyn_wrapper/visualisation/plots/qd_batch_progress_ftl_4d_v1.png`
+
+---
+
+### Stage 1 — CMA-ES refinement (`ftl_4d_cmaes_v1`)
+
+Executed the [phase-1 proposal](#ftl_4d_v1--cma-es-refinement-proposal-2026-06-16): warm-start
+from QD trajectory, tight local search around eval **156** (`x₀` = top vector).
+
+**Launch (2026-06-16):**
+
+```bash
+RUN_NAME=ftl_4d_cmaes_v1 \
+WARM_START_TRAJECTORY="${GRTECLYN_ROOT}/runs/grtresna_qd/ftl_4d/ftl_4d_v1/trajectory.jsonl" \
+WARM_START_TOP_K=5 WARM_START_JITTER=0.03 SIGMA0=0.05 MAX_GENERATIONS=18 \
+RANDOM_INJECTION_FRACTION=0.05 EXOTIC_INJECTION_FRACTION=0.0 \
+GPU_IDS="0 1 2 3 4 5 6 7" \
+  bash scripts/campaigns/cmaes/run.sh
+```
+
+**Result:** **144/144** evals (**140** `gpu_ok`, 4 `solved_ftl_rejected`). Steady monotonic
+improvement through all 18 generations — phase 2 not needed.
+
+| | QD best (156) | **CMA-ES winner (144)** | Δ |
+|--|---------------|-------------------------|---|
+| Score (`ftl_first`) | 508.5 | **596.3** | **+87.8 (+17%)** |
+| `ftl_geo_evolving` | 0.346 | **0.395** | +14% |
+| `exotic_penalty` | −1.6 | −1.6 | same tier |
+
+**CMA-ES generation progression** (all-time best):
+
+| Gen | Best | Mean (batch) |
+|-----|------|--------------|
+| 1 | 514.2 | 407.6 |
+| 5 | 533.7 | 523.3 |
+| 10 | 558.6 | 546.9 |
+| 15 | 580.9 | 576.4 |
+| **18** | **596.3** | **589.0** |
+
+**Artifacts:** `runs/grtresna_cmaes/ftl_4d_cmaes_v1/` — `result.json`, `trajectory.jsonl`,
+`ftl_champions.json`, winner `eval_000144/`.
+
+**Readout:** Tight σ=0.05 refinement around the QD elite cluster delivered **+88 points** without
+changing resolution or objective — validates the QD→CMA-ES handoff for the 4D-scored line.
+
+---
+
+### Stage 2 — HQ promotion (`eval_000144`) — in progress
+
+**Launch (2026-06-17):** promote CMA-ES winner at full resolution; same `ftl_first` objective,
+**4D HQ verify** profile, frames on, incremental `score_timeseries.jsonl`.
+
+```bash
+SOURCE_RUN="${GRTECLYN_ROOT}/runs/grtresna_cmaes/ftl_4d_cmaes_v1" \
+CANDIDATES="144 0" \
+NAME_PREFIX=ftl_4d_cmaes \
+  bash scripts/campaigns/hq/run_batch.sh
+```
+
+| Knob | Value |
+|------|-------|
+| Output | `runs/grtresna_promote/l128n256t30_ftl_4d_cmaes_qd_eval000144/` |
+| Grid | N=256, L=128, ml=3, t=30, plot_interval=24 (~126 frames) |
+| 4D | `--evolving-geodesic`, `GRTECLYN_EVOLVING_GEODESIC_MODE=hq` |
+| Frames | `GRTECLYN_FRAMES=1` → `frames/*_z/` |
+| Scoring | `ftl_first` + `score_timeseries.jsonl` per plotfile |
+| GRTresna | Fresh solve (Ham ~0.51%, Mom ~0.05%, 7 iter) |
+
+**Mid-run snapshot (~t≈7.7 / 30, ~26% complete):**
+
+| Metric | Value | Notes |
+|--------|-------|-------|
+| Incremental score (peak so far) | **1155.6** @ t≈7.68 | Still rising; not comparable to search t=16 finals |
+| Frozen `f_geo` peak | **11.5%** | vs CMA-ES search **~7.0%** at QD resolution |
+| `max_local_speed` | ~1.34 c | superluminal fraction building |
+| `horizon_penalty` | **0** | no corroborated trapped surface yet |
+| 4D `f_geo` (end-to-end) | pending | written at end of run → `small_data/evolving_geodesic.json` |
+| Frames | **510+** PNGs | 8 fields × z-slices |
+
+**Monitor:**
+
+```bash
+tail -f runs/grtresna_promote/l128n256t30_ftl_4d_cmaes_qd_eval000144.log
+tail -f runs/grtresna_promote/l128n256t30_ftl_4d_cmaes_qd_eval000144/small_data/score_timeseries.jsonl
+bash scripts/plot/make_movies.sh runs/grtresna_promote/l128n256t30_ftl_4d_cmaes_qd_eval000144 --framerate 10
+```
+
+**Open (fill when HQ completes):** final `score.json`, HQ 4D `f_geo` vs frozen peak,
+whether shortcut persists to t=30, horizon at late times (cf. [eval 086 HQ t=30](#hq-t30-confirmation--full-history-collapses-the-shortcut-to-zero-2026-06-16)
+where 4D trace went to **0**).
+
+---
+
+### v18 vs v17 (frozen-geodesic era)
+
+| | v17 | **v18 (ftl_4d)** |
+|--|-----|------------------|
+| QD objective | `ftl_first` (frozen geodesic) | `ftl_first` + **4D search geodesic** |
+| CMA-ES objective | **`robust_ftl`** | **`ftl_first`** (matched to QD) |
+| CMA-ES gain | +32 pts vs seed 739 | **+88 pts** vs QD 156 |
+| HQ candidate | eval 177 (+67 final @ t=30) | eval **144** (in progress) |
+| Headline metric | frozen `operational_ftl_geodesic` timeavg | **`ftl_geo_evolving`** |
+
+**Takeaway (stages 0–1):** The 4D-scored search loop finds elites that **CMA-ES can still
+improve locally** (+17% score) with matched physics — the first validated QD→CMA-ES→HQ
+pipeline on the new metric stack. HQ will determine whether the CMA-ES winner survives
+full resolution and extended time under the **honest 4D trace**.
+
+---
+
+## ftl_4d_v1 → CMA-ES refinement proposal (2026-06-16)
+
+> **Status:** executed as [v18 stage 1](#stage-1--cma-es-refinement-ftl_4d_cmaes_v1). Kept
+> as the planning record for CMA-ES knob choices.
+
+**Context.** First full QD campaign with **4D evolving geodesic** in the search loop
+([integration](#4d-in-the-qd-search-loop-2026-06-16): `GRTECLYN_EVOLVING_GEODESIC=1`,
+`GRTECLYN_EVOLVING_GEODESIC_MODE=search`, `ftl_geo_evolving` headline in `ftl_first`).
+Run: `runs/grtresna_qd/ftl_4d/ftl_4d_v1/` (~**190** evals, **103** `gpu_ok`).
+
+QD is **saturated but not dead**: archive gains are infrequent (4/40 recent evals improved),
+yet the last major jump was large (+140 at eval 156). CMA-ES should be a **tight hill-climb
+around eval 156**, not a second discovery pass.
+
+### QD outcome — best candidate for CMA-ES
+
+| Field | eval **156** |
+|-------|----------------|
+| **Score** | **508.5** (+126 over #2 eval 142) |
+| **Path** | `runs/grtresna_qd/ftl_4d/ftl_4d_v1/eval_000156` |
+| **Archive cell** | `[2, 7]` — high `ftl_geo_evolving` × full `ftl_lifetime` |
+| **Champions** | `ftl_geo_evolving` **0.346**, `f_geo_evol` **0.070**, `superluminal_fraction` **1.0** |
+| **Main drag** | `exotic_penalty` **−1.6** (max tier; `exotic_fraction` ≈ **0.90**) |
+| **Wall time** | ~**13 min**/eval @ 8 GPUs |
+
+**Top-8 warm-start pool** (default CMA-ES loader, by score):
+
+| Rank | Eval | Score | Cell | `ftl_geo_evolving` |
+|------|------|-------|------|---------------------|
+| 1 | **156** | 508.5 | [2,7] | 0.346 |
+| 2 | 142 | 382.6 | [2,7] | 0.275 |
+| 3 | 145 | 368.6 | [2,7] | 0.287 |
+| 4 | 166 | 306.0 | [1,7] | 0.197 |
+| 5 | 95 | 281.9 | [1,7] | 0.213 |
+| 6–8 | 181, 179, 153 | 202–243 | [0–1,7] | 0.07–0.19 |
+
+CMA-ES sets the initial mean **`x₀` = eval 156** (top trajectory vector). Gen 1 replaces
+the first `min(top_k, popsize)` solutions with the exact best vector plus jittered copies of
+ranks 2…k (`search/optimize/driver.py`).
+
+### Recommended CMA-ES — phase 1 (local refinement)
+
+Tighter than launcher defaults because QD already mapped the elite basin around column **7**
+(full lifetime). Target: **+20–50** score if lucky; do not expect another +140 spike.
+
+```bash
+cd grteclyn-wrapper
+
+RUN_NAME=ftl_4d_cmaes_v1 \
+RUNS_DIR="${GRTECLYN_ROOT}/runs/grtresna_cmaes" \
+WARM_START_TRAJECTORY="${GRTECLYN_ROOT}/runs/grtresna_qd/ftl_4d/ftl_4d_v1/trajectory.jsonl" \
+WARM_START_TOP_K=5 \
+WARM_START_JITTER=0.03 \
+SIGMA0=0.05 \
+MAX_GENERATIONS=18 \
+RANDOM_INJECTION_FRACTION=0.05 \
+EXOTIC_INJECTION_FRACTION=0.0 \
+KEEP_TOP_EVAL_DIRS=10 \
+FTL_RETENTION=1 \
+SEED=7 \
+GPU_IDS="0 1 2 3 4 5 6 7" \
+  nohup bash scripts/campaigns/cmaes/run.sh \
+  > ../runs/ftl_4d_cmaes_v1.launch.log 2>&1 &
+```
+
+| Knob | Phase-1 value | Default | Rationale |
+|------|---------------|---------|-----------|
+| `OBJECTIVE_MODE` | **`ftl_first`** (implicit) | same | Must match QD; never `robust_ftl` here |
+| `WARM_START_TOP_K` | **5** | 8 | Ranks 6–8 are far weaker (202 vs 508); stay in elite cluster |
+| `WARM_START_JITTER` | **0.03** | 0.05 | Smaller gen-1 spread — QD already explored this region |
+| `SIGMA0` | **0.05** | 0.08 | Peaked landscape; local refinement not re-discovery |
+| `MAX_GENERATIONS` | **18** | 25 | ~**144** evals ≈ **31 h**; extend only if still improving |
+| `RANDOM_INJECTION_FRACTION` | **0.05** | 0.10 | Less wasted GPU once QD coverage is done |
+| `EXOTIC_INJECTION_FRACTION` | **0** | 0.10 | Elites already exotic-heavy; injection re-hits −1.6 penalty |
+| Physics | `search_common.sh` defaults | — | Same N=128, L=64, ml=2, t=16, 4D **search** profile |
+
+**Monitor:**
+
+```bash
+tail -f ../runs/ftl_4d_cmaes_v1.launch.log
+tail -f runs/grtresna_cmaes/ftl_4d_cmaes_v1/trajectory.jsonl
+uv run python -m grteclyn_wrapper.visualisation.search \
+  runs/grtresna_cmaes/ftl_4d_cmaes_v1 --batch-size 8   # batch saturation plot
+```
+
+**Stop early** (or skip phase 2) if best score flat for **≥5 generations**, or best stays
+≤ **520** with no `ftl_geo_evolving` gain.
+
+### Phase 2 — only if phase 1 stalls
+
+Warm-start from the CMA-ES trajectory; widen search slightly:
+
+```bash
+RUN_NAME=ftl_4d_cmaes_v2 \
+WARM_START_TRAJECTORY="${GRTECLYN_ROOT}/runs/grtresna_cmaes/ftl_4d_cmaes_v1/trajectory.jsonl" \
+WARM_START_TOP_K=8 WARM_START_JITTER=0.05 SIGMA0=0.08 \
+MAX_GENERATIONS=12 \
+RANDOM_INJECTION_FRACTION=0.10 EXOTIC_INJECTION_FRACTION=0.05 \
+  bash scripts/campaigns/cmaes/run.sh
+```
+
+If still flat → return to **QD** seeded near eval 156, not more CMA-ES.
+
+### HQ in parallel (do not wait on CMA-ES)
+
+CMA-ES at QD resolution may only squeeze marginal gains. Promote the QD elite while
+CMA-ES runs — falsification at N=256, L=128, ml=3, t=30 with full 4D **HQ** trace:
+
+```bash
+SOURCE_RUN="${GRTECLYN_ROOT}/runs/grtresna_qd/ftl_4d/ftl_4d_v1" \
+CANDIDATES="156 0 142 1 145 2" \
+NAME_PREFIX=ftl_4d \
+  bash scripts/campaigns/hq/run_batch.sh
+```
+
+If CMA-ES beats 508, promote the new winner as well.
+
+### What not to do
+
+- **`robust_ftl`** on this trajectory — scores incomparable to QD `ftl_first`.
+- **`SIGMA0=0.15`** on phase 1 — leaves the eval-156 basin.
+- **`WARM_START_TOP_K=1`** — loses gen-1 diversity from jittered elites 142/145/166/95.
+- **Expect huge jumps** — QD's last archive gain was +140 at eval 156; CMA-ES is polish.
+
+### vs v17 CMA-ES
+
+| | v17 (`ftl_cmaes_v17_robust`) | ftl_4d proposal |
+|--|------------------------------|-----------------|
+| QD source | `ftl_discovery_v16` (frozen geodesic) | `ftl_4d_v1` (4D search geodesic) |
+| Objective | `robust_ftl` | **`ftl_first`** |
+| Best seed | eval 739 (healthy, not king 233) | eval **156** (clear score leader) |
+| Headline metric | frozen `operational_ftl_geodesic` timeavg | **`ftl_geo_evolving`** |
+| Typical gain | +0.26 pp f_geo, −11% exotic vs seed | TBD; expect smaller at same grid |
 
 ---
 
@@ -571,8 +891,8 @@ end-to-end transport** instead:
 Code: `evolving_geodesic_options.py` (`SEARCH_OPTIONS` / `HQ_OPTIONS`), collector passes profile
 from env, `ftl.py` authoritative gate.
 
-**Next.** Re-run a short QD pilot (~50 evals) and compare archive coverage vs the frozen-only
-campaign; expect most prior frozen elites to collapse under 4D scoring.
+**Next.** ~~Re-run a short QD pilot (~50 evals)~~ → **`ftl_4d_v1`** completed (~190 evals);
+see [CMA-ES refinement proposal](#ftl_4d_v1--cma-es-refinement-proposal-2026-06-16).
 
 ---
 

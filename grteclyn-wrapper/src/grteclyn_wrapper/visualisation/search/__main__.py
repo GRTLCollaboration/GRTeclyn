@@ -6,6 +6,7 @@ import argparse
 from pathlib import Path
 
 from grteclyn_wrapper.visualisation.search.qd_batch_progress import (
+    _detect_optimizer,
     default_output_path,
     render_qd_batch_progress,
 )
@@ -29,7 +30,7 @@ def main() -> None:
         "--out",
         type=Path,
         default=None,
-        help="output PNG (default: visualisation/plots/qd_batch_progress_<name>.png)",
+        help="output PNG path (default: research/neuralspacetime/figures/qd_batch_progress_<name>.png)",
     )
     parser.add_argument("--title", default=None, help="figure title (default: campaign name)")
     args = parser.parse_args()
@@ -37,11 +38,24 @@ def main() -> None:
     campaign_dir = args.campaign_dir.expanduser().resolve()
     rows = batch_stats_from_campaign(campaign_dir, args.batch_size)
     out_path = args.out or default_output_path(campaign_dir)
-    title = args.title or f"QD batch progress — {campaign_dir.name}"
 
-    render_qd_batch_progress(rows, title=title, out_path=out_path, rolling=args.rolling)
+    opt = _detect_optimizer(campaign_dir)
+    if opt == "cmaes":
+        default_title = f"CMA-ES refinement progress \u2014 {campaign_dir.name}"
+        xlabel = r"CMA-ES generation batch $k$"
+    else:
+        default_title = f"MAP-Elites batch progress \u2014 {campaign_dir.name}"
+        xlabel = r"MAP-Elites batch index $k$"
+
+    title = args.title or default_title
+
+    paths = render_qd_batch_progress(
+        rows, title=title, out_path=out_path, rolling=args.rolling, xlabel=xlabel
+    )
     print(format_batch_summary(rows))
-    print(f"\nWrote {out_path}")
+    print()
+    for p in paths:
+        print(f"Wrote {p}")
 
 
 if __name__ == "__main__":
