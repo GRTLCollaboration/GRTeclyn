@@ -228,9 +228,6 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::extract(
     AMREX_ASSERT(!m_vars.empty());
     const auto variable_type = m_vars.front().type;
 
-    amrex::Print() << "SurfaceExtraction: m_num_interp_points = "
-                   << m_num_interp_points << "\n";
-
     // query not set?
     if (variable_type == VariableType::derived)
     {

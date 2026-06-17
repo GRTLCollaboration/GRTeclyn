@@ -80,6 +80,7 @@ template <class SurfaceGeometry, int num_components> class SurfaceExtraction
 
     //! returns the flattened index for m_interp_data and m_interp_coords
     //! associated to given surface, u and v indices
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     [[nodiscard]] int index(int a_isurface, int a_iu, int a_iv) const
     {
         return a_isurface * m_params.num_points_u * m_params.num_points_v +
