@@ -16,11 +16,12 @@ OUTPUT="${1:-${WRAPPER_ROOT}/benchmark_gpu_slots.json}"
 GPU_ID="${GPU_ID:-0}"
 MAX_CONCURRENCY="${MAX_CONCURRENCY:-5}"
 STOP_TIME="${STOP_TIME:-0.05}"
+BENCH_RUNS="${BENCH_RUNS:-${WRAPPER_ROOT}/../runs/_gpu_benchmark_$(date +%Y%m%d_%H%M%S)}"
+mkdir -p "${BENCH_RUNS}"
 
 cd "${WRAPPER_ROOT}"
 
-RESULTS=()
-BASELINE=""
+WALL_TIMES=()
 
 for n in $(seq 1 "${MAX_CONCURRENCY}"); do
   echo "[benchmark] launching ${n} concurrent job(s) on GPU ${GPU_ID}"
@@ -28,18 +29,17 @@ for n in $(seq 1 "${MAX_CONCURRENCY}"); do
   pids=()
   for i in $(seq 1 "${n}"); do
     (
-      job_start=$(date +%s.%N)
-      CUDA_VISIBLE_DEVICES="${GPU_ID}" python -m grteclyn_wrapper.cli sweep \
-        --count 1 \
+      CUDA_VISIBLE_DEVICES="${GPU_ID}" PYTHONPATH="${WRAPPER_ROOT}/src" python -m grteclyn_wrapper \
+        --runs-dir "${BENCH_RUNS}" \
         --dry-run \
         --cuda-devices "${GPU_ID}" \
         --set "stop_time=${STOP_TIME}" \
         --set "N_full=64" \
         --set "max_level=2" \
         --name "bench_gpu${GPU_ID}_n${n}_job${i}" \
+        sweep \
+        --count 1 \
         >/tmp/bench_gpu_${GPU_ID}_n${n}_job${i}.log 2>&1
-      job_end=$(date +%s.%N)
-      echo "$(echo "${job_end} - ${job_start}" | bc -l)"
     ) &
     pids+=("$!")
   done
@@ -47,47 +47,51 @@ for n in $(seq 1 "${MAX_CONCURRENCY}"); do
     wait "${pid}"
   done
   end_ts=$(date +%s.%N)
-  wall=$(echo "${end_ts} - ${start_ts}" | bc -l)
-  # Per-job wall time at concurrency N equals the batch wall time: all N jobs
-  # start together and finish when the slowest completes.
-  per_job="${wall}"
-  if [[ "${n}" -eq 1 ]]; then
-    BASELINE="${per_job}"
-  fi
-  slowdown="null"
-  if [[ -n "${BASELINE}" && "${n}" -gt 1 ]]; then
-    slowdown=$(echo "scale=4; ${per_job} / ${BASELINE}" | bc -l)
-  fi
-  RESULTS+=("{\"concurrency\":${n},\"wall_seconds\":${wall},\"per_job_seconds\":${per_job},\"slowdown_vs_1\":${slowdown}}")
+  wall=$(python -c "print(${end_ts} - ${start_ts})")
+  WALL_TIMES+=("${n}:${wall}")
 done
-
-RECOMMENDED=1
-if [[ -n "${BASELINE}" ]]; then
-  for entry in "${RESULTS[@]}"; do
-    n=$(echo "${entry}" | python -c 'import json,sys; print(json.loads(sys.stdin.read())["concurrency"])')
-    per=$(echo "${entry}" | python -c 'import json,sys; print(json.loads(sys.stdin.read())["per_job_seconds"])')
-    ratio=$(python -c "print(${per} / ${BASELINE})")
-    ok=$(python -c "print(1 if float('${ratio}') <= 1.25 else 0)")
-    if [[ "${ok}" -eq 1 ]]; then
-      RECOMMENDED="${n}"
-    fi
-  done
-fi
 
 python - <<PY
 import json
 from pathlib import Path
 
+gpu_id = int("${GPU_ID}")
+max_concurrency = int("${MAX_CONCURRENCY}")
+raw = """$(printf '%s\n' "${WALL_TIMES[@]}")""".strip().splitlines()
+runs = []
+baseline = None
+for line in raw:
+    n_s, wall_s = line.split(":", 1)
+    n = int(n_s)
+    wall = float(wall_s)
+    per_job = wall
+    if n == 1:
+        baseline = per_job
+    slowdown = None if baseline is None or n == 1 else round(per_job / baseline, 4)
+    runs.append({
+        "concurrency": n,
+        "wall_seconds": wall,
+        "per_job_seconds": per_job,
+        "slowdown_vs_1": slowdown,
+    })
+
+recommended = 1
+if baseline is not None:
+    for row in runs:
+        if row["per_job_seconds"] / baseline <= 1.25:
+            recommended = row["concurrency"]
+
 data = {
-    "gpu_id": int("${GPU_ID}"),
-    "max_concurrency_tested": int("${MAX_CONCURRENCY}"),
-    "baseline_per_job_seconds": float("${BASELINE}") if "${BASELINE}" else None,
-    "recommended_slots_per_gpu": int("${RECOMMENDED}"),
+    "gpu_id": gpu_id,
+    "max_concurrency_tested": max_concurrency,
+    "baseline_per_job_seconds": baseline,
+    "recommended_slots_per_gpu": recommended,
     "decision_rule": "max n where T_gpu[n] <= T_gpu[1] * 1.25",
-    "runs": [${RESULTS[0]}$(printf ',%s' "${RESULTS[@]:1}")],
+    "runs": runs,
 }
 Path("${OUTPUT}").write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 print(json.dumps(data, indent=2))
+print(f"[benchmark] recommended_slots_per_gpu={recommended}", flush=True)
 PY
 
-echo "[benchmark] wrote ${OUTPUT}; recommended_slots_per_gpu=${RECOMMENDED}"
+echo "[benchmark] wrote ${OUTPUT}"

@@ -109,7 +109,49 @@ Monitor incremental score: `tail -f runs/grtresna_promote/*/small_data/score_tim
 |------|---------|
 | `lib/bootstrap.sh` | QD + CMA-ES path setup |
 | `lib/search_common.sh` | QD + CMA-ES grid, gates, 4D search profile, pytest preflight |
+| `lib/general_ftl_pins.sh` | v20 wormhole / ring / spin `--pin-dimension` bundles |
+| `lib/pipeline_monitor.sh` | Optional `PIPELINE_MONITOR=1` GPU/pipeline sampling |
 | `lib/promote_common.sh` | HQ batch + replay defaults |
+
+---
+
+## v20 `general_ftl` (wormhole / ring / spin)
+
+Orchestrator only — still launches **`qd/run.sh`** (stage 0), never a parallel code path.
+
+```bash
+cd grteclyn-wrapper
+MODE=par QD_ITERATIONS=30 bash scripts/campaigns/general_ftl/run_all.sh
+```
+
+Single branch:
+
+```bash
+BRANCH=wormhole GPU_IDS="0 1 2 3" QD_TARGET_EVALS=80 bash scripts/campaigns/general_ftl/run_all.sh
+```
+
+Multi-slot pipeline test (8 evals, 4 GPUs, 2 concurrent evolutions per GPU):
+
+```bash
+BRANCH=wormhole PIPELINE_MONITOR=1 \
+  QD_TARGET_EVALS=8 GPU_IDS="0 1 2 3" GPU_SLOTS_PER_DEVICE=2 BATCH_SIZE=8 \
+  STOP_TIME=4.0 PLOT_INTERVAL=40 QD_ITERATIONS=4 SKIP_QD_PREFLIGHT_TESTS=1 \
+  bash scripts/campaigns/general_ftl/run_all.sh
+```
+
+**v21** — wormhole relaunch, 5 concurrent GPU evolutions per device (pipelined MAP-Elites):
+
+```bash
+BRANCH=wormhole PIPELINE_MONITOR=1 \
+  QD_NAME=general_ftl_wormhole_v21 QD_TARGET_EVALS=80 \
+  GPU_IDS="0 1 2 3 4 5 6 7" GPU_SLOTS_PER_DEVICE=5 BATCH_SIZE=40 \
+  bash scripts/campaigns/general_ftl/run_all.sh
+```
+
+See [MapElites.md v21](../../../../research/neuralspacetime/MapElites.md#v21-multi-slot-gpu-pipeline-5-evols-per-gpu-2026-06-17) for VRAM sizing notes.
+
+`PIPELINE_MONITOR=1` writes `runs/_logs/${QD_NAME}.pipeline_monitor.csv` and `.pipeline_summary.txt`.
+Preflight smokes stay in `scripts/campaigns/smoke_test.sh` — not under `general_ftl/`.
 
 ---
 

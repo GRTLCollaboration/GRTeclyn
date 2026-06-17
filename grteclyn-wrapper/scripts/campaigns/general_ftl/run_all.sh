@@ -1,56 +1,94 @@
 #!/usr/bin/env bash
-# Orchestrator: launch the general-FTL discovery campaigns (wormhole / ring /
-# spinning) over 8 GPUs.  MODE=seq (default) runs each on all 8 GPUs in turn;
-# MODE=par splits the 8 GPUs across the three classes.
+# v20 general_ftl orchestrator — wormhole / ring / spin MAP-Elites (stage 0).
+#
+# Launches scripts/campaigns/qd/run.sh with matter-class pins from lib/general_ftl_pins.sh.
+# All physics/grid/pipeline knobs come from lib/search_common.sh via qd/run.sh.
+#
+# Usage:
+#   MODE=par bash scripts/campaigns/general_ftl/run_all.sh
+#
+# Single branch:
+#   BRANCH=wormhole GPU_IDS="0 1 2 3" QD_TARGET_EVALS=80 bash scripts/campaigns/general_ftl/run_all.sh
+#
+# Single-GPU multi-slot test (2 concurrent evolutions on GPU 0):
+#   BRANCH=wormhole PIPELINE_MONITOR=1 \
+#     QD_TARGET_EVALS=8 GPU_IDS="0" GPU_SLOTS_PER_DEVICE=2 BATCH_SIZE=4 \
+#     STOP_TIME=4.0 PLOT_INTERVAL=40 QD_ITERATIONS=4 SKIP_QD_PREFLIGHT_TESTS=1 \
+#     bash scripts/campaigns/general_ftl/run_all.sh
+#
+# v21 production throughput (5 evols/GPU, 8 GPUs, pipelined):
+#   BRANCH=wormhole PIPELINE_MONITOR=1 QD_NAME=general_ftl_wormhole_v21 \
+#     QD_TARGET_EVALS=80 GPU_IDS="0 1 2 3 4 5 6 7" GPU_SLOTS_PER_DEVICE=5 BATCH_SIZE=40 \
+#     bash scripts/campaigns/general_ftl/run_all.sh
 set -euo pipefail
+
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+CAMPAIGNS_LIB="$(cd -- "${SCRIPT_DIR}/../lib" && pwd)"
 QD_RUN="${SCRIPT_DIR}/../qd/run.sh"
 # shellcheck source=../lib/bootstrap.sh
-source "${SCRIPT_DIR}/../lib/bootstrap.sh"
+source "${CAMPAIGNS_LIB}/bootstrap.sh"
 _campaign_bootstrap "${SCRIPT_DIR}"
+# shellcheck source=../lib/general_ftl_pins.sh
+source "${CAMPAIGNS_LIB}/general_ftl_pins.sh"
+# shellcheck source=../lib/pipeline_monitor.sh
+source "${CAMPAIGNS_LIB}/pipeline_monitor.sh"
 
 export OBJECTIVE_MODE=general_ftl
 export DESCRIPTOR_MODE=ftl_lifetime
 export GRTECLYN_GEO_DIRECTIONS="x y z"
 export GRTRESNA_ANSATZ=shell
 export STOP_TIME="${STOP_TIME:-16.0}"
-# Search campaigns: no PNG frame movies; 4D evolving null trace on.
 export GRTECLYN_FRAMES=0
 export GRTECLYN_EVOLVING_GEODESIC=1
 export GRTECLYN_EVOLVING_GEODESIC_MODE="${GRTECLYN_EVOLVING_GEODESIC_MODE:-search}"
 
-# --- config matrix: NAME | PIN_DIMS ---------------------------------------
-# Shared static-matter lock: shell_static=1 already zeros every current, so the
-# toroidal/poloidal/radial/omega dims are inert and pinned out to avoid wasting
-# optimizer variance on knobs with no physical effect.
-STATIC_INERT="grtresna_shell_toroidal_velocity=0 grtresna_shell_poloidal_velocity=0 grtresna_shell_radial_velocity=0 grtresna_shell_omega=0"
-# Wormhole: two mouths on the axis, axis aligned to +x (axis_theta=pi/2,
-# axis_phi=0 -> a=(1,0,0)); static matter.
-WORMHOLE_PINS="grtresna_matter_layout=2 grtresna_shell_axis_theta=1.5708 grtresna_shell_axis_phi=0 grtresna_shell_static=1 ${STATIC_INERT}"
-# Toroidal waveguide: ring lies in the plane orthogonal to the (searched)
-# polar axis; static matter.  The x/y/z probe scan covers any orientation.
-RING_PINS="grtresna_matter_layout=3 grtresna_shell_static=1 ${STATIC_INERT}"
-# Spinning frame-drag: NOT static — translation velocities + shift pinned to 0,
-# spin (shell_omega) left free.  shell_static is pinned to 0 so the optimizer
-# cannot flip the static toggle and silently zero omega.
-SPIN_PINS="grtresna_matter_layout=0 grtresna_shell_static=0 grtresna_shell_toroidal_velocity=0 grtresna_shell_poloidal_velocity=0 grtresna_shell_radial_velocity=0 grtresna_shift_seed=0"
+WORMHOLE_PINS="$(ftl_general_ftl_wormhole_pins)"
+RING_PINS="$(ftl_general_ftl_ring_pins)"
+SPIN_PINS="$(ftl_general_ftl_spin_pins)"
 
-run_one () {  # name  pins  gpu_ids
+run_one() {  # name  pins  gpu_ids
   local name="$1" pins="$2" gpus="$3"
-  RUNS_DIR="${GRTECLYN_ROOT}/runs/grtresna_qd" \
-  QD_NAME="general_ftl_${name}" \
-  PIN_DIMS="${pins}" \
-  GPU_IDS="${gpus}" \
-  QD_ITERATIONS="${QD_ITERATIONS:-30}" \
-  bash "${QD_RUN}"
+  local qd_name="${QD_NAME:-general_ftl_${name}}"
+  local n_gpus batch_default
+  n_gpus=$(wc -w <<< "${gpus}")
+  batch_default=$((n_gpus * ${GPU_SLOTS_PER_DEVICE:-1}))
+
+  if [[ "${PIPELINE_MONITOR:-0}" == "1" ]]; then
+    ftl_pipeline_monitor_begin "${qd_name}" "${gpus}"
+    RUNS_DIR="${GRTECLYN_ROOT}/runs/grtresna_qd" \
+      QD_NAME="${qd_name}" \
+      PIN_DIMS="${pins}" \
+      GPU_IDS="${gpus}" \
+      BATCH_SIZE="${BATCH_SIZE:-${batch_default}}" \
+      QD_ITERATIONS="${QD_ITERATIONS:-30}" \
+      bash "${QD_RUN}" 2>&1 | tee "${FTL_PIPELINE_LOG}"
+    ftl_pipeline_monitor_end
+  else
+    RUNS_DIR="${GRTECLYN_ROOT}/runs/grtresna_qd" \
+      QD_NAME="${qd_name}" \
+      PIN_DIMS="${pins}" \
+      GPU_IDS="${gpus}" \
+      BATCH_SIZE="${BATCH_SIZE:-${batch_default}}" \
+      QD_ITERATIONS="${QD_ITERATIONS:-30}" \
+      bash "${QD_RUN}"
+  fi
 }
 
 MODE="${MODE:-seq}"
+BRANCH="${BRANCH:-all}"
+
+if [[ "${MODE}" == "par" && "${BRANCH}" != "all" ]]; then
+  echo "BRANCH=${BRANCH} with MODE=par is unsupported; use MODE=seq or BRANCH=all." >&2
+  exit 2
+fi
+
+if [[ "${PIPELINE_MONITOR:-0}" == "1" ]]; then
+  _campaign_resolve_python
+fi
+
 if [[ "${MODE}" == "par" ]]; then
   export CLUSTER_CPU_FRACTION="${CLUSTER_CPU_FRACTION:-0.10}"
   export PIPELINE_CPU_SHARE="${PIPELINE_CPU_SHARE:-0.333}"
-  # Run the preflight pytest gate once here, then skip it inside each concurrent
-  # campaign so the three launches don't redundantly re-run the same suite.
   if [[ "${SKIP_QD_PREFLIGHT_TESTS:-0}" != "1" ]]; then
     _campaign_resolve_python
     ftl_search_common_preflight_tests
@@ -60,6 +98,18 @@ if [[ "${MODE}" == "par" ]]; then
   run_one ring     "${RING_PINS}"     "3 4 5" &
   run_one spin     "${SPIN_PINS}"     "6 7"   &
   wait
+elif [[ "${BRANCH}" == "wormhole" ]]; then
+  export CLUSTER_CPU_FRACTION="${CLUSTER_CPU_FRACTION:-0.30}"
+  export PIPELINE_CPU_SHARE="${PIPELINE_CPU_SHARE:-1.0}"
+  run_one wormhole "${WORMHOLE_PINS}" "${GPU_IDS:-0 1 2 3 4 5 6 7}"
+elif [[ "${BRANCH}" == "ring" ]]; then
+  export CLUSTER_CPU_FRACTION="${CLUSTER_CPU_FRACTION:-0.30}"
+  export PIPELINE_CPU_SHARE="${PIPELINE_CPU_SHARE:-1.0}"
+  run_one ring "${RING_PINS}" "${GPU_IDS:-0 1 2 3 4 5 6 7}"
+elif [[ "${BRANCH}" == "spin" ]]; then
+  export CLUSTER_CPU_FRACTION="${CLUSTER_CPU_FRACTION:-0.30}"
+  export PIPELINE_CPU_SHARE="${PIPELINE_CPU_SHARE:-1.0}"
+  run_one spin "${SPIN_PINS}" "${GPU_IDS:-0 1 2 3 4 5 6 7}"
 else
   export CLUSTER_CPU_FRACTION="${CLUSTER_CPU_FRACTION:-0.30}"
   export PIPELINE_CPU_SHARE="${PIPELINE_CPU_SHARE:-1.0}"

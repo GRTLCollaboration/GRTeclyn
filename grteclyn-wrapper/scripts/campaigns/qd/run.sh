@@ -55,6 +55,7 @@ fi
 ftl_search_common_domain_args
 ftl_search_common_grtresna_args
 ftl_search_common_global_args
+ftl_search_common_pipeline_args
 
 if [[ "${SKIP_QD_PREFLIGHT_TESTS:-0}" != "1" ]]; then
   ftl_search_common_preflight_tests
@@ -85,5 +86,6 @@ exec ${PYTHON_BIN} -m grteclyn_wrapper \
   --bins "${BINS}" \
   --seed "${SEED}" \
   --gpu-ids ${GPU_IDS} \
+  "${FTL_PIPELINE_ARGS[@]}" \
   "${PIN_ARGS[@]}" \
   "${FTL_GRTRESNA_ARGS[@]}"

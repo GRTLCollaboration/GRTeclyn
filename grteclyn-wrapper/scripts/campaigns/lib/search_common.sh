@@ -159,6 +159,23 @@ ftl_search_common_global_args() {
   )
 }
 
+ftl_search_common_pipeline_args() {
+  : "${GPU_SLOTS_PER_DEVICE:=1}"
+  : "${CLUSTER_CPU_FRACTION:=0.30}"
+  : "${PIPELINE_CPU_SHARE:=1.0}"
+  : "${MAX_CONCURRENT_GRTRESNA:=0}"
+  : "${USE_PIPELINE:=1}"
+  FTL_PIPELINE_ARGS=(
+    --gpu-slots-per-device "${GPU_SLOTS_PER_DEVICE}"
+    --cluster-cpu-fraction "${CLUSTER_CPU_FRACTION}"
+    --pipeline-cpu-share "${PIPELINE_CPU_SHARE}"
+    --max-concurrent-grtresna "${MAX_CONCURRENT_GRTRESNA}"
+  )
+  if [[ "${USE_PIPELINE}" == "0" ]]; then
+    FTL_PIPELINE_ARGS+=(--no-pipeline)
+  fi
+}
+
 ftl_search_common_preflight_tests() {
   echo "Running FTL search preflight pytest gate..."
   ${PYTHON_BIN} -m pytest \
