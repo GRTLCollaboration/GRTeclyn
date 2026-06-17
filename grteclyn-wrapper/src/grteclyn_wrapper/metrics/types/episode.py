@@ -43,6 +43,9 @@ class EpisodeMetrics:
     general_ftl_solved: GeneralFtlReport | None = None
     geodesic_ftl: GeodesicFtlReport | None = None
     evolving_geodesic: EvolvingGeodesicMetrics | None = None
+    # When True, only ``ftl_geo_evolving`` may earn geodesic FTL; frozen snapshots
+    # and coordinate operational FTL are withheld until the 4D trace completes.
+    evolving_geodesic_mode: bool = False
     mechanism_descriptor: float | None = None
     effective_ec: EffectiveEnergyConditionMetrics | None = None
     boundary_flux: BoundaryFluxMetrics | None = None

@@ -276,6 +276,15 @@ def compute_ftl_components(ctx: ScoringContext) -> None:
                 f"frozen f_geo peak ({frozen_peak:.3e}) ignored: "
                 "4D evolving trace is authoritative"
             )
+    elif metrics.evolving_geodesic_mode:
+        components["operational_ftl_geodesic"] = 0.0
+        components["ftl_geo_evolving"] = 0.0
+        components["ftl_geo_timeavg"] = 0.0
+        components["ftl_geo_peak"] = 0.0
+        notes.append(
+            "4D evolving geodesic mode: frozen geodesic credit withheld "
+            "(trace pending or failed)"
+        )
     elif geo_timeavg is not None:
         components["operational_ftl_geodesic"] = geo_timeavg * structural_persistence
         components["ftl_geo_evolving"] = 0.0
@@ -339,6 +348,14 @@ def compute_ftl_components(ctx: ScoringContext) -> None:
         components["ftl_persistence"] = (
             float(min(max(f_op_ev / f_op_t0, 0.0), 1.0)) if f_op_t0 > 1.0e-9 else 0.0
         )
+    if metrics.evolving_geodesic_mode and metrics.evolving_geodesic is None:
+        if components["operational_ftl"] > 0.0:
+            notes.append(
+                "operational_ftl zeroed: 4D evolving geodesic mode "
+                "(coordinate channel not authoritative until trace completes)"
+            )
+        components["operational_ftl"] = 0.0
+        components["ftl_persistence"] = 0.0
     stationary_geometry = bool(metrics.comoving and metrics.comoving.stationary)
     # The stationary-artifact verdict (and the gating of frozen-coordinate
     # shaping rewards) is deferred until ftl_precursor / channel_progress /

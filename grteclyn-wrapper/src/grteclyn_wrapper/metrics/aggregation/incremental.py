@@ -23,7 +23,7 @@ from ..probes.ftl.analytic import compute_ftl_metrics, load_overrides_from_episo
 from ..probes.ftl.general import GeneralFtlReport
 from ..probes.ftl.geodesic import H_REL_TOL, GeodesicFtlReport
 from ..score import domain_half_width_for_episode, score_episode
-from ..types.diagnostics import ConstraintMetrics, FtlPersistenceMetrics
+from ..types.diagnostics import ConstraintMetrics, EvolvingGeodesicMetrics, FtlPersistenceMetrics
 from ..types.episode import EpisodeMetrics
 from .context import build_episode_context
 
@@ -141,6 +141,32 @@ def _ftl_persistence_from_rows(rows: list[list[float]]) -> FtlPersistenceMetrics
     )
 
 
+def _load_evolving_geodesic_metrics(episode_dir: Path) -> EvolvingGeodesicMetrics | None:
+    from ..probes.ftl.evolving_geodesic import read_evolving_geodesic_json
+
+    json_path = episode_dir / "small_data" / "evolving_geodesic.json"
+    report = read_evolving_geodesic_json(json_path)
+    if report is None:
+        return None
+    return EvolvingGeodesicMetrics(
+        f_geo=float(report.f_geo),
+        f_geo_frozen_peak=(
+            float(report.f_geo_frozen_peak)
+            if report.f_geo_frozen_peak is not None
+            else None
+        ),
+        t_emit=float(report.t_emit),
+        t_arrival=(
+            float(report.t_arrival) if report.t_arrival is not None else None
+        ),
+        t_flat=float(report.t_flat),
+        n_rays=int(report.n_rays),
+        n_reached=int(report.n_reached),
+        h_quality_ok=bool(report.h_quality_ok),
+        max_h_rel_drift=float(report.max_h_rel_drift),
+    )
+
+
 @dataclass
 class _StaticFtlCache:
     ftl: Any = None
@@ -158,6 +184,7 @@ class IncrementalScoreWriter:
     target_stop_time: float | None = None
     ftl_L: float | None = None
     score_weights: Mapping[str, float] | None = None
+    evolving_geodesic_mode: bool = False
     out_path: Path | None = None
     _static: _StaticFtlCache | None = field(default=None, init=False, repr=False)
     _last_t: float | None = field(default=None, init=False, repr=False)
@@ -229,6 +256,8 @@ class IncrementalScoreWriter:
             mechanism_descriptor=static.mechanism_descriptor,
             general_ftl_evolved=general_ftl_evolved,
             geodesic_ftl=geodesic_ftl,
+            evolving_geodesic=_load_evolving_geodesic_metrics(self.episode_dir),
+            evolving_geodesic_mode=self.evolving_geodesic_mode,
             ftl_persistence=ftl_persistence,
             ftl_timeseries=ftl_timeseries,
             termination_reason="incremental",
@@ -260,6 +289,7 @@ class IncrementalScoreWriter:
             "max_local_speed": float(ts.max_local_speed[-1]) if ts and ts.max_local_speed else 0.0,
             "horizon_penalty": score.components.get("horizon_penalty", 0.0),
             "operational_ftl_geodesic": score.components.get("operational_ftl_geodesic", 0.0),
+            "ftl_geo_evolving": score.components.get("ftl_geo_evolving", 0.0),
         }
         self.out_path.parent.mkdir(parents=True, exist_ok=True)
         with self.out_path.open("a", encoding="utf-8") as handle:

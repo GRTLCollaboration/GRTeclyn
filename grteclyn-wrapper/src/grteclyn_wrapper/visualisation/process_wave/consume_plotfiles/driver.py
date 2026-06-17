@@ -251,6 +251,7 @@ def main() -> None:
             target_stop_time=args.target_stop_time,
             ftl_L=args.ftl_l,
             score_weights=score_weights or None,
+            evolving_geodesic_mode=bool(args.evolving_geodesic),
             out_path=score_ts_path,
         )
 

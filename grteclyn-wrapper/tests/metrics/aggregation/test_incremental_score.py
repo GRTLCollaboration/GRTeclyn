@@ -85,6 +85,42 @@ def test_incremental_score_writer_appends_jsonl(tmp_path: Path) -> None:
     assert payload["f_geo_peak"] > 0.0
 
 
+def test_incremental_4d_mode_withholds_frozen_ftl(tmp_path: Path) -> None:
+    episode = tmp_path / "eval"
+    small = episode / "small_data"
+    data = episode / "data"
+    small.mkdir(parents=True)
+    data.mkdir(parents=True)
+
+    ftl_path = small / "ftl_timeseries.dat"
+    ftl_path.write_text(HEADER + "\n", encoding="utf-8")
+    row = "8.0 0.08 0.04 1 1.10 0.10 0.01 nan 1 5 5 0.001"
+    with ftl_path.open("a", encoding="utf-8") as handle:
+        handle.write(row + "\n")
+
+    _write_collapse(
+        data / "collapse_diagnostics.dat",
+        [(0.0, 1.0, 1.0, 0.0, 0, 0, 0, 0.0, 0.1), (8.0, 0.9, 0.8, 0.1, 0, 0, 0, 1.0, 0.05)],
+    )
+    _write_constraints(
+        data / "constraint_norms.dat",
+        [(0.0, 0.001, 0.0001, -0.001, 0.01, 0.0), (8.0, 0.002, 0.0002, -0.001, 0.009, 0.0)],
+    )
+
+    writer = IncrementalScoreWriter(
+        episode,
+        objective_mode="ftl_first",
+        target_stop_time=30.0,
+        ftl_L=8.0,
+        evolving_geodesic_mode=True,
+    )
+    record = writer.append(8.0)
+    assert record is not None
+    assert record["operational_ftl_geodesic"] == 0.0
+    assert record["ftl_geo_evolving"] == 0.0
+    assert record["score"] < 500.0
+
+
 def test_ftl_timeseries_parser_backward_compatible_12_and_14_columns(tmp_path: Path) -> None:
     from grteclyn_wrapper.metrics.diagnostics.ftl_timeseries import read_ftl_timeseries_metrics
 

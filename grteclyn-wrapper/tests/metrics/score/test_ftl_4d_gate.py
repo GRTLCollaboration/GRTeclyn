@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from grteclyn_wrapper.metrics.probes.ftl.general import GeneralFtlReport
 from grteclyn_wrapper.metrics.score import score_episode
 from grteclyn_wrapper.metrics.types.diagnostics import (
     EvolvingGeodesicMetrics,
@@ -98,3 +99,27 @@ def test_frozen_fallback_when_4d_not_run() -> None:
     score = score_episode(metrics, objective_mode="ftl_first")
     assert score.components["operational_ftl_geodesic"] > 0.0
     assert score.components["ftl_geo_evolving"] == 0.0
+
+
+def test_4d_mode_suppresses_frozen_when_trace_not_run() -> None:
+    metrics = _base_metrics(
+        ftl_timeseries=_frozen_timeseries(peak=0.05),
+        evolving_geodesic=None,
+        evolving_geodesic_mode=True,
+        general_ftl_evolved=GeneralFtlReport(
+            f_op=0.08,
+            t_min=None,
+            t_flat=1.0,
+            max_local_speed=1.2,
+            superluminal_fraction=0.1,
+            path_offaxis=False,
+            reachable=True,
+            notes=(),
+        ),
+    )
+    score = score_episode(metrics, objective_mode="ftl_first")
+    assert score.components["operational_ftl_geodesic"] == 0.0
+    assert score.components["ftl_geo_evolving"] == 0.0
+    assert score.components["operational_ftl"] == 0.0
+    assert score.components["ftl_geo_timeavg"] == 0.0
+    assert score.components["ftl_geo_peak"] == 0.0

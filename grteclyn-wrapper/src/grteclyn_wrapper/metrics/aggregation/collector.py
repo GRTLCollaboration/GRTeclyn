@@ -283,6 +283,7 @@ def read_episode_metrics(
     except Exception:
         geodesic_ftl = None
 
+    evo_mode = _evolving_geodesic_enabled(evolving_geodesic)
     evolving_geo = _compute_evolving_geodesic_metrics(
         ctx,
         general_ftl_evolved=general_ftl_evolved,
@@ -397,6 +398,7 @@ def read_episode_metrics(
         effective_ec=effective_ec,
         geodesic_ftl=geodesic_ftl,
         evolving_geodesic=evolving_geo,
+        evolving_geodesic_mode=evo_mode,
         boundary_flux=boundary_flux,
         qei=qei,
         transport=transport,
