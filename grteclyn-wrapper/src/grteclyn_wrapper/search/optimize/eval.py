@@ -70,9 +70,15 @@ def _collect_training(
 def _track_trajectory(
     trajectory: list[dict[str, Any]],
     record: dict[str, Any],
+    *,
+    trajectory_lock: threading.Lock | None = None,
 ) -> None:
     record.setdefault("status", infer_trajectory_status(record))
-    trajectory.append(record)
+    if trajectory_lock is not None:
+        with trajectory_lock:
+            trajectory.append(record)
+    else:
+        trajectory.append(record)
     print(format_eval_log_line(record), flush=True)
 
 
@@ -107,10 +113,17 @@ def _objective(
     grtresna_convergence_config: GRTresnaConvergenceConfig | None = None,
     grtresna_postload_gate: bool = False,
     postload_gate_config: Any | None = None,
+    counter_lock: threading.Lock | None = None,
+    trajectory_lock: threading.Lock | None = None,
 ) -> float:
     """Evaluate one candidate.  Returns negative score (CMA-ES minimizes)."""
-    eval_counter[0] += 1
-    idx = eval_counter[0]
+    if counter_lock is not None:
+        with counter_lock:
+            eval_counter[0] += 1
+            idx = eval_counter[0]
+    else:
+        eval_counter[0] += 1
+        idx = eval_counter[0]
 
     overrides = _vector_to_overrides(x, dims, base_overrides)
 
@@ -129,7 +142,7 @@ def _objective(
                 "reason": pf.reason,
                 "overrides": {d.param_key: overrides.get(d.param_key) for d in dims},
             }
-            _track_trajectory(trajectory, record)
+            _track_trajectory(trajectory, record, trajectory_lock=trajectory_lock)
             return 100.0
 
     episode = create_episode(
@@ -206,7 +219,7 @@ def _objective(
                 }
                 if gate_rejection.metrics:
                     record.update(gate_rejection.metrics)
-                _track_trajectory(trajectory, record)
+                _track_trajectory(trajectory, record, trajectory_lock=trajectory_lock)
                 return gate_rejection.fitness
         except Exception as exc:  # solver failure -> penalise, keep searching
             fitness = GRTRESNA_REJECTION_BASE_FITNESS + GRTRESNA_REJECTION_MAX_EXTRA_FITNESS
@@ -221,7 +234,7 @@ def _objective(
                 "components": {"grtresna_rejection": -fitness},
                 "overrides": {d.param_key: overrides.get(d.param_key) for d in dims},
             }
-            _track_trajectory(trajectory, record)
+            _track_trajectory(trajectory, record, trajectory_lock=trajectory_lock)
             return fitness
 
     write_params(
@@ -299,7 +312,7 @@ def _objective(
         ),
         "overrides": {d.param_key: overrides.get(d.param_key) for d in dims},
     }
-    _track_trajectory(trajectory, record)
+    _track_trajectory(trajectory, record, trajectory_lock=trajectory_lock)
     return -score.total
 def _evaluate_generation_parallel(
     solutions: list,
@@ -341,6 +354,8 @@ def _evaluate_generation_parallel(
 
     fitnesses: list[float | None] = [None] * len(solutions)
     lock = threading.Lock()
+    counter_lock = threading.Lock()
+    trajectory_lock = threading.Lock()
 
     def _eval_one(idx_in_gen: int, sol) -> None:
         gpu = _assign_gpu(idx_in_gen, gpu_ids)
@@ -374,6 +389,8 @@ def _evaluate_generation_parallel(
             grtresna_convergence_config=grtresna_convergence_config,
             grtresna_postload_gate=grtresna_postload_gate,
             postload_gate_config=postload_gate_config,
+            counter_lock=counter_lock,
+            trajectory_lock=trajectory_lock,
         )
         with lock:
             fitnesses[idx_in_gen] = f

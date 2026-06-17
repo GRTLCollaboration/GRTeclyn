@@ -9,6 +9,7 @@ from ..core.config import default_runs_dir
 from ..initial_data.seeds import list_seeds
 from .args import parse_override
 from .grtresna_args import add_grtresna_solved_ftl_gate_arg, add_grtresna_speed_args
+from .pipeline_args import add_pipeline_args
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -342,6 +343,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     opt.add_argument("--postload-max-ham-l2", type=float, default=1.0e-2)
     opt.add_argument("--postload-max-mom-l2", type=float, default=1.0e-2)
+    add_pipeline_args(opt)
 
     qd = subparsers.add_parser("qd", help="MAP-Elites quality-diversity search (Spacetime Failure Atlas).")
     qd.add_argument("--iterations", type=int, default=10, help="Number of MAP-Elites batches after the initial fill.")
@@ -494,6 +496,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Total evaluations to reach (sets batch count from remaining evals on resume).",
     )
+    add_pipeline_args(qd)
 
     pareto = subparsers.add_parser("pareto", help="Extract the multi-objective Pareto front from a trajectory.jsonl.")
     pareto.add_argument("--trajectory", required=True, help="Path to an optimizer trajectory.jsonl.")

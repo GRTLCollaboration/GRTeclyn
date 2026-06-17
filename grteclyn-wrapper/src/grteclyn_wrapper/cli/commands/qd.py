@@ -16,6 +16,7 @@ from ..grtresna_args import (
     postload_gate_config_from_args,
 )
 from ..grtresna_context import build_grtresna_search_context
+from ..pipeline_args import pipeline_settings_from_args
 
 
 def load_seed_overrides(eval_dirs: list[str] | None) -> list[dict[str, Any]]:
@@ -49,6 +50,7 @@ def run_qd_command(args: argparse.Namespace, base_overrides: dict) -> int:
         )
     template = Path(args.template).expanduser().resolve() if args.template else None
     ctx = build_grtresna_search_context(args, base_overrides)
+    pipeline_cfg = pipeline_settings_from_args(args)
 
     archive = run_qd_search(
         runs_dir=Path(args.runs_dir).expanduser().resolve(),
@@ -95,6 +97,14 @@ def run_qd_command(args: argparse.Namespace, base_overrides: dict) -> int:
         seed_overrides=load_seed_overrides(getattr(args, "seed_eval_dirs", None)),
         keep_top_eval_dirs=getattr(args, "keep_top_eval_dirs", 0),
         ftl_retention_enabled=getattr(args, "ftl_retention", True),
+        slots_per_gpu=pipeline_cfg["slots_per_gpu"],
+        cluster_cpu_fraction=pipeline_cfg["cluster_cpu_fraction"],
+        pipeline_share=pipeline_cfg["pipeline_share"],
+        max_concurrent_grtresna_override=pipeline_cfg["max_concurrent_grtresna"],
+        reserve_cores=pipeline_cfg["reserve_cores"],
+        grtresna_mpi_ranks=getattr(args, "grtresna_ranks", 8),
+        remove_partial=pipeline_cfg["remove_partial"],
+        use_pipeline=pipeline_cfg["use_pipeline"],
     )
     best = archive.best
     print(json.dumps({

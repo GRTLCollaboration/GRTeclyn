@@ -161,17 +161,14 @@ def reject_postload_gate(
     )
 
 
-def apply_grtresna_pre_evolution_gates(
+def run_cpu_gates(
     *,
     episode: Episode,
     convergence: Mapping[str, float] | None,
     gridinit_path: Path,
-    gte_overrides: Mapping[str, Any],
-    cuda_devices: str | None,
     config: GRTresnaPreEvolutionGateConfig,
-    dry_run: bool = False,
 ) -> GRTresnaGateRejection | None:
-    """Run convergence, solved-FTL, and post-load gates in order."""
+    """Run CPU-only pre-evolution gates (convergence + solved-FTL)."""
     rejection = reject_grtresna_convergence(
         convergence, config=config.convergence_config,
     )
@@ -190,13 +187,35 @@ def apply_grtresna_pre_evolution_gates(
             },
         )
 
-    rejection = reject_solved_ftl(
+    return reject_solved_ftl(
         solved_ftl,
         enabled=config.solved_ftl_enabled,
         config=config.solved_ftl_config,
     )
+
+
+def apply_grtresna_pre_evolution_gates(
+    *,
+    episode: Episode,
+    convergence: Mapping[str, float] | None,
+    gridinit_path: Path,
+    gte_overrides: Mapping[str, Any],
+    cuda_devices: str | None,
+    config: GRTresnaPreEvolutionGateConfig,
+    dry_run: bool = False,
+) -> GRTresnaGateRejection | None:
+    """Run convergence, solved-FTL, and post-load gates in order."""
+    rejection = run_cpu_gates(
+        episode=episode,
+        convergence=convergence,
+        gridinit_path=gridinit_path,
+        config=config,
+    )
     if rejection is not None:
         return rejection
+
+    if not config.postload_enabled:
+        return None
 
     return reject_postload_gate(
         gridinit_path,

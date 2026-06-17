@@ -309,7 +309,7 @@ def test_qd_search_flushes_initial_trajectory(tmp_path, monkeypatch) -> None:
     lines = (tmp_path / "qd_live" / "trajectory.jsonl").read_text(encoding="utf-8").splitlines()
     rows = [json.loads(line) for line in lines]
 
-    assert [row["eval"] for row in rows] == [1, 2]
+    assert sorted(row["eval"] for row in rows) == [1, 2]
     assert all(row["episode"].endswith(f"eval_{row['eval']:06d}") for row in rows)
     assert all(row["status"] == "gpu_ok" for row in rows)
     assert (tmp_path / "qd_live" / "archive.json").exists()
@@ -383,7 +383,7 @@ def test_qd_search_resume_continues_eval_counter(tmp_path, monkeypatch) -> None:
 
     lines = (tmp_path / "qd_resume" / "trajectory.jsonl").read_text(encoding="utf-8").splitlines()
     evals = [json.loads(line)["eval"] for line in lines]
-    assert evals == [1, 2, 3, 4]
+    assert sorted(evals) == [1, 2, 3, 4]
     archive = QDArchive.from_dict(
         json.loads((tmp_path / "qd_resume" / "archive.json").read_text(encoding="utf-8"))
     )

@@ -47,6 +47,8 @@ run_one () {  # name  pins  gpu_ids
 
 MODE="${MODE:-seq}"
 if [[ "${MODE}" == "par" ]]; then
+  export CLUSTER_CPU_FRACTION="${CLUSTER_CPU_FRACTION:-0.10}"
+  export PIPELINE_CPU_SHARE="${PIPELINE_CPU_SHARE:-0.333}"
   # Run the preflight pytest gate once here, then skip it inside each concurrent
   # campaign so the three launches don't redundantly re-run the same suite.
   if [[ "${SKIP_QD_PREFLIGHT_TESTS:-0}" != "1" ]]; then
@@ -59,6 +61,8 @@ if [[ "${MODE}" == "par" ]]; then
   run_one spin     "${SPIN_PINS}"     "6 7"   &
   wait
 else
+  export CLUSTER_CPU_FRACTION="${CLUSTER_CPU_FRACTION:-0.30}"
+  export PIPELINE_CPU_SHARE="${PIPELINE_CPU_SHARE:-1.0}"
   run_one wormhole "${WORMHOLE_PINS}" "0 1 2 3 4 5 6 7"
   run_one ring     "${RING_PINS}"     "0 1 2 3 4 5 6 7"
   run_one spin     "${SPIN_PINS}"     "0 1 2 3 4 5 6 7"
