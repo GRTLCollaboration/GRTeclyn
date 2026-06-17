@@ -1,9 +1,0 @@
-candidate_id,description,chi_min,chi_max,negative_chi_fraction,max_angular_contrast,max_stretch,min_stretch,classification,reason
-dipole_lopsided_000,mild l=1 lopsided radial compression,0.8617331586493588,1.067607820199418,0.0,0.15999999999999992,1.0772427942698928,0.96781896214448,accepted_ray_sane,chi positive on all sampled rays
-quadrupole_bubble_001,mild l=2 prolate/oblate bubble-wall deformation,0.8672654414137152,1.0479680909420364,0.0,0.1499999999999999,1.0738014336562773,0.9768457028600089,accepted_ray_sane,chi positive on all sampled rays
-mixed_modes_002,combined l=1 and l=2 deformation,0.8625123807377979,1.0348806440323794,0.0,0.1200000000000001,1.0767560760080355,0.9830030558459995,accepted_ray_sane,chi positive on all sampled rays
-strong_quadrupole_bad_003,bad control: angular mode drives chi negative on some rays,-0.3107198195451673,1.0009452258133575,0.0279296875,1.0499857585601227,1000000.0,0.9995277218740682,rejected_negative_chi,chi_min=-0.3107; neg_frac=2.79%
-random_angular_004,random axisymmetric ell=1 angular deformation,0.8673018305232911,1.014644124029186,0.0,0.029338285706999367,1.073778906845814,0.9927573878983793,accepted_ray_sane,chi positive on all sampled rays
-random_angular_005,random axisymmetric ell=3 angular deformation,0.8672155389177059,1.0973933895223549,0.0,0.19479430784779372,1.0738323282831057,0.9545942852847339,accepted_ray_sane,chi positive on all sampled rays
-random_angular_006,random axisymmetric ell=3 angular deformation,0.8665759433822314,1.0860385813046631,0.0,0.17850481281014918,1.074228538035199,0.9595715718341283,accepted_ray_sane,chi positive on all sampled rays
-random_angular_007,random axisymmetric ell=3 angular deformation,0.8646404100059162,1.1019662927098353,0.0,0.2048469185080768,1.0754302184499314,0.9526115543200239,accepted_ray_sane,chi positive on all sampled rays
