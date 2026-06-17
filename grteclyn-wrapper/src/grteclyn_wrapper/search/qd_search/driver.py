@@ -12,6 +12,7 @@ import numpy as np
 
 from ...core.config import ExampleConfig, ExecutableConfig, resolve_example
 from ...core.episode import write_json
+from ...core.params import regrid_intervals_for_max_level
 from ...core.evaluation import (
     Evaluation,
     _run_cpu_grtresna_gates,
@@ -121,11 +122,14 @@ def run_qd_search(
     tpl = template or example_cfg.template
     base = dict(base_overrides or {})
     base.setdefault("N_full", 64)
-    base.setdefault("max_level", 2)
+    base.setdefault("max_level", 1)
     base.setdefault("stop_time", 2.0)
     base.setdefault("plot_interval", 10)
     base.setdefault("checkpoint_interval", -1)
     base.setdefault("dt_multiplier", 0.02)
+    max_lvl = int(base["max_level"])
+    if "regrid_interval" not in base and max_lvl > 0:
+        base["regrid_interval"] = regrid_intervals_for_max_level(max_lvl)
     target_stop_time = float(base["stop_time"])
 
     rng = np.random.default_rng(seed)
@@ -852,7 +856,7 @@ def _run_legacy_batch_mode(
             trajectory,
             keep_eval_ids=keep_ids,
             protect_eval_ids=protected_eval_ids,
-        )
+    )
 
     if not resume:
         seed_vectors = [

@@ -29,7 +29,8 @@
 # ---- Evolution grid (dx = L_full / N_full = 64/128 = 0.5) ------------------
 : "${GRTRESNA_EVOLUTION_L_FULL:=64.0}"
 : "${GRTRESNA_EVOLUTION_N_FULL:=128}"
-: "${GRTRESNA_EVOLUTION_MAX_LEVEL:=2}"
+# GPU evolution AMR cap (QD/CMA-ES stage 0). GRTresna elliptic solve uses GRTRESNA_MAX_LEVEL.
+: "${GRTRESNA_EVOLUTION_MAX_LEVEL:=1}"
 : "${GRTRESNA_DOMAIN_L:=128.0}"
 : "${GRTRESNA_DOMAIN_NX:=64}"
 : "${GRTRESNA_DOMAIN_NY:=64}"
