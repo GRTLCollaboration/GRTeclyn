@@ -286,7 +286,7 @@ Two production lines:
 
 | Line | QD source | Objective | Warm-start centre | Doc |
 |------|-----------|-----------|-------------------|-----|
-| **v20 (general FTL era)** | `general_ftl_{wormhole,ring,spin}` | **`general_ftl`** | *QD only (stage 0)* — CMA-ES TBD per class | [v20](#v20-general-ftl-discovery-wormhole--ring--spin-2026-06-17) |
+| **v20 (general FTL era)** | `general_ftl_{wormhole,ring,spin}` | **`general_ftl`** | Ring eval **43** → CMA-ES / HQ TBD | [v20](#v20-general-ftl-discovery-wormhole--ring--spin-2026-06-17) |
 | **v17 (frozen geodesic era)** | `ftl_discovery_v16` | `robust_ftl` | Healthy survivors (eval 739), not raw king 233 | [v17](#v17-cma-es-robust-refinement-after-v16-2026-06-14) |
 | **v18 / ftl_4d (4D search era)** | `ftl_4d_v1` | **`ftl_first`** (must match QD) | QD **156** → CMA-ES **144** | [v18](#v18-4d-qd--cma-es--hq-ftl_4d-line-2026-06-16) |
 
@@ -399,7 +399,7 @@ Reverse-chronological journal below. Quick index:
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
-| [**v20: General FTL discovery**](#v20-general-ftl-discovery-wormhole--ring--spin-2026-06-17) | **06-17 launched** | **3 parallel QD lines** under `runs/grtresna_qd/`: wormhole / ring / spin. **`general_ftl`** objective, **`--pin-dimension`**, multi-axis 4D probe. **248 evals total** (93+93+62). *In progress.* |
+| [**v20: General FTL discovery**](#v20-general-ftl-discovery-wormhole--ring--spin-2026-06-17) | **06-17 stopped early** | **3 parallel QD** (`general_ftl_{wormhole,ring,spin}`). **Ring wins:** eval **43** score **196**, search 4D `f_geo` **~3.9%** (`h_quality_ok`, `best_direction=z`). Spin: **8** 4D hits. Wormhole: **0** 4D hits. **172/248** logged; **top-3 eval dirs retained** per class. |
 | [**v18: 4D QD + CMA-ES + HQ**](#v18-4d-qd--cma-es--hq-ftl_4d-line-2026-06-16) | **06-16 → 06-17** | **Done.** QD **156** → CMA-ES **144** (**596**) → HQ **144**: **verified 4D `f_geo` ≈ 8%** (5/5 rays, `h_quality_ok`); frozen peak **11.5%** collapses by t=30; final score **283** |
 | [**ftl_4d_v1 → CMA-ES proposal**](#ftl_4d_v1--cma-es-refinement-proposal-2026-06-16) | 06-16 executed | Planning doc for phase-1 CMA-ES knobs; **results → [v18](#v18-4d-qd--cma-es--hq-ftl_4d-line-2026-06-16)** |
 | [**4D evolving geodesic smoke test**](#4d-evolving-null-geodesic-trace-smoke-test-2026-06-15) | **06-15 done** | Eval **086** @ N=256, t=8. **4D `f_geo` = 1.42%** vs frozen peak **5.75%** (~4× smaller); metric_stack cache (34 slices) works |
@@ -430,8 +430,11 @@ Reverse-chronological journal below. Quick index:
 
 ## v20: General FTL discovery (wormhole / ring / spin) (2026-06-17)
 
-**Status:** **launched, in progress** (2026-06-17). Stage 0 only — three parallel MAP-Elites
-surveys; CMA-ES refinement and HQ promotion are **out of scope** until QD elites emerge per class.
+**Status:** **stopped early** (user halt 2026-06-17; did not reach 30-iteration budget). Stage 0
+only — three parallel MAP-Elites surveys. **Ring** produced strong 4D elites and met the minimum
+success bar; **spin** showed modest 4D signal; **wormhole** scored positively on health but had **no**
+`ftl_geo_evolving` hits. Disk pruned to **top-3 `gpu_ok` eval dirs** per class (~**5.4 GB** retained).
+CMA-ES / HQ promotion **not run**.
 
 ### Purpose
 
@@ -502,6 +505,86 @@ Eval budget formula: `init_batch + iterations × batch_size` (init = batch). Wit
 - spin: `2 + 30×2 = 62`
 - **248 evals total** across all three (run in parallel on 8 GPUs).
 
+### Matter configuration by class
+
+The shared setup is the same for every campaign:
+
+1. **5 scalar-field lumps** — small blobs of matter-energy in 3D space.
+2. **GRTresna** solves Einstein’s constraint equations to get a valid initial spacetime from those lumps.
+3. **GRTeclyn** evolves that spacetime on the GPU.
+4. We score whether **null geodesics** (light-ray paths) show an FTL shortcut.
+
+The classes differ in **where the lumps are placed** and **whether the matter moves or spins**. Those
+choices are **pinned** with `--pin-dimension` so each campaign stays in one geometry family.
+
+#### Wormhole (`general_ftl_wormhole`)
+
+**Idea:** Matter clustered at **two ends of a line**, like two mouths of a throat.
+
+| What’s fixed | Meaning |
+|--------------|---------|
+| `matter_layout = 2` (bipolar) | Lumps split into two groups along one axis |
+| Axis along **+x** (θ=π/2, φ=0) | The “throat” runs left–right |
+| **Static** matter (`shell_static=1`) | No spin, no flowing currents — lumps just sit there |
+
+**What the optimizer still tunes:** lump size, thickness, distance from center, how “exotic” some
+lumps are, scalar field strength, etc. — but **not** the overall topology (always bipolar) or axis
+direction.
+
+**Physical picture:** “Can static matter on two poles create a traversable shortcut?”
+
+#### Ring (`general_ftl_ring`)
+
+**Idea:** Matter arranged in a **circle** — a toroidal waveguide.
+
+| What’s fixed | Meaning |
+|--------------|---------|
+| `matter_layout = 3` (ring) | All lumps lie on a ring in one plane |
+| **Static** matter (`shell_static=1`) | No spin or bulk motion |
+
+**What’s free:** **ring orientation** (axis θ, φ — which way the circle points in 3D) plus the usual
+size/exotic knobs.
+
+**Physical picture:** “Can a ring of static matter bend spacetime so a shortcut loops around the
+ring?” **Best-performing class** in v20 — campaign champion eval **43** (`best_direction=z`,
+`h_quality_ok`).
+
+#### Spin (`general_ftl_spin`)
+
+**Idea:** A **spinning** mass that drags spacetime (frame-dragging), not a fixed shape like wormhole
+or ring.
+
+| What’s fixed | Meaning |
+|--------------|---------|
+| `matter_layout = 0` (sphere) | Lumps spread over the full sphere — no forced wormhole/ring shape |
+| **Not static** (`shell_static=0`) | Matter **can** rotate |
+| No translation | Bulk flow (toroidal/poloidal/radial currents) forced to zero |
+| `shift_seed = 0` | No artificial shift kick |
+
+**What’s free:** **`shell_omega`** (spin rate) plus geometry/exotic knobs.
+
+**Physical picture:** “Can a rotating lump distribution create an FTL conduit via frame-dragging?”
+Lowest pre-GPU reject rate (**15%**); **8** scored evals with `ftl_geo_evolving > 0` (see
+[results](#results-stopped-early) below).
+
+#### Static vs spinning (simple rule)
+
+- **Wormhole & ring:** `shell_static = 1` → matter is **frozen in place**. Only curvature from the
+  lump **shape** matters.
+- **Spin:** `shell_static = 0` → matter can **rotate in place** (`omega`). That rotation is the main
+  extra degree of freedom.
+
+#### One-line summary
+
+| Class | Matter shape | Motion | What we’re looking for |
+|-------|--------------|--------|------------------------|
+| **Wormhole** | Two clumps on an axis (+x) | None | Throat / bridge geometry |
+| **Ring** | Circle of lumps | None | Toroidal shortcut |
+| **Spin** | Lumps on a sphere | **Spin allowed** | Frame-dragging conduit |
+
+All three use the same **`general_ftl`** score: “Did null geodesics find a real shortcut?” — not
+warp-motor or coordinate-speed tricks (`shift_drive`, `channel_progress`, etc. are zeroed).
+
 ### Shared configuration
 
 | Knob | Value | Notes |
@@ -542,6 +625,52 @@ tail -f runs/grtresna_qd/general_ftl_wormhole/trajectory.jsonl
 cat runs/grtresna_qd/general_ftl_wormhole/ftl_champions.json
 ```
 
+### Results (stopped early)
+
+Run halted manually before completing the 30-iteration budget. Final counts from `trajectory.jsonl`
+(include pre-GPU rejections).
+
+| Campaign | Logged / target | `gpu_ok` | Reject rate | Rejection breakdown | 4D hits |
+|----------|-----------------|----------|-------------|---------------------|---------|
+| **wormhole** | 57 / 90 (63%) | 37 | 35% | 18× `grtresna_rejected`, 2× `grtresna_failed` | **0** |
+| **ring** | 63 / 90 (70%) | 49 | 22% | 12× `grtresna_rejected`, 1× `grtresna_failed`, 1× `postload_rejected` | **20** |
+| **spin** | 52 / 60 (87%) | 44 | 15% | 4× `grtresna_rejected`, 4× `grtresna_failed` | **8** |
+
+**Total:** 172 logged attempts, **130** `gpu_ok` scored evals (target was 248).
+
+#### Top-3 elites per class (retained on disk)
+
+| Rank | Wormhole | Ring | Spin |
+|------|----------|------|------|
+| **1** | eval **31**, score **+36.6**, `f_geo_evolving=0` | eval **43**, score **+195.7**, `f_geo_evolving=0.193`, search `f_geo≈3.9%`, `best_direction=z` | eval **49**, score **+28.8**, `f_geo_evolving=0.040` |
+| **2** | eval **23**, **+21.4** | eval **46**, **+98.8**, `f_geo_evolving=0.128` | eval **52**, **+16.9**, `f_geo_evolving=0.021` |
+| **3** | eval **33**, **+16.1** | eval **18**, **+97.3**, `f_geo_evolving=0.127` | eval **39**, **+14.0**, `f_geo_evolving=0.021` |
+
+**Interpretation:**
+
+- **Ring** is the clear winner: eval **43** dominates the archive; **20/49** scored ring evals show
+  `ftl_geo_evolving > 0`. Champion 4D trace: `h_quality_ok`, probe axis **z** (consistent with ring
+  in the xy plane). Search-mode `f_geo` on eval 43 is **~3.9%** (not HQ — promote before claiming
+  v18-comparable percent levels).
+- **Spin** produced real but weak 4D signal (**8** hits); best scores an order of magnitude below ring.
+- **Wormhole** never produced null-geodesic FTL despite positive health-dominated scores — bipolar
+  static topology may need different bounds or longer search.
+
+#### Disk retention (post-prune)
+
+After stop, all `eval_*` dirs except the **top-3 scores** above were deleted (~**85 GB** freed).
+Per retained eval: `score.json`, `small_data/` (incl. `evolving_geodesic.json`, `metric_stack`),
+`initial_data.gridinit`, GRTresna artifacts. Plotfile HDF5 dirs (`RadialRecipePlt*`) removed.
+
+| Campaign dir | Kept evals | Size after prune |
+|--------------|------------|------------------|
+| `general_ftl_wormhole/` | `eval_000023`, `eval_000031`, `eval_000033` | ~1.8 GB |
+| `general_ftl_ring/` | `eval_000018`, `eval_000043`, `eval_000046` | ~1.8 GB |
+| `general_ftl_spin/` | `eval_000039`, `eval_000049`, `eval_000052` | ~1.8 GB |
+
+Campaign-level files preserved: `trajectory.jsonl`, `metadata.json`, `archive.json`,
+`ftl_champions.json`, `ftl_retention.jsonl`.
+
 ### Expectations
 
 **What success looks like (per campaign):**
@@ -563,10 +692,13 @@ cat runs/grtresna_qd/general_ftl_wormhole/ftl_champions.json
 **Minimum bar to call v20 QD a win:**
 
 1. At least one campaign produces **`gpu_ok` elites** with **`ftl_geo_evolving > 0.01`** and `h_quality_ok`.
+   → **Met by ring** (eval **43** and many others); spin marginal (eval **49** `f_geo_evolving≈0.04`).
 2. The winning geometry matches the **pinned class** (bipolar / ring / sphere+ω) in lump layout diagnostics.
+   → **Ring/spin consistent**; wormhole inconclusive (no 4D signal).
 3. Score is dominated by geodesic + persistence, not health alone (flat space with good survival should still score near zero).
+   → **Ring yes**; wormhole top scores are health-dominated without geodesic term.
 
-**Planned follow-up (not part of this run):**
+**Planned follow-up (next steps):**
 
 - Per-class **CMA-ES** warm-start from each QD trajectory (`OBJECTIVE_MODE=general_ftl`, same pins).
 - **HQ promotion** of top elite per class with `GRTECLYN_EVOLVING_GEODESIC_MODE=hq` and frames on.
@@ -581,7 +713,7 @@ cat runs/grtresna_qd/general_ftl_wormhole/ftl_champions.json
 | 4D probe dirs | +x only | **x, y, z** (final trace) |
 | Campaigns | 1 QD → 1 CMA-ES → 1 HQ | **3 parallel QD** (stage 0 only) |
 | Frames | off (search) | **off** |
-| Reference result | eval **144**: 4D **~8%** @ HQ | *TBD* |
+| Reference result | eval **144**: 4D **~8%** @ HQ | ring eval **43**: search `f_geo` **~3.9%**, `h_quality_ok`, score **196** (*HQ TBD*) |
 
 ---
 

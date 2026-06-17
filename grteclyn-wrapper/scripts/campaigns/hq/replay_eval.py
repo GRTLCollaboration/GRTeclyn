@@ -206,6 +206,12 @@ def main() -> int:
         default=None,
         help="Reuse an existing initial_data.gridinit and skip the GRTresna solve",
     )
+    parser.add_argument(
+        "--objective-mode",
+        default="ftl_first",
+        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl"],
+        help="Scoring objective (default: ftl_first). Use general_ftl for v20 replays.",
+    )
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
@@ -330,7 +336,7 @@ def main() -> int:
         check_params=True,
         dry_run=args.dry_run,
         target_stop_time=args.stop_time,
-        objective_mode="ftl_first",
+        objective_mode=args.objective_mode,
         ftl_L=args.ftl_L,
         consume_plotfiles=True,
         consumer_radii=(4.0, 8.0),
