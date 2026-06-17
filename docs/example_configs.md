@@ -152,6 +152,78 @@ mpirun -n ${SLURM_NTASKS} ${exec} ${args}
 
 ---
 
+## LUMI-G
+
+The modules used
+```
+module load craype-x86-trento
+module load PrgEnv-cray
+module load craype-accel-amd-gfx90a
+module load rocm
+```
+
+In the `make.local-pre` file we have
+```
+COMP=cray
+AMREX_USE_GPU=TRUE
+USE_HIP=TRUE
+# Option for MI200 and MI250x
+AMREX_AMD_ARCH=gfx90a
+
+ifeq ($(USE_MPI),TRUE)
+  includes += $(shell CC --cray-print-opts=cflags)
+  ifneq ($(BL_NO_FORT),TRUE)
+    LIBRARIES += $(shell ftn --cray-print-opts=libs)
+  else
+    LIBRARIES += $(shell CC --cray-print-opts=libs)
+  endif
+  ifeq ($(USE_HIP),TRUE)
+    LIBRARIES += $(PE_MPICH_GTL_DIR_amd_gfx90a) -lmpi_gtl_hsa
+  endif
+endif
+```
+(the latter part may be added to the public build files at some point)
+
+And the jobscript:
+```
+#!/bin/bash -l
+#SBATCH --job-name=grteclyntest   # Job name                                                 
+#SBATCH --output=LRWC.o%j # Name of stdout output file
+#SBATCH --error=LRWC.e%j  # Name of stderr error file
+#SBATCH --partition=standard-g  # partition name
+#SBATCH --nodes=1               # Total number of nodes 
+#SBATCH --ntasks-per-node=8     # 8 MPI ranks per node, 16 total (2x8)
+#SBATCH --cpus-per-task=7
+#SBATCH --gpus-per-node=8       # Allocate one gpu per MPI rank
+#SBATCH --time=0-1:00:00       # Run time (d-hh:mm:ss)
+#SBATCH --account=project_465xxxxxx  # Project for billing
+
+module purge
+module load PrgEnv-cray
+module load craype-accel-amd-gfx90a
+module load rocm
+
+cd /project/project_465xxxxxx/GRTeclyn/Examples/BinaryBH
+cat << EOF > select_gpu
+#!/bin/bash
+
+export ROCR_VISIBLE_DEVICES=\$SLURM_LOCALID
+exec \$*
+EOF
+
+chmod +x ./select_gpu
+
+CPU_BIND="map_cpu:49,57,17,25,1,9,33,41"
+
+export OMP_NUM_THREADS=1
+export MPICH_GPU_SUPPORT_ENABLED=1
+
+srun --cpu-bind=${CPU_BIND} --gres-flags=allow-task-sharing ./select_gpu ./main3d.hip.x86-trento.MPI.HIP.ex params.txt
+rm -rf ./select_gpu
+```
+
+---
+
 ## Tursa
 
 Tursa is primarily a GPU system with Nvidia A100s as the GPU but there are CPU queues available as well. We will focus on the GPU part for this wiki. 
