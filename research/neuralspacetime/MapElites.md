@@ -375,6 +375,8 @@ to `small_data/score_timeseries.jsonl` with the same `ftl_first` objective as fi
 FTL credit** — frozen `f_geo` and coordinate `operational_ftl` stay at zero until the
 end-of-run **4D HQ trace** completes (`evolving_geodesic.json`). Mid-run totals are
 therefore **health + shaping only** (~50–100), not comparable to search finals (~500–600).
+**eval 144:** incremental peak **~83** @ t≈2.9; after HQ 4D trace, final `score.json` **283**
+with `ftl_geo_evolving=0.249` (see [Stage 2](#stage-2--hq-promotion-eval_000144--verified-4d-shortcut-done)).
 
 ```bash
 tail -f runs/grtresna_promote/l128n256t30_*/small_data/score_timeseries.jsonl
@@ -395,7 +397,7 @@ Reverse-chronological journal below. Quick index:
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
-| [**v18: 4D QD + CMA-ES + HQ**](#v18-4d-qd--cma-es--hq-ftl_4d-line-2026-06-16) | **06-16 → 06-17** | QD **192** → CMA-ES **144** winner **596** (+88); HQ **eval 144** @ t≈10 (**~34%**), incr. **~83** (4D-gated); genome **5 dynamic exotic lumps** |
+| [**v18: 4D QD + CMA-ES + HQ**](#v18-4d-qd--cma-es--hq-ftl_4d-line-2026-06-16) | **06-16 → 06-17** | **Done.** QD **156** → CMA-ES **144** (**596**) → HQ **144**: **verified 4D `f_geo` ≈ 8%** (5/5 rays, `h_quality_ok`); frozen peak **11.5%** collapses by t=30; final score **283** |
 | [**ftl_4d_v1 → CMA-ES proposal**](#ftl_4d_v1--cma-es-refinement-proposal-2026-06-16) | 06-16 executed | Planning doc for phase-1 CMA-ES knobs; **results → [v18](#v18-4d-qd--cma-es--hq-ftl_4d-line-2026-06-16)** |
 | [**4D evolving geodesic smoke test**](#4d-evolving-null-geodesic-trace-smoke-test-2026-06-15) | **06-15 done** | Eval **086** @ N=256, t=8. **4D `f_geo` = 1.42%** vs frozen peak **5.75%** (~4× smaller); metric_stack cache (34 slices) works |
 | [**ftl_max_speed_no_penalty_v1**](#ftl_max_speed_no_penalty_v1-max-speed-qd-survey-2026-06-15) | **06-15 done** | **200 evals**, 100 gpu_ok. Max speed **1.58 c** (eval 70); best score **eval 86** (+27.5); best geodesic **eval 92** (27.5% timeavg). Plateau; scores not comparable to v16 |
@@ -427,8 +429,9 @@ Reverse-chronological journal below. Quick index:
 
 **Context.** First **end-to-end production pipeline** with **4D evolving null-geodesic**
 scoring in the search loop (`ftl_geo_evolving` headline in `ftl_first`), the same objective
-through QD and CMA-ES, and HQ falsification with full **4D HQ verify** + frames +
-incremental scoring. Supersedes the frozen-geodesic [v17](#v17-cma-es-robust-refinement-after-v16-2026-06-14)
+through QD and CMA-ES, and **HQ falsification passed** (2026-06-17): full **4D HQ verify** +
+frames + incremental scoring confirm a **~8% verified null-geodesic shortcut** at N=256, t=30.
+Supersedes the frozen-geodesic [v17](#v17-cma-es-robust-refinement-after-v16-2026-06-14)
 line (`robust_ftl` on `ftl_discovery_v16`).
 
 ```mermaid
@@ -444,14 +447,14 @@ flowchart LR
   end
   QD -->|"eval 156 score 508"| CMA
   CMA -->|"eval 144 score 596"| HQ
-  HQ --> OUT["score.json\nevolve_geodesic.json\nframes/movies"]
+  HQ --> OUT["score.json 283\n4D f_geo 7.96%\n5/5 rays OK\nframes/movies"]
 ```
 
 | Stage | Run dir | Script | Resolution | t | Objective | 4D mode | Status |
 |-------|---------|--------|------------|---|-----------|---------|--------|
 | MAP-Elites | `runs/grtresna_qd/ftl_4d/ftl_4d_v1/` | `campaigns/qd/run.sh` | 128³, L=64, ml=2 | 16 | `ftl_first` | **search** | **done** (192 evals, stopped early) |
 | CMA-ES | `runs/grtresna_cmaes/ftl_4d_cmaes_v1/` | `campaigns/cmaes/run.sh` | 128³, L=64, ml=2 | 16 | `ftl_first` | **search** | **done** (144 evals) |
-| HQ | `runs/grtresna_promote/l128n256t30_ftl_4d_cmaes_qd_eval000144/` | `campaigns/hq/run_batch.sh` | **256³, L=128, ml=3** | **30** | `ftl_first` | **hq** | **in progress** (~34% t) |
+| HQ | `runs/grtresna_promote/l128n256t30_ftl_4d_cmaes_qd_eval000144/` | `campaigns/hq/run_batch.sh` | **256³, L=128, ml=3** | **30** | `ftl_first` | **hq** | **done** (2026-06-17) |
 
 ---
 
@@ -546,7 +549,7 @@ fresh GRTresna solve.
 | **Exotic sector** | **`exotic_fraction ≈ 0.91`** | ~**91%** of shell in exotic wedge; all 5 lumps exotic in GRTresna |
 | **Max coordinate speed** | **~1.27 c** | CMA-ES search @ t=16 (`max_local_speed`); HQ mid-run similar |
 | **4D null shortcut (search)** | **`f_geo_evol ≈ 0.08`** (**8%**) | CMA-ES `eval_000144/small_data/evolving_geodesic.json` @ N=128, t=16 |
-| **Frozen geodesic (HQ diagnostic)** | **~11%** peak mid-run | Visible in `ftl_timeseries.dat` but **not credited** in incremental score until 4D HQ trace |
+| **Frozen geodesic (HQ diagnostic)** | **11.5%** peak @ t≈5.8 | Collapses to **0%** @ t=30; **not credited** — 4D HQ trace is authoritative (**7.96%**) |
 
 **Mechanism readout:** shift-driven **dynamic** exotic shell — not the static-lump family
 (`shell_static=1`). FTL claim rests on evolved geometry + end-to-end 4D null geodesics, not
@@ -554,12 +557,61 @@ frozen mid-run snapshots.
 
 ---
 
-### Stage 2 — HQ promotion (`eval_000144`) — in progress
+### Stage 2 — HQ promotion (`eval_000144`) — **verified 4D shortcut (done)**
 
-**Launch (2026-06-17):** promote CMA-ES winner at full resolution; same `ftl_first` objective,
-**4D HQ verify** profile, frames on, incremental `score_timeseries.jsonl`. First attempt aborted
-@ t≈10.7 (old incremental scoring stacked frozen + coordinate FTL → ~1156); **restarted** with
-4D-authoritative incremental gating (`evolving_geodesic_mode` in `metrics/score/ftl.py`).
+**Verdict.** This run closes the first **QD → CMA-ES → HQ** loop on the **4D evolving
+null-geodesic** metric stack. At full resolution and **t=30**, the end-to-end 4D trace reports a
+**real gauge-invariant shortcut** — not a frozen mid-run artefact and not coordinate FTL.
+
+| Probe | CMA-ES search (N=128, t=16) | **HQ falsification (N=256, t=30)** |
+|-------|------------------------------|-------------------------------------|
+| **4D `f_geo` (authoritative)** | **0.0797** (~7.97%) | **0.0796** (~7.96%) |
+| Rays reached | **3/3** | **5/5** |
+| `h_quality_ok` | **true** (`max_h_rel_drift ≈ 0.002`) | **true** (`max_h_rel_drift ≈ 0.0008`) |
+| `t_arrival` / `t_flat` | 13.25 / 14.4 | 13.25 / 14.4 |
+| Frozen `f_geo` peak (diagnostic) | — | **11.5%** @ t≈5.76 → **0%** @ t=30 |
+| **`score.json` total** | **596.3** | **282.6** |
+| `ftl_geo_evolving` (scored) | 0.395 | **0.249** (after `structural_persistence` **0.63**) |
+
+**Readout — what survived falsification.** The HQ 4D trace **reproduces the CMA-ES search value
+to ~0.1% relative** on a harder bill: fresh GRTresna solve, 2× grid resolution, 2× evolution time,
+five rays instead of three, and the full **124-slice metric stack** integrated into the ray history.
+That is the operational definition of a **verified shortcut**: a null geodesic emitted at `t_emit=0`
+reaches the detector **~8% faster than flat space** while respecting the Hamiltonian constraint
+(`h_quality_ok=true`). This is the metric the v18 search loop optimizes (`ftl_geo_evolving`); HQ
+confirms it was not a search-resolution mirage.
+
+**Readout — frozen geodesic is the wrong witness here.** Per-frame frozen `f_geo` in
+`ftl_timeseries.dat` **peaked at 11.5%** mid-run (t≈5.8), then **collapsed to 0%** well before
+t=30 (`n_reached` drops to 3/5 on the last frame). If we had scored frozen snapshots alone, we
+would over-credit a transient and then falsely declare “no FTL” at the end. The **4D end-to-end
+trace** is the only honest transport certificate on a dynamic bubble — exactly why incremental HQ
+scoring gates FTL credit on `evolving_geodesic_mode` until the HQ trace completes.
+
+**Contrast — eval 086 ([HQ t=30](#hq-t30-confirmation--full-history-collapses-the-shortcut-to-zero-2026-06-16)).**
+That candidate’s frozen peak (~5.75%) **did not** survive integration: 4D `f_geo` → **0**, `0/5`
+rays, `h_quality_ok=false`. eval **144** is the complementary case: frozen mid-run **overstates**
+(11.5% peak) while the **4D trace still certifies ~8%** end-to-end. Together they validate the
+design choice to make **`ftl_geo_evolving` authoritative** and zero frozen geodesic credit when
+the 4D trace has not (or cannot) run.
+
+**Score gap (596 → 283) is not a failed shortcut.** The HQ total is lower mainly because:
+
+| Effect | HQ impact |
+|--------|-----------|
+| `structural_persistence` **0.63** | Discounts the 4D FTL channel (~395 raw → ~249 scored on `ftl_geo_evolving`) — bubble coherence fades late |
+| `instability_penalty` **−0.96** | Large K/χ growth over t=30 (`k_growth_fraction ≈ 12.6`) |
+| `exotic_penalty` **−1.6** | Same exotic tier as search (~91% exotic shell) |
+| Incremental mid-run peak **~83** @ t≈2.9 | **4D-gated** — no FTL in incremental total until final trace; not comparable to CMA-ES batch score |
+
+**Horizon note (follow-up).** `score.json` notes `corroborated_trapped=true` first @ t≈28.9
+(trailing 25% rule suppresses late `horizon_penalty`), while `horizon_penalty=0` in components.
+The shortcut is already certified by t≈13.3 arrival; late-time trapping is a separate physical
+question for persistence weighting, not a falsification of the 4D null transit.
+
+**Launch (2026-06-17).** First attempt aborted @ t≈10.7 (pre-fix incremental scoring stacked
+frozen + coordinate FTL → ~1156). **Restarted** with 4D-authoritative gating
+(`evolving_geodesic_mode` in `metrics/score/ftl.py`).
 
 ```bash
 SOURCE_RUN="${GRTECLYN_ROOT}/runs/grtresna_cmaes/ftl_4d_cmaes_v1" \
@@ -574,36 +626,50 @@ Future runs use folder name **`ftl_4d_cmaes_hq_eval000144`** (campaign slug + `_
 
 | Knob | Value |
 |------|-------|
-| Output | `runs/grtresna_promote/l128n256t30_ftl_4d_cmaes_qd_eval000144/` (this run; legacy name) |
+| Output | `runs/grtresna_promote/l128n256t30_ftl_4d_cmaes_qd_eval000144/` (legacy folder name) |
 | Grid | N=256, L=128, ml=3, t=30, plot_interval=24 (~126 frames) |
 | 4D | `--evolving-geodesic`, `GRTECLYN_EVOLVING_GEODESIC_MODE=hq` |
 | Frames | `GRTECLYN_FRAMES=1` → `frames/*_z/` |
 | Scoring | `ftl_first` + gated incremental (`ftl_geo_evolving` only after 4D trace) |
 | GRTresna | Fresh solve (Ham ~0.51%, Mom ~0.05%, 7 iter) |
 
-**Mid-run snapshot (~t≈10.2 / 30, ~34% complete, restarted run):**
+**Artifacts:**
 
-| Metric | Value | Notes |
-|--------|-------|-------|
-| Incremental score (peak so far) | **~83** @ t≈2.9 | **4D-gated** — health + shaping only; comparable scale to pre-FTL baseline, **not** to CMA-ES final **596** |
-| `ftl_geo_evolving` (incremental) | **0** | expected until end-of-run 4D HQ trace |
-| Frozen `f_geo` (diagnostic) | **~11%** peak | in `ftl_timeseries.dat`; **not** in incremental total |
-| `max_local_speed` | **~1.27 c** | matches CMA-ES search tier |
-| `horizon_penalty` | **0** | no corroborated trapped surface yet |
-| 4D `f_geo` (end-to-end) | **pending** | written at end → `small_data/evolving_geodesic.json`; expect jump to **~500–600** if search `f_geo_evol ≈ 0.08` holds at HQ |
-| Frames | **700+** PNGs | 8 fields × z-slices |
-
-**Monitor:**
+| File | Role |
+|------|------|
+| `small_data/evolving_geodesic.json` | **HQ 4D certificate** — `f_geo=0.0796`, `f_geo_frozen_peak=0.115`, 5/5 rays |
+| `score.json` | Final total **282.6**; `operational_ftl_geodesic=0`; frozen timeavg ignored per notes |
+| `small_data/ftl_timeseries.dat` | Frozen diagnostic — peak **11.5%** @ t≈5.8, **0%** @ t=30 |
+| `small_data/score_timeseries.jsonl` | Incremental — peak **~83** @ t≈2.9 (pre-4D); final row **−4.3** @ t=30 |
+| `frames/scalar_activity_z/` | 126-frame movies via `make_movies.sh` |
 
 ```bash
-tail -f runs/grtresna_promote/l128n256t30_ftl_4d_cmaes_qd_eval000144.log
-tail -f runs/grtresna_promote/l128n256t30_ftl_4d_cmaes_qd_eval000144/small_data/score_timeseries.jsonl
-bash scripts/plot/make_movies.sh runs/grtresna_promote/l128n256t30_ftl_4d_cmaes_qd_eval000144 --framerate 10
+bash scripts/plot/make_movies.sh \
+  runs/grtresna_promote/l128n256t30_ftl_4d_cmaes_qd_eval000144 --framerate 10
 ```
 
-**Open (fill when HQ completes):** final `score.json`, HQ 4D `f_geo` vs frozen peak,
-whether shortcut persists to t=30, horizon at late times (cf. [eval 086 HQ t=30](#hq-t30-confirmation--full-history-collapses-the-shortcut-to-zero-2026-06-16)
-where 4D trace went to **0**).
+---
+
+### Interpretation and applications (eval 144)
+
+**What the number means.** HQ 4D `f_geo \approx 8\%` is an **end-to-end null-geodesic timing advantage**:
+`t_{\rm arrival} \approx 13.25` vs `t_{\rm flat} \approx 14.4` at `t_{\rm emit}=0`, with **5/5 rays** and
+`h_quality_ok=true`. It is **not** superluminal matter motion (`operational_ftl` down-gated); it is a
+**geometric channel** on a **dynamic, exotic, shift-driven shell** that forms mid-run and fades by t=30.
+
+**What falsification proved.** Search-tier 4D gain (**7.97%**) **survives** HQ (256³, t=30) to **7.96%** —
+the objective was not a resolution artefact. Frozen mid-run geodesics **misleadingly peak at 11.5%** then
+go to **0%**; only the evolving trace is authoritative (cf. eval **086**, where 4D correctly returns **0**).
+
+**Applications (concise).**
+- **Inverse spacetime design** — automated search for null-transport under fixed matter ansätze and energy-condition penalties.
+- **Numerical falsification standard** — positive control (144) + negative control (086) for when frozen metrics lie.
+- **Mechanism atlas (QD)** — shift-driven dynamic exotic shells as a distinct warp-precursor family.
+- **Pareto frontier** — trade shortcut magnitude vs exotic penalty vs late-time collapse (`structural_persistence \approx 0.63`).
+
+**Not claimed:** passenger transport, stationary warp drive, or realizable negative-energy engineering.
+
+Paper draft: `researchnew.tex` (eval **144**, QD/CMA-ES progression figures).
 
 ---
 
@@ -614,13 +680,16 @@ where 4D trace went to **0**).
 | QD objective | `ftl_first` (frozen geodesic) | `ftl_first` + **4D search geodesic** |
 | CMA-ES objective | **`robust_ftl`** | **`ftl_first`** (matched to QD) |
 | CMA-ES gain | +32 pts vs seed 739 | **+88 pts** vs QD 156 |
-| HQ candidate | eval 177 (+67 final @ t=30) | eval **144** (in progress) |
+| HQ candidate | eval 177 (+67 final @ t=30) | eval **144** — **4D `f_geo` 7.96%**, score **283** |
 | Headline metric | frozen `operational_ftl_geodesic` timeavg | **`ftl_geo_evolving`** |
 
-**Takeaway (stages 0–1):** The 4D-scored search loop finds elites that **CMA-ES can still
-improve locally** (+17% score) with matched physics — the first validated QD→CMA-ES→HQ
-pipeline on the new metric stack. HQ will determine whether the CMA-ES winner survives
-full resolution and extended time under the **honest 4D trace**.
+**Takeaway (full pipeline):** v18 is the first production line where **search, refinement, and
+HQ falsification share one headline metric** — **`ftl_geo_evolving` from a verified 4D null-geodesic
+trace**. QD finds the basin, CMA-ES tightens it (+17% score), and HQ **confirms a real ~8%
+gauge-invariant shortcut** at N=256, t=30 with `h_quality_ok=true` on all rays. The frozen-geodesic
+era ([v17](#v17-cma-es-robust-refinement-after-v16-2026-06-14)) and the eval **086** negative
+control both show why mid-run snapshots are insufficient; eval **144** is the positive control that
+the 4D tracer was built to produce.
 
 ---
 
