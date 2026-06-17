@@ -10,6 +10,7 @@ import pytest
 
 from grteclyn_wrapper.metrics.probes import warpfactory as wf
 from grteclyn_wrapper.metrics.probes.ftl.evolving_geodesic import (
+    EvolvingGeodesicFtlReport,
     compute_evolving_geodesic_ftl,
     compute_evolving_geodesic_ftl_from_metric_stack_cache,
 )
@@ -67,10 +68,21 @@ def test_search_mode_skips_frozen_peak_scan(tmp_path: Path) -> None:
 def test_search_mode_uses_fewer_rays_than_default(tmp_path: Path) -> None:
     cache = metric_stack_dir(tmp_path / "small_data")
     _write_alcubierre_stack(cache, n_slices=8)
+    stub = EvolvingGeodesicFtlReport(
+        f_geo=0.0,
+        f_geo_frozen_peak=None,
+        t_emit=0.0,
+        t_arrival=None,
+        t_flat=1.0,
+        n_rays=SEARCH_OPTIONS.n_rays,
+        n_reached=0,
+        max_h_drift=0.0,
+        h_quality_ok=False,
+    )
     with patch(
         "grteclyn_wrapper.metrics.probes.ftl.evolving_geodesic.compute_evolving_geodesic_ftl",
+        return_value=stub,
     ) as compute_mock:
-        compute_mock.return_value = None
         compute_evolving_geodesic_ftl_from_metric_stack_cache(
             cache,
             options=SEARCH_OPTIONS,

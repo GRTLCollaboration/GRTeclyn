@@ -67,6 +67,11 @@ if [[ "${SKIP_CMA_PREFLIGHT_TESTS:-0}" != "1" ]]; then
   ftl_search_common_preflight_tests
 fi
 
+PIN_ARGS=()
+if [[ -n "${PIN_DIMS:-}" ]]; then
+  for kv in ${PIN_DIMS}; do PIN_ARGS+=(--pin-dimension "${kv}"); done
+fi
+
 # shellcheck disable=SC2086
 exec ${PYTHON_BIN} -m grteclyn_wrapper \
   "${PRE_ARGS[@]}" \
@@ -85,4 +90,5 @@ exec ${PYTHON_BIN} -m grteclyn_wrapper \
   --sigma0 "${SIGMA0}" \
   --seed "${SEED}" \
   --gpu-ids ${GPU_IDS} \
+  "${PIN_ARGS[@]}" \
   "${CONSUME_ARGS[@]}"

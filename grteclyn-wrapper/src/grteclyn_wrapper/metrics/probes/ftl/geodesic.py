@@ -284,6 +284,7 @@ def integrate_null_ray(
     y0: float,
     z0: float,
     t0: float = 0.0,
+    axis: int = 0,
     max_steps: int = 50_000,
     ds_init: float = 0.05,
     h_tol: float = 1.0e-6,
@@ -299,10 +300,14 @@ def integrate_null_ray(
         y0=y0,
         z0=z0,
         t0=t0,
+        axis=axis,
         max_steps=max_steps,
         ds_init=ds_init,
         h_tol=h_tol,
     )
+
+
+_AXIS_LABELS = ("x", "y", "z")
 
 
 def geodesic_report_from_metric_g(
@@ -312,18 +317,26 @@ def geodesic_report_from_metric_g(
     *,
     n_rays: int,
     h_tol: float,
+    axis: int = 0,
 ) -> GeodesicFtlReport:
-    """Run a fan of null rays on a pre-sampled static 4-metric grid."""
+    """Run a fan of null rays on a pre-sampled static 4-metric grid.
+
+    ``axis`` selects the propagation direction (0=x, 1=y, 2=z).  Transverse
+    ray offsets are applied along the higher of the two remaining spatial axes.
+    """
     dg_inv = partial_inverse_metric(g, spacing)
     shape = g.shape[:3]
-    cy = origin[1] + 0.5 * (shape[1] - 1) * spacing[1]
-    cz = origin[2] + 0.5 * (shape[2] - 1) * spacing[2]
+    transverse = [i for i in range(3) if i != axis]
+    fix_spatial, fan_spatial = transverse  # ascending order
 
-    x_start = origin[0] + 0.05 * (shape[0] - 1) * spacing[0]
-    x_end = origin[0] + 0.95 * (shape[0] - 1) * spacing[0]
-    t_flat = x_end - x_start
+    prop_start = origin[axis] + 0.05 * (shape[axis] - 1) * spacing[axis]
+    prop_end = origin[axis] + 0.95 * (shape[axis] - 1) * spacing[axis]
+    t_flat = prop_end - prop_start
 
-    offsets = np.linspace(-0.1, 0.1, max(1, n_rays)) * (shape[2] - 1) * spacing[2]
+    y0_center = origin[fix_spatial] + 0.5 * (shape[fix_spatial] - 1) * spacing[fix_spatial]
+    z0_center = origin[fan_spatial] + 0.5 * (shape[fan_spatial] - 1) * spacing[fan_spatial]
+    offsets = np.linspace(-0.1, 0.1, max(1, n_rays)) * (shape[fan_spatial] - 1) * spacing[fan_spatial]
+
     results: list[NullRayResult] = []
     for dz in offsets:
         res = integrate_null_ray(
@@ -331,10 +344,11 @@ def geodesic_report_from_metric_g(
             dg_inv,
             origin,
             spacing,
-            x_start=x_start,
-            x_end=x_end,
-            y0=cy,
-            z0=cz + float(dz),
+            x_start=prop_start,
+            x_end=prop_end,
+            y0=y0_center,
+            z0=z0_center + float(dz),
+            axis=axis,
             h_tol=h_tol,
         )
         results.append(res)
@@ -350,14 +364,12 @@ def geodesic_report_from_metric_g(
             max_h_drift=max((r.max_h_drift for r in results), default=0.0),
             h_quality_ok=False,
             max_h_rel_drift=max((r.max_h_rel for r in results), default=0.0),
-            notes=("no rays reached detector",),
+            notes=(f"no rays reached detector (axis={_AXIS_LABELS[axis]})",),
         )
 
     t_min = min(r.t_coord for r in reached if r.t_coord is not None)
     max_h = max(r.max_h_drift for r in results)
     max_h_rel = max(r.max_h_rel for r in results)
-    # Trustworthy when the rays stayed on the null cone in a *relative* sense; the
-    # absolute drift floor is set by C0 metric interpolation (see ``H_REL_TOL``).
     h_ok = max_h_rel <= H_REL_TOL
     f_geo = max(0.0, (t_flat - t_min) / t_flat) if t_flat > 0 else 0.0
 
@@ -380,6 +392,49 @@ def geodesic_report_from_metric_g(
     )
 
 
+def _frozen_report_score(report: GeodesicFtlReport) -> float:
+    """Comparable quality metric for choosing best direction."""
+    if report.h_quality_ok and report.n_reached == report.n_rays:
+        return report.f_geo
+    return -1.0
+
+
+def geodesic_report_best_direction(
+    g: NDArray[np.float64],
+    origin: NDArray[np.float64],
+    spacing: Sequence[float],
+    *,
+    n_rays: int,
+    h_tol: float,
+    directions: Sequence[str] = ("x",),
+) -> GeodesicFtlReport:
+    """Scan principal axes and return the report with the best ``f_geo``."""
+    axis_map = {label: idx for idx, label in enumerate(_AXIS_LABELS)}
+    axes = [axis_map[d] for d in directions if d in axis_map]
+    if not axes:
+        axes = [0]
+
+    reports = [
+        geodesic_report_from_metric_g(g, origin, spacing, n_rays=n_rays, h_tol=h_tol, axis=ax)
+        for ax in axes
+    ]
+
+    best = reports[0]
+    best_score = _frozen_report_score(best)
+    best_axis_label = _AXIS_LABELS[axes[0]]
+    for ax, rep in zip(axes, reports):
+        score = _frozen_report_score(rep)
+        if score > best_score:
+            best_score = score
+            best = rep
+            best_axis_label = _AXIS_LABELS[ax]
+
+    if len(axes) > 1:
+        extra_notes = best.notes + (f"best_direction={best_axis_label}",)
+        return replace(best, notes=extra_notes)
+    return best
+
+
 def _geodesic_report_at_resolution(
     plotfile: str | Path,
     *,
@@ -387,16 +442,22 @@ def _geodesic_report_at_resolution(
     half_width: float | None,
     n_rays: int,
     h_tol: float,
+    directions: Sequence[str] = ("x",),
 ) -> GeodesicFtlReport | None:
-    """Run a fan of null rays across the x-z midplane and return ``f_geo``."""
+    """Run a fan of null rays and return ``f_geo``, scanning ``directions``."""
     try:
         g, origin, spacing = build_metric_3d_from_plotfile(
             plotfile, n=n, half_width=half_width
         )
     except Exception:
         return None
+    if len(directions) > 1:
+        return geodesic_report_best_direction(
+            g, origin, spacing, n_rays=n_rays, h_tol=h_tol, directions=directions
+        )
+    axis = _AXIS_LABELS.index(directions[0]) if directions[0] in _AXIS_LABELS else 0
     return geodesic_report_from_metric_g(
-        g, origin, spacing, n_rays=n_rays, h_tol=h_tol
+        g, origin, spacing, n_rays=n_rays, h_tol=h_tol, axis=axis
     )
 
 
@@ -408,6 +469,7 @@ def compute_geodesic_ftl_from_plotfile(
     n_rays: int = 5,
     h_tol: float = 1.0e-6,
     refine_n: int | None = GEO_REFINE_N,
+    directions: Sequence[str] = ("x",),
 ) -> GeodesicFtlReport | None:
     """Gauge-invariant null-geodesic shortcut with a reliability re-probe.
 
@@ -421,7 +483,8 @@ def compute_geodesic_ftl_from_plotfile(
     no-shortcut measurements untouched (the re-probe never fires for them).
     """
     base = _geodesic_report_at_resolution(
-        plotfile, n=n, half_width=half_width, n_rays=n_rays, h_tol=h_tol
+        plotfile, n=n, half_width=half_width, n_rays=n_rays, h_tol=h_tol,
+        directions=directions,
     )
     if base is None:
         return None
@@ -437,7 +500,8 @@ def compute_geodesic_ftl_from_plotfile(
         return base
 
     refined = _geodesic_report_at_resolution(
-        plotfile, n=refine_n, half_width=half_width, n_rays=n_rays, h_tol=h_tol
+        plotfile, n=refine_n, half_width=half_width, n_rays=n_rays, h_tol=h_tol,
+        directions=directions,
     )
     if refined is None:
         return base

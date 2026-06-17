@@ -13,6 +13,8 @@ def compute_total(ctx: ScoringContext, objective_mode: str, nontriviality: float
         return _ftl_first_total(components, notes)
     if objective_mode == "robust_ftl":
         return _robust_ftl_total(components, notes)
+    if objective_mode == "general_ftl":
+        return _general_ftl_total(components, notes)
     return _weighted_total(components, w, nontriviality)
 
 
@@ -156,6 +158,39 @@ def _robust_ftl_total(components: dict[str, float], notes: list[str]) -> float:
     notes.append(
         "objective_mode=robust_ftl: persistent/healthy/low-exotic geometry "
         "prioritized; gauge-invariant shortcut stays dominant"
+    )
+    return total
+
+
+def _general_ftl_total(components: dict[str, float], notes: list[str]) -> float:
+    # General-FTL profile: the gauge-invariant 4D null shortcut is the ONLY
+    # FTL reward.  All coordinate/warp-motor shaping (shift_drive,
+    # channel_progress, operational_ftl_solved, ftl_precursor) is removed so a
+    # static wormhole / ring / portal is not penalised for beta^i = 0.  Health
+    # and stationarity are boosted because a *persistent, stable* throat is the
+    # goal, not a translating bubble.
+    health_gate = components.get("nontriviality_gate", 0.0)
+    horizon = components.get("horizon_penalty", 0.0)
+    total = (
+        1000.0 * components.get("ftl_geo_evolving", 0.0)
+        + 1000.0 * components.get("operational_ftl_geodesic", 0.0)
+        + 600.0 * components.get("ftl_persistence", 0.0)
+        + 200.0 * components.get("operational_ftl", 0.0)
+        + 5.0 * components.get("nontrivial_geometry", 0.0)
+        + health_gate * (
+            150.0 * components.get("survival", 0.0)
+            + 10.0 * components.get("constraint_health", 0.0)
+            + 40.0 * components.get("stability", 0.0)
+            + 30.0 * components.get("comoving_stability", 0.0)
+            + 15.0 * components.get("instability_penalty", 0.0)
+            + 60.0 * components.get("energy_condition", 0.0)
+        )
+        + 70.0 * components.get("exotic_penalty", 0.0)
+        + 500.0 * horizon
+    )
+    notes.append(
+        "objective_mode=general_ftl: gauge-invariant shortcut only; "
+        "warp-motor shaping and stationary penalty disabled"
     )
     return total
 

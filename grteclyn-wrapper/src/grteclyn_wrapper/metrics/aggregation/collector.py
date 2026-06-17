@@ -45,7 +45,10 @@ from ..probes.ftl.evolving_geodesic import (
     write_evolving_geodesic_json,
 )
 from ..probes.ftl.metric_stack_cache import metric_stack_dir, slice_count
-from ..probes.ftl.evolving_geodesic_options import evolving_geodesic_options_from_env
+from ..probes.ftl.evolving_geodesic_options import (
+    evolving_geodesic_options_from_env,
+    geo_directions_from_env,
+)
 from ..probes.physical import compute_physical_metrics
 from ..probes.warpfactory import effective_energy_conditions_from_plotfiles
 from ..types.diagnostics import (
@@ -278,7 +281,8 @@ def read_episode_metrics(
             ):
                 with PLOTFILE_READ_LOCK:
                     geodesic_ftl = compute_geodesic_ftl_from_plotfile(
-                        plotfile, n=65, half_width=ctx.ftl_L
+                        plotfile, n=65, half_width=ctx.ftl_L,
+                        directions=geo_directions_from_env(),
                     )
     except Exception:
         geodesic_ftl = None

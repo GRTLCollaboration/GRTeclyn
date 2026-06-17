@@ -1,6 +1,8 @@
+import argparse
 import math
 
 from grteclyn_wrapper.__main__ import build_parser
+from grteclyn_wrapper.cli.grtresna_context import build_grtresna_search_context
 from grteclyn_wrapper.search.optimize import (
     build_grtresna_config,
     build_search_space,
@@ -219,6 +221,52 @@ def test_matter_layout_bipolar_splits_along_axis() -> None:
     overrides = {**_shell_base_overrides(), "grtresna_matter_layout": 2.0}
     cfg = build_grtresna_config(overrides)
     # axis_theta=pi/2, axis_phi=0 => polar axis is +x
+    projections = [lump["center"][0] for lump in cfg.lumps]
+    assert max(projections) > 0.5 and min(projections) < -0.5
+
+
+def test_pin_dimension_removes_key_from_search_space() -> None:
+    args = argparse.Namespace(
+        nonspherical=False,
+        grtresna=True,
+        grtresna_lumps=5,
+        grtresna_ansatz="shell",
+        grtresna_shell_profile="compact",
+        pin_dimension=["grtresna_matter_layout=2"],
+        grtresna_full_z=False,
+        grtresna_evolution_l_full=64.0,
+        grtresna_evolution_n_full=64,
+        grtresna_domain_l=128.0,
+        grtresna_domain_nx=64,
+        grtresna_domain_ny=64,
+        grtresna_domain_nz=None,
+        grtresna_gridinit_nx=64,
+        grtresna_gridinit_ny=64,
+        grtresna_gridinit_nz=64,
+        grtresna_ranks=8,
+        grtresna_iterations=50,
+        grtresna_timeout=3600,
+        grtresna_max_level=3,
+        grtresna_refine_threshold=0.5,
+        grtresna_regrid_radius=0.0,
+        grtresna_coefficient_average_type="harmonic",
+        grtresna_psi_relaxation=1.0,
+        grtresna_psi_floor=-1.0,
+        grtresna_jacobian_cap=-1.0,
+        grtresna_keep_source=False,
+        grtresna_max_ham_pct=5.0,
+        grtresna_max_mom_pct=5.0,
+        grtresna_solved_ftl_gate=False,
+        grtresna_solved_ftl_min=0.0,
+        grtresna_solved_ftl_max=1.0,
+        grtresna_speed_mode=None,
+        grtresna_speed_factor=1.0,
+    )
+    ctx = build_grtresna_search_context(args, {"grtresna_shell_lumps": 5})
+    pinned_keys = {d.param_key for d in ctx.search_space}
+    assert "grtresna_matter_layout" not in pinned_keys
+    assert ctx.base_overrides["grtresna_matter_layout"] == 2.0
+    cfg = build_grtresna_config(ctx.base_overrides)
     projections = [lump["center"][0] for lump in cfg.lumps]
     assert max(projections) > 0.5 and min(projections) < -0.5
 

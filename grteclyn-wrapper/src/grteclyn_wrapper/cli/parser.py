@@ -102,10 +102,22 @@ def build_parser() -> argparse.ArgumentParser:
     opt.add_argument("--gpu-ids", nargs="+", type=int, default=None, help="GPU indices for parallel eval (e.g. 0 1 2 3 4 5 6 7).")
     opt.add_argument(
         "--objective-mode",
-        choices=["weighted", "ftl_first", "robust_ftl"],
+        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl"],
         default="weighted",
         help="Scoring scalarization: weighted legacy score, FTL-first ordering, "
-        "or robust_ftl (FTL-first tilted toward persistent/healthy/low-exotic).",
+        "robust_ftl (FTL-first tilted toward persistent/healthy/low-exotic), "
+        "or general_ftl (gauge-invariant shortcut only; no warp-motor shaping).",
+    )
+    opt.add_argument(
+        "--pin-dimension",
+        action="append",
+        default=[],
+        dest="pin_dimension",
+        metavar="KEY=VALUE",
+        help="Pin a search dimension to a constant (repeatable). The key is "
+        "removed from the optimizer search space and forced via base "
+        "overrides, e.g. --pin-dimension grtresna_matter_layout=2 "
+        "--pin-dimension grtresna_shell_toroidal_velocity=0.",
     )
     opt.add_argument(
         "--warm-start-trajectory",
@@ -381,10 +393,22 @@ def build_parser() -> argparse.ArgumentParser:
     )
     qd.add_argument(
         "--objective-mode",
-        choices=["weighted", "ftl_first", "robust_ftl"],
+        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl"],
         default="weighted",
         help="Scoring scalarization used as elite quality. robust_ftl tilts "
-        "ftl_first toward persistent/healthy/low-exotic geometries.",
+        "ftl_first toward persistent/healthy/low-exotic geometries; "
+        "general_ftl rewards gauge-invariant shortcuts only.",
+    )
+    qd.add_argument(
+        "--pin-dimension",
+        action="append",
+        default=[],
+        dest="pin_dimension",
+        metavar="KEY=VALUE",
+        help="Pin a search dimension to a constant (repeatable). The key is "
+        "removed from the optimizer search space and forced via base "
+        "overrides, e.g. --pin-dimension grtresna_matter_layout=2 "
+        "--pin-dimension grtresna_shell_toroidal_velocity=0.",
     )
     qd.add_argument(
         "--grtresna",

@@ -54,7 +54,11 @@ from .evolving_geodesic_options import (
     HQ_OPTIONS,
     SEARCH_OPTIONS,
     evolving_geodesic_options_from_env,
+    geo_directions_from_env,
 )
+
+
+_AXIS_LABELS = ("x", "y", "z")
 
 
 @dataclass(frozen=True)
@@ -74,6 +78,18 @@ class EvolvingGeodesicFtlReport:
     notes: tuple[str, ...] = ()
 
 
+def _spatial_extent(
+    field: MetricField, axis: int
+) -> tuple[float, float]:
+    """Return (min, max) coordinate along spatial axis ``axis`` (0=x, 1=y, 2=z)."""
+    origin = field.origin[:3]
+    spacing = field.spatial_spacing
+    shape = field.spatial_shape
+    lo = float(origin[axis])
+    hi = float(origin[axis] + (shape[axis] - 1) * spacing[axis])
+    return lo, hi
+
+
 def integrate_null_ray_on_field(
     field: MetricField,
     *,
@@ -82,15 +98,23 @@ def integrate_null_ray_on_field(
     y0: float,
     z0: float,
     t0: float = 0.0,
+    axis: int = 0,
     max_steps: int = 50_000,
     ds_init: float = 0.05,
     h_tol: float = 1.0e-6,
     h_rel_abort: float | None = None,
 ) -> NullRayResult:
     """Trace one null ray through a possibly time-dependent metric field."""
-    x = np.array([t0, x_start, y0, z0], dtype=float)
+    prop_idx = axis + 1
+    pos = [0.0, 0.0, 0.0]
+    pos[axis] = x_start
+    transverse = [i for i in range(3) if i != axis]
+    pos[transverse[0]] = y0
+    pos[transverse[1]] = z0
+    x = np.array([t0, pos[0], pos[1], pos[2]], dtype=float)
     t_flat = abs(x_end - x_start)
-    n_hat = np.array([1.0, 0.0, 0.0], dtype=float)
+    n_hat = np.zeros(3, dtype=float)
+    n_hat[axis] = 1.0
 
     g_pt, ginv_pt, _ = field.sample(x)
     k = future_null_cov(g_pt, n_hat)
@@ -98,9 +122,10 @@ def integrate_null_ray_on_field(
     max_h = 0.0
     max_h_rel = 0.0
     ds = ds_init
+    s_min, s_max = _spatial_extent(field, axis)
 
     for _ in range(max_steps):
-        if x[1] >= x_end:
+        if x[prop_idx] >= x_end:
             t_coord = abs(float(x[0] - t0))
             return NullRayResult(
                 reached=True,
@@ -137,7 +162,7 @@ def integrate_null_ray_on_field(
         x = x + (ds / 6.0) * (k1x + 2 * k2x + 2 * k3x + k4x)
         k = k + (ds / 6.0) * (k1k + 2 * k2k + 2 * k3k + k4k)
 
-        if x[1] < field.x_spatial_min() or x[1] > field.x_spatial_max():
+        if x[prop_idx] < s_min or x[prop_idx] > s_max:
             return NullRayResult(
                 reached=False,
                 t_coord=None,
@@ -157,14 +182,34 @@ def integrate_null_ray_on_field(
     )
 
 
-def _ray_fan_geometry(field: MetricField, *, n_rays: int) -> tuple[float, float, float, float, float]:
+def _ray_fan_geometry(
+    field: MetricField, *, axis: int, n_rays: int
+) -> tuple[float, float, float, float, float, NDArray[np.float64]]:
+    """Return propagation endpoints, transverse centers, and fan offsets.
+
+    ``integrate_null_ray_on_field`` maps the caller's ``y0`` onto the lower
+    transverse axis (``transverse[0]``) and ``z0`` onto the higher one
+    (``transverse[1]``).  ``transverse`` is built in ascending order, so the
+    fan always sits on ``transverse[1]`` -- i.e. the offset is always applied
+    to ``z0``.
+    """
     shape = field.spatial_shape
-    cy = field.origin[1] + 0.5 * (shape[1] - 1) * field.spatial_spacing[1]
-    cz = field.origin[2] + 0.5 * (shape[2] - 1) * field.spatial_spacing[2]
-    x_start = field.origin[0] + 0.05 * (shape[0] - 1) * field.spatial_spacing[0]
-    x_end = field.origin[0] + 0.95 * (shape[0] - 1) * field.spatial_spacing[0]
-    t_flat = x_end - x_start
-    return x_start, x_end, cy, cz, t_flat
+    spacing = field.spatial_spacing
+    origin = field.origin[:3]
+    transverse = [i for i in range(3) if i != axis]
+    fix_spatial, fan_spatial = transverse  # ascending: fan is the higher axis (z0 slot)
+
+    prop_start = origin[axis] + 0.05 * (shape[axis] - 1) * spacing[axis]
+    prop_end = origin[axis] + 0.95 * (shape[axis] - 1) * spacing[axis]
+    t_flat = prop_end - prop_start
+
+    y0_center = origin[fix_spatial] + 0.5 * (shape[fix_spatial] - 1) * spacing[fix_spatial]
+    z0_center = origin[fan_spatial] + 0.5 * (shape[fan_spatial] - 1) * spacing[fan_spatial]
+    fan_offsets = (
+        np.linspace(-0.1, 0.1, max(1, n_rays)) * (shape[fan_spatial] - 1) * spacing[fan_spatial]
+    )
+
+    return prop_start, prop_end, y0_center, z0_center, t_flat, fan_offsets
 
 
 def compute_evolving_geodesic_ftl(
@@ -177,6 +222,7 @@ def compute_evolving_geodesic_ftl(
     h_tol: float = 1.0e-6,
     h_rel_abort: float | None = None,
     frozen_peak: float | None = None,
+    axis: int = 0,
 ) -> EvolvingGeodesicFtlReport:
     """Run a fan of evolving null rays and return end-to-end ``f_geo``."""
     if isinstance(field, EvolvingMetricField):
@@ -184,20 +230,22 @@ def compute_evolving_geodesic_ftl(
     else:
         t_emit_val = 0.0 if t_emit is None else float(t_emit)
 
-    x_start, x_end, cy, cz, t_flat = _ray_fan_geometry(field, n_rays=n_rays)
-    shape = field.spatial_shape
-    offsets = np.linspace(-0.1, 0.1, max(1, n_rays)) * (shape[2] - 1) * field.spatial_spacing[2]
+    prop_start, prop_end, y0_center, z0_center, t_flat, fan_offsets = _ray_fan_geometry(
+        field, axis=axis, n_rays=n_rays
+    )
 
     results: list[NullRayResult] = []
-    for dz in offsets:
+    for offset in fan_offsets:
+        y0, z0 = y0_center, z0_center + float(offset)
         results.append(
             integrate_null_ray_on_field(
                 field,
-                x_start=x_start,
-                x_end=x_end,
-                y0=cy,
-                z0=cz + float(dz),
+                x_start=prop_start,
+                x_end=prop_end,
+                y0=y0,
+                z0=z0,
                 t0=t_emit_val,
+                axis=axis,
                 max_steps=max_steps,
                 ds_init=ds_init,
                 h_tol=h_tol,
@@ -218,7 +266,7 @@ def compute_evolving_geodesic_ftl(
             max_h_drift=max((r.max_h_drift for r in results), default=0.0),
             h_quality_ok=False,
             max_h_rel_drift=max((r.max_h_rel for r in results), default=0.0),
-            notes=("no rays reached detector",),
+            notes=(f"no rays reached detector (axis={_AXIS_LABELS[axis]})",),
         )
 
     t_min = min(r.t_coord for r in reached if r.t_coord is not None)
@@ -234,6 +282,7 @@ def compute_evolving_geodesic_ftl(
             f"null constraint drift high (rel H={max_h_rel:.2e}, abs H={max_h:.2e})"
         )
     notes.append(f"evolving end-to-end trace t_emit={t_emit_val:.3f}")
+    notes.append(f"probe_axis={_AXIS_LABELS[axis]}")
 
     return EvolvingGeodesicFtlReport(
         f_geo=f_geo,
@@ -247,6 +296,69 @@ def compute_evolving_geodesic_ftl(
         h_quality_ok=h_ok,
         max_h_rel_drift=max_h_rel,
         notes=tuple(notes),
+    )
+
+
+def _report_probe_score(report: EvolvingGeodesicFtlReport) -> float:
+    if report.h_quality_ok and report.n_reached == report.n_rays:
+        return report.f_geo
+    return -1.0
+
+
+def compute_evolving_geodesic_ftl_best_direction(
+    field: MetricField,
+    *,
+    directions: Sequence[str],
+    t_emit: float | None = None,
+    n_rays: int = 5,
+    max_steps: int = 50_000,
+    ds_init: float = 0.05,
+    h_tol: float = 1.0e-6,
+    h_rel_abort: float | None = None,
+    frozen_peak: float | None = None,
+) -> EvolvingGeodesicFtlReport:
+    """Scan principal axes and return the report with the largest trustworthy ``f_geo``."""
+    axis_map = {label: idx for idx, label in enumerate(_AXIS_LABELS)}
+    axes = [axis_map[d] for d in directions if d in axis_map]
+    if not axes:
+        axes = [0]
+
+    reports = [
+        compute_evolving_geodesic_ftl(
+            field,
+            t_emit=t_emit,
+            n_rays=n_rays,
+            max_steps=max_steps,
+            ds_init=ds_init,
+            h_tol=h_tol,
+            h_rel_abort=h_rel_abort,
+            frozen_peak=frozen_peak if len(axes) == 1 else None,
+            axis=axis,
+        )
+        for axis in axes
+    ]
+    best_axis_label = _AXIS_LABELS[axes[0]]
+    best = reports[0]
+    best_score = _report_probe_score(best)
+    for axis, rep in zip(axes, reports):
+        score = _report_probe_score(rep)
+        if score > best_score:
+            best_score = score
+            best = rep
+            best_axis_label = _AXIS_LABELS[axis]
+    extra = tuple(n for n in best.notes if not n.startswith("best_direction="))
+    return EvolvingGeodesicFtlReport(
+        f_geo=best.f_geo,
+        f_geo_frozen_peak=frozen_peak if frozen_peak is not None else best.f_geo_frozen_peak,
+        t_emit=best.t_emit,
+        t_arrival=best.t_arrival,
+        t_flat=best.t_flat,
+        n_rays=best.n_rays,
+        n_reached=best.n_reached,
+        max_h_drift=best.max_h_drift,
+        h_quality_ok=best.h_quality_ok,
+        max_h_rel_drift=best.max_h_rel_drift,
+        notes=extra + (f"best_direction={best_axis_label}",),
     )
 
 
@@ -321,8 +433,9 @@ def compute_evolving_geodesic_ftl_from_metric_stack_cache(
             n_rays=ray_count,
             h_tol=h_tol,
         )
-    return compute_evolving_geodesic_ftl(
+    return compute_evolving_geodesic_ftl_best_direction(
         field,
+        directions=opts.directions,
         n_rays=ray_count,
         max_steps=opts.max_steps,
         ds_init=opts.ds_init,
@@ -353,8 +466,13 @@ def compute_evolving_geodesic_ftl_from_plotfiles(
     frozen_peak = _frozen_peak_from_plotfiles(
         paths, n=n_space, half_width=half_width, n_rays=n_rays, h_tol=h_tol
     )
-    return compute_evolving_geodesic_ftl(
-        field, n_rays=n_rays, h_tol=h_tol, frozen_peak=frozen_peak
+    opts = evolving_geodesic_options_from_env()
+    return compute_evolving_geodesic_ftl_best_direction(
+        field,
+        directions=opts.directions,
+        n_rays=n_rays,
+        h_tol=h_tol,
+        frozen_peak=frozen_peak,
     )
 
 
@@ -364,10 +482,17 @@ def compute_evolving_geodesic_ftl_from_analytic(
     *,
     n_rays: int = 5,
     h_tol: float = 1.0e-6,
+    directions: Sequence[str] | None = None,
 ) -> EvolvingGeodesicFtlReport:
     """Analytic-stack entry point (Alcubierre validation)."""
     field = evolving_field_from_analytic_stack(g, spacing)
-    return compute_evolving_geodesic_ftl(field, n_rays=n_rays, h_tol=h_tol)
+    dirs = tuple(directions) if directions is not None else geo_directions_from_env()
+    if len(dirs) == 1:
+        axis = _AXIS_LABELS.index(dirs[0]) if dirs[0] in _AXIS_LABELS else 0
+        return compute_evolving_geodesic_ftl(field, n_rays=n_rays, h_tol=h_tol, axis=axis)
+    return compute_evolving_geodesic_ftl_best_direction(
+        field, directions=dirs, n_rays=n_rays, h_tol=h_tol
+    )
 
 
 def _json_safe(value: object) -> object:

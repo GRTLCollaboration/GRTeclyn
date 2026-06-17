@@ -61,9 +61,14 @@ def _extract_ftl_timeseries_line(
         from grteclyn_wrapper.metrics.probes.ftl.geodesic import (
             compute_geodesic_ftl_from_plotfile,
         )
+        from grteclyn_wrapper.metrics.probes.ftl.evolving_geodesic_options import (
+            geo_directions_from_env,
+        )
 
         try:
-            geo = compute_geodesic_ftl_from_plotfile(p, n=65, half_width=ftl_L)
+            geo = compute_geodesic_ftl_from_plotfile(
+                p, n=65, half_width=ftl_L, directions=geo_directions_from_env()
+            )
         except Exception as exc:  # noqa: BLE001
             geo = None
             if verbose:

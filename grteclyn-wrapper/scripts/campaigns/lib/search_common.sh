@@ -170,5 +170,6 @@ ftl_search_common_preflight_tests() {
     "${WRAPPER_ROOT}/tests/metrics/ftl/test_ftl_peak_metrics_4d.py" \
     "${WRAPPER_ROOT}/tests/metrics/ftl/test_evolving_geodesic_search_mode.py" \
     "${WRAPPER_ROOT}/tests/metrics/score/test_ftl_4d_gate.py" \
+    "${WRAPPER_ROOT}/tests/metrics/score/test_general_ftl_objective.py" \
     -q --tb=short
 }

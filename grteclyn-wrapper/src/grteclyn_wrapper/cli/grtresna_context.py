@@ -64,6 +64,28 @@ def build_grtresna_search_context(
     if nonspherical and not use_grtresna:
         overrides = {**ANGULAR_BASE_OVERRIDES, **overrides}
 
+    pins: dict[str, float] = {}
+    for spec in getattr(args, "pin_dimension", []) or []:
+        key, sep, val = spec.partition("=")
+        key = key.strip()
+        if not key or not sep:
+            raise ValueError(f"--pin-dimension expects KEY=VALUE, got {spec!r}")
+        try:
+            pins[key] = float(val)
+        except ValueError as exc:
+            raise ValueError(
+                f"--pin-dimension value for {key!r} must be numeric, got {val!r}"
+            ) from exc
+
+    if pins:
+        unknown = pins.keys() - {d.param_key for d in search_space}
+        if unknown:
+            raise ValueError(
+                f"--pin-dimension keys not in search space: {sorted(unknown)}"
+            )
+        search_space = [d for d in search_space if d.param_key not in pins]
+        overrides = {**overrides, **pins}
+
     grtresna_config = None
     solved_ftl_gate_config = None
     grtresna_convergence_config = None

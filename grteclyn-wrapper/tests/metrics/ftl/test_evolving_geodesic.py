@@ -10,6 +10,7 @@ from grteclyn_wrapper.metrics.probes import warpfactory as wf
 from grteclyn_wrapper.metrics.probes.ftl.evolving_geodesic import (
     EvolvingGeodesicFtlReport,
     compute_evolving_geodesic_ftl,
+    compute_evolving_geodesic_ftl_best_direction,
     compute_evolving_geodesic_ftl_from_analytic,
     compute_evolving_geodesic_ftl_from_plotfiles,
     integrate_null_ray_on_field,
@@ -22,6 +23,7 @@ from grteclyn_wrapper.metrics.probes.ftl.geodesic import (
 from grteclyn_wrapper.metrics.probes.ftl.metric_field import (
     EvolvingMetricField,
     StaticMetricField,
+    evolving_field_from_analytic_stack,
 )
 
 
@@ -73,6 +75,37 @@ def test_alcubierre_evolving_finds_shortcut():
     report = compute_evolving_geodesic_ftl_from_analytic(g, spacing, n_rays=5)
     assert report.f_geo > 0.1
     assert report.n_reached == report.n_rays
+
+
+def _swap_spatial_xy(
+    g: np.ndarray, spacing: tuple[float, float, float, float]
+) -> tuple[np.ndarray, tuple[float, float, float, float]]:
+    """Permute an x-aligned metric grid to y-aligned (swap spatial x <-> y)."""
+    perm4 = [0, 2, 1, 3]
+    g_y = g.transpose(0, 2, 1, 3, 4, 5)
+    g_y = g_y[..., perm4, :][..., :, perm4]
+    dt, dx, dy, dz = spacing
+    return g_y, (dt, dy, dx, dz)
+
+
+def test_multi_direction_probe_finds_y_aligned_shortcut():
+    g, spacing = wf.alcubierre_metric(
+        velocity=0.5, bubble_radius=2.0, sigma=2.0, half_width=4.0, n_space=20, dt=0.2
+    )
+    g_y, spacing_y = _swap_spatial_xy(g, spacing)
+    field = evolving_field_from_analytic_stack(g_y, spacing_y)
+
+    x_report = compute_evolving_geodesic_ftl(field, n_rays=5, axis=0)
+    y_report = compute_evolving_geodesic_ftl(field, n_rays=5, axis=1)
+    assert x_report.f_geo < 0.05
+    assert y_report.f_geo > 0.1
+    assert y_report.n_reached == y_report.n_rays
+
+    best = compute_evolving_geodesic_ftl_best_direction(
+        field, directions=("x", "y", "z"), n_rays=5
+    )
+    assert best.f_geo > 0.1
+    assert any("best_direction=y" in n for n in best.notes)
 
 
 def test_too_few_plotfiles_returns_none():

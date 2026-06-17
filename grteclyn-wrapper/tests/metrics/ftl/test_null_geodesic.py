@@ -113,7 +113,7 @@ def test_reliability_reprobe_certifies_shortcut_rejected_at_qd_resolution(monkey
     re-traced at >96^3 and certified, not silently zeroed."""
     calls: list[int] = []
 
-    def fake(plotfile, *, n, half_width, n_rays, h_tol):
+    def fake(plotfile, *, n, half_width, n_rays, h_tol, directions=("x",)):
         calls.append(n)
         if n <= 65:
             return _stub_report(f_geo=0.31, h_ok=False, rel_drift=2.2e-2)
@@ -134,7 +134,7 @@ def test_no_reprobe_when_base_resolution_is_already_reliable(monkeypatch):
     the expensive re-probe must not fire."""
     calls: list[int] = []
 
-    def fake(plotfile, *, n, half_width, n_rays, h_tol):
+    def fake(plotfile, *, n, half_width, n_rays, h_tol, directions=("x",)):
         calls.append(n)
         return _stub_report(f_geo=0.05, h_ok=True, rel_drift=4.0e-3)
 
@@ -150,7 +150,7 @@ def test_no_reprobe_without_a_shortcut(monkeypatch):
     certify, so a failed gate must not trigger a re-probe."""
     calls: list[int] = []
 
-    def fake(plotfile, *, n, half_width, n_rays, h_tol):
+    def fake(plotfile, *, n, half_width, n_rays, h_tol, directions=("x",)):
         calls.append(n)
         return _stub_report(f_geo=0.0, h_ok=False, rel_drift=3.0e-2)
 
@@ -159,3 +159,46 @@ def test_no_reprobe_without_a_shortcut(monkeypatch):
 
     assert report is not None and not report.h_quality_ok
     assert calls == [65]  # no escalation: nothing to refine
+
+
+def test_frozen_geodesic_multi_direction_finds_y_aligned_shortcut():
+    """A y-aligned shortcut should be found when directions include 'y'."""
+    from grteclyn_wrapper.metrics.probes.ftl.geodesic import (
+        geodesic_report_best_direction,
+        geodesic_report_from_metric_g,
+    )
+
+    # Build a smooth metric where g_yy < 1 everywhere via a Gaussian profile
+    # so the null constraint stays well-behaved on a coarse grid.
+    n = 21
+    spacing = (0.5, 0.5, 0.5)
+    origin = np.array([-5.0, -5.0, -5.0])
+    g = np.zeros((n, n, n, 4, 4))
+    g[..., 0, 0] = -1.0
+    for i in range(1, 4):
+        g[..., i, i] = 1.0
+
+    # Smooth Gaussian reduction in g_yy (spatial index 2): light along y
+    # propagates faster because ds^2 = g_yy dy^2 is smaller.
+    coords = np.linspace(origin[1], origin[1] + (n - 1) * spacing[1], n)
+    cx, cy, cz = np.meshgrid(coords, coords, coords, indexing="ij")
+    r2 = cx**2 + cy**2 + cz**2
+    sigma2 = 4.0
+    bump = 0.4 * np.exp(-r2 / (2.0 * sigma2))
+    g[..., 2, 2] = 1.0 - bump  # g_yy < 1 in the centre
+
+    x_report = geodesic_report_from_metric_g(
+        g, origin, spacing, n_rays=3, h_tol=1e-6, axis=0
+    )
+    y_report = geodesic_report_from_metric_g(
+        g, origin, spacing, n_rays=3, h_tol=1e-6, axis=1
+    )
+    # y should have a bigger shortcut than x (x travels through flat g_xx=1)
+    assert y_report.f_geo > x_report.f_geo
+    assert y_report.h_quality_ok
+
+    best = geodesic_report_best_direction(
+        g, origin, spacing, n_rays=3, h_tol=1e-6, directions=("x", "y", "z")
+    )
+    assert best.f_geo == y_report.f_geo
+    assert any("best_direction=y" in note for note in best.notes)

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 
 @dataclass(frozen=True)
@@ -17,6 +17,7 @@ class EvolvingGeodesicOptions:
     max_steps: int = 50_000
     h_rel_abort: float | None = None
     ds_init: float = 0.05
+    directions: tuple[str, ...] = ("x",)
 
 
 SEARCH_OPTIONS = EvolvingGeodesicOptions(
@@ -31,12 +32,19 @@ SEARCH_OPTIONS = EvolvingGeodesicOptions(
 HQ_OPTIONS = EvolvingGeodesicOptions()
 
 
+def geo_directions_from_env() -> tuple[str, ...]:
+    """Principal axes to scan for the end-of-run 4D trace (``GRTECLYN_GEO_DIRECTIONS``)."""
+    raw = os.environ.get("GRTECLYN_GEO_DIRECTIONS", "x").strip()
+    dirs = tuple(tok for tok in raw.split() if tok in {"x", "y", "z"})
+    return dirs or ("x",)
+
+
 def evolving_geodesic_options_from_env() -> EvolvingGeodesicOptions:
     """Resolve integration profile from ``GRTECLYN_EVOLVING_GEODESIC_MODE``."""
     mode = os.environ.get("GRTECLYN_EVOLVING_GEODESIC_MODE", "search").strip().lower()
-    if mode in {"hq", "full", "verify", "promote"}:
-        return HQ_OPTIONS
-    return SEARCH_OPTIONS
+    directions = geo_directions_from_env()
+    base = HQ_OPTIONS if mode in {"hq", "full", "verify", "promote"} else SEARCH_OPTIONS
+    return replace(base, directions=directions)
 
 
 def metric_stack_n_space_from_env(*, default: int = 65) -> int:

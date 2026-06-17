@@ -8,7 +8,11 @@ from .evolving_geodesic import (
     compute_evolving_geodesic_ftl_from_plotfiles,
 )
 from .general import GeneralFtlReport, compute_general_ftl, compute_general_ftl_from_plotfile
-from .geodesic import GeodesicFtlReport, compute_geodesic_ftl_from_plotfile
+from .geodesic import (
+    GeodesicFtlReport,
+    compute_geodesic_ftl_from_plotfile,
+    geodesic_report_best_direction,
+)
 from .solved import SolvedGeometryFtl, compute_solved_geometry_ftl
 
 __all__ = [
@@ -24,6 +28,7 @@ __all__ = [
     "compute_general_ftl",
     "compute_general_ftl_from_plotfile",
     "compute_geodesic_ftl_from_plotfile",
+    "geodesic_report_best_direction",
     "compute_solved_geometry_ftl",
     "load_overrides_from_episode",
 ]
