@@ -11,7 +11,7 @@ Stage 1  CMA-ES refine       scripts/campaigns/cmaes/run.sh   (optional)
               ▼  warm-start from stage 0/1 trajectory
 Stage 2  HQ promotion        scripts/campaigns/hq/run_batch.sh
               │
-              ▼  runs/grtresna_promote/l128n256t30_*/
+              ▼  runs/grtresna_promote/{campaign}_hq_eval*/
 ```
 
 ## Stage comparison
@@ -42,7 +42,7 @@ cd grteclyn-wrapper
 QD_NAME=ftl_4d_v1 QD_TARGET_EVALS=200 \
   RUNS_DIR="${GRTECLYN_ROOT}/runs/grtresna_qd/ftl_4d" \
   nohup bash scripts/campaigns/qd/run.sh \
-  > ../runs/ftl_4d_v1.launch.log 2>&1 &
+  > "${GRTECLYN_ROOT}/runs/grtresna_qd/ftl_4d/launch.log" 2>&1 &
 ```
 
 Key env vars: `QD_NAME`, `QD_TARGET_EVALS`, `QD_RESUME=1`, `DESCRIPTOR_MODE=ftl_lifetime`, `GPU_IDS`, `SKIP_QD_PREFLIGHT_TESTS=1`.
@@ -61,7 +61,7 @@ RUN_NAME=ftl_4d_cmaes_v1 \
 WARM_START_TRAJECTORY="${GRTECLYN_ROOT}/runs/grtresna_qd/ftl_4d/ftl_4d_v1/trajectory.jsonl" \
 WARM_START_TOP_K=8 SIGMA0=0.08 MAX_GENERATIONS=25 \
   nohup bash scripts/campaigns/cmaes/run.sh \
-  > ../runs/ftl_4d_cmaes_v1.launch.log 2>&1 &
+  > "${GRTECLYN_ROOT}/runs/grtresna_cmaes/ftl_4d_cmaes_v1/launch.log" 2>&1 &
 ```
 
 Use `OBJECTIVE_MODE=robust_ftl` only if you deliberately want the v17-style persistence/exotic rebalancing (scores will **not** match QD `ftl_first` totals).
@@ -88,12 +88,14 @@ Candidate selection (one of):
 
 `SOURCE_RUN` may point to a QD or CMA-ES campaign dir (must contain `eval_XXXXXX/` + `trajectory.jsonl` for `TOP_K`).
 
+Run folders are named `{NAME_PREFIX}_hq_eval{eval_id}` (e.g. `ftl_4d_cmaes_hq_eval000144`), matching QD/CMA-ES campaign slugs instead of embedding `l128n256t30`. Set `INCLUDE_RESOLUTION_IN_NAME=1` for legacy `l128n256t30_{prefix}_hq_eval*` names.
+
 Single-eval replay (manual):
 
 ```bash
 uv run python scripts/campaigns/hq/replay_eval.py \
   runs/grtresna_qd/ftl_4d/ftl_4d_v1/eval_000156 \
-  --name l128n256t30_ftl_4d_qd_eval000156 \
+  --name ftl_4d_hq_eval000156 \
   --gpu 0 --evolving-geodesic
 ```
 

@@ -180,5 +180,5 @@ if [[ "${DRY_RUN}" == "1" ]]; then
   echo "Dry-run: would launch ${launched} HQ promotions."
 else
   echo "Launched ${launched} HQ promotions (background). Monitor:"
-  echo "  tail -f ${RUNS_DIR}/l${L_FULL}n${N_FULL}*eval*.log"
+  echo "  tail -f ${RUNS_DIR}/*_hq_eval*.log"
 fi

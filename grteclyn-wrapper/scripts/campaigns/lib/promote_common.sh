@@ -19,6 +19,9 @@ GRTRESNA_RANKS="${GRTRESNA_RANKS:-8}"
 # Keep >=3 plotfiles for evolved/geodesic FTL + effective EC scoring.
 CONSUMER_KEEP_LAST="${CONSUMER_KEEP_LAST:-3}"
 FORCE="${FORCE:-0}"
+# HQ run folder names default to campaign-style slugs (like QD/CMA-ES), not l128n256t30_*.
+# Set INCLUDE_RESOLUTION_IN_NAME=1 to restore legacy l{L}n{N}t{t}_{prefix}_hq_eval* names.
+INCLUDE_RESOLUTION_IN_NAME="${INCLUDE_RESOLUTION_IN_NAME:-0}"
 INCLUDE_STOP_TIME_IN_NAME="${INCLUDE_STOP_TIME_IN_NAME:-1}"
 
 export GRTRESNA_ROOT="${GRTRESNA_ROOT:-$(cd -- "${GRTECLYN_ROOT}/.." && pwd)/GRTresna}"
@@ -44,13 +47,14 @@ fi
 
 promote_build_name() {
   local eval_padded="$1"
-  local base="l${L_FULL}n${N_FULL}"
-  if [[ "${INCLUDE_STOP_TIME_IN_NAME}" == "1" ]]; then
-    base="${base}t${STOP_TIME}"
-  fi
-  if [[ -n "${NAME_PREFIX:-}" ]]; then
-    echo "${base}_${NAME_PREFIX}_qd_eval${eval_padded}"
+  local slug="${NAME_PREFIX:-hq}"
+  if [[ "${INCLUDE_RESOLUTION_IN_NAME}" == "1" ]]; then
+    local base="l${L_FULL}n${N_FULL}"
+    if [[ "${INCLUDE_STOP_TIME_IN_NAME}" == "1" ]]; then
+      base="${base}t${STOP_TIME}"
+    fi
+    echo "${base}_${slug}_hq_eval${eval_padded}"
   else
-    echo "${base}_qd_eval${eval_padded}"
+    echo "${slug}_hq_eval${eval_padded}"
   fi
 }
