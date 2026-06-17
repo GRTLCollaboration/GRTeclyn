@@ -181,6 +181,7 @@ def drain_plotfile_backlog(
     objective_mode: str = "weighted",
     target_stop_time: float | None = None,
     score_weights: Mapping[str, float] | None = None,
+    evolving_geodesic: bool = False,
 ) -> RunResult:
     """Process any plotfiles left after the watch consumer stops."""
     profile = (
@@ -208,6 +209,7 @@ def drain_plotfile_backlog(
         objective_mode=objective_mode,
         target_stop_time=target_stop_time,
         score_weights=score_weights,
+        evolving_geodesic=evolving_geodesic,
     )
     return _run_and_tee(command, episode.log_path, cwd=REPO_ROOT)
 
@@ -290,6 +292,11 @@ def run_episode(
                 frames=True,
                 ftl_timeseries=consumer_ftl_timeseries,
                 ftl_L=consumer_ftl_L,
+                incremental_score=consumer_incremental_score,
+                objective_mode=consumer_objective_mode,
+                target_stop_time=consumer_target_stop_time,
+                score_weights=consumer_score_weights,
+                evolving_geodesic=consumer_evolving_geodesic,
             )
 
     update_metadata(

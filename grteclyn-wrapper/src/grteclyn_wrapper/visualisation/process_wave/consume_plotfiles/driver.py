@@ -137,7 +137,7 @@ def main() -> None:
     parser.add_argument(
         "--objective-mode",
         default="weighted",
-        choices=["weighted", "ftl_first", "robust_ftl"],
+        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl"],
         help="Objective mode for incremental scoring (matches final score_episode).",
     )
     parser.add_argument(
