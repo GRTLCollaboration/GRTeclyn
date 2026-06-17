@@ -5,12 +5,19 @@
 set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 QD_RUN="${SCRIPT_DIR}/../qd/run.sh"
+# shellcheck source=../lib/bootstrap.sh
+source "${SCRIPT_DIR}/../lib/bootstrap.sh"
+_campaign_bootstrap "${SCRIPT_DIR}"
 
 export OBJECTIVE_MODE=general_ftl
 export DESCRIPTOR_MODE=ftl_lifetime
 export GRTECLYN_GEO_DIRECTIONS="x y z"
 export GRTRESNA_ANSATZ=shell
 export STOP_TIME="${STOP_TIME:-16.0}"
+# Search campaigns: no PNG frame movies; 4D evolving null trace on.
+export GRTECLYN_FRAMES=0
+export GRTECLYN_EVOLVING_GEODESIC=1
+export GRTECLYN_EVOLVING_GEODESIC_MODE="${GRTECLYN_EVOLVING_GEODESIC_MODE:-search}"
 
 # --- config matrix: NAME | PIN_DIMS ---------------------------------------
 # Shared static-matter lock: shell_static=1 already zeros every current, so the
@@ -30,7 +37,7 @@ SPIN_PINS="grtresna_matter_layout=0 grtresna_shell_static=0 grtresna_shell_toroi
 
 run_one () {  # name  pins  gpu_ids
   local name="$1" pins="$2" gpus="$3"
-  RUNS_DIR="${GRTECLYN_ROOT:-$PWD}/runs/general_ftl_${name}" \
+  RUNS_DIR="${GRTECLYN_ROOT}/runs/grtresna_qd" \
   QD_NAME="general_ftl_${name}" \
   PIN_DIMS="${pins}" \
   GPU_IDS="${gpus}" \
@@ -43,8 +50,6 @@ if [[ "${MODE}" == "par" ]]; then
   # Run the preflight pytest gate once here, then skip it inside each concurrent
   # campaign so the three launches don't redundantly re-run the same suite.
   if [[ "${SKIP_QD_PREFLIGHT_TESTS:-0}" != "1" ]]; then
-    source "${SCRIPT_DIR}/../lib/bootstrap.sh"
-    _campaign_bootstrap "${SCRIPT_DIR}"
     _campaign_resolve_python
     ftl_search_common_preflight_tests
   fi

@@ -31,7 +31,8 @@
   - [CMA-ES refinement after MAP-Elites](#cma-es-refinement-after-map-elites)
   - [ftl_4d_v1 → CMA-ES refinement proposal](#ftl_4d_v1--cma-es-refinement-proposal-2026-06-16)
   - [HQ promotion (full resolution)](#hq-promotion-full-resolution)
-- [Campaign log / runs analysis](#campaign-log--runs-analysis) — quick index + reverse-chronological journal below
+  - [Campaign log / runs analysis](#campaign-log--runs-analysis) — quick index + reverse-chronological journal below
+  - [v20: General FTL discovery (wormhole / ring / spin)](#v20-general-ftl-discovery-wormhole--ring--spin-2026-06-17)
   - [v18: 4D QD + CMA-ES + HQ (ftl_4d line)](#v18-4d-qd--cma-es--hq-ftl_4d-line-2026-06-16)
 
 ## The idea: matter-first, not metric-first
@@ -285,6 +286,7 @@ Two production lines:
 
 | Line | QD source | Objective | Warm-start centre | Doc |
 |------|-----------|-----------|-------------------|-----|
+| **v20 (general FTL era)** | `general_ftl_{wormhole,ring,spin}` | **`general_ftl`** | *QD only (stage 0)* — CMA-ES TBD per class | [v20](#v20-general-ftl-discovery-wormhole--ring--spin-2026-06-17) |
 | **v17 (frozen geodesic era)** | `ftl_discovery_v16` | `robust_ftl` | Healthy survivors (eval 739), not raw king 233 | [v17](#v17-cma-es-robust-refinement-after-v16-2026-06-14) |
 | **v18 / ftl_4d (4D search era)** | `ftl_4d_v1` | **`ftl_first`** (must match QD) | QD **156** → CMA-ES **144** | [v18](#v18-4d-qd--cma-es--hq-ftl_4d-line-2026-06-16) |
 
@@ -397,6 +399,7 @@ Reverse-chronological journal below. Quick index:
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
+| [**v20: General FTL discovery**](#v20-general-ftl-discovery-wormhole--ring--spin-2026-06-17) | **06-17 launched** | **3 parallel QD lines** under `runs/grtresna_qd/`: wormhole / ring / spin. **`general_ftl`** objective, **`--pin-dimension`**, multi-axis 4D probe. **248 evals total** (93+93+62). *In progress.* |
 | [**v18: 4D QD + CMA-ES + HQ**](#v18-4d-qd--cma-es--hq-ftl_4d-line-2026-06-16) | **06-16 → 06-17** | **Done.** QD **156** → CMA-ES **144** (**596**) → HQ **144**: **verified 4D `f_geo` ≈ 8%** (5/5 rays, `h_quality_ok`); frozen peak **11.5%** collapses by t=30; final score **283** |
 | [**ftl_4d_v1 → CMA-ES proposal**](#ftl_4d_v1--cma-es-refinement-proposal-2026-06-16) | 06-16 executed | Planning doc for phase-1 CMA-ES knobs; **results → [v18](#v18-4d-qd--cma-es--hq-ftl_4d-line-2026-06-16)** |
 | [**4D evolving geodesic smoke test**](#4d-evolving-null-geodesic-trace-smoke-test-2026-06-15) | **06-15 done** | Eval **086** @ N=256, t=8. **4D `f_geo` = 1.42%** vs frozen peak **5.75%** (~4× smaller); metric_stack cache (34 slices) works |
@@ -422,6 +425,163 @@ Reverse-chronological journal below. Quick index:
 | [Stationary warp-lens fix](#scoring-fix-stationary-warp-lens-artifacts-2026-06-10-after-90-evals) | 06-10 | Reliability + stationary gates |
 | [Navigation overhaul](#navigation-overhaul-2026-06-10) | 06-10 | `speed_super` descriptor; feasible-box sampling |
 | [Status / reset](#map-elites-ftl-discovery-status) | 06-10 | `theta_plus` re-centered on `grid_center` |
+
+---
+
+## v20: General FTL discovery (wormhole / ring / spin) (2026-06-17)
+
+**Status:** **launched, in progress** (2026-06-17). Stage 0 only — three parallel MAP-Elites
+surveys; CMA-ES refinement and HQ promotion are **out of scope** until QD elites emerge per class.
+
+### Purpose
+
+[v18](#v18-4d-qd--cma-es--hq-ftl_4d-line-2026-06-16) proved that the **4D evolving null-geodesic**
+probe and `ftl_first` scoring can discover and verify a **~8% gauge-invariant shortcut** — but the
+winning geometry was a **translating warp bubble** (`β ≠ 0`, moving matter). That class is hard to
+evolve, easy to confuse with coordinate artifacts, and not the stationary FTL structures of
+interest (wormholes, toroidal waveguides, frame-dragging conduits).
+
+**v20 pivots the search target** from “warp motors” to **general stationary FTL geometries**:
+
+1. Score only the **gauge-invariant null shortcut** (`ftl_geo_evolving` / `operational_ftl_geodesic`)
+   plus persistence and health — **not** `shift_drive`, `channel_progress`, or other warp-shaping terms.
+2. **Lock the matter topology** per campaign with `--pin-dimension` so MAP-Elites explores geometry
+   *inside* a physical class instead of rediscovering layout=0 warp bubbles.
+3. **Scan x, y, z** on the end-of-run 4D trace so ring- or portal-aligned shortcuts are not missed
+   because the probe only fired along +x.
+
+This is the first production use of the **general FTL pipeline** implemented 2026-06-17.
+
+```mermaid
+flowchart TB
+  subgraph v18line [v18 ftl_4d — warp-bubble era]
+    W["23-D shell search\nftl_first objective\nshift/channel shaping ON\n+x probe only"]
+    W --> WB["Moving warp bubble\nβ ≠ 0, eval 156/144"]
+  end
+  subgraph v20line [v20 general_ftl — stationary classes]
+  direction TB
+    P["--pin-dimension locks class"]
+    O["general_ftl objective\nno warp-motor shaping"]
+    G["GRTECLYN_GEO_DIRECTIONS=x y z\n4D trace only"]
+    P --> WH["wormhole layout=2\n15-D search"]
+    P --> RG["ring layout=3\n17-D search"]
+    P --> SP["spin ω free\n17-D search"]
+    O --> WH & RG & SP
+    G --> WH & RG & SP
+  end
+```
+
+### What changed (code + campaign)
+
+Four additive modifications landed in `grteclyn-wrapper` before this run:
+
+| Mod | Component | Effect |
+|-----|-----------|--------|
+| **1** | `--pin-dimension KEY=VALUE` (`parser.py`, `grtresna_context.py`, `qd/run.sh`, `cmaes/run.sh`) | Remove pinned dims from the optimizer space; force values via `base_overrides` (same pattern as `ANGULAR_BASE_OVERRIDES`). |
+| **2** | `general_ftl` objective (`objectives.py`) | ×1000 geodesic terms; boosted health/persistence; **zero** `shift_drive`, `channel_progress`, `operational_ftl_solved`, `ftl_precursor`, `stationary_artifact_penalty`. |
+| **3** | Multi-direction 4D probe (`evolving_geodesic.py`, `evolving_geodesic_options.py`) | `GRTECLYN_GEO_DIRECTIONS=x y z` on **end-of-run** evolving trace only; per-frame frozen probe stays +x (no 3× evolution cost). |
+| **4** | `scripts/campaigns/general_ftl/run_all.sh` | Orchestrator: three QD campaigns with pinned topology; `RUNS_DIR=runs/grtresna_qd`. |
+
+**Tests:** preflight gate extended with `test_general_ftl_objective.py`, pin-dimension shell test,
+multi-axis Alcubierre probe test (**65/65** pass before launch).
+
+### Campaign matrix (three independent QD archives)
+
+Each row is a **separate** MAP-Elites run — separate `trajectory.jsonl`, `archive.json`, and
+`ftl_champions.json`. Trajectories **do not mix**.
+
+| Campaign | Run dir | GPUs | Pins (fixed) | Free levers | Dims | Target evals |
+|----------|---------|------|--------------|-------------|------|--------------|
+| **wormhole** | `runs/grtresna_qd/general_ftl_wormhole/` | 0–2 | layout **2** (bipolar), axis → **+x** (θ=π/2, φ=0), `shell_static=1`, all velocities/ω=0 | amp, width, radius, thickness, mass, λ, exotic, multipoles, profile, mode, jitter | **15** | **93** |
+| **ring** | `runs/grtresna_qd/general_ftl_ring/` | 3–5 | layout **3** (toroidal), `shell_static=1`, velocities/ω=0 | same + **axis θ, φ** (ring orientation) | **17** | **93** |
+| **spin** | `runs/grtresna_qd/general_ftl_spin/` | 6–7 | layout **0**, `shell_static=0`, v_tor/pol/rad=0, `shift_seed=0` | **`shell_omega`**, mode, exotic, geometry knobs | **17** | **62** |
+
+Eval budget formula: `init_batch + iterations × batch_size` (init = batch). With `QD_ITERATIONS=30`:
+
+- wormhole / ring: `3 + 30×3 = 93`
+- spin: `2 + 30×2 = 62`
+- **248 evals total** across all three (run in parallel on 8 GPUs).
+
+### Shared configuration
+
+| Knob | Value | Notes |
+|------|-------|-------|
+| `OBJECTIVE_MODE` | **`general_ftl`** | Gauge-invariant shortcut only |
+| `DESCRIPTOR_MODE` | `ftl_lifetime` | Same diversity axis as v18 |
+| `GRTECLYN_EVOLVING_GEODESIC` | `1` | 4D trace at end of each eval |
+| `GRTECLYN_EVOLVING_GEODESIC_MODE` | `search` | Cheap search profile (stride 2, 3 rays, 40 slices max) |
+| `GRTECLYN_GEO_DIRECTIONS` | `x y z` | Best-axis pick on final 4D trace |
+| `GRTECLYN_FRAMES` | **`0`** | No PNG frame movies during search |
+| Grid / time | 128³, L=64, ml=2, **t=16** | `search_common.sh` defaults |
+| Plotfiles | consume + delete, keep last 3 | Metric stack cache for 4D trace |
+
+### Launch (2026-06-17)
+
+```bash
+cd grteclyn-wrapper
+MODE=par QD_ITERATIONS=30 \
+  bash scripts/campaigns/general_ftl/run_all.sh \
+  > ../runs/_logs/general_ftl_par.launch.log 2>&1 &
+```
+
+Log: `runs/_logs/general_ftl_par_*.log`.
+
+**Monitor:**
+
+```bash
+# eval counts per class
+for c in wormhole ring spin; do
+  echo -n "general_ftl_$c: "
+  ls runs/grtresna_qd/general_ftl_$c/eval_* 2>/dev/null | wc -l
+done
+
+# live trajectory (once scoring starts)
+tail -f runs/grtresna_qd/general_ftl_wormhole/trajectory.jsonl
+
+# champions board
+cat runs/grtresna_qd/general_ftl_wormhole/ftl_champions.json
+```
+
+### Expectations
+
+**What success looks like (per campaign):**
+
+| Signal | Wormhole | Ring | Spin |
+|--------|----------|------|------|
+| Primary | Sustained **`ftl_geo_evolving > 0`** with `h_quality_ok` on 4D trace; `best_direction` may be **x** (mouths pinned to +x) | Same; `best_direction` likely **z** (ring in xy plane) if a throat forms | **`ftl_geo_evolving > 0`** from **frame-dragging** (`shell_omega` free); no warp-motor credit needed |
+| Health | High `survival`, `constraint_health`; static matter should stay coherent (no fly-away) | Ring lumps bound; axis search finds orientation where probe threads the throat | Spinning matter without translation; ω-driven gravitomagnetic channel |
+| Descriptor | High **`ftl_lifetime_fraction`** — shortcut persists across frames, not a single-frame spike | same | same |
+| Score scale | Comparable to v18 geodesic term only (~**80–160 pts** per 1% `f_geo` at ×1000 weight); **no** +200 from `shift_drive` | same | same |
+
+**What we do *not* expect:**
+
+- Warp-bubble kings driven by `channel_progress` or `shift_drive` — those terms are **zeroed** in `general_ftl`.
+- Layout mixing (wormhole morphing into ring mid-search) — **pinned**.
+- Static spin campaign (`shell_static=1` on spin line) — explicitly **avoided** (that would zero ω).
+- HQ-grade 4D numbers on the first pass — search mode uses a **cheap** 4D profile; promote winners to HQ (`GRTECLYN_EVOLVING_GEODESIC_MODE=hq`) before claiming percent-level shortcuts.
+
+**Minimum bar to call v20 QD a win:**
+
+1. At least one campaign produces **`gpu_ok` elites** with **`ftl_geo_evolving > 0.01`** and `h_quality_ok`.
+2. The winning geometry matches the **pinned class** (bipolar / ring / sphere+ω) in lump layout diagnostics.
+3. Score is dominated by geodesic + persistence, not health alone (flat space with good survival should still score near zero).
+
+**Planned follow-up (not part of this run):**
+
+- Per-class **CMA-ES** warm-start from each QD trajectory (`OBJECTIVE_MODE=general_ftl`, same pins).
+- **HQ promotion** of top elite per class with `GRTECLYN_EVOLVING_GEODESIC_MODE=hq` and frames on.
+
+### v20 vs v18
+
+| | v18 (`ftl_4d`) | **v20 (`general_ftl`)** |
+|--|----------------|-------------------------|
+| Goal | Best FTL regardless of geometry class | Best FTL **within** wormhole / ring / spin classes |
+| Objective | `ftl_first` (warp shaping ON) | **`general_ftl`** (gauge-invariant only) |
+| Search space | Full 23-D shell | **15–17 D** (topology + dynamics pinned) |
+| 4D probe dirs | +x only | **x, y, z** (final trace) |
+| Campaigns | 1 QD → 1 CMA-ES → 1 HQ | **3 parallel QD** (stage 0 only) |
+| Frames | off (search) | **off** |
+| Reference result | eval **144**: 4D **~8%** @ HQ | *TBD* |
 
 ---
 
