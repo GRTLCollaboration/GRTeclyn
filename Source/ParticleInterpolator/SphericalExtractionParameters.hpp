@@ -48,9 +48,9 @@ struct spherical_extraction_params_t : surface_extraction_params_t
     {
         return this->center;
     }
-    int num_modes{};                        //!< the number of modes to extract
-    std::vector<std::pair<int, int>> modes; //!< the modes to extract
-                                            //!< l = first, m = second
+    int num_modes{}; //!< the number of modes to extract
+    std::vector<std::pair<int, int>> modes{}; //!< the modes to extract
+                                              //!< l = first, m = second
 
     [[nodiscard]] const surface_extraction_params_t &
     get_surface_extraction_params() const

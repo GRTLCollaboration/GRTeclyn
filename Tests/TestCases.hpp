@@ -40,7 +40,7 @@ TEST_CASE("BSSNMatter"
 
 TEST_CASE("CCZ4 Geometry") { run_ccz4_geometry_unit_tests(); }
 
-TEST_CASE("Particle Interpolator") { run_particle_interpolator_test(); }
+TEST_CASE("ParticleInterpolator") { run_particle_interpolator_test(); }
 
 TEST_CASE("CCZ4RHS") { run_ccz4_rhs_test(); }
 
@@ -75,7 +75,7 @@ TEST_CASE("PunctureTracker") { run_puncture_tracker_test(); }
 
 TEST_CASE("SmallDataIO") { run_small_data_io_test(); }
 
-TEST_CASE("SphericalExtractionTest") { run_spherical_extraction_test(); }
+TEST_CASE("SphericalExtraction") { run_spherical_extraction_test(); }
 
 TEST_CASE("SphericalHarmonics") { run_spherical_harmonic_test(); }
 

@@ -1,4 +1,9 @@
 #################################################
+# AMReX parameters
+
+amrex.the_arena_init_size = 0
+
+#################################################
 # Filesystem parameters
 
 verbosity = 1
