@@ -12,6 +12,7 @@ from ...search.qd_search import run_qd_search
 from ..grtresna_args import (
     ensure_radial_recipe_for_grtresna,
     grtresna_postload_gate_enabled,
+    grtresna_solved_ftl_gate_enabled,
     postload_gate_config_from_args,
 )
 from ..grtresna_context import build_grtresna_search_context
@@ -78,7 +79,11 @@ def run_qd_command(args: argparse.Namespace, base_overrides: dict) -> int:
         descriptor_mode=getattr(args, "descriptor_mode", "legacy"),
         grtresna=ctx.use_grtresna,
         grtresna_config=ctx.grtresna_config,
-        grtresna_solved_ftl_gate=ctx.use_grtresna,
+        grtresna_solved_ftl_gate=grtresna_solved_ftl_gate_enabled(
+            args,
+            use_grtresna=ctx.use_grtresna,
+            objective_mode=getattr(args, "objective_mode", "weighted"),
+        ),
         solved_ftl_gate_config=ctx.solved_ftl_gate_config,
         grtresna_convergence_config=ctx.grtresna_convergence_config,
         grtresna_postload_gate=grtresna_postload_gate_enabled(args, use_grtresna=ctx.use_grtresna),

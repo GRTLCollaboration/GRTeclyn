@@ -130,6 +130,9 @@ ftl_search_common_grtresna_args() {
     --solved-ftl-max-physical-f-op "${SOLVED_FTL_MAX_PHYSICAL_F_OP}"
     --solved-ftl-rejection-speed-target "${SOLVED_FTL_REJECTION_SPEED_TARGET}"
   )
+  if [[ "${OBJECTIVE_MODE}" == "general_ftl" ]]; then
+    FTL_GRTRESNA_ARGS+=(--no-grtresna-solved-ftl-gate)
+  fi
   if [[ "${POSTLOAD_GATE}" == "1" ]]; then
     FTL_GRTRESNA_ARGS+=(
       --grtresna-postload-gate

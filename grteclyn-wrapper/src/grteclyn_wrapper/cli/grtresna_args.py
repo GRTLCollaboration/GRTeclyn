@@ -18,6 +18,38 @@ def grtresna_postload_gate_enabled(args: argparse.Namespace, *, use_grtresna: bo
     return os.environ.get("POSTLOAD_GATE", "0") == "1"
 
 
+def add_grtresna_solved_ftl_gate_arg(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--grtresna-solved-ftl-gate",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help=(
+            "Reject GRTresna candidates with no solved-geometry coordinate FTL "
+            "precursor before GPU evolution. Default: on with --grtresna for "
+            "warp-discovery objectives; off for --objective-mode general_ftl "
+            "(gauge-invariant null-geodesic scoring)."
+        ),
+    )
+
+
+def grtresna_solved_ftl_gate_enabled(
+    args: argparse.Namespace,
+    *,
+    use_grtresna: bool,
+    objective_mode: str = "weighted",
+) -> bool:
+    """Whether to apply the pre-GPU solved operational-FTL filter."""
+    if not use_grtresna:
+        return False
+    explicit = getattr(args, "grtresna_solved_ftl_gate", None)
+    if explicit is not None:
+        return bool(explicit)
+    # general_ftl rewards 4D null-geodesic shortcuts, not coordinate precursors.
+    if objective_mode == "general_ftl":
+        return False
+    return True
+
+
 def postload_gate_config_from_args(args: argparse.Namespace) -> PostLoadGateConfig:
     return PostLoadGateConfig(
         max_hamiltonian_l2=getattr(args, "postload_max_ham_l2", 1.0e-2),

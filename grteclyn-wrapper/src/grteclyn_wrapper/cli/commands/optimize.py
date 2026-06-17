@@ -12,6 +12,7 @@ from ...search.optimize import run_optimize
 from ..grtresna_args import (
     ensure_radial_recipe_for_grtresna,
     grtresna_postload_gate_enabled,
+    grtresna_solved_ftl_gate_enabled,
     postload_gate_config_from_args,
     solved_ftl_gate_config_from_args,
 )
@@ -83,6 +84,11 @@ def run_optimize_command(args: argparse.Namespace, base_overrides: dict) -> int:
         surrogate_keep_fraction=getattr(args, "surrogate_keep_fraction", 0.5),
         grtresna=ctx.use_grtresna,
         grtresna_config=ctx.grtresna_config,
+        grtresna_solved_ftl_gate=grtresna_solved_ftl_gate_enabled(
+            args,
+            use_grtresna=ctx.use_grtresna,
+            objective_mode=getattr(args, "objective_mode", "weighted"),
+        ),
         solved_ftl_gate_config=solved_ftl_gate_config_from_args(args),
         grtresna_convergence_config=ctx.grtresna_convergence_config,
         grtresna_postload_gate=grtresna_postload_gate_enabled(args, use_grtresna=ctx.use_grtresna),

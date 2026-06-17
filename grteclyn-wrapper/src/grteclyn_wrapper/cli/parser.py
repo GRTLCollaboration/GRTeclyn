@@ -8,7 +8,7 @@ from pathlib import Path
 from ..core.config import default_runs_dir
 from ..initial_data.seeds import list_seeds
 from .args import parse_override
-from .grtresna_args import add_grtresna_speed_args
+from .grtresna_args import add_grtresna_solved_ftl_gate_arg, add_grtresna_speed_args
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -333,6 +333,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--solved-ftl-rejection-speed-target", type=float, default=1.01,
         help="max_c target used to grade solved-FTL rejection fitness.",
     )
+    add_grtresna_solved_ftl_gate_arg(opt)
     opt.add_argument(
         "--grtresna-postload-gate",
         action=argparse.BooleanOptionalAction,
@@ -473,6 +474,7 @@ def build_parser() -> argparse.ArgumentParser:
     qd.add_argument("--solved-ftl-max-physical-coord-speed", type=float, default=8.0)
     qd.add_argument("--solved-ftl-max-physical-f-op", type=float, default=0.85)
     qd.add_argument("--solved-ftl-rejection-speed-target", type=float, default=1.01)
+    add_grtresna_solved_ftl_gate_arg(qd)
     qd.add_argument(
         "--grtresna-postload-gate",
         action=argparse.BooleanOptionalAction,

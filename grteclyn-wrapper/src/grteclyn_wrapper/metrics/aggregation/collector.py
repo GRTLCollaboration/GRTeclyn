@@ -71,11 +71,50 @@ def _evolving_geodesic_enabled(evolving_geodesic: bool | None) -> bool:
     }
 
 
+def _resolve_objective_mode(
+    objective_mode: str | None,
+    episode_dir: Path | None = None,
+) -> str:
+    if objective_mode:
+        return objective_mode
+    env_mode = os.environ.get("OBJECTIVE_MODE", "").strip()
+    if env_mode:
+        return env_mode
+    if episode_dir is not None:
+        meta_path = episode_dir / "metadata.json"
+        if meta_path.is_file():
+            import json
+
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            mode = meta.get("objective_mode")
+            if mode:
+                return str(mode)
+    return "weighted"
+
+
+def _operational_precursor_satisfied(
+    general_ftl_evolved,
+    *,
+    objective_mode: str,
+) -> bool:
+    """Gate for frozen geodesic probes and the 4D evolving null trace."""
+    if general_ftl_evolved is None:
+        return False
+    if objective_mode == "general_ftl":
+        # Null-geodesic scoring is authoritative; do not require coordinate FTL.
+        return True
+    return (
+        general_ftl_evolved.f_op > 1.0e-3
+        or general_ftl_evolved.max_local_speed > 1.0
+    )
+
+
 def _compute_evolving_geodesic_metrics(
     ctx: EpisodeContext,
     *,
     general_ftl_evolved,
     evolving_geodesic: bool | None,
+    objective_mode: str,
 ) -> EvolvingGeodesicMetrics | None:
     """Run the opt-in 4D null trace and persist ``evolving_geodesic.json``."""
     if not _evolving_geodesic_enabled(evolving_geodesic):
@@ -89,16 +128,16 @@ def _compute_evolving_geodesic_metrics(
         )
         return None
 
-    if not (
-        general_ftl_evolved.f_op > 1.0e-3
-        or general_ftl_evolved.max_local_speed > 1.0
+    if not _operational_precursor_satisfied(
+        general_ftl_evolved, objective_mode=objective_mode
     ):
         logger.info(
             "evolving geodesic skipped for %s: FTL gate not met "
-            "(f_op=%.3e, max_local_speed=%.3f)",
+            "(f_op=%.3e, max_local_speed=%.3f, objective_mode=%s)",
             ctx.episode_dir,
             general_ftl_evolved.f_op,
             general_ftl_evolved.max_local_speed,
+            objective_mode,
         )
         return None
 
@@ -213,8 +252,10 @@ def read_episode_metrics(
     *,
     ftl_L: float | None = None,
     evolving_geodesic: bool | None = None,
+    objective_mode: str | None = None,
 ) -> EpisodeMetrics:
     ctx = build_episode_context(episode_dir, ftl_L=ftl_L)
+    mode = _resolve_objective_mode(objective_mode, episode_dir)
 
     collapse = read_collapse_metrics(ctx.collapse_path)
     constraints = read_constraint_metrics(ctx.constraint_path)
@@ -275,9 +316,8 @@ def read_episode_metrics(
     try:
         plotfile = find_latest_plotfile(ctx.episode_dir)
         if plotfile is not None and general_ftl_evolved is not None:
-            if (
-                general_ftl_evolved.f_op > 1.0e-3
-                or general_ftl_evolved.max_local_speed > 1.0
+            if _operational_precursor_satisfied(
+                general_ftl_evolved, objective_mode=mode
             ):
                 with PLOTFILE_READ_LOCK:
                     geodesic_ftl = compute_geodesic_ftl_from_plotfile(
@@ -292,6 +332,7 @@ def read_episode_metrics(
         ctx,
         general_ftl_evolved=general_ftl_evolved,
         evolving_geodesic=evolving_geodesic,
+        objective_mode=mode,
     )
 
     boundary_flux = read_boundary_flux_metrics(ctx.boundary_flux_path)

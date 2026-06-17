@@ -231,6 +231,7 @@ def evaluate_overrides(
         episode.path,
         ftl_L=ftl_L,
         evolving_geodesic=evolving_enabled,
+        objective_mode=objective_mode,
     )
     score = score_episode(
         metrics,
