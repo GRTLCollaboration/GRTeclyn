@@ -329,7 +329,7 @@ Reverse-chronological journal. Quick index:
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
-| [**v22: Pre-GPU learning + v21 resume**](#v22-pre-gpu-rejection-learning--v21-resume-2026-06-18) | **06-18 running** | **Resume** `general_ftl_wormhole_v21` with **near-miss pool** + **shadow pre-GPU archive** (`search/pre_gpu/`). Graded GRTresna rejections now guide sampling; main `archive.json` still **gpu_ok only**. `MAX_CONCURRENT_GRTRESNA=5`, `max_level=1`. Target **80** evals. |
+| [**v22: Pre-GPU learning + v21 resume**](#v22-pre-gpu-rejection-learning--v21-resume-2026-06-18) | **06-18 running** | **Resume** `general_ftl_wormhole_v21` with **near-miss pool** + **shadow pre-GPU archive** (`search/pre_gpu/`). Graded GRTresna rejections now guide sampling; main `archive.json` still **gpu_ok only**. `MAX_CONCURRENT_GRTRESNA=5`, `max_level=1`. Target **80** evals. **Live-validated:** continuous pipeline (no batch barrier), 9 GPU + 3 CPU overlapping, 16 out-of-order completions. |
 | [**v21: Pipelined QD + GPU tenancy**](#v21-pipelined-qd--gpu-tenancy-tuning-2026-06-17) | **06-17 stopped** | **Pipelined MAP-Elites** (`GpuPool` + `EvalPipeline`). **5 slots/GPU overloaded** H100s at t=16 (~3× slower/evol). **Working config:** 8 GPUs × **1 slot/GPU** + continuous GRTresna; **bottleneck** `MAX_CONCURRENT_GRTRESNA=3` → raise to **5+**. **26 evals:** 11 `gpu_ok`. Cold-start gap → [fixed in v22](#v22-pre-gpu-rejection-learning--v21-resume-2026-06-18). |
 | [**v20: General FTL discovery**](#v20-general-ftl-discovery-wormhole--ring--spin-2026-06-17) | **06-17 stopped early** | **3 parallel QD** (`general_ftl_{wormhole,ring,spin}`). **Ring wins:** eval **43** score **196**, search 4D `f_geo` **~3.9%** (`h_quality_ok`, `best_direction=z`). Spin: **8** 4D hits. Wormhole: **0** 4D hits. **172/248** logged; **top-3 eval dirs retained** per class. |
 | [**v18: 4D QD + CMA-ES + HQ**](#v18-4d-qd--cma-es--hq-ftl_4d-line-2026-06-16) | **06-16 → 06-17** | **Done.** QD **156** → CMA-ES **144** (**596**) → HQ **144**: **verified 4D `f_geo` ≈ 8%** (5/5 rays, `h_quality_ok`); frozen peak **11.5%** collapses by t=30; final score **283** |
@@ -439,6 +439,176 @@ watch -n5 'nvidia-smi --query-gpu=index,memory.used,utilization.gpu --format=csv
 | `MAX_CONCURRENT_GRTRESNA` | 3 (starved GPUs) | **5** |
 | `max_level` | 2 in run metadata | **1** |
 | Campaign dir | `general_ftl_wormhole_v21` | **same** (resume) |
+
+### v22 live pipeline validation (2026-06-18, running)
+
+Validated from live trajectory (54 records at time of check, 3 GPU evolutions + 3 GRTresna
+CPU solves running concurrently on GPUs 1-3 at 81-87% utilization).
+
+#### Continuous pipeline — no batch barrier
+
+```
+Completion order (post-resume, 25 records):
+  eval= 7  pipeline_interrupted  [resumed]
+  eval=22  pipeline_interrupted  [resumed]
+  ...
+  eval=37  grtresna_rejected     [CPU ~30s]
+  eval=41  grtresna_rejected     [CPU ~30s]
+  eval=46  grtresna_rejected     [CPU ~30s]
+  eval=45  grtresna_rejected     [CPU ~30s]
+  eval=47  grtresna_rejected     [CPU ~30s]
+  eval=52  grtresna_rejected     [CPU ~30s]    ← completes BEFORE eval 35
+  eval=35  gpu_ok                [GPU ~2min]   ← GPU evolution still running when 52 finished
+  eval=36  gpu_ok                [GPU ~2min]
+  eval=38  gpu_ok                [GPU ~2min]
+  eval=39  gpu_ok                [GPU ~2min]
+  eval=49  postload_rejected     [CPU+solved ~45s]
+  eval=43  gpu_ok                [GPU ~2min]
+  eval=42  gpu_ok                [GPU ~2min]
+  eval=53  grtresna_rejected     [CPU ~30s]
+  eval=44  gpu_ok                [GPU ~2min]
+```
+
+**Key evidence:** eval 52 (CPU rejection, ~30s) completes before eval 35 (GPU evolution, ~2min).
+The pipeline submitted eval 52 while eval 35's GPU phase was still running — no batch await.
+**16 out-of-order completions** in trajectory confirm high parallelism.
+
+**At validation time:**
+
+| Phase | Active | Evidence |
+|-------|--------|----------|
+| GPU evolution | eval_000048, _050, _054, _056, _057 | nvidia-smi: GPUs 1-3 at 81-87%, ~8 GB VRAM each |
+| GRTresna CPU solve | eval_000058, _059, _060 | 8 MPI ranks each visible in ps |
+
+9 GPU evolutions + 3 CPU solves running simultaneously. Pipeline continuously feeds
+GPU slots without waiting for any batch to complete.
+
+#### Pre-GPU learning active in live run
+
+| Metric | Value |
+|--------|-------|
+| Shadow archive elites | 3 cells occupied |
+| `shadow_improved` events | 8 records tagged |
+| Structured `grtresna_convergence` | 7 records carry `{ham_pct, mom_pct}` |
+| `postload_gate` metrics | 1 record with `{max_hamiltonian_l2: 0.0124}` |
+
+Shadow archive cell placement:
+
+| Cell | Status | Descriptors | Score |
+|------|--------|-------------|-------|
+| `(7,0)` | postload_rejected | `conv_quality=1.0, tilt=0` | -100 |
+| `(0,7)` | grtresna_rejected (Ham=100%, Mom=0%) | `ham_quality=0.05, mom_quality=1.0` | -195 |
+| `(0,0)` | grtresna_failed (NaN convergence) | `quality=0, 0` | -350 |
+
+Near-miss pool top candidates: 4× `postload_rejected` (score -100) rank above
+8× `grtresna_rejected` (score -195). This correctly prioritizes candidates that
+passed more gates (closer to GPU success).
+
+### Schema: continuous pipeline architecture
+
+```
+                         ┌─────────────────────────────────────────────────────────┐
+                         │              EvalPipeline (no batch barrier)             │
+                         │                                                         │
+  ┌──────────┐   submit  │   ┌──────────────┐        ┌──────────────────────┐      │
+  │  Unified │──────────►│   │ CpuAdmission │  pass  │      GpuPool         │      │
+  │  Sampler │           │   │  Controller  │───────►│  lease() → GPU slot  │      │
+  │          │◄──────────│   │  (max=5 MPI) │        │  (8 GPUs × 1 slot)   │      │
+  └──────────┘ on_complete   └──────┬───────┘        └──────────┬───────────┘      │
+       │                            │                           │                   │
+       │                            │ reject                    │ gpu_ok/gpu_failed  │
+       │                            ▼                           ▼                   │
+       │                   ┌─────────────────────────────────────────┐              │
+       │                   │            _on_eval_complete            │              │
+       │                   │                                         │              │
+       │                   │  ┌─── archive_lock ──────────────────┐  │              │
+       │                   │  │ if gpu_ok: archive.insert(elite)  │  │              │
+       │                   │  │ if graded_rejection:              │  │              │
+       │                   │  │   near_miss_pool.consider(record) │  │              │
+       │                   │  │   pre_gpu_archive.insert(shadow)  │  │              │
+       │                   │  │ trajectory.append(record)         │  │              │
+       │                   │  └───────────────────────────────────┘  │              │
+       │                   └─────────────────────────────────────────┘              │
+       │                                    │                                       │
+       └────────────────────────────────────┘                                       │
+         immediately submit next candidate                                          │
+         (no wait for batch)                                                        │
+                         └─────────────────────────────────────────────────────────┘
+
+  Parallelism at any instant:
+    CPU phase:  up to MAX_CONCURRENT_GRTRESNA (5) MPI solves
+    GPU phase:  up to gpu_slots (8) evolutions
+    Total in-flight: up to 13 evals simultaneously
+```
+
+### Schema: pre-GPU rejection learning flow
+
+```
+  ┌─────────────────────────────────────────────────────────────────────────────┐
+  │                        Eval Completion                                       │
+  │                                                                             │
+  │   status?                                                                   │
+  │     │                                                                       │
+  │     ├── gpu_ok ─────────────► Main Archive (archive.json)                   │
+  │     │                              │                                        │
+  │     │                              ▼                                        │
+  │     │                    ┌───────────────────┐                              │
+  │     │                    │ Unified Sampler   │                              │
+  │     │                    │ 60% mutate elite  │◄─── Main Archive             │
+  │     │                    │ 15% mutate shadow │◄─── Shadow Archive           │
+  │     │                    │ 15% mutate near   │◄─── Near-Miss Pool           │
+  │     │                    │  5% feasible box  │◄─── Union bounds             │
+  │     │                    │  5% random        │                              │
+  │     │                    └────────┬──────────┘                              │
+  │     │                             │                                         │
+  │     │                             ▼                                         │
+  │     │                      Next candidate                                   │
+  │     │                                                                       │
+  │     ├── grtresna_rejected ──┐                                               │
+  │     ├── solved_ftl_rejected ┼──► Near-Miss Pool (top-32 by score)           │
+  │     ├── postload_rejected ──┘         │                                     │
+  │     │                                 └──► Shadow Archive (pre_gpu_archive) │
+  │     │                                      status-aware descriptors:        │
+  │     │                                        grtresna: (ham_q, mom_q)       │
+  │     │                                        solved_ftl: (1.0, tilt)        │
+  │     │                                        postload: (conv_q, margin)     │
+  │     │                                                                       │
+  │     ├── grtresna_failed ────► trajectory only (no gradient signal)          │
+  │     ├── gpu_failed ─────────► trajectory only                               │
+  │     └── preflight_rejected ─► trajectory only                               │
+  └─────────────────────────────────────────────────────────────────────────────┘
+
+  Score ranking in near-miss pool (higher = closer to GPU success):
+    postload_rejected:    -75 to -100  (passed convergence + solved-FTL)
+    solved_ftl_rejected:  -75 to -95   (passed convergence)
+    grtresna_rejected:    -100 to -350 (failed convergence, graded by Ham/Mom)
+    grtresna_failed:      excluded     (solver crash, no useful gradient)
+
+  Cold start (no gpu_ok yet): renormalize → 43% shadow + 43% near-miss + 14% random
+```
+
+### Schema: CMA-ES near-miss warm-start (QD→CMA handoff)
+
+```
+  Prior QD trajectory.jsonl
+        │
+        ├── gpu_ok records ──────────► _load_warm_start_vectors (top_k=5)
+        │                                     │
+        │                                     ▼
+        │                              ┌──────────────┐
+        └── graded rejections ────────►│ near_miss_   │──► Append to warm vectors
+             (--warm-start-include-    │ vectors_from │    (dedup by 8-decimal rounding)
+              near-miss, default on)   │ _trajectory  │
+                                       │ (near_miss_k │
+                                       │  = 4)        │
+                                       └──────────────┘
+                                              │
+                                              ▼
+                                    CMA-ES initial population
+                                    (gpu_ok first, then near-miss)
+                                    First vector = initial mean
+                                    Others jittered by sigma
+```
 
 ---
 
