@@ -24,6 +24,7 @@
 **Campaign log** (reverse-chronological)
 
 - [Quick index](#campaign-log--runs-analysis)
+- [v22: Pre-GPU rejection learning + v21 resume](#v22-pre-gpu-rejection-learning--v21-resume-2026-06-18)
 - [v21: Pipelined QD + GPU tenancy tuning](#v21-pipelined-qd--gpu-tenancy-tuning-2026-06-17)
 - [v20: General FTL discovery](#v20-general-ftl-discovery-wormhole--ring--spin-2026-06-17)
 - [v18: 4D QD + CMA-ES + HQ](#v18-4d-qd--cma-es--hq-ftl_4d-line-2026-06-16)
@@ -183,6 +184,8 @@ Modes: `weighted` (plain sum) and `ftl_first` (validated FTL dominates).
 | Concern | Path |
 |---------|------|
 | **MAP-Elites** QD loop, archive, descriptors | `grteclyn-wrapper/src/grteclyn_wrapper/search/qd_search/` |
+| **Pre-GPU rejection learning** (near-miss pool, shadow archive, Ham/Mom descriptors) | `search/pre_gpu/` |
+| Shadow archive persistence | `qd_search/pre_gpu_archive.py` → `pre_gpu_archive.json` |
 | **CMA-ES** optimize loop, warm-start | `grteclyn-wrapper/src/grteclyn_wrapper/search/optimize/` |
 | Search-space defs (shared QD + CMA-ES) | `search/optimize/spaces.py` |
 | FTL champion retention | `search/ftl_retention.py` |
@@ -326,7 +329,8 @@ Reverse-chronological journal. Quick index:
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
-| [**v21: Pipelined QD + GPU tenancy**](#v21-pipelined-qd--gpu-tenancy-tuning-2026-06-17) | **06-17 stopped** | **Pipelined MAP-Elites** (`GpuPool` + `EvalPipeline`). **5 slots/GPU overloaded** H100s at t=16 (~3× slower/evol). **Working config:** 8 GPUs × **1 slot/GPU** + continuous GRTresna; **bottleneck** `MAX_CONCURRENT_GRTRESNA=3` → raise to **5+**. **26 evals:** 11 `gpu_ok`. MAP-Elites ignores GRTresna rejections → [planned fix](#v21-map-elites-cold-start-grtresna-rejections). |
+| [**v22: Pre-GPU learning + v21 resume**](#v22-pre-gpu-rejection-learning--v21-resume-2026-06-18) | **06-18 running** | **Resume** `general_ftl_wormhole_v21` with **near-miss pool** + **shadow pre-GPU archive** (`search/pre_gpu/`). Graded GRTresna rejections now guide sampling; main `archive.json` still **gpu_ok only**. `MAX_CONCURRENT_GRTRESNA=5`, `max_level=1`. Target **80** evals. |
+| [**v21: Pipelined QD + GPU tenancy**](#v21-pipelined-qd--gpu-tenancy-tuning-2026-06-17) | **06-17 stopped** | **Pipelined MAP-Elites** (`GpuPool` + `EvalPipeline`). **5 slots/GPU overloaded** H100s at t=16 (~3× slower/evol). **Working config:** 8 GPUs × **1 slot/GPU** + continuous GRTresna; **bottleneck** `MAX_CONCURRENT_GRTRESNA=3` → raise to **5+**. **26 evals:** 11 `gpu_ok`. Cold-start gap → [fixed in v22](#v22-pre-gpu-rejection-learning--v21-resume-2026-06-18). |
 | [**v20: General FTL discovery**](#v20-general-ftl-discovery-wormhole--ring--spin-2026-06-17) | **06-17 stopped early** | **3 parallel QD** (`general_ftl_{wormhole,ring,spin}`). **Ring wins:** eval **43** score **196**, search 4D `f_geo` **~3.9%** (`h_quality_ok`, `best_direction=z`). Spin: **8** 4D hits. Wormhole: **0** 4D hits. **172/248** logged; **top-3 eval dirs retained** per class. |
 | [**v18: 4D QD + CMA-ES + HQ**](#v18-4d-qd--cma-es--hq-ftl_4d-line-2026-06-16) | **06-16 → 06-17** | **Done.** QD **156** → CMA-ES **144** (**596**) → HQ **144**: **verified 4D `f_geo` ≈ 8%** (5/5 rays, `h_quality_ok`); frozen peak **11.5%** collapses by t=30; final score **283** |
 | [**4D evolving geodesic probe**](#4d-evolving-null-geodesic-probe-2026-06-15--2026-06-16) | **06-15 → 06-16** | Smoke eval **086**: 4D **1.42%** vs frozen **5.75%**. HQ t=30 eval **086**: 4D **0%** (negative control). Search-loop integration → **`ftl_4d_v1`** |
@@ -339,6 +343,102 @@ Reverse-chronological journal. Quick index:
 | [**v14 + Alcubierre**](#v14-launch--results--alcubierre-control-2026-06-12) | 06-12 | 504 evals, 351 gpu_ok. Top eval **231** f_geo=**5.30%**. Alcubierre probes validated (~32%) |
 | [**v13 → v7 history**](#v13--v7-compact-history-2026-06-11--2026-06-12) | 06-10 → 06-12 | λφ⁴, layouts, geodesic fixes, HQ rejection filter, scoring hardening |
 | [**Foundational (06-10)**](#foundational-entries-2026-06-10) | 06-10 | Matter model, navigation overhaul, status reset |
+
+---
+
+## v22: Pre-GPU rejection learning + v21 resume (2026-06-18)
+
+**Status:** **running** — resume of [`general_ftl_wormhole_v21`](#v21-pipelined-qd--gpu-tenancy-tuning-2026-06-17)
+(same campaign dir; **v22** = code + learning phase).
+
+**Purpose.** Close the v21 [cold-start gap](#v21-map-elites-cold-start-grtresna-rejections): MAP-Elites
+now **learns from graded pre-GPU rejections** while keeping the main FTL archive pure (`gpu_ok`
+only). Continue wormhole QD toward **80 evals** with tuned pipeline knobs from v21.
+
+### Pipeline update: pre-GPU rejection learning
+
+| Layer | Role | Learns from |
+|-------|------|-------------|
+| **Main archive** (`archive.json`) | Real FTL elites | `gpu_ok` only (unchanged) |
+| **Near-miss pool** (`search/pre_gpu/near_miss_pool.py`) | Top-K parents by `score` | `grtresna_rejected`, `solved_ftl_rejected`, `postload_rejected` |
+| **Shadow archive** (`pre_gpu_archive.json`) | Separate MAP-Elites grid on pre-GPU axes | Same graded rejections |
+| **Unified sampler** (`qd_search/sampling.py`) | 60% gpu_ok elite / 15% shadow / 15% near-miss / 5% feasible / 5% random | Renormalizes when sources empty |
+
+**Shadow descriptor axes** (status-aware, not post-GPU FTL axes):
+
+| Status | x-axis | y-axis |
+|--------|--------|--------|
+| `grtresna_rejected` | Ham quality | Mom quality |
+| `solved_ftl_rejected` | convergence (=1) | precursor tilt (solved FTL) |
+| `postload_rejected` | convergence / score | postload margin |
+
+**Excluded from mutation parents:** `grtresna_failed`, `gpu_failed`, `pipeline_interrupted`.
+
+**Gate metrics** now flow into `trajectory.jsonl` (`grtresna_convergence`, `postload_gate`).
+Legacy v21 records without structured convergence are rebuilt via `Ham=(\d+)%` regex on
+`reason` strings.
+
+**CMA-ES (stage 1):** `--warm-start-include-near-miss` seeds from graded rejections in prior
+`trajectory.jsonl` (default on with `--grtresna`). **HQ promotion:** unchanged (replay only).
+
+### v22 launch (resume)
+
+```bash
+cd grteclyn-wrapper
+BRANCH=wormhole PIPELINE_MONITOR=1 \
+  QD_RESUME=1 \
+  QD_NAME=general_ftl_wormhole_v21 \
+  QD_TARGET_EVALS=80 \
+  GPU_IDS="0 1 2 3 4 5 6 7" \
+  GPU_SLOTS_PER_DEVICE=1 \
+  MAX_CONCURRENT_GRTRESNA=5 \
+  BATCH_SIZE=8 \
+  QD_ITERATIONS=30 \
+  SKIP_QD_PREFLIGHT_TESTS=1 \
+  bash scripts/campaigns/general_ftl/run_all.sh \
+  > ../runs/_logs/general_ftl_wormhole_v21.launch.log 2>&1 &
+```
+
+| Knob | v21 final | **v22 resume** |
+|------|-----------|----------------|
+| `QD_RESUME` | — | **1** |
+| `pre_gpu_learning` | — | **true** (auto with `--grtresna`) |
+| `MAX_CONCURRENT_GRTRESNA` | 3 | **5** |
+| `max_level` | 2 (metadata) | **1** (`search_common.sh` default) |
+| `near_miss_pool_size` | — | **32** |
+
+`max_in_flight = 8 gpu_slots + 5 GRTresna = 13`.
+
+### Progress snapshot (resume start)
+
+- **Inherited from v21:** 26 scored evals — 11 `gpu_ok`, 9 `grtresna_rejected`, 3 `postload_rejected`;
+  best near-miss **eval 4** score **−195** (Ham=100%, Mom within threshold).
+- **On resume:** near-miss pool + shadow archive rebuild from full `trajectory.jsonl` before
+  new submits; children should **mutate near best near-misses** instead of uniform random.
+- **Reports:** after each batch of 8 completions, `[qd] report` includes
+  `near_miss=N shadow_cov=…`; writes `pre_gpu_archive.json`.
+
+**Monitor:**
+
+```bash
+tail -f runs/_logs/general_ftl_wormhole_v21.launch.log
+tail -f runs/grtresna_qd/general_ftl_wormhole_v21/trajectory.jsonl
+grep near_miss runs/_logs/general_ftl_wormhole_v21.log
+watch -n5 'nvidia-smi --query-gpu=index,memory.used,utilization.gpu --format=csv'
+```
+
+**Outputs:** `runs/grtresna_qd/general_ftl_wormhole_v21/` — adds `pre_gpu_archive.json` alongside
+`archive.json` and `trajectory.jsonl`.
+
+### v22 vs v21
+
+| | v21 | **v22** |
+|---|-----|---------|
+| GRTresna rejections | logged, ignored for sampling | **near-miss pool + shadow archive** |
+| Main archive | `gpu_ok` only | `gpu_ok` only (unchanged) |
+| `MAX_CONCURRENT_GRTRESNA` | 3 (starved GPUs) | **5** |
+| `max_level` | 2 in run metadata | **1** |
+| Campaign dir | `general_ftl_wormhole_v21` | **same** (resume) |
 
 ---
 
@@ -445,31 +545,14 @@ vectors — ~40% of v21 evals were pre-GPU rejects with no learning signal.
 
 Rejections also bin to descriptor cell `(0,0)` because FTL axes need GPU evolution.
 
-**Planned fix:** near-miss parent pool + shadow pre-GPU archive on Ham/Mom and
-solved-FTL metrics (see implementation plan in repo). Resume after fix:
-
-```bash
-QD_RESUME=1 QD_NAME=general_ftl_wormhole_v21 ...
-```
+**Fixed in [v22](#v22-pre-gpu-rejection-learning--v21-resume-2026-06-18):** near-miss parent pool
++ shadow pre-GPU archive (`search/pre_gpu/`). Main `archive.json` stays `gpu_ok` only; graded
+rejections guide sampling via `NearMissPool` and `pre_gpu_archive.json`.
 
 ### Recommended relaunch
 
-```bash
-cd grteclyn-wrapper
-BRANCH=wormhole PIPELINE_MONITOR=1 \
-  QD_NAME=general_ftl_wormhole_v21 \
-  QD_TARGET_EVALS=80 \
-  GPU_IDS="0 1 2 3 4 5 6 7" \
-  GPU_SLOTS_PER_DEVICE=1 \
-  MAX_CONCURRENT_GRTRESNA=5 \
-  QD_ITERATIONS=30 \
-  SKIP_QD_PREFLIGHT_TESTS=1 \
-  bash scripts/campaigns/general_ftl/run_all.sh \
-  > ../runs/_logs/general_ftl_wormhole_v21.launch.log 2>&1 &
-```
-
-Add `QD_RESUME=1` to continue the stopped campaign. Code default `max_level` is now **1**
-(post-run); this campaign metadata still has `max_level: 2`.
+See [v22 resume command](#v22-launch-resume). v21 stopped campaign preserved at
+`runs/grtresna_qd/general_ftl_wormhole_v21/`.
 
 **Monitor:**
 
