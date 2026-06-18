@@ -27,6 +27,7 @@ from typing import Any, Mapping
 
 from ..core.config import REPO_ROOT
 from .io import convert_chombo_to_gridinit
+from .matter_models import finalize_solver_config
 from .matter_wiring import write_matter_metadata
 
 logger = logging.getLogger(__name__)
@@ -511,6 +512,7 @@ def solve(
         work_dir = work_dir.resolve()
     work_dir.mkdir(parents=True, exist_ok=True)
 
+    finalize_solver_config(cfg)
     exe = _find_executable(cfg)
 
     outputs_dir = work_dir / "Outputs"
@@ -610,22 +612,8 @@ def solve(
         num_workers=cfg.gridinit_workers,
     )
 
-    if cfg.lumps:
+    if cfg.lumps or cfg.matter_model == "grtresna_complex_scalar":
         write_matter_metadata(gridinit_path.with_suffix(".matter.json"), cfg)
-    elif cfg.matter_model == "grtresna_complex_scalar":
-        from .matter_wiring import GRTRESNA_COMPLEX_SCALAR_MODEL
-
-        payload = {
-            "matter_model": GRTRESNA_COMPLEX_SCALAR_MODEL,
-            "scalar_mass": cfg.scalar_mass,
-            "scalar_lambda": cfg.scalar_lambda,
-            "bs_phi_c": cfg.bs_phi_c,
-            "bs_omega": cfg.bs_omega,
-        }
-        gridinit_path.with_suffix(".matter.json").write_text(
-            __import__("json").dumps(payload, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
 
     if cfg.cleanup:
         _cleanup_workdir(work_dir, keep_gridinit=gridinit_path)

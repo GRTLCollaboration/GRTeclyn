@@ -286,12 +286,33 @@ def grtresna_shell_search_space(profile: str = "compact") -> list[SearchDimensio
         SearchDimension("grtresna_shell_static", 0.0, 1.0, 0.0),
     ]
 
+
+def grtresna_boson_star_search_space() -> list[SearchDimension]:
+    """Complex-scalar (mini boson star) search space.
+
+    A single U(1)-charged Gaussian profile at the origin replaces the
+    multi-lump real-scalar shell.  Matter persists under evolution because
+    the phase velocity Pi2 = -omega phi / alpha conserves global charge,
+    unlike dispersing independent real scalars (MapElites action plan step 3).
+    """
+    return [
+        SearchDimension("grtresna_scalar_mass", 0.05, 0.35, 0.1),
+        SearchDimension("grtresna_scalar_lambda", 0.0, 0.05, 0.0),
+        SearchDimension("grtresna_bs_phi_c", 0.03, 0.15, 0.08),
+        SearchDimension("grtresna_bs_profile_width", 4.0, 16.0, 8.0),
+        SearchDimension("grtresna_bs_omega", 0.0, 0.0, 0.0),
+        SearchDimension("grtresna_scalar_sign", 1.0, 1.0, 1.0),
+        SearchDimension("grtresna_shift_seed", -0.6, 0.6, 0.0),
+    ]
+
+
 def build_search_space(
     nonspherical: bool = False,
     grtresna: bool = False,
     grtresna_lumps: int = GRTRESNA_DEFAULT_NUM_LUMPS,
     grtresna_ansatz: str = "free",
     grtresna_shell_profile: str = "compact",
+    grtresna_matter_sector: str = "scalar",
 ) -> list[SearchDimension]:
     """Return the optimizer search space.
 
@@ -302,14 +323,21 @@ def build_search_space(
     actually activated in params.txt.
 
     When ``grtresna`` is True the GRTresna momentum-carrying-matter dimensions
-    (a ``grtresna_lumps``-lump scalar basis) REPLACE the radial recipe space,
-    because the initial data is then produced entirely by the GRTresna solve.
+    REPLACE the radial recipe space, because the initial data is then produced
+    entirely by the GRTresna solve.
+
+    ``grtresna_matter_sector`` selects scalar lumps (shell/ring/free ansatz)
+    vs boson-star (7-D complex scalar); independent of geometry ansatz.
     """
     if grtresna:
+        if grtresna_matter_sector == "boson_star":
+            return grtresna_boson_star_search_space()
         if grtresna_ansatz == "ring":
             return grtresna_ring_search_space()
         if grtresna_ansatz == "shell":
             return grtresna_shell_search_space(profile=grtresna_shell_profile)
+        if grtresna_ansatz == "boson_star":
+            return grtresna_boson_star_search_space()
         if grtresna_ansatz != "free":
             raise ValueError(f"unknown GRTresna ansatz: {grtresna_ansatz}")
         return grtresna_search_space(grtresna_lumps)

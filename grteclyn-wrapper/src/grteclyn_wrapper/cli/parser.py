@@ -8,7 +8,11 @@ from pathlib import Path
 from ..core.config import default_runs_dir
 from ..initial_data.seeds import list_seeds
 from .args import parse_override
-from .grtresna_args import add_grtresna_solved_ftl_gate_arg, add_grtresna_speed_args
+from .grtresna_args import (
+    add_grtresna_matter_selection_args,
+    add_grtresna_solved_ftl_gate_arg,
+    add_grtresna_speed_args,
+)
 from .pipeline_args import add_pipeline_args
 
 
@@ -219,7 +223,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     opt.add_argument(
         "--grtresna-ansatz",
-        choices=["free", "ring", "shell"],
+        choices=["free", "ring", "shell", "boson_star"],
         default="free",
         help="GRTresna matter parameterization. 'free' searches every lump "
              "independently (11*K dimensions). 'ring' searches a reduced rotating "
@@ -227,8 +231,10 @@ def build_parser() -> argparse.ArgumentParser:
              "expands it into K lumps. 'shell' is the full-sphere discovery "
              "ansatz (16D): lumps cover the whole 2-sphere with an arbitrary "
              "orientation axis and poloidal+toroidal currents, reaching 3D "
-             "configurations the planar ring cannot.",
+             "configurations the planar ring cannot. "
+             "Legacy alias: 'boson_star' sets --grtresna-matter-sector boson_star.",
     )
+    add_grtresna_matter_selection_args(opt)
     opt.add_argument(
         "--grtresna-shell-profile",
         choices=["middle", "compact", "outer_precursor", "inner_shift"],
@@ -440,10 +446,12 @@ def build_parser() -> argparse.ArgumentParser:
     qd.add_argument("--grtresna-lumps", type=int, default=5)
     qd.add_argument(
         "--grtresna-ansatz",
-        choices=["free", "ring", "shell"],
+        choices=["free", "ring", "shell", "boson_star"],
         default="free",
-        help="GRTresna matter parameterization for QD candidates.",
+        help="GRTresna geometry ansatz for scalar lumps (shell/ring/free). "
+             "Legacy: 'boson_star' alias sets --grtresna-matter-sector boson_star.",
     )
+    add_grtresna_matter_selection_args(qd)
     qd.add_argument(
         "--grtresna-shell-profile",
         choices=["middle", "compact", "outer_precursor", "inner_shift"],

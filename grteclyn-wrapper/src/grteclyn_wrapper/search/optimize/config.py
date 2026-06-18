@@ -20,6 +20,7 @@ from .spaces import GRTRESNA_DEFAULT_NUM_LUMPS
 
 _LUMP_KEY_RE = re.compile(r"^grtresna_lump(\d+)_(\w+)$")
 
+
 def build_grtresna_config(
     overrides: Mapping[str, Any], base: "GRTresnaConfig | None" = None
 ) -> "GRTresnaConfig":
@@ -29,9 +30,17 @@ def build_grtresna_config(
     cleanup); the searched ``grtresna_lump{k}_*`` keys are assembled into the
     ``lumps`` basis.  The legacy un-indexed ``grtresna_lump_*`` keys are also
     honoured (assembled as a single lump) for backward compatibility.
+
+    Boson-star (complex scalar) campaigns set ``grtresna_matter_model`` in
+    base overrides or search ``grtresna_bs_*`` / scalar-mass knobs directly.
     """
     import dataclasses
 
+    from ...grtresna.matter_models import (
+        GRTRESNA_COMPLEX_SCALAR_MODEL,
+        apply_boson_star_overrides,
+        finalize_independent_scalar_config,
+    )
     from ...grtresna.solver import GRTresnaConfig, apply_exotic_safe_solver
 
     cfg = dataclasses.replace(base) if base is not None else GRTresnaConfig()
@@ -39,11 +48,35 @@ def build_grtresna_config(
     def _enable_exotic_safe_solver() -> None:
         apply_exotic_safe_solver(cfg)
 
+    def _return_scalar() -> "GRTresnaConfig":
+        return finalize_independent_scalar_config(
+            cfg,
+            overrides,
+            enable_exotic_safe_solver=_enable_exotic_safe_solver,
+        )
+
     def _get_float(key: str, default: float) -> float:
         try:
             return float(overrides.get(key, default))
         except (TypeError, ValueError):
             return default
+
+    # Matter-model tag from campaign base overrides (set by grtresna_context).
+    matter_model = str(overrides.get("grtresna_matter_model", "")).strip()
+    if matter_model == GRTRESNA_COMPLEX_SCALAR_MODEL:
+        apply_boson_star_overrides(
+            cfg,
+            overrides,
+            enable_exotic_safe_solver=_enable_exotic_safe_solver,
+        )
+        return cfg
+
+    if apply_boson_star_overrides(
+        cfg,
+        overrides,
+        enable_exotic_safe_solver=_enable_exotic_safe_solver,
+    ):
+        return cfg
 
     # Global (ansatz-independent) initial-shift seed: aligns a non-zero beta^i
     # with the matter momentum flux so the warp/channel mechanism is reachable.
@@ -110,7 +143,7 @@ def build_grtresna_config(
         cfg.lumps = lumps
         if any(lump["exotic"] for lump in lumps):
             _enable_exotic_safe_solver()
-        return cfg
+        return _return_scalar()
 
     if any(str(k).startswith("grtresna_shell_") for k in overrides):
         num_lumps = max(3, int(round(_get_float("grtresna_shell_lumps", GRTRESNA_DEFAULT_NUM_LUMPS))))
@@ -183,7 +216,7 @@ def build_grtresna_config(
         cfg.lumps = lumps
         if any(lump["exotic"] for lump in lumps):
             _enable_exotic_safe_solver()
-        return cfg
+        return _return_scalar()
 
     # Group indexed lump keys by index.
     by_index: dict[int, dict[str, float]] = {}
@@ -211,7 +244,7 @@ def build_grtresna_config(
         cfg.lumps = lumps
         if any(lump["exotic"] for lump in lumps):
             _enable_exotic_safe_solver()
-        return cfg
+        return _return_scalar()
 
     # Backward-compatible single (un-indexed) lump.
     def _get(key: str, default: float) -> float:
@@ -232,7 +265,7 @@ def build_grtresna_config(
             cfg.lump_exotic = int(round(float(overrides["grtresna_lump_exotic"])))
     if cfg.lump_exotic:
         _enable_exotic_safe_solver()
-    return cfg
+    return _return_scalar()
 
 
 def parse_convergence_safe(work_dir: Path) -> dict[str, float] | None:

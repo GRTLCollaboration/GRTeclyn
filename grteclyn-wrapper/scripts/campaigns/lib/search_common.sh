@@ -11,6 +11,17 @@
 : "${LUMPS:=5}"
 : "${SHELL_PROFILE:=compact}"
 : "${GRTRESNA_ANSATZ:=shell}"
+: "${GRTRESNA_MATTER_SECTOR:=scalar}"
+: "${GRTRESNA_MATTER_COUPLING:=canonical}"
+
+# Frame / projection fields depend on matter sector (geometry ansatz unchanged).
+if [[ "${GRTRESNA_MATTER_SECTOR}" == "boson_star" ]]; then
+  : "${FRAMES_FIELDS:=scalar_activity phi Pi phi2 Pi2 chi chi_minus_1 local_speed shift1 rho_req}"
+  : "${PROJECTION_FIELDS:=scalar_activity phi2}"
+else
+  : "${FRAMES_FIELDS:=lump_activity scalar_activity phi_lump_sum Pi_lump_sum chi chi_minus_1 local_speed shift1 rho_req}"
+  : "${PROJECTION_FIELDS:=scalar_activity}"
+fi
 
 # ---- GRTresna elliptic solve -------------------------------------------------
 : "${RANKS:=8}"
@@ -41,7 +52,7 @@
 
 # Full-z evolution box (shell ansatz); ring/free may override in legacy scripts.
 if [[ -z "${GRTRESNA_FULL_Z+x}" ]]; then
-  if [[ "${GRTRESNA_ANSATZ}" == "shell" ]]; then
+  if [[ "${GRTRESNA_ANSATZ}" == "shell" || "${GRTRESNA_MATTER_SECTOR}" == "boson_star" ]]; then
     GRTRESNA_FULL_Z=1
   else
     GRTRESNA_FULL_Z=0
@@ -111,6 +122,8 @@ ftl_search_common_grtresna_args() {
   FTL_GRTRESNA_ARGS=(
     --grtresna
     --grtresna-ansatz "${GRTRESNA_ANSATZ}"
+    --grtresna-matter-sector "${GRTRESNA_MATTER_SECTOR}"
+    --grtresna-matter-coupling "${GRTRESNA_MATTER_COUPLING}"
     --grtresna-shell-profile "${SHELL_PROFILE}"
     --grtresna-lumps "${LUMPS}"
     "$([[ "${GRTRESNA_FULL_Z}" == "1" ]] && echo --grtresna-full-z || echo --no-grtresna-full-z)"
@@ -186,6 +199,8 @@ ftl_search_common_preflight_tests() {
   ${PYTHON_BIN} -m pytest \
     "${WRAPPER_ROOT}/tests/grtresna/test_scalar_lambda_potential.py" \
     "${WRAPPER_ROOT}/tests/grtresna/test_grtresna_shell_ansatz.py" \
+    "${WRAPPER_ROOT}/tests/grtresna/test_boson_star_ansatz.py" \
+    "${WRAPPER_ROOT}/tests/grtresna/test_matter_selection.py" \
     "${WRAPPER_ROOT}/tests/grtresna/test_matter_geometry_consistency.py" \
     "${WRAPPER_ROOT}/tests/search/test_ftl_retention.py" \
     "${WRAPPER_ROOT}/tests/search/test_optimize_retention.py" \

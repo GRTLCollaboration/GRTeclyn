@@ -27,9 +27,14 @@ INCLUDE_STOP_TIME_IN_NAME="${INCLUDE_STOP_TIME_IN_NAME:-1}"
 export GRTRESNA_ROOT="${GRTRESNA_ROOT:-$(cd -- "${GRTECLYN_ROOT}/.." && pwd)/GRTresna}"
 # HQ always renders frames; ignore search-stage GRTECLYN_FRAMES=0 from parent env.
 export GRTECLYN_FRAMES=1
-export GRTECLYN_FRAMES_FIELDS="${FRAMES_FIELDS:-lump_activity scalar_activity phi_lump_sum Pi_lump_sum chi chi_minus_1 local_speed shift1 rho_req}"
+if [[ "${GRTRESNA_MATTER_SECTOR:-}" == "boson_star" ]]; then
+  export GRTECLYN_FRAMES_FIELDS="${FRAMES_FIELDS:-scalar_activity phi Pi phi2 Pi2 chi chi_minus_1 local_speed shift1 rho_req}"
+  export GRTECLYN_PROJECTION_FIELDS="${PROJECTION_FIELDS:-scalar_activity phi2}"
+else
+  export GRTECLYN_FRAMES_FIELDS="${FRAMES_FIELDS:-lump_activity scalar_activity phi_lump_sum Pi_lump_sum chi chi_minus_1 local_speed shift1 rho_req}"
+  export GRTECLYN_PROJECTION_FIELDS="${PROJECTION_FIELDS:-lump_activity scalar_activity}"
+fi
 export GRTECLYN_FRAMES_ZOOM="${FRAMES_ZOOM:-none}"
-export GRTECLYN_PROJECTION_FIELDS="${PROJECTION_FIELDS:-lump_activity scalar_activity}"
 export GRTECLYN_PROJECTION_AXES="${PROJECTION_AXES:-x y z}"
 export GRTECLYN_PROJECTION_METHOD="${PROJECTION_METHOD:-mip}"
 export GRTECLYN_EVOLVING_GEODESIC="${GRTECLYN_EVOLVING_GEODESIC:-1}"

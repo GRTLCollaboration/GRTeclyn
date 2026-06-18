@@ -7,6 +7,14 @@ import os
 from typing import Any
 
 from ..projection.postload_gate import PostLoadGateConfig
+from ..grtresna.matter_models import (
+    MATTER_COUPLING_CANONICAL,
+    MATTER_COUPLING_EXOTIC,
+    MATTER_SECTOR_BOSON_STAR,
+    MATTER_SECTOR_SCALAR,
+    MatterSelection,
+    resolve_matter_selection,
+)
 from ..search.solved_ftl_gate import SolvedFtlGateConfig
 
 
@@ -55,6 +63,38 @@ def postload_gate_config_from_args(args: argparse.Namespace) -> PostLoadGateConf
         max_hamiltonian_l2=getattr(args, "postload_max_ham_l2", 1.0e-2),
         max_momentum_l2=getattr(args, "postload_max_mom_l2", 1.0e-2),
     )
+
+
+def add_grtresna_matter_selection_args(parser: argparse.ArgumentParser) -> None:
+    """Matter sector (scalar vs boson star) and energy coupling (canonical vs exotic)."""
+    parser.add_argument(
+        "--grtresna-matter-sector",
+        choices=[MATTER_SECTOR_SCALAR, MATTER_SECTOR_BOSON_STAR],
+        default=MATTER_SECTOR_SCALAR,
+        help=(
+            "Matter sector for GRTresna initial data. "
+            "'scalar' = independent real scalar lumps (shell/ring/free ansatz). "
+            "'boson_star' = single complex U(1) mini boson star (7-D search)."
+        ),
+    )
+    parser.add_argument(
+        "--grtresna-matter-coupling",
+        choices=[MATTER_COUPLING_CANONICAL, MATTER_COUPLING_EXOTIC],
+        default=MATTER_COUPLING_CANONICAL,
+        help=(
+            "Energy coupling. 'canonical' = positive-energy matter; "
+            "'exotic' = phantom (−rho): all scalar lumps exotic, or boson scalar_sign=-1."
+        ),
+    )
+
+
+def resolve_grtresna_matter_from_args(args: argparse.Namespace) -> MatterSelection:
+    """Resolve matter selection from CLI, honoring legacy ``--grtresna-ansatz boson_star``."""
+    sector = getattr(args, "grtresna_matter_sector", MATTER_SECTOR_SCALAR)
+    if getattr(args, "grtresna_ansatz", "free") == MATTER_SECTOR_BOSON_STAR:
+        sector = MATTER_SECTOR_BOSON_STAR
+    coupling = getattr(args, "grtresna_matter_coupling", MATTER_COUPLING_CANONICAL)
+    return resolve_matter_selection(sector, coupling)
 
 
 def add_grtresna_speed_args(parser: argparse.ArgumentParser) -> None:

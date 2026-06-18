@@ -7,11 +7,16 @@ from dataclasses import dataclass
 from typing import Any
 
 from ..grtresna.domain import GRTresnaDomainConfig
+from ..grtresna.matter_models import matter_selection_base_overrides
 from ..grtresna.solver import GRTresnaConfig
 from ..search.grtresna_convergence_gate import GRTresnaConvergenceConfig
 from ..search.optimize import ANGULAR_BASE_OVERRIDES, SearchDimension, build_search_space
 from ..search.solved_ftl_gate import SolvedFtlGateConfig
-from .grtresna_args import grtresna_speed_kwargs, solved_ftl_gate_config_from_args
+from .grtresna_args import (
+    grtresna_speed_kwargs,
+    resolve_grtresna_matter_from_args,
+    solved_ftl_gate_config_from_args,
+)
 
 
 @dataclass
@@ -48,6 +53,7 @@ def build_grtresna_search_context(
     grtresna_lumps = getattr(args, "grtresna_lumps", 5)
     grtresna_ansatz = getattr(args, "grtresna_ansatz", "free")
     grtresna_shell_profile = getattr(args, "grtresna_shell_profile", "compact")
+    matter = resolve_grtresna_matter_from_args(args)
 
     search_space = build_search_space(
         nonspherical=nonspherical,
@@ -55,12 +61,15 @@ def build_grtresna_search_context(
         grtresna_lumps=grtresna_lumps,
         grtresna_ansatz=grtresna_ansatz,
         grtresna_shell_profile=grtresna_shell_profile,
+        grtresna_matter_sector=matter.sector,
     )
     overrides = dict(base_overrides)
-    if use_grtresna and grtresna_ansatz == "ring":
+    if use_grtresna and matter.is_scalar and grtresna_ansatz == "ring":
         overrides = {**overrides, "grtresna_ring_lumps": grtresna_lumps}
-    if use_grtresna and grtresna_ansatz == "shell":
+    if use_grtresna and matter.is_scalar and grtresna_ansatz == "shell":
         overrides = {**overrides, "grtresna_shell_lumps": grtresna_lumps}
+    if use_grtresna:
+        overrides = {**overrides, **matter_selection_base_overrides(matter)}
     if nonspherical and not use_grtresna:
         overrides = {**ANGULAR_BASE_OVERRIDES, **overrides}
 

@@ -14,7 +14,11 @@ from grteclyn_wrapper.core.config import resolve_example, resolve_executable
 from grteclyn_wrapper.core.evaluation import evaluate_overrides
 from grteclyn_wrapper.core.params import regrid_intervals_for_max_level
 from grteclyn_wrapper.grtresna.domain import GRTresnaDomainConfig
-from grteclyn_wrapper.grtresna.matter_wiring import plot_vars_for_independent_scalars
+from grteclyn_wrapper.grtresna.matter_wiring import (
+    GRTRESNA_COMPLEX_SCALAR_MODEL,
+    plot_vars_for_complex_scalar,
+    plot_vars_for_independent_scalars,
+)
 from grteclyn_wrapper.grtresna.io import read_gridinit
 from grteclyn_wrapper.grtresna.solver import GRTresnaConfig
 from grteclyn_wrapper.search.grtresna_convergence_gate import GRTresnaConvergenceConfig
@@ -25,6 +29,8 @@ _MATTER_REPLAY_KEYS = {
     "recipe_num_scalar_fields",
     "recipe_scalar_field_signs",
     "recipe_scalar_mass",
+    "recipe_scalar_lambda",
+    "recipe_scalar_sign",
     "recipe_exotic_matter",
     "recipe_support_strength",
     "amr.plot_vars",
@@ -298,6 +304,9 @@ def main() -> int:
             evolution_center=evolution_center,
         )
         overrides.update(_load_matter_replay_overrides(source_eval))
+        matter_model = overrides.get("recipe_matter_model")
+        if matter_model == GRTRESNA_COMPLEX_SCALAR_MODEL and "amr.plot_vars" not in overrides:
+            overrides["amr.plot_vars"] = plot_vars_for_complex_scalar()
         num_fields = overrides.get("recipe_num_scalar_fields")
         if num_fields and "amr.plot_vars" not in overrides:
             overrides["amr.plot_vars"] = plot_vars_for_independent_scalars(int(num_fields))

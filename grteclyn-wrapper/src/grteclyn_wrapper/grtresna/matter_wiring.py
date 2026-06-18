@@ -5,19 +5,35 @@ from __future__ import annotations
 import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping
 
 from typing import TYPE_CHECKING
 
 from .lump_fields import MAX_INDEPENDENT_LUMPS, lump_sign
+from .matter_models import (
+    GRTRESNA_COMPLEX_SCALAR_MODEL,
+    GRTRESNA_INDEPENDENT_MATTER_MODEL,
+    is_complex_scalar_model,
+)
 
 if TYPE_CHECKING:
     from .solver import GRTresnaConfig
 
-GRTRESNA_INDEPENDENT_MATTER_MODEL = "grtresna_independent_scalars"
-GRTRESNA_COMPLEX_SCALAR_MODEL = "grtresna_complex_scalar"
+# Re-export for backward compatibility.
+__all__ = [
+    "GRTRESNA_COMPLEX_SCALAR_MODEL",
+    "GRTRESNA_INDEPENDENT_MATTER_MODEL",
+    "GRTresnaMatterMetadata",
+    "evolution_overrides_from_complex_scalar",
+    "evolution_overrides_from_config",
+    "merge_evolution_overrides",
+    "plot_vars_for_complex_scalar",
+    "plot_vars_for_independent_scalars",
+    "read_matter_metadata",
+    "write_matter_metadata",
+]
 
-# Full metric in plotfiles for evolved FTL/EC scoring plus per-lump scalars.
+# Full metric in plotfiles for evolved FTL/EC scoring plus matter channels.
 _BASE_PLOT_VARS = (
     "chi h11 h12 h13 h22 h23 h33 K lapse shift1 shift2 shift3 phi Pi"
 )
@@ -67,12 +83,30 @@ class GRTresnaMatterMetadata:
     scalar_mass: float
     scalar_lambda: float
     lump_count: int
+    bs_phi_c: float = 0.0
+    bs_profile_width: float = 0.0
+    bs_omega: float = 0.0
+    scalar_sign: int = 1
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
     @classmethod
     def from_config(cls, cfg: GRTresnaConfig) -> GRTresnaMatterMetadata:  # noqa: F821
+        if is_complex_scalar_model(getattr(cfg, "matter_model", "")):
+            return cls(
+                matter_model=GRTRESNA_COMPLEX_SCALAR_MODEL,
+                num_scalar_fields=0,
+                scalar_field_signs=(),
+                scalar_mass=float(cfg.scalar_mass),
+                scalar_lambda=float(cfg.scalar_lambda),
+                lump_count=0,
+                bs_phi_c=float(cfg.bs_phi_c),
+                bs_profile_width=float(cfg.bs_profile_width),
+                bs_omega=float(cfg.bs_omega),
+                scalar_sign=int(getattr(cfg, "scalar_sign", 1)),
+            )
+
         lumps = list(cfg.lumps)
         signs = tuple(lump_sign(lump) for lump in lumps[:MAX_INDEPENDENT_LUMPS])
         return cls(
@@ -87,7 +121,7 @@ class GRTresnaMatterMetadata:
 
 def evolution_overrides_from_config(cfg: GRTresnaConfig) -> dict[str, Any]:  # noqa: F821
     """GRTeclyn params that select the matched matter model."""
-    if getattr(cfg, "matter_model", "") == GRTRESNA_COMPLEX_SCALAR_MODEL:
+    if is_complex_scalar_model(getattr(cfg, "matter_model", "")):
         return evolution_overrides_from_complex_scalar(
             mass=float(cfg.scalar_mass),
             lam=float(cfg.scalar_lambda),
@@ -126,6 +160,10 @@ def read_matter_metadata(path: str | Path) -> GRTresnaMatterMetadata:
         scalar_mass=float(payload.get("scalar_mass", 0.0)),
         scalar_lambda=float(payload.get("scalar_lambda", 0.0)),
         lump_count=int(payload.get("lump_count", len(signs))),
+        bs_phi_c=float(payload.get("bs_phi_c", 0.0)),
+        bs_profile_width=float(payload.get("bs_profile_width", 0.0)),
+        bs_omega=float(payload.get("bs_omega", 0.0)),
+        scalar_sign=int(payload.get("scalar_sign", 1)),
     )
 
 
