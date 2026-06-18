@@ -24,7 +24,7 @@
 **Campaign log** (reverse-chronological)
 
 - [Quick index](#campaign-log--runs-analysis)
-- [v21: Multi-slot GPU pipeline](#v21-multi-slot-gpu-pipeline-5-evols-per-gpu-2026-06-17)
+- [v21: Pipelined QD + GPU tenancy tuning](#v21-pipelined-qd--gpu-tenancy-tuning-2026-06-17)
 - [v20: General FTL discovery](#v20-general-ftl-discovery-wormhole--ring--spin-2026-06-17)
 - [v18: 4D QD + CMA-ES + HQ](#v18-4d-qd--cma-es--hq-ftl_4d-line-2026-06-16)
 - [4D evolving null-geodesic probe](#4d-evolving-null-geodesic-probe-2026-06-15--2026-06-16)
@@ -326,7 +326,7 @@ Reverse-chronological journal. Quick index:
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
-| [**v21: Multi-slot GPU pipeline**](#v21-multi-slot-gpu-pipeline-5-evols-per-gpu-2026-06-17) | **06-17 running** | **Pipelined MAP-Elites** with `GpuPool` + `EvalPipeline`. **5 concurrent GPU evolutions per H100** (`gpu_slots_per_device=5`). Wormhole-only stage-0 relaunch. VRAM benchmark: ~8.7 GB/eval @ t=4; ~44 GB peak solo @ t=16. |
+| [**v21: Pipelined QD + GPU tenancy**](#v21-pipelined-qd--gpu-tenancy-tuning-2026-06-17) | **06-17 stopped** | **Pipelined MAP-Elites** (`GpuPool` + `EvalPipeline`). **5 slots/GPU overloaded** H100s at t=16 (~3× slower/evol). **Working config:** 8 GPUs × **1 slot/GPU** + continuous GRTresna; **bottleneck** `MAX_CONCURRENT_GRTRESNA=3` → raise to **5+**. **26 evals:** 11 `gpu_ok`. MAP-Elites ignores GRTresna rejections → [planned fix](#v21-map-elites-cold-start-grtresna-rejections). |
 | [**v20: General FTL discovery**](#v20-general-ftl-discovery-wormhole--ring--spin-2026-06-17) | **06-17 stopped early** | **3 parallel QD** (`general_ftl_{wormhole,ring,spin}`). **Ring wins:** eval **43** score **196**, search 4D `f_geo` **~3.9%** (`h_quality_ok`, `best_direction=z`). Spin: **8** 4D hits. Wormhole: **0** 4D hits. **172/248** logged; **top-3 eval dirs retained** per class. |
 | [**v18: 4D QD + CMA-ES + HQ**](#v18-4d-qd--cma-es--hq-ftl_4d-line-2026-06-16) | **06-16 → 06-17** | **Done.** QD **156** → CMA-ES **144** (**596**) → HQ **144**: **verified 4D `f_geo` ≈ 8%** (5/5 rays, `h_quality_ok`); frozen peak **11.5%** collapses by t=30; final score **283** |
 | [**4D evolving geodesic probe**](#4d-evolving-null-geodesic-probe-2026-06-15--2026-06-16) | **06-15 → 06-16** | Smoke eval **086**: 4D **1.42%** vs frozen **5.75%**. HQ t=30 eval **086**: 4D **0%** (negative control). Search-loop integration → **`ftl_4d_v1`** |
@@ -342,49 +342,117 @@ Reverse-chronological journal. Quick index:
 
 ---
 
-## v21: Multi-slot GPU pipeline (5 evols per GPU) (2026-06-17)
+## v21: Pipelined QD + GPU tenancy tuning (2026-06-17)
 
-**Status:** **running** — wormhole-only MAP-Elites relaunch to validate the pipelined
-evaluator (`search/gpu_pool.py`, `search/eval_pipeline.py`) under production grid/time.
+**Status:** **stopped early** (user halt at ~30 evals; **26** trajectory lines saved).
+Campaign dir preserved: `runs/grtresna_qd/general_ftl_wormhole_v21/`.
 
-**Purpose.** v20 QD held **one GPU evolution per device**; GRTresna CPU solves and GPU
-`main3d` sessions were effectively serialized per GPU. **v21** enables **N concurrent
-GPU leases per device** so multiple candidates can evolve on the same H100 while others
-are still in the GRTresna CPU phase.
+**Purpose.** Validate the pipelined MAP-Elites evaluator (`search/gpu_pool.py`,
+`search/eval_pipeline.py`) on production grid/time: GRTresna CPU solves overlap with
+GPU `main3d` evolution across **8× H100**, wormhole-only pins (same as v20 wormhole).
 
-### Architecture
+### Architecture (unchanged from design)
 
 | Component | Role |
 |-----------|------|
 | `GpuPool` | `total_slots = len(gpu_ids) × gpu_slots_per_device`; blocking lease before GPU phase |
-| `EvalPipeline` | Cross-batch queue; CPU admission + GPU backpressure; resume-safe |
-| `evaluate_overrides` | Split `_run_cpu_grtresna_gates()` → `_run_gpu_session()` |
+| `EvalPipeline` | Cross-batch queue; no batch barrier; one completion → one new submit |
+| `CpuAdmissionController` | Caps concurrent GRTresna MPI solves (`MAX_CONCURRENT_GRTRESNA`) |
 | QD driver | Pipelined MAP-Elites (`use_pipeline=True` default) |
 
-CLI: `--gpu-ids`, `--gpu-slots-per-device`, `--cluster-cpu-fraction`, `--pipeline-cpu-share`.
+`max_in_flight = gpu_slots + max_concurrent_grtresna` (e.g. 8 + 3 = 11 with final config).
+
+### Run history (three launches, same campaign name)
+
+#### Attempt 1 — multi-tenant GPU overload (failed throughput)
+
+```bash
+GPU_SLOTS_PER_DEVICE=5   # 8×5 = 40 GPU leases
+MAX_CONCURRENT_GRTRESNA=6
+```
+
+**Result:** Multiple `main3d` sessions stacked on the same H100 (GpuPool fills GPU 0
+first). At `stop_time=16` each solo evolution peaks ~**44 GB** VRAM; **5 concurrent**
+on one GPU caused severe slowdown — wall time per eval ~**3×** vs solo (~35 min vs
+~12 min). **Do not use 5 slots/GPU at t=16** on 80 GB cards with this gridinit.
+
+#### Attempt 2 — 1 slot/GPU, high GRTresna concurrency
+
+```bash
+GPU_SLOTS_PER_DEVICE=1   # 8 GPU leases total
+MAX_CONCURRENT_GRTRESNA=6
+```
+
+**Result:** GPU memory healthy (~one evolution per device), but GRTresna admission
+still contended with long GPU phases.
+
+#### Attempt 3 — production config (successful pipeline shape)
+
+```bash
+GPU_SLOTS_PER_DEVICE=1
+MAX_CONCURRENT_GRTRESNA=3
+BATCH_SIZE=8
+QD_TARGET_EVALS=80
+```
+
+**Result:** **8 GPUs each running one evolution**; **up to 3 GRTresna solves in flight**
+continuously feeding the pipeline. First `gpu_ok` after ~5 min wall; archive began
+filling. Typical `gpu_ok` eval ~5–8 min; one AMR outlier (`eval_000007`, `max_level=2`)
+hit ~**39 GB** VRAM and ~30 min wall.
+
+**Trajectory (26 logged):** 11 `gpu_ok`, 9 `grtresna_rejected`, 3 `postload_rejected`,
+3 `grtresna_failed`. Best scored `gpu_ok`: eval **19** score **+33.7**. Best GRTresna
+near-miss: score **−195** (Ham=100%, Mom within threshold) — logged but **not used
+for sampling** (see below).
+
+### Issue: GPU idle gaps — GRTresna batch too small
+
+With `gpu_slots=8` and `MAX_CONCURRENT_GRTRESNA=3`, the pipeline often had **3–5 GPUs
+idle** for multi-minute stretches: GPU work finished faster than new gridinits arrived.
+The evaluator submits one new candidate per completion (no batch barrier), so throughput
+is limited by how fast GRTresna can produce passing initial data.
+
+**Fix:** **Increase `MAX_CONCURRENT_GRTRESNA`** (GRTresna batch / CPU admission cap) to
+**5–6** so more solves run in parallel while GPUs evolve — target `max_in_flight ≈ 13–14`
+on 8 GPUs. Do **not** compensate by raising `GPU_SLOTS_PER_DEVICE` at t=16.
+
+| Knob | Attempt 1 (bad) | Attempt 3 (ran) | **Recommended relaunch** |
+|------|-----------------|-----------------|--------------------------|
+| `GPU_SLOTS_PER_DEVICE` | 5 | 1 | **1** |
+| `MAX_CONCURRENT_GRTRESNA` | 6 | 3 | **5–6** |
+| `gpu_slots` | 40 | 8 | **8** |
+| GPU util @ t=16 | overloaded, slow | healthy, GRTresna-starved | balanced |
 
 ### VRAM sizing (eval_000005 gridinit replays, H100 80 GB)
 
-Duplicate-replay benchmark (`scripts/benchmarks/gpu_gridinit_load.sh`) using the real
-128³ GRTresna `initial_data.gridinit` from a `gpu_ok` wormhole eval — **not** bare
-`sweep` with recipe defaults (~5 GB underestimate).
+Benchmark (`scripts/benchmarks/gpu_gridinit_load.sh`) on real 128³ wormhole gridinit —
+not bare `sweep` (~5 GB underestimate).
 
 | Concurrent `main3d` | `stop_time` | Peak VRAM | Notes |
 |--------------------|-------------|-----------|-------|
-| 1 | 4 | ~9.7 GB | matches QD `evaluate` path |
+| 1 | 4 | ~9.7 GB | matches QD evaluate path |
 | 2 | 4 | ~17.4 GB | ~8.7 GB/eval, linear |
-| 3 | 4 | ~25.5 GB | linear |
-| 4 | 4 | ~43 GB | ~9.3 min wall for batch of 4 |
-| 5 | 4 | ~52 GB | fits 80 GB; **5 slots viable at short t** |
-| 1 | **16** | **~44 GB** | AMR growth over long evolution; **not** ~9 GB |
+| 5 | 4 | ~52 GB | fits 80 GB at short t only |
+| 1 | **16** | **~44 GB** | AMR; **1 slot/GPU** at t=16 |
+| 5 | **16** | — | **avoid** — contention, not OOM |
 
-**Rule of thumb:** VRAM scales ~linearly with concurrent evolutions at a fixed `stop_time`,
-but **per-eval footprint grows strongly with `stop_time`** (AMR refinement). Production
-QD uses `stop_time=16` → expect **1–2** concurrent long evolutions per 80 GB GPU unless
-benchmarked on your grid. **v21 launch uses 5 slots** as a throughput experiment; monitor
-`runs/_logs/*.pipeline_monitor.csv` and `nvidia-smi` for OOM.
+### v21 MAP-Elites cold start (GRTresna rejections)
 
-### Launch (wormhole, 8×GPU × 5 slots = 40 GPU leases)
+**Bug / design gap:** MAP-Elites only inserts `gpu_ok` into `archive.json`. GRTresna
+rejections are written to `trajectory.jsonl` with **graded fitness** (CMA-ES uses this;
+QD does not). Until the first `gpu_ok`, `_sample_next_candidate` draws **uniform random**
+vectors — ~40% of v21 evals were pre-GPU rejects with no learning signal.
+
+Rejections also bin to descriptor cell `(0,0)` because FTL axes need GPU evolution.
+
+**Planned fix:** near-miss parent pool + shadow pre-GPU archive on Ham/Mom and
+solved-FTL metrics (see implementation plan in repo). Resume after fix:
+
+```bash
+QD_RESUME=1 QD_NAME=general_ftl_wormhole_v21 ...
+```
+
+### Recommended relaunch
 
 ```bash
 cd grteclyn-wrapper
@@ -392,22 +460,16 @@ BRANCH=wormhole PIPELINE_MONITOR=1 \
   QD_NAME=general_ftl_wormhole_v21 \
   QD_TARGET_EVALS=80 \
   GPU_IDS="0 1 2 3 4 5 6 7" \
-  GPU_SLOTS_PER_DEVICE=5 \
-  BATCH_SIZE=40 \
+  GPU_SLOTS_PER_DEVICE=1 \
+  MAX_CONCURRENT_GRTRESNA=5 \
   QD_ITERATIONS=30 \
   SKIP_QD_PREFLIGHT_TESTS=1 \
   bash scripts/campaigns/general_ftl/run_all.sh \
   > ../runs/_logs/general_ftl_wormhole_v21.launch.log 2>&1 &
 ```
 
-Single-GPU smoke (5 slots, short time):
-
-```bash
-BRANCH=wormhole PIPELINE_MONITOR=1 \
-  QD_TARGET_EVALS=10 GPU_IDS="0" GPU_SLOTS_PER_DEVICE=5 BATCH_SIZE=5 \
-  STOP_TIME=4.0 PLOT_INTERVAL=40 QD_ITERATIONS=3 SKIP_QD_PREFLIGHT_TESTS=1 \
-  bash scripts/campaigns/general_ftl/run_all.sh
-```
+Add `QD_RESUME=1` to continue the stopped campaign. Code default `max_level` is now **1**
+(post-run); this campaign metadata still has `max_level: 2`.
 
 **Monitor:**
 
@@ -417,17 +479,18 @@ tail -f runs/grtresna_qd/general_ftl_wormhole_v21/trajectory.jsonl
 watch -n5 'nvidia-smi --query-gpu=index,memory.used,utilization.gpu --format=csv'
 ```
 
-**Outputs:** `runs/grtresna_qd/general_ftl_wormhole_v21/` — same as v20 wormhole pins
-(`general_ftl` objective, `ftl_lifetime` descriptors, `GRTECLYN_GEO_DIRECTIONS=x y z`).
+**Outputs:** `runs/grtresna_qd/general_ftl_wormhole_v21/` — `general_ftl` objective,
+`ftl_lifetime` descriptors, `GRTECLYN_GEO_DIRECTIONS=x y z`.
 
 ### v21 vs v20
 
 | | v20 | **v21** |
 |---|-----|---------|
-| GPU tenancy | 1 evol / GPU | **5 evol / GPU** (`gpu_slots_per_device=5`) |
-| Evaluator | batch barrier | **pipelined** CPU→GPU |
+| Evaluator | batch barrier | **pipelined** CPU→GPU, no batch wait |
+| GPU tenancy | 1 evol / GPU | **1 evol / GPU** (after tuning; not 5) |
+| GRTresna | serialized per wave | **continuous** solves (`MAX_CONCURRENT_GRTRESNA`) |
 | Campaign | 3-class parallel | **wormhole-only** pipeline validation |
-| Batch size | `#GPUs` | **`#GPUs × slots`** (40 on 8×H100) |
+| Target | 30 iter × 3 classes | **80 evals** single class |
 
 ---
 
