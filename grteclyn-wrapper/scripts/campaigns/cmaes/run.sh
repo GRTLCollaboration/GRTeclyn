@@ -21,8 +21,9 @@ RANDOM_INJECTION_FRACTION="${RANDOM_INJECTION_FRACTION:-0.1}"
 EXOTIC_INJECTION_FRACTION="${EXOTIC_INJECTION_FRACTION:-0.1}"
 WARM_START_TOP_K="${WARM_START_TOP_K:-8}"
 WARM_START_JITTER="${WARM_START_JITTER:-0.05}"
-KEEP_TOP_EVAL_DIRS="${KEEP_TOP_EVAL_DIRS:-10}"
+KEEP_TOP_EVAL_DIRS="${KEEP_TOP_EVAL_DIRS:-3}"
 FTL_RETENTION="${FTL_RETENTION:-1}"
+TARGET_EVALS="${TARGET_EVALS:-}"
 
 CONSUME_ARGS=()
 [[ "${NO_CONSUME:-0}" == "1" ]] && CONSUME_ARGS=(--no-consume-plotfiles)
@@ -30,6 +31,7 @@ CONSUME_ARGS=()
 ftl_search_common_domain_args
 ftl_search_common_grtresna_args
 ftl_search_common_global_args
+ftl_search_common_pipeline_args
 
 PRE_ARGS=(--runs-dir "${RUNS_DIR}" "${FTL_GLOBAL_ARGS[@]}")
 [[ -n "${RUN_NAME:-}" ]] && PRE_ARGS+=(--name "${RUN_NAME}")
@@ -49,9 +51,11 @@ mkdir -p "${RUNS_DIR}"
 echo "== Stage 1: CMA-ES (QD-matched setup) =="
 echo "Runs dir      : ${RUNS_DIR}"
 echo "Evolution     : L=${GRTRESNA_EVOLUTION_L_FULL} N=${GRTRESNA_EVOLUTION_N_FULL} ml=${GRTRESNA_EVOLUTION_MAX_LEVEL} t=${STOP_TIME}"
-echo "4D geodesic   : mode=${GRTECLYN_EVOLVING_GEODESIC_MODE} stack_n=${GRTECLYN_METRIC_STACK_N_SPACE}"
+echo "4D geodesic   : mode=${GRTECLYN_EVOLVING_GEODESIC_MODE} stack_n=${GRTECLYN_METRIC_STACK_N_SPACE} dirs=${GRTECLYN_GEO_DIRECTIONS:-x}"
 echo "Objective     : ${OBJECTIVE_MODE}"
 echo "CMA-ES        : gen=${MAX_GENERATIONS} pop=${POPULATION} sigma0=${SIGMA0}"
+echo "Target evals  : ${TARGET_EVALS:-<max_generations × pop>}"
+echo "Keep top dirs : ${KEEP_TOP_EVAL_DIRS} (FTL retention=${FTL_RETENTION})"
 echo "Warm start    : ${WARM_START_TRAJECTORY:-<none>}"
 echo
 
@@ -72,6 +76,9 @@ if [[ -n "${PIN_DIMS:-}" ]]; then
   for kv in ${PIN_DIMS}; do PIN_ARGS+=(--pin-dimension "${kv}"); done
 fi
 
+TARGET_EVALS_ARGS=()
+[[ -n "${TARGET_EVALS}" ]] && TARGET_EVALS_ARGS+=(--target-evals "${TARGET_EVALS}")
+
 # shellcheck disable=SC2086
 exec ${PYTHON_BIN} -m grteclyn_wrapper \
   "${PRE_ARGS[@]}" \
@@ -90,5 +97,7 @@ exec ${PYTHON_BIN} -m grteclyn_wrapper \
   --sigma0 "${SIGMA0}" \
   --seed "${SEED}" \
   --gpu-ids ${GPU_IDS} \
+  "${FTL_PIPELINE_ARGS[@]}" \
+  "${TARGET_EVALS_ARGS[@]}" \
   "${PIN_ARGS[@]}" \
   "${CONSUME_ARGS[@]}"

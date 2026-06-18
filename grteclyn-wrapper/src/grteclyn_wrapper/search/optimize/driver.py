@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 import random
+import threading
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -37,6 +38,7 @@ from .eval import (
     ObjectiveMode,
     _collect_training,
     _evaluate_generation_parallel,
+    _evaluate_generation_pipelined,
     _objective,
     _track_trajectory,
 )
@@ -156,6 +158,14 @@ def run_optimize(
     ftl_retention_enabled: bool = False,
     warm_start_include_near_miss: bool | None = None,
     warm_start_near_miss_k: int = 4,
+    target_evals: int | None = None,
+    use_pipeline: bool = True,
+    slots_per_gpu: int = 1,
+    cluster_cpu_fraction: float | None = None,
+    pipeline_share: float | None = None,
+    max_concurrent_grtresna_override: int = 0,
+    reserve_cores: int | None = None,
+    grtresna_mpi_ranks: int = 8,
 ) -> OptimizeResult:
     """Run multi-GPU CMA-ES optimization loop.
 
@@ -242,6 +252,27 @@ def run_optimize(
 
     eval_counter = [0]
     trajectory: list[dict[str, Any]] = []
+    trajectory_path = opt_dir / "trajectory.jsonl"
+    trajectory_lock = threading.Lock()
+
+    gpu_pool = None
+    cpu_admission = None
+    pipeline_sizing: dict[str, int | float] = {}
+    effective_gpu_ids = list(gpu_ids) if gpu_ids else []
+    if use_pipeline and effective_gpu_ids and not dry_run:
+        from ..gpu_pool import CpuAdmissionController, build_pipeline_resources
+
+        gpu_pool, cpu_admission, pipeline_sizing = build_pipeline_resources(
+            effective_gpu_ids,
+            slots_per_gpu=slots_per_gpu,
+            cluster_cpu_fraction=cluster_cpu_fraction,
+            pipeline_share=pipeline_share,
+            mpi_ranks=grtresna_mpi_ranks,
+            reserve_cores=reserve_cores,
+        )
+        if max_concurrent_grtresna_override > 0:
+            cpu_admission = CpuAdmissionController(max_concurrent_grtresna_override)
+            pipeline_sizing["max_grtresna"] = max_concurrent_grtresna_override
 
     write_json(opt_dir / "metadata.json", {
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -280,6 +311,13 @@ def run_optimize(
         "exotic_injection_fraction": exotic_injection_fraction,
         "keep_top_eval_dirs": keep_top_eval_dirs,
         "ftl_retention_enabled": ftl_retention_enabled,
+        "target_evals": target_evals,
+        "use_pipeline": use_pipeline,
+        "slots_per_gpu": slots_per_gpu,
+        "max_concurrent_grtresna": pipeline_sizing.get("max_grtresna"),
+        "gpu_slots": pipeline_sizing.get("gpu_slots"),
+        "cluster_cpu_fraction": cluster_cpu_fraction,
+        "pipeline_share": pipeline_share,
         "base_overrides": base,
         "search_space": [
             {"key": d.param_key, "lower": d.lower, "upper": d.upper, "initial": d.center}
@@ -296,83 +334,85 @@ def run_optimize(
     gen = 0
 
     print(f"[optimize] Starting CMA-ES: {len(dims)}D, popsize={es.popsize}, "
-          f"max_gen={max_generations}, GPUs={gpu_ids or cuda_devices}")
+          f"max_gen={max_generations}, GPUs={gpu_ids or cuda_devices}, "
+          f"pipeline={use_pipeline and gpu_pool is not None}")
+    if target_evals is not None:
+        print(f"[optimize] target_evals={target_evals}")
     if warm_vectors:
         print(f"[optimize] loaded {len(warm_vectors)} warm-start vectors")
 
+    metadata_path = opt_dir / "metadata.json"
+    common_eval_kwargs = dict(
+        dims=dims,
+        base_overrides=base,
+        opt_dir=opt_dir,
+        example=example_cfg,
+        template=tpl,
+        executable=executable,
+        eval_counter=eval_counter,
+        constrained=constrained,
+        phantom=phantom,
+        use_preflight=use_preflight,
+        check_params=check_params,
+        trajectory=trajectory,
+        target_stop_time=target_stop_time,
+        score_weights=score_weights,
+        objective_mode=objective_mode,
+        ftl_L=ftl_L,
+        consume_plotfiles=consume_plotfiles,
+        consumer_radii=consumer_radii,
+        consumer_keep_last=consumer_keep_last,
+        grtresna=grtresna,
+        grtresna_config=grtresna_config,
+        grtresna_solved_ftl_gate=solved_ftl_gate,
+        solved_ftl_gate_config=solved_ftl_gate_config,
+        grtresna_convergence_config=grtresna_convergence_config,
+        grtresna_postload_gate=grtresna_postload_gate,
+        postload_gate_config=postload_gate_config,
+        live_trajectory_path=trajectory_path if not dry_run else None,
+    )
+
     def _evaluate_subset(subset: list) -> list[float]:
+        if use_pipeline and gpu_pool is not None and cpu_admission is not None and not dry_run:
+            return _evaluate_generation_pipelined(
+                subset,
+                gpu_pool=gpu_pool,
+                cpu_admission=cpu_admission,
+                gpu_ids=effective_gpu_ids,
+                metadata_path=metadata_path,
+                **common_eval_kwargs,
+            )
         if gpu_ids is not None and len(gpu_ids) > 1 and not dry_run:
             return _evaluate_generation_parallel(
                 subset,
-                dims=dims,
-                base_overrides=base,
-                opt_dir=opt_dir,
-                example=example_cfg,
-                template=tpl,
-                executable=executable,
-                eval_counter=eval_counter,
-                constrained=constrained,
-                phantom=phantom,
-                use_preflight=use_preflight,
                 gpu_ids=gpu_ids,
-                check_params=check_params,
-                trajectory=trajectory,
-                target_stop_time=target_stop_time,
-                score_weights=score_weights,
-                objective_mode=objective_mode,
-                ftl_L=ftl_L,
-                consume_plotfiles=consume_plotfiles,
-                consumer_radii=consumer_radii,
-                consumer_keep_last=consumer_keep_last,
-                grtresna=grtresna,
-                grtresna_config=grtresna_config,
-                grtresna_solved_ftl_gate=solved_ftl_gate,
-                solved_ftl_gate_config=solved_ftl_gate_config,
-                grtresna_convergence_config=grtresna_convergence_config,
-                grtresna_postload_gate=grtresna_postload_gate,
-                postload_gate_config=postload_gate_config,
+                **common_eval_kwargs,
             )
         out: list[float] = []
         for sol in subset:
             out.append(_objective(
                 sol,
-                dims=dims,
-                base_overrides=base,
-                opt_dir=opt_dir,
-                example=example_cfg,
-                template=tpl,
-                executable=executable,
-                eval_counter=eval_counter,
-                constrained=constrained,
-                phantom=phantom,
-                use_preflight=use_preflight,
                 cuda_devices=cuda_devices,
-                check_params=check_params,
                 dry_run=dry_run,
-                trajectory=trajectory,
-                target_stop_time=target_stop_time,
-                score_weights=score_weights,
-                objective_mode=objective_mode,
-                ftl_L=ftl_L,
-                consume_plotfiles=consume_plotfiles,
-                consumer_radii=consumer_radii,
-                consumer_keep_last=consumer_keep_last,
-                grtresna=grtresna,
-                grtresna_base=grtresna_config,
-                grtresna_solved_ftl_gate=solved_ftl_gate,
-                solved_ftl_gate_config=solved_ftl_gate_config,
-                grtresna_convergence_config=grtresna_convergence_config,
-                grtresna_postload_gate=grtresna_postload_gate,
-                postload_gate_config=postload_gate_config,
+                **common_eval_kwargs,
             ))
         return out
 
     warmup = surrogate_warmup if surrogate_warmup is not None else 2 * es.popsize
 
     while not es.stop():
+        if target_evals is not None and eval_counter[0] >= target_evals:
+            break
         gen += 1
         solutions = [list(sol) for sol in es.ask()]
         n_solutions = len(solutions)
+        if target_evals is not None:
+            remaining = target_evals - eval_counter[0]
+            if remaining <= 0:
+                break
+            if remaining < n_solutions:
+                solutions = solutions[:remaining]
+                n_solutions = len(solutions)
 
         if gen == 1 and warm_vectors:
             n_warm = min(len(warm_vectors), n_solutions)
@@ -438,7 +478,7 @@ def run_optimize(
                         "surrogate_predicted": True,
                         "score": float(predicted[i]),
                         "overrides": {d.param_key: float(solutions[i][j]) for j, d in enumerate(dims)},
-                    })
+                    }, trajectory_lock=trajectory_lock, live_trajectory_path=trajectory_path if not dry_run else None)
             print(f"[optimize] gen {gen}: surrogate screened "
                   f"{len(eval_idx)}/{len(solutions)} evaluated on GPU "
                   f"({n_skipped} predicted)")

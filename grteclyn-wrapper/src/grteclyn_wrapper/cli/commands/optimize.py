@@ -17,6 +17,7 @@ from ..grtresna_args import (
     solved_ftl_gate_config_from_args,
 )
 from ..grtresna_context import build_grtresna_search_context
+from ..pipeline_args import pipeline_settings_from_args
 
 
 def run_optimize_command(args: argparse.Namespace, base_overrides: dict) -> int:
@@ -35,6 +36,7 @@ def run_optimize_command(args: argparse.Namespace, base_overrides: dict) -> int:
 
     template = Path(args.template).expanduser().resolve() if args.template else None
     ctx = build_grtresna_search_context(args, base_overrides)
+    pipeline_cfg = pipeline_settings_from_args(args)
 
     x0 = None
     if getattr(args, "seed_name", None):
@@ -107,6 +109,14 @@ def run_optimize_command(args: argparse.Namespace, base_overrides: dict) -> int:
         exotic_injection_fraction=getattr(args, "exotic_injection_fraction", 0.0),
         keep_top_eval_dirs=getattr(args, "keep_top_eval_dirs", 0),
         ftl_retention_enabled=getattr(args, "ftl_retention", False),
+        target_evals=getattr(args, "target_evals", None),
+        use_pipeline=pipeline_cfg["use_pipeline"],
+        slots_per_gpu=pipeline_cfg["slots_per_gpu"],
+        cluster_cpu_fraction=pipeline_cfg["cluster_cpu_fraction"],
+        pipeline_share=pipeline_cfg["pipeline_share"],
+        max_concurrent_grtresna_override=pipeline_cfg["max_concurrent_grtresna"],
+        reserve_cores=pipeline_cfg["reserve_cores"],
+        grtresna_mpi_ranks=getattr(args, "grtresna_ranks", 8),
     )
     print(json.dumps({
         "best_score": result.best_score,

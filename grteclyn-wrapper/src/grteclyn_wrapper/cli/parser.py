@@ -97,6 +97,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     opt = subparsers.add_parser("optimize", help="CMA-ES optimization over RadialRecipe coefficients.")
     opt.add_argument("--max-generations", type=int, default=50, help="Maximum CMA-ES generations.")
+    opt.add_argument(
+        "--target-evals",
+        type=int,
+        default=None,
+        help="Stop after this many GPU/CPU evaluations (overrides max_generations when reached first).",
+    )
     opt.add_argument("--population-size", type=int, default=None, help="CMA-ES population size (default: auto, or num GPUs).")
     opt.add_argument("--sigma0", type=float, default=0.3, help="Initial CMA-ES step size.")
     opt.add_argument("--seed", type=int, default=None, help="Random seed for CMA-ES.")

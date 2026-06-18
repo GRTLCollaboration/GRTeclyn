@@ -174,9 +174,13 @@ def _compute_evolving_geodesic_metrics(
             )
             if len(stack) >= 3:
                 with PLOTFILE_READ_LOCK:
+                    from ..probes.ftl.evolving_geodesic_options import (
+                        metric_stack_n_space_from_env,
+                    )
+
                     evo_report = compute_evolving_geodesic_ftl_from_plotfiles(
                         [str(p) for p in stack],
-                        n_space=65,
+                        n_space=metric_stack_n_space_from_env(),
                         half_width=ctx.ftl_L,
                     )
             else:

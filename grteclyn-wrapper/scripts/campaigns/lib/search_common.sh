@@ -80,6 +80,10 @@ export GRTECLYN_FRAMES="${GRTECLYN_FRAMES:-0}"
 export GRTECLYN_EVOLVING_GEODESIC="${GRTECLYN_EVOLVING_GEODESIC:-1}"
 export GRTECLYN_EVOLVING_GEODESIC_MODE="${GRTECLYN_EVOLVING_GEODESIC_MODE:-search}"
 export GRTECLYN_METRIC_STACK_N_SPACE="${GRTECLYN_METRIC_STACK_N_SPACE:-33}"
+# general_ftl scores the best principal-axis null shortcut; wormhole elites live on z.
+if [[ "${OBJECTIVE_MODE}" == "general_ftl" ]]; then
+  export GRTECLYN_GEO_DIRECTIONS="${GRTECLYN_GEO_DIRECTIONS:-x y z}"
+fi
 export GRTECLYN_FRAMES_FIELDS="${FRAMES_FIELDS:-lump_activity scalar_activity phi_lump_sum Pi_lump_sum chi chi_minus_1 local_speed shift1 rho_req}"
 export GRTECLYN_PROJECTION_FIELDS="${PROJECTION_FIELDS:-scalar_activity}"
 export GRTECLYN_PROJECTION_AXES="${PROJECTION_AXES:-x y z}"
