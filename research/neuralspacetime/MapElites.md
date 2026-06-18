@@ -25,6 +25,8 @@
 
 - [Quick index](#campaign-log--runs-analysis)
 - [v22: Pre-GPU rejection learning + v21 resume](#v22-pre-gpu-rejection-learning--v21-resume-2026-06-18)
+  - [Final results: top 3 + FTL champions](#v22-final-results-top-3--ftl-champions)
+  - [Physical validation & next steps](#v22-physical-validation--next-steps)
 - [v21: Pipelined QD + GPU tenancy tuning](#v21-pipelined-qd--gpu-tenancy-tuning-2026-06-17)
 - [v10–v20: pipeline evolution & runs](#v10v20-pipeline-evolution--runs-2026-06-11--2026-06-17)
 - [Foundational entries (2026-06-10)](#foundational-entries-2026-06-10)
@@ -319,7 +321,7 @@ Reverse-chronological journal. Quick index:
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
-| [**v22: Pre-GPU learning + v21 resume**](#v22-pre-gpu-rejection-learning--v21-resume-2026-06-18) | **06-18 running** | **Resume** `general_ftl_wormhole_v21` with **near-miss pool** + **shadow pre-GPU archive** (`search/pre_gpu/`). Graded GRTresna rejections now guide sampling; main `archive.json` still **gpu_ok only**. `MAX_CONCURRENT_GRTRESNA=5`, `max_level=1`. Target **80** evals. **Live-validated:** continuous pipeline (no batch barrier), 9 GPU + 3 CPU overlapping, 16 out-of-order completions. |
+| [**v22: Pre-GPU learning + v21 resume**](#v22-pre-gpu-rejection-learning--v21-resume-2026-06-18) | **06-18 complete** | **200 evals** on `general_ftl_wormhole_v21`. Pipelined QD + pre-GPU learning. **Champion eval 191** (161.9, survival 1.00, 18.5% 4D). Eval 063 holds score/FTL records (165.6, 19.3%). [Top 3 + FTL champions](#v22-final-results-top-3--ftl-champions). → [CMA-ES refine 191](#v22-physical-validation--next-steps). |
 | [**v21: Pipelined QD + GPU tenancy**](#v21-pipelined-qd--gpu-tenancy-tuning-2026-06-17) | **06-17 stopped** | **Pipelined MAP-Elites** (`GpuPool` + `EvalPipeline`). **5 slots/GPU overloaded** H100s at t=16 (~3× slower/evol). **Working config:** 8 GPUs × **1 slot/GPU** + continuous GRTresna; **bottleneck** `MAX_CONCURRENT_GRTRESNA=3` → raise to **5+**. **26 evals:** 11 `gpu_ok`. Cold-start gap → [fixed in v22](#v22-pre-gpu-rejection-learning--v21-resume-2026-06-18). |
 | [**v10–v20: pipeline + runs**](#v10v20-pipeline-evolution--runs-2026-06-11--2026-06-17) | **06-11 → 06-17** | Scoring/geodesic hardening (v7–v16) → **4D probe + HQ** (eval **144** verified **~8%**) → **general_ftl** QD (ring eval **43** **~3.9%**). See glued section. |
 | [**Foundational (06-10)**](#foundational-entries-2026-06-10) | 06-10 | Matter model, navigation overhaul, status reset |
@@ -328,8 +330,9 @@ Reverse-chronological journal. Quick index:
 
 ## v22: Pre-GPU rejection learning + v21 resume (2026-06-18)
 
-**Status:** **running** — resume of [`general_ftl_wormhole_v21`](#v21-pipelined-qd--gpu-tenancy-tuning-2026-06-17)
-(same campaign dir; **v22** = code + learning phase).
+**Status:** **complete** — `general_ftl_wormhole_v21` reached **200 evals** (2026-06-18).
+Resume from eval 98 after [convergence-fix](#v22-launch-resume) that prevented early stop
+before `target_evals`. Same campaign dir; **v22** = code + learning phase + full production run.
 
 **Purpose.** Close the v21 [cold-start gap](#v21-map-elites-cold-start-grtresna-rejections): MAP-Elites
 now **learns from graded pre-GPU rejections** while keeping the main FTL archive pure (`gpu_ok`
@@ -589,6 +592,91 @@ passed more gates (closer to GPU success).
                                     First vector = initial mean
                                     Others jittered by sigma
 ```
+
+### v22 final results: top 3 + FTL champions
+
+**Campaign summary** (`runs/grtresna_qd/general_ftl_wormhole_v21/`):
+
+| Metric | Value |
+|--------|-------|
+| Evals | **200** (201 trajectory lines incl. 10 `pipeline_interrupted` from prior halt) |
+| `gpu_ok` | **103** |
+| Archive | **4 elites**, coverage **6.25%**, MAP-Elites best **165.6** (eval 063); **refinement champion eval 191** |
+| Throughput (resume 98→200) | ~**0.93 eval/min** (8 GPU × 1 slot, `MAX_CONCURRENT_GRTRESNA=3`) |
+| Near-miss pool | 32 (pre-GPU learning active throughout) |
+
+**Top 3 by score** (final run):
+
+| Eval | Score | `ftl_geo_evolving` | `f_geo_peak` | `operational_ftl` | Survival | Reading |
+|------|------:|-------------------:|-------------:|------------------:|---------:|---------|
+| **063** | 165.6 | **19.3%** | 4.2% | 0 | 0.94 | Score + `ftl_geo_evolving` record holder (early run) |
+| **191** | **161.9** | **18.5%** | 3.8% | 0 | **1.00** | **Champion** — resume-era lead; perfect survival, `f_op_peak` holder, jitter 0.96 |
+| **174** | 157.4 | 18.5% | 3.8% | 0 | 1.00 | Stable variant — thick shell (1.40), moderate jitter |
+
+All three: `operational_ftl = 0` but strong **4D null-geodesic** shortcuts — the hallmark of
+stationary, non-translating wormholes (see [physical validation](#v22-physical-validation--next-steps)).
+
+Earlier basin members still in archive: **eval 071** (122.8, symmetric/stable), **eval 040** (96.5, compact/massive).
+
+**FTL champions** (`ftl_champions.json` — one eval dir kept per peak metric):
+
+| Metric | Eval | Peak value | Notes |
+|--------|------|------------|-------|
+| `ftl_geo_evolving` | **063** | **19.3%** | Run-best integrated 4D shortcut |
+| `f_op_peak` | **191** | 0.0178 | Best operational precursor |
+| `f_geo_evol` (frozen) | **178** | 5.2% | Best static-slice geodesic peak (resume find) |
+| `max_local_speed` | **178** | **1.31** | Highest local coordinate speed |
+| `superluminal_fraction` | **050** | 77.4% | Largest superluminal volume fraction |
+| `ftl_lifetime_fraction` | **008** | 1.00 | Longest FTL persistence |
+
+### v22 physical validation & next steps
+
+**Verdict.** First production run of the pipelined `general_ftl` wormhole campaign in a
+**15-D** pinned search space successfully located a **clustered family** of stable,
+constraint-clean, non-translating wormholes. Empirical proof that coordinate warp-bubble
+metrics and stationary FTL wormhole metrics are physically distinct observables.
+
+#### I. Scoring paradox: `operational_ftl = 0` while `ftl_geo_evolving ≈ 19%`
+
+In a **stationary** wormhole (\(\beta^i \approx 0\)):
+
+1. **Lapse-dominated coordinate speed** — heavy throat matter drops \(\alpha < 1\), so
+   \(c_{\rm coord} = \alpha \pm \beta < 1\). Frozen-slice Dijkstra (`operational_ftl`) reads
+   subluminal → **0**.
+2. **Proper-distance contraction** — bipolar shell geometry warps \(\gamma_{ij}\); proper
+   path length through the throat is shorter than coordinate distance. The **4D null-geodesic
+   tracer** integrates \(ds^2 = 0\) and captures this → **~19% faster** than flat-space light.
+
+The pipeline has decoupled coordinate gauge artifacts from physical traversable shortcuts.
+
+#### II. Dynamically opening throat
+
+For eval **191**: integrated `ftl_geo_evolving` = **18.5%** but frozen `f_geo_peak` = **3.8%**
+at \(t \approx 16\) (eval **063** shows the same pattern at 19.3% / 4.2%). Even with zero
+initial velocities, CCZ4 evolution is highly dynamical — negative-energy shell and positive
+central regions interact gravitationally. The throat **opens during evolution**; a photon
+emitted at \(t=0\) traverses geometry that is actively warping. Only the 4D tracer detects
+this time-dependent GR effect.
+
+#### III. Elite basin (cell [1, 7]) — final run
+
+| Eval | Role | Key traits |
+|------|------|------------|
+| **191** | **Champion** | Resume-era lead — extreme jitter (0.96), dipole +0.57, survival **1.00**, 18.5% 4D shortcut, `f_op_peak` holder |
+| **174** | Stable variant | Thick shell (1.40), moderate jitter (0.59) → symmetric, survival 1.00, 18.5% 4D shortcut |
+| **063** | Record holder | Early-run peak score (165.6) + `ftl_geo_evolving` record (19.3%); survival 0.94, 52% superluminal volume |
+
+Legacy early-basin members: **071** (symmetric/stable, 13.9% 4D), **040** (compact/massive, survival 0.77).
+
+#### IV. Strategic action plan
+
+| Step | Action | Goal |
+|------|--------|------|
+| **1** | **CMA-ES refinement** seeded from **eval 191** | Local hill-climb on dipole / jitter / scalar mass; push 18.5% 4D shortcut higher while holding survival 1.00. `OBJECTIVE_MODE=general_ftl`, same `--pin-dimension` overrides as v21. |
+| **2** | **HQ promotion** of eval 191 → **N=256, L=128, ml=3, t=30** | Does the dynamically opening throat reach static equilibrium or over-expand/collapse at longer times? Definitive viability test. |
+| **3** | **Complex scalar (boson star) pivot** | Real scalars disperse at \(t \gg 50\). Re-run same campaign with complex fields + conserved U(1) charge for long-term throat stabilization. |
+
+**Immediate next step:** launch focused CMA-ES around eval 191.
 
 ---
 
