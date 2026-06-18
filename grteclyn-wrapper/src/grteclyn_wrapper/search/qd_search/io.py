@@ -51,14 +51,22 @@ def _prune_eval_dirs(
 
     protected = set(protect_eval_ids or set())
     scored_ids: set[int] = set()
+    terminal_unscored_ids: set[int] = set()
     for rec in records:
-        score = rec.get("score")
         eval_id = rec.get("eval")
-        if isinstance(score, (int, float)) and eval_id is not None:
-            try:
-                scored_ids.add(int(eval_id))
-            except (TypeError, ValueError):
-                continue
+        if eval_id is None:
+            continue
+        try:
+            eval_id_int = int(eval_id)
+        except (TypeError, ValueError):
+            continue
+        score = rec.get("score")
+        if isinstance(score, (int, float)):
+            scored_ids.add(eval_id_int)
+        else:
+            # Completed trajectory rows with no score (e.g. pipeline_interrupted)
+            # are dead evals and should be pruned when not in the keep set.
+            terminal_unscored_ids.add(eval_id_int)
 
     deleted = 0
     for eval_dir in qd_dir.glob("eval_*"):
@@ -70,14 +78,16 @@ def _prune_eval_dirs(
         eval_id = int(suffix)
         if eval_id in keep_eval_ids or eval_id in protected:
             continue
-        if eval_id not in scored_ids:
+        prunable = eval_id in scored_ids or eval_id in terminal_unscored_ids
+        if not prunable:
+            # No trajectory row yet — still in flight; only protected ids are kept.
             continue
         shutil.rmtree(eval_dir, ignore_errors=True)
         deleted += 1
 
     if deleted:
         print(
-            f"[qd] pruned {deleted} eval dirs; kept {len(keep_eval_ids)} scored "
+            f"[qd] pruned {deleted} eval dirs; kept {len(keep_eval_ids)} "
             f"+ protected {sorted(protected)}",
             flush=True,
         )

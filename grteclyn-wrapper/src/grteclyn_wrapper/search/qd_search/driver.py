@@ -590,7 +590,9 @@ def run_qd_search(
                     else ""
                 )
             )
-            if signals.get("converged"):
+            if signals.get("converged") and (
+                target_evals is None or eval_counter[0] >= total_target
+            ):
                 stop_event.set()
 
         if eval_counter[0] < total_target and not stop_event.is_set():

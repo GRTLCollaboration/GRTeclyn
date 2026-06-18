@@ -53,6 +53,31 @@ def test_record_build_outside_lock_tier_computation() -> None:
     assert assessment.tier_name
 
 
+def test_prune_removes_pipeline_interrupted(tmp_path: Path) -> None:
+    qd_dir = tmp_path / "qd_test"
+    qd_dir.mkdir()
+    (qd_dir / "eval_000001").mkdir()
+    (qd_dir / "eval_000007").mkdir()
+    trajectory = [
+        {"eval": 1, "score": 1.0, "status": "gpu_ok"},
+        {"eval": 7, "status": "pipeline_interrupted", "score": None},
+    ]
+    from grteclyn_wrapper.search.ftl_retention import compute_keep_eval_ids
+    from grteclyn_wrapper.search.qd_search.io import _prune_eval_dirs
+
+    keep_ids = compute_keep_eval_ids(
+        trajectory,
+        keep_top_score=1,
+        board=None,
+        ftl_retention_enabled=False,
+        protect_eval_ids=set(),
+    )
+    deleted = _prune_eval_dirs(qd_dir, trajectory, keep_eval_ids=keep_ids)
+    assert deleted == 1
+    assert (qd_dir / "eval_000001").is_dir()
+    assert not (qd_dir / "eval_000007").is_dir()
+
+
 def test_prune_protects_in_flight_eval_ids(tmp_path: Path) -> None:
     qd_dir = tmp_path / "qd_test"
     qd_dir.mkdir()
