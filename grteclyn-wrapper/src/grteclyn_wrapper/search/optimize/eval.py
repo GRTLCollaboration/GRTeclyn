@@ -432,6 +432,8 @@ def _objective(
         ),
         "overrides": {d.param_key: overrides.get(d.param_key) for d in dims},
     }
+    if dry_run:
+        record["dry_run"] = True
     _track_trajectory(
         trajectory, record,
         trajectory_lock=trajectory_lock,

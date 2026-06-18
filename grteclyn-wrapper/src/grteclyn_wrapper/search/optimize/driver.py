@@ -363,7 +363,7 @@ def run_optimize(
         consumer_radii=consumer_radii,
         consumer_keep_last=consumer_keep_last,
         grtresna=grtresna,
-        grtresna_config=grtresna_config,
+        grtresna_base=grtresna_config,
         grtresna_solved_ftl_gate=solved_ftl_gate,
         solved_ftl_gate_config=solved_ftl_gate_config,
         grtresna_convergence_config=grtresna_convergence_config,

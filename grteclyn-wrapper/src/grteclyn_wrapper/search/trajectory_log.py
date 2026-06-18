@@ -22,6 +22,9 @@ def trajectory_flags_from_evaluation(res: Evaluation) -> dict[str, Any]:
     flags: dict[str, Any] = {}
     if res.reason:
         flags["reason"] = res.reason
+    if any(str(note) == "dry_run" for note in res.notes):
+        flags["dry_run"] = True
+        return flags
     if res.preflight_rejected:
         flags["preflight_rejected"] = True
         return flags

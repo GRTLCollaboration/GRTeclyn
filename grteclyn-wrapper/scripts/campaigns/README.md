@@ -35,6 +35,30 @@ HQ is **intentionally different**: higher resolution and longer time stress-test
 
 ---
 
+### End-to-end orchestrator (QD → CMA-ES → HQ)
+
+Single script under one campaign root (`runs/campaigns/<CAMPAIGN_NAME>/`):
+
+```bash
+cd grteclyn-wrapper
+CAMPAIGN_NAME=general_ftl_wormhole_v22 \
+  bash scripts/campaigns/run_full_campaign.sh
+```
+
+Stages (sequential, blocking):
+
+1. **QD** → `qd/` (200 evals, keep top 3 + FTL champions)
+2. **CMA-ES** → `cmaes/` (warm-start **top-1** QD eval, keep top 3)
+3. **HQ** → `promote/` (replay **top-1** CMA-ES eval, foreground)
+
+Resume / partial:
+
+```bash
+RESUME=1 STAGE=cmaes CAMPAIGN_NAME=... bash scripts/campaigns/run_full_campaign.sh
+```
+
+---
+
 ## Stage 0 — MAP-Elites (QD)
 
 ```bash

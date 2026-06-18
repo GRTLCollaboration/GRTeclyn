@@ -25,7 +25,8 @@ INCLUDE_RESOLUTION_IN_NAME="${INCLUDE_RESOLUTION_IN_NAME:-0}"
 INCLUDE_STOP_TIME_IN_NAME="${INCLUDE_STOP_TIME_IN_NAME:-1}"
 
 export GRTRESNA_ROOT="${GRTRESNA_ROOT:-$(cd -- "${GRTECLYN_ROOT}/.." && pwd)/GRTresna}"
-export GRTECLYN_FRAMES="${GRTECLYN_FRAMES:-1}"
+# HQ always renders frames; ignore search-stage GRTECLYN_FRAMES=0 from parent env.
+export GRTECLYN_FRAMES=1
 export GRTECLYN_FRAMES_FIELDS="${FRAMES_FIELDS:-lump_activity scalar_activity phi_lump_sum Pi_lump_sum chi chi_minus_1 local_speed shift1 rho_req}"
 export GRTECLYN_FRAMES_ZOOM="${FRAMES_ZOOM:-none}"
 export GRTECLYN_PROJECTION_FIELDS="${PROJECTION_FIELDS:-lump_activity scalar_activity}"

@@ -114,6 +114,17 @@ run_step "QD/CMA-ES share search_common.sh" bash -c '
   grep -q campaigns/lib/search_common scripts/lib/ftl_search_common.sh
 '
 
+# ---- 8. Full campaign orchestrator dry-run (QD stage) ------------------------
+run_step "full campaign orchestrator dry-run (QD)" env \
+  CAMPAIGN_NAME="smoke_full_${STAMP}" \
+  STAGE=qd \
+  DRY_RUN=1 \
+  QD_TARGET_EVALS=1 \
+  SKIP_QD_PREFLIGHT_TESTS=1 \
+  GPU_IDS="0" \
+  BATCH_SIZE=1 \
+  bash scripts/campaigns/run_full_campaign.sh
+
 echo
 echo "============================================"
 echo "Campaign smoke: ${pass} passed, ${fail} failed"

@@ -151,36 +151,64 @@ for entry in "${CANDIDATE_ENTRIES[@]}"; do
   gridinit_args=()
   [[ -n "${GRIDINIT:-}" ]] && gridinit_args=(--gridinit "${GRIDINIT}")
 
-  # shellcheck disable=SC2086
-  nohup ${PYTHON_BIN} "${REPLAY}" \
-    "${source}" \
-    --name "${name}" \
-    --runs-dir "${RUNS_DIR}" \
-    --gpu "${GPU_ID}" \
-    --n-full "${N_FULL}" \
-    --l-full "${L_FULL}" \
-    --grtresna-domain-l "${GRTRESNA_DOMAIN_L}" \
-    --max-level "${MAX_LEVEL}" \
-    --regrid-threshold "${REGRID_THRESHOLD}" \
-    --stop-time "${STOP_TIME}" \
-    --plot-interval "${PLOT_INTERVAL}" \
-    --grtresna-ranks "${GRTRESNA_RANKS}" \
-    --grtresna-iterations "${GRTRESNA_ITERATIONS}" \
-    --grtresna-timeout "${GRTRESNA_TIMEOUT}" \
-    --grtresna-max-ham-pct "${GRTRESNA_MAX_HAM_PCT}" \
-    --grtresna-max-mom-pct "${GRTRESNA_MAX_MOM_PCT}" \
-    --consumer-keep-last "${CONSUMER_KEEP_LAST}" \
-    --objective-mode "${OBJECTIVE_MODE}" \
-    --evolving-geodesic \
-    "${gridinit_args[@]}" \
-    > "${log}" 2>&1 &
-  echo "  pid=$!"
+  if [[ "${FOREGROUND:-0}" == "1" ]]; then
+    echo "  foreground: replay_eval.py ${source} -> ${out}"
+    # shellcheck disable=SC2086
+    ${PYTHON_BIN} "${REPLAY}" \
+      "${source}" \
+      --name "${name}" \
+      --runs-dir "${RUNS_DIR}" \
+      --gpu "${GPU_ID}" \
+      --n-full "${N_FULL}" \
+      --l-full "${L_FULL}" \
+      --grtresna-domain-l "${GRTRESNA_DOMAIN_L}" \
+      --max-level "${MAX_LEVEL}" \
+      --regrid-threshold "${REGRID_THRESHOLD}" \
+      --stop-time "${STOP_TIME}" \
+      --plot-interval "${PLOT_INTERVAL}" \
+      --grtresna-ranks "${GRTRESNA_RANKS}" \
+      --grtresna-iterations "${GRTRESNA_ITERATIONS}" \
+      --grtresna-timeout "${GRTRESNA_TIMEOUT}" \
+      --grtresna-max-ham-pct "${GRTRESNA_MAX_HAM_PCT}" \
+      --grtresna-max-mom-pct "${GRTRESNA_MAX_MOM_PCT}" \
+      --consumer-keep-last "${CONSUMER_KEEP_LAST}" \
+      --objective-mode "${OBJECTIVE_MODE}" \
+      --evolving-geodesic \
+      "${gridinit_args[@]}"
+  else
+    # shellcheck disable=SC2086
+    nohup ${PYTHON_BIN} "${REPLAY}" \
+      "${source}" \
+      --name "${name}" \
+      --runs-dir "${RUNS_DIR}" \
+      --gpu "${GPU_ID}" \
+      --n-full "${N_FULL}" \
+      --l-full "${L_FULL}" \
+      --grtresna-domain-l "${GRTRESNA_DOMAIN_L}" \
+      --max-level "${MAX_LEVEL}" \
+      --regrid-threshold "${REGRID_THRESHOLD}" \
+      --stop-time "${STOP_TIME}" \
+      --plot-interval "${PLOT_INTERVAL}" \
+      --grtresna-ranks "${GRTRESNA_RANKS}" \
+      --grtresna-iterations "${GRTRESNA_ITERATIONS}" \
+      --grtresna-timeout "${GRTRESNA_TIMEOUT}" \
+      --grtresna-max-ham-pct "${GRTRESNA_MAX_HAM_PCT}" \
+      --grtresna-max-mom-pct "${GRTRESNA_MAX_MOM_PCT}" \
+      --consumer-keep-last "${CONSUMER_KEEP_LAST}" \
+      --objective-mode "${OBJECTIVE_MODE}" \
+      --evolving-geodesic \
+      "${gridinit_args[@]}" \
+      > "${log}" 2>&1 &
+    echo "  pid=$!"
+  fi
   launched=$((launched + 1))
 done
 
 echo
 if [[ "${DRY_RUN}" == "1" ]]; then
   echo "Dry-run: would launch ${launched} HQ promotions."
+elif [[ "${FOREGROUND:-0}" == "1" ]]; then
+  echo "Completed ${launched} HQ promotion(s) in foreground."
 else
   echo "Launched ${launched} HQ promotions (background). Monitor:"
   echo "  tail -f ${RUNS_DIR}/*_hq_eval*.log"

@@ -277,7 +277,7 @@ def _run_gpu_session(
     return Evaluation(
         score=score.total,
         components=dict(score.components),
-        notes=list(score.notes),
+        notes=[*score.notes, *(["dry_run"] if dry_run else [])],
         episode_path=str(episode.path),
         exit_code=exit_code,
         preflight_rejected=False,

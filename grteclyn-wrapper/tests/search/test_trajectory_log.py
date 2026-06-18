@@ -91,6 +91,27 @@ def test_trajectory_flags_from_evaluation_rejections() -> None:
     }
 
 
+def test_infer_dry_run_status() -> None:
+    record = {"eval": 3, "dry_run": True, "score": 0.0}
+    assert infer_trajectory_status(record) == "dry_run"
+    line = format_trajectory_line(record)
+    assert json.loads(line)["status"] == "dry_run"
+
+
+def test_trajectory_flags_from_evaluation_dry_run() -> None:
+    res = Evaluation(
+        score=0.0,
+        components={},
+        notes=["dry_run"],
+        episode_path="/runs/eval_000001",
+        exit_code=None,
+        preflight_rejected=False,
+        reason=None,
+        metrics={},
+    )
+    assert trajectory_flags_from_evaluation(res) == {"dry_run": True}
+
+
 def test_infer_status_from_components_fallback() -> None:
     record = {
         "eval": 7,
