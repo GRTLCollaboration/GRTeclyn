@@ -16,8 +16,8 @@
 
 # Frame / projection fields depend on matter sector (geometry ansatz unchanged).
 if [[ "${GRTRESNA_MATTER_SECTOR}" == "boson_star" ]]; then
-  : "${FRAMES_FIELDS:=scalar_activity phi Pi phi2 Pi2 chi chi_minus_1 local_speed shift1 rho_req}"
-  : "${PROJECTION_FIELDS:=scalar_activity phi2}"
+  : "${FRAMES_FIELDS:=scalar_activity phi Pi phi_lump0 Pi_lump0 chi chi_minus_1 local_speed shift1 rho_req}"
+  : "${PROJECTION_FIELDS:=scalar_activity phi}"
 else
   : "${FRAMES_FIELDS:=lump_activity scalar_activity phi_lump_sum Pi_lump_sum chi chi_minus_1 local_speed shift1 rho_req}"
   : "${PROJECTION_FIELDS:=scalar_activity}"
@@ -148,7 +148,9 @@ ftl_search_common_grtresna_args() {
     --solved-ftl-max-physical-f-op "${SOLVED_FTL_MAX_PHYSICAL_F_OP}"
     --solved-ftl-rejection-speed-target "${SOLVED_FTL_REJECTION_SPEED_TARGET}"
   )
-  if [[ "${OBJECTIVE_MODE}" == "general_ftl" ]]; then
+  # Boson stars are centered matter blobs without t=0 warp precursors; skip the
+  # coordinate solved-FTL gate (same rationale as general_ftl).
+  if [[ "${OBJECTIVE_MODE}" == "general_ftl" ]] || [[ "${GRTRESNA_MATTER_SECTOR}" == "boson_star" ]]; then
     FTL_GRTRESNA_ARGS+=(--no-grtresna-solved-ftl-gate)
   fi
   if [[ "${POSTLOAD_GATE}" == "1" ]]; then

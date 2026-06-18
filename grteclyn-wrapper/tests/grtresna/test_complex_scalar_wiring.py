@@ -25,7 +25,7 @@ def test_evolution_overrides_for_complex_scalar() -> None:
     assert overrides["recipe_matter_model"] == GRTRESNA_COMPLEX_SCALAR_MODEL
     assert overrides["recipe_scalar_mass"] == 0.1
     assert overrides["recipe_scalar_lambda"] == 0.0
-    assert "phi2" in overrides["amr.plot_vars"]
+    assert "phi_lump0" in overrides["amr.plot_vars"]
 
 
 def test_read_matter_metadata_includes_scalar_lambda(tmp_path) -> None:
@@ -49,7 +49,7 @@ def test_plot_vars_for_complex_scalar() -> None:
     assert names == (
         "chi", "h11", "h12", "h13", "h22", "h23", "h33", "K",
         "lapse", "shift1", "shift2", "shift3",
-        "phi", "Pi", "phi2", "Pi2",
+        "phi", "Pi", "phi_lump0", "Pi_lump0",
     )
 
 

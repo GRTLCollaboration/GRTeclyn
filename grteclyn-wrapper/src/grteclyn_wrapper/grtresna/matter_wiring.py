@@ -40,9 +40,13 @@ _BASE_PLOT_VARS = (
 
 
 def plot_vars_for_complex_scalar() -> tuple[str, ...]:
-    """amr.plot_vars for canonical complex scalar (boson star) evolution."""
+    """amr.plot_vars for canonical complex scalar (boson star) evolution.
+
+    GRTeclyn stores the imaginary components in the first lump slots
+    (``phi_lump0``, ``Pi_lump0``) — see ``StateVariables.hpp`` — not ``phi2``/``Pi2``.
+    """
     base = tuple(_BASE_PLOT_VARS.split())
-    return (*base, "phi2", "Pi2")
+    return (*base, "phi_lump0", "Pi_lump0")
 
 
 def plot_vars_for_independent_scalars(num_fields: int) -> tuple[str, ...]:

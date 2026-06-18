@@ -72,7 +72,7 @@ def test_boson_star_evolution_overrides_match_solver() -> None:
     assert overrides["recipe_matter_model"] == GRTRESNA_COMPLEX_SCALAR_MODEL
     assert overrides["recipe_scalar_mass"] == 0.1
     assert overrides["recipe_scalar_lambda"] == 0.02
-    assert "phi2" in overrides["amr.plot_vars"]
+    assert "phi_lump0" in overrides["amr.plot_vars"]
 
 
 def test_boson_star_matter_metadata_roundtrip(tmp_path) -> None:

@@ -11,6 +11,9 @@ def _canonical_field_name(name: str) -> str:
         "Weyl_Re": "Weyl4_Re",
         "Weyl_Im": "Weyl4_Im",
         "Weyl_Mag": "Weyl4_Mag",
+        # Complex scalar: imaginary part lives in lump slot 0 (StateVariables.hpp).
+        "phi2": "phi_lump0",
+        "Pi2": "Pi_lump0",
     }
     return aliases.get(name, name)
 
@@ -97,6 +100,18 @@ def _register_derived_fields(ds, field: str) -> None:
         ds.add_field((base_ftype, "Pi_lump_sum"), function=_pi_lump_sum, sampling_type="cell", units="")
     elif field == "scalar_activity":
         def _scalar_activity(field, data):
+            phi = data[base_ftype, "phi"]
+            pi = data[base_ftype, "Pi"]
+            # U(1) complex scalar (boson star): phi/Pi = Re(Phi, Pi), phi_lump0/Pi_lump0
+            # = Im components in the first lump slots — combine into one |field| norm.
+            if (
+                lump_pairs == [("phi_lump0", "Pi_lump0")]
+                and "phi" in available_names
+                and "Pi" in available_names
+            ):
+                phi2 = data[base_ftype, "phi_lump0"]
+                pi2 = data[base_ftype, "Pi_lump0"]
+                return np.sqrt(phi**2 + pi**2 + phi2**2 + pi2**2)
             if lump_pairs:
                 total = None
                 for phi_name, pi_name in lump_pairs:
@@ -105,8 +120,6 @@ def _register_derived_fields(ds, field: str) -> None:
                     )
                     total = term if total is None else total + term
                 return total
-            phi = data[base_ftype, "phi"]
-            pi = data[base_ftype, "Pi"]
             return np.sqrt(phi**2 + pi**2)
         ds.add_field((base_ftype, "scalar_activity"), function=_scalar_activity, sampling_type="cell", units="")
     elif field == "lump_activity":

@@ -42,6 +42,8 @@ _FIELD_FRAME_CONFIGS: Dict[str, dict] = {
     "chi_minus_1": {"zlim": (-0.9, 0.9), "cmap": "RdBu", "label": r"$\chi - 1$"},
     "phi": {"zlim": (-0.05, 0.05), "cmap": "RdBu", "label": r"$\phi$"},
     "Pi": {"zlim": (-0.01, 0.01), "cmap": "RdBu", "label": r"$\Pi$"},
+    "phi_lump0": {"zlim": (-0.05, 0.05), "cmap": "RdBu", "label": r"$\phi_2$"},
+    "Pi_lump0": {"zlim": (-0.01, 0.01), "cmap": "RdBu", "label": r"$\Pi_2$"},
     "phi_lump_sum": {"zlim": (-0.05, 0.05), "cmap": "RdBu", "label": r"$\sum_k\phi_k$"},
     "Pi_lump_sum": {"zlim": (-0.01, 0.01), "cmap": "RdBu", "label": r"$\sum_k\Pi_k$"},
     "scalar_activity": {"zlim": (0.0, 0.20), "cmap": "viridis", "label": r"$\sum_k\sqrt{\phi_k^2+\Pi_k^2}$"},
