@@ -27,7 +27,7 @@ There are **no** duplicate scripts at the `scripts/` root — only `README.md`, 
 | `plot_diagnostic.sh` | **Post-run** wormhole-style figures (constraints, collapse, Ψ₄ panels). |
 | `plot_run_radial.sh` | Plotfile drain on a wrapper **episode** dir under `runs/`. |
 | `plot_diagnostic_radial.sh` | Post-run RadialRecipe diagnostics (constraints, shell profiles). |
-| `make_movies.sh` | Stitch PNG frame folders to MP4 (`ffmpeg` glob demuxer). |
+| `make_movies.sh` | Stitch PNG frame folders to MP4; writes `<run>/movies/movie_<field>_<axis>.mp4`. |
 
 ```bash
 # Supported / WormholeCollapse / RotatingWormholeCollapse output

@@ -9,7 +9,7 @@
 #   make_movies.sh EPISODE_DIR [EPISODE_DIR ...] [--framerate N] [--only chi_z K_z]
 #
 # For each EPISODE_DIR it looks under <EPISODE_DIR>/frames/<field>_<axis>/frames/
-# and writes <EPISODE_DIR>/frames/<field>_<axis>/movie_<field>_<axis>.mp4
+# and writes <EPISODE_DIR>/movies/movie_<field>_<axis>.mp4
 set -euo pipefail
 
 FRAMERATE=10
@@ -37,8 +37,11 @@ want() {  # $1 = folder name; returns 0 if selected
 
 made=0
 for ep in "${DIRS[@]}"; do
-  froot="${ep%/}/frames"
+  ep="${ep%/}"
+  froot="${ep}/frames"
+  movies_dir="${ep}/movies"
   [[ -d "$froot" ]] || { echo "[skip] no frames dir: $froot" >&2; continue; }
+  mkdir -p "$movies_dir"
   for fd in "$froot"/*/; do
     field_axis="$(basename "$fd")"
     frames_dir="${fd%/}/frames"
@@ -48,8 +51,8 @@ for ep in "${DIRS[@]}"; do
     pngs=("$frames_dir"/*.png)
     shopt -u nullglob
     [[ ${#pngs[@]} -gt 0 ]] || continue
-    out="${fd%/}/movie_${field_axis}.mp4"
-    echo "[movie] $ep :: $field_axis (${#pngs[@]} frames) -> $(basename "$out")"
+    out="${movies_dir}/movie_${field_axis}.mp4"
+    echo "[movie] $ep :: $field_axis (${#pngs[@]} frames) -> movies/$(basename "$out")"
     ffmpeg -y -loglevel error -framerate "$FRAMERATE" \
       -pattern_type glob -i "${frames_dir}/*.png" \
       -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" \
