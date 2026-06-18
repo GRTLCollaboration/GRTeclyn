@@ -33,6 +33,10 @@ export GRTECLYN_PROJECTION_AXES="${PROJECTION_AXES:-x y z}"
 export GRTECLYN_PROJECTION_METHOD="${PROJECTION_METHOD:-mip}"
 export GRTECLYN_EVOLVING_GEODESIC="${GRTECLYN_EVOLVING_GEODESIC:-1}"
 export GRTECLYN_EVOLVING_GEODESIC_MODE="${GRTECLYN_EVOLVING_GEODESIC_MODE:-hq}"
+# Match search-stage general_ftl: score best principal-axis null shortcut (wormhole on z).
+if [[ "${OBJECTIVE_MODE:-general_ftl}" == "general_ftl" ]]; then
+  export GRTECLYN_GEO_DIRECTIONS="${GRTECLYN_GEO_DIRECTIONS:-x y z}"
+fi
 
 PYTHON_BIN="${PYTHON_BIN:-}"
 if [[ -z "${PYTHON_BIN}" ]]; then

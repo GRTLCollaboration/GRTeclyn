@@ -208,9 +208,9 @@ def main() -> int:
     )
     parser.add_argument(
         "--objective-mode",
-        default="ftl_first",
+        default="general_ftl",
         choices=["weighted", "ftl_first", "robust_ftl", "general_ftl"],
-        help="Scoring objective (default: ftl_first). Use general_ftl for v20 replays.",
+        help="Scoring objective (default: general_ftl for HQ v20 replays).",
     )
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()

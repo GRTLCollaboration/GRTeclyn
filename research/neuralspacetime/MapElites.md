@@ -27,6 +27,7 @@
 - [v22: Pre-GPU rejection learning + v21 resume](#v22-pre-gpu-rejection-learning--v21-resume-2026-06-18)
   - [Final results: top 3 + FTL champions](#v22-final-results-top-3--ftl-champions)
   - [Physical validation & next steps](#v22-physical-validation--next-steps)
+- [v22 CMA-ES: wormhole refinement](#v22-cma-es-wormhole-refinement-general_ftl_wormhole_cmaes_v1-2026-06-18)
 - [v21: Pipelined QD + GPU tenancy tuning](#v21-pipelined-qd--gpu-tenancy-tuning-2026-06-17)
 - [v10–v20: pipeline evolution & runs](#v10v20-pipeline-evolution--runs-2026-06-11--2026-06-17)
 - [Foundational entries (2026-06-10)](#foundational-entries-2026-06-10)
@@ -263,8 +264,9 @@ Results: `runs/grtresna_qd/<name>/` (`trajectory.jsonl`, `archive.json`, `eval_*
 
 ### CMA-ES refinement after MAP-Elites
 
-| Line | QD source | Objective | Warm-start | Doc |
-|------|-----------|-----------|------------|-----|
+| Line | QD source | Objective | Warm-start | Result | Doc |
+|------|-----------|-----------|------------|--------|-----|
+| **v22 wormhole** | `general_ftl_wormhole_v21` | **`general_ftl`** | QD **063** → CMA-ES **046** (+14.2 pts) | [v22 CMA-ES](#v22-cma-es-wormhole-refinement-general_ftl_wormhole_cmaes_v1-2026-06-18) |
 | **v20** | `general_ftl_{wormhole,ring,spin}` | **`general_ftl`** | Ring eval **43** (TBD) | [v10–v20](#v10v20-pipeline-evolution--runs-2026-06-11--2026-06-17) |
 | **v18 / ftl_4d** | `ftl_4d_v1` | **`ftl_first`** | QD **156** → CMA-ES **144** | [v10–v20](#v10v20-pipeline-evolution--runs-2026-06-11--2026-06-17) |
 | **v17** | `ftl_discovery_v16` | `robust_ftl` | eval **739** (not king 233) | [v10–v20](#v10v20-pipeline-evolution--runs-2026-06-11--2026-06-17) |
@@ -300,7 +302,8 @@ CANDIDATES="<eval_ids>" NAME_PREFIX=<prefix> FORCE=1 \
 | Grid | 128³, L=64, ml=2 | **256³, L=128, ml=3** |
 | Stop time | 16 | **30** |
 | 4D mode | `search` (cheap) | `hq` (full stack) |
-| Objective | campaign-specific | usually `ftl_first` |
+| Geodesic dirs | **`x y z`** (`GRTECLYN_GEO_DIRECTIONS`) | **`x y z`** (same; wormhole on **z**) |
+| Objective | campaign-specific | **`general_ftl`** for v20/v22 wormhole |
 
 **Incremental scoring:** when `--evolving-geodesic` is on, only `ftl_geo_evolving` earns
 geodesic FTL credit until the end-of-run 4D trace completes — mid-run totals are not comparable
@@ -321,7 +324,8 @@ Reverse-chronological journal. Quick index:
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
-| [**v22: Pre-GPU learning + v21 resume**](#v22-pre-gpu-rejection-learning--v21-resume-2026-06-18) | **06-18 complete** | **200 evals** on `general_ftl_wormhole_v21`. Pipelined QD + pre-GPU learning. **Champion eval 191** (161.9, survival 1.00, 18.5% 4D). Eval 063 holds score/FTL records (165.6, 19.3%). [Top 3 + FTL champions](#v22-final-results-top-3--ftl-champions). → [CMA-ES refine 191](#v22-physical-validation--next-steps). |
+| [**v22 CMA-ES: wormhole refinement**](#v22-cma-es-wormhole-refinement-general_ftl_wormhole_cmaes_v1-2026-06-18) | **06-18 stopped** | QD **063** (165.6) → CMA-ES **046** (**179.8**, +14.2). Converged by gen 6 (~47 evals). Scoring parity fix (`GRTECLYN_GEO_DIRECTIONS=x y z`). → [HQ eval 046](#v22-cma-es-hq-promotion) in flight. |
+| [**v22: Pre-GPU learning + v21 resume**](#v22-pre-gpu-rejection-learning--v21-resume-2026-06-18) | **06-18 complete** | **200 evals** on `general_ftl_wormhole_v21`. Pipelined QD + pre-GPU learning. **Champion eval 191** (161.9, survival 1.00, 18.5% 4D). Eval 063 holds score/FTL records (165.6, 19.3%). [Top 3 + FTL champions](#v22-final-results-top-3--ftl-champions). |
 | [**v21: Pipelined QD + GPU tenancy**](#v21-pipelined-qd--gpu-tenancy-tuning-2026-06-17) | **06-17 stopped** | **Pipelined MAP-Elites** (`GpuPool` + `EvalPipeline`). **5 slots/GPU overloaded** H100s at t=16 (~3× slower/evol). **Working config:** 8 GPUs × **1 slot/GPU** + continuous GRTresna; **bottleneck** `MAX_CONCURRENT_GRTRESNA=3` → raise to **5+**. **26 evals:** 11 `gpu_ok`. Cold-start gap → [fixed in v22](#v22-pre-gpu-rejection-learning--v21-resume-2026-06-18). |
 | [**v10–v20: pipeline + runs**](#v10v20-pipeline-evolution--runs-2026-06-11--2026-06-17) | **06-11 → 06-17** | Scoring/geodesic hardening (v7–v16) → **4D probe + HQ** (eval **144** verified **~8%**) → **general_ftl** QD (ring eval **43** **~3.9%**). See glued section. |
 | [**Foundational (06-10)**](#foundational-entries-2026-06-10) | 06-10 | Matter model, navigation overhaul, status reset |
@@ -670,13 +674,119 @@ Legacy early-basin members: **071** (symmetric/stable, 13.9% 4D), **040** (compa
 
 #### IV. Strategic action plan
 
-| Step | Action | Goal |
-|------|--------|------|
-| **1** | **CMA-ES refinement** seeded from **eval 191** | Local hill-climb on dipole / jitter / scalar mass; push 18.5% 4D shortcut higher while holding survival 1.00. `OBJECTIVE_MODE=general_ftl`, same `--pin-dimension` overrides as v21. |
-| **2** | **HQ promotion** of eval 191 → **N=256, L=128, ml=3, t=30** | Does the dynamically opening throat reach static equilibrium or over-expand/collapse at longer times? Definitive viability test. |
-| **3** | **Complex scalar (boson star) pivot** | Real scalars disperse at \(t \gg 50\). Re-run same campaign with complex fields + conserved U(1) charge for long-term throat stabilization. |
+| Step | Action | Goal | Status |
+|------|--------|------|--------|
+| **1** | **CMA-ES refinement** seeded from QD **eval 063** | Local hill-climb in the v22 wormhole basin; push 4D shortcut above QD record while holding survival. | **Done** — [eval 046 @ 179.8](#v22-cma-es-wormhole-refinement-general_ftl_wormhole_cmaes_v1-2026-06-18) (+14.2 vs 063). Stopped early (converged ~gen 6). |
+| **2** | **HQ promotion** of CMA-ES **eval 046** → **N=256, L=128, ml=3, t=30** | Does the refined throat survive full resolution and longer time? | **In flight** — `general_ftl_wormhole_cmaes_v1_hq_eval000046` (single representative; top-3 CMA-ES evals were basin duplicates). |
+| **3** | **Complex scalar (boson star) pivot** | Real scalars disperse at \(t \gg 50\). Re-run with complex fields + conserved U(1) charge. | Pending |
 
-**Immediate next step:** launch focused CMA-ES around eval 191.
+**Note:** Action plan originally named eval **191** as refinement seed (resume-era champion, survival 1.00). CMA-ES used **063** instead — the absolute score / `ftl_geo_evolving` record holder — which replayed at **165.6** bit-identically once scoring parity was fixed.
+
+---
+
+## v22 CMA-ES: wormhole refinement (`general_ftl_wormhole_cmaes_v1`, 2026-06-18)
+
+**Status:** **stopped early** (user halt @ ~47 evals; score plateau ~179.8 by gen 6).
+Campaign dir (pruned): `runs/grtresna_cmaes/general_ftl_wormhole_cmaes_v1/` — champion **`eval_000046` only**.
+
+**Purpose.** Stage-1 local refinement after [v22 QD](#v22-final-results-top-3--ftl-champions): hill-climb
+within the clustered wormhole basin found by MAP-Elites, using the same 15-D pinned search space,
+`OBJECTIVE_MODE=general_ftl`, and pipelined evaluator as QD.
+
+### Seed & launch
+
+Warm-started from QD trajectory `general_ftl_wormhole_v21` with `WARM_START_TOP_K=1` (exact genome
+of eval **063**, not resume-era eval 191):
+
+```bash
+cd grteclyn-wrapper
+RUN_NAME=general_ftl_wormhole_cmaes_v1 \
+OBJECTIVE_MODE=general_ftl \
+WARM_START_TRAJECTORY="${GRTECLYN_ROOT}/runs/grtresna_qd/general_ftl_wormhole_v21/trajectory.jsonl" \
+WARM_START_TOP_K=1 WARM_START_JITTER=0.05 SIGMA0=0.05 \
+TARGET_EVALS=150 MAX_GENERATIONS=50 KEEP_TOP_EVAL_DIRS=3 \
+GPU_IDS="0 1 2 3 4 5 6 7" GPU_SLOTS_PER_DEVICE=1 MAX_CONCURRENT_GRTRESNA=3 \
+PIN_DIMS="$(bash -c 'source scripts/campaigns/lib/general_ftl_pins.sh && ftl_general_ftl_wormhole_pins')" \
+  bash scripts/campaigns/cmaes/run.sh
+```
+
+| Knob | Value |
+|------|-------|
+| Search space | 15-D wormhole pins (same as v22 QD) |
+| Population | 8 (= GPU count) |
+| σ₀ | 0.05 |
+| Pipeline | `GpuPool` + `EvalPipeline`, `max_concurrent_grtresna=3` |
+| Target | 150 evals (stopped @ ~47) |
+
+### Scoring parity fix (critical)
+
+First CMA-ES attempt replayed QD eval 063 at **−27** instead of **165.6** — same overrides,
+different score. Root cause: CMA-ES path lacked QD's geodesic configuration.
+
+| Issue | QD (v22) | CMA-ES (before fix) | Fix |
+|-------|----------|---------------------|-----|
+| `GRTECLYN_GEO_DIRECTIONS` | `x y z` (`general_ftl/run_all.sh`) | default **`x` only** | export in `campaigns/lib/search_common.sh` when `OBJECTIVE_MODE=general_ftl` |
+| Eval driver | shared `_run_cpu_grtresna_gates` + `_run_gpu_session` | duplicate `_objective` path | CMA-ES GRTresna mode wired to shared `evaluate_overrides` stack |
+| Live trajectory | append per eval | batch rewrite per gen | `_track_trajectory` + `live_trajectory_path` |
+
+After fix, warm-start replay (CMA-ES eval **001**) scored **165.608** — **bit-identical** to QD eval **063**
+(`ftl_geo_evolving` = 0.192631, `f_geo_evol` = 0.0419, geodesic axis **z**).
+
+HQ promotion received the same fix: `GRTECLYN_GEO_DIRECTIONS=x y z` + `--objective-mode general_ftl`
+in `campaigns/lib/promote_common.sh` and `campaigns/hq/run_batch.sh`.
+
+### Improvement over QD top candidate
+
+| Metric | QD eval **063** | CMA-ES eval **046** | Δ |
+|--------|----------------:|--------------------:|---|
+| **Score** | **165.6** | **179.8** | **+14.2 (+8.6%)** |
+| `ftl_geo_evolving` | 19.3% | **20.3%** | +1.0 pp |
+| `f_geo_evol` (4D trace) | 4.19% | 4.15% | ~flat |
+| `f_geo_peak` (frozen) | 7.07% | 6.77% | −0.3 pp |
+| `ftl_lifetime_fraction` | 86% | 86% | — |
+| `max_local_speed_peak` | 1.146 | 1.140 | −0.006 |
+| Survival | 0.94 | **1.00** | improved |
+| Geodesic axis | **z** | **z** | same |
+
+CMA-ES did **not** discover a new mechanism class — it tightened the existing v22 wormhole basin:
+higher integrated 4D score (`ftl_geo_evolving` × survival weight) with perfect structural persistence.
+
+### Convergence curve (best per generation)
+
+| Gen | Best score | Notes |
+|-----|----------:|-------|
+| 1 | 174.4 | Warm seed + σ=0.05 neighbors; eval 001 replays 063 @ 165.6 |
+| 2 | 174.8 | |
+| 3 | 178.0 | |
+| 4 | 179.1 | |
+| 5 | 179.6 | Population mean ≈ 178 — basin collapsed |
+| 6 | **179.8** | **Champion eval 046**; last 4 gen bests spread only +1.8 |
+
+Stopped manually when further gens were unlikely to beat 179.8 (σ=0.05 jitter around a single optimum).
+
+### v22 CMA-ES HQ promotion
+
+One HQ replay suffices — top CMA-ES evals 039/045/046 were σ-neighbors in the same basin (scores
+179.6–179.8), not distinct mechanisms.
+
+```bash
+cd grteclyn-wrapper
+SOURCE_RUN="${GRTECLYN_ROOT}/runs/grtresna_cmaes/general_ftl_wormhole_cmaes_v1" \
+NAME_PREFIX=general_ftl_wormhole_cmaes_v1 \
+OBJECTIVE_MODE=general_ftl \
+CANDIDATES="46 0" \
+  bash scripts/campaigns/hq/run_batch.sh
+```
+
+Output: `runs/grtresna_promote/general_ftl_wormhole_cmaes_v1_hq_eval000046/` (L=128, N=256, ml=3, t=30,
+4D mode **`hq`**, dirs **`x y z`**, incremental `score_timeseries.jsonl`).
+
+Monitor:
+
+```bash
+tail -f runs/grtresna_promote/general_ftl_wormhole_cmaes_v1_hq_eval000046.log
+tail -f runs/grtresna_promote/general_ftl_wormhole_cmaes_v1_hq_eval000046/small_data/score_timeseries.jsonl
+```
 
 ---
 

@@ -22,6 +22,7 @@ source "${CAMPAIGNS_ROOT}/lib/promote_common.sh"
 
 SOURCE_RUN="${SOURCE_RUN:-${QD_RUN:-${GRTECLYN_ROOT}/runs/grtresna_qd/ftl_discovery/qd_ftl_discovery_20260609T162553Z}}"
 NAME_PREFIX="${NAME_PREFIX:-ftl_discovery}"
+OBJECTIVE_MODE="${OBJECTIVE_MODE:-general_ftl}"
 CANDIDATES="${CANDIDATES:-}"
 CANDIDATES_FILE="${CANDIDATES_FILE:-}"
 TOP_K="${TOP_K:-0}"
@@ -115,7 +116,8 @@ echo "Source run    : ${SOURCE_RUN}"
 echo "Runs dir      : ${RUNS_DIR}"
 echo "Name prefix   : ${NAME_PREFIX:-<none>}"
 echo "Domain        : L=${L_FULL} N=${N_FULL} max_level=${MAX_LEVEL} t=${STOP_TIME}"
-echo "4D geodesic   : mode=${GRTECLYN_EVOLVING_GEODESIC_MODE} (full HQ verify)"
+echo "Objective     : ${OBJECTIVE_MODE}"
+echo "4D geodesic   : mode=${GRTECLYN_EVOLVING_GEODESIC_MODE} dirs=${GRTECLYN_GEO_DIRECTIONS:-x} (full HQ verify)"
 echo "Frames        : ${GRTECLYN_FRAMES:-on}"
 echo "Candidates    : ${#CANDIDATE_ENTRIES[@]}"
 echo
@@ -168,6 +170,7 @@ for entry in "${CANDIDATE_ENTRIES[@]}"; do
     --grtresna-max-ham-pct "${GRTRESNA_MAX_HAM_PCT}" \
     --grtresna-max-mom-pct "${GRTRESNA_MAX_MOM_PCT}" \
     --consumer-keep-last "${CONSUMER_KEEP_LAST}" \
+    --objective-mode "${OBJECTIVE_MODE}" \
     --evolving-geodesic \
     "${gridinit_args[@]}" \
     > "${log}" 2>&1 &
