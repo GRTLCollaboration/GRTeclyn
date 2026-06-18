@@ -139,6 +139,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="Fraction of each parameter range used when jittering warm-starts.",
     )
     opt.add_argument(
+        "--warm-start-include-near-miss",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Also warm-start from top graded pre-GPU rejections in trajectory files (default: on with --grtresna).",
+    )
+    opt.add_argument(
+        "--warm-start-near-miss-k",
+        type=int,
+        default=4,
+        help="Max near-miss vectors to add when warm-starting CMA-ES.",
+    )
+    opt.add_argument(
         "--keep-top-eval-dirs",
         type=int,
         default=0,
@@ -495,6 +507,18 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=None,
         help="Total evaluations to reach (sets batch count from remaining evals on resume).",
+    )
+    qd.add_argument(
+        "--pre-gpu-learning",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Learn from graded GRTresna rejections via near-miss pool + shadow archive (default: on with --grtresna).",
+    )
+    qd.add_argument(
+        "--near-miss-pool-size",
+        type=int,
+        default=32,
+        help="Top-K near-miss parents kept for MAP-Elites mutation.",
     )
     add_pipeline_args(qd)
 

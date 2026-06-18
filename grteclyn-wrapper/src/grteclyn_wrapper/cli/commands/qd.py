@@ -105,6 +105,8 @@ def run_qd_command(args: argparse.Namespace, base_overrides: dict) -> int:
         grtresna_mpi_ranks=getattr(args, "grtresna_ranks", 8),
         remove_partial=pipeline_cfg["remove_partial"],
         use_pipeline=pipeline_cfg["use_pipeline"],
+        pre_gpu_learning=getattr(args, "pre_gpu_learning", None),
+        near_miss_pool_size=getattr(args, "near_miss_pool_size", 32),
     )
     best = archive.best
     print(json.dumps({

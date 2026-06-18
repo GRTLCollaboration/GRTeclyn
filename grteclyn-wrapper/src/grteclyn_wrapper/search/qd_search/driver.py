@@ -56,13 +56,14 @@ from ..ftl_retention import (
     save_ftl_champions,
 )
 from .io import _iterations_for_target_evals, _load_trajectory_records, _prune_eval_dirs
-from .sampling import (
-    _ELITE_FRACTION,
-    _feasible_bounds,
-    _mutate_elite,
-    _sample_feasible_box,
-    _sample_random,
+from ..pre_gpu import NearMissPool, attach_pre_gpu_metrics_to_record, is_graded_rejection
+from .pre_gpu_archive import (
+    PRE_GPU_ARCHIVE_FILE,
+    load_pre_gpu_archive,
+    rebuild_pre_gpu_archive_from_trajectory,
+    shadow_elite_from_record,
 )
+from .sampling import QdSamplingConfig, sample_next_candidate, _sample_random
 
 
 def run_qd_search(
@@ -116,6 +117,8 @@ def run_qd_search(
     remove_partial: bool = False,
     use_pipeline: bool = True,
     prune_interval: int = 10,
+    pre_gpu_learning: bool | None = None,
+    near_miss_pool_size: int = 32,
 ) -> QDArchive:
     example_cfg = example if isinstance(example, ExampleConfig) else resolve_example(example)
     dims = list(search_space or DEFAULT_SEARCH_SPACE)
@@ -131,6 +134,7 @@ def run_qd_search(
     if "regrid_interval" not in base and max_lvl > 0:
         base["regrid_interval"] = regrid_intervals_for_max_level(max_lvl)
     target_stop_time = float(base["stop_time"])
+    pre_gpu_enabled = grtresna if pre_gpu_learning is None else bool(pre_gpu_learning and grtresna)
 
     rng = np.random.default_rng(seed)
     effective_gpu_ids = list(gpu_ids) if gpu_ids else (
@@ -218,6 +222,24 @@ def run_qd_search(
         FtlChampionBoard.rebuild(trajectory) if ftl_retention_enabled else FtlChampionBoard()
     )
 
+    pre_gpu_archive_path = qd_dir / PRE_GPU_ARCHIVE_FILE
+    if pre_gpu_enabled:
+        try:
+            pre_gpu_archive = load_pre_gpu_archive(pre_gpu_archive_path, bins=bins)
+        except (json.JSONDecodeError, KeyError, ValueError):
+            pre_gpu_archive = rebuild_pre_gpu_archive_from_trajectory(
+                trajectory,
+                bins=bins,
+                convergence_config=grtresna_convergence_config,
+            )
+        near_miss_pool = NearMissPool.rebuild_from_trajectory(
+            trajectory, max_size=near_miss_pool_size,
+        )
+    else:
+        pre_gpu_archive = QDArchive(bins=bins)
+        near_miss_pool = NearMissPool(max_size=0)
+    sampling_config = QdSamplingConfig()
+
     gpu_pool, cpu_admission, sizing = build_pipeline_resources(
         effective_gpu_ids,
         slots_per_gpu=slots_per_gpu,
@@ -260,6 +282,8 @@ def run_qd_search(
         "pipeline_share": pipeline_share,
         "last_eval_counter": completed_evals,
         "use_pipeline": use_pipeline,
+        "pre_gpu_learning": pre_gpu_enabled,
+        "near_miss_pool_size": near_miss_pool_size if pre_gpu_enabled else 0,
     }
     if target_evals is not None:
         metadata["target_evals"] = target_evals
@@ -344,17 +368,30 @@ def run_qd_search(
         }
         record.update(flags)
         record["status"] = status
+        attach_pre_gpu_metrics_to_record(record, res.metrics)
         return record, elite
 
     def _sample_next_candidate(worker_rng: np.random.Generator) -> list[float]:
-        elites = list(archive.cells.values())
-        feasible_bounds = _feasible_bounds(dims, elites) if elites else None
-        if elites and worker_rng.random() < _ELITE_FRACTION:
-            parent = elites[int(worker_rng.integers(len(elites)))]
-            return _mutate_elite(parent, dims, worker_rng)
-        if feasible_bounds is not None:
-            return _sample_feasible_box(dims, feasible_bounds, worker_rng)
-        return _sample_random(dims, worker_rng)
+        if not pre_gpu_enabled:
+            elites = list(archive.cells.values())
+            if elites and worker_rng.random() < 0.85:
+                from .sampling import _mutate_elite
+                parent = elites[int(worker_rng.integers(len(elites)))]
+                return _mutate_elite(parent, dims, worker_rng)
+            if elites:
+                from .sampling import _feasible_bounds, _sample_feasible_box
+                return _sample_feasible_box(
+                    dims, _feasible_bounds(dims, elites), worker_rng,
+                )
+            return _sample_random(dims, worker_rng)
+        return sample_next_candidate(
+            dims=dims,
+            rng=worker_rng,
+            archive=archive,
+            pre_gpu_archive=pre_gpu_archive,
+            near_miss_pool=near_miss_pool,
+            config=sampling_config,
+        )
 
     def _batched_prune() -> None:
         in_flight = pipeline.in_flight_eval_ids if use_pipeline else set()
@@ -511,6 +548,15 @@ def run_qd_search(
         with archive_lock:
             if elite is not None:
                 record["improved"] = archive.insert(elite)
+            if pre_gpu_enabled and is_graded_rejection(record):
+                near_miss_pool.consider(record)
+                shadow = shadow_elite_from_record(
+                    record,
+                    bins=bins,
+                    convergence_config=grtresna_convergence_config,
+                )
+                if shadow is not None:
+                    record["shadow_improved"] = pre_gpu_archive.insert(shadow)
             trajectory.append(record)
             if ftl_retention_enabled and record.get("status") == "gpu_ok":
                 retention_events = ftl_board.consider(record)
@@ -529,12 +575,20 @@ def run_qd_search(
         if completions_since_report[0] >= batch:
             completions_since_report[0] = 0
             write_json(qd_dir / "archive.json", archive.to_dict())
+            if pre_gpu_enabled:
+                write_json(pre_gpu_archive_path, pre_gpu_archive.to_dict())
             signals = _write_validation()
             best = archive.best
             print(
                 f"[qd] report: elites={len(archive.cells)} coverage={archive.coverage:.2f} "
                 f"best={best.score if best else float('nan'):.4f} "
                 f"evals={eval_counter[0]}/{total_target}"
+                + (
+                    f" near_miss={len(near_miss_pool)} "
+                    f"shadow_cov={pre_gpu_archive.coverage:.2f}"
+                    if pre_gpu_enabled
+                    else ""
+                )
             )
             if signals.get("converged"):
                 stop_event.set()
@@ -619,6 +673,11 @@ def run_qd_search(
             conv_history=conv_history,
             start_iter=start_iter,
             total_target=total_target,
+            pre_gpu_enabled=pre_gpu_enabled,
+            near_miss_pool=near_miss_pool,
+            pre_gpu_archive=pre_gpu_archive,
+            sampling_config=sampling_config,
+            pre_gpu_archive_path=pre_gpu_archive_path,
         )
 
     max_in_flight = gpu_pool.total_slots + cpu_admission.max_concurrent
@@ -643,6 +702,8 @@ def run_qd_search(
     pipeline.shutdown()
     _batched_prune()
     write_json(qd_dir / "archive.json", archive.to_dict())
+    if pre_gpu_enabled:
+        write_json(pre_gpu_archive_path, pre_gpu_archive.to_dict())
     _write_validation()
     final_hist = archive.tier_histogram()
     print(f"[qd] Done. elites={len(archive.cells)} coverage={archive.coverage:.2f} "
@@ -702,6 +763,11 @@ def _run_legacy_batch_mode(
     conv_history: list[dict[str, Any]],
     start_iter: int,
     total_target: int,
+    pre_gpu_enabled: bool = False,
+    near_miss_pool: NearMissPool | None = None,
+    pre_gpu_archive: QDArchive | None = None,
+    sampling_config: QdSamplingConfig | None = None,
+    pre_gpu_archive_path: Path | None = None,
 ) -> QDArchive:
     trajectory_lock = threading.Lock()
 
@@ -773,6 +839,8 @@ def _run_legacy_batch_mode(
         }
         record.update(flags)
         record["status"] = status
+        if res is not None:
+            attach_pre_gpu_metrics_to_record(record, res.metrics)
         return record
 
     def _evaluate_batch(vectors: list[list[float]]) -> list[tuple[int, list[float], Evaluation | None] | None]:
@@ -837,6 +905,16 @@ def _run_legacy_batch_mode(
             idx, x, res = item
             protected_eval_ids.add(idx)
             record = _record_result(idx=idx, x=x, res=res, insert_archive=True)
+            if pre_gpu_enabled and near_miss_pool is not None and pre_gpu_archive is not None:
+                if is_graded_rejection(record):
+                    near_miss_pool.consider(record)
+                    shadow = shadow_elite_from_record(
+                        record,
+                        bins=bins,
+                        convergence_config=grtresna_convergence_config,
+                    )
+                    if shadow is not None:
+                        pre_gpu_archive.insert(shadow)
             trajectory.append(record)
             if ftl_retention_enabled and record.get("status") == "gpu_ok":
                 retention_events.extend(ftl_board.consider(record))
@@ -869,18 +947,33 @@ def _run_legacy_batch_mode(
 
     for it in range(1, iterations + 1):
         vectors: list[list[float]] = []
-        elites = list(archive.cells.values())
-        feasible_bounds = _feasible_bounds(dims, elites) if elites else None
         for _ in range(batch):
-            if elites and rng.random() < _ELITE_FRACTION:
-                parent = elites[int(rng.integers(len(elites)))]
-                vectors.append(_mutate_elite(parent, dims, rng))
-            elif feasible_bounds is not None:
-                vectors.append(_sample_feasible_box(dims, feasible_bounds, rng))
+            if pre_gpu_enabled and pre_gpu_archive is not None and near_miss_pool is not None:
+                vectors.append(
+                    sample_next_candidate(
+                        dims=dims,
+                        rng=rng,
+                        archive=archive,
+                        pre_gpu_archive=pre_gpu_archive,
+                        near_miss_pool=near_miss_pool,
+                        config=sampling_config or QdSamplingConfig(),
+                    )
+                )
             else:
-                vectors.append(_sample_random(dims, rng))
+                from .sampling import _feasible_bounds, _mutate_elite, _sample_feasible_box
+                elites = list(archive.cells.values())
+                feasible_bounds = _feasible_bounds(dims, elites) if elites else None
+                if elites and rng.random() < 0.85:
+                    parent = elites[int(rng.integers(len(elites)))]
+                    vectors.append(_mutate_elite(parent, dims, rng))
+                elif feasible_bounds is not None:
+                    vectors.append(_sample_feasible_box(dims, feasible_bounds, rng))
+                else:
+                    vectors.append(_sample_random(dims, rng))
         _ingest(_evaluate_batch(vectors))
         write_json(qd_dir / "archive.json", archive.to_dict())
+        if pre_gpu_enabled and pre_gpu_archive_path is not None and pre_gpu_archive is not None:
+            write_json(pre_gpu_archive_path, pre_gpu_archive.to_dict())
         print(f"[qd] legacy iter {it}/{iterations} evals={eval_counter[0]}/{total_target}")
 
     write_json(qd_dir / "archive.json", archive.to_dict())

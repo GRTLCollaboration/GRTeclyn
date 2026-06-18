@@ -101,6 +101,8 @@ def run_optimize_command(args: argparse.Namespace, base_overrides: dict) -> int:
         ],
         warm_start_top_k=getattr(args, "warm_start_top_k", 8),
         warm_start_jitter=getattr(args, "warm_start_jitter", 0.08),
+        warm_start_include_near_miss=getattr(args, "warm_start_include_near_miss", None),
+        warm_start_near_miss_k=getattr(args, "warm_start_near_miss_k", 4),
         random_injection_fraction=getattr(args, "random_injection_fraction", 0.0),
         exotic_injection_fraction=getattr(args, "exotic_injection_fraction", 0.0),
         keep_top_eval_dirs=getattr(args, "keep_top_eval_dirs", 0),

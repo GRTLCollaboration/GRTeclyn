@@ -47,42 +47,69 @@ def _overrides_to_vector(
     return vals
 
 
+def _load_trajectory_records(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    records: list[dict[str, Any]] = []
+    with path.open("r", encoding="utf-8") as fh:
+        for line in fh:
+            if not line.strip():
+                continue
+            records.append(json.loads(line))
+    return records
+
+
 def _load_warm_start_vectors(
     trajectories: Sequence[Path],
     dims: Sequence[SearchDimension],
     top_k: int,
+    *,
+    include_near_miss: bool = False,
+    near_miss_k: int = 4,
 ) -> list[list[float]]:
     """Load top-scoring vectors from one or more prior trajectory.jsonl files."""
-    records: list[tuple[float, Mapping[str, Any]]] = []
+    all_records: list[dict[str, Any]] = []
+    gpu_records: list[tuple[float, Mapping[str, Any]]] = []
     for path in trajectories:
         path = path.expanduser().resolve()
         if not path.exists():
             continue
-        with path.open("r", encoding="utf-8") as fh:
-            for line in fh:
-                if not line.strip():
-                    continue
-                try:
-                    rec = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                if rec.get("surrogate_predicted"):
-                    continue
-                status = rec.get("status")
-                if isinstance(status, str) and status != "gpu_ok":
-                    continue
-                score = rec.get("score")
-                overrides = rec.get("overrides")
-                if not isinstance(overrides, Mapping):
-                    continue
-                try:
-                    score_f = float(score)
-                except (TypeError, ValueError):
-                    continue
-                if math.isfinite(score_f):
-                    records.append((score_f, overrides))
-    records.sort(key=lambda item: item[0], reverse=True)
-    return [_overrides_to_vector(overrides, dims) for _, overrides in records[:top_k]]
+        for rec in _load_trajectory_records(path):
+            all_records.append(rec)
+            if rec.get("surrogate_predicted"):
+                continue
+            status = rec.get("status")
+            if isinstance(status, str) and status != "gpu_ok":
+                continue
+            score = rec.get("score")
+            overrides = rec.get("overrides")
+            if not isinstance(overrides, Mapping):
+                continue
+            try:
+                score_f = float(score)
+            except (TypeError, ValueError):
+                continue
+            if math.isfinite(score_f):
+                gpu_records.append((score_f, overrides))
+    gpu_records.sort(key=lambda item: item[0], reverse=True)
+    vectors = [
+        _overrides_to_vector(overrides, dims)
+        for _, overrides in gpu_records[:top_k]
+    ]
+    if include_near_miss and near_miss_k > 0 and all_records:
+        from ..pre_gpu.near_miss_pool import near_miss_vectors_from_trajectory
+
+        near_vectors = near_miss_vectors_from_trajectory(
+            all_records, dims, max_size=near_miss_k,
+        )
+        seen = {tuple(round(x, 8) for x in vec) for vec in vectors}
+        for vec in near_vectors:
+            key = tuple(round(x, 8) for x in vec)
+            if key in seen:
+                continue
+            vectors.append(vec)
+            seen.add(key)
+    return vectors
 
 
 def _random_vector(

@@ -154,6 +154,8 @@ def run_optimize(
     exotic_injection_fraction: float = 0.0,
     keep_top_eval_dirs: int = 0,
     ftl_retention_enabled: bool = False,
+    warm_start_include_near_miss: bool | None = None,
+    warm_start_near_miss_k: int = 4,
 ) -> OptimizeResult:
     """Run multi-GPU CMA-ES optimization loop.
 
@@ -205,7 +207,13 @@ def run_optimize(
     retention_active = bool(ftl_retention_enabled or keep_top_eval_dirs > 0)
 
     warm_vectors = _load_warm_start_vectors(
-        warm_start_trajectories, dims, max(0, warm_start_top_k)
+        warm_start_trajectories,
+        dims,
+        max(0, warm_start_top_k),
+        include_near_miss=(
+            grtresna if warm_start_include_near_miss is None else warm_start_include_near_miss
+        ),
+        near_miss_k=warm_start_near_miss_k,
     )
 
     if x0 is not None:
@@ -264,6 +272,10 @@ def run_optimize(
         "warm_start_trajectories": [str(p) for p in warm_start_trajectories],
         "warm_start_top_k": warm_start_top_k,
         "warm_start_jitter": warm_start_jitter,
+        "warm_start_include_near_miss": (
+            grtresna if warm_start_include_near_miss is None else warm_start_include_near_miss
+        ),
+        "warm_start_near_miss_k": warm_start_near_miss_k,
         "random_injection_fraction": random_injection_fraction,
         "exotic_injection_fraction": exotic_injection_fraction,
         "keep_top_eval_dirs": keep_top_eval_dirs,

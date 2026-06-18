@@ -74,6 +74,11 @@ def reject_grtresna_convergence(
             "grtresna_rejection_reason": reason,
             "grtresna_rejection_fitness": fitness,
         },
+        metrics=(
+            {"grtresna_convergence": dict(convergence)}
+            if convergence is not None
+            else None
+        ),
     )
 
 
@@ -143,6 +148,12 @@ def reject_postload_gate(
 
     fitness = POSTLOAD_REJECTION_BASE_FITNESS + POSTLOAD_REJECTION_MAX_EXTRA_FITNESS
     reason = gate.reason or "postload_constraints_exceeded"
+    postload_metrics = {
+        "passed": gate.passed,
+        "max_hamiltonian_l2": gate.max_hamiltonian_l2,
+        "max_momentum_l2": gate.max_momentum_l2,
+        "reason": gate.reason,
+    }
     return GRTresnaGateRejection(
         reason=reason,
         fitness=fitness,
@@ -150,14 +161,10 @@ def reject_postload_gate(
         metadata={
             "postload_rejected": True,
             "postload_rejection_fitness": fitness,
-            "postload_gate": {
-                "passed": gate.passed,
-                "max_hamiltonian_l2": gate.max_hamiltonian_l2,
-                "max_momentum_l2": gate.max_momentum_l2,
-                "reason": gate.reason,
-            },
+            "postload_gate": postload_metrics,
         },
         notes=(reason,),
+        metrics={"postload_gate": postload_metrics},
     )
 
 
