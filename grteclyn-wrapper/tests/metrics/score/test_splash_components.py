@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from grteclyn_wrapper.metrics.score.splash import compute_splash_components
 from grteclyn_wrapper.metrics.score.types import ScoringContext
 from grteclyn_wrapper.metrics.types.central import CentralFieldMetrics
@@ -59,7 +61,7 @@ def test_central_energy_peak_normalization() -> None:
 def test_focusing_efficiency_capped() -> None:
     ctx = _ctx(_central(initial_rho_req_at_origin=1.0e-6, peak_rho_req_at_origin=1.0))
     compute_splash_components(ctx)
-    assert ctx.components["focusing_efficiency"] == 10.0
+    assert ctx.components["focusing_efficiency"] == 5.0
 
 
 def test_pre_collapsed_penalty_when_initial_rho_high() -> None:
@@ -76,3 +78,23 @@ def test_threshold_mode_lapse_band_reward() -> None:
     bad = _ctx(_central(min_lapse_at_origin=0.005))
     compute_splash_components(bad, splash_mode="threshold")
     assert bad.components["central_lapse_collapse"] == -1.0
+
+
+def test_dispersion_penalty_for_fading_blob() -> None:
+    ctx = _ctx(
+        _central(
+            peak_rho_req_at_origin=1.0e-3,
+            initial_rho_req_at_origin=3.0e-4,
+            scalar_activity=(0.10, 0.08, 0.06, 0.04),
+            wave_chromaticity=0.6,
+        )
+    )
+    compute_splash_components(ctx)
+    assert ctx.components["dispersion_penalty"] < 0.0
+    assert ctx.components["wave_focusing_quality"] < 0.6
+
+
+def test_discovery_lapse_progress() -> None:
+    ctx = _ctx(_central(min_lapse_at_origin=0.10))
+    compute_splash_components(ctx, splash_mode="discovery")
+    assert ctx.components["collapse_lapse_progress"] == pytest.approx(2.0 / 3.0)

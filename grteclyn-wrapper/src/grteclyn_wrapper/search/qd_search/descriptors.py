@@ -116,10 +116,14 @@ def _horizon_free_axis(metrics: Mapping[str, Any] | None) -> float:
     return float(np.clip(scaled, 0.0, 1.0))
 
 
-# Boson profile-width bounds (match grtresna_boson_splash_search_space).
-_BS_PROFILE_WIDTH_MIN = 4.0
-_BS_PROFILE_WIDTH_MAX = 16.0
+# Boson profile-width bounds (splash boson-star search space).
+_BS_PROFILE_WIDTH_MIN = 2.0
+_BS_PROFILE_WIDTH_MAX = 8.0
 _BS_OMEGA_MAX = 0.4
+# Scalar shell compact profile bounds (splash scalar-shell campaigns).
+_SHELL_WIDTH_MIN = 1.8
+_SHELL_WIDTH_MAX = 3.0
+_SHELL_OMEGA_MAX = 0.5
 
 
 def _central_metrics(metrics: Mapping[str, Any] | None) -> Mapping[str, Any] | None:
@@ -134,13 +138,39 @@ def _normalize_profile_width(width: float) -> float:
     return float(np.clip((width - _BS_PROFILE_WIDTH_MIN) / span, 0.0, 1.0))
 
 
+def _normalize_shell_width(width: float) -> float:
+    span = _SHELL_WIDTH_MAX - _SHELL_WIDTH_MIN
+    if span <= 0.0:
+        return 0.0
+    return float(np.clip((width - _SHELL_WIDTH_MIN) / span, 0.0, 1.0))
+
+
+def _shell_omega_chromaticity_fallback(overrides: Mapping[str, Any] | None) -> float:
+    if not overrides:
+        return 0.0
+    omega = overrides.get("grtresna_shell_omega")
+    if omega is None or not math.isfinite(float(omega)):
+        return 0.0
+    return float(np.clip(abs(float(omega)) / _SHELL_OMEGA_MAX, 0.0, 1.0))
+
+
+def _profile_width_from_overrides(overrides: Mapping[str, Any] | None) -> float | None:
+    if not overrides:
+        return None
+    if overrides.get("grtresna_bs_profile_width") is not None:
+        return float(overrides["grtresna_bs_profile_width"])
+    if overrides.get("grtresna_shell_width") is not None:
+        return float(overrides["grtresna_shell_width"])
+    return None
+
+
 def _omega_chromaticity_fallback(overrides: Mapping[str, Any] | None) -> float:
     if not overrides:
         return 0.0
     omega = overrides.get("grtresna_bs_omega")
-    if omega is None or not math.isfinite(float(omega)):
-        return 0.0
-    return float(np.clip(float(omega) / _BS_OMEGA_MAX, 0.0, 1.0))
+    if omega is not None and math.isfinite(float(omega)):
+        return float(np.clip(float(omega) / _BS_OMEGA_MAX, 0.0, 1.0))
+    return _shell_omega_chromaticity_fallback(overrides)
 
 
 def _descriptor_details(
@@ -159,10 +189,14 @@ def _descriptor_details(
             )
         elif chromaticity <= 0.0:
             chromaticity = _omega_chromaticity_fallback(overrides)
-        width = None
-        if overrides and overrides.get("grtresna_bs_profile_width") is not None:
-            width = float(overrides["grtresna_bs_profile_width"])
-        profile_axis = _normalize_profile_width(width) if width is not None else 0.5
+        width = _profile_width_from_overrides(overrides)
+        if width is not None:
+            if overrides and overrides.get("grtresna_shell_width") is not None:
+                profile_axis = _normalize_shell_width(width)
+            else:
+                profile_axis = _normalize_profile_width(width)
+        else:
+            profile_axis = 0.5
         return {
             "x": chromaticity,
             "y": profile_axis,
@@ -170,6 +204,11 @@ def _descriptor_details(
             "profile_width_norm": profile_axis,
             "grtresna_bs_omega": float(
                 overrides.get("grtresna_bs_omega", float("nan"))
+            )
+            if overrides
+            else float("nan"),
+            "grtresna_shell_omega": float(
+                overrides.get("grtresna_shell_omega", float("nan"))
             )
             if overrides
             else float("nan"),

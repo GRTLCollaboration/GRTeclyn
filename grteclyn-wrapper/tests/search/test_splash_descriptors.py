@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from grteclyn_wrapper.search.qd_search.descriptors import _bin_index, _descriptor_details
 
 
@@ -17,8 +19,20 @@ def test_wave_focusing_x_fallback_from_omega_override() -> None:
     assert details["x"] == 0.5
 
 
+def test_wave_focusing_x_fallback_from_shell_omega() -> None:
+    overrides = {"grtresna_shell_omega": 0.25}
+    details = _descriptor_details({}, None, mode="wave_focusing", overrides=overrides)
+    assert details["x"] == 0.5
+
+
+def test_wave_focusing_y_from_shell_width_override() -> None:
+    overrides = {"grtresna_shell_width": 2.4}
+    details = _descriptor_details({}, None, mode="wave_focusing", overrides=overrides)
+    assert details["y"] == pytest.approx(0.5)
+
+
 def test_wave_focusing_y_from_profile_width_override() -> None:
-    overrides = {"grtresna_bs_profile_width": 10.0}
+    overrides = {"grtresna_bs_profile_width": 5.0}
     details = _descriptor_details({}, None, mode="wave_focusing", overrides=overrides)
     assert details["y"] == 0.5
 

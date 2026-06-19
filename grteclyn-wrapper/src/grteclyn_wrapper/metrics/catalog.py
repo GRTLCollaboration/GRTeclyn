@@ -240,6 +240,9 @@ METRIC_REGISTRY: dict[str, MetricSpec] = {
         score_components=(
             "central_energy_peak",
             "focusing_efficiency",
+            "wave_focusing_quality",
+            "collapse_lapse_progress",
+            "dispersion_penalty",
             "pre_collapsed_penalty",
             "central_lapse_collapse",
         ),

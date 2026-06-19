@@ -81,3 +81,21 @@ def test_ignores_ftl_components() -> None:
     )
     assert total > 0.0
     assert any("critical_collapse" in note for note in notes)
+
+
+def test_modest_focus_without_absolute_peak_scores_low() -> None:
+    """Regression: v3 blobs scored ~1000 from focus alone with tiny rho."""
+    total = _critical_collapse_total(
+        {
+            "survival": 0.5,
+            "central_energy_peak": 0.115,
+            "focusing_efficiency": 3.43,
+            "wave_focusing_quality": 0.25,
+            "collapse_lapse_progress": 0.47,
+            "dispersion_penalty": -0.5,
+            "pre_collapsed_penalty": -0.25,
+        },
+        [],
+        splash_mode="discovery",
+    )
+    assert total < 200.0

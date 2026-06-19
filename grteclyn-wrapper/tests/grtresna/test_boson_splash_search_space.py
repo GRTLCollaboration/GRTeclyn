@@ -21,9 +21,17 @@ def test_build_search_space_splash_ansatz() -> None:
 def test_splash_omega_unpinned() -> None:
     space = build_search_space(grtresna=True, grtresna_ansatz="splash")
     omega = next(d for d in space if d.param_key == "grtresna_bs_omega")
-    assert omega.lower == 0.0
+    assert omega.lower == 0.05
     assert omega.upper == 0.4
     assert omega.upper > omega.lower
+
+
+def test_splash_profile_width_compact() -> None:
+    space = build_search_space(grtresna=True, grtresna_ansatz="splash")
+    width = next(d for d in space if d.param_key == "grtresna_bs_profile_width")
+    assert width.lower == 2.0
+    assert width.upper == 8.0
+    assert width.initial == 3.5
 
 
 def test_splash_phi_c_capped_for_convergence() -> None:

@@ -217,24 +217,33 @@ def _critical_collapse_total(
         )
         return 0.0
     peak = float(components.get("central_energy_peak", 0.0))
-    focus = float(components.get("focusing_efficiency", 0.0))
-    pre_penalty = float(components.get("pre_collapsed_penalty", 0.0))
+    focus = min(float(components.get("focusing_efficiency", 0.0)), 5.0)
+    # Relative growth only counts when absolute peak density is meaningful.
+    focus_effective = focus * peak
+    wave = float(components.get("wave_focusing_quality", 0.0))
+    lapse_progress = float(components.get("collapse_lapse_progress", 0.0))
     lapse_term = float(components.get("central_lapse_collapse", 0.0))
+    dispersion = float(components.get("dispersion_penalty", 0.0))
+    pre_penalty = float(components.get("pre_collapsed_penalty", 0.0))
     horizon_bonus = float(components.get("horizon_formation_time", 0.0))
 
     total = (
         1000.0 * peak * survival
-        + 300.0 * min(focus, 5.0)
+        + 300.0 * focus_effective * survival
+        + 200.0 * wave * survival
         + 100.0 * pre_penalty
+        + 100.0 * dispersion
     )
     if splash_mode == "threshold":
         total += 500.0 * lapse_term
-    if splash_mode == "discovery" and horizon_bonus > 0.0:
-        total += 50.0 * horizon_bonus
+    else:
+        total += 200.0 * lapse_progress * survival
+        if horizon_bonus > 0.0:
+            total += 500.0 * horizon_bonus * survival
 
     notes.append(
         f"objective_mode=critical_collapse splash_mode={splash_mode}: "
-        "central rho peak dominates; FTL terms ignored"
+        "peak rho + gated focus + wave quality; FTL terms ignored"
     )
     return total
 

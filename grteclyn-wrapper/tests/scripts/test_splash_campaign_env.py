@@ -63,11 +63,12 @@ def test_search_common_exotic_coupling_allowed_outside_splash() -> None:
 def test_splash_run_script_defaults() -> None:
     subprocess.run(["bash", "-n", str(SPLASH_RUN)], check=True)
     text = SPLASH_RUN.read_text(encoding="utf-8")
-    assert "GRTRESNA_MATTER_SECTOR=boson_star" in text
+    assert "GRTRESNA_MATTER_SECTOR=scalar" in text
     assert 'OBJECTIVE_MODE="${OBJECTIVE_MODE:-critical_collapse}"' in text
-    assert 'GRTRESNA_ANSATZ=splash' in text
+    assert "GRTRESNA_ANSATZ=shell" in text
     assert 'DESCRIPTOR_MODE="${DESCRIPTOR_MODE:-wave_focusing}"' in text
     assert "export GRTECLYN_FRAMES=1" in text
+    assert "GRTRESNA_MATTER_COUPLING=canonical" in text
 
 
 def test_parser_accepts_splash_cli_choices() -> None:

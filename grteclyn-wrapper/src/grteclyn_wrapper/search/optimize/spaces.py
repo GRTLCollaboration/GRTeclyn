@@ -292,13 +292,15 @@ def grtresna_boson_splash_search_space() -> list[SearchDimension]:
 
     Bounds are tighter than the generic boson-star space to keep canonical
     GRTresna solves in the Ham/Mom convergence window for early splash sweeps.
+    Profile width defaults small (Gaussian σ ≈ 3.5 on a 64-wide domain) so
+    frames show a compact core with room for inward wave structure.
     """
     return [
         SearchDimension("grtresna_scalar_mass", 0.05, 0.35, 0.1),
         SearchDimension("grtresna_scalar_lambda", 0.0, 0.05, 0.0),
-        SearchDimension("grtresna_bs_phi_c", 0.03, 0.12, 0.08),
-        SearchDimension("grtresna_bs_profile_width", 4.0, 16.0, 8.0),
-        SearchDimension("grtresna_bs_omega", 0.0, 0.4, 0.15),
+        SearchDimension("grtresna_bs_phi_c", 0.03, 0.12, 0.06),
+        SearchDimension("grtresna_bs_profile_width", 2.0, 8.0, 3.5),
+        SearchDimension("grtresna_bs_omega", 0.05, 0.4, 0.2),
         SearchDimension("grtresna_scalar_sign", 1.0, 1.0, 1.0),
         SearchDimension("grtresna_shift_seed", -0.6, 0.6, 0.0),
     ]
