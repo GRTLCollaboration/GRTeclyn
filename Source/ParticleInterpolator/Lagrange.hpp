@@ -36,7 +36,7 @@ template <int N> class Lagrange
         std::array<int, N> stencil;
         constexpr int center_offset =
             N / 2; // offset based on the number of points we are using
-        int center;
+        int center{};
         constexpr amrex::Real eps =
             10 * std::numeric_limits<
                      amrex::Real>::epsilon(); // choose a small number around
@@ -93,11 +93,13 @@ template <int N> class Lagrange
 
     template <typename P>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     compute_weights(const P &par,
                     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const &plo,
                     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const &dxi,
                     const amrex::IntVect &is_nodal,
                     amrex::GpuArray<bool, AMREX_SPACEDIM> const lo_reflective)
+    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         // Compute the grid index of the position
         AMREX_D_TERM(
