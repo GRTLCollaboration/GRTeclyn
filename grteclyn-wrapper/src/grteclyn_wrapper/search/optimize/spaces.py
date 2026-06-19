@@ -297,8 +297,10 @@ def grtresna_boson_shell_search_space(profile: str = "compact") -> list[SearchDi
     skip = {
         "grtresna_shell_exotic_fraction",
         "grtresna_shell_exotic_phase",
+        "grtresna_scalar_mass",
     }
     dims = [d for d in shell if d.param_key not in skip]
+    dims.append(SearchDimension("grtresna_scalar_mass", 0.05, 0.35, 0.1))
     existing = {d.param_key for d in dims}
     for key, spec in (
         ("grtresna_bs_omega", (0.05, 0.4, 0.2)),

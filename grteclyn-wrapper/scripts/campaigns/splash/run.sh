@@ -29,7 +29,7 @@ export GRTECLYN_FRAMES=1
 export GRTECLYN_FRAMES_AUTO_ZLIM=1
 export GRTECLYN_FRAMES_ZOOM="${GRTECLYN_FRAMES_ZOOM:-28}"
 # Belt-and-suspenders: search space pins sign, but reject any phantom coupling at launch.
-export PIN_DIMS="${PIN_DIMS:-grtresna_scalar_sign=1}"
+export PIN_DIMS="${PIN_DIMS:-grtresna_scalar_sign=1 grtresna_shell_static=1}"
 
 # v22-style pipelined QD (MapElites.md): continuous GRTresna solves, pre-GPU learning auto with --grtresna
 export USE_PIPELINE="${USE_PIPELINE:-1}"
