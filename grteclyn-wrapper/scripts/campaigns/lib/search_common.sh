@@ -103,6 +103,9 @@ if [[ "${OBJECTIVE_MODE}" == "critical_collapse" ]]; then
   export GRTECLYN_SPLASH_EARLY_TERM=1
   export SPLASH_MODE="${SPLASH_MODE:-discovery}"
   export GRTRESNA_MATTER_COUPLING=canonical
+  export GRTRESNA_MATTER_SECTOR=boson_star
+  export GRTRESNA_ANSATZ=shell
+  export PIN_DIMS="${PIN_DIMS:-grtresna_scalar_sign=1}"
 else
   export GRTECLYN_EVOLVING_GEODESIC="${GRTECLYN_EVOLVING_GEODESIC:-1}"
 fi
@@ -226,6 +229,7 @@ ftl_search_common_preflight_tests() {
     "${WRAPPER_ROOT}/tests/metrics/score/test_critical_collapse_objective.py"
     "${WRAPPER_ROOT}/tests/metrics/score/test_scorer_splash_integration.py"
     "${WRAPPER_ROOT}/tests/grtresna/test_boson_splash_search_space.py"
+    "${WRAPPER_ROOT}/tests/grtresna/test_boson_shell_ansatz.py"
     "${WRAPPER_ROOT}/tests/search/test_splash_descriptors.py"
     "${WRAPPER_ROOT}/tests/scripts/test_splash_campaign_env.py"
     "${WRAPPER_ROOT}/tests/core/test_plot_consumer_flags.py"

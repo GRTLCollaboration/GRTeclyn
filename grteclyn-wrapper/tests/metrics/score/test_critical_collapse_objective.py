@@ -99,3 +99,28 @@ def test_modest_focus_without_absolute_peak_scores_low() -> None:
         splash_mode="discovery",
     )
     assert total < 200.0
+
+
+def test_exotic_penalty_reduces_splash_score() -> None:
+    clean = _critical_collapse_total(
+        {
+            "survival": 1.0,
+            "central_energy_peak": 0.16,
+            "focusing_efficiency": 1.0,
+            "exotic_penalty": 0.0,
+        },
+        [],
+        splash_mode="discovery",
+    )
+    exotic = _critical_collapse_total(
+        {
+            "survival": 1.0,
+            "central_energy_peak": 0.16,
+            "focusing_efficiency": 1.0,
+            "exotic_penalty": -1.6,
+        },
+        [],
+        splash_mode="discovery",
+    )
+    assert exotic < clean
+    assert clean - exotic == 320.0

@@ -44,9 +44,14 @@ def test_scalar_and_boson_search_spaces_differ() -> None:
         grtresna_ansatz="shell",
         grtresna_matter_sector=MATTER_SECTOR_BOSON_STAR,
     )
-    assert any(d.param_key == "grtresna_shell_amp" for d in shell)
-    assert any(d.param_key == "grtresna_bs_phi_c" for d in boson)
-    assert not any(d.param_key == "grtresna_shell_amp" for d in boson)
+    shell_keys = {d.param_key for d in shell}
+    boson_keys = {d.param_key for d in boson}
+    assert "grtresna_shell_amp" in shell_keys
+    assert "grtresna_shell_amp" in boson_keys
+    assert "grtresna_shell_exotic_fraction" in shell_keys
+    assert "grtresna_shell_exotic_fraction" not in boson_keys
+    assert "grtresna_bs_omega" in boson_keys
+    assert "grtresna_bs_omega" not in shell_keys
 
 
 def test_scalar_exotic_forces_all_lumps_exotic() -> None:

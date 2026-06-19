@@ -101,17 +101,20 @@ def _target_span_slice(
     dx_lev: float,
     dx_target: NDArray,
     n_target: int,
+    target_origin: float = 0.0,
 ) -> slice:
     """Target cell-center indices covered by one Chombo source cell."""
     dx = float(dx_target[axis])
     left = src_index * dx_lev
     right = (src_index + 1) * dx_lev
-    start = int(np.ceil(left / dx - 0.5 - 1.0e-12))
-    stop = int(np.floor(right / dx - 0.5 + 1.0e-12)) + 1
+    start = int(np.ceil((left - target_origin) / dx - 0.5 - 1.0e-12))
+    stop = int(np.floor((right - target_origin) / dx - 0.5 + 1.0e-12)) + 1
     start = max(0, min(start, n_target))
     stop = max(start, min(stop, n_target))
     if start == stop:
-        nearest = int(np.clip(((left + right) * 0.5 / dx) - 0.5, 0, n_target - 1))
+        nearest = int(
+            np.clip(((left + right) * 0.5 - target_origin) / dx - 0.5, 0, n_target - 1)
+        )
         return slice(nearest, nearest + 1)
     return slice(start, stop)
 
@@ -130,6 +133,7 @@ def _axis_source_map(
     dx_lev: float,
     dx_target: NDArray,
     n_target: int,
+    target_origin: float = 0.0,
 ) -> NDArray:
     """Map every target cell index on one axis to the local source-cell index
     that the piecewise-constant paint assigns it (``-1`` where untouched).
@@ -143,7 +147,9 @@ def _axis_source_map(
     """
     src_of_target = np.full(int(n_target), -1, dtype=np.int64)
     for local in range(int(sz)):
-        span = _target_span_slice(int(lo + local), axis, dx_lev, dx_target, n_target)
+        span = _target_span_slice(
+            int(lo + local), axis, dx_lev, dx_target, n_target, target_origin,
+        )
         src_of_target[span] = local
     return src_of_target
 
@@ -158,21 +164,29 @@ def _paint_box(
     nx: int,
     ny: int,
     nz: int,
+    target_origin: NDArray | None = None,
 ) -> None:
     """Paint one AMR box interior onto the uniform target grid."""
-    if _is_aligned_1to1(dx_lev, dx_target):
+    origin = np.zeros(3, dtype=np.float64) if target_origin is None else np.asarray(
+        target_origin, dtype=np.float64,
+    )
+    use_fast_path = _is_aligned_1to1(dx_lev, dx_target) and np.allclose(origin, 0.0)
+    if use_fast_path:
         ti = slice(int(lo[0]), int(lo[0]) + int(sz[0]))
         tj = slice(int(lo[1]), int(lo[1]) + int(sz[1]))
         tk = slice(int(lo[2]), int(lo[2]) + int(sz[2]))
         data[tk, tj, ti, :] = np.moveaxis(interior, 0, -1)
         return
 
-    # Non-aligned (finer/coarser) level: resolve the source->target mapping once
-    # per axis, then gather in a single vectorized assignment.  Equivalent to the
-    # old triple Python loop but ~3 orders of magnitude faster on refined boxes.
-    map_i = _axis_source_map(int(lo[0]), int(sz[0]), 0, dx_lev, dx_target, nx)
-    map_j = _axis_source_map(int(lo[1]), int(sz[1]), 1, dx_lev, dx_target, ny)
-    map_k = _axis_source_map(int(lo[2]), int(sz[2]), 2, dx_lev, dx_target, nz)
+    map_i = _axis_source_map(
+        int(lo[0]), int(sz[0]), 0, dx_lev, dx_target, nx, float(origin[0]),
+    )
+    map_j = _axis_source_map(
+        int(lo[1]), int(sz[1]), 1, dx_lev, dx_target, ny, float(origin[1]),
+    )
+    map_k = _axis_source_map(
+        int(lo[2]), int(sz[2]), 2, dx_lev, dx_target, nz, float(origin[2]),
+    )
 
     tk = np.nonzero(map_k >= 0)[0]
     tj = np.nonzero(map_j >= 0)[0]
@@ -235,6 +249,7 @@ def _paint_level(
     ny: int,
     nz: int,
     *,
+    target_origin: NDArray | None = None,
     num_workers: int = 1,
 ) -> None:
     """Paint one AMR level onto the uniform target grid."""
@@ -247,7 +262,9 @@ def _paint_level(
 
     def _paint_one(box: tuple[NDArray, NDArray, NDArray]) -> None:
         lo, sz, interior = box
-        _paint_box(data, interior, lo, sz, dx_lev, dx_target, nx, ny, nz)
+        _paint_box(
+            data, interior, lo, sz, dx_lev, dx_target, nx, ny, nz, target_origin,
+        )
 
     # Parallel box painting is only safe when each source cell maps to a
     # disjoint target region (1:1 aligned spacing). Finer AMR levels use
@@ -292,6 +309,7 @@ def chombo_to_uniform(
     Ly: float | None = None,
     Lz: float | None = None,
     *,
+    source_origin: Sequence[float] | tuple[float, float, float] | None = None,
     num_workers: int = 0,
 ) -> tuple[NDArray, list[str], NDArray, NDArray]:
     """Read a Chombo HDF5 file and flatten to a uniform grid.
@@ -303,6 +321,8 @@ def chombo_to_uniform(
     Lx, Ly, Lz : domain extents per axis. If None, auto-detected from
                   the Chombo header. For half-z domains with reflection,
                   set Lz to the full (doubled) extent.
+    source_origin : minimum corner of the export window in GRTresna native
+                    coordinates (default ``(0, 0, 0)``).
 
     Returns
     -------
@@ -343,13 +363,25 @@ def chombo_to_uniform(
             Lz = float(chombo_L[2])
 
         dx_xyz = np.array([Lx / nx, Ly / ny, Lz / nz])
+        target_origin = np.zeros(3, dtype=np.float64)
+        if source_origin is not None:
+            target_origin = np.asarray(source_origin, dtype=np.float64).reshape(3)
 
         data = np.zeros((nz, ny, nx, n_comp), dtype=np.float64)
         workers = num_workers if num_workers > 0 else _default_gridinit_workers()
 
         for lev in range(num_levels):
             _paint_level(
-                data, f, lev, n_comp, dx_xyz, nx, ny, nz, num_workers=workers,
+                data,
+                f,
+                lev,
+                n_comp,
+                dx_xyz,
+                nx,
+                ny,
+                nz,
+                target_origin=target_origin,
+                num_workers=workers,
             )
 
         # z-reflection: if Chombo used half-z (reflective BC at z=0).
@@ -418,6 +450,7 @@ def convert_chombo_to_gridinit(
     Lz: float | None = None,
     L: float | None = None,
     target_center: tuple[float, float, float] | None = None,
+    source_origin: Sequence[float] | tuple[float, float, float] | None = None,
     delete_source: bool = False,
     lumps: Sequence[Mapping[str, Any]] | None = None,
     shift_seed: float = 0.0,
@@ -475,6 +508,7 @@ def convert_chombo_to_gridinit(
         Lx=Lx,
         Ly=Ly,
         Lz=Lz,
+        source_origin=source_origin,
         num_workers=num_workers,
     )
 

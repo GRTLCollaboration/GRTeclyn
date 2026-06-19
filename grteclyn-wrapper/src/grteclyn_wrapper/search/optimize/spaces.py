@@ -287,6 +287,28 @@ def grtresna_shell_search_space(profile: str = "compact") -> list[SearchDimensio
     ]
 
 
+def grtresna_boson_shell_search_space(profile: str = "compact") -> list[SearchDimension]:
+    """Canonical bosonic shell: same geometry as scalar shell, no exotic dims.
+
+    Multiple Gaussian sites superpose into one U(1) complex scalar solved by
+    BosonStarBH (``num_lumps`` + ``lump{k}_*`` params).
+    """
+    shell = grtresna_shell_search_space(profile=profile)
+    skip = {
+        "grtresna_shell_exotic_fraction",
+        "grtresna_shell_exotic_phase",
+    }
+    dims = [d for d in shell if d.param_key not in skip]
+    existing = {d.param_key for d in dims}
+    for key, spec in (
+        ("grtresna_bs_omega", (0.05, 0.4, 0.2)),
+        ("grtresna_scalar_sign", (1.0, 1.0, 1.0)),
+    ):
+        if key not in existing:
+            dims.append(SearchDimension(key, *spec))
+    return dims
+
+
 def grtresna_boson_splash_search_space() -> list[SearchDimension]:
     """Boson-star splash search space with unpinned phase velocity ``omega``.
 
@@ -350,6 +372,8 @@ def build_search_space(
     """
     if grtresna:
         if grtresna_matter_sector == "boson_star":
+            if grtresna_ansatz == "shell":
+                return grtresna_boson_shell_search_space(profile=grtresna_shell_profile)
             if grtresna_ansatz == "splash":
                 return grtresna_boson_splash_search_space()
             return grtresna_boson_star_search_space()

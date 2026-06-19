@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .gridinit_export import GridinitExportSpec
 from .solver import GRTresnaConfig
 
 
@@ -57,6 +58,46 @@ class GRTresnaDomainConfig:
             boundary = (1, 1, 1) if self.full_z else (1, 1, 2)
         return " ".join(str(value) for value in boundary)
 
+    @property
+    def solve_center(self) -> tuple[float, float, float]:
+        """Matter centre in GRTresna native coordinates."""
+        half = 0.5 * float(self.grtresna_l)
+        if self.full_z:
+            return (half, half, half)
+        return (half, half, 0.0)
+
+    def evolution_extent(self) -> tuple[float, float, float]:
+        """GRTeclyn evolution box size per axis (code units)."""
+        length = float(self.l_full)
+        if self.full_z:
+            return (length, length, length)
+        return (length, length, 0.5 * length)
+
+    def gridinit_export_spec(self) -> GridinitExportSpec:
+        """Export window matched to the evolution box and ``N_full`` spacing."""
+        if self.full_z:
+            lx, ly, lz = self.evolution_extent()
+            source_origin = tuple(
+                self.solve_center[i] - 0.5 * extent
+                for i, extent in enumerate((lx, ly, lz))
+            )
+        else:
+            # Legacy half-z: export the full solve domain; origin alignment handles
+            # the GRTeclyn reflective plane (see ``convert_chombo_to_gridinit``).
+            span = float(self.grtresna_l)
+            lx = ly = lz = span
+            source_origin = (0.0, 0.0, 0.0)
+        return GridinitExportSpec(
+            nx=int(self.gridinit_nx),
+            ny=int(self.gridinit_ny),
+            nz=int(self.gridinit_nz),
+            lx=lx,
+            ly=ly,
+            lz=lz,
+            target_center=self.target_center,
+            source_origin=source_origin,
+        )
+
     def apply_to_solver(self, cfg: GRTresnaConfig) -> GRTresnaConfig:
         cfg.N = self.solve_n
         cfg.L = float(self.grtresna_l)
@@ -66,6 +107,7 @@ class GRTresnaDomainConfig:
         cfg.gridinit_ny = int(self.gridinit_ny)
         cfg.gridinit_nz = int(self.gridinit_nz)
         cfg.target_center = self.target_center
+        cfg.gridinit_export = self.gridinit_export_spec()
         return cfg
 
     def evolution_overrides(self) -> dict[str, object]:

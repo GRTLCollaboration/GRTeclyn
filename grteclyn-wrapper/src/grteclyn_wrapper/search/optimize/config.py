@@ -21,6 +21,109 @@ from .spaces import GRTRESNA_DEFAULT_NUM_LUMPS
 _LUMP_KEY_RE = re.compile(r"^grtresna_lump(\d+)_(\w+)$")
 
 
+def _expand_shell_lumps_from_overrides(
+    overrides: Mapping[str, Any],
+    get_float: Any,
+    *,
+    canonical_boson: bool = False,
+) -> list[dict]:
+    """Expand ``grtresna_shell_*`` search knobs into a lump list."""
+    num_lumps = max(3, int(round(get_float("grtresna_shell_lumps", GRTRESNA_DEFAULT_NUM_LUMPS))))
+    amp0 = get_float("grtresna_shell_amp", 0.15)
+    width0 = get_float("grtresna_shell_width", 3.0)
+    radius = get_float("grtresna_shell_radius", 3.5)
+    thickness = get_float("grtresna_shell_thickness", 0.5)
+    axis_theta = get_float("grtresna_shell_axis_theta", 0.5 * math.pi)
+    axis_phi = get_float("grtresna_shell_axis_phi", 0.0)
+    v_tor = get_float("grtresna_shell_toroidal_velocity", 0.35)
+    v_pol = get_float("grtresna_shell_poloidal_velocity", 0.0)
+    v_rad = get_float("grtresna_shell_radial_velocity", 0.0)
+    omega = get_float("grtresna_shell_omega", 0.0)
+    if int(round(get_float("grtresna_shell_static", 0.0))) >= 1:
+        v_tor = v_pol = v_rad = omega = 0.0
+    dipole = get_float("grtresna_shell_dipole_amp", 0.0)
+    quadrupole = get_float("grtresna_shell_quadrupole_amp", 0.0)
+    if canonical_boson:
+        exotic_fraction = 0.0
+        exotic_phase = 0.0
+    else:
+        exotic_fraction = min(1.0, max(0.0, get_float("grtresna_shell_exotic_fraction", 0.4)))
+        exotic_phase = get_float("grtresna_shell_exotic_phase", 0.0)
+    profile_fraction = min(1.0, max(0.0, get_float("grtresna_shell_profile_fraction", 0.0)))
+    profile_phase = get_float("grtresna_shell_profile_phase", 0.0)
+    mode = int(round(get_float("grtresna_shell_mode", 1.0)))
+    radial_jitter = min(1.0, max(0.0, get_float("grtresna_shell_radial_jitter", 0.0)))
+
+    layout = int(round(get_float("grtresna_matter_layout", 0.0)))
+    layout = max(0, min(4, layout))
+    axis, e1, e2 = _orthonormal_frame(axis_theta, axis_phi)
+    golden = math.pi * (3.0 - math.sqrt(5.0))
+    azimuths = [golden * k for k in range(num_lumps)]
+    exotic_ids = set() if canonical_boson else _shell_exotic_ids(
+        num_lumps, exotic_fraction, exotic_phase, azimuths
+    )
+    profile_ids = _shell_exotic_ids(num_lumps, profile_fraction, profile_phase, azimuths)
+
+    common = dict(
+        num_lumps=num_lumps,
+        amp0=amp0,
+        width0=width0,
+        radius=radius,
+        thickness=thickness,
+        axis=axis,
+        e1=e1,
+        e2=e2,
+        dipole=dipole,
+        quadrupole=quadrupole,
+        v_rad=v_rad,
+        v_tor=v_tor,
+        v_pol=v_pol,
+        omega=omega,
+        mode=mode,
+        exotic_ids=exotic_ids,
+        profile_ids=profile_ids,
+        azimuths=azimuths,
+    )
+    if layout == 1:
+        lumps = _expand_shell_channel(**common)
+    elif layout == 2:
+        lumps = _expand_shell_bipolar(**common, radial_jitter=radial_jitter)
+    elif layout == 3:
+        ring_az = [2.0 * math.pi * k / num_lumps for k in range(num_lumps)]
+        ring_common = {k: v for k, v in common.items() if k != "azimuths"}
+        lumps = _expand_shell_ring(**ring_common, azimuths=ring_az)
+    elif layout == 4:
+        cloud_common = {k: v for k, v in common.items() if k != "azimuths"}
+        lumps = _expand_shell_cloud(**cloud_common, radial_jitter=radial_jitter)
+    else:
+        sphere_common = {k: v for k, v in common.items() if k != "azimuths"}
+        lumps = _expand_shell_sphere(**sphere_common, radial_jitter=radial_jitter)
+    if canonical_boson:
+        for lump in lumps:
+            lump["exotic"] = 0
+    return lumps
+
+
+def _is_boson_sector(overrides: Mapping[str, Any], matter_model: str) -> bool:
+    from ...grtresna.matter_models import (
+        MATTER_SECTOR_BOSON_STAR,
+        is_complex_scalar_model,
+        normalize_matter_sector,
+    )
+
+    if is_complex_scalar_model(matter_model):
+        return True
+    if any(str(k).startswith("grtresna_bs_") for k in overrides):
+        return True
+    sector = str(overrides.get("grtresna_matter_sector", "")).strip()
+    if not sector:
+        return False
+    try:
+        return normalize_matter_sector(sector) == MATTER_SECTOR_BOSON_STAR
+    except ValueError:
+        return False
+
+
 def build_grtresna_config(
     overrides: Mapping[str, Any], base: "GRTresnaConfig | None" = None
 ) -> "GRTresnaConfig":
@@ -37,7 +140,6 @@ def build_grtresna_config(
     import dataclasses
 
     from ...grtresna.matter_models import (
-        GRTRESNA_COMPLEX_SCALAR_MODEL,
         apply_boson_star_overrides,
         finalize_independent_scalar_config,
     )
@@ -63,7 +165,13 @@ def build_grtresna_config(
 
     # Matter-model tag from campaign base overrides (set by grtresna_context).
     matter_model = str(overrides.get("grtresna_matter_model", "")).strip()
-    if matter_model == GRTRESNA_COMPLEX_SCALAR_MODEL:
+    is_boson = _is_boson_sector(overrides, matter_model)
+
+    if is_boson:
+        if any(str(k).startswith("grtresna_shell_") for k in overrides):
+            cfg.lumps = _expand_shell_lumps_from_overrides(
+                overrides, _get_float, canonical_boson=True
+            )
         apply_boson_star_overrides(
             cfg,
             overrides,
@@ -146,75 +254,8 @@ def build_grtresna_config(
         return _return_scalar()
 
     if any(str(k).startswith("grtresna_shell_") for k in overrides):
-        num_lumps = max(3, int(round(_get_float("grtresna_shell_lumps", GRTRESNA_DEFAULT_NUM_LUMPS))))
-        amp0 = _get_float("grtresna_shell_amp", 0.15)
-        width0 = _get_float("grtresna_shell_width", 3.0)
-        radius = _get_float("grtresna_shell_radius", 3.5)
-        thickness = _get_float("grtresna_shell_thickness", 0.5)
-        axis_theta = _get_float("grtresna_shell_axis_theta", 0.5 * math.pi)
-        axis_phi = _get_float("grtresna_shell_axis_phi", 0.0)
-        v_tor = _get_float("grtresna_shell_toroidal_velocity", 0.35)
-        v_pol = _get_float("grtresna_shell_poloidal_velocity", 0.0)
-        v_rad = _get_float("grtresna_shell_radial_velocity", 0.0)
-        omega = _get_float("grtresna_shell_omega", 0.0)
-        # Static-matter toggle: zero every matter current so the lumps carry no
-        # momentum (the moving-matter family is recovered when this is off).
-        if int(round(_get_float("grtresna_shell_static", 0.0))) >= 1:
-            v_tor = v_pol = v_rad = omega = 0.0
-        dipole = _get_float("grtresna_shell_dipole_amp", 0.0)
-        quadrupole = _get_float("grtresna_shell_quadrupole_amp", 0.0)
-        exotic_fraction = min(1.0, max(0.0, _get_float("grtresna_shell_exotic_fraction", 0.4)))
-        exotic_phase = _get_float("grtresna_shell_exotic_phase", 0.0)
-        profile_fraction = min(1.0, max(0.0, _get_float("grtresna_shell_profile_fraction", 0.0)))
-        profile_phase = _get_float("grtresna_shell_profile_phase", 0.0)
-        mode = int(round(_get_float("grtresna_shell_mode", 1.0)))
-        radial_jitter = min(1.0, max(0.0, _get_float("grtresna_shell_radial_jitter", 0.0)))
-
-        layout = int(round(_get_float("grtresna_matter_layout", 0.0)))
-        layout = max(0, min(4, layout))
-        axis, e1, e2 = _orthonormal_frame(axis_theta, axis_phi)
-        golden = math.pi * (3.0 - math.sqrt(5.0))
-        azimuths = [golden * k for k in range(num_lumps)]
-        exotic_ids = _shell_exotic_ids(num_lumps, exotic_fraction, exotic_phase, azimuths)
-        # Per-lump profile assignment reuses the same azimuth-ranking selector.
-        profile_ids = _shell_exotic_ids(num_lumps, profile_fraction, profile_phase, azimuths)
-
-        common = dict(
-            num_lumps=num_lumps,
-            amp0=amp0,
-            width0=width0,
-            radius=radius,
-            thickness=thickness,
-            axis=axis,
-            e1=e1,
-            e2=e2,
-            dipole=dipole,
-            quadrupole=quadrupole,
-            v_rad=v_rad,
-            v_tor=v_tor,
-            v_pol=v_pol,
-            omega=omega,
-            mode=mode,
-            exotic_ids=exotic_ids,
-            profile_ids=profile_ids,
-            azimuths=azimuths,
-        )
-        if layout == 1:
-            lumps = _expand_shell_channel(**common)
-        elif layout == 2:
-            lumps = _expand_shell_bipolar(**common, radial_jitter=radial_jitter)
-        elif layout == 3:
-            ring_az = [2.0 * math.pi * k / num_lumps for k in range(num_lumps)]
-            ring_common = {k: v for k, v in common.items() if k != "azimuths"}
-            lumps = _expand_shell_ring(**ring_common, azimuths=ring_az)
-        elif layout == 4:
-            cloud_common = {k: v for k, v in common.items() if k != "azimuths"}
-            lumps = _expand_shell_cloud(**cloud_common, radial_jitter=radial_jitter)
-        else:
-            sphere_common = {k: v for k, v in common.items() if k != "azimuths"}
-            lumps = _expand_shell_sphere(**sphere_common, radial_jitter=radial_jitter)
-        cfg.lumps = lumps
-        if any(lump["exotic"] for lump in lumps):
+        cfg.lumps = _expand_shell_lumps_from_overrides(overrides, _get_float)
+        if any(lump["exotic"] for lump in cfg.lumps):
             _enable_exotic_safe_solver()
         return _return_scalar()
 

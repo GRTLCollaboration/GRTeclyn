@@ -13,4 +13,7 @@ def test_default_scalar_plot_vars_exclude_ham_abs() -> None:
 
 def test_splash_evolution_overrides_add_ham_abs() -> None:
     overrides = splash_evolution_overrides()
-    assert "Ham_abs_terms" in overrides["amr.derive_plot_vars"]
+    derive = overrides["amr.derive_plot_vars"]
+    assert "Ham_abs_terms" in derive
+    assert "Mom_abs_terms" in derive
+    assert "rho_req" in derive

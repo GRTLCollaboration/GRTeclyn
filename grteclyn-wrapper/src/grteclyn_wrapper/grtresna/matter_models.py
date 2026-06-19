@@ -267,7 +267,8 @@ def apply_boson_star_overrides(
 
     cfg.matter_model = GRTRESNA_COMPLEX_SCALAR_MODEL
     cfg.example = GRTRESNA_EXAMPLE_BOSON_STAR_BH
-    cfg.lumps = []
+    if not cfg.lumps:
+        cfg.lumps = []
 
     cfg.scalar_mass = _get_float(overrides, "grtresna_scalar_mass", cfg.scalar_mass)
     cfg.scalar_lambda = _get_float(overrides, "grtresna_scalar_lambda", cfg.scalar_lambda)

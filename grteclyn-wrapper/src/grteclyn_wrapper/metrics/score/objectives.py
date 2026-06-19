@@ -228,6 +228,8 @@ def _critical_collapse_total(
     horizon_bonus = float(components.get("horizon_formation_time", 0.0))
     constraint_quality = float(components.get("constraint_quality", 0.0))
 
+    exotic = float(components.get("exotic_penalty", 0.0))
+
     total = (
         1000.0 * peak * survival
         + 300.0 * focus_effective * survival
@@ -235,6 +237,7 @@ def _critical_collapse_total(
         + 100.0 * pre_penalty
         + 100.0 * dispersion
         - 50.0 * (1.0 - constraint_quality) * survival
+        + 200.0 * exotic * survival
     )
     if splash_mode == "threshold":
         total += 500.0 * lapse_term
@@ -245,7 +248,7 @@ def _critical_collapse_total(
 
     notes.append(
         f"objective_mode=critical_collapse splash_mode={splash_mode}: "
-        "peak rho + gated focus + wave quality; FTL terms ignored"
+        "peak rho + gated focus + wave quality + exotic penalty; FTL terms ignored"
     )
     return total
 

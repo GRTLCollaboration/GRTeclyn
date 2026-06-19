@@ -130,6 +130,32 @@ def test_grtresna_domain_policy_full_z_is_configurable() -> None:
         "center": "48 48 48",
         "lo_boundary": "1 1 1",
     }
+    export = domain.gridinit_export_spec()
+    assert export.lx == export.ly == export.lz == 96.0
+    assert export.source_origin == pytest.approx((48.0, 48.0, 48.0))
+    assert export.origin == pytest.approx((0.0, 0.0, 0.0))
+    assert cfg.gridinit_export == export
+
+
+def test_splash_search_domain_gridinit_dx_matches_evolution() -> None:
+    """Campaign defaults: L_full=64, N_full=128 => dx=0.5 on export and evolution."""
+    domain = GRTresnaDomainConfig(
+        full_z=True,
+        l_full=64.0,
+        n_full=128,
+        grtresna_l=128.0,
+        grtresna_nx=64,
+        grtresna_ny=64,
+        grtresna_nz=64,
+        gridinit_nx=128,
+        gridinit_ny=128,
+        gridinit_nz=128,
+    )
+    export = domain.gridinit_export_spec()
+    assert export.dx_xyz == pytest.approx((0.5, 0.5, 0.5))
+    assert export.source_origin == pytest.approx((32.0, 32.0, 32.0))
+    assert export.origin == pytest.approx((0.0, 0.0, 0.0))
+    assert export.matches_evolution_spacing(l_full=64.0, n_full=128)
 
 
 def test_canonical_lump_keeps_standard_solver_path() -> None:

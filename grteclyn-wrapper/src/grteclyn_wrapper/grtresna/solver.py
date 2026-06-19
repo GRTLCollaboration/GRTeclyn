@@ -27,6 +27,7 @@ from typing import Any, Mapping
 
 from ..core.config import REPO_ROOT
 from .io import convert_chombo_to_gridinit
+from .gridinit_export import GridinitExportSpec
 from .matter_models import finalize_solver_config
 from .matter_wiring import write_matter_metadata
 
@@ -174,6 +175,10 @@ class GRTresnaConfig:
     # central window of the GRTresna domain at its own resolution). The default
     # matches the RadialRecipe template (L_full=64, half-z => centre (32,32,0)).
     target_center: tuple[float, float, float] = (32.0, 32.0, 0.0)
+
+    # When set (typically by ``GRTresnaDomainConfig.apply_to_solver``), controls
+    # the physical export window and spacing so gridinit dx matches evolution dx.
+    gridinit_export: GridinitExportSpec | None = None
 
     # Cleanup: remove HDF5 / pout / intermediate files after conversion
     cleanup: bool = True
@@ -598,18 +603,33 @@ def solve(
             gridinit_path = caller_cwd / gridinit_path
         gridinit_path = gridinit_path.resolve()
 
+    export = cfg.gridinit_export
+    convert_kwargs: dict[str, object] = {
+        "nx": cfg.gridinit_nx,
+        "ny": cfg.gridinit_ny,
+        "nz": cfg.gridinit_nz,
+        "target_center": cfg.target_center,
+        "delete_source": cfg.cleanup,
+        "lumps": cfg.lumps or None,
+        "shift_seed": cfg.shift_seed,
+        "num_workers": cfg.gridinit_workers,
+    }
+    if export is not None:
+        convert_kwargs.update(
+            {
+                "Lx": export.lx,
+                "Ly": export.ly,
+                "Lz": export.lz,
+                "source_origin": export.source_origin,
+            }
+        )
+    else:
+        convert_kwargs["L"] = cfg.L
+
     convert_chombo_to_gridinit(
         chombo_hdf5,
         gridinit_path,
-        nx=cfg.gridinit_nx,
-        ny=cfg.gridinit_ny,
-        nz=cfg.gridinit_nz,
-        L=cfg.L,
-        target_center=cfg.target_center,
-        delete_source=cfg.cleanup,
-        lumps=cfg.lumps or None,
-        shift_seed=cfg.shift_seed,
-        num_workers=cfg.gridinit_workers,
+        **convert_kwargs,
     )
 
     if cfg.lumps or cfg.matter_model == "grtresna_complex_scalar":

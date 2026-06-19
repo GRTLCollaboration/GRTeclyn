@@ -146,6 +146,33 @@ def test_parallel_matches_serial(tmp_path: Path) -> None:
 
 
 @pytest.mark.skipif(_find_hdf5() is None, reason="no GRTresna HDF5 fixture available")
+def test_cropped_export_matches_evolution_dx(tmp_path: Path) -> None:
+    """Export the central evolution window at dx=0.5 (L=64, N=128)."""
+    from grteclyn_wrapper.grtresna.io import read_gridinit
+
+    hdf5 = _find_hdf5()
+    assert hdf5 is not None
+    out = tmp_path / "cropped.gridinit"
+    convert_chombo_to_gridinit(
+        hdf5,
+        out,
+        nx=128,
+        ny=128,
+        nz=128,
+        Lx=64.0,
+        Ly=64.0,
+        Lz=64.0,
+        source_origin=(32.0, 32.0, 32.0),
+        target_center=(32.0, 32.0, 32.0),
+        num_workers=1,
+    )
+    gi = read_gridinit(out)
+    np.testing.assert_allclose(gi.dx_xyz, [0.5, 0.5, 0.5])
+    np.testing.assert_allclose(gi.origin, [0.0, 0.0, 0.0])
+    assert gi.data.shape[:3] == (128, 128, 128)
+
+
+@pytest.mark.skipif(_find_hdf5() is None, reason="no GRTresna HDF5 fixture available")
 def test_parallel_conversion_is_faster(tmp_path: Path) -> None:
     hdf5 = _find_hdf5()
     assert hdf5 is not None

@@ -66,7 +66,7 @@ def build_grtresna_search_context(
     overrides = dict(base_overrides)
     if use_grtresna and matter.is_scalar and grtresna_ansatz == "ring":
         overrides = {**overrides, "grtresna_ring_lumps": grtresna_lumps}
-    if use_grtresna and matter.is_scalar and grtresna_ansatz == "shell":
+    if use_grtresna and grtresna_ansatz == "shell":
         overrides = {**overrides, "grtresna_shell_lumps": grtresna_lumps}
     if use_grtresna:
         overrides = {**overrides, **matter_selection_base_overrides(matter)}
