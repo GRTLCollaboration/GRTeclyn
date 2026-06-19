@@ -22,8 +22,12 @@ export DESCRIPTOR_MODE="${DESCRIPTOR_MODE:-wave_focusing}"
 export SPLASH_MODE="${SPLASH_MODE:-discovery}"
 export GRTRESNA_FULL_Z=1
 export GRTECLYN_FRAMES=1
-export GRTECLYN_FRAMES_ZOOM="${GRTECLYN_FRAMES_ZOOM:-none}"
-export PROJECTION_FIELDS="${PROJECTION_FIELDS:-scalar_activity}"
+# Scalar shell lumps are ~5–10× fainter than boson-star frames; auto-scale colorbars
+# and zoom into the origin so lumps are visible (override with GRTECLYN_FRAMES_ZOOM=none).
+export GRTECLYN_FRAMES_AUTO_ZLIM=1
+export GRTECLYN_FRAMES_ZOOM="${GRTECLYN_FRAMES_ZOOM:-28}"
+export FRAMES_FIELDS="${FRAMES_FIELDS:-lump_activity scalar_activity phi_lump_sum Pi_lump_sum chi chi_minus_1 local_speed shift1 rho_req}"
+export PROJECTION_FIELDS="${PROJECTION_FIELDS:-lump_activity scalar_activity}"
 export PROJECTION_AXES="${PROJECTION_AXES:-x y z}"
 
 exec bash "${SCRIPT_DIR}/../qd/run.sh"
