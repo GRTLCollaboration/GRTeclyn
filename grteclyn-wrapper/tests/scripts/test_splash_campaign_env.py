@@ -84,6 +84,7 @@ def test_splash_run_script_defaults() -> None:
     assert "GRTRESNA_MATTER_COUPLING=canonical" in text
     assert "GRTECLYN_FRAMES_AUTO_ZLIM=1" in text
     assert "grtresna_scalar_sign=1" in text
+    assert "grtresna_shell_static=1" in text
 
 
 def test_search_common_critical_collapse_boson_defaults() -> None:

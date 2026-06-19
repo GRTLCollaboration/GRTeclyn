@@ -28,10 +28,11 @@ def _boson_shell_overrides() -> dict:
         "grtresna_shell_thickness": 0.5,
         "grtresna_shell_axis_theta": 0.5 * math.pi,
         "grtresna_shell_axis_phi": 0.0,
-        "grtresna_shell_toroidal_velocity": 0.35,
-        "grtresna_scalar_mass": 0.6,
+        "grtresna_shell_toroidal_velocity": 0.0,
+        "grtresna_shell_static": 1.0,
+        "grtresna_scalar_mass": 0.1,
         "grtresna_scalar_lambda": 0.0,
-        "grtresna_bs_omega": 0.2,
+        "grtresna_bs_omega": 0.15,
     }
 
 
@@ -48,6 +49,29 @@ def test_boson_shell_search_space_has_geometry_not_exotic() -> None:
     assert "grtresna_shell_exotic_fraction" not in keys
     assert "grtresna_shell_exotic_phase" not in keys
     assert "grtresna_bs_phi_c" not in keys
+    amp = next(d for d in space if d.param_key == "grtresna_shell_amp")
+    mass = next(d for d in space if d.param_key == "grtresna_scalar_mass")
+    assert amp.upper <= 0.12
+    assert mass.upper <= 0.35
+    assert "grtresna_shell_toroidal_velocity" not in keys
+
+
+def test_boson_shell_static_zeros_lump_velocities() -> None:
+    overrides = {**_boson_shell_overrides(), "grtresna_shell_static": 1.0}
+    cfg = build_grtresna_config(overrides, GRTresnaConfig())
+    for lump in cfg.lumps:
+        assert lump["velocity"] == (0.0, 0.0, 0.0)
+        assert lump["omega"] == 0.0
+
+
+def test_boson_shell_params_include_lump_kinematics_keys(tmp_path) -> None:
+    cfg = build_grtresna_config(_boson_shell_overrides(), GRTresnaConfig())
+    path = tmp_path / "params.txt"
+    write_grtresna_params(cfg, path)
+    text = path.read_text(encoding="utf-8")
+    assert "lump0_velocity" in text
+    assert "lump0_omega" in text
+    assert "lump0_mode" in text
 
 
 def test_boson_shell_expands_to_canonical_lumps() -> None:

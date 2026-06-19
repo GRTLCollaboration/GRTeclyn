@@ -35,5 +35,6 @@ export PIN_DIMS="${PIN_DIMS:-grtresna_scalar_sign=1 grtresna_shell_static=1}"
 export USE_PIPELINE="${USE_PIPELINE:-1}"
 export MAX_CONCURRENT_GRTRESNA="${MAX_CONCURRENT_GRTRESNA:-5}"
 export POSTLOAD_MAX_HAM_L2="${POSTLOAD_MAX_HAM_L2:-2e-2}"
+export ITERATIONS="${ITERATIONS:-80}"
 
 exec bash "${SCRIPT_DIR}/../qd/run.sh"

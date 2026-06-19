@@ -288,26 +288,35 @@ def grtresna_shell_search_space(profile: str = "compact") -> list[SearchDimensio
 
 
 def grtresna_boson_shell_search_space(profile: str = "compact") -> list[SearchDimension]:
-    """Canonical bosonic shell: same geometry as scalar shell, no exotic dims.
+    """Canonical bosonic shell: shell geometry + boson-star convergence bounds.
 
     Multiple Gaussian sites superpose into one U(1) complex scalar solved by
-    BosonStarBH (``num_lumps`` + ``lump{k}_*`` params).
+    BosonStarBH (``num_lumps`` + ``lump{k}_*`` params).  Amplitudes and mass
+    are capped tighter than the scalar shell so BosonStarBH stays inside the
+    Ham/Mom gate; campaign pins ``grtresna_shell_static=1``.
     """
     shell = grtresna_shell_search_space(profile=profile)
     skip = {
         "grtresna_shell_exotic_fraction",
         "grtresna_shell_exotic_phase",
         "grtresna_scalar_mass",
+        "grtresna_scalar_lambda",
+        "grtresna_shell_amp",
+        "grtresna_shell_width",
+        "grtresna_shell_toroidal_velocity",
+        "grtresna_shell_poloidal_velocity",
+        "grtresna_shell_radial_velocity",
+        "grtresna_shell_omega",
     }
     dims = [d for d in shell if d.param_key not in skip]
-    dims.append(SearchDimension("grtresna_scalar_mass", 0.05, 0.35, 0.1))
-    existing = {d.param_key for d in dims}
-    for key, spec in (
-        ("grtresna_bs_omega", (0.05, 0.4, 0.2)),
-        ("grtresna_scalar_sign", (1.0, 1.0, 1.0)),
-    ):
-        if key not in existing:
-            dims.append(SearchDimension(key, *spec))
+    dims.extend([
+        SearchDimension("grtresna_shell_amp", 0.04, 0.12, 0.08),
+        SearchDimension("grtresna_shell_width", 2.0, 4.0, 3.0),
+        SearchDimension("grtresna_scalar_mass", 0.05, 0.35, 0.1),
+        SearchDimension("grtresna_scalar_lambda", 0.0, 0.05, 0.0),
+        SearchDimension("grtresna_bs_omega", 0.05, 0.35, 0.15),
+        SearchDimension("grtresna_scalar_sign", 1.0, 1.0, 1.0),
+    ])
     return dims
 
 
