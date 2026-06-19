@@ -37,7 +37,17 @@ QD_NAME=scalar_splash_gpu_v1 QD_TARGET_EVALS=12 \
 | `GRTECLYN_FRAMES_AUTO_ZLIM` | `1` | Auto colorbar scale (scalar lumps are much fainter than boson defaults) |
 | `GRTECLYN_FRAMES_ZOOM` | `28` | Zoom into origin on L=64 domain |
 
-`search_common.sh` auto-enables `GRTECLYN_CENTRAL_TIMESERIES=1`, disables 4D geodesic FTL, and skips FTL-specific preflight when `OBJECTIVE_MODE=critical_collapse`.
+When `OBJECTIVE_MODE=critical_collapse`, `search_common.sh` also sets:
+
+| Variable | Role |
+|----------|------|
+| `GRTECLYN_CENTRAL_TIMESERIES` | Origin / central-ball diagnostics |
+| `GRTECLYN_CENTRAL_BALL` | Sphere-averaged central sampling (resolution-robust) |
+| `GRTECLYN_CENTRAL_RADIAL` | Radial ρ/lapse profiles → `central_radial_profile.dat` |
+| `GRTECLYN_INCREMENTAL_SCORE` | Live prefix scores in `score_timeseries.jsonl` |
+| `GRTECLYN_SPLASH_EARLY_TERM` | Stop sim when collapse/dispersion predicates fire |
+
+`search_common.sh` disables 4D geodesic FTL and skips FTL-specific preflight when `OBJECTIVE_MODE=critical_collapse`.
 
 ## What was added
 
@@ -46,7 +56,9 @@ QD_NAME=scalar_splash_gpu_v1 QD_TARGET_EVALS=12 \
 Plotfile consumer extracts samples at the grid origin each dump:
 
 - **File:** `small_data/central_timeseries.dat`  
-  Columns: `time`, `rho_req`, `lapse`, `scalar_activity`, `phi_re`, `phi_im`
+  Columns: `time`, `rho_req`, `lapse`, `scalar_activity`, `phi_re`, `phi_im`, `noether_charge`, `phase_coherence`, `ham_abs`, `mom_abs` (trailing columns optional)
+- **Radial profile:** `small_data/central_radial_profile.dat` — shell-averaged ρ/lapse vs radius per dump; drives `splash_width`, `peak_radius`, `compression_ratio`, `cusp_unresolved`
+- **Sampling:** With `GRTECLYN_CENTRAL_BALL=1`, fields are averaged over a small sphere (~2× finest dx) instead of a single AMR cell
 - **Module:** `grteclyn_wrapper/visualisation/process_wave/consume_plotfiles/extraction/central.py`
 - **Types / reader:** `metrics/types/central.py`, `metrics/diagnostics/central.py`
 - **Wiring:** collector, episode metrics, metrics catalog (`central` group)
@@ -68,6 +80,8 @@ Derived quantities include `peak_rho_req_at_origin`, `focusing_efficiency` (peak
 | `dispersion_penalty` | Penalty for fading blobs with weak central peaks |
 | `pre_collapsed_penalty` | Penalty if already dense/collapsed at t = 0 |
 | `horizon_formation_time` | Bonus when corroborated trapped surface appears |
+| `constraint_quality` | Origin Ham vs ρ at peak (splash-only plot vars) |
+| `peak_radius`, `splash_width`, `compression_ratio`, `cusp_unresolved` | Radial-profile diagnostics |
 
 ### 3. Objective: `critical_collapse`
 
@@ -94,7 +108,7 @@ Registered in CLI: `--objective-mode critical_collapse`.
 **Module:** `search/qd_search/descriptors.py`
 
 - **X:** `wave_chromaticity` from central metrics, or fallback from search params (`grtresna_bs_omega` / `grtresna_shell_omega`)
-- **Y:** Normalized lump width (`grtresna_bs_profile_width` or `grtresna_shell_width`)
+- **Y:** Normalized splash timing `peak_rho_time / stop_time`, fallback: normalized `grtresna_shell_radius`
 
 ### 5. Search spaces
 

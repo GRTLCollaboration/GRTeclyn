@@ -15,6 +15,17 @@ THRESHOLD_LAPSE_HIGH = 0.05
 FOCUS_EFFICIENCY_CAP = 5.0
 DISPERSION_PEAK_GATE = 0.25
 DISPERSION_RETENTION_GATE = 0.7
+CUSP_UNRESOLVED_PEAK_SCALE = 0.5
+
+
+def _constraint_quality(central) -> float | None:
+    ham = central.ham_abs_at_peak
+    if ham is None:
+        return None
+    rho_peak = central.peak_rho_req_at_origin
+    if not math.isfinite(rho_peak) or rho_peak <= 0.0:
+        return None
+    return float(1.0 - min(1.0, float(ham) / rho_peak))
 
 
 def _normalize_rho_peak(peak: float) -> float:
@@ -84,9 +95,19 @@ def compute_splash_components(ctx: ScoringContext, *, splash_mode: str = "discov
         ctx.components.setdefault("dispersion_penalty", 0.0)
         ctx.components.setdefault("central_lapse_collapse", 0.0)
         ctx.components.setdefault("pre_collapsed_penalty", 0.0)
+        ctx.components.setdefault("pre_collapsed_penalty", 0.0)
+        ctx.components.setdefault("horizon_formation_time", 0.0)
+        ctx.components.setdefault("constraint_quality", 0.0)
+        ctx.components.setdefault("peak_radius", 0.0)
+        ctx.components.setdefault("splash_width", 0.0)
+        ctx.components.setdefault("compression_ratio", 0.0)
+        ctx.components.setdefault("cusp_unresolved", 0.0)
         return
 
     peak_norm = _normalize_rho_peak(central.peak_rho_req_at_origin)
+    radial = ctx.metrics.central_radial
+    if radial and radial.cusp_unresolved:
+        peak_norm *= CUSP_UNRESOLVED_PEAK_SCALE
     ctx.components["central_energy_peak"] = peak_norm
     ctx.components["focusing_efficiency"] = float(
         min(FOCUS_EFFICIENCY_CAP, central.focusing_efficiency)
@@ -106,7 +127,8 @@ def compute_splash_components(ctx: ScoringContext, *, splash_mode: str = "discov
     pre_penalty = 0.0
     if central.initial_rho_req_at_origin >= INITIAL_RHO_COLLAPSE_FLOOR:
         pre_penalty -= 0.5
-    if central.min_lapse_at_origin <= INITIAL_LAPSE_COLLAPSE_CEILING:
+    initial_lapse = central.lapse[0] if central.lapse else 1.0
+    if initial_lapse <= INITIAL_LAPSE_COLLAPSE_CEILING:
         pre_penalty -= 0.25
     ctx.components["pre_collapsed_penalty"] = pre_penalty
 
@@ -117,9 +139,28 @@ def compute_splash_components(ctx: ScoringContext, *, splash_mode: str = "discov
     else:
         ctx.components["central_lapse_collapse"] = 0.0
 
+    ctx.components["horizon_formation_time"] = 0.0
     collapse = ctx.metrics.collapse
     if collapse and collapse.first_corroborated_time is not None:
         t_horizon = float(collapse.first_corroborated_time)
         ctx.components["horizon_formation_time"] = float(
             max(0.0, 1.0 - t_horizon / max(ctx.target_stop_time or 16.0, 1.0))
         )
+
+    constraint = _constraint_quality(central)
+    if constraint is None:
+        ctx.components["constraint_quality"] = 0.0
+        ctx.notes.append("constraint_at_origin_unavailable")
+    else:
+        ctx.components["constraint_quality"] = constraint
+
+    if radial:
+        ctx.components["peak_radius"] = float(radial.peak_radius)
+        ctx.components["splash_width"] = float(radial.splash_width)
+        ctx.components["compression_ratio"] = float(radial.compression_ratio)
+        ctx.components["cusp_unresolved"] = 1.0 if radial.cusp_unresolved else 0.0
+    else:
+        ctx.components["peak_radius"] = 0.0
+        ctx.components["splash_width"] = 0.0
+        ctx.components["compression_ratio"] = 0.0
+        ctx.components["cusp_unresolved"] = 0.0

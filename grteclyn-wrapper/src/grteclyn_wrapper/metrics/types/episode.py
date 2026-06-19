@@ -54,3 +54,4 @@ class EpisodeMetrics:
     ftl_persistence: FtlPersistenceMetrics | None = None
     ftl_timeseries: FtlTimeSeriesMetrics | None = None
     central: "CentralFieldMetrics | None" = None
+    central_radial: "CentralRadialProfileMetrics | None" = None

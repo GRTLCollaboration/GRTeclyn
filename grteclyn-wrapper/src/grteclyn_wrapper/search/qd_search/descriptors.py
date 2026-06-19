@@ -124,6 +124,8 @@ _BS_OMEGA_MAX = 0.4
 _SHELL_WIDTH_MIN = 1.8
 _SHELL_WIDTH_MAX = 3.0
 _SHELL_OMEGA_MAX = 0.5
+_SHELL_RADIUS_MIN = 1.5
+_SHELL_RADIUS_MAX = 6.0
 
 
 def _central_metrics(metrics: Mapping[str, Any] | None) -> Mapping[str, Any] | None:
@@ -143,6 +145,30 @@ def _normalize_shell_width(width: float) -> float:
     if span <= 0.0:
         return 0.0
     return float(np.clip((width - _SHELL_WIDTH_MIN) / span, 0.0, 1.0))
+
+
+def _normalize_shell_radius(radius: float) -> float:
+    span = _SHELL_RADIUS_MAX - _SHELL_RADIUS_MIN
+    if span <= 0.0:
+        return 0.5
+    return float(np.clip((radius - _SHELL_RADIUS_MIN) / span, 0.0, 1.0))
+
+
+def _splash_timing_axis(
+    metrics: Mapping[str, Any] | None,
+    *,
+    target_stop_time: float | None,
+    overrides: Mapping[str, Any] | None,
+) -> float:
+    central = _central_metrics(metrics)
+    if central and central.get("peak_rho_req_time") is not None:
+        t_peak = float(central.get("peak_rho_req_time") or 0.0)
+        stop = float(target_stop_time or 16.0)
+        if stop > 0.0 and math.isfinite(t_peak):
+            return float(np.clip(t_peak / stop, 0.0, 1.0))
+    if overrides and overrides.get("grtresna_shell_radius") is not None:
+        return _normalize_shell_radius(float(overrides["grtresna_shell_radius"]))
+    return 0.5
 
 
 def _shell_omega_chromaticity_fallback(overrides: Mapping[str, Any] | None) -> float:
@@ -189,19 +215,13 @@ def _descriptor_details(
             )
         elif chromaticity <= 0.0:
             chromaticity = _omega_chromaticity_fallback(overrides)
-        width = _profile_width_from_overrides(overrides)
-        if width is not None:
-            if overrides and overrides.get("grtresna_shell_width") is not None:
-                profile_axis = _normalize_shell_width(width)
-            else:
-                profile_axis = _normalize_profile_width(width)
-        else:
-            profile_axis = 0.5
+        timing_axis = _splash_timing_axis(metrics, target_stop_time=None, overrides=overrides)
         return {
             "x": chromaticity,
-            "y": profile_axis,
+            "y": timing_axis,
             "wave_chromaticity": chromaticity,
-            "profile_width_norm": profile_axis,
+            "splash_timing_norm": timing_axis,
+            "profile_width_norm": timing_axis,
             "grtresna_bs_omega": float(
                 overrides.get("grtresna_bs_omega", float("nan"))
             )

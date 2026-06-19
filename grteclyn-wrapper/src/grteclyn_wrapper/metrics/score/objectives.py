@@ -226,6 +226,7 @@ def _critical_collapse_total(
     dispersion = float(components.get("dispersion_penalty", 0.0))
     pre_penalty = float(components.get("pre_collapsed_penalty", 0.0))
     horizon_bonus = float(components.get("horizon_formation_time", 0.0))
+    constraint_quality = float(components.get("constraint_quality", 0.0))
 
     total = (
         1000.0 * peak * survival
@@ -233,6 +234,7 @@ def _critical_collapse_total(
         + 200.0 * wave * survival
         + 100.0 * pre_penalty
         + 100.0 * dispersion
+        - 50.0 * (1.0 - constraint_quality) * survival
     )
     if splash_mode == "threshold":
         total += 500.0 * lapse_term

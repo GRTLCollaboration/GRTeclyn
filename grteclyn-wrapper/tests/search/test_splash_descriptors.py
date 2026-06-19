@@ -25,21 +25,22 @@ def test_wave_focusing_x_fallback_from_shell_omega() -> None:
     assert details["x"] == 0.5
 
 
-def test_wave_focusing_y_from_shell_width_override() -> None:
-    overrides = {"grtresna_shell_width": 2.4}
-    details = _descriptor_details({}, None, mode="wave_focusing", overrides=overrides)
+def test_wave_focusing_y_from_peak_time() -> None:
+    metrics = {"central": {"peak_rho_req_time": 8.0}}
+    details = _descriptor_details({}, metrics, mode="wave_focusing")
     assert details["y"] == pytest.approx(0.5)
+    assert details["splash_timing_norm"] == pytest.approx(0.5)
 
 
-def test_wave_focusing_y_from_profile_width_override() -> None:
-    overrides = {"grtresna_bs_profile_width": 5.0}
+def test_wave_focusing_y_fallback_shell_radius() -> None:
+    overrides = {"grtresna_shell_radius": 3.0}
     details = _descriptor_details({}, None, mode="wave_focusing", overrides=overrides)
-    assert details["y"] == 0.5
+    assert details["y"] == pytest.approx(1.0 / 3.0)
 
 
 def test_descriptor_values_clipped_to_unit_interval() -> None:
     metrics = {"central": {"wave_chromaticity": 1.5}}
-    overrides = {"grtresna_bs_profile_width": 100.0}
+    overrides = {"grtresna_shell_radius": 3.0}
     details = _descriptor_details({}, metrics, mode="wave_focusing", overrides=overrides)
     assert 0.0 <= details["x"] <= 1.0
     assert 0.0 <= details["y"] <= 1.0

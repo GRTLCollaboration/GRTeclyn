@@ -201,6 +201,10 @@ def _run_gpu_session(
 ) -> Evaluation:
     episode = cpu_result.episode
     gte_overrides = dict(cpu_result.gte_overrides)
+    if objective_mode == "critical_collapse":
+        from ..grtresna.splash_wiring import splash_evolution_overrides
+
+        gte_overrides.update(splash_evolution_overrides())
 
     if grtresna_postload_gate:
         rejection = reject_postload_gate(
@@ -230,6 +234,15 @@ def _run_gpu_session(
             extra_env = None
             if evolving_enabled:
                 extra_env = {"GRTECLYN_EVOLVING_GEODESIC": "1"}
+            central_timeseries_enabled = os.environ.get("GRTECLYN_CENTRAL_TIMESERIES", "").strip().lower() in {
+                "1",
+                "on",
+                "yes",
+                "true",
+            }
+            consumer_incremental = consumer_ftl_timeseries or (
+                objective_mode == "critical_collapse" and central_timeseries_enabled
+            )
             result = run_episode(
                 episode, executable,
                 check_params=check_params,
@@ -241,7 +254,7 @@ def _run_gpu_session(
                 consumer_keep_last=consumer_keep_last,
                 consumer_ftl_timeseries=consumer_ftl_timeseries,
                 consumer_ftl_L=ftl_L,
-                consumer_incremental_score=consumer_ftl_timeseries,
+                consumer_incremental_score=consumer_incremental,
                 consumer_objective_mode=objective_mode,
                 consumer_target_stop_time=target_stop_time,
                 consumer_score_weights=score_weights,

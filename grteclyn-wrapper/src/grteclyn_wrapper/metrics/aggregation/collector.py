@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 from ..diagnostics import (
     read_central_field_metrics,
+    read_central_radial_profile,
     read_collapse_metrics,
     read_comoving_metrics,
     read_constraint_metrics,
@@ -354,12 +355,6 @@ def read_episode_metrics(
     except Exception:
         ftl_timeseries = None
 
-    central = None
-    try:
-        central = read_central_field_metrics(ctx.central_timeseries_path)
-    except Exception:
-        central = None
-
     effective_ec = None
     try:
         recent = find_recent_plotfiles(ctx.episode_dir, count=5)
@@ -385,6 +380,28 @@ def read_episode_metrics(
     physical = None
     general_ftl = None
     overrides = load_overrides_from_episode(ctx.episode_dir)
+    central = None
+    central_radial = None
+    try:
+        ring_radius = None
+        if overrides:
+            raw_radius = overrides.get("grtresna_shell_radius")
+            if raw_radius is not None:
+                ring_radius = float(raw_radius)
+        central_radial = read_central_radial_profile(
+            ctx.central_radial_profile_path,
+            ring_radius=ring_radius,
+        )
+    except Exception:
+        central_radial = None
+    try:
+        baseline = central_radial.initial_rho_at_ring if central_radial else None
+        central = read_central_field_metrics(
+            ctx.central_timeseries_path,
+            initial_rho_baseline=baseline,
+        )
+    except Exception:
+        central = None
     if overrides:
         try:
             ftl = compute_ftl_metrics(overrides, L=ctx.ftl_L)
@@ -461,4 +478,5 @@ def read_episode_metrics(
         ftl_persistence=ftl_persistence,
         ftl_timeseries=ftl_timeseries,
         central=central,
+        central_radial=central_radial,
     )

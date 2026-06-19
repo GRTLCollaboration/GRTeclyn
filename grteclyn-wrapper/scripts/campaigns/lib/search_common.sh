@@ -88,7 +88,6 @@ export POSTLOAD_GATE
 
 # ---- 4D evolving null-geodesic (search profile) ------------------------------
 export GRTECLYN_FRAMES="${GRTECLYN_FRAMES:-0}"
-export GRTECLYN_EVOLVING_GEODESIC="${GRTECLYN_EVOLVING_GEODESIC:-1}"
 export GRTECLYN_EVOLVING_GEODESIC_MODE="${GRTECLYN_EVOLVING_GEODESIC_MODE:-search}"
 export GRTECLYN_METRIC_STACK_N_SPACE="${GRTECLYN_METRIC_STACK_N_SPACE:-33}"
 # general_ftl scores the best principal-axis null shortcut; wormhole elites live on z.
@@ -98,8 +97,14 @@ fi
 if [[ "${OBJECTIVE_MODE}" == "critical_collapse" ]]; then
   export GRTECLYN_EVOLVING_GEODESIC=0
   export GRTECLYN_CENTRAL_TIMESERIES=1
+  export GRTECLYN_CENTRAL_BALL=1
+  export GRTECLYN_CENTRAL_RADIAL=1
+  export GRTECLYN_INCREMENTAL_SCORE=1
+  export GRTECLYN_SPLASH_EARLY_TERM=1
   export SPLASH_MODE="${SPLASH_MODE:-discovery}"
   export GRTRESNA_MATTER_COUPLING=canonical
+else
+  export GRTECLYN_EVOLVING_GEODESIC="${GRTECLYN_EVOLVING_GEODESIC:-1}"
 fi
 export GRTECLYN_FRAMES_FIELDS="${FRAMES_FIELDS:-lump_activity scalar_activity phi_lump_sum Pi_lump_sum chi chi_minus_1 local_speed shift1 rho_req}"
 export GRTECLYN_PROJECTION_FIELDS="${PROJECTION_FIELDS:-scalar_activity}"
@@ -223,6 +228,10 @@ ftl_search_common_preflight_tests() {
     "${WRAPPER_ROOT}/tests/grtresna/test_boson_splash_search_space.py"
     "${WRAPPER_ROOT}/tests/search/test_splash_descriptors.py"
     "${WRAPPER_ROOT}/tests/scripts/test_splash_campaign_env.py"
+    "${WRAPPER_ROOT}/tests/core/test_plot_consumer_flags.py"
+    "${WRAPPER_ROOT}/tests/metrics/test_splash_early_term.py"
+    "${WRAPPER_ROOT}/tests/grtresna/test_splash_wiring.py"
+    "${WRAPPER_ROOT}/tests/metrics/diagnostics/test_central_radial_profile.py"
   )
   if [[ "${OBJECTIVE_MODE}" != "critical_collapse" ]]; then
     PREFLIGHT_TESTS+=(

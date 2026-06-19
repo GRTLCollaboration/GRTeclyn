@@ -65,9 +65,15 @@ def test_focusing_efficiency_capped() -> None:
 
 
 def test_pre_collapsed_penalty_when_initial_rho_high() -> None:
-    ctx = _ctx(_central(initial_rho_req_at_origin=1.0e-2, min_lapse_at_origin=0.15))
+    ctx = _ctx(_central(initial_rho_req_at_origin=1.0e-2, lapse=(0.15, 0.1, 0.05)))
     compute_splash_components(ctx, splash_mode="discovery")
-    assert ctx.components["pre_collapsed_penalty"] < 0.0
+    assert ctx.components["pre_collapsed_penalty"] == -0.75
+
+
+def test_pre_collapsed_lapse_penalty_uses_initial_not_min() -> None:
+    ctx = _ctx(_central(lapse=(1.0, 0.5, 0.05), min_lapse_at_origin=0.05))
+    compute_splash_components(ctx, splash_mode="discovery")
+    assert ctx.components["pre_collapsed_penalty"] == 0.0
 
 
 def test_threshold_mode_lapse_band_reward() -> None:

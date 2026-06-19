@@ -60,6 +60,8 @@ def _run_and_tee(
     *,
     cwd: Path,
     env: Mapping[str, str] | None = None,
+    stop_sim_path: Path | None = None,
+    poll_seconds: float = 2.0,
 ) -> RunResult:
     start = time.monotonic()
     log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -74,15 +76,33 @@ def _run_and_tee(
             stderr=subprocess.STDOUT,
             text=True,
             bufsize=1,
+            start_new_session=True,
         )
         assert process.stdout is not None
-        for line in process.stdout:
+        termination_reason: str | None = None
+        while True:
+            if stop_sim_path is not None and stop_sim_path.is_file():
+                termination_reason = stop_sim_path.read_text(encoding="utf-8").strip()
+                try:
+                    os.killpg(process.pid, signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
+                break
+            line = process.stdout.readline()
+            if not line:
+                if process.poll() is not None:
+                    break
+                if stop_sim_path is not None:
+                    time.sleep(poll_seconds)
+                continue
             log.write(line)
             log.flush()
             print(line, end="")
         returncode = process.wait()
         elapsed = time.monotonic() - start
         log.write(f"\n[wrapper] exit_code={returncode} elapsed_seconds={elapsed:.3f}\n")
+        if termination_reason:
+            log.write(f"[wrapper] early_termination={termination_reason}\n")
 
     return RunResult(command=list(command), returncode=returncode, elapsed_seconds=elapsed)
 
@@ -279,7 +299,23 @@ def run_episode(
 
     try:
         command = build_command(executable, episode.params_path)
-        result = _run_and_tee(command, episode.log_path, cwd=example_dir, env=env)
+        stop_sim_path = None
+        if os.environ.get("GRTECLYN_SPLASH_EARLY_TERM", "").strip().lower() in {
+            "1",
+            "on",
+            "yes",
+            "true",
+        }:
+            stop_sim_path = episode.path / ".stop_sim"
+            if stop_sim_path.exists():
+                stop_sim_path.unlink()
+        result = _run_and_tee(
+            command,
+            episode.log_path,
+            cwd=example_dir,
+            env=env,
+            stop_sim_path=stop_sim_path,
+        )
     finally:
         if consumer is not None:
             stop_process(consumer, timeout=2.0)
@@ -304,6 +340,14 @@ def run_episode(
         {
             "simulation_exit_code": result.returncode,
             "simulation_elapsed_seconds": result.elapsed_seconds,
+            **(
+                {
+                    "termination_reason": (episode.path / ".stop_sim").read_text(encoding="utf-8").strip(),
+                    "early_termination": True,
+                }
+                if (episode.path / ".stop_sim").is_file()
+                else {}
+            ),
         },
     )
     return result

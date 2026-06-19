@@ -55,17 +55,18 @@ def test_single_row_edge_case(tmp_path: Path) -> None:
     assert metrics.wave_chromaticity == 0.0
 
 
-def test_focusing_efficiency_property() -> None:
+def test_focusing_efficiency_uses_baseline() -> None:
     metrics = CentralFieldMetrics(
         n_frames=2,
         t=(0.0, 1.0),
-        rho_req=(1.0e-4, 2.0e-2),
+        rho_req=(1.0e-8, 1.0e-2),
         lapse=(1.0, 0.9),
         scalar_activity=(0.01, 0.02),
-        peak_rho_req_at_origin=2.0e-2,
+        peak_rho_req_at_origin=1.0e-2,
         peak_rho_req_time=1.0,
-        initial_rho_req_at_origin=1.0e-4,
+        initial_rho_req_at_origin=1.0e-8,
         min_lapse_at_origin=0.9,
-        wave_chromaticity=0.3,
+        wave_chromaticity=0.0,
+        initial_rho_baseline=1.0e-2,
     )
-    assert metrics.focusing_efficiency == pytest.approx(200.0)
+    assert metrics.focusing_efficiency == pytest.approx(1.0)

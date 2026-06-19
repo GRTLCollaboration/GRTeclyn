@@ -245,8 +245,14 @@ METRIC_REGISTRY: dict[str, MetricSpec] = {
             "dispersion_penalty",
             "pre_collapsed_penalty",
             "central_lapse_collapse",
+            "horizon_formation_time",
+            "constraint_quality",
+            "peak_radius",
+            "splash_width",
+            "compression_ratio",
+            "cusp_unresolved",
         ),
-        summary="Origin-resolved rho/lapse/scalar activity for splash campaigns.",
+        summary="Central ball-averaged rho/lapse/scalar activity for splash campaigns.",
     ),
 }
 

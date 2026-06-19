@@ -36,6 +36,7 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
         "boundary_flux_line": None,
         "ftl_line": None,
         "central_line": None,
+        "central_radial_block": None,
         "success": False,
         "deleted": False,
         "status_str": "",
@@ -174,6 +175,19 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
                 p,
                 t=t,
                 center=args_dict["center"],
+                central_ball=bool(args_dict.get("central_ball")),
+                central_ball_radius=args_dict.get("central_ball_radius"),
+                verbose=args_dict.get("verbose", False),
+            )
+        if args_dict.get("central_radial_profile"):
+            from .extraction.central_radial import _extract_central_radial_profile_block
+
+            result["central_radial_block"] = _extract_central_radial_profile_block(
+                p,
+                t=t,
+                center=args_dict["center"],
+                r_max=float(args_dict.get("central_radial_r_max", 6.0)),
+                r_min=args_dict.get("central_ball_radius"),
                 verbose=args_dict.get("verbose", False),
             )
 
@@ -205,6 +219,7 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
             or result["shell_line"]
             or result["ftl_line"]
             or result.get("central_line")
+            or result.get("central_radial_block")
             or frame_fields
             or projection_fields
         )

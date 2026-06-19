@@ -23,6 +23,24 @@ def _central_timeseries_enabled(explicit: bool | None) -> bool:
     return _env_flag("GRTECLYN_CENTRAL_TIMESERIES")
 
 
+def _central_ball_enabled() -> bool:
+    return _env_flag("GRTECLYN_CENTRAL_BALL")
+
+
+def _central_radial_enabled() -> bool:
+    return _env_flag("GRTECLYN_CENTRAL_RADIAL")
+
+
+def _incremental_score_enabled(explicit: bool) -> bool:
+    if explicit:
+        return True
+    return _env_flag("GRTECLYN_INCREMENTAL_SCORE")
+
+
+def _splash_early_term_enabled() -> bool:
+    return _env_flag("GRTECLYN_SPLASH_EARLY_TERM")
+
+
 def _strip_param_value(value: str) -> str:
     value = value.split("#", 1)[0].strip()
     if value.startswith('"') and value.endswith('"'):
@@ -141,26 +159,45 @@ def build_consume_command(
             command.extend(["--ftl-l", f"{float(ftl_L):g}"])
         if evolving_geodesic:
             command.append("--evolving-geodesic")
-        if incremental_score:
-            stop_time = target_stop_time
-            if stop_time is None:
-                stop_time = _read_float_param(episode.params_path, "stop_time", 16.0)
+    central_enabled = _central_timeseries_enabled(central_timeseries)
+    splash_incremental = (
+        _incremental_score_enabled(incremental_score)
+        and central_enabled
+        and objective_mode == "critical_collapse"
+    )
+    if incremental_score and (ftl_timeseries or splash_incremental):
+        stop_time = target_stop_time
+        if stop_time is None:
+            stop_time = _read_float_param(episode.params_path, "stop_time", 16.0)
+        command.extend(
+            [
+                "--incremental-score",
+                "--objective-mode",
+                str(objective_mode),
+                "--target-stop-time",
+                f"{float(stop_time):g}",
+            ]
+        )
+        if score_weights:
+            for key, value in score_weights.items():
+                command.extend(["--score-weight", f"{key}={value:g}"])
+    if central_enabled:
+        command.append("--central-timeseries")
+        if _central_ball_enabled():
+            command.append("--central-ball")
+        if _central_radial_enabled():
+            command.extend(["--central-radial-profile", "--central-radial-r-max", "6.0"])
+        if _splash_early_term_enabled():
             command.extend(
                 [
-                    "--incremental-score",
-                    "--objective-mode",
-                    str(objective_mode),
-                    "--target-stop-time",
-                    f"{float(stop_time):g}",
+                    "--splash-early-term",
+                    "--stop-sim-path",
+                    str(episode.path / ".stop_sim"),
                 ]
             )
-            if score_weights:
-                for key, value in score_weights.items():
-                    command.extend(["--score-weight", f"{key}={value:g}"])
-    if _central_timeseries_enabled(central_timeseries):
-        command.append("--central-timeseries")
         if not ftl_timeseries and objective_mode != "weighted":
-            command.extend(["--objective-mode", str(objective_mode)])
+            if "--objective-mode" not in command:
+                command.extend(["--objective-mode", str(objective_mode)])
 
     if profile == "wormhole":
         command.extend(
@@ -214,6 +251,8 @@ def build_consume_command(
             )
             if frame_zoom is not None:
                 command.extend(["--frames-zoom", f"{frame_zoom:g}"])
+            if _env_flag("GRTECLYN_FRAMES_AUTO_ZLIM"):
+                command.extend(["--frames-auto-zlim", "--no-frames-global-zlim"])
             if projection_fields and projection_axes:
                 command.extend(
                     [

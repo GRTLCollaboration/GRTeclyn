@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shutil
 import time
@@ -30,6 +31,21 @@ from .state import _append_line, _load_state, _save_state
 from .worker import _process_single_plotfile
 
 from grteclyn_wrapper.metrics.aggregation.incremental import IncrementalScoreWriter
+from grteclyn_wrapper.metrics.splash_early_term import evaluate_splash_early_term
+
+
+def _append_radial_block(path: Path, block: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(block)
+
+
+def _parse_central_row(line: str) -> tuple[float, float | None, float | None, float | None]:
+    parts = line.split()
+    rho = float(parts[1]) if len(parts) > 1 else None
+    lapse = float(parts[2]) if len(parts) > 2 else None
+    activity = float(parts[3]) if len(parts) > 3 else None
+    return rho, lapse, activity
 
 
 def main() -> None:
@@ -122,7 +138,39 @@ def main() -> None:
     parser.add_argument(
         "--central-timeseries",
         action="store_true",
-        help="Per-plotfile origin-resolved rho/lapse/scalar activity to central_timeseries.dat.",
+        help="Per-plotfile central ball rho/lapse/scalar activity to central_timeseries.dat.",
+    )
+    parser.add_argument(
+        "--central-ball",
+        action="store_true",
+        help="Average central fields over a small sphere instead of a single point.",
+    )
+    parser.add_argument(
+        "--central-ball-radius",
+        type=float,
+        default=None,
+        help="Central ball radius in code units (default: 2*dx_finest).",
+    )
+    parser.add_argument(
+        "--central-radial-profile",
+        action="store_true",
+        help="Append rho/lapse/activity vs r blocks to central_radial_profile.dat.",
+    )
+    parser.add_argument(
+        "--central-radial-r-max",
+        type=float,
+        default=6.0,
+        help="Outer radius for central radial profile extraction.",
+    )
+    parser.add_argument(
+        "--splash-early-term",
+        action="store_true",
+        help="Write .stop_sim when splash early-termination predicates fire.",
+    )
+    parser.add_argument(
+        "--stop-sim-path",
+        default=None,
+        help="Path for early-termination sentinel JSON (default: <data>/.stop_sim).",
     )
     parser.add_argument(
         "--ftl-l",
@@ -221,7 +269,9 @@ def main() -> None:
     boundary_flux_out_path = out_dir / "boundary_flux.dat"
     ftl_out_path = out_dir / "ftl_timeseries.dat"
     central_out_path = out_dir / "central_timeseries.dat"
+    central_radial_out_path = out_dir / "central_radial_profile.dat"
     score_ts_path = out_dir / "score_timeseries.jsonl"
+    stop_sim_path = Path(args.stop_sim_path) if args.stop_sim_path else Path(data_dir) / ".stop_sim"
     header = "# time  " + "  ".join([f"Re(R={R:g})  Im(R={R:g})" for R in args.radii])
     areal_header = "# time  R_areal_min  r_at_R_areal_min"
     shell_header = _shell_stats_header(args.radii, args.shell_fields)
@@ -241,6 +291,8 @@ def main() -> None:
             _truncate_if_exists(ftl_out_path)
         if args.central_timeseries:
             _truncate_if_exists(central_out_path)
+        if args.central_radial_profile:
+            _truncate_if_exists(central_radial_out_path)
         if args.incremental_score:
             _truncate_if_exists(score_ts_path)
         _save_state(state_path, {})
@@ -253,7 +305,12 @@ def main() -> None:
             score_weights[key.strip()] = float(value.strip())
 
     incremental_writer: IncrementalScoreWriter | None = None
-    if args.incremental_score and args.ftl_timeseries:
+    use_central_incremental = (
+        args.incremental_score
+        and args.central_timeseries
+        and args.objective_mode == "critical_collapse"
+    )
+    if args.incremental_score and (args.ftl_timeseries or use_central_incremental):
         incremental_writer = IncrementalScoreWriter(
             Path(data_dir),
             objective_mode=args.objective_mode,
@@ -263,6 +320,8 @@ def main() -> None:
             evolving_geodesic_mode=bool(args.evolving_geodesic),
             out_path=score_ts_path,
         )
+
+    peak_rho_state = {"value": 0.0, "last_activity": None}
 
     def _append_incremental_score(t: float) -> None:
         if incremental_writer is None:
@@ -277,6 +336,36 @@ def main() -> None:
                 )
         except Exception as exc:  # noqa: BLE001 - scoring must not stop the consumer
             print(f"WARNING: incremental score at t={t:.6g} failed: {exc}")
+
+    def _handle_central_outputs(res: dict) -> None:
+        if res.get("central_line"):
+            _append_line(
+                central_out_path,
+                header=CENTRAL_TIMESERIES_HEADER,
+                line=res["central_line"],
+            )
+            if use_central_incremental:
+                _append_incremental_score(float(res["t"]))
+            if args.splash_early_term:
+                rho, lapse, activity = _parse_central_row(res["central_line"])
+                if rho is not None and rho > peak_rho_state["value"]:
+                    peak_rho_state["value"] = rho
+                decision = evaluate_splash_early_term(
+                    t=float(res["t"]),
+                    rho=rho,
+                    lapse=lapse,
+                    activity=activity,
+                    peak_rho_so_far=peak_rho_state["value"],
+                    previous_activity=peak_rho_state["last_activity"],
+                )
+                peak_rho_state["last_activity"] = activity
+                if decision.should_stop and not stop_sim_path.exists():
+                    stop_sim_path.write_text(
+                        json.dumps({"reason": decision.reason, "t": float(res["t"])}),
+                        encoding="utf-8",
+                    )
+        if res.get("central_radial_block"):
+            _append_radial_block(central_radial_out_path, res["central_radial_block"])
 
     # If rendering frames, clear existing frames for the requested fields/axis at startup.
     frame_fields_startup = [_canonical_field_name(f) for f in args.frames_fields]
@@ -385,13 +474,9 @@ def main() -> None:
                                     header=FTL_TIMESERIES_HEADER,
                                     line=res["ftl_line"],
                                 )
-                                _append_incremental_score(float(res["t"]))
-                            if res.get("central_line"):
-                                _append_line(
-                                    central_out_path,
-                                    header=CENTRAL_TIMESERIES_HEADER,
-                                    line=res["central_line"],
-                                )
+                                if args.ftl_timeseries:
+                                    _append_incremental_score(float(res["t"]))
+                            _handle_central_outputs(res)
 
                             state[res["key"]] = True
                             _save_state(state_path, state)
@@ -427,13 +512,9 @@ def main() -> None:
                             header=FTL_TIMESERIES_HEADER,
                             line=res["ftl_line"],
                         )
-                        _append_incremental_score(float(res["t"]))
-                    if res.get("central_line"):
-                        _append_line(
-                            central_out_path,
-                            header=CENTRAL_TIMESERIES_HEADER,
-                            line=res["central_line"],
-                        )
+                        if args.ftl_timeseries:
+                            _append_incremental_score(float(res["t"]))
+                    _handle_central_outputs(res)
 
                     state[res["key"]] = True
                     _save_state(state_path, state)

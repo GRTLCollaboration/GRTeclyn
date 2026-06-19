@@ -14,11 +14,17 @@ SPLASH_RUN = WRAPPER_ROOT / "scripts/campaigns/splash/run.sh"
 def _source_env(script: str, extra: str = "") -> dict[str, str]:
     cmd = f"""
 set -euo pipefail
+unset GRTECLYN_EVOLVING_GEODESIC GRTECLYN_CENTRAL_TIMESERIES GRTECLYN_CENTRAL_BALL \\
+  GRTECLYN_CENTRAL_RADIAL GRTECLYN_INCREMENTAL_SCORE GRTECLYN_SPLASH_EARLY_TERM
 {extra}
 source "{script}"
 printf '%s\\n' "OBJECTIVE_MODE=${{OBJECTIVE_MODE:-}}" \
   "GRTECLYN_EVOLVING_GEODESIC=${{GRTECLYN_EVOLVING_GEODESIC:-}}" \
   "GRTECLYN_CENTRAL_TIMESERIES=${{GRTECLYN_CENTRAL_TIMESERIES:-}}" \
+  "GRTECLYN_CENTRAL_BALL=${{GRTECLYN_CENTRAL_BALL:-}}" \
+  "GRTECLYN_CENTRAL_RADIAL=${{GRTECLYN_CENTRAL_RADIAL:-}}" \
+  "GRTECLYN_INCREMENTAL_SCORE=${{GRTECLYN_INCREMENTAL_SCORE:-}}" \
+  "GRTECLYN_SPLASH_EARLY_TERM=${{GRTECLYN_SPLASH_EARLY_TERM:-}}" \
   "GRTRESNA_MATTER_SECTOR=${{GRTRESNA_MATTER_SECTOR:-}}" \
   "GRTRESNA_MATTER_COUPLING=${{GRTRESNA_MATTER_COUPLING:-}}" \
   "GRTRESNA_ANSATZ=${{GRTRESNA_ANSATZ:-}}" \
@@ -44,12 +50,19 @@ def test_search_common_critical_collapse_flags() -> None:
     env = _source_env(str(SEARCH_COMMON), "export OBJECTIVE_MODE=critical_collapse")
     assert env["GRTECLYN_EVOLVING_GEODESIC"] == "0"
     assert env["GRTECLYN_CENTRAL_TIMESERIES"] == "1"
+    assert env["GRTECLYN_CENTRAL_BALL"] == "1"
+    assert env["GRTECLYN_CENTRAL_RADIAL"] == "1"
+    assert env["GRTECLYN_INCREMENTAL_SCORE"] == "1"
+    assert env["GRTECLYN_SPLASH_EARLY_TERM"] == "1"
 
 
 def test_search_common_ftl_first_unaffected() -> None:
     env = _source_env(str(SEARCH_COMMON), "export OBJECTIVE_MODE=ftl_first")
     assert env["GRTECLYN_EVOLVING_GEODESIC"] == "1"
     assert env.get("GRTECLYN_CENTRAL_TIMESERIES", "") != "1"
+    assert env.get("GRTECLYN_CENTRAL_BALL", "") != "1"
+    assert env.get("GRTECLYN_SPLASH_EARLY_TERM", "") != "1"
+    assert env.get("GRTECLYN_INCREMENTAL_SCORE", "") != "1"
 
 
 def test_search_common_exotic_coupling_allowed_outside_splash() -> None:

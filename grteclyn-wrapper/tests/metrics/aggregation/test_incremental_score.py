@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from grteclyn_wrapper.metrics.aggregation.incremental import IncrementalScoreWriter
 from grteclyn_wrapper.visualisation.process_wave.consume_plotfiles.extraction.ftl import (
     FTL_TIMESERIES_HEADER as HEADER,
@@ -119,6 +121,40 @@ def test_incremental_4d_mode_withholds_frozen_ftl(tmp_path: Path) -> None:
     assert record["operational_ftl_geodesic"] == 0.0
     assert record["ftl_geo_evolving"] == 0.0
     assert record["score"] < 500.0
+
+
+def test_incremental_critical_collapse_from_central_only(tmp_path: Path) -> None:
+    episode = tmp_path / "eval"
+    small = episode / "small_data"
+    data = episode / "data"
+    small.mkdir(parents=True)
+    data.mkdir(parents=True)
+
+    central_path = small / "central_timeseries.dat"
+    central_path.write_text(
+        "# time  rho_req  lapse  scalar_activity  phi_re  phi_im\n"
+        "0.0  1.0e-4  0.99  0.01  0.0  0.0\n"
+        "8.0  5.0e-3  0.50  0.02  0.0  0.0\n",
+        encoding="utf-8",
+    )
+    _write_collapse(
+        data / "collapse_diagnostics.dat",
+        [(0.0, 1.0, 1.0, 0.0, 0, 0, 0, 0.0, 0.1), (8.0, 0.9, 0.8, 0.1, 0, 0, 0, 1.0, 0.05)],
+    )
+    _write_constraints(
+        data / "constraint_norms.dat",
+        [(0.0, 0.001, 0.0001, -0.001, 0.01, 0.0), (8.0, 0.002, 0.0002, -0.001, 0.009, 0.0)],
+    )
+
+    writer = IncrementalScoreWriter(
+        episode,
+        objective_mode="critical_collapse",
+        target_stop_time=16.0,
+    )
+    record = writer.append(8.0)
+    assert record is not None
+    assert record["central_energy_peak"] > 0.0
+    assert record["peak_rho"] == pytest.approx(5.0e-3)
 
 
 def test_ftl_timeseries_parser_backward_compatible_12_and_14_columns(tmp_path: Path) -> None:

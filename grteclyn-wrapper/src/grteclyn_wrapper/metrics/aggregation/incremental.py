@@ -16,6 +16,8 @@ from typing import Any, Mapping
 
 import numpy as np
 
+from ..diagnostics.central import read_prefix_central_field_metrics
+from ..diagnostics.central_radial import read_central_radial_profile
 from ..diagnostics.collapse import read_collapse_metrics
 from ..diagnostics.ftl_timeseries import _aggregate_ftl_frames
 from ..io.dat import numeric_rows
@@ -232,18 +234,55 @@ class IncrementalScoreWriter:
 
     def build_metrics_at(self, at_time: float) -> EpisodeMetrics | None:
         ctx = build_episode_context(self.episode_dir, ftl_L=self.ftl_L)
+        collapse = read_prefix_collapse_metrics(ctx.collapse_path, at_time)
+        constraints = read_prefix_constraint_metrics(ctx.constraint_path, at_time)
+        static = self._load_static()
+
+        if self.objective_mode == "critical_collapse":
+            central_rows = _rows_up_to(ctx.central_timeseries_path, at_time, 4)
+            if not central_rows:
+                return None
+            overrides = load_overrides_from_episode(self.episode_dir) or {}
+            ring_radius = None
+            raw_radius = overrides.get("grtresna_shell_radius")
+            if raw_radius is not None:
+                ring_radius = float(raw_radius)
+            central_radial = read_central_radial_profile(
+                ctx.central_radial_profile_path,
+                ring_radius=ring_radius,
+            )
+            baseline = central_radial.initial_rho_at_ring if central_radial else None
+            central = read_prefix_central_field_metrics(
+                ctx.central_timeseries_path,
+                at_time,
+                initial_rho_baseline=baseline,
+            )
+            if central is None:
+                return None
+            return EpisodeMetrics(
+                collapse=collapse,
+                constraints=constraints,
+                stability=None,
+                comoving=None,
+                ftl=static.ftl,
+                general_ftl=static.general_ftl,
+                general_ftl_solved=static.general_ftl_solved,
+                mechanism_descriptor=static.mechanism_descriptor,
+                evolving_geodesic_mode=False,
+                termination_reason="incremental",
+                central=central,
+                central_radial=central_radial,
+            )
+
         ts_rows = _rows_up_to(ctx.ftl_timeseries_path, at_time, 12)
         if not ts_rows:
             return None
 
         ftl_timeseries = read_prefix_ftl_timeseries(ctx.ftl_timeseries_path, at_time)
-        collapse = read_prefix_collapse_metrics(ctx.collapse_path, at_time)
-        constraints = read_prefix_constraint_metrics(ctx.constraint_path, at_time)
         last_row = ts_rows[-1]
         general_ftl_evolved = _general_ftl_from_timeseries_row(last_row)
         geodesic_ftl = _geodesic_from_timeseries_row(last_row)
         ftl_persistence = _ftl_persistence_from_rows(ts_rows)
-        static = self._load_static()
 
         return EpisodeMetrics(
             collapse=collapse,
@@ -290,6 +329,9 @@ class IncrementalScoreWriter:
             "horizon_penalty": score.components.get("horizon_penalty", 0.0),
             "operational_ftl_geodesic": score.components.get("operational_ftl_geodesic", 0.0),
             "ftl_geo_evolving": score.components.get("ftl_geo_evolving", 0.0),
+            "central_energy_peak": score.components.get("central_energy_peak", 0.0),
+            "focusing_efficiency": score.components.get("focusing_efficiency", 0.0),
+            "peak_rho": float(metrics.central.peak_rho_req_at_origin) if metrics.central else 0.0,
         }
         self.out_path.parent.mkdir(parents=True, exist_ok=True)
         with self.out_path.open("a", encoding="utf-8") as handle:

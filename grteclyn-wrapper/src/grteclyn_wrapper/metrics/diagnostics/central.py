@@ -11,7 +11,8 @@ from ..io.dat import numeric_rows
 from ..types.central import CentralFieldMetrics
 
 CENTRAL_TIMESERIES_HEADER = (
-    "# time  rho_req  lapse  scalar_activity  phi_re  phi_im"
+    "# time  rho_req  lapse  scalar_activity  phi_re  phi_im  "
+    "noether_charge  phase_coherence  ham_abs  mom_abs"
 )
 
 _CHROMATICITY_MIN_FRAMES = 4
@@ -71,27 +72,28 @@ def _wave_chromaticity(activity: tuple[float, ...], times: tuple[float, ...]) ->
     return float(np.clip(q / (q + 1.0), 0.0, 1.0))
 
 
-def read_central_field_metrics(path: Path) -> CentralFieldMetrics | None:
-    if not path.is_file():
-        return None
-    rows = numeric_rows(path, min_columns=4)
+def _optional_column(rows: list[list[float]], index: int) -> tuple[float, ...]:
+    out: list[float] = []
+    for row in rows:
+        if len(row) > index:
+            out.append(float(row[index]))
+        else:
+            out.append(0.0)
+    return tuple(out)
+
+
+def _build_central_metrics(
+    rows: list[list[float]],
+    *,
+    initial_rho_baseline: float | None = None,
+) -> CentralFieldMetrics | None:
     if not rows:
         return None
 
-    t: list[float] = []
-    rho: list[float] = []
-    lapse: list[float] = []
-    activity: list[float] = []
-    for row in rows:
-        if len(row) < 4:
-            continue
-        t.append(float(row[0]))
-        rho.append(float(row[1]))
-        lapse.append(float(row[2]))
-        activity.append(float(row[3]))
-
-    if not t:
-        return None
+    t = [float(row[0]) for row in rows]
+    rho = [float(row[1]) for row in rows]
+    lapse = [float(row[2]) for row in rows]
+    activity = [float(row[3]) for row in rows]
 
     t_tuple = tuple(t)
     rho_tuple = tuple(rho)
@@ -102,6 +104,7 @@ def read_central_field_metrics(path: Path) -> CentralFieldMetrics | None:
     initial_rho = rho[0] if rho else 0.0
     finite_lapse = [value for value in lapse if math.isfinite(value)]
     min_lapse = min(finite_lapse) if finite_lapse else 1.0
+    baseline = initial_rho_baseline if initial_rho_baseline is not None else initial_rho
 
     return CentralFieldMetrics(
         n_frames=len(t),
@@ -114,4 +117,32 @@ def read_central_field_metrics(path: Path) -> CentralFieldMetrics | None:
         initial_rho_req_at_origin=initial_rho,
         min_lapse_at_origin=min_lapse,
         wave_chromaticity=_wave_chromaticity(activity_tuple, t_tuple),
+        initial_rho_baseline=max(float(baseline), float(initial_rho)),
+        noether_charge=_optional_column(rows, 6),
+        phase_coherence=_optional_column(rows, 7),
+        ham_abs=_optional_column(rows, 8),
+        mom_abs=_optional_column(rows, 9),
     )
+
+
+def read_central_field_metrics(
+    path: Path,
+    *,
+    initial_rho_baseline: float | None = None,
+) -> CentralFieldMetrics | None:
+    if not path.is_file():
+        return None
+    rows = numeric_rows(path, min_columns=4)
+    return _build_central_metrics(rows, initial_rho_baseline=initial_rho_baseline)
+
+
+def read_prefix_central_field_metrics(
+    path: Path,
+    at_time: float,
+    *,
+    initial_rho_baseline: float | None = None,
+) -> CentralFieldMetrics | None:
+    if not path.is_file():
+        return None
+    rows = [row for row in numeric_rows(path, min_columns=4) if float(row[0]) <= at_time + 1.0e-12]
+    return _build_central_metrics(rows, initial_rho_baseline=initial_rho_baseline)
