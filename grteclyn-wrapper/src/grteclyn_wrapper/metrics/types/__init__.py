@@ -14,10 +14,12 @@ from .diagnostics import (
     StabilityMetrics,
     TransportMetrics,
 )
+from .central import CentralFieldMetrics
 from .episode import EpisodeMetrics
 
 __all__ = [
     "STATIONARY_BETA_EPS",
+    "CentralFieldMetrics",
     "CollapseMetrics",
     "ComovingMetrics",
     "ConstraintMetrics",

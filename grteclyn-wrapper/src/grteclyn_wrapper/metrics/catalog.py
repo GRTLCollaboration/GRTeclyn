@@ -229,6 +229,22 @@ METRIC_REGISTRY: dict[str, MetricSpec] = {
         score_components=("exotic_penalty", "energy_condition"),
         summary="Warp Factory T^eff = G/8pi effective energy conditions.",
     ),
+    "central": MetricSpec(
+        group="central",
+        model="CentralFieldMetrics",
+        module="grteclyn_wrapper.metrics.diagnostics.central",
+        source_type="dat",
+        source_detail="small_data/central_timeseries.dat",
+        compute_fn="read_central_field_metrics",
+        in_episode=True,
+        score_components=(
+            "central_energy_peak",
+            "focusing_efficiency",
+            "pre_collapsed_penalty",
+            "central_lapse_collapse",
+        ),
+        summary="Origin-resolved rho/lapse/scalar activity for splash campaigns.",
+    ),
 }
 
 

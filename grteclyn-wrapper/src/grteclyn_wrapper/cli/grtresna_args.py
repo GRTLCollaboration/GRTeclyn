@@ -53,7 +53,8 @@ def grtresna_solved_ftl_gate_enabled(
     if explicit is not None:
         return bool(explicit)
     # general_ftl rewards 4D null-geodesic shortcuts, not coordinate precursors.
-    if objective_mode == "general_ftl":
+    # critical_collapse / splash campaigns score origin rho peaks, not warp motors.
+    if objective_mode in {"general_ftl", "critical_collapse"}:
         return False
     return True
 
@@ -91,7 +92,7 @@ def add_grtresna_matter_selection_args(parser: argparse.ArgumentParser) -> None:
 def resolve_grtresna_matter_from_args(args: argparse.Namespace) -> MatterSelection:
     """Resolve matter selection from CLI, honoring legacy ``--grtresna-ansatz boson_star``."""
     sector = getattr(args, "grtresna_matter_sector", MATTER_SECTOR_SCALAR)
-    if getattr(args, "grtresna_ansatz", "free") == MATTER_SECTOR_BOSON_STAR:
+    if getattr(args, "grtresna_ansatz", "free") in {MATTER_SECTOR_BOSON_STAR, "splash"}:
         sector = MATTER_SECTOR_BOSON_STAR
     coupling = getattr(args, "grtresna_matter_coupling", MATTER_COUPLING_CANONICAL)
     return resolve_matter_selection(sector, coupling)

@@ -18,6 +18,7 @@ class EpisodeContext:
     boundary_flux_path: Path
     boundary_flux_fallback_path: Path
     gridinit_path: Path
+    central_timeseries_path: Path
     ftl_timeseries_path: Path
 
 
@@ -53,5 +54,6 @@ def build_episode_context(episode_dir: Path, *, ftl_L: float | None = None) -> E
         boundary_flux_path=data_dir / "boundary_flux.dat",
         boundary_flux_fallback_path=episode_dir / "boundary_flux.dat",
         gridinit_path=episode_dir / "initial_data.gridinit",
+        central_timeseries_path=small_data_dir / "central_timeseries.dat",
         ftl_timeseries_path=small_data_dir / "ftl_timeseries.dat",
     )

@@ -116,12 +116,65 @@ def _horizon_free_axis(metrics: Mapping[str, Any] | None) -> float:
     return float(np.clip(scaled, 0.0, 1.0))
 
 
+# Boson profile-width bounds (match grtresna_boson_splash_search_space).
+_BS_PROFILE_WIDTH_MIN = 4.0
+_BS_PROFILE_WIDTH_MAX = 16.0
+_BS_OMEGA_MAX = 0.4
+
+
+def _central_metrics(metrics: Mapping[str, Any] | None) -> Mapping[str, Any] | None:
+    central = (metrics or {}).get("central")
+    return central if isinstance(central, Mapping) else None
+
+
+def _normalize_profile_width(width: float) -> float:
+    span = _BS_PROFILE_WIDTH_MAX - _BS_PROFILE_WIDTH_MIN
+    if span <= 0.0:
+        return 0.0
+    return float(np.clip((width - _BS_PROFILE_WIDTH_MIN) / span, 0.0, 1.0))
+
+
+def _omega_chromaticity_fallback(overrides: Mapping[str, Any] | None) -> float:
+    if not overrides:
+        return 0.0
+    omega = overrides.get("grtresna_bs_omega")
+    if omega is None or not math.isfinite(float(omega)):
+        return 0.0
+    return float(np.clip(float(omega) / _BS_OMEGA_MAX, 0.0, 1.0))
+
+
 def _descriptor_details(
     components: Mapping[str, float],
     metrics: Mapping[str, Any] | None = None,
     *,
     mode: str = "legacy",
+    overrides: Mapping[str, Any] | None = None,
 ) -> dict[str, float]:
+    if mode == "wave_focusing":
+        central = _central_metrics(metrics)
+        chromaticity = 0.0
+        if central and central.get("wave_chromaticity") is not None:
+            chromaticity = float(
+                np.clip(float(central.get("wave_chromaticity") or 0.0), 0.0, 1.0)
+            )
+        elif chromaticity <= 0.0:
+            chromaticity = _omega_chromaticity_fallback(overrides)
+        width = None
+        if overrides and overrides.get("grtresna_bs_profile_width") is not None:
+            width = float(overrides["grtresna_bs_profile_width"])
+        profile_axis = _normalize_profile_width(width) if width is not None else 0.5
+        return {
+            "x": chromaticity,
+            "y": profile_axis,
+            "wave_chromaticity": chromaticity,
+            "profile_width_norm": profile_axis,
+            "grtresna_bs_omega": float(
+                overrides.get("grtresna_bs_omega", float("nan"))
+            )
+            if overrides
+            else float("nan"),
+        }
+
     if mode == "speed_horizon":
         report = _best_ftl_report(metrics)
         speed = _speed_axis_from_report(report)
@@ -237,8 +290,11 @@ def _descriptors(
     metrics: Mapping[str, Any] | None = None,
     *,
     mode: str = "legacy",
+    overrides: Mapping[str, Any] | None = None,
 ) -> tuple[float, float]:
-    details = _descriptor_details(components, metrics, mode=mode)
+    details = _descriptor_details(
+        components, metrics, mode=mode, overrides=overrides
+    )
     return details["x"], details["y"]
 
 

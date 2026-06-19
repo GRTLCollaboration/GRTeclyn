@@ -9,6 +9,7 @@ from pathlib import Path
 import yt
 
 from .config import _default_data_dir, _default_frames_out_dir, _frames_auto_zlim_enabled
+from .extraction.central import CENTRAL_TIMESERIES_HEADER
 from .extraction.ftl import FTL_TIMESERIES_HEADER
 from .extraction.shell import _shell_stats_header
 from .fields import _canonical_field_name
@@ -119,6 +120,11 @@ def main() -> None:
         help="Per-plotfile FTL features (operational + gated geodesic) to ftl_timeseries.dat.",
     )
     parser.add_argument(
+        "--central-timeseries",
+        action="store_true",
+        help="Per-plotfile origin-resolved rho/lapse/scalar activity to central_timeseries.dat.",
+    )
+    parser.add_argument(
         "--ftl-l",
         type=float,
         default=8.0,
@@ -137,7 +143,7 @@ def main() -> None:
     parser.add_argument(
         "--objective-mode",
         default="weighted",
-        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl"],
+        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl", "critical_collapse"],
         help="Objective mode for incremental scoring (matches final score_episode).",
     )
     parser.add_argument(
@@ -214,6 +220,7 @@ def main() -> None:
     shell_out_path = out_dir / "shell_profiles.dat"
     boundary_flux_out_path = out_dir / "boundary_flux.dat"
     ftl_out_path = out_dir / "ftl_timeseries.dat"
+    central_out_path = out_dir / "central_timeseries.dat"
     score_ts_path = out_dir / "score_timeseries.jsonl"
     header = "# time  " + "  ".join([f"Re(R={R:g})  Im(R={R:g})" for R in args.radii])
     areal_header = "# time  R_areal_min  r_at_R_areal_min"
@@ -232,6 +239,8 @@ def main() -> None:
             _truncate_if_exists(shell_out_path)
         if args.ftl_timeseries:
             _truncate_if_exists(ftl_out_path)
+        if args.central_timeseries:
+            _truncate_if_exists(central_out_path)
         if args.incremental_score:
             _truncate_if_exists(score_ts_path)
         _save_state(state_path, {})
@@ -377,6 +386,12 @@ def main() -> None:
                                     line=res["ftl_line"],
                                 )
                                 _append_incremental_score(float(res["t"]))
+                            if res.get("central_line"):
+                                _append_line(
+                                    central_out_path,
+                                    header=CENTRAL_TIMESERIES_HEADER,
+                                    line=res["central_line"],
+                                )
 
                             state[res["key"]] = True
                             _save_state(state_path, state)
@@ -413,6 +428,12 @@ def main() -> None:
                             line=res["ftl_line"],
                         )
                         _append_incremental_score(float(res["t"]))
+                    if res.get("central_line"):
+                        _append_line(
+                            central_out_path,
+                            header=CENTRAL_TIMESERIES_HEADER,
+                            line=res["central_line"],
+                        )
 
                     state[res["key"]] = True
                     _save_state(state_path, state)

@@ -12,6 +12,7 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 from ..diagnostics import (
+    read_central_field_metrics,
     read_collapse_metrics,
     read_comoving_metrics,
     read_constraint_metrics,
@@ -353,6 +354,12 @@ def read_episode_metrics(
     except Exception:
         ftl_timeseries = None
 
+    central = None
+    try:
+        central = read_central_field_metrics(ctx.central_timeseries_path)
+    except Exception:
+        central = None
+
     effective_ec = None
     try:
         recent = find_recent_plotfiles(ctx.episode_dir, count=5)
@@ -453,4 +460,5 @@ def read_episode_metrics(
         transport=transport,
         ftl_persistence=ftl_persistence,
         ftl_timeseries=ftl_timeseries,
+        central=central,
     )

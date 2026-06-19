@@ -113,7 +113,7 @@ def build_parser() -> argparse.ArgumentParser:
     opt.add_argument("--gpu-ids", nargs="+", type=int, default=None, help="GPU indices for parallel eval (e.g. 0 1 2 3 4 5 6 7).")
     opt.add_argument(
         "--objective-mode",
-        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl"],
+        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl", "critical_collapse"],
         default="weighted",
         help="Scoring scalarization: weighted legacy score, FTL-first ordering, "
         "robust_ftl (FTL-first tilted toward persistent/healthy/low-exotic), "
@@ -223,7 +223,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     opt.add_argument(
         "--grtresna-ansatz",
-        choices=["free", "ring", "shell", "boson_star"],
+        choices=["free", "ring", "shell", "boson_star", "splash"],
         default="free",
         help="GRTresna matter parameterization. 'free' searches every lump "
              "independently (11*K dimensions). 'ring' searches a reduced rotating "
@@ -406,7 +406,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     qd.add_argument(
         "--descriptor-mode",
-        choices=["legacy", "channel", "speed_horizon", "speed_super", "ftl_lifetime"],
+        choices=["legacy", "channel", "speed_horizon", "speed_super", "ftl_lifetime", "wave_focusing"],
         default="legacy",
         help="MAP-Elites descriptors: legacy FTL/mechanism grid, channel "
         "path-closeness/mechanism-balance grid (needs shift>0), speed_horizon "
@@ -420,7 +420,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     qd.add_argument(
         "--objective-mode",
-        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl"],
+        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl", "critical_collapse"],
         default="weighted",
         help="Scoring scalarization used as elite quality. robust_ftl tilts "
         "ftl_first toward persistent/healthy/low-exotic geometries; "
@@ -446,7 +446,7 @@ def build_parser() -> argparse.ArgumentParser:
     qd.add_argument("--grtresna-lumps", type=int, default=5)
     qd.add_argument(
         "--grtresna-ansatz",
-        choices=["free", "ring", "shell", "boson_star"],
+        choices=["free", "ring", "shell", "boson_star", "splash"],
         default="free",
         help="GRTresna geometry ansatz for scalar lumps (shell/ring/free). "
              "Legacy: 'boson_star' alias sets --grtresna-matter-sector boson_star.",

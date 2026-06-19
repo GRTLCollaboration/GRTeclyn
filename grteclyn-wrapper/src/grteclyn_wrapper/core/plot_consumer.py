@@ -13,6 +13,16 @@ from .episode import Episode
 ConsumerProfile = Literal["wormhole", "radial"]
 
 
+def _env_flag(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() in {"1", "on", "yes", "true"}
+
+
+def _central_timeseries_enabled(explicit: bool | None) -> bool:
+    if explicit is not None:
+        return explicit
+    return _env_flag("GRTECLYN_CENTRAL_TIMESERIES")
+
+
 def _strip_param_value(value: str) -> str:
     value = value.split("#", 1)[0].strip()
     if value.startswith('"') and value.endswith('"'):
@@ -68,6 +78,7 @@ def build_consume_command(
     keep_existing_frames: bool = False,
     stable_seconds: float | None = None,
     ftl_timeseries: bool = False,
+    central_timeseries: bool | None = None,
     ftl_L: float | None = None,
     incremental_score: bool = True,
     objective_mode: str = "weighted",
@@ -146,6 +157,10 @@ def build_consume_command(
             if score_weights:
                 for key, value in score_weights.items():
                     command.extend(["--score-weight", f"{key}={value:g}"])
+    if _central_timeseries_enabled(central_timeseries):
+        command.append("--central-timeseries")
+        if not ftl_timeseries and objective_mode != "weighted":
+            command.extend(["--objective-mode", str(objective_mode)])
 
     if profile == "wormhole":
         command.extend(

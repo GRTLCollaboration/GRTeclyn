@@ -1,6 +1,7 @@
 """C++ diagnostic metric parsers."""
 
 from .collapse import read_collapse_metrics
+from .central import read_central_field_metrics
 from .comoving import read_comoving_metrics
 from .constraints import read_constraint_metrics
 from .curvature import read_curvature_invariant_metrics
@@ -12,6 +13,7 @@ from .stability import read_stability_metrics
 from .transport import read_transport_metrics
 
 __all__ = [
+    "read_central_field_metrics",
     "read_collapse_metrics",
     "read_comoving_metrics",
     "read_constraint_metrics",

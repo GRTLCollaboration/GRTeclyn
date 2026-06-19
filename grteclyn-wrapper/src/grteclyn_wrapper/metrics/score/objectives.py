@@ -4,7 +4,13 @@ from .types import ScoringContext
 from .weights import HEALTH_COMPONENTS
 
 
-def compute_total(ctx: ScoringContext, objective_mode: str, nontriviality: float) -> float:
+def compute_total(
+    ctx: ScoringContext,
+    objective_mode: str,
+    nontriviality: float,
+    *,
+    splash_mode: str = "discovery",
+) -> float:
     components = ctx.components
     notes = ctx.notes
     w = ctx.weights
@@ -15,6 +21,8 @@ def compute_total(ctx: ScoringContext, objective_mode: str, nontriviality: float
         return _robust_ftl_total(components, notes)
     if objective_mode == "general_ftl":
         return _general_ftl_total(components, notes)
+    if objective_mode == "critical_collapse":
+        return _critical_collapse_total(components, notes, splash_mode=splash_mode)
     return _weighted_total(components, w, nontriviality)
 
 
@@ -191,6 +199,42 @@ def _general_ftl_total(components: dict[str, float], notes: list[str]) -> float:
     notes.append(
         "objective_mode=general_ftl: gauge-invariant shortcut only; "
         "warp-motor shaping and stationary penalty disabled"
+    )
+    return total
+
+
+def _critical_collapse_total(
+    components: dict[str, float],
+    notes: list[str],
+    *,
+    splash_mode: str = "discovery",
+) -> float:
+    survival = float(components.get("survival", 0.0))
+    if survival <= 0.0:
+        notes.append(
+            f"objective_mode=critical_collapse splash_mode={splash_mode}: "
+            "zero survival zeros score"
+        )
+        return 0.0
+    peak = float(components.get("central_energy_peak", 0.0))
+    focus = float(components.get("focusing_efficiency", 0.0))
+    pre_penalty = float(components.get("pre_collapsed_penalty", 0.0))
+    lapse_term = float(components.get("central_lapse_collapse", 0.0))
+    horizon_bonus = float(components.get("horizon_formation_time", 0.0))
+
+    total = (
+        1000.0 * peak * survival
+        + 300.0 * min(focus, 5.0)
+        + 100.0 * pre_penalty
+    )
+    if splash_mode == "threshold":
+        total += 500.0 * lapse_term
+    if splash_mode == "discovery" and horizon_bonus > 0.0:
+        total += 50.0 * horizon_bonus
+
+    notes.append(
+        f"objective_mode=critical_collapse splash_mode={splash_mode}: "
+        "central rho peak dominates; FTL terms ignored"
     )
     return total
 

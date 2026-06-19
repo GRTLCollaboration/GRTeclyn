@@ -330,7 +330,10 @@ def run_qd_search(
             return record, None
 
         descriptor_details = _descriptor_details(
-            res.components, res.metrics, mode=descriptor_mode,
+            res.components,
+            res.metrics,
+            mode=descriptor_mode,
+            overrides={d.param_key: overrides.get(d.param_key) for d in dims},
         )
         d1, d2 = descriptor_details["x"], descriptor_details["y"]
         cell = (_bin_index(d1, bins), _bin_index(d2, bins))
@@ -804,7 +807,10 @@ def _run_legacy_batch_mode(
             return record
 
         descriptor_details = _descriptor_details(
-            res.components, res.metrics, mode=descriptor_mode,
+            res.components,
+            res.metrics,
+            mode=descriptor_mode,
+            overrides={d.param_key: overrides.get(d.param_key) for d in dims},
         )
         d1, d2 = descriptor_details["x"], descriptor_details["y"]
         cell = (_bin_index(d1, bins), _bin_index(d2, bins))

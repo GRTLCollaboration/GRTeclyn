@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import Mapping
 
 from ..types import EpisodeMetrics
@@ -8,9 +9,19 @@ from .gating import compute_nontriviality_gate
 from .health import compute_health_components
 from .objectives import compute_total
 from .penalties import compute_penalty_components
+from .splash import compute_splash_components
 from .survival import compute_survival_components
 from .types import Score, ScoringContext
 from .weights import DEFAULT_WEIGHTS
+
+
+def _resolve_splash_mode(splash_mode: str | None) -> str:
+    if splash_mode:
+        return splash_mode
+    env_mode = os.environ.get("SPLASH_MODE", "").strip().lower()
+    if env_mode in {"discovery", "threshold"}:
+        return env_mode
+    return "discovery"
 
 
 def score_episode(
@@ -20,6 +31,7 @@ def score_episode(
     weights: Mapping[str, float] | None = None,
     objective_mode: str = "weighted",
     domain_half_width: float | None = None,
+    splash_mode: str | None = None,
 ) -> Score:
     w = dict(DEFAULT_WEIGHTS)
     if weights:
@@ -36,7 +48,15 @@ def score_episode(
     compute_health_components(ctx)
     compute_ftl_components(ctx)
     compute_penalty_components(ctx)
+    resolved_splash_mode = _resolve_splash_mode(splash_mode)
+    if objective_mode == "critical_collapse":
+        compute_splash_components(ctx, splash_mode=resolved_splash_mode)
     nontriviality = compute_nontriviality_gate(ctx)
-    total = compute_total(ctx, objective_mode, nontriviality)
+    total = compute_total(
+        ctx,
+        objective_mode,
+        nontriviality,
+        splash_mode=resolved_splash_mode,
+    )
 
     return Score(total=total, components=ctx.components, notes=ctx.notes)

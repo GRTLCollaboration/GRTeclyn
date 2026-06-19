@@ -53,3 +53,4 @@ class EpisodeMetrics:
     transport: TransportMetrics | None = None
     ftl_persistence: FtlPersistenceMetrics | None = None
     ftl_timeseries: FtlTimeSeriesMetrics | None = None
+    central: "CentralFieldMetrics | None" = None

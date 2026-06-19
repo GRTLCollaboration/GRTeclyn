@@ -287,6 +287,23 @@ def grtresna_shell_search_space(profile: str = "compact") -> list[SearchDimensio
     ]
 
 
+def grtresna_boson_splash_search_space() -> list[SearchDimension]:
+    """Boson-star splash search space with unpinned phase velocity ``omega``.
+
+    Bounds are tighter than the generic boson-star space to keep canonical
+    GRTresna solves in the Ham/Mom convergence window for early splash sweeps.
+    """
+    return [
+        SearchDimension("grtresna_scalar_mass", 0.05, 0.35, 0.1),
+        SearchDimension("grtresna_scalar_lambda", 0.0, 0.05, 0.0),
+        SearchDimension("grtresna_bs_phi_c", 0.03, 0.12, 0.08),
+        SearchDimension("grtresna_bs_profile_width", 4.0, 16.0, 8.0),
+        SearchDimension("grtresna_bs_omega", 0.0, 0.4, 0.15),
+        SearchDimension("grtresna_scalar_sign", 1.0, 1.0, 1.0),
+        SearchDimension("grtresna_shift_seed", -0.6, 0.6, 0.0),
+    ]
+
+
 def grtresna_boson_star_search_space() -> list[SearchDimension]:
     """Complex-scalar (mini boson star) search space.
 
@@ -331,6 +348,8 @@ def build_search_space(
     """
     if grtresna:
         if grtresna_matter_sector == "boson_star":
+            if grtresna_ansatz == "splash":
+                return grtresna_boson_splash_search_space()
             return grtresna_boson_star_search_space()
         if grtresna_ansatz == "ring":
             return grtresna_ring_search_space()
@@ -338,6 +357,8 @@ def build_search_space(
             return grtresna_shell_search_space(profile=grtresna_shell_profile)
         if grtresna_ansatz == "boson_star":
             return grtresna_boson_star_search_space()
+        if grtresna_ansatz == "splash":
+            return grtresna_boson_splash_search_space()
         if grtresna_ansatz != "free":
             raise ValueError(f"unknown GRTresna ansatz: {grtresna_ansatz}")
         return grtresna_search_space(grtresna_lumps)

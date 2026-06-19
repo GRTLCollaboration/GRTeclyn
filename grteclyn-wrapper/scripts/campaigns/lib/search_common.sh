@@ -95,6 +95,12 @@ export GRTECLYN_METRIC_STACK_N_SPACE="${GRTECLYN_METRIC_STACK_N_SPACE:-33}"
 if [[ "${OBJECTIVE_MODE}" == "general_ftl" ]]; then
   export GRTECLYN_GEO_DIRECTIONS="${GRTECLYN_GEO_DIRECTIONS:-x y z}"
 fi
+if [[ "${OBJECTIVE_MODE}" == "critical_collapse" ]]; then
+  export GRTECLYN_EVOLVING_GEODESIC=0
+  export GRTECLYN_CENTRAL_TIMESERIES=1
+  export SPLASH_MODE="${SPLASH_MODE:-discovery}"
+  export GRTRESNA_MATTER_COUPLING=canonical
+fi
 export GRTECLYN_FRAMES_FIELDS="${FRAMES_FIELDS:-lump_activity scalar_activity phi_lump_sum Pi_lump_sum chi chi_minus_1 local_speed shift1 rho_req}"
 export GRTECLYN_PROJECTION_FIELDS="${PROJECTION_FIELDS:-scalar_activity}"
 export GRTECLYN_PROJECTION_AXES="${PROJECTION_AXES:-x y z}"
@@ -149,8 +155,10 @@ ftl_search_common_grtresna_args() {
     --solved-ftl-rejection-speed-target "${SOLVED_FTL_REJECTION_SPEED_TARGET}"
   )
   # Boson stars are centered matter blobs without t=0 warp precursors; skip the
-  # coordinate solved-FTL gate (same rationale as general_ftl).
-  if [[ "${OBJECTIVE_MODE}" == "general_ftl" ]] || [[ "${GRTRESNA_MATTER_SECTOR}" == "boson_star" ]]; then
+  # coordinate solved-FTL gate (same rationale as general_ftl / critical_collapse).
+  if [[ "${OBJECTIVE_MODE}" == "general_ftl" ]] \
+    || [[ "${OBJECTIVE_MODE}" == "critical_collapse" ]] \
+    || [[ "${GRTRESNA_MATTER_SECTOR}" == "boson_star" ]]; then
     FTL_GRTRESNA_ARGS+=(--no-grtresna-solved-ftl-gate)
   fi
   if [[ "${POSTLOAD_GATE}" == "1" ]]; then
@@ -198,20 +206,32 @@ ftl_search_common_pipeline_args() {
 
 ftl_search_common_preflight_tests() {
   echo "Running FTL search preflight pytest gate..."
-  ${PYTHON_BIN} -m pytest \
-    "${WRAPPER_ROOT}/tests/grtresna/test_scalar_lambda_potential.py" \
-    "${WRAPPER_ROOT}/tests/grtresna/test_grtresna_shell_ansatz.py" \
-    "${WRAPPER_ROOT}/tests/grtresna/test_boson_star_ansatz.py" \
-    "${WRAPPER_ROOT}/tests/grtresna/test_matter_selection.py" \
-    "${WRAPPER_ROOT}/tests/grtresna/test_matter_geometry_consistency.py" \
-    "${WRAPPER_ROOT}/tests/search/test_ftl_retention.py" \
-    "${WRAPPER_ROOT}/tests/search/test_optimize_retention.py" \
-    "${WRAPPER_ROOT}/tests/search/test_descriptors_4d.py" \
-    "${WRAPPER_ROOT}/tests/search/test_qd_4d_smoke.py" \
-    "${WRAPPER_ROOT}/tests/metrics/ftl/test_ftl_peak_metrics.py" \
-    "${WRAPPER_ROOT}/tests/metrics/ftl/test_ftl_peak_metrics_4d.py" \
-    "${WRAPPER_ROOT}/tests/metrics/ftl/test_evolving_geodesic_search_mode.py" \
-    "${WRAPPER_ROOT}/tests/metrics/score/test_ftl_4d_gate.py" \
-    "${WRAPPER_ROOT}/tests/metrics/score/test_general_ftl_objective.py" \
-    -q --tb=short
+  local -a PREFLIGHT_TESTS=(
+    "${WRAPPER_ROOT}/tests/grtresna/test_scalar_lambda_potential.py"
+    "${WRAPPER_ROOT}/tests/grtresna/test_grtresna_shell_ansatz.py"
+    "${WRAPPER_ROOT}/tests/grtresna/test_boson_star_ansatz.py"
+    "${WRAPPER_ROOT}/tests/grtresna/test_matter_selection.py"
+    "${WRAPPER_ROOT}/tests/grtresna/test_matter_geometry_consistency.py"
+    "${WRAPPER_ROOT}/tests/search/test_ftl_retention.py"
+    "${WRAPPER_ROOT}/tests/search/test_optimize_retention.py"
+    "${WRAPPER_ROOT}/tests/metrics/ftl/test_ftl_peak_metrics.py"
+    "${WRAPPER_ROOT}/tests/metrics/score/test_general_ftl_objective.py"
+    "${WRAPPER_ROOT}/tests/metrics/diagnostics/test_central_timeseries_parser.py"
+    "${WRAPPER_ROOT}/tests/metrics/score/test_splash_components.py"
+    "${WRAPPER_ROOT}/tests/metrics/score/test_critical_collapse_objective.py"
+    "${WRAPPER_ROOT}/tests/metrics/score/test_scorer_splash_integration.py"
+    "${WRAPPER_ROOT}/tests/grtresna/test_boson_splash_search_space.py"
+    "${WRAPPER_ROOT}/tests/search/test_splash_descriptors.py"
+    "${WRAPPER_ROOT}/tests/scripts/test_splash_campaign_env.py"
+  )
+  if [[ "${OBJECTIVE_MODE}" != "critical_collapse" ]]; then
+    PREFLIGHT_TESTS+=(
+      "${WRAPPER_ROOT}/tests/search/test_descriptors_4d.py"
+      "${WRAPPER_ROOT}/tests/search/test_qd_4d_smoke.py"
+      "${WRAPPER_ROOT}/tests/metrics/ftl/test_ftl_peak_metrics_4d.py"
+      "${WRAPPER_ROOT}/tests/metrics/ftl/test_evolving_geodesic_search_mode.py"
+      "${WRAPPER_ROOT}/tests/metrics/score/test_ftl_4d_gate.py"
+    )
+  fi
+  ${PYTHON_BIN} -m pytest "${PREFLIGHT_TESTS[@]}" -q --tb=short
 }
