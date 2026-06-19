@@ -17,7 +17,7 @@ FTL / warp-motor terms are **not** used in this objective.
 
 ```bash
 cd grteclyn-wrapper
-QD_NAME=scalar_splash_gpu_v1 QD_TARGET_EVALS=12 \
+QD_NAME=boson_shell_gpu_v1 QD_TARGET_EVALS=12 \
   GPU_IDS="0 1 2 3" GPU_SLOTS_PER_DEVICE=1 \
   bash scripts/campaigns/splash/run.sh
 ```
@@ -26,16 +26,29 @@ QD_NAME=scalar_splash_gpu_v1 QD_TARGET_EVALS=12 \
 
 | Variable | Value | Role |
 |----------|-------|------|
-| `GRTRESNA_MATTER_SECTOR` | `scalar` | Validated real-scalar lumps (`ScalarFieldBH`) |
-| `GRTRESNA_ANSATZ` | `shell` | Spherical shell of momentum-carrying lumps |
-| `GRTRESNA_SHELL_PROFILE` | `compact` | Small lump width (1.8–3.0) so frames are not filled by a single blob |
+| `GRTRESNA_MATTER_SECTOR` | `boson_star` | Complex U(1) scalar (`BosonStarBH`) |
+| `GRTRESNA_ANSATZ` | `shell` | Five lump sites on a shell → one superposed boson field |
+| `GRTRESNA_SHELL_PROFILE` | `compact` | Shell geometry profile (radius, layout, etc.) |
 | `GRTRESNA_MATTER_COUPLING` | `canonical` | Positive-energy matter only |
+| `PIN_DIMS` | `grtresna_scalar_sign=1`, `grtresna_shell_static=1` | Canonical coupling; static shell (zero lump velocities) |
+| `ITERATIONS` | `80` | GRTresna NL iterations (boson shell needs more than scalar) |
 | `OBJECTIVE_MODE` | `critical_collapse` | Splash scorer (see below) |
 | `DESCRIPTOR_MODE` | `wave_focusing` | MAP-Elites behavior space |
 | `SPLASH_MODE` | `discovery` | Broad collapse search (vs `threshold` lapse band) |
 | `GRTECLYN_FRAMES` | `1` | Slice / projection frames per eval |
-| `GRTECLYN_FRAMES_AUTO_ZLIM` | `1` | Auto colorbar scale (scalar lumps are much fainter than boson defaults) |
+| `GRTECLYN_FRAMES_AUTO_ZLIM` | `1` | Auto colorbar scale |
 | `GRTECLYN_FRAMES_ZOOM` | `28` | Zoom into origin on L=64 domain |
+
+Production example:
+
+```bash
+cd grteclyn-wrapper
+QD_NAME=boson_shell_gpu_v1 QD_TARGET_EVALS=100 QD_ITERATIONS=30 \
+  GPU_IDS="0 1 2 3 4 5 6 7" GPU_SLOTS_PER_DEVICE=1 BATCH_SIZE=8 \
+  bash scripts/campaigns/splash/run.sh
+```
+
+Validation smoke (16 evals, Jun 2026): `boson_shell_validate_v8` — 15/16 pass GRTresna gate, 9/16 full pipeline, best score **+8.65** (eval 015).
 
 When `OBJECTIVE_MODE=critical_collapse`, `search_common.sh` also sets:
 
@@ -112,10 +125,17 @@ Registered in CLI: `--objective-mode critical_collapse`.
 
 ### 5. Search spaces
 
-- **`grtresna_boson_splash_search_space()`** — 7-D boson star with unpinned ω (compact Gaussian defaults). Kept for future boson-splash experiments; not used by the current campaign launcher.
-- **Active campaign** uses the existing **`grtresna_shell_search_space(profile=compact)`** scalar shell space (18-D).
+- **`grtresna_boson_shell_search_space()`** — active campaign space. Scalar shell geometry minus exotic dims, with boson-specific convergence bounds:
+  - `grtresna_shell_amp` 0.04–0.12 (not scalar 0.08–0.16)
+  - `grtresna_scalar_mass` 0.05–0.35, `grtresna_scalar_lambda` 0–0.05
+  - `grtresna_bs_omega` 0.05–0.35
+  - No velocity dims (campaign pins `grtresna_shell_static=1`)
+- **`grtresna_boson_splash_search_space()`** — 7-D centered boson star (legacy single Gaussian). Kept for experiments; not used by the launcher.
+- **`grtresna_shell_search_space(profile=compact)`** — scalar shell (18-D + exotic). Still valid for canonical real-scalar splash without boson work.
 
-Ansatz `splash` in CLI still maps to boson-star matter for legacy compatibility; the campaign script uses `shell` + `scalar` explicitly.
+Shell expansion for boson: Python `build_grtresna_config()` expands `grtresna_shell_*` → `cfg.lumps`, then `apply_boson_star_overrides()`. GRTresna receives `num_lumps` + `lump{k}_amp/width/center/velocity/omega/mode/profile` in `params.txt`.
+
+Ansatz `splash` in CLI still maps to boson-star matter for legacy compatibility; the campaign uses `shell` + `boson_star`.
 
 ### 6. Tests
 
@@ -128,6 +148,7 @@ Splash-related unit tests live under `grteclyn-wrapper/tests/`:
 - `metrics/score/test_critical_collapse_objective.py`
 - `metrics/score/test_scorer_splash_integration.py`
 - `search/test_splash_descriptors.py`
+- `grtresna/test_boson_shell_ansatz.py`
 - `grtresna/test_boson_splash_search_space.py`
 - `scripts/test_splash_campaign_env.py`
 
@@ -144,11 +165,66 @@ Per eval under `runs/grtresna_qd/<QD_NAME>/eval_NNNNNN/`:
 
 Campaign-level: `trajectory.jsonl` (score, descriptors, overrides, status per eval).
 
+## Bosonic shell (Jun 2026)
+
+Shell lump geometry is now wired to **bosonic matter**: five Gaussian sites superpose into one U(1) complex scalar solved by `BosonStarBH`, not five independent real scalars.
+
+### Architecture
+
+| Layer | What it does |
+|-------|----------------|
+| **Python** (`config.py`, `spaces.py`) | Expand `grtresna_shell_*` → `cfg.lumps`; force exotic=0 for boson |
+| **GRTresna** (`BosonStarParams.hpp`, `ComplexScalarField.cpp`) | Read `num_lumps` + indexed lump params; paint `phi_re` from superposed Gaussians |
+| **Evolution** | Single complex scalar: Re=`phi`/`Pi`, Im=`phi_lump0`/`Pi_lump0` |
+
+One complex field carries all shell sites — not five independent complex fields.
+
+### GRTresna paint (Phase 2)
+
+Initial-data paint at each grid point:
+
+- `phi_re` = Σ lump Gaussians (respects `mode`, `profile` Gaussian vs top-hat)
+- `phi_im` = 0
+- `Pi_re` = Σ lump boost/rotation terms (`velocity`, `omega` per lump — same formula as `ScalarFieldBH`)
+- `Pi_im` = −ω × `phi_re` (global U(1) phase velocity from `bs_omega`)
+
+Params read from `params.txt`: `lump{k}_amp`, `width`, `center`, `velocity`, `omega`, `mode`, `profile`.
+
+### Blockers encountered (v6/v7)
+
+| Issue | Symptom | Fix |
+|-------|---------|-----|
+| Geometry-only paint | 100% `grtresna_rejected`; Mom 12–30% | Add `lump_pi1()` / `total_pi1()`; read full lump kinematics from params |
+| Scalar shell bounds on boson | Ham/Mom never converged | Boson-specific amp/mass/λ caps in `grtresna_boson_shell_search_space()` |
+| Moving shell + incomplete Π | Momentum constraint stall | Pin `grtresna_shell_static=1` in campaign (static shell for first production sweeps) |
+| Too few NL iterations | Residual plateau | `ITERATIONS=80` in `splash/run.sh` |
+
+### Validation (`boson_shell_validate_v8`, 16 evals)
+
+| Gate | Pass rate |
+|------|-----------|
+| GRTresna Ham/Mom (5%/5%) | **15/16** (was 0/20 on pre-fix v7) |
+| Postload Ham L2 (2e⁻²) | 10/16 |
+| Full GPU pipeline | **9/16** (56%) |
+
+Best elite: eval **015**, score **+8.65**. Frames show clumpy shell structure in `rho_req_z` / `phi_z` (not a single centered blob).
+
+Remaining filter: **postload gate** on ~6 configs (Ham L2 ≈ 0.02–0.04 after gridinit load). Optional tuning: `POSTLOAD_MAX_HAM_L2=3e-2`.
+
+### Branches
+
+- **GRTeclyn:** `feature/interstellar` — `grtresna_boson_shell_search_space`, config expansion, campaign pins, tests
+- **GRTresna:** `feature/interstellar` — multi-lump `BosonStarParams`, `ComplexScalarField` superposition paint
+
+Run pytest via uv: `cd grteclyn-wrapper && uv run pytest tests/grtresna/test_boson_shell_ansatz.py -q`
+
+Push note: if SSH fails with OpenSSL mismatch, use `env -u LD_LIBRARY_PATH git push myfork feature/interstellar`.
+
 ## Design notes
 
-- **Scalar vs boson:** Early GPU runs used boson-star (`BosonStarBH`) splash ansatz; production campaign switched to **canonical scalar shell** because GRTresna boson convergence was brittle and produced symmetric center blobs with inflated scores. Boson splash search space and tests remain for later work.
-- **Score calibration:** Initial runs scored ~800–1000 for modest 3× ρ bumps at the origin; gating `focusing_efficiency` by `peak_norm` and adding dispersion / wave terms fixes that.
-- **Compact lumps:** Shell `compact` profile (width 1.8–3.0) keeps matter off the frame edges; boson splash space uses the same idea via `bs_profile_width` default 3.5 when re-enabled.
+- **Scalar vs boson:** Early runs used centered boson splash (single Gaussian → diffuse center blob). Scalar shell (`ScalarFieldBH`) was the interim production path. **Bosonic shell** (Jun 2026) combines shell geometry with `BosonStarBH` superposition; validated on `boson_shell_validate_v8`. Legacy scalar shell remains available via `GRTRESNA_MATTER_SECTOR=scalar`.
+- **Score calibration:** Initial runs scored ~800–1000 for modest 3× ρ bumps at the origin; gating `focusing_efficiency` by `peak_norm` and adding dispersion / wave terms fixes that. `exotic_penalty` added to `_critical_collapse_total()` when exotic matter is present.
+- **Compact lumps:** Boson shell caps amp at 0.12 and width 2–4; static pin avoids unconstrained velocity search until moving-shell Π is tuned further.
 
 ## Related paths
 
@@ -159,5 +235,11 @@ grteclyn-wrapper/
   src/grteclyn_wrapper/metrics/score/splash.py
   src/grteclyn_wrapper/metrics/score/objectives.py
   src/grteclyn_wrapper/search/qd_search/descriptors.py
-  src/grteclyn_wrapper/search/optimize/spaces.py   # grtresna_boson_splash_search_space
+  src/grteclyn_wrapper/search/optimize/spaces.py   # grtresna_boson_shell_search_space
+  src/grteclyn_wrapper/search/optimize/config.py   # boson + shell lump expansion
+  tests/grtresna/test_boson_shell_ansatz.py
+
+GRTresna/  (separate repo)
+  Source/Matter/BosonStarParams.hpp
+  Source/Matter/ComplexScalarField.cpp
 ```
