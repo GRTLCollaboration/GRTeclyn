@@ -14,6 +14,8 @@
 #include <cmath>
 #include "AMReX_LOUtil_K.H"
 
+#include <limits>
+
 // Class for (N-1)th order interpolation of the mesh data onto the particle
 // using Lagrange polynomials. Currently, it allows to interpolate only one
 // field at a time. But the field itself can have multiple components. Assumes
@@ -39,9 +41,28 @@ template <int N> class Lagrange
         std::array<int, N> stencil;
         constexpr int center_offset =
             N / 2; // offset based on the number of points we are using
-        int center = static_cast<int>(
-            amrex::Math::round(grid_pos)); // round the grid position to get the
-                                           // nearest cell center
+        int center;
+        constexpr amrex::Real eps =
+            10 * std::numeric_limits<
+                     amrex::Real>::epsilon(); // choose a small number around
+                                              // machine round-off precision
+        // when the position is very close to the axis of symmetry and
+        // reflective boundary conditions are used, center can end up being
+        // rounded up to -1. If center = -1, then the stencil is e.g. (-3, -2,
+        // -1, 0, 1) for 4th order interpolation, which is problematic here as
+        // -3 is out of bounds (note that we fill [4/2]=2 ghost cells). To avoid
+        // this, we will default to center = 0 in this situation.
+        if (lo_reflective &&
+            amrex::Math::abs(grid_pos + amrex::Real(0.5)) < eps)
+        {
+            center = 0;
+        }
+        else
+        {
+            center = static_cast<int>(
+                amrex::Math::round(grid_pos)); // round the grid position to get
+                                               // the nearest cell center
+        }
 
         // Fill in the stencil around the position of interpolation
         for (int i = 0; i < N; ++i)
@@ -185,7 +206,6 @@ template <int N> class Lagrange
                     const amrex::IntVect &is_nodal)
     // NOLINTEND(bugprone-easily-swappable-parameters)
     {
-
         // Compute the grid index of the position
         AMREX_D_TERM(
             amrex::Real xpos =
@@ -207,6 +227,7 @@ template <int N> class Lagrange
         build_stencil(ypos, j0, weights_d2[1], 2);
 
 #endif
+
 #if AMREX_SPACEDIM == 3
         build_stencil(zpos, k0, weights_local[2], 0);
         build_stencil(zpos, k0, weights_d1[2], 1);
