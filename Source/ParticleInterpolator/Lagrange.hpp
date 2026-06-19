@@ -13,6 +13,8 @@
 #include <cmath>
 #include "AMReX_LOUtil_K.H"
 
+#include <limits>
+
 // Class for (N-1)th order interpolation of the mesh data onto the particle
 // using Lagrange polynomials. Currently, it allows to interpolate only one
 // field at a time. But the field itself can have multiple components. Assumes
@@ -26,15 +28,36 @@ template <int N> class Lagrange
     int j0{};
     int k0{};
 
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    build_stencil(amrex::Real grid_pos, int &base_idx, amrex::Real *weights)
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void build_stencil(amrex::Real grid_pos,
+                                                           int &base_idx,
+                                                           amrex::Real *weights,
+                                                           bool lo_reflective)
     {
         std::array<int, N> stencil;
         constexpr int center_offset =
             N / 2; // offset based on the number of points we are using
-        int center = static_cast<int>(
-            amrex::Math::round(grid_pos)); // round the grid position to get the
-                                           // nearest cell center
+        int center;
+        constexpr amrex::Real eps =
+            10 * std::numeric_limits<
+                     amrex::Real>::epsilon(); // choose a small number around
+                                              // machine round-off precision
+        // when the position is very close to the axis of symmetry and
+        // reflective boundary conditions are used, center can end up being
+        // rounded up to -1. If center = -1, then the stencil is e.g. (-3, -2,
+        // -1, 0, 1) for 4th order interpolation, which is problematic here as
+        // -3 is out of bounds (note that we fill [4/2]=2 ghost cells). To avoid
+        // this, we will default to center = 0 in this situation.
+        if (lo_reflective &&
+            amrex::Math::abs(grid_pos + amrex::Real(0.5)) < eps)
+        {
+            center = 0;
+        }
+        else
+        {
+            center = static_cast<int>(
+                amrex::Math::round(grid_pos)); // round the grid position to get
+                                               // the nearest cell center
+        }
 
         // Fill in the stencil around the position of interpolation
         for (int i = 0; i < N; ++i)
@@ -73,9 +96,9 @@ template <int N> class Lagrange
     compute_weights(const P &par,
                     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const &plo,
                     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const &dxi,
-                    const amrex::IntVect &is_nodal)
+                    const amrex::IntVect &is_nodal,
+                    amrex::GpuArray<bool, AMREX_SPACEDIM> const lo_reflective)
     {
-
         // Compute the grid index of the position
         AMREX_D_TERM(
             amrex::Real xpos =
@@ -88,12 +111,14 @@ template <int N> class Lagrange
                   (amrex::Real(par.pos(2)) - plo[2]) * dxi[2] -
                   static_cast<amrex::Real>(!is_nodal[2]) * amrex::Real(0.5););
 
-        build_stencil(xpos, i0, weights_x);
+        build_stencil(xpos, i0, weights_x, lo_reflective[0]);
+
 #if AMREX_SPACEDIM >= 2
-        build_stencil(ypos, j0, weights_y);
+        build_stencil(ypos, j0, weights_y, lo_reflective[1]);
 #endif
+
 #if AMREX_SPACEDIM == 3
-        build_stencil(zpos, k0, weights_z);
+        build_stencil(zpos, k0, weights_z, lo_reflective[2]);
 #endif
     }
 
