@@ -83,9 +83,11 @@ void BinaryBHLevel::initData()
 
     amrex::MultiFab &state_new = get_new_data(state_index);
 #ifdef AMREX_USE_GPU
+    amrex::MFInfo mf_info;
+    mf_info.SetArena(amrex::The_Cpu_Arena());
     amrex::MultiFab host_state(state_new.boxArray(),
                                state_new.DistributionMap(), state_new.nComp(),
-                               state_new.nGrowVect(), amrex::The_Cpu_Arena());
+                               state_new.nGrowVect(), mf_info);
 #else
     amrex::MultiFab &host_state = state_new;
 #endif
@@ -104,7 +106,7 @@ void BinaryBHLevel::initData()
             { two_punctures_initial_data(ix, iy, iz, state_array); });
 #ifdef AMREX_USE_GPU
         // Copy to device
-        amrex::Gpu::htod_memcpu_async(
+        amrex::Gpu::htod_memcpy_async(
             state_new[mfi].dataPtr(), host_state[mfi].dataPtr(),
             host_state[mfi].size() * sizeof(amrex::Real));
 #endif
