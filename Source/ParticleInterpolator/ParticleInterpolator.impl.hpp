@@ -41,8 +41,8 @@ void ParticleInterpolator<num_components>::setup(
     // read in the physical bounds for reflective BC checks (it is sufficient to
     // do this on lev = 0)
     const amrex::Geometry &geom0 = m_gramr_ptr->getLevel(0).Geom();
-    m_prob_lo                    = geom0.ProbLoArray();
-    m_prob_hi                    = geom0.ProbHiArray();
+    m_prob_lo = geom0.RoundOffLo(); // use rounded-off low boundary
+    m_prob_hi = geom0.RoundOffHi(); // use rounded-off high boundary
 
     // set the reflective flags from BC params
     for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
@@ -237,6 +237,7 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
 
     const auto problem_domain_lo = geom.ProbLoArray();
     const auto dxi               = geom.InvCellSizeArray();
+    const auto lo_reflective     = m_lo_boundary_reflective;
 
     // loop over tiles and interpolate now
     for (ParIterType par_iter(*this, lev); par_iter.isValid(); ++par_iter)
@@ -257,7 +258,7 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
                 Lagrange<s_interp_order + 1>
                     lagrange_interp; // 4th order interpolation
                 lagrange_interp.compute_weights(particle, problem_domain_lo,
-                                                dxi, is_nodal);
+                                                dxi, is_nodal, lo_reflective);
 
                 amrex::ParticleReal interpolated_vals[ncomp];
                 lagrange_interp.interpolate(&fab_array, interpolated_vals,
@@ -687,11 +688,11 @@ void ParticleInterpolator<num_components>::check_domain(
 
         if (error)
         {
-            std::string msg = "ParticleInterpolator::check_domain() Oi oi oi! "
-                              "You are trying to access the point at x[" +
-                              std::to_string(d) +
-                              "] = " + std::to_string(x[d]) +
-                              " and it lies outside of your domain.";
+            std::string msg =
+                "ParticleInterpolator::check_domain() Oi oi oi! "
+                "You are trying to access the point at x[" +
+                std::to_string(d) + "] = " + std::to_string(x[d]) +
+                " and it lies outside of the AMReX's rounded-off domain.";
 
             amrex::Abort(msg);
         }
