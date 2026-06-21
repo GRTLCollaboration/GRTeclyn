@@ -287,13 +287,21 @@ def grtresna_shell_search_space(profile: str = "compact") -> list[SearchDimensio
     ]
 
 
-def grtresna_boson_shell_search_space(profile: str = "compact") -> list[SearchDimension]:
+def grtresna_boson_shell_search_space(
+    profile: str = "compact",
+    *,
+    static: bool = True,
+) -> list[SearchDimension]:
     """Canonical bosonic shell: shell geometry + boson-star convergence bounds.
 
     Multiple Gaussian sites superpose into one U(1) complex scalar solved by
     BosonStarBH (``num_lumps`` + ``lump{k}_*`` params).  Amplitudes and mass
     are capped tighter than the scalar shell so BosonStarBH stays inside the
-    Ham/Mom gate; campaign pins ``grtresna_shell_static=1``.
+    Ham/Mom gate.
+
+    When ``static=True`` (default), velocity dims are excluded and the campaign
+    pins ``grtresna_shell_static=1``.  When ``static=False``, conservative
+    velocity bounds are included for the moving-matter frame-dragging splash.
     """
     shell = grtresna_shell_search_space(profile=profile)
     skip = {
@@ -309,14 +317,27 @@ def grtresna_boson_shell_search_space(profile: str = "compact") -> list[SearchDi
         "grtresna_shell_omega",
     }
     dims = [d for d in shell if d.param_key not in skip]
+    # Amplitude widened from 0.12 to 0.15 to push toward critical collapse
+    # (v8 best had amp~0.06 with lapse~0.12; more energy density needed for
+    # lapse < 0.05).  Width narrowed slightly to keep lumps compact.
     dims.extend([
-        SearchDimension("grtresna_shell_amp", 0.04, 0.12, 0.08),
+        SearchDimension("grtresna_shell_amp", 0.04, 0.15, 0.08),
         SearchDimension("grtresna_shell_width", 2.0, 4.0, 3.0),
         SearchDimension("grtresna_scalar_mass", 0.05, 0.35, 0.1),
         SearchDimension("grtresna_scalar_lambda", 0.0, 0.05, 0.0),
         SearchDimension("grtresna_bs_omega", 0.05, 0.35, 0.15),
         SearchDimension("grtresna_scalar_sign", 1.0, 1.0, 1.0),
     ])
+    if not static:
+        dims.extend([
+            # Conservative velocity bounds for boson shell.  The Π paint
+            # (lump_pi1) is now wired correctly; these are tighter than the
+            # scalar shell to keep the boson NL solve convergent.
+            SearchDimension("grtresna_shell_toroidal_velocity", -0.6, 0.6, 0.0),
+            SearchDimension("grtresna_shell_poloidal_velocity", -0.3, 0.3, 0.0),
+            SearchDimension("grtresna_shell_radial_velocity", -0.15, 0.15, 0.0),
+            SearchDimension("grtresna_shell_omega", -0.3, 0.3, 0.0),
+        ])
     return dims
 
 
@@ -365,6 +386,7 @@ def build_search_space(
     grtresna_ansatz: str = "free",
     grtresna_shell_profile: str = "compact",
     grtresna_matter_sector: str = "scalar",
+    grtresna_shell_static: bool = True,
 ) -> list[SearchDimension]:
     """Return the optimizer search space.
 
@@ -380,11 +402,16 @@ def build_search_space(
 
     ``grtresna_matter_sector`` selects scalar lumps (shell/ring/free ansatz)
     vs boson-star (7-D complex scalar); independent of geometry ansatz.
+
+    ``grtresna_shell_static`` controls whether velocity dims are included in
+    the boson shell space (False = include momentum-carrying dims).
     """
     if grtresna:
         if grtresna_matter_sector == "boson_star":
             if grtresna_ansatz == "shell":
-                return grtresna_boson_shell_search_space(profile=grtresna_shell_profile)
+                return grtresna_boson_shell_search_space(
+                    profile=grtresna_shell_profile, static=grtresna_shell_static
+                )
             if grtresna_ansatz == "splash":
                 return grtresna_boson_splash_search_space()
             return grtresna_boson_star_search_space()

@@ -55,6 +55,15 @@ def build_grtresna_search_context(
     grtresna_shell_profile = getattr(args, "grtresna_shell_profile", "compact")
     matter = resolve_grtresna_matter_from_args(args)
 
+    # Detect whether shell_static is pinned (from --pin-dimension or base).
+    # If pinned to 1, velocity dims are excluded from the search space.
+    shell_static = True
+    pin_specs = getattr(args, "pin_dimension", []) or []
+    for spec in pin_specs:
+        key, sep, val = spec.partition("=")
+        if key.strip() == "grtresna_shell_static" and sep:
+            shell_static = int(round(float(val))) >= 1
+
     search_space = build_search_space(
         nonspherical=nonspherical,
         grtresna=use_grtresna,
@@ -62,6 +71,7 @@ def build_grtresna_search_context(
         grtresna_ansatz=grtresna_ansatz,
         grtresna_shell_profile=grtresna_shell_profile,
         grtresna_matter_sector=matter.sector,
+        grtresna_shell_static=shell_static,
     )
     overrides = dict(base_overrides)
     if use_grtresna and matter.is_scalar and grtresna_ansatz == "ring":

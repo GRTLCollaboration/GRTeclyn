@@ -229,6 +229,13 @@ def _critical_collapse_total(
     constraint_quality = float(components.get("constraint_quality", 0.0))
 
     exotic = float(components.get("exotic_penalty", 0.0))
+    # For critical collapse the evolved geometry naturally develops rho < 0
+    # regions near the focusing core (gauge artifacts + strong curvature).
+    # The full exotic penalty (-1.6 saturated, costing -320 pts) is
+    # counterproductive here: it punishes the very dynamics we seek.  Cap
+    # the penalty contribution so it provides a mild preference for cleaner
+    # data without dominating the score budget.
+    exotic_capped = max(exotic, -0.3)
 
     total = (
         1000.0 * peak * survival
@@ -237,7 +244,7 @@ def _critical_collapse_total(
         + 100.0 * pre_penalty
         + 100.0 * dispersion
         - 50.0 * (1.0 - constraint_quality) * survival
-        + 200.0 * exotic * survival
+        + 50.0 * exotic_capped * survival
     )
     if splash_mode == "threshold":
         total += 500.0 * lapse_term
@@ -248,7 +255,7 @@ def _critical_collapse_total(
 
     notes.append(
         f"objective_mode=critical_collapse splash_mode={splash_mode}: "
-        "peak rho + gated focus + wave quality + exotic penalty; FTL terms ignored"
+        "peak rho + gated focus + wave quality + capped exotic; FTL terms ignored"
     )
     return total
 

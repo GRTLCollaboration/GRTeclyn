@@ -123,4 +123,32 @@ def test_exotic_penalty_reduces_splash_score() -> None:
         splash_mode="discovery",
     )
     assert exotic < clean
-    assert clean - exotic == 320.0
+    # Exotic penalty is capped at -0.3 and weighted 50x in critical_collapse
+    # (previously uncapped at -1.6 weighted 200x = 320 pts drag).
+    assert clean - exotic == 15.0
+
+
+def test_exotic_penalty_capped_for_critical_collapse() -> None:
+    """Even a maximally exotic config (-1.6) loses at most 15 pts, not 320."""
+    moderate = _critical_collapse_total(
+        {
+            "survival": 1.0,
+            "central_energy_peak": 0.5,
+            "focusing_efficiency": 2.0,
+            "exotic_penalty": -0.3,
+        },
+        [],
+        splash_mode="discovery",
+    )
+    extreme = _critical_collapse_total(
+        {
+            "survival": 1.0,
+            "central_energy_peak": 0.5,
+            "focusing_efficiency": 2.0,
+            "exotic_penalty": -1.6,
+        },
+        [],
+        splash_mode="discovery",
+    )
+    # Both capped at -0.3, so scores are identical
+    assert moderate == extreme

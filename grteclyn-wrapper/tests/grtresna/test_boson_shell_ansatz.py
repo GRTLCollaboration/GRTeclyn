@@ -51,8 +51,9 @@ def test_boson_shell_search_space_has_geometry_not_exotic() -> None:
     assert "grtresna_bs_phi_c" not in keys
     amp = next(d for d in space if d.param_key == "grtresna_shell_amp")
     mass = next(d for d in space if d.param_key == "grtresna_scalar_mass")
-    assert amp.upper <= 0.12
+    assert amp.upper <= 0.15
     assert mass.upper <= 0.35
+    # Default is static: no velocity dims
     assert "grtresna_shell_toroidal_velocity" not in keys
 
 
@@ -121,3 +122,63 @@ def test_grtresna_context_injects_shell_lumps_for_boson() -> None:
     ctx = build_grtresna_search_context(args, {})
     assert ctx.base_overrides["grtresna_shell_lumps"] == 6
     assert ctx.base_overrides["grtresna_matter_sector"] == "boson_star"
+
+
+def test_boson_shell_moving_search_space_has_velocity_dims() -> None:
+    """When static=False, velocity dims are included in the boson shell space."""
+    space = build_search_space(
+        grtresna=True,
+        grtresna_ansatz="shell",
+        grtresna_matter_sector="boson_star",
+        grtresna_shell_static=False,
+    )
+    keys = {d.param_key for d in space}
+    assert "grtresna_shell_toroidal_velocity" in keys
+    assert "grtresna_shell_poloidal_velocity" in keys
+    assert "grtresna_shell_radial_velocity" in keys
+    assert "grtresna_shell_omega" in keys
+    # Velocity bounds should be conservative for boson shell
+    tor = next(d for d in space if d.param_key == "grtresna_shell_toroidal_velocity")
+    assert tor.upper <= 0.6
+    assert tor.lower >= -0.6
+    # Still no exotic dims
+    assert "grtresna_shell_exotic_fraction" not in keys
+
+
+def test_boson_shell_moving_expands_with_nonzero_velocity() -> None:
+    """Moving boson shell with toroidal velocity produces non-zero lump velocities."""
+    overrides = {
+        **_boson_shell_overrides(),
+        "grtresna_shell_static": 0.0,
+        "grtresna_shell_toroidal_velocity": 0.5,
+    }
+    cfg = build_grtresna_config(overrides, GRTresnaConfig())
+    assert len(cfg.lumps) == 5
+    # At least some lumps should have non-zero velocity
+    has_motion = any(
+        lump["velocity"] != (0.0, 0.0, 0.0) for lump in cfg.lumps
+    )
+    assert has_motion
+
+
+def test_grtresna_context_moving_shell_from_pin() -> None:
+    """When shell_static is pinned to 0, velocity dims appear in search space."""
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "qd",
+            "--grtresna",
+            "--grtresna-ansatz",
+            "shell",
+            "--grtresna-matter-sector",
+            "boson_star",
+            "--pin-dimension",
+            "grtresna_scalar_sign=1",
+            "--pin-dimension",
+            "grtresna_shell_static=0",
+        ]
+    )
+    ctx = build_grtresna_search_context(args, {})
+    keys = {d.param_key for d in ctx.search_space}
+    # Static pinned to 0 → velocity dims present
+    assert "grtresna_shell_toroidal_velocity" in keys
