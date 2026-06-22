@@ -1,38 +1,70 @@
 # Spacetime Splash — Lab Journal
 
-Chronological log of experiments, decisions, and results for the bosonic-shell critical-collapse campaign.
+Reverse-chronological log of experiments, decisions, and results for the bosonic-shell critical-collapse campaign.  Newest entries first.
 
 ---
 
-## 2026-06-18 — Baseline: exotic penalty fix + moving shell
+## Current state (2026-06-22)
 
-### Exotic penalty cap
+### What works
 
-The `exotic_penalty` in `_critical_collapse_total()` was capping at −1.6 (costing −320 points) because evolved geometry naturally develops ρ < 0 regions near the focusing core — gauge artifacts, not bad initial data.  Capped the penalty at `max(exotic, −0.3)` with weight 50, reducing the maximum cost to −15 points.  This prevents the scorer from punishing the very dynamics we are trying to find.
+- Bosonic shell search space with canonical coupling, 5-lump superposition
+- Geometric splash scoring (χ, K, Ψ₄) as primary reward, matter (ρ) secondary
+- Inward-converging radial velocity with sphere layout (layout=0)
+- NFS-resilient postload gate with retry loop
+- AMR regrid threshold guard prevents full-domain refinement segfault
+- Early-terminated runs scored correctly (`gpu_ok`)
+- 426 tests passing
 
-**Commit:** `d933cf1` — `feat: broader splash campaign — exotic fix, moving shell, higher amp`
+### Outstanding
 
-### Moving boson shell
+- **Geometric target scales** (χ_drop=0.6, |K|=1.0, |Ψ₄|=1e-2) are educated guesses — may need recalibration from v11 data.
+- **Moving shell convergence**: some high-velocity configs still fail GRTresna (Mom > 5%).  May benefit from adaptive iteration count or velocity-dependent rejection thresholds.
 
-Added velocity dimensions to the search space (`grtresna_shell_toroidal_velocity`, `grtresna_shell_poloidal_velocity`, `grtresna_shell_radial_velocity`, `grtresna_shell_omega`).  Controlled by the `static` parameter in `grtresna_boson_shell_search_space()`.  When `static=False`, the campaign includes velocity search.
+### Branches
 
-Initial bounds: toroidal ±0.6, poloidal ±0.3, radial ±0.15.  These were later tightened to ±0.3 / ±0.15 / ±0.075 respectively due to GRTresna convergence issues (momentum constraint errors of 10–21% vs the 5% threshold).
+- **GRTeclyn:** `feature/interstellar`
+- **GRTresna:** `feature/interstellar`
 
-### Amplitude & postload gate
+---
 
-- Upper bound of `grtresna_shell_amp` widened from 0.12 → 0.15 to push closer to collapse.
-- `POSTLOAD_MAX_HAM_L2` relaxed from `2e-2` → `3e-2` (in `run.sh`), recovering ~15% of configs rejected due to grid interpolation noise rather than bad physics.
+## 2026-06-22 — Segfault fix + early-termination classification
 
-### Temporal sampling
+### Symptom
 
-`PLOT_INTERVAL` in `splash/run.sh` reduced from 320 → 40, yielding ~8 central-timeseries samples per evolution instead of ~1.  This directly improves `wave_chromaticity` and `wave_focusing_quality` resolution.
+`spacetime_splash_v11` crashed on the first GPU timestep with a `MultiFab` segfault in `storeRKCoarseData`.  Root cause was the AMR chi-tagger refining **100% of the domain** (512 grids, 256³ Level 1) on broad boson-shell initial data, exhausting GPU memory.
 
-### Validation campaigns (v9)
+### Fix
 
-| Campaign | GPUs | Evals | Notes |
-|----------|------|-------|-------|
-| `boson_shell_v9_static_validate` | 0–3 | 50 | Static shell baseline |
-| `boson_shell_v9_moving_validate` | 4–7 | 50 | Moving shell — killed early due to Mom convergence |
+- `search_common.sh`: raised `regrid_threshold` from 0.01 → 0.1 so refinement stays on the central collapse region (~0.1% of domain, 1–2 Level 1 grids).
+- `spaces.py`: capped `grtresna_shell_amp` at 0.12 (was 0.15) to keep matter compact.
+- `splash/run.sh`: reduced `PLOT_INTERVAL` from 40 → 80 to cut GPU/disk load.
+- `evaluation.py`: fixed trajectory classification — early-terminated runs via `.stop_sim` (e.g. `dispersion_complete`) were recorded as `gpu_failed` due to SIGTERM exit code (-15); now treated as `gpu_ok` so they are scored normally.
+
+**Commits:** `2ae95b7`, `3d1ac8e`
+
+Full test suite: 426 passed, 3 skipped.
+
+### Campaign results
+
+`spacetime_splash_v11` relaunched (50 evals, 8×H100, 20 iterations).  First 24 evals:
+
+| status | count | notes |
+|--------|-------|-------|
+| `gpu_ok` | 5 | eval 8: 947, eval 15: 505, eval 17: 151, eval 13: 27, eval 11: -37 |
+| `postload_rejected` | 10 | legitimate Ham L2 > 0.03 |
+| `gpu_failed` | 7 | early batch from before SIGTERM fix; future early-terminated runs will be `gpu_ok` |
+| `grtresna_rejected` | 2 | GRTresna Mom/Ham convergence > 5% |
+
+No segfaults.  Strongest candidates (eval 8, eval 15) show genuine geometric dynamics.
+
+---
+
+## 2026-06-22 — NFS race condition fix
+
+Fixed NFS read-after-write race causing spurious postload rejections (`constraint_norms.dat missing or empty`).  Added retry loop with cache invalidation in `run_postload_gate()` (5 retries × 0.5s).  Added tests for delayed materialization and missing file.
+
+**Commit:** `ab88333` — `fix: NFS read-after-write race in postload constraint gate`
 
 ---
 
@@ -98,62 +130,30 @@ Discovered that `matter_layout=1` (channel layout) applies a **uniform** velocit
 
 ---
 
-## 2026-06-22 — NFS race condition fix
+## 2026-06-18 — Baseline: exotic penalty fix + moving shell
 
-Fixed NFS read-after-write race causing spurious postload rejections (`constraint_norms.dat missing or empty`).  Added retry loop with cache invalidation in `run_postload_gate()` (5 retries × 0.5s).  Added tests for delayed materialization and missing file.
+### Exotic penalty cap
 
-**Commit:** `ab88333` — `fix: NFS read-after-write race in postload constraint gate`
+The `exotic_penalty` in `_critical_collapse_total()` was capping at −1.6 (costing −320 points) because evolved geometry naturally develops ρ < 0 regions near the focusing core — gauge artifacts, not bad initial data.  Capped the penalty at `max(exotic, −0.3)` with weight 50, reducing the maximum cost to −15 points.
 
----
+### Moving boson shell
 
-## 2026-06-22 — Segfault fix + early-termination classification
+Added velocity dimensions to the search space (`grtresna_shell_toroidal_velocity`, `grtresna_shell_poloidal_velocity`, `grtresna_shell_radial_velocity`, `grtresna_shell_omega`).  When `static=False`, the campaign includes velocity search.  Initial bounds were later tightened due to GRTresna convergence issues.
 
-### Symptom
+### Amplitude & postload gate
 
-`spacetime_splash_v11` crashed on the first GPU timestep with a `MultiFab` segfault in `storeRKCoarseData`.  Root cause was the AMR chi-tagger refining **100% of the domain** (512 grids, 256³ Level 1) on broad boson-shell initial data, exhausting GPU memory.
+- Upper bound of `grtresna_shell_amp` widened from 0.12 → 0.15 to push closer to collapse.
+- `POSTLOAD_MAX_HAM_L2` relaxed from `2e-2` → `3e-2`, recovering ~15% of configs rejected due to grid interpolation noise.
 
-### Fix
+### Temporal sampling
 
-- `search_common.sh`: raised `regrid_threshold` from 0.01 → 0.1 so refinement stays on the central collapse region (~0.1% of domain, 1–2 Level 1 grids).
-- `spaces.py`: capped `grtresna_shell_amp` at 0.12 (was 0.15) to keep matter compact.
-- `splash/run.sh`: reduced `PLOT_INTERVAL` from 40 → 80 to cut GPU/disk load.
-- `evaluation.py`: fixed trajectory classification — early-terminated runs via `.stop_sim` (e.g. `dispersion_complete`) were recorded as `gpu_failed` due to SIGTERM exit code (-15); now treated as `gpu_ok` so they are scored normally.
+`PLOT_INTERVAL` in `splash/run.sh` reduced from 320 → 40, yielding ~8 central-timeseries samples per evolution instead of ~1.
 
-**Commits:** `2ae95b7`, `3d1ac8e`
+### Validation campaigns (v9)
 
-Full test suite: 426 passed, 3 skipped.
+| Campaign | GPUs | Evals | Notes |
+|----------|------|-------|-------|
+| `boson_shell_v9_static_validate` | 0–3 | 50 | Static shell baseline |
+| `boson_shell_v9_moving_validate` | 4–7 | 50 | Moving shell — killed early due to Mom convergence |
 
-### Campaign results
-
-`spacetime_splash_v11` relaunched (50 evals, 8×H100, 20 iterations).  First 24 evals:
-
-| status | count | notes |
-|--------|-------|-------|
-| `gpu_ok` | 5 | eval 8: 947, eval 15: 505, eval 17: 151, eval 13: 27, eval 11: -37 |
-| `postload_rejected` | 10 | legitimate Ham L2 > 0.03 |
-| `gpu_failed` | 7 | early batch from before SIGTERM fix; future early-terminated runs will be `gpu_ok` |
-| `grtresna_rejected` | 2 | GRTresna Mom/Ham convergence > 5% |
-
-No segfaults.  Strongest candidates (eval 8, eval 15) show genuine geometric dynamics.
-
-## Current state (2026-06-22)
-
-### What works
-
-- Bosonic shell search space with canonical coupling, 5-lump superposition
-- Geometric splash scoring (χ, K, Ψ₄) as primary reward, matter (ρ) secondary
-- Inward-converging radial velocity with sphere layout (layout=0)
-- NFS-resilient postload gate with retry loop
-- AMR regrid threshold guard prevents full-domain refinement segfault
-- Early-terminated runs scored correctly (`gpu_ok`)
-- 426 tests passing
-
-### Outstanding
-
-- **Geometric target scales** (χ_drop=0.6, |K|=1.0, |Ψ₄|=1e-2) are educated guesses — may need recalibration from v11 data.
-- **Moving shell convergence**: some high-velocity configs still fail GRTresna (Mom > 5%).  May benefit from adaptive iteration count or velocity-dependent rejection thresholds.
-
-### Branches
-
-- **GRTeclyn:** `feature/interstellar`
-- **GRTresna:** `feature/interstellar`
+**Commit:** `d933cf1` — `feat: broader splash campaign — exotic fix, moving shell, higher amp`
