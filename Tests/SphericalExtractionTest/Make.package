@@ -1,0 +1,4 @@
+GRTECLYN_CEXE_headers += SphericalExtractionTest.hpp \
+                         SphericalExtractionTestLevel.hpp \
+
+GRTECLYN_CEXE_sources += SphericalExtractionTest.cpp

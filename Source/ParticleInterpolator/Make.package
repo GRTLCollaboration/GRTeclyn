@@ -1,13 +1,18 @@
-GRTECLYN_CEXE_headers += ParticleInterpolator.hpp \
-                         ParticleInterpolator.impl.hpp \
+GRTECLYN_CEXE_headers += Derivative.hpp \
+                         DerivativeSetup.hpp \
+                         IntegrationMethod.hpp \
+                         IntegrationMethodSetup.hpp \
                          InterpolationQueryParticle.hpp \
                          Lagrange.hpp \
+                         LineExtraction.hpp \
                          MPIContextParticle.hpp \
                          MPIContextParticle.impl.hpp \
                          MPILayoutParticle.hpp \
                          MPILayoutParticle.impl.hpp \
-                         Derivative.hpp \
-                         DerivativeSetup.hpp
-
-
-
+                         ParticleInterpolator.hpp \
+                         ParticleInterpolator.impl.hpp \
+                         SphericalExtraction.hpp \
+                         SphericalGeometry.hpp \
+                         SurfaceExtraction.hpp \
+                         SurfaceExtraction.impl.hpp \
+                         WeylExtraction.hpp

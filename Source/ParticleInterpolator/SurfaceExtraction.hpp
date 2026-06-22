@@ -9,65 +9,51 @@
 // AMReX includes
 #include <AMReX_GpuContainers.H>
 
+// Parameters
+#include "SurfaceExtractionParameters.hpp"
+
 // Other includes
-#include "AMRInterpolator.hpp"
 #include "DimensionDefinitions.hpp"
 #include "FilesystemTools.hpp"
 #include "IntegrationMethod.hpp"
-#include "InterpolationQuery.hpp"
+#include "InterpolationQueryParticle.hpp"
 #include "Lagrange.hpp"
+#include "ParticleInterpolator.hpp"
 #include "SmallDataIO.hpp" // for writing data
+#include "StateTypes.hpp"
 #include "StateVariables.hpp"
 
 #include <algorithm>
 #include <array>
 #include <functional>
-#include <tuple>
 #include <utility>
 #include <vector>
 
 //! This class extracts grid variables on 2 dimensional surfaces each
 //! parameterised by u and v with different surfaces given by level sets of
 //! another parameter
-template <class SurfaceGeometry> class SurfaceExtraction
+template <class SurfaceGeometry, int num_components> class SurfaceExtraction
 {
   public:
-    struct params_t
+    // I suggest using a struct here instead of the tuple-structure inherited
+    // from GRChombo here, as we need to add more features to the varibles used
+    struct vars_t
     {
-        int num_surfaces{}; //!< number of surfaces over which to extraction
-        amrex::Gpu::ManagedVector<double>
-            surface_param_values; //!< the values of the
-                                  //!< parameter that gives the required
-                                  //!< surfaces with SurfaceGeom geometry (e.g.
-                                  //!< radii for spherical shells)
-        int num_points_u{}; //!< the number of points for the first parameter
-                            //!< that parameterises each surface
-        int num_points_v{}; //!< the number of points for the second parameter
-                            //!< that parameterises each surfaces
-        amrex::Gpu::ManagedVector<int>
-            extraction_levels;   //!< the level on which to do the
-                                 //!< extraction for each surface
-        bool write_extraction{}; //!< whether or not to write the extracted data
+        int var{};
+        VariableType type{};
+        Derivative deriv;
 
-        std::string data_path, integral_file_prefix;
-        std::string extraction_path, extraction_file_prefix;
-
-        int min_extraction_level()
-        {
-            return *(std::min_element(extraction_levels.begin(),
-                                      extraction_levels.end()));
-        }
+        amrex::Vector<BCParity> parities{};
+        std::string derived_name;
     };
-
-    using vars_t = std::tuple<int, VariableType, Derivative>;
+    using params_t = surface_extraction_params_t;
 
   protected:
     SurfaceGeometry m_geom; //!< the geometry class which knows about
                             //!< the particular surface
     params_t m_params;
-    std::vector<std::tuple<int, VariableType, Derivative>>
-        m_vars; //!< the vector of pairs of
-    //!< variables and derivatives to extract
+    std::vector<vars_t>
+        m_vars; //!< the vector of of variables and their features to extract
     double m_dt{};
     double m_time{};
     bool m_first_step{};
@@ -94,6 +80,7 @@ template <class SurfaceGeometry> class SurfaceExtraction
 
     //! returns the flattened index for m_interp_data and m_interp_coords
     //! associated to given surface, u and v indices
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     [[nodiscard]] int index(int a_isurface, int a_iu, int a_iv) const
     {
         return a_isurface * m_params.num_points_u * m_params.num_points_v +
@@ -103,31 +90,35 @@ template <class SurfaceGeometry> class SurfaceExtraction
   public:
     //! Normal constructor which requires vars to be added after construction
     //! using add_var or add_vars
-    SurfaceExtraction(const SurfaceGeometry &a_geom, params_t a_params,
-                      double a_dt, double a_time, bool a_first_step,
+    SurfaceExtraction(const SurfaceGeometry &a_geom,
+                      surface_extraction_params_t a_params, double a_dt,
+                      double a_time, bool a_first_step,
                       double a_restart_time = 0.0);
 
     //! add a single variable or derivative of variable
     void add_var(int a_var, const VariableType var_type = VariableType::state,
-                 const Derivative &a_deriv = Derivative::LOCAL);
+                 const Derivative &a_deriv                 = Derivative::LOCAL,
+                 const amrex::Vector<BCParity> &a_parities = {},
+                 const std::string &a_derived_name         = "");
 
     //! add a vector of variables/derivatives of variables
     void add_vars(const std::vector<vars_t> &a_vars);
 
-    //! add a vector of evolution variables (no derivatives)
-    void add_evolution_vars(const std::vector<int> &a_vars);
+    //! add a vector of state variables (no derivatives)
+    void add_state_vars(const std::vector<int> &a_vars);
 
-    //! add a vector of diagnostic variables (no derivatives)
-    void add_diagnostic_vars(const std::vector<int> &a_vars);
+    //! add a vector of derived variables (no derivatives)
+    void add_derived_vars(const std::vector<int> &a_vars,
+                          const amrex::Vector<BCParity> &a_parities,
+                          const std::string &a_name_derived);
 
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     //! Alternative constructor with a predefined vector of variables and
     //! derivatives
-    SurfaceExtraction(
-        const SurfaceGeometry &a_geom, const params_t &a_params,
-        const std::vector<std::tuple<int, VariableType, Derivative>> &a_vars,
-        double a_dt, double a_time, bool a_first_step,
-        double a_restart_time = 0.0);
+    SurfaceExtraction(const SurfaceGeometry &a_geom, const params_t &a_params,
+                      const std::vector<vars_t> &a_vars, double a_dt,
+                      double a_time, bool a_first_step,
+                      double a_restart_time = 0.0);
 
     //! Another alternative constructor with a predefined vector of variables
     //! no derivatives
@@ -138,8 +129,7 @@ template <class SurfaceGeometry> class SurfaceExtraction
     // NOLINTEND(bugprone-easily-swappable-parameters)
 
     //! Do the extraction
-    template <typename InterpAlgo>
-    void extract(AMRInterpolator<InterpAlgo> *a_interpolator);
+    void extract(ParticleInterpolator<num_components> *a_interpolator);
 
     //! Add an integrand dependent on the interpolated data over the surface
     //! for integrate() to integrate over.

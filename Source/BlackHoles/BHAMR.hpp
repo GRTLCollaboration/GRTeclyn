@@ -25,9 +25,10 @@ template <int num_punctures> class BHAMR : public GRAMR
 
   public:
 
-    ParticleInterpolator<1>
-        m_weyl_interpolator; // weyl interpolator (used as chi interpolator in
-                             // this example)
+    // example for interpolator object for Psi4 extraction
+    static constexpr int weyl_num_components = 2;
+    ParticleInterpolator<weyl_num_components>
+        m_weyl_interpolator; // interpolator object
 
     BHAMR(amrex::LevelBld *a_levelbld) : GRAMR(a_levelbld)
     {
@@ -39,6 +40,14 @@ template <int num_punctures> class BHAMR : public GRAMR
         {
             m_puncture_tracker.initialize(this);
         }
+    }
+
+    void init(amrex::Real a_strt_time, amrex::Real a_stop_time) override
+    {
+        GRAMR::init(a_strt_time, a_stop_time);
+
+        const auto &params = get_simulation_parameters();
+        m_weyl_interpolator.setup(this, params.boundary_params, true);
     }
 
     PunctureTracker<num_punctures> &get_puncture_tracker()

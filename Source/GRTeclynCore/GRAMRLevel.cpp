@@ -5,6 +5,7 @@
 
 #include "GRAMRLevel.hpp"
 #include "NullBCFill.hpp"
+#include "StateTypes.hpp"
 
 void GRAMRLevel::stateVariableSetUp()
 {
@@ -124,11 +125,13 @@ void GRAMRLevel::computeInitialDt(
     }
 }
 
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 void GRAMRLevel::computeNewDt(
     int finest_level, int /*sub_cycle*/, amrex::Vector<int> & /*n_cycle*/,
     const amrex::Vector<amrex::IntVect> & /*ref_ratio*/,
     amrex::Vector<amrex::Real> &dt_min, amrex::Vector<amrex::Real> &dt_level,
     amrex::Real /*stop_time*/, int /*post_regrid_flag*/)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     // This is called at the end of a coarse time step
     // Level 0 will do it for all levels
