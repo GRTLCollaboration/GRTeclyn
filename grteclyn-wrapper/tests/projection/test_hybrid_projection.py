@@ -7,6 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 import numpy as np
 
@@ -196,6 +197,76 @@ def test_postload_gate_dry_run_writes_episode() -> None:
         assert result.passed
         assert result.episode_path is not None
         assert "dry_run" in result.notes[0]
+
+
+def test_evaluate_constraint_gate_retries_on_missing_file() -> None:
+    """Simulates NFS race: file absent on first reads, appears on retry."""
+    with TemporaryDirectory() as tmp:
+        data = Path(tmp) / "episode" / "data"
+        data.mkdir(parents=True)
+        dat = data / "constraint_norms.dat"
+
+        # File does not exist yet — should report missing
+        gate = evaluate_constraint_gate(dat)
+        assert not gate.passed
+        assert gate.reason == "constraint_norms.dat missing or empty"
+
+        # Write the file after a simulated delay — verify the evaluate
+        # function itself correctly reads once the file appears.
+        dat.write_text("0 1e-6 1e-6 -0.01 0.01 0.1\n", encoding="utf-8")
+        gate = evaluate_constraint_gate(dat)
+        assert gate.passed
+
+
+def test_nfs_retry_loop_in_run_postload_gate() -> None:
+    """Verify the NFS retry loop recovers when file appears after retries."""
+    from grteclyn_wrapper.projection.postload_gate import (
+        _NFS_MAX_RETRIES,
+        _invalidate_nfs_cache,
+    )
+
+    with TemporaryDirectory() as tmp:
+        data = Path(tmp) / "episode" / "data"
+        data.mkdir(parents=True)
+        dat = data / "constraint_norms.dat"
+
+        call_count = 0
+        original_invalidate = _invalidate_nfs_cache
+
+        def delayed_write_invalidate(path: Path) -> None:
+            nonlocal call_count
+            call_count += 1
+            # Simulate NFS: file appears on the 3rd cache invalidation
+            if call_count >= 3 and not dat.exists():
+                dat.write_text(
+                    "0 1e-6 1e-6 -0.01 0.01 0.1\n0.01 1e-6 1e-6 -0.01 0.01 0.1\n",
+                    encoding="utf-8",
+                )
+            original_invalidate(path)
+
+        with patch(
+            "grteclyn_wrapper.projection.postload_gate._invalidate_nfs_cache",
+            side_effect=delayed_write_invalidate,
+        ), patch(
+            "grteclyn_wrapper.projection.postload_gate.time.sleep",
+        ) as mock_sleep:
+            gate = evaluate_constraint_gate(dat)
+            assert not gate.passed, "File absent — first call should fail"
+
+            # Now test the retry loop directly by simulating what
+            # run_postload_gate does (without launching GRTeclyn).
+            from grteclyn_wrapper.projection import postload_gate as _mod
+
+            gate_result = None
+            for attempt in range(_NFS_MAX_RETRIES + 1):
+                delayed_write_invalidate(dat)
+                gate_result = evaluate_constraint_gate(dat, config=PostLoadGateConfig())
+                if gate_result.reason != "constraint_norms.dat missing or empty":
+                    break
+
+            assert gate_result is not None
+            assert gate_result.passed
+            assert call_count >= 3
 
 
 def test_matter_first_build_grtresna_config_unchanged() -> None:

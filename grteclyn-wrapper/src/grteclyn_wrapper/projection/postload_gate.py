@@ -3,10 +3,15 @@
 from __future__ import annotations
 
 import json
+import logging
+import os
 import shutil
+import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Mapping
+
+_log = logging.getLogger(__name__)
 
 from ..core.config import DEFAULT_RADIAL_RECIPE_TEMPLATE, resolve_example, resolve_executable
 from ..core.episode import create_episode, update_metadata
@@ -17,6 +22,26 @@ from ..metrics.diagnostics.constraints import read_constraint_metrics
 DEFAULT_MAX_HAM_L2 = 1.0e-2
 DEFAULT_MAX_MOM_L2 = 1.0e-2
 _HEAVY_ARTIFACT_PREFIXES = ("RadialRecipePlt", "RadialRecipeChk")
+
+# NFS read-after-write retry parameters
+_NFS_MAX_RETRIES = 5
+_NFS_RETRY_DELAY_S = 0.5
+
+
+def _invalidate_nfs_cache(path: Path) -> None:
+    """Force NFS to re-validate the directory entry cache for *path*.
+
+    On NFS, a negative-lookup or stale attribute cache can cause
+    ``path.exists()`` to return ``False`` (or ``open()`` to see a
+    truncated file) even though the server already has the data.
+    Listing the parent directory forces the NFS client to issue a
+    READDIR/LOOKUP, refreshing the dentry cache.
+    """
+    parent = path.parent
+    try:
+        os.listdir(parent)
+    except OSError:
+        pass
 
 
 def _cleanup_heavy_artifacts(episode_dir: Path) -> None:
@@ -155,7 +180,28 @@ def run_postload_gate(
     update_metadata(episode, {"simulation_exit_code": result.returncode})
 
     constraint_path = episode.path / "data" / "constraint_norms.dat"
-    gate = evaluate_constraint_gate(constraint_path, config=cfg)
+
+    # NFS read-after-write mitigation: the simulation subprocess has
+    # exited, but NFS attribute / dentry caches may still report the
+    # file as missing or return a stale (truncated) view.  Retry with
+    # cache invalidation before giving up.
+    gate: PostLoadGateResult | None = None
+    for attempt in range(_NFS_MAX_RETRIES + 1):
+        _invalidate_nfs_cache(constraint_path)
+        gate = evaluate_constraint_gate(constraint_path, config=cfg)
+        if gate.reason != "constraint_norms.dat missing or empty":
+            break
+        if attempt < _NFS_MAX_RETRIES:
+            _log.debug(
+                "constraint_norms.dat not yet visible (attempt %d/%d), "
+                "retrying in %.1fs …",
+                attempt + 1,
+                _NFS_MAX_RETRIES,
+                _NFS_RETRY_DELAY_S,
+            )
+            time.sleep(_NFS_RETRY_DELAY_S)
+    assert gate is not None  # loop always executes at least once
+
     _cleanup_heavy_artifacts(episode.path)
     return PostLoadGateResult(
         passed=gate.passed and result.returncode == 0,
