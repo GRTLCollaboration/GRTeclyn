@@ -103,6 +103,21 @@ def test_modest_focus_without_absolute_peak_scores_low() -> None:
     assert total < 200.0
 
 
+def test_wave_focusing_quality_ignored_in_critical_collapse() -> None:
+    """Scalar FFT chromaticity must not inflate the collapse objective."""
+    without = _critical_collapse_total(
+        {"survival": 1.0, "central_energy_peak": 0.2, "wave_focusing_quality": 0.0},
+        [],
+        splash_mode="discovery",
+    )
+    with_floor = _critical_collapse_total(
+        {"survival": 1.0, "central_energy_peak": 0.2, "wave_focusing_quality": 0.5},
+        [],
+        splash_mode="discovery",
+    )
+    assert without == with_floor
+
+
 def test_exotic_penalty_reduces_splash_score() -> None:
     clean = _critical_collapse_total(
         {

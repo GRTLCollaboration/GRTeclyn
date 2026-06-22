@@ -111,6 +111,8 @@ if [[ "${OBJECTIVE_MODE}" == "critical_collapse" ]]; then
   export GRTRESNA_MATTER_SECTOR=boson_star
   export GRTRESNA_ANSATZ=shell
   export PIN_DIMS="${PIN_DIMS:-grtresna_scalar_sign=1}"
+  # Splash QD: no projections unless caller sets PROJECTION_FIELDS (frames usually off).
+  : "${PROJECTION_FIELDS:=}"
 else
   export GRTECLYN_EVOLVING_GEODESIC="${GRTECLYN_EVOLVING_GEODESIC:-1}"
 fi

@@ -35,8 +35,10 @@ QD_NAME=boson_shell_gpu_v1 QD_TARGET_EVALS=12 \
 | `OBJECTIVE_MODE` | `critical_collapse` | Splash scorer (see below) |
 | `DESCRIPTOR_MODE` | `wave_focusing` | MAP-Elites behavior space |
 | `SPLASH_MODE` | `discovery` | Broad collapse search (vs `threshold` lapse band) |
-| `GRTECLYN_FRAMES` | `1` | Slice / projection frames per eval |
-| `GRTECLYN_FRAMES_AUTO_ZLIM` | `1` | Auto colorbar scale |
+| `GRTECLYN_FRAMES` | `0` | Off during QD (scoring uses `central_timeseries`); set `1` for viz |
+| `PLOT_INTERVAL` | `160` | Plotfile dump cadence (~8 samples over 16 s) |
+| `GRTECLYN_SPLASH_EARLY_TERM` | `1` | Stop when matter disperses (~t≈10–12 s); set `0` for full 16 s |
+| `GRTECLYN_FRAMES_AUTO_ZLIM` | `1` | Auto colorbar scale (when frames enabled) |
 | `GRTECLYN_FRAMES_ZOOM` | `28` | Zoom into origin on L=64 domain |
 
 Production example:
@@ -87,12 +89,15 @@ Derived quantities include `peak_rho_req_at_origin`, `focusing_efficiency` (peak
 |-----------|---------|
 | `central_energy_peak` | Peak origin ρ, normalized by target `10⁻²` |
 | `focusing_efficiency` | Relative ρ growth at origin (capped at 5×) |
-| `wave_focusing_quality` | Chromaticity, down-weighted if activity fades (dispersion) |
+| `wave_focusing_quality` | Chromaticity (MAP-Elites descriptor only; not in `critical_collapse` total) |
+| `geometric_curvature_well` | Initial-relative χ drop at origin (target 0.20) |
+| `geometric_crunch` | Peak \|K\| at origin (target 0.35) |
+| `geometric_wave_arrival` | Peak GW signal at origin — `Weyl4_Re` or A_ij proxy `\|h\|` (target 1e-2) |
 | `collapse_lapse_progress` | Graded reward as min lapse → 0.05–0.2 (discovery) |
 | `central_lapse_collapse` | Band reward/penalty around lapse 0.01–0.05 (`threshold` mode) |
 | `dispersion_penalty` | Penalty for fading blobs with weak central peaks |
 | `pre_collapsed_penalty` | Penalty if already dense/collapsed at t = 0 |
-| `horizon_formation_time` | Bonus when corroborated trapped surface appears |
+| `horizon_formation_time` | Bonus when corroborated trapped surface appears **and** center χ-well ≥ 0.15 |
 | `constraint_quality` | Origin Ham vs ρ at peak (splash-only plot vars) |
 | `peak_radius`, `splash_width`, `compression_ratio`, `cusp_unresolved` | Radial-profile diagnostics |
 
@@ -100,17 +105,23 @@ Derived quantities include `peak_rho_req_at_origin`, `focusing_efficiency` (peak
 
 **Module:** `metrics/score/objectives.py` — `_critical_collapse_total()`
 
-Discovery-mode scalarization (survival gates everything):
+Discovery-mode scalarization (survival gates everything; geometric terms primary since v12):
 
 ```
-score = 1000 × peak × survival
-      + 300 × min(focus, 5) × peak × survival   # gated: relative growth needs absolute ρ
-      + 200 × wave_focusing_quality × survival
+score = 800 × geometric_curvature_well × survival
+      + 600 × geometric_wave_arrival × survival
+      + 300 × geometric_crunch × survival
+      + 400 × peak × survival
+      + 200 × min(focus, 5) × peak × survival
       + 200 × collapse_lapse_progress × survival
-      + 500 × horizon_formation_time × survival   # if horizon forms
-      + 100 × pre_collapsed_penalty
-      + 100 × dispersion_penalty
+      + 500 × horizon_formation_time × survival   # gated on center χ-well
+      + 100 × pre_collapsed_penalty + 100 × dispersion_penalty
+      − 50 × (1 − constraint_quality) × survival
 ```
+
+**GW wave proxy (splash path):** RadialRecipe campaigns dump native `A11 A12 A22` in plotfiles (via `splash_wiring.py`). Central extraction computes `|h| ≈ sqrt((A11−A22)² + (2A12)²)` and stores it in the `weyl4` column of `central_timeseries.dat`. SupportedWormholeCollapse uses true `Weyl4` derive instead — different example.
+
+**Offline rescore:** `uv run python scripts/search/rescore_splash_campaign.py runs/grtresna_qd/<campaign>/`
 
 `SPLASH_MODE=threshold` swaps lapse progress for the sharper `central_lapse_collapse` band term (+500×).
 

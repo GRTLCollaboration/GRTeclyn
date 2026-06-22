@@ -80,9 +80,10 @@ def test_splash_run_script_defaults() -> None:
     assert 'OBJECTIVE_MODE="${OBJECTIVE_MODE:-critical_collapse}"' in text
     assert "GRTRESNA_ANSATZ=shell" in text
     assert 'DESCRIPTOR_MODE="${DESCRIPTOR_MODE:-wave_focusing}"' in text
-    assert "export GRTECLYN_FRAMES=1" in text
+    assert 'GRTECLYN_FRAMES="${GRTECLYN_FRAMES:-0}"' in text
+    assert 'PLOT_INTERVAL="${PLOT_INTERVAL:-160}"' in text
+    assert 'PROJECTION_FIELDS="${PROJECTION_FIELDS:-}"' in text
     assert "GRTRESNA_MATTER_COUPLING=canonical" in text
-    assert "GRTECLYN_FRAMES_AUTO_ZLIM=1" in text
     assert "grtresna_scalar_sign=1" in text
     assert "grtresna_shell_static=1" in text
 

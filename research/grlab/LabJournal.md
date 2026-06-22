@@ -4,27 +4,103 @@ Reverse-chronological log of experiments, decisions, and results for the bosonic
 
 ---
 
-## Current state (2026-06-22)
+## Current state (2026-06-18)
 
 ### What works
 
 - Bosonic shell search space with canonical coupling, 5-lump superposition
-- Geometric splash scoring (χ, K, Ψ₄) as primary reward, matter (ρ) secondary
+- Geometric splash scoring (χ, K, GW wave proxy) as primary reward, matter (ρ) secondary
+- GW strain proxy from native `A_ij` plot vars — no Weyl4 derive on splash path
+- Scoring fixes: initial-relative χ-drop, horizon bonus gated on center well, scalar wave floor removed from objective
+- Offline rescore: `grteclyn-wrapper/scripts/search/rescore_splash_campaign.py`
 - Inward-converging radial velocity with sphere layout (layout=0)
 - NFS-resilient postload gate with retry loop
 - AMR regrid threshold guard prevents full-domain refinement segfault
 - Early-terminated runs scored correctly (`gpu_ok`)
-- 426 tests passing
+- **`spacetime_splash_v12` complete** — 31/50 gpu_ok, 0 segfaults, real χ/K signals (see entry below)
 
 ### Outstanding
 
-- **Geometric target scales** (χ_drop=0.6, |K|=1.0, |Ψ₄|=1e-2) are educated guesses — may need recalibration from v11 data.
-- **Moving shell convergence**: some high-velocity configs still fail GRTresna (Mom > 5%).  May benefit from adaptive iteration count or velocity-dependent rejection thresholds.
+- **GW_WAVE_PEAK_TARGET** (1e-2) still saturates all gpu_ok → ~600 pt floor; recalibrate to ~0.15–0.2 from v12 A_ij proxy scale
+- **Leaderboard vs physics**: eval 004 (χ-well 0.46, |K| 0.88) ranks ~66 pts; eval 008 (χ rises) still #1 at 786 until GW target fixed
+- **Survival gate**: best geometry (eval 016: χ-well=1, |K|=1) scores 738 but survives only 26%
+- **Moving shell convergence**: some high-velocity configs still fail GRTresna (Mom > 5%)
+- **ham_abs NaN** at origin → −50 constraint penalty (deferred)
+- **Frame overhead**: v12 launched with old frame defaults; next run uses `GRTECLYN_FRAMES=0`, slim `FRAMES_FIELDS`
 
 ### Branches
 
 - **GRTeclyn:** `feature/interstellar`
 - **GRTresna:** `feature/interstellar`
+
+---
+
+## 2026-06-18 — spacetime_splash_v12 final results
+
+Campaign complete (`50/50` evals, exit 0). Run dir: `runs/grtresna_qd/spacetime_splash_v12/`.
+
+### What was added (vs v11)
+
+| Change | Effect |
+|--------|--------|
+| A_ij → GW proxy in central timeseries | Finite `weyl4` column on all gpu_ok; no NaN Ψ₄ |
+| Initial-relative χ-drop | eval 008 no longer gets false χ-well credit |
+| Horizon bonus gated on χ-well ≥ 0.15 | Zero horizon bonuses across all gpu_ok |
+| `wave_focusing_quality` removed from objective | No ~100 pt scalar FFT floor |
+| Recalibrated χ/K targets (0.20 / 0.35) | Better separation of modest vs strong geometry |
+
+### Outcome mix (50/50)
+
+| status | count | notes |
+|--------|-------|-------|
+| `gpu_ok` | 31 | 62% success rate |
+| `postload_rejected` | 18 | Ham L2 > 0.03 |
+| `grtresna_rejected` | 1 | Mom/Ham convergence |
+| `gpu_failed` | 0 | no segfaults |
+
+### Top gpu_ok (raw score — still miscalibrated)
+
+| eval | score | χ-well | \|K\| | survival | physics note |
+|------|-------|--------|-------|----------|--------------|
+| 044 | 1020 | 0.52 | 0.81 | 0.78 | **new #1** — strong geometry + best survival among elites |
+| 008 | 786 | 0.00 | 0.60 | 1.00 | GW floor + lapse; χ **rises** at origin |
+| 016 | 738 | 1.00 | 1.00 | 0.26 | **best geometry** — full χ-well + K saturation |
+| 039 | 585 | 0.00 | 0.62 | 0.72 | high survival, weak χ-well |
+| 034 | 473 | 0.00 | 0.74 | 0.50 | K-driven mid-tier |
+| 004 | 66 | 0.46 | 0.88 | 0.09 | **most splash-like** (χ drops, ρ peaks early); survival kills rank |
+
+19/31 gpu_ok have χ-well > 0.15 — genuine curvature dynamics, not pure matter pile-up.
+
+### Still missing
+
+- Recalibrated **GW_WAVE_PEAK_TARGET** and offline v12 rescore (expect 004/016/044 to reorder vs 008/039)
+- Confirmed **ingoing GW → center focus** splash (late converging wave, not just early A_ij spike)
+- Stable long-run survival for highest-geometry elites (016/015 stall ~t≈11 via early termination)
+
+---
+
+## 2026-06-18 — v11 score inflation fix + spacetime_splash_v12 launch
+
+### v11 validation
+
+`spacetime_splash_v11` (50/50 evals) completed but leaderboard was untrustworthy:
+
+| Issue | Fix |
+|-------|-----|
+| `#1 eval 008 @ 947` dominated by ungated horizon bonus + false χ-well | Gate horizon on `geometric_curvature_well ≥ 0.15`; χ-drop = initial − min(χ) |
+| `geometric_wave_arrival = 0` everywhere | Wire A_ij → GW proxy into `central_timeseries.dat` col 12 (`weyl4`) |
+| ~100 pt scalar floor from `wave_focusing_quality` | Removed from `critical_collapse` objective (descriptor only) |
+| Targets miscalibrated | `CHI_DROP_TARGET` 0.6→0.20, `ABS_K_TARGET` 1.0→0.35 |
+
+Offline rescore on v11 evals with `small_data/`:
+
+| eval | old | new |
+|------|-----|-----|
+| 015 | 505 | **799** (best physics; higher well target saturation) |
+| 008 | 947 | **187** (horizon + false well removed) |
+| 026 | 325 | **19** |
+
+Launch: `QD_NAME=spacetime_splash_v12 QD_TARGET_EVALS=50` with corrected pipeline.
 
 ---
 

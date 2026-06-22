@@ -202,9 +202,9 @@ def _run_gpu_session(
     episode = cpu_result.episode
     gte_overrides = dict(cpu_result.gte_overrides)
     if objective_mode == "critical_collapse":
-        from ..grtresna.splash_wiring import splash_evolution_overrides
+        from ..grtresna.splash_wiring import apply_splash_overrides
 
-        gte_overrides.update(splash_evolution_overrides())
+        gte_overrides = apply_splash_overrides(gte_overrides)
 
     if grtresna_postload_gate:
         rejection = reject_postload_gate(

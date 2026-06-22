@@ -41,7 +41,24 @@ def test_field_at_point_resolves_weyl4_re() -> None:
     """weyl4 resolves to the Weyl4_Re plotfile field."""
     ds = _FakeDataset({"Weyl4_Re": -0.013})
     point = ds.point([0.0, 0.0, 0.0])
-    assert _field_at_point(ds, point, "weyl4") == -0.013
+    from grteclyn_wrapper.visualisation.process_wave.consume_plotfiles.extraction.central import (
+        _resolve_gw_wave_signal,
+    )
+
+    assert _resolve_gw_wave_signal(ds, point) == -0.013
+
+
+def test_gw_proxy_from_aij_when_weyl4_missing() -> None:
+    """A_ij strain proxy fills weyl4 column when Weyl4_Re is absent."""
+    ds = _FakeDataset({"A11": 0.05, "A12": 0.01, "A22": -0.02})
+    point = ds.point([0.0, 0.0, 0.0])
+    from grteclyn_wrapper.visualisation.process_wave.consume_plotfiles.extraction.central import (
+        _resolve_gw_wave_signal,
+    )
+
+    # |h| = sqrt((0.05 - (-0.02))^2 + (2*0.01)^2) = sqrt(0.07^2 + 0.02^2)
+    expected = (0.07**2 + 0.02**2) ** 0.5
+    assert _resolve_gw_wave_signal(ds, point) == expected
 
 
 def test_read_scalar_finite() -> None:

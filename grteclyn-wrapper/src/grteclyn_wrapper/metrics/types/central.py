@@ -74,14 +74,15 @@ class CentralFieldMetrics:
 
     @property
     def chi_drop(self) -> float:
-        """Fractional collapse of the conformal factor: 1 - min_chi.
+        """Fractional deepening of the conformal factor at the origin.
 
-        0 = flat throughout; ->1 = spacetime crushed to a near-singular
-        curvature concentration at the center.
+        Uses initial minus minimum chi so static throat profiles (chi < 1 at
+        t=0 that relax upward) do not earn false curvature-well credit.
         """
         if not self.has_geometric_data:
             return 0.0
-        return float(max(0.0, min(1.0, 1.0 - self.min_chi_at_origin)))
+        initial = next((v for v in self.chi if math.isfinite(v) and v > 0.0), 1.0)
+        return float(max(0.0, min(1.0, initial - self.min_chi_at_origin)))
 
     @property
     def peak_abs_K(self) -> float:
@@ -91,11 +92,7 @@ class CentralFieldMetrics:
 
     @property
     def peak_abs_weyl4(self) -> float:
-        """Peak |Re(Psi4)| at center: gravitational-wave amplitude.
-
-        A converging gravitational wave produces a pulse of Weyl curvature
-        as it focuses at the center -- the spacetime-splash 'wave arrival'.
-        """
+        """Peak |GW signal| at center: Re(Psi4) or A_ij strain proxy magnitude."""
         finite = [abs(v) for v in self.weyl4 if math.isfinite(v)]
         return max(finite) if finite else 0.0
 

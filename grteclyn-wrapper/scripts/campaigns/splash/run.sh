@@ -25,13 +25,19 @@ export OBJECTIVE_MODE="${OBJECTIVE_MODE:-critical_collapse}"
 export DESCRIPTOR_MODE="${DESCRIPTOR_MODE:-wave_focusing}"
 export SPLASH_MODE="${SPLASH_MODE:-discovery}"
 export GRTRESNA_FULL_Z=1
-export GRTECLYN_FRAMES=1
-export GRTECLYN_FRAMES_AUTO_ZLIM=1
+# QD scoring uses central_timeseries / small_data — not slice PNGs.  Saves ~240
+# PNGs/eval (11 z-fields + 6 projections × ~15 dumps).  Re-enable for viz:
+#   GRTECLYN_FRAMES=1 FRAMES_FIELDS="chi K rho_req" bash scripts/campaigns/splash/run.sh
+export GRTECLYN_FRAMES="${GRTECLYN_FRAMES:-0}"
+export GRTECLYN_FRAMES_AUTO_ZLIM="${GRTECLYN_FRAMES_AUTO_ZLIM:-1}"
 export GRTECLYN_FRAMES_ZOOM="${GRTECLYN_FRAMES_ZOOM:-28}"
-# Plotfile dumps for the main evolution.  80 timesteps → ~4 frames over the run
-# (was 40 ≈ 8 frames); fewer dumps cut GPU/disk load while keeping enough
-# central samples for the wave-focusing / collapse diagnostics.
-export PLOT_INTERVAL="${PLOT_INTERVAL:-80}"
+export FRAMES_FIELDS="${FRAMES_FIELDS:-chi K rho_req local_speed}"
+export PROJECTION_FIELDS="${PROJECTION_FIELDS:-}"
+# Plotfile dumps for central-ball / GW-proxy timeseries.  160 steps @ dt=0.01 →
+# ~8 samples over a 16 s run (fewer with splash early-termination).
+export PLOT_INTERVAL="${PLOT_INTERVAL:-160}"
+# Stop once matter disperses after peak (typically t≈10–12 s); set 0 for full 16 s.
+export GRTECLYN_SPLASH_EARLY_TERM="${GRTECLYN_SPLASH_EARLY_TERM:-1}"
 # Belt-and-suspenders: search space pins sign, but reject any phantom coupling at launch.
 export PIN_DIMS="${PIN_DIMS:-grtresna_scalar_sign=1 grtresna_shell_static=1}"
 

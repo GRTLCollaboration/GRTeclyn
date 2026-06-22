@@ -28,7 +28,34 @@ _FIELD_CANDIDATES = {
     "chi": ("chi",),
     "K": ("K",),
     "weyl4": ("Weyl4_Re", "Weyl4", "Weyl4_re"),
+    "A11": ("A11",),
+    "A12": ("A12",),
+    "A22": ("A22",),
 }
+
+
+def _gw_wave_magnitude(a11: float, a12: float, a22: float) -> float:
+    """GW strain proxy |h| from conformal traceless A_ij (see visualisation README §8)."""
+    h_plus = a11 - a22
+    h_cross = 2.0 * a12
+    return float(math.sqrt(h_plus * h_plus + h_cross * h_cross))
+
+
+def _gw_wave_from_aij(ds, point) -> float | None:
+    a11 = _field_at_point(ds, point, "A11")
+    a12 = _field_at_point(ds, point, "A12")
+    a22 = _field_at_point(ds, point, "A22")
+    if a11 is None or a12 is None or a22 is None:
+        return None
+    return _gw_wave_magnitude(a11, a12, a22)
+
+
+def _resolve_gw_wave_signal(ds, point) -> float | None:
+    """Prefer Weyl4_Re; fall back to A_ij GW proxy for splash/RadialRecipe runs."""
+    weyl = _field_at_point(ds, point, "weyl4")
+    if weyl is not None:
+        return weyl
+    return _gw_wave_from_aij(ds, point)
 
 
 def _read_scalar(field_obj) -> float | None:
@@ -132,6 +159,7 @@ def _mean_on_sphere(
         for name in (
             "rho_req", "lapse", "phi_re", "phi_im", "pi_re", "pi_im",
             "scalar_activity", "ham_abs", "mom_abs", "chi", "K", "weyl4",
+            "A11", "A12", "A22",
         )
         if _resolve_field_name(ds, name) is not None
     ]
@@ -189,6 +217,26 @@ def _mean_on_sphere(
         out["noether_charge"] = 0.0
         out["phase_coherence"] = 0.0
 
+    if out.get("weyl4") is None and all(
+        _resolve_field_name(ds, name) is not None for name in ("A11", "A12", "A22")
+    ):
+        def _samples(logical: str) -> np.ndarray:
+            resolved = _resolve_field_name(ds, logical)
+            assert resolved is not None
+            return np.asarray(
+                vals[yt_fields.index(("boxlib", resolved))], dtype=float
+            ).reshape(-1)
+
+        a11_vals = _samples("A11")
+        a12_vals = _samples("A12")
+        a22_vals = _samples("A22")
+        mask = np.isfinite(a11_vals) & np.isfinite(a12_vals) & np.isfinite(a22_vals)
+        if np.any(mask):
+            gw = np.sqrt(
+                (a11_vals[mask] - a22_vals[mask]) ** 2 + (2.0 * a12_vals[mask]) ** 2
+            )
+            out["weyl4"] = float(np.mean(gw))
+
     return out
 
 
@@ -218,7 +266,7 @@ def _extract_at_center(
         "phase_coherence": 0.0,
         "chi": _field_at_point(ds, point, "chi"),
         "K": _field_at_point(ds, point, "K"),
-        "weyl4": _field_at_point(ds, point, "weyl4"),
+        "weyl4": _resolve_gw_wave_signal(ds, point),
     }
 
 

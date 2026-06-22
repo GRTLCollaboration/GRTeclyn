@@ -125,9 +125,9 @@ def test_geometric_curvature_well_from_chi_drop() -> None:
         )
     )
     compute_splash_components(ctx)
-    # chi_drop 0.6 / target 0.6 -> saturates at 1.0
+    # chi_drop 0.6 / target 0.20 -> saturates at 1.0
     assert ctx.components["geometric_curvature_well"] == pytest.approx(1.0)
-    # peak |K| 1.0 / target 1.0 -> 1.0
+    # peak |K| 1.0 / target 0.35 -> 1.0
     assert ctx.components["geometric_crunch"] == pytest.approx(1.0)
     # peak |weyl4| 1e-2 / target 1e-2 -> 1.0
     assert ctx.components["geometric_wave_arrival"] == pytest.approx(1.0)
@@ -144,5 +144,51 @@ def test_geometric_wave_arrival_partial() -> None:
     )
     compute_splash_components(ctx)
     assert ctx.components["geometric_wave_arrival"] == pytest.approx(0.5)
-    # chi only dropped to 0.9 -> chi_drop 0.1 / 0.6
-    assert ctx.components["geometric_curvature_well"] == pytest.approx(0.1 / 0.6)
+    # chi only dropped to 0.9 -> chi_drop 0.1 / 0.20
+    assert ctx.components["geometric_curvature_well"] == pytest.approx(0.1 / 0.20)
+
+
+def test_chi_rising_at_center_scores_zero_well() -> None:
+    """Initial chi below 1 that rises during evolution must not earn well credit."""
+    ctx = _ctx(_central(chi=(0.75, 0.85, 0.98), trace_K=(0.1, 0.15, 0.2)))
+    compute_splash_components(ctx)
+    assert ctx.components["geometric_curvature_well"] == 0.0
+
+
+def test_chi_drop_empty_series_is_safe() -> None:
+    metrics = _central(chi=(), trace_K=())
+    assert metrics.chi_drop == 0.0
+
+
+def test_horizon_bonus_gated_without_center_chi_well() -> None:
+    from grteclyn_wrapper.metrics.types.diagnostics import CollapseMetrics
+
+    ctx = ScoringContext(
+        metrics=EpisodeMetrics(
+            collapse=CollapseMetrics(
+                corroborated_trapped=True,
+                first_corroborated_time=1.7,
+                final_time=16.0,
+                max_abs_k=1.0,
+                max_horizon_radius=10.0,
+                min_chi=0.1,
+                min_lapse=0.01,
+                min_theta_plus=-0.5,
+                r_at_min_theta_plus=5.0,
+                scalar_phi_range=0.5,
+                scalar_pi_range=0.5,
+            ),
+            constraints=None,
+            stability=None,
+            comoving=None,
+            ftl=None,
+            termination_reason="completed_or_partial",
+            central=_central(chi=(0.75, 0.85, 0.98), trace_K=(0.1, 0.15, 0.2)),
+        ),
+        target_stop_time=16.0,
+        domain_half_width=8.0,
+        weights={},
+    )
+    compute_splash_components(ctx)
+    assert ctx.components["horizon_formation_time"] == 0.0
+    assert any("horizon_bonus_gated" in note for note in ctx.notes)

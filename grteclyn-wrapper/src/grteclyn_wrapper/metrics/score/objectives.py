@@ -220,7 +220,6 @@ def _critical_collapse_total(
     focus = min(float(components.get("focusing_efficiency", 0.0)), 5.0)
     # Relative growth only counts when absolute peak density is meaningful.
     focus_effective = focus * peak
-    wave = float(components.get("wave_focusing_quality", 0.0))
     lapse_progress = float(components.get("collapse_lapse_progress", 0.0))
     lapse_term = float(components.get("central_lapse_collapse", 0.0))
     dispersion = float(components.get("dispersion_penalty", 0.0))
@@ -255,7 +254,6 @@ def _critical_collapse_total(
         # Secondary: matter density corroboration of the focusing event.
         + 400.0 * peak * survival
         + 200.0 * focus_effective * survival
-        + 200.0 * wave * survival
         + 100.0 * pre_penalty
         + 100.0 * dispersion
         - 50.0 * (1.0 - constraint_quality) * survival
