@@ -237,9 +237,24 @@ def _critical_collapse_total(
     # data without dominating the score budget.
     exotic_capped = max(exotic, -0.3)
 
+    # --- Spacetime-splash (geometric) terms ---------------------------------
+    # The splash we want is a *geometric* event -- a converging gravitational
+    # wave that crushes the conformal factor (chi -> 0), spikes |K|, and emits
+    # a Weyl/Psi4 pulse at the center -- NOT a slow matter pile-up.  These
+    # geometric signatures are therefore the primary reward; the matter
+    # (rho) terms below act as secondary corroboration only.
+    curvature_well = float(components.get("geometric_curvature_well", 0.0))
+    wave_arrival = float(components.get("geometric_wave_arrival", 0.0))
+    crunch = float(components.get("geometric_crunch", 0.0))
+
     total = (
-        1000.0 * peak * survival
-        + 300.0 * focus_effective * survival
+        # Primary: spacetime curvature concentration + GW focusing.
+        800.0 * curvature_well * survival
+        + 600.0 * wave_arrival * survival
+        + 300.0 * crunch * survival
+        # Secondary: matter density corroboration of the focusing event.
+        + 400.0 * peak * survival
+        + 200.0 * focus_effective * survival
         + 200.0 * wave * survival
         + 100.0 * pre_penalty
         + 100.0 * dispersion
@@ -255,7 +270,8 @@ def _critical_collapse_total(
 
     notes.append(
         f"objective_mode=critical_collapse splash_mode={splash_mode}: "
-        "peak rho + gated focus + wave quality + capped exotic; FTL terms ignored"
+        "geometric splash (chi-well + Psi4 wave + K-crunch) primary; "
+        "rho/focus/lapse secondary; FTL terms ignored"
     )
     return total
 

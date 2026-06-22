@@ -17,6 +17,15 @@ DISPERSION_PEAK_GATE = 0.25
 DISPERSION_RETENTION_GATE = 0.7
 CUSP_UNRESOLVED_PEAK_SCALE = 0.5
 
+# --- Spacetime-splash (geometric) target scales -----------------------------
+# A spacetime splash is a *geometric* event: a converging gravitational wave
+# crushes the conformal factor (chi -> 0), spikes the extrinsic-curvature trace
+# |K|, and produces a Weyl (Psi4) pulse at the center.  These targets set the
+# order of magnitude at which each geometric signature saturates its reward.
+WEYL4_PEAK_TARGET = 1.0e-2   # |Re(Psi4)| at center for a focused GW pulse
+ABS_K_TARGET = 1.0           # |trace K| crunch rate at center
+CHI_DROP_TARGET = 0.6        # chi_drop (1 - min_chi) for a strong curvature well
+
 
 def _constraint_quality(central) -> float | None:
     ham = central.ham_abs_at_peak
@@ -85,6 +94,37 @@ def _dispersion_penalty(peak_norm: float, activity: tuple[float, ...]) -> float:
     return 0.0
 
 
+def _normalize_to_target(value: float, target: float) -> float:
+    if not math.isfinite(value) or value <= 0.0 or target <= 0.0:
+        return 0.0
+    return float(min(1.0, value / target))
+
+
+def _compute_geometric_components(ctx: ScoringContext, central) -> None:
+    """Spacetime-splash geometry: curvature concentration + GW focusing.
+
+    Independent of matter density (rho).  A static matter blob slowly
+    collapsing scores ~0 here; only a genuine converging gravitational wave
+    that crushes the geometry at the center earns these rewards.
+    """
+    if not central.has_geometric_data:
+        ctx.components.setdefault("geometric_curvature_well", 0.0)
+        ctx.components.setdefault("geometric_wave_arrival", 0.0)
+        ctx.components.setdefault("geometric_crunch", 0.0)
+        ctx.notes.append("geometric_splash_data_unavailable")
+        return
+
+    ctx.components["geometric_curvature_well"] = _normalize_to_target(
+        central.chi_drop, CHI_DROP_TARGET
+    )
+    ctx.components["geometric_wave_arrival"] = _normalize_to_target(
+        central.peak_abs_weyl4, WEYL4_PEAK_TARGET
+    )
+    ctx.components["geometric_crunch"] = _normalize_to_target(
+        central.peak_abs_K, ABS_K_TARGET
+    )
+
+
 def compute_splash_components(ctx: ScoringContext, *, splash_mode: str = "discovery") -> None:
     central = ctx.metrics.central
     if central is None:
@@ -102,6 +142,9 @@ def compute_splash_components(ctx: ScoringContext, *, splash_mode: str = "discov
         ctx.components.setdefault("splash_width", 0.0)
         ctx.components.setdefault("compression_ratio", 0.0)
         ctx.components.setdefault("cusp_unresolved", 0.0)
+        ctx.components.setdefault("geometric_curvature_well", 0.0)
+        ctx.components.setdefault("geometric_wave_arrival", 0.0)
+        ctx.components.setdefault("geometric_crunch", 0.0)
         return
 
     peak_norm = _normalize_rho_peak(central.peak_rho_req_at_origin)
@@ -164,3 +207,5 @@ def compute_splash_components(ctx: ScoringContext, *, splash_mode: str = "discov
         ctx.components["splash_width"] = 0.0
         ctx.components["compression_ratio"] = 0.0
         ctx.components["cusp_unresolved"] = 0.0
+
+    _compute_geometric_components(ctx, central)

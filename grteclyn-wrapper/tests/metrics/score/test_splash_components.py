@@ -104,3 +104,45 @@ def test_discovery_lapse_progress() -> None:
     ctx = _ctx(_central(min_lapse_at_origin=0.10))
     compute_splash_components(ctx, splash_mode="discovery")
     assert ctx.components["collapse_lapse_progress"] == pytest.approx(2.0 / 3.0)
+
+
+def test_geometric_components_zero_without_geometry() -> None:
+    """No chi/K/weyl4 data (legacy) -> geometric components are 0."""
+    ctx = _ctx(_central())  # no chi/trace_K/weyl4
+    compute_splash_components(ctx)
+    assert ctx.components["geometric_curvature_well"] == 0.0
+    assert ctx.components["geometric_wave_arrival"] == 0.0
+    assert ctx.components["geometric_crunch"] == 0.0
+
+
+def test_geometric_curvature_well_from_chi_drop() -> None:
+    """chi crushing toward 0 produces a curvature-well reward."""
+    ctx = _ctx(
+        _central(
+            chi=(1.0, 0.7, 0.4),  # min chi 0.4 -> chi_drop 0.6 == CHI_DROP_TARGET
+            trace_K=(0.0, 0.5, 1.0),
+            weyl4=(0.0, 5.0e-3, 1.0e-2),
+        )
+    )
+    compute_splash_components(ctx)
+    # chi_drop 0.6 / target 0.6 -> saturates at 1.0
+    assert ctx.components["geometric_curvature_well"] == pytest.approx(1.0)
+    # peak |K| 1.0 / target 1.0 -> 1.0
+    assert ctx.components["geometric_crunch"] == pytest.approx(1.0)
+    # peak |weyl4| 1e-2 / target 1e-2 -> 1.0
+    assert ctx.components["geometric_wave_arrival"] == pytest.approx(1.0)
+
+
+def test_geometric_wave_arrival_partial() -> None:
+    """A weak Weyl pulse gives a fractional wave-arrival reward."""
+    ctx = _ctx(
+        _central(
+            chi=(1.0, 0.95, 0.9),
+            trace_K=(0.0, 0.1, 0.2),
+            weyl4=(0.0, 2.0e-3, 5.0e-3),  # peak 5e-3 / target 1e-2 = 0.5
+        )
+    )
+    compute_splash_components(ctx)
+    assert ctx.components["geometric_wave_arrival"] == pytest.approx(0.5)
+    # chi only dropped to 0.9 -> chi_drop 0.1 / 0.6
+    assert ctx.components["geometric_curvature_well"] == pytest.approx(0.1 / 0.6)

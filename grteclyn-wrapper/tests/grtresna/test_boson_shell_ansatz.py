@@ -137,10 +137,15 @@ def test_boson_shell_moving_search_space_has_velocity_dims() -> None:
     assert "grtresna_shell_poloidal_velocity" in keys
     assert "grtresna_shell_radial_velocity" in keys
     assert "grtresna_shell_omega" in keys
-    # Velocity bounds should be conservative for boson shell
+    # Radial velocity is the primary spacetime-splash driver: symmetric and
+    # wider than the tangential dims, inward-capable (negative allowed).
+    rad = next(d for d in space if d.param_key == "grtresna_shell_radial_velocity")
+    assert rad.lower <= -0.4
+    assert rad.upper >= 0.4
+    # Tangential velocities stay small (secondary asymmetry only).
     tor = next(d for d in space if d.param_key == "grtresna_shell_toroidal_velocity")
-    assert tor.upper <= 0.6
-    assert tor.lower >= -0.6
+    assert tor.upper <= 0.3
+    assert tor.lower >= -0.3
     # Still no exotic dims
     assert "grtresna_shell_exotic_fraction" not in keys
 

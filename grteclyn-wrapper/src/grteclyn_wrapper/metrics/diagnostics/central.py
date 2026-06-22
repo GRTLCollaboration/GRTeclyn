@@ -12,7 +12,7 @@ from ..types.central import CentralFieldMetrics
 
 CENTRAL_TIMESERIES_HEADER = (
     "# time  rho_req  lapse  scalar_activity  phi_re  phi_im  "
-    "noether_charge  phase_coherence  ham_abs  mom_abs"
+    "noether_charge  phase_coherence  ham_abs  mom_abs  chi  K  weyl4"
 )
 
 _CHROMATICITY_MIN_FRAMES = 4
@@ -106,6 +106,10 @@ def _build_central_metrics(
     min_lapse = min(finite_lapse) if finite_lapse else 1.0
     baseline = initial_rho_baseline if initial_rho_baseline is not None else initial_rho
 
+    # Geometric (spacetime-splash) columns; absent in legacy files (-> 0.0).
+    chi_tuple = _optional_column(rows, 10)
+    weyl4_tuple = _optional_column(rows, 12)
+
     return CentralFieldMetrics(
         n_frames=len(t),
         t=t_tuple,
@@ -122,6 +126,9 @@ def _build_central_metrics(
         phase_coherence=_optional_column(rows, 7),
         ham_abs=_optional_column(rows, 8),
         mom_abs=_optional_column(rows, 9),
+        chi=chi_tuple,
+        trace_K=_optional_column(rows, 11),
+        weyl4=weyl4_tuple,
     )
 
 

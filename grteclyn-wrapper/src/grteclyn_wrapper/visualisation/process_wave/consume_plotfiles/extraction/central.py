@@ -8,7 +8,7 @@ import numpy as np
 
 CENTRAL_TIMESERIES_HEADER = (
     "# time  rho_req  lapse  scalar_activity  phi_re  phi_im  "
-    "noether_charge  phase_coherence  ham_abs  mom_abs"
+    "noether_charge  phase_coherence  ham_abs  mom_abs  chi  K  weyl4"
 )
 
 _FIELD_CANDIDATES = {
@@ -21,6 +21,13 @@ _FIELD_CANDIDATES = {
     "scalar_activity": ("scalar_activity",),
     "ham_abs": ("Ham_abs_terms",),
     "mom_abs": ("Mom_abs_terms",),
+    # Geometric (spacetime) fields for the spacetime-splash diagnostics:
+    #   chi   -> conformal factor (drops as curvature concentrates at center)
+    #   K     -> trace of extrinsic curvature (the gravitational "crunch" rate)
+    #   weyl4 -> Re(Psi4) Weyl scalar = gravitational-wave content at the center
+    "chi": ("chi",),
+    "K": ("K",),
+    "weyl4": ("Weyl4_Re", "Weyl4", "Weyl4_re"),
 }
 
 
@@ -122,7 +129,10 @@ def _mean_on_sphere(
     sample_pts = pts[idxs]
     field_names = [
         name
-        for name in ("rho_req", "lapse", "phi_re", "phi_im", "pi_re", "pi_im", "scalar_activity", "ham_abs", "mom_abs")
+        for name in (
+            "rho_req", "lapse", "phi_re", "phi_im", "pi_re", "pi_im",
+            "scalar_activity", "ham_abs", "mom_abs", "chi", "K", "weyl4",
+        )
         if _resolve_field_name(ds, name) is not None
     ]
     yt_fields = [("boxlib", _resolve_field_name(ds, name)) for name in field_names]
@@ -206,6 +216,9 @@ def _extract_at_center(
         "mom_abs": _field_at_point(ds, point, "mom_abs"),
         "noether_charge": 0.0,
         "phase_coherence": 0.0,
+        "chi": _field_at_point(ds, point, "chi"),
+        "K": _field_at_point(ds, point, "K"),
+        "weyl4": _field_at_point(ds, point, "weyl4"),
     }
 
 
@@ -251,5 +264,6 @@ def _extract_central_timeseries_line(
         f"{t:.16e}  {_fmt(rho_req)}  {_fmt(lapse)}  {_fmt(activity)}  "
         f"{_fmt(values.get('phi_re'))}  {_fmt(values.get('phi_im'))}  "
         f"{_fmt(values.get('noether_charge', 0.0))}  {_fmt(values.get('phase_coherence', 0.0))}  "
-        f"{_fmt(values.get('ham_abs'))}  {_fmt(values.get('mom_abs'))}"
+        f"{_fmt(values.get('ham_abs'))}  {_fmt(values.get('mom_abs'))}  "
+        f"{_fmt(values.get('chi'))}  {_fmt(values.get('K'))}  {_fmt(values.get('weyl4'))}"
     )
