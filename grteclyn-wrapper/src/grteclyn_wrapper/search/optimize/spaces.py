@@ -335,12 +335,11 @@ def grtresna_boson_shell_search_space(
             # negative v_rad sends the shell inward, sourcing the momentum
             # constraint with converging momentum -> an inward-propagating
             # gravitational wave that focuses into a curvature splash at the
-            # center.  Symmetric [-0.5, 0.5] bounds let the search discover
-            # that inward (negative) wins.  Toroidal/poloidal stay small
-            # (secondary asymmetry only) to keep the NL Mom solve convergent.
-            SearchDimension("grtresna_shell_radial_velocity", -0.5, 0.5, -0.2),
+            # center.  Bounds kept modest so the NL Mom solve stays convergent
+            # at canonical resolution (fast shells need finer grids).
+            SearchDimension("grtresna_shell_radial_velocity", -0.2, 0.2, -0.2),
             SearchDimension("grtresna_shell_toroidal_velocity", -0.2, 0.2, 0.0),
-            SearchDimension("grtresna_shell_poloidal_velocity", -0.15, 0.15, 0.0),
+            SearchDimension("grtresna_shell_poloidal_velocity", -0.2, 0.2, 0.0),
             SearchDimension("grtresna_shell_omega", -0.15, 0.15, 0.0),
         ])
     return dims

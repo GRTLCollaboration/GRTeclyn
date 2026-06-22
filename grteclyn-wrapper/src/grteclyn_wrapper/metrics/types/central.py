@@ -106,3 +106,22 @@ class CentralFieldMetrics:
                 peak = abs(value)
                 t_peak = time
         return t_peak
+
+    def peak_abs_weyl4_after(self, t_min: float) -> float:
+        """Peak |GW signal| at center considering only samples at t >= t_min."""
+        finite = [
+            abs(v)
+            for v, time in zip(self.weyl4, self.t)
+            if time >= t_min and math.isfinite(v)
+        ]
+        return max(finite) if finite else 0.0
+
+    def weyl4_peak_time_after(self, t_min: float) -> float | None:
+        """Time of peak |Weyl4| among samples at t >= t_min."""
+        peak = -1.0
+        t_peak: float | None = None
+        for value, time in zip(self.weyl4, self.t):
+            if time >= t_min and math.isfinite(value) and abs(value) > peak:
+                peak = abs(value)
+                t_peak = time
+        return t_peak

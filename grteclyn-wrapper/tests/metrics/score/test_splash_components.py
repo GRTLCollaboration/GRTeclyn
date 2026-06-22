@@ -121,6 +121,7 @@ def test_geometric_curvature_well_from_chi_drop() -> None:
         _central(
             chi=(1.0, 0.7, 0.4),  # min chi 0.4 -> chi_drop 0.6 == CHI_DROP_TARGET
             trace_K=(0.0, 0.5, 1.0),
+            t=(0.0, 1.0, 3.0),
             weyl4=(0.0, 5.0e-3, 1.0e-2),
         )
     )
@@ -129,8 +130,8 @@ def test_geometric_curvature_well_from_chi_drop() -> None:
     assert ctx.components["geometric_curvature_well"] == pytest.approx(1.0)
     # peak |K| 1.0 / target 0.35 -> 1.0
     assert ctx.components["geometric_crunch"] == pytest.approx(1.0)
-    # peak |weyl4| 1e-2 / target 1e-2 -> 1.0
-    assert ctx.components["geometric_wave_arrival"] == pytest.approx(1.0)
+    # peak |weyl4| 1e-2 / target 0.20 -> 0.05
+    assert ctx.components["geometric_wave_arrival"] == pytest.approx(0.05)
 
 
 def test_geometric_wave_arrival_partial() -> None:
@@ -139,13 +140,29 @@ def test_geometric_wave_arrival_partial() -> None:
         _central(
             chi=(1.0, 0.95, 0.9),
             trace_K=(0.0, 0.1, 0.2),
-            weyl4=(0.0, 2.0e-3, 5.0e-3),  # peak 5e-3 / target 1e-2 = 0.5
+            t=(0.0, 1.0, 3.0),
+            weyl4=(0.0, 2.0e-3, 5.0e-3),  # peak 5e-3 at t=3 / target 0.20 = 0.025
         )
     )
     compute_splash_components(ctx)
-    assert ctx.components["geometric_wave_arrival"] == pytest.approx(0.5)
+    assert ctx.components["geometric_wave_arrival"] == pytest.approx(0.025)
     # chi only dropped to 0.9 -> chi_drop 0.1 / 0.20
     assert ctx.components["geometric_curvature_well"] == pytest.approx(0.1 / 0.20)
+
+
+def test_geometric_wave_arrival_gated_before_focus_time() -> None:
+    """Early A_ij spikes before t=2 earn no wave-arrival credit."""
+    ctx = _ctx(
+        _central(
+            chi=(1.0, 0.9, 0.85),
+            trace_K=(0.0, 0.1, 0.2),
+            t=(0.0, 0.5, 1.5),
+            weyl4=(0.0, 0.15, 0.10),  # peak 0.15 at t=0.5 — before gate
+        )
+    )
+    compute_splash_components(ctx)
+    assert ctx.components["geometric_wave_arrival"] == 0.0
+    assert any("gw_wave_gated" in note for note in ctx.notes)
 
 
 def test_chi_rising_at_center_scores_zero_well() -> None:

@@ -4,7 +4,7 @@ Reverse-chronological log of experiments, decisions, and results for the bosonic
 
 ---
 
-## Current state (2026-06-18)
+## Current state (2026-06-23)
 
 ### What works
 
@@ -12,21 +12,19 @@ Reverse-chronological log of experiments, decisions, and results for the bosonic
 - Geometric splash scoring (χ, K, GW wave proxy) as primary reward, matter (ρ) secondary
 - GW strain proxy from native `A_ij` plot vars — no Weyl4 derive on splash path
 - Scoring fixes: initial-relative χ-drop, horizon bonus gated on center well, scalar wave floor removed from objective
+- **V13 scoring**: survival forgiveness on deep collapse, `GW_WAVE_PEAK_TARGET=0.20`, tighter velocity bounds, frames off by default
 - Offline rescore: `grteclyn-wrapper/scripts/search/rescore_splash_campaign.py`
 - Inward-converging radial velocity with sphere layout (layout=0)
 - NFS-resilient postload gate with retry loop
 - AMR regrid threshold guard prevents full-domain refinement segfault
 - Early-terminated runs scored correctly (`gpu_ok`)
-- **`spacetime_splash_v12` complete** — 31/50 gpu_ok, 0 segfaults, real χ/K signals (see entry below)
+- **`spacetime_splash_v12` complete** — 31/50 gpu_ok, 0 segfaults (see entry below)
 
 ### Outstanding
 
-- **GW_WAVE_PEAK_TARGET** (1e-2) still saturates all gpu_ok → ~600 pt floor; recalibrate to ~0.15–0.2 from v12 A_ij proxy scale
-- **Leaderboard vs physics**: eval 004 (χ-well 0.46, |K| 0.88) ranks ~66 pts; eval 008 (χ rises) still #1 at 786 until GW target fixed
-- **Survival gate**: best geometry (eval 016: χ-well=1, |K|=1) scores 738 but survives only 26%
-- **Moving shell convergence**: some high-velocity configs still fail GRTresna (Mom > 5%)
+- **`spacetime_splash_v13` launching** — v13 scoring (geometric-only forgiveness, late GW gate, tighter velocities)
+- Confirmed **ingoing GW → center focus** splash (late converging wave, not just early A_ij spike)
 - **ham_abs NaN** at origin → −50 constraint penalty (deferred)
-- **Frame overhead**: v12 launched with old frame defaults; next run uses `GRTECLYN_FRAMES=0`, slim `FRAMES_FIELDS`
 
 ### Branches
 
@@ -35,7 +33,45 @@ Reverse-chronological log of experiments, decisions, and results for the bosonic
 
 ---
 
-## 2026-06-18 — spacetime_splash_v12 final results
+## 2026-06-23 — V13 readiness: survival paradox & GW recalibration
+
+### Analysis of v12 leaderboard
+
+Analysis of the v12 results revealed that the scoring function actively punishes the best physical candidates.
+
+1. **The survival paradox:** eval 004 and eval 016 triggered rapid collapse (χ dropped, |K| spiked). Physical success caused early termination (survival 0.09 and 0.26). Because all rewards were multiplied by `survival`, scores were crushed. Meanwhile eval 008 (static dud) survived to t≈16 and ranked high on saturated base points.
+2. **GW target saturation:** the A_ij proxy amplitude is an order of magnitude above true Ψ₄. `GW_WAVE_PEAK_TARGET = 1e-2` saturated on noise, giving a free 600 points to every run.
+
+### Fixes implemented for v13
+
+- **Survival forgiveness (geometric only):** in `objectives.py`, `geometric_survival = 1.0` when `geometric_curvature_well > 0.4` or a horizon forms; matter terms still use raw `survival`.
+- **GW proxy recalibration:** `GW_WAVE_PEAK_TARGET` raised from `1e-2` to `0.20`; peak must occur at **t ≥ 2** (`GW_WAVE_MIN_FOCUS_TIME`).
+- **Velocity bounds:** radial/poloidal velocity tightened to `[-0.2, 0.2]` in `spaces.py` to reduce GRTresna Mom rejections.
+- **Frame overhead:** `GRTECLYN_FRAMES=0` default in `run.sh` (scoring uses central timeseries only).
+
+### v13 scoring tune (post–eval 16 review)
+
+Eval 16 rescore at 2410 exposed stacked rewards: full geometric saturation + matter peak 0.70 + survival forgiveness on *all* terms. Follow-up tuning before launch:
+
+- Forgiveness scoped to **χ/K/GW/lapse only** — ρ/focus still × raw survival.
+- Forgiveness threshold lowered **0.8 → 0.4** so eval 004-class splashes qualify.
+- GW credit uses peak **after t = 2** only (early A_ij noise zeroed).
+
+### Next step
+
+Launch **`spacetime_splash_v13`** (50 evals, 8 GPUs) with tuned scoring.
+
+**Offline rescore (3 evals with `small_data/`):** eval 016 **1687** (was 738), eval 044 **917** (was 1020), eval 008 **450** (was 786). Geometric-only forgiveness + late GW gate removes eval 008 false lead; eval 016 stays #1 without the 2410 inflation from matter terms.
+
+---
+
+## 2026-06-23 — spacetime_splash_v13 launch
+
+Launch: `QD_NAME=spacetime_splash_v13 QD_TARGET_EVALS=50`, 8 GPUs, v13 scoring (geometric-only survival forgiveness, `GW_WAVE_PEAK_TARGET=0.20`, late GW gate t≥2, velocity bounds ±0.2, `GRTECLYN_FRAMES=0`).
+
+Run dir: `runs/grtresna_qd/spacetime_splash_v13/`.
+
+---
 
 Campaign complete (`50/50` evals, exit 0). Run dir: `runs/grtresna_qd/spacetime_splash_v12/`.
 

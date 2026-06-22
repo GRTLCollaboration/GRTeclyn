@@ -69,6 +69,72 @@ def test_survival_zero_zeros_score() -> None:
     assert total == 0.0
 
 
+def test_survival_forgiven_when_deep_curvature_well() -> None:
+    notes: list[str] = []
+    penalized = _critical_collapse_total(
+        {
+            "survival": 0.09,
+            "geometric_curvature_well": 0.35,
+            "geometric_wave_arrival": 1.0,
+            "geometric_crunch": 0.88,
+            "central_energy_peak": 0.12,
+        },
+        [],
+        splash_mode="discovery",
+    )
+    forgiven = _critical_collapse_total(
+        {
+            "survival": 0.09,
+            "geometric_curvature_well": 0.85,
+            "geometric_wave_arrival": 1.0,
+            "geometric_crunch": 1.0,
+            "central_energy_peak": 0.12,
+        },
+        notes,
+        splash_mode="discovery",
+    )
+    assert forgiven > penalized * 3.0
+    assert any("survival_forgiven" in note for note in notes)
+
+
+def test_survival_forgiveness_applies_to_geometry_not_matter() -> None:
+    """Matter terms stay scaled by raw survival even when geometry is forgiven."""
+    notes: list[str] = []
+    total = _critical_collapse_total(
+        {
+            "survival": 0.10,
+            "geometric_curvature_well": 0.85,
+            "geometric_wave_arrival": 0.0,
+            "geometric_crunch": 0.0,
+            "central_energy_peak": 1.0,
+            "focusing_efficiency": 1.0,
+            "constraint_quality": 1.0,
+        },
+        notes,
+        splash_mode="discovery",
+    )
+    # 800 * 0.85 * 1.0 (geometry) + 400 * 1.0 * 0.10 + 200 * 1.0 * 0.10 (matter)
+    assert total == pytest.approx(800 * 0.85 + 60.0)
+    assert any("geometric terms only" in note for note in notes)
+
+
+def test_survival_forgiven_when_horizon_forms() -> None:
+    notes: list[str] = []
+    total = _critical_collapse_total(
+        {
+            "survival": 0.0,
+            "geometric_curvature_well": 0.2,
+            "horizon_formation_time": 0.5,
+            "geometric_wave_arrival": 0.5,
+            "geometric_crunch": 0.5,
+        },
+        notes,
+        splash_mode="discovery",
+    )
+    assert total > 0.0
+    assert any("survival_forgiven" in note for note in notes)
+
+
 def test_ignores_ftl_components() -> None:
     notes: list[str] = []
     total = _critical_collapse_total(

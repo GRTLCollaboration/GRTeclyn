@@ -22,12 +22,14 @@ CUSP_UNRESOLVED_PEAK_SCALE = 0.5
 # crushes the conformal factor (chi -> 0), spikes the extrinsic-curvature trace
 # |K|, and produces a Weyl (Psi4) pulse at the center.  These targets set the
 # order of magnitude at which each geometric signature saturates its reward.
-GW_WAVE_PEAK_TARGET = 1.0e-2  # |h| proxy or |Re(Psi4)| at center
+GW_WAVE_PEAK_TARGET = 0.20  # |h| proxy or |Re(Psi4)| at center (v12 A_ij scale)
+GW_WAVE_MIN_FOCUS_TIME = 2.0  # ignore early A_ij spikes before converging wave
 WEYL4_PEAK_TARGET = GW_WAVE_PEAK_TARGET  # backward-compatible alias
 ABS_K_TARGET = 0.35            # |trace K| crunch rate at center (v11-calibrated)
 CHI_DROP_TARGET = 0.20         # initial-relative chi drop for a strong well
 
 MIN_CENTER_CHI_WELL_FOR_HORIZON = 0.15  # normalized geometric_curvature_well gate
+SURVIVAL_FORGIVENESS_WELL = 0.4  # forgive early termination on geometric terms only
 
 
 def _constraint_quality(central) -> float | None:
@@ -120,9 +122,17 @@ def _compute_geometric_components(ctx: ScoringContext, central) -> None:
     ctx.components["geometric_curvature_well"] = _normalize_to_target(
         central.chi_drop, CHI_DROP_TARGET
     )
-    ctx.components["geometric_wave_arrival"] = _normalize_to_target(
-        central.peak_abs_weyl4, GW_WAVE_PEAK_TARGET
-    )
+    late_peak = central.peak_abs_weyl4_after(GW_WAVE_MIN_FOCUS_TIME)
+    wave_norm = _normalize_to_target(late_peak, GW_WAVE_PEAK_TARGET)
+    t_peak = central.weyl4_peak_time_after(GW_WAVE_MIN_FOCUS_TIME)
+    if t_peak is not None and late_peak > 0.0:
+        ctx.components["geometric_wave_arrival"] = wave_norm
+    else:
+        ctx.components["geometric_wave_arrival"] = 0.0
+        if central.peak_abs_weyl4 > 0.0 and late_peak <= 0.0:
+            ctx.notes.append(
+                f"gw_wave_gated: peak_before_t={GW_WAVE_MIN_FOCUS_TIME:g}"
+            )
     ctx.components["geometric_crunch"] = _normalize_to_target(
         central.peak_abs_K, ABS_K_TARGET
     )

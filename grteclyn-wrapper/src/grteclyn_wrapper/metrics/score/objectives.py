@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from .splash import SURVIVAL_FORGIVENESS_WELL
 from .types import ScoringContext
 from .weights import HEALTH_COMPONENTS
 
@@ -210,7 +211,19 @@ def _critical_collapse_total(
     splash_mode: str = "discovery",
 ) -> float:
     survival = float(components.get("survival", 0.0))
-    if survival <= 0.0:
+    well = float(components.get("geometric_curvature_well", 0.0))
+    horizon_bonus = float(components.get("horizon_formation_time", 0.0))
+
+    # Successful collapse terminates early.  Forgive survival only on geometric
+    # terms — matter corroboration still scales with actual persistence.
+    if well > SURVIVAL_FORGIVENESS_WELL or horizon_bonus > 0.0:
+        geometric_survival = 1.0
+        notes.append("survival_forgiven: critical_collapse_achieved (geometric terms only)")
+    else:
+        geometric_survival = survival
+    matter_survival = survival
+
+    if geometric_survival <= 0.0 and matter_survival <= 0.0:
         notes.append(
             f"objective_mode=critical_collapse splash_mode={splash_mode}: "
             "zero survival zeros score"
@@ -224,7 +237,6 @@ def _critical_collapse_total(
     lapse_term = float(components.get("central_lapse_collapse", 0.0))
     dispersion = float(components.get("dispersion_penalty", 0.0))
     pre_penalty = float(components.get("pre_collapsed_penalty", 0.0))
-    horizon_bonus = float(components.get("horizon_formation_time", 0.0))
     constraint_quality = float(components.get("constraint_quality", 0.0))
 
     exotic = float(components.get("exotic_penalty", 0.0))
@@ -248,23 +260,23 @@ def _critical_collapse_total(
 
     total = (
         # Primary: spacetime curvature concentration + GW focusing.
-        800.0 * curvature_well * survival
-        + 600.0 * wave_arrival * survival
-        + 300.0 * crunch * survival
+        800.0 * curvature_well * geometric_survival
+        + 600.0 * wave_arrival * geometric_survival
+        + 300.0 * crunch * geometric_survival
         # Secondary: matter density corroboration of the focusing event.
-        + 400.0 * peak * survival
-        + 200.0 * focus_effective * survival
+        + 400.0 * peak * matter_survival
+        + 200.0 * focus_effective * matter_survival
         + 100.0 * pre_penalty
         + 100.0 * dispersion
-        - 50.0 * (1.0 - constraint_quality) * survival
-        + 50.0 * exotic_capped * survival
+        - 50.0 * (1.0 - constraint_quality) * geometric_survival
+        + 50.0 * exotic_capped * geometric_survival
     )
     if splash_mode == "threshold":
         total += 500.0 * lapse_term
     else:
-        total += 200.0 * lapse_progress * survival
+        total += 200.0 * lapse_progress * geometric_survival
         if horizon_bonus > 0.0:
-            total += 500.0 * horizon_bonus * survival
+            total += 500.0 * horizon_bonus * geometric_survival
 
     notes.append(
         f"objective_mode=critical_collapse splash_mode={splash_mode}: "
