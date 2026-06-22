@@ -42,6 +42,11 @@ fi
 : "${GRTRESNA_EVOLUTION_N_FULL:=128}"
 # GPU evolution AMR cap (QD/CMA-ES stage 0). GRTresna elliptic solve uses GRTRESNA_MAX_LEVEL.
 : "${GRTRESNA_EVOLUTION_MAX_LEVEL:=1}"
+# Chi-tagging refinement threshold for the GPU evolution (dx*|d2 chi| >= thr).
+# Must stay high enough that a broad boson-shell chi well does NOT tag 100% of
+# the domain: a full-domain Level 1 (256^3) blows up RK4 storeRKCoarseData and
+# segfaults.  0.1 keeps refinement on the central collapse region (~4% of box).
+: "${GRTRESNA_EVOLUTION_REGRID_THRESHOLD:=0.1}"
 : "${GRTRESNA_DOMAIN_L:=128.0}"
 : "${GRTRESNA_DOMAIN_NX:=64}"
 : "${GRTRESNA_DOMAIN_NY:=64}"
@@ -187,6 +192,7 @@ ftl_search_common_global_args() {
     --set "stop_time=${STOP_TIME}"
     --set "plot_interval=${PLOT_INTERVAL}"
     --set "max_level=${GRTRESNA_EVOLUTION_MAX_LEVEL}"
+    --set "regrid_threshold=${GRTRESNA_EVOLUTION_REGRID_THRESHOLD}"
     --consume-plotfiles
     --consumer-delete
     --consumer-keep-last "${CONSUMER_KEEP_LAST}"

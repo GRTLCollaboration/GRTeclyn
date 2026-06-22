@@ -28,9 +28,10 @@ export GRTRESNA_FULL_Z=1
 export GRTECLYN_FRAMES=1
 export GRTECLYN_FRAMES_AUTO_ZLIM=1
 export GRTECLYN_FRAMES_ZOOM="${GRTECLYN_FRAMES_ZOOM:-28}"
-# More frequent plotfile dumps (default 320 gives ~1 dump on stop_time=16).
-# 40 timesteps ≈ dt*40 ≈ 2.0 code units → ~8 central samples for wave_chromaticity.
-export PLOT_INTERVAL="${PLOT_INTERVAL:-40}"
+# Plotfile dumps for the main evolution.  80 timesteps → ~4 frames over the run
+# (was 40 ≈ 8 frames); fewer dumps cut GPU/disk load while keeping enough
+# central samples for the wave-focusing / collapse diagnostics.
+export PLOT_INTERVAL="${PLOT_INTERVAL:-80}"
 # Belt-and-suspenders: search space pins sign, but reject any phantom coupling at launch.
 export PIN_DIMS="${PIN_DIMS:-grtresna_scalar_sign=1 grtresna_shell_static=1}"
 

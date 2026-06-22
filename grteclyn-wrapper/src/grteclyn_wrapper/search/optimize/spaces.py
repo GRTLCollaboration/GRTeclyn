@@ -317,11 +317,12 @@ def grtresna_boson_shell_search_space(
         "grtresna_shell_omega",
     }
     dims = [d for d in shell if d.param_key not in skip]
-    # Amplitude widened from 0.12 to 0.15 to push toward critical collapse
-    # (v8 best had amp~0.06 with lapse~0.12; more energy density needed for
-    # lapse < 0.05).  Width narrowed slightly to keep lumps compact.
+    # Amplitude capped at 0.12: pushing to 0.15 deepens the chi well so broadly
+    # that the GPU evolution's chi-tagger refines ~100% of the domain (256^3
+    # Level 1), which blows up RK4 storeRKCoarseData and segfaults.  0.12 keeps
+    # the matter compact enough that refinement stays on the central region.
     dims.extend([
-        SearchDimension("grtresna_shell_amp", 0.04, 0.15, 0.08),
+        SearchDimension("grtresna_shell_amp", 0.04, 0.12, 0.08),
         SearchDimension("grtresna_shell_width", 2.0, 4.0, 3.0),
         SearchDimension("grtresna_scalar_mass", 0.05, 0.35, 0.1),
         SearchDimension("grtresna_scalar_lambda", 0.0, 0.05, 0.0),
