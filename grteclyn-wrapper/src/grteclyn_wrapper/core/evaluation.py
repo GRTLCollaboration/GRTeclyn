@@ -261,6 +261,11 @@ def _run_gpu_session(
                 consumer_evolving_geodesic=evolving_enabled,
             )
             exit_code = result.returncode
+            # Early termination via .stop_sim is intentional (e.g.
+            # dispersion_complete); the SIGTERM exit code should not mark
+            # the evaluation as gpu_failed.
+            if exit_code != 0 and (episode.path / ".stop_sim").is_file():
+                exit_code = 0
         except Exception as exc:  # noqa: BLE001 - record and continue
             exit_code = 1
             update_metadata(episode, {"simulation_error": repr(exc), "simulation_exit_code": exit_code})
