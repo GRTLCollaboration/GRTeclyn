@@ -74,6 +74,14 @@ def _register_derived_fields(ds, field: str) -> None:
         def _gw_cross(field, data):
             return 2.0 * data[base_ftype, "A12"]
         ds.add_field((base_ftype, "GW_Cross"), function=_gw_cross, sampling_type="cell", units="")
+    elif field == "weyl4":
+        # A_ij GW strain proxy (same formula as central_timeseries extraction).
+        def _weyl4_proxy(field, data):
+            a11 = data[base_ftype, "A11"]
+            a12 = data[base_ftype, "A12"]
+            a22 = data[base_ftype, "A22"]
+            return np.sqrt((a11 - a22) ** 2 + (2.0 * a12) ** 2)
+        ds.add_field((base_ftype, "weyl4"), function=_weyl4_proxy, sampling_type="cell", units="")
     elif field == "Weyl4_Mag":
         def _weyl4_mag(field, data):
             re_v = data[base_ftype, "Weyl4_Re"]

@@ -151,6 +151,11 @@ for entry in "${CANDIDATE_ENTRIES[@]}"; do
   gridinit_args=()
   [[ -n "${GRIDINIT:-}" ]] && gridinit_args=(--gridinit "${GRIDINIT}")
 
+  geodesic_args=()
+  if [[ "${OBJECTIVE_MODE}" != "critical_collapse" ]]; then
+    geodesic_args=(--evolving-geodesic)
+  fi
+
   if [[ "${FOREGROUND:-0}" == "1" ]]; then
     echo "  foreground: replay_eval.py ${source} -> ${out}"
     # shellcheck disable=SC2086
@@ -173,7 +178,7 @@ for entry in "${CANDIDATE_ENTRIES[@]}"; do
       --grtresna-max-mom-pct "${GRTRESNA_MAX_MOM_PCT}" \
       --consumer-keep-last "${CONSUMER_KEEP_LAST}" \
       --objective-mode "${OBJECTIVE_MODE}" \
-      --evolving-geodesic \
+      "${geodesic_args[@]}" \
       "${gridinit_args[@]}"
   else
     # shellcheck disable=SC2086
@@ -196,7 +201,7 @@ for entry in "${CANDIDATE_ENTRIES[@]}"; do
       --grtresna-max-mom-pct "${GRTRESNA_MAX_MOM_PCT}" \
       --consumer-keep-last "${CONSUMER_KEEP_LAST}" \
       --objective-mode "${OBJECTIVE_MODE}" \
-      --evolving-geodesic \
+      "${geodesic_args[@]}" \
       "${gridinit_args[@]}" \
       > "${log}" 2>&1 &
     echo "  pid=$!"

@@ -12,24 +12,222 @@ Reverse-chronological log of experiments, decisions, and results for the bosonic
 - Geometric splash scoring (χ, K, GW wave proxy) as primary reward, matter (ρ) secondary
 - GW strain proxy from native `A_ij` plot vars — no Weyl4 derive on splash path
 - Scoring fixes: initial-relative χ-drop, horizon bonus gated on center well, scalar wave floor removed from objective
-- **V13 scoring**: survival forgiveness on deep collapse, `GW_WAVE_PEAK_TARGET=0.20`, tighter velocity bounds, frames off by default
+- **V13 scoring validated** — survival forgiveness (geometric only), `GW_WAVE_PEAK_TARGET=0.20`, late GW gate t≥2, frames off
 - Offline rescore: `grteclyn-wrapper/scripts/search/rescore_splash_campaign.py`
 - Inward-converging radial velocity with sphere layout (layout=0)
 - NFS-resilient postload gate with retry loop
 - AMR regrid threshold guard prevents full-domain refinement segfault
 - Early-terminated runs scored correctly (`gpu_ok`)
+- **`spacetime_splash_v13` complete** — 125/200 gpu_ok, elite eval 020 @ 1684 (see entries below)
+- **`spacetime_splash_v14_moving` complete** — 27/50 gpu_ok, best eval 015 @ 632; moving shells underperform v13 static (see entry below)
 - **`spacetime_splash_v12` complete** — 31/50 gpu_ok, 0 segfaults (see entry below)
 
 ### Outstanding
 
-- **`spacetime_splash_v13` launching** — v13 scoring (geometric-only forgiveness, late GW gate, tighter velocities)
-- Confirmed **ingoing GW → center focus** splash (late converging wave, not just early A_ij spike)
-- **ham_abs NaN** at origin → −50 constraint penalty (deferred)
+- **v14 follow-up** — pin `v_rad ∈ [−0.2, 0]` and/or `matter_layout=0` (sphere) to enforce inward convergence; channel layout + uniform velocity still breaks splash physics
+- **ham_abs NaN** at origin → −50 constraint penalty on all gpu_ok (deferred)
 
 ### Branches
 
 - **GRTeclyn:** `feature/interstellar`
 - **GRTresna:** `feature/interstellar`
+
+---
+
+## 2026-06-23 — spacetime_splash_v14_moving final results
+
+Campaign complete (`50/50` evals, exit 0). Run dir: `runs/grtresna_qd/spacetime_splash_v14_moving/`. First MAP-Elites pass with **moving shells** (`shell_static=0`, 4 velocity dims active).
+
+### Outcome mix (50/50)
+
+| status | count | notes |
+|--------|-------|-------|
+| `gpu_ok` | 27 | 54% success rate (vs 61% v13) |
+| `postload_rejected` | 16 | Ham L2 > 0.03 |
+| `grtresna_rejected` | 7 | Mom/Ham convergence — moving IC stress |
+
+No segfaults. MAP-Elites: **9 elites**, 14% bin coverage (`8×8`), best score **632** (eval 015).
+
+### Top gpu_ok (v13 scoring unchanged)
+
+| eval | score | χ-well | GW | \|K\| | survival | v_rad | layout | physics note |
+|------|-------|--------|-----|-------|----------|-------|--------|--------------|
+| 015 | 632 | 0.43 | 0.27 | 0.61 | 0.10 | **+0.16** | channel (~1) | **#1** — modest χ-well only; early stop t≈1.6 |
+| 010 | 150 | 0.37 | 0.30 | — | 0.25 | **+0.17** | bipolar (~2.7) | best GW among mid-tier |
+| 050 | 50 | 0.21 | 0.14 | — | 0.15 | +0.15 | sphere (~0.25) | weak geometry |
+| 018 | 47 | 0.31 | 0.13 | — | 0.11 | +0.19 | channel | outward velocity |
+| 046 | 43 | 0.21 | 0.29 | — | 0.10 | +0.15 | channel | GW-only signal |
+
+Only **1/27** gpu_ok has χ-well > 0.4 (forgiveness threshold). GW spread: 0.00–0.30 (median 0.09) — far below v13 elite range (eval 042 GW=0.75). **No lapse collapse** on any scored run (`collapse_lapse_progress=0`).
+
+### Velocity exploration — wrong direction
+
+Among 27 gpu_ok, radial velocity is overwhelmingly **outward**:
+
+| metric | value |
+|--------|-------|
+| v_rad range | −0.185 … +0.192 |
+| v_rad mean | +0.074 |
+| inward (v_rad < 0) | **3/27** (evals 012, 034, 043; scores ≤ 6) |
+
+Top elites all have **positive v_rad** (+0.15–+0.19) despite default seed −0.2 inward. MAP-Elites selected configs that disperse matter early (low survival ~0.10) rather than converge — scorer still rewards modest χ-drop + GW proxy without deep collapse.
+
+Channel layout (`matter_layout≈1`) dominates elites; known issue: uniform velocity on all lumps → net linear momentum, not radial convergence (see 2026-06-20 entry).
+
+### Comparison vs v13 static
+
+| | v13 (200 evals) | v14 moving (50 evals) |
+|---|-----------------|----------------------|
+| gpu_ok rate | 61% (125/204) | 54% (27/50) |
+| Best score | **1684** (eval 020) | **632** (eval 015) |
+| Best GW | 0.75 (eval 042) | 0.30 (eval 010) |
+| χ-well > 0.4 | 26/125 | 1/27 |
+| MAP-Elites elites | 23 | 9 |
+| Deep collapse + lapse | yes (020 family) | **none** |
+
+**Conclusion:** unpinned moving shells with ±0.2 velocity bounds did **not** improve toward ingoing GW splash. Kinetic stress raised Mom rejections and early termination; QD drifted to outward velocities and shallow geometry. Static v13 IC (gravity-driven accretion) remains the stronger collapse path under current scoring.
+
+### Score composition (eval 015)
+
+Geometric terms dominate but at modest saturation: χ-well 0.43 → ~345 pts (× survival 0.10 without forgiveness), GW 0.27 → ~41 pts, |K| 0.61 → ~55 pts. No lapse progress, no matter ρ credit, heavy instability penalty. Total 632 reflects **partial geometry before early stop**, not v13-class deep well.
+
+### Recommended next steps
+
+1. Pin **`grtresna_matter_layout=0`** (sphere) so radial velocity is per-lump inward.
+2. Restrict **`grtresna_shell_radial_velocity` to [−0.2, 0]** — forbid outward radial motion.
+3. Optional: raise Mom gate tolerance or reduce `shell_amp` cap for moving IC stability.
+4. HQ frames on best **moving** elite once inward convergence is confirmed.
+
+Retained eval dirs: `eval_000010`, `eval_000015`, `eval_000050`.
+
+Launch command (reference):
+```bash
+SPLASH_MOVING=1 QD_NAME=spacetime_splash_v14_moving QD_TARGET_EVALS=50 \
+  GPU_IDS="0 1 2 3 4 5 6 7" BATCH_SIZE=8 \
+  bash scripts/campaigns/splash/run.sh
+```
+
+---
+
+## 2026-06-23 — eval 020 deep dive (v13 #1)
+
+Champion genome from `spacetime_splash_v13` (eval 020 / 054 identical, score **1684**). HQ promotion to N=256, t=30 was **stopped** after consumer crash (missing `weyl4` frame field — fixed in `fields.py`); promote dir removed.
+
+### How the score is built
+
+| Term | pts (approx) | Component | Notes |
+|------|-------------|-----------|-------|
+| χ-well | 800 | 1.00 | survival **forgiven** on geometry |
+| Lapse progress | 200 | 1.00 | origin α: 1.0 → 0.018 |
+| \|K\| crunch | 298 | 0.99 | max domain \|K\| ≈ 6.1 |
+| GW arrival | 194 | 0.32 | late A_ij peak 0.065 (target 0.20) |
+| ρ peak | 73 | 0.70 × surv 0.26 | matter secondary |
+| Penalties | ≈ −80 | constraint, exotic (capped), instability, stationary | |
+
+Without v13 survival forgiveness, geometric terms × 0.26 would bury this run (~400 total). High score is **geometry + lapse collapse**, not long runtime.
+
+### Initial matter (canonical, not exotic)
+
+- **Coupling:** canonical, `scalar_sign=+1`, all lumps `exotic=0` — no phantom/ghost matter in IC.
+- **Layout:** channel (`matter_layout≈1`) — 5 lumps along a tilted axis (θ≈2.7, φ≈1.1), radii ~1.1–4.6 code units, **not** a hollow sphere at R=5.7.
+- **Static IC:** `grtresna_shell_static=1` pinned in v13 → all lump velocities and ω **zero at t=0**. No pre-seeded ingoing shell.
+- **Dynamics:** ρ at origin still rises (5×10⁻⁴ → 7×10⁻³ by t≈11); `peak_radius=1.0` — accretion via field evolution + gravity, not bulk initial momentum.
+
+### Exotic matter: IC vs evolved
+
+| | t=0 | evolved (t≈11) |
+|---|-----|----------------|
+| Seeded exotic? | **No** | — |
+| min ρ_req | small positive | **−0.049** |
+| ∫ negative ρ | 0 | **≈ 33** |
+| WEC violation fraction | — | **≈ 97%** |
+| `exotic_penalty` | — | −1.6 raw → **−0.3 capped** in `critical_collapse` |
+
+Strong collapse **creates** effective negative-energy regions (NEC/WEC violations, negative ρ_req in the constraint solve). Scorer note “exotic matter required” refers to the **evolved geometry**, not phantom IC. Source of strong gravity: **self-gravitating canonical boson scalar** stress–energy → Einstein feedback (χ-drop, lapse crash, K spike).
+
+### What “splash” means here vs target physics
+
+**Scorer splash (eval 020):** domain-wide χ-well + lapse collapse + |K| crunch + modest late GW proxy + late ρ pile-up.
+
+**Target splash (not fully achieved):** ingoing gravitational wave from **converging moving shells** focusing at the center. Eval **042** is closer (GW=0.75, low ρ); eval 020 wins on **geometry saturation + matter corroboration**.
+
+**Implication for v14:** unpinned velocity with radial default **−0.2**, bounds **±0.2**, `shell_static=0` — test whether MAP-Elites finds true wave-focus elites without static late-ρ inflation.
+
+---
+
+## 2026-06-23 — spacetime_splash_v14_moving launch
+
+50-eval MAP-Elites **moving-shell** test after v13 static campaign. **Completed** — see final results entry above.
+
+**Changes vs v13:**
+- `SPLASH_MOVING=1` → pin `grtresna_shell_static=0` (velocity dims active)
+- Search adds 4D: `radial_velocity` **±0.2** (default −0.2 inward), `toroidal`/`poloidal` **±0.2**, `shell_omega` **±0.15**
+- Same v13 scoring, frames off, 8 GPUs, canonical boson star
+
+**HQ eval 020:** stopped; promote dir removed (consumer NFS stub from crashed `weyl4` frames — fixed in `fields.py`).
+
+Run dir: `runs/grtresna_qd/spacetime_splash_v14_moving/`.
+
+---
+
+## 2026-06-23 — spacetime_splash_v13 final results
+
+Campaign complete (`200/200` evals, exit 0). Run dir: `runs/grtresna_qd/spacetime_splash_v13/`. Launched at 50 evals, extended mid-run via `QD_RESUME=1 QD_TARGET_EVALS=200`.
+
+### Outcome mix (204 trajectory rows)
+
+| status | count | notes |
+|--------|-------|-------|
+| `gpu_ok` | 125 | 61% success rate |
+| `postload_rejected` | 62 | Ham L2 > 0.03 |
+| `grtresna_rejected` | 7 | Mom/Ham convergence |
+| `grtresna_failed` | 3 | solver failures |
+| `gpu_failed` | 3 | resume handoff artifacts |
+| `pipeline_interrupted` | 4 | resume handoff artifacts |
+
+No segfaults. MAP-Elites: **23 elites**, 36% bin coverage (`8×8`), best score 1684.
+
+### Top gpu_ok (v13 scoring)
+
+| eval | score | χ-well | GW | \|K\| | ρ | survival | physics note |
+|------|-------|--------|-----|-------|---|----------|--------------|
+| 020 / 054 | 1684 | 1.00 | 0.32 | 0.99 | 0.70 | 0.26 | **#1** — identical genome; deep domain χ-drop + full lapse collapse |
+| 102 | 1607 | 1.00 | 0.39 | 0.88 | 0.54 | 0.32 | same archetype; shallower domain min χ, better GW |
+| 042 | 1388 | 0.73 | **0.75** | 1.00 | 0.25 | 0.31 | **best GW focus** — pure geometric splash, low matter |
+| 011 | 1292 | 0.72 | 0.68 | 0.97 | 0.15 | 0.41 | balanced geometry; minimal matter pile-up |
+| 029 | 1200 | 0.70 | 0.65 | 1.00 | 0.21 | 0.10 | violent crunch, survival forgiven |
+| 093 | 1176 | 0.73 | 0.57 | 0.86 | 0.13 | 0.28 | geometry-heavy, low ρ |
+| 008 | 417 | 0.00 | 0.44 | 0.60 | — | 1.00 | **demoted dud** — full survival, no χ-well |
+
+26/125 gpu_ok have χ-well > 0.4 (survival-forgiveness eligible). GW spread among scored runs: 0.01–0.78 (median 0.21) — recalibration restored dynamic range.
+
+### Analysis of top elites
+
+**Two distinct archetypes emerged:**
+
+1. **Deep-well + matter corroboration (eval 020 family).** Eval 020 and 054 are bit-identical genomes (QD reproduced the elite). Large outer shell (`radius≈5.7`, high radial jitter 0.86, `amp≈0.076`). Domain min χ drops to 0.29 with max |K|≈6.1; central ball-averaged χ actually *rises* early (0.87→1.11) before late collapse — the well metric captures the domain-wide drop, not the center monotonicity. Lapse at origin hits 0.018 (full `collapse_lapse_progress=1.0`). Matter ρ peaks late (t≈11.2) and contributes ~280 score points (ρ=0.70 × survival 0.26 × 400 weight); geometric terms get survival forgiveness. θ⁺≤0 detected (horizon proxy r≈0.65) but **horizon bonus suppressed** — no lapse-collapse corroboration at the same timestep.
+
+2. **GW-focused geometric splash (eval 042).** Best late GW signal in the campaign (0.75 of target 0.20). Full |K| saturation with moderate χ-well (0.73) and deliberately low matter (ρ=0.25). Thicker shell, smaller radius (4.8), higher shell mode (0.87). Score ~300 pts below #1 because it lacks full χ-well saturation and matter corroboration — but **closest to the target physics** (converging wave → center crunch without matter pile-up).
+
+**Score composition (eval 020):** geometric terms ≈1290 pts (forgiven survival) + lapse progress 200 + matter ≈73 (raw survival) − constraint/exotic/instability ≈−80 → 1684. High-ρ matter is a tiebreaker among deep collapses, not the primary signal.
+
+**Contrast with v12:** v12 #1 was eval 044 (score 1020, high survival, modest geometry). Under v13 rescoring, eval 016-class splashes rank at the top; v13 campaign confirms this ordering in live search. Eval 008-style duds (survival 1.0, χ-well 0) now score ≤417.
+
+### What v13 scoring validated
+
+- Geometric-only survival forgiveness lifts collapse elites without inflating matter pile-ups
+- Late GW gate (t≥2) prevents early A_ij noise from dominating; eval 042's peak is genuinely late
+- Horizon bonus gate: zero horizon bonuses across all 125 gpu_ok despite θ⁺ detections
+- Static-shell search sufficient to find deep collapses; moving shells not yet explored
+
+### Still missing
+
+- Frame/visual confirmation of ingoing wave convergence for eval 042 (eval dirs pruned to top 3: 020, 054, 102)
+- True apparent-horizon credit with lapse corroboration
+- `ham_abs` NaN at origin → universal −50 constraint penalty
+- Moving-shell campaign with tightened velocity bounds (±0.2)
+
+Retained eval dirs: `eval_000020`, `eval_000054`, `eval_000102`.
 
 ---
 
@@ -69,9 +267,13 @@ Launch **`spacetime_splash_v13`** (50 evals, 8 GPUs) with tuned scoring.
 
 Launch: `QD_NAME=spacetime_splash_v13 QD_TARGET_EVALS=50`, 8 GPUs, v13 scoring (geometric-only survival forgiveness, `GW_WAVE_PEAK_TARGET=0.20`, late GW gate t≥2, velocity bounds ±0.2, `GRTECLYN_FRAMES=0`).
 
+**Extended (2026-06-23):** resumed from trajectory with `QD_RESUME=1 QD_TARGET_EVALS=200` after initial 50-eval batch. Completed 200/200 evals — see final results entry above.
+
 Run dir: `runs/grtresna_qd/spacetime_splash_v13/`.
 
 ---
+
+## 2026-06-18 — spacetime_splash_v12 final results
 
 Campaign complete (`50/50` evals, exit 0). Run dir: `runs/grtresna_qd/spacetime_splash_v12/`.
 

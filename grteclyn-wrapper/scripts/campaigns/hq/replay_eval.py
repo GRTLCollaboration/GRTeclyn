@@ -215,7 +215,13 @@ def main() -> int:
     parser.add_argument(
         "--objective-mode",
         default="general_ftl",
-        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl"],
+        choices=[
+            "weighted",
+            "ftl_first",
+            "robust_ftl",
+            "general_ftl",
+            "critical_collapse",
+        ],
         help="Scoring objective (default: general_ftl for HQ v20 replays).",
     )
     parser.add_argument("--dry-run", action="store_true")

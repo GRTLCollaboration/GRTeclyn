@@ -38,8 +38,14 @@ export PROJECTION_FIELDS="${PROJECTION_FIELDS:-}"
 export PLOT_INTERVAL="${PLOT_INTERVAL:-160}"
 # Stop once matter disperses after peak (typically t≈10–12 s); set 0 for full 16 s.
 export GRTECLYN_SPLASH_EARLY_TERM="${GRTECLYN_SPLASH_EARLY_TERM:-1}"
-# Belt-and-suspenders: search space pins sign, but reject any phantom coupling at launch.
-export PIN_DIMS="${PIN_DIMS:-grtresna_scalar_sign=1 grtresna_shell_static=1}"
+# Belt-and-suspenders: search space pins sign; reject phantom coupling at launch.
+# Static v13 default pins shell_static=1 (no velocity dims).  Moving test:
+#   SPLASH_MOVING=1 PIN_DIMS="grtresna_scalar_sign=1 grtresna_shell_static=0" bash ...
+if [[ "${SPLASH_MOVING:-0}" == "1" ]]; then
+  export PIN_DIMS="${PIN_DIMS:-grtresna_scalar_sign=1 grtresna_shell_static=0}"
+else
+  export PIN_DIMS="${PIN_DIMS:-grtresna_scalar_sign=1 grtresna_shell_static=1}"
+fi
 
 # v22-style pipelined QD (MapElites.md): continuous GRTresna solves, pre-GPU learning auto with --grtresna
 export USE_PIPELINE="${USE_PIPELINE:-1}"
