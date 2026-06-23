@@ -1,7 +1,0 @@
-1. adapt the pipline so that we dont have stucked gpus in idle mode waiting till the barnch 
-finishes for all other evals. 
-it should work in fly mode. after grtresna it should check available gpus and use them
-basically in queue mode. 
-not in the current way way batch is loaded (many of the gpus are acutally empty bacause of the 
-fact that they were rejected with grtresna or other gates and this gpus cant be reached so its stuck)
-the thrououtput is very tiny in the current pipeline implementation.

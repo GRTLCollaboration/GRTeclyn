@@ -2,7 +2,7 @@
 
 > Engineering specification v3.2 (2026-06-23). Research motivation and MDP framing: [research.md](research.md). MAP-Elites / QD context: [../neuralspacetime/MapElites.md](../neuralspacetime/MapElites.md).
 
-**Status:** Specification v3.3 — **per-lump tracking + multi-site pump on the bosonic chassis.** The RL agent observes every lump's live 3-D state (position, size, mass, local lapse/chi) and drives each lump independently via a spotlight that follows it; matter is the single complex boson field (`grtresna_complex_scalar`, non-dispersing), with N spatially-localized U(1) drives. **Verified:** Tax Man reuses [`score_episode`](../../grteclyn-wrapper/src/grteclyn_wrapper/metrics/score/scorer.py); `wec_violation_fraction` exists; gauge EMA mutates live `ccz4_params` via [`RadialRecipeMatterDispatch.hpp`](../../Examples/RadialRecipe/RadialRecipeMatterDispatch.hpp). **Build-gated:** the GPU lump-tracker reductions ([`RLLumpTracker.hpp`](../../Examples/RadialRecipe/RLLumpTracker.hpp)) compile-verify only under `make USE_RL=TRUE` (CUDA).
+**Status:** Specification v3.3 — **per-lump tracking + multi-site pump on the bosonic chassis.** Gate **0A** verified (boson elite `spacetime_splash_v14_moving/eval_000010`, t=16, rtol 1e-10, zero rel err on L2_Ham/min_lapse). Gate **0B** script: [`gate0b_run.sh`](../../grteclyn-wrapper/scripts/campaigns/rl/gate0b_run.sh). Launchers: [`gate0a_run.sh`](../../grteclyn-wrapper/scripts/campaigns/rl/gate0a_run.sh), [`gate0a_compare.py`](../../grteclyn-wrapper/scripts/campaigns/rl/gate0a_compare.py).
 
 ## Work items
 
@@ -286,7 +286,7 @@ reward_terminal = audit_penalty
 - Primary path: `grtresna_complex_scalar` — pump on `c_Pi` / `c_Pi2` (90° U(1), m=0 default); tanh governor; `num_fields >= 1` guard
 - Legacy path: `grtresna_independent_scalars` — Lump[0] only (same governor/envelope helpers)
 - Shared `RLL2HamiltonianNorm.hpp`
-- Gate 0A: amp=0 tolerance match; amp=0.01 stable 100+ steps
+- Gate 0A: amp=0 tolerance match; amp=0.01 stable 100+ steps — **PASS** (2026-06-23, `runs/rl_gate0a/spacetime_splash_v14_eval010`, t=16)
 
 **RL chassis (operational):** regenerate elite from `general_ftl` + `GRTRESNA_MATTER_SECTOR=boson_star` QD/CMA-ES campaign; do not seed RL from real-scalar eval **046**.
 
@@ -294,7 +294,7 @@ reward_terminal = audit_penalty
 
 - Two-cadence Main hook; terminate opcode; MPI Bcast
 - Mutable `SimulationParameters&` in Main
-- Gate 0B: dummy agent, no hang
+- Gate 0B: dummy agent, no hang — run [`gate0b_run.sh`](../../grteclyn-wrapper/scripts/campaigns/rl/gate0b_run.sh)
 
 ---
 

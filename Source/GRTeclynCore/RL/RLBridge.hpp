@@ -62,6 +62,18 @@ class RLBridge
         ensure_bound();
         if (amrex::ParallelDescriptor::IOProcessor() && m_socket)
         {
+            if (!m_handshake_done)
+            {
+                zmq::message_t hello;
+                const auto hello_result =
+                    m_socket->recv(hello, zmq::recv_flags::none);
+                if (!hello_result.has_value())
+                {
+                    return actions;
+                }
+                m_handshake_done = true;
+            }
+
             zmq::message_t obs_msg(obs.size() * sizeof(double));
             std::memcpy(obs_msg.data(), obs.data(), obs.size() * sizeof(double));
             m_socket->send(obs_msg, zmq::send_flags::none);
@@ -107,6 +119,7 @@ class RLBridge
     int m_recv_timeout_ms{30000};
     int m_send_timeout_ms{30000};
     bool m_bound{false};
+    bool m_handshake_done{false};
     bool m_terminate_requested{false};
 
 #ifdef USE_RL

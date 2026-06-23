@@ -20,8 +20,12 @@ class ZmqObservationSource:
         self._socket.setsockopt(zmq.RCVTIMEO, timeout_ms)
         self._socket.setsockopt(zmq.SNDTIMEO, timeout_ms)
         self._socket.connect(f"tcp://127.0.0.1:{port}")
+        self._pending_hello = True
 
     def recv_obs(self) -> np.ndarray:
+        if self._pending_hello:
+            self._socket.send(b"\x00")
+            self._pending_hello = False
         msg = self._socket.recv()
         return np.frombuffer(msg, dtype=np.float64).copy()
 

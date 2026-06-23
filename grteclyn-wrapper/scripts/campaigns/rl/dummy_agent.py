@@ -46,12 +46,13 @@ def main() -> None:
     ctx = zmq.Context.instance()
     sock = ctx.socket(zmq.REQ)
     sock.connect(f"tcp://127.0.0.1:{args.port}")
+    sock.send(b"\x00")  # REQ must send before first recv; wakes REP handshake
 
     for step in range(args.steps):
         obs = sock.recv()
         num_doubles = len(obs) // 8
         num_lumps = _num_lumps_from_obs(num_doubles)
-        print(f"step={step} obs_dim={num_doubles} num_lumps={num_lumps}")
+        print(f"step={step} obs_dim={num_doubles} num_lumps={num_lumps}", flush=True)
         sock.send(_neutral_action(num_lumps))
 
 
