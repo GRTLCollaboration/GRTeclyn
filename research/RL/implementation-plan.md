@@ -1,22 +1,22 @@
 # Hybrid QD + RL for FTL Campaign Control (v3.2 — Tax Man hardened)
 
-> Canonical implementation plan (2026-06-23). Background and early architecture notes: [research.md](research.md). MAP-Elites / QD context: [../neuralspacetime/MapElites.md](../neuralspacetime/MapElites.md).
+> Engineering specification v3.2 (2026-06-23). Research motivation and MDP framing: [research.md](research.md). MAP-Elites / QD context: [../neuralspacetime/MapElites.md](../neuralspacetime/MapElites.md).
 
-**Status:** Approved to build. **Verified:** Tax Man reuses [`score_episode`](../../grteclyn-wrapper/src/grteclyn_wrapper/metrics/score/scorer.py); `wec_violation_fraction` exists; gauge EMA mutates live `ccz4_params` via [`RadialRecipeMatterDispatch.hpp`](../../Examples/RadialRecipe/RadialRecipeMatterDispatch.hpp).
+**Status:** Specification v3.2. **Verified:** Tax Man reuses [`score_episode`](../../grteclyn-wrapper/src/grteclyn_wrapper/metrics/score/scorer.py); `wec_violation_fraction` exists; gauge EMA mutates live `ccz4_params` via [`RadialRecipeMatterDispatch.hpp`](../../Examples/RadialRecipe/RadialRecipeMatterDispatch.hpp).
 
-## Implementation todos
+## Work items
 
 | ID | Task | Status |
 |----|------|--------|
-| solid-regression-gate | Every phase: full pytest green; rl_enabled=0 tolerance match on eval 046; no rl imports in core/search/metrics | pending |
-| prereq-ftl-metrics | **BLOCKING:** fix Weyl4/ftl_geo NaN; finite ftl_geo_evolving on eval 046 replay | pending |
-| phase0-matter-actuator | Lump[0] pump + tanh governor; L2_Ham every coarse step; Gate 0A; no Python rl/ until pass | pending |
-| phase0-bridge | Main.cpp two-cadence loop; RLBridge; terminate opcode; dummy_agent smoke | pending |
-| phase1-env | rl/ after Gate 0A; frame barrier + consumer drain; CUDA pinning | pending |
-| phase1-reward-taxman | Tax Man T1–T4; audit clipped; fence None-guards | pending |
-| phase2-baselines | Steer-not-break + Kamikaze test; measure frames/ep for γ | pending |
-| phase3-ppo | PPO after T1–T4; γ≈0.999+; VecNormalize dense-only | pending |
-| phase4-campaign | campaigns/rl/ + HQ promote | pending |
+| solid-regression-gate | Every phase: full pytest green; rl_enabled=0 tolerance match on eval 046; no rl imports in core/search/metrics | not started |
+| prereq-ftl-metrics | **BLOCKING:** fix Weyl4/ftl_geo NaN; finite ftl_geo_evolving on eval 046 replay | not started |
+| phase0-matter-actuator | Lump[0] pump + tanh governor; L2_Ham every coarse step; Gate 0A; no Python rl/ until pass | not started |
+| phase0-bridge | Main.cpp two-cadence loop; RLBridge; terminate opcode; dummy_agent smoke | not started |
+| phase1-env | rl/ after Gate 0A; frame barrier + consumer drain; CUDA pinning | not started |
+| phase1-reward-taxman | Tax Man T1–T4; audit clipped; fence None-guards | not started |
+| phase2-baselines | Steer-not-break + Kamikaze test; measure frames/ep for γ | not started |
+| phase3-ppo | PPO after T1–T4; γ≈0.999+; VecNormalize dense-only | not started |
+| phase4-campaign | campaigns/rl/ + HQ promote | not started |
 
 **Two cadences for L2_Ham (resolved):**
 
@@ -35,7 +35,7 @@ Same reducer (`RLL2HamiltonianNorm.hpp`); different sample rates.
 
 **Matter pump is Phase 0** — gauge-only RL on a static shell has no drivetrain.
 
-**User choices (confirmed):** `general_ftl` objective, hybrid IC (QD genome + RL mid-run control).
+**Design decisions:** `general_ftl` objective; hybrid IC strategy (QD genome + RL mid-run control).
 
 ---
 
@@ -158,8 +158,8 @@ grteclyn-wrapper/tests/rl/
 
 ## Five engineering rules (Phase 0 blockers)
 
-| # | Trap | Fix |
-|---|------|-----|
+| # | Issue | Mitigation |
+|---|-------|------------|
 | **1** | Async sidecar in obs | **6-D sync C++ obs only**; FTL reward-only at frame boundary |
 | **2** | Bang-bang watchdog | **In-kernel `tanh` governor** in RHS |
 | **3** | Delta-action saturation | **EMA direct targeting** |
@@ -313,4 +313,4 @@ QD → CMA-ES → RL → HQ.
 | 6 | Phase 3 PPO | audit reach |
 | 7 | Phase 4 HQ | |
 
-**Do not start PPO until:** pre-req + Gate 0A + Gate 0B + Gate 2 + T1–T4.
+**PPO entry criteria:** pre-req complete; Gate 0A; Gate 0B; Gate 2; Tax Man T1–T4 validated.
