@@ -4,11 +4,137 @@ The Initial Value Problem (IVP) is how astrophysicists study nature: "If two bla
 
 If you transition from MAP-Elites (QD) to Reinforcement Learning (RL), you change the paradigm entirely. Instead of searching for the perfect initial state, you train an **Agent** to continuously steer the simulation by injecting energy, tweaking fields, or adjusting the gauge to prevent coordinate crashes.
 
-Here is exactly how you can build the architecture to connect RL to GRTeclyn, turning your pipeline into a **Spacetime OpenAI Gym**.
+> **Signed-off build spec:** [implementation-plan.md](implementation-plan.md) (v3.2 — Tax Man reward, SOLID isolation, Main.cpp hook). The sections below are original research notes; some details (e.g. hook in `specificPostTimeStep`, sidecar obs) are **superseded** by the implementation plan.
 
 ---
 
-### The Architecture: "Gym-GRTeclyn"
+## Pipeline overview — MAP-Elites, CMA-ES, RL, HQ
+
+Hybrid **QD + RL** keeps MAP-Elites and CMA-ES as the **IC genome generator**; RL adds **evolution-only** closed-loop control on a fixed elite chassis (e.g. CMA-ES eval **046**). HQ promotion verifies at full resolution.
+
+### Campaign stages (offline → online → verify)
+
+```mermaid
+flowchart LR
+  subgraph stage0 [Stage 0 QD]
+    QD["MAP-Elites\n8x8 archive\ngeneral_ftl"]
+  end
+  subgraph stage1 [Stage 1 CMA-ES]
+    CMA["Local refine\nsigma ~ 0.05\nwarm-start elite"]
+  end
+  subgraph stage15 [Stage 1.5 RL]
+    GRTresna["GRTresna\nelliptic ID"]
+    GRTeclyn["GRTeclyn GPU\nRLBridge ZMQ"]
+    PPO["PPO policy\n8 GPU envs"]
+    GRTresna --> GRTeclyn
+    GRTeclyn <-->|"obs 6D / action 5D\nper plot frame"| PPO
+  end
+  subgraph stage2 [Stage 2 HQ]
+    HQ["HQ replay\nN=256 t=30\nscore_episode"]
+  end
+  QD -->|"trajectory.jsonl\nftl champions"| CMA
+  CMA -->|"elite genome\ngridinit"| GRTresna
+  PPO -->|"best checkpoint"| HQ
+  GRTeclyn --> HQ
+```
+
+| Stage | Tool | Input | Output | Objective |
+|-------|------|-------|--------|-----------|
+| **0** | MAP-Elites QD | Random / mutated genomes | `archive.json`, eval dirs | `general_ftl` — find FTL basins |
+| **1** | CMA-ES | QD warm-start elite | Refined genome (e.g. eval 046) | Hill-climb in basin |
+| **1.5** | **RL (new)** | CMA-ES gridinit + chassis | Control policy | Sustain throat past t≈21 |
+| **2** | HQ promotion | RL-steered or IVP replay | Movies, incremental score | Full-res verification |
+
+### Paradigm shift — IVP search vs closed-loop control
+
+```mermaid
+flowchart TB
+  subgraph ivpOnly [IVP only — current QD pipeline]
+    Search["MAP-Elites / CMA-ES\nsearch t=0 parameters"]
+    Solve["GRTresna constraint solve"]
+    Evolve["One-shot GRTeclyn\nt=0 → stop_time"]
+    Score["Offline score_episode\nplot consumer"]
+    Search --> Solve --> Evolve --> Score
+  end
+  subgraph hybrid [Hybrid QD + RL v3.2]
+    Chassis["QD/CMA-ES picks\nIC genome once"]
+    Loop["Persistent evolution\nLump0 Pi pump + gauge EMA"]
+    Agent["PPO acts every\nplot frame via ZMQ"]
+    Chassis --> Loop
+    Agent -->|"actions"| Loop
+    Loop -->|"6D obs"| Agent
+  end
+  ivpOnly -.->|"static shell;\nhorizon @ t21"| hybrid
+```
+
+**Why IVP plateaus:** MAP-Elites and CMA-ES optimize **initial data only**. The wormhole throat opens mid-run but dies by t≈21 with no actuator. RL steers **during** evolution.
+
+### Runtime loop — Gym-GRTeclyn + Tax Man reward
+
+```mermaid
+sequenceDiagram
+  participant Main as Main.cpp
+  participant RHS as Matter RHS
+  participant ZMQ as RLBridge
+  participant Env as SpacetimeFtlEnv
+  participant PPO as PPO policy
+  participant PC as Plot consumer
+  participant Audit as Tax Man audit
+
+  Note over Main,RHS: Every coarse step — refresh L2_Ham for tanh governor
+  loop Each plot frame
+    Main->>ZMQ: 6D obs min_chi lapse K L2_Ham L2_Mom time
+    ZMQ->>Env: obs
+    Env->>PPO: policy
+    PPO->>Env: action 5D
+    Env->>ZMQ: pump amp freq phase gauge
+    ZMQ->>Main: apply EMA params
+    Main->>RHS: Lump0 forcing next cycle
+    PC-->>Env: ftl_geo after frame barrier
+    Env->>Env: R_dense + electric fences
+  end
+  Env->>Audit: wait_consumer_drain
+  Audit->>Audit: score_episode general_ftl
+  Audit->>PPO: audit_penalty clipped GAE tail
+```
+
+**Reward stack (v3.2 Tax Man):**
+
+```mermaid
+flowchart LR
+  subgraph perFrame [Every frame]
+    Dense["R_dense\n0.7 level + 0.3 delta ftl_geo\n-500 L2_Ham\n-50 lapse margin"]
+    Fence["Electric fences\nWEC horizon L2 death\none-shot penalties"]
+  end
+  subgraph terminal [Episode end once]
+    Audit["R_audit\nmin full_qd minus sum dense\nclip -2000 0"]
+  end
+  Dense --> GAE["PPO GAE return"]
+  Fence --> GAE
+  Audit --> GAE
+```
+
+Episode return ≈ **min(Σ R_dense, full_qd)** — Kamikaze warp bubbles that bank dense FTL then shear get clawed back by the terminal audit via existing [`score_episode`](../../grteclyn-wrapper/src/grteclyn_wrapper/metrics/score/scorer.py).
+
+### Actuators and safety (C++ Phase 0)
+
+```mermaid
+flowchart TB
+  Action["PPO action 5D"]
+  EMA["RLActionApplier\nEMA amp + gauge"]
+  Pump["Lump0 Pi pump\nGaussian envelope"]
+  Gov["tanh L2_Ham governor\nevery RHS call"]
+  Gauge["ccz4_params\nlapse_advec shift_Gamma"]
+  Action --> EMA
+  EMA --> Pump
+  EMA --> Gauge
+  Gov --> Pump
+  L2EveryStep["L2_Ham reduce\nevery coarse step"] --> Gov
+```
+
+---
+
+### The Architecture: "Gym-GRTeclyn" (original notes)
 
 You cannot restart an AMReX simulation from a checkpoint for every RL step (the I/O overhead would be fatal). Instead, the C++ simulation must stay alive in memory, pausing periodically to ask Python for the next action.
 
