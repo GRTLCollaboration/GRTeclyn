@@ -143,23 +143,32 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void ComplexScalarField::add_matter_rhs(
 {
     add_matter_rhs(rhs, vars, d1, d2, advec);
 
-    if (m_pump.num_fields < 1 || m_pump.amplitude <= 0.0)
+    if (m_pump.num_sites < 1)
     {
         return;
     }
 
-    const amrex::Real base = RLRuntime::compute_pump_base(
-        coords.x, coords.y, coords.z, m_pump, RLRuntime::cached_L2_Ham());
-    if (base <= 0.0)
+    // One spotlight per lump.  All sites drive the same complex field
+    // components (c_Pi / c_Pi2); they reach different lumps because each
+    // envelope is localized at that lump's tracked 3-D centre.  Pi1/Pi2 are
+    // driven 90 deg out of phase => local U(1) (Noether-charge) injection.
+    const amrex::Real governor = RLRuntime::tanh_governor(
+        RLRuntime::cached_L2_Ham(), m_pump.governor_center,
+        m_pump.governor_width);
+    for (int s = 0; s < m_pump.num_sites; ++s)
     {
-        return;
+        const amrex::Real base = RLRuntime::compute_site_base(
+            coords.x, coords.y, coords.z, m_pump.sites[s], m_pump.width,
+            governor);
+        if (base <= 0.0)
+        {
+            continue;
+        }
+        const amrex::Real arg =
+            m_pump.sites[s].frequency * time + m_pump.sites[s].phase;
+        rhs[c_Pi] += base * std::cos(arg);
+        rhs[c_Pi2] += base * std::sin(arg);
     }
-
-    // m=0 U(1) injection: Pi1 and Pi2 driven 90 deg out of phase.
-    const amrex::Real phase_arg =
-        m_pump.frequency * time + m_pump.phase;
-    rhs[c_Pi] += base * std::cos(phase_arg);
-    rhs[c_Pi2] += base * std::sin(phase_arg);
 }
 
 #endif /* COMPLEXSCALARFIELD_IMPL_HPP_ */

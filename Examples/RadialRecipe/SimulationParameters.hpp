@@ -57,14 +57,23 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("rl_coarse_step_interval", rl_coarse_step_interval, 64);
         pp.load("rl_zmq_port", rl_zmq_port, 5555);
         pp.load("rl_zmq_timeout_ms", rl_zmq_timeout_ms, 30000);
-        pp.load("rl_pump_amplitude", rl_pump_amplitude, 0.0);
-        pp.load("rl_pump_frequency", rl_pump_frequency, 0.0);
-        pp.load("rl_pump_phase", rl_pump_phase, 0.0);
-        pp.load("rl_pump_radius", rl_pump_radius, 5.0);
+        pp.load("rl_num_lumps", rl_num_lumps, 1);
+        if (rl_num_lumps < 1)
+            rl_num_lumps = 1;
+        if (rl_num_lumps > GRTRESNA_MAX_INDEPENDENT_SCALARS)
+            rl_num_lumps = GRTRESNA_MAX_INDEPENDENT_SCALARS;
         pp.load("rl_pump_width", rl_pump_width, 1.5);
         pp.load("rl_pump_max_amplitude", rl_pump_max_amplitude, 0.05);
         pp.load("rl_l2_ham_governor_center", rl_l2_ham_governor_center, 0.035);
         pp.load("rl_l2_ham_governor_width", rl_l2_ham_governor_width, 0.003);
+        // Per-lump action state starts at zero; the RL agent populates it.
+        rl_pump_amplitude.fill(0.0);
+        rl_pump_frequency.fill(0.0);
+        rl_pump_phase.fill(0.0);
+        // Seed lump centres from flat "x0 y0 z0 x1 y1 z1 ..." lists (elite geom).
+        load_rl_lump_seed_axis(pp, "rl_lump_seed_x", rl_lump_seed_x);
+        load_rl_lump_seed_axis(pp, "rl_lump_seed_y", rl_lump_seed_y);
+        load_rl_lump_seed_axis(pp, "rl_lump_seed_z", rl_lump_seed_z);
     }
 
     void read_recipe_params(GRParmParse &pp)
@@ -185,16 +194,40 @@ class SimulationParameters : public SimulationParametersBase
     int rl_coarse_step_interval{64};
     int rl_zmq_port{5555};
     int rl_zmq_timeout_ms{30000};
-    double rl_pump_amplitude{};
-    double rl_pump_frequency{};
-    double rl_pump_phase{};
-    double rl_pump_radius{5.0};
+    int rl_num_lumps{1};
+    // Per-lump action state (set by the RL agent at runtime, persisted across
+    // intervals).  Index k corresponds to lump k.
+    std::array<double, GRTRESNA_MAX_INDEPENDENT_SCALARS> rl_pump_amplitude{};
+    std::array<double, GRTRESNA_MAX_INDEPENDENT_SCALARS> rl_pump_frequency{};
+    std::array<double, GRTRESNA_MAX_INDEPENDENT_SCALARS> rl_pump_phase{};
+    // Initial lump centres (tracker search-ball seeds) from elite geometry.
+    std::array<double, GRTRESNA_MAX_INDEPENDENT_SCALARS> rl_lump_seed_x{};
+    std::array<double, GRTRESNA_MAX_INDEPENDENT_SCALARS> rl_lump_seed_y{};
+    std::array<double, GRTRESNA_MAX_INDEPENDENT_SCALARS> rl_lump_seed_z{};
     double rl_pump_width{1.5};
     double rl_pump_max_amplitude{0.05};
     double rl_l2_ham_governor_center{0.035};
     double rl_l2_ham_governor_width{0.003};
 
   private:
+    void load_rl_lump_seed_axis(
+        GRParmParse &pp, const char *key,
+        std::array<double, GRTRESNA_MAX_INDEPENDENT_SCALARS> &out)
+    {
+        out.fill(0.0);
+        std::string line;
+        pp.load(key, line, std::string(""));
+        if (line.empty())
+            return;
+        std::istringstream iss(line);
+        double value = 0.0;
+        int idx      = 0;
+        while (iss >> value && idx < GRTRESNA_MAX_INDEPENDENT_SCALARS)
+        {
+            out[idx++] = value;
+        }
+    }
+
     void load_scalar_field_signs(GRParmParse &pp)
     {
         std::string signs_line;

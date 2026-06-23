@@ -54,6 +54,36 @@ inline void setup_derived_quantities(int state_index,
     Weyl4WithMatter<ScalarField<DefaultPotential>>::set_up(state_index);
 }
 
+//! Build the multi-site pump: spotlight centres follow the live tracked lump
+//! centroids (RLRuntime::g_lump_state), per-lump amp/freq/phase come from the
+//! (RL-updated) simulation parameters.  When RL is off every amplitude is 0, so
+//! the pump is numerically inactive regardless of the (unseeded) centres.
+inline RLMatterPumpParams build_rl_pump(const SimulationParameters &params,
+                                        int num_fields)
+{
+    RLMatterPumpParams pump;
+    int n = params.rl_num_lumps;
+    if (n > GRTRESNA_MAX_INDEPENDENT_SCALARS)
+        n = GRTRESNA_MAX_INDEPENDENT_SCALARS;
+    if (n < 0)
+        n = 0;
+    pump.num_sites       = n;
+    pump.width           = params.rl_pump_width;
+    pump.governor_center = params.rl_l2_ham_governor_center;
+    pump.governor_width  = params.rl_l2_ham_governor_width;
+    pump.num_fields      = num_fields;
+    for (int s = 0; s < n; ++s)
+    {
+        pump.sites[s].center_x  = RLRuntime::g_lump_state[s].x;
+        pump.sites[s].center_y  = RLRuntime::g_lump_state[s].y;
+        pump.sites[s].center_z  = RLRuntime::g_lump_state[s].z;
+        pump.sites[s].amplitude = params.rl_pump_amplitude[s];
+        pump.sites[s].frequency = params.rl_pump_frequency[s];
+        pump.sites[s].phase     = params.rl_pump_phase[s];
+    }
+    return pump;
+}
+
 inline void eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
                      const SimulationParameters &params, double dx,
                      const std::array<double, AMREX_SPACEDIM> &center,
@@ -64,15 +94,8 @@ inline void eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
 
     if (uses_independent_scalars(params))
     {
-        RLMatterPumpParams pump;
-        pump.amplitude       = params.rl_pump_amplitude;
-        pump.frequency       = params.rl_pump_frequency;
-        pump.phase           = params.rl_pump_phase;
-        pump.radius          = params.rl_pump_radius;
-        pump.width           = params.rl_pump_width;
-        pump.governor_center = params.rl_l2_ham_governor_center;
-        pump.governor_width  = params.rl_l2_ham_governor_width;
-        pump.num_fields      = params.recipe_num_scalar_fields;
+        const RLMatterPumpParams pump =
+            build_rl_pump(params, params.recipe_num_scalar_fields);
 
         GRTresnaIndependentScalars matter(
             params.recipe_num_scalar_fields, params.recipe_scalar_field_signs,
@@ -89,15 +112,7 @@ inline void eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
 
     if (uses_complex_scalar(params))
     {
-        RLMatterPumpParams pump;
-        pump.amplitude       = params.rl_pump_amplitude;
-        pump.frequency       = params.rl_pump_frequency;
-        pump.phase           = params.rl_pump_phase;
-        pump.radius          = params.rl_pump_radius;
-        pump.width           = params.rl_pump_width;
-        pump.governor_center = params.rl_l2_ham_governor_center;
-        pump.governor_width  = params.rl_l2_ham_governor_width;
-        pump.num_fields      = 1;
+        const RLMatterPumpParams pump = build_rl_pump(params, 1);
 
         ComplexScalarField matter(params.recipe_scalar_mass,
                                   params.recipe_scalar_lambda,

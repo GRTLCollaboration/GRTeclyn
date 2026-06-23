@@ -39,6 +39,10 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
                                   sim_params.rl_zmq_timeout_ms);
         get_rl_bridge().ensure_bound();
         get_rl_bridge().reset_terminate();
+        RLRuntime::seed_lumps(sim_params.rl_num_lumps,
+                              sim_params.rl_lump_seed_x.data(),
+                              sim_params.rl_lump_seed_y.data(),
+                              sim_params.rl_lump_seed_z.data());
     }
 #endif
 
@@ -62,22 +66,23 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
                 recipe_amr.levelSteps(0) % sim_params.rl_coarse_step_interval ==
                     0)
             {
-                const auto obs =
-                    collect_rl_observations(recipe_amr, norms.L2_Ham,
-                                            norms.L2_Mom);
-                std::vector<double> obs_vec(obs.begin(), obs.end());
-                auto actions = get_rl_bridge().exchange(
-                    obs_vec, 5, sim_params.rl_zmq_timeout_ms);
-                std::array<double, 5> action_arr{};
-                for (int i = 0; i < 5; ++i)
-                {
-                    action_arr[static_cast<std::size_t>(i)] = actions[i];
-                }
-                apply_rl_actions(sim_params.rl_pump_amplitude,
+                const bool complex_field =
+                    (sim_params.recipe_matter_model ==
+                     "grtresna_complex_scalar");
+                const double ball_radius = 3.0 * sim_params.rl_pump_width;
+                const int num_lumps      = sim_params.rl_num_lumps;
+                const auto obs           = collect_rl_observations(
+                    recipe_amr, norms.L2_Ham, norms.L2_Mom, num_lumps,
+                    complex_field, ball_radius,
+                    sim_params.recipe_params.grid_center);
+                const int action_dim = 3 * num_lumps + 2;
+                auto actions         = get_rl_bridge().exchange(
+                    obs, action_dim, sim_params.rl_zmq_timeout_ms);
+                apply_rl_actions(num_lumps, sim_params.rl_pump_amplitude,
                                  sim_params.rl_pump_frequency,
                                  sim_params.rl_pump_phase,
                                  sim_params.rl_pump_max_amplitude,
-                                 sim_params.ccz4_params, action_arr);
+                                 sim_params.ccz4_params, actions);
             }
 
             if (get_rl_bridge().terminate_requested())

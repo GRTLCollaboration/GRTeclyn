@@ -91,6 +91,9 @@ class GRTresnaMatterMetadata:
     bs_profile_width: float = 0.0
     bs_omega: float = 0.0
     scalar_sign: int = 1
+    # Lump centres as offsets from the throat (== RadialRecipe centred-frame
+    # positions), used to seed the RL lump tracker / pump spotlights.
+    lump_centers: tuple[tuple[float, float, float], ...] = ()
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -109,6 +112,7 @@ class GRTresnaMatterMetadata:
                 bs_profile_width=float(cfg.bs_profile_width),
                 bs_omega=float(cfg.bs_omega),
                 scalar_sign=int(getattr(cfg, "scalar_sign", 1)),
+                lump_centers=_lump_centers(getattr(cfg, "lumps", ())),
             )
 
         lumps = list(cfg.lumps)
@@ -120,6 +124,7 @@ class GRTresnaMatterMetadata:
             scalar_mass=float(cfg.scalar_mass),
             scalar_lambda=float(cfg.scalar_lambda),
             lump_count=len(lumps),
+            lump_centers=_lump_centers(lumps),
         )
 
 
@@ -168,7 +173,24 @@ def read_matter_metadata(path: str | Path) -> GRTresnaMatterMetadata:
         bs_profile_width=float(payload.get("bs_profile_width", 0.0)),
         bs_omega=float(payload.get("bs_omega", 0.0)),
         scalar_sign=int(payload.get("scalar_sign", 1)),
+        lump_centers=tuple(
+            (float(c[0]), float(c[1]), float(c[2]))
+            for c in payload.get("lump_centers", ())
+            if c is not None and len(c) >= 3
+        ),
     )
+
+
+def _lump_centers(lumps: Any) -> tuple[tuple[float, float, float], ...]:
+    """Extract lump centres (throat-relative offsets) from lump specs."""
+    out: list[tuple[float, float, float]] = []
+    for lump in lumps or ():
+        try:
+            c = lump.get("center", (0.0, 0.0, 0.0))
+            out.append((float(c[0]), float(c[1]), float(c[2])))
+        except (AttributeError, TypeError, IndexError, ValueError):
+            continue
+    return tuple(out)
 
 
 def merge_evolution_overrides(

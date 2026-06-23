@@ -2,7 +2,7 @@
 
 > Engineering specification v3.2 (2026-06-23). Research motivation and MDP framing: [research.md](research.md). MAP-Elites / QD context: [../neuralspacetime/MapElites.md](../neuralspacetime/MapElites.md).
 
-**Status:** Specification v3.2. **Verified:** Tax Man reuses [`score_episode`](../../grteclyn-wrapper/src/grteclyn_wrapper/metrics/score/scorer.py); `wec_violation_fraction` exists; gauge EMA mutates live `ccz4_params` via [`RadialRecipeMatterDispatch.hpp`](../../Examples/RadialRecipe/RadialRecipeMatterDispatch.hpp).
+**Status:** Specification v3.3 — **per-lump tracking + multi-site pump on the bosonic chassis.** The RL agent observes every lump's live 3-D state (position, size, mass, local lapse/chi) and drives each lump independently via a spotlight that follows it; matter is the single complex boson field (`grtresna_complex_scalar`, non-dispersing), with N spatially-localized U(1) drives. **Verified:** Tax Man reuses [`score_episode`](../../grteclyn-wrapper/src/grteclyn_wrapper/metrics/score/scorer.py); `wec_violation_fraction` exists; gauge EMA mutates live `ccz4_params` via [`RadialRecipeMatterDispatch.hpp`](../../Examples/RadialRecipe/RadialRecipeMatterDispatch.hpp). **Build-gated:** the GPU lump-tracker reductions ([`RLLumpTracker.hpp`](../../Examples/RadialRecipe/RLLumpTracker.hpp)) compile-verify only under `make USE_RL=TRUE` (CUDA).
 
 ## Work items
 
@@ -160,7 +160,7 @@ grteclyn-wrapper/tests/rl/
 
 | # | Issue | Mitigation |
 |---|-------|------------|
-| **1** | Async sidecar in obs | **6-D sync C++ obs only**; FTL reward-only at frame boundary |
+| **1** | Async sidecar in obs | **(6 + 8·N) sync C++ obs only** (global + per-lump tracker); FTL reward-only at frame boundary |
 | **2** | Bang-bang watchdog | **In-kernel `tanh` governor** in RHS |
 | **3** | Delta-action saturation | **EMA direct targeting** |
 | **4** | Lump superposition | **Lump[0] only** |
@@ -207,14 +207,33 @@ Block until plot consumer signals frame done before reward read.
 
 ## MDP specification
 
-### Observations — 6-D sync C++
+### Observations — (6 + 8·N) sync C++, per-lump aware
+
+The agent sees the global survival/constraint state **plus the live 3-D state of
+every lump** (so it can steer each one knowingly).  A C++ lump tracker
+([`RLLumpTracker.hpp`](../../Examples/RadialRecipe/RLLumpTracker.hpp)) runs
+localized reductions (in the grid-centred frame, matching the pump) over a
+search ball around each lump's previous centroid and refreshes its state every
+action interval.  The tracked centroid also becomes the pump spotlight centre,
+so each spotlight **follows its lump**.
 
 | Index | Signal |
 |-------|--------|
-| 0–4 | `min_chi`, `min_lapse`, `max_abs_K`, `L2_Ham`, `L2_Mom` |
-| 5 | `sim_time` |
+| 0–5 | global: `min_chi`, `min_lapse`, `max_abs_K`, `L2_Ham`, `L2_Mom`, `sim_time` |
+| 6 + 8k … | per lump k: `x`, `y`, `z`, `size` (RMS radius), `mass`, `peak`, `min_lapse_local`, `min_chi_local` |
 
-### Actions — 5-D + EMA (amp and gauge)
+Seed positions (throat-relative offsets) come from the elite matter metadata
+(`lump_centers`); `seed.py::rl_pump_params` writes `rl_num_lumps` +
+`rl_lump_seed_{x,y,z}`.
+
+### Actions — (3·N + 2) raw-normalized, EMA in C++
+
+Per lump k: `[amplitude, frequency, phase]`; then 2 gauge actions
+`[lapse_advec, shift_Gamma]`.  Actions arrive raw in `[-1, 1]`;
+[`RLActionApplier.hpp`](../../Source/GRTeclynCore/RL/RLActionApplier.hpp) is the
+single mapping site (raw→physical, EMA inertia on amplitude + gauge, hard
+amplitude cap).  Complex chassis: each spotlight drives `c_Pi`/`c_Pi2` 90° out
+of phase (local U(1) injection); real chassis: site k drives lump k's `c_Pi`.
 
 ### Reward — Tax Man hierarchical return (v3.2)
 

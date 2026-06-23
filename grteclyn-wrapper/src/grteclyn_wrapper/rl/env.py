@@ -25,6 +25,18 @@ class SpacetimeFtlEnvConfig:
     objective_mode: str = "general_ftl"
     use_taxman_audit: bool = True
     gpu_id: int | None = None
+    num_lumps: int = 1
+
+
+# Per-lump observation stride (must match RL_LUMP_OBS_STRIDE in
+# Source/GRTeclynCore/RL/RLLumpState.hpp): x, y, z, size, mass, peak,
+# min_lapse, min_chi.
+LUMP_OBS_STRIDE = 8
+# Global observation scalars: min_chi, min_lapse, max_abs_K, L2_Ham, L2_Mom, t.
+GLOBAL_OBS_DIM = 6
+# Per-lump actions: amplitude, frequency, phase.  Plus 2 gauge actions.
+LUMP_ACTION_STRIDE = 3
+GAUGE_ACTION_DIM = 2
 
 
 class SpacetimeFtlEnv(gym.Env):
@@ -43,9 +55,15 @@ class SpacetimeFtlEnv(gym.Env):
         self._episode_return = 0.0
         self._terminated = False
 
-        self.action_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(5,), dtype=np.float64)
+        n = max(1, int(config.num_lumps))
+        self._num_lumps = n
+        action_dim = LUMP_ACTION_STRIDE * n + GAUGE_ACTION_DIM
+        obs_dim = GLOBAL_OBS_DIM + LUMP_OBS_STRIDE * n
+        self.action_space = gym.spaces.Box(
+            low=-1.0, high=1.0, shape=(action_dim,), dtype=np.float64
+        )
         self.observation_space = gym.spaces.Box(
-            low=-np.inf, high=np.inf, shape=(6,), dtype=np.float64
+            low=-np.inf, high=np.inf, shape=(obs_dim,), dtype=np.float64
         )
 
         self._zmq = observation_source or ZmqObservationSource(port=config.zmq_port)
@@ -58,16 +76,10 @@ class SpacetimeFtlEnv(gym.Env):
         )
 
     def _map_action(self, action: np.ndarray) -> np.ndarray:
-        return np.array(
-            [
-                ((action[0] + 1.0) / 2.0) * 0.05,
-                ((action[1] + 1.0) / 2.0) * 2.0,
-                ((action[2] + 1.0) / 2.0) * 2.0 * math.pi,
-                1.0 + action[3] * 0.5,
-                0.75 + action[4] * 0.25,
-            ],
-            dtype=np.float64,
-        )
+        # C++ (RLActionApplier) is the single mapping site: it converts these
+        # raw-normalized actions to physical bounds and owns the safety caps.
+        # Here we only clip to the policy's declared [-1, 1] range.
+        return np.clip(np.asarray(action, dtype=np.float64), -1.0, 1.0)
 
     def reset(self, *, seed: int | None = None, options: dict[str, Any] | None = None):
         super().reset(seed=seed)

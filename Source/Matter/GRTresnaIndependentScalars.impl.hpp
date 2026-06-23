@@ -108,17 +108,30 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void GRTresnaIndependentScalars::add_matter_
 {
     add_matter_rhs(rhs, vars, d1, d2, advec);
 
-    if (m_pump.num_fields < 1 || m_pump.amplitude <= 0.0)
+    if (m_pump.num_sites < 1)
     {
         return;
     }
 
-    const amrex::Real x = coords.x;
-    const amrex::Real y = coords.y;
-    const amrex::Real z = coords.z;
-    const amrex::Real drive = RLRuntime::compute_pump_drive(
-        x, y, z, time, m_pump, RLRuntime::cached_L2_Ham());
-    rhs[c_Pi_lump_index(0)] += drive;
+    // One spotlight per lump: site s drives lump s's conjugate momentum.
+    const amrex::Real governor = RLRuntime::tanh_governor(
+        RLRuntime::cached_L2_Ham(), m_pump.governor_center,
+        m_pump.governor_width);
+    const int n_sites =
+        (m_pump.num_sites < m_num_fields) ? m_pump.num_sites : m_num_fields;
+    for (int s = 0; s < n_sites; ++s)
+    {
+        const amrex::Real base = RLRuntime::compute_site_base(
+            coords.x, coords.y, coords.z, m_pump.sites[s], m_pump.width,
+            governor);
+        if (base <= 0.0)
+        {
+            continue;
+        }
+        const amrex::Real arg =
+            m_pump.sites[s].frequency * time + m_pump.sites[s].phase;
+        rhs[c_Pi_lump_index(s)] += base * std::cos(arg);
+    }
 }
 
 #endif /* GRTRESNA_INDEPENDENT_SCALARS_IMPL_HPP_ */
