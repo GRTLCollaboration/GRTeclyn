@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Gate 1 — Tax Man T1–T4 + short live SpacetimeFtlEnv episode (plot consumer on).
+# Gate 2 — Kamikaze / actuation proof: pump at max vs neutral, compare evolution.
 set -euo pipefail
 
 RL_SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -9,10 +9,10 @@ GRTECLYN="${GRTECLYN_ROOT}"
 EXE="${GRTeclyn_EXE:-${GRTECLYN}/Examples/RadialRecipe/main3d.gnu.CUDA.ex}"
 ZMQ_PREFIX="${GRTECLYN}/local/zeromq"
 ELITE_EVAL="${ELITE_EVAL:-${GRTECLYN}/runs/grtresna_qd/spacetime_splash_v14_moving/eval_000010}"
-RUN_ROOT="${RUN_ROOT:-${GRTECLYN}/runs/rl_gate1/spacetime_splash_v14_eval010}"
-GATE1_STOP_TIME="${GATE1_STOP_TIME:-1.0}"
-GATE1_PLOT_INTERVAL="${GATE1_PLOT_INTERVAL:-10}"
-RL_PORT="${GATE1_ZMQ_PORT:-5557}"
+RUN_ROOT="${RUN_ROOT:-${GRTECLYN}/runs/rl_gate2/gate2_kamikaze}"
+GATE2_STOP_TIME="${GATE2_STOP_TIME:-0.5}"
+GATE2_PLOT_INTERVAL="${GATE2_PLOT_INTERVAL:-8}"
+RL_PORT="${GATE2_PORT:-5558}"
 GPU_ID="${CUDA_VISIBLE_DEVICES:-0}"
 
 if [[ ! -x "${EXE}" ]]; then
@@ -20,14 +20,15 @@ if [[ ! -x "${EXE}" ]]; then
   exit 2
 fi
 
-pkill -f "dummy_agent.py --port ${RL_PORT}" 2>/dev/null || true
-mkdir -p "${RUN_ROOT}/data" "${RUN_ROOT}/small_data"
+mkdir -p "${RUN_ROOT}"
 
-python3 - "${ELITE_EVAL}/params.txt" "${RUN_ROOT}" "${GATE1_STOP_TIME}" "${GATE1_PLOT_INTERVAL}" "${RL_PORT}" "${ELITE_EVAL}" <<'PY'
+# Generate params.txt with small grid (32^3) for CPU smoke, short stop_time,
+# rl_coarse_step_interval=4 for frequent exchange, generous ZMQ timeout.
+python3 - "${ELITE_EVAL}/params.txt" "${RUN_ROOT}" "${GATE2_STOP_TIME}" "${GATE2_PLOT_INTERVAL}" "${ELITE_EVAL}" "${RL_PORT}" <<'PY'
 import sys
 from pathlib import Path
 
-src, out_dir, stop_time, plot_interval, port, elite = sys.argv[1:7]
+src, out_dir, stop_time, plot_interval, elite, port = sys.argv[1:7]
 lines = Path(src).read_text(encoding="utf-8").splitlines()
 out = Path(out_dir)
 elite_dir = Path(elite)
@@ -42,13 +43,13 @@ overrides = {
     "recipe_initial_data_file": str((elite_dir / "initial_data.gridinit").resolve()),
     "rl_enabled": "1",
     "rl_coarse_step_interval": "4",
-    "rl_zmq_port": port,
-    "rl_num_lumps": "1",
-    "rl_lump_seed_x": "8.0",
-    "rl_lump_seed_y": "8.0",
-    "rl_lump_seed_z": "8.0",
-    "rl_pump_width": "8.0",
+    "rl_num_lumps": "3",
+    "rl_lump_seed_x": "8.0 6.0 10.0",
+    "rl_lump_seed_y": "8.0 8.0 8.0",
+    "rl_lump_seed_z": "8.0 8.0 8.0",
+    "rl_pump_width": "4.0",
     "rl_pump_max_amplitude": "0.05",
+    "rl_zmq_port": port,
     "rl_zmq_timeout_ms": "300000",
     "N_full": "32",
     "L_full": "16.0",
@@ -75,14 +76,15 @@ PY
 export LD_LIBRARY_PATH="${ZMQ_PREFIX}/lib:${LD_LIBRARY_PATH:-}"
 export CUDA_VISIBLE_DEVICES="${GPU_ID}"
 
-echo "== Gate 1: static T1–T4 + live env smoke =="
+echo "== Gate 2: Kamikaze actuation proof =="
 cd "${WRAPPER_ROOT}"
-uv run python "${RL_SCRIPT_DIR}/gate1_validate.py" \
+uv run python "${RL_SCRIPT_DIR}/gate2_validate.py" \
   --executable "${EXE}" \
   --params "${RUN_ROOT}/params.txt" \
-  --episode-path "${RUN_ROOT}" \
-  --stop-time "${GATE1_STOP_TIME}" \
-  --zmq-port "${RL_PORT}" \
+  --work-dir "${RUN_ROOT}" \
+  --stop-time "${GATE2_STOP_TIME}" \
+  --zmq-port-neutral "${RL_PORT}" \
+  --zmq-port-kamikaze "${RL_PORT}" \
   --gpu-id "${GPU_ID}" \
   --zmq-lib "${ZMQ_PREFIX}/lib" \
-  --max-steps 8
+  --max-steps 12
