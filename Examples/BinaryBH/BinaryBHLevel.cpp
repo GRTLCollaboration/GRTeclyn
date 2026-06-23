@@ -9,6 +9,7 @@
 #include "ChiTagger.hpp"
 #include "Constraints.hpp"
 #include "ExtractionTagger.hpp"
+#include "GaugeFixer.hpp"
 #include "PositiveChiAndLapse.hpp"
 #include "PunctureTagger.hpp"
 #include "PunctureTracker.hpp"
@@ -210,7 +211,18 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
 #endif
     }
 
+    GaugeFixer gaugefix(Geom().CellSize(0), simParams().center);
+
+    amrex::ParallelFor(
+            a_rhs,
+            [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+            {
+                gaugefix(ix, iy, iz, rhs_arrays[box_no]);
+            });
+
     amrex::Gpu::streamSynchronize();
+
+
 }
 
 // enforce trace removal during RK4 substeps
