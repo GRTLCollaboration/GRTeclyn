@@ -60,138 +60,151 @@ template <int N> class Lagrange
         base_idx = stencil[0];
     }
 
-    // Different cases for interpolation of derivatives
-    amrex::ParticleReal
-    interp_deriv_local(int comp,
-                       const amrex::Array4<amrex::Real const> data) const
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    build_stencil_d1(amrex::Real grid_pos, amrex::Real *weights)
     {
-        amrex::ParticleReal val = amrex::ParticleReal(0.0);
+        std::array<int, N> stencil;
+        constexpr int center_offset =
+            N / 2; // offset based on the number of points we are using
+        int center = static_cast<int>(
+            amrex::Math::round(grid_pos)); // round the grid position to get the
+                                           // nearest cell center
 
-#if AMREX_SPACEDIM == 3
-        for (int kk = 0; kk < N; ++kk)
+        // Fill in the stencil around the position of interpolation
+        for (int i = 0; i < N; ++i)
         {
-#endif
-#if AMREX_SPACEDIM >= 2
-            for (int jj = 0; jj < N; ++jj)
-            {
-#endif
-                for (int ii = 0; ii < N; ++ii)
-                {
-                    val += data(amrex::IntVect(
-                                    AMREX_D_DECL(i0 + ii, j0 + jj, k0 + kk)),
-                                comp) *
-                           AMREX_D_TERM(weights[0][ii], *weights[1][jj],
-                                        *weights[2][kk]);
-                }
-#if AMREX_SPACEDIM >= 2
-            }
-#endif
-#if AMREX_SPACEDIM == 3
+            stencil[i] = center - center_offset + i;
         }
-#endif
-        return val;
+
+        // Compute the relative position from the interpolation point
+        // NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
+        amrex::Real rel_pos[N];
+        // NOLINTEND(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
+        for (int i = 0; i < N; ++i)
+        {
+            rel_pos[i] = static_cast<amrex::Real>(stencil[i]) - grid_pos;
+        }
+
+        // Compute Lagrange weights
+        poly_interp_coeff_d1(0.0, rel_pos, N, weights);
     }
 
-    amrex::ParticleReal
-    interp_deriv_1d(int comp, int stride, FourthOrderDerivatives a_deriv,
-                    const amrex::Array4<amrex::Real const> data) const
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    build_stencil_d2(amrex::Real grid_pos, amrex::Real *weights)
     {
-        amrex::ParticleReal val = amrex::ParticleReal(0.0);
-#if AMREX_SPACEDIM == 3
-        for (int kk = 0; kk < N; ++kk)
+        std::array<int, N> stencil;
+        constexpr int center_offset =
+            N / 2; // offset based on the number of points we are using
+        int center = static_cast<int>(
+            amrex::Math::round(grid_pos)); // round the grid position to get the
+                                           // nearest cell center
+
+        // Fill in the stencil around the position of interpolation
+        for (int i = 0; i < N; ++i)
         {
-#endif
-#if AMREX_SPACEDIM >= 2
-            for (int jj = 0; jj < N; ++jj)
-            {
-#endif
-                for (int ii = 0; ii < N; ++ii)
-                {
-                    val += a_deriv.diff1(
-                               data.ptr(AMREX_D_DECL(i0 + ii, j0 + jj, k0 + kk),
-                                        comp),
-                               stride) *
-                           AMREX_D_TERM(weights[0][ii], *weights[1][jj],
-                                        *weights[2][kk]);
-                }
-#if AMREX_SPACEDIM >= 2
-            }
-#endif
-#if AMREX_SPACEDIM == 3
+            stencil[i] = center - center_offset + i;
         }
-#endif
-        return val;
+
+        // Compute the relative position from the interpolation point
+        // NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
+        amrex::Real rel_pos[N];
+        // NOLINTEND(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
+        for (int i = 0; i < N; ++i)
+        {
+            rel_pos[i] = static_cast<amrex::Real>(stencil[i]) - grid_pos;
+        }
+
+        // Compute Lagrange weights
+        poly_interp_coeff_d2(0.0, rel_pos, N, weights);
     }
 
-    amrex::ParticleReal
-    interp_deriv_2d(int comp, int stride, FourthOrderDerivatives a_deriv,
-                    const amrex::Array4<amrex::Real const> data) const
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+    poly_interp_coeff_d1(amrex::Real xInt, amrex::Real const *AMREX_RESTRICT x,
+                         int order, amrex::Real *AMREX_RESTRICT c) noexcept
     {
-        amrex::ParticleReal val = amrex::ParticleReal(0.0);
-
-#if AMREX_SPACEDIM == 3
-        for (int kk = 0; kk < N; ++kk)
+        for (int j = 0; j < order; ++j)
         {
-#endif
-#if AMREX_SPACEDIM >= 2
-            for (int jj = 0; jj < N; ++jj)
+            amrex::Real den = amrex::Real(1.0);
+            for (int i = 0; i < order; ++i)
             {
-#endif
-                for (int ii = 0; ii < N; ++ii)
+                if (i != j)
                 {
-                    val += a_deriv.diff2(
-                               data.ptr(AMREX_D_DECL(i0 + ii, j0 + jj, k0 + kk),
-                                        comp),
-                               stride) *
-                           AMREX_D_TERM(weights[0][ii], *weights[1][jj],
-                                        *weights[2][kk]);
+                    den *= (x[j] - x[i]);
                 }
-#if AMREX_SPACEDIM >= 2
             }
-#endif
-#if AMREX_SPACEDIM == 3
+
+            c[j] = amrex::Real(0.0);
+
+            for (int k = 0; k < order; ++k)
+            {
+                if (k == j)
+                    continue;
+
+                amrex::Real num = amrex::Real(1.0);
+                for (int i = 0; i < order; ++i)
+                {
+                    if (i != j && i != k)
+                    {
+                        num *= (xInt - x[i]);
+                    }
+                }
+
+                c[j] += num / den;
+            }
         }
-#endif
-        return val;
     }
 
-    amrex::ParticleReal
-    interp_deriv_2d_mixed(int comp, int stride1, int stride2,
-                          FourthOrderDerivatives a_deriv,
-                          const amrex::Array4<amrex::Real const> data) const
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+    poly_interp_coeff_d2(amrex::Real xInt, amrex::Real const *AMREX_RESTRICT x,
+                         int order, amrex::Real *AMREX_RESTRICT c) noexcept
     {
-        amrex::ParticleReal val = amrex::ParticleReal(0.0);
-
-#if AMREX_SPACEDIM == 3
-        for (int kk = 0; kk < N; ++kk)
+        for (int j = 0; j < order; ++j)
         {
-#endif
-#if AMREX_SPACEDIM >= 2
-            for (int jj = 0; jj < N; ++jj)
+            c[j] = amrex::Real(0.0);
+
+            amrex::Real den = amrex::Real(1.0);
+            for (int i = 0; i < order; ++i)
             {
-#endif
-                for (int ii = 0; ii < N; ++ii)
+                if (i != j)
                 {
-                    val += a_deriv.mixed_diff2(
-                               data.ptr(AMREX_D_DECL(i0 + ii, j0 + jj, k0 + kk),
-                                        comp),
-                               stride1, stride2) *
-                           AMREX_D_TERM(weights[0][ii], *weights[1][jj],
-                                        *weights[2][kk]);
+                    den *= (x[j] - x[i]);
                 }
-#if AMREX_SPACEDIM >= 2
             }
-#endif
-#if AMREX_SPACEDIM == 3
+
+            for (int l = 0; l < order; ++l)
+            {
+                if (l == j)
+                    continue;
+
+                for (int k = 0; k < order; ++k)
+                {
+                    if (k == j)
+                        continue;
+                    if (k == l)
+                        continue;
+
+                    amrex::Real num = amrex::Real(1.0);
+
+                    for (int i = 0; i < order; ++i)
+                    {
+                        if (i != j && i != k && i != l)
+                        {
+                            num *= (xInt - x[i]);
+                        }
+                    }
+
+                    c[j] += num / den;
+                }
+            }
         }
-#endif
-        return val;
     }
 
   public:
     // where we store the weights for each dimension
     // NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
-    amrex::Real weights[AMREX_SPACEDIM][N]{};
+    amrex::Real weights_local[AMREX_SPACEDIM][N]{};
+    amrex::Real weights_d1[AMREX_SPACEDIM][N]{};
+    amrex::Real weights_d2[AMREX_SPACEDIM][N]{};
     // NOLINTEND(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE Lagrange() = default;
@@ -216,12 +229,20 @@ template <int N> class Lagrange
                   (amrex::Real(par.pos(2)) - plo[2]) * dxi[2] -
                   static_cast<amrex::Real>(!is_nodal[2]) * amrex::Real(0.5););
 
-        build_stencil(xpos, i0, weights[0]);
+        build_stencil(xpos, i0, weights_local[0]);
+        build_stencil_d1(xpos, weights_d1[0]);
+        build_stencil_d2(xpos, weights_d2[0]);
 #if AMREX_SPACEDIM >= 2
-        build_stencil(ypos, j0, weights[1]);
+        build_stencil(ypos, j0, weights_local[1]);
+        build_stencil_d1(ypos, weights_d1[1]);
+        build_stencil_d2(ypos, weights_d2[1]);
+
 #endif
 #if AMREX_SPACEDIM == 3
-        build_stencil(zpos, k0, weights[2]);
+        build_stencil(zpos, k0, weights_local[2]);
+        build_stencil_d1(zpos, weights_d1[2]);
+        build_stencil_d2(zpos, weights_d2[2]);
+
 #endif
     }
 
@@ -235,6 +256,7 @@ template <int N> class Lagrange
     {
         int counter      = 0;
         auto const &data = data_arr[0];
+        amrex::Real weights[AMREX_SPACEDIM][N]{};
 
         for (auto deriv_it = deriv_it_begin; deriv_it != deriv_it_end;
              ++deriv_it)
@@ -244,76 +266,65 @@ template <int N> class Lagrange
 
             const Derivative &deriv = deriv_it->first;
 
-            amrex::GpuArray<int, AMREX_SPACEDIM> strides{1, data.stride.a[0],
-                                                         data.stride.a[1]};
-
-            FourthOrderDerivatives a_deriv(dx);
-
-            std::function<amrex::ParticleReal(int)> interp_deriv;
-
             comps_t &comps = deriv_it->second;
 
-            // Select which interpolation function to call based on derivative
-            if (deriv == Derivative::LOCAL)
+            // Collect dimensions where we want at least a first derivative
+            for (int dim = 0; dim < AMREX_SPACEDIM; ++dim)
             {
-                interp_deriv = [=](int comp) -> amrex::ParticleReal
-                { return interp_deriv_local(comp, data); };
-            }
-            else
-            {
-                std::vector<int> deriv_dims;
-
-                // Collect dimensions where we want at least a first derivative
-                for (int dim = 0; dim < AMREX_SPACEDIM; ++dim)
+                if (deriv[dim] == 1)
                 {
-                    if (deriv[dim] > 0)
+                    for (int i = 0; i < N; i++)
                     {
-                        deriv_dims.push_back(dim);
+                        weights[dim][i] = weights_d1[dim][i] / dx;
                     }
                 }
-
-                if (deriv_dims.size() == 1)
+                else if (deriv[dim] == 2)
                 {
-                    // 2nd derivative in 1 dimension
-                    if (deriv[deriv_dims[0]] == 2)
+                    for (int i = 0; i < N; i++)
                     {
-                        interp_deriv = [=](int comp) -> amrex::ParticleReal
-                        {
-                            return interp_deriv_2d(comp, strides[deriv_dims[0]],
-                                                   a_deriv, data);
-                        };
-                    }
-                    // 1st derivative
-                    else
-                    {
-                        interp_deriv = [=](int comp) -> amrex::ParticleReal
-                        {
-                            return interp_deriv_1d(comp, strides[deriv_dims[0]],
-                                                   a_deriv, data);
-                        };
+                        weights[dim][i] = weights_d2[dim][i] / pow(dx, 2);
                     }
                 }
-                // Mixed 2nd derivative
-                else if (deriv_dims.size() == 2)
+                else
                 {
-                    interp_deriv = [=](int comp) -> amrex::ParticleReal
+                    for (int i = 0; i < N; i++)
                     {
-                        return interp_deriv_2d_mixed(
-                            comp, strides[deriv_dims[0]],
-                            strides[deriv_dims[1]], a_deriv, data);
-                    };
+                        weights[dim][i] = weights_local[dim][i];
+                    }
                 }
             }
 
-            // Interpolate for comps with this derivative
             for (auto &entry : comps)
             {
                 const int comp = entry.comp;
 
-                val[counter] = interp_deriv(comp);
-            }
+                val[counter] = amrex::ParticleReal(0.0);
 
-            ++counter;
+#if AMREX_SPACEDIM == 3
+                for (int kk = 0; kk < N; ++kk)
+                {
+#endif
+#if AMREX_SPACEDIM >= 2
+                    for (int jj = 0; jj < N; ++jj)
+                    {
+#endif
+                        for (int ii = 0; ii < N; ++ii)
+                        {
+                            val[counter] +=
+                                data(amrex::IntVect(AMREX_D_DECL(
+                                         i0 + ii, j0 + jj, k0 + kk)),
+                                     comp) *
+                                AMREX_D_TERM(weights[0][ii], *weights[1][jj],
+                                             *weights[2][kk]);
+                        }
+#if AMREX_SPACEDIM >= 2
+                    }
+#endif
+#if AMREX_SPACEDIM == 3
+                }
+#endif
+                ++counter;
+            }
         }
     }
 };
