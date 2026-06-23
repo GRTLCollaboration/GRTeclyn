@@ -874,6 +874,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "cma" },
+    { name = "h5py" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -920,6 +921,7 @@ requires-dist = [
     { name = "cma", specifier = ">=3.3" },
     { name = "gwpy", marker = "extra == 'gw-search'" },
     { name = "gymnasium", marker = "extra == 'rl'", specifier = ">=0.29" },
+    { name = "h5py", specifier = ">=3.10" },
     { name = "matplotlib", marker = "extra == 'gw-search'", specifier = ">=3.8" },
     { name = "matplotlib", marker = "extra == 'plots'", specifier = ">=3.8" },
     { name = "matplotlib", marker = "extra == 'visualization'", specifier = ">=3.8" },

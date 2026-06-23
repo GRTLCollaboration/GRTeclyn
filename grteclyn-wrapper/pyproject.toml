@@ -5,6 +5,7 @@ description = "Python episode runner and failure-atlas tooling for GRTeclyn Supp
 requires-python = ">=3.10"
 dependencies = [
     "numpy>=1.24",
+    "h5py>=3.10",
     "cma>=3.3",
     # Required by the scoring objective: evolved-frame operational FTL and
     # effective energy conditions reconstruct the 4-metric from plotfiles via yt

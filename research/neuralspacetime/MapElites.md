@@ -82,11 +82,13 @@ Exotic (phantom) boson: `GRTRESNA_MATTER_COUPLING=exotic` (`scalar_sign=-1`).
 **Bosonic shell + FTL (RL chassis)** — same **BosonStarBH** superposed shell as
 [grlab splash](../grlab/README.md) (`grtresna_complex_scalar`), but scored with
 **`general_ftl`** + 4D geodesic (not `critical_collapse`). Search space =
-`grtresna_boson_shell_search_space()` (~18-D shell geometry + boson mass/λ/ω).
-**Exotic is off by default** — see [Exotic matter](#exotic-matter-by-sector) below.
+`grtresna_boson_shell_search_space()` (~18-D shell geometry + boson mass/λ/ω + exotic wedge).
+**Exotic wedge search ON** by default — see [Exotic matter](#exotic-matter-by-sector) below.
 
 ```bash
 cd grteclyn-wrapper
+uv sync   # h5py>=3.10 required for GRTresna Chombo→gridinit bridge
+
 QD_NAME=boson_shell_ftl_rl_v1 \
 QD_TARGET_EVALS=200 \
 QD_ITERATIONS=30 \
@@ -316,17 +318,23 @@ Default remains the existing **real-scalar lump** path; boson star is opt-in.
 | **Boson splash** (`splash/run.sh`) | **No** — same boson-shell space + `PIN_DIMS` sign=1 | `critical_collapse`, not FTL |
 | **Centered 7-D boson** (`boson_star/run.sh`) | **Optional global sign** — dim exists but often pinned | `GRTRESNA_MATTER_COUPLING=exotic` → phantom boson (`scalar_sign=-1`); **not** per-lump exotic fraction |
 
-The **`boson_shell_ftl_rl_v1`** run uses **canonical coupling only**. MAP-Elites does **not**
-search exotic shell wedges or phantom `scalar_sign` unless you override pins and coupling, e.g.:
+**`boson_shell_ftl_rl_v1`** uses **canonical coupling** with **searchable exotic shell wedges**
+(`GRTRESNA_BOSON_ALLOW_EXOTIC=1` in `ftl_shell_run.sh`). To disable wedge search and pin
+canonical-only (splash-style):
+
+```bash
+GRTRESNA_BOSON_ALLOW_EXOTIC=0 \
+PIN_DIMS="grtresna_scalar_sign=1 grtresna_shell_static=1" \
+  bash scripts/campaigns/boson_star/ftl_shell_run.sh
+```
+
+Global phantom boson (whole-field `scalar_sign=-1`, no exotic-fraction dims):
 
 ```bash
 GRTRESNA_MATTER_COUPLING=exotic \
 PIN_DIMS="grtresna_shell_static=1" \
   bash scripts/campaigns/boson_star/ftl_shell_run.sh
 ```
-
-That flips the **whole** boson to phantom sign; it still does **not** restore real-scalar-style
-`grtresna_shell_exotic_fraction` (not implemented for BosonStarBH superposition paint).
 
 **7-D boson search dimensions:** `grtresna_scalar_mass`, `grtresna_scalar_lambda`,
 `grtresna_bs_phi_c`, `grtresna_bs_profile_width`, `grtresna_bs_omega` (pinned 0),
@@ -611,7 +619,7 @@ Reverse-chronological journal. Quick index:
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
-| [**Boson shell FTL for RL (`boson_shell_ftl_rl_v1`)**](#boson-shell-ftl-for-rl-boson_shell_ftl_rl_v1-2026-06-23) | **06-23 running** | First **boson shell + `general_ftl`** QD for RL chassis: **200 evals**, t=16, **frames on**, 6 plots/eval; **exotic wedge search ON**. |
+| [**Boson shell FTL for RL (`boson_shell_ftl_rl_v1`)**](#boson-shell-ftl-for-rl-boson_shell_ftl_rl_v1-2026-06-23) | **06-23 running** | Boson shell + **`general_ftl`**, exotic wedge ON; **200 evals**, frames on. **Attempt 1:** 100% `grtresna_failed` (missing `h5py`). **Attempt 2 (07:58 UTC):** clean restart after `h5py` dep fix — GRTresna→`.gridinit` verified. |
 | [**Boson star: unpinned QD + frames (v3)**](#boson-star-unpinned-qd--frames-v3-2026-06-18) | **06-18 complete** | First **unpinned 7-D** boson MAP-Elites: **12/12 evals**, **8 `gpu_ok`**, champion **eval 004** (−33.2). Frames on H100; `scalar_activity`/`phi` projections visible. |
 | [**Boson star: integration + GPU smoke**](#boson-star-matter-sector-integration--gpu-smoke-2026-06-18) | **06-18 complete** | Matter selector wired; pinned GPU smoke **2/2 `gpu_ok`**. Phase 1 = single centered Gaussian. |
 | [**v22 CMA-ES: wormhole refinement**](#v22-cma-es-wormhole-refinement-general_ftl_wormhole_cmaes_v1-2026-06-18) | **06-18 complete** | QD **063** (165.6) → CMA-ES **046** (**179.8**, +14.2). [HQ eval 046](#hq-eval-046-final-results-t30) **complete** — peak **7.57%** 4D @ t≈15.6, **−546** final @ t=30 (horizon kill). [Movies](#hq-eval-046-final-results-t30) in `movies/`. |
@@ -624,7 +632,8 @@ Reverse-chronological journal. Quick index:
 
 ## Boson shell FTL for RL (`boson_shell_ftl_rl_v1`, 2026-06-23)
 
-**Status:** **running** — MAP-Elites QD for closed-loop RL initial-data elites.
+**Status:** **running** (attempt 2, launched **2026-06-23 ~07:58 UTC**) — MAP-Elites QD for
+closed-loop RL initial-data elites.
 
 **Motivation.** Historical wormhole QD (`general_ftl_wormhole_v*`) used **real scalar** lumps.
 RL pump / lump tracker requires **`grtresna_complex_scalar`** (boson shell, same wiring as
@@ -634,10 +643,50 @@ This campaign is the first **boson shell + `general_ftl`** survey aimed at elite
 
 **Run dir:** `runs/grtresna_qd/boson_shell_ftl_rl_v1/`
 
-### Launch
+### Attempt 1 — `grtresna_failed` (missing `h5py`)
+
+First launch (**~07:36 UTC**) used exotic wedge search and BosonStarBH solves correctly, but
+**every scored eval** landed as **`grtresna_failed`** at score **−350** with:
+
+```text
+reason: ModuleNotFoundError("No module named 'h5py'")
+```
+
+**Root cause.** GRTresna (Fortran/Chombo) writes `InitialDataFinal.3d.hdf5`; the wrapper converts
+that to `initial_data.gridinit` in `grtresna/io.py` via **`h5py`**. That package was documented
+as a manual `uv pip install h5py` step but was **not** listed in `grteclyn-wrapper/pyproject.toml`.
+Earlier wormhole/splash campaigns worked because `h5py` had been installed by hand and survived
+in the venv; a later **`uv sync`** on the managed venv (Python 3.14) dropped the undeclared
+package. Launch also used **`SKIP_QD_PREFLIGHT_TESTS=1`**, so nothing imported `h5py` before
+GPU/GRTresna slots were allocated.
+
+**Symptom vs physics.** Not a boson-matter or exotic-wedge bug — BosonStarBH completed
+(`Ham_and_Mom_errors.txt`, HDF5 under `eval_*/grtresna/Outputs/`), then Python died at the
+Chombo→`.gridinit` bridge before GPU evolution.
+
+### Fix (2026-06-23)
+
+| Change | File / action |
+|--------|----------------|
+| Declare dependency | `grteclyn-wrapper/pyproject.toml` — **`h5py>=3.10`** in `[project].dependencies` |
+| Install in venv | `cd grteclyn-wrapper && uv sync` |
+| Preflight guard | `tests/grtresna/test_grtresna_h5py_dep.py` added to `search_common.sh` preflight list |
+| Clean restart | Kill campaign, `rm -rf runs/grtresna_qd/boson_shell_ftl_rl_v1`, relaunch |
+
+**Verification (attempt 2).** After restart, eval dirs show **`initial_data.gridinit`** (HDF5
+conversion succeeds). Expect normal mix of `gpu_ok`, `grtresna_rejected`, `postload_rejected` —
+not blanket `grtresna_failed` / `h5py`.
+
+**Ops note.** After any `uv sync`, confirm `uv run python -c "import h5py"`. Wormhole-era
+campaigns never hit this because `h5py` was an undeclared manual install; it must stay in
+`pyproject.toml` for all GRTresna QD paths (scalar and boson).
+
+### Launch (attempt 2)
 
 ```bash
 cd grteclyn-wrapper
+uv sync   # ensures h5py>=3.10 from pyproject.toml
+
 QD_NAME=boson_shell_ftl_rl_v1 \
 QD_TARGET_EVALS=200 \
 QD_ITERATIONS=30 \
@@ -651,6 +700,9 @@ BATCH_SIZE=8 \
   nohup bash scripts/campaigns/boson_star/ftl_shell_run.sh \
   > ../runs/boson_shell_ftl_rl_v1.launch.log 2>&1 &
 ```
+
+Use **`SKIP_QD_PREFLIGHT_TESTS=1`** only if pytest is not installed in the venv; the h5py
+preflight test is skipped in that case — run `uv run python -c "import h5py"` manually first.
 
 | Knob | Value |
 |------|-------|

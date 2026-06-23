@@ -223,6 +223,7 @@ ftl_search_common_pipeline_args() {
 ftl_search_common_preflight_tests() {
   echo "Running FTL search preflight pytest gate..."
   local -a PREFLIGHT_TESTS=(
+    "${WRAPPER_ROOT}/tests/grtresna/test_grtresna_h5py_dep.py"
     "${WRAPPER_ROOT}/tests/grtresna/test_scalar_lambda_potential.py"
     "${WRAPPER_ROOT}/tests/grtresna/test_grtresna_shell_ansatz.py"
     "${WRAPPER_ROOT}/tests/grtresna/test_boson_star_ansatz.py"
