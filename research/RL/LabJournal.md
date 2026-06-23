@@ -13,8 +13,9 @@ Reverse-chronological log for the closed-loop RadialRecipe RL stack. Newest firs
 | **0A** | IVP neutrality: `rl_enabled=0` matches `rl_enabled=1` + neutral agent (rel err 1e-10 on L2_Ham / min_lapse) | `bash grteclyn-wrapper/scripts/campaigns/rl/gate0a_run.sh` | `runs/rl_gate0a/spacetime_splash_v14_eval010` |
 | **0B** | ZMQ bridge smoke: dummy agent, no hang, obs_dim=14 | `GATE0B_STOP_TIME=1.0 bash …/gate0b_run.sh` | `runs/rl_gate0b/spacetime_splash_v14_eval010` |
 | **1** | Tax Man T1–T4 + live `SpacetimeFtlEnv` (plot consumer, score_timeseries, clean exit) | `bash …/gate1_run.sh` | `runs/rl_gate1/spacetime_splash_v14_eval010` |
+| **2** | Kamikaze actuation proof: multi-lump pump steers field, reward responds, no NaN | `bash …/gate2_run.sh` | `runs/rl_gate2/gate2_kamikaze` |
 
-**Not yet run:** Gate 2 (kamikaze / actuation proof), PPO dry run.
+**Not yet run:** PPO dry run on FTL-producing elite.
 
 ### Chassis
 
@@ -31,6 +32,35 @@ Reverse-chronological log for the closed-loop RadialRecipe RL stack. Newest firs
 | **Act** | 3N + 2 | per lump: amp, freq, phase (raw ∈ [-1,1]); gauge: lapse_advec, shift_Γ |
 
 C++ (`RLActionApplier`) is the sole raw→physical mapper; Python only clips to [-1, 1].
+
+---
+
+## 2026-06-23 — Gate 2 PASS: multi-lump actuation proof
+
+### Results (`gate2_run.sh` / `gate2_validate.py`)
+
+| Check | Result |
+|-------|--------|
+| T0 multi-lump dims | PASS — obs=30, act=11, num_lumps=3 |
+| T1 episodes ran | PASS — neutral=12 steps, kamikaze=12 steps, no crash |
+| T2 pump perturbs field | PASS — L2_Ham diff=3.64e-3 (kamikaze 0.0083 vs neutral 0.0046) |
+| T3 reward responds | PASS — total reward diff=5.95 (kamikaze penalized more) |
+| T4 governor | PASS — kamikaze L2_Ham grew faster (fence not triggered in short 0.5s run) |
+| T5 no NaN | PASS |
+
+**Key findings:**
+- 3 pump sites at (8,8,8), (6,8,8), (10,8,8) — multi-site spatial targeting works
+- EMA ramp visible: kamikaze L2_Ham reverses decay at step 5, grows exponentially by step 11
+- Lump seed bug fixed: was at (0,0,0) (domain corner, envelope=0.25%), moved to grid center
+- GPU build confirmed: `main3d.gnu.CUDA.ex` with RLBridge fix, 2211 code units/h on H100
+- `f_geo = 0` everywhere — splash IC has no FTL geometry (expected; need FTL elite)
+
+### Reward signal finding
+
+`score_timeseries.jsonl` flows incrementally with per-frame `f_geo`, `operational_ftl_geodesic`,
+`max_local_speed`, `shift_drive`. All zero because splash IC does not produce FTL.
+With FTL-producing IC these become the mid-episode dense reward signal.
+`ftl_geo_evolving` (4D null trace) only resolves end-of-run — serves as terminal audit bonus.
 
 ---
 
@@ -70,26 +100,81 @@ Gate 1 uses a **small grid** override (N=32, L=16, max_level=0, rl_coarse_step_i
 
 ## Next steps (priority order)
 
-### 1. Gate 2 — Kamikaze / actuation proof
+### 1. Switch to FTL-producing elite initial data
 
-Run non-neutral actions (random or max-amplitude) and confirm:
+Current splash boson star (`spacetime_splash_v14_moving/eval_000010`) is a collapse/oscillation
+IC — it produces **zero FTL geometry** (`max_local_speed ≈ 0.997`, `f_geo = 0` at all frames).
+All per-frame FTL proxies (`f_geo`, `operational_ftl_geodesic`, `shift_drive`) are identically zero.
 
-- Pump visibly perturbs the scalar field (not IVP no-op path)
-- Reward responds to actions (not flat −21 every step)
-- Governor / fences fire under stress (horizon, L2_Ham threshold)
-- Sim stays stable or terminates gracefully (no NaN / segfault)
+**Needed:** promote from `boson_shell_ftl_rl_v1` QD (or reuse a proven `general_ftl_wormhole` elite)
+that produces non-zero `f_geo` per-frame. The agent's pump should then steer the field to
+*maintain or extend* existing FTL geometry.
 
-### 2. `ftl_geo` NaN triage
+### 2. Reward signal architecture (resolved understanding)
 
-Headline FTL reward term uses Weyl4 extraction; historically NaN in splash campaigns. Without finite `f_geo`, PPO can only learn “don’t crash.” Fix extraction or confirm it works on boson chassis at RL grid scale.
+| Signal | When available | Role in training |
+|--------|---------------|------------------|
+| `f_geo` / `operational_ftl_geodesic` | **Per-frame** (incremental from plot consumer) | Dense reward via `compute_dense_reward` — `1000 × ftl_term` |
+| `max_local_speed` | Per-frame | Shaping proxy (coordinate speed) |
+| `shift_drive` | Per-frame | Shaping proxy (shift contribution) |
+| `ftl_geo_evolving` (4D null trace) | **End-of-run** (recomputes over all saved frames) | Terminal audit bonus |
+| `-500 × L2_Ham`, `-50 × lapse_penalty` | Per-step (from C++ obs directly) | Defensive dense shaping |
 
-### 3. `train_motor.py` dry run
+Key insight: with the RIGHT initial data, `f_geo` flows per-frame and gives the agent
+a positive mid-episode gradient. It is only zero now because splash IC has no FTL.
+The 4D trace (`ftl_geo_evolving`) is the authoritative end-of-run validation, not
+the training signal.
 
-After Gate 2 + live `ftl_geo`: short PPO (e.g. 50k steps, 1 GPU) — verify gradients, VecNormalize, return > random.
+### 3. `train_motor.py` dry run on FTL elite
 
-### 4. Boson-star `general_ftl` chassis (original plan item)
+Once FTL-producing IC is available: short PPO (50k steps, 1 GPU) — verify:
+- `f_geo` is non-zero in dense reward
+- Gradients flow, VecNormalize works
+- Return improves over random baseline
+- Agent learns to pump in a way that maintains/extends `f_geo`
 
-Generate elite initial data tuned for the RL control regime (not just QD splash elite reused as-is).
+### 4. Boson-star `general_ftl` chassis QD
+
+Generate elite ICs tuned for RL control (not QD reuse).
+
+**In progress:** MAP-Elites QD `boson_shell_ftl_rl_v1` — boson shell + `general_ftl` (see below).
+
+---
+
+## Bosonic matter vs scalar FTL QD
+
+Historical wormhole MAP-Elites (`general_ftl_wormhole_v*`) used **real scalar lumps**
+(`GRTRESNA_MATTER_SECTOR=scalar`). RL needs **`grtresna_complex_scalar`** (U(1) boson).
+
+| Campaign | Launcher | Matter | Objective | Use |
+|----------|----------|--------|-----------|-----|
+| Wormhole FTL | `general_ftl/run_all.sh` | real scalar shell | `general_ftl` | warp motors (not RL pump) |
+| Splash / collapse | `splash/run.sh` | **boson shell** | `critical_collapse` | geometry splash ([grlab](../grlab/README.md)) |
+| **Boson FTL (RL)** | **`boson_star/ftl_shell_run.sh`** | **boson shell** | **`general_ftl`** | RL chassis + `f_geo` elites |
+| Centered boson FTL | `boson_star/run.sh` | centered 7-D boson | `ftl_first` | pipeline smoke ([MapElites](../neuralspacetime/MapElites.md)) |
+
+Interim RL gates reuse splash elite `spacetime_splash_v14_moving/eval_000010` (collapse QD, not FTL).
+Production RL should promote from **`runs/grtresna_qd/boson_shell_ftl_rl_v1/`** once QD completes.
+
+### Launch — boson shell FTL for RL (200 evals, frames, t=16, 6 plots)
+
+```bash
+cd grteclyn-wrapper
+QD_NAME=boson_shell_ftl_rl_v1 \
+QD_TARGET_EVALS=200 \
+QD_ITERATIONS=30 \
+STOP_TIME=16.0 \
+PLOT_INTERVAL=320 \
+GRTECLYN_FRAMES=1 \
+GPU_IDS="0 1 2 3 4 5 6 7" \
+GPU_SLOTS_PER_DEVICE=1 \
+MAX_CONCURRENT_GRTRESNA=5 \
+BATCH_SIZE=8 \
+  nohup bash scripts/campaigns/boson_star/ftl_shell_run.sh \
+  > ../runs/boson_shell_ftl_rl_v1.launch.log 2>&1 &
+```
+
+Monitor: `tail -f runs/grtresna_qd/boson_shell_ftl_rl_v1/trajectory.jsonl`
 
 ---
 
