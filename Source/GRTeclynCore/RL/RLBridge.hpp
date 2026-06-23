@@ -74,6 +74,42 @@ class RLBridge
                 m_handshake_done = true;
             }
 
+            // If previous recv(action) timed out, the REP socket is still in
+            // "must recv" state.  We must complete that cycle before sending
+            // new observations, otherwise ZMQ raises EFSM.
+            if (m_awaiting_reply)
+            {
+                zmq::message_t late_reply;
+                const auto late_result =
+                    m_socket->recv(late_reply, zmq::recv_flags::none);
+                if (!late_result.has_value())
+                {
+                    // Still no reply — cannot proceed, return zeros.
+                    ++m_consecutive_timeouts;
+                    if (m_consecutive_timeouts >= 3)
+                    {
+                        m_terminate_requested = true;
+                    }
+                    return actions;
+                }
+                // Got the late reply — consume it and proceed normally.
+                m_awaiting_reply = false;
+                m_consecutive_timeouts = 0;
+                if (late_reply.size() >=
+                    static_cast<std::size_t>(action_dim) * sizeof(double))
+                {
+                    std::memcpy(actions.data(), late_reply.data(),
+                                static_cast<std::size_t>(action_dim) *
+                                    sizeof(double));
+                    if (std::isnan(actions[0]))
+                    {
+                        m_terminate_requested = true;
+                        actions.assign(
+                            static_cast<std::size_t>(action_dim), 0.0);
+                    }
+                }
+            }
+
             zmq::message_t obs_msg(obs.size() * sizeof(double));
             std::memcpy(obs_msg.data(), obs.data(), obs.size() * sizeof(double));
             m_socket->send(obs_msg, zmq::send_flags::none);
@@ -92,6 +128,19 @@ class RLBridge
                 {
                     m_terminate_requested = true;
                     actions.assign(static_cast<std::size_t>(action_dim), 0.0);
+                }
+                m_awaiting_reply = false;
+                m_consecutive_timeouts = 0;
+            }
+            else
+            {
+                // Timeout — REP socket is in "must recv" state until the
+                // agent eventually responds.  Flag it for next exchange().
+                m_awaiting_reply = true;
+                ++m_consecutive_timeouts;
+                if (m_consecutive_timeouts >= 3)
+                {
+                    m_terminate_requested = true;
                 }
             }
         }
@@ -121,6 +170,8 @@ class RLBridge
     bool m_bound{false};
     bool m_handshake_done{false};
     bool m_terminate_requested{false};
+    bool m_awaiting_reply{false};
+    int m_consecutive_timeouts{0};
 
 #ifdef USE_RL
     std::unique_ptr<zmq::context_t> m_ctx;

@@ -56,7 +56,7 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("rl_enabled", rl_enabled, false);
         pp.load("rl_coarse_step_interval", rl_coarse_step_interval, 64);
         pp.load("rl_zmq_port", rl_zmq_port, 5555);
-        pp.load("rl_zmq_timeout_ms", rl_zmq_timeout_ms, 30000);
+        pp.load("rl_zmq_timeout_ms", rl_zmq_timeout_ms, 120000);
         pp.load("rl_num_lumps", rl_num_lumps, 1);
         if (rl_num_lumps < 1)
             rl_num_lumps = 1;

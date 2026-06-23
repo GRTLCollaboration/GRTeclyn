@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -15,6 +14,11 @@ from grteclyn_wrapper.rl.protocols import ActionSink, ObservationSource
 from grteclyn_wrapper.rl.reward import TaxManState, compute_dense_reward, evaluate_fences
 from grteclyn_wrapper.rl.zmq_client import ZmqObservationSource
 
+try:
+    import zmq
+except ImportError:  # pragma: no cover - optional rl extra
+    zmq = None  # type: ignore[assignment]
+
 
 @dataclass
 class SpacetimeFtlEnvConfig:
@@ -22,11 +26,17 @@ class SpacetimeFtlEnvConfig:
     executable: Path
     params_file: Path
     zmq_port: int = 5555
+    zmq_timeout_ms: int = 120_000
     stop_time: float = 30.0
     objective_mode: str = "general_ftl"
     use_taxman_audit: bool = True
     gpu_id: int | None = None
     num_lumps: int | None = None  # None => read rl_num_lumps from params_file
+    use_mpi: bool = False
+    plot_consumer: bool = True
+    plot_consumer_frames: bool = False
+    plot_consumer_jobs: int = 1
+    zmq_lib: Path | None = None
 
 
 # Per-lump observation stride (must match RL_LUMP_OBS_STRIDE in
@@ -55,6 +65,7 @@ class SpacetimeFtlEnv(gym.Env):
         self._taxman = TaxManState()
         self._episode_return = 0.0
         self._terminated = False
+        self._last_obs: np.ndarray | None = None
 
         if config.num_lumps is None:
             n = read_rl_num_lumps(config.params_file)
@@ -70,13 +81,22 @@ class SpacetimeFtlEnv(gym.Env):
             low=-np.inf, high=np.inf, shape=(obs_dim,), dtype=np.float64
         )
 
-        self._zmq = observation_source or ZmqObservationSource(port=config.zmq_port)
+        self._zmq = observation_source or ZmqObservationSource(
+            port=config.zmq_port, timeout_ms=config.zmq_timeout_ms
+        )
         self._action_sink: ActionSink = action_sink or self._zmq
         self._launcher = SubprocessEpisodeLauncher(
             executable=config.executable,
             params_file=config.params_file,
             work_dir=config.episode_path,
             gpu_id=config.gpu_id,
+            use_mpi=config.use_mpi,
+            plot_consumer=config.plot_consumer,
+            plot_consumer_frames=config.plot_consumer_frames,
+            plot_consumer_jobs=config.plot_consumer_jobs,
+            objective_mode=config.objective_mode,
+            target_stop_time=config.stop_time,
+            zmq_lib=config.zmq_lib,
         )
 
     def _map_action(self, action: np.ndarray) -> np.ndarray:
@@ -90,6 +110,7 @@ class SpacetimeFtlEnv(gym.Env):
         self._taxman = TaxManState()
         self._episode_return = 0.0
         self._terminated = False
+        self._last_obs = None
         self._launcher.start()
         obs = self._zmq.recv_obs()
         expected = GLOBAL_OBS_DIM + LUMP_OBS_STRIDE * self._num_lumps
@@ -98,7 +119,32 @@ class SpacetimeFtlEnv(gym.Env):
                 f"observation size mismatch: got {obs.size}, expected {expected} "
                 f"(num_lumps={self._num_lumps}; check params rl_num_lumps)"
             )
+        self._last_obs = obs.copy()
         return obs, {}
+
+    def _recv_obs_or_finish(self) -> tuple[np.ndarray, bool]:
+        """Return (obs, sim_finished_without_obs)."""
+        try:
+            obs = self._zmq.recv_obs()
+        except zmq.Again as exc:
+            rc = self._launcher.sim_returncode()
+            if rc is None:
+                raise RuntimeError(
+                    "ZMQ recv timed out while simulation is still running"
+                ) from exc
+            if rc != 0:
+                raise RuntimeError(
+                    f"simulation exited with code {rc} before next observation"
+                ) from exc
+            if self._last_obs is None:
+                raise RuntimeError(
+                    "simulation finished before any observation was cached"
+                ) from exc
+            obs = self._last_obs.copy()
+            obs[5] = self._config.stop_time
+            return obs, True
+        self._last_obs = obs.copy()
+        return obs, False
 
     def step(self, action: np.ndarray):
         if self._terminated:
@@ -106,7 +152,7 @@ class SpacetimeFtlEnv(gym.Env):
 
         physical = self._map_action(action)
         self._action_sink.send_action(physical)
-        obs = self._zmq.recv_obs()
+        obs, sim_finished = self._recv_obs_or_finish()
         min_lapse = float(obs[1])
         l2_ham = float(obs[3])
         sim_time = float(obs[5])
@@ -133,7 +179,11 @@ class SpacetimeFtlEnv(gym.Env):
         reward += fence.penalty
         self._episode_return += reward
 
-        terminated = fence.terminated or sim_time >= self._config.stop_time
+        terminated = (
+            fence.terminated
+            or sim_time >= self._config.stop_time
+            or sim_finished
+        )
         truncated = False
 
         if terminated and self._config.use_taxman_audit:

@@ -117,7 +117,7 @@ fi
 
 OBS_DIM="$(grep '^step=' "${RUN_ROOT}/dummy_agent.log" | head -1 | sed -n 's/.*obs_dim=\([0-9]*\).*/\1/p')"
 if [[ "${OBS_DIM}" != "14" ]]; then
-  echo "FAIL expected obs_dim=14 (6+8*1), got ${OBS_DIM:-missing}" >&2
+  echo "FAIL expected obs_dim=14 for 6+8*1 lump, got ${OBS_DIM:-missing}" >&2
   exit 2
 fi
 
