@@ -7,6 +7,7 @@
 #include "ExoticScalarField.hpp"
 #include "GRTresnaIndependentScalars.hpp"
 #include "MovingPunctureGaugeWithMatter.hpp"
+#include "RLMatterPumpParams.hpp"
 #include "ScalarField.hpp"
 #include "SimulationParameters.hpp"
 #include "Weyl4WithMatter.hpp"
@@ -63,9 +64,19 @@ inline void eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
 
     if (uses_independent_scalars(params))
     {
+        RLMatterPumpParams pump;
+        pump.amplitude       = params.rl_pump_amplitude;
+        pump.frequency       = params.rl_pump_frequency;
+        pump.phase           = params.rl_pump_phase;
+        pump.radius          = params.rl_pump_radius;
+        pump.width           = params.rl_pump_width;
+        pump.governor_center = params.rl_l2_ham_governor_center;
+        pump.governor_width  = params.rl_l2_ham_governor_width;
+        pump.num_fields      = params.recipe_num_scalar_fields;
+
         GRTresnaIndependentScalars matter(
             params.recipe_num_scalar_fields, params.recipe_scalar_field_signs,
-            params.recipe_scalar_mass, params.recipe_scalar_lambda);
+            params.recipe_scalar_mass, params.recipe_scalar_lambda, pump);
         CCZ4RHSWithMatter<GRTresnaIndependentScalars,
                           MovingPunctureGaugeWithMatter, FourthOrderDerivatives>
             ccz4rhs(matter, params.ccz4_params, dx, params.sigma,

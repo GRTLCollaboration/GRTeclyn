@@ -53,7 +53,7 @@ def _gw_wave_from_aij(ds, point) -> float | None:
 def _resolve_gw_wave_signal(ds, point) -> float | None:
     """Prefer Weyl4_Re; fall back to A_ij GW proxy for splash/RadialRecipe runs."""
     weyl = _field_at_point(ds, point, "weyl4")
-    if weyl is not None:
+    if weyl is not None and math.isfinite(weyl):
         return weyl
     return _gw_wave_from_aij(ds, point)
 
@@ -254,7 +254,7 @@ def _extract_at_center(
             return values
 
     point = ds.point([float(center[0]), float(center[1]), float(center[2])])
-    return {
+    point_values = {
         "rho_req": _field_at_point(ds, point, "rho_req"),
         "lapse": _field_at_point(ds, point, "lapse"),
         "scalar_activity": _scalar_activity(ds, point),
@@ -268,6 +268,22 @@ def _extract_at_center(
         "K": _field_at_point(ds, point, "K"),
         "weyl4": _resolve_gw_wave_signal(ds, point),
     }
+
+    radius = central_ball_radius if central_ball_radius is not None else _default_ball_radius(ds)
+    try:
+        sphere_values = _mean_on_sphere(ds, center, radius)
+    except Exception:  # noqa: BLE001
+        sphere_values = {}
+    if not sphere_values:
+        return point_values
+
+    for key in ("chi", "K", "weyl4", "lapse", "rho_req"):
+        point_val = point_values.get(key)
+        if point_val is None or not math.isfinite(point_val):
+            fallback = sphere_values.get(key)
+            if fallback is not None and math.isfinite(fallback):
+                point_values[key] = fallback
+    return point_values
 
 
 def _extract_central_timeseries_line(

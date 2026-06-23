@@ -36,6 +36,12 @@ gw-search = [
     "scipy>=1.10",
 ]
 
+rl = [
+    "gymnasium>=0.29",
+    "pyzmq>=25.0",
+    "stable-baselines3>=2.3",
+]
+
 [project.scripts]
 grteclyn-wrapper = "grteclyn_wrapper.__main__:main"
 

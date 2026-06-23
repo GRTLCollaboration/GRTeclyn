@@ -52,6 +52,19 @@ class SimulationParameters : public SimulationParametersBase
             external_grid_params.gridinit_file = recipe_initial_data_file;
             external_grid_params.grid_center = center;
         }
+
+        pp.load("rl_enabled", rl_enabled, false);
+        pp.load("rl_coarse_step_interval", rl_coarse_step_interval, 64);
+        pp.load("rl_zmq_port", rl_zmq_port, 5555);
+        pp.load("rl_zmq_timeout_ms", rl_zmq_timeout_ms, 30000);
+        pp.load("rl_pump_amplitude", rl_pump_amplitude, 0.0);
+        pp.load("rl_pump_frequency", rl_pump_frequency, 0.0);
+        pp.load("rl_pump_phase", rl_pump_phase, 0.0);
+        pp.load("rl_pump_radius", rl_pump_radius, 5.0);
+        pp.load("rl_pump_width", rl_pump_width, 1.5);
+        pp.load("rl_pump_max_amplitude", rl_pump_max_amplitude, 0.05);
+        pp.load("rl_l2_ham_governor_center", rl_l2_ham_governor_center, 0.035);
+        pp.load("rl_l2_ham_governor_width", rl_l2_ham_governor_width, 0.003);
     }
 
     void read_recipe_params(GRParmParse &pp)
@@ -166,6 +179,20 @@ class SimulationParameters : public SimulationParametersBase
     ExternalGridInitialData::params_t external_grid_params{};
 
     RadialRecipeInitialData::params_t recipe_params{};
+
+    // RL closed-loop control (opt-in; defaults preserve IVP behaviour)
+    bool rl_enabled{};
+    int rl_coarse_step_interval{64};
+    int rl_zmq_port{5555};
+    int rl_zmq_timeout_ms{30000};
+    double rl_pump_amplitude{};
+    double rl_pump_frequency{};
+    double rl_pump_phase{};
+    double rl_pump_radius{5.0};
+    double rl_pump_width{1.5};
+    double rl_pump_max_amplitude{0.05};
+    double rl_l2_ham_governor_center{0.035};
+    double rl_l2_ham_governor_width{0.003};
 
   private:
     void load_scalar_field_signs(GRParmParse &pp)

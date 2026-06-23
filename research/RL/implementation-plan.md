@@ -8,15 +8,15 @@
 
 | ID | Task | Status |
 |----|------|--------|
-| solid-regression-gate | Every phase: full pytest green; rl_enabled=0 tolerance match on eval 046; no rl imports in core/search/metrics | not started |
-| prereq-ftl-metrics | **BLOCKING:** fix Weyl4/ftl_geo NaN; finite ftl_geo_evolving on eval 046 replay | not started |
-| phase0-matter-actuator | Lump[0] pump + tanh governor; L2_Ham every coarse step; Gate 0A; no Python rl/ until pass | not started |
-| phase0-bridge | Main.cpp two-cadence loop; RLBridge; terminate opcode; dummy_agent smoke | not started |
-| phase1-env | rl/ after Gate 0A; frame barrier + consumer drain; CUDA pinning | not started |
-| phase1-reward-taxman | Tax Man T1–T4; audit clipped; fence None-guards | not started |
-| phase2-baselines | Steer-not-break + Kamikaze test; measure frames/ep for γ | not started |
-| phase3-ppo | PPO after T1–T4; γ≈0.999+; VecNormalize dense-only | not started |
-| phase4-campaign | campaigns/rl/ + HQ promote | not started |
+| solid-regression-gate | Every phase: full pytest green; rl_enabled=0 tolerance match on eval 046; no rl imports in core/search/metrics | done |
+| prereq-ftl-metrics | **BLOCKING:** fix Weyl4/ftl_geo NaN; finite ftl_geo_evolving on eval 046 replay | done |
+| phase0-matter-actuator | Lump[0] pump + tanh governor; L2_Ham every coarse step; Gate 0A; no Python rl/ until pass | done |
+| phase0-bridge | Main.cpp two-cadence loop; RLBridge; terminate opcode; dummy_agent smoke | done |
+| phase1-env | rl/ after Gate 0A; frame barrier + consumer drain; CUDA pinning | done |
+| phase1-reward-taxman | Tax Man T1–T4; audit clipped; fence None-guards | done |
+| phase2-baselines | Steer-not-break + Kamikaze test; measure frames/ep for γ | done |
+| phase3-ppo | PPO after T1–T4; γ≈0.999+; VecNormalize dense-only | done |
+| phase4-campaign | campaigns/rl/ + HQ promote | done |
 
 **Two cadences for L2_Ham (resolved):**
 

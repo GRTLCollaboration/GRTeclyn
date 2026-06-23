@@ -12,6 +12,7 @@
 #include "GRTresnaScalarLayout.hpp"
 #include "GRTresnaScalarPotential.hpp"
 #include "GRParmParse.hpp"
+#include "RLMatterPumpParams.hpp"
 #include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
 
@@ -28,10 +29,12 @@ class GRTresnaIndependentScalars
     GRTresnaIndependentScalars(
         int a_num_fields,
         const std::array<int, GRTRESNA_MAX_INDEPENDENT_SCALARS> &a_signs,
-        double a_mass, double a_lambda = 0.0)
+        double a_mass, double a_lambda = 0.0,
+        RLMatterPumpParams a_pump = {})
         : m_num_fields(a_num_fields), m_signs(a_signs), m_mass_param(a_mass),
           m_lambda_param(a_lambda),
-          m_potential(GRTresnaScalarPotential(a_mass, a_lambda))
+          m_potential(GRTresnaScalarPotential(a_mass, a_lambda)),
+          m_pump(a_pump)
     {
     }
 
@@ -95,12 +98,18 @@ class GRTresnaIndependentScalars
                    const D1Vars &d1, const D2Vars &d2,
                    const AdvecVars &advec) const;
 
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    add_matter_rhs(const amrex::CellData<amrex::Real> &rhs, const Vars &vars,
+                   const D1Vars &d1, const D2Vars &d2, const AdvecVars &advec,
+                   const Coordinates &coords, amrex::Real time) const;
+
   private:
     int m_num_fields{};
     std::array<int, GRTRESNA_MAX_INDEPENDENT_SCALARS> m_signs{};
     double m_mass_param{};
     double m_lambda_param{};
     GRTresnaScalarPotential m_potential;
+    RLMatterPumpParams m_pump{};
 
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
     phi_sum(const Vars &vars) const

@@ -12,4 +12,7 @@ GRTECLYN_CEXE_headers += AMReXParameters.hpp \
                          NullBCFill.hpp \
                          SetupFunctions.hpp \
                          SimulationParametersBase.hpp \
-                         VariableType.hpp
+                         VariableType.hpp \
+                         RL/RLActionApplier.hpp \
+                         RL/RLBridge.hpp \
+                         RL/RLMatterPumpParams.hpp

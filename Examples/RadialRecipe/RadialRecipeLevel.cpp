@@ -13,6 +13,7 @@
 #include "ExoticScalarField.hpp"
 #include "SmallDataIO.hpp"
 #include "TraceARemoval.hpp"
+#include "RLMatterPumpParams.hpp"
 #include "Weyl4WithMatter.hpp"
 
 #include <AMReX_Reduce.H>
@@ -535,6 +536,8 @@ void RadialRecipeLevel::specificPostTimeStep()
             (sum_vol > 0.0) ? std::sqrt(sum_ham2 / sum_vol) : 0.0;
         const double L2_Mom =
             (sum_vol > 0.0) ? std::sqrt(sum_mom2 / sum_vol) : 0.0;
+
+        RLRuntime::publish_cached_L2_Ham(L2_Ham);
 
         amrex::MultiFab cst_vac(state_new.boxArray(),
                                 state_new.DistributionMap(), 4, 0);

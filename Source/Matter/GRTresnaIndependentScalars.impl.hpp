@@ -101,4 +101,24 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void GRTresnaIndependentScalars::add_matter_
     }
 }
 
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void GRTresnaIndependentScalars::add_matter_rhs(
+    const amrex::CellData<amrex::Real> &rhs, const Vars &vars,
+    const D1Vars &d1, const D2Vars &d2, const AdvecVars &advec,
+    const Coordinates &coords, amrex::Real time) const
+{
+    add_matter_rhs(rhs, vars, d1, d2, advec);
+
+    if (m_pump.num_fields < 1 || m_pump.amplitude <= 0.0)
+    {
+        return;
+    }
+
+    const amrex::Real x = coords.x;
+    const amrex::Real y = coords.y;
+    const amrex::Real z = coords.z;
+    const amrex::Real drive = RLRuntime::compute_pump_drive(
+        x, y, z, time, m_pump, RLRuntime::cached_L2_Ham());
+    rhs[c_Pi_lump_index(0)] += drive;
+}
+
 #endif /* GRTRESNA_INDEPENDENT_SCALARS_IMPL_HPP_ */

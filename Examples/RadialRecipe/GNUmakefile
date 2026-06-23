@@ -3,6 +3,7 @@ GRTECLYN_HOME = $(realpath ../..)
 include $(GRTECLYN_HOME)/Tools/GNUMake/Make.defaults
 
 USE_PARTICLES = FALSE
+USE_RL ?= FALSE
 
 AMREX_HOME ?= $(realpath ../../../amrex)
 
@@ -33,5 +34,11 @@ CEXE_sources += $(GRTECLYN_CEXE_sources)
 CEXE_headers += $(GRTECLYN_CEXE_headers)
 VPATH_LOCATIONS += $(src_dirs)
 INCLUDE_LOCATIONS += $(realpath .) $(src_dirs)
+
+ifeq ($(USE_RL),TRUE)
+  DEFINES += -DUSE_RL
+  LIBRARIES += -lzmq
+  INCLUDE_LOCATIONS += $(GRTECLYN_SOURCE)/GRTeclynCore/RL
+endif
 
 include $(GRTECLYN_HOME)/Tools/GNUMake/Make.rules

@@ -10,6 +10,9 @@
 #ifndef CCZ4RHSWITHMATTER_IMPL_HPP_
 #define CCZ4RHSWITHMATTER_IMPL_HPP_
 #include "DimensionDefinitions.hpp"
+#include "GRTresnaIndependentScalars.hpp"
+
+#include <type_traits>
 
 template <class matter_t, class gauge_t, class deriv_t>
 CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::CCZ4RHSWithMatter(
@@ -65,7 +68,15 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::operator()(
     add_emtensor_rhs(rhs_cell_data, vars, d1, coords);
 
     // add evolution of matter fields themselves
-    m_matter.add_matter_rhs(rhs_cell_data, vars, d1, d2, advec);
+    if constexpr (std::is_same_v<matter_t, GRTresnaIndependentScalars>)
+    {
+        m_matter.add_matter_rhs(rhs_cell_data, vars, d1, d2, advec, coords,
+                                m_time);
+    }
+    else
+    {
+        m_matter.add_matter_rhs(rhs_cell_data, vars, d1, d2, advec);
+    }
 
     // Add dissipation to all terms
     this->m_deriv.add_dissipation(ix, iy, iz, rhs_cell_data, state,
