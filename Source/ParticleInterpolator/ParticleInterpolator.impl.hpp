@@ -135,11 +135,9 @@ void ParticleInterpolator<num_components>::populate_from_query()
 
     const int myproc = amrex::ParallelDescriptor::MyProc();
 
-    const int lev = 0;
-
-    amrex::MFIter mfi = this->MakeMFIter(lev);
-    const int grid    = mfi.index();
-    const int tile    = mfi.LocalTileIndex();
+    const int lev  = 0;
+    const int grid = 0;
+    const int tile = 0;
 
     // it does not matter on which level the particles are initialised so
     // long as we Redistribute() them later
