@@ -168,15 +168,18 @@ def build_grtresna_config(
     is_boson = _is_boson_sector(overrides, matter_model)
 
     if is_boson:
+        allow_exotic = float(overrides.get("grtresna_boson_allow_exotic", 0.0)) >= 1.0
         if any(str(k).startswith("grtresna_shell_") for k in overrides):
             cfg.lumps = _expand_shell_lumps_from_overrides(
-                overrides, _get_float, canonical_boson=True
+                overrides, _get_float, canonical_boson=not allow_exotic
             )
         apply_boson_star_overrides(
             cfg,
             overrides,
             enable_exotic_safe_solver=_enable_exotic_safe_solver,
         )
+        if cfg.lumps and any(int(l.get("exotic", 0)) for l in cfg.lumps):
+            _enable_exotic_safe_solver()
         return cfg
 
     if apply_boson_star_overrides(

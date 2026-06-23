@@ -79,6 +79,42 @@ Shortcut launcher sets `GRTRESNA_MATTER_SECTOR=boson_star`, `OBJECTIVE_MODE=ftl_
 and `GRTRESNA_FULL_Z=1`. CMA-ES / HQ: `scripts/campaigns/boson_star/{cmaes_run,hq_run}.sh`.
 Exotic (phantom) boson: `GRTRESNA_MATTER_COUPLING=exotic` (`scalar_sign=-1`).
 
+**Bosonic shell + FTL (RL chassis)** — same **BosonStarBH** superposed shell as
+[grlab splash](../grlab/README.md) (`grtresna_complex_scalar`), but scored with
+**`general_ftl`** + 4D geodesic (not `critical_collapse`). Search space =
+`grtresna_boson_shell_search_space()` (~18-D shell geometry + boson mass/λ/ω).
+**Exotic is off by default** — see [Exotic matter](#exotic-matter-by-sector) below.
+
+```bash
+cd grteclyn-wrapper
+QD_NAME=boson_shell_ftl_rl_v1 \
+QD_TARGET_EVALS=200 \
+QD_ITERATIONS=30 \
+STOP_TIME=16.0 \
+PLOT_INTERVAL=320 \
+GRTECLYN_FRAMES=1 \
+GPU_IDS="0 1 2 3 4 5 6 7" \
+GPU_SLOTS_PER_DEVICE=1 \
+MAX_CONCURRENT_GRTRESNA=5 \
+BATCH_SIZE=8 \
+  nohup bash scripts/campaigns/boson_star/ftl_shell_run.sh \
+  > ../runs/boson_shell_ftl_rl_v1.launch.log 2>&1 &
+```
+
+Launcher: `scripts/campaigns/boson_star/ftl_shell_run.sh`. Pins static shell only
+(`grtresna_shell_static=1`); **exotic wedge search ON** (`GRTRESNA_BOSON_ALLOW_EXOTIC=1`).
+**`PLOT_INTERVAL=320`** → **6** plotfiles over t=16 (dt≈0.01). Output: `runs/grtresna_qd/boson_shell_ftl_rl_v1/`.
+RL handoff: [research/RL/LabJournal.md](../RL/LabJournal.md).
+
+| Knob | Boson shell FTL default | Notes |
+|------|-------------------------|-------|
+| Matter | `boson_star` + `shell` | `grtresna_complex_scalar` |
+| Coupling | **`canonical`** | Per-lump exotic via **`shell_exotic_fraction/phase`** |
+| Objective | `general_ftl` | dirs `x y z`, 4D `search` profile |
+| Exotic search dims | **`shell_exotic_fraction`, `shell_exotic_phase`** | **`GRTRESNA_BOSON_ALLOW_EXOTIC=1`** (launcher default) |
+| Frames | **on** (`GRTECLYN_FRAMES=1`) | projections `scalar_activity`, `phi` |
+| Stop / plots | t=16, interval 320 | 6 dumps per eval |
+
 | Knob | Default (search) | Notes |
 |------|------------------|-------|
 | Grid | N=128, L=64, ml=1 | GRTresna solve on 128³ domain |
@@ -271,6 +307,27 @@ Default remains the existing **real-scalar lump** path; boson star is opt-in.
 | **boson_star + canonical** | `grtresna_complex_scalar` | `BosonStarBH` | **7-D** (`spaces.py`) | U(1) charge conserved; `scalar_sign=+1` |
 | **boson_star + exotic** | `grtresna_complex_scalar` | `BosonStarBH` | **7-D** | Phantom boson; `scalar_sign=-1` |
 
+**Exotic matter by sector**
+
+| Sector / launcher | Exotic in search? | How to enable |
+|-------------------|-------------------|---------------|
+| **Real scalar shell** (`qd/run.sh`, `general_ftl/`) | **Yes** — `grtresna_shell_exotic_fraction`, `grtresna_lump{k}_exotic` | Default search dims; wormhole QD explores exotic mixes |
+| **Boson shell FTL** (`boson_star/ftl_shell_run.sh`) | **Yes** — `grtresna_shell_exotic_fraction`, `grtresna_shell_exotic_phase` | **`GRTRESNA_BOSON_ALLOW_EXOTIC=1`** (default in launcher); per-lump exotic via shell wedge |
+| **Boson splash** (`splash/run.sh`) | **No** — same boson-shell space + `PIN_DIMS` sign=1 | `critical_collapse`, not FTL |
+| **Centered 7-D boson** (`boson_star/run.sh`) | **Optional global sign** — dim exists but often pinned | `GRTRESNA_MATTER_COUPLING=exotic` → phantom boson (`scalar_sign=-1`); **not** per-lump exotic fraction |
+
+The **`boson_shell_ftl_rl_v1`** run uses **canonical coupling only**. MAP-Elites does **not**
+search exotic shell wedges or phantom `scalar_sign` unless you override pins and coupling, e.g.:
+
+```bash
+GRTRESNA_MATTER_COUPLING=exotic \
+PIN_DIMS="grtresna_shell_static=1" \
+  bash scripts/campaigns/boson_star/ftl_shell_run.sh
+```
+
+That flips the **whole** boson to phantom sign; it still does **not** restore real-scalar-style
+`grtresna_shell_exotic_fraction` (not implemented for BosonStarBH superposition paint).
+
 **7-D boson search dimensions:** `grtresna_scalar_mass`, `grtresna_scalar_lambda`,
 `grtresna_bs_phi_c`, `grtresna_bs_profile_width`, `grtresna_bs_omega` (pinned 0),
 `grtresna_scalar_sign`, `grtresna_shift_seed`.
@@ -434,7 +491,7 @@ Modes: `weighted` (plain sum) and `ftl_first` (validated FTL dominates).
 | Matter (initial data, boson star) | `../GRTresna/Examples/BosonStarBH/`, `Source/Matter/ComplexScalarField.cpp` |
 | Matter selector / wiring | `grteclyn_wrapper/grtresna/matter_models.py`, `matter_wiring.py` |
 | Boson search space (7-D) | `search/optimize/spaces.py` → `grtresna_boson_star_search_space()` |
-| Campaign launchers | `scripts/campaigns/qd/run.sh`, `cmaes/run.sh`, `general_ftl/run_all.sh`, **`boson_star/run.sh`** |
+| Campaign launchers | `scripts/campaigns/qd/run.sh`, `cmaes/run.sh`, `general_ftl/run_all.sh`, **`boson_star/ftl_shell_run.sh`**, `boson_star/run.sh` |
 
 ## Building the binaries (GRTresna + GRTeclyn)
 
@@ -554,6 +611,7 @@ Reverse-chronological journal. Quick index:
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
+| [**Boson shell FTL for RL (`boson_shell_ftl_rl_v1`)**](#boson-shell-ftl-for-rl-boson_shell_ftl_rl_v1-2026-06-23) | **06-23 running** | First **boson shell + `general_ftl`** QD for RL chassis: **200 evals**, t=16, **frames on**, 6 plots/eval; **exotic wedge search ON**. |
 | [**Boson star: unpinned QD + frames (v3)**](#boson-star-unpinned-qd--frames-v3-2026-06-18) | **06-18 complete** | First **unpinned 7-D** boson MAP-Elites: **12/12 evals**, **8 `gpu_ok`**, champion **eval 004** (−33.2). Frames on H100; `scalar_activity`/`phi` projections visible. |
 | [**Boson star: integration + GPU smoke**](#boson-star-matter-sector-integration--gpu-smoke-2026-06-18) | **06-18 complete** | Matter selector wired; pinned GPU smoke **2/2 `gpu_ok`**. Phase 1 = single centered Gaussian. |
 | [**v22 CMA-ES: wormhole refinement**](#v22-cma-es-wormhole-refinement-general_ftl_wormhole_cmaes_v1-2026-06-18) | **06-18 complete** | QD **063** (165.6) → CMA-ES **046** (**179.8**, +14.2). [HQ eval 046](#hq-eval-046-final-results-t30) **complete** — peak **7.57%** 4D @ t≈15.6, **−546** final @ t=30 (horizon kill). [Movies](#hq-eval-046-final-results-t30) in `movies/`. |
@@ -561,6 +619,86 @@ Reverse-chronological journal. Quick index:
 | [**v21: Pipelined QD + GPU tenancy**](#v21-pipelined-qd--gpu-tenancy-tuning-2026-06-17) | **06-17 stopped** | **Pipelined MAP-Elites** (`GpuPool` + `EvalPipeline`). **5 slots/GPU overloaded** H100s at t=16 (~3× slower/evol). **Working config:** 8 GPUs × **1 slot/GPU** + continuous GRTresna; **bottleneck** `MAX_CONCURRENT_GRTRESNA=3` → raise to **5+**. **26 evals:** 11 `gpu_ok`. Cold-start gap → [fixed in v22](#v22-pre-gpu-rejection-learning--v21-resume-2026-06-18). |
 | [**v10–v20: pipeline + runs**](#v10v20-pipeline-evolution--runs-2026-06-11--2026-06-17) | **06-11 → 06-17** | Scoring/geodesic hardening (v7–v16) → **4D probe + HQ** (eval **144** verified **~8%**) → **general_ftl** QD (ring eval **43** **~3.9%**). See glued section. |
 | [**Foundational (06-10)**](#foundational-entries-2026-06-10) | 06-10 | Matter model, navigation overhaul, status reset |
+
+---
+
+## Boson shell FTL for RL (`boson_shell_ftl_rl_v1`, 2026-06-23)
+
+**Status:** **running** — MAP-Elites QD for closed-loop RL initial-data elites.
+
+**Motivation.** Historical wormhole QD (`general_ftl_wormhole_v*`) used **real scalar** lumps.
+RL pump / lump tracker requires **`grtresna_complex_scalar`** (boson shell, same wiring as
+[grlab splash](../grlab/README.md)). Splash QD optimizes **`critical_collapse`**, not FTL.
+This campaign is the first **boson shell + `general_ftl`** survey aimed at elites with finite
+`ftl_geo_evolving` for [RL Tax Man training](../RL/LabJournal.md).
+
+**Run dir:** `runs/grtresna_qd/boson_shell_ftl_rl_v1/`
+
+### Launch
+
+```bash
+cd grteclyn-wrapper
+QD_NAME=boson_shell_ftl_rl_v1 \
+QD_TARGET_EVALS=200 \
+QD_ITERATIONS=30 \
+STOP_TIME=16.0 \
+PLOT_INTERVAL=320 \
+GRTECLYN_FRAMES=1 \
+GPU_IDS="0 1 2 3 4 5 6 7" \
+GPU_SLOTS_PER_DEVICE=1 \
+MAX_CONCURRENT_GRTRESNA=5 \
+BATCH_SIZE=8 \
+  nohup bash scripts/campaigns/boson_star/ftl_shell_run.sh \
+  > ../runs/boson_shell_ftl_rl_v1.launch.log 2>&1 &
+```
+
+| Knob | Value |
+|------|-------|
+| Launcher | `scripts/campaigns/boson_star/ftl_shell_run.sh` |
+| Matter | `GRTRESNA_MATTER_SECTOR=boson_star`, ansatz **shell**, `grtresna_complex_scalar` |
+| Search space | `grtresna_boson_shell_search_space(static=True, allow_exotic=True)` — shell geometry + mass/λ/ω + **exotic wedge** |
+| Objective | **`general_ftl`**, descriptor **`ftl_lifetime`**, 4D geodesic **`search`** |
+| Grid | N=128, L=64, ml=1 (search defaults) |
+| Stop / plots | **t=16**, **`PLOT_INTERVAL=320`** → **6** plotfiles per eval |
+| Frames | **`GRTECLYN_FRAMES=1`** |
+| Pipeline | v22-style (`USE_PIPELINE=1`, `MAX_CONCURRENT_GRTRESNA=5`, pre-GPU learning) |
+| Pins | `grtresna_shell_static=1` only (**no** `scalar_sign` pin) |
+
+### Exotic matter — **enabled (shell wedge search)**
+
+`ftl_shell_run.sh` sets **`GRTRESNA_BOSON_ALLOW_EXOTIC=1`** by default:
+
+- Search dims **`grtresna_shell_exotic_fraction`** and **`grtresna_shell_exotic_phase`** (same idiom as real-scalar wormhole QD)
+- Lump exotic flags wired into BosonStarBH paint; exotic-safe GRTresna solver when any lump is exotic
+- **`grtresna_scalar_sign` not pinned** — canonical coupling + searchable exotic wedge (not global phantom-only)
+
+Disable exotic wedge search (splash-style canonical-only):
+
+```bash
+GRTRESNA_BOSON_ALLOW_EXOTIC=0 PIN_DIMS="grtresna_scalar_sign=1 grtresna_shell_static=1" \
+  bash scripts/campaigns/boson_star/ftl_shell_run.sh
+```
+
+Global phantom boson (whole-field `scalar_sign=-1`, still no exotic-fraction dims):
+
+```bash
+GRTRESNA_BOSON_ALLOW_EXOTIC=0 GRTRESNA_MATTER_COUPLING=exotic \
+  PIN_DIMS="grtresna_shell_static=1" bash scripts/campaigns/boson_star/ftl_shell_run.sh
+```
+
+### Monitor
+
+```bash
+tail -f runs/boson_shell_ftl_rl_v1.launch.log
+tail -f runs/grtresna_qd/boson_shell_ftl_rl_v1/trajectory.jsonl
+cat runs/grtresna_qd/boson_shell_ftl_rl_v1/ftl_champions.json
+```
+
+### Handoff to RL
+
+Pick `gpu_ok` evals with finite **`ftl_geo_evolving`** and `initial_data.gridinit` for
+`recipe_initial_data_file` in RL gate / `train_motor.py` configs. Interim RL gates still use
+splash elite `spacetime_splash_v14_moving/eval_000010` until this QD completes.
 
 ---
 

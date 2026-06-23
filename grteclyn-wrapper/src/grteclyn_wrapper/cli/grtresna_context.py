@@ -58,11 +58,17 @@ def build_grtresna_search_context(
     # Detect whether shell_static is pinned (from --pin-dimension or base).
     # If pinned to 1, velocity dims are excluded from the search space.
     shell_static = True
+    boson_allow_exotic = False
     pin_specs = getattr(args, "pin_dimension", []) or []
     for spec in pin_specs:
         key, sep, val = spec.partition("=")
         if key.strip() == "grtresna_shell_static" and sep:
             shell_static = int(round(float(val))) >= 1
+
+    import os
+
+    if os.environ.get("GRTRESNA_BOSON_ALLOW_EXOTIC", "0").lower() in ("1", "true", "yes"):
+        boson_allow_exotic = True
 
     search_space = build_search_space(
         nonspherical=nonspherical,
@@ -72,6 +78,7 @@ def build_grtresna_search_context(
         grtresna_shell_profile=grtresna_shell_profile,
         grtresna_matter_sector=matter.sector,
         grtresna_shell_static=shell_static,
+        grtresna_boson_allow_exotic=boson_allow_exotic,
     )
     overrides = dict(base_overrides)
     if use_grtresna and matter.is_scalar and grtresna_ansatz == "ring":
@@ -80,6 +87,8 @@ def build_grtresna_search_context(
         overrides = {**overrides, "grtresna_shell_lumps": grtresna_lumps}
     if use_grtresna:
         overrides = {**overrides, **matter_selection_base_overrides(matter)}
+    if boson_allow_exotic:
+        overrides["grtresna_boson_allow_exotic"] = 1.0
     if nonspherical and not use_grtresna:
         overrides = {**ANGULAR_BASE_OVERRIDES, **overrides}
 

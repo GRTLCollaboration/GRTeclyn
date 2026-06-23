@@ -291,6 +291,7 @@ def grtresna_boson_shell_search_space(
     profile: str = "compact",
     *,
     static: bool = True,
+    allow_exotic: bool = False,
 ) -> list[SearchDimension]:
     """Canonical bosonic shell: shell geometry + boson-star convergence bounds.
 
@@ -302,11 +303,12 @@ def grtresna_boson_shell_search_space(
     When ``static=True`` (default), velocity dims are excluded and the campaign
     pins ``grtresna_shell_static=1``.  When ``static=False``, conservative
     velocity bounds are included for the moving-matter frame-dragging splash.
+
+    When ``allow_exotic=True`` (FTL wormhole / RL campaigns), ``shell_exotic_*``
+    search dims are kept and lump exotic flags are wired into BosonStarBH paint.
     """
     shell = grtresna_shell_search_space(profile=profile)
     skip = {
-        "grtresna_shell_exotic_fraction",
-        "grtresna_shell_exotic_phase",
         "grtresna_scalar_mass",
         "grtresna_scalar_lambda",
         "grtresna_shell_amp",
@@ -316,6 +318,11 @@ def grtresna_boson_shell_search_space(
         "grtresna_shell_radial_velocity",
         "grtresna_shell_omega",
     }
+    if not allow_exotic:
+        skip |= {
+            "grtresna_shell_exotic_fraction",
+            "grtresna_shell_exotic_phase",
+        }
     dims = [d for d in shell if d.param_key not in skip]
     # Amplitude capped at 0.12: pushing to 0.15 deepens the chi well so broadly
     # that the GPU evolution's chi-tagger refines ~100% of the domain (256^3
@@ -327,8 +334,9 @@ def grtresna_boson_shell_search_space(
         SearchDimension("grtresna_scalar_mass", 0.05, 0.35, 0.1),
         SearchDimension("grtresna_scalar_lambda", 0.0, 0.05, 0.0),
         SearchDimension("grtresna_bs_omega", 0.05, 0.35, 0.15),
-        SearchDimension("grtresna_scalar_sign", 1.0, 1.0, 1.0),
     ])
+    if not allow_exotic:
+        dims.append(SearchDimension("grtresna_scalar_sign", 1.0, 1.0, 1.0))
     if not static:
         dims.extend([
             # Spacetime-splash velocities.  RADIAL is the primary driver: a
@@ -391,6 +399,7 @@ def build_search_space(
     grtresna_shell_profile: str = "compact",
     grtresna_matter_sector: str = "scalar",
     grtresna_shell_static: bool = True,
+    grtresna_boson_allow_exotic: bool = False,
 ) -> list[SearchDimension]:
     """Return the optimizer search space.
 
@@ -409,12 +418,17 @@ def build_search_space(
 
     ``grtresna_shell_static`` controls whether velocity dims are included in
     the boson shell space (False = include momentum-carrying dims).
+
+    ``grtresna_boson_allow_exotic`` keeps ``shell_exotic_fraction/phase`` in the
+    boson-shell space (FTL campaigns); splash pins canonical-only.
     """
     if grtresna:
         if grtresna_matter_sector == "boson_star":
             if grtresna_ansatz == "shell":
                 return grtresna_boson_shell_search_space(
-                    profile=grtresna_shell_profile, static=grtresna_shell_static
+                    profile=grtresna_shell_profile,
+                    static=grtresna_shell_static,
+                    allow_exotic=grtresna_boson_allow_exotic,
                 )
             if grtresna_ansatz == "splash":
                 return grtresna_boson_splash_search_space()
