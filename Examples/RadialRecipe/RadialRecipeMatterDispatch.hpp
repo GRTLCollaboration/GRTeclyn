@@ -71,6 +71,8 @@ inline RLMatterPumpParams build_rl_pump(const SimulationParameters &params,
     pump.width           = params.rl_pump_width;
     pump.governor_center = params.rl_l2_ham_governor_center;
     pump.governor_width  = params.rl_l2_ham_governor_width;
+    pump.governor        = RLRuntime::tanh_governor(
+        RLRuntime::cached_L2_Ham(), pump.governor_center, pump.governor_width);
     pump.num_fields      = num_fields;
     for (int s = 0; s < n; ++s)
     {

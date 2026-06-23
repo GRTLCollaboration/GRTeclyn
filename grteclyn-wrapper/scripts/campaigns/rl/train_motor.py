@@ -10,9 +10,17 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import SubprocVecEnv
 
 from grteclyn_wrapper.rl.env import SpacetimeFtlEnv, SpacetimeFtlEnvConfig
+from grteclyn_wrapper.rl.params import read_rl_num_lumps
 
 
-def _make_env(port: int, gpu_id: int, episode_path: Path, executable: Path, params_file: Path):
+def _make_env(
+    port: int,
+    gpu_id: int,
+    episode_path: Path,
+    executable: Path,
+    params_file: Path,
+    num_lumps: int | None,
+):
     def _init():
         return SpacetimeFtlEnv(
             SpacetimeFtlEnvConfig(
@@ -21,6 +29,7 @@ def _make_env(port: int, gpu_id: int, episode_path: Path, executable: Path, para
                 params_file=params_file,
                 zmq_port=port,
                 gpu_id=gpu_id,
+                num_lumps=num_lumps,
             )
         )
 
@@ -37,7 +46,18 @@ def main() -> None:
     parser.add_argument("--timesteps", type=int, default=1_000_000)
     parser.add_argument("--gamma", type=float, default=0.999)
     parser.add_argument("--gae-lambda", type=float, default=0.95)
+    parser.add_argument(
+        "--num-lumps",
+        type=int,
+        default=None,
+        help="Tracked lumps (default: read rl_num_lumps from --params)",
+    )
     args = parser.parse_args()
+
+    num_lumps = args.num_lumps
+    if num_lumps is None:
+        num_lumps = read_rl_num_lumps(args.params)
+    print(f"RL motor: num_lumps={num_lumps} (action dim {3 * num_lumps + 2})")
 
     env_fns = [
         _make_env(
@@ -46,6 +66,7 @@ def main() -> None:
             args.episode_path,
             args.executable,
             args.params,
+            num_lumps,
         )
         for i in range(args.n_envs)
     ]

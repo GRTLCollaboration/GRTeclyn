@@ -1,0 +1,12 @@
+prefix=/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/zeromq
+exec_prefix=/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/zeromq
+libdir=/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/zeromq/lib
+includedir=/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/zeromq/include
+
+Name: libzmq
+Description: 0MQ c++ library
+Version: 4.3.5
+Libs: -L${libdir} -lzmq
+Libs.private: -lstdc++  -lrt
+Requires.private: 
+Cflags: -I${includedir} 

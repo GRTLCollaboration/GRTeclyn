@@ -1,6 +1,7 @@
 #include "ExternalGridInitialData.hpp"
 #include "RadialRecipeInitialData.hpp"
 #include "RadialRecipeLevel.hpp"
+#include "RadialRecipeMatterConstraints.hpp"
 #include "RadialRecipeMatterDispatch.hpp"
 #include "GRTresnaIndependentScalars.hpp"
 #include "ComplexScalarField.hpp"
@@ -154,25 +155,7 @@ ec_point_margins(amrex::Real rho, const amrex::Real jin[3],
 // Templated so the same reduction downstream can be fed either the canonical
 // ScalarField or the phantom ExoticScalarField, ensuring the constraint that is
 // measured uses the same matter that actually sources the evolution.
-template <class matter_t>
-void fill_matter_constraints(amrex::MultiFab &cst,
-                             const amrex::MultiFab &state_new,
-                             const matter_t &matter, amrex::Real dx0,
-                             const std::array<double, AMREX_SPACEDIM> &center,
-                             amrex::Real time)
-{
-    ConstraintsWithMatter<matter_t> my_constraints(
-        matter, dx0, 1.0, 0, Interval(1, 3), center, time);
-    for (amrex::MFIter mfi(cst, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const amrex::Box &bx = mfi.validbox();
-        const auto arr       = cst.array(mfi);
-        const auto src_arr   = state_new.const_array(mfi);
-        amrex::ParallelFor(
-            bx, [=] AMREX_GPU_DEVICE(int ix, int iy, int iz) noexcept
-            { my_constraints(ix, iy, iz, arr, src_arr); });
-    }
-}
+// (Definition in RadialRecipeMatterConstraints.hpp)
 
 // Reduce the pointwise observer-sampled energy-condition margins (NEC/WEC/SEC/
 // DEC) and the integrated NEC violation over the finest level, using the

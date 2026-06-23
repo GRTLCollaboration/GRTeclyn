@@ -5,7 +5,7 @@
 #ifndef GRTRESNA_INDEPENDENT_SCALARS_IMPL_HPP_
 #define GRTRESNA_INDEPENDENT_SCALARS_IMPL_HPP_
 
-AMREX_GPU_DEVICE emtensor_t GRTresnaIndependentScalars::compute_emtensor(
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE emtensor_t GRTresnaIndependentScalars::compute_emtensor(
     const Vars &vars, const D1Vars &d1, const Tensor<2, amrex::Real> &h_UU,
     const Tensor<3, amrex::Real> &chris_ULL) const
 {
@@ -57,7 +57,7 @@ AMREX_GPU_DEVICE emtensor_t GRTresnaIndependentScalars::compute_emtensor(
     return out;
 }
 
-AMREX_GPU_DEVICE emtensor_t GRTresnaIndependentScalars::compute_emtensor(
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE emtensor_t GRTresnaIndependentScalars::compute_emtensor(
     const Vars &vars, const D1Vars &d1, const Tensor<2, amrex::Real> &h_UU,
     const Tensor<3, amrex::Real> &chris_ULL, const Coordinates &coords,
     amrex::Real time) const
@@ -114,9 +114,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void GRTresnaIndependentScalars::add_matter_
     }
 
     // One spotlight per lump: site s drives lump s's conjugate momentum.
-    const amrex::Real governor = RLRuntime::tanh_governor(
-        RLRuntime::cached_L2_Ham(), m_pump.governor_center,
-        m_pump.governor_width);
+    const amrex::Real governor = m_pump.governor;
     const int n_sites =
         (m_pump.num_sites < m_num_fields) ? m_pump.num_sites : m_num_fields;
     for (int s = 0; s < n_sites; ++s)

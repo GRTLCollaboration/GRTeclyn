@@ -6,6 +6,7 @@
 #include "ExoticScalarField.hpp"
 #include "GRTresnaIndependentScalars.hpp"
 #include "RadialRecipeLevel.hpp"
+#include "RadialRecipeMatterConstraints.hpp"
 #include "RadialRecipeMatterDispatch.hpp"
 #include "ScalarField.hpp"
 #include "SetupFunctions.hpp"
@@ -25,11 +26,10 @@ compute_radial_recipe_constraint_norms(RadialRecipeLevel &level)
     RadialRecipeConstraintNorms out;
     const auto &sim_params = RadialRecipeLevel::simParams();
 
-    const amrex::Real time = level.get_state_data(RadialRecipeLevel::state_index)
-                                 .curTime();
-    amrex::MultiFab &state_new = level.get_new_data(RadialRecipeLevel::state_index);
-    FillPatch(level, state_new, 2, time, RadialRecipeLevel::state_index, 0,
-              state_new.nComp());
+    const amrex::Real time = level.get_state_data(state_index).curTime();
+    amrex::MultiFab &state_new = level.get_new_data(state_index);
+    amrex::AmrLevel::FillPatch(level, state_new, 2, time, state_index, 0,
+                               state_new.nComp());
 
     amrex::MultiFab cst(state_new.boxArray(), state_new.DistributionMap(), 4, 0);
     cst.setVal(0.0);

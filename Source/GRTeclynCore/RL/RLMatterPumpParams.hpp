@@ -28,6 +28,7 @@ struct RLMatterPumpParams
     double width{1.5};
     double governor_center{0.035};
     double governor_width{0.003};
+    double governor{1.0}; //!< host-precomputed tanh governor (device-safe)
     int num_fields{0};
 };
 

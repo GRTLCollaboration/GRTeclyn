@@ -37,8 +37,13 @@ INCLUDE_LOCATIONS += $(realpath .) $(src_dirs)
 
 ifeq ($(USE_RL),TRUE)
   DEFINES += -DUSE_RL
+  ZMQ_PREFIX ?= $(GRTECLYN_HOME)/local/zeromq
+  INCLUDE_LOCATIONS += $(GRTECLYN_SOURCE)/GRTeclynCore/RL $(ZMQ_PREFIX)/include
+  # -L must go in LDFLAGS here: Make.defs (already included above) consumes
+  # LIBRARY_LOCATIONS into LDFLAGS before this block runs, so adding it there
+  # would be too late.  LDFLAGS is expanded at the link rule, so this works.
+  LDFLAGS += -L$(ZMQ_PREFIX)/lib -Wl,-rpath,$(ZMQ_PREFIX)/lib
   LIBRARIES += -lzmq
-  INCLUDE_LOCATIONS += $(GRTECLYN_SOURCE)/GRTeclynCore/RL
 endif
 
 include $(GRTECLYN_HOME)/Tools/GNUMake/Make.rules

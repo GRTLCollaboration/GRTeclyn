@@ -5,7 +5,7 @@
 #ifndef COMPLEXSCALARFIELD_IMPL_HPP_
 #define COMPLEXSCALARFIELD_IMPL_HPP_
 
-AMREX_GPU_DEVICE emtensor_t ComplexScalarField::compute_emtensor(
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE emtensor_t ComplexScalarField::compute_emtensor(
     const Vars &vars, const D1Vars &d1, const Tensor<2, amrex::Real> &h_UU,
     const Tensor<3, amrex::Real> &chris_ULL) const
 {
@@ -88,7 +88,7 @@ AMREX_GPU_DEVICE emtensor_t ComplexScalarField::compute_emtensor(
     return out;
 }
 
-AMREX_GPU_DEVICE emtensor_t ComplexScalarField::compute_emtensor(
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE emtensor_t ComplexScalarField::compute_emtensor(
     const Vars &vars, const D1Vars &d1, const Tensor<2, amrex::Real> &h_UU,
     const Tensor<3, amrex::Real> &chris_ULL, const Coordinates &coords,
     amrex::Real time) const
@@ -152,9 +152,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void ComplexScalarField::add_matter_rhs(
     // components (c_Pi / c_Pi2); they reach different lumps because each
     // envelope is localized at that lump's tracked 3-D centre.  Pi1/Pi2 are
     // driven 90 deg out of phase => local U(1) (Noether-charge) injection.
-    const amrex::Real governor = RLRuntime::tanh_governor(
-        RLRuntime::cached_L2_Ham(), m_pump.governor_center,
-        m_pump.governor_width);
+    const amrex::Real governor = m_pump.governor;
     for (int s = 0; s < m_pump.num_sites; ++s)
     {
         const amrex::Real base = RLRuntime::compute_site_base(

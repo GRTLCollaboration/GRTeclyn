@@ -29,12 +29,12 @@ inline std::vector<double> collect_rl_observations(
     const int finest_lev = amr.finestLevel();
     auto &fine_level = dynamic_cast<RadialRecipeLevel &>(amr.getLevel(finest_lev));
     amrex::MultiFab &state_fine =
-        fine_level.get_new_data(RadialRecipeLevel::state_index);
+        fine_level.get_new_data(state_index);
     const amrex::Real time =
-        fine_level.get_state_data(RadialRecipeLevel::state_index).curTime();
+        fine_level.get_state_data(state_index).curTime();
 
-    FillPatch(fine_level, state_fine, 2, time, RadialRecipeLevel::state_index, 0,
-              state_fine.nComp());
+    amrex::AmrLevel::FillPatch(fine_level, state_fine, 2, time, state_index, 0,
+                               state_fine.nComp());
 
     amrex::ReduceOps<amrex::ReduceOpMin, amrex::ReduceOpMin, amrex::ReduceOpMax>
         reduce_ops;

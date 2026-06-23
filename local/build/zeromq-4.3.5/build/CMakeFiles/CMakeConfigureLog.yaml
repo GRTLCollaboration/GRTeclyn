@@ -1,0 +1,2187 @@
+
+---
+events:
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CMakeDetermineSystem.cmake:204 (message)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      The system is: Linux - 5.15.0-1044-nvidia - x86_64
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" succeeded.
+      Compiler: /usr/bin/cc 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      0
+      
+      
+      Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "a.out"
+      
+      The C compiler identification is GNU, found in:
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/3.26.1/CompilerIdC/a.out
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+      Compiler: /usr/bin/c++ 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      0
+      
+      
+      Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "a.out"
+      
+      The CXX compiler identification is GNU, found in:
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/3.26.1/CompilerIdCXX/a.out
+      
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CMakeDetermineCompilerABI.cmake:57 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    checks:
+      - "Detecting C compiler ABI info"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-zUf9YS"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-zUf9YS"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+    buildResult:
+      variable: "CMAKE_C_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-zUf9YS
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_b6cf5/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_b6cf5.dir/build.make CMakeFiles/cmTC_b6cf5.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-zUf9YS'
+        Building C object CMakeFiles/cmTC_b6cf5.dir/CMakeCCompilerABI.c.o
+        /usr/bin/cc   -v -o CMakeFiles/cmTC_b6cf5.dir/CMakeCCompilerABI.c.o -c /opt/cmake-3.26.1/share/cmake-3.26/Modules/CMakeCCompilerABI.c
+        Using built-in specs.
+        COLLECT_GCC=/usr/bin/cc
+        OFFLOAD_TARGET_NAMES=nvptx-none:amdgcn-amdhsa
+        OFFLOAD_TARGET_DEFAULT=1
+        Target: x86_64-linux-gnu
+        Configured with: ../src/configure -v --with-pkgversion='Ubuntu 11.4.0-1ubuntu1~22.04' --with-bugurl=file:///usr/share/doc/gcc-11/README.Bugs --enable-languages=c,ada,c++,go,brig,d,fortran,objc,obj-c++,m2 --prefix=/usr --with-gcc-major-version-only --program-suffix=-11 --program-prefix=x86_64-linux-gnu- --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --enable-bootstrap --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-vtable-verify --enable-plugin --enable-default-pie --with-system-zlib --enable-libphobos-checking=release --with-target-system-zlib=auto --enable-objc-gc=auto --enable-multiarch --disable-werror --enable-cet --with-arch-32=i686 --with-abi=m64 --with-multilib-list=m32,m64,mx32 --enable-multilib --with-tune=generic --enable-offload-targets=nvptx-none=/build/gcc-11-XeT9lY/gcc-11-11.4.0/debian/tmp-nvptx/usr,amdgcn-amdhsa=/build/gcc-11-XeT9lY/gcc-11-11.4.0/debian/tmp-gcn/usr --without-cuda-driver --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu --with-build-config=bootstrap-lto-lean --enable-link-serialization=2
+        Thread model: posix
+        Supported LTO compression algorithms: zlib zstd
+        gcc version 11.4.0 (Ubuntu 11.4.0-1ubuntu1~22.04) 
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_b6cf5.dir/CMakeCCompilerABI.c.o' '-c' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_b6cf5.dir/'
+         /usr/lib/gcc/x86_64-linux-gnu/11/cc1 -quiet -v -imultiarch x86_64-linux-gnu /opt/cmake-3.26.1/share/cmake-3.26/Modules/CMakeCCompilerABI.c -quiet -dumpdir CMakeFiles/cmTC_b6cf5.dir/ -dumpbase CMakeCCompilerABI.c.c -dumpbase-ext .c -mtune=generic -march=x86-64 -version -fasynchronous-unwind-tables -fstack-protector-strong -Wformat -Wformat-security -fstack-clash-protection -fcf-protection -o /tmp/ccVdStRj.s
+        GNU C17 (Ubuntu 11.4.0-1ubuntu1~22.04) version 11.4.0 (x86_64-linux-gnu)
+        	compiled by GNU C version 11.4.0, GMP version 6.2.1, MPFR version 4.1.0, MPC version 1.2.1, isl version isl-0.24-GMP
+        
+        GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+        ignoring nonexistent directory "/usr/local/include/x86_64-linux-gnu"
+        ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/11/include-fixed"
+        ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/11/../../../../x86_64-linux-gnu/include"
+        #include "..." search starts here:
+        #include <...> search starts here:
+         /usr/lib/gcc/x86_64-linux-gnu/11/include
+         /usr/local/include
+         /usr/include/x86_64-linux-gnu
+         /usr/include
+        End of search list.
+        GNU C17 (Ubuntu 11.4.0-1ubuntu1~22.04) version 11.4.0 (x86_64-linux-gnu)
+        	compiled by GNU C version 11.4.0, GMP version 6.2.1, MPFR version 4.1.0, MPC version 1.2.1, isl version isl-0.24-GMP
+        
+        GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+        Compiler executable checksum: 50eaa2331df977b8016186198deb2d18
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_b6cf5.dir/CMakeCCompilerABI.c.o' '-c' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_b6cf5.dir/'
+         as -v --64 -o CMakeFiles/cmTC_b6cf5.dir/CMakeCCompilerABI.c.o /tmp/ccVdStRj.s
+        GNU assembler version 2.38 (x86_64-linux-gnu) using BFD version (GNU Binutils for Ubuntu) 2.38
+        COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/
+        LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../:/lib/:/usr/lib/
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_b6cf5.dir/CMakeCCompilerABI.c.o' '-c' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_b6cf5.dir/CMakeCCompilerABI.c.'
+        Linking C executable cmTC_b6cf5
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_b6cf5.dir/link.txt --verbose=1
+        /usr/bin/cc  -v -rdynamic CMakeFiles/cmTC_b6cf5.dir/CMakeCCompilerABI.c.o -o cmTC_b6cf5 
+        Using built-in specs.
+        COLLECT_GCC=/usr/bin/cc
+        COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/11/lto-wrapper
+        OFFLOAD_TARGET_NAMES=nvptx-none:amdgcn-amdhsa
+        OFFLOAD_TARGET_DEFAULT=1
+        Target: x86_64-linux-gnu
+        Configured with: ../src/configure -v --with-pkgversion='Ubuntu 11.4.0-1ubuntu1~22.04' --with-bugurl=file:///usr/share/doc/gcc-11/README.Bugs --enable-languages=c,ada,c++,go,brig,d,fortran,objc,obj-c++,m2 --prefix=/usr --with-gcc-major-version-only --program-suffix=-11 --program-prefix=x86_64-linux-gnu- --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --enable-bootstrap --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-vtable-verify --enable-plugin --enable-default-pie --with-system-zlib --enable-libphobos-checking=release --with-target-system-zlib=auto --enable-objc-gc=auto --enable-multiarch --disable-werror --enable-cet --with-arch-32=i686 --with-abi=m64 --with-multilib-list=m32,m64,mx32 --enable-multilib --with-tune=generic --enable-offload-targets=nvptx-none=/build/gcc-11-XeT9lY/gcc-11-11.4.0/debian/tmp-nvptx/usr,amdgcn-amdhsa=/build/gcc-11-XeT9lY/gcc-11-11.4.0/debian/tmp-gcn/usr --without-cuda-driver --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu --with-build-config=bootstrap-lto-lean --enable-link-serialization=2
+        Thread model: posix
+        Supported LTO compression algorithms: zlib zstd
+        gcc version 11.4.0 (Ubuntu 11.4.0-1ubuntu1~22.04) 
+        COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/
+        LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../:/lib/:/usr/lib/
+        COLLECT_GCC_OPTIONS='-v' '-rdynamic' '-o' 'cmTC_b6cf5' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_b6cf5.'
+         /usr/lib/gcc/x86_64-linux-gnu/11/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/11/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/11/lto-wrapper -plugin-opt=-fresolution=/tmp/ccWJRbs1.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -export-dynamic -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_b6cf5 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/11 -L/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/11/../../.. CMakeFiles/cmTC_b6cf5.dir/CMakeCCompilerABI.c.o -lgcc --push-state --as-needed -lgcc_s --pop-state -lc -lgcc --push-state --as-needed -lgcc_s --pop-state /usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crtn.o
+        COLLECT_GCC_OPTIONS='-v' '-rdynamic' '-o' 'cmTC_b6cf5' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_b6cf5.'
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-zUf9YS'
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CMakeDetermineCompilerABI.cmake:127 (message)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Parsed C implicit include dir info: rv=done
+        found start of include info
+        found start of implicit include info
+          add: [/usr/lib/gcc/x86_64-linux-gnu/11/include]
+          add: [/usr/local/include]
+          add: [/usr/include/x86_64-linux-gnu]
+          add: [/usr/include]
+        end of search list found
+        collapse include dir [/usr/lib/gcc/x86_64-linux-gnu/11/include] ==> [/usr/lib/gcc/x86_64-linux-gnu/11/include]
+        collapse include dir [/usr/local/include] ==> [/usr/local/include]
+        collapse include dir [/usr/include/x86_64-linux-gnu] ==> [/usr/include/x86_64-linux-gnu]
+        collapse include dir [/usr/include] ==> [/usr/include]
+        implicit include dirs: [/usr/lib/gcc/x86_64-linux-gnu/11/include;/usr/local/include;/usr/include/x86_64-linux-gnu;/usr/include]
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CMakeDetermineCompilerABI.cmake:152 (message)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Parsed C implicit link information:
+        link line regex: [^( *|.*[/\\])(ld|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        ignore line: [Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-zUf9YS]
+        ignore line: []
+        ignore line: [Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_b6cf5/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_b6cf5.dir/build.make CMakeFiles/cmTC_b6cf5.dir/build]
+        ignore line: [gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-zUf9YS']
+        ignore line: [Building C object CMakeFiles/cmTC_b6cf5.dir/CMakeCCompilerABI.c.o]
+        ignore line: [/usr/bin/cc   -v -o CMakeFiles/cmTC_b6cf5.dir/CMakeCCompilerABI.c.o -c /opt/cmake-3.26.1/share/cmake-3.26/Modules/CMakeCCompilerABI.c]
+        ignore line: [Using built-in specs.]
+        ignore line: [COLLECT_GCC=/usr/bin/cc]
+        ignore line: [OFFLOAD_TARGET_NAMES=nvptx-none:amdgcn-amdhsa]
+        ignore line: [OFFLOAD_TARGET_DEFAULT=1]
+        ignore line: [Target: x86_64-linux-gnu]
+        ignore line: [Configured with: ../src/configure -v --with-pkgversion='Ubuntu 11.4.0-1ubuntu1~22.04' --with-bugurl=file:///usr/share/doc/gcc-11/README.Bugs --enable-languages=c ada c++ go brig d fortran objc obj-c++ m2 --prefix=/usr --with-gcc-major-version-only --program-suffix=-11 --program-prefix=x86_64-linux-gnu- --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --enable-bootstrap --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-vtable-verify --enable-plugin --enable-default-pie --with-system-zlib --enable-libphobos-checking=release --with-target-system-zlib=auto --enable-objc-gc=auto --enable-multiarch --disable-werror --enable-cet --with-arch-32=i686 --with-abi=m64 --with-multilib-list=m32 m64 mx32 --enable-multilib --with-tune=generic --enable-offload-targets=nvptx-none=/build/gcc-11-XeT9lY/gcc-11-11.4.0/debian/tmp-nvptx/usr amdgcn-amdhsa=/build/gcc-11-XeT9lY/gcc-11-11.4.0/debian/tmp-gcn/usr --without-cuda-driver --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu --with-build-config=bootstrap-lto-lean --enable-link-serialization=2]
+        ignore line: [Thread model: posix]
+        ignore line: [Supported LTO compression algorithms: zlib zstd]
+        ignore line: [gcc version 11.4.0 (Ubuntu 11.4.0-1ubuntu1~22.04) ]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_b6cf5.dir/CMakeCCompilerABI.c.o' '-c' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_b6cf5.dir/']
+        ignore line: [ /usr/lib/gcc/x86_64-linux-gnu/11/cc1 -quiet -v -imultiarch x86_64-linux-gnu /opt/cmake-3.26.1/share/cmake-3.26/Modules/CMakeCCompilerABI.c -quiet -dumpdir CMakeFiles/cmTC_b6cf5.dir/ -dumpbase CMakeCCompilerABI.c.c -dumpbase-ext .c -mtune=generic -march=x86-64 -version -fasynchronous-unwind-tables -fstack-protector-strong -Wformat -Wformat-security -fstack-clash-protection -fcf-protection -o /tmp/ccVdStRj.s]
+        ignore line: [GNU C17 (Ubuntu 11.4.0-1ubuntu1~22.04) version 11.4.0 (x86_64-linux-gnu)]
+        ignore line: [	compiled by GNU C version 11.4.0  GMP version 6.2.1  MPFR version 4.1.0  MPC version 1.2.1  isl version isl-0.24-GMP]
+        ignore line: []
+        ignore line: [GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072]
+        ignore line: [ignoring nonexistent directory "/usr/local/include/x86_64-linux-gnu"]
+        ignore line: [ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/11/include-fixed"]
+        ignore line: [ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/11/../../../../x86_64-linux-gnu/include"]
+        ignore line: [#include "..." search starts here:]
+        ignore line: [#include <...> search starts here:]
+        ignore line: [ /usr/lib/gcc/x86_64-linux-gnu/11/include]
+        ignore line: [ /usr/local/include]
+        ignore line: [ /usr/include/x86_64-linux-gnu]
+        ignore line: [ /usr/include]
+        ignore line: [End of search list.]
+        ignore line: [GNU C17 (Ubuntu 11.4.0-1ubuntu1~22.04) version 11.4.0 (x86_64-linux-gnu)]
+        ignore line: [	compiled by GNU C version 11.4.0  GMP version 6.2.1  MPFR version 4.1.0  MPC version 1.2.1  isl version isl-0.24-GMP]
+        ignore line: []
+        ignore line: [GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072]
+        ignore line: [Compiler executable checksum: 50eaa2331df977b8016186198deb2d18]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_b6cf5.dir/CMakeCCompilerABI.c.o' '-c' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_b6cf5.dir/']
+        ignore line: [ as -v --64 -o CMakeFiles/cmTC_b6cf5.dir/CMakeCCompilerABI.c.o /tmp/ccVdStRj.s]
+        ignore line: [GNU assembler version 2.38 (x86_64-linux-gnu) using BFD version (GNU Binutils for Ubuntu) 2.38]
+        ignore line: [COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/]
+        ignore line: [LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../:/lib/:/usr/lib/]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_b6cf5.dir/CMakeCCompilerABI.c.o' '-c' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_b6cf5.dir/CMakeCCompilerABI.c.']
+        ignore line: [Linking C executable cmTC_b6cf5]
+        ignore line: [/opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_b6cf5.dir/link.txt --verbose=1]
+        ignore line: [/usr/bin/cc  -v -rdynamic CMakeFiles/cmTC_b6cf5.dir/CMakeCCompilerABI.c.o -o cmTC_b6cf5 ]
+        ignore line: [Using built-in specs.]
+        ignore line: [COLLECT_GCC=/usr/bin/cc]
+        ignore line: [COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/11/lto-wrapper]
+        ignore line: [OFFLOAD_TARGET_NAMES=nvptx-none:amdgcn-amdhsa]
+        ignore line: [OFFLOAD_TARGET_DEFAULT=1]
+        ignore line: [Target: x86_64-linux-gnu]
+        ignore line: [Configured with: ../src/configure -v --with-pkgversion='Ubuntu 11.4.0-1ubuntu1~22.04' --with-bugurl=file:///usr/share/doc/gcc-11/README.Bugs --enable-languages=c ada c++ go brig d fortran objc obj-c++ m2 --prefix=/usr --with-gcc-major-version-only --program-suffix=-11 --program-prefix=x86_64-linux-gnu- --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --enable-bootstrap --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-vtable-verify --enable-plugin --enable-default-pie --with-system-zlib --enable-libphobos-checking=release --with-target-system-zlib=auto --enable-objc-gc=auto --enable-multiarch --disable-werror --enable-cet --with-arch-32=i686 --with-abi=m64 --with-multilib-list=m32 m64 mx32 --enable-multilib --with-tune=generic --enable-offload-targets=nvptx-none=/build/gcc-11-XeT9lY/gcc-11-11.4.0/debian/tmp-nvptx/usr amdgcn-amdhsa=/build/gcc-11-XeT9lY/gcc-11-11.4.0/debian/tmp-gcn/usr --without-cuda-driver --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu --with-build-config=bootstrap-lto-lean --enable-link-serialization=2]
+        ignore line: [Thread model: posix]
+        ignore line: [Supported LTO compression algorithms: zlib zstd]
+        ignore line: [gcc version 11.4.0 (Ubuntu 11.4.0-1ubuntu1~22.04) ]
+        ignore line: [COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/]
+        ignore line: [LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../:/lib/:/usr/lib/]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-rdynamic' '-o' 'cmTC_b6cf5' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_b6cf5.']
+        link line: [ /usr/lib/gcc/x86_64-linux-gnu/11/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/11/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/11/lto-wrapper -plugin-opt=-fresolution=/tmp/ccWJRbs1.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -export-dynamic -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_b6cf5 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/11 -L/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/11/../../.. CMakeFiles/cmTC_b6cf5.dir/CMakeCCompilerABI.c.o -lgcc --push-state --as-needed -lgcc_s --pop-state -lc -lgcc --push-state --as-needed -lgcc_s --pop-state /usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crtn.o]
+          arg [/usr/lib/gcc/x86_64-linux-gnu/11/collect2] ==> ignore
+          arg [-plugin] ==> ignore
+          arg [/usr/lib/gcc/x86_64-linux-gnu/11/liblto_plugin.so] ==> ignore
+          arg [-plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/11/lto-wrapper] ==> ignore
+          arg [-plugin-opt=-fresolution=/tmp/ccWJRbs1.res] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc_s] ==> ignore
+          arg [-plugin-opt=-pass-through=-lc] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc_s] ==> ignore
+          arg [--build-id] ==> ignore
+          arg [--eh-frame-hdr] ==> ignore
+          arg [-m] ==> ignore
+          arg [elf_x86_64] ==> ignore
+          arg [--hash-style=gnu] ==> ignore
+          arg [--as-needed] ==> ignore
+          arg [-export-dynamic] ==> ignore
+          arg [-dynamic-linker] ==> ignore
+          arg [/lib64/ld-linux-x86-64.so.2] ==> ignore
+          arg [-pie] ==> ignore
+          arg [-znow] ==> ignore
+          arg [-zrelro] ==> ignore
+          arg [-o] ==> ignore
+          arg [cmTC_b6cf5] ==> ignore
+          arg [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o] ==> obj [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o]
+          arg [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crti.o] ==> obj [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crti.o]
+          arg [/usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o] ==> obj [/usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o]
+          arg [-L/usr/lib/gcc/x86_64-linux-gnu/11] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/11]
+          arg [-L/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu]
+          arg [-L/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib]
+          arg [-L/lib/x86_64-linux-gnu] ==> dir [/lib/x86_64-linux-gnu]
+          arg [-L/lib/../lib] ==> dir [/lib/../lib]
+          arg [-L/usr/lib/x86_64-linux-gnu] ==> dir [/usr/lib/x86_64-linux-gnu]
+          arg [-L/usr/lib/../lib] ==> dir [/usr/lib/../lib]
+          arg [-L/usr/lib/gcc/x86_64-linux-gnu/11/../../..] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/11/../../..]
+          arg [CMakeFiles/cmTC_b6cf5.dir/CMakeCCompilerABI.c.o] ==> ignore
+          arg [-lgcc] ==> lib [gcc]
+          arg [--push-state] ==> ignore
+          arg [--as-needed] ==> ignore
+          arg [-lgcc_s] ==> lib [gcc_s]
+          arg [--pop-state] ==> ignore
+          arg [-lc] ==> lib [c]
+          arg [-lgcc] ==> lib [gcc]
+          arg [--push-state] ==> ignore
+          arg [--as-needed] ==> ignore
+          arg [-lgcc_s] ==> lib [gcc_s]
+          arg [--pop-state] ==> ignore
+          arg [/usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o] ==> obj [/usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o]
+          arg [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crtn.o] ==> obj [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crtn.o]
+        collapse obj [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o] ==> [/usr/lib/x86_64-linux-gnu/Scrt1.o]
+        collapse obj [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crti.o] ==> [/usr/lib/x86_64-linux-gnu/crti.o]
+        collapse obj [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crtn.o] ==> [/usr/lib/x86_64-linux-gnu/crtn.o]
+        collapse library dir [/usr/lib/gcc/x86_64-linux-gnu/11] ==> [/usr/lib/gcc/x86_64-linux-gnu/11]
+        collapse library dir [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu] ==> [/usr/lib/x86_64-linux-gnu]
+        collapse library dir [/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib] ==> [/usr/lib]
+        collapse library dir [/lib/x86_64-linux-gnu] ==> [/lib/x86_64-linux-gnu]
+        collapse library dir [/lib/../lib] ==> [/lib]
+        collapse library dir [/usr/lib/x86_64-linux-gnu] ==> [/usr/lib/x86_64-linux-gnu]
+        collapse library dir [/usr/lib/../lib] ==> [/usr/lib]
+        collapse library dir [/usr/lib/gcc/x86_64-linux-gnu/11/../../..] ==> [/usr/lib]
+        implicit libs: [gcc;gcc_s;c;gcc;gcc_s]
+        implicit objs: [/usr/lib/x86_64-linux-gnu/Scrt1.o;/usr/lib/x86_64-linux-gnu/crti.o;/usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o;/usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o;/usr/lib/x86_64-linux-gnu/crtn.o]
+        implicit dirs: [/usr/lib/gcc/x86_64-linux-gnu/11;/usr/lib/x86_64-linux-gnu;/usr/lib;/lib/x86_64-linux-gnu;/lib]
+        implicit fwks: []
+      
+      
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CMakeDetermineCompilerABI.cmake:57 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    checks:
+      - "Detecting CXX compiler ABI info"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-qj0tvT"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-qj0tvT"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+    buildResult:
+      variable: "CMAKE_CXX_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-qj0tvT
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_cdf32/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_cdf32.dir/build.make CMakeFiles/cmTC_cdf32.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-qj0tvT'
+        Building CXX object CMakeFiles/cmTC_cdf32.dir/CMakeCXXCompilerABI.cpp.o
+        /usr/bin/c++   -v -o CMakeFiles/cmTC_cdf32.dir/CMakeCXXCompilerABI.cpp.o -c /opt/cmake-3.26.1/share/cmake-3.26/Modules/CMakeCXXCompilerABI.cpp
+        Using built-in specs.
+        COLLECT_GCC=/usr/bin/c++
+        OFFLOAD_TARGET_NAMES=nvptx-none:amdgcn-amdhsa
+        OFFLOAD_TARGET_DEFAULT=1
+        Target: x86_64-linux-gnu
+        Configured with: ../src/configure -v --with-pkgversion='Ubuntu 11.4.0-1ubuntu1~22.04' --with-bugurl=file:///usr/share/doc/gcc-11/README.Bugs --enable-languages=c,ada,c++,go,brig,d,fortran,objc,obj-c++,m2 --prefix=/usr --with-gcc-major-version-only --program-suffix=-11 --program-prefix=x86_64-linux-gnu- --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --enable-bootstrap --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-vtable-verify --enable-plugin --enable-default-pie --with-system-zlib --enable-libphobos-checking=release --with-target-system-zlib=auto --enable-objc-gc=auto --enable-multiarch --disable-werror --enable-cet --with-arch-32=i686 --with-abi=m64 --with-multilib-list=m32,m64,mx32 --enable-multilib --with-tune=generic --enable-offload-targets=nvptx-none=/build/gcc-11-XeT9lY/gcc-11-11.4.0/debian/tmp-nvptx/usr,amdgcn-amdhsa=/build/gcc-11-XeT9lY/gcc-11-11.4.0/debian/tmp-gcn/usr --without-cuda-driver --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu --with-build-config=bootstrap-lto-lean --enable-link-serialization=2
+        Thread model: posix
+        Supported LTO compression algorithms: zlib zstd
+        gcc version 11.4.0 (Ubuntu 11.4.0-1ubuntu1~22.04) 
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_cdf32.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_cdf32.dir/'
+         /usr/lib/gcc/x86_64-linux-gnu/11/cc1plus -quiet -v -imultiarch x86_64-linux-gnu -D_GNU_SOURCE /opt/cmake-3.26.1/share/cmake-3.26/Modules/CMakeCXXCompilerABI.cpp -quiet -dumpdir CMakeFiles/cmTC_cdf32.dir/ -dumpbase CMakeCXXCompilerABI.cpp.cpp -dumpbase-ext .cpp -mtune=generic -march=x86-64 -version -fasynchronous-unwind-tables -fstack-protector-strong -Wformat -Wformat-security -fstack-clash-protection -fcf-protection -o /tmp/ccU7Hglv.s
+        GNU C++17 (Ubuntu 11.4.0-1ubuntu1~22.04) version 11.4.0 (x86_64-linux-gnu)
+        	compiled by GNU C version 11.4.0, GMP version 6.2.1, MPFR version 4.1.0, MPC version 1.2.1, isl version isl-0.24-GMP
+        
+        GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+        ignoring duplicate directory "/usr/include/x86_64-linux-gnu/c++/11"
+        ignoring nonexistent directory "/usr/local/include/x86_64-linux-gnu"
+        ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/11/include-fixed"
+        ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/11/../../../../x86_64-linux-gnu/include"
+        #include "..." search starts here:
+        #include <...> search starts here:
+         /usr/include/c++/11
+         /usr/include/x86_64-linux-gnu/c++/11
+         /usr/include/c++/11/backward
+         /usr/lib/gcc/x86_64-linux-gnu/11/include
+         /usr/local/include
+         /usr/include/x86_64-linux-gnu
+         /usr/include
+        End of search list.
+        GNU C++17 (Ubuntu 11.4.0-1ubuntu1~22.04) version 11.4.0 (x86_64-linux-gnu)
+        	compiled by GNU C version 11.4.0, GMP version 6.2.1, MPFR version 4.1.0, MPC version 1.2.1, isl version isl-0.24-GMP
+        
+        GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+        Compiler executable checksum: d591828bb4d392ae8b7b160e5bb0b95f
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_cdf32.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_cdf32.dir/'
+         as -v --64 -o CMakeFiles/cmTC_cdf32.dir/CMakeCXXCompilerABI.cpp.o /tmp/ccU7Hglv.s
+        GNU assembler version 2.38 (x86_64-linux-gnu) using BFD version (GNU Binutils for Ubuntu) 2.38
+        COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/
+        LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../:/lib/:/usr/lib/
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_cdf32.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_cdf32.dir/CMakeCXXCompilerABI.cpp.'
+        Linking CXX executable cmTC_cdf32
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_cdf32.dir/link.txt --verbose=1
+        /usr/bin/c++  -v -rdynamic CMakeFiles/cmTC_cdf32.dir/CMakeCXXCompilerABI.cpp.o -o cmTC_cdf32 
+        Using built-in specs.
+        COLLECT_GCC=/usr/bin/c++
+        COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/11/lto-wrapper
+        OFFLOAD_TARGET_NAMES=nvptx-none:amdgcn-amdhsa
+        OFFLOAD_TARGET_DEFAULT=1
+        Target: x86_64-linux-gnu
+        Configured with: ../src/configure -v --with-pkgversion='Ubuntu 11.4.0-1ubuntu1~22.04' --with-bugurl=file:///usr/share/doc/gcc-11/README.Bugs --enable-languages=c,ada,c++,go,brig,d,fortran,objc,obj-c++,m2 --prefix=/usr --with-gcc-major-version-only --program-suffix=-11 --program-prefix=x86_64-linux-gnu- --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --enable-bootstrap --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-vtable-verify --enable-plugin --enable-default-pie --with-system-zlib --enable-libphobos-checking=release --with-target-system-zlib=auto --enable-objc-gc=auto --enable-multiarch --disable-werror --enable-cet --with-arch-32=i686 --with-abi=m64 --with-multilib-list=m32,m64,mx32 --enable-multilib --with-tune=generic --enable-offload-targets=nvptx-none=/build/gcc-11-XeT9lY/gcc-11-11.4.0/debian/tmp-nvptx/usr,amdgcn-amdhsa=/build/gcc-11-XeT9lY/gcc-11-11.4.0/debian/tmp-gcn/usr --without-cuda-driver --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu --with-build-config=bootstrap-lto-lean --enable-link-serialization=2
+        Thread model: posix
+        Supported LTO compression algorithms: zlib zstd
+        gcc version 11.4.0 (Ubuntu 11.4.0-1ubuntu1~22.04) 
+        COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/
+        LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../:/lib/:/usr/lib/
+        COLLECT_GCC_OPTIONS='-v' '-rdynamic' '-o' 'cmTC_cdf32' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_cdf32.'
+         /usr/lib/gcc/x86_64-linux-gnu/11/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/11/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/11/lto-wrapper -plugin-opt=-fresolution=/tmp/ccxlLbsP.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -export-dynamic -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_cdf32 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/11 -L/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/11/../../.. CMakeFiles/cmTC_cdf32.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crtn.o
+        COLLECT_GCC_OPTIONS='-v' '-rdynamic' '-o' 'cmTC_cdf32' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_cdf32.'
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-qj0tvT'
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CMakeDetermineCompilerABI.cmake:127 (message)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Parsed CXX implicit include dir info: rv=done
+        found start of include info
+        found start of implicit include info
+          add: [/usr/include/c++/11]
+          add: [/usr/include/x86_64-linux-gnu/c++/11]
+          add: [/usr/include/c++/11/backward]
+          add: [/usr/lib/gcc/x86_64-linux-gnu/11/include]
+          add: [/usr/local/include]
+          add: [/usr/include/x86_64-linux-gnu]
+          add: [/usr/include]
+        end of search list found
+        collapse include dir [/usr/include/c++/11] ==> [/usr/include/c++/11]
+        collapse include dir [/usr/include/x86_64-linux-gnu/c++/11] ==> [/usr/include/x86_64-linux-gnu/c++/11]
+        collapse include dir [/usr/include/c++/11/backward] ==> [/usr/include/c++/11/backward]
+        collapse include dir [/usr/lib/gcc/x86_64-linux-gnu/11/include] ==> [/usr/lib/gcc/x86_64-linux-gnu/11/include]
+        collapse include dir [/usr/local/include] ==> [/usr/local/include]
+        collapse include dir [/usr/include/x86_64-linux-gnu] ==> [/usr/include/x86_64-linux-gnu]
+        collapse include dir [/usr/include] ==> [/usr/include]
+        implicit include dirs: [/usr/include/c++/11;/usr/include/x86_64-linux-gnu/c++/11;/usr/include/c++/11/backward;/usr/lib/gcc/x86_64-linux-gnu/11/include;/usr/local/include;/usr/include/x86_64-linux-gnu;/usr/include]
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CMakeDetermineCompilerABI.cmake:152 (message)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Parsed CXX implicit link information:
+        link line regex: [^( *|.*[/\\])(ld|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        ignore line: [Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-qj0tvT]
+        ignore line: []
+        ignore line: [Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_cdf32/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_cdf32.dir/build.make CMakeFiles/cmTC_cdf32.dir/build]
+        ignore line: [gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-qj0tvT']
+        ignore line: [Building CXX object CMakeFiles/cmTC_cdf32.dir/CMakeCXXCompilerABI.cpp.o]
+        ignore line: [/usr/bin/c++   -v -o CMakeFiles/cmTC_cdf32.dir/CMakeCXXCompilerABI.cpp.o -c /opt/cmake-3.26.1/share/cmake-3.26/Modules/CMakeCXXCompilerABI.cpp]
+        ignore line: [Using built-in specs.]
+        ignore line: [COLLECT_GCC=/usr/bin/c++]
+        ignore line: [OFFLOAD_TARGET_NAMES=nvptx-none:amdgcn-amdhsa]
+        ignore line: [OFFLOAD_TARGET_DEFAULT=1]
+        ignore line: [Target: x86_64-linux-gnu]
+        ignore line: [Configured with: ../src/configure -v --with-pkgversion='Ubuntu 11.4.0-1ubuntu1~22.04' --with-bugurl=file:///usr/share/doc/gcc-11/README.Bugs --enable-languages=c ada c++ go brig d fortran objc obj-c++ m2 --prefix=/usr --with-gcc-major-version-only --program-suffix=-11 --program-prefix=x86_64-linux-gnu- --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --enable-bootstrap --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-vtable-verify --enable-plugin --enable-default-pie --with-system-zlib --enable-libphobos-checking=release --with-target-system-zlib=auto --enable-objc-gc=auto --enable-multiarch --disable-werror --enable-cet --with-arch-32=i686 --with-abi=m64 --with-multilib-list=m32 m64 mx32 --enable-multilib --with-tune=generic --enable-offload-targets=nvptx-none=/build/gcc-11-XeT9lY/gcc-11-11.4.0/debian/tmp-nvptx/usr amdgcn-amdhsa=/build/gcc-11-XeT9lY/gcc-11-11.4.0/debian/tmp-gcn/usr --without-cuda-driver --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu --with-build-config=bootstrap-lto-lean --enable-link-serialization=2]
+        ignore line: [Thread model: posix]
+        ignore line: [Supported LTO compression algorithms: zlib zstd]
+        ignore line: [gcc version 11.4.0 (Ubuntu 11.4.0-1ubuntu1~22.04) ]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_cdf32.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_cdf32.dir/']
+        ignore line: [ /usr/lib/gcc/x86_64-linux-gnu/11/cc1plus -quiet -v -imultiarch x86_64-linux-gnu -D_GNU_SOURCE /opt/cmake-3.26.1/share/cmake-3.26/Modules/CMakeCXXCompilerABI.cpp -quiet -dumpdir CMakeFiles/cmTC_cdf32.dir/ -dumpbase CMakeCXXCompilerABI.cpp.cpp -dumpbase-ext .cpp -mtune=generic -march=x86-64 -version -fasynchronous-unwind-tables -fstack-protector-strong -Wformat -Wformat-security -fstack-clash-protection -fcf-protection -o /tmp/ccU7Hglv.s]
+        ignore line: [GNU C++17 (Ubuntu 11.4.0-1ubuntu1~22.04) version 11.4.0 (x86_64-linux-gnu)]
+        ignore line: [	compiled by GNU C version 11.4.0  GMP version 6.2.1  MPFR version 4.1.0  MPC version 1.2.1  isl version isl-0.24-GMP]
+        ignore line: []
+        ignore line: [GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072]
+        ignore line: [ignoring duplicate directory "/usr/include/x86_64-linux-gnu/c++/11"]
+        ignore line: [ignoring nonexistent directory "/usr/local/include/x86_64-linux-gnu"]
+        ignore line: [ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/11/include-fixed"]
+        ignore line: [ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/11/../../../../x86_64-linux-gnu/include"]
+        ignore line: [#include "..." search starts here:]
+        ignore line: [#include <...> search starts here:]
+        ignore line: [ /usr/include/c++/11]
+        ignore line: [ /usr/include/x86_64-linux-gnu/c++/11]
+        ignore line: [ /usr/include/c++/11/backward]
+        ignore line: [ /usr/lib/gcc/x86_64-linux-gnu/11/include]
+        ignore line: [ /usr/local/include]
+        ignore line: [ /usr/include/x86_64-linux-gnu]
+        ignore line: [ /usr/include]
+        ignore line: [End of search list.]
+        ignore line: [GNU C++17 (Ubuntu 11.4.0-1ubuntu1~22.04) version 11.4.0 (x86_64-linux-gnu)]
+        ignore line: [	compiled by GNU C version 11.4.0  GMP version 6.2.1  MPFR version 4.1.0  MPC version 1.2.1  isl version isl-0.24-GMP]
+        ignore line: []
+        ignore line: [GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072]
+        ignore line: [Compiler executable checksum: d591828bb4d392ae8b7b160e5bb0b95f]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_cdf32.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_cdf32.dir/']
+        ignore line: [ as -v --64 -o CMakeFiles/cmTC_cdf32.dir/CMakeCXXCompilerABI.cpp.o /tmp/ccU7Hglv.s]
+        ignore line: [GNU assembler version 2.38 (x86_64-linux-gnu) using BFD version (GNU Binutils for Ubuntu) 2.38]
+        ignore line: [COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/]
+        ignore line: [LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../:/lib/:/usr/lib/]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_cdf32.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_cdf32.dir/CMakeCXXCompilerABI.cpp.']
+        ignore line: [Linking CXX executable cmTC_cdf32]
+        ignore line: [/opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_cdf32.dir/link.txt --verbose=1]
+        ignore line: [/usr/bin/c++  -v -rdynamic CMakeFiles/cmTC_cdf32.dir/CMakeCXXCompilerABI.cpp.o -o cmTC_cdf32 ]
+        ignore line: [Using built-in specs.]
+        ignore line: [COLLECT_GCC=/usr/bin/c++]
+        ignore line: [COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/11/lto-wrapper]
+        ignore line: [OFFLOAD_TARGET_NAMES=nvptx-none:amdgcn-amdhsa]
+        ignore line: [OFFLOAD_TARGET_DEFAULT=1]
+        ignore line: [Target: x86_64-linux-gnu]
+        ignore line: [Configured with: ../src/configure -v --with-pkgversion='Ubuntu 11.4.0-1ubuntu1~22.04' --with-bugurl=file:///usr/share/doc/gcc-11/README.Bugs --enable-languages=c ada c++ go brig d fortran objc obj-c++ m2 --prefix=/usr --with-gcc-major-version-only --program-suffix=-11 --program-prefix=x86_64-linux-gnu- --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --enable-bootstrap --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-vtable-verify --enable-plugin --enable-default-pie --with-system-zlib --enable-libphobos-checking=release --with-target-system-zlib=auto --enable-objc-gc=auto --enable-multiarch --disable-werror --enable-cet --with-arch-32=i686 --with-abi=m64 --with-multilib-list=m32 m64 mx32 --enable-multilib --with-tune=generic --enable-offload-targets=nvptx-none=/build/gcc-11-XeT9lY/gcc-11-11.4.0/debian/tmp-nvptx/usr amdgcn-amdhsa=/build/gcc-11-XeT9lY/gcc-11-11.4.0/debian/tmp-gcn/usr --without-cuda-driver --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu --with-build-config=bootstrap-lto-lean --enable-link-serialization=2]
+        ignore line: [Thread model: posix]
+        ignore line: [Supported LTO compression algorithms: zlib zstd]
+        ignore line: [gcc version 11.4.0 (Ubuntu 11.4.0-1ubuntu1~22.04) ]
+        ignore line: [COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/]
+        ignore line: [LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../:/lib/:/usr/lib/]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-rdynamic' '-o' 'cmTC_cdf32' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_cdf32.']
+        link line: [ /usr/lib/gcc/x86_64-linux-gnu/11/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/11/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/11/lto-wrapper -plugin-opt=-fresolution=/tmp/ccxlLbsP.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -export-dynamic -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_cdf32 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/11 -L/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/11/../../.. CMakeFiles/cmTC_cdf32.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crtn.o]
+          arg [/usr/lib/gcc/x86_64-linux-gnu/11/collect2] ==> ignore
+          arg [-plugin] ==> ignore
+          arg [/usr/lib/gcc/x86_64-linux-gnu/11/liblto_plugin.so] ==> ignore
+          arg [-plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/11/lto-wrapper] ==> ignore
+          arg [-plugin-opt=-fresolution=/tmp/ccxlLbsP.res] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc_s] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
+          arg [-plugin-opt=-pass-through=-lc] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc_s] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
+          arg [--build-id] ==> ignore
+          arg [--eh-frame-hdr] ==> ignore
+          arg [-m] ==> ignore
+          arg [elf_x86_64] ==> ignore
+          arg [--hash-style=gnu] ==> ignore
+          arg [--as-needed] ==> ignore
+          arg [-export-dynamic] ==> ignore
+          arg [-dynamic-linker] ==> ignore
+          arg [/lib64/ld-linux-x86-64.so.2] ==> ignore
+          arg [-pie] ==> ignore
+          arg [-znow] ==> ignore
+          arg [-zrelro] ==> ignore
+          arg [-o] ==> ignore
+          arg [cmTC_cdf32] ==> ignore
+          arg [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o] ==> obj [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o]
+          arg [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crti.o] ==> obj [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crti.o]
+          arg [/usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o] ==> obj [/usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o]
+          arg [-L/usr/lib/gcc/x86_64-linux-gnu/11] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/11]
+          arg [-L/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu]
+          arg [-L/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib]
+          arg [-L/lib/x86_64-linux-gnu] ==> dir [/lib/x86_64-linux-gnu]
+          arg [-L/lib/../lib] ==> dir [/lib/../lib]
+          arg [-L/usr/lib/x86_64-linux-gnu] ==> dir [/usr/lib/x86_64-linux-gnu]
+          arg [-L/usr/lib/../lib] ==> dir [/usr/lib/../lib]
+          arg [-L/usr/lib/gcc/x86_64-linux-gnu/11/../../..] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/11/../../..]
+          arg [CMakeFiles/cmTC_cdf32.dir/CMakeCXXCompilerABI.cpp.o] ==> ignore
+          arg [-lstdc++] ==> lib [stdc++]
+          arg [-lm] ==> lib [m]
+          arg [-lgcc_s] ==> lib [gcc_s]
+          arg [-lgcc] ==> lib [gcc]
+          arg [-lc] ==> lib [c]
+          arg [-lgcc_s] ==> lib [gcc_s]
+          arg [-lgcc] ==> lib [gcc]
+          arg [/usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o] ==> obj [/usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o]
+          arg [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crtn.o] ==> obj [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crtn.o]
+        collapse obj [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o] ==> [/usr/lib/x86_64-linux-gnu/Scrt1.o]
+        collapse obj [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crti.o] ==> [/usr/lib/x86_64-linux-gnu/crti.o]
+        collapse obj [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crtn.o] ==> [/usr/lib/x86_64-linux-gnu/crtn.o]
+        collapse library dir [/usr/lib/gcc/x86_64-linux-gnu/11] ==> [/usr/lib/gcc/x86_64-linux-gnu/11]
+        collapse library dir [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu] ==> [/usr/lib/x86_64-linux-gnu]
+        collapse library dir [/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib] ==> [/usr/lib]
+        collapse library dir [/lib/x86_64-linux-gnu] ==> [/lib/x86_64-linux-gnu]
+        collapse library dir [/lib/../lib] ==> [/lib]
+        collapse library dir [/usr/lib/x86_64-linux-gnu] ==> [/usr/lib/x86_64-linux-gnu]
+        collapse library dir [/usr/lib/../lib] ==> [/usr/lib]
+        collapse library dir [/usr/lib/gcc/x86_64-linux-gnu/11/../../..] ==> [/usr/lib]
+        implicit libs: [stdc++;m;gcc_s;gcc;c;gcc_s;gcc]
+        implicit objs: [/usr/lib/x86_64-linux-gnu/Scrt1.o;/usr/lib/x86_64-linux-gnu/crti.o;/usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o;/usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o;/usr/lib/x86_64-linux-gnu/crtn.o]
+        implicit dirs: [/usr/lib/gcc/x86_64-linux-gnu/11;/usr/lib/x86_64-linux-gnu;/usr/lib;/lib/x86_64-linux-gnu;/lib]
+        implicit fwks: []
+      
+      
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckSourceCompiles.cmake:101 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCSourceCompiles.cmake:76 (cmake_check_source_compiles)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/FindThreads.cmake:97 (CHECK_C_SOURCE_COMPILES)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/FindThreads.cmake:163 (_threads_check_libc)"
+      - "CMakeLists.txt:20 (include)"
+    checks:
+      - "Performing Test CMAKE_HAVE_LIBC_PTHREAD"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-BFp7Dm"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-BFp7Dm"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+    buildResult:
+      variable: "CMAKE_HAVE_LIBC_PTHREAD"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-BFp7Dm
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_40109/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_40109.dir/build.make CMakeFiles/cmTC_40109.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-BFp7Dm'
+        Building C object CMakeFiles/cmTC_40109.dir/src.c.o
+        /usr/bin/cc -DCMAKE_HAVE_LIBC_PTHREAD   -o CMakeFiles/cmTC_40109.dir/src.c.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-BFp7Dm/src.c
+        Linking C executable cmTC_40109
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_40109.dir/link.txt --verbose=1
+        /usr/bin/cc -rdynamic CMakeFiles/cmTC_40109.dir/src.c.o -o cmTC_40109 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-BFp7Dm'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckSourceCompiles.cmake:101 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckCompilerFlag.cmake:18 (cmake_check_source_compiles)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCXXCompilerFlag.cmake:40 (cmake_check_compiler_flag)"
+      - "CMakeLists.txt:117 (check_cxx_compiler_flag)"
+    checks:
+      - "Performing Test COMPILER_SUPPORTS_CXX11"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-5u5O96"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-5u5O96"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "COMPILER_SUPPORTS_CXX11"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-5u5O96
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_dc070/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_dc070.dir/build.make CMakeFiles/cmTC_dc070.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-5u5O96'
+        Building CXX object CMakeFiles/cmTC_dc070.dir/src.cxx.o
+        /usr/bin/c++ -DCOMPILER_SUPPORTS_CXX11  -std=c++11 -o CMakeFiles/cmTC_dc070.dir/src.cxx.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-5u5O96/src.cxx
+        Linking CXX executable cmTC_dc070
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_dc070.dir/link.txt --verbose=1
+        /usr/bin/c++ -rdynamic CMakeFiles/cmTC_dc070.dir/src.cxx.o -o cmTC_dc070 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-5u5O96'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckSourceCompiles.cmake:101 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckCompilerFlag.cmake:18 (cmake_check_source_compiles)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCCompilerFlag.cmake:40 (cmake_check_compiler_flag)"
+      - "CMakeLists.txt:123 (check_c_compiler_flag)"
+    checks:
+      - "Performing Test COMPILER_SUPPORTS_C11"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-e4ZBoY"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-e4ZBoY"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "COMPILER_SUPPORTS_C11"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-e4ZBoY
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_6b7bf/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_6b7bf.dir/build.make CMakeFiles/cmTC_6b7bf.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-e4ZBoY'
+        Building C object CMakeFiles/cmTC_6b7bf.dir/src.c.o
+        /usr/bin/cc -DCOMPILER_SUPPORTS_C11  -std=c11 -o CMakeFiles/cmTC_6b7bf.dir/src.c.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-e4ZBoY/src.c
+        Linking C executable cmTC_6b7bf
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_6b7bf.dir/link.txt --verbose=1
+        /usr/bin/cc -rdynamic CMakeFiles/cmTC_6b7bf.dir/src.c.o -o cmTC_6b7bf 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-e4ZBoY'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckSourceCompiles.cmake:101 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckCompilerFlag.cmake:18 (cmake_check_source_compiles)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCXXCompilerFlag.cmake:40 (cmake_check_compiler_flag)"
+      - "CMakeLists.txt:132 (check_cxx_compiler_flag)"
+    checks:
+      - "Performing Test CXX_HAS_TAUT_WARNING"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-uGpjbB"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-uGpjbB"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: " -std=c++11"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "CXX_HAS_TAUT_WARNING"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-uGpjbB
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_04cde/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_04cde.dir/build.make CMakeFiles/cmTC_04cde.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-uGpjbB'
+        Building CXX object CMakeFiles/cmTC_04cde.dir/src.cxx.o
+        /usr/bin/c++ -DCXX_HAS_TAUT_WARNING  -std=c++11    -Wno-tautological-constant-compare -o CMakeFiles/cmTC_04cde.dir/src.cxx.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-uGpjbB/src.cxx
+        Linking CXX executable cmTC_04cde
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_04cde.dir/link.txt --verbose=1
+        /usr/bin/c++  -std=c++11  -rdynamic CMakeFiles/cmTC_04cde.dir/src.cxx.o -o cmTC_04cde 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-uGpjbB'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckSourceCompiles.cmake:101 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckCompilerFlag.cmake:18 (cmake_check_source_compiles)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCCompilerFlag.cmake:40 (cmake_check_compiler_flag)"
+      - "CMakeLists.txt:136 (check_c_compiler_flag)"
+    checks:
+      - "Performing Test CC_HAS_TAUT_WARNING"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-iYo5iT"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-iYo5iT"
+    cmakeVariables:
+      CMAKE_C_FLAGS: " -std=c11"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "CC_HAS_TAUT_WARNING"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-iYo5iT
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_c23c6/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_c23c6.dir/build.make CMakeFiles/cmTC_c23c6.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-iYo5iT'
+        Building C object CMakeFiles/cmTC_c23c6.dir/src.c.o
+        /usr/bin/cc -DCC_HAS_TAUT_WARNING  -std=c11    -Wno-tautological-constant-compare -o CMakeFiles/cmTC_c23c6.dir/src.c.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-iYo5iT/src.c
+        Linking C executable cmTC_c23c6
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_c23c6.dir/link.txt --verbose=1
+        /usr/bin/cc  -std=c11  -rdynamic CMakeFiles/cmTC_c23c6.dir/src.c.o -o cmTC_c23c6 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-iYo5iT'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckSymbolExists.cmake:145 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCXXSymbolExists.cmake:77 (__CHECK_SYMBOL_EXISTS_IMPL)"
+      - "CMakeLists.txt:255 (check_cxx_symbol_exists)"
+    checks:
+      - "Looking for strlcpy"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-Ym42oy"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-Ym42oy"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: " -std=c++11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "ZMQ_HAVE_STRLCPY"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-Ym42oy
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_6fabe/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_6fabe.dir/build.make CMakeFiles/cmTC_6fabe.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-Ym42oy'
+        Building CXX object CMakeFiles/cmTC_6fabe.dir/CheckSymbolExists.cxx.o
+        /usr/bin/c++   -std=c++11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_6fabe.dir/CheckSymbolExists.cxx.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-Ym42oy/CheckSymbolExists.cxx
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-Ym42oy/CheckSymbolExists.cxx: In function ‘int main(int, char**)’:
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-Ym42oy/CheckSymbolExists.cxx:8:19: error: ‘strlcpy’ was not declared in this scope; did you mean ‘strncpy’?
+            8 |   return ((int*)(&strlcpy))[argc];
+              |                   ^~~~~~~
+              |                   strncpy
+        At global scope:
+        cc1plus: note: unrecognized command-line option ‘-Wno-tautological-constant-compare’ may have been intended to silence earlier diagnostics
+        gmake[1]: *** [CMakeFiles/cmTC_6fabe.dir/build.make:78: CMakeFiles/cmTC_6fabe.dir/CheckSymbolExists.cxx.o] Error 1
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-Ym42oy'
+        gmake: *** [Makefile:127: cmTC_6fabe/fast] Error 2
+        
+      exitCode: 2
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckSymbolExists.cmake:145 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCXXSymbolExists.cmake:77 (__CHECK_SYMBOL_EXISTS_IMPL)"
+      - "CMakeLists.txt:383 (check_cxx_symbol_exists)"
+    checks:
+      - "Looking for kqueue"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-2aw7OO"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-2aw7OO"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: " -std=c++11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "HAVE_KQUEUE"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-2aw7OO
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_80108/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_80108.dir/build.make CMakeFiles/cmTC_80108.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-2aw7OO'
+        Building CXX object CMakeFiles/cmTC_80108.dir/CheckSymbolExists.cxx.o
+        /usr/bin/c++   -std=c++11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_80108.dir/CheckSymbolExists.cxx.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-2aw7OO/CheckSymbolExists.cxx
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-2aw7OO/CheckSymbolExists.cxx:2:10: fatal error: sys/event.h: No such file or directory
+            2 | #include <sys/event.h>
+              |          ^~~~~~~~~~~~~
+        compilation terminated.
+        gmake[1]: *** [CMakeFiles/cmTC_80108.dir/build.make:78: CMakeFiles/cmTC_80108.dir/CheckSymbolExists.cxx.o] Error 1
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-2aw7OO'
+        gmake: *** [Makefile:127: cmTC_80108/fast] Error 2
+        
+      exitCode: 2
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckSymbolExists.cmake:145 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCXXSymbolExists.cmake:77 (__CHECK_SYMBOL_EXISTS_IMPL)"
+      - "CMakeLists.txt:390 (check_cxx_symbol_exists)"
+    checks:
+      - "Looking for epoll_create"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-Uotd85"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-Uotd85"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: " -std=c++11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "HAVE_EPOLL"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-Uotd85
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_20faf/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_20faf.dir/build.make CMakeFiles/cmTC_20faf.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-Uotd85'
+        Building CXX object CMakeFiles/cmTC_20faf.dir/CheckSymbolExists.cxx.o
+        /usr/bin/c++   -std=c++11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_20faf.dir/CheckSymbolExists.cxx.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-Uotd85/CheckSymbolExists.cxx
+        Linking CXX executable cmTC_20faf
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_20faf.dir/link.txt --verbose=1
+        /usr/bin/c++  -std=c++11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_20faf.dir/CheckSymbolExists.cxx.o -o cmTC_20faf 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-Uotd85'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckSymbolExists.cmake:145 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCXXSymbolExists.cmake:77 (__CHECK_SYMBOL_EXISTS_IMPL)"
+      - "CMakeLists.txt:393 (check_cxx_symbol_exists)"
+    checks:
+      - "Looking for epoll_create1"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-cKyzr4"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-cKyzr4"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: " -std=c++11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "HAVE_EPOLL_CLOEXEC"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-cKyzr4
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_ffa3d/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_ffa3d.dir/build.make CMakeFiles/cmTC_ffa3d.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-cKyzr4'
+        Building CXX object CMakeFiles/cmTC_ffa3d.dir/CheckSymbolExists.cxx.o
+        /usr/bin/c++   -std=c++11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_ffa3d.dir/CheckSymbolExists.cxx.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-cKyzr4/CheckSymbolExists.cxx
+        Linking CXX executable cmTC_ffa3d
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_ffa3d.dir/link.txt --verbose=1
+        /usr/bin/c++  -std=c++11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_ffa3d.dir/CheckSymbolExists.cxx.o -o cmTC_ffa3d 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-cKyzr4'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckSymbolExists.cmake:145 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCXXSymbolExists.cmake:77 (__CHECK_SYMBOL_EXISTS_IMPL)"
+      - "CMakeLists.txt:466 (check_cxx_symbol_exists)"
+    checks:
+      - "Looking for pselect"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-OKvnUY"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-OKvnUY"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: " -std=c++11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "HAVE_PSELECT"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-OKvnUY
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_f5402/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_f5402.dir/build.make CMakeFiles/cmTC_f5402.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-OKvnUY'
+        Building CXX object CMakeFiles/cmTC_f5402.dir/CheckSymbolExists.cxx.o
+        /usr/bin/c++   -std=c++11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_f5402.dir/CheckSymbolExists.cxx.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-OKvnUY/CheckSymbolExists.cxx
+        Linking CXX executable cmTC_f5402
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_f5402.dir/link.txt --verbose=1
+        /usr/bin/c++  -std=c++11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_f5402.dir/CheckSymbolExists.cxx.o -o cmTC_f5402 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-OKvnUY'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckSymbolExists.cmake:145 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCXXSymbolExists.cmake:77 (__CHECK_SYMBOL_EXISTS_IMPL)"
+      - "CMakeLists.txt:485 (check_cxx_symbol_exists)"
+    checks:
+      - "Looking for posix_memalign"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-UvQu9J"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-UvQu9J"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: " -std=c++11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "HAVE_POSIX_MEMALIGN"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-UvQu9J
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_16af3/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_16af3.dir/build.make CMakeFiles/cmTC_16af3.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-UvQu9J'
+        Building CXX object CMakeFiles/cmTC_16af3.dir/CheckSymbolExists.cxx.o
+        /usr/bin/c++   -std=c++11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_16af3.dir/CheckSymbolExists.cxx.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-UvQu9J/CheckSymbolExists.cxx
+        Linking CXX executable cmTC_16af3
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_16af3.dir/link.txt --verbose=1
+        /usr/bin/c++  -std=c++11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_16af3.dir/CheckSymbolExists.cxx.o -o cmTC_16af3 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-UvQu9J'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckIncludeFiles.cmake:137 (try_compile)"
+      - "CMakeLists.txt:489 (check_include_files)"
+    checks:
+      - "Looking for include file windows.h"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-ckXxsG"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-ckXxsG"
+    cmakeVariables:
+      CMAKE_C_FLAGS: " -std=c11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "ZMQ_HAVE_WINDOWS"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-ckXxsG
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_64096/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_64096.dir/build.make CMakeFiles/cmTC_64096.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-ckXxsG'
+        Building C object CMakeFiles/cmTC_64096.dir/ZMQ_HAVE_WINDOWS.c.o
+        /usr/bin/cc   -std=c11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_64096.dir/ZMQ_HAVE_WINDOWS.c.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-ckXxsG/ZMQ_HAVE_WINDOWS.c
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-ckXxsG/ZMQ_HAVE_WINDOWS.c:2:10: fatal error: windows.h: No such file or directory
+            2 | #include <windows.h>
+              |          ^~~~~~~~~~~
+        compilation terminated.
+        gmake[1]: *** [CMakeFiles/cmTC_64096.dir/build.make:78: CMakeFiles/cmTC_64096.dir/ZMQ_HAVE_WINDOWS.c.o] Error 1
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-ckXxsG'
+        gmake: *** [Makefile:127: cmTC_64096/fast] Error 2
+        
+      exitCode: 2
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckIncludeFiles.cmake:137 (try_compile)"
+      - "CMakeLists.txt:505 (check_include_files)"
+    checks:
+      - "Looking for include file condition_variable"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-cPb2PH"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-cPb2PH"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: " -std=c++11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "ZMQ_HAVE_STL_CONDITION_VARIABLE"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-cPb2PH
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_5737a/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_5737a.dir/build.make CMakeFiles/cmTC_5737a.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-cPb2PH'
+        Building CXX object CMakeFiles/cmTC_5737a.dir/ZMQ_HAVE_STL_CONDITION_VARIABLE.cpp.o
+        /usr/bin/c++   -std=c++11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_5737a.dir/ZMQ_HAVE_STL_CONDITION_VARIABLE.cpp.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-cPb2PH/ZMQ_HAVE_STL_CONDITION_VARIABLE.cpp
+        Linking CXX executable cmTC_5737a
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_5737a.dir/link.txt --verbose=1
+        /usr/bin/c++  -std=c++11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_5737a.dir/ZMQ_HAVE_STL_CONDITION_VARIABLE.cpp.o -o cmTC_5737a 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-cPb2PH'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckIncludeFiles.cmake:137 (try_compile)"
+      - "CMakeLists.txt:542 (check_include_files)"
+    checks:
+      - "Looking for include file ifaddrs.h"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-9fBg8L"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-9fBg8L"
+    cmakeVariables:
+      CMAKE_C_FLAGS: " -std=c11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "ZMQ_HAVE_IFADDRS"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-9fBg8L
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_3b0bd/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_3b0bd.dir/build.make CMakeFiles/cmTC_3b0bd.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-9fBg8L'
+        Building C object CMakeFiles/cmTC_3b0bd.dir/ZMQ_HAVE_IFADDRS.c.o
+        /usr/bin/cc   -std=c11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_3b0bd.dir/ZMQ_HAVE_IFADDRS.c.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-9fBg8L/ZMQ_HAVE_IFADDRS.c
+        Linking C executable cmTC_3b0bd
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_3b0bd.dir/link.txt --verbose=1
+        /usr/bin/cc  -std=c11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_3b0bd.dir/ZMQ_HAVE_IFADDRS.c.o -o cmTC_3b0bd 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-9fBg8L'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckIncludeFiles.cmake:137 (try_compile)"
+      - "CMakeLists.txt:543 (check_include_files)"
+    checks:
+      - "Looking for include file sys/uio.h"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-OYlbCH"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-OYlbCH"
+    cmakeVariables:
+      CMAKE_C_FLAGS: " -std=c11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "ZMQ_HAVE_UIO"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-OYlbCH
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_b97b3/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_b97b3.dir/build.make CMakeFiles/cmTC_b97b3.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-OYlbCH'
+        Building C object CMakeFiles/cmTC_b97b3.dir/ZMQ_HAVE_UIO.c.o
+        /usr/bin/cc   -std=c11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_b97b3.dir/ZMQ_HAVE_UIO.c.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-OYlbCH/ZMQ_HAVE_UIO.c
+        Linking C executable cmTC_b97b3
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_b97b3.dir/link.txt --verbose=1
+        /usr/bin/cc  -std=c11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_b97b3.dir/ZMQ_HAVE_UIO.c.o -o cmTC_b97b3 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-OYlbCH'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckIncludeFiles.cmake:137 (try_compile)"
+      - "CMakeLists.txt:544 (check_include_files)"
+    checks:
+      - "Looking for include file sys/eventfd.h"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-ZXSANQ"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-ZXSANQ"
+    cmakeVariables:
+      CMAKE_C_FLAGS: " -std=c11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "ZMQ_HAVE_EVENTFD"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-ZXSANQ
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_c64da/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_c64da.dir/build.make CMakeFiles/cmTC_c64da.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-ZXSANQ'
+        Building C object CMakeFiles/cmTC_c64da.dir/ZMQ_HAVE_EVENTFD.c.o
+        /usr/bin/cc   -std=c11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_c64da.dir/ZMQ_HAVE_EVENTFD.c.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-ZXSANQ/ZMQ_HAVE_EVENTFD.c
+        Linking C executable cmTC_c64da
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_c64da.dir/link.txt --verbose=1
+        /usr/bin/cc  -std=c11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_c64da.dir/ZMQ_HAVE_EVENTFD.c.o -o cmTC_c64da 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-ZXSANQ'
+        
+      exitCode: 0
+  -
+    kind: "try_run-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckSourceRuns.cmake:93 (try_run)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCSourceRuns.cmake:76 (cmake_check_source_runs)"
+      - "builds/cmake/Modules/ZMQSourceRunChecks.cmake:21 (check_c_source_runs)"
+      - "CMakeLists.txt:546 (zmq_check_efd_cloexec)"
+    checks:
+      - "Performing Test ZMQ_HAVE_EVENTFD_CLOEXEC"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-NhYErJ"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-NhYErJ"
+    cmakeVariables:
+      CMAKE_C_FLAGS: " -std=c11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "ZMQ_HAVE_EVENTFD_CLOEXEC_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-NhYErJ
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_9db93/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_9db93.dir/build.make CMakeFiles/cmTC_9db93.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-NhYErJ'
+        Building C object CMakeFiles/cmTC_9db93.dir/src.c.o
+        /usr/bin/cc -DZMQ_HAVE_EVENTFD_CLOEXEC  -std=c11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_9db93.dir/src.c.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-NhYErJ/src.c
+        Linking C executable cmTC_9db93
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_9db93.dir/link.txt --verbose=1
+        /usr/bin/cc  -std=c11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_9db93.dir/src.c.o -o cmTC_9db93 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-NhYErJ'
+        
+      exitCode: 0
+    runResult:
+      variable: "ZMQ_HAVE_EVENTFD_CLOEXEC_EXITCODE"
+      cached: true
+      stdout: |
+      stderr: |
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckSymbolExists.cmake:145 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCXXSymbolExists.cmake:77 (__CHECK_SYMBOL_EXISTS_IMPL)"
+      - "CMakeLists.txt:566 (check_cxx_symbol_exists)"
+    checks:
+      - "Looking for if_nametoindex"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-SqTaaT"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-SqTaaT"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: " -std=c++11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "HAVE_IF_NAMETOINDEX"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-SqTaaT
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_e0fac/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_e0fac.dir/build.make CMakeFiles/cmTC_e0fac.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-SqTaaT'
+        Building CXX object CMakeFiles/cmTC_e0fac.dir/CheckSymbolExists.cxx.o
+        /usr/bin/c++   -std=c++11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_e0fac.dir/CheckSymbolExists.cxx.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-SqTaaT/CheckSymbolExists.cxx
+        Linking CXX executable cmTC_e0fac
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_e0fac.dir/link.txt --verbose=1
+        /usr/bin/c++  -std=c++11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_e0fac.dir/CheckSymbolExists.cxx.o -o cmTC_e0fac 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-SqTaaT'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckSymbolExists.cmake:145 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCXXSymbolExists.cmake:77 (__CHECK_SYMBOL_EXISTS_IMPL)"
+      - "CMakeLists.txt:567 (check_cxx_symbol_exists)"
+    checks:
+      - "Looking for SO_PEERCRED"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-hqhlJ1"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-hqhlJ1"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: " -std=c++11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "ZMQ_HAVE_SO_PEERCRED"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-hqhlJ1
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_b631c/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_b631c.dir/build.make CMakeFiles/cmTC_b631c.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-hqhlJ1'
+        Building CXX object CMakeFiles/cmTC_b631c.dir/CheckSymbolExists.cxx.o
+        /usr/bin/c++   -std=c++11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_b631c.dir/CheckSymbolExists.cxx.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-hqhlJ1/CheckSymbolExists.cxx
+        Linking CXX executable cmTC_b631c
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_b631c.dir/link.txt --verbose=1
+        /usr/bin/c++  -std=c++11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_b631c.dir/CheckSymbolExists.cxx.o -o cmTC_b631c 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-hqhlJ1'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckSymbolExists.cmake:145 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCXXSymbolExists.cmake:77 (__CHECK_SYMBOL_EXISTS_IMPL)"
+      - "CMakeLists.txt:568 (check_cxx_symbol_exists)"
+    checks:
+      - "Looking for LOCAL_PEERCRED"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-8Po3xT"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-8Po3xT"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: " -std=c++11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "ZMQ_HAVE_LOCAL_PEERCRED"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-8Po3xT
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_16c72/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_16c72.dir/build.make CMakeFiles/cmTC_16c72.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-8Po3xT'
+        Building CXX object CMakeFiles/cmTC_16c72.dir/CheckSymbolExists.cxx.o
+        /usr/bin/c++   -std=c++11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_16c72.dir/CheckSymbolExists.cxx.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-8Po3xT/CheckSymbolExists.cxx
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-8Po3xT/CheckSymbolExists.cxx: In function ‘int main(int, char**)’:
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-8Po3xT/CheckSymbolExists.cxx:8:19: error: ‘LOCAL_PEERCRED’ was not declared in this scope; did you mean ‘SO_PEERCRED’?
+            8 |   return ((int*)(&LOCAL_PEERCRED))[argc];
+              |                   ^~~~~~~~~~~~~~
+              |                   SO_PEERCRED
+        At global scope:
+        cc1plus: note: unrecognized command-line option ‘-Wno-tautological-constant-compare’ may have been intended to silence earlier diagnostics
+        gmake[1]: *** [CMakeFiles/cmTC_16c72.dir/build.make:78: CMakeFiles/cmTC_16c72.dir/CheckSymbolExists.cxx.o] Error 1
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-8Po3xT'
+        gmake: *** [Makefile:127: cmTC_16c72/fast] Error 2
+        
+      exitCode: 2
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckSymbolExists.cmake:145 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCXXSymbolExists.cmake:77 (__CHECK_SYMBOL_EXISTS_IMPL)"
+      - "CMakeLists.txt:569 (check_cxx_symbol_exists)"
+    checks:
+      - "Looking for SO_BUSY_POLL"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-mdxrAS"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-mdxrAS"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: " -std=c++11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "ZMQ_HAVE_BUSY_POLL"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-mdxrAS
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_36d5a/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_36d5a.dir/build.make CMakeFiles/cmTC_36d5a.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-mdxrAS'
+        Building CXX object CMakeFiles/cmTC_36d5a.dir/CheckSymbolExists.cxx.o
+        /usr/bin/c++   -std=c++11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_36d5a.dir/CheckSymbolExists.cxx.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-mdxrAS/CheckSymbolExists.cxx
+        Linking CXX executable cmTC_36d5a
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_36d5a.dir/link.txt --verbose=1
+        /usr/bin/c++  -std=c++11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_36d5a.dir/CheckSymbolExists.cxx.o -o cmTC_36d5a 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-mdxrAS'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckSymbolExists.cmake:145 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCXXSymbolExists.cmake:77 (__CHECK_SYMBOL_EXISTS_IMPL)"
+      - "CMakeLists.txt:597 (check_cxx_symbol_exists)"
+    checks:
+      - "Looking for clock_gettime"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-IlKsfk"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-IlKsfk"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: " -std=c++11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "HAVE_CLOCK_GETTIME"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-IlKsfk
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_1e227/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_1e227.dir/build.make CMakeFiles/cmTC_1e227.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-IlKsfk'
+        Building CXX object CMakeFiles/cmTC_1e227.dir/CheckSymbolExists.cxx.o
+        /usr/bin/c++   -std=c++11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_1e227.dir/CheckSymbolExists.cxx.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-IlKsfk/CheckSymbolExists.cxx
+        Linking CXX executable cmTC_1e227
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_1e227.dir/link.txt --verbose=1
+        /usr/bin/c++  -std=c++11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_1e227.dir/CheckSymbolExists.cxx.o -o cmTC_1e227  -lrt 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-IlKsfk'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckSymbolExists.cmake:145 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCXXSymbolExists.cmake:77 (__CHECK_SYMBOL_EXISTS_IMPL)"
+      - "CMakeLists.txt:600 (check_cxx_symbol_exists)"
+    checks:
+      - "Looking for fork"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-P8oQsO"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-P8oQsO"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: " -std=c++11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "HAVE_FORK"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-P8oQsO
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_6768e/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_6768e.dir/build.make CMakeFiles/cmTC_6768e.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-P8oQsO'
+        Building CXX object CMakeFiles/cmTC_6768e.dir/CheckSymbolExists.cxx.o
+        /usr/bin/c++   -std=c++11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_6768e.dir/CheckSymbolExists.cxx.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-P8oQsO/CheckSymbolExists.cxx
+        Linking CXX executable cmTC_6768e
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_6768e.dir/link.txt --verbose=1
+        /usr/bin/c++  -std=c++11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_6768e.dir/CheckSymbolExists.cxx.o -o cmTC_6768e 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-P8oQsO'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckSymbolExists.cmake:145 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCXXSymbolExists.cmake:77 (__CHECK_SYMBOL_EXISTS_IMPL)"
+      - "CMakeLists.txt:601 (check_cxx_symbol_exists)"
+    checks:
+      - "Looking for gethrtime"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-ztyFjG"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-ztyFjG"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: " -std=c++11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "HAVE_GETHRTIME"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-ztyFjG
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_d5569/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_d5569.dir/build.make CMakeFiles/cmTC_d5569.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-ztyFjG'
+        Building CXX object CMakeFiles/cmTC_d5569.dir/CheckSymbolExists.cxx.o
+        /usr/bin/c++   -std=c++11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_d5569.dir/CheckSymbolExists.cxx.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-ztyFjG/CheckSymbolExists.cxx
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-ztyFjG/CheckSymbolExists.cxx: In function ‘int main(int, char**)’:
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-ztyFjG/CheckSymbolExists.cxx:8:19: error: ‘gethrtime’ was not declared in this scope; did you mean ‘getitimer’?
+            8 |   return ((int*)(&gethrtime))[argc];
+              |                   ^~~~~~~~~
+              |                   getitimer
+        At global scope:
+        cc1plus: note: unrecognized command-line option ‘-Wno-tautological-constant-compare’ may have been intended to silence earlier diagnostics
+        gmake[1]: *** [CMakeFiles/cmTC_d5569.dir/build.make:78: CMakeFiles/cmTC_d5569.dir/CheckSymbolExists.cxx.o] Error 1
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-ztyFjG'
+        gmake: *** [Makefile:127: cmTC_d5569/fast] Error 2
+        
+      exitCode: 2
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckSymbolExists.cmake:145 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCXXSymbolExists.cmake:77 (__CHECK_SYMBOL_EXISTS_IMPL)"
+      - "CMakeLists.txt:602 (check_cxx_symbol_exists)"
+    checks:
+      - "Looking for mkdtemp"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-4VqMSM"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-4VqMSM"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: " -std=c++11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "HAVE_MKDTEMP"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-4VqMSM
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_b06f3/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_b06f3.dir/build.make CMakeFiles/cmTC_b06f3.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-4VqMSM'
+        Building CXX object CMakeFiles/cmTC_b06f3.dir/CheckSymbolExists.cxx.o
+        /usr/bin/c++   -std=c++11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_b06f3.dir/CheckSymbolExists.cxx.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-4VqMSM/CheckSymbolExists.cxx
+        Linking CXX executable cmTC_b06f3
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_b06f3.dir/link.txt --verbose=1
+        /usr/bin/c++  -std=c++11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_b06f3.dir/CheckSymbolExists.cxx.o -o cmTC_b06f3 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-4VqMSM'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckSymbolExists.cmake:145 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCXXSymbolExists.cmake:77 (__CHECK_SYMBOL_EXISTS_IMPL)"
+      - "CMakeLists.txt:603 (check_cxx_symbol_exists)"
+    checks:
+      - "Looking for accept4"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-bixBOs"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-bixBOs"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: " -std=c++11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "HAVE_ACCEPT4"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-bixBOs
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_a44d7/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_a44d7.dir/build.make CMakeFiles/cmTC_a44d7.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-bixBOs'
+        Building CXX object CMakeFiles/cmTC_a44d7.dir/CheckSymbolExists.cxx.o
+        /usr/bin/c++   -std=c++11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_a44d7.dir/CheckSymbolExists.cxx.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-bixBOs/CheckSymbolExists.cxx
+        Linking CXX executable cmTC_a44d7
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_a44d7.dir/link.txt --verbose=1
+        /usr/bin/c++  -std=c++11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_a44d7.dir/CheckSymbolExists.cxx.o -o cmTC_a44d7 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-bixBOs'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckSymbolExists.cmake:145 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCXXSymbolExists.cmake:77 (__CHECK_SYMBOL_EXISTS_IMPL)"
+      - "CMakeLists.txt:604 (check_cxx_symbol_exists)"
+    checks:
+      - "Looking for strnlen"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-rAO6UK"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-rAO6UK"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: " -std=c++11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "HAVE_STRNLEN"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-rAO6UK
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_ce399/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_ce399.dir/build.make CMakeFiles/cmTC_ce399.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-rAO6UK'
+        Building CXX object CMakeFiles/cmTC_ce399.dir/CheckSymbolExists.cxx.o
+        /usr/bin/c++   -std=c++11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_ce399.dir/CheckSymbolExists.cxx.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-rAO6UK/CheckSymbolExists.cxx
+        Linking CXX executable cmTC_ce399
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_ce399.dir/link.txt --verbose=1
+        /usr/bin/c++  -std=c++11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_ce399.dir/CheckSymbolExists.cxx.o -o cmTC_ce399 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-rAO6UK'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckSourceCompiles.cmake:101 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckCompilerFlag.cmake:18 (cmake_check_source_compiles)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCXXCompilerFlag.cmake:40 (cmake_check_compiler_flag)"
+      - "CMakeLists.txt:615 (check_cxx_compiler_flag)"
+      - "CMakeLists.txt:659 (zmq_check_cxx_flag_prepend)"
+    checks:
+      - "Performing Test HAVE_FLAG_-Wall"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-Lsoerd"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-Lsoerd"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: " -std=c++11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "HAVE_FLAG_-Wall"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-Lsoerd
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_dc40f/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_dc40f.dir/build.make CMakeFiles/cmTC_dc40f.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-Lsoerd'
+        Building CXX object CMakeFiles/cmTC_dc40f.dir/src.cxx.o
+        /usr/bin/c++   -std=c++11 -Wno-tautological-constant-compare    -DHAVE_FLAG_-Wall -Wall -o CMakeFiles/cmTC_dc40f.dir/src.cxx.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-Lsoerd/src.cxx
+        <command-line>: warning: ISO C++11 requires whitespace after the macro name
+        cc1plus: note: unrecognized command-line option '-Wno-tautological-constant-compare' may have been intended to silence earlier diagnostics
+        Linking CXX executable cmTC_dc40f
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_dc40f.dir/link.txt --verbose=1
+        /usr/bin/c++  -std=c++11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_dc40f.dir/src.cxx.o -o cmTC_dc40f 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-Lsoerd'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckSourceCompiles.cmake:101 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckCompilerFlag.cmake:18 (cmake_check_source_compiles)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCXXCompilerFlag.cmake:40 (cmake_check_compiler_flag)"
+      - "CMakeLists.txt:615 (check_cxx_compiler_flag)"
+      - "CMakeLists.txt:663 (zmq_check_cxx_flag_prepend)"
+    checks:
+      - "Performing Test HAVE_FLAG_-Wextra"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-PSeBLa"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-PSeBLa"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: " -std=c++11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "HAVE_FLAG_-Wextra"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-PSeBLa
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_78ce8/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_78ce8.dir/build.make CMakeFiles/cmTC_78ce8.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-PSeBLa'
+        Building CXX object CMakeFiles/cmTC_78ce8.dir/src.cxx.o
+        /usr/bin/c++   -std=c++11 -Wno-tautological-constant-compare    -DHAVE_FLAG_-Wextra -Wextra -o CMakeFiles/cmTC_78ce8.dir/src.cxx.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-PSeBLa/src.cxx
+        <command-line>: warning: ISO C++11 requires whitespace after the macro name
+        cc1plus: note: unrecognized command-line option '-Wno-tautological-constant-compare' may have been intended to silence earlier diagnostics
+        Linking CXX executable cmTC_78ce8
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_78ce8.dir/link.txt --verbose=1
+        /usr/bin/c++  -std=c++11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_78ce8.dir/src.cxx.o -o cmTC_78ce8 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-PSeBLa'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckSourceCompiles.cmake:101 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckCompilerFlag.cmake:18 (cmake_check_source_compiles)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCXXCompilerFlag.cmake:40 (cmake_check_compiler_flag)"
+      - "CMakeLists.txt:615 (check_cxx_compiler_flag)"
+      - "CMakeLists.txt:671 (zmq_check_cxx_flag_prepend)"
+    checks:
+      - "Performing Test HAVE_FLAG_-Wno-long-long"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-DU855K"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-DU855K"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: " -std=c++11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "HAVE_FLAG_-Wno-long-long"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-DU855K
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_e3cd7/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_e3cd7.dir/build.make CMakeFiles/cmTC_e3cd7.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-DU855K'
+        Building CXX object CMakeFiles/cmTC_e3cd7.dir/src.cxx.o
+        /usr/bin/c++   -std=c++11 -Wno-tautological-constant-compare    -DHAVE_FLAG_-Wno-long-long -Wno-long-long -o CMakeFiles/cmTC_e3cd7.dir/src.cxx.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-DU855K/src.cxx
+        <command-line>: warning: ISO C++11 requires whitespace after the macro name
+        cc1plus: note: unrecognized command-line option '-Wno-tautological-constant-compare' may have been intended to silence earlier diagnostics
+        Linking CXX executable cmTC_e3cd7
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_e3cd7.dir/link.txt --verbose=1
+        /usr/bin/c++  -std=c++11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_e3cd7.dir/src.cxx.o -o cmTC_e3cd7 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-DU855K'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckSourceCompiles.cmake:101 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckCompilerFlag.cmake:18 (cmake_check_source_compiles)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCXXCompilerFlag.cmake:40 (cmake_check_compiler_flag)"
+      - "CMakeLists.txt:615 (check_cxx_compiler_flag)"
+      - "CMakeLists.txt:672 (zmq_check_cxx_flag_prepend)"
+    checks:
+      - "Performing Test HAVE_FLAG_-Wno-uninitialized"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-JGffmS"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-JGffmS"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: " -std=c++11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "HAVE_FLAG_-Wno-uninitialized"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-JGffmS
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_d8067/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_d8067.dir/build.make CMakeFiles/cmTC_d8067.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-JGffmS'
+        Building CXX object CMakeFiles/cmTC_d8067.dir/src.cxx.o
+        /usr/bin/c++   -std=c++11 -Wno-tautological-constant-compare    -DHAVE_FLAG_-Wno-uninitialized -Wno-uninitialized -o CMakeFiles/cmTC_d8067.dir/src.cxx.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-JGffmS/src.cxx
+        <command-line>: warning: ISO C++11 requires whitespace after the macro name
+        cc1plus: note: unrecognized command-line option '-Wno-tautological-constant-compare' may have been intended to silence earlier diagnostics
+        Linking CXX executable cmTC_d8067
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_d8067.dir/link.txt --verbose=1
+        /usr/bin/c++  -std=c++11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_d8067.dir/src.cxx.o -o cmTC_d8067 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-JGffmS'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckSourceCompiles.cmake:101 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckCompilerFlag.cmake:18 (cmake_check_source_compiles)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCXXCompilerFlag.cmake:40 (cmake_check_compiler_flag)"
+      - "CMakeLists.txt:615 (check_cxx_compiler_flag)"
+      - "CMakeLists.txt:675 (zmq_check_cxx_flag_prepend)"
+    checks:
+      - "Performing Test HAVE_FLAG_-pedantic"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-6c2DSX"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-6c2DSX"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: " -std=c++11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "HAVE_FLAG_-pedantic"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-6c2DSX
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_8bd06/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_8bd06.dir/build.make CMakeFiles/cmTC_8bd06.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-6c2DSX'
+        Building CXX object CMakeFiles/cmTC_8bd06.dir/src.cxx.o
+        /usr/bin/c++   -std=c++11 -Wno-tautological-constant-compare    -DHAVE_FLAG_-pedantic -pedantic -o CMakeFiles/cmTC_8bd06.dir/src.cxx.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-6c2DSX/src.cxx
+        <command-line>: warning: ISO C++11 requires whitespace after the macro name
+        cc1plus: note: unrecognized command-line option '-Wno-tautological-constant-compare' may have been intended to silence earlier diagnostics
+        Linking CXX executable cmTC_8bd06
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_8bd06.dir/link.txt --verbose=1
+        /usr/bin/c++  -std=c++11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_8bd06.dir/src.cxx.o -o cmTC_8bd06 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-6c2DSX'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckSourceCompiles.cmake:101 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCXXSourceCompiles.cmake:76 (cmake_check_source_compiles)"
+      - "builds/cmake/Modules/ZMQSourceRunChecks.cmake:300 (check_cxx_source_compiles)"
+      - "CMakeLists.txt:729 (zmq_check_noexcept)"
+    checks:
+      - "Performing Test ZMQ_HAVE_NOEXCEPT"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-DCifpW"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-DCifpW"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: " -std=c++11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "ZMQ_HAVE_NOEXCEPT"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-DCifpW
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_9ec2c/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_9ec2c.dir/build.make CMakeFiles/cmTC_9ec2c.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-DCifpW'
+        Building CXX object CMakeFiles/cmTC_9ec2c.dir/src.cxx.o
+        /usr/bin/c++ -DZMQ_HAVE_NOEXCEPT  -std=c++11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_9ec2c.dir/src.cxx.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-DCifpW/src.cxx
+        Linking CXX executable cmTC_9ec2c
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_9ec2c.dir/link.txt --verbose=1
+        /usr/bin/c++  -std=c++11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_9ec2c.dir/src.cxx.o -o cmTC_9ec2c 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-DCifpW'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckSourceCompiles.cmake:101 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCSourceCompiles.cmake:76 (cmake_check_source_compiles)"
+      - "builds/cmake/Modules/ZMQSourceRunChecks.cmake:215 (check_c_source_compiles)"
+      - "CMakeLists.txt:735 (zmq_check_pthread_setname)"
+    checks:
+      - "Performing Test ZMQ_HAVE_PTHREAD_SETNAME_1"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-hvLYce"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-hvLYce"
+    cmakeVariables:
+      CMAKE_C_FLAGS: " -std=c11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "ZMQ_HAVE_PTHREAD_SETNAME_1"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-hvLYce
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_85105/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_85105.dir/build.make CMakeFiles/cmTC_85105.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-hvLYce'
+        Building C object CMakeFiles/cmTC_85105.dir/src.c.o
+        /usr/bin/cc -DZMQ_HAVE_PTHREAD_SETNAME_1  -std=c11 -Wno-tautological-constant-compare -D_GNU_SOURCE -Werror -pthread -o CMakeFiles/cmTC_85105.dir/src.c.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-hvLYce/src.c
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-hvLYce/src.c: In function ‘main’:
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-hvLYce/src.c:6:25: error: passing argument 1 of ‘pthread_setname_np’ makes integer from pointer without a cast [-Werror=int-conversion]
+            6 |     pthread_setname_np ("foo");
+              |                         ^~~~~
+              |                         |
+              |                         char *
+        In file included from /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-hvLYce/src.c:2:
+        /usr/include/pthread.h:463:42: note: expected ‘pthread_t’ {aka ‘long unsigned int’} but argument is of type ‘char *’
+          463 | extern int pthread_setname_np (pthread_t __target_thread, const char *__name)
+              |                                ~~~~~~~~~~^~~~~~~~~~~~~~~
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-hvLYce/src.c:6:5: error: too few arguments to function ‘pthread_setname_np’
+            6 |     pthread_setname_np ("foo");
+              |     ^~~~~~~~~~~~~~~~~~
+        In file included from /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-hvLYce/src.c:2:
+        /usr/include/pthread.h:463:12: note: declared here
+          463 | extern int pthread_setname_np (pthread_t __target_thread, const char *__name)
+              |            ^~~~~~~~~~~~~~~~~~
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-hvLYce/src.c: At top level:
+        cc1: note: unrecognized command-line option ‘-Wno-tautological-constant-compare’ may have been intended to silence earlier diagnostics
+        cc1: all warnings being treated as errors
+        gmake[1]: *** [CMakeFiles/cmTC_85105.dir/build.make:78: CMakeFiles/cmTC_85105.dir/src.c.o] Error 1
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-hvLYce'
+        gmake: *** [Makefile:127: cmTC_85105/fast] Error 2
+        
+      exitCode: 2
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckSourceCompiles.cmake:101 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCSourceCompiles.cmake:76 (cmake_check_source_compiles)"
+      - "builds/cmake/Modules/ZMQSourceRunChecks.cmake:226 (check_c_source_compiles)"
+      - "CMakeLists.txt:735 (zmq_check_pthread_setname)"
+    checks:
+      - "Performing Test ZMQ_HAVE_PTHREAD_SETNAME_2"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-4w1lXr"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-4w1lXr"
+    cmakeVariables:
+      CMAKE_C_FLAGS: " -std=c11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "ZMQ_HAVE_PTHREAD_SETNAME_2"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-4w1lXr
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_d0704/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_d0704.dir/build.make CMakeFiles/cmTC_d0704.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-4w1lXr'
+        Building C object CMakeFiles/cmTC_d0704.dir/src.c.o
+        /usr/bin/cc -DZMQ_HAVE_PTHREAD_SETNAME_2  -std=c11 -Wno-tautological-constant-compare -D_GNU_SOURCE -Werror -pthread -o CMakeFiles/cmTC_d0704.dir/src.c.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-4w1lXr/src.c
+        Linking C executable cmTC_d0704
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_d0704.dir/link.txt --verbose=1
+        /usr/bin/cc  -std=c11 -Wno-tautological-constant-compare -D_GNU_SOURCE -Werror -pthread -rdynamic CMakeFiles/cmTC_d0704.dir/src.c.o -o cmTC_d0704 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-4w1lXr'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckSourceCompiles.cmake:101 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCSourceCompiles.cmake:76 (cmake_check_source_compiles)"
+      - "builds/cmake/Modules/ZMQSourceRunChecks.cmake:237 (check_c_source_compiles)"
+      - "CMakeLists.txt:735 (zmq_check_pthread_setname)"
+    checks:
+      - "Performing Test ZMQ_HAVE_PTHREAD_SETNAME_3"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-bcvBaT"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-bcvBaT"
+    cmakeVariables:
+      CMAKE_C_FLAGS: " -std=c11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "ZMQ_HAVE_PTHREAD_SETNAME_3"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-bcvBaT
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_99db1/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_99db1.dir/build.make CMakeFiles/cmTC_99db1.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-bcvBaT'
+        Building C object CMakeFiles/cmTC_99db1.dir/src.c.o
+        /usr/bin/cc -DZMQ_HAVE_PTHREAD_SETNAME_3  -std=c11 -Wno-tautological-constant-compare -D_GNU_SOURCE -Werror -pthread -o CMakeFiles/cmTC_99db1.dir/src.c.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-bcvBaT/src.c
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-bcvBaT/src.c: In function ‘main’:
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-bcvBaT/src.c:6:5: error: too many arguments to function ‘pthread_setname_np’
+            6 |     pthread_setname_np (pthread_self(), "foo", (void *)0);
+              |     ^~~~~~~~~~~~~~~~~~
+        In file included from /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-bcvBaT/src.c:2:
+        /usr/include/pthread.h:463:12: note: declared here
+          463 | extern int pthread_setname_np (pthread_t __target_thread, const char *__name)
+              |            ^~~~~~~~~~~~~~~~~~
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-bcvBaT/src.c: At top level:
+        cc1: note: unrecognized command-line option ‘-Wno-tautological-constant-compare’ may have been intended to silence earlier diagnostics
+        gmake[1]: *** [CMakeFiles/cmTC_99db1.dir/build.make:78: CMakeFiles/cmTC_99db1.dir/src.c.o] Error 1
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-bcvBaT'
+        gmake: *** [Makefile:127: cmTC_99db1/fast] Error 2
+        
+      exitCode: 2
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckSourceCompiles.cmake:101 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCSourceCompiles.cmake:76 (cmake_check_source_compiles)"
+      - "builds/cmake/Modules/ZMQSourceRunChecks.cmake:248 (check_c_source_compiles)"
+      - "CMakeLists.txt:735 (zmq_check_pthread_setname)"
+    checks:
+      - "Performing Test ZMQ_HAVE_PTHREAD_SET_NAME"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-uzC46C"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-uzC46C"
+    cmakeVariables:
+      CMAKE_C_FLAGS: " -std=c11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "ZMQ_HAVE_PTHREAD_SET_NAME"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-uzC46C
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_b547c/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_b547c.dir/build.make CMakeFiles/cmTC_b547c.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-uzC46C'
+        Building C object CMakeFiles/cmTC_b547c.dir/src.c.o
+        /usr/bin/cc -DZMQ_HAVE_PTHREAD_SET_NAME  -std=c11 -Wno-tautological-constant-compare -D_GNU_SOURCE -Werror -pthread -o CMakeFiles/cmTC_b547c.dir/src.c.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-uzC46C/src.c
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-uzC46C/src.c: In function ‘main’:
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-uzC46C/src.c:6:5: error: implicit declaration of function ‘pthread_set_name_np’; did you mean ‘pthread_setname_np’? [-Werror=implicit-function-declaration]
+            6 |     pthread_set_name_np (pthread_self(), "foo");
+              |     ^~~~~~~~~~~~~~~~~~~
+              |     pthread_setname_np
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-uzC46C/src.c: At top level:
+        cc1: note: unrecognized command-line option ‘-Wno-tautological-constant-compare’ may have been intended to silence earlier diagnostics
+        cc1: all warnings being treated as errors
+        gmake[1]: *** [CMakeFiles/cmTC_b547c.dir/build.make:78: CMakeFiles/cmTC_b547c.dir/src.c.o] Error 1
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-uzC46C'
+        gmake: *** [Makefile:127: cmTC_b547c/fast] Error 2
+        
+      exitCode: 2
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckSourceCompiles.cmake:101 (try_compile)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCSourceCompiles.cmake:76 (cmake_check_source_compiles)"
+      - "builds/cmake/Modules/ZMQSourceRunChecks.cmake:266 (check_c_source_compiles)"
+      - "CMakeLists.txt:736 (zmq_check_pthread_setaffinity)"
+    checks:
+      - "Performing Test ZMQ_HAVE_PTHREAD_SET_AFFINITY"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-bOvd9z"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-bOvd9z"
+    cmakeVariables:
+      CMAKE_C_FLAGS: " -std=c11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "ZMQ_HAVE_PTHREAD_SET_AFFINITY"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-bOvd9z
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_a5842/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_a5842.dir/build.make CMakeFiles/cmTC_a5842.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-bOvd9z'
+        Building C object CMakeFiles/cmTC_a5842.dir/src.c.o
+        /usr/bin/cc -DZMQ_HAVE_PTHREAD_SET_AFFINITY  -std=c11 -Wno-tautological-constant-compare -D_GNU_SOURCE -Werror -pthread -o CMakeFiles/cmTC_a5842.dir/src.c.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-bOvd9z/src.c
+        Linking C executable cmTC_a5842
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_a5842.dir/link.txt --verbose=1
+        /usr/bin/cc  -std=c11 -Wno-tautological-constant-compare -D_GNU_SOURCE -Werror -pthread -rdynamic CMakeFiles/cmTC_a5842.dir/src.c.o -o cmTC_a5842 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-bOvd9z'
+        
+      exitCode: 0
+  -
+    kind: "try_run-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckSourceRuns.cmake:93 (try_run)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCSourceRuns.cmake:76 (cmake_check_source_runs)"
+      - "builds/cmake/Modules/ZMQSourceRunChecks.cmake:5 (check_c_source_runs)"
+      - "CMakeLists.txt:739 (zmq_check_sock_cloexec)"
+    checks:
+      - "Performing Test ZMQ_HAVE_SOCK_CLOEXEC"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-j8Cky2"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-j8Cky2"
+    cmakeVariables:
+      CMAKE_C_FLAGS: " -std=c11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "ZMQ_HAVE_SOCK_CLOEXEC_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-j8Cky2
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_c80ef/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_c80ef.dir/build.make CMakeFiles/cmTC_c80ef.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-j8Cky2'
+        Building C object CMakeFiles/cmTC_c80ef.dir/src.c.o
+        /usr/bin/cc -DZMQ_HAVE_SOCK_CLOEXEC  -std=c11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_c80ef.dir/src.c.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-j8Cky2/src.c
+        Linking C executable cmTC_c80ef
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_c80ef.dir/link.txt --verbose=1
+        /usr/bin/cc  -std=c11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_c80ef.dir/src.c.o -o cmTC_c80ef 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-j8Cky2'
+        
+      exitCode: 0
+    runResult:
+      variable: "ZMQ_HAVE_SOCK_CLOEXEC_EXITCODE"
+      cached: true
+      stdout: |
+      stderr: |
+      exitCode: 0
+  -
+    kind: "try_run-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckSourceRuns.cmake:93 (try_run)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCSourceRuns.cmake:76 (cmake_check_source_runs)"
+      - "builds/cmake/Modules/ZMQSourceRunChecks.cmake:36 (check_c_source_runs)"
+      - "CMakeLists.txt:740 (zmq_check_o_cloexec)"
+    checks:
+      - "Performing Test ZMQ_HAVE_O_CLOEXEC"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-AaOcw3"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-AaOcw3"
+    cmakeVariables:
+      CMAKE_C_FLAGS: " -std=c11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "ZMQ_HAVE_O_CLOEXEC_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-AaOcw3
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_b36ca/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_b36ca.dir/build.make CMakeFiles/cmTC_b36ca.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-AaOcw3'
+        Building C object CMakeFiles/cmTC_b36ca.dir/src.c.o
+        /usr/bin/cc -DZMQ_HAVE_O_CLOEXEC  -std=c11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_b36ca.dir/src.c.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-AaOcw3/src.c
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-AaOcw3/src.c: In function ‘main’:
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-AaOcw3/src.c:8:32: error: ‘O_CLOEXEC’ undeclared (first use in this function); did you mean ‘FD_CLOEXEC’?
+            8 |     int s = open ("/dev/null", O_CLOEXEC | O_RDONLY);
+              |                                ^~~~~~~~~
+              |                                FD_CLOEXEC
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-AaOcw3/src.c:8:32: note: each undeclared identifier is reported only once for each function it appears in
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-AaOcw3/src.c: At top level:
+        cc1: note: unrecognized command-line option ‘-Wno-tautological-constant-compare’ may have been intended to silence earlier diagnostics
+        gmake[1]: *** [CMakeFiles/cmTC_b36ca.dir/build.make:78: CMakeFiles/cmTC_b36ca.dir/src.c.o] Error 1
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-AaOcw3'
+        gmake: *** [Makefile:127: cmTC_b36ca/fast] Error 2
+        
+      exitCode: 2
+    runResult:
+      variable: "ZMQ_HAVE_O_CLOEXEC_EXITCODE"
+      cached: true
+  -
+    kind: "try_run-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckSourceRuns.cmake:93 (try_run)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCSourceRuns.cmake:76 (cmake_check_source_runs)"
+      - "builds/cmake/Modules/ZMQSourceRunChecks.cmake:53 (check_c_source_runs)"
+      - "CMakeLists.txt:741 (zmq_check_so_bindtodevice)"
+    checks:
+      - "Performing Test ZMQ_HAVE_SO_BINDTODEVICE"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-3VtydU"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-3VtydU"
+    cmakeVariables:
+      CMAKE_C_FLAGS: " -std=c11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "ZMQ_HAVE_SO_BINDTODEVICE_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-3VtydU
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_8d7fa/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_8d7fa.dir/build.make CMakeFiles/cmTC_8d7fa.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-3VtydU'
+        Building C object CMakeFiles/cmTC_8d7fa.dir/src.c.o
+        /usr/bin/cc -DZMQ_HAVE_SO_BINDTODEVICE  -std=c11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_8d7fa.dir/src.c.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-3VtydU/src.c
+        Linking C executable cmTC_8d7fa
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_8d7fa.dir/link.txt --verbose=1
+        /usr/bin/cc  -std=c11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_8d7fa.dir/src.c.o -o cmTC_8d7fa 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-3VtydU'
+        
+      exitCode: 0
+    runResult:
+      variable: "ZMQ_HAVE_SO_BINDTODEVICE_EXITCODE"
+      cached: true
+      stdout: |
+      stderr: |
+      exitCode: 1
+  -
+    kind: "try_run-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckSourceRuns.cmake:93 (try_run)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCSourceRuns.cmake:76 (cmake_check_source_runs)"
+      - "builds/cmake/Modules/ZMQSourceRunChecks.cmake:74 (check_c_source_runs)"
+      - "CMakeLists.txt:742 (zmq_check_so_keepalive)"
+    checks:
+      - "Performing Test ZMQ_HAVE_SO_KEEPALIVE"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-lOZqif"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-lOZqif"
+    cmakeVariables:
+      CMAKE_C_FLAGS: " -std=c11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "ZMQ_HAVE_SO_KEEPALIVE_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-lOZqif
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_490e2/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_490e2.dir/build.make CMakeFiles/cmTC_490e2.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-lOZqif'
+        Building C object CMakeFiles/cmTC_490e2.dir/src.c.o
+        /usr/bin/cc -DZMQ_HAVE_SO_KEEPALIVE  -std=c11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_490e2.dir/src.c.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-lOZqif/src.c
+        Linking C executable cmTC_490e2
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_490e2.dir/link.txt --verbose=1
+        /usr/bin/cc  -std=c11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_490e2.dir/src.c.o -o cmTC_490e2 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-lOZqif'
+        
+      exitCode: 0
+    runResult:
+      variable: "ZMQ_HAVE_SO_KEEPALIVE_EXITCODE"
+      cached: true
+      stdout: |
+      stderr: |
+      exitCode: 0
+  -
+    kind: "try_run-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckSourceRuns.cmake:93 (try_run)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCSourceRuns.cmake:76 (cmake_check_source_runs)"
+      - "builds/cmake/Modules/ZMQSourceRunChecks.cmake:318 (check_c_source_runs)"
+      - "CMakeLists.txt:743 (zmq_check_so_priority)"
+    checks:
+      - "Performing Test ZMQ_HAVE_SO_PRIORITY"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-WLp3fz"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-WLp3fz"
+    cmakeVariables:
+      CMAKE_C_FLAGS: " -std=c11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "ZMQ_HAVE_SO_PRIORITY_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-WLp3fz
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_bf35a/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_bf35a.dir/build.make CMakeFiles/cmTC_bf35a.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-WLp3fz'
+        Building C object CMakeFiles/cmTC_bf35a.dir/src.c.o
+        /usr/bin/cc -DZMQ_HAVE_SO_PRIORITY  -std=c11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_bf35a.dir/src.c.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-WLp3fz/src.c
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-WLp3fz/src.c: In function ‘main’:
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-WLp3fz/src.c:10:43: error: ‘SO_PRIORITY’ undeclared (first use in this function)
+           10 |         ((rc = setsockopt (s, SOL_SOCKET, SO_PRIORITY, (char*) &opt, sizeof (int))) == -1)
+              |                                           ^~~~~~~~~~~
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-WLp3fz/src.c:10:43: note: each undeclared identifier is reported only once for each function it appears in
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-WLp3fz/src.c: At top level:
+        cc1: note: unrecognized command-line option ‘-Wno-tautological-constant-compare’ may have been intended to silence earlier diagnostics
+        gmake[1]: *** [CMakeFiles/cmTC_bf35a.dir/build.make:78: CMakeFiles/cmTC_bf35a.dir/src.c.o] Error 1
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-WLp3fz'
+        gmake: *** [Makefile:127: cmTC_bf35a/fast] Error 2
+        
+      exitCode: 2
+    runResult:
+      variable: "ZMQ_HAVE_SO_PRIORITY_EXITCODE"
+      cached: true
+  -
+    kind: "try_run-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckSourceRuns.cmake:93 (try_run)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCSourceRuns.cmake:76 (cmake_check_source_runs)"
+      - "builds/cmake/Modules/ZMQSourceRunChecks.cmake:93 (check_c_source_runs)"
+      - "CMakeLists.txt:744 (zmq_check_tcp_keepcnt)"
+    checks:
+      - "Performing Test ZMQ_HAVE_TCP_KEEPCNT"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-gIjDYg"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-gIjDYg"
+    cmakeVariables:
+      CMAKE_C_FLAGS: " -std=c11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "ZMQ_HAVE_TCP_KEEPCNT_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-gIjDYg
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_8578a/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_8578a.dir/build.make CMakeFiles/cmTC_8578a.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-gIjDYg'
+        Building C object CMakeFiles/cmTC_8578a.dir/src.c.o
+        /usr/bin/cc -DZMQ_HAVE_TCP_KEEPCNT  -std=c11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_8578a.dir/src.c.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-gIjDYg/src.c
+        Linking C executable cmTC_8578a
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_8578a.dir/link.txt --verbose=1
+        /usr/bin/cc  -std=c11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_8578a.dir/src.c.o -o cmTC_8578a 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-gIjDYg'
+        
+      exitCode: 0
+    runResult:
+      variable: "ZMQ_HAVE_TCP_KEEPCNT_EXITCODE"
+      cached: true
+      stdout: |
+      stderr: |
+      exitCode: 0
+  -
+    kind: "try_run-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckSourceRuns.cmake:93 (try_run)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCSourceRuns.cmake:76 (cmake_check_source_runs)"
+      - "builds/cmake/Modules/ZMQSourceRunChecks.cmake:115 (check_c_source_runs)"
+      - "CMakeLists.txt:745 (zmq_check_tcp_keepidle)"
+    checks:
+      - "Performing Test ZMQ_HAVE_TCP_KEEPIDLE"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-AUctwn"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-AUctwn"
+    cmakeVariables:
+      CMAKE_C_FLAGS: " -std=c11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "ZMQ_HAVE_TCP_KEEPIDLE_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-AUctwn
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_a1982/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_a1982.dir/build.make CMakeFiles/cmTC_a1982.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-AUctwn'
+        Building C object CMakeFiles/cmTC_a1982.dir/src.c.o
+        /usr/bin/cc -DZMQ_HAVE_TCP_KEEPIDLE  -std=c11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_a1982.dir/src.c.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-AUctwn/src.c
+        Linking C executable cmTC_a1982
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_a1982.dir/link.txt --verbose=1
+        /usr/bin/cc  -std=c11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_a1982.dir/src.c.o -o cmTC_a1982 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-AUctwn'
+        
+      exitCode: 0
+    runResult:
+      variable: "ZMQ_HAVE_TCP_KEEPIDLE_EXITCODE"
+      cached: true
+      stdout: |
+      stderr: |
+      exitCode: 0
+  -
+    kind: "try_run-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckSourceRuns.cmake:93 (try_run)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCSourceRuns.cmake:76 (cmake_check_source_runs)"
+      - "builds/cmake/Modules/ZMQSourceRunChecks.cmake:138 (check_c_source_runs)"
+      - "CMakeLists.txt:746 (zmq_check_tcp_keepintvl)"
+    checks:
+      - "Performing Test ZMQ_HAVE_TCP_KEEPINTVL"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-t3gAg4"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-t3gAg4"
+    cmakeVariables:
+      CMAKE_C_FLAGS: " -std=c11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "ZMQ_HAVE_TCP_KEEPINTVL_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-t3gAg4
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_98ad3/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_98ad3.dir/build.make CMakeFiles/cmTC_98ad3.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-t3gAg4'
+        Building C object CMakeFiles/cmTC_98ad3.dir/src.c.o
+        /usr/bin/cc -DZMQ_HAVE_TCP_KEEPINTVL  -std=c11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_98ad3.dir/src.c.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-t3gAg4/src.c
+        Linking C executable cmTC_98ad3
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_98ad3.dir/link.txt --verbose=1
+        /usr/bin/cc  -std=c11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_98ad3.dir/src.c.o -o cmTC_98ad3 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-t3gAg4'
+        
+      exitCode: 0
+    runResult:
+      variable: "ZMQ_HAVE_TCP_KEEPINTVL_EXITCODE"
+      cached: true
+      stdout: |
+      stderr: |
+      exitCode: 0
+  -
+    kind: "try_run-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckSourceRuns.cmake:93 (try_run)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCSourceRuns.cmake:76 (cmake_check_source_runs)"
+      - "builds/cmake/Modules/ZMQSourceRunChecks.cmake:162 (check_c_source_runs)"
+      - "CMakeLists.txt:747 (zmq_check_tcp_keepalive)"
+    checks:
+      - "Performing Test ZMQ_HAVE_TCP_KEEPALIVE"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-wBBdHT"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-wBBdHT"
+    cmakeVariables:
+      CMAKE_C_FLAGS: " -std=c11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "ZMQ_HAVE_TCP_KEEPALIVE_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-wBBdHT
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_04cfc/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_04cfc.dir/build.make CMakeFiles/cmTC_04cfc.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-wBBdHT'
+        Building C object CMakeFiles/cmTC_04cfc.dir/src.c.o
+        /usr/bin/cc -DZMQ_HAVE_TCP_KEEPALIVE  -std=c11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_04cfc.dir/src.c.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-wBBdHT/src.c
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-wBBdHT/src.c: In function ‘main’:
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-wBBdHT/src.c:13:42: error: ‘TCP_KEEPALIVE’ undeclared (first use in this function); did you mean ‘SO_KEEPALIVE’?
+           13 |        ((rc = setsockopt(s, IPPROTO_TCP, TCP_KEEPALIVE,(char*) &opt, sizeof(int))) == -1)
+              |                                          ^~~~~~~~~~~~~
+              |                                          SO_KEEPALIVE
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-wBBdHT/src.c:13:42: note: each undeclared identifier is reported only once for each function it appears in
+        /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-wBBdHT/src.c: At top level:
+        cc1: note: unrecognized command-line option ‘-Wno-tautological-constant-compare’ may have been intended to silence earlier diagnostics
+        gmake[1]: *** [CMakeFiles/cmTC_04cfc.dir/build.make:78: CMakeFiles/cmTC_04cfc.dir/src.c.o] Error 1
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-wBBdHT'
+        gmake: *** [Makefile:127: cmTC_04cfc/fast] Error 2
+        
+      exitCode: 2
+    runResult:
+      variable: "ZMQ_HAVE_TCP_KEEPALIVE_EXITCODE"
+      cached: true
+  -
+    kind: "try_run-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckSourceRuns.cmake:93 (try_run)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCSourceRuns.cmake:76 (cmake_check_source_runs)"
+      - "builds/cmake/Modules/ZMQSourceRunChecks.cmake:185 (check_c_source_runs)"
+      - "CMakeLists.txt:748 (zmq_check_tcp_tipc)"
+    checks:
+      - "Performing Test ZMQ_HAVE_TIPC"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-ZeuvJi"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-ZeuvJi"
+    cmakeVariables:
+      CMAKE_C_FLAGS: " -std=c11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "ZMQ_HAVE_TIPC_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-ZeuvJi
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_5e62b/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_5e62b.dir/build.make CMakeFiles/cmTC_5e62b.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-ZeuvJi'
+        Building C object CMakeFiles/cmTC_5e62b.dir/src.c.o
+        /usr/bin/cc -DZMQ_HAVE_TIPC  -std=c11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_5e62b.dir/src.c.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-ZeuvJi/src.c
+        Linking C executable cmTC_5e62b
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_5e62b.dir/link.txt --verbose=1
+        /usr/bin/cc  -std=c11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_5e62b.dir/src.c.o -o cmTC_5e62b 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-ZeuvJi'
+        
+      exitCode: 0
+    runResult:
+      variable: "ZMQ_HAVE_TIPC_EXITCODE"
+      cached: true
+      stdout: |
+      stderr: |
+      exitCode: 0
+  -
+    kind: "try_run-v1"
+    backtrace:
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/Internal/CheckSourceRuns.cmake:93 (try_run)"
+      - "/opt/cmake-3.26.1/share/cmake-3.26/Modules/CheckCSourceRuns.cmake:76 (cmake_check_source_runs)"
+      - "builds/cmake/Modules/ZMQSourceRunChecks.cmake:284 (check_c_source_runs)"
+      - "CMakeLists.txt:749 (zmq_check_getrandom)"
+    checks:
+      - "Performing Test ZMQ_HAVE_GETRANDOM"
+    directories:
+      source: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-dfRgyB"
+      binary: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-dfRgyB"
+    cmakeVariables:
+      CMAKE_C_FLAGS: " -std=c11 -Wno-tautological-constant-compare"
+      CMAKE_MODULE_PATH: "/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5;/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/builds/cmake/Modules"
+    buildResult:
+      variable: "ZMQ_HAVE_GETRANDOM_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-dfRgyB
+        
+        Run Build Command(s):/opt/cmake-3.26.1/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_38965/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_38965.dir/build.make CMakeFiles/cmTC_38965.dir/build
+        gmake[1]: Entering directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-dfRgyB'
+        Building C object CMakeFiles/cmTC_38965.dir/src.c.o
+        /usr/bin/cc -DZMQ_HAVE_GETRANDOM  -std=c11 -Wno-tautological-constant-compare  -o CMakeFiles/cmTC_38965.dir/src.c.o -c /home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-dfRgyB/src.c
+        Linking C executable cmTC_38965
+        /opt/cmake-3.26.1/bin/cmake -E cmake_link_script CMakeFiles/cmTC_38965.dir/link.txt --verbose=1
+        /usr/bin/cc  -std=c11 -Wno-tautological-constant-compare  -rdynamic CMakeFiles/cmTC_38965.dir/src.c.o -o cmTC_38965 
+        gmake[1]: Leaving directory '/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/CMakeFiles/CMakeScratch/TryCompile-dfRgyB'
+        
+      exitCode: 0
+    runResult:
+      variable: "ZMQ_HAVE_GETRANDOM_EXITCODE"
+      cached: true
+      stdout: |
+      stderr: |
+      exitCode: 0
+...

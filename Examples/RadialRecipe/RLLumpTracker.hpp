@@ -35,11 +35,11 @@ inline void track_rl_lumps(GRAMR &amr, int num_lumps, bool complex_field,
     auto &fine_level =
         dynamic_cast<RadialRecipeLevel &>(amr.getLevel(finest_lev));
     amrex::MultiFab &state_fine =
-        fine_level.get_new_data(RadialRecipeLevel::state_index);
+        fine_level.get_new_data(state_index);
     const amrex::Real time =
-        fine_level.get_state_data(RadialRecipeLevel::state_index).curTime();
-    FillPatch(fine_level, state_fine, 2, time, RadialRecipeLevel::state_index, 0,
-              state_fine.nComp());
+        fine_level.get_state_data(state_index).curTime();
+    amrex::AmrLevel::FillPatch(fine_level, state_fine, 2, time, state_index, 0,
+                               state_fine.nComp());
 
     const auto geom = amr.Geom(finest_lev);
     const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> dx_arr =

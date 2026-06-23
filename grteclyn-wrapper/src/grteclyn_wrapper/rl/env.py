@@ -9,6 +9,7 @@ import gymnasium as gym
 import numpy as np
 
 from grteclyn_wrapper.rl.audit import compute_audit_penalty, wait_consumer_drain, wait_for_frame_record
+from grteclyn_wrapper.rl.params import read_rl_num_lumps
 from grteclyn_wrapper.rl.process import SubprocessEpisodeLauncher
 from grteclyn_wrapper.rl.protocols import ActionSink, ObservationSource
 from grteclyn_wrapper.rl.reward import TaxManState, compute_dense_reward, evaluate_fences
@@ -25,7 +26,7 @@ class SpacetimeFtlEnvConfig:
     objective_mode: str = "general_ftl"
     use_taxman_audit: bool = True
     gpu_id: int | None = None
-    num_lumps: int = 1
+    num_lumps: int | None = None  # None => read rl_num_lumps from params_file
 
 
 # Per-lump observation stride (must match RL_LUMP_OBS_STRIDE in
@@ -55,7 +56,10 @@ class SpacetimeFtlEnv(gym.Env):
         self._episode_return = 0.0
         self._terminated = False
 
-        n = max(1, int(config.num_lumps))
+        if config.num_lumps is None:
+            n = read_rl_num_lumps(config.params_file)
+        else:
+            n = max(1, int(config.num_lumps))
         self._num_lumps = n
         action_dim = LUMP_ACTION_STRIDE * n + GAUGE_ACTION_DIM
         obs_dim = GLOBAL_OBS_DIM + LUMP_OBS_STRIDE * n
@@ -88,6 +92,12 @@ class SpacetimeFtlEnv(gym.Env):
         self._terminated = False
         self._launcher.start()
         obs = self._zmq.recv_obs()
+        expected = GLOBAL_OBS_DIM + LUMP_OBS_STRIDE * self._num_lumps
+        if obs.size != expected:
+            raise RuntimeError(
+                f"observation size mismatch: got {obs.size}, expected {expected} "
+                f"(num_lumps={self._num_lumps}; check params rl_num_lumps)"
+            )
         return obs, {}
 
     def step(self, action: np.ndarray):

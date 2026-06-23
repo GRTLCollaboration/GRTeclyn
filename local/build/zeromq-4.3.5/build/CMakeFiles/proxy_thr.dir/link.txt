@@ -1,0 +1,1 @@
+/usr/bin/c++  -std=c++11 -Wno-tautological-constant-compare -O3 -DNDEBUG -rdynamic CMakeFiles/proxy_thr.dir/perf/proxy_thr.cpp.o -o bin/proxy_thr  -Wl,-rpath,/home/jovyan/nachevsky/test/simulation/GRTeclyn/local/build/zeromq-4.3.5/build/lib: lib/libzmq.so.5.2.5 -lrt 
