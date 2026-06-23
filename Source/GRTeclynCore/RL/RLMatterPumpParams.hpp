@@ -34,9 +34,9 @@ tanh_governor(double cached_l2, double center, double width)
     return 0.5 * (1.0 + std::tanh(margin));
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE double compute_pump_drive(
-    double x, double y, double z, double time,
-    const RLMatterPumpParams &pump, double cached_l2)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE double compute_pump_base(
+    double x, double y, double z, const RLMatterPumpParams &pump,
+    double cached_l2)
 {
     if (pump.num_fields < 1 || pump.amplitude <= 0.0)
     {
@@ -48,8 +48,19 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE double compute_pump_drive(
                  (2.0 * pump.width * pump.width));
     const double governor =
         tanh_governor(cached_l2, pump.governor_center, pump.governor_width);
-    return pump.amplitude * governor * envelope *
-           std::cos(pump.frequency * time + pump.phase);
+    return pump.amplitude * governor * envelope;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE double compute_pump_drive(
+    double x, double y, double z, double time,
+    const RLMatterPumpParams &pump, double cached_l2)
+{
+    const double base = compute_pump_base(x, y, z, pump, cached_l2);
+    if (base <= 0.0)
+    {
+        return 0.0;
+    }
+    return base * std::cos(pump.frequency * time + pump.phase);
 }
 } // namespace RLRuntime
 

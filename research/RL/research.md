@@ -6,7 +6,7 @@
 
 ## Abstract
 
-The existing MAP-Elites and CMA-ES pipeline discovers FTL-capable initial-value genomes under the `general_ftl` objective, but IVP-only evolution plateaus when the wormhole throat collapses near t≈21 (HQ eval **046**). Static t=0 parameters cannot sustain mid-run throat geometry without actuators. This research plan proposes a **hybrid** architecture: QD and CMA-ES remain the initial-condition genome generator; reinforcement learning adds **evolution-only** closed-loop control via a Lump[0] matter pump and dynamic gauge steering. The training objective aligns with the existing QD scorer through a hierarchical Tax Man reward that couples dense per-frame FTL feedback to a terminal `score_episode` audit.
+The existing MAP-Elites and CMA-ES pipeline discovers FTL-capable initial-value genomes under the `general_ftl` objective, but IVP-only evolution plateaus when the wormhole throat collapses near t≈21. Static t=0 parameters cannot sustain mid-run throat geometry without actuators. This research plan proposes a **hybrid** architecture: QD and CMA-ES remain the initial-condition genome generator; reinforcement learning adds **evolution-only** closed-loop control via a boson-star matter pump (`c_Pi` / `c_Pi2`, 90° U(1)) and dynamic gauge steering. The training objective aligns with the existing QD scorer through a hierarchical Tax Man reward that couples dense per-frame FTL feedback to a terminal `score_episode` audit.
 
 ---
 
@@ -41,7 +41,7 @@ IVP-only elites (e.g. CMA-ES eval **046**) open a wormhole throat during evoluti
 
 **Research question:** Can evolution-only RL (matter pump + gauge steering) extend throat lifetime beyond the IVP plateau while preserving `general_ftl` score integrity?
 
-**Hypothesis:** A hierarchical Tax Man reward — dense FTL feedback per plot frame plus a terminal audit via `score_episode` — provides sufficient credit assignment for PPO while preventing reward hacking (e.g. transient FTL spikes followed by constraint violation). Gauge steering alone is insufficient; a Lump[0] matter pump supplies the required drivetrain on the `grtresna_independent_scalars` chassis.
+**Hypothesis:** A hierarchical Tax Man reward — dense FTL feedback per plot frame plus a terminal audit via `score_episode` — provides sufficient credit assignment for PPO while preventing reward hacking (e.g. transient FTL spikes followed by constraint violation). Gauge steering alone is insufficient; a matter pump on a **stable boson-star chassis** (`grtresna_complex_scalar`) supplies the required drivetrain. Real signed scalars disperse; complex scalars form long-lived stationary states suitable for mid-run actuation.
 
 ---
 
@@ -51,7 +51,8 @@ IVP-only elites (e.g. CMA-ES eval **046**) open a wormhole throat during evoluti
 |----------|--------|
 | Physics target | `general_ftl` FTL campaign (not splash) |
 | IC strategy | Hybrid — QD/CMA-ES selects genome once; RL controls evolution |
-| Matter model | `grtresna_independent_scalars` (5-lump shell); Lump[0] pump only |
+| Matter model | `grtresna_complex_scalar` (boson star); pump on `c_Pi` / `c_Pi2` (90° U(1)) |
+| RL chassis | Regenerate from `general_ftl` + boson-star GRTresna solve (not real-scalar eval 046) |
 | QD / CMA-ES | Retained as IC generators, not replaced |
 | RL algorithm | PPO (Stable-Baselines3); 8 parallel GPU environments |
 
@@ -61,7 +62,7 @@ QD/CMA-ES produce a valid GRTresna elliptic solve and gridinit. RL operates on t
 
 ## Pipeline overview
 
-Hybrid **QD + RL** keeps MAP-Elites and CMA-ES as the **IC genome generator**; RL adds **evolution-only** closed-loop control on a fixed elite chassis (e.g. CMA-ES eval **046**). HQ promotion verifies at full resolution.
+Hybrid **QD + RL** keeps MAP-Elites and CMA-ES as the **IC genome generator**; RL adds **evolution-only** closed-loop control on a fixed boson-star elite chassis. HQ promotion verifies at full resolution.
 
 ### Campaign stages (offline → online → verify)
 
@@ -109,7 +110,7 @@ flowchart TB
   end
   subgraph hybrid [Hybrid QD + RL v3.2]
     Chassis["QD/CMA-ES picks\nIC genome once"]
-    Loop["Persistent evolution\nLump0 Pi pump + gauge EMA"]
+    Loop["Persistent evolution\nPi/Pi2 pump + gauge EMA"]
     Agent["PPO acts every\nplot frame via ZMQ"]
     Chassis --> Loop
     Agent -->|"actions"| Loop
@@ -138,7 +139,7 @@ sequenceDiagram
     PPO->>Env: action 5D
     Env->>ZMQ: pump amp freq phase gauge
     ZMQ->>Main: apply EMA params
-    Main->>RHS: Lump0 forcing next cycle
+    Main->>RHS: Pi/Pi2 forcing next cycle
     PC-->>Env: ftl_geo after frame barrier
     Env->>Env: R_dense + electric fences
   end
@@ -171,7 +172,7 @@ Episode return ≈ **min(Σ R_dense, full_qd)**. Transient FTL spikes that viola
 flowchart TB
   Action["PPO action 5D"]
   EMA["RLActionApplier\nEMA amp + gauge"]
-  Pump["Lump0 Pi pump\nGaussian envelope"]
+  Pump["Pi/Pi2 U1 pump\nGaussian envelope"]
   Gov["tanh L2_Ham governor\nevery RHS call"]
   Gauge["ccz4_params\nlapse_advec shift_Gamma"]
   Action --> EMA
@@ -204,7 +205,7 @@ FTL metrics (`ftl_geo_evolving`) enter the reward only at the plot-frame boundar
 
 | Index | Parameter | Effect |
 |-------|-----------|--------|
-| 0 | Pump amplitude | Lump[0] Π forcing envelope |
+| 0 | Pump amplitude | Gaussian envelope scale on `c_Pi` / `c_Pi2` |
 | 1 | Pump frequency | m=0 breathing mode (default) |
 | 2 | Pump phase | Temporal phase offset |
 | 3 | `lapse_advec_coeff` | CCZ4 gauge steering |
@@ -262,7 +263,7 @@ RL is an opt-in extension layer. When `rl_enabled = 0`, QD, CMA-ES, and default 
 | IPC | `Source/GRTeclynCore/RL/RLBridge.hpp` | ZMQ binary exchange; MPI Bcast from rank 0 |
 | Observations | `RLObservationCollector.hpp` | Pack 6-D vector |
 | Actions | `RLActionApplier.hpp` | EMA mapping to `SimulationParameters` |
-| Matter forcing | `GRTresnaIndependentScalars.impl.hpp` | Lump[0] pump + tanh governor |
+| Matter forcing | `ComplexScalarField.impl.hpp` | U(1) pump on `c_Pi`/`c_Pi2` + tanh governor |
 | Python env | `grteclyn_wrapper/rl/` | Gymnasium API, reward, audit, seed |
 | Training | Stable-Baselines3 PPO | 8 SubprocVecEnv with GPU pinning |
 
@@ -286,7 +287,7 @@ Full module lists, gate criteria, and code snippets are in [implementation-plan.
 | Phase | Scope | Gate |
 |-------|-------|------|
 | Pre-req | Fix Weyl4 / `ftl_geo_evolving` NaN on eval 046 replay | Finite FTL metrics |
-| 0A | Lump[0] pump, tanh governor, shared L2 reducer | Gate 0A: amp=0 tolerance match |
+| 0A | Boson-star pump (`ComplexScalarField`), tanh governor, shared L2 reducer | Gate 0A: amp=0 tolerance match |
 | 0B | Main.cpp hook, RLBridge, dummy agent | Gate 0B: no ZMQ hang |
 | 1 | Python `rl/` package, Tax Man T1–T4 | Gate 1 |
 | 2 | Scripted baselines, Kamikaze audit test | Gate 2 |
@@ -294,6 +295,18 @@ Full module lists, gate criteria, and code snippets are in [implementation-plan.
 | 4 | `campaigns/rl/` launchers, HQ promotion | HQ score verification |
 
 **PPO entry criteria:** pre-req complete, Gate 0A, Gate 0B, Gate 2, and Tax Man T1–T4 validated. No Python `grteclyn_wrapper/rl/` until Gate 0A passes.
+
+### RL chassis regeneration (operational)
+
+No new GRTresna physics is required — `grtresna_complex_scalar` is implemented end-to-end. The RL chassis must be a **boson-star** elite from a `general_ftl` QD/CMA-ES campaign with `GRTRESNA_MATTER_SECTOR=boson_star` (see [MapElites.md](../neuralspacetime/MapElites.md) boson-star launchers). Real-scalar eval **046** remains a useful IVP baseline for metrics debugging but is not the RL training chassis.
+
+```bash
+cd grteclyn-wrapper
+QD_NAME=general_ftl_boson_rl_v1 OBJECTIVE_MODE=general_ftl \
+  GRTRESNA_MATTER_SECTOR=boson_star \
+  bash scripts/campaigns/boson_star/run.sh
+# CMA-ES refine → copy elite gridinit + overrides into RL episode params
+```
 
 ---
 
@@ -323,7 +336,7 @@ Early exploratory notes in this directory contained proposals that differ from t
 | Topic | Superseded | Current (v3.2) |
 |-------|------------|----------------|
 | Control hook | `RadialRecipeLevel::specificPostTimeStep` | `Main_RadialRecipe.cpp` after `coarseTimeStep()` |
-| Matter sector | ComplexScalarField / boson star motor | `grtresna_independent_scalars`, Lump[0] only |
+| Matter sector | ComplexScalarField / boson star motor | `grtresna_complex_scalar`, U(1) pump on `c_Pi`/`c_Pi2` |
 | Observations | GW proxy, sidecar async metrics | 6-D sync C++ vector; FTL reward-only at frame barrier |
 | Actions | Delta increments on amplitude | EMA direct targeting |
 | Reward | Simple GW amplitude + lapse penalty | Tax Man hierarchical (dense / fences / audit) |

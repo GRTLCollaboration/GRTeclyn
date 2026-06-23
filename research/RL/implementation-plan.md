@@ -95,7 +95,7 @@ flowchart TB
 | `RLBridge.hpp` | ZMQ send/recv, timeouts, heartbeat | Obs reductions, action mapping, physics |
 | `RLObservationCollector.hpp` | Pack 6-D obs vector from AMR state | ZMQ, parameter writes |
 | `RLActionApplier.hpp` | Map action vector → `SimulationParameters` (EMA, clamps) | IPC, RHS forcing |
-| `RLMatterPump.hpp` | Spatial envelope + tanh governor + Lump[0] drive | ZMQ, gauge logic |
+| `RLMatterPump.hpp` | Spatial envelope + tanh governor + matter drive | ZMQ, gauge logic |
 | `rl/zmq_client.py` | Socket lifecycle, timeout, binary encode/decode | Reward, subprocess |
 | `rl/env.py` | Gym API, frame barrier, GPU pinning | Reward math, elite parsing |
 | `rl/reward.py` | Dense + fences + horizon one-shot | ZMQ, process spawn |
@@ -105,7 +105,7 @@ flowchart TB
 #### O — Open/Closed
 
 - **Closed:** `RadialRecipeLevel::specificPostTimeStep`, `evaluate_overrides`, MAP-Elites archive, QD `objectives.py`
-- **Open:** `Main_RadialRecipe.cpp` hook; matter RHS forcing when `rl_pump_amplitude > 0`
+- **Open:** `Main_RadialRecipe.cpp` hook guarded by `#ifdef USE_RL`; matter RHS forcing when `rl_pump_amplitude > 0` on `ComplexScalarField` or `GRTresnaIndependentScalars`
 
 #### L — Liskov Substitution
 
@@ -264,9 +264,12 @@ reward_terminal = audit_penalty
 
 ### 0A — Matter pump
 
-- Lump[0] only; tanh governor; `m_num_fields >= 1` guard
+- Primary path: `grtresna_complex_scalar` — pump on `c_Pi` / `c_Pi2` (90° U(1), m=0 default); tanh governor; `num_fields >= 1` guard
+- Legacy path: `grtresna_independent_scalars` — Lump[0] only (same governor/envelope helpers)
 - Shared `RLL2HamiltonianNorm.hpp`
 - Gate 0A: amp=0 tolerance match; amp=0.01 stable 100+ steps
+
+**RL chassis (operational):** regenerate elite from `general_ftl` + `GRTRESNA_MATTER_SECTOR=boson_star` QD/CMA-ES campaign; do not seed RL from real-scalar eval **046**.
 
 ### 0B — ZMQ bridge
 

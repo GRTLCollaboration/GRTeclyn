@@ -136,4 +136,30 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void ComplexScalarField::add_matter_rhs(
     }
 }
 
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void ComplexScalarField::add_matter_rhs(
+    const amrex::CellData<amrex::Real> &rhs, const Vars &vars,
+    const D1Vars &d1, const D2Vars &d2, const AdvecVars &advec,
+    const Coordinates &coords, amrex::Real time) const
+{
+    add_matter_rhs(rhs, vars, d1, d2, advec);
+
+    if (m_pump.num_fields < 1 || m_pump.amplitude <= 0.0)
+    {
+        return;
+    }
+
+    const amrex::Real base = RLRuntime::compute_pump_base(
+        coords.x, coords.y, coords.z, m_pump, RLRuntime::cached_L2_Ham());
+    if (base <= 0.0)
+    {
+        return;
+    }
+
+    // m=0 U(1) injection: Pi1 and Pi2 driven 90 deg out of phase.
+    const amrex::Real phase_arg =
+        m_pump.frequency * time + m_pump.phase;
+    rhs[c_Pi] += base * std::cos(phase_arg);
+    rhs[c_Pi2] += base * std::sin(phase_arg);
+}
+
 #endif /* COMPLEXSCALARFIELD_IMPL_HPP_ */

@@ -2,13 +2,16 @@
 #include "GRAMR.hpp"
 #include "GRParmParse.hpp"
 #include "RadialRecipeLevel.hpp"
+#include "SetupFunctions.hpp"
+#include "SimulationParameters.hpp"
+
+#ifdef USE_RL
 #include "RLObservationCollector.hpp"
 #include "RadialRecipeConstraintNorms.hpp"
 #include "RLActionApplier.hpp"
 #include "RLBridge.hpp"
 #include "RLMatterPumpParams.hpp"
-#include "SetupFunctions.hpp"
-#include "SimulationParameters.hpp"
+#endif
 
 int runGRTeclyn(int /*argc*/, char * /*argv*/[])
 {
@@ -47,6 +50,7 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
     {
         recipe_amr.coarseTimeStep(sim_params.stop_time);
 
+#ifdef USE_RL
         if (sim_params.rl_enabled)
         {
             auto &level0 =
@@ -76,13 +80,12 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
                                  sim_params.ccz4_params, action_arr);
             }
 
-#ifdef USE_RL
             if (get_rl_bridge().terminate_requested())
             {
                 break;
             }
-#endif
         }
+#endif
     }
 
     if (recipe_amr.stepOfLastCheckPoint() < recipe_amr.levelSteps(0) &&

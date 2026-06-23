@@ -11,6 +11,7 @@
 #include "DimensionDefinitions.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "GRParmParse.hpp"
+#include "RLMatterPumpParams.hpp"
 #include "StateVariables.hpp"
 #include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
@@ -23,8 +24,9 @@ class ComplexScalarField
     ComplexScalarField() { load_from_inputs(); }
 
     explicit ComplexScalarField(double a_mass, double a_lambda,
-                                double a_sign = 1.0)
-        : m_potential(a_mass, a_lambda), m_sign(a_sign)
+                                double a_sign = 1.0,
+                                RLMatterPumpParams a_pump = {})
+        : m_potential(a_mass, a_lambda), m_sign(a_sign), m_pump(a_pump)
     {
     }
 
@@ -70,9 +72,15 @@ class ComplexScalarField
                    const D1Vars &d1, const D2Vars &d2,
                    const AdvecVars &advec) const;
 
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    add_matter_rhs(const amrex::CellData<amrex::Real> &rhs, const Vars &vars,
+                   const D1Vars &d1, const D2Vars &d2, const AdvecVars &advec,
+                   const Coordinates &coords, amrex::Real time) const;
+
   private:
     ComplexScalarPotential m_potential;
     double m_sign{1.0}; // +1 canonical, -1 phantom (flips T_ab)
+    RLMatterPumpParams m_pump{};
 };
 
 #include "ComplexScalarField.impl.hpp"
