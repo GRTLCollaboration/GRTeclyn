@@ -223,7 +223,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     opt.add_argument(
         "--grtresna-ansatz",
-        choices=["free", "ring", "shell", "boson_star", "splash"],
+        choices=["free", "ring", "shell", "sh", "boson_star", "splash"],
         default="free",
         help="GRTresna matter parameterization. 'free' searches every lump "
              "independently (11*K dimensions). 'ring' searches a reduced rotating "
@@ -446,7 +446,7 @@ def build_parser() -> argparse.ArgumentParser:
     qd.add_argument("--grtresna-lumps", type=int, default=5)
     qd.add_argument(
         "--grtresna-ansatz",
-        choices=["free", "ring", "shell", "boson_star", "splash"],
+        choices=["free", "ring", "shell", "sh", "boson_star", "splash"],
         default="free",
         help="GRTresna geometry ansatz for scalar lumps (shell/ring/free). "
              "Legacy: 'boson_star' alias sets --grtresna-matter-sector boson_star.",

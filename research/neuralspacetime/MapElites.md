@@ -135,6 +135,61 @@ Option A (neural decoder) is the highest-ceiling approach but requires training 
 integration work. Option B (sequential RL placement) gives the most natural per-lump
 freedom and a defensible role for RL in this pipeline.
 
+### Option C implementation — `sh` ansatz (2025-06-24)
+
+The spherical-harmonic ansatz is now implemented as `--grtresna-ansatz sh`.
+
+**Architecture.** 24 real-SH modulation coefficients (ℓ_max=4, monopole absorbed
+into base amplitude) multiplicatively modulate the per-lump amplitude on a Fibonacci
+sphere:
+
+```
+A_k = base_amp × max(0, 1 + Σ_{idx>0} c_idx Y_ℓm(θ_k, φ_k))
+```
+
+Lump positions, velocity decomposition (toroidal/poloidal/radial), and exotic-wedge
+selection reuse the shell ansatz infrastructure. Dynamics are ON by default
+(`sh_static` starts at 0), fixing the warp-motor issue identified in the static
+post-mortem.
+
+**Search space (38 D):**
+
+| Block | Dims | Keys |
+|-------|------|------|
+| Base amplitude | 1 | `grtresna_sh_amp` [0.06, 0.22] |
+| SH modulation | 24 | `grtresna_sh_c1`..`c24` [−0.8, 0.8] |
+| Geometry | 3 | `sh_radius`, `sh_width`, `sh_thickness` |
+| Physics | 2 | `scalar_mass`, `scalar_lambda` |
+| Kinematics | 4 | `sh_toroidal_velocity`, `sh_poloidal_velocity`, `sh_radial_velocity`, `sh_omega` |
+| Exotic | 2 | `sh_exotic_fraction`, `sh_exotic_phase` |
+| Gauge/toggle | 2 | `shift_seed`, `sh_static` |
+
+**Files added / modified:**
+
+| File | Role |
+|------|------|
+| `grtresna/sh_fields.py` (new) | Real-SH evaluation, modulation helpers |
+| `search/optimize/spaces.py` | `grtresna_sh_search_space()` + `build_search_space` dispatch |
+| `search/optimize/config.py` | `_expand_sh_lumps_from_overrides()` — SH → lump expansion |
+| `cli/parser.py` | `"sh"` added to ansatz choices |
+| `cli/grtresna_context.py` | `"sh"` ansatz context wiring |
+| `search/optimize/__init__.py` | Exports |
+| `tests/grtresna/test_grtresna_sh_ansatz.py` (new) | 19 tests (SH math, search space, config expansion, CLI) |
+
+**Smoke test (scalar_sh_ftl_smoke_v1, 8 evals):** 1 `gpu_ok` (score 12.0, full pipeline),
+5 `grtresna_rejected`, 1 `postload_rejected`, 1 `grtresna_failed`. The successful eval
+used all 24 SH coefficients, producing lumps with amplitudes 0.018–0.088 (3.5× range),
+confirming per-lump variation from the SH expansion.
+
+**Launch:**
+```bash
+cd grteclyn-wrapper
+GRTRESNA_ANSATZ=sh PIN_DIMS="" \
+QD_NAME=scalar_sh_ftl_v1 QD_TARGET_EVALS=200 \
+GPU_IDS="0 1 2 3 4 5 6 7" \
+  bash scripts/campaigns/qd/run.sh
+```
+
 ---
 
 ## Quick start — running campaigns

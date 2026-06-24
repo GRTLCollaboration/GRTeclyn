@@ -438,6 +438,107 @@ def grtresna_boson_star_search_space() -> list[SearchDimension]:
     ]
 
 
+SH_DEFAULT_ELL_MAX = 4
+"""Default maximum spherical-harmonic degree for the ``sh`` ansatz."""
+
+SH_PROFILE_CHOICES = ("discovery", "conservative")
+
+
+def grtresna_sh_search_space(
+    ell_max: int = SH_DEFAULT_ELL_MAX,
+    profile: str = "discovery",
+) -> list[SearchDimension]:
+    """Spherical-harmonic matter ansatz — angular freedom via SH expansion.
+
+    Replaces the shell ansatz's fixed dipole+quadrupole (ell<=2, 2 DOF)
+    amplitude modulation with a full real-SH expansion up to ``ell_max``,
+    giving ``(ell_max+1)^2 - 1`` angular modulation coefficients.  Each
+    coefficient scales a real spherical harmonic that modulates the per-lump
+    amplitude around a searched base value, giving genuine per-lump
+    variation through a smooth, low-dimensional parameterization.
+
+    The lump positions remain a Fibonacci lattice on the sphere (as in the
+    shell ansatz); only their amplitudes (and optionally radii) vary.
+
+    Dimensions:
+      - 1 base amplitude + ``(ell_max+1)^2 - 1`` SH modulation = angular DOF
+      - Global geometry: radius, width, thickness
+      - Physics: scalar_mass, scalar_lambda
+      - Kinematics: toroidal/poloidal/radial velocity, omega, shift_seed
+      - Exotic sector: exotic_fraction, exotic_phase
+      - Static toggle
+
+    For ell_max=4: 24 modulation + ~13 global = ~37 D.
+    For ell_max=3: 15 modulation + ~13 global = ~28 D.
+    """
+    if profile not in SH_PROFILE_CHOICES:
+        raise ValueError(
+            f"unknown SH profile: {profile!r} "
+            f"(choices: {', '.join(SH_PROFILE_CHOICES)})"
+        )
+
+    n_sh = (ell_max + 1) ** 2  # total SH modes including monopole
+    # Modulation coefficients (skip monopole idx=0, absorbed into sh_amp).
+    # Range +-0.8 keeps the modulation factor 1 + sum(c_i Y_lm) positive
+    # for typical SH magnitudes (|Y_lm| <= ~0.6 for low ell).
+    coeff_bound = 0.8 if profile == "discovery" else 0.5
+
+    dims: list[SearchDimension] = []
+
+    # Base amplitude (the monopole-equivalent).
+    dims.append(SearchDimension("grtresna_sh_amp", 0.06, 0.22, 0.13))
+
+    # SH modulation coefficients c_1 .. c_{N-1}.
+    for idx in range(1, n_sh):
+        dims.append(
+            SearchDimension(
+                f"grtresna_sh_c{idx}", -coeff_bound, coeff_bound, 0.0
+            )
+        )
+
+    # Shell geometry (shared with shell ansatz).
+    dims.append(SearchDimension("grtresna_sh_radius", 1.5, 6.0, 3.5))
+    dims.append(SearchDimension("grtresna_sh_width", 1.8, 3.5, 2.4))
+    dims.append(SearchDimension("grtresna_sh_thickness", 0.0, 2.0, 0.5))
+
+    # Scalar field physics.
+    dims.append(SearchDimension("grtresna_scalar_mass", 0.3, 1.5, 0.6))
+    dims.append(SearchDimension("grtresna_scalar_lambda", 0.0, 0.1, 0.0))
+
+    # Kinematics — toroidal is the warp motor.
+    if profile == "discovery":
+        dims.append(
+            SearchDimension("grtresna_sh_toroidal_velocity", -1.2, 1.2, 0.4)
+        )
+    else:
+        dims.append(
+            SearchDimension("grtresna_sh_toroidal_velocity", -0.6, 0.6, 0.3)
+        )
+    dims.append(
+        SearchDimension("grtresna_sh_poloidal_velocity", -0.8, 0.8, 0.0)
+    )
+    dims.append(
+        SearchDimension("grtresna_sh_radial_velocity", -0.3, 0.3, 0.0)
+    )
+    dims.append(SearchDimension("grtresna_sh_omega", -0.5, 0.5, 0.2))
+
+    # Exotic sector.
+    dims.append(
+        SearchDimension("grtresna_sh_exotic_fraction", 0.0, 1.0, 0.4)
+    )
+    dims.append(
+        SearchDimension("grtresna_sh_exotic_phase", 0.0, 2.0 * math.pi, 0.0)
+    )
+
+    # Initial-shift seed (peak |beta| along matter momentum flux).
+    dims.append(SearchDimension("grtresna_shift_seed", -0.6, 0.6, 0.0))
+
+    # Static toggle — starts at 0 (dynamics ON) unlike the shell default.
+    dims.append(SearchDimension("grtresna_sh_static", 0.0, 1.0, 0.0))
+
+    return dims
+
+
 def build_search_space(
     nonspherical: bool = False,
     grtresna: bool = False,
@@ -489,6 +590,13 @@ def build_search_space(
             return grtresna_ring_search_space()
         if grtresna_ansatz == "shell":
             return grtresna_shell_search_space(profile=grtresna_shell_profile)
+        if grtresna_ansatz == "sh":
+            sh_profile = (
+                grtresna_shell_profile
+                if grtresna_shell_profile in SH_PROFILE_CHOICES
+                else "discovery"
+            )
+            return grtresna_sh_search_space(profile=sh_profile)
         if grtresna_ansatz == "boson_star":
             return grtresna_boson_star_search_space()
         if grtresna_ansatz == "splash":

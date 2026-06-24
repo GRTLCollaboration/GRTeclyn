@@ -90,6 +90,8 @@ def build_grtresna_search_context(
         overrides = {**overrides, "grtresna_ring_lumps": grtresna_lumps}
     if use_grtresna and grtresna_ansatz == "shell":
         overrides = {**overrides, "grtresna_shell_lumps": grtresna_lumps}
+    if use_grtresna and grtresna_ansatz == "sh":
+        overrides = {**overrides, "grtresna_sh_lumps": grtresna_lumps}
     if use_grtresna:
         overrides = {**overrides, **matter_selection_base_overrides(matter)}
     if boson_allow_exotic:

@@ -104,6 +104,111 @@ def _expand_shell_lumps_from_overrides(
     return lumps
 
 
+def _expand_sh_lumps_from_overrides(
+    overrides: Mapping[str, Any],
+    get_float: Any,
+) -> list[dict]:
+    """Expand ``grtresna_sh_*`` search knobs into a lump list.
+
+    Uses spherical-harmonic coefficients to modulate per-lump amplitudes
+    on a Fibonacci-lattice sphere, giving genuine per-lump variation
+    through a smooth angular expansion.
+    """
+    from ...grtresna.sh_fields import (
+        cartesian_to_spherical,
+        eval_sh_modulation,
+    )
+    from .spaces import SH_DEFAULT_ELL_MAX
+
+    num_lumps = max(3, int(round(get_float("grtresna_sh_lumps", GRTRESNA_DEFAULT_NUM_LUMPS))))
+    amp0 = get_float("grtresna_sh_amp", 0.13)
+    width0 = get_float("grtresna_sh_width", 2.4)
+    radius = get_float("grtresna_sh_radius", 3.5)
+    thickness = get_float("grtresna_sh_thickness", 0.5)
+
+    v_tor = get_float("grtresna_sh_toroidal_velocity", 0.4)
+    v_pol = get_float("grtresna_sh_poloidal_velocity", 0.0)
+    v_rad = get_float("grtresna_sh_radial_velocity", 0.0)
+    omega = get_float("grtresna_sh_omega", 0.0)
+    if int(round(get_float("grtresna_sh_static", 0.0))) >= 1:
+        v_tor = v_pol = v_rad = omega = 0.0
+
+    exotic_fraction = min(1.0, max(0.0, get_float("grtresna_sh_exotic_fraction", 0.4)))
+    exotic_phase = get_float("grtresna_sh_exotic_phase", 0.0)
+
+    ell_max = int(round(get_float("grtresna_sh_ell_max", float(SH_DEFAULT_ELL_MAX))))
+    n_sh = (ell_max + 1) ** 2
+
+    # Collect SH modulation coefficients (idx 1..N-1; monopole excluded).
+    sh_coeffs: list[float] = [0.0] * n_sh
+    for idx in range(1, n_sh):
+        sh_coeffs[idx] = get_float(f"grtresna_sh_c{idx}", 0.0)
+
+    # Fibonacci lattice on the unit sphere.
+    golden = math.pi * (3.0 - math.sqrt(5.0))
+    axis = (0.0, 0.0, 1.0)
+
+    # Exotic wedge selection (same idiom as shell ansatz).
+    azimuths = [golden * k for k in range(num_lumps)]
+    exotic_ids = _shell_exotic_ids(num_lumps, exotic_fraction, exotic_phase, azimuths)
+
+    lumps: list[dict] = []
+    for k in range(num_lumps):
+        # Fibonacci sphere position.
+        uz = 1.0 - 2.0 * (k + 0.5) / num_lumps
+        rho = math.sqrt(max(0.0, 1.0 - uz * uz))
+        phi_k = golden * k
+        ux = rho * math.cos(phi_k)
+        uy = rho * math.sin(phi_k)
+        mag = math.sqrt(ux * ux + uy * uy + uz * uz)
+        if mag < 1e-12:
+            world = (0.0, 0.0, 1.0)
+        else:
+            world = (ux / mag, uy / mag, uz / mag)
+
+        # SH-modulated amplitude.
+        _, theta_k, phi_ang = cartesian_to_spherical(*world)
+        mod = eval_sh_modulation(sh_coeffs, theta_k, phi_ang, ell_max)
+        amp = max(0.0, min(0.35, amp0 * mod))
+
+        r_k = radius + thickness * uz
+        center = (world[0] * r_k, world[1] * r_k, world[2] * r_k)
+
+        # Velocity decomposition (toroidal/poloidal/radial in local frame).
+        velocity = _shell_lump_velocity(
+            axis, world, v_rad=v_rad, v_tor=v_tor, v_pol=v_pol
+        )
+
+        lumps.append({
+            "amp": amp,
+            "width": width0,
+            "center": center,
+            "velocity": velocity,
+            "omega": omega,
+            "mode": 0,
+            "exotic": 1 if k in exotic_ids else 0,
+        })
+    return lumps
+
+
+def _shell_lump_velocity(
+    axis: tuple[float, float, float],
+    world: tuple[float, float, float],
+    *,
+    v_rad: float,
+    v_tor: float,
+    v_pol: float,
+) -> tuple[float, float, float]:
+    """Decompose shell currents into radial / toroidal / poloidal.
+
+    Thin wrapper so SH expansion can reuse the shell velocity decomposition
+    without importing geometry directly (avoids circular deps).
+    """
+    from .geometry import _shell_lump_velocity as _slv
+
+    return _slv(axis, world, v_rad=v_rad, v_tor=v_tor, v_pol=v_pol)
+
+
 def _is_boson_sector(overrides: Mapping[str, Any], matter_model: str) -> bool:
     from ...grtresna.matter_models import (
         MATTER_SECTOR_BOSON_STAR,
@@ -253,6 +358,12 @@ def build_grtresna_config(
             })
         cfg.lumps = lumps
         if any(lump["exotic"] for lump in lumps):
+            _enable_exotic_safe_solver()
+        return _return_scalar()
+
+    if any(str(k).startswith("grtresna_sh_") for k in overrides):
+        cfg.lumps = _expand_sh_lumps_from_overrides(overrides, _get_float)
+        if any(lump["exotic"] for lump in cfg.lumps):
             _enable_exotic_safe_solver()
         return _return_scalar()
 
