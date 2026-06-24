@@ -304,6 +304,29 @@ an asymmetric frame-drag pattern.  Mixed exotic/canonical matter (3:2) provides
 the negative-energy component needed for warp geometry.  Low scalar mass (0.31)
 keeps the field light and long-ranged.
 
+**Eval 189 physics — dynamical lens, not warp drive.**
+
+The evolving geodesic probe shows a light ray arriving 0.305 time units earlier
+than in flat spacetime (t_arrival=14.09 vs t_flat=14.40), a 2.1% speedup.  But
+the topology tests are all zero:
+
+```
+f_shortcut = 0    f_throat = 0    f_portal = 0    s_nonflat = 0
+min_lapse = 0.967 (nearly flat)    max_Ricci = 0.042 (weak curvature)
+```
+
+This is **Shapiro delay in reverse**: moving exotic matter (beta_mean=0.37)
+creates a time-dependent gravitational potential that "drags" the light ray
+forward — a gravitational tailwind.  It's genuine physics (trusted geodesics,
+healthy gauge, persistent signal), but it's **frame-dragging from moving matter**,
+not a topological warp bubble.
+
+To cross from "dynamical lens" to "warp drive" the search needs:
+- `f_shortcut > 0` (genuine spatial shortcut, not just time advance)
+- Much stronger curvature (`min_lapse < 0.5`, currently 0.97)
+- Higher amplitudes (need ~5–10× the current 0.042)
+- Or a true bubble topology with expansion/contraction regions
+
 **Eval 98 — f_op champion (0.068, score 47.3):**
 Highest operational FTL fraction but f_geo=0 (superluminal grid speeds without
 geodesic confirmation).  Strong poloidal flow (0.50), 54% exotic, R=5.1.
