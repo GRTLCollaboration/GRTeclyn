@@ -6,7 +6,6 @@
 #ifndef LAGRANGE_HPP_
 #define LAGRANGE_HPP_
 
-#include "FourthOrderDerivatives.hpp"
 #include "InterpolationQueryParticle.hpp"
 #include <AMReX_Array4.H>
 #include <AMReX_Gpu.H>
