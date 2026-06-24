@@ -226,10 +226,7 @@ template <int num_components>
 void ParticleInterpolator<num_components>::interpolate_to_particle(
     int lev, amrex::MultiFab &mfab, const amrex::Geometry &geom)
 {
-    int start_comp  = get_start_comp();
     const int ncomp = num_components;
-
-    // AMREX_ASSERT(mfab.nComp() >= start_comp + ncomp);
 
     if (this->NumberOfParticlesAtLevel(lev) == 0)
         return;

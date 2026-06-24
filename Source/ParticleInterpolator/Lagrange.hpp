@@ -120,11 +120,12 @@ template <int N> class Lagrange
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
     poly_interp_coeff_d1(amrex::Real xInt, amrex::Real const *AMREX_RESTRICT x,
-                         int order, amrex::Real *AMREX_RESTRICT c) noexcept
+                         int order,
+                         amrex::Real *AMREX_RESTRICT weights) noexcept
     {
         for (int j = 0; j < order; ++j)
         {
-            amrex::Real den = amrex::Real(1.0);
+            auto den = amrex::Real(1.0);
             for (int i = 0; i < order; ++i)
             {
                 if (i != j)
@@ -133,14 +134,15 @@ template <int N> class Lagrange
                 }
             }
 
-            c[j] = amrex::Real(0.0);
+            weights[j] = amrex::Real(0.0);
 
             for (int k = 0; k < order; ++k)
             {
                 if (k == j)
+                {
                     continue;
-
-                amrex::Real num = amrex::Real(1.0);
+                }
+                auto num = amrex::Real(1.0);
                 for (int i = 0; i < order; ++i)
                 {
                     if (i != j && i != k)
@@ -149,20 +151,21 @@ template <int N> class Lagrange
                     }
                 }
 
-                c[j] += num / den;
+                weights[j] += num / den;
             }
         }
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
     poly_interp_coeff_d2(amrex::Real xInt, amrex::Real const *AMREX_RESTRICT x,
-                         int order, amrex::Real *AMREX_RESTRICT c) noexcept
+                         int order,
+                         amrex::Real *AMREX_RESTRICT weights) noexcept
     {
         for (int j = 0; j < order; ++j)
         {
-            c[j] = amrex::Real(0.0);
+            weights[j] = amrex::Real(0.0);
 
-            amrex::Real den = amrex::Real(1.0);
+            auto den = amrex::Real(1.0);
             for (int i = 0; i < order; ++i)
             {
                 if (i != j)
@@ -174,16 +177,22 @@ template <int N> class Lagrange
             for (int l = 0; l < order; ++l)
             {
                 if (l == j)
+                {
                     continue;
+                }
 
                 for (int k = 0; k < order; ++k)
                 {
                     if (k == j)
+                    {
                         continue;
+                    }
                     if (k == l)
+                    {
                         continue;
+                    }
 
-                    amrex::Real num = amrex::Real(1.0);
+                    auto num = amrex::Real(1.0);
 
                     for (int i = 0; i < order; ++i)
                     {
@@ -193,7 +202,7 @@ template <int N> class Lagrange
                         }
                     }
 
-                    c[j] += num / den;
+                    weights[j] += num / den;
                 }
             }
         }
@@ -209,12 +218,14 @@ template <int N> class Lagrange
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE Lagrange() = default;
 
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     template <typename P>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     compute_weights(const P &par,
                     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const &plo,
                     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const &dxi,
                     const amrex::IntVect &is_nodal)
+    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
 
         // Compute the grid index of the position
@@ -247,16 +258,20 @@ template <int N> class Lagrange
     }
 
     // Function to perform the interpolation
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     interpolate(const amrex::Array4<amrex::Real const> *data_arr,
                 amrex::ParticleReal *val,
                 InterpolationQueryParticle::iterator deriv_it_begin,
                 InterpolationQueryParticle::iterator deriv_it_end,
                 amrex::Real const dx) const
+    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         int counter      = 0;
         auto const &data = data_arr[0];
+        // NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
         amrex::Real weights[AMREX_SPACEDIM][N]{};
+        // NOLINTEND(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
 
         for (auto deriv_it = deriv_it_begin; deriv_it != deriv_it_end;
              ++deriv_it)
