@@ -204,6 +204,115 @@ GRTECLYN_FRAMES=1 PLOT_INTERVAL=320 \
   bash scripts/campaigns/qd/run.sh
 ```
 
+### SH campaign results — `scalar_sh_ftl_v22` (200 evals, 2025-06-24)
+
+**Campaign ran in two phases:**
+
+| Phase | Evals | gpu_ok | postload_rej | Notes |
+|-------|-------|--------|--------------|-------|
+| v22 initial | 88 | 24 (27%) | 16 (18%) | amp ≤ 0.16, postload ham_l2 < 0.03 |
+| v22 resumed | 112 | 49 (44%) | 7 (6%) | amp ≤ 0.22, postload ham_l2 < 0.05 |
+| **Total** | **200** | **73 (36%)** | **23 (12%)** | |
+
+Loosening the postload gate (ham_l2 0.03→0.05, mom_l2 0.01→0.02) nearly doubled
+the GPU pass rate (27%→44%) and cut postload rejections by 2/3.
+
+**Pipeline funnel (200 evals):**
+
+| Stage | Count | % of total |
+|-------|-------|------------|
+| Sampled | 200 | 100% |
+| GRTresna rejected (Ham/Mom) | 74 | 37% |
+| GRTresna failed (crash) | 18 | 9% |
+| Pipeline interrupted | 8 | 4% |
+| Postload rejected | 23 | 12% |
+| GPU failed | 4 | 2% |
+| **GPU OK** | **73** | **36%** |
+
+GRTresna convergence is bimodal: evals either converge to Ham <1% or blow up to
+Ham >50%.  Nothing exists in the 5–15% range, so bumping the GRTresna gate threshold
+would gain nothing.
+
+**FTL metrics:**
+
+| Metric | Best | Count nonzero |
+|--------|------|---------------|
+| f_geo_peak (geodesic FTL) | **0.753** (eval 101) | 2/73 |
+| f_op_peak (operational FTL) | 0.068 | 39/73 |
+| ftl_peak_strength | **0.101** (eval 189) | 1/73 |
+| ftl_lifetime_fraction | **1.0** (eval 189) | 1/73 |
+| max_local_speed | 2.26 | 73/73 (all >1) |
+
+**Eval 189 — first genuine FTL signal from SH ansatz (score 470.6):**
+
+| Property | Value |
+|----------|-------|
+| f_geo_peak | 0.021 at t=9.6 |
+| f_op_peak | 0.057 at t=12.8 |
+| ftl_strength | 0.101 |
+| ftl_lifetime | 1.0 (present at every timestep) |
+| max_speed | 1.33 at t=0 |
+| sh_amp | 0.042 |
+| sh_radius | 5.99, width=3.24 |
+| v_toroidal | −0.24, v_poloidal=0.66, v_radial=0.22 |
+| exotic_fraction | 0.51 (3/5 lumps exotic) |
+| scalar_mass | 0.31 |
+| Lump amps | 0.034–0.043 (1.3× ratio) |
+
+Key features: strong poloidal flow (0.66), mixed exotic/canonical (3:2), large
+wide shell (R=6.0, width=3.2), low mass (0.31), and persistent FTL throughout
+the entire evolution.  The geodesic FTL signal rises from 0 at t=0 to 0.031 at
+t=6.4, peaks at 0.031 (t=9.6), then decays to 0.020 at t=16 — a dynamically
+generated warp geometry, not a static lens.
+
+**Eval 101 — highest f_geo but low score (f_geo=0.753, score=−0.9):**
+High geodesic FTL fraction (0.753) but zero ftl_strength and ftl_lifetime,
+suggesting a momentary/unreliable signal (possibly numerical artifact at one
+timestep).  Strong toroidal (0.63) + poloidal (0.74) flow, 28% exotic.
+
+**Dynamics vs static:** 59/73 gpu_ok are moving; all top 10 scores are moving.
+Moving configs average score=16.9 vs static average=−59.6.  The warp motor is
+essential — this validates the assessment that static shell campaigns were stuck
+in a degenerate subspace.
+
+**Amplitude saturation:** GPU-reaching amps range [0.040, 0.090] with median 0.051,
+well below the 0.22 upper bound.  MAP-Elites converged on safe low-amp configs.
+Higher amps could curve spacetime more but fail the bimodal GRTresna convergence.
+
+**Archive coverage:** Only 2/64 cells filled — the descriptors (ftl_peak_strength,
+ftl_lifetime) are zero for 71/73 evals, collapsing the archive to a single cell.
+The archive mechanism provides no diversity pressure.
+
+### Proposed next steps
+
+1. **Increase lumps (5 → 12–16).**  With 24 SH coefficients modulating only 5
+   sample points on the Fibonacci sphere, the angular structure is severely
+   undersampled (0.21 samples/coefficient).  The amplitude ratio tops out at
+   1.3–1.7×, wasting most of the SH DOF.  12 lumps with ℓ_max=3 (15 coefficients)
+   gives 0.80 samples/coeff — a sweet spot.  GRTresna can solve with N lumps;
+   only 5 get independent evolution channels but the total φ/Π fields carry all
+   lumps.
+
+2. **Descriptor overhaul.**  The ftl_lifetime + ftl_peak_strength descriptor
+   pair is degenerate — 71/73 evals map to (0,0), collapsing the 8×8 archive to
+   1 cell.  Switching to descriptors that always vary (e.g., exotic_fraction ×
+   max_speed, or comoving_score × superluminal_fraction) would restore MAP-Elites
+   diversity pressure and explore more of the phenotype space.
+
+3. **Seed with eval 189.**  Use `--seed-overrides` to inject the eval 189
+   configuration as a starting point, then let MAP-Elites mutate around it.
+   The first genuine FTL signal should be exploited, not just discovered.
+
+4. **CMA-ES hill-climb from eval 189.**  Run Stage 1 CMA-ES refinement centered
+   on eval 189's 38D point.  Local optimization could push f_geo from 0.021
+   toward higher values by fine-tuning the SH coefficients and velocities.
+
+5. **Raise amplitude via GRTresna solver improvements.**  The bimodal convergence
+   problem (either <1% or >50%) is the fundamental ceiling.  Options:
+   - Increase GRTresna iterations (50 → 100) for marginal configs
+   - Lower `grtresna-nl-stall-tolerance` to let the solver try harder
+   - Add a multi-grid warm-start from a converged low-amp solution
+
 ---
 
 ## Quick start — running campaigns
