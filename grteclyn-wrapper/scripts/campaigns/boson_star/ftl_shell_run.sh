@@ -34,8 +34,12 @@ export GRTRESNA_FULL_Z=1
 export OBJECTIVE_MODE="${OBJECTIVE_MODE:-general_ftl}"
 export DESCRIPTOR_MODE="${DESCRIPTOR_MODE:-ftl_lifetime}"
 
-# Static shell; do NOT pin scalar_sign (exotic wedge search active).
-export PIN_DIMS="${PIN_DIMS:-grtresna_shell_static=1}"
+# Shell motion: PIN_DIMS controls whether velocity/omega are active.
+#   PIN_DIMS="grtresna_shell_static=1"  → static (zeroes all velocity/omega)
+#   PIN_DIMS=""                          → dynamical (velocity/omega searched)
+# Uses ${PIN_DIMS-...} (no colon) so an explicit empty PIN_DIMS="" is honoured.
+# Do NOT pin scalar_sign — exotic wedge search active.
+export PIN_DIMS="${PIN_DIMS-grtresna_shell_static=1}"
 
 export STOP_TIME="${STOP_TIME:-16.0}"
 # dt=0.01 → 1600 steps; interval 320 → 6 plotfiles over [0, 16].

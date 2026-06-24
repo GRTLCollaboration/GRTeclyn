@@ -9,6 +9,134 @@
 > solve → GRTeclyn GPU evolution → time-resolved FTL probes → score — but differ in
 > proposer, matter sector, resolution, and stop time.
 
+## Known limitations of the lump-based matter ansatz
+
+The shell/ring search spaces parameterize matter as **N identical Gaussian lumps** placed
+at deterministic lattice positions. This ansatz was designed for dimensionality reduction
+(22-D shell vs ~50-D per-lump), but it imposes structural constraints that **limit the
+geometric freedom available to the optimizer** and may prevent discovery of complex warp
+geometries. See also the [static shell post-mortem](#static-shell-post-mortem-scalar_shell_ftl_rl_v1-2026-06-24)
+for how these limitations interact with the `shell_static=1` pin.
+
+### What is constrained
+
+All N=5 lumps share one global value for each property — the optimizer cannot express
+per-lump variation beyond low-order Legendre modulation (ℓ ≤ 2):
+
+| Per-lump property | Independent per lump? | What actually happens |
+|---|---|---|
+| **Position** | No — deterministic Fibonacci lattice | Only `radius`, `thickness`, `axis_theta/phi` move all lumps together |
+| **Amplitude** | No — one `shell_amp` for all | Dipole (ℓ=1) + quadrupole (ℓ=2) Legendre modulation only |
+| **Width** | No — one `shell_width` for all | Same ℓ=2 modulation, clamped \[1.0, 6.0\] |
+| **Velocity** | No — one (v_tor, v_pol, v_rad) for all | Every lump gets the same velocity decomposed into its local frame |
+| **Omega (spin)** | No — one `shell_omega` for all | Same rigid rotation for every lump |
+| **Exotic flag** | Coarse wedge — `exotic_fraction/phase` | Binary 0/1, contiguous azimuthal wedge, not independently searchable |
+| **Profile** | Same coarse wedge mechanism | `profile_fraction/phase` selects Gaussian vs top-hat |
+| **Azimuthal mode** | No — one `shell_mode ∈ {0,1,2}` | All lumps get the same angular harmonic |
+
+### What cannot be expressed
+
+Configurations the current ansatz **structurally cannot represent**:
+
+1. **Asymmetric matter distributions** — e.g. two heavy lumps near the axis + three
+   light ones at the equator. Only ℓ ≤ 2 modulation exists.
+2. **Per-lump differential motion** — e.g. one lump orbiting fast, another stationary,
+   a third falling inward. Critical for counter-rotating pairs and differential-ω
+   rotating warp mechanisms.
+3. **Nested / multi-shell structures** — inner exotic shell + outer canonical shell at
+   a different radius.
+4. **Non-Gaussian density profiles** — torus cross-sections, saddle-shaped distributions,
+   ring-within-ring, thick vs thin shell substructures.
+5. **Arbitrary lump positions** — cannot cluster matter where the geometry needs it
+   (e.g. at a warp channel throat). Positions are deterministic lattice functions of
+   layout + radius + thickness.
+
+### Proposed alternatives for richer geometric search
+
+The existing infrastructure already supports per-lump keys
+([`config.py`](../../grteclyn-wrapper/src/grteclyn_wrapper/search/optimize/config.py):
+`grtresna_lump{k}_{param}`) so per-lump freedom is structurally available —
+the shell ansatz deliberately collapses it for dimensionality reduction.
+
+#### Option A — Neural field decoder (learned geometry)
+
+Replace the lump-painting step with a small coordinate-conditioned neural network
+(e.g. MLP or low-rank grid decoder) that outputs `φ(x,y,z)` and `Π(x,y,z)` directly
+on the GRTresna grid. The network's latent vector (16–32 D) is the genome that
+MAP-Elites/CMA-ES searches; the decoder provides continuous, unconstrained geometric
+freedom.
+
+| Property | Detail |
+|----------|--------|
+| Search dims | **16–32 D** latent (vs 22-D shell, but richer output) |
+| Geometric freedom | Arbitrary: toruses, nested shells, saddles, asymmetric clusters |
+| Integration point | Replaces lump painting → feeds `gridinit` to GRTresna constraint solve |
+| Constraint safety | GRTresna still validates — non-physical proposals rejected as today |
+| Training | Pre-train decoder on existing elite `gridinit` fields; fine-tune during search |
+| Risk | Decoder must produce constraint-solvable fields (not guaranteed without training) |
+
+#### Option B — Per-lump sequential RL placement
+
+An RL agent places lumps one at a time with per-lump geometric freedom:
+
+| MDP element | Content |
+|-------------|---------|
+| **State** | Current matter distribution (partial field + GRTresna constraint residual) |
+| **Action** | Next lump's (position_xyz, amp, width, velocity_xyz, omega, exotic) |
+| **Dense reward** | Cheap GRTresna pre-solve Ham/Mom residual after each lump placement |
+| **Terminal reward** | Full `general_ftl` score after GRTeclyn evolution |
+
+This gives per-lump geometric freedom and uses constraint-solve feedback to learn
+where matter should go. Avoids the ~50-D curse because the agent learns a placement
+*policy*, not a flat vector — generalization across placement steps reduces the
+effective dimensionality.
+
+| Property | Detail |
+|----------|--------|
+| Search dims | ~10 D per action step × N steps (but policy generalizes) |
+| Geometric freedom | Full per-lump control: position, size, motion, exotic |
+| Constraint feedback | Dense signal from GRTresna after each placement |
+| Risk | Sequential placement imposes an arbitrary ordering; may need permutation-invariant architecture |
+
+#### Option C — Spherical harmonic field expansion
+
+Parameterize the matter density as a truncated spherical harmonic expansion with
+radial basis functions:
+
+```
+φ(r,θ,ϕ) = Σ_ℓm a_ℓm f_ℓ(r) Y_ℓm(θ,ϕ)
+```
+
+Search over the coefficients `a_ℓm`. Naturally smooth, rotationally natural, and
+the number of DOF scales as `(ℓ_max + 1)²` — 25 D for ℓ_max = 4, 49 D for
+ℓ_max = 6.
+
+| Property | Detail |
+|----------|--------|
+| Search dims | **(ℓ_max+1)²** — 25 D (ℓ=4) to 49 D (ℓ=6) |
+| Geometric freedom | All angular structure up to ℓ_max; higher ℓ = finer spatial detail |
+| Integration point | Coefficients → evaluate on grid → paint `gridinit` → GRTresna solve |
+| No training needed | Purely physics-based; no neural network required |
+| Risk | Radial basis choice matters; may need ~3–5 radial DOF per ℓ for multi-shell support |
+
+### Assessment
+
+The current lump ansatz is likely **too rigid** for general FTL discovery — it can only
+express highly symmetric, globally uniform matter distributions. The best FTL found
+([eval 166](#paired-shell-ftl-comparison-boson-vs-scalar-2026-06-23), score 869) is a
+static exotic lens with weak 4D signal (0.10), not a genuine dynamical warp. Enabling
+dynamics (`shell_static=0`) is the cheapest immediate fix, but even with dynamics on,
+the uniform-lump constraint still prevents asymmetric, multi-scale, differentially-moving
+structures that real warp geometries may require.
+
+**Recommended path:** start with Option C (spherical harmonics) — no ML training needed,
+physically principled, and 25–49 D is within reach of MAP-Elites with pre-GPU filtering.
+Option A (neural decoder) is the highest-ceiling approach but requires training data and
+integration work. Option B (sequential RL placement) gives the most natural per-lump
+freedom and a defensible role for RL in this pipeline.
+
+---
+
 ## Quick start — running campaigns
 
 All commands run from **`grteclyn-wrapper/`**. Binaries must be built first — see
@@ -620,6 +748,7 @@ Reverse-chronological journal. Quick index:
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
+| [**Static shell post-mortem (`scalar_shell_ftl_rl_v1`)**](#static-shell-post-mortem-scalar_shell_ftl_rl_v1-2026-06-24) | **06-24** | `shell_static=1` zeroed all velocity/omega/shift dims (~5 of 22 dead no-ops). Warp motor structurally off (Pi=0 → S_i=0 → beta=0). Champions are static exotic lenses (maxed `exotic_penalty`, weak 4D). Archive collapsed to **3/64 cells**, stalled 17 iterations. **54% of compute wasted** on non-converging constraint solves. Next: un-pin `shell_static`, activate velocity+spin DOF for moving/rotating warps. |
 | [**Paired shell FTL comparison (`boson_shell_ftl_rl_v1` vs `scalar_shell_ftl_rl_v1`)**](#paired-shell-ftl-comparison-boson-vs-scalar-2026-06-23) | **06-23 complete** | **200+200 evals**, matched campaign knobs. Scalar: **92 `gpu_ok`**, **32/92** with `ftl_geo_evolving>0`, champion **eval 166** (**869**, persist 0.76). Boson: **94 `gpu_ok`**, **0 FTL**. **No boson rerun**; promote scalar **eval 166/126** for RL Gate 2. |
 | [**Boson shell FTL for RL (`boson_shell_ftl_rl_v1`)**](#boson-shell-ftl-for-rl-boson_shell_ftl_rl_v1-2026-06-23) | **06-23 complete** | Boson arm of paired comparison — **0/94** `f_geo>0`. See [paired results](#paired-shell-ftl-comparison-boson-vs-scalar-2026-06-23). |
 | [**Boson star: unpinned QD + frames (v3)**](#boson-star-unpinned-qd--frames-v3-2026-06-18) | **06-18 complete** | First **unpinned 7-D** boson MAP-Elites: **12/12 evals**, **8 `gpu_ok`**, champion **eval 004** (−33.2). Frames on H100; `scalar_activity`/`phi` projections visible. |
@@ -869,6 +998,172 @@ not this paired shell search).
 
 Interim pump proof remains splash boson **`spacetime_splash_v14_moving/eval_000010`** until Gate 2
 passes on the scalar FTL chassis.
+
+### Static shell post-mortem (`scalar_shell_ftl_rl_v1`, 2026-06-24)
+
+Deep analysis of the `scalar_shell_ftl_rl_v1` campaign reveals that **the warp/frame-drag
+motor was structurally disabled** throughout the run. The FTL found is a static exotic-matter
+lens — the weakest, most artifact-prone mechanism class — and the search stalled hard with
+most compute budget wasted.
+
+#### Finding 1 — `shell_static=1` zeroed all dynamical DOF
+
+The launcher pins `grtresna_shell_static=1`
+([`scalar_shell_ftl_run.sh`](../../grteclyn-wrapper/scripts/campaigns/general_ftl/scalar_shell_ftl_run.sh)):
+
+```bash
+export PIN_DIMS="${PIN_DIMS:-grtresna_shell_static=1}"
+```
+
+The shell builder hard-zeroes velocity and rotation when this pin is active
+([`config.py`](../../grteclyn-wrapper/src/grteclyn_wrapper/search/optimize/config.py)):
+
+```python
+if int(round(get_float("grtresna_shell_static", 0.0))) >= 1:
+    v_tor = v_pol = v_rad = omega = 0.0
+```
+
+The QD optimizer **sampled** these dims (e.g. eval 166: `toroidal_velocity=-0.63`, `omega=0.02`,
+`shift_seed=0.45`), but all values were **overwritten to zero** before the GRTresna solve.
+Additionally, `shift_seed` is inert when matter is static because
+[`paint_shift_seed_on_grid`](../../grteclyn-wrapper/src/grteclyn_wrapper/grtresna/lump_fields.py)
+aligns the seed to matter momentum density `S_i`, which is identically zero when `Pi=0`.
+
+**Dead search dimensions — scalar arm (~5 of 22, ~23% of search space):**
+
+| Dimension | Sampled range | Actual effect |
+|-----------|--------------|---------------|
+| `grtresna_shell_toroidal_velocity` | \[-1.2, 1.2\] | **Zeroed** by `shell_static=1` |
+| `grtresna_shell_poloidal_velocity` | \[-0.8, 0.8\] | **Zeroed** |
+| `grtresna_shell_radial_velocity` | \[-0.3, 0.3\] | **Zeroed** |
+| `grtresna_shell_omega` | \[-0.5, 0.5\] | **Zeroed** |
+| `grtresna_shift_seed` | \[-0.6, 0.6\] | **Inert** (no momentum to align to) |
+
+**Boson arm (`boson_shell_ftl_rl_v1`) — same static pin, even fewer DOF:**
+
+The boson launcher ([`ftl_shell_run.sh`](../../grteclyn-wrapper/scripts/campaigns/boson_star/ftl_shell_run.sh))
+also pins `grtresna_shell_static=1`, and additionally the boson shell search-space builder
+(`grtresna_boson_shell_search_space(static=True)`) **excluded velocity dims entirely** from
+the optimizer
+([`spaces.py`](../../grteclyn-wrapper/src/grteclyn_wrapper/search/optimize/spaces.py)):
+
+```python
+if static:
+    skip |= {
+        "grtresna_shell_toroidal_velocity",
+        "grtresna_shell_poloidal_velocity",
+        "grtresna_shell_radial_velocity",
+        "grtresna_shell_omega",
+    }
+```
+
+So unlike the scalar arm (which wasted 4 dims sampling velocities that were zeroed),
+the boson arm **never even sampled** them — the 19-D boson search space had zero kinematic
+DOF. Only `grtresna_shift_seed` remained (inert, as above). The boson campaign's
+`base_overrides` confirm: `grtresna_shell_static: 1.0`,
+`grtresna_matter_model: grtresna_complex_scalar`.
+
+**Both arms of the paired comparison had the warp motor structurally off.** Neither
+campaign tested a moving or rotating matter configuration. The conclusion "boson produces
+0 FTL" vs "scalar produces FTL" applies only to the **static exotic-lens** mechanism class —
+it says nothing about dynamical/rotating warps, which were never searched. The boson arm
+might perform differently with momentum-carrying matter; this remains untested.
+
+#### Finding 2 — warp/frame-drag motor structurally off
+
+The physics chain that creates a moving warp is:
+
+```
+velocity/omega → Pi (scalar momentum) → S_i = sign·Pi·∂_iφ → shift β^i (warp channel)
+```
+
+With `v_tor = v_pol = v_rad = omega = 0`: **`Pi = 0` → `S_i = 0` → `β^i = 0`**. The initial data
+is time-symmetric (zero momentum, zero shift). GRTresna's momentum constraint `M_i = 0` is trivially
+satisfied. The matter has no kinetic energy, no frame-dragging, no shift motor — it's a pure
+static exotic-matter curvature lens.
+
+#### Finding 3 — champions are static exotic lenses (weak, artifact-prone)
+
+| Eval | Score | `exotic_penalty` | `instability_penalty` | `ftl_geo_evolving` (4D) | Notes |
+|------|------:|:----------------:|:---------------------:|:-----------------------:|-------|
+| **166** | 869 | **-1.600** (maxed) | **-0.960** | 0.10 | Static exotic lens; score from coordinate proxy |
+| **126** | 840 | **-1.600** | **-0.951** | 0.17 | Best 4D but still weak |
+| **64** | 592 | **-1.600** | **-0.956** | 0.12 | Same mechanism class |
+| **51** | 311 | **-1.600** | **-0.955** | — | `horizon_penalty -1.0` (formed horizon) |
+| **38** | 78 | **-1.600** | **-0.957** | — | `stationary_artifact_penalty -1.0` |
+
+All champions share: **maxed exotic penalty** (requires full WEC-violating matter), **near-maxed
+instability** (riding the edge of numerical blowup), and **weak authoritative 4D geodesic signal**
+(0.10–0.17). Score is carried by coordinate proxies (`operational_ftl` ~0.96), not the
+gauge-invariant 4D trace. Some hit the `stationary_artifact_penalty` — the scorer flagging
+exactly this class of static lens.
+
+#### Finding 4 — archive collapsed, search stalled, massive compute waste
+
+| Metric | Value | Concern |
+|--------|-------|---------|
+| **Archive coverage** | **3/64 cells** (0.047) | QD diversity completely collapsed — all top elites in **cell [1,7]** |
+| **Stall duration** | **17 iterations** (iter 8→25) at constant coverage, minimal score gain | Diminishing returns after ~80 evals |
+| **`grtresna_rejected`** | **74/200** (37%) — 53 at `Ham=100%`, 14 NaN | Proposer sampling far outside feasible region |
+| **`postload_rejected`** | **26/200** (13%) | Constraints blow up at higher res after load |
+| **Total non-GPU** | **108/200** (**54%**) | Over half the compute budget never reached evolution |
+| **Descriptor x** (`f_geo` ramp) | mean **0.028**, max 0.195 | Genuine FTL near-zero for most configs |
+| **Descriptor y** (`ftl_lifetime`) | mean **0.348**; 32/92 have y > 0 | Only one basin has any FTL lifetime |
+
+**Convergence curve:** best score −8.7 → 78 → 311 → 592 (iter 8) → 839 (iter 16) → **869** (iter 21) → flat. Zero new cells after iter 8.
+
+#### Finding 5 — RL evolution-control was premised on the wrong foundation
+
+The RL research plan ([`research/RL/research.md`](../RL/research.md)) proposes a matter pump
+on `c_Pi`/`c_Pi2` (U(1) rotation) to sustain an FTL throat past t≈21. But:
+
+1. **Actuator–chassis mismatch:** the pump requires `grtresna_complex_scalar` (boson), but the
+   only FTL-producing chassis is the real-scalar shell (this campaign).
+2. **The FTL here is a static exotic lens, not a dynamical warp.** There is no "throat" to sustain —
+   the geometry warps from negative-energy matter at rest. The failure mode is not "throat collapse
+   from dispersion" but rather numerical instability of an inherently fragile exotic configuration.
+3. **The actuator cannot supply what the geometry needs.** Persistent static-lens FTL requires
+   sustained WEC violation, which the scorer penalizes (`exotic_penalty`, `qei_penalty`,
+   `horizon_penalty`). A pump adding canonical energy doesn't help; a pump adding exotic energy
+   gets clawed back by the scorer.
+
+#### Conclusion — next campaign: dynamical (moving + rotating) shell
+
+**The single highest-leverage change is to un-pin `shell_static`** (`=0`), activating the 5
+dormant dimensions and enabling the frame-drag/warp motor (`Pi ≠ 0 → S_i ≠ 0 → β^i ≠ 0`).
+This shifts the search from static exotic lenses toward **moving/rotating warps** — the mechanism
+class that the [`RotatingWormholeCollapse`](../../Examples/RotatingWormholeCollapse/README.md) example
+demonstrates with co-evolving exotic scalar and m=2 quadrupole rotation.
+
+**Concrete changes for a dynamical shell campaign:**
+
+| Change | Detail | Risk |
+|--------|--------|------|
+| **Un-pin `shell_static`** | `PIN_DIMS=""` or `PIN_DIMS="grtresna_shell_static=0"` | Higher GRTresna rejection (momentum constraint harder); mitigate with `GRTRESNA_MAX_MOM_PCT≥10` |
+| **Tighten velocity bounds** (initially) | `toroidal ±0.4`, `radial ±0.15`, `omega ±0.2` | Keeps Mom solve convergent; widen as baseline stabilizes |
+| **Add higher angular momentum modes** | Extend `grtresna_shell_mode` upper from 2.0 to 4.0 (m=3, m=4 quadrupole/octupole) | m≥3 modes may need finer grid (ml≥2) |
+| **Differential rotation** (future) | Per-lump omega instead of single global `shell_omega` | Requires search-space extension in `spaces.py` |
+| **Pre-GPU feasibility** | Strengthen `pre_gpu_learning` or add constraint-residual surrogate to reduce the 54% rejection rate | Training data available from `trajectory.jsonl` + `pre_gpu_archive.json` |
+| **Increase GRTresna iterations** | `ITERATIONS=30` → `50` for momentum-carrying configs | Slower per-eval; parallelize with `MAX_CONCURRENT_GRTRESNA≥5` |
+
+**Proposed launcher override:**
+
+```bash
+cd grteclyn-wrapper
+QD_NAME=scalar_shell_dynamical_v1 \
+QD_TARGET_EVALS=200 \
+PIN_DIMS="" \
+STOP_TIME=16.0 \
+PLOT_INTERVAL=320 \
+GRTECLYN_FRAMES=1 \
+ITERATIONS=50 \
+GRTRESNA_MAX_MOM_PCT=10 \
+GPU_IDS="0 1 2 3 4 5 6 7" \
+GPU_SLOTS_PER_DEVICE=1 \
+MAX_CONCURRENT_GRTRESNA=5 \
+  nohup bash scripts/campaigns/general_ftl/scalar_shell_ftl_run.sh \
+  > ../runs/scalar_shell_dynamical_v1.launch.log 2>&1 &
+```
 
 ---
 
