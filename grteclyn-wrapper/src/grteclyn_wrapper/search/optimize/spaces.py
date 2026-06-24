@@ -292,6 +292,7 @@ def grtresna_boson_shell_search_space(
     *,
     static: bool = True,
     allow_exotic: bool = False,
+    matched_bounds: bool = False,
 ) -> list[SearchDimension]:
     """Canonical bosonic shell: shell geometry + boson-star convergence bounds.
 
@@ -306,35 +307,81 @@ def grtresna_boson_shell_search_space(
 
     When ``allow_exotic=True`` (FTL wormhole / RL campaigns), ``shell_exotic_*``
     search dims are kept and lump exotic flags are wired into BosonStarBH paint.
+
+    When ``matched_bounds=True`` (v2 fair comparison), mass/amplitude/lambda
+    bounds are raised to match the scalar shell space and geometric dims
+    (radius, thickness, layout, profile, dipole, quadrupole) are kept.  This
+    allows a fair physics comparison — any FTL difference is attributable to
+    matter type, not search handicap.
     """
     shell = grtresna_shell_search_space(profile=profile)
+    # Dims always replaced with boson-specific versions.
     skip = {
         "grtresna_scalar_mass",
         "grtresna_scalar_lambda",
         "grtresna_shell_amp",
         "grtresna_shell_width",
-        "grtresna_shell_toroidal_velocity",
-        "grtresna_shell_poloidal_velocity",
-        "grtresna_shell_radial_velocity",
-        "grtresna_shell_omega",
     }
+    if not matched_bounds:
+        # v1 behaviour: also filter out geometric dims that the boson solver
+        # historically didn't need.  Velocity dims filtered for static.
+        skip |= {
+            "grtresna_shell_toroidal_velocity",
+            "grtresna_shell_poloidal_velocity",
+            "grtresna_shell_radial_velocity",
+            "grtresna_shell_omega",
+        }
+    else:
+        # v2 matched: keep geometric dims from scalar shell but still replace
+        # velocity dims when static (they get pinned anyway).
+        if static:
+            skip |= {
+                "grtresna_shell_toroidal_velocity",
+                "grtresna_shell_poloidal_velocity",
+                "grtresna_shell_radial_velocity",
+                "grtresna_shell_omega",
+            }
     if not allow_exotic:
         skip |= {
             "grtresna_shell_exotic_fraction",
             "grtresna_shell_exotic_phase",
         }
     dims = [d for d in shell if d.param_key not in skip]
-    # Amplitude capped at 0.12: pushing to 0.15 deepens the chi well so broadly
-    # that the GPU evolution's chi-tagger refines ~100% of the domain (256^3
-    # Level 1), which blows up RK4 storeRKCoarseData and segfaults.  0.12 keeps
-    # the matter compact enough that refinement stays on the central region.
-    dims.extend([
-        SearchDimension("grtresna_shell_amp", 0.04, 0.12, 0.08),
-        SearchDimension("grtresna_shell_width", 2.0, 4.0, 3.0),
-        SearchDimension("grtresna_scalar_mass", 0.05, 0.35, 0.1),
-        SearchDimension("grtresna_scalar_lambda", 0.0, 0.05, 0.0),
-        SearchDimension("grtresna_bs_omega", 0.05, 0.35, 0.15),
-    ])
+
+    if matched_bounds:
+        # v2: bounds widened toward scalar shell for fairer comparison.
+        # Mass [0.15, 0.5]: BosonStarBH convergence ceiling is ~0.5 at 64^3
+        # resolution; v2-attempt-1 showed 84% grtresna_rejected at [0.3, 1.0].
+        # The [0.15, 0.5] range keeps the Compton wavelength <= 6.7 (within
+        # shell width) while staying inside the solver's convergence basin.
+        # Amplitude [0.08, 0.15]: raised from v1's 0.12 cap; chi-tagger
+        # blowup at 0.15 will postload_reject naturally.
+        # bs_omega [0.1, 0.45]: must satisfy omega < mass for bound states.
+        # Capped below mass lower bound (0.15) is fine; the upper 0.45 < 0.5
+        # prevents unbound-field divergence that killed v2-attempt-1.
+        # Lambda [0, 0.1]: matched to scalar.
+        dims.extend([
+            SearchDimension("grtresna_shell_amp", 0.08, 0.15, 0.12),
+            SearchDimension("grtresna_shell_width", 1.8, 4.0, 2.4),
+            SearchDimension("grtresna_scalar_mass", 0.15, 0.5, 0.25),
+            SearchDimension("grtresna_scalar_lambda", 0.0, 0.1, 0.0),
+            SearchDimension("grtresna_bs_omega", 0.1, 0.45, 0.2),
+        ])
+    else:
+        # v1: conservative bounds for BosonStarBH stability.
+        # Amplitude capped at 0.12: pushing to 0.15 deepens the chi well so
+        # broadly that the GPU evolution's chi-tagger refines ~100% of the
+        # domain (256^3 Level 1), which blows up RK4 storeRKCoarseData and
+        # segfaults.  0.12 keeps the matter compact enough that refinement
+        # stays on the central region.
+        dims.extend([
+            SearchDimension("grtresna_shell_amp", 0.04, 0.12, 0.08),
+            SearchDimension("grtresna_shell_width", 2.0, 4.0, 3.0),
+            SearchDimension("grtresna_scalar_mass", 0.05, 0.35, 0.1),
+            SearchDimension("grtresna_scalar_lambda", 0.0, 0.05, 0.0),
+            SearchDimension("grtresna_bs_omega", 0.05, 0.35, 0.15),
+        ])
+
     if not allow_exotic:
         dims.append(SearchDimension("grtresna_scalar_sign", 1.0, 1.0, 1.0))
     if not static:
@@ -400,6 +447,7 @@ def build_search_space(
     grtresna_matter_sector: str = "scalar",
     grtresna_shell_static: bool = True,
     grtresna_boson_allow_exotic: bool = False,
+    grtresna_boson_matched_bounds: bool = False,
 ) -> list[SearchDimension]:
     """Return the optimizer search space.
 
@@ -421,6 +469,9 @@ def build_search_space(
 
     ``grtresna_boson_allow_exotic`` keeps ``shell_exotic_fraction/phase`` in the
     boson-shell space (FTL campaigns); splash pins canonical-only.
+
+    ``grtresna_boson_matched_bounds`` (v2 fair comparison) raises boson mass/amp/
+    lambda bounds to match the scalar shell and inherits full geometric dims.
     """
     if grtresna:
         if grtresna_matter_sector == "boson_star":
@@ -429,6 +480,7 @@ def build_search_space(
                     profile=grtresna_shell_profile,
                     static=grtresna_shell_static,
                     allow_exotic=grtresna_boson_allow_exotic,
+                    matched_bounds=grtresna_boson_matched_bounds,
                 )
             if grtresna_ansatz == "splash":
                 return grtresna_boson_splash_search_space()

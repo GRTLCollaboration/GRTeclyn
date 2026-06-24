@@ -414,9 +414,10 @@ The `grtresna_independent_scalars` matter path exists precisely to keep both
 sides identical; any new matter sector must be added to **both** sides with
 matching analytic forms. Boson star uses **`grtresna_complex_scalar`** on both
 GRTresna (`BosonStarBH` + `ComplexScalarField.cpp`) and GRTeclyn
-(`ComplexScalarField.hpp` + `RadialRecipeMatterDispatch.hpp`). (Root cause:
-`Examples/RadialRecipe/Debug.md`; see also [Matter model](#foundational-entries-2026-06-10)
-and [Matter selector](#matter-selector-scalar-vs-boson-star).)
+(`ComplexScalarField.hpp` + `RadialRecipeMatterDispatch.hpp`). (Historical
+single-field mismatch was fixed via `grtresna_independent_scalars`; see also
+[Matter model](#foundational-entries-2026-06-10) and
+[Matter selector](#matter-selector-scalar-vs-boson-star).)
 
 ## Behavior descriptors (the "diversity" axes)
 
@@ -619,7 +620,8 @@ Reverse-chronological journal. Quick index:
 
 | Campaign / section | Date | Headline |
 |--------------------|------|----------|
-| [**Boson shell FTL for RL (`boson_shell_ftl_rl_v1`)**](#boson-shell-ftl-for-rl-boson_shell_ftl_rl_v1-2026-06-23) | **06-23 running** | Boson shell + **`general_ftl`**, exotic wedge ON; **200 evals**, frames on. **Attempt 1:** 100% `grtresna_failed` (missing `h5py`). **Attempt 2 (07:58 UTC):** clean restart after `h5py` dep fix — GRTresna→`.gridinit` verified. |
+| [**Paired shell FTL comparison (`boson_shell_ftl_rl_v1` vs `scalar_shell_ftl_rl_v1`)**](#paired-shell-ftl-comparison-boson-vs-scalar-2026-06-23) | **06-23 complete** | **200+200 evals**, matched campaign knobs. Scalar: **92 `gpu_ok`**, **32/92** with `ftl_geo_evolving>0`, champion **eval 166** (**869**, persist 0.76). Boson: **94 `gpu_ok`**, **0 FTL**. **No boson rerun**; promote scalar **eval 166/126** for RL Gate 2. |
+| [**Boson shell FTL for RL (`boson_shell_ftl_rl_v1`)**](#boson-shell-ftl-for-rl-boson_shell_ftl_rl_v1-2026-06-23) | **06-23 complete** | Boson arm of paired comparison — **0/94** `f_geo>0`. See [paired results](#paired-shell-ftl-comparison-boson-vs-scalar-2026-06-23). |
 | [**Boson star: unpinned QD + frames (v3)**](#boson-star-unpinned-qd--frames-v3-2026-06-18) | **06-18 complete** | First **unpinned 7-D** boson MAP-Elites: **12/12 evals**, **8 `gpu_ok`**, champion **eval 004** (−33.2). Frames on H100; `scalar_activity`/`phi` projections visible. |
 | [**Boson star: integration + GPU smoke**](#boson-star-matter-sector-integration--gpu-smoke-2026-06-18) | **06-18 complete** | Matter selector wired; pinned GPU smoke **2/2 `gpu_ok`**. Phase 1 = single centered Gaussian. |
 | [**v22 CMA-ES: wormhole refinement**](#v22-cma-es-wormhole-refinement-general_ftl_wormhole_cmaes_v1-2026-06-18) | **06-18 complete** | QD **063** (165.6) → CMA-ES **046** (**179.8**, +14.2). [HQ eval 046](#hq-eval-046-final-results-t30) **complete** — peak **7.57%** 4D @ t≈15.6, **−546** final @ t=30 (horizon kill). [Movies](#hq-eval-046-final-results-t30) in `movies/`. |
@@ -632,7 +634,7 @@ Reverse-chronological journal. Quick index:
 
 ## Boson shell FTL for RL (`boson_shell_ftl_rl_v1`, 2026-06-23)
 
-**Status:** **running** (attempt 2, launched **2026-06-23 ~07:58 UTC**) — MAP-Elites QD for
+**Status:** **complete** — **200/200 evals** (finished **2026-06-23 ~11:27 UTC**). MAP-Elites QD for
 closed-loop RL initial-data elites.
 
 **Motivation.** Historical wormhole QD (`general_ftl_wormhole_v*`) used **real scalar** lumps.
@@ -642,6 +644,28 @@ This campaign is the first **boson shell + `general_ftl`** survey aimed at elite
 `ftl_geo_evolving` for [RL Tax Man training](../RL/LabJournal.md).
 
 **Run dir:** `runs/grtresna_qd/boson_shell_ftl_rl_v1/`
+
+### Final results (200 evals)
+
+| Metric | Value |
+|--------|------:|
+| **`gpu_ok`** | **94** (47%) |
+| **`postload_rejected`** | **76** (38%; **45%** of gate-tested 170) |
+| **`grtresna_rejected`** | 19 |
+| **`grtresna_failed`** | 4 (incl. attempt-1 `h5py`; 3 late-run) |
+| **`pipeline_interrupted`** | 7 (prior kill/resume) |
+| **`f_geo_peak > 0`** | **0 / 94** — no evolved FTL shortcut |
+| **`structural_persistence`** (gpu_ok) | mean **0.39**, median **0.34**; **23/94** ≥ 0.5; **9/94** = **1.0** |
+| **Best score** | **eval 100** → **21.6** (persist **1.0**, still **f_geo = 0**) |
+| **Best persistence** | evals **39, 66, 87, 100, 112, …** at **1.0** (no FTL) |
+
+**Verdict.** Boson shell + exotic wedge can stay **cohesive** (9 configs with perfect persistence
+@ t=16) but **did not produce any FTL geometry** in 200 evals. Matter stability alone is
+insufficient for RL chassis — need **`f_geo > 0`** plus persistence. See
+[paired comparison](#paired-shell-ftl-comparison-boson-vs-scalar-2026-06-23) (scalar arm).
+
+**Champion for archive inspection:** `eval_000100` (score 21.6, persist 1.0, frames in
+`eval_000100/frames/`).
 
 ### Attempt 1 — `grtresna_failed` (missing `h5py`)
 
@@ -746,11 +770,105 @@ tail -f runs/grtresna_qd/boson_shell_ftl_rl_v1/trajectory.jsonl
 cat runs/grtresna_qd/boson_shell_ftl_rl_v1/ftl_champions.json
 ```
 
+### Paired shell FTL comparison (boson vs scalar, 2026-06-23)
+
+**Status:** **both complete** — **200/200 evals** each. Same campaign **intent** (static 5-lump
+shell, exotic wedge, **`general_ftl`**, t=16, frames, postload **3e-2**, 8×GPU pipeline).
+**Only matter sector differs** (`grtresna_complex_scalar` vs `grtresna_independent_scalars`).
+
+**Run dirs:** `runs/grtresna_qd/boson_shell_ftl_rl_v1/` ·
+`runs/grtresna_qd/scalar_shell_ftl_rl_v1/`
+
+#### Were these the same conceptual runs?
+
+**Mostly yes on pipeline knobs; not bit-identical on search space.**
+
+| Matched | Boson-only / scalar-only |
+|---------|--------------------------|
+| Objective **`general_ftl`**, descriptor **`ftl_lifetime`**, 4D geodesic **`search`** | Matter model + GRTresna solver (`BosonStarBH` vs `ScalarFieldBH`) |
+| Grid **L=64, N=128, dx=0.5**, **t=16**, **PLOT_INTERVAL=320**, **frames on** | Search bounds: boson amp **0.04–0.12**, mass **0.05–0.35**, **`grtresna_bs_omega`**; scalar amp **0.08–0.16**, mass **0.3–1.5**, **`grtresna_scalar_lambda`**, velocity dims in space (zeroed when **`shell_static=1` pinned**) |
+| Pin **`grtresna_shell_static=1`**, exotic wedge ON, **5 lumps** | Boson excludes velocity dims from optimizer; scalar shell space is wider (~23-D vs ~18-D) |
+| **`POSTLOAD_MAX_HAM_L2=3e-2`**, pipeline, **`SKIP_QD_PREFLIGHT_TESTS=1`** (scalar launch) | Boson attempt 1 **`h5py`** failure + resume artifacts (`pipeline_interrupted` ×7) |
+
+Fair conclusion: **same experiment design, different matter physics and slightly different
+optimizer bounds** — sufficient to test “can boson shell + exotic wedge produce FTL like real
+scalar shell under matched scoring?”
+
+#### Side-by-side results (200 evals each)
+
+| Metric | **Boson** | **Scalar** |
+|--------|----------:|-----------:|
+| **`gpu_ok`** | 94 (47%) | 92 (46%) |
+| **`postload_rejected`** | 76 (**45%** of gate-tested) | 26 (**22%**) |
+| **`grtresna_rejected`** | 19 (10%) | 74 (**37%**) |
+| **`f_geo_peak > 0`** | **0 / 94** | **33 / 92** |
+| **`ftl_geo_evolving > 0`** | **0 / 94** | **32 / 92** |
+| **`operational_ftl > 0`** | **0 / 94** | **5 / 92** |
+| **Persistence mean / median** | 0.39 / 0.34 | **0.74 / 0.87** |
+| **Persist = 1.0** | 9 / 94 | **37 / 92** |
+| **Score mean / median** | −51 / −54 | −73 / −29 |
+| **Best score** | **21.6** (eval **100**, persist 1.0, **no FTL**) | **869.3** (eval **166**, persist 0.76, **ftl_p=0.96**) |
+| **Best `f_geo` peak** | 0 | **0.86** (eval **41**, spike only → score **−12**) |
+
+#### Why scores differ so much (not a scorer bug)
+
+Both use the same **`general_ftl`** total (`objectives.py`): FTL terms dominate at
+**+1000×`ftl_geo_evolving` + 600×`ftl_persistence` + 200×`operational_ftl`**. Health-only
+ceiling (no FTL) is **~O(20–30)** after **`exotic_penalty`** (−112 at −1.6).
+
+| Boson eval 100 (score **21.6**) | Scalar eval 166 (score **869**) |
+|--------------------------------|----------------------------------|
+| All FTL components **0** | **`ftl_persistence` 0.96** → **+577** |
+| Health + persist 1.0 | **`operational_ftl` 0.96** → **+192** |
+| | **`ftl_geo_evolving` 0.10** → **+105** |
+
+**Root cause:** boson static exotic shell **never opens a geodesic shortcut** (0/94); real scalar
+exotic shell **does** (32/92 sustained). Higher scalar persistence is a **secondary** effect
+(heavier searched mass keeps lumps bound); it does **not** explain the score gap — **FTL terms do**.
+
+One scalar spike (eval **41**, peak **86%** `f_geo`) scored **−12** because
+**`ftl_lifetime_fraction=0`** — scorer correctly rejects transient gauge artifacts.
+
+#### Verdict and rerun?
+
+| Question | Answer |
+|----------|--------|
+| **Same conceptual experiment?** | **Yes** on pipeline/objective/grid; **minor** search-bound asymmetry (documented above). |
+| **Why boson scores ~20 vs scalar ~870?** | **Zero FTL signal** vs **strong `ftl_persistence` + geodesic credit** — by design of `general_ftl`. |
+| **Rerun boson?** | **No** — 200 evals conclusively show **0 FTL**; rerun without new physics/search changes would not change the conclusion. |
+| **Rerun scalar?** | **No** for the comparison — scalar arm succeeded. Optional next step: **CMA-ES refine** from **eval 166** or **126** (both persist ≥0.76, finite FTL) for RL chassis, not another blind 200-eval QD. |
+| **RL chassis?** | **Scalar shell elite** (e.g. **`eval_000166`**, **`eval_000126`**). Boson arm **rejected** for FTL RL. Run **Gate 2** pump test on scalar elite before PPO. |
+
+**Scalar champions (inspect frames / `initial_data.gridinit`):**
+
+| Eval | Score | Persist | `ftl_persistence` | `ftl_geo_evolving` | Notes |
+|------|------:|--------:|------------------:|-------------------:|-------|
+| **166** | **869** | 0.76 | **0.96** | 0.10 | Overall score leader |
+| **126** | 840 | **1.0** | 0.77 | **0.17** | Best persist + FTL combo |
+| **64** | 592 | 0.66 | 0.65 | 0.12 | Mid-run reference |
+| **41** | −12 | 0.95 | 0 | 0 | **Anti-pattern** — spike only |
+
+Launchers: `boson_star/ftl_shell_run.sh` · `general_ftl/scalar_shell_ftl_run.sh`
+
+```bash
+# Scalar arm (completed 2026-06-23)
+SKIP_QD_PREFLIGHT_TESTS=1 QD_NAME=scalar_shell_ftl_rl_v1 QD_TARGET_EVALS=200 \
+  GPU_IDS="0 1 2 3 4 5 6 7" GPU_SLOTS_PER_DEVICE=1 \
+  bash scripts/campaigns/general_ftl/scalar_shell_ftl_run.sh
+```
+
 ### Handoff to RL
 
-Pick `gpu_ok` evals with finite **`ftl_geo_evolving`** and `initial_data.gridinit` for
-`recipe_initial_data_file` in RL gate / `train_motor.py` configs. Interim RL gates still use
-splash elite `spacetime_splash_v14_moving/eval_000010` until this QD completes.
+**Boson arm:** **rejected** — **0/94** with **`f_geo > 0`**. Persistence-only elites (e.g. eval 100)
+max out at score **~22**; not usable for **`general_ftl`** Tax Man training.
+
+**Scalar arm:** **promote** **`eval_000166`** or **`eval_000126`** (`gpu_ok`, finite
+**`ftl_geo_evolving`**, `initial_data.gridinit` present). Next: **Gate 2** actuation on scalar
+elite with **`grtresna_independent_scalars`** pump (wormhole eval 063 is alternate IVP reference,
+not this paired shell search).
+
+Interim pump proof remains splash boson **`spacetime_splash_v14_moving/eval_000010`** until Gate 2
+passes on the scalar FTL chassis.
 
 ---
 

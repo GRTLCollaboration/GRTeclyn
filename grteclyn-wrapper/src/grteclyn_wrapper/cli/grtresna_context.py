@@ -70,6 +70,10 @@ def build_grtresna_search_context(
     if os.environ.get("GRTRESNA_BOSON_ALLOW_EXOTIC", "0").lower() in ("1", "true", "yes"):
         boson_allow_exotic = True
 
+    boson_matched_bounds = os.environ.get(
+        "GRTRESNA_BOSON_MATCHED_BOUNDS", "0"
+    ).lower() in ("1", "true", "yes")
+
     search_space = build_search_space(
         nonspherical=nonspherical,
         grtresna=use_grtresna,
@@ -79,6 +83,7 @@ def build_grtresna_search_context(
         grtresna_matter_sector=matter.sector,
         grtresna_shell_static=shell_static,
         grtresna_boson_allow_exotic=boson_allow_exotic,
+        grtresna_boson_matched_bounds=boson_matched_bounds,
     )
     overrides = dict(base_overrides)
     if use_grtresna and matter.is_scalar and grtresna_ansatz == "ring":
