@@ -235,40 +235,79 @@ would gain nothing.
 
 **FTL metrics:**
 
-| Metric | Best | Count nonzero |
-|--------|------|---------------|
-| f_geo_peak (geodesic FTL) | **0.753** (eval 101) | 2/73 |
-| f_op_peak (operational FTL) | 0.068 | 39/73 |
-| ftl_peak_strength | **0.101** (eval 189) | 1/73 |
-| ftl_lifetime_fraction | **1.0** (eval 189) | 1/73 |
-| max_local_speed | 2.26 | 73/73 (all >1) |
+**FTL champions (`ftl_champions.json`):**
 
-**Eval 189 — first genuine FTL signal from SH ansatz (score 470.6):**
+| Champion category | Eval | Value | Score | Trustworthy? |
+|-------------------|------|-------|-------|-------------|
+| max_local_speed | 151 | **2.261** | 51.2 | **NO** — gauge collapse artifact |
+| superluminal_fraction | 101 | **86.9%** | −0.9 | **NO** — untrusted geodesics |
+| f_op_peak | 98 | **0.068** | 47.3 | Weak — no geodesic confirmation |
+| f_geo_evol | 101 | **0.753** | −0.9 | **NO** — single untrusted timestep |
+| ftl_geo_evolving | 189 | **0.101** | 470.6 | **YES** — all timesteps trusted |
+| ftl_lifetime_fraction | 189 | **1.0** | 470.6 | **YES** — persistent signal |
+
+**Eval 151 — 2.26 max_speed is a gauge artifact, not FTL.** Timeseries shows
+speed=1.17 at t=0 → 0.58 at t=12.8 (collapsing) → spike to 2.26 at t=16.
+Geodesics are untrustworthy (`geo_trustworthy=0`) from t=3.2 onward, 0/5 rays
+reach targets, and the shift vector grows to 1.0× (gauge pathology).  The config
+has only 6.6% exotic — insufficient for real FTL.  **Discard.**
+
+**Eval 101 — f_geo=0.753 is an unreliable single-timestep signal.** The
+`f_geo_evol=0.753` value comes from one untrusted timestep (t=9.6, trust=0,
+0/5 rays reached).  All other timesteps have f_geo=0.  The shift vector grows
+from 0.10 to 1.01 (gauge runaway), geodesic drift reaches 2.27 (solution
+drifting).  Strong v_tor=0.63 + v_pol=0.74 but the evolution destabilizes.
+**Spurious — do not use as seed.**
+
+**Eval 189 — first genuine geodesic FTL (score 470.6):**
 
 | Property | Value |
 |----------|-------|
-| f_geo_peak | 0.021 at t=9.6 |
+| f_geo_peak | 0.031 at t=9.6 |
 | f_op_peak | 0.057 at t=12.8 |
 | ftl_strength | 0.101 |
 | ftl_lifetime | 1.0 (present at every timestep) |
-| max_speed | 1.33 at t=0 |
+| max_speed | 1.33 at t=0, settling to 1.21 |
+| geo_trustworthy | 1 at ALL timesteps |
+| rays reached | 5/5 at ALL timesteps |
+| geodesic drift | 0.0010–0.0012 (excellent stability) |
+| shift vector | 0.36 → 0.04 (decaying — healthy gauge) |
+
+| Config | Value |
+|--------|-------|
 | sh_amp | 0.042 |
 | sh_radius | 5.99, width=3.24 |
 | v_toroidal | −0.24, v_poloidal=0.66, v_radial=0.22 |
+| omega | −0.36 |
 | exotic_fraction | 0.51 (3/5 lumps exotic) |
 | scalar_mass | 0.31 |
 | Lump amps | 0.034–0.043 (1.3× ratio) |
 
-Key features: strong poloidal flow (0.66), mixed exotic/canonical (3:2), large
-wide shell (R=6.0, width=3.2), low mass (0.31), and persistent FTL throughout
-the entire evolution.  The geodesic FTL signal rises from 0 at t=0 to 0.031 at
-t=6.4, peaks at 0.031 (t=9.6), then decays to 0.020 at t=16 — a dynamically
-generated warp geometry, not a static lens.
+Timeseries:
+```
+t=  0.0  speed=1.331  f_op=0.047  f_geo=0.000  shift=0.356  trust=1  rays=5/5
+t=  3.2  speed=1.271  f_op=0.040  f_geo=0.020  shift=0.150  trust=1  rays=5/5
+t=  6.4  speed=1.204  f_op=0.048  f_geo=0.030  shift=0.077  trust=1  rays=5/5
+t=  9.6  speed=1.208  f_op=0.055  f_geo=0.031  shift=0.057  trust=1  rays=5/5
+t= 12.8  speed=1.212  f_op=0.057  f_geo=0.025  shift=0.048  trust=1  rays=5/5
+t= 16.0  speed=1.211  f_op=0.057  f_geo=0.020  shift=0.043  trust=1  rays=5/5
+```
 
-**Eval 101 — highest f_geo but low score (f_geo=0.753, score=−0.9):**
-High geodesic FTL fraction (0.753) but zero ftl_strength and ftl_lifetime,
-suggesting a momentary/unreliable signal (possibly numerical artifact at one
-timestep).  Strong toroidal (0.63) + poloidal (0.74) flow, 28% exotic.
+The geodesic FTL signal **rises dynamically** from 0 at t=0 to 0.031 at t=6–10,
+then gently decays to 0.020 by t=16 as the matter disperses.  The shift vector
+*decreases* monotonically (0.36→0.04) — the opposite of gauge runaway — confirming
+this is physical spacetime curvature, not a coordinate artifact.  All 5 geodesic
+rays reach their targets at every timestep with drift < 0.002.
+
+Key physics: strong **poloidal** flow (0.66) drives matter over the poles, creating
+an asymmetric frame-drag pattern.  Mixed exotic/canonical matter (3:2) provides
+the negative-energy component needed for warp geometry.  Low scalar mass (0.31)
+keeps the field light and long-ranged.
+
+**Eval 98 — f_op champion (0.068, score 47.3):**
+Highest operational FTL fraction but f_geo=0 (superluminal grid speeds without
+geodesic confirmation).  Strong poloidal flow (0.50), 54% exotic, R=5.1.
+Similar structure to eval 189 but slightly less effective.
 
 **Dynamics vs static:** 59/73 gpu_ok are moving; all top 10 scores are moving.
 Moving configs average score=16.9 vs static average=−59.6.  The warp motor is
