@@ -487,10 +487,11 @@ def grtresna_sh_search_space(
 
     dims: list[SearchDimension] = []
 
-    # Base amplitude (the monopole-equivalent).  Capped at 0.16 so
-    # even with moderate SH boost the effective per-lump amp stays
-    # below ~0.22 where GRTresna converges reliably.
-    dims.append(SearchDimension("grtresna_sh_amp", 0.04, 0.16, 0.10))
+    # Base amplitude (the monopole-equivalent).  Upper raised to 0.22
+    # (from 0.16 in v22) together with looser postload gate (ham_l2
+    # 0.03→0.05) to let stronger-matter configs reach the GPU where
+    # they may actually curve light cones enough for f_geo > 0.
+    dims.append(SearchDimension("grtresna_sh_amp", 0.04, 0.22, 0.12))
 
     # SH modulation coefficients c_1 .. c_{N-1}.
     for idx in range(1, n_sh):
