@@ -156,8 +156,8 @@ post-mortem.
 
 | Block | Dims | Keys |
 |-------|------|------|
-| Base amplitude | 1 | `grtresna_sh_amp` [0.06, 0.22] |
-| SH modulation | 24 | `grtresna_sh_c1`..`c24` [−0.8, 0.8] |
+| Base amplitude | 1 | `grtresna_sh_amp` [0.04, 0.16] |
+| SH modulation | 24 | `grtresna_sh_c1`..`c24` [−0.35, 0.35] |
 | Geometry | 3 | `sh_radius`, `sh_width`, `sh_thickness` |
 | Physics | 2 | `scalar_mass`, `scalar_lambda` |
 | Kinematics | 4 | `sh_toroidal_velocity`, `sh_poloidal_velocity`, `sh_radial_velocity`, `sh_omega` |
@@ -175,18 +175,32 @@ post-mortem.
 | `cli/grtresna_context.py` | `"sh"` ansatz context wiring |
 | `search/optimize/__init__.py` | Exports |
 | `tests/grtresna/test_grtresna_sh_ansatz.py` (new) | 19 tests (SH math, search space, config expansion, CLI) |
+| `search/grtresna_convergence_gate.py` | Treat NaN Mom as 0% when Ham finite (static data fix) |
 
-**Smoke test (scalar_sh_ftl_smoke_v1, 8 evals):** 1 `gpu_ok` (score 12.0, full pipeline),
-5 `grtresna_rejected`, 1 `postload_rejected`, 1 `grtresna_failed`. The successful eval
-used all 24 SH coefficients, producing lumps with amplitudes 0.018–0.088 (3.5× range),
-confirming per-lump variation from the SH expansion.
+**v1 smoke test (scalar_sh_ftl_smoke_v1, 8 evals):** 1 `gpu_ok` (score 12.0), 5
+`grtresna_rejected`, 1 `postload_rejected`, 1 `grtresna_failed`.  Confirmed per-lump
+variation from SH expansion (amps 0.018–0.088, 3.5× range).
 
-**Launch:**
+**v1 → v22 hot-fix (scalar_sh_ftl_v1, killed after 10 evals, 0 gpu_ok):**  Two bugs:
+
+1. **Amplitude blow-up.** With 24 SH coefficients at ±0.8 and |Y_ℓm| up to 0.85,
+   constructive interference pushed effective per-lump amps to 0.22–0.35.  GRTresna
+   cannot converge above ~0.15 (Ham stuck at 100%).  *Fix:* coeff bound 0.8 → 0.35,
+   amp upper 0.22 → 0.16.  Worst-case 2σ excursion now gives amp ≈ 0.22.
+
+2. **NaN-momentum rejection.**  Static configs (Pi=0) have a trivially satisfied
+   momentum constraint, but GRTresna reports `Mom = -nan` because it skips the
+   momentum solve.  The convergence gate treated NaN as non-finite and rejected
+   these — even when Ham was excellent (1.4%).  *Fix:* treat NaN Mom as 0% when
+   Ham is finite (the constraint is satisfied analytically for time-symmetric data).
+
+**Launch (v22):**
 ```bash
 cd grteclyn-wrapper
 GRTRESNA_ANSATZ=sh PIN_DIMS="" \
-QD_NAME=scalar_sh_ftl_v1 QD_TARGET_EVALS=200 \
+QD_NAME=scalar_sh_ftl_v22 QD_TARGET_EVALS=200 \
 GPU_IDS="0 1 2 3 4 5 6 7" \
+GRTECLYN_FRAMES=1 PLOT_INTERVAL=320 \
   bash scripts/campaigns/qd/run.sh
 ```
 

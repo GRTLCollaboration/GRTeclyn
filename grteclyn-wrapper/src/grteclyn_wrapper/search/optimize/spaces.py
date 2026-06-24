@@ -479,14 +479,18 @@ def grtresna_sh_search_space(
 
     n_sh = (ell_max + 1) ** 2  # total SH modes including monopole
     # Modulation coefficients (skip monopole idx=0, absorbed into sh_amp).
-    # Range +-0.8 keeps the modulation factor 1 + sum(c_i Y_lm) positive
-    # for typical SH magnitudes (|Y_lm| <= ~0.6 for low ell).
-    coeff_bound = 0.8 if profile == "discovery" else 0.5
+    # With 24 coefficients and |Y_lm| up to ~0.85, the modulation stdev
+    # is ~coeff_bound * sqrt(N_sh / 4pi).  We need 2-sigma excursions
+    # to keep effective amp below ~0.20 so GRTresna converges (v1 used
+    # +-0.8 which pushed amps to 0.35 → 100% Ham rejection).
+    coeff_bound = 0.35 if profile == "discovery" else 0.25
 
     dims: list[SearchDimension] = []
 
-    # Base amplitude (the monopole-equivalent).
-    dims.append(SearchDimension("grtresna_sh_amp", 0.06, 0.22, 0.13))
+    # Base amplitude (the monopole-equivalent).  Capped at 0.16 so
+    # even with moderate SH boost the effective per-lump amp stays
+    # below ~0.22 where GRTresna converges reliably.
+    dims.append(SearchDimension("grtresna_sh_amp", 0.04, 0.16, 0.10))
 
     # SH modulation coefficients c_1 .. c_{N-1}.
     for idx in range(1, n_sh):

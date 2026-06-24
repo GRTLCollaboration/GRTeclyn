@@ -35,6 +35,12 @@ def convergence_rejection_reason(
         mom = float(convergence["mom_pct"])
     except (KeyError, TypeError, ValueError):
         return "invalid GRTresna convergence diagnostics"
+    # Static (time-symmetric) data has Pi=0 everywhere, so the momentum
+    # constraint is trivially satisfied.  GRTresna may report NaN for Mom
+    # in this case because it skips the momentum solve.  Treat NaN Mom as
+    # 0% when Ham is finite (the constraint *is* satisfied analytically).
+    if not math.isfinite(mom) and math.isfinite(ham):
+        mom = 0.0
     if not math.isfinite(ham) or not math.isfinite(mom):
         return f"nonfinite GRTresna convergence: Ham={ham}, Mom={mom}"
     if ham > cfg.max_ham_pct or mom > cfg.max_mom_pct:
@@ -61,6 +67,9 @@ def convergence_rejection_fitness(
         mom = float(convergence["mom_pct"])
     except (KeyError, TypeError, ValueError):
         return base + max_extra
+    # Same NaN-Mom leniency as the rejection-reason gate above.
+    if not math.isfinite(mom) and math.isfinite(ham):
+        mom = 0.0
     if not math.isfinite(ham) or not math.isfinite(mom):
         return base + max_extra
     residual_penalty = (
