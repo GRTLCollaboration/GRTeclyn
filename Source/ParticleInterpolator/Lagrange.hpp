@@ -170,11 +170,12 @@ template <int N> class Lagrange
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
     poly_interp_coeff_d1(amrex::Real xInt, amrex::Real const *AMREX_RESTRICT x,
-                         int order, amrex::Real *AMREX_RESTRICT c) noexcept
+                         int order,
+                         amrex::Real *AMREX_RESTRICT weights) noexcept
     {
         for (int j = 0; j < order; ++j)
         {
-            amrex::Real den = amrex::Real(1.0);
+            auto den = amrex::Real(1.0);
             for (int i = 0; i < order; ++i)
             {
                 if (i != j)
@@ -183,14 +184,15 @@ template <int N> class Lagrange
                 }
             }
 
-            c[j] = amrex::Real(0.0);
+            weights[j] = amrex::Real(0.0);
 
             for (int k = 0; k < order; ++k)
             {
                 if (k == j)
+                {
                     continue;
-
-                amrex::Real num = amrex::Real(1.0);
+                }
+                auto num = amrex::Real(1.0);
                 for (int i = 0; i < order; ++i)
                 {
                     if (i != j && i != k)
@@ -199,20 +201,21 @@ template <int N> class Lagrange
                     }
                 }
 
-                c[j] += num / den;
+                weights[j] += num / den;
             }
         }
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
     poly_interp_coeff_d2(amrex::Real xInt, amrex::Real const *AMREX_RESTRICT x,
-                         int order, amrex::Real *AMREX_RESTRICT c) noexcept
+                         int order,
+                         amrex::Real *AMREX_RESTRICT weights) noexcept
     {
         for (int j = 0; j < order; ++j)
         {
-            c[j] = amrex::Real(0.0);
+            weights[j] = amrex::Real(0.0);
 
-            amrex::Real den = amrex::Real(1.0);
+            auto den = amrex::Real(1.0);
             for (int i = 0; i < order; ++i)
             {
                 if (i != j)
@@ -224,16 +227,22 @@ template <int N> class Lagrange
             for (int l = 0; l < order; ++l)
             {
                 if (l == j)
+                {
                     continue;
+                }
 
                 for (int k = 0; k < order; ++k)
                 {
                     if (k == j)
+                    {
                         continue;
+                    }
                     if (k == l)
+                    {
                         continue;
+                    }
 
-                    amrex::Real num = amrex::Real(1.0);
+                    auto num = amrex::Real(1.0);
 
                     for (int i = 0; i < order; ++i)
                     {
@@ -243,7 +252,7 @@ template <int N> class Lagrange
                         }
                     }
 
-                    c[j] += num / den;
+                    weights[j] += num / den;
                 }
             }
         }
