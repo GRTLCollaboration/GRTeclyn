@@ -209,6 +209,59 @@ def _shell_lump_velocity(
     return _slv(axis, world, v_rad=v_rad, v_tor=v_tor, v_pol=v_pol)
 
 
+def _expand_trajectory_lumps_from_overrides(
+    overrides: Mapping[str, Any],
+    get_float: Any,
+) -> list[dict]:
+    """Generate GRTresna initial lumps at the t=0 per-lump trajectory positions.
+
+    Each lump has its own orbit defined by ``trajectory_lump{k}_*`` keys.
+    This function evaluates the per-lump trajectory at t=0 (pure Python,
+    mirrors the C++ TrajectoryEvaluator) and creates lumps at those positions.
+    GRTresna solves constraints for this static t=0 snapshot; the C++ side
+    then drives the lumps along their trajectories during evolution.
+    """
+    from .spaces import TRAJECTORY_DEFAULT_NUM_LUMPS
+
+    num_lumps = max(1, int(round(get_float("trajectory_num_lumps", float(TRAJECTORY_DEFAULT_NUM_LUMPS)))))
+    well_width = get_float("trajectory_well_width", 1.5)
+
+    lumps: list[dict] = []
+    for k in range(num_lumps):
+        pfx = f"trajectory_lump{k}_"
+        R0 = get_float(f"{pfx}R0", 5.0)
+        phase0 = get_float(f"{pfx}phase0", 2.0 * math.pi * k / num_lumps)
+        tilt_theta = get_float(f"{pfx}tilt_theta", 0.0)
+        tilt_phi = get_float(f"{pfx}tilt_phi", 0.0)
+        well_depth = get_float(f"{pfx}well_depth", 0.05)
+
+        # Position at t=0: orbit in plane, then rotate by (tilt_theta, tilt_phi).
+        x_orb = R0 * math.cos(phase0)
+        y_orb = R0 * math.sin(phase0)
+
+        ct = math.cos(tilt_theta)
+        st = math.sin(tilt_theta)
+        cp = math.cos(tilt_phi)
+        sp = math.sin(tilt_phi)
+
+        cx = cp * ct * x_orb - sp * y_orb
+        cy = sp * ct * x_orb + cp * y_orb
+        cz = -st * x_orb
+
+        exotic = int(round(get_float(f"{pfx}exotic", 0.0)))
+
+        lumps.append({
+            "amp": min(0.15, max(0.0, well_depth)),
+            "width": max(1.5, well_width),
+            "center": (cx, cy, cz),
+            "velocity": (0.0, 0.0, 0.0),
+            "omega": 0.0,
+            "mode": 0,
+            "exotic": exotic,
+        })
+    return lumps
+
+
 def _is_boson_sector(overrides: Mapping[str, Any], matter_model: str) -> bool:
     from ...grtresna.matter_models import (
         MATTER_SECTOR_BOSON_STAR,
@@ -304,6 +357,19 @@ def build_grtresna_config(
     # solve and the GRTeclyn evolution, keeping the two T_ab identical.
     cfg.scalar_mass = _get_float("grtresna_scalar_mass", cfg.scalar_mass)
     cfg.scalar_lambda = _get_float("grtresna_scalar_lambda", cfg.scalar_lambda)
+
+    # Trajectory-guided geometry survey: lumps at t=0 positions from trajectory
+    # equations.  The trajectory_* keys flow through to GRTeclyn's params.txt
+    # (they are NOT grtresna_ prefixed) and the C++ side drives the pump during
+    # evolution.  GRTresna just solves constraints for the static t=0 snapshot.
+    if any(str(k).startswith("trajectory_") for k in overrides):
+        cfg.lumps = _expand_trajectory_lumps_from_overrides(overrides, _get_float)
+        # Enable exotic-safe solver when ANY lump is exotic (per-lump flag).
+        # The global coupling check in _return_scalar handles the case where
+        # ALL lumps are forced exotic; this handles mixed canonical+exotic.
+        if any(int(l.get("exotic", 0)) for l in cfg.lumps):
+            _enable_exotic_safe_solver()
+        return _return_scalar()
 
     if any(str(k).startswith("grtresna_ring_") for k in overrides):
         num_lumps = max(3, int(round(_get_float("grtresna_ring_lumps", GRTRESNA_DEFAULT_NUM_LUMPS))))

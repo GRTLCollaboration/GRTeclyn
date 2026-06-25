@@ -1,0 +1,49 @@
+#ifndef TRAJECTORY_PARAMS_HPP_
+#define TRAJECTORY_PARAMS_HPP_
+
+#include "RLLumpState.hpp" // RL_MAX_LUMPS
+
+//! Per-lump trajectory: each lump orbits independently on its own tilted
+//! circle with its own radius, angular velocity, initial phase and pump
+//! amplitude.  Counter-rotating lumps (opposite omega_rot signs) create
+//! shear and frame dragging — the primary FTL mechanism.
+//!
+//! SOLID: Single Responsibility — this struct is ONLY the per-lump data.
+struct PerLumpTrajectory
+{
+    double R0{5.0};           //!< orbital radius
+    double omega_rot{0.0};    //!< angular velocity  (sign = direction)
+    double phase0{0.0};       //!< initial azimuthal angle [rad]
+    double tilt_theta{0.0};   //!< orbital-plane tilt from z-axis [rad]
+    double tilt_phi{0.0};     //!< orbital-plane azimuth [rad]
+    double well_depth{0.05};  //!< pump amplitude for this lump
+};
+
+//! Shared trajectory parameters + array of per-lump orbits.
+//!
+//! The separation is physically motivated: per-lump parameters define
+//! independent orbit geometry (where each matter lump circles), while
+//! shared parameters control collective phenomena (breathing, z-oscillation,
+//! pump width) that would be redundant to duplicate per lump.
+struct TrajectoryParams
+{
+    // --- Per-lump orbits ---
+    int num_lumps{0};
+    PerLumpTrajectory lumps[RL_MAX_LUMPS]{};
+
+    // --- Shared: radial breathing (applied to ALL lump radii) ---
+    double A_breath{0.0};      //!< pulsation amplitude (added to each R0_k)
+    double omega_breath{0.0};  //!< pulsation angular frequency
+
+    // --- Shared: confined axial oscillation ---
+    //! Replaces the old z_drift*t (which diverged).
+    //! z_center(t) = z_amp * sin(omega_z * t)
+    //! Always bounded: |z_center| <= z_amp.
+    double z_amp{0.0};         //!< axial oscillation amplitude
+    double omega_z{0.0};       //!< axial oscillation frequency
+
+    // --- Shared: pump width ---
+    double well_width{1.5};    //!< Gaussian spotlight sigma (all lumps)
+};
+
+#endif /* TRAJECTORY_PARAMS_HPP_ */

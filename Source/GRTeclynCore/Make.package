@@ -15,4 +15,6 @@ GRTECLYN_CEXE_headers += AMReXParameters.hpp \
                          VariableType.hpp \
                          RL/RLActionApplier.hpp \
                          RL/RLBridge.hpp \
-                         RL/RLMatterPumpParams.hpp
+                         RL/RLMatterPumpParams.hpp \
+                         RL/TrajectoryEvaluator.hpp \
+                         RL/TrajectoryParams.hpp

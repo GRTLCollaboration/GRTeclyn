@@ -57,7 +57,7 @@ fi
 
 # Full-z evolution box (shell ansatz); ring/free may override in legacy scripts.
 if [[ -z "${GRTRESNA_FULL_Z+x}" ]]; then
-  if [[ "${GRTRESNA_ANSATZ}" == "shell" || "${GRTRESNA_ANSATZ}" == "sh" || "${GRTRESNA_MATTER_SECTOR}" == "boson_star" ]]; then
+  if [[ "${GRTRESNA_ANSATZ}" == "shell" || "${GRTRESNA_ANSATZ}" == "sh" || "${GRTRESNA_ANSATZ}" == "trajectory" || "${GRTRESNA_MATTER_SECTOR}" == "boson_star" ]]; then
     GRTRESNA_FULL_Z=1
   else
     GRTRESNA_FULL_Z=0

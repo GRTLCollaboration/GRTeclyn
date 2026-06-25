@@ -35,6 +35,12 @@ CEXE_headers += $(GRTECLYN_CEXE_headers)
 VPATH_LOCATIONS += $(src_dirs)
 INCLUDE_LOCATIONS += $(realpath .) $(src_dirs)
 
+# Trajectory headers (TrajectoryParams.hpp, TrajectoryEvaluator.hpp) and
+# RLMatterPumpParams.hpp live in GRTeclynCore/RL but are used unconditionally
+# by Matter and RadialRecipe code.  Always add the RL directory to the include
+# path; USE_RL only gates ZMQ linkage and the RL bridge defines.
+INCLUDE_LOCATIONS += $(GRTECLYN_SOURCE)/GRTeclynCore/RL
+
 ifeq ($(USE_RL),TRUE)
   DEFINES += -DUSE_RL
   ZMQ_PREFIX ?= $(GRTECLYN_HOME)/local/zeromq

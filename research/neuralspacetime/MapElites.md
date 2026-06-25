@@ -375,6 +375,272 @@ The archive mechanism provides no diversity pressure.
    - Lower `grtresna-nl-stall-tolerance` to let the solver try harder
    - Add a multi-grid warm-start from a converged low-amp solution
 
+### Option D implementation — `trajectory` ansatz (2025-06-25)
+
+The trajectory ansatz replaces the deterministic Fibonacci-lattice shell geometry with
+**independent per-lump circular orbits** evaluated on the CPU each coarse timestep.
+This is the first ansatz that provides genuine **per-lump differential motion** — the key
+missing ingredient identified in [What cannot be expressed](#what-cannot-be-expressed)
+(item 2: counter-rotating pairs, differential-ω mechanisms).
+
+**Architecture.** Two-layer design:
+
+1. **GRTresna (initial data):** Python config expansion evaluates per-lump trajectories
+   at t=0 to produce static lump positions + amplitudes. GRTresna solves the constraint
+   equations for this snapshot (conformal factor ψ, shift β^i). No velocity source at
+   t=0 (momentum constraint trivially satisfied; `Mom = NaN` artifact is harmless).
+
+2. **GRTeclyn (evolution):** C++ `TrajectoryEvaluator` (pure function object, called once
+   per coarse step on CPU) computes time-dependent lump centers `(x_k, y_k, z_k)` and
+   pump amplitudes from the same trajectory equations. The existing `RadialRecipe` pump
+   spotlight follows lump centers at each step, creating moving matter sources that drive
+   spacetime dynamics.
+
+**Per-lump orbit model:**
+
+Each lump k defines a circular orbit in an arbitrarily tilted plane:
+
+```
+r_k(t) = R0_k + A_breath * sin(omega_breath * t)       [radial breathing]
+φ_k(t) = phase0_k + omega_rot_k * t                    [azimuthal orbit]
+z_center(t) = z_amp * sin(omega_z * t)                  [shared z-oscillation]
+
+Position in orbital plane:
+  (x_orb, y_orb) = (r_k cos φ_k, r_k sin φ_k)
+
+Lab-frame position via R_z(tilt_phi) * R_y(tilt_theta):
+  x_k = cp*ct * x_orb - sp * y_orb
+  y_k = sp*ct * x_orb + cp * y_orb
+  z_k = -st * x_orb + z_center
+```
+
+**Search space (40 D for 5 lumps = 7 × N_lumps + 5 shared):**
+
+| Block | Dims | Keys | Range | Default |
+|-------|------|------|-------|---------|
+| Breathing amp | 1 | `trajectory_A_breath` | [0, 2] | 0 |
+| Breathing freq | 1 | `trajectory_omega_breath` | [0, 3] | 0.5 |
+| Z-oscillation amp | 1 | `trajectory_z_amp` | [0, 3] | 0 |
+| Z-oscillation freq | 1 | `trajectory_omega_z` | [0, 2] | 0 |
+| Well width | 1 | `trajectory_well_width` | [0.8, 3] | 1.5 |
+| Per-lump R0 | N | `trajectory_lump{k}_R0` | [1.5, 8] | staggered ~4.0 |
+| Per-lump omega | N | `trajectory_lump{k}_omega_rot` | [−1, 1] | 0 |
+| Per-lump phase | N | `trajectory_lump{k}_phase0` | [0, 2π] | 2πk/N |
+| Per-lump tilt θ | N | `trajectory_lump{k}_tilt_theta` | [0, π] | 0 |
+| Per-lump tilt φ | N | `trajectory_lump{k}_tilt_phi` | [0, 2π] | 0 |
+| Per-lump amplitude | N | `trajectory_lump{k}_well_depth` | [0.01, 0.15] | 0.05 |
+| Per-lump exotic | N | `trajectory_lump{k}_exotic` | [0, 1] | 0 |
+
+**Profile options** (subspace reduction for faster convergence):
+
+| Profile | Per-lump DOFs | Shared DOFs | Total (5 lumps) | Use case |
+|---------|---------------|-------------|-----------------|----------|
+| `discovery` | 7 (all) | 5 | 40 D | Full exploration |
+| `rotation_only` | 3 (ω, φ₀, amp, exotic) | 3 (z-osc + width) | 23 D | Counter-rotation survey |
+| `breathing_only` | 3 (R0, amp, exotic) | 5 (all) | 20 D | Radial pulsation study |
+
+**Exotic matter handling:**
+
+- Per-lump exotic flag is a continuous search dimension [0, 1], rounded to binary 0/1
+  during config expansion.
+- When ANY lump has `exotic=1`, the exotic-safe solver activates automatically
+  (`maximal_slicing=1` in GRTresna params). This uses K=0 York/Lichnerowicz with
+  Newton under-relaxation and a ψ-floor, avoiding the `sqrt(negative_rho)` NaN that
+  the default CTTKHybrid solver hits with exotic matter.
+- The global `--grtresna-matter-coupling` stays `canonical`; exotic is per-lump only.
+
+**Files added / modified:**
+
+| File | Role |
+|------|------|
+| `Source/GRTeclynCore/RL/TrajectoryParams.hpp` (new) | `PerLumpTrajectory` + `TrajectoryParams` structs |
+| `Source/GRTeclynCore/RL/TrajectoryEvaluator.hpp` (new) | CPU function object: time → lump centers + amps |
+| `Source/GRTeclynCore/Make.package` | Include path for `RL/` headers |
+| `Examples/RadialRecipe/GNUmakefile` | `INCLUDE_LOCATIONS += GRTeclynCore/RL` |
+| `search/optimize/spaces.py` | `grtresna_trajectory_search_space()` + profile dispatch |
+| `search/optimize/config.py` | `_expand_trajectory_lumps_from_overrides()` — t=0 lump placement + exotic solver activation |
+| `cli/parser.py` | `"trajectory"` added to ansatz choices |
+| `cli/grtresna_context.py` | Trajectory ansatz context wiring |
+| `scripts/campaigns/lib/search_common.sh` | `trajectory` added to full-z ansatz list |
+| `tests/grtresna/test_grtresna_trajectory_ansatz.py` (new) | 14 tests (space dims, profiles, config expansion, exotic, tilt) |
+
+**Key design decisions:**
+
+1. **Static t=0 initial data.** Lumps have zero velocity at t=0 — momentum constraint
+   trivially satisfied. The C++ evaluator drives motion during evolution. This avoids
+   the CTTKHybrid momentum-solve divergence that occurs with high-velocity lumps, at the
+   cost of a brief transient at the start (matter "jumps" from rest to trajectory speed).
+
+2. **Bounded z-oscillation.** Earlier design had `z_drift = v_z * t` (unbounded) which
+   eventually drove lumps off-grid. Replaced with `z_amp * sin(omega_z * t)` — always
+   contained within the domain.
+
+3. **Amplitude capping.** `well_depth` upper bound is 0.15 (GRTresna convergence ceiling
+   for exotic matter). Config expansion also applies `min(0.15, well_depth)`.
+
+4. **Counter-rotation as FTL mechanism.** The primary motivation: opposite `omega_rot`
+   signs on nearby lumps create frame-dragging shear between counter-rotating matter
+   streams — the mechanism behind Alcubierre-type warps.
+
+**Limitations:**
+
+1. **No t=0 velocity.** The constraint solve sees static lumps, so there is no initial
+   momentum source. The evolution must "spin up" the frame-dragging dynamically, which
+   takes several crossing times. This means early-time FTL signals are suppressed.
+
+2. **GRTresna convergence is amplitude-limited.** Per-lump amplitudes above ~0.15 cause
+   the constraint solver to diverge (Ham stuck at 100%). The search bounds enforce this,
+   but it limits the gravitational strength of individual lumps.
+
+3. **Fixed orbit topology.** All orbits are circles (in arbitrarily tilted planes).
+   Cannot express elliptical orbits, spiral inspiral, or chaotic trajectories. However,
+   the breathing modulation adds a radial oscillation that approximates eccentricity.
+
+4. **No inter-lump interaction.** Trajectories are purely kinematic — lumps do not
+   gravitationally attract each other or respond to the spacetime they create. Real
+   physics would have lumps inspiral or scatter; here they follow prescribed paths
+   regardless of the metric.
+
+5. **Pump spotlight approximation.** The matter source is a Gaussian spotlight (width =
+   `well_width`) centered on the trajectory position. This is not a self-consistent
+   scalar field solution; it's a source prescription that creates scalar field content
+   at the spotlight location. The field then evolves freely between pump events.
+
+6. **Dimensionality.** 40D for 5 lumps is high for MAP-Elites (8×8 archive = 64 cells
+   in a 40D space). Convergence may require many evaluations. The `rotation_only` and
+   `breathing_only` profiles reduce to 20–23D for focused surveys.
+
+7. **Mom = NaN at t=0.** Because lumps start at rest, the momentum constraint residual
+   is 0/0 → NaN. The convergence gate treats NaN Mom as 0% when Ham is finite (analytical
+   satisfaction). This is cosmetic, not a solver failure.
+
+**Launch (trajectory QD campaign):**
+
+```bash
+cd grteclyn-wrapper
+GRTRESNA_ANSATZ=trajectory \
+LUMPS=5 \
+QD_NAME=trajectory_5lump_v1 \
+QD_TARGET_EVALS=50 \
+OBJECTIVE_MODE=general_ftl \
+GPU_IDS="0 1 2 3 4 5 6 7" \
+GPU_SLOTS_PER_DEVICE=1 \
+GRTECLYN_FRAMES=1 \
+PLOT_INTERVAL=320 \
+STOP_TIME=16.0 \
+QD_KEEP_TOP_EVAL_DIRS=5 \
+SKIP_QD_PREFLIGHT_TESTS=1 \
+  nohup bash scripts/campaigns/qd/run.sh \
+  > ../runs/trajectory_5lump_v1.launch.log 2>&1 &
+```
+
+**Expected campaign parameters (via `search_common.sh` defaults):**
+
+| Knob | Value | Notes |
+|------|-------|-------|
+| Grid (evolution) | N=128, L=64, ml=1 | dx=0.5 |
+| Grid (GRTresna) | 128³ gridinit, ml=3 | AMR inside elliptic solve |
+| Stop time | 16.0 | |
+| Plot interval | 320 | ~6 plotfiles per eval |
+| Objective | `general_ftl` | 4D evolving geodesic, dirs x/y/z |
+| Exotic | per-lump random | Search dimension [0,1] → binary |
+| Full-z | yes | Tilted orbits need full z-domain |
+| Batch | 8 (= #GPUs) | |
+| FTL retention | on | Best-ever FTL evals preserved |
+
+### Proposed extension — boson star trajectory (`trajectory` + `boson_star`)
+
+The real-scalar trajectory ansatz suffers from **matter dispersion**: the pump must
+continuously re-create matter at spotlight positions because real scalar lumps have no
+conserved charge and radiate away within ~5–10 crossing times. The pump is not a
+correction force — it IS the matter source. This creates:
+
+1. A dispersing halo of old field around each lump (noise, constraint growth)
+2. Strong pump amplitudes required (instability risk → high `gpu_failed` rate)
+3. The "lump" is a spotlight, not a physical self-bound object
+
+**Solution:** combine the trajectory ansatz with **boson star matter** (complex scalar,
+U(1) conserved charge). Boson stars are self-gravitating solitons that remain compact
+indefinitely without any external pump. The pump role changes from **matter creation**
+to **gentle orbit correction** — keeping the star on-track against gravitational
+radiation losses and inter-star perturbations.
+
+**Physics comparison:**
+
+| Property | Real scalar + pump | Boson star + light pump |
+|----------|-------------------|------------------------|
+| Self-binding | None — disperses freely | U(1) charge → self-bound soliton |
+| Pump role | **Creates** matter continuously | **Corrects** orbit drift (much weaker) |
+| Pump amplitude needed | 0.01–0.15 (full source) | ~0.001–0.01 (steering only) |
+| Matter persistence | Dies without pump | Persists indefinitely |
+| Initial velocity | Not supported (Pi=0 at t=0) | Natural: bulk v from GRTresna Mom solve |
+| Instability risk | High (strong gradients) | Lower (gentle corrections) |
+| Orbit fidelity | Exact (pump paints matter) | Approximate (physics + correction) |
+| FTL mechanism | Frame-drag from pump-driven matter | Frame-drag from orbiting solitons |
+
+**What exists already:**
+
+- Complex scalar field evolution (`ComplexScalarField.impl.hpp`) with pump support
+  (`rhs[Pi1] += base*cos(arg)`, `rhs[Pi2] += base*sin(arg)` — phase-coherent U(1)
+  charge injection)
+- Boson shell: multi-lump complex scalar placed at shell positions with velocity
+  decomposition (toroidal, poloidal, radial) — constraint-solved with initial momentum
+- TrajectoryEvaluator: already drives pump spotlight centers for any matter type
+- The pump `governor` (L2_Ham based) already throttles injection when constraints degrade
+
+**What's needed:**
+
+1. **Config expansion for trajectory + boson_star.** In `_expand_trajectory_lumps_from_overrides`:
+   when matter sector is `boson_star`, output complex scalar Gaussian profiles with:
+   - Internal phase velocity `ω_bs` (keeps star bound: `Π₂ = -ω φ / α`)
+   - Bulk velocity from `omega_rot × position` (puts star on orbit at t=0)
+   - This means the GRTresna Mom constraint is NON-TRIVIAL (unlike real scalar trajectory
+     where Pi=0 → trivial Mom). The constraint solve produces physical momentum.
+
+2. **Reduced pump amplitude bounds.** When trajectory + boson_star, cap `well_depth`
+   to [0.001, 0.02] instead of [0.01, 0.15]. The pump is corrective, not generative.
+   Alternatively: make `well_depth=0` (no pump at all) and let physics drive orbits
+   entirely from initial velocity.
+
+3. **Per-lump `omega_bs` (internal frequency).** Each boson star needs its own phase
+   velocity for internal oscillation. This could be:
+   - A new search dimension `trajectory_lump{k}_omega_bs` ∈ [0.05, 0.35]
+   - Or a shared parameter (all stars same internal frequency)
+
+4. **Initial velocity from trajectory.** At t=0, bulk velocity of star k is:
+   ```
+   v_k = omega_rot_k × r_k  (tangential to orbit)
+   ```
+   This replaces the zero-velocity static initial data. GRTresna solves the full
+   momentum constraint with this non-zero velocity → physical initial shift vector.
+
+5. **Matter model wiring.** Set `grtresna_matter_model = grtresna_complex_scalar`
+   when trajectory + boson_star. The `BosonStarBH` GRTresna example already supports
+   multi-lump complex scalars with velocity — it's the same path as boson shell but
+   with positions from trajectory equations instead of Fibonacci lattice.
+
+**Search space additions (trajectory + boson_star):**
+
+| New param | Range | Purpose |
+|-----------|-------|---------|
+| `trajectory_lump{k}_omega_bs` | [0.05, 0.35] | Internal boson star frequency |
+| `grtresna_scalar_mass` | [0.05, 0.35] | Complex scalar mass (binding) |
+| `grtresna_scalar_lambda` | [0, 0.05] | Quartic self-interaction |
+
+Total dimensionality: 8 × N_lumps + 7 shared (5 lumps = 47 D). Or omit per-lump
+`omega_bs` (use shared) → 7 × N_lumps + 8 shared = 43 D.
+
+**Expected improvements over real-scalar trajectory:**
+
+- Lower `gpu_failed` rate (less pump-driven instability)
+- Longer effective evolution (matter persists → longer FTL window)
+- Physical momentum at t=0 (non-trivial Mom constraint → real shift from start)
+- Counter-rotating boson stars → sustained frame-drag shear without pump refreshing
+
+**Risk:** GRTresna convergence with multi-site complex scalars at non-zero bulk velocity
+is harder than zero-velocity real scalars. The boson shell campaigns showed ~47% `gpu_ok`
+rate at 200 evals. With velocity from trajectory, the convergence could be worse initially.
+
 ---
 
 ## Quick start — running campaigns

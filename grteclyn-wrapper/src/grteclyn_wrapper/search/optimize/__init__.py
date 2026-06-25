@@ -43,6 +43,8 @@ from .spaces import (
     SH_DEFAULT_ELL_MAX,
     SH_PROFILE_CHOICES,
     SHELL_PROFILE_CHOICES,
+    TRAJECTORY_DEFAULT_NUM_LUMPS,
+    TRAJECTORY_PROFILE_CHOICES,
     build_search_space,
     grtresna_boson_splash_search_space,
     grtresna_boson_star_search_space,
@@ -50,6 +52,7 @@ from .spaces import (
     grtresna_search_space,
     grtresna_sh_search_space,
     grtresna_shell_search_space,
+    grtresna_trajectory_search_space,
 )
 
 GRTRESNA_MAX_HAM_PCT = DEFAULT_GRTRESNA_CONVERGENCE_CONFIG.max_ham_pct
@@ -75,6 +78,8 @@ __all__ = [
     "SOLVED_FTL_REJECTION_BASE_FITNESS",
     "SOLVED_FTL_REJECTION_MAX_EXTRA_FITNESS",
     "SearchDimension",
+    "TRAJECTORY_DEFAULT_NUM_LUMPS",
+    "TRAJECTORY_PROFILE_CHOICES",
     "_force_exotic_template",
     "_grtresna_convergence_rejection_reason",
     "_grtresna_rejection_fitness",
@@ -87,6 +92,7 @@ __all__ = [
     "grtresna_search_space",
     "grtresna_sh_search_space",
     "grtresna_shell_search_space",
+    "grtresna_trajectory_search_space",
     "parse_convergence_safe",
     "run_optimize",
 ]

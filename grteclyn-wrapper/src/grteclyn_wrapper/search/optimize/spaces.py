@@ -544,6 +544,130 @@ def grtresna_sh_search_space(
     return dims
 
 
+TRAJECTORY_DEFAULT_NUM_LUMPS = 5
+
+TRAJECTORY_PROFILE_CHOICES = ("discovery", "rotation_only", "breathing_only")
+
+
+def grtresna_trajectory_search_space(
+    num_lumps: int = TRAJECTORY_DEFAULT_NUM_LUMPS,
+    profile: str = "discovery",
+) -> list[SearchDimension]:
+    """Trajectory-guided FTL geometry survey — per-lump independent orbits.
+
+    Each lump gets its own circular orbit defined by 6 searched parameters:
+      - R0: orbital radius
+      - omega_rot: angular velocity (sign = direction; counter-rotating lumps
+        create shear -> frame dragging, the primary FTL mechanism)
+      - phase0: initial azimuthal position
+      - tilt_theta: orbital plane tilt from z-axis
+      - tilt_phi: orbital plane azimuth (full 3D orientation)
+      - well_depth: per-lump pump amplitude
+
+    Shared parameters control collective phenomena:
+      - A_breath, omega_breath: radial pulsation (modulates all R0_k)
+      - z_amp, omega_z: confined axial oscillation (always bounded)
+      - well_width: Gaussian spotlight sigma
+
+    The C++ evaluator runs on the CPU each coarse step — no GPU trig.
+    GRTresna provides initial data from the t=0 lump positions.
+
+    Dimensionality: 7 * num_lumps + 5 shared.
+      - 5 lumps: 40 D
+      - 3 lumps: 26 D
+
+    ``profile`` controls which per-lump DOFs are searched:
+      - ``discovery``: full per-lump freedom (R0, omega, phase, tilt, amp)
+      - ``rotation_only``: fix R0/tilt, search only omega_rot + phase0 + amp
+      - ``breathing_only``: fix omega_rot/tilt, search R0 + amplitude
+    """
+    if profile not in TRAJECTORY_PROFILE_CHOICES:
+        raise ValueError(
+            f"unknown trajectory profile: {profile!r} "
+            f"(choices: {', '.join(TRAJECTORY_PROFILE_CHOICES)})"
+        )
+
+    dims: list[SearchDimension] = []
+
+    # --- Shared parameters ---
+    dims.append(SearchDimension("trajectory_A_breath", 0.0, 2.0, 0.0))
+    dims.append(SearchDimension("trajectory_omega_breath", 0.0, 3.0, 0.5))
+    dims.append(SearchDimension("trajectory_z_amp", 0.0, 3.0, 0.0))
+    dims.append(SearchDimension("trajectory_omega_z", 0.0, 2.0, 0.0))
+    dims.append(SearchDimension("trajectory_well_width", 0.8, 3.0, 1.5))
+
+    # --- Per-lump parameters ---
+    # Stagger initial phases and radii so lumps start distinct.
+    for k in range(num_lumps):
+        phase0_default = 2.0 * math.pi * k / num_lumps
+        R0_default = 4.0 + (k - (num_lumps - 1) / 2.0) * 0.5
+
+        dims.append(
+            SearchDimension(f"trajectory_lump{k}_R0", 1.5, 8.0, R0_default)
+        )
+        dims.append(
+            SearchDimension(
+                f"trajectory_lump{k}_omega_rot", -1.0, 1.0, 0.0
+            )
+        )
+        dims.append(
+            SearchDimension(
+                f"trajectory_lump{k}_phase0",
+                0.0,
+                2.0 * math.pi,
+                phase0_default,
+            )
+        )
+        dims.append(
+            SearchDimension(
+                f"trajectory_lump{k}_tilt_theta", 0.0, math.pi, 0.0
+            )
+        )
+        dims.append(
+            SearchDimension(
+                f"trajectory_lump{k}_tilt_phi",
+                0.0,
+                2.0 * math.pi,
+                0.0,
+            )
+        )
+        dims.append(
+            SearchDimension(
+                f"trajectory_lump{k}_well_depth", 0.01, 0.15, 0.05
+            )
+        )
+        # Per-lump exotic flag: continuous [0,1], rounded to 0/1 in config
+        # expansion.  Lets the search discover which lumps should carry
+        # negative energy density (exotic) vs positive (canonical).
+        dims.append(
+            SearchDimension(
+                f"trajectory_lump{k}_exotic", 0.0, 1.0, 0.0
+            )
+        )
+
+    # Profile-specific simplifications.
+    if profile == "rotation_only":
+        # Fix R0, tilt — only rotation and amplitude searched per lump.
+        remove = {
+            f"trajectory_lump{k}_{p}"
+            for k in range(num_lumps)
+            for p in ("R0", "tilt_theta", "tilt_phi")
+        }
+        # Also remove breathing shared dims.
+        remove |= {"trajectory_A_breath", "trajectory_omega_breath"}
+        dims = [d for d in dims if d.param_key not in remove]
+    elif profile == "breathing_only":
+        # Fix rotation and tilt — only R0 and amplitude searched per lump.
+        remove = {
+            f"trajectory_lump{k}_{p}"
+            for k in range(num_lumps)
+            for p in ("omega_rot", "phase0", "tilt_theta", "tilt_phi")
+        }
+        dims = [d for d in dims if d.param_key not in remove]
+
+    return dims
+
+
 def build_search_space(
     nonspherical: bool = False,
     grtresna: bool = False,
@@ -602,6 +726,15 @@ def build_search_space(
                 else "discovery"
             )
             return grtresna_sh_search_space(profile=sh_profile)
+        if grtresna_ansatz == "trajectory":
+            traj_profile = (
+                grtresna_shell_profile
+                if grtresna_shell_profile in TRAJECTORY_PROFILE_CHOICES
+                else "discovery"
+            )
+            return grtresna_trajectory_search_space(
+                num_lumps=grtresna_lumps, profile=traj_profile
+            )
         if grtresna_ansatz == "boson_star":
             return grtresna_boson_star_search_space()
         if grtresna_ansatz == "splash":

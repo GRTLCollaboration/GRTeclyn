@@ -6,6 +6,7 @@
 #include "GRTresnaScalarLayout.hpp"
 #include "RadialRecipeInitialData.hpp"
 #include "SimulationParametersBase.hpp"
+#include "TrajectoryParams.hpp"
 
 #include <array>
 #include <sstream>
@@ -74,6 +75,35 @@ class SimulationParameters : public SimulationParametersBase
         load_rl_lump_seed_axis(pp, "rl_lump_seed_x", rl_lump_seed_x);
         load_rl_lump_seed_axis(pp, "rl_lump_seed_y", rl_lump_seed_y);
         load_rl_lump_seed_axis(pp, "rl_lump_seed_z", rl_lump_seed_z);
+
+        // Trajectory-guided geometry survey (opt-in; trajectory_mode=0 is off).
+        // When active, the pump site centres are overridden each coarse step by
+        // parametric trajectory equations evaluated on the CPU (no ZMQ, no RL).
+        pp.load("trajectory_mode", trajectory_mode, 0);
+        {
+            int n_traj = 5;
+            pp.load("trajectory_num_lumps", n_traj, 5);
+            if (n_traj < 1)
+                n_traj = 1;
+            if (n_traj > GRTRESNA_MAX_INDEPENDENT_SCALARS)
+                n_traj = GRTRESNA_MAX_INDEPENDENT_SCALARS;
+            trajectory_params.num_lumps = n_traj;
+        }
+
+        // Shared trajectory parameters.
+        pp.load("trajectory_A_breath", trajectory_params.A_breath, 0.0);
+        pp.load("trajectory_omega_breath", trajectory_params.omega_breath,
+                0.0);
+        pp.load("trajectory_z_amp", trajectory_params.z_amp, 0.0);
+        pp.load("trajectory_omega_z", trajectory_params.omega_z, 0.0);
+        pp.load("trajectory_well_width", trajectory_params.well_width, 1.5);
+
+        // Per-lump trajectory parameters: trajectory_lump{k}_*.
+        for (int k = 0; k < trajectory_params.num_lumps; ++k)
+        {
+            auto &lk = trajectory_params.lumps[k];
+            load_trajectory_lump(pp, k, lk);
+        }
     }
 
     void read_recipe_params(GRParmParse &pp)
@@ -209,6 +239,10 @@ class SimulationParameters : public SimulationParametersBase
     double rl_l2_ham_governor_center{0.035};
     double rl_l2_ham_governor_width{0.003};
 
+    // Trajectory-guided geometry survey (Independent of RL; no ZMQ needed).
+    int trajectory_mode{0};        //!< 0 = off, 1 = parametric trajectory
+    TrajectoryParams trajectory_params{};
+
   private:
     void load_rl_lump_seed_axis(
         GRParmParse &pp, const char *key,
@@ -300,6 +334,20 @@ class SimulationParameters : public SimulationParametersBase
             pp.load(rc_key.str().c_str(), mode.radial_center, 0.0);
             pp.load(rw_key.str().c_str(), mode.radial_width, 1.0);
         }
+    }
+
+    //! Load per-lump trajectory: trajectory_lump{k}_R0, _omega_rot, etc.
+    void load_trajectory_lump(GRParmParse &pp, int k, PerLumpTrajectory &lk)
+    {
+        std::ostringstream pfx;
+        pfx << "trajectory_lump" << k << "_";
+        const std::string p = pfx.str();
+        pp.load((p + "R0").c_str(), lk.R0, 5.0);
+        pp.load((p + "omega_rot").c_str(), lk.omega_rot, 0.0);
+        pp.load((p + "phase0").c_str(), lk.phase0, 0.0);
+        pp.load((p + "tilt_theta").c_str(), lk.tilt_theta, 0.0);
+        pp.load((p + "tilt_phi").c_str(), lk.tilt_phi, 0.0);
+        pp.load((p + "well_depth").c_str(), lk.well_depth, 0.05);
     }
 };
 
