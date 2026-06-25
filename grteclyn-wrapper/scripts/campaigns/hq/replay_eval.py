@@ -224,6 +224,14 @@ def main() -> int:
         ],
         help="Scoring objective (default: general_ftl for HQ v20 replays).",
     )
+    parser.add_argument(
+        "--extra-override",
+        action="append",
+        default=[],
+        metavar="KEY=VALUE",
+        help="Extra key=value overrides applied after all other overrides "
+        "(e.g. --extra-override lapse_power=0.0). May be repeated.",
+    )
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
@@ -259,6 +267,14 @@ def main() -> int:
         max_level=args.max_level,
         regrid_threshold=args.regrid_threshold,
     )
+
+    # Apply --extra-override KEY=VALUE pairs last (highest priority).
+    for token in args.extra_override:
+        if "=" not in token:
+            print(f"[replay] ignoring malformed --extra-override {token!r}", file=sys.stderr)
+            continue
+        key, raw = token.split("=", 1)
+        overrides[key.strip()] = _parse_params_value(raw)
 
     domain = GRTresnaDomainConfig(
         full_z=True,

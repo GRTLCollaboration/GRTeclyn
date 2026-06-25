@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 from .types import ScoringContext
 
 # Below this peak matter energy density there is effectively no structure to
@@ -53,7 +55,10 @@ def compute_survival_components(ctx: ScoringContext) -> None:
         peak_rho = metrics.constraints.max_rho_required
         final_rho = metrics.constraints.final_peak_rho_required
         if peak_rho is not None and final_rho is not None and peak_rho > _RHO_PERSISTENCE_FLOOR:
-            density_retention = float(min(max(final_rho / peak_rho, 0.0), 1.0))
+            ratio = final_rho / peak_rho
+            if not math.isfinite(ratio):
+                ratio = 0.0
+            density_retention = float(min(max(ratio, 0.0), 1.0))
         else:
             notes.append("matter-density time series unavailable; survival not density-gated")
 
@@ -62,7 +67,11 @@ def compute_survival_components(ctx: ScoringContext) -> None:
         metrics.general_ftl_evolved is not None
         and metrics.general_ftl_evolved.structure_coherence is not None
     ):
-        coherence = float(min(max(metrics.general_ftl_evolved.structure_coherence, 0.0), 1.0))
+        raw_coherence = metrics.general_ftl_evolved.structure_coherence
+        if not math.isfinite(raw_coherence):
+            raw_coherence = 0.0
+            notes.append("structure_coherence was NaN/inf; treating as fully fragmented")
+        coherence = float(min(max(raw_coherence, 0.0), 1.0))
         if coherence < 0.95:
             notes.append(
                 f"matter fragmented into ~{round(1.0 / max(coherence, 1e-6))} lobes "
