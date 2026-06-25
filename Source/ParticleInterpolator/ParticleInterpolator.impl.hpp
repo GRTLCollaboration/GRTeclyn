@@ -242,6 +242,9 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
         const int num_particles = par_iter.numParticles();
         auto fab_array          = mfab[par_iter].const_array();
 
+        auto comps_start = m_query->compsBegin();
+        auto comps_end   = m_query->compsEnd();
+
         amrex::ParallelFor(
             num_particles,
             [=] AMREX_GPU_DEVICE(int ip)
@@ -257,8 +260,7 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
 
                 amrex::ParticleReal interpolated_vals[ncomp];
                 lagrange_interp.interpolate(&fab_array, interpolated_vals,
-                                            m_query->compsBegin(),
-                                            m_query->compsEnd(), 1 / dxi[0]);
+                                            comps_start, comps_end, 1 / dxi[0]);
 
                 // write results to SOA
                 for (int icomp = 0; icomp < ncomp; ++icomp)
