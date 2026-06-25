@@ -89,16 +89,14 @@ export POSTLOAD_GATE
 : "${CONSUMER_RADII:=4 8}"
 : "${CONSUMER_KEEP_LAST:=3}"
 : "${FTL_L:=8.0}"
-: "${OBJECTIVE_MODE:=ftl_first}"
+: "${OBJECTIVE_MODE:=general_ftl}"
 
 # ---- 4D evolving null-geodesic (search profile) ------------------------------
 export GRTECLYN_FRAMES="${GRTECLYN_FRAMES:-0}"
 export GRTECLYN_EVOLVING_GEODESIC_MODE="${GRTECLYN_EVOLVING_GEODESIC_MODE:-search}"
 export GRTECLYN_METRIC_STACK_N_SPACE="${GRTECLYN_METRIC_STACK_N_SPACE:-33}"
-# general_ftl scores the best principal-axis null shortcut; wormhole elites live on z.
-if [[ "${OBJECTIVE_MODE}" == "general_ftl" ]]; then
-  export GRTECLYN_GEO_DIRECTIONS="${GRTECLYN_GEO_DIRECTIONS:-x y z}"
-fi
+# Always probe all 3 principal axes -- blind search across directions.
+export GRTECLYN_GEO_DIRECTIONS="${GRTECLYN_GEO_DIRECTIONS:-x y z}"
 if [[ "${OBJECTIVE_MODE}" == "critical_collapse" ]]; then
   export GRTECLYN_EVOLVING_GEODESIC=0
   export GRTECLYN_CENTRAL_TIMESERIES=1

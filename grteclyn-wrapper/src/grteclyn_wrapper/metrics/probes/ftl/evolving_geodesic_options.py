@@ -17,7 +17,7 @@ class EvolvingGeodesicOptions:
     max_steps: int = 50_000
     h_rel_abort: float | None = None
     ds_init: float = 0.05
-    directions: tuple[str, ...] = ("x",)
+    directions: tuple[str, ...] = ("x", "y", "z")
 
 
 SEARCH_OPTIONS = EvolvingGeodesicOptions(
@@ -34,9 +34,9 @@ HQ_OPTIONS = EvolvingGeodesicOptions()
 
 def geo_directions_from_env() -> tuple[str, ...]:
     """Principal axes to scan for the end-of-run 4D trace (``GRTECLYN_GEO_DIRECTIONS``)."""
-    raw = os.environ.get("GRTECLYN_GEO_DIRECTIONS", "x").strip()
+    raw = os.environ.get("GRTECLYN_GEO_DIRECTIONS", "x y z").strip()
     dirs = tuple(tok for tok in raw.split() if tok in {"x", "y", "z"})
-    return dirs or ("x",)
+    return dirs or ("x", "y", "z")
 
 
 def evolving_geodesic_options_from_env() -> EvolvingGeodesicOptions:
