@@ -2,6 +2,273 @@
 
 Run isolated GRTeclyn episodes from the repo root (`GRTeclyn/`). The wrapper can stream plotfiles into `small_data/` during GPU runs and delete heavy HDF5 dirs afterward.
 
+## Running commands
+
+All commands run from **`grteclyn-wrapper/`**. Binaries must be built first — see
+[Build GRTresna](#build-grtresna) below.
+
+| Stage | What it does | Launcher | Output directory |
+|-------|--------------|----------|------------------|
+| **0 — QD** | MAP-Elites survey (8×8 archive) | `scripts/campaigns/qd/run.sh` | `runs/grtresna_qd/<name>/` |
+| **1 — CMA-ES** | Local hill-climb from QD elites | `scripts/campaigns/cmaes/run.sh` | `runs/grtresna_cmaes/<name>/` |
+| **2 — HQ** | Full-res replay + frames | `scripts/campaigns/hq/run_batch.sh` | `runs/grtresna_promote/<prefix>_hq_eval*/` |
+
+Shared search defaults (grid, gates, 4D probe, objective) live in
+`scripts/campaigns/lib/search_common.sh`. HQ defaults in `scripts/campaigns/lib/promote_common.sh`.
+
+### Stage 0 — MAP-Elites (QD)
+
+**Generic launch** (background, 8 GPUs, pipelined GRTresna + GPU):
+
+```bash
+QD_NAME=my_campaign_v1 \
+QD_TARGET_EVALS=200 \
+OBJECTIVE_MODE=ftl_first \
+GPU_IDS="0 1 2 3 4 5 6 7" \
+GPU_SLOTS_PER_DEVICE=1 \
+MAX_CONCURRENT_GRTRESNA=3 \
+  nohup bash scripts/campaigns/qd/run.sh \
+  > ../runs/my_campaign_v1.launch.log 2>&1 &
+```
+
+**`general_ftl` wormhole** (current production path — pins 15-D subspace, `OBJECTIVE_MODE=general_ftl`,
+dirs `x y z`, pre-GPU learning):
+
+```bash
+BRANCH=wormhole \
+QD_NAME=general_ftl_wormhole_v22 \
+QD_TARGET_EVALS=200 \
+GPU_IDS="0 1 2 3 4 5 6 7" \
+GPU_SLOTS_PER_DEVICE=1 \
+MAX_CONCURRENT_GRTRESNA=3 \
+  nohup bash scripts/campaigns/general_ftl/run_all.sh \
+  > ../runs/general_ftl_wormhole_v22.launch.log 2>&1 &
+```
+
+**Resume** an existing QD run (same `QD_NAME`, same dir):
+
+```bash
+QD_NAME=general_ftl_wormhole_v21 QD_RESUME=1 \
+  bash scripts/campaigns/qd/run.sh
+```
+
+**Boson star** (complex scalar / U(1) matter, **7-D** search — Phase 1 single centered
+Gaussian; geometry ansatz unchanged from default shell but matter sector is orthogonal):
+
+```bash
+QD_NAME=boson_star_v1 \
+QD_TARGET_EVALS=80 \
+GRTRESNA_MATTER_SECTOR=boson_star \
+GRTRESNA_MATTER_COUPLING=canonical \
+GPU_IDS="0 1 2 3" GPU_SLOTS_PER_DEVICE=1 \
+  bash scripts/campaigns/boson_star/run.sh
+```
+
+Shortcut launcher sets `GRTRESNA_MATTER_SECTOR=boson_star`, `OBJECTIVE_MODE=ftl_first`,
+and `GRTRESNA_FULL_Z=1`. CMA-ES / HQ: `scripts/campaigns/boson_star/{cmaes_run,hq_run}.sh`.
+Exotic (phantom) boson: `GRTRESNA_MATTER_COUPLING=exotic` (`scalar_sign=-1`).
+
+**Bosonic shell + FTL (RL chassis)** — same **BosonStarBH** superposed shell as
+[grlab splash](../research/grlab/README.md) (`grtresna_complex_scalar`), but scored with
+**`general_ftl`** + 4D geodesic (not `critical_collapse`). Search space =
+`grtresna_boson_shell_search_space()` (~18-D shell geometry + boson mass/λ/ω + exotic wedge).
+**Exotic wedge search ON** by default — see [Exotic matter](../research/neuralspacetime/MapElites.md#exotic-matter-by-sector) in the lab journal.
+
+```bash
+uv sync   # h5py>=3.10 required for GRTresna Chombo→gridinit bridge
+
+QD_NAME=boson_shell_ftl_rl_v1 \
+QD_TARGET_EVALS=200 \
+QD_ITERATIONS=30 \
+STOP_TIME=16.0 \
+PLOT_INTERVAL=320 \
+GRTECLYN_FRAMES=1 \
+GPU_IDS="0 1 2 3 4 5 6 7" \
+GPU_SLOTS_PER_DEVICE=1 \
+MAX_CONCURRENT_GRTRESNA=5 \
+BATCH_SIZE=8 \
+  nohup bash scripts/campaigns/boson_star/ftl_shell_run.sh \
+  > ../runs/boson_shell_ftl_rl_v1.launch.log 2>&1 &
+```
+
+Launcher: `scripts/campaigns/boson_star/ftl_shell_run.sh`. Pins static shell only
+(`grtresna_shell_static=1`); **exotic wedge search ON** (`GRTRESNA_BOSON_ALLOW_EXOTIC=1`).
+**`PLOT_INTERVAL=320`** → **6** plotfiles over t=16 (dt≈0.01). Output: `runs/grtresna_qd/boson_shell_ftl_rl_v1/`.
+RL handoff: [research/RL/LabJournal.md](../research/RL/LabJournal.md).
+
+| Knob | Boson shell FTL default | Notes |
+|------|-------------------------|-------|
+| Matter | `boson_star` + `shell` | `grtresna_complex_scalar` |
+| Coupling | **`canonical`** | Per-lump exotic via **`shell_exotic_fraction/phase`** |
+| Objective | `general_ftl` | dirs `x y z`, 4D `search` profile |
+| Exotic search dims | **`shell_exotic_fraction`, `shell_exotic_phase`** | **`GRTRESNA_BOSON_ALLOW_EXOTIC=1`** (launcher default) |
+| Frames | **on** (`GRTECLYN_FRAMES=1`) | projections `scalar_activity`, `phi` |
+| Stop / plots | t=16, interval 320 | 6 dumps per eval |
+
+| Knob | Default (search) | Notes |
+|------|------------------|-------|
+| Grid | N=128, L=64, ml=1 | GRTresna solve on 128³ domain |
+| Stop time | t=16 | `STOP_TIME=16.0` |
+| Archive | 8×8 bins | `BINS=8`, descriptor `ftl_lifetime` |
+| Frames | **off** | `GRTECLYN_FRAMES=0` (speed) |
+| 4D geodesic | `search` profile | cheap stack for leaderboard |
+| Prune eval dirs | top 3 + FTL peaks | `QD_KEEP_TOP_EVAL_DIRS=3` |
+
+**Outputs:** `trajectory.jsonl`, `archive.json`, `eval_*/`, `ftl_champions.json`.
+
+**Monitor:**
+
+```bash
+tail -f runs/grtresna_qd/<name>/trajectory.jsonl
+cat runs/grtresna_qd/<name>/ftl_champions.json
+```
+
+### Stage 1 — CMA-ES optimization
+
+Warm-start from a QD (or prior CMA-ES) trajectory. **Must match** the source campaign's
+`OBJECTIVE_MODE`, grid, `STOP_TIME`, pins, and 4D profile — do not switch objectives mid-handoff.
+
+**Wormhole example** (seed QD score record, local σ=0.05 refinement):
+
+```bash
+RUN_NAME=general_ftl_wormhole_cmaes_v1 \
+OBJECTIVE_MODE=general_ftl \
+WARM_START_TRAJECTORY="${GRTECLYN_ROOT}/runs/grtresna_qd/general_ftl_wormhole_v21/trajectory.jsonl" \
+WARM_START_TOP_K=1 WARM_START_JITTER=0.05 SIGMA0=0.05 \
+TARGET_EVALS=150 MAX_GENERATIONS=50 KEEP_TOP_EVAL_DIRS=3 \
+GPU_IDS="0 1 2 3 4 5 6 7" GPU_SLOTS_PER_DEVICE=1 MAX_CONCURRENT_GRTRESNA=3 \
+PIN_DIMS="$(bash -c 'source scripts/campaigns/lib/general_ftl_pins.sh && ftl_general_ftl_wormhole_pins')" \
+  nohup bash scripts/campaigns/cmaes/run.sh \
+  > ../runs/general_ftl_wormhole_cmaes_v1.launch.log 2>&1 &
+```
+
+| Knob | Typical | Notes |
+|------|---------|-------|
+| Population | = GPU count | `POPULATION` defaults to `#GPU_IDS` |
+| σ₀ | 0.05–0.08 | local basin width |
+| Warm-start | top-K elites | `WARM_START_TOP_K`, `WARM_START_JITTER` |
+| Target | eval budget | `TARGET_EVALS` or `MAX_GENERATIONS × pop` |
+
+**Outputs:** `runs/grtresna_cmaes/<RUN_NAME>/` — same layout as QD (`trajectory.jsonl`, `eval_*/`).
+
+**Monitor:** `tail -f runs/grtresna_cmaes/<RUN_NAME>/trajectory.jsonl`
+
+### Stage 2 — HQ promotion
+
+Replays elite genomes at **N=256, L=128, ml=3, t=30** with fresh GRTresna solve,
+**frames on**, 4D geodesic in **`hq`** verify mode, incremental `score_timeseries.jsonl`.
+
+**Single candidate** (`CANDIDATES` = eval/gpu **pairs**):
+
+```bash
+SOURCE_RUN="${GRTECLYN_ROOT}/runs/grtresna_cmaes/general_ftl_wormhole_cmaes_v1" \
+NAME_PREFIX=general_ftl_wormhole_cmaes_v1 \
+OBJECTIVE_MODE=general_ftl \
+CANDIDATES="46 0" \
+  bash scripts/campaigns/hq/run_batch.sh
+```
+
+**Top-K auto-pick** from trajectory (score-sorted `gpu_ok` rows):
+
+```bash
+SOURCE_RUN="${GRTECLYN_ROOT}/runs/grtresna_cmaes/general_ftl_wormhole_cmaes_v1" \
+NAME_PREFIX=general_ftl_wormhole_cmaes_v1 \
+OBJECTIVE_MODE=general_ftl \
+TOP_K=1 \
+  bash scripts/campaigns/hq/run_batch.sh
+```
+
+| Knob | Search (QD/CMA-ES) | HQ |
+|------|-------------------|-----|
+| Grid | 128³, L=64, ml=1–2 | **256³, L=128, ml=3** |
+| Stop time | 16 | **30** |
+| 4D mode | `search` | **`hq`** (full stack) |
+| Geodesic dirs | `x y z` (`general_ftl`) | **`x y z`** (same) |
+| Frames | off | **on** (`GRTECLYN_FRAMES=1`) |
+| Objective | campaign-specific | match source (`general_ftl` for wormhole) |
+
+**Monitor:**
+
+```bash
+tail -f runs/grtresna_promote/<name>.log
+tail -f runs/grtresna_promote/<name>/small_data/score_timeseries.jsonl
+ls runs/grtresna_promote/<name>/frames/
+bash scripts/plot/make_movies.sh runs/grtresna_promote/<name> --framerate 10
+# → writes runs/grtresna_promote/<name>/movies/movie_<field>_<axis>.mp4
+```
+
+**Incremental scoring note:** mid-run HQ totals are not comparable to search finals until the
+end-of-run 4D trace completes — only `ftl_geo_evolving` earns geodesic credit incrementally.
+
+### Rules (do not skip)
+
+1. **CMA-ES must mirror QD** — same `OBJECTIVE_MODE`, pins, grid, `STOP_TIME`, and geodesic config.
+2. **`general_ftl` needs `GRTECLYN_GEO_DIRECTIONS=x y z`** — wormhole shortcuts live on **z**; x-only
+   scoring replays elites at the wrong fitness (see [v22 CMA-ES](../research/neuralspacetime/MapElites.md#v22-cma-es-wormhole-refinement-general_ftl_wormhole_cmaes_v1-2026-06-18) in the lab journal).
+3. **HQ `CANDIDATES` is eval/gpu pairs** — e.g. `"46 0 39 1"` not a bare eval list.
+4. **Search turns frames off, HQ turns them on** — by design (`search_common.sh` vs `promote_common.sh`).
+
+Campaign results and tuning history → [MapElites.md lab journal](../research/neuralspacetime/MapElites.md#campaign-log--runs-analysis).
+
+### End-to-end orchestrator (one folder)
+
+Runs **QD → CMA-ES → HQ** sequentially under `runs/campaigns/<CAMPAIGN_NAME>/`:
+
+```bash
+CAMPAIGN_NAME=general_ftl_wormhole_v22 \
+  bash scripts/campaigns/run_full_campaign.sh
+```
+
+See `scripts/campaigns/run_full_campaign.sh` and `scripts/campaigns/README.md`.
+
+**Stop and verify** — kill the whole campaign tree, then check CPU and GPU:
+
+```bash
+pkill -TERM -f 'runs/grtresna_search|runs/grtresna_qd|runs/grtresna_refine|campaigns/qd/run.sh|campaigns/cmaes/run.sh'
+sleep 5
+pkill -KILL -f 'runs/grtresna_search|runs/grtresna_qd|runs/grtresna_refine|campaigns/qd/run.sh|campaigns/cmaes/run.sh'
+ps -eo pid,ppid,pgid,pcpu,pmem,etime,args \
+  | awk '/campaigns\/(qd|cmaes)\/run\.sh|grteclyn_wrapper|Main_ScalarFieldBH3d|main3d.gnu.CUDA.ex|consume_plotfiles|prterun|mpirun|orterun/ && !/awk/ {print}'
+nvidia-smi   # expect 0MiB usage, no running processes
+```
+
+**Campaign triage** — start with `trajectory.jsonl`:
+
+```bash
+cd runs/grtresna_search/optimize_<timestamp>
+python3 - <<'PY'
+import json, os
+rows=[json.loads(l) for l in open("trajectory.jsonl") if l.strip()]
+gr=[r for r in rows if r.get("grtresna_rejected")]
+sf=[r for r in rows if r.get("solved_ftl_rejected")]
+ev=[r for r in rows if not r.get("grtresna_rejected") and not r.get("solved_ftl_rejected") and not r.get("grtresna_failed")]
+print("records", len(rows), "grtresna_rej", len(gr), "solved_ftl_rej", len(sf), "gpu/evolved", len(ev))
+for r in ev:
+    e=f"eval_{r['eval']:06d}"
+    print(e, "score", r.get("score"), "exit", r.get("exit_code"), "score.json", os.path.exists(f"{e}/score.json"))
+PY
+```
+
+For GPU survivors, inspect `score.json` directly: `metrics.general_ftl_solved.f_op`, `metrics.general_ftl_evolved.f_op`, `max_local_speed`, `max_shift`, and `components.{operational_ftl,ftl_precursor,shift_drive,curvature_activity}`. Treat `F_op ~ 1` or near-degeneracy `max_local_speed` as suspicious; mild `F_op=0.01..0.05` needs HQ replay before any physics claim.
+
+**Falsification tiers** (offline, no rerun):
+
+```bash
+uv run python scripts/search/validate_tiers.py runs/grtresna_search/<campaign>
+uv run python scripts/search/validate_tiers.py runs/grtresna_search/<campaign> --min-tier 3
+```
+
+**Production scripts** — full inventory in [`scripts/README.md`](scripts/README.md):
+
+| Script | Use for |
+|--------|---------|
+| `campaigns/cmaes/run.sh` | CMA-ES: GRTresna → `.gridinit` → GPU evolution |
+| `campaigns/qd/run.sh` | MAP-Elites archive over shell space |
+| `campaigns/hq/run_batch.sh` | Batch HQ promotion of QD elites (env-driven candidate list) |
+| `campaigns/hq/replay_eval.py` | Single-eval HQ promotion / GPU-only continuation |
+| `run_radialrecipe_gpu_smoke.sh` | Single-GPU smoke/build after C++ edits |
+| `project_geometry_motif.py` | Geometry-first scout → GRTresna projection → post-load gate |
+
 ## ALWAYS extract frames on the fly (required)
 
 **Every GPU evolution run — QD, CMA-ES, HQ promotion, replay — MUST stream plotfiles through `consume_plotfiles` during the simulation.** Do not let heavy `data/plt*` HDF5 directories accumulate; extract PNG frames + `small_data/` metrics in flight and delete processed plotfiles immediately.
@@ -71,78 +338,6 @@ First build (single GPU, no MPI):
 ```bash
 BUILD=1 bash grteclyn-wrapper/scripts/radial/run_radialrecipe_gpu_smoke.sh
 ```
-
-## Quick start
-
-Run from `GRTeclyn/grteclyn-wrapper` unless noted.
-
-```bash
-# CMA-ES scalar search (see Search pipeline for ansätze and knobs)
-GPU_IDS="0 1 2 3 4 5 6 7" GRTRESNA_ANSATZ=shell \
-  bash scripts/campaigns/cmaes/run.sh
-
-# MAP-Elites quality-diversity (diverse FTL families)
-# Post-load constraint gate is ON by default (POSTLOAD_GATE=1) so only
-# physically self-consistent initial data reaches GPU evolution.
-QD_ITERATIONS=8 BINS=8 GPU_IDS="0 1 2 3 4 5 6 7" RANKS=8 \
-  LUMPS=5 SHELL_PROFILE=compact \
-  POSTLOAD_MAX_HAM_L2=1e-2 POSTLOAD_MAX_MOM_L2=1e-2 \
-  bash scripts/campaigns/qd/run.sh
-
-# Cheap smoke: no GRTresna solve, no GPU evolution
-DRY_RUN=1 MAX_GENERATIONS=1 GPU_IDS="0 1" GRTRESNA_ANSATZ=ring \
-  bash scripts/campaigns/cmaes/run.sh
-```
-
-**Stop and verify** — kill the whole campaign tree, then check CPU and GPU:
-
-```bash
-pkill -TERM -f 'runs/grtresna_search|runs/grtresna_qd|runs/grtresna_refine|campaigns/qd/run.sh|campaigns/cmaes/run.sh'
-sleep 5
-pkill -KILL -f 'runs/grtresna_search|runs/grtresna_qd|runs/grtresna_refine|campaigns/qd/run.sh|campaigns/cmaes/run.sh'
-ps -eo pid,ppid,pgid,pcpu,pmem,etime,args \
-  | awk '/campaigns\/(qd|cmaes)\/run\.sh|grteclyn_wrapper|Main_ScalarFieldBH3d|main3d.gnu.CUDA.ex|consume_plotfiles|prterun|mpirun|orterun/ && !/awk/ {print}'
-nvidia-smi   # expect 0MiB usage, no running processes
-```
-
-**Campaign triage** — start with `trajectory.jsonl`:
-
-```bash
-cd runs/grtresna_search/optimize_<timestamp>
-python3 - <<'PY'
-import json, os
-rows=[json.loads(l) for l in open("trajectory.jsonl") if l.strip()]
-gr=[r for r in rows if r.get("grtresna_rejected")]
-sf=[r for r in rows if r.get("solved_ftl_rejected")]
-ev=[r for r in rows if not r.get("grtresna_rejected") and not r.get("solved_ftl_rejected") and not r.get("grtresna_failed")]
-print("records", len(rows), "grtresna_rej", len(gr), "solved_ftl_rej", len(sf), "gpu/evolved", len(ev))
-for r in ev:
-    e=f"eval_{r['eval']:06d}"
-    print(e, "score", r.get("score"), "exit", r.get("exit_code"), "score.json", os.path.exists(f"{e}/score.json"))
-PY
-```
-
-For GPU survivors, inspect `score.json` directly: `metrics.general_ftl_solved.f_op`, `metrics.general_ftl_evolved.f_op`, `max_local_speed`, `max_shift`, and `components.{operational_ftl,ftl_precursor,shift_drive,curvature_activity}`. Treat `F_op ~ 1` or near-degeneracy `max_local_speed` as suspicious; mild `F_op=0.01..0.05` needs HQ replay before any physics claim.
-
-**Falsification tiers** (offline, no rerun):
-
-```bash
-uv run python scripts/search/validate_tiers.py runs/grtresna_search/<campaign>
-uv run python scripts/search/validate_tiers.py runs/grtresna_search/<campaign> --min-tier 3
-```
-
-**Production scripts** — full inventory in [`scripts/README.md`](scripts/README.md):
-
-| Script | Use for |
-|--------|---------|
-| `campaigns/cmaes/run.sh` | CMA-ES: GRTresna → `.gridinit` → GPU evolution |
-| `campaigns/qd/run.sh` | MAP-Elites archive over shell space |
-| `campaigns/hq/run_batch.sh` | Batch HQ promotion of QD elites (env-driven candidate list) |
-| `campaigns/hq/replay_eval.py` | Single-eval HQ promotion / GPU-only continuation |
-| `run_radialrecipe_gpu_smoke.sh` | Single-GPU smoke/build after C++ edits |
-| `project_geometry_motif.py` | Geometry-first scout → GRTresna projection → post-load gate |
-
----
 
 ## Geometry-first projection
 

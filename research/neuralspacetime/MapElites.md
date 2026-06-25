@@ -13,15 +13,15 @@
 
 The shell/ring search spaces parameterize matter as **N identical Gaussian lumps** placed
 at deterministic lattice positions. This ansatz was designed for dimensionality reduction
-(22-D shell vs ~50-D per-lump), but it imposes structural constraints that **limit the
-geometric freedom available to the optimizer** and may prevent discovery of complex warp
-geometries. See also the [static shell post-mortem](#static-shell-post-mortem-scalar_shell_ftl_rl_v1-2026-06-24)
+(22-D shell vs ~50-D per-lump), but it forces the optimizer to use **uniform-lump
+configurations**, preventing asymmetric or multi-scale warp geometries. See also the
+[static shell post-mortem](#static-shell-post-mortem-scalar_shell_ftl_rl_v1-2026-06-24)
 for how these limitations interact with the `shell_static=1` pin.
 
-### What is constrained
+### What is constrained and cannot be expressed
 
-All N=5 lumps share one global value for each property — the optimizer cannot express
-per-lump variation beyond low-order Legendre modulation (ℓ ≤ 2):
+All N=5 lumps share one global value for each property; per-lump variation is limited to
+low-order Legendre modulation (ℓ ≤ 2):
 
 | Per-lump property | Independent per lump? | What actually happens |
 |---|---|---|
@@ -34,22 +34,9 @@ per-lump variation beyond low-order Legendre modulation (ℓ ≤ 2):
 | **Profile** | Same coarse wedge mechanism | `profile_fraction/phase` selects Gaussian vs top-hat |
 | **Azimuthal mode** | No — one `shell_mode ∈ {0,1,2}` | All lumps get the same angular harmonic |
 
-### What cannot be expressed
-
-Configurations the current ansatz **structurally cannot represent**:
-
-1. **Asymmetric matter distributions** — e.g. two heavy lumps near the axis + three
-   light ones at the equator. Only ℓ ≤ 2 modulation exists.
-2. **Per-lump differential motion** — e.g. one lump orbiting fast, another stationary,
-   a third falling inward. Critical for counter-rotating pairs and differential-ω
-   rotating warp mechanisms.
-3. **Nested / multi-shell structures** — inner exotic shell + outer canonical shell at
-   a different radius.
-4. **Non-Gaussian density profiles** — torus cross-sections, saddle-shaped distributions,
-   ring-within-ring, thick vs thin shell substructures.
-5. **Arbitrary lump positions** — cannot cluster matter where the geometry needs it
-   (e.g. at a warp channel throat). Positions are deterministic lattice functions of
-   layout + radius + thickness.
+Consequences: asymmetric distributions, per-lump differential motion, nested multi-shell
+structures, non-Gaussian profiles, and arbitrary lump clustering are structurally out of
+reach.
 
 ### Proposed alternatives for richer geometric search
 
@@ -58,45 +45,17 @@ The existing infrastructure already supports per-lump keys
 `grtresna_lump{k}_{param}`) so per-lump freedom is structurally available —
 the shell ansatz deliberately collapses it for dimensionality reduction.
 
-#### Option A — Neural field decoder (learned geometry)
+#### Option A — Neural field decoder
 
-Replace the lump-painting step with a small coordinate-conditioned neural network
-(e.g. MLP or low-rank grid decoder) that outputs `φ(x,y,z)` and `Π(x,y,z)` directly
-on the GRTresna grid. The network's latent vector (16–32 D) is the genome that
-MAP-Elites/CMA-ES searches; the decoder provides continuous, unconstrained geometric
-freedom.
-
-| Property | Detail |
-|----------|--------|
-| Search dims | **16–32 D** latent (vs 22-D shell, but richer output) |
-| Geometric freedom | Arbitrary: toruses, nested shells, saddles, asymmetric clusters |
-| Integration point | Replaces lump painting → feeds `gridinit` to GRTresna constraint solve |
-| Constraint safety | GRTresna still validates — non-physical proposals rejected as today |
-| Training | Pre-train decoder on existing elite `gridinit` fields; fine-tune during search |
-| Risk | Decoder must produce constraint-solvable fields (not guaranteed without training) |
+Train a small coordinate-conditioned MLP to decode a 16–32 D latent vector into
+unconstrained matter fields. Highest ceiling, but requires training data and no
+guarantee that decoded fields satisfy the GRTresna constraint.
 
 #### Option B — Per-lump sequential RL placement
 
-An RL agent places lumps one at a time with per-lump geometric freedom:
-
-| MDP element | Content |
-|-------------|---------|
-| **State** | Current matter distribution (partial field + GRTresna constraint residual) |
-| **Action** | Next lump's (position_xyz, amp, width, velocity_xyz, omega, exotic) |
-| **Dense reward** | Cheap GRTresna pre-solve Ham/Mom residual after each lump placement |
-| **Terminal reward** | Full `general_ftl` score after GRTeclyn evolution |
-
-This gives per-lump geometric freedom and uses constraint-solve feedback to learn
-where matter should go. Avoids the ~50-D curse because the agent learns a placement
-*policy*, not a flat vector — generalization across placement steps reduces the
-effective dimensionality.
-
-| Property | Detail |
-|----------|--------|
-| Search dims | ~10 D per action step × N steps (but policy generalizes) |
-| Geometric freedom | Full per-lump control: position, size, motion, exotic |
-| Constraint feedback | Dense signal from GRTresna after each placement |
-| Risk | Sequential placement imposes an arbitrary ordering; may need permutation-invariant architecture |
+An RL agent places lumps one at a time, using dense GRTresna residuals as feedback.
+Gives natural per-lump freedom, but sequential ordering may require a
+permutation-invariant architecture.
 
 #### Option C — Spherical harmonic field expansion
 
@@ -643,239 +602,17 @@ rate at 200 evals. With velocity from trajectory, the convergence could be worse
 
 ---
 
-## Quick start — running campaigns
+## Running commands
 
-All commands run from **`grteclyn-wrapper/`**. Binaries must be built first — see
-[Building the binaries](#building-the-binaries-grtresna--grteclyn).
+Launch commands now live in [`grteclyn-wrapper/README.md`](../../grteclyn-wrapper/README.md).
 
-| Stage | What it does | Launcher | Output directory |
-|-------|--------------|----------|------------------|
-| **0 — QD** | MAP-Elites survey (8×8 archive) | `scripts/campaigns/qd/run.sh` | `runs/grtresna_qd/<name>/` |
-| **1 — CMA-ES** | Local hill-climb from QD elites | `scripts/campaigns/cmaes/run.sh` | `runs/grtresna_cmaes/<name>/` |
-| **2 — HQ** | Full-res replay + frames | `scripts/campaigns/hq/run_batch.sh` | `runs/grtresna_promote/<prefix>_hq_eval*/` |
-
-Shared search defaults (grid, gates, 4D probe, objective) live in
-`scripts/campaigns/lib/search_common.sh`. HQ defaults in `scripts/campaigns/lib/promote_common.sh`.
-
-### Stage 0 — MAP-Elites (QD)
-
-**Generic launch** (background, 8 GPUs, pipelined GRTresna + GPU):
-
-```bash
-cd grteclyn-wrapper
-QD_NAME=my_campaign_v1 \
-QD_TARGET_EVALS=200 \
-OBJECTIVE_MODE=ftl_first \
-GPU_IDS="0 1 2 3 4 5 6 7" \
-GPU_SLOTS_PER_DEVICE=1 \
-MAX_CONCURRENT_GRTRESNA=3 \
-  nohup bash scripts/campaigns/qd/run.sh \
-  > ../runs/my_campaign_v1.launch.log 2>&1 &
-```
-
-**`general_ftl` wormhole** (current production path — pins 15-D subspace, `OBJECTIVE_MODE=general_ftl`,
-dirs `x y z`, pre-GPU learning):
-
-```bash
-cd grteclyn-wrapper
-BRANCH=wormhole \
-QD_NAME=general_ftl_wormhole_v22 \
-QD_TARGET_EVALS=200 \
-GPU_IDS="0 1 2 3 4 5 6 7" \
-GPU_SLOTS_PER_DEVICE=1 \
-MAX_CONCURRENT_GRTRESNA=3 \
-  nohup bash scripts/campaigns/general_ftl/run_all.sh \
-  > ../runs/general_ftl_wormhole_v22.launch.log 2>&1 &
-```
-
-**Resume** an existing QD run (same `QD_NAME`, same dir):
-
-```bash
-cd grteclyn-wrapper
-QD_NAME=general_ftl_wormhole_v21 QD_RESUME=1 \
-  bash scripts/campaigns/qd/run.sh
-```
-
-**Boson star** (complex scalar / U(1) matter, **7-D** search — Phase 1 single centered
-Gaussian; geometry ansatz unchanged from default shell but matter sector is orthogonal):
-
-```bash
-cd grteclyn-wrapper
-QD_NAME=boson_star_v1 \
-QD_TARGET_EVALS=80 \
-GRTRESNA_MATTER_SECTOR=boson_star \
-GRTRESNA_MATTER_COUPLING=canonical \
-GPU_IDS="0 1 2 3" GPU_SLOTS_PER_DEVICE=1 \
-  bash scripts/campaigns/boson_star/run.sh
-```
-
-Shortcut launcher sets `GRTRESNA_MATTER_SECTOR=boson_star`, `OBJECTIVE_MODE=ftl_first`,
-and `GRTRESNA_FULL_Z=1`. CMA-ES / HQ: `scripts/campaigns/boson_star/{cmaes_run,hq_run}.sh`.
-Exotic (phantom) boson: `GRTRESNA_MATTER_COUPLING=exotic` (`scalar_sign=-1`).
-
-**Bosonic shell + FTL (RL chassis)** — same **BosonStarBH** superposed shell as
-[grlab splash](../grlab/README.md) (`grtresna_complex_scalar`), but scored with
-**`general_ftl`** + 4D geodesic (not `critical_collapse`). Search space =
-`grtresna_boson_shell_search_space()` (~18-D shell geometry + boson mass/λ/ω + exotic wedge).
-**Exotic wedge search ON** by default — see [Exotic matter](#exotic-matter-by-sector) below.
-
-```bash
-cd grteclyn-wrapper
-uv sync   # h5py>=3.10 required for GRTresna Chombo→gridinit bridge
-
-QD_NAME=boson_shell_ftl_rl_v1 \
-QD_TARGET_EVALS=200 \
-QD_ITERATIONS=30 \
-STOP_TIME=16.0 \
-PLOT_INTERVAL=320 \
-GRTECLYN_FRAMES=1 \
-GPU_IDS="0 1 2 3 4 5 6 7" \
-GPU_SLOTS_PER_DEVICE=1 \
-MAX_CONCURRENT_GRTRESNA=5 \
-BATCH_SIZE=8 \
-  nohup bash scripts/campaigns/boson_star/ftl_shell_run.sh \
-  > ../runs/boson_shell_ftl_rl_v1.launch.log 2>&1 &
-```
-
-Launcher: `scripts/campaigns/boson_star/ftl_shell_run.sh`. Pins static shell only
-(`grtresna_shell_static=1`); **exotic wedge search ON** (`GRTRESNA_BOSON_ALLOW_EXOTIC=1`).
-**`PLOT_INTERVAL=320`** → **6** plotfiles over t=16 (dt≈0.01). Output: `runs/grtresna_qd/boson_shell_ftl_rl_v1/`.
-RL handoff: [research/RL/LabJournal.md](../RL/LabJournal.md).
-
-| Knob | Boson shell FTL default | Notes |
-|------|-------------------------|-------|
-| Matter | `boson_star` + `shell` | `grtresna_complex_scalar` |
-| Coupling | **`canonical`** | Per-lump exotic via **`shell_exotic_fraction/phase`** |
-| Objective | `general_ftl` | dirs `x y z`, 4D `search` profile |
-| Exotic search dims | **`shell_exotic_fraction`, `shell_exotic_phase`** | **`GRTRESNA_BOSON_ALLOW_EXOTIC=1`** (launcher default) |
-| Frames | **on** (`GRTECLYN_FRAMES=1`) | projections `scalar_activity`, `phi` |
-| Stop / plots | t=16, interval 320 | 6 dumps per eval |
-
-| Knob | Default (search) | Notes |
-|------|------------------|-------|
-| Grid | N=128, L=64, ml=1 | GRTresna solve on 128³ domain |
-| Stop time | t=16 | `STOP_TIME=16.0` |
-| Archive | 8×8 bins | `BINS=8`, descriptor `ftl_lifetime` |
-| Frames | **off** | `GRTECLYN_FRAMES=0` (speed) |
-| 4D geodesic | `search` profile | cheap stack for leaderboard |
-| Prune eval dirs | top 3 + FTL peaks | `QD_KEEP_TOP_EVAL_DIRS=3` |
-
-**Outputs:** `trajectory.jsonl`, `archive.json`, `eval_*/`, `ftl_champions.json`.
-
-**Monitor:**
-
-```bash
-tail -f runs/grtresna_qd/<name>/trajectory.jsonl
-cat runs/grtresna_qd/<name>/ftl_champions.json
-```
-
-### Stage 1 — CMA-ES optimization
-
-Warm-start from a QD (or prior CMA-ES) trajectory. **Must match** the source campaign's
-`OBJECTIVE_MODE`, grid, `STOP_TIME`, pins, and 4D profile — do not switch objectives mid-handoff.
-
-**Wormhole example** (seed QD score record, local σ=0.05 refinement):
-
-```bash
-cd grteclyn-wrapper
-RUN_NAME=general_ftl_wormhole_cmaes_v1 \
-OBJECTIVE_MODE=general_ftl \
-WARM_START_TRAJECTORY="${GRTECLYN_ROOT}/runs/grtresna_qd/general_ftl_wormhole_v21/trajectory.jsonl" \
-WARM_START_TOP_K=1 WARM_START_JITTER=0.05 SIGMA0=0.05 \
-TARGET_EVALS=150 MAX_GENERATIONS=50 KEEP_TOP_EVAL_DIRS=3 \
-GPU_IDS="0 1 2 3 4 5 6 7" GPU_SLOTS_PER_DEVICE=1 MAX_CONCURRENT_GRTRESNA=3 \
-PIN_DIMS="$(bash -c 'source scripts/campaigns/lib/general_ftl_pins.sh && ftl_general_ftl_wormhole_pins')" \
-  nohup bash scripts/campaigns/cmaes/run.sh \
-  > ../runs/general_ftl_wormhole_cmaes_v1.launch.log 2>&1 &
-```
-
-| Knob | Typical | Notes |
-|------|---------|-------|
-| Population | = GPU count | `POPULATION` defaults to `#GPU_IDS` |
-| σ₀ | 0.05–0.08 | local basin width |
-| Warm-start | top-K elites | `WARM_START_TOP_K`, `WARM_START_JITTER` |
-| Target | eval budget | `TARGET_EVALS` or `MAX_GENERATIONS × pop` |
-
-**Outputs:** `runs/grtresna_cmaes/<RUN_NAME>/` — same layout as QD (`trajectory.jsonl`, `eval_*/`).
-
-**Monitor:** `tail -f runs/grtresna_cmaes/<RUN_NAME>/trajectory.jsonl`
-
-### Stage 2 — HQ promotion
-
-Replays elite genomes at **N=256, L=128, ml=3, t=30** with fresh GRTresna solve,
-**frames on**, 4D geodesic in **`hq`** verify mode, incremental `score_timeseries.jsonl`.
-
-**Single candidate** (`CANDIDATES` = eval/gpu **pairs**):
-
-```bash
-cd grteclyn-wrapper
-SOURCE_RUN="${GRTECLYN_ROOT}/runs/grtresna_cmaes/general_ftl_wormhole_cmaes_v1" \
-NAME_PREFIX=general_ftl_wormhole_cmaes_v1 \
-OBJECTIVE_MODE=general_ftl \
-CANDIDATES="46 0" \
-  bash scripts/campaigns/hq/run_batch.sh
-```
-
-**Top-K auto-pick** from trajectory (score-sorted `gpu_ok` rows):
-
-```bash
-cd grteclyn-wrapper
-SOURCE_RUN="${GRTECLYN_ROOT}/runs/grtresna_cmaes/general_ftl_wormhole_cmaes_v1" \
-NAME_PREFIX=general_ftl_wormhole_cmaes_v1 \
-OBJECTIVE_MODE=general_ftl \
-TOP_K=1 \
-  bash scripts/campaigns/hq/run_batch.sh
-```
-
-| Knob | Search (QD/CMA-ES) | HQ |
-|------|-------------------|-----|
-| Grid | 128³, L=64, ml=1–2 | **256³, L=128, ml=3** |
-| Stop time | 16 | **30** |
-| 4D mode | `search` | **`hq`** (full stack) |
-| Geodesic dirs | `x y z` (`general_ftl`) | **`x y z`** (same) |
-| Frames | off | **on** (`GRTECLYN_FRAMES=1`) |
-| Objective | campaign-specific | match source (`general_ftl` for wormhole) |
-
-**Monitor:**
-
-```bash
-tail -f runs/grtresna_promote/<name>.log
-tail -f runs/grtresna_promote/<name>/small_data/score_timeseries.jsonl
-ls runs/grtresna_promote/<name>/frames/
-bash scripts/plot/make_movies.sh runs/grtresna_promote/<name> --framerate 10
-# → writes runs/grtresna_promote/<name>/movies/movie_<field>_<axis>.mp4
-```
-
-**Incremental scoring note:** mid-run HQ totals are not comparable to search finals until the
-end-of-run 4D trace completes — only `ftl_geo_evolving` earns geodesic credit incrementally.
-
-### Rules (do not skip)
-
-1. **CMA-ES must mirror QD** — same `OBJECTIVE_MODE`, pins, grid, `STOP_TIME`, and geodesic config.
-2. **`general_ftl` needs `GRTECLYN_GEO_DIRECTIONS=x y z`** — wormhole shortcuts live on **z**; x-only
-   scoring replays elites at the wrong fitness (see [v22 CMA-ES](#v22-cma-es-wormhole-refinement-general_ftl_wormhole_cmaes_v1-2026-06-18)).
-3. **HQ `CANDIDATES` is eval/gpu pairs** — e.g. `"46 0 39 1"` not a bare eval list.
-4. **Search turns frames off, HQ turns them on** — by design (`search_common.sh` vs `promote_common.sh`).
-
-Campaign results and tuning history → [campaign log](#campaign-log--runs-analysis).
-
-### End-to-end orchestrator (one folder)
-
-Runs **QD → CMA-ES → HQ** sequentially under `runs/campaigns/<CAMPAIGN_NAME>/`:
-
-```bash
-cd grteclyn-wrapper
-CAMPAIGN_NAME=general_ftl_wormhole_v22 \
-  bash scripts/campaigns/run_full_campaign.sh
-```
-
-See `scripts/campaigns/run_full_campaign.sh` and `scripts/campaigns/README.md`.
+The rest of this document is a lab journal.
 
 ## Table of contents
 
 **Quick reference**
 
-- [Quick start — running campaigns](#quick-start--running-campaigns)
+- [Running commands (moved to README.md)](../../grteclyn-wrapper/README.md)
 
 **Reference**
 
@@ -893,7 +630,6 @@ See `scripts/campaigns/run_full_campaign.sh` and `scripts/campaigns/README.md`.
 
 - [Quick index](#campaign-log--runs-analysis)
 - [Boson star: unpinned QD + frames (v3)](#boson-star-unpinned-qd--frames-v3-2026-06-18)
-- [Boson star: integration + GPU smoke](#boson-star-matter-sector-integration--gpu-smoke-2026-06-18)
 - [v22: Pre-GPU rejection learning + v21 resume](#v22-pre-gpu-rejection-learning--v21-resume-2026-06-18)
   - [Final results: top 3 + FTL champions](#v22-final-results-top-3--ftl-champions)
   - [Physical validation & next steps](#v22-physical-validation--next-steps)
@@ -988,55 +724,22 @@ for [action plan step 3](#iv-strategic-action-plan) below.
 
 ## The pipeline
 
-### Diagram — end-to-end overview
-
 The closed loop: search proposes matter → physics builds and evolves a real
 spacetime → metrics discover FTL signatures → archive feeds the next proposal.
 
 ![MAP-Elites end-to-end overview](mapelites-end-to-end.svg)
-
-### Diagram — matter-first vs metric-first
-
 ![Matter-first vs metric-first diagram](mapelites-matter-first.svg)
 
-### Stage 0 — Quality-Diversity proposer (MAP-Elites)
+| Stage | What happens |
+|-------|--------------|
+| **0 — QD proposer** | MAP-Elites 8×8 archive; mutates elites or samples feasible box. Proposals are 23-D shell (real scalar) or 7-D boson star. |
+| **1 — GRTresna** | Constraint solve on CPU/MPI; bad proposals rejected before GPU. |
+| **2 — GRTeclyn** | GPU evolution to `STOP_TIME` with `PLOT_INTERVAL` dumps. |
+| **3 — Scoring** | Diagnostics + FTL probes: coordinate, evolved, geodesic, and optional 4D evolving trace. |
+| **4 — Archive** | `metrics/score/` → `ftl_first` fitness; only `gpu_ok` candidates compete. |
 
-MAP-Elites maintains an 8×8 behavior archive keyed by a 2-D descriptor. Each
-batch it either **mutates an existing elite** (boundary-reflected Gaussian
-perturbation, σ=0.15, ~85% of draws) or **samples inside the feasible box** of
-known elites. Proposals are points in the active search space — **23-D shell** (default
-real scalars) or **7-D boson star** when `GRTRESNA_MATTER_SECTOR=boson_star`.
-
-> **QD vs CMA-ES.** QD (`campaigns/qd/run.sh`) illuminates the 8×8 grid.
-> CMA-ES (`campaigns/cmaes/run.sh` → `optimize`) hill-climbs from QD survivors.
-> Same search space (`search/optimize/spaces.py`); only the proposer differs.
-> See [CMA-ES refinement](#cma-es-refinement-after-map-elites).
-
-### Stage 1 — Initial data (GRTresna, CPU/MPI)
-
-`../GRTresna` paints lumps into `(φ, Π)` and runs a Lichnerowicz/York **constraint
-solve**. CPU/MPI-bound; poorly-conditioned proposals fail the Ham/Mom gate and are
-**rejected before the GPU**.
-
-### Stage 2 — Evolution (GRTeclyn, GPU)
-
-Converged initial data evolves via `RadialRecipe` to `STOP_TIME`, dumping plotfiles
-every `PLOT_INTERVAL` steps.
-
-### Stage 3 — Metrics & probes (scoring)
-
-Plotfiles → diagnostics: constraints, `theta_plus`, comoving/shift stats, matter
-density, and FTL probes — coordinate (`operational_ftl_solved`), evolved
-(`operational_ftl`, `ftl_persistence`), gauge-invariant geodesic shortcut
-(`operational_ftl_geodesic`), and (opt-in) **4D evolving** end-to-end null trace
-(`ftl_geo_evolving`; authoritative in search when enabled — see
-[4D probe](#v10v20-pipeline-evolution--runs-2026-06-11--2026-06-17)).
-
-### Stage 4 — Archive update & feedback
-
-`metrics/score/` collapses diagnostics into `ftl_first` fitness. Only `gpu_ok`
-candidates compete for a behavior cell. Rejected GRTresna solves log to
-`trajectory.jsonl` but never enter the archive.
+QD vs CMA-ES: same search space, different proposer. Launch commands are in
+[`grteclyn-wrapper/README.md`](../../grteclyn-wrapper/README.md).
 
 ## The hard consistency rule
 
@@ -1200,11 +903,7 @@ make COMP=gnu USE_CUDA=TRUE USE_MPI=TRUE  CUDA_ARCH=90 -j"$(nproc)"   # MPI+CUDA
 
 ## How to run a campaign
 
-> **Copy-paste commands:** see [Quick start — running campaigns](#quick-start--running-campaigns) at the top of this doc.
-
-### MAP-Elites (QD)
-
-Same as [Stage 0 — MAP-Elites](#stage-0--map-elites-qd). Results: `runs/grtresna_qd/<name>/`.
+> **Copy-paste commands:** see [`grteclyn-wrapper/README.md`](../../grteclyn-wrapper/README.md).
 
 ### CMA-ES refinement after MAP-Elites
 
@@ -1217,12 +916,11 @@ Same as [Stage 0 — MAP-Elites](#stage-0--map-elites-qd). Results: `runs/grtres
 
 **Rule:** CMA-ES must match QD `OBJECTIVE_MODE`, grid, stop time, and 4D profile
 (`campaigns/lib/search_common.sh`). Do **not** switch objectives on a warm-started trajectory.
-Full launch recipe → [Stage 1 — CMA-ES](#stage-1--cma-es-optimization).
+Full launch recipe → Stage 1 — CMA-ES in [`grteclyn-wrapper/README.md`](../../grteclyn-wrapper/README.md).
 
 ### HQ promotion (full resolution)
 
-Same as [Stage 2 — HQ promotion](#stage-2--hq-promotion). Search at **N=128, L=64, ml=1–2, t=16** →
-HQ at **N=256, L=128, ml=3, t=30**.
+Details in [`grteclyn-wrapper/README.md`](../../grteclyn-wrapper/README.md) (Stage 2). Grid: **N=128, L=64, ml=1–2, t=16** → HQ: **N=256, L=128, ml=3, t=30**.
 
 | Knob | Search | HQ |
 |------|--------|-----|
@@ -1238,11 +936,9 @@ Legacy v17 CMA-ES (`robust_ftl`, `ftl_cmaes_v17_robust`): see [v10–v20](#v10v2
 geodesic FTL credit until the end-of-run 4D trace completes — mid-run totals are not comparable
 to search finals. See [v10–v20 HQ eval 144](#v10v20-pipeline-evolution--runs-2026-06-11--2026-06-17).
 
-```bash
-tail -f runs/grtresna_promote/*/small_data/score_timeseries.jsonl
-bash scripts/plot/make_movies.sh runs/grtresna_promote/<name> --framerate 10
-# → writes runs/grtresna_promote/<name>/movies/movie_<field>_<axis>.mp4
-```
+Monitor: `tail -f runs/grtresna_promote/*/small_data/score_timeseries.jsonl`; make movies with
+`bash scripts/plot/make_movies.sh runs/grtresna_promote/<name> --framerate 10`
+(see [`grteclyn-wrapper/README.md`](../../grteclyn-wrapper/README.md)).
 
 Concrete candidate lists and results → [campaign log](#campaign-log--runs-analysis).
 
@@ -1256,9 +952,8 @@ Reverse-chronological journal. Quick index:
 |--------------------|------|----------|
 | [**Static shell post-mortem (`scalar_shell_ftl_rl_v1`)**](#static-shell-post-mortem-scalar_shell_ftl_rl_v1-2026-06-24) | **06-24** | `shell_static=1` zeroed all velocity/omega/shift dims (~5 of 22 dead no-ops). Warp motor structurally off (Pi=0 → S_i=0 → beta=0). Champions are static exotic lenses (maxed `exotic_penalty`, weak 4D). Archive collapsed to **3/64 cells**, stalled 17 iterations. **54% of compute wasted** on non-converging constraint solves. Next: un-pin `shell_static`, activate velocity+spin DOF for moving/rotating warps. |
 | [**Paired shell FTL comparison (`boson_shell_ftl_rl_v1` vs `scalar_shell_ftl_rl_v1`)**](#paired-shell-ftl-comparison-boson-vs-scalar-2026-06-23) | **06-23 complete** | **200+200 evals**, matched campaign knobs. Scalar: **92 `gpu_ok`**, **32/92** with `ftl_geo_evolving>0`, champion **eval 166** (**869**, persist 0.76). Boson: **94 `gpu_ok`**, **0 FTL**. **No boson rerun**; promote scalar **eval 166/126** for RL Gate 2. |
-| [**Boson shell FTL for RL (`boson_shell_ftl_rl_v1`)**](#boson-shell-ftl-for-rl-boson_shell_ftl_rl_v1-2026-06-23) | **06-23 complete** | Boson arm of paired comparison — **0/94** `f_geo>0`. See [paired results](#paired-shell-ftl-comparison-boson-vs-scalar-2026-06-23). |
+
 | [**Boson star: unpinned QD + frames (v3)**](#boson-star-unpinned-qd--frames-v3-2026-06-18) | **06-18 complete** | First **unpinned 7-D** boson MAP-Elites: **12/12 evals**, **8 `gpu_ok`**, champion **eval 004** (−33.2). Frames on H100; `scalar_activity`/`phi` projections visible. |
-| [**Boson star: integration + GPU smoke**](#boson-star-matter-sector-integration--gpu-smoke-2026-06-18) | **06-18 complete** | Matter selector wired; pinned GPU smoke **2/2 `gpu_ok`**. Phase 1 = single centered Gaussian. |
 | [**v22 CMA-ES: wormhole refinement**](#v22-cma-es-wormhole-refinement-general_ftl_wormhole_cmaes_v1-2026-06-18) | **06-18 complete** | QD **063** (165.6) → CMA-ES **046** (**179.8**, +14.2). [HQ eval 046](#hq-eval-046-final-results-t30) **complete** — peak **7.57%** 4D @ t≈15.6, **−546** final @ t=30 (horizon kill). [Movies](#hq-eval-046-final-results-t30) in `movies/`. |
 | [**v22: Pre-GPU learning + v21 resume**](#v22-pre-gpu-rejection-learning--v21-resume-2026-06-18) | **06-18 complete** | **200 evals** on `general_ftl_wormhole_v21`. Pipelined QD + pre-GPU learning. **Champion eval 191** (161.9, survival 1.00, 18.5% 4D). Eval 063 holds score/FTL records (165.6, 19.3%). [Top 3 + FTL champions](#v22-final-results-top-3--ftl-champions). |
 | [**v21: Pipelined QD + GPU tenancy**](#v21-pipelined-qd--gpu-tenancy-tuning-2026-06-17) | **06-17 stopped** | **Pipelined MAP-Elites** (`GpuPool` + `EvalPipeline`). **5 slots/GPU overloaded** H100s at t=16 (~3× slower/evol). **Working config:** 8 GPUs × **1 slot/GPU** + continuous GRTresna; **bottleneck** `MAX_CONCURRENT_GRTRESNA=3` → raise to **5+**. **26 evals:** 11 `gpu_ok`. Cold-start gap → [fixed in v22](#v22-pre-gpu-rejection-learning--v21-resume-2026-06-18). |
@@ -1266,144 +961,6 @@ Reverse-chronological journal. Quick index:
 | [**Foundational (06-10)**](#foundational-entries-2026-06-10) | 06-10 | Matter model, navigation overhaul, status reset |
 
 ---
-
-## Boson shell FTL for RL (`boson_shell_ftl_rl_v1`, 2026-06-23)
-
-**Status:** **complete** — **200/200 evals** (finished **2026-06-23 ~11:27 UTC**). MAP-Elites QD for
-closed-loop RL initial-data elites.
-
-**Motivation.** Historical wormhole QD (`general_ftl_wormhole_v*`) used **real scalar** lumps.
-RL pump / lump tracker requires **`grtresna_complex_scalar`** (boson shell, same wiring as
-[grlab splash](../grlab/README.md)). Splash QD optimizes **`critical_collapse`**, not FTL.
-This campaign is the first **boson shell + `general_ftl`** survey aimed at elites with finite
-`ftl_geo_evolving` for [RL Tax Man training](../RL/LabJournal.md).
-
-**Run dir:** `runs/grtresna_qd/boson_shell_ftl_rl_v1/`
-
-### Final results (200 evals)
-
-| Metric | Value |
-|--------|------:|
-| **`gpu_ok`** | **94** (47%) |
-| **`postload_rejected`** | **76** (38%; **45%** of gate-tested 170) |
-| **`grtresna_rejected`** | 19 |
-| **`grtresna_failed`** | 4 (incl. attempt-1 `h5py`; 3 late-run) |
-| **`pipeline_interrupted`** | 7 (prior kill/resume) |
-| **`f_geo_peak > 0`** | **0 / 94** — no evolved FTL shortcut |
-| **`structural_persistence`** (gpu_ok) | mean **0.39**, median **0.34**; **23/94** ≥ 0.5; **9/94** = **1.0** |
-| **Best score** | **eval 100** → **21.6** (persist **1.0**, still **f_geo = 0**) |
-| **Best persistence** | evals **39, 66, 87, 100, 112, …** at **1.0** (no FTL) |
-
-**Verdict.** Boson shell + exotic wedge can stay **cohesive** (9 configs with perfect persistence
-@ t=16) but **did not produce any FTL geometry** in 200 evals. Matter stability alone is
-insufficient for RL chassis — need **`f_geo > 0`** plus persistence. See
-[paired comparison](#paired-shell-ftl-comparison-boson-vs-scalar-2026-06-23) (scalar arm).
-
-**Champion for archive inspection:** `eval_000100` (score 21.6, persist 1.0, frames in
-`eval_000100/frames/`).
-
-### Attempt 1 — `grtresna_failed` (missing `h5py`)
-
-First launch (**~07:36 UTC**) used exotic wedge search and BosonStarBH solves correctly, but
-**every scored eval** landed as **`grtresna_failed`** at score **−350** with:
-
-```text
-reason: ModuleNotFoundError("No module named 'h5py'")
-```
-
-**Root cause.** GRTresna (Fortran/Chombo) writes `InitialDataFinal.3d.hdf5`; the wrapper converts
-that to `initial_data.gridinit` in `grtresna/io.py` via **`h5py`**. That package was documented
-as a manual `uv pip install h5py` step but was **not** listed in `grteclyn-wrapper/pyproject.toml`.
-Earlier wormhole/splash campaigns worked because `h5py` had been installed by hand and survived
-in the venv; a later **`uv sync`** on the managed venv (Python 3.14) dropped the undeclared
-package. Launch also used **`SKIP_QD_PREFLIGHT_TESTS=1`**, so nothing imported `h5py` before
-GPU/GRTresna slots were allocated.
-
-**Symptom vs physics.** Not a boson-matter or exotic-wedge bug — BosonStarBH completed
-(`Ham_and_Mom_errors.txt`, HDF5 under `eval_*/grtresna/Outputs/`), then Python died at the
-Chombo→`.gridinit` bridge before GPU evolution.
-
-### Fix (2026-06-23)
-
-| Change | File / action |
-|--------|----------------|
-| Declare dependency | `grteclyn-wrapper/pyproject.toml` — **`h5py>=3.10`** in `[project].dependencies` |
-| Install in venv | `cd grteclyn-wrapper && uv sync` |
-| Preflight guard | `tests/grtresna/test_grtresna_h5py_dep.py` added to `search_common.sh` preflight list |
-| Clean restart | Kill campaign, `rm -rf runs/grtresna_qd/boson_shell_ftl_rl_v1`, relaunch |
-
-**Verification (attempt 2).** After restart, eval dirs show **`initial_data.gridinit`** (HDF5
-conversion succeeds). Expect normal mix of `gpu_ok`, `grtresna_rejected`, `postload_rejected` —
-not blanket `grtresna_failed` / `h5py`.
-
-**Ops note.** After any `uv sync`, confirm `uv run python -c "import h5py"`. Wormhole-era
-campaigns never hit this because `h5py` was an undeclared manual install; it must stay in
-`pyproject.toml` for all GRTresna QD paths (scalar and boson).
-
-### Launch (attempt 2)
-
-```bash
-cd grteclyn-wrapper
-uv sync   # ensures h5py>=3.10 from pyproject.toml
-
-QD_NAME=boson_shell_ftl_rl_v1 \
-QD_TARGET_EVALS=200 \
-QD_ITERATIONS=30 \
-STOP_TIME=16.0 \
-PLOT_INTERVAL=320 \
-GRTECLYN_FRAMES=1 \
-GPU_IDS="0 1 2 3 4 5 6 7" \
-GPU_SLOTS_PER_DEVICE=1 \
-MAX_CONCURRENT_GRTRESNA=5 \
-BATCH_SIZE=8 \
-  nohup bash scripts/campaigns/boson_star/ftl_shell_run.sh \
-  > ../runs/boson_shell_ftl_rl_v1.launch.log 2>&1 &
-```
-
-Use **`SKIP_QD_PREFLIGHT_TESTS=1`** only if pytest is not installed in the venv; the h5py
-preflight test is skipped in that case — run `uv run python -c "import h5py"` manually first.
-
-| Knob | Value |
-|------|-------|
-| Launcher | `scripts/campaigns/boson_star/ftl_shell_run.sh` |
-| Matter | `GRTRESNA_MATTER_SECTOR=boson_star`, ansatz **shell**, `grtresna_complex_scalar` |
-| Search space | `grtresna_boson_shell_search_space(static=True, allow_exotic=True)` — shell geometry + mass/λ/ω + **exotic wedge** |
-| Objective | **`general_ftl`**, descriptor **`ftl_lifetime`**, 4D geodesic **`search`** |
-| Grid | N=128, L=64, ml=1 (search defaults) |
-| Stop / plots | **t=16**, **`PLOT_INTERVAL=320`** → **6** plotfiles per eval |
-| Frames | **`GRTECLYN_FRAMES=1`** |
-| Pipeline | v22-style (`USE_PIPELINE=1`, `MAX_CONCURRENT_GRTRESNA=5`, pre-GPU learning) |
-| Pins | `grtresna_shell_static=1` only (**no** `scalar_sign` pin) |
-
-### Exotic matter — **enabled (shell wedge search)**
-
-`ftl_shell_run.sh` sets **`GRTRESNA_BOSON_ALLOW_EXOTIC=1`** by default:
-
-- Search dims **`grtresna_shell_exotic_fraction`** and **`grtresna_shell_exotic_phase`** (same idiom as real-scalar wormhole QD)
-- Lump exotic flags wired into BosonStarBH paint; exotic-safe GRTresna solver when any lump is exotic
-- **`grtresna_scalar_sign` not pinned** — canonical coupling + searchable exotic wedge (not global phantom-only)
-
-Disable exotic wedge search (splash-style canonical-only):
-
-```bash
-GRTRESNA_BOSON_ALLOW_EXOTIC=0 PIN_DIMS="grtresna_scalar_sign=1 grtresna_shell_static=1" \
-  bash scripts/campaigns/boson_star/ftl_shell_run.sh
-```
-
-Global phantom boson (whole-field `scalar_sign=-1`, still no exotic-fraction dims):
-
-```bash
-GRTRESNA_BOSON_ALLOW_EXOTIC=0 GRTRESNA_MATTER_COUPLING=exotic \
-  PIN_DIMS="grtresna_shell_static=1" bash scripts/campaigns/boson_star/ftl_shell_run.sh
-```
-
-### Monitor
-
-```bash
-tail -f runs/boson_shell_ftl_rl_v1.launch.log
-tail -f runs/grtresna_qd/boson_shell_ftl_rl_v1/trajectory.jsonl
-cat runs/grtresna_qd/boson_shell_ftl_rl_v1/ftl_champions.json
-```
 
 ### Paired shell FTL comparison (boson vs scalar, 2026-06-23)
 
@@ -1428,6 +985,12 @@ shell, exotic wedge, **`general_ftl`**, t=16, frames, postload **3e-2**, 8×GPU 
 Fair conclusion: **same experiment design, different matter physics and slightly different
 optimizer bounds** — sufficient to test “can boson shell + exotic wedge produce FTL like real
 scalar shell under matched scoring?”
+
+**h5py fix.** Boson attempt 1 failed with `ModuleNotFoundError("No module named 'h5py'")`
+because `h5py` was not declared in `pyproject.toml` and a later `uv sync` dropped it.
+Fix: add `h5py>=3.10` to `pyproject.toml`, run `uv sync`, add a preflight test, and restart
+the campaign. After restart, HDF5 conversion succeeded and the normal `gpu_ok`/`rejected`
+mix resumed.
 
 #### Side-by-side results (200 evals each)
 
@@ -1743,73 +1306,6 @@ Movies: `bash scripts/plot/make_movies.sh runs/grtresna_qd/boson_star_unpinned_f
 - **Solved-FTL gate must stay off** for boson campaigns (`search_common.sh` disables when `GRTRESNA_MATTER_SECTOR=boson_star`).
 - Random 7-D samples need **`ITERATIONS=30`** and **`GRTRESNA_MAX_MOM_PCT≥10`** at 128³ for acceptable GPU reach (~67%).
 - Boson MAP-Elites with `ftl_lifetime` descriptors collapses to cell **`(0,0)`** until geometry ansatz + FTL-capable configs are searched — Phase 1 validates **pipeline**, not FTL discovery.
-
----
-
-## Boson star: matter-sector integration + GPU smoke (2026-06-18)
-
-**Status:** **Phase 1 infrastructure complete** — superseded for production validation by
-[v3 unpinned QD](#boson-star-unpinned-qd--frames-v3-2026-06-18). Real-scalar lump path
-**unchanged** (default `GRTRESNA_MATTER_SECTOR=scalar`).
-
-**Purpose.** Implement [action plan step 3](#iv-strategic-action-plan): add **complex scalar /
-U(1) boson star** as an opt-in matter sector so MAP-Elites can search non-dispersing matter
-without replacing the existing 23-D shell pipeline.
-
-### What shipped
-
-| Layer | Change |
-|-------|--------|
-| **Matter selector** | `GRTRESNA_MATTER_SECTOR` × `GRTRESNA_MATTER_COUPLING`; CLI + campaign env vars |
-| **GRTresna** | Auto-selects `BosonStarBH` example; `grtresna_complex_scalar` in params + `.matter.json` |
-| **GRTeclyn** | `recipe_matter_model=grtresna_complex_scalar`; plot vars `phi_lump0`/`Pi_lump0` (imaginary part) |
-| **Search space** | `grtresna_boson_star_search_space()` — **7-D** (mass, λ, φ_c, width, ω, sign, shift_seed) |
-| **Campaigns** | `scripts/campaigns/boson_star/{run,cmaes_run,hq_run}.sh` |
-| **Tests** | `test_matter_selection.py`, `test_boson_star_ansatz.py`, `test_complex_scalar_wiring.py`, … |
-
-### Validation (2026-06-18)
-
-| Check | Result |
-|-------|--------|
-| Unit tests (`uv run pytest`) | **19** matter/boson tests pass; **79** in campaign preflight gate |
-| GRTresna `BosonStarBH` rebuild | `Main_BosonStarBH3d.*.MPI.ex` rebuilt |
-| GRTeclyn CPU smoke | `main3d.gnu.ex` — 1 step, gridinit load OK |
-| GRTeclyn GPU smoke | `main3d.gnu.CUDA.ex` on H100 — evolution OK |
-| **GPU QD campaign** | `boson_star_gpu_smoke2_*` — **2/2 `gpu_ok`**, 1 MAP-Elite, scores **58.4** / **65.3** |
-
-**Smoke campaign** (pinned default boson params, reduced grid for speed):
-
-```bash
-cd grteclyn-wrapper
-QD_NAME=boson_star_gpu_smoke \
-  QD_TARGET_EVALS=2 GPU_IDS="0" BATCH_SIZE=1 \
-  RANKS=4 ITERATIONS=30 \
-  GRTRESNA_GRIDINIT_NX=64 GRTRESNA_GRIDINIT_NY=64 GRTRESNA_GRIDINIT_NZ=64 \
-  GRTRESNA_EVOLUTION_N_FULL=64 GRTRESNA_EVOLUTION_L_FULL=32 \
-  STOP_TIME=0.5 GRTRESNA_MAX_MOM_PCT=15.0 \
-  PIN_DIMS="grtresna_scalar_mass=0.1 grtresna_scalar_lambda=0.0 grtresna_bs_phi_c=0.08 grtresna_bs_profile_width=8.0 grtresna_bs_omega=0.0 grtresna_scalar_sign=1.0 grtresna_shift_seed=0.0" \
-  SKIP_QD_PREFLIGHT_TESTS=1 \
-  bash scripts/campaigns/boson_star/run.sh
-```
-
-Run dir: `runs/grtresna_qd/boson_star_gpu_smoke2_20260618T175911Z/`.
-
-Per eval: GRTresna solve → postload gate → **`main3d.gnu.CUDA.ex`** → plotfile consume →
-`ftl_first` score. `f_geo=0%` expected — centered boson with no warp geometry.
-
-**Earlier failed smoke** (`boson_star_gpu_smoke_*175738Z`): random 7-D samples + 15 NL iters
-→ both **`grtresna_rejected`** (Mom > 5% gate) before GPU. Random boson QD needs more
-iterations or looser convergence gates at reduced grid.
-
-### Remaining (post-v3)
-
-| Item | Status |
-|------|--------|
-| Larger boson QD (80+ evals) | Not run |
-| `boson_star + exotic` GPU path | Wired, not smoke-tested on GPU |
-| CMA-ES → HQ handoff for boson sector | Launchers exist, not validated |
-| Multi-lump boson at shell positions | Future — Phase 1 is single centered Gaussian |
-| Boson + shell geometry combined search | Future — matter sector and ansatz are orthogonal today |
 
 ---
 
@@ -2182,17 +1678,9 @@ within the clustered wormhole basin found by MAP-Elites, using the same 15-D pin
 Warm-started from QD trajectory `general_ftl_wormhole_v21` with `WARM_START_TOP_K=1` (exact genome
 of eval **063**, not resume-era eval 191):
 
-```bash
-cd grteclyn-wrapper
-RUN_NAME=general_ftl_wormhole_cmaes_v1 \
-OBJECTIVE_MODE=general_ftl \
-WARM_START_TRAJECTORY="${GRTECLYN_ROOT}/runs/grtresna_qd/general_ftl_wormhole_v21/trajectory.jsonl" \
-WARM_START_TOP_K=1 WARM_START_JITTER=0.05 SIGMA0=0.05 \
-TARGET_EVALS=150 MAX_GENERATIONS=50 KEEP_TOP_EVAL_DIRS=3 \
-GPU_IDS="0 1 2 3 4 5 6 7" GPU_SLOTS_PER_DEVICE=1 MAX_CONCURRENT_GRTRESNA=3 \
-PIN_DIMS="$(bash -c 'source scripts/campaigns/lib/general_ftl_pins.sh && ftl_general_ftl_wormhole_pins')" \
-  bash scripts/campaigns/cmaes/run.sh
-```
+Launch: `bash scripts/campaigns/cmaes/run.sh` with warm-start from
+`runs/grtresna_qd/general_ftl_wormhole_v21/trajectory.jsonl` (see
+[`grteclyn-wrapper/README.md`](../../grteclyn-wrapper/README.md) for the full CMA-ES command).
 
 | Knob | Value |
 |------|-------|
@@ -2253,14 +1741,8 @@ Stopped manually when further gens were unlikely to beat 179.8 (σ=0.05 jitter a
 One HQ replay suffices — top CMA-ES evals 039/045/046 were σ-neighbors in the same basin (scores
 179.6–179.8), not distinct mechanisms.
 
-```bash
-cd grteclyn-wrapper
-SOURCE_RUN="${GRTECLYN_ROOT}/runs/grtresna_cmaes/general_ftl_wormhole_cmaes_v1" \
-NAME_PREFIX=general_ftl_wormhole_cmaes_v1 \
-OBJECTIVE_MODE=general_ftl \
-CANDIDATES="46 0" \
-  bash scripts/campaigns/hq/run_batch.sh
-```
+HQ launch: `bash scripts/campaigns/hq/run_batch.sh` with `CANDIDATES="46 0"`
+(see [`grteclyn-wrapper/README.md`](../../grteclyn-wrapper/README.md) for the full command).
 
 Output: `runs/grtresna_promote/general_ftl_wormhole_cmaes_v1_hq_eval000046/` (L=128, N=256, ml=3, t=30,
 4D mode **`hq`**, dirs **`x y z`**, frames **on**, incremental `score_timeseries.jsonl`).
@@ -2372,25 +1854,15 @@ at t=16 — HQ inherits that physics class.
 
 #### What evolves vs what is frozen
 
-| Frozen during evolution | Evolves during evolution |
-|-------------------------|--------------------------|
-| Lump **centres** (shell geometry from elliptic solve) | **Spacetime** — \(\chi\), lapse, throat opening ([§ II](#ii-dynamically-opening-throat)) |
-| Bulk linear / angular **momentum** (\(\Pi \approx 0\)) | **Scalar amplitudes** at fixed `phi_lump*` / `Pi_lump*` slots |
-| Translating / rotating cloud dynamics | **Shift** seeded at t=0; metric shear through the throat |
-| Moving-matter FTL channel | **4D null-geodesic shortcut** on **z** (`ftl_geo_evolving`; HQ verify mode) |
+| Frozen | Evolves |
+|--------|---------|
+| Lump centres / shell geometry | Spacetime — \(\chi\), lapse, throat opening |
+| Bulk momentum (\(\Pi \approx 0\)) | Scalar amplitudes at fixed `phi_lump*` / `Pi_lump*` slots |
+| Translating / rotating cloud dynamics | Shift seeded at t=0; metric shear through throat |
+| Moving-matter FTL channel | 4D null-geodesic shortcut on **z** (`ftl_geo_evolving`) |
 
-The HQ frame fields `lump_activity`, `phi_lump_sum`, and `Pi_lump_sum` are **diagnostic overlays**,
-not evidence of lump translation:
-
-- **`lump_activity`** = \(\sum_k \sqrt{\phi_k^2 + \Pi_k^2}\) summed over per-lump fields at **fixed**
-  grid locations — shows breathing / redistribution, not bulk drift.
-- **`Pi_lump_sum`** stays flat (consumer z-lims \(\sim 10^{-13}\)) — no momentum transport.
-- **`phi_lump_sum`** shows modest amplitude variation (\(\lesssim 0.01\) early in the run) while the
-  throat geometry evolves in `chi` / `local_speed` frames.
-
-Do **not** interpret `phi_lump_sum_z` movies as “lumps moving through the box”; interpret them as
-**field activity on a static shell** while the [dynamically opening throat](#ii-dynamically-opening-throat)
-develops.
+Frame fields `lump_activity`, `phi_lump_sum`, `Pi_lump_sum` are diagnostic overlays on a static
+shell; they show breathing, not bulk drift.
 
 #### HQ answers (t=30)
 
@@ -2644,7 +2116,7 @@ Potential: `V = ½ m² (Σφ_k)²` (+ λφ⁴ when searched). Lumps interact via
 O(1) boosts + light mass → fly-away (fixed v4 mass search + velocity caps).
 
 **Roadmap (done in bold):** **(1)** search mass + cap boosts; **(2)** λφ⁴; **(3)** complex scalar /
-boson star (Phase 1 — see [Boson star integration](#boson-star-matter-sector-integration--gpu-smoke-2026-06-18));
+boson star (Phase 1 — see [Boson star unpinned QD + frames (v3)](#boson-star-unpinned-qd--frames-v3-2026-06-18));
 (4) per-lump independent mass; (5) multi-site boson stars at shell lump centres.
 
 ### Navigation overhaul (2026-06-10)
