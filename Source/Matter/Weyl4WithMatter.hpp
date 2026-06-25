@@ -54,7 +54,7 @@ template <class matter_t> class Weyl4WithMatter : public Weyl4
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     add_matter_EB(EBFields_t &eb_fields, const int ix, const int iy,
                   const int iz, const amrex::Array4<const amrex::Real> &state,
-                  const TensorArray::Rank3 &epsilon3_LUU,
+                  const Tensor::Rank3 &epsilon3_LUU,
                   const TensorArray::Rank2 &h_UU, const chris_t &chris) const;
 };
 

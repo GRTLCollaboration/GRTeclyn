@@ -30,14 +30,14 @@ compute_ccz4_test_geometry(const amrex::Array4<amrex::Real> &a_array,
                            const amrex::Array4<amrex::Real> &a_geometry_array)
 {
     amrex::Real chi = 0.0;
-    TensorArray::Rank1 Gamma{};
-    TensorArray::Rank2 h{};
-    TensorArray::Rank1 Z_over_chi{};
-    TensorArray::Rank1 d1_chi{};
-    TensorArray::Rank2 d1_Gamma{};
-    amrex::Array2D<amrex::Real, 0, UNIQUE_IDX - 1, 0, AMREX_SPACEDIM - 1> d1_h;
-    TensorArray::Rank2Sym d2_h{};
-    TensorArray::Rank1Sym d2_chi{};
+    Tensor::Rank1 Gamma{};
+    Tensor::Rank2 h{};
+    Tensor::Rank1 Z_over_chi{};
+    Tensor::Rank1 d1_chi{};
+    Tensor::Rank2 d1_Gamma{};
+    Tensor::Sym12Rank3 d1_h{};
+    Tensor::Sym12Sym34Rank4 d2_h{};
+    Tensor::Sym12Rank2 d2_chi{};
 // Including the auto generated file with values
 #include "CCZ4GeometryMathematicaValues.hpp"
 
@@ -56,7 +56,7 @@ compute_ccz4_test_geometry(const amrex::Array4<amrex::Real> &a_array,
         a_array.cellData(a_iv[0], a_iv[1], a_iv[2]);
     CCZ4Vars vars(cell_data);
 
-    auto h_UU   = CCZ4Geometry::compute_inverse_metric(vars);
+    auto h_UU   = CCZ4Geometry::compute_inverse_metric_test(vars);
     auto chris  = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
     auto ricciZ = CCZ4Geometry::compute_ricci_Z(
         vars, d1_chi, d1_Gamma, d1_h, d2_h, d2_chi, h_UU, chris, Z_over_chi);

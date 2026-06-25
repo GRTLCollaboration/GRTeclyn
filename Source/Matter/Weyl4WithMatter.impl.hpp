@@ -21,14 +21,15 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void Weyl4WithMatter<matter_t>::operator()(
 
     //    const typename matter_t::D1Vars d1(ix, iy, iz, state, m_deriv);
     // we only need d2 of chi and h
-    const TensorArray::Rank1Sym d2_chi =
-        m_deriv.diff2_scalar(ix, iy, iz, state, c_chi);
-    const TensorArray::Rank2Sym d2_h =
-        m_deriv.diff2_tensor(ix, iy, iz, state, c_h11);
+    const Tensor::Sym12Rank2 d2_chi =
+        m_deriv.diff2_scalar_test(ix, iy, iz, state, c_chi);
+    const Tensor::Sym12Sym34Rank4 d2_h =
+        m_deriv.diff2_tensor_test(ix, iy, iz, state, c_h11);
 
-    auto d1_h        = m_deriv.diff1_sym_tensor(ix, iy, iz, state, c_h11);
-    const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
-    const auto chris = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
+    auto d1_h       = m_deriv.diff1_sym_tensor_test(ix, iy, iz, state, c_h11);
+    const auto h_UU = CCZ4Geometry::compute_inverse_metric_test(vars);
+    const auto h_UU_old = CCZ4Geometry::compute_inverse_metric(vars);
+    const auto chris    = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
 
     // Get the coordinates
     const Coordinates coords(amrex::IntVect{AMREX_D_DECL(ix, iy, iz)}, m_dx,
@@ -39,10 +40,10 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void Weyl4WithMatter<matter_t>::operator()(
 
     // Compute the E and B fields
     // This needs d1 chi, K, h, A
-    auto d1_chi   = m_deriv.diff1_scalar(ix, iy, iz, state, c_chi);
-    auto d1_Gamma = m_deriv.diff1_vector(ix, iy, iz, state, c_Gamma1);
-    auto d1_K     = m_deriv.diff1_scalar(ix, iy, iz, state, c_K);
-    auto d1_A     = m_deriv.diff1_sym_tensor(ix, iy, iz, state, c_A11);
+    auto d1_chi   = m_deriv.diff1_scalar_test(ix, iy, iz, state, c_chi);
+    auto d1_Gamma = m_deriv.diff1_vector_test(ix, iy, iz, state, c_Gamma1);
+    auto d1_K     = m_deriv.diff1_scalar_test(ix, iy, iz, state, c_K);
+    auto d1_A     = m_deriv.diff1_sym_tensor_test(ix, iy, iz, state, c_A11);
 
     EBFields_t ebfields =
         compute_EB_fields(vars, d1_chi, d1_Gamma, d1_h, d1_K, d1_A, d2_chi,
@@ -50,7 +51,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void Weyl4WithMatter<matter_t>::operator()(
 
     // Add in matter terms to E and B fields
 
-    add_matter_EB(ebfields, ix, iy, iz, state, epsilon3_LUU, h_UU, chris);
+    add_matter_EB(ebfields, ix, iy, iz, state, epsilon3_LUU, h_UU_old, chris);
 
     // work out the Newman Penrose scalar
     weyl_scalar_t out = compute_Weyl4(ebfields, vars, h_UU, coords);
@@ -65,7 +66,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 Weyl4WithMatter<matter_t>::add_matter_EB(
     EBFields_t &ebfields, const int ix, const int iy, const int iz,
     const amrex::Array4<const amrex::Real> &state,
-    const TensorArray::Rank3 &epsilon3_LUU, const TensorArray::Rank2 &h_UU,
+    const Tensor::Rank3 &epsilon3_LUU, const TensorArray::Rank2 &h_UU,
     const chris_t &chris) const
 {
     const amrex::CellData<const amrex::Real> &state_cell_data =
@@ -77,7 +78,7 @@ Weyl4WithMatter<matter_t>::add_matter_EB(
     const auto emtensor =
         m_matter.compute_emtensor(ix, iy, iz, state, m_deriv, h_UU);
 
-    TensorArray::Rank2 S_TF = emtensor.S;
+    Tensor::Rank2 S_TF = emtensor.S;
     CCZ4Geometry::make_trace_free(S_TF, vars, h_UU);
 
     // as we made the vacuum expression of Bij explictly symmetric and Eij

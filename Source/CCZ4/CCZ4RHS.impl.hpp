@@ -52,13 +52,9 @@ CCZ4RHS<gauge_t, deriv_t>::compute_chi_and_h_ij(
 
     CCZ4Vars vars(state_cell_data);
 
-    TensorArray::Rank1 shift_vector;
-    FOR (idir)
-    {
-        shift_vector(idir) = state(ix, iy, iz, c_shift1 + idir);
-    }
+    Tensor::Rank1 shift_vector{vars.shift(0), vars.shift(1), vars.shift(2)};
 
-    auto d1_shift        = m_deriv.diff1_vector(ix, iy, iz, state, c_shift1);
+    auto d1_shift = m_deriv.diff1_vector_test(ix, iy, iz, state, c_shift1);
     amrex::Real divshift = CCZ4Geometry::compute_divshift(d1_shift);
     amrex::Real advec_chi =
         m_deriv.advection(ix, iy, iz, state, shift_vector, c_chi);
@@ -98,14 +94,14 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
 
     CCZ4Vars vars(state_cell_data);
 
-    const auto h_UU = CCZ4Geometry::compute_inverse_metric(vars);
+    const auto h_UU = CCZ4Geometry::compute_inverse_metric_test(vars);
 
     // hij derivatives
-    auto d1_h        = m_deriv.diff1_sym_tensor(ix, iy, iz, state, c_h11);
+    auto d1_h        = m_deriv.diff1_sym_tensor_test(ix, iy, iz, state, c_h11);
     const auto chris = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
 
-    TensorArray::Rank1 Z_over_chi;
-    TensorArray::Rank1 Z; // NOLINT(readability-identifier-length)
+    Tensor::Rank1 Z_over_chi;
+    Tensor::Rank1 Z; // NOLINT(readability-identifier-length)
 
     if constexpr (formulation == USE_BSSN)
     {
@@ -122,29 +118,29 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
         Z(i) = vars.chi() * Z_over_chi(i);
 
     // Gamma derivatives
-    auto d1_Gamma = m_deriv.diff1_vector(ix, iy, iz, state, c_Gamma1);
+    auto d1_Gamma = m_deriv.diff1_vector_test(ix, iy, iz, state, c_Gamma1);
 
     // hij derivatives
-    auto d2_h = m_deriv.diff2_tensor(ix, iy, iz, state, c_h11);
+    auto d2_h = m_deriv.diff2_tensor_test(ix, iy, iz, state, c_h11);
 
     // chi derivatives
-    auto d1_chi = m_deriv.diff1_scalar(ix, iy, iz, state, c_chi);
-    auto d2_chi = m_deriv.diff2_scalar(ix, iy, iz, state, c_chi);
+    auto d1_chi = m_deriv.diff1_scalar_test(ix, iy, iz, state, c_chi);
+    auto d2_chi = m_deriv.diff2_scalar_test(ix, iy, iz, state, c_chi);
 
     auto ricci = CCZ4Geometry::compute_ricci_Z(
         vars, d1_chi, d1_Gamma, d1_h, d2_h, d2_chi, h_UU, chris, Z_over_chi);
 
-    auto d1_shift        = m_deriv.diff1_vector(ix, iy, iz, state, c_shift1);
+    auto d1_shift = m_deriv.diff1_vector_test(ix, iy, iz, state, c_shift1);
     amrex::Real divshift = CCZ4Geometry::compute_divshift(d1_shift);
 
-    auto d1_lapse = m_deriv.diff1_scalar(ix, iy, iz, state, c_lapse);
+    auto d1_lapse = m_deriv.diff1_scalar_test(ix, iy, iz, state, c_lapse);
 
     amrex::Real Z_dot_d1lapse = TensorAlgebra::compute_dot_product(Z, d1_lapse);
     amrex::Real dlapse_dot_dchi =
         TensorAlgebra::compute_dot_product(d1_lapse, d1_chi, h_UU);
 
-    TensorArray::Rank2 covdtilde2lapse{};
-    TensorArray::Rank2 covd2lapse{};
+    Tensor::Rank2 covdtilde2lapse{};
+    Tensor::Rank2 covd2lapse{};
     auto d2_lapse = m_deriv.diff2_scalar(ix, iy, iz, state, c_lapse);
 
     FOR (k, l)
@@ -163,7 +159,7 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
 
     auto A_UU = CCZ4Geometry::compute_A_UU(state_cell_data, h_UU);
 
-    TensorArray::Rank2 Adot_TF;
+    Tensor::Rank2 Adot_TF;
     FOR (i, j)
     {
         Adot_TF(i, j) =
@@ -171,11 +167,7 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
     }
     CCZ4Geometry::make_trace_free(Adot_TF, state_cell_data, h_UU);
 
-    TensorArray::Rank1 shift_vector;
-    FOR (idir)
-    {
-        shift_vector(idir) = state(ix, iy, iz, c_shift1 + idir);
-    }
+    Tensor::Rank1 shift_vector{vars.shift(0), vars.shift(1), vars.shift(2)};
 
     FOR2_SYM(i, j)
     {
@@ -270,9 +262,9 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
     }
 
     // Gamma specific parts:
-    auto d2_shift = m_deriv.diff2_vector(ix, iy, iz, state, c_shift1);
-    auto d1_K     = m_deriv.diff1_scalar(ix, iy, iz, state, c_K);
-    auto d1_Theta = m_deriv.diff1_scalar(ix, iy, iz, state, c_Theta);
+    auto d2_shift = m_deriv.diff2_vector_test(ix, iy, iz, state, c_shift1);
+    auto d1_K     = m_deriv.diff1_scalar_test(ix, iy, iz, state, c_K);
+    auto d1_Theta = m_deriv.diff1_scalar_test(ix, iy, iz, state, c_Theta);
 
     FOR (i)
     {
@@ -332,11 +324,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<gauge_t, deriv_t>::apply_gauge(
 
     CCZ4Vars vars(state_cell_data);
 
-    TensorArray::Rank1 shift_vector;
-    FOR (idir)
-    {
-        shift_vector(idir) = state(ix, iy, iz, c_shift1 + idir);
-    }
+    Tensor::Rank1 shift_vector{vars.shift(0), vars.shift(1), vars.shift(2)};
 
     auto advec_lapse =
         m_deriv.advec_scalar(ix, iy, iz, state, shift_vector, c_lapse);
@@ -351,9 +339,6 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<gauge_t, deriv_t>::apply_gauge(
 
     m_gauge.rhs_gauge(rhs_cell_data, vars, advec_lapse, advec_shift, advec_B,
                       advec_Gamma);
-
-    // m_deriv.add_dissipation(ix, iy, iz, rhs_cell_data, state, m_sigma,
-    //                         NUM_CCZ4_VARS);
 }
 
 template <class gauge_t, class deriv_t>
