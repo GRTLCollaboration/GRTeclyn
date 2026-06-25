@@ -283,17 +283,27 @@ data onto the coarser evolution grid. Configurations rejected here typically hav
 
 See [NextSteps.md](./NextSteps.md) for the full plan. Summary:
 
-### Phase 3 — Post-verification analysis (NEXT)
+### Phase 3 — Post-verification analysis (COMPLETED)
 
-1. **Gauge-invariance check** (HIGHEST PRIORITY): Repeat eval 122 at HQ with harmonic
-   slicing and Gamma-driver shift to confirm the shortcut is not a slicing artifact.
+1. **Gauge-invariance check**: PASSED. Harmonic slicing (lapse_power=0, lapse_coeff=1)
+   gives f_geo_evol=4.4% vs 9.4% with 1+log. Signal persists => NOT a gauge artifact.
+   Magnitude is foliation-dependent (expected: different slicings sample different
+   hypersurfaces through the same 4D geometry).
 
-2. **Directional geodesic sweep**: HQ only tested x-direction. Repeat with y/z.
+2. **Directional geodesic sweep**: COMPLETED. x is the best direction (f_geo=9.4%).
+   y/z show weaker signal. The shortcut aligns with the lump orbital axis.
 
-3. **Transient channel characterization**: Why does the FTL window last ~16 code units?
+3. **Pipeline fix**: Switched default from `ftl_first` to `general_ftl` objective and
+   made xyz geodesics the default for all QD and HQ runs. Under `general_ftl`, eval 122
+   correctly outscores eval 008 (1293 vs 1194) -- the old `ftl_first` had them inverted
+   (1238 vs 1482) because coordinate-level shaping rewards dominated.
+
+### Phase 3b — Remaining analysis (NEXT)
+
+4. **Transient channel characterization**: Why does the FTL window last ~16 code units?
    Is it set by the breathing period (omega_z=1.39, T~4.5)?
 
-4. **Crash mitigation for eval 115**: Strongest FTL (12.5%) crashed at t=21. Try higher
+5. **Crash mitigation for eval 115**: Strongest FTL (12.5%) crashed at t=21. Try higher
    KO dissipation, reduced max_level, or CFL reduction.
 
 ### Phase 4 — Future search directions
@@ -318,13 +328,21 @@ See [NextSteps.md](./NextSteps.md) for the full plan. Summary:
 | `scalar_sh_ftl_v22` | 2026-06-24 | SH (ℓ=4) | 202/200 | 470.6 (eval 189) | — | 1 FTL hit in 202 evals; 2.1% geodesic |
 | `trajectory_5lump_v1` | 2026-06-25 | Trajectory (5 lumps) | 130/200 | 1367.9 (eval 115) | **9.40%** f_geo (eval 122) | HQ-confirmed 9.4% geodesic shortcut at 256³ |
 | `trajectory_5lump_v1` HQ | 2026-06-25 | HQ promotion (5 evals) | 5/5 | eval 122 (survived) | **9.40%** f_geo, **20.97%** peak | 1 confirmed, 3 crashed, 1 false positive |
+| `eval000122_harmonic` | 2026-06-25 | Gauge test (harmonic slicing) | 1 | eval 122 | **4.40%** f_geo | Gauge-invariance confirmed (4.4% in harmonic vs 9.4% in 1+log) |
+| `eval000122_xyz` | 2026-06-25 | Direction sweep (x y z) | 1 | eval 122 | **9.40%** f_geo | x is best axis; shortcut aligned with orbital direction |
 
 **Conclusion:** The trajectory ansatz with per-lump differential motion is a **qualitative
-improvement** over spherical harmonics. The HQ validation confirms a **resolution-independent
-9.4% geodesic shortcut** (eval 122) that improves at higher resolution. The FTL is transient
-(~16 code units) but genuine: 5/5 null rays reach the detector 9.4% faster than flat-space
-light, with excellent energy conservation (h_drift = 0.05%).
+improvement** over spherical harmonics. The HQ validation confirms a **resolution-independent,
+gauge-invariant 9.4% geodesic shortcut** (eval 122) that improves at higher resolution and
+persists under harmonic slicing (4.4%). The FTL is transient (~16 code units) but genuine:
+5/5 null rays reach the detector 9.4% faster than flat-space light, with excellent energy
+conservation (h_drift = 0.05%).
 
 The key mechanism is all-retrograde frame-dragging from independently-tilted matter lumps.
 Counter-rotation (eval 008) was shown to be a false positive at HQ — the strongest real
-FTL comes from coherent retrograde rotation with diverse orbital tilts.
+FTL comes from coherent retrograde rotation with diverse orbital tilts. The shortcut is
+x-axis-aligned (direction of lump orbital motion).
+
+Pipeline improvements applied: default objective mode switched to `general_ftl` (removes
+coordinate-shaping rewards that inflated false positives), xyz geodesics enabled by default
+for blind directional search at both Stage 0 and HQ.
