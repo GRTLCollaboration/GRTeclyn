@@ -105,7 +105,8 @@ void run_bssn_matter_test()
 
         amrex::Real sigma = 0.1;
 
-        using DefaultScalarField = ScalarField<DefaultPotential>;
+        using DefaultScalarField =
+            ScalarField<DefaultPotential, FourthOrderDerivatives>;
 
         double G_Newton = 1.0;
         GRParmParse pp;
@@ -115,6 +116,8 @@ void run_bssn_matter_test()
                           FourthOrderDerivatives>
             current_ccz4_rhs{ccz4_params, dx, sigma, CCZ4RHS<>::USE_BSSN,
                              G_Newton};
+
+        FourthOrderDerivatives deriv{dx};
 
         // Set up the constraints
         constexpr int dcomp = NUM_VARS;
@@ -137,6 +140,26 @@ void run_bssn_matter_test()
             {
                 current_ccz4_rhs.operator()<CCZ4RHS<>::USE_BSSN, covariantZ4>(
                     ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
+                // calculate the vacuum solution
+                // current_ccz4_rhs.compute_chi_and_h_ij(
+                //     ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
+                // current_ccz4_rhs.compute_A_ij_and_Theta_and_Gamma<
+                //     CCZ4RHS<>::USE_BSSN, covariantZ4>(
+                //     ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
+
+                // current_ccz4_rhs.apply_gauge(ix, iy, iz, out_mf_array[ibox],
+                //                              in_c_array[ibox]);
+
+                // current_ccz4_rhs.add_emtensor_rhs(
+                //     ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
+
+                // current_ccz4_rhs.m_matter.add_matter_rhs(
+                //     ix, iy, iz, out_mf_array[ibox], in_c_array[ibox], deriv);
+
+                // // Add dissipation to all terms
+                // current_ccz4_rhs.apply_dissipation(ix, iy, iz,
+                // out_mf_array[ibox],
+                //                                  in_c_array[ibox]);
             });
 
         double time = 0.0;

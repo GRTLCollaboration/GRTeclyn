@@ -53,7 +53,7 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::operator()(
 
     // Add dissipation to all terms
     this->m_deriv.add_dissipation(ix, iy, iz, rhs_cell_data, state,
-                                  this->m_sigma);
+                                  this->m_sigma, NUM_VARS);
 }
 
 // Function to add in EM Tensor matter terms to CCZ4 rhs
@@ -71,7 +71,7 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
 
     const typename matter_t::Vars vars(state_cell_data);
 
-    const auto h_UU = CCZ4Geometry::compute_inverse_metric(vars);
+    const auto h_UU = CCZ4Geometry::compute_inverse_metric_test(vars);
 
     // Calculate elements of the decomposed stress energy tensor
 
@@ -94,7 +94,7 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
     }
 
     // Update RHS for other variables
-    TensorArray::Rank2 S_TF = emtensor.S;
+    Tensor::Rank2 S_TF = emtensor.S;
 
     CCZ4Geometry::make_trace_free(S_TF, vars, h_UU);
 

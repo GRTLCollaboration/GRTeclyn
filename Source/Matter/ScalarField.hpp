@@ -57,8 +57,17 @@ class ScalarField
         const TensorArray::Rank2 &h_UU) //!< the inverse metric (raised indices)
         const;
 
-    //! The function which adds in the RHS for the matter field vars,
-    //! including the potential
+    [[nodiscard]]
+    AMREX_GPU_DEVICE emtensor_t compute_emtensor(
+        const int ix, const int iy, const int iz, //!< grid indicies
+        const amrex::Array4<const amrex::Real>
+            &state,             //!< the current value of state variables
+        const deriv_t &a_deriv, //!< the object that calculates the derivative
+        const Tensor::Rank2 &h_UU) //!< the inverse metric (raised indices)
+        const;
+
+    // ! The function which adds in the RHS for the matter field vars,
+    // ! including the potential
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void add_matter_rhs(
         const int ix, const int iy, const int iz, //!< grid indicies
