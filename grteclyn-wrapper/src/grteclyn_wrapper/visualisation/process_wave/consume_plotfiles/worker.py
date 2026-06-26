@@ -99,21 +99,29 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
             idx = _parse_plot_index(key)
             frame_idx = idx if idx is not None else fallback_frame_idx
             for fld in frame_fields:
-                _render_slice_frame(
-                    ds,
-                    field=fld,
-                    axis=args_dict["frames_axis"],
-                    coord=args_dict.get("frames_coord"),
-                    zoom=args_dict.get("frames_zoom"),
-                    center_xyz=args_dict.get("frames_center"),
-                    corner=args_dict.get("frames_corner"),
-                    frames_out_dir=args_dict["frames_out"],
-                    frame_idx=int(frame_idx),
-                    verbose=args_dict.get("verbose", False),
-                    auto_zlim=args_dict.get("frames_auto_zlim"),
-                    frame_zlims=args_dict.get("frame_zlims"),
-                    use_global_zlim=args_dict.get("frames_global_zlim", True),
-                )
+                # A field requested for frames may be absent from a given matter
+                # model's plotfile (e.g. phi_lump1 only exists for the bicomplex
+                # model).  Skip it gracefully so one missing field does not abort
+                # the remaining frames AND the post-frame FTL/central extraction.
+                try:
+                    _render_slice_frame(
+                        ds,
+                        field=fld,
+                        axis=args_dict["frames_axis"],
+                        coord=args_dict.get("frames_coord"),
+                        zoom=args_dict.get("frames_zoom"),
+                        center_xyz=args_dict.get("frames_center"),
+                        corner=args_dict.get("frames_corner"),
+                        frames_out_dir=args_dict["frames_out"],
+                        frame_idx=int(frame_idx),
+                        verbose=args_dict.get("verbose", False),
+                        auto_zlim=args_dict.get("frames_auto_zlim"),
+                        frame_zlims=args_dict.get("frame_zlims"),
+                        use_global_zlim=args_dict.get("frames_global_zlim", True),
+                    )
+                except Exception as exc:
+                    if args_dict.get("verbose", False):
+                        print(f"WARNING: frame field {fld!r} skipped for {key}: {exc}")
 
         projection_fields = [_canonical_field_name(f) for f in args_dict.get("projection_fields", [])]
         projection_axes = list(args_dict.get("projection_axes", []) or [])
@@ -122,17 +130,24 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
             frame_idx = idx if idx is not None else fallback_frame_idx
             for fld in projection_fields:
                 for axis in projection_axes:
-                    _render_projection_frame(
-                        ds,
-                        field=fld,
-                        axis=axis,
-                        method=args_dict.get("projection_method", "mip"),
-                        zoom=args_dict.get("frames_zoom"),
-                        center_xyz=args_dict.get("frames_center"),
-                        frames_out_dir=args_dict["frames_out"],
-                        frame_idx=int(frame_idx),
-                        verbose=args_dict.get("verbose", False),
-                    )
+                    try:
+                        _render_projection_frame(
+                            ds,
+                            field=fld,
+                            axis=axis,
+                            method=args_dict.get("projection_method", "mip"),
+                            zoom=args_dict.get("frames_zoom"),
+                            center_xyz=args_dict.get("frames_center"),
+                            frames_out_dir=args_dict["frames_out"],
+                            frame_idx=int(frame_idx),
+                            verbose=args_dict.get("verbose", False),
+                        )
+                    except Exception as exc:
+                        if args_dict.get("verbose", False):
+                            print(
+                                f"WARNING: projection field {fld!r} ({axis}) "
+                                f"skipped for {key}: {exc}"
+                            )
 
         if args_dict.get("areal_radius"):
             if ("boxlib", "chi") in ds.field_list:

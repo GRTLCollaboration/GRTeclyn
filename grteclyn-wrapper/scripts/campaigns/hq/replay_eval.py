@@ -16,9 +16,11 @@ from grteclyn_wrapper.core.params import regrid_intervals_for_max_level
 from grteclyn_wrapper.grtresna.domain import GRTresnaDomainConfig
 from grteclyn_wrapper.grtresna.matter_wiring import (
     GRTRESNA_COMPLEX_SCALAR_MODEL,
+    plot_vars_for_bicomplex_scalar,
     plot_vars_for_complex_scalar,
     plot_vars_for_independent_scalars,
 )
+from grteclyn_wrapper.grtresna.matter_models import GRTRESNA_BICOMPLEX_SCALAR_MODEL
 from grteclyn_wrapper.grtresna.io import read_gridinit
 from grteclyn_wrapper.grtresna.solver import GRTresnaConfig
 from grteclyn_wrapper.search.grtresna_convergence_gate import GRTresnaConvergenceConfig
@@ -327,7 +329,12 @@ def main() -> int:
         )
         overrides.update(_load_matter_replay_overrides(source_eval))
         matter_model = overrides.get("recipe_matter_model")
-        if matter_model == GRTRESNA_COMPLEX_SCALAR_MODEL and "amr.plot_vars" not in overrides:
+        if matter_model == GRTRESNA_BICOMPLEX_SCALAR_MODEL:
+            # Force the full canonical+phantom channel set so HQ frames can show
+            # both fields even if the source eval was produced before the
+            # phantom plot_vars existed.
+            overrides["amr.plot_vars"] = plot_vars_for_bicomplex_scalar()
+        elif matter_model == GRTRESNA_COMPLEX_SCALAR_MODEL and "amr.plot_vars" not in overrides:
             overrides["amr.plot_vars"] = plot_vars_for_complex_scalar()
         num_fields = overrides.get("recipe_num_scalar_fields")
         if num_fields and "amr.plot_vars" not in overrides:

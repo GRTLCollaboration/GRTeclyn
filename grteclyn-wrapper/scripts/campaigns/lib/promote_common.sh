@@ -28,7 +28,9 @@ export GRTRESNA_ROOT="${GRTRESNA_ROOT:-$(cd -- "${GRTECLYN_ROOT}/.." && pwd)/GRT
 # HQ always renders frames; ignore search-stage GRTECLYN_FRAMES=0 from parent env.
 export GRTECLYN_FRAMES=1
 if [[ "${GRTRESNA_MATTER_SECTOR:-}" == "boson_star" ]]; then
-  export GRTECLYN_FRAMES_FIELDS="${FRAMES_FIELDS:-scalar_activity phi Pi phi_lump0 Pi_lump0 chi chi_minus_1 local_speed shift1 rho_req}"
+  # phi_lump1 (bicomplex phantom Phi- real part) is skipped gracefully for the
+  # single-complex model that does not emit it (see worker.py frame loop).
+  export GRTECLYN_FRAMES_FIELDS="${FRAMES_FIELDS:-scalar_activity phi Pi phi_lump0 Pi_lump0 phi_lump1 chi chi_minus_1 local_speed shift1 rho_req}"
   export GRTECLYN_PROJECTION_FIELDS="${PROJECTION_FIELDS:-scalar_activity phi}"
 else
   export GRTECLYN_FRAMES_FIELDS="${FRAMES_FIELDS:-lump_activity scalar_activity phi_lump_sum Pi_lump_sum chi chi_minus_1 local_speed shift1 rho_req}"

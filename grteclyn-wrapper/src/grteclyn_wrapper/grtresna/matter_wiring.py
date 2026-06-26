@@ -30,6 +30,7 @@ __all__ = [
     "evolution_overrides_from_config",
     "merge_evolution_overrides",
     "plot_vars_for_complex_scalar",
+    "plot_vars_for_bicomplex_scalar",
     "plot_vars_for_independent_scalars",
     "read_matter_metadata",
     "write_matter_metadata",
@@ -49,6 +50,24 @@ def plot_vars_for_complex_scalar() -> tuple[str, ...]:
     """
     base = tuple(_BASE_PLOT_VARS.split())
     return (*base, "phi_lump0", "Pi_lump0")
+
+
+def plot_vars_for_bicomplex_scalar() -> tuple[str, ...]:
+    """amr.plot_vars for the two-complex-field (canonical + phantom) model.
+
+    The bicomplex plotfile lays out 8 matter components (see ``StateVariables.hpp``):
+    ``phi``/``Pi`` (canonical Phi+ Re/Pi), ``phi_lump0``/``Pi_lump0`` (canonical
+    Phi+ Im), ``phi_lump1``/``Pi_lump1`` (phantom Phi- Re/Pi), and
+    ``phi_lump2``/``Pi_lump2`` (phantom Phi- Im).  All four lump slots are emitted
+    so both the canonical and phantom fields can be visualised.
+    """
+    base = tuple(_BASE_PLOT_VARS.split())
+    return (
+        *base,
+        "phi_lump0", "Pi_lump0",
+        "phi_lump1", "Pi_lump1",
+        "phi_lump2", "Pi_lump2",
+    )
 
 
 def plot_vars_for_independent_scalars(num_fields: int) -> tuple[str, ...]:
@@ -108,7 +127,7 @@ def evolution_overrides_from_bicomplex_scalar(
         "recipe_num_scalar_fields": len(signs),
         "recipe_scalar_field_signs": " ".join(str(int(s)) for s in signs),
         "calculate_constraint_norms": 1,
-        "amr.plot_vars": plot_vars_for_complex_scalar(),
+        "amr.plot_vars": plot_vars_for_bicomplex_scalar(),
     }
 
 

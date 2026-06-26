@@ -44,6 +44,12 @@ _FIELD_FRAME_CONFIGS: Dict[str, dict] = {
     "Pi": {"zlim": (-0.01, 0.01), "cmap": "RdBu", "label": r"$\Pi$"},
     "phi_lump0": {"zlim": (-0.05, 0.05), "cmap": "RdBu", "label": r"$\phi_2$"},
     "Pi_lump0": {"zlim": (-0.01, 0.01), "cmap": "RdBu", "label": r"$\Pi_2$"},
+    # Bicomplex phantom field (Phi-) channels: phi_lump1/Pi_lump1 = Re/Pi,
+    # phi_lump2/Pi_lump2 = Im components (see StateVariables.hpp).
+    "phi_lump1": {"zlim": (-0.05, 0.05), "cmap": "RdBu", "label": r"$\phi^-_{\mathrm{Re}}$"},
+    "Pi_lump1": {"zlim": (-0.01, 0.01), "cmap": "RdBu", "label": r"$\Pi^-_{\mathrm{Re}}$"},
+    "phi_lump2": {"zlim": (-0.05, 0.05), "cmap": "RdBu", "label": r"$\phi^-_{\mathrm{Im}}$"},
+    "Pi_lump2": {"zlim": (-0.01, 0.01), "cmap": "RdBu", "label": r"$\Pi^-_{\mathrm{Im}}$"},
     "phi_lump_sum": {"zlim": (-0.05, 0.05), "cmap": "RdBu", "label": r"$\sum_k\phi_k$"},
     "Pi_lump_sum": {"zlim": (-0.01, 0.01), "cmap": "RdBu", "label": r"$\sum_k\Pi_k$"},
     "scalar_activity": {"zlim": (0.0, 0.20), "cmap": "viridis", "label": r"$\sum_k\sqrt{\phi_k^2+\Pi_k^2}$"},

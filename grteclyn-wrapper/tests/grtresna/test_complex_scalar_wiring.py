@@ -7,10 +7,13 @@ import json
 from grteclyn_wrapper.grtresna.boson_star_fields import rename_complex_scalar_components
 from grteclyn_wrapper.grtresna.matter_wiring import (
     GRTRESNA_COMPLEX_SCALAR_MODEL,
+    evolution_overrides_from_bicomplex_scalar,
     evolution_overrides_from_complex_scalar,
+    plot_vars_for_bicomplex_scalar,
     plot_vars_for_complex_scalar,
     read_matter_metadata,
 )
+from grteclyn_wrapper.grtresna.matter_models import GRTRESNA_BICOMPLEX_SCALAR_MODEL
 
 
 def test_rename_complex_scalar_components() -> None:
@@ -51,6 +54,22 @@ def test_plot_vars_for_complex_scalar() -> None:
         "lapse", "shift1", "shift2", "shift3",
         "phi", "Pi", "phi_lump0", "Pi_lump0",
     )
+
+
+def test_plot_vars_for_bicomplex_scalar_includes_phantom_channels() -> None:
+    names = plot_vars_for_bicomplex_scalar()
+    # Canonical Im (lump0) plus phantom Re/Pi (lump1) and phantom Im (lump2).
+    for nm in ("phi_lump0", "Pi_lump0", "phi_lump1", "Pi_lump1", "phi_lump2", "Pi_lump2"):
+        assert nm in names
+
+
+def test_evolution_overrides_bicomplex_uses_phantom_plot_vars() -> None:
+    overrides = evolution_overrides_from_bicomplex_scalar(
+        mass=0.15, lam=0.0, field_signs=(1, -1, 1)
+    )
+    assert overrides["recipe_matter_model"] == GRTRESNA_BICOMPLEX_SCALAR_MODEL
+    assert overrides["recipe_scalar_field_signs"] == "1 -1 1"
+    assert "phi_lump1" in overrides["amr.plot_vars"]
 
 
 def test_evolution_overrides_phantom_sign() -> None:

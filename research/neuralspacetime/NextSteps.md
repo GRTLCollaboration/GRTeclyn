@@ -355,3 +355,70 @@ Informed by the confirmed mechanism:
      scores from overlapping lumps + short evolution do not predict HQ
      performance. Consider adding a "mock HQ gate" that runs 5 extra code
      units at Stage 0 (t_stop=21 instead of 16) to catch dissipating configs.
+
+
+Bicomplex (canonical + phantom) model -- next steps (2026-06-26)
+================================================================
+
+The new grtresna_bicomplex_scalar model (two coupled complex fields, Phi+
+canonical and Phi- phantom with opposite gravitational sign) produced the
+strongest single-frame result so far. At identical parameters (eval 122 genome,
+m=0.15, omega=0.12, t=16):
+
+  Single-complex boson:  total = 35.2,  f_geo = 0.0%,  0/5 reached (coordinate
+                         artifact only, max c = 1.90)
+  Bicomplex (phantom):   total = 255.7, f_geo = 5.21% frozen / 6.13% evolving,
+                         5/5 reached, confirmed operational FTL (f_op = 5.56%,
+                         max c = 1.071)
+
+The phantom field supplies a sustained, dynamically-evolving ANEC violation that
+the single complex field cannot maintain, turning a rejected coordinate offset
+into a genuine gauge-invariant geodesic shortcut.
+
+Immediate next steps:
+
+  1. Finish + score the m=0.3, omega=0.25 HQ promotion
+     (traj_bicomplex_m03_w025, eval 122, 256^3, t=30). Confirm the shortcut is
+     resolution-independent and check whether higher mass/omega extends the
+     ~16-unit lifetime or improves structural persistence (only 2% at m=0.15).
+
+  2. Sign-pattern sweep. The validated run used signs [-1,-1,+1,+1,-1] (3 phantom,
+     2 canonical). Sweep the C(5,k) phantom-lump assignments to find which lumps
+     benefit most from phantom backing -- analogous to the n_exotic=3 sub-campaign
+     for the single-field model.
+
+  3. Mass / omega ratio scan. Hold the genome fixed and scan (scalar_mass, bs_omega)
+     to map where the phantom channel sustains FTL vs collapses. m=0.15/omega=0.12
+     is a confirmed point; m=0.3/omega=0.25 is pending.
+
+  4. Persistence problem. structural_persistence = 2% at m=0.15 means the matter
+     dissipates by t=16. Investigate whether a more massive / more bound boson
+     configuration (higher bs_phi_c, narrower profile) keeps the phantom source
+     coherent long enough to widen the FTL plateau.
+
+GRTresna convergence note (slow-solve fix):
+
+  The bicomplex (and trajectory-boson) initial data start all lumps at rest, so the
+  momentum source is identically zero and the printed Momentum relative error is
+  -nan (0/0). This is physically harmless -- the momentum constraint is trivially
+  satisfied -- but it breaks the NL solver's early-exit logic in
+  GRTresna/Source/Core/GRSolver.impl.hpp:
+
+      converged = (exit_tol > 0) && (Ham_error < exit_tol) && (Mom_error < exit_tol)
+
+  Because (Mom_error < exit_tol) is `(-nan < tol)` which is always false, the
+  solver never early-exits and runs the full max_NL_iterations (30) even though the
+  Hamiltonian error drops below NL_exit_tolerance (1%) by iteration ~8 and stalls
+  at ~0.005% by iteration ~16. That is the "grtresna converges really slow"
+  symptom -- it is not slow, it is ignoring its own stopping criterion.
+
+  Proposed fix (GRSolver.impl.hpp): treat a non-finite Mom_error as "satisfied" in
+  both the converged and stalled checks, e.g.
+
+      const bool mom_ok = !std::isfinite(Mom_error) || (Mom_error < exit_tol);
+      const bool converged = (exit_tol > 0) && (Ham_error < exit_tol) && mom_ok;
+
+  and likewise guard the mom_impr stall term. This would cut the at-rest solve time
+  by ~3x (exit near iteration 8-16 instead of 30) with no change to the solved data.
+  Alternative: normalise the Momentum relative error against a small floor so it
+  reports 0 instead of -nan when the source vanishes.

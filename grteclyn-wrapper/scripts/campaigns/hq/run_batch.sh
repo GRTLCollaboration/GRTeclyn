@@ -31,6 +31,18 @@ GPU_IDS="${GPU_IDS:-0 1 2 3 4 5 6 7}"
 DRY_RUN="${DRY_RUN:-0}"
 REPLAY="${CAMPAIGNS_ROOT}/hq/replay_eval.py"
 
+# Optional space-separated KEY=VALUE pairs forwarded to replay_eval.py as
+# --extra-override (highest priority).  Used e.g. to promote a trajectory elite
+# under the bicomplex (canonical+phantom) matter model:
+#   EXTRA_OVERRIDE="grtresna_matter_model=grtresna_bicomplex_scalar \
+#                   grtresna_matter_sector=boson_star \
+#                   grtresna_scalar_mass=0.3 grtresna_bs_omega=0.25"
+EXTRA_OVERRIDE="${EXTRA_OVERRIDE:-}"
+declare -a EXTRA_OVERRIDE_ARGS=()
+for _ov in ${EXTRA_OVERRIDE}; do
+  EXTRA_OVERRIDE_ARGS+=(--extra-override "${_ov}")
+done
+
 mkdir -p "${RUNS_DIR}"
 
 declare -a CANDIDATE_ENTRIES=()
@@ -179,7 +191,8 @@ for entry in "${CANDIDATE_ENTRIES[@]}"; do
       --consumer-keep-last "${CONSUMER_KEEP_LAST}" \
       --objective-mode "${OBJECTIVE_MODE}" \
       "${geodesic_args[@]}" \
-      "${gridinit_args[@]}"
+      "${gridinit_args[@]}" \
+      "${EXTRA_OVERRIDE_ARGS[@]}"
   else
     # shellcheck disable=SC2086
     nohup ${PYTHON_BIN} "${REPLAY}" \
@@ -203,6 +216,7 @@ for entry in "${CANDIDATE_ENTRIES[@]}"; do
       --objective-mode "${OBJECTIVE_MODE}" \
       "${geodesic_args[@]}" \
       "${gridinit_args[@]}" \
+      "${EXTRA_OVERRIDE_ARGS[@]}" \
       > "${log}" 2>&1 &
     echo "  pid=$!"
   fi

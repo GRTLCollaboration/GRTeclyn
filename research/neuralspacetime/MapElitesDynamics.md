@@ -279,6 +279,112 @@ data onto the coarser evolution grid. Configurations rejected here typically hav
 
 ---
 
+## Bicomplex (canonical + phantom) matter model (2026-06-26)
+
+A new matter model, `grtresna_bicomplex_scalar`, evolves **two coupled complex
+fields** instead of one: a canonical field **Φ⁺** and a phantom field **Φ⁻** with
+*opposite* gravitational sign. Both share the boson-star GRTresna constraint solve
+(per-lump-signed `ComplexScalarField`), but GRTeclyn evolves each field
+independently with its own stress-energy contribution. The phantom Φ⁻ supplies a
+**sustained, dynamically-evolving ANEC violation** that a single complex field
+cannot maintain on its own.
+
+The genome is the eval 122 trajectory (5 lumps, same centers/widths), re-solved with
+the bicomplex matter sector. Per-lump gravitational signs select which lumps source
+the phantom channel.
+
+### Is it bosonic matter? (model caveat)
+
+Yes — the matter content is entirely **bosonic**: two complex spin-0 scalar fields,
+each U(1)-symmetric (boson-star binding). There are no fermions or spinors. Φ⁺ is an
+ordinary positive-energy boson; Φ⁻ is an **exotic (phantom) boson** that supplies the
+negative-energy / ANEC violation.
+
+The important caveat is *how* the phantom is implemented. This is **not** a fully
+Lagrangian-consistent phantom field. A textbook phantom has a wrong-sign kinetic term
+that flips both its gravitational coupling *and* its own equation of motion. Here only
+the **gravitational coupling sign** is reversed (the entire stress-energy is added with
+`fs = -1`, see `BiComplexScalarField.impl.hpp::accumulate_complex_field`), while **both
+fields obey the same Klein–Gordon RHS**:
+
+> *"the field EOM is sign-independent; only the gravitational coupling is reversed, so
+> both fields obey the same Klein-Gordon RHS while preserving their own U(1) charge."*
+> (`BiComplexScalarField.impl.hpp`)
+
+So Φ⁻ **propagates** like a normal positive-norm boson but **gravitates** like
+negative-energy matter. This decoupling is a deliberate engineering choice — it keeps
+the evolution stable and the U(1) charge well-defined — but it means the configuration
+is a *phenomenological* exotic-matter source, not a self-consistent ghost scalar. Any
+physics claim that depends on a true phantom field should account for the EOM-vs-gravity
+sign decoupling.
+
+### Head-to-head — single-complex vs bicomplex at identical parameters
+
+Both runs use the *same* 5-lump trajectory genome, mass `m=0.15`, `ω=0.12`,
+`general_ftl` objective, evolved to t=16:
+
+| Model | Total score | Gauge-inv. shortcut (f_geo) | Geodesics reached | max local speed | operational FTL |
+|-------|-------------|------------------------------|--------------------|------------------|-----------------|
+| `grtresna_boson_star` (single complex) | 35.2 | 0.0% | **0 / 5** | 1.90c (coordinate only) | none (f_op=0) |
+| **`grtresna_bicomplex_scalar`** (canonical + phantom) | **255.7** | **5.21% frozen / 6.13% evolving** | **5 / 5** | **1.071c** | **confirmed (f_op=5.56%)** |
+
+The single complex field produces a large *coordinate* speed (1.90c) that the scorer
+correctly rejects as a delocalised gauge offset — no null ray reaches the detector,
+f_geo=0. The bicomplex model with its phantom channel produces a **genuine,
+gauge-invariant geodesic shortcut**: all 5 null rays reach the detector and the
+evolved geometry sustains a real superluminal channel.
+
+### Validated run — `traj_bicomplex_m015_w012`
+
+| Metric | Value |
+|--------|-------|
+| Total score | 255.7 |
+| f_geo (frozen, `geodesic_ftl`) | **5.21%** @ 5/5 reached |
+| f_geo (evolving 4D, `evolving_geodesic`) | **6.13%** @ 5/5 reached |
+| f_op (evolved, `general_ftl_evolved`) | 5.56% |
+| max_local_speed (evolved) | 1.071c |
+| numerical_survival | 1.0 |
+| operational_ftl / ftl_persistence | 0.365 / 0.366 |
+| WEC violation fraction | 91.4% (wec_min = −6.5e-4) |
+| NEC min | −1.35e-4 |
+| Final Ham L2 / Mom L2 | 1.66e-4 / 2.08e-5 (clean solve) |
+| Max Ham L2 | 1.97e-3 |
+| structural_persistence | 0.021 (matter dissipates by t=16) |
+| Final time | 16.01 (completed) |
+
+**Configuration:** matter_model = `grtresna_bicomplex_scalar`, sector = boson_star,
+coupling = canonical, scalar_mass = 0.15, λ = 0.0, ω = 0.12, per-lump signs =
+`[-1, -1, +1, +1, -1]` (lumps 0/1/4 phantom-sourced, 2/3 canonical).
+
+**Scoring notes (from `score.json`):**
+- *"gauge-invariant null-geodesic shortcut confirmed (f_geo = 5.208e-02)"*
+- *"evolved geometry sustains a strong superluminal channel (max c = 1.071,
+  F_op^ev = 5.558e-02); operational FTL"*
+- *"exotic matter required (matter = 0.82, geometric = 0.24 of full penalty)"* —
+  the phantom field is doing the heavy lifting on the energy-condition side.
+
+**Interpretation.** Splitting the exotic content into an independent phantom field
+decouples the ANEC-violating source from the canonical matter that builds the
+frame-dragging structure. The canonical Φ⁺ lumps provide the orbital geometry; the
+phantom Φ⁻ provides the negative-energy backing that keeps the shortcut open into
+the evolved geometry. The result is a confirmed shortcut where the single-field
+configuration produced only a coordinate artifact.
+
+**Caveats.** The shortcut is transient and the matter structure is largely lost by
+t=16 (structural_persistence = 2%); the high WEC-violation fraction (91%) means the
+configuration is heavily exotic. A higher-mass / higher-ω HQ promotion
+(`traj_bicomplex_m03_w025`, eval 122, m=0.3, ω=0.25, 256³, t=30) is **in progress**
+to test resolution-independence and longer-time survival.
+
+> GRTresna note: the at-rest lumps give a zero momentum source, so the printed
+> Momentum relative error is `-nan` (0/0). This is harmless physically (the
+> momentum constraint is trivially satisfied) but it defeats the NL solver's
+> early-exit check — the Hamiltonian error converges below tolerance by iteration
+> ~8 yet the solve still runs all 30 iterations. See NextSteps.md for the proposed
+> fix.
+
+---
+
 ## Next steps
 
 See [NextSteps.md](./NextSteps.md) for the full plan. Summary:
@@ -330,6 +436,9 @@ See [NextSteps.md](./NextSteps.md) for the full plan. Summary:
 | `trajectory_5lump_v1` HQ | 2026-06-25 | HQ promotion (5 evals) | 5/5 | eval 122 (survived) | **9.40%** f_geo, **20.97%** peak | 1 confirmed, 3 crashed, 1 false positive |
 | `eval000122_harmonic` | 2026-06-25 | Gauge test (harmonic slicing) | 1 | eval 122 | **4.40%** f_geo | Gauge-invariance confirmed (4.4% in harmonic vs 9.4% in 1+log) |
 | `eval000122_xyz` | 2026-06-25 | Direction sweep (x y z) | 1 | eval 122 | **9.40%** f_geo | x is best axis; shortcut aligned with orbital direction |
+| `traj_boson_m015_w012` | 2026-06-26 | Single-complex boson (eval 122 genome) | 1 | 35.2 | 0.0% f_geo | Coordinate-only (1.90c), no gauge-invariant shortcut, 0/5 reached |
+| `traj_bicomplex_m015_w012` | 2026-06-26 | Bicomplex (canonical + phantom) | 1 | **255.7** | **5.21%** f_geo (5/5) | Phantom channel → confirmed gauge-invariant shortcut at identical params |
+| `traj_bicomplex_m03_w025` HQ | 2026-06-26 | Bicomplex HQ (eval 122, m=0.3, ω=0.25) | in progress | — | — | 256³, t=30 promotion running |
 
 **Conclusion:** The trajectory ansatz with per-lump differential motion is a **qualitative
 improvement** over spherical harmonics. The HQ validation confirms a **resolution-independent,
