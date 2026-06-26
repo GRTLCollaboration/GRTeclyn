@@ -128,6 +128,7 @@ def _episode_with_ftl(final_peak_rho: float):
         max_rho_required=1.0,
         integral_negative_rho=0.0,
         final_peak_rho_required=final_peak_rho,
+        initial_peak_rho_required=1.0,
     )
     return EpisodeMetrics(
         collapse=None,

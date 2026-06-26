@@ -266,16 +266,19 @@ def _expand_trajectory_boson_lumps_from_overrides(
     overrides: Mapping[str, Any],
     get_float: Any,
 ) -> list[dict]:
-    """Generate GRTresna boson-star lumps at t=0 trajectory positions with bulk velocity.
+    """Generate GRTresna boson-star lumps at t=0 trajectory positions.
 
     Like ``_expand_trajectory_lumps_from_overrides`` but each lump is a compact
-    boson star soliton.  The key difference: each lump gets a **bulk tangential
-    velocity** from its orbital angular velocity (``omega_rot × r_k``) so that
-    GRTresna solves the full momentum constraint with physical momentum.
+    boson star soliton.  Lumps start at rest (zero velocity) — the trajectory
+    pump drives them along prescribed orbits during evolution, exactly as for
+    the real-scalar case.  Starting at rest keeps the GRTresna momentum
+    constraint trivial, giving much cleaner initial data.
 
-    The pump amplitude (well_depth) is corrective, not generative — the boson
-    star persists via U(1) charge conservation, and the pump merely steers
-    orbits against gravitational radiation losses and inter-star perturbations.
+    The pump amplitude (well_depth) is capped at 0.15, matching the real-scalar
+    trajectory cap.  The search space bounds can restrict this further (e.g. the
+    ``discovery`` profile defaults to [0.001, 0.02] for corrective-only pumps)
+    but the expansion itself does not impose a tighter limit — replay of
+    real-scalar elites with bosonic matter needs the original amplitude range.
     """
     from .spaces import TRAJECTORY_DEFAULT_NUM_LUMPS
 
@@ -286,7 +289,6 @@ def _expand_trajectory_boson_lumps_from_overrides(
     for k in range(num_lumps):
         pfx = f"trajectory_lump{k}_"
         R0 = get_float(f"{pfx}R0", 5.0)
-        omega_rot = get_float(f"{pfx}omega_rot", 0.0)
         phase0 = get_float(f"{pfx}phase0", 2.0 * math.pi * k / num_lumps)
         tilt_theta = get_float(f"{pfx}tilt_theta", 0.0)
         tilt_phi = get_float(f"{pfx}tilt_phi", 0.0)
@@ -305,33 +307,13 @@ def _expand_trajectory_boson_lumps_from_overrides(
         cy = sp * ct * x_orb + cp * y_orb
         cz = -st * x_orb
 
-        # Bulk tangential velocity from orbital angular velocity.
-        # In the orbital plane: v_orb = omega_rot × r_k
-        #   v_x_orb = -omega_rot * R0 * sin(phase0)
-        #   v_y_orb =  omega_rot * R0 * cos(phase0)
-        # Then rotate into lab frame using same tilt rotation.
-        vx_orb = -omega_rot * R0 * math.sin(phase0)
-        vy_orb = omega_rot * R0 * math.cos(phase0)
-
-        vx = cp * ct * vx_orb - sp * vy_orb
-        vy = sp * ct * vx_orb + cp * vy_orb
-        vz = -st * vx_orb
-
-        # Cap speed at 0.9c to stay subluminal.
-        v_mag = math.sqrt(vx * vx + vy * vy + vz * vz)
-        if v_mag > 0.9:
-            scale = 0.9 / v_mag
-            vx *= scale
-            vy *= scale
-            vz *= scale
-
         exotic = int(round(get_float(f"{pfx}exotic", 0.0)))
 
         lumps.append({
-            "amp": min(0.02, max(0.0, well_depth)),
+            "amp": min(0.15, max(0.0, well_depth)),
             "width": max(1.5, well_width),
             "center": (cx, cy, cz),
-            "velocity": (vx, vy, vz),
+            "velocity": (0.0, 0.0, 0.0),
             "omega": 0.0,
             "mode": 0,
             "exotic": exotic,

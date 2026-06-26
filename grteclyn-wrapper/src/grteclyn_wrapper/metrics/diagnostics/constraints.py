@@ -18,6 +18,7 @@ def read_constraint_metrics(path: Path) -> ConstraintMetrics | None:
     max_rho_req = max((row[4] for row in rho_rows), default=None)
     max_int_neg = max((row[5] for row in rho_rows), default=None)
     final_peak_rho_req = rho_rows[-1][4] if rho_rows else None
+    initial_peak_rho_req = rho_rows[0][4] if rho_rows else None
 
     return ConstraintMetrics(
         final_time=rows[-1][0],
@@ -29,4 +30,5 @@ def read_constraint_metrics(path: Path) -> ConstraintMetrics | None:
         max_rho_required=max_rho_req,
         integral_negative_rho=max_int_neg,
         final_peak_rho_required=final_peak_rho_req,
+        initial_peak_rho_required=initial_peak_rho_req,
     )

@@ -9,6 +9,10 @@ from .types import ScoringContext
 # not persistence-gated) rather than dividing by numerical noise.
 _RHO_PERSISTENCE_FLOOR: float = 1.0e-8
 
+# The trajectory pump injects energy, so some rho growth is physical.  Only
+# penalise when final peak rho exceeds initial by more than this factor.
+_RHO_GROWTH_TOLERANCE: float = 3.0
+
 
 def compute_survival_components(ctx: ScoringContext) -> None:
     metrics = ctx.metrics
@@ -33,11 +37,16 @@ def compute_survival_components(ctx: ScoringContext) -> None:
     # Structural persistence has two independent failure modes, both of which
     # must cost the candidate its "survived" credit:
     #
-    #   1. DENSITY RETENTION -- fraction of the peak matter energy density still
-    #      present at the final step.  ``max_rho_required`` is the peak over the
-    #      whole run, ``final_peak_rho_required`` is the value at the stop time.
-    #      A configuration that dissipates/disperses sees its peak rho collapse
-    #      toward 0; one that holds (or concentrates) keeps this near 1.0.
+    #   1. DENSITY RETENTION -- how stable the peak matter energy density is
+    #      between the start and end of the run.  We compare the final peak
+    #      rho to the *initial* peak rho rather than the all-time maximum.
+    #      This catches BOTH failure modes:
+    #        - Dispersion: final << initial  (matter spreads/dissipates)
+    #        - Collapse / constraint blow-up: final >> initial  (runaway
+    #          growth of rho from numerical noise or gravitational collapse)
+    #      The trajectory pump injects energy so modest growth (up to
+    #      ``_RHO_GROWTH_TOLERANCE`` x) is tolerated.  Beyond that the
+    #      retention drops as tolerance / ratio.
     #
     #   2. MORPHOLOGICAL COHERENCE -- whether the matter that *is* still dense
     #      remains a single coherent structure or has fragmented into several
@@ -52,13 +61,26 @@ def compute_survival_components(ctx: ScoringContext) -> None:
     # underlying series/slice is unavailable, leaving survival un-gated.
     density_retention = 1.0
     if metrics.constraints is not None:
-        peak_rho = metrics.constraints.max_rho_required
+        initial_rho = metrics.constraints.initial_peak_rho_required
         final_rho = metrics.constraints.final_peak_rho_required
-        if peak_rho is not None and final_rho is not None and peak_rho > _RHO_PERSISTENCE_FLOOR:
-            ratio = final_rho / peak_rho
-            if not math.isfinite(ratio):
-                ratio = 0.0
-            density_retention = float(min(max(ratio, 0.0), 1.0))
+        if (
+            initial_rho is not None
+            and final_rho is not None
+            and initial_rho > _RHO_PERSISTENCE_FLOOR
+        ):
+            ratio = final_rho / initial_rho
+            if not math.isfinite(ratio) or ratio <= 0.0:
+                density_retention = 0.0
+            elif ratio <= 1.0:
+                # Dispersion: rho dropped.
+                density_retention = float(ratio)
+            elif ratio <= _RHO_GROWTH_TOLERANCE:
+                # Modest growth within tolerance (pump-driven).
+                density_retention = 1.0
+            else:
+                # Runaway growth: constraint blow-up or collapse.
+                density_retention = float(_RHO_GROWTH_TOLERANCE / ratio)
+            density_retention = min(max(density_retention, 0.0), 1.0)
         else:
             notes.append("matter-density time series unavailable; survival not density-gated")
 
@@ -85,5 +107,6 @@ def compute_survival_components(ctx: ScoringContext) -> None:
     components["survival"] = numerical_survival * structural_persistence
     if structural_persistence < 0.5:
         notes.append(
-            f"matter structure dissipated (retained {structural_persistence:.0%} of peak energy density)"
+            f"matter structure lost (persistence={structural_persistence:.0%},"
+            f" density_retention={density_retention:.2f}, coherence={coherence:.2f})"
         )

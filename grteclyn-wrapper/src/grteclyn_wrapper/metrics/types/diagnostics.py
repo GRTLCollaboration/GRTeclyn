@@ -37,6 +37,7 @@ class ConstraintMetrics:
     max_rho_required: float | None
     integral_negative_rho: float | None
     final_peak_rho_required: float | None = None
+    initial_peak_rho_required: float | None = None
 
 
 @dataclass(frozen=True)

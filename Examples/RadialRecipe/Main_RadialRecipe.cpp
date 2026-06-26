@@ -50,10 +50,12 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
             0.0, tp, tx.data(), ty.data(), tz.data(), tamp.data());
         // Seed lump state with t=0 trajectory positions.
         RLRuntime::seed_lumps(n_traj, tx.data(), ty.data(), tz.data());
-        // Set pump amplitudes from per-lump well_depth.
+        // Set pump amplitudes and frequency from trajectory params.
         for (int k = 0; k < n_traj; ++k)
         {
             sim_params.rl_pump_amplitude[k] = tamp[k];
+            sim_params.rl_pump_frequency[k] =
+                sim_params.trajectory_pump_frequency;
         }
         sim_params.rl_num_lumps  = n_traj;
         sim_params.rl_pump_width = tp.well_width;

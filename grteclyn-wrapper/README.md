@@ -980,6 +980,42 @@ PATH="${GRTRESNA_ENV}/bin:${PATH}" CONDA_PREFIX="${GRTRESNA_ENV}" \
   make all -j4 CHOMBO_HOME="${CHOMBO_HOME}" MPI=TRUE
 ```
 
+### Build GRTeclyn (GPU evolution binary)
+
+The RadialRecipe GPU binary (`main3d.gnu.CUDA.ex`) is built **without MPI** and
+**without the conda/grtresna env g++** (nvcc requires gcc ≤ 12; the system
+`g++ 11.4` is compatible, the conda `g++ 15.x` is not).
+
+```bash
+cd /home/jovyan/nachevsky/test/simulation/GRTeclyn/Examples/RadialRecipe
+PATH="/usr/local/cuda/bin:$PATH" NO_MPI_CHECKING=TRUE \
+  make USE_MPI=FALSE USE_CUDA=TRUE -j$(nproc)
+```
+
+Produces `main3d.gnu.CUDA.ex`. Key constraints:
+
+| Setting | Value | Why |
+|---------|-------|-----|
+| `USE_MPI` | `FALSE` | Single-GPU runs; no MPI needed |
+| `USE_CUDA` | `TRUE` | GPU kernels (AMReX + CCZ4 RHS) |
+| `PATH` | `/usr/local/cuda/bin:$PATH` | Picks up `nvcc` |
+| **Do NOT** put grtresna env on PATH | — | Its `g++ 15.x` breaks nvcc's gcc ≤ 12 check |
+| `NO_MPI_CHECKING` | `TRUE` | Skips amrex MPI wrapper probe |
+
+After header-only C++ edits (e.g. `SimulationParameters.hpp`,
+`Main_RadialRecipe.cpp`, `RadialRecipeMatterDispatch.hpp`,
+`TrajectoryEvaluator.hpp`), incremental rebuild picks up only changed
+translation units — no need to clean.
+
+Full clean rebuild:
+
+```bash
+cd /home/jovyan/nachevsky/test/simulation/GRTeclyn/Examples/RadialRecipe
+rm -rf tmp_build_dir main3d.gnu.CUDA.ex
+PATH="/usr/local/cuda/bin:$PATH" NO_MPI_CHECKING=TRUE \
+  make USE_MPI=FALSE USE_CUDA=TRUE -j$(nproc)
+```
+
 ### Solver-only AMR smoke tests
 
 ```bash

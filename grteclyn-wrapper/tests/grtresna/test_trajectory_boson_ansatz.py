@@ -241,13 +241,13 @@ def test_trajectory_boson_velocity_capped_subluminal() -> None:
     assert v_mag <= 0.9 + 1e-10, f"|v|={v_mag}, should be capped at 0.9"
 
 
-def test_trajectory_boson_amplitude_capped_at_corrective() -> None:
-    """Well_depth is capped at 0.02 (corrective, not generative)."""
+def test_trajectory_boson_amplitude_capped() -> None:
+    """Well_depth is capped at 0.15 (same as real-scalar trajectory)."""
     ov = _boson_trajectory_overrides(num_lumps=1)
     ov["trajectory_lump0_well_depth"] = 0.5  # way too high
     cfg = build_grtresna_config(ov, GRTresnaConfig())
 
-    assert cfg.lumps[0]["amp"] <= 0.02
+    assert cfg.lumps[0]["amp"] <= 0.15
 
 
 def test_trajectory_boson_lumps_all_canonical_by_default() -> None:

@@ -97,6 +97,10 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("trajectory_z_amp", trajectory_params.z_amp, 0.0);
         pp.load("trajectory_omega_z", trajectory_params.omega_z, 0.0);
         pp.load("trajectory_well_width", trajectory_params.well_width, 1.5);
+        // Shared pump frequency for complex-scalar trajectory mode.
+        // When nonzero the pump drives Pi and Pi2 with this angular frequency
+        // (should match bs_omega for coherent U(1) charge injection).
+        pp.load("trajectory_pump_frequency", trajectory_pump_frequency, 0.0);
 
         // Per-lump trajectory parameters: trajectory_lump{k}_*.
         for (int k = 0; k < trajectory_params.num_lumps; ++k)
@@ -241,6 +245,7 @@ class SimulationParameters : public SimulationParametersBase
 
     // Trajectory-guided geometry survey (Independent of RL; no ZMQ needed).
     int trajectory_mode{0};        //!< 0 = off, 1 = parametric trajectory
+    double trajectory_pump_frequency{0.0}; //!< Shared pump angular frequency (bs_omega for complex scalar)
     TrajectoryParams trajectory_params{};
 
   private:

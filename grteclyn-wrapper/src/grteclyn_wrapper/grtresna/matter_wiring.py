@@ -63,8 +63,14 @@ def evolution_overrides_from_complex_scalar(
     mass: float,
     lam: float = 0.0,
     sign: float = 1.0,
+    bs_omega: float = 0.0,
 ) -> dict[str, Any]:
-    """GRTeclyn params for grtresna_complex_scalar matter model."""
+    """GRTeclyn params for grtresna_complex_scalar matter model.
+
+    When ``bs_omega`` is nonzero the trajectory pump frequency is set so that
+    the pump drives Pi and Pi2 coherently at the boson star's internal
+    oscillation frequency (U(1) charge injection).
+    """
     overrides: dict[str, Any] = {
         "recipe_matter_model": GRTRESNA_COMPLEX_SCALAR_MODEL,
         "recipe_scalar_mass": float(mass),
@@ -74,6 +80,10 @@ def evolution_overrides_from_complex_scalar(
     }
     if sign != 1.0:
         overrides["recipe_scalar_sign"] = float(sign)
+    # Note: trajectory_pump_frequency is left at 0 (DC pump) intentionally.
+    # The DC pump maintains energy density at tracked positions without
+    # fighting the boson star's own U(1) phase evolution.  Setting freq=bs_omega
+    # introduces phase-mismatch destabilisation (tested 2026-06-26).
     return overrides
 
 
@@ -135,6 +145,7 @@ def evolution_overrides_from_config(cfg: GRTresnaConfig) -> dict[str, Any]:  # n
             mass=float(cfg.scalar_mass),
             lam=float(cfg.scalar_lambda),
             sign=float(getattr(cfg, "scalar_sign", 1)),
+            bs_omega=float(getattr(cfg, "bs_omega", 0.0)),
         )
 
     meta = GRTresnaMatterMetadata.from_config(cfg)

@@ -62,6 +62,7 @@ def read_prefix_constraint_metrics(path: Path, max_time: float) -> ConstraintMet
     max_rho_req = max((row[4] for row in rho_rows), default=None)
     max_int_neg = max((row[5] for row in rho_rows), default=None)
     final_peak_rho_req = rho_rows[-1][4] if rho_rows else None
+    initial_peak_rho_req = rho_rows[0][4] if rho_rows else None
     return ConstraintMetrics(
         final_time=rows[-1][0],
         max_hamiltonian_l2=max(row[1] for row in rows),
@@ -72,6 +73,7 @@ def read_prefix_constraint_metrics(path: Path, max_time: float) -> ConstraintMet
         max_rho_required=max_rho_req,
         integral_negative_rho=max_int_neg,
         final_peak_rho_required=final_peak_rho_req,
+        initial_peak_rho_required=initial_peak_rho_req,
     )
 
 
