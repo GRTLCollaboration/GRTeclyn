@@ -280,27 +280,78 @@ Phase 4: Future Search Directions
 
 Informed by the confirmed mechanism:
 
-  1. Omega sign constraint: All top HQ-confirmed results are all-retrograde.
+  1. BOSON STAR TRAJECTORY: IMPLEMENTED.
+
+     The real-scalar trajectory ansatz suffers from matter dispersion: lumps
+     have no conserved charge and radiate away within 5-10 crossing times.
+     The pump must continuously re-create matter (generative), requiring high
+     amplitudes that risk instability. Bosonic matter in extended shell
+     configurations also disperses because a shell is not a solitonic state.
+
+     Solution: combine the trajectory ansatz (independent per-lump orbits,
+     the winning FTL mechanism) with compact boson star solitons as the
+     matter at each lump position. Boson stars are self-bound via U(1)
+     charge conservation and persist indefinitely without pump refreshing.
+
+     Implementation (all in grteclyn-wrapper):
+       - grtresna_trajectory_boson_search_space() in spaces.py
+         Orbit dims (7 per-lump: R0, omega_rot, phase0, tilt_theta, tilt_phi,
+         well_depth, exotic) + shared trajectory (5: A_breath, omega_breath,
+         z_amp, omega_z, well_width) + shared boson physics (3: scalar_mass,
+         scalar_lambda, bs_omega).
+         Total: 7*N + 8 = 43 D for 5 lumps.
+       - _expand_trajectory_boson_lumps_from_overrides() in config.py
+         Creates complex scalar lumps at t=0 trajectory positions with
+         bulk tangential velocity v_k = omega_rot_k x r_k (capped at 0.9c).
+         GRTresna solves full momentum constraint with this physical momentum.
+       - build_grtresna_config() routes trajectory + boson_star sector to
+         BosonStarBH / grtresna_complex_scalar model.
+       - CLI: --grtresna-ansatz trajectory --grtresna-matter-sector boson_star
+
+     Key design choices:
+       - Shared omega_bs across all lumps (start simple; per-lump later if needed).
+       - Corrective pump: well_depth [0.001, 0.02] (vs [0.01, 0.15] for
+         generative real-scalar pump). The pump steers orbits, not creates matter.
+       - Bulk velocity from omega_rot: v = omega_rot x r (tangential to orbit).
+         This gives GRTresna a non-trivial momentum constraint to solve,
+         producing physical initial shift at t=0.
+       - 17 new tests, all passing. 199 total grtresna tests green.
+
+     Expected improvements over real-scalar trajectory:
+       - Lower gpu_failed rate (less pump-driven instability)
+       - Longer effective FTL window (matter persists)
+       - Physical momentum at t=0 (real initial shift from constraint solve)
+       - Counter-rotating boson stars sustain frame-drag shear without
+         pump refreshing the matter source
+
+     Risk: GRTresna convergence with multi-site complex scalars at non-zero
+     bulk velocity is harder than zero-velocity real scalars. The boson shell
+     campaigns showed ~47% gpu_ok rate at 200 evals. With velocity from
+     trajectory, convergence may be worse initially.
+
+     Next: launch trajectory_boson_5lump_v1 campaign.
+
+  2. Omega sign constraint: All top HQ-confirmed results are all-retrograde.
      A constrained search fixing all omega < 0 would eliminate half the search
      space. This is the single most impactful dimensionality reduction.
 
-  2. Longer evolution (t_stop = 64): The channel is transient (closes by t=20).
+  3. Longer evolution (t_stop = 64): The channel is transient (closes by t=20).
      Test whether this is intrinsic or could be extended. If intrinsic, the
      next step is understanding what sets the ~16 code-unit lifetime.
 
-  3. Increase lump count (7 or 9 lumps): More lumps may strengthen the vortex
+  4. Increase lump count (7 or 9 lumps): More lumps may strengthen the vortex
      or extend the channel lifetime. The all-retrograde constraint would keep
      the search tractable.
 
-  4. Exotic assignment: The search consistently finds 3/5 exotic. A focused
+  5. Exotic assignment: The search consistently finds 3/5 exotic. A focused
      sub-campaign fixing n_exotic=3 and searching only over which 3 lumps
      carry exotic matter (C(5,3)=10 options) could accelerate convergence.
 
-  5. Resolution scaling: Run eval 122 at 384^3 or 512^3 to test whether
+  6. Resolution scaling: Run eval 122 at 384^3 or 512^3 to test whether
      f_geo_evol continues to improve or plateaus. If it keeps growing, the
      20.97% frozen peak may be approachable as the true shortcut magnitude.
 
-  6. Eval 008 postmortem: The false positive teaches us that high Stage 0
+  7. Eval 008 postmortem: The false positive teaches us that high Stage 0
      scores from overlapping lumps + short evolution do not predict HQ
      performance. Consider adding a "mock HQ gate" that runs 5 extra code
      units at Stage 0 (t_stop=21 instead of 16) to catch dissipating configs.

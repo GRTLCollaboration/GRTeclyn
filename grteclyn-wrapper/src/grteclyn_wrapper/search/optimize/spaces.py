@@ -668,6 +668,127 @@ def grtresna_trajectory_search_space(
     return dims
 
 
+# ---------------------------------------------------------------------------
+# Trajectory + boson star (compact soliton matter on trajectory orbits)
+# ---------------------------------------------------------------------------
+
+TRAJECTORY_BOSON_PROFILE_CHOICES = ("discovery", "rotation_only")
+
+
+def grtresna_trajectory_boson_search_space(
+    num_lumps: int = TRAJECTORY_DEFAULT_NUM_LUMPS,
+    profile: str = "discovery",
+) -> list[SearchDimension]:
+    """Trajectory-guided FTL with **boson star** matter — non-dispersing solitons.
+
+    Each lump is a compact U(1)-charged boson star placed on an independent
+    tilted circular orbit.  Unlike the real-scalar trajectory (where the pump
+    IS the matter source), here the boson stars are self-bound via charge
+    conservation and the pump merely provides gentle orbit corrections.
+
+    Physics:
+      - Each boson star has internal phase velocity ``omega_bs`` (shared across
+        lumps for now) satisfying ``omega_bs < scalar_mass`` for a bound state.
+      - At t=0 each star gets bulk tangential velocity from ``omega_rot × r``
+        so GRTresna solves the *full* momentum constraint (non-trivial).
+      - Pump amplitude is reduced: ``well_depth ∈ [0.001, 0.02]`` (corrective,
+        not generative).
+
+    Search dimensions:
+      Per-lump (7 each):
+        R0, omega_rot, phase0, tilt_theta, tilt_phi, well_depth, exotic
+      Shared trajectory (5):
+        A_breath, omega_breath, z_amp, omega_z, well_width
+      Shared boson physics (3):
+        grtresna_scalar_mass, grtresna_scalar_lambda, grtresna_bs_omega
+
+    Total: 7*N + 8   (5 lumps → 43 D).
+    """
+    if profile not in TRAJECTORY_BOSON_PROFILE_CHOICES:
+        raise ValueError(
+            f"unknown trajectory-boson profile: {profile!r} "
+            f"(choices: {', '.join(TRAJECTORY_BOSON_PROFILE_CHOICES)})"
+        )
+
+    dims: list[SearchDimension] = []
+
+    # --- Shared trajectory parameters ---
+    dims.append(SearchDimension("trajectory_A_breath", 0.0, 2.0, 0.0))
+    dims.append(SearchDimension("trajectory_omega_breath", 0.0, 3.0, 0.5))
+    dims.append(SearchDimension("trajectory_z_amp", 0.0, 3.0, 0.0))
+    dims.append(SearchDimension("trajectory_omega_z", 0.0, 2.0, 0.0))
+    dims.append(SearchDimension("trajectory_well_width", 0.8, 3.0, 1.5))
+
+    # --- Shared boson star physics ---
+    # scalar_mass: binding energy.  Compton wavelength 1/m should be comparable
+    # to the Gaussian profile width so the star is self-bound.
+    dims.append(SearchDimension("grtresna_scalar_mass", 0.05, 0.5, 0.2))
+    # scalar_lambda: quartic self-interaction (attractive for lambda>0).
+    dims.append(SearchDimension("grtresna_scalar_lambda", 0.0, 0.05, 0.0))
+    # bs_omega: shared internal phase velocity (must satisfy omega < mass for
+    # bound state; the config builder enforces this).
+    dims.append(SearchDimension("grtresna_bs_omega", 0.05, 0.45, 0.15))
+
+    # --- Per-lump trajectory parameters ---
+    for k in range(num_lumps):
+        phase0_default = 2.0 * math.pi * k / num_lumps
+        R0_default = 4.0 + (k - (num_lumps - 1) / 2.0) * 0.5
+
+        dims.append(
+            SearchDimension(f"trajectory_lump{k}_R0", 1.5, 8.0, R0_default)
+        )
+        dims.append(
+            SearchDimension(
+                f"trajectory_lump{k}_omega_rot", -1.0, 1.0, 0.0
+            )
+        )
+        dims.append(
+            SearchDimension(
+                f"trajectory_lump{k}_phase0",
+                0.0,
+                2.0 * math.pi,
+                phase0_default,
+            )
+        )
+        dims.append(
+            SearchDimension(
+                f"trajectory_lump{k}_tilt_theta", 0.0, math.pi, 0.0
+            )
+        )
+        dims.append(
+            SearchDimension(
+                f"trajectory_lump{k}_tilt_phi",
+                0.0,
+                2.0 * math.pi,
+                0.0,
+            )
+        )
+        # Corrective pump — much weaker than generative real-scalar well_depth.
+        dims.append(
+            SearchDimension(
+                f"trajectory_lump{k}_well_depth", 0.001, 0.02, 0.005
+            )
+        )
+        # Per-lump exotic flag (0=canonical, 1=phantom).
+        dims.append(
+            SearchDimension(
+                f"trajectory_lump{k}_exotic", 0.0, 1.0, 0.0
+            )
+        )
+
+    # Profile simplifications.
+    if profile == "rotation_only":
+        remove = {
+            f"trajectory_lump{k}_{p}"
+            for k in range(num_lumps)
+            for p in ("R0", "tilt_theta", "tilt_phi")
+        }
+        remove |= {"trajectory_A_breath", "trajectory_omega_breath"}
+        dims = [d for d in dims if d.param_key not in remove]
+
+    return dims
+
+
 def build_search_space(
     nonspherical: bool = False,
     grtresna: bool = False,
@@ -705,6 +826,15 @@ def build_search_space(
     """
     if grtresna:
         if grtresna_matter_sector == "boson_star":
+            if grtresna_ansatz == "trajectory":
+                traj_profile = (
+                    grtresna_shell_profile
+                    if grtresna_shell_profile in TRAJECTORY_BOSON_PROFILE_CHOICES
+                    else "discovery"
+                )
+                return grtresna_trajectory_boson_search_space(
+                    num_lumps=grtresna_lumps, profile=traj_profile
+                )
             if grtresna_ansatz == "shell":
                 return grtresna_boson_shell_search_space(
                     profile=grtresna_shell_profile,

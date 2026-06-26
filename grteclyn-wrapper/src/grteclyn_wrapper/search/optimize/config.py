@@ -262,6 +262,83 @@ def _expand_trajectory_lumps_from_overrides(
     return lumps
 
 
+def _expand_trajectory_boson_lumps_from_overrides(
+    overrides: Mapping[str, Any],
+    get_float: Any,
+) -> list[dict]:
+    """Generate GRTresna boson-star lumps at t=0 trajectory positions with bulk velocity.
+
+    Like ``_expand_trajectory_lumps_from_overrides`` but each lump is a compact
+    boson star soliton.  The key difference: each lump gets a **bulk tangential
+    velocity** from its orbital angular velocity (``omega_rot × r_k``) so that
+    GRTresna solves the full momentum constraint with physical momentum.
+
+    The pump amplitude (well_depth) is corrective, not generative — the boson
+    star persists via U(1) charge conservation, and the pump merely steers
+    orbits against gravitational radiation losses and inter-star perturbations.
+    """
+    from .spaces import TRAJECTORY_DEFAULT_NUM_LUMPS
+
+    num_lumps = max(1, int(round(get_float("trajectory_num_lumps", float(TRAJECTORY_DEFAULT_NUM_LUMPS)))))
+    well_width = get_float("trajectory_well_width", 1.5)
+
+    lumps: list[dict] = []
+    for k in range(num_lumps):
+        pfx = f"trajectory_lump{k}_"
+        R0 = get_float(f"{pfx}R0", 5.0)
+        omega_rot = get_float(f"{pfx}omega_rot", 0.0)
+        phase0 = get_float(f"{pfx}phase0", 2.0 * math.pi * k / num_lumps)
+        tilt_theta = get_float(f"{pfx}tilt_theta", 0.0)
+        tilt_phi = get_float(f"{pfx}tilt_phi", 0.0)
+        well_depth = get_float(f"{pfx}well_depth", 0.005)
+
+        # Position at t=0: orbit in plane, then rotate by (tilt_theta, tilt_phi).
+        x_orb = R0 * math.cos(phase0)
+        y_orb = R0 * math.sin(phase0)
+
+        ct = math.cos(tilt_theta)
+        st = math.sin(tilt_theta)
+        cp = math.cos(tilt_phi)
+        sp = math.sin(tilt_phi)
+
+        cx = cp * ct * x_orb - sp * y_orb
+        cy = sp * ct * x_orb + cp * y_orb
+        cz = -st * x_orb
+
+        # Bulk tangential velocity from orbital angular velocity.
+        # In the orbital plane: v_orb = omega_rot × r_k
+        #   v_x_orb = -omega_rot * R0 * sin(phase0)
+        #   v_y_orb =  omega_rot * R0 * cos(phase0)
+        # Then rotate into lab frame using same tilt rotation.
+        vx_orb = -omega_rot * R0 * math.sin(phase0)
+        vy_orb = omega_rot * R0 * math.cos(phase0)
+
+        vx = cp * ct * vx_orb - sp * vy_orb
+        vy = sp * ct * vx_orb + cp * vy_orb
+        vz = -st * vx_orb
+
+        # Cap speed at 0.9c to stay subluminal.
+        v_mag = math.sqrt(vx * vx + vy * vy + vz * vz)
+        if v_mag > 0.9:
+            scale = 0.9 / v_mag
+            vx *= scale
+            vy *= scale
+            vz *= scale
+
+        exotic = int(round(get_float(f"{pfx}exotic", 0.0)))
+
+        lumps.append({
+            "amp": min(0.02, max(0.0, well_depth)),
+            "width": max(1.5, well_width),
+            "center": (cx, cy, cz),
+            "velocity": (vx, vy, vz),
+            "omega": 0.0,
+            "mode": 0,
+            "exotic": exotic,
+        })
+    return lumps
+
+
 def _is_boson_sector(overrides: Mapping[str, Any], matter_model: str) -> bool:
     from ...grtresna.matter_models import (
         MATTER_SECTOR_BOSON_STAR,
@@ -327,10 +404,19 @@ def build_grtresna_config(
 
     if is_boson:
         allow_exotic = float(overrides.get("grtresna_boson_allow_exotic", 0.0)) >= 1.0
-        if any(str(k).startswith("grtresna_shell_") for k in overrides):
+        has_trajectory = any(str(k).startswith("trajectory_") for k in overrides)
+        if has_trajectory:
+            # Trajectory + boson star: compact solitons on independent orbits.
+            # Lumps get bulk velocity from omega_rot for physical momentum.
+            cfg.lumps = _expand_trajectory_boson_lumps_from_overrides(
+                overrides, _get_float
+            )
+        elif any(str(k).startswith("grtresna_shell_") for k in overrides):
             cfg.lumps = _expand_shell_lumps_from_overrides(
                 overrides, _get_float, canonical_boson=not allow_exotic
             )
+        # Read boson physics params (scalar_mass, bs_omega, etc.) and set
+        # matter_model / example to complex scalar / BosonStarBH.
         apply_boson_star_overrides(
             cfg,
             overrides,

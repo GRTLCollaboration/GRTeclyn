@@ -43,6 +43,7 @@ from .spaces import (
     SH_DEFAULT_ELL_MAX,
     SH_PROFILE_CHOICES,
     SHELL_PROFILE_CHOICES,
+    TRAJECTORY_BOSON_PROFILE_CHOICES,
     TRAJECTORY_DEFAULT_NUM_LUMPS,
     TRAJECTORY_PROFILE_CHOICES,
     build_search_space,
@@ -52,6 +53,7 @@ from .spaces import (
     grtresna_search_space,
     grtresna_sh_search_space,
     grtresna_shell_search_space,
+    grtresna_trajectory_boson_search_space,
     grtresna_trajectory_search_space,
 )
 
@@ -78,6 +80,7 @@ __all__ = [
     "SOLVED_FTL_REJECTION_BASE_FITNESS",
     "SOLVED_FTL_REJECTION_MAX_EXTRA_FITNESS",
     "SearchDimension",
+    "TRAJECTORY_BOSON_PROFILE_CHOICES",
     "TRAJECTORY_DEFAULT_NUM_LUMPS",
     "TRAJECTORY_PROFILE_CHOICES",
     "_force_exotic_template",
@@ -92,6 +95,7 @@ __all__ = [
     "grtresna_search_space",
     "grtresna_sh_search_space",
     "grtresna_shell_search_space",
+    "grtresna_trajectory_boson_search_space",
     "grtresna_trajectory_search_space",
     "parse_convergence_safe",
     "run_optimize",
