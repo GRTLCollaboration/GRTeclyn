@@ -385,6 +385,118 @@ to test resolution-independence and longer-time survival.
 
 ---
 
+## Matter confinement & the Q-ball extension (2026-06-26)
+
+### The dispersion problem
+
+Across the bicomplex runs the matter lumps **disperse** rather than holding their
+shape, which collapses `structural_persistence` (2% by t=16 in
+`traj_bicomplex_m015_w012`). A dedicated, mass-weighted **confinement diagnostic**
+(`small_data/confinement.dat`, columns `rms_radius` and `confined_frac`) was added
+because peak/total density is spatially blind: a lump can spray into a ragged halo
+while its peak density *rises* under pump injection, so the old peak-based persistence
+reported "fine" while the frames showed matter blowing apart. Dispersal shows up
+unambiguously as **rms_radius growing** and **confined_frac collapsing**.
+
+A clean diagnostic run (`m=1.0`, `ω=0.3`, 5 compact `R=1/√(m²−ω²)=1.05` sech lumps on
+an evenly-spaced `R0=4` ring, 128³, PD trap active) confirmed the dispersal with the
+trap *fully active and constraints pristine*:
+
+| metric | t=0 → t=8 |
+|--------|-----------|
+| confined_frac | 0.73 → **0.36** |
+| rms_radius | 5.39 → **7.29** (×1.35) |
+| total_activity | 7.85 → **20.2** (×2.58, pump injecting) |
+| peak_activity | falling |
+| constraint_health / Ham L2 | 0.999 / **1e-5** (governor *not* throttling) |
+
+### Root cause — no binding
+
+At `amp = 0.005` (corrective pump amplitude) the lumps barely curve spacetime (Ham L2
+~1e-5 ⇒ **negligible self-gravity**), so they are not boson stars — they are **free
+Klein–Gordon wave packets**, which have no bound state and disperse. The closed-loop
+PD "trap" controller can only grip where its envelope `sech(r/R)` is non-zero, so
+matter that diffuses past ~2–3R escapes its reach and is lost (the trap injects waves
+fighting the leak, hence `total_activity` *grows*). **You cannot trap a configuration
+that has no bound state.**
+
+### Q-ball extension (Stage A — analytic seed + self-interaction)
+
+The fix is to give the field a genuine **self-bound soliton** via self-interaction.
+`ComplexScalarPotential` was extended from the mass-only/quartic form to the full
+**Q-ball potential** with a sextic stabiliser:
+
+```
+V(|Φ|) = ½ m² |Φ|²  −  ¼ λ |Φ|⁴  +  ⅙ μ |Φ|⁶
+dV/d|Φ|² = ½ m² − ½ λ |Φ|² + ½ μ |Φ|⁴
+```
+
+The attractive quartic (`λ>0`) supplies self-binding; the sextic (`μ>0`) is **required**
+— a pure attractive quartic is the critical 3D case and either collapses or disperses.
+`λ = μ = 0` recovers the previous free massive field.
+
+Q-ball design relations used (flat-space; gravity is negligible here):
+- equilibrium core density `ρ* = 3λ/4μ`, core amplitude `|Φ|_core ≈ √ρ*`;
+- existence band `ω ∈ (ω_min, m)` with `ω_min² = m² − 3λ²/16μ`;
+- tail decay `R = 1/√(m²−ω²)` (unchanged — `λ,μ` vanish in the low-amplitude tail, so
+  the existing `bound_width()` + sech painter/trap-target infrastructure stays correct).
+
+**Test parameters** (`traj_bicomplex_qball_test`): `m=1.0`, `λ=160`, `μ=5333`
+(⇒ core `|Φ|≈0.15`, `ω_min≈0.316`), `ω=0.4` (just above `ω_min` ⇒ strongly bound),
+`R=1.09` (2R=2.18 ≪ 4.70 ring separation, no overlap), lump amplitude raised
+`0.005 → 0.15` to sit at the Q-ball core. The large couplings are an artifact of the
+small amplitude (`λA²~m²` ⇒ `λ~1/A²`); RHS magnitudes stay O(0.5) and CFL-safe.
+
+**Preliminary result** (in progress, to t≈2.4 so far) — the confinement metric holds,
+in sharp contrast to the dispersing baseline:
+
+| metric | dispersing (no sextic) | **Q-ball (sextic)** |
+|--------|------------------------|---------------------|
+| rms_radius | 5.39 → 7.29 (×1.35) | **5.51 → 5.57 (×1.01, flat)** |
+| confined_frac | 0.73 → 0.36 | **0.71 → 0.70 (held)** |
+| total_activity | ×2.58 | ×1.11 |
+| peak_activity | falling | falling 0.21→0.11 (seed relaxing to the Q-ball profile) |
+
+The flat `rms` + held `confined_frac` indicate the matter is **staying confined**; the
+falling peak is the analytic sech seed shedding its excess as it settles toward the true
+Q-ball profile (the radiated excess is what appears as "dispersion" in the `lapse_z`
+frames, but the bulk matter does not fly apart).
+
+**Files changed (evolution-side only):**
+`Source/Matter/ComplexScalarPotential.hpp` (sextic V + dV, `m_mu`),
+`BiComplexScalarField.hpp` / `ComplexScalarField.hpp` (load `recipe_scalar_mu`),
+`Examples/RadialRecipe/{SimulationParameters,RadialRecipeMatterDispatch}.hpp`,
+and Python wiring `grtresna/{matter_wiring,solver,matter_models}.py`,
+`search/optimize/config.py` (thread `grtresna_scalar_mu` → `recipe_scalar_mu`). The
+GRTresna constraint solve is left quartic-only: at these amplitudes gravity is
+negligible, so the near-flat initial data is consistent and CCZ4 damps the tiny `V`
+mismatch.
+
+### Stage B — the principled fix (full boson-star / Q-ball ODE) — NOT yet done
+
+Stage A imposes an **analytic sech seed** at the Q-ball core amplitude and lets it relax
+into the soliton (shedding radiation). The radiated transient and the residual peak drop
+come from the seed not being the *exact* equilibrium profile. The principled fix is to
+**solve the boson-star / Q-ball radial ODE** for the true stationary profile so the
+field starts *on* the soliton attractor with no relaxation transient:
+
+- Solve the coupled `(φ₀(r), metric)` eigenvalue problem
+  `φ₀'' + (2/r)φ₀' = [dV/d|Φ|² − ω²/α²] φ₀` (shooting on the central amplitude /
+  eigenfrequency `ω` so `φ₀→0` as `r→∞`), with `V` the full sextic potential.
+- Replace the sech painter (`grtresna/boson_star_profile.py`, currently
+  `φ₀(r)=φ_c·sech(r/R)`) with the tabulated ODE solution, and feed the *same* `V` to
+  the GRTresna constraint solve so initial data is fully self-consistent (this also
+  removes the quartic-only solve approximation noted above).
+- For a self-**gravitating** star (rather than the flat-space Q-ball used here at
+  negligible amplitude), couple the metric ODE and raise the amplitude until the
+  gravitational binding is non-trivial — at which point the GRTresna sextic consistency
+  becomes mandatory.
+
+This is the natural next step once Stage A confinement is confirmed over the full t=8–16
+window. See `NextSteps.md` (Phase 4) for sequencing.
+
+---
+
 ## Next steps
 
 See [NextSteps.md](./NextSteps.md) for the full plan. Summary:
