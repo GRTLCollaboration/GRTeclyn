@@ -130,7 +130,9 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
             {
                 const bool complex_field =
                     (sim_params.recipe_matter_model ==
-                     "grtresna_complex_scalar");
+                         "grtresna_complex_scalar" ||
+                     sim_params.recipe_matter_model ==
+                         "grtresna_bicomplex_scalar");
                 const double ball_radius = 3.0 * sim_params.rl_pump_width;
                 const int num_lumps      = sim_params.rl_num_lumps;
                 const auto obs           = collect_rl_observations(

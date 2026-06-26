@@ -324,11 +324,11 @@ def _expand_trajectory_boson_lumps_from_overrides(
 def _is_boson_sector(overrides: Mapping[str, Any], matter_model: str) -> bool:
     from ...grtresna.matter_models import (
         MATTER_SECTOR_BOSON_STAR,
-        is_complex_scalar_model,
         normalize_matter_sector,
+        uses_boson_solve,
     )
 
-    if is_complex_scalar_model(matter_model):
+    if uses_boson_solve(matter_model):
         return True
     if any(str(k).startswith("grtresna_bs_") for k in overrides):
         return True

@@ -295,7 +295,10 @@ def write_grtresna_params(cfg: GRTresnaConfig, path: Path) -> None:
         f"scalar_mass = {cfg.scalar_mass}",
         f"scalar_lambda = {cfg.scalar_lambda}",
     ]
-    if cfg.matter_model == "grtresna_complex_scalar":
+    if cfg.matter_model in (
+        "grtresna_complex_scalar",
+        "grtresna_bicomplex_scalar",
+    ):
         lines.extend([
             f"scalar_sign = {cfg.scalar_sign}",
             f"bs_phi_c = {cfg.bs_phi_c}",
@@ -613,6 +616,8 @@ def solve(
         "lumps": cfg.lumps or None,
         "shift_seed": cfg.shift_seed,
         "num_workers": cfg.gridinit_workers,
+        "matter_model": cfg.matter_model,
+        "bs_omega": cfg.bs_omega,
     }
     if export is not None:
         convert_kwargs.update(

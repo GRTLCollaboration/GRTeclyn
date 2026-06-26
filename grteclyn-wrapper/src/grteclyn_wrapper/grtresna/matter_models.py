@@ -17,6 +17,10 @@ from typing import Any, Callable, Mapping
 
 GRTRESNA_INDEPENDENT_MATTER_MODEL = "grtresna_independent_scalars"
 GRTRESNA_COMPLEX_SCALAR_MODEL = "grtresna_complex_scalar"
+# Two coupled complex fields (canonical Phi+ and phantom Phi-).  Shares the
+# boson-star GRTresna SOLVE (per-lump-signed ComplexScalarField), but GRTeclyn
+# evolves both fields with their own gravitational sign.
+GRTRESNA_BICOMPLEX_SCALAR_MODEL = "grtresna_bicomplex_scalar"
 
 GRTRESNA_EXAMPLE_SCALAR_FIELD_BH = "ScalarFieldBH"
 GRTRESNA_EXAMPLE_BOSON_STAR_BH = "BosonStarBH"
@@ -156,6 +160,18 @@ def is_complex_scalar_model(matter_model: str) -> bool:
     return matter_model == GRTRESNA_COMPLEX_SCALAR_MODEL
 
 
+def is_bicomplex_scalar_model(matter_model: str) -> bool:
+    return matter_model == GRTRESNA_BICOMPLEX_SCALAR_MODEL
+
+
+def uses_boson_solve(matter_model: str) -> bool:
+    """True for any model whose GRTresna SOLVE is the BosonStarBH (complex)
+    example -- both the single-complex and the two-complex-field models."""
+    return is_complex_scalar_model(matter_model) or is_bicomplex_scalar_model(
+        matter_model
+    )
+
+
 def is_boson_star_sector(sector: str) -> bool:
     return normalize_matter_sector(sector) == MATTER_SECTOR_BOSON_STAR
 
@@ -166,7 +182,7 @@ def resolve_grtresna_example(
     has_lumps: bool = False,
 ) -> str:
     """Pick the GRTresna binary example directory for a matter configuration."""
-    if is_complex_scalar_model(matter_model):
+    if uses_boson_solve(matter_model):
         return GRTRESNA_EXAMPLE_BOSON_STAR_BH
     if has_lumps or matter_model == GRTRESNA_INDEPENDENT_MATTER_MODEL:
         return GRTRESNA_EXAMPLE_SCALAR_FIELD_BH
@@ -253,7 +269,7 @@ def apply_boson_star_overrides(
     sector_raw = str(overrides.get("grtresna_matter_sector", "")).strip().lower()
     has_bs_keys = any(str(k).startswith("grtresna_bs_") for k in overrides)
     is_boson = (
-        is_complex_scalar_model(matter_model)
+        uses_boson_solve(matter_model)
         or matter_model in ("boson_star", "complex_scalar")
         or has_bs_keys
     )
@@ -265,7 +281,13 @@ def apply_boson_star_overrides(
     if not is_boson:
         return False
 
-    cfg.matter_model = GRTRESNA_COMPLEX_SCALAR_MODEL
+    # Preserve the two-complex-field model id (it shares the boson SOLVE but a
+    # distinct GRTeclyn evolution); otherwise default to the single-complex one.
+    cfg.matter_model = (
+        GRTRESNA_BICOMPLEX_SCALAR_MODEL
+        if is_bicomplex_scalar_model(matter_model)
+        else GRTRESNA_COMPLEX_SCALAR_MODEL
+    )
     cfg.example = GRTRESNA_EXAMPLE_BOSON_STAR_BH
     if not cfg.lumps:
         cfg.lumps = []

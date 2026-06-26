@@ -455,6 +455,8 @@ def convert_chombo_to_gridinit(
     lumps: Sequence[Mapping[str, Any]] | None = None,
     shift_seed: float = 0.0,
     num_workers: int = 0,
+    matter_model: str = "",
+    bs_omega: float = 0.0,
 ) -> Path:
     """One-shot: read Chombo HDF5, flatten, write .gridinit.
 
@@ -527,6 +529,50 @@ def convert_chombo_to_gridinit(
             float(target_center[1]) - 0.5 * float(Ly),
             float(target_center[2]) - 0.5 * float(Lz),
         ])
+
+    is_bicomplex = matter_model == "grtresna_bicomplex_scalar"
+
+    if is_bicomplex:
+        # Two-complex-field (canonical + phantom) model.  Repaint the matter
+        # block analytically from the lumps grouped by sign; the metric (incl.
+        # the solved lapse) comes from GRTresna unchanged.
+        from .boson_star_fields import (
+            paint_bicomplex_fields_on_grid,
+            rename_complex_scalar_components,
+        )
+        from .lump_fields import (
+            paint_shift_seed_on_grid,
+            shift_lump_centers_for_gridinit,
+        )
+
+        comp_names = rename_complex_scalar_components(comp_names)
+        shifted_lumps = (
+            shift_lump_centers_for_gridinit(
+                lumps,
+                grid_center=(
+                    float(origin[0]) + 0.5 * float(Lx),
+                    float(origin[1]) + 0.5 * float(Ly),
+                    float(origin[2]) + 0.5 * float(Lz),
+                ),
+            )
+            if lumps
+            else []
+        )
+        if shift_seed and shifted_lumps:
+            data = paint_shift_seed_on_grid(
+                data, comp_names, dx_xyz, origin, shifted_lumps,
+                shift_seed=float(shift_seed),
+            )
+        data, comp_names = paint_bicomplex_fields_on_grid(
+            data, comp_names, dx_xyz, origin, shifted_lumps, omega=bs_omega,
+        )
+        result = write_gridinit(data, comp_names, dx_xyz, origin, output_path)
+        if delete_source:
+            src = Path(chombo_path)
+            if src.exists():
+                src.unlink()
+                logger.info("Deleted source HDF5: %s", src)
+        return result
 
     if lumps:
         from .lump_fields import (

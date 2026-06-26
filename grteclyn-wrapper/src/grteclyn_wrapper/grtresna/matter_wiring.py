@@ -11,8 +11,10 @@ from typing import TYPE_CHECKING
 
 from .lump_fields import MAX_INDEPENDENT_LUMPS, lump_sign
 from .matter_models import (
+    GRTRESNA_BICOMPLEX_SCALAR_MODEL,
     GRTRESNA_COMPLEX_SCALAR_MODEL,
     GRTRESNA_INDEPENDENT_MATTER_MODEL,
+    is_bicomplex_scalar_model,
     is_complex_scalar_model,
 )
 
@@ -87,6 +89,29 @@ def evolution_overrides_from_complex_scalar(
     return overrides
 
 
+def evolution_overrides_from_bicomplex_scalar(
+    mass: float,
+    lam: float,
+    field_signs: tuple[int, ...],
+) -> dict[str, Any]:
+    """GRTeclyn params for the two-complex-field (canonical + phantom) model.
+
+    ``field_signs`` is the per-lump sign list (+1 canonical, -1 exotic), in the
+    trajectory lump order.  It routes each pump spotlight to the canonical
+    (Phi+) or phantom (Phi-) field via ``recipe_scalar_field_signs``.
+    """
+    signs = field_signs[:MAX_INDEPENDENT_LUMPS]
+    return {
+        "recipe_matter_model": GRTRESNA_BICOMPLEX_SCALAR_MODEL,
+        "recipe_scalar_mass": float(mass),
+        "recipe_scalar_lambda": float(lam),
+        "recipe_num_scalar_fields": len(signs),
+        "recipe_scalar_field_signs": " ".join(str(int(s)) for s in signs),
+        "calculate_constraint_norms": 1,
+        "amr.plot_vars": plot_vars_for_complex_scalar(),
+    }
+
+
 @dataclass(frozen=True)
 class GRTresnaMatterMetadata:
     """Serialized matter layout for a GRTresna-projected episode."""
@@ -110,6 +135,23 @@ class GRTresnaMatterMetadata:
 
     @classmethod
     def from_config(cls, cfg: GRTresnaConfig) -> GRTresnaMatterMetadata:  # noqa: F821
+        if is_bicomplex_scalar_model(getattr(cfg, "matter_model", "")):
+            lumps = list(getattr(cfg, "lumps", ()) or ())
+            signs = tuple(lump_sign(l) for l in lumps[:MAX_INDEPENDENT_LUMPS])
+            return cls(
+                matter_model=GRTRESNA_BICOMPLEX_SCALAR_MODEL,
+                num_scalar_fields=len(signs),
+                scalar_field_signs=signs,
+                scalar_mass=float(cfg.scalar_mass),
+                scalar_lambda=float(cfg.scalar_lambda),
+                lump_count=len(lumps),
+                bs_phi_c=float(getattr(cfg, "bs_phi_c", 0.0)),
+                bs_profile_width=float(getattr(cfg, "bs_profile_width", 0.0)),
+                bs_omega=float(getattr(cfg, "bs_omega", 0.0)),
+                scalar_sign=int(getattr(cfg, "scalar_sign", 1)),
+                lump_centers=_lump_centers(lumps),
+            )
+
         if is_complex_scalar_model(getattr(cfg, "matter_model", "")):
             return cls(
                 matter_model=GRTRESNA_COMPLEX_SCALAR_MODEL,
@@ -140,6 +182,15 @@ class GRTresnaMatterMetadata:
 
 def evolution_overrides_from_config(cfg: GRTresnaConfig) -> dict[str, Any]:  # noqa: F821
     """GRTeclyn params that select the matched matter model."""
+    if is_bicomplex_scalar_model(getattr(cfg, "matter_model", "")):
+        lumps = list(getattr(cfg, "lumps", ()) or ())
+        signs = tuple(lump_sign(lump) for lump in lumps[:MAX_INDEPENDENT_LUMPS])
+        return evolution_overrides_from_bicomplex_scalar(
+            mass=float(cfg.scalar_mass),
+            lam=float(cfg.scalar_lambda),
+            field_signs=signs,
+        )
+
     if is_complex_scalar_model(getattr(cfg, "matter_model", "")):
         return evolution_overrides_from_complex_scalar(
             mass=float(cfg.scalar_mass),

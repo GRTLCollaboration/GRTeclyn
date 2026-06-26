@@ -52,6 +52,13 @@ compute_radial_recipe_constraint_norms(RadialRecipeLevel &level)
         fill_matter_constraints(cst, state_new, matter, dx[0],
                                 sim_params.recipe_params.grid_center, time);
     }
+    else if (RadialRecipeMatter::uses_bicomplex_scalar(sim_params))
+    {
+        BiComplexScalarField matter(sim_params.recipe_scalar_mass,
+                                    sim_params.recipe_scalar_lambda);
+        fill_matter_constraints(cst, state_new, matter, dx[0],
+                                sim_params.recipe_params.grid_center, time);
+    }
     else if (sim_params.recipe_exotic_matter)
     {
         ExoticScalarField<DefaultPotential> exotic_scalar(

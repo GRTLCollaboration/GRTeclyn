@@ -467,6 +467,14 @@ void RadialRecipeLevel::specificPostTimeStep()
                                     simParams().recipe_params.grid_center,
                                     time);
         }
+        else if (RadialRecipeMatter::uses_bicomplex_scalar(simParams()))
+        {
+            BiComplexScalarField matter(simParams().recipe_scalar_mass,
+                                        simParams().recipe_scalar_lambda);
+            fill_matter_constraints(cst, state_new, matter, dx[0],
+                                    simParams().recipe_params.grid_center,
+                                    time);
+        }
         else if (simParams().recipe_exotic_matter)
         {
             ExoticScalarField<DefaultPotential> exotic_scalar(
@@ -953,6 +961,13 @@ void RadialRecipeLevel::specificPostTimeStep()
                 ComplexScalarField matter(simParams().recipe_scalar_mass,
                                             simParams().recipe_scalar_lambda,
                                             simParams().recipe_scalar_sign);
+                ec_res = reduce_ec_margins(state_fine, matter, ec_dx,
+                                           ec_cell_vol);
+            }
+            else if (RadialRecipeMatter::uses_bicomplex_scalar(simParams()))
+            {
+                BiComplexScalarField matter(simParams().recipe_scalar_mass,
+                                            simParams().recipe_scalar_lambda);
                 ec_res = reduce_ec_margins(state_fine, matter, ec_dx,
                                            ec_cell_vol);
             }

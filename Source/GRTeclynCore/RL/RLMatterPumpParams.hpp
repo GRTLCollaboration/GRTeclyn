@@ -17,6 +17,10 @@ struct RLPumpSite
     double amplitude{0.0};
     double frequency{0.0};
     double phase{0.0};
+    //! Sign of the field this spotlight drives.  +1 => canonical (Phi+) field,
+    //! -1 => phantom (Phi-) field.  Used by the two-complex-field matter model
+    //! to route the pump to the correct field; ignored by single-field models.
+    int field_sign{1};
 };
 
 //! Multi-site pump: N independent spotlights sharing one envelope width and one
