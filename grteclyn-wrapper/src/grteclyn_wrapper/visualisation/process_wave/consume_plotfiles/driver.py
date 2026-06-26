@@ -11,6 +11,7 @@ import yt
 
 from .config import _default_data_dir, _default_frames_out_dir, _frames_auto_zlim_enabled
 from .extraction.central import CENTRAL_TIMESERIES_HEADER
+from .extraction.confinement import CONFINEMENT_TIMESERIES_HEADER
 from .extraction.ftl import FTL_TIMESERIES_HEADER
 from .extraction.shell import _shell_stats_header
 from .fields import _canonical_field_name
@@ -134,6 +135,19 @@ def main() -> None:
         "--ftl-timeseries",
         action="store_true",
         help="Per-plotfile FTL features (operational + gated geodesic) to ftl_timeseries.dat.",
+    )
+    parser.add_argument(
+        "--confinement-timeseries",
+        action="store_true",
+        help="Per-plotfile matter-confinement moments (rms_radius, confined_frac, "
+        "true matter barycentre) to confinement.dat -- the trustworthy "
+        "'matter dispersed / flew away' detector.",
+    )
+    parser.add_argument(
+        "--confinement-well-width",
+        type=float,
+        default=1.5,
+        help="Lump scale for confinement R_conf = 4*well_width (default 1.5).",
     )
     parser.add_argument(
         "--central-timeseries",
@@ -268,6 +282,7 @@ def main() -> None:
     shell_out_path = out_dir / "shell_profiles.dat"
     boundary_flux_out_path = out_dir / "boundary_flux.dat"
     ftl_out_path = out_dir / "ftl_timeseries.dat"
+    confinement_out_path = out_dir / "confinement.dat"
     central_out_path = out_dir / "central_timeseries.dat"
     central_radial_out_path = out_dir / "central_radial_profile.dat"
     score_ts_path = out_dir / "score_timeseries.jsonl"
@@ -289,6 +304,8 @@ def main() -> None:
             _truncate_if_exists(shell_out_path)
         if args.ftl_timeseries:
             _truncate_if_exists(ftl_out_path)
+        if args.confinement_timeseries:
+            _truncate_if_exists(confinement_out_path)
         if args.central_timeseries:
             _truncate_if_exists(central_out_path)
         if args.central_radial_profile:
@@ -476,6 +493,12 @@ def main() -> None:
                                 )
                                 if args.ftl_timeseries:
                                     _append_incremental_score(float(res["t"]))
+                            if res.get("confinement_line"):
+                                _append_line(
+                                    confinement_out_path,
+                                    header=CONFINEMENT_TIMESERIES_HEADER,
+                                    line=res["confinement_line"],
+                                )
                             _handle_central_outputs(res)
 
                             state[res["key"]] = True
@@ -514,6 +537,12 @@ def main() -> None:
                         )
                         if args.ftl_timeseries:
                             _append_incremental_score(float(res["t"]))
+                    if res.get("confinement_line"):
+                        _append_line(
+                            confinement_out_path,
+                            header=CONFINEMENT_TIMESERIES_HEADER,
+                            line=res["confinement_line"],
+                        )
                     _handle_central_outputs(res)
 
                     state[res["key"]] = True

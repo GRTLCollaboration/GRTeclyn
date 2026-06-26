@@ -23,6 +23,22 @@ def _central_timeseries_enabled(explicit: bool | None) -> bool:
     return _env_flag("GRTECLYN_CENTRAL_TIMESERIES")
 
 
+def _confinement_timeseries_enabled(explicit: bool | None, ftl_timeseries: bool) -> bool:
+    """Matter-confinement stream: the trustworthy dispersal detector.
+
+    Default-on for any matter FTL run (it is a cheap covering-grid moment) so we
+    always get the rms_radius / confined_frac curves; ``GRTECLYN_CONFINEMENT=0``
+    disables it, and an explicit argument overrides both.
+    """
+    if explicit is not None:
+        return explicit
+    if os.environ.get("GRTECLYN_CONFINEMENT", "").strip().lower() in {
+        "0", "off", "no", "none", "false",
+    }:
+        return False
+    return bool(ftl_timeseries) or _env_flag("GRTECLYN_CONFINEMENT")
+
+
 def _central_ball_enabled() -> bool:
     return _env_flag("GRTECLYN_CENTRAL_BALL")
 
@@ -97,6 +113,7 @@ def build_consume_command(
     stable_seconds: float | None = None,
     ftl_timeseries: bool = False,
     central_timeseries: bool | None = None,
+    confinement_timeseries: bool | None = None,
     ftl_L: float | None = None,
     incremental_score: bool = True,
     objective_mode: str = "weighted",
@@ -159,6 +176,13 @@ def build_consume_command(
             command.extend(["--ftl-l", f"{float(ftl_L):g}"])
         if evolving_geodesic:
             command.append("--evolving-geodesic")
+    if _confinement_timeseries_enabled(confinement_timeseries, ftl_timeseries):
+        well_width = _read_float_param(
+            episode.params_path, "trajectory_well_width", 1.5
+        )
+        command.extend(
+            ["--confinement-timeseries", "--confinement-well-width", f"{well_width:g}"]
+        )
     central_enabled = _central_timeseries_enabled(central_timeseries)
     splash_incremental = (
         _incremental_score_enabled(incremental_score)

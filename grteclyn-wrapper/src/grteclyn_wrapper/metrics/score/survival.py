@@ -100,13 +100,48 @@ def compute_survival_components(ctx: ScoringContext) -> None:
                 f"(coherence={coherence:.2f}); survival/shaping rewards gated down"
             )
 
-    structural_persistence = density_retention * coherence
+    # CONFINEMENT RETENTION -- the trustworthy "matter dispersed / flew away"
+    # gate.  density_retention (peak rho) is spatially blind: a lump can spray
+    # into a ragged halo while peak/total density RISES under pump injection, so
+    # peak-based persistence reported "good" while the frames showed the matter
+    # blowing apart.  confined_frac is the mass fraction still inside the lump
+    # scale (4*well_width of the true matter barycentre); it falls precisely when
+    # the matter de-localizes, regardless of peak.  Defaults to 1.0 (un-gated)
+    # when confinement.dat is unavailable, so older episodes are unaffected.
+    confinement_retention = 1.0
+    confinement = metrics.confinement
+    if confinement is not None and confinement.final_confined_frac is not None:
+        confinement_retention = float(
+            min(max(confinement.final_confined_frac, 0.0), 1.0)
+        )
+        components["confinement_final_frac"] = confinement_retention
+        if confinement.spread_ratio is not None:
+            components["confinement_spread_ratio"] = float(confinement.spread_ratio)
+        if confinement.min_confined_frac is not None:
+            components["confinement_min_frac"] = float(
+                min(max(confinement.min_confined_frac, 0.0), 1.0)
+            )
+
+    structural_persistence = density_retention * coherence * confinement_retention
 
     components["numerical_survival"] = numerical_survival
+    components["confinement_retention"] = confinement_retention
     components["structural_persistence"] = structural_persistence
     components["survival"] = numerical_survival * structural_persistence
+    if confinement is not None and confinement_retention < 0.5:
+        spread = (
+            f", spread x{confinement.spread_ratio:.2f}"
+            if confinement.spread_ratio is not None
+            else ""
+        )
+        notes.append(
+            f"matter DISPERSED: only {confinement_retention:.0%} of matter remains "
+            f"confined to the lumps by t={confinement.final_time}{spread} "
+            f"(rms {confinement.initial_rms_radius}->{confinement.final_rms_radius})"
+        )
     if structural_persistence < 0.5:
         notes.append(
             f"matter structure lost (persistence={structural_persistence:.0%},"
-            f" density_retention={density_retention:.2f}, coherence={coherence:.2f})"
+            f" density_retention={density_retention:.2f}, coherence={coherence:.2f},"
+            f" confinement={confinement_retention:.2f})"
         )

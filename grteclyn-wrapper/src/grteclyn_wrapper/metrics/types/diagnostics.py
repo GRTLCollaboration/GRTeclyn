@@ -186,3 +186,30 @@ class FtlTimeSeriesMetrics:
     # End-to-end evolving probe (populated on the final timeseries row when enabled).
     f_geo_evol: float | None = None
     f_geo_evol_ok: bool | None = None
+
+
+@dataclass(frozen=True)
+class ConfinementMetrics:
+    """Matter spatial-confinement over the run (one sample per plotfile).
+
+    The trustworthy "matter dispersed / flew away" detector.  Built from the
+    mass(scalar_activity)-weighted spatial moments in ``confinement.dat``:
+    ``rms_radius`` (spread about the true matter barycentre) and
+    ``confined_frac`` (fraction of matter still within the lump scale).  Unlike
+    peak/total density -- which can RISE under pump injection while the lump
+    disperses -- a growing ``rms_radius`` and collapsing ``confined_frac`` are
+    unambiguous dispersal signals.
+    """
+
+    n_frames: int
+    final_time: float | None
+    initial_rms_radius: float | None
+    final_rms_radius: float | None
+    max_rms_radius: float | None
+    initial_confined_frac: float | None
+    final_confined_frac: float | None
+    min_confined_frac: float | None
+    #: final_rms / initial_rms -- > 1 means the matter spread out.
+    spread_ratio: float | None
+    initial_total: float | None
+    final_total: float | None

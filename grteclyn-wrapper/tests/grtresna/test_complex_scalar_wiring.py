@@ -72,6 +72,27 @@ def test_evolution_overrides_bicomplex_uses_phantom_plot_vars() -> None:
     assert "phi_lump1" in overrides["amr.plot_vars"]
 
 
+def test_evolution_overrides_enable_pd_controller() -> None:
+    # bs_omega drives the closed-loop PD trap pump controller: the pump frequency
+    # carries the boson phase velocity and the kp/kd gains switch on the feedback
+    # controller (kp > 0).
+    overrides = evolution_overrides_from_complex_scalar(
+        mass=0.3, lam=0.0, bs_omega=0.25
+    )
+    assert overrides["trajectory_pump_frequency"] == 0.25
+    assert overrides["rl_pump_kp"] > 0.0
+    assert overrides["rl_pump_kd"] > 0.0
+
+
+def test_evolution_overrides_bicomplex_enable_pd_controller() -> None:
+    overrides = evolution_overrides_from_bicomplex_scalar(
+        mass=0.3, lam=0.0, field_signs=(1, -1, 1), bs_omega=0.25
+    )
+    assert overrides["trajectory_pump_frequency"] == 0.25
+    assert overrides["rl_pump_kp"] > 0.0
+    assert overrides["rl_pump_kd"] > 0.0
+
+
 def test_evolution_overrides_phantom_sign() -> None:
     overrides = evolution_overrides_from_complex_scalar(mass=0.1, lam=0.0, sign=-1.0)
     assert overrides["recipe_scalar_sign"] == -1.0

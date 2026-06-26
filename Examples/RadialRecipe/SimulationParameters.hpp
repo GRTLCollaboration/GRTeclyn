@@ -67,6 +67,12 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("rl_pump_max_amplitude", rl_pump_max_amplitude, 0.05);
         pp.load("rl_l2_ham_governor_center", rl_l2_ham_governor_center, 0.035);
         pp.load("rl_l2_ham_governor_width", rl_l2_ham_governor_width, 0.003);
+        // Closed-loop PD "trap" controller gains for the matter pump.  When
+        // k_p > 0 the pump drives the field toward the moving target soliton
+        // (error-proportional, self-limiting) instead of the legacy open-loop
+        // source.  Default 0 => legacy source pump (backward compatible).
+        pp.load("rl_pump_kp", rl_pump_kp, 0.0);
+        pp.load("rl_pump_kd", rl_pump_kd, 0.0);
         // Per-lump action state starts at zero; the RL agent populates it.
         rl_pump_amplitude.fill(0.0);
         rl_pump_frequency.fill(0.0);
@@ -242,6 +248,8 @@ class SimulationParameters : public SimulationParametersBase
     double rl_pump_max_amplitude{0.05};
     double rl_l2_ham_governor_center{0.035};
     double rl_l2_ham_governor_width{0.003};
+    double rl_pump_kp{0.0}; //!< PD trap proportional gain (0 => legacy source)
+    double rl_pump_kd{0.0}; //!< PD trap derivative gain
 
     // Trajectory-guided geometry survey (Independent of RL; no ZMQ needed).
     int trajectory_mode{0};        //!< 0 = off, 1 = parametric trajectory

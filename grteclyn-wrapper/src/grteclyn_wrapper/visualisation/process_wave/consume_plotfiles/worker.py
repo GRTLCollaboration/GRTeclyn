@@ -7,6 +7,7 @@ from pathlib import Path
 
 from .extraction.areal import _extract_areal_radius_min
 from .extraction.central import _extract_central_timeseries_line
+from .extraction.confinement import _extract_confinement_line
 from .extraction.ftl import _extract_ftl_timeseries_line
 from .extraction.psi4 import _extract_mode_amps_l2m0
 from .extraction.shell import _extract_shell_field_stats, _format_shell_stats_line
@@ -35,6 +36,7 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
         "shell_line": None,
         "boundary_flux_line": None,
         "ftl_line": None,
+        "confinement_line": None,
         "central_line": None,
         "central_radial_block": None,
         "success": False,
@@ -185,6 +187,14 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
                 verbose=args_dict.get("verbose", False),
             )
 
+        if args_dict.get("confinement_timeseries"):
+            result["confinement_line"] = _extract_confinement_line(
+                p,
+                t=t,
+                well_width=float(args_dict.get("confinement_well_width", 1.5)),
+                verbose=args_dict.get("verbose", False),
+            )
+
         if args_dict.get("central_timeseries"):
             result["central_line"] = _extract_central_timeseries_line(
                 p,
@@ -233,6 +243,7 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
             or result["areal_line"]
             or result["shell_line"]
             or result["ftl_line"]
+            or result.get("confinement_line")
             or result.get("central_line")
             or result.get("central_radial_block")
             or frame_fields

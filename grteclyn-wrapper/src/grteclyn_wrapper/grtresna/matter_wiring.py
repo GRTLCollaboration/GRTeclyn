@@ -101,26 +101,51 @@ def evolution_overrides_from_complex_scalar(
     }
     if sign != 1.0:
         overrides["recipe_scalar_sign"] = float(sign)
-    # Note: trajectory_pump_frequency is left at 0 (DC pump) intentionally.
-    # The DC pump maintains energy density at tracked positions without
-    # fighting the boson star's own U(1) phase evolution.  Setting freq=bs_omega
-    # introduces phase-mismatch destabilisation (tested 2026-06-26).
+    overrides.update(_pump_controller_overrides(bs_omega))
     return overrides
+
+
+# Closed-loop PD "trap" controller gains for the matter pump.  Stiff tracking:
+# the pump drives each lump toward its moving target soliton (error-proportional,
+# self-limiting) so the soliton is confined/transported along the trajectory
+# instead of being dispersed by open-loop forcing.  kd ~ 2*sqrt(kp) => ~critical
+# damping; both well within the explicit-stepping stability limit.
+_PUMP_CONTROLLER_KP = 12.0
+_PUMP_CONTROLLER_KD = 7.0
+
+
+def _pump_controller_overrides(bs_omega: float) -> dict[str, Any]:
+    """Evolution params enabling the closed-loop PD trap pump controller.
+
+    ``trajectory_pump_frequency`` carries the boson-star phase velocity (bs_omega)
+    so the controller's target Pi* rotates coherently with the field's own U(1)
+    phase.  ``rl_pump_kp/kd`` switch the pump from the legacy open-loop source to
+    the feedback controller (kp > 0).
+    """
+    return {
+        "trajectory_pump_frequency": float(bs_omega),
+        "rl_pump_kp": _PUMP_CONTROLLER_KP,
+        "rl_pump_kd": _PUMP_CONTROLLER_KD,
+    }
 
 
 def evolution_overrides_from_bicomplex_scalar(
     mass: float,
     lam: float,
     field_signs: tuple[int, ...],
+    bs_omega: float = 0.0,
 ) -> dict[str, Any]:
     """GRTeclyn params for the two-complex-field (canonical + phantom) model.
 
     ``field_signs`` is the per-lump sign list (+1 canonical, -1 exotic), in the
     trajectory lump order.  It routes each pump spotlight to the canonical
     (Phi+) or phantom (Phi-) field via ``recipe_scalar_field_signs``.
+
+    ``bs_omega`` drives the closed-loop PD trap pump controller (target Pi*
+    rotates at the boson phase velocity).
     """
     signs = field_signs[:MAX_INDEPENDENT_LUMPS]
-    return {
+    overrides = {
         "recipe_matter_model": GRTRESNA_BICOMPLEX_SCALAR_MODEL,
         "recipe_scalar_mass": float(mass),
         "recipe_scalar_lambda": float(lam),
@@ -129,6 +154,8 @@ def evolution_overrides_from_bicomplex_scalar(
         "calculate_constraint_norms": 1,
         "amr.plot_vars": plot_vars_for_bicomplex_scalar(),
     }
+    overrides.update(_pump_controller_overrides(bs_omega))
+    return overrides
 
 
 @dataclass(frozen=True)
@@ -208,6 +235,7 @@ def evolution_overrides_from_config(cfg: GRTresnaConfig) -> dict[str, Any]:  # n
             mass=float(cfg.scalar_mass),
             lam=float(cfg.scalar_lambda),
             field_signs=signs,
+            bs_omega=float(getattr(cfg, "bs_omega", 0.0)),
         )
 
     if is_complex_scalar_model(getattr(cfg, "matter_model", "")):

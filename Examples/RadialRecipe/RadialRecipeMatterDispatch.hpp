@@ -86,6 +86,9 @@ inline RLMatterPumpParams build_rl_pump(const SimulationParameters &params,
     pump.governor        = RLRuntime::tanh_governor(
         RLRuntime::cached_L2_Ham(), pump.governor_center, pump.governor_width);
     pump.num_fields      = num_fields;
+    // Closed-loop PD "trap" controller gains (0 => legacy open-loop source).
+    pump.k_p             = params.rl_pump_kp;
+    pump.k_d             = params.rl_pump_kd;
     for (int s = 0; s < n; ++s)
     {
         pump.sites[s].center_x  = RLRuntime::g_lump_state[s].x;

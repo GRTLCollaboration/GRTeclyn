@@ -15,6 +15,7 @@ from ..diagnostics import (
     read_central_field_metrics,
     read_central_radial_profile,
     read_collapse_metrics,
+    read_confinement_metrics,
     read_comoving_metrics,
     read_constraint_metrics,
     read_curvature_invariant_metrics,
@@ -355,6 +356,12 @@ def read_episode_metrics(
     except Exception:
         ftl_timeseries = None
 
+    confinement = None
+    try:
+        confinement = read_confinement_metrics(ctx.confinement_path)
+    except Exception:
+        confinement = None
+
     effective_ec = None
     try:
         recent = find_recent_plotfiles(ctx.episode_dir, count=5)
@@ -477,6 +484,7 @@ def read_episode_metrics(
         transport=transport,
         ftl_persistence=ftl_persistence,
         ftl_timeseries=ftl_timeseries,
+        confinement=confinement,
         central=central,
         central_radial=central_radial,
     )

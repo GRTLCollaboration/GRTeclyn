@@ -53,5 +53,6 @@ class EpisodeMetrics:
     transport: TransportMetrics | None = None
     ftl_persistence: FtlPersistenceMetrics | None = None
     ftl_timeseries: FtlTimeSeriesMetrics | None = None
+    confinement: "ConfinementMetrics | None" = None
     central: "CentralFieldMetrics | None" = None
     central_radial: "CentralRadialProfileMetrics | None" = None

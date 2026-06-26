@@ -164,10 +164,67 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void BiComplexScalarField::add_matter_rhs(
         return;
     }
 
+    const amrex::Real governor = m_pump.governor;
+
+    // ---- Closed-loop PD "trap" controller (k_p > 0) ----------------------
+    // Each spotlight drives its field toward the TARGET soliton at the moving
+    // trajectory centre:  Phi*(x,t) = amp * gauss(x - centre(t)) * e^{i*arg},
+    // arg = -omega*t + phase, with target momentum Pi* = (1/alpha) d_t Phi*.
+    // The drive is proportional to the ERROR (field - target), so it is
+    // self-limiting: it adds matter where the lump is deficient AND removes it
+    // where it strayed, transporting a coherent soliton along the trajectory
+    // instead of bulldozing energy in.  Routed to the canonical (field_sign>=0)
+    // or phantom field by sign.
+    if (m_pump.k_p > 0.0)
+    {
+        const amrex::Real kp        = m_pump.k_p;
+        const amrex::Real kd        = m_pump.k_d;
+        const amrex::Real inv_alpha = 1.0 / vars.lapse();
+        for (int s = 0; s < m_pump.num_sites; ++s)
+        {
+            const auto &site = m_pump.sites[s];
+            if (site.amplitude <= 0.0)
+            {
+                continue;
+            }
+            const amrex::Real env = RLRuntime::compute_site_envelope(
+                coords.x, coords.y, coords.z, site, m_pump.width);
+            if (env < 1.0e-8)
+            {
+                continue;
+            }
+            const amrex::Real g   = site.amplitude * env; // target |phi| here
+            const amrex::Real arg = -site.frequency * time + site.phase;
+            const amrex::Real cc  = std::cos(arg);
+            const amrex::Real ss  = std::sin(arg);
+            const amrex::Real tphi1 = g * cc;
+            const amrex::Real tphi2 = g * ss;
+            // Pi* = (1/alpha) d_t Phi* for Phi* = g e^{i arg}, d(arg)/dt=-omega.
+            const amrex::Real tPi1 = site.frequency * tphi2 * inv_alpha;
+            const amrex::Real tPi2 = -site.frequency * tphi1 * inv_alpha;
+            const amrex::Real w = governor * env; // localization window
+            if (site.field_sign >= 0)
+            {
+                rhs[c_Pi] += w * (-kp * (vars.phi1p() - tphi1) -
+                                  kd * (vars.Pi1p() - tPi1));
+                rhs[c_Pi2] += w * (-kp * (vars.phi2p() - tphi2) -
+                                   kd * (vars.Pi2p() - tPi2));
+            }
+            else
+            {
+                rhs[c_Pi_m] += w * (-kp * (vars.phi1m() - tphi1) -
+                                    kd * (vars.Pi1m() - tPi1));
+                rhs[c_Pi2_m] += w * (-kp * (vars.phi2m() - tphi2) -
+                                     kd * (vars.Pi2m() - tPi2));
+            }
+        }
+        return;
+    }
+
+    // ---- Legacy open-loop source pump (k_p <= 0) -------------------------
     // One spotlight per lump.  A site drives the CANONICAL field (c_Pi/c_Pi2)
     // when field_sign >= 0, otherwise the PHANTOM field (c_Pi_m/c_Pi2_m).
     // Pi1/Pi2 are driven 90 deg out of phase => local U(1) charge injection.
-    const amrex::Real governor = m_pump.governor;
     for (int s = 0; s < m_pump.num_sites; ++s)
     {
         const amrex::Real base = RLRuntime::compute_site_base(

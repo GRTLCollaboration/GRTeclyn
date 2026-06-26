@@ -34,6 +34,15 @@ struct RLMatterPumpParams
     double governor_width{0.003};
     double governor{1.0}; //!< host-precomputed tanh governor (device-safe)
     int num_fields{0};
+    //! Closed-loop PD "trap" controller gains.  When ``k_p > 0`` the pump drives
+    //! each field toward the target soliton at its moving trajectory centre with
+    //! a proportional (k_p) + derivative (k_d) law instead of the legacy
+    //! open-loop source.  The drive is error-proportional, hence self-limiting:
+    //! it vanishes when the lump is on target, so it confines/transports the
+    //! soliton without the over-driving that destroys structure.  ``k_p <= 0``
+    //! falls back to the legacy additive-source pump.
+    double k_p{0.0};
+    double k_d{0.0};
 };
 
 namespace RLRuntime
@@ -96,6 +105,21 @@ compute_site_base(double x, double y, double z, const RLPumpSite &site,
     const double d2 = dx * dx + dy * dy + dz * dz;
     const double envelope = std::exp(-d2 / (2.0 * width * width));
     return site.amplitude * governor * envelope;
+}
+
+//! Pure Gaussian spotlight envelope at (x,y,z): exp(-r^2 / 2 width^2), with no
+//! amplitude/governor factor.  Used by the closed-loop PD controller both as the
+//! spatial localization window and to build the target soliton profile
+//! (target |phi| = site.amplitude * envelope).
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE double
+compute_site_envelope(double x, double y, double z, const RLPumpSite &site,
+                      double width)
+{
+    const double dx = x - site.center_x;
+    const double dy = y - site.center_y;
+    const double dz = z - site.center_z;
+    const double d2 = dx * dx + dy * dy + dz * dz;
+    return std::exp(-d2 / (2.0 * width * width));
 }
 } // namespace RLRuntime
 

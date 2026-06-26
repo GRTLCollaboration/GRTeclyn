@@ -21,6 +21,7 @@ class EpisodeContext:
     central_timeseries_path: Path
     central_radial_profile_path: Path
     ftl_timeseries_path: Path
+    confinement_path: Path
 
 
 def build_episode_context(episode_dir: Path, *, ftl_L: float | None = None) -> EpisodeContext:
@@ -58,4 +59,5 @@ def build_episode_context(episode_dir: Path, *, ftl_L: float | None = None) -> E
         central_timeseries_path=small_data_dir / "central_timeseries.dat",
         central_radial_profile_path=small_data_dir / "central_radial_profile.dat",
         ftl_timeseries_path=small_data_dir / "ftl_timeseries.dat",
+        confinement_path=small_data_dir / "confinement.dat",
     )
