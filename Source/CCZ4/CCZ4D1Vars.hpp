@@ -7,19 +7,21 @@
 #define CCZ4D1VARS_HPP_
 
 #include "FourthOrderDerivatives.hpp"
+#include "SixthOrderDerivatives.hpp"
 #include "StateVariables.hpp"
 #include "Tensor.hpp"
 #include "AMReX_Array4.H"
 
+template <class deriv_t>
 class CCZ4D1Vars
 {
   public:
     // NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
     AMREX_GPU_DEVICE CCZ4D1Vars(int ix, int iy, int iz,
                                 const amrex::Array4<const amrex::Real> &state,
-                                const FourthOrderDerivatives &a_deriv)
+                                const deriv_t &a_deriv)
     {
-        m_d1_state = a_deriv.diff1_state<NUM_CCZ4_VARS>(ix, iy, iz, state);
+        m_d1_state = a_deriv.template diff1_state<NUM_CCZ4_VARS>(ix, iy, iz, state);
     }
 
     // empty constructor used for tests

@@ -7,10 +7,12 @@
 #define CCZ4ADVECVARS_HPP_
 
 #include "FourthOrderDerivatives.hpp"
+#include "SixthOrderDerivatives.hpp"
 #include "StateVariables.hpp"
 #include "Tensor.hpp"
 #include "AMReX_Array4.H"
 
+template <class deriv_t>
 class CCZ4AdvecVars
 {
   public:
@@ -18,7 +20,7 @@ class CCZ4AdvecVars
     AMREX_GPU_DEVICE
     CCZ4AdvecVars(int ix, int iy, int iz,
                   const amrex::Array4<const amrex::Real> &state,
-                  const FourthOrderDerivatives &a_deriv)
+                  const deriv_t &a_deriv)
     {
         FOR (idir)
         {
@@ -26,7 +28,7 @@ class CCZ4AdvecVars
         }
 
         // Calculate the advec quantities for all vars
-        m_advec_state = a_deriv.advec_state<NUM_CCZ4_VARS>(ix, iy, iz, state,
+        m_advec_state = a_deriv.template advec_state<NUM_CCZ4_VARS>(ix, iy, iz, state,
                                                            m_shift_vector);
     }
     // NOLINTEND(cppcoreguidelines-pro-type-member-init)

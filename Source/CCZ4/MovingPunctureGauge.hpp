@@ -22,6 +22,8 @@
  * f(lapse) = -c*lapse^(p-2)
  * and a Gamma-driver shift condition
  **/
+
+template <class deriv_t>
 class MovingPunctureGauge
 {
   public:
@@ -52,8 +54,8 @@ class MovingPunctureGauge
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     rhs_gauge(const amrex::CellData<amrex::Real> &rhs, const CCZ4Vars &vars,
-              const CCZ4D1Vars &d1, const CCZ4D2Vars &d2,
-              const CCZ4AdvecVars &advec) const
+              const CCZ4D1Vars<deriv_t> &d1, const CCZ4D2Vars<deriv_t> &d2,
+              const CCZ4AdvecVars<deriv_t> &advec) const
     // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         rhs[c_lapse] = m_params.lapse_advec_coeff * advec.lapse() -

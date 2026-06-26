@@ -120,7 +120,7 @@ class Weyl4
     //! Calulation of the decomposition of the Weyl tensor in Electric and
     //! Magnetic fields
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t
-    compute_EB_fields(const CCZ4Vars &vars, const CCZ4D1Vars &d1,
+    compute_EB_fields(const CCZ4Vars &vars, const CCZ4D1Vars<FourthOrderDerivatives> &d1,
                       const Tensor<2, amrex::Real> &d2_chi,
                       const Tensor<4, amrex::Real> &d2_h,
                       const Tensor<3, amrex::Real> &epsilon3_LUU,

@@ -49,9 +49,9 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<gauge_t, deriv_t>::operator()(
     CCZ4Vars vars(state_cell_data);
 
     // Get the derivatives
-    const CCZ4D1Vars d1(ix, iy, iz, state, m_deriv);
-    const CCZ4D2Vars d2(ix, iy, iz, state, m_deriv);
-    const CCZ4AdvecVars advec(ix, iy, iz, state, m_deriv);
+    const CCZ4D1Vars<deriv_t> d1(ix, iy, iz, state, m_deriv);
+    const CCZ4D2Vars<deriv_t> d2(ix, iy, iz, state, m_deriv);
+    const CCZ4AdvecVars<deriv_t> advec(ix, iy, iz, state, m_deriv);
 
     const amrex::CellData<amrex::Real> &rhs_cell_data =
         rhs_state.cellData(ix, iy, iz);
@@ -68,9 +68,9 @@ template <class gauge_t, class deriv_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 CCZ4RHS<gauge_t, deriv_t>::rhs_equation(const amrex::CellData<amrex::Real> &rhs,
                                         const CCZ4Vars &vars,
-                                        const CCZ4D1Vars &d1,
-                                        const CCZ4D2Vars &d2,
-                                        const CCZ4AdvecVars &advec) const
+                                        const CCZ4D1Vars<deriv_t> &d1,
+                                        const CCZ4D2Vars<deriv_t> &d2,
+                                        const CCZ4AdvecVars<deriv_t> &advec) const
 {
 
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);

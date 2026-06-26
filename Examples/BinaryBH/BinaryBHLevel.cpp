@@ -13,7 +13,7 @@
 #include "PositiveChiAndLapse.hpp"
 #include "PunctureTagger.hpp"
 #include "PunctureTracker.hpp"
-// xxxxx #include "SixthOrderDerivatives.hpp"
+#include "SixthOrderDerivatives.hpp"
 #include "TraceARemoval.hpp"
 #include "TwoPuncturesInitialData.hpp"
 #include "Weyl4.hpp"
@@ -182,7 +182,7 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
     // Calculate CCZ4 right hand side
     if (simParams().max_spatial_derivative_order == 4)
     {
-        CCZ4RHS<MovingPunctureGauge, FourthOrderDerivatives> ccz4rhs(
+        CCZ4RHS<MovingPunctureGauge<FourthOrderDerivatives>, FourthOrderDerivatives> ccz4rhs(
             simParams().ccz4_params, Geom().CellSize(0), simParams().sigma,
             simParams().formulation);
 
@@ -196,19 +196,17 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
     }
     else if (simParams().max_spatial_derivative_order == 6)
     {
-        amrex::Abort("xxxxx max_spatial_derivative_order == 6 todo");
-#if 0
-        CCZ4RHS<MovingPunctureGauge, SixthOrderDerivatives>
-            ccz4rhs(simParams().ccz4_params, Geom().CellSize(0), simParams().sigma,
-                    simParams().formulation);
-        amrex::ParallelFor(a_rhs,
-        [=] AMREX_GPU_DEVICE (int box_no, int ix, int iy, int iz)
-        {
-            amrex::CellData<amrex::Real const> state = const_soln_arrays[box_no].cellData(i,j,k);
-            amrex::CellData<amrex::Real> rhs = rhs_arrays[box_no].cellData(ix,iy,iz);
-            ccz4rhs.compute(rhs, state);
-        });
-#endif
+        CCZ4RHS<MovingPunctureGauge<SixthOrderDerivatives>, SixthOrderDerivatives> ccz4rhs(
+            simParams().ccz4_params_d, Geom().CellSize(0), simParams().sigma,
+            simParams().formulation);
+
+        amrex::ParallelFor(
+            a_rhs,
+            [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+            {
+                ccz4rhs(ix, iy, iz, rhs_arrays[box_no],
+                        const_soln_arrays[box_no]);
+            });
     }
 
     GaugeFixer gaugefix(Geom().CellSize(0), simParams().center);

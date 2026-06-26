@@ -44,6 +44,26 @@ class SimulationParameters : public SimulationParametersBase
                 puncture_tracking_writeout_level, 0);
         pp.load("calculate_constraint_norms", calculate_constraint_norms,
                 false);
+
+        // This is a mess as a result of the stupid sixth order stencils
+
+        // Lapse evolution
+        pp.load("lapse_advec_coeff", ccz4_params_d.lapse_advec_coeff, 1.0);
+        pp.load("lapse_coeff", ccz4_params_d.lapse_coeff, 2.0);
+        pp.load("lapse_power", ccz4_params_d.lapse_power, 1.0);
+
+        // Shift Evolution
+        pp.load("shift_advec_coeff", ccz4_params_d.shift_advec_coeff, 0.0);
+        pp.load("shift_Gamma_coeff", ccz4_params_d.shift_Gamma_coeff, 0.75);
+        pp.load("eta", ccz4_params_d.eta, 1.0);
+
+        // CCZ4 parameters
+        ccz4_params_d.kappa1      = ccz4_base_params.kappa1;
+        ccz4_params_d.kappa2      = ccz4_base_params.kappa2;
+        ccz4_params_d.kappa3      = ccz4_base_params.kappa3;
+        ccz4_params_d.covariantZ4 = ccz4_base_params.covariantZ4;
+
+
     }
 
 #if 0
@@ -326,6 +346,9 @@ class SimulationParameters : public SimulationParametersBase
     // e.g. for puncture tracking/tagging
     BoostedBHInitialData::params_t bh2_params{};
     BoostedBHInitialData::params_t bh1_params{};
+
+    // For ccz4 6th order
+    CCZ4_params_t<MovingPunctureGauge<SixthOrderDerivatives>::params_t> ccz4_params_d{};
 
 #if 0
     double tp_offset_plus, tp_offset_minus;

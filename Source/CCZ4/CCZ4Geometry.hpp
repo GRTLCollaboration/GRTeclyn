@@ -149,8 +149,9 @@ compute_Aij_squared_with_A_UU(const CCZ4Vars &vars,
 }
 
 /// Computes the conformal christoffel symbol
+template <class deriv_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE chris_t
-compute_christoffel(const CCZ4D1Vars &d1, const Tensor<2, amrex::Real> &h_UU)
+compute_christoffel(const CCZ4D1Vars<deriv_t> &d1, const Tensor<2, amrex::Real> &h_UU)
 {
     chris_t out{};
 
@@ -201,8 +202,9 @@ compute_phys_chris(const Tensor<1, amrex::Real> &d1_chi, const CCZ4Vars &vars,
     return chris_phys;
 }
 
+template <class deriv_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
-compute_divshift(const CCZ4D1Vars &d1)
+compute_divshift(const CCZ4D1Vars<deriv_t> &d1)
 {
     amrex::Real divshift = 0.;
     FOR (i)
@@ -240,8 +242,9 @@ compute_z_terms(const int i, const int j,
     return out;
 }
 
+template <class deriv_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z(
-    const CCZ4Vars &vars, const CCZ4D1Vars &d1,
+    const CCZ4Vars &vars, const CCZ4D1Vars<deriv_t> &d1,
     const Tensor<2, amrex::Real> &d2_chi, const Tensor<4, amrex::Real> &d2_h,
     const Tensor<2, amrex::Real> &h_UU, const chris_t &chris,
     const Tensor<1, amrex::Real> &Z_over_chi)
@@ -309,9 +312,10 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z(
     return out;
 }
 
+template <class deriv_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<2, amrex::Real>
 compute_d1_chris_contracted(const Tensor<2, amrex::Real> &h_UU,
-                            const CCZ4D1Vars &d1,
+                            const CCZ4D1Vars<deriv_t> &d1,
                             const Tensor<4, amrex::Real> &d2_h)
 {
     Tensor<2, amrex::Real> d1_chris_contracted = 0.0;
@@ -334,8 +338,9 @@ compute_d1_chris_contracted(const Tensor<2, amrex::Real> &h_UU,
 
 // This function allows adding arbitrary multiples of D_{(i}Z_{j)}
 // to the Ricci scalar rather than the default of 2 in compute_ricci_Z
+template <class deriv_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z_general(
-    const CCZ4Vars &vars, const CCZ4D1Vars &d1,
+    const CCZ4Vars &vars, const CCZ4D1Vars<deriv_t> &d1,
     const Tensor<2, amrex::Real> &d2_chi, const Tensor<4, amrex::Real> &d2_h,
     const Tensor<2, amrex::Real> &h_UU, const chris_t &chris,
     const double dZ_coeff)
@@ -372,8 +377,9 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z_general(
 
 // This function returns the pure Ricci scalar with no contribution from the
 // Z vector - used e.g. in the constraint calculations.
+template <class deriv_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci(
-    const CCZ4Vars &vars, const CCZ4D1Vars &d1,
+    const CCZ4Vars &vars, const CCZ4D1Vars<deriv_t> &d1,
     const Tensor<2, amrex::Real> &d2_chi, const Tensor<4, amrex::Real> &d2_h,
     const Tensor<2, amrex::Real> &h_UU, const chris_t &chris)
 {

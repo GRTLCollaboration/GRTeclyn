@@ -53,7 +53,7 @@ Constraints::operator()(int ix, int iy, int iz,
     CCZ4Vars vars(state_cell_data);
 
     // we need d1 chi, K, h, A... this just gets all of them
-    const CCZ4D1Vars d1(ix, iy, iz, state, m_deriv);
+    const CCZ4D1Vars<FourthOrderDerivatives> d1(ix, iy, iz, state, m_deriv);
     // we only need d2 of chi and h
     const Tensor<2, amrex::Real> d2_chi =
         m_deriv.diff2(ix, iy, iz, state, c_chi);
@@ -73,7 +73,7 @@ Constraints::operator()(int ix, int iy, int iz,
 
 AMREX_GPU_DEVICE
 Constraints::constraints_t Constraints::constraint_equations(
-    const CCZ4Vars &vars, const CCZ4D1Vars &d1,
+    const CCZ4Vars &vars, const CCZ4D1Vars<FourthOrderDerivatives> &d1,
     const Tensor<2, amrex::Real> &d2_chi, const Tensor<4, amrex::Real> &d2_h,
     const Tensor<2, amrex::Real> &h_UU, const chris_t &chris) const
 {

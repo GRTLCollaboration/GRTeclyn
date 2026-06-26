@@ -7,16 +7,18 @@
 #define CCZ4D2VARS_HPP_
 
 #include "FourthOrderDerivatives.hpp"
+#include "SixthOrderDerivatives.hpp"
 #include "StateVariables.hpp"
 #include "Tensor.hpp"
 #include "AMReX_Array4.H"
 
+template <class deriv_t>
 class CCZ4D2Vars
 {
   public:
     AMREX_GPU_DEVICE CCZ4D2Vars(int ix, int iy, int iz,
                                 const amrex::Array4<const amrex::Real> &state,
-                                const FourthOrderDerivatives &a_deriv)
+                                const deriv_t &a_deriv)
     {
         // Calculate the d2 quantities for all vars
         calculate_d2_derivs(ix, iy, iz, state, a_deriv);
@@ -43,7 +45,7 @@ class CCZ4D2Vars
     AMREX_GPU_DEVICE void
     calculate_d2_derivs(int ix, int iy, int iz,
                         const amrex::Array4<const amrex::Real> &state,
-                        const FourthOrderDerivatives &a_deriv)
+                        const deriv_t &a_deriv)
     {
         // Calculate the d2 quantities for all required vars to calculate rhs
         chi   = a_deriv.diff2_scalar(ix, iy, iz, state, c_chi);

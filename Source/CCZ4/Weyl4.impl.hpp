@@ -21,7 +21,7 @@ Weyl4::operator()(int ix, int iy, int iz,
     CCZ4Vars vars(state_cell_data);
 
     // we need d1 chi, K, h, A... this just gets all of them
-    const CCZ4D1Vars d1(ix, iy, iz, state, m_deriv);
+    const CCZ4D1Vars<FourthOrderDerivatives> d1(ix, iy, iz, state, m_deriv);
     // we only need d2 of chi and h
     const Tensor<2, amrex::Real> d2_chi =
         m_deriv.diff2(ix, iy, iz, state, c_chi);
@@ -101,7 +101,7 @@ Weyl4::compute_epsilon3_LUU(const CCZ4Vars &vars,
 // CCZ4 expressions calculated by MR and checked with TF see:
 // https://www.overleaf.com/read/tvqjbyhvqqtp
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t Weyl4::compute_EB_fields(
-    const CCZ4Vars &vars, const CCZ4D1Vars &d1,
+    const CCZ4Vars &vars, const CCZ4D1Vars<FourthOrderDerivatives> &d1,
     const Tensor<2, amrex::Real> &d2_chi, const Tensor<4, amrex::Real> &d2_h,
     const Tensor<3, amrex::Real> &epsilon3_LUU,
     const Tensor<2, amrex::Real> &h_UU, const chris_t &chris) const
