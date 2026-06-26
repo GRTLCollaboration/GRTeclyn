@@ -562,31 +562,85 @@ equilibrium. On initialization it sheds ~30% of its amplitude as radiation (peak
 0.25→0.11 in the first ~5 code units). This radiated shell disperses regardless of
 whether the lump moves.
 
-#### Fix 1 — Velocity-matched initial data ("speed follow")
+#### Fix 1 — Velocity-matched initial data ("speed follow") — **IMPLEMENTED**
 
-Start each Q-ball **already moving** at its trajectory angular velocity:
+Start each Q-ball **already moving** at its trajectory angular velocity. This was
+implemented and tested on eval 122.
 
-```
-Φ(x, t=0) = φ₀(|x−x₀|) · exp(iωt₀) · exp(i k·(x−x₀))
-Pi(x, t=0) = −(iω + v·∇)Φ
-```
+**Implementation (2026-06-26):**
 
-where `k = γ m v` (relativistic momentum), `v = ω_rot × (x₀ − origin)`, and `φ₀` is
-the sech (or ODE) radial profile. For the complex field the boost also Doppler-shifts
-the internal frequency: `ω → γω` in the co-moving frame.
+1. `_expand_trajectory_boson_lumps_from_overrides` now computes the t=0 velocity
+   of each lump from the trajectory geometry:
+   - `v_orb = R0 · omega_rot` (signed tangential speed in the orbital plane)
+   - `v_vec = R(v_orb, tilt_phi, tilt_theta) · v_orb` (same rotation matrix used for positions)
+   - `v_vec` is capped at `grtresna_boost_v_max` (default 0.8c) to stay sub-luminal on the
+     flat initial slice. Two new overrides control this: `grtresna_boost_lumps` and
+     `grtresna_boost_v_max`.
 
-Implementation path:
-- `boson_star_fields.py::paint_bicomplex_boson_star_fields_on_grid` already receives
-  a `lump["velocity"]` tuple (currently `(0,0,0)`).
-- Extend to compute `k` from the trajectory angular velocity at t=0:
-  `v_vec = omega_rot × R0_hat`, `k_vec = m * v_vec / sqrt(1 - |v|²)`.
-- Multiply `phi_re` by `cos(k·δx)`, `phi_im` by `sin(k·δx)`.
-- Set `Pi_re += v·∇φ_re` (finite-diff on the painted grid).
-- `_expand_trajectory_boson_lumps_from_overrides` should compute initial velocity
-  from `R0`, `omega_rot`, `tilt_theta/phi` and inject it into the lump dict.
+2. `boson_star_fields.py::_boosted_lump_fields` paints the full Lorentz-boosted
+   complex field for a moving Q-ball:
+   - Lorentz contraction of the radial profile: `ρ = √(δx_⊥² + γ² δx_∥²)`.
+   - de Broglie phase: `Φ = φ₀(ρ) · exp(−i ω γ (v·δx))`.
+   - Advection momentum: `Π = −(∂_t Φ)/α` with the full time derivative including the
+     Lorentz-contraction radial velocity and Doppler-shifted internal rotation.
+
+3. `paint_bicomplex_fields_on_grid` superposes the boosted canonical and phantom fields
+   onto the GRTeclyn state. The GRTresna metric solve is still done for at-rest matter;
+   the boost is applied afterward during gridinit export. At these amplitudes the residual
+   momentum-constraint violation is O(0.3% · v) and the solver converges normally.
 
 The pump controller then only needs to *maintain* the soliton's trajectory (small
 corrective force), not *create* the entire motion from scratch.
+
+#### Fix 1b — Test result: Lorentz-boosted eval 122 dynamics
+
+**Run:** `traj_qball_boosted_eval122` (128³, L=64, ml=2, t_stop=16, same Q-ball
+parameters as the cold-start run: `m=1.0`, `λ=160`, `μ=5333`, `ω=0.4`, all well_depths=0.15).
+
+| metric | t=0 | t=2 | t=8 | t=16 | trajectory |
+|--------|-----|-----|-----|------|-----------|
+| rms_radius | 5.26 | **5.07** (×0.96) | 6.91 (×1.31) | 12.04 (×2.29) | shrinks initially, then grows |
+| confined_frac | 0.756 | **0.790** | 0.401 | **0.066** | rises at first, then erodes |
+| peak_amplitude | 0.315 | 0.262 | 0.135 | 0.037 | monotone drop |
+
+**Comparison with cold-start (v=0) run:**
+
+| metric | Cold start | Lorentz boost | Interpretation |
+|--------|-----------|---------------|----------------|
+| Early rms trend | grows from step 1 | **shrinks for ~1.7 code units** | boost gives coherent initial motion |
+| conf_frac @ t=2 | 0.70 | **0.79** | +12% better early confinement |
+| conf_frac @ t=8 | 0.385 | **0.401** | comparable, boost slightly better |
+| final conf_frac | **0.118** | 0.066 | worse by the global metric |
+| final peak | 0.185 | **0.037** | cold run keeps higher central peak |
+| final rms | 11.90 | 12.04 | comparable |
+| AMR level-2 cells | ~0.4M | **3.2M** | boost generates more gravitational structure |
+| barycenter drift | negligible | z: 29.2 → 25.7 | boosted lumps carry net momentum |
+
+**Verdict:** The boost is **correct and partially effective**, but it does **not** solve the
+final dispersal problem for eval 122. The early phase is dramatically improved — the
+matter contracts and the pump initially holds it — but by t=8 the confinement fraction
+has decayed to the same level as the cold-start case, and the late-time metric is no
+better.
+
+**Why the final confinement metric is misleading here:** The Q-balls are moving on a
+multi-lump orbit, so the activity-weighted barycenter stays near the grid center while the
+lumps themselves sweep around the perimeter. The confinement score `confined_frac` counts
+matter within a fixed radius `r_conf=6` of the barycenter; a moving, separated lump system
+naturally scores low even if each individual lump is well-localized. The cold-start run has
+a higher final peak because the matter is largely stationary near the barycenter, not
+because transport succeeded. A **per-lump confinement metric** (tracking each trajectory
+center) is needed for a fair comparison.
+
+**Physical reason the boost is not enough:** The pump trajectory demands high tangential
+speeds (2.6–6.0c) and continuous *transverse* acceleration (circular orbits). Capping the
+boost at 0.8c removes the superluminal initial velocity but leaves the pump to supply the
+remaining speed and all the centripetal acceleration. The Q-ball cannot adiabatically
+follow the curved, high-speed spotlight; it radiates at each turn. The boost helps the
+initial transient but does not change the fundamental mismatch between the soliton's
+inertia and the trajectory's curvature.
+
+**Conclusion from this test:** Fix 1 alone is insufficient. The remaining levers are deeper
+binding (Fix 2) and an exact equilibrium profile (Fix 3), likely used together.
 
 #### Fix 2 — Stronger self-interaction (tighter binding)
 
@@ -649,15 +703,16 @@ Implementation path:
 
 | Fix | Effort | Expected impact | When |
 |-----|--------|-----------------|------|
-| 1. Speed follow | Medium (Python + 1D boost formula) | **High** — eliminates the primary cause of dispersal | Next |
-| 2. Stronger λ,μ | Low (parameter change, rebuild) | Moderate — reduces radiation per pump cycle | Quick test |
-| 3. Full ODE profile | Medium (new solver + integration) | Moderate — eliminates seed radiation (~30% peak loss) | After fix 1 |
+| 1. Speed follow | **Done** | Partial — improved early transient, not enough alone | Implemented |
+| 2. Stronger λ,μ | Low (parameter change, rebuild) | **High** — deeper well resists transverse acceleration | Next test |
+| 3. Full ODE profile | Medium (new solver + integration) | High — eliminates seed radiation (~30% peak loss) | After λ,μ test |
 | 1+3 combined | High | **Very high** — exact profile + matched velocity = minimal radiation | Target |
 
-The strongest fix is **(1) + (3)**: an exact Q-ball profile launched at the correct
-velocity should maintain near-perfect confinement under trajectory dynamics, with the
-pump only providing small corrective forces to account for gravitational interaction
-between lumps and radiation backreaction.
+The strongest fix is **(2) + (1) + (3)**: a stiffer potential well lets the exact Q-ball
+profile survive the curved pump trajectory, while the matched velocity removes the
+initial transient. The boost alone is insufficient because the trajectory's transverse
+acceleration (circular orbits at high effective speed) still strips the soliton. A deeper
+well is the missing ingredient for self-bound transport.
 
 ---
 
@@ -701,6 +756,11 @@ See [NextSteps.md](./NextSteps.md) for the full plan. Summary:
 8. **Boson star trajectory**: Replace pump-spotlight with self-gravitating solitons for
    genuinely persistent matter configurations.
 
+9. **Stronger Q-ball binding + boost**: Test `λ=640`, `μ=85333` (4× deeper well) with the
+   velocity-matched initial data. The boost alone was insufficient; a stiffer potential is the
+   missing ingredient to resist transverse acceleration during curved transport. If this
+   holds, add the full radial ODE profile for zero seed radiation.
+
 ---
 
 ## Run log
@@ -716,6 +776,7 @@ See [NextSteps.md](./NextSteps.md) for the full plan. Summary:
 | `traj_bicomplex_m015_w012` | 2026-06-26 | Bicomplex (canonical + phantom) | 1 | **255.7** | **5.21%** f_geo (5/5) | Phantom channel → confirmed gauge-invariant shortcut at identical params |
 | `traj_bicomplex_m03_w025` HQ | 2026-06-26 | Bicomplex HQ (eval 122, m=0.3, ω=0.25) | in progress | — | — | 256³, t=30 promotion running |
 | `traj_bicomplex_qball_eval122_v2` | 2026-06-26 | Q-ball + eval 122 dynamics (m=1, λ=160, μ=5333) | 1 | −100.1 | 4.62% f_geo peak | Matter dispersed (12% conf), FTL precursor=1.0, 84% lifetime |
+| `traj_qball_boosted_eval122` | 2026-06-26 | Q-ball + Lorentz-boosted initial data (v_max=0.8c) | 1 | — | 3.53% f_geo peak | Early confinement improved (0.79), final confinement still poor (0.066); boost implemented and tested |
 
 **Conclusion:** The trajectory ansatz with per-lump differential motion is a **qualitative
 improvement** over spherical harmonics. The HQ validation confirms a **resolution-independent,

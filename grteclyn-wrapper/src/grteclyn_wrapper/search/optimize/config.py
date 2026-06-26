@@ -269,10 +269,14 @@ def _expand_trajectory_boson_lumps_from_overrides(
     """Generate GRTresna boson-star lumps at t=0 trajectory positions.
 
     Like ``_expand_trajectory_lumps_from_overrides`` but each lump is a compact
-    boson star soliton.  Lumps start at rest (zero velocity) — the trajectory
-    pump drives them along prescribed orbits during evolution, exactly as for
-    the real-scalar case.  Starting at rest keeps the GRTresna momentum
-    constraint trivial, giving much cleaner initial data.
+    boson star soliton.  If ``grtresna_boost_lumps`` is enabled (default True
+    when trajectory_mode=1), each lump receives an initial velocity matching its
+    trajectory angular velocity at t=0, capped at ``grtresna_boost_v_max``
+    (default 0.8c) to stay sub-luminal on the flat initial slice.
+
+    The Lorentz-boosted initial data lets the Q-ball start already moving along
+    its orbit so the PD trap only needs to *maintain* the trajectory rather than
+    *create* the entire motion from rest.
 
     The pump amplitude (well_depth) is capped at 0.15, matching the real-scalar
     trajectory cap.  The search space bounds can restrict this further (e.g. the
@@ -286,14 +290,13 @@ def _expand_trajectory_boson_lumps_from_overrides(
     num_lumps = max(1, int(round(get_float("trajectory_num_lumps", float(TRAJECTORY_DEFAULT_NUM_LUMPS)))))
 
     # Bound boson lumps: width = 1/sqrt(m^2 - omega^2), the physical decay scale.
-    # A lump narrower than this is NOT a bound state and disperses regardless of
-    # the pump (the confirmed dispersal root cause).  The sech profile gives the
-    # correct exponential tail.  GRTresna, the painter and the GRTeclyn pump
-    # controller all key off this width + PROFILE_SECH_BOUND tag so the solve,
-    # the initial data and the trap target stay consistent.
     mass = get_float("grtresna_scalar_mass", 0.1)
     omega = get_float("grtresna_bs_omega", 0.0)
     width = bound_width(mass, omega)
+
+    # Velocity boost: match trajectory angular velocity at t=0.
+    boost_lumps = bool(int(round(get_float("grtresna_boost_lumps", 1.0))))
+    boost_v_max = get_float("grtresna_boost_v_max", 0.8)
 
     lumps: list[dict] = []
     for k in range(num_lumps):
@@ -302,6 +305,7 @@ def _expand_trajectory_boson_lumps_from_overrides(
         phase0 = get_float(f"{pfx}phase0", 2.0 * math.pi * k / num_lumps)
         tilt_theta = get_float(f"{pfx}tilt_theta", 0.0)
         tilt_phi = get_float(f"{pfx}tilt_phi", 0.0)
+        omega_rot = get_float(f"{pfx}omega_rot", 0.0)
         well_depth = get_float(f"{pfx}well_depth", 0.005)
 
         # Position at t=0: orbit in plane, then rotate by (tilt_theta, tilt_phi).
@@ -317,13 +321,36 @@ def _expand_trajectory_boson_lumps_from_overrides(
         cy = sp * ct * x_orb + cp * y_orb
         cz = -st * x_orb
 
+        # Velocity at t=0: tangent to orbit (d/dt of position).
+        # vx_orb = -R0 * omega_rot * sin(phase0)
+        # vy_orb =  R0 * omega_rot * cos(phase0)
+        vx_orb = -R0 * omega_rot * math.sin(phase0)
+        vy_orb = R0 * omega_rot * math.cos(phase0)
+
+        # Same rotation matrix as position.
+        vx = cp * ct * vx_orb - sp * vy_orb
+        vy = sp * ct * vx_orb + cp * vy_orb
+        vz = -st * vx_orb
+
+        # Cap at v_max to stay sub-luminal on the flat initial slice.
+        if boost_lumps and boost_v_max > 0.0:
+            v_mag = math.sqrt(vx * vx + vy * vy + vz * vz)
+            if v_mag > boost_v_max:
+                scale = boost_v_max / v_mag
+                vx *= scale
+                vy *= scale
+                vz *= scale
+            velocity = (vx, vy, vz)
+        else:
+            velocity = (0.0, 0.0, 0.0)
+
         exotic = int(round(get_float(f"{pfx}exotic", 0.0)))
 
         lumps.append({
             "amp": min(0.15, max(0.0, well_depth)),
             "width": width,
             "center": (cx, cy, cz),
-            "velocity": (0.0, 0.0, 0.0),
+            "velocity": velocity,
             "omega": 0.0,
             "mode": 0,
             "profile": PROFILE_SECH_BOUND,
