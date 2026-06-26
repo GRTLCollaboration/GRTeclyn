@@ -495,6 +495,170 @@ field starts *on* the soliton attractor with no relaxation transient:
 This is the natural next step once Stage A confinement is confirmed over the full t=8–16
 window. See `NextSteps.md` (Phase 4) for sequencing.
 
+### Stage A dynamics — eval 122 trajectory with Q-ball matter (2026-06-26)
+
+The static test (lumps at rest) proved Q-ball confinement works. The critical question:
+does the self-binding survive under **real FTL-producing dynamics**? Eval 122's trajectory
+(all-retrograde, tilted planes, breathing, z-oscillation, tangential velocities 2.6–6.0c)
+was replayed with bicomplex Q-ball matter (`m=1.0`, `λ=160`, `μ=5333`, `ω=0.4`,
+all well_depths raised to 0.15 for proper Q-ball formation).
+
+**Run:** `traj_bicomplex_qball_eval122_v2` (128³, L=64, ml=2, t_stop=16, GPU 0)
+
+| metric | t=0 | t=8 | t=16 | trajectory |
+|--------|-----|-----|------|-----------|
+| rms_radius | 5.49 | 7.20 (×1.31) | 11.90 (×2.17) | monotone growth |
+| confined_frac | 0.714 | 0.385 | **0.118** | continuous erosion |
+| peak_amplitude | 0.251 | 0.107 | 0.185 | drops then recovers (pump) |
+
+**Verdict: Q-ball self-interaction does NOT prevent dispersal under eval 122 dynamics.**
+
+The scorer flagged the run as `"matter DISPERSED: only 12% of matter remains confined"`.
+However, the FTL geometry is still active:
+
+| FTL metric | value |
+|------------|-------|
+| FTL precursor (cone climbing) | **1.000** |
+| Gauge-invariant FTL lifetime | **84%** (57/68 frames) |
+| Peak f_geo | **4.62%** @ t=3.36 |
+| Coupled channel progress | 0.281 |
+| Geodesic shortcut | rejected as unreliable (3/5 rays, f_geo=5.1%) |
+
+**Comparison across all Q-ball dynamics tests:**
+
+| run | trajectory | t_final | rms growth | final conf_frac | outcome |
+|-----|-----------|---------|-----------|----------------|---------|
+| static (at rest) | none | 2.4 | ×1.01 | 0.70 | **HELD** |
+| simple (ω=0.1, v=0 init) | slow ring | 8.0 | ×1.26 | 0.43 | eroding |
+| **eval 122 (ω=-0.6 to -0.9)** | real FTL | **16.0** | **×2.17** | **0.12** | **DISPERSED** |
+
+### Root cause — transport velocity mismatch
+
+The PD trap drives the field toward a target `sech(r/R)` profile whose *center* moves
+along the parametric trajectory. At eval 122's tangential speeds (2.6–6.0c), the pump
+cannot translate a self-bound Q-ball — the soliton's inertia resists deformation. Instead
+the pump **re-creates** field at each new position (injection) while the old field
+(abandoned by the moving spotlight) **disperses freely** without trap support. The result
+is a trail of radiated matter behind the pump, not a transported soliton.
+
+The peak amplitude *recovering* at late times (0.107→0.185 from t=8 to t=16) confirms the
+pump IS actively maintaining field at the trajectory centers — but the net confined fraction
+drops because each injection cycle sheds radiation that escapes the spotlight.
+
+### Implications for Phase 4 — fixing the dispersion
+
+The Q-ball self-interaction is **necessary but not sufficient**. The binding prevents
+instantaneous dispersal (unlike free fields where the pump trail vanishes immediately),
+but it cannot compensate for the transport velocity mismatch. The dispersion has two
+independent causes that require separate fixes:
+
+**Cause 1 — Cold start (v=0 initial data on a fast trajectory):** The lumps start at
+rest while the pump target immediately moves at v=R0·ω_rot (2.6–6.0c for eval 122).
+The trap cannot accelerate a self-bound Q-ball to superluminal speeds — it just creates
+new field at the moving target and abandons the stationary lump.
+
+**Cause 2 — Sech seed radiation:** The analytic sech profile is NOT the exact Q-ball
+equilibrium. On initialization it sheds ~30% of its amplitude as radiation (peak drops
+0.25→0.11 in the first ~5 code units). This radiated shell disperses regardless of
+whether the lump moves.
+
+#### Fix 1 — Velocity-matched initial data ("speed follow")
+
+Start each Q-ball **already moving** at its trajectory angular velocity:
+
+```
+Φ(x, t=0) = φ₀(|x−x₀|) · exp(iωt₀) · exp(i k·(x−x₀))
+Pi(x, t=0) = −(iω + v·∇)Φ
+```
+
+where `k = γ m v` (relativistic momentum), `v = ω_rot × (x₀ − origin)`, and `φ₀` is
+the sech (or ODE) radial profile. For the complex field the boost also Doppler-shifts
+the internal frequency: `ω → γω` in the co-moving frame.
+
+Implementation path:
+- `boson_star_fields.py::paint_bicomplex_boson_star_fields_on_grid` already receives
+  a `lump["velocity"]` tuple (currently `(0,0,0)`).
+- Extend to compute `k` from the trajectory angular velocity at t=0:
+  `v_vec = omega_rot × R0_hat`, `k_vec = m * v_vec / sqrt(1 - |v|²)`.
+- Multiply `phi_re` by `cos(k·δx)`, `phi_im` by `sin(k·δx)`.
+- Set `Pi_re += v·∇φ_re` (finite-diff on the painted grid).
+- `_expand_trajectory_boson_lumps_from_overrides` should compute initial velocity
+  from `R0`, `omega_rot`, `tilt_theta/phi` and inject it into the lump dict.
+
+The pump controller then only needs to *maintain* the soliton's trajectory (small
+corrective force), not *create* the entire motion from scratch.
+
+#### Fix 2 — Stronger self-interaction (tighter binding)
+
+Current parameters: `λ=160`, `μ=5333` → core amplitude 0.15, binding energy
+`ΔE/E ~ (λ/m²)·|Φ|² ~ 160·0.0225 ≈ 3.6`. The Q-ball IS strongly bound in energy,
+but its **spatial extent** (R=1.09) means the binding force per unit volume is moderate.
+
+Increasing the couplings while keeping the core amplitude fixed:
+- `λ → 640`, `μ → 85333` (4× stronger): same `|Φ|_core = √(3λ/4μ) = 0.15` but
+  the potential well is 4× deeper → 4× stronger restoring force against deformation.
+  `ω_min² = m² − 3λ²/(16μ) = 1 − 3·640²/(16·85333) = 1 − 0.90 = 0.10` →
+  `ω_min = 0.316` (unchanged — the existence band stays the same because the ratio
+  `λ²/μ` is fixed).
+- To shrink the Q-ball (tighter confinement), increase `ω` toward `m`: at `ω=0.8`,
+  `R = 1/√(1−0.64) = 1.67` (larger, worse). At `ω=0.35`, `R = 1/√(1−0.1225) = 1.07`
+  (marginally tighter). The tail width is set by `m²−ω²`, so **smaller ω gives tighter
+  Q-balls** (but `ω > ω_min=0.316` is required).
+- Practical limit: very large `λ,μ` increase RHS stiffness, potentially requiring
+  smaller dt. Monitor CFL stability.
+
+The stronger restoring force resists deformation by the pump's translational push,
+reducing radiation loss during transport.
+
+#### Fix 3 — Full Q-ball radial ODE solution (exact equilibrium profile)
+
+The sech seed loses ~30% of its peak amplitude to radiation because it is NOT the true
+Q-ball equilibrium. Solving the stationary Q-ball radial ODE gives the **exact** profile
+`φ₀(r)` that sits perfectly on the soliton attractor with zero radiation:
+
+```
+φ₀'' + (2/r)φ₀' = (m² − ω²)φ₀ − λ φ₀³ + μ φ₀⁵
+```
+
+(flat-space, spherically symmetric). Boundary conditions: `φ₀'(0) = 0` (regularity),
+`φ₀(∞) = 0`. This is a **shooting problem** on the central amplitude `φ₀(0)`:
+- Shoot from `r=0` outward with trial `φ₀(0)`.
+- Too large → solution diverges to −∞ at large r (over-shooting).
+- Too small → solution goes to +∞ (under-shooting).
+- Bisect to find the separatrix solution that decays exponentially.
+
+The exact profile has:
+- **Zero radiation** at initialization (no transient shedding, peak holds at 100%).
+- **Correct tail shape** (exponential, not sech — though sech is a good approximation
+  for r ≲ 2R, it falls off too slowly for r ≫ R).
+- **Self-consistent metric** if coupled to the GRTresna constraint solver (gravity).
+
+Implementation path:
+1. Add `qball_radial_ode.py` to `grteclyn-wrapper/src/grteclyn_wrapper/grtresna/`:
+   - Shoot the ODE with scipy `solve_ivp` + bisection on `φ₀(0)`.
+   - Return tabulated `φ₀(r)` on a fine radial grid.
+2. Replace `BosonStarProfile.eval_phi0(r) = amp * sech(r/R)` with interpolation of
+   the ODE solution when `scalar_mu > 0` (sextic present).
+3. Feed the profile to `paint_bicomplex_boson_star_fields_on_grid` (drop-in: just
+   change the `profile.eval_phi0` return values).
+4. Optionally couple to GRTresna: solve the TOV-like metric ODEs simultaneously for
+   self-gravitating Q-balls (needed only when amp is large enough for gravity to matter;
+   at amp=0.15 with m=1, the compactness `M/R ~ 0.5·m²·A²·R³/R ~ 0.01` is negligible).
+
+#### Priority ordering
+
+| Fix | Effort | Expected impact | When |
+|-----|--------|-----------------|------|
+| 1. Speed follow | Medium (Python + 1D boost formula) | **High** — eliminates the primary cause of dispersal | Next |
+| 2. Stronger λ,μ | Low (parameter change, rebuild) | Moderate — reduces radiation per pump cycle | Quick test |
+| 3. Full ODE profile | Medium (new solver + integration) | Moderate — eliminates seed radiation (~30% peak loss) | After fix 1 |
+| 1+3 combined | High | **Very high** — exact profile + matched velocity = minimal radiation | Target |
+
+The strongest fix is **(1) + (3)**: an exact Q-ball profile launched at the correct
+velocity should maintain near-perfect confinement under trajectory dynamics, with the
+pump only providing small corrective forces to account for gravitational interaction
+between lumps and radiation backreaction.
+
 ---
 
 ## Next steps
@@ -551,6 +715,7 @@ See [NextSteps.md](./NextSteps.md) for the full plan. Summary:
 | `traj_boson_m015_w012` | 2026-06-26 | Single-complex boson (eval 122 genome) | 1 | 35.2 | 0.0% f_geo | Coordinate-only (1.90c), no gauge-invariant shortcut, 0/5 reached |
 | `traj_bicomplex_m015_w012` | 2026-06-26 | Bicomplex (canonical + phantom) | 1 | **255.7** | **5.21%** f_geo (5/5) | Phantom channel → confirmed gauge-invariant shortcut at identical params |
 | `traj_bicomplex_m03_w025` HQ | 2026-06-26 | Bicomplex HQ (eval 122, m=0.3, ω=0.25) | in progress | — | — | 256³, t=30 promotion running |
+| `traj_bicomplex_qball_eval122_v2` | 2026-06-26 | Q-ball + eval 122 dynamics (m=1, λ=160, μ=5333) | 1 | −100.1 | 4.62% f_geo peak | Matter dispersed (12% conf), FTL precursor=1.0, 84% lifetime |
 
 **Conclusion:** The trajectory ansatz with per-lump differential motion is a **qualitative
 improvement** over spherical harmonics. The HQ validation confirms a **resolution-independent,
