@@ -133,6 +133,13 @@ void ParticleInterpolator<num_components>::populate_from_query()
 
     auto &query = *m_query;
 
+    // Some ranks can have zero points queried, so return here
+    if (query.m_num_points == 0)
+    {
+        m_particles_populated = true;
+        return;
+    }
+
     const int myproc = amrex::ParallelDescriptor::MyProc();
 
     const int lev  = 0;
