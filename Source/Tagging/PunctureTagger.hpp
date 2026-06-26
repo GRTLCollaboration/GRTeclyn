@@ -70,8 +70,8 @@ template <unsigned int num_punctures> class PunctureTagger
                                      current_puncture_coords);
             const amrex::Real r = coords.get_radius();
             // decide whether to tag based on distance to horizon
-            // plus a fudge factor of 1.5
-            amrex::Real fudge_factor = 1.5;
+            // plus a fudge factor of 3.0
+            amrex::Real fudge_factor = 3.0;
             if (r < fudge_factor * factor * m_puncture_masses[ipuncture])
             {
                 tags(current_cell) = amrex::TagBox::SET;

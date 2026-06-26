@@ -13,7 +13,7 @@ amrex.use_gpu_aware_mpi = 1
 #endif
 
 puncture_tracking.enabled = 1
-puncture_tracking.level = 5
+puncture_tracking.level = 7
 
 output_path = .
 amr.check_file = BinaryBHChk_
@@ -29,16 +29,16 @@ plot_interval = -1
 
 # provide 'offset' or 'center'
 
-massA = 0.5
-massB = 0.5
+massA = 0.5538461538461539
+massB = 0.4461538461538462
 
-offsetA = 5.5 0.0 0.0
-offsetB = -5.5 0.0 0.0
+offsetA = 4.461538461538461675 0.0 0.0
+offsetB =  -5.538461538461538325 0.0 0.0
 # centerA = 512  518.10679 512
 # centerB = 512 -505.89321 512
 
-momentumA = 0.0 0.09 0.0
-momentumB = 0.0 -0.09 0.0
+momentumA = -0.00084541526517121 0.09530152296974252 0.0
+momentumB = 0.00084541526517121  -0.09530152296974252 0.0
 
 #################################################
 # TwoPunctures initial data parameters
@@ -46,32 +46,32 @@ momentumB = 0.0 -0.09 0.0
 two_punctures.verbose = true
 
 two_punctures.calculate_target_masses = true
-two_punctures.target_mass_plus  = 0.5
-two_punctures.target_mass_minus = 0.5
-two_punctures.adm_tol           = 1.0e-12
+two_punctures.target_mass_plus  = 0.5538461538461539
+two_punctures.target_mass_minus = 0.4461538461538462
+two_punctures.adm_tol           = 1.0e-10
 
 #two_punctures.mass_plus  = 0.48847892320123
 #two_punctures.mass_minus = 0.48847892320123
 
-two_punctures.offset_plus  = 5.5
-two_punctures.offset_minus = -5.5
+two_punctures.offset_plus  = +4.461538461538461675
+two_punctures.offset_minus = -5.538461538461538325
 
-two_punctures.momentum_plus  = 0.0 0.09 0.0
-two_punctures.momentum_minus = 0.0 -0.09 0.0
+two_punctures.momentum_plus  = -0.00084541526517121 0.09530152296974252 0.0
+two_punctures.momentum_minus =  0.00084541526517121 -0.09530152296974252 0.0
 
-two_punctures.spin_plus      = 0.0 0.0 0.0
-two_punctures.spin_minus     = 0.0 0.0 0.0
+two_punctures.spin_plus      = 0.0 0.0 0.09509112426035504
+two_punctures.spin_minus     = 0.0 0.0 -0.09156449704142013
 
 two_punctures.use_spectral_interpolation = true
-two_punctures.initial_lapse = "twopunctures-averaged"
-# two_punctures.initial_lapse_psi_exponent = -2.0
+two_punctures.initial_lapse = "psi^n"
+two_punctures.initial_lapse_psi_exponent = -2.0
 
-two_punctures.num_points_A   = 64
-two_punctures.num_points_B   = 64
-two_punctures.num_points_phi = 48
+# two_punctures.num_points_A   = 30
+# two_punctures.num_points_B   = 30
+# two_punctures.num_points_phi = 16
 
-two_punctures.solver_tol    = 1.0e-12
-two_punctures.solver_maxit  = 250
+# two_punctures.solver_tol    = 1.0e-10
+# two_punctures.solver_maxit  = 5
 two_punctures.epsilon       = 1.0e-6
 # two_punctures.tiny          = 0.0
 # two_punctures.extend_radius = 0.0
@@ -83,22 +83,22 @@ two_punctures.epsilon       = 1.0e-6
 #################################################
 # Grid parameters
 
-N_full = 160
-L_full = 1024
+N_full = 192
+L_full = 4224
 
-max_level = 9 # There are (max_level+1) grids, so min is zero
+max_level = 11 # There are (max_level+1) grids, so min is zero
 
 # -1 disables regridding
-regrid_interval = 0   0   1   0   0   0   0   0   0   0
-regrid_threshold = 0.013
+regrid_interval = -1 -1 -1 -1 -1 1 1 2 4 8 16 32
+regrid_threshold = 0.05
 
 # Max and min box sizes
-max_grid_size = 64
-block_factor = 16
+max_grid_size = 32
+block_factor = 32
 
 # Tag buffer size
-amr.n_error_buf = 3 3 3
-amr.n_proper = 32
+amr.n_error_buf = 4 4 4
+# amr.n_proper = 8
 # num_ghosts = 3
 # center = 8 8 8 # defaults to center of the grid
 
@@ -127,7 +127,7 @@ nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 
 # dt will be dx*dt_multiplier on each grid level
 dt_multiplier = 0.25
-stop_time = 1600.0
+stop_time = 1500.0
 #max_steps = 1
 
 # Spatial derivative order (only affects CCZ4 RHS)
@@ -141,19 +141,19 @@ lapse_coeff = 2.0
 lapse_power = 1.0
 
 # Shift evolution
-shift_advec_coeff = 0.0
+shift_advec_coeff = 1.0
 shift_Gamma_coeff = 0.75
 eta = 1.0 # eta of gamma driver
 
 # CCZ4 parameters
 formulation = 0 # 1 for BSSN, 0 for CCZ4
 kappa1 = 0.1
-kappa2 = 0.0
-kappa3 = 1.0
+kappa2 = 0.
+kappa3 = 1.
 covariantZ4 = 1 # 0: keep kappa1; 1 [default]: replace kappa1 -> kappa1/lapse
 
 # coefficient for KO numerical dissipation
-sigma = 0.5
+sigma = 1.0
 
 # min_chi = 1.e-4
 # min_lapse = 1.e-4
@@ -164,10 +164,10 @@ sigma = 0.5
 # We don't have any extraction yet but the extraction spheres are used for
 # tagging cells
 activate_extraction = true
-num_extraction_radii = 2
-extraction_radii = 50.0 100.0
-extraction_levels = 3 2
-num_points_phi = 320
-num_points_theta = 160
+num_extraction_radii = 1
+extraction_radii = 90.0
+extraction_levels = 5
+num_points_phi = 32
+num_points_theta = 64
 num_modes = 3
 modes = 2 0  2 1  2 2
