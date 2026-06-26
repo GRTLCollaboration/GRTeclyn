@@ -92,6 +92,7 @@ class GRTresnaConfig:
     dpi_length: float = 5.0
     scalar_mass: float = 0.1
     scalar_lambda: float = 0.0
+    scalar_mu: float = 0.0
 
     # Matter model selection (empty => legacy independent real scalars via ScalarFieldBH)
     matter_model: str = ""

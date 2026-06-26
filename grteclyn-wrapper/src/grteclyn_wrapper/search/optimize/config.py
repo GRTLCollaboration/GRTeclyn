@@ -280,10 +280,20 @@ def _expand_trajectory_boson_lumps_from_overrides(
     but the expansion itself does not impose a tighter limit — replay of
     real-scalar elites with bosonic matter needs the original amplitude range.
     """
+    from ...grtresna.boson_star_profile import PROFILE_SECH_BOUND, bound_width
     from .spaces import TRAJECTORY_DEFAULT_NUM_LUMPS
 
     num_lumps = max(1, int(round(get_float("trajectory_num_lumps", float(TRAJECTORY_DEFAULT_NUM_LUMPS)))))
-    well_width = get_float("trajectory_well_width", 1.5)
+
+    # Bound boson lumps: width = 1/sqrt(m^2 - omega^2), the physical decay scale.
+    # A lump narrower than this is NOT a bound state and disperses regardless of
+    # the pump (the confirmed dispersal root cause).  The sech profile gives the
+    # correct exponential tail.  GRTresna, the painter and the GRTeclyn pump
+    # controller all key off this width + PROFILE_SECH_BOUND tag so the solve,
+    # the initial data and the trap target stay consistent.
+    mass = get_float("grtresna_scalar_mass", 0.1)
+    omega = get_float("grtresna_bs_omega", 0.0)
+    width = bound_width(mass, omega)
 
     lumps: list[dict] = []
     for k in range(num_lumps):
@@ -311,11 +321,12 @@ def _expand_trajectory_boson_lumps_from_overrides(
 
         lumps.append({
             "amp": min(0.15, max(0.0, well_depth)),
-            "width": max(1.5, well_width),
+            "width": width,
             "center": (cx, cy, cz),
             "velocity": (0.0, 0.0, 0.0),
             "omega": 0.0,
             "mode": 0,
+            "profile": PROFILE_SECH_BOUND,
             "exotic": exotic,
         })
     return lumps
@@ -425,6 +436,11 @@ def build_grtresna_config(
     # solve and the GRTeclyn evolution, keeping the two T_ab identical.
     cfg.scalar_mass = _get_float("grtresna_scalar_mass", cfg.scalar_mass)
     cfg.scalar_lambda = _get_float("grtresna_scalar_lambda", cfg.scalar_lambda)
+    # Sextic self-interaction (V += mu/6 |Phi|^6). With lambda>0, mu>0 the lump
+    # is a stable Q-ball that self-binds, so it stays confined instead of
+    # dispersing like a free field. Evolution-only (GRTeclyn); the GRTresna solve
+    # stays quartic since gravity is negligible at these amplitudes.
+    cfg.scalar_mu = _get_float("grtresna_scalar_mu", getattr(cfg, "scalar_mu", 0.0))
 
     # Trajectory-guided geometry survey: lumps at t=0 positions from trajectory
     # equations.  The trajectory_* keys flow through to GRTeclyn's params.txt

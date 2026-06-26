@@ -89,6 +89,8 @@ inline RLMatterPumpParams build_rl_pump(const SimulationParameters &params,
     // Closed-loop PD "trap" controller gains (0 => legacy open-loop source).
     pump.k_p             = params.rl_pump_kp;
     pump.k_d             = params.rl_pump_kd;
+    pump.target_profile  = params.rl_pump_target_profile;
+    pump.target_width    = params.rl_pump_target_width;
     for (int s = 0; s < n; ++s)
     {
         pump.sites[s].center_x  = RLRuntime::g_lump_state[s].x;
@@ -137,7 +139,8 @@ inline void eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
 
         ComplexScalarField matter(params.recipe_scalar_mass,
                                   params.recipe_scalar_lambda,
-                                  params.recipe_scalar_sign, pump);
+                                  params.recipe_scalar_sign,
+                                  params.recipe_scalar_mu, pump);
         CCZ4RHSWithMatter<ComplexScalarField,
                           MovingPunctureGaugeWithMatter, FourthOrderDerivatives>
             ccz4rhs(matter, params.ccz4_params, dx, params.sigma,
@@ -153,7 +156,8 @@ inline void eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
         const RLMatterPumpParams pump = build_rl_pump(params, 2);
 
         BiComplexScalarField matter(params.recipe_scalar_mass,
-                                    params.recipe_scalar_lambda, pump);
+                                    params.recipe_scalar_lambda,
+                                    params.recipe_scalar_mu, pump);
         CCZ4RHSWithMatter<BiComplexScalarField,
                           MovingPunctureGaugeWithMatter, FourthOrderDerivatives>
             ccz4rhs(matter, params.ccz4_params, dx, params.sigma,

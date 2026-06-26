@@ -85,23 +85,29 @@ def evolution_overrides_from_complex_scalar(
     lam: float = 0.0,
     sign: float = 1.0,
     bs_omega: float = 0.0,
+    mu: float = 0.0,
 ) -> dict[str, Any]:
     """GRTeclyn params for grtresna_complex_scalar matter model.
 
     When ``bs_omega`` is nonzero the trajectory pump frequency is set so that
     the pump drives Pi and Pi2 coherently at the boson star's internal
     oscillation frequency (U(1) charge injection).
+
+    ``mu`` is the sextic self-interaction coupling (V = 1/2 m^2|Phi|^2 -
+    lambda/4 |Phi|^4 + mu/6 |Phi|^6); with lambda>0, mu>0 the lump is a stable
+    Q-ball that binds itself rather than dispersing.
     """
     overrides: dict[str, Any] = {
         "recipe_matter_model": GRTRESNA_COMPLEX_SCALAR_MODEL,
         "recipe_scalar_mass": float(mass),
         "recipe_scalar_lambda": float(lam),
+        "recipe_scalar_mu": float(mu),
         "calculate_constraint_norms": 1,
         "amr.plot_vars": plot_vars_for_complex_scalar(),
     }
     if sign != 1.0:
         overrides["recipe_scalar_sign"] = float(sign)
-    overrides.update(_pump_controller_overrides(bs_omega))
+    overrides.update(_pump_controller_overrides(bs_omega, mass=float(mass)))
     return overrides
 
 
@@ -114,19 +120,29 @@ _PUMP_CONTROLLER_KP = 12.0
 _PUMP_CONTROLLER_KD = 7.0
 
 
-def _pump_controller_overrides(bs_omega: float) -> dict[str, Any]:
+def _pump_controller_overrides(bs_omega: float, mass: float = 0.0) -> dict[str, Any]:
     """Evolution params enabling the closed-loop PD trap pump controller.
 
     ``trajectory_pump_frequency`` carries the boson-star phase velocity (bs_omega)
     so the controller's target Pi* rotates coherently with the field's own U(1)
     phase.  ``rl_pump_kp/kd`` switch the pump from the legacy open-loop source to
-    the feedback controller (kp > 0).
+    the feedback controller (kp > 0).  The trap target is the BOUND sech lump
+    (``rl_pump_target_profile=2``) at the physical scale
+    ``rl_pump_target_width = 1/sqrt(m^2-omega^2)`` so the controller drives the
+    field toward the bound state it was initialised in -- not a narrow Gaussian
+    that disperses.
     """
-    return {
+    from .boson_star_profile import PROFILE_SECH_BOUND, bound_width
+
+    overrides: dict[str, Any] = {
         "trajectory_pump_frequency": float(bs_omega),
         "rl_pump_kp": _PUMP_CONTROLLER_KP,
         "rl_pump_kd": _PUMP_CONTROLLER_KD,
     }
+    if mass > 0.0:
+        overrides["rl_pump_target_profile"] = int(PROFILE_SECH_BOUND)
+        overrides["rl_pump_target_width"] = float(bound_width(mass, bs_omega))
+    return overrides
 
 
 def evolution_overrides_from_bicomplex_scalar(
@@ -134,6 +150,7 @@ def evolution_overrides_from_bicomplex_scalar(
     lam: float,
     field_signs: tuple[int, ...],
     bs_omega: float = 0.0,
+    mu: float = 0.0,
 ) -> dict[str, Any]:
     """GRTeclyn params for the two-complex-field (canonical + phantom) model.
 
@@ -149,12 +166,13 @@ def evolution_overrides_from_bicomplex_scalar(
         "recipe_matter_model": GRTRESNA_BICOMPLEX_SCALAR_MODEL,
         "recipe_scalar_mass": float(mass),
         "recipe_scalar_lambda": float(lam),
+        "recipe_scalar_mu": float(mu),
         "recipe_num_scalar_fields": len(signs),
         "recipe_scalar_field_signs": " ".join(str(int(s)) for s in signs),
         "calculate_constraint_norms": 1,
         "amr.plot_vars": plot_vars_for_bicomplex_scalar(),
     }
-    overrides.update(_pump_controller_overrides(bs_omega))
+    overrides.update(_pump_controller_overrides(bs_omega, mass=float(mass)))
     return overrides
 
 
@@ -236,6 +254,7 @@ def evolution_overrides_from_config(cfg: GRTresnaConfig) -> dict[str, Any]:  # n
             lam=float(cfg.scalar_lambda),
             field_signs=signs,
             bs_omega=float(getattr(cfg, "bs_omega", 0.0)),
+            mu=float(getattr(cfg, "scalar_mu", 0.0)),
         )
 
     if is_complex_scalar_model(getattr(cfg, "matter_model", "")):
@@ -244,6 +263,7 @@ def evolution_overrides_from_config(cfg: GRTresnaConfig) -> dict[str, Any]:  # n
             lam=float(cfg.scalar_lambda),
             sign=float(getattr(cfg, "scalar_sign", 1)),
             bs_omega=float(getattr(cfg, "bs_omega", 0.0)),
+            mu=float(getattr(cfg, "scalar_mu", 0.0)),
         )
 
     meta = GRTresnaMatterMetadata.from_config(cfg)

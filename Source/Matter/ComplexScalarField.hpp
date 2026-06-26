@@ -24,9 +24,9 @@ class ComplexScalarField
     ComplexScalarField() { load_from_inputs(); }
 
     explicit ComplexScalarField(double a_mass, double a_lambda,
-                                double a_sign = 1.0,
+                                double a_sign = 1.0, double a_mu = 0.0,
                                 RLMatterPumpParams a_pump = {})
-        : m_potential(a_mass, a_lambda), m_sign(a_sign), m_pump(a_pump)
+        : m_potential(a_mass, a_lambda, a_mu), m_sign(a_sign), m_pump(a_pump)
     {
     }
 
@@ -42,10 +42,12 @@ class ComplexScalarField
         double mass = 0.0;
         double lam  = 0.0;
         double sign = 1.0;
+        double mu   = 0.0;
         pp.load("recipe_scalar_mass", mass, 0.0);
         pp.load("recipe_scalar_lambda", lam, 0.0);
         pp.load("recipe_scalar_sign", sign, 1.0);
-        m_potential = ComplexScalarPotential(mass, lam);
+        pp.load("recipe_scalar_mu", mu, 0.0);
+        m_potential = ComplexScalarPotential(mass, lam, mu);
         m_sign = sign;
     }
 

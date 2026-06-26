@@ -29,8 +29,9 @@ class BiComplexScalarField
     BiComplexScalarField() { load_from_inputs(); }
 
     explicit BiComplexScalarField(double a_mass, double a_lambda,
+                                  double a_mu = 0.0,
                                   RLMatterPumpParams a_pump = {})
-        : m_potential(a_mass, a_lambda), m_pump(a_pump)
+        : m_potential(a_mass, a_lambda, a_mu), m_pump(a_pump)
     {
     }
 
@@ -45,9 +46,11 @@ class BiComplexScalarField
         }
         double mass = 0.0;
         double lam  = 0.0;
+        double mu   = 0.0;
         pp.load("recipe_scalar_mass", mass, 0.0);
         pp.load("recipe_scalar_lambda", lam, 0.0);
-        m_potential = ComplexScalarPotential(mass, lam);
+        pp.load("recipe_scalar_mu", mu, 0.0);
+        m_potential = ComplexScalarPotential(mass, lam, mu);
     }
 
     using Vars      = BiComplexScalarFieldVars;

@@ -43,6 +43,15 @@ struct RLMatterPumpParams
     //! falls back to the legacy additive-source pump.
     double k_p{0.0};
     double k_d{0.0};
+    //! Trap-target matter profile shape and scale.  ``target_profile`` 0 =>
+    //! Gaussian (legacy), 2 => sech bound lump (correct exponential tail).
+    //! ``target_width`` is the physical bound-state size 1/sqrt(m^2-omega^2);
+    //! when <= 0 the controller falls back to ``width``.  These must match the
+    //! initial-data profile (PROFILE_SECH_BOUND, same width) so the controller
+    //! drives the field toward the bound state it was initialised in, not a
+    //! narrower (dispersing) Gaussian.
+    int target_profile{0};
+    double target_width{0.0};
 };
 
 namespace RLRuntime
@@ -113,12 +122,21 @@ compute_site_base(double x, double y, double z, const RLPumpSite &site,
 //! (target |phi| = site.amplitude * envelope).
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE double
 compute_site_envelope(double x, double y, double z, const RLPumpSite &site,
-                      double width)
+                      double width, int profile = 0)
 {
     const double dx = x - site.center_x;
     const double dy = y - site.center_y;
     const double dz = z - site.center_z;
     const double d2 = dx * dx + dy * dy + dz * dz;
+    if (profile == 2)
+    {
+        // sech(r / width): bound-lump envelope matching the initial data
+        // (PROFILE_SECH_BOUND).  Decays as 2 e^{-r/width} -- the correct tail,
+        // so the controller does not erode the bound profile's wings the way a
+        // Gaussian window (e^{-r^2}) would.
+        const double r = std::sqrt(d2);
+        return 1.0 / std::cosh(r / width);
+    }
     return std::exp(-d2 / (2.0 * width * width));
 }
 } // namespace RLRuntime

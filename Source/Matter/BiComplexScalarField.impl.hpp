@@ -180,6 +180,8 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void BiComplexScalarField::add_matter_rhs(
         const amrex::Real kp        = m_pump.k_p;
         const amrex::Real kd        = m_pump.k_d;
         const amrex::Real inv_alpha = 1.0 / vars.lapse();
+        const amrex::Real tw =
+            (m_pump.target_width > 0.0) ? m_pump.target_width : m_pump.width;
         for (int s = 0; s < m_pump.num_sites; ++s)
         {
             const auto &site = m_pump.sites[s];
@@ -188,7 +190,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void BiComplexScalarField::add_matter_rhs(
                 continue;
             }
             const amrex::Real env = RLRuntime::compute_site_envelope(
-                coords.x, coords.y, coords.z, site, m_pump.width);
+                coords.x, coords.y, coords.z, site, tw, m_pump.target_profile);
             if (env < 1.0e-8)
             {
                 continue;

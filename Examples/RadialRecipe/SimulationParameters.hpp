@@ -43,6 +43,7 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("recipe_num_scalar_fields", recipe_num_scalar_fields, 0);
         pp.load("recipe_scalar_mass", recipe_scalar_mass, 0.0);
         pp.load("recipe_scalar_lambda", recipe_scalar_lambda, 0.0);
+        pp.load("recipe_scalar_mu", recipe_scalar_mu, 0.0);
         pp.load("recipe_scalar_sign", recipe_scalar_sign, 1.0);
         load_scalar_field_signs(pp);
 
@@ -73,6 +74,10 @@ class SimulationParameters : public SimulationParametersBase
         // source.  Default 0 => legacy source pump (backward compatible).
         pp.load("rl_pump_kp", rl_pump_kp, 0.0);
         pp.load("rl_pump_kd", rl_pump_kd, 0.0);
+        // Trap-target matter shape: 0 Gaussian (legacy), 2 sech bound lump.
+        // target width = physical bound size 1/sqrt(m^2-omega^2); <=0 => pump width.
+        pp.load("rl_pump_target_profile", rl_pump_target_profile, 0);
+        pp.load("rl_pump_target_width", rl_pump_target_width, 0.0);
         // Per-lump action state starts at zero; the RL agent populates it.
         rl_pump_amplitude.fill(0.0);
         rl_pump_frequency.fill(0.0);
@@ -222,6 +227,7 @@ class SimulationParameters : public SimulationParametersBase
     std::array<int, GRTRESNA_MAX_INDEPENDENT_SCALARS> recipe_scalar_field_signs{};
     double recipe_scalar_mass{};
     double recipe_scalar_lambda{};
+    double recipe_scalar_mu{};
     double recipe_scalar_sign{1.0};
 
     std::string recipe_initial_data_file;
@@ -250,6 +256,8 @@ class SimulationParameters : public SimulationParametersBase
     double rl_l2_ham_governor_width{0.003};
     double rl_pump_kp{0.0}; //!< PD trap proportional gain (0 => legacy source)
     double rl_pump_kd{0.0}; //!< PD trap derivative gain
+    int rl_pump_target_profile{0}; //!< 0 Gaussian, 2 sech bound-lump target
+    double rl_pump_target_width{0.0}; //!< physical 1/sqrt(m^2-omega^2); <=0 => width
 
     // Trajectory-guided geometry survey (Independent of RL; no ZMQ needed).
     int trajectory_mode{0};        //!< 0 = off, 1 = parametric trajectory

@@ -123,10 +123,16 @@ def _raw_lump_phi_grid(
     dy = py - center[1]
     dz = pz - center[2]
     r2 = dx * dx + dy * dy + dz * dz
-    if int(lump.get("profile", 0)) == 1:
+    profile = int(lump.get("profile", 0))
+    if profile == 1:
         r = np.sqrt(r2)
         soft = 0.25 * width
         env = 0.5 * (1.0 - np.tanh((r - width) / soft))
+    elif profile == 2:
+        # Bound boson lump sech(r/width) (PROFILE_SECH_BOUND) -- correct
+        # exponential tail; must match GRTresna lump_envelope profile==2.
+        r = np.sqrt(r2)
+        env = 1.0 / np.cosh(r / width)
     else:
         env = np.exp(-r2 / (2.0 * width * width))
     return amp * angular_factor(int(lump.get("mode", 0)), dx, dy, width) * env

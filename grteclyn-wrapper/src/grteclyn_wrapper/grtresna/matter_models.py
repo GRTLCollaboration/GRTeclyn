@@ -294,6 +294,9 @@ def apply_boson_star_overrides(
 
     cfg.scalar_mass = _get_float(overrides, "grtresna_scalar_mass", cfg.scalar_mass)
     cfg.scalar_lambda = _get_float(overrides, "grtresna_scalar_lambda", cfg.scalar_lambda)
+    cfg.scalar_mu = _get_float(
+        overrides, "grtresna_scalar_mu", getattr(cfg, "scalar_mu", 0.0)
+    )
     cfg.bs_phi_c = _get_float(overrides, "grtresna_bs_phi_c", cfg.bs_phi_c)
     cfg.bs_profile_width = _get_float(
         overrides, "grtresna_bs_profile_width", cfg.bs_profile_width

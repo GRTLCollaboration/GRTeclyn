@@ -50,6 +50,40 @@ def _gaussian_phi0(r: np.ndarray, phi_c: float, width: float) -> np.ndarray:
     return phi_c * np.exp(-0.5 * (r / width) ** 2)
 
 
+def _sech_phi0(r: np.ndarray, phi_c: float, width: float) -> np.ndarray:
+    """Bound boson-lump profile phi_c * sech(r / width).
+
+    Regular at r=0 (sech(0)=1) and decays as 2 phi_c e^{-r/width} -- the correct
+    EXPONENTIAL tail of a massive bound scalar, unlike a Gaussian which decays
+    far too fast (e^{-r^2}) and squeezes the field into a non-equilibrium core.
+    """
+    return phi_c / np.cosh(r / width)
+
+
+#: Lump-shape tags shared with GRTresna (BosonStarParams::lump_envelope) and the
+#: GRTeclyn pump controller.  0 = Gaussian, 1 = tanh shell, 2 = sech bound lump.
+PROFILE_GAUSSIAN = 0
+PROFILE_TANH_SHELL = 1
+PROFILE_SECH_BOUND = 2
+
+# When omega >= mass the field is unbound (no exponential confinement); fall back
+# to this finite decay scale so the width stays sane instead of diverging.
+_UNBOUND_FALLBACK_KAPPA = 1.0 / 16.0
+
+
+def bound_width(mass: float, omega: float) -> float:
+    """Physical bound-state size R = 1 / sqrt(m^2 - omega^2).
+
+    This is the decay length of a massive complex scalar oscillating at omega:
+    the field cannot localize tighter than R without huge gradient energy, so a
+    lump narrower than R is not a bound state and disperses.  Returns a large but
+    finite width when omega >= mass (marginally/unbound).
+    """
+    kappa_sq = float(mass) * float(mass) - float(omega) * float(omega)
+    kappa = math.sqrt(kappa_sq) if kappa_sq > 0.0 else _UNBOUND_FALLBACK_KAPPA
+    return 1.0 / max(kappa, _UNBOUND_FALLBACK_KAPPA)
+
+
 def _estimate_omega(mass: float, phi_c: float) -> float:
     """Mini-boson-star frequency (lambda=0).
 
