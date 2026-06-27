@@ -136,9 +136,8 @@ research should be structured into the following five priority steps.
          ┌─────────────────────────────┼─────────────────────────────┐
          ▼                             ▼                             ▼
    GRTresna Fix              Stiffer Q-Ball Well          GRTresna ODE Profile (C++)
-  - Fix GRSolver.impl     - λ=640, μ=85333 DONE         - profile 3 in C++
-  - Bypass Mom NaN        - Replay: sech@equilibrium      - Tabulated φ₀(r)
-  - 3x solve speedup        only until C++ ready          - Match Python ODE
+  - Mom NaN early exit DONE - λ=640, μ=85333 DONE         - profile 3 in C++
+  - 3x solve speedup (static) - sech@equilibrium only      - Tabulated φ₀(r)
          │                             │                             │
          └─────────────────────────────┴─────────────────────────────┘
                                        │
@@ -146,17 +145,17 @@ research should be structured into the following five priority steps.
                               gridinit paint only — blocked
                               until C++ profile 3 lands
 
-1. Patch the GRTresna Momentum Convergence Check (Numerical Priority)
+1. Patch the GRTresna Momentum Convergence Check (Numerical Priority) — **DONE (2026-06-27)**
 
-We must immediately implement the proposed fix in GRSolver.impl.hpp to treat
-non-finite momentum errors as satisfied when the momentum source is zero:
+Implemented in `GRTresna/Source/Core/GRSolver.impl.hpp`:
 
-const bool mom_ok = !std::isfinite(Mom_error) || (Mom_error < exit_tol);
-const bool converged = (exit_tol > 0) && (Ham_error < exit_tol) && mom_ok;
+  - Zero momentum source (static / P_i = 0): `Mom_error` reports 0% instead of NaN.
+  - Early exit treats non-finite `Mom_error` as satisfied; stall detection ignores NaN mom.
+  - Mayday skips non-finite momentum errors.
 
-This will cut the GRTresna trajectory initial-data solve times by \sim 3\times
-with zero loss in physical accuracy, significantly accelerating our Stage 0
-throughput.
+Rebuild BosonStarBH (or ScalarFieldBH) per `grteclyn-wrapper/README.md` § Build GRTresna.
+Verified: static bicomplex Q-ball solve exits at NL iteration 6 (Ham ≈ 0.59%, Mom = 0%)
+vs 30 iterations before.
 
 2. Implement Stiffer Q-Ball Potentials (Physics Priority) — **DONE (Python)**
 
