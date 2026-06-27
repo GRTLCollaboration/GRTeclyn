@@ -8,6 +8,10 @@ import numpy as np
 from numpy.typing import NDArray
 
 from .boson_star_profile import BosonStarProfile
+from .boson_star_profile import (
+    PROFILE_ODE_BOUND,
+    PROFILE_SECH_BOUND,
+)
 from .lump_fields import _coordinate_grids, angular_factor
 
 # GRTeclyn RadialRecipe state layout (must match StateVariables.hpp).
@@ -105,6 +109,32 @@ def paint_boson_star_fields_on_grid(
     return painted, names
 
 
+def _lump_phi0_at_radius(r: NDArray, lump: Mapping[str, Any]) -> NDArray:
+    """Radial profile φ₀(r) for one lump (shared by rest and boosted paths)."""
+    amp = float(lump.get("amp", 0.0))
+    if amp == 0.0:
+        return np.zeros_like(r, dtype=np.float64)
+    width = float(lump.get("width", 5.0))
+    profile_type = int(lump.get("profile", 0))
+    if profile_type == PROFILE_ODE_BOUND:
+        from .qball_radial_ode import profile_for_lump
+
+        radial = profile_for_lump(
+            dict(lump),
+            mass=float(lump.get("qball_mass", 1.0)),
+            lam=float(lump.get("qball_lam", 0.0)),
+            mu=float(lump.get("qball_mu", 0.0)),
+            omega=float(lump.get("qball_omega", 0.0)),
+        )
+        return np.asarray(radial.eval_phi0(r), dtype=np.float64)
+    if profile_type == PROFILE_SECH_BOUND:
+        return amp / np.cosh(r / width)
+    if profile_type == 1:
+        soft = 0.25 * width
+        return amp * 0.5 * (1.0 - np.tanh((r - width) / soft))
+    return amp * np.exp(-r * r / (2.0 * width * width))
+
+
 def _raw_lump_phi_grid(
     lump: Mapping[str, Any], px: NDArray, py: NDArray, pz: NDArray,
 ) -> NDArray:
@@ -124,6 +154,11 @@ def _raw_lump_phi_grid(
     dz = pz - center[2]
     r2 = dx * dx + dy * dy + dz * dz
     profile = int(lump.get("profile", 0))
+    if profile == PROFILE_ODE_BOUND:
+        r = np.sqrt(r2)
+        return _lump_phi0_at_radius(r, lump) * angular_factor(
+            int(lump.get("mode", 0)), dx, dy, width
+        )
     if profile == 1:
         r = np.sqrt(r2)
         soft = 0.25 * width
@@ -179,14 +214,7 @@ def _boosted_lump_fields(
     if v_mag < 1.0e-10:
         # At rest: standard initialization.
         r = np.sqrt(ddx * ddx + ddy * ddy + ddz * ddz)
-        profile_type = int(lump.get("profile", 0))
-        if profile_type == 2:
-            phi0 = amp / np.cosh(r / width)
-        elif profile_type == 1:
-            soft = 0.25 * width
-            phi0 = amp * 0.5 * (1.0 - np.tanh((r - width) / soft))
-        else:
-            phi0 = amp * np.exp(-r * r / (2.0 * width * width))
+        phi0 = _lump_phi0_at_radius(r, lump)
         return phi0, zero.copy(), zero.copy(), -omega * phi0 * inv_lapse
 
     # --- Lorentz boost ---
@@ -203,18 +231,9 @@ def _boosted_lump_fields(
     rho = np.sqrt(dx_perp2 + gamma * gamma * dx_par * dx_par)
 
     # Profile and its radial derivative at contracted radius.
-    profile_type = int(lump.get("profile", 0))
-    if profile_type == 2:
-        phi0_rho = amp / np.cosh(rho / width)
-        dphi0_rho = -phi0_rho * np.tanh(rho / width) / width
-    elif profile_type == 1:
-        soft = 0.25 * width
-        arg = (rho - width) / soft
-        phi0_rho = amp * 0.5 * (1.0 - np.tanh(arg))
-        dphi0_rho = -amp * 0.5 / (soft * np.cosh(arg) ** 2)
-    else:
-        phi0_rho = amp * np.exp(-rho * rho / (2.0 * width * width))
-        dphi0_rho = -phi0_rho * rho / (width * width)
+    phi0_rho = _lump_phi0_at_radius(rho, lump)
+    dr = max(1.0e-6, 1.0e-4 * width)
+    dphi0_rho = (_lump_phi0_at_radius(rho + dr, lump) - phi0_rho) / dr
 
     # Phase: θ = ω γ (v · δx).
     v_dot_dx = velocity[0] * ddx + velocity[1] * ddy + velocity[2] * ddz

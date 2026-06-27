@@ -65,6 +65,18 @@ def _sech_phi0(r: np.ndarray, phi_c: float, width: float) -> np.ndarray:
 PROFILE_GAUSSIAN = 0
 PROFILE_TANH_SHELL = 1
 PROFILE_SECH_BOUND = 2
+PROFILE_ODE_BOUND = 3
+
+
+def grtresna_lump_profile(profile: int) -> int:
+    """Map lump profile for GRTresna ``params.txt`` (C++ supports 0–2 only).
+
+    ODE profiles are repainted in Python during gridinit export; the constraint
+    solve uses sech so the metric source matches a bound lump envelope.
+    """
+    if int(profile) == PROFILE_ODE_BOUND:
+        return PROFILE_SECH_BOUND
+    return int(profile)
 
 # When omega >= mass the field is unbound (no exponential confinement); fall back
 # to this finite decay scale so the width stays sane instead of diverging.

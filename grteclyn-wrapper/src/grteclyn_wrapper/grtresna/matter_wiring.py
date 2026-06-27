@@ -23,11 +23,13 @@ if TYPE_CHECKING:
 
 # Re-export for backward compatibility.
 __all__ = [
+    "EVOLUTION_MATTER_KEYS",
     "GRTRESNA_COMPLEX_SCALAR_MODEL",
     "GRTRESNA_INDEPENDENT_MATTER_MODEL",
     "GRTresnaMatterMetadata",
     "evolution_overrides_from_complex_scalar",
     "evolution_overrides_from_config",
+    "evolution_overrides_from_metadata",
     "merge_evolution_overrides",
     "plot_vars_for_complex_scalar",
     "plot_vars_for_bicomplex_scalar",
@@ -35,6 +37,26 @@ __all__ = [
     "read_matter_metadata",
     "write_matter_metadata",
 ]
+
+# Canonical GRTeclyn recipe keys required for a valid gridinit replay.
+# Single source of truth — replay_eval and promotion scripts import this tuple.
+EVOLUTION_MATTER_KEYS: tuple[str, ...] = (
+    "recipe_matter_model",
+    "recipe_num_scalar_fields",
+    "recipe_scalar_field_signs",
+    "recipe_scalar_mass",
+    "recipe_scalar_lambda",
+    "recipe_scalar_mu",
+    "recipe_scalar_sign",
+    "recipe_exotic_matter",
+    "recipe_support_strength",
+    "amr.plot_vars",
+    "trajectory_pump_frequency",
+    "rl_pump_kp",
+    "rl_pump_kd",
+    "rl_pump_target_profile",
+    "rl_pump_target_width",
+)
 
 # Full metric in plotfiles for evolved FTL/EC scoring plus matter channels.
 _BASE_PLOT_VARS = (
@@ -186,6 +208,7 @@ class GRTresnaMatterMetadata:
     scalar_mass: float
     scalar_lambda: float
     lump_count: int
+    scalar_mu: float = 0.0
     bs_phi_c: float = 0.0
     bs_profile_width: float = 0.0
     bs_omega: float = 0.0
@@ -208,6 +231,7 @@ class GRTresnaMatterMetadata:
                 scalar_field_signs=signs,
                 scalar_mass=float(cfg.scalar_mass),
                 scalar_lambda=float(cfg.scalar_lambda),
+                scalar_mu=float(getattr(cfg, "scalar_mu", 0.0)),
                 lump_count=len(lumps),
                 bs_phi_c=float(getattr(cfg, "bs_phi_c", 0.0)),
                 bs_profile_width=float(getattr(cfg, "bs_profile_width", 0.0)),
@@ -223,6 +247,7 @@ class GRTresnaMatterMetadata:
                 scalar_field_signs=(),
                 scalar_mass=float(cfg.scalar_mass),
                 scalar_lambda=float(cfg.scalar_lambda),
+                scalar_mu=float(getattr(cfg, "scalar_mu", 0.0)),
                 lump_count=0,
                 bs_phi_c=float(cfg.bs_phi_c),
                 bs_profile_width=float(cfg.bs_profile_width),
@@ -239,9 +264,45 @@ class GRTresnaMatterMetadata:
             scalar_field_signs=signs,
             scalar_mass=float(cfg.scalar_mass),
             scalar_lambda=float(cfg.scalar_lambda),
+            scalar_mu=float(getattr(cfg, "scalar_mu", 0.0)),
             lump_count=len(lumps),
             lump_centers=_lump_centers(lumps),
         )
+
+    def to_evolution_overrides(self) -> dict[str, Any]:
+        """GRTeclyn recipe params for GPU replay from serialized matter metadata."""
+        if is_bicomplex_scalar_model(self.matter_model):
+            return evolution_overrides_from_bicomplex_scalar(
+                mass=self.scalar_mass,
+                lam=self.scalar_lambda,
+                field_signs=self.scalar_field_signs,
+                bs_omega=self.bs_omega,
+                mu=self.scalar_mu,
+            )
+        if is_complex_scalar_model(self.matter_model):
+            return evolution_overrides_from_complex_scalar(
+                mass=self.scalar_mass,
+                lam=self.scalar_lambda,
+                sign=float(self.scalar_sign),
+                bs_omega=self.bs_omega,
+                mu=self.scalar_mu,
+            )
+        if self.num_scalar_fields == 0:
+            return {"calculate_constraint_norms": 1}
+        return {
+            "recipe_matter_model": self.matter_model,
+            "recipe_num_scalar_fields": self.num_scalar_fields,
+            "recipe_scalar_field_signs": " ".join(str(s) for s in self.scalar_field_signs),
+            "recipe_scalar_mass": self.scalar_mass,
+            "recipe_scalar_lambda": self.scalar_lambda,
+            "calculate_constraint_norms": 1,
+            "amr.plot_vars": plot_vars_for_independent_scalars(self.num_scalar_fields),
+        }
+
+
+def evolution_overrides_from_metadata(meta: GRTresnaMatterMetadata) -> dict[str, Any]:
+    """Rebuild evolution overrides from ``initial_data.matter.json``."""
+    return meta.to_evolution_overrides()
 
 
 def evolution_overrides_from_config(cfg: GRTresnaConfig) -> dict[str, Any]:  # noqa: F821
@@ -297,6 +358,7 @@ def read_matter_metadata(path: str | Path) -> GRTresnaMatterMetadata:
         scalar_field_signs=signs,
         scalar_mass=float(payload.get("scalar_mass", 0.0)),
         scalar_lambda=float(payload.get("scalar_lambda", 0.0)),
+        scalar_mu=float(payload.get("scalar_mu", 0.0)),
         lump_count=int(payload.get("lump_count", len(signs))),
         bs_phi_c=float(payload.get("bs_phi_c", 0.0)),
         bs_profile_width=float(payload.get("bs_profile_width", 0.0)),

@@ -9,9 +9,11 @@ from grteclyn_wrapper.grtresna.matter_wiring import (
     GRTRESNA_COMPLEX_SCALAR_MODEL,
     evolution_overrides_from_bicomplex_scalar,
     evolution_overrides_from_complex_scalar,
+    evolution_overrides_from_metadata,
     plot_vars_for_bicomplex_scalar,
     plot_vars_for_complex_scalar,
     read_matter_metadata,
+    write_matter_metadata,
 )
 from grteclyn_wrapper.grtresna.matter_models import GRTRESNA_BICOMPLEX_SCALAR_MODEL
 
@@ -24,10 +26,11 @@ def test_rename_complex_scalar_components() -> None:
 
 
 def test_evolution_overrides_for_complex_scalar() -> None:
-    overrides = evolution_overrides_from_complex_scalar(mass=0.1, lam=0.0)
+    overrides = evolution_overrides_from_complex_scalar(mass=0.1, lam=0.0, mu=5333.0)
     assert overrides["recipe_matter_model"] == GRTRESNA_COMPLEX_SCALAR_MODEL
     assert overrides["recipe_scalar_mass"] == 0.1
     assert overrides["recipe_scalar_lambda"] == 0.0
+    assert overrides["recipe_scalar_mu"] == 5333.0
     assert "phi_lump0" in overrides["amr.plot_vars"]
 
 
@@ -38,6 +41,7 @@ def test_read_matter_metadata_includes_scalar_lambda(tmp_path) -> None:
         "scalar_field_signs": [1],
         "scalar_mass": 0.1,
         "scalar_lambda": 0.02,
+        "scalar_mu": 85333.0,
         "lump_count": 1,
     }
     path = tmp_path / "matter.json"
@@ -45,6 +49,30 @@ def test_read_matter_metadata_includes_scalar_lambda(tmp_path) -> None:
     meta = read_matter_metadata(path)
     assert meta.scalar_lambda == 0.02
     assert meta.scalar_mass == 0.1
+    assert meta.scalar_mu == 85333.0
+
+
+def test_bicomplex_metadata_round_trip_includes_scalar_mu(tmp_path) -> None:
+    from grteclyn_wrapper.grtresna.solver import GRTresnaConfig
+
+    cfg = GRTresnaConfig(
+        matter_model=GRTRESNA_BICOMPLEX_SCALAR_MODEL,
+        scalar_mass=1.0,
+        scalar_lambda=640.0,
+        scalar_mu=85333.0,
+        bs_omega=0.4,
+        lumps=[
+            {"amp": 0.15, "width": 1.09, "center": (0.0, 0.0, 0.0), "exotic": 0},
+            {"amp": 0.15, "width": 1.09, "center": (1.0, 0.0, 0.0), "exotic": 1},
+        ],
+    )
+    path = write_matter_metadata(tmp_path / "matter.json", cfg)
+    meta = read_matter_metadata(path)
+    assert meta.scalar_mu == 85333.0
+    assert meta.scalar_lambda == 640.0
+    evo = evolution_overrides_from_metadata(meta)
+    assert evo["recipe_scalar_mu"] == 85333.0
+    assert evo["recipe_matter_model"] == GRTRESNA_BICOMPLEX_SCALAR_MODEL
 
 
 def test_plot_vars_for_complex_scalar() -> None:

@@ -648,18 +648,15 @@ Current parameters: `λ=160`, `μ=5333` → core amplitude 0.15, binding energy
 `ΔE/E ~ (λ/m²)·|Φ|² ~ 160·0.0225 ≈ 3.6`. The Q-ball IS strongly bound in energy,
 but its **spatial extent** (R=1.09) means the binding force per unit volume is moderate.
 
-Increasing the couplings while keeping the core amplitude fixed:
-- `λ → 640`, `μ → 85333` (4× stronger): same `|Φ|_core = √(3λ/4μ) = 0.15` but
-  the potential well is 4× deeper → 4× stronger restoring force against deformation.
-  `ω_min² = m² − 3λ²/(16μ) = 1 − 3·640²/(16·85333) = 1 − 0.90 = 0.10` →
-  `ω_min = 0.316` (unchanged — the existence band stays the same because the ratio
-  `λ²/μ` is fixed).
-- To shrink the Q-ball (tighter confinement), increase `ω` toward `m`: at `ω=0.8`,
-  `R = 1/√(1−0.64) = 1.67` (larger, worse). At `ω=0.35`, `R = 1/√(1−0.1225) = 1.07`
-  (marginally tighter). The tail width is set by `m²−ω²`, so **smaller ω gives tighter
-  Q-balls** (but `ω > ω_min=0.316` is required).
-- Practical limit: very large `λ,μ` increase RHS stiffness, potentially requiring
-  smaller dt. Monitor CFL stability.
+Increasing the couplings with **preserving-band scaling** (μ ∝ λ², fixed ω_min):
+- `λ → 640`, `μ → 85333` (4× λ): equilibrium core **√(3λ/4μ) ≈ 0.075** (half of
+  standard's 0.15), but the restoring force at a fixed paint amplitude is much
+  stronger.  `ω_min = 0.316` unchanged (ratio λ²/μ fixed).
+- **Do not** seed at `well_depth=0.15` with stiff couplings: that is 2×
+  super-equilibrium and drives t=0 relaxation radiation.
+- Practical limit: very large `λ,μ` without an ODE seed increases RHS stiffness
+  and makes the initial shock worse; prefer stiff + equilibrium amplitude + ODE
+  profile over 8× λ with sech.
 
 The stronger restoring force resists deformation by the pump's translational push,
 reducing radiation loss during transport.
@@ -687,32 +684,69 @@ The exact profile has:
   for r ≲ 2R, it falls off too slowly for r ≫ R).
 - **Self-consistent metric** if coupled to the GRTresna constraint solver (gravity).
 
-Implementation path:
-1. Add `qball_radial_ode.py` to `grteclyn-wrapper/src/grteclyn_wrapper/grtresna/`:
-   - Shoot the ODE with scipy `solve_ivp` + bisection on `φ₀(0)`.
-   - Return tabulated `φ₀(r)` on a fine radial grid.
-2. Replace `BosonStarProfile.eval_phi0(r) = amp * sech(r/R)` with interpolation of
-   the ODE solution when `scalar_mu > 0` (sextic present).
-3. Feed the profile to `paint_bicomplex_boson_star_fields_on_grid` (drop-in: just
-   change the `profile.eval_phi0` return values).
-4. Optionally couple to GRTresna: solve the TOV-like metric ODEs simultaneously for
-   self-gravitating Q-balls (needed only when amp is large enough for gravity to matter;
-   at amp=0.15 with m=1, the compactness `M/R ~ 0.5·m²·A²·R³/R ~ 0.01` is negligible).
+Implementation path (**Fix 3 implemented 2026-06-27** in `grtresna/qball_radial_ode.py`):
+1. ~~Add `qball_radial_ode.py`~~ — shooting + bisection on φ₀(0); returns tabulated
+   `QBallRadialProfile` with cubic-spline interpolation.
+2. ~~Gridinit repaint~~ — `PROFILE_ODE_BOUND` in `boson_star_fields.py` uses the ODE
+   tabulation when `grtresna_qball_ode_profile=1`.
+3. ~~Equilibrium amplitude cap~~ — `grtresna_qball_equilibrium_amplitude=1` caps each
+   lump's `well_depth` to √(3λ/4μ) via `QBallCouplings.cap_well_depth`.
+4. Replay flags: `--qball-preset stiff --qball-equilibrium-amplitude --qball-ode-profile`.
 
-#### Priority ordering
+**Next replay (dispersion-corrected stiff eval 122):**
 
-| Fix | Effort | Expected impact | When |
-|-----|--------|-----------------|------|
-| 1. Speed follow | **Done** | Partial — improved early transient, not enough alone | Implemented |
-| 2. Stronger λ,μ | Low (parameter change, rebuild) | **High** — deeper well resists transverse acceleration | Next test |
-| 3. Full ODE profile | Medium (new solver + integration) | High — eliminates seed radiation (~30% peak loss) | After λ,μ test |
-| 1+3 combined | High | **Very high** — exact profile + matched velocity = minimal radiation | Target |
+```bash
+uv run python scripts/campaigns/hq/replay_eval.py \
+  ../runs/grtresna_promote/traj_qball_boosted_eval122 \
+  --name traj_qball_stiff_ode_eval122 \
+  --qball-preset stiff \
+  --qball-equilibrium-amplitude \
+  --qball-ode-profile \
+  --stop-time 16 ...
+```
 
-The strongest fix is **(2) + (1) + (3)**: a stiffer potential well lets the exact Q-ball
-profile survive the curved pump trajectory, while the matched velocity removes the
-initial transient. The boost alone is insufficient because the trajectory's transverse
-acceleration (circular orbits at high effective speed) still strips the soliton. A deeper
-well is the missing ingredient for self-bound transport.
+This isolates **kinematic** orbit dispersion (centripetal scalar radiation) from
+**relaxation** dispersion (sech + super-equilibrium seed).
+
+#### Fix 2b — Stiff coupling promotion run (2026-06-27, stopped early)
+
+Promoted eval 122 with **λ=640, μ=85333**, Lorentz boost, sech seed, `well_depth=0.15`
+(2× super-equilibrium for stiff). Runs stopped at t≈9.5 after confinement clearly
+tracked baseline dispersal.
+
+| run | t reached | confined_frac @ t=0 / 3.2 / 6.4 / 9.6 | vs λ=160 baseline @ same t |
+|-----|-----------|----------------------------------------|----------------------------|
+| `traj_qball_stiff_boosted_eval122_v2` | ~9.6 (stopped) | 0.756 / **0.776** / **0.622** / **0.394** | 0.756 / ~0.75 / 0.519 / ~0.28 |
+| `traj_qball_stiff_static_smoke` (ω_rot=0) | ~6.5 (stopped) | 0.714 / 0.716 | — (control: binding OK at rest) |
+| `traj_qball_boosted_eval122` (baseline) | 16 (complete) | → **0.066** @ t=16 | reference |
+
+**Verdict:** 4× λ with sech + 0.15 paint **delays** dispersal (~10 pts better
+`confined_frac` at t≈6.4) but **does not prevent** orbit-driven erosion by t≈9.6.
+The run was stopped before t=16; trajectory already matched baseline trend.
+Raising λ further without ODE + equilibrium seed would worsen the t=0 shock.
+
+**Dispersion decomposition (agreed priority):**
+
+1. **Relaxation dispersion** — sech seed + super-equilibrium amplitude → Fix 3 ODE +
+   `--qball-equilibrium-amplitude` (implemented; next replay).
+2. **Kinematic dispersion** — centripetal acceleration on curved orbit at 2.6–6.0c
+   tangential speeds → measure only after (1) is removed.
+
+Optional developer throughput: GRTresna NaN-Mom early-exit patch (NextSteps item 1)
+— decoupled from evolution physics.
+
+#### Priority ordering (updated 2026-06-27)
+
+| Fix | Effort | Expected impact | Status |
+|-----|--------|-----------------|--------|
+| 1. Lorentz boost | Done | Partial — early transient only | Implemented |
+| 2. Stiff λ=640, μ=85333 | Done | Partial — delays dispersal, sech seed limits gain | Tested; insufficient alone |
+| 2b. Equilibrium well_depth | Low | High — removes super-equilibrium shock | **Implemented** (`--qball-equilibrium-amplitude`) |
+| 3. ODE radial profile | Medium | High — zero t=0 relaxation radiation | **Implemented** (`--qball-ode-profile`) |
+| **Next replay** | Low | Isolates kinematic vs relaxation dispersion | `traj_qball_stiff_ode_eval122` |
+
+Do **not** raise λ to 8× before running stiff + ODE + equilibrium amplitude: a stiffer
+well with a poor seed produces a **more violent** initial shock.
 
 ---
 
@@ -756,10 +790,9 @@ See [NextSteps.md](./NextSteps.md) for the full plan. Summary:
 8. **Boson star trajectory**: Replace pump-spotlight with self-gravitating solitons for
    genuinely persistent matter configurations.
 
-9. **Stronger Q-ball binding + boost**: Test `λ=640`, `μ=85333` (4× deeper well) with the
-   velocity-matched initial data. The boost alone was insufficient; a stiffer potential is the
-   missing ingredient to resist transverse acceleration during curved transport. If this
-   holds, add the full radial ODE profile for zero seed radiation.
+9. ~~**Stronger Q-ball binding + boost**~~: λ=640 tested — partial gain; next:
+   **stiff + ODE profile + equilibrium amplitude** (`--qball-ode-profile`,
+   `--qball-equilibrium-amplitude`).
 
 ---
 
@@ -777,6 +810,8 @@ See [NextSteps.md](./NextSteps.md) for the full plan. Summary:
 | `traj_bicomplex_m03_w025` HQ | 2026-06-26 | Bicomplex HQ (eval 122, m=0.3, ω=0.25) | in progress | — | — | 256³, t=30 promotion running |
 | `traj_bicomplex_qball_eval122_v2` | 2026-06-26 | Q-ball + eval 122 dynamics (m=1, λ=160, μ=5333) | 1 | −100.1 | 4.62% f_geo peak | Matter dispersed (12% conf), FTL precursor=1.0, 84% lifetime |
 | `traj_qball_boosted_eval122` | 2026-06-26 | Q-ball + Lorentz-boosted initial data (v_max=0.8c) | 1 | — | 3.53% f_geo peak | Early confinement improved (0.79), final confinement still poor (0.066); boost implemented and tested |
+| `traj_qball_stiff_boosted_eval122_v2` | 2026-06-27 | Stiff Q-ball λ=640, μ=85333 + boost, sech@0.15 | — | — | — | Stopped t≈9.6; conf 0.62@6.4 vs 0.52 baseline; still dispersing on orbit |
+| `traj_qball_stiff_static_smoke` | 2026-06-27 | Stiff λ=640 static (ω_rot=0), t→8 | — | — | — | Stopped t≈6.5; conf ~0.72 (binding OK at rest) |
 
 **Conclusion:** The trajectory ansatz with per-lump differential motion is a **qualitative
 improvement** over spherical harmonics. The HQ validation confirms a **resolution-independent,

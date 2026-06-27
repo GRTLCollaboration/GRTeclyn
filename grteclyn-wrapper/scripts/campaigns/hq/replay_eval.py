@@ -5,8 +5,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
+from typing import Any, Mapping
 
 import numpy as np
 
@@ -15,28 +17,58 @@ from grteclyn_wrapper.core.evaluation import evaluate_overrides
 from grteclyn_wrapper.core.params import regrid_intervals_for_max_level
 from grteclyn_wrapper.grtresna.domain import GRTresnaDomainConfig
 from grteclyn_wrapper.grtresna.matter_wiring import (
+    EVOLUTION_MATTER_KEYS,
     GRTRESNA_COMPLEX_SCALAR_MODEL,
+    evolution_overrides_from_metadata,
     plot_vars_for_bicomplex_scalar,
     plot_vars_for_complex_scalar,
     plot_vars_for_independent_scalars,
+    read_matter_metadata,
 )
 from grteclyn_wrapper.grtresna.matter_models import GRTRESNA_BICOMPLEX_SCALAR_MODEL
+from grteclyn_wrapper.grtresna.qball_couplings import QBallCouplings
 from grteclyn_wrapper.grtresna.io import read_gridinit
 from grteclyn_wrapper.grtresna.solver import GRTresnaConfig
 from grteclyn_wrapper.search.grtresna_convergence_gate import GRTresnaConvergenceConfig
 
+# Match scripts/campaigns/lib/search_common.sh (QD stage-0 defaults).
+_QD_PLOT_INTERVAL = 320
+_BOSON_FRAMES_FIELDS = (
+    "scalar_activity phi Pi phi_lump0 Pi_lump0 phi_lump1 "
+    "chi chi_minus_1 local_speed shift1 rho_req"
+)
+_SCALAR_FRAMES_FIELDS = (
+    "lump_activity scalar_activity phi_lump_sum Pi_lump_sum "
+    "chi chi_minus_1 local_speed shift1 rho_req"
+)
 
-_MATTER_REPLAY_KEYS = {
-    "recipe_matter_model",
-    "recipe_num_scalar_fields",
-    "recipe_scalar_field_signs",
-    "recipe_scalar_mass",
-    "recipe_scalar_lambda",
-    "recipe_scalar_sign",
-    "recipe_exotic_matter",
-    "recipe_support_strength",
-    "amr.plot_vars",
-}
+
+def _apply_replay_consumer_env(overrides: Mapping[str, Any]) -> None:
+    """Apply QD-matching frame extraction env when not already set by the caller."""
+    os.environ.setdefault("GRTECLYN_FRAMES", "1")
+    if os.environ.get("GRTECLYN_FRAMES_FIELDS", "").strip():
+        return
+
+    model = str(
+        overrides.get("grtresna_matter_model")
+        or overrides.get("recipe_matter_model", "")
+    ).lower()
+    sector = str(overrides.get("grtresna_matter_sector", "")).lower()
+    if (
+        "bicomplex" in model
+        or "complex_scalar" in model
+        or sector == "boson_star"
+    ):
+        os.environ["GRTECLYN_FRAMES_FIELDS"] = _BOSON_FRAMES_FIELDS
+        os.environ.setdefault("GRTECLYN_PROJECTION_FIELDS", "scalar_activity phi")
+    else:
+        os.environ["GRTECLYN_FRAMES_FIELDS"] = _SCALAR_FRAMES_FIELDS
+        os.environ.setdefault(
+            "GRTECLYN_PROJECTION_FIELDS", "lump_activity scalar_activity"
+        )
+    os.environ.setdefault("GRTECLYN_FRAMES_ZOOM", "none")
+    os.environ.setdefault("GRTECLYN_PROJECTION_AXES", "x y z")
+    os.environ.setdefault("GRTECLYN_PROJECTION_METHOD", "mip")
 
 
 def _load_overrides(source_eval: Path) -> dict:
@@ -67,17 +99,33 @@ def _parse_params_value(raw: str) -> int | float | str:
 
 
 def _load_matter_replay_overrides(source_eval: Path) -> dict[str, int | float | str]:
+    """Restore evolution matter params for gridinit-only replay.
+
+    Prefer ``initial_data.matter.json`` (full metadata including scalar_mu);
+    fall back to scanning ``params.txt`` for ``EVOLUTION_MATTER_KEYS``.
+    """
+    matter_json = source_eval / "initial_data.matter.json"
+    if matter_json.is_file():
+        meta = read_matter_metadata(matter_json)
+        overrides = evolution_overrides_from_metadata(meta)
+        return {
+            key: value
+            for key, value in overrides.items()
+            if key in EVOLUTION_MATTER_KEYS
+        }
+
     params_path = source_eval / "params.txt"
     if not params_path.is_file():
         return {}
 
+    replay_keys = set(EVOLUTION_MATTER_KEYS)
     overrides: dict[str, int | float | str] = {}
     for line in params_path.read_text(encoding="utf-8").splitlines():
         body = line.split("#", 1)[0].strip()
         if "=" not in body:
             continue
         key, raw_value = (part.strip() for part in body.split("=", 1))
-        if key in _MATTER_REPLAY_KEYS:
+        if key in replay_keys:
             overrides[key] = _parse_params_value(raw_value)
     return overrides
 
@@ -183,8 +231,8 @@ def main() -> int:
     parser.add_argument(
         "--plot-interval",
         type=int,
-        default=48,
-        help="Plot cadence for long runs (~33 frames at t=16)",
+        default=_QD_PLOT_INTERVAL,
+        help="Plotfile cadence in steps (QD default: 320 → ~6 dumps at t=16, dt≈0.01).",
     )
     parser.add_argument("--ftl-L", type=float, default=8.0)
     parser.add_argument("--grtresna-ranks", type=int, default=8)
@@ -234,6 +282,22 @@ def main() -> int:
         help="Extra key=value overrides applied after all other overrides "
         "(e.g. --extra-override lapse_power=0.0). May be repeated.",
     )
+    parser.add_argument(
+        "--qball-preset",
+        choices=("standard", "stiff"),
+        default=None,
+        help="Apply QBallCouplings preset overrides (standard=λ160/μ5333, stiff=λ640/μ85333).",
+    )
+    parser.add_argument(
+        "--qball-equilibrium-amplitude",
+        action="store_true",
+        help="Cap trajectory well_depth to flat-space Q-ball core amplitude √(3λ/4μ).",
+    )
+    parser.add_argument(
+        "--qball-ode-profile",
+        action="store_true",
+        help="Seed lumps from the flat-space Q-ball radial ODE (Fix 3) instead of sech.",
+    )
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
@@ -271,6 +335,24 @@ def main() -> int:
     )
 
     # Apply --extra-override KEY=VALUE pairs last (highest priority).
+    if args.qball_preset is not None:
+        preset = (
+            QBallCouplings.standard()
+            if args.qball_preset == "standard"
+            else QBallCouplings.stiff()
+        )
+        overrides.update(
+            preset.seed_overrides(
+                equilibrium_amplitude=args.qball_equilibrium_amplitude,
+                ode_profile=args.qball_ode_profile,
+            )
+        )
+    elif args.qball_equilibrium_amplitude or args.qball_ode_profile:
+        if args.qball_equilibrium_amplitude:
+            overrides["grtresna_qball_equilibrium_amplitude"] = 1
+        if args.qball_ode_profile:
+            overrides["grtresna_qball_ode_profile"] = 1
+
     for token in args.extra_override:
         if "=" not in token:
             print(f"[replay] ignoring malformed --extra-override {token!r}", file=sys.stderr)
@@ -340,6 +422,8 @@ def main() -> int:
         if num_fields and "amr.plot_vars" not in overrides:
             overrides["amr.plot_vars"] = plot_vars_for_independent_scalars(int(num_fields))
         overrides["recipe_initial_data_file"] = str(gridinit)
+
+    _apply_replay_consumer_env(overrides)
 
     example = resolve_example("RadialRecipe")
     template = example.template

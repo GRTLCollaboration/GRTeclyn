@@ -284,15 +284,23 @@ def _expand_trajectory_boson_lumps_from_overrides(
     but the expansion itself does not impose a tighter limit — replay of
     real-scalar elites with bosonic matter needs the original amplitude range.
     """
-    from ...grtresna.boson_star_profile import PROFILE_SECH_BOUND, bound_width
+    from ...grtresna.boson_star_profile import PROFILE_ODE_BOUND, PROFILE_SECH_BOUND, bound_width
+    from ...grtresna.qball_couplings import QBallCouplings
     from .spaces import TRAJECTORY_DEFAULT_NUM_LUMPS
 
     num_lumps = max(1, int(round(get_float("trajectory_num_lumps", float(TRAJECTORY_DEFAULT_NUM_LUMPS)))))
 
     # Bound boson lumps: width = 1/sqrt(m^2 - omega^2), the physical decay scale.
     mass = get_float("grtresna_scalar_mass", 0.1)
+    lam = get_float("grtresna_scalar_lambda", 0.0)
+    mu = get_float("grtresna_scalar_mu", 0.0)
     omega = get_float("grtresna_bs_omega", 0.0)
     width = bound_width(mass, omega)
+
+    couplings = QBallCouplings(mass=mass, lam=lam, mu=mu, omega=omega)
+    use_equilibrium = bool(int(round(get_float("grtresna_qball_equilibrium_amplitude", 0.0))))
+    use_ode = bool(int(round(get_float("grtresna_qball_ode_profile", 0.0))))
+    profile = int(PROFILE_ODE_BOUND if use_ode else PROFILE_SECH_BOUND)
 
     # Velocity boost: match trajectory angular velocity at t=0.
     boost_lumps = bool(int(round(get_float("grtresna_boost_lumps", 1.0))))
@@ -346,16 +354,32 @@ def _expand_trajectory_boson_lumps_from_overrides(
 
         exotic = int(round(get_float(f"{pfx}exotic", 0.0)))
 
-        lumps.append({
-            "amp": min(0.15, max(0.0, well_depth)),
+        amp = (
+            couplings.cap_well_depth(well_depth)
+            if use_equilibrium and lam > 0.0 and mu > 0.0
+            else min(0.15, max(0.0, well_depth))
+        )
+
+        lump: dict[str, Any] = {
+            "amp": amp,
             "width": width,
             "center": (cx, cy, cz),
             "velocity": velocity,
             "omega": 0.0,
             "mode": 0,
-            "profile": PROFILE_SECH_BOUND,
+            "profile": profile,
             "exotic": exotic,
-        })
+        }
+        if use_ode and lam > 0.0 and mu > 0.0:
+            lump.update(
+                {
+                    "qball_mass": mass,
+                    "qball_lam": lam,
+                    "qball_mu": mu,
+                    "qball_omega": omega,
+                }
+            )
+        lumps.append(lump)
     return lumps
 
 
