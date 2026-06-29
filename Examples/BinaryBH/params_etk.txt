@@ -48,7 +48,7 @@ two_punctures.verbose = true
 two_punctures.calculate_target_masses = true
 two_punctures.target_mass_plus  = 0.5
 two_punctures.target_mass_minus = 0.5
-two_punctures.adm_tol           = 1.0e-12
+two_punctures.adm_tol           = 1.0e-10
 
 #two_punctures.mass_plus  = 0.48847892320123
 #two_punctures.mass_minus = 0.48847892320123
@@ -62,15 +62,15 @@ two_punctures.momentum_minus = 0.0 -0.09 0.0
 two_punctures.spin_plus      = 0.0 0.0 0.0
 two_punctures.spin_minus     = 0.0 0.0 0.0
 
-two_punctures.use_spectral_interpolation = true
-two_punctures.initial_lapse = "twopunctures-averaged"
+# two_punctures.use_spectral_interpolation = true
+# two_punctures.initial_lapse = "twopunctures-averaged"
 # two_punctures.initial_lapse_psi_exponent = -2.0
 
 two_punctures.num_points_A   = 64
 two_punctures.num_points_B   = 64
 two_punctures.num_points_phi = 48
 
-two_punctures.solver_tol    = 1.0e-12
+two_punctures.solver_tol    = 1.0e-10
 two_punctures.solver_maxit  = 250
 two_punctures.epsilon       = 1.0e-6
 # two_punctures.tiny          = 0.0
@@ -90,15 +90,16 @@ max_level = 9 # There are (max_level+1) grids, so min is zero
 
 # -1 disables regridding
 regrid_interval = -1   -1   -1   2   4   8   16   32   64   128
-regrid_threshold = 0.013
+regrid_threshold = 0.014
 
 # Max and min box sizes
 max_grid_size = 64
 block_factor = 16
+grid_buffer_size = 32
 
 # Tag buffer size
 amr.n_error_buf = 3 3 3
-# amr.n_proper = 32
+#amr.n_proper = 32
 # num_ghosts = 3
 # center = 8 8 8 # defaults to center of the grid
 
@@ -127,11 +128,11 @@ nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 
 # dt will be dx*dt_multiplier on each grid level
 dt_multiplier = 0.25
-stop_time = 1600.0
+stop_time = 2500.0
 #max_steps = 1
 
 # Spatial derivative order (only affects CCZ4 RHS)
-max_spatial_derivative_order = 4 # only 4 currently implemented
+max_spatial_derivative_order = 6 # only 4 currently implemented
 
 nan_check = 1
 
@@ -167,7 +168,7 @@ activate_extraction = true
 num_extraction_radii = 2
 extraction_radii = 50.0 100.0
 extraction_levels = 3 2
-num_points_phi = 320
-num_points_theta = 160
+num_points_phi = 160
+num_points_theta = 80
 num_modes = 3
 modes = 2 0  2 1  2 2
