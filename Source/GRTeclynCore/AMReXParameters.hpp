@@ -484,7 +484,7 @@ class AMReXParameters
             pp.add("n_error_buf", tag_buffer_size);
             pp.add("ref_ratio", 2);
             pp.add("max_grid_size", max_grid_size);
-            pp.add("n_proper", grid_buffer_size);
+            //pp.add("n_proper", grid_buffer_size); // seems to break regrid...
             pp.add("blocking_factor", block_factor);
             pp.addarr("n_cell",
                       std::vector<int>{ivN[0] + 1, ivN[1] + 1, ivN[2] + 1});

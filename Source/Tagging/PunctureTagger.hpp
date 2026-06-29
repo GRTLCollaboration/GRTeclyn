@@ -53,7 +53,7 @@ template <unsigned int num_punctures> class PunctureTagger
         // the top levels are well spaced)
 
         // we want each level to be double the innermost one in size
-        const int exponent  = std::min(m_max_level - m_level - 1, 1);
+        const int exponent  = std::min(m_max_level - m_level - 1, 0);
         const double factor = std::pow(2.0, exponent);
 
         amrex::IntVect current_cell(AMREX_D_DECL(ix, iy, iz));
@@ -70,8 +70,8 @@ template <unsigned int num_punctures> class PunctureTagger
                                      current_puncture_coords);
             const amrex::Real r = coords.get_radius();
             // decide whether to tag based on distance to horizon
-            // plus a fudge factor of 3.0
-            amrex::Real fudge_factor = 3.0;
+            // plus a fudge factor of 4.0
+            amrex::Real fudge_factor = 4.0;
             if (r < fudge_factor * factor * m_puncture_masses[ipuncture])
             {
                 tags(current_cell) = amrex::TagBox::SET;
