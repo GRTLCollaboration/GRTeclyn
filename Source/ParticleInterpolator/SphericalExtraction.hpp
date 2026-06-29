@@ -82,9 +82,8 @@ class SphericalExtraction
         const bool a_broadcast_integral         = false)
     {
         auto integrand_re = [center = m_center, &geom = this->m_geom, es, el,
-                             em, &a_function](std::vector<double> &a_data_here,
-                                              double r, double theta,
-                                              double phi)
+                             em, a_function](std::vector<double> &a_data_here,
+                                             double r, double theta, double phi)
         {
             // note that spin_Y_lm requires the coordinates with the center
             // at the origin
@@ -102,9 +101,8 @@ class SphericalExtraction
                             a_method_phi, a_broadcast_integral);
 
         auto integrand_im = [center = m_center, &geom = this->m_geom, es, el,
-                             em, &a_function](std::vector<double> &a_data_here,
-                                              double r, double theta,
-                                              double phi)
+                             em, a_function](std::vector<double> &a_data_here,
+                                             double r, double theta, double phi)
         {
             // note that spin_Y_lm requires the coordinates with the center
             // at the origin
