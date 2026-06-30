@@ -750,6 +750,61 @@ well with a poor seed produces a **more violent** initial shock.
 
 ---
 
+## Q-ball / boson-star profile solver — C++ implementation and validation (2026-06-29/30)
+
+The profile-3 ODE blocker from 2026-06-27 is now resolved end-to-end. GRTresna C++ can
+load the same flat-space Q-ball radial profile as Python, and the temporary `3→2` sech
+mapping hack has been removed.
+
+### Implementation
+
+| Component | Change |
+|-----------|--------|
+| `GRTresna/Source/Matter/BosonStarParams.hpp` | Added `profile == 3` (tabulated radial Q-ball); added `scalar_mu` parameter for the sextic stabilizer |
+| `GRTresna/Source/Matter/ComplexScalarField.cpp` | Implemented sextic term `scalar_mu · φ² · φ` (μ controls the stabilizer) and profile-3 tabulated loader |
+| `grteclyn-wrapper/grtresna/boson_star_profile.py` | Shoots flat-space ODE and emits a tabulated `.dat` file for C++ to load |
+| `grteclyn-wrapper/grtresna/solver.py` | Removed the temporary `profile 3 → 2` sech mapping hack |
+| `search/optimize/candidates.py` + `config.py` | Added sub-luminal trajectory speed cap (`max_speed_fraction < 1.0`) with tests |
+| `visualisation/process_wave/consume_plotfiles/extraction/confinement.py` | Rewrote `confined_frac` extractor to be AMR-aware |
+
+### Validation
+
+- **GRTresna solve**: converges with the tabulated profile-3 ODE; no more sech/ODE mismatch.
+- **GPU smoke (eval 122, t=0)**: `confined_frac ≈ 75%` with clean φ frames; no diagonal garbage.
+- **Speed sweep**: sub-luminal cap applied; candidate trajectory speeds are now strictly `< c`.
+- **Full test suite**: 547 passed.
+
+### AMR-aware confinement diagnostic
+
+The old `confined_frac` extractor integrated over the level-0 grid only, silently
+down-sampling any refined structure. It was rewritten to integrate `w · dV` over **all
+AMR levels**, using the finest cell at each location and summing the true cell volume.
+
+- Unit test on synthetic 2-level data: the old level-0 path missed the refined core
+  (0.01 vs actual 0.50); the new path recovers it.
+- Backward-compatible on uniform grids.
+- 547 tests passed.
+
+### Why `max_level=2` and `max_level=3` gave identical scores on solitons
+
+GPU re-validation showed that AMR **almost never engages** on the boson-star soliton.
+The field is smooth (core amplitude ≈ 0.075, sech/ODE profile), so gradients stay below
+the default `regrid_threshold=0.02`. Level-1 grids may form transiently between regrids,
+but they are de-refined before plotfiles are written. Consequently:
+
+- The scored confinement lives on the base grid regardless of `max_level`.
+- The observed ~20% retention at t=16 is a genuine **base-grid (N=96)** result, not a
+coarse-AMR artifact.
+- Raising `max_level` without retuning the tagging threshold is ineffective.
+
+**Practical levers to improve soliton resolution:**
+1. Tune the regrid tagger to tag on `scalar_activity`/matter (or lower the threshold) so
+   refinement is sustained around the lump.
+2. Raise the base resolution `N` (e.g., 128, 160, or 256). The AMR-aware diagnostic will
+   then reward the genuinely finer evolution.
+
+---
+
 ## Next steps
 
 See [NextSteps.md](./NextSteps.md) for the full plan. Summary:

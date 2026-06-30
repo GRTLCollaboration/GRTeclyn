@@ -136,14 +136,14 @@ research should be structured into the following five priority steps.
          ┌─────────────────────────────┼─────────────────────────────┐
          ▼                             ▼                             ▼
    GRTresna Fix              Stiffer Q-Ball Well          GRTresna ODE Profile (C++)
-  - Mom NaN early exit DONE - λ=640, μ=85333 DONE         - profile 3 in C++
-  - 3x solve speedup (static) - sech@equilibrium only      - Tabulated φ₀(r)
+  - Mom NaN early exit DONE - λ=640, μ=85333 DONE         - profile 3 in C++ DONE
+  - 3x solve speedup (static) - sech@equilibrium only      - Tabulated φ₀(r) DONE
          │                             │                             │
          └─────────────────────────────┴─────────────────────────────┘
                                        │
                               Radial ODE (Python) DONE
-                              gridinit paint only — blocked
-                              until C++ profile 3 lands
+                              C++ tabulated loader DONE
+                              Rebuild + smoke passed
 
 1. Patch the GRTresna Momentum Convergence Check (Numerical Priority) — **DONE (2026-06-27)**
 
@@ -172,22 +172,29 @@ were implemented via `QBallCouplings.stiff()`:
 Late orbit dispersal persists on eval 122 — stiffer well alone is insufficient
 without exact seed and/or slower orbit kinematics.
 
-3. Build the Exact Q-Ball Radial ODE Solver (Algorithm Priority) — **PARTIAL**
+3. Build the Exact Q-Ball Radial ODE Solver (Algorithm Priority) — **DONE (2026-06-29/30)**
 
 The Python ODE solver is implemented (`qball_radial_ode.py`, shooting +
 bisection). Gridinit repaint uses it when `--qball-ode-profile` is set.
 
-**Blocked on GRTresna C++:** The constraint solve must use the same φ₀(r) as the
-export. `BosonStarParams.hpp` has no profile 3; mapping 3→sech in Python
-`params.txt` does not make solve and repaint consistent. Required C++ work:
+**GRTresna C++ support now landed:**
 
-  - Add `profile == 3` to `lump_envelope` / `lump_phi1` with tabulated ODE
-    φ₀(r) (same flat-space ODE as Python; load from params or shared `.dat`).
-  - Wire `scalar_lambda`, `scalar_mu` (already in params) into profile lookup.
-  - Rebuild GRTresna; then re-run `traj_qball_stiff_ode_eval122` smoke (t=4)
-    and validate t=0 `confined_frac` ≳ 0.7 and clean φ frames.
+  - `BosonStarParams.hpp` added `profile == 3` with tabulated ODE φ₀(r) loaded from
+    the same `.dat` file that Python exports.
+  - `ComplexScalarField.cpp` added the sextic term `scalar_mu · φ² · φ` and wired the
+    profile-3 lookup to `scalar_lambda` / `scalar_mu`.
+  - Python `solver.py` removed the temporary `profile 3 → 2` sech mapping hack.
+  - Rebuilt GRTresna; smoke test passed.
 
-Until C++ lands: **do not** pass `--qball-ode-profile` to replay.
+**Validation:**
+
+  - GRTresna solve converges with the tabulated profile-3 ODE.
+  - GPU smoke (eval 122, t=0): `confined_frac ≈ 75%` with clean φ frames; no diagonal
+    garbage.
+  - Sub-luminal speed cap enforced in the search candidates.
+  - Full test suite: 547 passed.
+
+`--qball-ode-profile` is now safe to use in replays.
 
 4. Complete and Score the Bicomplex HQ Promotion
 
@@ -210,3 +217,27 @@ which collapsed to 0\% FTL at high resolution).
   - This will immediately eliminate half of the search space, focusing the
     MAP-Elites optimizer entirely on the highly productive, retrograde
     frame-dragging vortex basin.
+
+6. AMR-Aware Confinement Diagnostic and Resolution Strategy (2026-06-30)
+
+The `confined_frac` extractor was rewritten to integrate over all AMR levels using
+finest-cell / true-cell-volume weighting. This fixed a latent bug where the diagnostic
+only saw the level-0 grid and under-sampled refined structures.
+
+GPU re-validation revealed that the real reason `max_level=2` and `max_level=3` gave
+identical scores on the soliton is not a diagnostic bug — AMR simply does not engage
+on the smooth boson-star field (`regrid_threshold=0.02` is too high for the sech/ODE
+profile). Therefore:
+
+  - The observed t=16 retention is a genuine **base-grid** result, not a coarse-AMR
+    artifact.
+  - Raising `max_level` without retuning the tagger is ineffective.
+  - Two actionable levers remain: (a) tag on matter / lower threshold so refinement
+    tracks the lump, or (b) raise the base resolution `N`.
+
+7. Enforce Sub-Luminal Candidate Trajectories (2026-06-29)
+
+Implemented and tested a speed cap in the trajectory candidate generator so that all
+sampled orbits satisfy `v < c`. This prevents previously observed super-luminal orbital
+speeds that were unphysical and destabilized the evolution.
+
