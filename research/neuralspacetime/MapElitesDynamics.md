@@ -774,6 +774,52 @@ mapping hack has been removed.
 - **Speed sweep**: sub-luminal cap applied; candidate trajectory speeds are now strictly `< c`.
 - **Full test suite**: 547 passed.
 
+### Full t=16 evolution (`traj_qball_stiff_ode_eval122_t16`, 2026-06-30)
+
+With C++ profile-3 landed, the full combined config (stiff λ=640/μ=85333 +
+equilibrium amplitude + ODE seed + Lorentz boost) was finally run end-to-end at
+N=128, L=64, ml=2, t=16:
+
+| Quantity | Value |
+|----------|-------|
+| GRTresna solve | converged NL iter 6 (Ham 0.71%, Mom 0.068%, Mom finite) |
+| confined_frac @ t=0 | 75.6% (see correction — paint artifact, not a clean soliton) |
+| confined_frac @ t=16 | 19.4% |
+| rms radius | 5.46 → 11.52 (spread ×2.11) |
+| ftl_geo_peak / f_geo | 20.4% / 1.94% |
+
+**CORRECTION (2026-06-30): the Q-ball ODE seed is NOT localized — an earlier
+"kinematic dispersal / non-adiabatic transport" reading of this run is RETRACTED.**
+
+Inspecting the run's `qball_profile.dat` revealed the tabulated φ₀(r) does not
+decay. From core φ_c≈0.076 it falls only to ≈0.44·φ_c by r≈15 then *rises* back to
+≈0.5·φ_c, plateauing out to r=100 — even though the bound-state tail length is
+1/√(m²−ω²) ≈ 1.09 (a real soliton should be ≲1% of core by r≈10). Reproduced with
+`solve_qball_radial_profile`: **both** the `standard` and `stiff` presets fail to
+localize inside the L=64 box.
+
+Root cause: for these couplings the Q-ball sits in the barely-bound thin-wall
+corner — U_eff(φ_core) = ½κ²φ² − (λ/4)φ⁴ + (μ/6)φ⁶ ≈ −1.7e-4, only just below
+zero — so the equilibrium radius is far larger than the box, and the outward shoot
+stalls on the flat top (the 1e-4 φ_c bisection tolerance plus the
+"no blow-up / no zero-crossing within r_max" acceptance test both accept the
+plateau as a valid bracket).
+
+What this means:
+
+- The seed used in every `--qball-ode-profile` run (including this one and the
+  earlier t=0 "75%" smoke) is a near-constant box-spanning condensate, not a
+  soliton. The 75.6%→19.4% confinement curve is that unphysical slab spreading,
+  **not** orbital kinematics.
+- The run's kinematics were in fact already adiabatic: after the speed cap,
+  ω_rot ≈ 0.04–0.08 vs bs_omega = 0.4 (the stiff preset overrides scalar_mass→1.0,
+  bs_omega→0.4). The "ω_rot ≫ internal frequency" story does not apply here.
+
+Next step is to fix the radial-ODE seed so it localizes (re-derive couplings whose
+Q-ball radius fits the box; make the shoot bisect to machine precision and attach a
+clean exp(−κr) tail; add a localization regression test) **before** any further
+GPU runs or dispersal conclusions. See NextSteps.md §3.
+
 ### AMR-aware confinement diagnostic
 
 The old `confined_frac` extractor integrated over the level-0 grid only, silently

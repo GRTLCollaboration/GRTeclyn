@@ -91,7 +91,8 @@ an attempted params.txt workaround):
 | `traj_qball_boosted_eval122` | λ=160, sech@0.15 | **6.6%** | Baseline |
 | `traj_qball_stiff_boosted_eval122_v2` | λ=640, sech@0.15 | stopped ~9.6 | conf ~39% vs ~28% baseline mid-run; still dispersing on orbit |
 | `traj_qball_stiff_static_smoke` | λ=640, ω_rot=0 | — | conf ~72% at rest (binding OK) |
-| `traj_qball_stiff_ode_smoke` | stiff + equilibrium + ODE | **0.5%** @ t=0 | **Broken** — diagonal stripe garbage in φ frames; run stopped |
+| `traj_qball_stiff_ode_smoke` | stiff + equilibrium + ODE | **0.5%** @ t=0 | **Broken** (pre-C++ profile-3) — diagonal stripe garbage; run stopped |
+| `traj_qball_stiff_ode_eval122_t16` | stiff + equilibrium + ODE + boost | **19.4%** @ t=16 | C++ profile-3 landed. Clean seed: **75.6%** @ t=0. **3× baseline** retention but still disperses (spread ×2.11, rms 5.46→11.52) |
 
 **Critical blocker: ODE profile requires GRTresna C++ support**
 
@@ -172,10 +173,15 @@ were implemented via `QBallCouplings.stiff()`:
 Late orbit dispersal persists on eval 122 — stiffer well alone is insufficient
 without exact seed and/or slower orbit kinematics.
 
-3. Build the Exact Q-Ball Radial ODE Solver (Algorithm Priority) — **DONE (2026-06-29/30)**
+3. Build the Exact Q-Ball Radial ODE Solver (Algorithm Priority) — **REOPENED
+(2026-06-30): C++ plumbing done, but the Python solver does NOT localize — see
+correction below.**
 
 The Python ODE solver is implemented (`qball_radial_ode.py`, shooting +
-bisection). Gridinit repaint uses it when `--qball-ode-profile` is set.
+bisection) and the C++ profile-3 plumbing landed, but the t=16 run exposed that
+the tabulated profile is a non-decaying flat-top condensate, not a bound soliton.
+`--qball-ode-profile` must NOT be used for science until the solver is fixed.
+Gridinit repaint uses it when `--qball-ode-profile` is set.
 
 **GRTresna C++ support now landed:**
 
@@ -194,7 +200,52 @@ bisection). Gridinit repaint uses it when `--qball-ode-profile` is set.
   - Sub-luminal speed cap enforced in the search candidates.
   - Full test suite: 547 passed.
 
-`--qball-ode-profile` is now safe to use in replays.
+**Full t=16 run (`traj_qball_stiff_ode_eval122_t16`, N=128, L=64, ml=2):**
+
+  - GRTresna solve with the boosted profile-3 seed converged at NL iteration 6
+    (Ham 0.71%, Mom 0.068%) — and `Mom_error` was *finite*, not NaN, because the
+    Lorentz-boosted lumps carry real momentum. The profile-3 C++ path and the
+    momentum early-exit fix both work on a non-trivial constraint.
+  - confined_frac: 75.6% @ t=0 → 19.4% @ t=16 (spread ×2.11, rms 5.46→11.52).
+
+**CORRECTION (2026-06-30) — the Q-ball ODE seed is NOT localized; earlier
+"kinematic dispersal" / "non-adiabatic transport" conclusions are RETRACTED.**
+
+Post-run inspection of the tabulated `qball_profile.dat` shows the profile does
+**not** decay: starting from core φ_c≈0.076 it falls only to ≈0.44·φ_c by r≈15
+and then *rises again*, plateauing near 0.5·φ_c out to r=100 (the expected tail
+decay length is 1/√(m²−ω²) ≈ 1.09, so a true bound state should be ≲1% of core by
+r≈10). Reproduced directly with `solve_qball_radial_profile`: **both** the
+`standard` and `stiff` presets fail to localize (never drop below 1% inside the
+L=64 box). Root cause: at these couplings U_eff(φ_core) = ½κ²φ² − (λ/4)φ⁴ +
+(μ/6)φ⁶ ≈ −1.7e-4 — only *just* below zero, i.e. the deep thin-wall regime where
+the equilibrium Q-ball radius is far larger than the box. The shoot then stalls on
+the flat top (the 1e-4 φ_c bisection tolerance and the "no blow-up / no
+zero-crossing within r_max" acceptance test both accept the plateau).
+
+Consequences:
+
+  - Every `--qball-ode-profile` run (including this one and the earlier t=0 "75%"
+    smoke) was seeded with a near-constant condensate spanning the box, not a
+    localized soliton. The "75.6% @ t=0" is a paint/normalisation artifact and the
+    drop to 19.4% is that unphysical slab spreading — **not** orbital kinematics.
+  - The actual run kinematics were already adiabatic: after the speed cap,
+    ω_rot ≈ 0.04–0.08 while bs_omega = 0.4 (stiff preset overrides scalar_mass→1.0,
+    bs_omega→0.4). So the "ω_rot ≫ internal frequency" claim is simply false here.
+
+**Revised top priority — fix the Q-ball radial ODE seed so it localizes BEFORE
+any further GPU runs:**
+
+  1. Pick couplings whose equilibrium Q-ball radius fits the box (move out of the
+     barely-bound thin-wall corner; target flat-top radius ≈ lump width, a few
+     code units). This is a (λ, μ, ω) re-derivation, not a search-space change.
+  2. Repair `qball_radial_ode.solve_qball_radial_profile`: classify
+     undershoot (φ crosses zero) vs overshoot (φ diverges), bisect φ_c to ~machine
+     precision, then truncate at the turning radius and attach the analytic
+     exp(−κr) decaying tail so the tabulated φ₀(r) is genuinely localized.
+  3. Add a regression test asserting φ₀(r) decays below ~1% of core within the box
+     half-width for the presets actually used.
+  4. Only then re-run the t=16 replay and re-open the dispersal question.
 
 4. Complete and Score the Bicomplex HQ Promotion
 
