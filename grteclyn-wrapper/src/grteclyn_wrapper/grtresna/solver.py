@@ -265,6 +265,43 @@ def _lump_lines(cfg: GRTresnaConfig) -> list[str]:
     ]
 
 
+def _maybe_write_qball_profile(cfg: GRTresnaConfig, params_path: Path) -> str | None:
+    """Tabulate the flat-space Q-ball phi0(r) for profile==3 lumps.
+
+    Writes a two-column ``r  phi0`` ``.dat`` next to params.txt and returns its
+    absolute path.  GRTresna loads the SAME table (``qball_profile_path``) so the
+    constraint solve and the gridinit repaint paint identical phi0(r) -- this is
+    what makes profile 3 (ODE Q-ball) consistent, fixing the sech-in-solve /
+    ODE-in-paint mismatch.  Returns ``None`` when no lump uses profile 3.
+    """
+    from .boson_star_profile import PROFILE_ODE_BOUND
+    from .qball_radial_ode import cached_qball_radial_profile
+
+    ode_lumps = [
+        lump for lump in cfg.lumps
+        if int(lump.get("profile", 0)) == PROFILE_ODE_BOUND
+    ]
+    if not ode_lumps:
+        return None
+
+    # All profile-3 lumps in a campaign share the same couplings (mass/lam/mu/
+    # omega come from the shared grtresna_scalar_* keys); use the first lump's.
+    src = ode_lumps[0]
+    mass = float(src.get("qball_mass", cfg.scalar_mass))
+    lam = float(src.get("qball_lam", cfg.scalar_lambda))
+    mu = float(src.get("qball_mu", cfg.scalar_mu))
+    omega = float(src.get("qball_omega", cfg.bs_omega))
+
+    profile = cached_qball_radial_profile(mass, lam, mu, omega)
+    dat_path = params_path.parent / "qball_profile.dat"
+    with dat_path.open("w", encoding="utf-8") as fh:
+        fh.write(f"# flat-space Q-ball phi0(r): m={mass} lam={lam} mu={mu} omega={omega}\n")
+        fh.write(f"# phi_c(0) = {profile.phi_c}\n")
+        for r_i, phi_i in zip(profile.r, profile.phi0):
+            fh.write(f"{float(r_i):.10g} {float(phi_i):.10g}\n")
+    return str(dat_path.resolve())
+
+
 def write_grtresna_params(cfg: GRTresnaConfig, path: Path) -> None:
     """Write a GRTresna params.txt."""
     lines = [
@@ -296,6 +333,7 @@ def write_grtresna_params(cfg: GRTresnaConfig, path: Path) -> None:
         f"dpi_length = {cfg.dpi_length}",
         f"scalar_mass = {cfg.scalar_mass}",
         f"scalar_lambda = {cfg.scalar_lambda}",
+        f"scalar_mu = {getattr(cfg, 'scalar_mu', 0.0)}",
     ]
     if cfg.matter_model in (
         "grtresna_complex_scalar",
@@ -307,6 +345,11 @@ def write_grtresna_params(cfg: GRTresnaConfig, path: Path) -> None:
             f"bs_profile_width = {cfg.bs_profile_width}",
             f"bs_omega = {cfg.bs_omega}",
         ])
+    # Tabulated Q-ball profile for profile==3 lumps: the solve and the gridinit
+    # repaint must read the SAME phi0(r) table (see _maybe_write_qball_profile).
+    qball_path = _maybe_write_qball_profile(cfg, path)
+    if qball_path is not None:
+        lines.append(f"qball_profile_path = {qball_path}")
     lines.extend(_lump_lines(cfg))
     lines.extend([
         f"regularised_part_psi = {cfg.regularised_part_psi}",

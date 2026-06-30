@@ -69,13 +69,15 @@ PROFILE_ODE_BOUND = 3
 
 
 def grtresna_lump_profile(profile: int) -> int:
-    """Map lump profile for GRTresna ``params.txt`` (C++ supports 0–2 only).
+    """Lump profile tag for GRTresna ``params.txt``.
 
-    ODE profiles are repainted in Python during gridinit export; the constraint
-    solve uses sech so the metric source matches a bound lump envelope.
+    GRTresna C++ now implements profile 3 (PROFILE_ODE_BOUND) by loading the
+    SAME tabulated flat-space Q-ball phi0(r) that the Python painter uses (via
+    ``qball_profile_path``), so the profile is passed through unchanged.  The
+    constraint solve and the gridinit repaint therefore source identical phi0(r)
+    -- the previous 3->2 (sech) remap is no longer needed and was the cause of
+    the solve/paint mismatch (garbage fields, ~0.5% confined).
     """
-    if int(profile) == PROFILE_ODE_BOUND:
-        return PROFILE_SECH_BOUND
     return int(profile)
 
 # When omega >= mass the field is unbound (no exponential confinement); fall back

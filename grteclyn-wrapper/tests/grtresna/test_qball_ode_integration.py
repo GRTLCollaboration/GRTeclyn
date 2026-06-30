@@ -116,8 +116,13 @@ def test_paint_bicomplex_ode_lump_on_grid() -> None:
     assert peak < 0.10  # equilibrium stiff core, not 0.15 sech overshoot
 
 
-def test_grtresna_params_map_ode_profile_to_sech() -> None:
-    """GRTresna C++ only knows profiles 0–2; ODE (3) stays in-memory for gridinit."""
+def test_grtresna_params_emit_ode_profile_and_table() -> None:
+    """GRTresna C++ now supports profile 3 via a shared tabulated phi0(r).
+
+    The lump profile passes through as 3 (no 3->2 sech remap), and
+    write_grtresna_params emits ``qball_profile_path`` pointing at a two-column
+    ``r  phi0`` table so the solve and the gridinit repaint paint identical phi0.
+    """
     overrides = _trajectory_boson_overrides(
         grtresna_qball_equilibrium_amplitude=1,
         grtresna_qball_ode_profile=1,
@@ -126,16 +131,34 @@ def test_grtresna_params_map_ode_profile_to_sech() -> None:
     assert all(lump["profile"] == PROFILE_ODE_BOUND for lump in cfg.lumps)
 
     lump_text = "\n".join(_lump_lines(cfg))
-    assert "lump0_profile = 2" in lump_text
-    assert "lump1_profile = 2" in lump_text
-    assert "lump0_profile = 3" not in lump_text
+    assert "lump0_profile = 3" in lump_text
+    assert "lump1_profile = 3" in lump_text
+    assert "lump0_profile = 2" not in lump_text
 
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / "params.txt"
         write_grtresna_params(cfg, path)
         text = path.read_text()
-        assert "lump0_profile = 2" in text
-        assert "lump1_profile = 2" in text
+        assert "lump0_profile = 3" in text
+        assert "lump1_profile = 3" in text
+        assert "scalar_mu = 85333.0" in text
 
-    assert grtresna_lump_profile(PROFILE_ODE_BOUND) == PROFILE_SECH_BOUND
+        # qball_profile_path is emitted and the .dat exists with two columns.
+        dat_line = next(
+            ln for ln in text.splitlines() if ln.startswith("qball_profile_path")
+        )
+        dat_path = Path(dat_line.split("=", 1)[1].strip())
+        assert dat_path.exists()
+        rows = [
+            ln.split() for ln in dat_path.read_text().splitlines()
+            if ln.strip() and not ln.startswith("#")
+        ]
+        assert len(rows) > 10
+        assert all(len(r) == 2 for r in rows)
+        # Core amplitude (phi0 at r=0) is the stiff equilibrium ~0.075.
+        first_r = float(rows[0][0])
+        assert first_r == pytest.approx(0.0, abs=1e-6)
+
+    # Profile tag passes through unchanged now that C++ implements profile 3.
+    assert grtresna_lump_profile(PROFILE_ODE_BOUND) == PROFILE_ODE_BOUND
     assert grtresna_lump_profile(PROFILE_SECH_BOUND) == PROFILE_SECH_BOUND

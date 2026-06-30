@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 import math
 import re
 from pathlib import Path
 from typing import Any, Mapping
+
+logger = logging.getLogger(__name__)
 
 from .geometry import (
     _expand_shell_bipolar,
@@ -315,6 +318,27 @@ def _expand_trajectory_boson_lumps_from_overrides(
         tilt_phi = get_float(f"{pfx}tilt_phi", 0.0)
         omega_rot = get_float(f"{pfx}omega_rot", 0.0)
         well_depth = get_float(f"{pfx}well_depth", 0.005)
+
+        # Tangential speed of the orbit centre the co-moving trap must track.
+        # v_t = R0 * |omega_rot| (geometric units, c = 1).  Should already be
+        # clamped sub-luminal by _clamp_trajectory_speed; warn loudly if a lump
+        # still asks for a relativistic/superluminal trajectory the soliton
+        # cannot follow (the dominant dispersal mechanism).
+        v_t = abs(omega_rot) * R0
+        if v_t > 1.0:
+            logger.warning(
+                "trajectory lump %d: v_t = R0*|omega_rot| = %.3fc is SUPERLUMINAL "
+                "-- the co-moving trap target outruns any soliton; expect dispersal. "
+                "Cap omega_rot via trajectory_v_max.",
+                k, v_t,
+            )
+        elif v_t > 0.5:
+            logger.info(
+                "trajectory lump %d: v_t = %.3fc (relativistic; tight curves will radiate)",
+                k, v_t,
+            )
+        else:
+            logger.debug("trajectory lump %d: v_t = %.3fc", k, v_t)
 
         # Position at t=0: orbit in plane, then rotate by (tilt_theta, tilt_phi).
         x_orb = R0 * math.cos(phase0)

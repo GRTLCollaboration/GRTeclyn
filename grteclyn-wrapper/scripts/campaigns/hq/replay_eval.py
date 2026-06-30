@@ -30,6 +30,7 @@ from grteclyn_wrapper.grtresna.qball_couplings import QBallCouplings
 from grteclyn_wrapper.grtresna.io import read_gridinit
 from grteclyn_wrapper.grtresna.solver import GRTresnaConfig
 from grteclyn_wrapper.search.grtresna_convergence_gate import GRTresnaConvergenceConfig
+from grteclyn_wrapper.search.optimize.candidates import _clamp_trajectory_speed
 
 # Match scripts/campaigns/lib/search_common.sh (QD stage-0 defaults).
 _QD_PLOT_INTERVAL = 320
@@ -296,7 +297,9 @@ def main() -> int:
     parser.add_argument(
         "--qball-ode-profile",
         action="store_true",
-        help="Seed lumps from the flat-space Q-ball radial ODE (Fix 3) instead of sech.",
+        help="Seed lumps from the flat-space Q-ball radial ODE (profile 3) instead "
+        "of sech. GRTresna C++ now loads the same tabulated phi0(r) (qball_profile_path) "
+        "so the solve and the gridinit repaint are consistent.",
     )
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
@@ -359,6 +362,13 @@ def main() -> int:
             continue
         key, raw = token.split("=", 1)
         overrides[key.strip()] = _parse_params_value(raw)
+
+    # Enforce the sub-luminal / adiabatic trajectory-speed cap on replay too:
+    # historical elites (e.g. eval 122) carry v_t = R0*|omega_rot| up to ~6c,
+    # which no soliton can follow.  Clamp omega_rot per lump (default 0.3c,
+    # override via --extra-override trajectory_v_max=...) before the genome
+    # reaches the GRTresna seed and the GRTeclyn co-moving trap.
+    _clamp_trajectory_speed(overrides)
 
     domain = GRTresnaDomainConfig(
         full_z=True,

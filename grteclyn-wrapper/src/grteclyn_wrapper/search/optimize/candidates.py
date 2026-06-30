@@ -5,11 +5,67 @@ from __future__ import annotations
 import json
 import math
 import random
+import re
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from .config import _LUMP_KEY_RE
 from .dimension import SearchDimension
+
+# Hard cap on per-lump tangential speed v_t = R0 * |omega_rot| (geometric units,
+# c = 1).  A trajectory lump is dragged along its orbit by a co-moving trap whose
+# TARGET centre advances at v_t; if v_t is superluminal (or even mildly
+# relativistic on a tight curve) no soliton can follow it adiabatically and the
+# lump radiates itself apart (the "spotlight mismatch").  The historical search
+# left R0 in [1.5, 8] and omega_rot in [-1, 1], so v_t reached ~8c -- physically
+# unconfineable.  We clamp omega_rot per lump so v_t <= TRAJECTORY_V_MAX_DEFAULT
+# unless a campaign overrides ``trajectory_v_max``.  Set ``trajectory_v_max <= 0``
+# to disable the cap (NOT recommended).
+TRAJECTORY_V_MAX_DEFAULT = 0.3
+
+_TRAJECTORY_OMEGA_RE = re.compile(r"^trajectory_lump(\d+)_omega_rot$")
+
+
+def _clamp_trajectory_speed(
+    overrides: dict[str, Any],
+    *,
+    default_v_max: float = TRAJECTORY_V_MAX_DEFAULT,
+) -> dict[str, Any]:
+    """Clamp ``trajectory_lump{k}_omega_rot`` so ``R0 * |omega_rot| <= v_max``.
+
+    Mutates and returns *overrides*.  No-op when no ``trajectory_lump*_omega_rot``
+    keys are present, so non-trajectory campaigns are unaffected.  The cap is the
+    single authoritative enforcement point: the same ``overrides`` dict feeds both
+    the GRTresna t=0 seed velocity and the GRTeclyn co-moving trap, so clamping
+    here keeps the seed and the moving target consistent and sub-luminal.
+    """
+    try:
+        v_max = float(overrides.get("trajectory_v_max", default_v_max))
+    except (TypeError, ValueError):
+        v_max = default_v_max
+    if not math.isfinite(v_max) or v_max <= 0.0:
+        return overrides
+
+    for key in list(overrides.keys()):
+        match = _TRAJECTORY_OMEGA_RE.match(str(key))
+        if match is None:
+            continue
+        lump_idx = match.group(1)
+        try:
+            omega_rot = float(overrides[key])
+        except (TypeError, ValueError):
+            continue
+        try:
+            r0 = float(overrides.get(f"trajectory_lump{lump_idx}_R0", 0.0))
+        except (TypeError, ValueError):
+            r0 = 0.0
+        if r0 <= 0.0:
+            continue
+        v_t = abs(omega_rot) * r0
+        if v_t > v_max:
+            overrides[key] = omega_rot * (v_max / v_t)
+    return overrides
+
 
 def _vector_to_overrides(
     x: Sequence[float],
@@ -20,6 +76,9 @@ def _vector_to_overrides(
     for xi, dim in zip(x, dims):
         clamped = max(dim.lower, min(dim.upper, xi))
         overrides[dim.param_key] = clamped
+    # Enforce the sub-luminal / adiabatic trajectory-speed cap before the
+    # overrides reach either the GRTresna solve or the GRTeclyn evolution.
+    _clamp_trajectory_speed(overrides)
     return overrides
 
 
