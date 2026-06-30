@@ -59,7 +59,7 @@ class ExtractionTagger
                 const Coordinates coords(cell, m_dx, m_center);
                 const amrex::Real r = coords.get_radius();
                 // Keep the levels spaced out
-                const int exponent  = std::min(m_extraction_levels_ptr[iradius] - m_level - 1, 0);
+                const int exponent  = m_extraction_levels_ptr[iradius] - m_level - 1;
                 const double factor = std::pow(1.5, exponent);
 
                 // Add a 20% buffer to extraction zone so not too near boundary

@@ -46,14 +46,13 @@ template <unsigned int num_punctures> class PunctureTagger
     // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         // ensure that the horizons of the punctures are covered
-        // by the max level - for this we need
-        // only check the puncture locations on the top 2 levels
-        // which regrid (ie, max_level - 1 to max_level - 2)
-        // (just the top level would be ok, but doing two ensures
-        // the top levels are well spaced)
+        // by the max level - for this we could
+        // only check the puncture locations on the top few levels
+        // which regrid (ie, max_level - 1, max_level - 2...)
+        // but doing them all ensures good spacing
 
         // we want each level to be double the innermost one in size
-        const int exponent  = std::min(m_max_level - m_level - 1, 0);
+        const int exponent  = m_max_level - m_level - 1;
         const double factor = std::pow(2.0, exponent);
 
         amrex::IntVect current_cell(AMREX_D_DECL(ix, iy, iz));
