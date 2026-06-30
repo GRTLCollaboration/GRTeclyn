@@ -77,19 +77,66 @@ def _matter_weight_on_grid(cg, ftype: str, available: set[str]) -> np.ndarray | 
     return None
 
 
+def _format_confinement_row(
+    *,
+    t: float,
+    total: float,
+    peak: float,
+    rms_radius: float,
+    confined_frac: float,
+    bx: float,
+    by: float,
+    bz: float,
+    r_conf: float,
+) -> str:
+    return (
+        f"{t:.16e}  {total:.16e}  {peak:.16e}  {rms_radius:.16e}  "
+        f"{confined_frac:.16e}  {bx:.16e}  {by:.16e}  {bz:.16e}  {r_conf:.16e}"
+    )
+
+
+def _code_values(arr) -> np.ndarray:
+    """Return a unyt/ndarray as plain float64 in code units when possible.
+
+    Positions and cell volumes must be in *code units* so they are comparable to
+    ``r_conf = 4 * well_width`` (also code units).  yt tags boxlib fields with cgs
+    lengths by default, so fall back through code_length -> raw values.
+    """
+    for unit in ("code_length", "code_length**3"):
+        try:
+            return np.asarray(arr.to_value(unit), dtype=np.float64)
+        except Exception:  # noqa: BLE001
+            continue
+    try:
+        return np.asarray(arr.to_ndarray(), dtype=np.float64)
+    except Exception:  # noqa: BLE001
+        return np.asarray(arr, dtype=np.float64)
+
+
 def _extract_confinement_line(
     p: str,
     *,
     t: float,
     well_width: float = 1.5,
-    level: int = 0,
+    level: int | None = None,
     verbose: bool = False,
 ) -> str | None:
     """Compute per-plotfile matter-confinement moments -> dat row.
 
-    Uses a uniform covering grid at ``level`` (default the base grid) so the
-    mass-weighted moments are AMR-consistent and cheap.  Returns None if no
-    matter field is present (no row written).
+    AMR-AWARE by default (``level is None``): integrates over *all* cells weighted
+    by their true cell volume, so each location is counted once at its FINEST
+    available resolution.  This is what makes ``confined_frac`` actually sensitive
+    to the AMR ``max_level`` -- the old level-0 covering grid was resolution-blind
+    (ml=2 and ml=3 gave byte-identical numbers because only the base grid was
+    sampled, never the refined soliton core).
+
+    The mass weight is ``w = scalar_activity`` and the integrated mass element is
+    ``w * dV``; on a uniform (single-level) grid dV is constant and cancels in the
+    fraction, so this is backward-compatible with the old covering-grid result.
+
+    Pass an integer ``level`` to force the legacy uniform covering grid at that
+    level (used by the fallback path and by callers that want a fixed grid).
+    Returns None if no matter field is present (no row written).
     """
     try:
         import yt
@@ -101,7 +148,46 @@ def _extract_confinement_line(
         if not any(f == "boxlib" for (f, _n) in ds.field_list):
             ftype = ds.field_list[0][0] if ds.field_list else "boxlib"
 
-        lvl = max(0, min(int(level), int(getattr(ds, "max_level", 0) or 0)))
+        r_conf = 4.0 * float(well_width)
+        max_level = int(getattr(ds, "max_level", 0) or 0)
+
+        # ---- AMR-aware, cell-volume-weighted integral (default) -------------
+        if level is None and max_level > 0:
+            ad = ds.all_data()
+            w = _matter_weight_on_grid(ad, ftype, available)
+            if w is None:
+                if verbose:
+                    print(
+                        f"WARNING: confinement: no matter field in "
+                        f"{os.path.basename(p)}"
+                    )
+                return None
+            w = np.asarray(w, dtype=np.float64).ravel()
+            dV = _code_values(ad[("index", "cell_volume")]).ravel()
+            mass = w * dV
+            total = float(mass.sum())
+            peak = float(w.max()) if w.size else 0.0
+            if not math.isfinite(total) or total <= 0.0:
+                return _format_confinement_row(
+                    t=t, total=total, peak=peak, rms_radius=0.0,
+                    confined_frac=0.0, bx=0.0, by=0.0, bz=0.0, r_conf=r_conf,
+                )
+            x = _code_values(ad[("index", "x")]).ravel()
+            y = _code_values(ad[("index", "y")]).ravel()
+            z = _code_values(ad[("index", "z")]).ravel()
+            bx = float((mass * x).sum() / total)
+            by = float((mass * y).sum() / total)
+            bz = float((mass * z).sum() / total)
+            r2 = (x - bx) ** 2 + (y - by) ** 2 + (z - bz) ** 2
+            rms_radius = float(math.sqrt(max(0.0, (mass * r2).sum() / total)))
+            confined_frac = float(mass[r2 < r_conf * r_conf].sum() / total)
+            return _format_confinement_row(
+                t=t, total=total, peak=peak, rms_radius=rms_radius,
+                confined_frac=confined_frac, bx=bx, by=by, bz=bz, r_conf=r_conf,
+            )
+
+        # ---- Legacy uniform covering grid (forced level, or single-level) ---
+        lvl = 0 if level is None else max(0, min(int(level), max_level))
         dims = np.asarray(ds.domain_dimensions, dtype=int) * (ds.refine_by**lvl)
         cg = ds.covering_grid(level=lvl, left_edge=ds.domain_left_edge, dims=dims)
 
@@ -115,10 +201,9 @@ def _extract_confinement_line(
         peak = float(w.max())
         if not math.isfinite(total) or total <= 0.0:
             # No matter present: emit a row so the gap in time is explicit.
-            return (
-                f"{t:.16e}  {total:.16e}  {peak:.16e}  "
-                f"{0.0:.16e}  {0.0:.16e}  {0.0:.16e}  {0.0:.16e}  {0.0:.16e}  "
-                f"{4.0 * well_width:.16e}"
+            return _format_confinement_row(
+                t=t, total=total, peak=peak, rms_radius=0.0,
+                confined_frac=0.0, bx=0.0, by=0.0, bz=0.0, r_conf=r_conf,
             )
 
         dx = np.asarray(ds.domain_width, dtype=np.float64) / dims
@@ -134,12 +219,11 @@ def _extract_confinement_line(
         r2 = (X - bx) ** 2 + (Y - by) ** 2 + (Z - bz) ** 2
         rms_radius = float(math.sqrt(max(0.0, (w * r2).sum() / total)))
 
-        r_conf = 4.0 * float(well_width)
         confined_frac = float(w[r2 < r_conf * r_conf].sum() / total)
 
-        return (
-            f"{t:.16e}  {total:.16e}  {peak:.16e}  {rms_radius:.16e}  "
-            f"{confined_frac:.16e}  {bx:.16e}  {by:.16e}  {bz:.16e}  {r_conf:.16e}"
+        return _format_confinement_row(
+            t=t, total=total, peak=peak, rms_radius=rms_radius,
+            confined_frac=confined_frac, bx=bx, by=by, bz=bz, r_conf=r_conf,
         )
     except Exception as exc:  # noqa: BLE001
         if verbose:
