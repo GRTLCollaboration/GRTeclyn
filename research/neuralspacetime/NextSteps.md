@@ -1,4 +1,39 @@
-**NEXT STEP — Relaunch QD as `qball_traj_spiral_v2` with the dispersion gate**
+**NEXT STEP — `qball_traj_spiral_v2` is COMPLETE (200/200). Improve the gated search.**
+
+The dispersion-gated campaign finished cleanly (~1 h 45 m, 200/200, no stalls, GPUs
+drained). Best **603.39** (eval 118, cell 7,7, operational), 9 elites, **14% coverage**.
+The gate works: all operational elites now hold `anec`=1.0, `tidal`=1.0, high
+`constraint_growth` (0.91–0.98) — no more disperse-then-warp cheats. But the search
+**converged early** (best hit by iteration 15/24, coverage frozen at 14%) and 65 of 200
+evals were rejected (50 postload + 15 GRTresna). Priorities:
+
+1. **Break the coverage plateau (14% → higher).** All non-trivial elites sit in the top
+   lifetime row (y=7); the low-x cells and the interior of the archive are empty. The
+   spiral generator keeps proposing the same persistent-lump basin. Try (a) larger
+   MAP-Elites mutation σ / restart injection once coverage stalls 3 iters, (b) widen the
+   `ftl_peak_strength` descriptor binning, or (c) seed a few interior cells from v1's
+   high-op_ftl (dispersed) configs to force exploration off the y=7 ridge.
+
+2. **Cut the 25% postload rejection rate.** 50/200 evals died at the GRTresna postload
+   gate (Ham/Mom ≤ 5%). Either pre-filter candidates by predicted constraint quality in
+   `candidates.py`, or relax the gate to ~7–8% and let the scorer's `constraint_growth`
+   term demote the marginal ones — 25% wasted GPU-lease time is the biggest throughput leak.
+
+3. **Chase op_ftl, not just ftl_peak.** The score leader (eval 118) has op_ftl only 0.347
+   while the `max_local_speed` champion hit **2.006 c** (eval 44) at a much lower total
+   score. Consider raising the `operational_ftl` weight in `_general_ftl_total` now that
+   it's gated, so the archive optimum tracks a genuinely traversable channel.
+
+4. **HQ-promote eval 118.** Re-run the top elite at 256³ / max_level=3 / t_stop=30 to
+   confirm the FTL channel + confinement survive at production resolution (as done for
+   `trajectory_5lump_v1` eval 122). Run dir kept: `runs/grtresna_qd/qball_traj_spiral_v2/eval_000118`.
+
+Optional (carried from v1, still open): `confinement_min_frac` floor on the operational
+tier; raise `survival` weight in `_general_ftl_total`.
+
+---
+
+**~~Relaunch QD as `qball_traj_spiral_v2` with the dispersion gate~~ — DONE (2026-07-01, 200/200)**
 
 `qball_traj_spiral_v1` stopped at **73/200** evals. Top hits (evals **56/46/40**, scores
 ~1100, tier operational) saturated `operational_ftl` + `ftl_persistence` but kept only

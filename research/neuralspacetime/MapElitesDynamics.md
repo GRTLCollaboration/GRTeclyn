@@ -6,6 +6,125 @@
 
 ---
 
+## `qball_traj_spiral_v2` — dispersion-gated spiral QD (COMPLETE 2026-07-01, 200/200 evals)
+
+First **full** trajectory campaign to run to completion. 39D MAP-Elites on compact
+Q-ball spiral orbits, `general_ftl` objective, **`SCORE_FTL_DISPERSION_GATE=1.0`**
+(new — gates `operational_ftl` + `ftl_persistence` by `structural_persistence`),
+`SCORE_EXOTIC_PENALTY_WEIGHT=0.2`, `ftl_lifetime` descriptor on an 8×8 archive.
+GRTresna preload with postload constraint gate (Ham/Mom ≤ 5%), compact ODE seed
+(m=1, λ=640, μ=85333, ω=0.8), N=128 / L=64 / max_level=1 / t_stop=16.
+
+### Runtime & throughput
+
+| | |
+|---|---|
+| Wall clock | **~1 h 45 m** (10:09:39 → 11:55:14 UTC, 2026-07-01) |
+| Evals | **200 / 200** (target reached, `last_eval_counter=200`) |
+| Avg / eval | ~32 s (8-GPU pipeline, `max_concurrent_grtresna=6`, `scoring_workers=8`) |
+| Stalls | **none** — the release-lease-early + bounded scoring-pool fix held; GPUs fully drained at shutdown |
+
+This is the run that validated the scoring-pipeline refactor: the campaign filled all
+200 evals without the mid-run stall that plagued the earlier attempts, and terminated
+cleanly (0 MiB on all 8 H100s, no orphaned GRTeclyn/GRTresna/MPI processes).
+
+### Outcomes
+
+| Status | Count | | Tier | Count |
+|--------|------:|---|------|------:|
+| `gpu_ok` | 133 | | operational | 44 |
+| `postload_rejected` | 50 (25%) | | constructed | 77 |
+| `grtresna_rejected` | 15 | | nontrivial | 1 |
+| `gpu_failed` | 2 | | rejected | 78 |
+
+85 evals scored > 0. The 2 `gpu_failed` runs (**eval 78, 119**) are late-time
+constraint/energy blow-ups (`structural_persistence`→0, `energy_condition`→0,
+`instability_penalty=-1`) — the config disperses so hard the evolution goes singular,
+exactly the class the dispersion gate is meant to demote.
+
+### Archive — 9 elites, coverage 14.06% (9/64), best **603.39**
+
+| Eval | Score | Cell | Tier | ftl_peak (x) | op_ftl | constraint_growth |
+|------|-------|------|------|-------------|--------|-------------------|
+| **118** | **603.39** | (7,7) | operational | 0.882 | 0.347 | 0.949 |
+| 181 | 487.34 | (4,7) | operational | 0.622 | 0.330 | 0.914 |
+| 162 | 464.19 | (5,7) | operational | 0.630 | 0.309 | 0.948 |
+| 195 | 412.17 | (6,7) | operational | 0.831 | 0.249 | 0.954 |
+| 168 | 239.71 | (3,7) | constructed | 0.474 | 0.0 | 0.971 |
+| 090 | 221.50 | (1,7) | operational | 0.143 | 0.280 | 0.933 |
+| 138 | 137.59 | (2,7) | operational | 0.323 | 0.169 | 0.929 |
+| 009 | 24.06 | (0,0) | constructed | 0.0 | 0.0 | 0.809 |
+| 068 | −2.37 | (0,7) | constructed | 0.048 | 0.0 | 0.980 |
+
+Every non-trivial elite lives in the **top lifetime row (y=7, `ftl_lifetime_fraction`=1.0)**
+— the archive is a clean sweep across the `ftl_peak_strength` (x) axis at 100% FTL
+lifetime. All operational elites hold **`anec_condition`=1.0** and **`tidal_comfort`=1.0**
+with high `constraint_growth` (0.91–0.98): the dispersion gate is working — leaders now
+combine a real FTL channel **with** structural persistence, instead of banking score on a
+cloud that has already flown apart.
+
+### FTL champions (`ftl_champions.json`)
+
+| Descriptor | Eval | Value | Score |
+|-----------|------|-------|-------|
+| `f_geo_evol` (peak) | 77 | 0.301 | 568.98 |
+| `ftl_geo_evolving` | 79 | 0.343 | 366.86 |
+| `f_op_peak` (t=16.0) | 77 | 0.270 | 568.98 |
+| `max_local_speed` (t=16.0) | 44 | **2.006 c** | 62.69 |
+| `superluminal_fraction` | 4 | 1.0 | 38.45 |
+| `ftl_lifetime_fraction` | 2 | 1.0 | 216.44 |
+
+### Top run — `eval_000118` deep dive (cell 7,7, score 603.39)
+
+**Physics signature** (all peaks at t ≈ 16.0, the last frame; n_frames=7):
+
+| Quantity | Value | Meaning |
+|---|---|---|
+| `f_geo_peak` = `f_geo_evol` | **17.7%** | gauge-invariant geodesic shortcut vs flat light front |
+| `ftl_geo_evolving` | 0.306 | scored transform of the evolving-metric shortcut |
+| `f_op_peak` | 19.0% | operational (coordinate-front) FTL excess |
+| `max_local_speed` | **1.47 c** | peak local coordinate signal speed |
+| `superluminal_fraction` | 1.0 | entire sampled front superluminal at peak |
+| `ftl_lifetime_fraction` | 1.0 | channel present for the whole measured window |
+
+**Objectives:** `anec_condition`=1.0, `tidal_comfort`=1.0, `constraint_growth`=0.949,
+`operational_ftl`=0.347 — a clean, constraint-healthy FTL channel, not a numerical blow-up.
+
+**Winning recipe (39 params):** 5 mostly-**exotic** lumps (`exotic`≈0.75–0.91 on lumps 1–4,
+0.32 on lump 0); all **retrograde** (`omega_rot` −0.04…−0.15); nested radial shell
+(`R0`≈1.96–7.52, one tight inner lump); **near-zero `v_rad`** (0.003–0.069 → persistent, not
+dispersing); strong collective **breathing** (`A_breath`=1.60, `omega_breath`=2.67) and
+**z-oscillation** (`z_amp`=1.50, `omega_z`=1.51). A persistent, breathing, retrograde
+exotic-Q-ball shell that coherently pumps the warp channel.
+
+**Continuous-emission sweep** (`evolving_geodesic.json`, Δt=2, 3 rays, all reached each launch):
+
+| t_emit | 0.0 | 2.0 | 4.0 | 6.0 | 8.0 | 10.0 | **12.0** |
+|--------|-----|-----|-----|-----|-----|------|----------|
+| f_geo  | 13.5% | 11.7% | 11.8% | 13.0% | 12.8% | 14.2% | **17.7%** |
+
+Unlike eval 122 (monotonic **decay** from t=0, dispersing channel), eval 118 **dips then
+climbs** and is **still rising at the last valid launch** (t_emit=12 → 17.7%). The warp
+channel *strengthens over time* — matching the t≈16 peaks in every operational descriptor.
+The sweep caps at t_emit=12 (`max_emissions`=7 × `emit_interval`=2, and later launches lack
+enough remaining slices to trace end-to-end), so **the true peak is very likely beyond t=12,
+cut off by the emission window rather than the physics.** This is the primary motivation to
+HQ-promote eval 118 to t_stop=30 and see whether f_geo saturates or keeps climbing.
+
+### v2 (gated) vs v1 (ungated) — why the headline score dropped
+
+v1 leaders scored **~1100** but at only **28–40% confinement**: the dispersion gate did
+not yet exist, so `operational_ftl` + `ftl_persistence` were banked ungated. v2's
+best is **603** because those same terms are now scaled by `structural_persistence` —
+the drop is **the gate doing its job**, not a regression. The search converged early
+(best_score reached 603 by iteration 15 of 24 and held); coverage plateaued at 14%.
+
+**Kept on disk** (`keep_top_eval_dirs=3` + FTL retention): `eval_000002`, `_000004`,
+`_000041`, `_000044`, `_000077`, `_000079`, `_000118` under
+`runs/grtresna_qd/qball_traj_spiral_v2/`.
+
+---
+
 ## `qball_traj_spiral_v1` — spiral v_rad QD (stopped 2026-07-01, 73/200 evals)
 
 39D MAP-Elites on compact Q-ball trajectory orbits with per-lump **`v_rad`** spiral
