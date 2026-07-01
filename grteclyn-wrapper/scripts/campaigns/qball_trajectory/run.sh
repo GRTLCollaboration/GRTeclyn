@@ -128,15 +128,22 @@ export GRTECLYN_EVOLVING_GEODESIC=1
 export GRTECLYN_EVOLVING_GEODESIC_MODE="${GRTECLYN_EVOLVING_GEODESIC_MODE:-search}"
 export GRTECLYN_GEO_DIRECTIONS="x y z"
 
-# --- Pipeline (one concurrent GRTresna solve per GPU by default) ---
+# --- Pipeline ---
+# Scoring now runs off the GPU-lease path in its own process pool (SCORING_WORKERS,
+# default = #GPUs), so GRTresna solves, GPU evolutions and yt scoring overlap.
+# Cap concurrent GRTresna solves at 6 (each uses 8 MPI ranks) to avoid CPU
+# overload on this node; never exceed the GPU batch size.
 export USE_PIPELINE="${USE_PIPELINE:-1}"
-export MAX_CONCURRENT_GRTRESNA="${MAX_CONCURRENT_GRTRESNA:-${BATCH_SIZE}}"
+_grtresna_cap=6
+if (( BATCH_SIZE < _grtresna_cap )); then _grtresna_cap="${BATCH_SIZE}"; fi
+export MAX_CONCURRENT_GRTRESNA="${MAX_CONCURRENT_GRTRESNA:-${_grtresna_cap}}"
 export POSTLOAD_MAX_HAM_L2="${POSTLOAD_MAX_HAM_L2:-3e-2}"
 
 echo "== Q-ball trajectory QD: ${QD_NAME} =="
 echo "   GPUs: ${GPU_IDS} (batch=${BATCH_SIZE})  target_evals=${QD_TARGET_EVALS}"
 echo "   Search: 39-D pinned (includes v_rad spiral drift per lump)"
 echo "   Score:  general_ftl + SCORE_EXOTIC_PENALTY_WEIGHT=${SCORE_EXOTIC_PENALTY_WEIGHT} + SCORE_FTL_DISPERSION_GATE=${SCORE_FTL_DISPERSION_GATE}"
+echo "   Pipeline: max_grtresna=${MAX_CONCURRENT_GRTRESNA} scoring_workers=${SCORING_WORKERS:-<#GPUs>} (scoring runs off the GPU-lease path)"
 
 if [[ "${PIPELINE_MONITOR:-1}" == "1" ]]; then
   CAMPAIGNS_LIB="${SCRIPT_DIR}/../lib"
