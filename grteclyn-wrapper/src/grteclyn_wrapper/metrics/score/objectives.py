@@ -11,23 +11,29 @@ def compute_total(
     nontriviality: float,
     *,
     splash_mode: str = "discovery",
+    exotic_penalty_weight: float = 1.0,
 ) -> float:
     components = ctx.components
     notes = ctx.notes
     w = ctx.weights
 
     if objective_mode == "ftl_first":
-        return _ftl_first_total(components, notes)
+        return _ftl_first_total(components, notes, exotic_penalty_weight=exotic_penalty_weight)
     if objective_mode == "robust_ftl":
-        return _robust_ftl_total(components, notes)
+        return _robust_ftl_total(components, notes, exotic_penalty_weight=exotic_penalty_weight)
     if objective_mode == "general_ftl":
-        return _general_ftl_total(components, notes)
+        return _general_ftl_total(components, notes, exotic_penalty_weight=exotic_penalty_weight)
     if objective_mode == "critical_collapse":
         return _critical_collapse_total(components, notes, splash_mode=splash_mode)
     return _weighted_total(components, w, nontriviality)
 
 
-def _ftl_first_total(components: dict[str, float], notes: list[str]) -> float:
+def _ftl_first_total(
+    components: dict[str, float],
+    notes: list[str],
+    *,
+    exotic_penalty_weight: float = 1.0,
+) -> float:
     # Lexicographic-style scalarization: path-level FTL dominates; precursor
     # and shift are shaping only.  Trapped-surface proxies (horizon_penalty
     # < 0) veto high local-speed artifacts that are not traversable channels.
@@ -95,7 +101,7 @@ def _ftl_first_total(components: dict[str, float], notes: list[str]) -> float:
         # "minimise exotic" dominate "find FTL", inverting the FTL-first
         # priority.)  The penalty stays graded (0..-1.6), so the QD gradient
         # is preserved.
-        + 40.0 * components.get("exotic_penalty", 0.0)
+        + 40.0 * exotic_penalty_weight * components.get("exotic_penalty", 0.0)
         # Moderate stationary penalty: the FTL shaping rewards are already
         # zeroed for a stationary artifact (see the stationary-artifact gate)
         # and the geodesic shortcut is reliability-gated, so a static lens
@@ -119,7 +125,12 @@ def _ftl_first_total(components: dict[str, float], notes: list[str]) -> float:
     return total
 
 
-def _robust_ftl_total(components: dict[str, float], notes: list[str]) -> float:
+def _robust_ftl_total(
+    components: dict[str, float],
+    notes: list[str],
+    *,
+    exotic_penalty_weight: float = 1.0,
+) -> float:
     # Robustness-tilted FTL scalarization (option B).  Same FTL-first priority
     # as ``ftl_first`` -- the gauge-invariant geodesic shortcut
     # (operational_ftl_geodesic, 1000x) stays dominant so a genuine result
@@ -155,7 +166,7 @@ def _robust_ftl_total(components: dict[str, float], notes: list[str]) -> float:
             + 20.0 * components.get("comoving_stability", 0.0)
             + 60.0 * components.get("energy_condition", 0.0)
         )
-        + 70.0 * components.get("exotic_penalty", 0.0)
+        + 70.0 * exotic_penalty_weight * components.get("exotic_penalty", 0.0)
         + 8.0 * components.get("stationary_artifact_penalty", 0.0)
         + 500.0 * horizon
     )
@@ -171,7 +182,12 @@ def _robust_ftl_total(components: dict[str, float], notes: list[str]) -> float:
     return total
 
 
-def _general_ftl_total(components: dict[str, float], notes: list[str]) -> float:
+def _general_ftl_total(
+    components: dict[str, float],
+    notes: list[str],
+    *,
+    exotic_penalty_weight: float = 1.0,
+) -> float:
     # General-FTL profile: the gauge-invariant 4D null shortcut is the ONLY
     # FTL reward.  All coordinate/warp-motor shaping (shift_drive,
     # channel_progress, operational_ftl_solved, ftl_precursor) is removed so a
@@ -194,7 +210,7 @@ def _general_ftl_total(components: dict[str, float], notes: list[str]) -> float:
             + 15.0 * components.get("instability_penalty", 0.0)
             + 60.0 * components.get("energy_condition", 0.0)
         )
-        + 70.0 * components.get("exotic_penalty", 0.0)
+        + 70.0 * exotic_penalty_weight * components.get("exotic_penalty", 0.0)
         + 500.0 * horizon
     )
     notes.append(

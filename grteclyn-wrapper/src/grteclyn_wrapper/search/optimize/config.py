@@ -353,11 +353,13 @@ def _expand_trajectory_boson_lumps_from_overrides(
         cy = sp * ct * x_orb + cp * y_orb
         cz = -st * x_orb
 
-        # Velocity at t=0: tangent to orbit (d/dt of position).
-        # vx_orb = -R0 * omega_rot * sin(phase0)
-        # vy_orb =  R0 * omega_rot * cos(phase0)
-        vx_orb = -R0 * omega_rot * math.sin(phase0)
-        vy_orb = R0 * omega_rot * math.cos(phase0)
+        # Velocity at t=0: derivative of the spiral orbit.
+        # Spiral: r(t) = R0 + v_rad * t, phi(t) = phase0 + omega_rot * t.
+        # vx_orb = v_rad * cos(phase0) - R0 * omega_rot * sin(phase0)
+        # vy_orb = v_rad * sin(phase0) + R0 * omega_rot * cos(phase0)
+        v_rad = get_float(f"{pfx}v_rad", 0.0)
+        vx_orb = v_rad * math.cos(phase0) - R0 * omega_rot * math.sin(phase0)
+        vy_orb = v_rad * math.sin(phase0) + R0 * omega_rot * math.cos(phase0)
 
         # Same rotation matrix as position.
         vx = cp * ct * vx_orb - sp * vy_orb

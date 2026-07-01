@@ -24,6 +24,20 @@ def _resolve_splash_mode(splash_mode: str | None) -> str:
     return "discovery"
 
 
+def _resolve_exotic_penalty_weight(
+    explicit: float | None = None,
+) -> float:
+    if explicit is not None:
+        return float(explicit)
+    env = os.environ.get("SCORE_EXOTIC_PENALTY_WEIGHT", "").strip()
+    if env:
+        try:
+            return float(env)
+        except ValueError:
+            pass
+    return 1.0
+
+
 def score_episode(
     metrics: EpisodeMetrics,
     *,
@@ -32,6 +46,7 @@ def score_episode(
     objective_mode: str = "weighted",
     domain_half_width: float | None = None,
     splash_mode: str | None = None,
+    exotic_penalty_weight: float | None = None,
 ) -> Score:
     w = dict(DEFAULT_WEIGHTS)
     if weights:
@@ -57,6 +72,7 @@ def score_episode(
         objective_mode,
         nontriviality,
         splash_mode=resolved_splash_mode,
+        exotic_penalty_weight=_resolve_exotic_penalty_weight(exotic_penalty_weight),
     )
 
     return Score(total=total, components=ctx.components, notes=ctx.notes)

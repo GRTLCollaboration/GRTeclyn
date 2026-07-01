@@ -143,3 +143,43 @@ def test_vector_to_overrides_applies_retrograde() -> None:
     assert overrides["trajectory_lump0_omega_rot"] <= 0.0
     v_t = abs(overrides["trajectory_lump0_omega_rot"]) * overrides["trajectory_lump0_R0"]
     assert v_t <= TRAJECTORY_V_MAX_DEFAULT + 1e-9
+
+
+# ---------------------------------------------------------------------------
+# Spiral (radial drift) speed cap
+# ---------------------------------------------------------------------------
+
+def test_clamp_caps_combined_tangential_and_radial_speed() -> None:
+    ov = {
+        "trajectory_lump0_R0": 4.0,
+        "trajectory_lump0_omega_rot": 0.1,  # v_t = 0.4
+        "trajectory_lump0_v_rad": 0.4,      # total = 0.566 > 0.3
+    }
+    _clamp_trajectory_speed(ov)
+    v_t = abs(ov["trajectory_lump0_omega_rot"]) * ov["trajectory_lump0_R0"]
+    v_rad = abs(ov["trajectory_lump0_v_rad"])
+    v_total = math.sqrt(v_t * v_t + v_rad * v_rad)
+    assert v_total <= TRAJECTORY_V_MAX_DEFAULT + 1e-9
+    # Both components should be scaled by the same factor.
+    assert math.isclose(v_t / v_rad, 1.0, rel_tol=1e-9)
+
+
+def test_clamp_leaves_subluminal_spiral_untouched() -> None:
+    ov = {
+        "trajectory_lump0_R0": 4.0,
+        "trajectory_lump0_omega_rot": 0.05,  # v_t = 0.2
+        "trajectory_lump0_v_rad": 0.05,      # total = 0.206 < 0.3
+    }
+    _clamp_trajectory_speed(ov)
+    assert ov["trajectory_lump0_omega_rot"] == 0.05
+    assert ov["trajectory_lump0_v_rad"] == 0.05
+
+
+def test_clamp_creates_v_rad_key_when_missing() -> None:
+    ov = {
+        "trajectory_lump0_R0": 4.0,
+        "trajectory_lump0_omega_rot": 0.1,  # v_t = 0.4
+    }
+    _clamp_trajectory_speed(ov)
+    v_t = abs(ov["trajectory_lump0_omega_rot"]) * ov["trajectory_lump0_R0"]
+    assert v_t <= TRAJECTORY_V_MAX_DEFAULT + 1e-9

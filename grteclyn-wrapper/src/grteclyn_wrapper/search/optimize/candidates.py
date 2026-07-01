@@ -31,7 +31,11 @@ def _clamp_trajectory_speed(
     *,
     default_v_max: float = TRAJECTORY_V_MAX_DEFAULT,
 ) -> dict[str, Any]:
-    """Clamp ``trajectory_lump{k}_omega_rot`` so ``R0 * |omega_rot| <= v_max``.
+    """Clamp trajectory lump speeds so total initial velocity stays <= v_max.
+
+    Total speed at t=0 combines tangential motion (R0 * |omega_rot|) and radial
+    drift (v_rad).  Spiral orbits need both components capped together so the
+    co-moving pump target does not outrun the soliton.
 
     Mutates and returns *overrides*.  No-op when no ``trajectory_lump*_omega_rot``
     keys are present, so non-trajectory campaigns are unaffected.  The cap is the
@@ -61,9 +65,17 @@ def _clamp_trajectory_speed(
             r0 = 0.0
         if r0 <= 0.0:
             continue
+        v_rad_key = f"trajectory_lump{lump_idx}_v_rad"
+        try:
+            v_rad = float(overrides.get(v_rad_key, 0.0))
+        except (TypeError, ValueError):
+            v_rad = 0.0
         v_t = abs(omega_rot) * r0
-        if v_t > v_max:
-            overrides[key] = omega_rot * (v_max / v_t)
+        v_total = math.sqrt(v_t * v_t + v_rad * v_rad)
+        if v_total > v_max:
+            scale = v_max / v_total
+            overrides[key] = omega_rot * scale
+            overrides[v_rad_key] = v_rad * scale
     return overrides
 
 

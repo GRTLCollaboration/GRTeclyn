@@ -4,19 +4,21 @@
 #include "RLLumpState.hpp" // RL_MAX_LUMPS
 
 //! Per-lump trajectory: each lump orbits independently on its own tilted
-//! circle with its own radius, angular velocity, initial phase and pump
-//! amplitude.  Counter-rotating lumps (opposite omega_rot signs) create
-//! shear and frame dragging — the primary FTL mechanism.
+//! plane with its own radius, angular velocity, initial phase, pump
+//! amplitude, and optional radial drift.  Counter-rotating lumps (opposite
+//! omega_rot signs) create shear and frame dragging; radial drift creates
+//! spiral orbits and transient close approaches — the primary FTL mechanisms.
 //!
 //! SOLID: Single Responsibility — this struct is ONLY the per-lump data.
 struct PerLumpTrajectory
 {
-    double R0{5.0};           //!< orbital radius
+    double R0{5.0};           //!< orbital radius at t=0
     double omega_rot{0.0};    //!< angular velocity  (sign = direction)
     double phase0{0.0};       //!< initial azimuthal angle [rad]
     double tilt_theta{0.0};   //!< orbital-plane tilt from z-axis [rad]
     double tilt_phi{0.0};     //!< orbital-plane azimuth [rad]
     double well_depth{0.05};  //!< pump amplitude for this lump
+    double v_rad{0.0};        //!< radial drift speed (signed: inward < 0, outward > 0)
 };
 
 //! Shared trajectory parameters + array of per-lump orbits.

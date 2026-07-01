@@ -60,6 +60,7 @@ def _boson_trajectory_overrides(num_lumps: int = 5, **extra: float) -> dict:
         ov[f"trajectory_lump{k}_tilt_theta"] = 0.0
         ov[f"trajectory_lump{k}_tilt_phi"] = 0.0
         ov[f"trajectory_lump{k}_well_depth"] = 0.005
+        ov[f"trajectory_lump{k}_v_rad"] = 0.0
         ov[f"trajectory_lump{k}_exotic"] = 0.0
     for k, v in extra.items():
         ov[k] = v
@@ -72,7 +73,7 @@ def _boson_trajectory_overrides(num_lumps: int = 5, **extra: float) -> dict:
 
 
 def test_trajectory_boson_search_space_dimensionality() -> None:
-    """Discovery profile: 7 per-lump + 5 shared trajectory + 3 boson physics."""
+    """Discovery profile: 8 per-lump + 5 shared trajectory + 3 boson physics."""
     for n in (3, 5):
         space = grtresna_trajectory_boson_search_space(num_lumps=n)
         keys = {d.param_key for d in space}
@@ -85,6 +86,7 @@ def test_trajectory_boson_search_space_dimensionality() -> None:
             assert f"trajectory_lump{k}_tilt_theta" in keys
             assert f"trajectory_lump{k}_tilt_phi" in keys
             assert f"trajectory_lump{k}_well_depth" in keys
+            assert f"trajectory_lump{k}_v_rad" in keys
             assert f"trajectory_lump{k}_exotic" in keys
 
         # Shared trajectory dims.
@@ -99,8 +101,8 @@ def test_trajectory_boson_search_space_dimensionality() -> None:
         assert "grtresna_scalar_lambda" in keys
         assert "grtresna_bs_omega" in keys
 
-        # Total: 7*N + 5 shared_traj + 3 boson = 7*N + 8.
-        assert len(space) == 7 * n + 8
+        # Total: 8*N + 5 shared_traj + 3 boson = 8*N + 8.
+        assert len(space) == 8 * n + 8
 
 
 def test_trajectory_boson_profile_choices() -> None:
@@ -241,6 +243,39 @@ def test_trajectory_boson_velocity_capped_subluminal() -> None:
     assert v_mag <= 0.9 + 1e-10, f"|v|={v_mag}, should be capped at 0.9"
 
 
+def test_trajectory_boson_spiral_velocity() -> None:
+    """Radial drift v_rad adds a spiral velocity component at t=0."""
+    ov = _boson_trajectory_overrides(num_lumps=1)
+    ov["trajectory_lump0_R0"] = 5.0
+    ov["trajectory_lump0_omega_rot"] = 0.0
+    ov["trajectory_lump0_phase0"] = 0.0  # lump at (R0, 0, 0)
+    ov["trajectory_lump0_v_rad"] = 0.2   # pure outward radial velocity
+    cfg = build_grtresna_config(ov, GRTresnaConfig())
+
+    vx, vy, vz = cfg.lumps[0]["velocity"]
+    assert abs(vx - 0.2) < 1e-6, f"vx={vx}, expected 0.2"
+    assert abs(vy) < 1e-10, f"vy={vy}, expected ~0"
+    assert abs(vz) < 1e-10, f"vz={vz}, expected ~0"
+
+
+def test_trajectory_boson_spiral_velocity_with_omega() -> None:
+    """Spiral velocity combines tangential and radial components."""
+    ov = _boson_trajectory_overrides(num_lumps=1)
+    ov["trajectory_lump0_R0"] = 5.0
+    ov["trajectory_lump0_omega_rot"] = 0.1
+    ov["trajectory_lump0_phase0"] = math.pi / 2  # lump at (0, R0, 0)
+    ov["trajectory_lump0_v_rad"] = 0.2
+    cfg = build_grtresna_config(ov, GRTresnaConfig())
+
+    vx, vy, vz = cfg.lumps[0]["velocity"]
+    # At phase0=pi/2:
+    # vx_orb = v_rad*cos(pi/2) - R0*omega*sin(pi/2) = 0 - 0.5 = -0.5
+    # vy_orb = v_rad*sin(pi/2) + R0*omega*cos(pi/2) = 0.2 + 0 = 0.2
+    assert abs(vx + 0.5) < 1e-6, f"vx={vx}, expected -0.5"
+    assert abs(vy - 0.2) < 1e-6, f"vy={vy}, expected 0.2"
+    assert abs(vz) < 1e-10, f"vz={vz}, expected ~0"
+
+
 def test_trajectory_boson_amplitude_capped() -> None:
     """Well_depth is capped at 0.15 (same as real-scalar trajectory)."""
     ov = _boson_trajectory_overrides(num_lumps=1)
@@ -329,8 +364,8 @@ def test_trajectory_boson_cli_creates_search_context() -> None:
 
     keys = {d.param_key for d in ctx.search_space}
 
-    # 4 lumps * 7 per-lump + 5 shared_traj + 3 boson_phys = 36 dims.
-    assert len(ctx.search_space) == 36
+    # 4 lumps * 8 per-lump + 5 shared_traj + 3 boson_phys = 40 dims.
+    assert len(ctx.search_space) == 40
 
     # Trajectory orbit dims.
     assert "trajectory_lump0_R0" in keys

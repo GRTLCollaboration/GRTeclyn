@@ -636,6 +636,12 @@ def grtresna_trajectory_search_space(
                 f"trajectory_lump{k}_well_depth", 0.01, 0.15, 0.05
             )
         )
+        # Radial drift for spiral orbits (signed: inward < 0, outward > 0).
+        dims.append(
+            SearchDimension(
+                f"trajectory_lump{k}_v_rad", -0.3, 0.3, 0.0
+            )
+        )
         # Per-lump exotic flag: continuous [0,1], rounded to 0/1 in config
         # expansion.  Lets the search discover which lumps should carry
         # negative energy density (exotic) vs positive (canonical).
@@ -695,14 +701,14 @@ def grtresna_trajectory_boson_search_space(
         not generative).
 
     Search dimensions:
-      Per-lump (7 each):
-        R0, omega_rot, phase0, tilt_theta, tilt_phi, well_depth, exotic
+      Per-lump (8 each):
+        R0, omega_rot, phase0, tilt_theta, tilt_phi, well_depth, v_rad, exotic
       Shared trajectory (5):
         A_breath, omega_breath, z_amp, omega_z, well_width
       Shared boson physics (3):
         grtresna_scalar_mass, grtresna_scalar_lambda, grtresna_bs_omega
 
-    Total: 7*N + 8   (5 lumps → 43 D).
+    Total: 8*N + 8   (5 lumps → 48 D).
     """
     if profile not in TRAJECTORY_BOSON_PROFILE_CHOICES:
         raise ValueError(
@@ -767,6 +773,14 @@ def grtresna_trajectory_boson_search_space(
         dims.append(
             SearchDimension(
                 f"trajectory_lump{k}_well_depth", 0.001, 0.02, 0.005
+            )
+        )
+        # Radial drift speed for spiral orbits.  v_rad > 0 spirals outward,
+        # v_rad < 0 spirals inward.  Magnitude is clamped by the trajectory
+        # speed cap so the pump target remains sub-luminal.
+        dims.append(
+            SearchDimension(
+                f"trajectory_lump{k}_v_rad", -0.3, 0.3, 0.0
             )
         )
         # Per-lump exotic flag (0=canonical, 1=phantom).

@@ -24,7 +24,7 @@ from grteclyn_wrapper.search.optimize import (
 
 
 def test_trajectory_search_space_dimensionality() -> None:
-    """Discovery profile: 7 per-lump dims * N + 5 shared."""
+    """Discovery profile: 8 per-lump dims * N + 5 shared."""
     for n in (3, 5):
         space = grtresna_trajectory_search_space(num_lumps=n)
         keys = {d.param_key for d in space}
@@ -37,6 +37,7 @@ def test_trajectory_search_space_dimensionality() -> None:
             assert f"trajectory_lump{k}_tilt_theta" in keys
             assert f"trajectory_lump{k}_tilt_phi" in keys
             assert f"trajectory_lump{k}_well_depth" in keys
+            assert f"trajectory_lump{k}_v_rad" in keys
             assert f"trajectory_lump{k}_exotic" in keys
 
         # Shared dims.
@@ -46,8 +47,8 @@ def test_trajectory_search_space_dimensionality() -> None:
         assert "trajectory_omega_z" in keys
         assert "trajectory_well_width" in keys
 
-        # Total: 7 * N + 5.
-        assert len(space) == 7 * n + 5
+        # Total: 8 * N + 5.
+        assert len(space) == 8 * n + 5
 
 
 def test_trajectory_default_num_lumps() -> None:
@@ -56,8 +57,8 @@ def test_trajectory_default_num_lumps() -> None:
     per_lump_keys = {
         d.param_key for d in space if d.param_key.startswith("trajectory_lump")
     }
-    # 7 per-lump keys * TRAJECTORY_DEFAULT_NUM_LUMPS.
-    assert len(per_lump_keys) == 7 * TRAJECTORY_DEFAULT_NUM_LUMPS
+    # 8 per-lump keys * TRAJECTORY_DEFAULT_NUM_LUMPS.
+    assert len(per_lump_keys) == 8 * TRAJECTORY_DEFAULT_NUM_LUMPS
 
 
 def test_trajectory_rotation_only_profile() -> None:
@@ -343,8 +344,8 @@ def test_trajectory_cli_creates_search_context() -> None:
     ctx = build_grtresna_search_context(args, base_overrides={})
 
     keys = {d.param_key for d in ctx.search_space}
-    # 4 lumps * 7 per-lump + 5 shared = 33 dims.
-    assert len(ctx.search_space) == 33
+    # 4 lumps * 8 per-lump + 5 shared = 37 dims.
+    assert len(ctx.search_space) == 37
     assert "trajectory_lump0_R0" in keys
     assert "trajectory_lump3_omega_rot" in keys
     assert "trajectory_lump4_R0" not in keys  # only 4 lumps

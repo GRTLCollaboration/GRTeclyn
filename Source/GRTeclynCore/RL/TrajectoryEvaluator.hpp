@@ -38,8 +38,10 @@ struct TrajectoryEvaluator
         {
             const auto &lk = traj.lumps[k];
 
-            // Per-lump orbital radius with shared breathing.
-            const double r_k = lk.R0 + breath_dr;
+            // Per-lump orbital radius with shared breathing and radial drift.
+            // Spiral orbits: R0 is the radius at t=0, v_rad is the signed
+            // radial drift speed.  Keeps circles as the v_rad=0 special case.
+            const double r_k = lk.R0 + lk.v_rad * t + breath_dr;
 
             // Per-lump azimuthal angle: phi(t) = phase0 + omega_rot * t
             const double phi = lk.phase0 + lk.omega_rot * t;

@@ -16,15 +16,16 @@
 #   Q-ball physics: m=1, lambda=640, mu=85333, omega=0.8 (thick-wall soliton).
 #   ODE radial profile, equilibrium amplitude cap, retrograde-only orbits.
 #
-# Per lump (5 lumps, 6 dims each = 30 dims):
+# Per lump (5 lumps, 7 dims each = 35 dims):
 #   R0            — orbital radius [1.5, 8.0]
 #   omega_rot     — angular velocity (negative = retrograde, speed-capped).
-#                   Orbital speed v_t = R0 * |omega_rot| is capped at 0.3c,
-#                   so the search jointly controls R0 and omega_rot but the
-#                   speed stays sub-luminal.
+#                   Tangential speed v_t = R0 * |omega_rot| is capped at 0.3c
+#                   jointly with v_rad so the total velocity stays sub-luminal.
 #   phase0        — initial orbital phase [0, 2pi]
 #   tilt_theta    — orbital plane polar tilt [0, pi]
 #   tilt_phi      — orbital plane azimuthal tilt [0, 2pi]
+#   v_rad         — radial drift speed for spiral orbits [-0.3, 0.3].
+#                   v_rad > 0 spirals outward, v_rad < 0 spirals inward.
 #   exotic        — continuous [0,1], rounded to binary 0 or 1 in config:
 #                   0 = canonical Q-ball (+rho), 1 = phantom Q-ball (-rho).
 #                   Each lump is purely one or the other, no mixture.
@@ -58,6 +59,11 @@ export GRTRESNA_FULL_Z=1
 # --- Objective ---
 export OBJECTIVE_MODE="${OBJECTIVE_MODE:-general_ftl}"
 export DESCRIPTOR_MODE="${DESCRIPTOR_MODE:-ftl_lifetime}"
+
+# Exotic matter is the fuel of this FTL engine, not a failure.  Reduce the
+# scoring penalty so the optimizer explores the high-FTL exotic-rich region
+# instead of hiding in long-lived but inert canonical configurations.
+export SCORE_EXOTIC_PENALTY_WEIGHT="${SCORE_EXOTIC_PENALTY_WEIGHT:-0.2}"
 
 # --- Compact Q-ball physics ---
 # Search-space dimensions pinned (these exist in the trajectory-boson search space):

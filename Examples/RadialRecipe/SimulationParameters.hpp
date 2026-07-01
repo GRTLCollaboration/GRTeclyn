@@ -369,6 +369,7 @@ class SimulationParameters : public SimulationParametersBase
         pp.load((p + "tilt_theta").c_str(), lk.tilt_theta, 0.0);
         pp.load((p + "tilt_phi").c_str(), lk.tilt_phi, 0.0);
         pp.load((p + "well_depth").c_str(), lk.well_depth, 0.05);
+        pp.load((p + "v_rad").c_str(), lk.v_rad, 0.0);
     }
 };
 

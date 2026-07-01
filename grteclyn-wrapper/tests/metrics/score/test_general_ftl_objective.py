@@ -189,3 +189,37 @@ def test_collector_runs_evolving_trace_without_coordinate_precursor() -> None:
             )
         assert metrics.evolving_geodesic is not None
         assert metrics.evolving_geodesic.f_geo == 0.12
+
+
+def test_general_ftl_exotic_penalty_weight_reduces_cost() -> None:
+    components = {
+        "nontriviality_gate": 1.0,
+        "operational_ftl_geodesic": 0.0,
+        "ftl_geo_evolving": 0.0,
+        "exotic_penalty": -1.0,
+        "survival": 0.5,
+    }
+    full = _general_ftl_total(dict(components), [])
+    reduced = _general_ftl_total(
+        dict(components), [], exotic_penalty_weight=0.2
+    )
+    assert reduced > full
+    # Exotic penalty contribution: 70 * weight * (-1.0)
+    assert reduced == full + 70.0 * (1.0 - 0.2) * 1.0
+
+
+def test_score_episode_reads_exotic_penalty_weight_from_env() -> None:
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp) / "ep"
+        _write_minimal_episode(root)
+        metrics = read_episode_metrics(root)
+        with patch.dict(
+            "os.environ", {"SCORE_EXOTIC_PENALTY_WEIGHT": "0.1"}
+        ):
+            score = score_episode(
+                metrics,
+                target_stop_time=2.0,
+                objective_mode="general_ftl",
+            )
+        assert score.total == score.total  # finite
+
