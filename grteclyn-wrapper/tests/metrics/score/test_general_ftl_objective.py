@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import math
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
@@ -213,13 +214,40 @@ def test_score_episode_reads_exotic_penalty_weight_from_env() -> None:
         root = Path(tmp) / "ep"
         _write_minimal_episode(root)
         metrics = read_episode_metrics(root)
-        with patch.dict(
-            "os.environ", {"SCORE_EXOTIC_PENALTY_WEIGHT": "0.1"}
+
+        def _force_exotic_penalty(ctx) -> None:
+            ctx.components["exotic_penalty"] = -1.0
+            ctx.components.setdefault("nontriviality_gate", 1.0)
+
+        with patch(
+            "grteclyn_wrapper.metrics.score.scorer.compute_penalty_components",
+            side_effect=_force_exotic_penalty,
         ):
-            score = score_episode(
+            score_full = score_episode(
                 metrics,
                 target_stop_time=2.0,
                 objective_mode="general_ftl",
+                exotic_penalty_weight=1.0,
             )
-        assert score.total == score.total  # finite
+            with patch.dict(
+                "os.environ", {"SCORE_EXOTIC_PENALTY_WEIGHT": "0.1"}
+            ):
+                score_env = score_episode(
+                    metrics,
+                    target_stop_time=2.0,
+                    objective_mode="general_ftl",
+                )
+            score_explicit = score_episode(
+                metrics,
+                target_stop_time=2.0,
+                objective_mode="general_ftl",
+                exotic_penalty_weight=0.1,
+            )
+
+        assert score_env.total == score_explicit.total
+        assert score_env.total > score_full.total
+        # general_ftl exotic term: 70 * weight * (-1.0)
+        assert math.isclose(
+            score_env.total - score_full.total, 70.0 * (1.0 - 0.1), rel_tol=0.0, abs_tol=1e-9
+        )
 

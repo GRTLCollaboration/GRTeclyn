@@ -1,50 +1,39 @@
-**NEXT STEP — Reduce the exotic-matter penalty in the Q-ball MAP-Elites objective**
+**NEXT STEP — Strengthen matter-dispersion penalty in `general_ftl` scoring**
 
-The current scoring function penalizes exotic matter heavily (`exotic_penalty`)
-because historically it was treated as a physical-implausibility signal.  That is
-backwards for this campaign: **FTL effects require negative-energy density, so the
-search must be allowed to use exotic matter without being punished for it.**  The
-best-scoring configs so far (evals 50, 49, 16) achieve their scores mainly by
-keeping exotic fractions low and surviving longer, but they produce essentially
-zero FTL signal.  Meanwhile, the actual FTL champions (evals 4, 7, 13) have strong
-`f_geo` peaks but are buried in the archive by the exotic penalty.
+`qball_traj_spiral_v1` eval 5 (score ~759, tier operational) keeps **35% confinement**
+by t=16 while banking most of its score on `operational_ftl` + `ftl_persistence`.
+Dispersion is only weakly penalized today: `structural_persistence`
+(`confinement × density_retention × coherence`) gates **`survival`** and
+**`ftl_geo_evolving`**, but **not** the dominant coordinate-FTL terms.
 
 What changes:
-- In the scoring scalarization for `general_ftl` / `ftl_first` / `robust_ftl`,
-  reduce or remove the `exotic_penalty` term when the matter sector is
-  `boson_star` and the ansatz is `trajectory`.  Exotic lumps should be treated as
-  a design choice, not a failure.
-- Optionally cap the penalty so it never exceeds, say, 0.1–0.2, or replace it
-  with a mild *exotic fraction* descriptor that merely records composition rather
-  than punishing it.
-- Expected payoff: MAP-Elites can then explore the high-FTL region of the space
-  without the optimizer avoiding the very configurations that create the effect.
-  This should shift the archive toward genuine FTL channels rather than
-  long-lived but inert Q-ball arrangements.
+- Gate **`operational_ftl`** and **`ftl_persistence`** by `structural_persistence`
+  (or at least `confinement_retention`) in `ftl.py`, same as geodesic FTL.
+- Optional: raise `survival` weight in `_general_ftl_total`, or add a
+  `confinement_min_frac` floor to the operational tier gate.
+- Note: 5-lump configs use a **single barycenter** confinement shell — baseline
+  confined fraction is structurally <100% even before blow-up; interpret
+  time-*drop* (e.g. 60%→35%) as the real dispersal signal.
+
+Expected payoff: MAP-Elites stops rewarding FTL channels that only exist after
+the Q-balls fly apart; archive shifts toward persistent lumps + FTL.
 
 
-**NEXT STEP — Add radial-spiral trajectory mode to the Q-ball MAP-Elites search**
+**~~Reduce the exotic-matter penalty in the Q-ball MAP-Elites objective~~ — DONE (2026-07-01)**
 
-The current Q-ball trajectory ansatz only supports independent tilted circular
-orbits (plus shared breathing and z-oscillation).  This is a strong constraint:
-real FTL highways likely need lumps that approach or recede from each other,
-not just coast on fixed circles.  The next experimental upgrade is to add a
-radial drift parameter to each lump, producing true spiral trajectories.
+`SCORE_EXOTIC_PENALTY_WEIGHT` env (default **0.2** in `qball_trajectory/run.sh`) scales
+`exotic_penalty` in `general_ftl` / `ftl_first` / `robust_ftl` via `objectives.py`.
+Campaign `qball_traj_spiral_v1` explores exotic-rich configs; eval 5 uses 4/5 exotic lumps
+at tier operational.
 
-What changes:
-- New per-lump parameter: `trajectory_lump{k}_v_rad` (radial drift speed).
-- C++ `TrajectoryEvaluator` adds `r_k(t) = R0 + v_rad * t` before the angular
-  motion is applied.  This works for both inward and outward spirals.
-- Search-space dimension count: currently ~34D after pinning well_depth and
-  well_width (5 lumps × 6 per-lump dims + 4 global dims).  Adding `v_rad` per
-  lump adds 5 dimensions, taking the search to ~39D.
-- Python side: extend `TrajectoryParams` parsing, `config.py` t=0 expansion,
-  `spaces.py` dimension list, and the speed cap in `candidates.py` so the
-  radial drift keeps the pump target trackable.
-- Expected payoff: spiral trajectories create transient close approaches between
-  canonical and phantom lumps, strengthening the time-dependent curvature
-  perturbation that drives the FTL channel.  They also test whether the QD
-  algorithm can discover a "pulsed" orbital geometry rather than a static one.
+
+**~~Add radial-spiral trajectory mode (`v_rad`)~~ — DONE (2026-07-01)**
+
+Per-lump `trajectory_lump{k}_v_rad` in C++ (`TrajectoryParams.hpp`,
+`TrajectoryEvaluator.hpp`: `r_k = max(r_min, R0 + v_rad*t + breath)`), Python
+search space (`spaces.py`, 39D pinned), joint speed cap + inward spiral clamp
+(`candidates.py`, `trajectory_r_min=0.1`).
+
 
 ---
 
@@ -121,21 +110,11 @@ every Δt=2 code units (7 launches) and maps f_geo(t_emit).  First result on eva
 See MapElitesDynamics.md top section.
 
 
-**5. Q-ball trajectory QD campaign — NEXT**
-New MAP-Elites campaign with compact Q-ball solitons on retrograde orbits.
-*   **Campaign script:** `scripts/campaigns/qball_trajectory/run.sh`
-*   **Matter:** boson_star + trajectory ansatz, compact preset (m=1, λ=640,
-    μ=85333, ω=0.8), ODE profile seeding, equilibrium amplitude cap.
-*   **Constraints:** all-retrograde orbits (`trajectory_retrograde_only=1`,
-    implemented in `candidates.py`); sub-luminal speed cap (v_max=0.3c, already
-    default).  Together these remove 50%+ of the search space — HQ-validated
-    that counter-rotation and superluminal orbits are false-positive generators.
-*   **FTL probe:** multi-ray emission sweep (Δt=2, 7 launches) + xyz geodesic
-    directions; `general_ftl` objective.
-*   **Goal:** find less-dispersive Q-ball orbital configurations that sustain
-    FTL longer.  The compact ODE seed + speed cap fix the two known dispersal
-    causes (relaxation radiation + superluminal pump mismatch); the search can
-    now explore orbit geometry without those confounders.
+**5. ~~Q-ball trajectory QD campaign~~ — DONE (2026-07-01, in progress)**
+Launched as `qball_traj_spiral_v1` (`scripts/campaigns/qball_trajectory/run.sh`):
+39D spiral search, `general_ftl`, multi-ray sweep, exotic penalty weight 0.2.
+First operational hit: eval 5 (score ~759); dispersion penalty still too weak
+(see top section).
 
 
 **6. Pivot from "Warp Ship" to "Warp Highway" (or Stargate)**

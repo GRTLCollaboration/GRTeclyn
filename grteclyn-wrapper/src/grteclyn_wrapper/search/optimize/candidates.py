@@ -22,8 +22,82 @@ from .dimension import SearchDimension
 # unless a campaign overrides ``trajectory_v_max``.  Set ``trajectory_v_max <= 0``
 # to disable the cap (NOT recommended).
 TRAJECTORY_V_MAX_DEFAULT = 0.3
+# Keep r(t) >= TRAJECTORY_R_MIN through stop_time (matches C++ TRAJECTORY_R_MIN).
+TRAJECTORY_R_MIN_DEFAULT = 0.1
+TRAJECTORY_STOP_TIME_DEFAULT = 16.0
 
 _TRAJECTORY_OMEGA_RE = re.compile(r"^trajectory_lump(\d+)_omega_rot$")
+_TRAJECTORY_V_RAD_RE = re.compile(r"^trajectory_lump(\d+)_v_rad$")
+
+
+def _min_spiral_v_rad(
+    r0: float,
+    *,
+    a_breath: float,
+    stop_time: float,
+    r_min: float,
+) -> float:
+    """Most-inward v_rad that keeps r(stop_time) >= r_min (worst-case breathing)."""
+    if stop_time <= 0.0 or r0 <= 0.0:
+        return 0.0
+    return (r_min - r0 + abs(a_breath)) / stop_time
+
+
+def _clamp_trajectory_spiral_radius(
+    overrides: dict[str, Any],
+    *,
+    default_r_min: float = TRAJECTORY_R_MIN_DEFAULT,
+    default_stop_time: float = TRAJECTORY_STOP_TIME_DEFAULT,
+) -> dict[str, Any]:
+    """Clamp inward ``v_rad`` so the spiral stays outside ``r_min`` until stop_time.
+
+    Uses the same floor as C++ ``TrajectoryEvaluator`` (``TRAJECTORY_R_MIN``).
+    Outward drift (``v_rad > 0``) is unchanged.  Mutates and returns *overrides*.
+    """
+    try:
+        r_min = float(overrides.get("trajectory_r_min", default_r_min))
+    except (TypeError, ValueError):
+        r_min = default_r_min
+    try:
+        stop_time = float(overrides.get("stop_time", default_stop_time))
+    except (TypeError, ValueError):
+        stop_time = default_stop_time
+    if not math.isfinite(r_min) or r_min <= 0.0 or stop_time <= 0.0:
+        return overrides
+
+    try:
+        a_breath = float(overrides.get("trajectory_A_breath", 0.0))
+    except (TypeError, ValueError):
+        a_breath = 0.0
+
+    lump_indices: set[str] = set()
+    for key in overrides:
+        match = _TRAJECTORY_OMEGA_RE.match(str(key))
+        if match is not None:
+            lump_indices.add(match.group(1))
+            continue
+        match = _TRAJECTORY_V_RAD_RE.match(str(key))
+        if match is not None:
+            lump_indices.add(match.group(1))
+
+    for lump_idx in lump_indices:
+        v_rad_key = f"trajectory_lump{lump_idx}_v_rad"
+        try:
+            v_rad = float(overrides.get(v_rad_key, 0.0))
+        except (TypeError, ValueError):
+            v_rad = 0.0
+        try:
+            r0 = float(overrides.get(f"trajectory_lump{lump_idx}_R0", 0.0))
+        except (TypeError, ValueError):
+            r0 = 0.0
+        if r0 <= 0.0:
+            continue
+        v_rad_floor = _min_spiral_v_rad(
+            r0, a_breath=a_breath, stop_time=stop_time, r_min=r_min
+        )
+        if v_rad < v_rad_floor:
+            overrides[v_rad_key] = v_rad_floor
+    return overrides
 
 
 def _clamp_trajectory_speed(
@@ -75,7 +149,8 @@ def _clamp_trajectory_speed(
         if v_total > v_max:
             scale = v_max / v_total
             overrides[key] = omega_rot * scale
-            overrides[v_rad_key] = v_rad * scale
+            if v_rad_key in overrides:
+                overrides[v_rad_key] = v_rad * scale
     return overrides
 
 
@@ -120,8 +195,8 @@ def _vector_to_overrides(
     for xi, dim in zip(x, dims):
         clamped = max(dim.lower, min(dim.upper, xi))
         overrides[dim.param_key] = clamped
-    # Enforce the sub-luminal / adiabatic trajectory-speed cap before the
-    # overrides reach either the GRTresna solve or the GRTeclyn evolution.
+    # Keep spirals inside a physical radius band, then enforce sub-luminal speed.
+    _clamp_trajectory_spiral_radius(overrides)
     _clamp_trajectory_speed(overrides)
     # Optionally force all-retrograde orbits (omega_rot <= 0).
     _enforce_retrograde(overrides)

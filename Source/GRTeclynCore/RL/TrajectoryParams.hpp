@@ -3,6 +3,10 @@
 
 #include "RLLumpState.hpp" // RL_MAX_LUMPS
 
+//! Minimum orbital radius used by TrajectoryEvaluator (geometric units).
+//! Prevents inward spirals from crossing the origin and inverting the orbit.
+inline constexpr double TRAJECTORY_R_MIN = 0.1;
+
 //! Per-lump trajectory: each lump orbits independently on its own tilted
 //! plane with its own radius, angular velocity, initial phase, pump
 //! amplitude, and optional radial drift.  Counter-rotating lumps (opposite

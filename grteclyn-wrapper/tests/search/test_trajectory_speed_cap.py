@@ -15,9 +15,13 @@ from __future__ import annotations
 import math
 
 from grteclyn_wrapper.search.optimize.candidates import (
+    TRAJECTORY_R_MIN_DEFAULT,
+    TRAJECTORY_STOP_TIME_DEFAULT,
     TRAJECTORY_V_MAX_DEFAULT,
     _clamp_trajectory_speed,
+    _clamp_trajectory_spiral_radius,
     _enforce_retrograde,
+    _min_spiral_v_rad,
     _vector_to_overrides,
 )
 from grteclyn_wrapper.search.optimize.dimension import SearchDimension
@@ -175,7 +179,8 @@ def test_clamp_leaves_subluminal_spiral_untouched() -> None:
     assert ov["trajectory_lump0_v_rad"] == 0.05
 
 
-def test_clamp_creates_v_rad_key_when_missing() -> None:
+def test_clamp_scales_omega_only_when_v_rad_missing() -> None:
+    """When v_rad is absent it is treated as 0; only omega_rot is scaled."""
     ov = {
         "trajectory_lump0_R0": 4.0,
         "trajectory_lump0_omega_rot": 0.1,  # v_t = 0.4
@@ -183,3 +188,63 @@ def test_clamp_creates_v_rad_key_when_missing() -> None:
     _clamp_trajectory_speed(ov)
     v_t = abs(ov["trajectory_lump0_omega_rot"]) * ov["trajectory_lump0_R0"]
     assert v_t <= TRAJECTORY_V_MAX_DEFAULT + 1e-9
+    assert "trajectory_lump0_v_rad" not in ov
+
+
+# ---------------------------------------------------------------------------
+# Spiral radius floor (inward drift vs stop_time)
+# ---------------------------------------------------------------------------
+
+def test_min_spiral_v_rad_worst_case_inward() -> None:
+    # R0=1.5, stop=16, no breathing -> v_rad >= (0.1 - 1.5) / 16
+    floor = _min_spiral_v_rad(
+        1.5,
+        a_breath=0.0,
+        stop_time=16.0,
+        r_min=TRAJECTORY_R_MIN_DEFAULT,
+    )
+    assert math.isclose(floor, -0.0875)
+
+
+def test_clamp_spiral_radius_limits_inward_drift() -> None:
+    ov = {
+        "trajectory_lump0_R0": 1.5,
+        "trajectory_lump0_v_rad": -0.3,
+        "stop_time": TRAJECTORY_STOP_TIME_DEFAULT,
+    }
+    _clamp_trajectory_spiral_radius(ov)
+    assert ov["trajectory_lump0_v_rad"] > -0.3
+    assert ov["trajectory_lump0_v_rad"] >= _min_spiral_v_rad(
+        1.5,
+        a_breath=0.0,
+        stop_time=TRAJECTORY_STOP_TIME_DEFAULT,
+        r_min=TRAJECTORY_R_MIN_DEFAULT,
+    )
+
+
+def test_clamp_spiral_radius_leaves_outward_drift_untouched() -> None:
+    ov = {
+        "trajectory_lump0_R0": 1.5,
+        "trajectory_lump0_v_rad": 0.2,
+        "stop_time": TRAJECTORY_STOP_TIME_DEFAULT,
+    }
+    _clamp_trajectory_spiral_radius(ov)
+    assert ov["trajectory_lump0_v_rad"] == 0.2
+
+
+def test_vector_to_overrides_applies_spiral_radius_before_speed() -> None:
+    dims = [
+        SearchDimension("trajectory_lump0_R0", 1.5, 8.0, 1.5),
+        SearchDimension("trajectory_lump0_omega_rot", -1.0, 1.0, -0.1),
+        SearchDimension("trajectory_lump0_v_rad", -0.3, 0.3, -0.3),
+    ]
+    overrides = _vector_to_overrides(
+        [1.5, -0.1, -0.3],
+        dims,
+        {"stop_time": TRAJECTORY_STOP_TIME_DEFAULT},
+    )
+    assert overrides["trajectory_lump0_v_rad"] > -0.3
+    v_t = abs(overrides["trajectory_lump0_omega_rot"]) * overrides["trajectory_lump0_R0"]
+    v_rad = abs(overrides["trajectory_lump0_v_rad"])
+    v_total = math.sqrt(v_t * v_t + v_rad * v_rad)
+    assert v_total <= TRAJECTORY_V_MAX_DEFAULT + 1e-9

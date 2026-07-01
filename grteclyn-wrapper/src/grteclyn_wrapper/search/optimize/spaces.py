@@ -555,29 +555,32 @@ def grtresna_trajectory_search_space(
 ) -> list[SearchDimension]:
     """Trajectory-guided FTL geometry survey — per-lump independent orbits.
 
-    Each lump gets its own circular orbit defined by 6 searched parameters:
-      - R0: orbital radius
+    Each lump gets its own tilted orbit (circle or spiral) defined by 8 searched
+    parameters:
+      - R0: orbital radius at t=0
       - omega_rot: angular velocity (sign = direction; counter-rotating lumps
         create shear -> frame dragging, the primary FTL mechanism)
       - phase0: initial azimuthal position
       - tilt_theta: orbital plane tilt from z-axis
       - tilt_phi: orbital plane azimuth (full 3D orientation)
       - well_depth: per-lump pump amplitude
+      - v_rad: radial drift speed (v_rad=0 recovers a circle; signed spiral)
+      - exotic: per-lump canonical vs phantom matter flag
 
     Shared parameters control collective phenomena:
-      - A_breath, omega_breath: radial pulsation (modulates all R0_k)
+      - A_breath, omega_breath: radial pulsation (modulates all radii)
       - z_amp, omega_z: confined axial oscillation (always bounded)
       - well_width: Gaussian spotlight sigma
 
     The C++ evaluator runs on the CPU each coarse step — no GPU trig.
     GRTresna provides initial data from the t=0 lump positions.
 
-    Dimensionality: 7 * num_lumps + 5 shared.
-      - 5 lumps: 40 D
-      - 3 lumps: 26 D
+    Dimensionality: 8 * num_lumps + 5 shared.
+      - 5 lumps: 45 D
+      - 3 lumps: 29 D
 
     ``profile`` controls which per-lump DOFs are searched:
-      - ``discovery``: full per-lump freedom (R0, omega, phase, tilt, amp)
+      - ``discovery``: full per-lump freedom (R0, omega, phase, tilt, amp, v_rad)
       - ``rotation_only``: fix R0/tilt, search only omega_rot + phase0 + amp
       - ``breathing_only``: fix omega_rot/tilt, search R0 + amplitude
     """

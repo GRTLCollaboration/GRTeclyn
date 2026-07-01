@@ -253,5 +253,12 @@ ftl_search_common_preflight_tests() {
       "${WRAPPER_ROOT}/tests/metrics/score/test_ftl_4d_gate.py"
     )
   fi
+  if [[ "${GRTRESNA_ANSATZ}" == "trajectory" ]]; then
+    PREFLIGHT_TESTS+=(
+      "${WRAPPER_ROOT}/tests/grtresna/test_grtresna_trajectory_ansatz.py"
+      "${WRAPPER_ROOT}/tests/grtresna/test_trajectory_boson_ansatz.py"
+      "${WRAPPER_ROOT}/tests/search/test_trajectory_speed_cap.py"
+    )
+  fi
   ${PYTHON_BIN} -m pytest "${PREFLIGHT_TESTS[@]}" -q --tb=short
 }

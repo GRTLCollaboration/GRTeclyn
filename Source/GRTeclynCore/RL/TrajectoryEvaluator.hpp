@@ -41,7 +41,9 @@ struct TrajectoryEvaluator
             // Per-lump orbital radius with shared breathing and radial drift.
             // Spiral orbits: R0 is the radius at t=0, v_rad is the signed
             // radial drift speed.  Keeps circles as the v_rad=0 special case.
-            const double r_k = lk.R0 + lk.v_rad * t + breath_dr;
+            // Floor at TRAJECTORY_R_MIN so strong inward drift cannot cross r=0.
+            const double r_k = std::max(
+                TRAJECTORY_R_MIN, lk.R0 + lk.v_rad * t + breath_dr);
 
             // Per-lump azimuthal angle: phi(t) = phase0 + omega_rot * t
             const double phi = lk.phase0 + lk.omega_rot * t;

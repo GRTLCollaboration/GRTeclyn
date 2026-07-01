@@ -10,13 +10,12 @@
 # Objective: general_ftl (gauge-invariant null-geodesic shortcut).
 # Descriptor: ftl_lifetime (8x8 archive).
 #
-# --- MAP-Elites search space (~40 continuous dimensions) ---
+# --- MAP-Elites search space (39 effective dims after pinning) ---
 #
-# Pinned (not searched):
-#   Q-ball physics: m=1, lambda=640, mu=85333, omega=0.8 (thick-wall soliton).
-#   ODE radial profile, equilibrium amplitude cap, retrograde-only orbits.
+# Full boson-trajectory space is 48 D (8 per lump + 5 shared + 3 physics).
+# Pinned (not searched): m, lambda, omega_bs, well_width, all well_depth.
 #
-# Per lump (5 lumps, 7 dims each = 35 dims):
+# Per lump (5 lumps, 7 searched dims each = 35):
 #   R0            — orbital radius [1.5, 8.0]
 #   omega_rot     — angular velocity (negative = retrograde, speed-capped).
 #                   Tangential speed v_t = R0 * |omega_rot| is capped at 0.3c
@@ -41,14 +40,25 @@
 #   (well_width is not searched: the boson-star width is fixed by the
 #    physics via bound_width(m, omega) = 1/sqrt(m^2 - omega^2) = 1.667.)
 #
-# Usage:
+# Usage (4-GPU test campaign):
 #   cd grteclyn-wrapper
-#   QD_NAME=qball_traj_compact_v1 QD_TARGET_EVALS=200 \
-#     GPU_IDS="0 1 2 3 4 5 6 7" \
-#     bash scripts/campaigns/qball_trajectory/run.sh
+#   bash scripts/campaigns/qball_trajectory/run.sh
+#
+# Overrides:
+#   QD_NAME=qball_traj_spiral_v2 QD_TARGET_EVALS=400 GPU_IDS="0 1 2 3"
+#   SCORE_EXOTIC_PENALTY_WEIGHT=0.1   # even lighter exotic cost (default 0.2)
+#   QD_RESUME=1                       # continue an existing run
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+QD_RUN="${SCRIPT_DIR}/../qd/run.sh"
+
+# --- QD run identity / scale (override via env) ---
+export QD_NAME="${QD_NAME:-qball_traj_spiral_v1}"
+export QD_TARGET_EVALS="${QD_TARGET_EVALS:-200}"
+export GPU_IDS="${GPU_IDS:-0 1 2 3}"
+export BATCH_SIZE="${BATCH_SIZE:-$(wc -w <<< "${GPU_IDS}")}"
+export QD_ITERATIONS="${QD_ITERATIONS:-20}"
 
 # --- Matter model: boson star on trajectory orbits ---
 export GRTRESNA_MATTER_SECTOR=boson_star
@@ -82,21 +92,25 @@ trajectory_lump3_well_depth=0.15 \
 trajectory_lump4_well_depth=0.15 \
 trajectory_well_width=1.667}"
 
+# --- Evolution (stop_time must be set before EXTRA_SETS for spiral radius clamp) ---
+export STOP_TIME="${STOP_TIME:-16.0}"
+export PLOT_INTERVAL="${PLOT_INTERVAL:-320}"
+
 # Non-search-space overrides passed as --set via EXTRA_SETS (base overrides).
 # These keys are read by the config builder but are not optimizer dimensions.
+#   trajectory_r_min — matches C++ TRAJECTORY_R_MIN; spiral clamp uses stop_time.
+#   stop_time        — duplicated here so speed/radius clamps see evolution length.
 export EXTRA_SETS="${EXTRA_SETS:-\
 grtresna_scalar_mu=85333 \
 grtresna_qball_ode_profile=1 \
 grtresna_qball_equilibrium_amplitude=1 \
-trajectory_retrograde_only=1}"
+trajectory_retrograde_only=1 \
+trajectory_r_min=0.1 \
+stop_time=${STOP_TIME}}"
 
 # --- Multi-ray emission sweep (7 launches, dt=2 code units) ---
 export GRTECLYN_GEO_EMIT_INTERVAL="${GRTECLYN_GEO_EMIT_INTERVAL:-2}"
 export GRTECLYN_GEO_MAX_EMISSIONS="${GRTECLYN_GEO_MAX_EMISSIONS:-7}"
-
-# --- Evolution ---
-export STOP_TIME="${STOP_TIME:-16.0}"
-export PLOT_INTERVAL="${PLOT_INTERVAL:-320}"
 
 # --- Probe / frames ---
 export GRTECLYN_FRAMES="${GRTECLYN_FRAMES:-0}"
@@ -104,9 +118,26 @@ export GRTECLYN_EVOLVING_GEODESIC=1
 export GRTECLYN_EVOLVING_GEODESIC_MODE="${GRTECLYN_EVOLVING_GEODESIC_MODE:-search}"
 export GRTECLYN_GEO_DIRECTIONS="x y z"
 
-# --- Pipeline ---
+# --- Pipeline (one concurrent GRTresna solve per GPU by default) ---
 export USE_PIPELINE="${USE_PIPELINE:-1}"
-export MAX_CONCURRENT_GRTRESNA="${MAX_CONCURRENT_GRTRESNA:-5}"
+export MAX_CONCURRENT_GRTRESNA="${MAX_CONCURRENT_GRTRESNA:-${BATCH_SIZE}}"
 export POSTLOAD_MAX_HAM_L2="${POSTLOAD_MAX_HAM_L2:-3e-2}"
 
-exec bash "${SCRIPT_DIR}/../qd/run.sh"
+echo "== Q-ball trajectory QD: ${QD_NAME} =="
+echo "   GPUs: ${GPU_IDS} (batch=${BATCH_SIZE})  target_evals=${QD_TARGET_EVALS}"
+echo "   Search: 39-D pinned (includes v_rad spiral drift per lump)"
+echo "   Score:  general_ftl + SCORE_EXOTIC_PENALTY_WEIGHT=${SCORE_EXOTIC_PENALTY_WEIGHT}"
+
+if [[ "${PIPELINE_MONITOR:-1}" == "1" ]]; then
+  CAMPAIGNS_LIB="${SCRIPT_DIR}/../lib"
+  # shellcheck source=../lib/bootstrap.sh
+  source "${CAMPAIGNS_LIB}/bootstrap.sh"
+  _campaign_bootstrap "${SCRIPT_DIR}"
+  # shellcheck source=../lib/pipeline_monitor.sh
+  source "${CAMPAIGNS_LIB}/pipeline_monitor.sh"
+  ftl_pipeline_monitor_begin "${QD_NAME}" "${GPU_IDS}"
+  bash "${QD_RUN}" 2>&1 | tee "${FTL_PIPELINE_LOG}"
+  ftl_pipeline_monitor_end
+else
+  exec bash "${QD_RUN}"
+fi
