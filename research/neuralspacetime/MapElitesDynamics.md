@@ -6,6 +6,32 @@
 
 ---
 
+## `qball_traj_spiral_v1` — spiral v_rad QD (stopped 2026-07-01, 73/200 evals)
+
+39D MAP-Elites on compact Q-ball trajectory orbits with per-lump **`v_rad`** spiral
+drift, `general_ftl` objective, `SCORE_EXOTIC_PENALTY_WEIGHT=0.2`, multi-ray emission
+sweep (Δt=2, 7 launches). Run stopped manually; disk pruned to **top-3** eval dirs.
+
+| Eval | Score | Tier | Confinement | FTL signal (headline) |
+|------|-------|------|-------------|------------------------|
+| **56** | **1140** | operational | 40% | `operational_ftl`=1, `ftl_persistence`=1, `f_geo_evol`≈0.30 |
+| **46** | 1102 | operational | 28% | saturated coord FTL; `f_geo` peak ≈19% @ t≈12.8 |
+| **40** | 1097 | operational | 28% | late-blooming channel; inward spirals on lumps 1 & 4 |
+
+**Outcomes:** 57 `gpu_ok`, 14 postload rejected (~19%), 2 GRTresna rejected; 21 operational
+tier hits; archive **14%** coverage (9 elites). Search reliably finds **operational FTL**
+(scores ~1100+) with **`operational_ftl` + `ftl_persistence` saturated**, but leaders keep
+**low confinement (28–40%)** — dispersion opens a late coordinate superluminal channel while
+wells overlap and matter shears. Best geodesic peaks at **t_emit ≈ 12–16**, not t=0.
+
+**Kept on disk:** `eval_000056`, `eval_000046`, `eval_000040` under
+`runs/grtresna_qd/qball_traj_spiral_v1/`.
+
+**Follow-up:** gate `operational_ftl` / `ftl_persistence` by `structural_persistence` before
+next campaign (see [NextSteps.md](./NextSteps.md)).
+
+---
+
 ## Continuous null-ray emission sweep — FTL channel lifetime mapping (2026-07-01)
 
 The single-launch evolving geodesic probe fires rays only at `t_emit = times[0]`,

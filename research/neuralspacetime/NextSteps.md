@@ -1,4 +1,22 @@
-**NEXT STEP — Strengthen matter-dispersion penalty in `general_ftl` scoring**
+**NEXT STEP — Strengthen matter-dispersion penalty, then relaunch QD**
+
+`qball_traj_spiral_v1` stopped at **73/200** evals. Top hits (evals **56/46/40**, scores
+~1100, tier operational) saturate `operational_ftl` + `ftl_persistence` but keep only
+**28–40% confinement** — matter disperses while a late coordinate FTL channel opens.
+
+**Before `qball_traj_spiral_v2`:**
+1. Gate **`operational_ftl`** and **`ftl_persistence`** by `structural_persistence`
+   (or `confinement_retention`) in `ftl.py`, same as geodesic FTL.
+2. Optional: `confinement_min_frac` floor on operational tier; raise `survival` weight in
+   `_general_ftl_total`.
+3. Re-run with same 39D spiral space + `SCORE_EXOTIC_PENALTY_WEIGHT=0.2`; compare archive
+   toward **persistent lumps + FTL**, not dissolving clouds.
+
+Note: 5-lump confinement uses one barycenter shell — interpret **time-drop** in
+confined fraction (e.g. 56%→28%), not absolute level alone.
+
+
+**NEXT STEP — Strengthen matter-dispersion penalty in `general_ftl` scoring** *(detail)*
 
 `qball_traj_spiral_v1` eval 5 (score ~759, tier operational) keeps **35% confinement**
 by t=16 while banking most of its score on `operational_ftl` + `ftl_persistence`.
@@ -110,11 +128,10 @@ every Δt=2 code units (7 launches) and maps f_geo(t_emit).  First result on eva
 See MapElitesDynamics.md top section.
 
 
-**5. ~~Q-ball trajectory QD campaign~~ — DONE (2026-07-01, in progress)**
-Launched as `qball_traj_spiral_v1` (`scripts/campaigns/qball_trajectory/run.sh`):
-39D spiral search, `general_ftl`, multi-ray sweep, exotic penalty weight 0.2.
-First operational hit: eval 5 (score ~759); dispersion penalty still too weak
-(see top section).
+**5. ~~Q-ball trajectory QD campaign~~ — STOPPED (2026-07-01, 73/200 evals)**
+Launched as `qball_traj_spiral_v1`; stopped manually. Top-3 kept: evals **56, 46, 40**
+(scores 1140 / 1102 / 1097). See [MapElitesDynamics.md](./MapElitesDynamics.md) top section.
+Relaunch blocked on dispersion-penalty fix (see top of this file).
 
 
 **6. Pivot from "Warp Ship" to "Warp Highway" (or Stargate)**
