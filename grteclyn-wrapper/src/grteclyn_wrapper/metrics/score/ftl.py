@@ -88,7 +88,9 @@ def _channel_progress(report, *, structure: float) -> float:
     return path * mechanism
 
 
-def compute_ftl_components(ctx: ScoringContext) -> None:
+def compute_ftl_components(
+    ctx: ScoringContext, *, dispersion_gate: float = 1.0
+) -> None:
     metrics = ctx.metrics
     components = ctx.components
     notes = ctx.notes
@@ -527,4 +529,35 @@ def compute_ftl_components(ctx: ScoringContext) -> None:
                 "FTL shaping zeroed: trustworthy geodesic probe found no "
                 f"gauge-invariant shortcut (f_geo={f_geo:.3e}); coordinate "
                 "precursor/channel rewards are artifacts"
+            )
+
+    # Dispersion gate on the coordinate operational-FTL rewards.  The
+    # gauge-invariant geodesic terms (ftl_geo_evolving, operational_ftl_geodesic)
+    # are already scaled by structural_persistence above, but operational_ftl and
+    # ftl_persistence were not -- so a coordinate superluminal channel that only
+    # opens AFTER the Q-balls disperse still banked the full reward.  This is
+    # exactly how the qball_traj_spiral_v1 leaders scored ~1100 at only 28-40%
+    # confinement: dispersion opened a late coordinate channel that these two
+    # (ungated) terms rewarded in full.  Scaling them by structural_persistence
+    # (density_retention * coherence * confinement_retention; defaults to 1.0 when
+    # the matter series is unavailable, leaving legacy episodes untouched) makes
+    # the search prefer persistent lumps + FTL over dissolving clouds, matching
+    # the geodesic gate.  ``dispersion_gate`` in [0,1] tunes the strength: 1.0 is
+    # a full persistence gate, 0.0 disables it (legacy behaviour).
+    gate_strength = min(max(dispersion_gate, 0.0), 1.0)
+    if gate_strength > 0.0 and structural_persistence < 1.0:
+        multiplier = (1.0 - gate_strength) + gate_strength * structural_persistence
+        gated = False
+        for key in ("operational_ftl", "ftl_persistence"):
+            pre = components.get(key, 0.0)
+            if pre > 0.0:
+                components[key] = pre * multiplier
+                gated = True
+        if gated:
+            notes.append(
+                "coordinate operational FTL down-gated for dispersal "
+                f"(structural_persistence={structural_persistence:.2f}, "
+                f"gate_strength={gate_strength:.2f}, multiplier={multiplier:.2f}): "
+                "a channel that opens as the matter disperses is not a "
+                "traversable warp"
             )

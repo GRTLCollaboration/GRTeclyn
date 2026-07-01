@@ -45,8 +45,9 @@
 #   bash scripts/campaigns/qball_trajectory/run.sh
 #
 # Overrides:
-#   QD_NAME=qball_traj_spiral_v2 QD_TARGET_EVALS=400 GPU_IDS="0 1 2 3"
+#   QD_NAME=qball_traj_spiral_v3 QD_TARGET_EVALS=400 GPU_IDS="0 1 2 3"
 #   SCORE_EXOTIC_PENALTY_WEIGHT=0.1   # even lighter exotic cost (default 0.2)
+#   SCORE_FTL_DISPERSION_GATE=0.5     # softer dispersion gate (default 1.0)
 #   QD_RESUME=1                       # continue an existing run
 set -euo pipefail
 
@@ -54,7 +55,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 QD_RUN="${SCRIPT_DIR}/../qd/run.sh"
 
 # --- QD run identity / scale (override via env) ---
-export QD_NAME="${QD_NAME:-qball_traj_spiral_v1}"
+export QD_NAME="${QD_NAME:-qball_traj_spiral_v2}"
 export QD_TARGET_EVALS="${QD_TARGET_EVALS:-200}"
 export GPU_IDS="${GPU_IDS:-0 1 2 3}"
 export BATCH_SIZE="${BATCH_SIZE:-$(wc -w <<< "${GPU_IDS}")}"
@@ -74,6 +75,15 @@ export DESCRIPTOR_MODE="${DESCRIPTOR_MODE:-ftl_lifetime}"
 # scoring penalty so the optimizer explores the high-FTL exotic-rich region
 # instead of hiding in long-lived but inert canonical configurations.
 export SCORE_EXOTIC_PENALTY_WEIGHT="${SCORE_EXOTIC_PENALTY_WEIGHT:-0.2}"
+
+# Dispersion gate (v2).  qball_traj_spiral_v1 leaders scored ~1100 at only
+# 28-40% confinement because operational_ftl / ftl_persistence -- unlike the
+# gauge-invariant geodesic terms -- were NOT scaled by structural_persistence,
+# so a coordinate channel that opened only after the Q-balls flew apart banked
+# the full reward.  This gate scales those two terms by structural_persistence
+# (1.0 = full gate), steering the archive toward persistent lumps + FTL instead
+# of dissolving clouds.
+export SCORE_FTL_DISPERSION_GATE="${SCORE_FTL_DISPERSION_GATE:-1.0}"
 
 # --- Compact Q-ball physics ---
 # Search-space dimensions pinned (these exist in the trajectory-boson search space):
@@ -126,7 +136,7 @@ export POSTLOAD_MAX_HAM_L2="${POSTLOAD_MAX_HAM_L2:-3e-2}"
 echo "== Q-ball trajectory QD: ${QD_NAME} =="
 echo "   GPUs: ${GPU_IDS} (batch=${BATCH_SIZE})  target_evals=${QD_TARGET_EVALS}"
 echo "   Search: 39-D pinned (includes v_rad spiral drift per lump)"
-echo "   Score:  general_ftl + SCORE_EXOTIC_PENALTY_WEIGHT=${SCORE_EXOTIC_PENALTY_WEIGHT}"
+echo "   Score:  general_ftl + SCORE_EXOTIC_PENALTY_WEIGHT=${SCORE_EXOTIC_PENALTY_WEIGHT} + SCORE_FTL_DISPERSION_GATE=${SCORE_FTL_DISPERSION_GATE}"
 
 if [[ "${PIPELINE_MONITOR:-1}" == "1" ]]; then
   CAMPAIGNS_LIB="${SCRIPT_DIR}/../lib"

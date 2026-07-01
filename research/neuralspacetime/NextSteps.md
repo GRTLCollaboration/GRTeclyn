@@ -1,40 +1,40 @@
-**NEXT STEP — Strengthen matter-dispersion penalty, then relaunch QD**
+**NEXT STEP — Relaunch QD as `qball_traj_spiral_v2` with the dispersion gate**
 
 `qball_traj_spiral_v1` stopped at **73/200** evals. Top hits (evals **56/46/40**, scores
-~1100, tier operational) saturate `operational_ftl` + `ftl_persistence` but keep only
+~1100, tier operational) saturated `operational_ftl` + `ftl_persistence` but kept only
 **28–40% confinement** — matter disperses while a late coordinate FTL channel opens.
+The dispersion gate below now fixes the scoring; the campaign is ready to relaunch.
 
-**Before `qball_traj_spiral_v2`:**
-1. Gate **`operational_ftl`** and **`ftl_persistence`** by `structural_persistence`
-   (or `confinement_retention`) in `ftl.py`, same as geodesic FTL.
-2. Optional: `confinement_min_frac` floor on operational tier; raise `survival` weight in
-   `_general_ftl_total`.
-3. Re-run with same 39D spiral space + `SCORE_EXOTIC_PENALTY_WEIGHT=0.2`; compare archive
-   toward **persistent lumps + FTL**, not dissolving clouds.
+Run: `bash scripts/campaigns/qball_trajectory/run.sh` (defaults to `qball_traj_spiral_v2`,
+39D spiral space, `SCORE_EXOTIC_PENALTY_WEIGHT=0.2`, `SCORE_FTL_DISPERSION_GATE=1.0`).
+Compare the archive: it should shift toward **persistent lumps + FTL**, not dissolving
+clouds. Soften with `SCORE_FTL_DISPERSION_GATE=0.5` if the full gate starves the search.
 
 Note: 5-lump confinement uses one barycenter shell — interpret **time-drop** in
 confined fraction (e.g. 56%→28%), not absolute level alone.
 
+Optional follow-ups (not yet done): `confinement_min_frac` floor on the operational
+tier; raise `survival` weight in `_general_ftl_total`.
 
-**NEXT STEP — Strengthen matter-dispersion penalty in `general_ftl` scoring** *(detail)*
 
-`qball_traj_spiral_v1` eval 5 (score ~759, tier operational) keeps **35% confinement**
-by t=16 while banking most of its score on `operational_ftl` + `ftl_persistence`.
-Dispersion is only weakly penalized today: `structural_persistence`
-(`confinement × density_retention × coherence`) gates **`survival`** and
-**`ftl_geo_evolving`**, but **not** the dominant coordinate-FTL terms.
+**~~Strengthen matter-dispersion penalty in `general_ftl` scoring~~ — DONE (2026-07-01)**
 
-What changes:
-- Gate **`operational_ftl`** and **`ftl_persistence`** by `structural_persistence`
-  (or at least `confinement_retention`) in `ftl.py`, same as geodesic FTL.
-- Optional: raise `survival` weight in `_general_ftl_total`, or add a
-  `confinement_min_frac` floor to the operational tier gate.
-- Note: 5-lump configs use a **single barycenter** confinement shell — baseline
-  confined fraction is structurally <100% even before blow-up; interpret
-  time-*drop* (e.g. 60%→35%) as the real dispersal signal.
+`qball_traj_spiral_v1` leaders banked most of their score on `operational_ftl` +
+`ftl_persistence` at only 28–40% confinement.  Root cause: `structural_persistence`
+(`confinement × density_retention × coherence`) gated **`survival`** and
+**`ftl_geo_evolving`**, but **not** those two dominant coordinate-FTL terms.
 
-Expected payoff: MAP-Elites stops rewarding FTL channels that only exist after
-the Q-balls fly apart; archive shifts toward persistent lumps + FTL.
+Fix: `compute_ftl_components` now scales `operational_ftl` and `ftl_persistence` by
+`structural_persistence` (same as the geodesic terms), controlled by
+`SCORE_FTL_DISPERSION_GATE` (via `scorer.py`): `1.0` = full gate (default), `0.0` =
+legacy ungated, partial strengths interpolate
+`(1-s) + s·structural_persistence`.  Defaults to 1.0 when the matter series is
+unavailable, so legacy episodes are untouched.  Guarded by
+`tests/metrics/score/test_ftl_dispersion_gate.py`.  Exposed in
+`qball_trajectory/run.sh`.
+
+Payoff: MAP-Elites no longer rewards FTL channels that only exist after the Q-balls
+fly apart; the archive shifts toward persistent lumps + FTL.
 
 
 **~~Reduce the exotic-matter penalty in the Q-ball MAP-Elites objective~~ — DONE (2026-07-01)**

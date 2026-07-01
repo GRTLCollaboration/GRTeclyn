@@ -38,6 +38,25 @@ def _resolve_exotic_penalty_weight(
     return 1.0
 
 
+def _resolve_ftl_dispersion_gate(
+    explicit: float | None = None,
+) -> float:
+    # Strength of the persistence gate applied to the coordinate operational-FTL
+    # rewards (operational_ftl, ftl_persistence).  1.0 = full structural-
+    # persistence gate (mirrors the geodesic terms), 0.0 = legacy ungated
+    # behaviour.  Defaults to a full gate so a coordinate channel that only
+    # opens as the matter disperses can no longer top the archive.
+    if explicit is not None:
+        return float(explicit)
+    env = os.environ.get("SCORE_FTL_DISPERSION_GATE", "").strip()
+    if env:
+        try:
+            return float(env)
+        except ValueError:
+            pass
+    return 1.0
+
+
 def score_episode(
     metrics: EpisodeMetrics,
     *,
@@ -47,6 +66,7 @@ def score_episode(
     domain_half_width: float | None = None,
     splash_mode: str | None = None,
     exotic_penalty_weight: float | None = None,
+    ftl_dispersion_gate: float | None = None,
 ) -> Score:
     w = dict(DEFAULT_WEIGHTS)
     if weights:
@@ -61,7 +81,9 @@ def score_episode(
 
     compute_survival_components(ctx)
     compute_health_components(ctx)
-    compute_ftl_components(ctx)
+    compute_ftl_components(
+        ctx, dispersion_gate=_resolve_ftl_dispersion_gate(ftl_dispersion_gate)
+    )
     compute_penalty_components(ctx)
     resolved_splash_mode = _resolve_splash_mode(splash_mode)
     if objective_mode == "critical_collapse":
