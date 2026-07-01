@@ -76,6 +76,9 @@ class EvolvingGeodesicFtlReport:
     h_quality_ok: bool
     max_h_rel_drift: float = 0.0
     notes: tuple[str, ...] = ()
+    # Continuous-emission sweep: (t_emit, f_geo, n_reached) per launch time.
+    # Empty for a single-launch trace.  ``f_geo``/``t_emit`` above report the peak.
+    emit_sweep: tuple[tuple[float, float, int], ...] = ()
 
 
 def _spatial_extent(
@@ -362,6 +365,84 @@ def compute_evolving_geodesic_ftl_best_direction(
     )
 
 
+def _emission_times(
+    field: MetricField, *, interval: float, max_emissions: int
+) -> list[float] | None:
+    """Launch times for a continuous-emission sweep, or ``None`` if disabled.
+
+    Fires at ``times[0], +interval, +2*interval, ...`` up to ``max_emissions``
+    launches, capped at the last available slice time (a ray launched later than
+    that samples only the frozen final slice).
+    """
+    if interval <= 0.0 or max_emissions <= 1:
+        return None
+    if not isinstance(field, EvolvingMetricField):
+        return None
+    t0 = float(field.times[0])
+    t_last = float(field.times[-1])
+    times = [t0 + i * interval for i in range(max_emissions)]
+    times = [t for t in times if t <= t_last + 1.0e-9]
+    return times if len(times) > 1 else None
+
+
+def compute_evolving_geodesic_ftl_emission_sweep(
+    field: MetricField,
+    *,
+    directions: Sequence[str],
+    emit_times: Sequence[float],
+    n_rays: int = 5,
+    max_steps: int = 50_000,
+    ds_init: float = 0.05,
+    h_tol: float = 1.0e-6,
+    h_rel_abort: float | None = None,
+    frozen_peak: float | None = None,
+) -> EvolvingGeodesicFtlReport:
+    """Fire ray fans at successive launch times and report the peak-over-time.
+
+    Implements the "surf the transient wave" probe: instead of a single launch at
+    ``times[0]`` (before the warp has formed), it maps ``f_geo`` vs launch time so
+    the strongest surfable window is captured.  The headline ``f_geo``/``t_emit``
+    are the best trustworthy launch; the full map is in ``emit_sweep`` and notes.
+    """
+    reports: list[tuple[float, EvolvingGeodesicFtlReport]] = []
+    for i, te in enumerate(emit_times):
+        rep = compute_evolving_geodesic_ftl_best_direction(
+            field,
+            directions=directions,
+            t_emit=float(te),
+            n_rays=n_rays,
+            max_steps=max_steps,
+            ds_init=ds_init,
+            h_tol=h_tol,
+            h_rel_abort=h_rel_abort,
+            # frozen_peak is launch-time independent; attach once.
+            frozen_peak=frozen_peak if i == 0 else None,
+        )
+        reports.append((float(te), rep))
+
+    sweep = tuple((te, float(rep.f_geo), int(rep.n_reached)) for te, rep in reports)
+    best_te, best = max(reports, key=lambda tr: _report_probe_score(tr[1]))
+    sweep_note = "emit_sweep: " + ", ".join(
+        f"t={te:.2f}->f={rep.f_geo:.3f}(n{rep.n_reached})" for te, rep in reports
+    )
+    peak_note = f"peak f_geo={best.f_geo:.3f} at t_emit={best_te:.2f} over {len(reports)} launches"
+
+    return EvolvingGeodesicFtlReport(
+        f_geo=best.f_geo,
+        f_geo_frozen_peak=frozen_peak if frozen_peak is not None else best.f_geo_frozen_peak,
+        t_emit=best_te,
+        t_arrival=best.t_arrival,
+        t_flat=best.t_flat,
+        n_rays=best.n_rays,
+        n_reached=best.n_reached,
+        max_h_drift=best.max_h_drift,
+        h_quality_ok=best.h_quality_ok,
+        max_h_rel_drift=best.max_h_rel_drift,
+        notes=best.notes + (sweep_note, peak_note),
+        emit_sweep=sweep,
+    )
+
+
 def _frozen_peak_from_g_slices(
     slices: Sequence[NDArray[np.float64]],
     origin: NDArray[np.float64],
@@ -433,6 +514,21 @@ def compute_evolving_geodesic_ftl_from_metric_stack_cache(
             n_rays=ray_count,
             h_tol=h_tol,
         )
+    emit_times = _emission_times(
+        field, interval=opts.emit_interval, max_emissions=opts.max_emissions
+    )
+    if emit_times is not None:
+        return compute_evolving_geodesic_ftl_emission_sweep(
+            field,
+            directions=opts.directions,
+            emit_times=emit_times,
+            n_rays=ray_count,
+            max_steps=opts.max_steps,
+            ds_init=opts.ds_init,
+            h_tol=h_tol,
+            h_rel_abort=opts.h_rel_abort,
+            frozen_peak=frozen_peak,
+        )
     return compute_evolving_geodesic_ftl_best_direction(
         field,
         directions=opts.directions,
@@ -467,6 +563,21 @@ def compute_evolving_geodesic_ftl_from_plotfiles(
         paths, n=n_space, half_width=half_width, n_rays=n_rays, h_tol=h_tol
     )
     opts = evolving_geodesic_options_from_env()
+    emit_times = _emission_times(
+        field, interval=opts.emit_interval, max_emissions=opts.max_emissions
+    )
+    if emit_times is not None:
+        return compute_evolving_geodesic_ftl_emission_sweep(
+            field,
+            directions=opts.directions,
+            emit_times=emit_times,
+            n_rays=n_rays,
+            max_steps=opts.max_steps,
+            ds_init=opts.ds_init,
+            h_tol=h_tol,
+            h_rel_abort=opts.h_rel_abort,
+            frozen_peak=frozen_peak,
+        )
     return compute_evolving_geodesic_ftl_best_direction(
         field,
         directions=opts.directions,
@@ -511,6 +622,7 @@ def write_evolving_geodesic_json(path: Path, report: EvolvingGeodesicFtlReport) 
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = _json_safe(asdict(report))
     payload["notes"] = list(report.notes)
+    payload["emit_sweep"] = [list(row) for row in report.emit_sweep]
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
@@ -537,6 +649,11 @@ def read_evolving_geodesic_json(path: Path) -> EvolvingGeodesicFtlReport | None:
             h_quality_ok=bool(data["h_quality_ok"]),
             max_h_rel_drift=float(data.get("max_h_rel_drift", 0.0)),
             notes=tuple(data.get("notes", ())),
+            emit_sweep=tuple(
+                (float(r[0]), float(r[1]), int(r[2]))
+                for r in data.get("emit_sweep", ())
+                if len(r) >= 3
+            ),
         )
     except (KeyError, TypeError, ValueError, json.JSONDecodeError):
         return None

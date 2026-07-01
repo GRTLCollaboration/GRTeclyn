@@ -6,6 +6,105 @@
 
 ---
 
+## Continuous null-ray emission sweep — FTL channel lifetime mapping (2026-07-01)
+
+The single-launch evolving geodesic probe fires rays only at `t_emit = times[0]`,
+which may miss the peak of a transient warp.  A **continuous-emission sweep** now
+fires a ray fan at multiple launch times (`t_emit = 0, 2, 4, ..., 12`) and reports
+the full `f_geo(t_emit)` map plus the peak.
+
+### How it works
+
+1. **`_emission_times(field, interval, max_emissions)`** computes launch times
+   spaced by `emit_interval` (env: `GRTECLYN_GEO_EMIT_INTERVAL`), capped at
+   the last available slice time and at `max_emissions` launches
+   (env: `GRTECLYN_GEO_MAX_EMISSIONS`).  `interval <= 0` or `max_emissions <= 1`
+   disables the sweep (legacy single-launch).
+
+2. **`compute_evolving_geodesic_ftl_emission_sweep`** runs a full
+   direction-scanned ray fan (5 rays, best of x/y/z) at each launch time.
+   The per-launch results are collected in `emit_sweep` as
+   `(t_emit, f_geo, n_reached)` triples.  The headline `f_geo` / `t_emit`
+   report the peak trustworthy launch.
+
+3. Both `compute_evolving_geodesic_ftl_from_metric_stack_cache` and
+   `_from_plotfiles` auto-route to the sweep when `emit_interval > 0`.
+
+### Run: `traj_qball_compact_sweep_eval122_t16` (2026-07-01)
+
+Eval 122 compact-seed replay (N=128, L=64, ml=2, t=16) with `emit_interval=2.0`,
+`max_emissions=7`.  All 7 launches converged (5/5 rays reached detector at every
+launch).
+
+| t_emit | f_geo  | n_reached |
+|--------|--------|-----------|
+| 0.0    | **9.38%** | 5/5    |
+| 2.0    | 9.18%  | 5/5       |
+| 4.0    | 8.33%  | 5/5       |
+| 6.0    | 7.30%  | 5/5       |
+| 8.0    | 6.45%  | 5/5       |
+| 10.0   | 6.34%  | 5/5       |
+| 12.0   | 5.89%  | 5/5       |
+
+**Peak f_geo = 9.38%** at `t_emit = 0.0`, monotonically decaying.  The FTL channel
+is strongest at the earliest emission and gradually weakens as the warp geometry
+disperses — all 7 launches produce a genuine superluminal shortcut (f_geo > 0),
+confirming **100% FTL lifetime** across the full 0-to-12 emission window.
+
+`f_geo_frozen_peak = 12.79%` (unchanged from single-launch; frozen metric is
+launch-time independent).
+
+### Comparison vs single-launch (no sweep)
+
+| Metric | Single-launch (`traj_qball_compact_ode_eval122_t16`) | Sweep (`_sweep_`) |
+|--------|------|------|
+| f_geo (evolving) | not computed | **9.38%** |
+| f_geo_frozen_peak | 12.79% | 12.79% |
+| confinement @ t=16 | 31.0% | 31.0% |
+| ftl_geo_evolving component | 0.0 | **0.145** |
+| total score | 754.1 | **772.5** (+18.4) |
+
+The score gain comes from `ftl_geo_evolving` now being populated via the sweep.
+Physics are identical (same seed, same evolution) — only the post-hoc ray-tracing
+differs.
+
+### Interpretation
+
+The monotonic decay of `f_geo(t_emit)` means the warp geometry is **strongest at
+the initial configuration** and erodes as the Q-ball matter disperses.  There is no
+delayed peak — the "surfable window" hypothesis (that a later launch might catch
+a stronger transient) does not apply to this configuration.  The channel simply
+opens at t=0 and gradually closes.
+
+The f_geo frozen timeseries (per-slice frozen geodesics) peaks at t~9.6 (12.8%),
+but the evolving 4D trace — which accounts for the metric changing while the ray
+propagates — shows the shortcut is already at its best for rays launched at t=0
+(9.38%).  Later launches see a weaker geometry during propagation.
+
+---
+
+## Compact-soliton GPU validation — `traj_qball_compact_ode_eval122_t16` (2026-06-30)
+
+(Previously documented below under "Q-ball / boson-star profile solver".)
+
+Eval 122 with fixed radial-ODE solver (compact preset: m=1, λ=640, μ=85333, ω=0.8)
++ equilibrium amplitude + ODE seed + Lorentz boost.  N=128, L=64, ml=2, t=16.
+
+| Metric | Broken seed (ω=0.4) | Compact seed (ω=0.8) |
+|--------|--------------------:|---------------------:|
+| confined_frac @ t=16 | 19.4% | **31.0%** |
+| spread_ratio (rms) | 2.11 (5.46→11.52) | **1.49 (7.03→10.48)** |
+| f_geo (gauge-inv) | 1.94% | **5.19%** |
+| ftl_geo_peak | 20.4% | **63.8%** |
+| max local speed | 1.09c | **1.25c** |
+| ftl_persistence | ~0 | **0.85** |
+| numerical_survival | 1.0 | 1.0 |
+
+A correct compact seed both confines better (spread 2.11→1.49) **and** opens a
+100%-lifetime superluminal channel that the broken thin-wall seed never produced.
+
+---
+
 ## Campaign comparison: `scalar_sh_ftl_v22` vs `trajectory_5lump_v1` (2026-06-25)
 
 ### Setup
@@ -820,6 +919,32 @@ Q-ball radius fits the box; make the shoot bisect to machine precision and attac
 clean exp(−κr) tail; add a localization regression test) **before** any further
 GPU runs or dispersal conclusions. See NextSteps.md §3.
 
+### RESOLVED (2026-06-30): fixed radial-ODE shoot + compact preset — GPU-validated
+
+The radial-ODE solver (`qball_radial_ode.solve_qball_radial_profile`) was rewritten:
+
+- **Event-based classification** of the outward shoot: *over* = φ crosses zero
+  (→−∞) or blows up (→+∞); *under* = φ turns around and settles onto the
+  competing false vacuum φ_fv.  The soliton is the separatrix.
+- **Bracket against the φ''(0)<0 window edge** φ_win_hi and **bisect φ_c to ~machine
+  precision** (the thin-wall separatrix sits within ~1e-5 of φ_win_hi, which the old
+  64-point/1e-4 scan could never resolve).
+- **Analytic Yukawa tail**: truncate at the asymptotic-match radius and attach
+  φ ∝ e^{−κr}/r so the tabulated φ₀(r) decays monotonically to ~0 (min/core ~1e-18)
+  instead of plateauing.
+
+This produces a genuinely localized soliton for the presets, but ω=0.4 gives a
+**thin-wall** Q-ball of radius ~20 (still box-filling).  Scanning ω showed the
+soliton radius is minimized (~7) in the **thick-wall** regime ω≈0.7–0.85, so a new
+`QBallCouplings.compact()` preset (m=1, λ=640, μ=85333, **ω=0.8**) was added and
+wired into `replay_eval.py --qball-preset compact`.  231 grtresna tests pass,
+including new localization/monotonicity regression guards.
+
+**GPU validation** — see "Compact-soliton GPU validation" section at top of this
+document for the full broken-vs-compact comparison table.  Summary: compact seed
+(ω=0.8) gives 31% confinement (vs 19%), spread 1.49 (vs 2.11), f_geo 5.19%
+(vs 1.94%), with a 100%-lifetime operational superluminal channel.
+
 ### AMR-aware confinement diagnostic
 
 The old `confined_frac` extractor integrated over the level-0 grid only, silently
@@ -913,6 +1038,8 @@ See [NextSteps.md](./NextSteps.md) for the full plan. Summary:
 | `traj_qball_boosted_eval122` | 2026-06-26 | Q-ball + Lorentz-boosted initial data (v_max=0.8c) | 1 | — | 3.53% f_geo peak | Early confinement improved (0.79), final confinement still poor (0.066); boost implemented and tested |
 | `traj_qball_stiff_boosted_eval122_v2` | 2026-06-27 | Stiff Q-ball λ=640, μ=85333 + boost, sech@0.15 | — | — | — | Stopped t≈9.6; conf 0.62@6.4 vs 0.52 baseline; still dispersing on orbit |
 | `traj_qball_stiff_static_smoke` | 2026-06-27 | Stiff λ=640 static (ω_rot=0), t→8 | — | — | — | Stopped t≈6.5; conf ~0.72 (binding OK at rest) |
+| `traj_qball_compact_ode_eval122_t16` | 2026-06-30 | Compact Q-ball ODE (ω=0.8), eval 122, t=16 | 1 | 754.1 | **5.19%** f_geo | Fixed solver; compact soliton; 31% conf, 1.49 spread |
+| `traj_qball_compact_sweep_eval122_t16` | 2026-07-01 | Compact + multi-ray sweep (7 launches, Δt=2) | 1 | **772.5** | **9.38%** f_geo | Monotonic decay 9.4%→5.9%; 100% FTL lifetime; peak at t_emit=0 |
 
 **Conclusion:** The trajectory ansatz with per-lump differential motion is a **qualitative
 improvement** over spherical harmonics. The HQ validation confirms a **resolution-independent,

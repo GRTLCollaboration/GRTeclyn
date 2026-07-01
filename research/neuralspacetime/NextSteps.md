@@ -1,294 +1,77 @@
-This updated log outlines a significant phase of maturity in the project. We
-have transitioned from simply finding coordinate-level shortcuts to verifying
-the physical reality of these spacetimes using gauge checks, multi-field matter
-models, and dynamic soliton transport.
-
-Below is an objective, senior-scientist-level evaluation of the important
-findings so far and the critical next steps for the research.
-
-Part 1: Important Findings So Far
-
-1. The Bicomplex Scalar Breakthrough (grtresna_bicomplex_scalar)
-
-Perhaps the most physically meaningful finding is the success of the bicomplex
-model. Under identical parameters (the Eval 122 genome, m=0.15, \omega=0.12),
-the single-complex field produced only a coordinate artifact (f_{\rm geo} = 0\%,
-0/5 null rays reached the detector). By decoupling the fields into a canonical
-scaffolding (\Phi^+) and a phantom source (\Phi^-) with opposite gravitational
-coupling (f_s = -1), we successfully turned a coordinate illusion into a
-genuine, gauge-invariant 6.13\% evolving null-geodesic shortcut with 5/5 rays
-reaching the detector and excellent energy conservation. Decoupling the
-ANEC-violating channel from the canonical matter allows the orbital structure to
-drive the frame-dragging without destroying the negative-energy backing.
-
-2. The Soliton Inertia and "Spotlight" Mismatch
-
-We have isolated why moving matter configurations disperse under evolution. When
-self-gravity is negligible, complex scalar fields act as free Klein-Gordon wave
-packets, which have no bound state and immediately disperse.
-
-When self-interaction is added to form a stable Q-ball (via a quartic attractive
-term and a sextic stabilizer), the matter remains perfectly confined in static
-tests (1.01\times RMS radius growth over the baseline's 1.35\times). However,
-under the fast trajectories of Eval 122 (2.6c - 6.0c), the Q-balls still
-disperse.
-
-The physical reason is a transport velocity mismatch: solitons possess physical
-inertia. The moving coordinate pump (the spotlight) moves too quickly for the
-soliton to translate adiabatically. The pump simply ends up spawning new field
-content at its current coordinates, leaving the old field behind to disperse as
-radiation.
-
-3. Lorentz-Boosted Initial Data ("Speed Follow") Validity
-
-To resolve the transport mismatch, starting the Q-balls with a physical initial
-velocity vector matching their orbit tangent (boosted up to 0.8c) was
-implemented and validated.
-
-  - The Good: This significantly improved the early-evolution phase. The RMS
-    radius shrank for the first \sim 1.7 code units, and the confined matter
-    fraction reached 79\% (a +12\% improvement over the cold-start run).
-  - The Bad: It did not prevent final dispersal at t=16 (confined fraction still
-    fell to 6.6\%). The boost resolves the linear initial transient, but it
-    cannot protect the soliton from the immense centripetal/transverse
-    acceleration required to hold a highly curved circular orbit at these
-    speeds. The soliton continues to shed energy as radiation at every turn.
-
-4. The -nan Momentum Solver Bug
-
-We identified a purely logical bottleneck in the GRTresna non-linear solver
-(GRSolver.impl.hpp). For static trajectory initial data (P_i = 0), the momentum
-source is zero, which causes the relative Momentum error to return -nan (0/0).
-While physically harmless, this NaN breaks the solver's early-exit check:
-\text{converged} = (\text{exit\_tol} > 0) \land (\text{Ham\_error} < \text{exit\_tol}) \land (\text{Mom\_error} < \text{exit\_tol})
-Because Mom_error < exit_tol always evaluates to false for a NaN, the solver is
-forced to run the full 30 iterations, even though the Hamiltonian error
-converges below 1\% by iteration 8. This explains the historically slow GRTresna
-solve times for at-rest trajectory campaigns.
-
-Part 1b: Q-Ball Dispersion Work — Implemented (2026-06-27)
-
-Following the dispersion analysis in MapElitesDynamics.md, the following was
-implemented in grteclyn-wrapper (Python only; GRTresna C++ unchanged except for
-an attempted params.txt workaround):
-
-**Modules and wiring**
-
-| Component | Path | Role |
-|-----------|------|------|
-| Q-ball couplings | `grtresna/qball_couplings.py` | `QBallCouplings` value object: `standard()` (λ=160, μ=5333) and `stiff()` (λ=640, μ=85333, ω_min preserved). `cap_well_depth()` clamps paint amplitude to equilibrium √(3λ/4μ). |
-| Radial ODE solver | `grtresna/qball_radial_ode.py` | Outward shooting + bisection on φ₀(0); `cached_qball_radial_profile()`, `profile_for_lump()`. Stiff equilibrium core ≈ 0.075 (not 0.15). |
-| Gridinit paint | `grtresna/boson_star_fields.py` | `PROFILE_ODE_BOUND = 3`; ODE tabulation used in `_lump_phi0_at_radius` and Lorentz-boosted repaint. |
-| Trajectory expansion | `search/optimize/config.py` | `grtresna_qball_equilibrium_amplitude=1` caps lump `amp`; `grtresna_qball_ode_profile=1` sets `profile=3` + `qball_*` keys on lumps. |
-| Replay flags | `scripts/campaigns/hq/replay_eval.py` | `--qball-preset {standard,stiff}`, `--qball-equilibrium-amplitude`, `--qball-ode-profile`. |
-| Matter metadata | `grtresna/matter_wiring.py` | `scalar_mu` serialization; `EVOLUTION_MATTER_KEYS` for replay consistency. |
-| Tests | `tests/grtresna/test_qball_*.py` | 20+ unit tests (couplings, ODE shoot, config wiring, params mapping). |
-
-**Replay results (eval 122 genome, boosted, t→16 unless noted)**
-
-| Run | Seed | conf @ t≈16 | Notes |
-|-----|------|-------------|-------|
-| `traj_qball_boosted_eval122` | λ=160, sech@0.15 | **6.6%** | Baseline |
-| `traj_qball_stiff_boosted_eval122_v2` | λ=640, sech@0.15 | stopped ~9.6 | conf ~39% vs ~28% baseline mid-run; still dispersing on orbit |
-| `traj_qball_stiff_static_smoke` | λ=640, ω_rot=0 | — | conf ~72% at rest (binding OK) |
-| `traj_qball_stiff_ode_smoke` | stiff + equilibrium + ODE | **0.5%** @ t=0 | **Broken** (pre-C++ profile-3) — diagonal stripe garbage; run stopped |
-| `traj_qball_stiff_ode_eval122_t16` | stiff + equilibrium + ODE + boost | **19.4%** @ t=16 | C++ profile-3 landed. Clean seed: **75.6%** @ t=0. **3× baseline** retention but still disperses (spread ×2.11, rms 5.46→11.52) |
-
-**Critical blocker: ODE profile requires GRTresna C++ support**
-
-GRTresna `BosonStarParams.hpp` implements lump profiles 0 (Gaussian), 1 (tanh
-shell), and 2 (sech) only. Profile 3 is not defined; it falls through to
-Gaussian. The Python pipeline splits the constraint solve from the exported
-matter:
-
-1. **GRTresna** builds lapse/metric from whatever envelope is in `params.txt`
-   (we temporarily map profile 3→2 sech in `solver.py`; this is **not** a fix).
-2. **Python gridinit export** repaints matter with the ODE tabulation +
-   Lorentz boost + de Broglie phase.
-
-Sech in the solve and ODE in the repaint are different φ₀(r) at the same nominal
-`amp`/`width`. The metric is sourced for sech; the exported field is ODE +
-boosted phase — inconsistent Hamiltonian/momentum data and garbage φ frames
-(`confined_frac ≈ 0.5%` vs ~75% for a good boosted baseline).
-
-**Do not use `--qball-ode-profile` until GRTresna C++ adds profile 3** with the
-same tabulated flat-space Q-ball φ₀(r) as Python (shoot + cubic interpolation,
-keyed by m, λ, μ, ω). Until then, the safe stiff path is
-`--qball-preset stiff --qball-equilibrium-amplitude` only (sech @ equilibrium
-amp ≈ 0.075).
-
-**Physics takeaway from stiff runs**
-
-- Stiffer λ deepens the well and improves mid-run confinement vs baseline, but
-  does not prevent late orbit dispersal when seeded with sech @ 0.15.
-- At rest, stiff Q-balls bind (~72% conf); dispersal on the fast eval-122 orbit
-  is largely kinematic (centripetal radiation on curved trajectories), not just
-  seed relaxation.
-- Equilibrium amplitude (≈ 0.075 for stiff) is required; seeding at 0.15 is
-  2× super-equilibrium and adds t=0 relaxation shock.
-
-Part 2: Critical Next Steps in the Research
-
-To resolve these newly identified physical and numerical limitations, the
-research should be structured into the following five priority steps.
-
-                             [Immediate Priorities]
-                                       │
-         ┌─────────────────────────────┼─────────────────────────────┐
-         ▼                             ▼                             ▼
-   GRTresna Fix              Stiffer Q-Ball Well          GRTresna ODE Profile (C++)
-  - Mom NaN early exit DONE - λ=640, μ=85333 DONE         - profile 3 in C++ DONE
-  - 3x solve speedup (static) - sech@equilibrium only      - Tabulated φ₀(r) DONE
-         │                             │                             │
-         └─────────────────────────────┴─────────────────────────────┘
-                                       │
-                              Radial ODE (Python) DONE
-                              C++ tabulated loader DONE
-                              Rebuild + smoke passed
-
-1. Patch the GRTresna Momentum Convergence Check (Numerical Priority) — **DONE (2026-06-27)**
-
-Implemented in `GRTresna/Source/Core/GRSolver.impl.hpp`:
-
-  - Zero momentum source (static / P_i = 0): `Mom_error` reports 0% instead of NaN.
-  - Early exit treats non-finite `Mom_error` as satisfied; stall detection ignores NaN mom.
-  - Mayday skips non-finite momentum errors.
-
-Rebuild BosonStarBH (or ScalarFieldBH) per `grteclyn-wrapper/README.md` § Build GRTresna.
-Verified: static bicomplex Q-ball solve exits at NL iteration 6 (Ham ≈ 0.59%, Mom = 0%)
-vs 30 iterations before.
-
-2. Implement Stiffer Q-Ball Potentials (Physics Priority) — **DONE (Python)**
-
-The velocity boost alone cannot keep the Q-balls confined because the potential
-well is not deep enough to resist centripetal acceleration. Stiffer couplings
-were implemented via `QBallCouplings.stiff()`:
-
-  - λ = 640, μ = 85333 (4× λ, μ scaled to preserve ω_min).
-  - Equilibrium core amplitude √(3λ/4μ) ≈ 0.075 — use
-    `--qball-equilibrium-amplitude`, not `well_depth=0.15`.
-  - Replay: `--qball-preset stiff --qball-equilibrium-amplitude`.
-
-**Result:** Mid-run confinement improves vs baseline; static binding OK (~72%).
-Late orbit dispersal persists on eval 122 — stiffer well alone is insufficient
-without exact seed and/or slower orbit kinematics.
-
-3. Build the Exact Q-Ball Radial ODE Solver (Algorithm Priority) — **REOPENED
-(2026-06-30): C++ plumbing done, but the Python solver does NOT localize — see
-correction below.**
-
-The Python ODE solver is implemented (`qball_radial_ode.py`, shooting +
-bisection) and the C++ profile-3 plumbing landed, but the t=16 run exposed that
-the tabulated profile is a non-decaying flat-top condensate, not a bound soliton.
-`--qball-ode-profile` must NOT be used for science until the solver is fixed.
-Gridinit repaint uses it when `--qball-ode-profile` is set.
-
-**GRTresna C++ support now landed:**
-
-  - `BosonStarParams.hpp` added `profile == 3` with tabulated ODE φ₀(r) loaded from
-    the same `.dat` file that Python exports.
-  - `ComplexScalarField.cpp` added the sextic term `scalar_mu · φ² · φ` and wired the
-    profile-3 lookup to `scalar_lambda` / `scalar_mu`.
-  - Python `solver.py` removed the temporary `profile 3 → 2` sech mapping hack.
-  - Rebuilt GRTresna; smoke test passed.
-
-**Validation:**
-
-  - GRTresna solve converges with the tabulated profile-3 ODE.
-  - GPU smoke (eval 122, t=0): `confined_frac ≈ 75%` with clean φ frames; no diagonal
-    garbage.
-  - Sub-luminal speed cap enforced in the search candidates.
-  - Full test suite: 547 passed.
-
-**Full t=16 run (`traj_qball_stiff_ode_eval122_t16`, N=128, L=64, ml=2):**
-
-  - GRTresna solve with the boosted profile-3 seed converged at NL iteration 6
-    (Ham 0.71%, Mom 0.068%) — and `Mom_error` was *finite*, not NaN, because the
-    Lorentz-boosted lumps carry real momentum. The profile-3 C++ path and the
-    momentum early-exit fix both work on a non-trivial constraint.
-  - confined_frac: 75.6% @ t=0 → 19.4% @ t=16 (spread ×2.11, rms 5.46→11.52).
-
-**CORRECTION (2026-06-30) — the Q-ball ODE seed is NOT localized; earlier
-"kinematic dispersal" / "non-adiabatic transport" conclusions are RETRACTED.**
-
-Post-run inspection of the tabulated `qball_profile.dat` shows the profile does
-**not** decay: starting from core φ_c≈0.076 it falls only to ≈0.44·φ_c by r≈15
-and then *rises again*, plateauing near 0.5·φ_c out to r=100 (the expected tail
-decay length is 1/√(m²−ω²) ≈ 1.09, so a true bound state should be ≲1% of core by
-r≈10). Reproduced directly with `solve_qball_radial_profile`: **both** the
-`standard` and `stiff` presets fail to localize (never drop below 1% inside the
-L=64 box). Root cause: at these couplings U_eff(φ_core) = ½κ²φ² − (λ/4)φ⁴ +
-(μ/6)φ⁶ ≈ −1.7e-4 — only *just* below zero, i.e. the deep thin-wall regime where
-the equilibrium Q-ball radius is far larger than the box. The shoot then stalls on
-the flat top (the 1e-4 φ_c bisection tolerance and the "no blow-up / no
-zero-crossing within r_max" acceptance test both accept the plateau).
-
-Consequences:
-
-  - Every `--qball-ode-profile` run (including this one and the earlier t=0 "75%"
-    smoke) was seeded with a near-constant condensate spanning the box, not a
-    localized soliton. The "75.6% @ t=0" is a paint/normalisation artifact and the
-    drop to 19.4% is that unphysical slab spreading — **not** orbital kinematics.
-  - The actual run kinematics were already adiabatic: after the speed cap,
-    ω_rot ≈ 0.04–0.08 while bs_omega = 0.4 (stiff preset overrides scalar_mass→1.0,
-    bs_omega→0.4). So the "ω_rot ≫ internal frequency" claim is simply false here.
-
-**Revised top priority — fix the Q-ball radial ODE seed so it localizes BEFORE
-any further GPU runs:**
-
-  1. Pick couplings whose equilibrium Q-ball radius fits the box (move out of the
-     barely-bound thin-wall corner; target flat-top radius ≈ lump width, a few
-     code units). This is a (λ, μ, ω) re-derivation, not a search-space change.
-  2. Repair `qball_radial_ode.solve_qball_radial_profile`: classify
-     undershoot (φ crosses zero) vs overshoot (φ diverges), bisect φ_c to ~machine
-     precision, then truncate at the turning radius and attach the analytic
-     exp(−κr) decaying tail so the tabulated φ₀(r) is genuinely localized.
-  3. Add a regression test asserting φ₀(r) decays below ~1% of core within the box
-     half-width for the presets actually used.
-  4. Only then re-run the t=16 replay and re-open the dispersal question.
-
-4. Complete and Score the Bicomplex HQ Promotion
-
-Analyze the results of the currently running traj_bicomplex_m03_w025 promotion
-(256^3, ml=3, t_{\rm stop}=30).
-
-  - Verify if the higher mass/frequency scale (m=0.3, \omega=0.25) improves
-    structural persistence over the m=0.15 baseline.
-  - Confirm that the 6.13\% evolving FTL shortcut scales or stabilizes at higher
-    resolutions, confirming its physical, resolution-independent nature.
-
-5. Restrict the Stage 0 Search Space to All-Retrograde Orbits
-
-HQ validation has conclusively shown that counter-rotating configurations (mixed
-prograde/retrograde signs) are generators of false positives (such as Eval 008,
-which collapsed to 0\% FTL at high resolution).
-
-  - Constrain the search bounds in spaces.py to force \omega_{\rm rot} < 0
-    globally [1].
-  - This will immediately eliminate half of the search space, focusing the
-    MAP-Elites optimizer entirely on the highly productive, retrograde
-    frame-dragging vortex basin.
-
-6. AMR-Aware Confinement Diagnostic and Resolution Strategy (2026-06-30)
-
-The `confined_frac` extractor was rewritten to integrate over all AMR levels using
-finest-cell / true-cell-volume weighting. This fixed a latent bug where the diagnostic
-only saw the level-0 grid and under-sampled refined structures.
-
-GPU re-validation revealed that the real reason `max_level=2` and `max_level=3` gave
-identical scores on the soliton is not a diagnostic bug — AMR simply does not engage
-on the smooth boson-star field (`regrid_threshold=0.02` is too high for the sech/ODE
-profile). Therefore:
-
-  - The observed t=16 retention is a genuine **base-grid** result, not a coarse-AMR
-    artifact.
-  - Raising `max_level` without retuning the tagger is ineffective.
-  - Two actionable levers remain: (a) tag on matter / lower threshold so refinement
-    tracks the lump, or (b) raise the base resolution `N`.
-
-7. Enforce Sub-Luminal Candidate Trajectories (2026-06-29)
-
-Implemented and tested a speed cap in the trajectory candidate generator so that all
-sampled orbits satisfy `v < c`. This prevents previously observed super-luminal orbital
-speeds that were unphysical and destabilized the evolution.
+Here is the plain English breakdown of why this idea is so powerful and how it
+changes the game.
 
+To understand it, we need to think of our FTL (Faster-Than-Light) effect not as
+a solid pipe or a metal bridge, but as a wave in the ocean.
+
+The Problem: We’re only sending one surfer at dawn
+
+Right now, the simulation works like this: the moment we hit "start" on the
+experiment (which we call t=0), the computer immediately fires a single test
+light-ray (our "probe") across the grid to see if it reaches the finish line
+faster than normal light.
+
+But remember what we just discovered: the FTL effect is caused by the matter
+dispersing and spreading out. At t=0, the matter hasn't spread out yet! The
+"warp" hasn't formed. Our test light-ray is being forced to travel through the
+space before the FTL highway is actually built, and it only gets the FTL boost
+for the tail-end of its journey.
+
+We are basically sending a surfer out into the ocean at exactly 6:00 AM, and
+measuring how good the waves are. If the perfect FTL wave actually swells up
+at 6:10 AM, our surfer misses the best part of it.
+
+The Solution: Send a surfer every few minutes
+
+Instead of firing just one test ray at the very beginning, the new idea is to
+fire a continuous stream of them—say, one every 2 seconds.
+
+Here is exactly how this helps us turn a random discovery into a working FTL
+engine:
+
+1. Finding the "Sweet Spot" By firing a ray at 0 seconds, 2 seconds, 4
+seconds, 6 seconds, etc., we can watch the FTL highway open and close in
+real-time. We might find that the ray fired at t=6 arrives massively faster than
+the one fired at t=0. This tells us exactly when the gravitational tailwind is
+at its absolute strongest.
+
+2. Writing the "Train Schedule" of the Warp Highway Right now, we know the FTL
+effect lasts for about 16 "code units" (think of these as seconds) before dying
+out. But we don't know the exact shape of that lifespan. Does it slowly ramp up
+for 8 seconds and fade for 8 seconds? Does it violently snap open at 2 seconds
+and slowly bleed out? Firing continuous rays acts like a radar ping, giving us a
+perfect, second-by-second map of exactly how long the window stays open.
+
+3. The Ultimate Goal: Pacing the Engine (The "Pulse" Drive) This is the most
+exciting part. If we map this out and discover that a single burst of exotic
+matter creates a "surfable" FTL wave that lasts exactly 16 seconds... we now
+know how to build a permanent highway.
+
+Instead of trying to keep one lump of matter perfectly stable forever (which
+makes the simulation crash), we can build an engine that simply "pulses" or
+injects a new burst of exotic matter every 15 seconds.
+
+  - Pulse 1 creates a wave.
+  - Just before Pulse 1 dies, Pulse 2 fires, creating the next wave.
+  - Just before Pulse 2 dies, Pulse 3 fires.
+
+By knowing exactly when to fire the next pulse, a spaceship (or a light beam)
+could just surf from one dispersing wave to the next, forever.
+
+In short: Firing continuous test rays allows us to stop treating the FTL effect
+like a static, frozen object, and start treating it like a rhythm. Once we know
+the rhythm, we can build an engine that beats to it, creating a permanent,
+stable FTL corridor out of transient, dying waves.
+
+
+**4. Rethink the FTL Probes for Transients**
+Because the dispersion causes the FTL channel to act like a transient "wave" (lasting ~16 code units before dying out), timing is everything. 
+*   **Action:** The 4D evolving geodesic tracer currently fires rays at $t=0$. We should implement a continuous emission of rays (e.g., firing a new null ray every $\Delta t = 2$). This will allow us to map the exact lifetime of the dispersion wake and measure exactly when the "surfable" wave of metric shear is at its peak, proving whether a sequence of dispersing pulses could sustain a permanent FTL corridor. 
+
+
+**1. Pivot from "Warp Ship" to "Warp Highway" (or Stargate)**
+Currently, the MAP-Elites scoring function heavily penalizes dispersion: the overall score is multiplied by `structural_persistence`. If the matter drops to 10% density, the FTL score is crushed. 
+*   **Action:** We should fork the objective function. Keep one search looking for compact "ships," but create a new objective (`standing_channel_ftl`) that **removes the structural persistence penalty**. We should reward configurations that successfully turn an initial dense seed into a stable, grid-spanning "highway" or "worldtube" of diffuse FTL medium.
+
+
+   **Fix AMR (Adaptive Mesh Refinement) Tracking:** Because the smooth boson-star fields do not trigger the default `regrid_threshold=0.02`, the Adaptive Mesh Refinement is failing to engage. The next step is to tune the regrid tagger to tag on matter directly, lower the threshold, or increase the base resolution ($N$).

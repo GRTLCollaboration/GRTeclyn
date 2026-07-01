@@ -18,6 +18,13 @@ class EvolvingGeodesicOptions:
     h_rel_abort: float | None = None
     ds_init: float = 0.05
     directions: tuple[str, ...] = ("x", "y", "z")
+    # Continuous-emission sweep: fire a ray fan at t_emit = times[0], +interval,
+    # +2*interval, ... up to ``max_emissions`` launches (capped at the last
+    # available slice time).  emit_interval<=0 or max_emissions<=1 => single
+    # launch at times[0] (legacy behaviour).  Maps the FTL channel lifetime and
+    # reports the peak-over-launch-time f_geo ("when is the surfable wave best").
+    emit_interval: float = 0.0
+    max_emissions: int = 1
 
 
 SEARCH_OPTIONS = EvolvingGeodesicOptions(
@@ -39,12 +46,35 @@ def geo_directions_from_env() -> tuple[str, ...]:
     return dirs or ("x", "y", "z")
 
 
+def _emission_sweep_from_env() -> tuple[float, int]:
+    """Resolve continuous-emission sweep knobs from the environment.
+
+    ``GRTECLYN_GEO_EMIT_INTERVAL`` (code units between launches, default 0 =
+    disabled) and ``GRTECLYN_GEO_MAX_EMISSIONS`` (max launches, default 1).
+    """
+    try:
+        interval = float(os.environ.get("GRTECLYN_GEO_EMIT_INTERVAL", "0").strip() or 0.0)
+    except ValueError:
+        interval = 0.0
+    try:
+        max_emissions = int(os.environ.get("GRTECLYN_GEO_MAX_EMISSIONS", "1").strip() or 1)
+    except ValueError:
+        max_emissions = 1
+    return max(0.0, interval), max(1, max_emissions)
+
+
 def evolving_geodesic_options_from_env() -> EvolvingGeodesicOptions:
     """Resolve integration profile from ``GRTECLYN_EVOLVING_GEODESIC_MODE``."""
     mode = os.environ.get("GRTECLYN_EVOLVING_GEODESIC_MODE", "search").strip().lower()
     directions = geo_directions_from_env()
     base = HQ_OPTIONS if mode in {"hq", "full", "verify", "promote"} else SEARCH_OPTIONS
-    return replace(base, directions=directions)
+    emit_interval, max_emissions = _emission_sweep_from_env()
+    return replace(
+        base,
+        directions=directions,
+        emit_interval=emit_interval,
+        max_emissions=max_emissions,
+    )
 
 
 def metric_stack_n_space_from_env(*, default: int = 65) -> int:

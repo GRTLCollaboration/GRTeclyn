@@ -9,11 +9,14 @@ import numpy as np
 from grteclyn_wrapper.metrics.probes import warpfactory as wf
 from grteclyn_wrapper.metrics.probes.ftl.evolving_geodesic import (
     EvolvingGeodesicFtlReport,
+    _emission_times,
     compute_evolving_geodesic_ftl,
     compute_evolving_geodesic_ftl_best_direction,
+    compute_evolving_geodesic_ftl_emission_sweep,
     compute_evolving_geodesic_ftl_from_analytic,
     compute_evolving_geodesic_ftl_from_plotfiles,
     integrate_null_ray_on_field,
+    read_evolving_geodesic_json,
     write_evolving_geodesic_json,
 )
 from grteclyn_wrapper.metrics.probes.ftl.geodesic import (
@@ -106,6 +109,90 @@ def test_multi_direction_probe_finds_y_aligned_shortcut():
     )
     assert best.f_geo > 0.1
     assert any("best_direction=y" in n for n in best.notes)
+
+
+def test_emission_times_disabled_and_static_return_none():
+    g, origin, spacing = _flat_grid()
+    stack = np.stack([g, g, g, g, g], axis=0)
+    field = EvolvingMetricField(
+        g_stack=stack,
+        times=np.array([0.0, 1.0, 2.0, 3.0, 4.0]),
+        origin=origin,
+        spacing=(1.0, *spacing),
+    )
+    # Disabled by interval<=0 or a single launch.
+    assert _emission_times(field, interval=0.0, max_emissions=4) is None
+    assert _emission_times(field, interval=1.0, max_emissions=1) is None
+    # Non-evolving fields never sweep.
+    static = StaticMetricField(g=g, origin=origin, spatial_spacing=spacing)
+    assert _emission_times(static, interval=1.0, max_emissions=4) is None
+    # Enabled: launches at 0,1,2 (capped at last slice time 4.0).
+    assert _emission_times(field, interval=1.0, max_emissions=3) == [0.0, 1.0, 2.0]
+    # max_emissions beyond the slice window is clamped to available times.
+    assert _emission_times(field, interval=2.0, max_emissions=9) == [0.0, 2.0, 4.0]
+
+
+def test_emission_sweep_maps_launch_times_and_reports_peak():
+    g, origin, spacing = _flat_grid()
+    stack = np.stack([g] * 5, axis=0)
+    field = EvolvingMetricField(
+        g_stack=stack,
+        times=np.array([0.0, 1.0, 2.0, 3.0, 4.0]),
+        origin=origin,
+        spacing=(1.0, *spacing),
+    )
+    emit_times = _emission_times(field, interval=1.0, max_emissions=3)
+    report = compute_evolving_geodesic_ftl_emission_sweep(
+        field, directions=("x",), emit_times=emit_times, n_rays=3
+    )
+    # One sweep entry per launch time, in order.
+    assert len(report.emit_sweep) == 3
+    assert [row[0] for row in report.emit_sweep] == [0.0, 1.0, 2.0]
+    # Headline f_geo is the peak over launch times.
+    assert report.f_geo == max(row[1] for row in report.emit_sweep)
+    assert any(n.startswith("emit_sweep:") for n in report.notes)
+    assert any("peak f_geo=" in n for n in report.notes)
+
+
+def test_emission_sweep_captures_time_dependent_peak():
+    """On a moving Alcubierre bubble the best launch time need not be t=0."""
+    g, spacing = wf.alcubierre_metric(
+        velocity=0.5, bubble_radius=2.0, sigma=2.0, half_width=4.0, n_space=20, dt=0.2
+    )
+    field = evolving_field_from_analytic_stack(g, spacing)
+    emit_times = _emission_times(field, interval=float(field.times[1] - field.times[0]),
+                                 max_emissions=3)
+    if emit_times is None:  # single-slice stack -> nothing to sweep
+        return
+    report = compute_evolving_geodesic_ftl_emission_sweep(
+        field, directions=("x",), emit_times=emit_times, n_rays=5
+    )
+    assert len(report.emit_sweep) == len(emit_times)
+    # The reported f_geo equals the best entry in the map.
+    assert report.f_geo == max(row[1] for row in report.emit_sweep)
+
+
+def test_emission_sweep_json_roundtrip(tmp_path):
+    report = EvolvingGeodesicFtlReport(
+        f_geo=0.12,
+        f_geo_frozen_peak=0.2,
+        t_emit=4.0,
+        t_arrival=18.0,
+        t_flat=14.0,
+        n_rays=5,
+        n_reached=5,
+        max_h_drift=0.001,
+        h_quality_ok=True,
+        max_h_rel_drift=0.001,
+        notes=("emit_sweep: t=0.00->f=0.050(n5), t=4.00->f=0.120(n5)",),
+        emit_sweep=((0.0, 0.05, 5), (4.0, 0.12, 5)),
+    )
+    path = tmp_path / "evolving_geodesic.json"
+    write_evolving_geodesic_json(path, report)
+    loaded = read_evolving_geodesic_json(path)
+    assert loaded is not None
+    assert loaded.emit_sweep == ((0.0, 0.05, 5), (4.0, 0.12, 5))
+    assert loaded.f_geo == 0.12
 
 
 def test_too_few_plotfiles_returns_none():

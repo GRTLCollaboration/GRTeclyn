@@ -46,6 +46,20 @@ class QBallCouplings:
         """
         return cls(mass=1.0, lam=640.0, mu=85333.0, omega=0.4)
 
+    @classmethod
+    def compact(cls) -> QBallCouplings:
+        """Thick-wall couplings for a *localized* seed that fits the evolution box.
+
+        ``standard()``/``stiff()`` use ω=0.4, deep in the thin-wall regime where the
+        equilibrium Q-ball is a flat-top condensate of radius ~20 code units — far
+        larger than a multi-lump box, and (before the radial-ODE shoot was fixed)
+        the source of the non-localized seed documented in NextSteps.md §3.  Raising
+        ω into the thick-wall regime (ω≈0.8·m) collapses the flat top so the soliton
+        decays to ~0 within ~7 code units while keeping the sextic stabiliser and
+        the same λ, μ.  Use this for ``--qball-ode-profile`` seeding.
+        """
+        return cls(mass=1.0, lam=640.0, mu=85333.0, omega=0.8)
+
     def with_equilibrium_paint(self) -> QBallCouplings:
         """Return a copy whose ``phi_core`` matches flat-space √(3λ/4μ)."""
         return QBallCouplings(

@@ -285,9 +285,11 @@ def main() -> int:
     )
     parser.add_argument(
         "--qball-preset",
-        choices=("standard", "stiff"),
+        choices=("standard", "stiff", "compact"),
         default=None,
-        help="Apply QBallCouplings preset overrides (standard=λ160/μ5333, stiff=λ640/μ85333).",
+        help="Apply QBallCouplings preset overrides (standard=λ160/μ5333 ω0.4, "
+        "stiff=λ640/μ85333 ω0.4, compact=λ640/μ85333 ω0.8 — thick-wall, "
+        "box-fitting localized soliton; use with --qball-ode-profile).",
     )
     parser.add_argument(
         "--qball-equilibrium-amplitude",
@@ -339,11 +341,11 @@ def main() -> int:
 
     # Apply --extra-override KEY=VALUE pairs last (highest priority).
     if args.qball_preset is not None:
-        preset = (
-            QBallCouplings.standard()
-            if args.qball_preset == "standard"
-            else QBallCouplings.stiff()
-        )
+        preset = {
+            "standard": QBallCouplings.standard,
+            "stiff": QBallCouplings.stiff,
+            "compact": QBallCouplings.compact,
+        }[args.qball_preset]()
         overrides.update(
             preset.seed_overrides(
                 equilibrium_amplitude=args.qball_equilibrium_amplitude,
