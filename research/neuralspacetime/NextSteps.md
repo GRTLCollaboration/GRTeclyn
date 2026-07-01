@@ -64,14 +64,45 @@ the rhythm, we can build an engine that beats to it, creating a permanent,
 stable FTL corridor out of transient, dying waves.
 
 
-**4. Rethink the FTL Probes for Transients**
-Because the dispersion causes the FTL channel to act like a transient "wave" (lasting ~16 code units before dying out), timing is everything. 
-*   **Action:** The 4D evolving geodesic tracer currently fires rays at $t=0$. We should implement a continuous emission of rays (e.g., firing a new null ray every $\Delta t = 2$). This will allow us to map the exact lifetime of the dispersion wake and measure exactly when the "surfable" wave of metric shear is at its peak, proving whether a sequence of dispersing pulses could sustain a permanent FTL corridor. 
+**4. ~~Rethink the FTL Probes for Transients~~ — DONE (2026-07-01)**
+Continuous null-ray emission sweep implemented and validated.  Fires a ray fan
+every Δt=2 code units (7 launches) and maps f_geo(t_emit).  First result on eval
+122 compact: monotonic decay 9.38%→5.89%, peak at t_emit=0, 100% FTL lifetime.
+See MapElitesDynamics.md top section.
 
 
-**1. Pivot from "Warp Ship" to "Warp Highway" (or Stargate)**
+**5. Q-ball trajectory QD campaign — NEXT**
+New MAP-Elites campaign with compact Q-ball solitons on retrograde orbits.
+*   **Campaign script:** `scripts/campaigns/qball_trajectory/run.sh`
+*   **Matter:** boson_star + trajectory ansatz, compact preset (m=1, λ=640,
+    μ=85333, ω=0.8), ODE profile seeding, equilibrium amplitude cap.
+*   **Constraints:** all-retrograde orbits (`trajectory_retrograde_only=1`,
+    implemented in `candidates.py`); sub-luminal speed cap (v_max=0.3c, already
+    default).  Together these remove 50%+ of the search space — HQ-validated
+    that counter-rotation and superluminal orbits are false-positive generators.
+*   **FTL probe:** multi-ray emission sweep (Δt=2, 7 launches) + xyz geodesic
+    directions; `general_ftl` objective.
+*   **Goal:** find less-dispersive Q-ball orbital configurations that sustain
+    FTL longer.  The compact ODE seed + speed cap fix the two known dispersal
+    causes (relaxation radiation + superluminal pump mismatch); the search can
+    now explore orbit geometry without those confounders.
+
+
+**6. Pivot from "Warp Ship" to "Warp Highway" (or Stargate)**
 Currently, the MAP-Elites scoring function heavily penalizes dispersion: the overall score is multiplied by `structural_persistence`. If the matter drops to 10% density, the FTL score is crushed. 
-*   **Action:** We should fork the objective function. Keep one search looking for compact "ships," but create a new objective (`standing_channel_ftl`) that **removes the structural persistence penalty**. We should reward configurations that successfully turn an initial dense seed into a stable, grid-spanning "highway" or "worldtube" of diffuse FTL medium.
+*   **Action:** Fork the objective function. Keep one search looking for compact "ships," but create a new objective (`standing_channel_ftl`) that **removes the structural persistence penalty**. Reward configurations that turn an initial dense seed into a stable, grid-spanning "highway" of diffuse FTL medium.
 
 
-   **Fix AMR (Adaptive Mesh Refinement) Tracking:** Because the smooth boson-star fields do not trigger the default `regrid_threshold=0.02`, the Adaptive Mesh Refinement is failing to engage. The next step is to tune the regrid tagger to tag on matter directly, lower the threshold, or increase the base resolution ($N$).
+**7. Fix AMR (Adaptive Mesh Refinement) Tracking**
+Because the smooth boson-star fields do not trigger the default `regrid_threshold=0.02`, the Adaptive Mesh Refinement is failing to engage. Tune the regrid tagger to tag on matter directly, lower the threshold, or increase the base resolution ($N$).
+
+
+**8. ~~Self-gravitating soliton trajectories~~ — DEPRIORITIZED**
+Originally proposed to replace the pump-spotlight with freely orbiting boson
+stars.  Deprioritized because: (a) the pump/trajectory potential is the control
+mechanism — without it, matter follows geodesics with zero steerability; (b) the
+two main dispersal causes (sech seed radiation, superluminal orbits) are now
+fixed by the ODE profile + speed cap; (c) the compact-seed run already shows
+31% confinement and 100% FTL lifetime with the pump model.  The productive path
+is improving confinement within the pump framework (stronger binding, tuned orbit
+radii, AMR tagger) rather than discarding the control mechanism.

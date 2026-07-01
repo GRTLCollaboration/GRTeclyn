@@ -1,9 +1,13 @@
-"""Tests for the sub-luminal / adiabatic trajectory-speed cap.
+"""Tests for trajectory constraints: sub-luminal speed cap + retrograde enforcement.
 
 A trajectory lump is dragged along its orbit by a co-moving trap whose target
 centre advances at v_t = R0 * |omega_rot| (geometric units, c = 1).  Superluminal
 or strongly relativistic v_t cannot be followed by any soliton, so the decode
 path clamps omega_rot per lump.
+
+The optional retrograde constraint (``trajectory_retrograde_only=1``) negates
+prograde omega_rot values — HQ validation showed counter-rotation is a
+false-positive generator and all confirmed FTL configs are all-retrograde.
 """
 
 from __future__ import annotations
@@ -13,6 +17,7 @@ import math
 from grteclyn_wrapper.search.optimize.candidates import (
     TRAJECTORY_V_MAX_DEFAULT,
     _clamp_trajectory_speed,
+    _enforce_retrograde,
     _vector_to_overrides,
 )
 from grteclyn_wrapper.search.optimize.dimension import SearchDimension
@@ -74,5 +79,67 @@ def test_vector_to_overrides_applies_cap() -> None:
         SearchDimension("trajectory_lump0_omega_rot", -1.0, 1.0, 0.0),
     ]
     overrides = _vector_to_overrides([8.0, 1.0], dims, {})
+    v_t = abs(overrides["trajectory_lump0_omega_rot"]) * overrides["trajectory_lump0_R0"]
+    assert v_t <= TRAJECTORY_V_MAX_DEFAULT + 1e-9
+
+
+# ---------------------------------------------------------------------------
+# Retrograde enforcement
+# ---------------------------------------------------------------------------
+
+def test_retrograde_negates_prograde_when_enabled() -> None:
+    ov = {
+        "trajectory_lump0_omega_rot": 0.5,
+        "trajectory_lump1_omega_rot": 0.3,
+        "trajectory_retrograde_only": 1,
+    }
+    _enforce_retrograde(ov)
+    assert ov["trajectory_lump0_omega_rot"] == -0.5
+    assert ov["trajectory_lump1_omega_rot"] == -0.3
+
+
+def test_retrograde_leaves_negative_untouched() -> None:
+    ov = {
+        "trajectory_lump0_omega_rot": -0.7,
+        "trajectory_retrograde_only": 1,
+    }
+    _enforce_retrograde(ov)
+    assert ov["trajectory_lump0_omega_rot"] == -0.7
+
+
+def test_retrograde_leaves_zero_untouched() -> None:
+    ov = {
+        "trajectory_lump0_omega_rot": 0.0,
+        "trajectory_retrograde_only": 1,
+    }
+    _enforce_retrograde(ov)
+    assert ov["trajectory_lump0_omega_rot"] == 0.0
+
+
+def test_retrograde_noop_when_disabled() -> None:
+    ov = {
+        "trajectory_lump0_omega_rot": 0.5,
+        "trajectory_retrograde_only": 0,
+    }
+    _enforce_retrograde(ov)
+    assert ov["trajectory_lump0_omega_rot"] == 0.5
+
+
+def test_retrograde_noop_when_flag_absent() -> None:
+    ov = {"trajectory_lump0_omega_rot": 0.5}
+    _enforce_retrograde(ov)
+    assert ov["trajectory_lump0_omega_rot"] == 0.5
+
+
+def test_vector_to_overrides_applies_retrograde() -> None:
+    dims = [
+        SearchDimension("trajectory_lump0_R0", 1.5, 8.0, 5.0),
+        SearchDimension("trajectory_lump0_omega_rot", -1.0, 1.0, 0.0),
+    ]
+    overrides = _vector_to_overrides(
+        [4.0, 0.6], dims, {"trajectory_retrograde_only": 1}
+    )
+    # Should be negated AND speed-capped.
+    assert overrides["trajectory_lump0_omega_rot"] <= 0.0
     v_t = abs(overrides["trajectory_lump0_omega_rot"]) * overrides["trajectory_lump0_R0"]
     assert v_t <= TRAJECTORY_V_MAX_DEFAULT + 1e-9

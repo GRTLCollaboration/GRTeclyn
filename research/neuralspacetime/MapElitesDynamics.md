@@ -995,30 +995,39 @@ See [NextSteps.md](./NextSteps.md) for the full plan. Summary:
    correctly outscores eval 008 (1293 vs 1194) -- the old `ftl_first` had them inverted
    (1238 vs 1482) because coordinate-level shaping rewards dominated.
 
-### Phase 3b — Remaining analysis (NEXT)
+### Phase 3b — Remaining analysis
 
 4. **Transient channel characterization**: Why does the FTL window last ~16 code units?
-   Is it set by the breathing period (omega_z=1.39, T~4.5)?
+   Emission sweep (item 4 DONE) showed monotonic decay, peak at t=0. Correlate with
+   confinement timeseries and breathing phase to identify the decay driver.
 
 5. **Crash mitigation for eval 115**: Strongest FTL (12.5%) crashed at t=21. Try higher
    KO dissipation, reduced max_level, or CFL reduction.
 
-### Phase 4 — Future search directions
+### Phase 4 — Q-ball trajectory QD campaign (NEXT)
 
-5. **All-retrograde constraint**: Fix omega < 0 for all lumps. Eliminates half the search
-   space. Validated by HQ: counter-rotation is a false positive generator.
+5. ~~**All-retrograde constraint**~~: **DONE** (2026-07-01). `_enforce_retrograde` in
+   `candidates.py` flips prograde omega_rot when `trajectory_retrograde_only=1`.
+   12 tests pass.
 
-6. **Resolution scaling**: Run eval 122 at 384³ or 512³. Does f_geo_evol keep improving
-   toward the 20.97% frozen peak?
+6. **Q-ball trajectory QD campaign**: `scripts/campaigns/qball_trajectory/run.sh`.
+   Compact Q-balls (ODE seed, equilibrium amplitude, ω=0.8) on all-retrograde
+   orbits with sub-luminal speed cap + multi-ray emission sweep.  `general_ftl`
+   objective.  Goal: find less-dispersive orbital configs that sustain FTL longer.
 
-7. **Longer evolution**: t_stop=64 to test if the channel lifetime is intrinsic or tunable.
+7. **Resolution scaling**: Run best QD elites at 384³ or 512³. Does f_geo_evol
+   keep improving toward the frozen peak?
 
-8. **Boson star trajectory**: Replace pump-spotlight with self-gravitating solitons for
-   genuinely persistent matter configurations.
+8. **Longer evolution**: t_stop=64 to test if the channel lifetime is intrinsic or
+   tunable.
 
-9. ~~**Stronger Q-ball binding + boost**~~: λ=640 tested — partial gain; next:
-   **stiff + ODE profile + equilibrium amplitude** (`--qball-ode-profile`,
-   `--qball-equilibrium-amplitude`).
+9. ~~**Self-gravitating soliton trajectories**~~: **DEPRIORITIZED**. The pump
+   model is the control mechanism; the two dispersal causes (sech seed, superluminal
+   orbits) are now fixed. Improve confinement within the pump framework instead.
+
+10. ~~**Stronger Q-ball binding + boost**~~: **DONE**. Compact preset (λ=640,
+    μ=85333, ω=0.8) + ODE profile + equilibrium amplitude validated at 31%
+    confinement, 5.19% f_geo, 100% FTL lifetime.
 
 ---
 

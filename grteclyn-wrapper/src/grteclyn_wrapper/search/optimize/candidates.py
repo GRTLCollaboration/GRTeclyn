@@ -67,6 +67,38 @@ def _clamp_trajectory_speed(
     return overrides
 
 
+def _enforce_retrograde(
+    overrides: dict[str, Any],
+) -> dict[str, Any]:
+    """Force all trajectory lumps retrograde (``omega_rot <= 0``).
+
+    Mutates and returns *overrides*.  Controlled by
+    ``trajectory_retrograde_only`` (default ``False``).  When enabled, any
+    positive ``omega_rot`` is negated; exact zero is left as-is (a
+    non-rotating lump is acceptable).  This removes 50% of the search space
+    — HQ validation showed counter-rotation is a false-positive generator
+    and all confirmed FTL configs are all-retrograde.
+    """
+    try:
+        enabled = bool(int(overrides.get("trajectory_retrograde_only", 0)))
+    except (TypeError, ValueError):
+        enabled = False
+    if not enabled:
+        return overrides
+
+    for key in list(overrides.keys()):
+        match = _TRAJECTORY_OMEGA_RE.match(str(key))
+        if match is None:
+            continue
+        try:
+            omega_rot = float(overrides[key])
+        except (TypeError, ValueError):
+            continue
+        if omega_rot > 0.0:
+            overrides[key] = -omega_rot
+    return overrides
+
+
 def _vector_to_overrides(
     x: Sequence[float],
     dims: Sequence[SearchDimension],
@@ -79,6 +111,8 @@ def _vector_to_overrides(
     # Enforce the sub-luminal / adiabatic trajectory-speed cap before the
     # overrides reach either the GRTresna solve or the GRTeclyn evolution.
     _clamp_trajectory_speed(overrides)
+    # Optionally force all-retrograde orbits (omega_rot <= 0).
+    _enforce_retrograde(overrides)
     return overrides
 
 
