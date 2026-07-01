@@ -28,6 +28,7 @@ from ..gpu_pool import (
     CpuAdmissionController,
     build_pipeline_resources,
 )
+from ..scoring_pool import ScoringPool, scoring_workers_from_env
 from ..optimize import DEFAULT_SEARCH_SPACE, SearchDimension
 from ..optimize.candidates import _vector_to_overrides
 from ..trajectory_log import (
@@ -252,6 +253,13 @@ def run_qd_search(
         cpu_admission = CpuAdmissionController(max_concurrent_grtresna_override)
         sizing["max_grtresna"] = max_concurrent_grtresna_override
 
+    # Scoring runs off the GPU-lease path in its own bounded process pool so the
+    # CPU-heavy yt analysis overlaps with GPU evolutions instead of holding a
+    # GPU slot (default: one scorer per GPU slot; override via SCORING_WORKERS).
+    scoring_workers = scoring_workers_from_env(gpu_pool.total_slots)
+    scoring_pool = ScoringPool(scoring_workers)
+    sizing["scoring_workers"] = scoring_workers
+
     metadata = {
         "mode": "qd_map_elites",
         "example": example_cfg.name,
@@ -277,6 +285,7 @@ def run_qd_search(
         ),
         "slots_per_gpu": slots_per_gpu,
         "max_concurrent_grtresna": sizing["max_grtresna"],
+        "scoring_workers": sizing.get("scoring_workers"),
         "gpu_slots": sizing["gpu_slots"],
         "cluster_cpu_fraction": cluster_cpu_fraction,
         "pipeline_share": pipeline_share,
@@ -484,6 +493,7 @@ def run_qd_search(
                 consumer_radii=consumer_radii,
                 consumer_keep_last=consumer_keep_last,
                 gpu_pool=gpu_pool,
+                scoring_pool=scoring_pool,
             )
 
         with cpu_admission.admit():
@@ -503,27 +513,29 @@ def run_qd_search(
             return cpu_phase
         cpu_result = cpu_phase
 
-        with gpu_pool.lease() as leased_gpu:
-            return _run_gpu_session(
-                cpu_result=cpu_result,
-                example=example_cfg,
-                template=tpl,
-                executable=executable,
-                cuda_devices=leased_gpu,
-                check_params=check_params,
-                dry_run=dry_run,
-                target_stop_time=target_stop_time,
-                score_weights=score_weights,
-                objective_mode=objective_mode,
-                ftl_L=ftl_L,
-                consume_plotfiles=consume_plotfiles,
-                consumer_radii=consumer_radii,
-                consumer_keep_last=consumer_keep_last,
-                consumer_ftl_timeseries=True,
-                consumer_evolving_geodesic=None,
-                grtresna_postload_gate=grtresna_postload_gate,
-                postload_gate_config=postload_gate_config,
-            )
+        # The GPU slot is leased inside _run_gpu_session for the evolution binary
+        # only; scoring runs in scoring_pool after the slot is released.
+        return _run_gpu_session(
+            cpu_result=cpu_result,
+            example=example_cfg,
+            template=tpl,
+            executable=executable,
+            check_params=check_params,
+            dry_run=dry_run,
+            target_stop_time=target_stop_time,
+            score_weights=score_weights,
+            objective_mode=objective_mode,
+            ftl_L=ftl_L,
+            consume_plotfiles=consume_plotfiles,
+            consumer_radii=consumer_radii,
+            consumer_keep_last=consumer_keep_last,
+            consumer_ftl_timeseries=True,
+            consumer_evolving_geodesic=None,
+            grtresna_postload_gate=grtresna_postload_gate,
+            postload_gate_config=postload_gate_config,
+            gpu_pool=gpu_pool,
+            scoring_pool=scoring_pool,
+        )
 
     _worker_rng_local = threading.local()
     _worker_rng_seeds = list(
@@ -603,6 +615,12 @@ def run_qd_search(
                 new_x = _sample_next_candidate(_get_worker_rng())
             pipeline.submit(new_x)
 
+    # Keep a job resident at every stage (GRTresna solve, GPU evolve, score) so
+    # no stage starves while another is busy. Scoring now runs off the GPU-lease
+    # path, so it needs its own share of in-flight slots.
+    max_in_flight = (
+        gpu_pool.total_slots + cpu_admission.max_concurrent + scoring_pool.max_workers
+    )
     pipeline = EvalPipeline(
         gpu_pool=gpu_pool,
         cpu_admission=cpu_admission,
@@ -611,6 +629,7 @@ def run_qd_search(
         counter_lock=counter_lock,
         eval_counter=eval_counter,
         metadata_path=metadata_path,
+        max_in_flight=max_in_flight,
     )
 
     start_iter = len(conv_history)
@@ -627,6 +646,8 @@ def run_qd_search(
     )
 
     if not use_pipeline:
+        # Legacy batch mode scores inline; the pipeline scoring pool is unused.
+        scoring_pool.shutdown(wait=False)
         return _run_legacy_batch_mode(
             qd_dir=qd_dir,
             archive=archive,
@@ -685,14 +706,19 @@ def run_qd_search(
             pre_gpu_archive_path=pre_gpu_archive_path,
         )
 
-    max_in_flight = gpu_pool.total_slots + cpu_admission.max_concurrent
     if not resume:
         seed_vectors = [
             [float(s.get(d.param_key, d.center)) for d in dims]
             for s in (seed_overrides or [])
         ]
+        # Fill every pipeline stage on startup (previously only n_init≈batch,
+        # which left GPUs idle while the batch drained through CPU stages).
+        remaining = max(0, total_target - eval_counter[0])
+        n_fill = min(remaining, max_in_flight)
+        n_random = max(n_init, n_fill - len(seed_vectors))
+        n_random = min(n_random, max(0, remaining - len(seed_vectors)))
         init_vectors = seed_vectors + [
-            _sample_random(dims, rng) for _ in range(n_init)
+            _sample_random(dims, rng) for _ in range(n_random)
         ]
         pipeline.submit_many(init_vectors)
     else:
@@ -705,6 +731,7 @@ def run_qd_search(
 
     pipeline.wait_until_idle()
     pipeline.shutdown()
+    scoring_pool.shutdown()
     _batched_prune()
     write_json(qd_dir / "archive.json", archive.to_dict())
     if pre_gpu_enabled:

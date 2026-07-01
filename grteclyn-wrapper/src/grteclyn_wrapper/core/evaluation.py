@@ -10,7 +10,10 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, Sequence
+
+if TYPE_CHECKING:
+    from ..search.scoring_pool import ScoringPool
 
 from .artifact_cleanup import cleanup_episode_artifacts
 from .config import ExampleConfig, ExecutableConfig
@@ -177,7 +180,29 @@ def _run_cpu_grtresna_gates(
         )
 
 
-def _run_gpu_session(
+@dataclass(frozen=True)
+class ScoringRequest:
+    """Everything the CPU scoring stage needs, decoupled from the GPU lease.
+
+    All fields are plain data so this can be shipped to a separate scoring
+    process (``ScoringPool``), which lets scoring run in parallel across evals
+    without the process-wide ``PLOTFILE_READ_LOCK`` (yt is not thread-safe) and
+    without holding a GPU slot while the CPU-bound yt analysis runs.
+    """
+
+    episode_path: str
+    exit_code: int | None
+    dry_run: bool
+    target_stop_time: float | None
+    score_weights: dict[str, float] | None
+    objective_mode: str
+    ftl_L: float | None
+    evolving_enabled: bool
+    gte_overrides: dict[str, Any]
+    cleanup_plotfiles: bool
+
+
+def _run_gpu_binary_phase(
     *,
     cpu_result: CpuGateResult,
     example: ExampleConfig,
@@ -197,8 +222,14 @@ def _run_gpu_session(
     consumer_evolving_geodesic: bool | None,
     grtresna_postload_gate: bool,
     postload_gate_config: Any | None,
-    cleanup_plotfiles: bool = True,
-) -> Evaluation:
+    cleanup_plotfiles: bool,
+) -> ScoringRequest | Evaluation:
+    """GPU-bound phase: postload gate + write params + run the evolution binary.
+
+    Runs while a GPU slot is held. Returns a :class:`ScoringRequest` describing
+    the CPU-only scoring work to do next, or an :class:`Evaluation` if the run
+    was rejected before scoring (postload gate).
+    """
     episode = cpu_result.episode
     gte_overrides = dict(cpu_result.gte_overrides)
     if objective_mode == "critical_collapse":
@@ -270,18 +301,42 @@ def _run_gpu_session(
             exit_code = 1
             update_metadata(episode, {"simulation_error": repr(exc), "simulation_exit_code": exit_code})
 
+    return ScoringRequest(
+        episode_path=str(episode.path),
+        exit_code=exit_code,
+        dry_run=dry_run,
+        target_stop_time=target_stop_time,
+        score_weights=dict(score_weights) if score_weights is not None else None,
+        objective_mode=objective_mode,
+        ftl_L=ftl_L,
+        evolving_enabled=evolving_enabled,
+        gte_overrides=gte_overrides,
+        cleanup_plotfiles=cleanup_plotfiles,
+    )
+
+
+def _score_episode_phase(request: ScoringRequest) -> Evaluation:
+    """CPU-only scoring phase: read metrics, score, persist, clean up.
+
+    Pure function of an on-disk episode directory so it can run inline or in a
+    separate process. Holds no GPU slot.
+    """
+    episode = Episode(path=Path(request.episode_path))
+
     metrics = read_episode_metrics(
         episode.path,
-        ftl_L=ftl_L,
-        evolving_geodesic=evolving_enabled,
-        objective_mode=objective_mode,
+        ftl_L=request.ftl_L,
+        evolving_geodesic=request.evolving_enabled,
+        objective_mode=request.objective_mode,
     )
     score = score_episode(
         metrics,
-        target_stop_time=target_stop_time,
-        weights=score_weights,
-        objective_mode=objective_mode,
-        domain_half_width=domain_half_width_for_episode(episode.path, gte_overrides),
+        target_stop_time=request.target_stop_time,
+        weights=request.score_weights,
+        objective_mode=request.objective_mode,
+        domain_half_width=domain_half_width_for_episode(
+            episode.path, request.gte_overrides
+        ),
     )
 
     write_json(episode.score_path, {
@@ -289,19 +344,85 @@ def _run_gpu_session(
         "metrics": dataclass_to_dict(metrics),
     })
 
-    if cleanup_plotfiles and episode.score_path.is_file():
+    if request.cleanup_plotfiles and episode.score_path.is_file():
         cleanup_episode_artifacts(episode.path, tier="plotfiles_only")
 
     return Evaluation(
         score=score.total,
         components=dict(score.components),
-        notes=[*score.notes, *(["dry_run"] if dry_run else [])],
+        notes=[*score.notes, *(["dry_run"] if request.dry_run else [])],
         episode_path=str(episode.path),
-        exit_code=exit_code,
+        exit_code=request.exit_code,
         preflight_rejected=False,
         reason=None,
         metrics={k: dataclass_to_dict(getattr(metrics, k)) for k in metrics.__dataclass_fields__},
     )
+
+
+def _run_gpu_session(
+    *,
+    cpu_result: CpuGateResult,
+    example: ExampleConfig,
+    template: Path,
+    executable: ExecutableConfig | None,
+    cuda_devices: str | None = None,
+    check_params: bool,
+    dry_run: bool,
+    target_stop_time: float | None,
+    score_weights: Mapping[str, float] | None,
+    objective_mode: str,
+    ftl_L: float | None,
+    consume_plotfiles: bool,
+    consumer_radii: Sequence[float],
+    consumer_keep_last: int,
+    consumer_ftl_timeseries: bool,
+    consumer_evolving_geodesic: bool | None,
+    grtresna_postload_gate: bool,
+    postload_gate_config: Any | None,
+    cleanup_plotfiles: bool = True,
+    gpu_pool: GpuPool | None = None,
+    scoring_pool: "ScoringPool | None" = None,
+) -> Evaluation:
+    """Run the GPU evolution then score the episode.
+
+    When ``gpu_pool`` is given the GPU slot is leased only for the evolution
+    binary and released before the CPU-bound scoring stage. When ``scoring_pool``
+    is given, scoring runs in a separate process so it neither holds a GPU slot
+    nor contends on the process-wide yt read lock.
+    """
+    binary_kwargs = dict(
+        cpu_result=cpu_result,
+        example=example,
+        template=template,
+        executable=executable,
+        check_params=check_params,
+        dry_run=dry_run,
+        target_stop_time=target_stop_time,
+        score_weights=score_weights,
+        objective_mode=objective_mode,
+        ftl_L=ftl_L,
+        consume_plotfiles=consume_plotfiles,
+        consumer_radii=consumer_radii,
+        consumer_keep_last=consumer_keep_last,
+        consumer_ftl_timeseries=consumer_ftl_timeseries,
+        consumer_evolving_geodesic=consumer_evolving_geodesic,
+        grtresna_postload_gate=grtresna_postload_gate,
+        postload_gate_config=postload_gate_config,
+        cleanup_plotfiles=cleanup_plotfiles,
+    )
+
+    if gpu_pool is not None:
+        with gpu_pool.lease() as leased_gpu:
+            phase = _run_gpu_binary_phase(cuda_devices=leased_gpu, **binary_kwargs)
+    else:
+        phase = _run_gpu_binary_phase(cuda_devices=cuda_devices, **binary_kwargs)
+
+    if isinstance(phase, Evaluation):
+        return phase
+
+    if scoring_pool is not None:
+        return scoring_pool.score(phase)
+    return _score_episode_phase(phase)
 
 
 def evaluate_overrides(
@@ -335,6 +456,7 @@ def evaluate_overrides(
     grtresna_postload_gate: bool = False,
     postload_gate_config: Any | None = None,
     gpu_pool: GpuPool | None = None,
+    scoring_pool: "ScoringPool | None" = None,
     cleanup_plotfiles: bool = True,
 ) -> Evaluation:
     overrides = dict(overrides)
@@ -414,8 +536,11 @@ def evaluate_overrides(
         cleanup_plotfiles=cleanup_plotfiles,
     )
 
-    if gpu_pool is None:
-        return _run_gpu_session(cuda_devices=cuda_devices, **gpu_kwargs)
-
-    with gpu_pool.lease() as leased_gpu:
-        return _run_gpu_session(cuda_devices=leased_gpu, **gpu_kwargs)
+    # _run_gpu_session leases the GPU only for the evolution binary and releases
+    # it before the (optionally out-of-process) scoring stage.
+    return _run_gpu_session(
+        cuda_devices=cuda_devices,
+        gpu_pool=gpu_pool,
+        scoring_pool=scoring_pool,
+        **gpu_kwargs,
+    )
