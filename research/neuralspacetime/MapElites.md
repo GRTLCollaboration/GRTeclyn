@@ -9,6 +9,71 @@
 > solve → GRTeclyn GPU evolution → time-resolved FTL probes → score — but differ in
 > proposer, matter sector, resolution, and stop time.
 
+## Q-ball trajectory campaign — `qball_traj_compact_v1` (2026-07-01)
+
+New MAP-Elites campaign with **compact boson-star solitons on independent
+retrograde orbits**.  Uses the `trajectory` ansatz with `boson_star` matter, ODE
+radial profile seeding, equilibrium amplitude cap, sub-luminal speed cap, and
+all-retrograde orbit enforcement.  Multi-ray emission sweep (7 launches, Δt=2)
+maps the FTL channel lifetime.
+
+### What worked
+
+| Result | Detail |
+|---|---|
+| **GPU acceptance rate** | ~100% after the first few evals; no pre-GPU rejections once the speed cap, ODE profile, and equilibrium amplitude were correctly wired. |
+| **Multi-ray emission** | 7 ray fans fired correctly at t=0,2,4,6,8,10,12; enabled time-resolved FTL lifetime measurement. |
+| **Retrograde constraint** | All lumps forced to `omega_rot < 0`; no prograde false positives. |
+| **Speed cap** | `_clamp_trajectory_speed` keeps `v_t = R0 \|omega_rot\| <= 0.3c`, eliminating the superluminal pump-mismatch dispersal channel. |
+| **Stability** | Top evals show high stability (0.91–0.97) and healthy constraint growth (0.82–0.84). |
+
+### Campaign outcome (69 evals, stopped 2026-07-01)
+
+| Metric | Value |
+|---|---|
+| Best score | **-7.75** (eval_000050) |
+| Top 3 by score | eval_000050 (-7.75), eval_000049 (-9.40), eval_000016 (-10.21) |
+| Best FTL peak | **4.94%** (eval_000004, score -53.83) |
+| Coverage | 3.1% (2 elites in 8×8 archive) |
+| GPU acceptance | ~100% |
+
+### Stability / dispersion of top evals
+
+All surviving configurations still spread out over time:
+- RMS radius grows from ~7.7–8.1 at t=0 to ~10.6–10.9 at t=16 (~35% expansion).
+- `confinement_retention` drops from ~85–89% to **65–72%** by t=16.
+- Matter activity drops sharply in the first ~3 code units, then stabilizes.
+- Stability remains high, so the spread is smooth rather than catastrophic.
+
+### Key limitation discovered
+
+The best-scoring configurations (evals 50, 49, 16) achieve high scores by
+**minimizing exotic matter** and surviving longer, but they produce **essentially
+zero FTL signal**.  The actual FTL champions (evals 4, 7, 13) produce strong
+`f_geo` peaks but are penalized by the `exotic_penalty` term, which pushes them
+to the bottom of the archive.  **This is backwards:** FTL requires negative-energy
+matter, so the scoring function should not penalize its use in the Q-ball
+boson-star regime.
+
+### Next fixes identified
+
+1. **Reduce exotic-matter penalty** — exotic lumps are a design choice, not a
+   failure, when searching for FTL channels in this sector.
+2. **Add spiral trajectories** — radial drift per lump (`v_rad`) lets lumps
+   approach/recede, creating stronger transient curvature interactions.
+3. **Continue AMR tuning** — smooth boson-star fields still struggle to trigger
+   the default regrid tagger; matter-aware tagging or lower threshold needed.
+
+### Kept data
+
+After stopping the campaign, only the top 3 scoring eval dirs are kept on disk
+(`eval_000050`, `eval_000049`, `eval_000016`) plus the root trajectory files
+(`archive.json`, `trajectory.jsonl`, `ftl_champions.json`,
+`ftl_retention.jsonl`, `metadata.json`, `pre_gpu_archive.json`,
+`validation.json`).
+
+---
+
 ## Known limitations of the lump-based matter ansatz
 
 The shell/ring search spaces parameterize matter as **N identical Gaussian lumps** placed

@@ -1,3 +1,53 @@
+**NEXT STEP — Reduce the exotic-matter penalty in the Q-ball MAP-Elites objective**
+
+The current scoring function penalizes exotic matter heavily (`exotic_penalty`)
+because historically it was treated as a physical-implausibility signal.  That is
+backwards for this campaign: **FTL effects require negative-energy density, so the
+search must be allowed to use exotic matter without being punished for it.**  The
+best-scoring configs so far (evals 50, 49, 16) achieve their scores mainly by
+keeping exotic fractions low and surviving longer, but they produce essentially
+zero FTL signal.  Meanwhile, the actual FTL champions (evals 4, 7, 13) have strong
+`f_geo` peaks but are buried in the archive by the exotic penalty.
+
+What changes:
+- In the scoring scalarization for `general_ftl` / `ftl_first` / `robust_ftl`,
+  reduce or remove the `exotic_penalty` term when the matter sector is
+  `boson_star` and the ansatz is `trajectory`.  Exotic lumps should be treated as
+  a design choice, not a failure.
+- Optionally cap the penalty so it never exceeds, say, 0.1–0.2, or replace it
+  with a mild *exotic fraction* descriptor that merely records composition rather
+  than punishing it.
+- Expected payoff: MAP-Elites can then explore the high-FTL region of the space
+  without the optimizer avoiding the very configurations that create the effect.
+  This should shift the archive toward genuine FTL channels rather than
+  long-lived but inert Q-ball arrangements.
+
+
+**NEXT STEP — Add radial-spiral trajectory mode to the Q-ball MAP-Elites search**
+
+The current Q-ball trajectory ansatz only supports independent tilted circular
+orbits (plus shared breathing and z-oscillation).  This is a strong constraint:
+real FTL highways likely need lumps that approach or recede from each other,
+not just coast on fixed circles.  The next experimental upgrade is to add a
+radial drift parameter to each lump, producing true spiral trajectories.
+
+What changes:
+- New per-lump parameter: `trajectory_lump{k}_v_rad` (radial drift speed).
+- C++ `TrajectoryEvaluator` adds `r_k(t) = R0 + v_rad * t` before the angular
+  motion is applied.  This works for both inward and outward spirals.
+- Search-space dimension count: currently ~34D after pinning well_depth and
+  well_width (5 lumps × 6 per-lump dims + 4 global dims).  Adding `v_rad` per
+  lump adds 5 dimensions, taking the search to ~39D.
+- Python side: extend `TrajectoryParams` parsing, `config.py` t=0 expansion,
+  `spaces.py` dimension list, and the speed cap in `candidates.py` so the
+  radial drift keeps the pump target trackable.
+- Expected payoff: spiral trajectories create transient close approaches between
+  canonical and phantom lumps, strengthening the time-dependent curvature
+  perturbation that drives the FTL channel.  They also test whether the QD
+  algorithm can discover a "pulsed" orbital geometry rather than a static one.
+
+---
+
 Here is the plain English breakdown of why this idea is so powerful and how it
 changes the game.
 

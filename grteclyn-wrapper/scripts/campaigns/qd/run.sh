@@ -66,11 +66,19 @@ if [[ -n "${PIN_DIMS:-}" ]]; then
   for kv in ${PIN_DIMS}; do PIN_ARGS+=(--pin-dimension "${kv}"); done
 fi
 
+# Extra --set overrides for keys that are NOT search-space dimensions
+# (e.g. grtresna_scalar_mu, grtresna_qball_ode_profile, trajectory_retrograde_only).
+EXTRA_SET_ARGS=()
+if [[ -n "${EXTRA_SETS:-}" ]]; then
+  for kv in ${EXTRA_SETS}; do EXTRA_SET_ARGS+=(--set "${kv}"); done
+fi
+
 # shellcheck disable=SC2086
 exec ${PYTHON_BIN} -m grteclyn_wrapper \
   --runs-dir "${RUNS_DIR}" \
   "${NAME_ARGS[@]}" \
   "${FTL_GLOBAL_ARGS[@]}" \
+  "${EXTRA_SET_ARGS[@]}" \
   "${DRY_RUN_ARGS[@]}" \
   "${SCORE_WEIGHT_ARGS[@]}" \
   qd \

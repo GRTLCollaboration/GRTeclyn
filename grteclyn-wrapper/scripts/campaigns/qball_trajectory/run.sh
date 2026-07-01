@@ -2,13 +2,43 @@
 # Q-ball trajectory MAP-Elites — compact solitons on retrograde orbits.
 #
 # Uses the trajectory ansatz (5 independent per-lump orbits) with boson-star
-# matter, compact Q-ball preset (m=1, λ=640, μ=85333, ω=0.8), ODE profile
+# matter, compact Q-ball preset (m=1, lambda=640, mu=85333, omega=0.8), ODE profile
 # seeding, equilibrium amplitude cap, sub-luminal speed cap, and all-retrograde
-# orbit enforcement.  Multi-ray emission sweep (Δt=2, 7 launches) maps the FTL
+# orbit enforcement.  Multi-ray emission sweep (dt=2, 7 launches) maps the FTL
 # channel lifetime via the evolving geodesic probe.
 #
 # Objective: general_ftl (gauge-invariant null-geodesic shortcut).
-# Descriptor: ftl_lifetime (8×8 archive).
+# Descriptor: ftl_lifetime (8x8 archive).
+#
+# --- MAP-Elites search space (~40 continuous dimensions) ---
+#
+# Pinned (not searched):
+#   Q-ball physics: m=1, lambda=640, mu=85333, omega=0.8 (thick-wall soliton).
+#   ODE radial profile, equilibrium amplitude cap, retrograde-only orbits.
+#
+# Per lump (5 lumps, 6 dims each = 30 dims):
+#   R0            — orbital radius [1.5, 8.0]
+#   omega_rot     — angular velocity (negative = retrograde, speed-capped).
+#                   Orbital speed v_t = R0 * |omega_rot| is capped at 0.3c,
+#                   so the search jointly controls R0 and omega_rot but the
+#                   speed stays sub-luminal.
+#   phase0        — initial orbital phase [0, 2pi]
+#   tilt_theta    — orbital plane polar tilt [0, pi]
+#   tilt_phi      — orbital plane azimuthal tilt [0, 2pi]
+#   exotic        — continuous [0,1], rounded to binary 0 or 1 in config:
+#                   0 = canonical Q-ball (+rho), 1 = phantom Q-ball (-rho).
+#                   Each lump is purely one or the other, no mixture.
+#   (well_depth is pinned to 0.15, which is clamped to the equilibrium
+#    core amplitude 0.075 by QBallCouplings.cap_well_depth; this gives all
+#    lumps the same, strongest on-attractor pump.)
+#
+# Global (shared, 4 dims):
+#   A_breath      — radial breathing amplitude
+#   omega_breath  — breathing frequency
+#   z_amp         — vertical oscillation amplitude
+#   omega_z       — vertical oscillation frequency
+#   (well_width is not searched: the boson-star width is fixed by the
+#    physics via bound_width(m, omega) = 1/sqrt(m^2 - omega^2) = 1.667.)
 #
 # Usage:
 #   cd grteclyn-wrapper
@@ -29,20 +59,32 @@ export GRTRESNA_FULL_Z=1
 export OBJECTIVE_MODE="${OBJECTIVE_MODE:-general_ftl}"
 export DESCRIPTOR_MODE="${DESCRIPTOR_MODE:-ftl_lifetime}"
 
-# --- Compact Q-ball physics (pinned, not searched) ---
-# m=1, λ=640, μ=85333, ω=0.8 — thick-wall regime, localized soliton R~7.
-# ODE profile seeding + equilibrium amplitude cap.
-# All-retrograde orbits (removes 50% search space; HQ-validated).
+# --- Compact Q-ball physics ---
+# Search-space dimensions pinned (these exist in the trajectory-boson search space):
+#   m=1, lambda=640, omega=0.8 — thick-wall regime, localized soliton R~7.
+#   Per-lump well_depth pinned to 0.15; with equilibrium_amplitude=1 this is
+#   clamped to the core_amplitude = sqrt(3*lambda/(4*mu)) = 0.075, so every lump
+#   receives the same maximum on-attractor pump and the optimizer cannot weaken it.
 export PIN_DIMS="${PIN_DIMS:-\
 grtresna_scalar_mass=1.0 \
 grtresna_scalar_lambda=640 \
-grtresna_scalar_mu=85333 \
 grtresna_bs_omega=0.8 \
+trajectory_lump0_well_depth=0.15 \
+trajectory_lump1_well_depth=0.15 \
+trajectory_lump2_well_depth=0.15 \
+trajectory_lump3_well_depth=0.15 \
+trajectory_lump4_well_depth=0.15 \
+trajectory_well_width=1.667}"
+
+# Non-search-space overrides passed as --set via EXTRA_SETS (base overrides).
+# These keys are read by the config builder but are not optimizer dimensions.
+export EXTRA_SETS="${EXTRA_SETS:-\
+grtresna_scalar_mu=85333 \
 grtresna_qball_ode_profile=1 \
 grtresna_qball_equilibrium_amplitude=1 \
 trajectory_retrograde_only=1}"
 
-# --- Multi-ray emission sweep (7 launches, Δt=2 code units) ---
+# --- Multi-ray emission sweep (7 launches, dt=2 code units) ---
 export GRTECLYN_GEO_EMIT_INTERVAL="${GRTECLYN_GEO_EMIT_INTERVAL:-2}"
 export GRTECLYN_GEO_MAX_EMISSIONS="${GRTECLYN_GEO_MAX_EMISSIONS:-7}"
 
