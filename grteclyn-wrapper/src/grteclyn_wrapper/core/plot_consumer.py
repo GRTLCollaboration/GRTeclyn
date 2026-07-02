@@ -80,6 +80,34 @@ def consumer_frames_enabled() -> bool:
     return True
 
 
+def post_run_frames_enabled(*, explicit: bool | None = None) -> bool:
+    """Default frame rendering for post-GPU backlog drain.
+
+    HQ replays often disable live frames (``GRTECLYN_FRAMES=0``) to keep the
+    watch consumer fast; PNG movies must still be rendered once from the
+    remaining plotfiles.  Fast drains set ``GRTECLYN_CONSUMER_DRAIN=1``.
+    """
+    if explicit is not None:
+        return explicit
+    if _env_flag("GRTECLYN_CONSUMER_DRAIN"):
+        return False
+    return True
+
+
+def consumer_delete_plotfiles_enabled(*, frames: bool, delete_requested: bool) -> bool:
+    """Whether processed plotfiles may be deleted.
+
+    Metrics-only live consumers (``frames=False``) must not delete AMR dumps
+    unless ``GRTECLYN_DELETE_WITHOUT_FRAMES=1`` — otherwise post-run frame
+    drains have nothing left to render.
+    """
+    if not delete_requested:
+        return False
+    if frames:
+        return True
+    return _env_flag("GRTECLYN_DELETE_WITHOUT_FRAMES")
+
+
 def _resolve_n_points(default: int) -> int:
     """Angular resolution for spherical Psi4 extraction (HQ GW runs)."""
     if not _psi4_enabled():
@@ -148,11 +176,19 @@ def consumer_jobs_from_env(*, default: int = 1) -> int:
     """Parallel plotfile workers. Safe to raise on large-RAM nodes (``CONSUMER_JOBS=4``)."""
     raw = os.environ.get("CONSUMER_JOBS", "").strip()
     if not raw:
-        return default
-    try:
-        return max(1, int(raw))
-    except ValueError:
-        return default
+        jobs = default
+    else:
+        try:
+            jobs = max(1, int(raw))
+        except ValueError:
+            jobs = default
+    cap_raw = os.environ.get("GRTECLYN_CONSUMER_JOBS_MAX", "").strip()
+    if cap_raw:
+        try:
+            jobs = min(jobs, max(1, int(cap_raw)))
+        except ValueError:
+            pass
+    return jobs
 
 
 def consumer_drain_minimal() -> bool:
@@ -226,7 +262,10 @@ def build_consume_command(
 
     if watch:
         command.append("--watch")
-    if delete:
+    effective_delete = consumer_delete_plotfiles_enabled(
+        frames=frames, delete_requested=delete
+    )
+    if effective_delete:
         command.extend(["--delete", "--keep-last", str(keep_last)])
     if keep_existing_frames:
         command.append("--keep-existing-frames")

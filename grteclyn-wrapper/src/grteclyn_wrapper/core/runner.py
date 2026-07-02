@@ -16,6 +16,7 @@ from .plot_consumer import (
     consumer_frames_enabled,
     consumer_jobs_from_env,
     default_radii_for_example,
+    post_run_frames_enabled,
 )
 
 
@@ -210,10 +211,10 @@ def drain_plotfile_backlog(
 ) -> RunResult:
     """Process any plotfiles left after the watch consumer stops.
 
-    Default (``frames=None``): fast drain — no PNG frames/projections; Psi4 + FTL
-    metrics only. Pass ``frames=True`` to render movies during backlog processing.
+    Default (``frames=None``): render PNG frames unless ``GRTECLYN_CONSUMER_DRAIN=1``
+    (fast Psi4/metrics-only drain). Pass ``frames=False`` to force a metrics-only pass.
     """
-    render_frames = False if frames is None else frames
+    render_frames = post_run_frames_enabled(explicit=frames)
     profile = (
         "wormhole"
         if example_name in {"SupportedWormholeCollapse", "RotatingWormholeCollapse"}

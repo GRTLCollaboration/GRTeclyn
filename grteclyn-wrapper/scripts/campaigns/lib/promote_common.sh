@@ -30,8 +30,8 @@ INCLUDE_STOP_TIME_IN_NAME="${INCLUDE_STOP_TIME_IN_NAME:-1}"
 
 export GRTRESNA_ROOT="${GRTRESNA_ROOT:-$(cd -- "${GRTECLYN_ROOT}/.." && pwd)/GRTresna}"
 # Live PNG frames during GPU (slow on HQ AMR; consumer lag fills disk). Override with
-# GRTECLYN_FRAMES=0 for metrics-only live runs. Post-GPU backlog drain skips frames by
-# default (see drain_plotfile_backlog / scripts/plot/drain_plotfiles_fast.sh).
+# GRTECLYN_FRAMES=0 for metrics-only live runs — plotfiles are kept on disk and the
+# post-GPU backlog drain renders all PNG movies (see runner.drain_plotfile_backlog).
 export GRTECLYN_FRAMES="${GRTECLYN_FRAMES:-1}"
 export GRTECLYN_CONSUMER_DRAIN="${GRTECLYN_CONSUMER_DRAIN:-0}"
 if [[ "${GRTRESNA_MATTER_SECTOR:-}" == "boson_star" ]]; then
@@ -49,6 +49,7 @@ export GRTECLYN_PROJECTION_METHOD="${PROJECTION_METHOD:-mip}"
 # Default consumer parallelism: 2 (sweet spot on NFS for 2.7 GB AMR plotfiles;
 # 8 saturates NFS and workers hang in rpc_wait_bit_killable). Override via env.
 export CONSUMER_JOBS="${CONSUMER_JOBS:-2}"
+export GRTECLYN_CONSUMER_JOBS_MAX="${GRTECLYN_CONSUMER_JOBS_MAX:-2}"
 export GRTECLYN_EVOLVING_GEODESIC="${GRTECLYN_EVOLVING_GEODESIC:-1}"
 export GRTECLYN_EVOLVING_GEODESIC_MODE="${GRTECLYN_EVOLVING_GEODESIC_MODE:-hq}"
 # Always probe all 3 principal axes for directional blind search.

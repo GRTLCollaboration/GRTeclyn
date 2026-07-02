@@ -10,7 +10,12 @@ import pytest
 from grteclyn_wrapper.core.config import RADIAL_RECIPE_DIR
 from grteclyn_wrapper.core.episode import create_episode
 from grteclyn_wrapper.core.params import write_params
-from grteclyn_wrapper.core.plot_consumer import build_consume_command, consumer_radii_from_env
+from grteclyn_wrapper.core.plot_consumer import (
+    build_consume_command,
+    consumer_delete_plotfiles_enabled,
+    consumer_radii_from_env,
+    post_run_frames_enabled,
+)
 
 
 @pytest.fixture()
@@ -87,3 +92,33 @@ def test_consumer_radii_from_env(monkeypatch) -> None:
 def test_consumer_radii_default_when_env_empty(monkeypatch) -> None:
     monkeypatch.delenv("CONSUMER_RADII", raising=False)
     assert consumer_radii_from_env() == (8.0, 12.0, 24.0)
+
+
+def test_metrics_only_consumer_does_not_delete_plotfiles(episode, monkeypatch) -> None:
+    monkeypatch.setenv("GRTECLYN_FRAMES", "0")
+    command = build_consume_command(episode, profile="radial", frames=False, delete=True)
+    assert "--delete" not in command
+    assert "--frames-fields" not in command
+
+
+def test_metrics_only_consumer_can_delete_when_forced(episode, monkeypatch) -> None:
+    monkeypatch.setenv("GRTECLYN_FRAMES", "0")
+    monkeypatch.setenv("GRTECLYN_DELETE_WITHOUT_FRAMES", "1")
+    command = build_consume_command(episode, profile="radial", frames=False, delete=True)
+    assert "--delete" in command
+
+
+def test_post_run_frames_default_on(monkeypatch) -> None:
+    monkeypatch.delenv("GRTECLYN_CONSUMER_DRAIN", raising=False)
+    assert post_run_frames_enabled() is True
+
+
+def test_post_run_frames_off_for_fast_drain(monkeypatch) -> None:
+    monkeypatch.setenv("GRTECLYN_CONSUMER_DRAIN", "1")
+    assert post_run_frames_enabled() is False
+
+
+def test_consumer_delete_plotfiles_enabled_matrix() -> None:
+    assert consumer_delete_plotfiles_enabled(frames=True, delete_requested=True) is True
+    assert consumer_delete_plotfiles_enabled(frames=False, delete_requested=True) is False
+    assert consumer_delete_plotfiles_enabled(frames=False, delete_requested=False) is False

@@ -66,5 +66,6 @@ def test_apply_replay_consumer_env_boson_fields(monkeypatch) -> None:
     )
     fields = replay_eval.os.environ["GRTECLYN_FRAMES_FIELDS"]
     assert "scalar_activity" in fields
-    assert "phi_lump1" in fields
+    assert "phi_lump0" in fields
+    assert "Weyl4_Re" in fields
     assert "chi" in fields

@@ -37,11 +37,13 @@ from grteclyn_wrapper.search.optimize.candidates import _clamp_trajectory_speed
 _QD_PLOT_INTERVAL = 320
 _BOSON_FRAMES_FIELDS = (
     "scalar_activity phi Pi phi_lump0 Pi_lump0 "
-    "chi chi_minus_1 local_speed shift1 rho_req"
+    "chi chi_minus_1 local_speed shift1 rho_req "
+    "Weyl4_Re Weyl4_Im Weyl4_Mag"
 )
 _SCALAR_FRAMES_FIELDS = (
     "lump_activity scalar_activity phi_lump_sum Pi_lump_sum "
-    "chi chi_minus_1 local_speed shift1 rho_req"
+    "chi chi_minus_1 local_speed shift1 rho_req "
+    "Weyl4_Re Weyl4_Im Weyl4_Mag"
 )
 
 
