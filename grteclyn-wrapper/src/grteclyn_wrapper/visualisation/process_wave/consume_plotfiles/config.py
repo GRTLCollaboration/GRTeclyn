@@ -5,9 +5,21 @@ from typing import Dict
 
 from ....core.config import VISUALISATION_DIR, default_sim_data_dir
 
-_FRAME_DPI = 110
-_FRAME_SAMPLES_PER_CELL = 2
-_FRAME_BUFF_CAP = 1024
+def _env_int(name: str, default: int) -> int:
+    raw = os.environ.get(name, "").strip()
+    if not raw:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        return default
+
+
+# Fast frame defaults (~9x speedup on 256^3 AMR HQ runs; override to restore quality).
+# env: GRTECLYN_FRAMES_DPI, GRTECLYN_FRAMES_BUFF_CAP, GRTECLYN_FRAMES_SAMPLES_PER_CELL
+_FRAME_DPI = _env_int("GRTECLYN_FRAMES_DPI", 90)
+_FRAME_SAMPLES_PER_CELL = _env_int("GRTECLYN_FRAMES_SAMPLES_PER_CELL", 1)
+_FRAME_BUFF_CAP = _env_int("GRTECLYN_FRAMES_BUFF_CAP", 512)
 
 
 def _default_data_dir() -> str:

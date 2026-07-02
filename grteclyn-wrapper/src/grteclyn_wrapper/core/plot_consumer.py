@@ -61,6 +61,25 @@ def _psi4_enabled() -> bool:
     return _env_flag("GRTECLYN_PSI4")
 
 
+def consumer_frames_enabled() -> bool:
+    """Whether the plotfile consumer renders PNG frames and projection panels.
+
+    Disabled when ``GRTECLYN_FRAMES=0`` or ``GRTECLYN_CONSUMER_DRAIN=1`` (fast
+    backlog drain: Psi4 + FTL metrics only, ~10x faster on HQ AMR dumps).
+    """
+    if _env_flag("GRTECLYN_CONSUMER_DRAIN"):
+        return False
+    if os.environ.get("GRTECLYN_FRAMES", "").strip().lower() in {
+        "0",
+        "off",
+        "no",
+        "none",
+        "false",
+    }:
+        return False
+    return True
+
+
 def _resolve_n_points(default: int) -> int:
     """Angular resolution for spherical Psi4 extraction (HQ GW runs)."""
     if not _psi4_enabled():
@@ -125,6 +144,22 @@ def consumer_radii_from_env(
     return tuple(float(r) for r in default)
 
 
+def consumer_jobs_from_env(*, default: int = 1) -> int:
+    """Parallel plotfile workers. Safe to raise on large-RAM nodes (``CONSUMER_JOBS=4``)."""
+    raw = os.environ.get("CONSUMER_JOBS", "").strip()
+    if not raw:
+        return default
+    try:
+        return max(1, int(raw))
+    except ValueError:
+        return default
+
+
+def consumer_drain_minimal() -> bool:
+    """Psi4 + delete only — skip FTL/geodesic/areal/shell/incremental score."""
+    return _env_flag("GRTECLYN_CONSUMER_DRAIN_MINIMAL")
+
+
 def build_consume_command(
     episode: Episode,
     *,
@@ -160,8 +195,8 @@ def build_consume_command(
     # QD scoring -- only the FTL time-series + scalar metrics are.  Per-eval movies
     # are an inspection tool for promoted candidates, so the QD loop sets
     # GRTECLYN_FRAMES=0 to keep the consumer fast and stop the post-processing
-    # backlog from starving the search.  Promote/inspection paths leave it unset.
-    if os.environ.get("GRTECLYN_FRAMES", "").strip().lower() in {"0", "off", "no", "none", "false"}:
+    # backlog from starving the search.  Post-run drain sets GRTECLYN_CONSUMER_DRAIN=1.
+    if not consumer_frames_enabled():
         frames = False
     zoom_env = os.environ.get("GRTECLYN_FRAMES_ZOOM", "").strip().lower()
     frame_zoom: float | None
@@ -184,11 +219,10 @@ def build_consume_command(
         str(n_points),
         "--center",
         *[f"{value:g}" for value in center],
-        "--areal-radius",
-        "-j",
-        str(jobs),
-        "--verbose",
     ]
+    if not consumer_drain_minimal():
+        command.append("--areal-radius")
+    command.extend(["-j", str(jobs), "--verbose"])
 
     if watch:
         command.append("--watch")
@@ -273,14 +307,15 @@ def build_consume_command(
             command.append("--psi4")
         else:
             command.append("--no-psi4")
-        command.extend(
-            [
-                "--shell-fields",
-                "chi",
-                "lapse",
-                "K",
-            ]
-        )
+        if not consumer_drain_minimal():
+            command.extend(
+                [
+                    "--shell-fields",
+                    "chi",
+                    "lapse",
+                    "K",
+                ]
+            )
         if frames:
             # Which fields to render as slice-frame movies. Trace/gauge fields
             # (chi/lapse/K) are near-trivial for weak, momentum-carrying scalar

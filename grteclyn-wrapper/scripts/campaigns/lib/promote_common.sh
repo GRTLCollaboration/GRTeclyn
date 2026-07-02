@@ -29,8 +29,11 @@ INCLUDE_RESOLUTION_IN_NAME="${INCLUDE_RESOLUTION_IN_NAME:-0}"
 INCLUDE_STOP_TIME_IN_NAME="${INCLUDE_STOP_TIME_IN_NAME:-1}"
 
 export GRTRESNA_ROOT="${GRTRESNA_ROOT:-$(cd -- "${GRTECLYN_ROOT}/.." && pwd)/GRTresna}"
-# HQ always renders frames; ignore search-stage GRTECLYN_FRAMES=0 from parent env.
-export GRTECLYN_FRAMES=1
+# Live PNG frames during GPU (slow on HQ AMR; consumer lag fills disk). Override with
+# GRTECLYN_FRAMES=0 for metrics-only live runs. Post-GPU backlog drain skips frames by
+# default (see drain_plotfile_backlog / scripts/plot/drain_plotfiles_fast.sh).
+export GRTECLYN_FRAMES="${GRTECLYN_FRAMES:-1}"
+export GRTECLYN_CONSUMER_DRAIN="${GRTECLYN_CONSUMER_DRAIN:-0}"
 if [[ "${GRTRESNA_MATTER_SECTOR:-}" == "boson_star" ]]; then
   # phi_lump1 (bicomplex phantom Phi- real part) is skipped gracefully for the
   # single-complex model that does not emit it (see worker.py frame loop).
@@ -43,10 +46,19 @@ fi
 export GRTECLYN_FRAMES_ZOOM="${FRAMES_ZOOM:-none}"
 export GRTECLYN_PROJECTION_AXES="${PROJECTION_AXES:-x y z}"
 export GRTECLYN_PROJECTION_METHOD="${PROJECTION_METHOD:-mip}"
+# Default consumer parallelism: 2 (sweet spot on NFS for 2.7 GB AMR plotfiles;
+# 8 saturates NFS and workers hang in rpc_wait_bit_killable). Override via env.
+export CONSUMER_JOBS="${CONSUMER_JOBS:-2}"
 export GRTECLYN_EVOLVING_GEODESIC="${GRTECLYN_EVOLVING_GEODESIC:-1}"
 export GRTECLYN_EVOLVING_GEODESIC_MODE="${GRTECLYN_EVOLVING_GEODESIC_MODE:-hq}"
 # Always probe all 3 principal axes for directional blind search.
 export GRTECLYN_GEO_DIRECTIONS="${GRTECLYN_GEO_DIRECTIONS:-x y z}"
+# Fast frame defaults (~9x speedup on 256^3 AMR HQ runs; override to restore quality):
+#   DPI 90, buff_cap 512, samples/cell 1 — full-domain movies don't need 1024^2.
+# consume_plotfiles/config.py honours these via os.environ (see _FRAME_DPI etc.).
+export GRTECLYN_FRAMES_DPI="${GRTECLYN_FRAMES_DPI:-90}"
+export GRTECLYN_FRAMES_BUFF_CAP="${GRTECLYN_FRAMES_BUFF_CAP:-512}"
+export GRTECLYN_FRAMES_SAMPLES_PER_CELL="${GRTECLYN_FRAMES_SAMPLES_PER_CELL:-1}"
 
 PYTHON_BIN="${PYTHON_BIN:-}"
 if [[ -z "${PYTHON_BIN}" ]]; then

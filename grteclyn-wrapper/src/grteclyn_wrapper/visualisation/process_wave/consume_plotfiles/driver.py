@@ -455,9 +455,11 @@ def main() -> None:
         args_dict["frames_global_zlim"] = use_global_zlim
 
         if args.jobs > 1:
+            import multiprocessing as mp
             from concurrent.futures import ProcessPoolExecutor, as_completed
 
-            with ProcessPoolExecutor(max_workers=args.jobs) as executor:
+            mp_ctx = mp.get_context("spawn")
+            with ProcessPoolExecutor(max_workers=args.jobs, mp_context=mp_ctx) as executor:
                 futures = {
                     executor.submit(
                         _process_single_plotfile, p, args_dict, protected, processed_count + i

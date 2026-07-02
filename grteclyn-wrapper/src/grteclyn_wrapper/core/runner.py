@@ -11,7 +11,12 @@ from typing import Mapping, Sequence
 
 from .config import ExecutableConfig, ExampleConfig, REPO_ROOT, resolve_example
 from .episode import Episode, update_metadata
-from .plot_consumer import build_consume_command, default_radii_for_example
+from .plot_consumer import (
+    build_consume_command,
+    consumer_frames_enabled,
+    consumer_jobs_from_env,
+    default_radii_for_example,
+)
 
 
 @dataclass(frozen=True)
@@ -115,7 +120,7 @@ def start_plotfile_consumer(
     n_points: int = 64,
     delete: bool = True,
     keep_last: int = 1,
-    frames: bool = True,
+    frames: bool | None = None,
     jobs: int = 1,
     ftl_timeseries: bool = False,
     ftl_L: float | None = None,
@@ -140,8 +145,8 @@ def start_plotfile_consumer(
         delete=delete,
         keep_last=keep_last,
         watch=True,
-        jobs=jobs,
-        frames=frames,
+        jobs=consumer_jobs_from_env() if jobs == 1 else jobs,
+        frames=consumer_frames_enabled() if frames is None else frames,
         ftl_timeseries=ftl_timeseries,
         ftl_L=ftl_L,
         incremental_score=incremental_score,
@@ -193,7 +198,7 @@ def drain_plotfile_backlog(
     n_points: int = 64,
     delete: bool = True,
     keep_last: int = 1,
-    frames: bool = True,
+    frames: bool | None = None,
     jobs: int = 1,
     ftl_timeseries: bool = False,
     ftl_L: float | None = None,
@@ -203,7 +208,12 @@ def drain_plotfile_backlog(
     score_weights: Mapping[str, float] | None = None,
     evolving_geodesic: bool = False,
 ) -> RunResult:
-    """Process any plotfiles left after the watch consumer stops."""
+    """Process any plotfiles left after the watch consumer stops.
+
+    Default (``frames=None``): fast drain — no PNG frames/projections; Psi4 + FTL
+    metrics only. Pass ``frames=True`` to render movies during backlog processing.
+    """
+    render_frames = False if frames is None else frames
     profile = (
         "wormhole"
         if example_name in {"SupportedWormholeCollapse", "RotatingWormholeCollapse"}
@@ -219,8 +229,8 @@ def drain_plotfile_backlog(
         delete=delete,
         keep_last=keep_last,
         watch=False,
-        jobs=jobs,
-        frames=frames,
+        jobs=consumer_jobs_from_env() if jobs == 1 else jobs,
+        frames=render_frames,
         keep_existing_frames=True,
         stable_seconds=0.0,
         ftl_timeseries=ftl_timeseries,
@@ -287,7 +297,7 @@ def run_episode(
             radii=consumer_radii,
             delete=consumer_delete,
             keep_last=consumer_keep_last,
-            frames=True,
+            frames=None,
             ftl_timeseries=consumer_ftl_timeseries,
             ftl_L=consumer_ftl_L,
             incremental_score=consumer_incremental_score,
@@ -325,7 +335,7 @@ def run_episode(
                 radii=consumer_radii,
                 delete=consumer_delete,
                 keep_last=consumer_keep_last,
-                frames=True,
+                frames=None,
                 ftl_timeseries=consumer_ftl_timeseries,
                 ftl_L=consumer_ftl_L,
                 incremental_score=consumer_incremental_score,

@@ -168,6 +168,19 @@ for entry in "${CANDIDATE_ENTRIES[@]}"; do
     geodesic_args=(--evolving-geodesic)
   fi
 
+  # Auto-detect matter model/sector from source eval metadata so promote_common.sh
+  # can pick the correct FRAMES_FIELDS / PROJECTION_FIELDS branch
+  # (boson_star → phi/Pi/phi_lump0/Pi_lump0; scalar_shell → lump_activity/phi_lump_sum).
+  if [[ -z "${GRTRESNA_MATTER_SECTOR:-}" || -z "${GRTRESNA_MATTER_MODEL:-}" ]]; then
+    src_meta="${source}/metadata.json"
+    if [[ -f "${src_meta}" ]]; then
+      src_sector=$(python3 -c "import json,sys; m=json.load(open('${src_meta}')); print(m.get('overrides',{}).get('grtresna_matter_sector',''))" 2>/dev/null || true)
+      src_model=$(python3 -c "import json,sys; m=json.load(open('${src_meta}')); print(m.get('overrides',{}).get('grtresna_matter_model',''))" 2>/dev/null || true)
+      [[ -z "${GRTRESNA_MATTER_SECTOR:-}" && -n "${src_sector}" ]] && export GRTRESNA_MATTER_SECTOR="${src_sector}"
+      [[ -z "${GRTRESNA_MATTER_MODEL:-}"  && -n "${src_model}"  ]] && export GRTRESNA_MATTER_MODEL="${src_model}"
+    fi
+  fi
+
   if [[ "${FOREGROUND:-0}" == "1" ]]; then
     echo "  foreground: replay_eval.py ${source} -> ${out}"
     # shellcheck disable=SC2086
