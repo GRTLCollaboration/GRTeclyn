@@ -14,6 +14,7 @@ import numpy as np
 
 from grteclyn_wrapper.core.config import resolve_example, resolve_executable
 from grteclyn_wrapper.core.evaluation import evaluate_overrides
+from grteclyn_wrapper.core.plot_consumer import consumer_radii_from_env
 from grteclyn_wrapper.core.params import regrid_intervals_for_max_level
 from grteclyn_wrapper.grtresna.domain import GRTresnaDomainConfig
 from grteclyn_wrapper.grtresna.matter.wiring import (
@@ -149,6 +150,7 @@ def _promotion_overrides(
             "L_full": l_full,
             "N_full": int(n_full),
             "center": f"{half:g} {half:g} {half:g}",
+            "extraction_center": f"{half:g} {half:g} {half:g}",
             "stop_time": float(stop_time),
             "plot_interval": int(plot_interval),
             "checkpoint_interval": -1,
@@ -252,6 +254,13 @@ def main() -> int:
     parser.add_argument("--grtresna-max-ham-pct", type=float, default=5.0)
     parser.add_argument("--grtresna-max-mom-pct", type=float, default=5.0)
     parser.add_argument("--consumer-keep-last", type=int, default=2)
+    parser.add_argument(
+        "--consumer-radii",
+        type=float,
+        nargs="+",
+        default=None,
+        help="Spherical extraction radii from physics center (default: CONSUMER_RADII env or 8 12 24).",
+    )
     parser.add_argument(
         "--evolving-geodesic",
         action="store_true",
@@ -473,7 +482,11 @@ def main() -> int:
         objective_mode=args.objective_mode,
         ftl_L=args.ftl_L,
         consume_plotfiles=True,
-        consumer_radii=(4.0, 8.0),
+        consumer_radii=(
+            tuple(args.consumer_radii)
+            if args.consumer_radii is not None
+            else consumer_radii_from_env()
+        ),
         consumer_keep_last=args.consumer_keep_last,
         consumer_evolving_geodesic=args.evolving_geodesic,
         grtresna=use_grtresna,

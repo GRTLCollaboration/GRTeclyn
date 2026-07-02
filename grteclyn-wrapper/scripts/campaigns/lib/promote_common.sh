@@ -18,6 +18,10 @@ GRTRESNA_ITERATIONS="${GRTRESNA_ITERATIONS:-30}"
 GRTRESNA_RANKS="${GRTRESNA_RANKS:-8}"
 # Keep >=3 plotfiles for evolved/geodesic FTL + effective EC scoring.
 CONSUMER_KEEP_LAST="${CONSUMER_KEEP_LAST:-3}"
+# Spherical Psi4 (Weyl4) extraction radii from physics center (L/2 for HQ).
+CONSUMER_RADII="${CONSUMER_RADII:-8 12 24}"
+export GRTECLYN_PSI4="${GRTECLYN_PSI4:-1}"
+export GRTECLYN_PSI4_N_POINTS="${GRTECLYN_PSI4_N_POINTS:-128}"
 FORCE="${FORCE:-0}"
 # HQ run folder names default to campaign-style slugs (like QD/CMA-ES), not l128n256t30_*.
 # Set INCLUDE_RESOLUTION_IN_NAME=1 to restore legacy l{L}n{N}t{t}_{prefix}_hq_eval* names.
@@ -30,10 +34,10 @@ export GRTECLYN_FRAMES=1
 if [[ "${GRTRESNA_MATTER_SECTOR:-}" == "boson_star" ]]; then
   # phi_lump1 (bicomplex phantom Phi- real part) is skipped gracefully for the
   # single-complex model that does not emit it (see worker.py frame loop).
-  export GRTECLYN_FRAMES_FIELDS="${FRAMES_FIELDS:-scalar_activity phi Pi phi_lump0 Pi_lump0 chi chi_minus_1 local_speed shift1 rho_req}"
+  export GRTECLYN_FRAMES_FIELDS="${FRAMES_FIELDS:-scalar_activity phi Pi phi_lump0 Pi_lump0 chi chi_minus_1 local_speed shift1 rho_req Weyl4_Re Weyl4_Im Weyl4_Mag}"
   export GRTECLYN_PROJECTION_FIELDS="${PROJECTION_FIELDS:-scalar_activity phi}"
 else
-  export GRTECLYN_FRAMES_FIELDS="${FRAMES_FIELDS:-lump_activity scalar_activity phi_lump_sum Pi_lump_sum chi chi_minus_1 local_speed shift1 rho_req}"
+  export GRTECLYN_FRAMES_FIELDS="${FRAMES_FIELDS:-lump_activity scalar_activity phi_lump_sum Pi_lump_sum chi chi_minus_1 local_speed shift1 rho_req Weyl4_Re Weyl4_Im Weyl4_Mag}"
   export GRTECLYN_PROJECTION_FIELDS="${PROJECTION_FIELDS:-lump_activity scalar_activity}"
 fi
 export GRTECLYN_FRAMES_ZOOM="${FRAMES_ZOOM:-none}"

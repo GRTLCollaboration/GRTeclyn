@@ -57,6 +57,23 @@ def _splash_early_term_enabled() -> bool:
     return _env_flag("GRTECLYN_SPLASH_EARLY_TERM")
 
 
+def _psi4_enabled() -> bool:
+    return _env_flag("GRTECLYN_PSI4")
+
+
+def _resolve_n_points(default: int) -> int:
+    """Angular resolution for spherical Psi4 extraction (HQ GW runs)."""
+    if not _psi4_enabled():
+        return default
+    raw = os.environ.get("GRTECLYN_PSI4_N_POINTS", "").strip()
+    if not raw:
+        return 128
+    try:
+        return max(4, int(raw))
+    except ValueError:
+        return 128
+
+
 def _strip_param_value(value: str) -> str:
     value = value.split("#", 1)[0].strip()
     if value.startswith('"') and value.endswith('"'):
@@ -98,6 +115,16 @@ def resolve_consume_python() -> list[str]:
     return [sys.executable]
 
 
+def consumer_radii_from_env(
+    default: Sequence[float] = (8.0, 12.0, 24.0),
+) -> tuple[float, ...]:
+    """Parse ``CONSUMER_RADII`` (space-separated) for HQ GW / shell extraction."""
+    raw = os.environ.get("CONSUMER_RADII", "").split()
+    if raw:
+        return tuple(float(r) for r in raw)
+    return tuple(float(r) for r in default)
+
+
 def build_consume_command(
     episode: Episode,
     *,
@@ -126,6 +153,7 @@ def build_consume_command(
     if len(center) < 3:
         center = (*center, *([0.0] * (3 - len(center))))
     center = center[:3]
+    n_points = _resolve_n_points(n_points)
     l_full = _read_float_param(episode.params_path, "L_full", 40.0)
     # Frame/projection rendering is the dominant per-plotfile cost (12 yt renders
     # on a refined AMR grid, 10-70s each at max_level=3) and is *not* needed for
@@ -241,9 +269,12 @@ def build_consume_command(
             ]
         )
     else:
+        if _psi4_enabled():
+            command.append("--psi4")
+        else:
+            command.append("--no-psi4")
         command.extend(
             [
-                "--no-psi4",
                 "--shell-fields",
                 "chi",
                 "lapse",

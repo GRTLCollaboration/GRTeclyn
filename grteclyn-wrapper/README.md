@@ -185,6 +185,8 @@ TOP_K=1 \
 | 4D mode | `search` | **`hq`** (full stack) |
 | Geodesic dirs | `x y z` (`general_ftl`) | **`x y z`** (same) |
 | Frames | off | **on** (`GRTECLYN_FRAMES=1`) |
+| GW / Psi4 | off (`--no-psi4`) | **on** (`GRTECLYN_PSI4=1`, default in `promote_common.sh`) |
+| Extraction radii | `4 8` | **`8 12 24`** from physics `center` (`CONSUMER_RADII`) |
 | Objective | campaign-specific | match source (`general_ftl` for wormhole) |
 
 **Monitor:**
@@ -199,6 +201,23 @@ bash scripts/plot/make_movies.sh runs/grtresna_promote/<name> --framerate 10
 
 **Incremental scoring note:** mid-run HQ totals are not comparable to search finals until the
 end-of-run 4D trace completes — only `ftl_geo_evolving` earns geodesic credit incrementally.
+
+**GW detection (Psi4):** HQ runs extract l=2,m=0 mode amplitudes from plotfile `Weyl4_Re/Im`
+(`amr.derive_plot_vars = Weyl4` is already set on RadialRecipe). Spherical shells at
+**R = 8, 12, 24** are measured from **`center`** (domain midpoint, e.g. `64 64 64` for L=128),
+not from a corner — unlike `SupportedWormholeCollapse` (octant domain, physics at `(0,0,0)`).
+Outputs: `small_data/psi4_mode_l2m0.dat`, `shell_profiles.dat`, and `frames/Weyl4_*_z/` movies.
+Post-run strain plots: `bash scripts/plot/plot_diagnostic.sh RUN_DIR 8 12 24`.
+
+| Env | HQ default | Effect |
+|-----|------------|--------|
+| `GRTECLYN_PSI4` | `1` | Enable `--psi4` on radial consumer (QD leaves unset → `--no-psi4`) |
+| `CONSUMER_RADII` | `8 12 24` | Shell + Psi4 extraction radii from `center` |
+| `GRTECLYN_PSI4_N_POINTS` | `128` | Angular resolution on extraction spheres |
+| `FRAMES_FIELDS` | includes `Weyl4_Re Weyl4_Im Weyl4_Mag` | Slice movies for GW fields |
+
+Override for one replay: `--consumer-radii 8 12 24` on `replay_eval.py`, or
+`GRTECLYN_PSI4=0` to disable GW extraction.
 
 ### Rules (do not skip)
 
@@ -1054,7 +1073,9 @@ Runs **without** the sidecar: `postload_gate` (`consume_plotfiles=False` by desi
 |----------|---------|---------|
 | `CONSUME_PLOTFILES` | `1` | Enable streaming extraction |
 | `CONSUMER_DELETE` | `1` | Delete HDF5 plot dirs after extract |
-| `CONSUMER_RADII` | `4 8` | Extraction radii |
+| `CONSUMER_RADII` | `4 8` (search); **`8 12 24`** (HQ via `promote_common.sh`) | Extraction radii from physics `center` |
+| `GRTECLYN_PSI4` | unset (search); **`1`** (HQ) | Enable Psi4 mode extraction from `Weyl4_Re/Im` |
+| `GRTECLYN_PSI4_N_POINTS` | — | Angular resolution on extraction spheres (HQ default `128`) |
 | `PLOT_INTERVAL` | `10` | Plotfile cadence |
 | `STOP_TIME` | `2.0` | Simulation stop time |
 | `N_FULL` | `64` | Grid resolution |

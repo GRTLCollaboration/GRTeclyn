@@ -6,6 +6,129 @@
 
 ---
 
+## HQ promotion — `qball_traj_spiral_v2_t30_hq_eval000118` (COMPLETE 2026-07-02, t=30)
+
+Extended HQ replay of v2 score leader **eval 118** at **256³ / L=128 / max_level=3 /
+t_stop=30**, `plot_interval=24` (126 frames), `general_ftl` + 4D evolving geodesic,
+`per_frame_zlim` on `chi` / `chi_minus_1` / `shift*`. Run dir:
+`runs/grtresna_promote/qball_traj_spiral_v2_t30_hq_eval000118/`.
+
+### Runtime
+
+| | |
+|---|---|
+| Wall clock | **~1 h 42 m** (02:33 → 04:15 UTC, 2026-07-02) |
+| GPU evolution | **~80 min** (4786 s) |
+| Post-run scoring + 4D trace | ~22 min (consumer drain + `score.json`) |
+| Status | **COMPLETE** — sim exit 0, 4D geodesic done, `score.json` written |
+
+### Scores
+
+| | QD (128³, t=16) | HQ t=16 | **HQ t=30** |
+|--|----------------:|--------:|------------:|
+| **`score.json` total** | **603.39** | 511.89 | **224.20** |
+| Incremental (last frame) | — | — | 138.27 @ t=30 |
+| `structural_persistence` | ~35% | ~35% | **23%** |
+| `confinement_retention` | — | — | 23% (spread ×2.46) |
+| `operational_ftl` | 0.347 | 0.346 | **0.099** (dispersal-gated) |
+| `ftl_geo_evolving` | 0.306 | 0.225 | **0.150** |
+| `exotic_penalty` | — | — | −1.6 |
+| `instability_penalty` | — | — | −0.83 |
+| `constraint_growth` | 0.949 | — | 0.982 |
+
+**Verdict:** Numerics **survive** to t=30 (no blow-up, `numerical_survival`=1.0,
+`constraint_growth`=0.98), but **matter disperses** — confinement falls from ~53% @ t=0
+to **23%** @ t=30 (rms radius 7.6 → 18.6). The dispersion gate correctly crushes
+`operational_ftl` and the headline **`score.json` total** vs QD/HQ-t16. The gauge-invariant
+channel is still real but weaker than the QD emit-sweep peak.
+
+### 4D evolving null-geodesic trace (authoritative)
+
+| Quantity | Value |
+|---|---|
+| `f_geo_evol` (4D trace, t_emit=0) | **13.0%** |
+| Frozen `f_geo` (snapshot, z) | 11.1% |
+| Frozen `f_geo` peak (time series) | **22.8%** @ t≈19.2 |
+| Frozen `f_geo` mean (126 frames) | 15.8% |
+| Rays reached | **5 / 5** |
+| `t_emit → t_arrival → t_flat` | 0.0 → 12.52 → 14.40 |
+| `h_quality_ok` | true |
+| Best probe axis | **x** (evolving), z (frozen) |
+
+Unlike the QD emit-sweep (still **rising** at t_emit=12 → 17.7%), the extended HQ window
+shows frozen `f_geo` **peaking at t≈19.2 then decaying** — the channel opens then fades as
+matter shears apart. 4D end-to-end trace stays at **13.0%**, below the QD peak.
+
+### GW detection (Psi4) — pipeline note (2026-07-02)
+
+This run predates HQ GW extraction (`--no-psi4` was used). Subsequent HQ replays enable
+spherical Psi4 mode extraction via `GRTECLYN_PSI4=1` in [`promote_common.sh`](../../grteclyn-wrapper/scripts/campaigns/lib/promote_common.sh).
+
+| | **SupportedWormholeCollapse** | **Q-ball HQ (RadialRecipe)** |
+|--|-------------------------------|------------------------------|
+| Domain | Octant `[0,L]³`, physics at **corner** `(0,0,0)` | Full box `[0,L]³`, physics at **center** `(L/2,L/2,L/2)` |
+| Boundaries | Reflective `lo`, Sommerfeld `hi` | Sommerfeld all faces |
+| Extraction center | `(0,0,0)` | **`center`** from params (e.g. `64 64 64`) |
+| Consumer frames | `--frames-corner` | **No** corner mode (centered slices) |
+| Psi4 radii | 12 16 20 24 (wormhole `plot_run.sh`) | **8 12 24** from center (`CONSUMER_RADII`) |
+| Output | `small_data/psi4_mode_l2m0.dat` | same |
+
+Requires `amr.derive_plot_vars = Weyl4` (already on HQ params) and aligned
+`extraction_center = center` for the Newman–Penrose tetrad. Post-run:
+`bash grteclyn-wrapper/scripts/plot/plot_diagnostic.sh RUN_DIR 8 12 24`.
+
+### Plain English
+
+We took the **best configuration from the search** (eval 118 — a spiral of exotic Q-ball
+lumps) and replayed it at **full HQ resolution** (256³ grid, 4× finer than the search) for
+**twice as long** (t = 30 instead of t = 16). The goal was to see whether the spacetime
+shortcut keeps getting stronger if we run longer.
+
+**Bottom line:** the simulation **did not crash** — it ran cleanly to t = 30. But the
+**matter fell apart over time**, and the geometry shortcut **peaked around t ≈ 19 and then
+faded**. This is **not** a stable, traversable warp bubble.
+
+**What worked**
+
+1. **Numerically stable.** No blow-up; constraints stayed healthy throughout.
+2. **A real geometry shortcut existed.** 4D null-geodesic ray tracing found light beating
+   a flat-space signal by about **13%** (5/5 rays completed). That is gauge-invariant —
+   not a plotting artifact.
+3. **The channel was strongest mid-run.** Snapshot measurements peaked at roughly **23%**
+   around t ≈ 19, before the structure sheared apart.
+4. **Superluminal coordinate signals were present** — local signal speed briefly reached
+   ~**1.26 c** in places.
+
+**What failed**
+
+1. **The Q-balls dispersed.** Confinement fell from **53%** at t = 0 to **23%** at t = 30;
+   the cloud spread ~**2.5×** (rms radius 7.6 → 18.6). The structured “motor” holding the
+   warp open largely dissolved.
+2. **The score dropped: 603 → 224.** The scoring system penalizes shortcuts that open
+   **while matter is flying apart** — a dispersing cloud with a coordinate superluminal
+   channel is not counted as a useful warp.
+3. **The shortcut did not keep climbing.** In the shorter search run it was still rising at
+   t = 16 (~18% in emit sweeps). Over t = 30 it **peaked near t ≈ 19 and decayed**.
+4. **Exotic matter is required** — full exotic-matter penalty applies.
+
+**Analogy:** a whirlpool that briefly creates a faster path through water, but the
+whirlpool itself is **dissolving** as it spins. You can measure the faster path (~13%
+geodesic shortcut), but the engine making it (confined Q-ball lumps) is **breaking up**,
+so you do not end up with a durable traversable shortcut.
+
+**Campaign implication:** eval 118 remains the best search candidate for FTL-like geometry
+at t = 16, but **extending to t = 30 at HQ does not confirm a long-lived warp**. Next step:
+find configs that **keep confinement high** while opening a geodesic shortcut — not just
+run this one longer.
+
+### Artifacts (on disk)
+
+`score.json`, `metadata.json`, `small_data/` (timeseries, `evolving_geodesic.json`,
+126-row `score_timeseries.jsonl`), `frames/` (16 dirs, 2016 PNGs), `movies/movie_*.mp4`,
+`data/` diagnostics. Plotfile HDF5 dirs and `initial_data.gridinit` pruned post-run.
+
+---
+
 ## `qball_traj_spiral_v2` — dispersion-gated spiral QD (COMPLETE 2026-07-01, 200/200 evals)
 
 First **full** trajectory campaign to run to completion. 39D MAP-Elites on compact
@@ -151,8 +274,8 @@ the window short). Not a crash or dispersion cheat — geodesic credit is lower 
 contrast (flat yellow on χ≈1, O(0.01) signals on ±0.9 bar). `per_frame_zlim` now uses
 local percentile scaling for those fields.
 
-**Follow-up:** `qball_traj_spiral_v2_t30_hq_eval000118` at **t_stop=30** (same grid) to
-test whether f_geo keeps climbing past the QD t=16 cutoff.
+**Follow-up (done):** `qball_traj_spiral_v2_t30_hq_eval000118` at **t_stop=30** —
+see top section. f_geo peaks @ t≈19.2 then decays; matter disperses to 23% confinement.
 
 ### v2 (gated) vs v1 (ungated) — why the headline score dropped
 
@@ -1225,7 +1348,7 @@ See [NextSteps.md](./NextSteps.md) for the full plan. Summary:
 |-----|------|--------|-------|-------------|-------------------|----------|
 | `qball_traj_spiral_v2` | 2026-07-01 | Q-ball spiral (39D) | 200/200 | **603.4** (eval 118) | — (QD) | Dispersion-gated; 17.7% f_geo peak at t_emit=12 |
 | `qball_traj_spiral_v2` HQ | 2026-07-02 | HQ eval 118 (t=16) | 1/1 | 511.9 | **13.0%** f_geo_evol | Survived 256³; channel + 35% confinement hold |
-| `qball_traj_spiral_v2_t30` HQ | 2026-07-02 | HQ eval 118 (t=30) | in progress | — | — | Extended window past QD t=16 cutoff |
+| `qball_traj_spiral_v2_t30` HQ | 2026-07-02 | HQ eval 118 (t=30) | 1/1 | 224.2 | **13.0%** f_geo_evol | Survived t=30; matter dispersed (23% conf); f_geo peak 22.8% @ t≈19 |
 | `scalar_sh_ftl_v22` | 2026-06-24 | SH (ℓ=4) | 202/200 | 470.6 (eval 189) | — | 1 FTL hit in 202 evals; 2.1% geodesic |
 | `trajectory_5lump_v1` | 2026-06-25 | Trajectory (5 lumps) | 130/200 | 1367.9 (eval 115) | **9.40%** f_geo (eval 122) | HQ-confirmed 9.4% geodesic shortcut at 256³ |
 | `trajectory_5lump_v1` HQ | 2026-06-25 | HQ promotion (5 evals) | 5/5 | eval 122 (survived) | **9.40%** f_geo, **20.97%** peak | 1 confirmed, 3 crashed, 1 false positive |
