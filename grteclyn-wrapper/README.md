@@ -207,7 +207,8 @@ end-of-run 4D trace completes — only `ftl_geo_evolving` earns geodesic credit 
 **R = 8, 12, 24** are measured from **`center`** (domain midpoint, e.g. `64 64 64` for L=128),
 not from a corner — unlike `SupportedWormholeCollapse` (octant domain, physics at `(0,0,0)`).
 Outputs: `small_data/psi4_mode_l2m0.dat`, `shell_profiles.dat`, and `frames/Weyl4_*_z/` movies.
-Post-run strain plots: `bash scripts/plot/plot_diagnostic.sh RUN_DIR 8 12 24`.
+Post-run figures (constraints + GW analysis): see [Visualization](#visualization) — writes to
+`<RUN_DIR>/plots/`.
 
 | Env | HQ default | Effect |
 |-----|------------|--------|
@@ -1084,11 +1085,94 @@ Disable: `CONSUME_PLOTFILES=0 bash .../run_radialrecipe_gpu_smoke.sh`
 
 **Frame fixes** (promotion runs): slice zoom now defaults to `L_full` (`GRTECLYN_FRAMES_ZOOM`); stable per-field color limits in `consume_plotfiles.py` (override `GRTECLYN_FRAMES_ZLIM_*` or `GRTECLYN_FRAMES_AUTO_ZLIM=1`).
 
-### Post-run plots
+### Visualization
+
+Python modules and shell scripts live under
+[`src/grteclyn_wrapper/visualisation/`](src/grteclyn_wrapper/visualisation/README.md).
+Full module reference (fields, options, individual plotters): **read that README**.
+
+#### Post-run figures → `<RUN_DIR>/plots/`
+
+After a run has finished (or for a partial snapshot while the consumer is still catching up),
+generate Hamiltonian/momentum constraint plots and article-style gravitational-wave panels:
 
 ```bash
-bash grteclyn-wrapper/scripts/plot/plot_diagnostic_radial.sh runs/radialrecipe_nonspherical/<episode_dir>
-bash grteclyn-wrapper/scripts/plot/plot_run_radial.sh runs/<episode_dir> --no-delete   # manual drain
+# From GRTeclyn/ repo root — HQ promotion example
+bash grteclyn-wrapper/scripts/plot/plot_diagnostic.sh \
+  runs/grtresna_promote/qball_traj_spiral_v2_t30_hq_eval000118 \
+  8 12 24
+```
+
+**Requires** (under `RUN_DIR`):
+
+| File | Used for |
+|------|----------|
+| `data/constraint_norms.dat` | `constraints_plot.*` — L2 Ham/Mom vs time |
+| `data/collapse_diagnostics.dat` | `collapse_diagnostics_plot.*` |
+| `small_data/psi4_mode_l2m0.dat` | `psi4_analysis_M*_D*.*` — 6-panel GW analysis |
+
+**Writes** (recreated each run): `RUN_DIR/plots/`
+
+| Output | Content |
+|--------|---------|
+| `constraints_plot.{png,pdf,eps}` | \(\|\mathcal{H}\|_{L^2}\), \(\|\mathcal{M}\|_{L^2}\) (log scale) |
+| `collapse_diagnostics_plot.*` | Collapse metrics + optional areal radius / K-decay fit |
+| `psi4_analysis_M1000_D1.*` | Waveforms, retarded-time + QNM fit, PSD, propagation speed, spectrogram, LIGO strain |
+| `psi4_analysis_M1000_D0.002.*`, `psi4_analysis_M30_D10.*` | Same panels at other mass/distance scalings |
+
+Optional env vars for `plot_diagnostic.sh`: `MASS_MSUN`, `DISTANCE_MPC`, `ESD_FMAX`, `LIGO_QUANTITY`.
+
+**Note:** `grtresna/Ham_and_Mom_errors.txt` is GRTresna **percent error** on the initial grid —
+not the same as `constraint_norms.dat` L2 norms used by `constraints_plot`.
+
+#### Individual plotters (without the shell bundle)
+
+```bash
+# Constraints only
+uv run --directory grteclyn-wrapper python -m grteclyn_wrapper.visualisation.constraines \
+  runs/grtresna_promote/<name>/data/constraint_norms.dat \
+  -o runs/grtresna_promote/<name>/plots/constraints_plot.eps
+
+# GW analysis only (article-style 6-panel figure)
+uv run --directory grteclyn-wrapper python \
+  -m grteclyn_wrapper.visualisation.process_wave.plot_extracted_psi4 \
+  runs/grtresna_promote/<name>/small_data/psi4_mode_l2m0.dat \
+  --radii 8 12 24 --combined --strain \
+  --mass-msun 1000 --distance-mpc 1 \
+  --out runs/grtresna_promote/<name>/plots \
+  --name psi4_analysis_M1000_D1.eps
+```
+
+#### Frame movies → `<RUN_DIR>/movies/`
+
+Stitch PNG frames produced by `consume_plotfiles` during evolution:
+
+```bash
+bash grteclyn-wrapper/scripts/plot/make_movies.sh \
+  runs/grtresna_promote/<name> \
+  --framerate 10 \
+  --only chi_z K_z Weyl4_Mag_z
+```
+
+#### Live processing during a simulation
+
+Watches plotfiles, extracts `small_data/` + `frames/`, deletes processed HDF5:
+
+```bash
+# Wormhole-style (corner origin, radii 12 16 20 24) — outputs under visualisation/visualize/
+bash grteclyn-wrapper/scripts/plot/plot_run.sh /path/to/data_2gpu
+
+# RadialRecipe episode (no Psi4) — manual drain
+bash grteclyn-wrapper/scripts/plot/plot_run_radial.sh runs/<episode_dir> --no-delete
+```
+
+#### RadialRecipe diagnostics (no GW)
+
+Constraints + collapse + shell profiles → `visualisation/plots/radial/`:
+
+```bash
+bash grteclyn-wrapper/scripts/plot/plot_diagnostic_radial.sh \
+  runs/radialrecipe_nonspherical/<episode_dir>
 ```
 
 ### Falsification tiers

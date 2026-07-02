@@ -2,6 +2,39 @@
 
 Scripts for visualizing GRTeclyn simulation results (plotfiles in BoxLib/AMReX format).
 
+## Quick start — post-run figures in the run directory
+
+From the **GRTeclyn repo root**, after a run has produced the required ASCII files:
+
+```bash
+bash grteclyn-wrapper/scripts/plot/plot_diagnostic.sh RUN_DIR [RADIUS ...]
+```
+
+Example (HQ promotion, Q-ball at box center, Psi4 radii 8/12/24):
+
+```bash
+bash grteclyn-wrapper/scripts/plot/plot_diagnostic.sh \
+  runs/grtresna_promote/qball_traj_spiral_v2_t30_hq_eval000118 \
+  8 12 24
+```
+
+**Output directory:** `<RUN_DIR>/plots/` (cleared and recreated each invocation).
+
+| Figure | Input data | Module |
+|--------|------------|--------|
+| `constraints_plot.*` | `data/constraint_norms.dat` (`t`, `L2_Ham`, `L2_Mom`) | `constraines/` |
+| `collapse_diagnostics_plot.*` | `data/collapse_diagnostics.dat` (+ optional `small_data/areal_radius.dat`) | `diagnostic/` |
+| `psi4_analysis_M1000_D1.*` etc. | `small_data/psi4_mode_l2m0.dat` | `process_wave/plot_extracted_psi4.py` (`--combined --strain`) |
+
+Frame movies: `bash grteclyn-wrapper/scripts/plot/make_movies.sh RUN_DIR --framerate 10` → `<RUN_DIR>/movies/`.
+
+**Not the same metric:** `grtresna/Ham_and_Mom_errors.txt` reports GRTresna percent errors on the
+initial-data solve; `constraints_plot` uses GPU `constraint_norms.dat` L2 norms during evolution.
+
+See also the wrapper overview: [`grteclyn-wrapper/README.md`](../../../README.md#visualization).
+
+---
+
 ## Components at a glance
 
 | Location | Role |
@@ -15,7 +48,8 @@ Scripts for visualizing GRTeclyn simulation results (plotfiles in BoxLib/AMReX f
 | **`constraines/`** | Constraint norms \(L_2\) of Hamiltonian and momentum (`constraint_norms.dat`). |
 | **`figures/`** | Standalone publication-style schematic figures (not driven by simulation dumps). |
 | **`search/`** | QD / search campaign analytics from `trajectory.jsonl` (batch improvement, saturation). |
-| **`src/scripts/`** | Shell automation: live plotfile processing (`plot_run.sh`), post-run figures (`plot_diagnostic.sh`), archive to `SimResults/` (`move_files.sh`). |
+| **`grteclyn-wrapper/scripts/plot/`** | Shell automation: live plotfile processing (`plot_run.sh`), post-run figures (`plot_diagnostic.sh`), frame movies (`make_movies.sh`). |
+| **`grteclyn-wrapper/scripts/wormhole/`** | Archive wormhole runs + visuals to `SimResults/` (`move_files.sh`). |
 
 More detail for live processing and `consume_plotfiles` options: [`process_wave/README.md`](process_wave/README.md).
 
@@ -215,24 +249,38 @@ uv run python -m grteclyn_wrapper.visualisation.process_wave.consume_plotfiles \
   --watch --delete --keep-last 2 --verbose
 ```
 
-**Plot from extracted `.dat`**
+**Plot from extracted `.dat` (stacked waveform + PSD)**
 
 ```bash
 uv run python -m grteclyn_wrapper.visualisation.process_wave.plot_extracted_psi4 \
   /path/to/small_data/psi4_mode_l2m0.dat \
   --radii 10 14 --time-axis retarded --plot-psd \
-  --out "$(pwd)/grteclyn-wrapper/src/grteclyn_wrapper/visualisation/process_wave"
+  --out /path/to/run/plots
 ```
 
-**Advanced analysis** (strain PSD vs LIGO, propagation speed across radii):
+**Article-style 6-panel GW analysis** (same layout as wormhole paper figures:
+waveforms, retarded-time + QNM fit, PSD, propagation speed, spectrogram, LIGO strain):
 
 ```bash
 uv run python -m grteclyn_wrapper.visualisation.process_wave.plot_extracted_psi4 \
   /path/to/small_data/psi4_mode_l2m0.dat \
-  --plot-psd --strain --propagation-speed --mass-msun 30 --distance-mpc 10
+  --radii 8 12 24 \
+  --combined --strain \
+  --mass-msun 1000 --distance-mpc 1 \
+  --out /path/to/run/plots \
+  --name psi4_analysis_M1000_D1.eps
 ```
 
-Strain scaling: \(|\tilde{h}| = |\tilde{\Psi}_4| / (2\pi f)^2\); characteristic strain and detector overlays follow the implementation in `plot_extracted_psi4.py`.
+Panels (a)–(f): simulation-time waveforms; retarded-time waveforms + damped-sinusoid QNM fit;
+\(\Psi_4\) PSD; peak-tracking propagation speed (needs \(\geq 2\) radii); spectrogram at
+`--spectrogram-radius` (default: innermost radius); strain vs Advanced LIGO at `--mass-msun` /
+`--distance-mpc`. Use `--ligo-quantity asd` (default) or `hchar`.
+
+**Propagation / QNM caveats:** meaningful results need enough timesteps in the `.dat` file and a
+clear wave burst. Early-run snapshots (few plotfiles consumed) produce empty or misleading panels.
+
+Strain scaling: \(|\tilde{h}| = |\tilde{\Psi}_4| / (2\pi f)^2\); characteristic strain and detector
+overlays follow the implementation in `plot_extracted_psi4.py`.
 
 **Areal radius + embedding** (when consuming plotfiles): add `--areal-radius`, `--embedding`, `--embedding-rmax`; embedding frames go under `visualize/embedding/frames/` and match the layout expected by `make_movies.py`.
 
@@ -269,15 +317,23 @@ uv run python -m grteclyn_wrapper.visualisation.diagnostic.diagnostic --data /pa
 
 ## 6. `constraines/` — Constraint norms
 
-Plots \(L_2\) norms of Hamiltonian and momentum constraints from `constraint_norms.dat` (typically `<run>/data/constraint_norms.dat`).
+Plots \(L_2\) norms of Hamiltonian and momentum constraints from `constraint_norms.dat`
+(typically `<run>/data/constraint_norms.dat`). Two log-scale panels: \(\|\mathcal{H}\|_{L^2}\) and
+\(\|\mathcal{M}\|_{L^2}\) vs \(t\,[M]\) — same style as wormhole article `constraints_plot` figures.
+
+Requires `calculate_constraint_norms=1` during GPU evolution (wrapper campaigns enable this).
 
 ```bash
-uv run python -m grteclyn_wrapper.visualisation.constraines /path/to/data/data/constraint_norms.dat
-
-uv run python -m grteclyn_wrapper.visualisation.constraines /path/to/constraint_norms.dat -o constraints_plot.eps
+uv run python -m grteclyn_wrapper.visualisation.constraines \
+  /path/to/run/data/constraint_norms.dat \
+  -o /path/to/run/plots/constraints_plot.eps
 ```
 
-If you pass only `-o myplot.eps` (no directory component), outputs go under `grteclyn-wrapper/src/grteclyn_wrapper/visualisation/constraines/`. The module also writes matching `.png` and `.pdf` next to the EPS stem.
+If you pass only `-o myplot.eps` (no directory component), outputs go under
+`grteclyn-wrapper/src/grteclyn_wrapper/visualisation/constraines/`. The module also writes matching
+`.png` and `.pdf` next to the EPS stem.
+
+**Not plotted here:** `grtresna/Ham_and_Mom_errors.txt` (GRTresna percent errors on initial data).
 
 ---
 
@@ -335,31 +391,38 @@ uv run python -m grteclyn_wrapper.visualisation.visualize --field K --axis z --c
 ## Output layout
 
 ```
-grteclyn-wrapper/src/grteclyn_wrapper/visualisation/
-├── visualize/
-│   ├── <field>_<axis>/
-│   │   ├── frames/
-│   │   └── movie_<field>_<axis>.mp4
-│   └── embedding/frames/     # from consume_plotfiles --embedding
-├── plots/                    # diagnostic, evolution panels, QD batch-progress figures
-├── extract_wave/             # default --out for plot_psi4
-├── process_wave/             # plots from plot_extracted_psi4
-├── diagnostic/               # optional direct output from diagnostic.py
-├── constraines/              # default location for relative -o
-├── figures/                  # schematic figure outputs
-├── search/                   # QD trajectory analytics (library + CLI)
-└── README.md
+<run_dir>/
+├── data/
+│   ├── constraint_norms.dat      # constraines/
+│   └── collapse_diagnostics.dat    # diagnostic/
+├── small_data/
+│   ├── psi4_mode_l2m0.dat          # plot_extracted_psi4 (from consume_plotfiles --psi4)
+│   ├── shell_profiles.dat
+│   └── areal_radius.dat
+├── frames/<field>_<axis>/frames/    # slice PNGs from consume_plotfiles
+├── movies/                         # make_movies.sh (MP4 stitch)
+└── plots/                          # plot_diagnostic.sh (post-run bundle)
 
-<run_dir>/small_data/
-├── psi4_mode_l2m0.dat
-└── areal_radius.dat
+grteclyn-wrapper/src/grteclyn_wrapper/visualisation/
+├── visualize/                      # plot_run.sh default frame root (wormhole workflows)
+│   ├── <field>_<axis>/frames/
+│   └── embedding/frames/
+├── plots/                          # QD batch progress; radial diagnostics (plot_diagnostic_radial.sh)
+├── extract_wave/                   # default --out for plot_psi4 (plotfile-direct, 2-panel)
+├── process_wave/                   # optional default --out for plot_extracted_psi4
+├── diagnostic/
+├── constraines/                    # default location for relative -o on constraines CLI
+├── figures/
+├── search/
+└── README.md
 ```
 
 ---
 
 ## Automation scripts
 
-Shell helpers live under **`src/scripts/`**. Run them from the **repository root** (`GRTeclyn/`) so `uv run python -m grteclyn_wrapper.visualisation...` resolves correctly. Paths below use `./grteclyn-wrapper/scripts/...`.
+Shell helpers live under **`grteclyn-wrapper/scripts/plot/`** (and `scripts/wormhole/move_files.sh`).
+Run them from the **GRTeclyn repository root** so `uv run --directory grteclyn-wrapper python -m grteclyn_wrapper.visualisation...` resolves correctly.
 
 ### `plot_run.sh` — Live processing during a simulation
 
@@ -402,35 +465,75 @@ uv run python -m grteclyn_wrapper.visualisation.visualize.make_movies --root grt
 
 ---
 
-### `plot_diagnostic.sh` — Post-run plots (one folder)
+### `plot_diagnostic.sh` — Post-run plots (one run folder)
 
-After the run has written `data/constraint_norms.dat`, `data/collapse_diagnostics.dat`, and `small_data/psi4_mode_l2m0.dat`, this script **removes and recreates** `grteclyn-wrapper/src/grteclyn_wrapper/visualisation/plots/` and writes fresh figures there.
+After the run has written `data/constraint_norms.dat`, `data/collapse_diagnostics.dat`, and
+`small_data/psi4_mode_l2m0.dat`, this script **removes and recreates** `<RUN_DIR>/plots/` and writes
+fresh figures there.
 
-**Arguments:** optional `RUN_DIR`, then optional extraction **radii** passed through to `plot_extracted_psi4` (if omitted, all radii in the `.dat` file are used).
+**Arguments:** optional `RUN_DIR`, then optional extraction **radii** passed through to
+`plot_extracted_psi4` (if omitted, all radii columns in the `.dat` file are used).
 
-**Default `RUN_DIR`:** Among `data_2gpu`, `data_supported`, and `data` (sibling of the repo), chooses the directory whose three required files are present and have the **newest combined modification time**; if that fails, falls back to an existing `data_2gpu` or `data`.
+**Default `RUN_DIR`:** Among `data_2gpu`, `data_supported`, and `data` (sibling of the repo),
+chooses the directory whose three required files are present and have the **newest combined
+modification time**; if that fails, falls back to an existing `data_2gpu` or `data`.
 
-**Outputs in `grteclyn-wrapper/src/grteclyn_wrapper/visualisation/plots/`**
+**Outputs in `<RUN_DIR>/plots/`**
 
 | File stem | Content |
 |-----------|---------|
-| `constraints_plot.*` | Hamiltonian and momentum constraint norms |
+| `constraints_plot.*` | Hamiltonian and momentum L2 constraint norms |
 | `collapse_diagnostics_plot.*` | Collapse diagnostics (+ areal radius and K-decay fit when data exist) |
-| `psi4_analysis.*` | Combined panel (`--combined`): waveforms, PSD, propagation, strain, LIGO overlay (`--strain`, 30 M⊙ at 10 Mpc) |
+| `psi4_analysis_M1000_D1.*` etc. | 6-panel GW analysis (`--combined --strain`) at several mass/distance configs |
+
+Also attempts K_z and embedding evolution panels from `frames/` (skipped with a warning if frame
+indices are missing — common while a run is still in progress).
+
+**Environment:** `MASS_MSUN`, `DISTANCE_MPC` (defaults include `1000:1`, `1000:0.002`, `30:10`);
+`ESD_FMAX` (PSD frequency cap); `LIGO_QUANTITY` (`asd` or `hchar`).
 
 ```bash
 ./grteclyn-wrapper/scripts/plot/plot_diagnostic.sh
 
-./grteclyn-wrapper/scripts/plot/plot_diagnostic.sh /path/to/data_2gpu
+./grteclyn-wrapper/scripts/plot/plot_diagnostic.sh runs/grtresna_promote/my_hq_run
 
-./grteclyn-wrapper/scripts/plot/plot_diagnostic.sh /path/to/data_2gpu 12 16 20 24
+./grteclyn-wrapper/scripts/plot/plot_diagnostic.sh runs/grtresna_promote/my_hq_run 8 12 24
+
+# Wormhole octant (corner origin)
+./grteclyn-wrapper/scripts/plot/plot_diagnostic.sh /path/to/data_supported 12 16 20 24
+```
+
+### `make_movies.sh` — Stitch episode frames to MP4
+
+Reads `<EPISODE_DIR>/frames/<field>_<axis>/frames/*.png`, writes
+`<EPISODE_DIR>/movies/movie_<field>_<axis>.mp4`. Handles gapped frame numbering (sim step indices).
+
+```bash
+./grteclyn-wrapper/scripts/plot/make_movies.sh runs/grtresna_promote/my_hq_run --framerate 10
+./grteclyn-wrapper/scripts/plot/make_movies.sh runs/grtresna_promote/my_hq_run --only chi_z Weyl4_Mag_z
+```
+
+### `plot_diagnostic_radial.sh` — RadialRecipe (no Psi4)
+
+Constraints + collapse + optional shell profiles → `visualisation/plots/radial/` (not run dir).
+
+```bash
+./grteclyn-wrapper/scripts/plot/plot_diagnostic_radial.sh runs/radialrecipe_nonspherical/<episode>
 ```
 
 ---
 
-### `move_files.sh` — Archive run + visuals to `SimResults/`
+### `move_files.sh` — Archive wormhole run + visuals to `SimResults/`
 
-Copies visualization frames (`chi*`, `K*`, `Weyl4_Mag*`, `Weyl4_Re*`, `embedding*`), everything from `grteclyn-wrapper/src/grteclyn_wrapper/visualisation/plots/`, key ASCII data from the run tree, and the chosen parameter file into `grteclyn-wrapper/output/SimResults/<auto_folder>/`. The folder name is derived from wormhole parameters read from the params file (e.g. `Run_R..._A0..._A2..._sigma...`).
+Wormhole-specific helper. Copies frames from `visualisation/visualize/`, ASCII from the data
+directory, and plot figures into `grteclyn-wrapper/output/SimResults/<auto_folder>/`.
+
+**Plots:** run `plot_diagnostic.sh` with the wormhole data directory as `RUN_DIR` first — figures
+land in `<DATA_DIR>/plots/`. `move_files.sh` still copies from `visualisation/plots/` (legacy
+path); also copy `<DATA_DIR>/plots/*` into the SimResults folder if needed.
+
+The folder name is derived from wormhole parameters in the params file (e.g.
+`Run_R..._A0..._A2..._sigma...`).
 
 **First argument — run type** (optional, default `SupportedWormholeCollapse`):
 
@@ -448,25 +551,43 @@ Copies visualization frames (`chi*`, `K*`, `Weyl4_Mag*`, `Weyl4_Re*`, `embedding
 ./grteclyn-wrapper/scripts/wormhole/move_files.sh WormholeCollapse
 ```
 
-If `grteclyn-wrapper/src/grteclyn_wrapper/visualisation/plots/` is missing, the script warns to run `plot_diagnostic.sh` first.
+If `visualisation/plots/` is missing, the script warns to run `plot_diagnostic.sh` first (and
+copy `<DATA_DIR>/plots/` if figures were written there).
 
 ---
 
 ### Suggested workflow
 
+**HQ promotion / search episode** (frames under `RUN_DIR/frames/`):
+
+```bash
+# While GPU runs — consumer is usually started by the campaign launcher (CONSUME_PLOTFILES=1)
+
+# After the run (or partial refresh while consumer catches up)
+./grteclyn-wrapper/scripts/plot/plot_diagnostic.sh runs/grtresna_promote/my_hq_run 8 12 24
+
+./grteclyn-wrapper/scripts/plot/make_movies.sh runs/grtresna_promote/my_hq_run --framerate 10
+```
+
+**Wormhole standalone run** (frames under `visualisation/visualize/` via `plot_run.sh`):
+
 ```bash
 # Terminal 1 — while the simulation runs
-./grteclyn-wrapper/scripts/plot/plot_run.sh /path/to/your_run_output
+./grteclyn-wrapper/scripts/plot/plot_run.sh /path/to/data_supported
 
-# After the run — refresh diagnostic figures
-./grteclyn-wrapper/scripts/plot/plot_diagnostic.sh /path/to/your_run_output
+# After the run — diagnostic figures into the data directory's plots/ (if RUN_DIR=data_supported)
+./grteclyn-wrapper/scripts/plot/plot_diagnostic.sh /path/to/data_supported 12 16 20 24
 
-# Optional — stitch frame folders to MP4
-uv run python -m grteclyn_wrapper.visualisation.visualize.make_movies --root grteclyn-wrapper/src/grteclyn_wrapper/visualisation/visualize
+uv run python -m grteclyn_wrapper.visualisation.visualize.make_movies \
+  --root grteclyn-wrapper/src/grteclyn_wrapper/visualisation/visualize
 
-# Archive
+# Archive wormhole SimResults bundle
 ./grteclyn-wrapper/scripts/wormhole/move_files.sh SupportedWormholeCollapse
 ```
+
+**Extraction center:** wormhole runs use `--frames-corner` and Psi4 radii from `(0,0,0)`; full-box
+Q-ball / RadialRecipe HQ runs use physics `center` (e.g. `64 64 64` for L=128) — set via
+`CONSUMER_RADII` / `--consumer-radii` on promotion replay, not via the plotting scripts themselves.
 
 ---
 
