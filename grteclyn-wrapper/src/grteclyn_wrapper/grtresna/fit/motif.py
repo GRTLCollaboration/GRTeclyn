@@ -15,8 +15,8 @@ from typing import Any, Mapping, Sequence
 
 import numpy as np
 
-from ..initial_data.motif import GeometryMotif, MomentumTarget, SupportRegion
-from .solver import GRTresnaConfig
+from ...initial_data.motif import GeometryMotif, MomentumTarget, SupportRegion
+from ..solver import GRTresnaConfig, apply_exotic_safe_solver
 
 DEFAULT_AMP_SCALE = 0.15
 DEFAULT_WIDTH = 3.0
@@ -303,14 +303,7 @@ def build_grtresna_config_from_fitted(
     cfg.lumps = [dict(lump) for lump in fitted.lumps]
     if fitted.maximal_slicing:
         cfg.maximal_slicing = True
-        if cfg.psi_relaxation == 1.0:
-            cfg.psi_relaxation = 0.6
-        if cfg.psi_floor <= 0.0:
-            cfg.psi_floor = 0.1
-        if cfg.maximal_jacobian_cap <= 0.0:
-            cfg.maximal_jacobian_cap = 25.0
-        if cfg.coefficient_average_type == "harmonic":
-            cfg.coefficient_average_type = "arithmetic"
+        apply_exotic_safe_solver(cfg)
     return cfg
 
 

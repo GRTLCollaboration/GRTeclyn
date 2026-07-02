@@ -7,7 +7,7 @@ import os
 from typing import Any
 
 from ..projection.postload_gate import PostLoadGateConfig
-from ..grtresna.matter_models import (
+from ..grtresna.matter.models import (
     MATTER_COUPLING_CANONICAL,
     MATTER_COUPLING_EXOTIC,
     MATTER_SECTOR_BOSON_STAR,

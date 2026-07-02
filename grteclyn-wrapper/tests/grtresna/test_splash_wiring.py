@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from grteclyn_wrapper.grtresna.matter_wiring import plot_vars_for_complex_scalar
-from grteclyn_wrapper.grtresna.splash_wiring import (
+from grteclyn_wrapper.grtresna.matter.wiring import plot_vars_for_complex_scalar
+from grteclyn_wrapper.grtresna.matter.splash import (
     append_gw_proxy_plot_vars,
     apply_splash_overrides,
     splash_evolution_overrides,

@@ -16,7 +16,7 @@ from grteclyn_wrapper.core.config import resolve_example, resolve_executable
 from grteclyn_wrapper.core.evaluation import evaluate_overrides
 from grteclyn_wrapper.core.params import regrid_intervals_for_max_level
 from grteclyn_wrapper.grtresna.domain import GRTresnaDomainConfig
-from grteclyn_wrapper.grtresna.matter_wiring import (
+from grteclyn_wrapper.grtresna.matter.wiring import (
     EVOLUTION_MATTER_KEYS,
     GRTRESNA_COMPLEX_SCALAR_MODEL,
     evolution_overrides_from_metadata,
@@ -25,8 +25,8 @@ from grteclyn_wrapper.grtresna.matter_wiring import (
     plot_vars_for_independent_scalars,
     read_matter_metadata,
 )
-from grteclyn_wrapper.grtresna.matter_models import GRTRESNA_BICOMPLEX_SCALAR_MODEL
-from grteclyn_wrapper.grtresna.qball_couplings import QBallCouplings
+from grteclyn_wrapper.grtresna.matter.models import GRTRESNA_BICOMPLEX_SCALAR_MODEL
+from grteclyn_wrapper.grtresna.profiles.qball_couplings import QBallCouplings
 from grteclyn_wrapper.grtresna.io import read_gridinit
 from grteclyn_wrapper.grtresna.solver import GRTresnaConfig
 from grteclyn_wrapper.search.grtresna_convergence_gate import GRTresnaConvergenceConfig

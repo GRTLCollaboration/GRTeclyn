@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 import numpy as np
 
-from grteclyn_wrapper.grtresna.motif_fit import (
+from grteclyn_wrapper.grtresna.fit.motif import (
     build_grtresna_config_from_fitted,
     estimate_momentum_source,
     fit_matter_from_motif,

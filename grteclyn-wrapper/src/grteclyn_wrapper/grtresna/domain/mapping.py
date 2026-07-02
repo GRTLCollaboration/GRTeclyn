@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-from .gridinit_export import GridinitExportSpec
-from .solver import GRTresnaConfig
+from .export import GridinitExportSpec
+
+if TYPE_CHECKING:
+    from ..solver.config import GRTresnaConfig
 
 
 @dataclass(frozen=True)

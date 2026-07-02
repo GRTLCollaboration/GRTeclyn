@@ -66,7 +66,7 @@ from grteclyn_wrapper.grtresna.solver import (
     config_has_exotic_lump,
     solve,
 )
-from grteclyn_wrapper.grtresna.matter_wiring import evolution_overrides_from_config
+from grteclyn_wrapper.grtresna.matter.wiring import evolution_overrides_from_config
 from grteclyn_wrapper.projection.postload_gate import PostLoadGateConfig, run_postload_gate
 
 out = Path("${out}")
@@ -134,7 +134,7 @@ from grteclyn_wrapper.grtresna.solver import (
     config_has_exotic_lump,
     solve,
 )
-from grteclyn_wrapper.grtresna.matter_wiring import evolution_overrides_from_config
+from grteclyn_wrapper.grtresna.matter.wiring import evolution_overrides_from_config
 from grteclyn_wrapper.projection.postload_gate import PostLoadGateConfig, run_postload_gate
 
 out = Path("${SMOKE_DIR}/mixed_shell")

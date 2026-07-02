@@ -9,8 +9,8 @@ from typing import Any, Mapping
 
 from typing import TYPE_CHECKING
 
-from .lump_fields import MAX_INDEPENDENT_LUMPS, lump_sign
-from .matter_models import (
+from ..fields.lump import MAX_INDEPENDENT_LUMPS, lump_sign
+from .models import (
     GRTRESNA_BICOMPLEX_SCALAR_MODEL,
     GRTRESNA_COMPLEX_SCALAR_MODEL,
     GRTRESNA_INDEPENDENT_MATTER_MODEL,
@@ -19,7 +19,7 @@ from .matter_models import (
 )
 
 if TYPE_CHECKING:
-    from .solver import GRTresnaConfig
+    from ..solver import GRTresnaConfig
 
 # Re-export for backward compatibility.
 __all__ = [
@@ -154,7 +154,7 @@ def _pump_controller_overrides(bs_omega: float, mass: float = 0.0) -> dict[str, 
     field toward the bound state it was initialised in -- not a narrow Gaussian
     that disperses.
     """
-    from .boson_star_profile import PROFILE_SECH_BOUND, bound_width
+    from ..profiles.boson_star import PROFILE_SECH_BOUND, bound_width
 
     overrides: dict[str, Any] = {
         "trajectory_pump_frequency": float(bs_omega),

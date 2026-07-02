@@ -101,7 +101,7 @@ def _run_cpu_grtresna_gates(
     ftl_L: float | None,
     dry_run: bool,
 ) -> CpuGateResult | Evaluation:
-    from ..grtresna.matter_wiring import merge_evolution_overrides
+    from ..grtresna.matter.wiring import merge_evolution_overrides
     from ..grtresna.solver import solve as grtresna_solve
     from ..search.grtresna_convergence_gate import (
         GRTRESNA_REJECTION_BASE_FITNESS,
@@ -233,7 +233,7 @@ def _run_gpu_binary_phase(
     episode = cpu_result.episode
     gte_overrides = dict(cpu_result.gte_overrides)
     if objective_mode == "critical_collapse":
-        from ..grtresna.splash_wiring import apply_splash_overrides
+        from ..grtresna.matter.splash import apply_splash_overrides
 
         gte_overrides = apply_splash_overrides(gte_overrides)
 

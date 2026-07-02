@@ -379,7 +379,7 @@ def test_profile_fraction_assigns_top_hat_to_subset() -> None:
 
 
 def test_top_hat_envelope_has_flatter_core_than_gaussian() -> None:
-    from grteclyn_wrapper.grtresna.lump_fields import lump_phi_at
+    from grteclyn_wrapper.grtresna.fields.lump import lump_phi_at
 
     width = 3.0
     gauss = {"amp": 0.2, "width": width, "center": (0.0, 0.0, 0.0), "mode": 0, "profile": 0}

@@ -5,8 +5,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from grteclyn_wrapper.grtresna.qball_couplings import QBallCouplings
-from grteclyn_wrapper.grtresna.qball_radial_ode import (
+from grteclyn_wrapper.grtresna.profiles.qball_couplings import QBallCouplings
+from grteclyn_wrapper.grtresna.profiles.qball_ode import (
     cached_qball_radial_profile,
     solve_qball_radial_profile,
 )
@@ -33,7 +33,7 @@ def test_stiff_profile_peak_is_smaller_than_standard() -> None:
 
 
 def test_profile_scales_with_requested_lump_amp() -> None:
-    from grteclyn_wrapper.grtresna.qball_radial_ode import profile_for_lump
+    from grteclyn_wrapper.grtresna.profiles.qball_ode import profile_for_lump
 
     c = QBallCouplings.standard()
     base = solve_qball_radial_profile(c)
@@ -93,7 +93,7 @@ def test_compact_omega_gives_smaller_soliton_than_thinwall() -> None:
 
 
 def test_ode_profile_differs_from_sech() -> None:
-    from grteclyn_wrapper.grtresna.boson_star_profile import bound_width
+    from grteclyn_wrapper.grtresna.profiles.boson_star import bound_width
 
     c = QBallCouplings.standard()
     prof = solve_qball_radial_profile(c)

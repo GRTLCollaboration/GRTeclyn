@@ -7,12 +7,13 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 from numpy.typing import NDArray
 
-from .boson_star_profile import BosonStarProfile
-from .boson_star_profile import (
+from ..profiles.boson_star import (
     PROFILE_ODE_BOUND,
     PROFILE_SECH_BOUND,
+    BosonStarProfile,
 )
-from .lump_fields import _coordinate_grids, angular_factor
+from ..profiles.envelope import angular_factor, envelope_grid, phi0_at_radius
+from .lump import _coordinate_grids
 
 # GRTeclyn RadialRecipe state layout (must match StateVariables.hpp).
 _NUM_CCZ4_VARS = 25
@@ -111,28 +112,7 @@ def paint_boson_star_fields_on_grid(
 
 def _lump_phi0_at_radius(r: NDArray, lump: Mapping[str, Any]) -> NDArray:
     """Radial profile φ₀(r) for one lump (shared by rest and boosted paths)."""
-    amp = float(lump.get("amp", 0.0))
-    if amp == 0.0:
-        return np.zeros_like(r, dtype=np.float64)
-    width = float(lump.get("width", 5.0))
-    profile_type = int(lump.get("profile", 0))
-    if profile_type == PROFILE_ODE_BOUND:
-        from .qball_radial_ode import profile_for_lump
-
-        radial = profile_for_lump(
-            dict(lump),
-            mass=float(lump.get("qball_mass", 1.0)),
-            lam=float(lump.get("qball_lam", 0.0)),
-            mu=float(lump.get("qball_mu", 0.0)),
-            omega=float(lump.get("qball_omega", 0.0)),
-        )
-        return np.asarray(radial.eval_phi0(r), dtype=np.float64)
-    if profile_type == PROFILE_SECH_BOUND:
-        return amp / np.cosh(r / width)
-    if profile_type == 1:
-        soft = 0.25 * width
-        return amp * 0.5 * (1.0 - np.tanh((r - width) / soft))
-    return amp * np.exp(-r * r / (2.0 * width * width))
+    return phi0_at_radius(r, lump, raw_amp=True)
 
 
 def _raw_lump_phi_grid(
@@ -159,17 +139,7 @@ def _raw_lump_phi_grid(
         return _lump_phi0_at_radius(r, lump) * angular_factor(
             int(lump.get("mode", 0)), dx, dy, width
         )
-    if profile == 1:
-        r = np.sqrt(r2)
-        soft = 0.25 * width
-        env = 0.5 * (1.0 - np.tanh((r - width) / soft))
-    elif profile == 2:
-        # Bound boson lump sech(r/width) (PROFILE_SECH_BOUND) -- correct
-        # exponential tail; must match GRTresna lump_envelope profile==2.
-        r = np.sqrt(r2)
-        env = 1.0 / np.cosh(r / width)
-    else:
-        env = np.exp(-r2 / (2.0 * width * width))
+    env = envelope_grid(profile, r2, width)
     return amp * angular_factor(int(lump.get("mode", 0)), dx, dy, width) * env
 
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from grteclyn_wrapper.grtresna.matter_models import GRTRESNA_COMPLEX_SCALAR_MODEL
+from grteclyn_wrapper.grtresna.matter.models import GRTRESNA_COMPLEX_SCALAR_MODEL
 from grteclyn_wrapper.grtresna.solver import GRTresnaConfig
 from grteclyn_wrapper.search.optimize import build_grtresna_config, build_search_space
 

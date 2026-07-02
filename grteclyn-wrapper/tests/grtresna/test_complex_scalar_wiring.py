@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import json
 
-from grteclyn_wrapper.grtresna.boson_star_fields import rename_complex_scalar_components
-from grteclyn_wrapper.grtresna.matter_wiring import (
+from grteclyn_wrapper.grtresna.fields.boson_star import rename_complex_scalar_components
+from grteclyn_wrapper.grtresna.matter.wiring import (
     GRTRESNA_COMPLEX_SCALAR_MODEL,
     evolution_overrides_from_bicomplex_scalar,
     evolution_overrides_from_complex_scalar,
@@ -15,7 +15,7 @@ from grteclyn_wrapper.grtresna.matter_wiring import (
     read_matter_metadata,
     write_matter_metadata,
 )
-from grteclyn_wrapper.grtresna.matter_models import GRTRESNA_BICOMPLEX_SCALAR_MODEL
+from grteclyn_wrapper.grtresna.matter.models import GRTRESNA_BICOMPLEX_SCALAR_MODEL
 
 
 def test_rename_complex_scalar_components() -> None:

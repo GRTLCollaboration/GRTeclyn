@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .matter_wiring import plot_vars_for_complex_scalar
+from .wiring import plot_vars_for_complex_scalar
 
 _GW_PROXY_PLOT_VARS = ("A11", "A12", "A22")
 

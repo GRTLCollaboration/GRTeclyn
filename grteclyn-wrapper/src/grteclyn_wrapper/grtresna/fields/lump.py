@@ -12,7 +12,14 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 from numpy.typing import NDArray
 
-EXOTIC_AMP_SCALE = 0.25
+from ..profiles.envelope import (
+    EXOTIC_AMP_SCALE,
+    angular_factor,
+    effective_amp,
+    envelope_grid,
+    envelope_scalar,
+)
+
 MAX_INDEPENDENT_LUMPS = 5
 
 
@@ -42,21 +49,6 @@ def shift_lump_centers_for_gridinit(
     return shifted
 
 
-def effective_amp(lump: Mapping[str, Any]) -> float:
-    amp = float(lump.get("amp", 0.0))
-    if amp == 0.0:
-        return 0.0
-    return EXOTIC_AMP_SCALE * amp if int(lump.get("exotic", 0)) else amp
-
-
-def angular_factor(mode: int, dx: float, dy: float, width: float) -> float:
-    if mode == 1:
-        return dx / width
-    if mode == 2:
-        return (dx * dx - dy * dy) / (width * width)
-    return 1.0
-
-
 def lump_phi_at(
     lump: Mapping[str, Any],
     point: Sequence[float],
@@ -70,12 +62,7 @@ def lump_phi_at(
     dx = loc - center
     r2 = float(np.dot(dx, dx))
     profile = int(lump.get("profile", 0))
-    if profile == 1:
-        r = math.sqrt(r2)
-        soft = 0.25 * width
-        env = 0.5 * (1.0 - math.tanh((r - width) / soft))
-    else:
-        env = math.exp(-r2 / (2.0 * width * width))
+    env = envelope_scalar(profile, r2, width)
     mode = int(lump.get("mode", 0))
     return effective_amp(lump) * angular_factor(mode, dx[0], dx[1], width) * env
 
@@ -142,12 +129,7 @@ def _lump_phi_grid(
     dz = pz - center[2]
     r2 = dx * dx + dy * dy + dz * dz
     profile = int(lump.get("profile", 0))
-    if profile == 1:
-        r = np.sqrt(r2)
-        soft = 0.25 * width
-        env = 0.5 * (1.0 - np.tanh((r - width) / soft))
-    else:
-        env = np.exp(-r2 / (2.0 * width * width))
+    env = envelope_grid(profile, r2, width)
     mode = int(lump.get("mode", 0))
     angular = angular_factor(mode, dx, dy, width)
     return effective_amp(lump) * angular * env

@@ -8,16 +8,16 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from grteclyn_wrapper.grtresna.boson_star_fields import (
+from grteclyn_wrapper.grtresna.fields.boson_star import (
     _lump_phi0_at_radius,
     paint_bicomplex_fields_on_grid,
 )
-from grteclyn_wrapper.grtresna.boson_star_profile import (
+from grteclyn_wrapper.grtresna.profiles.boson_star import (
     PROFILE_ODE_BOUND,
     PROFILE_SECH_BOUND,
     grtresna_lump_profile,
 )
-from grteclyn_wrapper.grtresna.qball_couplings import QBallCouplings
+from grteclyn_wrapper.grtresna.profiles.qball_couplings import QBallCouplings
 from grteclyn_wrapper.grtresna.solver import _lump_lines, write_grtresna_params
 from grteclyn_wrapper.search.optimize.config import build_grtresna_config
 

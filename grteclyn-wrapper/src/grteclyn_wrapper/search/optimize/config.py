@@ -117,7 +117,7 @@ def _expand_sh_lumps_from_overrides(
     on a Fibonacci-lattice sphere, giving genuine per-lump variation
     through a smooth angular expansion.
     """
-    from ...grtresna.sh_fields import (
+    from ...grtresna.fields.sh import (
         cartesian_to_spherical,
         eval_sh_modulation,
     )
@@ -287,8 +287,8 @@ def _expand_trajectory_boson_lumps_from_overrides(
     but the expansion itself does not impose a tighter limit — replay of
     real-scalar elites with bosonic matter needs the original amplitude range.
     """
-    from ...grtresna.boson_star_profile import PROFILE_ODE_BOUND, PROFILE_SECH_BOUND, bound_width
-    from ...grtresna.qball_couplings import QBallCouplings
+    from ...grtresna.profiles.boson_star import PROFILE_ODE_BOUND, PROFILE_SECH_BOUND, bound_width
+    from ...grtresna.profiles.qball_couplings import QBallCouplings
     from .spaces import TRAJECTORY_DEFAULT_NUM_LUMPS
 
     num_lumps = max(1, int(round(get_float("trajectory_num_lumps", float(TRAJECTORY_DEFAULT_NUM_LUMPS)))))
@@ -410,7 +410,7 @@ def _expand_trajectory_boson_lumps_from_overrides(
 
 
 def _is_boson_sector(overrides: Mapping[str, Any], matter_model: str) -> bool:
-    from ...grtresna.matter_models import (
+    from ...grtresna.matter.models import (
         MATTER_SECTOR_BOSON_STAR,
         normalize_matter_sector,
         uses_boson_solve,
@@ -444,7 +444,7 @@ def build_grtresna_config(
     """
     import dataclasses
 
-    from ...grtresna.matter_models import (
+    from ...grtresna.matter.models import (
         apply_boson_star_overrides,
         finalize_independent_scalar_config,
     )

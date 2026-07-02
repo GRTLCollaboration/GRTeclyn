@@ -25,7 +25,7 @@ from grteclyn_wrapper.core.config import (
 from grteclyn_wrapper.core.episode import create_episode, update_metadata, write_json
 from grteclyn_wrapper.core.evaluation import evaluate_overrides
 from grteclyn_wrapper.core.params import write_params
-from grteclyn_wrapper.grtresna.motif_fit import (
+from grteclyn_wrapper.grtresna.fit.motif import (
     build_grtresna_config_from_fitted,
     fit_matter_from_motif,
     fit_momentum_from_motif,

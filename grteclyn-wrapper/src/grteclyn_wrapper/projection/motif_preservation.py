@@ -10,7 +10,7 @@ from typing import Any
 import numpy as np
 
 from ..grtresna.io import read_gridinit
-from ..grtresna.motif_fit import estimate_momentum_source, read_fitted_matter_json
+from ..grtresna.fit.motif import estimate_momentum_source, read_fitted_matter_json
 from ..initial_data.motif import GeometryMotif, read_motif_json
 from ..metrics.probes.ftl.analytic import calculate_expansion_asymmetry
 from ..metrics.probes.ftl.solved import build_xz_slice_from_gridinit, compute_solved_geometry_ftl

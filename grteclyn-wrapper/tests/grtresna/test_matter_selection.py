@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from grteclyn_wrapper.grtresna.matter_models import (
+from grteclyn_wrapper.grtresna.matter.models import (
     GRTRESNA_COMPLEX_SCALAR_MODEL,
     GRTRESNA_INDEPENDENT_MATTER_MODEL,
     MATTER_COUPLING_EXOTIC,

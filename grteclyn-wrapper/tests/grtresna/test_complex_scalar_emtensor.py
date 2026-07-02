@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from grteclyn_wrapper.grtresna.complex_scalar_physics import (
+from grteclyn_wrapper.grtresna.profiles.complex_scalar import (
     ComplexScalarState,
     compute_emtensor,
     conserved_charge_density,

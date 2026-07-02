@@ -4,7 +4,7 @@ import math
 
 from grteclyn_wrapper.__main__ import build_parser
 from grteclyn_wrapper.cli.grtresna_context import build_grtresna_search_context
-from grteclyn_wrapper.grtresna.sh_fields import (
+from grteclyn_wrapper.grtresna.fields.sh import (
     cartesian_to_spherical,
     eval_sh_modulation,
     real_sph_harm,

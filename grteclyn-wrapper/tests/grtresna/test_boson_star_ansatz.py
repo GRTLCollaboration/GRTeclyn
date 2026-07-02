@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import json
 
-from grteclyn_wrapper.grtresna.matter_models import (
+from grteclyn_wrapper.grtresna.matter.models import (
     GRTRESNA_COMPLEX_SCALAR_MODEL,
     GRTRESNA_EXAMPLE_BOSON_STAR_BH,
     matter_model_for_ansatz,
 )
-from grteclyn_wrapper.grtresna.matter_wiring import (
+from grteclyn_wrapper.grtresna.matter.wiring import (
     GRTresnaMatterMetadata,
     evolution_overrides_from_config,
     read_matter_metadata,

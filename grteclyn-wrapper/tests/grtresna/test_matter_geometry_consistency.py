@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 
 from grteclyn_wrapper.grtresna.io import write_gridinit
-from grteclyn_wrapper.grtresna.lump_fields import (
+from grteclyn_wrapper.grtresna.fields.lump import (
     lump_phi_at,
     lump_pi_at,
     lump_sign,
@@ -18,7 +18,7 @@ from grteclyn_wrapper.grtresna.lump_fields import (
 )
 from grteclyn_wrapper.core.params import format_param_value, write_params
 from grteclyn_wrapper.core.config import resolve_example
-from grteclyn_wrapper.grtresna.matter_wiring import (
+from grteclyn_wrapper.grtresna.matter.wiring import (
     GRTRESNA_INDEPENDENT_MATTER_MODEL,
     evolution_overrides_from_config,
     plot_vars_for_independent_scalars,

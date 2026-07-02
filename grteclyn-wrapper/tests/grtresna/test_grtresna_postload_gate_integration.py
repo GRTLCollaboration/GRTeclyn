@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from grteclyn_wrapper.core.episode import create_episode
-from grteclyn_wrapper.grtresna.matter_wiring import evolution_overrides_from_config
+from grteclyn_wrapper.grtresna.matter.wiring import evolution_overrides_from_config
 from grteclyn_wrapper.grtresna.solver import GRTresnaConfig
 from grteclyn_wrapper.projection.postload_gate import PostLoadGateConfig
 from grteclyn_wrapper.search.grtresna_evaluation_gates import (

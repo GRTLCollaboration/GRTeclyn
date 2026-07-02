@@ -6,7 +6,7 @@ import math
 
 import pytest
 
-from grteclyn_wrapper.grtresna.qball_couplings import QBallCouplings
+from grteclyn_wrapper.grtresna.profiles.qball_couplings import QBallCouplings
 
 
 def test_standard_and_stiff_share_omega_min() -> None:

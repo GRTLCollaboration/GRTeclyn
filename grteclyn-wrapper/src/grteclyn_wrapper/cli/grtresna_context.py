@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from ..grtresna.domain import GRTresnaDomainConfig
-from ..grtresna.matter_models import matter_selection_base_overrides
+from ..grtresna.matter.models import matter_selection_base_overrides
 from ..grtresna.solver import GRTresnaConfig
 from ..search.grtresna_convergence_gate import GRTresnaConvergenceConfig
 from ..search.optimize import ANGULAR_BASE_OVERRIDES, SearchDimension, build_search_space

@@ -6,7 +6,7 @@ import math
 from dataclasses import dataclass
 from typing import Any
 
-from .boson_star_profile import bound_width
+from .boson_star import bound_width
 
 
 @dataclass(frozen=True)

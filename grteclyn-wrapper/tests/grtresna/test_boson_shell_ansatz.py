@@ -6,7 +6,7 @@ import math
 
 from grteclyn_wrapper.__main__ import build_parser
 from grteclyn_wrapper.cli.grtresna_context import build_grtresna_search_context
-from grteclyn_wrapper.grtresna.matter_models import (
+from grteclyn_wrapper.grtresna.matter.models import (
     GRTRESNA_COMPLEX_SCALAR_MODEL,
     GRTRESNA_EXAMPLE_BOSON_STAR_BH,
     matter_selection_base_overrides,
