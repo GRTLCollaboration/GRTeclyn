@@ -111,6 +111,49 @@ enough remaining slices to trace end-to-end), so **the true peak is very likely 
 cut off by the emission window rather than the physics.** This is the primary motivation to
 HQ-promote eval 118 to t_stop=30 and see whether f_geo saturates or keeps climbing.
 
+### HQ promotion — `qball_traj_spiral_v2_hq_eval000118` (2026-07-02, t=16 pilot)
+
+First HQ replay of the v2 score leader at **256³ / L=128 / max_level=3 / t_stop=16**,
+`plot_interval=24` (~68 frames), `general_ftl` + 4D geodesic **`hq`** mode, dirs `x y z`.
+Run dir: `runs/grtresna_promote/qball_traj_spiral_v2_hq_eval000118/`.
+
+| | Stage 0 (128³, t=16) | HQ (256³, t=16) |
+|--|---------------------:|----------------:|
+| **Score** | **603.39** | **511.89** |
+| `operational_ftl` | 0.347 | 0.346 |
+| `ftl_geo_evolving` | 0.306 | **0.225** |
+| `ftl_persistence` | 0.347 | 0.346 |
+| `structural_persistence` / confinement | ~35% | ~35% |
+| `constraint_health` | — | 0.823 |
+| `f_op` (evolved) | 0.189 | 0.188 |
+| `max_local_speed` | **1.47 c** | **1.46 c** |
+| 4D `f_geo_evol` | peak **17.7%** (t_emit≈12) | **13.0%** |
+| gauge-invariant `f_geo` | — | **19.9%** |
+| FTL lifetime | 100% | 100% |
+| HQ status | — | **survived** |
+
+**Verdict:** FTL channel and ~35% Q-ball confinement **survive full HQ resolution** —
+coordinate metrics (`f_op`, `max c`, confinement) match QD within noise. Score drop is
+almost entirely **`ftl_geo_evolving`**: HQ 4D trace reports **13.0%** vs QD emit-sweep
+peak **17.7%** at t_emit≈12 (eval 118 still **rising** at the last QD launch; t=16 cut
+the window short). Not a crash or dispersion cheat — geodesic credit is lower at 256³.
+
+**4D trace (HQ, t_emit=0):** `f_geo_evol=13.0%`, frozen peak **22.1%** at t≈15.1,
+`h_quality_ok=true`, best direction **x**. Time-averaged frozen `f_geo` mean **69.8%**
+(ignored when 4D evolving trace is authoritative).
+
+**GRTresna (256³):** Ham **0.93%**, Mom **0.40%** at NL iter 6 (vs 0.95% / 0.42% at QD).
+
+**Artifacts:** `frames/` (16 field/projection dirs, 1088 PNGs), `movies/movie_*.mp4`,
+`score.json`, `small_data/score_timeseries.jsonl` (70 rows).
+
+**Frame fix (before t=30 rerun):** global zlim-lock from t=0 washed out `chi` / `chi-1`
+contrast (flat yellow on χ≈1, O(0.01) signals on ±0.9 bar). `per_frame_zlim` now uses
+local percentile scaling for those fields.
+
+**Follow-up:** `qball_traj_spiral_v2_t30_hq_eval000118` at **t_stop=30** (same grid) to
+test whether f_geo keeps climbing past the QD t=16 cutoff.
+
 ### v2 (gated) vs v1 (ungated) — why the headline score dropped
 
 v1 leaders scored **~1100** but at only **28–40% confinement**: the dispersion gate did
@@ -1180,6 +1223,9 @@ See [NextSteps.md](./NextSteps.md) for the full plan. Summary:
 
 | Run | Date | Ansatz | Evals | Best stable | Best HQ-confirmed | Headline |
 |-----|------|--------|-------|-------------|-------------------|----------|
+| `qball_traj_spiral_v2` | 2026-07-01 | Q-ball spiral (39D) | 200/200 | **603.4** (eval 118) | — (QD) | Dispersion-gated; 17.7% f_geo peak at t_emit=12 |
+| `qball_traj_spiral_v2` HQ | 2026-07-02 | HQ eval 118 (t=16) | 1/1 | 511.9 | **13.0%** f_geo_evol | Survived 256³; channel + 35% confinement hold |
+| `qball_traj_spiral_v2_t30` HQ | 2026-07-02 | HQ eval 118 (t=30) | in progress | — | — | Extended window past QD t=16 cutoff |
 | `scalar_sh_ftl_v22` | 2026-06-24 | SH (ℓ=4) | 202/200 | 470.6 (eval 189) | — | 1 FTL hit in 202 evals; 2.1% geodesic |
 | `trajectory_5lump_v1` | 2026-06-25 | Trajectory (5 lumps) | 130/200 | 1367.9 (eval 115) | **9.40%** f_geo (eval 122) | HQ-confirmed 9.4% geodesic shortcut at 256³ |
 | `trajectory_5lump_v1` HQ | 2026-06-25 | HQ promotion (5 evals) | 5/5 | eval 122 (survived) | **9.40%** f_geo, **20.97%** peak | 1 confirmed, 3 crashed, 1 false positive |

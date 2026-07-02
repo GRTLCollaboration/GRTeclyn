@@ -35,7 +35,7 @@ from grteclyn_wrapper.search.optimize.candidates import _clamp_trajectory_speed
 # Match scripts/campaigns/lib/search_common.sh (QD stage-0 defaults).
 _QD_PLOT_INTERVAL = 320
 _BOSON_FRAMES_FIELDS = (
-    "scalar_activity phi Pi phi_lump0 Pi_lump0 phi_lump1 "
+    "scalar_activity phi Pi phi_lump0 Pi_lump0 "
     "chi chi_minus_1 local_speed shift1 rho_req"
 )
 _SCALAR_FRAMES_FIELDS = (

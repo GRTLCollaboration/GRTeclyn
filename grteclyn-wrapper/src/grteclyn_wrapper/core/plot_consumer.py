@@ -107,7 +107,7 @@ def build_consume_command(
     delete: bool = True,
     keep_last: int = 1,
     watch: bool = True,
-    jobs: int = 4,
+    jobs: int = 1,
     frames: bool = True,
     keep_existing_frames: bool = False,
     stable_seconds: float | None = None,

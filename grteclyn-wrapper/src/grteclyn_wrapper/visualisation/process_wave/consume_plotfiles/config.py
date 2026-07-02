@@ -38,8 +38,20 @@ _FIELD_FRAME_CONFIGS: Dict[str, dict] = {
     # widened to (0.1, 1.05) so the well is resolved without per-frame rescaling:
     # a fixed scale keeps the movie colorbar stable (no "bouncing").  Re-enable
     # per-frame scaling explicitly via GRTECLYN_FRAMES_AUTO_ZLIM if needed.
-    "chi": {"zlim": (0.1, 1.05), "cmap": "magma", "label": r"Conformal Factor $\chi$"},
-    "chi_minus_1": {"zlim": (-0.9, 0.9), "cmap": "RdBu", "label": r"$\chi - 1$"},
+    # per_frame_zlim: local percentile contrast each step (global t=0 lock washes out
+    # late-time wells on chi; fixed ±0.9 on chi-1 hides O(0.01) features).
+    "chi": {
+        "zlim": (0.1, 1.05),
+        "cmap": "magma",
+        "label": r"Conformal Factor $\chi$",
+        "per_frame_zlim": True,
+    },
+    "chi_minus_1": {
+        "zlim": (-0.9, 0.9),
+        "cmap": "RdBu",
+        "label": r"$\chi - 1$",
+        "per_frame_zlim": True,
+    },
     "phi": {"zlim": (-0.05, 0.05), "cmap": "RdBu", "label": r"$\phi$"},
     "Pi": {"zlim": (-0.01, 0.01), "cmap": "RdBu", "label": r"$\Pi$"},
     "phi_lump0": {"zlim": (-0.05, 0.05), "cmap": "RdBu", "label": r"$\phi_2$"},

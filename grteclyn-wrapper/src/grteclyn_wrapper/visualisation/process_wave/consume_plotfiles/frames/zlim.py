@@ -26,6 +26,18 @@ def _auto_zlim_from_array(values: np.ndarray, field_name: str) -> tuple[float, f
         hi = max(hi, 1.0e-8)
         return (0.0, hi)
 
+    if field_name == "chi":
+        lo, hi = np.nanpercentile(finite, [0.5, 99.5])
+        lo, hi = float(lo), float(hi)
+        span = hi - lo
+        min_span = 0.04
+        if span < min_span:
+            mid = 0.5 * (lo + hi)
+            lo, hi = mid - 0.5 * min_span, mid + 0.5 * min_span
+            span = min_span
+        pad = max(0.05 * span, 0.005)
+        return (max(0.05, lo - pad), min(1.05, hi + pad))
+
     if field_name in {"Weyl4_Re", "Weyl4_Im", "phi", "Pi", "phi_lump0", "Pi_lump0", "chi_minus_1"}:
         max_abs = float(np.nanpercentile(np.abs(finite), 99.5))
         max_abs = max(max_abs, 1.0e-8)
@@ -40,7 +52,7 @@ def _auto_zlim_from_array(values: np.ndarray, field_name: str) -> tuple[float, f
     lo = float(lo)
     hi = float(hi)
     span = hi - lo
-    min_span = 1.0e-4 if field_name in {"chi", "lapse"} else 1.0e-12
+    min_span = 1.0e-4 if field_name in {"lapse"} else 1.0e-12
     if span < min_span:
         mid = 0.5 * (lo + hi)
         half_span = 0.5 * min_span
@@ -59,6 +71,11 @@ def _resolve_plot_zlim(
     use_global_zlim: bool,
 ) -> tuple[float, float]:
     if _frames_auto_zlim_enabled(auto_zlim) or cfg.get("auto_zlim"):
+        auto = _auto_zlim_from_array(win, field)
+        if auto is not None:
+            return auto
+
+    if cfg.get("per_frame_zlim"):
         auto = _auto_zlim_from_array(win, field)
         if auto is not None:
             return auto
@@ -128,20 +145,63 @@ def _extract_native_slice_window(
 def _lock_frame_zlims_from_plotfile(plot_path: str, args_dict: dict) -> dict[str, list[float]]:
     ds = yt.load(plot_path)
     frame_fields = [_canonical_field_name(f) for f in args_dict.get("frames_fields", [])]
+    axis = args_dict.get("frames_axis", "z")
+    zoom = args_dict.get("frames_zoom")
+    center_xyz = args_dict.get("frames_center")
+    corner = bool(args_dict.get("frames_corner"))
     zlims: dict[str, list[float]] = {}
-    for fld in frame_fields:
-        win = _extract_native_slice_window(
-            ds,
-            fld,
-            args_dict.get("frames_axis", "z"),
-            args_dict.get("frames_coord"),
-            args_dict.get("frames_zoom"),
-            args_dict.get("frames_center"),
-            bool(args_dict.get("frames_corner")),
+
+    # AMR HQ plotfiles: covering_grid at max_level allocates a full uniform
+    # 2048³ array (~200+ GB).  Use the same FRB SlicePlot path as rendering.
+    use_frb = int(ds.index.max_level) > 0
+    if use_frb:
+        from .center import _frame_buff_size, _resolve_frame_physics_center
+        from ..fields import _field_key, _register_derived_fields
+
+        physics_center = _resolve_frame_physics_center(
+            ds, axis, args_dict.get("frames_coord"), zoom, center_xyz, corner
         )
-        auto = _auto_zlim_from_array(win, fld)
-        if auto is not None:
-            zlims[fld] = [auto[0], auto[1]]
+        plot_center = ds.arr(physics_center, "code_length")
+        buff = _frame_buff_size(ds, zoom)
+
+    for fld in frame_fields:
+        try:
+            if _field_frame_config(fld).get("per_frame_zlim"):
+                continue
+            if use_frb:
+                _register_derived_fields(ds, fld)
+                plot_field = _field_key(ds, fld)
+                available = list(getattr(ds, "field_list", [])) + list(
+                    getattr(ds, "derived_field_list", [])
+                )
+                if plot_field not in available:
+                    if args_dict.get("verbose", False):
+                        print(f"WARNING: zlim-lock skipped missing field {fld!r}")
+                    continue
+                slc = yt.SlicePlot(
+                    ds, axis, plot_field, center=plot_center, buff_size=(buff, buff)
+                )
+                if zoom is not None:
+                    slc.set_width((float(zoom), "code_length"))
+                slc.render()
+                win = np.asarray(slc.frb[plot_field])
+            else:
+                win = _extract_native_slice_window(
+                    ds,
+                    fld,
+                    axis,
+                    args_dict.get("frames_coord"),
+                    zoom,
+                    center_xyz,
+                    corner,
+                )
+            auto = _auto_zlim_from_array(win, fld)
+            if auto is not None:
+                zlims[fld] = [auto[0], auto[1]]
+                if args_dict.get("verbose", False):
+                    print(f"[zlim-lock] {fld}: {auto[0]:.6g} .. {auto[1]:.6g}")
+        except Exception as exc:
             if args_dict.get("verbose", False):
-                print(f"[zlim-lock] {fld}: {auto[0]:.6g} .. {auto[1]:.6g}")
+                print(f"WARNING: zlim-lock skipped {fld!r}: {exc}")
+            continue
     return zlims
