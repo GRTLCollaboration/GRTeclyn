@@ -38,6 +38,11 @@ def _auto_zlim_from_array(values: np.ndarray, field_name: str) -> tuple[float, f
         pad = max(0.05 * span, 0.005)
         return (max(0.05, lo - pad), min(1.05, hi + pad))
 
+    if field_name in {"shift1", "shift2", "shift3"}:
+        max_abs = float(np.nanpercentile(np.abs(finite), 99.5))
+        max_abs = max(max_abs, 1.0e-4)
+        return (-max_abs, max_abs)
+
     if field_name in {"Weyl4_Re", "Weyl4_Im", "phi", "Pi", "phi_lump0", "Pi_lump0", "chi_minus_1"}:
         max_abs = float(np.nanpercentile(np.abs(finite), 99.5))
         max_abs = max(max_abs, 1.0e-8)
