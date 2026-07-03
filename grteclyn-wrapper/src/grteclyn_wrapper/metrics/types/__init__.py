@@ -16,6 +16,7 @@ from .diagnostics import (
 )
 from .central import CentralFieldMetrics
 from .episode import EpisodeMetrics
+from .psi4 import Psi4Metrics
 
 __all__ = [
     "STATIONARY_BETA_EPS",
@@ -29,6 +30,7 @@ __all__ = [
     "EpisodeMetrics",
     "FtlPersistenceMetrics",
     "GrowthMetrics",
+    "Psi4Metrics",
     "QeiMetrics",
     "StabilityMetrics",
     "TransportMetrics",

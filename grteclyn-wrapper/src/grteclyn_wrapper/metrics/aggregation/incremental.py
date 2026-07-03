@@ -20,6 +20,7 @@ from ..diagnostics.central import read_prefix_central_field_metrics
 from ..diagnostics.central_radial import read_central_radial_profile
 from ..diagnostics.collapse import read_collapse_metrics
 from ..diagnostics.ftl_timeseries import _aggregate_ftl_frames
+from ..diagnostics.psi4 import read_psi4_metrics
 from ..io.dat import numeric_rows
 from ..probes.ftl.analytic import compute_ftl_metrics, load_overrides_from_episode
 from ..probes.ftl.general import GeneralFtlReport
@@ -274,6 +275,25 @@ class IncrementalScoreWriter:
                 termination_reason="incremental",
                 central=central,
                 central_radial=central_radial,
+            )
+
+        if self.objective_mode == "gw_beam":
+            psi4_rows = _rows_up_to(ctx.small_data_dir / "psi4_directional.dat", at_time, 4)
+            if not psi4_rows:
+                return None
+            psi4 = read_psi4_metrics(ctx.small_data_dir)
+            return EpisodeMetrics(
+                collapse=collapse,
+                constraints=constraints,
+                stability=None,
+                comoving=None,
+                ftl=static.ftl,
+                general_ftl=static.general_ftl,
+                general_ftl_solved=static.general_ftl_solved,
+                mechanism_descriptor=static.mechanism_descriptor,
+                evolving_geodesic_mode=False,
+                termination_reason="incremental",
+                psi4=psi4,
             )
 
         ts_rows = _rows_up_to(ctx.ftl_timeseries_path, at_time, 12)

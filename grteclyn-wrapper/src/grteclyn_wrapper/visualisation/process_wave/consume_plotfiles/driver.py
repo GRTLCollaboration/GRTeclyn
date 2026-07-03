@@ -205,7 +205,7 @@ def main() -> None:
     parser.add_argument(
         "--objective-mode",
         default="weighted",
-        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl", "critical_collapse"],
+        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl", "critical_collapse", "gw_beam"],
         help="Objective mode for incremental scoring (matches final score_episode).",
     )
     parser.add_argument(
@@ -278,6 +278,7 @@ def main() -> None:
     out_dir = Path(args.out) if args.out else Path(data_dir) / "small_data"
     state_path = out_dir / "consume_state.json"
     out_path = out_dir / "psi4_mode_l2m0.dat"
+    psi4_directional_out_path = out_dir / "psi4_directional.dat"
     areal_out_path = out_dir / "areal_radius.dat"
     shell_out_path = out_dir / "shell_profiles.dat"
     boundary_flux_out_path = out_dir / "boundary_flux.dat"
@@ -288,6 +289,7 @@ def main() -> None:
     score_ts_path = out_dir / "score_timeseries.jsonl"
     stop_sim_path = Path(args.stop_sim_path) if args.stop_sim_path else Path(data_dir) / ".stop_sim"
     header = "# time  " + "  ".join([f"Re(R={R:g})  Im(R={R:g})" for R in args.radii])
+    psi4_directional_header = "# time  P_total  P_z_beam  beam_ratio"
     areal_header = "# time  R_areal_min  r_at_R_areal_min"
     shell_header = _shell_stats_header(args.radii, args.shell_fields)
 
@@ -299,6 +301,7 @@ def main() -> None:
         print("Detected a likely simulation restart in the same output directory.")
         print(f"Resetting: {out_path} and {state_path}")
         _truncate_if_exists(out_path)
+        _truncate_if_exists(psi4_directional_out_path)
         _truncate_if_exists(areal_out_path)
         if args.shell_fields:
             _truncate_if_exists(shell_out_path)
@@ -477,6 +480,12 @@ def main() -> None:
                         if res["success"]:
                             if res["psi4_line"]:
                                 _append_line(out_path, header=header, line=res["psi4_line"])
+                            if res.get("psi4_directional_line"):
+                                _append_line(
+                                    psi4_directional_out_path,
+                                    header=psi4_directional_header,
+                                    line=res["psi4_directional_line"],
+                                )
                             if res["areal_line"]:
                                 _append_line(areal_out_path, header=areal_header, line=res["areal_line"])
                             if res["shell_line"]:
@@ -521,6 +530,12 @@ def main() -> None:
                 if res["success"]:
                     if res["psi4_line"]:
                         _append_line(out_path, header=header, line=res["psi4_line"])
+                    if res.get("psi4_directional_line"):
+                        _append_line(
+                            psi4_directional_out_path,
+                            header=psi4_directional_header,
+                            line=res["psi4_directional_line"],
+                        )
                     if res["areal_line"]:
                         _append_line(areal_out_path, header=areal_header, line=res["areal_line"])
                     if res["shell_line"]:

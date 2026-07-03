@@ -24,6 +24,7 @@ from .diagnostics import (
     StabilityMetrics,
     TransportMetrics,
 )
+from .psi4 import Psi4Metrics
 
 
 @dataclass(frozen=True)
@@ -56,3 +57,4 @@ class EpisodeMetrics:
     confinement: "ConfinementMetrics | None" = None
     central: "CentralFieldMetrics | None" = None
     central_radial: "CentralRadialProfileMetrics | None" = None
+    psi4: Psi4Metrics | None = None

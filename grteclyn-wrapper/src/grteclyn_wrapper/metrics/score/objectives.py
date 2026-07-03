@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from .gw_beam import gw_beam_total
 from .splash import SURVIVAL_FORGIVENESS_WELL
 from .types import ScoringContext
 from .weights import HEALTH_COMPONENTS
@@ -25,6 +26,8 @@ def compute_total(
         return _general_ftl_total(components, notes, exotic_penalty_weight=exotic_penalty_weight)
     if objective_mode == "critical_collapse":
         return _critical_collapse_total(components, notes, splash_mode=splash_mode)
+    if objective_mode == "gw_beam":
+        return gw_beam_total(components)
     return _weighted_total(components, w, nontriviality)
 
 

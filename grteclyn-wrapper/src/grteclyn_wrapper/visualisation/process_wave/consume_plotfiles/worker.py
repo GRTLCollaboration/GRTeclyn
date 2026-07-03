@@ -5,11 +5,13 @@ import shutil
 import time
 from pathlib import Path
 
+import numpy as np
+
 from .extraction.areal import _extract_areal_radius_min
 from .extraction.central import _extract_central_timeseries_line
 from .extraction.confinement import _extract_confinement_line
 from .extraction.ftl import _extract_ftl_timeseries_line
-from .extraction.psi4 import _extract_mode_amps_l2m0
+from .extraction.psi4 import _extract_mode_amps_l2m0, _extract_mode_amps_l2_all
 from .extraction.shell import _extract_shell_field_stats, _format_shell_stats_line
 from .fields import _canonical_field_name
 from .frames.embedding import _render_embedding_frame
@@ -32,6 +34,7 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
         "key": os.path.basename(p),
         "t": 0.0,
         "psi4_line": None,
+        "psi4_directional_line": None,
         "areal_line": None,
         "shell_line": None,
         "boundary_flux_line": None,
@@ -68,13 +71,21 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
         if args_dict.get("psi4"):
             if ("boxlib", "Weyl4_Re") not in ds.field_list or ("boxlib", "Weyl4_Im") not in ds.field_list:
                 raise RuntimeError("Plotfile missing Weyl4_Re/Im. Set: amr.derive_plot_vars = Weyl4 and re-run.")
-            amps = _extract_mode_amps_l2m0(
+            l2m0_amps, directional = _extract_mode_amps_l2_all(
                 ds,
                 radii=[float(r) for r in args_dict["radii"]],
                 n_points=int(args_dict["n_points"]),
                 center=args_dict["center"],
             )
-            result["psi4_line"] = f"{t:.16e}  " + "  ".join([f"{a.real:.16e}  {a.imag:.16e}" for a in amps])
+            result["psi4_line"] = f"{t:.16e}  " + "  ".join([f"{a.real:.16e}  {a.imag:.16e}" for a in l2m0_amps])
+            # Aggregate directional metrics across extraction radii (arithmetic mean).
+            if directional.p_total:
+                p_total = float(np.mean(directional.p_total))
+                p_z_beam = float(np.mean(directional.p_z_beam))
+                beam_ratio = float(np.mean(directional.beam_ratio))
+                result["psi4_directional_line"] = (
+                    f"{t:.16e}  {p_total:.16e}  {p_z_beam:.16e}  {beam_ratio:.16e}"
+                )
 
         shell_fields = list(args_dict.get("shell_fields") or [])
         if shell_fields:

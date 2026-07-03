@@ -30,6 +30,7 @@ def episode(tmp_path: Path):
 
 def test_ftl_consumer_has_no_central_by_default(episode, monkeypatch) -> None:
     monkeypatch.delenv("GRTECLYN_CENTRAL_TIMESERIES", raising=False)
+    monkeypatch.delenv("GRTECLYN_CONSUMER_DRAIN_MINIMAL", raising=False)
     command = build_consume_command(
         episode,
         ftl_timeseries=True,
@@ -46,6 +47,7 @@ def test_splash_consumer_wires_central_and_incremental(episode, monkeypatch) -> 
     monkeypatch.setenv("GRTECLYN_CENTRAL_RADIAL", "1")
     monkeypatch.setenv("GRTECLYN_INCREMENTAL_SCORE", "1")
     monkeypatch.setenv("GRTECLYN_SPLASH_EARLY_TERM", "1")
+    monkeypatch.delenv("GRTECLYN_CONSUMER_DRAIN_MINIMAL", raising=False)
     command = build_consume_command(
         episode,
         ftl_timeseries=False,

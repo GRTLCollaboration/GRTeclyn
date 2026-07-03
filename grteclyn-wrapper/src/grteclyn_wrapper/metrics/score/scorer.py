@@ -6,6 +6,7 @@ from typing import Mapping
 from ..types import EpisodeMetrics
 from .ftl import compute_ftl_components
 from .gating import compute_nontriviality_gate
+from .gw_beam import compute_gw_beam_components
 from .health import compute_health_components
 from .objectives import compute_total
 from .penalties import compute_penalty_components
@@ -88,6 +89,8 @@ def score_episode(
     resolved_splash_mode = _resolve_splash_mode(splash_mode)
     if objective_mode == "critical_collapse":
         compute_splash_components(ctx, splash_mode=resolved_splash_mode)
+    if objective_mode == "gw_beam":
+        compute_gw_beam_components(ctx)
     nontriviality = compute_nontriviality_gate(ctx)
     total = compute_total(
         ctx,

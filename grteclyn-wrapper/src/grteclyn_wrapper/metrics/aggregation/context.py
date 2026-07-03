@@ -10,6 +10,7 @@ from pathlib import Path
 class EpisodeContext:
     episode_dir: Path
     ftl_L: float | None
+    small_data_dir: Path
     collapse_path: Path
     constraint_path: Path
     areal_path: Path
@@ -48,6 +49,7 @@ def build_episode_context(episode_dir: Path, *, ftl_L: float | None = None) -> E
     return EpisodeContext(
         episode_dir=episode_dir,
         ftl_L=ftl_L,
+        small_data_dir=small_data_dir,
         collapse_path=collapse_path,
         constraint_path=constraint_path,
         areal_path=areal_path,

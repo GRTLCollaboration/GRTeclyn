@@ -320,6 +320,24 @@ def _descriptor_details(
             "ftl_geo_evolving": float(components.get("ftl_geo_evolving", 0.0)),
         }
 
+    if mode == "gw_beam":
+        psi4 = (metrics or {}).get("psi4") or {}
+        # x-axis: log of total GW power, clipped to [0, 1].
+        import math
+
+        mean_power = float(psi4.get("mean_total_power", 0.0))
+        power_axis = float(np.clip(math.log10(mean_power + 1.0) / 6.0, 0.0, 1.0))
+        # y-axis: beaming ratio (already in [0, 1]).
+        beam_ratio = float(np.clip(psi4.get("mean_beam_ratio", 0.0), 0.0, 1.0))
+        return {
+            "x": power_axis,
+            "y": beam_ratio,
+            "gw_total_power": mean_power,
+            "gw_beam_ratio": beam_ratio,
+            "gw_peak_power": float(psi4.get("peak_total_power", 0.0)),
+            "gw_beam_quality": float(components.get("gw_beam_quality", 0.0)),
+        }
+
     ftl_benefit = float(
         np.clip(
             max(

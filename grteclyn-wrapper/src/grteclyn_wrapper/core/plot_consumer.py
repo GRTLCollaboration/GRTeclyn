@@ -271,6 +271,12 @@ def build_consume_command(
         command.append("--keep-existing-frames")
     if stable_seconds is not None:
         command.extend(["--stable-seconds", f"{float(stable_seconds):g}"])
+    # Minimal drain: only Psi4 extraction + deletion. Skip FTL, geodesic,
+    # confinement, shell, areal, central, and incremental scoring.
+    if consumer_drain_minimal():
+        ftl_timeseries = False
+        confinement_timeseries = False
+        incremental_score = False
     if ftl_timeseries:
         command.append("--ftl-timeseries")
         if ftl_L is not None:

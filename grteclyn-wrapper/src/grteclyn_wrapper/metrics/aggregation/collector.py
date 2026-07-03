@@ -22,6 +22,7 @@ from ..diagnostics import (
     read_energy_condition_metrics,
     read_ftl_timeseries_metrics,
     read_growth_metrics,
+    read_psi4_metrics,
     read_qei_metrics,
     read_stability_metrics,
     read_transport_metrics,
@@ -362,6 +363,12 @@ def read_episode_metrics(
     except Exception:
         confinement = None
 
+    psi4 = None
+    try:
+        psi4 = read_psi4_metrics(ctx.small_data_dir)
+    except Exception:
+        psi4 = None
+
     effective_ec = None
     try:
         recent = find_recent_plotfiles(ctx.episode_dir, count=5)
@@ -487,4 +494,5 @@ def read_episode_metrics(
         confinement=confinement,
         central=central,
         central_radial=central_radial,
+        psi4=psi4,
     )

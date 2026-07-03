@@ -407,7 +407,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     qd.add_argument(
         "--descriptor-mode",
-        choices=["legacy", "channel", "speed_horizon", "speed_super", "ftl_lifetime", "wave_focusing"],
+        choices=["legacy", "channel", "speed_horizon", "speed_super", "ftl_lifetime", "wave_focusing", "gw_beam"],
         default="legacy",
         help="MAP-Elites descriptors: legacy FTL/mechanism grid, channel "
         "path-closeness/mechanism-balance grid (needs shift>0), speed_horizon "
@@ -415,17 +415,19 @@ def build_parser() -> argparse.ArgumentParser:
         "illuminates the fast-but-not-trapped niche without needing shift, "
         "speed_super recalibrated cone-tilt vs superluminal_fraction grid "
         "(localized vs widespread superluminal region) that stays discriminating "
-        "in the nontrivial-but-not-operational regime, or ftl_lifetime "
+        "in the nontrivial-but-not-operational regime, ftl_lifetime "
         "peak gauge-invariant strength vs FTL-lifetime fraction (time-resolved) "
-        "grid that separates transient shortcuts from sustained ones.",
+        "grid that separates transient shortcuts from sustained ones, or "
+        "gw_beam (log total GW power vs Z-axis beam ratio).",
     )
     qd.add_argument(
         "--objective-mode",
-        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl", "critical_collapse"],
+        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl", "critical_collapse", "gw_beam"],
         default="weighted",
         help="Scoring scalarization used as elite quality. robust_ftl tilts "
         "ftl_first toward persistent/healthy/low-exotic geometries; "
-        "general_ftl rewards gauge-invariant shortcuts only.",
+        "general_ftl rewards gauge-invariant shortcuts only; gw_beam "
+        "rewards strong directional gravitational-wave emission.",
     )
     qd.add_argument(
         "--pin-dimension",
