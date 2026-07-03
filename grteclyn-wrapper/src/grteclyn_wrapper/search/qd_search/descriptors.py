@@ -22,6 +22,15 @@ _SPEED_SUPER_C_FLOOR = 0.95
 _SPEED_SUPER_C_TARGET = 1.20
 _SPEED_SUPER_FRACTION_TARGET = 0.15
 
+# GW-beam descriptor axis bounds.  The x-axis maps log10(mean_total_power)
+# onto [0, 1] over the dynamic range expected for compact-Q-ball sources
+# (~1e-6 floor to ~1e-1 ceiling).  These are physical priors, not data fits:
+# 1e-6 is well below any meaningful emission, and 1e-1 is the upper end of
+# what a sub-chrono-scale compact source at this resolution produces.
+_GW_POWER_FLOOR = 1.0e-6
+_GW_POWER_LOG_MIN = -6.0  # log10(1e-6)
+_GW_POWER_LOG_SPAN = 5.0  # log10(1e-1) - log10(1e-6)
+
 # FTL-lifetime descriptor: separate transient shortcuts from sustained ones.
 # x-axis = 4D end-to-end geodesic strength; y-axis = 4D shortcut present (1/0).
 
@@ -322,11 +331,14 @@ def _descriptor_details(
 
     if mode == "gw_beam":
         psi4 = (metrics or {}).get("psi4") or {}
-        # x-axis: log of total GW power, clipped to [0, 1].
-        import math
-
+        # x-axis: log of total GW power over the empirically observed dynamic
+        # range.  The +1 form in earlier revisions assumed power ~ O(1e6) and
+        # collapsed every compact-Q-ball candidate (power ~ 1e-4..1e-2) into
+        # bin 0.  We instead map log10(power) on a fixed floor of 1e-6 so the
+        # observed span spreads across the archive.
         mean_power = float(psi4.get("mean_total_power", 0.0))
-        power_axis = float(np.clip(math.log10(mean_power + 1.0) / 6.0, 0.0, 1.0))
+        floored = max(mean_power, _GW_POWER_FLOOR)
+        power_axis = float(np.clip((math.log10(floored) - _GW_POWER_LOG_MIN) / _GW_POWER_LOG_SPAN, 0.0, 1.0))
         # y-axis: beaming ratio (already in [0, 1]).
         beam_ratio = float(np.clip(psi4.get("mean_beam_ratio", 0.0), 0.0, 1.0))
         return {

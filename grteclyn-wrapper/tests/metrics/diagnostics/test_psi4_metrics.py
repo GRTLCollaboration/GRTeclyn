@@ -44,14 +44,3 @@ def test_read_psi4_metrics_missing_file(tmp_path: Path) -> None:
 def test_read_psi4_metrics_empty_file(tmp_path: Path) -> None:
     (tmp_path / "psi4_directional.dat").write_text("# header only\n", encoding="utf-8")
     assert read_psi4_metrics(tmp_path) is None
-
-
-def test_score_signal(tmp_path: Path) -> None:
-    rows = [
-        (0.0, 1.0, 0.5, 0.5),
-        (1.0, 1.0, 0.5, 0.5),
-    ]
-    _write_psi4_directional(tmp_path, rows)
-    metrics = read_psi4_metrics(tmp_path)
-    assert metrics is not None
-    np.testing.assert_allclose(metrics.score_signal, 1.5)

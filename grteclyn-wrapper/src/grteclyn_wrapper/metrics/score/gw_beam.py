@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 from .types import ScoringContext
 
 
@@ -29,8 +31,6 @@ def compute_gw_beam_components(ctx: ScoringContext) -> None:
     # Combined quality: strong signal that is also beamed.
     # Log-scaling the power avoids a single runaway amplitude swamping the
     # beaming term entirely.
-    import math
-
     power = float(psi4.mean_total_power)
     if power > 0.0:
         log_power = math.log10(power + 1.0)

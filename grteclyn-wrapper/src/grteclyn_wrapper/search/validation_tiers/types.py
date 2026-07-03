@@ -60,6 +60,10 @@ class TierConfig:
     ec_floor: float = 1.0e-3
     exotic_cap: float = 6.0
     qei_cap: float = 1.0
+    # GW-beam gate: a meaningful log-scaled gw_beam_quality clears NONTRIVIAL
+    # even when no FTL signal is present.  Observed compact-Q-ball emitters
+    # reach ~1e-4..1e-2; 1e-4 sits comfortably above zero-noise.
+    gw_emitter_floor: float = 1.0e-4
 
 
 DEFAULT_TIER_CONFIG = TierConfig()

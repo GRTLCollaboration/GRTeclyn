@@ -71,10 +71,17 @@ def evaluate_tiers(
         _f(components, "ftl_persistence"),
         _f(components, "expansion_asymmetry"),
     )
+    # GW-beam campaigns emit no FTL/collapse signal by construction; their
+    # "nontrivial" signature is genuine gravitational-wave emission.  Let a
+    # meaningful gw_beam_quality (log-scaled power) clear the NONTRIVIAL bar
+    # so GW emitters are not uniformly tier-rejected.
+    gw_signal = _f(components, "gw_beam_quality")
+    if gw_signal >= config.gw_emitter_floor:
+        signal = max(signal, gw_signal)
     if signal >= config.nontrivial_floor:
-        add(Tier.NONTRIVIAL, PASS, f"max_ftl_signal={signal:.3g}")
+        add(Tier.NONTRIVIAL, PASS, f"max_signal={signal:.3g}")
     else:
-        add(Tier.NONTRIVIAL, FAIL, f"max_ftl_signal={signal:.3g} < {config.nontrivial_floor} (flat/trivial)")
+        add(Tier.NONTRIVIAL, FAIL, f"max_signal={signal:.3g} < {config.nontrivial_floor} (flat/trivial)")
 
     has_evolved = ("operational_ftl" in components) or ("ftl_persistence" in components)
     if not has_evolved:

@@ -27,13 +27,3 @@ class Psi4Metrics:
     @property
     def has_data(self) -> bool:
         return self.n_samples > 0
-
-    @property
-    def score_signal(self) -> float:
-        """Scalar optimization target: total power * (1 + beaming ratio).
-
-        Rewards both strong GW emission and preferential Z-axis beaming.
-        """
-        if not self.has_data:
-            return 0.0
-        return float(self.mean_total_power * (1.0 + self.mean_beam_ratio))
