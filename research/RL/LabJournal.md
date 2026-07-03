@@ -4,6 +4,57 @@ Reverse-chronological log for the closed-loop RadialRecipe RL stack. Newest firs
 
 ---
 
+## 2026-07-03 — `gw_beam_qd100_v4` MAP-Elites (100 evals, COMPLETE)
+
+First GW-beam QD run with **v4 hard gates** (Ψ₄ truncation at spike, `gw_health_multiplier`, archive tier gate). Fresh campaign; v2/v3 run dirs removed.
+
+### Config
+
+| Setting | Value |
+|---------|-------|
+| Objective / descriptor | `gw_beam` |
+| Box | L=64, N=128, t_stop=24 |
+| Ψ₄ extraction | **R=20** (was R=12 in v3) |
+| Matter | 5 canonical Q-balls, trajectory ansatz |
+| Search clamp | `trajectory_v_rad_inward_floor=-0.1` |
+| Retention | top-3 by score + in-flight pipeline (~25–30 dirs on disk) |
+
+Run dir: `runs/grtresna_qd/gw_beam_qd100_v4/`
+
+### Outcome
+
+| Metric | Value |
+|--------|-------|
+| Evals completed | 100/100 |
+| Healthy (score > 0) | **22** |
+| Collapse vetoed (`mult=0`, ~−116) | **77/100** (77%) |
+| Archive elites | **5** (rejected tiers excluded) |
+| Best score | **eval 88 @ 3.09** |
+
+### Top 5
+
+| Eval | Score | Tier | beam_ratio | Notes |
+|------|-------|------|------------|-------|
+| 88 | 3.09 | constructed | 0.14 | Campaign best; full t=24, max Ham≈0.08 |
+| 61 | 2.82 | constructed | **0.28** | Best **directional** GW in top tier |
+| 52 | 2.78 | constructed | 0.27 | |
+| 55 | 2.71 | constructed | 0.25 | |
+| 49 | 2.70 | constructed | 0.18 | |
+
+### Findings
+
+1. **Hard gates worked.** v3 collapse exploit (eval 51 @ 336) is gone — collapse runs score ~**−116** (`mult=0`, spike penalty −112.5), not +300.
+2. **No strong GW emitter found.** Best scores are modest (~2–3), dominated by survival/health bonuses; mean Ψ₄ power remains ~10⁻⁴–10⁻³. Eval 88 wins overall score but eval **61 has higher beam ratio** (28% vs 14%).
+3. **Search still collapse-heavy early.** 77% of evals hit constraint spike before t≈18 (R=20 light-travel gate). Optimizer is probing aggressive configs; 22 stable survivors is a reasonable yield.
+4. **Archive is trustworthy.** Only `tier ≥ constructed` runs occupy cells; collapse modes stay in trajectory/near-miss pool only.
+
+### Next
+
+- Inspect eval 61/88 Ψ₄ + constraint plots before trusting any as physical emitters.
+- Consider tighter inward-motion limits, longer stop_time, or CMA-ES warm-start from eval 61 (beam) or 88 (score).
+
+---
+
 ## Current state (2026-06-23)
 
 ### Gates passed
