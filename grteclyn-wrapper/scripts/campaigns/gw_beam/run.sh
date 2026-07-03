@@ -59,9 +59,10 @@ trajectory_lump3_well_depth=0.15 \
 trajectory_lump4_well_depth=0.15 \
 trajectory_well_width=1.667}"
 
-# --- Evolution: long enough for GWs to reach R=12 and pass through the sphere ---
-# Light travel from orbit (R~5) to R=12 is ~7; t=24 leaves ~17 units of observing
-# window before any wall reflection returns.
+# --- Evolution: long enough for GWs to reach R_ext and pass through the sphere ---
+# Light travel from orbit (R~5) to R_ext is ~(R_ext-5); t=24 leaves a clean window
+# before wall reflections (need ~54 units on L=64).
+export CONSUMER_RADII="${CONSUMER_RADII:-12}"
 export STOP_TIME=24.0
 # Coarse plot cadence: only ~5 plotfiles per eval, so the consumer can keep up with
 # the GPU and the QD batch turns faster.
@@ -91,7 +92,6 @@ amr.derive_plot_vars=Weyl4}"
 # --- GW extraction / no FTL ---
 export GRTECLYN_PSI4=1
 export GRTECLYN_PSI4_N_POINTS=64
-export CONSUMER_RADII="12"
 # Drain-minimal: only extract Psi4 and delete plotfiles; skip FTL/geodesic,
 # confinement, shell-field, areal-radius, and incremental scoring. The QD
 # pipeline still computes the final gw_beam score from psi4_directional.dat.
@@ -119,7 +119,7 @@ export POSTLOAD_MAX_HAM_L2="${POSTLOAD_MAX_HAM_L2:-3e-2}"
 
 echo "== GW beam QD: ${QD_NAME} =="
 echo "   GPUs: ${GPU_IDS} (batch=${BATCH_SIZE})  target_evals=${QD_TARGET_EVALS}"
-echo "   Box: L=64 N=128  R_ext=12  t_stop=${STOP_TIME}"
+echo "   Box: L=64 N=128  R_ext=${CONSUMER_RADII}  t_stop=${STOP_TIME}"
 echo "   Objective: ${OBJECTIVE_MODE}  descriptor: ${DESCRIPTOR_MODE}"
 echo "   Pipeline: max_grtresna=${MAX_CONCURRENT_GRTRESNA}"
 

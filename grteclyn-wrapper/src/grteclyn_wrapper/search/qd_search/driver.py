@@ -352,7 +352,7 @@ def run_qd_search(
         status = infer_trajectory_status({**flags, "components": res.components})
 
         elite = None
-        if status == "gpu_ok":
+        if status == "gpu_ok" and int(assessment.tier) >= int(Tier.CONSTRUCTED):
             elite = Elite(
                 cell=cell,
                 score=res.score,
@@ -846,7 +846,7 @@ def _run_legacy_batch_mode(
         flags = trajectory_flags_from_evaluation(res)
         status = infer_trajectory_status({**flags, "components": res.components})
         improved = None
-        if insert_archive and status == "gpu_ok":
+        if insert_archive and status == "gpu_ok" and int(assessment.tier) >= int(Tier.CONSTRUCTED):
             elite = Elite(
                 cell=cell,
                 score=res.score,

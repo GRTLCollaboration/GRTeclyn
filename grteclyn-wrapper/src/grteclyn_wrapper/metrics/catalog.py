@@ -39,7 +39,7 @@ METRIC_REGISTRY: dict[str, MetricSpec] = {
         source_detail="data/constraint_norms.dat",
         compute_fn="read_constraint_metrics",
         in_episode=True,
-        score_components=("constraint_health", "initial_constraint_quality", "constraint_growth"),
+        score_components=("constraint_health", "initial_constraint_quality", "constraint_growth", "constraint_spike_penalty"),
         summary="Hamiltonian/momentum L2 norms and required energy density.",
     ),
     "stability": MetricSpec(

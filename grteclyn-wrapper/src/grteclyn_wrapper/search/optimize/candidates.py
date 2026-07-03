@@ -69,6 +69,10 @@ def _clamp_trajectory_spiral_radius(
         a_breath = float(overrides.get("trajectory_A_breath", 0.0))
     except (TypeError, ValueError):
         a_breath = 0.0
+    try:
+        v_rad_inward_floor = float(overrides.get("trajectory_v_rad_inward_floor", float("-inf")))
+    except (TypeError, ValueError):
+        v_rad_inward_floor = float("-inf")
 
     lump_indices: set[str] = set()
     for key in overrides:
@@ -95,6 +99,8 @@ def _clamp_trajectory_spiral_radius(
         v_rad_floor = _min_spiral_v_rad(
             r0, a_breath=a_breath, stop_time=stop_time, r_min=r_min
         )
+        if math.isfinite(v_rad_inward_floor):
+            v_rad_floor = max(v_rad_floor, v_rad_inward_floor)
         if v_rad < v_rad_floor:
             overrides[v_rad_key] = v_rad_floor
     return overrides

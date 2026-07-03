@@ -16,6 +16,8 @@ from grteclyn_wrapper.search.qd_search import QDArchive, run_qd_search
 def _base_components(**extra: float) -> dict[str, float]:
     return {
         "constraint_growth": 0.0,
+        "constraint_health": 0.1,
+        "initial_constraint_quality": 0.1,
         "operational_ftl": 0.2,
         "ftl_persistence": 0.0,
         "ftl_geo_evolving": 0.0,

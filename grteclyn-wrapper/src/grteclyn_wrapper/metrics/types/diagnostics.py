@@ -38,6 +38,12 @@ class ConstraintMetrics:
     integral_negative_rho: float | None
     final_peak_rho_required: float | None = None
     initial_peak_rho_required: float | None = None
+    # Ham/Mom explosion: single-step cliff or runaway max vs early baseline.
+    constraint_spike_time: float | None = None
+    ham_spike_ratio: float | None = None
+    max_step_ham_ratio: float | None = None
+    mom_spike_ratio: float | None = None
+    has_constraint_spike: bool = False
 
 
 @dataclass(frozen=True)

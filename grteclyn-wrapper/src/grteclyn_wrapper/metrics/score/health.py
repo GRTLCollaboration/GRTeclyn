@@ -7,6 +7,34 @@ from .horizon import horizon_penalty_from_collapse
 from .types import ScoringContext
 
 
+def _compute_constraint_spike_penalty(
+    metrics,
+    components: dict[str, float],
+    notes: list[str],
+) -> None:
+    """Penalize runs where Ham/Mom explode in a single timestep (collapse gaming)."""
+    constraints = metrics.constraints
+    if constraints is None or not constraints.has_constraint_spike:
+        components["constraint_spike_penalty"] = 0.0
+        return
+
+    ham_ratio = constraints.ham_spike_ratio or 1.0
+    step_ratio = constraints.max_step_ham_ratio or 1.0
+    mom_ratio = constraints.mom_spike_ratio or 1.0
+    severity = max(
+        math.log10(max(ham_ratio, 1.0)) / 6.0,
+        math.log10(max(step_ratio, 1.0)) / 4.0,
+        math.log10(max(mom_ratio, 1.0)) / 3.0,
+    )
+    components["constraint_spike_penalty"] = -min(max(severity, 0.25), 0.75)
+    spike_t = constraints.constraint_spike_time
+    t_note = f" at t={spike_t:.2f}" if spike_t is not None else ""
+    notes.append(
+        "constraint spike detected"
+        f"{t_note}: ham_ratio={ham_ratio:.2e}, step_ratio={step_ratio:.2e}"
+    )
+
+
 def compute_health_components(ctx: ScoringContext) -> None:
     metrics = ctx.metrics
     components = ctx.components
@@ -100,6 +128,8 @@ def compute_health_components(ctx: ScoringContext) -> None:
             )
     else:
         components["constraint_growth"] = 0.0
+
+    _compute_constraint_spike_penalty(metrics, components, notes)
 
     if metrics.physical is not None:
         if metrics.physical.s_anec is not None:

@@ -19,6 +19,7 @@ import numpy as np
 from ..diagnostics.central import read_prefix_central_field_metrics
 from ..diagnostics.central_radial import read_central_radial_profile
 from ..diagnostics.collapse import read_collapse_metrics
+from ..diagnostics.constraints import spike_info_from_rows
 from ..diagnostics.ftl_timeseries import _aggregate_ftl_frames
 from ..diagnostics.psi4 import read_psi4_metrics
 from ..io.dat import numeric_rows
@@ -64,6 +65,7 @@ def read_prefix_constraint_metrics(path: Path, max_time: float) -> ConstraintMet
     max_int_neg = max((row[5] for row in rho_rows), default=None)
     final_peak_rho_req = rho_rows[-1][4] if rho_rows else None
     initial_peak_rho_req = rho_rows[0][4] if rho_rows else None
+    spike = spike_info_from_rows(rows)
     return ConstraintMetrics(
         final_time=rows[-1][0],
         max_hamiltonian_l2=max(row[1] for row in rows),
@@ -75,6 +77,11 @@ def read_prefix_constraint_metrics(path: Path, max_time: float) -> ConstraintMet
         integral_negative_rho=max_int_neg,
         final_peak_rho_required=final_peak_rho_req,
         initial_peak_rho_required=initial_peak_rho_req,
+        constraint_spike_time=spike.constraint_spike_time,
+        ham_spike_ratio=spike.ham_spike_ratio,
+        max_step_ham_ratio=spike.max_step_ham_ratio,
+        mom_spike_ratio=spike.mom_spike_ratio,
+        has_constraint_spike=spike.has_constraint_spike,
     )
 
 
@@ -281,7 +288,14 @@ class IncrementalScoreWriter:
             psi4_rows = _rows_up_to(ctx.small_data_dir / "psi4_directional.dat", at_time, 4)
             if not psi4_rows:
                 return None
-            psi4 = read_psi4_metrics(ctx.small_data_dir)
+            psi4 = read_psi4_metrics(
+                ctx.small_data_dir,
+                max_peak_time=(
+                    constraints.constraint_spike_time
+                    if constraints is not None and constraints.has_constraint_spike
+                    else None
+                ),
+            )
             return EpisodeMetrics(
                 collapse=collapse,
                 constraints=constraints,

@@ -12,10 +12,18 @@ from ..types.psi4 import Psi4Metrics
 _PSI4_DIRECTIONAL_FILENAME = "psi4_directional.dat"
 
 
-def read_psi4_metrics(small_data_dir: Path) -> Psi4Metrics | None:
+def read_psi4_metrics(
+    small_data_dir: Path,
+    *,
+    max_peak_time: float | None = None,
+) -> Psi4Metrics | None:
     """Aggregate directional Psi4 timeseries from ``small_data/psi4_directional.dat``.
 
     Columns: time, P_total, P_z_beam, beam_ratio.
+
+    When ``max_peak_time`` is set (typically the constraint-spike time), **all**
+    aggregates (peak, mean, final) use only samples at or before that time so
+    post-collapse numerical noise cannot inflate GW metrics.
     """
     path = small_data_dir / _PSI4_DIRECTIONAL_FILENAME
     if not path.is_file():
@@ -43,6 +51,16 @@ def read_psi4_metrics(small_data_dir: Path) -> Psi4Metrics | None:
     p_total = data[:, 1]
     p_z_beam = data[:, 2]
     beam_ratio = data[:, 3]
+    times = data[:, 0]
+
+    if max_peak_time is not None:
+        mask = times <= max_peak_time + 1.0e-9
+        p_total = p_total[mask]
+        p_z_beam = p_z_beam[mask]
+        beam_ratio = beam_ratio[mask]
+        times = times[mask]
+        if p_total.size == 0:
+            return None
 
     def _peak(arr: np.ndarray) -> float:
         finite = arr[np.isfinite(arr)]
@@ -66,5 +84,5 @@ def read_psi4_metrics(small_data_dir: Path) -> Psi4Metrics | None:
         final_total_power=_final(p_total),
         final_z_beam_power=_final(p_z_beam),
         final_beam_ratio=_final(beam_ratio),
-        n_samples=int(data.shape[0]),
+        n_samples=int(p_total.size),
     )

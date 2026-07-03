@@ -365,7 +365,12 @@ def read_episode_metrics(
 
     psi4 = None
     try:
-        psi4 = read_psi4_metrics(ctx.small_data_dir)
+        spike_t = (
+            constraints.constraint_spike_time
+            if constraints is not None and constraints.has_constraint_spike
+            else None
+        )
+        psi4 = read_psi4_metrics(ctx.small_data_dir, max_peak_time=spike_t)
     except Exception:
         psi4 = None
 
