@@ -52,9 +52,9 @@ def grtresna_solved_ftl_gate_enabled(
     explicit = getattr(args, "grtresna_solved_ftl_gate", None)
     if explicit is not None:
         return bool(explicit)
-    # general_ftl rewards 4D null-geodesic shortcuts, not coordinate precursors.
-    # critical_collapse / splash campaigns score origin rho peaks, not warp motors.
-    if objective_mode in {"general_ftl", "critical_collapse"}:
+    # general_ftl and spacetime_shear reward evolved geometry, not coordinate
+    # precursors. critical_collapse / splash campaigns score origin rho peaks.
+    if objective_mode in {"general_ftl", "critical_collapse", "spacetime_shear"}:
         return False
     return True
 

@@ -28,6 +28,8 @@ def compute_total(
         return _critical_collapse_total(components, notes, splash_mode=splash_mode)
     if objective_mode == "gw_beam":
         return gw_beam_total(components)
+    if objective_mode == "spacetime_shear":
+        return _spacetime_shear_total(components, notes, exotic_penalty_weight=exotic_penalty_weight)
     return _weighted_total(components, w, nontriviality)
 
 
@@ -219,6 +221,47 @@ def _general_ftl_total(
     notes.append(
         "objective_mode=general_ftl: gauge-invariant shortcut only; "
         "warp-motor shaping and stationary penalty disabled"
+    )
+    return total
+
+
+def _spacetime_shear_total(
+    components: dict[str, float],
+    notes: list[str],
+    *,
+    exotic_penalty_weight: float = 1.0,
+) -> float:
+    # Spacetime-shear / Lentz objective: reward strong curvature and non-trivial
+    # geometry produced by positive-energy matter, while penalizing collapse to a
+    # horizon.  This is intentionally FTL-agnostic: we want to find the extreme,
+    # non-collapsing frame-dragging configurations that general relativity permits
+    # with normal matter, even if they do not (yet) open a traversable shortcut.
+    health_gate = components.get("nontriviality_gate", 0.0)
+    horizon = components.get("horizon_penalty", 0.0)
+    total = (
+        # Primary rewards: curvature / non-trivial geometry from the shear.
+        1000.0 * components.get("curvature_activity", 0.0)
+        + 300.0 * components.get("nontrivial_geometry", 0.0)
+        + 100.0 * components.get("confinement_final_frac", 0.0)
+        # Health rewards are gated by nontriviality so flat space cannot exploit them.
+        + health_gate * (
+            100.0 * components.get("survival", 0.0)
+            + 10.0 * components.get("constraint_health", 0.0)
+            + 30.0 * components.get("stability", 0.0)
+            + 10.0 * components.get("comoving_stability", 0.0)
+            + 15.0 * components.get("instability_penalty", 0.0)
+            + 20.0 * components.get("anec_condition", 0.0)
+            + 10.0 * components.get("tidal_comfort", 0.0)
+            + 5.0 * components.get("constraint_growth", 0.0)
+        )
+        # Penalize NEC violation from the geometry, but gently (this is the Lentz
+        # regime: normal matter may temporarily violate the effective NEC).
+        + 40.0 * exotic_penalty_weight * components.get("exotic_penalty", 0.0)
+        # Veto collapse: a horizon means the shear is too strong and the run is over.
+        + 500.0 * horizon
+    )
+    notes.append(
+        "objective_mode=spacetime_shear: maximize curvature/shear while avoiding collapse"
     )
     return total
 

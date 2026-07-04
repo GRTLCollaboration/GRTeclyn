@@ -113,11 +113,12 @@ def build_parser() -> argparse.ArgumentParser:
     opt.add_argument("--gpu-ids", nargs="+", type=int, default=None, help="GPU indices for parallel eval (e.g. 0 1 2 3 4 5 6 7).")
     opt.add_argument(
         "--objective-mode",
-        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl", "critical_collapse"],
+        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl", "critical_collapse", "spacetime_shear"],
         default="weighted",
         help="Scoring scalarization: weighted legacy score, FTL-first ordering, "
         "robust_ftl (FTL-first tilted toward persistent/healthy/low-exotic), "
-        "or general_ftl (gauge-invariant shortcut only; no warp-motor shaping).",
+        "general_ftl (gauge-invariant shortcut only; no warp-motor shaping), "
+        "or spacetime_shear (reward curvature/shear while avoiding collapse).",
     )
     opt.add_argument(
         "--pin-dimension",
@@ -407,7 +408,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     qd.add_argument(
         "--descriptor-mode",
-        choices=["legacy", "channel", "speed_horizon", "speed_super", "ftl_lifetime", "wave_focusing", "gw_beam"],
+        choices=["legacy", "channel", "speed_horizon", "speed_super", "ftl_lifetime", "wave_focusing", "gw_beam", "spacetime_shear"],
         default="legacy",
         help="MAP-Elites descriptors: legacy FTL/mechanism grid, channel "
         "path-closeness/mechanism-balance grid (needs shift>0), speed_horizon "
@@ -417,17 +418,19 @@ def build_parser() -> argparse.ArgumentParser:
         "(localized vs widespread superluminal region) that stays discriminating "
         "in the nontrivial-but-not-operational regime, ftl_lifetime "
         "peak gauge-invariant strength vs FTL-lifetime fraction (time-resolved) "
-        "grid that separates transient shortcuts from sustained ones, or "
+        "grid that separates transient shortcuts from sustained ones, "
+        "spacetime_shear (curvature_activity vs horizon-free), or "
         "gw_beam (log total GW power vs Z-axis beam ratio).",
     )
     qd.add_argument(
         "--objective-mode",
-        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl", "critical_collapse", "gw_beam"],
+        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl", "critical_collapse", "gw_beam", "spacetime_shear"],
         default="weighted",
         help="Scoring scalarization used as elite quality. robust_ftl tilts "
         "ftl_first toward persistent/healthy/low-exotic geometries; "
         "general_ftl rewards gauge-invariant shortcuts only; gw_beam "
-        "rewards strong directional gravitational-wave emission.",
+        "rewards strong directional gravitational-wave emission; "
+        "spacetime_shear rewards curvature/shear while avoiding collapse.",
     )
     qd.add_argument(
         "--pin-dimension",

@@ -329,6 +329,19 @@ def _descriptor_details(
             "ftl_geo_evolving": float(components.get("ftl_geo_evolving", 0.0)),
         }
 
+    if mode == "spacetime_shear":
+        # x-axis: curvature activity (spacetime disturbance / frame-dragging strength).
+        # y-axis: horizon-free score (1.0 = no horizon, 0.0 = collapsed).
+        curvature = float(np.clip(components.get("curvature_activity", 0.0), 0.0, 1.0))
+        horizon_free = float(np.clip(1.0 + (components.get("horizon_penalty", 0.0) or 0.0), 0.0, 1.0))
+        return {
+            "x": curvature,
+            "y": horizon_free,
+            "curvature_activity": curvature,
+            "horizon_free": horizon_free,
+            "nontrivial_geometry": float(np.clip(components.get("nontrivial_geometry", 0.0), 0.0, 1.0)),
+        }
+
     if mode == "gw_beam":
         psi4 = (metrics or {}).get("psi4") or {}
         # x-axis: log of total GW power over the empirically observed dynamic
