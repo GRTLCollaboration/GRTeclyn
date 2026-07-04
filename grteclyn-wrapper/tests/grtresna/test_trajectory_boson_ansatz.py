@@ -177,6 +177,19 @@ def test_trajectory_boson_bounds_are_sane() -> None:
         assert math.isfinite(d.upper)
 
 
+def test_trajectory_boson_search_space_uses_normalized_speed_fractions() -> None:
+    """omega_rot and v_rad are now normalized fractions of trajectory_v_max."""
+    space = grtresna_trajectory_boson_search_space()
+    by_key = {d.param_key: d for d in space}
+    omega = by_key["trajectory_lump0_omega_rot"]
+    v_rad = by_key["trajectory_lump0_v_rad"]
+    # Normalized range [-1, 1] maps to [-v_max, v_max] for each speed component.
+    assert math.isclose(omega.upper, 1.0, rel_tol=1e-9)
+    assert math.isclose(omega.lower, -1.0, rel_tol=1e-9)
+    assert math.isclose(v_rad.upper, 1.0, rel_tol=1e-9)
+    assert math.isclose(v_rad.lower, -1.0, rel_tol=1e-9)
+
+
 # ---------------------------------------------------------------------------
 # Config expansion tests
 # ---------------------------------------------------------------------------

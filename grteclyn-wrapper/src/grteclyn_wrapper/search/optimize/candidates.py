@@ -111,17 +111,26 @@ def _clamp_trajectory_speed(
     *,
     default_v_max: float = TRAJECTORY_V_MAX_DEFAULT,
 ) -> dict[str, Any]:
-    """Clamp trajectory lump speeds so total initial velocity stays <= v_max.
+    """Convert normalized trajectory speed fractions to physical omega_rot / v_rad.
 
-    Total speed at t=0 combines tangential motion (R0 * |omega_rot|) and radial
-    drift (v_rad).  Spiral orbits need both components capped together so the
-    co-moving pump target does not outrun the soliton.
+    The search space now treats ``trajectory_lump*_omega_rot`` and
+    ``trajectory_lump*_v_rad`` as *normalized fractions* of ``trajectory_v_max``:
+
+      * omega_rot_norm = -1..1  ->  tangential speed v_t = omega_rot_norm * v_max
+      * v_rad_norm     = -1..1  ->  radial speed      v_r = v_rad_norm     * v_max
+
+    The combined normalized speed is clamped to the unit disk, then converted to
+    physical quantities:
+
+      * omega_rot = v_t / R0
+      * v_rad     = v_r
+
+    This turns the speed budget into a smooth 2-D disk for the optimizer, instead
+    of a hard-cornered box where almost every non-zero omega_rot hits the speed
+    boundary and every configuration ends up with exactly the same max speed.
 
     Mutates and returns *overrides*.  No-op when no ``trajectory_lump*_omega_rot``
-    keys are present, so non-trajectory campaigns are unaffected.  The cap is the
-    single authoritative enforcement point: the same ``overrides`` dict feeds both
-    the GRTresna t=0 seed velocity and the GRTeclyn co-moving trap, so clamping
-    here keeps the seed and the moving target consistent and sub-luminal.
+    keys are present, so non-trajectory campaigns are unaffected.
     """
     try:
         v_max = float(overrides.get("trajectory_v_max", default_v_max))
@@ -136,7 +145,7 @@ def _clamp_trajectory_speed(
             continue
         lump_idx = match.group(1)
         try:
-            omega_rot = float(overrides[key])
+            omega_norm = float(overrides[key])
         except (TypeError, ValueError):
             continue
         try:
@@ -147,16 +156,21 @@ def _clamp_trajectory_speed(
             continue
         v_rad_key = f"trajectory_lump{lump_idx}_v_rad"
         try:
-            v_rad = float(overrides.get(v_rad_key, 0.0))
+            v_rad_norm = float(overrides.get(v_rad_key, 0.0))
         except (TypeError, ValueError):
-            v_rad = 0.0
-        v_t = abs(omega_rot) * r0
-        v_total = math.sqrt(v_t * v_t + v_rad * v_rad)
-        if v_total > v_max:
-            scale = v_max / v_total
-            overrides[key] = omega_rot * scale
-            if v_rad_key in overrides:
-                overrides[v_rad_key] = v_rad * scale
+            v_rad_norm = 0.0
+
+        # Clamp the combined normalized speed to the unit disk.
+        norm_total = math.sqrt(omega_norm * omega_norm + v_rad_norm * v_rad_norm)
+        if norm_total > 1.0:
+            scale = 1.0 / norm_total
+            omega_norm *= scale
+            v_rad_norm *= scale
+
+        # Convert normalized fractions to physical angular velocity / radial drift.
+        overrides[key] = omega_norm * v_max / r0
+        if v_rad_key in overrides:
+            overrides[v_rad_key] = v_rad_norm * v_max
     return overrides
 
 
@@ -201,9 +215,10 @@ def _vector_to_overrides(
     for xi, dim in zip(x, dims):
         clamped = max(dim.lower, min(dim.upper, xi))
         overrides[dim.param_key] = clamped
-    # Keep spirals inside a physical radius band, then enforce sub-luminal speed.
-    _clamp_trajectory_spiral_radius(overrides)
+    # Convert normalized speed fractions to physical omega_rot / v_rad first.
     _clamp_trajectory_speed(overrides)
+    # Keep spirals inside a physical radius band (operates on physical v_rad).
+    _clamp_trajectory_spiral_radius(overrides)
     # Optionally force all-retrograde orbits (omega_rot <= 0).
     _enforce_retrograde(overrides)
     return overrides

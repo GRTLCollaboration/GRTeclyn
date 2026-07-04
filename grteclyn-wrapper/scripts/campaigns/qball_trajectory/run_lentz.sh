@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # Lentz Protocol — pure positive-energy trajectory MAP-Elites.
 #
-# Based on qball_traj_spiral_v2 but strips phantom matter entirely and uncaps
-# orbital speeds to push differential frame-dragging / shift-vector shear as
-# hard as possible.  Goal: find a transient f_geo > 0 shortcut using only
-# canonical (positive-energy) boson-star lumps.
+# Based on qball_traj_spiral_v2 but strips phantom matter entirely and lowers
+# the orbital speed cap to 0.5c to test whether canonical matter can sustain
+# a transient f_geo > 0 shortcut without collapsing to a horizon.
 #
 # Changes vs qball_traj_spiral_v2:
 #   - All lumps forced canonical (trajectory_lump*_exotic pinned to 0).
 #   - SCORE_EXOTIC_PENALTY_WEIGHT=1.0 (penalize NEC violation, but do not crush
-#     normal-matter extreme-frame-dragging configurations whose geometry alone
-#     violates the NEC).
-#   - trajectory_v_max=0.99 and grtresna_boost_v_max=0.99 (extreme shear regime).
+#     normal-matter frame-dragging configurations whose geometry alone violates
+#     the NEC).
+#   - trajectory_v_max=0.5 and grtresna_boost_v_max=0.5 (sub-relativistic
+#     regime; 0.99c collapsed to a horizon in every eval).
 #   - GRTRESNA_MATTER_COUPLING=canonical (no phantom sign).
 #
 # Objective: general_ftl (gauge-invariant null-geodesic shortcut).
@@ -52,9 +52,8 @@ export SCORE_EXOTIC_PENALTY_WEIGHT="${SCORE_EXOTIC_PENALTY_WEIGHT:-1.0}"
 # Dispersion gate: keep the same as v2 so a dissolving cloud cannot bank FTL.
 export SCORE_FTL_DISPERSION_GATE="${SCORE_FTL_DISPERSION_GATE:-1.0}"
 
-# Postload gate: relaxed so that extreme 0.99c Lorentz-boosted initial data
-# can pass through and be scored by the FTL objective.  The default 3e-2
-# rejects nearly every random seed at this speed.
+# Postload gate: relaxed so that boosted initial data can pass through and be
+# scored by the FTL objective.  The default 3e-2 rejects many random seeds.
 export POSTLOAD_MAX_HAM_L2="${POSTLOAD_MAX_HAM_L2:-0.1}"
 export POSTLOAD_MAX_MOM_L2="${POSTLOAD_MAX_MOM_L2:-0.1}"
 
@@ -79,7 +78,9 @@ trajectory_well_width=1.667}"
 export STOP_TIME="${STOP_TIME:-16.0}"
 export PLOT_INTERVAL="${PLOT_INTERVAL:-320}"
 
-# Uncap trajectory speeds to the extreme frame-dragging regime.
+# Cap trajectory speeds at 0.5c.  The previous 0.99c regime collapsed to a
+# horizon in every eval; this tests whether a milder sub-relativistic shear
+# can sustain an FTL shortcut without black-hole formation.
 # trajectory_v_max clamps the optimizer search space (omega_rot / v_rad).
 # grtresna_boost_v_max clamps the initial Lorentz boost so the seed starts at
 # the same speed as the co-moving trap target.
@@ -89,8 +90,8 @@ grtresna_qball_ode_profile=1 \
 grtresna_qball_equilibrium_amplitude=1 \
 trajectory_retrograde_only=1 \
 trajectory_r_min=0.1 \
-trajectory_v_max=0.99 \
-grtresna_boost_v_max=0.99 \
+trajectory_v_max=0.5 \
+grtresna_boost_v_max=0.5 \
 stop_time=${STOP_TIME}}"
 
 # --- Multi-ray emission sweep (7 launches, dt=2 code units) ---
@@ -112,7 +113,7 @@ export MAX_CONCURRENT_GRTRESNA="${MAX_CONCURRENT_GRTRESNA:-${_grtresna_cap}}"
 echo "== Lentz Protocol QD: ${QD_NAME} =="
 echo "   GPUs: ${GPU_IDS} (batch=${BATCH_SIZE})  target_evals=${QD_TARGET_EVALS}"
 echo "   Matter: canonical boson star, all exotic flags pinned to 0"
-echo "   Speed: trajectory_v_max=0.99, boost_v_max=0.99"
+echo "   Speed: trajectory_v_max=0.5, boost_v_max=0.5"
 echo "   Score: general_ftl + SCORE_EXOTIC_PENALTY_WEIGHT=${SCORE_EXOTIC_PENALTY_WEIGHT} + SCORE_FTL_DISPERSION_GATE=${SCORE_FTL_DISPERSION_GATE}"
 echo "   Postload gate: POSTLOAD_MAX_HAM_L2=${POSTLOAD_MAX_HAM_L2} POSTLOAD_MAX_MOM_L2=${POSTLOAD_MAX_MOM_L2}"
 echo "   Pipeline: max_grtresna=${MAX_CONCURRENT_GRTRESNA} scoring_workers=${SCORING_WORKERS:-<#GPUs>}"

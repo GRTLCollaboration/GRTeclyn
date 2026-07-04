@@ -558,13 +558,15 @@ def grtresna_trajectory_search_space(
     Each lump gets its own tilted orbit (circle or spiral) defined by 8 searched
     parameters:
       - R0: orbital radius at t=0
-      - omega_rot: angular velocity (sign = direction; counter-rotating lumps
-        create shear -> frame dragging, the primary FTL mechanism)
+      - omega_rot: normalized tangential speed fraction (sign = direction;
+        counter-rotating lumps create shear -> frame dragging, the primary FTL
+        mechanism).  Converted to angular velocity as omega = fraction * v_max / R0.
       - phase0: initial azimuthal position
       - tilt_theta: orbital plane tilt from z-axis
       - tilt_phi: orbital plane azimuth (full 3D orientation)
       - well_depth: per-lump pump amplitude
-      - v_rad: radial drift speed (v_rad=0 recovers a circle; signed spiral)
+      - v_rad: normalized radial drift fraction (v_rad=0 recovers a circle;
+        signed spiral).  Converted to physical speed as v_rad = fraction * v_max.
       - exotic: per-lump canonical vs phantom matter flag
 
     Shared parameters control collective phenomena:
@@ -639,10 +641,12 @@ def grtresna_trajectory_search_space(
                 f"trajectory_lump{k}_well_depth", 0.01, 0.15, 0.05
             )
         )
-        # Radial drift for spiral orbits (signed: inward < 0, outward > 0).
+        # Normalized radial drift fraction for spiral orbits (signed: inward < 0,
+        # outward > 0).  Converted to physical v_rad = fraction * trajectory_v_max
+        # by the candidate decoder.
         dims.append(
             SearchDimension(
-                f"trajectory_lump{k}_v_rad", -0.3, 0.3, 0.0
+                f"trajectory_lump{k}_v_rad", -1.0, 1.0, 0.0
             )
         )
         # Per-lump exotic flag: continuous [0,1], rounded to 0/1 in config
@@ -705,7 +709,8 @@ def grtresna_trajectory_boson_search_space(
 
     Search dimensions:
       Per-lump (8 each):
-        R0, omega_rot, phase0, tilt_theta, tilt_phi, well_depth, v_rad, exotic
+        R0, omega_rot (normalized tangential speed fraction), phase0, tilt_theta,
+        tilt_phi, well_depth, v_rad (normalized radial drift fraction), exotic
       Shared trajectory (5):
         A_breath, omega_breath, z_amp, omega_z, well_width
       Shared boson physics (3):
@@ -778,12 +783,12 @@ def grtresna_trajectory_boson_search_space(
                 f"trajectory_lump{k}_well_depth", 0.001, 0.02, 0.005
             )
         )
-        # Radial drift speed for spiral orbits.  v_rad > 0 spirals outward,
-        # v_rad < 0 spirals inward.  Magnitude is clamped by the trajectory
-        # speed cap so the pump target remains sub-luminal.
+        # Normalized radial drift fraction for spiral orbits.  v_rad > 0 spirals
+        # outward, v_rad < 0 spirals inward.  Converted to physical speed as
+        # v_rad_physical = fraction * trajectory_v_max by the candidate decoder.
         dims.append(
             SearchDimension(
-                f"trajectory_lump{k}_v_rad", -0.3, 0.3, 0.0
+                f"trajectory_lump{k}_v_rad", -1.0, 1.0, 0.0
             )
         )
         # Per-lump exotic flag (0=canonical, 1=phantom).
