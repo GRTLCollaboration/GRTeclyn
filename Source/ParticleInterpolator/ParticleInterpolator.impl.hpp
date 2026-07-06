@@ -602,7 +602,9 @@ void ParticleInterpolator<num_components>::apply_parity_and_store_values()
         const int index = m_query_idx[i]; // local query index on this rank
 
         AMREX_ALWAYS_ASSERT(index >= 0);
-        AMREX_ALWAYS_ASSERT(index <= num_points);
+        AMREX_ALWAYS_ASSERT(
+            index <
+            num_points); // because mpi_mapping is of size num_points minus 1!
 
         mpi_mapping[index] = i;
     }
@@ -757,6 +759,13 @@ void ParticleInterpolator<num_components>::ensure_redistributed()
                 << "ParticleInterpolator: Redistributing particles\n";
         }
         this->Redistribute();
+
+        for (int lev = 0; lev < nlev; ++lev)
+        {
+            m_last_redistribute_step[lev] =
+                m_gramr_ptr->levelSteps(lev) - m_gramr_ptr->levelCount(lev);
+        }
+
         m_need_redistribute = false;
     }
 }
