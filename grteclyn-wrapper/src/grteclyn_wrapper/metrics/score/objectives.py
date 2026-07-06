@@ -199,6 +199,17 @@ def _general_ftl_total(
     # static wormhole / ring / portal is not penalised for beta^i = 0.  Health
     # and stationarity are boosted because a *persistent, stable* throat is the
     # goal, not a translating bubble.
+    #
+    # Curvature activity is rewarded so the optimizer has a gradient toward
+    # strong frame-dragging even when no FTL shortcut has emerged yet — this is
+    # essential for the Lentz Protocol where the goal is to find extreme
+    # positive-energy curvature configurations.  The horizon penalty is now
+    # graded by collapse timing (see horizon.py), so a reduced weight (500->200)
+    # still penalizes early collapse strongly but does not floor the entire
+    # population to the same score when every configuration eventually collapses.
+    # The exotic penalty weight is reduced (70->40) because geometric NEC
+    # violation from positive-energy matter is expected in this regime and
+    # should not dominate the score.
     health_gate = components.get("nontriviality_gate", 0.0)
     horizon = components.get("horizon_penalty", 0.0)
     total = (
@@ -206,6 +217,7 @@ def _general_ftl_total(
         + 1000.0 * components.get("operational_ftl_geodesic", 0.0)
         + 600.0 * components.get("ftl_persistence", 0.0)
         + 200.0 * components.get("operational_ftl", 0.0)
+        + 200.0 * components.get("curvature_activity", 0.0)
         + 5.0 * components.get("nontrivial_geometry", 0.0)
         + health_gate * (
             150.0 * components.get("survival", 0.0)
@@ -215,12 +227,12 @@ def _general_ftl_total(
             + 15.0 * components.get("instability_penalty", 0.0)
             + 60.0 * components.get("energy_condition", 0.0)
         )
-        + 70.0 * exotic_penalty_weight * components.get("exotic_penalty", 0.0)
-        + 500.0 * horizon
+        + 40.0 * exotic_penalty_weight * components.get("exotic_penalty", 0.0)
+        + 200.0 * horizon
     )
     notes.append(
-        "objective_mode=general_ftl: gauge-invariant shortcut only; "
-        "warp-motor shaping and stationary penalty disabled"
+        "objective_mode=general_ftl: gauge-invariant shortcut + curvature reward; "
+        "graded horizon penalty; warp-motor shaping disabled"
     )
     return total
 

@@ -205,8 +205,8 @@ def test_general_ftl_exotic_penalty_weight_reduces_cost() -> None:
         dict(components), [], exotic_penalty_weight=0.2
     )
     assert reduced > full
-    # Exotic penalty contribution: 70 * weight * (-1.0)
-    assert reduced == full + 70.0 * (1.0 - 0.2) * 1.0
+    # Exotic penalty contribution: 40 * weight * (-1.0)
+    assert reduced == full + 40.0 * (1.0 - 0.2) * 1.0
 
 
 def test_score_episode_reads_exotic_penalty_weight_from_env() -> None:
@@ -246,8 +246,8 @@ def test_score_episode_reads_exotic_penalty_weight_from_env() -> None:
 
         assert score_env.total == score_explicit.total
         assert score_env.total > score_full.total
-        # general_ftl exotic term: 70 * weight * (-1.0)
+        # general_ftl exotic term: 40 * weight * (-1.0)
         assert math.isclose(
-            score_env.total - score_full.total, 70.0 * (1.0 - 0.1), rel_tol=0.0, abs_tol=1e-9
+            score_env.total - score_full.total, 40.0 * (1.0 - 0.1), rel_tol=0.0, abs_tol=1e-9
         )
 

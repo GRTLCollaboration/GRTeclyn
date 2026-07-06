@@ -126,13 +126,13 @@ def test_interior_trapped_surface_is_penalized() -> None:
 
 
 def test_late_only_corroborated_collapse_is_suppressed() -> None:
-    """Late trailing collapse must not veto an otherwise healthy FTL window."""
+    """Very late trailing collapse (>90% of run) is suppressed as an artifact."""
     with TemporaryDirectory() as tmp:
         root = Path(tmp) / "ep"
         rows = []
         for step in range(16):
             t = float(step)
-            if t < 12.0:
+            if t < 14.0:
                 rows.append((t, 0.95, 8.0, -0.01, 7.0))
             else:
                 rows.append((t, 0.12, 10.0, -1.5, 5.0))
@@ -140,10 +140,32 @@ def test_late_only_corroborated_collapse_is_suppressed() -> None:
         metrics = read_episode_metrics(root)
         assert metrics.collapse is not None
         assert metrics.collapse.corroborated_trapped is True
-        assert metrics.collapse.first_corroborated_time == 12.0
+        assert metrics.collapse.first_corroborated_time == 14.0
         score = score_episode(metrics, target_stop_time=15.0, domain_half_width=32.0)
         assert score.components["horizon_penalty"] == 0.0
         assert any("late collapse penalty suppressed" in note for note in score.notes)
+
+
+def test_mid_run_collapse_is_graded() -> None:
+    """Collapse at ~50% of the run gets a graded penalty, not the full -1.0."""
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp) / "ep"
+        rows = []
+        for step in range(16):
+            t = float(step)
+            if t < 8.0:
+                rows.append((t, 0.95, 8.0, -0.01, 7.0))
+            else:
+                rows.append((t, 0.12, 10.0, -1.5, 5.0))
+        _write_collapse(root, rows=rows)
+        metrics = read_episode_metrics(root)
+        assert metrics.collapse is not None
+        assert metrics.collapse.corroborated_trapped is True
+        assert metrics.collapse.first_corroborated_time == 8.0
+        score = score_episode(metrics, target_stop_time=16.0, domain_half_width=32.0)
+        # Collapse at t=8 out of 16 → survived 50% → penalty = -(1-0.5) = -0.5
+        assert -0.55 <= score.components["horizon_penalty"] <= -0.45
+        assert any("graded horizon penalty" in note for note in score.notes)
 
 
 if __name__ == "__main__":
@@ -153,4 +175,5 @@ if __name__ == "__main__":
     test_offcenter_horizon_penalizes_without_domain_info()
     test_interior_trapped_surface_is_penalized()
     test_late_only_corroborated_collapse_is_suppressed()
+    test_mid_run_collapse_is_graded()
     print("horizon finder guard tests passed")

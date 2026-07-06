@@ -88,6 +88,7 @@ def compute_health_components(ctx: ScoringContext) -> None:
         horizon_penalty, horizon_notes = horizon_penalty_from_collapse(
             metrics.collapse,
             domain_half_width=ctx.domain_half_width,
+            target_stop_time=ctx.target_stop_time,
         )
         components["horizon_penalty"] = horizon_penalty
         notes.extend(horizon_notes)
