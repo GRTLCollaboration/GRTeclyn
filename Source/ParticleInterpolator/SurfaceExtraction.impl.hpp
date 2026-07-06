@@ -390,6 +390,7 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::integrate()
     }
 
     // now broadcast result to non-zero ranks if requested
+    // T: this version does not work obviously. But we never broadcast anyways.
     for (std::size_t iintegral = 0; iintegral < m_integrals.size(); ++iintegral)
     {
         if (m_broadcast_integrals[iintegral])

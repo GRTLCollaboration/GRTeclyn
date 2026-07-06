@@ -42,8 +42,7 @@ class WeylExtraction : public SphericalExtraction<2>
     }
 
     //! Execute the query
-    void execute_query(ParticleInterpolator<2> *a_interpolator,
-                       const std::string &name_derived = "")
+    void execute_query(ParticleInterpolator<2> *a_interpolator)
     {
         // extract the values of the Weyl scalars on the spheres
         this->extract(a_interpolator);

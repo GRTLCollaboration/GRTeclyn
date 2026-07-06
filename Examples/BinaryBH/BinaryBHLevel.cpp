@@ -326,8 +326,7 @@ void BinaryBHLevel::specificPostTimeStep()
 
             WeylExtraction my_extraction(simParams().extraction_params, m_dt,
                                          m_time, first_step, restart_time);
-            my_extraction.execute_query(&get_bhamr_ptr()->m_weyl_interpolator,
-                                        "Weyl4");
+            my_extraction.execute_query(&get_bhamr_ptr()->m_weyl_interpolator);
         }
     }
 
