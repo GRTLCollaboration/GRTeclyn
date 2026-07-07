@@ -590,6 +590,73 @@ Full per-eval tables, frames, and movies live in three lab journals:
 [`research/grlab/LabJournal.md`](../research/grlab/LabJournal.md) (GW beam +
 splash). Headline numbers below, in roughly chronological order.
 
+### Top 3 findings (critical summary)
+
+Across all campaigns — FTL search, wormhole, trajectory, GW beam, splash,
+self-grav — the three findings that matter most:
+
+**1. Genuine gauge-invariant FTL shortcuts exist in GR with exotic matter — but they are transient, not stable warp bubbles.**
+
+The trajectory campaigns produced the strongest evidence: **eval 122**
+(`trajectory_5lump_v1`) survived to t=30 at 256³ HQ with a confirmed **9.4%
+end-to-end 4D geodesic shortcut** (frozen peak **21%**). **Eval 118**
+(`qball_traj_spiral_v2`) peaked at **~23%** mid-run. These are gauge-invariant
+(null rays traced through the full evolving metric, not frozen slices), with
+5/5 rays reaching their targets, geodesic drift < 0.002, and shift vectors that
+*decay* (the opposite of gauge runaway). This is not a coordinate artifact.
+
+The critical caveat: **in every case the matter disperses and the channel
+fades.** Eval 118 confinement falls 53%→23% (rms radius 7.6→18.6); the channel
+peaks at t≈19 then decays. Eval 122's FTL window lasts ~16.6 code units (55% of
+evolution) before closing. The wormhole HQ (eval 046) opens a real throat mid-run
+(peak 7.57%) but a **horizon forms at t≈21** and kills it. No campaign found a
+configuration that holds a shortcut open while keeping matter confined. The
+honest summary: GR permits transient superluminal shortcuts with exotic matter,
+but sustaining them requires a confinement mechanism (self-grav boson star, RL
+pump) that this work has not yet solved.
+
+**2. The validation pipeline successfully separates physical shortcuts from gauge artifacts — without it, multiple false positives would have been published as FTL.**
+
+The single most important methodological result. Several high-scoring
+candidates turned out to be artifacts:
+
+| Candidate | Apparent signal | What it actually was | Caught by |
+|-----------|----------------|----------------------|-----------|
+| `trajectory_5lump_v1` eval 008 | 24.62% f_geo (Stage 0 leader) | Low-res artifact → 0% at HQ | HQ resolution ladder |
+| SH eval 151 | 2.26c max speed | Gauge collapse (geodesics untrusted from t=3.2) | Geodesic trust flag |
+| SH eval 101 | f_geo = 0.753 | Single untrusted timestep (shift runaway to 1.01) | Timestep trust + shift monitoring |
+| GW beam v3 eval 51 | Score 336 | Numerical bomb: Ham crash → Ψ₄ noise scored as GW | Health multiplier + Ψ₄ truncation |
+| Wormhole v22 | operational_ftl = 0 | Real 19% shortcut invisible to coordinate Dijkstra | 4D evolving geodesic vs frozen slice |
+
+The last row is the key insight: a stationary wormhole (β≈0) reads subluminal on
+coordinate Dijkstra (`operational_ftl = 0`) because lapse drops below 1, but the
+4D null-geodesic tracer measures a real ~19% proper-distance shortcut through
+the throat. The pipeline decoupled gauge-dependent coordinate speed from
+gauge-invariant traversability. Without the 4D evolving probe + dispersion gate +
+geodesic trust flag + HQ ladder, the project would have reported both false
+positives (eval 008, 151, 101) and false negatives (the wormhole throat).
+
+**3. Search design — ansatz and matter sector — is the dominant lever; optimizer tuning is secondary.**
+
+The search infrastructure (MAP-Elites, CMA-ES, GRTresna-in-the-loop) is mature,
+but what determined success was *what* was searched:
+
+| Comparison | Result | Implication |
+|-----------|--------|-------------|
+| Trajectory ansatz vs SH | 54% FTL hit rate vs 1.3% (**40×**) | Per-lump independent orbits give the optimizer geometric freedom SH lacks |
+| Real scalar vs boson shell | 32/92 FTL vs 0/94 (**zero**) | Complex U(1) boson shells do not open geodesic shortcuts under matched conditions |
+| Self-grav boson star | Still disperses at high res (NaN @ t≈6–9) | Confinement is the unsolved bottleneck, not the search |
+
+The GW beam campaign confirmed this from the opposite direction: even with a
+working search and hard gates, the best directional GW emission was a **weak
+steady hum** (~30% beam ratio at P ~ 10⁻⁵–10⁻⁴), not a laser. The search found
+what the physics permits — coherent multi-lump clusters with breathing
+quadrupoles — and no amount of optimizer tuning changes that. Future work should
+invest in the matter model (self-grav confinement, RL pump actuation) rather
+than further search-space refinement.
+
+---
+
 ### FTL search — spherical-harmonic `scalar_sh_ftl_v22` (200 evals, general_ftl)
 
 First genuine geodesic FTL: **eval 189** (score 470.6). Source:
