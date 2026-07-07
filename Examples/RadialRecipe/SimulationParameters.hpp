@@ -78,6 +78,9 @@ class SimulationParameters : public SimulationParametersBase
         // target width = physical bound size 1/sqrt(m^2-omega^2); <=0 => pump width.
         pp.load("rl_pump_target_profile", rl_pump_target_profile, 0);
         pp.load("rl_pump_target_width", rl_pump_target_width, 0.0);
+        // Trap-target central amplitude (self-grav boson star: bs_phi_c).  0 =>
+        // use the per-site amplitude (legacy).
+        pp.load("rl_pump_target_amp", rl_pump_target_amp, 0.0);
         // Per-lump action state starts at zero; the RL agent populates it.
         rl_pump_amplitude.fill(0.0);
         rl_pump_frequency.fill(0.0);
@@ -258,6 +261,7 @@ class SimulationParameters : public SimulationParametersBase
     double rl_pump_kd{0.0}; //!< PD trap derivative gain
     int rl_pump_target_profile{0}; //!< 0 Gaussian, 2 sech bound-lump target
     double rl_pump_target_width{0.0}; //!< physical 1/sqrt(m^2-omega^2); <=0 => width
+    double rl_pump_target_amp{0.0}; //!< trap-target central amplitude (bs_phi_c); <=0 => site amp
 
     // Trajectory-guided geometry survey (Independent of RL; no ZMQ needed).
     int trajectory_mode{0};        //!< 0 = off, 1 = parametric trajectory

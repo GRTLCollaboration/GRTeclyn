@@ -52,6 +52,14 @@ struct RLMatterPumpParams
     //! narrower (dispersing) Gaussian.
     int target_profile{0};
     double target_width{0.0};
+    //! Trap-target central amplitude.  When > 0 the PD controller drives the
+    //! field toward ``target_amp * envelope`` instead of ``site.amplitude *
+    //! envelope``.  For a self-gravitating boson star this must be the star's
+    //! central amplitude (bs_phi_c), NOT the transport knob ``well_depth`` --
+    //! aiming at a much smaller amplitude makes the trap fight gravity and
+    //! excites a breathing mode that collapses the star.  <= 0 => use
+    //! ``site.amplitude`` (legacy).
+    double target_amp{0.0};
 };
 
 namespace RLRuntime

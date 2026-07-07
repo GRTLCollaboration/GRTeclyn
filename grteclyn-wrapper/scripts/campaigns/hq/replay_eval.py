@@ -314,6 +314,15 @@ def main() -> int:
         "of sech. GRTresna C++ now loads the same tabulated phi0(r) (qball_profile_path) "
         "so the solve and the gridinit repaint are consistent.",
     )
+    parser.add_argument(
+        "--bs-selfgrav",
+        action="store_true",
+        help="Seed lumps from the self-gravitating boson-star ODE (profile 4): a true "
+        "equilibrium of the coupled Einstein-Klein-Gordon system bound by gravity, so the "
+        "seed does not disperse. bs_omega is replaced by the gravitational eigenvalue and "
+        "the star's central amplitude comes from grtresna_bs_phi_c. The transport pump stays "
+        "active (well_depth unchanged). Canonical (positive-energy) matter only.",
+    )
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
@@ -361,13 +370,16 @@ def main() -> int:
             preset.seed_overrides(
                 equilibrium_amplitude=args.qball_equilibrium_amplitude,
                 ode_profile=args.qball_ode_profile,
+                selfgrav=args.bs_selfgrav,
             )
         )
-    elif args.qball_equilibrium_amplitude or args.qball_ode_profile:
+    elif args.qball_equilibrium_amplitude or args.qball_ode_profile or args.bs_selfgrav:
         if args.qball_equilibrium_amplitude:
             overrides["grtresna_qball_equilibrium_amplitude"] = 1
         if args.qball_ode_profile:
             overrides["grtresna_qball_ode_profile"] = 1
+        if args.bs_selfgrav:
+            overrides["grtresna_bs_selfgrav"] = 1
 
     for token in args.extra_override:
         if "=" not in token:

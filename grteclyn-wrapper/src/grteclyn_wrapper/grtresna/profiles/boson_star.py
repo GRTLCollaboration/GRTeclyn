@@ -66,18 +66,29 @@ PROFILE_GAUSSIAN = 0
 PROFILE_TANH_SHELL = 1
 PROFILE_SECH_BOUND = 2
 PROFILE_ODE_BOUND = 3
+#: Self-gravitating boson-star profile.  Its tabulated phi0(r) is loaded through
+#: the SAME coupling-agnostic GRTresna profile==3 loader (``qball_load_table``),
+#: so at the C++ level it is emitted as profile 3; the distinct Python tag lets
+#: the pipeline choose the self-gravitating ODE solver and pin well_depth=0.
+PROFILE_SELFGRAV_BOUND = 4
 
 
 def grtresna_lump_profile(profile: int) -> int:
     """Lump profile tag for GRTresna ``params.txt``.
 
-    GRTresna C++ now implements profile 3 (PROFILE_ODE_BOUND) by loading the
-    SAME tabulated flat-space Q-ball phi0(r) that the Python painter uses (via
-    ``qball_profile_path``), so the profile is passed through unchanged.  The
-    constraint solve and the gridinit repaint therefore source identical phi0(r)
-    -- the previous 3->2 (sech) remap is no longer needed and was the cause of
-    the solve/paint mismatch (garbage fields, ~0.5% confined).
+    GRTresna C++ implements profile 3 (PROFILE_ODE_BOUND) by loading the SAME
+    tabulated phi0(r) that the Python painter uses (via ``qball_profile_path``),
+    so the profile is passed through unchanged.  The constraint solve and the
+    gridinit repaint therefore source identical phi0(r) -- the previous 3->2
+    (sech) remap is no longer needed and was the cause of the solve/paint
+    mismatch (garbage fields, ~0.5% confined).
+
+    The self-gravitating profile (PROFILE_SELFGRAV_BOUND=4) is a Python-only
+    distinction: its tabulated phi0(r) loads through the same coupling-agnostic
+    C++ profile==3 loader, so it is emitted as 3.
     """
+    if profile == PROFILE_SELFGRAV_BOUND:
+        return PROFILE_ODE_BOUND
     return int(profile)
 
 # When omega >= mass the field is unbound (no exponential confinement); fall back

@@ -108,6 +108,8 @@ def evolution_overrides_from_complex_scalar(
     sign: float = 1.0,
     bs_omega: float = 0.0,
     mu: float = 0.0,
+    selfgrav: bool = False,
+    phi_c: float = 0.0,
 ) -> dict[str, Any]:
     """GRTeclyn params for grtresna_complex_scalar matter model.
 
@@ -118,6 +120,10 @@ def evolution_overrides_from_complex_scalar(
     ``mu`` is the sextic self-interaction coupling (V = 1/2 m^2|Phi|^2 -
     lambda/4 |Phi|^4 + mu/6 |Phi|^6); with lambda>0, mu>0 the lump is a stable
     Q-ball that binds itself rather than dispersing.
+
+    ``selfgrav`` (with the seed central amplitude ``phi_c``) selects the
+    self-gravitating boson star: the pump transport target is fitted to the ODE
+    star's shape rather than a tail-matched sech.
     """
     overrides: dict[str, Any] = {
         "recipe_matter_model": GRTRESNA_COMPLEX_SCALAR_MODEL,
@@ -129,7 +135,16 @@ def evolution_overrides_from_complex_scalar(
     }
     if sign != 1.0:
         overrides["recipe_scalar_sign"] = float(sign)
-    overrides.update(_pump_controller_overrides(bs_omega, mass=float(mass)))
+    overrides.update(
+        _pump_controller_overrides(
+            bs_omega,
+            mass=float(mass),
+            selfgrav=selfgrav,
+            lam=float(lam),
+            mu=float(mu),
+            phi_c=float(phi_c),
+        )
+    )
     return overrides
 
 
@@ -142,17 +157,30 @@ _PUMP_CONTROLLER_KP = 12.0
 _PUMP_CONTROLLER_KD = 7.0
 
 
-def _pump_controller_overrides(bs_omega: float, mass: float = 0.0) -> dict[str, Any]:
+def _pump_controller_overrides(
+    bs_omega: float,
+    mass: float = 0.0,
+    *,
+    selfgrav: bool = False,
+    lam: float = 0.0,
+    mu: float = 0.0,
+    phi_c: float = 0.0,
+) -> dict[str, Any]:
     """Evolution params enabling the closed-loop PD trap pump controller.
 
     ``trajectory_pump_frequency`` carries the boson-star phase velocity (bs_omega)
     so the controller's target Pi* rotates coherently with the field's own U(1)
     phase.  ``rl_pump_kp/kd`` switch the pump from the legacy open-loop source to
     the feedback controller (kp > 0).  The trap target is the BOUND sech lump
-    (``rl_pump_target_profile=2``) at the physical scale
-    ``rl_pump_target_width = 1/sqrt(m^2-omega^2)`` so the controller drives the
-    field toward the bound state it was initialised in -- not a narrow Gaussian
-    that disperses.
+    (``rl_pump_target_profile=2``); its width must match the initial-data profile
+    so the controller drives the field toward the state it was seeded in.
+
+      * Sech / Q-ball seeds: ``rl_pump_target_width = 1/sqrt(m^2-omega^2)`` (the
+        bound-state tail length the sech seed was built with).
+      * Self-gravitating star: the seed is the ODE profile, whose core is more
+        compact than a tail-matched sech.  We fit the sech width to that profile
+        (half-maximum match) so the transport target has the star's actual shape
+        instead of a broader, off-equilibrium sech.
     """
     from ..profiles.boson_star import PROFILE_SECH_BOUND, bound_width
 
@@ -163,7 +191,21 @@ def _pump_controller_overrides(bs_omega: float, mass: float = 0.0) -> dict[str, 
     }
     if mass > 0.0:
         overrides["rl_pump_target_profile"] = int(PROFILE_SECH_BOUND)
-        overrides["rl_pump_target_width"] = float(bound_width(mass, bs_omega))
+        if selfgrav:
+            from ..profiles.boson_star_ode import (
+                default_selfgrav_phi_c,
+                selfgrav_pump_target_width,
+            )
+
+            target_width = selfgrav_pump_target_width(mass, lam, mu, phi_c)
+            # The trap must aim at the star's OWN central amplitude, not the
+            # transport knob well_depth.  Aiming at a much smaller amplitude
+            # makes the PD controller fight gravity and collapse the star.
+            target_amp = phi_c if phi_c > 0.0 else default_selfgrav_phi_c(lam, mu)
+            overrides["rl_pump_target_amp"] = float(target_amp)
+        else:
+            target_width = bound_width(mass, bs_omega)
+        overrides["rl_pump_target_width"] = float(target_width)
     return overrides
 
 
@@ -173,6 +215,8 @@ def evolution_overrides_from_bicomplex_scalar(
     field_signs: tuple[int, ...],
     bs_omega: float = 0.0,
     mu: float = 0.0,
+    selfgrav: bool = False,
+    phi_c: float = 0.0,
 ) -> dict[str, Any]:
     """GRTeclyn params for the two-complex-field (canonical + phantom) model.
 
@@ -194,7 +238,16 @@ def evolution_overrides_from_bicomplex_scalar(
         "calculate_constraint_norms": 1,
         "amr.plot_vars": plot_vars_for_bicomplex_scalar(),
     }
-    overrides.update(_pump_controller_overrides(bs_omega, mass=float(mass)))
+    overrides.update(
+        _pump_controller_overrides(
+            bs_omega,
+            mass=float(mass),
+            selfgrav=selfgrav,
+            lam=float(lam),
+            mu=float(mu),
+            phi_c=float(phi_c),
+        )
+    )
     return overrides
 
 
@@ -213,6 +266,7 @@ class GRTresnaMatterMetadata:
     bs_profile_width: float = 0.0
     bs_omega: float = 0.0
     scalar_sign: int = 1
+    bs_selfgrav: bool = False
     # Lump centres as offsets from the throat (== RadialRecipe centred-frame
     # positions), used to seed the RL lump tracker / pump spotlights.
     lump_centers: tuple[tuple[float, float, float], ...] = ()
@@ -222,9 +276,10 @@ class GRTresnaMatterMetadata:
 
     @classmethod
     def from_config(cls, cfg: GRTresnaConfig) -> GRTresnaMatterMetadata:  # noqa: F821
+        selfgrav = _has_selfgrav_lump(getattr(cfg, "lumps", ()))
         if is_bicomplex_scalar_model(getattr(cfg, "matter_model", "")):
             lumps = list(getattr(cfg, "lumps", ()) or ())
-            signs = tuple(lump_sign(l) for l in lumps[:MAX_INDEPENDENT_LUMPS])
+            signs = tuple(lump_sign(lump) for lump in lumps[:MAX_INDEPENDENT_LUMPS])
             return cls(
                 matter_model=GRTRESNA_BICOMPLEX_SCALAR_MODEL,
                 num_scalar_fields=len(signs),
@@ -237,6 +292,7 @@ class GRTresnaMatterMetadata:
                 bs_profile_width=float(getattr(cfg, "bs_profile_width", 0.0)),
                 bs_omega=float(getattr(cfg, "bs_omega", 0.0)),
                 scalar_sign=int(getattr(cfg, "scalar_sign", 1)),
+                bs_selfgrav=selfgrav,
                 lump_centers=_lump_centers(lumps),
             )
 
@@ -253,6 +309,7 @@ class GRTresnaMatterMetadata:
                 bs_profile_width=float(cfg.bs_profile_width),
                 bs_omega=float(cfg.bs_omega),
                 scalar_sign=int(getattr(cfg, "scalar_sign", 1)),
+                bs_selfgrav=selfgrav,
                 lump_centers=_lump_centers(getattr(cfg, "lumps", ())),
             )
 
@@ -278,6 +335,8 @@ class GRTresnaMatterMetadata:
                 field_signs=self.scalar_field_signs,
                 bs_omega=self.bs_omega,
                 mu=self.scalar_mu,
+                selfgrav=self.bs_selfgrav,
+                phi_c=self.bs_phi_c,
             )
         if is_complex_scalar_model(self.matter_model):
             return evolution_overrides_from_complex_scalar(
@@ -286,6 +345,8 @@ class GRTresnaMatterMetadata:
                 sign=float(self.scalar_sign),
                 bs_omega=self.bs_omega,
                 mu=self.scalar_mu,
+                selfgrav=self.bs_selfgrav,
+                phi_c=self.bs_phi_c,
             )
         if self.num_scalar_fields == 0:
             return {"calculate_constraint_norms": 1}
@@ -305,8 +366,22 @@ def evolution_overrides_from_metadata(meta: GRTresnaMatterMetadata) -> dict[str,
     return meta.to_evolution_overrides()
 
 
+def _has_selfgrav_lump(lumps: Any) -> bool:
+    """True when any lump uses the self-gravitating boson-star seed (profile 4)."""
+    from ..profiles.boson_star import PROFILE_SELFGRAV_BOUND
+
+    for lump in lumps or ():
+        try:
+            if int(lump.get("profile", 0)) == PROFILE_SELFGRAV_BOUND:
+                return True
+        except (AttributeError, TypeError, ValueError):
+            continue
+    return False
+
+
 def evolution_overrides_from_config(cfg: GRTresnaConfig) -> dict[str, Any]:  # noqa: F821
     """GRTeclyn params that select the matched matter model."""
+    selfgrav = _has_selfgrav_lump(getattr(cfg, "lumps", ()))
     if is_bicomplex_scalar_model(getattr(cfg, "matter_model", "")):
         lumps = list(getattr(cfg, "lumps", ()) or ())
         signs = tuple(lump_sign(lump) for lump in lumps[:MAX_INDEPENDENT_LUMPS])
@@ -316,6 +391,8 @@ def evolution_overrides_from_config(cfg: GRTresnaConfig) -> dict[str, Any]:  # n
             field_signs=signs,
             bs_omega=float(getattr(cfg, "bs_omega", 0.0)),
             mu=float(getattr(cfg, "scalar_mu", 0.0)),
+            selfgrav=selfgrav,
+            phi_c=float(getattr(cfg, "bs_phi_c", 0.0)),
         )
 
     if is_complex_scalar_model(getattr(cfg, "matter_model", "")):
@@ -325,6 +402,8 @@ def evolution_overrides_from_config(cfg: GRTresnaConfig) -> dict[str, Any]:  # n
             sign=float(getattr(cfg, "scalar_sign", 1)),
             bs_omega=float(getattr(cfg, "bs_omega", 0.0)),
             mu=float(getattr(cfg, "scalar_mu", 0.0)),
+            selfgrav=selfgrav,
+            phi_c=float(getattr(cfg, "bs_phi_c", 0.0)),
         )
 
     meta = GRTresnaMatterMetadata.from_config(cfg)
@@ -364,6 +443,7 @@ def read_matter_metadata(path: str | Path) -> GRTresnaMatterMetadata:
         bs_profile_width=float(payload.get("bs_profile_width", 0.0)),
         bs_omega=float(payload.get("bs_omega", 0.0)),
         scalar_sign=int(payload.get("scalar_sign", 1)),
+        bs_selfgrav=bool(payload.get("bs_selfgrav", False)),
         lump_centers=tuple(
             (float(c[0]), float(c[1]), float(c[2]))
             for c in payload.get("lump_centers", ())

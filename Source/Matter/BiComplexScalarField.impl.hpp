@@ -195,7 +195,12 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void BiComplexScalarField::add_matter_rhs(
             {
                 continue;
             }
-            const amrex::Real g   = site.amplitude * env; // target |phi| here
+            // Trap-target amplitude: the star's own amplitude (target_amp =
+            // bs_phi_c) when set, else the site amplitude.  A mismatched target
+            // makes the trap fight gravity and collapse the star.
+            const amrex::Real amp_t =
+                (m_pump.target_amp > 0.0) ? m_pump.target_amp : site.amplitude;
+            const amrex::Real g   = amp_t * env; // target |phi| here
             const amrex::Real arg = -site.frequency * time + site.phase;
             const amrex::Real cc  = std::cos(arg);
             const amrex::Real ss  = std::sin(arg);

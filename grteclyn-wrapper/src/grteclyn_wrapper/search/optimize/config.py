@@ -6,9 +6,7 @@ import logging
 import math
 import re
 from pathlib import Path
-from typing import Any, Mapping
-
-logger = logging.getLogger(__name__)
+from typing import TYPE_CHECKING, Any, Mapping
 
 from .geometry import (
     _expand_shell_bipolar,
@@ -20,6 +18,11 @@ from .geometry import (
     _shell_exotic_ids,
 )
 from .spaces import GRTRESNA_DEFAULT_NUM_LUMPS
+
+if TYPE_CHECKING:
+    from ...grtresna.solver import GRTresnaConfig
+
+logger = logging.getLogger(__name__)
 
 _LUMP_KEY_RE = re.compile(r"^grtresna_lump(\d+)_(\w+)$")
 
@@ -287,7 +290,12 @@ def _expand_trajectory_boson_lumps_from_overrides(
     but the expansion itself does not impose a tighter limit — replay of
     real-scalar elites with bosonic matter needs the original amplitude range.
     """
-    from ...grtresna.profiles.boson_star import PROFILE_ODE_BOUND, PROFILE_SECH_BOUND, bound_width
+    from ...grtresna.profiles.boson_star import (
+        PROFILE_ODE_BOUND,
+        PROFILE_SECH_BOUND,
+        PROFILE_SELFGRAV_BOUND,
+        bound_width,
+    )
     from ...grtresna.profiles.qball_couplings import QBallCouplings
     from .spaces import TRAJECTORY_DEFAULT_NUM_LUMPS
 
@@ -303,7 +311,20 @@ def _expand_trajectory_boson_lumps_from_overrides(
     couplings = QBallCouplings(mass=mass, lam=lam, mu=mu, omega=omega)
     use_equilibrium = bool(int(round(get_float("grtresna_qball_equilibrium_amplitude", 0.0))))
     use_ode = bool(int(round(get_float("grtresna_qball_ode_profile", 0.0))))
-    profile = int(PROFILE_ODE_BOUND if use_ode else PROFILE_SECH_BOUND)
+    # Self-gravitating boson star: gravity binds the lump, so its SEED is a true
+    # equilibrium (profile 4).  This replaces only the dispersing sech seed -- the
+    # closed-loop PD trap pump still transports the lump along its trajectory.  The
+    # star's central amplitude (which fixes its ADM mass via the ODE eigenvalue) is
+    # decoupled from the pump well_depth: it comes from grtresna_bs_phi_c, while
+    # well_depth stays a searchable transport-corrective amplitude.
+    use_selfgrav = bool(int(round(get_float("grtresna_bs_selfgrav", 0.0))))
+    bs_phi_c = get_float("grtresna_bs_phi_c", 0.08)
+    if use_selfgrav:
+        profile = int(PROFILE_SELFGRAV_BOUND)
+    elif use_ode:
+        profile = int(PROFILE_ODE_BOUND)
+    else:
+        profile = int(PROFILE_SECH_BOUND)
 
     # Velocity boost: match trajectory angular velocity at t=0.
     boost_lumps = bool(int(round(get_float("grtresna_boost_lumps", 1.0))))
@@ -379,12 +400,25 @@ def _expand_trajectory_boson_lumps_from_overrides(
             velocity = (0.0, 0.0, 0.0)
 
         exotic = int(round(get_float(f"{pfx}exotic", 0.0)))
+        if use_selfgrav and exotic:
+            # A phantom (negative-energy) scalar is anti-confining: the coupled
+            # Einstein-Klein-Gordon system has no self-gravitating equilibrium, so
+            # there is no exotic self-grav star to seed.  Force canonical.
+            logger.warning(
+                "trajectory lump %d: exotic flag ignored in self-gravitating mode "
+                "(no phantom boson-star equilibrium exists); using canonical matter.",
+                k,
+            )
+            exotic = 0
 
-        amp = (
-            couplings.cap_well_depth(well_depth)
-            if use_equilibrium and lam > 0.0 and mu > 0.0
-            else min(0.15, max(0.0, well_depth))
-        )
+        if use_selfgrav:
+            # Initial-data central amplitude sets the star on its mass-radius
+            # branch via the gravitational eigenvalue; it is NOT the pump depth.
+            amp = bs_phi_c
+        elif use_equilibrium and lam > 0.0 and mu > 0.0:
+            amp = couplings.cap_well_depth(well_depth)
+        else:
+            amp = min(0.15, max(0.0, well_depth))
 
         lump: dict[str, Any] = {
             "amp": amp,
@@ -396,7 +430,7 @@ def _expand_trajectory_boson_lumps_from_overrides(
             "profile": profile,
             "exotic": exotic,
         }
-        if use_ode and lam > 0.0 and mu > 0.0:
+        if (use_ode or use_selfgrav) and lam > 0.0 and mu > 0.0:
             lump.update(
                 {
                     "qball_mass": mass,
@@ -492,7 +526,7 @@ def build_grtresna_config(
             overrides,
             enable_exotic_safe_solver=_enable_exotic_safe_solver,
         )
-        if cfg.lumps and any(int(l.get("exotic", 0)) for l in cfg.lumps):
+        if cfg.lumps and any(int(lump.get("exotic", 0)) for lump in cfg.lumps):
             _enable_exotic_safe_solver()
         return cfg
 
@@ -528,7 +562,7 @@ def build_grtresna_config(
         # Enable exotic-safe solver when ANY lump is exotic (per-lump flag).
         # The global coupling check in _return_scalar handles the case where
         # ALL lumps are forced exotic; this handles mixed canonical+exotic.
-        if any(int(l.get("exotic", 0)) for l in cfg.lumps):
+        if any(int(lump.get("exotic", 0)) for lump in cfg.lumps):
             _enable_exotic_safe_solver()
         return _return_scalar()
 

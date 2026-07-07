@@ -47,6 +47,18 @@ class QBallCouplings:
         return cls(mass=1.0, lam=640.0, mu=85333.0, omega=0.4)
 
     @classmethod
+    def mini_selfgrav(cls, *, mass: float = 1.0) -> QBallCouplings:
+        """Mini self-gravitating boson star: pure mass term (lam = mu = 0).
+
+        Binding is provided entirely by gravity, not self-interaction, so no
+        pump well is required.  ``omega`` here is a placeholder -- the physical
+        frequency is the gravitational eigenvalue solved for in
+        ``boson_star_ode.solve_selfgrav_boson_star`` -- and is set to 0.5*mass
+        purely to satisfy the ``omega < mass`` sanity check.
+        """
+        return cls(mass=mass, lam=0.0, mu=0.0, omega=0.5 * mass, phi_core=0.0)
+
+    @classmethod
     def compact(cls) -> QBallCouplings:
         """Thick-wall couplings for a *localized* seed that fits the evolution box.
 
@@ -145,13 +157,22 @@ class QBallCouplings:
         *,
         equilibrium_amplitude: bool = False,
         ode_profile: bool = False,
+        selfgrav: bool = False,
     ) -> dict[str, float | int]:
-        """GRTresna search / replay keys plus optional dispersion-fix flags."""
+        """GRTresna search / replay keys plus optional dispersion-fix flags.
+
+        ``selfgrav`` selects the self-gravitating boson-star seed (profile 4):
+        the lump is a genuine equilibrium of the coupled Einstein-Klein-Gordon
+        system, so no pump well is required and ``bs_omega`` is replaced by the
+        gravitational eigenvalue when the profile table is emitted.
+        """
         out: dict[str, float | int] = dict(self.to_search_overrides())
         if equilibrium_amplitude:
             out["grtresna_qball_equilibrium_amplitude"] = 1
         if ode_profile:
             out["grtresna_qball_ode_profile"] = 1
+        if selfgrav:
+            out["grtresna_bs_selfgrav"] = 1
         return out
 
     def to_search_overrides(self) -> dict[str, float]:

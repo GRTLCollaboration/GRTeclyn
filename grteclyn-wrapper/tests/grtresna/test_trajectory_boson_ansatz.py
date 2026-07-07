@@ -21,7 +21,6 @@ from grteclyn_wrapper.grtresna.matter.models import (
 from grteclyn_wrapper.grtresna.solver import GRTresnaConfig
 from grteclyn_wrapper.search.optimize import (
     TRAJECTORY_BOSON_PROFILE_CHOICES,
-    TRAJECTORY_DEFAULT_NUM_LUMPS,
     build_grtresna_config,
     build_search_space,
     grtresna_trajectory_boson_search_space,
@@ -419,3 +418,62 @@ def test_scalar_trajectory_unchanged_by_boson_path() -> None:
     # Should NOT have boson physics dims.
     assert "grtresna_scalar_mass" not in keys
     assert "grtresna_bs_omega" not in keys
+
+
+# ---------------------------------------------------------------------------
+# Self-gravitating boson star seed (grtresna_bs_selfgrav)
+# ---------------------------------------------------------------------------
+
+
+def test_trajectory_boson_selfgrav_selects_profile_4() -> None:
+    """grtresna_bs_selfgrav=1 tags every lump as the self-gravitating profile."""
+    from grteclyn_wrapper.grtresna.profiles.boson_star import (
+        PROFILE_SECH_BOUND,
+        PROFILE_SELFGRAV_BOUND,
+    )
+
+    ov = _boson_trajectory_overrides(num_lumps=3)
+    ov["grtresna_bs_selfgrav"] = 1
+    cfg = build_grtresna_config(ov, GRTresnaConfig())
+
+    assert all(lump["profile"] == PROFILE_SELFGRAV_BOUND for lump in cfg.lumps)
+    # Sanity: without the flag the seed is the sech bound lump.
+    cfg_default = build_grtresna_config(
+        _boson_trajectory_overrides(num_lumps=3), GRTresnaConfig()
+    )
+    assert all(lump["profile"] == PROFILE_SECH_BOUND for lump in cfg_default.lumps)
+
+
+def test_trajectory_boson_selfgrav_decouples_amp_from_well_depth() -> None:
+    """Star central amplitude comes from bs_phi_c, NOT the pump well_depth.
+
+    Regression guard: the previous plan pinned well_depth=0 (which the C++
+    Main_RadialRecipe turns into rl_pump_amplitude=0, i.e. pump OFF).  The
+    self-gravitating seed keeps the transport pump alive by decoupling the
+    initial-data central amplitude (bs_phi_c) from the pump well_depth.
+    """
+    ov = _boson_trajectory_overrides(num_lumps=2)
+    ov["grtresna_bs_selfgrav"] = 1
+    ov["grtresna_bs_phi_c"] = 0.11
+    # A distinct, non-zero pump well_depth that must NOT leak into the star amp.
+    ov["trajectory_lump0_well_depth"] = 0.05
+    ov["trajectory_lump1_well_depth"] = 0.05
+    cfg = build_grtresna_config(ov, GRTresnaConfig())
+
+    for lump in cfg.lumps:
+        # Initial-data amplitude tracks the star knob, not the pump depth.
+        assert lump["amp"] == 0.11
+        assert lump["amp"] != 0.05
+        # Pump transport stays available (well_depth is NOT forced to zero).
+    assert ov["trajectory_lump0_well_depth"] == 0.05
+
+
+def test_trajectory_boson_selfgrav_ignores_exotic() -> None:
+    """A self-gravitating phantom star has no equilibrium; exotic is neutralized."""
+    ov = _boson_trajectory_overrides(num_lumps=2)
+    ov["grtresna_bs_selfgrav"] = 1
+    ov["trajectory_lump0_exotic"] = 1.0
+    ov["trajectory_lump1_exotic"] = 1.0
+    cfg = build_grtresna_config(ov, GRTresnaConfig())
+
+    assert all(lump["exotic"] == 0 for lump in cfg.lumps)

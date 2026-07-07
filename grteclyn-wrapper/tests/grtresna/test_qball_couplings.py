@@ -90,6 +90,13 @@ def test_seed_overrides_include_dispersion_flags() -> None:
     assert keys["grtresna_scalar_lambda"] == 640.0
 
 
+def test_seed_overrides_selfgrav_flag() -> None:
+    keys = QBallCouplings.mini_selfgrav(mass=1.0).seed_overrides(selfgrav=True)
+    assert keys["grtresna_bs_selfgrav"] == 1
+    # Default (no selfgrav) must not emit the flag.
+    assert "grtresna_bs_selfgrav" not in QBallCouplings.stiff().seed_overrides()
+
+
 def test_with_equilibrium_paint_sets_phi_core() -> None:
     stiff = QBallCouplings.stiff().with_equilibrium_paint()
     assert stiff.phi_core == pytest.approx(stiff.core_amplitude)
