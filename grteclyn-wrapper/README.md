@@ -13,6 +13,11 @@ spacetime shear, and critical collapse.
 All commands run from **`grteclyn-wrapper/`**. Binaries must be built first —
 see [Operations](#operations).
 
+> **Roadmap:** critical review of the results' validity and the prioritized
+> implementation plan (probe calibration, gauge-honest baseline, ANEC/QI,
+> convergence, pump accounting, self-grav, wave-zone GW) live in
+> [`NextSteps.md`](NextSteps.md).
+
 ---
 
 ## What is implemented
@@ -593,7 +598,9 @@ splash). Headline numbers below, in roughly chronological order.
 ### Top 3 findings (critical summary)
 
 Across all campaigns — FTL search, wormhole, trajectory, GW beam, splash,
-self-grav — the three findings that matter most:
+self-grav — the three findings that matter most. A critical review of these
+claims' validity (baseline gauge-dependence, missing probe controls, pump
+consistency) and the plan to harden them is in [`NextSteps.md`](NextSteps.md):
 
 **1. Genuine gauge-invariant FTL shortcuts exist in GR with exotic matter — but they are transient, not stable warp bubbles.**
 
