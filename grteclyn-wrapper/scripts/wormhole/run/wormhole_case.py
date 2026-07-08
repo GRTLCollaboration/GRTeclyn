@@ -14,9 +14,19 @@ The GRTresna-solved initial data is located by the same tag scheme the ID driver
 L2 lesson: the evolution level-0 dx must equal the gridinit's native dx, so
 --dx selects BOTH (dx=1.0 -> N=64 solve, dx=0.5 -> N=128 solve).
 
+--box-size L controls the domain size (default 64).  A larger box pushes the
+Sommerfeld boundary farther from the throat; used for the resolution / boundary
+convergence study (is the t~5 dispersal physical or a boundary artifact?).
+
+The stop-time auto-scales with the outermost extraction radius when not
+explicitly set: stop_time = r_outer + 6 (light-crossing to the shell plus a
+buffer for signal development).  Extraction uses 2 radii (inner fixed at 12,
+outer at L/2 - 8) to keep the consumer lightweight.
+
 Usage:
     wormhole_case.sh --kappa 1.0 --dx 0.5 --max-level 3 --stop-time 8 --gpu 0
     wormhole_case.sh --kappa 0.7 --dx 0.5 --gpu 1 --no-frames
+    wormhole_case.sh --kappa 1.0 --dx 0.5 --box-size 96 --gpu 0   # larger box
 """
 
 from __future__ import annotations
@@ -34,10 +44,9 @@ EXAMPLE_DIR = GRTECLYN_ROOT / "Examples" / "RotatingWormholeCollapse"
 ID_ROOT = GRTECLYN_ROOT / "runs" / "rotating_wormhole_id"
 RUN_ROOT = GRTECLYN_ROOT / "runs" / "rotating_wormhole"
 BIN = EXAMPLE_DIR / "main3d.gnu.MPI.CUDA.ex"
-WRAPPER_SRC = Path(__file__).resolve().parents[2] / "src"
+WRAPPER_SRC = Path(__file__).resolve().parents[3] / "src"
 
-EVO_L = 64.0
-CENTER = (32.0, 32.0, 0.0)
+DEFAULT_L = 64.0
 FRAME_FIELDS = "chi chi_minus_1 K lapse phi Pi phi2 Pi2 Weyl4_Re Weyl4_Im Weyl4_Mag"
 
 
@@ -50,13 +59,40 @@ def _dx_tag(dx: float) -> str:
     return f"dx{dx:.3g}".replace(".", "p")
 
 
-def id_tag(kappa: float, omega: float, m: int, dx: float) -> str:
+def _L_suffix(L: float) -> str:
+    """Append _L<val> only when L differs from the default (backward compat)."""
+    if abs(L - DEFAULT_L) < 0.1:
+        return ""
+    return f"_L{int(L)}"
+
+
+def id_tag(kappa: float, omega: float, m: int, dx: float,
+           L: float = DEFAULT_L) -> str:
     # Must match solve_kappa_family.py's run_dir tag.
-    return f"rotwh_omega_p{_p(omega)}_m{m}_kappa_{_p(kappa)}_{_dx_tag(dx)}"
+    return (f"rotwh_omega_p{_p(omega)}_m{m}_kappa_{_p(kappa)}"
+            f"_{_dx_tag(dx)}{_L_suffix(L)}")
 
 
-def case_tag(kappa: float, omega: float, m: int, dx: float, max_level: int) -> str:
-    return f"evo_omega_p{_p(omega)}_m{m}_kappa_{_p(kappa)}_{_dx_tag(dx)}_ml{max_level}"
+def case_tag(kappa: float, omega: float, m: int, dx: float,
+             max_level: int, L: float = DEFAULT_L) -> str:
+    return (f"evo_omega_p{_p(omega)}_m{m}_kappa_{_p(kappa)}"
+            f"_{_dx_tag(dx)}_ml{max_level}{_L_suffix(L)}")
+
+
+def extraction_radii(L: float) -> tuple[float, float]:
+    """Two extraction shells: inner fixed at 12, outer as far as L/2 - 8."""
+    r_inner = 12.0
+    r_outer = L / 2.0 - 8.0
+    # Clamp: outer must exceed inner, and stay >= 16 for any reasonable box.
+    r_outer = max(r_outer, r_inner + 4.0)
+    return (r_inner, r_outer)
+
+
+def default_stop_time(L: float) -> float:
+    """stop_time = r_outer + 6: light-crossing to the outermost extraction
+    shell plus a buffer for signal development."""
+    _, r_outer = extraction_radii(L)
+    return r_outer + 6.0
 
 
 def regrid_interval_str(max_level: int) -> str:
@@ -114,7 +150,7 @@ N1 = {N}
 N2 = {N}
 N3 = {N}
 
-center = 32.0 32.0 0.0
+center = {center_x} {center_y} {center_z}
 
 max_level = {max_level}
 regrid_interval = {regrid_interval}
@@ -158,14 +194,14 @@ sigma = 2.0
 puncture_tracking.enabled = 0
 calculate_constraint_norms = 1
 
-extraction_center = 32.0 32.0 0.0
+extraction_center = {center_x} {center_y} {center_z}
 activate_extraction = 1
 write_extraction = 1
 extraction_subpath = "data"
 
-num_extraction_radii = 4
-extraction_radii = 12.0 16.0 20.0 24.0
-extraction_levels = 0 0 0 0
+num_extraction_radii = {num_extraction_radii}
+extraction_radii = {extraction_radii_str}
+extraction_levels = {extraction_levels_str}
 
 num_points_phi = 24
 num_points_theta = 37
@@ -187,19 +223,31 @@ def _consumer_env() -> dict:
     return env
 
 
+# Module-level state set by main() before any consumer call.
+_run_center: tuple[float, float, float] = (32.0, 32.0, 0.0)
+_run_radii: tuple[float, ...] = (12.0, 24.0)
+_run_L: float = DEFAULT_L
+
+
 def _consumer_cmd(run_out: Path, jobs: int, *, watch: bool,
                   delete: bool, keep_last: int,
                   keep_existing_frames: bool = False) -> list[str]:
-    cx, cy, cz = CENTER
+    cx, cy, cz = _run_center
+    # Frame zoom: cover the inner ~75% of the box so the boundary is cropped.
+    zoom = _run_L * 0.75
+    # Frame center offset from the lower-left corner (the consumer's
+    # --frames-corner mode places origin at (0,0,0) of the plotfile).
+    fc_x = cx - zoom / 2.0
+    fc_y = cy - zoom / 2.0
     cmd = [
         sys.executable, "-m",
         "grteclyn_wrapper.visualisation.process_wave.consume_plotfiles",
         "--data", str(run_out), "--out", str(run_out / "small_data"),
         "--center", str(cx), str(cy), str(cz),
-        "--radii", "12", "16", "20", "24", "--n-points", "128",
+        "--radii", *(str(r) for r in _run_radii), "--n-points", "128",
         "--frames-fields", *FRAME_FIELDS.split(),
-        "--frames-axis", "z", "--frames-zoom", "48",
-        "--frames-center", "8", "8", "0", "--frames-corner",
+        "--frames-axis", "z", "--frames-zoom", str(zoom),
+        "--frames-center", str(fc_x), str(fc_y), "0", "--frames-corner",
         "--frames-global-zlim", "--frames-out", str(run_out / "frames"),
         "-j", str(jobs),
     ]
@@ -253,13 +301,19 @@ def prune_plotfiles(run_out: Path) -> None:
 
 
 def main() -> int:
+    global _run_center, _run_radii, _run_L
+
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--kappa", type=float, required=True)
     ap.add_argument("--dx", type=float, default=0.5, choices=[0.5, 1.0])
     ap.add_argument("--omega", type=float, default=0.05)
     ap.add_argument("--m", type=int, default=1)
     ap.add_argument("--max-level", type=int, default=3)
-    ap.add_argument("--stop-time", type=float, default=8.0)
+    ap.add_argument("--stop-time", type=float, default=None,
+                    help="evolution stop time (default: r_outer + 6)")
+    ap.add_argument("--box-size", type=float, default=DEFAULT_L,
+                    help="domain side length L (default 64); larger box for "
+                         "boundary convergence study")
     ap.add_argument("--plot-interval", type=int, default=40)
     ap.add_argument("--gpu", type=int, default=0)
     ap.add_argument("--gridinit", default=None, help="override ID .gridinit path")
@@ -274,43 +328,62 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
-    N = int(round(EVO_L / args.dx))
+    L = args.box_size
+    N = int(round(L / args.dx))
+    center = (L / 2.0, L / 2.0, 0.0)
+    radii = extraction_radii(L)
+    stop_time = args.stop_time if args.stop_time is not None else default_stop_time(L)
+
+    # Publish to module state so the consumer helpers pick them up.
+    _run_center = center
+    _run_radii = radii
+    _run_L = L
+
     gridinit = (
         Path(args.gridinit).resolve()
         if args.gridinit
-        else ID_ROOT / id_tag(args.kappa, args.omega, args.m, args.dx)
+        else ID_ROOT / id_tag(args.kappa, args.omega, args.m, args.dx, L)
         / "initial_data.gridinit"
     )
     if not gridinit.is_file():
+        hint = f"EVO_L={int(L)} RES_N={N}" if L != DEFAULT_L else f"RES_N={N}"
         print(f"error: gridinit not found: {gridinit}\n"
-              f"       solve it first: RES_N={N} solve_kappa_family.sh {args.kappa}",
+              f"       solve it first: {hint} solve_kappa_family.sh {args.kappa}",
               file=sys.stderr)
         return 2
     if not BIN.exists():
         print(f"error: CUDA binary not found: {BIN}", file=sys.stderr)
         return 2
 
-    tag = case_tag(args.kappa, args.omega, args.m, args.dx, args.max_level)
+    tag = case_tag(args.kappa, args.omega, args.m, args.dx, args.max_level, L)
     run_dir = RUN_ROOT / tag
     run_out = run_dir / "output"
     run_out.mkdir(parents=True, exist_ok=True)
 
+    cx, cy, cz = center
+    radii_str = " ".join(f"{r:.1f}" for r in radii)
+    levels_str = " ".join("0" for _ in radii)
+
     # GRTeclyn resolves relative paths against its cwd (the example dir); use the
     # absolute run path so the generated params are location-independent.
     params_text = PARAMS_TEMPLATE.format(
-        m=args.m, omega=args.omega, kappa=args.kappa, dx=args.dx, N=N, L=EVO_L,
-        max_level=args.max_level, stop_time=args.stop_time,
+        m=args.m, omega=args.omega, kappa=args.kappa, dx=args.dx, N=N, L=L,
+        center_x=cx, center_y=cy, center_z=cz,
+        max_level=args.max_level, stop_time=stop_time,
         plot_interval=args.plot_interval, run_out=str(run_out),
         gridinit=str(gridinit),
         regrid_interval=regrid_interval_str(args.max_level),
+        num_extraction_radii=len(radii),
+        extraction_radii_str=radii_str,
+        extraction_levels_str=levels_str,
     )
     params_path = run_dir / "params.txt"
     params_path.write_text(params_text)
     print(f"[wormhole_case] {tag}")
     print(f"  gridinit: {gridinit}")
     print(f"  params:   {params_path}")
-    print(f"  N={N} dx={args.dx} max_level={args.max_level} "
-          f"stop_time={args.stop_time} gpu={args.gpu}")
+    print(f"  L={L} N={N} dx={args.dx} max_level={args.max_level} "
+          f"stop_time={stop_time} radii={radii} gpu={args.gpu}")
     if args.dry_run:
         return 0
 

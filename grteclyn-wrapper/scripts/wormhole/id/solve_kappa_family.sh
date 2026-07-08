@@ -10,8 +10,8 @@
 set -euo pipefail
 
 WH_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=../lib/env.sh
-source "${WH_DIR}/../lib/env.sh"
+# shellcheck source=../../lib/env.sh
+source "${WH_DIR}/../../lib/env.sh"
 
 # The GRTresna conda env supplies mpirun + the solver's runtime libs; the
 # wrapper's own .venv supplies the conversion deps (scipy/h5py/numpy).

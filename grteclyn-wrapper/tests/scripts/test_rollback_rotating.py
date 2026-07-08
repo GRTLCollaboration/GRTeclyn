@@ -12,6 +12,7 @@ def _rollback_script() -> Path:
         Path(__file__).resolve().parents[2]
         / "scripts"
         / "wormhole"
+        / "postrun"
         / "rollback"
     )
 

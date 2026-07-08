@@ -57,10 +57,11 @@ ID_ROOT = GRTECLYN_ROOT / "runs" / "rotating_wormhole_id"
 # solved data is never up-sampled and the exported .gridinit is at the true
 # solved dx.  N=64 -> dx=1.0 (coarse); N=128 -> dx=0.5 (high-res, L2-safe for a
 # dx=0.5 level-0 evolution).
-EVO_L = float(os.environ.get("EVO_L", "64.0"))
+DEFAULT_L = 64.0
+EVO_L = float(os.environ.get("EVO_L", str(DEFAULT_L)))
 RES_N = int(os.environ.get("RES_N", os.environ.get("EVO_N", "64")))
 EVO_N = RES_N
-EVO_CENTER = (32.0, 32.0, 0.0)
+EVO_CENTER = (EVO_L / 2.0, EVO_L / 2.0, 0.0)
 
 
 def _read_base_amp(params_text: str) -> float:
@@ -94,6 +95,14 @@ def _write_scaled_params(dst: Path, base_text: str, amp: float) -> None:
         text,
         flags=re.MULTILINE,
     )
+    # Rewrite L so the GRTresna solve domain matches the evolution box size.
+    # Without this, EVO_L != base-params L would solve at the wrong domain size.
+    text = re.sub(
+        r"^(\s*L\s*=\s*).*$",
+        rf"\g<1>{EVO_L}",
+        text,
+        flags=re.MULTILINE,
+    )
     dst.write_text(text)
 
 
@@ -113,12 +122,19 @@ def _parse_convergence(err_file: Path) -> tuple[float, float] | None:
     return last[1], last[2]
 
 
+def _L_suffix() -> str:
+    """Append _L<val> only when L differs from 64 (backward compat with existing runs)."""
+    if abs(EVO_L - DEFAULT_L) < 0.1:
+        return ""
+    return f"_L{int(EVO_L)}"
+
+
 def solve_one(kappa: float, base_amp: float, base_text: str, nranks: int) -> dict:
     amp = kappa * base_amp
-    # Tag by resolution so dx=1.0 (N=64) and dx=0.5 (N=128) families coexist.
+    # Tag by resolution (and box size when non-default) so families coexist.
     dx = EVO_L / RES_N
     dx_tag = f"dx{dx:.3g}".replace(".", "p")
-    tag = f"rotwh_omega_p0p05_m1_kappa_{kappa:.2f}_{dx_tag}".replace(".", "p")
+    tag = f"rotwh_omega_p0p05_m1_kappa_{kappa:.2f}_{dx_tag}{_L_suffix()}".replace(".", "p")
     run_dir = ID_ROOT / tag
     outputs = run_dir / "Outputs"
     outputs.mkdir(parents=True, exist_ok=True)
@@ -174,7 +190,7 @@ def main() -> int:
 
     if not SOLVER_EXE.exists():
         print(f"error: solver binary not found: {SOLVER_EXE}", file=sys.stderr)
-        print("build it with scripts/wormhole/build_grtresna_bosonstar.sh",
+        print("build it with scripts/wormhole/build/build_grtresna_bosonstar.sh",
               file=sys.stderr)
         return 2
 

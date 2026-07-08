@@ -1,8 +1,8 @@
 #!/bin/bash
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=../lib/env.sh
-source "${SCRIPT_DIR}/../lib/env.sh"
+# shellcheck source=../../lib/env.sh
+source "${SCRIPT_DIR}/../../lib/env.sh"
 
 BASE_VISUALISATION_DIR="${WRAPPER_ROOT}/src/grteclyn_wrapper/visualisation"
 SIM_RESULTS_DIR="${WRAPPER_ROOT}/output/SimResults"

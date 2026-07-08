@@ -11,7 +11,7 @@ set -euo pipefail
 
 WH_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../lib/env.sh
-source "${WH_DIR}/../lib/env.sh"
+source "${WH_DIR}/../../lib/env.sh"
 
 PY="${GRTECLYN_PYTHON:-${WRAPPER_ROOT}/.venv/bin/python}"
 if [[ ! -x "${PY}" ]]; then

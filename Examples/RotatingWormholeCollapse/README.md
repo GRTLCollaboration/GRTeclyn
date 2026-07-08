@@ -22,8 +22,10 @@ Full program, status, and physics rationale:
 ```
 
 Both stages are driven by **CLI scripts** in
-`grteclyn-wrapper/scripts/wormhole/` — params are generated from templates, so we
-do **not** commit a `params_*.txt` per case (same philosophy as the QD campaign).
+`grteclyn-wrapper/scripts/wormhole/{id,run}/` — params are generated from
+templates, so we do **not** commit a `params_*.txt` per case (same philosophy as
+the QD campaign). See `grteclyn-wrapper/scripts/wormhole/README.md` for the full
+directory layout.
 
 - **Matter model** `complex_scalar`: Φ = f(r,θ) e^{i(mφ_az)} stored as
   (φ, Π, φ2, Π2). |Φ|² is axisymmetric (no four-lobe), J_z carried by the phase
@@ -46,15 +48,15 @@ All commands run from `grteclyn-wrapper/` (they source `scripts/lib/env.sh`).
 # GRTeclyn evolution (GPU)
 make -C Examples/RotatingWormholeCollapse -j8 USE_CUDA=TRUE USE_MPI=TRUE COMP=gnu CUDA_ARCH=90
 # GRTresna initial-data solver (CPU/MPI)
-bash grteclyn-wrapper/scripts/wormhole/build_grtresna_bosonstar.sh
+bash grteclyn-wrapper/scripts/wormhole/build/build_grtresna_bosonstar.sh
 ```
 
 ### 1. Solve the κ initial-data family (produces `.gridinit`s)
 ```bash
 # dx=0.5 (N=128) family, kappas 1.0/0.7/0.5, 4 MPI ranks:
-RES_N=128 bash grteclyn-wrapper/scripts/wormhole/solve_kappa_family.sh 1.0,0.7,0.5 4
+RES_N=128 bash grteclyn-wrapper/scripts/wormhole/id/solve_kappa_family.sh 1.0,0.7,0.5 4
 # dx=1.0 (N=64) quick family:
-RES_N=64  bash grteclyn-wrapper/scripts/wormhole/solve_kappa_family.sh 1.0,0.9,0.7,0.5 2
+RES_N=64  bash grteclyn-wrapper/scripts/wormhole/id/solve_kappa_family.sh 1.0,0.9,0.7,0.5 2
 ```
 Writes `runs/rotating_wormhole_id/rotwh_omega_p0p05_m1_kappa_<κ>_dx<dx>/initial_data.gridinit`
 (the heavy solve HDF5s are auto-pruned; set `KEEP_SOLVE_SCRATCH=1` to keep them).
@@ -63,14 +65,21 @@ Reports Ham/Mom % per κ.
 ### 2. Evolve one case (params generated from template, frames rendered)
 ```bash
 # high-res equilibrium arm:
-bash grteclyn-wrapper/scripts/wormhole/wormhole_case.sh \
-    --kappa 1.0 --dx 0.5 --max-level 3 --stop-time 8 --gpu 0
+bash grteclyn-wrapper/scripts/wormhole/run/wormhole_case.sh \
+    --kappa 1.0 --dx 0.5 --max-level 3 --gpu 0
 # collapse arms:
-bash grteclyn-wrapper/scripts/wormhole/wormhole_case.sh --kappa 0.7 --dx 0.5 --gpu 1
-bash grteclyn-wrapper/scripts/wormhole/wormhole_case.sh --kappa 0.5 --dx 0.5 --gpu 2
+bash grteclyn-wrapper/scripts/wormhole/run/wormhole_case.sh --kappa 0.7 --dx 0.5 --gpu 1
+bash grteclyn-wrapper/scripts/wormhole/run/wormhole_case.sh --kappa 0.5 --dx 0.5 --gpu 2
+
+# boundary convergence study (larger box, boundary farther from throat):
+EVO_L=96 RES_N=192 bash grteclyn-wrapper/scripts/wormhole/id/solve_kappa_family.sh 1.0 4
+bash grteclyn-wrapper/scripts/wormhole/run/wormhole_case.sh \
+    --kappa 1.0 --dx 0.5 --box-size 96 --gpu 0
 ```
-Key flags: `--kappa --dx {0.5,1.0} --omega --m --max-level --stop-time
---plot-interval --gpu --no-frames --keep-plotfiles --dry-run`.
+Key flags: `--kappa --dx {0.5,1.0} --box-size --omega --m --max-level
+--stop-time --plot-interval --gpu --no-frames --keep-plotfiles --dry-run`.
+Stop-time auto-scales with extraction radius when not set explicitly
+(`r_outer + 6`). Extraction uses 2 radii (inner=12, outer=L/2-8).
 Output: `runs/rotating_wormhole/evo_omega_p0p05_m1_kappa_<κ>_dx<dx>_ml<L>/output/`
 with `data/constraint_norms.dat`, `data/collapse_diagnostics.dat`, and
 `frames/<field>_z/frames/*.png`. Plotfiles are pruned after frame extraction

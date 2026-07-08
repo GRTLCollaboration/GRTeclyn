@@ -24,8 +24,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=../lib/env.sh
-source "${SCRIPT_DIR}/../lib/env.sh"
+# shellcheck source=../../lib/env.sh
+source "${SCRIPT_DIR}/../../lib/env.sh"
 
 PARAMS="${1:-params_rotating_complex_smoke.txt}"
 NGPU="${2:-1}"
@@ -106,7 +106,7 @@ if [[ "${CONSUME_PLOTFILES}" == "1" ]]; then
   GRTECLYN_FRAMES_ZOOM="${ZOOM}" \
   GRTECLYN_FRAMES_CENTER="${CORNER}" \
   GRTECLYN_EXTRACTION_CENTER="${CENTER}" \
-    bash "${SCRIPT_DIR}/../plot/plot_run.sh" "${OUTPUT_DIR}" \
+    bash "${SCRIPT_DIR}/../../plot/plot_run.sh" "${OUTPUT_DIR}" \
     > "${OUTPUT_DIR}/consumer.log" 2>&1 &
   CONSUMER_PID=$!
   sleep 3

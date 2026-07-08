@@ -85,15 +85,16 @@ HQ promotion defaults: [`campaigns/lib/promote_common.sh`](campaigns/lib/promote
 
 ---
 
-## `wormhole/` — collapse & Teo initial data
+## `wormhole/` — rotating wormhole pipeline
 
-| Script | Purpose |
-|--------|---------|
-| `make_teo_wormhole_gridinit.py` | Teo rotating wormhole `.gridinit` CLI. |
-| `make_rotating_wormhole_id.py` | Rotating wormhole ID helper. |
-| `scan_rotating_wormhole_support.py` | Support-parameter scan. |
-| `rollback` | Roll back run dir to a checkpoint/plot index. |
-| `move_files.sh` | Archive outputs to `output/SimResults/`. |
+Organized into subdirectories by stage. See `wormhole/README.md` for details.
+
+| Subdirectory | Contents |
+|--------------|----------|
+| `build/` | `build_grtresna_bosonstar.sh` — rebuild the GRTresna constraint solver |
+| `id/` | `solve_kappa_family.{sh,py}` — constraint-clean ID family; `make_teo_wormhole_gridinit.py` — analytic Teo baseline |
+| `run/` | `wormhole_case.{sh,py}` — CLI evolution driver; `run_rotating_wormhole.sh` — generic params launcher |
+| `postrun/` | `scan_rotating_wormhole_support.py`, `move_files.sh`, `rollback` |
 
 ---
 
