@@ -136,8 +136,12 @@ This is the headline result: the rotating instability was **numerical** (the O(�
 GRTresna solve removes it and the rotating wormhole holds its equilibrium just
 like the static case. Phase B is complete.
 
-**Immediate next actions:** Phase C — the full (ω, m, κ) evolution grid (collapse
-arm from κ<1, equilibrium arm from κ=1 across ω), then Phase D GW extraction.
+**Immediate next actions (updated 2026-07-08 after the boundary study, see
+§"Boundary study DONE" below):** the t≈5 dispersal is now understood — it is a
+massless-ghost instability whose *removal timing* is boundary-set. The gating
+priority is therefore the **massive-field re-solve** (`phantom_mass > 0`, which
+confines the phantom cloud into a bound soliton) so the equilibrium arm actually
+holds, *then* the full (ω, m, κ) grid and Phase D GW extraction.
 
 **Phase C setup (2026-07-08) — CLI consolidation + high-res (dx=0.5) ID.**
 Replaced the per-case `params_*.txt` proliferation with a single **CLI generator**
@@ -220,6 +224,96 @@ finished run is ~15 MB (frames + `.dat` only); **zero** plotfile backlog.
 3. **Phase D GW analysis** once (1)–(2) settle the interpretation: Ψ₄ ℓ=2 m=0/±2
    multipoles, retarded-time alignment, strain, spectra; QNM/remnant-spin only if
    a horizon ever forms (none did here).
+
+---
+
+## Boundary study DONE (2026-07-08) — dispersal is BOTH physical (unstable ghost) AND boundary-timed
+
+Ran the box-size convergence test from step 1 above: **κ=1.0, ω=0.05, m=1,
+dx=0.5, ml=3, L=96** (boundary at r=48 from the throat vs r=32 for L=64),
+evolved to **t=46** with the new `--box-size` flag. This overturns the
+"purely numerical" caveat above with a sharper, two-part answer.
+
+**Result — the dispersal time moves with the box.**
+
+| Quantity | L=64 (r_bdy=32) | **L=96 (r_bdy=48)** |
+|----------|-----------------|---------------------|
+| `rho_sum` holds until | t≈4.0 | t≈4.5 |
+| `rho_sum` half-gone | t≈4.7 | **t≈5.1** |
+| `rho_sum` ≈ 0 (fully dispersed) | t≈5.0 | **t≈6.0** |
+| Constraints (Ham/Mom) | bounded, ↓ | bounded, ↓ (1.0e-3 / 7.7e-5 at t=46) |
+| Horizon | none | none (`max_ah_r=0`, `min_θ₊>0`) |
+| min_chi (throat) | → 0.91 | → 0.91 (opens toward flat) |
+
+The dispersal **time shifts later with the larger box** (fully gone at t≈6 vs
+t≈5), and `boundary_flux.dat` now shows a **clear net-outward-flux peak at
+t≈5.6** (3.9e-4) coincident with the `rho_sum` collapse — the earlier "no flux
+spike" reading was the coarser L=64 diagnostic cadence. So the matter **does**
+leave through the Sommerfeld faces, and *when* it fully leaves is boundary-set.
+
+**Why the matter disperses (physics, not a bug).** Two compounding causes, both
+expected:
+
+1. **Phantom-scalar wormhole equilibria are dynamically unstable.** The
+   Ellis–Bronnikov / massless-ghost throat has an unstable fundamental radial
+   mode (Gonzalez–Guzmán–Sarbach 2009; Shinkai–Hayward 2002). GRTresna gives a
+   genuinely constraint-satisfying slice, but it sits on an unstable saddle: any
+   perturbation grows. Here the seed is a **gauge transient** — the ID is
+   K=0/lapse=1 (maximal-slicing solve) loaded into a 1+log / Γ-driver evolution,
+   so at t≈0.5 `max_K` spikes to ~2.2 and the lapse dips to ~0.73 as the gauge
+   relaxes. That kick is enough to push the throat off the unstable equilibrium.
+2. **No confining potential (`phantom_mass = 0`).** The ghost scalar is
+   *massless*, so even absent the instability it has nothing to bind it — a
+   massless field spreads as dispersive radiation. There is no `V=μ²|Φ|²`
+   potential well (as a boson star / Kleihaus–Kunz *massive*-field wormhole would
+   have) to hold the cloud together. Once perturbed it delocalises, its amplitude
+   drops, the front propagates out at ~c, and the finite box then absorbs it.
+
+The throat *geometry* is fine throughout (min_chi rises smoothly to 0.91,
+constraints decrease); what fails is **matter confinement**, not the metric
+solve. The rotating equilibrium doesn't collapse — it **evaporates its own
+support** and relaxes toward flat space.
+
+**What we can do about it (ranked).**
+
+1. **Give the scalar a mass (`phantom_mass > 0`) — the primary fix.** A mass term
+   creates a bound-state potential well; the phantom lump becomes a (meta)stable
+   soliton (the massive-complex-field / Kleihaus–Kunz rotating wormhole class,
+   which is the correct physical target anyway). Requires re-solving the κ family
+   with the *same* nonzero mass so the ID stays in equilibrium, then evolving with
+   `phantom_mass` matched. **Do this next** — it is the single largest lever and
+   converts "dispersing lump" into "confined rotating throat."
+2. **Self-interacting potential (Q-ball type),** `V = μ²|Φ|² − g|Φ|⁴ + …`, for a
+   deeper, more robust well if a bare mass is marginal. Reuses the existing
+   `qball_profile` machinery.
+3. **Active support — the deferred RL matter pump / PD "trap" controller**
+   (`RLMatterPumpParams.hpp`). This is exactly the mechanism to counter dispersal:
+   feed matter back to hold the throat. Explicitly deferred in the approved scope;
+   the boundary study is the quantitative motivation for turning it on.
+4. **Reduce the seed kick:** load the ID lapse/shift consistently and/or ramp the
+   gauge gently so the t≈0.5 `max_K` transient doesn't excite the unstable mode.
+   Delays but does not cure the intrinsic instability (only #1–#3 confine matter).
+5. **Sponge / higher-order absorbing outer BC:** removes boundary *reflection*
+   only — it does **not** stop the physical spreading, so it will not prevent
+   `rho_sum → 0`. Useful for clean GW extraction, not for confinement.
+6. **Embrace it as the physics result:** a massless rotating phantom wormhole is
+   unstable and radiates its support away; the transient ℓ=2 Ψ₄ burst as the
+   throat relaxes *is* a publishable signature. Valid fallback if the massive-field
+   branch proves hard to stabilise.
+
+**Reproduce:**
+```bash
+EVO_L=96 RES_N=192 bash grteclyn-wrapper/scripts/wormhole/id/solve_kappa_family.sh 1.0 4
+bash grteclyn-wrapper/scripts/wormhole/run/wormhole_case.sh --kappa 1.0 --dx 0.5 --box-size 96 --gpu 0
+```
+Run dir `runs/rotating_wormhole/evo_omega_p0p05_m1_kappa_1p00_dx0p5_ml3_L96/`
+(84 MB final: frames + `.dat` only, sidecar-cleaned). Plots in `output/plots/`
+(`constraints_plot`, `collapse_diagnostics_plot`, `psi4_analysis_M30_D10`).
+
+**Revised next step:** the gating question is settled (dispersal = unstable
+massless ghost + boundary-timed removal). Priority is now **the massive-field
+re-solve (#1)** — solve the κ family and evolve with `phantom_mass > 0` — before
+the (ω, m, κ) collapse grid, so the equilibrium arm actually holds.
 
 ---
 
