@@ -62,6 +62,12 @@ EVO_L = float(os.environ.get("EVO_L", str(DEFAULT_L)))
 RES_N = int(os.environ.get("RES_N", os.environ.get("EVO_N", "64")))
 EVO_N = RES_N
 EVO_CENTER = (EVO_L / 2.0, EVO_L / 2.0, 0.0)
+# Field mass mu for the confining potential V = 1/2 mu^2 |Phi|^2.  MASS=0 is the
+# massless ghost (dispersive, the default studied so far); MASS>0 binds the
+# phantom cloud into a soliton so the throat keeps its support.  This value must
+# equal the evolution's `phantom_mass` (wormhole_case.py --mass) for the solved
+# ID to stay in equilibrium at t=0.
+MASS = float(os.environ.get("MASS", "0.0"))
 
 
 def _read_base_amp(params_text: str) -> float:
@@ -103,6 +109,15 @@ def _write_scaled_params(dst: Path, base_text: str, amp: float) -> None:
         text,
         flags=re.MULTILINE,
     )
+    # Rewrite scalar_mass so the confining potential V = 1/2 mu^2 |Phi|^2 is
+    # solved into the ID.  Must match the evolution's phantom_mass (same
+    # convention V = 0.5 m^2 phi^2 in both codes) or the lump disperses at t=0.
+    text = re.sub(
+        r"^(\s*scalar_mass\s*=\s*).*$",
+        rf"\g<1>{MASS:.10g}",
+        text,
+        flags=re.MULTILINE,
+    )
     dst.write_text(text)
 
 
@@ -129,12 +144,20 @@ def _L_suffix() -> str:
     return f"_L{int(EVO_L)}"
 
 
+def _mass_suffix() -> str:
+    """Append _mass<val> only when MASS>0 (backward compat with massless runs)."""
+    if MASS <= 0.0:
+        return ""
+    return f"_mass{MASS:g}".replace(".", "p")
+
+
 def solve_one(kappa: float, base_amp: float, base_text: str, nranks: int) -> dict:
     amp = kappa * base_amp
-    # Tag by resolution (and box size when non-default) so families coexist.
+    # Tag by resolution (and box size / mass when non-default) so families coexist.
     dx = EVO_L / RES_N
     dx_tag = f"dx{dx:.3g}".replace(".", "p")
-    tag = f"rotwh_omega_p0p05_m1_kappa_{kappa:.2f}_{dx_tag}{_L_suffix()}".replace(".", "p")
+    tag = (f"rotwh_omega_p0p05_m1_kappa_{kappa:.2f}_{dx_tag}"
+           f"{_L_suffix()}{_mass_suffix()}").replace(".", "p")
     run_dir = ID_ROOT / tag
     outputs = run_dir / "Outputs"
     outputs.mkdir(parents=True, exist_ok=True)
@@ -198,6 +221,8 @@ def main() -> int:
     base_amp = _read_base_amp(base_text)
     print(f"base amp = {base_amp}  kappas = {kappas}  nranks = {nranks}")
     print(f"evolution target grid: N={EVO_N} L={EVO_L} center={EVO_CENTER}")
+    print(f"field mass (scalar_mass) = {MASS}"
+          f"{'  (massless ghost)' if MASS <= 0 else '  (confining potential)'}")
 
     results = [solve_one(k, base_amp, base_text, nranks) for k in kappas]
 

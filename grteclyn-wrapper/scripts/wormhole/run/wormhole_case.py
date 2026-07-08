@@ -23,10 +23,17 @@ explicitly set: stop_time = r_outer + 6 (light-crossing to the shell plus a
 buffer for signal development).  Extraction uses 2 radii (inner fixed at 12,
 outer at L/2 - 8) to keep the consumer lightweight.
 
+--mass mu adds a confining potential V = 0.5 mu^2 |Phi|^2 to the phantom scalar
+(default 0 = massless ghost, which disperses). A nonzero mass binds the phantom
+cloud into a soliton so the throat keeps its support. The ID must be solved with
+the SAME mass: `MASS=<mu> solve_kappa_family.sh` (the potential convention
+V=0.5 m^2 phi^2 is shared by both codes).
+
 Usage:
     wormhole_case.sh --kappa 1.0 --dx 0.5 --max-level 3 --stop-time 8 --gpu 0
     wormhole_case.sh --kappa 0.7 --dx 0.5 --gpu 1 --no-frames
     wormhole_case.sh --kappa 1.0 --dx 0.5 --box-size 96 --gpu 0   # larger box
+    wormhole_case.sh --kappa 1.0 --dx 0.5 --mass 0.1 --gpu 0      # confined
 """
 
 from __future__ import annotations
@@ -66,17 +73,24 @@ def _L_suffix(L: float) -> str:
     return f"_L{int(L)}"
 
 
+def _mass_suffix(mass: float) -> str:
+    """Append _mass<val> only when mass>0 (backward compat with massless runs)."""
+    if mass <= 0.0:
+        return ""
+    return f"_mass{mass:g}".replace(".", "p")
+
+
 def id_tag(kappa: float, omega: float, m: int, dx: float,
-           L: float = DEFAULT_L) -> str:
+           L: float = DEFAULT_L, mass: float = 0.0) -> str:
     # Must match solve_kappa_family.py's run_dir tag.
     return (f"rotwh_omega_p{_p(omega)}_m{m}_kappa_{_p(kappa)}"
-            f"_{_dx_tag(dx)}{_L_suffix(L)}")
+            f"_{_dx_tag(dx)}{_L_suffix(L)}{_mass_suffix(mass)}")
 
 
 def case_tag(kappa: float, omega: float, m: int, dx: float,
-             max_level: int, L: float = DEFAULT_L) -> str:
+             max_level: int, L: float = DEFAULT_L, mass: float = 0.0) -> str:
     return (f"evo_omega_p{_p(omega)}_m{m}_kappa_{_p(kappa)}"
-            f"_{_dx_tag(dx)}_ml{max_level}{_L_suffix(L)}")
+            f"_{_dx_tag(dx)}_ml{max_level}{_L_suffix(L)}{_mass_suffix(mass)}")
 
 
 def extraction_radii(L: float) -> tuple[float, float]:
@@ -140,7 +154,7 @@ wormhole_phi_monopole_amplitude     = 0.0
 wormhole_phi_perturbation_amplitude = 0.0
 wormhole_phi_perturbation_width     = 0.5
 wormhole_support_strength = 1.0
-phantom_mass = 0.0
+phantom_mass = {mass}
 
 wormhole_azimuthal_m   = {m}
 wormhole_rotation_omega = {omega}
@@ -314,6 +328,11 @@ def main() -> int:
     ap.add_argument("--box-size", type=float, default=DEFAULT_L,
                     help="domain side length L (default 64); larger box for "
                          "boundary convergence study")
+    ap.add_argument("--mass", type=float, default=0.0,
+                    help="phantom scalar field mass mu (default 0 = massless "
+                         "ghost). >0 adds a confining potential V=0.5 mu^2|Phi|^2 "
+                         "so the throat keeps its support; must match the ID "
+                         "solved with MASS=<same> solve_kappa_family.sh")
     ap.add_argument("--plot-interval", type=int, default=40)
     ap.add_argument("--gpu", type=int, default=0)
     ap.add_argument("--gridinit", default=None, help="override ID .gridinit path")
@@ -342,11 +361,14 @@ def main() -> int:
     gridinit = (
         Path(args.gridinit).resolve()
         if args.gridinit
-        else ID_ROOT / id_tag(args.kappa, args.omega, args.m, args.dx, L)
+        else ID_ROOT / id_tag(args.kappa, args.omega, args.m, args.dx, L, args.mass)
         / "initial_data.gridinit"
     )
     if not gridinit.is_file():
-        hint = f"EVO_L={int(L)} RES_N={N}" if L != DEFAULT_L else f"RES_N={N}"
+        hint = " ".join(
+            ([f"EVO_L={int(L)} RES_N={N}"] if L != DEFAULT_L else [f"RES_N={N}"])
+            + ([f"MASS={args.mass:g}"] if args.mass > 0 else [])
+        )
         print(f"error: gridinit not found: {gridinit}\n"
               f"       solve it first: {hint} solve_kappa_family.sh {args.kappa}",
               file=sys.stderr)
@@ -355,7 +377,7 @@ def main() -> int:
         print(f"error: CUDA binary not found: {BIN}", file=sys.stderr)
         return 2
 
-    tag = case_tag(args.kappa, args.omega, args.m, args.dx, args.max_level, L)
+    tag = case_tag(args.kappa, args.omega, args.m, args.dx, args.max_level, L, args.mass)
     run_dir = RUN_ROOT / tag
     run_out = run_dir / "output"
     run_out.mkdir(parents=True, exist_ok=True)
@@ -368,6 +390,7 @@ def main() -> int:
     # absolute run path so the generated params are location-independent.
     params_text = PARAMS_TEMPLATE.format(
         m=args.m, omega=args.omega, kappa=args.kappa, dx=args.dx, N=N, L=L,
+        mass=args.mass,
         center_x=cx, center_y=cy, center_z=cz,
         max_level=args.max_level, stop_time=stop_time,
         plot_interval=args.plot_interval, run_out=str(run_out),
@@ -383,7 +406,7 @@ def main() -> int:
     print(f"  gridinit: {gridinit}")
     print(f"  params:   {params_path}")
     print(f"  L={L} N={N} dx={args.dx} max_level={args.max_level} "
-          f"stop_time={stop_time} radii={radii} gpu={args.gpu}")
+          f"mass={args.mass} stop_time={stop_time} radii={radii} gpu={args.gpu}")
     if args.dry_run:
         return 0
 
