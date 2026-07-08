@@ -144,7 +144,8 @@ Replaced the per-case `params_*.txt` proliferation with a single **CLI generator
 (same pattern as the QD campaign): `scripts/wormhole/wormhole_case.sh` renders the
 evolution params from one in-code template + flags
 (`--kappa --dx --omega --m --max-level --stop-time --gpu`), locates the matching
-`.gridinit`, launches, renders frames offline, and prunes plotfiles. The eight
+`.gridinit`, launches, streams frames + Ψ₄ and deletes plotfiles *during* the run
+(a `consume_plotfiles --watch --delete` sidecar, L6), then drains the tail. The eight
 duplicated params files were deleted; only the legacy analytic/real-scalar
 examples remain (documented in the example README). The κ family was re-solved at
 **N=128 → dx=0.5** (`RES_N=128 solve_kappa_family.sh`) so a dx=0.5 / max_level=3
@@ -157,6 +158,68 @@ kept). Example usage + status table live in
 levels below that (0.25→0.0625) interpolate the ID — the exact L2 kink risk. The
 first high-res run is the test; fallback is lower max_level or the analytic
 per-level ID layer (Debug.md step 3 / Phase C4).
+
+**Phase C high-res DONE (2026-07-08) — dx=0.5, max_level=3 AMR is stable; L2
+caveat resolved.** κ ∈ {1.0, 0.7, 0.5} (m=1, ω=0.05) each evolved to **t=8 on a
+4-level AMR grid (dx=0.5→0.0625) with no NaN and no cross-level kinks** — the L2
+interpolation risk did **not** materialise once `regrid_interval` was given one
+entry per level (AMReX `ParmParse` aborts otherwise; the low-res runs were unigrid
+so it never triggered). Constraints stay **bounded and decreasing** for every κ:
+
+| κ (dx=0.5, ml=3, t=0→8) | L2_Ham | L2_Mom | min_chi (throat) | horizon `max_ah_r` / `min_θ₊` | matter `rho_sum` | J_z |
+|---|---|---|---|---|---|---|
+| 1.0 | 8.4e-3 → **2.0e-3** ↓ | 1.5e-4 → 1.1e-4 | 0.57 → 0.91 | **0 / >0 (none)** | 774 → 1.5 | −0.031 → ~0 |
+| 0.7 | 6.5e-3 → **2.2e-3** ↓ | 1.1e-4 → 1.2e-4 | 0.45 → 0.79 | **0 / >0 (none)** | 375 → 2.1 | −0.018 → ~0 |
+| 0.5 | 5.8e-3 → **2.3e-3** ↓ | 1.0e-4 → 1.3e-4 | 0.41 → 0.73 | **0 / >0 (none)** | 191 → 1.3 | −0.009 → ~0 |
+
+**Headline (and a caveat that changes the low-res narrative).** At high resolution
+with constraint-clean GRTresna ID, **none of the κ arms collapse to a black hole**
+(`max_ah_r=0`, `min_θ₊>0` throughout). Instead all three do the *same* thing: the
+throat opens toward flat (min_chi → ~1), and the supporting **phantom cloud
+disperses at t≈4.5–5 — at essentially the same time for every κ** (`rho_sum` and
+`J_z` both decay to ~0). The Ψ₄ ℓ=2,m=0 signal grows monotonically
+(Re @ R=12: −4e-4 → −0.029), i.e. the rotational quadrupole *is* radiating. This
+**supersedes the low-res "monotonic collapse trend with decreasing κ"**: at dx=1.0
+the arms looked like they were marching toward collapse, but at dx=0.5/ml=3 they
+disperse without forming a horizon, and the outcome is κ-independent.
+
+**Why the caution:** the κ-independence *and* the simultaneity of the t≈5 dispersal
+are the signature of a **numerical/boundary effect, not κ-driven collapse physics**.
+The measured outer-boundary flux (`boundary_flux.dat`) stays small (~1–6e-5) with no
+spike at t≈5, so the matter is not obviously leaving through the Sommerfeld faces —
+it looks like the phantom cloud *spreads* (amplitude drops as it delocalises), and
+`rho_sum` (a refined-region volume sum) is also sensitive to AMR de-refinement as
+the cloud disperses. This must be pinned down before any physical claim.
+
+Diagnostics + movies (README scripts): per-run `plots/constraints_plot.*`,
+`plots/psi4_*.*` (`plot_diagnostic.sh` + `plot_extracted_psi4.py`) and
+`movies/movie_{chi,K,lapse,phi,Pi,Weyl4_*}_z.mp4` (`make_movies.sh`); κ-family
+comparison in `runs/rotating_wormhole/kappa_family_{diagnostics,constraints}.png`.
+Note the shared collapse-diagnostics plotter caps at ≤14 columns while the
+RotatingWormhole diag writes 19 (min_lapse…rho_sum, J_z) — hence the custom
+comparison figure.
+
+**Pipeline hardening (this pass):** `wormhole_case.py` now (i) emits
+`regrid_interval` with one value per level, (ii) runs the plotfile consumer as a
+**live sidecar** (frames+Ψ₄ rendered and plotfiles deleted *during* the run, only
+the newest few kept), (iii) drains the tail with `--keep-existing-frames` (the
+consumer wipes frames at startup by default — a post-run drain must not), and
+(iv) defaults `--frame-jobs 4` (`-j`≫4 on NFS thrashes and hangs). Result: each
+finished run is ~15 MB (frames + `.dat` only); **zero** plotfile backlog.
+
+**Next steps (Phase C follow-up + D):**
+1. **Resolution/boundary study on the t≈5 dispersal (gating).** Re-run κ=1.0 at
+   dx=1.0 (N=64) and at dx=0.5 with a **larger box** (e.g. L=96/128, boundary
+   farther out); if the dispersal time moves with resolution/boundary it is
+   numerical, if invariant it is physical. Also add a `--central-timeseries` /
+   `rho` volume integral that is AMR-robust to confirm whether matter spreads vs.
+   leaves.
+2. **ω=0 static baseline with the *same* CLI** (arm #1 apples-to-apples): does the
+   non-rotating complex-scalar throat also disperse at t≈5, or hold? This
+   discriminates a rotation-specific instability from a generic ID/boundary issue.
+3. **Phase D GW analysis** once (1)–(2) settle the interpretation: Ψ₄ ℓ=2 m=0/±2
+   multipoles, retarded-time alignment, strain, spectra; QNM/remnant-spin only if
+   a horizon ever forms (none did here).
 
 ---
 
