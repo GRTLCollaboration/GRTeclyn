@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       AMREX_HOME: ${{ github.workspace }}/amrex
-      EXECUTABLE: main3d.gnu.MPI.ex
+      EXECUTABLE_SUFFIX: 3d.gnu.MPI.ex
       PARAMETER_FILE: params_test.txt
       BUILD_ARGS: >-
         COMP=gnu
@@ -41,7 +41,8 @@ jobs:
       working-directory: ${{ github.workspace }}/Examples/${{ inputs.example_name }}
 
     - name: Run example using test parameters
-      run: mpiexec -n 2 ./${{ env.EXECUTABLE }} ./${{ env.PARAMETER_FILE }}
+      run: mpiexec -n 2 ./${{ inputs.example_name }}${{ env.EXECUTABLE_SUFFIX }}
+        ./${{ env.PARAMETER_FILE }}
       working-directory: ${{ github.workspace }}/Examples/${{ inputs.example_name }}
 
     - name: Download fcompare tool
@@ -79,8 +80,8 @@ jobs:
 
     - name: Restart from last checkpoint and evolve for a few more steps
       run: >
-        mpiexec -n 2 ./${{ env.EXECUTABLE }} ./${{ env.PARAMETER_FILE }}
-        amr.restart=chk00008 max_steps=12
+        mpiexec -n 2 ./${{ inputs.example_name }}${{ env.EXECUTABLE_SUFFIX }}
+        ./${{ env.PARAMETER_FILE }} amr.restart=chk00008 max_steps=12
       working-directory: ${{ github.workspace }}/Examples/${{ inputs.example_name }}
 
 
