@@ -35,20 +35,20 @@ ConstraintsWithMatter<matter_t>::operator()(
         state.cellData(ix, iy, iz);
     typename matter_t::Vars vars(state_cell_data);
 
-    auto d2_chi = m_deriv.diff2_scalar_test(ix, iy, iz, state, c_chi);
-    auto d2_h   = m_deriv.diff2_tensor_test(ix, iy, iz, state, c_h11);
+    auto d2_chi = m_deriv.d2_scalar(ix, iy, iz, state, c_chi);
+    auto d2_h   = m_deriv.d2_tensor(ix, iy, iz, state, c_h11);
 
     // Inverse metric and Christoffel symbol
-    auto d1_h        = m_deriv.diff1_sym_tensor_test(ix, iy, iz, state, c_h11);
+    auto d1_h        = m_deriv.d1_sym_tensor(ix, iy, iz, state, c_h11);
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric_test(vars);
     const auto chris = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
 
     // Get the non matter terms for the constraints
     // This needs d1 chi, K, h, A
-    auto d1_chi   = m_deriv.diff1_scalar_test(ix, iy, iz, state, c_chi);
-    auto d1_Gamma = m_deriv.diff1_vector_test(ix, iy, iz, state, c_Gamma1);
-    auto d1_K     = m_deriv.diff1_scalar_test(ix, iy, iz, state, c_K);
-    auto d1_A     = m_deriv.diff1_sym_tensor_test(ix, iy, iz, state, c_A11);
+    auto d1_chi   = m_deriv.d1_scalar(ix, iy, iz, state, c_chi);
+    auto d1_Gamma = m_deriv.d1_vector(ix, iy, iz, state, c_Gamma1);
+    auto d1_K     = m_deriv.d1_scalar(ix, iy, iz, state, c_K);
+    auto d1_A     = m_deriv.d1_sym_tensor(ix, iy, iz, state, c_A11);
 
     constraints_t out = constraint_equations(vars, d1_chi, d1_Gamma, d1_h, d1_K,
                                              d1_A, d2_chi, d2_h, h_UU, chris);

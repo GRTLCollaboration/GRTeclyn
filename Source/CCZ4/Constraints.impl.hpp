@@ -53,17 +53,17 @@ Constraints::operator()(int ix, int iy, int iz,
     CCZ4Vars vars(state_cell_data);
 
     // we need d1 chi, K, h, A... this just gets all of them
-    auto d1_chi   = m_deriv.diff1_scalar_test(ix, iy, iz, state, c_chi);
-    auto d1_Gamma = m_deriv.diff1_vector_test(ix, iy, iz, state, c_Gamma1);
-    auto d1_K     = m_deriv.diff1_scalar_test(ix, iy, iz, state, c_K);
-    auto d1_A     = m_deriv.diff1_sym_tensor_test(ix, iy, iz, state, c_A11);
-    auto d1_h     = m_deriv.diff1_sym_tensor_test(ix, iy, iz, state, c_h11);
+    auto d1_chi   = m_deriv.d1_scalar(ix, iy, iz, state, c_chi);
+    auto d1_Gamma = m_deriv.d1_vector(ix, iy, iz, state, c_Gamma1);
+    auto d1_K     = m_deriv.d1_scalar(ix, iy, iz, state, c_K);
+    auto d1_A     = m_deriv.d1_sym_tensor(ix, iy, iz, state, c_A11);
+    auto d1_h     = m_deriv.d1_sym_tensor(ix, iy, iz, state, c_h11);
 
     // we only need d2 of chi and h
     const Tensor::Sym12Rank2 d2_chi =
-        m_deriv.diff2_scalar_test(ix, iy, iz, state, c_chi);
+        m_deriv.d2_scalar(ix, iy, iz, state, c_chi);
     const Tensor::Sym12Sym34Rank4 d2_h =
-        m_deriv.diff2_tensor_test(ix, iy, iz, state, c_h11);
+        m_deriv.d2_tensor(ix, iy, iz, state, c_h11);
 
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric_test(vars);
     const auto chris = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
