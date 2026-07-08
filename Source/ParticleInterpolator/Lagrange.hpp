@@ -286,30 +286,30 @@ template <int N> class Lagrange
             {
                 if (deriv[dim] == 1)
                 {
-                    for (int i = 0; i < N; i++)
+                    for (int j = 0; j < N; j++)
                     {
-                        weights[dim][i] = weights_d1[dim][i] / dx;
+                        weights[dim][j] = weights_d1[dim][j] / dx;
                     }
                 }
                 else if (deriv[dim] == 2)
                 {
-                    for (int i = 0; i < N; i++)
+                    for (int j = 0; j < N; j++)
                     {
-                        weights[dim][i] = weights_d2[dim][i] / pow(dx, 2);
+                        weights[dim][j] = weights_d2[dim][j] / pow(dx, 2);
                     }
                 }
                 else
                 {
-                    for (int i = 0; i < N; i++)
+                    for (int j = 0; j < N; j++)
                     {
-                        weights[dim][i] = weights_local[dim][i];
+                        weights[dim][j] = weights_local[dim][j];
                     }
                 }
             }
 
-            for (auto &entry : comps)
+            for (int j = 0; j < comps.size(); ++j)
             {
-                const int comp = entry.comp;
+                const int comp = comps[j].comp;
 
                 val[counter] = amrex::ParticleReal(0.0);
 
