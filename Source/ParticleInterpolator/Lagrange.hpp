@@ -256,14 +256,14 @@ template <int N> class Lagrange
 #endif
     }
 
+    using comps_t = std::vector<typename InterpolationQueryParticle::out_t>;
+
     // Function to perform the interpolation
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     interpolate(const amrex::Array4<amrex::Real const> *data_arr,
-                amrex::ParticleReal *val,
-                InterpolationQueryParticle::iterator deriv_it_begin,
-                InterpolationQueryParticle::iterator deriv_it_end,
-                amrex::Real const dx) const
+                amrex::ParticleReal *val, const Derivative *derivs,
+                const comps_t *comps_arr, int ncomp, amrex::Real const dx) const
     // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         int counter      = 0;
@@ -272,15 +272,14 @@ template <int N> class Lagrange
         amrex::Real weights[AMREX_SPACEDIM][N]{};
         // NOLINTEND(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
 
-        for (auto deriv_it = deriv_it_begin; deriv_it != deriv_it_end;
-             ++deriv_it)
+        for (int i = 0; i < ncomp; ++i)
         {
             using comps_t =
                 std::vector<typename InterpolationQueryParticle::out_t>;
 
-            const Derivative &deriv = deriv_it->first;
+            const Derivative &deriv = derivs[i];
 
-            comps_t &comps = deriv_it->second;
+            const comps_t &comps = comps_arr[i];
 
             // Collect dimensions where we want at least a first derivative
             for (int dim = 0; dim < AMREX_SPACEDIM; ++dim)
