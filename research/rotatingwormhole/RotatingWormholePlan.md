@@ -381,13 +381,18 @@ bash grteclyn-wrapper/scripts/wormhole/run/wormhole_case.sh --kappa 1.0 --dx 0.5
 ```
 Run dir `runs/rotating_wormhole/evo_omega_p0p05_m1_kappa_1p00_dx0p5_ml3_mass0p1/`.
 
-**Revised next step (updated):** the confinement lever is now understood — it is
-the **bound-state profile**, not merely a mass. Switch the rotating-wormhole lump
-to `PROFILE_ODE_BOUND` (Q-ball; set `scalar_lambda`/`scalar_mu > 0` and use the
-ODE profile) or `PROFILE_SELFGRAV_BOUND` (boson star), matching the potential in
-the evolution. If a bound profile still disperses/destabilises, that is the
-physical instability of the phantom throat → pivot to active support (RL pump) or
-document the transient GW burst as the result.
+**Revised next step (updated; Rung 0 now DONE — see below).** The confinement
+lever is confirmed to be the **bound-state profile**, not merely a mass: the
+higher-mass sweep (μ=0.1/0.3/0.5) all dispersed in t≈5–9, deeper wells only making
+the cloud spike-then-crash harder (219%/266% peaks). Switch the rotating-wormhole
+lump from the analytic Gaussian (`lump0_profile = 0`) to a solved eigenstate —
+`PROFILE_SELFGRAV_BOUND` (boson star; no C++ potential change, preferred first) or
+`PROFILE_ODE_BOUND` (Q-ball; needs `scalar_lambda`/`scalar_mu > 0` plus matching
+λ/μ₆ terms in GRTeclyn's `PhantomDecayPotential`), matching the potential in the
+evolution. Physics constraint: **ω=0.05 < μ** for the bound regime. If a bound
+profile still disperses/destabilises, that is the physical instability of the
+phantom throat → pivot to active support (RL pump) or document the transient GW
+burst as the result.
 
 ---
 
@@ -398,15 +403,36 @@ outcome**, and a **decision criterion** for whether to climb to the next rung. T
 governing diagnostic throughout is `rho_sum(t)`: does the phantom cloud **hold**
 (bounded, oscillating about a plateau) or **evaporate** (→0)?
 
-### Rung 0 — Higher-mass sweep *(IN PROGRESS, 2026-07-08)*
+### Rung 0 — Higher-mass sweep *(DONE, 2026-07-08 — Gaussian-profile diagnosis CONFIRMED)*
 - **Action:** μ=0.3 and μ=0.5 at κ=1.0, L=64, dx=0.5, ml=3, t→12
   (`--mass 0.3/0.5`, IDs solved: Ham 0.61/0.69%, Mom 0.63/0.92%). GPUs 2/3.
+  Run dirs `runs/rotating_wormhole/evo_omega_p0p05_m1_kappa_1p00_dx0p5_ml3_mass0p{3,5}/`.
 - **Purpose:** confirm the μ=0.1 verdict — that a bare mass on a *Gaussian* lump
   cannot confine — is not just "mass too small". A pure dispersion-relation shift
   should at most keep delaying the evaporation, not stop it.
-- **Decision:** if `rho_sum` still → ~0 (only later), the Gaussian-profile
-  diagnosis is confirmed ⇒ climb to Rung 1. If instead it plateaus at large μ,
-  a bare mass suffices and we skip straight to the (ω, m, κ) grid.
+- **Result — every mass disperses; a bare mass does NOT confine.** All three runs
+  evaporate in the t≈5–9 window. Higher μ does not plateau `rho_sum`; instead it
+  makes the cloud *spike* (deeper well → faster infall / more V=½μ²φ² energy) and
+  then crash all the harder:
+
+  | run | peak `rho_sum` | dispersal (`rho_sum`→~0) | note |
+  |-----|---------------|--------------------------|------|
+  | μ=0.1 | ~100% (no spike) | ~t=13 (→0 by t=15) | slow radiative decay |
+  | μ=0.3 | **219%** @ t=5 | crashes t=5→6 (3.8% @ t=6, 0.5% @ t=7) | spike then collapse |
+  | μ=0.5 | **266%** @ t=5 | crashes t=7→8.5 (0.01% @ t=8.5) | spike then collapse |
+
+  `min_chi` drifts *above* 1 for μ≥0.3 (1.05 / 1.31) — deeper-well contraction, not
+  a horizon (`min_theta_plus` stays > 0). `J_z` tracks `rho_sum` (spikes then → 0
+  with the cloud), so it is *not* independently conserved once the cloud leaves.
+  **Boundary caveat:** late-time rebounds are numerical junk, not revival — μ=0.5
+  jumps back to `rho_sum`≈56% with `J_z`≈−0.34 at t=9 *after* bottoming at 0.01%,
+  and μ=0.3 shows a small t=10–12 uptick. Consistent with the earlier L=64 vs L=96
+  finding that late-time behavior is boundary-reflection contaminated.
+- **Decision:** `rho_sum` → ~0 for every μ ⇒ **the Gaussian-profile diagnosis is
+  confirmed** (a mass shifts the dispersion relation but the analytic-Gaussian lump
+  is not an eigenstate of *any* massive KG operator, so it always radiates its
+  non-eigenstate modes away). Climb to **Rung 1 — the bound-state profile is the
+  principled fix.**
 
 ### Rung 1 — Bound-state profile (the principled fix)
 - **Action:** switch the lump from `lump0_profile = 0` (analytic Gaussian) to a
