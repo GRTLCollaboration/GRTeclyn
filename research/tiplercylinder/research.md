@@ -1,154 +1,302 @@
-Extending the existing grteclyn-wrapper framework to model Tipler cylinders—and
-the associated multi-cylinder configurations like "spacetime railguns" or
-"spacetime blenders"—presents a structured path for investigating rotational
-numerical relativity.
+# Tipler Cylinder / Spinning-Configuration CTC Hunt — Grounded Research Plan
 
-To transition these concepts from pen-and-paper theoretical physics into your
-existing CCZ4/AMR pipeline, we must address the primary lesson of your prior
-campaigns: ansatz and matter-sector design are the dominant levers for physical
-discovery, while numerical validation is critical to weeding out gauge
-artifacts.
+> Rewritten 2026-07-08 against the verified state of the GRTresna→GRTeclyn
+> pipeline. Supersedes the earlier speculative five-phase sketch. Companion
+> journals: [`../neuralspacetime/MapElitesDynamics.md`](../neuralspacetime/MapElitesDynamics.md),
+> [`../rotatingwormhole/RotatingWormholePlan.md`](../rotatingwormhole/RotatingWormholePlan.md),
+> [`../grlab/LabJournal.md`](../grlab/LabJournal.md),
+> [`../../grteclyn-wrapper/README.md`](../../grteclyn-wrapper/README.md).
 
-Below is a proposed five-phase research plan designed to integrate cylindrical,
-spinning configurations into the current wrapper ecosystem.
+---
 
-Phase 1: Boundary Conditions & Initial Data (GRTresna)
+## 1. Goal and physical framing
 
-The "infinite" cylinder is a mathematical abstraction. In a 3D numerical grid,
-we can model this using a clever coordinate trick, or construct a compact
-(finite) rotating cylinder.
+**Headline goal:** hunt for closed-timelike-curve (CTC) precursors — light-cone
+tipping — around rapidly spinning matter configurations, using the existing
+CCZ4/AMR evolution + GRTresna constraint-solve + QD/CMA-ES search pipeline.
 
-1.  The Infinite Cylinder Approximation (Periodic Boundary Conditions):
-      - Mechanism: Configure the spatial grid with periodic boundary conditions
-        along the z-axis in both GRTresna and GRTeclyn. This mathematically
-        mimics an infinitely long cylinder of radius R aligned with the z-axis,
-        while keeping the computational domain finite.
-      - Action: Modify the params.txt generation in
-        src/grteclyn_wrapper/grtresna/solver.py to enforce periodic boundaries
-        in the z-direction while leaving x and y open (or using radiative
-        boundary conditions).
-2.  The Matter Sector (Rotating Boson Stars / Q-Rings):
-      - Mechanism: To generate rotation, we cannot use static, real scalars. We
-        must use a complex scalar field \Phi with an azimuthal phase winding
-        (e^{i m \phi}, where m is the integer angular momentum).
-      - Action: Build a cylindrical/toroidal initial data profile in
-        grtresna/profiles/ (e.g., modifying the existing boson_star_ode.py or
-        shell profiles). Arrange multiple spinning scalar lumps along the
-        z-axis, or implement a continuous rotating complex scalar cylinder.
-3.  Multi-Cylinder (Railgun/Blender) Layout:
-      - Mechanism: Define a twin-cylinder ansatz where two parallel cylindrical
-        matter arrays are placed at coordinates x = -d and x = +d.
-      - Action: Extend the independent scalar lump bridge
-        (GRTresnaIndependentScalars in C++) to allocate matter channels for two
-        separate cylinders, assigning opposite velocities or phase winds to
-        model counter-rotating (railgun) or co-rotating (blender/shear) setups.
+### The correct tipping criterion (fixing the old plan)
 
-Phase 2: Evolution & Gauge Stability (GRTeclyn)
+The earlier draft proposed "maximize the region where g_tt < 0 outside the
+horizon." That is wrong: with signature (−,+,+,+), g_tt < 0 is the *normal*
+state of spacetime. The actual CTC condition around a rotating axis is
 
-Extreme rotation leads to extreme frame-dragging (non-zero shift vectors
-\beta^i). This places massive stress on the CCZ4 system.
+> **g_φφ < 0** — the closed azimuthal circle ∂_φ becomes timelike, so
+> circulating around the cylinder is travelling into the past.
 
-1.  Managing Shift Runaway:
-      - Your previous findings showed that extreme runs often suffer from gauge
-        collapse or coordinate artifacts when the shift vector runaways (e.g.,
-        SH eval 151/101).
-      - Action: Monitor the \beta^i evolution closely. You may need to tune the
-        Gamma-driver shift condition parameters in GRTeclyn's CCZ4 evolution to
-        prevent coordinate singularities from forming outside the matter
-        cylinder.
-2.  Handling the CCZ4 Damping Terms:
-      - High-resolution runs in your self-gravitating boson star tests still
-        developed NaNs at t \approx 6\text{--}9 due to stability limits.
-      - Action: Calibrate the CCZ4 damping parameters \kappa_1 and \kappa_2
-        specifically for rotational shear. Introduce these as configurable
-        hyperparameters in the wrapper's search defaults
-        (scripts/campaigns/lib/search_common.sh).
-3.  The Post-Load Gate adaptation:
-      - Action: Ensure the projection/postload_gate.py (which runs a short
-        t=0.01 evolution to check L_2 Hamiltonian and Momentum constraints) is
-        adjusted to handle the rotational momentum of the cylinders without
-        falsely rejecting valid, constraint-satisfying rotating initial data.
+The graded, measurable precursor ladder (weakest → strongest):
 
-Phase 3: Diagnostics & 4D Geodesic Probe Customization
+1. **Frame dragging:** nonzero g_tφ (equivalently, azimuthal shift β^φ). Any
+   spinning source produces this; magnitude is the cheap descriptor.
+2. **Sagnac asymmetry:** co-rotating vs counter-rotating null rays around the
+   axis arrive at different coordinate times. Gauge-honest, cheap to measure,
+   scales with the frame-dragging integral.
+3. **Ergo-like tipping:** the tipping ratio g_tφ² / (g_tt · g_φφ) approaching 1
+   — light cones tilted far enough that the co-rotating ray's transit time
+   collapses toward zero.
+4. **CTC formation:** g_φφ < 0 on some ring outside any horizon. Sagnac
+   co-rotating transit time goes *negative* relative to emission.
 
-To prove the existence of Closed Timelike Curves (CTCs), frame-dragging, or
-railgun acceleration, you must measure them in a gauge-invariant manner.
+### Reality checks (do not skip)
 
-1.  Measuring Frame-Dragging (\omega):
-      - Action: Implement a diagnostic parser in
-        src/grteclyn_wrapper/visualisation/ to extract the off-diagonal metric
-        components (specifically g_{t\phi} or g_{tx}, g_{ty}) and plot the
-        frame-dragging "whirlpool" profiles.
-2.  Adapting the 4D Null-Geodesic Probe for CTC Precursors:
-      - Current State: The EvolvingMetricField probe traces rays along straight
-        lines to find FTL shortcuts.
-      - Modification: Create a rotational geodesic tracer. Instead of firing
-        rays end-to-end along the z-axis, fire null rays in a circular path
-        around the spinning cylinder.
-      - Goal: Measure the "arrival time asymmetry" between co-rotating and
-        counter-rotating rays. A precursor to a CTC occurs when the coordinate
-        transit time for a co-rotating ray becomes negative or drastically
-        smaller than the flat-space baseline.
-3.  The "Railgun" Particle Acceleration Metric:
-      - Action: For the counter-rotating dual cylinder setup, write a metric
-        that integrates the acceleration of a test mass dropped into the "river"
-        of space between x = -d and x = +d. Compare its coordinate velocity and
-        proper acceleration to verify the zero-G catapult effect.
+- **Tipler's infinite cylinder is a mathematical idealization.** Hawking's
+  chronology-protection result: CTCs generated in a *compact* region require
+  weak-energy-condition violation. A finite cylinder of ordinary matter cannot
+  do it. The pipeline *does* have phantom/exotic scalar sectors (used
+  throughout the wormhole campaigns), so the compact hunt is not a priori
+  impossible in-simulation — but every CTC claim inherits the full
+  exotic-matter penalty and falsification burden.
+- **Expected regime at survivable parameters** (ω ≈ 0.05–0.2, m = 1–2, field
+  amplitudes below collapse): measurable frame-dragging and Sagnac scaling —
+  levels 1–2 of the ladder. Levels 3–4 are pursued by climbing the
+  amplitude/spin ladder (κ-family style) as far as numerics allow. Any level-3+
+  signal must survive the resolution ladder before being claimed.
+- **The dominant failure mode is matter dispersal, not gauge collapse.** Every
+  campaign to date says so: Q-ball trajectory HQ confinement fell 53% → 23%
+  (t=30); the rotating-wormhole phantom cloud dispersed at t ≈ 4.5–5 across all
+  κ. A Tipler-style configuration needs *sustained* rotation for the tipping to
+  accumulate — matter design is the whole game (§2).
 
-Phase 4: Optimization Campaigns (QD → CMA-ES)
+---
 
-With the parameters and diagnostics established, launch targeted search
-campaigns to find the most stable and physically extreme configurations.
+## 2. Matter sector — the decisive lever
 
-1.  Define the Objectives (spacetime_shear and spacetime_railgun):
-      - Build new objective functions in
-        src/grteclyn_wrapper/metrics/score/objectives.py:
-          - spacetime_railgun: Maximizes the velocity boost of test particles in
-            the central channel while penalizing matter dispersion and black
-            hole collapse (using the existing horizon_penalty to prevent the
-            cylinders from merging into a single black hole).
-          - ctc_precursor: Maximizes the tipping of light cones (i.e.,
-            maximizing the region where g_{tt} < 0 outside the event horizon)
-            while enforcing stability.
-2.  Stage 0: MAP-Elites (QD) Exploration:
-      - Launcher: Create scripts/campaigns/tipler_cylinder/run_qd.sh.
-      - Descriptors: Use spacetime_shear and frame_dragging_strength (the peak
-        value of the shift vector) as the behavior axes for the MAP-Elites grid.
-      - Run with intermediate grid settings
-        (N=128, L=64, \text{stop\_time}=16.0) to map out the parameter space of
-        cylinder radii, distances, and spin rates.
-3.  Stage 1: CMA-ES Basin Tightening:
-      - Take the most stable, highest-performing "railgun" or "time-cone tipper"
-        elites and run local hill-climbing to find the exact thresholds where
-        the physics is maximized before numerical breakdown.
+Angular momentum can be carried two ways. This choice dominates persistence.
 
-Phase 5: High-Resolution Validation & Falsification
+### (a) PRIMARY: internal phase winding — matter at rest, field rotating
 
-As proven by your previous trajectory campaigns (where a Stage 0 leader like
-eval 008 was revealed to be a low-resolution artifact), a rigorous validation
-path is non-negotiable.
+Complex (phantom or canonical) scalar Φ = f(ρ,z) e^{i(mφ − ωt)}:
+|Φ|² is axisymmetric and *stationary*; J_z is carried entirely by the phase
+winding; no bulk matter motion at all. This sidesteps the boosted-lump
+dispersal problem — there is no kinetic energy trying to unbind the
+configuration.
 
-1.  Resolution-Ladder Replay (Stage 2 - HQ):
-      - Promote promising cylinder candidates to N=256, L=128, and
-        \text{stop\_time}=30 (or greater) to confirm the effects survive grid
-        refinement.
-2.  Stability and Geodesic Trust Flags:
-      - Ensure that any claim of light-cone tipping or zero-G acceleration
-        passes the geodesic trust flags (low coordinate drift, correct step
-        sizing, and lack of code NaNs/crashes).
-3.  Falsification Ladder Integration:
-      - Update scripts/search/validate_tiers.py to include specific checks for
-        the cylindrical runs, assigning tiers from T0 (constructed rotating
-        initial data) up to T5 (converged rotating geometry).
+This machinery **already exists and is validated**:
 
-Summary Checklist for Implementation
+- RotatingWormholeCollapse evolves (φ₁,Π₁,φ₂,Π₂) with `wormhole_azimuthal_m`,
+  `wormhole_rotation_omega`, phantom sign flip — built, smoked, and run.
+- GRTresna solves the winding ID to Ham < 1%, Mom < 1%
+  (`params_rotating_wormhole_test.txt`, κ-family driver
+  `scripts/wormhole/solve_kappa_family.{sh,py}`).
+- **Headline B5 result:** analytic rotating ID NaN'd at t ≈ 2.8; the *same*
+  configuration with GRTresna-solved ID ran stably with J_z conserved
+  (77.5677 at t=0 and t=3.5) and constraints *decreasing*. The rotating
+  instability was the O(ω) K_ij=0 ID defect, not physics.
+- Lesson L3 stands: a single *real* scalar cannot rotate smoothly — cos(mφ)
+  modulation is the four-lobe dispersal pattern. Winding complex scalar is
+  mandatory for any rotating profile.
 
-| Task                          | File to Create/Modify                  | Purpose                                           |
-| :---------------------------- | :------------------------------------- | :------------------------------------------------ |
-| **Z-Periodic Boundaries**     | `grtresna/solver.py` & GRTeclyn setup  | Mimics infinite cylinder on a finite grid         |
-| **Rotating Matter Profile**   | `grtresna/profiles/cylinder_lumps.py`  | Generates spinning complex scalar cylinders       |
-| **Frame-Dragging Diagnostic** | `src/grteclyn_wrapper/visualisation/`  | Visualizes the spacetime whirlpool                |
-| **CTC Geodesic Probe**        | `src/grteclyn_wrapper/metrics/probes/` | Traces curved/circular null-rays around cylinders |
-| **Railgun Objective**         | `metrics/score/objectives.py`          | Rewards acceleration, penalizes merger/collapse   |
-| **Campaign Launchers**        | `scripts/campaigns/tipler_cylinder/`   | Coordinates the Stage 0 & 1 search runs           |
+For the cylinder: replace the wormhole throat profile f(r,θ) with a
+**cylindrical envelope** f(ρ, z) — a column (or z-stack of tori) of winding
+field centered on the z-axis. New profile module
+`grtresna/profiles/cylinder_winding.py` + envelope painting; the GRTresna
+matter model and evolution code are reused as-is.
 
+### (b) SECONDARY: self-gravitating stable-branch boson star / Q-ball stack
+
+The [`SELFGRAV_HANDOFF`](../../grteclyn-wrapper/docs/SELFGRAV_HANDOFF.md)
+four-bug fix (profile loader, curved-space Π painting with real α(r), pump
+target amplitude, stable-branch φ_c < Kaup) is the best persistence result the
+MAP-Elites program has produced: confinement ~0.90–0.97 to t=16 vs 0.58 for
+the broken seed. Honest caveats carry over verbatim:
+
+- late-time RMS spreading (2.1 → 4.2 over the last third — "held but leaking");
+- **max_level=3 still NaNs at t ≈ 6–9** — the clean result is coarse-grid only;
+- validated for a star **at rest**; nothing is known about it under boost.
+
+Use case here: a z-stack of stable-branch stars, each given spin by *internal
+winding* (m ≥ 1 rotating boson star / Q-torus), not by orbital motion.
+Known physics risk: m ≥ 1 rotating boson stars are unstable to
+non-axisymmetric perturbations unless self-interactions stabilize them —
+Q-ball-type potentials (already in `grtresna/profiles/qball_ode.py` /
+`qball_couplings.py`) are exactly the stabilizing family. Treat "does the
+winding Q-torus hold axisymmetry" as an explicit early experiment, watched in
+the frames, not assumed.
+
+### (c) FALLBACK ONLY: boosted-lump trajectories
+
+Lumps orbiting at v_t ≈ 0.3–0.5c (the trajectory-ansatz campaigns) are the
+*documented dispersal failure*: eval 118 HQ showed the channel peak at t ≈ 19
+then decay as the lumps sheared apart; the two gpu_failed evals were
+dispersal-driven blow-ups. Given the tangential speeds a cylinder-scale spin
+would demand, bulk-motion matter is used only as a comparison arm — never as
+the primary carrier of angular momentum.
+
+**Bottom line:** the "spin" of the Tipler column comes from ω·m phase winding
+in matter that is spatially at rest. That is the only configuration class the
+pipeline has ever shown to both rotate and persist.
+
+---
+
+## 3. What the infrastructure verifiably provides (reuse, don't rebuild)
+
+| Capability | Where | Status |
+|---|---|---|
+| Winding complex phantom scalar evolution | `Examples/RotatingWormholeCollapse` (`SupportedWormholeLevel.cpp`) | built, smoked, production runs done |
+| GRTresna rotating exotic constraint solve | κ-family driver `scripts/wormhole/solve_kappa_family.{sh,py}` | converges Ham/Mom < 1%; dx=0.5 ID produced |
+| Amplitude-ladder (κ) ID families | same | ready-made spin/amplitude sweep tool |
+| Collapse/spin diagnostics (`min_chi`, `min_θ₊`, barycenter, **J_z**) | `collapse_diagnostics.dat` | wired |
+| `spacetime_shear` objective + descriptor | `src/.../metrics/score/objectives.py`, `search/qd_search/descriptors.py` | exists |
+| 4D evolving null-geodesic probe | `src/.../metrics/probes/ftl/evolving_geodesic.py` | straight rays only — Sagnac variant is the extension (§5) |
+| QD → CMA-ES → HQ staging, postload gate, tier ladder | `scripts/campaigns/`, `projection/postload_gate.py`, `scripts/search/validate_tiers.py` | production-proven |
+| Disk-safe launcher + streaming consumer | `scripts/wormhole/wormhole_case.sh` pattern (sidecar, `--keep-last`, frame drain) | L6-compliant |
+| Per-lump independent scalars (counter-rotating pairs) | `GRTresnaIndependentScalars` C++ | exists; opposite winding signs = railgun arm |
+
+Paid-for lessons that constrain every design choice (from Debug.md / the plans):
+
+- **L1** frozen prescribed sources are fatal — matter must co-evolve.
+- **L2** never evolve finer than the ID file's native dx (solve ID at target dx).
+- **L3** real scalars cannot rotate; **L4** winding complex scalar is the cure.
+- **L6** always run the consumer sidecar; never the bare binary.
+- **Analytic rotating ID is fatal** (t≈2.8 NaN) — GRTresna solve is mandatory,
+  not optional.
+- **Reward hacking is real** (gw_beam eval 51: score 336 from a constraint
+  blow-up, → −116 only after *multiplicative* health gates). Any curvature /
+  off-diagonal-metric objective ships with hard gates from day one.
+
+---
+
+## 4. Phase plan
+
+### Phase 1 — Initial data: compact winding column (finite cylinder)
+
+**Primary arm: no boundary-condition surgery.** Build a finite z-extended
+winding column inside the existing open-boundary box and let GRTresna solve it:
+
+1. `grtresna/profiles/cylinder_winding.py`: envelope f(ρ,z) =
+   A · sech(ρ/σ_ρ)^p · (z-window), painted onto the complex (optionally
+   phantom) scalar with phase winding m; two-channel Π from ω, using the
+   *solved* lapse where applicable (SELFGRAV lesson — never paint Π with α=1).
+2. Solve with the κ-family pattern at the **evolution's level-0 dx** (L2);
+   verify the gridinit structurally (axisymmetric |Φ|², both winding channels,
+   J_z ≠ 0) with regression tests mirroring
+   `tests/grtresna/test_rotating_wormhole_kappa.py`.
+3. **Multi-column (railgun/blender) arm:** two parallel columns at x = ±d via
+   `GRTresnaIndependentScalars`, opposite (counter-rotating) or equal
+   (co-rotating) winding signs. Only after the single column is stable.
+
+**Deferred stretch goal: periodic-z "infinite" cylinder.** Grounded caveats
+that demoted it from Phase 1:
+
+- `is_periodic = 0 0 0` is **hardcoded** in
+  `src/grteclyn_wrapper/grtresna/solver/params.py`; GRTeclyn/AMReX supports
+  periodic geometry, but the wrapper plumbing (solver params, postload gate,
+  consumer slicing) all assumes open boxes.
+- Physics: an infinite rotating cylinder's exterior (Levi-Civita/Lewis class)
+  is **not asymptotically flat**. GRTresna's momentum solve (compact V_i
+  ansatz) and the Sommerfeld x/y faces both assume decay — a mixed
+  periodic/open elliptic solve with a non-decaying exterior is genuine methods
+  work with unclear convergence, not a params tweak.
+
+Attempt only if the finite column produces a tipping signal that is visibly
+end-effect-limited.
+
+### Phase 2 — Evolution: dispersal is enemy #1, gauge is enemy #2
+
+1. **Dispersal watch (primary).** The rotating-wormhole high-res result is the
+   warning: all κ arms dispersed at t ≈ 4.5–5, κ-independently — signature of a
+   numerical/boundary artifact, still unresolved. Before any campaign, run the
+   single winding column through the same discrimination protocol: vary box
+   size and resolution; if the dispersal time moves, it is numerical. Add an
+   AMR-robust volume-integrated ρ diagnostic (the `rho_sum` refined-region sum
+   is confounded by de-refinement).
+2. **Pump as stabilizer (optional arm).** The corrected RL/PD pump
+   (`rl_pump_target_amp`, profile-matched width) is available if the column
+   leaks; account for pump energy injection honestly in scoring (NextSteps
+   pump-accounting item).
+3. **Gauge/damping.** Strong frame dragging stresses the Gamma-driver; expose
+   CCZ4 κ₁/κ₂ and shift-driver η as campaign hyperparameters in
+   `scripts/campaigns/lib/search_common.sh`. Watch β^φ for runaway — but note
+   the B5/C evidence that with constraint-clean ID, rotation at ω ≈ 0.05 is
+   *not* gauge-hostile.
+4. **Postload gate:** verify `projection/postload_gate.py` tolerances against a
+   known-good solved winding column (nonzero momentum is legitimate here);
+   adjust Mom thresholds only with evidence, not preemptively.
+
+### Phase 3 — Diagnostics: the Sagnac probe is the flagship deliverable
+
+1. **Frame-dragging map (cheap, every run).** Parser in
+   `src/grteclyn_wrapper/visualisation/` extracting the azimuthal shift
+   β^φ = (x β^y − y β^x)/ρ² on the mid-plane; peak and radial profile logged to
+   `small_data/`. Peak |β^φ|·ρ is the `frame_dragging_strength` descriptor.
+2. **Sagnac azimuthal geodesic probe (gauge-honest, the CTC meter).** Extend
+   `metrics/probes/ftl/evolving_geodesic.py` with an azimuthal launch mode:
+   integrate co- and counter-rotating null geodesics on a ring ρ = R around the
+   axis through the evolving 4D metric stack; report
+   Δt = t_counter − t_co and the normalized asymmetry vs the flat-space
+   circumference time. Ladder levels: Δt > 0 (dragging), t_co → 0 (tipping),
+   t_co < 0 (CTC). Reuses the existing metric-stack cache and trust flags
+   (step-size, drift, NaN checks) unchanged.
+3. **Tipping-ratio field.** From plotfile metric components, compute
+   g_tφ²/(g_tt g_φφ) on the mid-plane (g_tφ = γ_φj β^j etc. from ADM
+   variables); log max over the ring family. This is a *coordinate* quantity —
+   it ranks candidates but only the Sagnac probe substantiates a claim.
+4. **Railgun diagnostic (counter-rotating pair arm).** Integrate a timelike
+   geodesic dropped in the central channel between the columns; report proper
+   acceleration and coordinate velocity. Explicitly label the
+   coordinate-velocity number as gauge-dependent; the geodesic integration is
+   the honest measurement.
+
+### Phase 4 — Campaigns (QD → CMA-ES), hard-gated from day one
+
+1. **Objective `ctc_precursor`** in `metrics/score/objectives.py`:
+   `score = (w₁·sagnac_asymmetry + w₂·tipping_ratio + w₃·persistence_of_J_z)
+   × health_multiplier + penalties`, where `health_multiplier = 0` on
+   constraint spike (gw_beam Fix A/C pattern: truncate time series at t_spike,
+   zero the physics terms — additive penalties provably lose to unbounded
+   exploits). Graded `horizon_penalty` retained (column must not collapse to a
+   BH); exotic penalty applies whenever the phantom sector is on.
+2. **Descriptors:** `spacetime_shear` (exists) × `frame_dragging_strength`
+   (new, from the Phase 3 parser) on the 8×8 archive. Search dimensions:
+   column radius σ_ρ, z-extent, amplitude A (κ-style), winding m ∈ {1,2},
+   ω ∈ [0, 0.2], potential couplings (Q-ball family), phantom on/off, and for
+   the pair arm: separation d and relative winding sign.
+3. **Stage 0** at the standard search grid (N=128, L=64, t_stop=16),
+   `scripts/campaigns/tipler_cylinder/run_qd.sh` cloned from the qball launcher
+   with shared `search_common.sh`. **Stage 1** CMA-ES warm-start from archive
+   elites, same config (scores must stay comparable).
+
+### Phase 5 — Validation and falsification (non-negotiable)
+
+1. **Resolution ladder:** promote leaders to HQ (N=256, L=128, t_stop ≥ 30,
+   max_level per L2 discipline). The trajectory campaign precedent is binding:
+   eval 008 was a low-res artifact; eval 118's channel *decayed* under the
+   longer HQ window. Assume the same until shown otherwise.
+2. **Boundary/box study** for any persistent signal (the t≈5 dispersal protocol
+   from RotatingWormholePlan applies verbatim).
+3. **Geodesic trust flags** required on every Sagnac number (drift, step
+   sizing, no NaNs); ω=0 control run must show zero asymmetry (built-in null
+   test), and a slow-ω run should match the linear frame-dragging expectation
+   (built-in calibration).
+4. **Tier ladder:** extend `scripts/search/validate_tiers.py` with the
+   cylinder checks — T0 constructed rotating ID up through converged geometry;
+   no CTC-precursor claim below the convergence tier.
+
+---
+
+## 5. First milestones (concrete, ordered)
+
+1. `cylinder_winding.py` profile + GRTresna solve of a single winding column
+   (m=1, ω=0.05, canonical-first, then phantom) to Ham/Mom < 1%; structural
+   regression tests on the gridinit.
+2. Coarse evolution smoke (64³, t=8) via a `wormhole_case.sh`-style launcher
+   with the consumer sidecar; confirm J_z conservation and no dispersal cliff —
+   including the box-size discrimination run.
+3. β^φ frame-dragging parser + `frame_dragging_strength` descriptor.
+4. Sagnac probe mode in the evolving-geodesic tracer, with ω=0 null test and
+   small-ω linear calibration.
+5. `ctc_precursor` objective with multiplicative gates; clone the QD launcher;
+   50-eval shakeout before any full campaign.
+
+## 6. Honest expectations
+
+At the parameter ranges that survive evolution, the deliverable of the first
+campaign generation is a **map of frame-dragging strength and Sagnac asymmetry
+versus (m, ω, amplitude, geometry)** with validated scaling — levels 1–2 of the
+precursor ladder — plus the persistence answer for winding columns (does
+phase-winding matter hold together where boosted lumps did not?). Light-cone
+tipping (level 3) is chased by riding the amplitude ladder toward the collapse
+threshold with the graded horizon penalty as the guardrail. An actual g_φφ < 0
+ring (level 4) would be extraordinary and must survive the full falsification
+ladder — resolution, boundary, gauge, and probe trust — before the word "CTC"
+appears in any journal entry.
