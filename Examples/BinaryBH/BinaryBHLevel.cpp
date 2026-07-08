@@ -296,6 +296,8 @@ void BinaryBHLevel::specific_post_checkpoint(const std::string &a_chk_dir,
 
 void BinaryBHLevel::specificPostTimeStep()
 {
+    BL_PROFILE("BinaryBHLevel::specificPostTimeStep");
+
     // do puncture tracking on requested level
     if (simParams().puncture_tracking_enabled &&
         Level() == simParams().puncture_tracking_level)
@@ -332,7 +334,6 @@ void BinaryBHLevel::specificPostTimeStep()
 
 #if 0
 //xxxxx specificPostTimeStep
-    BL_PROFILE("BinaryBHLevel::specificPostTimeStep");
 
     if (m_p.calculate_constraint_norms)
     {

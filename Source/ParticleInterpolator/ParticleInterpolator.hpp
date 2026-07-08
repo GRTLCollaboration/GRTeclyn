@@ -43,6 +43,9 @@ class ParticleInterpolator
     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> m_prob_lo{};
     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> m_prob_hi{};
 
+    // number of cells per level
+    amrex::Vector<amrex::GpuArray<int, AMREX_SPACEDIM>> m_domain_ncell;
+
     // reflective BC flags per side on the low and high sides
     amrex::GpuArray<bool, AMREX_SPACEDIM> m_lo_boundary_reflective{{false}};
     amrex::GpuArray<bool, AMREX_SPACEDIM> m_hi_boundary_reflective{{false}};
