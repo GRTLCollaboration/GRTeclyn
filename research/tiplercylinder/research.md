@@ -1,4 +1,4 @@
-# Tipler Cylinder / Spinning-Configuration CTC Hunt — Grounded Research Plan
+# Spinning-Configuration FTL Hunt (Tipler-Class Cylinders) — Grounded Research Plan
 
 > Rewritten 2026-07-08 against the verified state of the GRTresna→GRTeclyn
 > pipeline. Supersedes the earlier speculative five-phase sketch. Companion
@@ -11,31 +11,55 @@
 
 ## 1. Goal and physical framing
 
-**Headline goal:** hunt for closed-timelike-curve (CTC) precursors — light-cone
-tipping — around rapidly spinning matter configurations, using the existing
-CCZ4/AMR evolution + GRTresna constraint-solve + QD/CMA-ES search pipeline.
+**Headline goal:** find **FTL/superluminal configurations** built from spin —
+rapidly rotating matter whose frame dragging lets a co-rotating signal beat the
+flat-space light-travel time — using the existing CCZ4/AMR evolution +
+GRTresna constraint-solve + QD/CMA-ES search pipeline.
 
-### The correct tipping criterion (fixing the old plan)
+This is the same objective as the trajectory/wormhole campaigns (a
+gauge-invariant geodesic shortcut, the `f_geo` measurement), attacked with a
+different lever: **frame dragging** — the "river of space" around a spinning
+column flows azimuthally, and anything riding that river gets carried. Two
+exploitation modes, both searched MAP-Elites-style (the MapElitesDynamics
+pattern, but with *rotating* lumps/columns as the ansatz):
+
+- **Mode A — Sagnac shortcut:** a co-rotating light signal rides the dragged
+  space and beats the flat-space transit time (signal FTL, azimuthal analog of
+  `f_geo`).
+- **Mode B — frame-dragging accelerator ("spacetime railgun"):** two
+  counter-rotating columns at x = ±d drag space in the *same* direction through
+  the central channel; a test mass dropped in the channel is carried and
+  accelerated by geometry alone — it free-falls (zero proper acceleration)
+  while gaining coordinate velocity. The payoff metric is the exit velocity of
+  a timelike geodesic through the channel vs its entry velocity.
+
+We are not hunting time machines; CTCs appear below only as the mathematical
+extreme end of the same measurement, useful for calibrating how far up the
+ladder a configuration got.
+
+### The correct FTL measure for spin (fixing the old plan)
 
 The earlier draft proposed "maximize the region where g_tt < 0 outside the
 horizon." That is wrong: with signature (−,+,+,+), g_tt < 0 is the *normal*
-state of spacetime. The actual CTC condition around a rotating axis is
+state of spacetime. The quantity that actually encodes the spin-assisted
+shortcut is the **co-rotating null transit time vs the flat-space baseline** —
+the azimuthal analog of the existing end-to-end `f_geo` shortcut fraction.
 
-> **g_φφ < 0** — the closed azimuthal circle ∂_φ becomes timelike, so
-> circulating around the cylinder is travelling into the past.
-
-The graded, measurable precursor ladder (weakest → strongest):
+The graded, measurable FTL ladder (weakest → strongest):
 
 1. **Frame dragging:** nonzero g_tφ (equivalently, azimuthal shift β^φ). Any
    spinning source produces this; magnitude is the cheap descriptor.
-2. **Sagnac asymmetry:** co-rotating vs counter-rotating null rays around the
-   axis arrive at different coordinate times. Gauge-honest, cheap to measure,
-   scales with the frame-dragging integral.
-3. **Ergo-like tipping:** the tipping ratio g_tφ² / (g_tt · g_φφ) approaching 1
-   — light cones tilted far enough that the co-rotating ray's transit time
-   collapses toward zero.
-4. **CTC formation:** g_φφ < 0 on some ring outside any horizon. Sagnac
-   co-rotating transit time goes *negative* relative to emission.
+2. **Sagnac shortcut (the FTL signal):** co-rotating vs counter-rotating null
+   rays around the axis arrive at different coordinate times; the co-rotating
+   ray beating the flat-space circumference time by a fraction f is the direct
+   spin analog of the `f_geo` shortcut. Gauge-honest, cheap to measure, scales
+   with the frame-dragging integral.
+3. **Strong tipping:** the ratio g_tφ² / (g_tt · g_φφ) approaching 1 — light
+   cones tilted far enough that the co-rotating transit time collapses toward
+   zero (arbitrarily large effective signal speed).
+4. **Extreme limit (g_φφ < 0):** the closed azimuthal circle becomes timelike —
+   the Tipler/CTC regime. Not the goal; flagged only as the asymptote of the
+   ladder and an automatic red flag for numerical breakdown checks.
 
 ### Reality checks (do not skip)
 
@@ -44,18 +68,22 @@ The graded, measurable precursor ladder (weakest → strongest):
   weak-energy-condition violation. A finite cylinder of ordinary matter cannot
   do it. The pipeline *does* have phantom/exotic scalar sectors (used
   throughout the wormhole campaigns), so the compact hunt is not a priori
-  impossible in-simulation — but every CTC claim inherits the full
-  exotic-matter penalty and falsification burden.
+  impossible in-simulation — but any extreme-ladder claim inherits the full
+  exotic-matter penalty and falsification burden. Modes A and B do **not**
+  need the extreme regime: frame dragging and channel acceleration exist at
+  any spin and simply scale up.
 - **Expected regime at survivable parameters** (ω ≈ 0.05–0.2, m = 1–2, field
-  amplitudes below collapse): measurable frame-dragging and Sagnac scaling —
-  levels 1–2 of the ladder. Levels 3–4 are pursued by climbing the
-  amplitude/spin ladder (κ-family style) as far as numerics allow. Any level-3+
-  signal must survive the resolution ladder before being claimed.
+  amplitudes below collapse): measurable frame-dragging, Sagnac scaling, and
+  railgun channel boost — levels 1–2 of the ladder. Level 3 is pursued by
+  climbing the amplitude/spin ladder (κ-family style) as far as numerics
+  allow. Any level-3+ signal must survive the resolution ladder before being
+  claimed.
 - **The dominant failure mode is matter dispersal, not gauge collapse.** Every
   campaign to date says so: Q-ball trajectory HQ confinement fell 53% → 23%
   (t=30); the rotating-wormhole phantom cloud dispersed at t ≈ 4.5–5 across all
-  κ. A Tipler-style configuration needs *sustained* rotation for the tipping to
-  accumulate — matter design is the whole game (§2).
+  κ. Both modes need *sustained* rotation — a shortcut or accelerator that
+  exists only while the matter flies apart scores as the eval-118 failure did.
+  Matter design is the whole game (§2).
 
 ---
 
@@ -213,39 +241,52 @@ end-effect-limited.
    known-good solved winding column (nonzero momentum is legitimate here);
    adjust Mom thresholds only with evidence, not preemptively.
 
-### Phase 3 — Diagnostics: the Sagnac probe is the flagship deliverable
+### Phase 3 — Diagnostics: Sagnac probe (Mode A) + railgun probe (Mode B)
 
 1. **Frame-dragging map (cheap, every run).** Parser in
    `src/grteclyn_wrapper/visualisation/` extracting the azimuthal shift
    β^φ = (x β^y − y β^x)/ρ² on the mid-plane; peak and radial profile logged to
    `small_data/`. Peak |β^φ|·ρ is the `frame_dragging_strength` descriptor.
-2. **Sagnac azimuthal geodesic probe (gauge-honest, the CTC meter).** Extend
+2. **Sagnac azimuthal geodesic probe (gauge-honest, the Mode A FTL meter).** Extend
    `metrics/probes/ftl/evolving_geodesic.py` with an azimuthal launch mode:
    integrate co- and counter-rotating null geodesics on a ring ρ = R around the
    axis through the evolving 4D metric stack; report
    Δt = t_counter − t_co and the normalized asymmetry vs the flat-space
-   circumference time. Ladder levels: Δt > 0 (dragging), t_co → 0 (tipping),
-   t_co < 0 (CTC). Reuses the existing metric-stack cache and trust flags
-   (step-size, drift, NaN checks) unchanged.
+   circumference time. Ladder levels: Δt > 0 (dragging), the co-rotating ray
+   beating flat space (the FTL signal), t_co → 0 (strong tipping). Reuses the
+   existing metric-stack cache and trust flags (step-size, drift, NaN checks)
+   unchanged.
 3. **Tipping-ratio field.** From plotfile metric components, compute
    g_tφ²/(g_tt g_φφ) on the mid-plane (g_tφ = γ_φj β^j etc. from ADM
    variables); log max over the ring family. This is a *coordinate* quantity —
    it ranks candidates but only the Sagnac probe substantiates a claim.
-4. **Railgun diagnostic (counter-rotating pair arm).** Integrate a timelike
-   geodesic dropped in the central channel between the columns; report proper
-   acceleration and coordinate velocity. Explicitly label the
-   coordinate-velocity number as gauge-dependent; the geodesic integration is
-   the honest measurement.
+4. **Railgun probe (gauge-honest, the Mode B accelerator meter).** Integrate a
+   timelike geodesic dropped at rest in the central channel between the
+   counter-rotating columns through the evolving 4D metric stack; report exit
+   vs entry velocity (the boost), the proper acceleration along the worldline
+   (should be ~0 — the "zero-G catapult" signature), and the boost per unit
+   channel length. Explicitly label raw coordinate-velocity numbers as
+   gauge-dependent; the geodesic integration with trust flags is the honest
+   measurement. A family of drop points and initial velocities gives the
+   channel's "acceleration map".
 
 ### Phase 4 — Campaigns (QD → CMA-ES), hard-gated from day one
 
-1. **Objective `ctc_precursor`** in `metrics/score/objectives.py`:
-   `score = (w₁·sagnac_asymmetry + w₂·tipping_ratio + w₃·persistence_of_J_z)
-   × health_multiplier + penalties`, where `health_multiplier = 0` on
-   constraint spike (gw_beam Fix A/C pattern: truncate time series at t_spike,
-   zero the physics terms — additive penalties provably lose to unbounded
-   exploits). Graded `horizon_penalty` retained (column must not collapse to a
-   BH); exotic penalty applies whenever the phantom sector is on.
+1. **Two objectives** in `metrics/score/objectives.py`, one per mode:
+   - **`spin_ftl` (Mode A):**
+     `score = (w₁·sagnac_shortcut + w₂·tipping_ratio + w₃·J_z_persistence)
+     × health_multiplier + penalties`;
+   - **`spacetime_railgun` (Mode B):**
+     `score = (w₁·channel_boost + w₂·boost_per_length + w₃·J_z_persistence)
+     × health_multiplier + penalties`, with a dispersion gate on the columns
+     (the `SCORE_FTL_DISPERSION_GATE` pattern — a boost measured while the
+     columns fly apart does not count).
+
+   In both, `health_multiplier = 0` on constraint spike (gw_beam Fix A/C
+   pattern: truncate time series at t_spike, zero the physics terms — additive
+   penalties provably lose to unbounded exploits). Graded `horizon_penalty`
+   retained (columns must not merge/collapse to a BH); exotic penalty applies
+   whenever the phantom sector is on.
 2. **Descriptors:** `spacetime_shear` (exists) × `frame_dragging_strength`
    (new, from the Phase 3 parser) on the 8×8 archive. Search dimensions:
    column radius σ_ρ, z-extent, amplitude A (κ-style), winding m ∈ {1,2},
@@ -270,7 +311,7 @@ end-effect-limited.
    (built-in calibration).
 4. **Tier ladder:** extend `scripts/search/validate_tiers.py` with the
    cylinder checks — T0 constructed rotating ID up through converged geometry;
-   no CTC-precursor claim below the convergence tier.
+   no FTL or accelerator claim below the convergence tier.
 
 ---
 
@@ -285,18 +326,28 @@ end-effect-limited.
 3. β^φ frame-dragging parser + `frame_dragging_strength` descriptor.
 4. Sagnac probe mode in the evolving-geodesic tracer, with ω=0 null test and
    small-ω linear calibration.
-5. `ctc_precursor` objective with multiplicative gates; clone the QD launcher;
-   50-eval shakeout before any full campaign.
+5. Counter-rotating column pair ID (`GRTresnaIndependentScalars`, opposite
+   winding) + railgun probe (drop-in timelike geodesic through the channel).
+6. `spin_ftl` and `spacetime_railgun` objectives with multiplicative gates;
+   clone the QD launcher; 50-eval shakeout before any full campaign.
 
 ## 6. Honest expectations
 
-At the parameter ranges that survive evolution, the deliverable of the first
-campaign generation is a **map of frame-dragging strength and Sagnac asymmetry
-versus (m, ω, amplitude, geometry)** with validated scaling — levels 1–2 of the
-precursor ladder — plus the persistence answer for winding columns (does
-phase-winding matter hold together where boosted lumps did not?). Light-cone
-tipping (level 3) is chased by riding the amplitude ladder toward the collapse
-threshold with the graded horizon penalty as the guardrail. An actual g_φφ < 0
-ring (level 4) would be extraordinary and must survive the full falsification
-ladder — resolution, boundary, gauge, and probe trust — before the word "CTC"
-appears in any journal entry.
+At the parameter ranges that survive evolution, the deliverables of the first
+campaign generation are:
+
+1. a **map of frame-dragging strength, Sagnac shortcut fraction, and railgun
+   channel boost versus (m, ω, amplitude, geometry, separation d)** with
+   validated scaling — levels 1–2 of the ladder;
+2. the **persistence answer** for winding columns: does phase-winding matter
+   hold its rotation where boosted lumps did not? This alone decides whether
+   spin is a viable FTL lever in this pipeline;
+3. the best accelerator elite: how much velocity can geometry alone impart to
+   a free-falling payload before the columns destabilize.
+
+Strong tipping (level 3 — co-rotating transit time collapsing toward zero) is
+chased by riding the amplitude ladder toward the collapse threshold with the
+graded horizon penalty as the guardrail. The g_φφ < 0 extreme (level 4) is not
+a target; if it ever appears it is treated first as a numerical artifact and
+must survive the full falsification ladder — resolution, boundary, gauge, and
+probe trust — before being reported at all.
