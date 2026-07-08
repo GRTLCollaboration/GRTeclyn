@@ -2,6 +2,8 @@ GRTECLYN_HOME = $(realpath ../..)
 
 include $(GRTECLYN_HOME)/Tools/GNUMake/Make.defaults
 
+EBASE = KleinGordon
+
 AMREX_HOME ?= $(realpath ../../../amrex)
 
 
