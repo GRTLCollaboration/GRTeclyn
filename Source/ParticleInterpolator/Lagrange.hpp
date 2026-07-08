@@ -47,15 +47,28 @@ template <int N> class Lagrange
                      amrex::Real>::epsilon(); // choose a small number around
                                               // machine round-off precision
         // when the position is very close to the axis of symmetry and
-        // reflective boundary conditions are used, center can end up being
-        // rounded up to -1. If center = -1, then the stencil is e.g. (-3, -2,
-        // -1, 0, 1) for 4th order interpolation, which is problematic here as
-        // -3 is out of bounds (note that we fill [4/2]=2 ghost cells). To avoid
-        // this, we will default to center = 0 in this situation.
-        if (lo_reflective &&
-            amrex::Math::abs(grid_pos + amrex::Real(0.5)) < eps)
+        // reflective boundary conditions are used, we can run into some
+        // problems of not having enough ghosts. For example, for low symmetric
+        // boundary, the center of the stencil can end up being rounded up to
+        // -1. If center = -1, then the stencil is e.g. (-3, -2, -1, 0, 1) for
+        // 4th order interpolation, which is problematic here as -3 is out of
+        // bounds (note that we fill [4/2]=2 ghost cells). To avoid this, we
+        // will default to center = 0 in this situation.
+
+        const amrex::Real lo_face = amrex::Real(
+            -0.5); // for low symmetric boundary, the face is at -0.5
+        const amrex::Real hi_face =
+            amrex::Real(ncell) -
+            amrex::Real(
+                0.5); // for high symmetric boundary, the face is at ncell-0.5
+
+        if (lo_reflective && amrex::Math::abs(grid_pos - lo_face) < eps)
         {
             center = 0;
+        }
+        else if (hi_reflective && amrex::Math::abs(grid_pos - hi_face) < eps)
+        {
+            center = ncell - 1;
         }
         else
         {
@@ -205,7 +218,9 @@ template <int N> class Lagrange
                     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const &plo,
                     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const &dxi,
                     const amrex::IntVect &is_nodal,
-                    amrex::GpuArray<bool, AMREX_SPACEDIM> const lo_reflective)
+                    amrex::GpuArray<bool, AMREX_SPACEDIM> const lo_reflective,
+                    amrex::GpuArray<bool, AMREX_SPACEDIM> const hi_reflective,
+                    amrex::GpuArray<int, AMREX_SPACEDIM> const domain_ncell)
     // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         // Compute the grid index of the position
