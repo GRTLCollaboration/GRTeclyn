@@ -54,7 +54,7 @@ CCZ4RHS<gauge_t, deriv_t>::compute_chi_and_h_ij(
 
     Tensor::Rank1 shift_vector{vars.shift(0), vars.shift(1), vars.shift(2)};
 
-    auto d1_shift = m_deriv.diff1_vector_test(ix, iy, iz, state, c_shift1);
+    auto d1_shift        = m_deriv.d1_vector(ix, iy, iz, state, c_shift1);
     amrex::Real divshift = CCZ4Geometry::compute_divshift(d1_shift);
     amrex::Real advec_chi =
         m_deriv.advection(ix, iy, iz, state, shift_vector, c_chi);
@@ -97,7 +97,7 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
     const auto h_UU = CCZ4Geometry::compute_inverse_metric_test(vars);
 
     // hij derivatives
-    auto d1_h        = m_deriv.diff1_sym_tensor_test(ix, iy, iz, state, c_h11);
+    auto d1_h        = m_deriv.d1_sym_tensor(ix, iy, iz, state, c_h11);
     const auto chris = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
 
     Tensor::Rank1 Z_over_chi;
@@ -118,22 +118,22 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
         Z(i) = vars.chi() * Z_over_chi(i);
 
     // Gamma derivatives
-    auto d1_Gamma = m_deriv.diff1_vector_test(ix, iy, iz, state, c_Gamma1);
+    auto d1_Gamma = m_deriv.d1_vector(ix, iy, iz, state, c_Gamma1);
 
     // hij derivatives
-    auto d2_h = m_deriv.diff2_tensor_test(ix, iy, iz, state, c_h11);
+    auto d2_h = m_deriv.d2_tensor(ix, iy, iz, state, c_h11);
 
     // chi derivatives
-    auto d1_chi = m_deriv.diff1_scalar_test(ix, iy, iz, state, c_chi);
-    auto d2_chi = m_deriv.diff2_scalar_test(ix, iy, iz, state, c_chi);
+    auto d1_chi = m_deriv.d1_scalar(ix, iy, iz, state, c_chi);
+    auto d2_chi = m_deriv.d2_scalar(ix, iy, iz, state, c_chi);
 
     auto ricci = CCZ4Geometry::compute_ricci_Z(
         vars, d1_chi, d1_Gamma, d1_h, d2_h, d2_chi, h_UU, chris, Z_over_chi);
 
-    auto d1_shift = m_deriv.diff1_vector_test(ix, iy, iz, state, c_shift1);
+    auto d1_shift        = m_deriv.d1_vector(ix, iy, iz, state, c_shift1);
     amrex::Real divshift = CCZ4Geometry::compute_divshift(d1_shift);
 
-    auto d1_lapse = m_deriv.diff1_scalar_test(ix, iy, iz, state, c_lapse);
+    auto d1_lapse = m_deriv.d1_scalar(ix, iy, iz, state, c_lapse);
 
     amrex::Real Z_dot_d1lapse = TensorAlgebra::compute_dot_product(Z, d1_lapse);
     amrex::Real dlapse_dot_dchi =
@@ -141,7 +141,7 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
 
     Tensor::Rank2 covdtilde2lapse{};
     Tensor::Rank2 covd2lapse{};
-    auto d2_lapse = m_deriv.diff2_scalar(ix, iy, iz, state, c_lapse);
+    auto d2_lapse = m_deriv.d2_scalar(ix, iy, iz, state, c_lapse);
 
     FOR (k, l)
     {
@@ -262,9 +262,9 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
     }
 
     // Gamma specific parts:
-    auto d2_shift = m_deriv.diff2_vector_test(ix, iy, iz, state, c_shift1);
-    auto d1_K     = m_deriv.diff1_scalar_test(ix, iy, iz, state, c_K);
-    auto d1_Theta = m_deriv.diff1_scalar_test(ix, iy, iz, state, c_Theta);
+    auto d2_shift = m_deriv.d2_vector(ix, iy, iz, state, c_shift1);
+    auto d1_K     = m_deriv.d1_scalar(ix, iy, iz, state, c_K);
+    auto d1_Theta = m_deriv.d1_scalar(ix, iy, iz, state, c_Theta);
 
     FOR (i)
     {

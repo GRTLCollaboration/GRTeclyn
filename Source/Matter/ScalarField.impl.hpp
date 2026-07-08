@@ -24,7 +24,7 @@ AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t, deriv_t>::compute_emtensor(
 
     const Vars vars(state_cell_data);
 
-    auto d1_phi = a_deriv.diff1_scalar(ix, iy, iz, state, c_phi);
+    auto d1_phi = a_deriv.d1_scalar(ix, iy, iz, state, c_phi);
 
     //    Useful quantity Vt
     amrex::Real Vt = -vars.Pi() * vars.Pi();
@@ -77,7 +77,7 @@ AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t, deriv_t>::compute_emtensor(
 
     const Vars vars(state_cell_data);
 
-    auto d1_phi = a_deriv.diff1_scalar_test(ix, iy, iz, state, c_phi);
+    auto d1_phi = a_deriv.d1_scalar(ix, iy, iz, state, c_phi);
 
     //    Useful quantity Vt
     amrex::Real Vt = -vars.Pi() * vars.Pi();
@@ -133,17 +133,17 @@ ScalarField<potential_t, deriv_t>::add_matter_rhs(
 
     // call the function for the rhs excluding the potential
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric_test(vars);
-    auto d1_h        = a_deriv.diff1_sym_tensor_test(ix, iy, iz, state, c_h11);
+    auto d1_h        = a_deriv.d1_sym_tensor(ix, iy, iz, state, c_h11);
     const auto chris = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
 
     // calculate the derivatives
-    auto d1_chi   = a_deriv.diff1_scalar_test(ix, iy, iz, state, c_chi);
-    auto d1_lapse = a_deriv.diff1_scalar_test(ix, iy, iz, state, c_lapse);
+    auto d1_chi   = a_deriv.d1_scalar(ix, iy, iz, state, c_chi);
+    auto d1_lapse = a_deriv.d1_scalar(ix, iy, iz, state, c_lapse);
 
-    auto d1_phi = a_deriv.diff1_scalar_test(ix, iy, iz, state, c_phi);
-    auto d1_Pi  = a_deriv.diff1_scalar_test(ix, iy, iz, state, c_Pi);
+    auto d1_phi = a_deriv.d1_scalar(ix, iy, iz, state, c_phi);
+    auto d1_Pi  = a_deriv.d1_scalar(ix, iy, iz, state, c_Pi);
 
-    auto d2_phi = a_deriv.diff2_scalar_test(ix, iy, iz, state, c_phi);
+    auto d2_phi = a_deriv.d2_scalar(ix, iy, iz, state, c_phi);
 
     Tensor::Rank1 shift_vector{vars.shift(0), vars.shift(1), vars.shift(2)};
 
