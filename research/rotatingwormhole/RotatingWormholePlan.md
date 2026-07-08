@@ -317,6 +317,80 @@ the (ω, m, κ) collapse grid, so the equilibrium arm actually holds.
 
 ---
 
+## Massive-field test DONE (2026-07-08) — a bare mass does NOT confine; the profile must be a bound eigenstate
+
+Implemented the confining-potential lever (#1 above): threaded a field mass μ
+through both codes — `MASS` env → GRTresna `scalar_mass`, `--mass` flag →
+GRTeclyn `phantom_mass` — with the shared convention `V = ½μ²|Φ|²` (verified:
+`PhantomDecayPotential` == `ComplexScalarField::potential_value`, λ=μ_sextic=0).
+Tag suffix `_mass<μ>` keeps massive/massless runs separate (backward compatible).
+Solved κ=1.0, μ=0.1 (`ω=0.05 < μ`, bound regime; Ham 0.98% / Mom 0.81%) and
+evolved at L=64, dx=0.5, ml=3.
+
+**Result — the mass only *delays* dispersal, it does not confine.**
+
+| t | massless `rho_sum` | **μ=0.1 `rho_sum`** |
+|---|--------------------|---------------------|
+| 0 | 633 | 633 |
+| 4 | ~dispersing | 745 |
+| 5 | ~1.5 | 457 |
+| 6 | — | **4.9** |
+| 8 | 1.5 | 1.7 |
+
+The cloud still evaporates (`rho_sum → ~1` by t≈6–8), just ~1 M later than the
+massless case. Constraints stay clean throughout (Ham 1.8e-3, Mom 6.5e-5); the
+throat geometry is fine (min_chi → 0.93). So the mass is not the missing
+ingredient by itself.
+
+**Why a bare mass fails — the profile is not a bound state.** The painted lump
+uses `lump0_profile = 0` (an *analytic Gaussian* f(r,θ)), which is **not** a
+stationary eigenstate of the massive Klein–Gordon operator. A Gaussian is a
+superposition of many radial modes; the non-eigenstate part simply radiates away
+(disperses) whether or not there is a mass term. Adding μ shifts the dispersion
+relation (hence the ~1 M delay) but cannot turn a non-eigenstate lump into a
+bound one. **Confinement requires the *profile* to be a genuine bound state**, of
+which the code already has two (`grtresna/solver/params.py`,
+`profiles/boson_star.py`):
+
+- `PROFILE_ODE_BOUND` (3): flat-space **Q-ball**, bound by self-interaction —
+  needs `scalar_lambda`/`scalar_mu > 0` and a solved radial ODE profile f(r).
+- `PROFILE_SELFGRAV_BOUND` (4): **self-gravitating boson star**, bound by gravity;
+  its frequency ω is the gravitational eigenvalue (solved, written back to
+  `bs_omega`), and the painter sets `Π₂ = −ω·f/α` consistently.
+
+Both emit a tabulated f(r) through the C++ `profile==3` loader — i.e. the
+machinery to paint a *real* bound state already exists (it is what the
+self-grav boson-star seed campaign uses). The rotating-wormhole lump just wasn't
+using it; it was still on the analytic Gaussian.
+
+**Deeper caveat (phantom bound states).** Even with a bound-state profile there
+is a genuine physics question: the standard Q-ball / boson-star eigenstates are
+solutions for a *canonical* (positive-energy) field. Here the field sources
+gravity with the phantom sign (`−support_strength`), and Ellis–Bronnikov-class
+throats have an unstable radial mode independent of the matter profile. A bound
+profile removes the *dispersive* channel (radiation of non-eigenstate modes) but
+may not remove the *instability* channel. Expect it to help substantially, but
+budget for the possibility that only **active support** (option #3, the deferred
+RL pump / PD trap) or **embracing the instability as the GW signal** (option #6)
+fully closes the gap.
+
+**Reproduce:**
+```bash
+MASS=0.1 RES_N=128 bash grteclyn-wrapper/scripts/wormhole/id/solve_kappa_family.sh 1.0 4
+bash grteclyn-wrapper/scripts/wormhole/run/wormhole_case.sh --kappa 1.0 --dx 0.5 --mass 0.1 --gpu 1
+```
+Run dir `runs/rotating_wormhole/evo_omega_p0p05_m1_kappa_1p00_dx0p5_ml3_mass0p1/`.
+
+**Revised next step (updated):** the confinement lever is now understood — it is
+the **bound-state profile**, not merely a mass. Switch the rotating-wormhole lump
+to `PROFILE_ODE_BOUND` (Q-ball; set `scalar_lambda`/`scalar_mu > 0` and use the
+ODE profile) or `PROFILE_SELFGRAV_BOUND` (boson star), matching the potential in
+the evolution. If a bound profile still disperses/destabilises, that is the
+physical instability of the phantom throat → pivot to active support (RL pump) or
+document the transient GW burst as the result.
+
+---
+
 ## 0. Lessons already paid for (do not relearn)
 
 From Debug.md — these are settled by controls and must constrain the design:
