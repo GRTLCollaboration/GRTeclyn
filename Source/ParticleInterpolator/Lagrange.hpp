@@ -55,9 +55,9 @@ template <int N> class Lagrange
         // bounds (note that we fill [4/2]=2 ghost cells). To avoid this, we
         // will default to center = 0 in this situation.
 
-        const amrex::Real lo_face = amrex::Real(
+        const auto lo_face = amrex::Real(
             -0.5); // for low symmetric boundary, the face is at -0.5
-        const amrex::Real hi_face =
+        const auto hi_face =
             amrex::Real(ncell) -
             amrex::Real(
                 0.5); // for high symmetric boundary, the face is at ncell-0.5
