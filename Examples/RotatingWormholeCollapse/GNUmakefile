@@ -39,4 +39,10 @@ CEXE_headers += $(GRTECLYN_CEXE_headers)
 VPATH_LOCATIONS += $(src_dirs)
 INCLUDE_LOCATIONS += $(realpath .) $(src_dirs) $(GRTECLYN_HOME)/Tests/CCZ4RHSTest
 
+# RLMatterPumpParams.hpp lives in GRTeclynCore/RL but is included unconditionally
+# by Source/Matter (CCZ4RHSWithMatter.impl.hpp -> ComplexScalarField.hpp). Add
+# the RL directory to the include path so the CPU build resolves it; USE_RL only
+# gates ZMQ linkage and the RL bridge defines (matching Examples/RadialRecipe).
+INCLUDE_LOCATIONS += $(GRTECLYN_SOURCE)/GRTeclynCore/RL
+
 include $(GRTECLYN_HOME)/Tools/GNUMake/Make.rules

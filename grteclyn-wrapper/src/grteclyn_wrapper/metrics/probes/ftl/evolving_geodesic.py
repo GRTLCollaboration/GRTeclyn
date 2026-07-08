@@ -36,6 +36,7 @@ from .geodesic import (
     future_null_cov,
     null_hamiltonian,
     project_null,
+    ray_is_captured,
 )
 from .metric_field import (
     EvolvingMetricField,
@@ -79,6 +80,8 @@ class EvolvingGeodesicFtlReport:
     # Continuous-emission sweep: (t_emit, f_geo, n_reached) per launch time.
     # Empty for a single-launch trace.  ``f_geo``/``t_emit`` above report the peak.
     emit_sweep: tuple[tuple[float, float, int], ...] = ()
+    # Rays that fell into a puncture throat / horizon (excluded from f_geo).
+    n_captured: int = 0
 
 
 def _spatial_extent(
@@ -106,6 +109,7 @@ def integrate_null_ray_on_field(
     ds_init: float = 0.05,
     h_tol: float = 1.0e-6,
     h_rel_abort: float | None = None,
+    detect_capture: bool = True,
 ) -> NullRayResult:
     """Trace one null ray through a possibly time-dependent metric field."""
     prop_idx = axis + 1
@@ -139,6 +143,16 @@ def integrate_null_ray_on_field(
             )
 
         g_pt, ginv_pt, dg_pt = field.sample(x)
+        if detect_capture and ray_is_captured(g_pt, ginv_pt):
+            return NullRayResult(
+                reached=False,
+                t_coord=None,
+                t_flat=t_flat,
+                max_h_drift=max_h,
+                max_h_rel=max_h_rel,
+                notes=("ray captured by puncture/horizon",),
+                captured=True,
+            )
         h = abs(null_hamiltonian(ginv_pt, k))
         max_h = max(max_h, h)
         max_h_rel = max(max_h_rel, _null_relative_drift(ginv_pt, k))
@@ -257,7 +271,11 @@ def compute_evolving_geodesic_ftl(
         )
 
     reached = [r for r in results if r.reached and r.t_coord is not None]
+    n_captured = sum(1 for r in results if r.captured)
     if not reached:
+        note = f"no rays reached detector (axis={_AXIS_LABELS[axis]})"
+        if n_captured:
+            note += f"; {n_captured}/{len(results)} captured by puncture/horizon"
         return EvolvingGeodesicFtlReport(
             f_geo=0.0,
             f_geo_frozen_peak=frozen_peak,
@@ -269,7 +287,8 @@ def compute_evolving_geodesic_ftl(
             max_h_drift=max((r.max_h_drift for r in results), default=0.0),
             h_quality_ok=False,
             max_h_rel_drift=max((r.max_h_rel for r in results), default=0.0),
-            notes=(f"no rays reached detector (axis={_AXIS_LABELS[axis]})",),
+            notes=(note,),
+            n_captured=n_captured,
         )
 
     t_min = min(r.t_coord for r in reached if r.t_coord is not None)
@@ -283,6 +302,11 @@ def compute_evolving_geodesic_ftl(
     if not h_ok:
         notes.append(
             f"null constraint drift high (rel H={max_h_rel:.2e}, abs H={max_h:.2e})"
+        )
+    if n_captured:
+        notes.append(
+            f"{n_captured}/{len(results)} rays captured by puncture/horizon "
+            "(excluded from f_geo)"
         )
     notes.append(f"evolving end-to-end trace t_emit={t_emit_val:.3f}")
     notes.append(f"probe_axis={_AXIS_LABELS[axis]}")
@@ -299,11 +323,19 @@ def compute_evolving_geodesic_ftl(
         h_quality_ok=h_ok,
         max_h_rel_drift=max_h_rel,
         notes=tuple(notes),
+        n_captured=n_captured,
     )
 
 
 def _report_probe_score(report: EvolvingGeodesicFtlReport) -> float:
-    if report.h_quality_ok and report.n_reached == report.n_rays:
+    # Captured rays (fell into a puncture/horizon) are physics, not failures;
+    # trust requires every non-captured ray to reach.  Identical to the old bar
+    # when n_captured == 0.
+    if (
+        report.h_quality_ok
+        and report.n_reached > 0
+        and report.n_reached == report.n_rays - report.n_captured
+    ):
         return report.f_geo
     return -1.0
 
@@ -362,6 +394,7 @@ def compute_evolving_geodesic_ftl_best_direction(
         h_quality_ok=best.h_quality_ok,
         max_h_rel_drift=best.max_h_rel_drift,
         notes=extra + (f"best_direction={best_axis_label}",),
+        n_captured=best.n_captured,
     )
 
 
@@ -440,6 +473,7 @@ def compute_evolving_geodesic_ftl_emission_sweep(
         max_h_rel_drift=best.max_h_rel_drift,
         notes=best.notes + (sweep_note, peak_note),
         emit_sweep=sweep,
+        n_captured=best.n_captured,
     )
 
 
@@ -654,6 +688,7 @@ def read_evolving_geodesic_json(path: Path) -> EvolvingGeodesicFtlReport | None:
                 for r in data.get("emit_sweep", ())
                 if len(r) >= 3
             ),
+            n_captured=int(data.get("n_captured", 0)),
         )
     except (KeyError, TypeError, ValueError, json.JSONDecodeError):
         return None

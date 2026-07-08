@@ -63,6 +63,47 @@ GEO_REFINE_N: int = 129
 GEO_REFINE_FLOOR: float = 1.0e-3
 
 
+# Capture detection thresholds.  A ray that wanders into a collapsed-lapse or
+# deep-conformal region (a puncture throat / apparent horizon) has fallen into
+# the hole; it is *captured*, not "failed to reach".  Counting these separately
+# keeps a black hole on the ray path from silently degrading ``n_reached`` and
+# poisoning the trust statistics (PuncturePlan §0.4).  Thresholds are extreme so
+# healthy warped regions never misfire: a lapse this small or a conformal factor
+# this deep only occurs at a genuine throat/horizon.
+CAPTURE_LAPSE_MIN: float = 0.1
+CAPTURE_CHI_MIN: float = 1.0e-3
+
+
+def lapse_from_ginv(ginv_pt: NDArray[np.float64]) -> float:
+    """Lapse ``alpha = 1/sqrt(-g^{tt})`` recovered from the inverse metric."""
+    gtt = float(ginv_pt[0, 0])
+    if gtt >= 0.0:
+        return 0.0
+    return 1.0 / math.sqrt(-gtt)
+
+
+def chi_from_g(g_pt: NDArray[np.float64]) -> float:
+    """Conformal factor ``chi = det(gamma)^{-1/3}`` (BSSN ``det(h_ij)=1``)."""
+    try:
+        det = float(np.linalg.det(g_pt[1:, 1:]))
+    except np.linalg.LinAlgError:
+        return 0.0
+    if not math.isfinite(det) or det <= 0.0:
+        return 0.0
+    return det ** (-1.0 / 3.0)
+
+
+def ray_is_captured(
+    g_pt: NDArray[np.float64],
+    ginv_pt: NDArray[np.float64],
+    *,
+    chi_min: float = CAPTURE_CHI_MIN,
+    lapse_min: float = CAPTURE_LAPSE_MIN,
+) -> bool:
+    """True when the sampled point lies inside a puncture throat / horizon."""
+    return lapse_from_ginv(ginv_pt) < lapse_min or chi_from_g(g_pt) < chi_min
+
+
 @dataclass(frozen=True)
 class NullRayResult:
     """Outcome of tracing one null ray."""
@@ -73,6 +114,9 @@ class NullRayResult:
     max_h_drift: float
     max_h_rel: float = 0.0
     notes: tuple[str, ...] = ()
+    # True when the ray fell into a puncture throat / horizon (excluded from
+    # f_geo, counted separately from plain non-arrivals).
+    captured: bool = False
 
 
 @dataclass(frozen=True)
@@ -88,6 +132,7 @@ class GeodesicFtlReport:
     h_quality_ok: bool
     max_h_rel_drift: float = 0.0
     notes: tuple[str, ...] = ()
+    n_captured: int = 0
 
 
 def build_metric_3d_from_plotfile(
@@ -354,7 +399,11 @@ def geodesic_report_from_metric_g(
         results.append(res)
 
     reached = [r for r in results if r.reached and r.t_coord is not None]
+    n_captured = sum(1 for r in results if r.captured)
     if not reached:
+        note = f"no rays reached detector (axis={_AXIS_LABELS[axis]})"
+        if n_captured:
+            note += f"; {n_captured}/{len(results)} captured by puncture/horizon"
         return GeodesicFtlReport(
             f_geo=0.0,
             t_min=None,
@@ -364,7 +413,8 @@ def geodesic_report_from_metric_g(
             max_h_drift=max((r.max_h_drift for r in results), default=0.0),
             h_quality_ok=False,
             max_h_rel_drift=max((r.max_h_rel for r in results), default=0.0),
-            notes=(f"no rays reached detector (axis={_AXIS_LABELS[axis]})",),
+            notes=(note,),
+            n_captured=n_captured,
         )
 
     t_min = min(r.t_coord for r in reached if r.t_coord is not None)
@@ -378,6 +428,11 @@ def geodesic_report_from_metric_g(
         notes.append(
             f"null constraint drift high (rel H={max_h_rel:.2e}, abs H={max_h:.2e})"
         )
+    if n_captured:
+        notes.append(
+            f"{n_captured}/{len(results)} rays captured by puncture/horizon "
+            "(excluded from f_geo)"
+        )
 
     return GeodesicFtlReport(
         f_geo=f_geo,
@@ -389,12 +444,22 @@ def geodesic_report_from_metric_g(
         h_quality_ok=h_ok,
         max_h_rel_drift=max_h_rel,
         notes=tuple(notes),
+        n_captured=n_captured,
     )
 
 
 def _frozen_report_score(report: GeodesicFtlReport) -> float:
-    """Comparable quality metric for choosing best direction."""
-    if report.h_quality_ok and report.n_reached == report.n_rays:
+    """Comparable quality metric for choosing best direction.
+
+    A captured ray (fell into a puncture/horizon) is physics, not a failure, so
+    trust requires every *non-captured* ray to reach the detector rather than
+    all rays.  With ``n_captured == 0`` this is identical to the old bar.
+    """
+    if (
+        report.h_quality_ok
+        and report.n_reached > 0
+        and report.n_reached == report.n_rays - report.n_captured
+    ):
         return report.f_geo
     return -1.0
 

@@ -31,6 +31,7 @@ def _lump_lines(cfg: GRTresnaConfig) -> list[str]:
                 f"lump{k}_omega = {lump.get('omega', 0.0)}",
                 f"lump{k}_mode = {int(lump.get('mode', 0))}",
                 f"lump{k}_exotic = {int(lump.get('exotic', 0))}",
+                f"lump{k}_winding = {int(lump.get('winding', 0))}",
                 f"lump{k}_profile = {grtresna_lump_profile(int(lump.get('profile', 0)))}",
             ])
         return lines

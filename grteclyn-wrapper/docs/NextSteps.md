@@ -235,6 +235,15 @@ full nonlinear GR.
 5. **Proper apparent-horizon finder** (outgoing null expansion) if the current
    trapped-surface veto is a proxy.
 
+### P8 — Geometry expressivity via puncture free data
+
+Extend the forward search from matter-only to matter + Bowen–York puncture
+free data (masses, spins, momenta — already exposed in `GRTresnaConfig` but
+never searched): genuine Einstein–Rosen bridges, multi-throat configurations,
+and exotic-shell-around-throat (Morris–Thorne) campaigns. Full phased plan:
+[`PuncturePlan.md`](PuncturePlan.md). Depends on P1/P2 (probe calibration)
+before its discovery phase.
+
 ---
 
 ## 5. What the publishable claims actually are
@@ -267,6 +276,9 @@ P4 (convergence)       ~ 1 week GPU── runs alongside P3
 P5 (pump split)        ~ days      ── mostly bookkeeping + audit
 P6 (self-grav)         ~ weeks     ── the physics bottleneck; parallel track
 P7 (GW wave zone)      ~ 1 week    ── only if gw_beam/LIGO remains a goal
+P8 (punctures)         ~ 3–4 weeks ── geometry expressivity; phases 0–1 can
+                                      start now, discovery phase after P1+P2
+                                      (see PuncturePlan.md)
 ```
 
 P1 + P2 + P3 together are the minimum bar before writing up any FTL claim.
