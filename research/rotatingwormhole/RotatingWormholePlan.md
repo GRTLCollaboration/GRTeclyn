@@ -391,6 +391,74 @@ document the transient GW burst as the result.
 
 ---
 
+## Next steps — confinement leverage ladder (roadmap)
+
+Ordered cheapest→most-invasive. Each rung has a **concrete action**, an **expected
+outcome**, and a **decision criterion** for whether to climb to the next rung. The
+governing diagnostic throughout is `rho_sum(t)`: does the phantom cloud **hold**
+(bounded, oscillating about a plateau) or **evaporate** (→0)?
+
+### Rung 0 — Higher-mass sweep *(IN PROGRESS, 2026-07-08)*
+- **Action:** μ=0.3 and μ=0.5 at κ=1.0, L=64, dx=0.5, ml=3, t→12
+  (`--mass 0.3/0.5`, IDs solved: Ham 0.61/0.69%, Mom 0.63/0.92%). GPUs 2/3.
+- **Purpose:** confirm the μ=0.1 verdict — that a bare mass on a *Gaussian* lump
+  cannot confine — is not just "mass too small". A pure dispersion-relation shift
+  should at most keep delaying the evaporation, not stop it.
+- **Decision:** if `rho_sum` still → ~0 (only later), the Gaussian-profile
+  diagnosis is confirmed ⇒ climb to Rung 1. If instead it plateaus at large μ,
+  a bare mass suffices and we skip straight to the (ω, m, κ) grid.
+
+### Rung 1 — Bound-state profile (the principled fix)
+- **Action:** switch the lump from `lump0_profile = 0` (analytic Gaussian) to a
+  solved eigenstate:
+  - **1a. Q-ball** (`PROFILE_ODE_BOUND`, id 3): set `scalar_lambda > 0`,
+    `scalar_mu > 0` (sextic stabiliser required for a genuine 3D Q-ball), solve
+    the flat-space radial ODE `f'' + (2/r)f' = (μ²−ω²)f − λf³ + μ₆f⁵` for f(r),
+    emit the tabulated profile. **Must also add λ, μ₆ terms to GRTeclyn's
+    `PhantomDecayPotential`** (currently quadratic-only) so the evolution T_ab
+    matches the solved ID — otherwise it disperses at t=0 (see ComplexScalarField
+    potential comment). Wire `--lambda`/`--mu6` flags through both scripts.
+  - **1b. Self-gravitating boson star** (`PROFILE_SELFGRAV_BOUND`, id 4): reuse the
+    existing self-grav ODE seed (`profiles/boson_star_ode.py`, SELFGRAV_HANDOFF);
+    ω is the gravitational eigenvalue (written back to `bs_omega`), no
+    self-interaction needed. Potential stays quadratic ⇒ **no C++ change**.
+    *Prefer 1b first* — it needs no new potential terms and the machinery is
+    already validated by the boson-star seed campaign.
+- **Expected:** removes the *dispersive* channel (radiation of non-eigenstate
+  modes); the lump becomes stationary in flat/weak gravity.
+- **Decision:** if `rho_sum` holds ⇒ proceed to the (ω, m, κ) grid + Phase D. If it
+  still evaporates, the loss is the *phantom instability*, not dispersion ⇒ Rung 2.
+
+### Rung 2 — Active support (deferred control system)
+- **Action:** enable the `RLMatterPump` / PD "trap" controller
+  (`RLMatterPumpParams.hpp`, `research/RL/LabJournal.md`) to feed matter back and
+  hold the throat against the residual instability. This is the explicitly-deferred
+  arm; the leverage ladder is its quantitative justification.
+- **Expected:** a closed-loop-stabilised throat on the run timescale.
+- **Decision:** if it holds, that *is* the "actively supported rotating wormhole"
+  result. If the controller cannot keep up, the instability is too fast ⇒ Rung 3.
+
+### Rung 3 — Embrace the instability as the physics result
+- **Action:** stop trying to confine; treat the throat relaxation as the signal.
+  Do **Phase D** on the transient: ℓ=2 m=0/±2 Ψ₄ multipoles, retarded-time
+  alignment, strain, spectra of the *dispersal/ringdown burst*. Convergence pair
+  (dx=0.5 vs 0.25 native ID) + the L=64/L=96 boundary pair we already have.
+- **Deliverable:** "a rotating massless-phantom wormhole is dynamically unstable;
+  here is its natural (un-perturbed) ℓ=2 GW burst and how it scales with (ω, m)."
+  A publishable characterisation result — the honest fallback.
+
+### Parameter/consistency checklist (applies to every rung)
+- `phantom_mass` (evolution) **==** `scalar_mass` (solve); add matching `λ`, `μ₆`
+  to *both* if using a Q-ball. Shared convention `V = ½μ²|Φ|² − ¼λ|Φ|⁴ + ⅙μ₆|Φ|⁶`.
+- Bound-state frequency: canonical Q-ball/boson-star eigenstates assume a
+  *positive-energy* field; here gravity sees the phantom sign. A bound profile
+  removes dispersion but **may not** remove the EB radial instability — budget for
+  Rung 2/3.
+- Keep L2 (evolve at ID native dx), L6 (sidecar `--delete`), 2 extraction radii,
+  and stop-time = r_outer+6 as already wired in `wormhole_case.py`.
+
+---
+
 ## 0. Lessons already paid for (do not relearn)
 
 From Debug.md — these are settled by controls and must constrain the design:
