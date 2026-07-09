@@ -363,6 +363,27 @@ def _descriptor_details(
             "gw_beam_quality": float(components.get("gw_beam_quality", 0.0)),
         }
 
+    if mode == "geometry_first":
+        # Behavior descriptors for geometry-first MAP-Elites:
+        # x-axis: chi deviation (how strong the curvature is) — mapped from
+        #   the solved chi_l2 mismatch (lower mismatch = better match).
+        # y-axis: convergence quality (lower convergence penalty = better solve).
+        geo = (metrics or {}).get("geometry_first") or {}
+        chi_l2 = float(geo.get("chi_l2", 1.0))
+        conv = float(geo.get("convergence_penalty", 1.0))
+        # Invert: lower mismatch → higher descriptor value (closer to target)
+        chi_axis = float(np.clip(1.0 - chi_l2, 0.0, 1.0))
+        conv_axis = float(np.clip(1.0 - conv, 0.0, 1.0))
+        return {
+            "x": chi_axis,
+            "y": conv_axis,
+            "chi_l2": chi_l2,
+            "convergence_penalty": conv,
+            "chi_2d_l2": float(geo.get("chi_2d_l2", 0.0)),
+            "kij_l2": float(geo.get("kij_l2", 0.0)),
+            "mismatch_fitness": float(geo.get("mismatch_fitness", 0.0)),
+        }
+
     ftl_benefit = float(
         np.clip(
             max(

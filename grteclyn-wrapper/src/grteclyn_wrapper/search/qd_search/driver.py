@@ -11,9 +11,10 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 
 from ...core.config import ExampleConfig, ExecutableConfig, resolve_example
-from ...core.episode import write_json
+from ...core.episode import write_json, update_metadata
 from ...core.params import regrid_intervals_for_max_level
 from ...core.evaluation import (
+    CpuGateResult,
     Evaluation,
     _run_cpu_grtresna_gates,
     _run_gpu_session,
@@ -120,6 +121,8 @@ def run_qd_search(
     prune_interval: int = 10,
     pre_gpu_learning: bool | None = None,
     near_miss_pool_size: int = 32,
+    motif: Any | None = None,
+    geometry_first_L: float | None = None,
 ) -> QDArchive:
     example_cfg = example if isinstance(example, ExampleConfig) else resolve_example(example)
     dims = list(search_space or DEFAULT_SEARCH_SPACE)
@@ -293,6 +296,8 @@ def run_qd_search(
         "use_pipeline": use_pipeline,
         "pre_gpu_learning": pre_gpu_enabled,
         "near_miss_pool_size": near_miss_pool_size if pre_gpu_enabled else 0,
+        "motif": str(motif) if motif is not None else None,
+        "geometry_first_L": geometry_first_L,
     }
     if target_evals is not None:
         metadata["target_evals"] = target_evals
@@ -469,6 +474,83 @@ def run_qd_search(
         })
         return signals
 
+    def _score_geometry_first(
+        *,
+        cpu_result: CpuGateResult,
+        motif: Any,
+        geometry_first_L: float | None,
+    ) -> Evaluation:
+        """Score a GRTresna-solved gridinit by geometry mismatch to target motif.
+
+        No GRTeclyn time evolution — the score is purely from how well the
+        solved initial data matches the target geometry.  Higher score =
+        better match (negative mismatch).
+        """
+        from ...projection.mismatch import compute_mismatch
+
+        grtresna_dir = cpu_result.episode.path / "grtresna"
+        report = compute_mismatch(
+            motif,
+            cpu_result.gridinit_path,
+            grtresna_work_dir=grtresna_dir,
+            L=geometry_first_L,
+        )
+
+        # MAP-Elites maximises score, so negate the mismatch fitness.
+        # Also add a large positive offset so all scores are positive
+        # (the archive inserts only when score > existing).
+        score = 100.0 - report.fitness
+
+        # Build metrics dict with mismatch components for descriptors
+        metrics: dict[str, Any] = {
+            "geometry_first": {
+                "mismatch_fitness": report.fitness,
+                "chi_l2": report.chi_l2,
+                "beta_l2": report.beta_l2,
+                "chi_2d_l2": report.chi_2d_l2,
+                "beta_2d_l2": report.beta_2d_l2,
+                "kij_l2": report.kij_l2,
+                "aij_l2": report.aij_l2,
+                "convergence_penalty": report.convergence_penalty,
+                "exotic_penalty": report.exotic_penalty,
+                "solve_failed": report.solve_failed,
+            },
+        }
+
+        components: dict[str, float] = {
+            "geometry_mismatch": -report.fitness,
+            "convergence": -report.convergence_penalty,
+            # Tier-assessment components: convergence penalty maps to
+            # constraint health (low penalty = good constraints).
+            "constraint_health": max(0.0, 1.0 - report.convergence_penalty),
+            "initial_constraint_quality": max(0.0, 1.0 - report.convergence_penalty),
+            # Nontrivial geometry: chi deviation signals real curvature.
+            "nonflat_geometry": float(np.clip(1.0 - report.chi_l2, 0.0, 1.0)),
+        }
+
+        notes: list[str] = []
+        if report.solve_failed:
+            notes.append("GRTresna solve failed")
+            score = -100.0
+        elif report.convergence_penalty > 0.5:
+            notes.append(f"poor convergence: penalty={report.convergence_penalty:.3f}")
+
+        update_metadata(cpu_result.episode, {
+            "geometry_first_mismatch": report.to_dict() if hasattr(report, 'to_dict') else {},
+            "score": score,
+        })
+
+        return Evaluation(
+            score=score,
+            components=components,
+            notes=notes,
+            episode_path=str(cpu_result.episode.path),
+            exit_code=0,
+            preflight_rejected=False,
+            reason=None,
+            metrics=metrics,
+        )
+
     def _evaluate_job(job: EvalJob[list[float]]) -> Evaluation:
         overrides = _vector_to_overrides(job.payload, dims, base)
         name_eval = f"eval_{job.eval_id:06d}"
@@ -512,6 +594,14 @@ def run_qd_search(
         if isinstance(cpu_phase, Evaluation):
             return cpu_phase
         cpu_result = cpu_phase
+
+        # --- Geometry-first mode: score from gridinit mismatch, skip evolution --
+        if objective_mode == "geometry_first" and motif is not None:
+            return _score_geometry_first(
+                cpu_result=cpu_result,
+                motif=motif,
+                geometry_first_L=geometry_first_L or ftl_L,
+            )
 
         # The GPU slot is leased inside _run_gpu_session for the evolution binary
         # only; scoring runs in scoring_pool after the slot is released.

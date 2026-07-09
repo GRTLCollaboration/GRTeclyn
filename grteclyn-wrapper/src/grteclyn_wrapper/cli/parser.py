@@ -408,7 +408,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     qd.add_argument(
         "--descriptor-mode",
-        choices=["legacy", "channel", "speed_horizon", "speed_super", "ftl_lifetime", "wave_focusing", "gw_beam", "spacetime_shear"],
+        choices=["legacy", "channel", "speed_horizon", "speed_super", "ftl_lifetime", "wave_focusing", "gw_beam", "spacetime_shear", "geometry_first"],
         default="legacy",
         help="MAP-Elites descriptors: legacy FTL/mechanism grid, channel "
         "path-closeness/mechanism-balance grid (needs shift>0), speed_horizon "
@@ -419,18 +419,28 @@ def build_parser() -> argparse.ArgumentParser:
         "in the nontrivial-but-not-operational regime, ftl_lifetime "
         "peak gauge-invariant strength vs FTL-lifetime fraction (time-resolved) "
         "grid that separates transient shortcuts from sustained ones, "
-        "spacetime_shear (curvature_activity vs horizon-free), or "
-        "gw_beam (log total GW power vs Z-axis beam ratio).",
+        "spacetime_shear (curvature_activity vs horizon-free), "
+        "gw_beam (log total GW power vs Z-axis beam ratio), or "
+        "geometry_first (chi match quality vs convergence quality).",
     )
     qd.add_argument(
         "--objective-mode",
-        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl", "critical_collapse", "gw_beam", "spacetime_shear"],
+        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl", "critical_collapse", "gw_beam", "spacetime_shear", "geometry_first"],
         default="weighted",
         help="Scoring scalarization used as elite quality. robust_ftl tilts "
         "ftl_first toward persistent/healthy/low-exotic geometries; "
         "general_ftl rewards gauge-invariant shortcuts only; gw_beam "
         "rewards strong directional gravitational-wave emission; "
-        "spacetime_shear rewards curvature/shear while avoiding collapse.",
+        "spacetime_shear rewards curvature/shear while avoiding collapse; "
+        "geometry_first scores by geometry mismatch to a target motif "
+        "(requires --motif-json, skips GRTeclyn evolution).",
+    )
+    qd.add_argument(
+        "--motif-json",
+        default=None,
+        help="Path to motif.json for geometry_first objective mode. "
+        "The motif defines the target geometry; the search minimises "
+        "mismatch between the solved gridinit and this target.",
     )
     qd.add_argument(
         "--pin-dimension",

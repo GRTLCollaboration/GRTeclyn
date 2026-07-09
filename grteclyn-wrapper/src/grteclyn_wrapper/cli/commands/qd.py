@@ -35,6 +35,17 @@ def load_seed_overrides(eval_dirs: list[str] | None) -> list[dict[str, Any]]:
     return seeds
 
 
+def _load_motif_if_needed(args: argparse.Namespace) -> Any:
+    """Load a geometry motif when running in geometry_first mode."""
+    motif_path = getattr(args, "motif_json", None)
+    if not motif_path:
+        return None
+    from ...initial_data.motif import read_motif_json
+    motif = read_motif_json(Path(motif_path).expanduser().resolve())
+    print(f"[qd] geometry_first motif loaded: {motif_path}")
+    return motif
+
+
 def run_qd_command(args: argparse.Namespace, base_overrides: dict) -> int:
     ensure_radial_recipe_for_grtresna(args, label="qd")
     example = resolve_example(args.example)
@@ -107,6 +118,8 @@ def run_qd_command(args: argparse.Namespace, base_overrides: dict) -> int:
         use_pipeline=pipeline_cfg["use_pipeline"],
         pre_gpu_learning=getattr(args, "pre_gpu_learning", None),
         near_miss_pool_size=getattr(args, "near_miss_pool_size", 32),
+        motif=_load_motif_if_needed(args),
+        geometry_first_L=getattr(args, "ftl_L", None),
     )
     best = archive.best
     print(json.dumps({
