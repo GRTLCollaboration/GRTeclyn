@@ -35,11 +35,15 @@ from grteclyn_wrapper.projection.iterate import (
 from grteclyn_wrapper.projection.mismatch import (
     GATE_FITNESS,
     MismatchReport,
+    FEASIBILITY_RHO_SAFE,
+    FEASIBILITY_RHO_HARD,
     _exotic_mass_proxy,
     _l2_norm,
     _resample,
     _target_profiles,
+    _target_2d_slice,
     compute_mismatch,
+    feasibility_precheck,
 )
 
 
@@ -547,3 +551,168 @@ class TestTwoPhaseFitness:
             assert FEASIBILITY_THRESHOLD == 5.0
             assert FEASIBILITY_WEIGHT == 50.0
             assert CONV_TANH_SCALE == 20.0
+
+
+# --- Phase 4a: 2D slice mismatch tests ---
+
+
+class Test2DSliceMismatch:
+    def test_target_2d_slice_shapes(self):
+        """Target 2D slice should return n×n arrays."""
+        motif = _make_motif()
+        x, z, chi_2d, beta_x_2d, beta_z_2d = _target_2d_slice(motif, n=32, L=16.0)
+        assert x.shape == (32,)
+        assert z.shape == (32,)
+        assert chi_2d.shape == (32, 32)
+        assert beta_x_2d.shape == (32, 32)
+        assert beta_z_2d.shape == (32, 32)
+
+    def test_target_2d_chi_positive(self):
+        """Conformal factor should be positive everywhere on the 2D slice."""
+        motif = _make_motif()
+        _, _, chi_2d, _, _ = _target_2d_slice(motif, n=32, L=16.0)
+        assert np.all(chi_2d > 0)
+
+    def test_target_2d_radial_symmetry(self):
+        """For a spherically symmetric recipe, chi at (x,0) should match chi at (0,x)."""
+        motif = _make_motif()
+        _, _, chi_2d, _, _ = _target_2d_slice(motif, n=65, L=16.0)
+        mid = 32
+        # chi along x-axis (z=0) should equal chi along z-axis (x=0) by symmetry
+        np.testing.assert_allclose(chi_2d[:, mid], chi_2d[mid, :], rtol=1e-10)
+
+    def test_target_2d_beta_z_zero_on_axis(self):
+        """beta_z should be approximately zero along the x-axis (z≈0)."""
+        motif = _make_motif()
+        _, _, _, _, beta_z_2d = _target_2d_slice(motif, n=65, L=16.0)  # odd n → exact z=0 at mid
+        mid = 32
+        np.testing.assert_allclose(beta_z_2d[:, mid], 0.0, atol=1e-12)
+
+    def test_mismatch_report_has_2d_fields(self):
+        """MismatchReport should carry chi_2d_l2 and beta_2d_l2 fields."""
+        r = MismatchReport(
+            fitness=1.0, chi_l2=0.1, beta_l2=0.1,
+            exotic_penalty=0.0, convergence_penalty=0.0,
+            solve_failed=False, chi_2d_l2=0.05, beta_2d_l2=0.03,
+            kij_l2=0.0, aij_l2=0.0,
+        )
+        d = r.to_dict()
+        assert "chi_2d_l2" in d
+        assert "beta_2d_l2" in d
+        assert "kij_l2" in d
+        assert "aij_l2" in d
+        assert d["chi_2d_l2"] == 0.05
+
+
+# --- Phase 4b: K_ij matching tests ---
+
+
+class TestKijMatching:
+    def test_kij_weights_are_set(self):
+        """K_ij and A_ij weights should be positive and non-zero by default."""
+        from grteclyn_wrapper.projection.mismatch import W_KIJ, W_AIJ
+        assert W_KIJ > 0.0
+        assert W_AIJ > 0.0
+
+    def test_2d_weights_higher_than_1d(self):
+        """2D slice weights should be ≥ 1D weights (2D captures more info)."""
+        from grteclyn_wrapper.projection.mismatch import W_CHI, W_CHI_2D, W_BETA, W_BETA_2D
+        assert W_CHI_2D >= W_CHI
+        assert W_BETA_2D >= W_BETA
+
+
+# --- Phase 4c: feasibility pre-check tests ---
+
+
+class TestFeasibilityPrecheck:
+    def test_safe_target(self):
+        """A motif with low rho_peak should be classified as safe."""
+        motif = _make_motif()
+        # Override support regions with low peak_rho
+        motif = GeometryMotif(
+            episode_path=motif.episode_path,
+            overrides=motif.overrides,
+            transport_axis=motif.transport_axis,
+            polarity=motif.polarity,
+            f_shortcut=motif.f_shortcut,
+            f_op=motif.f_op,
+            f_null=motif.f_null,
+            f_portal=motif.f_portal,
+            f_throat=motif.f_throat,
+            f_asymmetry=motif.f_asymmetry,
+            beta_max=motif.beta_max,
+            beta_mean=motif.beta_mean,
+            exotic_needed=False,
+            min_rho_required=0.01,
+            integral_negative_rho=0.0,
+            static_lens_only=True,
+            support_regions=(
+                SupportRegion(center=(0, 0, 0), width=3.0, peak_rho=0.1, exotic=False, radial_center=0.0),
+            ),
+            momentum_target=motif.momentum_target,
+        )
+        est = feasibility_precheck(motif)
+        assert est.feasible
+        assert est.risk_level == "safe"
+        assert est.rho_peak < FEASIBILITY_RHO_SAFE
+
+    def test_hard_target(self):
+        """A motif with very high rho_peak should be classified as hard."""
+        motif = _make_motif()
+        motif = GeometryMotif(
+            episode_path=motif.episode_path,
+            overrides=motif.overrides,
+            transport_axis=motif.transport_axis,
+            polarity=motif.polarity,
+            f_shortcut=motif.f_shortcut,
+            f_op=motif.f_op,
+            f_null=motif.f_null,
+            f_portal=motif.f_portal,
+            f_throat=motif.f_throat,
+            f_asymmetry=motif.f_asymmetry,
+            beta_max=motif.beta_max,
+            beta_mean=motif.beta_mean,
+            exotic_needed=True,
+            min_rho_required=-5.0,
+            integral_negative_rho=10.0,
+            static_lens_only=False,
+            support_regions=(
+                SupportRegion(center=(0, 0, 0), width=3.0, peak_rho=5.0, exotic=True, radial_center=0.0),
+            ),
+            momentum_target=motif.momentum_target,
+        )
+        est = feasibility_precheck(motif)
+        assert not est.feasible
+        assert est.risk_level == "hard"
+        assert est.rho_peak >= FEASIBILITY_RHO_HARD
+        assert any("exotic" in n for n in est.notes)
+
+    def test_marginal_target(self):
+        """A motif with moderate rho_peak should be classified as marginal."""
+        motif = _make_motif()
+        motif = GeometryMotif(
+            episode_path=motif.episode_path,
+            overrides=motif.overrides,
+            transport_axis=motif.transport_axis,
+            polarity=motif.polarity,
+            f_shortcut=motif.f_shortcut,
+            f_op=motif.f_op,
+            f_null=motif.f_null,
+            f_portal=motif.f_portal,
+            f_throat=motif.f_throat,
+            f_asymmetry=motif.f_asymmetry,
+            beta_max=motif.beta_max,
+            beta_mean=motif.beta_mean,
+            exotic_needed=False,
+            min_rho_required=0.5,
+            integral_negative_rho=0.0,
+            static_lens_only=True,
+            support_regions=(
+                SupportRegion(center=(0, 0, 0), width=3.0, peak_rho=1.0, exotic=False, radial_center=0.0),
+            ),
+            momentum_target=motif.momentum_target,
+        )
+        est = feasibility_precheck(motif)
+        assert est.feasible  # marginal is still feasible (we try)
+        assert est.risk_level == "marginal"
+        assert FEASIBILITY_RHO_SAFE <= est.rho_peak < FEASIBILITY_RHO_HARD

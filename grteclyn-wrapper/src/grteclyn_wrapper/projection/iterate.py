@@ -46,7 +46,7 @@ from ..grtresna.solver import GRTresnaConfig, solve
 from ..grtresna.solver.convergence import parse_convergence
 from ..initial_data.motif import GeometryMotif, MomentumTarget, SupportRegion
 from ..projection.motif_preservation import compare_motif_preservation
-from .mismatch import GATE_FITNESS, MismatchReport, compute_mismatch
+from .mismatch import GATE_FITNESS, MismatchReport, compute_mismatch, feasibility_precheck
 
 logger = logging.getLogger(__name__)
 
@@ -503,6 +503,20 @@ def run_iterate(
         )
 
     notes: list[str] = []
+
+    # --- Phase 4c: feasibility pre-check -------------------------------------
+    fe_check = feasibility_precheck(motif)
+    if fe_check.notes:
+        notes.extend(fe_check.notes)
+    if not fe_check.feasible:
+        notes.append(
+            f"feasibility pre-check: target classified as '{fe_check.risk_level}' "
+            f"(rho_peak={fe_check.rho_peak:.4f}) — proceeding but expect poor convergence"
+        )
+    logger.info(
+        "feasibility pre-check: risk=%s, rho_peak=%.4f, feasible=%s",
+        fe_check.risk_level, fe_check.rho_peak, fe_check.feasible,
+    )
 
     # --- Phase 1b: amplitude pre-conditioning --------------------------------
     working_fitted = initial_fitted
