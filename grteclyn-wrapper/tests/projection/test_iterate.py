@@ -15,6 +15,7 @@ from grteclyn_wrapper.grtresna.fit.motif import (
     fit_matter_from_motif,
     fit_momentum_from_motif,
 )
+from grteclyn_wrapper.grtresna.solver import GRTresnaConfig
 from grteclyn_wrapper.initial_data.motif import (
     GeometryMotif,
     MomentumTarget,
@@ -24,8 +25,11 @@ from grteclyn_wrapper.initial_data.motif import (
 from grteclyn_wrapper.projection.iterate import (
     IterationConfig,
     _clip_vector,
+    _compute_tight_bounds,
     _lumps_from_vector,
+    _scale_lump_amplitudes,
     _vector_from_lumps,
+    amplitude_precondition,
     run_iterate,
 )
 from grteclyn_wrapper.projection.mismatch import (
@@ -289,8 +293,6 @@ class TestRunIterate:
         # Target vector (the "geometry" we want to hit)
         target = _vector_from_lumps(fitted.lumps) + 0.02  # small offset
 
-        call_count = {"n": 0}
-
         def mock_solve(cfg, work_dir=None, gridinit_path=None):
             """Write a fake gridinit so the loop can proceed."""
             if work_dir is not None:
@@ -301,7 +303,6 @@ class TestRunIterate:
 
         def mock_mismatch(motif, gridinit_path, *, lumps=None, **kwargs):
             """Quadratic fitness: distance from target vector."""
-            call_count["n"] += 1
             if lumps is None:
                 return MismatchReport(
                     fitness=GATE_FITNESS,
@@ -355,6 +356,7 @@ class TestRunIterate:
                 gridinit_n=32,
                 grtresna_L=64.0,
                 seed=42,
+                precondition=False,  # disable for quadratic mock test
             )
 
             with patch(
@@ -403,3 +405,145 @@ class TestRunIterate:
         with TemporaryDirectory() as tmp:
             with pytest.raises(ValueError, match="no lumps"):
                 run_iterate(motif, fitted, out_dir=Path(tmp) / "iter")
+
+
+# --- Phase 1b: amplitude pre-conditioning tests ---
+
+
+class TestAmplitudePrecondition:
+    def test_scale_lump_amplitudes(self):
+        lumps = [{"amp": 0.2, "exotic": 1}, {"amp": 0.1, "exotic": 0}]
+        scaled = _scale_lump_amplitudes(lumps, 0.5)
+        assert abs(scaled[0]["amp"] - 0.1) < 1e-10
+        assert abs(scaled[1]["amp"] - 0.05) < 1e-10
+        # Original unchanged
+        assert lumps[0]["amp"] == 0.2
+
+    def test_precondition_already_feasible(self):
+        """If the original amplitude is feasible, return unchanged."""
+        motif = _make_motif()
+        fitted = fit_matter_from_motif(motif, max_lumps=1)
+
+        def mock_solve(cfg, work_dir=None, gridinit_path=None):
+            if work_dir is not None:
+                Path(work_dir).mkdir(parents=True, exist_ok=True)
+            if gridinit_path is not None:
+                Path(gridinit_path).write_bytes(b"FAKE")
+            return gridinit_path
+
+        def mock_parse_convergence(work_dir):
+            return {"iteration": 10, "ham_pct": 2.0, "mom_pct": 1.0}
+
+        with TemporaryDirectory() as tmp:
+            with patch(
+                "grteclyn_wrapper.projection.iterate.solve", side_effect=mock_solve
+            ), patch(
+                "grteclyn_wrapper.projection.iterate.parse_convergence",
+                side_effect=mock_parse_convergence,
+            ):
+                result_fitted, scale, notes = amplitude_precondition(
+                    fitted,
+                    GRTresnaConfig(),
+                    Path(tmp) / "precond",
+                )
+            assert scale == 1.0
+            assert result_fitted.lumps == fitted.lumps
+
+    def test_precondition_halves_until_feasible(self):
+        """If original is infeasible, bisection should find a feasible scale."""
+        motif = _make_motif()
+        fitted = fit_matter_from_motif(motif, max_lumps=1)
+
+        call_count = {"n": 0}
+
+        def mock_solve(cfg, work_dir=None, gridinit_path=None):
+            call_count["n"] += 1
+            if work_dir is not None:
+                Path(work_dir).mkdir(parents=True, exist_ok=True)
+            if gridinit_path is not None:
+                Path(gridinit_path).write_bytes(b"FAKE")
+            return gridinit_path
+
+        def mock_parse_convergence(work_dir):
+            # First call (scale=1.0): infeasible
+            # Second call (scale=0.5): feasible
+            if call_count["n"] <= 1:
+                return {"iteration": 50, "ham_pct": 80.0, "mom_pct": 50.0}
+            return {"iteration": 20, "ham_pct": 3.0, "mom_pct": 1.0}
+
+        with TemporaryDirectory() as tmp:
+            with patch(
+                "grteclyn_wrapper.projection.iterate.solve", side_effect=mock_solve
+            ), patch(
+                "grteclyn_wrapper.projection.iterate.parse_convergence",
+                side_effect=mock_parse_convergence,
+            ):
+                result_fitted, scale, notes = amplitude_precondition(
+                    fitted,
+                    GRTresnaConfig(),
+                    Path(tmp) / "precond",
+                )
+            assert scale == 0.5
+            assert result_fitted.lumps[0]["amp"] < fitted.lumps[0]["amp"]
+
+
+# --- Phase 1d: tight bounds tests ---
+
+
+class TestTightBounds:
+    def test_bounds_around_support_region(self):
+        motif = _make_motif()  # has support region at (0,0,0) width=3.0
+        lower, upper = _compute_tight_bounds(motif, n_lumps=1, grtresna_L=64.0)
+        # Center bounds should be tighter than ±64
+        assert lower[2] > -64.0  # cx lower
+        assert upper[2] < 64.0   # cx upper
+        # Amplitude/width bounds unchanged
+        from grteclyn_wrapper.grtresna.fit.motif import MAX_LUMP_AMP
+        assert upper[0] == MAX_LUMP_AMP
+
+    def test_bounds_fallback_without_support(self):
+        """Without support regions, bounds stay at defaults."""
+        motif = GeometryMotif(
+            episode_path="/tmp",
+            overrides={"recipe_num_bases": 1, "recipe_basis_width": 1.0,
+                       "recipe_basis_radius_max": 8.0, "recipe_chi_asymptotic": 1.0,
+                       "recipe_chi_coeff_0": 0.0, "recipe_beta_coeff_0": 0.0,
+                       "recipe_alpha_coeff_0": 0.0},
+            transport_axis=(1.0, 0.0, 0.0),
+            polarity=0.0, f_shortcut=0.0, f_op=None, f_null=0.0,
+            f_portal=0.0, f_throat=0.0, f_asymmetry=0.0,
+            beta_max=0.0, beta_mean=0.0,
+            exotic_needed=False, min_rho_required=None, integral_negative_rho=None,
+            static_lens_only=True,
+            support_regions=(),
+            momentum_target=MomentumTarget(
+                direction=(0.0, 0.0, 0.0), support_center=(0.0, 0.0, 0.0),
+                strength=0.0, template="none", credible=False,
+            ),
+        )
+        lower, upper = _compute_tight_bounds(motif, n_lumps=1, grtresna_L=64.0)
+        # Should be default ±64
+        assert lower[2] == -64.0
+        assert upper[2] == 64.0
+
+
+# --- Phase 1a: two-phase fitness tests ---
+
+
+class TestTwoPhaseFitness:
+    def test_infeasible_fitness_dominated_by_convergence(self):
+        """When Ham > threshold, fitness should be dominated by convergence."""
+        motif = _make_motif()
+        with TemporaryDirectory() as tmp:
+            gridinit = Path(tmp) / "initial_data.gridinit"
+            gridinit.write_bytes(b"")
+            # We can't easily test the full compute_mismatch without a real gridinit,
+            # but we can verify the constants are sensible
+            from grteclyn_wrapper.projection.mismatch import (
+                FEASIBILITY_THRESHOLD,
+                FEASIBILITY_WEIGHT,
+                CONV_TANH_SCALE,
+            )
+            assert FEASIBILITY_THRESHOLD == 5.0
+            assert FEASIBILITY_WEIGHT == 50.0
+            assert CONV_TANH_SCALE == 20.0

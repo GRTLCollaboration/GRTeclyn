@@ -138,6 +138,9 @@ def _default_grtresna_base(args: argparse.Namespace) -> GRTresnaConfig:
         dpi=0.0,
         bh1_bare_mass=0.0,
         bh1_spin=(0.0, 0.0, 0.0),
+        # Exotic matter needs more iterations and tighter stall tolerance
+        max_NL_iterations=200,
+        nl_stall_tolerance=0.005,
     )
 
 

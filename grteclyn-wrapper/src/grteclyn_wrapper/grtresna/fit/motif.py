@@ -78,7 +78,14 @@ def fit_matter_from_motif(
     *,
     max_lumps: int = 3,
 ) -> FittedMatter:
-    """Fit scalar lumps to geometry-first rho_req support."""
+    """Fit scalar lumps to geometry-first rho_req support.
+
+    When fewer support regions than *max_lumps* are available, the dominant
+    region is split into multiple smaller lumps distributed around its center
+    (ring layout in the xy-plane).  This gives the solver more degrees of
+    freedom to realize strong-curvature targets that a single Gaussian cannot
+    support within the convergence basin.
+    """
     notes: list[str] = []
     regions = list(motif.support_regions)
     if not regions:
@@ -97,6 +104,32 @@ def fit_matter_from_motif(
     canonical_regions = [region for region in regions if not region.exotic]
     ordered = exotic_regions + canonical_regions
     selected = ordered[: max(1, max_lumps)]
+
+    # If we have fewer regions than max_lumps, split the dominant region
+    # into additional lumps arranged in a ring around its center.
+    if len(selected) < max_lumps and len(selected) >= 1:
+        n_extra = max_lumps - len(selected)
+        dominant = selected[0]
+        ring_radius = max(dominant.width * 0.8, 2.0)
+        # Amplitude is split evenly; each sub-lump gets 1/n of the original
+        sub_amp = _amp_from_rho(dominant.peak_rho) / max_lumps
+        sub_width = max(MIN_LUMP_WIDTH, min(MAX_LUMP_WIDTH, dominant.width * 0.7))
+        cx, cy, cz = dominant.center
+        for i in range(n_extra):
+            angle = 2.0 * math.pi * (i + 1) / max_lumps
+            offset_x = ring_radius * math.cos(angle)
+            offset_y = ring_radius * math.sin(angle)
+            selected.append(SupportRegion(
+                center=(cx + offset_x, cy + offset_y, cz),
+                width=sub_width,
+                peak_rho=dominant.peak_rho / max_lumps,
+                exotic=dominant.exotic,
+                radial_center=dominant.radial_center,
+            ))
+        notes.append(
+            f"split dominant support region into {max_lumps} ring-distributed lumps "
+            f"(ring_radius={ring_radius:.2f})"
+        )
 
     lumps = tuple(_region_to_lump(region) for region in selected)
     has_exotic = any(lump["exotic"] for lump in lumps)

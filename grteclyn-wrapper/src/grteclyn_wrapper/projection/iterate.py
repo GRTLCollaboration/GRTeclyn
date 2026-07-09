@@ -7,6 +7,16 @@ satisfying the Hamiltonian and momentum constraints.
 
 The loop is cheap (GRTresna-only, no GPU evolution) and fits between the
 geometry-first scout and the existing QD/CMA-ES/HQ campaign stages.
+
+Improvements over the initial implementation:
+  - **Amplitude pre-conditioning**: before CMA-ES, a bisection on a global
+    amplitude scale factor finds the largest *feasible* (Ham < 10%) amplitude,
+    so CMA-ES starts inside the convergence basin instead of wasting evals
+    finding it.
+  - **Solver fallback ladder**: on crash or high residual, retry once with
+    safer relaxation / more iterations / reduced amplitude.
+  - **Tighter bounds**: lump centers are bounded to the motif support-region
+    radius ± 2×width, not the full box.
 """
 
 from __future__ import annotations
@@ -15,7 +25,6 @@ import dataclasses
 import json
 import logging
 import shutil
-import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
@@ -35,7 +44,7 @@ from ..grtresna.fit.motif import (
 )
 from ..grtresna.solver import GRTresnaConfig, solve
 from ..grtresna.solver.convergence import parse_convergence
-from ..initial_data.motif import GeometryMotif, MomentumTarget
+from ..initial_data.motif import GeometryMotif, MomentumTarget, SupportRegion
 from ..projection.motif_preservation import compare_motif_preservation
 from .mismatch import GATE_FITNESS, MismatchReport, compute_mismatch
 
@@ -45,9 +54,18 @@ logger = logging.getLogger(__name__)
 _LUMP_PARAMS = ("amp", "width", "cx", "cy", "cz", "vx", "vy", "vz", "omega")
 _PARAMS_PER_LUMP = len(_LUMP_PARAMS)
 
-# Bounds for each per-lump parameter.
+# Default bounds for each per-lump parameter (centers will be tightened per-motif).
 _LOWER = np.array([0.01, MIN_LUMP_WIDTH, -64.0, -64.0, -64.0, -MAX_VELOCITY, -MAX_VELOCITY, -MAX_VELOCITY, -0.5])
 _UPPER = np.array([MAX_LUMP_AMP, MAX_LUMP_WIDTH, 64.0, 64.0, 64.0, MAX_VELOCITY, MAX_VELOCITY, MAX_VELOCITY, 0.5])
+
+# --- Phase 1b: amplitude pre-conditioning ------------------------------------
+PRECOND_HAM_THRESHOLD: float = 10.0   # Ham% below which amplitude is "feasible"
+PRECOND_MAX_STEPS: int = 5             # max bisection steps (×1, ×0.5, ×0.25, ...)
+PRECOND_MIN_SCALE: float = 0.0625      # don't go below 1/16 of original amplitude
+
+# --- Phase 1c: solver fallback ladder ----------------------------------------
+FALLBACK_HAM_THRESHOLD: float = 50.0   # retry if Ham% above this
+FALLBACK_AMPLITUDE_FACTOR: float = 0.7  # reduce amplitude on retry
 
 
 @dataclass(frozen=True)
@@ -66,6 +84,13 @@ class IterationConfig:
     gridinit_n: int = 64
     grtresna_L: float = 128.0
     seed: int | None = None
+    # Phase 1b: amplitude pre-conditioning
+    precondition: bool = True
+    precond_ham_threshold: float = PRECOND_HAM_THRESHOLD
+    precond_max_steps: int = PRECOND_MAX_STEPS
+    # Phase 1c: solver fallback ladder
+    fallback_on_crash: bool = True
+    fallback_on_high_residual: bool = True
 
 
 @dataclass
@@ -126,15 +151,229 @@ def _lumps_from_vector(
     return lumps
 
 
-def _clip_vector(vector: np.ndarray, n_lumps: int) -> np.ndarray:
+def _clip_vector(vector: np.ndarray, n_lumps: int, lower: np.ndarray | None = None, upper: np.ndarray | None = None) -> np.ndarray:
     """Clip vector to per-lump bounds."""
-    clipped = vector.copy()
-    for i in range(n_lumps):
-        offset = i * _PARAMS_PER_LUMP
-        clipped[offset: offset + _PARAMS_PER_LUMP] = np.clip(
-            clipped[offset: offset + _PARAMS_PER_LUMP], _LOWER, _UPPER
+    lo = lower if lower is not None else np.tile(_LOWER, n_lumps)
+    hi = upper if upper is not None else np.tile(_UPPER, n_lumps)
+    return np.clip(vector, lo, hi)
+
+
+# --- Phase 1d: tighter bounds from motif support regions ---------------------
+
+def _compute_tight_bounds(
+    motif: GeometryMotif,
+    n_lumps: int,
+    *,
+    grtresna_L: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Compute per-lump bounds tightened around motif support regions.
+
+    Centers are bounded to support-region center ± 2×width (or a fallback
+    radius if no support regions exist).  Amplitude/width/velocity bounds
+    stay at the global defaults.
+    """
+    lower = np.tile(_LOWER, n_lumps).copy()
+    upper = np.tile(_UPPER, n_lumps).copy()
+
+    # Determine center bounds from support regions
+    if motif.support_regions:
+        # Use the union of support region extents
+        centers = []
+        max_extent = 0.0
+        for region in motif.support_regions:
+            centers.append(np.array(region.center, dtype=float))
+            extent = float(region.width) * 2.0
+            max_extent = max(max_extent, extent)
+
+        # Use the centroid of support regions as the center of the allowed box
+        centroid = np.mean(centers, axis=0)
+        half_box = max(max_extent, 8.0)  # at least ±8 in each direction
+        # Don't exceed the grid box
+        half_box = min(half_box, grtresna_L * 0.4)
+
+        for i in range(n_lumps):
+            offset = i * _PARAMS_PER_LUMP
+            lower[offset + 2] = centroid[0] - half_box
+            upper[offset + 2] = centroid[0] + half_box
+            lower[offset + 3] = centroid[1] - half_box
+            upper[offset + 3] = centroid[1] + half_box
+            lower[offset + 4] = centroid[2] - half_box
+            upper[offset + 4] = centroid[2] + half_box
+    # else: keep default ±64 bounds
+
+    return lower, upper
+
+
+# --- Phase 1b: amplitude pre-conditioning ------------------------------------
+
+def _scale_lump_amplitudes(lumps: list[dict[str, Any]], scale: float) -> list[dict[str, Any]]:
+    """Return a copy of lumps with all amplitudes multiplied by *scale*."""
+    return [
+        {**lump, "amp": float(lump.get("amp", 0.1)) * scale}
+        for lump in lumps
+    ]
+
+
+def _run_precondition_solve(
+    fitted: FittedMatter,
+    base_cfg: GRTresnaConfig,
+    work_dir: Path,
+    gridinit_path: Path,
+) -> tuple[float, Path | None]:
+    """Run a single GRTresna solve and return (ham_pct, gridinit_path).
+
+    Returns (inf, None) if the solve crashes.
+    """
+    cfg = build_grtresna_config_from_fitted(fitted, base=base_cfg)
+    grtresna_dir = work_dir / "grtresna"
+    try:
+        solve(cfg, work_dir=grtresna_dir, gridinit_path=gridinit_path)
+    except (RuntimeError, FileNotFoundError, OSError) as exc:
+        logger.debug("precondition solve failed: %s", exc)
+        return float("inf"), None
+
+    conv = parse_convergence(grtresna_dir)
+    if conv is not None:
+        return float(conv.get("ham_pct", 100.0)), gridinit_path
+    return 100.0, gridinit_path
+
+
+def amplitude_precondition(
+    fitted: FittedMatter,
+    base_cfg: GRTresnaConfig,
+    work_dir: Path,
+    *,
+    ham_threshold: float = PRECOND_HAM_THRESHOLD,
+    max_steps: int = PRECOND_MAX_STEPS,
+) -> tuple[FittedMatter, float, list[str]]:
+    """Bisection on a global amplitude scale to find the largest feasible config.
+
+    Returns (preconditioned_fitted, best_scale, notes).  If the original
+    amplitude is already feasible, returns it unchanged with scale=1.0.
+    """
+    notes: list[str] = []
+    work_dir.mkdir(parents=True, exist_ok=True)
+
+    # Step 1: try original amplitude
+    gridinit = work_dir / "initial_data.gridinit"
+    ham, _ = _run_precondition_solve(fitted, base_cfg, work_dir / "step_1x", gridinit)
+    logger.info("precondition: scale=1.0, Ham=%.2f%%", ham)
+
+    if ham <= ham_threshold:
+        notes.append(f"precondition: original amplitude feasible (Ham={ham:.2f}%)")
+        return fitted, 1.0, notes
+
+    # Step 2: bisection — try halving until feasible
+    best_scale = 1.0
+    best_fitted = fitted
+    scale = 0.5
+    for step in range(max_steps):
+        if scale < PRECOND_MIN_SCALE:
+            break
+
+        scaled_lumps = _scale_lump_amplitudes(list(fitted.lumps), scale)
+        scaled_fitted = FittedMatter(
+            lumps=tuple(scaled_lumps),
+            scalar_mass=fitted.scalar_mass,
+            maximal_slicing=fitted.maximal_slicing,
+            static_lens_only=fitted.static_lens_only,
+            momentum_target=fitted.momentum_target,
+            notes=fitted.notes,
         )
-    return clipped
+
+        step_dir = work_dir / f"step_{scale:.4f}"
+        gridinit = step_dir / "initial_data.gridinit"
+        ham, _ = _run_precondition_solve(scaled_fitted, base_cfg, step_dir, gridinit)
+        logger.info("precondition: scale=%.4f, Ham=%.2f%%", scale, ham)
+
+        if ham <= ham_threshold:
+            best_scale = scale
+            best_fitted = scaled_fitted
+            notes.append(f"precondition: feasible at scale={scale:.4f} (Ham={ham:.2f}%)")
+            break
+        scale *= 0.5
+
+    if best_scale == 1.0:
+        notes.append(
+            f"precondition: no feasible amplitude found in {max_steps} steps; "
+            f"using original (best Ham={ham:.2f}%)"
+        )
+
+    return best_fitted, best_scale, notes
+
+
+# --- Phase 1c: solver fallback ladder ----------------------------------------
+
+def _solve_with_fallback(
+    cfg: GRTresnaConfig,
+    work_dir: Path,
+    gridinit_path: Path,
+    *,
+    fallback_on_crash: bool = True,
+    fallback_on_high_residual: bool = True,
+) -> tuple[Path | None, str | None]:
+    """Run GRTresna with a fallback ladder on crash or high residual.
+
+    Returns (gridinit_path, error_message).  On success, gridinit_path is
+    set and error_message is None.  On failure, gridinit_path is None and
+    error_message describes the failure.
+    """
+    # First attempt
+    try:
+        solve(cfg, work_dir=work_dir, gridinit_path=gridinit_path)
+    except (RuntimeError, FileNotFoundError, OSError) as exc:
+        if not fallback_on_crash:
+            return None, f"solve failed: {exc}"
+
+        # Fallback: safer relaxation, more iterations, reduced amplitude
+        logger.debug("solve crashed, trying fallback: %s", exc)
+        fb_cfg = dataclasses.replace(cfg)
+        fb_cfg.psi_relaxation = min(fb_cfg.psi_relaxation, 0.4)
+        fb_cfg.max_NL_iterations = max(fb_cfg.max_NL_iterations, 150)
+        # Reduce all lump amplitudes
+        if fb_cfg.lumps:
+            fb_cfg.lumps = [
+                {**l, "amp": float(l.get("amp", 0.1)) * FALLBACK_AMPLITUDE_FACTOR}
+                for l in fb_cfg.lumps
+            ]
+        fb_dir = work_dir.parent / (work_dir.name + "_fallback")
+        try:
+            solve(fb_cfg, work_dir=fb_dir, gridinit_path=gridinit_path)
+            logger.info("fallback solve succeeded after crash")
+            return gridinit_path, None
+        except (RuntimeError, FileNotFoundError, OSError) as exc2:
+            return None, f"solve failed (fallback also failed): {exc2}"
+
+    # Check residual — if too high, retry with safer settings
+    if fallback_on_high_residual:
+        conv = parse_convergence(work_dir)
+        if conv is not None:
+            ham = float(conv.get("ham_pct", 0.0))
+            if ham > FALLBACK_HAM_THRESHOLD:
+                logger.debug("high residual Ham=%.1f%%, trying fallback", ham)
+                fb_cfg = dataclasses.replace(cfg)
+                fb_cfg.psi_relaxation = min(fb_cfg.psi_relaxation, 0.4)
+                fb_cfg.max_NL_iterations = max(fb_cfg.max_NL_iterations, 150)
+                if fb_cfg.lumps:
+                    fb_cfg.lumps = [
+                        {**l, "amp": float(l.get("amp", 0.1)) * FALLBACK_AMPLITUDE_FACTOR}
+                        for l in fb_cfg.lumps
+                    ]
+                fb_dir = work_dir.parent / (work_dir.name + "_fallback")
+                try:
+                    solve(fb_cfg, work_dir=fb_dir, gridinit_path=gridinit_path)
+                    fb_conv = parse_convergence(fb_dir)
+                    if fb_conv is not None:
+                        fb_ham = float(fb_conv.get("ham_pct", 0.0))
+                        if fb_ham < ham:
+                            logger.info(
+                                "fallback improved Ham: %.1f%% → %.1f%%", ham, fb_ham
+                            )
+                            return gridinit_path, None
+                except (RuntimeError, FileNotFoundError, OSError):
+                    pass  # keep the original solve result
+
+    return gridinit_path, None
 
 
 def _evaluate_candidate(
@@ -146,6 +385,8 @@ def _evaluate_candidate(
     base_cfg: GRTresnaConfig,
     work_dir: Path,
     L: float | None,
+    fallback_on_crash: bool = True,
+    fallback_on_high_residual: bool = True,
 ) -> tuple[float, MismatchReport, Path | None]:
     """Single candidate evaluation: vector → lumps → solve → mismatch."""
     lumps = _lumps_from_vector(vector, template_lumps=template_lumps)
@@ -164,10 +405,16 @@ def _evaluate_candidate(
     gridinit_path = work_dir / "initial_data.gridinit"
     grtresna_dir = work_dir / "grtresna"
 
-    try:
-        solve(cfg, work_dir=grtresna_dir, gridinit_path=gridinit_path)
-    except (RuntimeError, FileNotFoundError, OSError) as exc:
-        logger.debug("GRTresna solve failed for %s: %s", work_dir.name, exc)
+    gridinit_path_result, error_msg = _solve_with_fallback(
+        cfg,
+        work_dir=grtresna_dir,
+        gridinit_path=gridinit_path,
+        fallback_on_crash=fallback_on_crash,
+        fallback_on_high_residual=fallback_on_high_residual,
+    )
+
+    if gridinit_path_result is None:
+        logger.debug("GRTresna solve failed for %s: %s", work_dir.name, error_msg)
         report = MismatchReport(
             fitness=GATE_FITNESS,
             chi_l2=0.0,
@@ -175,15 +422,21 @@ def _evaluate_candidate(
             exotic_penalty=0.0,
             convergence_penalty=0.0,
             solve_failed=True,
-            notes=(f"solve failed: {exc}",),
+            notes=(error_msg or "solve failed",),
         )
         return GATE_FITNESS, report, None
+
+    # Use the grtresna_dir for convergence data (fallback may have written there)
+    conv_dir = grtresna_dir
+    fb_dir = work_dir.parent / (grtresna_dir.name + "_fallback")
+    if fb_dir.exists():
+        conv_dir = fb_dir
 
     report = compute_mismatch(
         motif,
         gridinit_path,
         lumps=lumps,
-        grtresna_work_dir=grtresna_dir,
+        grtresna_work_dir=conv_dir,
         L=L,
     )
     return report.fitness, report, gridinit_path
@@ -227,10 +480,6 @@ def run_iterate(
     if n_lumps == 0:
         raise ValueError("initial_fitted has no lumps to optimize")
 
-    template_lumps = list(initial_fitted.lumps)
-    x0 = _vector_from_lumps(template_lumps)
-    x0 = _clip_vector(x0, n_lumps)
-
     # Base GRTresna config
     if base_grtresna_cfg is None:
         n_grid = cfg.gridinit_n
@@ -246,11 +495,36 @@ def run_iterate(
             dpi=0.0,
             bh1_bare_mass=0.0,
             bh1_spin=(0.0, 0.0, 0.0),
+            # For exotic matter the default stall tolerance (2%) gives up too
+            # early — Ham can plateau at ~96% then slowly creep down.  Give
+            # the solver more iterations and a tighter stall threshold.
+            max_NL_iterations=200,
+            nl_stall_tolerance=0.005,
         )
 
-    # CMA-ES bounds
-    lower = np.tile(_LOWER, n_lumps)
-    upper = np.tile(_UPPER, n_lumps)
+    notes: list[str] = []
+
+    # --- Phase 1b: amplitude pre-conditioning --------------------------------
+    working_fitted = initial_fitted
+    if cfg.precondition:
+        precond_dir = out_dir / "precondition"
+        working_fitted, best_scale, precond_notes = amplitude_precondition(
+            initial_fitted,
+            base_grtresna_cfg,
+            precond_dir,
+            ham_threshold=cfg.precond_ham_threshold,
+            max_steps=cfg.precond_max_steps,
+        )
+        notes.extend(precond_notes)
+        # Clean up precondition work dirs to save disk
+        shutil.rmtree(precond_dir, ignore_errors=True)
+
+    template_lumps = list(working_fitted.lumps)
+    x0 = _vector_from_lumps(template_lumps)
+
+    # --- Phase 1d: tighter bounds from motif support regions -----------------
+    lower, upper = _compute_tight_bounds(motif, n_lumps, grtresna_L=cfg.grtresna_L)
+    x0 = _clip_vector(x0, n_lumps, lower=lower, upper=upper)
     bounds = [lower.tolist(), upper.tolist()]
 
     opts: dict[str, Any] = {
@@ -275,7 +549,6 @@ def run_iterate(
     best_dir = out_dir / "best"
     best_dir.mkdir(exist_ok=True)
     fitness_history: list[float] = []
-    notes: list[str] = []
     total_evals = 0
     generation = 0
     plateau_count = 0
@@ -286,7 +559,7 @@ def run_iterate(
             generation += 1
             solutions = es.ask()
             n_pop = len(solutions)
-            clipped = [_clip_vector(np.array(s), n_lumps) for s in solutions]
+            clipped = [_clip_vector(np.array(s), n_lumps, lower=lower, upper=upper) for s in solutions]
 
             # Parallel GRTresna evaluations
             fitnesses = [GATE_FITNESS] * n_pop
@@ -301,10 +574,12 @@ def run_iterate(
                         vector=vec,
                         motif=motif,
                         template_lumps=template_lumps,
-                        base_fitted=initial_fitted,
+                        base_fitted=working_fitted,
                         base_cfg=dataclasses.replace(base_grtresna_cfg),
                         work_dir=eval_dir,
                         L=cfg.L,
+                        fallback_on_crash=cfg.fallback_on_crash,
+                        fallback_on_high_residual=cfg.fallback_on_high_residual,
                     )
                     futures[fut] = idx
 
@@ -388,11 +663,11 @@ def run_iterate(
     best_lumps = _lumps_from_vector(best_vector, template_lumps=template_lumps)
     best_fitted = FittedMatter(
         lumps=tuple(best_lumps),
-        scalar_mass=initial_fitted.scalar_mass,
-        maximal_slicing=initial_fitted.maximal_slicing,
-        static_lens_only=initial_fitted.static_lens_only,
-        momentum_target=initial_fitted.momentum_target,
-        notes=initial_fitted.notes + (f"iterate: {total_evals} evals, best_fitness={best_fitness:.6f}",),
+        scalar_mass=working_fitted.scalar_mass,
+        maximal_slicing=working_fitted.maximal_slicing,
+        static_lens_only=working_fitted.static_lens_only,
+        momentum_target=working_fitted.momentum_target,
+        notes=working_fitted.notes + (f"iterate: {total_evals} evals, best_fitness={best_fitness:.6f}",),
     )
     write_fitted_matter_json(best_fitted, out_dir / "best_fitted_matter.json")
 

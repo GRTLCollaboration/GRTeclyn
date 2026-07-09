@@ -4,10 +4,18 @@ Computes an L2 distance between target analytic profiles (from a GeometryMotif)
 and the profiles actually realized by a GRTresna-solved .gridinit, plus exotic-
 mass and constraint-convergence penalties.  Lower fitness is better (CMA-ES
 convention).
+
+Fitness uses **two-phase** shaping:
+  - Phase 1 (infeasible): Ham > ``FEASIBILITY_THRESHOLD`` — fitness is dominated
+    by ``tanh``-saturated convergence penalty so CMA-ES finds the convergence
+    basin first without the geometry signal being drowned.
+  - Phase 2 (feasible): Ham ≤ threshold — geometry mismatch (chi + beta L2) is
+    the primary signal; convergence and exotic penalties are small corrections.
 """
 
 from __future__ import annotations
 
+import math
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Mapping
@@ -33,6 +41,11 @@ GATE_FITNESS: float = 100.0
 
 # Profile comparison resolution (number of 1-D sample points along axis).
 N_PROFILE_POINTS: int = 256
+
+# Two-phase feasibility shaping.
+FEASIBILITY_THRESHOLD: float = 5.0   # Ham% below which we switch to geometry-mode
+CONV_TANH_SCALE: float = 20.0        # tanh(ham_pct / scale) — saturates ~1.0 at ham≈60%
+FEASIBILITY_WEIGHT: float = 50.0     # max contribution of the feasibility term
 
 
 @dataclass(frozen=True)
@@ -176,24 +189,38 @@ def compute_mismatch(
     # Convergence penalty from Ham/Mom residuals (parse_convergence returns
     # keys: iteration, ham_pct, mom_pct — percentages of the norm).
     convergence_penalty = 0.0
+    ham_pct = 0.0
     if grtresna_work_dir is not None:
         conv = parse_convergence(Path(grtresna_work_dir))
         if conv is not None:
-            ham = conv.get("ham_pct", 0.0)
-            mom = conv.get("mom_pct", 0.0)
-            # Penalty grows linearly above 0.1% threshold
-            convergence_penalty = max(0.0, ham - 0.1) + max(0.0, mom - 0.1)
-            if ham > 5.0 or mom > 5.0:
-                notes.append(f"high constraint residual: Ham={ham:.2f}% Mom={mom:.2f}%")
+            ham_pct = conv.get("ham_pct", 0.0)
+            mom_pct = conv.get("mom_pct", 0.0)
+            # tanh-saturated penalty: provides gradient toward feasibility
+            # without drowning geometry signal once solve is "close".
+            convergence_penalty = (
+                math.tanh(max(0.0, ham_pct) / CONV_TANH_SCALE)
+                + math.tanh(max(0.0, mom_pct) / CONV_TANH_SCALE)
+            )
+            if ham_pct > 5.0 or mom_pct > 5.0:
+                notes.append(f"high constraint residual: Ham={ham_pct:.2f}% Mom={mom_pct:.2f}%")
         else:
             notes.append("no convergence data available")
+            convergence_penalty = 1.0  # assume bad if no data
 
-    fitness = (
-        w_chi * chi_l2
-        + w_beta * beta_l2
-        + w_exotic * exotic_penalty
-        + w_convergence * convergence_penalty
-    )
+    # Two-phase fitness shaping:
+    #  - Infeasible (Ham > threshold): feasibility dominates so CMA-ES finds the
+    #    convergence basin first.  Geometry terms still contribute a small gradient.
+    #  - Feasible (Ham ≤ threshold): geometry mismatch is the primary signal;
+    #    convergence and exotic are small corrections.
+    geometry_fitness = w_chi * chi_l2 + w_beta * beta_l2 + w_exotic * exotic_penalty
+    feasibility_fitness = FEASIBILITY_WEIGHT * convergence_penalty
+
+    if ham_pct > FEASIBILITY_THRESHOLD:
+        # Phase 1: feasibility-first (geometry contributes 10% for gradient)
+        fitness = feasibility_fitness + 0.1 * geometry_fitness
+    else:
+        # Phase 2: geometry-first (convergence is a small correction)
+        fitness = geometry_fitness + w_convergence * convergence_penalty
 
     return MismatchReport(
         fitness=fitness,
