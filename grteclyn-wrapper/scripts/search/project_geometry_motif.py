@@ -36,10 +36,12 @@ from grteclyn_wrapper.grtresna.fit.motif import (
 from grteclyn_wrapper.grtresna.solver import GRTresnaConfig, parse_convergence, solve
 from grteclyn_wrapper.initial_data.motif import (
     extract_motif_from_episode,
+    motif_from_alcubierre,
     read_motif_json,
     write_motif_json,
 )
 from grteclyn_wrapper.projection.iterate import IterationConfig, run_iterate
+from grteclyn_wrapper.projection.mismatch import warp_factory_cross_check
 from grteclyn_wrapper.projection.motif_preservation import (
     compare_motif_preservation,
     write_preservation_report,
@@ -56,7 +58,35 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "source_episode",
         type=Path,
-        help="Geometry-first episode directory (eval_XXXXXX or smoke run)",
+        nargs="?",
+        default=None,
+        help="Geometry-first episode directory (eval_XXXXXX or smoke run). "
+             "Optional when --target alcubierre is used.",
+    )
+    parser.add_argument(
+        "--target",
+        choices=("episode", "alcubierre"),
+        default="episode",
+        help="Motif source: 'episode' (default) extracts from source_episode; "
+             "'alcubierre' builds a warp-bubble motif from --warp-* params.",
+    )
+    parser.add_argument(
+        "--warp-velocity",
+        type=float,
+        default=0.5,
+        help="Alcubierre bubble velocity v (fraction of c)",
+    )
+    parser.add_argument(
+        "--warp-bubble-radius",
+        type=float,
+        default=2.0,
+        help="Alcubierre bubble radius R",
+    )
+    parser.add_argument(
+        "--warp-sigma",
+        type=float,
+        default=2.0,
+        help="Alcubierre bubble wall thickness sigma",
     )
     parser.add_argument(
         "--out-dir",
@@ -126,10 +156,32 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def _default_grtresna_base(args: argparse.Namespace) -> GRTresnaConfig:
     n = args.gridinit_n
+    L = args.grtresna_L
+    if getattr(args, "target", "episode") == "alcubierre":
+        # Full-box domain: the Alcubierre toroidal ring extends to ±R in y/z
+        # around the transport axis, so octant symmetry doesn't apply.
+        # Centre the physics at (L/2, L/2, L/2).
+        return GRTresnaConfig(
+            mpi_ranks=args.mpi_ranks,
+            N=(n, n, n),
+            L=L,
+            gridinit_nx=n,
+            gridinit_ny=n,
+            gridinit_nz=n,
+            scalar_mass=0.0,
+            dphi=0.0,
+            dpi=0.0,
+            bh1_bare_mass=0.0,
+            bh1_spin=(0.0, 0.0, 0.0),
+            max_NL_iterations=200,
+            nl_stall_tolerance=0.005,
+            lo_boundary=(0, 0, 0),
+            target_center=(L / 2.0, L / 2.0, L / 2.0),
+        )
     return GRTresnaConfig(
         mpi_ranks=args.mpi_ranks,
         N=(n, n, n // 2),
-        L=args.grtresna_L,
+        L=L,
         gridinit_nx=n,
         gridinit_ny=n,
         gridinit_nz=n,
@@ -180,7 +232,30 @@ def run_projection(args: argparse.Namespace) -> int:
 
     if args.motif_json is not None:
         motif = read_motif_json(args.motif_json)
+    elif args.target == "alcubierre":
+        motif = motif_from_alcubierre(
+            velocity=args.warp_velocity,
+            bubble_radius=args.warp_bubble_radius,
+            sigma=args.warp_sigma,
+            ftl_L=args.ftl_L,
+        )
+        write_motif_json(motif, motif_path)
+        # Cross-check reconstructed rho against the exact T = G/8pi
+        cross_check = warp_factory_cross_check(motif, L=args.ftl_L)
+        cross_check_path = out_dir / "warp_factory_crosscheck.json"
+        cross_check_path.write_text(
+            json.dumps(cross_check.to_dict(), indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        print(f"Warp-factory cross-check: rho_l2={cross_check.rho_l2:.6f}, "
+              f"NEC violation={cross_check.nec_violation_fraction:.3f}, "
+              f"exotic_energy={cross_check.exotic_energy:.4f}")
+        print(f"Wrote {cross_check_path}")
     else:
+        if args.source_episode is None:
+            print("Error: source_episode is required when --target episode (default)",
+                  file=sys.stderr)
+            return 1
         motif = extract_motif_from_episode(
             args.source_episode,
             phantom=args.phantom,
@@ -193,6 +268,18 @@ def run_projection(args: argparse.Namespace) -> int:
     else:
         fitted = fit_matter_from_motif(motif, max_lumps=args.max_lumps)
         fitted = fit_momentum_from_motif(motif, fitted)
+        # For Alcubierre target, shift lump centres from physics origin to
+        # the GRTresna domain centre (L/2, L/2, L/2) so they sit inside [0,L]³.
+        if args.target == "alcubierre":
+            cx = args.grtresna_L / 2.0
+            shifted_lumps = []
+            for lump in fitted.lumps:
+                updated = dict(lump)
+                c = updated["center"]
+                updated["center"] = (c[0] + cx, c[1] + cx, c[2] + cx)
+                shifted_lumps.append(updated)
+            from dataclasses import replace as _dc_replace
+            fitted = _dc_replace(fitted, lumps=tuple(shifted_lumps))
         write_fitted_matter_json(fitted, fitted_path)
         write_momentum_target_json(fitted.momentum_target, momentum_path)
 

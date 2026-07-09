@@ -35,7 +35,7 @@ from numpy.typing import NDArray
 
 from ..grtresna.io import read_gridinit
 from ..grtresna.solver.convergence import parse_convergence
-from ..initial_data.motif import GeometryMotif
+from ..initial_data.motif import GeometryMotif, alcubierre_shape_function, _alcubierre_eulerian_rho
 from ..metrics.probes.ftl.analytic import _axis_profiles
 from ..metrics.probes.ftl.solved import build_xz_slice_from_gridinit
 
@@ -167,6 +167,97 @@ def _target_2d_slice(
     beta_z_2d = beta_r * Z / r_safe
 
     return x_axis, z_axis, chi_2d, beta_x_2d, beta_z_2d
+
+
+def _is_warp_motif(motif: GeometryMotif) -> bool:
+    """Detect an Alcubierre warp-drive motif (toroidal template + flat chi)."""
+    return (
+        motif.momentum_target.template == "toroidal"
+        and motif.episode_path.startswith("alcubierre:")
+    )
+
+
+def _warp_params_from_motif(motif: GeometryMotif) -> dict[str, float]:
+    """Extract (velocity, bubble_radius, sigma) from an Alcubierre motif."""
+    parts = motif.episode_path.split(":")
+    params: dict[str, float] = {}
+    for part in parts[1:]:
+        if "=" in part:
+            key, val = part.split("=", 1)
+            try:
+                params[key.strip()] = float(val)
+            except ValueError:
+                pass
+    return params
+
+
+def _target_2d_slice_warp(
+    motif: GeometryMotif,
+    *,
+    n: int = N_SLICE_POINTS,
+    L: float | None = None,
+) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
+    """Evaluate Alcubierre target chi, beta, K, A_ij on a 2D xz-slice.
+
+    For an Alcubierre bubble:
+      - chi = 1 everywhere (flat spatial metric)
+      - beta_x = -v * f(r_s), beta_z = 0 (axial shift only)
+      - K (trace) = 0 (maximal slicing is NOT assumed; Alcubierre has K=0
+        because the spatial metric is flat and the trace of K_ij for the
+        standard Alcubierre metric is zero)
+      - A_ij (traceless extrinsic curvature) is non-zero: it comes from the
+        shift gradient.  We use |A_ij|^2/2 as a scalar proxy, computed from
+        the analytic K_ij of the Alcubierre metric.
+
+    Returns (x_axis, z_axis, chi_2d, beta_x_2d, beta_z_2d, K_2d, A_trace_2d).
+    """
+    params = _warp_params_from_motif(motif)
+    velocity = params.get("v", 0.5)
+    bubble_radius = params.get("R", 2.0)
+    sigma = params.get("sigma", 2.0)
+
+    overrides = motif.overrides
+    eff_L = L if L is not None else float(overrides.get("recipe_basis_radius_max", 8.0)) * 2.0
+
+    x_axis = np.linspace(-eff_L, eff_L, n)
+    z_axis = np.linspace(-eff_L, eff_L, n)
+    X, Z = np.meshgrid(x_axis, z_axis, indexing="ij")
+    r_s = np.sqrt(X**2 + Z**2)
+
+    # Flat chi
+    chi_2d = np.ones((n, n), dtype=np.float64)
+
+    # Axial shift: beta_x = -v * f(r_s), beta_z = 0
+    f = alcubierre_shape_function(r_s, bubble_radius=bubble_radius, sigma=sigma)
+    beta_x_2d = -velocity * f
+    beta_z_2d = np.zeros((n, n), dtype=np.float64)
+
+    # K (trace) = 0 for Alcubierre (flat spatial metric, maximal slice)
+    K_2d = np.zeros((n, n), dtype=np.float64)
+
+    # A_ij proxy from the shift: the extrinsic curvature for a shift-only
+    # metric (alpha=1, gamma=delta) is K_ij = (1/2)(d_i beta_j + d_j beta_i).
+    # For beta = (-v f(r_s), 0, 0), the dominant components are:
+    #   K_xx = d_x beta_x = -v * f' * x/r_s
+    #   K_xz = (1/2) d_z beta_x = -v * f' * z / (2 r_s)
+    #   K_zz = 0 (beta_z = 0)
+    # |A_ij|^2/2 ~ |K_ij|^2/2 (since K=0, A_ij = K_ij).
+    r_safe = np.clip(r_s, 1.0e-10, None)
+    # df/dr_s via finite differences on a 1D radial grid
+    r_1d = np.linspace(max(eff_L / n, 1.0e-6), eff_L * math.sqrt(2.0), n)
+    f_1d = alcubierre_shape_function(r_1d, bubble_radius=bubble_radius, sigma=sigma)
+    dr = r_1d[1] - r_1d[0]
+    df_dr_1d = np.gradient(f_1d, dr, edge_order=2)
+    df_dr = np.interp(r_s.ravel(), r_1d, df_dr_1d).reshape(n, n)
+
+    K_xx = -velocity * df_dr * X / r_safe
+    K_xz = -velocity * df_dr * Z / (2.0 * r_safe)
+    K_zz = np.zeros((n, n), dtype=np.float64)
+    # |K_ij|^2 = K_xx^2 + 2*K_xz^2 + K_zz^2 (symmetric tensor)
+    k_sq = K_xx**2 + 2.0 * K_xz**2 + K_zz**2
+    A_trace_2d = np.sqrt(k_sq / 2.0)
+
+    return x_axis, z_axis, chi_2d, beta_x_2d, beta_z_2d, K_2d, A_trace_2d
 
 
 def _solved_midline_profiles(
@@ -437,9 +528,17 @@ def compute_mismatch(
     beta_2d_l2 = 0.0
     if use_2d:
         try:
-            x_t, z_t, chi_2d_target, beta_x_2d_target, beta_z_2d_target = _target_2d_slice(
-                motif, n=n_slice, L=L,
-            )
+            is_warp = _is_warp_motif(motif)
+            if is_warp:
+                warp_2d = _target_2d_slice_warp(motif, n=n_slice, L=L)
+                x_t, z_t, chi_2d_target, beta_x_2d_target, beta_z_2d_target = warp_2d[:5]
+                warp_K_target, warp_A_target = warp_2d[5], warp_2d[6]
+            else:
+                x_t, z_t, chi_2d_target, beta_x_2d_target, beta_z_2d_target = _target_2d_slice(
+                    motif, n=n_slice, L=L,
+                )
+                warp_K_target = None
+                warp_A_target = None
             solved_2d = _solved_2d_slice(gridinit_path, n=n_slice, L=L)
             if solved_2d is not None:
                 x_s, z_s, chi_2d_solved, beta_x_2d_solved, beta_z_2d_solved, _, _ = solved_2d
@@ -461,21 +560,28 @@ def compute_mismatch(
     aij_l2 = 0.0
     if use_kij:
         try:
-            # Target K: for the recipe, K is constant (maximal slicing → K=0,
-            # otherwise K = sign_of_K * some constant).  The recipe doesn't
-            # store K explicitly, but for maximal_slicing it's 0.
-            target_K = 0.0  # maximal slicing → K = 0
-
-            # Target A_ij: for conformally-flat initial data with the recipe,
-            # A_ij = 0 (no extrinsic curvature beyond the trace).
-            target_A_trace = 0.0
+            is_warp = _is_warp_motif(motif)
+            if is_warp and warp_K_target is not None:
+                # Warp target: K and A_ij come from the Alcubierre metric
+                # (non-zero A_ij from the shift gradient, K=0).
+                target_K = warp_K_target
+                target_A_trace = warp_A_target
+            else:
+                # Standard recipe target: K=0 (maximal slicing), A_ij=0
+                # (conformally flat).
+                target_K = 0.0
+                target_A_trace = 0.0
 
             solved_2d = _solved_2d_slice(gridinit_path, n=n_slice, L=L)
             if solved_2d is not None:
                 _, _, _, _, _, K_2d_solved, A_trace_2d_solved = solved_2d
+                # Resample solved K and A onto the target grid if warp
+                if is_warp and warp_K_target is not None:
+                    K_2d_solved = _resample_2d(x_s, z_s, K_2d_solved, x_t, z_t)
+                    A_trace_2d_solved = _resample_2d(x_s, z_s, A_trace_2d_solved, x_t, z_t)
                 # L2 of K against target
                 kij_l2 = float(np.sqrt(np.mean((K_2d_solved - target_K)**2)))
-                # L2 of |A_ij| against target (0 for conformally flat)
+                # L2 of |A_ij| against target
                 aij_l2 = float(np.sqrt(np.mean((A_trace_2d_solved - target_A_trace)**2)))
         except Exception as exc:
             notes.append(f"K_ij matching failed: {exc}")
@@ -540,5 +646,109 @@ def compute_mismatch(
         beta_2d_l2=beta_2d_l2,
         kij_l2=kij_l2,
         aij_l2=aij_l2,
+        notes=tuple(notes),
+    )
+
+
+@dataclass(frozen=True)
+class WarpCrossCheck:
+    """Cross-check of reconstructed rho against the analytic Alcubierre T_{mu nu}.
+
+    Compares the Eulerian energy density from the motif's rho_req (derived
+    from K_ij/shift) against the exact ``T = G/8 pi`` from the warp-factory
+    analytic metric, and reports the energy-condition diagnostics.
+    """
+
+    rho_l2: float               # L2 of (rho_motif - rho_warpfactory) on the slice
+    rho_min_motif: float        # min rho from the motif reconstruction
+    rho_min_warpfactory: float  # min rho from the exact T = G/8pi
+    nec_violation_fraction: float
+    wec_violation_fraction: float
+    exotic_energy: float        # |integral of negative rho| from warpfactory
+    notes: tuple[str, ...] = ()
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+def warp_factory_cross_check(
+    motif: GeometryMotif,
+    *,
+    n: int = N_SLICE_POINTS,
+    L: float | None = None,
+) -> WarpCrossCheck:
+    """Cross-check the motif's reconstructed rho against the exact Alcubierre T.
+
+    Builds the analytic Alcubierre 4-metric via ``warpfactory.alcubierre_metric``,
+    computes ``T_{mu nu} = G_{mu nu} / 8 pi`` and the Eulerian energy density,
+    then compares it against the motif's rho_req (from ``_alcubierre_eulerian_rho``).
+    Also reports the energy-condition violation fractions and exotic energy budget.
+    """
+    from ..metrics.probes.warpfactory import (
+        alcubierre_metric,
+        eulerian_energy_density,
+        evaluate_four_metric,
+        exotic_energy_budget,
+    )
+
+    params = _warp_params_from_motif(motif)
+    velocity = params.get("v", 0.5)
+    bubble_radius = params.get("R", 2.0)
+    sigma = params.get("sigma", 2.0)
+
+    eff_L = L if L is not None else float(
+        motif.overrides.get("recipe_basis_radius_max", 8.0)
+    ) * 2.0
+
+    # --- Motif rho (analytic formula) ---
+    _, _, _, rho_motif = _alcubierre_eulerian_rho(
+        velocity=velocity, bubble_radius=bubble_radius, sigma=sigma, L=eff_L, n=n,
+    )
+
+    # --- Warp-factory rho (T = G/8pi from the 4-metric) ---
+    # Use a grid that covers the same spatial extent; the warp-factory builds
+    # a (t,x,y,z) grid.  We evaluate the central time slice.
+    n_wf = max(n, 24)  # warp-factory needs enough points for FD stencils
+    g, spacing = alcubierre_metric(
+        velocity=velocity,
+        bubble_radius=bubble_radius,
+        sigma=sigma,
+        half_width=eff_L,
+        n_space=n_wf,
+        dt=0.2,
+    )
+    rho_wf_all = eulerian_energy_density(g, spacing)
+    nt = g.shape[0]
+    tc = nt // 2
+    crop = 4  # discard FD boundary cells
+    rho_wf = rho_wf_all[tc, crop:n_wf - crop, crop:n_wf - crop, crop:n_wf - crop]
+
+    # Energy conditions and exotic budget
+    ec_report = evaluate_four_metric(g, spacing, crop=crop)
+    budget = exotic_energy_budget(g, spacing, crop=crop)
+
+    # Resample warp-factory rho onto the motif grid for L2 comparison.
+    # The WF grid is cubic [crop:n_wf-crop]^3; we take the y=centre slice.
+    wf_axis = np.linspace(-eff_L, eff_L, n_wf)[crop:n_wf - crop]
+    wf_slice = rho_wf[:, rho_wf.shape[1] // 2, :]  # xz-slice at y=centre
+    motif_axis = np.linspace(-eff_L, eff_L, n)
+    wf_resampled = _resample_2d(wf_axis, wf_axis, wf_slice, motif_axis, motif_axis)
+
+    rho_l2 = _l2_norm(rho_motif, wf_resampled)
+
+    notes: list[str] = []
+    if ec_report.nec_min < -1.0e-8:
+        notes.append(f"NEC violated (min={ec_report.nec_min:.3e}) — exotic matter confirmed")
+    if ec_report.wec_min < -1.0e-8:
+        notes.append(f"WEC violated (min={ec_report.wec_min:.3e})")
+    notes.append(f"exotic energy = {budget.exotic_energy:.4f} (geometric units)")
+
+    return WarpCrossCheck(
+        rho_l2=rho_l2,
+        rho_min_motif=float(rho_motif.min()),
+        rho_min_warpfactory=float(rho_wf.min()),
+        nec_violation_fraction=ec_report.nec_violation_fraction,
+        wec_violation_fraction=ec_report.wec_violation_fraction,
+        exotic_energy=budget.exotic_energy,
         notes=tuple(notes),
     )

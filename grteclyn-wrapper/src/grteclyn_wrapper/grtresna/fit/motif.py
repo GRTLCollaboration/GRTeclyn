@@ -16,6 +16,8 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 
 from ...initial_data.motif import GeometryMotif, MomentumTarget, SupportRegion
+from ..profiles.boson_star import PROFILE_ODE_BOUND
+from ..profiles.qball_couplings import QBallCouplings
 from ..solver import GRTresnaConfig, apply_exotic_safe_solver
 
 DEFAULT_AMP_SCALE = 0.15
@@ -24,6 +26,12 @@ MAX_LUMP_AMP = 0.35
 MIN_LUMP_WIDTH = 1.5
 MAX_LUMP_WIDTH = 5.0
 MAX_VELOCITY = 0.6
+
+# Q-ball compact preset for toroidal (warp-drive) exotic lumps.
+# Uses the same couplings as the QD MAP-Elites campaign (m=1, λ=640, μ=85333,
+# ω=0.8) so GRTresna sees a bound soliton, not a free Klein-Gordon wave packet.
+WARP_QBALL_COUPLINGS = QBallCouplings.compact()
+WARP_QBALL_AMP = WARP_QBALL_COUPLINGS.with_equilibrium_paint().phi_core
 
 
 @dataclass(frozen=True)
@@ -85,6 +93,12 @@ def fit_matter_from_motif(
     (ring layout in the xy-plane).  This gives the solver more degrees of
     freedom to realize strong-curvature targets that a single Gaussian cannot
     support within the convergence basin.
+
+    For **warp-drive (toroidal)** motifs — identified by
+    ``momentum_target.template == "toroidal"`` — the ring is placed in the
+    plane **perpendicular** to the transport axis (yz-plane for x-axis
+    travel) at the cylindrical radius of the exotic support region, matching
+    the toroidal negative-energy ring of an Alcubierre bubble.
     """
     notes: list[str] = []
     regions = list(motif.support_regions)
@@ -105,6 +119,8 @@ def fit_matter_from_motif(
     ordered = exotic_regions + canonical_regions
     selected = ordered[: max(1, max_lumps)]
 
+    is_toroidal = motif.momentum_target.template == "toroidal"
+
     # If we have fewer regions than max_lumps, split the dominant region
     # into additional lumps arranged in a ring around its center.
     if len(selected) < max_lumps and len(selected) >= 1:
@@ -115,30 +131,90 @@ def fit_matter_from_motif(
         sub_amp = _amp_from_rho(dominant.peak_rho) / max_lumps
         sub_width = max(MIN_LUMP_WIDTH, min(MAX_LUMP_WIDTH, dominant.width * 0.7))
         cx, cy, cz = dominant.center
-        for i in range(n_extra):
-            angle = 2.0 * math.pi * (i + 1) / max_lumps
-            offset_x = ring_radius * math.cos(angle)
-            offset_y = ring_radius * math.sin(angle)
-            selected.append(SupportRegion(
-                center=(cx + offset_x, cy + offset_y, cz),
-                width=sub_width,
-                peak_rho=dominant.peak_rho / max_lumps,
-                exotic=dominant.exotic,
-                radial_center=dominant.radial_center,
-            ))
-        notes.append(
-            f"split dominant support region into {max_lumps} ring-distributed lumps "
-            f"(ring_radius={ring_radius:.2f})"
-        )
+
+        if is_toroidal:
+            # Toroidal ring in the plane perpendicular to the transport axis.
+            # For transport along x, the ring is in the yz-plane at x=cx,
+            # at cylindrical radius = |dominant.radial_center| (the bubble
+            # wall radius).  This matches the Alcubierre negative-energy ring.
+            # The ring is centred on the transport axis (y=0, z=0), NOT on the
+            # original support region's centre, so all lumps sit at the same
+            # cylindrical radius from the axis.
+            ring_radius = max(dominant.radial_center, ring_radius)
+            for i in range(n_extra):
+                angle = 2.0 * math.pi * (i + 1) / max_lumps
+                offset_y = ring_radius * math.cos(angle)
+                offset_z = ring_radius * math.sin(angle)
+                selected.append(SupportRegion(
+                    center=(cx, offset_y, offset_z),
+                    width=sub_width,
+                    peak_rho=dominant.peak_rho / max_lumps,
+                    exotic=dominant.exotic,
+                    radial_center=dominant.radial_center,
+                ))
+            notes.append(
+                f"split dominant support into {max_lumps} toroidal lumps "
+                f"(ring_radius={ring_radius:.2f}, plane=yz)"
+            )
+        else:
+            for i in range(n_extra):
+                angle = 2.0 * math.pi * (i + 1) / max_lumps
+                offset_x = ring_radius * math.cos(angle)
+                offset_y = ring_radius * math.sin(angle)
+                selected.append(SupportRegion(
+                    center=(cx + offset_x, cy + offset_y, cz),
+                    width=sub_width,
+                    peak_rho=dominant.peak_rho / max_lumps,
+                    exotic=dominant.exotic,
+                    radial_center=dominant.radial_center,
+                ))
+            notes.append(
+                f"split dominant support region into {max_lumps} ring-distributed lumps "
+                f"(ring_radius={ring_radius:.2f})"
+            )
 
     lumps = tuple(_region_to_lump(region) for region in selected)
     has_exotic = any(lump["exotic"] for lump in lumps)
+
+    # For toroidal (warp-drive) motifs, upgrade lumps to Q-ball solitons
+    # using the compact preset.  Plain Gaussian lumps with scalar_mass=0 have
+    # no binding and barely curve spacetime (Ham ~100%), so GRTresna cannot
+    # converge.  Q-ball lumps with the compact preset (m=1, λ=640, μ=85333,
+    # ω=0.8) are bound solitons that the QD MAP-Elites campaign converges
+    # routinely.
+    scalar_mass = 0.0
+    scalar_lambda = 0.0
+    scalar_mu = 0.0
+    if is_toroidal:
+        qball = WARP_QBALL_COUPLINGS
+        scalar_mass = qball.mass
+        scalar_lambda = qball.lam
+        scalar_mu = qball.mu
+        qball_amp = WARP_QBALL_AMP
+        updated_lumps = []
+        for lump in lumps:
+            updated = dict(lump)
+            updated["amp"] = qball_amp
+            updated["omega"] = qball.omega
+            updated["profile"] = PROFILE_ODE_BOUND
+            updated["qball_mass"] = qball.mass
+            updated["qball_lam"] = qball.lam
+            updated["qball_mu"] = qball.mu
+            updated["qball_omega"] = qball.omega
+            updated_lumps.append(updated)
+        lumps = tuple(updated_lumps)
+        notes.append(
+            f"toroidal lumps upgraded to Q-ball solitons "
+            f"(m={qball.mass}, λ={qball.lam}, μ={qball.mu}, ω={qball.omega}, "
+            f"amp={qball_amp:.4f}, profile=ODE)"
+        )
+
     if has_exotic:
         notes.append("exotic lumps present; maximal_slicing required")
 
     return FittedMatter(
         lumps=lumps,
-        scalar_mass=0.0,
+        scalar_mass=scalar_mass,
         maximal_slicing=has_exotic or motif.exotic_needed,
         static_lens_only=motif.static_lens_only,
         momentum_target=motif.momentum_target,
@@ -307,7 +383,10 @@ def fit_momentum_from_motif(
         updated = dict(lump)
         updated["velocity"] = velocity
         if target.template == "toroidal":
-            updated["omega"] = 0.2 * target.strength
+            # For Q-ball lumps, keep the Q-ball omega (set in fit_matter).
+            # Only set omega from strength if it wasn't already set.
+            if "qball_omega" not in lump:
+                updated["omega"] = 0.2 * target.strength
             updated["mode"] = max(int(lump.get("mode", 0)), 1)
         updated_lumps.append(updated)
 
@@ -333,6 +412,13 @@ def build_grtresna_config_from_fitted(
 
     cfg = dataclasses.replace(base) if base is not None else GRTresnaConfig()
     cfg.scalar_mass = fitted.scalar_mass
+    # Propagate Q-ball self-interaction couplings for toroidal (warp) lumps.
+    # FittedMatter only carries scalar_mass directly; lambda/mu come from the
+    # lump dicts (set by the toroidal Q-ball upgrade in fit_matter_from_motif).
+    if fitted.lumps and "qball_lam" in fitted.lumps[0]:
+        cfg.scalar_lambda = float(fitted.lumps[0]["qball_lam"])
+        cfg.scalar_mu = float(fitted.lumps[0]["qball_mu"])
+        cfg.bs_omega = float(fitted.lumps[0].get("qball_omega", 0.0))
     cfg.lumps = [dict(lump) for lump in fitted.lumps]
     if fitted.maximal_slicing:
         cfg.maximal_slicing = True

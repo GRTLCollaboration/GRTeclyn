@@ -640,6 +640,307 @@ diversity working from the first batch.
    evolution (HQ replay) to verify the geometry persists in time.
 4. **Exotic targets**: test with phantom matter motifs once the canonical
    pipeline produces passing preservation scores.
+5. **Fix unrelated QD-resume test** (`tests/search/test_proposed_extensions.py::
+   test_qd_search_resume_continues_eval_counter`) — pre-existing, archive
+   records 0 elites on resume; not a geometry-first regression.
+
+---
+
+## Warp-Drive (Alcubierre) Matter Reconstruction — Implemented
+
+### Can we reconstruct the matter required for an Alcubierre warp drive?
+
+**Yes — the exact stress-energy is reconstructed and cross-checked.** The
+pipeline now supports Alcubierre warp-bubble targets end-to-end: motif
+generation, toroidal exotic matter fitting, warp-target mismatch, and a
+warp-factory cross-check that validates the reconstructed `rho` against the
+exact `T = G/8 pi` from the analytic 4-metric.
+
+The honest technical picture:
+
+- The infrastructure to *specify and analyse* an Alcubierre metric already
+  existed: `metrics/probes/warpfactory.py` builds the analytic 4-metric
+  (`alcubierre_metric`, `_alcubierre_shape`) and computes the exact
+  stress-energy `T_{mu nu} = G_{mu nu} / 8 pi` plus energy-condition
+  diagnostics. `initial_data/seeds.py::alcubierre_warp` already emits a
+  radial `beta^x(r) = -v f(r)` recipe seed.
+- The geometry-first *reconstruction* pipeline was built around
+  **spherically-symmetric conformal geometry** (`RecipeBasis` chi(r),
+  beta(r)) with a **maximal-slicing / conformally-flat target**
+  (K -> 0, A_ij -> 0). Alcubierre is the opposite regime: on a t=const
+  slice the spatial metric is **flat (chi = 1)** and *all* the physics —
+  including the negative-energy toroidal ring — lives in the **extrinsic
+  curvature K_ij**, sourced by an **axial shift** beta^x = -v f(r_s).
+- The old `rho_req` reconstruction (from the conformal Hamiltonian
+  constraint) returns ~0 for a flat-chi Alcubierre slice: the exotic energy
+  is hidden in K_ij, not in chi. The new `motif_from_alcubierre` derives
+  `rho_req` from the analytic Eulerian energy density instead.
+
+### Physics target
+
+For a bubble travelling along x at speed v with shape function f(r_s):
+
+- Spatial metric: gamma_ij = delta_ij (flat), lapse alpha = 1.
+- Shift: beta^i = (-v f(r_s), 0, 0), r_s = sqrt((x - x_s)^2 + y^2 + z^2).
+- Eulerian energy density (Alcubierre 1994):
+  rho = -(v^2 / 32 pi) * (rho_cyl^2 / r_s^2) * (df/dr_s)^2 <= 0,
+  a **toroidal ring** of negative energy in the plane perpendicular to
+  travel, peaked at the bubble wall (r_s ~ bubble_radius).
+- Extrinsic curvature K_ij is non-zero (A_ij != 0 from the shift gradient),
+  K (trace) = 0.
+
+### Implementation (5 steps, all complete)
+
+1. **Alcubierre motif source** (`initial_data/motif.py`):
+   `motif_from_alcubierre(velocity, bubble_radius, sigma, ...)` produces a
+   `GeometryMotif` with flat chi, an axial shift (reusing the
+   `alcubierre_warp` seed's beta fit), and `rho_req` derived from the
+   analytic Eulerian energy density (not the conformal Hamiltonian path).
+   Also exports `alcubierre_shape_function` and `_alcubierre_eulerian_rho`.
+
+2. **Toroidal support regions** (`initial_data/motif.py`):
+   `_toroidal_support_regions` extracts a ring-shaped exotic support region
+   at cylindrical radius ~ bubble_radius in the plane perpendicular to the
+   transport axis, tagged `exotic=True`.
+
+3. **Toroidal exotic ansatz** (`grtresna/fit/motif.py`):
+   `fit_matter_from_motif` now detects the `toroidal` momentum template and
+   distributes lumps in a **yz-plane ring** (perpendicular to the x-transport
+   axis) centred on the transport axis, at cylindrical radius = bubble
+   radius. All lumps are exotic with axial velocity and toroidal omega.
+
+4. **Warp-target mismatch** (`projection/mismatch.py`):
+   `_target_2d_slice_warp` evaluates flat chi (1.0), axial beta_x = -v f(r_s),
+   K=0, and **non-zero A_ij** from the shift gradient. `compute_mismatch`
+   detects warp motifs via `_is_warp_motif` and uses these targets instead
+   of the spherical-recipe defaults (which incorrectly pushed K_ij -> 0).
+
+5. **CLI + warp-factory cross-check** (`scripts/search/project_geometry_motif.py`):
+   `--target alcubierre` with `--warp-velocity`, `--warp-bubble-radius`,
+   `--warp-sigma` generates the motif and runs `warp_factory_cross_check`,
+   which compares the reconstructed `rho` against the exact `T = G/8 pi`
+   from `warpfactory.alcubierre_metric` and reports NEC/WEC violation
+   fractions and the exotic energy budget.
+
+### How to run
+
+```bash
+# Generate motif + fitted matter + warp-factory cross-check (no solve)
+.venv/bin/python scripts/search/project_geometry_motif.py \
+  --target alcubierre \
+  --warp-velocity 0.5 \
+  --warp-bubble-radius 2.0 \
+  --warp-sigma 2.0 \
+  --out-dir /tmp/alcubierre_test \
+  --mode fit-only \
+  --ftl-L 8.0
+
+# Full solve (will hit the exotic convergence wall — see feasibility bound)
+.venv/bin/python scripts/search/project_geometry_motif.py \
+  --target alcubierre \
+  --warp-velocity 0.5 \
+  --warp-bubble-radius 2.0 \
+  --warp-sigma 2.0 \
+  --out-dir /tmp/alcubierre_solve \
+  --mode solve-only \
+  --max-lumps 5 \
+  --gridinit-n 32 \
+  --grtresna-L 64.0 \
+  --mpi-ranks 4 \
+  --ftl-L 8.0
+```
+
+### Results (v=0.5, R=2.0, sigma=2.0)
+
+#### Reconstruction (analytic, cross-checked)
+
+| Metric | Value |
+|--------|-------|
+| rho_l2 (motif vs T=G/8pi) | **0.000027** |
+| rho_min (motif) | -0.00213 |
+| rho_min (warp-factory) | -0.00224 |
+| NEC violation fraction | 33.9% |
+| WEC violation fraction | 40.8% |
+| Exotic energy | 0.0565 (geometric units) |
+| Support regions | 1 (toroidal, exotic) |
+| Fitted lumps | 5 (toroidal ring, exotic, axial v=0.6) |
+
+The reconstructed `rho` matches the exact `T = G/8 pi` to within finite-
+difference noise (L2 = 2.7e-5), confirming the analytic reconstruction is
+correct. The NEC is violated at 33.9% of grid points — exotic matter is
+required, as expected for an Alcubierre warp bubble.
+
+#### GRTresna solve (measured, n=32, L=64, 4 MPI ranks, Q-ball lumps)
+
+After upgrading the toroidal lumps from plain Gaussian wave packets
+(scalar_mass=0, no binding) to **Q-ball solitons** (compact preset: m=1,
+λ=640, μ=85333, ω=0.8, ODE profile, equilibrium amplitude) — the same
+couplings the QD MAP-Elites campaign uses — and switching to a full-box
+domain (lo_boundary=(0,0,0), N=(32,32,32), lumps centred at (L/2,L/2,L/2)):
+
+| Metric | Plain Gaussian | Q-ball soliton | QD champion (eval 118) |
+|--------|---------------:|---------------:|-----------------------:|
+| Ham residual | 95.83% | **13.5%** (still dropping at iter 43) | 1.1% (evolved) |
+| Mom residual | 0.01% | **66.86%** (stuck) | 0.1% (evolved) |
+| shift_max | 0.0 | **0.0** | **0.0** |
+| chi range | 0.997–1.000 | 0.996–1.010 | 0.954–1.335 |
+| scalar phi max | 0.014 | 0.018 | 0.213 |
+
+**Root cause — GRTresna does not solve for the shift from scalar matter.**
+
+The critical finding: GRTresna's constraint solver is a **Lichnerowicz
+solver for the conformal factor (chi/psi) only**. It does NOT solve the
+momentum constraint for the shift vector (Beta^i) from scalar field
+sources. The shift is always **exactly zero** — confirmed in both the
+Alcubierre solve AND the QD MAP-Elites champion (eval 118: beta_mean=0.0,
+stationary=True, shift1/2/3 all exactly 0.0).
+
+The QD campaign achieves FTL-like effects through **chi curvature alone**
+(conformal geometry, not shift) — the exotic Q-ball lumps curve the
+conformal factor, creating a gauge-invariant null-geodesic shortcut without
+any shift. This is a fundamentally different mechanism from the Alcubierre
+warp drive, which requires `beta^x = -v·f(r_s)` — the shift IS the warp
+bubble.
+
+**Why the momentum constraint is stuck at 66.86%**: The `use_compact_Vi_ansatz`
+flag enables a momentum constraint solve, but the ansatz appears designed
+for BH binary initial data (where point-source momenta drive the shift),
+not for distributed scalar field sources. The scalar field's momentum
+density (S_i from Pi and grad_phi) cannot be represented by the compact Vi
+ansatz, so the momentum constraint residual plateaus.
+
+**Implication**: The current GRTresna solver **cannot reconstruct an
+Alcubierre warp bubble**, regardless of the matter configuration. This is
+not an exotic matter convergence problem (Ham converges fine with Q-ball
+lumps). It is a fundamental limitation: the solver does not produce shifts
+from scalar field matter. Reconstructing an Alcubierre warp bubble would
+require either:
+  1. A momentum constraint solver that can solve for Beta^i from scalar
+     field S_i (not just the compact Vi ansatz), or
+  2. Painting the Alcubierre shift directly as a recipe seed (bypassing the
+     momentum constraint solve), then solving only the Hamiltonian
+     constraint for chi given the fixed shift + matter.
+
+### Feasibility bound (confirmed by measured solve)
+
+- **Exact reconstruction** of the required stress-energy is analytic and
+  reliable (`T = G/8 pi` from the warp-factory metric, cross-checked to
+  L2 = 2.7e-5): this quantifies exactly how much negative energy the bubble
+  needs (exotic energy = 0.0565 geometric units for v=0.5, R=2.0).
+- **Q-ball lumps converge the Hamiltonian constraint** (Ham → 13.5% and
+  still dropping at iteration 43). The exotic matter is NOT the problem —
+  the same Q-ball couplings the QD campaign uses work fine for Ham.
+- **GRTresna does not solve for the shift from scalar matter.** The shift
+  is exactly 0.0 in both the Alcubierre solve and the QD champion (eval
+  118). The momentum constraint is stuck at 66.86% because the compact Vi
+  ansatz cannot represent distributed scalar field momentum sources.
+- **The Alcubierre warp drive requires a non-zero shift** (beta^x = -v·f).
+  Without it, there is no warp bubble. The QD campaign's FTL effects come
+  from chi curvature, a fundamentally different mechanism.
+- **Root cause in GRTresna C++**: `set_output_data` in
+  `GRTresna/Source/Tools/WriteOutput.H` never writes `c_shift1/2/3` — they
+  stay at 0.0 from the initial `setVal(0.0)` loop. The CTTK method
+  (`Source/Methods/CTTK.impl.hpp`) *does* solve the momentum constraint for
+  V_i (with source `8πG·S_i`), but the output stage discards V_i and never
+  converts it to a shift. This is why the shift is exactly 0.0 in every
+  GRTresna solve, including the QD champion.
+
+### Next steps (in order of increasing effort)
+
+#### Step 1: Post-process — re-paint the Alcubierre shift onto the solved gridinit
+
+**Effort: Small (Python only, no C++ changes)**
+
+After GRTresna solves for chi and A_ij (with shift=0), paint the Alcubierre
+shift `beta^x = -v·f(r_s)` back onto the gridinit in Python.  This gives:
+- chi consistent with the exotic Q-ball matter (from the solve)
+- The prescribed Alcubierre shift (painted post-solve)
+
+The Hamiltonian constraint won't be exactly satisfied (chi was solved
+without the shift's contribution to the extrinsic curvature), but it should
+be close, and the GRTeclyn evolution will adjust.  This tests whether the
+exotic toroidal ring + prescribed shift produces a stable warp bubble.
+
+Implementation:
+1. In `project_geometry_motif.py`, after the GRTresna solve, read the
+   gridinit and overwrite `shift1` with `-v * f(r_s)` centred at the domain
+   centre, using `alcubierre_shape_function`.
+2. Re-run the preservation check with the painted shift.
+3. Evolve with GRTeclyn to see if the warp bubble survives.
+
+#### Step 2: Fix GRTresna's `set_output_data` to convert V_i to shift
+
+**Effort: Medium (one C++ function change in `WriteOutput.H`)**
+
+The CTTK method already solves the momentum constraint for V_i.  The shift
+is `Beta^i = (2/7) * psi^6 * V^i` (B&S eq. 3.38, depending on convention).
+Add this conversion to `set_output_data` so the solved shift is written to
+the gridinit.  This would let GRTresna produce a shift from the scalar
+field's momentum density — the "correct" fix.
+
+Implementation:
+1. In `GRTresna/Source/Tools/WriteOutput.H`, `set_output_data`, add:
+   ```cpp
+   // Convert momentum constraint solution V_i to shift Beta^i
+   Real psi = multigrid_vars_box(iv, c_psi_reg) + psi_bh;
+   Real psi6 = pow(psi, 6.0);
+   grchombo_vars_box(iv, c_shift1) = (2.0/7.0) * psi6 * multigrid_vars_box(iv, c_V1_0);
+   grchombo_vars_box(iv, c_shift2) = (2.0/7.0) * psi6 * multigrid_vars_box(iv, c_V2_0);
+   grchombo_vars_box(iv, c_shift3) = (2.0/7.0) * psi6 * multigrid_vars_box(iv, c_V3_0);
+   ```
+2. Re-run the Alcubierre solve and check if the shift is non-zero.
+3. If the momentum constraint is still stuck at ~67%, the compact Vi ansatz
+   may need to be replaced with the non-compact (periodic) ansatz
+   (`use_compact_Vi_ansatz = 0`).
+
+#### Step 3: Two-step solve (shift-prescribed Hamiltonian solve)
+
+**Effort: Medium (Python pipeline + possibly C++ params)**
+
+1. Paint the Alcubierre shift via the `alcubierre_warp` recipe seed (which
+   already fits `beta^x = -v·f(r)` as `recipe_beta_coeff_*` overrides).
+2. Run GRTresna with the shift fixed as a background, solving only for chi
+   given the shift + exotic matter.  This requires telling GRTresna to keep
+   the shift fixed — either a new param (`fix_shift = 1`) or a CTTK
+   modification that skips the momentum constraint solve and uses the
+   painted shift for the A_ij source.
+3. The Hamiltonian constraint with a fixed shift sources A_ij through the
+   extrinsic curvature, so chi will adjust to support both the matter and
+   the shift.  This is the physically correct reconstruction.
+
+#### Step 4: Full momentum constraint solve from scalar S_i
+
+**Effort: Large (C++ solver work)**
+
+The CTTK RHS already has `8πG·S_i` as the source for V_i.  Even with the
+Step 2 output fix, the momentum constraint may not converge for distributed
+scalar sources (Mom stuck at 66.86% in the current run).  This would
+require:
+1. Investigating why the momentum constraint stalls — is it the compact Vi
+   ansatz, the multigrid solver tolerance, or the scalar field S_i being
+   too weak/delocalised?
+2. Potentially switching to `use_compact_Vi_ansatz = 0` (non-compact /
+   periodic ansatz, B&S eq. B.3) for distributed sources.
+3. Increasing `max_NL_iterations` and relaxing the stall tolerance for the
+   momentum solve.
+
+### Recommended order
+
+Start with **Step 1** (post-process shift painting) — it's the fastest way
+to get a testable gridinit with both the exotic matter and the Alcubierre
+shift.  If the GRTeclyn evolution shows the warp bubble is stable, that's
+the deliverable.  If not, proceed to **Step 2** (fix the V_i → shift
+conversion in GRTresna's output) to let the solver produce the shift
+self-consistently from the scalar field momentum.
+
+### Verification
+
+- 30 new tests in `tests/projection/test_alcubierre.py`: shape function,
+  motif generation, toroidal fitting, warp-target mismatch, and warp-
+  factory cross-check. All pass.
+- `pytest tests/projection -q`: 79 passed (49 original + 30 new).
+- `pytest tests/search -q`: 99 passed, 1 pre-existing unrelated failure
+  (`test_qd_search_resume_continues_eval_counter`).
 
 ---
 
@@ -657,3 +958,4 @@ diversity working from the first batch.
 | `src/grteclyn_wrapper/search/qd_search/driver.py` | MAP-Elites driver (`geometry_first` mode) |
 | `src/grteclyn_wrapper/search/qd_search/descriptors.py` | `geometry_first` behavior descriptors |
 | `tests/projection/test_iterate.py` | Tests (37 passing) |
+| `tests/projection/test_alcubierre.py` | Alcubierre warp-drive tests (30 passing) |
