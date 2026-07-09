@@ -12,6 +12,7 @@
 
 #include "InterpolationQueryParticle.hpp"
 #include "Lagrange.hpp"
+#include "StateTypes.hpp"
 #include "StateVariables.hpp"
 #include "VariableType.hpp"
 
@@ -40,8 +41,24 @@ void ParticleInterpolator<num_components>::setup(
     // read in the physical bounds for reflective BC checks (it is sufficient to
     // do this on lev = 0)
     const amrex::Geometry &geom0 = m_gramr_ptr->getLevel(0).Geom();
-    m_prob_lo                    = geom0.ProbLoArray();
-    m_prob_hi                    = geom0.ProbHiArray();
+    m_prob_lo = geom0.RoundOffLo(); // use rounded-off low boundary
+    m_prob_hi = geom0.RoundOffHi(); // use rounded-off high boundary
+
+    const int num_levels = m_gramr_ptr->finestLevel() + 1;
+
+    // Now write in the number of cells on each level (this is needed for
+    // handling the higher boundary with symmetric BC in Lagrange interpolation)
+    m_domain_ncell.resize(num_levels);
+
+    for (int lev = 0; lev < num_levels; ++lev)
+    {
+        const amrex::Geometry &geom = m_gramr_ptr->getLevel(lev).Geom();
+
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
+            m_domain_ncell[lev][d] = geom.Domain().length(d);
+        }
+    }
 
     // set the reflective flags from BC params
     for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
@@ -132,13 +149,18 @@ void ParticleInterpolator<num_components>::populate_from_query()
 
     auto &query = *m_query;
 
+    // Some ranks can have zero points queried, so return here
+    if (query.m_num_points == 0)
+    {
+        m_particles_populated = true;
+        return;
+    }
+
     const int myproc = amrex::ParallelDescriptor::MyProc();
 
-    const int lev = 0;
-
-    amrex::MFIter mfi = this->MakeMFIter(lev);
-    const int grid    = mfi.index();
-    const int tile    = mfi.LocalTileIndex();
+    const int lev  = 0;
+    const int grid = 0;
+    const int tile = 0;
 
     // it does not matter on which level the particles are initialised so
     // long as we Redistribute() them later
@@ -236,6 +258,9 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
 
     const auto problem_domain_lo = geom.ProbLoArray();
     const auto dxi               = geom.InvCellSizeArray();
+    const auto lo_reflective     = m_lo_boundary_reflective;
+    const auto hi_reflective     = m_hi_boundary_reflective;
+    const auto domain_ncell      = m_domain_ncell[lev];
 
     // loop over tiles and interpolate now
     for (ParIterType par_iter(*this, lev); par_iter.isValid(); ++par_iter)
@@ -256,7 +281,8 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
                 Lagrange<s_interp_order + 1>
                     lagrange_interp; // 4th order interpolation
                 lagrange_interp.compute_weights(particle, problem_domain_lo,
-                                                dxi, is_nodal);
+                                                dxi, is_nodal, lo_reflective,
+                                                hi_reflective, domain_ncell);
 
                 amrex::ParticleReal interpolated_vals[ncomp];
                 lagrange_interp.interpolate(&fab_array, interpolated_vals,
@@ -595,7 +621,9 @@ void ParticleInterpolator<num_components>::apply_parity_and_store_values()
         const int index = m_query_idx[i]; // local query index on this rank
 
         AMREX_ALWAYS_ASSERT(index >= 0);
-        AMREX_ALWAYS_ASSERT(index <= num_points);
+        AMREX_ALWAYS_ASSERT(
+            index <
+            num_points); // because mpi_mapping is of size num_points minus 1!
 
         mpi_mapping[index] = i;
     }
@@ -674,9 +702,9 @@ void ParticleInterpolator<num_components>::check_domain(
             false; // error flag to track when we are outside the domain
 
         // outside on a non-reflective side (beyond physical domain)
-        if (!m_lo_boundary_reflective[d] && x[d] < lo_g)
+        if (!m_lo_boundary_reflective[d] && x[d] <= lo_g)
             error = true;
-        if (!m_hi_boundary_reflective[d] && x[d] > hi_g)
+        if (!m_hi_boundary_reflective[d] && x[d] >= hi_g)
             error = true;
 
         // still outside physical domain, even after applying reflective
@@ -686,11 +714,12 @@ void ParticleInterpolator<num_components>::check_domain(
 
         if (error)
         {
-            std::string msg = "ParticleInterpolator::check_domain() Oi oi oi! "
-                              "You are trying to access the point at x[" +
-                              std::to_string(d) +
-                              "] = " + std::to_string(x[d]) +
-                              " and it lies outside of your domain.";
+            std::string msg =
+                "ParticleInterpolator::check_domain() Oi oi oi! "
+                "You are trying to access the point at x[" +
+                std::to_string(d) + "] = " + std::to_string(x[d]) +
+                " and it lies either outside of the AMReX's rounded-off domain "
+                "or right at the physical boundary.";
 
             amrex::Abort(msg);
         }
@@ -750,6 +779,13 @@ void ParticleInterpolator<num_components>::ensure_redistributed()
                 << "ParticleInterpolator: Redistributing particles\n";
         }
         this->Redistribute();
+
+        for (int lev = 0; lev < nlev; ++lev)
+        {
+            m_last_redistribute_step[lev] =
+                m_gramr_ptr->levelSteps(lev) - m_gramr_ptr->levelCount(lev);
+        }
+
         m_need_redistribute = false;
     }
 }

@@ -15,6 +15,7 @@
 #include "FilesystemTools.hpp"
 #include "GRAMRLevel.hpp"
 #include "SmallDataIO.hpp" // for writing data
+#include "StateTypes.hpp"
 #include "StateVariables.hpp"
 
 // AMReX includes

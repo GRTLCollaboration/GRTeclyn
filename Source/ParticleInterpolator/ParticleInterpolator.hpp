@@ -35,12 +35,16 @@ class ParticleInterpolator
 
   private:
     GRAMR *m_gramr_ptr{nullptr};
+
     bool m_initialized{
         false}; // a guard to make sure we do not uninitialised GRAMR
 
     // physical domain corners on level 0 for parity logic
     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> m_prob_lo{};
     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> m_prob_hi{};
+
+    // number of cells per level
+    amrex::Vector<amrex::GpuArray<int, AMREX_SPACEDIM>> m_domain_ncell{};
 
     // reflective BC flags per side on the low and high sides
     amrex::GpuArray<bool, AMREX_SPACEDIM> m_lo_boundary_reflective{{false}};
@@ -53,9 +57,9 @@ class ParticleInterpolator
 
     bool m_particles_populated{false};
     std::vector<int>
-        m_last_redistribute_step; // a vector to keep the steps at which
-                                  // redistribute happended (this is a vector of
-                                  // values stored for all levels)
+        m_last_redistribute_step{}; // a vector to keep the steps at which
+                                    // redistribute happended (this is a vector
+                                    // of values stored for all levels)
     bool m_need_redistribute{true};
 
     // dx on level 0
@@ -72,20 +76,21 @@ class ParticleInterpolator
     // mpi stuff
     MPIContextParticle m_mpi;
 
-    std::vector<int> m_answer_idx; // indices of the answers (send buffers)
+    std::vector<int> m_answer_idx{}; // indices of the answers (send buffers)
     std::vector<std::vector<double>>
-        m_answer_data; // send buffers on the answering rank
+        m_answer_data{}; // send buffers on the answering rank
 
-    std::vector<int> m_query_idx; // indices of query (receiving buffers)
+    std::vector<int> m_query_idx{}; // indices of query (receiving buffers)
     std::vector<std::vector<double>>
-        m_query_data; // receive buffers on the query rank
+        m_query_data{}; // receive buffers on the query rank
 
     // a parity helper (the same way as it was defined in the AMRInterpolator)
-    int get_var_parity(int comp, int point_idx,
-                       const InterpolationQueryParticle &query,
-                       const Derivative &deriv,
-                       VariableType variable_type = VariableType::state,
-                       BCParity derived_parity    = BCParity::undefined) const;
+    [[nodiscard]] int
+    get_var_parity(int comp, int point_idx,
+                   const InterpolationQueryParticle &query,
+                   const Derivative &deriv,
+                   VariableType variable_type = VariableType::state,
+                   BCParity derived_parity    = BCParity::undefined) const;
 
     // a function to reflect a particle back into the valid domain, when
     // symmetry BCs are used
