@@ -845,93 +845,324 @@ require either:
   converts it to a shift. This is why the shift is exactly 0.0 in every
   GRTresna solve, including the QD champion.
 
-### Next steps (in order of increasing effort)
+### Physics correction (supersedes the earlier "Step 2" proposal)
 
-#### Step 1: Post-process — re-paint the Alcubierre shift onto the solved gridinit
+An earlier draft of this document proposed converting the CTTK momentum
+solution `V_i` into a shift via `Beta^i = (2/7) psi^6 V^i` in
+`GRTresna/Source/Tools/WriteOutput.H`.  **That proposal is physically
+wrong and is withdrawn:**
 
-**Effort: Small (Python only, no C++ changes)**
+- In the CTT/CTTK decomposition, `V_i` is **not the shift**.  It is the
+  vector potential of the conformal traceless extrinsic curvature: `A_ij`
+  is built from derivatives of `V_i` and `U` (B&S eqs. B.3 / B.7 — see
+  `PsiAndAijFunctions::compute_ctt_Aij` in
+  `GRTresna/Source/Core/PsiAndAijFunctions.cpp` and the RHS in
+  `GRTresna/Source/Methods/CTTK.impl.hpp`, where `rhs(c_V1..c_V3) =
+  psi^6 (2/3 d_i K + 8 pi G S_i)`).  The scalar momentum density `S_i`
+  therefore *already* feeds `A_ij` through the V_i solve.
+- In 3+1 initial data the **shift is pure gauge**.  The Hamiltonian and
+  momentum constraints fix `(gamma_ij, K_ij, rho, S_i)` — never `beta^i`.
+  For the Alcubierre slice, the physics is entirely in `K_ij` (flat
+  `gamma_ij`, `K = 0`, `A_ij` from the shift gradient); the shift itself
+  may be freely painted onto the slice as a coordinate choice.
 
-After GRTresna solves for chi and A_ij (with shift=0), paint the Alcubierre
-shift `beta^x = -v·f(r_s)` back onto the gridinit in Python.  This gives:
-- chi consistent with the exotic Q-ball matter (from the solve)
-- The prescribed Alcubierre shift (painted post-solve)
+**Consequences for the fix:**
 
-The Hamiltonian constraint won't be exactly satisfied (chi was solved
-without the shift's contribution to the extrinsic curvature), but it should
-be close, and the GRTeclyn evolution will adjust.  This tests whether the
-exotic toroidal ring + prescribed shift produces a stable warp bubble.
+1. Painting `beta^x = -v f(r_s)` onto the gridinit is *legitimate* (not a
+   hack) — provided `A_ij` on the slice matches the Alcubierre extrinsic
+   curvature.  The real quantity to match is `A_ij`, not `beta`.
+2. The correct role of the solver is: matter with the right momentum
+   density `S_i` → momentum constraint → the right `A_ij`.  The 66.86% Mom
+   stall means the solved `A_ij` does **not** yet match; that (not the
+   missing shift output) is the genuine solver-side problem.
 
-Implementation:
-1. In `project_geometry_motif.py`, after the GRTresna solve, read the
-   gridinit and overwrite `shift1` with `-v * f(r_s)` centred at the domain
-   centre, using `alcubierre_shape_function`.
-2. Re-run the preservation check with the painted shift.
-3. Evolve with GRTeclyn to see if the warp bubble survives.
+---
 
-#### Step 2: Fix GRTresna's `set_output_data` to convert V_i to shift
+## Implementation Plan — Alcubierre Validation Baseline
 
-**Effort: Medium (one C++ function change in `WriteOutput.H`)**
+Goal: make the Alcubierre warp drive a working validation baseline for the
+geometry-first pipeline, using the **same matter family as the QD
+MAP-Elites campaigns** (compact Q-ball preset: `m=1, lambda=640,
+mu=85333, omega=0.8`; couplings frozen, per-lump amplitude / position /
+velocity / omega-phase retunable by the optimiser).
 
-The CTTK method already solves the momentum constraint for V_i.  The shift
-is `Beta^i = (2/7) * psi^6 * V^i` (B&S eq. 3.38, depending on convention).
-Add this conversion to `set_output_data` so the solved shift is written to
-the gridinit.  This would let GRTresna produce a shift from the scalar
-field's momentum density — the "correct" fix.
+Two phases.  **Phase A is Python-only and is executed first.**  Phase B
+(GRTresna C++ work) is contingent — only start it if the Phase A ladder
+fails at the stated acceptance criteria.
 
-Implementation:
-1. In `GRTresna/Source/Tools/WriteOutput.H`, `set_output_data`, add:
-   ```cpp
-   // Convert momentum constraint solution V_i to shift Beta^i
-   Real psi = multigrid_vars_box(iv, c_psi_reg) + psi_bh;
-   Real psi6 = pow(psi, 6.0);
-   grchombo_vars_box(iv, c_shift1) = (2.0/7.0) * psi6 * multigrid_vars_box(iv, c_V1_0);
-   grchombo_vars_box(iv, c_shift2) = (2.0/7.0) * psi6 * multigrid_vars_box(iv, c_V2_0);
-   grchombo_vars_box(iv, c_shift3) = (2.0/7.0) * psi6 * multigrid_vars_box(iv, c_V3_0);
-   ```
-2. Re-run the Alcubierre solve and check if the shift is non-zero.
-3. If the momentum constraint is still stuck at ~67%, the compact Vi ansatz
-   may need to be replaced with the non-compact (periodic) ansatz
-   (`use_compact_Vi_ansatz = 0`).
+Success criterion for the whole effort (the "full ladder"):
 
-#### Step 3: Two-step solve (shift-prescribed Hamiltonian solve)
+1. **t=0 slice fidelity** — reconstructed gridinit matches the analytic
+   Alcubierre targets (`chi`, `beta`, `A_ij`) within tolerance, with
+   reported Ham/Mom residuals.
+2. **Evolution persistence** — the bubble's shift/curvature structure
+   survives a GRTeclyn evolution for >= 1 bubble crossing time
+   (`t_cross = 2 R / v`) under the standard Gamma-driver gauge.
+3. **Gauge-invariant probe** — the 4D null-geodesic FTL probe
+   (`metrics/probes/ftl/`) confirms a shortcut on both the analytic slice
+   (A0) and the reconstructed slice (A1+A2).
 
-**Effort: Medium (Python pipeline + possibly C++ params)**
+---
 
-1. Paint the Alcubierre shift via the `alcubierre_warp` recipe seed (which
-   already fits `beta^x = -v·f(r)` as `recipe_beta_coeff_*` overrides).
-2. Run GRTresna with the shift fixed as a background, solving only for chi
-   given the shift + exotic matter.  This requires telling GRTresna to keep
-   the shift fixed — either a new param (`fix_shift = 1`) or a CTTK
-   modification that skips the momentum constraint solve and uses the
-   painted shift for the A_ij source.
-3. The Hamiltonian constraint with a fixed shift sources A_ij through the
-   extrinsic curvature, so chi will adjust to support both the matter and
-   the shift.  This is the physically correct reconstruction.
+### Phase A — Python-only (execute now)
 
-#### Step 4: Full momentum constraint solve from scalar S_i
+#### A0. Ground-truth analytic Alcubierre gridinit (validation anchor)
 
-**Effort: Large (C++ solver work)**
+**Effort: Small.  No solver involved.  Do this first — everything else is
+calibrated against it.**
 
-The CTTK RHS already has `8πG·S_i` as the source for V_i.  Even with the
-Step 2 output fix, the momentum constraint may not converge for distributed
-scalar sources (Mom stuck at 66.86% in the current run).  This would
-require:
-1. Investigating why the momentum constraint stalls — is it the compact Vi
-   ansatz, the multigrid solver tolerance, or the scalar field S_i being
-   too weak/delocalised?
-2. Potentially switching to `use_compact_Vi_ansatz = 0` (non-compact /
-   periodic ansatz, B&S eq. B.3) for distributed sources.
-3. Increasing `max_NL_iterations` and relaxing the stall tolerance for the
-   momentum solve.
+Create `src/grteclyn_wrapper/projection/warp_gridinit.py` with:
 
-### Recommended order
+```python
+def alcubierre_analytic_fields(
+    shape_xyz: tuple[int, int, int],
+    dx_xyz: np.ndarray,        # (3,)
+    origin: np.ndarray,        # (3,)
+    *,
+    velocity: float,
+    bubble_radius: float,
+    sigma: float,
+    center: tuple[float, float, float],  # bubble centre in physical coords
+) -> dict[str, np.ndarray]:
+    """Evaluate the exact Alcubierre t=0 slice on a uniform grid.
 
-Start with **Step 1** (post-process shift painting) — it's the fastest way
-to get a testable gridinit with both the exotic matter and the Alcubierre
-shift.  If the GRTeclyn evolution shows the warp bubble is stable, that's
-the deliverable.  If not, proceed to **Step 2** (fix the V_i → shift
-conversion in GRTresna's output) to let the solver produce the shift
-self-consistently from the scalar field momentum.
+    Returns a dict of arrays keyed by GRTECLYN_STATE_VARS names:
+      chi = 1, h11=h22=h33 = 1 (h12=h13=h23 = 0), lapse = 1, K = 0,
+      shift1 = -v * f(r_s), shift2 = shift3 = 0,
+      A_ij  = (1/2)(d_i beta_j + d_j beta_i) - (1/3) delta_ij d_k beta_k
+    (with alpha=1, flat conformal metric, K=0 the ADM formula
+     K_ij = (D_i beta_j + D_j beta_i)/(2 alpha) reduces to this; sign
+     convention must match GRTeclyn's A_ij — verify against
+     Examples/RadialRecipe before freezing, see task A0.3).
+    Derivatives of beta: use np.gradient on the painted shift1 array
+    (robust, no closed form needed).
+    """
+
+def write_alcubierre_gridinit(
+    out_path: Path, *, n: int, L: float,
+    velocity: float, bubble_radius: float, sigma: float,
+) -> Path:
+    """Write a full analytic Alcubierre gridinit (zero matter).
+
+    Uses GRTECLYN_STATE_VARS ordering and write_gridinit() from
+    grtresna/io/gridinit.py.  Grid: n^3 cells, box [0, 2L]^3, bubble at
+    the centre (L, L, L), origin chosen exactly as in
+    grtresna/io/conversion.py (origin = target_center - L).
+    All matter fields (phi, Pi, teo_*) = 0; Theta = Gamma_i = B_i = 0.
+    """
+```
+
+Reuse: `alcubierre_shape_function` from `initial_data/motif.py`,
+`write_gridinit` / `GRTECLYN_STATE_VARS` from `grtresna/io/gridinit.py`.
+
+Tasks:
+
+- **A0.1** Implement the two functions above.
+- **A0.2** Add a CLI entry: `--target alcubierre --mode analytic-gridinit`
+  in `scripts/search/project_geometry_motif.py` that writes
+  `out_dir/analytic_alcubierre.gridinit` and stops (no solve).
+- **A0.3** Verify the A_ij sign/normalisation convention: load the
+  analytic gridinit through the post-load gate
+  (`projection/postload_gate.py`) and check the reported Mom residual is
+  *small in the bubble interior/exterior and peaked at the wall* (the wall
+  violation is expected — no matter is present).  If Mom is large
+  everywhere, the A_ij convention is wrong; flip sign / factor and re-check.
+- **A0.4** Run the preservation check (`compare_motif_preservation`)
+  against `motif_from_alcubierre(...)` — this must now report
+  `shift_alignment ~ 1` and non-zero `beta_max_solved`.  This validates
+  the checker itself against known-good data.
+- **A0.5** Short GRTeclyn evolution (`--mode solve-and-evolve` machinery,
+  but loading the analytic gridinit via `recipe_initial_data_file`):
+  evolve to `t = 2 * t_cross`, plot `shift1` on the midplane every few
+  steps.  Record how fast the Gamma-driver (params:
+  `shift_Gamma_coeff=0.75, eta=1.0` in `Examples/RadialRecipe/params.txt`)
+  damps the painted shift.  Also run one comparison with `eta = 0.25` to
+  see if a weaker driver preserves the bubble longer.
+- **A0.6** Run the 4D null-geodesic probe on the analytic slice and
+  record its FTL metrics.  **This number is the calibration target** for
+  A1/A2: the reconstructed slice should reproduce it.
+
+Acceptance (A0): postload gate loads the file; preservation check reports
+correct shift; probe sees the shortcut on the analytic slice.  If the
+probe does NOT see a shortcut even on the exact Alcubierre slice, stop and
+fix the probe first — nothing downstream can succeed.
+
+#### A1. Post-solve shift + A_ij painting on the solved gridinit
+
+**Effort: Small (Python only).**
+
+Add to `src/grteclyn_wrapper/projection/warp_gridinit.py`:
+
+```python
+def paint_alcubierre_warp_on_gridinit(
+    gridinit_path: Path,
+    *,
+    velocity: float,
+    bubble_radius: float,
+    sigma: float,
+    paint_aij: bool = True,   # False = keep solved A_ij, paint shift only
+) -> Path:
+    """Read a solved gridinit, overwrite shift1/2/3 with the analytic
+    Alcubierre shift (centred on the grid centre), optionally overwrite
+    A11..A33 with the shift-consistent analytic A_ij, write back in place.
+    Reuses read_gridinit/write_gridinit and alcubierre_analytic_fields.
+    """
+```
+
+Tasks:
+
+- **A1.1** Implement the painter (round-trip via
+  `read_gridinit` → modify components → `write_gridinit`, preserving
+  header, dx, origin).
+- **A1.2** Wire a CLI flag `--paint-warp-shift {off,shift,shift+aij}`
+  (default `off`) into `project_geometry_motif.py`.  Insertion point:
+  immediately **after** the GRTresna solve produces
+  `out_dir/initial_data.gridinit` and **before**
+  `compare_motif_preservation(...)` — so the preservation check, postload
+  gate, and evolution all see the painted slice.
+- **A1.3** With `shift+aij`: the Ham constraint acquires an error because
+  chi was solved with the *solver's* A_ij, not the painted one.  Log both
+  (a) postload-gate Ham/Mom of the painted slice and (b) the un-painted
+  slice, into `projection_report_preservation.json` under a new
+  `warp_painting` key, so the trade-off is visible per run.
+
+Acceptance (A1): preservation check on a painted solve reports
+`shift_alignment > 0.9`; `beta_l2` (vs the motif beta target) drops by
+>= 10x compared with the unpainted solve.
+
+#### A2. Momentum-matched matter fitting (QD Q-ball couplings, per-lump retune)
+
+**Effort: Medium (Python only).**
+
+The solver's `A_ij` is sourced by the matter's momentum density `S_i`
+(CTTK RHS).  Today the fitter only matches `rho`; the lump velocities are
+heuristic.  Make the fit match the **Alcubierre momentum density** too.
+
+Tasks:
+
+- **A2.1** In `initial_data/motif.py`, add
+  `_alcubierre_eulerian_Si(velocity, bubble_radius, sigma, L, n)`
+  returning the analytic Eulerian momentum density on the same xz-slice
+  grid as `_alcubierre_eulerian_rho` (from the exact 4-metric:
+  `S_i = -(1/8 pi) (D_j K^j_i - D_i K)` with the analytic K_ij; use
+  finite differences as in `_alcubierre_eulerian_rho`).  Cross-check
+  against `metrics/probes/warpfactory.py` (`T^{0i}` from `G/8 pi`), same
+  style as the existing `warp_factory_cross_check`.
+- **A2.2** In `grtresna/fit/motif.py`, when the motif is a warp motif
+  (`_is_warp_motif`), set per-lump velocities so the summed lump momentum
+  density `S_i ~ Pi * grad phi` approximates the analytic `S_i` ring
+  (direction: -x inside the wall; magnitude from A2.1), instead of the
+  current heuristic axial `v=0.6`.  Keep the compact Q-ball couplings
+  fixed.
+- **A2.3** In `projection/mismatch.py`, add an `si_l2` term (weight
+  `W_SI = 1.0`) to `compute_mismatch` for warp motifs: L2 of the solved
+  slice's momentum-density proxy vs the analytic `S_i` target on the
+  same 2D slice.  The solved-side proxy: reconstruct
+  `S_i = -(1/8 pi)(d_j A^j_i ...)` from the gridinit A_ij with
+  np.gradient (this measures whether the *solver's geometry* carries the
+  right momentum — exactly the quantity the Mom stall corrupts).
+- **A2.4** In `projection/iterate.py`, include `si_l2` in the CMA-ES
+  fitness (geometry phase) so per-lump velocity/position/amplitude are
+  optimised toward the momentum target.  Expose per-lump velocity
+  components in the parameter vector for warp motifs if not already
+  present.
+- **A2.5** Expose `use_compact_Vi_ansatz` as a wrapper knob (params.txt
+  generation in `grtresna/`), default unchanged; for warp runs set
+  `use_compact_Vi_ansatz = 0` (periodic ansatz B.3 — better suited to
+  distributed scalar sources) and record whether the Mom stall (66.86%)
+  improves.  Also keep `max_NL_iterations = 200`,
+  `nl_stall_tolerance = 0.005` for warp runs.
+
+Acceptance (A2): Mom residual < 30% (down from 66.86%) on the one-shot
+solve, or CMA-ES (40 evals) reaches `si_l2` reduced >= 3x from the initial
+fit.  If neither is achievable, this is the trigger for Phase B.
+
+#### A3. Validation ladder run + tests
+
+**Effort: Small-Medium.**
+
+- **A3.1** New tests in `tests/projection/test_alcubierre.py`:
+  - `TestAnalyticGridinit`: writer round-trips through `read_gridinit`;
+    chi=1 / lapse=1 / K=0 everywhere; `shift1(bubble centre) ~ -v`;
+    `shift1(far field) ~ 0`; A_ij traceless (`A11+A22+A33 ~ 0`); A_ij
+    peaks at the bubble wall.
+  - `TestWarpPainting`: painter overwrites only the intended components;
+    `paint_aij=False` leaves A_ij untouched; header/dx/origin preserved.
+  - `TestAlcubierreSi`: analytic `S_i` ring is antisymmetric about the
+    wall, points along -x, and cross-checks against warpfactory `T^{0i}`
+    to L2 < 1e-3.
+  - `TestSiMismatch`: `si_l2 = 0` when solved slice == target;
+    monotonically increases under perturbation.
+- **A3.2** Full ladder execution script/README snippet:
+  ```bash
+  # Rung 1 — analytic anchor
+  .venv/bin/python scripts/search/project_geometry_motif.py \
+    --target alcubierre --mode analytic-gridinit \
+    --warp-velocity 0.5 --warp-bubble-radius 2.0 --warp-sigma 2.0 \
+    --out-dir runs/alcubierre_anchor
+  # Rung 2 — solve + paint
+  .venv/bin/python scripts/search/project_geometry_motif.py \
+    --target alcubierre --mode solve-only --paint-warp-shift shift+aij \
+    --max-lumps 5 --gridinit-n 32 --grtresna-L 64.0 --mpi-ranks 4 \
+    --out-dir runs/alcubierre_painted
+  # Rung 3 — momentum-matched iterate
+  ... --iterate 40 --iterate-popsize 8 ...
+  # Rung 4 — evolve + probe (solve-and-evolve, stop_time >= 2*t_cross)
+  ```
+- **A3.3** Keep `pytest tests/projection -q` green (79 existing + new).
+
+---
+
+### Phase B — GRTresna C++ (contingent: only if A2 acceptance fails)
+
+#### B1. Prescribed-A_ij background (the physically correct two-step solve)
+
+**Effort: Medium (C++).**
+
+GRTresna already supports an *analytic background A_ij* — the Bowen-York
+term in `PsiAndAijFunctions::compute_bowenyork_Aij` is added to the CTT
+part everywhere (`CTTK.impl.hpp`, `Aij_reg + Aij_bh`).  Mirror that
+mechanism:
+
+- **B1.1** Add `compute_warp_Aij(Tensor<2, Real> &Aij, const RealVect &loc)`
+  to `PsiAndAijFunctions` (params: `warp_velocity`, `warp_bubble_radius`,
+  `warp_sigma`, `warp_center`, read via `read_params`; zero when
+  `warp_velocity == 0`).  Formula: the same analytic A_ij as A0 (closed
+  form via df/dr_s — 1D, safe).
+- **B1.2** Add it wherever `compute_bowenyork_Aij` is summed
+  (`CTTK.impl.hpp` lines ~83/170, `CTTKHybrid.impl.hpp`,
+  `Diagnostics.impl.hpp`, `RHSTagging.hpp`).
+- **B1.3** In the wrapper's params.txt generation, emit the warp params
+  for warp motifs.  With the background A_ij prescribed, the Hamiltonian
+  solve makes chi consistent with matter + warp curvature — and the
+  momentum constraint only needs to mop up the *difference* between the
+  matter S_i and the prescribed A_ij divergence.
+- **B1.4** Also write the analytic shift into `set_output_data`
+  (`WriteOutput.H`): `c_shift1 = -v f(r_s)` when `warp_velocity != 0`.
+  This is a *gauge seed*, mirroring A1 but done natively (note: this is
+  NOT the withdrawn V_i→shift conversion).
+
+#### B2. Momentum-constraint convergence for distributed scalar S_i
+
+**Effort: Large (C++ solver work).  Last resort.**
+
+- **B2.1** Instrument the Mom residual per NL iteration for a warp run;
+  determine whether the stall is (a) the Vi ansatz, (b) multigrid
+  tolerance, or (c) S_i too delocalised.
+- **B2.2** Compare `use_compact_Vi_ansatz = 0` vs `1` (A2.5 gives the
+  wrapper knob) at n=32 and n=64.
+- **B2.3** If ansatz-limited: implement the full periodic B.3 ansatz path
+  for non-periodic boundaries, or tighten multigrid solves per NL
+  iteration for the V_i components specifically.
+
+### Recommended order (updated)
+
+**A0 → A1 → A2 → A3 (full ladder).**  A0 is non-negotiable first: it
+calibrates the probe and the preservation checker against exact
+Alcubierre data before any reconstruction is attempted.  If the ladder
+passes at Rung 4, the deliverable is done without touching C++.  If A2's
+acceptance fails (Mom >= 30% and no `si_l2` progress), start B1; B2 only
+if B1's mopped-up momentum residual still dominates the mismatch.
 
 ### Verification
 
