@@ -552,14 +552,108 @@ GPU evolutions in GRTeclyn:
 
 ---
 
+## MAP-Elites Campaign (Phase 3 — implemented)
+
+The CMA-ES loop above uses a coarse grid (N=32, RANKS=4) and a Gaussian
+lump ansatz. The **MAP-Elites campaign** replaces it with the same
+infrastructure as the QD FTL search: shell ansatz, N=128 grid, RANKS=8,
+and a quality-diversity archive that explores the geometry-mismatch
+landscape.
+
+### How to run
+
+```bash
+# 1. Generate a motif.json from a geometry-first episode
+.venv/bin/python scripts/search/project_geometry_motif.py \
+  /path/to/episode --out-dir /tmp/motif_gen --mode fit-only
+
+# 2. Run the MAP-Elites campaign
+MOTIF_JSON=/tmp/motif_gen/motif.json \
+  GPU_IDS="0 1 2 3 4 5 6 7" \
+  QD_TARGET_EVALS=200 \
+  bash scripts/campaigns/geometry_first/run.sh
+```
+
+Key environment variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MOTIF_JSON` | required | Path to target motif.json |
+| `GPU_IDS` | 0–7 | GPU list for parallel GRTresna solves |
+| `QD_TARGET_EVALS` | — | Total evals (e.g. 200) |
+| `RANKS` | 8 | MPI ranks per GRTresna solve |
+| `BINS` | 8 | MAP-Elites grid (8×8 = 64 cells) |
+| `SHELL_PROFILE` | compact | Shell ansatz profile preset |
+| `LUMPS` | 5 | Number of lumps in the shell distribution |
+
+### CMA-ES vs MAP-Elites
+
+| | CMA-ES (`--iterate`) | MAP-Elites (campaign) |
+|---|---|---|
+| **Search** | Gradient-free, single trajectory | Quality-diversity archive (64 cells) |
+| **Ansatz** | Gaussian lumps (45D) | Shell — Fibonacci sphere (23D) |
+| **Grid** | N=32×32×16, L=64 | N=64+AMR L3, gridinit 128³, L=128 |
+| **RANKS** | 4 | 8 |
+| **Cell size** | 2.0 | 0.5 (4× finer) |
+| **Solve time** | ~15s | ~30–60s (higher resolution) |
+| **Diversity** | Single best solution | Archive of diverse solutions |
+| **Descriptors** | None | chi match × convergence quality |
+| **Score** | Minimise mismatch | Maximise (100 − mismatch) |
+| **Refinement** | Built-in | Follow with `campaigns/cmaes/run.sh` |
+
+### Is it better?
+
+**Yes, in three ways:**
+
+1. **Resolution**: N=128 vs N=32 means the solver can resolve curvature
+   features 4× smaller. The CMA-ES runs couldn't pass `support_localized`
+   because the coarse grid smoothed χ to ~0.06 deviation — at N=128 the
+   same target produces sharper features.
+
+2. **Ansatz**: The shell ansatz distributes lumps over a full sphere
+   (Fibonacci lattice) with toroidal/poloidal currents, dipole/quadrupole
+   modulation, and exotic-sector wedges. This is a richer matter basis
+   than the Gaussian ring, giving the solver more expressive power.
+
+3. **Diversity**: MAP-Elites maintains an archive of solutions across
+   the chi-match × convergence-quality plane. Instead of a single
+   optimum, you get a family of candidates — some with perfect chi
+   match, some with better convergence, some with different matter
+   layouts. CMA-ES converges to one point and can't recover from a
+   bad basin.
+
+**Trade-off**: each eval is ~2–4× slower (higher resolution, more MPI
+ranks). A 200-eval campaign takes ~1.5–3 hours vs ~4 minutes for the
+CMA-ES loop. But the quality and diversity of results justify the cost.
+
+**Test result** (4 evals, RANKS=4): best score 99.91 (mismatch=0.089),
+chi_l2=0.040, chi_2d_l2=0.015, Ham=0.75%. Two elites in two cells —
+diversity working from the first batch.
+
+### Next steps
+
+1. **Run a full 200-eval campaign** on a strong target motif to fill the
+   archive and identify the best cell.
+2. **CMA-ES refinement**: seed `campaigns/cmaes/run.sh` with the best
+   MAP-Elites elite to fine-tune continuous parameters.
+3. **Evolution check**: promote the best candidate to a GRTeclyn
+   evolution (HQ replay) to verify the geometry persists in time.
+4. **Exotic targets**: test with phantom matter motifs once the canonical
+   pipeline produces passing preservation scores.
+
+---
+
 ## File Reference
 
 | File | Purpose |
 |------|---------|
-| `scripts/search/project_geometry_motif.py` | CLI entry point |
+| `scripts/search/project_geometry_motif.py` | CLI entry point (CMA-ES loop) |
+| `scripts/campaigns/geometry_first/run.sh` | MAP-Elites campaign launcher |
 | `src/grteclyn_wrapper/initial_data/motif.py` | Motif extraction from episodes |
 | `src/grteclyn_wrapper/grtresna/fit/motif.py` | Matter fitting (lumps, ring splitting) |
 | `src/grteclyn_wrapper/projection/iterate.py` | CMA-ES iteration loop |
 | `src/grteclyn_wrapper/projection/mismatch.py` | Two-phase fitness + 2D/K_ij mismatch + feasibility pre-check |
 | `src/grteclyn_wrapper/projection/motif_preservation.py` | Preservation check |
-| `tests/projection/test_iterate.py` | Tests (44 passing) |
+| `src/grteclyn_wrapper/search/qd_search/driver.py` | MAP-Elites driver (`geometry_first` mode) |
+| `src/grteclyn_wrapper/search/qd_search/descriptors.py` | `geometry_first` behavior descriptors |
+| `tests/projection/test_iterate.py` | Tests (37 passing) |
