@@ -39,6 +39,7 @@ from grteclyn_wrapper.initial_data.motif import (
     read_motif_json,
     write_motif_json,
 )
+from grteclyn_wrapper.projection.iterate import IterationConfig, run_iterate
 from grteclyn_wrapper.projection.motif_preservation import (
     compare_motif_preservation,
     write_preservation_report,
@@ -97,6 +98,29 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Skip the short GRTeclyn post-load constraint check",
     )
+
+    # Iteration loop flags (geometry-first matter adjustment)
+    parser.add_argument(
+        "--iterate",
+        type=int,
+        default=0,
+        metavar="N",
+        help="Max CMA-ES evals for iterative matter adjustment (0 = one-shot, default)",
+    )
+    parser.add_argument("--iterate-popsize", type=int, default=8)
+    parser.add_argument("--iterate-sigma0", type=float, default=0.2)
+    parser.add_argument(
+        "--max-concurrent-grtresna",
+        type=int,
+        default=6,
+        help="Max parallel GRTresna solves during iteration",
+    )
+    parser.add_argument(
+        "--promote-retention-min",
+        type=float,
+        default=0.5,
+        help="Minimum retention_score to promote iterated candidate to evolution",
+    )
     return parser
 
 
@@ -125,6 +149,7 @@ def _write_projection_report(
     preservation_path: Path | None,
     gate_path: Path | None,
     convergence: dict[str, float] | None,
+    iteration: dict[str, Any] | None = None,
 ) -> Path:
     report = {
         "motif_json": str(motif_path),
@@ -132,6 +157,7 @@ def _write_projection_report(
         "preservation_report": str(preservation_path) if preservation_path else None,
         "postload_gate": str(gate_path) if gate_path else None,
         "grtresna_convergence": convergence,
+        "iteration": iteration,
     }
     report_path = out_dir / "projection_report.json"
     report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -200,12 +226,55 @@ def run_projection(args: argparse.Namespace) -> int:
         print(f"Dry-run wrote {out_dir / 'grtresna_params.txt'}")
         return 0
 
-    solve(
-        cfg,
-        work_dir=out_dir / "grtresna",
-        gridinit_path=gridinit_path,
-    )
-    convergence = parse_convergence(out_dir / "grtresna")
+    # --- Iterative matter adjustment (when --iterate N > 0) ---------------
+    iterate_n = getattr(args, "iterate", 0)
+    if iterate_n > 0:
+        iter_cfg = IterationConfig(
+            max_evals=iterate_n,
+            popsize=args.iterate_popsize,
+            sigma0=args.iterate_sigma0,
+            max_concurrent_grtresna=args.max_concurrent_grtresna,
+            mpi_ranks=args.mpi_ranks,
+            retention_threshold=args.promote_retention_min,
+            L=args.ftl_L,
+            gridinit_n=args.gridinit_n,
+            grtresna_L=args.grtresna_L,
+        )
+        iter_result = run_iterate(
+            motif,
+            fitted,
+            out_dir=out_dir / "iterate",
+            config=iter_cfg,
+            base_grtresna_cfg=_default_grtresna_base(args),
+        )
+        print(
+            f"Iteration complete: {iter_result.total_evals} evals, "
+            f"best_fitness={iter_result.best_fitness:.6f}, "
+            f"retention={iter_result.best_preservation_score:.3f}, "
+            f"converged={iter_result.converged}"
+        )
+        # Use the best iterated output as the final gridinit / fitted matter
+        if iter_result.best_gridinit_path is not None and iter_result.best_gridinit_path.exists():
+            import shutil
+            shutil.copy2(iter_result.best_gridinit_path, gridinit_path)
+            write_fitted_matter_json(iter_result.best_fitted_matter, fitted_path)
+            fitted = iter_result.best_fitted_matter
+        else:
+            print("Iteration produced no valid gridinit; falling back to one-shot solve",
+                  file=sys.stderr)
+            solve(cfg, work_dir=out_dir / "grtresna", gridinit_path=gridinit_path)
+
+        convergence = parse_convergence(out_dir / "iterate" / "best" / "grtresna")
+        if convergence is None:
+            convergence = parse_convergence(out_dir / "grtresna")
+    else:
+        # --- One-shot solve (original behavior) ----------------------------
+        solve(
+            cfg,
+            work_dir=out_dir / "grtresna",
+            gridinit_path=gridinit_path,
+        )
+        convergence = parse_convergence(out_dir / "grtresna")
 
     preservation = compare_motif_preservation(
         motif,
@@ -225,6 +294,19 @@ def run_projection(args: argparse.Namespace) -> int:
         )
         write_gate_result(gate_result, gate_path)
 
+    iteration_info = None
+    if iterate_n > 0:
+        iteration_info = {
+            "max_evals": iterate_n,
+            "total_evals": iter_result.total_evals,
+            "generations": iter_result.generations,
+            "best_fitness": iter_result.best_fitness,
+            "best_preservation_score": iter_result.best_preservation_score,
+            "converged": iter_result.converged,
+            "fitness_history": iter_result.fitness_history,
+            "notes": iter_result.notes,
+        }
+
     report_path = _write_projection_report(
         out_dir,
         motif_path=motif_path,
@@ -232,6 +314,7 @@ def run_projection(args: argparse.Namespace) -> int:
         preservation_path=preservation_path,
         gate_path=gate_path if gate_result is not None else None,
         convergence=convergence,
+        iteration=iteration_info,
     )
 
     print(f"Wrote {gridinit_path}")
