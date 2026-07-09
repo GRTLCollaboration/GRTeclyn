@@ -24,10 +24,12 @@ from grteclyn_wrapper.initial_data.motif import (
 )
 from grteclyn_wrapper.projection.iterate import (
     IterationConfig,
+    SPARSITY_AMP_THRESHOLD,
     _clip_vector,
     _compute_tight_bounds,
     _lumps_from_vector,
     _scale_lump_amplitudes,
+    _sparsity_penalty,
     _vector_from_lumps,
     amplitude_precondition,
     run_iterate,
@@ -716,3 +718,43 @@ class TestFeasibilityPrecheck:
         assert est.feasible  # marginal is still feasible (we try)
         assert est.risk_level == "marginal"
         assert FEASIBILITY_RHO_SAFE <= est.rho_peak < FEASIBILITY_RHO_HARD
+
+
+# --- Variable lump count (sparsity penalty) tests ---
+
+
+class TestSparsityPenalty:
+    def test_all_lumps_active(self):
+        """5 lumps with amp > threshold → penalty = 5."""
+        vec = np.array([0.1, 3.0, 0, 0, 0, 0, 0, 0, 0.0] * 5, dtype=float)
+        assert _sparsity_penalty(vec, 5) == 5.0
+
+    def test_all_lumps_off(self):
+        """5 lumps with amp = 0 → penalty = 0."""
+        vec = np.array([0.0, 3.0, 0, 0, 0, 0, 0, 0, 0.0] * 5, dtype=float)
+        assert _sparsity_penalty(vec, 5) == 0.0
+
+    def test_mixed_active_inactive(self):
+        """2 active, 3 off → penalty = 2."""
+        vec = np.zeros(45, dtype=float)
+        # lump 0: active
+        vec[0] = 0.15
+        # lump 1: off
+        vec[9] = 0.0
+        # lump 2: active
+        vec[18] = 0.08
+        # lump 3: off (below threshold)
+        vec[27] = SPARSITY_AMP_THRESHOLD / 2
+        # lump 4: off
+        vec[36] = 0.0
+        assert _sparsity_penalty(vec, 5) == 2.0
+
+    def test_amp_lower_bound_is_zero(self):
+        """The amplitude lower bound should be 0.0 so lumps can be turned off."""
+        from grteclyn_wrapper.projection.iterate import _LOWER
+        assert _LOWER[0] == 0.0
+
+    def test_sparsity_weight_in_config(self):
+        """IterationConfig should have a sparsity_weight field."""
+        cfg = IterationConfig()
+        assert cfg.sparsity_weight > 0.0

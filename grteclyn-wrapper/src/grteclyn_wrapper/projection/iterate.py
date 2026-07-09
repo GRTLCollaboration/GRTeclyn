@@ -55,8 +55,18 @@ _LUMP_PARAMS = ("amp", "width", "cx", "cy", "cz", "vx", "vy", "vz", "omega")
 _PARAMS_PER_LUMP = len(_LUMP_PARAMS)
 
 # Default bounds for each per-lump parameter (centers will be tightened per-motif).
-_LOWER = np.array([0.01, MIN_LUMP_WIDTH, -64.0, -64.0, -64.0, -MAX_VELOCITY, -MAX_VELOCITY, -MAX_VELOCITY, -0.5])
+# Note: amp lower bound is 0.0 so CMA-ES can "turn off" unwanted lumps,
+# effectively selecting the lump count as part of the optimisation.
+_LOWER = np.array([0.0, MIN_LUMP_WIDTH, -64.0, -64.0, -64.0, -MAX_VELOCITY, -MAX_VELOCITY, -MAX_VELOCITY, -0.5])
 _UPPER = np.array([MAX_LUMP_AMP, MAX_LUMP_WIDTH, 64.0, 64.0, 64.0, MAX_VELOCITY, MAX_VELOCITY, MAX_VELOCITY, 0.5])
+
+# Sparsity penalty: rewards using fewer active lumps (amp > threshold).
+# This lets CMA-ES naturally select the lump count by zeroing out
+# unwanted lumps instead of being forced to use all max_lumps.
+# The weight must be large enough that turning off a lump (saving ~0.02
+# in geometry mismatch) is worth the penalty reduction.
+SPARSITY_AMP_THRESHOLD: float = 0.005   # amps below this count as "off"
+SPARSITY_WEIGHT: float = 0.05           # per-active-lump penalty
 
 # --- Phase 1b: amplitude pre-conditioning ------------------------------------
 PRECOND_HAM_THRESHOLD: float = 10.0   # Ham% below which amplitude is "feasible"
@@ -91,6 +101,8 @@ class IterationConfig:
     # Phase 1c: solver fallback ladder
     fallback_on_crash: bool = True
     fallback_on_high_residual: bool = True
+    # Variable lump count: sparsity penalty lets CMA-ES turn off lumps
+    sparsity_weight: float = SPARSITY_WEIGHT
 
 
 @dataclass
@@ -376,6 +388,22 @@ def _solve_with_fallback(
     return gridinit_path, None
 
 
+def _sparsity_penalty(vector: np.ndarray, n_lumps: int) -> float:
+    """Count active lumps (amp > threshold) and return a penalty.
+
+    This lets CMA-ES naturally select the lump count: lumps with amp ≈ 0
+    are effectively "off" and don't contribute to the matter distribution.
+    The penalty rewards simpler configs (fewer active lumps) when the
+    geometry mismatch is similar.
+    """
+    n_active = 0
+    for i in range(n_lumps):
+        offset = i * _PARAMS_PER_LUMP
+        if vector[offset] > SPARSITY_AMP_THRESHOLD:
+            n_active += 1
+    return float(n_active)
+
+
 def _evaluate_candidate(
     *,
     vector: np.ndarray,
@@ -387,8 +415,10 @@ def _evaluate_candidate(
     L: float | None,
     fallback_on_crash: bool = True,
     fallback_on_high_residual: bool = True,
+    sparsity_weight: float = SPARSITY_WEIGHT,
 ) -> tuple[float, MismatchReport, Path | None]:
     """Single candidate evaluation: vector → lumps → solve → mismatch."""
+    n_lumps = len(template_lumps)
     lumps = _lumps_from_vector(vector, template_lumps=template_lumps)
 
     # Build updated FittedMatter (preserving non-lump fields)
@@ -439,7 +469,17 @@ def _evaluate_candidate(
         grtresna_work_dir=conv_dir,
         L=L,
     )
-    return report.fitness, report, gridinit_path
+
+    # Add sparsity penalty so CMA-ES can select lump count by zeroing
+    # unwanted lumps.  Only applies in the feasible phase (low convergence
+    # penalty) — in the infeasible phase, the feasibility term dominates.
+    if report.convergence_penalty < 0.5:
+        sparsity = _sparsity_penalty(vector, n_lumps)
+        fitness = report.fitness + sparsity_weight * sparsity
+    else:
+        fitness = report.fitness
+
+    return fitness, report, gridinit_path
 
 
 def run_iterate(
@@ -594,6 +634,7 @@ def run_iterate(
                         L=cfg.L,
                         fallback_on_crash=cfg.fallback_on_crash,
                         fallback_on_high_residual=cfg.fallback_on_high_residual,
+                        sparsity_weight=cfg.sparsity_weight,
                     )
                     futures[fut] = idx
 
@@ -618,12 +659,13 @@ def run_iterate(
 
                     fitnesses[idx] = fitness
 
-                    # Log this eval
+                    # Log this eval (report.to_dict() has raw fitness;
+                    # overwrite with total fitness including sparsity)
                     log_entry = {
                         "eval_id": eval_id,
                         "generation": generation,
-                        "fitness": fitness,
                         **report.to_dict(),
+                        "fitness": fitness,  # total fitness (with sparsity)
                     }
                     log_handle.write(json.dumps(log_entry) + "\n")
                     log_handle.flush()
