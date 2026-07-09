@@ -472,17 +472,72 @@ and type of lumps), use MAP-Elites to explore different matter structures:
 This separates the discrete structural search from the continuous
 parameter optimisation and maintains an archive of diverse solutions.
 
-### Phase 4: Better geometry targets
+### Phase 4: Better geometry targets (implemented)
 
-- **2D slice mismatch**: currently the mismatch is computed on a 1D radial
-  profile. A 2D slice (e.g. xz-plane through the transport axis) would
-  capture angular structure that 1D misses.
-- **K_ij matching**: match the extrinsic curvature tensor, not just the
-  conformal factor and shift. This is a stronger constraint on the initial
-  data.
-- **Feasibility pre-check**: before running GRTresna, estimate whether the
-  target geometry is likely to be feasible (e.g. check if |ρ_req| is
-  within the solver's known convergence range).
+#### 4a. 2D slice mismatch
+
+The mismatch is now computed on the full xz-plane slice (y = domain centre),
+not just the 1D midline. This captures angular structure that the radial
+profile misses — critical for ring-distributed lumps and non-spherical
+matter configurations.
+
+- **Target**: the spherically symmetric RecipeBasis is evaluated on
+  r = sqrt(x² + z²), producing 2D chi and beta fields. Radial beta is
+  decomposed into beta_x and beta_z components.
+- **Solved**: extracted from the gridinit using the existing
+  `build_xz_slice_from_gridinit` infrastructure, then bilinearly resampled
+  onto the target grid via `scipy.RegularGridInterpolator`.
+- **Weights**: `W_CHI_2D = 2.0`, `W_BETA_2D = 1.5` (higher than 1D weights
+  since the 2D slice carries more information).
+
+#### 4b. K_ij matching
+
+The extrinsic curvature tensor is now included in the mismatch:
+
+- **K (trace)**: extracted from the gridinit `K` component. Target is K=0
+  (maximal slicing). Weight: `W_KIJ = 0.5`.
+- **A_ij (traceless)**: extracted from `A11..A33` components, combined into
+  a scalar proxy |A_ij|²/2. Target is A_ij=0 (conformally flat). Weight:
+  `W_AIJ = 0.3`.
+
+This provides a stronger constraint on the initial data beyond just the
+spatial geometry (chi, beta).
+
+#### 4c. Feasibility pre-check
+
+Before running GRTresna, `feasibility_precheck()` estimates whether the
+target geometry is likely to converge, based on the peak |ρ_req| from the
+motif's support regions:
+
+| Risk level | ρ_peak range | Action |
+|------------|-------------|--------|
+| safe | < 0.5 | Proceed normally |
+| marginal | 0.5 – 2.0 | Proceed with warning (expect slower convergence) |
+| hard | > 2.0 | Log warning (likely infeasible for Gaussian ansatz) |
+
+The pre-check does not skip solves — even "hard" targets are attempted
+because the actual convergence depends on the matter ansatz and solver
+settings. But it provides early diagnostics and could be used to skip
+obviously infeasible targets in batch runs.
+
+#### Impact on test results
+
+Adding 2D + K_ij terms improved the optimizer's behavior:
+
+| Metric | 1D only (v2) | 2D + K_ij (v3) |
+|--------|-------------|----------------|
+| Best fitness | 0.026 | 0.047 |
+| Preservation | 0.483 | **0.490** |
+| Improvement over generations | plateaued gen 1 | improved through gen 4 |
+| chi_1d | 0.023 | 0.016 |
+| chi_2d | — | 0.006 |
+| K_ij | — | 0.004 |
+| A_ij | — | 0.007 |
+
+The fitness is higher in absolute terms (more terms), but the optimizer
+keeps improving longer and the preservation score is closer to the 0.5
+threshold. The 2D chi mismatch (0.006) is smaller than 1D (0.016) because
+the ring-distributed lumps produce a more uniform 2D field.
 
 ### Phase 5: Close the loop with evolution
 
@@ -505,6 +560,6 @@ GPU evolutions in GRTeclyn:
 | `src/grteclyn_wrapper/initial_data/motif.py` | Motif extraction from episodes |
 | `src/grteclyn_wrapper/grtresna/fit/motif.py` | Matter fitting (lumps, ring splitting) |
 | `src/grteclyn_wrapper/projection/iterate.py` | CMA-ES iteration loop |
-| `src/grteclyn_wrapper/projection/mismatch.py` | Two-phase fitness computation |
+| `src/grteclyn_wrapper/projection/mismatch.py` | Two-phase fitness + 2D/K_ij mismatch + feasibility pre-check |
 | `src/grteclyn_wrapper/projection/motif_preservation.py` | Preservation check |
-| `tests/projection/test_iterate.py` | Tests (34 passing) |
+| `tests/projection/test_iterate.py` | Tests (44 passing) |
