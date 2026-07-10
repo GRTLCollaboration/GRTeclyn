@@ -51,6 +51,10 @@ from grteclyn_wrapper.projection.postload_gate import (
     run_postload_gate,
     write_gate_result,
 )
+from grteclyn_wrapper.projection.warp_gridinit import (
+    paint_alcubierre_warp_on_gridinit,
+    write_alcubierre_gridinit,
+)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -96,9 +100,12 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--mode",
-        choices=("fit-only", "solve-only", "solve-and-evolve"),
+        choices=("fit-only", "solve-only", "solve-and-evolve", "analytic-gridinit"),
         default="fit-only",
-        help="fit-only writes motif/fitted matter; solve-only runs GRTresna; solve-and-evolve also replays in GRTeclyn",
+        help="fit-only writes motif/fitted matter; solve-only runs GRTresna; "
+             "solve-and-evolve also replays in GRTeclyn; "
+             "analytic-gridinit writes a ground-truth Alcubierre slice (no solve, "
+             "requires --target alcubierre)",
     )
     parser.add_argument("--max-lumps", type=int, default=3)
     parser.add_argument("--ftl-L", type=float, default=None)
@@ -127,6 +134,21 @@ def _build_parser() -> argparse.ArgumentParser:
         "--skip-postload-gate",
         action="store_true",
         help="Skip the short GRTeclyn post-load constraint check",
+    )
+    parser.add_argument(
+        "--paint-warp-shift",
+        choices=("off", "shift", "shift+aij"),
+        default="off",
+        help="Post-solve: paint the analytic Alcubierre shift onto the gridinit. "
+             "'shift' overwrites shift1/2/3 only; 'shift+aij' also overwrites A_ij "
+             "with shift-consistent values. Requires --target alcubierre.",
+    )
+    parser.add_argument(
+        "--use-compact-vi-ansatz",
+        type=int,
+        default=None,
+        help="GRTresna CTTK Vi ansatz: 1=compact (default), 0=periodic (B&S B.3). "
+             "For warp motifs with distributed scalar S_i, 0 may improve Mom convergence.",
     )
 
     # Iteration loop flags (geometry-first matter adjustment)
@@ -157,6 +179,7 @@ def _build_parser() -> argparse.ArgumentParser:
 def _default_grtresna_base(args: argparse.Namespace) -> GRTresnaConfig:
     n = args.gridinit_n
     L = args.grtresna_L
+    vi_ansatz = args.use_compact_vi_ansatz if args.use_compact_vi_ansatz is not None else 1
     if getattr(args, "target", "episode") == "alcubierre":
         # Full-box domain: the Alcubierre toroidal ring extends to ±R in y/z
         # around the transport axis, so octant symmetry doesn't apply.
@@ -177,6 +200,7 @@ def _default_grtresna_base(args: argparse.Namespace) -> GRTresnaConfig:
             nl_stall_tolerance=0.005,
             lo_boundary=(0, 0, 0),
             target_center=(L / 2.0, L / 2.0, L / 2.0),
+            use_compact_Vi_ansatz=vi_ansatz,
         )
     return GRTresnaConfig(
         mpi_ranks=args.mpi_ranks,
@@ -193,6 +217,7 @@ def _default_grtresna_base(args: argparse.Namespace) -> GRTresnaConfig:
         # Exotic matter needs more iterations and tighter stall tolerance
         max_NL_iterations=200,
         nl_stall_tolerance=0.005,
+        use_compact_Vi_ansatz=vi_ansatz,
     )
 
 
@@ -205,6 +230,7 @@ def _write_projection_report(
     gate_path: Path | None,
     convergence: dict[str, float] | None,
     iteration: dict[str, Any] | None = None,
+    warp_painting: dict[str, Any] | None = None,
 ) -> Path:
     report = {
         "motif_json": str(motif_path),
@@ -213,6 +239,7 @@ def _write_projection_report(
         "postload_gate": str(gate_path) if gate_path else None,
         "grtresna_convergence": convergence,
         "iteration": iteration,
+        "warp_painting": warp_painting,
     }
     report_path = out_dir / "projection_report.json"
     report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -262,6 +289,35 @@ def run_projection(args: argparse.Namespace) -> int:
             ftl_L=args.ftl_L,
         )
         write_motif_json(motif, motif_path)
+
+    # --- analytic-gridinit mode: write ground-truth Alcubierre slice ------
+    if args.mode == "analytic-gridinit":
+        if args.target != "alcubierre":
+            print("Error: --mode analytic-gridinit requires --target alcubierre",
+                  file=sys.stderr)
+            return 1
+        analytic_L = args.ftl_L if args.ftl_L is not None else 16.0
+        analytic_path = out_dir / "analytic_alcubierre.gridinit"
+        write_alcubierre_gridinit(
+            analytic_path,
+            n=args.gridinit_n,
+            L=analytic_L,
+            velocity=args.warp_velocity,
+            bubble_radius=args.warp_bubble_radius,
+            sigma=args.warp_sigma,
+        )
+        print(f"Wrote analytic Alcubierre gridinit: {analytic_path}")
+        print(f"  v={args.warp_velocity}, R={args.warp_bubble_radius}, "
+              f"sigma={args.warp_sigma}, n={args.gridinit_n}, L={analytic_L}")
+        _write_projection_report(
+            out_dir,
+            motif_path=motif_path,
+            fitted_path=fitted_path,
+            preservation_path=None,
+            gate_path=None,
+            convergence=None,
+        )
+        return 0
 
     if args.fitted_matter_json is not None:
         fitted = read_fitted_matter_json(args.fitted_matter_json)
@@ -366,6 +422,35 @@ def run_projection(args: argparse.Namespace) -> int:
         )
         convergence = parse_convergence(out_dir / "grtresna")
 
+    # --- Post-solve warp-shift painting (Phase A1) -------------------------
+    warp_painting_info: dict[str, Any] | None = None
+    if args.paint_warp_shift != "off":
+        if args.target != "alcubierre":
+            print("Warning: --paint-warp-shift requires --target alcubierre; ignoring",
+                  file=sys.stderr)
+        else:
+            paint_aij = args.paint_warp_shift == "shift+aij"
+            paint_alcubierre_warp_on_gridinit(
+                gridinit_path,
+                velocity=args.warp_velocity,
+                bubble_radius=args.warp_bubble_radius,
+                sigma=args.warp_sigma,
+                paint_aij=paint_aij,
+            )
+            warp_painting_info = {
+                "mode": args.paint_warp_shift,
+                "velocity": args.warp_velocity,
+                "bubble_radius": args.warp_bubble_radius,
+                "sigma": args.warp_sigma,
+                "note": (
+                    "shift + A_ij painted from analytic Alcubierre; chi is from the "
+                    "solve (may carry Ham error from A_ij mismatch)"
+                    if paint_aij else
+                    "shift painted from analytic Alcubierre; A_ij is from the solve"
+                ),
+            }
+            print(f"Painted Alcubierre warp shift ({args.paint_warp_shift}) onto {gridinit_path}")
+
     preservation = compare_motif_preservation(
         motif,
         gridinit_path,
@@ -405,6 +490,7 @@ def run_projection(args: argparse.Namespace) -> int:
         gate_path=gate_path if gate_result is not None else None,
         convergence=convergence,
         iteration=iteration_info,
+        warp_painting=warp_painting_info,
     )
 
     print(f"Wrote {gridinit_path}")

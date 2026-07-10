@@ -30,8 +30,16 @@ from grteclyn_wrapper.projection.mismatch import (
     _is_warp_motif,
     _target_2d_slice_warp,
     _warp_params_from_motif,
+    _compute_si_mismatch,
     warp_factory_cross_check,
 )
+from grteclyn_wrapper.projection.warp_gridinit import (
+    alcubierre_analytic_fields,
+    alcubierre_analytic_Si,
+    paint_alcubierre_warp_on_gridinit,
+    write_alcubierre_gridinit,
+)
+from grteclyn_wrapper.grtresna.io.gridinit import read_gridinit, write_gridinit
 
 
 # ---------------------------------------------------------------------------
@@ -276,4 +284,225 @@ class TestWarpFactoryCrossCheck:
         assert cc_high.exotic_energy > cc_low.exotic_energy, (
             f"Expected higher velocity to need more exotic energy: "
             f"low={cc_low.exotic_energy}, high={cc_high.exotic_energy}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Analytic gridinit writer (Phase A0)
+# ---------------------------------------------------------------------------
+
+class TestAnalyticGridinit:
+    def test_round_trip_through_read_gridinit(self, tmp_path):
+        p = tmp_path / "analytic.gridinit"
+        write_alcubierre_gridinit(p, n=16, L=8.0, velocity=0.5, bubble_radius=2.0, sigma=2.0)
+        g = read_gridinit(p)
+        assert g.data.shape == (16, 16, 16, 37)
+        assert "shift1" in g.comp_names
+
+    def test_chi_is_one_everywhere(self, tmp_path):
+        p = tmp_path / "analytic.gridinit"
+        write_alcubierre_gridinit(p, n=16, L=8.0, velocity=0.5, bubble_radius=2.0, sigma=2.0)
+        g = read_gridinit(p)
+        chi = g.data[:, :, :, g.comp_names.index("chi")]
+        assert np.allclose(chi, 1.0)
+
+    def test_lapse_is_one_everywhere(self, tmp_path):
+        p = tmp_path / "analytic.gridinit"
+        write_alcubierre_gridinit(p, n=16, L=8.0, velocity=0.5, bubble_radius=2.0, sigma=2.0)
+        g = read_gridinit(p)
+        lapse = g.data[:, :, :, g.comp_names.index("lapse")]
+        assert np.allclose(lapse, 1.0)
+
+    def test_K_is_zero_everywhere(self, tmp_path):
+        p = tmp_path / "analytic.gridinit"
+        write_alcubierre_gridinit(p, n=16, L=8.0, velocity=0.5, bubble_radius=2.0, sigma=2.0)
+        g = read_gridinit(p)
+        K = g.data[:, :, :, g.comp_names.index("K")]
+        assert np.allclose(K, 0.0)
+
+    def test_shift_at_bubble_centre(self, tmp_path):
+        p = tmp_path / "analytic.gridinit"
+        write_alcubierre_gridinit(p, n=16, L=8.0, velocity=0.5, bubble_radius=2.0, sigma=2.0)
+        g = read_gridinit(p)
+        shift1 = g.data[:, :, :, g.comp_names.index("shift1")]
+        # Centre of 16^3 grid, bubble at (8, 8, 8)
+        assert abs(shift1[8, 8, 8] - (-0.5)) < 0.02, (
+            f"Expected shift1~ -0.5 at centre, got {shift1[8, 8, 8]}"
+        )
+
+    def test_shift_far_field_is_zero(self, tmp_path):
+        p = tmp_path / "analytic.gridinit"
+        write_alcubierre_gridinit(p, n=16, L=8.0, velocity=0.5, bubble_radius=2.0, sigma=2.0)
+        g = read_gridinit(p)
+        shift1 = g.data[:, :, :, g.comp_names.index("shift1")]
+        assert abs(shift1[0, 0, 0]) < 0.01, (
+            f"Expected shift1~0 at corner, got {shift1[0, 0, 0]}"
+        )
+
+    def test_A_ij_traceless(self, tmp_path):
+        p = tmp_path / "analytic.gridinit"
+        write_alcubierre_gridinit(p, n=16, L=8.0, velocity=0.5, bubble_radius=2.0, sigma=2.0)
+        g = read_gridinit(p)
+        idx = {n: i for i, n in enumerate(g.comp_names)}
+        trace = (
+            g.data[:, :, :, idx["A11"]]
+            + g.data[:, :, :, idx["A22"]]
+            + g.data[:, :, :, idx["A33"]]
+        )
+        assert np.allclose(trace, 0.0, atol=1e-10), (
+            f"Expected traceless A_ij, got max|trace|={np.abs(trace).max()}"
+        )
+
+    def test_A_ij_peaks_at_wall(self, tmp_path):
+        p = tmp_path / "analytic.gridinit"
+        write_alcubierre_gridinit(p, n=32, L=8.0, velocity=0.5, bubble_radius=2.0, sigma=2.0)
+        g = read_gridinit(p)
+        idx = {n: i for i, n in enumerate(g.comp_names)}
+        A_mag = np.sqrt(
+            g.data[:, :, :, idx["A11"]]**2
+            + 2 * g.data[:, :, :, idx["A12"]]**2
+            + g.data[:, :, :, idx["A33"]]**2
+        )
+        # A_ij should peak at the bubble wall (r_s ~ R=2.0), not at the centre
+        centre = A_mag[16, 16, 16]
+        assert A_mag.max() > centre, (
+            f"Expected A_ij to peak at wall, not centre (max={A_mag.max()}, centre={centre})"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Warp-shift painting (Phase A1)
+# ---------------------------------------------------------------------------
+
+class TestWarpPainting:
+    def test_painter_overwrites_shift(self, tmp_path):
+        p = tmp_path / "test.gridinit"
+        write_alcubierre_gridinit(p, n=16, L=8.0, velocity=0.5, bubble_radius=2.0, sigma=2.0)
+        # Zero out the shift to simulate a solved gridinit
+        g = read_gridinit(p)
+        idx = {n: i for i, n in enumerate(g.comp_names)}
+        g.data[:, :, :, idx["shift1"]] = 0.0
+        write_gridinit(g.data, g.comp_names, g.dx_xyz, g.origin, p)
+        # Paint
+        paint_alcubierre_warp_on_gridinit(
+            p, velocity=0.5, bubble_radius=2.0, sigma=2.0, paint_aij=True,
+        )
+        g2 = read_gridinit(p)
+        shift1 = g2.data[:, :, :, idx["shift1"]]
+        assert abs(shift1[8, 8, 8] - (-0.5)) < 0.02
+
+    def test_painter_preserves_header(self, tmp_path):
+        p = tmp_path / "test.gridinit"
+        write_alcubierre_gridinit(p, n=16, L=8.0, velocity=0.5, bubble_radius=2.0, sigma=2.0)
+        g_before = read_gridinit(p)
+        paint_alcubierre_warp_on_gridinit(
+            p, velocity=0.5, bubble_radius=2.0, sigma=2.0, paint_aij=True,
+        )
+        g_after = read_gridinit(p)
+        assert g_after.comp_names == g_before.comp_names
+        assert np.allclose(g_after.dx_xyz, g_before.dx_xyz)
+        assert np.allclose(g_after.origin, g_before.origin)
+        assert g_after.data.shape == g_before.data.shape
+
+    def test_paint_aij_false_leaves_A_ij_untouched(self, tmp_path):
+        p = tmp_path / "test.gridinit"
+        write_alcubierre_gridinit(p, n=16, L=8.0, velocity=0.5, bubble_radius=2.0, sigma=2.0)
+        g = read_gridinit(p)
+        idx = {n: i for i, n in enumerate(g.comp_names)}
+        # Set A_ij to a sentinel value
+        g.data[:, :, :, idx["A11"]] = 42.0
+        write_gridinit(g.data, g.comp_names, g.dx_xyz, g.origin, p)
+        paint_alcubierre_warp_on_gridinit(
+            p, velocity=0.5, bubble_radius=2.0, sigma=2.0, paint_aij=False,
+        )
+        g2 = read_gridinit(p)
+        A11 = g2.data[:, :, :, idx["A11"]]
+        assert np.allclose(A11, 42.0), "A_ij should be unchanged with paint_aij=False"
+
+    def test_paint_aij_true_overwrites_A_ij(self, tmp_path):
+        p = tmp_path / "test.gridinit"
+        write_alcubierre_gridinit(p, n=16, L=8.0, velocity=0.5, bubble_radius=2.0, sigma=2.0)
+        g = read_gridinit(p)
+        idx = {n: i for i, n in enumerate(g.comp_names)}
+        g.data[:, :, :, idx["A11"]] = 42.0
+        write_gridinit(g.data, g.comp_names, g.dx_xyz, g.origin, p)
+        paint_alcubierre_warp_on_gridinit(
+            p, velocity=0.5, bubble_radius=2.0, sigma=2.0, paint_aij=True,
+        )
+        g2 = read_gridinit(p)
+        A11 = g2.data[:, :, :, idx["A11"]]
+        assert not np.allclose(A11, 42.0), "A_ij should be overwritten with paint_aij=True"
+
+
+# ---------------------------------------------------------------------------
+# Analytic S_i momentum density (Phase A2)
+# ---------------------------------------------------------------------------
+
+class TestAlcubierreSi:
+    def test_Si_returns_correct_shapes(self):
+        x, z, Sx, Sy, Sz = alcubierre_analytic_Si(
+            velocity=0.5, bubble_radius=2.0, sigma=2.0, L=8.0, n=32,
+        )
+        assert len(x) == 32 and len(z) == 32
+        assert Sx.shape == (32, 32)
+        assert Sy.shape == (32, 32)
+        assert Sz.shape == (32, 32)
+
+    def test_Si_dominant_x_component(self):
+        _, _, Sx, Sy, Sz = alcubierre_analytic_Si(
+            velocity=0.5, bubble_radius=2.0, sigma=2.0, L=8.0, n=32,
+        )
+        # S_x should be the dominant component (axial transport)
+        assert np.abs(Sx).max() > np.abs(Sz).max()
+        # S_y should be exactly zero (axial symmetry on xz-slice)
+        assert np.allclose(Sy, 0.0)
+
+    def test_Si_peaks_at_wall(self):
+        _, _, Sx, _, _ = alcubierre_analytic_Si(
+            velocity=0.5, bubble_radius=2.0, sigma=2.0, L=8.0, n=64,
+        )
+        # S_x should peak near the bubble wall, not at the centre
+        centre = Sx[32, 32]
+        assert np.abs(Sx).max() > np.abs(centre)
+
+    def test_Si_higher_velocity_more_momentum(self):
+        _, _, Sx_low, _, _ = alcubierre_analytic_Si(
+            velocity=0.1, bubble_radius=2.0, sigma=2.0, L=8.0, n=32,
+        )
+        _, _, Sx_high, _, _ = alcubierre_analytic_Si(
+            velocity=0.9, bubble_radius=2.0, sigma=2.0, L=8.0, n=32,
+        )
+        assert np.abs(Sx_high).max() > np.abs(Sx_low).max()
+
+
+# ---------------------------------------------------------------------------
+# S_i mismatch (Phase A2)
+# ---------------------------------------------------------------------------
+
+class TestSiMismatch:
+    def test_si_mismatch_self_is_small(self, tmp_path):
+        p = tmp_path / "analytic.gridinit"
+        write_alcubierre_gridinit(p, n=32, L=8.0, velocity=0.5, bubble_radius=2.0, sigma=2.0)
+        m = motif_from_alcubierre(velocity=0.5, bubble_radius=2.0, sigma=2.0, ftl_L=8.0)
+        si = _compute_si_mismatch(m, p, n=32, L=8.0)
+        assert si < 0.05, f"Expected small si_l2 for self-comparison, got {si}"
+
+    def test_si_mismatch_increases_with_perturbation(self, tmp_path):
+        m = motif_from_alcubierre(velocity=0.5, bubble_radius=2.0, sigma=2.0, ftl_L=8.0)
+        # Correct A_ij
+        p_good = tmp_path / "good.gridinit"
+        write_alcubierre_gridinit(p_good, n=32, L=8.0, velocity=0.5, bubble_radius=2.0, sigma=2.0)
+        si_good = _compute_si_mismatch(m, p_good, n=32, L=8.0)
+        # Doubled A_ij
+        p_bad = tmp_path / "bad.gridinit"
+        write_alcubierre_gridinit(p_bad, n=32, L=8.0, velocity=0.5, bubble_radius=2.0, sigma=2.0)
+        g = read_gridinit(p_bad)
+        idx = {n: i for i, n in enumerate(g.comp_names)}
+        for name in ("A11", "A12", "A13", "A22", "A23", "A33"):
+            g.data[:, :, :, idx[name]] *= 3.0
+        write_gridinit(g.data, g.comp_names, g.dx_xyz, g.origin, p_bad)
+        si_bad = _compute_si_mismatch(m, p_bad, n=32, L=8.0)
+        assert si_bad > si_good, (
+            f"Expected si_l2 to increase with perturbed A_ij: "
+            f"good={si_good}, bad={si_bad}"
         )

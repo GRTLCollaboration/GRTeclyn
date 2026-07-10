@@ -51,6 +51,9 @@ W_BETA_2D: float = 1.5      # 2D beta slice
 W_KIJ: float = 0.5          # Extrinsic curvature trace K
 W_AIJ: float = 0.3          # Traceless extrinsic curvature A_ij
 
+# Phase A2: weight for the momentum-density (S_i) mismatch term (warp motifs).
+W_SI: float = 1.0
+
 # Gate fitness returned when a solve fails entirely (analogous to
 # cmaes_adapter.DEFAULT_GATE_FITNESS).
 GATE_FITNESS: float = 100.0
@@ -88,6 +91,8 @@ class MismatchReport:
     beta_2d_l2: float = 0.0
     kij_l2: float = 0.0
     aij_l2: float = 0.0
+    # Phase A2: momentum-density mismatch (warp motifs only).
+    si_l2: float = 0.0
     notes: tuple[str, ...] = ()
 
     def to_dict(self) -> dict[str, Any]:
@@ -453,6 +458,130 @@ def feasibility_precheck(motif: GeometryMotif) -> FeasibilityEstimate:
     )
 
 
+def _solved_si_slice(
+    gridinit_path: Path,
+    *,
+    n: int = N_SLICE_POINTS,
+    L: float | None = None,
+) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]] | None:
+    """Extract the solved momentum-density proxy S_i on an xz-slice.
+
+    Reconstructs ``S_i = -beta^j A_{ij}`` (with ``alpha=1``, ``K=0``) from
+    the gridinit's shift and A_ij components — this measures whether the
+    *solver's geometry* carries the right momentum, which is exactly the
+    quantity the Mom stall corrupts.
+
+    Returns (x_axis, z_axis, S_x, S_y, S_z) or None if the gridinit can't
+    be read or lacks the required components.
+    """
+    try:
+        grid = read_gridinit(gridinit_path)
+    except (OSError, ValueError, KeyError):
+        return None
+
+    data = grid.data
+    names = list(grid.comp_names)
+    nz, ny, nx, _ = data.shape
+    dx, dy, dz = grid.dx_xyz
+    ox, oy, oz = grid.origin
+
+    cx = ox + 0.5 * nx * dx
+    cy = oy + 0.5 * ny * dy
+    cz = oz + 0.5 * nz * dz
+
+    half_x = 0.49 * nx * dx
+    half_z = 0.49 * nz * dz
+    if L is not None:
+        half_x = min(half_x, float(L))
+        half_z = min(half_z, float(L))
+
+    x_axis = np.linspace(cx - half_x, cx + half_x, n)
+    z_axis = np.linspace(cz - half_z, cz + half_z, n)
+
+    ii = np.clip(np.round((x_axis - ox) / dx - 0.5).astype(np.int64), 0, nx - 1)
+    kk = np.clip(np.round((z_axis - oz) / dz - 0.5).astype(np.int64), 0, nz - 1)
+    jj = int(np.clip(round((cy - oy) / dy - 0.5), 0, ny - 1))
+    ki = kk[None, :].repeat(n, axis=0)
+    xi = ii[:, None].repeat(n, axis=1)
+
+    def _comp(name: str) -> NDArray[np.float64] | None:
+        try:
+            idx = names.index(name)
+        except ValueError:
+            return None
+        return data[ki, jj, xi, idx]
+
+    b1 = _comp("shift1")
+    b2 = _comp("shift2")
+    b3 = _comp("shift3")
+    a11 = _comp("A11")
+    a12 = _comp("A12")
+    a13 = _comp("A13")
+    a22 = _comp("A22")
+    a23 = _comp("A23")
+    a33 = _comp("A33")
+    if b1 is None or a11 is None:
+        return None
+    b1 = b1 if b1 is not None else np.zeros((n, n))
+    b2 = b2 if b2 is not None else np.zeros((n, n))
+    b3 = b3 if b3 is not None else np.zeros((n, n))
+    a12 = a12 if a12 is not None else np.zeros((n, n))
+    a13 = a13 if a13 is not None else np.zeros((n, n))
+    a22 = a22 if a22 is not None else np.zeros((n, n))
+    a23 = a23 if a23 is not None else np.zeros((n, n))
+    a33 = a33 if a33 is not None else np.zeros((n, n))
+
+    # S_i = -beta^j A_{ij} (alpha=1, K=0 => A_ij = K_ij)
+    S_x = -(b1 * a11 + b2 * a12 + b3 * a13)
+    S_y = -(b1 * a12 + b2 * a22 + b3 * a23)
+    S_z = -(b1 * a13 + b2 * a23 + b3 * a33)
+    return x_axis, z_axis, S_x, S_y, S_z
+
+
+def _compute_si_mismatch(
+    motif: GeometryMotif,
+    gridinit_path: Path,
+    *,
+    n: int = N_SLICE_POINTS,
+    L: float | None = None,
+) -> float:
+    """L2 mismatch between the solved S_i proxy and the analytic Alcubierre S_i.
+
+    Both are evaluated on the same xz-slice and resampled to a common grid.
+    The analytic target comes from ``alcubierre_analytic_Si``; the solved
+    proxy is ``S_i = -beta^j A_{ij}`` reconstructed from the gridinit
+    (see ``_solved_si_slice``).  Returns the combined L2 of (S_x, S_z);
+    S_y is zero for an axial-shift slice.
+    """
+    from .warp_gridinit import alcubierre_analytic_Si
+
+    params = _warp_params_from_motif(motif)
+    velocity = params.get("v", 0.5)
+    bubble_radius = params.get("R", 2.0)
+    sigma = params.get("sigma", 2.0)
+
+    eff_L = L if L is not None else float(
+        motif.overrides.get("recipe_basis_radius_max", 8.0)
+    ) * 2.0
+
+    x_t, z_t, Sx_t, _Sy_t, Sz_t = alcubierre_analytic_Si(
+        velocity=velocity, bubble_radius=bubble_radius, sigma=sigma,
+        L=eff_L, n=n,
+    )
+
+    solved = _solved_si_slice(gridinit_path, n=n, L=L)
+    if solved is None:
+        return 0.0
+    x_s, z_s, Sx_s, _Sy_s, Sz_s = solved
+
+    Sx_s_r = _resample_2d(x_s, z_s, Sx_s, x_t, z_t)
+    Sz_s_r = _resample_2d(x_s, z_s, Sz_s, x_t, z_t)
+
+    sx_l2 = _l2_norm(Sx_s_r, Sx_t)
+    sz_l2 = _l2_norm(Sz_s_r, Sz_t)
+    return float(math.sqrt(sx_l2**2 + sz_l2**2))
+
+
 def compute_mismatch(
     motif: GeometryMotif,
     gridinit_path: str | Path,
@@ -470,6 +599,7 @@ def compute_mismatch(
     w_beta_2d: float = W_BETA_2D,
     w_kij: float = W_KIJ,
     w_aij: float = W_AIJ,
+    w_si: float = W_SI,
     use_2d: bool = True,
     use_kij: bool = True,
 ) -> MismatchReport:
@@ -586,6 +716,14 @@ def compute_mismatch(
         except Exception as exc:
             notes.append(f"K_ij matching failed: {exc}")
 
+    # --- Phase A2: S_i momentum-density mismatch (warp motifs only) --------
+    si_l2 = 0.0
+    if use_kij and _is_warp_motif(motif):
+        try:
+            si_l2 = _compute_si_mismatch(motif, gridinit_path, n=n_slice, L=L)
+        except Exception as exc:
+            notes.append(f"S_i mismatch failed: {exc}")
+
     # Exotic mass penalty
     exotic_penalty = 0.0
     if lumps is not None:
@@ -624,6 +762,7 @@ def compute_mismatch(
         + w_beta_2d * beta_2d_l2
         + w_kij * kij_l2
         + w_aij * aij_l2
+        + w_si * si_l2
         + w_exotic * exotic_penalty
     )
     feasibility_fitness = FEASIBILITY_WEIGHT * convergence_penalty
@@ -646,6 +785,7 @@ def compute_mismatch(
         beta_2d_l2=beta_2d_l2,
         kij_l2=kij_l2,
         aij_l2=aij_l2,
+        si_l2=si_l2,
         notes=tuple(notes),
     )
 

@@ -1164,6 +1164,66 @@ passes at Rung 4, the deliverable is done without touching C++.  If A2's
 acceptance fails (Mom >= 30% and no `si_l2` progress), start B1; B2 only
 if B1's mopped-up momentum residual still dominates the mismatch.
 
+---
+
+## Phase A Implementation Status (2026-07-10)
+
+Phase A is **implemented and tested** (Python-only, no C++ changes).
+
+### Implemented
+
+| Task | Status | Files |
+|------|--------|-------|
+| **A0** Analytic Alcubierre gridinit writer | ✅ | `projection/warp_gridinit.py` |
+| **A0.2** `--mode analytic-gridinit` CLI | ✅ | `scripts/search/project_geometry_motif.py` |
+| **A1** Post-solve shift + A_ij painting | ✅ | `projection/warp_gridinit.py`, CLI `--paint-warp-shift` |
+| **A2.1** Analytic `S_i` on xz-slice | ✅ | `projection/warp_gridinit.py::alcubierre_analytic_Si` |
+| **A2.3** `si_l2` mismatch term | ✅ | `projection/mismatch.py` (`_compute_si_mismatch`, `_solved_si_slice`) |
+| **A2.5** `use_compact_Vi_ansatz` CLI knob | ✅ | `--use-compact-vi-ansatz` flag |
+| **A3** Tests (18 new) | ✅ | `tests/projection/test_alcubierre.py` |
+| **A0 smoke** Preservation check on analytic gridinit | ✅ | validates shift + A_ij |
+
+### Preservation checker fixes (warp-motif specific)
+
+The preservation checker (`motif_preservation.py`) had two sign/convention
+mismatches that caused it to mis-score the analytic Alcubierre gridinit:
+
+1. **Shift alignment sign**: The Alcubierre shift is `beta^x = -v f(r_s)`
+   (negative x) but the momentum target direction is `(1, 0, 0)` (positive
+   x transport).  In ADM, a negative shift produces +x motion.  Fixed:
+   for warp motifs, the sign factor is flipped so a correctly-negative
+   shift scores positively.
+
+2. **Support localization**: Alcubierre has flat `chi=1` (the spatial
+   metric is flat), so the chi-deviation check always fails.  Fixed: for
+   warp motifs, localization is measured by `max|A_ij|` with a lower
+   threshold (`WARP_LOCALIZATION_TOLERANCE = 0.01`).
+
+After these fixes, the preservation check on the analytic gridinit reports:
+- `shift_alignment = 0.25` (correct — the bubble occupies ~25% of the slice)
+- `support_localized = True` (A_ij is non-zero at the bubble wall)
+- `polarity_retention = 1.0`
+- `retention_score = 0.36` (limited by `f_op_retention`, which requires
+  evolution to confirm the shortcut — expected for a t=0-only check)
+
+### Not yet executed (requires GPU + built GRTeclyn binary)
+
+These tasks from the plan require a running GRTeclyn binary and are left
+for the campaign execution environment:
+
+- **A0.5** GRTeclyn evolution of the analytic gridinit (Gamma-driver damping)
+- **A0.6** 4D null-geodesic FTL probe on the analytic slice
+- **A1.3** Dual Ham/Mom logging of painted vs unpainted slice (needs solve)
+- **A2.2** Warp-aware lump velocities in `fit/motif.py` (needs solve to validate)
+- **A2.4** `si_l2` in CMA-ES fitness (already wired through `compute_mismatch`)
+- **A3.2** Full 4-rung ladder execution
+
+### Test results
+
+- `pytest tests/projection -q`: **97 passed** (79 original + 18 new)
+- `pytest tests/search -q`: 99 passed, 1 pre-existing unrelated failure
+  (`test_qd_search_resume_continues_eval_counter`)
+
 ### Verification
 
 - 30 new tests in `tests/projection/test_alcubierre.py`: shape function,
@@ -1184,9 +1244,10 @@ if B1's mopped-up momentum residual still dominates the mismatch.
 | `src/grteclyn_wrapper/initial_data/motif.py` | Motif extraction from episodes |
 | `src/grteclyn_wrapper/grtresna/fit/motif.py` | Matter fitting (lumps, ring splitting) |
 | `src/grteclyn_wrapper/projection/iterate.py` | CMA-ES iteration loop |
-| `src/grteclyn_wrapper/projection/mismatch.py` | Two-phase fitness + 2D/K_ij mismatch + feasibility pre-check |
-| `src/grteclyn_wrapper/projection/motif_preservation.py` | Preservation check |
+| `src/grteclyn_wrapper/projection/mismatch.py` | Two-phase fitness + 2D/K_ij/S_i mismatch + feasibility pre-check |
+| `src/grteclyn_wrapper/projection/motif_preservation.py` | Preservation check (warp-aware shift sign + A_ij localization) |
+| `src/grteclyn_wrapper/projection/warp_gridinit.py` | Analytic Alcubierre gridinit writer + post-solve shift/A_ij painter + S_i |
 | `src/grteclyn_wrapper/search/qd_search/driver.py` | MAP-Elites driver (`geometry_first` mode) |
 | `src/grteclyn_wrapper/search/qd_search/descriptors.py` | `geometry_first` behavior descriptors |
 | `tests/projection/test_iterate.py` | Tests (37 passing) |
-| `tests/projection/test_alcubierre.py` | Alcubierre warp-drive tests (30 passing) |
+| `tests/projection/test_alcubierre.py` | Alcubierre warp-drive tests (48 passing) |

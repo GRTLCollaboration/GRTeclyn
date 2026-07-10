@@ -17,6 +17,9 @@ from ..metrics.probes.ftl.solved import build_xz_slice_from_gridinit, compute_so
 
 POLARITY_TOLERANCE = 0.35
 LOCALIZATION_TOLERANCE = 0.5
+# For warp (Alcubierre) motifs the support is in A_ij, not chi; the A_ij
+# magnitude is typically O(v*sigma) ~ 0.1-0.3, so use a lower threshold.
+WARP_LOCALIZATION_TOLERANCE = 0.01
 MOMENTUM_ALIGNMENT_MIN = 0.2
 F_OP_RETENTION_MIN = 0.25
 
@@ -108,9 +111,19 @@ def compare_motif_preservation(
     if motif.momentum_target.credible and motif.momentum_target.direction[0] != 0.0:
         mid = beta.shape[1] // 2
         signed_beta = float(np.mean(beta[:, mid, 0]))
+        # For warp (Alcubierre) motifs the shift is anti-aligned with the
+        # transport direction by convention: beta^x = -v f(r_s) produces
+        # motion in +x.  Use the absolute value so a correctly-negative
+        # shift scores positively.
+        from .mismatch import _is_warp_motif
+        sign_factor = (
+            -np.sign(motif.momentum_target.direction[0])
+            if _is_warp_motif(motif)
+            else np.sign(motif.momentum_target.direction[0])
+        )
         shift_alignment = float(
             np.clip(
-                signed_beta / max(beta_max_solved, 1.0e-8) * np.sign(motif.momentum_target.direction[0]),
+                signed_beta / max(beta_max_solved, 1.0e-8) * sign_factor,
                 -1.0,
                 1.0,
             )
@@ -130,7 +143,23 @@ def compare_motif_preservation(
 
     chi = 1.0 / np.clip(gamma[:, :, 0, 0], 1.0e-10, None)
     chi_dev = float(np.max(np.abs(chi - 1.0)))
-    support_localized = chi_dev >= LOCALIZATION_TOLERANCE
+
+    # For warp (Alcubierre) motifs the spatial metric is flat (chi=1) and
+    # the matter support lives in the extrinsic curvature A_ij, not chi.
+    # Use A_ij deviation as the localization signal instead.
+    from .mismatch import _is_warp_motif
+    if _is_warp_motif(motif):
+        a_names = ("A11", "A12", "A13", "A22", "A23", "A33")
+        a_max = 0.0
+        for name in a_names:
+            try:
+                idx = grid.comp_names.index(name)
+            except ValueError:
+                continue
+            a_max = max(a_max, float(np.max(np.abs(grid.data[:, :, :, idx]))))
+        support_localized = a_max >= WARP_LOCALIZATION_TOLERANCE
+    else:
+        support_localized = chi_dev >= LOCALIZATION_TOLERANCE
 
     retention_score = float(
         np.mean(
