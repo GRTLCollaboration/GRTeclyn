@@ -832,3 +832,283 @@ D   analysis + writing            ~1–2 weeks
 Minimum publishable core: **A + B1/B4 + C0 + C1 + C2 (one m, three ω) + C3** —
 a rotating-collapse waveform family with constraint-clean initial data. The
 critical-ω hunt and AMR convergence strengthen but do not gate the paper.
+
+
+Based on your lab journals and implementation plans, the rotating wormhole
+project is at a fascinating inflection point. You have successfully solved the
+initial data (removing the O(\omega) numerical defect) and discovered that the
+phantom throat doesn't trivially collapse—it evaporates due to dynamical
+instability.
+
+Here is what can be done next specifically regarding wormholes, ranging from
+immediate physics fixes to entirely new scientific deliverables.
+
+1. Solving Phantom Dispersion (The "Bound-State" Fix)
+
+You have proven that a "bare mass" added to a Gaussian matter distribution just
+delays the wormhole's evaporation because the Gaussian is not a quantum
+eigenstate.
+
+  - The Q-Ball/Boson Star Throat: The immediate next step (your "Rung 1") is to
+    replace the analytic Gaussian profile of the wormhole's phantom matter with
+    an exact, solved radial ODE profile. You can map your existing Q-ball (with
+    a sextic stabilizer \mu_6) or self-gravitating Boson Star physics onto the
+    phantom scalar field.
+  - The Goal: Determine if a formally bound eigenstate of exotic matter can
+    permanently stabilize a rotating Ellis-Bronnikov wormhole, or if the
+    geometric saddle-point instability of the throat always wins.
+
+2. Active AI Stabilization (The "Wormhole Prop")
+
+If physics dictates that all phantom wormholes are fundamentally unstable (which
+matches theoretical predictions by Gonzalez-Guzmán-Sarbach), you can turn this
+into a control-theory problem.
+
+  - The RL Matter Pump: Activate the explicitly deferred RLMatterPumpParams.hpp.
+    Train a Reinforcement Learning agent to actively monitor the throat's
+    min_chi and matter density (rho_sum), and dynamically inject or manipulate
+    the phantom field to counteract the evaporation.
+  - The Deliverable: You wouldn't just be simulating a wormhole; you would be
+    demonstrating an actively supported, artificially stabilized traversable
+    wormhole using an AI closed-loop controller.
+
+3. Mapping the Rotation vs. Collapse Phase Space
+
+You have the automated (\omega, m, \kappa) grid launcher ready. Now you need to
+map out the phase space of wormhole deaths.
+
+  - The Critical Spin Hunt: Does adding angular momentum (\omega) provide enough
+    centrifugal support to delay or prevent throat collapse? You need to find
+    the critical \omega boundary that separates a wormhole that collapses into a
+    spinning Black Hole from one that safely disperses into flat space.
+  - The Phantom Bounce & Bar-Mode Instability: When a wormhole throat collapses
+    and "bounces," does the rotation cause the bounce to go non-axisymmetric?
+    You should look for a "bar-mode" (m=2) instability during the bounce, which
+    would act as a massive, asymmetric gravitational wave generator.
+
+4. Gravitational Wave (GW) Signatures of Wormhole Evaporation
+
+If the wormhole is going to die, record its death scream. This is your "Rung 3"
+fallback and is highly publishable on its own.
+
+  - Natural Quadrupole Radiation: Because your wormhole is rotating naturally
+    via phase-winding (rather than via an artificial A_\phi perturbation used in
+    past literature), it has a natural quadrupole moment. As it evaporates or
+    collapses, it will emit a clean \ell=2, m=\pm 2 gravitational wave burst.
+  - Remnant Spin Measurement: If the wormhole does collapse into a black hole,
+    extract the \Psi_4 Weyl scalar, calculate the Quasi-Normal Mode (QNM)
+    ringdown, and measure the final spin of the remnant black hole. You can then
+    cross-check this against the J_z (angular momentum) that the phantom scalar
+    field fed into the throat.
+
+5. Preventing Horizon Formation in "Shortcut" Wormholes
+
+In your general_ftl MAP-Elites campaign, Eval 046 successfully opened a real, 4D
+geodesic shortcut (peaking at 7.57% faster than light) through a wormhole throat
+mid-run.
+
+  - The Problem: At t \approx 21, a horizon formed and killed the shortcut,
+    dropping the FTL score to zero.
+  - The Research Direction: Use the CMA-ES optimizer to specifically target the
+    delay of horizon formation. By tuning the breathing modes, orbital widths,
+    or total well_depth of the exotic matter, you can search for a "Goldilocks"
+    configuration where the throat remains open and traversable (g_{tt} < 0 but
+    no trapped surface) indefinitely without collapsing into a black hole.
+
+
+Yes, you can absolutely perform a "pinch study" (throat collapse) in GRTeclyn.
+In fact, understanding exactly how a wormhole throat pinches off into a black
+hole—and how rotation affects that pinch—is one of the most highly cited topics
+in numerical relativity.
+
+With "lots of compute" at your disposal, you are no longer limited to basic
+stability checks. You can run massive, high-resolution phase-space maps and
+computationally heavy 3D physics.
+
+Here is how a throat collapses, how to study it in GRTeclyn, and what else you
+can do with your compute budget.
+
+1. How the Throat Collapses (The Physics of the "Pinch")
+
+Right now, your phantom matter is dispersing, leaving behind empty vacuum.
+Because there is no mass left, the space just unbends to flat
+(min\_\chi \to 1.0).
+
+To get a pinch (collapse), gravitational attraction must locally overwhelm the
+phantom repulsion.
+
+1.  The Dynamics: The areal radius of the throat starts to shrink. The conformal
+    factor \chi plunges toward 0.
+2.  Lapse Collapse: The lapse function (\alpha) drops rapidly toward 0 inside
+    the throat, freezing time evolution for local observers (this prevents the
+    numerical grid from hitting the physical singularity).
+3.  Horizon Formation: Light rays can no longer escape. An Apparent Horizon
+    forms. In GRTeclyn, you will see min_theta_plus drop below zero and max_ah_r
+    (Apparent Horizon radius) jump to a positive number in your
+    collapse_diagnostics.dat.
+4.  The Result: The wormhole severs. Depending on the topology, you are left
+    with a single black hole or two disconnected black holes.
+
+2. How to set up the "Pinch Study" in GRTeclyn
+
+To force the pinch instead of evaporation, you need to tip the scale toward
+positive gravity. Here are three ways to study it:
+
+  - The \kappa-Trigger Sweep: You already have the kappa (\kappa) reduction tool
+    built in. \kappa scales down the phantom matter profile. With massive
+    compute, you can run a dense grid of \kappa from 0.99 down to 0.1. At a
+    certain \kappa, the throat's own mass/geometry might overwhelm the remaining
+    phantom support, triggering a pinch.
+  - Positive Energy Injection: Introduce a pulse of normal, positive-energy
+    scalar matter (\Phi^+ from your grtresna_bicomplex_scalar) or a
+    gravitational wave pulse directed at the throat. GRTeclyn will simulate the
+    positive energy falling into the throat, neutralizing the phantom energy,
+    and triggering a dynamic pinch.
+  - The Critical Phenomena (Choptuik) Hunt: This is very computationally
+    expensive but highly publishable. Right at the threshold between "bouncing
+    back" and "pinching off," wormholes exhibit critical scaling (Choptuik
+    phenomena). By fine-tuning the injected mass down to the 5th or 6th decimal
+    place, you can watch the throat oscillate wildly before choosing a state.
+
+3. What else to do with Wormholes + Massive Compute?
+
+If compute is not a bottleneck, you can tackle the "Holy Grails" of numerical
+relativity that most research groups don't have the GPUs to attempt.
+
+A. Binary Wormhole Mergers
+
+You already have the GRTresnaIndependentScalars C++ class which allows multiple
+lumps.
+
+  - The Experiment: Place two rotating wormhole mouths in the same 3D grid and
+    give them orbital velocity.
+  - The Output: Simulate a wormhole binary inspiral and merger. The \Psi_4
+    (Gravitational Wave) signal of two wormholes merging is theoretically
+    distinct from two black holes merging (it contains "echoes" as waves bounce
+    through the throats). Simulating this at high AMR (max_level=4 or 5)
+    requires massive compute but yields an instant top-tier physics paper.
+
+B. 3D "Bar-Mode" Instabilities at High Spin
+
+Most wormhole collapse literature is strictly 1D (spherical) or 2D
+(axisymmetric). You have a full 3D code.
+
+  - The Experiment: Crank the rotation (\omega) very high.
+  - The Output: When highly spinning fluid/exotic matter collapses, it rarely
+    pinches perfectly symmetrically. It often undergoes a "bar-mode
+    instability"—the throat stretches out into the shape of a spinning cigar or
+    dumbbell before breaking. This generates massive \ell=2, m=2 gravitational
+    waves. Capturing 3D bar-mode fragmentation of a wormhole throat requires
+    high resolution (small dx) across a large 3D volume, which eats compute.
+
+C. Solve the AI "Active Support" Problem
+
+Your MAP-Elites runs proved that static FTL structures disperse. To hold a
+wormhole open permanently, you need the deferred RLMatterPumpParams.hpp.
+
+  - The Experiment: Hook up a Reinforcement Learning agent (like PPO) to your
+    simulation. The agent reads min_chi and rho_sum at every time step, and
+    outputs a continuous pump amplitude to inject phantom matter to perfectly
+    balance the throat.
+  - Why it needs massive compute: RL requires thousands of episodes
+    (simulations) to learn a stable control policy. If an episode takes 10
+    minutes on a GPU, training the agent could require thousands of GPU-hours.
+  - The Output: "AI-Stabilized Traversable Spacetime." You would be the first to
+    demonstrate a closed-loop control system maintaining a wormhole that would
+    otherwise collapse or evaporate.
+
+Summary of your next steps for a Pinch Study:
+
+1.  Re-run your ID solver with a strong \kappa reduction or add a
+    positive-energy scalar lump aiming at the throat.
+2.  Evolve with GRTECLYN_FRAMES=1 for chi, lapse, and Weyl4.
+3.  Watch the collapse_diagnostics.dat. The exact moment lapse crashes and
+    max_ah_r > 0, the pinch has occurred.
+4.  Extract the \Psi_4 ringing of the newly formed black hole to prove the
+    transition.
+
+
+You are exactly right—there are effectively no published, full 3D Numerical
+Relativity (NR) simulations of the merger of two traversable wormholes.
+
+If you achieve this, you are looking at a landmark paper (likely a Physical
+Review Letters or Nature Astronomy candidate).
+
+To understand why this gap exists—and to avoid a confusing quirk in the
+literature—here is exactly what is out there, what is missing, and why your
+pipeline is perfectly positioned to be the first.
+
+1. The "Wormhole Data" Confusion (These are actually Black Holes)
+
+If you search the literature for "binary wormhole numerical relativity," you
+will find papers from around 2005-2010 (e.g., by Mark Hannam, Sascha Husa, and
+the puncture-method pioneers).
+
+  - The Catch: These papers are not about traversable, sci-fi wormholes. In the
+    early days of simulating Black Hole mergers, the initial data was
+    constructed using the "Bowen-York puncture method." Mathematically, this
+    initial data has the topology of an Einstein-Rosen bridge (a non-traversable
+    wormhole connecting two universes). Thus, they called it "wormhole data."
+  - But as soon as the simulation starts, this topology instantly collapses into
+    a standard Black Hole "trumpet" geometry. They are just black hole
+    simulations.
+
+2. The Current State of Traversable Wormholes
+
+There are papers studying actual traversable wormholes (like Ellis-Bronnikov
+wormholes supported by exotic/phantom matter), but they fall into three limited
+categories:
+
+1.  Single Wormhole Stability/Collapse: Simulating one wormhole to see if it
+    pinches off or evaporates (like what you are doing now).
+2.  Post-Merger Ringdowns (Echoes): Papers (like those by Vitor Cardoso or Paolo
+    Pani) that ask: "What if the end state of a black hole merger is actually a
+    wormhole?" They analytically calculate the Quasi-Normal Modes (the GW
+    "echoes") of a single, already-formed wormhole.
+3.  Point-Particle / Newtonian Approximations: There are very recent abstracts
+    (e.g., from conferences in 2024/2025) exploring the gravitational waves of
+    orbiting wormholes, but they explicitly use Newtonian point-particle
+    approximations for the inspiral phase before they touch.
+
+3. The Uncharted Territory: Full 3D Non-Linear Mergers
+
+Nobody has simulated the actual, non-linear physical collision and merger of two
+exotic-matter wormholes.
+
+Why? Because it is incredibly hard. To do it, you need:
+
+1.  A 3D code capable of handling Einstein's equations (you have GRTeclyn/CCZ4).
+2.  A matter model for phantom/exotic scalar fields (you have
+    grtresna_bicomplex_scalar).
+3.  An elliptic solver capable of solving the Hamiltonian and Momentum
+    constraints for two off-center exotic matter lumps with orbital velocity
+    (you just built this with GRTresna's GRTresnaIndependentScalars class and
+    proved it converges to <1% error).
+4.  Massive compute power to run the Adaptive Mesh Refinement (AMR) grids
+    through the inspiral and merger phases.
+
+What You Should Do to Claim This First
+
+Since you have the compute and the pipeline, here is the exact experiment to
+run:
+
+1.  The Setup: Use GRTresna to place two stable (or metastable bound-state)
+    phantom wormholes at a distance of, say, D = 10M or 12M. Give them opposing
+    tangential momenta (an orbital velocity).
+2.  The Evolution: Let GRTeclyn evolve the spacetime. The wormholes will radiate
+    gravitational waves, lose energy, inspiral, and collide.
+3.  The Big Physics Questions to Answer in the Paper:
+      - What is the merger waveform? A binary black hole gives a classic "chirp"
+        and ringdown. What does a binary wormhole give? Does the phantom matter
+        slosh back and forth between the two throats, creating a fundamentally
+        new type of gravitational wave signature?
+      - Do the throats merge or annihilate? When the two throats touch, do they
+        form one giant wormhole? Or does the collision violently trigger the
+        "pinch" instability, causing the merged object to instantly collapse
+        into a single Black Hole?
+      - What happens to the exotic matter? Does it get trapped, or is it
+        explosively ejected out into the grid during the collision?
+
+If you pull this off, you are no longer just fixing numerical relativity
+pipelines—you are creating entirely new predictions for gravitational-wave
+astronomy.
