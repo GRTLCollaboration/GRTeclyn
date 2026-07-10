@@ -164,7 +164,7 @@ for entry in "${CANDIDATE_ENTRIES[@]}"; do
   [[ -n "${GRIDINIT:-}" ]] && gridinit_args=(--gridinit "${GRIDINIT}")
 
   geodesic_args=()
-  if [[ "${OBJECTIVE_MODE}" != "critical_collapse" ]]; then
+  if [[ "${OBJECTIVE_MODE}" != "critical_collapse" && "${OBJECTIVE_MODE}" != "gw_beam" ]]; then
     geodesic_args=(--evolving-geodesic)
   fi
 

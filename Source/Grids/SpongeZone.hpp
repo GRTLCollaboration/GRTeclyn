@@ -82,12 +82,8 @@ struct SpongeZone
         double s = (r - inner_radius) * inv_width;
         if (s > 1.0)
             s = 1.0;
-        // Quartic or general power ramp.
-        double f = s * s;
-        if (ramp_power >= 4)
-            f = f * f; // s^4
-        else
-            f = s * s; // fallback s^2
+        // General power ramp via std::pow.
+        double f = std::pow(s, ramp_power);
 
         double extra_sigma = strength * f;
 

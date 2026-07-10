@@ -283,6 +283,8 @@ def main() -> int:
             "robust_ftl",
             "general_ftl",
             "critical_collapse",
+            "spacetime_shear",
+            "gw_beam",
         ],
         help="Scoring objective (default: general_ftl for HQ v20 replays).",
     )

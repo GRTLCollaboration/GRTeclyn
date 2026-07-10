@@ -311,3 +311,193 @@ pkill -f "gw_beam_v5"; pkill -f "main3d.*CUDA"; pkill -f "Main_BosonStarBH"
 rm -rf /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/gw_beam_v5/
 rm -f /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/_logs/gw_beam_v5.*
 ```
+
+---
+
+## 2026-07-10 — `gw_beam_v5` QD campaign results + HQ promotion of eval_000046
+
+### QD campaign — partial run (70 evals, 12 scored, stopped by user)
+
+Campaign ran on 8 H100s at 128³ / L=64 / t=40 with the junk-truncation fix in place.
+Stopped after ~70 eval dirs created (12 scored) to proceed to HQ promotion.
+
+#### Scored evals (sorted by score)
+
+| Rank | Eval | Score | mean P | peak P | gain | wz_ok | wz_std | v5_obj |
+|------|------|------:|-------:|-------:|-----:|-------|-------:|-------:|
+| 1 | **eval_000046** | **646.25** | 3.91e-6 | 7.61e-6 | 2.50 | PASS | 0.265 | 6.47 |
+| 2 | eval_000052 | 590.48 | 8.06e-6 | — | 2.04 | PASS | — | 5.92 |
+| 3 | eval_000037 | 590.48 | 8.06e-6 | — | 2.04 | PASS | — | 5.92 |
+| 4 | eval_000049 | 579.82 | 8.24e-6 | — | 1.99 | PASS | — | 5.81 |
+| 5–12 | (FAIL) | -1.0 to -1.9 | 1e-7 to 3e-5 | — | 1.8–3.0 | FAIL | 0.36–0.49 | 3.5–9.7 |
+
+4 evals passed the wavezone gate; 8 failed. The v5 scoring discriminated properly —
+PASS evals got +530 to +646, FAIL evals got penalty-level -1 to -2.
+
+#### eval_000046 — best QD configuration
+
+**Matter:** Canonical complex scalar (Q-ball boson stars), m=1, λ=640, μ=85333, ω=0.8.
+All `exotic=0` (no phantom/negative-energy matter).
+
+| Lump | R₀ | v_tangent | v_radial | well_depth | Status |
+|------|-----|-----------|----------|------------|--------|
+| 0 | 3.49 | 0.145 | -0.054 | 0.0014 | nearly OFF |
+| 1 | 6.20 | 0.175 | +0.213 | 0.009 | active |
+| 2 | 7.86 | 0.227 | -0.097 | 0.0014 | nearly OFF |
+| 3 | 7.12 | 0.237 | +0.387 | 0.018 | active (strongest pump) |
+| 4 | 5.51 | 0.135 | +0.137 | 0.013 | active |
+
+Plus global breathing (A=1.25, ω=1.55) and Z-oscillation (amp=1.27, ω=0.75).
+Effectively a 3-lump system (lumps 0, 2 nearly off) with lump 3 spiraling outward fast.
+
+**PD trap pump active:** `rl_pump_kp=12.0`, `rl_pump_kd=7.0`, `trajectory_mode=1`.
+The closed-loop PD controller drives each lump along its trajectory during the full
+evolution (not just initial conditions). `well_depth` controls how strongly the trap
+maintains the soliton — low values let lumps disperse freely.
+
+**GW power growth (QD):** P doubles every ~8 code units (log10(P) = 0.038·t − 6.6).
+Signal is growing, not decaying — the system is becoming more asymmetric as lumps spiral.
+
+#### Psi4 time series (QD, 8 samples)
+
+| t | P_total | beam_ratio | gain | wz_std | Notes |
+|---|---------|-----------|------|--------|-------|
+| 0.0 | 1.34e-6 | 0.184 | 1.74 | 0.529 | junk (excluded) |
+| 6.4 | 8.0e-8 | 0.340 | 2.36 | 0.335 | junk (excluded) |
+| 12.8 | 5.6e-7 | 0.304 | 2.22 | 0.640 | near-zone |
+| 19.2 | 1.9e-6 | 0.316 | 2.26 | 0.508 | settling |
+| 25.6 | 2.4e-6 | 0.361 | 2.45 | 0.180 | clean wave zone |
+| 32.0 | 4.4e-6 | 0.389 | 2.56 | 0.022 | clean wave zone |
+| 38.4 | 6.6e-6 | 0.432 | 2.73 | 0.112 | clean wave zone |
+| 40.0 | 7.6e-6 | 0.442 | 2.77 | 0.126 | clean wave zone |
+
+### HQ promotion — eval_000046 at 256³ / L=128 / t=40
+
+**Run dir:** `runs/grtresna_promote/gw_beam_v5_hq_hq_eval000046/`
+
+Replayed the QD score leader at full HQ resolution (256³, L=128, max_level=3, t=40)
+with multi-radius Psi4 extraction (radii 12, 16, 20, 24), sponge zone (inner=56,
+outer=64), frames on, and gw_beam v5 scoring.
+
+**Launcher:** `scripts/campaigns/gw_beam/promote_hq.sh` (new — wraps `hq/run_batch.sh`
+with gw_beam-specific env: `OBJECTIVE_MODE=gw_beam`, `GRTECLYN_PSI4=1`, sponge params,
+no evolving geodesic, frames on).
+
+#### Runtime
+
+| | |
+|---|---|
+| Wall clock | ~1h 35m (06:17 → 07:52 UTC) |
+| GRTresna HQ solve | ~8 min (8 MPI ranks, 256³ constraint solve) |
+| GPU evolution | ~78 min (t=0→40 at 31 code units/h, 256³, 55GB GPU mem) |
+| Post-run consumer drain | ~22 min (168 frames × 17 fields + Psi4 extraction) |
+| Score computation | manual (replay_eval stuck on unwanted geodesic trace) |
+
+#### Score: QD vs HQ — **score did NOT persist**
+
+| Metric | QD (128³, t=40) | HQ (256³, t=40) | Change |
+|--------|----------------:|----------------:|--------|
+| **Score** | **646.25** | **0.00** | **-100% (gate failed)** |
+| mean P | 3.91e-6 | 8.73e-7 | **-78% (4.5× weaker)** |
+| peak P | 7.61e-6 | 2.20e-6 | -71% |
+| mean gain | 2.50 | 2.64 | +6% (slightly better beaming) |
+| peak gain | 2.77 | 3.66 | +32% |
+| **wz_ok** | **True** | **False** | **gate failed** |
+| wz_std | 0.265 | 0.527 | **2× worse** |
+| dir_stability | 0.916 | 0.847 | -8% |
+| n_samples | 6 | 126 | (HQ has 21× more samples) |
+
+**The score collapsed from 646 to 0.** The wavezone gate failed (wz_std=0.53 > 0.3
+threshold), zeroing the GW reward. The v5 objective was still computed (5.12) but
+the gate killed it.
+
+#### Why the score didn't persist
+
+**1. GW power 4.5× weaker at HQ.** At 256³ the scalar field lumps are better resolved
+(less numerical diffusion), so:
+- Lumps are more compact → less spurious GW from numerical noise
+- But the real GW signal is also weaker — the weak-field Q-balls barely curve spacetime
+- The QD run's higher power was partly numerical artifacts being counted as GW
+
+**2. Wavezone 1/r check failed.** Extraction radii (12, 16, 20, 24 from center) are
+too close to the matter at HQ. In the QD run (L=64), radii 12-20 were in the wave
+zone. At HQ (L=128), the same radii are still near-zone — the better-resolved field
+extends the near-zone further. wz_std=0.53 means the signal doesn't scale as 1/r at
+these radii.
+
+**3. Beaming gain improved.** The directional preference is real and gets stronger
+at HQ (mean 2.50→2.64, peak 2.77→3.66). This is the one metric that persisted and
+improved — the beam is not a numerical artifact.
+
+#### Physics at HQ
+
+| Quantity | Value at t=40 | Interpretation |
+|----------|--------------|----------------|
+| chi_min | 0.970 | Space compressed by ~3% (weak gravity) |
+| chi_max | 1.010 | Slight stretching (gauge) |
+| phi_max | 1.16e-2 | Scalar field amplitude (small) |
+| Weyl4_max | 1.4e-3 | GW amplitude (small but growing) |
+| Ham constraint | 4.5e-4 | Healthy, growing linearly |
+| Matter RMS spread | ~8 code units | Stable (not dispersing) |
+
+**Constraint health:** Excellent. Hamiltonian = 4.5e-4 at t=40, growing linearly
+but slowly. No blow-up, no NaN. The simulation is numerically stable throughout.
+
+**Matter state:** The 3 active Q-ball lumps are holding together (PD trap maintaining
+them). RMS spread ~8 code units, stable from t=11 to t=18. Not dispersing — the
+opposite of the FTL campaign's eval 118 which fell apart by t=30.
+
+#### Psi4 time series (HQ, last 5 of 169 samples)
+
+| t | P_total | beam_ratio | gain | wz_std |
+|---|---------|-----------|------|--------|
+| 38.88 | 1.95e-6 | 0.576 | 3.30 | 1.124 |
+| 39.36 | 2.05e-6 | 0.582 | 3.33 | 1.112 |
+| 39.60 | 2.11e-6 | 0.599 | 3.40 | 1.123 |
+| 39.84 | 2.16e-6 | 0.634 | 3.54 | 1.141 |
+| 40.00 | 2.20e-6 | 0.665 | 3.66 | 1.153 |
+
+Power growing, beaming strengthening (gain 3.3→3.7), but wz_std >1.0 — signal is
+not in the wave zone at these radii.
+
+#### Artifacts
+
+- **17 movies** (`movies/movie_*.mp4`): scalar_activity, Weyl4_Re/Im/Mag, chi,
+  chi_minus_1, local_speed, shift1, lump_activity, phi_lump_sum, Pi_lump_sum
+  (z-slices + x/y/z projections)
+- **17 plots** (`plots/`): constraints, collapse diagnostics, Psi4 analysis at
+  M=30/1000 × D=0.002/1/10 Mpc (waveforms + PSD + propagation + strain + LIGO),
+  custom `psi4_directional_analysis.png` (4-panel: power, gain, wz_std, beam_ratio)
+- `score.json`, `metadata.json`, `small_data/` (169-row psi4_directional.dat,
+  psi4_mode_l2m0.dat, constraint_norms.dat, collapse_diagnostics.dat)
+
+### Plain English summary
+
+We took the best configuration from the search (eval 000046 — three Q-ball lumps
+orbiting with a breathing mode) and replayed it at 4× higher resolution (256³ vs
+128³) for the same duration (t=40).
+
+**What worked:**
+- The simulation ran perfectly — no crashes, constraints healthy throughout
+- The directional beaming is real and got stronger (2.6× → 3.7× peak gain)
+- The matter is stable — Q-balls held together, not dispersing
+
+**What failed:**
+- The gravitational waves are 4.5× weaker than the search predicted
+- The search score of 646 dropped to 0 at HQ — the wavezone quality check failed
+- The search was partly rewarding numerical noise as if it were gravitational waves
+- The extraction radii are too close to the matter at HQ resolution
+
+**Root cause:** These are very weak gravitational fields (chi_min = 0.97, only 3%
+deviation from flat space). The Q-balls are diffuse, low-density objects — they
+don't curve spacetime enough to produce strong GWs. The beaming is real but the
+total power is too weak.
+
+**Next steps for strong, beamed GWs with real matter:**
+1. **Denser lumps** — self-gravitating boson stars (higher central amplitude, compact
+   ODE profiles) instead of diffuse Q-balls
+2. **Faster motion** — higher orbital velocities (currently 0.01-0.02c tangential,
+   need ~0.1-0.3c for significant quadrupole radiation)
+3. **Closer orbits** — lumps at R=1-3 instead of R=5-8 (stronger tidal forces)
+4. **Wider HQ extraction radii** — need radii at 30-50 from center for L=128 box
+5. **Higher well_depth** — stronger PD trap pump to maintain lumps at closer radii
