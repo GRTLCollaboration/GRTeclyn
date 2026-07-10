@@ -1,284 +1,144 @@
-# Next Steps — Critical Review & Implementation Plan
+Based on the provided internal reviews, lab journals, and roadmap documents,
+here is a synthesis of the Directions for Research Improvements and the
+Publishable Results.
 
-Senior-scientist review of the FTL / GW / self-grav campaigns (2026-07-07), plus a
-prioritized, actionable implementation plan. Companion to
-[`README.md`](README.md) (§Main results) and [`SELFGRAV_HANDOFF.md`](SELFGRAV_HANDOFF.md).
+The project has achieved remarkable engineering milestones (MAP-Elites searching
+over constraint-solved initial data in full numerical relativity), but the
+physics instrumentation needs to catch up to the search capabilities before
+making definitive physical claims.
 
----
+Part 1: Directions for Research Improvements
 
-## 1. Verdict
+The immediate research directions are structured into four main pillars:
+Instrumentation/Calibration, Matter Confinement, Active Control (RL), and
+Geometry Expressivity.
 
-The **engineering** is strong: constraint-solved initial data in the loop, a
-validation ladder that has caught five distinct classes of false positives,
-honest negative results (boson 0/94), and documented reward-hacking closure
-(gw_beam v3 → v4). That is more methodological discipline than most
-computational-physics projects have.
+1. Instrumentation & Calibration (The "P1-P4" Physics Baseline)
 
-The **physics framing has a soft core**: the headline claim ("genuine
-gauge-invariant FTL shortcuts exist") rests on a baseline definition that is
-not actually gauge-invariant, the probe has never been calibrated against a
-known analytic answer, and the most theorem-relevant quantity (ANEC along the
-shortcut ray) is never computed. Fixing those three things makes the results
-defensible; skipping them invites a one-paragraph referee rejection.
+Before any claims of "gauge-invariant FTL" can be published, the 4D
+null-geodesic probe must be calibrated and made rigorously gauge-independent.
 
-The README's own finding #3 ("search design is the dominant lever") is
-correct, and should be sharpened: **the search is done discovering; the
-instrumentation now has to catch up to the claims.**
+  - Probe Calibration (Positive & Negative Controls): The probe must be tested
+    against a Schwarzschild baseline to confirm it correctly reports a Shapiro
+    delay (negative f_{geo}), and against an analytic Alcubierre/Krasnikov
+    metric to confirm it recovers a known transit-time advantage.
+  - Gauge-Honest Baseline (Gao-Wald standard): The current metric compares
+    transit time against a flat-space coordinate distance. This must be upgraded
+    to compare against a reference null ray routed through the far-field region
+    of the same spacetime to ensure pure gauge-invariance.
+  - Wave-Zone GW Extraction: Current GW extraction at radii r=8, 12, 24 for
+    sources of size 10-18 is in the "near-zone." The extraction domain must be
+    pushed further out (or mesh-refined) to ensure \Psi_4 amplitude falls as 1/r
+    before quoting beaming ratios or doing LIGO matched-filtering.
+  - Rigorous Convergence: The claim that FTL configs hit a "resolution ceiling"
+    must be replaced with a true 3-resolution ladder (e.g., 128^3, 256^3, 384^3)
+    to demonstrate Richardson extrapolation and formal convergence order for the
+    f_{geo} metric.
 
----
+2. Matter Confinement & Boundary Physics
 
-## 2. Validity assessment
+The search proved that FTL shortcuts in GR are transient because the exotic
+matter always disperses or collapses. Stabilizing the matter is the next
+physical bottleneck.
 
-### What is solid
+  - Pump-Free Self-Gravitating Boson Stars: The current boson star requires an
+    unphysical "pump" to hold together. The focus must shift to truly
+    stable-branch stars. This involves fixing the Kaup limit discrepancy (0.62
+    vs textbook 0.633), defaulting to a safely stable amplitude
+    (\phi_c \approx 0.06-0.07), and stabilizing high-resolution AMR runs with
+    Kreiss-Oliger dissipation and CCZ4 tuning.
+  - Wormhole Stabilization: Massless phantom scalar wormholes evaporate because
+    they lack a confining potential. The fix is moving to a bound-state profile
+    (Q-ball or self-gravitating boson star) with a non-zero mass (phantom_mass
+    > 0) to prevent dispersion.
+  - Boundary Reflection Mitigation (The "Sponge Zone"): To solve the
+    accumulation of boundary reflections over long runs, implement a Sponge
+    Layer (Kreiss-Oliger dissipation ramped up in the outer 20% of the grid).
+    This slows and decays outgoing waves before they can reflect off the
+    Sommerfeld boundaries.
 
-| Strength | Why it matters |
-|----------|----------------|
-| Constraint-solved initial data + post-load gate | Every `gpu_ok` candidate is a genuine Einstein solution at t=0 — many "warp drive" papers lack this |
-| Evolving 4D null-ray tracing | Correct *class* of probe (vs coordinate Dijkstra, correctly demoted after the wormhole paradox) |
-| Falsification tiers, HQ ladder, geodesic trust flags | Caught eval 008 (low-res artifact), SH 151/101 (gauge), gw_beam v3 (numerical bomb) |
-| Controlled boson-vs-scalar comparison (0/94 vs 32/92) | A real negative control inside the search itself |
-| Consistency with theory | Exotic matter → transient shortcuts, canonical matter → none. Matches Olum 1998 / Gao–Wald 2000: superluminal shortcuts require ANEC violation |
+3. Active Control (Reinforcement Learning)
 
-### Core problem 1 — the `f_geo` baseline is coordinate-dependent
+Moving from MAP-Elites (fire-and-forget ballistics) to RL requires an agent that
+obeys Einstein's constraints (i.e., you cannot artificially "respawn" matter
+without breaking the Hamiltonian/Momentum constraints).
 
-`evolving_geodesic.py` defines `t_flat = |x_end - x_start|` — a **coordinate**
-distance (see module docstring, `f_geo = max(0, (t_flat - t_travel)/t_flat)`).
-The null ray itself is gauge-honest; the *comparison* is not. "Beats flat
-space" only means something if:
+  - The "Tractor Beam" (Active Trajectory Control): Use a Python RL library
+    (like PPO via Stable-Baselines3) to continuously "pilot" the C++
+    TrajectoryEvaluator. The agent observes center-of-mass and dispersion rates,
+    and actively tweaks the velocity vector (v_{rad}, \omega_{rot}) and pump
+    amplitude to shepherd the matter through centripetal balance.
+  - Bicomplex Scaffolding: Train the agent to control only Normal (canonical)
+    matter to create a stable gravitational "cage." The agent learns to squeeze
+    and rotate the normal matter to trap the Exotic (phantom) matter, milking it
+    for an FTL wake without letting it disperse.
+  - Physics Accounting: Any active RL "pump" injects a non-conservative source
+    term. These runs must be strictly tagged as actuated (engineering) rather
+    than physical (pure GR solutions), unless the pump's stress-energy is
+    properly accounted for in the CCZ4 matter sources.
 
-- the ray endpoints sit where the metric is ≈ Minkowski in these coordinates
-  (unchecked — box L=64–128 containing structure of RMS radius up to ~18), and
-- coordinate time at the endpoints ≈ proper time of an asymptotic observer
-  (unchecked).
+4. Geometry Expressivity
 
-If ψ, α, β deviate from (1, 1, 0) at the box edges, percent-level `f_geo` can
-be manufactured or masked purely by the spatial gauge. The ~10–20% signals are
-probably above that floor — but the floor has never been *measured*. The
-theorem-clean formulation (Gao–Wald) compares arrival against a reference ray
-between the **same endpoints routed through the far field of the same
-spacetime** (same ADM mass), not literal Minkowski. Additionally,
-`max(0, ...)` clips the Shapiro-*delay* regime, discarding the built-in sanity
-check that positive-mass configs should show negative would-be `f_geo`.
+  - Puncture Free Data: Expand the GRTresna search space from matter-only to
+    matter + Bowen-York punctures. This unlocks genuine Einstein-Rosen bridges,
+    multi-throat configurations, and Morris-Thorne style
+    exotic-shells-around-throats.
 
-### Core problem 2 — no positive or negative control has ever run through the pipeline
+Part 2: Publishable Results
 
-The probe has only ever measured its own discoveries. Until it demonstrably
-(a) reports a Shapiro **delay** on Schwarzschild-like data and (b) recovers the
-**known** transit-time advantage of an analytic Alcubierre/Krasnikov metric
-(cf. Clough et al. 2024 warp-collapse evolutions), every champion number is
-produced by uncalibrated instrumentation.
+The project has generated highly defensible and novel results. Rather than
+publishing a sensationalist "FTL exists" paper (which is already known
+analytically to be possible with exotic matter), the documents outline four
+distinct, high-impact papers:
 
-### Core problem 3 — the pump breaks Einstein-consistency wherever it is active
+Paper 1: Methods — AI-Driven Discovery in Numerical Relativity
 
-The RL/feedback pump injects a non-conservative source term into the scalar
-field equation. Unless its stress-energy is included in the constraints and in
-the CCZ4 matter sources, pumped runs are **not solutions of the Einstein
-equations** (Bianchi identities violated; constraint growth guaranteed). Fine
-for "actuated engineering" exploration; fatal for any physics claim. Note the
-self-grav "fixed" star in `SELFGRAV_HANDOFF.md` still runs with the pump on — a
-truly correct stable-branch boson star needs **no** pump, and the residual leak
-(RMS 2.1 → 4.2 by t=16) with the pump active suggests remaining inconsistency
-in the initial-data painting, not a missing trap.
+  - The Claim: Demonstrating a Quality-Diversity (MAP-Elites) search pipeline
+    operating directly over constraint-solved initial data in full 3D numerical
+    relativity.
+  - The Highlight: The "validation ladder." The paper will detail how the
+    pipeline successfully decoupled gauge artifacts from physical geometry. It
+    will feature the "false-positive table" (e.g., catching a 24.6\% FTL signal
+    that was a low-res artifact, or a 2.26c coordinate speed that was just a
+    lapse collapse). This proves the robustness of the methodology.
 
-### Secondary concerns
+Paper 2: A Negative Result — The Canonical Matter Barrier
 
-- **Exotic matter = ghost scalar** — classically unstable, quantum-forbidden in
-  sustained form. The honest framing is "how much NEC violation buys how much
-  shortcut in full nonlinear GR," not "FTL exists."
-- **"All FTL configs converge to ~20% peak f_geo (resolution ceiling)"** — if
-  the observable has a resolution ceiling, that is a resolution-dependent
-  measurement, not convergence. Need ≥3 resolutions + demonstrated convergence
-  order for `f_geo` itself.
-- **Global L2 constraint gates (1e-2) hide local violation** in the channel
-  where the shortcut actually lives.
-- **GW extraction at r = 8/12/24 for sources of size ~10–18 is near-zone**, not
-  radiation. gw_beam ratios and LIGO matched-filter templates built on this Ψ₄
-  are not asymptotic quantities.
-- **Linear temporal interpolation of the metric stack** has unquantified error
-  vs plotfile cadence.
-- **Kaup limit 0.62 vs textbook 0.633** — 2% error in the quantity that decides
-  stable-vs-unstable branch selection.
-- **Uncommitted work across two repos** (self-grav fix) is a reproducibility
-  time bomb.
+  - The Claim: A systematic, high-dimensional search found zero superluminal
+    shortcuts using canonical (positive-energy) matter (0/94 in boson shell
+    runs, 0 in Lentz arm).
+  - The Highlight: This provides rigorous, empirical numerical relativity
+    support for the Gao-Wald energy-condition theorems. It serves as a direct
+    empirical challenge to recent literature proposing positive-energy warp
+    drives, proving that without negative energy, the optimizer cannot cheat the
+    topology of GR.
 
----
+Paper 3: Quantitative Physics — ANEC Violation vs. Shortcut Depth
 
-## 3. Implementation plan
+  - The Claim: Establishing the first empirical "exchange rate" between Averaged
+    Null Energy Condition (ANEC) violation and shortcut depth (f_{geo}) in full,
+    non-linear GR dynamics.
+  - The Highlights:
+      - Universal Transience: Demonstrating that all discovered FTL shortcuts in
+        dynamic GR are transient—they eventually close via matter dispersion or
+        horizon formation.
+      - Ford-Roman Quantum Inequality (QI) Margins: Quantifying exactly how many
+        orders of magnitude the necessary negative-energy pulses exceed
+        quantum-inequality bounds, converting "warp drive" hype into an honest
+        physical limitation constraint.
 
-Ordered by (value ÷ cost). Each workstream lists tasks, files, and acceptance
-criteria. P1–P4 are instrumentation and require **no new campaigns** — they
-re-analyze existing champions (eval 122, wormhole 046, spiral 118) or run
-single cheap evolutions.
+Paper 4: Rotating Phantom Wormhole Dynamics
 
-### P1 — Control suite for the FTL probe *(highest value, cheapest)*
-
-Calibrate the instrument before trusting any more readings.
-
-| Task | Detail |
-|------|--------|
-| Negative control | Schwarzschild (or boosted single star) initial data → probe must report Shapiro **delay** (negative unclipped `f_geo`) of analytically predictable magnitude, at every resolution |
-| Positive control | Analytic Alcubierre / Krasnikov metric stack (via `evolving_field_from_analytic_stack`, already exists) with a *known* transit-time advantage → probe must recover it to stated tolerance |
-| Cadence convergence | Re-run a champion probe at 2× and 4× plotfile cadence → quantify temporal-interpolation error on `f_geo` |
-| Permanent gate | Wire all three into a pytest module so every future probe change is recalibrated automatically |
-
-- **Files:** `src/grteclyn_wrapper/metrics/probes/ftl/evolving_geodesic.py`
-  (reuse `evolving_field_from_analytic_stack`), new
-  `tests/metrics/ftl/test_probe_controls.py`, analytic metric generators under
-  `metrics/probes/ftl/`.
-- **Acceptance:** Schwarzschild delay within tolerance of analytic Shapiro
-  value; analytic warp `f_geo` recovered within ±X% (fix X from cadence study);
-  tests run in CI/pytest preflight.
-
-### P2 — Gauge-honest baseline; re-measure the champions
-
-| Task | Detail |
-|------|--------|
-| Unclip `f_geo` | Report signed value; keep `max(0,·)` only at scoring time |
-| Far-field reference ray | Replace/augment `t_flat = |x_end - x_start|` with a reference null ray between the same endpoints routed through the far-field region of the **same** spacetime (Gao–Wald-style comparison); report both `f_geo_flat` and `f_geo_reference` |
-| Endpoint weak-field check | At launch/arrival points, record ψ, α, β deviations from (1,1,0); flag the report `endpoint_weakfield_ok` and gate scoring on it |
-| Re-measure champions | eval 122 (`trajectory_5lump_v1`), wormhole 046 (HQ), spiral 118 — offline re-probe from retained metric stacks, no rerun needed where stacks exist |
-
-- **Files:** `metrics/probes/ftl/evolving_geodesic.py`,
-  `metrics/probes/ftl/geodesic.py`, report dataclasses, scoring hookup in
-  `metrics/score/ftl.py`; docs update in `metrics/README.md`.
-- **Acceptance:** champions re-reported with reference-ray baseline + endpoint
-  diagnostics; any champion whose signal collapses under the new baseline is
-  reclassified (update README results tables honestly).
-
-### P3 — ANEC integrals + quantum-inequality margin *(the novel result)*
-
-The theorem-relevant quantity, and the most publishable number in the project:
-an empirical **exchange rate between ANEC violation and shortcut depth** in
-full nonlinear GR.
-
-| Task | Detail |
-|------|--------|
-| ANEC along champion rays | Integrate ∫ T_μν k^μ k^ν dλ along the traced shortcut geodesics (ray path already produced by the probe; T_μν available from matter fields on the grid) |
-| Exchange-rate table | For all confirmed champions + several sub-threshold candidates: (ANEC integral) vs (peak/evolving `f_geo`) |
-| Ford–Roman QI margin | Compute how many orders of magnitude the champions' negative-energy pulses exceed quantum-inequality bounds — converts "FTL evidence" into an honest physical statement |
-
-- **Files:** new `metrics/probes/ftl/anec.py`; hook into
-  `EvolvingGeodesicFtlReport`; analysis notebook/script under
-  `scripts/search/`.
-- **Acceptance:** ANEC < 0 along every confirmed shortcut ray (theorem
-  consistency check); exchange-rate plot; QI margin quoted per champion.
-
-### P4 — Real convergence + channel-local constraints
-
-| Task | Detail |
-|------|--------|
-| 3-resolution ladder for eval 122 | 128³ / 256³ / 384³ (or 512³ if feasible), same physics; Richardson-extrapolate `f_geo` and quote a convergence order — retire the "resolution ceiling" phrase |
-| Channel-local constraint monitor | Max/L∞ Ham & Mom in a tube around the champion ray path per plotfile (not just global L2); add to `small_data/` outputs |
-| Constraint-triggered checkpointing | For the self-grav high-res NaN: checkpoint on constraint-spike so blow-ups can be bisected instead of rerun blind |
-
-- **Files:** `scripts/campaigns/hq/` ladder launcher; new diagnostic in
-  `metrics/diagnostics/`; consumer hookup in `visualisation/`.
-- **Acceptance:** quoted convergence order for `f_geo(eval 122)`; channel-local
-  constraint violation demonstrably small relative to the curvature scale
-  producing the shortcut.
-
-### P5 — Pump physics accounting / run-class split
-
-| Task | Detail |
-|------|--------|
-| Audit pump stress-energy | Determine whether the pump term enters CCZ4 matter sources + constraint diagnostics. If not, either add its T_μν or — simpler — formally split run classes |
-| Run-class split | Tag every run `physical` (no pump, claims allowed) vs `actuated` (pump on, engineering only); propagate the tag through `EpisodeMetrics`, trajectories, and results tables |
-| Documentation | README + lab journals updated so no pumped number is cited as a GR result |
-
-- **Files:** `Examples/RadialRecipe/RadialRecipeMatterDispatch.hpp`,
-  `ComplexScalarField.impl.hpp` (audit); `grtresna/matter/wiring.py`,
-  `metrics/episode_metrics.py` (tagging).
-- **Acceptance:** every result table row carries a run class; no `actuated` row
-  is presented as physics.
-
-### P6 — Self-grav boson star: pump-free, consistent, committed
-
-| Task | Detail |
-|------|--------|
-| Pump-free stable star | A correct stable-branch star must sit without a trap. Chase the residual leak in the initial-data painting (profile shape vs generic `sech`, lapse/momentum consistency) rather than compensating with the pump |
-| Kaup discrepancy | Resolve 0.62 vs 0.633 (ODE tolerance / isotropic conversion) before trusting branch selection; default `phi_c` to a safely stable 0.06–0.07 (current default 0.08 is marginal) |
-| High-res stability | KO dissipation, CCZ4 κ₁/κ₂ tuning, 1+log gauge start, fixed (non-regridding) refinement around the star — per the handoff's own list, now with P4's constraint-triggered checkpoints |
-| Commit both repos | GRTeclyn `feature/interstellar` + sibling GRTresna; tag campaign configs and seeds |
-
-- **Acceptance:** pump-free star holds RMS radius within ~10% over t=16 at
-  `max_level≥2`; no NaNs to t=16 at `max_level=3`; both repos committed.
-
-### P7 — Wave-zone GW extraction *(prerequisite for any further gw_beam / LIGO work)*
-
-| Task | Detail |
-|------|--------|
-| Larger extraction domain | Push extraction radii to r ≳ several × source size (bigger box or mesh-refined far zone); extrapolate Ψ₄ r→∞ across radii |
-| Full multipole set | Beyond l=2,m=0 — beaming characterization needs the (l,m) spectrum |
-| Pause LIGO matched-filter search | Until templates come from wave-zone waveforms with defensible physical scaling |
-
-- **Files:** `visualisation/process_wave/`, `scripts/plot/`,
-  `gw_search/README.md` (add prerequisite note).
-- **Acceptance:** Ψ₄ amplitude falls as 1/r across extraction radii
-  (radiation-zone check) before any beam ratio or template is quoted.
-
----
-
-## 4. Scoring & search improvements (cross-cutting)
-
-1. **Drop `operational_ftl` (coordinate Dijkstra, weight 400) from scoring** —
-   it has produced both false positives and false negatives; keep as a
-   diagnostic only. Headline scoring = evolving geodesic + trust gates
-   exclusively.
-2. **Move toward constrained optimization** — hard feasibility gates + a single
-   physical objective, instead of ~15 weighted components per mode. Every
-   reward-hacking episode so far came from weighted-sum leakage.
-3. **Hold-out validation metrics** — keep at least one physical diagnostic out
-   of the objective entirely and check champions against it post hoc
-   (adversarial validation against metric-hacking).
-4. **ADM mass/momentum tracking** — free integration-quality diagnostic; ghost
-   matter permits negative ADM mass, worth knowing per champion.
-5. **Proper apparent-horizon finder** (outgoing null expansion) if the current
-   trapped-surface veto is a proxy.
-
-### P8 — Geometry expressivity via puncture free data
-
-Extend the forward search from matter-only to matter + Bowen–York puncture
-free data (masses, spins, momenta — already exposed in `GRTresnaConfig` but
-never searched): genuine Einstein–Rosen bridges, multi-throat configurations,
-and exotic-shell-around-throat (Morris–Thorne) campaigns. Full phased plan:
-[`PuncturePlan.md`](PuncturePlan.md). Depends on P1/P2 (probe calibration)
-before its discovery phase.
-
----
-
-## 5. What the publishable claims actually are
-
-Not "FTL exists" — exotic-matter shortcuts have been known possible since
-Alcubierre/Olum/Visser. The defensible papers in this work:
-
-1. **Methods** — quality-diversity search over constraint-solved initial data
-   with a gauge-artifact-rejecting validation ladder ("AI-driven discovery in
-   numerical relativity"), with the false-positive table as the centerpiece.
-2. **Negative result** — systematic search finds *zero* shortcuts from
-   canonical matter (boson 0/94, Lentz arm): numerical support for the
-   energy-condition theorems and a direct empirical challenge to
-   positive-energy warp proposals.
-3. **Quantitative** — the ANEC-violation-vs-shortcut exchange rate (P3) and the
-   universal transience result (every shortcut closes via dispersal or horizon
-   formation) — dynamics no constructed-metric paper can show.
-
-All three require P1–P4 to be complete first.
-
----
-
-## 6. Suggested execution order
-
-```
-P1 (controls)          ~ days      ── unlocks trust in everything downstream
-P2 (baseline)          ~ days      ── re-scores existing champions offline
-P3 (ANEC/QI)           ~ 1 week    ── the novel result; needs P1+P2 semantics
-P4 (convergence)       ~ 1 week GPU── runs alongside P3
-P5 (pump split)        ~ days      ── mostly bookkeeping + audit
-P6 (self-grav)         ~ weeks     ── the physics bottleneck; parallel track
-P7 (GW wave zone)      ~ 1 week    ── only if gw_beam/LIGO remains a goal
-P8 (punctures)         ~ 3–4 weeks ── geometry expressivity; phases 0–1 can
-                                      start now, discovery phase after P1+P2
-                                      (see PuncturePlan.md)
-```
-
-P1 + P2 + P3 together are the minimum bar before writing up any FTL claim.
+  - The Claim: The first robust dynamical simulation of a rotating
+    phantom-scalar wormhole collapsing/dispersing, mapping the outcome phase
+    space against rotation (\omega), azimuthal modes (m), and amplitude
+    (\kappa).
+  - The Highlights:
+      - Extracting the natural-quadrupole (\ell=2, m=\pm2) gravitational wave
+        burst that occurs when a rotating massless-phantom throat undergoes
+        dynamic instability and radiates its support away.
+      - A methodological breakthrough for the field: proving that using a
+        constraint-clean trigger (\kappa re-solve) keeps the Hamiltonian
+        residual bounded until horizon formation, directly fixing the "steady
+        constraint growth" defect that plagued previous Ellis-Bronnikov collapse
+        literature.
