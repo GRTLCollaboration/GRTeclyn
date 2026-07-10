@@ -11,6 +11,7 @@
 #include "RLMatterPumpParams.hpp"
 #include "ScalarField.hpp"
 #include "SimulationParameters.hpp"
+#include "SpongeZone.hpp"
 #include "Weyl4WithMatter.hpp"
 
 #include <AMReX_MultiFab.H>
@@ -131,10 +132,8 @@ inline void eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
         amrex::ParallelFor(
             a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
             { ccz4rhs(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]); });
-        return;
     }
-
-    if (uses_complex_scalar(params))
+    else if (uses_complex_scalar(params))
     {
         const RLMatterPumpParams pump = build_rl_pump(params, 1);
 
@@ -149,10 +148,8 @@ inline void eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
         amrex::ParallelFor(
             a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
             { ccz4rhs(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]); });
-        return;
     }
-
-    if (uses_bicomplex_scalar(params))
+    else if (uses_bicomplex_scalar(params))
     {
         const RLMatterPumpParams pump = build_rl_pump(params, 2);
 
@@ -166,10 +163,8 @@ inline void eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
         amrex::ParallelFor(
             a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
             { ccz4rhs(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]); });
-        return;
     }
-
-    if (params.recipe_exotic_matter)
+    else if (params.recipe_exotic_matter)
     {
         ExoticScalarField<DefaultPotential> exotic_scalar(
             DefaultPotential(), params.recipe_support_strength);
@@ -180,17 +175,28 @@ inline void eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
         amrex::ParallelFor(
             a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
             { ccz4rhs(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]); });
-        return;
+    }
+    else
+    {
+        ScalarField<DefaultPotential> scalar_field;
+        CCZ4RHSWithMatter<ScalarField<DefaultPotential>,
+                          MovingPunctureGaugeWithMatter, FourthOrderDerivatives>
+            ccz4rhs(scalar_field, params.ccz4_params, dx, params.sigma,
+                    params.formulation, 1.0, center, time);
+        amrex::ParallelFor(
+            a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+            { ccz4rhs(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]); });
     }
 
-    ScalarField<DefaultPotential> scalar_field;
-    CCZ4RHSWithMatter<ScalarField<DefaultPotential>,
-                      MovingPunctureGaugeWithMatter, FourthOrderDerivatives>
-        ccz4rhs(scalar_field, params.ccz4_params, dx, params.sigma,
-                params.formulation, 1.0, center, time);
-    amrex::ParallelFor(
-        a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
-        { ccz4rhs(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]); });
+    // Sponge zone: apply extra radially-ramped KO dissipation in the outer
+    // shell to absorb outgoing waves before they hit the Sommerfeld boundary.
+    if (params.sponge_params.enabled)
+    {
+        const SpongeZone sponge(params.sponge_params, dx);
+        amrex::ParallelFor(
+            a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+            { sponge.apply(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]); });
+    }
 }
 
 } // namespace RadialRecipeMatter

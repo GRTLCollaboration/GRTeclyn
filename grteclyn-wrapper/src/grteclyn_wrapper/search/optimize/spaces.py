@@ -638,7 +638,7 @@ def grtresna_trajectory_search_space(
         )
         dims.append(
             SearchDimension(
-                f"trajectory_lump{k}_well_depth", 0.01, 0.15, 0.05
+                f"trajectory_lump{k}_well_depth", 0.0, 0.15, 0.05
             )
         )
         # Normalized radial drift fraction for spiral orbits (signed: inward < 0,

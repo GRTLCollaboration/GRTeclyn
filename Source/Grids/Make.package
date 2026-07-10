@@ -8,4 +8,5 @@ GRTECLYN_CEXE_headers += BCParity.hpp \
                          FourthOrderDerivatives.hpp \
                          NullBCFill.hpp \
                          SixthOrderDerivatives.hpp \
+                         SpongeZone.hpp \
                          Tensor.hpp

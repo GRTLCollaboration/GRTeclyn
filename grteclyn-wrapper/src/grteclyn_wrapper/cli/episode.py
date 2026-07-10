@@ -29,9 +29,15 @@ def finalize_score(
     *,
     score_weights: Mapping[str, float] | None = None,
     ftl_L: float | None = None,
+    objective_mode: str = "weighted",
 ) -> int:
     metrics = read_episode_metrics(episode_dir, ftl_L=ftl_L)
-    score = score_episode(metrics, target_stop_time=target_stop_time, weights=score_weights)
+    score = score_episode(
+        metrics,
+        target_stop_time=target_stop_time,
+        weights=score_weights,
+        objective_mode=objective_mode,
+    )
     write_json(
         episode_dir / "score.json",
         {
@@ -100,6 +106,7 @@ def run_single(args: argparse.Namespace, overrides: dict[str, Any]) -> int:
         target_stop_time=overrides.get("stop_time"),
         score_weights=getattr(args, "score_weights", None),
         ftl_L=getattr(args, "ftl_L", None),
+        objective_mode=getattr(args, "objective_mode", "weighted"),
     )
     return result.returncode
 

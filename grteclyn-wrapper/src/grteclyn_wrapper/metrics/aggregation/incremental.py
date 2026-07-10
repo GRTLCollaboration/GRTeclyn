@@ -288,6 +288,9 @@ class IncrementalScoreWriter:
             psi4_rows = _rows_up_to(ctx.small_data_dir / "psi4_directional.dat", at_time, 4)
             if not psi4_rows:
                 return None
+            # v5: truncate junk radiation before the wave-zone window.
+            from ...metrics.score.gw_beam import gw_min_valid_observation_time
+            min_valid_t = gw_min_valid_observation_time()
             psi4 = read_psi4_metrics(
                 ctx.small_data_dir,
                 max_peak_time=(
@@ -295,6 +298,7 @@ class IncrementalScoreWriter:
                     if constraints is not None and constraints.has_constraint_spike
                     else None
                 ),
+                min_valid_time=min_valid_t,
             )
             return EpisodeMetrics(
                 collapse=collapse,

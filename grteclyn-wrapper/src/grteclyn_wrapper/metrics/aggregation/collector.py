@@ -370,7 +370,15 @@ def read_episode_metrics(
             if constraints is not None and constraints.has_constraint_spike
             else None
         )
-        psi4 = read_psi4_metrics(ctx.small_data_dir, max_peak_time=spike_t)
+        # v5: also truncate junk radiation before the wave-zone window.
+        # Light travel from orbit (R~5) to innermost extraction radius + margin.
+        from ...metrics.score.gw_beam import gw_min_valid_observation_time
+        min_valid_t = gw_min_valid_observation_time()
+        psi4 = read_psi4_metrics(
+            ctx.small_data_dir,
+            max_peak_time=spike_t,
+            min_valid_time=min_valid_t,
+        )
     except Exception:
         psi4 = None
 

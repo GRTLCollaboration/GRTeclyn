@@ -6,6 +6,7 @@
 #include "GRTresnaScalarLayout.hpp"
 #include "RadialRecipeInitialData.hpp"
 #include "SimulationParametersBase.hpp"
+#include "SpongeZone.hpp"
 #include "TrajectoryParams.hpp"
 
 #include <array>
@@ -122,6 +123,15 @@ class SimulationParameters : public SimulationParametersBase
             auto &lk = trajectory_params.lumps[k];
             load_trajectory_lump(pp, k, lk);
         }
+
+        // Numerical sponge zone: radially-ramped extra KO dissipation in an
+        // outer shell to suppress boundary reflections without enlarging the box.
+        pp.load("sponge_enabled", sponge_params.enabled, false);
+        pp.load("sponge_inner_radius", sponge_params.inner_radius, 24.0);
+        pp.load("sponge_outer_radius", sponge_params.outer_radius, 32.0);
+        pp.load("sponge_strength", sponge_params.strength, 4.0);
+        pp.load("sponge_ramp_power", sponge_params.ramp_power, 4);
+        pp.load("sponge_center", sponge_params.center, center);
     }
 
     void read_recipe_params(GRParmParse &pp)
@@ -267,6 +277,9 @@ class SimulationParameters : public SimulationParametersBase
     int trajectory_mode{0};        //!< 0 = off, 1 = parametric trajectory
     double trajectory_pump_frequency{0.0}; //!< Shared pump angular frequency (bs_omega for complex scalar)
     TrajectoryParams trajectory_params{};
+
+    // Numerical sponge zone (radially-ramped extra KO dissipation).
+    SpongeZoneParams sponge_params{};
 
   private:
     void load_rl_lump_seed_axis(

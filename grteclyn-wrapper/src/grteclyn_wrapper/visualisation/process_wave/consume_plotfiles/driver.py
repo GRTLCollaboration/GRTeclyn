@@ -289,7 +289,7 @@ def main() -> None:
     score_ts_path = out_dir / "score_timeseries.jsonl"
     stop_sim_path = Path(args.stop_sim_path) if args.stop_sim_path else Path(data_dir) / ".stop_sim"
     header = "# time  " + "  ".join([f"Re(R={R:g})  Im(R={R:g})" for R in args.radii])
-    psi4_directional_header = "# time  P_total  P_z_beam  beam_ratio"
+    psi4_directional_header = "# time  P_total  P_z_beam  beam_ratio  beaming_gain  wavezone_std"
     areal_header = "# time  R_areal_min  r_at_R_areal_min"
     shell_header = _shell_stats_header(args.radii, args.shell_fields)
 

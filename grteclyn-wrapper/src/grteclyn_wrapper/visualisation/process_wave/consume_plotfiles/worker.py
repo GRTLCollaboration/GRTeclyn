@@ -71,9 +71,10 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
         if args_dict.get("psi4"):
             if ("boxlib", "Weyl4_Re") not in ds.field_list or ("boxlib", "Weyl4_Im") not in ds.field_list:
                 raise RuntimeError("Plotfile missing Weyl4_Re/Im. Set: amr.derive_plot_vars = Weyl4 and re-run.")
+            radii = [float(r) for r in args_dict["radii"]]
             l2m0_amps, directional = _extract_mode_amps_l2_all(
                 ds,
-                radii=[float(r) for r in args_dict["radii"]],
+                radii=radii,
                 n_points=int(args_dict["n_points"]),
                 center=args_dict["center"],
             )
@@ -83,8 +84,29 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
                 p_total = float(np.mean(directional.p_total))
                 p_z_beam = float(np.mean(directional.p_z_beam))
                 beam_ratio = float(np.mean(directional.beam_ratio))
+
+                # v5: beaming gain — ratio of peak directional power to isotropic.
+                # From l=2 modes: dP/dΩ_max ≈ P_total * beaming_gain / (4π).
+                # For l=2 m=±2 dominance (Z-beaming): gain ≈ 5/4 * (1+beam_ratio).
+                # More accurately: sum |Σ_m C_m Y_m(θ,φ)|^2 over the sphere grid
+                # — but that needs the raw mode amplitudes per radius. Use the
+                # proxy: gain = (1 + 4*beam_ratio) which maps beam_ratio 0→1 to
+                # gain 1→5 (matches l=2 m=±2 angular pattern).
+                beaming_gain = 1.0 + 4.0 * beam_ratio
+
+                # v5: 1/r validity check across extraction radii.
+                # If the signal is in the wave zone, r*|Ψ₄| should be roughly
+                # constant across radii.  Compute relative std.
+                wavezone_std = 0.0
+                if len(radii) >= 2 and len(directional.p_total) == len(radii):
+                    r_psi4 = np.array([r * np.sqrt(p) for r, p in zip(radii, directional.p_total)])
+                    r_psi4_mean = float(np.mean(r_psi4))
+                    if r_psi4_mean > 0:
+                        wavezone_std = float(np.std(r_psi4) / r_psi4_mean)
+
                 result["psi4_directional_line"] = (
                     f"{t:.16e}  {p_total:.16e}  {p_z_beam:.16e}  {beam_ratio:.16e}"
+                    f"  {beaming_gain:.16e}  {wavezone_std:.16e}"
                 )
 
         shell_fields = list(args_dict.get("shell_fields") or [])

@@ -87,7 +87,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--name", default=None, help="Episode folder name.")
 
     subparsers = parser.add_subparsers(dest="command", required=True)
-    subparsers.add_parser("reproduce", help="Run one episode from the template plus overrides.")
+    reproduce_parser = subparsers.add_parser("reproduce", help="Run one episode from the template plus overrides.")
+    reproduce_parser.add_argument(
+        "--objective-mode",
+        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl", "critical_collapse", "spacetime_shear", "gw_beam"],
+        default="weighted",
+        help="Scoring scalarization for the final score.json.",
+    )
 
     sweep = subparsers.add_parser("sweep", help="Run a random sweep over current wormhole parameters.")
     sweep.add_argument("--count", type=int, default=1, help="Number of random episodes.")
@@ -113,12 +119,13 @@ def build_parser() -> argparse.ArgumentParser:
     opt.add_argument("--gpu-ids", nargs="+", type=int, default=None, help="GPU indices for parallel eval (e.g. 0 1 2 3 4 5 6 7).")
     opt.add_argument(
         "--objective-mode",
-        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl", "critical_collapse", "spacetime_shear"],
+        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl", "critical_collapse", "spacetime_shear", "gw_beam"],
         default="weighted",
         help="Scoring scalarization: weighted legacy score, FTL-first ordering, "
         "robust_ftl (FTL-first tilted toward persistent/healthy/low-exotic), "
         "general_ftl (gauge-invariant shortcut only; no warp-motor shaping), "
-        "or spacetime_shear (reward curvature/shear while avoiding collapse).",
+        "spacetime_shear (reward curvature/shear while avoiding collapse), "
+        "or gw_beam (directional gravitational-wave emission).",
     )
     opt.add_argument(
         "--pin-dimension",

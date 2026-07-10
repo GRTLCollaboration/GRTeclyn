@@ -98,6 +98,7 @@ def test_consumer_radii_default_when_env_empty(monkeypatch) -> None:
 
 def test_metrics_only_consumer_does_not_delete_plotfiles(episode, monkeypatch) -> None:
     monkeypatch.setenv("GRTECLYN_FRAMES", "0")
+    monkeypatch.delenv("GRTECLYN_DELETE_WITHOUT_FRAMES", raising=False)
     command = build_consume_command(episode, profile="radial", frames=False, delete=True)
     assert "--delete" not in command
     assert "--frames-fields" not in command
@@ -120,7 +121,8 @@ def test_post_run_frames_off_for_fast_drain(monkeypatch) -> None:
     assert post_run_frames_enabled() is False
 
 
-def test_consumer_delete_plotfiles_enabled_matrix() -> None:
+def test_consumer_delete_plotfiles_enabled_matrix(monkeypatch) -> None:
+    monkeypatch.delenv("GRTECLYN_DELETE_WITHOUT_FRAMES", raising=False)
     assert consumer_delete_plotfiles_enabled(frames=True, delete_requested=True) is True
     assert consumer_delete_plotfiles_enabled(frames=False, delete_requested=True) is False
     assert consumer_delete_plotfiles_enabled(frames=False, delete_requested=False) is False

@@ -352,15 +352,21 @@ def _descriptor_details(
         mean_power = float(psi4.get("mean_total_power", 0.0))
         floored = max(mean_power, _GW_POWER_FLOOR)
         power_axis = float(np.clip((math.log10(floored) - _GW_POWER_LOG_MIN) / _GW_POWER_LOG_SPAN, 0.0, 1.0))
-        # y-axis: beaming ratio (already in [0, 1]).
+        # y-axis (v5): normalized beaming gain mapped to [0, 1].
+        # beaming_gain ranges from 1.0 (isotropic) to ~5.0 (strong l=2 m=±2).
+        # Map: (gain - 1) / 4 → [0, 1].
+        beaming_gain = float(components.get("gw_beaming_gain", 1.0))
+        beaming_axis = float(np.clip((beaming_gain - 1.0) / 4.0, 0.0, 1.0))
         beam_ratio = float(np.clip(psi4.get("mean_beam_ratio", 0.0), 0.0, 1.0))
         return {
             "x": power_axis,
-            "y": beam_ratio,
+            "y": beaming_axis,
             "gw_total_power": mean_power,
             "gw_beam_ratio": beam_ratio,
+            "gw_beaming_gain": beaming_gain,
             "gw_peak_power": float(psi4.get("peak_total_power", 0.0)),
             "gw_beam_quality": float(components.get("gw_beam_quality", 0.0)),
+            "gw_direction_stability": float(components.get("gw_direction_stability", 0.0)),
         }
 
     if mode == "geometry_first":
