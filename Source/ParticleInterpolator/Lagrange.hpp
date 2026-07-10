@@ -13,6 +13,8 @@
 #include <cmath>
 #include "AMReX_LOUtil_K.H"
 
+#include <limits>
+
 // Class for (N-1)th order interpolation of the mesh data onto the particle
 // using Lagrange polynomials. Currently, it allows to interpolate only one
 // field at a time. But the field itself can have multiple components. Assumes
@@ -27,14 +29,48 @@ template <int N> class Lagrange
     int k0{};
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    build_stencil(amrex::Real grid_pos, int &base_idx, amrex::Real *weights)
+    build_stencil(amrex::Real grid_pos, int &base_idx, amrex::Real *weights,
+                  bool lo_reflective, bool hi_reflective, int ncell)
+
     {
         std::array<int, N> stencil;
         constexpr int center_offset =
             N / 2; // offset based on the number of points we are using
-        int center = static_cast<int>(
-            amrex::Math::round(grid_pos)); // round the grid position to get the
-                                           // nearest cell center
+        int center{};
+        constexpr amrex::Real eps =
+            10 * std::numeric_limits<
+                     amrex::Real>::epsilon(); // choose a small number around
+                                              // machine round-off precision
+        // when the position is very close to the axis of symmetry and
+        // reflective boundary conditions are used, we can run into some
+        // problems of not having enough ghosts. For example, for low symmetric
+        // boundary, the center of the stencil can end up being rounded up to
+        // -1. If center = -1, then the stencil is e.g. (-3, -2, -1, 0, 1) for
+        // 4th order interpolation, which is problematic here as -3 is out of
+        // bounds (note that we fill [4/2]=2 ghost cells). To avoid this, we
+        // will default to center = 0 in this situation.
+
+        const auto lo_face = amrex::Real(
+            -0.5); // for low symmetric boundary, the face is at -0.5
+        const auto hi_face =
+            amrex::Real(ncell) -
+            amrex::Real(
+                0.5); // for high symmetric boundary, the face is at ncell-0.5
+
+        if (lo_reflective && amrex::Math::abs(grid_pos - lo_face) < eps)
+        {
+            center = 0;
+        }
+        else if (hi_reflective && amrex::Math::abs(grid_pos - hi_face) < eps)
+        {
+            center = ncell - 1;
+        }
+        else
+        {
+            center = static_cast<int>(
+                amrex::Math::round(grid_pos)); // round the grid position to get
+                                               // the nearest cell center
+        }
 
         // Fill in the stencil around the position of interpolation
         for (int i = 0; i < N; ++i)
@@ -70,12 +106,16 @@ template <int N> class Lagrange
 
     template <typename P>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     compute_weights(const P &par,
                     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const &plo,
                     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const &dxi,
-                    const amrex::IntVect &is_nodal)
+                    const amrex::IntVect &is_nodal,
+                    amrex::GpuArray<bool, AMREX_SPACEDIM> const lo_reflective,
+                    amrex::GpuArray<bool, AMREX_SPACEDIM> const hi_reflective,
+                    amrex::GpuArray<int, AMREX_SPACEDIM> const domain_ncell)
+    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
-
         // Compute the grid index of the position
         AMREX_D_TERM(
             amrex::Real xpos =
@@ -88,12 +128,17 @@ template <int N> class Lagrange
                   (amrex::Real(par.pos(2)) - plo[2]) * dxi[2] -
                   static_cast<amrex::Real>(!is_nodal[2]) * amrex::Real(0.5););
 
-        build_stencil(xpos, i0, weights_x);
+        build_stencil(xpos, i0, weights_x, lo_reflective[0], hi_reflective[0],
+                      domain_ncell[0]);
+
 #if AMREX_SPACEDIM >= 2
-        build_stencil(ypos, j0, weights_y);
+        build_stencil(ypos, j0, weights_y, lo_reflective[1], hi_reflective[1],
+                      domain_ncell[1]);
 #endif
+
 #if AMREX_SPACEDIM == 3
-        build_stencil(zpos, k0, weights_z);
+        build_stencil(zpos, k0, weights_z, lo_reflective[2], hi_reflective[2],
+                      domain_ncell[2]);
 #endif
     }
 

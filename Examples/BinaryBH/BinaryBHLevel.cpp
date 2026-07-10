@@ -119,6 +119,7 @@ void BinaryBHLevel::initData()
 }
 
 // Calculate RHS during RK4 substeps
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                     amrex::MultiFab &a_rhs,
                                     const double /*a_time*/)
@@ -295,6 +296,8 @@ void BinaryBHLevel::specific_post_checkpoint(const std::string &a_chk_dir,
 
 void BinaryBHLevel::specificPostTimeStep()
 {
+    BL_PROFILE("BinaryBHLevel::specificPostTimeStep");
+
     // do puncture tracking on requested level
     if (simParams().puncture_tracking_enabled &&
         Level() == simParams().puncture_tracking_level)
@@ -309,45 +312,28 @@ void BinaryBHLevel::specificPostTimeStep()
         amrex::Real dt           = get_gramr_ptr()->dtLevel(Level());
         get_puncture_tracker().track(current_time, dt, write_punctures);
     }
-#if 0
-//xxxxx specificPostTimeStep
-    BL_PROFILE("BinaryBHLevel::specificPostTimeStep");
 
-    bool first_step =
-        (m_time == 0.); // this form is used when 'specificPostTimeStep' was
-                        // called during setup at t=0 from Main
-    // bool first_step = (m_time == m_dt); // if not called in Main
-
-    if (m_p.activate_extraction == 1)
+    // Weyl extraction
+    if (simParams().activate_extraction)
     {
-        int min_level = m_p.extraction_params.min_extraction_level();
+        int min_level = simParams().extraction_params.min_extraction_level();
         bool calculate_weyl = at_level_timestep_multiple(min_level);
-        if (calculate_weyl)
-        {
-            // Populate the Weyl Scalar values on the grid
-            fillAllGhosts();
-            BoxLoops::loop(
-                Weyl4(m_p.extraction_params.center, m_dx, m_p.formulation),
-                m_state_new, m_state_diagnostics, EXCLUDE_GHOST_CELLS);
 
-            // Do the extraction on the min extraction level
-            if (m_level == min_level)
-            {
-                BL_PROFILE("WeylExtraction");
-                // Now refresh the interpolator and do the interpolation
-                // fill ghosts manually to minimise communication
-                bool fill_ghosts = false;
-                m_gr_amr.m_interpolator->refresh(fill_ghosts);
-                m_gr_amr.fill_multilevel_ghosts(
-                    VariableType::derived, Interval(c_Weyl4_Re, c_Weyl4_Im),
-                    min_level);
-                WeylExtraction my_extraction(m_p.extraction_params, m_dt,
-                                             m_time, first_step,
-                                             m_restart_time);
-                my_extraction.execute_query(m_gr_amr.m_interpolator);
-            }
+        if (calculate_weyl && Level() == min_level)
+        {
+            amrex::Real m_time       = get_state_data(state_index).curTime();
+            amrex::Real m_dt         = get_gramr_ptr()->dtLevel(Level());
+            amrex::Real restart_time = get_gramr_ptr()->get_restart_time();
+            bool first_step          = (m_time <= m_dt);
+
+            WeylExtraction my_extraction(simParams().extraction_params, m_dt,
+                                         m_time, first_step, restart_time);
+            my_extraction.execute_query(&get_bhamr_ptr()->m_weyl_interpolator);
         }
     }
+
+#if 0
+//xxxxx specificPostTimeStep
 
     if (m_p.calculate_constraint_norms)
     {

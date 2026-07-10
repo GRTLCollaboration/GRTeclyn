@@ -22,12 +22,12 @@ jobs:
 
     steps:
     - name: Checkout GRTeclyn
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         path: GRTeclyn
 
     - name: Checkout AMReX
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         repository: AMReX-Codes/amrex
         path: amrex
