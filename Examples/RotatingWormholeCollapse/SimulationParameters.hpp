@@ -38,6 +38,11 @@ class SimulationParameters : public SimulationParametersBase
         wormhole_params.b0 = b0_single;
 
         pp.load("phantom_mass", wormhole_params.phantom_mass, 0.0);
+        // Q-ball self-interaction couplings (see params_t docs).  Must match the
+        // GRTresna solve's scalar_lambda / scalar_mu for the loaded .gridinit to
+        // stay in equilibrium at t=0.  Default 0 = free field (backward compat).
+        pp.load("phantom_lambda", wormhole_params.phantom_lambda, 0.0);
+        pp.load("phantom_mu6", wormhole_params.phantom_mu6, 0.0);
 
         pp.load("wormhole_support_strength", wormhole_params.support_strength,
                 1.0);

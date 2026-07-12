@@ -19,8 +19,7 @@ include $(AMREX_HOME)/Src/Particle/Make.package
 GRTECLYN_HOME = $(realpath ../..)
 GRTECLYN_SOURCE = $(GRTECLYN_HOME)/Source
 
-src_dirs := $(GRTECLYN_SOURCE)/AMRInterpolator \
-            $(GRTECLYN_SOURCE)/BlackHoles \
+src_dirs := $(GRTECLYN_SOURCE)/BlackHoles \
             $(GRTECLYN_SOURCE)/CCZ4 \
             $(GRTECLYN_SOURCE)/Matter \
             $(GRTECLYN_SOURCE)/Grids \

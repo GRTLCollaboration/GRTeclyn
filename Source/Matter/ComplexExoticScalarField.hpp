@@ -30,8 +30,10 @@
     Energetically each real component contributes like an ExoticScalarField
     component; the overall ``-support_strength`` factor implements the phantom
     (null-energy-condition-violating) sign needed to hold the throat open. The
-    potential is templated and evaluated per component via
-    ``compute_potential_value`` (exact for a separable quadratic potential).
+    potential is templated and evaluated on the full complex modulus via the
+    coupled ``compute_potential(V, dV1, dV2, phi1, phi2)`` interface so that a
+    self-interacting Q-ball potential V(|Phi|^2) is treated exactly and the U(1)
+    (Noether-charge) symmetry is preserved.
 */
 template <class potential_t = DefaultPotential> class ComplexExoticScalarField
 {

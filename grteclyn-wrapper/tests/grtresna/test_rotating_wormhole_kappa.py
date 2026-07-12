@@ -23,7 +23,7 @@ import numpy as np
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DRIVER_PATH = REPO_ROOT / "scripts" / "wormhole" / "solve_kappa_family.py"
+DRIVER_PATH = REPO_ROOT / "scripts" / "wormhole" / "id" / "solve_kappa_family.py"
 EVO_PARAMS = (
     REPO_ROOT.parent
     / "Examples"
@@ -233,3 +233,70 @@ def test_solved_gridinit_modulus_is_axisymmetric() -> None:
     # A single-real cos(m phi) modulation gives O(1) azimuthal variation; the
     # winding modulus should be far more uniform.
     assert cov < 0.35, f"|Phi|^2 not axisymmetric on the throat ring (cov={cov:.2f})"
+
+
+# --------------------------------------------------------------------------- #
+# 4. Q-ball (Rung 1a) initial-data path                                       #
+# --------------------------------------------------------------------------- #
+QBALL_BASE_PARAMS_TEXT = """\
+output_path = Outputs_rotwh/
+N = 64 64 64
+L = 64
+scalar_mass = 0.0
+scalar_lambda = 0.0
+scalar_mu = 0.0
+num_lumps = 1
+lump0_amp = 0.1
+lump0_omega = 0.05
+lump0_mode = 1
+lump0_exotic = 1
+lump0_winding = 1
+lump0_profile = 0
+bh1_bare_mass = 0.25
+"""
+
+
+def _load_driver_with_env(monkeypatch, **env):
+    for k, v in env.items():
+        monkeypatch.setenv(k, str(v))
+    return _load_driver()
+
+
+def test_qball_path_sets_couplings_and_profile(tmp_path, monkeypatch) -> None:
+    """LAMBDA>0 switches the throat lump to the solved Q-ball eigenstate:
+    scalar_lambda/scalar_mu are written, lump0_profile becomes 3, and a
+    qball_profile.dat + qball_profile_path are emitted (Rung 1a wiring)."""
+    drv = _load_driver_with_env(
+        monkeypatch, MASS=0.5, LAMBDA=1.0, MU6=0.5, LUMP_OMEGA=0.05, RES_N=64
+    )
+    dst = tmp_path / "params.txt"
+    drv._write_scaled_params(dst, QBALL_BASE_PARAMS_TEXT, 0.1)
+    text = dst.read_text()
+
+    assert re.search(r"^\s*scalar_lambda\s*=\s*1\b", text, re.MULTILINE)
+    assert re.search(r"^\s*scalar_mu\s*=\s*0\.5\b", text, re.MULTILINE)
+    assert re.search(r"^\s*lump0_profile\s*=\s*3\s*$", text, re.MULTILINE)
+    m = re.search(r"^\s*qball_profile_path\s*=\s*(\S+)", text, re.MULTILINE)
+    assert m is not None
+    prof = Path(m.group(1))
+    assert prof.is_file()
+    # Tabulated profile is normalisable (phi0(0) > 0) and localized.
+    lines = [ln for ln in prof.read_text().splitlines() if not ln.startswith("#")]
+    r0, phi0 = (float(x) for x in lines[0].split())
+    assert r0 == pytest.approx(0.0)
+    assert phi0 > 0.0
+
+
+def test_massless_default_leaves_profile_gaussian(tmp_path, monkeypatch) -> None:
+    """Backward compat: with LAMBDA unset the lump stays the analytic Gaussian
+    (profile 0) and no Q-ball couplings/profile are injected."""
+    drv = _load_driver_with_env(monkeypatch, MASS=0.0, RES_N=64)
+    # Clear any Q-ball env from other tests in the same process.
+    monkeypatch.delenv("LAMBDA", raising=False)
+    monkeypatch.delenv("MU6", raising=False)
+    drv = _load_driver()
+    dst = tmp_path / "params.txt"
+    drv._write_scaled_params(dst, QBALL_BASE_PARAMS_TEXT, 0.1)
+    text = dst.read_text()
+    assert re.search(r"^\s*lump0_profile\s*=\s*0\s*$", text, re.MULTILINE)
+    assert "qball_profile_path" not in text

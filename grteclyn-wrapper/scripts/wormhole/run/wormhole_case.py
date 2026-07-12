@@ -80,17 +80,30 @@ def _mass_suffix(mass: float) -> str:
     return f"_mass{mass:g}".replace(".", "p")
 
 
+def _qball_suffix(lam: float, mu6: float) -> str:
+    """Append _qball_lam<val>_mu6<val> only for a self-interacting (Q-ball)
+    profile (lambda>0), keeping massless/mass-only families separate.  Must
+    match solve_kappa_family.py's tag."""
+    if lam <= 0.0:
+        return ""
+    return f"_qball_lam{lam:g}_mu6{mu6:g}".replace(".", "p")
+
+
 def id_tag(kappa: float, omega: float, m: int, dx: float,
-           L: float = DEFAULT_L, mass: float = 0.0) -> str:
+           L: float = DEFAULT_L, mass: float = 0.0,
+           lam: float = 0.0, mu6: float = 0.0) -> str:
     # Must match solve_kappa_family.py's run_dir tag.
     return (f"rotwh_omega_p{_p(omega)}_m{m}_kappa_{_p(kappa)}"
-            f"_{_dx_tag(dx)}{_L_suffix(L)}{_mass_suffix(mass)}")
+            f"_{_dx_tag(dx)}{_L_suffix(L)}{_mass_suffix(mass)}"
+            f"{_qball_suffix(lam, mu6)}")
 
 
 def case_tag(kappa: float, omega: float, m: int, dx: float,
-             max_level: int, L: float = DEFAULT_L, mass: float = 0.0) -> str:
+             max_level: int, L: float = DEFAULT_L, mass: float = 0.0,
+             lam: float = 0.0, mu6: float = 0.0) -> str:
     return (f"evo_omega_p{_p(omega)}_m{m}_kappa_{_p(kappa)}"
-            f"_{_dx_tag(dx)}_ml{max_level}{_L_suffix(L)}{_mass_suffix(mass)}")
+            f"_{_dx_tag(dx)}_ml{max_level}{_L_suffix(L)}{_mass_suffix(mass)}"
+            f"{_qball_suffix(lam, mu6)}")
 
 
 def extraction_radii(L: float) -> tuple[float, float]:
@@ -147,7 +160,7 @@ print_progress_only_to_rank_0 = 1
 recipe_initial_data_file = "{gridinit}"
 wormhole_matter_model = "complex_scalar"
 
-wormhole_initial_lapse_type = 0
+wormhole_initial_lapse_type = {lapse_type}
 wormhole_throat_radius = 0.5
 wormhole_centerA = 0.0 0.0 0.0
 wormhole_phi_monopole_amplitude     = 0.0
@@ -155,6 +168,8 @@ wormhole_phi_perturbation_amplitude = 0.0
 wormhole_phi_perturbation_width     = 0.5
 wormhole_support_strength = 1.0
 phantom_mass = {mass}
+phantom_lambda = {lam}
+phantom_mu6 = {mu6}
 
 wormhole_azimuthal_m   = {m}
 wormhole_rotation_omega = {omega}
@@ -333,6 +348,23 @@ def main() -> int:
                          "ghost). >0 adds a confining potential V=0.5 mu^2|Phi|^2 "
                          "so the throat keeps its support; must match the ID "
                          "solved with MASS=<same> solve_kappa_family.sh")
+    ap.add_argument("--lambda", type=float, default=0.0, dest="lam",
+                    help="phantom scalar attractive-quartic coupling lambda "
+                         "(default 0). Together with --mu6>0 this binds the "
+                         "field into a Q-ball whose confinement survives the "
+                         "phantom sign flip; V=0.5 m^2|Phi|^2 - 0.25 lambda|Phi|^4"
+                         " + (1/6) mu6|Phi|^6. Must match the ID solved with "
+                         "LAMBDA=<same> MU6=<same> solve_kappa_family.sh")
+    ap.add_argument("--mu6", type=float, default=0.0,
+                    help="phantom scalar sextic stabiliser mu6 (default 0). "
+                         "REQUIRED (>0) for a stable 3D Q-ball with --lambda>0.")
+    ap.add_argument("--initial-lapse-type", type=int, default=0,
+                    choices=[0, 1, 2, 3],
+                    help="lapse seeding for the loaded ID (default 0 = use the "
+                         "GRTresna lapse as-is). 1=sqrt(chi), 2=1-3log(chi), "
+                         "3=chi: a precollapsed lapse that damps the t~0.5 "
+                         "max_K gauge transient which kicks the throat off "
+                         "equilibrium.")
     ap.add_argument("--plot-interval", type=int, default=40)
     ap.add_argument("--gpu", type=int, default=0)
     ap.add_argument("--gridinit", default=None, help="override ID .gridinit path")
@@ -361,13 +393,15 @@ def main() -> int:
     gridinit = (
         Path(args.gridinit).resolve()
         if args.gridinit
-        else ID_ROOT / id_tag(args.kappa, args.omega, args.m, args.dx, L, args.mass)
+        else ID_ROOT / id_tag(args.kappa, args.omega, args.m, args.dx, L,
+                              args.mass, args.lam, args.mu6)
         / "initial_data.gridinit"
     )
     if not gridinit.is_file():
         hint = " ".join(
             ([f"EVO_L={int(L)} RES_N={N}"] if L != DEFAULT_L else [f"RES_N={N}"])
             + ([f"MASS={args.mass:g}"] if args.mass > 0 else [])
+            + ([f"LAMBDA={args.lam:g} MU6={args.mu6:g}"] if args.lam > 0 else [])
         )
         print(f"error: gridinit not found: {gridinit}\n"
               f"       solve it first: {hint} solve_kappa_family.sh {args.kappa}",
@@ -377,7 +411,8 @@ def main() -> int:
         print(f"error: CUDA binary not found: {BIN}", file=sys.stderr)
         return 2
 
-    tag = case_tag(args.kappa, args.omega, args.m, args.dx, args.max_level, L, args.mass)
+    tag = case_tag(args.kappa, args.omega, args.m, args.dx, args.max_level, L,
+                   args.mass, args.lam, args.mu6)
     run_dir = RUN_ROOT / tag
     run_out = run_dir / "output"
     run_out.mkdir(parents=True, exist_ok=True)
@@ -390,7 +425,8 @@ def main() -> int:
     # absolute run path so the generated params are location-independent.
     params_text = PARAMS_TEMPLATE.format(
         m=args.m, omega=args.omega, kappa=args.kappa, dx=args.dx, N=N, L=L,
-        mass=args.mass,
+        mass=args.mass, lam=args.lam, mu6=args.mu6,
+        lapse_type=args.initial_lapse_type,
         center_x=cx, center_y=cy, center_z=cz,
         max_level=args.max_level, stop_time=stop_time,
         plot_interval=args.plot_interval, run_out=str(run_out),
@@ -406,7 +442,8 @@ def main() -> int:
     print(f"  gridinit: {gridinit}")
     print(f"  params:   {params_path}")
     print(f"  L={L} N={N} dx={args.dx} max_level={args.max_level} "
-          f"mass={args.mass} stop_time={stop_time} radii={radii} gpu={args.gpu}")
+          f"mass={args.mass} lambda={args.lam} mu6={args.mu6} "
+          f"stop_time={stop_time} radii={radii} gpu={args.gpu}")
     if args.dry_run:
         return 0
 

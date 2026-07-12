@@ -32,6 +32,14 @@ class SupportedWormholeInitialData
         double phi_perturbation_width;
 
         double phantom_mass;
+        // Self-interaction couplings for a Q-ball / self-bound phantom lump:
+        //   V = 1/2 m^2 |Phi|^2 - 1/4 lambda |Phi|^4 + 1/6 mu6 |Phi|^6.
+        // lambda = mu6 = 0 recovers the free massive (or massless) ghost.  A
+        // positive lambda (attractive quartic) with a positive mu6 sextic
+        // stabiliser binds the field into a Q-ball whose confinement survives
+        // the phantom sign flip (unlike gravity-bound boson stars).
+        double phantom_lambda;
+        double phantom_mu6;
         double support_strength;
 
         // Spinning complex phantom scalar: Phi = f(r,theta) e^{i(m phi_az)}.

@@ -15,6 +15,7 @@
 #include "ComplexExoticScalarField.hpp"
 #include "NoMatter.hpp"
 #include "PhantomDecayPotential.hpp"
+#include "ComplexScalarPotential.hpp"
 #include "OscillonPotential.hpp"
 #include "DustMatter.hpp"
 
@@ -59,10 +60,10 @@ void SupportedWormholeLevel::variableSetUp()
     else if (matter_model == "complex_scalar")
     {
         ConstraintsWithMatter<
-            ComplexExoticScalarField<PhantomDecayPotential>>::set_up(
+            ComplexExoticScalarField<ComplexScalarPotential>>::set_up(
             state_index);
         Weyl4WithMatter<
-            ComplexExoticScalarField<PhantomDecayPotential>>::set_up(
+            ComplexExoticScalarField<ComplexScalarPotential>>::set_up(
             state_index);
     }
     else
@@ -102,6 +103,14 @@ void SupportedWormholeLevel::initData()
         ExternalGridInitialData ext_data(simParams().external_grid_params,
                                          Geom().CellSize(0));
 
+        // Precollapsed-lapse override for the loaded (GRTresna) initial data.
+        // The maximal-slicing solve writes lapse == 1, which relaxes violently
+        // under the 1+log condition (a t~0.5 max_K spike that kicks the phantom
+        // throat off its unstable equilibrium).  Seeding a precollapsed lapse
+        // alpha = chi^p brings the gauge closer to its evolved value and damps
+        // that transient.  lapse_type 0 keeps the loaded lapse (backward compat).
+        const int lapse_type = simParams().wormhole_params.initial_lapse_type;
+
         amrex::ParallelFor(
             state, state.nGrowVect(),
             [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
@@ -111,6 +120,21 @@ void SupportedWormholeLevel::initData()
                     arrs[box_no](i, j, k, n) = 0.;
                 }
                 ext_data.compute(i, j, k, arrs[box_no]);
+
+                if (lapse_type != 0)
+                {
+                    const amrex::Real chi = amrex::max(
+                        arrs[box_no](i, j, k, c_chi), amrex::Real(1.0e-10));
+                    amrex::Real lapse = arrs[box_no](i, j, k, c_lapse);
+                    if (lapse_type == 1)
+                        lapse = std::sqrt(chi);
+                    else if (lapse_type == 2)
+                        lapse = amrex::Real(1.0) - amrex::Real(3.0) * std::log(chi);
+                    else if (lapse_type == 3)
+                        lapse = chi;
+                    arrs[box_no](i, j, k, c_lapse) =
+                        amrex::max(lapse, amrex::Real(1.0e-10));
+                }
             });
     }
     else
@@ -216,10 +240,13 @@ void SupportedWormholeLevel::specificEvalRHS(amrex::MultiFab &a_soln,
     }
     else if (simParams().wormhole_matter_model == "complex_scalar")
     {
-        PhantomDecayPotential potential(simParams().wormhole_params.phantom_mass);
-        ComplexExoticScalarField<PhantomDecayPotential> complex_scalar(
+        ComplexScalarPotential potential(
+            simParams().wormhole_params.phantom_mass,
+            simParams().wormhole_params.phantom_lambda,
+            simParams().wormhole_params.phantom_mu6);
+        ComplexExoticScalarField<ComplexScalarPotential> complex_scalar(
             potential, simParams().wormhole_params.support_strength);
-        CCZ4RHSWithMatter<ComplexExoticScalarField<PhantomDecayPotential>,
+        CCZ4RHSWithMatter<ComplexExoticScalarField<ComplexScalarPotential>,
                           MovingPunctureGaugeWithMatter, FourthOrderDerivatives>
             ccz4rhs(complex_scalar, simParams().ccz4_params, Geom().CellSize(0),
                     simParams().sigma, simParams().formulation, 1.0,
@@ -347,11 +374,13 @@ void SupportedWormholeLevel::specificPostTimeStep()
         }
         else if (simParams().wormhole_matter_model == "complex_scalar")
         {
-            PhantomDecayPotential potential(
-                simParams().wormhole_params.phantom_mass);
-            ComplexExoticScalarField<PhantomDecayPotential> complex_scalar(
+            ComplexScalarPotential potential(
+                simParams().wormhole_params.phantom_mass,
+                simParams().wormhole_params.phantom_lambda,
+                simParams().wormhole_params.phantom_mu6);
+            ComplexExoticScalarField<ComplexScalarPotential> complex_scalar(
                 potential, simParams().wormhole_params.support_strength);
-            ConstraintsWithMatter<ComplexExoticScalarField<PhantomDecayPotential>>
+            ConstraintsWithMatter<ComplexExoticScalarField<ComplexScalarPotential>>
                 my_constraints(complex_scalar, dx[0], 1.0, 0, Interval(1, 3),
                                simParams().wormhole_params.grid_center, time);
             for (amrex::MFIter mfi(cst, amrex::TilingIfNotGPU());
@@ -825,6 +854,74 @@ void SupportedWormholeLevel::specificPostTimeStep()
         amrex::Real J_z = amrex::get<0>(reduce_data_jz.value());
         amrex::ParallelDescriptor::ReduceRealSum(J_z);
 
+        // Conserved U(1) Noether charge of the complex phantom field,
+        //   Q = integral (phi1 Pi2 - phi2 Pi1) sqrt(gamma) dV,  sqrt(gamma) =
+        //   chi^{-3/2}.  Q is exactly conserved for a genuine bound (Q-ball)
+        //   eigenstate and is the principled confinement diagnostic: unlike
+        //   rho_sum (an AMR-refined-region sum that decays merely because the
+        //   grid de-refines), Q_sphere is integrated over a FIXED coordinate
+        //   sphere r < diag_sphere_radius about the throat, so a drop means the
+        //   charge physically leaves the throat region rather than the grid
+        //   coarsening.  Q_total is the whole-domain charge (radiation-robust).
+        amrex::Real diag_sphere_radius = 10.0;
+        {
+            GRParmParse pp_r;
+            pp_r.load("diag_sphere_radius", diag_sphere_radius, 10.0);
+        }
+        const amrex::Real center_z = simParams().wormhole_params.grid_center[2];
+        const amrex::Real r_sphere2 = diag_sphere_radius * diag_sphere_radius;
+
+        amrex::ReduceOps<amrex::ReduceOpSum, amrex::ReduceOpSum,
+                         amrex::ReduceOpSum>
+            reduce_ops_q;
+        amrex::ReduceData<amrex::Real, amrex::Real, amrex::Real>
+            reduce_data_q(reduce_ops_q);
+        using ReduceTupleQ = typename decltype(reduce_data_q)::Type;
+
+        for (amrex::MFIter mfi(state_fine, amrex::TilingIfNotGPU());
+             mfi.isValid(); ++mfi)
+        {
+            const amrex::Box &bx = mfi.validbox();
+            const auto arr       = state_fine.const_array(mfi);
+            reduce_ops_q.eval(
+                bx, reduce_data_q,
+                [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTupleQ
+                {
+                    const amrex::Real phi1 = arr(i, j, k, c_phi);
+                    const amrex::Real phi2 = arr(i, j, k, c_phi2);
+                    const amrex::Real Pi1  = arr(i, j, k, c_Pi);
+                    const amrex::Real Pi2  = arr(i, j, k, c_Pi2);
+                    const amrex::Real chi  = amrex::max(
+                        arr(i, j, k, c_chi), amrex::Real(1.0e-10));
+                    const amrex::Real sqrt_gamma =
+                        amrex::Real(1.0) / (chi * std::sqrt(chi));
+                    const amrex::Real q_density =
+                        (phi1 * Pi2 - phi2 * Pi1) * sqrt_gamma * cell_vol_fine;
+
+                    const amrex::Real xr =
+                        prob_lo[0] + (amrex::Real(i) + 0.5) * dx_arr[0] - center_x;
+                    const amrex::Real yr =
+                        prob_lo[1] + (amrex::Real(j) + 0.5) * dx_arr[1] - center_y;
+                    const amrex::Real zr =
+                        prob_lo[2] + (amrex::Real(k) + 0.5) * dx_arr[2] - center_z;
+                    const bool inside =
+                        (xr * xr + yr * yr + zr * zr) <= r_sphere2;
+
+                    const amrex::Real rho_density =
+                        (Pi1 * Pi1 + Pi2 * Pi2 +
+                         amrex::Real(0.5) * (phi1 * phi1 + phi2 * phi2)) *
+                        cell_vol_fine;
+
+                    return {q_density,
+                            inside ? q_density : amrex::Real(0.0),
+                            inside ? rho_density : amrex::Real(0.0)};
+                });
+        }
+        auto [Q_total, Q_sphere, rho_sphere] = reduce_data_q.value();
+        amrex::ParallelDescriptor::ReduceRealSum(Q_total);
+        amrex::ParallelDescriptor::ReduceRealSum(Q_sphere);
+        amrex::ParallelDescriptor::ReduceRealSum(rho_sphere);
+
         GRParmParse pp;
         std::string output_path = "./";
         pp.load("output_path", output_path, std::string("./"));
@@ -854,7 +951,7 @@ void SupportedWormholeLevel::specificPostTimeStep()
                  "r_at_min_theta_plus",
                  "min_phi", "max_phi", "min_Pi", "max_Pi",
                  "barycenter_x", "barycenter_y", "barycenter_z", "rho_sum",
-                 "J_z"});
+                 "J_z", "Q_total", "Q_sphere", "rho_sphere"});
         }
         diag_file.write_time_data_line({static_cast<double>(min_lapse),
                                         static_cast<double>(min_chi),
@@ -873,6 +970,9 @@ void SupportedWormholeLevel::specificPostTimeStep()
                                         static_cast<double>(bary_y),
                                         static_cast<double>(bary_z),
                                         static_cast<double>(sum_rho),
-                                        static_cast<double>(J_z)});
+                                        static_cast<double>(J_z),
+                                        static_cast<double>(Q_total),
+                                        static_cast<double>(Q_sphere),
+                                        static_cast<double>(rho_sphere)});
     }
 }

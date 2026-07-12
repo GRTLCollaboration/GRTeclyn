@@ -68,6 +68,18 @@ EVO_CENTER = (EVO_L / 2.0, EVO_L / 2.0, 0.0)
 # equal the evolution's `phantom_mass` (wormhole_case.py --mass) for the solved
 # ID to stay in equilibrium at t=0.
 MASS = float(os.environ.get("MASS", "0.0"))
+# Q-ball self-interaction couplings.  V = 1/2 m^2 |Phi|^2 - 1/4 lam |Phi|^4 +
+# 1/6 mu6 |Phi|^6.  With LAMBDA>0 and MU6>0 the lump is painted from the SOLVED
+# flat-space Q-ball radial eigenstate phi0(r) (lump0_profile = 3) instead of the
+# analytic Gaussian, so the field is a genuine bound state whose confinement
+# survives the phantom sign flip (Rung 1a).  These MUST equal the evolution's
+# phantom_lambda / phantom_mu6 (wormhole_case.py --lambda/--mu6).  Physics
+# constraint for a bound profile: omega < mass (MASS).
+LAMBDA = float(os.environ.get("LAMBDA", "0.0"))
+MU6 = float(os.environ.get("MU6", "0.0"))
+# Phase-winding rotation rate of the throat lump (must match lump0_omega in the
+# base params and the evolution --omega).  Used as the Q-ball ODE frequency.
+LUMP_OMEGA = float(os.environ.get("LUMP_OMEGA", "0.05"))
 
 
 def _read_base_amp(params_text: str) -> float:
@@ -75,6 +87,29 @@ def _read_base_amp(params_text: str) -> float:
     if not m:
         raise RuntimeError("lump0_amp not found in base params")
     return float(m.group(1))
+
+
+def _write_qball_profile(dst_dir: Path) -> Path:
+    """Solve the flat-space Q-ball radial eigenstate phi0(r) and tabulate it.
+
+    Reuses the wrapper's validated ODE solver (same one the QD/boson-star
+    campaigns use).  Returns the path GRTresna's ``qball_profile_path`` should
+    point at; the winding painter loads it for profile==3 lumps and normalises
+    to phi0(0)=1, so ``lump0_amp`` sets the throat's central amplitude.
+    """
+    from grteclyn_wrapper.grtresna.profiles.qball_ode import (
+        cached_qball_radial_profile,
+    )
+
+    profile = cached_qball_radial_profile(MASS, LAMBDA, MU6, LUMP_OMEGA)
+    dat_path = dst_dir / "qball_profile.dat"
+    with dat_path.open("w", encoding="utf-8") as fh:
+        fh.write(f"# flat-space Q-ball phi0(r): m={MASS} lam={LAMBDA} "
+                 f"mu6={MU6} omega={LUMP_OMEGA}\n")
+        fh.write(f"# phi_c(0) = {profile.phi_c}\n")
+        for r_i, phi_i in zip(profile.r, profile.phi0):
+            fh.write(f"{float(r_i):.10g} {float(phi_i):.10g}\n")
+    return dat_path.resolve()
 
 
 def _write_scaled_params(dst: Path, base_text: str, amp: float) -> None:
@@ -118,6 +153,26 @@ def _write_scaled_params(dst: Path, base_text: str, amp: float) -> None:
         text,
         flags=re.MULTILINE,
     )
+    # Q-ball (Rung 1a): a self-interacting bound eigenstate instead of the
+    # analytic Gaussian.  Set the self-interaction couplings, switch the throat
+    # lump to the tabulated ODE profile (profile 3), and point the shared
+    # qball_profile_path at the solved phi0(r) table.  The C++ potential_value
+    # matches (V = 1/2 m^2|Phi|^2 - 1/4 lam|Phi|^4 + 1/6 mu|Phi|^6), so the
+    # solved ID stays in equilibrium under the matching evolution potential.
+    if LAMBDA > 0.0:
+        text = re.sub(r"^(\s*scalar_lambda\s*=\s*).*$",
+                      rf"\g<1>{LAMBDA:.10g}", text, flags=re.MULTILINE)
+        text = re.sub(r"^(\s*scalar_mu\s*=\s*).*$",
+                      rf"\g<1>{MU6:.10g}", text, flags=re.MULTILINE)
+        text = re.sub(r"^(\s*lump0_profile\s*=\s*).*$",
+                      r"\g<1>3", text, flags=re.MULTILINE)
+        qball_path = _write_qball_profile(dst.parent)
+        # Append (or replace) the shared tabulated-profile path.
+        if re.search(r"^\s*qball_profile_path\s*=", text, re.MULTILINE):
+            text = re.sub(r"^(\s*qball_profile_path\s*=\s*).*$",
+                          rf"\g<1>{qball_path}", text, flags=re.MULTILINE)
+        else:
+            text += f"\nqball_profile_path = {qball_path}\n"
     dst.write_text(text)
 
 
@@ -151,13 +206,21 @@ def _mass_suffix() -> str:
     return f"_mass{MASS:g}".replace(".", "p")
 
 
+def _qball_suffix() -> str:
+    """Append _qball_lam<val>_mu6<val> for a self-interacting (Q-ball) profile.
+    Must match wormhole_case.py's _qball_suffix so the evolution finds the ID."""
+    if LAMBDA <= 0.0:
+        return ""
+    return f"_qball_lam{LAMBDA:g}_mu6{MU6:g}".replace(".", "p")
+
+
 def solve_one(kappa: float, base_amp: float, base_text: str, nranks: int) -> dict:
     amp = kappa * base_amp
     # Tag by resolution (and box size / mass when non-default) so families coexist.
     dx = EVO_L / RES_N
     dx_tag = f"dx{dx:.3g}".replace(".", "p")
     tag = (f"rotwh_omega_p0p05_m1_kappa_{kappa:.2f}_{dx_tag}"
-           f"{_L_suffix()}{_mass_suffix()}").replace(".", "p")
+           f"{_L_suffix()}{_mass_suffix()}{_qball_suffix()}").replace(".", "p")
     run_dir = ID_ROOT / tag
     outputs = run_dir / "Outputs"
     outputs.mkdir(parents=True, exist_ok=True)

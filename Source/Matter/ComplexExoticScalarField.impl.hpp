@@ -29,11 +29,12 @@ ComplexExoticScalarField<potential_t>::compute_emtensor(
     }
     const amrex::Real Vt = Vt1 + Vt2;
 
-    // Potential, evaluated separately on each real component
-    amrex::Real V1 = 0.0, dV1 = 0.0, V2 = 0.0, dV2 = 0.0;
-    m_potential.compute_potential_value(V1, dV1, vars.phi1());
-    m_potential.compute_potential_value(V2, dV2, vars.phi2());
-    const amrex::Real V_of_phi = V1 + V2;
+    // Potential, evaluated on the full complex modulus (coupled).  This is
+    // exact for a self-interacting potential V(|Phi|^2) = V(phi1^2 + phi2^2);
+    // a per-component evaluation would break the U(1) symmetry (and destroy the
+    // conserved Noether charge) for the quartic/sextic Q-ball terms.
+    amrex::Real V_of_phi = 0.0, dV1 = 0.0, dV2 = 0.0;
+    m_potential.compute_potential(V_of_phi, dV1, dV2, vars.phi1(), vars.phi2());
 
     // S = T_ij (sum of both components, phantom-flipped)
     FOR (i, j)
@@ -83,9 +84,8 @@ ComplexExoticScalarField<potential_t>::add_matter_rhs(
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
     const auto chris = CCZ4Geometry::compute_christoffel(d1, h_UU);
 
-    amrex::Real V1 = 0.0, dV1 = 0.0, V2 = 0.0, dV2 = 0.0;
-    m_potential.compute_potential_value(V1, dV1, vars.phi1());
-    m_potential.compute_potential_value(V2, dV2, vars.phi2());
+    amrex::Real V_of_phi = 0.0, dV1 = 0.0, dV2 = 0.0;
+    m_potential.compute_potential(V_of_phi, dV1, dV2, vars.phi1(), vars.phi2());
 
     // Component 1: Phi real part
     rhs[c_phi] = vars.lapse() * vars.Pi1() + advec.phi1();
