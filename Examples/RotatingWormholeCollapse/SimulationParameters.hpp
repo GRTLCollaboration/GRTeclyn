@@ -3,8 +3,14 @@
 
 #include "ExternalGridInitialData.hpp"
 #include "GRParmParse.hpp"
+#include "RLLumpState.hpp" // RL_MAX_LUMPS
 #include "SimulationParametersBase.hpp"
 #include "SupportedWormholeInitialData.hpp"
+#include "TrajectoryParams.hpp"
+
+#include <array>
+#include <sstream>
+#include <string>
 
 class SimulationParameters : public SimulationParametersBase
 {
@@ -69,6 +75,56 @@ class SimulationParameters : public SimulationParametersBase
             external_grid_params.gridinit_file = recipe_initial_data_file;
             external_grid_params.grid_center = center;
         }
+
+        // ---- Trajectory-guided matter pump (Rung 2 active support) ------
+        // Opt-in; trajectory_mode=0 (default) is a complete no-op so existing
+        // passive runs are bit-identical.  When active, per-lump parametric
+        // orbits drive the pump site centres each coarse step (no ZMQ/RL).
+        read_trajectory_params(pp);
+
+        // Pump gains / limits (mirror RadialRecipe).  Used only when
+        // trajectory_mode == 1.
+        pp.load("rl_pump_width", rl_pump_width, 1.5);
+        pp.load("rl_pump_max_amplitude", rl_pump_max_amplitude, 0.05);
+        pp.load("rl_l2_ham_governor_center", rl_l2_ham_governor_center, 0.035);
+        pp.load("rl_l2_ham_governor_width", rl_l2_ham_governor_width, 0.003);
+        pp.load("rl_pump_kp", rl_pump_kp, 0.0);
+        pp.load("rl_pump_kd", rl_pump_kd, 0.0);
+        pp.load("rl_pump_target_profile", rl_pump_target_profile, 0);
+        pp.load("rl_pump_target_width", rl_pump_target_width, 0.0);
+        pp.load("rl_pump_target_amp", rl_pump_target_amp, 0.0);
+        rl_pump_amplitude.fill(0.0);
+        rl_pump_frequency.fill(0.0);
+        rl_pump_phase.fill(0.0);
+
+        // Pump ramp schedule (Phase 6 collapse trigger).  t_start < 0 => never.
+        pp.load("pump_ramp_t_start", pump_ramp_t_start, -1.0);
+        pp.load("pump_ramp_t_end", pump_ramp_t_end, 0.0);
+        pp.load("pump_ramp_floor", pump_ramp_floor, 0.0);
+    }
+
+    void read_trajectory_params(GRParmParse &pp)
+    {
+        pp.load("trajectory_mode", trajectory_mode, 0);
+        {
+            int n_traj = 1;
+            pp.load("trajectory_num_lumps", n_traj, 1);
+            if (n_traj < 1)
+                n_traj = 1;
+            if (n_traj > RL_MAX_LUMPS)
+                n_traj = RL_MAX_LUMPS;
+            trajectory_params.num_lumps = n_traj;
+        }
+        pp.load("trajectory_A_breath", trajectory_params.A_breath, 0.0);
+        pp.load("trajectory_omega_breath", trajectory_params.omega_breath, 0.0);
+        pp.load("trajectory_z_amp", trajectory_params.z_amp, 0.0);
+        pp.load("trajectory_omega_z", trajectory_params.omega_z, 0.0);
+        pp.load("trajectory_well_width", trajectory_params.well_width, 1.5);
+        pp.load("trajectory_pump_frequency", trajectory_pump_frequency, 0.0);
+        for (int k = 0; k < trajectory_params.num_lumps; ++k)
+        {
+            load_trajectory_lump(pp, k, trajectory_params.lumps[k]);
+        }
     }
 
     void check_params()
@@ -108,6 +164,43 @@ class SimulationParameters : public SimulationParametersBase
     ExternalGridInitialData::params_t external_grid_params{};
 
     SupportedWormholeInitialData::params_t wormhole_params{};
+
+    // Trajectory-guided matter pump (Rung 2 active support).
+    int trajectory_mode{0};
+    TrajectoryParams trajectory_params{};
+    double trajectory_pump_frequency{0.0};
+    // Per-lump action state populated from trajectory params each coarse step.
+    std::array<double, RL_MAX_LUMPS> rl_pump_amplitude{};
+    std::array<double, RL_MAX_LUMPS> rl_pump_frequency{};
+    std::array<double, RL_MAX_LUMPS> rl_pump_phase{};
+    double rl_pump_width{1.5};
+    double rl_pump_max_amplitude{0.05};
+    double rl_l2_ham_governor_center{0.035};
+    double rl_l2_ham_governor_width{0.003};
+    double rl_pump_kp{0.0};
+    double rl_pump_kd{0.0};
+    int rl_pump_target_profile{0};
+    double rl_pump_target_width{0.0};
+    double rl_pump_target_amp{0.0};
+    // Pump ramp schedule (Phase 6 collapse trigger).  t_start < 0 => never.
+    double pump_ramp_t_start{-1.0};
+    double pump_ramp_t_end{0.0};
+    double pump_ramp_floor{0.0};
+
+  private:
+    void load_trajectory_lump(GRParmParse &pp, int k, PerLumpTrajectory &lk)
+    {
+        std::ostringstream pfx;
+        pfx << "trajectory_lump" << k << "_";
+        const std::string p = pfx.str();
+        pp.load((p + "R0").c_str(), lk.R0, 5.0);
+        pp.load((p + "omega_rot").c_str(), lk.omega_rot, 0.0);
+        pp.load((p + "phase0").c_str(), lk.phase0, 0.0);
+        pp.load((p + "tilt_theta").c_str(), lk.tilt_theta, 0.0);
+        pp.load((p + "tilt_phi").c_str(), lk.tilt_phi, 0.0);
+        pp.load((p + "well_depth").c_str(), lk.well_depth, 0.05);
+        pp.load((p + "v_rad").c_str(), lk.v_rad, 0.0);
+    }
 };
 
 #endif /* SIMULATIONPARAMETERS_HPP */

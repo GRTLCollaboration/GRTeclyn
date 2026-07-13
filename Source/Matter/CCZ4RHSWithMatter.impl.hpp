@@ -13,6 +13,35 @@
 #include "ComplexScalarField.hpp"
 #include "GRTresnaIndependentScalars.hpp"
 
+//! Detection trait: true if matter_t has the 7-arg add_matter_rhs overload
+//! (rhs, vars, d1, d2, advec, coords, time) used by the pump/trajectory system.
+//! Matter classes without it (e.g. ExoticScalarField, NoMatter, DustMatter)
+//! fall through to the 5-arg overload.  Uses the void_t detection idiom so it
+//! works for any matter class, not just the two hard-coded ones.
+namespace detail_matter
+{
+template <class T, class = void>
+struct has_time_rhs : std::false_type
+{
+};
+
+template <class T>
+struct has_time_rhs<
+    T, std::void_t<decltype(std::declval<const T &>().add_matter_rhs(
+           std::declval<const amrex::CellData<amrex::Real> &>(),
+           std::declval<const typename T::Vars &>(),
+           std::declval<const typename T::D1Vars &>(),
+           std::declval<const typename T::D2Vars &>(),
+           std::declval<const typename T::AdvecVars &>(),
+           std::declval<const Coordinates &>(), std::declval<amrex::Real>()))>>
+    : std::true_type
+{
+};
+
+template <class T>
+inline constexpr bool has_time_rhs_v = has_time_rhs<T>::value;
+} // namespace detail_matter
+
 #include <type_traits>
 
 template <class matter_t, class gauge_t, class deriv_t>
@@ -70,7 +99,8 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::operator()(
 
     // add evolution of matter fields themselves
     if constexpr (std::is_same_v<matter_t, GRTresnaIndependentScalars> ||
-                  std::is_same_v<matter_t, ComplexScalarField>)
+                  std::is_same_v<matter_t, ComplexScalarField> ||
+                  detail_matter::has_time_rhs_v<matter_t>)
     {
         m_matter.add_matter_rhs(rhs_cell_data, vars, d1, d2, advec, coords,
                                 m_time);

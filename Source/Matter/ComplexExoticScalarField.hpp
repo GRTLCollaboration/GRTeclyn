@@ -16,6 +16,7 @@
 #include "DimensionDefinitions.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "GRParmParse.hpp"
+#include "RLMatterPumpParams.hpp"
 #include "StateVariables.hpp"
 #include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
@@ -40,11 +41,14 @@ template <class potential_t = DefaultPotential> class ComplexExoticScalarField
   protected:
     potential_t m_potential;
     double m_support_strength;
+    RLMatterPumpParams m_pump{};
 
   public:
     ComplexExoticScalarField(potential_t a_potential = potential_t(),
-                             double a_support_strength = 1.0)
-        : m_potential(a_potential), m_support_strength(a_support_strength)
+                             double a_support_strength = 1.0,
+                             RLMatterPumpParams a_pump = {})
+        : m_potential(a_potential), m_support_strength(a_support_strength),
+          m_pump(a_pump)
     {
         GRParmParse pp;
         if (a_support_strength == 1.0)
@@ -73,6 +77,12 @@ template <class potential_t = DefaultPotential> class ComplexExoticScalarField
     add_matter_rhs(const amrex::CellData<amrex::Real> &rhs, const Vars &vars,
                    const D1Vars &d1, const D2Vars &d2,
                    const AdvecVars &advec) const;
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    add_matter_rhs(const amrex::CellData<amrex::Real> &rhs, const Vars &vars,
+                   const D1Vars &d1, const D2Vars &d2,
+                   const AdvecVars &advec, const Coordinates &coords,
+                   amrex::Real time) const;
 };
 
 #include "ComplexExoticScalarField.impl.hpp"

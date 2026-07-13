@@ -89,21 +89,37 @@ def _qball_suffix(lam: float, mu6: float) -> str:
     return f"_qball_lam{lam:g}_mu6{mu6:g}".replace(".", "p")
 
 
+def _constellation_suffix(n_lumps: int, orbit_radius: float,
+                          orbit_omega: float) -> str:
+    """Append _nlump<N>_R<R0>_worb<omega> for a multi-lump constellation ID.
+    Must match solve_kappa_family.py's _constellation_suffix."""
+    if n_lumps <= 1:
+        return ""
+    return (f"_nlump{n_lumps}_R{orbit_radius:g}_worb{orbit_omega:g}"
+            .replace(".", "p"))
+
+
 def id_tag(kappa: float, omega: float, m: int, dx: float,
            L: float = DEFAULT_L, mass: float = 0.0,
-           lam: float = 0.0, mu6: float = 0.0) -> str:
+           lam: float = 0.0, mu6: float = 0.0,
+           id_n_lumps: int = 1, id_orbit_radius: float = 6.0,
+           id_orbit_omega: float = 0.1) -> str:
     # Must match solve_kappa_family.py's run_dir tag.
     return (f"rotwh_omega_p{_p(omega)}_m{m}_kappa_{_p(kappa)}"
             f"_{_dx_tag(dx)}{_L_suffix(L)}{_mass_suffix(mass)}"
-            f"{_qball_suffix(lam, mu6)}")
+            f"{_qball_suffix(lam, mu6)}"
+            f"{_constellation_suffix(id_n_lumps, id_orbit_radius, id_orbit_omega)}")
 
 
 def case_tag(kappa: float, omega: float, m: int, dx: float,
              max_level: int, L: float = DEFAULT_L, mass: float = 0.0,
-             lam: float = 0.0, mu6: float = 0.0) -> str:
+             lam: float = 0.0, mu6: float = 0.0,
+             id_n_lumps: int = 1, id_orbit_radius: float = 6.0,
+             id_orbit_omega: float = 0.1) -> str:
     return (f"evo_omega_p{_p(omega)}_m{m}_kappa_{_p(kappa)}"
             f"_{_dx_tag(dx)}_ml{max_level}{_L_suffix(L)}{_mass_suffix(mass)}"
-            f"{_qball_suffix(lam, mu6)}")
+            f"{_qball_suffix(lam, mu6)}"
+            f"{_constellation_suffix(id_n_lumps, id_orbit_radius, id_orbit_omega)}")
 
 
 def extraction_radii(L: float) -> tuple[float, float]:
@@ -173,7 +189,7 @@ phantom_mu6 = {mu6}
 
 wormhole_azimuthal_m   = {m}
 wormhole_rotation_omega = {omega}
-
+{trajectory_block}
 L = {L}
 N1 = {N}
 N2 = {N}
@@ -244,6 +260,62 @@ amrex.use_gpu_aware_mpi = 0
 """
 
 
+def build_trajectory_block(args, center) -> str:
+    """Render the trajectory-pump params (Rung 2 active support).
+
+    Returns an empty string when --num-lumps <= 0 (pump OFF, no-op regression:
+    the generated params contain no trajectory_* keys, so the run is identical
+    to a passive evolution).
+
+    Places `num_lumps` orbit sites equally spaced on a circle of radius
+    `orbit_radius` in the z=0 plane about the throat, each with tangential
+    angular velocity `orbit_omega` (so the pump orbit matches the ID lump
+    placement).  The PD trap (k_p>0) drives the field toward the moving target
+    soliton; the pump frequency should equal the field's U(1) phase rate omega.
+    """
+    n = args.num_lumps
+    if n <= 0:
+        return ""
+    cx, cy, cz = center
+    lines = [
+        "",
+        "# --- Trajectory-guided matter pump (Rung 2 active support) ---",
+        "trajectory_mode = 1",
+        f"trajectory_num_lumps = {n}",
+        f"trajectory_well_width = {args.well_width}",
+        f"trajectory_pump_frequency = {args.pump_frequency}",
+        "trajectory_A_breath = 0.0",
+        "trajectory_omega_breath = 0.0",
+        "trajectory_z_amp = 0.0",
+        "trajectory_omega_z = 0.0",
+        f"rl_pump_width = {args.well_width}",
+        f"rl_pump_kp = {args.pump_kp}",
+        f"rl_pump_kd = {args.pump_kd}",
+        f"rl_pump_target_profile = {args.pump_target_profile}",
+        f"rl_pump_target_width = {args.pump_target_width}",
+        f"rl_pump_target_amp = {args.pump_target_amp}",
+        f"rl_l2_ham_governor_center = {args.governor_center}",
+        f"rl_l2_ham_governor_width = {args.governor_width}",
+        f"rl_pump_max_amplitude = {args.well_depth}",
+        f"pump_ramp_t_start = {args.pump_ramp_t_start}",
+        f"pump_ramp_t_end = {args.pump_ramp_t_end}",
+        f"pump_ramp_floor = {args.pump_ramp_floor}",
+    ]
+    import math
+    for k in range(n):
+        phase = 2.0 * math.pi * k / n
+        lines += [
+            f"trajectory_lump{k}_R0 = {args.orbit_radius}",
+            f"trajectory_lump{k}_omega_rot = {args.orbit_omega}",
+            f"trajectory_lump{k}_phase0 = {phase:.6f}",
+            f"trajectory_lump{k}_tilt_theta = 0.0",
+            f"trajectory_lump{k}_tilt_phi = 0.0",
+            f"trajectory_lump{k}_well_depth = {args.well_depth}",
+            f"trajectory_lump{k}_v_rad = 0.0",
+        ]
+    return "\n".join(lines) + "\n"
+
+
 def _consumer_env() -> dict:
     env = dict(os.environ)
     env["PYTHONPATH"] = f"{WRAPPER_SRC}:{env.get('PYTHONPATH', '')}"
@@ -259,15 +331,9 @@ _run_L: float = DEFAULT_L
 
 
 def _consumer_cmd(run_out: Path, jobs: int, *, watch: bool,
-                  delete: bool, keep_last: int,
+                  delete: bool, keep_last: int, frames: bool = True,
                   keep_existing_frames: bool = False) -> list[str]:
     cx, cy, cz = _run_center
-    # Frame zoom: cover the inner ~75% of the box so the boundary is cropped.
-    zoom = _run_L * 0.75
-    # Frame center offset from the lower-left corner (the consumer's
-    # --frames-corner mode places origin at (0,0,0) of the plotfile).
-    fc_x = cx - zoom / 2.0
-    fc_y = cy - zoom / 2.0
     cmd = [
         sys.executable, "-m",
         "grteclyn_wrapper.visualisation.process_wave.consume_plotfiles",
@@ -275,12 +341,21 @@ def _consumer_cmd(run_out: Path, jobs: int, *, watch: bool,
         "--center", str(cx), str(cy), str(cz),
         "--radii", *(str(r) for r in _run_radii), "--n-points", "128",
         "--confinement-timeseries", "--confinement-well-width", "2.5",
-        "--frames-fields", *FRAME_FIELDS.split(),
-        "--frames-axis", "z", "--frames-zoom", str(zoom),
-        "--frames-center", str(fc_x), str(fc_y), "0", "--frames-corner",
-        "--frames-global-zlim", "--frames-out", str(run_out / "frames"),
         "-j", str(jobs),
     ]
+    if frames:
+        # Frame zoom: cover the inner ~75% of the box so the boundary is cropped.
+        zoom = _run_L * 0.75
+        # Frame center offset from the lower-left corner (the consumer's
+        # --frames-corner mode places origin at (0,0,0) of the plotfile).
+        fc_x = cx - zoom / 2.0
+        fc_y = cy - zoom / 2.0
+        cmd += [
+            "--frames-fields", *FRAME_FIELDS.split(),
+            "--frames-axis", "z", "--frames-zoom", str(zoom),
+            "--frames-center", str(fc_x), str(fc_y), "0", "--frames-corner",
+            "--frames-global-zlim", "--frames-out", str(run_out / "frames"),
+        ]
     if delete:
         cmd += ["--delete", "--keep-last", str(keep_last)]
     if watch:
@@ -293,13 +368,17 @@ def _consumer_cmd(run_out: Path, jobs: int, *, watch: bool,
 
 
 def start_frame_consumer(run_out: Path, jobs: int,
-                         keep_last: int = 3) -> subprocess.Popen:
-    """Streaming sidecar (L6 disk discipline): render frames + Psi4 and delete
-    plotfiles *during* the evolution, keeping only the newest `keep_last` for
-    safety. --frames-global-zlim locks the colorbar from the first (t=0) plotfile.
+                         keep_last: int = 3,
+                         frames: bool = True) -> subprocess.Popen:
+    """Streaming sidecar (L6 disk discipline): extract Psi4 + confinement and
+    delete plotfiles *during* the evolution, keeping only the newest `keep_last`
+    for safety.  When ``frames`` is True it also renders PNG SlicePlots; when
+    False it is a delete-only sidecar (still enforces L6 for --no-frames test
+    runs, so plotfiles never accumulate).
     """
     return subprocess.Popen(
-        _consumer_cmd(run_out, jobs, watch=True, delete=True, keep_last=keep_last),
+        _consumer_cmd(run_out, jobs, watch=True, delete=True,
+                      keep_last=keep_last, frames=frames),
         env=_consumer_env(),
     )
 
@@ -312,12 +391,13 @@ def render_frames(run_out: Path, jobs: int) -> None:
     )
 
 
-def drain_frames(run_out: Path, jobs: int) -> None:
+def drain_frames(run_out: Path, jobs: int, frames: bool = True) -> None:
     """One-shot post-run pass: process any stragglers the sidecar didn't reach
-    (its keep_last tail) and delete every remaining plotfile."""
+    (its keep_last tail) and delete every remaining plotfile.  When ``frames``
+    is False it is a delete-only drain (no PNG rendering)."""
     subprocess.run(
         _consumer_cmd(run_out, jobs, watch=False, delete=True, keep_last=0,
-                      keep_existing_frames=True),
+                      frames=frames, keep_existing_frames=True),
         env=_consumer_env(), check=False,
     )
 
@@ -359,6 +439,62 @@ def main() -> int:
     ap.add_argument("--mu6", type=float, default=0.0,
                     help="phantom scalar sextic stabiliser mu6 (default 0). "
                          "REQUIRED (>0) for a stable 3D Q-ball with --lambda>0.")
+    # --- Trajectory-guided matter pump (Rung 2 active support) ----------
+    # --num-lumps 0 (default) => pump OFF; the generated params contain no
+    # trajectory_* keys (no-op regression, identical to a passive run).
+    ap.add_argument("--num-lumps", type=int, default=0,
+                    help="number of orbiting pump sites (0 = pump OFF). >0 "
+                         "enables the trajectory-guided matter pump: N lumps "
+                         "equally spaced on a circle of radius --orbit-radius "
+                         "orbiting at --orbit-omega, PD-trapped toward the "
+                         "moving target soliton.")
+    ap.add_argument("--orbit-radius", type=float, default=6.0,
+                    help="pump orbit radius about the throat (default 6).")
+    ap.add_argument("--orbit-omega", type=float, default=0.1,
+                    help="pump orbital angular velocity (default 0.1).")
+    ap.add_argument("--well-depth", type=float, default=0.05,
+                    help="per-lump pump amplitude / max amplitude (default 0.05).")
+    ap.add_argument("--well-width", type=float, default=2.5,
+                    help="pump spotlight Gaussian sigma (default 2.5).")
+    ap.add_argument("--pump-kp", type=float, default=0.0,
+                    help="PD trap proportional gain (0 => legacy open-loop "
+                         "source). >0 drives the field toward the target soliton.")
+    ap.add_argument("--pump-kd", type=float, default=0.0,
+                    help="PD trap derivative gain (default 0).")
+    ap.add_argument("--pump-frequency", type=float, default=0.0,
+                    help="pump U(1) phase rate (should match --omega for "
+                         "coherent charge injection; default 0).")
+    ap.add_argument("--pump-target-profile", type=int, default=0,
+                    choices=[0, 2], help="PD target shape: 0 Gaussian, 2 sech.")
+    ap.add_argument("--pump-target-width", type=float, default=0.0,
+                    help="PD target physical width (<=0 => use well width).")
+    ap.add_argument("--pump-target-amp", type=float, default=0.0,
+                    help="PD target central amplitude (<=0 => use well depth). "
+                         "Set to the ID lump central amplitude (phi_c).")
+    ap.add_argument("--governor-center", type=float, default=0.035,
+                    help="L2_Ham governor tanh center (pump cuts off above).")
+    ap.add_argument("--governor-width", type=float, default=0.003,
+                    help="L2_Ham governor tanh width.")
+    ap.add_argument("--pump-ramp-t-start", type=float, default=-1.0,
+                    help="collapse-trigger ramp start time (<0 => never ramp).")
+    ap.add_argument("--pump-ramp-t-end", type=float, default=0.0,
+                    help="collapse-trigger ramp end time.")
+    ap.add_argument("--pump-ramp-floor", type=float, default=0.0,
+                    help="pump amplitude fraction after the ramp (0 = full cut).")
+    # --- Constellation ID selection (Phase 2/3) -------------------------
+    # Which .gridinit to load.  Defaults to the pump orbit geometry so a
+    # pumped constellation run (--num-lumps N ...) auto-loads the matching
+    # constellation ID.  For a PASSIVE constellation run (pump off) set
+    # --id-num-lumps N alone (leave --num-lumps 0).  id-num-lumps<=1 loads a
+    # single-throat (winding) ID as before.
+    ap.add_argument("--id-num-lumps", type=int, default=None,
+                    help="number of lumps in the ID gridinit to load "
+                         "(default: --num-lumps). Set alone for a passive "
+                         "constellation run with the pump off.")
+    ap.add_argument("--id-orbit-radius", type=float, default=None,
+                    help="ID constellation orbit radius (default: --orbit-radius).")
+    ap.add_argument("--id-orbit-omega", type=float, default=None,
+                    help="ID constellation orbit omega (default: --orbit-omega).")
     ap.add_argument("--initial-lapse-type", type=int, default=0,
                     choices=[0, 1, 2, 3],
                     help="lapse seeding for the loaded ID (default 0 = use the "
@@ -377,6 +513,10 @@ def main() -> int:
     ap.add_argument("--frame-jobs", type=int, default=4)
     ap.add_argument("--keep-plotfiles", action="store_true",
                     help="do not prune plotfiles after frame extraction")
+    ap.add_argument("--run-suffix", default="",
+                    help="extra suffix appended to the run-dir tag (does NOT "
+                         "affect the ID tag). Use to keep parallel pump-gain "
+                         "sweeps (same ID, different k_p) in distinct dirs.")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
@@ -391,11 +531,21 @@ def main() -> int:
     _run_radii = radii
     _run_L = L
 
+    # Constellation ID selection: default to the pump orbit geometry so a
+    # pumped constellation auto-loads its matching ID; overridable for a
+    # passive (pump-off) constellation run via --id-num-lumps.
+    id_n_lumps = args.id_num_lumps if args.id_num_lumps is not None else args.num_lumps
+    id_orbit_radius = (args.id_orbit_radius if args.id_orbit_radius is not None
+                       else args.orbit_radius)
+    id_orbit_omega = (args.id_orbit_omega if args.id_orbit_omega is not None
+                      else args.orbit_omega)
+
     gridinit = (
         Path(args.gridinit).resolve()
         if args.gridinit
         else ID_ROOT / id_tag(args.kappa, args.omega, args.m, args.dx, L,
-                              args.mass, args.lam, args.mu6)
+                              args.mass, args.lam, args.mu6,
+                              id_n_lumps, id_orbit_radius, id_orbit_omega)
         / "initial_data.gridinit"
     )
     if not gridinit.is_file():
@@ -413,7 +563,10 @@ def main() -> int:
         return 2
 
     tag = case_tag(args.kappa, args.omega, args.m, args.dx, args.max_level, L,
-                   args.mass, args.lam, args.mu6)
+                   args.mass, args.lam, args.mu6,
+                   id_n_lumps, id_orbit_radius, id_orbit_omega)
+    if args.run_suffix:
+        tag = f"{tag}_{args.run_suffix}"
     run_dir = RUN_ROOT / tag
     run_out = run_dir / "output"
     run_out.mkdir(parents=True, exist_ok=True)
@@ -436,6 +589,7 @@ def main() -> int:
         num_extraction_radii=len(radii),
         extraction_radii_str=radii_str,
         extraction_levels_str=levels_str,
+        trajectory_block=build_trajectory_block(args, center),
     )
     params_path = run_dir / "params.txt"
     params_path.write_text(params_text)
@@ -452,20 +606,33 @@ def main() -> int:
     env["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
     log = run_dir / "evolve.log"
 
-    # Stream frames + Psi4 and delete plotfiles *during* the run so the heavy
-    # HDF5 backlog never accumulates (L6). Only the newest few are retained live;
-    # a post-run drain handles that tail. --keep-plotfiles falls back to a
-    # one-shot offline render that retains the plotfiles.
+    # Stream Psi4 + confinement and delete plotfiles *during* the run so the
+    # heavy HDF5 backlog never accumulates (L6, disk discipline).  A delete
+    # sidecar ALWAYS runs unless --keep-plotfiles, regardless of --frames:
+    # --no-frames skips only the PNG rendering, NOT the plotfile deletion (a
+    # bare --no-frames must never leave tens of GB of Plt* behind).  Only the
+    # newest few are retained live; a post-run drain handles that tail.
     consumer = None
-    if args.frames and not args.keep_plotfiles:
-        print("  starting frame/Psi4 sidecar (stream + delete plotfiles, L6)")
-        consumer = start_frame_consumer(run_out, args.frame_jobs)
+    if not args.keep_plotfiles:
+        mode = "frames+Psi4" if args.frames else "delete-only (no frames)"
+        print(f"  starting plotfile sidecar: {mode}, stream + delete (L6)")
+        consumer = start_frame_consumer(run_out, args.frame_jobs,
+                                        frames=args.frames)
 
     print(f"  running -> {log}")
+    run_rc = 0
     try:
         with log.open("w") as fh:
-            subprocess.run([str(BIN), str(params_path)], cwd=str(EXAMPLE_DIR),
-                           env=env, stdout=fh, stderr=subprocess.STDOUT, check=True)
+            proc = subprocess.run([str(BIN), str(params_path)],
+                                  cwd=str(EXAMPLE_DIR), env=env, stdout=fh,
+                                  stderr=subprocess.STDOUT, check=False)
+        run_rc = proc.returncode
+        if run_rc != 0:
+            # A NaN/abort is a legitimate physics outcome (e.g. collapse); do
+            # NOT let it skip the plotfile cleanup below (L6: a crashed run must
+            # never leave tens of GB of Plt* behind).
+            print(f"  WARNING: binary exited {run_rc} (NaN/abort?) -- "
+                  f"cleaning up plotfiles anyway", file=sys.stderr)
     finally:
         if consumer is not None:
             consumer.terminate()
@@ -473,17 +640,22 @@ def main() -> int:
                 consumer.wait(timeout=120)
             except subprocess.TimeoutExpired:
                 consumer.kill()
-
-    if args.frames:
+        # Plotfile disposal ALWAYS runs, success or crash (L6 disk discipline).
         if args.keep_plotfiles:
-            print("  rendering frames (offline, keeping plotfiles)...")
-            render_frames(run_out, args.frame_jobs)
+            if args.frames and run_rc == 0:
+                print("  rendering frames (offline, keeping plotfiles)...")
+                render_frames(run_out, args.frame_jobs)
         else:
-            print("  draining remaining plotfiles (frames + delete)...")
-            drain_frames(run_out, args.frame_jobs)
+            print(f"  draining remaining plotfiles ("
+                  f"{'frames + ' if args.frames else ''}delete)...")
+            drain_frames(run_out, args.frame_jobs, frames=args.frames)
             prune_plotfiles(run_out)
-            print("  plotfiles streamed + pruned (frames + data kept)")
+            print("  plotfiles streamed + pruned "
+                  f"({'frames + ' if args.frames else ''}data kept)")
+
     print(f"[wormhole_case] done: {run_out}")
+    if run_rc != 0:
+        return run_rc
     return 0
 
 

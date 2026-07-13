@@ -4,6 +4,7 @@
 #include "ConstraintsWithMatter.hpp"
 #include "GRParmParse.hpp"
 #include "PositiveChiAndLapse.hpp"
+#include "RLMatterPumpParams.hpp"
 #include "SmallDataIO.hpp"
 #include "TraceARemoval.hpp"
 #include "Weyl4WithMatter.hpp"
@@ -22,6 +23,46 @@
 #include <AMReX_Reduce.H>
 #include <AMReX_Utility.H>
 #include <cmath>
+
+//! Build the multi-site matter pump for the wormhole's complex_scalar branch.
+//! Mirrors RadialRecipeMatterDispatch::build_rl_pump but uses the wormhole
+//! SimulationParameters (no recipe_scalar_field_signs; single complex field).
+//! When trajectory_mode == 0 every amplitude is 0, so the pump is a no-op.
+inline RLMatterPumpParams
+build_wormhole_pump(const SimulationParameters &params)
+{
+    RLMatterPumpParams pump;
+    int n = params.trajectory_params.num_lumps;
+    if (params.trajectory_mode != 1)
+        n = 0;
+    if (n > RL_MAX_LUMPS)
+        n = RL_MAX_LUMPS;
+    if (n < 0)
+        n = 0;
+    pump.num_sites       = n;
+    pump.width           = params.rl_pump_width;
+    pump.governor_center = params.rl_l2_ham_governor_center;
+    pump.governor_width  = params.rl_l2_ham_governor_width;
+    pump.governor        = RLRuntime::tanh_governor(
+        RLRuntime::cached_L2_Ham(), pump.governor_center, pump.governor_width);
+    pump.num_fields      = 1;
+    pump.k_p             = params.rl_pump_kp;
+    pump.k_d             = params.rl_pump_kd;
+    pump.target_profile  = params.rl_pump_target_profile;
+    pump.target_width    = params.rl_pump_target_width;
+    pump.target_amp      = params.rl_pump_target_amp;
+    for (int s = 0; s < n; ++s)
+    {
+        pump.sites[s].center_x  = RLRuntime::g_lump_state[s].x;
+        pump.sites[s].center_y  = RLRuntime::g_lump_state[s].y;
+        pump.sites[s].center_z  = RLRuntime::g_lump_state[s].z;
+        pump.sites[s].amplitude = params.rl_pump_amplitude[s];
+        pump.sites[s].frequency = params.rl_pump_frequency[s];
+        pump.sites[s].phase     = params.rl_pump_phase[s];
+        pump.sites[s].field_sign = 1; // single complex field
+    }
+    return pump;
+}
 
 void SupportedWormholeLevel::variableSetUp()
 {
@@ -244,8 +285,9 @@ void SupportedWormholeLevel::specificEvalRHS(amrex::MultiFab &a_soln,
             simParams().wormhole_params.phantom_mass,
             simParams().wormhole_params.phantom_lambda,
             simParams().wormhole_params.phantom_mu6);
+        const RLMatterPumpParams pump = build_wormhole_pump(simParams());
         ComplexExoticScalarField<ComplexScalarPotential> complex_scalar(
-            potential, simParams().wormhole_params.support_strength);
+            potential, simParams().wormhole_params.support_strength, pump);
         CCZ4RHSWithMatter<ComplexExoticScalarField<ComplexScalarPotential>,
                           MovingPunctureGaugeWithMatter, FourthOrderDerivatives>
             ccz4rhs(complex_scalar, simParams().ccz4_params, Geom().CellSize(0),
@@ -455,6 +497,9 @@ void SupportedWormholeLevel::specificPostTimeStep()
             (sum_vol > 0.0) ? std::sqrt(sum_ham2 / sum_vol) : 0.0;
         const double L2_Mom =
             (sum_vol > 0.0) ? std::sqrt(sum_mom2 / sum_vol) : 0.0;
+
+        // Publish L2_Ham for the pump governor (Rung 2 active support).
+        RLRuntime::publish_cached_L2_Ham(L2_Ham);
 
         GRParmParse pp;
         std::string output_path = "./";
@@ -921,6 +966,118 @@ void SupportedWormholeLevel::specificPostTimeStep()
         amrex::ParallelDescriptor::ReduceRealSum(Q_sphere);
         amrex::ParallelDescriptor::ReduceRealSum(rho_sphere);
 
+        // Pump control-effort diagnostic (Rung 2 active support): instantaneous
+        // power the matter pump injects into the scalar field,
+        //   P_pump = integral alpha * (Pi1 * S_Pi1 + Pi2 * S_Pi2) sqrt(gamma) dV,
+        // where S_Pi{1,2} is the pump source added to d_t Pi{1,2} (the same term
+        // ComplexExoticScalarField::add_matter_rhs applies).  This is the
+        // Bianchi-violating energy injection; MAP-Elites penalises it so the
+        // search favours minimal-intervention support.  Zero when the pump is
+        // off (num_sites < 1), so passive runs report pump_work = 0.
+        amrex::Real pump_work = 0.0;
+        {
+            const RLMatterPumpParams pump = build_wormhole_pump(simParams());
+            if (pump.num_sites >= 1)
+            {
+                amrex::ReduceOps<amrex::ReduceOpSum> reduce_ops_pw;
+                amrex::ReduceData<amrex::Real> reduce_data_pw(reduce_ops_pw);
+                using ReduceTuplePW = typename decltype(reduce_data_pw)::Type;
+                const amrex::Real pw_time = time;
+                for (amrex::MFIter mfi(state_diag, amrex::TilingIfNotGPU());
+                     mfi.isValid(); ++mfi)
+                {
+                    const amrex::Box &bx = mfi.validbox();
+                    const auto arr       = state_diag.const_array(mfi);
+                    reduce_ops_pw.eval(
+                        bx, reduce_data_pw,
+                        [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTuplePW
+                        {
+                            const amrex::Real x =
+                                prob_lo[0] + (amrex::Real(i) + 0.5) * dx_arr[0];
+                            const amrex::Real y =
+                                prob_lo[1] + (amrex::Real(j) + 0.5) * dx_arr[1];
+                            const amrex::Real z =
+                                prob_lo[2] + (amrex::Real(k) + 0.5) * dx_arr[2];
+                            const amrex::Real lapse = arr(i, j, k, c_lapse);
+                            const amrex::Real chi = amrex::max(
+                                arr(i, j, k, c_chi), amrex::Real(1.0e-10));
+                            const amrex::Real sqrt_gamma =
+                                amrex::Real(1.0) / (chi * std::sqrt(chi));
+                            const amrex::Real phi1 = arr(i, j, k, c_phi);
+                            const amrex::Real phi2 = arr(i, j, k, c_phi2);
+                            const amrex::Real Pi1  = arr(i, j, k, c_Pi);
+                            const amrex::Real Pi2  = arr(i, j, k, c_Pi2);
+
+                            // Reproduce the pump source (mirror
+                            // ComplexExoticScalarField::add_matter_rhs).
+                            amrex::Real s1 = 0.0, s2 = 0.0;
+                            const amrex::Real gov = pump.governor;
+                            if (pump.k_p > 0.0)
+                            {
+                                const amrex::Real kp = pump.k_p;
+                                const amrex::Real kd = pump.k_d;
+                                const amrex::Real inv_a = 1.0 / lapse;
+                                const amrex::Real tw =
+                                    (pump.target_width > 0.0) ? pump.target_width
+                                                              : pump.width;
+                                for (int s = 0; s < pump.num_sites; ++s)
+                                {
+                                    const auto &site = pump.sites[s];
+                                    if (site.amplitude <= 0.0)
+                                        continue;
+                                    const amrex::Real env =
+                                        RLRuntime::compute_site_envelope(
+                                            x, y, z, site, tw,
+                                            pump.target_profile);
+                                    if (env < 1.0e-8)
+                                        continue;
+                                    const amrex::Real amp_t =
+                                        (pump.target_amp > 0.0) ? pump.target_amp
+                                                                : site.amplitude;
+                                    const amrex::Real g   = amp_t * env;
+                                    const amrex::Real arg =
+                                        -site.frequency * pw_time + site.phase;
+                                    const amrex::Real tphi1 = g * std::cos(arg);
+                                    const amrex::Real tphi2 = g * std::sin(arg);
+                                    const amrex::Real tPi1 =
+                                        site.frequency * tphi2 * inv_a;
+                                    const amrex::Real tPi2 =
+                                        -site.frequency * tphi1 * inv_a;
+                                    const amrex::Real w = gov * env;
+                                    s1 += w * (-kp * (phi1 - tphi1) -
+                                               kd * (Pi1 - tPi1));
+                                    s2 += w * (-kp * (phi2 - tphi2) -
+                                               kd * (Pi2 - tPi2));
+                                }
+                            }
+                            else
+                            {
+                                for (int s = 0; s < pump.num_sites; ++s)
+                                {
+                                    const amrex::Real base =
+                                        RLRuntime::compute_site_base(
+                                            x, y, z, pump.sites[s], pump.width,
+                                            gov);
+                                    if (base <= 0.0)
+                                        continue;
+                                    const amrex::Real arg =
+                                        pump.sites[s].frequency * pw_time +
+                                        pump.sites[s].phase;
+                                    s1 += base * std::cos(arg);
+                                    s2 += base * std::sin(arg);
+                                }
+                            }
+                            const amrex::Real power =
+                                lapse * (Pi1 * s1 + Pi2 * s2) * sqrt_gamma *
+                                cell_vol_fine;
+                            return {power};
+                        });
+                }
+                pump_work = amrex::get<0>(reduce_data_pw.value());
+                amrex::ParallelDescriptor::ReduceRealSum(pump_work);
+            }
+        }
+
         GRParmParse pp;
         std::string output_path = "./";
         pp.load("output_path", output_path, std::string("./"));
@@ -950,7 +1107,7 @@ void SupportedWormholeLevel::specificPostTimeStep()
                  "r_at_min_theta_plus",
                  "min_phi", "max_phi", "min_Pi", "max_Pi",
                  "barycenter_x", "barycenter_y", "barycenter_z", "rho_sum",
-                 "J_z", "Q_total", "Q_sphere", "rho_sphere"});
+                 "J_z", "Q_total", "Q_sphere", "rho_sphere", "pump_work"});
         }
         diag_file.write_time_data_line({static_cast<double>(min_lapse),
                                         static_cast<double>(min_chi),
@@ -972,6 +1129,7 @@ void SupportedWormholeLevel::specificPostTimeStep()
                                         static_cast<double>(J_z),
                                         static_cast<double>(Q_total),
                                         static_cast<double>(Q_sphere),
-                                        static_cast<double>(rho_sphere)});
+                                        static_cast<double>(rho_sphere),
+                                        static_cast<double>(pump_work)});
     }
 }

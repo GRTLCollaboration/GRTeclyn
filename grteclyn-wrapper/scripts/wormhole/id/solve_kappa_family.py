@@ -82,6 +82,19 @@ MU6 = float(os.environ.get("MU6", "0.0"))
 LUMP_OMEGA = float(os.environ.get("LUMP_OMEGA", "0.05"))
 LUMP_MODE = int(os.environ.get("LUMP_MODE", "1"))
 
+# --- Constellation (multi-lump orbital) ID (Phase 2, OrbitalPumpPlan) ---------
+# NUM_LUMPS > 1 replaces the single winding throat lump with N Q-ball lumps
+# equally spaced on a circle of radius ORBIT_RADIUS in the z=0 plane, each with
+# a tangential boost velocity v = ORBIT_OMEGA * ORBIT_RADIUS (so the constellation
+# carries ORBITAL angular momentum) and its own internal U(1) phase frequency
+# LUMP_OMEGA (so each lump carries Noether charge via pi2 = -(omega/alpha) phi1).
+# winding is set to 0 (orbital AM replaces phase winding); exotic=1 (phantom).
+# NUM_LUMPS <= 1 keeps the original single-winding-throat behaviour (backward
+# compatible with every existing kappa/Q-ball run).
+NUM_LUMPS = int(os.environ.get("NUM_LUMPS", "1"))
+ORBIT_RADIUS = float(os.environ.get("ORBIT_RADIUS", "6.0"))
+ORBIT_OMEGA = float(os.environ.get("ORBIT_OMEGA", "0.1"))
+
 
 def _read_base_amp(params_text: str) -> float:
     m = re.search(r"^\s*lump0_amp\s*=\s*([0-9eE.+-]+)", params_text, re.MULTILINE)
@@ -113,26 +126,80 @@ def _write_qball_profile(dst_dir: Path) -> Path:
     return dat_path.resolve()
 
 
+def _build_constellation_block(amp: float, width: float) -> str:
+    """Build the multi-lump `num_lumps` + `lump{k}_*` block for a constellation
+    of NUM_LUMPS Q-ball lumps orbiting the throat.
+
+    Lump k sits at angle phi_k = 2 pi k / N on the circle of radius ORBIT_RADIUS
+    (z=0 plane), with tangential boost velocity v_k = ORBIT_OMEGA * ORBIT_RADIUS *
+    (-sin phi_k, cos phi_k, 0).  winding=0 (orbital AM, not phase winding);
+    exotic=1 (phantom); internal U(1) frequency LUMP_OMEGA gives each lump its
+    Noether charge.  profile 3 (tabulated Q-ball) when LAMBDA>0, else Gaussian.
+    """
+    import math
+    profile = 3 if LAMBDA > 0.0 else 0
+    v = ORBIT_OMEGA * ORBIT_RADIUS
+    lines = [f"num_lumps = {NUM_LUMPS}"]
+    for k in range(NUM_LUMPS):
+        ph = 2.0 * math.pi * k / NUM_LUMPS
+        cx = ORBIT_RADIUS * math.cos(ph)
+        cy = ORBIT_RADIUS * math.sin(ph)
+        vx = -v * math.sin(ph)
+        vy = v * math.cos(ph)
+        lines += [
+            f"lump{k}_amp = {amp:.10g}",
+            f"lump{k}_width = {width:.10g}",
+            f"lump{k}_center = {cx:.10g} {cy:.10g} 0.0",
+            f"lump{k}_velocity = {vx:.10g} {vy:.10g} 0.0",
+            f"lump{k}_omega = {LUMP_OMEGA:.10g}",
+            f"lump{k}_mode = 0",
+            f"lump{k}_exotic = 1",
+            f"lump{k}_winding = 0",
+            f"lump{k}_profile = {profile}",
+        ]
+    return "\n".join(lines) + "\n"
+
+
 def _write_scaled_params(dst: Path, base_text: str, amp: float) -> None:
-    """Copy base params with lump0_amp -> amp and Outputs redirected locally."""
-    text = re.sub(
-        r"^(\s*lump0_amp\s*=\s*)[0-9eE.+-]+",
-        rf"\g<1>{amp:.10g}",
-        base_text,
-        flags=re.MULTILINE,
-    )
-    text = re.sub(
-        r"^(\s*lump0_omega\s*=\s*)[0-9eE.+-]+",
-        rf"\g<1>{LUMP_OMEGA:.10g}",
-        text,
-        flags=re.MULTILINE,
-    )
-    text = re.sub(
-        r"^(\s*lump0_mode\s*=\s*)[-+]?\d+",
-        rf"\g<1>{LUMP_MODE}",
-        text,
-        flags=re.MULTILINE,
-    )
+    """Copy base params with lump0_amp -> amp and Outputs redirected locally.
+
+    For NUM_LUMPS > 1 the whole single-lump block (num_lumps=1 + lump0_*) is
+    replaced by a generated constellation block (see _build_constellation_block).
+    """
+    text = base_text
+    if NUM_LUMPS > 1:
+        # Strip the base single-lump block (num_lumps + all lump0_* lines) and
+        # splice in the generated constellation block in its place.
+        base_width_m = re.search(r"^\s*lump0_width\s*=\s*([0-9eE.+-]+)", text,
+                                 re.MULTILINE)
+        base_width = float(base_width_m.group(1)) if base_width_m else 8.0
+        text = re.sub(r"^\s*num_lumps\s*=.*$", "", text, flags=re.MULTILINE)
+        text = re.sub(r"^\s*lump0_\w+\s*=.*$", "", text, flags=re.MULTILINE)
+        block = _build_constellation_block(amp, base_width)
+        # Insert after the bs_omega line (end of the scalar/boson block).
+        text = re.sub(r"(^\s*bs_omega\s*=.*$)",
+                      rf"\g<1>\n\n{block}", text, count=1, flags=re.MULTILINE)
+    else:
+        # Single-lump (winding throat) path: scale amp and set winding
+        # omega/mode.  Skipped for constellations (their block is complete).
+        text = re.sub(
+            r"^(\s*lump0_amp\s*=\s*)[0-9eE.+-]+",
+            rf"\g<1>{amp:.10g}",
+            text,
+            flags=re.MULTILINE,
+        )
+        text = re.sub(
+            r"^(\s*lump0_omega\s*=\s*)[0-9eE.+-]+",
+            rf"\g<1>{LUMP_OMEGA:.10g}",
+            text,
+            flags=re.MULTILINE,
+        )
+        text = re.sub(
+            r"^(\s*lump0_mode\s*=\s*)[-+]?\d+",
+            rf"\g<1>{LUMP_MODE}",
+            text,
+            flags=re.MULTILINE,
+        )
     # Normalise the output dir so the driver always finds Outputs/... regardless
     # of the base file's output_path (base uses Outputs_rotwh/).
     text = re.sub(
@@ -227,12 +294,22 @@ def _qball_suffix() -> str:
     return f"_qball_lam{LAMBDA:g}_mu6{MU6:g}".replace(".", "p")
 
 
+def _constellation_suffix() -> str:
+    """Append _nlump<N>_R<R0>_worb<omega> for a multi-lump constellation ID.
+    Must match wormhole_case.py's constellation suffix so the evolution finds it."""
+    if NUM_LUMPS <= 1:
+        return ""
+    return (f"_nlump{NUM_LUMPS}_R{ORBIT_RADIUS:g}_worb{ORBIT_OMEGA:g}"
+            .replace(".", "p"))
+
+
 def _run_tag(kappa: float) -> str:
     dx = EVO_L / RES_N
     dx_tag = f"dx{dx:.3g}".replace(".", "p")
     omega_tag = f"{LUMP_OMEGA:.2f}".replace(".", "p")
     return (f"rotwh_omega_p{omega_tag}_m{LUMP_MODE}_kappa_{kappa:.2f}_{dx_tag}"
-            f"{_L_suffix()}{_mass_suffix()}{_qball_suffix()}").replace(".", "p")
+            f"{_L_suffix()}{_mass_suffix()}{_qball_suffix()}"
+            f"{_constellation_suffix()}").replace(".", "p")
 
 
 def solve_one(kappa: float, base_amp: float, base_text: str, nranks: int) -> dict:
