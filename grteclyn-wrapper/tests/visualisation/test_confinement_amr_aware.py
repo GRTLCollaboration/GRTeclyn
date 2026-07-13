@@ -15,6 +15,7 @@ yt = pytest.importorskip("yt")
 
 from grteclyn_wrapper.visualisation.process_wave.consume_plotfiles.extraction.confinement import (
     _extract_confinement_line,
+    _matter_weight_on_grid,
 )
 
 
@@ -65,6 +66,21 @@ def _two_level_ds():
         grids, [n, n, n],
         bbox=np.array([[0.0, 16.0], [0.0, 16.0], [0.0, 16.0]]),
     )
+
+
+def test_complex_scalar_named_components_share_one_activity_norm():
+    class Grid:
+        def __getitem__(self, key):
+            return {
+                "phi": np.array([3.0]),
+                "Pi": np.array([4.0]),
+                "phi2": np.array([12.0]),
+                "Pi2": np.array([0.0]),
+            }[key[1]]
+
+    weight = _matter_weight_on_grid(Grid(), "stream", {"phi", "Pi", "phi2", "Pi2"})
+    assert weight is not None
+    assert weight[0] == pytest.approx(13.0)
 
 
 def test_uniform_grid_amr_path_matches_level0():

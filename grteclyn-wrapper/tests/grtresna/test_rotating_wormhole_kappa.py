@@ -287,6 +287,28 @@ def test_qball_path_sets_couplings_and_profile(tmp_path, monkeypatch) -> None:
     assert phi0 > 0.0
 
 
+def test_winding_frequency_and_mode_drive_params_and_tag(tmp_path, monkeypatch) -> None:
+    drv = _load_driver_with_env(
+        monkeypatch,
+        MASS=0.5,
+        LAMBDA=120.0,
+        MU6=7200.0,
+        LUMP_OMEGA=0.4,
+        LUMP_MODE=2,
+        RES_N=64,
+    )
+    dst = tmp_path / "params.txt"
+    drv._write_scaled_params(dst, QBALL_BASE_PARAMS_TEXT, 0.1)
+    text = dst.read_text()
+
+    assert re.search(r"^\s*lump0_omega\s*=\s*0\.4\s*$", text, re.MULTILINE)
+    assert re.search(r"^\s*lump0_mode\s*=\s*2\s*$", text, re.MULTILINE)
+    assert drv._run_tag(1.0) == (
+        "rotwh_omega_p0p40_m2_kappa_1p00_dx1_mass0p5_"
+        "qball_lam120_mu67200"
+    )
+
+
 def test_massless_default_leaves_profile_gaussian(tmp_path, monkeypatch) -> None:
     """Backward compat: with LAMBDA unset the lump stays the analytic Gaussian
     (profile 0) and no Q-ball couplings/profile are injected."""

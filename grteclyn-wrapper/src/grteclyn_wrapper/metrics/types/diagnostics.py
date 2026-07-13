@@ -24,6 +24,17 @@ class CollapseMetrics:
     barycenter_y: float | None = None
     barycenter_z: float | None = None
     rho_sum: float | None = None
+    j_z_initial: float | None = None
+    j_z_final: float | None = None
+    q_total_initial: float | None = None
+    q_total_final: float | None = None
+    q_total_relative_drift: float | None = None
+    q_sphere_initial: float | None = None
+    q_sphere_final: float | None = None
+    q_sphere_retention: float | None = None
+    rho_sphere_initial: float | None = None
+    rho_sphere_final: float | None = None
+    rho_sphere_retention: float | None = None
 
 
 @dataclass(frozen=True)

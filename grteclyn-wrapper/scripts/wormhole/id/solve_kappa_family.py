@@ -80,6 +80,7 @@ MU6 = float(os.environ.get("MU6", "0.0"))
 # Phase-winding rotation rate of the throat lump (must match lump0_omega in the
 # base params and the evolution --omega).  Used as the Q-ball ODE frequency.
 LUMP_OMEGA = float(os.environ.get("LUMP_OMEGA", "0.05"))
+LUMP_MODE = int(os.environ.get("LUMP_MODE", "1"))
 
 
 def _read_base_amp(params_text: str) -> float:
@@ -118,6 +119,18 @@ def _write_scaled_params(dst: Path, base_text: str, amp: float) -> None:
         r"^(\s*lump0_amp\s*=\s*)[0-9eE.+-]+",
         rf"\g<1>{amp:.10g}",
         base_text,
+        flags=re.MULTILINE,
+    )
+    text = re.sub(
+        r"^(\s*lump0_omega\s*=\s*)[0-9eE.+-]+",
+        rf"\g<1>{LUMP_OMEGA:.10g}",
+        text,
+        flags=re.MULTILINE,
+    )
+    text = re.sub(
+        r"^(\s*lump0_mode\s*=\s*)[-+]?\d+",
+        rf"\g<1>{LUMP_MODE}",
+        text,
         flags=re.MULTILINE,
     )
     # Normalise the output dir so the driver always finds Outputs/... regardless
@@ -214,14 +227,17 @@ def _qball_suffix() -> str:
     return f"_qball_lam{LAMBDA:g}_mu6{MU6:g}".replace(".", "p")
 
 
-def solve_one(kappa: float, base_amp: float, base_text: str, nranks: int) -> dict:
-    amp = kappa * base_amp
-    # Tag by resolution (and box size / mass when non-default) so families coexist.
+def _run_tag(kappa: float) -> str:
     dx = EVO_L / RES_N
     dx_tag = f"dx{dx:.3g}".replace(".", "p")
-    tag = (f"rotwh_omega_p0p05_m1_kappa_{kappa:.2f}_{dx_tag}"
-           f"{_L_suffix()}{_mass_suffix()}{_qball_suffix()}").replace(".", "p")
-    run_dir = ID_ROOT / tag
+    omega_tag = f"{LUMP_OMEGA:.2f}".replace(".", "p")
+    return (f"rotwh_omega_p{omega_tag}_m{LUMP_MODE}_kappa_{kappa:.2f}_{dx_tag}"
+            f"{_L_suffix()}{_mass_suffix()}{_qball_suffix()}").replace(".", "p")
+
+
+def solve_one(kappa: float, base_amp: float, base_text: str, nranks: int) -> dict:
+    amp = kappa * base_amp
+    run_dir = ID_ROOT / _run_tag(kappa)
     outputs = run_dir / "Outputs"
     outputs.mkdir(parents=True, exist_ok=True)
     (run_dir / "pout").mkdir(exist_ok=True)
@@ -284,6 +300,7 @@ def main() -> int:
     base_amp = _read_base_amp(base_text)
     print(f"base amp = {base_amp}  kappas = {kappas}  nranks = {nranks}")
     print(f"evolution target grid: N={EVO_N} L={EVO_L} center={EVO_CENTER}")
+    print(f"winding: omega={LUMP_OMEGA} m={LUMP_MODE}")
     print(f"field mass (scalar_mass) = {MASS}"
           f"{'  (massless ghost)' if MASS <= 0 else '  (confining potential)'}")
 

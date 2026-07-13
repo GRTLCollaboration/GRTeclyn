@@ -53,6 +53,11 @@ def _matter_weight_on_grid(cg, ftype: str, available: set[str]) -> np.ndarray | 
     ]
     phi = arr("phi")
     pi = arr("Pi")
+    phi2 = arr("phi2")
+    pi2 = arr("Pi2")
+
+    if phi is not None and pi is not None and phi2 is not None and pi2 is not None:
+        return np.sqrt(phi**2 + pi**2 + phi2**2 + pi2**2)
 
     # Single complex field: phi/Pi = Re, phi_lump0/Pi_lump0 = Im -> one |Phi| norm.
     if lump_pairs == [("phi_lump0", "Pi_lump0")] and phi is not None and pi is not None:

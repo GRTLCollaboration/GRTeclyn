@@ -136,17 +136,21 @@ This is the headline result: the rotating instability was **numerical** (the O(�
 GRTresna solve removes it and the rotating wormhole holds its equilibrium just
 like the static case. Phase B is complete.
 
-**Immediate next actions (updated 2026-07-12 after Rung 1a, see §"Rung 1a DONE"
-below):** the bound-state fix is now implemented (coupled Q-ball potential in the
-evolution + solved Q-ball winding ID + fixed-sphere `Q_sphere` confinement
-diagnostics + gauge-kick lever, all built/tested). The finding is a **clean
-negative**: a *low-ω single-lump* phantom throat cannot host a Q-ball eigenstate
-(the throat-convergence limit forces amp≈0.1 while the ω=0.05 Q-ball existence
-window forces φ_c~1.3 — the two clash), so `Q_sphere` disperses by t≈15 just like
-the Gaussian. Also note `rho_sum` is **not** a confinement metric (it stayed flat
-while the throat emptied — use `Q_sphere`). Gating priority is now **Rung 1a′**
-(high-ω Q-ball window, ω→μ) as the last shot at a *static* confined throat, else
-**Rung 2 (RL pump)** / **Rung 3 (ℓ=2 GW burst)**.
+**Immediate next actions (updated 2026-07-13 after Rung 1a′, see §"Rung 1a′ DONE"
+below):** the stiff-coupling Q-ball test is done and is a **clean negative at the
+proper resolution (dx=0.5)**. Stiffening λ,μ₆ so the Q-ball's *natural* central
+amplitude equals the throat-convergent amp≈0.1 removes the amplitude/existence
+clash — the ID solves cleanly at ω∈{0.05,0.30,0.40} (Ham≤0.91%) — but the throat
+charge `Q_sphere` still drains to 1–5% by t=30 (half-life t≈13–16), and **higher ω
+makes confinement slightly worse, not better**. Root cause is the remaining
+mismatch: the painter twists a *spherical* Q-ball into an `m=1` torus, which is
+**not a rotating eigenstate**, so it relaxes and radiates its support away. As the
+support leaves, the throat **opens toward flat space** (min_chi→0.87–0.98, no
+horizon, max|K|→0) — the rarefactive branch, consistent with `article.md`'s
+full-support unperturbed case. `rho_sum` remains **not** a confinement metric (use
+`Q_sphere`). Gating priority is now **the stationary rotating solve** (continuation
+from Ellis–Bronnikov, which fixes the spherical→torus mismatch at its source),
+else **Rung 2 (RL pump)** / **Rung 3 (ℓ=2 GW burst)**.
 
 **Phase C setup (2026-07-08) — CLI consolidation + high-res (dx=0.5) ID.**
 Replaced the per-case `params_*.txt` proliferation with a single **CLI generator**
@@ -514,6 +518,75 @@ confinement metric is `Q_sphere` (col 21), **not** `rho_sum` (col 18).
 
 ---
 
+## Rung 1a′ DONE (2026-07-13) — stiff naturally-small Q-balls at dx=0.5: still non-confining, and higher ω does not help
+
+**What was done.**
+- **Fixed a silent ID bug:** `solve_kappa_family.py` accepted `LUMP_OMEGA` but
+  hard-coded the GRTresna `lump0_omega`/`lump0_mode` and the run tag to ω=0.05/m=1,
+  so any high-ω request silently solved the ω=0.05 lump. Now `LUMP_OMEGA`/`LUMP_MODE`
+  rewrite the params *and* the tag (regression test added).
+- **Removed the amplitude/existence clash** by stiffening the couplings so the
+  Q-ball's *natural* eigenstate amplitude φ_c ≈ 0.1 (= the throat-convergent amp),
+  instead of rescaling a φ_c≈1.3 soliton down to 0.1. Solved three IDs at N=128
+  (dx=0.5): (ω,λ,μ₆) = (0.05,170,14450), (0.30,160,12800), (0.40,120,7200), all
+  with natural φ_c≈0.10.
+- **Made the global diagnostics AMR-correct:** `Q_total`/`Q_sphere`/`J_z`/barycenter
+  are now integrated on the **level-0 synchronised grid** (was finest-patch only,
+  which under-counts on AMR); rebuilt CPU+GPU. Confinement extractor now reads the
+  `phi2`/`Pi2` complex channel; `collapse.py` parses the charge columns
+  (`Q_total` drift, `Q_sphere`/`rho_sphere` retention, `J_z`).
+- **Reproduced the dense-amplitude failure** cited earlier: the natural-φ_c≈1.30
+  Q-ball at ω=0.05 diverges to **Ham 84.96% / Mom 37.2%** (outside Lichnerowicz).
+
+**Runs — κ=1, m=1, N=128/dx=0.5, max_level=1, μ=0.5, t→30, one H100 each.**
+
+| ω (λ,μ₆) | ID Ham/Mom | `Q_sphere` retain (t=6/10/15/20/30) | `Q_total` drift@30 | `J_z` retain@30 | throat | horizon |
+|---|---|---|---|---|---|---|
+| 0.05 (170,14450) | 0.91% / 0.79% | 0.99 / 0.92 / 0.56 / 0.27 / **0.05** | 3.3% | 0.95 | min_chi 0.63→0.87 (opens) | none |
+| 0.30 (160,12800) | 0.76% / 0.72% | 1.00 / 0.95 / 0.31 / 0.08 / **0.01** | 4.8% | 1.01 | min_chi 0.61→0.98 (opens) | none |
+| 0.40 (120,7200) | 0.69% / 0.68% | 1.00 / 0.97 / 0.28 / 0.08 / **0.01** | 4.6% | 1.03 | min_chi 0.60→0.98 (opens) | none |
+
+**Findings.**
+1. **Non-confining, but for a now-isolated reason.** With the eigenstate amplitude
+   matched, `Q_sphere` holds ~0.9 to t≈10 (past the old t≈6 onset) then drains to
+   1–5% by t=30 (half-life t≈13–16). `Q_total` conserved to ≤5% and `J_z` to ≤5% —
+   the field is evolved correctly; the charge physically leaves the throat.
+2. **Higher spin does not help** — half-life 15.8 (ω=0.05) → 12.9 (ω=0.40).
+   The high-ω window hypothesis (old Rung 1a′) is **falsified** for this ansatz.
+3. **Why:** the ID painter builds a *spherical* Q-ball and twists it into an `m=1`
+   torus (`f·(sinθ)^m·e^{imφ}`). That torus is not a stationary solution of the
+   *rotating* Einstein–Klein–Gordon system, so it relaxes and radiates.
+4. **Geometry = rarefactive opening, not collapse.** As support leaves, `min_chi`
+   rises toward 1 (flat), `max|K|`→0, `min_theta_plus` stays +0.025, no apparent
+   horizon. This is the article's **full-support / unperturbed** branch (expansion),
+   *not* the halved-support+quadrupole **collapse** branch (`article.md`,
+   `SupportedWormholeCollapse/params_2gpu.txt`). The Ψ₄ "burst" at r=12/24 is the
+   dispersing matter shell crossing the extraction spheres (r·|Ψ₄| *grows* with r,
+   so it is not a clean 1/r wave-zone signal), not a boundary reflection (nearest
+   face r≈32 ⇒ echo only after t≈40–64; runs stop at t=30).
+5. **Sponge is OFF** for `RotatingWormholeCollapse` (only Sommerfeld + KO σ=2 +
+   z=0 reflection symmetry). The sponge exists only in `RadialRecipe`. No visible
+   reflection by t=30 is a light-crossing effect, not evidence of a sponge.
+
+**Reproduce (per case):**
+```bash
+MASS=0.5 LAMBDA=170 MU6=14450 LUMP_OMEGA=0.05 LUMP_MODE=1 RES_N=128 \
+  bash grteclyn-wrapper/scripts/wormhole/id/solve_kappa_family.sh 0.998604005105128 2
+bash grteclyn-wrapper/scripts/wormhole/run/wormhole_case.sh \
+  --kappa 0.998604005105128 --dx 0.5 --mass 0.5 --lambda 170 --mu6 14450 \
+  --omega 0.05 --m 1 --max-level 1 --stop-time 30 --gpu 0
+# ω=0.30: LAMBDA=160 MU6=12800 kappa 1.00088415704501
+# ω=0.40: LAMBDA=120 MU6=7200  kappa 0.999681936351098
+```
+
+**Decision — the passive single-lump path is exhausted.** Both amplitude regimes
+now fail for understood, distinct reasons (dense φ_c → solver diverges; matched
+φ_c → non-eigenstate torus disperses). The next principled fix is a **genuinely
+stationary rotating solve** (see the new top-priority step below); active support
+(Rung 2) and the ℓ=2 dispersal burst (Rung 3) remain the fallbacks.
+
+---
+
 ## Next steps — confinement leverage ladder (roadmap)
 
 Ordered cheapest→most-invasive. Each rung has a **concrete action**, an **expected
@@ -552,14 +625,27 @@ governing diagnostic throughout is `rho_sum(t)`: does the phantom cloud **hold**
   non-eigenstate modes away). Climb to **Rung 1 — the bound-state profile is the
   principled fix.**
 
-### Rung 1 — Bound-state profile (the principled fix) — *1a IMPLEMENTED; see "Rung 1a DONE" above*
-- **1a. Q-ball** (`PROFILE_ODE_BOUND`, id 3) — **the correct first choice**
-  (binds via the potential, survives the phantom sign). **DONE this pass:** the
-  coupled `ComplexScalarPotential` is wired into the evolution (λ, μ₆ threaded
-  through both codes), the ID solves clean (Ham 0.43%), but a low-ω throat cannot
-  host a Q-ball eigenstate (amplitude/existence clash — see the results section
-  above). Next: **1a′ high-ω window** (ω→μ so φ_c is small enough to match a
-  convergent throat amplitude).
+### Rung 1½ — Stationary rotating solve (NEW top priority, 2026-07-13)
+- **Why:** Rungs 1a and 1a′ proved the *painted* ansatz cannot work — a spherical
+  Q-ball twisted into an `m=1` torus is not a stationary solution of the rotating
+  Einstein–Klein–Gordon system, so it radiates regardless of amplitude or ω.
+- **Action:** solve the coupled *stationary axisymmetric* system for the rotating
+  field amplitude `F(ρ,z)` **together with** χ, lapse, and the frame-dragging shift
+  and frequency ω — not just the gravitational constraints around a fixed profile.
+  Use numerical continuation: start from the exact ω=0 Ellis–Bronnikov equilibrium,
+  add a small ω, re-solve to stationarity, and march ω up along the branch
+  (rotating Ellis / Kleihaus–Kunz class).
+- **Acceptance:** low scalar-EOM residual at t=0 **and** `Q_sphere` retention high
+  and flat to t=30 (not merely a slow leak). Then proceed to the (ω,m,κ) grid + GW.
+- **If intractable:** fall through to Rung 2 (active support) / Rung 3 (GW burst).
+
+### Rung 1 — Bound-state profile — *DONE (negative); see "Rung 1a DONE" and "Rung 1a′ DONE" above*
+- **1a. Q-ball** (`PROFILE_ODE_BOUND`, id 3) — coupled `ComplexScalarPotential`
+  wired into the evolution (λ, μ₆ threaded through both codes); ID solves clean.
+  **Negative result:** dense natural φ_c≈1.3 → solver diverges (Ham 85%); matched
+  φ_c≈0.1 (stiff λ,μ₆) → solves clean but the painted torus disperses (`Q_sphere`
+  → 1–5% by t=30). Higher ω does **not** help (1a′ falsified). Superseded by
+  Rung 1½.
 - **1b. Self-gravitating boson star** (`PROFILE_SELFGRAV_BOUND`, id 4) —
   **deprioritised (was mistakenly "prefer first").** Its binding is
   gravitational, which is *repulsive* for a phantom-sign source, so it is not a

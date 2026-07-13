@@ -14,6 +14,23 @@ TRAPPED_THETA_THRESH: float = -0.05
 TRAPPED_LAPSE_THRESH: float = 0.2
 
 
+def _endpoints(rows: list[list[float]], column: int) -> tuple[float | None, float | None]:
+    values = [row[column] for row in rows if len(row) > column]
+    return (values[0], values[-1]) if values else (None, None)
+
+
+def _relative_drift(initial: float | None, final: float | None) -> float | None:
+    if initial is None or final is None or abs(initial) <= 1.0e-15:
+        return None
+    return abs(final - initial) / abs(initial)
+
+
+def _retention(initial: float | None, final: float | None) -> float | None:
+    if initial is None or final is None or abs(initial) <= 1.0e-15:
+        return None
+    return abs(final) / abs(initial)
+
+
 def _corroborated_trapped(rows: list[list[float]]) -> tuple[bool, float | None]:
     """Return whether any row has corroborated trapped-surface signal and when."""
     first_time: float | None = None
@@ -56,6 +73,10 @@ def read_collapse_metrics(path: Path) -> CollapseMetrics | None:
     bary_y = rows[-1][15] if len(rows[-1]) >= 16 else None
     bary_z = rows[-1][16] if len(rows[-1]) >= 17 else None
     rho_sum = rows[-1][17] if len(rows[-1]) >= 18 else None
+    j_z_initial, j_z_final = _endpoints(rows, 18)
+    q_total_initial, q_total_final = _endpoints(rows, 19)
+    q_sphere_initial, q_sphere_final = _endpoints(rows, 20)
+    rho_sphere_initial, rho_sphere_final = _endpoints(rows, 21)
 
     return CollapseMetrics(
         final_time=final_time,
@@ -73,4 +94,15 @@ def read_collapse_metrics(path: Path) -> CollapseMetrics | None:
         barycenter_y=bary_y,
         barycenter_z=bary_z,
         rho_sum=rho_sum,
+        j_z_initial=j_z_initial,
+        j_z_final=j_z_final,
+        q_total_initial=q_total_initial,
+        q_total_final=q_total_final,
+        q_total_relative_drift=_relative_drift(q_total_initial, q_total_final),
+        q_sphere_initial=q_sphere_initial,
+        q_sphere_final=q_sphere_final,
+        q_sphere_retention=_retention(q_sphere_initial, q_sphere_final),
+        rho_sphere_initial=rho_sphere_initial,
+        rho_sphere_final=rho_sphere_final,
+        rho_sphere_retention=_retention(rho_sphere_initial, rho_sphere_final),
     )

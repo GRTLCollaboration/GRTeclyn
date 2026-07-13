@@ -492,20 +492,19 @@ void SupportedWormholeLevel::specificPostTimeStep()
         const amrex::Real restart_time = get_gramr_ptr()->get_restart_time();
         const bool first_step          = (time == 0.0);
 
-        const int finest_lev = parent->finestLevel();
-        auto &fine_level     = parent->getLevel(finest_lev);
-        amrex::MultiFab &state_fine = fine_level.get_new_data(state_index);
-        const auto &fine_geom       = parent->Geom(finest_lev);
+        auto &diagnostic_level = parent->getLevel(0);
+        amrex::MultiFab &state_diag = diagnostic_level.get_new_data(state_index);
+        const auto &diag_geom       = parent->Geom(0);
 
-        FillPatch(fine_level, state_fine, 2, time, state_index, 0,
-                  state_fine.nComp());
+        FillPatch(diagnostic_level, state_diag, 2, time, state_index, 0,
+                  state_diag.nComp());
 
         {
-            const auto &arrs = state_fine.arrays();
+            const auto &arrs = state_diag.arrays();
             TraceARemoval trace_A_removal;
             PositiveChiAndLapse positive_chi_lapse(simParams().min_chi,
                                                    simParams().min_lapse);
-            amrex::ParallelFor(state_fine, amrex::IntVect(0),
+            amrex::ParallelFor(state_diag, amrex::IntVect(0),
                                [=] AMREX_GPU_DEVICE(int box_no, int i, int j,
                                                     int k)
                                {
@@ -528,8 +527,8 @@ void SupportedWormholeLevel::specificPostTimeStep()
             reduce_data(reduce_ops);
         using ReduceTuple = typename decltype(reduce_data)::Type;
         
-        const auto prob_lo = fine_geom.ProbLoArray();
-        const auto dx_arr = fine_geom.CellSizeArray();
+        const auto prob_lo = diag_geom.ProbLoArray();
+        const auto dx_arr = diag_geom.CellSizeArray();
 
         // The apparent-horizon / expansion proxy must be measured about the
         // physics center (where the initial data is centered), not the
@@ -541,11 +540,11 @@ void SupportedWormholeLevel::specificPostTimeStep()
         const amrex::Real cy = simParams().wormhole_params.grid_center[1];
         const amrex::Real cz = simParams().wormhole_params.grid_center[2];
 
-        for (amrex::MFIter mfi(state_fine, amrex::TilingIfNotGPU());
+        for (amrex::MFIter mfi(state_diag, amrex::TilingIfNotGPU());
              mfi.isValid(); ++mfi)
         {
             const amrex::Box &bx = mfi.validbox();
-            const auto arr       = state_fine.const_array(mfi);
+            const auto arr       = state_diag.const_array(mfi);
             reduce_ops.eval(
                 bx, reduce_data,
                 [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTuple
@@ -636,11 +635,11 @@ void SupportedWormholeLevel::specificPostTimeStep()
             reduce_data_loc(reduce_ops_loc);
         using ReduceTupleLoc = typename decltype(reduce_data_loc)::Type;
 
-        for (amrex::MFIter mfi(state_fine, amrex::TilingIfNotGPU());
+        for (amrex::MFIter mfi(state_diag, amrex::TilingIfNotGPU());
              mfi.isValid(); ++mfi)
         {
             const amrex::Box &bx = mfi.validbox();
-            const auto arr       = state_fine.const_array(mfi);
+            const auto arr       = state_diag.const_array(mfi);
             reduce_ops_loc.eval(
                 bx, reduce_data_loc,
                 [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTupleLoc
@@ -681,11 +680,11 @@ void SupportedWormholeLevel::specificPostTimeStep()
             reduce_ops_theta_loc);
         using ReduceTupleThetaLoc = typename decltype(reduce_data_theta_loc)::Type;
 
-        for (amrex::MFIter mfi(state_fine, amrex::TilingIfNotGPU());
+        for (amrex::MFIter mfi(state_diag, amrex::TilingIfNotGPU());
              mfi.isValid(); ++mfi)
         {
             const amrex::Box &bx = mfi.validbox();
-            const auto arr       = state_fine.const_array(mfi);
+            const auto arr       = state_diag.const_array(mfi);
             reduce_ops_theta_loc.eval(
                 bx, reduce_data_theta_loc,
                 [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTupleThetaLoc
@@ -762,11 +761,11 @@ void SupportedWormholeLevel::specificPostTimeStep()
             reduce_data_bary(reduce_ops_bary);
         using ReduceTupleBary = typename decltype(reduce_data_bary)::Type;
 
-        for (amrex::MFIter mfi(state_fine, amrex::TilingIfNotGPU());
+        for (amrex::MFIter mfi(state_diag, amrex::TilingIfNotGPU());
              mfi.isValid(); ++mfi)
         {
             const amrex::Box &bx = mfi.validbox();
-            const auto arr       = state_fine.const_array(mfi);
+            const auto arr       = state_diag.const_array(mfi);
             reduce_ops_bary.eval(
                 bx, reduce_data_bary,
                 [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTupleBary
@@ -813,11 +812,11 @@ void SupportedWormholeLevel::specificPostTimeStep()
         amrex::ReduceData<amrex::Real> reduce_data_jz(reduce_ops_jz);
         using ReduceTupleJz = typename decltype(reduce_data_jz)::Type;
 
-        for (amrex::MFIter mfi(state_fine, amrex::TilingIfNotGPU());
+        for (amrex::MFIter mfi(state_diag, amrex::TilingIfNotGPU());
              mfi.isValid(); ++mfi)
         {
             const amrex::Box &bx = mfi.validbox();
-            const auto arr       = state_fine.const_array(mfi);
+            const auto arr       = state_diag.const_array(mfi);
             reduce_ops_jz.eval(
                 bx, reduce_data_jz,
                 [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTupleJz
@@ -878,11 +877,11 @@ void SupportedWormholeLevel::specificPostTimeStep()
             reduce_data_q(reduce_ops_q);
         using ReduceTupleQ = typename decltype(reduce_data_q)::Type;
 
-        for (amrex::MFIter mfi(state_fine, amrex::TilingIfNotGPU());
+        for (amrex::MFIter mfi(state_diag, amrex::TilingIfNotGPU());
              mfi.isValid(); ++mfi)
         {
             const amrex::Box &bx = mfi.validbox();
-            const auto arr       = state_fine.const_array(mfi);
+            const auto arr       = state_diag.const_array(mfi);
             reduce_ops_q.eval(
                 bx, reduce_data_q,
                 [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTupleQ

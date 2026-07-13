@@ -13,7 +13,10 @@ from __future__ import annotations
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+import pytest
+
 from grteclyn_wrapper.metrics import read_episode_metrics, score_episode
+from grteclyn_wrapper.metrics.diagnostics.collapse import read_collapse_metrics
 
 
 def _write_collapse(
@@ -50,6 +53,23 @@ def test_r_at_min_theta_plus_is_parsed() -> None:
         assert metrics.collapse is not None
         assert metrics.collapse.r_at_min_theta_plus == 108.0
         assert metrics.collapse.max_horizon_radius == 110.0
+
+
+def test_charge_retention_columns_are_parsed() -> None:
+    with TemporaryDirectory() as tmp:
+        path = Path(tmp) / "collapse_diagnostics.dat"
+        path.write_text(
+            "0 1 0.98 0.02 0 0 0 0 1 1 0 0 0 0 0 0 0 9 -3 -4 -2 8\n"
+            "2 0.9 0.97 0.03 0 0 0 0 1 1 0 0 0 0 0 0 0 8 -2.5 -3.8 -1 2\n",
+            encoding="utf-8",
+        )
+        metrics = read_collapse_metrics(path)
+        assert metrics is not None
+        assert metrics.j_z_initial == -3.0
+        assert metrics.j_z_final == -2.5
+        assert metrics.q_total_relative_drift == pytest.approx(0.05)
+        assert metrics.q_sphere_retention == pytest.approx(0.5)
+        assert metrics.rho_sphere_retention == pytest.approx(0.25)
 
 
 def test_offcenter_horizon_is_rejected_when_domain_known() -> None:
