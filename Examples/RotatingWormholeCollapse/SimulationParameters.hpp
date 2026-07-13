@@ -5,6 +5,7 @@
 #include "GRParmParse.hpp"
 #include "RLLumpState.hpp" // RL_MAX_LUMPS
 #include "SimulationParametersBase.hpp"
+#include "SpongeZone.hpp" // SpongeZoneParams
 #include "SupportedWormholeInitialData.hpp"
 #include "TrajectoryParams.hpp"
 
@@ -101,6 +102,25 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("pump_ramp_t_start", pump_ramp_t_start, -1.0);
         pp.load("pump_ramp_t_end", pump_ramp_t_end, 0.0);
         pp.load("pump_ramp_floor", pump_ramp_floor, 0.0);
+
+        // Support-strength ramp schedule (Phase 6 collapse-on-command trigger).
+        // Ramps wormhole_support_strength (the exotic stress-energy coupling)
+        // from its base value to base*floor over [t_start, t_end] -- the
+        // rotating analogue of the static Ellis-Bronnikov S_support cut.
+        // t_start < 0 => never (support held constant, backward compatible).
+        pp.load("support_ramp_t_start", support_ramp_t_start, -1.0);
+        pp.load("support_ramp_t_end", support_ramp_t_end, 0.0);
+        pp.load("support_ramp_floor", support_ramp_floor, 0.0);
+
+        // Numerical sponge zone: radially-ramped extra KO dissipation in an
+        // outer shell to absorb outgoing waves before the Sommerfeld boundary
+        // (clean GW extraction on a larger box).  Disabled by default.
+        pp.load("sponge_enabled", sponge_params.enabled, false);
+        pp.load("sponge_inner_radius", sponge_params.inner_radius, 24.0);
+        pp.load("sponge_outer_radius", sponge_params.outer_radius, 32.0);
+        pp.load("sponge_strength", sponge_params.strength, 4.0);
+        pp.load("sponge_ramp_power", sponge_params.ramp_power, 4);
+        pp.load("sponge_center", sponge_params.center, center);
     }
 
     void read_trajectory_params(GRParmParse &pp)
@@ -186,6 +206,14 @@ class SimulationParameters : public SimulationParametersBase
     double pump_ramp_t_start{-1.0};
     double pump_ramp_t_end{0.0};
     double pump_ramp_floor{0.0};
+
+    // Support-strength ramp schedule (Phase 6 collapse-on-command trigger).
+    double support_ramp_t_start{-1.0};
+    double support_ramp_t_end{0.0};
+    double support_ramp_floor{0.0};
+
+    // Numerical sponge zone (radially-ramped extra KO dissipation).
+    SpongeZoneParams sponge_params{};
 
   private:
     void load_trajectory_lump(GRParmParse &pp, int k, PerLumpTrajectory &lk)

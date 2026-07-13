@@ -123,11 +123,19 @@ def case_tag(kappa: float, omega: float, m: int, dx: float,
 
 
 def extraction_radii(L: float) -> tuple[float, float]:
-    """Two extraction shells: inner fixed at 12, outer as far as L/2 - 8."""
+    """Two extraction shells at r=12 and r=24.
+
+    Fixed near-zone/wave-zone detector pair for the collapse GW burst: close
+    enough that the burst reaches r=24 within a ~t=45 run, while the box (L>=64)
+    keeps the sponge + Sommerfeld boundary far outside so neither detector sees a
+    reflection during the run.  (Historically the outer shell tracked L/2-8, but
+    at L=128 that put it at 56 -- too far for the burst to reach in time.)
+    """
     r_inner = 12.0
-    r_outer = L / 2.0 - 8.0
-    # Clamp: outer must exceed inner, and stay >= 16 for any reasonable box.
-    r_outer = max(r_outer, r_inner + 4.0)
+    r_outer = 24.0
+    # Guard against pathologically small boxes that cannot contain r=24 + sponge.
+    if L / 2.0 - 2.0 <= r_outer:
+        r_outer = max(L / 2.0 - 8.0, r_inner + 4.0)
     return (r_inner, r_outer)
 
 
@@ -190,6 +198,21 @@ phantom_mu6 = {mu6}
 wormhole_azimuthal_m   = {m}
 wormhole_rotation_omega = {omega}
 {trajectory_block}
+# Support-strength ramp (Phase 6 collapse-on-command trigger).  Ramps the
+# exotic stress-energy coupling from base -> base*floor over [t_start,t_end];
+# t_start<0 => never (support held constant).
+support_ramp_t_start = {support_ramp_t_start}
+support_ramp_t_end   = {support_ramp_t_end}
+support_ramp_floor   = {support_ramp_floor}
+
+# Numerical sponge zone (outer-shell KO dissipation for clean GW extraction).
+sponge_enabled      = {sponge_enabled}
+sponge_inner_radius = {sponge_inner}
+sponge_outer_radius = {sponge_outer}
+sponge_strength     = {sponge_strength}
+sponge_ramp_power   = 4
+sponge_center       = {center_x} {center_y} {center_z}
+
 L = {L}
 N1 = {N}
 N2 = {N}
@@ -481,6 +504,27 @@ def main() -> int:
                     help="collapse-trigger ramp end time.")
     ap.add_argument("--pump-ramp-floor", type=float, default=0.0,
                     help="pump amplitude fraction after the ramp (0 = full cut).")
+    # --- Support-strength ramp (Phase 6 collapse-on-command trigger) ----
+    ap.add_argument("--support-ramp-t-start", type=float, default=-1.0,
+                    help="support-strength ramp start time (<0 => never ramp). "
+                         "Ramps wormhole_support_strength (exotic stress-energy "
+                         "coupling) down to trigger collapse -- the rotating "
+                         "analogue of the static Ellis-Bronnikov S_support cut.")
+    ap.add_argument("--support-ramp-t-end", type=float, default=0.0,
+                    help="support-strength ramp end time.")
+    ap.add_argument("--support-ramp-floor", type=float, default=0.0,
+                    help="support-strength fraction after the ramp (0 = full "
+                         "cut of the exotic support => throat collapses).")
+    # --- Numerical sponge zone (clean GW extraction on a large box) -----
+    ap.add_argument("--sponge", action="store_true",
+                    help="enable the outer-shell sponge (extra KO dissipation) "
+                         "to absorb outgoing waves before the boundary.")
+    ap.add_argument("--sponge-inner", type=float, default=None,
+                    help="sponge inner radius (default: r_outer_extraction + 4).")
+    ap.add_argument("--sponge-outer", type=float, default=None,
+                    help="sponge outer radius (default: L/2 - 2).")
+    ap.add_argument("--sponge-strength", type=float, default=4.0,
+                    help="extra sigma at full ramp (default 4.0).")
     # --- Constellation ID selection (Phase 2/3) -------------------------
     # Which .gridinit to load.  Defaults to the pump orbit geometry so a
     # pumped constellation run (--num-lumps N ...) auto-loads the matching
@@ -575,6 +619,14 @@ def main() -> int:
     radii_str = " ".join(f"{r:.1f}" for r in radii)
     levels_str = " ".join("0" for _ in radii)
 
+    # Sponge shell defaults: inner just outside the outer extraction radius,
+    # outer just inside the boundary, so it absorbs waves after they pass the
+    # detectors but before they reflect off the Sommerfeld boundary.
+    sponge_inner = (args.sponge_inner if args.sponge_inner is not None
+                    else radii[-1] + 4.0)
+    sponge_outer = (args.sponge_outer if args.sponge_outer is not None
+                    else L / 2.0 - 2.0)
+
     # GRTeclyn resolves relative paths against its cwd (the example dir); use the
     # absolute run path so the generated params are location-independent.
     params_text = PARAMS_TEMPLATE.format(
@@ -590,6 +642,12 @@ def main() -> int:
         extraction_radii_str=radii_str,
         extraction_levels_str=levels_str,
         trajectory_block=build_trajectory_block(args, center),
+        support_ramp_t_start=args.support_ramp_t_start,
+        support_ramp_t_end=args.support_ramp_t_end,
+        support_ramp_floor=args.support_ramp_floor,
+        sponge_enabled=(1 if args.sponge else 0),
+        sponge_inner=sponge_inner, sponge_outer=sponge_outer,
+        sponge_strength=args.sponge_strength,
     )
     params_path = run_dir / "params.txt"
     params_path.write_text(params_text)

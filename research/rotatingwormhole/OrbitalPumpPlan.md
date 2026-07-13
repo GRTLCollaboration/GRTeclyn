@@ -272,6 +272,115 @@ the clean path to the collapse + Ψ₄ GW-burst result. The pump-ignition +
 self-sustaining-wormhole finding is itself a strong result (an engineered
 rotating wormhole that becomes autonomous after transient support).
 
+### Phase 6 result (2026-07-13) — support-strength cut → DISPERSAL, not collapse (config B is sub-critical)
+
+Ran the `wormhole_support_strength` ramp on config B at the larger box: L=128,
+N=256 (dx=0.5), sponge ON (inner 28 / outer 62), extraction r=12,24, k_p=1.0
+igniter, to t=50. Two arms, **bit-identical until t=12.02** (confirms the ramp is
+the only difference):
+- **collapse:** `support_ramp t=12→14, floor=0` (full exotic-support cut).
+- **control:** support held at 1.0.
+
+Diagnostics (`output/data/collapse_diagnostics.dat`, cols: min_chi=3, max_ah_r=8,
+min_theta_plus=9, Q_sphere=21):
+
+| quantity | collapse (cut) | control (held) |
+|----------|----------------|----------------|
+| horizon `max_ah_r` | **0 for the whole run** | 0 |
+| `min_theta_plus` | stays +0.0127 (never <0) | stays +0.0127 |
+| `min_chi` t=0 (ID throat) | 0.45 | 0.45 |
+| `min_chi` post-cut dip | 0.854 @ t≈19.5 | 0.877 @ t≈19.8 |
+| `min_chi` late | → 0.99 by t≈39 | → 0.99 by t≈28 |
+
+**Findings.**
+- **No black hole in either arm** (`max_ah_r=0`, `min_theta_plus>0` throughout).
+  The `max_level=0` NaN worry never triggered — because nothing collapsed.
+- **The throat is DEEPEST at t=0 (min_chi=0.45) and only ever *opens*.** Even the
+  *control* (support held) drifts to flat (min_chi→0.99 by t≈28); the "0.86–0.88
+  plateau" is a temporary pause in an overall opening trend, not a stable state.
+- **Cutting the exotic support produced only a modest transient** — a slightly
+  deeper re-pinch (0.854 vs 0.877) around t≈15–20 — then it, too, relaxed to flat.
+  So the sub-critical throat **disperses on command; it does not collapse.**
+- **GW (Ψ₄ ℓ=2 m=0) is weak and nearly identical** between arms (peak |Ψ₄| at
+  R=24 ≈ 3e-3, both at t≈25, from the orbiting lumps + junk), **no collapse burst**.
+
+**Interpretation.** Config B is light and exotic-dominated: removing the
+NEC-violating support gives the deformation nothing to hold and it *heals toward
+flat* (the "D"/dispersal outcome), rather than leaving a positive-mass remnant to
+collapse. A genuine collapse-on-command + Ψ₄ burst needs a configuration poised
+**near the critical (collapse) boundary** — i.e. more compact/heavier support
+(the supercritical A/C arms collapse on their own; B is well on the sub-critical
+side). This is a direct argument for the **Phase 7 scale-matched redesign**
+(bigger throat + compact hugging lump ring), tuned near the stability edge so a
+support cut tips it into collapse instead of dispersal.
+
+**Artifacts:** `runs/rotating_wormhole/evo_..._collapse_supcut_t12_L128/` and
+`..._control_nosupcut_L128/` (both ran to t=50, no NaN). Embedding-diagram script
+`grteclyn-wrapper/src/grteclyn_wrapper/visualisation/wormhole_embedding.py`.
+
+### Matter analysis of the L=128 t=50 runs (2026-07-13) — it DISPERSES; no stable-to-t=50 case
+
+Pulled the matter diagnostics (`confinement.dat` cols confined_frac/rms_radius;
+`collapse_diagnostics.dat` Q_sphere=21, rho_sphere=22). **Both arms behave almost
+identically** (the support cut barely matters):
+
+| t | confined_frac (r<10) | matter rms radius | Q_sphere |
+|---|----------------------|-------------------|----------|
+| 0  | 0.75  | 8.6  | −0.84 |
+| 10 | 0.53  | 11.1 | ~0 (osc) |
+| 20 | 0.23  | 16.3 | ~0 |
+| 30 | 0.09  | 22.0 | ~0 |
+| 40 | 0.02  | 28.6 | ~0 |
+| 50 | **0.004** | **35.7** | ~0 |
+
+- **Unambiguous dispersal:** ~99.5% of the matter has left the throat region by
+  t=50; the cloud's rms radius grows ~linearly (8.6→36, ≈ the lump speed) — the
+  lumps + debris fly outward. `Q_sphere` drains from −0.84 → ~0.
+- **NO stable-to-t=50 case.** The "min_chi ≈ 0.86 plateau" holds only t≈8→18;
+  by t≈28 even the **control** (support held) has `min_chi → 0.99` (throat opened
+  to ~flat) and stays there. The earlier "config B is stable" claim was an
+  artifact of stopping at t≈30 on the smaller L=64 box. **Run to t=50 at L=128,
+  config B disperses with or without support.**
+
+**Why it disperses instead of collapsing (the crux).** Two things block collapse:
+1. **The support matter is not bound.** A Q-ball twisted onto an orbit is not a
+   stationary eigenstate in the curved+rotating background, so the exotic cloud
+   spreads and leaves regardless of support — nothing remains at the throat to
+   collapse. (This is the "all passive rotating IDs disperse" problem from the
+   intro; k_p=1.0 does not actually confine it — confined_frac still → 0.4%.)
+2. **There is almost no positive gravitating mass.** A throat *stays open* via
+   NEC-violating (negative-energy) matter and *collapses* only if enough
+   *positive* mass-energy is concentrated. Config B is light and exotic-dominated:
+   remove the exotic and the deformation just **heals to flat** — no positive-mass
+   remnant to implode. (Contrast: the static `SupportedWormholeCollapse` DID
+   collapse on an `S_support` cut because it had a substantial **bare-mass throat**
+   held open by exotic matter. That mass balance is what the rotating case lacks.)
+
+### Collapse-trigger recipe (what Phase 7 must deliver)
+
+To get collapse-on-command + Ψ₄ burst, the ID must satisfy "enough positive bare
+mass + just enough exotic support to hold it open; then cut the support":
+1. **Give the throat real bare mass — enlarge `b0`** (0.5 → ~2–3;
+   `wormhole_throat_radius` in the GRTresna base params). Same change as the
+   Phase-7 "bigger throat", but the *reason* is collapse: bigger throat = more
+   positive bare mass = something that implodes when unsupported. Reuses the
+   proven static-case mechanism.
+2. **Make the support matter bound so it does not disperse first** (compact
+   Q-balls in a deeper well, or a central bound exotic core + orbiting ring). If
+   the matter leaves before t_hold there is nothing to trigger.
+3. **Tune to the critical edge:** ID stable *with* full support, supercritical
+   *without* it. A 1-D sweep over `b0` (or the support floor) brackets the
+   boundary. Diagnose success by `max_ah_r > 0` / `min_theta_plus < 0` (real
+   trapped surface), not just `min_chi`.
+4. **Collapse run needs AMR** (`max_level ≥ 4`, ChiTagger) to resolve the forming
+   puncture; keep sponge + Ψ₄ extraction.
+
+**Fast next test (before the full Phase-7 redesign):** re-solve config B's ID with
+`b0 = 2` (keep the 2 lumps as support), establish with the pump igniter, then ramp
+`support_strength → 0`. If it forms a horizon (`max_ah_r > 0`), the trigger works
+and we proceed to the scale-matched Phase-7 version for the clean GW burst; if it
+still disperses, the matter-binding fix (step 2) is the blocker.
+
 ---
 
 ## Phase 1 — Wire the trajectory pump into RotatingWormholeCollapse
@@ -517,6 +626,90 @@ On the HQ-validated elite(s):
 stabilization map (MAP-Elites), and collapse-on-command GW signatures vs pump
 floor" — with the passive Rung 1½ solve as the exact companion arm if the
 low-pump-work corner of the map points to one.
+
+---
+
+## Phase 7 — Scale-matched throat + orbiting lump ring (NEXT DESIGN, 2026-07-13)
+
+**Motivation (from the embedding-diagram review).** Config B is geometrically a
+*tiny neck buried inside two huge clouds*, not a clean "throat + orbiting
+supports": throat areal radius `b0 = 0.5`, but each Q-ball lump has half-max
+radius ≈ 5.7 (10% radius ≈ 8.4) centred at `R0 = 6`. So (i) the lumps do not
+actually *orbit* anything — most of their mass sits on top of the centre; and
+(ii) the object is better described as one exotic blob with a coordinate pinch.
+Physically we want the throat and the support lumps to be of **comparable size**,
+ideally a **larger throat encircled by many small lumps** as the support/engine
+ring — an interpretable, genuinely orbiting configuration.
+
+Visualisation of the current (mismatched) state:
+`grteclyn-wrapper/src/grteclyn_wrapper/visualisation/wormhole_embedding.py`
+(3-panel: 3-D funnel zoomed on the neck, side-on cross-section with the exotic
+matter's radial reach, equatorial |Φ| map — all to scale, code units).
+
+**Hard constraint (do NOT design around it).** A traversable throat stays open
+only if NEC-violating (exotic) stress exists **at the throat itself**
+(Morris–Thorne flaring-out). This is a theorem, not a tunable. Our own data
+confirms it: Phase 4c **config C** (lumps spread out to `R0 = 10`) *starved the
+throat and collapsed to a BH at t ≈ 7.3*. Therefore **the support lumps' fields
+must still blanket the neck** — small lumps orbiting *far* from a *big empty*
+throat WILL collapse.
+
+**"Swallowed" caveat.** A wormhole has no horizon, so matter is not captured like
+a BH — but matter not in a bound orbit **plunges through the throat to the other
+universe**. Supports must be (a) in genuinely bound orbits AND (b) close enough
+that their fields overlap the neck.
+
+**Target design (satisfies both).** A **hugging ring**: throat `b0 ≈ 2–3`
+(comparable to lump size); `N = 6–12` **compact** Q-balls on a ring at
+`R0 ≈ b0 + r_lump` so neighbours nearly touch → an exotic ring that collectively
+blankets the neck while each lump is individually compact and orbiting.
+Optional hybrid: keep a **central exotic core** (a static/winding throat field)
+for the flaring-out support and use the ring purely for spin/dynamics.
+
+**Build steps.**
+1. **Shrink the Q-ball → compact profile.** Re-solve the flat-space Q-ball ODE
+   (`grteclyn_wrapper.grtresna.profiles.qball_ode`) with a **larger field mass
+   `m`** and **weaker quartic `λ`** so the soliton loses its fat flat top and
+   gets a half-max radius comparable to the target `b0` (order 1–2, not ~6).
+   `MASS`, `LAMBDA`, `MU6`, `LUMP_OMEGA` must match on the solve and evolution
+   sides (gotcha 5). Sanity-check the new half-max/10% radii by re-running the
+   embedding script (it reads `qball_profile.dat`).
+2. **Bigger throat in the base ID params.** Set `wormhole_throat_radius` (b0) in
+   the GRTresna base params (`params_rotating_wormhole_test.txt`) to the target
+   (2–3). Larger throat = more curvature/"mass" to support → expect to need more
+   total exotic amplitude, but respect the amplitude ceiling (gotcha 7): raise
+   `N` rather than per-lump amp.
+3. **New constellation ID solve.** `NUM_LUMPS=N ORBIT_RADIUS=R0 ORBIT_OMEGA=ω
+   MASS=.. LAMBDA=.. MU6=.. RES_N=256 EVO_L=128 solve_kappa_family.sh <kappa> 8`.
+   Postload constraint gate **Ham/Mom ≤ 5%** (gotcha 7: if Ham stuck ≫1%, reduce
+   per-lump amp / N, don't fight the solver).
+4. **Stability hunt (mirror Phase 4c).** Evolve with `k_p = 1.0` igniter;
+   sweep `{b0, N, R0, ω_orb, kappa}` for a flat `min_chi` plateau, no horizon to
+   t = 30, `Q_retention ≥ 0.5`. Mass reduction (kappa) remains the main
+   sub-critical lever (Phase 4c lesson).
+5. **Then Phase 6 collapse-on-command** on the scale-matched winner (support-
+   strength ramp; AMR ON — see the AMR note below).
+
+**Acceptance (Phase 7):** lump half-max radius ≈ `b0` (comparable scales);
+`R0 ≈ 1.5–2 b0` (a ring that hugs, not engulfs, the neck); ≥ 6 lumps visibly
+orbiting outside the throat; stable open throat (min_chi plateau, no horizon) to
+t = 30; embedding diagram shows a clean "big neck + small orbiting ring."
+
+**AMR note (carried into Phase 6/7 collapse runs).** The collapse arm forms a BH;
+at `max_level = 0` (uniform dx = 0.5) the puncture is unresolved → NaN. The
+static `SupportedWormholeCollapse` that DID extract GW through collapse used
+`max_level = 5` (ChiTagger refinement) with `puncture_tracking.enabled = 0`
+(no tracker needed — collapse is central; 1+log slicing handles the singularity).
+Our `RotatingWormholeCollapse` has the same gauge and the ChiTagger; the collapse
+run must set `--max-level ≥ 4`. Caveat: the rotating case has **no x/y/z symmetry**
+(spin breaks reflection symmetry — the static octant run computed 1/8 the box), so
+the full-domain N=256 base grid + refined puncture patches is memory-heavy
+(~60 GB already at ml0); use the fewest AMR levels that resolve the puncture and
+tag tightly on the centre.
+
+**Open knobs to fix before the solve:** support architecture (hugging ring vs
+central core + ring vs hybrid); target `b0`; lump count `N`; the compact-Q-ball
+couplings `(m, λ, μ₆)`.
 
 ---
 

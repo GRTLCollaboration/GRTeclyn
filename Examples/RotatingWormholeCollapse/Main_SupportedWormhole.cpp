@@ -60,6 +60,12 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
         sim_params.rl_pump_width = tp.well_width;
     }
 
+    // Base exotic-support coupling; the support ramp (Phase 6 collapse trigger)
+    // scales this each coarse step.  Captured before the loop so the ramp is
+    // relative to the configured value, not the previous step's ramped value.
+    const double base_support_strength =
+        sim_params.wormhole_params.support_strength;
+
     while (
         (wh_amr.okToContinue() != 0) &&
         (wh_amr.levelSteps(0) < sim_params.max_steps ||
@@ -67,6 +73,20 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
         (wh_amr.cumTime() < sim_params.stop_time || sim_params.stop_time < 0.0))
     {
         wh_amr.coarseTimeStep(sim_params.stop_time);
+
+        // --- Support-strength ramp (Phase 6 collapse-on-command) -----------
+        // Independent of the pump: ramp the exotic stress-energy coupling from
+        // base -> base*floor over [t_start, t_end].  simParams() is a live
+        // reference (GRAMR stores &sim_params), so the matter class picks up
+        // the new value on the next RHS eval.
+        {
+            const double t = wh_amr.cumTime();
+            const double sramp = pump_ramp_factor(
+                t, sim_params.support_ramp_t_start,
+                sim_params.support_ramp_t_end, sim_params.support_ramp_floor);
+            sim_params.wormhole_params.support_strength =
+                base_support_strength * sramp;
+        }
 
         // --- Trajectory update (CPU, every coarse step) --------------------
         if (sim_params.trajectory_mode == 1)

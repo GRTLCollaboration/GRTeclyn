@@ -6,6 +6,7 @@
 #include "PositiveChiAndLapse.hpp"
 #include "RLMatterPumpParams.hpp"
 #include "SmallDataIO.hpp"
+#include "SpongeZone.hpp"
 #include "TraceARemoval.hpp"
 #include "Weyl4WithMatter.hpp"
 #include "WeylExtraction.hpp"
@@ -312,6 +313,19 @@ void SupportedWormholeLevel::specificEvalRHS(amrex::MultiFab &a_soln,
         amrex::ParallelFor(
             a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
             { ccz4rhs(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]); });
+    }
+
+    // Sponge zone: extra radially-ramped KO dissipation in the outer shell to
+    // absorb outgoing waves before they reach the Sommerfeld boundary (clean
+    // GW extraction on a large box).  Applied once, after the matter-model
+    // dispatch, as a second additive pass (matches RadialRecipe).  No-op when
+    // sponge_enabled = false.
+    if (simParams().sponge_params.enabled)
+    {
+        const SpongeZone sponge(simParams().sponge_params, Geom().CellSize(0));
+        amrex::ParallelFor(
+            a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+            { sponge.apply(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]); });
     }
 
     amrex::Gpu::streamSynchronize();
