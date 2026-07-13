@@ -229,7 +229,7 @@ min_box_size = 16
 
 isPeriodic = 0 0 0
 hi_boundary = 1 1 1
-lo_boundary = 1 1 2
+lo_boundary = {lo_boundary}
 
 nonzero_asymptotic_vars = chi h11 h22 h33 lapse
 nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
@@ -549,6 +549,12 @@ def main() -> int:
     ap.add_argument("--plot-interval", type=int, default=40)
     ap.add_argument("--gpu", type=int, default=0)
     ap.add_argument("--gridinit", default=None, help="override ID .gridinit path")
+    ap.add_argument("--full-box", action="store_true",
+                    help="full-box centered evolution (center z=L/2, all-Sommerfeld "
+                         "lo_boundary 1 1 1) instead of the default half-z octant "
+                         "(center z=0, z-reflective 1 1 2). Use for a centered, "
+                         "z-symmetric object like an isolated Q-torus solved with "
+                         "solve_torus.py (target_center=(L/2,L/2,L/2)).")
     ap.add_argument("--frames", dest="frames", action="store_true", default=True)
     ap.add_argument("--no-frames", dest="frames", action="store_false")
     # NFS plotfiles are large (~GB at N=128/ml=3); -j>4 thrashes the network
@@ -566,7 +572,8 @@ def main() -> int:
 
     L = args.box_size
     N = int(round(L / args.dx))
-    center = (L / 2.0, L / 2.0, 0.0)
+    center = (L / 2.0, L / 2.0, L / 2.0 if args.full_box else 0.0)
+    lo_boundary = "1 1 1" if args.full_box else "1 1 2"
     radii = extraction_radii(L)
     stop_time = args.stop_time if args.stop_time is not None else default_stop_time(L)
 
@@ -633,7 +640,7 @@ def main() -> int:
         m=args.m, omega=args.omega, kappa=args.kappa, dx=args.dx, N=N, L=L,
         mass=args.mass, lam=args.lam, mu6=args.mu6,
         lapse_type=args.initial_lapse_type,
-        center_x=cx, center_y=cy, center_z=cz,
+        center_x=cx, center_y=cy, center_z=cz, lo_boundary=lo_boundary,
         max_level=args.max_level, stop_time=stop_time,
         plot_interval=args.plot_interval, run_out=str(run_out),
         gridinit=str(gridinit),

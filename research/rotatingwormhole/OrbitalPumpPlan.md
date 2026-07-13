@@ -381,6 +381,78 @@ mass + just enough exotic support to hold it open; then cut the support":
 and we proceed to the scale-matched Phase-7 version for the clean GW burst; if it
 still disperses, the matter-binding fix (step 2) is the blocker.
 
+### Phase 8 DONE (2026-07-13) — genuine rotating-eigenstate support: Q-torus retains charge ~2× longer, no blow-up
+
+Addresses the root cause named in the intro ("a spherical Q-ball twisted into an
+m=1 torus is not a stationary eigenstate, so Q_sphere drains"). Instead of
+twisting a 1D radial soliton by `(sin θ)^m`, we now solve the **genuine 2D
+spinning Q-ball eigenstate** `Φ = f(ρ,z) e^{i(m φ − ω t)}` and paint `f(ρ,z)`
+directly.
+
+**Solver (new).** `grteclyn_wrapper.grtresna.profiles.qball_torus`: the flat-space
+PDE `∂²_ρ f + (1/ρ)∂_ρ f + ∂²_z f − (m²/ρ² + κ²)f + λf³ − μ₆f⁵ = 0`
+(κ²=mass²−ω²) solved by a **bordered Newton** that pins the off-axis peak
+amplitude and lets ω float (so it cannot collapse to the f≡0 vacuum — the failure
+mode of fixed-ω Newton and Newton–Krylov), wrapped in **amplitude continuation**
+to hit the target ω. Verified: residual ~1e-9, grid-convergent (f_max→0.09173,
+Q→3.098 at N=80/120/160), vanishes on axis, localized (edge/peak ~1e-6).
+File I/O (`write/read_torus_profile`) round-trips to ~1e-12.
+
+**GRTresna (new profile 4).** `BosonStarParams.hpp` gained a 2D torus table
+loader (`qball_torus_load_table`) + bilinear interp (`qball_torus_interp`);
+`lump_winding_modulus` special-cases `profile == 4` to return `amp·f(ρ,z)/f_max`
+with NO `(sin θ)^m` factor (the 2D profile already carries the toroidal
+structure). `read_params` inherits `qball_profile_path` for profile 3 **or** 4.
+Rebuilt clean.
+
+**ID driver (new).** `scripts/wormhole/id/solve_torus.{py,sh}`: throat-free,
+centered, full-box (all-Sommerfeld ⇒ GRTresna centres at L/2, `bh1_bare_mass=0`
+⇒ flat Bowen-York psi=0), single profile-4 winding lump. Solves the eigenstate,
+tabulates it, GRTresna re-solves the constraints, exports a centered gridinit.
+Compact couplings (mass 0.5, λ170, μ₆14450), **ω=0.25** (thick-wall; ω=0.05 is
+extreme thin-wall and does not fit the box — the solver detects box-escape and
+errors). ID converged **Ham 0.095 % (normal) / 0.62 % (exotic), Mom 0.48 %**.
+
+**Evolution.** `wormhole_case.py` gained `--full-box` (center z=L/2,
+`lo_boundary 1 1 1`) for a z-symmetric centered object; reuses `--gridinit`
+override. Passive isolated evolution of the EXOTIC torus (matches the
+`ComplexExoticScalarField` evolution sign), ml=0, L=64/dx=0.5, t→30.
+
+| t | **Q-torus** `|Q_sphere/Q0|` | twisted-sphere baseline | notes |
+|---|------|------|-------|
+| 6 | 0.98 | 0.99 | tie |
+| 10 | 0.93 | 0.92 | tie |
+| 15 | **0.89** | 0.56 | torus pulls ahead |
+| 20 | **0.80** | 0.27 | ~3× |
+| 30 | **0.40** | 0.05 | ~8× |
+
+- **Charge-retention half-life ≈ 27–28 vs the baseline's 13–16 — roughly
+  doubled**, and the violent **t≈13.5 dynamical blow-up is GONE** (the twisted
+  2-lump constellation NaN'd at 13.5; the torus runs clean to t=30). `min_chi`≈1,
+  `max_ah_r=0` (no horizon), Ham L2 bounded ≤3.5e-3 throughout — physical, not
+  numerical.
+- **Honest caveat:** the torus still slowly spreads (confined_frac 0.81→0.43 by
+  t=20; rms 8.3→13.3). Two reasons: (1) it is a **flat-space** eigenstate, only
+  approximately stationary once gravity is on; (2) it is **exotic/phantom**, whose
+  repulsive self-gravity actively unbinds it. So this is a large improvement, not
+  a permanent soliton. Next levers: solve the **self-gravitating** rotating
+  eigenstate (metric + field together), and/or evaluate a **normal** (non-exotic)
+  torus (needs a non-exotic complex evolution branch) to isolate the phantom-gravity
+  contribution.
+- **Verdict:** confirms the intro's thesis — a genuine stationary eigenstate is
+  the right object; twisting spheres was the root cause of the drain. The
+  eigenstate + profile-4 painting pipeline is now the foundation for the
+  scale-matched Phase-7 throat (swap the twisted-lump support for a hugging
+  **ring of Q-tori** or a central rotating Q-torus core).
+
+**Artifacts:** ID `runs/rotating_torus_id/torus_m1_om0p250_kappa1p00_dx0p5_L64_lam170_mu614450{,_exotic}/`
+(gridinit + `qball_torus.dat` kept); evolution
+`runs/rotating_wormhole/evo_..._torus_iso{,_t30}/output/data/collapse_diagnostics.dat`.
+Reproduce: `EXOTIC=1 TORUS_OMEGA=0.25 solve_torus.sh 2` then
+`wormhole_case.sh --gridinit <…_exotic/initial_data.gridinit> --full-box
+--omega 0.25067 --m 1 --dx 0.5 --box-size 64 --max-level 0 --stop-time 30
+--mass 0.5 --lambda 170 --mu6 14450 --no-frames --run-suffix torus_iso_t30 --gpu 1`.
+
 ---
 
 ## Phase 1 — Wire the trajectory pump into RotatingWormholeCollapse
