@@ -1,15 +1,26 @@
 #ifndef SUPPORTEDWORMHOLELEVEL_HPP_
 #define SUPPORTEDWORMHOLELEVEL_HPP_
 
+#include "BHAMR.hpp"
 #include "DefaultLevelFactory.hpp"
 #include "GRAMRLevel.hpp"
 
 class SupportedWormholeLevel : public GRAMRLevel
 {
   public:
+    // The wormhole has no punctures, but we base the AMR container on BHAMR
+    // (a GRAMR child) purely to reuse its set-up ParticleInterpolator for
+    // in-code Weyl4 / Psi4 spherical-harmonic extraction.  Puncture tracking
+    // stays disabled (puncture_tracking.enabled = 0), so the tracker member is
+    // constructed but never used.
+    static constexpr int num_punctures = 1;
+
     static void variableSetUp();
 
     using GRAMRLevel::GRAMRLevel;
+
+    //! Access the owning BHAMR (for its m_weyl_interpolator).
+    BHAMR<num_punctures> *get_bhamr_ptr();
 
     void specificAdvance() override;
     void initData() override;

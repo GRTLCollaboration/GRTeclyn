@@ -374,6 +374,12 @@ void SupportedWormholeLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
     amrex::Gpu::streamSynchronize();
 }
 
+BHAMR<SupportedWormholeLevel::num_punctures> *
+SupportedWormholeLevel::get_bhamr_ptr()
+{
+    return dynamic_cast<BHAMR<num_punctures> *>(get_gramr_ptr());
+}
+
 void SupportedWormholeLevel::specificPostTimeStep()
 {
     BL_PROFILE("SupportedWormholeLevel::specificPostTimeStep");
@@ -1145,5 +1151,31 @@ void SupportedWormholeLevel::specificPostTimeStep()
                                         static_cast<double>(Q_sphere),
                                         static_cast<double>(rho_sphere),
                                         static_cast<double>(pump_work)});
+    }
+
+    // ---- In-code Weyl4 / Psi4 spherical-harmonic extraction --------------
+    // Proper GRTeclyn-collaboration SphericalExtraction: interpolates the
+    // "Weyl4" derived variable onto spheres at the configured extraction_radii
+    // and writes the requested (l,m) mode time series to the extraction_subpath
+    // ("data/") every coarse step -- densely sampled and completely decoupled
+    // from the plotfile / frame cadence, for clean GW waveform analysis.
+    if (simParams().activate_extraction)
+    {
+        const int min_level =
+            simParams().extraction_params.min_extraction_level();
+        const bool calculate_weyl = at_level_timestep_multiple(min_level);
+
+        if (calculate_weyl && Level() == min_level)
+        {
+            const amrex::Real m_time  = get_state_data(state_index).curTime();
+            const amrex::Real m_dt    = get_gramr_ptr()->dtLevel(Level());
+            const amrex::Real restart_time =
+                get_gramr_ptr()->get_restart_time();
+            const bool first_step = (m_time <= m_dt);
+
+            WeylExtraction my_extraction(simParams().extraction_params, m_dt,
+                                         m_time, first_step, restart_time);
+            my_extraction.execute_query(&get_bhamr_ptr()->m_weyl_interpolator);
+        }
     }
 }

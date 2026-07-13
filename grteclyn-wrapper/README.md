@@ -28,7 +28,7 @@ see [Operations](#operations).
 | **Matter sectors** — real scalar, complex scalar / U(1) boson star, Q-ball, shell, trajectory, rotating Q-torus eigenstate | `grtresna/matter/`, `grtresna/fields/`, `grtresna/profiles/` | Per-lump signed scalars (`GRTresnaIndependentScalars` C++); exotic wedge; self-gravitating boson-star ODE solver (isotropic coords); 2D spinning Q-ball (`qball_torus.py`, `profile==4`) |
 | **Matter-profile contract (rail)** — single source of truth + t=0 cross-code consistency gate | `grtresna/matter/profile_contract.py`, `tests/grtresna/test_profile_contract.py` | Catches stale-binary empty fields / sign flips / wrong-ω / center bugs before evolution; see [Matter-profile contract](#matter-profile-contract--the-rail-for-adding-new-profiles-safely) |
 | **Plotfile consumer** — streaming `small_data/` + PNG `frames/` + HDF5 deletion | `scripts/lib/`, `src/.../visualisation/` | `consume_plotfiles` sidecar; **required** for every production run |
-| **Ψ₄ / GW extraction** — l=2,m=0 mode amplitudes from `Weyl4_Re/Im` | `src/.../visualisation/process_wave/` | Spherical shells at radii from physics `center`; HQ default radii `8 12 24` |
+| **Ψ₄ / GW extraction** — in-code C++ `WeylExtraction` (spherical-harmonic modes) | `Examples/RotatingWormholeCollapse/`, `src/.../visualisation/process_wave/` | **Primary: in-code GRTeclyn `SphericalExtraction`** → `data/Weyl4_mode_2{0,1,2}.dat`, dense (every coarse step), multi-radius, decoupled from plotfiles. Python `process_wave` sidecar still extracts a coarse cross-check + drives frames |
 | **Search algorithms** — MAP-Elites (QD) archive, CMA-ES hill-climb | `src/.../search/qd_search/`, `src/.../search/optimize/` | Shared pre-evolution gates; warm-start from any trajectory |
 | **Objectives** — `ftl_first`, `robust_ftl`, `general_ftl`, `critical_collapse`, `gw_beam`, `spacetime_shear` | `src/.../metrics/score/objectives.py` | See [Campaigns](#campaigns) for which objective each campaign uses |
 | **Descriptors** — `ftl_lifetime`, `speed_horizon`, `wave_focusing`, `spacetime_shear`, `gw_beam` | `src/.../search/qd_search/descriptors.py` | Behavior axes for the MAP-Elites archive |
@@ -531,6 +531,58 @@ Couplings/ω/exotic/mass **must** match between the `solve_torus` ID and the
 `wormhole_case` evolution — the consistency gate enforces the ID side; keep
 `--mass/--lambda/--mu6/--omega` equal to the solve's `MASS/LAMBDA/MU6/TORUS_OMEGA`.
 
+#### GW / Ψ₄ extraction is now C++-side (upgrade)
+
+**Upgrade (2026-07):** Ψ₄ is now extracted **in-code on the C++ side** using
+GRTeclyn's own `WeylExtraction` (`SphericalExtraction`), instead of being
+reconstructed in Python by post-processing the `Weyl4_Re/Im` grid fields dumped
+into plotfiles. `SupportedWormholeLevel::specificPostTimeStep` interpolates the
+`Weyl4` derived variable onto the extraction spheres and writes the
+spherical-harmonic mode time series directly to `output/data/`:
+
+- `Weyl4_mode_20.dat`, `Weyl4_mode_21.dat`, `Weyl4_mode_22.dat` — the l=2,
+  m=0/1/2 modes, one appended row per **coarse step** (dt≈0.01), one Re/Im
+  column pair **per extraction radius**.
+
+Why this is better than the old Python route:
+
+| | Old (Python `process_wave` sidecar) | New (in-code C++ `WeylExtraction`) |
+|---|---|---|
+| Sampling cadence | tied to `plot_interval` (≈ every 2 code units → ~13 points) | every coarse step (dt≈0.01 → thousands of points) |
+| Decoupled from frames/plotfiles | no (finer Ψ₄ ⇒ plotfile/frame flood) | **yes** (Ψ₄ cadence independent of `--plot-interval`) |
+| Angular decomposition | grid-sampled shells, approximate | proper `num_points_phi/theta` Gauss quadrature (collaboration code) |
+| Multi-radius | supported | supported (`--extraction-radii`) |
+
+The Python `process_wave` sidecar still runs (coarse Ψ₄ cross-check +
+confinement + frame rendering), but the **`Weyl4_mode_*.dat` files are the
+trusted GW signal** for wave analysis (1/r fall-off, propagation speed between
+shells, QNM fits).
+
+Relevant flags (see `wormhole_case.py --help`):
+
+```bash
+# t=40 so the burst propagates out; three detector shells for a radial ladder;
+# dense in-code Psi4 is automatic (every step) and independent of --plot-interval
+# (which now controls only the frame/movie cadence).
+bash grteclyn-wrapper/scripts/wormhole/run/wormhole_case.sh --gridinit "$G" --full-box \
+  --omega 0.25067 --m 1 --dx 0.5 --box-size 64 --max-level 3 --stop-time 40 \
+  --mass 0.5 --lambda 170 --mu6 14450 --sponge \
+  --extraction-radii 12 18 24 --plot-interval 100 \
+  --support-ramp-t-start 8 --support-ramp-t-end 10 --support-ramp-floor 0 \
+  --run-suffix torus_wh_collapse_ml3_gw --gpu 0
+```
+
+| Flag | Effect |
+|------|--------|
+| `--extraction-radii R [R ...]` | Weyl4 shell radii (default `12 24`). Shells at/behind the sponge (`≥ L/2−2`) are auto-dropped. Feeds both the in-code extraction and the sidecar. |
+| `--write-extraction-surfaces` | also dump the raw per-step Weyl4 surfaces (off by default — thousands of files; the compact `Weyl4_mode_*.dat` is always written). |
+| `--plot-interval N` | frame/movie cadence only (Ψ₄ is now independent). Use a moderate value (e.g. 100) for smooth movies without a plotfile flood. |
+
+Implementation note: the wormhole `Main` now builds a `BHAMR<1>` container
+(instead of a bare `GRAMR`) purely to reuse its set-up `m_weyl_interpolator`;
+puncture tracking stays disabled. This required a rebuild — see
+[Build the RotatingWormholeCollapse binary](#build-the-rotatingwormholecollapse-binary-mpi--cuda).
+
 ### One-off GRTresna solve
 
 ```python
@@ -1005,6 +1057,41 @@ PATH="/usr/local/cuda/bin:$PATH" NO_MPI_CHECKING=TRUE \
 | `USE_CUDA` | `TRUE` | GPU kernels (AMReX + CCZ4 RHS) |
 | **Do NOT** put grtresna env on PATH | — | Its `g++ 15.x` breaks nvcc's gcc ≤ 12 check |
 
+#### Build the RotatingWormholeCollapse binary (MPI + CUDA)
+
+The wormhole evolution binary (`main3d.gnu.MPI.CUDA.ex`, used by
+`scripts/wormhole/run/wormhole_case.py`) is built **with MPI** (multi-GPU) and
+CUDA. The recurring pain here is that `make` fails immediately unless **both**
+`nvcc` **and** the OpenMPI wrapper (`mpicxx`) are on `PATH`. Use this exact,
+copy-pasteable recipe:
+
+```bash
+cd /home/jovyan/nachevsky/test/simulation/GRTeclyn/Examples/RotatingWormholeCollapse
+
+# nvcc (CUDA 12.x) + local OpenMPI must both be on PATH; OpenMPI libs on
+# LD_LIBRARY_PATH. Use the SYSTEM g++ (11.4, nvcc-compatible) -- do NOT source
+# the grtresna conda env (its g++ 15 fails nvcc's gcc<=12 check).
+export PATH="/usr/local/cuda/bin:/home/jovyan/nachevsky/test/simulation/local/openmpi-5.0.8/bin:$PATH"
+export LD_LIBRARY_PATH="/home/jovyan/nachevsky/test/simulation/local/openmpi-5.0.8/lib:${LD_LIBRARY_PATH:-}"
+
+make -j8 USE_CUDA=TRUE USE_MPI=TRUE COMP=gnu CUDA_ARCH=90
+```
+
+`CUDA_ARCH=90` targets the H100 (`sm_90`); adjust for other GPUs (A100 = `80`).
+The same recipe rebuilds any Example — just `cd` into its dir. After editing
+`Source/**` or an Example's `*.cpp/*.hpp`, re-run `make` (incremental).
+
+**Symptom → fix** for the usual "can't find CUDA/MPI" tension:
+
+| Build error | Cause | Fix |
+|-------------|-------|-----|
+| `/bin/sh: 1: nvcc: not found` | CUDA not on `PATH` | prepend `/usr/local/cuda/bin` (see `export` above) |
+| `*** Unknown mpi wrapper. ... Stop.` | `mpicxx` not on `PATH` | prepend the local `openmpi-5.0.8/bin` |
+| `nvcc fatal: unsupported gnu version` / g++ ≥ 13 errors | grtresna conda env's `g++ 15` shadowing system gcc | run in a shell where the grtresna env is **not** on `PATH` |
+| runtime `libmpi.so not found` | OpenMPI libs missing at run | binary is linked with an rpath to `openmpi-5.0.8/lib`, so normal runs work; if relocated, set `LD_LIBRARY_PATH` as above |
+
+Verify: a fresh `main3d.gnu.MPI.CUDA.ex` (~130 MB) appears in the Example dir.
+
 ### Solver-only AMR smoke tests
 
 ```bash
@@ -1066,6 +1153,7 @@ Each run emits under `data/` (parsed by `read_episode_metrics`):
 | `constraint_norms.dat` | Ham/Mom L2; `min_rho_req < 0` → exotic needed |
 | `energy_conditions.dat` | Evolved matter NEC/WEC/SEC/DEC |
 | `curvature_invariants.dat` | Ricci/K invariants |
+| `Weyl4_mode_2{0,1,2}.dat` | **In-code C++ Ψ₄** l=2 m=0/1/2 modes, dense (per coarse step), one Re/Im pair per `--extraction-radii` shell — the trusted GW signal (see [GW/Ψ₄ extraction is now C++-side](#gw--ψ₄-extraction-is-now-c-side-upgrade)) |
 
 ---
 

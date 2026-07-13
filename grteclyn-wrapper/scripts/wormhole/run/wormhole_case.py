@@ -122,15 +122,33 @@ def case_tag(kappa: float, omega: float, m: int, dx: float,
             f"{_constellation_suffix(id_n_lumps, id_orbit_radius, id_orbit_omega)}")
 
 
-def extraction_radii(L: float) -> tuple[float, float]:
-    """Two extraction shells at r=12 and r=24.
+def extraction_radii(L: float, override: "list[float] | None" = None) -> tuple[float, ...]:
+    """Weyl4 / Psi4 spherical-extraction shells.
 
-    Fixed near-zone/wave-zone detector pair for the collapse GW burst: close
-    enough that the burst reaches r=24 within a ~t=45 run, while the box (L>=64)
-    keeps the sponge + Sommerfeld boundary far outside so neither detector sees a
-    reflection during the run.  (Historically the outer shell tracked L/2-8, but
-    at L=128 that put it at 56 -- too far for the burst to reach in time.)
+    Default is the near-zone/wave-zone detector pair (r=12, r=24): close enough
+    that the burst reaches r=24 within a ~t=45 run, while the box (L>=64) keeps
+    the sponge + Sommerfeld boundary far outside so neither detector sees a
+    reflection during the run.  Pass ``override`` (from ``--extraction-radii``)
+    for a custom shell set, e.g. ``12 18 24`` for a denser radial ladder that
+    lets you fit the 1/r fall-off and check propagation speed between shells.
+
+    Radii are validated against the box: any shell at or beyond ``L/2 - 2`` (the
+    Sommerfeld boundary buffer, i.e. inside/behind the sponge) is dropped so we
+    never extract on a contaminated surface.
     """
+    if override:
+        radii = sorted({float(r) for r in override})
+        r_max_ok = L / 2.0 - 2.0
+        kept = [r for r in radii if 0.0 < r < r_max_ok]
+        if not kept:
+            raise SystemExit(
+                f"--extraction-radii {override} has no shell inside the clean "
+                f"zone (0, {r_max_ok:g}) for box L={L}.")
+        if len(kept) < len(radii):
+            dropped = [r for r in radii if r not in kept]
+            print(f"  [extraction] dropping radii outside clean zone: {dropped}")
+        return tuple(kept)
+
     r_inner = 12.0
     r_outer = 24.0
     # Guard against pathologically small boxes that cannot contain r=24 + sponge.
@@ -139,11 +157,10 @@ def extraction_radii(L: float) -> tuple[float, float]:
     return (r_inner, r_outer)
 
 
-def default_stop_time(L: float) -> float:
+def default_stop_time(radii: "tuple[float, ...]") -> float:
     """stop_time = r_outer + 6: light-crossing to the outermost extraction
     shell plus a buffer for signal development."""
-    _, r_outer = extraction_radii(L)
-    return r_outer + 6.0
+    return radii[-1] + 6.0
 
 
 def regrid_interval_str(max_level: int) -> str:
@@ -264,7 +281,12 @@ calculate_constraint_norms = 1
 
 extraction_center = {center_x} {center_y} {center_z}
 activate_extraction = 1
-write_extraction = 1
+# write_extraction=1 dumps the full raw Weyl4 surface (~100 KB) as one file per
+# extraction step -- thousands of files over a long dense run.  Default 0: keep
+# only the compact appended Weyl4_mode_*.dat spherical-harmonic time series
+# (the clean GW signal).  Enable with --write-extraction-surfaces if you need
+# the raw spheres for e.g. a full 2D angular reconstruction.
+write_extraction = {write_extraction}
 extraction_subpath = "data"
 
 num_extraction_radii = {num_extraction_radii}
@@ -552,7 +574,22 @@ def main() -> int:
                          "3=chi: a precollapsed lapse that damps the t~0.5 "
                          "max_K gauge transient which kicks the throat off "
                          "equilibrium.")
-    ap.add_argument("--plot-interval", type=int, default=40)
+    ap.add_argument("--plot-interval", type=int, default=40,
+                    help="coarse steps between plotfiles (=> frame/movie "
+                         "cadence). In-code Psi4 extraction is INDEPENDENT of "
+                         "this (it runs every coarse step), so use a moderate "
+                         "value for smooth movies without a plotfile flood.")
+    ap.add_argument("--extraction-radii", type=float, nargs="+", default=None,
+                    metavar="R",
+                    help="Weyl4/Psi4 spherical-extraction shell radii in code "
+                         "units (e.g. --extraction-radii 12 18 24). Default: "
+                         "12 24. Shells at/behind the sponge (>= L/2-2) are "
+                         "dropped. Feeds both the in-code extraction and the "
+                         "plotfile-sidecar Psi4.")
+    ap.add_argument("--write-extraction-surfaces", action="store_true",
+                    help="also dump the raw Weyl4 surface data (one file per "
+                         "extraction step). Off by default; the compact "
+                         "Weyl4_mode_*.dat time series is always written.")
     ap.add_argument("--gpu", type=int, default=0)
     ap.add_argument("--gridinit", default=None, help="override ID .gridinit path")
     ap.add_argument("--full-box", action="store_true",
@@ -580,8 +617,8 @@ def main() -> int:
     N = int(round(L / args.dx))
     center = (L / 2.0, L / 2.0, L / 2.0 if args.full_box else 0.0)
     lo_boundary = "1 1 1" if args.full_box else "1 1 2"
-    radii = extraction_radii(L)
-    stop_time = args.stop_time if args.stop_time is not None else default_stop_time(L)
+    radii = extraction_radii(L, args.extraction_radii)
+    stop_time = args.stop_time if args.stop_time is not None else default_stop_time(radii)
 
     # Publish to module state so the consumer helpers pick them up.
     _run_center = center
@@ -654,6 +691,7 @@ def main() -> int:
         num_extraction_radii=len(radii),
         extraction_radii_str=radii_str,
         extraction_levels_str=levels_str,
+        write_extraction=(1 if args.write_extraction_surfaces else 0),
         trajectory_block=build_trajectory_block(args, center),
         support_ramp_t_start=args.support_ramp_t_start,
         support_ramp_t_end=args.support_ramp_t_end,

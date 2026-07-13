@@ -1,3 +1,4 @@
+#include "BHAMR.hpp"
 #include "DefaultLevelFactory.hpp"
 #include "GRAMR.hpp"
 #include "GRParmParse.hpp"
@@ -36,7 +37,11 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
 
     DefaultLevelFactory<SupportedWormholeLevel> wh_level_bld;
 
-    GRAMR wh_amr(&wh_level_bld);
+    // BHAMR (a GRAMR child) so that BHAMR::init() sets up the Weyl4
+    // ParticleInterpolator used for in-code Psi4 spherical-harmonic extraction
+    // (see SupportedWormholeLevel::specificPostTimeStep).  num_punctures is a
+    // no-op here; puncture tracking is disabled.
+    BHAMR<SupportedWormholeLevel::num_punctures> wh_amr(&wh_level_bld);
 
     wh_amr.init(0., sim_params.stop_time);
 
