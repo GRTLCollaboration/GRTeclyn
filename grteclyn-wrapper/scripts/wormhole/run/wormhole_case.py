@@ -377,6 +377,12 @@ def _consumer_cmd(run_out: Path, jobs: int, *, watch: bool,
             "--frames-fields", *FRAME_FIELDS.split(),
             "--frames-axis", "z", "--frames-zoom", str(zoom),
             "--frames-center", str(fc_x), str(fc_y), "0", "--frames-corner",
+            # Slice at the run center's z-plane (z=cz). For a full-box centered
+            # object (Q-torus, cz=L/2) the matter/throat lives at z=L/2, NOT at
+            # the z=0 domain edge that --frames-corner defaults to -- slicing at
+            # z=0 renders the matter fields (phi, Pi) as blank white because they
+            # are ~0 there. For the half-z octant (cz=0) this is a no-op.
+            "--frames-coord", str(cz),
             "--frames-global-zlim", "--frames-out", str(run_out / "frames"),
         ]
     if delete:
