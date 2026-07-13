@@ -25,7 +25,8 @@ see [Operations](#operations).
 | Capability | Where | Notes |
 |------------|-------|-------|
 | **GRTresna bridge** — `params.txt` → MPI solve → Chombo HDF5 → `.gridinit` | `src/grteclyn_wrapper/grtresna/` | Ham + Mom constraint solve; exotic (`rho<0`) auto-switches to K=0 maximal slicing. Deep docs: [`src/grteclyn_wrapper/grtresna/README.md`](src/grteclyn_wrapper/grtresna/README.md) |
-| **Matter sectors** — real scalar, complex scalar / U(1) boson star, Q-ball, shell, trajectory | `grtresna/matter/`, `grtresna/fields/`, `grtresna/profiles/` | Per-lump signed scalars (`GRTresnaIndependentScalars` C++); exotic wedge; self-gravitating boson-star ODE solver (isotropic coords) |
+| **Matter sectors** — real scalar, complex scalar / U(1) boson star, Q-ball, shell, trajectory, rotating Q-torus eigenstate | `grtresna/matter/`, `grtresna/fields/`, `grtresna/profiles/` | Per-lump signed scalars (`GRTresnaIndependentScalars` C++); exotic wedge; self-gravitating boson-star ODE solver (isotropic coords); 2D spinning Q-ball (`qball_torus.py`, `profile==4`) |
+| **Matter-profile contract (rail)** — single source of truth + t=0 cross-code consistency gate | `grtresna/matter/profile_contract.py`, `tests/grtresna/test_profile_contract.py` | Catches stale-binary empty fields / sign flips / wrong-ω / center bugs before evolution; see [Matter-profile contract](#matter-profile-contract--the-rail-for-adding-new-profiles-safely) |
 | **Plotfile consumer** — streaming `small_data/` + PNG `frames/` + HDF5 deletion | `scripts/lib/`, `src/.../visualisation/` | `consume_plotfiles` sidecar; **required** for every production run |
 | **Ψ₄ / GW extraction** — l=2,m=0 mode amplitudes from `Weyl4_Re/Im` | `src/.../visualisation/process_wave/` | Spherical shells at radii from physics `center`; HQ default radii `8 12 24` |
 | **Search algorithms** — MAP-Elites (QD) archive, CMA-ES hill-climb | `src/.../search/qd_search/`, `src/.../search/optimize/` | Shared pre-evolution gates; warm-start from any trajectory |
@@ -413,6 +414,122 @@ it is an *interesting* (transport-capable) one is what the search explores.
 RadialRecipe dispatch in `Examples/RadialRecipe/RadialRecipeMatterDispatch.hpp`;
 Python bridge `grtresna/lump_fields.py`, `grtresna/matter_wiring.py`,
 `grtresna/solver.py`; gate `projection/postload_gate.py`.
+
+### Matter-profile contract — the rail for adding new profiles safely
+
+Wiring a matter profile into the pipeline means the **same physical facts are
+repeated across three codes** (Python solver, GRTresna C++ painter, GRTeclyn
+evolution): the potential `V = ½m²|Φ|² − ¼λ|Φ|⁴ + ⅙μ₆|Φ|⁶`, the couplings, the
+frequency `ω`, the U(1) momentum rule `Π₂ = −(ω/α)φ₁`, the winding phase, the
+exotic sign, the profile table format, and the coordinate center. If **any one**
+disagrees you don't get an error — you get a *plausible-looking wrong answer*
+(silent dispersal, or a t=0 constraint blow-up). Real bugs of this class:
+a stale C++ binary painting a torus as `f≡0` (→ "Ham=0%", looks converged), an
+initial-data/evolution sign mismatch, a diagnostics column off-by-one.
+
+The **contract** (`grtresna/matter/profile_contract.py`) makes these invariants
+executable so they fail in seconds instead of after a wasted GPU run:
+
+- **`MatterProfileSpec`** — the ONE place a profile's physics lives. It emits the
+  GRTresna `lump<k>_*` params **and** the Python reference field, so they cannot
+  drift.
+- **`reference_paint(spec, x, y, z)`** — the Python mirror of the C++ painter
+  (`Φ = f(ρ,z)e^{imφ}`, `Π₁=+(ω/α)φ₂`, `Π₂=−(ω/α)φ₁`).
+- **`check_gridinit_matches_spec(gridinit, spec)`** — reads the GRTresna-produced
+  `.gridinit`, paints the reference at the same cell centres, asserts phi/phi2/
+  Pi/Pi2 match (relative tol, default 5%). This is the **t=0 cross-code
+  consistency test**.
+
+**To add a NEW matter profile (checklist):**
+
+1. **C++ painter** — add the profile to `../GRTresna/Source/Matter/BosonStarParams.hpp`
+   (a loader + a `lump_winding_modulus` / `lump_phi1` branch), give it a `profile`
+   enum int, and extend the `read_params` inherit so it picks up its table path.
+   **Rebuild GRTresna** (`scripts/wormhole/build/build_grtresna_bosonstar.sh`) —
+   forgetting this is the "stale binary" bug the rail catches.
+2. **Python mirror** — add the int to `PROFILE_KIND_TO_INT` and one modulus branch
+   to `reference_paint` in `profile_contract.py`.
+3. **Contract test** — add a case to `tests/grtresna/test_profile_contract.py`
+   (a self-contained synthetic-gridinit round-trip needs no GPU/solve).
+4. **Wire the gate** into whatever driver emits the ID (see `solve_torus.py`,
+   which runs `check_gridinit_matches_spec` after every solve and refuses to hand
+   off a mismatched ID).
+
+**Run the rail:**
+
+```bash
+cd grteclyn-wrapper
+uv run pytest tests/grtresna/test_profile_contract.py -q   # 7 tests: passes good,
+#   catches empty-field (stale binary), momentum sign flip, wrong ω, + real torus
+```
+
+The gate also runs automatically inside `solve_torus.py` (prints
+`MatterProfile consistency (PASS, …)`), so a bad solve never reaches evolution.
+
+### Rotating Q-torus wormhole — genuine stationary eigenstate support + collapse
+
+The rotating-wormhole support was originally a spherical Q-ball twisted by
+`(sinθ)^m`, which is **not** a stationary state and drains its Noether charge
+(half-life t≈13–16). The fix is a **genuine 2D spinning Q-ball eigenstate**
+`Φ = f(ρ,z)e^{i(mφ−ωt)}`, solved by `grtresna/profiles/qball_torus.py`
+(bordered Newton + amplitude continuation; pins the peak, lets ω float, so it
+cannot collapse to the vacuum), painted into GRTresna as `profile == 4`. Result:
+charge half-life ≈ doubled and no t≈13.5 dynamical blow-up (journal:
+[`../research/rotatingwormhole/OrbitalPumpPlan.md`](../research/rotatingwormhole/OrbitalPumpPlan.md)
+Phase 8).
+
+**Solve an isolated torus ID** (throat-free flat background; validates the
+eigenstate on its own). `EXOTIC=1` matches the phantom evolution matter;
+`TORUS_OMEGA` is the target internal frequency (use the compact/thick-wall band
+≈0.2–0.45 — deep thin-wall ω<~0.15 does not fit the box, and the solver errors
+with a box-escape message):
+
+```bash
+cd /path/to/GRTeclyn
+EXOTIC=1 TORUS_OMEGA=0.25 bash grteclyn-wrapper/scripts/wormhole/id/solve_torus.sh 2
+# -> runs/rotating_torus_id/torus_m1_om0p250_.../{initial_data.gridinit, qball_torus.dat}
+#    prints Ham%/Mom% and the MatterProfile consistency PASS gate
+```
+
+**Solve a torus-supported wormhole ID** (adds a bare-mass throat the torus hugs;
+`THROAT_MASS` = `bh1_bare_mass`, the positive mass that implodes when support is
+cut — the Phase-7 collapse recipe wants b0≈2, i.e. `THROAT_MASS≈1`):
+
+```bash
+EXOTIC=1 THROAT_MASS=1.0 TORUS_OMEGA=0.25 \
+  bash grteclyn-wrapper/scripts/wormhole/id/solve_torus.sh 2
+```
+
+**Evolve** with `wormhole_case.sh` (`--gridinit` override + `--full-box` for a
+centered z-symmetric object). Two arms — control (support held) vs collapse
+(exotic support ramped to 0, the rotating analogue of the Ellis–Bronnikov
+`S_support` cut):
+
+```bash
+G="$PWD/runs/rotating_torus_id/torus_m1_om0p250_kappa1p00_dx0p5_L64_lam170_mu614450_exotic_throat1/initial_data.gridinit"
+
+# CONTROL — support held
+bash grteclyn-wrapper/scripts/wormhole/run/wormhole_case.sh --gridinit "$G" --full-box \
+  --omega 0.25067 --m 1 --dx 0.5 --box-size 64 --max-level 0 --stop-time 20 \
+  --mass 0.5 --lambda 170 --mu6 14450 --no-frames --run-suffix torus_wh_control --gpu 0
+
+# COLLAPSE — cut the exotic support over t=8..10 (floor 0)
+bash grteclyn-wrapper/scripts/wormhole/run/wormhole_case.sh --gridinit "$G" --full-box \
+  --omega 0.25067 --m 1 --dx 0.5 --box-size 64 --max-level 0 --stop-time 20 \
+  --mass 0.5 --lambda 170 --mu6 14450 \
+  --support-ramp-t-start 8 --support-ramp-t-end 10 --support-ramp-floor 0 \
+  --no-frames --run-suffix torus_wh_collapse --gpu 1
+```
+
+Diagnostics land in `runs/rotating_wormhole/evo_*/output/data/collapse_diagnostics.dat`
+(1-based: **3** `min_chi`, **8** `max_ah_r`, **9** `min_theta_plus`, **21**
+`Q_sphere`, 23 `pump_work`). Collapse ⇒ `min_chi → puncture` + a persistent
+`max_ah_r>0`; a clean trapped-surface result needs `--max-level ≥ 4` (AMR; note
+the gridinit trilinear-interpolation kink caveat in the wormhole `Debug.md`).
+
+Couplings/ω/exotic/mass **must** match between the `solve_torus` ID and the
+`wormhole_case` evolution — the consistency gate enforces the ID side; keep
+`--mass/--lambda/--mu6/--omega` equal to the solve's `MASS/LAMBDA/MU6/TORUS_OMEGA`.
 
 ### One-off GRTresna solve
 
@@ -965,12 +1082,15 @@ Each run emits under `data/` (parsed by `read_episode_metrics`):
 | Scoring weights / objectives | `metrics/score/`, `episode_metrics.py` | No | Re-score campaign or metric tests |
 | GRTeclyn evolution, plotfiles, gridinit load | `Examples/RadialRecipe/*`, `Source/Matter/*` | Yes (GRTeclyn) | `BUILD=1 bash scripts/radial/run_radialrecipe_gpu_smoke.sh` |
 | GRTresna elliptic solver | `../GRTresna/Examples/ScalarFieldBH/*` | Yes (MPI binary) | AMR smoke tests above |
+| **New matter profile** (painter + reference + gate) | `../GRTresna/Source/Matter/BosonStarParams.hpp`, `grtresna/matter/profile_contract.py` | Yes (GRTresna) | `uv run pytest tests/grtresna/test_profile_contract.py -q` — see [Matter-profile contract](#matter-profile-contract--the-rail-for-adding-new-profiles-safely) |
+| Rotating Q-torus wormhole ID / collapse | `grtresna/profiles/qball_torus.py`, `scripts/wormhole/id/solve_torus.py`, `scripts/wormhole/run/wormhole_case.py` | Yes if C++ painter changes | See [Rotating Q-torus wormhole](#rotating-q-torus-wormhole--genuine-stationary-eigenstate-support--collapse) |
 
 ### Tests
 
 ```bash
 cd grteclyn-wrapper
 uv run pytest tests/grtresna/ -q          # bridge, matter, profiles (258 tests)
+uv run pytest tests/grtresna/test_profile_contract.py -q  # matter-profile rail (cross-code t=0 gate)
 uv run pytest tests/ -q                    # full suite
 ruff check src/grteclyn_wrapper            # lint
 ```
@@ -1011,5 +1131,6 @@ nvidia-smi   # expect 0 MiB, no running processes
 | [`src/grteclyn_wrapper/visualisation/README.md`](src/grteclyn_wrapper/visualisation/README.md) | Plotting module reference |
 | [`SELFGRAV_HANDOFF.md`](SELFGRAV_HANDOFF.md) | Self-grav boson star fix + caveats |
 | [`../research/neuralspacetime/MapElitesDynamics.md`](../research/neuralspacetime/MapElitesDynamics.md) | FTL trajectory campaign lab journal |
+| [`../research/rotatingwormhole/OrbitalPumpPlan.md`](../research/rotatingwormhole/OrbitalPumpPlan.md) | Rotating wormhole: Q-torus eigenstate support, collapse trigger |
 | [`../research/grlab/LabJournal.md`](../research/grlab/LabJournal.md) | GW beam + splash lab journal |
 | [`../research/RL/LabJournal.md`](../research/RL/LabJournal.md) | RL chassis handoff |

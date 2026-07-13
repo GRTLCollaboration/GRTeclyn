@@ -243,6 +243,31 @@ def main() -> int:
         delete_source=True,
     )
 
+    # --- Cross-code consistency gate (the "rail"): assert the C++-painted
+    # gridinit matches the Python reference for this exact profile spec.  Catches
+    # stale-binary empty fields, sign flips, wrong-frequency momentum, and
+    # coordinate-center bugs BEFORE a wasted GPU evolution.
+    from grteclyn_wrapper.grtresna.matter.profile_contract import (
+        MatterProfileSpec,
+        check_gridinit_matches_spec,
+    )
+    from grteclyn_wrapper.grtresna.profiles.qball_torus import read_torus_profile
+
+    tor = read_torus_profile(torus_path)
+    spec = MatterProfileSpec(
+        kind="torus", amp=KAPPA * f_max, omega=omega, mass=MASS, lam=LAMBDA,
+        mu6=MU6, m_az=M_AZ, exotic=bool(EXOTIC),
+        center=(EVO_L / 2.0, EVO_L / 2.0, EVO_L / 2.0), f_max=f_max,
+    )
+    report = check_gridinit_matches_spec(gridinit, spec, tol=5.0e-2, torus=tor)
+    print("\n" + str(report))
+    if not report.passed:
+        raise SystemExit(
+            "CONSISTENCY GATE FAILED: the C++-painted gridinit does not match the "
+            "Python reference for this profile spec (stale binary / sign / frequency "
+            "/ center mismatch). Do NOT evolve this ID."
+        )
+
     if not os.environ.get("KEEP_SOLVE_SCRATCH"):
         import shutil
         for junk in (run_dir / "Outputs", run_dir / "pout"):
