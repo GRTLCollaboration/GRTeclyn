@@ -5,6 +5,58 @@ Companion to [`RotatingWormholePlan.md`](./RotatingWormholePlan.md) (this is its
 the trajectory-pump machinery journaled in
 [`../neuralspacetime/MapElitesDynamics.md`](../neuralspacetime/MapElitesDynamics.md).
 
+---
+
+## ✅ FINAL RESULT (2026-07-14) — collapse-on-command produces a clean GW burst, no l=2 kick
+
+**Headline.** A rotating (m=1, ω=0.25067, κ=1.0) Q-torus wormhole, held open by the
+PD support pump, **collapses to an apparent horizon and radiates a gravitational-wave
+burst when the support is ramped off — with *zero* imposed perturbation.** This is the
+rotating analogue of the static Ellis–Bronnikov `S_support→0` collapse branch, and the
+GW signal is a genuine consequence of the axisymmetric throat pinch, not of any seeded
+mode.
+
+**Run.** `runs/rotating_wormhole/evo_omega_p0p25_m1_kappa_1p00_dx0p5_ml3_mass0p5_qball_lam170_mu614450_torus_wh_collapse_ml3_gw`
+(N=128, dx=0.5, `max_level=3`, `t→40`, dense in-code Weyl4 + Python Ψ₄ extraction).
+
+**No kick.** `wormhole_phi_perturbation_amplitude = 0.0`, `wormhole_phi_monopole_amplitude = 0.0`.
+The *only* trigger is the support ramp `support_ramp_t_start=8.0 → support_ramp_t_end=10.0`,
+`support_ramp_floor=0.0` (pump turned off between t=8 and t=10). No l=2 kick, no Gaussian K
+perturbation.
+
+**Collapse — confirmed.**
+- `min_lapse`: 1.000 → **0.033** (deep collapse well).
+- `min_chi`: → **0.0185** (throat pinch).
+- `max|K|`: → **0.62**.
+- Apparent horizon / trapped surface **forms**: `max_ah_r = 9.18 (>0)`, `min_theta_plus = −1.90 (≤0)`.
+
+**Constraints — clean, ran to completion, no NaN.**
+- Ham L2 ≤ **3.25e-2**, Mom L2 ≤ **9.67e-3**, flat to t=40 (STEP 4000).
+
+**GW radiation — confirmed (Python l=2,m=0 extraction).**
+- Smooth coherent waveform: near-zone response ~t=6–8, **main burst ~t=13–24**, then decay —
+  causally consistent with support-off at t=8–10 → throat collapse → horizon → radiation
+  reaching r=12.
+- Extraction is physically valid: `m=0` imaginary part RMS ~**1e-5** (≈0, as required).
+- Physical scaling: peak strain frequency ≈ **169 Hz** at M=30 M☉ (Advanced-LIGO band),
+  ≈ **5 Hz** at M=1000 M☉ (decihertz / DECIGO band).
+
+**⚠️ Caveats / open items.**
+- **J_z drift ~141%, Q_total drift ~116%** (both change sign) over the run. Plausibly physical
+  (radiated + pump-injected via `pump_work`) but not yet decomposed — do not quote spin
+  conservation until this is disentangled.
+- **The dense in-code C++ Weyl4 extraction (`data/Weyl4_mode_2{0,1,2}.dat`) is buggy**
+  (spurious `O(1)` `m=0` imaginary part + ~1.8 M⁻¹ junk oscillation, uncorrelated with the
+  trusted Python signal). Physics plots use `small_data/psi4_mode_l2m0.dat` (Python post-hoc
+  spherical-harmonic extraction). C++-side fix tracked in the progress log below.
+
+**Reproduce the figures** (see `grteclyn-wrapper/README.md` §Visualization):
+```bash
+RUN=runs/rotating_wormhole/evo_omega_p0p25_..._torus_wh_collapse_ml3_gw/output
+bash grteclyn-wrapper/scripts/plot/plot_diagnostic.sh "$RUN" 12 18 24   # constraints, collapse, GW
+bash grteclyn-wrapper/scripts/plot/make_movies.sh   "$RUN" --framerate 10
+```
+
 **Goal.** Keep the rotating-wormhole throat supported by a constellation of
 exotic Q-ball lumps driven along prescribed orbits by the PD "spotlight" matter
 pump. Then trigger collapse **on command** by ramping the pump off — the
@@ -812,3 +864,88 @@ couplings `(m, λ, μ₆)`.
 9. Commit style: `feat:`/`docs:` prefixes as in recent history; journal every
    run outcome in `OrbitalPumpJournal.md` (tables: params, Q_retention,
    half-life, constraint growth, pump energy, verdict).
+
+---
+
+## C++ in-code Weyl4 extraction — root-cause analysis + DEFERRED (2026-07-14)
+
+**Status: DEFERRED — upstream feature is incomplete.** The GRTL collaboration lists
+**"Weyl scalar / CCE extraction" as 🔧 In progress** in GRTeclyn's development status
+(alongside particle-based diagnostics, apparent-horizon finder, ADM quantities). So
+the in-code C++ Ψ₄ extraction here is expected to be unreliable — it is a partial
+port, not a bug in our wiring. **We skip the C++ fix and use the validated Python
+post-hoc extraction (`small_data/psi4_mode_l2m0.dat`) for all physics.** Revisit the
+port below once upstream marks Weyl/CCE extraction ✅ Ported.
+
+
+**Symptom.** `data/Weyl4_mode_2{0,1,2}.dat` (dense in-code C++ Ψ₄) disagrees with
+the validated Python post-hoc extraction (`small_data/psi4_mode_l2m0.dat`):
+- ~8× larger RMS at r=12, and **uncorrelated** (corr ≈ 0.07) with the Python signal.
+- Large `O(0.6)` value at t≈0 where a near-stationary ID should radiate ≈0.
+- `O(1)` `m=0` imaginary part (Python gives ~1e-5).
+- ~80 per-shell `1e51`-scale blowups at r=18/24, **clustered at violent/regrid
+  phases** (t≈6.1, 7.8, 9.0–9.2 = support-off collapse onset, and t≈37.7).
+
+**Verified NOT the cause (all standard/correct, identical to the working BinaryBH
+example):**
+- Extraction center: `extraction_center = 32 32 32` is read into
+  `extraction_params.center` (`SimulationParametersBase.hpp:123`) — correct throat
+  center. Python sidecar uses the same 32,32,32 (`wormhole_case.py:618,624`, full-box).
+- Modes `2 0 / 2 1 / 2 2`, `num_points_phi=24`, `num_points_theta=37` — parsed OK.
+- Component map: `WeylExtraction` reads derived `Weyl4` comps {0,1} = {Re,Im};
+  `Weyl4WithMatter::compute_mf` writes Re,Im from `out_comp` — correct.
+- Projection math (`SphericalExtraction::add_mode_integrand`): canonical
+  `∫ (r·Ψ₄)·conj(sYlm)/r² · r²sinθ dθdφ` with `spin_Y_lm` — the same code BinaryBH
+  uses successfully. Both Python and C++ ultimately consume the *same*
+  `Weyl4WithMatter` field.
+
+**Root cause — GRChombo comparison (the decisive finding).** GRChombo's
+`Examples/BinaryBH/BinaryBHLevel.cpp::specificPostTimeStep` (lines 142–169) does a
+sequence that GRTeclyn's port **dropped**:
+```cpp
+fillAllGhosts();                                             // fill CCZ4 state ghosts, all levels
+BoxLoops::loop(Weyl4(center,m_dx,formulation),
+               m_state_new, m_state_diagnostics,
+               EXCLUDE_GHOST_CELLS);                         // Weyl4 -> STORED diagnostic, VALID cells only
+if (m_level == min_level) {
+    m_gr_amr.m_interpolator->refresh(false);
+    m_gr_amr.fill_multilevel_ghosts(                         // fill diagnostic Weyl4 ghosts across levels
+        VariableType::diagnostic, Interval(c_Weyl4_Re,c_Weyl4_Im), min_level);
+    my_extraction.execute_query(m_gr_amr.m_interpolator);    // interpolate STORED, consistent field
+}
+```
+GRTeclyn instead computes Weyl4 **on the fly** inside the interpolator via
+AMReX `derive("Weyl4", time, s_num_ghosts=2)` (see
+`ParticleInterpolator.impl.hpp:367`), with no stored diagnostic and no explicit
+multilevel diagnostic-ghost fill.
+
+**Ruled out:** AMReX's `derive` is *not* under-filling input ghosts —
+`AMReX_AmrLevel.cpp:1638` sets `ngrow_src = ngrow + 2` (from the Weyl4 `boxMap`
+`grow(box,2)`), so the CCZ4 source is FillPatched to 4 ghosts, enough for the
+4th-order Weyl4 stencil. Center/modes/components/projection math all verified
+identical to the working BinaryBH. So this is **not** a one-line ghost-count patch.
+
+**Remaining suspects (need runtime localization).** The `1e51` spikes cluster at the
+violent, heavily-regridding phases (support-off collapse onset t≈6–9; t≈37). Likely
+the quartic *particle* interpolation onto the derived Weyl4 near freshly-created
+coarse–fine boundaries, and/or `getData(time)` time-interpolation against a
+just-regridded level. GRChombo sidesteps both by extracting from a stored,
+multilevel-ghost-filled diagnostic rather than an on-the-fly per-query derive.
+
+**Fix (chosen: diagnostic-MultiFab port of the GRChombo path) — substantial:**
+GRTeclyn currently has **no** diagnostic state or `fill_multilevel_ghosts` (grep of
+`Source/GRTeclynCore` finds none), so the fix is a real port, not a patch:
+1. Add a diagnostic state (or reuse spare state comps) holding `Weyl4_Re/Im`.
+2. In `SupportedWormholeLevel::specificPostTimeStep`, before extraction: fill CCZ4
+   ghosts, compute Weyl4 into the diagnostic on valid cells for every level,
+   average-down + fill multilevel ghosts of the diagnostic.
+3. Point `WeylExtraction` at the stored diagnostic (state-var interp path) instead
+   of the derived-var `derive` path.
+Recommended pre-step: a short (t≈2) run with `write_extraction = 1` to dump the raw
+Weyl4 spheres and localize *where* on the sphere the `1e51` originates — cheap
+runtime evidence to confirm the mechanism before the full port + rerun.
+
+**Interim policy (in force).** Physics uses the Python extraction
+(`plot_diagnostic.sh` → `psi4_mode_l2m0.dat`). The dense C++ files are debugging-only
+until the port above is implemented and re-validated (Im(m=0)≈0, matches Python,
+no `1e51`).

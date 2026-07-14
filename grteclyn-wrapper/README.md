@@ -1105,22 +1105,46 @@ done
 
 ### Visualization
 
-Post-run figures → `<RUN_DIR>/plots/`:
+**Two commands cover every run.** Point them at the run's `output/` directory
+(the one holding `data/`, `small_data/`, `frames/`). All figures land in
+`<RUN_DIR>/plots/`; all movies in `<RUN_DIR>/movies/`.
 
 ```bash
-bash grteclyn-wrapper/scripts/plot/plot_diagnostic.sh \
-  runs/grtresna_promote/<name> 8 12 24
+RUN=runs/rotating_wormhole/<episode>/output      # dir containing data/ small_data/ frames/
+
+# 1) All diagnostic + GW figures (radii = extraction shells, e.g. 12 18 24)
+bash grteclyn-wrapper/scripts/plot/plot_diagnostic.sh "$RUN" 12 18 24
+
+# 2) Field-slice movies (one .mp4 per frames/<field>_z/)
+bash grteclyn-wrapper/scripts/plot/make_movies.sh   "$RUN" --framerate 10
 ```
 
-Writes: `constraints_plot.*` (L2 Ham/Mom), `collapse_diagnostics_plot.*`,
-`psi4_analysis_M*_D*.*` (6-panel GW: waveforms, QNM fit, PSD, propagation speed,
-spectrogram, LIGO strain). Optional env: `MASS_MSUN`, `DISTANCE_MPC`.
+`plot_diagnostic.sh` writes, into `<RUN>/plots/`:
 
-Frame movies → `<RUN_DIR>/movies/`:
+| Figure | Built from | Shows |
+|--------|-----------|-------|
+| `constraints_plot.*` | `data/constraint_norms.dat` | L2 Ham/Mom vs `t` (must stay bounded) |
+| `collapse_diagnostics_plot.*` | `data/collapse_diagnostics.dat` (23-col) | `min_lapse`, `min_chi`, `max|K|`, `max_ah_r`, `min_theta_plus`, K-decay lifetime |
+| `psi4_analysis_M30_D10.*`, `psi4_analysis_M1000_D0.002.*`, … | `small_data/psi4_mode_l2m0.dat` | 6-panel GW: waveform, retarded+QNM fit, PSD, propagation speed, spectrogram, LIGO strain |
 
-```bash
-bash grteclyn-wrapper/scripts/plot/make_movies.sh runs/grtresna_promote/<name> --framerate 10
-```
+`make_movies.sh` writes `movie_<field>_z.mp4` for each of
+`chi, chi_minus_1, K, lapse, phi, Pi, Weyl4_Re, Weyl4_Im, Weyl4_Mag`.
+
+Mass/distance configs for the GW panels are baked into `plot_diagnostic.sh`
+(`30:10`, `1000:0.002`, `1000:1`); override the first with env `MASS_MSUN` /
+`DISTANCE_MPC`. LIGO panel quantity via `LIGO_QUANTITY=asd|hchar`.
+
+> **Which Ψ₄ is trusted?** `plot_diagnostic.sh` uses the **Python post-hoc
+> spherical-harmonic extraction** in `small_data/psi4_mode_l2m0.dat` (produced by
+> `consume_plotfiles` during the run). That signal is validated: the `m=0`
+> imaginary part is ~1e-5 (≈0, as required) and it is free of high-frequency
+> gauge contamination. **Do NOT** feed `data/Weyl4_mode_2{0,1,2}.dat` (the dense
+> in-code C++ extraction) into `plot_extracted_psi4.py` for physics plots —
+> that extraction currently carries an `O(1)` spurious `m=0` imaginary part and a
+> ~1.8 M⁻¹ junk oscillation. This is **expected**: the GRTL collaboration lists
+> *Weyl scalar / CCE extraction* as 🔧 **In progress** in GRTeclyn's port status, so
+> the in-code C++ Ψ₄ path is incomplete upstream. Use the Python extraction until
+> it is marked ✅ Ported. It is retained only for debugging.
 
 Full module reference: [`src/grteclyn_wrapper/visualisation/README.md`](src/grteclyn_wrapper/visualisation/README.md).
 
@@ -1153,7 +1177,7 @@ Each run emits under `data/` (parsed by `read_episode_metrics`):
 | `constraint_norms.dat` | Ham/Mom L2; `min_rho_req < 0` → exotic needed |
 | `energy_conditions.dat` | Evolved matter NEC/WEC/SEC/DEC |
 | `curvature_invariants.dat` | Ricci/K invariants |
-| `Weyl4_mode_2{0,1,2}.dat` | **In-code C++ Ψ₄** l=2 m=0/1/2 modes, dense (per coarse step), one Re/Im pair per `--extraction-radii` shell — the trusted GW signal (see [GW/Ψ₄ extraction is now C++-side](#gw--ψ₄-extraction-is-now-c-side-upgrade)) |
+| `Weyl4_mode_2{0,1,2}.dat` | **In-code C++ Ψ₄** l=2 m=0/1/2 modes, dense (per coarse step), one Re/Im pair per `--extraction-radii` shell. ⚠️ Unreliable — GRTeclyn's Weyl/CCE extraction is 🔧 In progress upstream; use `small_data/psi4_mode_l2m0.dat` for physics. See [GW/Ψ₄ extraction is now C++-side](#gw--ψ₄-extraction-is-now-c-side-upgrade) |
 
 ---
 

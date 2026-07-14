@@ -92,9 +92,9 @@ def load_collapse_diagnostics(path: Path) -> Dict[str, np.ndarray]:
         raise SystemExit(f"No data rows found in {path}")
 
     arr = np.asarray(rows, dtype=float)
-    if arr.shape[1] not in (4, 7, 8, 10, 14):
+    if arr.shape[1] not in (4, 7, 8, 10, 14, 23):
         raise SystemExit(
-            f"Unexpected number of columns in {path}: got {arr.shape[1]}, expected 4, 7, 8, 10, or 14"
+            f"Unexpected number of columns in {path}: got {arr.shape[1]}, expected 4, 7, 8, 10, 14, or 23"
         )
 
     t = arr[:, 0]
@@ -131,6 +131,18 @@ def load_collapse_diagnostics(path: Path) -> Dict[str, np.ndarray]:
         out["max_phi"] = arr[:, 11]
         out["min_Pi"] = arr[:, 12]
         out["max_Pi"] = arr[:, 13]
+
+    if arr.shape[1] >= 23:
+        # RotatingWormholeCollapse extended diagnostics
+        out["barycenter_x"] = arr[:, 14]
+        out["barycenter_y"] = arr[:, 15]
+        out["barycenter_z"] = arr[:, 16]
+        out["rho_sum"] = arr[:, 17]
+        out["J_z"] = arr[:, 18]
+        out["Q_total"] = arr[:, 19]
+        out["Q_sphere"] = arr[:, 20]
+        out["rho_sphere"] = arr[:, 21]
+        out["pump_work"] = arr[:, 22]
 
     idx = np.argsort(out["t"])
     for k in list(out.keys()):
