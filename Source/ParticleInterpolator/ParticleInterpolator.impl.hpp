@@ -242,26 +242,20 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
         const int num_particles = par_iter.numParticles();
         auto fab_array          = mfab[par_iter].const_array();
 
-        auto comps_it = m_query->compsBegin();
-
         Derivative derivs[ncomp];
         InterpolationQueryParticle::out_t *comps[ncomp];
         int comp_counts[ncomp];
 
-        for (int i = 0; i < ncomp; i++)
+        // Gather comp map into arrays so it can be used on GPU
+        int num_derivs = 0;
+        for (auto comps_it = m_query->compsBegin();
+             comps_it != m_query->compsEnd(); ++comps_it)
         {
-            int j = 0;
-
-            derivs[i] = comps_it->first;
-            for (auto entry : comps_it->second)
-            {
-                comps[i][j] = entry;
-                j++;
-            }
-
-            comp_counts[i] = j;
-
-            comps_it++;
+            derivs[num_derivs] = comps_it->first;
+            comps[num_derivs]  = comps_it->second.data();
+            comp_counts[num_derivs] =
+                static_cast<int>(comps_it->second.size());
+            ++num_derivs;
         }
 
         amrex::ParallelFor(
