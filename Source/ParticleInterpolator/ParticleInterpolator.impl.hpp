@@ -237,8 +237,6 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
     // loop over tiles and interpolate now
     for (ParIterType par_iter(*this, lev); par_iter.isValid(); ++par_iter)
     {
-        using comps_t = std::vector<typename InterpolationQueryParticle::out_t>;
-
         auto &particle_tile     = this->ParticlesAt(lev, par_iter);
         auto particle_tile_data = particle_tile.getParticleTileData();
         const int num_particles = par_iter.numParticles();
@@ -247,12 +245,22 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
         auto comps_it = m_query->compsBegin();
 
         Derivative derivs[ncomp];
-        comps_t comps[ncomp];
+        InterpolationQueryParticle::out_t *comps[ncomp];
+        int comp_counts[ncomp];
 
         for (int i = 0; i < ncomp; i++)
         {
+            int j = 0;
+
             derivs[i] = comps_it->first;
-            comps[i]  = comps_it->second;
+            for (auto entry : comps_it->second)
+            {
+                comps[i][j] = entry;
+                j++;
+            }
+
+            comp_counts[i] = j;
+
             comps_it++;
         }
 
@@ -271,7 +279,8 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
 
                 amrex::ParticleReal interpolated_vals[ncomp];
                 lagrange_interp.interpolate(&fab_array, interpolated_vals,
-                                            derivs, comps, ncomp, 1 / dxi[0]);
+                                            derivs, comps, comp_counts, ncomp,
+                                            1 / dxi[0]);
 
                 // write results to SOA
                 for (int icomp = 0; icomp < ncomp; ++icomp)
