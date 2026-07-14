@@ -251,10 +251,9 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
         for (auto comps_it = m_query->compsBegin();
              comps_it != m_query->compsEnd(); ++comps_it)
         {
-            derivs[num_derivs] = comps_it->first;
-            comps[num_derivs]  = comps_it->second.data();
-            comp_counts[num_derivs] =
-                static_cast<int>(comps_it->second.size());
+            derivs[num_derivs]      = comps_it->first;
+            comps[num_derivs]       = comps_it->second.data();
+            comp_counts[num_derivs] = static_cast<int>(comps_it->second.size());
             ++num_derivs;
         }
 
