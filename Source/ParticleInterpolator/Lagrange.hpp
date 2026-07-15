@@ -269,7 +269,7 @@ template <int N> class Lagrange
     interpolate(const amrex::Array4<amrex::Real const> *data_arr,
                 amrex::ParticleReal *val, const Derivative *derivs,
                 InterpolationQueryParticle::out_t *const *comps_arr,
-                const int *comp_counts, int ncomp, amrex::Real const dx) const
+                const int *comp_counts, int n_deriv, amrex::Real const dx) const
     // NOLINTEND(bugprone-easily-swappable-parameters)
     {
 
@@ -279,7 +279,7 @@ template <int N> class Lagrange
         amrex::Real weights[AMREX_SPACEDIM][N]{};
         // NOLINTEND(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
 
-        for (int i = 0; i < ncomp; ++i)
+        for (int i = 0; i < n_deriv; ++i)
         {
             const Derivative &deriv = derivs[i];
 
