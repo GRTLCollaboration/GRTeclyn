@@ -213,7 +213,6 @@ template <int N> class Lagrange
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     template <typename P>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    // NOLINTEND(bugprone-easily-swappable-parameters)
     compute_weights(const P &par,
                     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const &plo,
                     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const &dxi,
