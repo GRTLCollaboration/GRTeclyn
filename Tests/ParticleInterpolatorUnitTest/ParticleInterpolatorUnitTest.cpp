@@ -133,11 +133,11 @@ void run_particle_interpolator_test()
         query_derived.setCoords(0, interp_x_local.data())
             .setCoords(1, interp_y_local.data())
             .setCoords(2, interp_z_local.data())
-            .addComp(0, A_local.data(), VariableType::derived, BCParity::even,
-                     Derivative::LOCAL)
-            .addComp(0, A_dx.data(), VariableType::derived, BCParity::even,
+            .addComp(0, A_local.data(), VariableType::derived,
+                     BCParity::odd_xyz, Derivative::LOCAL)
+            .addComp(0, A_dx.data(), VariableType::derived, BCParity::odd_xyz,
                      Derivative::dx)
-            .addComp(0, A_dxdy.data(), VariableType::derived, BCParity::even,
+            .addComp(0, A_dxdy.data(), VariableType::derived, BCParity::odd_xyz,
                      Derivative::dxdy);
 
         // set-up query for state variable B
@@ -172,11 +172,10 @@ void run_particle_interpolator_test()
 
             double r = x * x + y * y + z * z;
 
-            double A_known    = sin(sqrt(r));
-            double A_known_dx = (x * cos(sqrt(r))) / sqrt(r);
-            double A_known_dxdy =
-                x * (-y * sin(sqrt(r)) * sqrt(r) - y * cos(sqrt(r))) /
-                (r * sqrt(r));
+            double A_known      = pow(x, 3) * pow(y, 3) * pow(z, 3);
+            double A_known_dx   = 3 * pow(x, 2) * pow(y, 3) * pow(z, 3);
+            double A_known_dxdy = 3 * pow(x, 2) * 3 * pow(y, 2) * pow(z, 3);
+
             double B_known      = pow(x, 3);
             double B_known_dxdx = 6 * x;
 
@@ -202,10 +201,10 @@ void run_particle_interpolator_test()
                  << " z = " << z << ". The true value should be "
                  << B_known_dxdx);
 
-            CHECK(A_local[ipoint] == doctest::Approx(A_known).epsilon(1e-5));
-            CHECK(A_dx[ipoint] == doctest::Approx(A_known_dx).epsilon(1e-4));
+            CHECK(A_local[ipoint] == doctest::Approx(A_known).epsilon(1e-10));
+            CHECK(A_dx[ipoint] == doctest::Approx(A_known_dx).epsilon(1e-10));
             CHECK(A_dxdy[ipoint] ==
-                  doctest::Approx(A_known_dxdy).epsilon(1e-4));
+                  doctest::Approx(A_known_dxdy).epsilon(1e-10));
             CHECK(B_local[ipoint] == doctest::Approx(B_known).epsilon(1e-10));
             CHECK(B_dxdx[ipoint] ==
                   doctest::Approx(B_known_dxdx).epsilon(1e-10));
