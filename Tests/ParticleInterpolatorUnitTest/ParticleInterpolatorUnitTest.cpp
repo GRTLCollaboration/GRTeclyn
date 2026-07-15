@@ -170,8 +170,6 @@ void run_particle_interpolator_test()
             double y = interp_y_local[ipoint] - sim_params.center[1];
             double z = interp_z_local[ipoint] - sim_params.center[2];
 
-            double r = x * x + y * y + z * z;
-
             double A_known      = pow(x, 3) * pow(y, 3) * pow(z, 3);
             double A_known_dx   = 3 * pow(x, 2) * pow(y, 3) * pow(z, 3);
             double A_known_dxdy = 3 * pow(x, 2) * 3 * pow(y, 2) * pow(z, 3);
