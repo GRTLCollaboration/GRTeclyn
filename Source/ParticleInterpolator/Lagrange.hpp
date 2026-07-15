@@ -30,9 +30,9 @@ template <int N> class Lagrange
     int k0{};
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    build_stencil(amrex::Real grid_pos, int deriv_order, int &base_idx,
-                  amrex::Real *weights, bool lo_reflective, bool hi_reflective,
-                  int ncell)
+    build_stencil(amrex::Real grid_pos, int &base_idx, amrex::Real *weights,
+                  bool lo_reflective, bool hi_reflective, int ncell,
+                  int deriv_order)
     {
         // Build interpolation stencil for a particular derivative:
         // 0 = no derivative
@@ -235,28 +235,28 @@ template <int N> class Lagrange
                   (amrex::Real(par.pos(2)) - plo[2]) * dxi[2] -
                   static_cast<amrex::Real>(!is_nodal[2]) * amrex::Real(0.5););
 
-        build_stencil(xpos, 0, i0, weights_local[0], lo_reflective[1],
-                      hi_reflective[1], domain_ncell[1]);
-        build_stencil(xpos, 1, i0, weights_d1[0], lo_reflective[1],
-                      hi_reflective[1], domain_ncell[1]);
-        build_stencil(xpos, 2, i0, weights_d2[0], lo_reflective[1],
-                      hi_reflective[1], domain_ncell[1]);
+        build_stencil(xpos, i0, weights_local[0], lo_reflective[1],
+                      hi_reflective[1], domain_ncell[1], 0);
+        build_stencil(xpos, i0, weights_d1[0], lo_reflective[1],
+                      hi_reflective[1], domain_ncell[1], 1);
+        build_stencil(xpos, i0, weights_d2[0], lo_reflective[1],
+                      hi_reflective[1], domain_ncell[1], 2);
 #if AMREX_SPACEDIM >= 2
-        build_stencil(ypos, 0, j0, weights_local[1], lo_reflective[1],
-                      hi_reflective[1], domain_ncell[1]);
-        build_stencil(ypos, 1, j0, weights_d1[1], lo_reflective[1],
-                      hi_reflective[1], domain_ncell[1]);
-        build_stencil(ypos, 2, j0, weights_d2[1], lo_reflective[1],
-                      hi_reflective[1], domain_ncell[1]);
+        build_stencil(ypos, j0, weights_local[1], lo_reflective[1],
+                      hi_reflective[1], domain_ncell[1], 0);
+        build_stencil(ypos, j0, weights_d1[1], lo_reflective[1],
+                      hi_reflective[1], domain_ncell[1], 1);
+        build_stencil(ypos, j0, weights_d2[1], lo_reflective[1],
+                      hi_reflective[1], domain_ncell[1], 2);
 
 #endif
 #if AMREX_SPACEDIM == 3
-        build_stencil(zpos, 0, k0, weights_local[2], lo_reflective[1],
-                      hi_reflective[1], domain_ncell[1]);
-        build_stencil(zpos, 1, k0, weights_d1[2], lo_reflective[1],
-                      hi_reflective[1], domain_ncell[1]);
-        build_stencil(zpos, 2, k0, weights_d2[2], lo_reflective[1],
-                      hi_reflective[1], domain_ncell[1]);
+        build_stencil(zpos, k0, weights_local[2], lo_reflective[1],
+                      hi_reflective[1], domain_ncell[1], 0);
+        build_stencil(zpos, k0, weights_d1[2], lo_reflective[1],
+                      hi_reflective[1], domain_ncell[1], 1);
+        build_stencil(zpos, k0, weights_d2[2], lo_reflective[1],
+                      hi_reflective[1], domain_ncell[1], 2);
 #endif
     }
 
