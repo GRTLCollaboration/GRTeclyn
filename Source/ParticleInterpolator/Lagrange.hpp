@@ -215,6 +215,7 @@ template <int N> class Lagrange
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     template <typename P>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     compute_weights(const P &par,
                     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const &plo,
                     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const &dxi,
@@ -251,6 +252,7 @@ template <int N> class Lagrange
                       hi_reflective[1], domain_ncell[1], 2);
 
 #endif
+
 #if AMREX_SPACEDIM == 3
         build_stencil(zpos, k0, weights_local[2], lo_reflective[1],
                       hi_reflective[1], domain_ncell[1], 0);
