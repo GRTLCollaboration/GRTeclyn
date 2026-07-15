@@ -336,43 +336,6 @@ template <int N> class Lagrange
 #endif
 #if AMREX_SPACEDIM == 3
                 }
-                else
-                {
-                    for (int i = 0; i < N; i++)
-                    {
-                        weights[dim][i] = weights_local[dim][i];
-                    }
-                }
-            }
-
-            for (auto &entry : comps)
-            {
-                const int comp = entry.comp;
-
-                val[counter] = amrex::ParticleReal(0.0);
-
-#if AMREX_SPACEDIM == 3
-                for (int kk = 0; kk < N; ++kk)
-                {
-#endif
-#if AMREX_SPACEDIM >= 2
-                    for (int jj = 0; jj < N; ++jj)
-                    {
-#endif
-                        for (int ii = 0; ii < N; ++ii)
-                        {
-                            val[counter] +=
-                                data(amrex::IntVect(AMREX_D_DECL(
-                                         i0 + ii, j0 + jj, k0 + kk)),
-                                     comp) *
-                                AMREX_D_TERM(weights[0][ii], *weights[1][jj],
-                                             *weights[2][kk]);
-                        }
-#if AMREX_SPACEDIM >= 2
-                    }
-#endif
-#if AMREX_SPACEDIM == 3
-                }
 #endif
                 ++counter;
             }
