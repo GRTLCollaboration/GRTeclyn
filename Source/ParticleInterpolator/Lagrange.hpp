@@ -29,10 +29,12 @@ template <int N> class Lagrange
     int j0{};
     int k0{};
 
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     build_stencil(amrex::Real grid_pos, int &base_idx, amrex::Real *weights,
                   bool lo_reflective, bool hi_reflective, int ncell,
                   int deriv_order)
+    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         // Build interpolation stencil for a particular derivative:
         // 0 = no derivative
