@@ -278,6 +278,7 @@ def main() -> None:
     out_dir = Path(args.out) if args.out else Path(data_dir) / "small_data"
     state_path = out_dir / "consume_state.json"
     out_path = out_dir / "psi4_mode_l2m0.dat"
+    psi4_all_out_path = out_dir / "psi4_mode_l2_all.dat"
     psi4_directional_out_path = out_dir / "psi4_directional.dat"
     areal_out_path = out_dir / "areal_radius.dat"
     shell_out_path = out_dir / "shell_profiles.dat"
@@ -289,6 +290,16 @@ def main() -> None:
     score_ts_path = out_dir / "score_timeseries.jsonl"
     stop_sim_path = Path(args.stop_sim_path) if args.stop_sim_path else Path(data_dir) / ".stop_sim"
     header = "# time  " + "  ".join([f"Re(R={R:g})  Im(R={R:g})" for R in args.radii])
+    psi4_all_header = (
+        "# time  "
+        + "  ".join(
+            [
+                f"Re_m{m}(R={R:g})  Im_m{m}(R={R:g})"
+                for R in args.radii
+                for m in (-2, -1, 0, 1, 2)
+            ]
+        )
+    )
     psi4_directional_header = "# time  P_total  P_z_beam  beam_ratio  beaming_gain  wavezone_std"
     areal_header = "# time  R_areal_min  r_at_R_areal_min"
     shell_header = _shell_stats_header(args.radii, args.shell_fields)
@@ -301,6 +312,7 @@ def main() -> None:
         print("Detected a likely simulation restart in the same output directory.")
         print(f"Resetting: {out_path} and {state_path}")
         _truncate_if_exists(out_path)
+        _truncate_if_exists(psi4_all_out_path)
         _truncate_if_exists(psi4_directional_out_path)
         _truncate_if_exists(areal_out_path)
         if args.shell_fields:
@@ -480,6 +492,12 @@ def main() -> None:
                         if res["success"]:
                             if res["psi4_line"]:
                                 _append_line(out_path, header=header, line=res["psi4_line"])
+                            if res.get("psi4_all_line"):
+                                _append_line(
+                                    psi4_all_out_path,
+                                    header=psi4_all_header,
+                                    line=res["psi4_all_line"],
+                                )
                             if res.get("psi4_directional_line"):
                                 _append_line(
                                     psi4_directional_out_path,
@@ -530,6 +548,12 @@ def main() -> None:
                 if res["success"]:
                     if res["psi4_line"]:
                         _append_line(out_path, header=header, line=res["psi4_line"])
+                    if res.get("psi4_all_line"):
+                        _append_line(
+                            psi4_all_out_path,
+                            header=psi4_all_header,
+                            line=res["psi4_all_line"],
+                        )
                     if res.get("psi4_directional_line"):
                         _append_line(
                             psi4_directional_out_path,

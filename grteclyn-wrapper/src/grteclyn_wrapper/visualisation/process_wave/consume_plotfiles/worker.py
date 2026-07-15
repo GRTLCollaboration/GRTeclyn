@@ -79,6 +79,17 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
                 center=args_dict["center"],
             )
             result["psi4_line"] = f"{t:.16e}  " + "  ".join([f"{a.real:.16e}  {a.imag:.16e}" for a in l2m0_amps])
+            # Persist all five (l=2,m) amplitudes: for each radius, write
+            # Re/Im for m=-2,-1,0,1,2 (from DirectionalPsi4Metrics).
+            if directional.modes and directional.modes[0]:
+                parts = [f"{t:.16e}"]
+                n_radii = len(directional.modes[0])
+                for ir in range(n_radii):
+                    for m in (-2, -1, 0, 1, 2):
+                        c = directional.modes[m][ir]
+                        parts.append(f"{c.real:.16e}")
+                        parts.append(f"{c.imag:.16e}")
+                result["psi4_all_line"] = "  ".join(parts)
             # Aggregate directional metrics across extraction radii (arithmetic mean).
             if directional.p_total:
                 p_total = float(np.mean(directional.p_total))

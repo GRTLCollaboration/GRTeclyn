@@ -52,6 +52,65 @@ ID_ROOT = GRTECLYN_ROOT / "runs" / "rotating_wormhole_id"
 RUN_ROOT = GRTECLYN_ROOT / "runs" / "rotating_wormhole"
 BIN = EXAMPLE_DIR / "main3d.gnu.MPI.CUDA.ex"
 WRAPPER_SRC = Path(__file__).resolve().parents[3] / "src"
+OPENMPI_ROOT = Path(
+    os.environ.get(
+        "OPENMPI_ROOT",
+        str(GRTECLYN_ROOT.parent / "local" / "openmpi-5.0.8"),
+    )
+).resolve()
+
+
+def resolve_mpirun() -> Path:
+    """Prefer PATH, then the local OpenMPI install used for MPI+CUDA builds."""
+    which = subprocess.run(["which", "mpirun"], capture_output=True, text=True)
+    if which.returncode == 0 and which.stdout.strip():
+        return Path(which.stdout.strip())
+    candidate = OPENMPI_ROOT / "bin" / "mpirun"
+    if candidate.is_file():
+        return candidate
+    raise FileNotFoundError(
+        f"mpirun not found (PATH or {OPENMPI_ROOT}/bin). "
+        "Install/export local OpenMPI 5.0.8 before multi-GPU launches."
+    )
+
+
+def parse_gpu_list(gpus: str | None, gpu: int, np_ranks: int) -> list[int]:
+    """Resolve physical GPU ids for --np ranks.
+
+    --gpus 0,1,6,7 takes precedence; otherwise consecutive devices starting
+    at --gpu (legacy single-GPU default).
+    """
+    if gpus:
+        ids = [int(x.strip()) for x in gpus.split(",") if x.strip() != ""]
+        if not ids:
+            raise ValueError("--gpus is empty")
+        if len(ids) != np_ranks:
+            raise ValueError(
+                f"--gpus has {len(ids)} ids but --np={np_ranks}; they must match"
+            )
+        return ids
+    return list(range(gpu, gpu + np_ranks))
+
+
+def build_evolve_command(params_path: Path, np_ranks: int,
+                         gpu_ids: list[int]) -> list[str]:
+    """Single-rank direct exec; multi-rank via mpirun + per-rank GPU bind.
+
+    Each rank gets an explicit physical GPU from ``gpu_ids`` via
+    ``WORMHOLE_GPU_IDS`` (comma-separated).  Do NOT rely on parent
+    ``CUDA_VISIBLE_DEVICES`` remapping: OpenMPI/prterun often drops or
+    resets that env, so ``LOCAL_RANK`` alone lands every job on GPUs 0..N-1.
+    """
+    if np_ranks <= 1:
+        return [str(BIN), str(params_path)]
+    mpirun = resolve_mpirun()
+    # Index into WORMHOLE_GPU_IDS with the local rank; bind that one device.
+    wrapper = (
+        'IFS="," read -ra _gpus <<< "${WORMHOLE_GPU_IDS}"; '
+        'export CUDA_VISIBLE_DEVICES="${_gpus[${OMPI_COMM_WORLD_LOCAL_RANK:-0}]}"; '
+        f"exec {BIN} {params_path}"
+    )
+    return [str(mpirun), "-n", str(np_ranks), "bash", "-c", wrapper]
 
 DEFAULT_L = 64.0
 FRAME_FIELDS = "chi chi_minus_1 K lapse phi Pi phi2 Pi2 Weyl4_Re Weyl4_Im Weyl4_Mag"
@@ -466,7 +525,10 @@ def main() -> int:
 
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--kappa", type=float, required=True)
-    ap.add_argument("--dx", type=float, default=0.5, choices=[0.5, 1.0])
+    ap.add_argument("--dx", type=float, default=0.5,
+                    help="level-0 dx (must match gridinit native dx; L2). "
+                         "Common: 0.5 (N=128), 1.0 (N=64); convergence ladder "
+                         "may use 0.67 / 0.375 with matching ID.")
     ap.add_argument("--omega", type=float, default=0.05)
     ap.add_argument("--m", type=int, default=1)
     ap.add_argument("--max-level", type=int, default=3)
@@ -590,7 +652,16 @@ def main() -> int:
                     help="also dump the raw Weyl4 surface data (one file per "
                          "extraction step). Off by default; the compact "
                          "Weyl4_mode_*.dat time series is always written.")
-    ap.add_argument("--gpu", type=int, default=0)
+    ap.add_argument("--gpu", type=int, default=0,
+                    help="first GPU id (single-GPU), or start of a consecutive "
+                         "block when --np>1 and --gpus is omitted")
+    ap.add_argument("--np", type=int, default=1, dest="np_ranks",
+                    help="MPI ranks / GPUs for this case (default 1). "
+                         "Requires the MPI+CUDA binary and mpirun.")
+    ap.add_argument("--gpus", default=None,
+                    help="comma-separated physical GPU ids for --np ranks "
+                         "(e.g. --np 2 --gpus 0,1). Overrides consecutive "
+                         "--gpu..--gpu+np-1 selection.")
     ap.add_argument("--gridinit", default=None, help="override ID .gridinit path")
     ap.add_argument("--full-box", action="store_true",
                     help="full-box centered evolution (center z=L/2, all-Sommerfeld "
@@ -702,18 +773,41 @@ def main() -> int:
     )
     params_path = run_dir / "params.txt"
     params_path.write_text(params_text)
+    if args.np_ranks < 1:
+        print("error: --np must be >= 1", file=sys.stderr)
+        return 2
+    try:
+        gpu_ids = parse_gpu_list(args.gpus, args.gpu, args.np_ranks)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
     print(f"[wormhole_case] {tag}")
     print(f"  gridinit: {gridinit}")
     print(f"  params:   {params_path}")
     print(f"  L={L} N={N} dx={args.dx} max_level={args.max_level} "
           f"mass={args.mass} lambda={args.lam} mu6={args.mu6} "
-          f"stop_time={stop_time} radii={radii} gpu={args.gpu}")
+          f"stop_time={stop_time} radii={radii} "
+          f"np={args.np_ranks} gpus={gpu_ids}")
     if args.dry_run:
         return 0
 
     env = dict(os.environ)
-    env["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
+    # Single-GPU: pin CUDA_VISIBLE_DEVICES. Multi-GPU: pass explicit ids via
+    # WORMHOLE_GPU_IDS (mpirun wrappers often drop CUDA_VISIBLE_DEVICES).
+    env["WORMHOLE_GPU_IDS"] = ",".join(str(g) for g in gpu_ids)
+    if args.np_ranks <= 1:
+        env["CUDA_VISIBLE_DEVICES"] = str(gpu_ids[0])
+    else:
+        env.pop("CUDA_VISIBLE_DEVICES", None)
+    # Ensure the MPI+CUDA binary can find the matching OpenMPI libs even when
+    # the caller did not source scripts/lib/env.sh.
+    ompi_lib = str(OPENMPI_ROOT / "lib")
+    ompi_bin = str(OPENMPI_ROOT / "bin")
+    env["PATH"] = ompi_bin + os.pathsep + env.get("PATH", "")
+    env["LD_LIBRARY_PATH"] = ompi_lib + os.pathsep + env.get("LD_LIBRARY_PATH", "")
     log = run_dir / "evolve.log"
+    cmd = build_evolve_command(params_path, args.np_ranks, gpu_ids)
 
     # Stream Psi4 + confinement and delete plotfiles *during* the run so the
     # heavy HDF5 backlog never accumulates (L6, disk discipline).  A delete
@@ -728,12 +822,11 @@ def main() -> int:
         consumer = start_frame_consumer(run_out, args.frame_jobs,
                                         frames=args.frames)
 
-    print(f"  running -> {log}")
+    print(f"  running ({' '.join(cmd[:4])}{' ...' if len(cmd) > 4 else ''}) -> {log}")
     run_rc = 0
     try:
         with log.open("w") as fh:
-            proc = subprocess.run([str(BIN), str(params_path)],
-                                  cwd=str(EXAMPLE_DIR), env=env, stdout=fh,
+            proc = subprocess.run(cmd, cwd=str(EXAMPLE_DIR), env=env, stdout=fh,
                                   stderr=subprocess.STDOUT, check=False)
         run_rc = proc.returncode
         if run_rc != 0:

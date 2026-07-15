@@ -503,7 +503,9 @@ EXOTIC=1 THROAT_MASS=1.0 TORUS_OMEGA=0.25 \
 **Evolve** with `wormhole_case.sh` (`--gridinit` override + `--full-box` for a
 centered z-symmetric object). Two arms — control (support held) vs collapse
 (exotic support ramped to 0, the rotating analogue of the Ellis–Bronnikov
-`S_support` cut):
+`S_support` cut). Default is one GPU (`--gpu N`); for Arena-OOM cases use
+multi-GPU `--np` / `--gpus` — see
+[Launch multi-GPU evolutions](#launch-multi-gpu-evolutions-wormhole_case---np----gpus).
 
 ```bash
 G="$PWD/runs/rotating_torus_id/torus_m1_om0p250_kappa1p00_dx0p5_L64_lam170_mu614450_exotic_throat1/initial_data.gridinit"
@@ -1061,9 +1063,11 @@ PATH="/usr/local/cuda/bin:$PATH" NO_MPI_CHECKING=TRUE \
 
 The wormhole evolution binary (`main3d.gnu.MPI.CUDA.ex`, used by
 `scripts/wormhole/run/wormhole_case.py`) is built **with MPI** (multi-GPU) and
-CUDA. The recurring pain here is that `make` fails immediately unless **both**
-`nvcc` **and** the OpenMPI wrapper (`mpicxx`) are on `PATH`. Use this exact,
-copy-pasteable recipe:
+CUDA. Single-GPU remains the default (`--gpu N`); multi-GPU is
+`--np` / `--gpus` (see [Launch multi-GPU evolutions](#launch-multi-gpu-evolutions-wormhole_case---np----gpus)
+below). The recurring pain here is that `make` fails immediately unless
+**both** `nvcc` **and** the OpenMPI wrapper (`mpicxx`) are on `PATH`. Use this
+exact, copy-pasteable recipe:
 
 ```bash
 cd /home/jovyan/nachevsky/test/simulation/GRTeclyn/Examples/RotatingWormholeCollapse
@@ -1091,6 +1095,40 @@ The same recipe rebuilds any Example — just `cd` into its dir. After editing
 | runtime `libmpi.so not found` | OpenMPI libs missing at run | binary is linked with an rpath to `openmpi-5.0.8/lib`, so normal runs work; if relocated, set `LD_LIBRARY_PATH` as above |
 
 Verify: a fresh `main3d.gnu.MPI.CUDA.ex` (~130 MB) appears in the Example dir.
+
+#### Launch multi-GPU evolutions (`wormhole_case --np` / `--gpus`)
+
+The binary is MPI-linked; **`wormhole_case.py` / `wormhole_case.sh` can drive
+multi-GPU runs** (needed when a single H100 OOMs under deep AMR, e.g. fine
+convergence rungs). Pass `--np N` and an explicit GPU list:
+
+```bash
+# 4 ranks on physical GPUs 0,1,2,4 (OOM-prone fine dx / high max_level)
+bash grteclyn-wrapper/scripts/wormhole/run/wormhole_case.sh --gridinit "$G" --full-box \
+  --omega 0.25067 --m 1 --dx 0.333 --box-size 64 --max-level 3 --stop-time 40 \
+  --mass 0.5 --lambda 170 --mu6 14450 --sponge --no-frames \
+  --support-ramp-t-start 8 --support-ramp-t-end 10 --support-ramp-floor 0 \
+  --run-suffix conv_dx033 --np 4 --gpus 0,1,2,4
+
+# 2 ranks; if --gpus is omitted, uses consecutive devices from --gpu
+bash grteclyn-wrapper/scripts/wormhole/run/wormhole_case.sh ... --np 2 --gpu 6
+# equivalent: --np 2 --gpus 6,7
+```
+
+| Flag | Effect |
+|------|--------|
+| `--gpu N` | Single-GPU pin (default), or start of a consecutive block when `--np>1` and `--gpus` is omitted |
+| `--np N` | MPI ranks = GPUs for this case (default `1`). Uses local OpenMPI `mpirun` |
+| `--gpus a,b,...` | Explicit physical GPU ids; length must equal `--np` |
+
+**How binding works:** each rank exports `CUDA_VISIBLE_DEVICES` to **one**
+physical id from `--gpus` (via `WORMHOLE_GPU_IDS`). Do **not** rely on parent
+`CUDA_VISIBLE_DEVICES=0,1,…` + `LOCAL_RANK` remapping — OpenMPI/prterun often
+drops that env, and every job then lands on GPUs `0..N-1`.
+
+`run_rotating_wormhole.sh PARAMS NGPU` is the older params-file multi-GPU
+launcher (same binary); prefer `wormhole_case` for the torus / article
+campaign so plotfile delete sidecars stay attached.
 
 ### Solver-only AMR smoke tests
 

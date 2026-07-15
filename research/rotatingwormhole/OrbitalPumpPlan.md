@@ -42,13 +42,17 @@ perturbation.
   ≈ **5 Hz** at M=1000 M☉ (decihertz / DECIGO band).
 
 **⚠️ Caveats / open items.**
-- **J_z drift ~141%, Q_total drift ~116%** (both change sign) over the run. Plausibly physical
-  (radiated + pump-injected via `pump_work`) but not yet decomposed — do not quote spin
-  conservation until this is disentangled.
+- **J_z drift ~141%, Q_total drift ~116%** (both change sign) over the run.
+  Decomposed 2026-07-15: ∫pump_work=0 (PD pump off); drift is **not** pump
+  injection. Q_sphere retained (~5%). Do not quote global conservation.
 - **The dense in-code C++ Weyl4 extraction (`data/Weyl4_mode_2{0,1,2}.dat`) is buggy**
   (spurious `O(1)` `m=0` imaginary part + ~1.8 M⁻¹ junk oscillation, uncorrelated with the
   trusted Python signal). Physics plots use `small_data/psi4_mode_l2m0.dat` (Python post-hoc
   spherical-harmonic extraction). C++-side fix tracked in the progress log below.
+- **2026-07-15 runbook:** causality controls, ADM mass, m-spectrum, and coarse
+  convergence revise several headline phrasings — see
+  **§ Lab journal — Article Results Runbook** below (lab record; manuscript
+  edits are separate).
 
 **Reproduce the figures** (see `grteclyn-wrapper/README.md` §Visualization):
 ```bash
@@ -94,6 +98,125 @@ Bianchi violation must be monitored and penalized throughout.
 Baseline numbers to beat (passive, κ=1, m=1, N=128/dx=0.5, ml=1, μ=0.5, t→30):
 `Q_sphere` retention 0.99/0.92/0.56/0.27/**0.05** at t=6/10/15/20/30
 (half-life ≈ 13–16). Reproduce commands are in RotatingWormholePlan §"Rung 1a′ DONE".
+
+---
+
+## Lab journal — Article Results Runbook (2026-07-15)
+
+Campaign to harden the 2026-07-14 headline claim before treating the manuscript as
+submission-ready. Driven by referee-style blockers in [`NextSteps.md`](./NextSteps.md)
+(Tier 1 + Tier 2). This section is the **lab record** (runs, numbers, failures) —
+not a draft of the paper.
+
+Headline ID (all arms unless noted):
+`runs/rotating_torus_id/torus_m1_om0p250_kappa1p00_dx0p5_L64_lam170_mu614450_exotic_throat1/initial_data.gridinit`
+(m=1, ω≈0.25067, κ=1, exotic, throat bare mass 1, L=64 unless noted).
+Launch always via `wormhole_case.py` with `--no-frames` + plotfile delete sidecar
+(`--delete --keep-last 3`); disk still ballooned when consumers lagged behind AMR
+plotfiles (~1–2 GB each) — manually trimmed live backlogs; crashed runs pruned to
+~13–18 MB keeping diagnostics only.
+
+### Tooling added (postrun)
+
+| Script | Purpose |
+|--------|---------|
+| `grteclyn-wrapper/scripts/wormhole/postrun/adm_quantities.py` | ADM surface integrals on gridinit |
+| `…/charge_energy_budget.py` | ΔJ_z / ΔQ / ∫pump_work / E_GW proxy |
+| `…/psi4_extrapolate.py` | 1/r fit of peak \|rΨ₄\| + relative constraint norms |
+| `consume_plotfiles` | now also writes `psi4_mode_l2_all.dat` (m∈{−2..2} per radius) |
+
+### Done — Tier 1
+
+**A1 causality controls — DONE (NaN, not t→40).**
+| Run suffix | Ramp | Outcome |
+|------------|------|---------|
+| `noramp_ctrl` | none (`t_start=-1`) | NaN in `K` @ **t≈18.82**; min_a never &lt;0.15; max_ah→15.6; θ₊→−O(100) |
+| `ramp_t16` | [16,18]→0 | NaN in `h11` @ **t≈18.85**; same shallow-lapse / runaway-proxy pattern |
+| headline (prior) | [8,10]→0 | clean t→40, min_a→9.8e−4 |
+
+Bit-identical to headline until the early ramp would have acted. Early support cut
+**selects the resolvable deep-collapse branch**; no-ramp / late-ramp do **not** hold
+a quiet throat — they abort without deep lapse. “Collapse anytime on command” is
+**not** demonstrated; “early support cut → deep collapse + GW” is.
+
+**A2 t≈2.3 θ₊ — DONE.** Identical crossing in noramp and headline at t=2.26 while
+still in the gauge transient → throat minimal-surface proxy, not collapse. Robust
+collapse markers after support cut (t≳12).
+
+**A3 modes + non-rotating — MOSTLY DONE.**
+- Python directional / all-m: burst power **≳99.999% in m=0** (`conv_dx067`
+  `psi4_mode_l2_all.dat`; headline directional beam_ratio ~1e−5).
+- Non-rotating ID: same torus \|Φ\| table, m=0, ω=0, exotic+throat1
+  (`torus_m0_om0p000_*_exotic_throat1`, Ham~0.51%, J_ADM=0, M_ADM≈−0.24).
+- `norot_m0_ramp`: **Arena OOM** @ t≈9.6 (GPU memory), not a physics verdict.
+  Attribution → toroidal geometry, not rotation; full norot waveform still open.
+
+**A4 ADM — DONE.** On exotic_throat1 gridinit, R∈{16,20,24,28}:
+**M_ADM = 0.209 ± 0.001**, **J_ADM_z ≈ −1.93** (volume J_z(t=0)≈−1.47, same sign).
+Prior Hz scalings assumed code mass=1; correct physical f scales with M_ADM
+(≈×0.21): ~35 Hz @ 30 M☉ / ~1 Hz @ 10³ M☉ if one identifies M_ADM with the
+astrophysical mass.
+
+**A5 / A6 text+budget — DONE (analysis).**
+- ∫pump_work dt = **0** (PD pump off in headline; only support-strength ramp).
+- Q_sphere retained (~5% drift); Q_total +116%, J_z +141% (sign change) — **do not
+  claim conservation**; drift is not pump injection.
+- E_GW (l=2,m=0 NP proxy) ≈ 0.025 ≈ 0.12 M_ADM (order-of-mag, near-zone).
+- Propagation: v = 1.00 ± 0.08 c (sampling-limited), not “exactly 1.00”.
+
+### Done — Tier 2 (partial)
+
+**B1 convergence — ONE RUNG DONE.**
+`conv_dx067` (dx≈0.667, N=96, ml=3) finished **cleanly t→40**:
+- min_a → 0.0020, recovers to 0.052; min_chi → 0.033; max_ah 9.11 @ t≈15.5 → 1.97
+- Ψ₄ peak \|Re\|(R=12) ≈ 6.1e−2 (headline 7.7e−2); Ham max 3.1e−2
+- Phantom-bounce-like (ah shrink + lapse recover) **present at coarse dx**
+- Two-point vs dx=0.5: waveform overlap ~0.98, ~20% amplitude diff; constraint
+  max **does not** scale as h^p (obs. p≈0) → **Richardson order not yet shown**
+  (need finished dx=0.4 / 0.333)
+
+**B2 extrapolation — analysis DONE; large-box RUN.**
+Linear lim \|rΨ₄\|_∞ ≈ 1.29 from {12,18,24}; quadratic unstable (near-zone).
+`bigbox_L128` (L=128, R_ext=50/60, sponge 54–62, stop 70) still evolving —
+heavy (~80 GB GPU).
+
+**B3 relative constraints — DONE enough.** Ham L2 max ≈ 10× t=0 residual;
+Mom similarly elevated. No Θ/Z_i or L∞ columns in `constraint_norms.dat`.
+
+**B4 AH finder — GAP.** No production AH finder in GRTeclyn; keep coordinate
+θ₊ proxy; documented.
+
+**B5 energy budget — DONE** at proxy level (see A6).
+
+### Still going (live GPUs, 2026-07-15 ~morning)
+
+| Suffix | GPU load (approx) | Progress | Notes |
+|--------|-------------------|----------|-------|
+| `rerun_allm` | ~53 GB | t~23/40 | headline physics + all-m file |
+| `conv_dx040` | ~77 GB | t~17/40 | fine ladder rung |
+| `conv_dx033` | ~49 GB | t~15/40 | finest rung (may grow mem) |
+| `bigbox_L128` | ~81 GB | t~19/70 | wave-zone extract; near OOM |
+
+Idle GPUs = finished/crashed arms (noramp, ramp_t16, norot, conv_dx067).
+
+### Results summary (lab, not paper prose)
+
+1. **Deep collapse + GW + late bounce** reproduce at dx=0.5 and dx≈0.67.
+2. **Burst is axisymmetric (m=0)** — geometry, not spin modes.
+3. **Early support ramp** is what yields the clean deep-collapse branch; no-ramp
+   / late-ramp **NaN ~t=19** without min_a→10⁻³.
+4. **M_ADM≈0.209** must anchor any physical-unit claim; old 169/5 Hz assumed M=1.
+5. **No global Q/J conservation**; pump_work=0 so prior “pump-injected” guess for
+   the drift was wrong for this headline config.
+6. **Richardson order: not yet** — waiting on finer finished rungs.
+7. **Non-rotating control: OOM** — re-run at lower ml or memory still TODO.
+
+### Open follow-ups
+
+- Finish `conv_dx040`, `conv_dx033`, `bigbox_L128`, `rerun_allm`; then 3-point
+  Richardson on Ψ₄ / min_a / constraints + wave-zone cross-check.
+- Re-launch norot at `max_level≤2` or smaller box to complete A3 waveform compare.
+- Optional: tighter plot_interval / keep-last=1 on heavy arms to protect disk.
 
 ---
 
