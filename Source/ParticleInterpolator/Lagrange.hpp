@@ -27,9 +27,15 @@ template <int N> class Lagrange
     int j0{};
     int k0{};
 
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    build_stencil(amrex::Real grid_pos, int &base_idx, amrex::Real *weights)
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void build_stencil(amrex::Real grid_pos,
+                                                           int deriv_order,
+                                                           int &base_idx,
+                                                           amrex::Real *weights)
     {
+        // Build interpolation stencil for a particular derivative:
+        // 0 = no derivative
+        // 1 = 1st derivative
+        // 2 = 2nd derivative
         std::array<int, N> stencil;
         constexpr int center_offset =
             N / 2; // offset based on the number of points we are using
@@ -52,69 +58,22 @@ template <int N> class Lagrange
             rel_pos[i] = static_cast<amrex::Real>(stencil[i]) - grid_pos;
         }
 
-        // Compute Lagrange weights
-        amrex::poly_interp_coeff(0.0, rel_pos, N, weights);
+        // Compute Lagrange weights for the requested derivative order
+        switch (deriv_order)
+        {
+        case 1:
+            poly_interp_coeff_d1(0.0, rel_pos, N, weights);
+            break;
+        case 2:
+            poly_interp_coeff_d2(0.0, rel_pos, N, weights);
+            break;
+        default:
+            amrex::poly_interp_coeff(0.0, rel_pos, N, weights);
+            break;
+        }
 
         // Write in the base (starting) index
         base_idx = stencil[0];
-    }
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    build_stencil_d1(amrex::Real grid_pos, amrex::Real *weights)
-    {
-        std::array<int, N> stencil;
-        constexpr int center_offset =
-            N / 2; // offset based on the number of points we are using
-        int center = static_cast<int>(
-            amrex::Math::round(grid_pos)); // round the grid position to get the
-                                           // nearest cell center
-
-        // Fill in the stencil around the position of interpolation
-        for (int i = 0; i < N; ++i)
-        {
-            stencil[i] = center - center_offset + i;
-        }
-
-        // Compute the relative position from the interpolation point
-        // NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
-        amrex::Real rel_pos[N];
-        // NOLINTEND(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
-        for (int i = 0; i < N; ++i)
-        {
-            rel_pos[i] = static_cast<amrex::Real>(stencil[i]) - grid_pos;
-        }
-
-        // Compute Lagrange weights
-        poly_interp_coeff_d1(0.0, rel_pos, N, weights);
-    }
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    build_stencil_d2(amrex::Real grid_pos, amrex::Real *weights)
-    {
-        std::array<int, N> stencil;
-        constexpr int center_offset =
-            N / 2; // offset based on the number of points we are using
-        int center = static_cast<int>(
-            amrex::Math::round(grid_pos)); // round the grid position to get the
-                                           // nearest cell center
-
-        // Fill in the stencil around the position of interpolation
-        for (int i = 0; i < N; ++i)
-        {
-            stencil[i] = center - center_offset + i;
-        }
-
-        // Compute the relative position from the interpolation point
-        // NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
-        amrex::Real rel_pos[N];
-        // NOLINTEND(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
-        for (int i = 0; i < N; ++i)
-        {
-            rel_pos[i] = static_cast<amrex::Real>(stencil[i]) - grid_pos;
-        }
-
-        // Compute Lagrange weights
-        poly_interp_coeff_d2(0.0, rel_pos, N, weights);
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
@@ -239,24 +198,22 @@ template <int N> class Lagrange
                   (amrex::Real(par.pos(2)) - plo[2]) * dxi[2] -
                   static_cast<amrex::Real>(!is_nodal[2]) * amrex::Real(0.5););
 
-        build_stencil(xpos, i0, weights_local[0]);
-        build_stencil_d1(xpos, weights_d1[0]);
-        build_stencil_d2(xpos, weights_d2[0]);
+        build_stencil(xpos, 0, i0, weights_local[0]);
+        build_stencil(xpos, 1, i0, weights_d1[0]);
+        build_stencil(xpos, 2, i0, weights_d2[0]);
 #if AMREX_SPACEDIM >= 2
-        build_stencil(ypos, j0, weights_local[1]);
-        build_stencil_d1(ypos, weights_d1[1]);
-        build_stencil_d2(ypos, weights_d2[1]);
+        build_stencil(ypos, 0, j0, weights_local[1]);
+        build_stencil(ypos, 1, j0, weights_d1[1]);
+        build_stencil(ypos, 2, j0, weights_d2[1]);
 
 #endif
 #if AMREX_SPACEDIM == 3
-        build_stencil(zpos, k0, weights_local[2]);
-        build_stencil_d1(zpos, weights_d1[2]);
-        build_stencil_d2(zpos, weights_d2[2]);
+        build_stencil(zpos, 0, k0, weights_local[2]);
+        build_stencil(zpos, 1, k0, weights_d1[2]);
+        build_stencil(zpos, 2, k0, weights_d2[2]);
 
 #endif
     }
-
-    using comps_t = std::vector<typename InterpolationQueryParticle::out_t>;
 
     // Function to perform the interpolation
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
