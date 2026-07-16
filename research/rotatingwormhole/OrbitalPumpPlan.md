@@ -7,10 +7,10 @@ the trajectory-pump machinery journaled in
 
 ---
 
-## ✅ FINAL RESULT (2026-07-14) — collapse-on-command produces a clean GW burst, no l=2 kick
+## ✅ FINAL RESULT (updated 2026-07-16) — collapse-on-command produces a GW burst, no l=2 kick
 
 **Headline.** A rotating (m=1, ω=0.25067, κ=1.0) Q-torus wormhole, held open by the
-PD support pump, **collapses to an apparent horizon and radiates a gravitational-wave
+support coupling, **develops a trapped-surface proxy and radiates a gravitational-wave
 burst when the support is ramped off — with *zero* imposed perturbation.** This is the
 rotating analogue of the static Ellis–Bronnikov `S_support→0` collapse branch, and the
 GW signal is a genuine consequence of the axisymmetric throat pinch, not of any seeded
@@ -21,14 +21,15 @@ mode.
 
 **No kick.** `wormhole_phi_perturbation_amplitude = 0.0`, `wormhole_phi_monopole_amplitude = 0.0`.
 The *only* trigger is the support ramp `support_ramp_t_start=8.0 → support_ramp_t_end=10.0`,
-`support_ramp_floor=0.0` (pump turned off between t=8 and t=10). No l=2 kick, no Gaussian K
+`support_ramp_floor=0.0`. No l=2 kick, no Gaussian K
 perturbation.
 
 **Collapse — confirmed.**
-- `min_lapse`: 1.000 → **0.033** (deep collapse well).
+- `min_lapse`: 1.000 → **9.85e−4**, recovering to **0.033** at t=40.
 - `min_chi`: → **0.0185** (throat pinch).
 - `max|K|`: → **0.62**.
-- Apparent horizon / trapped surface **forms**: `max_ah_r = 9.18 (>0)`, `min_theta_plus = −1.90 (≤0)`.
+- Coordinate-sphere trapped-surface proxy **forms**: `max_ah_r = 9.18 (>0)`,
+  `min_theta_plus = −1.90 (≤0)`; no production AH finder is available.
 
 **Constraints — clean, ran to completion, no NaN.**
 - Ham L2 ≤ **3.25e-2**, Mom L2 ≤ **9.67e-3**, flat to t=40 (STEP 4000).
@@ -38,8 +39,9 @@ perturbation.
   causally consistent with support-off at t=8–10 → throat collapse → horizon → radiation
   reaching r=12.
 - Extraction is physically valid: `m=0` imaginary part RMS ~**1e-5** (≈0, as required).
-- Physical scaling: peak strain frequency ≈ **169 Hz** at M=30 M☉ (Advanced-LIGO band),
-  ≈ **5 Hz** at M=1000 M☉ (decihertz / DECIGO band).
+- `small_data/psi4_mode_l2m0.dat` already stores **rΨ₄**; do not multiply by radius again.
+- Detector scalings are not used in the revised article because finite-radius and
+  nonconvergent waveform systematics dominate.
 
 **⚠️ Caveats / open items.**
 - **J_z drift ~141%, Q_total drift ~116%** (both change sign) over the run.
@@ -50,7 +52,8 @@ perturbation.
   trusted Python signal). Physics plots use `small_data/psi4_mode_l2m0.dat` (Python post-hoc
   spherical-harmonic extraction). C++-side fix tracked in the progress log below.
 - **2026-07-15 runbook:** causality controls, ADM mass, m-spectrum, and coarse
-  convergence revise several headline phrasings — see
+  convergence revise several headline phrasings. The completed ladder and big-box
+  analysis are recorded below; see
   **§ Lab journal — Article Results Runbook** below (lab record; manuscript
   edits are separate).
 
@@ -123,6 +126,7 @@ plotfiles (~1–2 GB each) — manually trimmed live backlogs; crashed runs prun
 | `grteclyn-wrapper/scripts/wormhole/postrun/adm_quantities.py` | ADM surface integrals on gridinit |
 | `…/charge_energy_budget.py` | ΔJ_z / ΔQ / ∫pump_work / E_GW proxy |
 | `…/psi4_extrapolate.py` | 1/r fit of peak \|rΨ₄\| + relative constraint norms |
+| `…/richardson_convergence.py` | unequal-spacing 3-rung Richardson/GCI + paper figures |
 | `consume_plotfiles` | now also writes `psi4_mode_l2_all.dat` (m∈{−2..2} per radius) |
 
 ### Done — Tier 1
@@ -143,13 +147,39 @@ a quiet throat — they abort without deep lapse. “Collapse anytime on command
 still in the gauge transient → throat minimal-surface proxy, not collapse. Robust
 collapse markers after support cut (t≳12).
 
-**A3 modes + non-rotating — MOSTLY DONE.**
+**A3 modes + non-rotating — MOSTLY DONE (norot re-run killed as pathological).**
 - Python directional / all-m: burst power **≳99.999% in m=0** (`conv_dx067`
   `psi4_mode_l2_all.dat`; headline directional beam_ratio ~1e−5).
 - Non-rotating ID: same torus \|Φ\| table, m=0, ω=0, exotic+throat1
   (`torus_m0_om0p000_*_exotic_throat1`, Ham~0.51%, J_ADM=0, M_ADM≈−0.24).
-- `norot_m0_ramp`: **Arena OOM** @ t≈9.6 (GPU memory), not a physics verdict.
-  Attribution → toroidal geometry, not rotation; full norot waveform still open.
+- `norot_m0_ramp` **attempt 1** (1×GPU): **Arena OOM** @ t≈9.6.
+- `norot_m0_ramp` **attempt 2** (MPI×2, GPUs 3+5, same L=64 / dx=0.5 / ml=3 /
+  ramp [8,10] / detectors 12/18/24 as headline) — **killed ~t=13.5 (2026-07-15
+  afternoon)** as a failed control branch, not as a clean A3 waveform twin:
+
+  | Quantity | Headline @ similar t | norot @ t≈13.5 |
+  |----------|----------------------|----------------|
+  | min lapse | falling → ~10⁻³ later | **~0.81** (no deep puncture) |
+  | max_ah proxy | ~9, then shrinks | **~17.9 and still growing** (AH>1 already @ t≈5.6, **before** ramp ends) |
+  | min θ₊ | ~−0.5 | **~−16** (runaway) |
+  | Q_sphere | retained ~−1.6..−1.9 | −3.24 → **+0.81** (not retained) |
+  | L₂ Ham | ~1.6e−2 @ t=13.5; max ~3.3e−2 flat | **4.2e−2 climbing** (~12× t0) |
+  | L₂ Mom | ~3.4e−3 @ t=13.5 | **4.2e−2 climbing** (~2000× t0) |
+  | Level-3 cells | peak ~12.6M | **~37M** |
+  | FAB / GPU | ~49 GB peak (1 GPU finished) | **~77 GB FAB/rank**, nvidia **~80 GB/GPU** (OOM edge) |
+
+  Tagging is `ChiTagger` (second derivatives of χ). Same `regrid_threshold=0.01`
+  as headline; norot’s expanding χ / AH-proxy feature tags a much larger volume
+  (~(18/9)³ volume scale) → memory, not a wrong box size. Constraints plot:
+  `…/norot_m0_ramp/output/plots/constraints_plot.png` (via `plot_diagnostic.sh`).
+
+  **Lab verdict:** this m=0 / ω=0 ID + support ramp does **not** reproduce the
+  headline deep-collapse morphology. It is an expanding tagged region with
+  runaway AH proxy, constraint growth, and charge loss — not a usable GW
+  rotation-vs-geometry twin. A3 attribution for the burst still rests on the
+  **m=0 power dominance** of the rotating runs; a clean non-rotating waveform
+  compare remains open (would need a different ID / ml / tagging strategy, not
+  more GPUs on this same trajectory).
 
 **A4 ADM — DONE.** On exotic_throat1 gridinit, R∈{16,20,24,28}:
 **M_ADM = 0.209 ± 0.001**, **J_ADM_z ≈ −1.93** (volume J_z(t=0)≈−1.47, same sign).
@@ -164,21 +194,39 @@ astrophysical mass.
 - E_GW (l=2,m=0 NP proxy) ≈ 0.025 ≈ 0.12 M_ADM (order-of-mag, near-zone).
 - Propagation: v = 1.00 ± 0.08 c (sampling-limited), not “exactly 1.00”.
 
-### Done — Tier 2 (partial)
+### Done — Tier 2 (completed 2026-07-16)
 
-**B1 convergence — ONE RUNG DONE.**
-`conv_dx067` (dx≈0.667, N=96, ml=3) finished **cleanly t→40**:
-- min_a → 0.0020, recovers to 0.052; min_chi → 0.033; max_ah 9.11 @ t≈15.5 → 1.97
-- Ψ₄ peak \|Re\|(R=12) ≈ 6.1e−2 (headline 7.7e−2); Ham max 3.1e−2
-- Phantom-bounce-like (ah shrink + lapse recover) **present at coarse dx**
-- Two-point vs dx=0.5: waveform overlap ~0.98, ~20% amplitude diff; constraint
-  max **does not** scale as h^p (obs. p≈0) → **Richardson order not yet shown**
-  (need finished dx=0.4 / 0.333)
+**B1 three-resolution ladder — DONE.**
+Matched-ID runs at `dx≈0.667/0.5/0.4`, `ml=3`, L=64 all finished cleanly to
+t=40. Collapse, AH-proxy growth/shrinkage, lapse recovery, and the m=0 burst
+reproduce on all three grids.
 
-**B2 extrapolation — analysis DONE; large-box RUN.**
-Linear lim \|rΨ₄\|_∞ ≈ 1.29 from {12,18,24}; quadratic unstable (near-zone).
-`bigbox_L128` (L=128, R_ext=50/60, sponge 54–62, stop 70) still evolving —
-heavy (~80 GB GPU).
+Richardson model for unequal ratios (`h_c/h_m=4/3`, `h_m/h_f=5/4`):
+`Q(h)=Q0+C h^p`, with p solved numerically from
+`(Qc−Qm)/(Qm−Qf)=(hc^p−hm^p)/(hm^p−hf^p)`.
+
+| Quantity | coarse / medium / fine | p | continuum / fine GCI | Verdict |
+|---|---|---:|---|---|
+| max\|K\| | 0.545 / 0.623 / 0.646 | 3.78 | 0.663 / 3.31% | formal AMR estimate |
+| max AH proxy | 9.110 / 9.175 / 9.215 | 0.91 | 9.391 / 2.39% | formal proxy estimate |
+| t(max AH) | 15.520 / 15.140 / 14.968 | 2.09 | 14.678 / 2.42% | formal event-time estimate |
+| max Mom L2 | 9.83e−3 / 9.67e−3 / 9.60e−3 | 1.82 | 9.45e−3 / 1.95% | converges to nonzero level |
+| max Ham L2 | 3.10e−2 / 3.25e−2 / 3.40e−2 | — | — | no positive p |
+| min lapse / chi | deepen with h | — | extrapolation negative | non-asymptotic minima |
+
+The coarse Python Ψ₄ record has no samples over part of the principal burst, so
+there is **no defensible three-point burst-waveform order**. The files already
+store `rΨ₄`; earlier manual calculations that multiplied by R again are invalid.
+
+**B2 large-box extraction — DONE, intermediate-zone only.**
+`bigbox_L128_ml2` finished cleanly to t=80 with L=128, dx=0.5, ml=2,
+R_ext={36,48}, and sponge 52–62. The retarded waveforms have overlap **0.993**
+after a residual 0.35 time shift and **12.3%** relative L2 residual, supporting
+approximate 1/r scaling. This is not a wave-zone proof or a fourth resolution rung.
+Constraints are acceptable through t=40 but later peak at Ham **0.155**, Mom
+**0.0417**; the late R=36 rise is therefore not treated as clean radiation.
+The collapse proxy peaks at 8.79 and disappears by t≈78.4, extending the
+collapse–rebound morphology beyond the headline stop time.
 
 **B3 relative constraints — DONE enough.** Ham L2 max ≈ 10× t=0 residual;
 Mom similarly elevated. No Θ/Z_i or L∞ columns in `constraint_norms.dat`.
@@ -188,34 +236,41 @@ Mom similarly elevated. No Θ/Z_i or L∞ columns in `constraint_norms.dat`.
 
 **B5 energy budget — DONE** at proxy level (see A6).
 
-### Still going (live GPUs, 2026-07-15 ~morning)
+### Campaign status (2026-07-16)
 
-| Suffix | GPU load (approx) | Progress | Notes |
-|--------|-------------------|----------|-------|
-| `rerun_allm` | ~53 GB | t~23/40 | headline physics + all-m file |
-| `conv_dx040` | ~77 GB | t~17/40 | fine ladder rung |
-| `conv_dx033` | ~49 GB | t~15/40 | finest rung (may grow mem) |
-| `bigbox_L128` | ~81 GB | t~19/70 | wave-zone extract; near OOM |
+| Suffix | Setup | Progress | Notes |
+|--------|-------|----------|-------|
+| `conv_dx040` | MPI×2, ml=3 | **DONE t=40** | fine ladder rung |
+| `bigbox_L128_ml2` | MPI×2, L=128, ml=2, R_ext=36/48 | **DONE t=80** | intermediate-zone check; ml=3 MPI L128 deadlocks at init |
 
-Idle GPUs = finished/crashed arms (noramp, ramp_t16, norot, conv_dx067).
+Finished: `torus_wh_collapse_ml3_gw`, `rerun_allm`, `conv_dx067`,
+`conv_dx040`, `bigbox_L128_ml2`. No simulations remain running.
+Killed / pruned: NaN arms (`noramp_ctrl`, `ramp_t16`, `torus_wh_control_ml3`);
+paused incomplete `conv_dx033` (bonus rung); **norot_m0_ramp** (pathological).
 
 ### Results summary (lab, not paper prose)
 
-1. **Deep collapse + GW + late bounce** reproduce at dx=0.5 and dx≈0.67.
+1. **Deep collapse + GW + late bounce** reproduce at dx≈0.67/0.5/0.4 and in the
+   longer L=128 run.
 2. **Burst is axisymmetric (m=0)** — geometry, not spin modes.
 3. **Early support ramp** is what yields the clean deep-collapse branch; no-ramp
    / late-ramp **NaN ~t=19** without min_a→10⁻³.
 4. **M_ADM≈0.209** must anchor any physical-unit claim; old 169/5 Hz assumed M=1.
 5. **No global Q/J conservation**; pump_work=0 so prior “pump-injected” guess for
    the drift was wrong for this headline config.
-6. **Richardson order: not yet** — waiting on finer finished rungs.
-7. **Non-rotating control: OOM** — re-run at lower ml or memory still TODO.
+6. **Richardson convergence is quantity-dependent**, not a single order: selected
+   geometry/Mom measures converge; Ham maximum and the burst waveform do not.
+7. **Non-rotating control (same torus, m=0/ω=0, same ramp): pathological** —
+   expanding AH proxy / χ tagging, Mom constraint ~2000× growth, no deep lapse;
+   killed at t≈13.5. Not a successful A3 waveform twin.
 
 ### Open follow-ups
 
-- Finish `conv_dx040`, `conv_dx033`, `bigbox_L128`, `rerun_allm`; then 3-point
-  Richardson on Ψ₄ / min_a / constraints + wave-zone cross-check.
-- Re-launch norot at `max_level≤2` or smaller box to complete A3 waveform compare.
+- A3 norot: only retry with a **different** setup (e.g. ml≤2, tighter tagging,
+  or a better-matched ID) — do **not** burn more GPUs on the same trajectory.
+- For precision radiation: obtain true wave-zone/CCE extraction and a complete
+  coarse burst record; do not infer a waveform Richardson order from this ladder.
+- Add a production AH finder before quoting horizon mass or spin.
 - Optional: tighter plot_interval / keep-last=1 on heavy arms to protect disk.
 
 ---

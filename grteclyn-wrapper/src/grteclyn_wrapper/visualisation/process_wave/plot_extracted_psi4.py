@@ -995,8 +995,9 @@ def main() -> None:
 
     plt.rcParams.update({
         "font.family": "serif",
-        "font.serif": ["Computer Modern Roman", "DejaVu Serif", "Times New Roman", "serif"],
+        "font.serif": ["CMU Serif", "Computer Modern Roman", "DejaVu Serif"],
         "mathtext.fontset": "cm",
+        "axes.unicode_minus": False,
         "axes.labelsize": 14,
         "axes.titlesize": 16,
         "xtick.labelsize": 12,

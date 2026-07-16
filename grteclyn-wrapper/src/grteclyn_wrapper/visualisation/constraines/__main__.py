@@ -25,8 +25,9 @@ matplotlib.use("Agg")
 
 plt.rcParams.update({
     "font.family": "serif",
-    "font.serif": ["DejaVu Serif", "Times New Roman", "serif"],
-    "mathtext.fontset": "stix",
+    "font.serif": ["CMU Serif", "Computer Modern Roman", "DejaVu Serif"],
+    "mathtext.fontset": "cm",
+    "axes.unicode_minus": False,
     "axes.labelsize": 14,
     "axes.titlesize": 16,
     "xtick.labelsize": 12,

@@ -8,15 +8,13 @@
 \usepackage{xcolor}
 \usepackage{hyperref}
 \usepackage{textcase}
-\usepackage{tikz}
-\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,backgrounds}
+\graphicspath{{figures/}}
 
 \hypersetup{
-    colorlinks=true,
-    linkcolor=blue,
-    filecolor=magenta,
-    urlcolor=blue,
-    citecolor=blue,
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=blue,
+  citecolor=blue
 }
 \urlstyle{same}
 
@@ -32,756 +30,285 @@ Quadrupole Kick}}
 \date{\today}
 
 \begin{abstract}
-We present a 3D numerical-relativity evolution, performed with \texttt{GRTeclyn},
-of a \emph{rotating}, actively supported wormhole throat driven to gravitational
-collapse ``on command.'' The throat is threaded by an exotic (null-energy-condition
-violating) complex scalar field configured as a rotating $m{=}1$ Q-ball torus, a
-genuine stationary eigenstate produced by the \texttt{GRTresna} elliptic
-initial-data solver. Because a passively twisted rotating lump is not a true
-eigenstate and disperses, the throat is held open by a proportional--derivative
-(PD) ``matter pump''---an engineered source that supplies the missing stationarity.
-Collapse is triggered not by any imposed perturbation but by ramping the support
-pump smoothly to zero over the interval $t\in[8,10]$ (code units), the rotating analogue of
-the static Ellis--Bronnikov $S_{\rm support}\!\to\!0$ collapse branch. With
-\emph{zero} imposed quadrupolar kick ($A_\phi=0$), the throat collapses: the lapse
-falls from $1$ to a deep minimum $\min\alpha\sim10^{-3}$ (recovering to
-$\sim0.033$ by $t=40$), the conformal factor $\chi$ pinches to $0.019$, and a
-trapped surface forms ($r_{\rm AH}\!\approx\!9.2$, $\theta_+\!<\!0$) that captures the
-exotic matter (the throat-sphere Noether charge $Q_{\rm sphere}$ is largely retained,
-while the whole-box $Q_{\rm total}$ and $J_z$ drift---see Sec.~\ref{sec:trust}). A coherent
-$\ell{=}2$ gravitational-wave burst is emitted---propagating at
-$v=1.00\pm0.08\,c$, hence
-genuine spin-2 radiation rather than the sub-luminal massive scalar---sourced by the
-axisymmetric collapse of the toroidal geometry (the dominant power is in
-$m{=}0$; see Sec.~\ref{sec:results_gw}). Because the source is a NEC-violating phantom field,
-the trapped region subsequently rebounds (a ``phantom bounce,'' reported here as
-suggestive pending the resolution study of Sec.~\ref{sec:convergence}), leaving a dynamical
-remnant rather than a quiescent black hole. The Hamiltonian and momentum constraints remain bounded
-($L_2({\rm Ham})\lesssim3.3\times10^{-2}\approx10\times$ the $t{=}0$ residual,
-$L_2({\rm Mom})\lesssim9.7\times10^{-3}$) through $t=40$ with no
-numerical failure. We emphasize that this is an \emph{engineered} spacetime, not a
-solution of the pure Einstein--Klein--Gordon system, and we discuss the trust level,
-caveats, and astrophysical implications of collapsing rotating exotic compact
-objects. The ADM mass of the initial data is
-$M_{\rm ADM}\approx0.209$ (code units); all physical-unit scalings below identify
-this measured mass with the astrophysical remnant mass.
+We evolve a rotating, actively supported wormhole in three-dimensional numerical
+relativity. Constraint-solved initial data contain an exotic complex scalar
+Q-torus with winding $m=1$; collapse is triggered by ramping its support to zero
+over $t\in[8,10]$, without an imposed perturbation. The lapse reaches
+$\min\alpha\simeq10^{-3}$, the conformal factor pinches, and a coordinate-sphere
+trapped-surface proxy grows to $r_{\rm AH}\simeq9.2$. The proxy then shrinks while
+the lapse recovers, indicating a phantom-matter rebound rather than a quiescent
+black hole. A coherent $\ell=2$ curvature wave propagates at approximately the
+speed of light and is overwhelmingly $m=0$, linking the radiation primarily to
+the collapsing toroidal density rather than to a nonaxisymmetric spin mode.
+The collapse, rebound, and burst reproduce for base spacings
+$h\simeq0.667,0.5,0.4$. Richardson behavior is quantity-dependent: selected
+geometric and momentum-constraint measures converge, whereas the Hamiltonian
+maximum and waveform peak do not admit controlled extrapolation. A completed
+$L=128$ run gives an independent intermediate-zone waveform check. The result is
+an engineered dynamical experiment, not a stationary solution of the unforced
+Einstein--Klein--Gordon system.
 \end{abstract}
 
 \maketitle
 
 \section{Introduction}
-Traversable wormholes require matter that violates the null energy condition
-(NEC)~\cite{morris88}, and the canonical static solution is the Ellis--Bronnikov
-phantom-scalar bridge~\cite{ellis73,bronnikov73}. Such geometries are dynamically
-unstable~\cite{shinkai02,gonzalez09}: compressive perturbations force collapse,
-rarefactive ones force runaway expansion. A companion study~\cite{shirokov_wh_dynamics}
-evolved the \emph{static} Ellis--Bronnikov wormhole in 3D and showed that reducing
-the phantom support ($S_{\rm support}=0.5$) together with a quadrupolar scalar kick
-drives a clean collapse with $v\!\approx\!c$ gravitational radiation.
+Traversable wormholes require null-energy-condition (NEC) violation
+~\cite{morris88}. Static Ellis--Bronnikov throats are dynamically unstable:
+compressive perturbations collapse them, while rarefactive perturbations drive
+expansion~\cite{ellis73,bronnikov73,shinkai02,gonzalez09}. We ask whether support
+can be withdrawn from a rotating exotic throat in a controlled way and whether
+the collapse radiates without an imposed quadrupolar kick.
 
-Here we take the next step and ask a sharper question: \emph{can a rotating exotic
-throat, held open by an engineered support source, be made to collapse on command,
-and does it radiate gravitational waves without any artificially imposed
-quadrupole?} A rotating configuration is qualitatively different from the static
-case for two reasons. First, a non-spherical (toroidal) mass distribution supplies
-its own quadrupole, so an $\ell{=}2$ signal can be sourced by the collapse
-itself---no kick is required; whether the \emph{rotation} (as opposed to the
-toroidal shape) is essential is tested with a non-rotating control. Second, a rotating exotic lump twisted into an $m{=}1$
-torus is \emph{not} a stationary eigenstate of the coupled system; the throat-sphere
-Noether charge drains with a half-life of $t\!\approx\!13$--$16$ and the spacetime
-relaxes to flat rather than collapsing. To obtain a controlled experiment we
-therefore replace the missing stationarity with active control: a PD ``matter
-pump'' holds the throat open, and switching support off triggers the collapse.
-
-This is, by construction, an \emph{engineered} (actively supported) wormhole rather
-than a self-consistent solution of the Einstein--Klein--Gordon system. The pump is a
-deliberate violation of the contracted Bianchi identity, so constraint drift must be
-monitored throughout. Within these clearly stated limits, the experiment isolates a
-clean physical result: the removal of support from a rotating exotic throat produces
-gravitational collapse to a trapped surface and a coherent $\ell{=}2$ burst.
-
-\section{Formalism and Methodology}
-
-\subsection{3+1 decomposition and the CCZ4 evolution}
-We solve the Einstein equations $G_{\mu\nu}=8\pi T_{\mu\nu}$ (with $G=c=1$) as a
-Cauchy problem in the 3+1 decomposition~\cite{baumgarte10}. Spacetime is foliated
-into spacelike slices $\Sigma_t$ with line element
-\begin{equation}
-ds^2 = -\alpha^2\,dt^2 + \gamma_{ij}\,(dx^i+\beta^i dt)(dx^j+\beta^j dt),
-\label{eq:adm}
-\end{equation}
-where $\alpha$ is the lapse, $\beta^i$ the shift, and $\gamma_{ij}$ the spatial
-metric. The coupled Einstein--(complex-)scalar system is evolved with
-\texttt{GRTeclyn}~\cite{grteclyn}, a GPU-accelerated, AMReX-based port of
-\texttt{GRChombo}~\cite{grchombo}, using the conformal and covariant Z4 (CCZ4)
-formulation with matter sources. As in the moving-puncture approach, the spatial
-metric is conformally decomposed,
-\begin{equation}
-\gamma_{ij}=\chi^{-1}\tilde\gamma_{ij},\qquad \det\tilde\gamma_{ij}=1,
-\qquad \chi=(\det\gamma_{ij})^{-1/3},
-\end{equation}
-and the extrinsic curvature is split into its trace $K$ and conformal
-trace-free part $\tilde A_{ij}$. The regularized variable $\chi$ (rather than a
-conformal factor $\psi$ that diverges at a throat/puncture) is what makes the
-compactified interior numerically tractable: $\chi\to0$ marks infinite metric
-stretching at the throat, while a collapsing lapse $\alpha\to0$ marks black-hole
-formation. The CCZ4 constraint-damping terms propagate and dissipate any
-Hamiltonian/momentum residual; we use $1+\log$ slicing for $\alpha$ and a
-Gamma-driver for $\beta^i$, both from moving-puncture initial gauge
-($\alpha(0)=1$, $\beta^i(0)=0$).
-
-\subsection{Initial data and metric setup: not the Teo geometry}
-\label{sec:metric}
-It is important to state precisely what geometry we evolve, because it is
-\emph{not} the analytic Teo stationary rotating vacuum wormhole~\cite{teo98}. We
-instead build a rotating exotic-matter configuration on an
-Ellis--Bronnikov/Kleihaus--Kunz-class throat~\cite{kleihaus14} and then solve the
-full constraint system numerically. Concretely:
-\begin{itemize}
-\item \textbf{Geometry.} The seed spatial slice is a conformally-flat, singular-$\psi$
-(puncture-like) throat of the Ellis--Bronnikov type. In isotropic coordinates
-$(\bar r,\theta,\varphi)$ the spatial line element is
-\begin{equation}
-d\ell^2 = \psi^4\big[d\bar r^2 + \bar r^2(d\theta^2+\sin^2\theta\,d\varphi^2)\big],
-\qquad
-\psi = \sqrt{\,1+\frac{b_0^2}{4\bar r^2}\,},
-\label{eq:throat_metric}
-\end{equation}
-with throat radius $b_0$, so that the evolved conformal variable is
-\begin{equation}
-\chi = \psi^{-4} = \left(\frac{4\bar r^2}{4\bar r^2 + b_0^2}\right)^{2}\;\xrightarrow{\ \bar r\to0\ }\;0 ,
-\label{eq:chi_throat}
-\end{equation}
-a genuine topological bridge $\mathbb{R}\times S^2$ whose second asymptotic region is
-compactified to $\bar r\to0$ and regularized through $\chi\to0$, exactly as in the
-static companion study~\cite{shirokov_wh_dynamics}, rather than an analytic rotating
-vacuum metric. The full spacetime line element is the 3+1 form of Eq.~(\ref{eq:adm}); at $t=0$
-the shift and extrinsic curvature ($\beta^i$, $K_{ij}$) are not prescribed but are
-\emph{solved} from the momentum constraint sourced by the rotating matter, and the
-Hamiltonian solve corrects $\psi$ away from the vacuum seed Eq.~(\ref{eq:throat_metric}).
-\item \textbf{Rotation lives in the matter, not an imposed metric $g_{t\varphi}$.}
-Instead of prescribing an off-diagonal metric rotation, the angular momentum is
-carried by the matter: a rotating complex Q-torus (Sec.~\ref{sec:matter}) supplies
-the $J_z$ and the non-axisymmetric structure. The metric rotation ($\beta^i$,
-$g_{t\varphi}$) is then \emph{generated self-consistently} by solving the momentum
-constraint for this matter, rather than assumed.
-\item \textbf{Constraint-clean by construction.} This is the decisive methodological
-point: analytic rotating data with $K_{ij}=0$ carry an $\mathcal{O}(\omega)$
-momentum-constraint defect that grows and destroys the evolution
-(Sec.~\ref{sec:why_matter}). We therefore \emph{solve} both the Hamiltonian and
-momentum constraints numerically for the exact throat+matter configuration.
-\end{itemize}
-
-\emph{Why this choice over the Teo metric.} The decision is driven by what a
-\emph{dynamical} (Cauchy) evolution actually requires, and the analytic Teo geometry
-fails these requirements on four counts.
-\begin{enumerate}
-\item \textbf{An evolvable matter source, not a reverse-engineered one.} The Teo line
-element is a stationary metric \emph{ansatz}; the stress-energy needed to support it
-is obtained by reading off $G_{\mu\nu}/8\pi$, and it is generically an anisotropic,
-exotic fluid with no accompanying field Lagrangian. To evolve the coupled system one
-needs matter with its own equations of motion. Our complex scalar $\Phi$ supplies
-exactly that: a Klein--Gordon field that is evolved self-consistently alongside the
-metric, so the source is closed and physical rather than inferred after the fact.
-\item \textbf{Constraint satisfaction on a Cartesian grid.} Numerical relativity
-requires initial data $(\gamma_{ij},K_{ij})$ that satisfy the Hamiltonian and
-momentum constraints. Interpolating an analytic rotating metric onto the grid (with
-a truncated or vanishing $K_{ij}$) leaves an $\mathcal{O}(\omega)$ constraint
-residual that we found grows and crashes the run at $t\approx2.8\,M$; the same code
-is stable when the data are constraint-solved (Sec.~\ref{sec:why_matter}). The
-elliptic solve is not a convenience---it is what makes a rotating evolution possible
-at all.
-\item \textbf{Reuse of a proven, regular puncture representation.} The singular-$\psi$
-throat regularized through $\chi=\psi^{-4}\to0$ is the representation already
-validated in the static companion study~\cite{shirokov_wh_dynamics}, and it maps the
-infinite second asymptotic region onto a single grid point cleanly. Teo's native
-coordinates (with off-diagonal $g_{t\varphi}$ and proper-radius structure) do not map
-onto this moving-puncture-regularized Cartesian grid without additional, error-prone
-transformations.
-\item \textbf{A physical carrier of angular momentum, and a control knob.} Placing
-rotation in a matter current ($S_i=-\Pi\,\partial_i\phi$, $U(1)$ Noether charge)
-gives the momentum constraint a genuine source, so the shift is \emph{solved} rather
-than imposed, and it provides the support/collapse ``knob'' central to the
-engineered, collapse-on-command program (Sec.~\ref{sec:matter}). A fixed vacuum
-metric offers no matter degree of freedom to ramp, and hence no controllable trigger.
-\end{enumerate}
-In short, the Teo geometry answers ``what stationary rotating wormhole metric exists''
-whereas our question is ``what happens dynamically when support is withdrawn from a
-rotating exotic throat''---which demands evolvable matter and constraint-clean data,
-neither of which the analytic metric provides.
-
-\subsection{The two-code pipeline: \texttt{GRTresna}\,$\to$\,\texttt{GRTeclyn}}
-\label{sec:pipeline}
-
-\begin{figure}[htp]
-\centering
-\begin{tikzpicture}[
-    font=\footnotesize,
-    box/.style={rectangle, rounded corners, draw=black!70, line width=0.6pt,
-                align=center, inner sep=6pt, text width=6.4cm, fill=blue!5},
-    arr/.style={-{Latex[length=2.2mm]}, line width=0.8pt},
-    lbl/.style={midway, right=1mm, font=\scriptsize\itshape, text=black!60},
-    node distance=9mm,
-]
-\node[box] (solve) {\textbf{1. Solve} \; (\texttt{GRTresna}, CPU/MPI)\\[1pt]
-  exotic complex Q-torus painted on the singular-$\psi$
-  throat; elliptic solve of the \textbf{Hamiltonian}
-  (Lichnerowicz) $+$ \textbf{momentum} (vector-potential) constraints};
-\node[box, below=of solve] (flat) {\textbf{2. Flatten}
-  \; (\texttt{convert\_chombo\_to\_gridinit})\\[1pt]
-  resample solved data onto a uniform grid at the
-  evolution level-0 $dx$ $\to$ portable \texttt{.gridinit}};
-\node[box, below=of flat] (evolve) {\textbf{3. Evolve} \; (\texttt{GRTeclyn}, GPU/AMR)\\[1pt]
-  load \texttt{.gridinit}; CCZ4 $+$ complex scalar
-  $(\phi_1,\Pi_1,\phi_2,\Pi_2)$; support pump/ramp,
-  sponge, Weyl4 extraction, diagnostics};
-\draw[arr] (solve) -- (flat)
-  node[lbl] {constraints solved to $\lesssim1\%$};
-\draw[arr] (flat) -- (evolve)
-  node[lbl] {no finer than ID $dx$ (L2)};
-% clean-data annotation: frame with generous padding; label lifted above the top edge
-\node[draw=green!45!black, dashed, rounded corners, fit=(solve)(flat)(evolve),
-      inner sep=5mm] (frame) {};
-\node[green!45!black, font=\scriptsize\bfseries, fill=white, inner sep=1pt,
-      anchor=south west]
-  at ([xshift=3mm,yshift=-0.4pt]frame.north west) {constraint-clean by construction};
-\end{tikzpicture}
-\caption{The two-code pipeline. \texttt{GRTresna} produces \emph{constraint-solved}
-rotating initial data (both the Hamiltonian and momentum constraints), which is
-flattened to a uniform \texttt{.gridinit} at the evolution resolution and evolved by
-\texttt{GRTeclyn}. Because the constraints are solved \emph{before} evolution---and
-the mesh is never refined below the initial-data spacing---the data \texttt{GRTeclyn}
-evolves carry no spurious constraint defect, in contrast to interpolating an analytic
-rotating metric (which leaves the $\mathcal{O}(\omega)$ residual that crashes the run).}
-\label{fig:pipeline}
-\end{figure}
-
-The initial data and the evolution are produced by two distinct codes chained
-together (Fig.~\ref{fig:pipeline}), so that what \texttt{GRTeclyn} evolves is
-genuinely constraint-satisfying:
-\begin{enumerate}
-\item \textbf{Solve (\texttt{GRTresna}).} The exotic complex-winding Q-torus is
-painted onto the singular-$\psi$ throat, and the \texttt{GRTresna} elliptic solver
-(a \texttt{GRChombo}-family, MPI initial-data code) solves the Lichnerowicz
-Hamiltonian constraint for the conformal factor together with the vector-potential
-form of the momentum constraint for the shift/$\tilde A_{ij}$ sourced by the
-rotating matter. For this run the solve converges to a Hamiltonian residual
-$\lesssim1\%$.
-\item \textbf{Flatten (\texttt{convert\_chombo\_to\_gridinit}).} The solved,
-possibly AMR, \texttt{GRTresna} output is resampled onto a uniform grid at the
-evolution's level-0 resolution and written as a portable \texttt{.gridinit} file.
-A hard lesson enforced here (``L2'') is to \emph{never} evolve on a finer mesh than
-the initial-data solve, which would re-introduce an interpolation constraint
-defect; the run's $dx$ therefore fixes both the solve resolution and the evolution
-level-0 spacing.
-\item \textbf{Evolve (\texttt{GRTeclyn}).} \texttt{GRTeclyn} loads the
-\texttt{.gridinit}, reconstructs the CCZ4 state and the two-channel complex scalar
-$(\phi_1,\Pi_1,\phi_2,\Pi_2)$, and evolves the coupled system on a GPU with adaptive
-mesh refinement, applying the support pump and its ramp
-(Sec.~\ref{sec:matter}), the sponge, and the in-flight diagnostics.
-\end{enumerate}
-The essential virtue of this arrangement is that \emph{everything
-\texttt{GRTeclyn} evolves is clean and constraint-solved}. The elliptic solve
-enforces the Hamiltonian and momentum constraints on the exact throat$+$matter
-configuration \emph{before} any time stepping, the flatten step preserves that
-solution at the evolution resolution (never refining below the initial-data
-spacing), and only then does the hyperbolic evolution begin. There is therefore no
-$t{=}0$ constraint defect to seed spurious growth---the residual is at solver
-tolerance ($\lesssim1\%$ Hamiltonian) rather than the $\mathcal{O}(\omega)$ violation
-that an interpolated analytic rotating metric would carry---and the bounded
-constraint norms reported in Sec.~\ref{sec:trust} are a direct consequence of this
-clean, constraint-solved start.
-
-An alternative, purely geometric collapse trigger is also available: solving the
-constraints for a scaled matter amplitude $f\!\to\!\kappa f$ yields, for $\kappa<1$,
-an \emph{exact} Einstein solution out of equilibrium (zero initial constraint
-defect) that collapses on its own. The run analyzed here uses the equilibrium
-$\kappa=1$ data and triggers collapse dynamically through the support ramp instead.
-
-\subsection{Matter: a rotating exotic Q-ball torus}
-\label{sec:matter}
-The throat is threaded by a \emph{complex} scalar field $\Phi$ with a self-interacting
-potential
-\begin{equation}
-V(|\Phi|^2)=\tfrac{1}{2}\mu^2|\Phi|^2-\tfrac{1}{4}\lambda|\Phi|^4
-+\tfrac{1}{6}\mu_6|\Phi|^6,
-\end{equation}
-with $\mu^2$ (encoded as $\mathtt{phantom\_mass}=0.5$), $\lambda=170$, and
-$\mu_6=1.445\times10^4$. The sextic term stabilizes a finite-amplitude soliton
-(Q-ball). The field carries an azimuthal winding $\Phi=f(\rho,z)\,e^{i(m\varphi-\omega
-t)}$ with $m=1$ and rotation frequency $\omega=0.2507$. The modulus $f(\rho,z)$ is a
-\emph{genuine} stationary spinning-Q-ball eigenstate: it solves the 2D axisymmetric
-Klein--Gordon eigenvalue problem $\nabla^2 f-(m^2/\rho^2+\kappa^2)f+\lambda
-f^3-\mu_6 f^5=0$ (with $\kappa^2=\mu^2-\omega^2$), obtained by a damped-Newton solve
-under $\omega$-continuation from the near-linear thick-wall regime. This is what
-distinguishes the final construction from an earlier, dispersive attempt that merely
-twisted a \emph{spherical} lump into a torus (Sec.~\ref{sec:why_matter}). The result
-is a rotating Q-ball \emph{torus} carrying a conserved $U(1)$ Noether charge. Crucially, the
-gravitational coupling is exotic: the stress-energy enters with the phantom sign so
-that the configuration violates the NEC and can hold a throat open, exactly as in
-the Ellis--Bronnikov case, but now with rotation and a confining potential. The
-initial data---geometry \emph{and} the exotic matter profile---are produced by the
-\texttt{GRTresna} elliptic solver so that the Hamiltonian and momentum constraints
-are satisfied to solver tolerance at $t=0$.
-
-\subsection{Why this matter model: a decision chain forced by the physics}
-\label{sec:why_matter}
-The choice of a \emph{constraint-solved, self-interacting, complex, exotic Q-torus}
-was not aesthetic; each ingredient was forced by a concrete failure of the simpler
-alternatives, documented in our development log. We summarize the chain because it
-explains what the matter must be and why nothing cheaper works.
-
-\emph{(i) Exotic (phantom) coupling---to hold a throat open.} As in the static
-Ellis--Bronnikov case, keeping a throat open requires NEC violation, so the scalar
-enters the field equations with the phantom stress-energy sign.
-
-\emph{(ii) Complex, not real---to rotate coherently.} A genuine rotation requires an
-azimuthal phase, $\Phi\propto e^{i(m\varphi-\omega t)}$, which a single real scalar
-cannot carry. Our first attempt (a real-scalar Gaussian lump) produced a spurious
-four-lobe artifact rather than a smooth rotating torus. A \emph{complex} field with
-two channels $(\phi_1,\Pi_1,\phi_2,\Pi_2)$ carries a smooth $U(1)$ current and a
-conserved Noether charge---the natural way to encode rotation.
-
-\emph{(iii) Constraint-solved, not analytic---to avoid a numerical instability
-masquerading as physics.} Analytic rotating data with $K_{ij}=0$ carry an
-$\mathcal{O}(\omega)$ momentum-constraint defect. In direct tests the analytic
-rotating configuration began with a $\sim\!3\times$ larger Hamiltonian defect that
-\emph{grew} and produced a \texttt{NaN} at $t\approx2.8\,M$, while the \emph{same}
-code in the static limit was stable (constraints decreased, throat held). Replacing
-the analytic data with a \texttt{GRTresna} elliptic solve removed the defect: the
-rotating equilibrium then held with \emph{decreasing} constraints and a
-\emph{conserved} $J_z$. The lesson---the rotating ``instability'' of the naive
-setup was numerical, not physical---is why constraint-clean initial data are
-mandatory here.
-
-\emph{(iv) A bound eigenstate (Q-ball), not a Gaussian or a bare-mass lump---to stop
-the matter dispersing.} A Gaussian profile is a superposition of many radial modes;
-the non-eigenstate part simply radiates away, with or without a mass term (a bare
-mass only shifts the dispersion relation). Confinement requires the \emph{profile}
-itself to be a genuine bound state. Of the two candidates, a self-gravitating boson
-star is bound by gravity---but under the phantom sign self-gravity is effectively
-repulsive, so it is \emph{not} bound. Only a \emph{Q-ball}, bound by its own
-self-interaction potential $V(|\Phi|^2)$, binds through a mechanism independent of
-the gravitational sign. This forces the sextic, U(1)-symmetric potential above; a
-per-component (separable) potential would break the $U(1)$ symmetry and disperse the
-field immediately, so the coupled form on $|\Phi|^2$ is required. The correct
-confinement diagnostic is the Noether charge inside a fixed coordinate sphere
-($Q_{\rm sphere}$), not the whole-box density sum $\rho_{\rm sum}$, which is
-misleading on a unigrid.
-
-\emph{(v) Why active support is still needed.} An early attempt that merely twisted a
-\emph{spherical} Q-ball into an $m{=}1$ torus was not a true \emph{rotating}
-eigenstate: the throat charge $Q_{\rm sphere}$ drained with a half-life
-$t\approx13$--$16\,M$ and the throat relaxed \emph{toward flat space} rather than
-collapsing. Solving the genuine 2D spinning-Q-ball eigenstate (Sec.~\ref{sec:matter})
-removes this dispersive channel in flat space, but two obstacles remain on the curved,
-gravitating throat. First, a flat-space eigenstate is detuned by the throat geometry
-and self-gravity, so it is not exactly stationary once embedded. Second, there is an
-amplitude/existence clash: the throat
-constraint solve converges only at small exotic amplitude ($\mathrm{amp}\approx0.1$),
-whereas a Q-ball is an eigenstate only near its natural central amplitude
-$\phi_c\sim\mathcal{O}(1)$ (forcing the amplitude higher pushes the solve outside the
-Lichnerowicz existence boundary, $\mathrm{Ham}\!\sim\!85\%$). Slow rotation and
-throat convergence therefore pull the amplitude in opposite directions, and no
-single passive lump closes the gap. This is precisely why we supply the missing
-stationarity \emph{actively}, with the support pump described next---and why the
-resulting object is an engineered, controllable throat rather than a passive
-eigenstate.
-
-\subsection{Active support and the collapse trigger}
-For the reasons in Sec.~\ref{sec:why_matter}(v), even the genuine Q-torus is not
-exactly stationary once embedded on the gravitating throat. We therefore
-add a proportional--derivative ``matter pump'': a spatially localized,
-closed-loop source term that drives the field toward a target soliton profile,
-holding the throat open (support strength $S=1$). This is the engineered element of
-the configuration. Collapse is triggered by a smooth ramp of the support to zero,
-\begin{equation}
-S(t)=\tfrac{1}{2}\!\left[1+\cos\!\Big(\pi\,\tfrac{t-t_0}{t_1-t_0}\Big)\right],
-\quad t\in[t_0,t_1]=[8,10]\,M,
-\end{equation}
-with $S=0$ for $t\ge t_1$. Removing the exotic support lets gravity win, the
-rotating analogue of the static $S_{\rm support}\!\to\!0$ branch. \textbf{No}
-quadrupolar or monopolar scalar perturbation is imposed
-($\mathtt{wormhole\_phi\_perturbation\_amplitude}=0$): any $\ell{=}2$ radiation is
-sourced by the rotation and the collapse itself.
-
-\subsection{Grid, boundaries, and horizon proxy}
-The domain is a cube of side $L=64$ with $N=128$ base cells ($dx=0.5$) and up to
-$\mathtt{max\_level}=3$ levels of adaptive refinement centered on the throat at
-$(32,32,32)$. An outer sponge zone (radially ramped Kreiss--Oliger dissipation,
-$r\in[28,30]$) absorbs outgoing waves before the Sommerfeld boundary. As in the
-companion work, in the absence of a production horizon finder we use a
-trapped-surface proxy on coordinate spheres,
-\begin{equation}
-\theta_+ = \frac{2\sqrt{\chi}}{\bar r}-\frac{\partial_{\bar r}\chi}{\sqrt{\chi}}
-+\tilde A_{rr}-\tfrac{2}{3}K,
-\end{equation}
-identifying a trapped surface when $\theta_+\le0$; the largest such radius defines
-the apparent-horizon proxy $r_{\rm AH}$.
-
-\emph{Mass and angular momentum of the initial data.}
-Surface integrals of the ADM mass and angular momentum on coordinate spheres
-$R\in\{16,20,24,28\}$ give a stable
-$M_{\rm ADM}=0.209\pm0.001$ and $J_{{\rm ADM},z}\approx-1.93$ (code units),
-consistent in sign and magnitude with the volume diagnostic $J_z(t{=}0)\approx-1.47$.
-Throughout this paper ``$M$'' in physical-unit conversions denotes this measured
-$M_{\rm ADM}$ (not a unit code mass of $1$). Because $M_{\rm ADM}<1$ in the bare
-code units used for the evolution, frequencies quoted in Hz are lower than a
-naive unit-mass conversion by the factor $M_{\rm ADM}$
-(Sec.~\ref{sec:results_gw}).
-
-\subsection{Gravitational-wave extraction}
-\label{sec:gw_extract}
-The Weyl scalar $\Psi_4$ is projected onto spin-weighted spherical harmonics
-${}_{-2}Y_{\ell m}$ on spheres at $R_{\rm ext}\in\{12,18,24\}$. We report the
-full $\ell{=}2$ multipole content $m\in\{-2,\ldots,+2\}$.
-\textbf{Important:} we use the \emph{post-hoc Python
-extraction} that samples the $\Psi_4$ derived field from output plotfiles, because
-\texttt{GRTeclyn}'s \emph{in-code} C++ Weyl/CCE extraction is a feature the GRTL
-collaboration currently lists as ``in progress'' and which we found to be unreliable
-for this run (it carries a spurious $\mathcal{O}(1)$ $m{=}0$ imaginary part, whereas
-a correct $m{=}0$ projection must be essentially real). The Python extraction passes
-this null test: $\mathrm{Im}\,\Psi_4^{2,0}$ has RMS $\sim\!10^{-5}$, confirming a
-clean, physically valid projection. A directional power diagnostic built from all
-five $m$ modes yields a burst-window beam ratio
-$P_{|m|=2}/P_{\rm tot}\sim10^{-5}$, so the radiated power is overwhelmingly
-axisymmetric ($m{=}0$).
-
-These extraction radii lie in the \emph{near zone}: the dominant power is at
-$f\lesssim0.1$ (code units), i.e.\ wavelength $\lambda\gtrsim60$, while
-$R_{\rm ext}\le24<\lambda/2$ and the sponge begins at $r=28$. A linear
-$1/r$ extrapolation of the burst-peak $|r\Psi_4|$ across the three radii gives
-$\lim_{r\to\infty}|r\Psi_4|\approx1.3$ (the quadratic fit is unstable, consistent
-with near-zone contamination). We therefore treat amplitudes as indicative and
-quote the $v\!\approx\!c$ propagation test as the primary evidence that the
-signal is radiative.
-
-\section{Results}
+The rotation is carried by a complex scalar Q-torus rather than prescribed
+through an analytic rotating metric. An elliptic solve supplies
+constraint-consistent geometry and extrinsic curvature; an external support
+coupling holds the composite configuration temporarily and provides the trigger.
+This construction isolates the response to support removal but explicitly
+introduces a nonconservative source while support is active.
 
 \begin{figure*}[tp]
 \centering
-\includegraphics[width=0.95\textwidth]{fig_evolution_panel.png}
-\caption{Equatorial ($z{=}L/2$) slices through the collapse at $t=0,10,20,30\,M$
-(columns). \textbf{Top row:} the conformal factor $\chi$; the central throat
-(dark) deepens after the support ramps off at $t\in[8,10]\,M$. \textbf{Middle row:}
-the lapse $\alpha$; a collapsing lapse (dark core) develops as a trapped region
-forms. \textbf{Bottom row:} $\mathrm{Re}(\Psi_4)$; the rotating, non-axisymmetric
-crush launches an outgoing $\ell{=}2$ curvature wave visible as expanding ring
-structure. No quadrupolar kick was imposed---the wave is sourced by the rotation and
-the collapse.}
-\label{fig:evolution}
+\includegraphics[width=0.98\textwidth]{fig_initial_matter.png}
+\caption{Initial exotic matter. \textbf{(a)} The solved meridional eigenfunction
+$f(\rho,z)$. \textbf{(b)} Its axisymmetric toroidal modulus on the equatorial
+plane. \textbf{(c)} The real field at $t=0$, showing the $m=1$ phase winding.
+The cyan circle/segment marks the throat scale. Thus the density is
+axisymmetric although the complex phase carries angular momentum.}
+\label{fig:initial_matter}
 \end{figure*}
 
-\subsection{Collapse and horizon formation}
-Figure~\ref{fig:evolution} shows the qualitative evolution and
-Fig.~\ref{fig:diagnostics} the quantitative fine-level diagnostics. While the pump is
-on ($t<8\,M$) the throat is held in quasi-equilibrium. Once the support ramps off,
-gravity wins and the throat collapses:
-\begin{itemize}
-\item the minimum lapse falls from $\min(\alpha)=1.000$ to a deep minimum
-$\sim10^{-3}$ near $t\approx24$--$30$, recovering to $0.033$ by $t=40$
-(the signature of a collapsing then partially rebounding region);
-\item the minimum conformal factor pinches to $\min(\chi)=0.019$, i.e.\ extreme
-metric stretching at the throat;
-\item the maximum extrinsic curvature grows to $\max|K|\approx0.62$;
-\item a trapped surface forms: the apparent-horizon proxy reaches
-$r_{\rm AH}\approx9.2$ with $\min\theta_+\approx-1.9\le0$.
-\end{itemize}
-The lapse collapse, the $\chi$ pinch, and the trapped surface together constitute the
-formation of a nascent black hole (an apparent horizon), enacting cosmic censorship
-around the crushed exotic core.
+\section{Method}
 
-\emph{Causality controls.}
-Two companion runs share the identical initial data and grid.
-(i)~A \emph{no-ramp} control holds the support at full strength.
-(ii)~A \emph{shifted-ramp} control moves the support cut to $t\in[16,18]$.
-Both controls track the headline run through the early gauge transient
-(including the $t\approx2.3$ throat $\theta_+$ crossing), but neither develops
-the deep lapse collapse of the headline: $\min\alpha$ stays $\gtrsim0.14$,
-while the headline reaches $\sim10^{-3}$. Both instead hit a numerical
-\texttt{NaN} abort near $t\approx18.8$ (no-ramp: component $K$; shifted-ramp:
-$h_{11}$), with a runaway coordinate-sphere proxy ($\theta_+\sim-10^{2}$,
-$r_{\rm AH}\sim15$). The shifted ramp therefore does not have time to produce
-a resolved deep collapse before the same late instability. The honest
-statement is: \emph{cutting support at $t\in[8,10]$ selects a resolvable
-deep-collapse branch that runs cleanly to $t=40$ with a coherent GW burst};
-leaving support on (or cutting it only at $t\sim16$) does not hold a quiet
-quasi-equilibrium to $t=40$---it fails numerically without that deep collapse.
-A non-rotating ($m{=}0$, $\omega{=}0$) control with the same toroidal modulus
-aborted earlier ($t\approx9.6$) from GPU memory exhaustion, so the
-rotation-versus-geometry comparison remains incomplete
-(Sec.~\ref{sec:rotation_vs_geometry}).
+\subsection{Evolution system and initial data}
+We use the $3+1$ line element
+\begin{equation}
+ ds^2=-\alpha^2dt^2+\gamma_{ij}(dx^i+\beta^i dt)(dx^j+\beta^jdt)
+\end{equation}
+and evolve the CCZ4 system with \texttt{GRTeclyn}~\cite{grteclyn,grchombo}.
+The conformal decomposition is
+\begin{equation}
+ \gamma_{ij}=\chi^{-1}\tilde\gamma_{ij},\qquad
+ \det\tilde\gamma_{ij}=1 ,
+\end{equation}
+with $1+\log$ slicing and a Gamma-driver shift. A collapsing lapse diagnoses
+strong gravitational collapse; $\chi\to0$ marks large metric stretching.
 
-\emph{Final state: matter capture and a phantom bounce.} The exotic matter is
-\emph{captured}, not radiated away. The $U(1)$ Noether charge inside the
-$r<10$ sphere stays $Q_{\rm sphere}\approx-1.6$ to $-1.9$ throughout (dipping only to
-$\approx-1.2$ near $t\approx25$--$30$), so the bulk of the matter is crushed inward
-with the throat and held within the trapped region rather than escaping.
-The coordinate-sphere expansion proxy $\theta_+$ first crosses zero at
-$t\approx2.3$---\emph{with or without} the support ramp, and while the
-configuration is still in its early gauge transient. A wormhole throat is itself
-a minimal surface ($\theta_+\approx0$); we therefore interpret this early crossing
-as the throat's minimal-surface signature rather than horizon formation, and take
-the \emph{robust} trapped-surface onset (deepening $\theta_+$, growing $r_{\rm AH}$,
-collapsing lapse) from $t\approx12$ onward---after the support cut---as the
-collapse signal. The lapse deepens to $\min(\alpha)\approx10^{-3}$
-by $t\approx30$. However---because the source is a NEC-violating phantom field
-with negative pressure---the collapse is \emph{contested} rather than quiescent: the
-apparent-horizon proxy grows to $r_{\rm AH}\approx9.2$ at $t\approx15$ and then
-\emph{shrinks back} monotonically ($8.5\to6.7\to4.8\to3.2\to1.9$ at
-$t=20,25,30,35,40$), while the lapse partially recovers ($\min\alpha\!:\,10^{-3}
-\!\to\!0.033$) and $\chi$ un-pinches slightly ($0.019\to0.049$). This is the rotating
-analogue of the ``phantom bounce'' seen in the static collapse~\cite{shirokov_wh_dynamics}:
-the crushed exotic matter's repulsive pressure pushes back against the compression, so
-the remnant is a dynamical, bouncing object rather than a settling Schwarzschild black
-hole. Two caveats temper this final-state picture: $r_{\rm AH}$ is a coordinate-sphere
-\emph{proxy} rather than the output of a true apparent-horizon finder (none is yet
-ported in \texttt{GRTeclyn}), and the late
-phase---where gradients are steepest---is the least resolution-converged part of a
-single-resolution run. The robust statement is that a trapped surface and a collapsing
-lapse form and capture the exotic matter; the detailed late-time fate awaits a
-convergence study and a genuine horizon finder.
+The seed slice is a puncture representation of an
+Ellis--Bronnikov-class throat, not the analytic Teo metric~\cite{teo98}.
+\texttt{GRTresna} solves the Hamiltonian and momentum constraints for the exact
+throat-plus-matter configuration and exports a uniform \texttt{.gridinit} at the
+evolution base spacing. The evolution is never initialized at finer spacing
+than this solve.
+
+The exotic complex scalar has potential
+\begin{equation}
+ V(|\Phi|^2)=\frac{\mu^2}{2}|\Phi|^2-\frac{\lambda}{4}|\Phi|^4
+             +\frac{\mu_6}{6}|\Phi|^6
+\end{equation}
+with $\mu^2=0.5$, $\lambda=170$, and $\mu_6=1.445\times10^4$. Its stationary
+flat-space profile is
+\begin{equation}
+ \Phi=f(\rho,z)e^{i(m\varphi-\omega t)},\qquad
+ m=1,\quad\omega=0.2507 .
+\end{equation}
+The solved torus is shown in Fig.~\ref{fig:initial_matter}. Curvature and
+self-gravity detune this profile after embedding, so the complete gravitating
+object is actively supported rather than a passive equilibrium.
+
+\subsection{Trigger and numerical setup}
+The support strength is ramped from one to zero as
+\begin{equation}
+ S(t)=\frac{1}{2}\left[1+\cos\left(\pi\frac{t-8}{2}\right)\right],
+ \qquad 8\le t\le10 ,
+\end{equation}
+with $S=0$ thereafter. No monopolar or quadrupolar field perturbation is added.
+
+The headline domain has side $L=64$, base spacing $h=0.5$, and three AMR levels.
+A sponge occupies $r=28$--$30$. The resolution ladder uses matched
+\texttt{GRTresna} data at $h=0.667,0.5,0.4$, with otherwise identical evolution
+parameters. The large-box check uses $L=128$, $h=0.5$, two AMR levels, a sponge
+at $r=52$--$62$, and runs to $t=80$.
+
+Because \texttt{GRTeclyn} has no production apparent-horizon finder, we use the
+coordinate-sphere outgoing-expansion proxy
+\begin{equation}
+ \theta_+=\frac{2\sqrt{\chi}}{\bar r}
+ -\frac{\partial_{\bar r}\chi}{\sqrt{\chi}}
+ +\tilde A_{rr}-\frac{2}{3}K .
+\end{equation}
+The largest sampled radius with $\theta_+\le0$ defines $r_{\rm AH}$. This is a
+trapped-surface indicator, not a horizon mass or spin measurement.
+
+Surface integrals give $M_{\rm ADM}=0.209\pm0.001$ and
+$J_{{\rm ADM},z}\simeq-1.93$ in code units. We do not use these values to make
+precision detector forecasts because extraction systematics dominate.
+
+\subsection{Wave extraction}
+\label{sec:gw_extract}
+We project $\Psi_4$ onto ${}_{-2}Y_{\ell m}$ on spheres at
+$R_{\rm ext}=12,18,24$. Physics results use the post-processed Python extraction
+from plotfiles; its files already store $r\Psi_4^{2,0}$. The in-code C++ Weyl
+extraction is retained only for debugging because its $m=0$ imaginary component
+fails the expected null test. In contrast, the Python signal has
+$\max|\mathrm{Im}\Psi_4^{2,0}|/\max|\mathrm{Re}\Psi_4^{2,0}|\lesssim1.2\times10^{-3}$,
+and more than $99.998\%$ of integrated $\ell=2$ power lies in $m=0$.
+
+The headline radii are in the near zone. The $L=128$ run extracts at
+$R_{\rm ext}=36,48$, both inside the sponge onset, and is therefore an
+intermediate-zone check rather than a wave-zone extrapolation.
+
+\section{Results}
+
+\subsection{Collapse and rebound}
+Once support vanishes, the lapse and conformal factor collapse while the
+trapped-surface proxy grows (Fig.~\ref{fig:diagnostics}). In the headline run,
+\[
+ \min\alpha=9.8\times10^{-4},\quad
+ \min\chi=0.0185,\quad
+ \max r_{\rm AH}=9.18 .
+\]
+The robust proxy turns on after the support cut and peaks near $t=15.1$.
+Thereafter $r_{\rm AH}$ shrinks to $1.92$ by $t=40$, while
+$\min\alpha$ recovers to $0.033$. The longer $L=128$ run reaches comparable
+collapse depth and loses the proxy by $t\simeq78.4$. We call this
+collapse--rebound morphology a \emph{phantom bounce}; the term does not imply
+that a true apparent horizon has been located.
 
 \begin{figure}[htp]
 \centering
 \includegraphics[width=\linewidth]{fig_collapse_diagnostics.png}
-\caption{Fine-level collapse diagnostics for the rotating supported wormhole after
-the support ramp ($t_0{=}8$, $t_1{=}10$). The minimum lapse collapses toward zero,
-$\min(\chi)$ pinches, $\max|K|$ rises, and the apparent-horizon proxy $r_{\rm AH}$
-turns on (trapped surface, $\theta_+\!\le\!0$). A late-time exponential fit to the
-$K$ decay gives a characteristic lifetime $\tau\approx28.6$ code units
-($\approx137\,M_{\rm ADM}$; $\approx4.2$~ms if $M_{\rm ADM}=30\,M_\odot$).}
+\caption{Headline collapse diagnostics. The support ramp is shaded. The lapse
+and $\chi$ pinch as curvature grows; the trapped-surface proxy then forms and
+subsequently shrinks.}
 \label{fig:diagnostics}
 \end{figure}
 
-\subsection{Gravitational-wave emission}
-\label{sec:results_gw}
-The extracted $\Psi_4^{2,0}$ waveform is smooth and coherent
-(Fig.~\ref{fig:gw}). A near-zone/gauge response appears at $t\approx6$--$8$
-(around the support ramp), followed by the physical burst that develops as the throat
-crushes ($t\approx13$--$24$) and then decays. The signal is causally consistent
-with the trigger: support is removed at $t\in[8,10]$, the throat collapses, and the
-resulting quadrupole radiation reaches the inner detector at $R_{\rm ext}=12$ at the
-expected retarded time. The dominant radiated power is at low frequency
-($f\lesssim0.1$ in code units), so the coarse dense sampling of the post-hoc extraction is
-more than sufficient to resolve it. As noted in Sec.~\ref{sec:gw_extract}, the
-$m\neq0$ content is negligible: the burst is essentially the axisymmetric
-$\ell{=}2,m{=}0$ mode sourced by the collapsing toroidal mass distribution. A
-non-rotating ($m{=}0$, $\omega{=}0$) control with the same toroidal modulus and
-identical support ramp is used to separate rotation from geometry
-(Sec.~\ref{sec:rotation_vs_geometry}).
+\subsection{Gravitational-wave signal}
+The dominant $r\Psi_4^{2,0}$ signal is coherent across extraction radii and its
+peak delay is consistent with propagation at $c$ to the post-processing cadence.
+Its $m=0$ dominance means that the principal quadrupole follows the changing
+toroidal density; it is not evidence for an $m=2$ bar mode.
 
-Identifying the measured $M_{\rm ADM}\approx0.209$ with a physical remnant mass,
-the peak strain frequency of the burst is $\approx35$~Hz
-for a stellar-mass remnant ($M_{\rm ADM}=30\,M_\odot$)---still in the Advanced LIGO band---and
-$\approx1$~Hz for an intermediate-mass system ($M_{\rm ADM}=10^3\,M_\odot$), in the
-decihertz/DECIGO band. (A naive conversion that treated the code time unit as a unit
-mass of $1$ would overestimate these frequencies by $1/M_{\rm ADM}\approx4.8$.)
-A single-mode Newman--Penrose flux proxy gives
-$E_{\rm GW}\sim0.025\approx0.12\,M_{\rm ADM}$ (order-of-magnitude; near-zone,
-$m{=}0$ only). As in the static case, the morphology is a short, localized
-burst rather than a long inspiral chirp, favoring unmodeled burst pipelines or
-numerically generated templates.
+Figure~\ref{fig:wave_systematics}(a) compares the three resolutions at $R=12$.
+The medium and fine curves closely agree, but the coarse post-processing record
+has no samples over part of the principal burst. We therefore do not assign a
+three-point Richardson order to the burst amplitude. In the large box,
+$R=36$ and $R=48$ align in retarded time with overlap $0.993$ after a residual
+shift of $0.35$ and a relative $L_2$ residual of $12.3\%$
+[Fig.~\ref{fig:wave_systematics}(b)]. This supports approximate $1/r$ behavior
+in the intermediate zone. Late growth at $R=36$ is not shared by $R=48$ and
+coincides with constraint growth, so it is not interpreted as a runaway
+gravitational-wave instability.
 
 \begin{figure*}[tp]
 \centering
-\includegraphics[width=0.92\textwidth]{fig_psi4_M1000_D0p002.png}
-\caption{Six-panel gravitational-wave analysis of the dominant $\Psi_4^{2,0}$ mode,
-built from the validated post-hoc extraction. \textbf{(a,b)} Time-domain waveform in
-simulation and retarded time. \textbf{(c)} Power spectral density, peaking at low
-frequency. \textbf{(d)} Propagation-speed analysis across $R_{\rm ext}\in\{12,18,24\}$
-($v=1.00\pm0.08\,c$).
-\textbf{(e)} Time--frequency spectrogram of the $R{=}12$ extraction. \textbf{(f)}
-Physical strain projection for an intermediate-mass ($10^3\,M_\odot$) progenitor
-against the Advanced LIGO design sensitivity; with the measured
-$M_{\rm ADM}\approx0.209$ conversion the burst peaks near $1$~Hz for this
-mass. (A stellar-mass, $30\,M_\odot$ scaling places the peak near $35$~Hz.)
-Extraction radii are near-zone; see Sec.~\ref{sec:gw_extract}.}
-\label{fig:gw}
+\includegraphics[width=0.94\textwidth]{fig_waveform_systematics.png}
+\caption{\textbf{(a)} Validated $r\Psi_4^{2,0}$ at $R_{\rm ext}=12$ for the
+resolution ladder; the shaded region includes the coarse extraction gap and is
+excluded from formal waveform convergence. \textbf{(b)} Retarded-time comparison
+at $R=36,48$ in the $L=128$ run. The agreement is an intermediate-zone
+cross-check, not a fourth resolution rung.}
+\label{fig:wave_systematics}
 \end{figure*}
 
-\subsection{Is the signal gravitational radiation, or dispersing matter?}
-\label{sec:gw_vs_matter}
-Because the trigger removes the support that was confining an exotic lump, one must
-ask whether the extracted signal is genuine gravitational radiation or simply the
-unsupported scalar matter streaming outward past the detectors. The diagnostics give
-a clear, if nuanced, answer.
-
-\emph{What the matter does.} The conserved $U(1)$ Noether charge inside a fixed
-$r<10$ sphere, $Q_{\rm sphere}$, is \emph{largely retained} through the collapse
-(it stays $\approx-1.6$ to $-1.9$, dipping only to $\approx-1.2$), i.e.\ the bulk of
-the ``particle number'' is crushed inward with the throat rather than expelled. At
-the same time, the collapse and the ensuing phantom-pressure rebound drive an
-\emph{outward-propagating scalar/curvature shock}: the scalar-activity RMS radius
-grows from $8.3$ to $22$ and the fraction of activity confined within $r<10$ falls
-from $0.81$ to $0.04$. So a genuine outward matter disturbance does exist---but it is
-a shock of field gradients, not a net escape of charge.
-
-\emph{Why the extracted $\Psi_4$ is nonetheless gravitational.} Three independent
-points separate the gravitational-wave signal from the matter flux:
-\begin{enumerate}
-\item \textbf{$\Psi_4$ is a curvature scalar.} It is a Weyl-tensor projection---the
-\emph{free} (spin-2) gravitational field. Even at points threaded by scalar matter it
-carries only the Weyl part; the local Ricci/matter piece is projected out. It is
-therefore not the scalar field $\phi$ in disguise.
-\item \textbf{Speed test.} The extracted $\Psi_4^{2,0}$ burst propagates at
-$v=1.00\pm0.08\,c$ between $R_{\rm ext}=12$, $18$, and $24$ (peak-tracking
-retarded-time lags of $6$ and $12$ over $\Delta r=6$ and $12$, with the
-uncertainty set by the post-hoc sampling cadence $\delta t\sim1$). The scalar field here is
-\emph{massive} ($\mu^2=0.5$) and self-interacting, so scalar wavepackets travel
-\emph{sub-luminally} and disperse; they cannot produce a coherent $v\approx c$ front. The
-$v\approx c$ propagation is the signature of massless gravitational radiation.
-\item \textbf{Causal, not identical.} The two are causally linked---the
-non-axisymmetric (rotating $m{=}1$) collapsing and rebounding matter carries a
-time-varying quadrupole that \emph{sources} the $\ell{=}2$ radiation---but the
-radiated field ($\Psi_4$, $v=c$) is physically distinct from the matter shock
-(massive, $v<c$).
-\end{enumerate}
-
-\emph{The real systematic.} At \emph{finite} extraction radii the raw $\Psi_4$ also
-contains a \emph{near-zone} gravitational response to the passing matter (a
-non-radiative, locally sourced term)---this is the origin of the small $r{=}12$ bump
-near $t\approx9\,M$, coincident with the support ramp. The $v=c$ propagation test and
-the multi-radius retarded-time alignment are precisely what isolate the genuinely
-radiative part from this near-zone contamination. A fully clean separation would use
-wave-zone extraction at larger radii or Cauchy--characteristic extraction, which we
-list as future work. In summary: the matter is mostly crushed inward (with an outward
-dispersing shock), and the recorded gravitational wave is a true spin-2 signal
-\emph{sourced by} that matter's quadrupole---not the diffusing matter itself.
-
-\subsection{Can we trust the results?}
-\label{sec:trust}
-The evolution is numerically healthy in the sense that matters most for this claim:
-\begin{itemize}
-\item \textbf{Constraints stay bounded.} The volume-weighted $L_2$ Hamiltonian norm
-never exceeds $3.3\times10^{-2}$ ($\approx10\times$ the $t{=}0$ residual
-$3.2\times10^{-3}$, itself consistent with the $\lesssim1\%$ GRTresna solver
-tolerance) and the momentum norm $9.7\times10^{-3}$; both are
-flat through $t=40$ (Fig.~\ref{fig:constraints}). The run completes without
-\texttt{NaN} or grid failure. (The diagnostic file does not yet store
-restricted-region or $\Theta/Z_i$ norms; a volume $L_2$ can hide a localized
-throat spike, which is a residual caveat.)
-\item \textbf{The GW extraction passes a null test.} The $m{=}0$ imaginary part is
-$\sim\!10^{-5}$ (must be $\approx0$), confirming the projection is physically sound.
-\item \textbf{The collapse is unambiguous.} A trapped surface and a collapsing lapse
-are robust, gauge-insensitive indicators of horizon formation after the support cut.
-\end{itemize}
-Three honest caveats bound the interpretation. (i) This is a \emph{single-resolution}
-study ($dx=0.5$, $\mathtt{max\_level}=3$) pending the resolution ladder of
-Sec.~\ref{sec:convergence}; radiated energies and any quasinormal frequencies are indicative, not precision
-values. (ii) The engineered support violates the contracted Bianchi identity while
-the pump/support is active; in the headline run the PD pump is off
-($\int\mathrm{pump\_work}\,dt=0$) and only the support-strength ramp acts, yet
-$J_z$ and $Q_{\rm total}$ still drift by $\gtrsim100\%$ and change sign. The
-throat-sphere charge $Q_{\rm sphere}$ is largely retained ($\Delta Q_{\rm sphere}/|Q_0|\sim5\%$).
-We therefore \emph{do not} claim global Noether/angular-momentum conservation; the
-budget is not closed by pump injection and is left as an open diagnostic.
-(iii) The in-code C++ $\Psi_4$ extraction is unreliable (an incomplete
-upstream feature), which is why all physics here rests on the post-hoc Python
-extraction.
+\subsection{Constraints and controls}
+For the headline run, the volume-weighted norms remain below
+$\|\mathcal H\|_2=3.25\times10^{-2}$ and
+$\|\mathcal M\|_2=9.67\times10^{-3}$ through $t=40$
+(Fig.~\ref{fig:constraints}). The large-box norms are smaller than these values
+through $t=40$ but later reach $0.155$ and $0.0417$, respectively. Consequently
+its late waveform is treated cautiously.
 
 \begin{figure}[htp]
 \centering
 \includegraphics[width=\linewidth]{fig_constraints.png}
-\caption{Volume-weighted $L_2$ Hamiltonian and momentum constraint norms versus time.
-Both remain bounded ($\lesssim3.3\times10^{-2}\approx10\times$ the $t{=}0$ residual,
-and $9.7\times10^{-3}$) and flat
-through the full $t=40$ evolution, with no exponential runaway---the basis for
-trusting the collapse and the emission phase.}
+\caption{Volume-weighted Hamiltonian and momentum constraint norms for the
+$h=0.5$ headline run. They remain bounded through the collapse and emission
+interval.}
 \label{fig:constraints}
 \end{figure}
 
-\subsection{Is this an engineered configuration?}
-Yes, and explicitly so. Unlike the exact Ellis--Bronnikov bridge, a rotating $m{=}1$
-Q-torus is not a stationary eigenstate; left alone it disperses. The PD matter pump
-is an active control source that supplies the missing stationarity to hold the throat
-open, and the collapse is produced by switching that source off (in the headline run,
-via the support-strength ramp with the PD pump inactive). The result should
-therefore be read as a controlled \emph{dynamical experiment}---``what happens when
-support is withdrawn from a rotating exotic throat''---rather than as evidence that
-such a rotating wormhole exists as a self-consistent vacuum-plus-matter solution. The
-value of the experiment is that it cleanly isolates the collapse dynamics and the
-attendant, kick-free $\ell{=}2$ radiation.
+No-ramp and delayed-ramp controls do not produce the same resolved deep-collapse
+branch before numerical failure. A nonrotating run built from the same toroidal
+modulus follows a pathological trajectory: its coordinate-sphere proxy expands,
+momentum constraints grow rapidly, and AMR memory approaches exhaustion. It was
+stopped at $t\simeq13.5$. Thus the present data do not isolate rotation from
+toroidal geometry; the measured $m=0$ dominance only shows that rotation is not
+radiated mainly through nonaxisymmetric $\ell=2$ modes.
 
-\subsection{Rotation versus toroidal geometry}
-\label{sec:rotation_vs_geometry}
-The title claim that ``rotation supplies the quadrupole'' requires that $m\neq0$
-modes carry the burst, or that a non-rotating control not radiate comparably.
-The Python all-$m$ diagnostic on the headline run shows burst power overwhelmingly in $m{=}0$
-(beam ratio $\sim10^{-5}$). We therefore also evolved a non-rotating control with
-the \emph{same} toroidal modulus $f(\rho,z)$, painted with $m{=}0$ and $\omega{=}0$
-(so $J_{{\rm ADM},z}=0$), and the identical support ramp. That control aborted at
-$t\approx9.6$ from GPU memory exhaustion (\texttt{Arena out of memory}) before a
-full burst comparison was possible; a re-run at lower AMR depth is left as future
-work. Given the $m{=}0$ dominance already measured, the present evidence favors
-attributing the quadrupole to the \emph{toroidal geometry} rather than to
-rotation-sourced $m=\pm1,\pm2$ radiation. The manuscript title retains the
-``no imposed kick'' claim; the stronger ``rotation supplies the quadrupole''
-phrasing is softened pending a completed non-rotating control.
-
-\subsection{Resolution and extraction systematics}
+\subsection{Resolution study}
 \label{sec:convergence}
-A three-point resolution ladder ($dx\approx0.67/0.5/0.4$, matched initial-data
-spacing) and a larger-box run ($L=128$, $R_{\rm ext}\in\{50,60\}$) are under way
-to (i)~measure the constraint convergence order and waveform overlap,
-(ii)~test whether the late-time phantom bounce survives refinement, and
-(iii)~cross-check the near-zone $r\Psi_4$ extrapolation against wave-zone
-extraction.
+For unequal spacings we assume, only where supported,
+\begin{equation}
+ Q(h)=Q_0+Ch^p
+\end{equation}
+and solve
+\begin{equation}
+ \frac{Q_c-Q_m}{Q_m-Q_f}
+ =\frac{h_c^p-h_m^p}{h_m^p-h_f^p}
+\end{equation}
+for $p>0$. Sign-changing differences or unphysical continuum estimates are
+reported as non-asymptotic.
 
-The coarsest rung ($dx\approx0.67$) has completed to $t=40$ and already
-reproduces the headline phenomenology: deep lapse collapse
-($\min\alpha\sim2\times10^{-3}$), trapped-surface proxy $r_{\rm AH}\approx9.1$,
-late lapse recovery and $r_{\rm AH}$ shrinkage (phantom-bounce-like), and a
-comparable $\Psi_4^{2,0}$ burst peak ($\sim6\times10^{-2}$ vs
-$\sim8\times10^{-2}$ at $R=12$). Constraint maxima remain the same order
-($L_2({\rm Ham})\lesssim3.1\times10^{-2}$). The all-$m$ extraction on this rung
-confirms that $\gtrsim99.999\%$ of the burst power is in $m{=}0$. Finer rungs
-and the large-box run are still in progress; until they finish, radiated
-energies remain order-of-magnitude, but the bounce is no longer
-single-resolution only.
+All three runs reproduce the collapse, peak proxy radius, shrinkage, lapse
+recovery, and axisymmetric burst (Fig.~\ref{fig:convergence}). Selected scalar
+measures admit formal orders:
+\[
+\begin{array}{lccc}
+Q & p & Q_0 & {\rm GCI}_f\\
+\hline
+\max|K| & 3.78 & 0.663 & 3.31\%\\
+\max r_{\rm AH} & 0.91 & 9.39 & 2.39\%\\
+t(\max r_{\rm AH}) & 2.09 & 14.68 & 2.42\%\\
+\max\|\mathcal M\|_2 & 1.82 & 9.45\times10^{-3} & 1.95\%
+\end{array}
+\]
+The Hamiltonian maximum instead increases slightly,
+$0.0310\to0.0325\to0.0340$, and has no positive observed order. The lapse and
+$\chi$ minima deepen with refinement but extrapolate to unphysical negative
+values under the one-term model. These quantities establish qualitative
+multi-resolution robustness, not a universal continuum order.
 
-\section{Discussion and Implications}
-The central result is qualitative and, we believe, robust to the caveats above:
-\emph{withdrawing support from a rotating exotic throat drives gravitational collapse
-to a trapped surface and emits a coherent $\ell{=}2$ gravitational-wave burst, with no
-imposed quadrupole kick.} This is the rotating, engineered analogue of the static
-Ellis--Bronnikov collapse branch. The present data indicate that the burst is
-dominated by the axisymmetric $m{=}0$ mode of the collapsing torus; whether
-rotation adds a distinct $m\neq0$ channel is settled by the non-rotating control
-of Sec.~\ref{sec:rotation_vs_geometry}.
+\begin{figure*}[tp]
+\centering
+\includegraphics[width=0.92\textwidth]{fig_convergence.png}
+\caption{Resolution ladder at $h=0.667,0.5,0.4$. The support ramp is shaded.
+Collapse and proxy shrinkage are common to all runs. Momentum constraints show
+limited convergence; Hamiltonian maxima remain bounded but do not converge
+monotonically.}
+\label{fig:convergence}
+\end{figure*}
 
-Astrophysically, this maps onto a natural scenario. If primordial exotic
-configurations were held open during an NEC-violating (e.g.\ phantom-inflationary)
-epoch and lost that support at reheating---modeled here by the support ramp---rotating
-examples would collapse and radiate. Because the source is rotating, rapidly spinning
-cases could additionally develop bar-mode ($m{=}2$) instabilities, a distinct channel
-we did not probe here but which the machinery supports. The burst is short and
-localized in time, so searches would rely on unmodeled burst pipelines or on
-numerically generated collapse templates injected into matched-filter analyses; with
-the ADM-mass conversion the mass scaling places stellar-mass remnants near the
-lower Advanced LIGO band and intermediate-mass ones in the decihertz band.
+\section{Discussion}
+Withdrawing support from this rotating exotic throat produces a trapped-surface
+proxy, a collapsing lapse, and a coherent $\ell=2$ wave without an imposed kick.
+The same collapse--rebound morphology appears at three resolutions and in a
+larger domain. This removes the strongest single-resolution and small-box
+concerns, but it does not turn every observable into a precision result.
 
-\noindent\textbf{Future work.} The priorities are (i) completing the resolution ladder
-and large-box run of Sec.~\ref{sec:convergence}; (ii) a genuine apparent-horizon finder
-for $M_{\rm irr}$ and horizon spin (not yet available in \texttt{GRTeclyn});
-(iii) completing or replacing the in-code C++ Weyl/CCE extraction so dense,
-consistent waveforms can be produced during the run rather than post-hoc; and (iv)
-probing the rapidly rotating regime for $m{=}2$ bar-mode emission.
+Three limitations define the claim. First, $r_{\rm AH}$ is a coordinate-sphere
+proxy; a production apparent-horizon finder is needed for horizon mass and spin.
+Second, the waveform is extracted at finite, intermediate radii, and the coarse
+record misses part of the main burst. Third, active support is an external,
+nonconservative source, and whole-domain charge and angular momentum budgets do
+not close. The result is therefore a controlled numerical experiment on an
+engineered spacetime.
+
+Future work should obtain a clean nonrotating control, add a genuine
+apparent-horizon finder, repeat the large box at higher AMR depth, and use
+wave-zone or characteristic extraction. These steps are required before quoting
+precision energies, quasinormal frequencies, or detector horizons.
 
 \section{Code and Data Availability}
-The \texttt{GRTeclyn} evolution example, the \texttt{GRTresna} rotating-Q-torus
-initial-data solver, the run parameters, the extracted $\Psi_4$ time series
-(\texttt{small\_data/psi4\_mode\_l2m0.dat}), the collapse and constraint diagnostics,
-and the Python analysis scripts used to produce every figure here are maintained in
-the project repository. The figures in this article were copied alongside this
-manuscript for convenience.
+The evolution example, initial-data solver, run parameters, validated
+\texttt{small\_data/psi4\_mode\_l2m0.dat} files, diagnostics, and figure scripts
+are maintained in the project repository. The manuscript directory contains
+only the figures used here.
 
 \section{Acknowledgements}
 The author thanks Ilya Nachevsky for providing the high-performance computing
-resources essential to this work, and acknowledges the GRTL collaboration for
-\texttt{GRChombo} and \texttt{GRTeclyn}, upon which these simulations are built. This
-manuscript documents an actively supported (engineered) configuration and states its
-assumptions and limitations explicitly.
+resources and acknowledges the GRTL collaboration for \texttt{GRChombo} and
+\texttt{GRTeclyn}.
 
 \begin{thebibliography}{99}
 \bibitem{baumgarte10} T.~W.~Baumgarte and S.~L.~Shapiro,
@@ -792,19 +319,18 @@ assumptions and limitations explicitly.
 \bibitem{kleihaus14} B.~Kleihaus and J.~Kunz,
 \textit{Phys.\ Rev.\ D}\ \textbf{90}, 121503 (2014).
 \bibitem{ellis73} H.~G.~Ellis, \textit{J.\ Math.\ Phys.}\ \textbf{14}, 104 (1973).
-\bibitem{bronnikov73} K.~A.~Bronnikov, \textit{Acta Phys.\ Pol.\ B}\ \textbf{4}, 251
-(1973).
+\bibitem{bronnikov73} K.~A.~Bronnikov, \textit{Acta Phys.\ Pol.\ B}\ \textbf{4},
+251 (1973).
 \bibitem{shinkai02} H.~Shinkai and S.~A.~Hayward,
 \textit{Phys.\ Rev.\ D}\ \textbf{66}, 044005 (2002).
 \bibitem{gonzalez09} J.~A.~Gonz\'alez, F.~S.~Guzm\'an, and O.~Sarbach,
 \textit{Class.\ Quantum Grav.}\ \textbf{26}, 015010 (2009).
 \bibitem{teo98} E.~Teo, \textit{Phys.\ Rev.\ D}\ \textbf{58}, 024014 (1998).
-\bibitem{shirokov_wh_dynamics} N.~M.~Shirokov, ``Wormhole Dynamics: Nonlinear Collapse
-and Gravitational-Wave Emission'' (companion manuscript, this repository).
 \bibitem{grteclyn} GRTL Collaboration, \texttt{GRTeclyn}: a GPU-accelerated,
-AMReX-based numerical-relativity code, \url{https://github.com/GRTLCollaboration/GRTeclyn}.
-\bibitem{grchombo} T.~Andrade \textit{et al.}, \textit{J.\ Open Source Softw.}\
-\textbf{6}, 3703 (2021).
+AMReX-based numerical-relativity code,
+\url{https://github.com/GRTLCollaboration/GRTeclyn}.
+\bibitem{grchombo} T.~Andrade \textit{et al.},
+\textit{J.\ Open Source Softw.}\ \textbf{6}, 3703 (2021).
 \end{thebibliography}
 
 \end{document}

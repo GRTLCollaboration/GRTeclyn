@@ -324,8 +324,9 @@ def _fit_K_lifetime(
 def _apply_scientific_style() -> None:
     plt.rcParams.update({
         "font.family": "serif",
-        "font.serif": ["DejaVu Serif", "Times New Roman", "serif"],
-        "mathtext.fontset": "stix",
+        "font.serif": ["CMU Serif", "Computer Modern Roman", "DejaVu Serif"],
+        "mathtext.fontset": "cm",
+        "axes.unicode_minus": False,
         "axes.labelsize": 12,
         "axes.titlesize": 13,
         "xtick.labelsize": 10,

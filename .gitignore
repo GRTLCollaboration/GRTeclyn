@@ -68,6 +68,6 @@ __pycache__/
 **/*.pyc
 
 
-/research/rotatingwormhole/article/figures
+# /research/rotatingwormhole/article/figures
 
 
