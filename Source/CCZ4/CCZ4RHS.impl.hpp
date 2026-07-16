@@ -52,7 +52,7 @@ CCZ4RHS<gauge_t, deriv_t>::compute_chi_and_h_ij(
 
     CCZ4Vars vars(state_cell_data);
 
-    Tensor::Rank1 shift_vector{vars.shift(0), vars.shift(1), vars.shift(2)};
+    Tensor::Rank1 shift_vector({vars.shift(0), vars.shift(1), vars.shift(2)});
 
     auto d1_shift        = m_deriv.d1_vector(ix, iy, iz, state, c_shift1);
     amrex::Real divshift = CCZ4Geometry::compute_divshift(d1_shift);
@@ -145,8 +145,7 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
 
     FOR (k, l)
     {
-        int idx               = VAR_IDX0(k, l);
-        covdtilde2lapse(k, l) = d2_lapse(idx);
+        covdtilde2lapse(k, l) = d2_lapse(k, l);
         FOR (m)
         {
             covdtilde2lapse(k, l) -= chris.ULL(m, k, l) * d1_lapse(m);
@@ -167,7 +166,7 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
     }
     CCZ4Geometry::make_trace_free(Adot_TF, state_cell_data, h_UU);
 
-    Tensor::Rank1 shift_vector{vars.shift(0), vars.shift(1), vars.shift(2)};
+    Tensor::Rank1 shift_vector({vars.shift(0), vars.shift(1), vars.shift(2)});
 
     FOR2_SYM(i, j)
     {
@@ -204,9 +203,8 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
         tr_covd2lapse -= vars.chi() * chris.contracted(i) * d1_lapse(i);
         FOR (j)
         {
-            tr_covd2lapse +=
-                h_UU(i, j) * (vars.chi() * d2_lapse(VAR_IDX0(i, j)) +
-                              d1_lapse(i) * d1_chi(j));
+            tr_covd2lapse += h_UU(i, j) * (vars.chi() * d2_lapse(i, j) +
+                                           d1_lapse(i) * d1_chi(j));
         }
     }
 
@@ -297,9 +295,9 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
                     2.0 * vars.lapse() * chris.ULL(i, j, k) *
 
                         A_UU(j, k) +
-                    h_UU(j, k) * d2_shift(i, VAR_IDX0(j, k)) +
+                    h_UU(j, k) * d2_shift(i, j, k) +
                     (((double)GR_SPACEDIM - 2.0) / (double)GR_SPACEDIM) *
-                        h_UU(i, j) * d2_shift(k, VAR_IDX0(j, k));
+                        h_UU(i, j) * d2_shift(k, j, k);
             }
         }
     }
@@ -324,7 +322,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<gauge_t, deriv_t>::apply_gauge(
 
     CCZ4Vars vars(state_cell_data);
 
-    Tensor::Rank1 shift_vector{vars.shift(0), vars.shift(1), vars.shift(2)};
+    Tensor::Rank1 shift_vector({vars.shift(0), vars.shift(1), vars.shift(2)});
 
     auto advec_lapse =
         m_deriv.advec_scalar(ix, iy, iz, state, shift_vector, c_lapse);

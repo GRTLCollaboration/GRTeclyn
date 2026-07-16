@@ -209,7 +209,7 @@ class FourthOrderDerivatives
                   const int ivar_0) const
     {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-        Tensor::Sym12Rank3 d1;
+        Tensor::Sym12Rank3 d1{};
         const auto *state_ptr_xyz = state.ptr(ix, iy, iz);
         const auto strides        = get_strides(state);
 

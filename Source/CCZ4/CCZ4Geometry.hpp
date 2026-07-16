@@ -340,8 +340,7 @@ compute_christoffel(const Tensor::Sym12Rank3 &d1_h, const Tensor::Rank2 &h_UU)
     FOR (i, j, k)
     {
         out.LLL(i, j, k) =
-            0.5 * (d1_h(VAR_IDX0(j, i), k) + d1_h(VAR_IDX0(k, i), j) -
-                   d1_h(VAR_IDX0(j, k), i));
+            0.5 * (d1_h(j, i, k) + d1_h(k, i, j) - d1_h(j, k, i));
     }
 
     FOR (i, j, k)
@@ -674,7 +673,7 @@ compute_ricci_Z(const CCZ4Vars &vars, const Tensor::Rank1 &d1_chi,
     Tensor::Rank2 covdtilde2chi{};
     FOR (k, l)
     {
-        covdtilde2chi(k, l) = d2_chi(VAR_IDX0(k, l));
+        covdtilde2chi(k, l) = d2_chi(k, l);
         FOR (m)
         {
             covdtilde2chi(k, l) -= chris.ULL(m, k, l) * d1_chi(m);
@@ -760,14 +759,12 @@ compute_d1_chris_contracted(const Tensor::Rank2 &h_UU,
             amrex::Real d1_terms = 0.0;
             FOR (q, r)
             {
-                d1_terms += -h_UU(q, r) *
-                            (d1_h(VAR_IDX0(n, q), j) * d1_h(VAR_IDX0(m, p), r) +
-                             d1_h(VAR_IDX0(m, n), j) * d1_h(VAR_IDX0(p, q), r));
+                d1_terms += -h_UU(q, r) * (d1_h(n, q, j) * d1_h(m, p, r) +
+                                           d1_h(m, n, j) * d1_h(p, q, r));
             }
 
             d1_chris_contracted(i, j) +=
-                h_UU(i, m) * h_UU(n, p) *
-                (d2_h(VAR_IDX0(m, n), VAR_IDX0(j, p)) + d1_terms);
+                h_UU(i, m) * h_UU(n, p) * (d2_h(m, n, j, p) + d1_terms);
         }
     }
     return d1_chris_contracted;
@@ -855,8 +852,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z_general(
                 (1. - 0.5 * dZ_coeff) * 0.5 *
                 (vars.h(m, i) * (d1_chris_contracted(m, j) - d1_Gamma(m, j)) +
                  vars.h(m, j) * (d1_chris_contracted(m, i) - d1_Gamma(m, i)) +
-                 (chris.contracted(m) - vars.Gamma(m)) *
-                     d1_h(VAR_IDX0(i, j), m));
+                 (chris.contracted(m) - vars.Gamma(m)) * d1_h(i, j, m));
         }
         amrex::Real z_terms  = compute_z_terms(i, j, Z_over_chi, vars, d1_chi);
         ricci.LL(i, j)      += 0.5 * dZ_coeff * z_terms / vars.chi();

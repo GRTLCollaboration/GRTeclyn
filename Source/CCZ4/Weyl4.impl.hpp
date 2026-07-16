@@ -62,8 +62,8 @@ Weyl4::compute_epsilon3_LUU(const CCZ4Vars &vars,
                             const Tensor::Rank2 &h_UU) const
 {
     // raised normal vector, NB index 3 is time
-    // NB: this is not Tensor::Rank1 because of extra dim
-    Tensor::GeneralRank1<GR_SPACEDIM + 1> n_U{};
+    // NB: this is not Tensor::Rank1 because the dimension is not AMREX_SPACEDIM
+    Tensor::GeneralRank<1, GR_SPACEDIM + 1> n_U{};
     n_U(GR_SPACEDIM) = 1. / vars.lapse();
     FOR (i)
     {
@@ -144,13 +144,12 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t Weyl4::compute_EB_fields(
         K_tensor(i, j) = vars.A(i, j) / vars.chi() +
                          1. / 3. * (vars.h(i, j) * vars.K()) / vars.chi();
 
-        int idx = VAR_IDX0(i, j);
         FOR (k)
         {
             d1_K_tensor(i, j, k) =
-                d1_A(idx, k) / vars.chi() -
+                d1_A(i, j, k) / vars.chi() -
                 d1_chi(k) / vars.chi() * K_tensor(i, j) +
-                1. / 3. * d1_h(idx, k) * vars.K() / vars.chi() +
+                1. / 3. * d1_h(i, j, k) * vars.K() / vars.chi() +
                 1. / 3. * vars.h(i, j) * d1_K(k) / vars.chi();
         }
     }

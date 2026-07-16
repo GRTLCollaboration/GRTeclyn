@@ -55,101 +55,270 @@ using Rank3 = amrex::Array3D<amrex::Real, 0, SPACETIME_DIM - 1, 0,
 
 namespace Tensor
 {
-template <int DIM = AMREX_SPACEDIM> struct GeneralRank1
+
+template <int rank, int... DIMS>
+requires(sizeof...(DIMS) == rank && rank <= 4) AMREX_GPU_HOST_DEVICE
+    struct GeneralRank;
+
+template <int DIM> AMREX_GPU_HOST_DEVICE struct GeneralRank<1, DIM>
 {
+  private:
     amrex::Array1D<amrex::Real, 0, DIM - 1> m_tensor{};
 
-    amrex::Real &operator()(int idx) { return m_tensor(idx); }
-    const amrex::Real &operator()(int idx) const { return m_tensor(idx); }
+  public:
+    AMREX_GPU_HOST_DEVICE GeneralRank() = default;
+
+    AMREX_GPU_HOST_DEVICE GeneralRank(std::initializer_list<amrex::Real> some_initial_values)
+    {
+        for (int i = 0; i < some_initial_values.size(); ++i)
+        {
+            m_tensor(i) = some_initial_values.begin()[i];
+        }
+    }
+
+    AMREX_GPU_HOST_DEVICE amrex::Real &operator()(int idx)
+    {
+        return m_tensor(idx);
+    }
+    AMREX_GPU_HOST_DEVICE const amrex::Real &operator()(int idx) const
+    {
+        return m_tensor(idx);
+    }
+
+    AMREX_GPU_HOST_DEVICE amrex::Real &operator()(int idx1, int idx2)
+        requires(DIM == NUM_SYM_IDXS)
+    {
+        return m_tensor(VAR_IDX0(idx1, idx2));
+    }
+
+    AMREX_GPU_HOST_DEVICE const amrex::Real &operator()(int idx1,
+                                                        int idx2) const
+        requires(DIM == NUM_SYM_IDXS)
+    {
+        return m_tensor(VAR_IDX0(idx1, idx2));
+    }
+
+    AMREX_GPU_HOST_DEVICE GeneralRank<1, DIM> &
+    operator=(const amrex::Real an_initial_value)
+    {
+        for (int i = 0; i < DIM; ++i)
+        {
+            m_tensor(i) = an_initial_value;
+        }
+
+        return *this;
+    }
+
+    AMREX_GPU_HOST_DEVICE GeneralRank<1, DIM> &
+    operator=(std::initializer_list<amrex::Real> some_initial_values)
+    {
+        for (int i = 0; i < some_initial_values.size(); ++i)
+        {
+            m_tensor(i) = some_initial_values.begin()[i];
+        }
+
+        return *this;
+    }
 };
 
-template <int DIM1 = AMREX_SPACEDIM, int DIM2 = AMREX_SPACEDIM>
-struct GeneralRank2
+template <int DIM1, int DIM2>
+AMREX_GPU_HOST_DEVICE struct GeneralRank<2, DIM1, DIM2>
 {
+  private:
     amrex::Array2D<amrex::Real, 0, DIM1 - 1, 0, DIM2 - 1> m_tensor{};
 
-    amrex::Real &operator()(int idx1, int idx2) { return m_tensor(idx1, idx2); }
-    const amrex::Real &operator()(int idx1, int idx2) const
+  public:
+    AMREX_GPU_HOST_DEVICE GeneralRank() = default;
+
+    AMREX_GPU_HOST_DEVICE GeneralRank(amrex::Real an_initial_value)
+    {
+        for (int i = 0; i < DIM1; ++i)
+            for (int j = 0; j < DIM2; ++j)
+            {
+                m_tensor(i, j) = an_initial_value;
+            }
+    }
+
+    AMREX_GPU_HOST_DEVICE amrex::Real &operator()(int idx1, int idx2)
     {
         return m_tensor(idx1, idx2);
     }
+
+    AMREX_GPU_HOST_DEVICE const amrex::Real &operator()(int idx1,
+                                                        int idx2) const
+    {
+        return m_tensor(idx1, idx2);
+    }
+
+    AMREX_GPU_HOST_DEVICE amrex::Real &operator()(int idx1, int idx2, int idx3,
+                                                  int idx4)
+        requires(DIM1 == NUM_SYM_IDXS && DIM2 == NUM_SYM_IDXS)
+    {
+        return m_tensor(VAR_IDX0(idx1, idx2), VAR_IDX0(idx3, idx4));
+    }
+
+    AMREX_GPU_HOST_DEVICE const amrex::Real &
+    operator()(int idx1, int idx2, int idx3, int idx4) const
+        requires(DIM1 == NUM_SYM_IDXS && DIM2 == NUM_SYM_IDXS)
+    {
+        return m_tensor(VAR_IDX0(idx1, idx2), VAR_IDX0(idx3, idx4));
+    }
+
+    AMREX_GPU_HOST_DEVICE amrex::Real &operator()(int idx1, int idx2, int idx3)
+        requires(DIM1 == NUM_SYM_IDXS || DIM2 == NUM_SYM_IDXS)
+    {
+
+        if constexpr (DIM1 == NUM_SYM_IDXS)
+        {
+            return m_tensor(VAR_IDX0(idx1, idx2), idx3);
+        }
+        else
+        {
+            return m_tensor(idx1, VAR_IDX0(idx2, idx3));
+        }
+    }
+
+    AMREX_GPU_HOST_DEVICE const amrex::Real &operator()(int idx1, int idx2,
+                                                        int idx3) const
+        requires(DIM1 == NUM_SYM_IDXS || DIM2 == NUM_SYM_IDXS)
+    {
+        if constexpr (DIM1 == NUM_SYM_IDXS)
+        {
+            return m_tensor(VAR_IDX0(idx1, idx2), idx3);
+        }
+        else
+        {
+            return m_tensor(idx1, VAR_IDX0(idx2, idx3));
+        }
+    }
+
+    AMREX_GPU_HOST_DEVICE GeneralRank<2, DIM1, DIM2> &
+    operator=(const amrex::Real a_value)
+    {
+        for (int i = 0; i < DIM1; ++i)
+            for (int j = 0; j < DIM2; ++j)
+            {
+                m_tensor(i, j) = a_value;
+            }
+        return *this;
+    }
 };
 
-template <int DIM1 = AMREX_SPACEDIM, int DIM2 = AMREX_SPACEDIM,
-          int DIM3 = AMREX_SPACEDIM>
-struct GeneralRank3
+template <int DIM1, int DIM2, int DIM3>
+AMREX_GPU_HOST_DEVICE struct GeneralRank<3, DIM1, DIM2, DIM3>
 {
+  private:
     amrex::Array3D<amrex::Real, 0, DIM1 - 1, 0, DIM2 - 1, 0, DIM3 - 1>
         m_tensor{};
 
-    amrex::Real &operator()(int idx1, int idx2, int idx3)
+  public:
+    AMREX_GPU_HOST_DEVICE GeneralRank() = default;
+
+    AMREX_GPU_HOST_DEVICE GeneralRank(amrex::Real an_initial_value)
+    {
+        for (int i = 0; i < DIM1; ++i)
+            for (int j = 0; j < DIM2; ++j)
+                for (int k = 0; k < DIM3; ++k)
+                {
+                    m_tensor(i, j, k) = an_initial_value;
+                }
+    }
+
+    AMREX_GPU_HOST_DEVICE amrex::Real &operator()(int idx1, int idx2, int idx3)
     {
         return m_tensor(idx1, idx2, idx3);
     }
-    const amrex::Real &operator()(int idx1, int idx2, int idx3) const
+    AMREX_GPU_HOST_DEVICE const amrex::Real &operator()(int idx1, int idx2,
+                                                        int idx3) const
     {
         return m_tensor(idx1, idx2, idx3);
+    }
+
+    AMREX_GPU_HOST_DEVICE GeneralRank<3, DIM1, DIM2, DIM3> &
+    operator=(const amrex::Real a_value)
+    {
+        for (int i = 0; i < DIM1; ++i)
+            for (int j = 0; j < DIM2; ++j)
+                for (int k = 0; j < DIM3; ++k)
+                {
+                    m_tensor(i, j, k) = a_value;
+                }
+
+        return *this;
     }
 };
 
-template <int DIM1 = SPACETIME_DIM, int DIM2 = SPACETIME_DIM,
-          int DIM3 = SPACETIME_DIM, int DIM4 = SPACETIME_DIM>
-struct GeneralRank4
+template <int DIM1, int DIM2, int DIM3, int DIM4>
+AMREX_GPU_HOST_DEVICE struct GeneralRank<4, DIM1, DIM2, DIM3, DIM4>
 {
+  private:
     amrex::Array1D<amrex::Real, 0, DIM1 * DIM2 * DIM3 * DIM4 - 1> m_tensor{};
 
-    amrex::Real &operator()(int idx1, int idx2, int idx3, int idx4)
+  public:
+    AMREX_GPU_HOST_DEVICE GeneralRank() = default;
+
+    AMREX_GPU_HOST_DEVICE GeneralRank(amrex::Real an_initial_value)
     {
-        const int idx = DIM1 * DIM2 * DIM3 * idx1 + DIM2 * DIM3 * idx2 +
-                        DIM3 * idx3 + idx4; // TODO: check dimensions!
+        const int total_dims = DIM1 * DIM2 * DIM3 * DIM4 - 1;
+
+        for (int i = 0; i < total_dims; ++i)
+            m_tensor(i) = an_initial_value;
+    }
+
+    AMREX_GPU_HOST_DEVICE amrex::Real &operator()(const int idx)
+    {
         return m_tensor(idx);
     }
-    const amrex::Real &operator()(int idx1, int idx2, int idx3, int idx4) const
+
+    AMREX_GPU_HOST_DEVICE const amrex::Real &operator()(const int idx) const
     {
-        const int idx = DIM1 * DIM2 * DIM3 * idx1 + DIM2 * DIM3 * idx2 +
-                        DIM3 * idx3 + idx4; // TODO: check dimensions!
         return m_tensor(idx);
+    }
+
+    AMREX_GPU_HOST_DEVICE amrex::Real &operator()(int idx1, int idx2, int idx3,
+                                                  int idx4)
+    {
+        const int idx =
+            DIM1 * DIM2 * DIM3 * idx1 + DIM2 * DIM3 * idx2 + DIM3 * idx3 + idx4;
+        return m_tensor(idx);
+    }
+    AMREX_GPU_HOST_DEVICE const amrex::Real &
+    operator()(int idx1, int idx2, int idx3, int idx4) const
+    {
+        const int idx =
+            DIM1 * DIM2 * DIM3 * idx1 + DIM2 * DIM3 * idx2 + DIM3 * idx3 + idx4;
+        return m_tensor(idx);
+    }
+
+    AMREX_GPU_HOST_DEVICE
+    GeneralRank<4, DIM1, DIM2, DIM3, DIM4> &
+    operator=(const amrex::Real &a_value)
+    {
+        const int total_dims = DIM1 * DIM2 * DIM3 * DIM4 - 1;
+
+        for (int i = 0; i < total_dims; ++i)
+            m_tensor(i) = a_value;
+
+        return *this;
     }
 };
 
 // The default dimension use AMREX_SPACEDIM aka TENSOR_DIM if not otherwise
 // defined
-using Rank1 = GeneralRank1<AMREX_SPACEDIM>;
-using Rank2 = GeneralRank2<AMREX_SPACEDIM, AMREX_SPACEDIM>;
-using Rank3 = GeneralRank3<AMREX_SPACEDIM, AMREX_SPACEDIM, AMREX_SPACEDIM>;
-using Rank4 = GeneralRank4<AMREX_SPACEDIM, AMREX_SPACEDIM, AMREX_SPACEDIM,
-                           AMREX_SPACEDIM>;
+using Rank1 = GeneralRank<1, AMREX_SPACEDIM>;
+using Rank2 = GeneralRank<2, AMREX_SPACEDIM, AMREX_SPACEDIM>;
+using Rank3 = GeneralRank<3, AMREX_SPACEDIM, AMREX_SPACEDIM, AMREX_SPACEDIM>;
+using Rank4 = GeneralRank<4, AMREX_SPACEDIM, AMREX_SPACEDIM, AMREX_SPACEDIM,
+                          AMREX_SPACEDIM>;
 
 // These are for symmetric tensors
-using Sym12Rank2      = GeneralRank1<NUM_SYM_IDXS>;
-using Sym12Sym34Rank4 = GeneralRank2<NUM_SYM_IDXS, NUM_SYM_IDXS>;
-using Sym12Rank3      = GeneralRank2<NUM_SYM_IDXS, AMREX_SPACEDIM>;
-using Sym23Rank3      = GeneralRank2<AMREX_SPACEDIM, NUM_SYM_IDXS>;
+using Sym12Rank2      = GeneralRank<1, NUM_SYM_IDXS>;
+using Sym12Sym34Rank4 = GeneralRank<2, NUM_SYM_IDXS, NUM_SYM_IDXS>;
+using Sym12Rank3      = GeneralRank<2, NUM_SYM_IDXS, AMREX_SPACEDIM>;
+using Sym23Rank3      = GeneralRank<2, AMREX_SPACEDIM, NUM_SYM_IDXS>;
 
 using SpaceTime =
-    GeneralRank4<SPACETIME_DIM, SPACETIME_DIM, SPACETIME_DIM, SPACETIME_DIM>;
+    GeneralRank<4, SPACETIME_DIM, SPACETIME_DIM, SPACETIME_DIM, SPACETIME_DIM>;
 } // namespace Tensor
 
-template <typename T> class TensorAlt
-{
-  private:
-    const int m_length{};
-    T *m_tensor{};
-
-  public:
-    template <T... lengths>
-    TensorAlt()
-        : m_length((1 * ... * lengths)),
-          m_tensor(amrex::Array1D<amrex::Real, 0, m_length>{}){};
-
-    amrex::Real &operator()(int args, ...)
-    {
-        int index{1};
-        //        index = lengths*index + lengths*args;
-        // index = A0;  //1D
-        // index = L1*A0 + A1; //2D
-        // index = L1*L2*A1 + L2 * A1 + A3; //3D
-        return m_tensor(index);
-    }
-};
 #endif /* TENSOR_HPP_ */
